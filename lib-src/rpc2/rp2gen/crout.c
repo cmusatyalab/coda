@@ -625,7 +625,8 @@ static void spit_body(PROC *proc, rp2_bool in_parms, rp2_bool out_parms, FILE *w
     has_bd = NIL;
     if (in_parms) {
 	for (parm=proc->formals, first=RP2_TRUE; *parm!=NIL; parm++)
-	    if ((*parm)->mode != OUT_MODE) {
+	    if ((*parm)->mode != OUT_MODE ||
+		(*parm)->type->type->tag == RPC2_BOUNDEDBS_TAG) {
 		if ((*parm)->type->type->tag == RPC2_BULKDESCRIPTOR_TAG)
 		    has_bd = (*parm) -> name;
 		if (!first) fputc('+', where); else first = RP2_FALSE;
@@ -1169,7 +1170,6 @@ static void unpack(WHO who, VAR *parm, char *prefix, char *ptr, FILE *where)
     case RPC2_BOUNDEDBS_TAG:
 	    checkbuffer(where,ptr,8);
 	    if (who == RP2_SERVER && mode != IN_MODE) {
-		checkbuffer(where,ptr,4);
 		fprintf(where, "    %s%sMaxSeqLen = ntohl(*(RPC2_Integer *) %s);\n",
 			name, select, ptr);
 	    } else if (who == RP2_SERVER)
