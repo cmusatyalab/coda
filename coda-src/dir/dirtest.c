@@ -42,7 +42,10 @@ void dt_vdir(int argc, char **argv);
 void dt_readargs(int argc, char **argv);
 void dt_quit(int argc, char **argv);
 struct dirdata *dt_initrvm(char *log, char *data);
+void dt_bulktest(int arc, char **argv);
 
+#define FLUSH no_flush
+#define RESTORE no_restore
 
 command_t dtcmds[] =
 {
@@ -50,6 +53,7 @@ command_t dtcmds[] =
 	{"ok", dt_ok, 0, "check a directory"},
 	{"mdir", dt_mdir, 0, "create an empty directory"},
 	{"free", dt_free, 0, "delete directories"},
+	{"bulk", dt_bulktest, 0, "bulk test on directories"},
 	{"create", dt_create, 0, "create a dir entry"},
 	{"list", dt_list, 0, "list a directory"},
 	{"vdir", dt_vdir, 0, "list a venus BSD format directory"},
@@ -81,6 +85,16 @@ struct dirdata {
 };
 struct dirdata *dd;
 
+void printtime(void) 
+{
+	struct timeval tv;
+	gettimeofday(&tv, NULL);
+	printf("TIME: %d.%d", tv.tv_sec, tv.tv_usec);
+}
+
+
+
+
 PDirHandle dt_dh(int i)
 {
 	CODA_ASSERT( i >= 0 && i <= NDIRS);
@@ -91,12 +105,12 @@ void dt_init(int argc, char **argv)
 {
 	rvm_return_t status;
 
-	rvmlib_begin_transaction(restore);
+	rvmlib_begin_transaction(RESTORE);
 		
         rvmlib_set_range(dd, sizeof(struct dirdata));
 	bzero(dd, sizeof(struct dirdata));
 
-	rvmlib_end_transaction(flush, &status);
+	rvmlib_end_transaction(FLUSH, &status);
 
 	if ( status != RVM_SUCCESS) {
 		printf("error initializing dirdata\n");
@@ -158,14 +172,14 @@ void dt_free(int argc, char **argv)
 	}
 
 	if (strcmp(argv[1], "all") == 0) {
-		rvmlib_begin_transaction(restore);
+		rvmlib_begin_transaction(RESTORE);
 		while ( i < NDIRS ) {
 			dh = dt_dh(i);
 			DH_FreeData(dh);
 			free(dh);
 			i++;
 		}
-		rvmlib_end_transaction(flush, &err);
+		rvmlib_end_transaction(FLUSH, &err);
 		if ( err ) printf("Error in rvmlib_end_transaction\n");
 		return;
 	}
@@ -181,9 +195,9 @@ void dt_free(int argc, char **argv)
 		return ;
 	}
 
-	rvmlib_begin_transaction(restore);
+	rvmlib_begin_transaction(RESTORE);
 	DH_FreeData(dh);
-	rvmlib_end_transaction(flush, &err);
+	rvmlib_end_transaction(FLUSH, &err);
 
 	if ( err ) 
 		printf("Error in rvmlib_end_transaction\n");
@@ -217,20 +231,76 @@ void dt_create(int argc, char **argv)
 	FID_Int2DFid(&fid, atoi(argv[3]), atoi(argv[4]));
 	FID_DFid2VFid(&fid, &vfid);
 
-	rvmlib_begin_transaction(restore);
+	rvmlib_begin_transaction(RESTORE);
 	err = DH_Create(dh, argv[2], &vfid);
 	if ( err ) {
 		printf("DIR_Create failed\n");
-		rvmlib_end_transaction(flush, &err);
+		rvmlib_end_transaction(FLUSH, &err);
 		return;
 	}
-	rvmlib_end_transaction(flush, &err);
+	rvmlib_end_transaction(FLUSH, &err);
 	if ( err ) {
 		printf("DIR_Create - end trans failed\n");
 		return;
 	}
 	return;
 }
+
+
+void dt_bulktest(int argc, char **argv)
+{
+	int i , j;
+	int count;
+	int err;
+
+	int rvmcount;
+	int dirno;
+	int *ino1;
+	int *ino2;
+	char *mdir_argv[5] = {"mdir", "newdir", "0", "0", "1", "1"};
+	char *create_argv[4] = {"create/del", argv[1], "newdir", "0", "0"};
+	char *rmdir_arg[2] = {"rmdir", "1" };
+
+
+
+	if ( argc != 4 ) {
+		printf("usage %s dirno count rvmcount\n", argv[0]);
+		return;
+	}
+	count = atoi(argv[2]);
+	rvmcount = atoi(argv[3]);
+
+	printtime();
+	rvmlib_begin_transaction(RESTORE);
+	
+	ino1 = rvmlib_rec_malloc(sizeof(int) * 256); 
+
+	rvmlib_end_transaction(FLUSH, &err);
+
+	for ( i = 0 ; i < count/rvmcount ; i++ ) {
+		for ( j = 0 ; j < rvmcount ; j++ ) {
+			printf("creating %d, %d\n", i, j);
+			dt_mdir(5, mdir_argv);
+			dt_create(5, create_argv);
+			rvmlib_begin_transaction(RESTORE);
+			ino2 = rvmlib_rec_malloc(sizeof(int) * 512); 
+			rvmlib_set_range(ino2, 512 * sizeof(int));
+			bzero(ino2, 256 *sizeof(int));
+			rvmlib_set_range(ino1, sizeof(int));
+			ino1[1] = 0;
+			rvmlib_end_transaction(FLUSH, &err);
+			dt_delete(3, create_argv);
+			rvmlib_begin_transaction(RESTORE);
+			rvmlib_rec_free(ino2);
+			rvmlib_end_transaction(FLUSH, &err);
+			dt_free(2, rmdir_arg);
+		}
+		rvm_flush();
+	}
+	printtime();
+}
+
+
 
 
 void dt_lookup(int argc, char **argv) 
@@ -556,14 +626,14 @@ void dt_delete(int argc, char **argv)
 		return ;
 	}
 
-	rvmlib_begin_transaction(restore);
+	rvmlib_begin_transaction(RESTORE);
 	err = DH_Delete(dh, argv[2]);
 	if ( err ) {
 		printf("DIR_Delete failed for %s.\n", argv[2]);
 		rvmlib_abort(err);
 		return;
 	}
-	rvmlib_end_transaction(flush, &err);
+	rvmlib_end_transaction(FLUSH, &err);
 	if ( err ) {
 		printf("DIR_Delete - end trans failed\n");
 		return;
@@ -578,15 +648,15 @@ void dt_rdsfree(int argc, char **argv)
 	int *value;
 	rvm_return_t err;
 
-	rvmlib_begin_transaction(restore);
+	rvmlib_begin_transaction(RESTORE);
 	value = rvmlib_rec_malloc(sizeof(*value));
-	rvmlib_end_transaction(flush, &err);
+	rvmlib_end_transaction(FLUSH, &err);
 
-	rvmlib_begin_transaction(restore);
+	rvmlib_begin_transaction(RESTORE);
 	rvmlib_set_range(value, sizeof(*value));
 	*value = 5;
 	rvmlib_rec_free(value);
-	rvmlib_end_transaction(flush, &err);
+	rvmlib_end_transaction(FLUSH, &err);
 }
 	
 
@@ -621,16 +691,17 @@ void dt_mdir(int argc, char **argv)
 		return;
 	}
 
-	rvmlib_begin_transaction(restore);
+	rvmlib_begin_transaction(RESTORE);
 
 	err = DH_MakeDir(dh, &vme, &vparent);
 	if ( err ) {
 		printf("ERROR in DIR_MakeDir\n");
 		abort();
 	}
+#if 0
 	printf("Assigned directory %d at %p\n", i, dh->dh_data);
-
-	rvmlib_end_transaction(flush, &status);
+#endif
+	rvmlib_end_transaction(FLUSH, &status);
 
 	if ( status != RVM_SUCCESS) {
 		printf("error initialining dirdata\n");
@@ -703,6 +774,8 @@ struct dirdata *dt_initrvm(char *log, char *data)
 	return dd;
 }
 
+	
+
 int main(int argc, char **argv)
 {
 	int rc;
@@ -726,6 +799,8 @@ int main(int argc, char **argv)
 
 	DIR_Init(DIR_DATA_IN_RVM);
 
+	
+                  printtime();
 	Parser_init("dirtest> ", dtcmds);
 	if ( file ) {
 		char line[1024];

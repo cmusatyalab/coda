@@ -43,7 +43,7 @@ include $(TOPDIR)/Makeconf
   I =  scripts
  II =  kerndep 
 III =  rpc2 util dir 
- IV =  al rp2gen portmapper pdbstuff blurb
+ IV =  libal rp2gen portmapper pdbstuff blurb
   V =  fail vicedep partition
 
   VI = auth2 vv
