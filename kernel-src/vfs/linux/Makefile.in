@@ -16,7 +16,7 @@ TOPOBJ = @TOPOBJ@
 include $(MAKDIR)/Makeconf
 
 INCLDIR     := $(INCLDIR)/cfs
-BINDIR      =  /lib/modules/`uname -r`/fs
+BINDIR      =  $(prefix)/../lib/modules/`uname -r`/fs
 CBINS       =  coda.o
 CSBINS 	    =  coda-cache coda-debug coda-flush coda-resize coda-trace
 EXECUTABLES =  coda.o
