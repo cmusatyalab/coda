@@ -451,7 +451,8 @@ static void Recov_LayoutSeg() {
 
 
 /* Might need to fork here! -JJK */
-static void Recov_CreateSeg() {
+static void Recov_CreateSeg()
+{
     /* The Venus segment has two regions. */
     /* N.B. The segment package assumes that VM is allocated PRIOR to seg creation! */
     unsigned long nregions = 2;
@@ -486,7 +487,8 @@ static void Recov_CreateSeg() {
 }
 
 
-static void Recov_LoadSeg() {
+static void Recov_LoadSeg()
+{
     rvm_offset_t dummy = {0,0};
     unsigned long nregions = 0;
     rvm_region_def_t *regions = 0;
@@ -518,45 +520,47 @@ static void Recov_LoadSeg() {
 
 static void Recov_InitSeg() 
 {
-	rvg = (RecovVenusGlobals *)Recov_RvgAddr;
+    rvg = (RecovVenusGlobals *)Recov_RvgAddr;
 
-	/* Initialize/validate the segment. */
-	if (InitMetaData) {
-		Recov_BeginTrans();
-		/* Initialize the block of recoverable Venus globals. */
-		RVMLIB_REC_OBJECT(*rvg);
-		memset((void *)rvg, 0, (int)sizeof(RecovVenusGlobals));
-		rvg->recov_MagicNumber = RecovMagicNumber;
-		rvg->recov_VersionNumber = RecovVersionNumber;
-		rvg->recov_LastInit = Vtime();
-		rvg->recov_HeapAddr = Recov_RdsAddr;
-		rvg->recov_HeapLength = (unsigned int)Recov_RdsLength;
-		
-		/* We need to initialize the random number generator before
-		 * first use */
-		rpc2_InitRandom();
-		VenusGenID = rpc2_NextRandom(NULL);
+    /* Initialize/validate the segment. */
+    if (InitMetaData) {
+	Recov_BeginTrans();
+	/* Initialize the block of recoverable Venus globals. */
+	RVMLIB_REC_OBJECT(*rvg);
+	memset((void *)rvg, 0, (int)sizeof(RecovVenusGlobals));
+	rvg->recov_MagicNumber = RecovMagicNumber;
+	rvg->recov_VersionNumber = RecovVersionNumber;
+	rvg->recov_LastInit = Vtime();
+	rvg->recov_HeapAddr = Recov_RdsAddr;
+	rvg->recov_HeapLength = (unsigned int)Recov_RdsLength;
 
-		/* Initialize the recoverable heap. */
-		int err = 0;
-		rds_init_heap(Recov_RdsAddr, Recov_RdsLength, (unsigned long)RdsChunkSize,
-			      (unsigned long)RdsNlists, rvmlib_thread_data()->tid, &err);
-		if (err != SUCCESS)
-			CHOKE("Recov_InitSeg: rds_init_heap failed (%d)", err);
-		Recov_EndTrans(0);
-	} else {
+	/* We need to initialize the random number generator before
+	 * first use */
+	rpc2_InitRandom();
+	VenusGenID = rpc2_NextRandom(NULL);
+
+	/* Initialize the recoverable heap. */
+	int err = 0;
+	rds_init_heap(Recov_RdsAddr, Recov_RdsLength,
+		      (unsigned long)RdsChunkSize,
+		      (unsigned long)RdsNlists,
+		      rvmlib_thread_data()->tid, &err);
+	if (err != SUCCESS)
+	    CHOKE("Recov_InitSeg: rds_init_heap failed (%d)", err);
+	Recov_EndTrans(0);
+    } else {
 	/* Sanity check RVG fields. */
-	if (rvg->recov_HeapAddr != Recov_RdsAddr || rvg->recov_HeapLength != Recov_RdsLength)
+	if (rvg->recov_HeapAddr != Recov_RdsAddr ||
+	    rvg->recov_HeapLength != Recov_RdsLength)
 	    CHOKE("Recov_InitSeg: heap mismatch (%x, %x) vs (%x, %x)",
-		rvg->recov_HeapAddr, rvg->recov_HeapLength, Recov_RdsAddr, Recov_RdsLength);
-	if (!rvg->validate())
-	    { rvg->print(stderr); CHOKE("Recov_InitSeg: rvg validation failed, "
-                                        "restart venus with -init"); }
-#ifdef __linux__  /* strtok broken on Linux ? */
-	eprint("Last init was %s\n", ctime((long *)&rvg->recov_LastInit));
-#else
-        eprint("Last init was %s", strtok(ctime((time_t *)&rvg->recov_LastInit), "\n"));
-#endif
+		  rvg->recov_HeapAddr, rvg->recov_HeapLength,
+		  Recov_RdsAddr, Recov_RdsLength);
+	if (!rvg->validate()) {
+	    rvg->print(stderr); CHOKE("Recov_InitSeg: rvg validation failed, "
+				      "restart venus with -init");
+	}
+	eprint("Last init was %s",
+	       strtok(ctime((time_t *)&rvg->recov_LastInit), "\n"));
 
 	/* Copy CleanShutDown to VM global, then set it FALSE. */
 	CleanShutDown = rvg->recov_CleanShutDown;
@@ -566,11 +570,11 @@ static void Recov_InitSeg()
 	rvg->recov_CleanShutDown = 0;
 	Recov_EndTrans(0);
     }
-/*
-    eprint("Recov_InitSeg: magic = %x, version = %d, clean = %d, rvn = %s",
-	    rvg->recov_MagicNumber, rvg->recov_VersionNumber,
-	    rvg->recov_CleanShutDown, rvg->recov_RootVolName);
-*/
+    /*
+       eprint("Recov_InitSeg: magic = %x, version = %d, clean = %d, rvn = %s",
+	      rvg->recov_MagicNumber, rvg->recov_VersionNumber,
+	      rvg->recov_CleanShutDown, rvg->recov_RootVolName);
+     */
 
     /* Fire up the recoverable heap. */
     {
@@ -581,8 +585,8 @@ static void Recov_InitSeg()
 
 	/* Plumb the heap here? */
 	if (MallocTrace) {	
-	  rds_trace_on(logFile);
-	  rds_trace_dump_heap();
+	    rds_trace_on(logFile);
+	    rds_trace_dump_heap();
 	}
     }
 }

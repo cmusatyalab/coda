@@ -2559,7 +2559,8 @@ void volent::GetHosts(unsigned long *hosts) {
 
 	case ROVOL:
 	case REPVOL:
-	    vsg->GetHosts(hosts);
+	    if (!FID_VolIsFake(vid))
+		vsg->GetHosts(hosts);
 	    return;
 
 	default:

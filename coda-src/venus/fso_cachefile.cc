@@ -192,7 +192,7 @@ int CacheFile::Copy(char *destname, ino_t *ino, int recovering = 0)
     LOG(10, ("CacheFile::Copy: from %s, %d, %d/%d, to %s\n",
 	     name, inode, validdata, length, destname));
 
-    int tfd, ffd, n;
+    int tfd, ffd;
     struct stat tstat;
 
     if (mkpath(destname, V_MODE | 0100) < 0) {
