@@ -25,7 +25,7 @@
 #include <asm/segment.h>
 
 #include <linux/coda.h>
-#include <cfs_linux.h>
+#include <coda_linux.h>
 #include <psdev.h>
 #include <super.h>
 #include <cnode.h>
@@ -275,7 +275,7 @@ static void coda_put_super(struct super_block *sb)
         sb->s_dev = 0;
 
         /*  XXXXXXX
-	cfs_kill(coda_sbp(sb));
+	coda_kill(coda_sbp(sb));
         */
 
 	sb_info = coda_sbp(sb);

@@ -17,7 +17,7 @@
 #include "namecache.h"
 
 #include "linux/coda.h"
-#include <cfs_linux.h>
+#include <coda_linux.h>
 #include <psdev.h>
 #include "super.h"
 #include "upcall.h"

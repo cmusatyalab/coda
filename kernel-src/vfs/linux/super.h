@@ -18,7 +18,7 @@ struct coda_sb_info
 
 #define coda_sb(sb)   (*((struct coda_sb_info *)((sb)->u.generic_sbp)))
 #define coda_sbp(sb)  ((struct coda_sb_info *)((sb)->u.generic_sbp))
-#define vtomi(vp)     (coda_sb((vp)->i_sb).cfs_mntinfo)
+#define vtomi(vp)     (coda_sb((vp)->i_sb).coda_mntinfo)
 
 
 

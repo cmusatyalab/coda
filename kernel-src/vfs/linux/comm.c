@@ -12,7 +12,7 @@
 
 /*
  * HISTORY
- * cfs_subr.c,v
+ * coda_subr.c,v
  * Revision 1.2  1996/01/02 16:57:01  bnoble
  * Added support for Coda MiniCache and raw inode calls (final commit)
  *
@@ -29,7 +29,7 @@
  * Fixed kernel bug involving sleep and upcalls. Basically if you killed
  * a job waiting on venus, the venus upcall queues got trashed. Depending
  * on luck, you could kill the kernel or not.
- * (mods to cfs_subr.c and cfs_mach.d)
+ * (mods to coda_subr.c and coda_mach.d)
  *
  * Revision 2.7  95/03/02  22:45:21  dcs
  * Sun4 compatibility
@@ -55,7 +55,7 @@
  * 
  * Revision 2.4  92/09/30  14:16:26  mja
  * 	Incorporated Dave Steere's fix for the GNU-Emacs bug.
- * 	Also, included his cfs_flush routine in place of the former cfsnc_flush.
+ * 	Also, included his coda_flush routine in place of the former cfsnc_flush.
  * 	[91/02/07            jjk]
  * 
  * 	Added contributors blurb.
@@ -89,7 +89,7 @@
  * 
  */ 
 
-/* @(#)cfs_subr.c	1.5 87/09/14 3.2/4.3CFSSRC */
+/* @(#)coda_subr.c	1.5 87/09/14 3.2/4.3CFSSRC */
 
 
 #include <linux/sched.h>
@@ -102,7 +102,7 @@
 #include <linux/proc_fs.h>
 
 #include "linux/coda.h"
-#include "cfs_linux.h"
+#include "coda_linux.h"
 #include "psdev.h"
 #include "cnode.h"
 #include "super.h" 
@@ -174,8 +174,8 @@ int coda_upcall(mntinfo, inSize, outSize, buffer)
 	}
 	vcommp = coda_psdev_vcomm(mntinfo->s_psdev);
 	/*
-	cfs_clstat.ncalls++;
-	cfs_clstat.reqs[((struct inputArgs *)buffer)->opcode]++;
+	coda_clstat.ncalls++;
+	coda_clstat.reqs[((struct inputArgs *)buffer)->opcode]++;
         */
 	if (!VC_OPEN(vcommp))
           return(ENODEV);
@@ -246,14 +246,14 @@ CDEBUG(D_UPCALL, "process %d woken up by Venus.\n", current->pid);
 		
 		CODA_ALLOC(svmp, struct vmsg *, sizeof (struct vmsg));
 
-		CODA_ALLOC((svmp->vm_data), char *, sizeof(struct cfs_in_hdr));
+		CODA_ALLOC((svmp->vm_data), char *, sizeof(struct coda_in_hdr));
 		dog = (union inputArgs *)svmp->vm_data;
 		
 		svmp->vm_flags = 0;
-		dog->ih.opcode = svmp->vm_opcode = CFS_SIGNAL;
+		dog->ih.opcode = svmp->vm_opcode = CODA_SIGNAL;
 		dog->ih.unique = svmp->vm_unique = vmp->vm_unique;
-		svmp->vm_inSize = sizeof(struct cfs_in_hdr);
-		svmp->vm_outSize = sizeof(struct cfs_in_hdr);
+		svmp->vm_inSize = sizeof(struct coda_in_hdr);
+		svmp->vm_outSize = sizeof(struct coda_in_hdr);
 		
 		CDEBUG(D_UPCALL, "coda_upcall: enqueing signal msg (%d, %d)\n",
 			   svmp->vm_opcode, svmp->vm_unique);
@@ -280,18 +280,18 @@ CDEBUG(D_UPCALL, "process %d woken up by Venus.\n", current->pid);
  * There are 7 cases where invalidations occur. The semantics of each
  * is listed here.
  *
- * CFS_FLUSH     -- flush all entries from the name cache and the cnode cache.
- * CFS_PURGEUSER -- flush all entries from the name cache for a specific user
+ * CODA_FLUSH     -- flush all entries from the name cache and the cnode cache.
+ * CODA_PURGEUSER -- flush all entries from the name cache for a specific user
  *                  This call is a result of token expiration.
  *                  Linux does a cfsnc_flush since cred's are not maintained.
  *
  * The next arise as the result of callbacks on a file or directory.
- * CFS_ZAPDIR    -- flush the attributes for the dir from its cnode.
+ * CODA_ZAPDIR    -- flush the attributes for the dir from its cnode.
  *                  Zap all children of this directory from the namecache.
- * CFS_ZAPFILE   -- flush the cached attributes for a file.
+ * CODA_ZAPFILE   -- flush the cached attributes for a file.
  *
  * The next is a result of Venus detecting an inconsistent file.
- * CFS_PURGEFID  -- flush the attribute for the file
+ * CODA_PURGEFID  -- flush the attribute for the file
  *                  If it is a dir (odd vnode), purge its 
  *                  children from the namecache
  *                  remove the file from the namecache.
@@ -299,7 +299,7 @@ CDEBUG(D_UPCALL, "process %d woken up by Venus.\n", current->pid);
  * The last  allows Venus to replace local fids with global ones
  * during reintegration.
  *
- * CFS_REPLACE -- replace one ViceFid with another throughout the name cache 
+ * CODA_REPLACE -- replace one ViceFid with another throughout the name cache 
  */
 
 int coda_downcall(int opcode, union outputArgs *out)
@@ -307,16 +307,16 @@ int coda_downcall(int opcode, union outputArgs *out)
 
     /* Handle invalidate requests. */
     switch (opcode) {
-      case CFS_FLUSH : {
+      case CODA_FLUSH : {
 	cfsnc_flush();
 	return(0);
       }
-      case CFS_PURGEUSER : {
+      case CODA_PURGEUSER : {
 	cfsnc_flush();
 	return(0);
       }
-      case CFS_ZAPDIR : {
-	      ViceFid *fid = &out->cfs_zapdir.CodaFid;
+      case CODA_ZAPDIR : {
+	      ViceFid *fid = &out->coda_zapdir.CodaFid;
 	      cfsnc_zapfid(fid);
 	      cfsnc_zapParentfid(fid);     
 	      CDEBUG(D_UPCALL, "zapdir: fid = (%lx.%lx.%lx), \n",fid->Volume, 
@@ -324,15 +324,15 @@ int coda_downcall(int opcode, union outputArgs *out)
 					  fid->Unique);
 	      return(0);
       }
-      case CFS_ZAPFILE : {
-	  cfsnc_zapfid(&out->cfs_zapfile.CodaFid);
+      case CODA_ZAPFILE : {
+	  cfsnc_zapfid(&out->coda_zapfile.CodaFid);
 	  return 0;
       }
-      case CFS_PURGEFID : {
-	      ViceFid *fid = &out->cfs_purgefid.CodaFid;
+      case CODA_PURGEFID : {
+	      ViceFid *fid = &out->coda_purgefid.CodaFid;
 	  /*
-	  cfs_clstat.ncalls++;
-	  cfs_clstat.reqs[CFS_PURGEFID]++;
+	  coda_clstat.ncalls++;
+	  coda_clstat.reqs[CODA_PURGEFID]++;
 	  */
 	      cfsnc_zapfid(fid);
 	      cfsnc_zapParentfid(fid);     
@@ -341,13 +341,13 @@ int coda_downcall(int opcode, union outputArgs *out)
                                             fid->Unique);
 	      return 0;
       }
-      case CFS_REPLACE : {
+      case CODA_REPLACE : {
         /*
-	  cfs_clstat.ncalls++;
-	  cfs_clstat.reqs[CFS_REPLACE]++;
+	  coda_clstat.ncalls++;
+	  coda_clstat.reqs[CODA_REPLACE]++;
 	  */
-	  cfsnc_replace(&out->cfs_replace.OldFid, 
-			&out->cfs_replace.NewFid);
+	  cfsnc_replace(&out->coda_replace.OldFid, 
+			&out->coda_replace.NewFid);
 	  return (0);
       }			   
     }

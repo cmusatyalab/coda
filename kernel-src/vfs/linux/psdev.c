@@ -31,7 +31,7 @@
 
 
 /* These routines define the psuedo device for communication between
- * Coda's Venus and Minicache in Mach 2.6. They used to be in cfs_subr.c, 
+ * Coda's Venus and Minicache in Mach 2.6. They used to be in coda_subr.c, 
  * but I moved them to make it easier to port the Minicache without 
  * porting coda. -- DCS 10/12/94
  */
@@ -39,7 +39,7 @@
 
 /*
  * HISTORY
- * cfs_psdev.c,v
+ * coda_psdev.c,v
  * Revision 1.2  1996/01/02 16:56:58  bnoble
  * Added support for Coda MiniCache and raw inode calls (final commit)
  *
@@ -65,7 +65,7 @@
 #include <linux/proc_fs.h>
 
 #include <linux/coda.h>
-#include "cfs_linux.h"
+#include "coda_linux.h"
 #include "psdev.h"
 #include "super.h"
 #include "namecache.h"
@@ -257,7 +257,7 @@ static int coda_psdev_read(struct inode * inode, struct file * file, char * buf,
               count = vmp->vm_inSize;
 
         if (count < vmp->vm_inSize) {
-              printk ("cfs_read: warning: venus read %d bytes of %d long 
+              printk ("coda_read: warning: venus read %d bytes of %d long 
                                            message\n",count, vmp->vm_inSize);
         }
 
@@ -270,10 +270,10 @@ static int coda_psdev_read(struct inode * inode, struct file * file, char * buf,
 
         /* If request was a signal, free up the message and don't
            enqueue it in the reply queue. */
-        if (vmp->vm_opcode == CFS_SIGNAL) {
+        if (vmp->vm_opcode == CODA_SIGNAL) {
                     CDEBUG(D_PSDEV, "vcread: signal msg (%d, %d)\n", 
                               vmp->vm_opcode, vmp->vm_unique);
-              CODA_FREE((caddr_t)vmp->vm_data, sizeof(struct cfs_in_hdr));
+              CODA_FREE((caddr_t)vmp->vm_data, sizeof(struct coda_in_hdr));
               CODA_FREE((caddr_t)vmp, (u_int)sizeof(struct vmsg));
               return count;
         }
@@ -356,8 +356,8 @@ static void coda_psdev_release(struct inode * inode, struct file * file)
              vmp = (struct vmsg *)GETNEXT(vmp->vm_chain)) {	    
               /* Free signal request messages and don't wakeup cause
                  no one is waiting. */
-              if (vmp->vm_opcode == CFS_SIGNAL) {
-                    CODA_FREE((caddr_t)vmp->vm_data, sizeof(struct cfs_in_hdr));
+              if (vmp->vm_opcode == CODA_SIGNAL) {
+                    CODA_FREE((caddr_t)vmp->vm_data, sizeof(struct coda_in_hdr));
                     CODA_FREE((caddr_t)vmp, (u_int)sizeof(struct vmsg));
                     continue;
               }

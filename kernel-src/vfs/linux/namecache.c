@@ -14,7 +14,7 @@
 
 /*
  * HISTORY
- * cfs_namecache.c,v
+ * coda_namecache.c,v
  * Revision 1.3  1996/11/08 18:06:09  bnoble
  * Minor changes in vnode operation signature, VOP_UPDATE signature, and
  * some newly defined bits in the include files.
@@ -35,17 +35,17 @@
  * Made changes 'cause sun4s have braindead compilers
  *
  * Revision 2.2  94/08/28  19:37:35  luqi
- * Add a new CFS_REPLACE call to allow venus to replace a ViceFid in the
+ * Add a new CODA_REPLACE call to allow venus to replace a ViceFid in the
  * mini-cache. 
  * 
  * In "linux/coda.h":
- * Add CFS_REPLACE decl.
+ * Add CODA_REPLACE decl.
  * 
- * In "cfs_namecache.c":
+ * In "coda_namecache.c":
  * Add routine cfsnc_replace.
  * 
- * In "cfs_subr.c":
- * Add case-statement to process CFS_REPLACE.
+ * In "coda_subr.c":
+ * Add case-statement to process CODA_REPLACE.
  * 
  * In "cfsnc.h":
  * Add decl for CFSNC_REPLACE.
@@ -58,7 +58,7 @@
  * merge kernel/latest and alpha/src/cfs
  * 
  * Revision 2.3  92/09/30  14:16:20  mja
- * 	call cfs_flush instead of calling inode_uncache_try directly 
+ * 	call coda_flush instead of calling inode_uncache_try directly 
  * 	(from dcs). Also...
  * 
  * 	Substituted rvb's history blurb so that we agree with Mach 2.5 sources.
@@ -108,7 +108,7 @@
 #include <linux/string.h>
 
 #include "linux/coda.h"
-#include "cfs_linux.h"
+#include "coda_linux.h"
 #include "cnode.h"
 #include "namecache.h"
 
@@ -246,7 +246,7 @@ cfsnc_find(struct cnode *dcp, const char * name, int namelen, int hash)
 	 */
 	register struct cfscache *cncp;
 	int count = 1;
-	char pname[CFS_MAXNAMLEN];
+	char pname[CODA_MAXNAMLEN];
 
 	memcpy(pname, name, namelen);
 	pname[namelen] = '\0';

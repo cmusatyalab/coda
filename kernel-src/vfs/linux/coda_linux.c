@@ -18,7 +18,7 @@
 #include <linux/string.h>
 
 #include <linux/coda.h>
-#include <cfs_linux.h>
+#include <coda_linux.h>
 #include <psdev.h>
 #include <cnode.h>
 #include <namecache.h>

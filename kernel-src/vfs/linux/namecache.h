@@ -27,17 +27,17 @@
  * Bump to major revision 3 to prepare for NetBSD port
  *
  * Revision 2.2  1994/08/28  19:37:39  luqi
- * Add a new CFS_REPLACE call to allow venus to replace a ViceFid in the
+ * Add a new CODA_REPLACE call to allow venus to replace a ViceFid in the
  * mini-cache.
  *
  * In "cfs.h":
- * Add CFS_REPLACE decl.
+ * Add CODA_REPLACE decl.
  *
- * In "cfs_namecache.c":
+ * In "coda_namecache.c":
  * Add routine cfsnc_replace.
  *
- * In "cfs_subr.c":
- * Add case-statement to process CFS_REPLACE.
+ * In "coda_subr.c":
+ * Add case-statement to process CODA_REPLACE.
  *
  * In "cfsnc.h":
  * Add decl for CFSNC_REPLACE.
@@ -137,7 +137,7 @@ struct cfsnc_statistics {
 
 /* 
  * Symbols to aid in debugging the namecache code. Assumes the existence
- * of the variable cfsnc_debug, which is defined in cfs_namecache.c
+ * of the variable cfsnc_debug, which is defined in coda_namecache.c
  */
 extern int cfsnc_debug;
 #define CFSNC_DEBUG(N, STMT)     { if (cfsnc_debug & (1 <<N)) { STMT } }

@@ -14,7 +14,7 @@
 #include <linux/string.h>
 
 #include <linux/coda.h>
-#include <cfs_linux.h>
+#include <coda_linux.h>
 #include <psdev.h>
 #include <cnode.h>
 #include <super.h>
@@ -172,7 +172,7 @@ ENTRY;
 	dircnp = ITOC(dir);
         CHECK_CNODE(dircnp);
 
-	if ( length > CFS_MAXNAMLEN ) {
+	if ( length > CODA_MAXNAMLEN ) {
 		char str[50];
 		printk("name too long: create, %s(%s)\n", 
 		       coda_f2s(&dircnp->c_fid, str), name);
@@ -252,8 +252,8 @@ static int coda_lookup(struct inode *dir, const char *name, int length,
         /* control object, create inode for it on the fly, release will
            release it.  */
         if ( (dir == dir->i_sb->s_mounted) && 
-	     (CFS_CONTROLLEN == length ) && 
-	     (strncmp(name, CFS_CONTROL, CFS_CONTROLLEN) == 0 )) {
+	     (CODA_CONTROLLEN == length ) && 
+	     (strncmp(name, CODA_CONTROL, CODA_CONTROLLEN) == 0 )) {
 	    /* warning coda_cnode_makectl returns negative errors */
 	        error = -coda_cnode_makectl(res_inode, dir->i_sb);
 		CDEBUG(D_SPECIAL, "Lookup on CTL object; iput of ino %ld, count %d\n", dir->i_ino, dir->i_count);
@@ -272,7 +272,7 @@ static int coda_lookup(struct inode *dir, const char *name, int length,
 	CDEBUG(D_INODE, "name not found in cache (%s)!\n", name);
 
 	/* is this name too long? */
-        if ( length > CFS_MAXNAMLEN ) {
+        if ( length > CODA_MAXNAMLEN ) {
 	        printk("name too long: lookup, %lx,%lx,%lx(%s)\n", 
                       dircnp->c_fid.Volume, 
                       dircnp->c_fid.Vnode, 
@@ -384,7 +384,7 @@ coda_mkdir(struct inode *dir_inode, const char *name, int length, int mode)
 		return -ENOENT;
 	}
 
-        if ( length > CFS_MAXNAMLEN ) {
+        if ( length > CODA_MAXNAMLEN ) {
                 iput(dir_inode);
                 return -ENAMETOOLONG;
         }
@@ -435,7 +435,7 @@ ENTRY;
         /* this directory name should no longer be in the namecache */
         cfsnc_zapfile(dircnp, (const char *)name, length);
 
-        if ( length > CFS_MAXNAMLEN ) {
+        if ( length > CODA_MAXNAMLEN ) {
                 printk("coda_rmdir: name too long.\n");
                 iput(dir_inode);
                 return -ENAMETOOLONG;
@@ -466,7 +466,7 @@ ENTRY;
 
         CDEBUG(D_INODE, "old: %s, (%d length, %d strlen), new: %s (%d length, %d strlen).\n", old_name, old_length, strlen(old_name), new_name, new_length, strlen(new_name));
 
-        if ( (old_length > CFS_MAXNAMLEN) || new_length > CFS_MAXNAMLEN ) {
+        if ( (old_length > CODA_MAXNAMLEN) || new_length > CODA_MAXNAMLEN ) {
                 return -ENAMETOOLONG;
         }
         /* the old file should go from the namecache */
@@ -507,7 +507,7 @@ coda_link(struct inode *old_inode, struct inode *dir_inode,
 	CDEBUG(D_INODE, "directory: fid: (%ld.%ld.%ld)\n", dir_cnp->c_fid.Volume, 
                dir_cnp->c_fid.Vnode, dir_cnp->c_fid.Unique);
 
-        if ( length > CFS_MAXNAMLEN ) {
+        if ( length > CODA_MAXNAMLEN ) {
                 printk("coda_link: name too long. \n");
                 iput(dir_inode);
                 iput(old_inode);
@@ -542,12 +542,12 @@ coda_symlink(struct inode *dir_inode, const char *name, int namelen,
         ENTRY;
     
 	error = -ENAMETOOLONG;
-	if ( namelen > CFS_MAXNAMLEN ) { 
+	if ( namelen > CODA_MAXNAMLEN ) { 
 		iput(dir_inode);
 	        return error;
 	}
 	symlen = strlen(symname);
-	if ( symlen > CFS_MAXNAMLEN ) { 
+	if ( symlen > CODA_MAXNAMLEN ) { 
 		iput(dir_inode);
 	        return error;
 	}
@@ -616,8 +616,8 @@ coda_readlink(struct inode *inode, char *buffer, int length)
         CHECK_CNODE(cp);
 
         /* the maximum length we receive is len */
-        if ( length > CFS_MAXPATHLEN ) 
-	        len = CFS_MAXPATHLEN;
+        if ( length > CODA_MAXPATHLEN ) 
+	        len = CODA_MAXPATHLEN;
 	else
 	        len = length;
 	CODA_ALLOC(buf, char *, len);
@@ -649,7 +649,7 @@ coda_follow_link(struct inode * dir, struct inode * inode,
 			    int flag, int mode, struct inode ** res_inode)
 {
         int error;
-        char link[CFS_MAXPATHLEN];
+        char link[CODA_MAXPATHLEN];
         int length;
 	struct cnode *cnp;
 
@@ -679,7 +679,7 @@ coda_follow_link(struct inode * dir, struct inode * inode,
         CHECK_CNODE(cnp);        
 
         /* do the readlink to get the path */
-	length = CFS_MAXPATHLEN;
+	length = CODA_MAXPATHLEN;
         error = venus_readlink(inode->i_sb, &(cnp->c_fid), link, &length); 
 
         CDEBUG(D_INODE, "coda_getlink returned %d\n", error);

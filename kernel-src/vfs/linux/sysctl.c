@@ -32,7 +32,7 @@ struct ctl_table_header *fs_table_header, *coda_table_header;
 
 #define CODA_DEBUG  	1	    /* control debugging */
 #define CODA_ENTRY	    2       /* control enter/leave pattern */
-#define CODA_FLUSH      3       /* flush the cache on next lookup */
+#define CODA_SYSFLUSH      3       /* flush the cache on next lookup */
 #define CODA_MC         4       /* use/do not use the minicache */
 #define CODA_PROCSIZE   5       /* resize the cache on next lookup */
 
@@ -42,7 +42,7 @@ static ctl_table coda_table[] = {
 	{CODA_DEBUG, "debug", &coda_debug, sizeof(int), 0644, NULL, &coda_dointvec},
 	{CODA_ENTRY, "printentry", &coda_print_entry, sizeof(int), 0644, NULL, &coda_dointvec},
 	{CODA_MC, "minicache", &cfsnc_use, sizeof(int), 0644, NULL, &coda_dointvec},
-	{CODA_FLUSH, "flushme", &cfsnc_flushme, sizeof(int), 0644, NULL, &coda_dointvec},
+	{CODA_SYSFLUSH, "flushme", &cfsnc_flushme, sizeof(int), 0644, NULL, &coda_dointvec},
 	{CODA_PROCSIZE, "resize", &cfsnc_procsize, sizeof(int), 0644, NULL, &coda_dointvec},
 	{ 0 }
 };
