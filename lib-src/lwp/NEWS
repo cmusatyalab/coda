@@ -1,7 +1,14 @@
+New in 1.4:
+
+* Ported to Linux-arm (Jason Flinn).
+* Ported to FreeBSD-alpha.
+* Fixed unaligned access problems on 64-bit machines..
+* Increased the IOMGR stacksize to 32KB to avoid stackoverflows.
+
 New in 1.3:
 
 * Disabled building shared libraries by default, enabling it only for
-  platforms that seem to work correctly (currently only i386)
+  platforms that seem to work correctly (currently only i386).
 * Updates for Solaris-i386 (from Phil Nelson).
 
 New in 1.2:
