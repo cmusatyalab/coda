@@ -254,7 +254,7 @@ AC_DEFUN(CODA_FIND_LIBLWP,
   [saved_CFLAGS="${CFLAGS}" ; saved_LDFLAGS="${LDFLAGS}" ; saved_LIBS="${LIBS}"
    coda_cv_lwppath=none ; LIBS="-llwp"
    for path in ${prefix} /usr /usr/local /usr/pkg ; do
-     CFLAGS="${CFLAGS} -I${path}/lib"
+     CFLAGS="${CFLAGS} -I${path}/include"
      LDFLAGS="${LDFLAGS} -L${path}/lib"
      AC_TRY_LINK([#include <lwp/lwp.h>], [LWP_Init(0,0,0)],
 		 [coda_cv_lwppath=${path} ; break])
