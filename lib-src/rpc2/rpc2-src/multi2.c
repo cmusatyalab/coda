@@ -77,8 +77,9 @@ void pack(ARG *a_types, PARM **args, PARM **_ptr);
 void pack_struct(ARG *a_types, PARM **args, PARM **ptr);
 int  get_arraylen_pack(ARG *a_types, PARM *args);
 void incr_struct_byte(ARG *a_types, PARM **args);
-void unpack(ARG *a_types, PARM *args, PARM **_ptr, long offset);
-void unpack_struct(ARG *a_types, PARM **args, PARM **_ptr, long offset);
+int unpack(ARG *a_types, PARM *args, PARM **_ptr, char *_end, long offset);
+int unpack_struct(ARG *a_types, PARM **args, PARM **_ptr, char *_end,
+		  long offset);
 void byte_pad(PARM **args);
 
 /*
@@ -646,13 +647,15 @@ long MRPC_UnpackMulti(int HowMany, RPC2_Handle ConnHandleList[],
     PARM *args;	/* holds Args */
     PARM *str;
     PARM *_ptr;	/* holds rspbuffer */
-    int ret;
+    int ret = 0;
+    char *_end;
 
     if (rpcval == RPC2_SUCCESS) {
        if(rspbuffer->Header.ReturnCode == RPC2_INVALIDOPCODE)
 	  rpcval = RPC2_INVALIDOPCODE;
        else {
 	  _ptr = (PARM *)rspbuffer->Body;
+	  _end = (char *)_ptr + rspbuffer->Header.BodyLength;
 	  rpcval = rspbuffer->Header.ReturnCode;
 	  for(a_types = ArgInfo->ArgTypes, args = ArgInfo->Args; a_types->mode != C_END; a_types++, args++) {
 	    switch(a_types->mode){
@@ -662,33 +665,34 @@ long MRPC_UnpackMulti(int HowMany, RPC2_Handle ConnHandleList[],
 		case IN_OUT_MODE:
 			if (a_types->type == RPC2_STRUCT_TAG) {
 			   str = (PARM *) args->structpp[offset];
-			   unpack_struct(a_types, &str, &_ptr, offset);
+			   ret = unpack_struct(a_types, &str, &_ptr, _end, offset);
 			}
-			else unpack(a_types, args, &_ptr, offset);
+			else ret = unpack(a_types, args, &_ptr, _end, offset);
 			break;
 		default:	assert(FALSE);
 	    }
+	    if (ret) break;
 	  }
        }
     }
 
    /* Call client routine with arguments and RPC2 return code */
     args = ArgInfo->Args;
-    if (ArgInfo->HandleResult)
+    if (ret == 0 && ArgInfo->HandleResult)
 	ret = mkcall(ArgInfo->HandleResult, ArgInfo->ArgCount, HowMany,
 		     ConnHandleList, offset, rpcval, (int *)args);
-    else ret = 0;
-    if (rspbuffer != NULL) {
+
+    if (rspbuffer != NULL)
 	RPC2_FreeBuffer(&rspbuffer);
-    }
+
     return(ret);
+}
 
- }
 
-
-/* Returns the buffer length needed for the given argument, or -1 if unknown type.
- * Note that this routine modifies the static array of argument type descriptors 
- * defined in <subsys>.client.c by changing the value of the 'size' field. 
+/* Returns the buffer length needed for the given argument, or -1 if unknown
+ * type. Note that this routine modifies the static array of argument type
+ * descriptors defined in <subsys>.client.c by changing the value of the 'size'
+ * field. 
  */
 
 int get_len(ARG **a_types, PARM **args, MODE mode)
@@ -774,148 +778,135 @@ int get_arraylen_unpack(ARG *a_types, PARM *ptr)
     /*NOTREACHED*/
 }
 
-void unpack(ARG *a_types, PARM *args, PARM **_ptr, long offset)
-  {
-     int _length;
+#define CHECK(size) do { \
+    if (((char *)*_ptr + (size)) > _end) \
+	return EINVAL; \
+    } while(0)
+
+int unpack(ARG *a_types, PARM *args, PARM **_ptr, char *_end, long offset)
+{
+     int _length, _maxlength;
      RPC2_CountedBS *cbsbodyp;
      RPC2_BoundedBS *bbsbodyp;
      MODE mode = a_types->mode;
 
-	    switch(a_types->type) {
-		case RPC2_INTEGER_TAG:
-				if (mode != NO_MODE)
-				   *(args->integerp[offset]) = ntohl((*_ptr)->integer);
-				else args->integer = ntohl((*_ptr)->integer);
-				(*_ptr)++;
-				break;
-		case RPC2_UNSIGNED_TAG:
-				if (mode != NO_MODE)
-				   *(args->unsgnedp[offset]) = ntohl((*_ptr)->unsgned);
-				else args->unsgned = ntohl((*_ptr)->unsgned);
-				(*_ptr)++;
-				break;
-		case RPC2_BYTE_TAG:
-				if (a_types->bound != 0) {
-				   if (mode == NO_MODE) {
-				     memcpy(&(args->byte), *_ptr,
-					    a_types->bound);
-#if SIZE == 4
-				     (*_ptr) += (a_types->size) >> 2;
-#else
-				     (*_ptr) += a_types->size / SIZE;
-#endif
-				   }
-				   else {
-				     memcpy(args->bytep[offset],
-					    *_ptr, a_types->bound);
-				     (*_ptr) ++;
-				   }
-				}
-				else {
-				   if (mode != NO_MODE)
-				      *(args->bytep[offset]) = *(RPC2_Byte *)(*_ptr);
-				   else args->byte = *(RPC2_Byte *)(*_ptr);
-				   (*_ptr)++;
-				}
-				break;
-		 case RPC2_ENUM_TAG:
-				if (mode != NO_MODE) {
-				   *(args->integerp[offset]) = ntohl((*_ptr)->integer);
-				}
-				else args->integer = ntohl((*_ptr)->integer);
-				(*_ptr)++;
-				break;
-		 case RPC2_STRING_TAG:
-				_length = ntohl((*_ptr)->integer) + 1;
-				(*_ptr)++;
-				if (mode != NO_MODE) {
-				   memcpy(*(args->stringp[offset]), *_ptr,
-					  _length);
-				  (*args->stringp[offset])[_length - 1] = '\0';
-				}
-				else {
-				   memcpy(args->string, *_ptr, _length);
-				   args->string[_length - 1] = '\0';  /* used to be [length] */
-				}
-#if SIZE == 4
-				(*_ptr) += (_PAD(_length)) >> 2;
-#else
-				(*_ptr) += (_PAD(_length)) / SIZE;
-#endif
-				break;
-		case RPC2_COUNTEDBS_TAG:
-				if (mode != NO_MODE) {
-				  args->cbsp[offset]->SeqLen = ntohl((*_ptr)->integer);
-				  (*_ptr)++;
-				  memcpy(args->cbsp[offset]->SeqBody, *_ptr,
-					 args->cbsp[offset]->SeqLen);
-#if SIZE == 4
-				  (*_ptr) += (_PAD(args->cbsp[offset]->SeqLen)) >> 2;
-#else
-				  (*_ptr) += (_PAD(args->cbsp[offset]->SeqLen)) / SIZE;
-#endif
-				}
-				else {
-				  cbsbodyp = (RPC2_CountedBS *)args;
-				  cbsbodyp->SeqLen = ntohl((*_ptr)->integer);
-				  (*_ptr)++;
-				  memcpy(cbsbodyp->SeqBody, *_ptr,
-					 cbsbodyp->SeqLen);
-#if SIZE == 4
-				  (*_ptr) += (_PAD(cbsbodyp->SeqLen)) >> 2;
-#else
-				  (*_ptr) += (_PAD(cbsbodyp->SeqLen)) / SIZE;
-#endif
-				}
-				break;
-		case RPC2_BOUNDEDBS_TAG:
-				if (mode == OUT_MODE || mode == IN_OUT_MODE) {
-				  RPC2_Integer _length;
-				  (*_ptr)++; /* ignore received MaxSeqLen */
-				  _length = ntohl((*_ptr)->integer);
-				  (*_ptr)++;
-				  args->bbsp[offset]->SeqLen = _length;
-				  if (_length <= args->bbsp[offset]->MaxSeqLen)
-				    memcpy(args->bbsp[offset]->SeqBody, *_ptr, _length);
-				  (*_ptr) += (_PAD(_length)) / SIZE;
-				}
-				else if (mode == NO_MODE) {
-				  bbsbodyp = (RPC2_BoundedBS *)args;
-				  bbsbodyp->MaxSeqLen = ntohl((*_ptr)->integer);
-				  (*_ptr)++;
-				  bbsbodyp->SeqLen = ntohl((*_ptr)->integer);
-				  (*_ptr)++;
-				  memcpy(bbsbodyp->SeqBody, *_ptr,
-					 bbsbodyp->SeqLen);
-				  (*_ptr) += (_PAD(bbsbodyp->SeqLen)) / SIZE;
-				}
-		case RPC2_BULKDESCRIPTOR_TAG:
-				break;
-		case RPC2_STRUCT_TAG:
-				say(0, RPC2_DebugLevel, "Unpack: encountered struct\n");
-				break;
-		case RPC2_ENCRYPTIONKEY_TAG:
-				if (mode == IN_OUT_MODE) {
-				memcpy(args->keyp[offset], *_ptr, RPC2_KEYSIZE);
-				}
-				else memcpy(*(args->key), *_ptr, RPC2_KEYSIZE);
-#if SIZE == 4
-				(*_ptr) += (_PAD(RPC2_KEYSIZE)) >> 2;
-#else
-				(*_ptr) += (_PAD(RPC2_KEYSIZE)) / SIZE;
-#endif
-				break;
-		default:
-				say(0, RPC2_DebugLevel, "UnpackMulti (unpack): unknown tag: %d\n", a_types->type);
-	    }
-  }
+     switch(a_types->type) {
+     case RPC2_INTEGER_TAG:
+	 CHECK(SIZE);
+	 if (mode != NO_MODE)
+	     *(args->integerp[offset]) = ntohl((*_ptr)->integer);
+	 else args->integer = ntohl((*_ptr)->integer);
+	 (*_ptr)++;
+	 break;
+     case RPC2_UNSIGNED_TAG:
+	 CHECK(SIZE);
+	 if (mode != NO_MODE)
+	     *(args->unsgnedp[offset]) = ntohl((*_ptr)->unsgned);
+	 else args->unsgned = ntohl((*_ptr)->unsgned);
+	 (*_ptr)++;
+	 break;
+     case RPC2_BYTE_TAG:
+	 if (a_types->bound != 0) {
+	     CHECK(a_types->bound);
+	     if (mode == NO_MODE) {
+		 memcpy(&(args->byte), *_ptr, a_types->bound);
+		 (*_ptr) += a_types->size / SIZE;
+	     }
+	     else {
+		 memcpy(args->bytep[offset], *_ptr, a_types->bound);
+		 (*_ptr)++;
+	     }
+	 }
+	 else {
+	     CHECK(1);
+	     if (mode != NO_MODE)
+		 *(args->bytep[offset]) = *(RPC2_Byte *)(*_ptr);
+	     else args->byte = *(RPC2_Byte *)(*_ptr);
+	     (*_ptr)++;
+	 }
+	 break;
+     case RPC2_ENUM_TAG:
+	 CHECK(SIZE);
+	 if (mode != NO_MODE) {
+	     *(args->integerp[offset]) = ntohl((*_ptr)->integer);
+	 }
+	 else args->integer = ntohl((*_ptr)->integer);
+	 (*_ptr)++;
+	 break;
+     case RPC2_STRING_TAG:
+	 CHECK(SIZE);
+	 _length = ntohl((*_ptr)->integer) + 1; (*_ptr)++;
+	 CHECK(_length);
+	 if (mode != NO_MODE) {
+	     memcpy(*(args->stringp[offset]), *_ptr, _length);
+	     (*args->stringp[offset])[_length - 1] = '\0';
+	 }
+	 else {
+	     memcpy(args->string, *_ptr, _length);
+	     args->string[_length - 1] = '\0';  /* used to be [length] */
+	 }
+	 (*_ptr) += (_PAD(_length)) / SIZE;
+	 break;
+     case RPC2_COUNTEDBS_TAG:
+	 CHECK(SIZE);
+	 _length = ntohl((*_ptr)->integer); (*_ptr)++;
+	 CHECK(_length);
+	 if (mode != NO_MODE) {
+	     args->cbsp[offset]->SeqLen = _length;
+	     memcpy(args->cbsp[offset]->SeqBody, *_ptr, _length);
+	 }
+	 else {
+	     cbsbodyp = (RPC2_CountedBS *)args;
+	     cbsbodyp->SeqLen = _length;
+	     memcpy(cbsbodyp->SeqBody, *_ptr, _length);
+	 }
+	 (*_ptr) += (_PAD(_length)) / SIZE;
+	 break;
+     case RPC2_BOUNDEDBS_TAG:
+	 CHECK(2*SIZE);
+	 _maxlength = ntohl((*_ptr)->integer); (*_ptr)++;
+	 _length = ntohl((*_ptr)->integer); (*_ptr)++;
+	 CHECK(_length);
+	 if (mode == OUT_MODE || mode == IN_OUT_MODE) {
+	     RPC2_Integer _length;
+	     /* ignore received MaxSeqLen */
+	     args->bbsp[offset]->SeqLen = _length;
+	     if (_length <= args->bbsp[offset]->MaxSeqLen)
+		 memcpy(args->bbsp[offset]->SeqBody, *_ptr, _length);
+	 }
+	 else if (mode == NO_MODE) {
+	     bbsbodyp = (RPC2_BoundedBS *)args;
+	     bbsbodyp->MaxSeqLen = _maxlength;
+	     bbsbodyp->SeqLen = _length;
+	     memcpy(bbsbodyp->SeqBody, *_ptr, _length);
+	 }
+	 (*_ptr) += (_PAD(_length)) / SIZE;
+     case RPC2_BULKDESCRIPTOR_TAG:
+	 break;
+     case RPC2_STRUCT_TAG:
+	 say(0, RPC2_DebugLevel, "Unpack: encountered struct\n");
+	 break;
+     case RPC2_ENCRYPTIONKEY_TAG:
+	 CHECK(RPC2_KEYSIZE);
+	 if (mode == IN_OUT_MODE) {
+	     memcpy(args->keyp[offset], *_ptr, RPC2_KEYSIZE);
+	 }
+	 else memcpy(*(args->key), *_ptr, RPC2_KEYSIZE);
+	 (*_ptr) += (_PAD(RPC2_KEYSIZE)) / SIZE;
+	 break;
+     default:
+	 say(0, RPC2_DebugLevel, "UnpackMulti (unpack): unknown tag: %d\n", a_types->type);
+     }
+     return 0;
+}
 
 
-void unpack_struct(ARG *a_types, PARM **args, PARM **_ptr, long offset)
+int unpack_struct(ARG *a_types, PARM **args, PARM **_ptr, char *_end,
+		  long offset)
 {
     ARG *field;
     PARM **strp, *str;
-    int i, maxiterate;
+    int i, maxiterate, ret;
 
     if (a_types->mode != NO_MODE) {
 	str = *args;
@@ -928,10 +919,12 @@ void unpack_struct(ARG *a_types, PARM **args, PARM **_ptr, long offset)
         maxiterate = get_arraylen_unpack(a_types-1, *_ptr-1);
         for(i = 0; i < maxiterate; i++) {
 	    for(field = a_types->field; field->mode != C_END; field++) {
-	        if (field->type == RPC2_STRUCT_TAG)
-	            unpack_struct(field, strp, _ptr, -1);
-	        else {
-	            unpack(field, *strp, _ptr, offset);
+	        if (field->type == RPC2_STRUCT_TAG) {
+	            ret = unpack_struct(field, strp, _ptr, _end, -1);
+		    if (ret) return ret;
+		} else {
+	            ret = unpack(field, *strp, _ptr, _end, offset);
+		    if (ret) return ret;
 		    switch (field->type) {
 		      case RPC2_BYTE_TAG:
 		        incr_struct_byte(field, strp);
@@ -949,10 +942,12 @@ void unpack_struct(ARG *a_types, PARM **args, PARM **_ptr, long offset)
 	}
     } else {
 	for(field = a_types->field; field->mode != C_END; field++) {
-	    if (field->type == RPC2_STRUCT_TAG)
-	        unpack_struct(field, strp, _ptr, -1);
-	    else {
-	        unpack(field, *strp, _ptr, offset);
+	    if (field->type == RPC2_STRUCT_TAG) {
+	        ret = unpack_struct(field, strp, _ptr, _end, -1);
+		if (ret) return ret;
+	    } else {
+	        ret = unpack(field, *strp, _ptr, _end, offset);
+		if (ret) return ret;
 		switch (field->type) {
 		  case RPC2_BYTE_TAG:
 		    incr_struct_byte(field, strp);
@@ -969,6 +964,7 @@ void unpack_struct(ARG *a_types, PARM **args, PARM **_ptr, long offset)
 
 	}
     }
+    return 0;
 }
 
 /* This should only be called for structure fields, never for top level arguments */
