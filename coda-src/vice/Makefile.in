@@ -46,6 +46,7 @@ CXXFLAGS += -Wall -DSYSCONFDIR=\"${sysconfdir}\"
 EXECUTABLES = codasrv printvrdb
 SSBINS      = $(EXECUTABLES)
 LIBRARIES   = libviceerror.a
+SCONFFILES  = server.conf.ex
 
 DEPLIBS := $(LIBVOLSERV) $(LIBVICEDEP) $(LIBAUTH2) $(LIBAL) $(LIBVOLUTIL) \
 	   $(LIBRES) $(LIBREPAIR) $(LIBVOL) $(LIBVV) $(LIBPARTITION) \
