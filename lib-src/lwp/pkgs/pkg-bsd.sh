@@ -93,7 +93,7 @@ EXTRACT_SUFX=	.tar.gz
 MAINTAINER=	coda@cs.cmu.edu
 @NetBSD HOMEPAGE=	http://www.coda.cs.cmu.edu/
 
-@NetBSD ONLY_FOR_ARCHS=	arm32 i386 ns32k
+@NetBSD #ONLY_FOR_ARCHS=	arm32 i386 ns32k
 @NetBSD 
 @NetBSD LICENSE=	LGPL
 @NetBSD 
@@ -102,7 +102,7 @@ INSTALL_TARGET=	install
 
 GNU_CONFIGURE=	yes
 USE_GMAKE=	yes
-USE_LIBTOOL=	yes
+#USE_LIBTOOL=	yes
 
 @NetBSD .include "../../mk/bsd.pkg.mk"
 @FreeBSD .include <bsd.port.mk>
@@ -138,7 +138,6 @@ lib/liblwp.a
 lib/liblwp.la
 include/lwp/lock.h
 include/lwp/lwp.h
-include/lwp/preempt.h
 include/lwp/timer.h
 EOF
 }

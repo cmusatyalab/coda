@@ -160,7 +160,7 @@ struct timeval run_wait_threshold;
 
 
 int lwp_overflowAction = LWP_SOABORT;	/* Stack checking action */
-int lwp_stackUseEnabled = TRUE;		/* Controls stack size counting */
+int lwp_stackUseEnabled = 1;		/* Controls stack size counting */
 int stack_offset;			/* Offset of stack field within pcb */
 
 /* fixing up some missing funtions */
@@ -617,11 +617,7 @@ int LWP_CreateProcess(PFIC ep, int stacksize, int priority, char *parm,
 	gettimeofday(&temp->lastReady, 0);
 	temp2 = lwp_cpptr;
 
-	if (PRE_Block != 0) 
-		Abort_LWP("PRE_Block not 0");
-
 	/* Gross hack: beware! */
-	PRE_Block = 1;
 	lwp_cpptr = temp;
 	savecontext(Create_Process_Part2, &temp2->context, stackptr+stacksize-STACK_PAD);
 	/* End of gross hack */
@@ -996,8 +992,6 @@ static void Dispatcher()		/* Lightweight process dispatcher */
     if (LWP_TraceProcesses > 0)
 	printf("Dispatch %d [PCB at %p] \"%s\"\n", 
          ++dispatch_count, runnable[i].head, runnable[i].head->name);
-    if (PRE_Block != 1) 
-	    Abort_LWP("PRE_Block not 1");
     old_cpptr = lwp_cpptr;
     if (old_cpptr)
         gettimeofday(&old_cpptr->lastReady, 0);	/* back in queue */
@@ -1157,6 +1151,9 @@ static void Overflow_Complain()
     write (2, msg2, strlen(msg2));
 }
 
+void PRE_Concurrent(int on) { }
+void PRE_BeginCritical(void) { }
+void PRE_EndCritical(void) { }
 
 /*  The following documents the Assembler interfaces used by old LWP: 
 

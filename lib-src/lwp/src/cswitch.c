@@ -25,7 +25,6 @@ listed in the file CREDITS.
 
 void OtherProcess(PROCESS parent)
     {
-    PRE_PreemptMe();
     for(;;)
 	{
         /* we just yield */
@@ -57,7 +56,6 @@ int main(int argc, char **argv)
     assert(IOMGR_Initialize() == LWP_SUCCESS);
     gettimeofday(&t1, NULL);
 
-    PRE_PreemptMe();
     for (i = 0; i < count; i++) {
 #if 0
         LWP_DispatchProcess();

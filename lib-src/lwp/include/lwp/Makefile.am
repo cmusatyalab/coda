@@ -17,7 +17,7 @@
 #                            none currently
 #*/
 
-pkginclude_HEADERS = lock.h lwp.h preempt.h timer.h
+pkginclude_HEADERS = lock.h lwp.h timer.h
 
 MAINTAINERCLEANFILES = Makefile.in
 

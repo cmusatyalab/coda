@@ -27,14 +27,14 @@ case ${host} in
     AFLAGS="-traditional"
 
     if [ ${host_cpu} != i386 ] ; then
-	AM_DISABLE_SHARED
+	enable_shared = no
     fi
     ;;
    i*86-* )
     dnl Shared libs seem to work for i386-based platforms
     ;;
    * )
-    AC_DISABLE_SHARED
+    enable_shared = no
     ;;
 esac
 
@@ -42,8 +42,7 @@ if test ${build} != ${host} ; then
   case ${host} in
    i*86-pc-msdos )
     dnl no shared libs for dos
-    AM_DISABLE_SHARED
-   
+    enable_shared = no
 
     if ${dosmmap} ; then 
       CC="dos-gcc -bmmap"	

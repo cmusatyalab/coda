@@ -36,6 +36,8 @@ commercially   available   and  supported  by   Transarc  Corporation,
 Pittsburgh, PA.
 
 */
+/* some headers want to have this defined */
+#define __ASSEMBLY__ 1
 
 #if defined(sun3) || defined(mc68000) || defined(mc68020) || defined(mc68030)
 	.data
@@ -57,8 +59,6 @@ Pittsburgh, PA.
 #
 */
 
-	.globl	_PRE_Block 
-
 topstack =	0
 
 /* Stuff to allow saving/restoring registers */
@@ -77,7 +77,6 @@ newsp	=	16
 
 	.globl	_savecontext
 _savecontext:
-	movb	#1,_PRE_Block		| Do not allow any interrupt finagling
 	link	a6,#-(nregs*4)		| Save frame pointer & ...
 					| ... allocate space for nregs registers
 /* Save registers */
@@ -92,9 +91,8 @@ noswitch:
 	movl	a6@(f),a0		| a0 = f
 	jbsr	a0@			| f()
 
-/* It is impossible to be here, so abort() */
-
-	jbsr	_abort
+/* It is impossible to be here, so segfault */
+	movb	#0,0
 
 /*
 # returnto(area2)
@@ -115,7 +113,6 @@ _returnto:
 	addl	#(nregs*4),sp
 	movl	sp,a6			| Argghh...be careful here
 	unlk	a6
-	clrb	_PRE_Block
 	rts				| Return to previous process
 #endif /* sun3 */
 
@@ -154,17 +151,12 @@ SAVED_PC	= (0*4)
 SAVED_FP	= (1*4)
 SAVESIZE	= (2*4)
 
-	.seg	"data"
-	.globl	NAME(PRE_Block)
 	.seg	"text"
 	.align	4
 
 ENTRY(savecontext)
 	save	%sp, -SA(MINFRAME + SAVESIZE), %sp
 	t	ST_FLUSH_WINDOWS
-	mov	0x1, %o0
-	sethi	%hi(NAME(PRE_Block)), %o1
-	stb	%o0, [%o1 + %lo(NAME(PRE_Block))]
 	st	%i7, [%sp + MINFRAME + SAVED_PC]
 	st	%fp, [%sp + MINFRAME + SAVED_FP]
 	tst	%i2
@@ -182,8 +174,6 @@ ENTRY(returnto)
 	ld	[%o0], %sp
 	ld	[%sp + MINFRAME + SAVED_FP], %fp
 	ld	[%sp + MINFRAME + SAVED_PC], %o7
-	sethi	%hi(NAME(PRE_Block)), %o0
-	stb	%g0, [%o0 + %lo(NAME(PRE_Block))]
 	retl
 	restore
 
@@ -242,10 +232,6 @@ _.savecontext:
 					| ... allocate space for 16 registers
 | Save registers
 	stm	r0,0(sp)			| Change this if save fewer regs.
-| Set preemption semaphore
-	get	r6,$1
-	get	r7,$_PRE_Block
-	putc	r6,0(r7)			| PRE_Block = 1
 | r3 = base of savearea
 	put	sp,topstack(r3)		| area1->topstack = sp
 | New sp is in r4.
@@ -267,10 +253,6 @@ _.returnto:
 	get	sp,topstack(r2)
 | Now in the context of the savecontext stack to be restored.
 | Start with the registers...
-| Clear preemption semaphore
-	get	r6,$0
-	get	r7,$_PRE_Block
-	putc	r6,0(r7)			| PRE_Block = 0
 	lm	r0,0(sp)		| Change if saving fewer regs.
 	brx	r15		| Return to previous process
 	ai	sp,sp,regspace
@@ -305,12 +287,10 @@ _.returnto:
 	.set	area1,8
 	.set	newsp,12
 
-.globl	_PRE_Block
 .globl	_savecontext
 
 _savecontext:
 	.word 0x0ffc	# Save regs R2-R11
-	movb	$1,_PRE_Block		# Critical section for preemption code
    	pushl	ap			# save old ap
 	pushl	fp			# save old fp    
 	movl	area1(ap),r0		# r0 = base of savearea
@@ -322,9 +302,8 @@ L1:
 	movl	f(ap),r1		# r1 = f
 	calls	$0,0(r1)		# f()
 
-/* It is impossible to be here, so abort() */
-
-	calls	$0,_abort
+/* It is impossible to be here, so segfault */
+	movl	$0,0
 
 /*
 # returnto(area2)
@@ -341,11 +320,10 @@ _returnto:
 	movl	topstack(r0),sp		# Restore sp
 	movl	(sp)+,fp		# Restore fp
 	movl	(sp)+,ap		# ,,,,
-	clrb	_PRE_Block		# End of preemption critical section
 	ret
 
 	pushl	$1234			# I will gloat, Kazar
-	calls	$0,_abort
+	movl	$0,0
 #endif
 
 #ifdef mips
@@ -365,9 +343,6 @@ _returnto:
 	.globl savecontext /* MIPS' C compiler doesn't prepend underscores. */
 	.ent savecontext /* Insert debugger information. */
 savecontext:
-	li	t0, 1
-	.extern	PRE_Block
-	sb	t0, PRE_Block
 	subu	sp, regspace
 	.frame	sp, regspace, ra
 /* Save registers. */
@@ -422,7 +397,6 @@ returnto:
 	l.d	$f28, floats + 32(sp)
 	l.d	$f30, floats + 40(sp)
         addu    sp, regspace
-	sb	$0, PRE_Block
 	j	ra
 	.end	returnto
 #endif /* mips */
@@ -438,50 +412,35 @@ returnto:
 	
 #ifdef	__linux__
 #include <linux/linkage.h>	
-#define SYMB(name)  ENTRY(name)
-#define EXT(x) SYMBOL_NAME(x)
 
 #elif	defined(__FreeBSD__) && defined(__ELF__)
 #include <machine/asm.h>
-#define SYMB(x)	ENTRY(x)
-#define EXT(x)	CNAME(x)
 
 #elif	defined(__FreeBSD__)
-#define SYMB(x) .align 4;  .globl _##x; _##x:
-#define EXT(x) _##x
+#define ENTRY(x) .align 4;  .globl _##x; _##x:
 
 #elif	defined(__NetBSD__)
 #include <machine/asm.h>
-#define SYMB(x)  ENTRY(x)
-#define EXT(x)	_C_LABEL(x)
 
 #elif	defined(sun)
-#define SYMB(x)	\
+#define ENTRY(x)	\
 	.align	4; \
 	.globl	x; \
 	.type	x, @function; \
 x:
 
-#define EXT(x) 	x
-
 #else
 /* some kind of win32 machine */
-#define SYMB(x) .align 4;  .globl _##x; _##x:
-#define EXT(x) _##x
+#define ENTRY(x) .align 4;  .globl _##x; _##x:
 #endif
-
-
 
 #define	f	36
 #define area1	40
 #define newsp	44
 #define topstack 0
 
-        .globl  EXT(PRE_Block)
 	.text
-SYMB(savecontext)
-	movl	$1, EXT(PRE_Block)	/* Set PRE_Block to 1 to prevent interruption. */
-
+ENTRY(savecontext)
 	pusha				/* Save registers on the stack. */
 		
 	movl	area1(%esp), %eax	/* Load address of savearea. */
@@ -496,8 +455,8 @@ SYMB(savecontext)
 L1:	xorl	%ebp, %ebp		/* clear stackframe */
 	call	*%eax			/* f(); */
 
-	call	EXT(abort)			/*  Shouldn't get here anyway. */
-
+        /* Trigger a segfault, we shouldn't get here anyway. */
+        movl    $0, 0
 
 /*
   returnto(area2)
@@ -505,11 +464,10 @@ L1:	xorl	%ebp, %ebp		/* clear stackframe */
 */
 #define	area2	4
 
-SYMB(returnto)
+ENTRY(returnto)
 	movl	area2(%esp), %edx	/* address of save area. */
 	movl	topstack(%edx), %esp	/* Restore stack pointer. */
 	popa				/* Restore registers. */
-	movl	$0, EXT(PRE_Block)		/* Clear critical condition */
 	ret
 
 #endif 	/* i386 */
@@ -518,17 +476,11 @@ SYMB(returnto)
 #ifdef luna88k
 /* Luna88K Code from Dan Stodolsky via Brad White */
 
-	global	_PRE_Block
-
 	text
 	align	4
 	global 	_savecontext
 
 _savecontext:
-/* Set semaphore */
-	or	r12, r0, 1
-	or.u	r13, r0, hi16(_PRE_Block)
-	st.b	r12, r13, lo16(_PRE_Block)
 /* Allocate stack */
 	subu	r31, r31, 56
 /* Save return address */
@@ -582,9 +534,6 @@ _returnto:
 	ld	r23, r31, 44
 	ld	r24, r31, 48
 	ld	r25, r31, 52
-/* Clear the semaphore */
-	or.u	r13, r0, hi16(_PRE_Block)
-	st.b	r0, r13, lo16(_PRE_Block)
 /* Restore stack size */
 	addu	r31, r31, 56
 	jmp	r1
@@ -613,8 +562,6 @@ f	=	8
 area1	=	12
 newsp	=	16
 
-	.globl  _PRE_Block
-	.globl	_abort
 	.text
 
 	.align	2
@@ -635,7 +582,8 @@ noswitch:
 	jsr	0(r0)
 
 /*	should never get here ... */
-	jsr	_abort
+/*	.globl	_abort */
+/*	jsr	_abort */
 		
 	
 /*
@@ -652,7 +600,6 @@ SYMB(returnto)
 	movd	tos, r0
 	lprd	fp, r0
 	exit	[r0,r1,r2,r3,r4,r5,r6,r7]
-	movb	0, _PRE_Block(pc)
 	ret	0
 		
 #endif /* __ns32k__ */
@@ -660,18 +607,16 @@ SYMB(returnto)
 #if defined(__arm32__) || defined(__arm__)
 
 #ifdef	__linux__
-
 #include <linux/linkage.h>	
-#define SYMB(name)  ENTRY(name)
 #define EXT(x) SYMBOL_NAME(x)
 
 #else
-
 #ifdef __STDC__	
-#define SYMB(x)  _##x:
+#define ENTRY(x)  _##x:
 #define EXT(x)	_##x
+
 #else
-#define SYMB(x)  _/**/x:
+#define ENTRY(x)  _/**/x:
 #define EXT(x)	_/**/x
 #endif
 
@@ -693,13 +638,11 @@ pc	.req	r15
 
 /* Arguments appear as:  f in r0, area1 in r1, newsp in r2 */
 
-	.globl  EXT(PRE_Block)
-	.globl	EXT(abort)
 	.text
 	.align	0
 	.globl	EXT(savecontext)
 	.type   EXT(savecontext), #function
-SYMB(savecontext)
+ENTRY(savecontext)
 	@ build the frame
 	mov 	ip, sp
 	stmfd	sp!, {fp, ip, lr, pc}
@@ -707,10 +650,6 @@ SYMB(savecontext)
 	@ stack r0 - r10, current fp
 	stmfd	sp!, {r0, r1, r2, r3, r4, r5, r6, r7, r8, r9, r10, fp}
 	str	sp, [r1, #0]
-	@ set _PRE_Block
-	ldr	r3, L1
-	mov	r4, #1
-	str	r4, [r3, #0]
 	@ check if newsp is zero
 	movs	r2, r2
 	movne	sp, r2
@@ -718,10 +657,8 @@ SYMB(savecontext)
 	mov	pc, r0
 
 /*	should never get here ... */
-	bl	EXT(abort)
+/*	bl	EXT(abort) */
 
-L1:	.word EXT(PRE_Block)		
-	
 /*
   returnto(area2)
      struct savearea *area2;
@@ -731,11 +668,7 @@ L1:	.word EXT(PRE_Block)
 	
 	.globl EXT(returnto)
 	.type  EXT(returnto), #function
-SYMB(returnto)
-	@ clear _PRE_Block
-	ldr	r3, L1
-	mov	r4, #0
-	str	r4, [r3, #0]
+ENTRY(returnto)
 	@ restore r0-r10, fp
 	ldr	r0, [r0, #0]
 	ldmfd	r0, {r0, r1, r2, r3, r4, r5, r6, r7, r8, r9, r10, fp}
@@ -790,8 +723,11 @@ SYMB(returnto)
 #define r29   29
 #define r30   30
 #define r31   31
-#endif /* !NeXT && !__APPLE__ */
+#define EXT(x) x
 
+#else /* NeXT && __APPLE__ */
+#define EXT(x) _x
+#endif
 
 /*
  * savecontext(int (*f)(), struct savearea *save, char *newsp)
@@ -804,19 +740,8 @@ SYMB(returnto)
 #define RETURN                (1*4)
 #define CCR           (2*4)
 
-#if defined(NeXT) || defined(__APPLE__)
-      .globl  _savecontext
-_savecontext:
-      lis     r9,ha16(_PRE_Block)     /* Disable interrupt fiddling */
-      li      r8,1
-      stb     r8,lo16(_PRE_Block)(r9)
-#else	
-      .globl  savecontext
-savecontext:
-      lis     r9,PRE_Block@ha         /* Disable interrupt fiddling */
-      li      r8,1
-      stb     r8,PRE_Block@l(r9)
-#endif /* NeXT || __APPLE__ */
+      .globl  EXT(savecontext)
+EXT(savecontext):
       subi    r1,r1,FRAME_SIZE
       mfcr    r9
       stw     r9,CCR(r4)
@@ -856,13 +781,8 @@ L1:   blr                                     /* Return */
 /*
  * returnto(struct savearea *area)
  */
-#if defined(NeXT) || defined(__APPLE__)
-      .globl  _returnto
-_returnto:
-#else	
-      .globl  returnto
-returnto:
-#endif /* NeXT || __APPLE__ */
+      .globl  EXT(returnto)
+EXT(returnto):
       lwz     r1,TOP_OF_STACK(r3)             /* Update stack pointer */
       lwz     r0,RETURN(r3)                   /* Get return address */
       mtlr    r0
@@ -890,15 +810,6 @@ returnto:
       lwz     r29,29*4+FRAME_OFFSET(r1)
       lwz     r30,30*4+FRAME_OFFSET(r1)
       lwz     r31,31*4+FRAME_OFFSET(r1)
-#if defined(NeXT) || defined(__APPLE__)
-      lis     r9,ha16(_PRE_Block)         /* Re-enable interrupt fiddling */
-      li      r8,0
-      stb     r8,lo16(_PRE_Block)(r9)
-#else	
-      lis     r9,PRE_Block@ha         /* Re-enable interrupt fiddling */
-      li      r8,0
-      stb     r8,PRE_Block@l(r9)
-#endif /* NeXT || __APPLE__ */
       addi    r1,r1,FRAME_SIZE
       blr
 #endif        /* __powerpc__ */
@@ -915,7 +826,6 @@ returnto:
 #endif
 
 
-      .extern PRE_Block       4
       .globl  savecontext
       .globl  returnto
       
@@ -924,8 +834,6 @@ returnto:
 #define REGMASK 0x0400fe00   /* mask for s0-s6 */
 #define FREGMASK 0x000003fc  /* mask for f2-f9 */
       
-/* offsets into the PRE_Block */
-
 #define SAVED_F2(ptr) 0(ptr)
 #define SAVED_F3(ptr) 8(ptr)
 #define SAVED_F4(ptr) 16(ptr)
@@ -943,7 +851,6 @@ returnto:
 #define SAVED_S6(ptr) 112(ptr)
 #define SAVED_RA(ptr) 120(ptr)
 
-
       .text
       .align  3
       .ent    savecontext,0
@@ -954,8 +861,6 @@ savecontext:
 
       
       ldgp    gp, 0(pv)
-      lda     t0, 1(zero)
-      stl     t0, PRE_Block
       lda     sp, -FSIZE(sp)
 
       stq     s0, SAVED_S0(sp)
@@ -1020,7 +925,6 @@ returnto:
       ldt     $f8, SAVED_F8(sp)
       ldt     $f8, SAVED_F9(sp)
       lda     sp, FSIZE(sp)
-      stl     zero, PRE_Block
       ret     zero,(ra),1
 
       .end    returnto

@@ -42,6 +42,5 @@ rm -rf $RPM_BUILD_ROOT
 %dir /usr/lib/gcc-lib/i386-go32w95mmap-msdos/2.7.2.1/include/lwp
 /usr/lib/gcc-lib/i386-go32w95mmap-msdos/2.7.2.1/include/lwp/lock.h
 /usr/lib/gcc-lib/i386-go32w95mmap-msdos/2.7.2.1/include/lwp/lwp.h
-/usr/lib/gcc-lib/i386-go32w95mmap-msdos/2.7.2.1/include/lwp/preempt.h
 /usr/lib/gcc-lib/i386-go32w95mmap-msdos/2.7.2.1/include/lwp/timer.h
 

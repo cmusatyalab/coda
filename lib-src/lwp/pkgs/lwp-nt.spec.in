@@ -47,6 +47,5 @@ rm -rf $RPM_BUILD_ROOT
 %dir /usr/gnuwin32/include/lwp
 /usr/gnuwin32/include/lwp/lock.h
 /usr/gnuwin32/include/lwp/lwp.h
-/usr/gnuwin32/include/lwp/preempt.h
 /usr/gnuwin32/include/lwp/timer.h
 

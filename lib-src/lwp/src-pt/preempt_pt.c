@@ -22,10 +22,6 @@ Coda are listed in the file CREDITS.
 #include "lwp.private_pt.h"
 
 /***** Preemption/concurrency control routines *****/
-void PRE_PreemptMe(void)
-{
-}
-
 void PRE_Concurrent(int on)
 {
     PROCESS pid;
@@ -65,10 +61,4 @@ void PRE_EndCritical(void)
      * cancellations at some more convenient place */
     pthread_setcancelstate(PTHREAD_CANCEL_ENABLE, NULL);
 }
-
-/* No initialization necessary */
-int PRE_InitPreempt(struct timeval *slice) { return 0; }
-
-/* Do we want to cancel preemption for all threads, or just this thread? */
-int PRE_EndPreempt(void) { return 0; }
 

@@ -1,3 +1,10 @@
+New in 1.5:
+
+* Removed signal based preemption code.
+* Removed all access to global variables from assembly code.
+* Moved process.ss to process.S, to use correct compilation flags.
+* Ported to NetBSD-mips.
+
 New in 1.4:
 
 * Ported to Linux-arm (Jason Flinn).

@@ -45,12 +45,9 @@ extern "C" {
 #endif __cplusplus
 
 #include <sys/time.h>
+#include <sys/types.h>
+#include <unistd.h>
 #include <stdio.h>
-
-#ifndef TRUE
-#define TRUE 1
-#define FALSE 0
-#endif
 
 /*
     LWP_VERSION is first argument to LWP_Init().
@@ -83,18 +80,14 @@ extern "C" {
 #define LWP_ENOROCKS	-15	/* all rocks are in use */
 #define LWP_EBADROCK	-16	/* the specified rock does not exist */
 
-
 /* Maximum priority permissible (minimum is always 0) */
 #define LWP_MAX_PRIORITY 4
 
 /* Usual priority used by user LWPs */
 #define LWP_NORMAL_PRIORITY (LWP_MAX_PRIORITY-1)
 
-
-
 /* Users aren't really supposed to know what a pcb is, but .....*/
 typedef struct lwp_pcb *PROCESS;
-
 
 extern int lwp_debug;			/* ON = show LWP debugging trace */
 
@@ -149,13 +142,17 @@ extern void LWP_ProtectStacks();
 #define LWP_SignalProcess(event)	LWP_INTERNALSIGNAL(event, 1)
 #define LWP_NoYieldSignal(event)	LWP_INTERNALSIGNAL(event, 0)
 
+void PRE_Concurrent(int on);
+void PRE_BeginCritical(void);
+void PRE_EndCritical(void);
+
 /* extern definitions for the io manager routines */
 extern int IOMGR_SoftSig (PFIC aproc, char *arock);
 extern int IOMGR_Initialize();
 extern int IOMGR_Finalize();
 extern int IOMGR_Poll();
 extern int IOMGR_Select (int fds, int *readfds, int *writefds, 
-			int *exceptfds, struct timeval *timeout);
+                         int *exceptfds, struct timeval *timeout);
 extern int IOMGR_Cancel (PROCESS pid);
 extern int IOMGR_Signal (int signo, char *event);
 extern int IOMGR_CancelSignal (int signo);

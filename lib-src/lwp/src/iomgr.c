@@ -130,15 +130,15 @@ static int IOMGR_CheckSignals ();
 static int IOMGR_CheckTimeouts ();
 static int IOMGR_CheckDescriptors(int PollingCheck);
 static void IOMGR(char *dummy);
-static int SignalIO (int fds, register int readfds, register int writefds, register int exceptfds);
-static int SignalTimeout(int fds, register struct timeval *timeout);
+static int SignalIO (int fds, int readfds, int writefds, int exceptfds);
+static int SignalTimeout(int fds, struct timeval *timeout);
 static int SignalSignals ();
 
 
 static struct IoRequest *NewRequest()
 {
 
-    register struct IoRequest *request;
+    struct IoRequest *request;
 
     if ((request=iorFreeList)) 
 	    iorFreeList = request->free;
@@ -178,7 +178,7 @@ static int IOMGR_CheckTimeouts()
 
     TM_Rescan(Requests);
     for (;;) {
-	register struct IoRequest *req;
+	struct IoRequest *req;
 	struct TM_Elem *expired = TM_GetExpired(Requests);
 	if (expired == NULL) break;
 
@@ -216,7 +216,7 @@ static int IOMGR_CheckDescriptors(int PollingCheck)
     writefds = 0;
     exceptfds = 0;
     FOR_ALL_ELTS(r, Requests, {
-		  register struct IoRequest *req;
+		  struct IoRequest *req;
 		  req = (struct IoRequest *) r -> BackPointer;
 		  readfds |= req -> readfds;
 		  writefds |= req -> writefds;
@@ -362,16 +362,16 @@ static void IOMGR(char *dummy)
 
 static int SignalIO(fds, readfds, writefds, exceptfds)
     int fds;
-    register int readfds;
-    register int writefds;
-    register int exceptfds;
+    int readfds;
+    int writefds;
+    int exceptfds;
 {
     int woke_someone = FALSE;
 
     /* Look at everyone who's bit mask was affected */
     FOR_ALL_ELTS(r, Requests, {
-	register struct IoRequest *req;
-	register PROCESS pid;
+	struct IoRequest *req;
+	PROCESS pid;
 	req = (struct IoRequest *) r -> BackPointer;
 	if ((req->readfds & readfds) ||
 	    (req->writefds & writefds) ||
@@ -393,14 +393,14 @@ static int SignalIO(fds, readfds, writefds, exceptfds)
 
 static int SignalTimeout(fds, timeout)
     int fds;
-    register struct timeval *timeout;
+    struct timeval *timeout;
 {
     int woke_someone = FALSE;
 
     /* Find everyone who has specified timeout */
     FOR_ALL_ELTS(r, Requests, {
-	register struct IoRequest *req;
-	register PROCESS pid;
+	struct IoRequest *req;
+	PROCESS pid;
 	req = (struct IoRequest *) r -> BackPointer;
 	if (TM_eql(&r->TimeLeft, timeout)) {
 	    woke_someone = TRUE;
@@ -439,7 +439,7 @@ static int SignalSignals ()
 {
 
     int gotone = FALSE;
-    register int i;
+    int i;
     PFIC    p;
 
     anySigsDelivered = FALSE;
@@ -477,7 +477,7 @@ int IOMGR_SoftSig(aproc, arock)
     PFIC aproc;
     char *arock;
 {
-    register int i;
+    int i;
     for (i=0;i<NSOFTSIG;i++) {
 	if (sigProc[i] == 0) {
 	    /* a free entry */
@@ -553,14 +553,14 @@ int IOMGR_Poll()
 }
 
 int IOMGR_Select(fds, readfds, writefds, exceptfds, timeout)
-    register int fds;
-    register int *readfds;
-    register int *writefds;
-    register int *exceptfds;
+    int fds;
+    int *readfds;
+    int *writefds;
+    int *exceptfds;
     struct timeval *timeout; 
 {
 
-    register struct IoRequest *request;
+    struct IoRequest *request;
     int result;
 
     /* See if polling request. If so, handle right here */
@@ -603,8 +603,7 @@ int IOMGR_Select(fds, readfds, writefds, exceptfds, timeout)
 
 int IOMGR_Cancel(PROCESS pid)
 {
-
-	register struct IoRequest *request;
+	struct IoRequest *request;
 
 	if ((request = pid->iomgrRequest) == 0) 
 		return -1;
