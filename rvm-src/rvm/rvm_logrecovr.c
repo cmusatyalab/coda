@@ -33,7 +33,7 @@ should be returned to Software.Distribution@cs.cmu.edu.
 
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/rvm-src/rvm/rvm_logrecovr.c,v 4.3 1997/05/09 22:11:14 clement Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/rvm-src/rvm/rvm_logrecovr.c,v 4.4 1997/10/18 05:09:00 clement Exp $";
 #endif _BLURB_
 
 /*
@@ -2498,7 +2498,7 @@ rvm_return_t apply_mods(log)
             if (open_dev(seg_dev,flags,0) < 0)
                 return RVM_EIO;
             ASSERT(log->trunc_thread == cthread_self());
-            if (set_dev_char(seg_dev,&seg_dev->num_bytes,NULL) < 0)
+            if (set_dev_char(seg_dev,&seg_dev->num_bytes) < 0)
                 {
                 close_dev(seg_dev);
                 return RVM_EIO;

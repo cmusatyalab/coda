@@ -33,7 +33,7 @@ should be returned to Software.Distribution@cs.cmu.edu.
 
 */
 
-static char *rcsid = "$Header: /afs/cs.cmu.edu/user/clement/mysrcdir3/rvm-src/rvm/RCS/rvm.h,v 4.1 1997/01/08 21:54:31 rvb Exp clement $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/rvm-src/rvm/rvm.h,v 4.2 1997/04/01 01:55:57 clement Exp $";
 #endif _BLURB_
 
 /*
@@ -429,18 +429,14 @@ extern void rvm_free_region C_ARGS
         Main Function Declarations
 */
 
-/* RVM initialization */
-extern rvm_return_t rvm_initialize C_ARGS
-    ((
-    char                *version,       /* pointer to RVM lib version string */
-    rvm_options_t       *options        /* optional pointer to global options
-                                           descriptor */
-    ));
+/* RVM initialization: pass version and optional options
+   descriptor */
+extern rvm_return_t rvm_initialize(char *version, rvm_options_t *opts);
 /* init macro */
 #define RVM_INIT(options) rvm_initialize(RVM_VERSION,(options))
 
 /* shutdown RVM */
-extern rvm_return_t rvm_terminate C_ARGS(());   /* no parameters */
+extern rvm_return_t rvm_terminate (void);   /* no parameters */
 
 /* map recoverable storage */
 extern rvm_return_t rvm_map C_ARGS

@@ -33,7 +33,7 @@ should be returned to Software.Distribution@cs.cmu.edu.
 
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/rvm-src/rvm/rvm_private.h,v 4.2 1997/02/26 16:05:04 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/rvm-src/rvm/rvm_private.h,v 4.3 1997/10/18 05:09:04 clement Exp $";
 #endif _BLURB_
 
 /*
@@ -761,6 +761,7 @@ typedef struct
     long            handle;             /* device handle */
     rvm_offset_t    num_bytes;          /* length of device */
     rvm_bool_t      raw_io;             /* true if using raw i/o */
+    unsigned long   type;                /* to store device type */
     rvm_bool_t      read_only;          /* true if opened read-only */
 
     io_vec_t        *iov;               /* gather write io vector */
@@ -1656,11 +1657,10 @@ long gather_write_dev();                /* [rvm_io.c] */
     struct iovec    *iov;
     rvm_length_t    iovcnt;
 */    
-extern
-long set_dev_char();                    /* [rvm_io.c] */
-/*  device_t        *dev;
-    rvm_offset_t    *dev_length;
-*/
+
+/* length is optional [rvm_io.c] */
+extern long set_dev_char(device_t *dev,rvm_offset_t *dev_length);
+
 /* read/write lock */
 extern                                  /* [rvm_utils.c] */
 void rw_lock();                     
@@ -1731,8 +1731,7 @@ tree_node_t *tree_predecessor();        /* [rvm_utils.c] */
 */
 /* initialization, query, and structure checkers */
 
-extern
-rvm_bool_t bad_init();                  /* [rvm_init.c] */
+extern rvm_bool_t bad_init();                  /* [rvm_init.c] */
 
 extern
 rvm_return_t bad_options();             /* [rvm_status.c] */

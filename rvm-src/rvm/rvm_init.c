@@ -33,7 +33,7 @@ should be returned to Software.Distribution@cs.cmu.edu.
 
 */
 
-static char *rcsid = "$Header: rvm_init.c,v 1.1 96/11/22 13:40:13 raiff Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/rvm-src/rvm/rvm_init.c,v 4.1 1997/01/08 21:54:32 rvb Exp $";
 #endif _BLURB_
 
 /*
@@ -61,9 +61,10 @@ static RVM_MUTEX    init_lock;
 static rvm_bool_t   inited = rvm_false;     /* initialization complete flag */
 static rvm_bool_t   terminated = rvm_false; /* shutdown flag -- no
                                                restart allowed */
-/* check that RVM properly initialized (for interface functions) */
-rvm_bool_t bad_init()
-    {
+
+/* check that RVM properly initialized (for interface functions) */
+rvm_bool_t bad_init(void)
+{
     rvm_bool_t      init_val;
 
     CRITICAL(init_lock,                 /* begin init_lock crit sec */
@@ -75,12 +76,11 @@ rvm_bool_t bad_init()
         return rvm_false;
     else
         return rvm_true;
-    }
-/* rvm_initialize */
-rvm_return_t rvm_initialize(rvm_version,rvm_options)
-    char            *rvm_version;
-    rvm_options_t   *rvm_options;
-    {
+}
+
+/* rvm_initialize */
+rvm_return_t rvm_initialize(char *rvm_version, rvm_options_t *rvm_options)
+{
     rvm_return_t    retval = RVM_SUCCESS;
 
 #ifdef RVM_USEPT
@@ -121,8 +121,6 @@ rvm_return_t rvm_initialize(rvm_version,rvm_options)
         /* take care of default log */
         if (default_log == NULL) {
             if ((retval=do_log_options(NULL,NULL)) != RVM_SUCCESS)
-		/* the bald return won't work; leaves the lock held */
-		/* return retval; */
 		goto err_exit;
 	}
         inited = rvm_true;              /* all done */
@@ -132,9 +130,10 @@ err_exit:;
 
     return retval;
     }
-/* rvm_terminate */
-rvm_return_t rvm_terminate()
-    {
+
+/* rvm_terminate */
+rvm_return_t rvm_terminate(void)
+{
     rvm_return_t    retval = RVM_SUCCESS;
 
     CRITICAL(init_lock,                 /* begin init_lock crit sec */
@@ -162,4 +161,4 @@ err_exit:;
         });                             /* end init_lock crit sec */
 
     return retval;
-    }
+}

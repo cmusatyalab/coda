@@ -33,7 +33,7 @@ should be returned to Software.Distribution@cs.cmu.edu.
 
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/rvm-src/rvm/rvm_io.c,v 4.4 1997/07/23 00:10:06 clement Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/rvm-src/rvm/rvm_io.c,v 4.6 1997/10/16 02:51:25 braam Exp $";
 #endif _BLURB_
 
 /*
@@ -66,36 +66,43 @@ extern rvm_bool_t   rvm_utlsw;          /* operating under rvmutl */
 extern rvm_bool_t   rvm_no_update;      /* no segment or log update if true */
 
 
+/* static prototypes */
+static rvm_bool_t in_wrt_buf(char *addr, rvm_length_t len);
+static long chk_seek(device_t *dev, rvm_offset_t *offset);
+
 #ifndef ZERO
 #define ZERO 0
 #endif
 
-/* buffer address checks */
-rvm_bool_t in_wrt_buf(addr,len)
-    char            *addr;              /* vm address */
-    rvm_length_t    len;                /* length */
-    {
+/* buffer address checks: test if [addr, addr+len]
+   lies inside default_log->dev.wrt_buf */
+static rvm_bool_t in_wrt_buf(char *addr, rvm_length_t len)
+{
     char            *end_addr;
     char            *buf_end_addr;
 
-    if (default_log == NULL) return rvm_false;
-    if (default_log->dev.wrt_buf == NULL) return rvm_false;
+    if (default_log == NULL) 
+	return rvm_false;
+    if (default_log->dev.wrt_buf == NULL) 
+	return rvm_false;
+
     end_addr = RVM_ADD_LENGTH_TO_ADDR(addr,len);
     buf_end_addr = RVM_ADD_LENGTH_TO_ADDR(default_log->dev.wrt_buf,
                                           default_log->dev.wrt_buf_len);
     if (((addr >= default_log->dev.wrt_buf)
-           && (addr < buf_end_addr))
-       && ((end_addr > default_log->dev.wrt_buf)
-           && (end_addr <= buf_end_addr)))
+	  && (addr < buf_end_addr))
+	&& ((end_addr > default_log->dev.wrt_buf)
+	     && (end_addr <= buf_end_addr)))
         return rvm_true;
 
     return rvm_false;
-    }
-/* seek to position if required */
-static long chk_seek(dev,offset)
-    device_t        *dev;               /* device descriptor */
-    rvm_offset_t    *offset;            /* device offset */
-    {
+}
+
+/* seek to position if required: raw devices must 
+   seek to a sector index. Sanity checks size of
+   device against offset. */
+static long chk_seek(device_t *dev, rvm_offset_t *offset)
+{
     long            retval=0;
 
     /* raw i/o offset must be specified and sector aligned */
@@ -104,31 +111,28 @@ static long chk_seek(dev,offset)
     ASSERT(RVM_OFFSET_LEQ(dev->last_position,dev->num_bytes));
 
     /* seek if offset specified */
-    if (offset != NULL)
-        {
+    if (offset != NULL) {
         ASSERT(RVM_OFFSET_EQL_ZERO(*offset) ? 1
                : RVM_OFFSET_LSS(*offset,dev->num_bytes));
-        if (!RVM_OFFSET_EQL(dev->last_position,*offset))
-            {
+        if (!RVM_OFFSET_EQL(dev->last_position,*offset)) {
             retval = lseek((int)dev->handle,
                            (off_t)RVM_OFFSET_TO_LENGTH(*offset),
                            L_SET);
             if (retval >= 0)
                 dev->last_position = *offset;
-	    else
-		{
+	    else {
 		rvm_errdev = dev;
 		rvm_ioerrno = errno;
-	        }
-            }
-        }
-    return retval;
+	    }
+	}
     }
-/* set device characteristics for device */
-long set_dev_char(dev,dev_length)
-    device_t        *dev;               /* device descriptor */
-    rvm_offset_t    *dev_length;        /* optional length */
-    {
+    return retval;
+}
+
+/* set device characteristics for device
+   device descriptor mandatory, lenght optional */
+long set_dev_char(device_t *dev, rvm_offset_t *dev_length)
+{
     struct stat     statbuf;            /* status descriptor */
     long            retval;             /* return value */
     rvm_offset_t    temp;               /* offset calc. temp. */
@@ -138,26 +142,32 @@ long set_dev_char(dev,dev_length)
 
     /* get file or device status */
     retval = fstat(dev->handle,&statbuf);
-    if (retval != 0)
-        {
+    if (retval != 0) {
         rvm_errdev = dev;
 	rvm_ioerrno = errno;
         return retval;
-        }
+    }
 
     /* find type */
     mode = statbuf.st_mode & S_IFMT;
+    dev->type = mode;
     switch (mode)
         {
       case S_IFCHR:                     /* note raw io */
-#ifdef LINUX
-      case S_IFBLK:  /* in LINUX, the interface VFS to block and char
-                     * dev is the same, which means that no additional
-                     * character devices are required
-                     */
-#endif
         dev->raw_io = rvm_true;
         break;
+	/* Linux doesn't have BSD style raw character devices.
+	   However, one can write to the block device directly.
+	   This takes care, since we must sync it as if we 
+	   do file IO.  We use dev->type == S_IFBLK 
+	   to achieve this. The result could be good, since the
+	   buffer cache will flush the blocks to the disk more 
+	   efficiently than individual synchronous writes would 
+	   take place.
+                     */
+      case S_IFBLK:  
+	dev->raw_io = rvm_true;
+	break;
       case S_IFREG:
         dev->num_bytes = RVM_MK_OFFSET(0,
                              CHOP_TO_SECTOR_SIZE(statbuf.st_size));
@@ -179,7 +189,7 @@ long set_dev_char(dev,dev_length)
         }
 
     return 0;
-    }
+}
 /* open device or file */
 long open_dev(dev,flags,mode)
     device_t        *dev;               /* device descriptor */
@@ -296,7 +306,7 @@ long write_dev(dev,offset,src,length,sync)
     char            *src;               /* address of data source */
     rvm_length_t    length;             /* length of transfer */
     rvm_bool_t      sync;               /* fsync if true */
-    {
+{
     rvm_offset_t    last_position;
     long            retval;
     long            wrt_len = length;   /* for no_update mode */
@@ -309,39 +319,37 @@ long write_dev(dev,offset,src,length,sync)
 
     /* seek if necessary */
     errno = 0;
-    if ((retval = chk_seek(dev,offset)) < 0) return retval;
+    if ((retval = chk_seek(dev,offset)) < 0) 
+	return retval;
     last_position = RVM_ADD_LENGTH_TO_OFFSET(dev->last_position,
                                              length);
     ASSERT(RVM_OFFSET_LEQ(last_position,dev->num_bytes));
 
     /* do write if not in no update mode */
-    if (!(rvm_utlsw && rvm_no_update))
-        {
-        if ((wrt_len=write((int)dev->handle,src,(int)length)) < 0)
-            {
+    if (!(rvm_utlsw && rvm_no_update)) {
+        if ((wrt_len=write((int)dev->handle,src,(int)length)) < 0) {
             rvm_errdev = dev;
 	    rvm_ioerrno = errno;
             return wrt_len;
-            }
+	}
 
         /* fsync if doing file i/o */
-        if ((!dev->raw_io) && (sync==SYNCH))
-            {
-            if ((retval=fsync((int)dev->handle))  < 0)
-                {
+        if ( ((!dev->raw_io) && (sync==SYNCH)) ||
+	     ((dev->raw_io) && (dev->type=S_IFBLK))) {
+            if ((retval=fsync((int)dev->handle))  < 0) {
                 rvm_errdev = dev;
 		rvm_ioerrno = errno;
                 return retval;
-                }
-            }
-        }
+	    }
+	}
+    }
 
     /* update position (raw i/o must be exact) */
     ASSERT((dev->raw_io) ? (wrt_len == length) : 1);
     dev->last_position = RVM_ADD_LENGTH_TO_OFFSET(dev->last_position,
                                                   wrt_len);
     return wrt_len;
-    }
+}
 /* gather write for files */
 static long gather_write_file(dev,offset,wrt_len)
     device_t        *dev;               /* device descriptor */
