@@ -1570,6 +1570,7 @@ static int PerformDirRepair(ClientEntry *client, vle *ov, Volume *volptr,
 	SubVVs(&DiffVV, &Vnode_vv(ov->vptr));
 	AddVVs(&Vnode_vv(ov->vptr), &DiffVV);
  	AddVVs(&V_versionvector(volptr), &DiffVV); 
+	ov->vptr->disk.author = client->Id;
 	NewCOP1Update(volptr, ov->vptr, StoreId);
 	SetStatus(ov->vptr, status, rights, anyrights);
     }
