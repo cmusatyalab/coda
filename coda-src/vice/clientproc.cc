@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vice/clientproc.cc,v 4.5 1998/03/06 20:21:00 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vice/clientproc.cc,v 4.6 1998/03/19 15:11:37 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -73,15 +73,17 @@ extern "C" {
 #include <netdb.h>
 #include <sys/types.h>
 #include <netinet/in.h>
-
+#include <util.h>
+#include <callback.h>
+#include <prs.h>
+#include <al.h>
+#include <vice.h>
 #ifdef __cplusplus
 }
 #endif __cplusplus
 
-#include <util.h>
 #include <srv.h>
 #include <vice.private.h>
-#include "callback.h"
 
 
 /* *****  Private variables  ***** */
@@ -284,8 +286,8 @@ int CLIENT_MakeCallBackConn(ClientEntry *Client)
     assert(peer.RemotePortal.Tag == RPC2_PORTALBYINETNUMBER);
 
     /* Subsystem identifier. */
-    sid.Tag = RPC2_SUBSYSBYNAME;
-    strcpy(sid.Value.Name, "Vice2-CallBack");
+    sid.Tag = RPC2_SUBSYSBYID;
+    sid.Value.SubsysId = SUBSYS_CB;
 
     /* Dummy argument. */
     cbs.SeqLen = 0;

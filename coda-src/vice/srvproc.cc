@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vice/srvproc.cc,v 4.9 1998/01/10 18:39:32 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vice/srvproc.cc,v 4.10 1998/01/12 23:35:42 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -81,26 +81,27 @@ extern "C" {
 #ifdef _TIMECALLS_
 #include "histo.h"
 #endif _TIMECALLS_
-
+#include <partition.h>
+#include <util.h>
+#include <prs.h>
+#include <al.h>
+#include <callback.h>
+#include <vice.h>
 #ifdef __cplusplus
 }
 #endif __cplusplus
 
+#include <srv.h>
 
-#include <util.h>
 #include <rvmlib.h>
 #include <vmindex.h>
 #include <coda_dir.h>
 #include <voltypes.h>
-#include <partition.h>
 #include <vicelock.h>
-#include <srv.h>
-#include <callback.h>
 #include <vlist.h>
 #include <vrdb.h>
 #include <repio.h>
 #include <rvmdir.h>
-#include <operations.h>
 #include <reslog.h>
 #include <lockqueue.h>
 #include <resutil.h>
@@ -108,6 +109,7 @@ extern "C" {
 #include <rsle.h>
 #include <nettohost.h>
 #include <cvnode.h>
+#include <operations.h>
 #include "coppend.h"
 
 #ifdef _TIMECALLS_

@@ -1,3 +1,4 @@
+
 #ifndef _BLURB_
 #define _BLURB_
 /*
@@ -29,9 +30,8 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vice/srv.cc,v 4.14 1998/03/06 20:21:01 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vice/srv.cc,v 4.16 1998/03/19 15:11:37 braam Exp $";
 #endif /*_BLURB_*/
-
 
 /*
 
@@ -80,18 +80,14 @@ extern "C" {
 #include <sys/stat.h>
 #include <netinet/in.h>
 #include <netdb.h>
-#ifdef __MACH__
-#include <libc.h>
-#include <mach.h> 
-#endif
 #include <stdarg.h>
 #include <stdlib.h>
 
 #include <lwp.h>
 #include <timer.h>
 #include <rpc2.h>
-#include <rpc2.private.h>
 #include <sftp.h>
+#include <rpc2.private.h>
 #include <fail.h>
 #include <fcon.h>
 #include <partition.h>
@@ -116,17 +112,24 @@ extern void setmyname(char *);
 extern "C" {
 #endif __cplusplus
 #include <rvm_statistics.h>
+
+
+#include <prs.h>
+#include <prs_fs.h>
+#include <al.h>
+
+#include <auth2.h>
+#include <res.h>
+#include <vice.h>
+#include <volutil.h>
 #ifdef __cplusplus
+
 }
 #endif __cplusplus
 
 
 
 
-#include <prs.h>
-#include <prs_fs.h>
-#include <al.h>
-#include <auth2.h>
 #include <srv.h>
 #include <vice.private.h>
 #include <coda_dir.h>
@@ -135,18 +138,16 @@ extern "C" {
 #include <coda_globals.h>
 #include <rvmdir.h>
 #include <vrdb.h>
-#include <res.h>
 #include <rescomm.h>
 #include <lockqueue.h>
 #include <vsg.h>
 #include <newplumb.h>
 #include "coppend.h"
-#include <volutil.h>
 
 
 /* Auth2 imports. */
-extern long GetKeysFromToken(RPC2_CountedBS *, RPC2_EncryptionKey, RPC2_EncryptionKey);
-extern void SetServerKeys(RPC2_EncryptionKey, RPC2_EncryptionKey);
+extern "C" long GetKeysFromToken(RPC2_CountedBS *, RPC2_EncryptionKey, RPC2_EncryptionKey);
+extern "C" void SetServerKeys(RPC2_EncryptionKey, RPC2_EncryptionKey);
 
 
 /* *****  Exported variables  ***** */
@@ -488,7 +489,7 @@ main(int argc, char *argv[])
     struct timeval to;
     to.tv_sec = timeout;
     to.tv_usec = 0;
-    assert(RPC2_Init(RPC2_VERSION, 0, portallist, 1, retrycnt, &to) == RPC2_SUCCESS);
+    assert(RPC2_Init(RPC2_VERSION, 0, &portal1, retrycnt, &to) == RPC2_SUCCESS);
     RPC2_InitTraceBuffer(trace);
     RPC2_Trace = trace;
 
@@ -548,8 +549,8 @@ main(int argc, char *argv[])
     server.Value.SubsysId = RESOLUTIONSUBSYSID;
     assert(RPC2_Export(&server) == RPC2_SUCCESS);
 
-    server.Tag = RPC2_SUBSYSBYNAME;
-    strcpy(server.Value.Name, "Vice2-FileServer");
+    server.Tag = RPC2_SUBSYSBYID;
+    server.Value.SubsysId = SUBSYS_SRV;
     assert(RPC2_Export(&server) == RPC2_SUCCESS);
     ClearCounters();
 
@@ -650,7 +651,7 @@ PRIVATE void ServerLWP(int *Ident)
 
     myfilter.FromWhom = ONESUBSYS;
     myfilter.OldOrNew = OLDORNEW;
-    myfilter.ConnOrSubsys.SubsysId = getsubsysbyname("Vice2-FileServer");
+    myfilter.ConnOrSubsys.SubsysId = SUBSYS_SRV;
     lwpid = *Ident;
     LogMsg(1, SrvDebugLevel, stdout, "Starting Worker %d", lwpid);
 

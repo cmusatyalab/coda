@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vice/smon.cc,v 4.3 1997/02/26 16:03:44 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vice/smon.cc,v 4.4 1997/12/20 23:35:24 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -63,27 +63,22 @@ extern "C" {
 extern int nlist(const char*, struct nlist[]);
 #endif
 
-#ifdef __MACH__
-#include <sysent.h>
-#include <libc.h>
-#else	/* __linux__ || __BSD44__ */
 #include <unistd.h>
 #include <stdlib.h>
-#endif
 
 #include <lwp.h>
 #include <rpc2.h>
+#include <util.h>
+#include "mond.h"
+#include "vice.h"
+#include <callback.h>
+#include <res.h>
 
 #ifdef __cplusplus
 }
 #endif __cplusplus
 
-#include <util.h>
 #include <olist.h>
-#include "mond.h"
-#include "vice.h"
-#include <callback.h>
-#include <res.h>
 #include <logalloc.h>
 #include <resstats.h>
 #include <voldump.h>

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vice/vice.private.h,v 4.1 1997/01/08 21:52:01 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vice/vice.private.h,v 4.2 1998/03/06 20:21:02 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -45,6 +45,8 @@ extern void CLIENT_PrintClients();
 extern void CLIENT_CallBackCheck();
 HostTable *CLIENT_FindHostEntry(RPC2_Handle CBCid);
 int CLIENT_MakeCallBackConn(ClientEntry *Client);
+
+char *ViceErrorMsg(int errorCode);
 
 extern void Die (char *);
 extern int GetEtherStats();
