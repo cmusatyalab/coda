@@ -21,6 +21,7 @@ CAENOASR, 304, CAENOASR, /* Advice Monitor returned the result of an ASR, but no
 CAEUNEXPECTEDASR, 305, CAEUNEXPECTEDASR, /* Advice Monitor returned the result of the wrong ASR */
 CAEASRINPROGRESS, 306, CAEASRINPROGRESS, /* Venus requested an ASR while another one is in progress */
 CAEADVICEPENDING, 307, CAEADVICEPENDING, /* Advice Monitor requested a NewConnection while a request for advice is pending; try again later */
+CAENOSERVERS, 308, CAENOSERVERS, /* No servers are known to Venus */
 EINCOMPATIBLE, 198, EINCOMPATIBLE, /* Version vectors are incompatible */
 EINCONS, 199, EINCONS, /* File is inconsistent */
 CEPERM, 1 , EPERM, /* Operation not permitted */
