@@ -164,7 +164,7 @@ int coda_upcall(mntinfo, inSize, outSize, buffer)
 	INSQUE(vmp->vm_chain, vcommp->vc_requests);
 CDEBUG(D_UPCALL, "about to wake up Venus and sleep for (process, opc, uniq) =(%d, %d.%d)\n", current->pid, vmp->vm_opcode, vmp->vm_unique);
 
-	SELWAKEUP(vcommp->vc_selproc);
+         SELWAKEUP(vcommp->vc_selproc);
 	/* We can be interrupted while we wait for Venus to process
 	 * our request.  If the interrupt occurs before Venus has read
 	 * the request, we dequeue and return. If it occurs after the
@@ -180,28 +180,24 @@ CDEBUG(D_UPCALL, "about to wake up Venus and sleep for (process, opc, uniq) =(%d
 	SLEEP(&vmp->vm_sleep);
 CDEBUG(D_UPCALL, "process %d woken up by Venus.\n", current->pid);
 	if (VC_OPEN(vcommp)) {	/* Venus is still alive */
- 	/* Op went through, interrupt or not... */
+	    /* Op went through, interrupt or not... */
 	    if (vmp->vm_flags & VM_WRITE) {
 		error = 0;
 		*outSize = vmp->vm_outSize;
-	    }
-
-	    else if (!(vmp->vm_flags & VM_READ)) { 
+	    } else if (!(vmp->vm_flags & VM_READ)) { 
 		/* Interrupted before venus read it. */
-		    CDEBUG(D_UPCALL, "interrupted before read: op  %d.%d, flags = %x\n",
-			   vmp->vm_opcode, vmp->vm_unique, vmp->vm_flags);
+		printk("coda_upcall: interrupted before read: (op,un)  (%d.%d), flags = %x\n",
+		       vmp->vm_opcode, vmp->vm_unique, vmp->vm_flags);
 		REMQUE(vmp->vm_chain);
 		error = EINTR;
-	    }
-	    
-	    else { 	
+	    } else { 	
 		/* (!(vmp->vm_flags & VM_WRITE)) means interrupted after
                    upcall started */
 		/* Interrupted after start of upcall, send venus a signal */
 		struct inputArgs *dog;
 		struct vmsg *svmp;
 		
-		    CDEBUG(D_UPCALL, "Sending Venus a signal:  op = %d.%d, flags = %x\n",
+		CDEBUG(D_UPCALL, "Sending Venus a signal:  op = %d.%d, flags = %x\n",
 			   vmp->vm_opcode, vmp->vm_unique, vmp->vm_flags);
 		
 		REMQUE(vmp->vm_chain);
@@ -218,18 +214,16 @@ CDEBUG(D_UPCALL, "process %d woken up by Venus.\n", current->pid);
 		svmp->vm_inSize = VC_IN_NO_DATA;
 		svmp->vm_outSize = VC_IN_NO_DATA;
 		
-		    CDEBUG(D_UPCALL, "coda_upcall: enqueing signal msg (%d, %d)\n",
+		CDEBUG(D_UPCALL, "coda_upcall: enqueing signal msg (%d, %d)\n",
 			   svmp->vm_opcode, svmp->vm_unique);
 		
 		/* insert at head of queue! */
 		INSQUE(svmp->vm_chain, vcommp->vc_requests);
 		SELWAKEUP(vcommp->vc_selproc);
 	    }
-	}
-
-	else {	/* If venus died (!VC_OPEN(vcommp)) */
-		CDEBUG(D_UPCALL, "vcclose woke op %d.%d flags %d\n",
-		       vmp->vm_opcode, vmp->vm_unique, vmp->vm_flags);
+	} else {	/* If venus died (!VC_OPEN(vcommp)) */
+	    printk("coda_upcall: Venus dead upon (op,un) (%d.%d) flags %d\n",
+		   vmp->vm_opcode, vmp->vm_unique, vmp->vm_flags);
 	    
 	    if (!vmp->vm_flags & VM_WRITE)
 		error = ENODEV;

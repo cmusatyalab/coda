@@ -49,7 +49,7 @@ static void coda_put_super(struct super_block *);
 void coda_load_creds(struct CodaCred *cred);
 extern inline struct vcomm *coda_psdev_vcomm(struct inode *inode);
 extern int coda_upcall(struct coda_sb_info *csbp, int inSize, int *outSize, caddr_t *buffer );
-extern struct inode *coda_cnode_make(ViceFid *fid, struct super_block *sb);
+extern int coda_cnode_make(struct inode **inode, ViceFid *fid, struct super_block *sb);
 extern struct cnode *coda_cnode_alloc(void);
 extern void coda_cnode_free(struct cnode *);
 static int coda_get_rootfid(struct super_block *sb, ViceFid *fidp);
@@ -140,7 +140,7 @@ coda_read_super(struct super_block *sb, void *data, int silent)
 ENTRY;
         MOD_INC_USE_COUNT; 
         if (coda_get_psdev (data, &psdev))
-                goto error;
+                goto exit;
  
         lock_super(sb);
 
@@ -152,41 +152,25 @@ ENTRY;
         sb->s_dev = dev;
         sb->s_op = &coda_super_operations;
 
-        
-        if (!cfsnc_initialized) {
-#if 0
-          cfs_vfsopstats_init();
-          cfs_vnodeopstats_init();
-	  cfsnc_init(); /* moved to psdev.c in open */
-#endif
-        }
-
-        /* Make a root cnode.
-           read_inode will recognize that this is the root inode and not
-           try to initialize it using GETATTR while this sys_mount system
-           call is underway. */
-
-        fid.Volume = 0;
-        fid.Vnode = 0;
-        fid.Unique = 0;
-
 	/* get root fid from Venus: this needs the root inode */
 	error = coda_get_rootfid(sb, &fid);
 	if ( error ) {
-	  printk("coda_read_super: coda_get_rootfid failed with %d\n",
-		 error);
-	  goto error;
+	    printk("coda_read_super: coda_get_rootfid failed with %d\n",
+		   error);
+	    goto exit;
 	}	  
 
-         printk("coda_read_super: rootfid is (%ld, %ld, %ld)\n", fid.Volume, fid.Vnode, fid.Unique); 
+	printk("coda_read_super: rootfid is (%ld, %ld, %ld)\n", fid.Volume, fid.Vnode, fid.Unique); 
+	
+        error = coda_cnode_make(&root, &fid, sb);
+        if ( error || !root ) {
+	    printk("Failure of coda_cnode_make for root: error %d\n", error);
+	    unlock_super(sb);
+	    root = NULL;
+	    goto exit;
+	} 
 
-        root = coda_cnode_make(&fid, sb);
-        
-        if (!root) {
-          CDEBUG(D_SUPER, "iget root inode failed\n");
-          unlock_super(sb);
-          goto error;
-        }
+	printk("coda_read_super: rootinode is %ld dev %d\n", root->i_ino, root->i_dev);
  CDEBUG(D_SUPER, "coda_read_super: root->i_ino: %ld, dev %d\n", root->i_ino,root->i_dev); 
 	coda_super_info.mi_rootvp = root;
 
@@ -196,7 +180,7 @@ ENTRY;
 	unlock_super(sb);
         return sb;
 EXIT;  
-error:
+exit:
 
 	MOD_DEC_USE_COUNT;
         if (root) {
@@ -399,6 +383,11 @@ static void coda_put_inode(struct inode *inode)
         ENTRY;
         CDEBUG(D_SUPER, " inode->ino: %ld\n", inode->i_ino);        
 
+	if ( inode->i_ino == CTL_INO ) {
+	    clear_inode(inode);
+	    return;
+	}
+
         cnp = ITOC(inode);
         open_inode = cnp->c_ovp;
 
@@ -430,7 +419,7 @@ ENTRY;
                 iput(inode);
                 return -ENODEV;
         }
-
+DEBUG("XX mtime: %ld\n", inode->i_mtime);
         buffer_size = sizeof(struct inputArgs);
         CODA_ALLOC(inp, struct inputArgs *, buffer_size);
         out = (struct outputArgs *) inp;
@@ -457,7 +446,9 @@ ENTRY;
 			goto exit;
 		}
         }
+DEBUG("XX mtime: %ld\n", inode->i_mtime);
 	cfsnc_zapfid(&(cnp->c_fid));
+DEBUG("XX mtime: %ld\n", inode->i_mtime);
         
 exit: 
         CDEBUG(D_SUPER, " result %ld\n", out->result); 
@@ -555,15 +546,19 @@ coda_iattr_to_vattr(struct iattr *iattr, struct vattr *vattr)
 
         /* set those vattrs that need change */
         valid = iattr->ia_valid;
-        if ( valid & ATTR_MODE ) 
+        if ( valid & ATTR_MODE ) {
                 vattr->va_mode = iattr->ia_mode;
-        if ( valid & ATTR_UID )
+	}
+        if ( valid & ATTR_UID ) {
                 vattr->va_uid = (vuid_t) iattr->ia_uid;
-        if ( valid & ATTR_GID ) 
+	}
+        if ( valid & ATTR_GID ) {
                 vattr->va_gid = (vgid_t) iattr->ia_gid;
-        if ( valid & ATTR_SIZE )
+	}
+        if ( valid & ATTR_SIZE ) {
                 vattr->va_size = iattr->ia_size;
-	if ( valid & ATTR_ATIME )
+	}
+        if ( valid & ATTR_ATIME )
                 vattr->va_atime.tv_sec = iattr->ia_atime;
         if ( valid & ATTR_MTIME )
                 vattr->va_mtime.tv_sec = iattr->ia_mtime;

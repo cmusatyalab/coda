@@ -732,6 +732,7 @@ extern struct vnode *cfs_ctlvp;
 #define	CTL_VOL			-1
 #define	CTL_VNO			-1
 #define	CTL_UNI			-1
+#define CTL_INO                 -1
 
 /* Acckkk! IS_ROOT_VP is currently a hack that assumes coda venus is
    only vfs on this mnttbl */

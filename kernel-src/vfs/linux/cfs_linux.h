@@ -147,7 +147,7 @@ do {                                                                  \
   if (!cnode->c_vnode)                                                \
     coda_panic ("%s(%d): cnode has null inode\n", __FUNCTION__, __LINE__); \
   if ( (struct cnode *)cnode->c_vnode->u.generic_ip != cnode )           \
-    coda_panic("AAooh, %s(%d) cnode doesn't link right!", __FUNCTION__,__LINE__);\
+    coda_panic("AAooh, %s(%d) cnode doesn't link right!\n", __FUNCTION__,__LINE__);\
 } while (0);
 
 #define CN_INIT(CP)        memset((CP), 0, (int)sizeof(struct cnode))
@@ -320,7 +320,7 @@ struct CodaCred {
 #define CONDITION struct wait_queue *
 #define SELWAKEUP(proc) if (proc) wake_up_interruptible(&(SELPROC)(proc));
 #define WAKEUP(cond) wake_up_interruptible((cond));
-#define SLEEP(cond)  interruptible_sleep_on((cond))
+#define SLEEP(cond)  interruptible_sleep_on((cond));
 
 
 

@@ -23,6 +23,7 @@
 int coda_open(struct inode *i, struct file *f);
 int coda_ioctl_open(struct inode *i, struct file *f);
 void coda_release(struct inode *i, struct file *f);
+void coda_ioctl_release(struct inode *i, struct file *f);
 int coda_file_read(struct inode *i, struct file *f, char *buf, int count);
 static int coda_file_write(struct inode *i, struct file *f, const char *buf, int count);
 static int coda_pioctl(struct inode * inode, struct file * filp, 
@@ -70,7 +71,7 @@ struct file_operations coda_ioctl_operations = {
 	coda_pioctl,	        /* ioctl */
 	NULL,                   /* mmap */
 	coda_ioctl_open,        /* open */
-	coda_release,           /* release */
+	coda_ioctl_release,     /* release */
 	NULL,		        /* fsync */
 };
 
@@ -162,13 +163,11 @@ coda_open(struct inode *i, struct file *f)
 
         cnp->c_ocount++;
 
-        /* if opened for writing flush cache entry. 
+        /* if opened for writing flush cache entry.  */
         if ( flags & FWRITE ) {
-                cnp->c_owrite++;
-                cnp->c_flags &= ~C_VATTR;
-        } should not be necessary.
-        */
-        
+	    cfsnc_zapfid(&(cnp->c_fid));
+	} 
+
         cnp->c_device = out->d.cfs_open.dev;
         cnp->c_inode  = out->d.cfs_open.inode;
         
@@ -189,19 +188,19 @@ int
 coda_ioctl_open(struct inode *i, struct file *f)
 {
 
-        struct cnode *cnp;
         unsigned short flags = f->f_flags;
 
         ENTRY;
 
         CDEBUG(D_FILE, "File inode number: %ld\n", f->f_inode->i_ino);
-
+#if 0
         cnp = ITOC(i);
         CHECK_CNODE(cnp);
-        
+#endif   
         if (flags & (FWRITE | FTRUNC | FCREAT | FEXCL)) {
                 /* return(-EACCES); */
         }
+	EXIT;
         return 0;
 
 }
@@ -375,6 +374,13 @@ coda_find_super(kdev_t device)
 }
 
 void
+coda_ioctl_release(struct inode *i, struct file *f) 
+{
+        return;
+}
+
+
+void
 coda_release(struct inode *i, struct file *f)
 {
         struct inputArgs *inp=NULL;
@@ -388,7 +394,6 @@ coda_release(struct inode *i, struct file *f)
 
         cnp =ITOC(i);
         CHECK_CNODE(cnp);
-
         CDEBUG(D_FILE,  "RELEASE coda (ino %ld, ct %d) cache (ino %ld, ct %d)",
                i->i_ino, i->i_count, (cnp->c_ovp ? cnp->c_ovp->i_ino : 0),
                (cnp->c_ovp ? cnp->c_ovp->i_count : -99));
@@ -399,7 +404,7 @@ coda_release(struct inode *i, struct file *f)
                 return ;
         }
 
-/* XXX Control file ? */
+
         /* even when c_ocount=0 we cannot put c_ovp to
          * NULL since the file may be mmapped.
 	 * See code in inode.c (coda_put_inode) for
@@ -565,6 +570,8 @@ coda_restore_codafile(struct inode *coda_inode, struct file *coda_file,
 {
         coda_file->f_pos = open_file->f_pos;
 	coda_inode->i_size = open_inode->i_size;
+	/*	coda_inode->i_atime = open_inode->i_atime;
+	coda_inode->i_mtime = open_inode->i_mtime; */
         return;
 }
 

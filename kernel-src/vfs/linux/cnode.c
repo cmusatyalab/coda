@@ -15,7 +15,7 @@ extern int coda_getvattr(ViceFid *, struct vattr *, struct coda_sb_info *);
 /* cnode.c */
 struct cnode *coda_cnode_alloc(void);
 void coda_cnode_free(struct cnode *);
-struct inode *coda_cnode_make(ViceFid *fid, struct super_block *sb);
+int  coda_cnode_make(struct inode **inode, ViceFid *fid, struct super_block *sb);
 
 /* return pointer to new empty cnode */
 struct cnode *
@@ -46,65 +46,70 @@ coda_cnode_free(struct cnode *cinode)
    - link the two up if this is needed
    - fill in the attributes
 */
-struct inode *
-coda_cnode_make(ViceFid *fid, struct super_block *sb)
+int
+coda_cnode_make( struct inode **inode, ViceFid *fid, struct super_block *sb)
 {
         struct cnode *cnp;
-        struct inode *result;
         struct vattr attr;
         int error;
+	ino_t ino;
         
         ENTRY;
 
         /* 
          * We get inode numbers from Venus -- see venus source
          */
-        
-        error = coda_getvattr(fid, &attr, coda_sbp(sb));
-        
-        if ( error ) {
-                printk("coda_cnode_make: coda_getvattr returned %d\n", error);
-                return NULL;
-        }
 
-        result = iget(sb, attr.va_fileid);
+	error = coda_getvattr(fid, &attr, coda_sbp(sb));
+	ino = attr.va_fileid;
+	if ( error ) {
+	    printk("coda_cnode_make: coda_getvattr returned %d\n", 
+		   error);
+	    inode = NULL;
+	    return error;
+	} 
+	
+        *inode = iget(sb, ino);
 
-        if ( !result ) {
+        if ( !*inode ) {
                 printk("coda_cnode_make: iget failed\n");
-                return NULL;
+                return -ENOMEM;
         }
 
 	/* link the cnode and the vfs inode 
 	   if this inode is not linked yet
 	*/
-	if ( !result->u.generic_ip ) {
+	if ( !(*inode)->u.generic_ip ) {
         	cnp = coda_cnode_alloc();
         	if ( !cnp ) {
                		printk("coda_cnode_make: coda_cnode_alloc failed.\n");
-                	return NULL;
+			clear_inode(*inode);
+                	return -ENOMEM;
         	}
         	cnp->c_fid = *fid;
         	cnp->c_magic = CODA_CNODE_MAGIC;
 		cnp->c_flags = C_VATTR;
-        	cnp->c_vnode = result;
-        	result->u.generic_ip = (void *) cnp;
-		CDEBUG(D_CNODE, "LINKING: ino %ld,  at 0x%x with cnp 0x%x, cnp->c_vnode 0x%x, in->u.generic_ip 0x%x\n", result->i_ino, (int) result, (int) cnp, (int)cnp->c_vnode, (int) result->u.generic_ip);
+        	cnp->c_vnode = *inode;
+        	(*inode)->u.generic_ip = (void *) cnp;
+		CDEBUG(D_CNODE, "LINKING: ino %ld,  at 0x%x with cnp 0x%x, cnp->c_vnode 0x%x, in->u.generic_ip 0x%x\n", (*inode)->i_ino, (int) (*inode), (int) cnp, (int)cnp->c_vnode, (int) (*inode)->u.generic_ip);
 	} else {
-		cnp = (struct cnode *)result->u.generic_ip;
-		CDEBUG(D_CNODE, "FOUND linked: ino %ld,  at 0x%x with cnp 0x%x, cnp->c_vnode 0x%x\n", result->i_ino, (int) result, (int) cnp, (int)cnp->c_vnode);
+	    cnp = (struct cnode *)(*inode)->u.generic_ip;
+	    CDEBUG(D_CNODE, "FOUND linked: ino %ld,  at 0x%x with cnp 0x%x, cnp->c_vnode 0x%x\n", (*inode)->i_ino, (int) (*inode), (int) cnp, (int)cnp->c_vnode);
 	}
 	CHECK_CNODE(cnp);
 
 	/* refresh the attributes */
-        error = coda_fetch_inode(result, &attr);
+        error = coda_fetch_inode(*inode, &attr);
         if ( error ) {
                 printk("coda_cnode_make: fetch_inode returned %d\n", error);
-                return NULL;
+		clear_inode(*inode);
+		coda_cnode_free(cnp);
+                return -error;
         }
-		CDEBUG(D_CNODE, "Done linking: ino %ld,  at 0x%x with cnp 0x%x, cnp->c_vnode 0x%x\n", result->i_ino, (int) result, (int) cnp, (int)cnp->c_vnode);
+		CDEBUG(D_CNODE, "Done linking: ino %ld,  at 0x%x with cnp 0x%x, cnp->c_vnode 0x%x\n", (*inode)->i_ino, (int) (*inode), (int) cnp, (int)cnp->c_vnode);
 
         EXIT;
-        return result;
+        return 0;
 }
 
 inline int
