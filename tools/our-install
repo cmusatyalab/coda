@@ -6,6 +6,12 @@ shift
 shift
 FILES=$@
 
+SYS=`uname -s`
+if [ $SYS = Linux -o $SYS = SunOS ] ; then
+OWNGRP=root.root
+else
+OWNGRP=bin.bin
+fi
 
 if [ ! -d $DIR ] ;  then mkdir -p $DIR; fi
 
@@ -14,6 +20,6 @@ for f in $FILES ; do
   if [ -f $TARGET ] ; then rm -f $TARGET; fi
   cp -p $f $TARGET
   chmod $MODE $TARGET
-  if [ `whoami` = root ]; then chown root.root $TARGET ; fi
+  if [ `whoami` = root ]; then chown $OWNGRP $TARGET ; fi
 done
 
