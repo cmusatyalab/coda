@@ -191,6 +191,8 @@ int main(int argc, char **argv)
     SFTP_Initializer sftpi;
     int rc;
     long portmapid;
+    struct stat statbuf;
+    char *miscdir;
 
     /* default value */
     strcpy(pname,"coda_udpsrv");
@@ -210,7 +212,7 @@ int main(int argc, char **argv)
 	    fprintf(stderr, "Bad argument %s to update srv\n", 
 		    argv[i]);
 	    fprintf(stderr, "Usage: updatesrv [-p prefix"
-		    "-d (debug level)]) [-l (number of lwps)]");
+		    "-d (debug level)]) [-l (number of lwps)]\n");
 	    exit(1);
 	}
     }
@@ -218,7 +220,13 @@ int main(int argc, char **argv)
     ReadConfigFile();
     ReadExportList();
 
-    rc = chdir(vice_sharedfile("misc"));
+    miscdir = vice_sharedfile("misc");
+    if (stat(miscdir, &statbuf) == -1 && errno == ENOENT) {
+	fprintf(stderr, "creating missing directory '%s'\n", miscdir);
+	mkdir(miscdir);
+    }
+
+    rc = chdir(miscdir);
     if ( rc ) {
         snprintf (errmsg, MAXPATHLEN, "Could not chdir to %s",
 		  vice_sharedfile("misc"));
