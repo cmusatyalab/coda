@@ -7,6 +7,7 @@ New in 1.6:
 * Linking against the updated liblwp in lwp-1.5.
 * Limit the size of piggybacked sftp data to the requested sftp_maxpacketsize
   to avoid ip-layer fragmentation.
+* Fixed the RPC2_NOBINDING bug which showed up in clog.
 
 New in 1.5:
 
