@@ -1,0 +1,10 @@
+coda
+etc/coda
+etc/modutils
+etc/init.d
+usr/bin
+usr/coda/tmp
+usr/sbin
+var/lib/coda/cache
+var/lib/coda/spool
+var/log/coda
