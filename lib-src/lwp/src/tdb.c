@@ -77,16 +77,8 @@ int main(int argc, char **argv)
 int procA(int dummy)
 {
     int    i;
-    int    s;
     struct timeval t;
     int n;
-
-#if 0
-    if ((s = socket(AF_INET, SOCK_DGRAM, 0)) < 0) {
-        perror("socket");
-        exit();
-    }
-#endif
 
     t.tv_sec = 5;
     t.tv_usec = 0;

@@ -20,6 +20,7 @@ Coda are listed in the file CREDITS.
 #include <unistd.h>
 #include <stdlib.h>
 #include <signal.h>
+#include <string.h>
 #include <assert.h>
 
 #include <lwp/lwp.h>
@@ -48,7 +49,7 @@ int IOMGR_Select(int fds, fd_set *readfds, fd_set *writefds, fd_set *exceptfds,
                  struct timeval *timeout)
 {
     PROCESS pid;
-    int retval, i, m;
+    int retval;
     struct timeval to = {0,0}, *tp = NULL;
 
     if (LWP_CurrentProcess(&pid))

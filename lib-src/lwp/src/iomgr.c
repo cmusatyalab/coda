@@ -206,7 +206,7 @@ static int IOMGR_CheckDescriptors(int PollingCheck)
     int result, nfds, rf, wf, ef;
     fd_set readfds, writefds, exceptfds;
     struct TM_Elem *earliest;
-    struct timeval timeout, tmp_timeout, junk;
+    struct timeval timeout, tmp_timeout;
 
     earliest = TM_GetEarliest(Requests);
     if (earliest == NULL) 
@@ -237,7 +237,8 @@ static int IOMGR_CheckDescriptors(int PollingCheck)
 	    timeout.tv_sec = 0;
 	    timeout.tv_usec = 0;
     }    else
-	    timeout = earliest -> TimeLeft;
+	    timeout = earliest->TimeLeft;
+
     iomgr_timeout = timeout;
     if (timeout.tv_sec == -1 && timeout.tv_usec == -1) {
 	    /* infinite, sort of */
@@ -310,7 +311,7 @@ static int IOMGR_CheckDescriptors(int PollingCheck)
     if (iomgr_timeout.tv_sec != 0 || iomgr_timeout.tv_usec != 0)
 	/* Real timeout only if signal handler hasn't set
            iomgr_timeout to zero. */
-	return(SignalTimeout(&iomgr_timeout));
+	return(SignalTimeout(&timeout));
 
     return(0);
 }
