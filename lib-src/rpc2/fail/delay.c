@@ -59,7 +59,7 @@ struct {
 } DelayQueues = {0,0,0};
 
 static int Delay_LWP();
-static void SubFromTime();
+static void AddToTime(struct timeval *top, struct timeval *amtp);
 PROCESS DelayLWPPid;
 
 int Delay_Init()
@@ -84,21 +84,24 @@ int Delay_Init()
  * delay is too small, the routine does nothing else and 
  * returns 1.
  */
-int DelayPacket(int speed, long socket, struct sockaddr_in *sap,
+int DelayPacket(int latency, int speed, long socket, struct sockaddr_in *sap,
 		RPC2_PacketBuffer *pb, int queue)
 {
 	u_int msec;
 	packetInfo *pp;
 	delayQueueInfo *dq;
+        struct timeval now;
 
 	assert(speed > 0);
 	assert(DelayQueues.queues);	/* Make sure Delay_Init was called */
 
-	msec = pb->Prefix.LengthOfPacket * 1000 * 8 / speed; 
-	if (msec < MINDELAY) 
-		return(1);
+	msec = latency + ((pb->Prefix.LengthOfPacket * 1000 * 8) / speed);
 
 	dq = &DelayQueues.queues[queue];
+
+	if (dq->numPackets == 0 && msec < MINDELAY) 
+		return(1);
+
 	dq->numPackets++;
 
 	pp = (packetInfo *)malloc(sizeof(packetInfo));
@@ -120,10 +123,12 @@ int DelayPacket(int speed, long socket, struct sockaddr_in *sap,
 	    assert(!dq->lastElem && !dq->timer.tv_sec && !dq->timer.tv_usec);
 	    dq->delayQueue = dq->lastElem = pp;
 	    dq->timer = pp->timeToWait;
+            FT_GetTimeOfDay(&now, NULL);
+            AddToTime(&dq->timer, &now);
 	}
 	
 	/* wake delay thread, if nothing waiting, who cares? */
-	LWP_NoYieldSignal((char *)Delay_LWP);
+	IOMGR_Cancel(DelayLWPPid);
 
 	return(0);
 }
@@ -226,9 +231,18 @@ int MakeQueue(a, b, c, d)
 /* The following are all private to this module */
 
 
-/* Decrement time fromp by amtp, return 0 if more time left, 1 otherwise */
-static void SubFromTime(fromp, amtp)
-struct timeval *fromp, *amtp;
+/* Increment/Decrement time fromp by amtp. */
+static void AddToTime(struct timeval *top, struct timeval *amtp)
+{
+        top->tv_sec += amtp->tv_sec;
+        top->tv_usec += amtp->tv_usec;
+        if (top->tv_usec >= 1000000) {
+            top->tv_usec -= 1000000;
+            top->tv_sec += 1;
+        }
+}
+
+static void SubFromTime(struct timeval *fromp, struct timeval *amtp)
 {
 	if (amtp->tv_usec > fromp->tv_usec) {
 		fromp->tv_sec--;
@@ -241,12 +255,22 @@ struct timeval *fromp, *amtp;
 	    fromp->tv_sec = fromp->tv_usec = 0;
 }
 
+static int CompareTime(struct timeval *a, struct timeval *b)
+{
+	if (a->tv_sec < b->tv_sec) return -1;
+	if (a->tv_sec > b->tv_sec) return 1;
+        /* a->tv_sec == b->tv_sec */
+	if (a->tv_usec < b->tv_usec) return -1;
+	if (a->tv_usec > b->tv_usec) return 1;
+        return 0;
+}
 
 static int Delay_LWP()
 {
     int i;
-    struct timeval timeToNext;
+    struct timeval timeToNext, now;
     delayQueueInfo *dq, *nextEvent;
+    packetInfo *pp;
     
     assert(DelayQueues.queues);	/* Make sure Delay_Init was called */
     
@@ -256,67 +280,65 @@ static int Delay_LWP()
 	for (i = 0; i < DelayQueues.count; i++) {
 	    dq = &DelayQueues.queues[i];
 	    
-	    if (dq->numPackets)		/* Something is waiting. */
-		if (!nextEvent || (dq->timer.tv_sec < nextEvent->timer.tv_sec) ||
-		    (dq->timer.tv_sec == nextEvent->timer.tv_sec &&
-		     dq->timer.tv_usec < nextEvent->timer.tv_usec))
-		    nextEvent = dq;
+            /* Something is waiting. */
+	    if (dq->numPackets &&
+                (!nextEvent || CompareTime(&dq->timer, &nextEvent->timer) < 0))
+                nextEvent = dq;
 	}
 
-	if (nextEvent == NULL) {
-	    LWP_WaitProcess((char *)Delay_LWP);	/* Won't have missed anything */
-	    continue;				
-	}
-
-	timeToNext = nextEvent->timer;
-	
-	/* decrement all timers by that time. Assume we only wait timeToNext,
-	 * Since finding out how long we really waited would cost a GetTimeOfDay.
-	 * We decrement before the select to avoid decrementing events that
-	 * occur while we are sleeping.
-	 */
-	for (i = 0; i < DelayQueues.count; i++) {
-	    dq = &DelayQueues.queues[i];
-
-	    if (dq->numPackets) 		/* Something is waiting. */
-		SubFromTime(&dq->timer, &timeToNext);
-	}
+        if (nextEvent) {
+            timeToNext = nextEvent->timer;
+            FT_GetTimeOfDay(&now, NULL);
+            SubFromTime(&timeToNext, &now);
+        }
 
 	/* Wait for next event to happen. Q: if time to wait is too small,
 	 * should I skip the select (lower bound on waiting) or wait anyway
 	 * (upper bound)? I'm choosing to wait anyway.
+         * We block, waiting for IOMGR_Cancel when there is nothing to wait
+         * for.
 	 */
-	IOMGR_Select(0, 0, 0, 0, &timeToNext);
+	IOMGR_Select(0, 0, 0, 0, nextEvent ? &timeToNext : NULL);
+
+        /* check how long we were waiting */
+        FT_GetTimeOfDay(&now, NULL);
 
 	/* Find and handle any expired events */
 	for (i = 0; i < DelayQueues.count; i++) {
+again:
 	    dq = &DelayQueues.queues[i];
 
-	    if (dq->numPackets) {		/* Something is waiting. */
-		if ((dq->timer.tv_sec == 0) && (dq->timer.tv_usec == 0)) {
-		    /* Expired event: send packet, set new timer */
-		    packetInfo *pp = dq->delayQueue;
-		    
-		    if (sendto(pp->socket, &pp->pb->Header, 
-			       pp->pb->Prefix.LengthOfPacket, 
-			       0, (struct sockaddr *)pp->sap, sizeof(struct sockaddr_in))
-			!= pp->pb->Prefix.LengthOfPacket) {
-			/* problem: Lily left it to me. I leave it for you, DCS */
-		    }
+            /* nothing is waiting */
+            if (!dq->numPackets) continue;
 
-		    /* Remove the element */
-		    dq->numPackets--;
-		    dq->delayQueue = pp->next;
-		    if (dq->delayQueue == NULL)
-			dq->lastElem = NULL;
-		    free(pp->sap); free(pp->pb);
-		    free(pp);
+            /* time has not yet expired */
+            if (CompareTime(&dq->timer, &now) > 0) continue;
 
-		    /* Set timer for next element. */
-		    if (dq->delayQueue)
-			dq->timer = dq->delayQueue->timeToWait;
-		}
-	    }
+            /* Expired event: send packet, set new timer */
+            pp = dq->delayQueue;
+
+            if (sendto(pp->socket, &pp->pb->Header, 
+                       pp->pb->Prefix.LengthOfPacket, 
+                       0, (struct sockaddr *)pp->sap, sizeof(struct sockaddr_in))
+                != pp->pb->Prefix.LengthOfPacket) {
+                /* problem: Lily left it to me. I leave it for you, DCS */
+            }
+
+            /* Remove the element */
+            dq->numPackets--;
+            dq->delayQueue = pp->next;
+            if (dq->delayQueue == NULL)
+                dq->lastElem = NULL;
+            free(pp->sap); free(pp->pb);
+            free(pp);
+
+            /* Set timer for next element. */
+            if (dq->delayQueue) {
+                AddToTime(&dq->timer, &dq->delayQueue->timeToWait);
+                /* reprocess this queue, maybe we need to send this new packet
+                 * as well */
+                goto again;
+            }
 	}
     }
 }

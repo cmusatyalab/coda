@@ -46,7 +46,8 @@ const FailFilter filter_templates[] = {
     0,			/* Apply this filter at the top */
     0, 65535,		/* Packet lengths */
     0,			/* Probability 0 (blocks any packets) */
-    0			/* Speed zero */
+    0,			/* Speed zero */
+    0                   /* 0 latency */
   },
   {			/* PARTITION */
     0, 0, 0, 0,		/* Specify IP addresses (CHANGE) */
@@ -54,7 +55,8 @@ const FailFilter filter_templates[] = {
     0,			/* Apply this filter at the top */
     0, 65535,		/* Packet lengths */
     0,			/* Probability 0 (blocks any packets) */
-    0			/* Speed zero */
+    0,			/* Speed zero */
+    0                   /* 0 latency */
   },
   {			/* SERVER */
     0, 0, 0, 0,		/* Specify IP addresses (CHANGE) */
@@ -62,7 +64,8 @@ const FailFilter filter_templates[] = {
     0,			/* Apply this filter at the top */
     0, 65535,		/* Packet lengths */
     MAXPROBABILITY,	/* Max probability (allows all packets) */
-    MAXNETSPEED		/* Full speed */
+    MAXNETSPEED,	/* Full speed */
+    0                   /* 0 latency */
   },
   {			/* JOIN */
     0, 0, 0, 0,		/* Specify IP addresses (CHANGE) */
@@ -70,7 +73,8 @@ const FailFilter filter_templates[] = {
     0,			/* Apply this filter at the top */
     0, 65535,		/* Packet lengths */
     MAXPROBABILITY,	/* Max probability (allows all packets) */
-    MAXNETSPEED		/* Full speed */
+    MAXNETSPEED,	/* Full speed */
+    0                   /* 0 latency */
   }
 };
 
@@ -261,9 +265,9 @@ int show_filter(FailFilter filter)
       sprintf(buf, "%d.%d.%d.%d", filter.ip1, filter.ip2, filter.ip3,
 	      filter.ip4);
 
-    printf("%2d: host %s color %d len %d-%d prob %d speed %d\n", filter.id,
-	   buf, filter.color, filter.lenmin, filter.lenmax, filter.factor,
-	   filter.speed);
+    printf("%2d: host %s color %d len %d-%d prob %d speed %d latency %d\n",
+           filter.id, buf, filter.color, filter.lenmin, filter.lenmax,
+           filter.factor, filter.speed, filter.latency);
     return 0;
 }
 

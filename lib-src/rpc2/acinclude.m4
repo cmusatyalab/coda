@@ -141,3 +141,18 @@ AC_DEFUN(CODA_CHECK_LIBTERMCAP,
   AC_SEARCH_LIBS(tgetent, [ncurses termcap], [LIBTERMCAP=${LIBS}])
   LIBS=${saved_LIBS}])
 
+dnl ---------------------------------------------
+dnl Define library version
+
+AC_SUBST(LIBTOOL_VERSION)
+AC_SUBST(LINUX_VERSION)
+AC_SUBST(DLL_VERSION)
+AC_SUBST(FREEBSD_VERSION)
+AC_SUBST(GENERIC_VERSION)
+AC_DEFUN(CODA_LIBRARY_VERSION,
+  [LIBTOOL_VERSION="$2:$1:$3"; major=`expr $2 - $3`
+   LINUX_VERSION="$major.$3.$1"
+   DLL_VERSION="$major-$3-$1"
+   FREEBSD_VERSION="$2"
+   GENERIC_VERSION="$2.$1"])
+

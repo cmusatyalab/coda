@@ -1,3 +1,11 @@
+New in 1.9:
+
+* Corrected errors in libfail's delay filter code.
+* Added latency delay to libfail.
+* Merged debian packaging stuff.
+* Using same version number for all libraries to allow multiple versions
+  of the libraries to coexist.
+
 New in 1.8:
 
 * Socketlistener got stuck on clocktick wakeups.

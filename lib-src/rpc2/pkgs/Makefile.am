@@ -17,6 +17,5 @@
 #                            none currently
 #*/
 
-EXTRA_DIST = pkg-bsd.sh
-
 MAINTAINERCLEANFILES = Makefile.in
+

@@ -18,12 +18,13 @@
 # 
 #*/
 
-CC=${NATIVECC}
-CFLAGS=
-LDFLAGS=
+CCLD=$(NATIVECC)
 EXEEXT=
 YFLAGS= -d
 INCLUDES = -I$(top_builddir)/include -I$(top_srcdir)/include
+
+.c.o:
+	$(NATIVECC) $(INCLUDES) -c $<
 
 bin_PROGRAMS = rp2gen
 
@@ -34,3 +35,4 @@ CLEANFILES = rp2gen_parser.c rp2gen_parser.h rp2gen_lexer.c
 MAINTAINERCLEANFILES = Makefile.in
 
 rp2gen_parser.h: rp2gen_parser.c
+

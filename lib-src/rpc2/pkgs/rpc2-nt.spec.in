@@ -31,9 +31,9 @@ make prefix=$RPM_BUILD_ROOT/usr/gnuwin32 install
 rm -f /tmp/@PACKAGE@-win32-bin-@VERSION@.zip
 mkdir -p $RPM_BUILD_ROOT/win-bins
 mv $RPM_BUILD_ROOT/usr/gnuwin32/bin/filcon.exe $RPM_BUILD_ROOT/win-bins
-#mv $RPM_BUILD_ROOT/usr/gnuwin32/lib/libfail-1-0-0.dll $RPM_BUILD_ROOT/win-bins
-#mv $RPM_BUILD_ROOT/usr/gnuwin32/lib/librpc2-1-1-4.dll $RPM_BUILD_ROOT/win-bins
-#mv $RPM_BUILD_ROOT/usr/gnuwin32/lib/libse-1-0-2.dll $RPM_BUILD_ROOT/win-bins
+#mv $RPM_BUILD_ROOT/usr/gnuwin32/lib/libfail-@DLL_VERSION@.dll $RPM_BUILD_ROOT/win-bins
+#mv $RPM_BUILD_ROOT/usr/gnuwin32/lib/librpc2-@DLL_VERSION@.dll $RPM_BUILD_ROOT/win-bins
+#mv $RPM_BUILD_ROOT/usr/gnuwin32/lib/libse-@DLL_VERSION@.dll $RPM_BUILD_ROOT/win-bins
 cd $RPM_BUILD_ROOT/win-bins
 /usr/bin/gnuwin32strip *
 zip /tmp/@PACKAGE@-win32-bin-@VERSION@.zip *

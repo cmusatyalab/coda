@@ -26,7 +26,7 @@ listed in the file CREDITS.
 
 /* Exported Routines */
 int Delay_Init ();
-int DelayPacket (int speed, long socket, struct sockaddr_in *sap, RPC2_PacketBuffer *pb, int queue);
+int DelayPacket (int latency, int speed, long socket, struct sockaddr_in *sap, RPC2_PacketBuffer *pb, int queue);
 int FindQueue (unsigned char a, unsigned char b, unsigned char c, unsigned char d);
 int MakeQueue (unsigned char a, unsigned char b, unsigned char c, unsigned char d);
      

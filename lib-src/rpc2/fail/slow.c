@@ -37,6 +37,8 @@ short port1 = 0;
 short port2 = 0;
 int speed1 = MAXNETSPEED;
 int speed2 = MAXNETSPEED;
+int latency1 = 0;
+int latency2 = 0;
 
 int slow(int argc, char** argv)
 {
@@ -45,7 +47,6 @@ int slow(int argc, char** argv)
 	struct hostent *he2;
 	FailFilter filter;
 	int rc;
-
 
 	ParseArgs(argc, argv);
 	InitRPC();
@@ -91,21 +92,23 @@ int slow(int argc, char** argv)
 	filter.lenmax = 65535;
 	filter.factor = 10000;
 	filter.speed = speed1;
+	filter.latency = latency1;
 
 	/* insert a filter on send side of host 2 */
 	if ((rc = InsertFilter(cid2, sendSide, 0, &filter)) < 0) {
 		PrintError("Couldn't insert filter", rc);
 	} else {
-		printf("Inserted filter on host %s with speed %d\n",
-		       host2, speed1);
+		printf("Inserted filter on host %s with speed %d, latency %d\n",
+		       host2, speed1, latency1);
 	}
 	/* insert a filter on recv side of host 2 */
 	filter.speed = 10000000;  
+        filter.latency = 0;
 	if ((rc = InsertFilter(cid2, recvSide, 0, &filter)) < 0) {
 		PrintError("Couldn't insert filter", rc);
 	} else {
-		printf("Inserted filter on host %s with speed %d\n",
-		       host2, speed1);
+		printf("Inserted filter on host %s with speed %d, latency %d\n",
+		       host2, speed1, latency1);
 	}
 
 	he2 = gethostbyname(host2);
@@ -115,22 +118,24 @@ int slow(int argc, char** argv)
 	filter.ip3 = ((unsigned char *)he2->h_addr)[2];
 	filter.ip4 = ((unsigned char *)he2->h_addr)[3];
 	filter.speed = speed2;
+	filter.latency = latency2;
 
 	/* insert a filter on send side of host 1 */
 	if ((rc = InsertFilter(cid1, sendSide, 0, &filter)) < 0) {
 		PrintError("Couldn't insert filter", rc);
 	} else {
-		printf("Inserted filter on host %s with speed %d\n",
-		       host1, speed2);
+		printf("Inserted filter on host %s with speed %d, latency %d\n",
+		       host1, speed2, latency2);
 	}
 
 	/* insert a filter on recv side of host 1 */
 	filter.speed = 10000000;
+        filter.latency = 0;
 	if ((rc = InsertFilter(cid1, recvSide, 0, &filter)) < 0) {
 		PrintError("Couldn't insert filter", rc);
 	} else {
-		printf("Inserted filter on host %s with speed %d\n",
-		       host1, speed2);
+		printf("Inserted filter on host %s with speed %d, latency %d\n",
+		       host1, speed2, latency2);
 	}
 
 	RPC2_Unbind(cid1);
@@ -151,13 +156,15 @@ void ParseArgs(int argc, char **argv)
 		host1 = argv[i+1];
 		sscanf(argv[i+2], "%hd", &port1);
 		sscanf(argv[i+3], "%d", &speed1);
-		i = i + 3;
+		sscanf(argv[i+4], "%d", &latency1);
+		i = i + 4;
 	    }
 	    else if (!host2) {
 		host2 = argv[i+1];
 		sscanf(argv[i+2], "%hd", &port2);
 		sscanf(argv[i+3], "%d", &speed2);
-		i = i + 3;
+		sscanf(argv[i+4], "%d", &latency2);
+		i = i + 4;
 	    }
 	    else
 		    PrintUsage();
@@ -168,6 +175,6 @@ void ParseArgs(int argc, char **argv)
 
 void PrintUsage()
 {
-	printf("Usage: slow -h hostname port speed -h hostname port speed\n");
+	printf("Usage: slow -h hostname port speed latency -h hostname port speed latency\n");
 	exit(-1);
 }

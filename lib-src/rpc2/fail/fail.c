@@ -82,12 +82,11 @@ static int FilterID = 1;
 #define TEMPDEBUG(msg)
 #endif DEBUG_FAIL
 
-static int PrintFilter(f)
-register FailFilter *f;
+static int PrintFilter(FailFilter *f)
 {
-    printf("\tip %d.%d.%d.%d color %d len %d-%d factor %d speed %d\n",
+    printf("\tip %d.%d.%d.%d color %d len %d-%d factor %d speed %d, latency %d\n",
 	   f->ip1, f->ip2, f->ip3, f->ip4, f->color, f->lenmin,
-	   f->lenmax, f->factor, f->speed);
+	   f->lenmax, f->factor, f->speed, f->latency);
     return 0;
 }
 
@@ -160,7 +159,9 @@ FailFilter *filter;
 	return -1;
 
     /* Currently, nothing is done to slow filters on the receive side. */
-    if (side == recvSide && (filter->speed > 0) && (filter->speed < MAXNETSPEED))
+    if (side == recvSide &&
+        ((filter->speed > 0) && (filter->speed < MAXNETSPEED) ||
+         filter->latency))
 	return -2;	/* -2 is a HACK */
     
     filter->id = FilterID++;
@@ -180,7 +181,7 @@ FailFilter *filter;
     theFilters[(int)side][which] = *filter;
 
     /* Find the delay queue that applies to this filter */
-    if (filter->speed < MAXNETSPEED) {
+    if (filter->speed < MAXNETSPEED || filter->latency) {
 	int myq = FindQueue(filter->ip1, filter->ip2, filter->ip3, filter->ip4);
 	
 	if (myq == -1)
@@ -323,7 +324,7 @@ FailFilter *filter;
 #endif NOTDEF    
 
     /* Find the delay queue that applies to this filter */
-    if (filter->speed < MAXNETSPEED) {
+    if (filter->speed < MAXNETSPEED || filter->latency) {
 	int myq = FindQueue(filter->ip1, filter->ip2, filter->ip3, filter->ip4);
 	
 	if (myq == -1)
@@ -461,7 +462,8 @@ DBG(("StdSendPredicate: ip %d.%d.%d.%d color %d len %d\n",
 				ip1, ip2, ip3, ip4, color, length)) {
 		    action = FlipCoin(theFilters[(int)sendSide][f].factor);
 		    if (action != 0)
-			    action = DelayPacket(theFilters[(int)sendSide][f].speed, 
+			    action = DelayPacket(theFilters[(int)sendSide][f].latency, 
+                                                 theFilters[(int)sendSide][f].speed, 
 						 sock, addr, pb, theQueues[(int)sendSide][f]);
 		    break;
 		}

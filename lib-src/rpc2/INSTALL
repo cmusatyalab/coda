@@ -71,5 +71,7 @@ Building FreeBSD or NetBSD packages;
   extracted into the ports/pkgsrc tree.
 
 Building Debian/GNU Linux packages;
-    coming to a theater near you soon?
+- Use debuild, which comes with the devscripts package.
+- For cross-compiling, install dpkg-cross, binutils-multiarch and a suitable
+  cross-compiler (f.i. one from www.emdebian.org), and use debuild -a<arch>.
 

@@ -36,7 +36,7 @@ libfail_la_SOURCES = filtutil.c fcon.c fail.c delay.c clear.c isolate.c \
     list.c join.c slow.c heal.c partition.c newpartition.c \
     filtutil.h delay.h fail.h ports.h
 libfail_la_LIBADD = fcon.client.lo fcon.server.lo
-libfail_la_LDFLAGS = -version-info 1:0:0
+libfail_la_LDFLAGS = -version-info $(LIBTOOL_VERSION)
 
 filcon_SOURCES = filcon.c parser.c parser.h
 

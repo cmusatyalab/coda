@@ -34,6 +34,7 @@ typedef RPC2_Struct {
 	RPC2_Integer lenmax;
 	RPC2_Integer factor;
 	RPC2_Integer speed;
+	RPC2_Integer latency;
 } FailFilter;
 
 typedef RPC2_Enum { sendSide = 0, recvSide = 1, noSide = 2 } FailFilterSide;

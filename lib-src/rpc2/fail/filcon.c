@@ -71,7 +71,7 @@ command_t list[] = {
     {"deleteclient", DeleteClient, 0, "deleteclient clientnumber"},
     {"listclients", ListClients, 0, "shows all the clients"},
     {"saveclients", SaveClients, 0, "" },
-    {"insertfilter", cmdInsertFilter, 0,  "insertfilter <clientnum> [in|out] <after post>  [<hostname>|-1.-1.-1.-1] <color(-1)> <lenmin(0)> <lenmax(65550)> <probability([0-10000]) <speed[0-10000000]>" },
+    {"insertfilter", cmdInsertFilter, 0,  "insertfilter <clientnum> [in|out] <after post>  [<hostname>|-1.-1.-1.-1] <color(-1)> <lenmin(0)> <lenmax(65550)> <probability([0-10000]) <speed[0-10000000]> <latency>" },
     {"removefilter", cmdRemoveFilter, 0, "" },
 #if 0
     {"replacefilter", cmdReplaceFilter, 0, "" },
@@ -369,14 +369,14 @@ getcid(int ClientNumber)
 }
 
 /* insertfilter client side which hostname/ip1 ip2 ip3 ip4 color
-   lenmin lenmax prob*10000 */
+   lenmin lenmax prob*10000 speed latency*/
 void cmdInsertFilter(int argc, char **argv)
 {
     int rc;
     FailFilterSide side;
     int client, maxFilter, which, cid;
     FailFilter filter;
-    int ip1, ip2, ip3, ip4, color, lenmin, lenmax, prob, speed;
+    int ip1, ip2, ip3, ip4, color, lenmin, lenmax, prob, speed, latency;
     struct hostent *host;
 
     if (argc == 1) {
@@ -395,15 +395,14 @@ void cmdInsertFilter(int argc, char **argv)
 	lenmin = Parser_getint("Minimum length", 0, 65535, 0, 10);
 	lenmax = Parser_getint("Maximum length", 0, 65535, 65535, 10);
 	prob = Parser_getint("Probability (0 [off] - 10000 [on])", 0, MAXPROBABILITY, 0, 10);
-	if (prob == 0)
-	    speed = 0;
-	else 
-	    speed = Parser_getint("Speed (bps) (0 [none] - 10000000 [ether])", 0, 
-			   MAXNETSPEED, MAXNETSPEED, 10);
+        speed = Parser_getint("Speed (bps) (0 [none] - 10000000 [ether])", 0, 
+                              MAXNETSPEED, MAXNETSPEED, 10);
+        latency = Parser_getint("Latency (ms) (0 [none] -)", 0, 
+			   MAXNETSPEED, 0, 10);
     }
     else {
-	if ((argc != 10) && (argc != 9)) {
-	    printf("insertfilter <client> <side> <pos> <host> <color> <lenmin> <lenmax> <probability> [ <speed> ]\n");
+	if (argc != 11) {
+	    printf("insertfilter <client> <side> <pos> <host> <color> <lenmin> <lenmax> <probability> <speed> <latency>\n");
 	    return;
 	}
 	client = atoi(argv[1]);
@@ -424,20 +423,14 @@ void cmdInsertFilter(int argc, char **argv)
 		ip4 < -1 || ip4 > 255) {
 		printf("No such host as %s.\n", argv[4]);
 		return;
-	    }
+            }
 	
 	color = atoi(argv[5]);
 	lenmin = atoi(argv[6]);
 	lenmax = atoi(argv[7]);
 	prob = atoi(argv[8]);
-
-	if (argc == 9) {
-	    if (prob == 0)
-		speed = 0;
-	    else
-		speed = MAXNETSPEED;
-	} else
-	    speed = atoi(argv[9]);
+        speed = atoi(argv[9]);
+        latency = atoi(argv[10]);
     }
 
     filter.ip1 = ip1;
@@ -449,6 +442,7 @@ void cmdInsertFilter(int argc, char **argv)
     filter.lenmax = lenmax;
     filter.factor = prob;
     filter.speed = speed;
+    filter.latency = latency;
 
     if ((cid = getcid(client)) < 0)
       return;
@@ -486,8 +480,9 @@ void PrintFilters(FailFilterSide side, int num, FailFilter *filters)
 	    sprintf(buf, "%s", he->h_name);
 	else
 	    sprintf(buf, "%d.%d.%d.%d", f->ip1, f->ip2, f->ip3, f->ip4);
-	printf("%2d: host %s color %d len %d-%d prob %d speed %d\n", f->id,
-	       buf, f->color, f->lenmin, f->lenmax, f->factor, f->speed);
+	printf("%2d: host %s color %d len %d-%d prob %d speed %d latency %d\n",
+               f->id, buf, f->color, f->lenmin, f->lenmax, f->factor,
+               f->speed, f->latency);
     }
 }
 
