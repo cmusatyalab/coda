@@ -22,7 +22,7 @@
  * These notices must be retained in any copies of any part of this
  * documentation and/or software.
  *
- * $Id: md5c.c,v 1.1 2000/05/02 21:45:03 jaharkes Exp $
+ * $Id: md5c.c,v 1.2 2000/05/02 21:52:10 jaharkes Exp $
  *
  * This code is the same as the code published by RSA Inc.  It has been
  * edited for clarity and style only.
@@ -32,7 +32,7 @@
 #include <string.h>
 #include <coda_md5.h>
 
-static void MD5Transform __P((u_int32_t [4], const unsigned char [64]));
+static void MD5Transform(u_int32_t [4], const unsigned char [64]);
 
 #ifdef i386
 #define Encode memcpy
