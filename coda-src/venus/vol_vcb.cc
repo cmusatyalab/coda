@@ -138,7 +138,7 @@ int repvol::GetVolAttr(vuid_t vuid)
 	     * We send the server its version stamp, it its slot and sends back yea or nay.
 	     */
 	    int nVols = 0;
-	    ViceVolumeIdStruct VidList[PIGGY_VALIDATIONS];
+	    ViceVolumeIdStruct VidList[MAX_PIGGY_VALIDATIONS];
 
 	    /* 
 	     * To minimize bandwidth, we should not send full version vectors
@@ -154,7 +154,7 @@ int repvol::GetVolAttr(vuid_t vuid)
 	     */
 	    RPC2_CountedBS VSBS;
 	    VSBS.SeqLen = 0;
-	    VSBS.SeqBody = (RPC2_ByteSeq) malloc(PIGGY_VALIDATIONS * VSG_MEMBERS * sizeof(RPC2_Integer));
+	    VSBS.SeqBody = (RPC2_ByteSeq) malloc(MAX_PIGGY_VALIDATIONS * VSG_MEMBERS * sizeof(RPC2_Integer));
 
 	    /* 
 	     * this is a BS instead of an array because the RPC2 array
@@ -162,7 +162,7 @@ int repvol::GetVolAttr(vuid_t vuid)
 	     * case of VFlags, that would be a real waste of space (which is
 	     * going over the wire).
 	     */
-	    char VFlags[PIGGY_VALIDATIONS];
+	    char VFlags[MAX_PIGGY_VALIDATIONS];
 	    RPC2_BoundedBS VFlagBS;
 	    VFlagBS.MaxSeqLen = 0;
 	    VFlagBS.SeqLen = 0;
@@ -194,7 +194,7 @@ int repvol::GetVolAttr(vuid_t vuid)
             struct in_addr Hosts[VSG_MEMBERS], vHosts[VSG_MEMBERS];
 
 	    /* one of the following should be this volume. */
-	    while ((rv = next()) && (nVols < PIGGY_VALIDATIONS)) 
+	    while ((rv = next()) && (nVols < MAX_PIGGY_VALIDATIONS)) 
             {
                 /* Check whether the volume is hosted by the same VSG as the
                  * current volume */

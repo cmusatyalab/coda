@@ -183,3 +183,14 @@ cacheblocks=100000
 #
 #validateattrs=50
 
+#
+# How many seconds between checks whether the servers are still alive. The
+# default is 12 minutes. However masquerading firewalls will typically forget
+# about UDP connections sooner. For instance, connection tracking in Linux's
+# netfilter only remembers UDP streams for about 3 minutes.
+#
+# If you are going through a firewall and regularily see messages that the
+# servers nak'ed lowering this timeout could very well help a lot.
+#
+#serverprobe=720
+

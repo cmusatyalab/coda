@@ -434,6 +434,7 @@ static void DefaultCmdlineParms()
     CONF_STR(RootVolName,       "rootvolume",    NULL);
     CONF_STR(VenusLogDevice,    "rvm_log",       "/usr/coda/LOG");
     CONF_STR(VenusDataDevice,   "rvm_data",      "/usr/coda/DATA");
+    CONF_INT(T1Interval,	"serverprobe",   12 * 60);
 
 #if defined(__CYGWIN32__)
     CONF_STR(CachePrefix,	"cache_prefix",	 "/??/C:/cygwin");

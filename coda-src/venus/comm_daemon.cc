@@ -49,7 +49,8 @@ extern "C" {
 /*  *****  Probe Daemon  *****  */
 
 static const int ProbeDaemonStackSize = 40960;
-static const int T1Interval = 12 * 60;	     /* "up" servers */
+             int T1Interval = 0; /* "up" server probe interval
+				    initialized in venus.cc as 12 * 60 */
 static const int T2Interval = 4 * 60;	     /* "down" servers */
 static const int CommCheckInterval = 5;
 static const int ProbeInterval	= CommCheckInterval; /* min(T1, T2, Comm) */

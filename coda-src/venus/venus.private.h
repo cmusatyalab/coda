@@ -342,6 +342,7 @@ extern int   mariner_tcp_enable;
 extern int   allow_reattach;
 extern int   masquerade;
 extern int   PiggyValidations;
+extern int   T1Interval;
 
 /* spool.cc */
 extern void MakeUserSpoolDir(char *, vuid_t);
