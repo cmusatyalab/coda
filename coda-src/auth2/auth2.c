@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/auth2/auth2.c,v 4.2 1998/05/15 01:22:53 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/auth2/auth2.c,v 4.3 1998/05/27 20:29:04 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -167,6 +167,11 @@ int main(int argc, char **argv)
     struct stat buff;
     FILE *file; 
 
+    rc = chdir("/vice/auth2");
+    if ( rc ) {
+	    perror("Error: cannot chdir to /vice/auth2");
+	    exit(1);
+    }
     UtilDetach();
     InitGlobals(argc, argv);
     InitLog();
