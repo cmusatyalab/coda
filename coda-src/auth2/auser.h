@@ -25,7 +25,13 @@ listed in the file CREDITS.
 #ifndef _AUSER_INCLUDED
 #define _AUSER_INCLUDED 1
 
+
+#if defined (__CYGWIN32__) || defined (DJGPP)
+#define VSTAB "c:\\usr\\coda\\etc\\vstab"
+#else
 #define VSTAB "/usr/coda/etc/vstab"
+#endif
+
 typedef enum AuthMethod {
 	AUTH_CODA, AUTH_KERBEROS4, AUTH_KERBEROS5
 } AuthMethod_t;

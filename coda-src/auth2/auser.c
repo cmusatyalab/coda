@@ -72,11 +72,6 @@ extern "C" {
 }
 #endif __cplusplus
 
-#if defined (__CYGWIN32__) || defined (DJGPP)
-#define VSTAB "c:\\usr\\coda\\etc\\vstab"
-#else
-#define VSTAB "/usr/coda/etc/vstab"
-#endif
 
 #ifndef O_BINARY
 #define O_BINARY 0

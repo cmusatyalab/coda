@@ -100,7 +100,7 @@ void bwcb(void *userp, unsigned int offset)
 {
 	bwi++;
 	gettimeofday(&middle, (struct timezone *)0);
-        timersub(&middle, &start, &middle);
+	SUBTIME(&middle, &start);
         fprintf(BW_f,"%ld.%06ld %d\n", middle.tv_sec, middle.tv_usec, offset);
 }
 
