@@ -735,7 +735,7 @@ static void SFSendBusy(struct SFTP_Entry *whichEntry)
     busypb->Header.Opcode = SFTP_BUSY;
     rpc2_htonp(busypb);
 
-    sftp_XmitPacket(whichEntry, busypb);
+    sftp_XmitPacket(whichEntry, busypb, 1);
     SFTP_FreeBuffer(&busypb);
 }
 

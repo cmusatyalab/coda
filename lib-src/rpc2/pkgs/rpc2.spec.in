@@ -69,6 +69,7 @@ rm -rf $RPM_BUILD_ROOT
 /usr/include/rpc2/fcon.h
 /usr/include/rpc2/multi.h
 /usr/include/rpc2/rpc2.h
+/usr/include/rpc2/rpc2_addrinfo.h
 /usr/include/rpc2/se.h
 /usr/include/rpc2/sftp.h
 

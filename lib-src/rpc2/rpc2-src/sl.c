@@ -703,7 +703,7 @@ static void SendBusy(struct CEntry *ce, int doEncrypt)
     rpc2_htonp(pb);
     if (doEncrypt) rpc2_ApplyE(pb, ce);
 
-    rpc2_XmitPacket(rpc2_RequestSocket, pb, ce->HostInfo->Addr);
+    rpc2_XmitPacket(rpc2_RequestSocket, pb, ce->HostInfo->Addr, 1);
     RPC2_FreeBuffer(&pb);
 }
 
@@ -948,7 +948,7 @@ static void HandleRetriedBind(RPC2_PacketBuffer *pb, struct CEntry *ce)
 		say(0, RPC2_DebugLevel, "Resending Init2 0x%lx\n",  ce->UniqueCID);
 		ce->HeldPacket->Header.TimeStamp = htonl(ce->TimeStampEcho);
 		rpc2_XmitPacket(rpc2_RequestSocket, ce->HeldPacket, 
-				ce->HostInfo->Addr);
+				ce->HostInfo->Addr, 1);
 		RPC2_FreeBuffer(&pb);
 		return;
 	}
@@ -1016,7 +1016,7 @@ static void HandleInit3(RPC2_PacketBuffer *pb, struct CEntry *ce)
 			/* My Init4 must have got lost; resend it */
 			ce->HeldPacket->Header.TimeStamp = htonl(pb->Header.TimeStamp);    
 			rpc2_XmitPacket(rpc2_RequestSocket, ce->HeldPacket,
-					ce->HostInfo->Addr);
+					ce->HostInfo->Addr, 1);
 		}  else 
 			say(0, RPC2_DebugLevel, "Bogus Init3\n");
 		/* Throw packet away anyway */
@@ -1069,7 +1069,7 @@ static void SendNak(RPC2_PacketBuffer *pb)
 	nakpb->Header.Opcode = RPC2_NAKED;
 
 	rpc2_htonp(nakpb);
-	rpc2_XmitPacket(rpc2_RequestSocket, nakpb, pb->Prefix.PeerAddr);
+	rpc2_XmitPacket(rpc2_RequestSocket, nakpb, pb->Prefix.PeerAddr, 1);
 	RPC2_FreeBuffer(&nakpb);
 	rpc2_Sent.Naks++;
 }
@@ -1160,7 +1160,7 @@ void rpc2_IncrementSeqNumber(struct CEntry *ce)
 
 
 
-static void HandleOldRequest(   RPC2_PacketBuffer *pb, struct CEntry *ce)
+static void HandleOldRequest(RPC2_PacketBuffer *pb, struct CEntry *ce)
 {
 	say(0, RPC2_DebugLevel, "HandleOldRequest()\n");
 
@@ -1172,7 +1172,7 @@ static void HandleOldRequest(   RPC2_PacketBuffer *pb, struct CEntry *ce)
 	if (ce->HeldPacket != NULL) {
 			ce->HeldPacket->Header.TimeStamp = htonl(pb->Header.TimeStamp);
 			rpc2_XmitPacket(rpc2_RequestSocket, ce->HeldPacket,
-					ce->HostInfo->Addr);
+					ce->HostInfo->Addr, 1);
 		}
 	RPC2_FreeBuffer(&pb);
 }

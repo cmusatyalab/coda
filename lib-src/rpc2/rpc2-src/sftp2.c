@@ -348,7 +348,7 @@ static void SFSendNAK(RPC2_PacketBuffer *pb)
     /* add a reference to the addrinfo in a fake_se */
     fake_se.HostInfo = rpc2_GetHost(pb->Prefix.PeerAddr);
 
-    sftp_XmitPacket(&fake_se, nakpb);    /* ignore return code */
+    sftp_XmitPacket(&fake_se, nakpb, 1);    /* ignore return code */
 
     rpc2_FreeHost(&fake_se.HostInfo);
     SFTP_FreeBuffer(&nakpb);

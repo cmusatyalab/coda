@@ -307,7 +307,8 @@ struct SFTP_Entry		/* per-connection data structure */
 
 extern long SFTP_DebugLevel;
 
-int  sftp_XmitPacket(struct SFTP_Entry *sentry, RPC2_PacketBuffer *pb);
+int sftp_XmitPacket(struct SFTP_Entry *sentry, RPC2_PacketBuffer *pb,
+		    int confirm);
 void sftp_Timer(void);
 void sftp_ExaminePacket(RPC2_PacketBuffer *pb);
 

@@ -68,7 +68,8 @@ struct TraceEntry {
 struct CBUF_Header *TraceBuf;
 #endif
 
-int sftp_XmitPacket(struct SFTP_Entry *sEntry, RPC2_PacketBuffer *pb)
+int sftp_XmitPacket(struct SFTP_Entry *sEntry, RPC2_PacketBuffer *pb,
+		    int confirm)
 {
 #ifdef RPC2DEBUG
     struct TraceEntry *te;
@@ -78,7 +79,7 @@ int sftp_XmitPacket(struct SFTP_Entry *sEntry, RPC2_PacketBuffer *pb)
     te->ph = pb->Header;	/* structure assignment */
 #endif
 
-    rpc2_XmitPacket(rpc2_RequestSocket, pb, sEntry->HostInfo->Addr);
+    rpc2_XmitPacket(rpc2_RequestSocket, pb, sEntry->HostInfo->Addr, confirm);
 
     if (ntohl(pb->Header.Flags) & RPC2_MULTICAST) {
 	rpc2_MSent.Total--;

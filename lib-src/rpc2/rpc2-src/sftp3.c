@@ -86,9 +86,9 @@ struct sftpStats sftp_Sent, sftp_MSent;
 struct sftpStats sftp_Recvd, sftp_MRecvd;
 
 static void CheckWorried(struct SFTP_Entry *sEntry);
-static int ResendWorried(struct SFTP_Entry *sEntry, long ackLast);
-static int SendSendAhead(struct SFTP_Entry *sEntry);
-static int SendFirstUnacked(struct SFTP_Entry *sEntry, long ackMe);
+static int ResendWorried(struct SFTP_Entry *sEntry);
+static int SendSendAhead(struct SFTP_Entry *sEntry, int worried);
+static int SendFirstUnacked(struct SFTP_Entry *sEntry);
 static int WinIsOpen(struct SFTP_Entry *sEntry);
 static void sftp_SendAck(struct SFTP_Entry *sEntry);
 static int sftp_vfwritev(struct SFTP_Entry *se, struct iovec *iovarray, long howMany);
@@ -495,6 +495,7 @@ static void sftp_SendAck(struct SFTP_Entry *sEntry)
     RPC2_PacketBuffer *pb;
     long i, shiftlen;
     unsigned long btemp[BITMASKWIDTH], now;
+    int confirm = 1;
     
     sftp_acks++;
     sftp_Sent.Acks++;
@@ -517,7 +518,10 @@ static void sftp_SendAck(struct SFTP_Entry *sEntry)
     pb->Header.TimeEcho = VALID_TIMEECHO(sEntry) ? sEntry->TimeEcho : 0;
 #endif
 
-    sEntry->Retransmitting = FALSE;
+    if (sEntry->Retransmitting == TRUE) {
+	sEntry->Retransmitting = FALSE;
+	confirm = 0;
+    }
 
     B_Assign((unsigned int *)btemp, (unsigned int *)sEntry->RecvTheseBits);
     
@@ -533,7 +537,7 @@ static void sftp_SendAck(struct SFTP_Entry *sEntry)
     if (shiftlen > 0) B_ShiftLeft((unsigned int *)btemp, shiftlen);
     B_CopyToPacket((unsigned int *)btemp, pb);
     rpc2_htonp(pb);
-    sftp_XmitPacket(sEntry, pb);
+    sftp_XmitPacket(sEntry, pb, confirm);
     sEntry->RecvSinceAck = 0;
 
     say(/*9*/4, SFTP_DebugLevel, "A-%lu [%lu] {%lu} %lu\n",
@@ -675,7 +679,7 @@ int sftp_SendStrategy(struct SFTP_Entry *sEntry)
     Returns 0 if normal, -1 if fatal error of some kind occurred.
     */
 {
-    long winopen;
+    int winopen, worried;
 
     /* On entry to this routine there are four sets of packets for us
 	to consider: 
@@ -711,10 +715,27 @@ int sftp_SendStrategy(struct SFTP_Entry *sEntry)
 
 	Returns 0 if normal, -1 if fatal error of some kind occurred.
 
-	Added (Jan '88): if Window is full, send only the first packet
+	Added (JH '98): if Window is full, send only the first packet
 	and ask for an ack; this serves as implicit flow-control and
 	prevents connections from breaking.
 
+	(JH '03): Thies still seems to be insufficient. When a router
+	is loaded it is more likely to drop packet that arrive later.
+	The combination of the last packet containing the ACKME flag
+	and the higher chance of losing that packet creates a very
+	abysmal situation where a transfer that is larger than the
+	router queue length and shorter than a full window size can
+	time out without ever getting the packets with ACKME flags to
+	the other side (~16 packets in the case I'm looking at)
+
+	Proposed solution, set ackme on the first retransmitted packet
+	in the worried set, keep sending the other packets but do not
+	include further ackme flags. This way the other side will send
+	back a selective ack for any received packets from the worried
+	set and we can advance the window. The next transmission will
+	contain the first lost packet and the new sendahead, the ack
+	will then identify which packets were received in the same
+	window after the previous ACKME
     */
 
     sftp_TraceStatus(sEntry, 3, __LINE__);
@@ -745,39 +766,41 @@ int sftp_SendStrategy(struct SFTP_Entry *sEntry)
      * the retransmission timer will expire eventually, and the packet
      * will be placed in the worried set.  The first unacked packet is
      * SendLastContig+1.  */
+    worried = sEntry->SendWorriedLimit > sEntry->SendLastContig;
     if (!winopen)
     {
 	/* Window is closed: try to send any worried packets */
 	sftp_windowfulls++;
 #if 0
-	if (ResendWorried(sEntry, TRUE) < 0) return(-1);
+	if (ResendWorried(sEntry) < 0) return(-1);
 #else
 	/* Assuming we don't lose packets that much, sending only the first
 	 * unacked is marginally faster. -JH */
-	if (sEntry->SendWorriedLimit > sEntry->SendLastContig)
-	{
-	    if (SendFirstUnacked(sEntry, TRUE) < 0) return(-1);
-	}
+	if (worried && SendFirstUnacked(sEntry) < 0)
+	    return(-1);
 #endif
     }
     else
     {/* Window is open: be more ambitious */
 	if (sEntry->ReadAheadCount > 0)
 	{
+#if 0
+	    if (ResendWorried(sEntry) < 0) return(-1);
+#else
 	    /* If we're starting to get worried about packets, send the first
 	     * unacknowledged packet in the worried set. If that doesn't fix
 	     * it, we will hit the end of the send window, and start sending
 	     * the complete worried set anyways. -JH */
-	    if (sEntry->SendWorriedLimit > sEntry->SendLastContig)
-	    {
-		if (SendFirstUnacked(sEntry, FALSE) < 0) return(-1);
-	    }
-	    if (SendSendAhead(sEntry) < 0) return(-1);  /* may close window */
+	    if (worried && SendFirstUnacked(sEntry) < 0)
+		return(-1);
+#endif
+	    if (SendSendAhead(sEntry, worried) < 0) /* may close window */
+		return(-1);
 	}
 	else
 	{
 	    /* Hit EOF, try to flush the last packets to the other side. */
-	    if (ResendWorried(sEntry, TRUE) < 0) return(-1);
+	    if (ResendWorried(sEntry) < 0) return(-1);
 	}
     }
     return(0);
@@ -820,23 +843,15 @@ static void CheckWorried(struct SFTP_Entry *sEntry)
 				  sEntry->SendLastContig, sEntry->SendWorriedLimit, sEntry->SendAckLimit, sEntry->SendMostRecent);
 }
 
-static int ResendWorried(struct SFTP_Entry *sEntry, long ackLast)
-    /* Resend worried set for sEntry.  Ack the last member of the set
-    iff ackLast is TRUE Side effects: flag settings on resent packets
-    Returns 0 if normal, -1 if fatal error of some kind occurred.  */
+static int ResendWorried(struct SFTP_Entry *sEntry)
+    /* Resend worried set for sEntry. 
+       Side effects: flag settings on resent packets
+       Returns 0 if normal, -1 if fatal error of some kind occurred.  */
 {
     RPC2_PacketBuffer *pb;
-    long i,lastpacket;
+    long i;
     unsigned long now;
-
-    if (ackLast)
-	{
-	/* Find the last packet to be sent */
-	for (i = sEntry->SendWorriedLimit; i > sEntry->SendLastContig; i--)
-	    if (!TESTBIT(sEntry->SendTheseBits, i - sEntry->SendLastContig)) break;
-	lastpacket = i;
-	}
-    else lastpacket = -1;	/* don't need to know */
+    int acked = 0;
 
     /* Now send them out */
     for (i = sEntry->SendLastContig+1; i <= sEntry->SendWorriedLimit; i++)
@@ -846,9 +861,13 @@ static int ResendWorried(struct SFTP_Entry *sEntry, long ackLast)
 	    pb = sEntry->ThesePackets[PBUFF(i)];
 	    pb->Header.Flags = ntohl(pb->Header.Flags);
 	    if (pb->Header.Flags & SFTP_ACKME) sftp_ackslost++;
-	    if (ackLast && i == lastpacket)
-	    	pb->Header.Flags |= SFTP_ACKME; /* Demand ack for last of the worried set */
-	    else pb->Header.Flags &= ~SFTP_ACKME;
+	    if (acked) {
+		pb->Header.Flags &= ~SFTP_ACKME;
+	    } else {
+		/* Demand ack for first of the worried set */
+	    	pb->Header.Flags |= SFTP_ACKME;
+		acked = 1;
+	    }
 	    if (i == sEntry->SendLastContig+1) 
 	        {/* first packet */
 		pb->Header.SEFlags = ntohl(pb->Header.SEFlags);
@@ -886,14 +905,14 @@ static int ResendWorried(struct SFTP_Entry *sEntry, long ackLast)
 		    (unsigned long)ntohl(pb->Header.SeqNumber), 
 		    (unsigned long)ntohl(pb->Header.TimeStamp), 
 		    (unsigned long)ntohl(pb->Header.TimeEcho));
-	    sftp_XmitPacket(sEntry, pb);
+	    sftp_XmitPacket(sEntry, pb, 0);
 	}
     }
 
     return(0);
 }
 
-static int SendFirstUnacked(struct SFTP_Entry *sEntry, long ackMe)
+static int SendFirstUnacked(struct SFTP_Entry *sEntry)
 {
     /* Note: it's better to resend the first unacked rather than last
        unacked, because it will narrow the window faster than the
@@ -908,9 +927,7 @@ static int SendFirstUnacked(struct SFTP_Entry *sEntry, long ackMe)
     /* Resend it */
     pb->Header.Flags = ntohl(pb->Header.Flags);
     if (pb->Header.Flags & SFTP_ACKME) sftp_ackslost++;
-    if (ackMe) pb->Header.Flags |= SFTP_ACKME;
-    else       pb->Header.Flags &= ~SFTP_ACKME;
-    pb->Header.Flags |= RPC2_RETRY;
+    pb->Header.Flags |= SFTP_ACKME | RPC2_RETRY;
     pb->Header.SEFlags = ntohl(pb->Header.SEFlags);
     pb->Header.SEFlags |= SFTP_FIRST;
     if (IsMulticast(pb))
@@ -944,11 +961,11 @@ static int SendFirstUnacked(struct SFTP_Entry *sEntry, long ackMe)
 	    (unsigned long)ntohl(pb->Header.SeqNumber), 
 	    (unsigned long)ntohl(pb->Header.TimeStamp),
 	    (unsigned long)ntohl(pb->Header.TimeEcho));
-    sftp_XmitPacket(sEntry, pb);
+    sftp_XmitPacket(sEntry, pb, 0);
     return(1);
 }
 
-static int SendSendAhead(struct SFTP_Entry *sEntry)
+static int SendSendAhead(struct SFTP_Entry *sEntry, int worried)
     /* Send out SendAhead set, adds to the InTransit set and requests
        ack for AckPoint packet.  Caller should ensure that sending
        ReadAheadCount packets will not cause WindowSize to be
@@ -969,7 +986,7 @@ static int SendSendAhead(struct SFTP_Entry *sEntry)
 
     /* try to avoid generating data when there might be ack packets queued up
      * already and we're not about to send a full window's worth */
-    dont_ackme = (sEntry->ReadAheadCount < sEntry->SendAhead) &&
+    dont_ackme = worried || (sEntry->ReadAheadCount < sEntry->SendAhead) &&
 	sftp_MorePackets();
 	
     /* j is the packet to be acked */
@@ -1012,7 +1029,7 @@ static int SendSendAhead(struct SFTP_Entry *sEntry)
 	    htonl(sEntry->TimeEcho) : htonl(0);
 #endif
 
-	sftp_XmitPacket(sEntry, pb);
+	sftp_XmitPacket(sEntry, pb, 1);
 	say(/*9*/4, SFTP_DebugLevel, "S-%lu [%lu] {%lu}\n",
 		(unsigned long)ntohl(pb->Header.SeqNumber), 
 		(unsigned long)ntohl(pb->Header.TimeStamp),
@@ -1234,7 +1251,7 @@ int sftp_SendStart(struct SFTP_Entry *sEntry)
 
     rpc2_htonp(pb);
 
-    sftp_XmitPacket(sEntry, pb);
+    sftp_XmitPacket(sEntry, pb, 1);
     say(/*9*/4, SFTP_DebugLevel, "X-%lu [%lu]\n",
 	    (unsigned long)ntohl(pb->Header.SeqNumber),
 	    (unsigned long)ntohl(pb->Header.TimeStamp));

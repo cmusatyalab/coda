@@ -54,6 +54,10 @@ Pittsburgh, PA.
 #include "cbuf.h"
 #include "trace.h"
 
+#ifndef MSG_CONFIRM
+#define MSG_CONFIRM 0
+#endif
+
 static long DefaultRetryCount = 6;
 static struct timeval DefaultRetryInterval = {60, 0};
 
@@ -97,9 +101,9 @@ static long FailPacket(int (*predicate)(), RPC2_PacketBuffer *pb,
 }
 
 void rpc2_XmitPacket(IN long whichSocket, IN RPC2_PacketBuffer *whichPB,
-		     IN struct RPC2_addrinfo *addr)
+		     IN struct RPC2_addrinfo *addr, int confirm)
 {
-    int n;
+    int n, flags = 0;
 
     say(0, RPC2_DebugLevel, "rpc2_XmitPacket()\n");
 
@@ -133,8 +137,11 @@ void rpc2_XmitPacket(IN long whichSocket, IN RPC2_PacketBuffer *whichPB,
     if (FailPacket(Fail_SendPredicate, whichPB, addr, whichSocket))
 	return;
 
-    n = sendto(whichSocket, &whichPB->Header, whichPB->Prefix.LengthOfPacket, 0,
-	       addr->ai_addr, addr->ai_addrlen);
+    if (confirm)
+	flags = MSG_CONFIRM;
+
+    n = sendto(whichSocket, &whichPB->Header, whichPB->Prefix.LengthOfPacket,
+	       flags, addr->ai_addr, addr->ai_addrlen);
 
 #ifdef __linux__
     if (n == -1 && errno == ECONNREFUSED)
@@ -461,7 +468,7 @@ long rpc2_SendReliably(IN Conn, IN Sle, IN Packet, IN TimeOut)
     say(9, RPC2_DebugLevel, "Sending try at %d on 0x%lx (timeout %ld.%06ld)\n", 
 			     rpc2_time(), Conn->UniqueCID,
 			     ThisRetryBeta[1].tv_sec, ThisRetryBeta[1].tv_usec);
-    rpc2_XmitPacket(rpc2_RequestSocket, Packet, Conn->HostInfo->Addr);
+    rpc2_XmitPacket(rpc2_RequestSocket, Packet, Conn->HostInfo->Addr, 0);
 
     if (rpc2_Bandwidth) rpc2_ResetLowerLimit(Conn, Packet);
 
@@ -520,7 +527,7 @@ long rpc2_SendReliably(IN Conn, IN Sle, IN Packet, IN TimeOut)
 		    Packet->Header.TimeStamp = htonl(rpc2_MakeTimeStamp());
 		rpc2_Sent.Retries += 1;
 		rpc2_XmitPacket(rpc2_RequestSocket, Packet,
-				Conn->HostInfo->Addr);
+				Conn->HostInfo->Addr, 0);
 		break;	/* switch */
 		
 	    default: assert(FALSE);

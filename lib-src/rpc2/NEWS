@@ -1,3 +1,14 @@
+New in 1.20:
+
+* Add /usr/include/rpc2/rpc2_addrinfo.h to the devel packages.
+* Set 'ackme' flag on first packet sent during an SFTP retransmission.
+  This packet has a higher chance on survival and can confirm already
+  received packets and advance the window.
+* When responding to a received packet, set the MSG_CONFIRM flag (if it
+  is available). On Linux systems this reconfirm that the arp cache
+  entry for the destination is valid and as a result avoids the latency
+  of the extra(neous) arp request/response before sending the packet.
+
 New in 1.19:
 
 * Cygwin compile fixes (Phil Nelson)

@@ -56,6 +56,7 @@ rm -rf $RPM_BUILD_ROOT
 /usr/gnuwin32/include/rpc2/fcon.h
 /usr/gnuwin32/include/rpc2/multi.h
 /usr/gnuwin32/include/rpc2/rpc2.h
+/usr/gnuwin32/include/rpc2/rpc2_addrinfo.h
 /usr/gnuwin32/include/rpc2/se.h
 /usr/gnuwin32/include/rpc2/sftp.h
 

@@ -158,6 +158,7 @@ include/rpc2/fail.h
 include/rpc2/fcon.h
 include/rpc2/multi.h
 include/rpc2/rpc2.h
+include/rpc2/rpc2_addrinfo.h
 include/rpc2/se.h
 include/rpc2/sftp.h
 EOF
