@@ -1973,10 +1973,9 @@ int fsobj::Fakeify()
 
 		if (!pf->IsDir() || pf->IsMtPt()) continue;
 		if (!HAVEALLDATA(pf)) continue;
-		if (!pf->dir_IsParent(&fid)) continue;
 
-		/* Found! */
-		break;
+		if (pf->dir_IsParent(&fid))
+		    break; /* Found! */
 	    }
 	    if (p == &vol->fso_list) {
 		LOG(0, ("fsobj::Fakeify: %s, (%s), parent not found\n",

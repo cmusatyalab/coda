@@ -378,71 +378,53 @@ void fsobj::DeLocalRootParent(fsobj *RepairRoot, VenusFid *GlobalRootFid, fsobj 
     }
 
     /* step 2: de-link root-parent and repair-root */
-    if (MtPt == NULL) {
-	Recov_BeginTrans();
-	RVMLIB_REC_OBJECT(*this);
-	RVMLIB_REC_OBJECT(*RepairRoot);
-	dir_Delete(RepairRoot->comp);
-	dir_Create(RepairRoot->comp, GlobalRootFid);
-	if (shared_parent_count == 0)
-		UnsetLocalObj();
-	DetachChild(RepairRoot);
-	RepairRoot->pfso = NULL;
-	RepairRoot->pfid = NullFid;    
-	Recov_EndTrans(MAXFP);
-    } else {
-	LOG(100, ("fsobj::DeLocalRootParent: Volume Root\n"));
-	Recov_BeginTrans();
-	RVMLIB_REC_OBJECT(*this);
-	RVMLIB_REC_OBJECT(*RepairRoot);
-	dir_Delete(RepairRoot->comp);
-	dir_Create(RepairRoot->comp, &MtPt->fid);
-	if (shared_parent_count == 0)
-		UnsetLocalObj();
-	DetachChild(RepairRoot);
-	RepairRoot->pfso = NULL;
-	RepairRoot->pfid = NullFid;    
-	Recov_EndTrans(MAXFP);
-    }
+    Recov_BeginTrans();
+    RVMLIB_REC_OBJECT(*this);
+    RVMLIB_REC_OBJECT(*RepairRoot);
+    dir_Delete(RepairRoot->comp);
+    if (MtPt)	dir_Create(RepairRoot->comp, &MtPt->fid);
+    else	dir_Create(RepairRoot->comp, GlobalRootFid);
+    if (shared_parent_count == 0)
+	UnsetLocalObj();
+    DetachChild(RepairRoot);
+    RepairRoot->pfso = NULL;
+    RepairRoot->pfid = NullFid;    
+    Recov_EndTrans(MAXFP);
 
     /* step 3: re-link root-parent and global-root(if possible) */
-    if (MtPt != NULL) {
-	/* re-establish the child-parent relation between "this" and MtPt */
-	Recov_BeginTrans();
-	MtPt->pfso = this;
-	MtPt->pfid = this->fid;
-	this->AttachChild(MtPt);
-	Recov_EndTrans(MAXFP);
-    } else {
+    fsobj *GlobalRootObj;
+    if (!MtPt) {
 	/* try to get global-root cached as much as possible */
-	fsobj *GlobalRootObj = NULL;
 	/* first try to FSDB::Get GlobalRootObj(include possible fetching) */
 	vproc *vp = VprocSelf();
-	if (FSDB->Get(&GlobalRootObj, GlobalRootFid, vp->u.u_uid, RC_STATUS) != 0) {
-	    LOG(0, ("fsobj::DeLocalRootParent: FSDB::Get can't get GlobalRootObj\n"));
-	} else {
+	if (FSDB->Get(&GlobalRootObj, GlobalRootFid, vp->u.u_uid, RC_STATUS) == 0) {
 	    /* FSDB::Get puts read-locked target, must unlock it.*/
 	    GlobalRootObj->UnLock(RD);
 	}
+	else
+	    LOG(0, ("fsobj::DeLocalRootParent: FSDB::Get can't get GlobalRootObj\n"));
 	/* no matter what happened to FSDB::Get(), search it from hash-table */
 	GlobalRootObj = FSDB->Find(GlobalRootFid);
-	if (GlobalRootObj) {
-	    if (FID_EQ(&fid, &(GlobalRootObj->pfid)) &&
-		GlobalRootObj->pfso == this) {
-		/* 
-		 * this is the case where the side-effect of FSDB::Get() in
-		 * fetching the GlobalObject calls SetParent() which already
-		 * established the child-parent relation between this and GlobalRootObj.
-		 */
-		LOG(0, ("fsobj::DeLocalRootParent:GlobalRoot already hooked\n"));
-	    } else {
-		/* re-establish child-parent relation between "this" and GlobalRootObj */
-		Recov_BeginTrans();
-		GlobalRootObj->pfso = this;
-		GlobalRootObj->pfid = this->fid;
-		this->AttachChild(GlobalRootObj);
-		Recov_EndTrans(MAXFP);
-	    }
+    } else
+	GlobalRootObj = MtPt;
+
+    if (GlobalRootObj) {
+	if (FID_EQ(&fid, &(GlobalRootObj->pfid)) &&
+	    GlobalRootObj->pfso == this)
+	{
+	    /* 
+	     * this is the case where the side-effect of FSDB::Get() in
+	     * fetching the GlobalObject calls SetParent() which already
+	     * established the child-parent relation between this and GlobalRootObj.
+	     */
+	    LOG(0, ("fsobj::DeLocalRootParent:GlobalRoot already hooked\n"));
+	} else {
+	    /* re-establish child-parent relation between "this" and GlobalRootObj */
+	    Recov_BeginTrans();
+	    GlobalRootObj->pfso = this;
+	    GlobalRootObj->pfid = this->fid;
+	    this->AttachChild(GlobalRootObj);
+	    Recov_EndTrans(MAXFP);
 	}
     }
 }
@@ -823,19 +805,16 @@ int fsobj::ReplaceLocalFakeFid()
 }
 
 /*
-  BEGIN_HTML
-  <a name="fakeify"><strong> the fakeify process to create
+  LocalKakeify -- the fakeify process to create
   representation for an object detected to be in local/global conflict
-  </strong></a>
-  END_HTML
 */
-/* must not be called from within a transaction */
+/* MUST NOT be called from within a transaction */
 /* this method will be called when the volume is exclusively locked */
 int fsobj::LocalFakeify()
 {
     LOG(100, ("fsobj::LocalFakeify: %s, %s\n", comp, FID_(&fid)));
-    int code = 0;
     fsobj *MtPt = NULL;
+    int code = 0;
 
     /* 
      * step 0. purge kernel and scan FSDB to make sure child-parent
@@ -871,9 +850,9 @@ int fsobj::LocalFakeify()
 
 	    if (!pf->IsDir() || pf->IsMtPt()) continue;
 	    if (!HAVEALLDATA(pf)) continue;
-	    if (!pf->dir_IsParent(&fid)) continue;
-	    /* Found! */
-	    break;
+
+	    if (pf->dir_IsParent(&fid))
+		break; /* Found! */
 	}
 	if (p == &vol->fso_list) {
 	    LOG(0, ("fsobj::LocalFakeify: %s, %s, parent not found\n",
