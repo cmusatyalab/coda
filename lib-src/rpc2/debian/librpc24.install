@@ -1,0 +1,3 @@
+usr/lib/librpc2*.so.*
+usr/lib/libse*.so.*
+usr/lib/libfail*.so.*

@@ -1,0 +1,5 @@
+usr/bin/rp2gen
+usr/include
+usr/lib/*.la
+usr/lib/*.a
+usr/lib/*.so

@@ -2,12 +2,12 @@ Source: rpc2
 Section: devel
 Priority: optional
 Maintainer: Jan Harkes <jaharkes@cs.cmu.edu>
-Standards-Version: 3.5.4.0
-Build-Depends: debhelper, dpkg-dev, gcc, liblwp-dev, flex, bison | byacc, libreadline-dev
+Standards-Version: 3.6.1
+Build-Depends: debhelper (>= 4), liblwp-dev, flex, bison | byacc, libreadline-dev
 
 Package: librpc2-dev
 Architecture: arm i386 m68k powerpc sparc
-Depends: librpc24 (= ${Source-Version}), libc6-dev
+Depends: librpc24 (= ${Source-Version})
 Description: Remote procedure call library, development files
  RPC2 is a remote procedure call library developed at CMU. It is layered
  on top of UDP sockets and is used by the Coda distributed filesystem
