@@ -1130,7 +1130,10 @@ static void Create_Process_Part2 (temp)
 }
 
 #endif OLDLWP
-static int lwp_trace_depth=3;
+
+/* set lwp_trace_depth to < 0 to trace the complete stack.
+ * set it to > 0 to set the maximum trace depth. */
+static int lwp_trace_depth=-1;
 
 #if defined(i386)
 
@@ -1177,6 +1180,8 @@ static void Trace_Swapped_Stack(top, fp, depth, name)
      */
     while (depth--) {
 	fprintf(fp,"\tStack: %s Depth %d - 0x%x\n", name, depth, ip);
+        /* make sure we don't segfault while going to the next frame --JH */
+        if (reg.ebp == 0) break;
 	if (depth) {
 	    /* LEAVE */
 	    esp = reg.ebp;
