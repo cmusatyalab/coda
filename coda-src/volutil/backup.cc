@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /usr/rvb/XX/src/coda-src/volutil/RCS/backup.cc,v 4.1 1997/01/08 21:52:23 rvb Exp $";
+static char *rcsid = "$Header: /coda/usr/raiff/coda/src/coda-src/volutil/RCS/backup.cc,v 4.2 97/02/26 16:04:00 rvb Exp Locker: raiff $";
 #endif /*_BLURB_*/
 
 
@@ -516,6 +516,7 @@ int ParseDumpList(char *VolumeListFile, partitionInfo_t **Parts, volinfo_t **vol
 	    if (getReplica(vol->replicas) == -1) {
 		LogMsg(0, 0, stdout, "Skipping backup for volume %x\n", vol->volId);
 		free(vol);
+		flags = 0;		/* Reset the flags */
 		continue;
 	    }
 	    
