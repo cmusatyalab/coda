@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/util/parser.c,v 4.2 1998/01/04 14:31:19 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/util/parser.c,v 4.3 1998/01/05 16:36:28 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -465,7 +465,7 @@ char *Parser_getstr(const char *prompt, const char *deft, char *res,
     theprompt = malloc(size);
     assert(theprompt);
 
-    sprintf(theprompt, "%s, [%s]: ", prompt, deft);
+    sprintf(theprompt, "%s [%s]: ", prompt, deft);
 
     line  = readline(theprompt);
     free(theprompt);
