@@ -51,20 +51,19 @@ else
     done
 fi
 
-echo "Fetching ${vicedir}/vol/Volumelist from $SERVERS"
+echo "Fetching ${vicedir}/vol/Volumelist from servers:"
 
 for server in $SERVERS
 do 
-
     updatefetch -h ${server} -r ${vicedir}/vol/VolumeList -l \
 	${REMOTE}/${server}.list.new
 
     if [ -r ${REMOTE}/${server}.list.new ]; then
         mv ${REMOTE}/${server}.list.new ${REMOTE}/${server}.list
+	echo " $server - success"
     else 
-        echo "Trouble getting new list for server $server"
+	echo " $server - FAILED, check if updatesrv is running"
     fi
-
 done
 
 # Make on big list called composite

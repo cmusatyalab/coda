@@ -104,6 +104,7 @@ lib-src/kernel-includes/Makefile
 lib-src/special-includes/Makefile 
 coda-src/Makefile 
 coda-src/scripts/Makefile 
+coda-src/scripts/bldvldb.sh
 coda-src/scripts/createvol_rep
 coda-src/scripts/rc.vice
 coda-src/scripts/startserver

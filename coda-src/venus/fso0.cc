@@ -935,9 +935,9 @@ RestartFind:
 	if (FETCHABLE(f)) {
 	    f->PromoteLock();
 
-	    /* Fetch status-only if we don't have any or if it is suspect. */
-	    /* We do this even if we want data and we don't have any so that we */
-	    /* ALWAYS know how many blocks to allocate when fetching data. */
+	    /* Fetch status-only if we don't have any or if it is suspect. We
+	     * do this even if we want data and we don't have any so that we
+	     * ALWAYS know how many blocks to allocate when fetching data. */
 	    if (STATUSVALID(f)) 
                 VmonUpdateSession(vp, key, f, f->vol, vuid, ATTR, HIT, FSOBJSIZE);
 	    else { 
@@ -1096,6 +1096,9 @@ RestartFind:
 				   comp, key->Volume, key->Vnode, key->Unique));
 		            MarinerLog("Read Disconnected Miss Coersion on %s <%x,%x,%x>\n",
 				       comp, key->Volume, key->Vnode, key->Unique);
+			    /* We have to release any previously allocated
+			     * cachespace */
+			    FreeBlocks(-nblocks);
 			    Put(&f);
 			    return(ETIMEDOUT);
 		        default:
