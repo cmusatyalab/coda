@@ -7,7 +7,7 @@
 
 TOPDIR = @top_srcdir@
 ifndef MAKDIR
-MAKDIR = @top_srcdir@/configs
+MAKDIR = @top_srcdir@
 endif
 srcdir = @srcdir@
 VPATH  = @srcdir@
@@ -16,7 +16,7 @@ TOPOBJ = @TOPOBJ@
 include $(MAKDIR)/Makeconf
 
 INCLDIR     := $(INCLDIR)/cfs
-HEADERS     =  coda.h cfs_opstats.h
+HEADERS     =  coda.h coda_opstats.h
 
-include $(MAKDIR)/Makerules
+include $(MAKDIR)/configs/Makerules
 

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/mariner.cc,v 4.3 1997/05/29 19:14:16 clement Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/mariner.cc,v 4.4 1997/12/01 17:27:49 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -224,9 +224,6 @@ void MarinerReport(ViceFid *fid, vuid_t vuid) {
 	    if (first) {
 		m->u.Init();
 		m->u.u_cred.cr_uid = (uid_t)vuid;
-#ifdef __MACH__
-		m->u.u_cred.cr_ruid = (uid_t)vuid;
-#endif /* __MACH__ */
 		len = MAXPATHLEN;
 		m->GetPath(fid, buf, &len);
 		if (m->u.u_error == 0) {
@@ -505,13 +502,7 @@ void mariner::PathStat(char *path) {
     /* Map pathname to fid. */
     u.Init();
     u.u_cred.cr_uid = (uid_t)V_UID;
-#ifdef __MACH__
-    u.u_cred.cr_ruid = (uid_t)V_UID;
-#endif /* __MACH__ */
     u.u_cred.cr_gid = (gid_t)V_GID;
-#ifdef __MACH__
-    u.u_cred.cr_rgid = (gid_t)V_GID;
-#endif /* __MACH__ */
     u.u_priority = 0;
     u.u_cdir = rootfid;
     u.u_nc = 0;
@@ -535,13 +526,7 @@ void mariner::FidStat(ViceFid *fid) {
     /* Set up context. */
     u.Init();
     u.u_cred.cr_uid = (uid_t)V_UID;
-#ifdef __MACH__
-    u.u_cred.cr_ruid = (uid_t)V_UID;
-#endif /* __MACH__ */
     u.u_cred.cr_gid = (gid_t)V_GID;
-#ifdef __MACH__
-    u.u_cred.cr_rgid = (gid_t)V_GID;
-#endif /* __MACH__ */
     u.u_priority = FSDB->MaxPri();
 
     fsobj *f = 0;

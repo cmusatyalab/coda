@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /usr/rvb/XX/src/coda-src/venus/RCS/venusvm.cc,v 4.1 1997/01/08 21:51:39 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/venusvm.cc,v 4.2 1997/02/26 16:03:29 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -73,7 +73,7 @@ extern int nlist(const char*, struct nlist[]);
 #include <rpc2.h>
 #include <rds.h>
 #include <rvm.h>
-#include <cfs/cfs_opstats.h>
+#include <cfs/coda_opstats.h>
 
 #ifdef __cplusplus
 }

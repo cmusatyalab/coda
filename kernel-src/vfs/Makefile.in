@@ -11,6 +11,6 @@ TOPOBJ = @TOPOBJ@
 
 include $(MAKDIR)/Makeconf
 
-SUBDIRS = includes $(SHORTSYS)
+SUBDIRS = includes
 
 include $(MAKDIR)/configs/Makerules
