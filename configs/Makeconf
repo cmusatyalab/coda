@@ -14,7 +14,7 @@
 #########################################################
 
 include $(TOPOBJ)/Makeconf.setup
-include $(TOPDIR)/configs/Makeconf.$(SYS)
+include $(MAKDIR)/Makeconf.$(SYS)
 
 ##############################
 # tools
@@ -39,6 +39,7 @@ endif
 ifneq ($(VPATH),)
 colon=:
 SHADOWINCLS := -I$(subst $(colon), -I,$(VPATH))
+SHADOWPATH  := $(VPATH)
 endif
 
 ##############################
@@ -77,10 +78,12 @@ INSTALL = cp -p
 
 ifeq ($(INCLDIR),$(INCLSPECIAL))
 INCLFLAGS := -I- -I. $(SHADOWINCLS) -I$(INCLDIR) $(INCLFLAGS)
+INCLPATH  := .:$(SHADOWPATH):$(INCLDIR)
 else
 INCLFLAGS := -I- -I. $(SHADOWINCLS) -I$(INCLDIR) -I$(INCLSPECIAL) $(INCLFLAGS)
+INCLPATH  := .:$(SHADOWPATH):$(INCLDIR):$(INCLSPECIAL)
 endif
-DEPFLAG   :=
+DEPFLAG   := -MD
 MYFLAGS   :=
 OPTFLAG   := -O
 LIBFLAGS  :=
@@ -91,6 +94,7 @@ C++FLAGS  := $(CFLAGS)	# Mach uses c++ flags, not CXX
 
 RP2FLAGS  = -n -I . -I $(srcdir) -I $(INCLDIR)
 
+vpath %.h $(INCLPATH)
 ##############################
 # Library definitions
 ##############################
@@ -141,6 +145,7 @@ LIBFAIL =../fail/libfail.a
 LIBRVMRES =../rvmres/librvmres.a
 LIBDIRLIB= ../dir/libdir.a
 LIBVICEERROR  = ../vice/libviceerror.a
+LIBDS = ../ds/libds.a
 
 ##############################
 # RPC2 interface definitions in module vicedep
@@ -209,6 +214,9 @@ LIBDIRLIB= $(LIBDIR)/libdir.a
 LIBSETPAG = $(LIBDIR)/libsetpag.a
 LIBVICEERROR  = $(LIBDIR)/libviceerror.a
 
+# -- Dynamic sets for Potemkin --
+LIBDS = $(LIBDIR)/libds.a
+
 ##############################
 # RPC2 interface definitions in module vicedep
 ##############################
@@ -228,4 +236,4 @@ vpath %.rpc2 $(INCLDIR)
 
 endif
 
-all:
+all: 
