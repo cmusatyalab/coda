@@ -20,6 +20,10 @@ dnl Checks for programs.
 AC_PROG_CC
 AC_PROG_CXX
 CODA_PROG_NATIVECC
+
+dnl Now we can derive things like systype/cputype/initdir
+sinclude(configs/codaconf.m4)
+
 AC_PROG_CPP
 AC_PROG_CXXCPP
 AC_PROG_RANLIB
@@ -63,10 +67,8 @@ AC_SEARCH_LIBS(inet_ntoa, nsl)
 
 dnl check for library providing md5 checksumming
 AC_SEARCH_LIBS(MD5_Init, crypto,
-  [test "$ac_cv_search_MD5_Init" = "none required" || \
-  LIBMD5="$ac_cv_search_MD5_Init"
-  LIBS="$ac_func_search_save_LIBS"],
-  [MD5C="md5c.o"])
+  [test "$ac_cv_search_MD5_Init" = "none required" || LIBMD5="$ac_cv_search_MD5_Init"
+  LIBS="$ac_func_search_save_LIBS"], [MD5C="md5c.o"])
 AC_SUBST(LIBMD5)
 AC_SUBST(MD5C)
 
@@ -101,12 +103,6 @@ dnl Checks for system services.
 dnl  Substitute the top of the object directory
 TOPOBJ=`pwd`
 AC_SUBST(TOPOBJ)
-
-dnl  Enable second shadow source area
-AC_SUBST(SECSRC)
-AC_ARG_ENABLE(srcdir, [Second shadow directory (srcdir)], SECSRC=$enable_srcdir)
-
-sinclude(configs/codaconf.m4)
 
 AC_PROG_MAKE_SET
 AC_OUTPUT(Makefile Makeconf.setup

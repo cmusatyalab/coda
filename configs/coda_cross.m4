@@ -9,13 +9,19 @@ case ${target} in
 	;;
 esac
 
-dnl Let configure fill in the blanks.
+dnl Now let configure fill in the blanks.
 AC_CANONICAL_SYSTEM
 
-dnl And set the build-tools when we are cross-compiling.
-if test ${build} != ${target} ; then
-    case ${target} in
+dnl Make build/host/target consistent again
+host=${target}
+host_alias=${target_alias}
+host_cpu=${target_cpu}
+host_os=${target_os}
+host_vendor=${target_vendor}
 
+dnl And set the build-tools when we are cross-compiling.
+if test ${build} != ${host} ; then
+    case ${host} in
 	i386-pc-djgpp )
 	    CC="dos-gcc -bmmap"
 	    CXX="dos-gcc -bmmap"
@@ -36,4 +42,5 @@ dnl We have to override some things the configure script tends to get wrong
 	    ;;
     esac
 fi
+
 

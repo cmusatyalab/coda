@@ -24,8 +24,6 @@ initsuffix  = @initsuffix@
 mandir      = @mandir@
 sysconfdir  = @sysconfdir@
 
-target = @target@
-
 CC=       @CC@
 CPP=      @CPP@ -x c-header
 CXX=      @CXX@
@@ -33,41 +31,23 @@ NATIVECC= @NATIVECC@
 AS=	  @AS@
 AR=	  @AR@
 RANLIB=   @RANLIB@
-LIBS=     @LIBS@
-CFLAGS=   @CFLAGS@
-CXXFLAGS= @CXXFLAGS@
-LDFLAGS=  @LDFLAGS@
 YACC=     @YACC@
 LEX=      @LEX@
-LEXLIB=   @LEXLIB@
 INSTALL=  @INSTALL@
 
-LIBTERMCAP= @LIBTERMCAP@
-LIBCURSES=  @LIBCURSES@
-LIBDB=	    @LIBDB@
-LIBUCB=     @LIBUCB@
-LIBMD5=     @LIBMD5@
-
+CFLAGS=        @CFLAGS@
+CXXFLAGS=      @CXXFLAGS@
+LDFLAGS=       @LDFLAGS@
 MACHINE_FLAGS= @DEFS@
 
-#
-# Platform, uncomment your choice; 
-#  flag:  --enable-platform=the_plf
-#
+LIBS=        @LIBS@
+LIBCURSES=   @LIBCURSES@
+LIBDB=	     @LIBDB@
+LEXLIB=      @LEXLIB@
+LIBMD5=      @LIBMD5@
+LIBTERMCAP=  @LIBTERMCAP@
+LIBUCB=      @LIBUCB@
 
-SYS = @sys@
-
-# SYS=i386_mach
-# SYS=linux
-# SYS=nbsd
-# SYS=cygwin32
-# SYS=solaris2
-
-#
-# Second shadow dir -- for your private sources, visible from where
-# you build   
-# flag:     --enable-srcdir=your-srcdir
-#
-
-SECSRC = @SECSRC@
+# shortsys is derived in configs/codaconf.m4
+SYS = @shortsys@
 

@@ -34,9 +34,6 @@ OFILES= resolve.o cure.o predicate.o repio.o
 
 librepair.a: $(OFILES)
 
-#restest: restest.o librepair.a ${LIBS} ${LIBFIXUP}
-#	$(CC) $(LIBFLAGS) restest.o librepair.a ${LIBS} ${LIBFIXUP} -o restest
-
 HFILES = resolve.h predicate.h cure.h repio.h
 $(OFILES): $(HFILES)
 

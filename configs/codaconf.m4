@@ -43,75 +43,32 @@ dnl      --------  Adding a new system ----------
 dnl Figure out what the GNU canonical name of your target is by
 dnl running configure in the top directory
 dnl   - add a configs/Makeconf.$sys file for your system
-dnl   - add your VFS code to kernel-src/vfs/$vfsdir
-dnl   - add a case statement below to set $sys and $vfsdir
+dnl   - add a case statement below to set $sys
 
-case ${target} in
-
-	*-*-djgpp )
-		sys=win95
- ;;
-	*-*-cygwin32 )
-		sys=cygwin32
- ;;
-	*-*-netbsd* )
-	    	shortsys=nbsd
-		sys=nbsd
-		case ${host_cpu} in
-			i*6 )   arch=i386 ;;
-			sparc ) arch=sparc ;;
-			arm32 ) arch=arm32 ;;
-		esac
-		vfsdir=bsd44
-		os=`uname -r`
- ;;
-
-	*-*-freebsd2* )
-		sys=i386_fbsd2
-		vfsdir=bsd44
- ;;
-
-	*-*-freebsd3* )
-		case `objformat` in
-			aout) sys=i386_fbsd3 ;;
-			elf)  sys=i386_fbsd2 ;;
-		esac
-		vfsdir=bsd44
- ;;
-	*-*-freebsd* )
-		sys=i386_fbsd2
-		vfsdir=bsd44
- ;;
-
-	*-*-linux-* )
-		shortsys=linux
-		sys=linux
-		case ${host_cpu} in
-			i*6 ) 	arch=i386 ;;
-			sparc ) arch=sparc ;;
-			alpha ) arch=alpha ;;
-		 esac
-		fullos=`uname -r`
-		case ${fullos} in
-			2.0.* ) os=2.0 ; vfsdir=linux ;;
-			2.1.* ) os=2.1 ; vfsdir=linux21 ;;
-			2.2.* )	os=2.2 ; vfsdir=linux21 ;;
-		esac
- ;;
-	*-*-solaris2* )
-		shortsys=solaris2
-		sys=solaris2
-		case ${host_cpu} in
-			i*6 )   arch=i386 ;;
-			sparc ) arch=sparc ;;
-		esac
-		fullos=`uname -r`
-		vfsdir=solaris2
- ;;
+cputype=${host_cpu}
+case ${cputype} in
+    i*6 )   cputype=i386 ;;
 esac
-AC_SUBST(shortsys)
-AC_SUBST(sys)
-AC_SUBST(fullos)
-AC_SUBST(os)
-AC_SUBST(vfsdir)
+
+shortsys=${host_os}
+case ${shortsys} in
+	djgpp )     shortsys=win95 ;;
+	cygwin32 )  shortsys=cygwin32 ;;
+	netbsd* )   shortsys=nbsd ;;
+	freebsd3* ) case `objformat` in
+			aout) shortsys=fbsd_aout ;;
+			elf)  shortsys=fbsd_elf ;;
+		    esac
+	;;
+	freebsd* )  shortsys=fbsd_elf ;;
+	linux-* )   shortsys=linux ;;
+	solaris2* ) shortsys=solaris2 ;;
+esac
+
+systype=${cputype}_${shortsys}
+
 AC_SUBST(initsuffix)
+AC_SUBST(cputype)
+AC_SUBST(shortsys)
+AC_SUBST(systype)
+

@@ -10,8 +10,6 @@
 TOPDIR = @top_srcdir@
 srcdir = @srcdir@
 VPATH  = @srcdir@
-
-SECSRC = @SECSRC@
 TOPOBJ = @TOPOBJ@
 
 include $(TOPDIR)/Makeconf

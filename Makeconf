@@ -21,40 +21,27 @@ SBINDIR:=$(sbindir)
 INITDIR:=$(prefix)/$(initsuffix)
 MANDIR:=$(mandir)
 
-include $(TOPDIR)/configs/Makeconf.$(SYS)
+RP2GEN := rp2gen
+
+-include $(TOPDIR)/configs/Makeconf.$(SYS)
 
 ##############################
 # VPATH & INCLUDE DIRECTORY
 ##############################
 
-# edit VPATH appropiately
-
-ifneq ($(SECSRC),)
-VPATHTAIL := $(subst $(TOPDIR),,$(VPATH))
-NEWVPATH := $(SECSRC)$(VPATHTAIL):$(VPATH)
-VPATH := $(NEWVPATH)
-endif
-
 INCLDIR=$(TOPOBJ)/include
 
 ifneq ($(VPATH),)
-colon=:
-
-INCLPATH  := .:$(VPATH):$(INCLDIR)
-INCLFLAGS :=  -I$(TOPOBJ) -I$(subst $(colon), -I,$(INCLPATH))
+    colon=:
+    INCLPATH  := .:$(VPATH):$(INCLDIR)
+    INCLFLAGS :=  -I$(TOPOBJ) -I$(subst $(colon), -I,$(INCLPATH))
 else
-INCLFLAGS :=  -I$(TOPOBJ) -I. -I$(INCLDIR)
-INCLPATH  := .:$(INCLDIR)
+    INCLPATH  := .:$(INCLDIR)
+    INCLFLAGS :=  -I$(TOPOBJ) -I. -I$(INCLDIR)
 endif
 
 vpath %.h $(INCLPATH)
 vpath %.rpc2 $(INCLPATH)
-
-##############################
-# Location of objects
-##############################
-
-RP2GEN := rp2gen
 
 ##############################
 # Machine independent FLAGS
@@ -66,8 +53,7 @@ CXXFLAGS  := $(CXXFLAGS) $(DEPFLAG) $(MACHINE_FLAGS) $(MYFLAGS) $(INCLFLAGS)
 
 RP2FLAGS  = -e  -I . -I $(srcdir) 
 
-LIBS	  := $(LIBS) $(LIBCOMPAT) $(LIBFIXUP) $(LIBUCB)
-
+LIBS	  := $(LIBS) $(LIBFIXUP) $(LIBUCB)
 
 # uncomment some of the next lines if you have kerberos
 # KERBEROS=yes
@@ -77,65 +63,50 @@ LIBS	  := $(LIBS) $(LIBCOMPAT) $(LIBFIXUP) $(LIBUCB)
 ##############################
 # Library definitions
 ##############################
-
-# -- INODEFS --
-# platform dependent: choice from user level and kernel level version
-# defined in configs/Makeconf.$(SYS)
-# LIBINODEFS = $(TOPOBJ)/$(INODEFSDIR)/$(INODEFSNAME)
-
-# -- CS --
-LIBBASE =$(TOPOBJ)/lib-src/base/libbase.a
-
-# -- LWP --
-LIBLWP = -llwp
-
-# -- READLINE --
-LIBREADLINE = -lreadline
-
-# -- RVM --
-LIBRVM := -lrvm
-LIBRDS := -lrds
-LIBSEG := -lseg
-# with threads
+LIBLWP    := -llwp
+LIBRVM    := -lrvm
+LIBRDS    := -lrds
+LIBSEG    := -lseg
 LIBRVMLWP := -lrvmlwp
 LIBRDSLWP := -lrdslwp
+LIBRPC2   := -lrpc2
+LIBSE     := -lse
+LIBFAIL   := -lfail
 
-# -- RPC2 --
-LIBRPC2 := -lrpc2
-LIBSE   := -lse
-LIBFAIL := -lfail
+LIBMATH	    := -lm
+LIBREADLINE := -lreadline
 
 # -- CODA --
-LIBKERNDEP =../kerndep/libkerndep.a   # --- (pioctl, setpag)
-LIBAUTH2 =../auth2/libauth2.a
-LIBAL = ../al/libal.a
-LIBVOL = ../vol/libvol.a
-LIBVICEDEP= ../vicedep/libvicedep.a
-LIBVOLUTIL =../volutil/libvolutil.a
-LIBVOLSERV =../volutil/libvolserv.a
-LIBVV = ../vv/libvv.a
-LIBREPAIR =../librepair/librepair.a
-LIBUTIL =../util/libutil.a
-LIBPORTMAP =../portmapper/libportmap.a
-LIBRES =../resolution/libres.a
-LIBDIRLIB= ../dir/libdir.a
-LIBNDIRLIB= ../ndir/libcodadir.a
-LIBDIRLIB= ../dir/libcodadir.a
-LIBVICEERROR  = ../vice/libviceerror.a
-LIBDS = ../ds/libds.a
-LIBPARTITION = ../partition/libpartition.a
+LIBAL        := ../al/libal.a
+LIBAUTH2     := ../auth2/libauth2.a
+LIBAUSER     := ../auth2/libauser.a
+LIBBASE      := $(TOPOBJ)/lib-src/base/libbase.a
+LIBDIRLIB    := ../dir/libcodadir.a
+LIBDS        := ../ds/libds.a
+LIBKERNDEP   := ../kerndep/libkerndep.a   # --- (pioctl, setpag)
+LIBPARTITION := ../partition/libpartition.a
+LIBPORTMAP   := ../portmapper/libportmap.a
+LIBREPAIR    := ../librepair/librepair.a
+LIBRES       := ../resolution/libres.a
+LIBUTIL      := ../util/libutil.a
+LIBVICEDEP   := ../vicedep/libvicedep.a
+LIBVICEERROR := ../vice/libviceerror.a
+LIBVOL       := ../vol/libvol.a
+LIBVOLUTIL   := ../volutil/libvolutil.a
+LIBVOLSERV   := ../volutil/libvolserv.a
+LIBVV        := ../vv/libvv.a
 
 
 ##############################
 # RPC2 interface definitions in module vicedep
 ##############################
-CALLBACK_RPC2 = ../vicedep/callback.rpc2
-MOND_RPC2 = ../vicedep/mond.rpc2
-VCRCOMMON_RPC2 = ../vicedep/vcrcommon.rpc2
-VICE_RPC2 = ../vicedep/vice.rpc2
-VOLDUMP_RPC2 = ../vicedep/voldump.rpc2
-VOLUTIL_RPC2 = ../vicedep/volutil.rpc2
-RES_RPC2 = ../vicedep/res.rpc2
-ADMON_RPC2 = ../vicedep/admon.rpc2
-ADSRV_RPC2 = ../vicedep/adsrv.rpc2
+ADMON_RPC2     := ../vicedep/admon.rpc2
+ADSRV_RPC2     := ../vicedep/adsrv.rpc2
+CALLBACK_RPC2  := ../vicedep/callback.rpc2
+MOND_RPC2      := ../vicedep/mond.rpc2
+RES_RPC2       := ../vicedep/res.rpc2
+VCRCOMMON_RPC2 := ../vicedep/vcrcommon.rpc2
+VICE_RPC2      := ../vicedep/vice.rpc2
+VOLDUMP_RPC2   := ../vicedep/voldump.rpc2
+VOLUTIL_RPC2   := ../vicedep/volutil.rpc2
 

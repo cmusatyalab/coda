@@ -38,7 +38,7 @@ CFS_LIBS    = $(LIBKERNDEP) $(LIBUTIL) $(LIBBASE)
 HOARD_LIBS  = $(LIBUTIL) $(LIBKERNDEP) $(LIBBASE)
 STD_LIBS = $(LIBCURSES) $(LIBS)
 
-CXXFLAGS := $(CXXFLAGS) -UVENUS -DSYSCONFDIR=\"@sysconfdir@\"
+CXXFLAGS := $(CXXFLAGS) -UVENUS -DSYSCONFDIR=\"@sysconfdir@\" -DCPUTYPE=\"@cputype@\" -DSYSTYPE=\"@systype@\"
 
 include $(TOPDIR)/configs/Makerules
 
@@ -86,3 +86,4 @@ translate.sed: Makefile
 
 # this way translate.sed is cleaned up as well
 TESTS = translate.sed
+

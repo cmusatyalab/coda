@@ -61,9 +61,6 @@ extern "C" {
 #include <codaconf.h>
 #include <inconsist.h>
 
-/* get the platform dependent @sys/@cpu expansions */
-#include <coda_expansion.h>
-
 /* From venusvol.h.  A volume is in exactly one of these states. */
 typedef enum {	Hoarding,
 		Emulating,

@@ -11,14 +11,6 @@
 # the following may need editing depending on your preferences
 
 SHORTSYS      = linux
-LIBCOMPAT     =
-LIBREADLINE   = -lreadline
-
-INCREADLINE   = -I/usr/include/readline
-#for rvm
-LIBTHREADS    =
-LIBMATH       = -lm
-
 GUIDIR        = /usr/lib/coda
 KRBINCLFLAGS  = -I/usr/include/kerberosIV
 LIBKRBS       = -lkrb5 -lcrypto -lcom_err -lkrb4

@@ -1,13 +1,8 @@
 AC_DEFUN(CODA_CC_FEATURE_TEST,
-  [AC_CACHE_CHECK(whether the C compiler accepts $2,
-     coda_cv_cc_$1,
-     coda_saved_CC="$CC"
-     CC="$CC $2"
-     AC_LANG_SAVE
+  [AC_CACHE_CHECK(whether the C compiler accepts $2, coda_cv_cc_$1,
+     coda_saved_CC="$CC" ; CC="$CC $2" ; AC_LANG_SAVE
      AC_LANG_C
-     AC_TRY_COMPILE([], [],
-       coda_cv_cc_$1=yes,
-       coda_cv_cc_$1=no)
+     AC_TRY_COMPILE([], [], coda_cv_cc_$1=yes, coda_cv_cc_$1=no)
      AC_LANG_RESTORE
      CC="$coda_saved_CC")
    if test $coda_cv_cc_$1 = yes; then
@@ -15,15 +10,10 @@ AC_DEFUN(CODA_CC_FEATURE_TEST,
    fi])
 
 AC_DEFUN(CODA_CXX_FEATURE_TEST,
-  [AC_CACHE_CHECK(whether the C++ compiler accepts $2,
-     coda_cv_cxx_$1,
-     coda_saved_CXX="$CXX"
-     CXX="$CXX $2"
-     AC_LANG_SAVE
+  [AC_CACHE_CHECK(whether the C++ compiler accepts $2, coda_cv_cxx_$1,
+     coda_saved_CXX="$CXX" ; CXX="$CXX $2" ; AC_LANG_SAVE
      AC_LANG_CPLUSPLUS
-     AC_TRY_COMPILE([], [],
-       coda_cv_cxx_$1=yes,
-       coda_cv_cxx_$1=no)
+     AC_TRY_COMPILE([], [], coda_cv_cxx_$1=yes, coda_cv_cxx_$1=no)
      AC_LANG_RESTORE
      CXX="$coda_saved_CXX")
    if test $coda_cv_cxx_$1 = yes; then

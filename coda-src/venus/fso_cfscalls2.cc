@@ -64,7 +64,6 @@ extern "C" {
 #include "venusvol.h"
 #include "vproc.h"
 #include "worker.h"
-#include "coda_expansion.h"
 
 #ifndef MIN
 #define MIN(a,b)  ( ((a) < (b)) ? (a) : (b) )

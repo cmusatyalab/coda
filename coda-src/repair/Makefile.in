@@ -29,8 +29,8 @@ CBINS       = repair
 # TESTS	    = reptest
 
 DEPLIBS = ${LIBREPAIR} ${LIBVV} ${LIBAUTH2} ${LIBKERNDEP} ${LIBUTIL} \
-     ../auth2/libauser.a ${LIBBASE}
-LIBS := $(DEPLIBS) $(LIBREADLINE) $(LIBTERMCAP) ${LIBFIXUP} $(LIBS)
+     ${LIBAUSER} ${LIBBASE}
+LIBS := $(DEPLIBS) $(LIBREADLINE) $(LIBTERMCAP) $(LIBS)
 
 OFILES = rvol.o path.o
 

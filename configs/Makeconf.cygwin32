@@ -16,13 +16,10 @@ EXTRAS = cygwin
 MACHINE_FLAGS  := $(MACHINE_FLAGS) -D__CYGWIN32__ -gstabs
 #SHORTSYS      	= linux
 LIBFIXUP	= $(TOPOBJ)/cygwin/libbraindead.a
-#LIBCURSES	= -lncurses
 LIBCOMPAT	=
 INCREADLINE	= -I/usr/gnuwin32/include/readline
 LIBREADLINE	= /usr/gnuwin32/lib/libreadline.a
 LIBTERMCAP	= 
 #for rvm
-LIBTHREADS    =
-LIBMATH       = 
 LIBDB         = -ldb
 GUIDIR        = /usr/lib/coda

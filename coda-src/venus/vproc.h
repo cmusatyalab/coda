@@ -299,7 +299,6 @@ extern int VprocInterrupted();
 /* Things which should be in vnode.h? -JJK */
 
 extern void va_init(struct coda_vattr *);
-extern void VattrToStat(struct coda_vattr *, struct stat *);
 extern long FidToNodeid(ViceFid *);
 
 /* Explanation: 

@@ -49,14 +49,6 @@ extern "C" {
 #include <struct.h>
 #include <unistd.h>
 #include <stdlib.h>
-#ifdef	__BSD44__
-#include <machine/endian.h>
-#endif
-
-#ifdef __linux__
-#include <endian.h>
-#endif
-#include <setjmp.h>
 
 #include <rpc2/rpc2.h>
 #include <rpc2/se.h>

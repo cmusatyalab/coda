@@ -9,17 +9,7 @@ CPP           = gcc -E -x c-header -traditional-cpp -D_ASM
 MACHINE_FLAGS := $(MACHINE_FLAGS)
 NATIVECC      = gcc
 SHORTSYS      = solaris2
-# for Solaris ... sockets, nsl ...
-LIBFIXUP      = -lsocket -lnsl 
 LIBDL	      = -ldl
-#
-#LIBREADLINE   = -L/usr/local/lib -R/usr/local/lib -lreadline
-#INCREADLINE   = -I/usr/local/include/readline
-#for rvm
-LIBTHREADS    = 
-LIBMACH       = 
-#for advice_srv
-#LIBKVM        = /usr/lib/libkvm.a
 
 #KRBINCLFLAGS  = -I/usr/athena/include -I/usr/include/kerberosIV
 #LIBKRBS       =    /usr/athena/lib/libkrb4.a /usr/athena/lib/libkrb5.a /usr/athena/lib/libcrypto.a /usr/athena/lib/libcom_err.a  /usr/athena/lib/libdes425.a /usr/athena/lib/libkrb524.a
@@ -29,3 +19,4 @@ GUIDIR        = /usr/lib/coda
 INITDIR       = /etc/init.d
 
 LDFLAGS = -R/usr/local/lib
+

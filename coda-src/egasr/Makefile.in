@@ -29,12 +29,13 @@ EXECUTABLES = filerepair removeinc
 SCRIPTS     = xfrepair xaskuser
 CBINS       = $(EXECUTABLES) $(SCRIPTS)
 
-LIBS=	$(LIBDIRLIB)  $(LIBKERNDEP) $(LIBBASE) $(LIBUTIL) $(LIBFIXUP)
+DEPLIBS := $(LIBDIRLIB) $(LIBKERNDEP) $(LIBBASE) $(LIBUTIL)
+LIBS := $(DEPLIBS) $(LIBS)
 
-removeinc: removeinc.o $(LIBS)
+removeinc: removeinc.o $(DEPLIBS)
 	$(CC) $(LDFLAGS) $^ ${LIBS} -o removeinc
 
-filerepair: filerepair.o $(LIBS)
+filerepair: filerepair.o $(DEPLIBS)
 	$(CC) $(LDFLAGS) $^ ${LIBS} -o filerepair
 
 include $(TOPDIR)/configs/Makerules
