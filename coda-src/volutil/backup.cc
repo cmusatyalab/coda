@@ -133,13 +133,15 @@ typedef struct {
 /* Per volume info. */
 #define INCREMENTAL 0x10
 #define REPLICATED  0x20
-#define BADNESS	    0x40	/* Indicates an operation on a replica
-				   failed.  * Used to signal a
-				   retry. On the first pass, * dumps
-				   should be attempted if any clone
-				   succeeded * and marks on any
-				   successful dump.  */
-                            
+#define BADNESS	    0x40	/* Indicates an operation on a replica failed.
+				 * Used to signal a retry. On the first pass,
+				 * dumps should be attempted if any clone
+				 * succeeded and marks on any successful dump.
+				 */
+/* The actual dumplevel is or-ed into the high bits of the volume flags. */
+#define DUMPLVL_MASK 0xff00
+#define DUMPLVL_SHFT 8
+
 
 typedef struct volinfo {
     struct volinfo *next;
@@ -205,13 +207,26 @@ int getVolId(FILE *VolumeList, VolumeId *volId, int *flags, char *comment)
     day %= strlen(incstr);
     char I = incstr[day];
 
-    /* Cycle should only have full and incremental dumps */
-    if (I != 'I' && I != 'i' && I != 'F' && I != 'f') { /* Restrict options. */
+#ifdef ALWAYS_USE_WEEK_CYCLES
+    /* I think this handles leapyears, the question is do we want that? --JH */
+    time_t     now = time(NULL);
+    struct tm *today = localtime(now);
+    int        weekday = today->tm_wday;
+    char       I = incstr[weekday];
+#endif
+
+    unsigned int dumplevel;
+    if      (I == 'F' || I == 'f') dumplevel = 0;
+    else if (I == 'I' || I == 'i') dumplevel = 1;
+    else if (I >= '0' && I <= '9') dumplevel = I - '0';
+    else { /* Cycle should only have full and incremental dumps */
 	LogMsg(0, 0, stdout, "Bad dump option %c\n", I);
 	return(-1); 
     }
     
-    *flags |= ((I == 'I') || (I == 'i'))? INCREMENTAL : 0;
+    if (dumplevel) {
+	*flags |= INCREMENTAL | (dumplevel << DUMPLVL_SHFT);
+    }
     return 0;
 }
 
@@ -565,7 +580,7 @@ int dumpVolume(volinfo_t *vol)
     repinfo_t *reps = vol->replicas;
     VolumeId volId = vol->volId;
     long rc;
-    RPC2_Unsigned I = (vol->flags & INCREMENTAL);
+    RPC2_Unsigned dumplevel = (vol->flags & DUMPLVL_MASK) >> DUMPLVL_SHFT;
     int ndumped = 0;
     
     for (int i = 0; i < vol->nReplicas; i++) {
@@ -606,7 +621,8 @@ int dumpVolume(volinfo_t *vol)
 	
 	VLog(0, "Dumping %x.%x to %s ...", volId, reps[i].repvolId, buf);
 
-	rc = VolNewDump(Hosts[reps[i].serverNum].rpcid, reps[i].backupId, &I);
+	rc = VolNewDump(Hosts[reps[i].serverNum].rpcid, reps[i].backupId,
+			&dumplevel);
 	if (rc != RPC2_SUCCESS) {
 	    LogMsg(0,0,stdout, "VolDump (%x) failed on %x with %s\n",
 		   Hosts[reps[i].serverNum].rpcid, /* For debugging. */
@@ -618,7 +634,9 @@ int dumpVolume(volinfo_t *vol)
 	}
 
 	/* Incremental can be forced to be full. */	
-	if (I == 0) vol->flags &= ~INCREMENTAL;
+	if (dumplevel == 0) {
+		vol->flags &= ~(INCREMENTAL | DUMPLVL_MASK);
+	}
 	
 	/* Setup a pointer from the dump subtree to the actual dumpfile
 	 * if a different partition was used for storage.
@@ -661,8 +679,8 @@ int dumpVolume(volinfo_t *vol)
 }
 
 /* At this point we're convinced that the Volume has been successfully
-   * backed up.  Tell the server the backup was successful if the *
-   backup * was a full.  */
+ * backed up.  Tell the server the backup was successful if the backup
+ * was a full. */
 int MarkAsAncient(volinfo_t *vol) {
     long rc;
     repinfo_t *reps = vol->replicas;
@@ -679,17 +697,6 @@ int MarkAsAncient(volinfo_t *vol) {
 	/* If it is dumped, unmarked, and a full -- mark it */
 	} else if (ISDUMPED(reps[i].flags)) {
 
-	    /* If the dump was incremental, it doesn't need to be
-	     * marked. We now only mark fulls, so all incrementals are
-	     * wrt the last full, not the last dump. But people think
-	     * "M" indicates success, so set the flag to make the
-	     * reporting look consistent.  */
-	    if (vol->flags & INCREMENTAL) {
-		nmarked++;
-		reps[i].flags |= MARKED;
-		continue;
-	    }
-		
 	    if (Hosts[reps[i].serverNum].rpcid == BADCONNECTION)
 		continue;
 
@@ -916,7 +923,8 @@ int main(int argc, char **argv) {
 	    continue;
 
 	if (vol->flags & INCREMENTAL) 
-	    LogMsg(0,0,stdout,"0x%8x (incremental)\t%s", vol->volId,vol->comment);
+	    LogMsg(0,0,stdout,"0x%8x (incremental)\tlevel %d %s", vol->volId,
+	           (vol->flags & DUMPLVL_MASK) >> DUMPLVL_SHFT, vol->comment);
 	else {
 	    fullDump++;
 	    LogMsg(0, 0, stdout, "0x%8x\t\t\t%s", vol->volId, vol->comment);
@@ -931,12 +939,12 @@ int main(int argc, char **argv) {
 	    repinfo_t *reps = vol->replicas;
 
 	    int okay = 0;
-	    for (int i = 0; i < vol->nReplicas; i++) 
-		if (ISMARKED(reps[i].flags) ||	/* Successful backup. */
-		    (ISDUMPED(reps[i].flags) && (vol->flags & INCREMENTAL))) {	
+	    for (int i = 0; i < vol->nReplicas; i++) {
+		if (ISMARKED(reps[i].flags)) {	/* Successful backup. */
 		    okay++;
 		    break;	/* from inner for loop */
 		}
+	    }
 
 	    if (okay) {
 
@@ -974,11 +982,12 @@ int main(int argc, char **argv) {
 	    repinfo_t *reps = vol->replicas;
 
 	    int okay = 0;
-	    for (int i = 0; i < vol->nReplicas; i++) 
+	    for (int i = 0; i < vol->nReplicas; i++) {
 		if (ISMARKED(reps[i].flags)) {	/* Successful backup. */
 		    okay++;
 		    break;	/* from inner for loop */
 		}
+	    }
 
 	    if (!okay) {   /* Only print out those that failed. */
 	    

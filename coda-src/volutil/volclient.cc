@@ -148,17 +148,6 @@ int main(int argc, char **argv) {
     }
 #endif
 
-    if (argc < 2) {
-        printf("Usage: volutil [-h hostname] [-t timeout] [-d debuglevel]  <option>, where <option> is one of the following:\n");
-	printf("ancient, backup, create, create_rep, clone, dump, info, lock, ");
-	printf("lookup, makevldb, makevrdb, purge, restore, salvage, ");
-	printf("setvv, showvnode, shutdown, swaplog, setdebug, updatedb, ");
-	printf("unlock, dumpmem, rvmsize, timing, enablewb, disablewb, ");
-	printf("elapse, truncatervmlog, togglemalloc, ");
-	printf("getmaxvol, setmaxvol, peek, poke, peeks, pokes, peekx, pokex\n");
-	exit(-1);
-    }
-
     /* Set the default timeout and server host */
     timeout = 30;	/* Default rpc2 timeout is 30 seconds. */
     gethostname(s_hostname, sizeof(s_hostname) -1);
@@ -185,7 +174,7 @@ int main(int argc, char **argv) {
 	}
 
 	if ((argc > 2) && strcmp(argv[1], "-d") == 0) { 
-	    /* User gave timeout */
+	    /* User gave debuglevel */
 	    RPC2_DebugLevel = atoi(argv[2]);
 	    VolDebugLevel = atoi(argv[2]);
 	    argv++; argc--;
@@ -193,16 +182,8 @@ int main(int argc, char **argv) {
 	}
     }
     
-    if (argc < 2) {
-        printf("Usage: volutil [-h hostname]  [-t timeout] <option>, where <option> is one of the following:\n");
-	printf("ancient, backup, create, create_rep, clone, dump, info, lock, ");
-	printf("lookup, makevldb, makevrdb, purge, restore, salvage, ");
-	printf("setvv, showvnode, shutdown, swaplog, setdebug, updatedb, ");
-	printf("unlock, dumpmem, rvmsize, timing, elapse, enablewb, disablewb,\n");
-	printf("printstatus, showcallbacks, truncatervmlog, togglemalloc, ");
-	printf("getmaxvol, setmaxvol, peek, poke, peeks, pokes, peekx, pokex\n");
-	exit(-1);
-    }
+    if (argc < 2)
+    	goto bad_options;
 
     CODA_ASSERT(s_hostname != NULL);
     V_InitRPC(timeout);
@@ -298,18 +279,21 @@ int main(int argc, char **argv) {
  *    else if (strcmp(argv[1], "dumprecstore") == 0)
  *	dumprecstore();
  */
-    else {
-	printf("Bad vol function. Options are:\n");
-	printf("ancient, backup, create, create_rep, clone, dump, info, lock, ");
-	printf("lookup, makevldb, makevrdb, purge, restore, salvage, ");
-	printf("setvv, showvnode, shutdown, swaplog, setdebug, updatedb, ");
-	printf("unlock, dumpmem, rvmsize, setlogparms, tracerpc, printstats, ");
-	printf("showcallbacks, truncatervmlog, getmaxvol, setmaxvol,  enablewb, disablewb,");
-	printf("peek, poke, peeks, pokes, peekx, togglemalloc, pokex\n");
-	exit(-1);
-    }
+    else
+    	goto bad_options;
 
     return 0;
+
+bad_options:
+    printf("Usage: volutil [-h hostname] [-t timeout] [-d debuglevel]  <option>, where <option> is one of the following:\n");
+    printf("ancient, backup, create, create_rep, clone, dump, info, lock, ");
+    printf("lookup, makevldb, makevrdb, purge, restore, salvage, ");
+    printf("setvv, showvnode, shutdown, swaplog, setdebug, updatedb, ");
+    printf("unlock, dumpmem, rvmsize, timing, elapse, enablewb, disablewb, ");
+    printf("printstats, showcallbacks, truncatervmlog, togglemalloc, ");
+    printf("getmaxvol, setmaxvol, peek, poke, peeks, pokes, peekx, pokex, ");
+    printf("setlogparms, tracerpc\n");
+    exit(-1);
 }
 
 /*
@@ -559,16 +543,19 @@ static void dump()
     
     while ((these_args > 2) && *this_argp[2] == '-') {
 	if (strcmp(this_argp[2], "-i") == 0) {
-	    Incremental = 1;
+	    if (these_args > 5) {
+	    	Incremental = (RPC2_Unsigned)atoi(this_argp[3]);
+		these_args--; this_argp++;
+	    } else
+		Incremental = 1;
 	}
-	else {
+	else
 	    err = 1;
-	}
-	these_args--;
-	this_argp++;
+
+	these_args--; this_argp++;
     }
     if (err || these_args != 4) {
-	printf("Usage: volutil dump [-i] <volume-id> <file name>\n");
+	printf("Usage: volutil dump [-i [lvl]] <volume-id> <file name>\n");
 	exit(-1);
     }
     long volid;
@@ -601,7 +588,7 @@ static void dump()
     }
 
     printf("VolDump completed; %s output is in file %s\n",
-	   Incremental?"Incremental":"", this_argp[3]);
+	   Incremental ? "Incremental" : "", this_argp[3]);
     exit(0);
 }
 

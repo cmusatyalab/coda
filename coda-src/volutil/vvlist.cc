@@ -72,7 +72,7 @@ void getlistfilename(char *filename, VolumeId groupId, VolumeId repId, char *suf
  * Verify the correctness of the dump header and that it was of the same rw
  * volume. Return the uniquifier of the ancient volume to mark the dump.
  */
-int ValidListVVHeader(FILE *Ancient, register Volume *vp, int *unique)
+int ValidListVVHeader(FILE *Ancient, Volume *vp, int *unique)
 {
     char buffer[LISTLINESIZE];
     char dummy[13];
@@ -90,47 +90,47 @@ int ValidListVVHeader(FILE *Ancient, register Volume *vp, int *unique)
     return TRUE;
 }
 
-void DumpListVVHeader(int VVListFd,register Volume *vp,int Incremental,int unique)
+void DumpListVVHeader(int VVListFd, Volume *vp, unsigned int dumplevel,
+		      int unique)
 {
     char buffer[LISTLINESIZE];
     long time = V_copyDate(vp);
 
-    /* Don't put "\n" on sprintf format since ctime() puts one there. */
-    if (VVListFd > 0) {
-	if (V_type(vp) == BACKVOL) /* Only Backups or R/O are dumped. */
-	    sprintf(buffer,
-		    "%s dump of backup vol %lx(%x) for R/W vol %lx, backup at %s",
-		    (Incremental? "Incremental" : "Full"),
-		    V_id(vp), unique, V_parentId(vp), ctime(&time));
-	else 
-	    sprintf(buffer,
-		    "%s dump of clone vol %lx(%x) for R/W vol %lx, cloned at %s",
-		    (Incremental? "Incremental" : "Full"),
-		    V_id(vp), unique, V_parentId(vp), ctime(&time));
+    if (VVListFd < 0) return;
 
-	if (write(VVListFd, buffer, strlen(buffer)) != (int)strlen(buffer))
-	    LogMsg(0, VolDebugLevel, stdout, "DumpListVVHeader write didn't succeed");    
-    }
+    /* Don't put "\n" on sprintf format since ctime() puts one there. */
+    if (V_type(vp) == BACKVOL) /* Only Backups or R/O are dumped. */
+	sprintf(buffer, "%s dump of backup vol %lx(%x) for R/W vol %lx, (level %d) backup at %s",
+		(dumplevel ? "Incremental" : "Full"),
+		V_id(vp), unique, V_parentId(vp), dumplevel, ctime(&time));
+    else 
+	sprintf(buffer, "%s dump of clone vol %lx(%x) for R/W vol %lx, (level %d) cloned at %s",
+		(dumplevel ? "Incremental" : "Full"),
+		V_id(vp), unique, V_parentId(vp), dumplevel, ctime(&time));
+
+    if (write(VVListFd, buffer, strlen(buffer)) != (int)strlen(buffer))
+	LogMsg(0, VolDebugLevel, stdout, "DumpListVVHeader write didn't succeed");    
 }
 
 /* Output the VV for a vnode to a file. */
-void ListVV(int fd, int vnode, VnodeDiskObject *vnp)
+void ListVV(int fd, int vnode, VnodeDiskObject *vnp, unsigned int dumplevel)
 {
     char buffer[LISTLINESIZE];
     ViceVersionVector *vv = (ViceVersionVector *)(&(vnp->versionvector));
     
-    if (fd > 0) {
-	sprintf(buffer, "%d.%ld (%ld.%ld.%ld.%ld.%ld.%ld.%ld.%ld) (%lx.%lx)\n",
-		vnode, vnp->uniquifier,
-		vv->Versions.Site0,     vv->Versions.Site1, 
-		vv->Versions.Site2,     vv->Versions.Site3, 
-		vv->Versions.Site4,     vv->Versions.Site5, 
-		vv->Versions.Site6,     vv->Versions.Site7, 
-		vv->StoreId.Host,       vv->StoreId.Uniquifier);
+    if (fd < 0) return;
 
-	if (write(fd, buffer, strlen(buffer)) != (int)strlen(buffer))
-	    LogMsg(0, VolDebugLevel, stdout, "ListVV didn't write out correctly (%d)", errno);
-    }
+    sprintf(buffer, "%d.%ld (%ld.%ld.%ld.%ld.%ld.%ld.%ld.%ld) (%lx.%lx) %u\n",
+		    vnode, vnp->uniquifier,
+		    vv->Versions.Site0,     vv->Versions.Site1, 
+		    vv->Versions.Site2,     vv->Versions.Site3, 
+		    vv->Versions.Site4,     vv->Versions.Site5, 
+		    vv->Versions.Site6,     vv->Versions.Site7, 
+		    vv->StoreId.Host,       vv->StoreId.Uniquifier,
+		    dumplevel);
+
+    if (write(fd, buffer, strlen(buffer)) != (int)strlen(buffer))
+	LogMsg(0, VolDebugLevel, stdout, "ListVV didn't write out correctly (%d)", errno);
 }
 
 /* Definition for vvlist class */
@@ -138,7 +138,8 @@ void ListVV(int fd, int vnode, VnodeDiskObject *vnp)
 vvtable::vvtable(FILE *Ancient, VnodeClass vclass, int listsize)
 {
     char buffer[LISTLINESIZE];
-    int vnum, unique, d, vvStoreIdHost, vvStoreIdUniquifier;
+    int vnum, unique, d, vvStoreIdHost, vvStoreIdUniquifier, n;
+    unsigned int dumplevel;
     nlists = listsize;
     CODA_ASSERT(nlists > 0);
     vvlist = (vvent **)malloc(sizeof(vvent*) * nlists);
@@ -152,10 +153,13 @@ vvtable::vvtable(FILE *Ancient, VnodeClass vclass, int listsize)
 		LogMsg(10, VolDebugLevel, stdout, "Dump: fgets indicates error."); /* Abort? */
 	    }	
 	} else {
-	    if (sscanf(buffer, "%d.%d (%d.%d.%d.%d.%d.%d.%d.%d) (%x.%x)\n",
+	    n = sscanf(buffer, "%d.%d (%d.%d.%d.%d.%d.%d.%d.%d) (%x.%x) %u\n",
 		       &vnum, &unique, &d,  &d,  &d,  &d,  &d,  &d,  &d,  &d, 
-		       &vvStoreIdHost, &vvStoreIdUniquifier) == 12) {
-		/* Found an vnode, Insert it at the appropriate place! */
+		       &vvStoreIdHost, &vvStoreIdUniquifier, &dumplevel);
+	    if (n == 12) dumplevel = 0;
+
+	    if (n >= 12) {
+		/* Found a vnode, Insert it at the appropriate place! */
 		LogMsg(19, VolDebugLevel, stdout, "vvtable: found a vnode %d.%d StoreId %x.%x.",
 		    vnum, unique, vvStoreIdHost, vvStoreIdUniquifier);
 		vvent *tmp = (vvent *)malloc(sizeof(vvent));
@@ -164,6 +168,7 @@ vvtable::vvtable(FILE *Ancient, VnodeClass vclass, int listsize)
 		tmp->StoreId.Uniquifier = vvStoreIdUniquifier;
 		tmp->unique = unique;
 		tmp->isThere = 0;
+		tmp->dumplevel = dumplevel;
 
 		/* Transform vnode to index */
 		int bitnum = vnodeIdToBitNumber(vnum);
@@ -195,25 +200,43 @@ vvtable::~vvtable()
     free((char *)vvlist);
 }
 
-int vvtable::IsModified(int vnodeIndex, long unique, ViceStoreId *StoreId)
+int vvtable::IsModified(int vnodeIndex, long unique, ViceStoreId *StoreId,
+			unsigned int  current_dumplevel,
+			unsigned int *last_dumplevel)
 {
+    /* This vnode is either modified, and we will back it up at the current
+     * dumplevel, or it was unchanged, and we copy the dumplevel of the
+     * last backup */
+    *last_dumplevel = current_dumplevel;
+
     if (vnodeIndex >= nlists) {
 	/* This means we have a new file, since the list has grown. */
 	return TRUE;
     }
+
     vvent *eptr = vvlist[vnodeIndex];
     while (eptr) {
 	if (eptr->unique == unique) {
 	    /* Found object, mark it as touched. */
 	    eptr->isThere = 1;
 	    
+	    /* Comparing the storeid's is a trivial test, the trick to support
+	     * multilevel incremental backups is in the current_dumplevel test.
+	     *
+	     * When the file is not modified, but was backed up by a higher
+	     * level incremental, it must have been modified since some lower
+	     * level backup. Whatever this level was, we have to include the
+	     * modification in this backup as well -JH */
 	    if ((eptr->StoreId.Host == StoreId->Host) &&
-		(eptr->StoreId.Uniquifier == StoreId->Uniquifier)) {
+		(eptr->StoreId.Uniquifier == StoreId->Uniquifier) &&
+		(eptr->dumplevel < current_dumplevel))
+	    {
 		LogMsg(29, VolDebugLevel, stdout, "Object %d.%d unchanged.", vnodeIndex, unique);
+		*last_dumplevel = eptr->dumplevel;
 		return FALSE; /* Object was found, StoreId unchanged */
 	    } else {
 		LogMsg(29, VolDebugLevel, stdout, "Object %d.%d changed.", vnodeIndex, unique);
-		return TRUE;      /* Object was found, StoreId unchanged */
+		return TRUE;      /* Object was found, StoreId changed */
 	    }
 	}
 	eptr = eptr->next;

@@ -37,7 +37,7 @@ Pittsburgh, PA.
 
 */
 
-#define RCSVERSION $Revision: 4.16 $
+#define RCSVERSION $Revision: 4.17 $
 
 /* vol-dump.c */
 
@@ -398,7 +398,7 @@ static int DumpVnodeIndex(DumpBuffer_t *dbuf, Volume *vp,
     vindex v_index(V_id(vp), vclass, V_device(vp), vcp->diskSize);
     vindex_iterator vnext(v_index);
 	
-       if (Incremental) {
+    if (Incremental) {
 	SLog(9, "Beginning Incremental dump of vnodes.");
 
 	/* Determine how many entries in the list... */
@@ -440,11 +440,14 @@ static int DumpVnodeIndex(DumpBuffer_t *dbuf, Volume *vp,
 	    while ( (vptr = nextVnode()) ) {	/* While more vnodes */
 		vnode = strbase(VnodeDiskObject, vptr, nextvn);
 		int VnodeNumber = bitNumberToVnodeNumber(vnodeIndex, vclass);
+		unsigned int dumplevel;
 		nVnodes--;
 
 		/* If the vnode was modified or created, add it to dump. */
 		if (vvlist.IsModified(vnodeIndex, vnode->uniquifier,
-				      &(vnode->versionvector.StoreId))) {
+				      &(vnode->versionvector.StoreId),
+				      Incremental, &dumplevel))
+		{
 		    if (DumpVnodeDiskObject(dbuf, vnode, VnodeNumber) == -1) {
 			SLog(0, 0, stdout, "DumpVnodeDiskObject (%s) failed.",
 			       (vclass == vLarge) ? "large" : "small");
@@ -456,10 +459,8 @@ static int DumpVnodeIndex(DumpBuffer_t *dbuf, Volume *vp,
 		    if ((vnodeIndex % VnodePollPeriod) == 0)
 			PollAndYield();
 		}
-
 		/* No matter what, add the vnode to our new list. */
-		ListVV(VVListFd, VnodeNumber, vnode);
-		
+		ListVV(VVListFd, VnodeNumber, vnode, dumplevel);
 	    }
 	    
 	    /* Check for deleted files. If there exists an entry which wasn't
@@ -502,10 +503,10 @@ static int DumpVnodeIndex(DumpBuffer_t *dbuf, Volume *vp,
 		return -1;
 	    }
 	    
-	    ListVV(VVListFd, VnodeNumber, vnode);
+	    ListVV(VVListFd, VnodeNumber, vnode, 0);
 	    if ((count % VnodePollPeriod) == 0)
 		PollAndYield();
-       }
+	}
 	CODA_ASSERT(vnext(vnode) == -1);
     }
 

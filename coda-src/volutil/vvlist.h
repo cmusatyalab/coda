@@ -31,6 +31,7 @@ typedef struct vventry {
     long unique;
     ViceStoreId StoreId;
     struct vventry *next;
+    unsigned int dumplevel; /* dumplevel at which this vnode was last dumped */
 } vvent;
 
 #define ENDLARGEINDEX "End of the Large Vnode List.\n"
@@ -45,7 +46,9 @@ class vvtable {
   public:
     vvtable(FILE *Ancient, VnodeClass vclass, int listsize);
     ~vvtable();
-    int IsModified(int vnodeNumber, long unique, ViceStoreId *StoreId);
+    int IsModified(int vnodeNumber, long unique, ViceStoreId *StoreId,
+		   unsigned int current_dumplevel,
+		   unsigned int *last_dumplevel);
 };
 
 
@@ -58,9 +61,10 @@ class vvent_iterator {
     vvent *operator()();	// return next object or 0
 };
 
-extern int  ValidListVVHeader(FILE *, register Volume *, int *);
-extern void DumpListVVHeader(int, register Volume *vp, int Incremental, int);
-extern void ListVV(int fd, int vnode, VnodeDiskObject *vnp);
+extern int  ValidListVVHeader(FILE *, Volume *, int *);
+extern void DumpListVVHeader(int, Volume *vp, unsigned int dumplevel, int);
+extern void ListVV(int fd, int vnode, VnodeDiskObject *vnp,
+		   unsigned int dumplevel);
 extern void getlistfilename(char *, VolumeId, VolumeId, char *);
 
 #endif  _VVLIST_H_
