@@ -140,8 +140,21 @@ _returnto:
 #define ST_FLUSH_WINDOWS T_FLUSHWIN
 #endif /* __NetBSD__ */
 #else
+#ifdef sun	
+/* Solaris */
+#define STACK_ALIGN 8
+#define WINDOWSIZE (4*16)
+#define ARGPUSHSIZE (6*4)
+#define MINFRAME  (WINDOWSIZE+ARGPUSHSIZE+4) /* min frame */
+#define SA(X)     (((X)+(STACK_ALIGN-1)) & ~(STACK_ALIGN-1))
+#define NAME(x) x
+#define FUNCTION  #function	
+#define ENTRY(x) .type x,FUNCTION; .global x; x:
+#include <sys/trap.h>
+#else	
 #include <sun4/asm_linkage.h>
 #include <sun4/trap.h>
+#endif	
 #endif
 
 SAVED_PC	= (0*4)
@@ -181,8 +194,8 @@ ENTRY(returnto)
 	retl
 	restore
 
-#if defined(__linux__) || defined(__NetBSD__)
-#ifdef __linux__
+#if defined(__linux__) || defined(__NetBSD__) || defined(sun)
+#if defined(__linux__) || defined(sun)
 ENTRY(.ptr_call)
 #else  /* __NetBSD__ */
 ASENTRY(.ptr_call)
