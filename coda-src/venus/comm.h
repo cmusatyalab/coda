@@ -258,6 +258,7 @@ class srvent {
     unsigned Xbinding : 1;	/* 1 --> BINDING, 0 --> NOT_BINDING */
     unsigned probeme : 1;	/* should ProbeD probe this server? */
     unsigned userbw : 1;	/* is current BW set by the user? */
+    unsigned isweak : 1;	/* is this server considered weak */
     unsigned long bw;		/* bandwidth estimate, Bytes/sec */
     unsigned long bwvar;	/* variance of the bandwidth estimate */
     struct timeval lastobs;	/* time of most recent estimate */

@@ -1074,6 +1074,7 @@ srvent::srvent(unsigned long Host) {
     probeme = 0;
     EventCounter = 0;
     userbw = 0;
+    isweak = 0;
     bw     = INIT_BW;
     bwvar  = 0;
     timerclear(&lastobs);
@@ -1353,6 +1354,7 @@ long srvent::GetLiveness(struct timeval *tp) {
 long srvent::GetBandwidth(unsigned long *Bandwidth) {
     long rc = 0;
     unsigned long oldbw = bw;
+    unsigned long bwmin, bwmax;
 
     LOG(1, ("srvent::GetBandwidth (%s) lastobs %ld.%06ld\n", 
 	      name, lastobs.tv_sec, lastobs.tv_usec));
@@ -1371,9 +1373,9 @@ long srvent::GetBandwidth(unsigned long *Bandwidth) {
     }
 
     /* retrieve the bandwidth information from RPC2 */
-    if ((rc = RPC2_GetBandwidth(connid, &bw, &bwvar)) != RPC2_SUCCESS)
+    if ((rc = RPC2_GetBandwidth(connid, &bwmin, &bw, &bwmax)) != RPC2_SUCCESS)
 	return(rc);
-    
+
     LOG(1, ("srvent:GetBandWidth: --> new BW %d bytes/sec\n", bw));
 
     /* update last observation time */
@@ -1383,20 +1385,22 @@ long srvent::GetBandwidth(unsigned long *Bandwidth) {
      * Signal if we've crossed the weakly-connected threshold. Note
      * that the connection is considered strong until proven otherwise.
      */
-    if (oldbw > WCThresh && bw <= WCThresh) {
+    if (!isweak && bwmax < WCThresh) {
+	isweak = 1;
 	MarinerLog("connection::weak %s\n", name);
 	VSGDB->WeakEvent(host);
         NotifyUsersOfServerWeakEvent(name);
     }
-    else if (oldbw <= WCThresh && bw > WCThresh) {
+    else if (isweak && bwmin > WCThresh) {
+	isweak = 0;
 	MarinerLog("connection::strong %s\n", name);
 	VSGDB->StrongEvent(host);
         NotifyUsersOfServerStrongEvent(name);
     }
 	
     *Bandwidth = bw;
+    MarinerLog("connection::bandwidth %s %d %d %d\n", name,bwmin,bw,bwmax);
     if (bw != oldbw) {
-	MarinerLog("connection::bandwidth %s %d\n", name, bw);
         NotifyUsersOfServerBandwidthEvent(name,*Bandwidth);
     }
     LOG(1, ("srvent::GetBandwidth (%s) returns %d bytes/sec\n",
@@ -1430,12 +1434,14 @@ long srvent::InitBandwidth(unsigned long b) {
      */
     bw    = userbw ? b : INIT_BW;
     bwvar = 0;
-    if (oldbw > WCThresh && bw <= WCThresh) {
+    if (!isweak && bw <= WCThresh) {
+	isweak = 1;
 	MarinerLog("connection::weak %s\n", name);
 	VSGDB->WeakEvent(host);
         NotifyUsersOfServerWeakEvent(name);
     }
-    else if (oldbw <= WCThresh && bw > WCThresh) {
+    else if (isweak && bw > WCThresh) {
+	isweak = 0;
 	MarinerLog("connection::strong %s\n", name);
 	VSGDB->StrongEvent(host);
         NotifyUsersOfServerStrongEvent(name);

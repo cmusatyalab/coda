@@ -194,11 +194,11 @@ void rpc2_PrintHEntry(struct HEntry *hPtr, FILE *tFile)
 	    hPtr->RTT % ((1 << RPC2_RTT_SHIFT) - 1),
 	    hPtr->RTTVar >> RPC2_RTTVAR_SHIFT,
 	    hPtr->RTTVar % ((1 << RPC2_RTTVAR_SHIFT) - 1));
-    fprintf(tFile, "\tBW = %ld.%03ld, BWvar = %ld.%03ld\n",
-	    hPtr->BW >> RPC2_BW_SHIFT,
-	    hPtr->BW % ((1 << RPC2_BW_SHIFT) - 1),
-	    hPtr->BWVar >> RPC2_BWVAR_SHIFT,
-	    hPtr->BWVar % ((1 << RPC2_BWVAR_SHIFT) - 1));
+    fprintf(tFile, "\tByteRate = %ld.%03ld ns/B, BRvar = %ld.%03ld\n",
+	    hPtr->BR >> RPC2_BR_SHIFT,
+	    hPtr->BR % ((1 << RPC2_BR_SHIFT) - 1),
+	    hPtr->BRVar >> RPC2_BRVAR_SHIFT,
+	    hPtr->BRVar % ((1 << RPC2_BRVAR_SHIFT) - 1));
 
     PrintNetLog("RPC2", hPtr->RPC2_NumEntries, hPtr->RPC2_Log, tFile);
     PrintNetLog("SE",   hPtr->SE_NumEntries,   hPtr->SE_Log,   tFile);

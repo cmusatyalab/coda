@@ -704,8 +704,8 @@ extern int RPC2_R2SError (int error);
 extern int RPC2_S2RError (int error);
 
 int RPC2_GetRTT(RPC2_Handle handle, unsigned long *RTT, unsigned long *RTTvar);
-int RPC2_GetBandwidth(RPC2_Handle handle, unsigned long *BW,
-		      unsigned long *BWvar);
+int RPC2_GetBandwidth(RPC2_Handle handle, unsigned long *BWlow,
+		      unsigned long *BWavg, unsigned long *BWhigh);
 int RPC2_GetLastObs(RPC2_Handle handle, struct timeval *tv);
 
 int struct_len(ARG **a_types, PARM **args);

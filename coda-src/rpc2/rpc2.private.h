@@ -103,7 +103,6 @@ OBJ_HENTRY = 48127
 /* MINRTO/MAXRTO are used to avoid unbounded timeouts */
 #define RPC2_MINRTO   10000        /* min rto (rtt + variance) is 10 msec */
 #define RPC2_MAXRTO   30000000     /* max rto (rtt + variance) is 30 seconds */
-#define UNSET_BW ((unsigned long)-1)
 
 /* Definitions for Flags field of connections */
 #define CE_OLDV  0x1  /* old version detected during bind */
@@ -321,12 +320,10 @@ struct HEntry {
     unsigned long   RTT;	/* RTT          (us<<RPC2_RTT_SHIFT) */
     unsigned long   RTTVar;	/* RTT variance (us<<RPC2_RTTVAR_SHIFT) */
 
-#define RPC2_BW_SHIFT    3
-#define RPC2_BWVAR_SHIFT 2
-    unsigned long   BW;		/* BW          (B/s<<RPC2_BW_SHIFT) */
-    unsigned long   BWVar;	/* BW variance (B/s<<RPC2_BWVAR_SHIFT) */
-
-    unsigned long   LastBytes;	/* last packet size */
+#define RPC2_BR_SHIFT    3
+#define RPC2_BRVAR_SHIFT 2
+    unsigned long   BR;		/* Byterate          (ns/B<<RPC2_BW_SHIFT) */
+    unsigned long   BRVar;	/* Byterate variance (ns/B<<RPC2_BWVAR_SHIFT) */
 };
 
 
