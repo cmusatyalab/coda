@@ -25,7 +25,7 @@
 # improvements or extensions that  they  make,  and  to  grant  Carnegie
 # Mellon the rights to redistribute these changes without encumbrance.
 # 
-# static char *rcsid = "$Header: Makefile.in,v 1.1 96/12/09 14:41:05 raiff Exp $";
+# static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-nbsd-port/coda-4.0.1/coda-src/sys/RCS/Makefile.in,v 4.1 1997/01/08 21:50:55 rvb Exp $";
 
 
 TOPDIR = @top_srcdir@
@@ -48,12 +48,14 @@ CXXFLAGS := $(CFLAGS)
 libuifs.a: ifsulib.o
 libcodasys.a:  setpag.o pioctl.o
 
-ifeq ($(SYS), i386_linux2)
+ifneq ($(SHORTSYS), mach)
+# On Linux and NetBSD, convert pioctl() to ioctl()
 setpag.o: setpag.c
 	$(CC) $(CFLAGS) -c $<
 pioctl.o: pioctl.c
 	$(CC) $(CFLAGS) -c $<
 else
+# Actually, I'm not sure even Mach uses pioctl.s ... (Satya 1/9/97)
 setpag.o: setpag.s
 pioctl.o: pioctl.s
 endif
