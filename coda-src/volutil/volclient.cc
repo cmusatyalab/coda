@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/volutil/volclient.cc,v 4.2 1997/02/26 16:04:17 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/volutil/volclient.cc,v 4.4 1997/11/14 13:32:39 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -164,7 +164,7 @@ int main(int argc, char **argv) {
     }
 
     if (argc < 2) {
-        printf("Usage: volutil [-h hostname] [-t timeout] <option>, where <option> is one of the following:\n");
+        printf("Usage: volutil [-h hostname] [-t timeout] [-d debuglevel]  <option>, where <option> is one of the following:\n");
 	printf("ancient, backup, create, create_rep, clone, dump, info, lock, ");
 	printf("lookup, makevldb, makevrdb, purge, restore, salvage, ");
 	printf("setvv, showvnode, shutdown, swaplog, setdebug, updatedb, ");
@@ -192,8 +192,17 @@ int main(int argc, char **argv) {
 	    }
 	}
 	
-	if ((argc > 2) && strcmp(argv[1], "-t") == 0) { // User gave timeout
+	if ((argc > 2) && strcmp(argv[1], "-t") == 0) { 
+	    /* User gave timeout */
 	    timeout = atoi(argv[2]);
+	    argv++; argc--;
+	    argv++; argc--;
+	}
+
+	if ((argc > 2) && strcmp(argv[1], "-d") == 0) { 
+	    /* User gave timeout */
+	    RPC2_DebugLevel = atoi(argv[2]);
+	    VolDebugLevel = atoi(argv[2]);
 	    argv++; argc--;
 	    argv++; argc--;
 	}

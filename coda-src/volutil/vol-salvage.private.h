@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/volutil/vol-salvage.private.h,v 4.1 1997/01/08 21:52:35 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/volutil/vol-salvage.private.h,v 4.3 1997/11/14 13:32:38 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -46,8 +46,8 @@ static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/voluti
 #include <recov_vollog.h>
 
 struct InodeSummary {		/* Inode summary file: an entry for each volume in a partition */
-    VolId	volumeId;	/* Volume id */
-    VolId	RWvolumeId;	/* RW volume associated */
+    VolumeId	volumeId;	/* Volume id */
+    VolumeId	RWvolumeId;	/* RW volume associated */
     int		index;		/* index into inode file (0, 1, 2 ...) */
     int		nInodes;	/* Number of inodes for this volume */
     Unique_t	maxUniquifier;	/* The max. uniquifier in all the inodes for this volume */

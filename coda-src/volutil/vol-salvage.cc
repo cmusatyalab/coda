@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/volutil/vol-salvage.cc,v 4.8 1997/09/26 16:43:30 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/volutil/vol-salvage.cc,v 4.11 1997/11/14 21:04:12 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -749,18 +749,19 @@ PRIVATE void CleanInodes(struct InodeSummary *isp) {
     assert(lseek(inodeFd, isp->index * sizeof(struct ViceInodeInfo), 
 		  L_SET) != -1);
     assert(read(inodeFd, (char *)inodes, size) == size);
-    
+    LogMsg(0, VolDebugLevel, stdout, 
+	   "Inodes found from destroyed volumes: scavenging.");    
     for(int i = 0; i < isp->nInodes; i++) {
 	ViceInodeInfo *ip = &inodes[i];
 	assert(ip->LinkCount > 0);
-	LogMsg(0, VolDebugLevel, stdout, 
-	       "#####Scavenging inode %u, size %u, p=(%lx,%lx,%lx,%lx)",
+	LogMsg(1, VolDebugLevel, stdout, 
+	       "Scavenging inode %u, size %u, p=(%lx,%lx,%lx,%lx)",
 	       ip->InodeNumber, ip->ByteCount,
-	       ip->VolumeId, ip->VnodeNumber, ip->VnodeUniquifier, 
+	       ip->VolumeNo, ip->VnodeNumber, ip->VnodeUniquifier, 
 	       ip->InodeDataVersion);
 	while(ip->LinkCount > 0) {
 	    assert(idec(fileSysDevice, ip->InodeNumber, 
-			ip->VolumeId) == 0);
+			ip->VolumeNo) == 0);
 	    ip->LinkCount--;
 	}
     }
@@ -768,12 +769,13 @@ PRIVATE void CleanInodes(struct InodeSummary *isp) {
 
 }
 
+
 PRIVATE struct VnodeEssence *CheckVnodeNumber(VnodeId vnodeNumber, Unique_t unq)
 {
     VnodeClass vclass;
     struct VnodeInfo *vip;
 
-    LogMsg(39, VolDebugLevel, stdout, "Entering CheckVnodeNumber(%d)", vnodeNumber);
+    LogMsg(39, VolDebugLevel, stdout,  "Entering CheckVnodeNumber(%d)", vnodeNumber);
     vclass = vnodeIdToClass(vnodeNumber);
     vip = &vnodeInfo[vclass];
     for(int i = 0; i < vip->nVnodes; i++){
@@ -1199,7 +1201,7 @@ PRIVATE void PrintInodeList() {
 	LogMsg(0, VolDebugLevel, stdout, 
 	       "Inode:%u, linkCount=%d, size=%u, p=(%lx,%lx,%lx,%lx)",
 	       ip->InodeNumber, ip->LinkCount, ip->ByteCount,
-	       ip->VolumeId, ip->VnodeNumber, ip->VnodeUniquifier, 
+	       ip->VolumeNo, ip->VnodeNumber, ip->VnodeUniquifier, 
 	       ip->InodeDataVersion);
     }
     free((char *)buf);
@@ -1360,17 +1362,17 @@ PRIVATE void FixInodeLinkcount(struct ViceInodeInfo *inodes,
 	    LogMsg(0, VolDebugLevel, stdout, 
 		   "Link count incorrect by %d; inode %u, size %u, p=(%lx,%lx,%lx,%lx)",
 		   ip->LinkCount, ip->InodeNumber, ip->ByteCount,
-		   ip->VolumeId, ip->VnodeNumber, ip->VnodeUniquifier, 
+		   ip->VolumeNo, ip->VnodeNumber, ip->VnodeUniquifier, 
 		   ip->InodeDataVersion);
 	}
 
 	/* Delete any links that are still unaccounted for */
 	while (ip->LinkCount > 0) {
-	   assert(idec(fileSysDevice,ip->InodeNumber, ip->VolumeId) == 0);
+	   assert(idec(fileSysDevice,ip->InodeNumber, ip->VolumeNo) == 0);
 	   ip->LinkCount--;
 	}
 	while (ip->LinkCount < 0) {
-	   assert(iinc(fileSysDevice,ip->InodeNumber, ip->VolumeId) == 0);
+	   assert(iinc(fileSysDevice,ip->InodeNumber, ip->VolumeNo) == 0);
 	   ip->LinkCount++;
 	}
     }
@@ -1400,7 +1402,7 @@ PRIVATE void zero_globals()
 PRIVATE void CountVolumeInodes(register struct ViceInodeInfo *ip,
 		int maxInodes, register struct InodeSummary *summary)
 {
-    int volume = ip->VolumeId;
+    int volume = ip->VolumeNo;
     int rwvolume = volume;
     register n, nSpecial;
     register Unique_t maxunique;
@@ -1409,7 +1411,7 @@ PRIVATE void CountVolumeInodes(register struct ViceInodeInfo *ip,
 
     n = nSpecial = 0;
     maxunique = 0;
-    while (maxInodes-- && volume == ip->VolumeId) {
+    while (maxInodes-- && volume == ip->VolumeNo) {
 	n++;
 	if (ip->VnodeNumber == INODESPECIAL) {
 	    LogMsg(0, VolDebugLevel, stdout, "CountVolumeInodes: Bogus specialinode; can't happen");
@@ -1435,7 +1437,7 @@ int OnlyOneVolume(struct ViceInodeInfo *inodeinfo,
 	LogMsg(0, VolDebugLevel, stdout, "OnlyOneVolume: tripped over INODESPECIAL- can't happen!");
 	assert(FALSE);
     }
-    return (inodeinfo->VolumeId == singleVolumeNumber);
+    return (inodeinfo->VolumeNo == singleVolumeNumber);
 }
 
 /* Comparison routine for inode sort. Inodes are sorted */
@@ -1449,9 +1451,9 @@ PRIVATE int CompareInodes(struct ViceInodeInfo *p1, struct ViceInodeInfo *p2)
 	assert(0);
 	return -1;
     }
-    if ( (p1->VolumeId) < (p2->VolumeId))
+    if ( (p1->VolumeNo) < (p2->VolumeNo))
 	return -1;
-    if ( (p1->VolumeId) > (p2->VolumeId))
+    if ( (p1->VolumeNo) > (p2->VolumeNo))
 	return 1;
     if (p1->VnodeNumber < p2->VnodeNumber)
 	return -1;
