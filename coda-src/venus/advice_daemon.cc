@@ -28,6 +28,7 @@ extern "C" {
 
 #include <struct.h>
 #include <netinet/in.h>
+#include <netdb.h>
 
 /* from rvm */
 #include <rds.h>

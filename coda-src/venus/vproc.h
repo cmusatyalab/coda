@@ -150,7 +150,7 @@ struct uarea {
 
     /* Initialization. */
     void Init() {
-	bzero((void *)this, (int) sizeof(struct uarea));
+	memset((void *)this, 0, (int) sizeof(struct uarea));
 	u_volmode = /*VM_UNSET*/-1;
 	u_vfsop = /*VFSOP_UNSET*/-1;
     }

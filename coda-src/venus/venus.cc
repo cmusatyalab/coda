@@ -30,6 +30,8 @@ extern "C" {
 #include <stdio.h>
 #include <unistd.h>
 #include <stdlib.h>
+#include <fcntl.h>
+#include <netdb.h>
 
 extern int rpause(int, int, int);  /* why isn't this in sys/resource.h? */
 #ifdef __cplusplus

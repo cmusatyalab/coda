@@ -34,6 +34,7 @@ listed in the file CREDITS.
 extern "C" {
 #endif __cplusplus
 
+
 #include <stdio.h>
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -78,7 +79,7 @@ static void FatalSignal(int, int, struct sigcontext *);
 void SigInit() {
     /* Establish/Join our own process group to avoid extraneous signals. */
 #ifndef DJGPP
-#ifdef	__linux__
+#if defined(__linux__) || defined(sun)
         if (setpgrp() < 0)
 #else
                 if (setpgrp(0, getpid()) < 0)
@@ -366,7 +367,7 @@ static void FatalSignal(int sig, int code, struct sigcontext *contextPtr)
     {
 	fprintf(logFile, "sig=%d\n", sig);
 	fprintf(logFile, "code=%d\n", code);
-#if !defined(i386) && !defined(powerpc)
+#if !defined(i386) && !defined(powerpc) && !defined(sun)
 #if defined(sparc) && defined(__linux__)
 	fprintf(logFile, "sc_pc=0x%x\n", contextPtr->sigc_pc);
 #else

@@ -36,6 +36,7 @@ extern "C" {
 #include <setjmp.h>
 #include <unistd.h>
 #include <stdlib.h>
+#include <fcntl.h>
 
 #ifdef __cplusplus
 }

@@ -85,6 +85,9 @@ class vcbdent;
 class rwsent;
 
 /* volume pgid locking type */
+#ifdef sun
+#define SHARED LkSHARED
+#endif
 enum VolLockType { EXCLUSIVE, SHARED };
 
 /* XXX These should be in vice.h! */

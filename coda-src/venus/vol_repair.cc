@@ -35,6 +35,8 @@ extern "C" {
 #include <string.h>
 #include <unistd.h>
 #include <stdlib.h>
+#include <netdb.h>
+#include <fcntl.h>
 
 #include <rpc2.h>
 #include <vice.h>

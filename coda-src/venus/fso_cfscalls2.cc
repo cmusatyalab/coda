@@ -35,6 +35,8 @@ extern "C" {
 #include <unistd.h>
 #include <stdlib.h>
 
+#include <netdb.h>
+
 #include <rpc2.h>
 #include <vice.h>
 /* from libal */
@@ -59,6 +61,10 @@ extern "C" {
 #include "vproc.h"
 #include "worker.h"
 #include "coda_expansion.h"
+
+#ifndef MIN
+#define MIN(a,b)  ( ((a) < (b)) ? (a) : (b) )
+#endif
 
 
 /* Call with object write-locked. */

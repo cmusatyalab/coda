@@ -45,6 +45,12 @@ extern "C" {
 #include <string.h>
 #include <unistd.h>
 #include <stdlib.h>
+#include <netdb.h>
+
+#ifdef sun
+extern int sys_nerr;
+extern char **sys_errlist;
+#endif
 
 #include <rpc2.h>
 /* interfaces */
@@ -534,7 +540,7 @@ void RPCPrint(int afd) {
     /* Communication statistics. */
     fdprint(afd, "RPC Packets:\n");
     RPCPktStatistics RPCPktStats;
-    bzero((void *)&RPCPktStats, (int)sizeof(RPCPktStatistics));
+    memset((void *)&RPCPktStats, 0, (int)sizeof(RPCPktStatistics));
     GetCSS(&RPCPktStats);
     struct SStats *rsu = &RPCPktStats.RPC2_SStats_Uni;
     struct SStats *rsm = &RPCPktStats.RPC2_SStats_Multi;
@@ -716,12 +722,12 @@ void StatsInit() {
     int i;
 
 LOG(0, ("E StatsInit()\n"));
-    bzero((void *)&VFSStats, (int)sizeof(VFSStatistics));
+    memset((void *)&VFSStats, 0, (int)sizeof(VFSStatistics));
     for (i = 0; i < NVFSOPS; i++)
 	strncpy(VFSStats.VFSOps[i].name, VFSOpsNameTemplate[i],
 		VFSSTATNAMELEN);
 
-    bzero((void *)&RPCOpStats, (int)sizeof(RPCOpStatistics));
+    memset((void *)&RPCOpStats, 0, (int)sizeof(RPCOpStatistics));
     for (i = 0; i < srvOPARRAYSIZE; i++) {
 	    strncpy(RPCOpStats.RPCOps[i].name, 
 		    (char *) srv_CallCount[i].name+4, 

@@ -32,6 +32,8 @@ extern "C" {
 
 #include <stdio.h>
 #include <sys/types.h>
+#include <fcntl.h>
+#include <netdb.h>
 
 #include <lwp.h>
 

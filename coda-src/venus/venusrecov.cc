@@ -37,6 +37,7 @@ extern "C" {
 #include <errno.h>
 #include <unistd.h>
 #include <stdlib.h>
+#include <fcntl.h>
 
 /* from rvm */
 #include <rds.h>
@@ -86,6 +87,9 @@ int WITT = UNSET_WITT;
 int MAXFS = UNSET_MAXFS;
 int MAXTS = UNSET_MAXTS;
 
+#ifndef MAX
+#define MAX(a,b)  ( ((a) > (b)) ? (a) : (b) )
+#endif
 
 /*  *****  Private Constants  *****  */
 #if	defined(__NetBSD_Version__) && (__NetBSD_Version__ >= 104000000)
@@ -109,6 +113,9 @@ static const char *VM_RDSADDR = (char *)0x21000000;
 #elif	defined(DJGPP)
 static const char *VM_RVGADDR = (char *)0x02000000;
 static const char *VM_RDSADDR = (char *)0x03000000;
+#elif defined(sun)
+static const char *VM_RVGADDR = (char *)0x40000000;
+static const char *VM_RDSADDR = (char *)0x41000000;
 #endif
 
 #ifdef __CYGWIN32__
@@ -208,7 +215,7 @@ void RecovInit() {
     if (RvmType == VM) {
 	if ((rvg = (RecovVenusGlobals *)malloc(sizeof(RecovVenusGlobals))) == 0)
 	    CHOKE("RecovInit: malloc failed");
-	bzero((void *)rvg, (int)sizeof(RecovVenusGlobals));
+	memset((void *)rvg, 0, (int)sizeof(RecovVenusGlobals));
 	rvg->recov_MagicNumber = RecovMagicNumber;
 	rvg->recov_VersionNumber = RecovVersionNumber;
 	rvg->recov_LastInit = Vtime();
@@ -418,7 +425,7 @@ static void Recov_InitRVM() {
 	    {
 		const int ID_BLKSIZE = 4096;
 		char buf[ID_BLKSIZE];
-		bzero((void *)buf, ID_BLKSIZE);
+		memset((void *)buf, 0, ID_BLKSIZE);
 
 		int nblocks = (int) VenusDataDeviceSize / ID_BLKSIZE;
 		for (int i = 0; i < nblocks; i++)
@@ -562,7 +569,7 @@ static void Recov_InitSeg()
 		Recov_BeginTrans();
 		/* Initialize the block of recoverable Venus globals. */
 		RVMLIB_REC_OBJECT(*rvg);
-		bzero((void *)rvg, (int)sizeof(RecovVenusGlobals));
+		memset((void *)rvg, 0, (int)sizeof(RecovVenusGlobals));
 		rvg->recov_MagicNumber = RecovMagicNumber;
 		rvg->recov_VersionNumber = RecovVersionNumber;
 		rvg->recov_LastInit = Vtime();
@@ -801,8 +808,20 @@ static void Recov_AllocateVM(char **addr, unsigned long length)
       CloseHandle(hMap);
     }
 #else
+#ifdef sun
+    { int fd;
+      if ((fd = open("/dev/zero", O_RDWR)) == -1)
+	*addr = (char *)-1;
+      else {
+	*addr = mmap(*addr, length, (PROT_READ | PROT_WRITE),
+		     (MAP_PRIVATE | (*addr ? MAP_FIXED : 0)), fd, 0);
+	(void) close(fd);
+      }
+    }
+#else
       *addr = mmap(*addr, length, (PROT_READ | PROT_WRITE),
   		 (MAP_PRIVATE | MAP_ANON), -1, 0);
+#endif
 #endif
  
     if (*addr == (char *)-1) {

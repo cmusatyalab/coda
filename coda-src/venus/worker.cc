@@ -46,6 +46,7 @@ extern "C" {
 #include <string.h>
 #include <unistd.h>
 #include <stdlib.h>
+#include <fcntl.h>
 
 #ifdef  __FreeBSD__
 #include <sys/param.h>

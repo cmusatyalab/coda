@@ -53,9 +53,11 @@ extern "C" {
 #include <unistd.h>
 #include <stdlib.h>
 #include <pwd.h>
+#include <fcntl.h>
 #ifndef DJGPP
 #include <utmp.h>
 #endif
+#include <netdb.h>
 
 #include <codadir.h>
 

@@ -38,6 +38,7 @@ extern "C" {
 #include <netinet/in.h>
 #include <errno.h>
 #include <struct.h>
+#include <netdb.h>
 #ifndef DJGPP
 #include <utmp.h>
 #endif

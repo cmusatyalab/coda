@@ -41,7 +41,9 @@ void LRDBDaemon();/*N*/ /* used to be member of class lrdb (Satya 3/31/95) */
 
 
 #define LRDB	(rvg->recov_LRDB)
+#ifndef MAXNAMELEN
 #define MAXNAMELEN 255
+#endif
 
 typedef struct {
     int SubtreeNum;

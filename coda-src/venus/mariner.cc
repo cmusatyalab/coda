@@ -42,7 +42,7 @@ extern "C" {
 #include <string.h>
 #include <unistd.h>
 #include <stdlib.h>
-
+#include <fcntl.h>
 
 #include <lock.h>
 #include <rpc2.h>
@@ -87,7 +87,7 @@ void MarinerInit() {
     /* Make address reusable. */
     int on = 1;
 #ifndef DJGPP
-    if (setsockopt(mariner::muxfd, SOL_SOCKET, SO_REUSEADDR, &on, (int)sizeof(int)) < 0)
+    if (setsockopt(mariner::muxfd, SOL_SOCKET, SO_REUSEADDR, (void *)&on, (int)sizeof(int)) < 0)
 	eprint("MarinerInit: setsockopt failed (%d)", errno);
 #endif
     /* Look up the well-known CODA mariner service. */
