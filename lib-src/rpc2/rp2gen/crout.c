@@ -1196,7 +1196,7 @@ static void unpack(WHO who, VAR *parm, char *prefix, char *ptr, FILE *where)
 			for_limit(parm, who, where);
 			fprintf(where, " > ");
 			for_limit(parm, who, where);
-			fprintf(where, "_max_)\n" BUFFEROVERFLOW);
+			fprintf(where, "max_)\n" BUFFEROVERFLOW);
 		    }
 		    fprintf(where, "    for(%s = 0; %s < ", iterate, iterate);
 		    for_limit(parm, who, where);
