@@ -575,11 +575,11 @@ OI_FreeLocks:
 		    cp += sizeof(VolumeStatus);
 		    strcpy(cp, name);
 		    cp += strlen(name) + 1;
-		    *(int *)cp = conn_state;
+		    memcpy ((void *)cp, (void *)&conn_state, sizeof(int));
 		    cp += sizeof(int);
-		    *(int *)cp = conflict;
+		    memcpy ((void *)cp, (void *)&conflict, sizeof(int));
 		    cp += sizeof(int);
-		    *(int *)cp = cml_count;
+		    memcpy ((void *)cp, (void *)&cml_count, sizeof(int));
 		    cp += sizeof(int);
 		    strcpy(cp, offlinemsg);
 		    cp += strlen(offlinemsg) + 1;

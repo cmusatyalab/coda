@@ -331,6 +331,7 @@ char *IoctlOpStr(int opcode) {
 /*
 	case VIOCCLOSEWAIT:	    return("CloseWait");
 	case VIOCABORT:		    return("Abort");
+	case VIOCIGETCELL:          return("Get Cell");
 */
 	case VIOCSETAL:		    return("Set ACL");
 	case VIOCGETAL:		    return("Get ACL");
@@ -369,6 +370,7 @@ char *IoctlOpStr(int opcode) {
 	case VIOC_GETCELLSTATUS:    return("Get Cell Status");
 	case VIOC_SETCELLSTATUS:    return("Set Cell Status");
 	case VIOC_FLUSHVOLUME:	    return("Flush Volume");
+        case VIOC_LISTCACHE_VOLUME: return("List Cache Volume ");
 	case VIOC_ENABLEREPAIR:	    return("Enable Repair");
 	case VIOC_DISABLEREPAIR:    return("Disable Repair");
 	case VIOC_REPAIR:	    return("Repair");
@@ -399,9 +401,35 @@ char *IoctlOpStr(int opcode) {
 	case VIOC_GETPFID:          return("Get Parent Fid");
 	case VIOC_BEGINML:          return("Begin Modify Logging");
 	case VIOC_ENDML:            return("End Modify Logging");
+        case VIOC_HDB_VERIFY:       return("HDB Verify");
+        case VIOC_HDB_ENABLE:       return("HDB Enable");
+        case VIOC_HDB_DISABLE:      return("HDB Disable");
         case VIOC_ENABLEASR:        return("Enable ASR");
 	case VIOC_DISABLEASR:       return("Disable ASR");
         case VIOC_FLUSHASR:         return("Flush ASR");
+        case VIOC_REP_BEGIN:        return("Rep Begin");
+        case VIOC_REP_END:          return("Rep End");
+        case VIOC_REP_CHECK:        return("Rep Check");
+        case VIOC_REP_PRESERVE:     return("Rep Preserve");
+        case VIOC_REP_DISCARD:      return("Rep Discard");
+        case VIOC_REP_REMOVE:       return("Rep Remove");
+        case VIOC_SET_LOCAL_VIEW:   return("Set Local View");
+        case VIOC_SET_GLOBAL_VIEW:  return("Set Global View");
+        case VIOC_SET_MIXED_VIEW:   return("Set Mixed View");
+        case VIOC_WD_ALL:           return("WD All");
+        case VIOC_WR_ALL:           return("WR All");
+        case VIOC_STRONG:           return("Strong");
+        case VIOC_ADAPTIVE:         return("Adaptive");
+        case VIOC_LISTCACHE:        return("List Cache");
+        case VIOC_GET_MT_PT:        return("Get Mt Pt");
+        case VIOC_BEGINWB:          return("Begin WB");
+        case VIOC_ENDWB:            return("End WB");
+        case VIOC_STATUSWB:         return("Status WB");
+        case VIOC_AUTOWB:           return("Auto WB");
+        case VIOC_SYNCCACHE:        return("Sync Cache");
+        case VIOC_REP_CMD:          return("Rep CMD");
+        case VIOC_UNLOADKERNEL:     return("Unload Kernel");
+
 	default:		    snprintf(buf, 12, "%d", opcode); return(buf);
     }
 }
@@ -498,7 +526,7 @@ void RusagePrint(int afd) {
 extern unsigned etext;
 extern unsigned edata;
 extern unsigned end;
-#ifndef __CYGWIN32__
+#if !defined(__CYGWIN32__) && !defined(sun)
     fdprint(afd, "\tsegment sizes = (%#08x, %#08x, %#08x, %#08x)\n",
 	     etext, edata - etext, end - edata, (char *)sbrk(0) - end);
 #endif
