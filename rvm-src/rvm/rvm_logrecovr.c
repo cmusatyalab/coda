@@ -33,7 +33,7 @@ should be returned to Software.Distribution@cs.cmu.edu.
 
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/rvm-src/rvm/rvm_logrecovr.c,v 4.11 1998/09/29 21:04:57 jaharkes Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/rvm-src/rvm/rvm_logrecovr.c,v 4.12 98/10/28 19:58:11 braam Exp $";
 #endif _BLURB_
 
 /*
@@ -2685,9 +2685,6 @@ err_exit1:;
 		ASSERT(log->daemon.thread == cthread_self());
 		ASSERT(daemon->state == truncating);
 		ASSERT((status->trunc_state & RVM_ASYNC_TRUNCATE) != 0);
-		fprintf(stderr, "thr %d in %s signan flushflag\n",
-			cthread_self(), __FUNCTION__);
-		fflush(stderr);
 		condition_signal(&daemon->flush_flag);
 		ASSERT(log->daemon.thread == cthread_self());
 		ASSERT(daemon->state == truncating);
@@ -2763,9 +2760,6 @@ err_exit:
                     daemon->state = rvm_idle;
                 }
             if (retval == RVM_SUCCESS) {
-		fprintf(stderr, "thr %d in %s signal (b) wake_up\n",
-			cthread_self(), __FUNCTION__);
-		fflush(stderr);
                 condition_broadcast(&daemon->wake_up);
 	    }
             ASSERT(log->trunc_thread == cthread_self());
@@ -2826,13 +2820,7 @@ rvm_bool_t initiate_truncation(log,threshold)
                 {
                 did_init = rvm_true;
                 daemon->state = truncating;
-		fprintf(stderr, "thr %d in %s signal code\n",
-			cthread_self(), __FUNCTION__);
-		fflush(stderr);
                 condition_signal(&daemon->code);
-		fprintf(stderr, "thr %d in %s wait flush\n",
-			cthread_self(), __FUNCTION__);
-		fflush(stderr);
                 condition_wait(&daemon->flush_flag,&daemon->lock);
                 }
             }
@@ -2867,10 +2855,6 @@ rvm_return_t wait_for_truncation(log,time_stamp)
             if (daemon->state == truncating)
                 {
                 num_waiting++;
-		fprintf(stderr, "thr %d in %s wait wake_up\n",
-			cthread_self(), __FUNCTION__);
-		fflush(stderr);
-
                 condition_wait(&daemon->wake_up,&daemon->lock);
                 num_waiting--;
                 }
@@ -2887,9 +2871,6 @@ rvm_return_t wait_for_truncation(log,time_stamp)
 
             /* no, must trigger another truncation */
             daemon->state = truncating;
-	    fprintf(stderr, "thr %d in %s signal code\n",
-		    cthread_self(), __FUNCTION__);
-		fflush(stderr);
             condition_signal(&daemon->code);
             goto exit_crit_sec;
 
@@ -2925,9 +2906,6 @@ void log_daemon(log)
         CRITICAL(daemon->lock,          /* begin daemon lock crit sec */
             {
 		    while (daemon->state == rvm_idle) {
-			    fprintf(stderr, "thr %d in %s wait code\n",
-				    cthread_self(), __FUNCTION__);
-			    fflush(stderr);
 			    condition_wait(&daemon->code,&daemon->lock);
 		    }
             ASSERT(daemon->thread == cthread_self());
