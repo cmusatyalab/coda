@@ -207,9 +207,20 @@ mapprivate=1
 #kerberos4realm=
 #kerberos4kinit="kinit"
 
+#
 # kerberos5service contains "%s" which will be substituted with a hostname,
 # for a usual DCE setup it would be "hosts/%s/self
+#
 #kerberos5service="host/%s"
 #kerberos5realm=
 #kerberos5kinit="kinit"
+
+#
+# RPC2 timeout and retry parameters.
+# These used to be set to 15 (seconds) and 4 retries. However useful these are
+# for demos, the new more conservative values should significantly increase
+# reliability by avoiding unexpected disconnections.
+#
+#RPC2_timeout=60
+#RPC2_retries=5
 

@@ -84,12 +84,12 @@ extern unsigned long WCThresh;
 
 /*  *****  Constants  *****  */
 
-const int DFLT_RT = 4;			    /* rpc2 retries */
-const int UNSET_RT = -1;
-const int DFLT_TO = 15;			    /* rpc2 timeout */
-const int UNSET_TO = -1;
+const int DFLT_RT = 5;			    /* rpc2 retries */
+const int UNSET_RT = 0;
+const int DFLT_TO = 60;			    /* rpc2 timeout */
+const int UNSET_TO = 0;
 const int DFLT_WS = 32;			    /* sftp window size */
-const int UNSET_WS = -1;
+const int UNSET_WS = 0;
 const int DFLT_SA = 8;			    /* sftp send ahead */
 const int UNSET_SA = -1;
 const int DFLT_AP = 8;			    /* sftp ack point */

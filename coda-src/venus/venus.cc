@@ -419,6 +419,9 @@ static void DefaultCmdlineParms()
     CODACONF_STR(VenusLogDevice,    "rvm_log",        "/usr/coda/LOG");
     CODACONF_STR(VenusDataDevice,   "rvm_data",       "/usr/coda/DATA");
 
+    CODACONF_INT(rpc2_timeout,	    "RPC2_timeout",   DFLT_TO);
+    CODACONF_INT(rpc2_retries,	    "RPC2_retries",   DFLT_RT);
+
     CODACONF_INT(T1Interval,	    "serverprobe",    150);
     // used to be 12 minutes
 

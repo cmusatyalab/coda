@@ -121,8 +121,6 @@ int srvent::deallocs = 0;
 
 void CommInit() {
     /* Initialize unset command-line parameters. */
-    if (rpc2_retries == UNSET_RT) rpc2_retries = DFLT_RT;
-    if (rpc2_timeout == UNSET_TO) rpc2_timeout = DFLT_TO;
     if (sftp_windowsize == UNSET_WS) sftp_windowsize = DFLT_WS;
     if (sftp_sendahead == UNSET_SA) sftp_sendahead = DFLT_SA;
     if (sftp_ackpoint == UNSET_AP) sftp_ackpoint = DFLT_AP;
