@@ -137,49 +137,47 @@ void FSOInit() {
 	   have changed completely between 4.3BSD and 4.4BSD  (Satya, 8/12/96)
         */
 #ifdef __BSD44__
-	struct dirent **namelist;
-	int nentries;
+	DIR *dir
+	struct dirent *entry;
+
+	dir = opendir(".");
+	if (!dir) CHOKE("FSOInit: opendir");
+
 	char *cwd,*abspath,*eos,*origpath;
 	struct stat statbuf;
 
-	nentries = scandir(".", &namelist, 0, 0) ;
-	if (nentries < 0) CHOKE("FSOInit: scandir");
-
 	cwd = getwd(NULL);
-	abspath = origpath = (char*)malloc(sizeof(char)*MAXPATHLEN);
+	abspath = (char*)malloc(sizeof(char)*MAXPATHLEN);
 	CODA_ASSERT(abspath != NULL);
 
-	abspath = strncpy(abspath,cwd,MAXPATHLEN);
+	abspath = strncpy(abspath, cwd, MAXPATHLEN);
 	abspath = strncat(abspath,"/",2);
 	eos = abspath + strlen(abspath) + 1;
+	free(cwd);
 
 	/* Examine each entry and decide to keep or delete it */
-	for (i = 0; i < nentries; i++) {
+	while ((entry = readdir(dir)) != NULL)
+	{
+	    *eos = '\0';
 	    /* Don't unlink special files. */
-	    abspath = strncpy(eos, namelist[i]->d_name, MAXPATHLEN-strlen(cwd));
-	    if (STREQ(namelist[i]->d_name, ".") ||
-		STREQ(namelist[i]->d_name, "..") ||
-		STREQ(namelist[i]->d_name, "lost+found") ||
+	    strncpy(eos, entry->d_name, MAXPATHLEN-strlen(cwd));
+	    if (STREQ(entry->d_name, ".") ||
+		STREQ(entry->d_name, "..") ||
+		STREQ(entry->d_name, "lost+found") ||
 		STREQ(abspath, VenusLogFile) ||
-		STREQ(namelist[i]->d_name, "pid"))
-		goto FREE_ENTRY;
+		STREQ(entry->d_name, "pid"))
+		continue;
 
 	    /* Don't unlink cache directories. */
-	    if (stat(namelist[i]->d_name, &statbuf) == 0 &&
+	    if (stat(entry->d_name, &statbuf) == 0 &&
 		S_ISDIR(statbuf.st_mode))
-		goto FREE_ENTRY;
+		continue;
 
 	    /* Garbage collect everything else. */
-	    ::unlink(namelist[i]->d_name);
-
-FREE_ENTRY: /* release entry from namelist */
-	    free(namelist[i]);
-	    *eos = '\0';
+	    ::unlink(entry->d_name);
 	}
-	/* Free the array allocated by scandir() */
-	free(namelist);
-	free(origpath);
-	free(cwd);
+	free(abspath);
+	closedir(dir);
 #endif /* __BSD44__ */
 
 	/* Allocate the fsobj's if requested. */
