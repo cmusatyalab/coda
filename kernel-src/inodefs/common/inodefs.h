@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /coda/usr/satya/STM/xxx/kernel-src/inops/common/RCS/inops.h,v 1.1 1997/01/24 22:38:22 satya Exp $";
+static char *rcsid = "$Header: /coda/usr/satya/STM/coda-4.0.1/kernel-src/inops/common/RCS/inops.h,v 4.1 1997/01/24 22:51:38 satya Exp $";
 #endif /*_BLURB_*/
 
 /* Interface definition for inode operations; the definition is 
@@ -44,8 +44,8 @@ static char *rcsid = "$Header: /coda/usr/satya/STM/xxx/kernel-src/inops/common/R
    Created: Satya 1/24/97 from an old ifs.h file by Puneet Kumar
 */
 
-#ifndef _INOPS_H_
-#define _INOPS_H_
+#ifndef _INODEFS_H_
+#define _INODEFS_H_
 
 #ifdef KERNEL
 
@@ -58,7 +58,7 @@ extern int iread   __P((int, int, long, unsigned int, char *, unsigned int));
 extern int iwrite  __P((int, int, long, unsigned int, char *, unsigned int));
 extern int iinc    __P((int, int, long));
 extern int idec    __P((int, int, long));
-extern int pioctl  __P((char *, int, caddr_t, int));
+extern int pioctl  __P((char *, int, struct ViceIoctl *, int));
 #endif /* _KERNEL */
 
-#endif /* _INOPS_H_ */
+#endif /* _INODEFS_H_ */

@@ -27,7 +27,7 @@
 # improvements or extensions that  they  make,  and  to  grant  Carnegie
 # Mellon the rights to redistribute these changes without encumbrance.
 #
-# static char *rcsid = "$Header: /coda/usr/satya/STM/xxx/kernel-src/inops/common/RCS/Makefile.in,v 1.1 1997/01/24 22:35:55 satya Exp $";
+# static char *rcsid = "$Header: /coda/usr/satya/STM/coda-4.0.1/kernel-src/inops/common/RCS/Makefile.in,v 4.1 1997/01/24 22:51:38 satya Exp $";
 
 TOPDIR = @top_srcdir@
 srcdir = @srcdir@
@@ -36,7 +36,7 @@ TOPOBJ = @TOPOBJ@
 
 include $(TOPDIR)/Makeconf
 
-# Nothing to do for now except to install inops.h...
-HEADERS   = inops.h
+# Nothing to do for now except to install inodefs.h...
+HEADERS   = inodefs.h
 
 include $(TOPDIR)/Makerules
