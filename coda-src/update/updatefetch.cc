@@ -205,7 +205,7 @@ static void Connect()
     hid.Tag = RPC2_HOSTBYNAME;
     strcpy(hid.Value.Name, host);
     sid.Tag = RPC2_PORTBYINETNUMBER;
-    sid.Value.InetPortNumber = port;
+    sid.Value.InetPortNumber = htons(port);
     ssid.Tag = RPC2_SUBSYSBYID;
     ssid.Value.SubsysId = SUBSYS_UPDATE;
     dummy.SeqLen = 0;

@@ -197,7 +197,8 @@ int main(int argc, char **argv)
     }
     rc = portmapper_client_register_sqsh(portmapid, 
 					 (unsigned char *) "codaupdate", 
-					 0, 17,  port1.Value.InetPortNumber);
+					 0, 17,
+					 ntohs(port1.Value.InetPortNumber));
 
     if ( rc ) {
 	    fprintf(stderr, "Cannot register with rpc2portmap; exiting, rc = %i \n", rc);
