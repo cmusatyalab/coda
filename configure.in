@@ -105,6 +105,7 @@ coda-src/Makefile
 coda-src/scripts/Makefile 
 coda-src/scripts/vutil
 coda-src/scripts/rc.vice
+coda-src/scripts/vice-setup
 coda-src/scripts/startserver
 coda-src/kerndep/Makefile 
 coda-src/partition/Makefile 
