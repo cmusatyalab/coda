@@ -34,8 +34,8 @@ LIBS := $(DEPLIBS) $(LIBRPC2) $(LIBSE) $(LIBLWP) $(LIBS)
 include $(TOPDIR)/configs/Makerules
 
 smon2:	smon2.o $(DEPLIBS)
-	$(CC) $(CFLAGS) smon2.o $(LIBS) -lm -o smon2
+	$(CC) $(LDFLAGS) smon2.o $(LIBS) -lm -o smon2
 
 rpc2ping: rpc2ping.o $(DEPLIBS)
-	$(CC) $(CFLAGS) rpc2ping.o $(LIBS) -lm -o rpc2ping
+	$(CC) $(LDFLAGS) rpc2ping.o $(LIBS) -lm -o rpc2ping
 
