@@ -73,6 +73,12 @@ void DP_Init(const char *tabfile, const char *hostname)
     struct inodeops *operations;
     union PartitionData *data;
     Device  devno, codadev;
+    char host[MAXHOSTNAMELEN];
+
+    if (!hostname) {
+	gethostname(host, MAXHOSTNAMELEN);
+	hostname = &host;
+    }
 
     codadev = 1;
     list_head_init(&DiskPartitionList);
