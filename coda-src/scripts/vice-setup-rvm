@@ -61,7 +61,7 @@ done
 if [ "x$yesno" = xyes -o "x$yesno" = xy -o "x$yesno" = xy ]; then
     echo ""
 else
-    echo "Run vice-rvmsetup when you are ready!"
+    echo "Run vice-setup-rvm when you are ready!"
     exit 
 fi
 
@@ -175,7 +175,14 @@ case "$datasize" in
  	heapsize=0x13000000
  	;;
     * )
-	echo 'Read rdsinit(8) use rdsinit to configure your data area.'
+	echo 'Read rdsinit(8) and rdsinit to configure your data area.'
+	echo 'After configuring the RVM data area you also need to create'
+	echo 'a file /vice/srv.conf containing:'
+	echo
+	echo "-rvm $log $data <size of rvm data in bytes>"
+	echo
+	echo 'Press return to continue'
+	read ok
 	exit 
         ;; 
 esac

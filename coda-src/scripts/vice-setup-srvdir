@@ -80,11 +80,15 @@ if [ "x$yesno" = xy -o "x$yesno" = xyes -o "x$yesno" = xY ]; then
     echo "$bn   $srvdir   ftree   width=64,depth=3" >> /vice/db/vicetab
     echo "Now initializing the partition. This takes a while...."
     makeftree /vice/db/vicetab $srvdir
-    echo "done."
+    echo 'done.'
+    echo
+    echo 'Server directory is set up!'
 else
     echo
     echo  "Read vicetab(5) and makeftree(8) for set up info."
+    echo
+    echo  "Press return to continue"
+    read ok
 fi
 
-echo Server directory is set up!
 echo
