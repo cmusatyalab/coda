@@ -1218,7 +1218,7 @@ RestartFind:
 	}
 	else code = (f->IsFakeDir() ? EINCONS : ERETRY);
 
-	LOG(1, ("fsdb::Get: returning %s\n", code));
+	LOG(1, ("fsdb::Get: returning %d\n", code));
         Put(&f);
         return(code);
     }
