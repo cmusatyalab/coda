@@ -931,7 +931,7 @@ rvm_region_t *rvm_malloc_region()
     { 
     rvm_region_t    *new_rvm_region;
     
-    if (!free_lists_inited) (void)init_utils();
+    if (!free_lists_inited) init_free_lists();
     new_rvm_region = (rvm_region_t *)alloc_list_entry(region_rvm_id);
     if (new_rvm_region != NULL)
         {

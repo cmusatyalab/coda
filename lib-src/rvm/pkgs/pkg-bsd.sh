@@ -92,7 +92,6 @@ EXTRACT_SUFX=	.tar.gz
 MAINTAINER=	coda@cs.cmu.edu
 @NetBSD HOMEPAGE=	http://www.coda.cs.cmu.edu/
 @FreeBSD LIB_DEPENDS=	lwp.1:\${PORTSDIR}/devel/lwp
-@NetBSD LIB_DEPENDS=	lwp-1.4:../lwp
 
 @NetBSD ONLY_FOR_ARCHS=	arm32 i386 ns32k
 @NetBSD 
@@ -129,7 +128,7 @@ lib/librvm.so.1.0
 lib/librvmlwp.so.1.0
 lib/libseg.so.1.0
 lib/librds.so.1.0
-lib/librdslwp.so.1.1
+lib/librdslwp.so.1.0
 EOF
     else
 	cat > ${dst} << EOF

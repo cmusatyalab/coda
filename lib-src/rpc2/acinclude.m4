@@ -6,12 +6,8 @@ dnl test the cross compilation platform and adjust default settings
 AC_DEFUN(CODA_SETUP_BUILD,
 [AC_SUBST(LIBTOOL_LDFLAGS)
 case ${target} in
-  djgpp | dos )  target=i386-pc-msdos 
-		 dosmmap=false ;;
-  win95 | win98 ) target=i386-pc-msdos
-		  dosmmap=true ;;
+  djgpp | win95 | dos )  target=i386-pc-msdos ;;
   cygwin* | winnt | nt ) target=i386-pc-cygwin ;;
-  arm ) target=arm-unknown-linux-gnuelf ;;
 esac
 AC_CANONICAL_SYSTEM
 host=${target}
@@ -21,13 +17,8 @@ if test ${build} != ${target} ; then
    i386-pc-msdos )
     dnl shared libraries don't work here
     AM_DISABLE_SHARED
-    if ${dosmmap} ; then
-      CC="dos-gcc -bmmap"
-      CXX="dos-gcc -bmmap"
-    else
-      CC="dos-gcc -bw95"
-      CXX="dos-gcc -bw95" 
-    fi
+    CC="dos-gcc -bmmap"
+    CXX="dos-gcc -bmmap"
     AR="dos-ar"
     RANLIB="true"
     AS="dos-as"
@@ -50,14 +41,6 @@ if test ${build} != ${target} ; then
     dnl We seem to need these to get a dll built
     libtool_flags="--enable-win32-dll"
     LIBTOOL_LDFLAGS="-no-undefined"
-    ;;
-   arm-unknown-linux-gnuelf )
-    CC="arm-unknown-linuxelf-gcc"
-    AR="arm-unknown-linuxelf-ar"
-    RANLIB="arm-unknown-linuxelf-ranlib"
-    AS="arm-unknown-linuxelf-as"
-    NM="arm-unknown-linuxelf-nm"
-    OBJDUMP="arm-unknown-linuxelf-objdump"
     ;;
  esac
 fi])

@@ -3,7 +3,7 @@ dnl Process this file with autoconf to produce a configure script
 dnl Initialization
 AC_INIT(rvm/rvm_private.h)
 CODA_SETUP_BUILD
-AM_INIT_AUTOMAKE(rvm, 1.2)
+AM_INIT_AUTOMAKE(rvm, 1.1)
 AM_CONFIG_HEADER(config.h)
 
 CODA_OPTION_LWP
@@ -25,16 +25,13 @@ dnl For playing with the _pt version...
 if test ${with_LWP_PT}p = nop ; then
   AC_CHECK_LIB(lwp, LWP_Init, [LIBLWP="-llwp"],
                [AC_MSG_ERROR("Could not locate liblwp")])
-  LWPFLAGS="-DRVM_USELWP"
 else
   AC_CHECK_LIB(pthread, pthread_create, [LIBPTHREAD="-lpthread"])
   AC_CHECK_LIB(lwp_pt, LWP_Init, [LIBLWP="-llwp_pt"],
                [AC_MSG_ERROR("Failed to locate liblwp_pt")], [${LIBPTHREAD}])
-  LWPFLAGS="-D_REENTRANT -DRVM_USELWP"
 fi
 AC_SUBST(LIBLWP)
 AC_SUBST(LIBPTHREAD)
-AC_SUBST(LWPFLAGS)
 
 dnl Checks for header files.
 dnl Checks for typedefs.
