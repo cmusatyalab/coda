@@ -81,7 +81,14 @@ extern "C" {
 #define	VSTAB	"/usr/coda/etc/vstab"
 #define DFLT_CONSOLE "/usr/coda/etc/console"/* console file */
 #define UNSET_CONSOLE 0
+
+#if !defined(DJGPP)
 #define	DFLT_VR	"/coda"			    /* venus root */
+#else
+#define DFLT_VR "N:"                         /* Venus Root */ 
+#define MCFD    16                           /* Michael Callahan File Descriptor */
+#endif
+
 #define	UNSET_VR 0
 #define	DFLT_KD	"/dev/cfs0"		    /* kernel pseudo-device */
 #define	UNSET_KD 0

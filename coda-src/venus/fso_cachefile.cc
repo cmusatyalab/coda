@@ -93,13 +93,15 @@ int CacheFile::ValidContainer() {
     int code = 0;
     struct stat tstat;
     int valid = (code = ::stat(name, &tstat)) == 0 &&
+#if !defined(DJGPP) && !defined(__CYGWIN32__)
       tstat.st_uid == (uid_t)V_UID &&
       tstat.st_gid == (gid_t)V_GID &&
       (tstat.st_mode & ~S_IFMT) == V_MODE &&
       tstat.st_ino == inode &&
+#endif
       tstat.st_size == (off_t)length;
 
-    if (!valid && LogLevel >= 10) {
+    if (!valid && LogLevel >= 0) {
 	dprint("CacheFile::ValidContainer: %s invalid\n", name);
 	if (code == 0)
 	    dprint("\t(%u, %u), (%u, %u), (%o, %o), (%d, %d), (%d, %d)\n",
@@ -276,6 +278,8 @@ void CacheFile::Truncate(long newlen) {
 /* MUST be called from within transaction! */
 void CacheFile::SetLength(long newlen) {
     CODA_ASSERT(inode != (ino_t)-1);
+
+    LOG(0, ("Cachefile::SetLength %d\n", newlen));
 
     if (length != newlen) {
 	 RVMLIB_REC_OBJECT(*this);

@@ -8,17 +8,23 @@ TOPOBJ = @TOPOBJ@
 # Need to conditionalize this
 include $(TOPDIR)/Makeconf
 
-EXECUTABLES = mount unmount relay
-CSBINS = mount unmount relay
+HEADERS = relay.h vxd.h
+LIBRARIES = librelay.a
+EXECUTABLES = mount unmount 
+CSBINS = mount unmount 
 
-mount: mount.o 
-	$(CC) -o mount mount.o 
+OBJS= relay.o vxd.o
 
-unmount: unmount.o 
-	$(CC) -o unmount unmount.o 
+librelay.a:	$(OBJS)
 
-relay: relay.o
-	$(CC) -o relay relay.o
+mount: mount.o vxd.o 
+	$(CC) -o mount mount.o vxd.o
+
+unmount: unmount.o vxd.o
+	$(CC) -o unmount unmount.o vxd.o 
+
+relay: relay.o vxd.o
+	$(CC) -o relay relay.o vxd.o
 
 
 include $(TOPDIR)/configs/Makerules

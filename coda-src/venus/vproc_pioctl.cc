@@ -802,6 +802,7 @@ V_FreeLocks:
         case VIOC_WD_ALL:
 	case VIOC_WR_ALL:
 	case VIOC_REP_CMD:
+        case VIOC_UNLOADKERNEL:	
 	    {
 	    switch(com) {
 		case VIOC_LISTCACHE:
@@ -1210,7 +1211,7 @@ V_FreeLocks:
 		    if (u.u_error == 0) 
 			eprint("Propagating updates to all volumes");
 		    break;
-		    }
+		    }    	        
 		case VIOC_REP_CMD:
 		    {
 			int rep_cmd;

@@ -352,9 +352,15 @@ next_cmd:
 		    parse_error(line);
 		    continue;
 		}
+#ifdef __CYGWIN32__
+		volno = GetVid(token);
+		if (!volno)    
+		    continue;
+		strcpy(name, token);
+#else		
 		if (!canonicalize(token, &volno, name, fullname, svollist, snamelist))
 		    continue;
-
+#endif
 		/* Parse <priority/attributes> string. */
 		int priority = H_DFLT_PRI;
 		int attributes = H_DFLT_ATTRS;

@@ -14,6 +14,10 @@
 
 #include <cfs/coda.h>
 
+#include "vxd.h"
+#include "relay.h"
+
+
 //#include <auth2.h>
 
 //typedef struct {
@@ -25,7 +29,12 @@
 
 #define BUFSIZE 4096
 
+static int mcfd = 16;
+int inited = 0;
 FILE *file;
+int udpfd;  
+struct sockaddr_in addr;
+struct far_ptr codadev_api = {0,0};
 
 struct optab {
   int opcode;
@@ -98,8 +107,9 @@ printrequest (char *buffer)
 {
   union inputArgs *in = (union inputArgs *) buffer;
  // venusbuff *vb ; 
-
-  fprintf (file, "req: %s uniq %d ", opcode(in->ih.opcode), in->ih.unique);
+  struct timeval t;
+  gettimeofday(&t, 0);
+  fprintf (file, "req: %s uniq %d sec %i usec %i", opcode(in->ih.opcode), in->ih.unique, t.tv_sec, t.tv_usec);
   switch (in->ih.opcode) {
   case CODA_OPEN:
     printvfid (&in->coda_open.VFid);
@@ -143,7 +153,9 @@ void
 printreply (char *buffer, int n, struct sockaddr_in *addr)
 {
   union outputArgs *out = (union outputArgs *) buffer;
-
+  struct timeval t;
+  gettimeofday(&t, 0);
+  fprintf(file, "sec %i usec %i\n", t.tv_sec, t.tv_usec);
   /*
   fprintf (file, "[%08x:%d -- %d bytes] ", ntohl(addr->sin_addr.s_addr), 
 	  ntohs(addr->sin_port), n);
@@ -206,48 +218,6 @@ printreply (char *buffer, int n, struct sockaddr_in *addr)
   fprintf (file, "\n");
 }
 
-
-struct far_ptr {
-  unsigned int offset; 
-  unsigned short segment;
-};
-struct far_ptr codadev_api = {0,0};
-
-int open_vxd(char *vxdname, struct far_ptr *api)
-{
-  asm ("pushw  %%es\n\t"
-       "movw   %%ds, %%ax\n\t"
-       "movw   %%ax, %%es\n\t"
-       "movw   $0x1684, %%ax\n\t"
-       "int    $0x2f\n\t"
-       "movw   %%es, %%ax\n\t"
-       "popw   %%es\n\t"
-       : "=a" (api->segment), "=D" (api->offset) 
-       : "b" (0), "D" (vxdname));
-  api->offset &= 0xffff;
-  return api->offset != 0;
-}
-
-int DeviceIoControl(int func, void *inBuf, int inCount,
-		    void *outBuf, int outCount)
-{
-  unsigned int err;
-
-  if (codadev_api.offset == 0)
-    return -1;
-
-  asm ("lcall  %1"
-       : "=a" (err)
-       : "m" (codadev_api), "a" (func), "S" (inBuf), "b" (inCount),
-       "D" (outBuf), "c" (outCount), "d" (123456));
-  if (err)
-    fprintf (file, "DeviceIoControl %d: err %d\n", func, err);
-  return err;
-}
-
-
-extern int __quiet_socket;
-
 void send_buf (int udpfd, int flag, char *buf, int n)
 {
   struct sockaddr_in addr;
@@ -261,82 +231,159 @@ void send_buf (int udpfd, int flag, char *buf, int n)
   sendto (udpfd, buffer, n+4, 0, (struct sockaddr *) &addr, sizeof(addr));
 }
 
-main()
+int close_relay()
 {
-  int udpfd, mcfd, nfd, n;
-  int err, res, wait;
-  fd_set rfd;
-  struct sockaddr_in addr;
-  struct timeval tv;
-  int fromlen, timeo;
-  char buffer[BUFSIZE];
-  union outputArgs *out = (union outputArgs *)buffer;
+  int err;
+  err = DeviceIoControl(&codadev_api, 10, &mcfd, sizeof(mcfd), NULL, 0);
+  if (err) {
+    printf ("Error in deallocateFD: %d\n", err);
+    printf ("will not unload CODADEV\n");
+    return 0;
+  }
+  fclose(file);
+  inited = 0;
+  return 1;
+}
+
+int init_relay()
+{
+  int err, res;
+  inited = 0;
 
   file = fopen ("relay.log", "w+");
     if (!file){
      perror("file");
-     exit(1);
-  }
-  
+     return 0;
+  }  
   __djgpp_set_quiet_socket(1);
-  
+
   udpfd = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
   if (udpfd == -1) {
-    perror ("socket");
-    exit (1);
+    fprintf(file, "socket\n");
+    return 0;
   }
 
   addr.sin_family = AF_INET;
   addr.sin_addr.s_addr = INADDR_ANY;
   addr.sin_port = htons(8001);
   if (bind(udpfd, (struct sockaddr *) &addr, sizeof(addr)) == -1) {
-    perror ("bind");
-    exit (1);
-  }
+    fprintf(file, "bind\n");
+    return 0;;
+  }  
 
   if (open_vxd("CODADEV ", &codadev_api)) 
     fprintf (file, "CODADEV.VXD already loaded\n");
   else {
-    int version;
-    if (!open_vxdldr())
-      exit (1);
-    if (!vxdldr_get_version(&version)) {
-      fprintf (file, "cannot get VXDLDR version\n");
-      exit (1);
-    }
-    fprintf (file, "VXDLDR version %x\n", version);
-    if ((res = vxdldr_load_device("codadev.vxd"))) {
-      fprintf (file, "cannot load CODADEV: VXDLDR error %d\n", res);
-      exit (1);
-    }
-    if (!open_vxd("CODADEV ", &codadev_api)) {
-      fprintf (file, "Loaded CODADEV, but could not get api\n");
-      exit (1);
-    }
-    fprintf (file, "Loaded CODADEV.VXD\n");
+    if (load_vxd("CODADEV ", "codadev.vxd", &codadev_api))	  
+	    fprintf (file, "Loaded CODADEV.VXD\n");
+    else return 0;
   }
 
   {
     unsigned int calls[20];
     int i;
 
-    res = DeviceIoControl(1, NULL, 0, calls, sizeof(calls));
+    res = DeviceIoControl(&codadev_api, 1, NULL, 0, calls, sizeof(calls));
     if (res) {
       fprintf (file, "DeviceIoControl 1 failed: %d\n", res);
-      exit(1);
+      return 0;
     }
     fprintf (file, "CODADEV net ID %x, provider ID %x\n", calls[0], calls[1]);
   }
 
-  mcfd = 10;
-  err = DeviceIoControl(9, &mcfd, sizeof(mcfd), NULL, 0);
+  err = DeviceIoControl(&codadev_api, 9, &mcfd, sizeof(mcfd), NULL, 0);
   if (err) {
     fprintf (file, "Error in allocateFD: %d\n", err);
-    exit (1);
+    return 0;
   }
   __addselectablefd (mcfd);
 
-  fflush(file);
+  inited = 1;
+  return 1;
+}
+
+int mount_relay(char *mountpoint)
+{
+    char mountstring[] = "Z\\\\CODA\\CLUSTER";
+    int res;
+
+    fprintf (file, "Mounting on %s\n", mountpoint);
+
+    mountstring[0] = toupper(mountpoint[0]);
+
+    res = DeviceIoControl(&codadev_api, 2, mountstring, strlen(mountstring), NULL, 0);
+    if (res) {
+	fprintf (file, "Mount failed: %d\n", res);
+	return 0;
+    }
+
+    fprintf (file, "Mount OK\n");
+    return 1;
+}
+
+int unmount_relay()
+{
+    int res;	
+    res = DeviceIoControl(&codadev_api, 8, NULL, 0, NULL, 0);
+    if (res) {
+	    fprintf (file, "Unmount failed: %d\n", res);
+	    return 0;
+    }
+    fprintf (file, "Unmount OK\n");
+    return 1;
+}
+
+int read_relay(char *buffer)
+{
+  int err;	
+  int wait = 0;
+
+  if (inited){
+    err = DeviceIoControl (&codadev_api, 3, &wait, sizeof(wait), buffer, BUFSIZE);
+    if (err == 38) {
+      fprintf (file, "No request available!\n");
+      return -1;
+    } else if (err) {
+      fprintf (file, "GETREQUEST error %d\n", err);
+      return -1;
+    }
+    send_buf (udpfd, 0, buffer, BUFSIZE);
+    printrequest (buffer);
+  }
+  return BUFSIZE;
+}
+int write_relay(char *buffer, int n)
+{ 
+  int err;
+  
+  if(inited){
+    send_buf (udpfd, 1, buffer, n);
+    printreply (buffer, n, &addr);
+    err = DeviceIoControl (&codadev_api, 4, buffer, n, NULL, 0);
+    if (err){
+      fprintf (file, "SENDREPLY error %d\n", err);
+      return n;
+    }
+  }
+  return n;
+}
+
+
+#ifdef 0
+/* Relay used to be a seperate program. below is the old main function 
+   for reference */
+main()
+{
+  int nfd, n;
+  int err, res, wait;
+  fd_set rfd;
+  struct timeval tv;
+  int fromlen, timeo;
+  char buffer[BUFSIZE];
+  union outputArgs *out = (union outputArgs *)buffer;
+
+  if (!init_relay())
+      exit(1);
 
   timeo = 0;
   while (1) {
@@ -377,15 +424,16 @@ main()
 	goto done;
       }
       printreply (buffer, n, &addr);
-      err = DeviceIoControl (4, buffer, n, NULL, 0);
+      err = DeviceIoControl (&codadev_api, 4, buffer, n, NULL, 0);
       if (err)
 	fprintf (file, "SENDREPLY error %d\n", err);
+
     }
 
   mc:
     if (FD_ISSET (mcfd, &rfd)) {
       wait = 0;
-      err = DeviceIoControl (3, &wait, sizeof(wait), buffer, BUFSIZE);
+      err = DeviceIoControl (&codadev_api, 3, &wait, sizeof(wait), buffer, BUFSIZE);
       if (err == 38) {
 	fprintf (file, "No request available!\n");
 	continue;
@@ -404,21 +452,17 @@ main()
     }
   }
 done:
-  fclose(file);
-  mcfd = 10;
-  err = DeviceIoControl(10, &mcfd, sizeof(mcfd), NULL, 0);
-  if (err) {
-    printf ("Error in deallocateFD: %d\n", err);
-    printf ("will not unload CODADEV\n");
-    exit (1);
-  }
+  if (!close_relay())
+    exit(1);
+
   do {
-    printf ("UNLOAD result %d\n", res = vxdldr_unload_device("CODADEV"));    
+    printf ("UNLOAD result %d\n", res = unload_vxd("CODADEV"));    
   } while (res == 0);
   res = 0;
   do {
-    printf ("UNLOAD result %d\n", res = vxdldr_unload_device("SOCK"));    
+    printf ("UNLOAD result %d\n", res = unload_vxd("SOCK"));    
   } while (res == 0);
 }
 
 
+#endif

@@ -7,7 +7,7 @@ TOPOBJ = @TOPOBJ@
 
 include $(TOPDIR)/Makeconf
 
-HEADERS = errno.h
+HEADERS = errno.h 
 SUBDIRS = relay tests inject
 
 

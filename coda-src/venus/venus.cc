@@ -136,6 +136,7 @@ int main(int argc, char **argv) {
      */
     VprocInit();    /* init LWP/IOMGR support */
     LogInit();      /* move old Venus log and create a new one */
+   
     LWP_SetLog(logFile, lwp_debug);
     RPC2_SetLog(logFile, RPC2_DebugLevel);
     SpoolInit();    /* make sure the spooling directory exists */
@@ -157,7 +158,7 @@ int main(int argc, char **argv) {
     CallBackInit(); /* set up callback subsystem and create callback server threads */
     AdviceInit();   /* set up AdSrv and start the advice daemon */
     LRInit();	    /* set up local-repair database */
-    VFSMount();
+    //    VFSMount();
 
     /* Get the Root Volume. */
     while (!GetRootVolume()) {
@@ -168,7 +169,8 @@ int main(int argc, char **argv) {
 	tv.tv_usec = 0;
 	VprocSleep(&tv);
     }
-
+    
+    VFSMount();
 #ifdef DJGPP
     k_Purge();
 #endif
@@ -382,7 +384,11 @@ static void DefaultCmdlineParms() {
     /* Try vstab first. */
     struct vstab *v = getvsent();
     if (v) {
+#ifdef DJGPP
+	if (venusRoot == UNSET_VR) venusRoot = strcat(v->v_dir, ":");
+#else
 	if (venusRoot == UNSET_VR) venusRoot = v->v_dir;
+#endif
 	if (kernDevice == UNSET_KD) kernDevice = v->v_dev;
 	if (fsname == UNSET_FS) fsname = v->v_host;
 	if (CacheDir == UNSET_CD) CacheDir = v->v_cache;

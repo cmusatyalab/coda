@@ -175,6 +175,7 @@ extern "C" {
 #define	VIOC_LISTCACHE		_VICEIOCTL(CFS_IOCTL_BASE + 50)	/* List cache status */
 #define	VIOC_GET_MT_PT		_VICEIOCTL(CFS_IOCTL_BASE + 51)	/* Get mount point path from volume id */
 
+
 /*  The following change is made in order to reduce the number of
  * command codes for the local/global repair interface. We now use
  * only one pioctl command code for the interface the actual repair
@@ -199,5 +200,7 @@ extern "C" {
 #define REP_CMD_LOCAL_VIEW	9
 #define REP_CMD_GLOBAL_VIEW	10
 #define REP_CMD_MIXED_VIEW	11
+
+#define VIOC_UNLOADKERNEL       _VICEIOCTL(CFS_IOCTL_BASE + 53) /* Unload kernel module, only Win9x so far */
 
 #endif	not _VENUS_IOCTL_H_

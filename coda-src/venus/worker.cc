@@ -61,6 +61,11 @@ extern "C" {
 #include <cfs/coda.h>
 #include <vice.h>
 
+
+#ifdef DJGPP
+#include <relay.h>
+#endif
+
 #ifdef __cplusplus
 }
 #endif __cplusplus
@@ -132,7 +137,10 @@ msgent *FindMsg(olist& ol, u_long seq) {
 
 int MsgRead(msgent *m) 
 {
-#if defined(DJGPP) || defined(__CYGWIN32__)
+#ifdef DJGPP
+	int cc = read_relay(m->msg_buf);
+
+#elif defined(__CYGWIN32__)
         struct sockaddr_in addr;
 	int len = sizeof(addr);
 	int cc = ::recvfrom(worker::muxfd, m->msg_buf, (int) (VC_MAXMSGSIZE),
@@ -149,7 +157,9 @@ int MsgRead(msgent *m)
 
 int MsgWrite(char *buf, int size) 
 {
-#if defined(DJGPP) || defined(__CYGWIN32__)
+#ifdef DJGPP
+	 return write_relay(buf, size);
+#elif defined(__CYGWIN32__)
          struct sockaddr_in addr;
 
          addr.sin_family = AF_INET;
@@ -322,14 +332,62 @@ void VFSMount() {
     }
 #endif
 
+#ifdef DJGPP
+    int res;
+    eprint ("Mounting on %s", venusRoot);
+    res = mount_relay(venusRoot);
+    if (res)
+	    eprint("Mount OK");
+    else{
+	    eprint ("Mount failed");
+	    close_relay();
+	    exit(0);
+    }
+#endif
+
     Mounted = 1;
 }
 
+int VFSUnload()
+{
+#ifdef DJGPP
+  	int i = 0, res;
+	do {
+		i++;
+		eprint ("UNLOAD result %d.", res = unload_vxd("CODADEV"));    
+    
+	} while (i < 10 && res == 0);
+	if (i==10 && res ==0) return -1;
+	return 0;
+#endif
+}
 
 void VFSUnmount() 
 {
 	if (!Mounted) 
 		return;
+
+#ifdef DJGPP
+	int res = unmount_relay();
+	
+	if (res)
+		eprint ("Unmount OK");
+	else eprint ("Unmount failed");
+
+	res = close_relay();
+	if (res)
+		eprint ("Close relay OK");
+	else eprint ("Close relay failed");
+
+	res = VFSUnload();
+	if (res == 0){
+		eprint("Kernel module unloaded");
+		KernelMask = 0;	
+	}
+	else eprint("Kernel module could not be unloaded");
+		
+	return;
+#endif
 
     /* Purge the kernel cache so that all cnodes are (hopefully)
        released. */
@@ -489,7 +547,20 @@ void WorkerInit() {
             exit(-1);
         }
 
-#if defined(DJGPP) || defined(__CYGWIN32__)
+#ifdef DJGPP
+    if (!init_relay()){
+	    LOG(0, ("init_relay failed.\n"));
+	    exit(-1);
+    }
+
+    worker::muxfd = MCFD;
+    if (worker::muxfd >= NFDS) {
+            eprint("WorkerInit: worker::muxfd >= %d!", NFDS);
+            exit(-1);
+    }
+
+    dprint("WorkerInit: muxfd = %d", worker::muxfd);   
+#elif defined(__CYGWIN32__)
     worker::muxfd = ::socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
     if (worker::muxfd < 0) {
             eprint("WorkerInit: socket() returns %d", errno);
@@ -501,15 +572,6 @@ void WorkerInit() {
     }
 
     dprint("WorkerInit: muxfd = %d", worker::muxfd);
-
-    struct sockaddr_in addr;
-    addr.sin_family = AF_INET;
-    addr.sin_addr.s_addr = INADDR_ANY;
-    addr.sin_port = htons(8000);
-    if (::bind(worker::muxfd, (struct sockaddr *)&addr, sizeof(addr)) == -1) {
-            eprint("WorkerInit: bind() returns %d", errno);
-            exit(-1);
-    }
 #else 
     /* Open the communications channel. */
     worker::muxfd = ::open(kernDevice, O_RDWR, 0);
@@ -982,6 +1044,7 @@ void worker::main(void *parm) {
 		{
 		char outbuf[VC_MAXDATASIZE];
 		struct ViceIoctl data;
+		struct venus_cnode vtarget;
 		data.in = (char *)in + (int)in->coda_ioctl.data;
 		data.in_size = 0;
 		data.out = outbuf;	/* Can't risk overcopying. Sigh. -dcs */
@@ -992,7 +1055,27 @@ void worker::main(void *parm) {
 		if (in->coda_ioctl.cmd == VIOCPREFETCH)
 		    worker::nprefetchers++;
 
-		struct venus_cnode vtarget;
+		if (in->coda_ioctl.cmd == VIOC_UNLOADKERNEL){
+			out->oh.result = 0;
+			out->coda_ioctl.len = 0;		
+			Resign(msg, (int) sizeof (struct coda_ioctl_out) + data.out_size);
+
+			LOG(0, ("TERM: Venus exiting\n"));
+			VDB->FlushVolume();
+			RecovFlush(1);
+			RecovTerminate();
+#ifdef	__NetBSD__
+			WorkerCloseMuxfd();
+#else
+			VFSUnmount();
+#endif
+			(void)CheckAllocs("TERM");
+			fflush(logFile);
+			fflush(stderr);
+			exit(0);		
+			break;
+		}
+			
 		MAKE_CNODE(vtarget, in->coda_ioctl.VFid, 0);
 		data.in_size = in->coda_ioctl.len;
 		ioctl(&vtarget, in->coda_ioctl.cmd, &data, in->coda_ioctl.rwflag);

@@ -129,6 +129,7 @@ static void Slow(int, char **, int);
 static void Strong(int, char**, int);
 static void TruncateLog(int, char **, int);
 static void Uncompress(int, char**, int);
+static void UnloadKernel(int, char **, int);
 static void WaitForever(int, char**, int);
 static void WhereIs(int, char**, int);
 static void WriteDisconnect(int, char**, int);
@@ -339,6 +340,11 @@ struct command cmdarray[] =
 	{"uncompress", NULL, Uncompress, 
 	    "cfs uncompress <file> [<file> <file> ...]",
 	    "Uncompress cached files",
+	    NULL
+	},
+	{"unloadkernel", "uk", UnloadKernel,
+	    "cfs unloadkernel",
+	    "Unloads the kernel module",
 	    NULL
 	},
 	{"waitforever", "wf", WaitForever, 
@@ -2145,6 +2151,19 @@ static void Uncompress(int argc, char *argv[], int opslot)
 	if (rc < 0){fflush(stdout); perror("  VIOC_UNCOMPRESS"); continue;}
 	if (argc > 3) printf("\n");
 	}
+    }
+
+static void UnloadKernel(int argc, char *argv[], int opslot)
+    {
+    struct ViceIoctl vio;
+    int rc;
+
+    vio.in_size = 0;
+    vio.in = 0;
+    vio.out_size = 0;
+    vio.out = 0;
+    rc = pioctl("/coda", VIOC_UNLOADKERNEL, &vio, 0);
+    if (rc < 0) {fflush(stdout); perror("  VIOC_UNLOADKERNEL"); exit(-1);}
     }
 
 static void WhereIs (int argc, char *argv[], int opslot)

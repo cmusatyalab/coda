@@ -628,9 +628,10 @@ int fsobj::GetAttr(vuid_t vuid, RPC2_BoundedBS *acl) {
 
 		while ((f = next()) && (numPiggyFids < PIGGY_VALIDATIONS)) {
 		    if (HAVESTATUS(f) && !STATUSVALID(f) && !DYING(f) &&
-			!BUSY(f) && !f->flags.rwreplica && 
+			!f->flags.rwreplica && 
 			!FID_EQ(&f->fid, &fid) &&
-			!f->IsLocalObj()) {  
+			!f->IsLocalObj() &&
+			!BUSY(f)) {  
 
 			LOG(1000, ("fsobj::GetAttr: packing piggy fid (%x.%x.%x) comp = %s\n",
 				   f->fid.Volume, f->fid.Vnode, f->fid.Unique, f->comp));

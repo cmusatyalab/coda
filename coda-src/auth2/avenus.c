@@ -181,6 +181,12 @@ static void GetPathName()
     struct	stat	buff;
 
     bzero(pName,sizeof(pName));
+    
+#if defined(DJGPP) || defined(__CYGWIN32__) /* hack for now until better solution for all pioctl using programs */
+    strcpy(pName, "/coda");
+    return;
+#endif
+    
     if((fd = open(VSTAB,O_RDONLY | O_BINARY,0)) >= 0) {
 	if(!(fstat(fd, &buff))) {
 	    area = (char *)malloc(buff.st_size);

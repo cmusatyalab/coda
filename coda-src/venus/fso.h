@@ -670,7 +670,7 @@ class fsobj {
 
     /* The public CFS interface (non-Vice portion). */
     int Open(int, int, int, venus_cnode *, vuid_t);
-    int Close(int, int, vuid_t);
+    int Close(int, int, int, vuid_t);
     /*    int RdWr(char *, enum uio_rw, int, int, int *, vuid_t); */
     int Access(long, int, vuid_t);
     int Lookup(fsobj **, ViceFid *, char *, vuid_t, int);
@@ -810,8 +810,8 @@ extern void FSOD_Init();
 			  (!WRITING(f) && !EXECUTING(f))))
 #define	REPLACEABLE(f)	((f)->flags.replaceable)
 #define	GCABLE(f)	(DYING(f) && !DIRTY(f) && !BUSY(f))
-#define	FLUSHABLE(f)	(GCABLE(f) ||\
-			 (REPLACEABLE(f) && !BUSY(f)))
+#define	FLUSHABLE(f)	(((DYING(f) && !DIRTY(f)) ||\
+			 REPLACEABLE(f)) && !BUSY(f))
 #define	BLOCKS(f)	(NBLOCKS((f)->stat.Length))
 
 

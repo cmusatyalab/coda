@@ -133,6 +133,7 @@ LIBVICEERROR  = ../vice/libviceerror.a
 LIBDS = ../ds/libds.a
 LIBPARTITION = ../partition/libpartition.a
 
+
 ##############################
 # RPC2 interface definitions in module vicedep
 ##############################

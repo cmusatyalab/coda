@@ -161,6 +161,7 @@ extern int k_Purge(vuid_t);
 extern int k_Replace(ViceFid *, ViceFid *);
 extern void VFSMount();
 extern void VFSUnmount();
+extern int VFSUnload();
 extern void WorkerInit();
 extern worker *FindWorker(u_long);
 extern worker *GetIdleWorker();
