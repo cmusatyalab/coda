@@ -1,3 +1,4 @@
+
 Summary: Coda distributed filesystem
 Name: @CODA@
 Version: @CVER@
@@ -125,10 +126,21 @@ rm -rf $RPM_BUILD_ROOT
 %pre client-@LIBC@
 grep /coda /proc/mounts > /dev/null 2>1
 if [ $? = 0 ]; then
+	echo "*** Coda is mounted: cannot install ***"
 	exit 1
 else
 	exit 0
 fi
+
+%preun client-@LIBC@
+grep /coda /proc/mounts > /dev/null 2>1
+if [ $? = 0 ]; then
+	echo "*** Coda is mounted: cannot install ***"
+	exit 1
+else
+	exit 0
+fi
+
 	
 %post client-@LIBC@
 if [ -e /usr/coda/etc/vstab ]; then 
@@ -156,7 +168,6 @@ tar zxf coda-@CVER@.tgz
 %files client-@LIBC@
 %dir /usr/coda
 %dir /usr/coda/etc
-%config /usr/coda/etc/vstab
 %dir /usr/coda/venus.cache
 %verify() /usr/coda/venus.cache/INIT
 /etc/rc.d/init.d/venus.init
@@ -271,5 +282,5 @@ tar zxf coda-@CVER@.tgz
 /usr/sbin/updatemon
 /usr/sbin/updatesrv
 /usr/sbin/updateclnt
-/usr/sbin/updfetch
+/usr/sbin/updatefetch
 /usr/bin/filcon
