@@ -4,7 +4,9 @@
 # Configuration directories:
 # 
 
+
 echo 'Setting up config files (under /vice).'
+
 
 if [ ! -d /vice ]; then
     mkdir /vice
@@ -142,9 +144,9 @@ until [ x$yesno != x ]; do
    read yesno
    if [ x$yesno = xy  -o  x$yesno = xyes ]; then
       isscm=Y
-      echo -n "Now installing files specific to the SCM..."
+      echo  "Now installing files specific to the SCM..."
    else
-      echo -n "Now installing things specific to non-SCM mahines..."
+      echo  "Now installing things specific to non-SCM machines..."
    fi
 done
 
@@ -154,6 +156,21 @@ if [ $isscm = Y ]; then
     vice-setup-user
     vice-setup-rvm
     vice-setup-srvdir
+    RV=`cat /vice/db/ROOTVOLUME`
+    DP=`cat /vice/db/vicetab | awk '{print $2}' | head -n 1`
+    echo "Congratulations: your configuration is ready...and now"
+    echo "to get going do the following:"
+    echo " - start the auth2 server as: auth2"
+    echo " - start rpc2portmap as: rpc2portmap"
+    echo " - start updateclnt as:  updateclnt -h $hn -q coda_udpsrv"
+    echo " - start updatesrv as: updatesrv -p /vice/db"
+    echo " - start the fileserver: startserver &
+    echo " - wait until the server is up: tail -f /vice/srv/SrvLog"
+    echo " - create your root volume: "createvol_rep $RV E0000100 $DP"
+    echo " - setup a client: venus-setup $hn 20000"
+    echo " - start venus: venus"
+    echo " - enjoy Coda."
+
     exit 0 
 fi
 

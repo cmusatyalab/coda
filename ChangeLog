@@ -1,3 +1,13 @@
+1998-10-05    <jaharkes@cs.cmu.edu>
+
+	* updated log* scripts for the new portnumbers.
+	* updated server setup scripts.
+	* removed createvol/recreatevol/recreatevol_rep.
+
+1998-09-08    <jaharkes@cs.cmu.edu>
+
+	* Added Elliot Lee's patches for venus.
+
 1998-09-02    <jaharkes@cs.cmu.edu>
 
 	* ======== Release 4.6.5 =========

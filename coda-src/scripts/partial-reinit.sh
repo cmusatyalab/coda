@@ -24,7 +24,7 @@ fi
 /bin/rm -f $NOCREATE
 
 # Create files for appending
-echo "#!/bin/csh -f" > $SCRIPT
+echo "#!/bin/sh" > $SCRIPT
 echo "" >> $SCRIPT
 touch $NOCREATE
 

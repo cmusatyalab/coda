@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/venusvol.cc,v 4.8 1998/04/14 21:03:09 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/venusvol.cc,v 4.9 98/06/07 20:15:08 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -1194,6 +1194,8 @@ int volent::Enter(int mode, vuid_t vuid) {
 	default:
 	    print(logFile); Choke("volent::Enter: bogus mode %d", mode);
     }
+
+    return -1;
 }
 
 /* local-repair modification */

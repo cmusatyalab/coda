@@ -8,7 +8,7 @@ tixMeter .meter -height 60 -width 200 -value 0.0
 pack .meter
 
 #
-# The procedure which gets called for all codacon messages
+# The procedure which gets called for all venus messages
 #
 proc updatemeter {} {
   variable input
@@ -19,7 +19,7 @@ proc updatemeter {} {
   set n [ gets $input line ]
   if { $n == -1 } {
     if [ eof $input ] {
-      puts "Connection to codacon lost"
+      puts "Connection to venus lost"
       exit 0
     }
     return
@@ -39,10 +39,10 @@ proc updatemeter {} {
 }
 
 #
-# connect to the codacon port
+# connect to the venus port
 #
-set input [ socket localhost codacon ]
-puts "Connected to codacon"
+set input [ socket localhost venus ]
+puts "Connected to venus"
 puts $input "set:fetch"
 flush $input
 
