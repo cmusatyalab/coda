@@ -363,6 +363,7 @@ long FS_ViceValidateAttrs(RPC2_Handle RPCid, RPC2_Unsigned PrimaryHost,
 		       RPC2_BoundedBS *VFlagBS, RPC2_CountedBS *PiggyBS)
 {
     long errorCode = 0;		/* return code to caller */
+    VolumeId VSGVolnum = PrimaryFid->Volume;
     Volume *volptr = 0;		/* pointer to the volume */
     ClientEntry *client = 0;	/* pointer to the client data */
     Rights rights = 0;		/* rights for this user */
@@ -400,8 +401,10 @@ START_TIMING(ViceValidateAttrs_Total);
     /* now check piggyback fids */
     for (i = 0; i < NumPiggyFids; i++) {
 
-	/* save the replicated volume ID for the AddCallBack */    
-	VolumeId VSGVolnum = Piggies[i].Fid.Volume;
+	if (&Piggies[i].Fid.Volume != VSGVolnum) {
+	    strcpy(why_failed, "Wrong Volume Id");
+	    goto InvalidObj;
+	}
 
 	/* Validate parameters. */
         {
