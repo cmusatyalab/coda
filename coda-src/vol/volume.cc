@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/peter-objs/coda-src/vol/RCS/volume.cc,v 1.1 1996/11/22 19:10:35 braam Exp braam $";
+static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/src/coda-4.0.1/coda-src/vol/RCS/volume.cc,v 1.2 1996/11/22 21:32:22 braam Exp braam $";
 #endif /*_BLURB_*/
 
 
@@ -302,7 +302,7 @@ void VInitVolumePackage(int nLargeVnodes, int nSmallVnodes, int DoSalvage) {
     /* Find all partitions named /vicep* */
     setfsent();
     while (fsent = getfsent()) {
-#ifdef LINUX
+#ifdef LINUX 
             char *part = fsent->mnt_dir;
 #else
             char *part = fsent->fs_file;
