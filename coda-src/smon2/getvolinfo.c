@@ -95,13 +95,13 @@ int main(int argc, char *argv[])
     long	subsys;
     VolumeInfo  volinfo;
 
-    if (argc < 2)
+    if (argc <= 2)
         goto badargs;
 
     subsys = SUBSYS_SRV;
 
     if (strcmp(argv[1], "-p") == 0) {
-        if (argc < 5)
+        if (argc <= 4)
             goto badargs;
 
         host = argv[3];
