@@ -56,7 +56,7 @@ extern "C" {
 #endif __cplusplus
 
 #include <util.h>
-#include <volutil.h>
+/* #include <volutil.h> */
 #include <codaconf.h>
 #include <vice_file.h>
 #include "update.h"
@@ -80,7 +80,6 @@ static char *pname = "coda_udpsrv";
 static struct timezone tsp; */
 
 static char s_hostname[100];
-static RPC2_EncryptionKey vkey;	/* Encryption key for bind authentication */
 
 static char *serverconf = SYSCONFDIR "/server"; /* ".conf" */
 static char *vicedir = NULL;
@@ -266,19 +265,8 @@ static void Connect()
 static void U_InitRPC()
 {
     PROCESS mylpid;
-    FILE *tokfile;
     SFTP_Initializer sftpi;
     long rcode;
-
-    /* store authentication key */
-    tokfile = fopen(vice_sharedfile(VolTKFile), "r");
-    if ( !tokfile ) {
-	    fprintf(stderr, "No tokenfile: %s\n", vice_sharedfile(VolTKFile));
-	    exit(1);
-    }
-    memset(vkey, 0, RPC2_KEYSIZE);
-    fread(vkey, 1, RPC2_KEYSIZE, tokfile);
-    fclose(tokfile);
 
     CODA_ASSERT(LWP_Init(LWP_VERSION, LWP_MAX_PRIORITY-1, &mylpid) == LWP_SUCCESS);
 

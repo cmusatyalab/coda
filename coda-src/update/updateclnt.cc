@@ -369,7 +369,7 @@ ReadConfigFile()
 	}
     }
 
-    for (int i = 0; i<nservers; i++) printf ("hostlist[%d] is %s\n", i, hostlist[i]);
+    /*    for (int i = 0; i<nservers; i++) printf ("hostlist[%d] is %s\n", i, hostlist[i]); */
 }
 
 static void CheckLibStructure()
