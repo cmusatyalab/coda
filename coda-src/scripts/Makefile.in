@@ -25,7 +25,7 @@
 # improvements or extensions that  they  make,  and  to  grant  Carnegie
 # Mellon the rights to redistribute these changes without encumbrance.
 # 
-# static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-1/coda-4.0.1/coda-src/scripts/RCS/Makefile.in,v 4.7 1997/06/02 13:10:44 braam Exp braam $";
+# static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/scripts/Makefile.in,v 4.8 1997/06/24 12:48:32 braam Exp $";
 
 
 # 
@@ -70,7 +70,7 @@ VICE-SCRIPTS	= cleanlog startserver restartserver startfromboot
 MAKE-SCRIPTS	= 
 REINIT-SCRIPTS	= reinit.sh recreatevol recreatevol_rep
 VENUS-SETUP     = venus-setup
-VICE-SETUP      = vice-configs vice-rvmsetup vice-killvolumes vice-makerootvol vice-server-setup vice-srvdirsetup vice-user-setup
+VICE-SETUP      = vice-configs vice-rvmsetup vice-killvolumes vice-makerootvol vice-server-setup vice-srvdirsetup vice-user-setup installalpha rc.vice
 
 SCRIPTS := $(UPDATE-SCRIPTS) $(VOL-SCRIPTS) $(SUP-SCRIPTS)\
 	   $(VENUS-SCRIPTS) $(INIT-SCRIPTS) $(BACKUP-SCRIPTS)\

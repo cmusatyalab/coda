@@ -1,0 +1,102 @@
+#!/bin/sh
+#ifndef _BLURB_
+#define _BLURB_
+#/*
+#
+#            Coda: an Experimental Distributed File System
+#                             Release 4.0
+#
+#          Copyright (c) 1987-1996 Carnegie Mellon University
+#                         All Rights Reserved
+#
+#Permission  to  use, copy, modify and distribute this software and its
+#documentation is hereby granted,  provided  that  both  the  copyright
+#notice  and  this  permission  notice  appear  in  all  copies  of the
+#software, derivative works or  modified  versions,  and  any  portions
+#thereof, and that both notices appear in supporting documentation, and
+#that credit is given to Carnegie Mellon University  in  all  documents
+#and publicity pertaining to direct or indirect use of this code or its
+#derivatives.
+#
+#CODA IS AN EXPERIMENTAL SOFTWARE SYSTEM AND IS  KNOWN  TO  HAVE  BUGS,
+#SOME  OF  WHICH MAY HAVE SERIOUS CONSEQUENCES.  CARNEGIE MELLON ALLOWS
+#FREE USE OF THIS SOFTWARE IN ITS "AS IS" CONDITION.   CARNEGIE  MELLON
+#DISCLAIMS  ANY  LIABILITY  OF  ANY  KIND  FOR  ANY  DAMAGES WHATSOEVER
+#RESULTING DIRECTLY OR INDIRECTLY FROM THE USE OF THIS SOFTWARE  OR  OF
+#ANY DERIVATIVE WORK.
+#
+#Carnegie  Mellon  encourages  users  of  this  software  to return any
+#improvements or extensions that  they  make,  and  to  grant  Carnegie
+#Mellon the rights to redistribute these changes without encumbrance.
+#*/
+#
+#endif /*_BLURB_*/
+
+INSTALLBASE=/vice
+OBJS=$2
+VERS=$1
+
+if  [ $# != 2 ]; then
+    echo "Usage: $0  {alpha,beta-version-no}<object base dir>"
+    exit 1
+fi
+
+if [ X$VERS = Xalpha ]; then 
+    NEW=${INSTALLBASE}/bin.`date  +'%a-%d%b%y-%H:%M:%S'`
+    mkdir $NEW
+else
+    NEW=${INSTALLBASE}/$1
+    mkdir $NEW
+    echo "Coda Beta Version $1." > ${NEW}/install-info
+    echo "Installed on `date`" >> ${NEW}/install-info 
+    echo "Objects used taken from $OBJS" >> ${NEW}/install-info
+fi		
+
+OLD=${INSTALLBASE}/bin.old
+SRVPIDFILE=/vice/srv/pid
+
+if [ `uname` = NetBSD ]; then
+    alias make=gmake
+fi
+
+# sanity
+if [ -e $SRVPIDFILE ]; then
+    echo "A server is running!"
+    exit 1
+fi
+
+if [ ! -L ${INSTALLBASE}/bin ]; then
+	echo "${INSTALLBASE}/bin must be a symlink! Fix this first."
+	exit 1
+fi
+
+if [ ! -L ${INSTALLBASE}/bin.old ]; then
+	echo "${INSTALLBASE}/bin must be a symlink! Fix this first."
+	exit 1
+fi
+
+# change current bin to bin.old
+cd $INSTALLBASE
+rm bin.old
+mv bin bin.old
+
+# make new bin and install
+ln -s $NEW bin
+cd $OBJS
+make TOPOBJ=$OBJS SBINDIR=$NEW BINDIR=$NEW server-install
+
+if [ $? != 0 ]; then
+	echo "***** WARNING: install failed. *******"
+	echo "restoring ${INSTALLBASE}/bin.."
+	rm bin
+	mv bin.old bin
+	echo "Cleanup \"$NEW\" yourself and reestablish bin.old"
+fi
+
+echo "copying start scripts"
+cd $INSTALLBASE
+cp -p ${OLD}/startserver $NEW
+cp -p ${OLD}/startfromboot $NEW
+cp -p ${OLD}/restartserver $NEW
+
+
