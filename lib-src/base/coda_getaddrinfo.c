@@ -316,7 +316,7 @@ int coda_getaddrinfo(const char *node, const char *service,
 	if (hints->ai_flags & RPC2_AI_NUMERICHOST)
 	    return RPC2_EAI_BADFLAGS;
 
-	if (!strtol(service, &end, 10) || *end != '\0')
+	if (strtol(service, &end, 10) && *end == '\0')
 	    return RPC2_EAI_BADFLAGS;
 
 #ifdef PF_INET6
@@ -328,6 +328,9 @@ int coda_getaddrinfo(const char *node, const char *service,
 	if (hints->ai_family != PF_INET && inet_pton(PF_INET6, node, &tmp) > 0)
 	    return RPC2_EAI_BADFLAGS;
 #endif
+
+	/* lower layers don't really like unknown flagbits */
+	hints->ai_flags &= ~CODA_AI_RES_SRV;
 
 	/* try to find SRV records */
 	err = do_srv_lookup(node, service, hints, &srvs);
