@@ -17,9 +17,9 @@
 exec_prefix = @exec_prefix@
 prefix = @prefix@
 libdir = @libdir@
-libexecdir = @libexecdir@
-bindir = @bindir@
-sbindir = @sbindir@
+libexecdir = $(exec_prefix)/lib/coda
+bindir = $(exec_prefix)/bin
+sbindir = $(exec_prefix)/sbin
 mandir = @mandir@
 
 #
