@@ -1,3 +1,17 @@
+1999-03-25    <jaharkes@cs.cmu.edu>
+	* ======== Release 5.2.1  =========
+	* Moving old pdb databases out of the way when re-running
+	  vice-setup-user.
+	* Fixes small memory leaks in the pdb library.
+	* Switched back to cygwin B20, the snapshots were giving version
+	  skew problems, added a fix to B20's gettimeofday problem.
+	* Modified the bandwidth stuff (ns/B instead of B/s), this more
+	  quickly assumes weak connections, but gives better estimates
+	  overall.
+	* Removes venus reinitialization when installing a new rpm.
+	* Fixes several directory refcounting problems in the server.
+	
+
 1999-03-04    <jaharkes@cs.cmu.edu>
 	* ======== Release 5.1.0 (5.2.pre1) =========
 	- summary of some of the differences since 5.0.x
