@@ -588,6 +588,8 @@ int LWP_CreateProcess(PFIC ep, int stacksize, int priority, char *parm,
 		perror("stack: ");
 		assert(0);
 	}
+	lwp_stackbase += ((stacksize/pagesize) + 2) * pagesize;
+#endif
 	if (stackptr == NULL) {
 	    Set_LWP_RC();
 	    return LWP_ENOMEM;
