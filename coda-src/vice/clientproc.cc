@@ -225,6 +225,7 @@ static void client_GetVenusId(RPC2_Handle RPCid, ClientEntry *client)
 	memcpy(&hostTable[i].host, &peer.RemoteHost.Value.InetAddress,
 	       sizeof(struct in_addr));
 	hostTable[i].port = peer.RemotePort.Value.InetPortNumber;
+	hostTable[i].LastCall = time(0);
 
 	SLog(0, "client_GetVenusId: got new host %s:%d",
 	     inet_ntoa(hostTable[i].host), ntohs(hostTable[i].port));
