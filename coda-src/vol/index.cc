@@ -165,7 +165,8 @@ vindex_iterator::~vindex_iterator()
 /* null slots. Fills in vnode argument, and returns the */
 /* recoverable vnode index or -1 if there are no more vnodes */
 /* in the specified index */
-int vindex_iterator::operator()(VnodeDiskObject *vnode) {
+int vindex_iterator::operator()(VnodeDiskObject *vnode)
+{
     rec_smolink *p;
     while (clist < nlists) {
 	p = nextlink ? (*nextlink)() : 0;
@@ -174,9 +175,9 @@ int vindex_iterator::operator()(VnodeDiskObject *vnode) {
 	    if (vdo->type == vNull)
 		continue;
 	    else if(v_ind->vtype == vSmall)
-		memcpy((void *)vnode, (const void *)vdo, SIZEOF_SMALLDISKVNODE);
+		memcpy(vnode, vdo, SIZEOF_SMALLDISKVNODE);
 	    else if(v_ind->vtype == vLarge)
-		memcpy((void *)vnode, (const void *)vdo, SIZEOF_LARGEDISKVNODE);
+		memcpy(vnode, vdo, SIZEOF_LARGEDISKVNODE);
 	    else
 		LogMsg(0, 0, stdout, "vindex_iterator::operator() bad vnode type %d", v_ind->vtype);
 

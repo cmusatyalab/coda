@@ -260,35 +260,32 @@ int DeleteRvmVolume(unsigned int myind, Device dev) {
 static int DeleteVnodes(unsigned int myind, Device dev, VnodeClass vclass) 
 {
     struct VnodeClassInfo *vcp = &VnodeClassInfo_Array[vclass];
-    char zerobuf[SIZEOF_LARGEDISKVNODE];
-    VnodeDiskObject *zerovn = (VnodeDiskObject *) zerobuf;
     struct VolumeData *vdata;
-    rec_smolist *vnlist;
+    rec_smolist **vlist;
     rvm_return_t status = RVM_SUCCESS;
-    bit32 nLists;
-
+    bit32 *nlists;
+    char *name;
 
     CODA_ASSERT( (myind >= 0) && (myind < MAXVOLS) );
     vdata = &(SRV_RVM(VolumeList[myind]).data);    
 
     if (vclass == vSmall) {
-	vnlist = vdata->smallVnodeLists;
-	nLists = vdata->nsmallLists;
-    } else {	/* Large */
-	vnlist = vdata->largeVnodeLists;
-	nLists = vdata->nlargeLists;
+	vlist = &vdata->smallVnodeLists;
+	nlists = &vdata->nsmallLists;
+	name = "small";
+    } else { /* vLarge */
+	vlist = &vdata->largeVnodeLists;
+	nlists = &vdata->nlargeLists;
+	name = "large";
     }
 
     /* Check integrity of volume. */
-    if (vnlist == NULL) {
-	VLog(0,  "Volume to be deleted didn't have a %s VnodeIndex.",
-	    (vclass == vSmall) ? "small" : "large");
+    if (*vlist == NULL) {
+	VLog(0,  "Volume to be deleted didn't have a %s VnodeIndex.", name);
 	return 0;
     }
     if (vdata->volumeInfo == NULL) return -1; /* WRONG! no VolumeDiskData! */
     
-    memset((void *)zerovn, 0, SIZEOF_LARGEDISKVNODE);
-
     int i = 0;
     rec_smolink *p;
     VnodeDiskObject *vdo;
@@ -306,10 +303,10 @@ static int DeleteVnodes(unsigned int myind, Device dev, VnodeClass vclass)
 
 	while (count < MaxVnodesPerTransaction) {
 		/* Pull the vnode off the list. */
-		p = vnlist[i].get();
+		p = (*vlist)[i].get();
 
 		if (p == NULL) {
-			if (++i < (int)nLists) 
+			if (++i < (int)*nlists) 
 				continue;
 			moreVnodes = FALSE;
 			break;
@@ -335,24 +332,8 @@ static int DeleteVnodes(unsigned int myind, Device dev, VnodeClass vclass)
 		count++;
 
 		/* Delete the vnode */
-	    if ((vclass == vSmall) &&
-	        (SRV_RVM(SmallVnodeIndex) < SMALLFREESIZE - 1)) {
-		VLog(29, "DeleteVnodes: Adding small vnode index %d to free list", i);
-		rvmlib_modify_bytes(vdo, zerovn, SIZEOF_SMALLDISKVNODE);
-		RVMLIB_MODIFY(SRV_RVM(SmallVnodeIndex),
-			      SRV_RVM(SmallVnodeIndex) + 1);
-		RVMLIB_MODIFY(SRV_RVM(SmallVnodeFreeList[SRV_RVM(SmallVnodeIndex)]), vdo);
-	    }  else if ((vclass == vLarge) &&
-			(SRV_RVM(LargeVnodeIndex) < LARGEFREESIZE - 1)) {
-		VLog(29, 	"DeleteVnodes:	Adding large vnode index %d to free list",i);
-		rvmlib_modify_bytes(vdo, zerovn, SIZEOF_LARGEDISKVNODE);
-		RVMLIB_MODIFY(SRV_RVM(LargeVnodeIndex),
-			      SRV_RVM(LargeVnodeIndex) + 1);
-		RVMLIB_MODIFY(SRV_RVM(LargeVnodeFreeList[SRV_RVM(LargeVnodeIndex)]), vdo);
-	    } else {
+		VLog(29,  "DeleteVnodes: Freeing %s vnode index %d", name, i);
 		rvmlib_rec_free((char *)vdo);
-		VLog(29,  "DeleteVnodes: Freeing small vnode index %d", i);
-	    }
 	}
 
 	rvmlib_end_transaction(flush, &(status));
@@ -370,27 +351,19 @@ static int DeleteVnodes(unsigned int myind, Device dev, VnodeClass vclass)
 	    }	
 	}
 	
-	VLog(9,  "DeleteVnodes: finished deleting %d %s vnodes", count,
-	    (vclass == vLarge?"Large":"Small"));
+	VLog(9,  "DeleteVnodes: finished deleting %d %s vnodes", count, name);
 	PollAndYield();
     }
 
     free(DeadInodes);
 
-    VLog(9,  "DeleteVnodes: Deleted all %s vnodes.",
-	(vclass==vLarge?"Large":"Small"));
+    VLog(9,  "DeleteVnodes: Deleted all %s vnodes.", name);
 
     /* free the empty array (of pointers) for the vnodes */
     rvmlib_begin_transaction(restore);
-    if (vclass == vSmall) {
-       rvmlib_rec_free((char *)SRV_RVM(VolumeList[myind]).data.smallVnodeLists);
-       RVMLIB_MODIFY(SRV_RVM(VolumeList[myind]).data.smallVnodeLists, NULL);
-
-    } else {
-       rvmlib_rec_free((char *)SRV_RVM(VolumeList[myind]).data.largeVnodeLists);
-       RVMLIB_MODIFY(SRV_RVM(VolumeList[myind]).data.largeVnodeLists, NULL);
-    }
-
+    rvmlib_rec_free(*vlist);
+    RVMLIB_MODIFY(*vlist, NULL);
+    RVMLIB_MODIFY(*nlists, 0);
     rvmlib_end_transaction(flush, &(status));
     CODA_ASSERT(status == RVM_SUCCESS); /* Should never abort... */
     

@@ -238,7 +238,9 @@ int ReplaceVnode(int volindex, int vclass, VnodeId vnodeindex,
 {
     VolumeId maxid = 0;
     rec_smolist *vlist;
+    bit32 *nvnodes;
     unsigned int size;
+    char *name;
 
     VLog(9,  "Entering ReplaceVnode(%u, %u, %u, %ld)", volindex, vclass,
 			    vnodeindex, vnode);
@@ -264,63 +266,32 @@ int ReplaceVnode(int volindex, int vclass, VnodeId vnodeindex,
 	    rvmlib_abort(VFAIL);	// invalid vnode index
 	}
 	vlist = &(SRV_RVM(VolumeList[volindex]).data.smallVnodeLists[vnodeindex]);
+	nvnodes = &SRV_RVM(VolumeList[volindex]).data.nsmallvnodes;
 	size = SIZEOF_SMALLDISKVNODE;
+	name = "small";
     } else {
 	if (vnodeindex >= SRV_RVM(VolumeList[volindex]).data.nlargeLists) {
 	    VLog(0,  "ReplaceVnode: bogus large vnode index %d", vnodeindex);
 	    rvmlib_abort(VFAIL);	// invalid vnode index
 	}
 	vlist = &(SRV_RVM(VolumeList[volindex]).data.largeVnodeLists[vnodeindex]);
+	nvnodes = &SRV_RVM(VolumeList[volindex]).data.nlargevnodes;
 	size = SIZEOF_LARGEDISKVNODE;
+	name = "large";
     }
 
     /* check if vnode already exists */
     VnodeDiskObject *vdo = FindVnode(vlist, u);
     if (vdo == NULL) {
-	if (vclass == vSmall) {
-	    VLog(39,  "ReplaceVnode: no small vnode at index %d; allocating",
-		 vnodeindex);
-	    /* take a vnode off the free list if one exists */
-	    if (SRV_RVM(SmallVnodeIndex) >= 0) {
-		VLog(9,  "ReplaceVnode: taking small vnode from FreeList");
-		vdo = SRV_RVM(SmallVnodeFreeList[SRV_RVM(SmallVnodeIndex)]);
-		RVMLIB_MODIFY(SRV_RVM(SmallVnodeFreeList[SRV_RVM(SmallVnodeIndex)]),
-			      NULL);
-		RVMLIB_MODIFY(SRV_RVM(SmallVnodeIndex),
-			      SRV_RVM(SmallVnodeIndex) - 1);
-	    }
-	    else { /* otherwise, malloc a new one and zero it out */
-		VLog(9,  "ReplaceVnode: malloc'ing small vnode");
-		vdo = (VnodeDiskObject *)rvmlib_rec_malloc(SIZEOF_SMALLDISKVNODE);
-		rvmlib_set_range(vdo, SIZEOF_SMALLDISKVNODE);
-		memset(vdo, 0, SIZEOF_SMALLDISKVNODE);
-	    }
-	    /* increment vnode count */
-	    RVMLIB_MODIFY(SRV_RVM(VolumeList[volindex]).data.nsmallvnodes,
-			(SRV_RVM(VolumeList[volindex]).data.nsmallvnodes) + 1);
-	} else {
-	    VLog(39,  "ReplaceVnode: no large vnode at index %d; allocating",
-				    vnodeindex);
-	    /* take a vnode off the free list if one exists */
-	    if (SRV_RVM(LargeVnodeIndex) >= 0) {
-		VLog(9,  "ReplaceVnode: taking large vnode from freelist");
-		VLog(19,  "Taking vnode off of largefreelist[%d] for index %d",
-				    SRV_RVM(LargeVnodeIndex), vnodeindex);
-		vdo = SRV_RVM(LargeVnodeFreeList[SRV_RVM(LargeVnodeIndex)]);
-		RVMLIB_MODIFY(SRV_RVM(LargeVnodeFreeList[SRV_RVM(LargeVnodeIndex)]), NULL);
-		RVMLIB_MODIFY(SRV_RVM(LargeVnodeIndex),
-			      SRV_RVM(LargeVnodeIndex) - 1);
-	    }
-	    else { /* otherwise, malloc a new one */
-		VLog(9,  "ReplaceVnode: malloc'ing large vnode");
-		vdo = (VnodeDiskObject *)rvmlib_rec_malloc(SIZEOF_LARGEDISKVNODE);
-		rvmlib_set_range(vdo, SIZEOF_LARGEDISKVNODE);
-		memset(vdo, 0, SIZEOF_LARGEDISKVNODE);
-	    }
-	    /* increment vnode count */
-	    RVMLIB_MODIFY(SRV_RVM(VolumeList[volindex]).data.nlargevnodes,
-		  (SRV_RVM(VolumeList[volindex]).data.nlargevnodes) + 1);
-	}
+	VLog(39,  "ReplaceVnode: no %s vnode at index %d; allocating", name, vnodeindex);
+
+	VLog(9,  "ReplaceVnode: malloc'ing %s vnode", name);
+	vdo = (VnodeDiskObject *)rvmlib_rec_malloc(size);
+	rvmlib_set_range(vdo, size);
+	memset(vdo, 0, size);
+
+	/* increment vnode count */
+	RVMLIB_MODIFY(*nvnodes, *nvnodes + 1);
 
 	/* append vnode into the appropriate rec_smolist */
 	char buf[sizeof(rec_smolink)];
@@ -347,6 +318,8 @@ static int DeleteVnode(int volindex, int vclass, VnodeId vnodeindex,
 {
     VolumeId maxid = 0;
     rec_smolist *vlist;
+    bit32 *nvnodes;
+    char *name;
 
     VLog(9, "Entering DeleteVnode(%d, %d, %d, <struct>)", 
 	   volindex, vclass, vnodeindex);
@@ -362,12 +335,16 @@ static int DeleteVnode(int volindex, int vclass, VnodeId vnodeindex,
 	    rvmlib_abort(VFAIL);
 	}
 	vlist = &(SRV_RVM(VolumeList[volindex]).data.smallVnodeLists[vnodeindex]);
+	nvnodes = &SRV_RVM(VolumeList[volindex]).data.nsmallvnodes;
+	name = "small";
     } else {
 	if (vnodeindex >= SRV_RVM(VolumeList[volindex]).data.nlargeLists) {
 	    VLog(0,  "DeleteVnode: deleting nonexistent vnode (index %d)", vnodeindex);
 	    rvmlib_abort(VFAIL);
 	}
 	vlist = &(SRV_RVM(VolumeList[volindex]).data.largeVnodeLists[vnodeindex]);
+	nvnodes = &SRV_RVM(VolumeList[volindex]).data.nlargevnodes;
+	name = "large";
     }
 
     VnodeDiskObject *vdo = FindVnode(vlist, u);
@@ -375,39 +352,11 @@ static int DeleteVnode(int volindex, int vclass, VnodeId vnodeindex,
 	/* remove vnode from index */
 	vlist->remove(&(vdo->nextvn));
 
-	/* put the freed vnode on the free list if there's room */
-	if (vclass == vSmall) {
-	    if (SRV_RVM(SmallVnodeIndex) < SMALLFREESIZE - 1) {
-		VLog(9,  "DeleteVnode: putting small vnode on freelist");
-		memset(vnode, 0, SIZEOF_SMALLDISKVNODE); /* just to be sure */
-		rvmlib_modify_bytes(vdo, vnode, SIZEOF_SMALLDISKVNODE);
-		RVMLIB_MODIFY(SRV_RVM(SmallVnodeIndex),
-			      SRV_RVM(SmallVnodeIndex) + 1);
-		RVMLIB_MODIFY(SRV_RVM(SmallVnodeFreeList[SRV_RVM(SmallVnodeIndex)]), vdo);
-	    } else {
-		VLog(9, "DeleteVnode: freeing small vnode structure");
-		rvmlib_rec_free((char *)vdo);
-	    }
-	
-	    /* decrement small vnode count */
-	    RVMLIB_MODIFY(SRV_RVM(VolumeList[volindex]).data.nsmallvnodes,
-		    (SRV_RVM(VolumeList[volindex]).data.nsmallvnodes) - 1);
-	} else {
-	    if (SRV_RVM(LargeVnodeIndex) < LARGEFREESIZE - 1) {
-		VLog(9,  "DeleteVnode: putting large vnode on free list");
-		memset((void *)vnode, 0, SIZEOF_LARGEDISKVNODE);    /* just to be sure */
-		rvmlib_modify_bytes(vdo, vnode,	SIZEOF_LARGEDISKVNODE);
-		RVMLIB_MODIFY(SRV_RVM(LargeVnodeIndex),
-			      SRV_RVM(LargeVnodeIndex) + 1);
-		RVMLIB_MODIFY(SRV_RVM(LargeVnodeFreeList[SRV_RVM(LargeVnodeIndex)]), vdo);
-	    } else {
-		VLog(9, "DeleteVnode: freeing large vnode");
-		rvmlib_rec_free((char *)vdo);
-	    }
-	    /* decrement large vnode count */
-	    RVMLIB_MODIFY(SRV_RVM(VolumeList[volindex]).data.nlargevnodes,
-		  (SRV_RVM(VolumeList[volindex]).data.nlargevnodes) - 1);
-	}
+	VLog(9, "DeleteVnode: freeing %s vnode", name);
+	rvmlib_rec_free((char *)vdo);
+
+	/* decrement vnode count */
+	RVMLIB_MODIFY(*nvnodes, *nvnodes - 1);
     }
     PrintCamVnode(19, volindex, vclass, vnodeindex, u);
     return 0;

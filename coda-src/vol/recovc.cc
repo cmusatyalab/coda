@@ -133,10 +133,7 @@ void checkvm() {
 
 int coda_init() 
 {
-    VnodeDiskObject *svnodes[SMALLFREESIZE];
-    VnodeDiskObject *lvnodes[LARGEFREESIZE];
     rvm_return_t status = RVM_SUCCESS;
-    int i = 0;
 
     if (ThisServerId == -1) {
 	VLog(0, "ThisServerId is uninitialized!!! Exiting.");
@@ -165,24 +162,18 @@ int coda_init()
     RVMLIB_MODIFY(SRV_RVM(MaxVolId), (VolumeId)(ThisServerId << 24));
     VLog(29, "coda_init: MaxVolId = %x", SRV_RVM(MaxVolId));
 
-    /* allocate vnodediskobject structures to fill the large and small */
-    /* vnode free lists, and set freelist pointers */
-    for(i = 0; i < SMALLFREESIZE; i++) {
-	    svnodes[i] = (VnodeDiskObject *)rvmlib_rec_malloc(SIZEOF_SMALLDISKVNODE);
-	    rvmlib_set_range(svnodes[i], SIZEOF_SMALLDISKVNODE);
-	    memset(svnodes[i], 0, SIZEOF_SMALLDISKVNODE);
-    }
-    rvmlib_modify_bytes(SRV_RVM(SmallVnodeFreeList), svnodes, sizeof(svnodes));
-    RVMLIB_MODIFY(SRV_RVM(SmallVnodeIndex), SMALLFREESIZE - 1);
+    /* We still initialize the Small and Large Vnode FreeLists to stay
+     * compatible with old servers, but don't actually put any pre-allocated
+     * objects in them anymore */
+
+    rvmlib_set_range(SRV_RVM(SmallVnodeFreeList), SMALLFREESIZE * sizeof(VnodeDiskObject *));
+    memset(SRV_RVM(SmallVnodeFreeList), 0, SMALLFREESIZE * sizeof(VnodeDiskObject *));
+    RVMLIB_MODIFY(SRV_RVM(SmallVnodeIndex), 0);
     VLog(29, "Storing SmallVnodeIndex = %d", SRV_RVM(SmallVnodeIndex));
 
-    for(i = 0; i < LARGEFREESIZE; i++) {
-	    lvnodes[i] = (VnodeDiskObject *)rvmlib_rec_malloc(SIZEOF_LARGEDISKVNODE);
-	    rvmlib_set_range(lvnodes[i], SIZEOF_LARGEDISKVNODE);
-	    memset(lvnodes[i], 0, SIZEOF_LARGEDISKVNODE);
-    }
-    rvmlib_modify_bytes(SRV_RVM(LargeVnodeFreeList), lvnodes, sizeof(lvnodes));
-    RVMLIB_MODIFY(SRV_RVM(LargeVnodeIndex), LARGEFREESIZE - 1);
+    rvmlib_set_range(SRV_RVM(LargeVnodeFreeList), LARGEFREESIZE * sizeof(VnodeDiskObject *));
+    memset(SRV_RVM(LargeVnodeFreeList), 0, LARGEFREESIZE * sizeof(VnodeDiskObject *));
+    RVMLIB_MODIFY(SRV_RVM(LargeVnodeIndex), 0);
     VLog(29, "Storing LargeVnodeIndex = %d", SRV_RVM(LargeVnodeIndex));
 
     dump_storage(49, "Finished coda initialization\n");

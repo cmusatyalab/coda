@@ -75,9 +75,6 @@ extern "C" {
 #include "index.h"
 #include "coda_assert.h"
 
-
-void PurgeIndex(Volume *vp, VnodeClass vclass);
-
 /* Purge a volume and all its from the fileserver and recoverable storage */
 
 /* N.B.  it's important here to use the partition pointed to by the
@@ -88,8 +85,6 @@ void PurgeIndex(Volume *vp, VnodeClass vclass);
 void VPurgeVolume(Volume *vp)
 {
     Error ec;
-    PurgeIndex(vp, vLarge);
-    PurgeIndex(vp, vSmall);
     CODA_ASSERT(DeleteVolume(V_id(vp)) == 0);
 
     /* The following is done in VDetachVolume - but that calls*/
@@ -102,68 +97,6 @@ void VPurgeVolume(Volume *vp)
     vp->shuttingDown = 1;
     VPutVolume(vp);	    /* this frees the volume since shutting down = 1 */
     vp = 0;
-}
-
-/* Decrement the reference count for all files in this volume */
-void PurgeIndex(Volume *vp, VnodeClass vclass) 
-{
-    struct VnodeClassInfo *vcp = &VnodeClassInfo_Array[vclass];
-    char zerobuf[SIZEOF_LARGEDISKVNODE];
-    struct VnodeDiskObject *zerovn = (struct VnodeDiskObject *) zerobuf;
-    struct VolumeData *vdata = &(SRV_RVM(VolumeList[V_volumeindex(vp)]).data);
-    rec_smolist *vnlist;
-    int nLists;
-    
-    if (vclass == vSmall) {
-	vnlist = vdata->smallVnodeLists;
-	nLists = vdata->nsmallLists;
-    } else {	/* Large */
-	vnlist = vdata->largeVnodeLists;
-	nLists = vdata->nlargeLists;
-    }
-    
-    memset(zerovn, 0, SIZEOF_LARGEDISKVNODE);
-
-    for (int i = 0; i < nLists; i++) {
-	rec_smolink *p;
-	VnodeDiskObject *vdo;
-
-	while(p = vnlist[i].get()) {	/* Pull the vnode off the list. */
-	    vdo = strbase(VnodeDiskObject, p, nextvn);
-	    
-	    if ((vdo->type != vNull) && (vdo->vnodeMagic != vcp->magic)){
-		LogMsg(0, VolDebugLevel, stdout, "PurgeIndex:VnodeMagic field incorrect for vnode %d",i);
-		CODA_ASSERT(0);
-	    }
-	    if (vdo->inodeNumber){
-		/* decrement the reference count by one */
-		if (vdo->type != vDirectory){
-		    idec(vp->device, vdo->inodeNumber, V_parentId(vp));
-		} else
-		    DI_Dec((DirInode *)vdo->inodeNumber);
-	    }	
-	    /* Delete the vnode */
-	    if ((vclass == vSmall) &&
-	        (SRV_RVM(SmallVnodeIndex) < SMALLFREESIZE - 1)) {
-		LogMsg(29, VolDebugLevel, stdout, 	"DeleteVolData:	Adding small vnode index %d to free list",i);
-		rvmlib_modify_bytes(vdo, zerovn, SIZEOF_SMALLDISKVNODE);
-		RVMLIB_MODIFY(SRV_RVM(SmallVnodeIndex),
-			      SRV_RVM(SmallVnodeIndex) + 1);
-		RVMLIB_MODIFY(SRV_RVM(SmallVnodeFreeList[SRV_RVM(SmallVnodeIndex)]), vdo);
-	    }
-	    else if ((vclass == vLarge) &&
-		     (SRV_RVM(LargeVnodeIndex) < LARGEFREESIZE - 1)) {
-		LogMsg(29, VolDebugLevel, stdout, 	"DeleteVolData:	Adding large vnode index %d to free list",i);
-		rvmlib_modify_bytes(vdo, zerovn, SIZEOF_LARGEDISKVNODE);
-		RVMLIB_MODIFY(SRV_RVM(LargeVnodeIndex),
-			      SRV_RVM(LargeVnodeIndex) + 1);
-		RVMLIB_MODIFY(SRV_RVM(LargeVnodeFreeList[SRV_RVM(LargeVnodeIndex)]), vdo);
-	    } else {
-		rvmlib_rec_free((char *)vdo);
-		LogMsg(29, VolDebugLevel, stdout,  "DeleteVolData: Freeing small vnode index %d", i);
-	    }
-	}
-    }
 }
 
 /* NEED TO REVIEW THIS CODE -- WRITTEN UNDER HASTE */
