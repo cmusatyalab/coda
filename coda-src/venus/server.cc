@@ -7,7 +7,6 @@ Server::Server(const struct in_addr *addr, struct dllist_head *head, Realm *r)
 {
     memcpy(&ipv4addr, addr, sizeof(struct in_addr));
     realm = r;
-    rootserver = 0;
 
     list_add(&servers, head);
 }

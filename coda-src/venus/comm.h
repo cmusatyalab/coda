@@ -240,8 +240,6 @@ class srvent : private RefCountedObject {
     unsigned probeme : 1;	/* should ProbeD probe this server? */
     unsigned forcestrong : 1;	/* the user can force strong connectivity */
     unsigned isweak : 1;	/* is this server considered weak */
-    unsigned rootserver : 1;	/* the server is specified in vstab and can
-                                   be queried for volume-location information */
     unsigned long bw;		/* bandwidth estimate, Bytes/sec */
     unsigned long bwmax;	/* max bandwidth estimate, Bytes/sec */
     struct timeval lastobs;	/* time of most recent estimate */
@@ -276,7 +274,6 @@ class srvent : private RefCountedObject {
     int ServerIsWeak() { return(connid > 0 && bw <= WCThresh); }
     /* quasi-up != up */
 
-    int IsRootServer(void) { return rootserver; }
     const char *Name(void) { return name; }
 
     void print() { print(stdout); }

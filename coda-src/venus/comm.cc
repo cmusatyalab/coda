@@ -991,7 +991,6 @@ srvent::srvent(struct in_addr *Host, RealmId realm)
     Xbinding = 0;
     probeme = 0;
     forcestrong = 0;
-    rootserver = 0;
     isweak = 0;
     bw     = INIT_BW;
     bwmax  = INIT_BW;
@@ -1344,8 +1343,8 @@ void srvent::ForceStrong(int on) {
 
 void srvent::print(FILE *f)
 {
-    fprintf(f, "%#08x : %-16s : cid = %d, host = %s, binding = %d, bw = %d, isroot = %d\n",
-            (long)this, name, connid, inet_ntoa(host), Xbinding, bw, rootserver);
+    fprintf(f, "%#08x : %-16s : cid = %d, host = %s, binding = %d, bw = %d\n",
+            (long)this, name, connid, inet_ntoa(host), Xbinding, bw);
     PrintRef(f);
 }
 

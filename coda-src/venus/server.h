@@ -20,8 +20,6 @@ private:
     struct in_addr ipv4addr;
     struct dllist_head servers;
     Realm *realm;
-
-    int rootserver;
 };
 
 #endif /* _SERVER_H_ */
