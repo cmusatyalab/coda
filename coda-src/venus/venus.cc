@@ -211,6 +211,8 @@ int main(int argc, char **argv)
     UnsetInitFile();
     eprint("Venus starting...");
 
+    freopen("/dev/null", "w", stdout);
+
     /* Act as message-multiplexor/daemon-dispatcher. */
     for (;;) {
 	/* Wait for a message or daemon expiry. */
