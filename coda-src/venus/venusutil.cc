@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/ss/coda-src/venus/RCS/venusutil.cc,v 4.3 1997/02/26 16:03:29 rvb Exp braam $";
+static char *rcsid = "$Header: /afs/cs.cmu.edu/user/clement/mysrcdir3/coda-src/venus/RCS/venusutil.cc,v 4.4 1997/05/27 14:33:03 braam Exp clement $";
 #endif /*_BLURB_*/
 
 
@@ -176,7 +176,7 @@ void fdprint(long afd, char *fmt ...) {
     char buf[240];
 
     va_start(ap, fmt);
-    vsprintf(buf, fmt, ap);
+    vsnprintf(buf, 240, fmt, ap);
     va_end(ap);
     write((int) afd, buf, (int) strlen(buf));
 }
@@ -190,7 +190,7 @@ void eprint(char *fmt ...) {
 
     /* Construct message in buffer and add newline */
     va_start(ap, fmt);
-    vsprintf(cp, fmt, ap);
+    vsnprintf(cp, 239, fmt, ap); /* leave 1 char for the "\n" */
     va_end(ap);
     cp += strlen(cp);
     strcat(cp, "\n");
@@ -230,7 +230,7 @@ void dprint(char *fmt ...) {
     }
 
     va_start(ap, fmt);
-    vsprintf(msg + strlen(msg), fmt, ap);
+    vsnprintf(msg + strlen(msg), 240-strlen(msg), fmt, ap);
     va_end(ap);
 
     fwrite(msg, (int)sizeof(char), (int) strlen(msg), logFile);
@@ -251,7 +251,7 @@ void Choke(char *fmt ...) {
 	char msg[240];
 	strcpy(msg, "fatal error -- ");
 	va_start(ap, fmt);
-	vsprintf(msg + strlen(msg), fmt, ap);
+	vsnprintf(msg + strlen(msg), 240-strlen(msg), fmt, ap);
 	va_end(ap);
 	eprint(msg);
 
@@ -376,7 +376,7 @@ char *VenusOpStr(int opcode) {
     if (opcode >= 0 && opcode < NVFSOPS)
 	return(VFSStats.VFSOps[opcode].name);
 
-    sprintf(buf, "%d", opcode);
+    snprintf(buf, 12, "%d", opcode);
     return(buf);
 }
 
@@ -459,7 +459,7 @@ char *IoctlOpStr(int opcode) {
         case VIOC_ENABLEASR:        return("Enable ASR");
 	case VIOC_DISABLEASR:       return("Disable ASR");
         case VIOC_FLUSHASR:         return("Flush ASR");
-	default:		    sprintf(buf, "%d", opcode); return(buf);
+	default:		    snprintf(buf, 12, "%d", opcode); return(buf);
     }
 }
 
@@ -472,7 +472,7 @@ char *VenusRetStr(int retcode) {
     if (retcode < sys_nerr) return((char *)sys_errlist[retcode]);
     if (retcode == ERETRY) return("Retry");
     if (retcode == EINCONS) return("Inconsistent");
-    sprintf(buf, "%d", retcode); return(buf);
+    snprintf(buf, 12, "%d", retcode); return(buf);
 }
 
 
@@ -850,7 +850,8 @@ void StatsInit() {
 
     bzero(&VFSStats, (int)sizeof(VFSStatistics));
     for (i = 0; i < NVFSOPS; i++)
-	strcpy(VFSStats.VFSOps[i].name, VFSOpsNameTemplate[i]);
+	strncpy(VFSStats.VFSOps[i].name, VFSOpsNameTemplate[i],
+		VFSSTATNAMELEN);
 
     bzero(&RPCOpStats, (int)sizeof(RPCOpStatistics));
     for (i = 0; i < srvOPARRAYSIZE; i++)

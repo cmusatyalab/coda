@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/src/coda-4.0.1/RCSLINK/./coda-src/venus/venusstats.h,v 1.1 1996/11/22 19:11:52 braam Exp $";
+static char *rcsid = "$Header: venusstats.h,v 4.1 97/01/08 21:51:39 clement Locked $";
 #endif /*_BLURB_*/
 
 
@@ -64,9 +64,9 @@ extern "C" {
 
 
 #define	NVFSOPS	40	/* XXX -JJK */
-
+#define VFSSTATNAMELEN 12
 typedef struct VFSStat {
-    char name[12];	    /* XXX -JJK */
+    char name[VFSSTATNAMELEN];	    /* XXX -JJK */
     int success;
     int retry;
     int timeout;

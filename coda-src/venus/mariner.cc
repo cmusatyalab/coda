@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /usr/rvb/XX/src/coda-src/venus/RCS/mariner.cc,v 4.1 1997/01/08 21:51:32 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs.cmu.edu/user/clement/mysrcdir3/coda-src/venus/RCS/mariner.cc,v 4.2 1997/02/26 16:03:23 rvb Exp clement $";
 #endif /*_BLURB_*/
 
 
@@ -201,7 +201,7 @@ void MarinerLog(char *fmt ...) {
     char buf[180];
 
     va_start(ap, fmt);
-    vsprintf(buf, fmt, ap);
+    vsnprintf(buf, 180, fmt, ap);
     va_end(ap);
 
     int len = (int) strlen(buf);
