@@ -103,23 +103,29 @@ Server *Realm::GetServer(struct in_addr *host)
 
 void Realm::print(FILE *f)
 {
+    struct addrinfo *p;
     int i = 0;
 
     fprintf(f, "%08x realm '%s', refcount %d\n", Id(), Name(), refcount);
-    while(rootservers && rootservers[i].s_addr != INADDR_ANY)
-	fprintf(f, "\t%s\n", inet_ntoa(rootservers[i++])); 
-
+    for (p = rootservers; p; p = p->ai_next) {
+	struct sockaddr_in *sin = (struct sockaddr_in *)p->ai_addr;
+	fprintf(f, "\t%s\n", inet_ntoa(sin->sin_addr)); 
+    }
 }
 
 
 /* Get a connection to any server (as root). */
 int Realm::GetAdmConn(connent **cpp)
 {
+    struct addrinfo *p;
+    int code = 0;
+    int tryagain = 0;
+
     LOG(100, ("GetAdmConn: \n"));
 
     *cpp = 0;
-    int code = 0;
 
+retry:
     if (!rootservers)
 	rootservers = GetRealmServers(name);
 
@@ -129,29 +135,30 @@ int Realm::GetAdmConn(connent **cpp)
     }
 
     /* Get a connection to any custodian. */
-    for (;;) {
-	int tryagain = 0, i = 0;
-	while(rootservers[i].s_addr != INADDR_ANY) {
-	    srvent *s = ::GetServer(&rootservers[i++], Id());
-	    code = s->GetConn(cpp, V_UID);
-	    switch(code) {
-		case ERETRY:
-		    tryagain = 1;
-		case ETIMEDOUT:
-		    continue;
+    for (p = rootservers; p; p = p->ai_next) {
+	struct sockaddr_in *sin = (struct sockaddr_in *)p->ai_addr;
+	srvent *s = ::GetServer(&sin->sin_addr, Id());
+	code = s->GetConn(cpp, V_UID);
+	switch(code) {
+	case ERETRY:
+	    tryagain = 1;
+	case ETIMEDOUT:
+	    continue;
 
-		case 0:
-		case EINTR:
-		    return(code);
+	case 0:
+	case EINTR:
+	    return(code);
 
-		default:
-		    if (code < 0)
-			eprint("GetAdmConn: bogus code (%d)", code);
-		    return(code);
-	    }
+	default:
+	    if (code < 0)
+		eprint("GetAdmConn: bogus code (%d)", code);
+	    return(code);
 	}
-	if (!tryagain)
-	    return(ETIMEDOUT);
+    }
+    if (tryagain) {
+	freeaddrinfo(rootservers);
+	rootservers = NULL;
+	goto retry;
     }
 }
 

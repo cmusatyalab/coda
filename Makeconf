@@ -75,12 +75,13 @@ LIBFAIL   := -lfail
 
 LIBMATH	    := -lm
 LIBREADLINE := -lreadline
+LIBRESOLV   := -lresolv
 
 # -- CODA --
 LIBAL        := ../al/libal.a
 LIBAUTH2     := ../auth2/libauth2.a
 LIBAUSER     := ../auth2/libauser.a
-LIBBASE      := $(TOPOBJ)/lib-src/base/libbase.a
+LIBBASE      := $(TOPOBJ)/lib-src/base/libbase.a $(LIBRESOLV)
 LIBDIRLIB    := ../dir/libcodadir.a
 LIBDS        := ../ds/libds.a
 LIBKERNDEP   := ../kerndep/libkerndep.a   # --- (pioctl, setpag)

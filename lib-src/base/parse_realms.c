@@ -30,6 +30,7 @@ listed in the file CREDITS.
 #define MAXLINELEN 256
 static char line[MAXLINELEN];
 
+#define CODASRV "codasrv"
 
 void SplitRealmFromName(char *name, char **realm)
 {
@@ -48,38 +49,51 @@ void SplitRealmFromName(char *name, char **realm)
     }
 }
 
-static struct in_addr *ResolveRootServers(char *servers)
+/* Coda only looks up IPv4 UDP addresses */
+static int simpleaddrinfo(const char *realm, const char *service,
+			  struct addrinfo **res)
 {
-    int i;
-    struct in_addr *hosts;
-    char *host;
+    struct addrinfo hints;
+    int proto = IPPROTO_UDP;
 
-    hosts = (struct in_addr *)malloc(sizeof(struct in_addr));
-    if (!hosts) {
-	fprintf(stderr, "Cannot allocate initial hosts array");
-	return NULL;
-    }
+#ifdef HAVE_GETPROTOBYNAME
+    struct protoent *pe;
+    pe = getprotobyname("udp");
+    if (pe)
+	proto = pe->p_proto;
+#endif
+
+    memset(&hints, 0, sizeof(hints));
+    hints.ai_family   = PF_INET;
+    hints.ai_socktype = SOCK_DGRAM;
+    hints.ai_protocol = proto;
+
+    return coda_getaddrinfo(realm, service, &hints, res);
+}
+
+static struct addrinfo *ResolveRootServers(char *servers)
+{
+    struct addrinfo *res = NULL, *tmp, *p;
+    char *host;
+    int i, err;
 
     i = 0;
     for (i = 0; (host = strtok(servers, ", \t\n")) != NULL; servers = NULL)
     {
+	tmp = NULL;
+	err = simpleaddrinfo(host, CODASRV, &tmp);
+	if (err) continue;
+	for (p = tmp; p && p->ai_next; p = p->ai_next) /*loop*/;
+	if (p)
+	    p->ai_next = res;
+	res = tmp;
+    }
+    return res;
+}
+	
 
-#ifndef GETHOSTBYNAME_ACCEPTS_IPADDRS
-	if (!inet_aton(host, &hosts[i]))
-#endif
-	{
-	    struct hostent *h = gethostbyname(host);
-	    if (!h) {
-		fprintf(stderr, "Cannot resolve realm rootserver '%s'", host);
-		continue;
-	    }
-	    if (h->h_length != sizeof(struct in_addr)) {
-		fprintf(stderr, "Cannot find IPv4 address for realm rootserver '%s'", host);
-		continue;
-	    }
-	    memcpy(&hosts[i], h->h_addr, sizeof(struct in_addr));
-	}
-
+#if 0
+/* where to put this test, could be useful */
 	if (hosts[i].s_addr == INADDR_ANY ||
 	    hosts[i].s_addr == INADDR_NONE ||
 	    hosts[i].s_addr == INADDR_LOOPBACK ||
@@ -90,22 +104,12 @@ static struct in_addr *ResolveRootServers(char *servers)
 	    fprintf(stderr, "Address for '%s' resolved to bad or unusable address '%s', ignoring it", host, inet_ntoa(hosts[i]));
 	    continue;
 	}
+#endif
 
-	hosts = (struct in_addr *)realloc(hosts, (i+2)*sizeof(struct in_addr));
-	if (!hosts) {
-	    fprintf(stderr, "Cannot realloc hosts array");
-	    return NULL;
-	}
-	i++;
-    }
-    hosts[i].s_addr = INADDR_ANY;
-
-    return hosts;
-}
-
-struct in_addr *GetRealmServers(const char *realm_name)
+struct addrinfo *GetRealmServers(const char *realm_name)
 {
     char *realmtab = NULL;
+    struct addrinfo *res = NULL;
     FILE *f;
     int namelen = strlen(realm_name), found;
 
@@ -126,10 +130,12 @@ struct in_addr *GetRealmServers(const char *realm_name)
     }
     fclose(f);
 
-    if (!found)
-	return NULL;
+    if (found)
+	return ResolveRootServers(&line[namelen]);
 
-    return ResolveRootServers(&line[namelen]);
+    if (simpleaddrinfo(realm_name, CODASRV, &res) == 0)
+	return res;
+
+    return NULL;
 }
-
 

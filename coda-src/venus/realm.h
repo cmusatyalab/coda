@@ -53,7 +53,7 @@ public:
 private:
     char *name;
 
-/*T*/struct in_addr *rootservers;
+/*T*/struct addrinfo *rootservers;
 /*T*/struct dllist_head servers;
 };
 

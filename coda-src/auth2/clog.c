@@ -176,13 +176,14 @@ int main(int argc, char **argv)
 		    if (tmp1[0] != '\0')
 			username = tmp1;
 		    if (tmp2) {
-			struct in_addr *servers;
+			struct addrinfo *srvs;
 			realm = tmp2;
-			servers = GetRealmServers(realm);
-			if (servers) {
-			    sprintf(buf, "%s", inet_ntoa(servers[0]));
+			srvs = GetRealmServers(realm);
+			if (srvs) {
+			    struct sockaddr_in *sin = srvs->ai_addr;
+			    sprintf(buf, "%s", inet_ntoa(sin->sin_addr));
 			    hostname = buf;
-			    free(servers);
+			    coda_freeaddrinfo(srvs);
 			}
 		    }
                     i++;

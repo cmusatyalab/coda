@@ -23,6 +23,8 @@ listed in the file CREDITS.
 extern "C" {
 #endif
 
+#include <coda_getaddrinfo.h>
+
 /* Given "name@realm", replaced the '@' with '\0' and returns a pointer to the
  * realm part. If the input matches either 'name@' or 'name' it doesn't change
  * the realm (but strips the '@'). */
@@ -30,7 +32,7 @@ void SplitRealmFromName(char *name, char **realm);
 
 /* Given a realm name, returns a list of ip-addresses of the realm's root
  * servers. */
-struct in_addr *GetRealmServers(const char *realm_name);
+struct addrinfo *GetRealmServers(const char *realm_name);
 
 #ifdef __cplusplus
 }
