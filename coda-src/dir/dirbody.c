@@ -361,7 +361,10 @@ static int dir_DirEntry2VDirent(PDirEntry ep, struct venus_dirent *vd, VolumeId 
 	vd->d_type = 0;
 #endif
 	vd->d_namlen = strlen(ep->name);
-	strcpy(vd->d_name, ep->name);
+	if (vd->d_namlen > CODA_MAXNAMLEN)
+		vd->d_namlen = CODA_MAXNAMLEN;
+	strncpy(vd->d_name, ep->name, vd->d_namlen);
+	vd->d_name[vd->d_namlen] = '\0';
 	vd->d_reclen = DIRSIZ(vd);
 	return vd->d_reclen;
 }
