@@ -28,6 +28,11 @@ echon() {
 # exit if errors
 set -e
 
+# do the unlimit in case needed
+if ulimit -d unlimited ; then
+  echon
+fi
+
 #
 # Configuration
 #
