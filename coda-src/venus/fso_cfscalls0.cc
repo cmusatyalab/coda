@@ -1756,10 +1756,13 @@ int fsobj::ConnectedCreate(Date_t Mtime, vuid_t vuid, fsobj **t_fso_addr,
 	sid = vp->GenerateStoreId();
 	Recov_EndTrans(MAXFP);
 	{
+	    ViceFid target = *MakeViceFid(&target_fid);
+	    ViceFid nullfid = {0,0,0};
+
 	    /* Make multiple copies of the IN/OUT and OUT parameters. */
 	    vp->PackVS(VSG_MEMBERS, &OldVS);
 	    ARG_MARSHALL(IN_OUT_MODE, ViceStatus, target_statusvar, target_status, VSG_MEMBERS);
-	    ARG_MARSHALL(IN_OUT_MODE, VenusFid, target_fidvar, target_fid, VSG_MEMBERS);
+	    ARG_MARSHALL(IN_OUT_MODE, ViceFid, targetvar, target, VSG_MEMBERS);
 	    ARG_MARSHALL(IN_OUT_MODE, ViceStatus, parent_statusvar, parent_status, VSG_MEMBERS);
 	    ARG_MARSHALL(OUT_MODE, RPC2_Integer, VSvar, VS, VSG_MEMBERS);
 	    ARG_MARSHALL(OUT_MODE, CallBackStatus, VCBStatusvar, VCBStatus, VSG_MEMBERS);
@@ -1770,8 +1773,8 @@ int fsobj::ConnectedCreate(Date_t Mtime, vuid_t vuid, fsobj **t_fso_addr,
 	    code = (int) MRPC_MakeMulti(ViceVCreate_OP, ViceVCreate_PTR,
 					VSG_MEMBERS, m->rocc.handles,
 					m->rocc.retcodes, m->rocc.MIp, 0, 0,
-					MakeViceFid(&fid), &NullFid, name,
-					target_statusvar_ptrs, target_fidvar_ptrs,
+					MakeViceFid(&fid), &nullfid, name,
+					target_statusvar_ptrs, targetvar_ptrs,
 					parent_statusvar_ptrs, AllocHost, &sid,
 					&OldVS, VSvar_ptrs, VCBStatusvar_ptrs,
 					&PiggyBS);
@@ -1797,8 +1800,9 @@ int fsobj::ConnectedCreate(Date_t Mtime, vuid_t vuid, fsobj **t_fso_addr,
 	    int dh_ix; dh_ix = -1;
 	    (void)m->DHCheck(0, -1, &dh_ix);
 	    ARG_UNMARSHALL(target_statusvar, target_status, dh_ix);
-	    ARG_UNMARSHALL(target_fidvar, target_fid, dh_ix);
+	    ARG_UNMARSHALL(targetvar, target, dh_ix);
 	    ARG_UNMARSHALL(parent_statusvar, parent_status, dh_ix);
+	    MakeVenusFid(&target_fid, target_fid.Realm, &target);
 	}
 
 	/* Do Create locally. */
