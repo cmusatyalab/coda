@@ -18,7 +18,7 @@ rootservers=testserver.coda.cs.cmu.edu
 #
 # What should the size of the local cache be in 1k blocks. If this is
 # not specified or `0' the default value of 40000 (40MB) is chosen.
-# Minimum value is 2048.
+# Minimum value is 4096.
 #
 cacheblocks=100000
 
