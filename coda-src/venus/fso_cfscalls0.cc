@@ -315,6 +315,12 @@ int fsobj::Fetch(vuid_t vuid) {
 	    }
 	}
 
+	/* Directories might have different sizes on different servers. We
+	 * _have_ to discard the data, and start over again if we fetched a
+	 * different size than expected the wrong one. */
+	if (!IsFile() && stat.Length != status.Length)
+	    code = ERETRY;
+
 	Recov_BeginTrans();
 	UpdateStatus(&status, vuid);
 	Recov_EndTrans(CMFP);
@@ -439,19 +445,9 @@ NonRepExit:
 	/* when the server responds with EAGAIN, the VersionVector was
 	 * changed, so this should effectively be handled like a failed
 	 * validation, and we can throw away the data */
-#ifdef OLDFETCH
-	if (HAVEDATA(this) || code == EAGAIN) {
-	    /* File is already `truncated' to the correct length */
-	    //if (IsFile()) 
-	    //	data.file->SetLength((unsigned) stat.Length);
-	    DiscardData();
-	}
-#else
-	/* if we have data, and the object is not a file or the VV validation
-	 * failed, we have to discard */
 	if (HAVEDATA(this) && (!IsFile() || code == EAGAIN))
 	    DiscardData();
-#endif
+
 	/* ERETRY makes us drop back to the vproc_vfscalls level, and retry
 	 * the whole FSDB->Get operation */
 	if (code == EAGAIN) code = ERETRY;
@@ -1327,7 +1323,8 @@ void fsobj::LocalSetAttr(Date_t Mtime, unsigned long NewLength,
             }
             UpdateCacheStats(&FSDB->FileDataStats, REMOVE, delta_blocks);
             FSDB->FreeBlocks(delta_blocks);
-            data.file->Truncate((unsigned) NewLength);
+
+	    data.file->Truncate((unsigned) NewLength);
         }
         stat.Length = NewLength;
         stat.Date = Mtime;

@@ -827,7 +827,8 @@ void fsobj::ReplaceStatus(ViceStatus *vstat, vv_t *UpdateSet) {
     if (HAVEDATA(this) && stat.Length != vstat->Length) {
 	LOG(0, ("fsobj::ReplaceStatus: (%s), changed stat.length %d->%d\n",
 		FID_(&fid), stat.Length, vstat->Length));
-	LocalSetAttr(-1, vstat->Length, -1, -1, -1);
+	if (IsFile())
+	    LocalSetAttr(-1, vstat->Length, -1, -1, -1);
 	SetRcRights(RC_STATUS);
     }
 
