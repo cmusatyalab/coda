@@ -39,6 +39,7 @@ extern "C" {
 #include <res.h>
 #include <vcrcommon.h>
 #include "resutil.h"
+#include "resolution.h"
 
 /* forward declarations */
 class res_mgrpent;

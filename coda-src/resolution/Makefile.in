@@ -27,7 +27,7 @@ include $(TOPDIR)/Makeconf
 CXXFLAGS += -Wall
 
 LIBRARIES = libres.a
-HEADERS =  rescomm.h  resforce.h \
+HEADERS =  rescomm.h  resforce.h resolution.h \
 	resutil.h timing.h\
 	ops.h recle.h rsle.h compops.h parselog.h ruconflict.h resstats.h
 

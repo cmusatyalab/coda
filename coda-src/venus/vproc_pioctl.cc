@@ -551,11 +551,16 @@ OI_FreeLocks:
 		    VolumeStateType conn_state;
 		    int             conflict;
 		    int             cml_count;
+		    int		    local_only = 0;
+		    if (data->in_size == sizeof(int) &&
+			*(int *)data->in == 1)
+			local_only = 1;
+
 		    /* Retrieve the volume status from the server(s). */
 		    u.u_error = v->GetVolStat(&volstat, &Name, &conn_state,
 					      &conflict, &cml_count,
 					      &OfflineMsg,
-					      &MOTD, CRTORUID(u.u_cred));
+					      &MOTD, CRTORUID(u.u_cred), local_only);
 		    if (u.u_error) break;
 
 		    /* Format is (status, name, conn_state, conflict,
@@ -578,15 +583,15 @@ OI_FreeLocks:
 		    char *cp = (char *) data->out;/* Invariant: cp always
 						     point to next loc. to
 						     be copied into */
-		    memmove(cp, (char *)&volstat, (int)sizeof(VolumeStatus));
+		    memcpy(cp, &volstat, sizeof(VolumeStatus));
 		    cp += sizeof(VolumeStatus);
 		    strcpy(cp, name);
 		    cp += strlen(name) + 1;
-		    memcpy ((void *)cp, (void *)&conn_state, sizeof(int));
+		    memcpy (cp, &conn_state, sizeof(int));
 		    cp += sizeof(int);
-		    memcpy ((void *)cp, (void *)&conflict, sizeof(int));
+		    memcpy (cp, &conflict, sizeof(int));
 		    cp += sizeof(int);
-		    memcpy ((void *)cp, (void *)&cml_count, sizeof(int));
+		    memcpy (cp, &cml_count, sizeof(int));
 		    cp += sizeof(int);
 		    strcpy(cp, offlinemsg);
 		    cp += strlen(offlinemsg) + 1;

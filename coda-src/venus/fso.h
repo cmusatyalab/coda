@@ -353,7 +353,9 @@ struct FsoFlags {
     unsigned local: 1;				/* local fake fid */
     /*T*/unsigned ckmtpt : 1;			/* mount point needs checked? */
     /*T*/unsigned fetching : 1;			/* fetch in progress? */
-    unsigned padding : 10;
+    /*T*/unsigned optimized_store : 1;		/* CML store was optimized away
+						   during open()? */
+    unsigned padding : 9;
 };
 
 enum MountStatus {  NORMAL,
@@ -657,8 +659,7 @@ class fsobj {
 
     /* The public CFS interface (non-Vice portion). */
     int Open(int, int, int, venus_cnode *, vuid_t);
-    int Close(int, int, vuid_t);
-    /*    int RdWr(char *, enum uio_rw, int, int, int *, vuid_t); */
+    int Close(int writep, int execp, vuid_t vuid, int not_written);
     int Access(long, int, vuid_t);
     int Lookup(fsobj **, ViceFid *, char *, vuid_t, int);
     int Readdir(char *, int, int, int *, vuid_t);

@@ -81,6 +81,7 @@ extern "C" {
 #include <partition.h>
 #include <util.h>
 #include <rvmlib.h>
+#include <resolution.h>
 
 extern int nice(int);
 extern int Fcon_Init(); 
@@ -562,13 +563,11 @@ int main(int argc, char *argv[])
 				 LWP_NORMAL_PRIORITY, (char *)&i, 
 				 sname, &resPid) == LWP_SUCCESS);
     }
-    extern void ResCheckServerLWP();
     sprintf(sname, "ResCheckSrvrLWP");
     CODA_ASSERT(LWP_CreateProcess((PFIC)ResCheckServerLWP, stack*1024,
 			      LWP_NORMAL_PRIORITY, (char *)&i, 
 			      sname, &resPid) == LWP_SUCCESS);
 
-    extern void ResCheckServerLWP_worker();
     sprintf(sname, "ResCheckSrvrLWP_worker");
     CODA_ASSERT(LWP_CreateProcess((PFIC)ResCheckServerLWP_worker, stack*1024,
 			      LWP_NORMAL_PRIORITY, (char *)&i, 

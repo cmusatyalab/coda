@@ -659,7 +659,7 @@ class volent {
     /* User-visible volume status. */
     int GetVolStat(VolumeStatus *, RPC2_BoundedBS *,
 		   VolumeStateType *, int *, int *,
-		    RPC2_BoundedBS *, RPC2_BoundedBS *, vuid_t);
+		    RPC2_BoundedBS *, RPC2_BoundedBS *, vuid_t, int local_only);
     int SetVolStat(VolumeStatus *, RPC2_BoundedBS *,
 		    RPC2_BoundedBS *, RPC2_BoundedBS *, vuid_t);
 

@@ -2346,7 +2346,7 @@ ViceVolumeType volent::VolStatType(void)
 int volent::GetVolStat(VolumeStatus *volstat, RPC2_BoundedBS *Name,
 		       VolumeStateType *conn_state, int *conflict,
                        int*cml_count, RPC2_BoundedBS *msg,
-                       RPC2_BoundedBS *motd, vuid_t vuid)
+                       RPC2_BoundedBS *motd, vuid_t vuid, int local_only)
 {
     LOG(100, ("volent::GetVolStat: vid = %x, vuid = %d\n", vid, vuid));
 
@@ -2394,7 +2394,7 @@ int volent::GetVolStat(VolumeStatus *volstat, RPC2_BoundedBS *Name,
 
     int code = 0;
 
-    if (state == Emulating) {
+    if (state == Emulating || local_only) {
 	memset(volstat, 0, sizeof(VolumeStatus));
 	volstat->Vid = vid;
 	volstat->Type = VolStatType();	

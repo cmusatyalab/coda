@@ -208,7 +208,7 @@ Exit:
 
 /* Call with object write-locked. */
 /* We CANNOT return ERETRY from this routine! */
-int fsobj::Close(int writep, int execp, vuid_t vuid) 
+int fsobj::Close(int writep, int execp, vuid_t vuid, int not_written) 
 {
     LOG(10, ("fsobj::Close: (%s, %d, %d), uid = %d\n",
 	      comp, writep, execp, vuid));
@@ -283,6 +283,18 @@ int fsobj::Close(int writep, int execp, vuid_t vuid)
 	Recov_BeginTrans();
 	data.file->SetLength((unsigned int) NewLength);
 	Recov_EndTrans(MAXFP);
+
+#if 0
+	/* Don't perform a store for objects that were (according to the
+	 * kernel) not written to. We do make an exception for any object
+	 * whose open happened to optimize away a CML store entry. */
+	if (not_written && !flags.optimized_store) {
+	    FSO_RELE(this);		    /* Unpin object. */
+	    EnableReplacement();
+	    return(0);
+	}
+#endif
+	flags.optimized_store = 0;
 
 	/* Attempt the Store. */
 	vproc *v = VprocSelf();

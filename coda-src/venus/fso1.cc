@@ -201,6 +201,7 @@ void fsobj::ResetTransient()
     flags.ckmtpt = 0;
     flags.fetching = 0;
     flags.random = ::random();
+    flags.optimized_store = 0;
 
     memset((void *)&u, 0, (int)sizeof(u));
 

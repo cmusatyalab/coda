@@ -1779,6 +1779,7 @@ static void ListVolume(int argc, char *argv[], int opslot)
     int conflict;
     int cml_count;
     char *ptr;
+    int local_only = 0;
 
     if (argc < 3)
         {
@@ -1789,9 +1790,13 @@ static void ListVolume(int argc, char *argv[], int opslot)
 
     for (i = 2; i < argc; i++)
         {
+	if (strcmp(argv[i], "-local") == 0) {
+	    local_only = 1;
+	    continue;
+	}
         /* Set up parms to pioctl */
-        vio.in = 0;
-        vio.in_size = 0;
+        vio.in = (char *)&local_only;
+        vio.in_size = sizeof(int);
         vio.out_size = PIOBUFSIZE;
         vio.out = piobuf;
 

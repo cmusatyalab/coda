@@ -53,6 +53,7 @@ extern "C" {
 #include <vsg.h>
 #include "rescomm.private.h"
 #include "rescomm.h"
+#include "resolution.h"
 
 /* Storage for static class members defined in rescomm.h */
 dlist *res_mgrpent::ResMgrpTab = 0;
@@ -61,7 +62,6 @@ olist *srvent::srvtab = 0;
 int srvent::servers = 0;
 olist *conninfo::CInfoTab = 0;
 int conninfo::ncinfos = 0;
-
 
 int PutResMgroup(res_mgrpent **);
 
@@ -91,7 +91,6 @@ void ResCommInit() {
     
     /* Initialize VSGDB */
     InitVSGDB();	
-    
 }
 
 /* RepResCommCtxt - implementation */
@@ -426,6 +425,8 @@ int srvent::Connect(RPC2_Handle *cidp, int Force) {
     for(;;) {
 	if (ServerIsDown() && !Force) {
 	    LogMsg(20, SrvDebugLevel, stdout,  "Connect: server %x is down", host);
+	    /* asynchronously trigger a server probe */
+	    LWP_SignalProcess((char *)ResCheckServerLWP);
 	    return(ETIMEDOUT);
 	}
 	if (!binding) break;

@@ -54,6 +54,7 @@ extern "C" {
 #include <timing.h>
 #include "rvmrestiming.h"
 #include "resstats.h"
+#include "resolution.h"
 
 // ********** Private Routines *************
 static int ComparePhase3Status(res_mgrpent *, int *, ViceStatus *, ViceStatus *);
@@ -267,7 +268,6 @@ static int RegDirResRequired(res_mgrpent *mgrp, ViceFid *Fid,
 		if (vv[i])
 		    PrintVV(stdout, vv[i]);
 	    resrequired = 0;
-	    extern void ResCheckServerLWP();
 	    LWP_NoYieldSignal((char *)ResCheckServerLWP);
 	}
     }

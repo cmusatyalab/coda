@@ -65,7 +65,6 @@ extern "C" {
 
 timing_path *tpinfo = 0;
 timing_path *FileresTPinfo = 0; 
-extern void ResCheckServerLWP();
 
 /* private routines */
 static int AlreadyIncGroup(ViceVersionVector **VV, int nvvs);
