@@ -42,6 +42,9 @@ extern "C" {
 #include <arpa/inet.h>
 #endif
 #include <sys/time.h>
+#ifdef __CYGWIN__
+#include <cygwinextra.h>
+#endif
 #include <errno.h>
 #include <netdb.h>
 #include <stdio.h>

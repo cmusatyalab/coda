@@ -44,6 +44,10 @@ extern "C" {
 #include <rvmlib.h>
 #include "coda_string.h"
 
+#ifdef __CYGWIN__
+#include "cygwinextra.h"
+#endif
+
 #ifdef __cplusplus
 }
 #endif __cplusplus

@@ -26,7 +26,8 @@ include $(TOPDIR)/Makeconf
 
 EXECUTABLES = norton norton-reinit
 SCRIPTS     = reinit
-SBINS       = $(EXECUTABLES) $(SCRIPTS)
+SBINS       = $(EXECUTABLES) 
+SSCRIPTS    = $(SCRIPTS)
 
 DEPLIBS = $(LIBAUTH2)	\
 	$(LIBRES)	\

@@ -760,7 +760,8 @@ static void Recov_AllocateVM(void **addr, unsigned long length)
       HANDLE hMap = CreateFileMapping((HANDLE)0xFFFFFFFF, NULL,
                                       PAGE_READWRITE, 0, length, NULL);
       if (hMap == NULL)
-          return(RVM_EINTERNAL);
+	/* return(RVM_EINTERNAL); */
+	CHOKE("Recov_AllocateVM: CreateFileMapping didn't work.");
       *addr = MapViewOfFileEx(hMap, FILE_MAP_READ | FILE_MAP_WRITE, 0, 0, 0, *addr);
       if (*addr == NULL)
           *addr = (void *)-1;

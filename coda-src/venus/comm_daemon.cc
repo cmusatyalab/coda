@@ -24,6 +24,9 @@ extern "C" {
 
 #include <stdio.h>
 #include <sys/time.h>
+#ifdef __CYGWIN__
+#include <cygwinextra.h>
+#endif
 #include <setjmp.h>
 
 #ifdef __cplusplus
