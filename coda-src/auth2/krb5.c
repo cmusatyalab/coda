@@ -54,7 +54,7 @@ static int Krb5CommonInit(void)
     codaconf_init("venus.conf");
     codaconf_init("vice.conf");
     codaconf_init("auth2.conf");
-    CONF_STR(kerberos5service, "kerberos5service", "host/%s");
+    CODACONF_STR(kerberos5service, "kerberos5service", "host/%s");
 
     /* initialize Kerberos 5 contex */
     krc = krb5_init_context(&krb5context);
@@ -71,7 +71,7 @@ int Krb5ClientInit(void)
     if (Krb5CommonInit())
         return -1;
 
-    CONF_STR(kerberos5kinit, "kerberos5kinit", "kinit")
+    CODACONF_STR(kerberos5kinit, "kerberos5kinit", "kinit")
     return 0;
 }
 
@@ -144,7 +144,7 @@ int Krb5ServerInit(void)
     if (Krb5CommonInit())
         return -1;
 
-    CONF_STR(kerberos5realm, "kerberos5realm", NULL)
+    CODACONF_STR(kerberos5realm, "kerberos5realm", NULL)
 
     /* When no realm has been specified, use the default realm */
     if (!kerberos5realm) {
@@ -156,7 +156,7 @@ int Krb5ServerInit(void)
 
     get_principal(NULL, &krb5principal);
 
-    CONF_STR(kerberos5keytab, "kerberos5keytab", NULL)
+    CODACONF_STR(kerberos5keytab, "kerberos5keytab", NULL)
 
     /* If the user specified a different keytab, load it */
     if (kerberos5keytab) {

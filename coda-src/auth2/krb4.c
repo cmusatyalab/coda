@@ -51,9 +51,9 @@ static int Krb4CommonInit(void)
     codaconf_init("venus.conf");
     codaconf_init("vice.conf");
     codaconf_init("auth2.conf");
-    CONF_STR(kerberos4service, "kerberos4service", "host");
+    CODACONF_STR(kerberos4service, "kerberos4service", "host");
 
-    CONF_STR(kerberos4realm, "kerberos4realm", NULL)
+    CODACONF_STR(kerberos4realm, "kerberos4realm", NULL)
     /* When no realm has been specified, use the default realm */
     if (!kerberos4realm) {
         krb_get_lrealm(default_realm, 1);
@@ -67,7 +67,7 @@ int Krb4ClientInit(void)
     if (Krb4CommonInit())
         return -1;
 
-    CONF_STR(kerberos4kinit, "kerberos4kinit", "kinit")
+    CODACONF_STR(kerberos4kinit, "kerberos4kinit", "kinit")
     return 0;
 }
 

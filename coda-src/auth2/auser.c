@@ -341,7 +341,7 @@ int U_BindToServer(struct RPC2_addrinfo *srvs,
 		if (Krb5GetSecret(AuthHost.ai_canonname, &uName, &uNamelen,
 				  &uPasswd, &uPasswdlen, interactive))
 		{
-		    fprintf(stderr, "Failed to get secret for %s\n", AuthHost->ai_canonname);
+		    fprintf(stderr, "Failed to get secret for %s\n", AuthHost.ai_canonname);
 		    continue;
 		}
 	    }
