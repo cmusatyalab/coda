@@ -26,6 +26,7 @@ extern "C" {
 #include <config.h>
 #endif
 
+#include <sys/param.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include "coda_string.h"
@@ -166,7 +167,7 @@ long address_ok(vm_address_t addr, vm_size_t sz, vm_prot_t perm)
 }
 #endif
 
-#ifdef __BSD44__
+#ifdef BSD4_4
 #include <sys/mman.h>
 #define vm_address_t caddr_t
 #define vm_size_t    size_t
