@@ -5,7 +5,8 @@
 #	all	recursively build objects
 #	clean	recursively descend the tree and clean .a's, .o's, binaries, ...
 #	rcs	populate the tree with rcs links
-
+#	reconfigure
+#		do a ../configure again with all the same args
 # Josh Raiff
 # Moved up further Peter Braam
 
