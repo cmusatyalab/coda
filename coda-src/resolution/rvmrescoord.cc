@@ -818,7 +818,11 @@ static int CompareDirContents(SE_Descriptor *sid_bufs, ViceFid *fid) {
                            (char *)buf + DIR_Length(buf), VAclSize(NULL)) != 0)
                 {
 		    SLog(0, "CompareDirContents: ACL's are DIFFERENT");
-		    return(-1);
+		    /* XXX ACL equality test is broken. same ACLs could be
+		     * represented differently. We need to enumerate through
+		     * all the entries of one replica and check this against
+		     * the other replica. --JH */
+		    //return(-1);
                 }
 	    }
 	}
