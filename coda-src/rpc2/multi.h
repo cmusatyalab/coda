@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: blurb.doc,v 1.1 96/11/22 13:29:31 raiff Exp $";
+static char *rcsid = "$Header: /home/braam/src/coda-src/rpc2/RCS/multi.h,v 1.1 1996/11/22 19:07:48 braam Exp braam $";
 #endif /*_BLURB_*/
 
 
@@ -107,9 +107,9 @@ typedef struct arg_info {
     type *name##_ptrs[howmany];\
     type name##_bufs[howmany];\
     {\
-	for (int i = 0; i < howmany; i++) {\
-	    name##_ptrs[i] = &name##_bufs[i];\
-	    if (mode == IN_OUT_MODE && &(object) != 0) name##_bufs[i] = (object);\
+	for (int name##_local_i = 0; name##_local_i < howmany; name##_local_i++) {\
+	    name##_ptrs[name##_local_i] = &name##_bufs[name##_local_i];\
+	    if (mode == IN_OUT_MODE && &(object) != 0) name##_bufs[name##_local_i] = (object);\
 	}\
     }
 
@@ -118,12 +118,12 @@ typedef struct arg_info {
     type name##_bufs[howmany];\
     char name##_data[maxbslen * howmany];\
     {\
-	for (int i = 0; i < howmany; i++) {\
-	    name##_ptrs[i] = &name##_bufs[i];\
-	    if (mode == IN_OUT_MODE && &(object) != 0) name##_bufs[i] = (object);\
-	    name##_bufs[i].SeqBody = (RPC2_ByteSeq)&name##_data[i * maxbslen];\
+	for (int name##_local_i = 0; name##_local_i < howmany; name##_local_i++) {\
+	    name##_ptrs[name##_local_i] = &name##_bufs[name##_local_i];\
+	    if (mode == IN_OUT_MODE && &(object) != 0) name##_bufs[name##_local_i] = (object);\
+	    name##_bufs[name##_local_i].SeqBody = (RPC2_ByteSeq)&name##_data[name##_local_i * maxbslen];\
 	    if ((object).SeqLen > 0) \
-		bcopy((object).SeqBody, name##_bufs[i].SeqBody, (int)(object).SeqLen);\
+		bcopy((object).SeqBody, name##_bufs[name##_local_i].SeqBody, (int)(object).SeqLen);\
 	}\
     }
 
@@ -131,11 +131,11 @@ typedef struct arg_info {
     type *name##_ptrs[howmany];\
     type name##_bufs[howmany][maxelts]; /* maxelts must be a constant */\
     {\
-	for (int i = 0; i < howmany; i++) {\
-	    name##_ptrs[i] = name##_bufs[i];\
+	for (int name##_local_i = 0; name##_local_i < howmany; name##_local_i++) {\
+	    name##_ptrs[name##_local_i] = name##_bufs[name##_local_i];\
 	    if (mode == IN_OUT_MODE && &(object) != 0){\
-		for (int j = 0; j < numelts; j++)\
-		    name##_bufs[i][j] = (object)[j];\
+		for (int name##_local_j = 0; name##_local_j < numelts; name##_local_j++)\
+		    name##_bufs[name##_local_i][name##_local_j] = (object)[name##_local_j];\
 	    }\
 	}\
     }
@@ -153,8 +153,8 @@ typedef struct arg_info {
 
 #define ARG_UNMARSHALL_ARRAY(name, numelts, object, ix)\
     {\
-	for (int i = 0; i < (numelts); i++)\
-	    (object)[i] = name##_bufs[ix][i];\
+	for (int name##_local_i = 0; name##_local_i < (numelts); name##_local_i++)\
+	    (object)[name##_local_i] = name##_bufs[ix][name##_local_i];\
     }
 
 
