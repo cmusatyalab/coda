@@ -47,8 +47,7 @@ PDirHeader DI_DiToDh(PDirInode pdi)
 	for (i = 0; i < DIR_MAXPAGES; i++) {
 		if (pdi->di_pages[i] == 0) 
 			break;
-		memmove((void *)&pdh[i * DIR_PAGESIZE],
-			(const void *)pdi->di_pages[i], DIR_PAGESIZE);
+		memcpy(&pdh[i * DIR_PAGESIZE], pdi->di_pages[i], DIR_PAGESIZE);
 	}
 	return (PDirHeader) pdh;
 }
@@ -67,9 +66,9 @@ void DI_DhToDi(PDCEntry pdce)
 	pages = DH_Length(pdh)/DIR_PAGESIZE;
 
 	if (pdi == NULL) {
-		pdi = (PDirInode) rvmlib_rec_malloc(sizeof(*pdi));
+		pdi = (PDirInode) rvmlib_rec_malloc(sizeof(PDirInode));
 		CODA_ASSERT(pdi);
-		memset((char *)pdi, 0, sizeof(*pdi));
+		memset(pdi, 0, sizeof(PDirInode));
 		DC_SetDI(pdce, pdi);
 	} 
 
@@ -78,19 +77,21 @@ void DI_DhToDi(PDCEntry pdce)
 	
 	/* copy pages to the dir inode */
 	for ( i=0 ; i<pages ; i++) {
-		if ( pdi->di_pages[i] == 0 ) {
+		if ( pdi->di_pages[i] == NULL ) {
 			pdi->di_pages[i] = rvmlib_rec_malloc(DIR_PAGESIZE);
 			CODA_ASSERT(pdi->di_pages[i]); 
 		}
 		rvmlib_set_range(pdi->di_pages[i], DIR_PAGESIZE);
-		memmove((void *)pdi->di_pages[i],
-			(const void *)DIR_Page(pdh->dh_data, i), DIR_PAGESIZE);
+		memcpy(pdi->di_pages[i],
+                       DIR_Page(pdh->dh_data, i), DIR_PAGESIZE);
 	}
 
 	/* free pages which have disappeared */
 	for (i=pages ; i<DIR_MAXPAGES ; i++) {
-		if (pdi->di_pages[i])
+		if (pdi->di_pages[i]) {
 			rvmlib_rec_free(pdi->di_pages);
+                        pdi->di_pages[i] = NULL;
+                }
 	}
 
 	return ;
@@ -108,11 +109,14 @@ void DI_Dec(PDirInode pdi)
 	rcount = pdi->di_refcount;
 	if (rcount == 1){
 		/* Last vnode referencing directory inode - delete it */
-		for (i = 0; i < DIR_MAXPAGES; i++)
+		for (i = 0; i < DIR_MAXPAGES; i++) {
 			if (pdi->di_pages[i]){
 				DLog(29, "Deleting page %d for directory", i);
 				rvmlib_rec_free(pdi->di_pages[i]);
-		}
+                                // shouldn't matter pdi is gone anyways.
+                                //pdi->di_pages[i] = NULL;
+                        }
+                }
 		DLog(29, "Deleting inode ");
 		rvmlib_rec_free((void *)pdi);
 	} else {
@@ -146,11 +150,9 @@ int DI_Pages(PDirInode pdi)
 	int i = 0;
 	CODA_ASSERT(pdi);
 
-	while( pdi->di_pages[i] && (i < DIR_MAXPAGES)) 
+	while(i < DIR_MAXPAGES && pdi->di_pages[i]) 
 		i++;
 	
-	/* check this guy is valid */
-	CODA_ASSERT(i <= DIR_MAXPAGES);
 	return i;
 }
 
@@ -179,7 +181,7 @@ void DI_Copy(PDirInode oldinode, PDirInode *newinode)
 	CODA_ASSERT(*newinode);
 	rvmlib_set_range(*newinode, sizeof(*newinode));
 
-	memset((void *)*newinode, 0, sizeof(**newinode));
+	memset(*newinode, 0, sizeof(**newinode));
 	for(i = 0; i < DIR_MAXPAGES; i++)
 		if (oldinode->di_pages[i]){
 			DLog(29, "CopyDirInode: Copying page %d", i);
@@ -202,14 +204,13 @@ void DI_VMCopy(PDirInode oldinode, PDirInode *newinode)
 	*newinode = (PDirInode)malloc(sizeof(**newinode));
 	CODA_ASSERT(*newinode);
 
-	memset((void *)*newinode, 0, sizeof(**newinode));
+	memset(*newinode, 0, sizeof(**newinode));
 	for(i = 0; i < DIR_MAXPAGES; i++)
 		if (oldinode->di_pages[i]){
 			DLog(29, "CopyDirInode: Copying page %d", i);
 			(*newinode)->di_pages[i] = malloc(DIR_PAGESIZE);
-			memmove((void *)oldinode->di_pages[i],
-				(const void *)(*newinode)->di_pages[i], 
-				DIR_PAGESIZE);
+			memcpy(oldinode->di_pages[i], (*newinode)->di_pages[i], 
+                               DIR_PAGESIZE);
 		}
 	(*newinode)->di_refcount = oldinode->di_refcount;
 	return;
@@ -257,7 +258,7 @@ PDirInode DI_New()
 	newinode = (PDirInode)rvmlib_rec_malloc(sizeof(*newinode));
 	CODA_ASSERT(newinode);
 	rvmlib_set_range(newinode, sizeof(newinode));
-	memset((void *)newinode, 0, sizeof(*newinode));
+	memset(newinode, 0, sizeof(*newinode));
 	newinode->di_refcount = 1;
 	return newinode;
 }

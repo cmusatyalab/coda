@@ -67,7 +67,7 @@ static int dir_NameBlobs(char *);
 static struct DirEntry *dir_FindItem (struct DirHeader *dir,char *ename, 
 				       struct DirEntry **preventry, int *index, int flags);
 struct DirEntry *dir_GetBlob (struct DirHeader *dir, long blobno);
-static void dir_FreeBlobs(struct DirHeader *dir, register int firstblob, int nblobs);
+static void dir_FreeBlobs(struct DirHeader *dir, int firstblob, int nblobs);
 static struct DirHeader *dir_Extend(struct DirHeader *olddirh, int in_rvm);
 
 
@@ -127,7 +127,7 @@ int DIR_rvm(void)
 /* Find out how many entries are required to store a name. */
 static int dir_NameBlobs (char *name)
 {
-    register int i;
+    int i;
     i = strlen(name)+1;
     return 1+((i+15)>>LESZ);
 }
@@ -138,7 +138,7 @@ static int dir_NameBlobs (char *name)
 */
 static int dir_FindBlobs (struct DirHeader **dh, int nblobs)
 {
-	register int i, j, k;
+	int i, j, k;
 	int failed = 0;
 	int grown = 0;
 	struct PageHeader *pp;
@@ -191,9 +191,9 @@ static int dir_FindBlobs (struct DirHeader **dh, int nblobs)
 /* Add a page to a directory. */
 static int dir_AddPage (struct DirHeader **dh)
 {
-	register int i;
+	int i;
 	int page;
-	register struct DirHeader *dirh;
+	struct DirHeader *dirh;
 	struct PageHeader *ph;
 
 	if ( !dh ) {
@@ -202,7 +202,7 @@ static int dir_AddPage (struct DirHeader **dh)
 	}
 
 
-	dirh = dir_Extend(*dh, DIR_rvm() );
+	dirh = dir_Extend(*dh, DIR_rvm());
 	
 	if ( !dirh )
 		return ENOMEM;
@@ -222,7 +222,6 @@ static int dir_AddPage (struct DirHeader **dh)
 	for (i=1;i<EPP/8;i++)	/* It's a constant */
 		ph->freebitmap[i] = 0;
 	return 0;
-
 }
 
 /* allocate a one page directory */
@@ -255,6 +254,8 @@ static struct DirHeader *dir_Extend(struct DirHeader *olddir, int in_rvm)
 
 	oldsize = DIR_Length(olddir);
 	newsize = oldsize + DIR_PAGESIZE;
+        if ((newsize >> LOGPS) > DIR_MAXPAGES)
+            return NULL;
 		       
 	/* get new space */
 	if ( in_rvm ) {
@@ -269,9 +270,9 @@ static struct DirHeader *dir_Extend(struct DirHeader *olddir, int in_rvm)
 	/* if old dirh exist copy data */
 	if ( in_rvm ) 
 		rvmlib_set_range((void *)dirh, newsize);
-	memmove(dirh, olddir, oldsize);
+	memcpy(dirh, olddir, oldsize);
 	
-	memset((void *)dirh + oldsize, 0, newsize - oldsize);
+	memset(dirh + oldsize, 0, newsize - oldsize);
 
 	/* if old dirh exists, free it */
 	if ( in_rvm ) 
@@ -291,10 +292,9 @@ struct PageHeader *DIR_Page(struct DirHeader *dirh, int page)
 }
 
 /* Free a whole bunch of directory entries: _within_ a single page  */
-static void dir_FreeBlobs(struct DirHeader *dhp, register int firstblob, 
-			   int nblobs)
+static void dir_FreeBlobs(struct DirHeader *dhp, int firstblob, int nblobs)
 {
-    register int i;
+    int i;
     int page;
     struct PageHeader *pp;
     page = firstblob>>LEPP;
@@ -414,7 +414,7 @@ int DIR_Init(int data_loc)
 		return 0;
 	} else
 		return 1;
-	memset((char *)&dir_stats, 0, sizeof(dir_stats));
+	memset(&dir_stats, 0, sizeof(dir_stats));
 }
 
 void DH_PrintStats(FILE *fp)
@@ -491,9 +491,9 @@ int DIR_Length (struct DirHeader *dir)
 int DIR_Create (struct DirHeader **dh, char *entry, struct DirFid *fid)
 {
 	int blobs, firstblob;
-	register int i;
+	int i;
 	struct DirHeader *dir;
-	register struct DirEntry *ep;
+	struct DirEntry *ep;
 
 	if ( !dh || !(*dh) ||  !entry || !fid )
 		return EIO;
@@ -554,7 +554,7 @@ int DIR_Create (struct DirHeader **dh, char *entry, struct DirFid *fid)
 int DIR_Delete(struct DirHeader *dir, char *entry)
 {
 	int nitems, index;
-	register struct DirEntry *firstitem;
+	struct DirEntry *firstitem;
 	struct DirEntry *preventry;
     
 	CODA_ASSERT( dir && entry );
@@ -596,8 +596,8 @@ int DIR_Delete(struct DirHeader *dir, char *entry)
 int DIR_MakeDir (struct DirHeader **dir,struct DirFid *me, 
 		 struct DirFid *parent)
 {
-	register int i;
-	register struct DirHeader *dhp;
+	int i;
+	struct DirHeader *dhp;
 
 
 	if ( !dir ) {
@@ -769,7 +769,7 @@ static void fid_NFidV2Fid(struct DirNFid *dnfid, VolumeId vol, struct ViceFid *f
 */
 int DIR_Lookup (struct DirHeader *dir, char *entry, struct DirFid *fid, int flags)
 {
-	register struct DirEntry *de;
+	struct DirEntry *de;
 
 	if ( !dir ) 
 		return ENOENT;
@@ -953,7 +953,7 @@ void dir_Copy(PDirHeader old, PDirHeader *new, int to_rvm)
 		rvmlib_set_range((void *) new, size);
 	} else
 		*new = (PDirHeader)malloc(size);
-	memmove((void *) *new, (const void *)old, size);
+	memcpy(*new, old, size);
 
 }
 
@@ -964,10 +964,10 @@ void dir_Copy(PDirHeader old, PDirHeader *new, int to_rvm)
 int DIR_IsEmpty (struct DirHeader *dhp) 
 {
 	/* Enumerate the contents of a directory. */
-	register int i;
+	int i;
 	int num;
 	int empty = 1;
-	register struct DirEntry *ep;
+	struct DirEntry *ep;
 	
 	if (!dhp) 
 		return 0;
@@ -1004,9 +1004,9 @@ struct DirEntry *dir_GetBlob (struct DirHeader *dir, long blobno)
 /* Hash a string to a number between 0 and NHASH. */
 int DIR_Hash (char *string)
 {
-    register char tc;
-    register int hval;
-    register int tval;
+    char tc;
+    int hval, tval;
+
     hval = 0;
     while( (tc=(*string++)) )
         {hval *= 173;
@@ -1068,10 +1068,10 @@ static struct DirEntry *dir_FindItem (struct DirHeader *dir, char *ename,
 				       struct DirEntry **preventry, int *index, int flags)
 {
 	int rc = 0;
-	register int i;	
-	register short blobno;
-	register struct DirEntry *tp;
-	register struct DirEntry *lp = NULL;	/* page of previous entry in chain */
+	int i;	
+	short blobno;
+	struct DirEntry *tp;
+	struct DirEntry *lp = NULL;	/* page of previous entry in chain */
 	struct DirFind find;
 
 	switch (flags) {

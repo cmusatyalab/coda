@@ -83,11 +83,11 @@ int DH_Length(PDirHandle dh)
 {
 	int rc;
 
-	DH_LockW(dh);
+	DH_LockR(dh);
 
 	rc = DIR_Length(dh->dh_data);
 
-	DH_UnLockW(dh);
+	DH_UnLockR(dh);
 
 	return rc;
 }
@@ -220,13 +220,11 @@ void DH_Alloc(PDirHandle dh, int size, int in_rvm)
 		DIR_intrans();
 		RVMLIB_REC_OBJECT(*dh);
 		dh->dh_data = rvmlib_rec_malloc(size);
-		CODA_ASSERT(dh->dh_data);
-		memset((void *)dh->dh_data, 0, size);
 	} else {
 		dh->dh_data = malloc(size);
-		CODA_ASSERT(dh->dh_data);
-		memset((void *)dh->dh_data, 0, size);
 	}
+        CODA_ASSERT(dh->dh_data);
+        memset((void *)dh->dh_data, 0, size);
 
 	DH_UnLockW(dh);
 	return;
