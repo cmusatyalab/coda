@@ -262,7 +262,7 @@ cfsnc_find(struct cnode *dcp, const char * name, int namelen, int hash)
 		cfsnc_stat.Search_len += count;
 		CDEBUG(D_CACHE, "dcp 0x%x,found.\n", (int) dcp);
 		if ( namelen == 2 && name[0]=='.' && name[1]=='.' ) {
-printk("HIT: name %s, ino %ld, pino %ld\n", pname, CTOV(dcp)->i_ino,
+CDEBUG(D_CACHE, "HIT: name %s, ino %ld, pino %ld\n", pname, CTOV(dcp)->i_ino,
        CTOV(cncp->cp)->i_ino);
 		}
 		return(cncp);

@@ -17,7 +17,7 @@ INCL    =  -I. -I/usr/src/linux/include  -include /usr/src/linux/include/linux/m
 CFLAGS  := -D__KERNEL__ $(INCL)   $(DEFINES)  $(CFLAGS)
 
 
-coda Coda coda.o: $(OBJS)
+coda.o coda Coda : $(OBJS)
 	$(LD) -m "`ld --help | awk '/supported emulations/ {print $$4}'`" -r -o $@ $(OBJS)
 
 install: coda.o
