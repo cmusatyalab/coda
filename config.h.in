@@ -48,8 +48,14 @@
 /* Define if you have the <arpa/nameser.h> header file.  */
 #undef HAVE_ARPA_NAMESER_H
 
+/* Define if you have the <md5.h> header file.  */
+#undef HAVE_MD5_H
+
 /* Define if you have the <netinet/in.h> header file.  */
 #undef HAVE_NETINET_IN_H
+
+/* Define if you have the <openssl/md5.h> header file.  */
+#undef HAVE_OPENSSL_MD5_H
 
 /* Define if you have the <search.h> header file.  */
 #undef HAVE_SEARCH_H

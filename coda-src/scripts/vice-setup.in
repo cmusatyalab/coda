@@ -97,7 +97,7 @@ echo Setting up tokens for authentication.
 
 cd ${vicedir}/db
 
-for which in auth2 volutil; do
+for which in update auth2 volutil; do
     token=""
     until [ "x$token" != x ]; do
 	echo "The following tokens must be identical on all servers."
@@ -130,6 +130,7 @@ auth2.lock
 servers
 prot_users.db
 prot_index.db
+update.tk
 volutil.tk
 VRDB
 files
@@ -267,3 +268,4 @@ vice-setup-srvdir
 echo "You have set up " `cat ${vicedir}/hostname`
 echo "Your scm is " `cat ${vicedir}/db/scm`
 echo "Other config files will be fetched from the SCM by updateclnt."
+

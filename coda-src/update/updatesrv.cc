@@ -94,6 +94,7 @@ extern void SFTP_Activate (SFTP_Initializer *initPtr);
 #include "update.h"
 #include "vice_file.h"
 #include "codaconf.h"
+#include "coda_md5.h"
 
 #define UPDSRVNAME "updatesrv"
 extern char *ViceErrorMsg(int errorCode);   /* should be in libutil */
@@ -283,6 +284,7 @@ int main(int argc, char **argv)
     RPC2_enableReaping = 1;
 
     /* register the port with the portmapper */
+    fprintf(stderr, "Attempting to bind with rpc2portmap\n");
     portmapid = portmap_bind("localhost");
     if ( !portmapid ) {
 	    fprintf(stderr, "Cannot bind to rpc2portmap; exiting\n");
@@ -348,6 +350,61 @@ static void Terminate()
     exit(0);
 }
 
+static int GetUpdateSecret(char *tokenfile, RPC2_EncryptionKey key)
+{
+    int fd, n;
+    unsigned char buf[512], digest[16];
+    MD5_CTX md5ctxt;
+
+    memset(key, 0, RPC2_KEYSIZE);
+
+    fd = open(tokenfile, O_RDONLY);
+    if (fd == -1) {
+	LogMsg(0, SrvDebugLevel, stdout, "Could not open %s", tokenfile);
+	return -1;
+    }
+
+    memset(buf, 0, 512);
+    n = read(fd, buf, 512);
+    if (n < 0) {
+	LogMsg(0, SrvDebugLevel, stdout, "Could not read %s", tokenfile);
+	return -1;
+    }
+
+    MD5Init(&md5ctxt);
+    MD5Update(&md5ctxt, buf, n);
+    MD5Final(digest, &md5ctxt);
+
+    memcpy(key, digest, RPC2_KEYSIZE);
+    return 0;
+}
+
+static long Update_GetKeys(RPC2_Integer *authtype, RPC2_CountedBS *cident,
+			   RPC2_EncryptionKey sharedsecret,
+			   RPC2_EncryptionKey sessionkey)
+{
+    unsigned int i;
+
+    if (GetUpdateSecret("/vice/db/update.tk", sharedsecret) == -1)
+	return -1;
+
+    memset(sessionkey, 0, RPC2_KEYSIZE);
+    for (i = 0; i < RPC2_KEYSIZE / sizeof(int); i++)
+	((int *)sessionkey)[i] = rpc2_NextRandom(NULL);
+    
+    return 0;
+}
+
+static long Update_AuthFail(RPC2_Integer *authtype,
+			    RPC2_CountedBS *cident,
+			    RPC2_Integer *encryptiontype,
+			    RPC2_HostIdent *host,
+			    RPC2_PortIdent *port)
+{
+    LogMsg(0, SrvDebugLevel, stdout, "Access from %s failed with bad token",
+	   inet_ntoa(host->Value.InetAddress));
+    return 0;
+}
 
 static void ServerLWP(int *Ident)
 {
@@ -364,8 +421,9 @@ static void ServerLWP(int *Ident)
     LogMsg(0, SrvDebugLevel, stdout,"Starting Update Worker %d", lwpid);
 
     while (1) {
-	if ((rc = RPC2_GetRequest(&myfilter, &mycid, &myrequest, 0, 0, 
-				  RPC2_XOR, 0))
+	if ((rc = RPC2_GetRequest(&myfilter, &mycid, &myrequest, 0,
+				  (long (*)(...))Update_GetKeys, RPC2_XOR,
+				  (long (*)(...))Update_AuthFail))
 		== RPC2_SUCCESS) {
 	    LogMsg(1, SrvDebugLevel, stdout,
 		   "Worker %d received request %d", 

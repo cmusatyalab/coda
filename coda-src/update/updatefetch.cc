@@ -59,6 +59,7 @@ extern "C" {
 #include "update.h"
 #include <volutil.h>
 #include <codaconf.h>
+#include <coda_md5.h>
 #include <vice_file.h>
 
 extern char *ViceErrorMsg(int errorCode);   /* should be in libutil */
@@ -208,6 +209,35 @@ static int FetchFile(char *RemoteFileName, char *LocalFileName, int mode)
     return(rc);
 }
 
+static int GetUpdateSecret(char *tokenfile, RPC2_EncryptionKey key)
+{
+    int fd, n;
+    unsigned char buf[512], digest[16];
+    MD5_CTX md5ctxt;
+
+    memset(key, 0, RPC2_KEYSIZE);
+
+    fd = open(tokenfile, O_RDONLY);
+    if (fd == -1) {
+	LogMsg(0, SrvDebugLevel, stdout, "Could not open %s", tokenfile);
+	return -1;
+    }
+
+    memset(buf, 0, 512);
+    n = read(fd, buf, 512);
+    if (n < 0) {
+	LogMsg(0, SrvDebugLevel, stdout, "Could not read %s", tokenfile);
+	return -1;
+    }
+
+    MD5Init(&md5ctxt);
+    MD5Update(&md5ctxt, buf, n);
+    MD5Final(digest, &md5ctxt);
+
+    memcpy(key, digest, RPC2_KEYSIZE);
+
+    return 0;
+}
 
 static void Connect()
 {
@@ -215,7 +245,9 @@ static void Connect()
     RPC2_PortIdent sid;
     RPC2_SubsysIdent ssid;
     RPC2_HostIdent hid;
-    RPC2_CountedBS dummy;
+    RPC2_CountedBS cident;
+    RPC2_EncryptionKey secret;
+    char hostname[64];
     long portmapid;
     long port;
 
@@ -238,13 +270,20 @@ static void Connect()
     sid.Value.InetPortNumber = htons(port);
     ssid.Tag = RPC2_SUBSYSBYID;
     ssid.Value.SubsysId = SUBSYS_UPDATE;
-    dummy.SeqLen = 0;
-
 
     RPC2_BindParms bparms;
     bzero((void *)&bparms, sizeof(bparms));
-    bparms.SecurityLevel = RPC2_OPENKIMONO;
+    bparms.SecurityLevel = RPC2_AUTHONLY;
+    bparms.EncryptionType = RPC2_XOR;
     bparms.SideEffectType = SMARTFTP;
+
+    gethostname(hostname, 63); hostname[63] = '\0';
+    cident.SeqBody = (RPC2_ByteSeq)&hostname;
+    cident.SeqLen = strlen(hostname) + 1;
+    bparms.ClientIdent = &cident;
+
+    GetUpdateSecret("/vice/db/update.tk", secret);
+    bparms.SharedSecret = &secret;
 
     if ((rc = RPC2_NewBinding(&hid, &sid, &ssid, &bparms, &con))) {
         LogMsg(0, SrvDebugLevel, stdout, "Bind failed with %s\n", (char *)ViceErrorMsg((int)rc));
