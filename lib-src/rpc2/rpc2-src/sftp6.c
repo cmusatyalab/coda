@@ -124,35 +124,39 @@ long SFTP_MultiRPC1(IN HowMany, IN ConnHandleList, IN MCast, INOUT SDescList, IN
     SE_Descriptor	SDescList[];
     RPC2_PacketBuffer	*req[];
     long		retcode[];
-    {
+{
     int	host;
-    struct CEntry **ceaddr = (struct CEntry **)malloc(HowMany * sizeof(struct CEntry *));
-    assert(ceaddr != NULL);
-
     say(0, SFTP_DebugLevel, "SFTP_MultiRPC1()\n");
 
-    /* reacquire CEntry pointers */
-    for (host = 0; host < HowMany; host++)
-	ceaddr[host] = rpc2_GetConn(ConnHandleList[host]);
+    /* Non-multicast MRPC: simply iterate over the set of hosts calling
+     * SFTP_MakeRPC1() */
+    if (!MCast) {
+	  for (host = 0; host < HowMany; host++) {
+	      if (retcode[host] <= RPC2_ELIMIT || SDescList[host].Tag == OMITSE)
+		  continue;
 
-    if (!MCast)
-	/* Non-multicast MRPC: simply iterate over the set of hosts calling SFTP_MakeRPC1() */
-	{
-	  for (host = 0; host < HowMany; host++)
-	      {
-	      if (HOSTSEOK(host))
-		  retcode[host] = SFTP_MakeRPC1(ConnHandleList[host],&SDescList[host], &req[host]);		
-	      }
-	}
-    else
-	/* Multicast MRPC: a whole 'nother ballgame. */
-	/* NOTE: MULTICAST MRPC fetch currently has a HACK in it! */
-	{
+	      retcode[host] = SFTP_MakeRPC1(ConnHandleList[host],
+					    &SDescList[host], &req[host]);		
+	  }
+	  return -1;
+    }
+
+    /* Multicast MRPC: a whole 'nother ballgame. */
+    /* NOTE: MULTICAST MRPC fetch currently has a HACK in it! */
+    {
 	struct MEntry		*me;
 	struct SFTP_Entry	*mse;		/* multicast SE entry */
 	SE_Descriptor		*mdesc = NULL;	/* multicast SE descriptor */
 	struct SFTP_Entry	*thisse;	/* singlecast SE entry */
 	SE_Descriptor		*thisdesc;	/* singlescast SE descriptor */
+	struct CEntry		**ceaddr;
+
+	ceaddr = (struct CEntry **)malloc(HowMany * sizeof(struct CEntry *));
+	assert(ceaddr != NULL);
+
+	/* reacquire CEntry pointers */
+	for (host = 0; host < HowMany; host++)
+	    ceaddr[host] = rpc2_GetConn(ConnHandleList[host]);
 
 	/* reacquire MEntry pointer */
 	assert(MCast->Mgroup != 0);
@@ -250,11 +254,10 @@ long SFTP_MultiRPC1(IN HowMany, IN ConnHandleList, IN MCast, INOUT SDescList, IN
 	    default:
 		assert(FALSE);	    /* this was checked above */
 	    }
-	}
-
-    free(ceaddr);
-    return -1;
+	free(ceaddr);
     }
+    return -1;
+}
 
 #undef	HOSTSEOK
 #undef	FAIL_MCRPC1

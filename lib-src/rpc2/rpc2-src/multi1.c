@@ -70,7 +70,6 @@ extern long SetupMulticast();
 typedef struct  {
 		struct CEntry	    *ceaddr;
 		RPC2_PacketBuffer   *req;
-		RPC2_PacketBuffer   *preq;
 		struct SL_Entry	    *sle;
 		long		    retcode;
 		} MultiCon;
@@ -348,50 +347,50 @@ static void SetupPackets(int HowMany, MultiCon *mcon,
 
     /* allocate and setup HowMany request packets */
     /* we won't send on bad connections, so don't bother to set them up */
-    for (host = 0; host < HowMany; host++)
-	if (mcon[host].retcode > RPC2_ELIMIT)
-	    {
-	    RPC2_AllocBuffer(Request->Header.BodyLength, &mcon[host].req);
+    for (host = 0; host < HowMany; host++) {
+	if (mcon[host].retcode <= RPC2_ELIMIT)
+	    continue;
 
-	    /* preserve address of allocated packet */
-	    /* preq[host] will be the packet actually sent over the wire */
-	    thisreq = mcon[host].preq = mcon[host].req;
-	    thisconn = mcon[host].ceaddr;
+	RPC2_AllocBuffer(Request->Header.BodyLength, &thisreq);
 
-	    /* initialize header fields to defaults, and copy body of request packet */
-	    rpc2_InitPacket(thisreq, thisconn, Request->Header.BodyLength);
-	    memcpy(thisreq->Body, Request->Body, Request->Header.BodyLength);
+	/* preserve address of allocated packet */
+	mcon[host].req = thisreq;
+	thisconn = mcon[host].ceaddr;
 
-	    /* complete non-default header fields */
-	    thisreq->Header.SeqNumber = thisconn->NextSeqNumber;
-	    thisreq->Header.Opcode = Request->Header.Opcode;	/* set by client */
-	    thisreq->Header.BindTime = thisconn->RTT >> RPC2_RTT_SHIFT;
-	    if (thisconn->RTT && thisreq->Header.BindTime == 0)
-		    thisreq->Header.BindTime = 1;  /* ugh. zero is overloaded. */
-	    /* For multicast, set MULTICAST flag even though these packets will only
-	       ever be sent out as retries on the point-to-point channels.  This
-	       is to help servers maintain correct multicast sequence numbers. */
-	    if (thisconn->SecurityLevel == RPC2_HEADERSONLY ||
-		thisconn->SecurityLevel == RPC2_SECURE)
-		thisreq->Header.Flags = ((MCast ? RPC2_MULTICAST : 0) | RPC2_ENCRYPTED);
-	    else
-		thisreq->Header.Flags =  (MCast ? RPC2_MULTICAST : 0);
-	    }
+	/* initialize header fields to defaults, and copy body of request packet */
+	rpc2_InitPacket(thisreq, thisconn, Request->Header.BodyLength);
+	memcpy(thisreq->Body, Request->Body, Request->Header.BodyLength);
+
+	/* complete non-default header fields */
+	thisreq->Header.SeqNumber = thisconn->NextSeqNumber;
+	thisreq->Header.Opcode = Request->Header.Opcode;	/* set by client */
+	thisreq->Header.BindTime = thisconn->RTT >> RPC2_RTT_SHIFT;
+	if (thisconn->RTT && thisreq->Header.BindTime == 0)
+	    thisreq->Header.BindTime = 1;  /* ugh. zero is overloaded. */
+
+	/* For multicast, set MULTICAST flag even though these packets will only
+	   ever be sent out as retries on the point-to-point channels.  This
+	   is to help servers maintain correct multicast sequence numbers. */
+	thisreq->Header.Flags =  (MCast ? RPC2_MULTICAST : 0);
+
+	if (thisconn->SecurityLevel == RPC2_HEADERSONLY ||
+	    thisconn->SecurityLevel == RPC2_SECURE)
+	    thisreq->Header.Flags |= RPC2_ENCRYPTED;
+    }
 
     /* Notify side effect routine, if any. */
-    if (SDescList != NULL)
-	{
+    if (SDescList != NULL) {
 	/* We have already verified that all connections have the same side-effect type (or none), */
 	/* so we can simply invoke the procedure corresponding to the first GOOD connection. */
 	thisconn = 0;
 	for (host = 0; host < HowMany; host++)
 	    if (mcon[host].retcode > RPC2_ELIMIT)
-		{
+	    {
 		thisconn = mcon[host].ceaddr;
 		break;
-		}
+	    }
 	if (thisconn && thisconn->SEProcs && thisconn->SEProcs->SE_MultiRPC1)
-	    {
+	{
 	    RPC2_PacketBuffer *savedmcpkt = (MCast ? me->CurrentPacket : NULL);
 
 	    long *seretcode;
@@ -400,34 +399,38 @@ static void SetupPackets(int HowMany, MultiCon *mcon,
 	    assert((preqs = (RPC2_PacketBuffer **)malloc(HowMany * sizeof(RPC2_PacketBuffer *))) != NULL);
 	    for (host = 0; host < HowMany; host++) {
 		seretcode[host] = mcon[host].retcode;
-		preqs[host] = mcon[host].preq;
+		preqs[host] = mcon[host].req;
 	    }
 
 	    /* N.B.  me->state is not set yet, so the se routine should NOT look at it. */
 	    (*thisconn->SEProcs->SE_MultiRPC1)(HowMany, ConnHandleList, MCast, SDescList, preqs, seretcode);
 	    for (host = 0; host < HowMany; host++) {
-		mcon[host].preq = preqs[host];
-		if (seretcode != RPC2_SUCCESS &&
-		    mcon[host].retcode != seretcode[host])
+		/* Has the sideeffect modified the original request? */
+		if (mcon[host].req != preqs[host]) {
+		    RPC2_FreeBuffer(&mcon[host].req);
+		    mcon[host].req = preqs[host];
+		}
+		if (seretcode[host] == RPC2_SUCCESS)
+		    continue;
+
+		/* Any new errors? */
+		if (mcon[host].retcode != seretcode[host])
 		{
-		    if (seretcode[host] > RPC2_FLIMIT)
-			{
-			SetState(mcon[host].ceaddr, C_THINK);	/* reset connection state */
+		    if (seretcode[host] > RPC2_FLIMIT) {
+			SetState(mcon[host].ceaddr, C_THINK); /* reset connection state */
 			mcon[host].retcode = RPC2_SEFAIL1;
-			}
-		    else
-			{
+		    } else {
 			rpc2_SetConnError(mcon[host].ceaddr);
 			mcon[host].retcode = RPC2_SEFAIL2;
-			}
+		    }
 		}
 	    }
 	    free(preqs);
 	    free(seretcode);
 	    if (savedmcpkt != NULL && savedmcpkt != me->CurrentPacket)
 		RPC2_FreeBuffer(&savedmcpkt);   /* multicast packet reallocated; free old one */
-	    }
 	}
+    }
 
     /* complete setup of the multicast packet */
     if (MCast)
@@ -466,41 +469,42 @@ static void SetupPackets(int HowMany, MultiCon *mcon,
 
     /* complete setup of the individual packets */
     /* we won't send on bad connections, so don't bother to set them up */
-    for (host = 0; host < HowMany; host++)
-	if (mcon[host].retcode > RPC2_ELIMIT)
-	    {
-	    thisconn = mcon[host].ceaddr;
-	    thisreq = mcon[host].preq;
+    for (host = 0; host < HowMany; host++) {
+	if (mcon[host].retcode <= RPC2_ELIMIT)
+	    continue;
 
-	    /* create call entry */
-	    mcon[host].sle = rpc2_AllocSle(OTHER, thisconn);
-	    mcon[host].sle->TElem.BackPointer = (char *)mcon[host].sle;
+	thisconn = mcon[host].ceaddr;
+	thisreq = mcon[host].req;
 
-	    /* convert to network order */
-	    rpc2_htonp(thisreq);
+	/* create call entry */
+	mcon[host].sle = rpc2_AllocSle(OTHER, thisconn);
+	mcon[host].sle->TElem.BackPointer = (char *)mcon[host].sle;
 
-	    /* Encrypt appropriate portions of the packet */
-	    switch ((int) thisconn->SecurityLevel)
-	        {
-	        case RPC2_OPENKIMONO:
-		case RPC2_AUTHONLY:
-		    break;
-		
-		case RPC2_HEADERSONLY:
-		    rpc2_Encrypt((char *)&thisreq->Header.BodyLength,
-		    			(char *)&thisreq->Header.BodyLength,
-					sizeof(struct RPC2_PacketHeader) - 4*sizeof(RPC2_Integer),
-					thisconn->SessionKey, thisconn->EncryptionType);
-		    break;
-		
-		case RPC2_SECURE:
-		    rpc2_Encrypt((char *)&thisreq->Header.BodyLength,
-		    			(char *)&thisreq->Header.BodyLength,
-					thisreq->Prefix.LengthOfPacket - 4*sizeof(RPC2_Integer),
-					thisconn->SessionKey, thisconn->EncryptionType);
-		    break;
-		}
-	    }
+	/* convert to network order */
+	rpc2_htonp(thisreq);
+
+	/* Encrypt appropriate portions of the packet */
+	switch ((int) thisconn->SecurityLevel)
+	{
+	case RPC2_OPENKIMONO:
+	case RPC2_AUTHONLY:
+	    break;
+
+	case RPC2_HEADERSONLY:
+	    rpc2_Encrypt((char *)&thisreq->Header.BodyLength,
+			 (char *)&thisreq->Header.BodyLength,
+			 sizeof(struct RPC2_PacketHeader) - 4*sizeof(RPC2_Integer),
+			 thisconn->SessionKey, thisconn->EncryptionType);
+	    break;
+
+	case RPC2_SECURE:
+	    rpc2_Encrypt((char *)&thisreq->Header.BodyLength,
+			 (char *)&thisreq->Header.BodyLength,
+			 thisreq->Prefix.LengthOfPacket - 4*sizeof(RPC2_Integer),
+			 thisconn->SessionKey, thisconn->EncryptionType);
+	    break;
+	}
+    }
 }
 
 	
@@ -527,11 +531,10 @@ void FreeMultiCon(int HowMany, MultiCon *mcon)
     for (i = 0; i < HowMany; i++) {
 	if(mcon[i].sle)
 	    rpc2_FreeSle(&mcon[i].sle);
-	if (mcon[i].req) {
-	  if (mcon[i].req != mcon[i].preq)
-	    RPC2_FreeBuffer(&mcon[i].preq);/* packet allocated by SE routine */
+
+	if (mcon[i].req)
           RPC2_FreeBuffer(&mcon[i].req);
-	}
+
 	if (mcon[i].ceaddr)
 	    LWP_NoYieldSignal((char *)mcon[i].ceaddr);
     }
@@ -638,15 +641,14 @@ static long mrpc_SendPacketsReliably(
 	       timestamp = rpc2_MakeTimeStamp();
             }
 
-	    mcon[thispacket].preq->Header.TimeStamp = htonl(timestamp);
-	    rpc2_XmitPacket(rpc2_RequestSocket, mcon[thispacket].preq,
+	    mcon[thispacket].req->Header.TimeStamp = htonl(timestamp);
+	    rpc2_XmitPacket(rpc2_RequestSocket, mcon[thispacket].req,
 			    &mcon[thispacket].ceaddr->PeerHost,
 			    &mcon[thispacket].ceaddr->PeerPort);
 	    }
 
         if (rpc2_Bandwidth) 
-	    rpc2_ResetLowerLimit(mcon[thispacket].ceaddr,
-				 mcon[thispacket].preq);
+	    rpc2_ResetLowerLimit(mcon[thispacket].ceaddr, mcon[thispacket].req);
 
 	slp->RetryIndex = 1;
 	rpc2_ActivateSle(slp, &mcon[thispacket].ceaddr->Retry_Beta[1]);
@@ -801,10 +803,10 @@ static long mrpc_SendPacketsReliably(
 		    tout = &c_entry->Retry_Beta[slp->RetryIndex];
 		    rpc2_ActivateSle(slp, tout);
 		    say(9, RPC2_DebugLevel, "Sending retry %ld at %d on 0x%lx (timeout %ld.%06ld)\n", slp->RetryIndex, rpc2_time(), c_entry->UniqueCID, tout->tv_sec, tout->tv_usec);
-		    mcon[thispacket].preq->Header.Flags = htonl((ntohl(mcon[thispacket].preq->Header.Flags) | RPC2_RETRY));
-		    mcon[thispacket].preq->Header.TimeStamp = htonl(rpc2_MakeTimeStamp());
+		    mcon[thispacket].req->Header.Flags = htonl((ntohl(mcon[thispacket].req->Header.Flags) | RPC2_RETRY));
+		    mcon[thispacket].req->Header.TimeStamp = htonl(rpc2_MakeTimeStamp());
 		    rpc2_Sent.Retries += 1;	/* RPC retries are currently NOT multicasted! -JJK */
-		    rpc2_XmitPacket(rpc2_RequestSocket, mcon[thispacket].preq, &c_entry->PeerHost, &c_entry->PeerPort);
+		    rpc2_XmitPacket(rpc2_RequestSocket, mcon[thispacket].req, &c_entry->PeerHost, &c_entry->PeerPort);
 		    break;	/* switch */
 		    
 		default:    /* abort */

@@ -481,8 +481,8 @@ struct TraceElem
 	for(idx = 0; !ConnHandleList[idx] && idx < HowMany; idx++)/*loop*/; \
 	tea->ConnArray0 = mcon[idx].ceaddr;\
 	tea->ConnArray0_UniqueCID = (mcon[idx].ceaddr)->UniqueCID;\
-	tea->PacketArray0_Address = mcon[idx].preq;\
-	tea->PacketArray0 = *(mcon[idx].preq);  /* structure assignment */\
+	tea->PacketArray0_Address = mcon[idx].req;\
+	tea->PacketArray0 = *(mcon[idx].req);  /* structure assignment */\
 	if (TimeOut == NULL) tea->IsNullTimeout = 1;\
 	else\
 	    {\
