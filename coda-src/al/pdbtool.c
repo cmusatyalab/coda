@@ -431,7 +431,7 @@ void tool_changeId(int argc,char *argv[])
 }
 
 /* dump/restore database contents */
-void tool_export_ldif(int argc, char *argv[])
+void tool_ldif_export(int argc, char *argv[])
 {
     int32_t id, i;
     PDB_profile rec;
@@ -441,7 +441,7 @@ void tool_export_ldif(int argc, char *argv[])
     int rc, pass = 0;
 
     if (check_args_num(argc, 3)) {
-	printf("Usage: export_ldif <ldif-file> <basedn>\n");
+	printf("Usage: ldif_export <ldif-file> <basedn>\n");
 	return;
     }
 
@@ -724,7 +724,7 @@ void tool_help(int argc, char *argv[])
 	printf("u <id/name>\t\t\tupdate an id/name\n");
 	printf("ids\t\t\t\tget the database maxids\n");
 	printf("maxids <userid> <groupid>\tset the database maxids\n");
-	printf("export_ldif <ldiffile> <basedn>\tdump the contents of the pdb database in LDIF format\n");
+	printf("ldif_export <ldiffile> <basedn>\tdump the contents of the pdb database in LDIF format\n");
 	printf("export <userfile> <groupfile>\tdump the contents of the pdb database\n");
 	printf("import <userfile> <groupfile>\tread a dumped pdb database\n");
 	printf("source <file>\t\t\tread commands from file\n");
@@ -752,7 +752,7 @@ command_t pdbcmds[] =
 	{"u", tool_update, 0, "update an id"},
 	{"ids", tool_get_maxids, 0, "get the database maxids"},
 	{"maxids", tool_maxids, 0, "set the database maxids"},
-	{"export_ldif", tool_export_ldif, 0, "dump the contents of the database in LDIF format"},
+	{"ldif_export", tool_ldif_export, 0, "dump the contents of the database in LDIF format"},
 	{"export", tool_export, 0, "dump the contents of the database"},
 	{"import", tool_import, 0, "load the contents of the database"},
 	{"source", tool_source, 0, "read commands from file"},
