@@ -26,10 +26,10 @@ liblwp_la_LIBADD = process.lo
 liblwp_la_CFLAGS = -DLWP_DEBUG
 liblwp_la_LDFLAGS = -version-info 1:0:0 $(LIBTOOL_LDFLAGS)
 
-noinst_PROGRAMS = cswitch test test-static tdb rw
+noinst_PROGRAMS = cswitch testlwp testlwp-static tdb rw
 LDADD = liblwp.la
-test_static_SOURCES = test.c
-test_static_LDFLAGS = -static
+testlwp_static_SOURCES = testlwp.c
+testlwp_static_LDFLAGS = -static
 
 DISTCLEANFILES = process.s
 MAINTAINERCLEANFILES = Makefile.in

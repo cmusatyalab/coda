@@ -27,14 +27,14 @@ liblwp_pt_la_SOURCES = iomgr_pt.c lock_pt.c lwp_pt.c preempt_pt.c \
 liblwp_pt_la_LIBADD = fasttime_pt.lo timer_pt.lo
 liblwp_pt_la_LDFLAGS = -version-info 1:1:0 $(LIBPTHREAD)
 
-noinst_PROGRAMS = cswitch_pt test_pt test-static_pt tdb_pt rw_pt
+noinst_PROGRAMS = cswitch_pt testlwp_pt testlwp-static_pt tdb_pt rw_pt
 cswitch_pt_SOURCES =
 cswitch_pt_LDADD = cswitch_pt.o liblwp_pt.la
-test_pt_SOURCES =
-test_pt_LDADD = test_pt.o liblwp_pt.la
-test_static_pt_SOURCES =
-test_static_pt_LDADD = test_pt.o liblwp_pt.la
-test_static_pt_LDFLAGS = -static
+testlwp_pt_SOURCES =
+testlwp_pt_LDADD = testlwp_pt.o liblwp_pt.la
+testlwp_static_pt_SOURCES =
+testlwp_static_pt_LDADD = testlwp_pt.o liblwp_pt.la
+testlwp_static_pt_LDFLAGS = -static
 tdb_pt_SOURCES =
 tdb_pt_LDADD = tdb_pt.o liblwp_pt.la
 rw_pt_SOURCES =
@@ -56,8 +56,8 @@ timer_pt.lo: timer.c
 cswitch_pt.o: cswitch.c
 	$(COMPILE) -c $< && mv cswitch.o cswitch_pt.o
 
-test_pt.o: test.c
-	$(COMPILE) -c $< && mv test.o test_pt.o
+testlwp_pt.o: testlwp.c
+	$(COMPILE) -c $< && mv testlwp.o testlwp_pt.o
 
 tdb_pt.o: tdb.c
 	$(COMPILE) -c $< && mv tdb.o tdb_pt.o
