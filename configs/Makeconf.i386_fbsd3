@@ -6,7 +6,7 @@
 MACHINE_FLAGS = -D__BSD44__
 SHORTSYS      = bsd44
 INCLFLAGS     = -I/usr/include
-OPTFLAG	      =
+OPTFLAG	      = -O2
 GFLAG         = -g
 LIBCURSES     = /usr/lib/aout/libcurses.a
 LIBCOMPAT     = /usr/lib/aout/libcompat.a

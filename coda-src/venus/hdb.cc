@@ -2462,10 +2462,10 @@ int NC_PriorityFN(bsnode *b1, bsnode *b2) {
 
     /* The chance of this ever happening should be miniscule! -JJK */
 /*
-    eprint("NC_PriorityFN: priorities tied (%d, %d, %d)!",
+    eprint("NC_PriorityFN: priorities tied (%d, %d, %d)!\n",
 	    n1->priority, n1->depth, n1->random);
 */
-    LOG(1, ("NC_PriorityFN: priorities tied (%d, %d, %d)!",
+    LOG(1, ("NC_PriorityFN: priorities tied (%d, %d, %d)!\n",
 	     n1->priority, n1->depth, n1->random));
     return(0);
 }

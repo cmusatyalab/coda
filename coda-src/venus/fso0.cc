@@ -315,10 +315,10 @@ int FSO_PriorityFN(bsnode *b1, bsnode *b2) {
 
     /* The chance of this ever happening should be miniscule! -JJK */
 /*
-    eprint("FSO_PriorityFN: priorities tied (%d, %d)!",
+    eprint("FSO_PriorityFN: priorities tied (%d, %d)!\n",
 	    f1->priority, f1->flags.random);
 */
-    LOG(1, ("FSO_PriorityFN: priorities tied (%d, %d)!",
+    LOG(1, ("FSO_PriorityFN: priorities tied (%d, %d)!\n",
 	     f1->priority, f1->flags.random));
     return(0);
 }

@@ -448,7 +448,7 @@ OI_FreeLocks:
 	case VIOC_LISTCACHE_VOLUME:
 	    {
 #ifdef    TIMING
- 	    gettimeofday(&u.u_tv1, 0);
+ 	    gettimeofday(&u.u_tv1, 0); u.u_tv2.tv_sec = 0;
 #endif    TIMING
 	    volent *v = 0;
 	    if ((u.u_error = VDB->Get(&v, fid->Volume)) != 0) break;
@@ -800,7 +800,7 @@ V_FreeLocks:
 #ifdef	    TIMING
  	    
 	    gettimeofday(&u.u_tv2, 0);
-	    elapsed = SubTimes(u.u_tv2, u.u_tv1);
+	    elapsed = SubTimes(&(u.u_tv2), &(u.u_tv1));
 #endif      TIMING
  	    /* Hack to include this as an ioctl request in the proper vsr. */
 	    if (!FID_VolIsFake(v->vid)) {

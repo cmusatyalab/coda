@@ -852,7 +852,8 @@ void worker::Resign(msgent *msg, int size) {
 	char *retstr = VenusRetStr((int) ((union outputArgs *)msg->msg_buf)->oh.result);
 	
 #ifdef	TIMING
-	float elapsed = SubTimes(u.u_tv2, u.u_tv1);
+	float elapsed;
+	elapsed = SubTimes(&(u.u_tv2), &(u.u_tv1));
 	LOG(1, ("[Return Done] %s : returns %s, elapsed = %3.1f\n",
 		opstr, retstr, elapsed));
 #else	TIMING
@@ -885,8 +886,15 @@ void worker::Return(msgent *msg, int size) {
     char *retstr = VenusRetStr((int) ((union outputArgs*)msg->msg_buf)->oh.result);
 
 #ifdef	TIMING
-    float elapsed = SubTimes(u.u_tv2, u.u_tv1);
-    LOG(1, ("%s : returns %s, elapsed = %3.1f msec\n", opstr, retstr, elapsed));
+    float elapsed;
+    if (u.u_tv2.tv_sec != 0) {
+	elapsed = SubTimes(&(u.u_tv2), &(u.u_tv1));
+	LOG(1, ("%s : returns %s, elapsed = %3.1f msec\n",
+		opstr, retstr, elapsed));
+    } else {
+	LOG(1, ("%s : returns %s, elapsed = unknown msec (Returning early)\n",
+		opstr, retstr));
+    }
 #else	TIMING
     LOG(1, ("%s : returns %s\n", opstr, retstr));
 #endif	TIMING

@@ -8,7 +8,7 @@
 MACHINE_FLAGS += -D__BSD44__
 SHORTSYS      = bsd44
 INCLFLAGS     = -I/usr/include
-OPTFLAG	      =
+OPTFLAG	      = -O2
 GFLAG         = -g
 LIBCOMPAT     = /usr/lib/libcompat.a
 LIBREADLINE   = /usr/pkg/lib/libreadline.a

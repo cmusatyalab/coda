@@ -220,8 +220,10 @@ enum LockLevel { NL, RD, SH, WR };
 
 /*  *****  Timing macros.  *****  */
 #ifdef	TIMING
-#define SubTimes(end, start)\
-    (((end).tv_sec - (start).tv_sec) * 1000 + ((end).tv_usec - (start).tv_usec) / 1000)
+#define SubTimes(end, start) \
+    ((((end)->tv_sec  - (start)->tv_sec)  * 1000.0) + \
+     (((end)->tv_usec - (start)->tv_usec) / 1000.0))
+
 #define	START_TIMING()\
     struct timeval StartTV, EndTV;\
     gettimeofday(&StartTV, 0);
@@ -232,16 +234,16 @@ enum LockLevel { NL, RD, SH, WR };
 
 #define END_TIMING()\
     gettimeofday(&EndTV, 0);\
-    float elapsed; elapsed = SubTimes(EndTV, StartTV);\
-    float elapsed_ru_utime; elapsed_ru_utime = 0.0;\
-    float elapsed_ru_stime; elapsed_ru_stime = 0.0;
+    float elapsed, elapsed_ru_utime, elapsed_ru_stime; \
+    elapsed = SubTimes(&EndTV, &StartTV); \
+    elapsed_ru_utime = elapsed_ru_stime = 0.0;
 /*
-    getrusage(RUSAGE_SELF, &EndRU);\
-    float elapsed_ru_utime; elapsed_ru_utime = SubTimes(EndRU.ru_utime, StartRU.ru_utime);\
-    float elapsed_ru_stime; elapsed_ru_stime = SubTimes(EndRU.ru_stime, StartRU.ru_stime);
+    getrusage(RUSAGE_SELF, &EndRU); \
+    elapsed_ru_utime = SubTimes(&(EndRU.ru_utime), &(StartRU.ru_utime)); \
+    elapsed_ru_stime = SubTimes(&(EndRU.ru_stime), &(StartRU.ru_stime));
 */
 #else	TIMING
-#define	SubTimes(end, start)	(0.0)
+#define	SubTimes(end, start) (0.0)
 #define START_TIMING()
 #define END_TIMING()\
     float elapsed; elapsed = 0.0;\

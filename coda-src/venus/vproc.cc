@@ -529,7 +529,7 @@ void vproc::Begin_VFS(VolumeId vid, int vfsop, int volmode) {
 	 /*VM_UNSET*/-1 ? VFSOP_TO_VOLMODE(vfsop) : volmode);
     u.u_vfsop = vfsop;
 #ifdef	TIMING
-    gettimeofday(&u.u_tv1, 0);
+    gettimeofday(&u.u_tv1, 0); u.u_tv2.tv_sec = 0;
 #endif	TIMING
 		   
     /* Attempt to enter the volume. */
@@ -712,7 +712,7 @@ Exit:
 	    else {
 		t->success++;
 #ifdef	TIMING
-		elapsed = SubTimes(u.u_tv2, u.u_tv1);
+		elapsed = SubTimes(&(u.u_tv2), &(u.u_tv1));
 		t->time += (double)elapsed;
 		t->time2 += (double)(elapsed * elapsed);
 #endif	TIMING

@@ -13,7 +13,7 @@
 #MACHINE_FLAGS += 
 SHORTSYS      = linux
 INCLFLAGS     = -I/usr/include
-OPTFLAG	      =
+OPTFLAG	      = -O2
 GFLAG         = -g
 LIBCOMPAT     =
 LIBREADLINE   = -lreadline

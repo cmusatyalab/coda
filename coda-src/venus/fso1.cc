@@ -1700,7 +1700,7 @@ void fsobj::DetachHdbBinding(binding *b, int DemoteNameCtxt) {
 	    }
 	}
     gettimeofday(&EndTV, 0);
-    elapsed = SubTimes(EndTV, StartTV);
+    elapsed = SubTimes(&EndTV, &StartTV);
     LOG(0, ("fsobj::DetachHdbBinding: recompute, elapsed= %3.1f\n", elapsed));
 
 	if (new_HoardPri < HoardPri) {

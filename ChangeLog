@@ -1,5 +1,10 @@
-1999-06-09    <jaharkes@cs.cmu.edu>
+1999-06-21    <jaharkes@cs.cmu.edu>
 	* ======== Release 5.2.5  =========
+	* Applied patch to libal to work correctly with libdb2's
+	  libdb-1.85 emulation. (Andreas Koenig)
+	* Fixed the repair tool, it now can handle spaces in filenames.
+
+1999-06-09    <jaharkes@cs.cmu.edu>
 	* Fixed bug in codacon, it tried to connect to 1.0.0.127.
 	* `cfs lv' now lists more information about the volume, like
 	  inconsistencies, even while disconnected. (Clement)
