@@ -314,7 +314,7 @@ void ClientModifyLog::GetReintegrateable(int tid, int *nrecs)
 
 	/* Ignore BW in case of forced reintegration  */
 	if (!vol->asr_running() && vol->flags.logv &&
-            !vol->flags.writebackreint &&
+            !vol->flags.sync_reintegrate &&
 	    (this_time + cur_reintegration_time > vol->ReintLimit))
 		break;
 	/* 
@@ -1452,44 +1452,6 @@ int repvol::LogRepair(time_t Mtime, uid_t uid, VenusFid *Fid,
 				    Fid, Length, Date, Owner, Mode, tid);
     return(repair_mle == 0 ? ENOSPC : 0);
 }
-
-#ifdef REMOVE_THIS
-/* 
- * cancel all stores corresponding to the given Fid.
- * MUST NOT be called from within transaction! 
- */
-void repvol::CancelStores(VenusFid *Fid)
-{
-    LOG(1, ("repvol::CancelStores: (%s)\n", FID_(Fid)));
-
-    /* this routine should be called at startup only */
-    CODA_ASSERT(!IsReintegrating());
-
-    Recov_BeginTrans();
-	int cancellation;
-	do {
-	    cancellation = 0;
-	    cml_iterator next(CML, AbortOrder, Fid);
-	    cmlent *m;
-	    while ((m = next())) {
-		if (m->opcode == CML_Store_OP && m->cancel()) {
-		    cancellation = 1;
-		    /* 
-		     * Since cancelled store is not being overwritten, we
-		     * must restore ``old values'' for attributes in fsobj. 
-		     */
-		    RestoreObj(Fid);
-		    break;
-		}
-	    }
-	} while (cancellation);
-    Recov_EndTrans(MAXFP);
-
-    /* we may have cancelled the last record. */
-    if (CML.count() == 0)
-        CML.owner = UNSET_UID;
-}
-#endif
 
 /* restore ``old values'' for attributes in fsobj. */
 /* call from within a transaction. */

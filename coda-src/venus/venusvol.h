@@ -552,11 +552,9 @@ struct VolFlags {
 /*RT*/unsigned repair_mode : 1;	/* 0 --> normal, 1 --> repair */
 /*RT*/unsigned resolve_me: 1;   /* resolve reintegrated objects */
 /*RT*/unsigned weaklyconnected : 1; /* are we weakly connected? */ 
-/*R */unsigned writebacking : 1; /* writeback mode */
-/*R */unsigned writebackreint : 1; /* is reint due to permit revoke? */
-/*R */unsigned sync_reintegrate : 1; /* perform reintegration synchronously*/
-/*R */unsigned autowriteback : 1; /* auto try to get wb permit */
-/*R */unsigned staylogging : 1; /* keep logging after |cml| == 0*/
+/*  */unsigned unused1 : 2;
+/*RT*/unsigned sync_reintegrate : 1; /* perform reintegration synchronously*/
+/*  */unsigned unused2 : 2;
 /*V */unsigned readonly : 1;    /* is this a readonly (backup) volume replica */
 /*VT*/unsigned available : 1;   /* is the server for this volume online? */
       unsigned reserved : 13;
@@ -592,8 +590,7 @@ class volent {
   friend class vdb;
   friend class repvol_iterator;
   friend class volrep_iterator;
-  friend class vproc;                /* flags.autowriteback */
-  friend void Reintegrate(repvol *); /* flags.sync_reintegrate */
+  friend class vproc; /* End_VFS(int *); wants vol->realm->GetUser() */
 
     int MagicNumber;
 
@@ -834,10 +831,8 @@ class repvol : public volent {
     int GetReintId();                           /*U*/
     void CheckTransition();                     /*N*/
     void IncAbort(int);                         /*U*/
+    int SyncCache(VenusFid * fid);
 
-#ifdef REMOVE_THIS
-    void CancelStores(VenusFid *);
-#endif
     void RestoreObj(VenusFid *);
     int	CheckPointMLEs(uid_t, char *);
     int LastMLETime(unsigned long *);
@@ -876,17 +871,6 @@ class repvol : public volent {
     int ContainUnrepairedCML();			/*N*/
     int HasLocalSubtree() { return flags.has_local_subtree; }
     void CheckLocalSubtree();			/*U*/
-
-    /* write-back routines */
-    int EnterWriteback(uid_t uid);
-    int LeaveWriteback(uid_t uid);
-    int StopWriteback(VenusFid *fid);
-    int SyncCache(VenusFid * fid);
-    int IsWritebacking() { return flags.writebacking; }
-    int GetPermit(uid_t uid);
-    void ReturnPermit(uid_t uid);
-    int HavePermit() { return (VPStatus == PermitSet); }
-    void ClearPermit();
 
     /* Repair routines. */
     int EnableRepair(uid_t, VolumeId *, uid_t *, unsigned long *);

@@ -63,7 +63,6 @@ static const int VolCheckPointInterval = 10 * 60;
 static	const int UserRPMInterval = 15 * 60;  
 static const int LocalSubtreeCheckInterval = 10 * 60;
 static const int VolTrickleReintegrateInterval = 10;
-static const int AutoWBPermitRequestInterval = 30;
 
 char voldaemon_sync;
 
@@ -89,7 +88,6 @@ void VolDaemon(void)
     time_t LastRPM = curr_time;
     time_t LastLocalSubtree = curr_time;
     time_t LastTrickleReintegrate = curr_time;
-    time_t LastWBPermitRequest = curr_time;
 
     for (;;) {
 	VprocWait(&voldaemon_sync);
@@ -141,12 +139,6 @@ void VolDaemon(void)
 		LastLocalSubtree = curr_time;
 		
 		VDB->CheckLocalSubtree();
-	    }
-	    
-	    /* Ask for a writeback permit if I don't have one */
-	    if (curr_time - LastWBPermitRequest >= AutoWBPermitRequestInterval) {
-		LastWBPermitRequest = curr_time;
-		VDB->AutoRequestWBPermit();
 	    }
 	}
 
@@ -289,18 +281,6 @@ void vdb::CheckLocalSubtree()
     repvol *v;
     while ((v = next()))
         v->CheckLocalSubtree();
-}
-
-void vdb::AutoRequestWBPermit()
-{
-    repvol_iterator next;
-    repvol *v;
-    vproc *vp = VprocSelf();
-    /* XXX SSS replace this with something useful */
-
-    while ((v = next()))
-	if (v->flags.autowriteback && !v->flags.writebacking)
-	    v->EnterWriteback(vp->u.u_uid);
 }
 
 

@@ -927,78 +927,14 @@ OI_FreeLocks:
                             u.u_error = ((repvol *)v)->DisableASR(u.u_uid);
 			break;
 		    }
-              case _VIOC_BEGINWB:
-		    {  
-		      /* request writeback caching from the server ! */
-                        u.u_error = EOPNOTSUPP;
-                        if (v->IsReplicated())
-                            u.u_error = ((repvol *)v)->EnterWriteback(u.u_uid);
-		      break;
-		    }
- 	      case _VIOC_AUTOWB:
-		    {
-                        u.u_error = EOPNOTSUPP;
-                        if (v->IsReplicated()) {
-                            v->flags.autowriteback = !v->flags.autowriteback;
-                            eprint("Auto Writeback on volume %s is now %s",
-                                   v->GetName(), v->flags.autowriteback ?
-                                   "enabled" : "disabled");
 
-                            if (!v->flags.autowriteback) {
-                                /* first we need to not be an observer on the
-                                 * volume! (massive kluge! -leg, 5/9/99) */
-                                v->Exit(volmode, u.u_uid);
-                                entered = 0;
-                                u.u_error = ((repvol *)v)->LeaveWriteback(u.u_uid);
-                                //  if (u.u_error == 0)
-                                //	u.u_error = WB_DISABLED;
-                            }
-                            else {
-                                u.u_error = ((repvol *)v)->EnterWriteback(u.u_uid);
-                                //if (u.u_error == 0)
-                                //	u.u_error = WB_PERMIT_GRANTED;
-                            }
-                        }
-			break;
-		    }
-   	      case _VIOC_STATUSWB:
-	      {
-		  int *cp = (int *)data->out;
-                  *cp = 0;
-                  if (v->IsReplicated())
-                      *cp = ((repvol *)v)->IsWritebacking();
-		  data->out_size = sizeof(int);
-		  break;
-	      }
-              case _VIOC_ENDWB:
-              {
-                  u.u_error = EOPNOTSUPP;
-                  if (v->IsReplicated()) {
-                      /* first we need to not be an observer on the volume! 
-                         (massive kluge! -leg, 5/9/99) */
-                      v->flags.autowriteback = 0;
-                      v->Exit(volmode, u.u_uid);
-                      entered = 0;
-                      /* now we'll leave writeback mode */
-                      v->flags.autowriteback = 0;
-                      u.u_error = ((repvol *)v)->LeaveWriteback(u.u_uid);
-                  }
-		  break;
-              }
 	      case _VIOC_SYNCCACHE:
               {
                   u.u_error = EOPNOTSUPP;
                   if (v->IsReplicated()) {
-		      int old_wb_flag = 0;
-
 		      v->Exit(volmode, u.u_uid);
 		      entered = 0;
-		      old_wb_flag = v->flags.writebackreint;
-		      v->flags.writebackreint = 1;
-
 		      u.u_error = ((repvol *)v)->SyncCache(NULL);
-
-		      v->flags.writebackreint = old_wb_flag;
 		  }
 		  break;
               }

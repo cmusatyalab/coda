@@ -174,7 +174,7 @@ void repvol::Reintegrate()
      * but we don't want to interfere with trickle reintegration so we test
      * whether a full block has been sent (see also cmlent::GetReintegrateable)
      */
-    } while(code == 0 && ((flags.writebackreint && nrecs) || nrecs == 100));
+    } while(code == 0 && ((flags.sync_reintegrate && nrecs) || nrecs == 100));
 
     flags.reintegrating = 0;
 
@@ -630,16 +630,9 @@ int cmlent::ReintReady()
     /* if vol staying write disconnected, check age. does not apply to ASRs */
     /* nor when returning from writeback */
     if (!(vol->asr_running()) && vol->flags.logv && !Aged() && 
-	!vol->flags.writebackreint) {
+	!vol->flags.sync_reintegrate) {
 	LOG(100, ("cmlent::ReintReady: record too young\n"));
 	return 0; 
-    }
-
-    /* if cmlent is beyond the last one needing to be flushed after writeback
-     * revocation */
-    if ((this == vol->reintegrate_done) && (vol->flags.sync_reintegrate) && (vol->flags.writebackreint)){
-	LOG(100, ("cmlent::ReintReady: beyond last record needing to be written synchronously\n"));
-	return 0;
     }
 
     return 1;
@@ -677,29 +670,23 @@ olist reintegrator::freelist;
    sets up its context, and gives it a poke. */
 void Reintegrate(repvol *v)
 {
-    if (v->flags.sync_reintegrate) {
-	LOG(0,("Reintegrate synchronously\n\n"));
-	v->Reintegrate();
-    }
-    else {
-	LOG(0, ("Reintegrate\n"));
-	/* Get a free reintegrator. */
-	reintegrator *r;
-	olink *o = reintegrator::freelist.get();
-	r = (o == 0)
-	    ? new reintegrator
-	    : strbase(reintegrator, o, handle);
-	CODA_ASSERT(r->idle);
-	
-	/* Set up context for reintegrator. */
-	r->u.Init();
-	r->u.u_vol = v;
-	v->hold();		    /* vproc::End_VFS() will do release */
-	
-	/* Set it going. */
-	r->idle = 0;
-	VprocSignal((char *)r);	/* ignored for new reintegrators */
-    }
+    LOG(0, ("Reintegrate\n"));
+    /* Get a free reintegrator. */
+    reintegrator *r;
+    olink *o = reintegrator::freelist.get();
+    r = (o == 0)
+	? new reintegrator
+	: strbase(reintegrator, o, handle);
+    CODA_ASSERT(r->idle);
+
+    /* Set up context for reintegrator. */
+    r->u.Init();
+    r->u.u_vol = v;
+    v->hold();		    /* vproc::End_VFS() will do release */
+
+    /* Set it going. */
+    r->idle = 0;
+    VprocSignal((char *)r);	/* ignored for new reintegrators */
 }
 
 

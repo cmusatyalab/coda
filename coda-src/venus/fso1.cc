@@ -1870,19 +1870,6 @@ void fsobj::DetachMleBinding(binding *b) {
 }
 
 
-#ifdef REMOVE_THIS
-/* MUST NOT be called from within transaction! */
-void fsobj::CancelStores()
-{
-    if (!DIRTY(this))
-	{ print(logFile); CHOKE("fsobj::CancelStores: !DIRTY"); }
-
-    CODA_ASSERT(vol->IsReplicated());
-    ((repvol *)vol)->CancelStores(&fid);
-}
-#endif
-
-
 /*  *****  Data Contents  *****  */
 
 /* MUST be called from within transaction! */

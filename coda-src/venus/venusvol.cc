@@ -887,13 +887,6 @@ volent::volent(Realm *r, VolumeId volid, const char *volname)
     flags.has_local_subtree = 0;
     flags.logv = 0;
     lc_asr = -1;
-
-    /* Writeback */
-    flags.writebacking = 0;
-    flags.writebackreint = 0;
-    flags.sync_reintegrate = 0;
-    flags.staylogging = 0;
-    flags.autowriteback = 0;
 }
 
 
@@ -918,6 +911,7 @@ void volent::ResetVolTransients()
     flags.resolve_me = 0;
     flags.weaklyconnected = 0;
     flags.available = 1;
+    flags.sync_reintegrate = 0;
 
     list_head_init(&fso_list);
 
@@ -1344,7 +1338,7 @@ void volent::TakeTransition()
         if (rv->ResListCount())
             nextstate = Resolving;
 
-        else if (flags.logv || flags.staylogging || rv->GetCML()->count())
+        else if (flags.logv || flags.sync_reintegrate || rv->GetCML()->count())
             nextstate = Logging;
     }
 
@@ -1587,41 +1581,6 @@ int repvol::WriteReconnect()
     return 0;
 }
 
-int repvol::EnterWriteback(uid_t uid)
-{
-    // already in writebacking mode
-    if (flags.writebacking) return 0;
-
-    LOG(1, ("volent::EnterWriteback()\n"));
-
-    /* request a permit */
-    if (!GetPermit(uid)) return ERETRY; // probably not the right error
-
-    Recov_BeginTrans();
-        RVMLIB_REC_OBJECT(*this);
-        flags.writebacking = 1;
-        /* copied from initializing WriteDisconnect */
-        flags.logv = 1;
-        flags.staylogging = 1;
-        AgeLimit = V_DEFAULTAGE; // do i want this?
-        ReintLimit = V_DEFAULTREINTLIMIT;
-    Recov_EndTrans(MAXFP);
-    flags.transition_pending = 1;
-
-    return 0;
-}
-
-int repvol::LeaveWriteback(uid_t uid)
-{
-    LOG(1, ("volent::LeaveWriteback()\n"));
-
-    StopWriteback(NULL);
-    ReturnPermit(uid);
-    ClearPermit();
-
-    return 0;
-}
-
 int repvol::SyncCache(VenusFid * fid)
 {
     LOG(1,("volent::SyncCache()\n"));
@@ -1629,50 +1588,20 @@ int repvol::SyncCache(VenusFid * fid)
     //	    if (flags.transition_pending && VOLBUSY(this)) { 
     // wait until they get out of our volume
 
-    while (VOLBUSY(this))
-        VprocWait((char*)&shrd_count);
-
     flags.transition_pending = 1;
     flags.sync_reintegrate = 1;
-    reintegrate_done = NULL;   //do the whole volume	    
-    /* reintegrate_done = findDepenents(fid); */
 
-    if (flags.transition_pending) { 
-        // make sure no one else took our transition
+    while (flags.transition_pending) { 
+	while (VOLBUSY(this))
+	    VprocWait((char*)&shrd_count);
+
         TakeTransition();
     }
-    ::Reintegrate(this);       // this is safe to call
+
+    //Reintegrate();
     flags.sync_reintegrate = 0;
 
     return 0;
-}
-
-int repvol::StopWriteback(VenusFid *fid)
-{
-    int code = 0;
-
-    LOG(1, ("volent::StopWriteback()\n"));
-
-    /* not writebacking?  nothing to do! */
-    if (!flags.writebacking) return 0;
-
-    ClearPermit();
-    Recov_BeginTrans();
-        RVMLIB_REC_OBJECT(*this);
-        flags.writebacking = 0;
-        flags.writebackreint = 1;
-        /* copied from WriteReconnect */
-        flags.logv = 0;
-        flags.staylogging = 0;
-        AgeLimit = V_UNSETAGE;
-        ReintLimit = V_UNSETREINTLIMIT;
-    Recov_EndTrans(MAXFP);
-
-    code = SyncCache(fid);
-    flags.writebackreint = 0;
-    /* Signal done */
-
-    return (code);
 }
 
 void repvol::SetReintegratePending() {
