@@ -73,9 +73,8 @@ static int filecopy(int here, int there)
 void cmlent::TranslateFid(ViceFid *global, ViceFid *local)
 {
     OBJ_ASSERT(this, global && local);
-    LOG(100, ("cmlent::TranslateFid: global = 0x.%x.%x.%x local = 0x%x.%x.%x\n",
-	      global->Volume, global->Vnode, global->Unique,
-	      local->Volume, local->Vnode, local->Unique));
+    LOG(100, ("cmlent::TranslateFid: global = %s local = %s\n",
+	      FID_(global), FID_2(local)));
     ViceFid *Fids[3];
     GetAllFids(Fids);
     int count = 0;
@@ -108,8 +107,8 @@ int cmlent::LocalFakeify()
     fsobj *root;
     OBJ_ASSERT(this, root = FSDB->Find(fid));
     if (DYING(root)) {
-	LOG(100, ("cmlent::LocalFakeify: object 0x%x.%x.%x removed\n",
-		  fid->Volume, fid->Vnode, fid->Unique));
+	LOG(100, ("cmlent::LocalFakeify: object %s removed\n",
+		  FID_(fid)));
 	/* it must belong to some local subtree to be repaired */
 	SetRepairFlag();
 	/* prevent this cmlent from being aborted or reintegrated later */
@@ -126,8 +125,8 @@ int cmlent::LocalFakeify()
     OBJ_ASSERT(this, !FID_VolIsLocal(fid));
     OBJ_ASSERT(this, root = FSDB->Find(fid));
     if (DYING(root)) {
-	LOG(100, ("cmlent::LocalFakeify: object 0x%x.%x.%x removed\n",
-		  fid->Volume, fid->Vnode, fid->Unique));
+	LOG(100, ("cmlent::LocalFakeify: object %s removed\n",
+		  FID_(fid)));
 	SetRepairFlag();
 	return ENOENT;
     }
@@ -138,11 +137,101 @@ int cmlent::LocalFakeify()
     return rc;
 }
 
+/* CheckRepair step 1: check mutation operand(s) */
+static int CheckRepair_GetObjects(const char *operation, ViceFid *fid,
+				  fsobj **global, fsobj **local,
+				  char *msg, int *mcode, int *rcode)
+{
+    char path[MAXPATHLEN];
+    int rc;
+
+    LOG(100, ("cmlent::CheckRepair: %s on %s\n", operation, FID_(fid)));
+
+    rc = LRDB->FindRepairObject(fid, global, local);
+    if (rc != 0) {
+	/* figure out what the error was */
+	(*local)->GetPath(path, 1);
+	*mcode = MUTATION_MISS_TARGET;
+	*rcode = REPAIR_FAILURE;
+	switch (rc) {
+	case EIO:
+	case ENOENT:
+	    sprintf(msg, "conflict: %s target %s no longer exits on servers", operation, path);
+	    break;
+	case EINCONS:
+	    sprintf(msg, "conflict: %s target %s in server/server conflict", operation, path);
+	    break;
+	case ESYNRESOLVE:
+	case EASYRESOLVE:
+	case ERETRY:
+	    sprintf(msg, "fetching %s target failed (%d), please re-try!", operation, rc);
+	    break;
+	default:
+	    sprintf(msg, "fetching %s target failed (%d)", operation, rc);
+	}
+	return rc;
+    }
+
+    CODA_ASSERT(*global != NULL);
+    return 0;
+}
+
+/* CheckRepair step 2: check mutation access rights */
+static int CheckRepair_CheckAccess(fsobj *fso, int rights,
+				   char *msg, int *mcode, int *rcode)
+{
+    vproc *vp = VprocSelf();
+    vuid_t vuid = CRTORUID(vp->u.u_cred);
+    char path[MAXPATHLEN];
+
+    if (fso->CheckAcRights(vuid, rights, 0) == EACCES) {
+	LOG(100, ("cmlent::CheckRepair: acl check failed\n"));
+	fso->GetPath(path, 1);
+	sprintf(msg, "conflict: acl check failure on parent %s", path);
+	*mcode = MUTATION_ACL_FAILURE;
+	*rcode = REPAIR_FAILURE;
+	return -1;
+    }
+    return 0;
+}
+
+/* CheckRepair step 3: check mutation semantic integrity, VV conflicts */
+static int CheckRepair_CheckVVConflict(fsobj *fso, ViceVersionVector *VV,
+				       char *msg)
+{
+    char path[MAXPATHLEN];
+
+    if (VV_Cmp(fso->VV(), VV) != VV_EQ) {
+	fso->GetPath(path, 1);
+	sprintf(msg, "conflict: target %s updated on servers", path);
+	return -1;
+    }
+    return 0;
+}
+ 
+/* CheckRepair step 3: check mutation semantic integrity, name/name conflicts */
+static int CheckRepair_CheckNameConflict(fsobj *fso, char *name, int need,
+					 char *msg, int *mcode, int *rcode)
+{
+    ViceFid dummy;
+    char path[MAXPATHLEN];
+    int exists;
+
+    exists = (fso->dir_Lookup(name, &dummy, CLU_CASE_SENSITIVE) == 0);
+    if ((!need && exists) || (need && !exists)) {
+	fso->GetPath(path, 1);
+	sprintf(msg, "conflict: target %s/%s %s on servers",
+		path, name, need ? "is missing" : "exists");
+	*mcode = MUTATION_NN_CONFLICT;
+	*rcode = REPAIR_FAILURE;
+	return -1;
+    }
+    return 0;
+}
+
 /*
-  BEGIN_HTML
-  <a name="checkrepair"><strong> check the semantic requirements for
-  the current mutation operation </strong></a> 
-  END_HTML
+  CheckRepair - check the semantic requirements for the current mutation
+  operation
 */
 /* need not be called from within a transaction */
 void cmlent::CheckRepair(char *msg, int *mcode, int *rcode)
@@ -157,734 +246,259 @@ void cmlent::CheckRepair(char *msg, int *mcode, int *rcode)
      */
     
     /* decl of shared local variables */
-    char LocalPath[MAXPATHLEN], GlobalPath[MAXPATHLEN];
-    ViceFid *fid, dummy;
     fsobj *ParentObj;
     int rc;
 
     /* initialization */
-    *mcode = 0;
-    *rcode = 0;
+    fsobj *GlobalObjs[3] = {NULL, NULL, NULL};
+    fsobj *LocalObjs[3]  = {NULL, NULL, NULL};
     strcpy(msg, "no conflict");
-    fsobj *GlobalObjs[3];
-    fsobj *LocalObjs[3];
-    for (int i = 0; i < 3; i++) {
-	GlobalObjs[i] = NULL;
-	LocalObjs[i] = NULL;
-    }
-    vproc *vp = VprocSelf();
-    vuid_t vuid = CRTORUID(vp->u.u_cred);
     
     switch (opcode) {
     case CML_Store_OP:
-	fid = &u.u_store.Fid;
-	LOG(100, ("cmlent::CheckRepair: Store on 0x%x.%x.%x\n", fid->Volume, fid->Vnode, fid->Unique));
+	/* step 1 */
+	rc = CheckRepair_GetObjects("store", &u.u_store.Fid, &GlobalObjs[0],
+				    &LocalObjs[0], msg, mcode, rcode);
+	if (rc) break;
 
-	/* step 1: check mutation operand(s) */
-	rc = LRDB->FindRepairObject(fid, &GlobalObjs[0], &LocalObjs[0]);
-	if (rc != 0) {
-	    LocalObjs[0]->GetPath(LocalPath, 1);
-	    *mcode = MUTATION_MISS_TARGET;
-	    *rcode = REPAIR_FAILURE;
-	    switch (rc) {
-	    case EIO:
-	    case ENOENT:
-		sprintf(msg, "conflict: store target %s no longer exits on servers", LocalPath);
-		break;
-	    case EINCONS:
-		sprintf(msg, "conflict: store target %s in server/server conflict", LocalPath);
-		break;
-	    case ESYNRESOLVE:
-	    case EASYRESOLVE:
-	    case ERETRY:
-		sprintf(msg, "fetching store target failed (%d), please re-try!", rc);		
-		break;
-	    default:
-		sprintf(msg, "fetching store target failed (%d)", rc);		
-	    }
-	    break;
-	}
-	OBJ_ASSERT(this, (rc == 0) && (GlobalObjs[0] != NULL));
-	
-	/* step 2: check mutation access rights */
+	/* step 2 */
 	OBJ_ASSERT(this, ParentObj = LRDB->GetGlobalParentObj(&GlobalObjs[0]->fid));
-	if (ParentObj->CheckAcRights(vuid, PRSFS_WRITE, 0) == EACCES) {
-	    LOG(100, ("cmlent::CheckRepair: acl check failed\n"));
-	    ParentObj->GetPath(GlobalPath, 1);
-	    sprintf(msg, "conflict: acl check failure on parent %s", GlobalPath);
-	    *mcode = MUTATION_ACL_FAILURE;
-	    *rcode = REPAIR_FAILURE;
-	    break;
-	}
- 
-	/* step 3: check mutation semantic integrity, only check VV here */
-	if (VV_Cmp(&(GlobalObjs[0]->stat.VV), &(LocalObjs[0]->stat.VV)) != VV_EQ) {
-	    GlobalObjs[0]->GetPath(GlobalPath, 1);
-	    sprintf(msg, "conflict: target %s updated on servers", GlobalPath);
-	    *mcode = MUTATION_VV_CONFLICT;
-	    *rcode = REPAIR_OVER_WRITE;
-	}
+	rc = CheckRepair_CheckAccess(ParentObj, PRSFS_WRITE, msg, mcode, rcode);
+	if (rc) break;
+
+	/* step 3 */
+	*mcode = MUTATION_VV_CONFLICT;
+	*rcode = REPAIR_OVER_WRITE;
+	rc = CheckRepair_CheckVVConflict(GlobalObjs[0], LocalObjs[0]->VV(),msg);
 	break;
+
     case CML_Utimes_OP:
-	fid = &u.u_utimes.Fid;
-	LOG(100, ("cmlent::CheckRepair: Utimes on 0x%x.%x.%x\n", fid->Volume, fid->Vnode, fid->Unique));
+	/* step 1 */
+	rc = CheckRepair_GetObjects("utimes", &u.u_utimes.Fid, &GlobalObjs[0],
+				    &LocalObjs[0], msg, mcode, rcode);
+	if (rc) break;
 
-	/* step 1: check mutation operand(s) */
-	rc = LRDB->FindRepairObject(fid, &GlobalObjs[0], &LocalObjs[0]);
-	if (rc != 0) {
-	    LocalObjs[0]->GetPath(LocalPath, 1);
-	    *mcode = MUTATION_MISS_TARGET;
-	    *rcode = REPAIR_FAILURE;
-	    switch (rc) {
-	    case EIO:
-	    case ENOENT:
-		sprintf(msg, "conflict: utimes target %s no longer exits on servers", LocalPath);
-		break;
-	    case EINCONS:
-		sprintf(msg, "conflict: utimes target %s in server/server conflict", LocalPath);
-		break;
-	    case ESYNRESOLVE:
-	    case EASYRESOLVE:
-	    case ERETRY:
-		sprintf(msg, "fetching utimes target failed (%d), please re-try!", rc);		
-		break;
-	    default:
-		sprintf(msg, "fetching utimes target failed (%d)", rc);
-	    }
-	    break;
-	}
-	OBJ_ASSERT(this, (rc == 0) && (GlobalObjs[0] != NULL));
-
-	/* step 2: check mutation access rights */
+	/* step 2 */
 	OBJ_ASSERT(this, ParentObj = LRDB->GetGlobalParentObj(&GlobalObjs[0]->fid));
-	if (ParentObj->CheckAcRights(vuid, PRSFS_WRITE, 0) == EACCES) {
-	    LOG(100, ("cmlent::CheckRepair: acl check failed\n"));
-	    ParentObj->GetPath(GlobalPath, 1);
-	    sprintf(msg, "conflict: acl check failure on parent %s", GlobalPath);
-	    *mcode = MUTATION_ACL_FAILURE;
-	    *rcode = REPAIR_FAILURE;
-	    break;
-	}
+	rc = CheckRepair_CheckAccess(ParentObj, PRSFS_WRITE, msg, mcode, rcode);
+	if (rc) break;
  
-	/* step 3: check mutation semantic integrity, only check VV here */
-	if (VV_Cmp(&(GlobalObjs[0]->stat.VV), &(LocalObjs[0]->stat.VV)) != VV_EQ) {
-	    GlobalObjs[0]->GetPath(GlobalPath, 1);
-	    sprintf(msg, "conflict: target %s updated on servers", GlobalPath);
-	    *mcode = MUTATION_VV_CONFLICT;
-	    *rcode = REPAIR_OVER_WRITE;
-	}
+	/* step 3 */
+	*mcode = MUTATION_VV_CONFLICT;
+	*rcode = REPAIR_OVER_WRITE;
+	rc = CheckRepair_CheckVVConflict(GlobalObjs[0], LocalObjs[0]->VV(),msg);
 	break;
+
     case CML_Chown_OP:
-	fid = &u.u_chown.Fid;
-	LOG(100, ("cmlent::CheckRepair: Chown on 0x%x.%x.%x\n", fid->Volume, fid->Vnode, fid->Unique));
+	/* step 1 */
+	rc = CheckRepair_GetObjects("chown", &u.u_chown.Fid, &GlobalObjs[0],
+				    &LocalObjs[0], msg, mcode, rcode);
+	if (rc) break;
 
-	/* step 1: check mutation operand(s) */
-	rc = LRDB->FindRepairObject(fid, &GlobalObjs[0], &LocalObjs[0]);
-	if (rc != 0) {
-	    LocalObjs[0]->GetPath(LocalPath, 1);
-	    *mcode = MUTATION_MISS_TARGET;
-	    *rcode = REPAIR_FAILURE;
-	    switch (rc) {
-	    case EIO:
-	    case ENOENT:
-		sprintf(msg, "conflict: chown target %s no longer exits on servers", LocalPath);
-		break;
-	    case EINCONS:
-		sprintf(msg, "conflict: chown target %s in server/server conflict", LocalPath);
-		break;
-	    case ESYNRESOLVE:
-	    case EASYRESOLVE:
-	    case ERETRY:
-		sprintf(msg, "fetching chown target failed (%d), please re-try!", rc);		
-		break;
-	    default:
-		sprintf(msg, "fetching chown target failed (%d)", rc);
-	    }
-	    break;
-	}
-	OBJ_ASSERT(this, (rc == 0) && (GlobalObjs[0] != NULL));
-
-	/* step 2: check mutation access rights */
+	/* step 2 */
 	OBJ_ASSERT(this, ParentObj = LRDB->GetGlobalParentObj(&GlobalObjs[0]->fid));
-	if (ParentObj->CheckAcRights(vuid, PRSFS_ADMINISTER, 0) == EACCES) {
-	    LOG(100, ("cmlent::CheckRepair: acl check failed\n"));
-	    ParentObj->GetPath(GlobalPath, 1);
-	    sprintf(msg, "conflict: acl check failure on parent %s", GlobalPath);
-	    *mcode = MUTATION_ACL_FAILURE;
-	    *rcode = REPAIR_FAILURE;
-	    break;
-	}
+	rc = CheckRepair_CheckAccess(ParentObj, PRSFS_ADMINISTER,
+				     msg, mcode, rcode);
+	if (rc) break;
  
-	/* step 3: check mutation semantic integrity, only check VV here */
-	if (VV_Cmp(&(GlobalObjs[0]->stat.VV), &(LocalObjs[0]->stat.VV)) != VV_EQ) {
-	    GlobalObjs[0]->GetPath(GlobalPath, 1);
-	    sprintf(msg, "conflict: target %s updated on servers", GlobalPath);
-	    *mcode = MUTATION_VV_CONFLICT;
-	    *rcode = REPAIR_OVER_WRITE;
-	}
+	/* step 3 */
+	*mcode = MUTATION_VV_CONFLICT;
+	*rcode = REPAIR_OVER_WRITE;
+	rc = CheckRepair_CheckVVConflict(GlobalObjs[0], LocalObjs[0]->VV(),msg);
 	break;
+
     case CML_Chmod_OP:
-	fid = &u.u_chmod.Fid;
-	LOG(100, ("cmlent::CheckRepair: Chmod on 0x%x.%x.%x\n", fid->Volume, fid->Vnode, fid->Unique));
+	/* step 1 */
+	rc = CheckRepair_GetObjects("chmod", &u.u_chmod.Fid, &GlobalObjs[0],
+				    &LocalObjs[0], msg, mcode, rcode);
+	if (rc) break;
 
-	/* step 1: check mutation operand(s) */
-	rc = LRDB->FindRepairObject(fid, &GlobalObjs[0], &LocalObjs[0]);
-	if (rc != 0) {
-	    LocalObjs[0]->GetPath(LocalPath, 1);
-	    *mcode = MUTATION_MISS_TARGET;
-	    *rcode = REPAIR_FAILURE;
-	    switch (rc) {
-	    case EIO:
-	    case ENOENT:
-		sprintf(msg, "conflict: chmod target %s no longer exits on servers", LocalPath);
-		break;
-	    case EINCONS:
-		sprintf(msg, "conflict: chmod target %s in server/server conflict", LocalPath);
-		break;
-	    case ESYNRESOLVE:
-	    case EASYRESOLVE:
-	    case ERETRY:
-		sprintf(msg, "fetching chmod target failed (%d), please re-try!", rc);		
-		break;
-	    default:
-		sprintf(msg, "fetching chmod target failed (%d)", rc);
-	    }
-	    break;
-	}
-	OBJ_ASSERT(this, (rc == 0) && (GlobalObjs[0] != NULL));
-
-	/* step 2: check mutation access rights */
+	/* step 2 */
 	OBJ_ASSERT(this, ParentObj = LRDB->GetGlobalParentObj(&GlobalObjs[0]->fid));
-	if (ParentObj->CheckAcRights(vuid, PRSFS_WRITE, 0) == EACCES) {
-	    LOG(100, ("cmlent::CheckRepair: acl check failed\n"));
-	    ParentObj->GetPath(GlobalPath, 1);
-	    sprintf(msg, "conflict: acl check failure on parent %s", GlobalPath);
-	    *mcode = MUTATION_ACL_FAILURE;
-	    *rcode = REPAIR_FAILURE;
-	    break;
-	}
+	rc = CheckRepair_CheckAccess(ParentObj, PRSFS_WRITE, msg, mcode, rcode);
+	if (rc) break;
  
-	/* step 3: check mutation semantic integrity, only check VV here */
-	if (VV_Cmp(&(GlobalObjs[0]->stat.VV), &(LocalObjs[0]->stat.VV)) != VV_EQ) {
-	    GlobalObjs[0]->GetPath(GlobalPath, 1);
-	    sprintf(msg, "conflict: target %s updated on servers", GlobalPath);
-	    *mcode = MUTATION_VV_CONFLICT;
-	    *rcode = REPAIR_OVER_WRITE;
-	}
+	/* step 3 */
+	*mcode = MUTATION_VV_CONFLICT;
+	*rcode = REPAIR_OVER_WRITE;
+	rc = CheckRepair_CheckVVConflict(GlobalObjs[0], LocalObjs[0]->VV(),msg);
 	break;
+
     case CML_Create_OP:
-	fid = &u.u_create.PFid;
-	LOG(100, ("cmlent::CheckRepair: Create (%s) under 0x%x.%x.%x\n", (char *)u.u_create.Name,
-		  fid->Volume, fid->Vnode, fid->Unique));
+	/* step 1 */
+	rc = CheckRepair_GetObjects("create", &u.u_create.PFid,
+				    &GlobalObjs[0], &LocalObjs[0],
+				    msg, mcode, rcode);
+	if (rc) break;
 
-	/* step 1: check mutation operand(s) */
-	rc = LRDB->FindRepairObject(fid, &GlobalObjs[0], &LocalObjs[0]);
-	if (rc != 0) {
-	    LocalObjs[0]->GetPath(LocalPath, 1);
-	    *mcode = MUTATION_MISS_PARENT;
-	    *rcode = REPAIR_FAILURE;
-	    switch (rc) {
-	    case EIO:
-	    case ENOENT:
-		sprintf(msg, "conflict: create parent %s no longer exits on servers", LocalPath);
-		break;
-	    case EINCONS:
-		sprintf(msg, "conflict: create parent %s in server/server conflict", LocalPath);
-		break;
-	    case ESYNRESOLVE:
-	    case EASYRESOLVE:
-	    case ERETRY:
-		sprintf(msg, "fetching create parent failed (%d), please re-try!", rc);		
-		break;
-	    default:
-		sprintf(msg, "fetching create parent failed (%d)", rc);
-	    }
-	    break;
-	}
-	OBJ_ASSERT(this, (rc == 0) && (GlobalObjs[0] != NULL));
-
-	/* step 2: check mutation access rights */
-	if (GlobalObjs[0]->CheckAcRights(vuid, PRSFS_INSERT, 0) == EACCES) {
-	    GlobalObjs[0]->GetPath(GlobalPath, 1);
-	    sprintf(msg, "conflict: acl check failure on parent %s", GlobalPath);
-	    *mcode = MUTATION_ACL_FAILURE;
-	    *rcode = REPAIR_FAILURE;
-	}
-
-	/* step 3: check mutation semantic integrity, only check name/name conflict here */
-	if (GlobalObjs[0]->dir_Lookup((char *)u.u_create.Name, &dummy, CLU_CASE_SENSITIVE) == 0) {
-	    GlobalObjs[0]->GetPath(GlobalPath, 1);
-	    sprintf(msg, "conflict: target %s/%s exist on servers", GlobalPath, (char *)u.u_create.Name);
-	    *mcode = MUTATION_NN_CONFLICT;
-	    *rcode = REPAIR_FAILURE;
-	}
+	/* step 2 */
+	rc = CheckRepair_CheckAccess(GlobalObjs[0], PRSFS_INSERT,
+				     msg, mcode, rcode);
+	if (rc) break;
+ 
+	/* step 3 */
+	rc = CheckRepair_CheckNameConflict(GlobalObjs[0], (char *)Name, 0,
+					   msg, mcode, rcode);
 	break;
+
     case CML_Link_OP:
-	/* we need to check both the parent and the child here */
-	fid = &u.u_link.PFid;
-	LOG(100, ("cmlent::CheckRepair: Link %s under 0x%x.%x.%x\n", (char *)u.u_link.Name,
-		  fid->Volume, fid->Vnode, fid->Unique));
+	/* step 1 */
+	rc = CheckRepair_GetObjects("link source", &u.u_link.PFid,
+				    &GlobalObjs[0], &LocalObjs[0],
+				    msg, mcode, rcode);
+	if (rc) break;
 
-	/* step 1: check mutation operand(s) */
-	rc = LRDB->FindRepairObject(fid, &GlobalObjs[0], &LocalObjs[0]);
-	if (rc != 0) {
-	    LocalObjs[0]->GetPath(LocalPath, 1);
-	    *mcode = MUTATION_MISS_PARENT;
-	    *rcode = REPAIR_FAILURE;
-	    switch (rc) {
-	    case EIO:
-	    case ENOENT:
-		sprintf(msg, "conflict: link parent %s no longer exits on servers", LocalPath);
-		break;
-	    case EINCONS:
-		sprintf(msg, "conflict: link parent %s in server/server conflict", LocalPath);
-		break;
-	    case ESYNRESOLVE:
-	    case EASYRESOLVE:
-	    case ERETRY:
-		sprintf(msg, "fetching link parent failed (%d), please re-try!", rc);		
-		break;
-	    default:
-		sprintf(msg, "fetching link parent failed (%d)", rc);
-	    }
-	    break;
-	}
-	OBJ_ASSERT(this, (rc == 0) && (GlobalObjs[0] != NULL));
+	rc = CheckRepair_GetObjects("link target", &u.u_link.CFid,
+				    &GlobalObjs[1], &LocalObjs[1],
+				    msg, mcode, rcode);
+	if (rc) break;
 
-	fid = &u.u_link.CFid;
-	LOG(100, ("cmlent::CheckRepair: Link %s to 0x%x.%x.%x\n", (char *)u.u_link.Name,
-		  fid->Volume, fid->Vnode, fid->Unique));
-	rc = LRDB->FindRepairObject(fid, &GlobalObjs[1], &LocalObjs[1]);
-	if (rc != 0) {
-	    LocalObjs[1]->GetPath(LocalPath, 1);
-	    *mcode = MUTATION_MISS_TARGET;
-	    *rcode = REPAIR_FAILURE;
-	    switch (rc) {
-	    case EIO:
-	    case ENOENT:
-		sprintf(msg, "conflict: link target %s no longer exits on servers", LocalPath);
-		break;
-	    case EINCONS:
-		sprintf(msg, "conflict: link target %s in server/server conflict", LocalPath);
-		break;
-	    case ESYNRESOLVE:
-	    case EASYRESOLVE:
-	    case ERETRY:
-		sprintf(msg, "fetching link target failed (%d), please re-try!", rc);		
-		break;
-	    default:
-		sprintf(msg, "fetching link target failed (%d)", rc);
-	    }
-	    break;
-	}
-	OBJ_ASSERT(this, (rc == 0) && (GlobalObjs[1] != NULL));
+	/* step2 */
+	rc = CheckRepair_CheckAccess(GlobalObjs[0], PRSFS_INSERT,
+				     msg, mcode, rcode);
+	if (rc) break;
+ 
+	/* step 3 */
+	rc = CheckRepair_CheckNameConflict(GlobalObjs[0], (char *)Name, 0,
+					   msg, mcode, rcode);
+	break;
 
-
-	/* step2: check mutation access rights */
-	if (GlobalObjs[0]->CheckAcRights(vuid, PRSFS_INSERT, 0) == EACCES) {
-	    GlobalObjs[0]->GetPath(GlobalPath, 1);
-	    sprintf(msg, "conflict: acl check failure on parent %s", GlobalPath);
-	    *mcode = MUTATION_ACL_FAILURE;
-	    *rcode = REPAIR_FAILURE;
-	}
-
-	/* step 3: check mutation semantic integrity: only check name/name conflict here */
-	if (GlobalObjs[0]->dir_Lookup((char *)u.u_link.Name, &dummy, CLU_CASE_SENSITIVE) == 0) {
-	    GlobalObjs[0]->GetPath(GlobalPath, 1);
-	    sprintf(msg, "conflict: target %s/%s exist on servers\n", GlobalPath, 
-		    (char *)u.u_link.Name);
-	    *mcode = MUTATION_NN_CONFLICT;
-	    *rcode = REPAIR_FAILURE;
-	}
-	break;	
     case CML_SymLink_OP:
-	fid = &u.u_symlink.PFid;
-	LOG(100, ("cmlent::CheckRepair: Symlink (%s->%s) under 0x%x.%x.%x\n", (char *)u.u_symlink.NewName,
-		  (char *)u.u_symlink.OldName, fid->Volume, fid->Vnode, fid->Unique));
+	/* step 1 */
+	rc = CheckRepair_GetObjects("symlink", &u.u_symlink.PFid,
+				    &GlobalObjs[0], &LocalObjs[0],
+				    msg, mcode, rcode);
+	if (rc) break;
 
-	/* step 1: check mutation operand(s) */
-	rc = LRDB->FindRepairObject(fid, &GlobalObjs[0], &LocalObjs[0]);
-	if (rc != 0) {
-	    LocalObjs[0]->GetPath(LocalPath, 1);
-	    *mcode = MUTATION_MISS_PARENT;
-	    *rcode = REPAIR_FAILURE;
-	    switch (rc) {
-	    case EIO:
-	    case ENOENT:
-		sprintf(msg, "conflict: symlink parent %s no longer exits on servers", LocalPath);
-		break;
-	    case EINCONS:
-		sprintf(msg, "conflict: symlink parent %s in server/server conflict", LocalPath);
-		break;
-	    case ESYNRESOLVE:
-	    case EASYRESOLVE:
-	    case ERETRY:
-		sprintf(msg, "fetching symlink parent failed (%d), please re-try!", rc);		
-		break;
-	    default:
-		sprintf(msg, "fetching symlink parent failed (%d)", rc);
-	    }
-	    break;
-	}
-	OBJ_ASSERT(this, (rc == 0) && (GlobalObjs[0] != NULL));
-
-	/* step 2: check mutation access rights */
-	if (GlobalObjs[0]->CheckAcRights(vuid, PRSFS_INSERT, 0) == EACCES) {
-	    GlobalObjs[0]->GetPath(GlobalPath, 1);
-	    sprintf(msg, "conflict: acl check failure on parent %s", GlobalPath);
-	    *mcode = MUTATION_ACL_FAILURE;
-	    *rcode = REPAIR_FAILURE;
-	}
-
-	/* step 3: check mutation semantic integrity, only check name/name conflict here */
-	if (GlobalObjs[0]->dir_Lookup((char *)u.u_symlink.NewName, &dummy, CLU_CASE_SENSITIVE) == 0) {
-	    GlobalObjs[0]->GetPath(GlobalPath, 1);
-	    sprintf(msg, "conflict: target %s/%s exist on servers", GlobalPath, (char *)u.u_symlink.NewName);
-	    *mcode = MUTATION_NN_CONFLICT;
-	    *rcode = REPAIR_FAILURE;
-	}
+	/* step 2 */
+	rc = CheckRepair_CheckAccess(GlobalObjs[0], PRSFS_INSERT,
+				     msg, mcode, rcode);
+	if (rc) break;
+ 
+	/* step 3 */
+	rc = CheckRepair_CheckNameConflict(GlobalObjs[0], (char *)NewName, 0,
+					   msg, mcode, rcode);
 	break;
+
     case CML_MakeDir_OP:
-	fid = &u.u_mkdir.PFid;
-	LOG(100, ("cmlent::CheckRepair: Mkdir (%s) under 0x%x.%x.%x\n", (char *)u.u_mkdir.Name,
-		  fid->Volume, fid->Vnode, fid->Unique));
+	/* step 1 */
+	rc = CheckRepair_GetObjects("mkdir", &u.u_mkdir.PFid, &GlobalObjs[0],
+				    &LocalObjs[0], msg, mcode, rcode);
+	if (rc) break;
 
-	/* step 1: check mutation operand(s) */
-	rc = LRDB->FindRepairObject(fid, &GlobalObjs[0], &LocalObjs[0]);
-	if (rc != 0) {
-	    LocalObjs[0]->GetPath(LocalPath, 1);
-	    *mcode = MUTATION_MISS_PARENT;
-	    *rcode = REPAIR_FAILURE;
-	    switch (rc) {
-	    case EIO:
-	    case ENOENT:
-		sprintf(msg, "conflict: mkdir parent %s no longer exits on servers", LocalPath);
-		break;
-	    case EINCONS:
-		sprintf(msg, "conflict: mkdir parent %s in server/server conflict", LocalPath);
-		break;
-	    case ESYNRESOLVE:
-	    case EASYRESOLVE:
-	    case ERETRY:
-		sprintf(msg, "fetching mkdir parent failed (%d), please re-try!", rc);		
-		break;
-	    default:
-		sprintf(msg, "fetching mkdir parent failed (%d)", rc);
-	    }
-	    break;
-	}
-	OBJ_ASSERT(this, (rc == 0) && (GlobalObjs[0] != NULL));
-
-	/* step 2: check mutation access rights */
-	if (GlobalObjs[0]->CheckAcRights(vuid, PRSFS_INSERT, 0) == EACCES) {
-	    GlobalObjs[0]->GetPath(GlobalPath, 1);
-	    sprintf(msg, "conflict: acl check failure on parent %s", GlobalPath);
-	    *mcode = MUTATION_ACL_FAILURE;
-	    *rcode = REPAIR_FAILURE;
-	}
-
-	/* step 3: check mutation semantic integrity, only check name/name conflict here */
-	if (GlobalObjs[0]->dir_Lookup((char *)u.u_mkdir.Name, &dummy, CLU_CASE_SENSITIVE) == 0) {
-	    GlobalObjs[0]->GetPath(GlobalPath, 1);
-	    sprintf(msg, "conflict: target %s/%s exist on servers", GlobalPath, (char *)u.u_mkdir.Name);
-	    *mcode = MUTATION_NN_CONFLICT;
-	    *rcode = REPAIR_FAILURE;
-	}
+	/* step 2 */
+	rc = CheckRepair_CheckAccess(GlobalObjs[0], PRSFS_INSERT,
+				     msg, mcode, rcode);
+	if (rc) break;
+ 
+	/* step 3 */
+	rc = CheckRepair_CheckNameConflict(GlobalObjs[0], (char *)Name, 0,
+					   msg, mcode, rcode);
 	break;
+
     case CML_Remove_OP:
-	fid = &u.u_remove.PFid;
-	LOG(100, ("cmlent::CheckRepair: Remove (%s) under 0x%x.%x.%x\n", (char *)u.u_remove.Name,
-		  fid->Volume, fid->Vnode, fid->Unique));
+	/* step 1 */
+	rc = CheckRepair_GetObjects("remove", &u.u_remove.PFid, &GlobalObjs[0],
+				    &LocalObjs[0], msg, mcode, rcode);
+	if (rc) break;
 
-	/* step 1: check mutation operand(s) */
-	rc = LRDB->FindRepairObject(fid, &GlobalObjs[0], &LocalObjs[0]);
-	if (rc != 0) {
-	    LocalObjs[0]->GetPath(LocalPath, 1);
-	    *mcode = MUTATION_MISS_PARENT;
-	    *rcode = REPAIR_FAILURE;
-	    switch (rc) {
-	    case EIO:
-	    case ENOENT:
-		sprintf(msg, "conflict: remove parent %s no longer exits on servers", LocalPath);
-		break;
-	    case EINCONS:
-		sprintf(msg, "conflict: remove parent %s in server/server conflict", LocalPath);
-		break;
-	    case ESYNRESOLVE:
-	    case EASYRESOLVE:
-	    case ERETRY:
-		sprintf(msg, "fetching remove parent failed (%d), please re-try!", rc);		
-		break;
-	    default:
-		sprintf(msg, "fetching remove parent failed (%d)", rc);
-	    }
-	    break;
-	}
-	OBJ_ASSERT(this, (rc == 0) && (GlobalObjs[0] != NULL));
+	rc = CheckRepair_GetObjects("remove target", &u.u_remove.CFid,
+				    &GlobalObjs[1], &LocalObjs[1],
+				    msg, mcode, rcode);
 
-	fid = &u.u_remove.CFid;
-	LOG(100, ("cmlent::CheckRepairObjects: Remove target 0x%x.%x.%x\n",
-		  fid->Volume, fid->Vnode, fid->Unique));
-	rc = LRDB->FindRepairObject(fid, &GlobalObjs[1], &LocalObjs[1]);
 	OBJ_ASSERT(this, (LocalObjs[1] == NULL) || DYING(LocalObjs[1]) ||
 		         (LocalObjs[1]->stat.LinkCount > 0));
-	if (rc != 0) {
-	    LocalObjs[1]->GetPath(LocalPath, 1);
-	    *mcode = MUTATION_MISS_TARGET;
-	    *rcode = REPAIR_FAILURE;
-	    switch (rc) {
-	    case EIO:
-	    case ENOENT:
-		sprintf(msg, "conflict: remove target %s no longer exits on servers", LocalPath);
-		*rcode = 0; /* this is clearly a success */
-		break;
-	    case EINCONS:
-		sprintf(msg, "conflict: remove target %s in server/server conflict", LocalPath);
-		break;
-	    case ESYNRESOLVE:
-	    case EASYRESOLVE:
-	    case ERETRY:
-		sprintf(msg, "fetching remove target failed (%d), please re-try!", rc);		
-		break;
-	    default:
-		sprintf(msg, "fetching remove target failed (%d)", rc);
-	    }
-	    break;
-	}
-	OBJ_ASSERT(this, (rc == 0) && (GlobalObjs[1] != NULL));
 
-	/* step 2: check mutation access rights */
-	if (GlobalObjs[0]->CheckAcRights(vuid, PRSFS_DELETE, 0) == EACCES) {
-	    GlobalObjs[0]->GetPath(GlobalPath, 1);
-	    sprintf(msg, "conflict: acl check failure on parent %s", GlobalPath);
-	    *mcode = MUTATION_ACL_FAILURE;
-	    *rcode = REPAIR_FAILURE;
-	    break;
-	}
-
-	/* step 3: check mutation semantic integrity, only check remove/update conflict here */
-	if (VV_Cmp(&(GlobalObjs[1]->stat.VV), &u.u_remove.CVV) != VV_EQ) {
-	    GlobalObjs[1]->GetPath(GlobalPath, 1);
-	    sprintf(msg, "conflict: target %s updated on servers", GlobalPath);
-	    *mcode = MUTATION_RU_CONFLICT;
-	    *rcode = REPAIR_FORCE_REMOVE;
-	}	
+	/* step 2 */
+	rc = CheckRepair_CheckAccess(GlobalObjs[0], PRSFS_DELETE,
+				     msg, mcode, rcode);
+	if (rc) break;
+ 
+	/* step 3 */
+	*mcode = MUTATION_RU_CONFLICT;
+	*rcode = REPAIR_FORCE_REMOVE;
+	rc = CheckRepair_CheckVVConflict(GlobalObjs[1], &u.u_remove.CVV, msg);
 	break;
+
     case CML_RemoveDir_OP:
-	fid = &u.u_rmdir.PFid;
-	LOG(100, ("cmlent::CheckRepair: RemoveDir (%s) on 0x%x.%x.%x\n", (char *)u.u_rmdir.Name,
-		  fid->Volume, fid->Vnode, fid->Unique));
+	/* step 1 */
+	rc = CheckRepair_GetObjects("removedir", &u.u_rmdir.PFid,
+				    &GlobalObjs[0], &LocalObjs[0],
+				    msg, mcode, rcode);
+	if (rc) break;
 
-	/* step 1: check mutation operand(s) */
-	rc = LRDB->FindRepairObject(fid, &GlobalObjs[0], &LocalObjs[0]);
-	if (rc != 0) {
-	    LocalObjs[0]->GetPath(LocalPath, 1);
-	    *mcode = MUTATION_MISS_PARENT;
-	    *rcode = REPAIR_FAILURE;
-	    switch (rc) {
-	    case EIO:
-	    case ENOENT:
-		sprintf(msg, "conflict: rmdir parent %s no longer exits on servers", LocalPath);
-		break;
-	    case EINCONS:
-		sprintf(msg, "conflict: rmdir parent %s in server/server conflict", LocalPath);
-		break;
-	    case ESYNRESOLVE:
-	    case EASYRESOLVE:
-	    case ERETRY:
-		sprintf(msg, "fetching rmdir parent failed (%d), please re-try!", rc);		
-		break;
-	    default:
-		sprintf(msg, "fetching rmdir parent failed (%d)", rc);
-	    }
-	    break;
-	}
-	OBJ_ASSERT(this, (rc == 0) && (GlobalObjs[0] != NULL));
+	rc = CheckRepair_GetObjects("removedir target", &u.u_rmdir.CFid,
+				    &GlobalObjs[1], &LocalObjs[1],
+				    msg, mcode, rcode);
+	if (rc) break;
 
-	fid = &u.u_rmdir.CFid;
-	LOG(100, ("cmlent::CheckRepairObjects: RemoveDir target 0x%x.%x.%x\n",
-		  fid->Volume, fid->Vnode, fid->Unique));
-
-	rc = LRDB->FindRepairObject(fid, &GlobalObjs[1], &LocalObjs[1]);
-	OBJ_ASSERT(this, (LocalObjs[1] == NULL) || DYING(LocalObjs[1]));
-	if (rc != 0) {
-	    LocalObjs[1]->GetPath(LocalPath, 1);
-	    *mcode = MUTATION_MISS_TARGET;
-	    *rcode = REPAIR_FAILURE;
-	    switch (rc) {
-	    case EIO:
-	    case ENOENT:
-		sprintf(msg, "conflict: rmdir target %s no longer exits on servers", LocalPath);
-		*rcode = 0; /* this is clearly a success */
-		break;
-	    case EINCONS:
-		sprintf(msg, "conflict: rmdir target %s in server/server conflict", LocalPath);
-		break;
-	    case ESYNRESOLVE:
-	    case EASYRESOLVE:
-	    case ERETRY:
-		sprintf(msg, "fetching rmdir target failed (%d), please re-try!", rc);		
-		break;
-	    default:
-		sprintf(msg, "fetching rmdir target failed (%d)", rc);
-	    }
-	    break;
-	}
-	OBJ_ASSERT(this, (rc == 0) && (GlobalObjs[1] != NULL));
-
-
-	/* step 2: check mutation access rights */
-	if (GlobalObjs[0]->CheckAcRights(vuid, PRSFS_DELETE, 0) == EACCES) {
-	    GlobalObjs[0]->GetPath(GlobalPath, 1);
-	    sprintf(msg, "conflict: acl check failure on parent %s", GlobalPath);
-	    *mcode = MUTATION_ACL_FAILURE;
-	    *rcode = REPAIR_FAILURE;
-	    break;
-	}
-
-	/* step 3: check mutation semantic integrity, only check remove/update conflict here */
+	/* step 2 */
+	rc = CheckRepair_CheckAccess(GlobalObjs[0], PRSFS_DELETE,
+				     msg, mcode, rcode);
+	if (rc) break;
+ 
+	/* step 3 */
 	if (!(GlobalObjs[1]->dir_IsEmpty())) {
-	    GlobalObjs[1]->GetPath(GlobalPath, 1);
-	    sprintf(msg, "conflict: target %s not empty on servers\n", GlobalPath);
+	    char path[MAXPATHLEN];
+	    GlobalObjs[1]->GetPath(path, 1);
+	    sprintf(msg, "conflict: target %s not empty on servers\n", path);
 	    *mcode = MUTATION_VV_CONFLICT;
 	    *rcode = REPAIR_FAILURE;    
+	    rc = -1;
 	    break;
 	}
-	if (VV_Cmp(&(GlobalObjs[1]->stat.VV), &u.u_rmdir.CVV) != VV_EQ) {
-	    GlobalObjs[1]->GetPath(GlobalPath, 1);
-	    sprintf(msg, "conflict: target %s updated on servers\n", GlobalPath);
-	    *mcode = MUTATION_RU_CONFLICT;
-	    *rcode = REPAIR_FORCE_REMOVE;
-	}	
+
+	*mcode = MUTATION_RU_CONFLICT;
+	*rcode = REPAIR_FORCE_REMOVE;
+	rc = CheckRepair_CheckVVConflict(GlobalObjs[1], &u.u_rmdir.CVV, msg);
 	break;
+
     case CML_Rename_OP:
-	fid = &u.u_rename.SPFid;
-	LOG(100, ("cmlent::CheckRepair: Rename (%s) from 0x%x.%x.%x\n", (char *)u.u_rename.OldName,
-		  fid->Volume, fid->Vnode, fid->Unique));
+	/* step 1 */
+	rc = CheckRepair_GetObjects("rename source dir", &u.u_rename.SPFid,
+				    &GlobalObjs[0], &LocalObjs[0],
+				    msg, mcode, rcode);
+	if (rc) break;
 
-	/* step 1: check mutation operand(s) */
-	rc = LRDB->FindRepairObject(fid, &GlobalObjs[0], &LocalObjs[0]);
-	if (rc != 0) {
-	    LocalObjs[0]->GetPath(LocalPath, 1);
-	    *mcode = MUTATION_MISS_PARENT;
-	    *rcode = REPAIR_FAILURE;
-	    switch (rc) {
-	    case EIO:
-	    case ENOENT:
-		sprintf(msg, "conflict: rename source parent %s no longer exits on servers", LocalPath);
-		break;
-	    case EINCONS:
-		sprintf(msg, "conflict: rename source parent %s in server/server conflict", LocalPath);
-		break;
-	    case ESYNRESOLVE:
-	    case EASYRESOLVE:
-	    case ERETRY:
-		sprintf(msg, "fetching rename source parent failed (%d), please re-try!", rc);		
-		break;
-	    default:
-		sprintf(msg, "fetching rename source parent failed (%d)", rc);
-	    }
-	    break;
-	}
-	OBJ_ASSERT(this, (rc == 0) && (GlobalObjs[0] != NULL));
+	rc = CheckRepair_GetObjects("rename target dir", &u.u_rename.TPFid,
+				    &GlobalObjs[1], &LocalObjs[1],
+				    msg, mcode, rcode);
+	if (rc) break;
 
-	fid = &u.u_rename.TPFid;
-	LOG(100, ("cmlent::CheckRepair: Rename (%s) to 0x%x.%x.%x\n", (char *)u.u_rename.NewName,
-		  fid->Volume, fid->Vnode, fid->Unique));
-	rc = LRDB->FindRepairObject(fid, &GlobalObjs[1], &LocalObjs[1]);
-	if (rc != 0) {
-	    LocalObjs[1]->GetPath(LocalPath, 1);
-	    *mcode = MUTATION_MISS_PARENT;
-	    *rcode = REPAIR_FAILURE;
-	    switch (rc) {
-	    case EIO:
-	    case ENOENT:
-		sprintf(msg, "conflict: rename target parent %s no longer exits on servers", LocalPath);
-		break;
-	    case EINCONS:
-		sprintf(msg, "conflict: rename target parent %s in server/server conflict", LocalPath);
-		break;
-	    case ESYNRESOLVE:
-	    case EASYRESOLVE:
-	    case ERETRY:
-		sprintf(msg, "fetching rename target parent failed (%d), please re-try!", rc);		
-		break;
-	    default:
-		sprintf(msg, "fetching rename target parent failed (%d)", rc);
-	    }
-	    break;
-	}
-	OBJ_ASSERT(this, (rc == 0) && (GlobalObjs[1] != NULL));
+	rc = CheckRepair_GetObjects("rename target object", &u.u_rename.SFid,
+				    &GlobalObjs[2], &LocalObjs[2],
+				    msg, mcode, rcode);
+	if (rc) break;
 
-	fid = &u.u_rename.SFid;
-	LOG(100, ("cmlent::CheckRepair: Rename target object 0x%x.%x.%x\n",
-		  fid->Volume, fid->Vnode, fid->Unique));
-	rc = LRDB->FindRepairObject(fid, &GlobalObjs[2], &LocalObjs[2]);
-	if (rc != 0) {
-	    LocalObjs[2]->GetPath(LocalPath, 1);
-	    *mcode = MUTATION_MISS_TARGET;
-	    *rcode = REPAIR_FAILURE;
-	    switch (rc) {
-	    case EIO:
-	    case ENOENT:
-		sprintf(msg, "conflict: rename target %s no longer exits on servers", LocalPath);
-		break;
-	    case EINCONS:
-		sprintf(msg, "conflict: rename target %s in server/server conflict", LocalPath);
-		break;
-	    default:
-	    case ESYNRESOLVE:
-	    case EASYRESOLVE:
-	    case ERETRY:
-		sprintf(msg, "fetching rename target failed (%d), please re-try!", rc);	        
-		break;
-		sprintf(msg, "fetching rename target failed (%d)", rc);
-	    }
-	    break;
-	}
-	OBJ_ASSERT(this, (rc == 0) && (GlobalObjs[2] != NULL));
+	/* step 2 */
+	rc = CheckRepair_CheckAccess(GlobalObjs[0], PRSFS_DELETE,
+				     msg, mcode, rcode);
+	if (rc) break;
+ 
+	rc = CheckRepair_CheckAccess(GlobalObjs[1], PRSFS_INSERT,
+				     msg, mcode, rcode);
+	if (rc) break;
+ 
+	/* step 3 */
+	rc = CheckRepair_CheckNameConflict(GlobalObjs[0], (char *)Name, 1,
+					   msg, mcode, rcode);
+	if (rc) break;
 
-	/* step 2: check mutation access rights */
-	if (GlobalObjs[0]->CheckAcRights(vuid, PRSFS_DELETE, 0) == EACCES) {
-	    GlobalObjs[0]->GetPath(GlobalPath, 1);
-	    sprintf(msg, "conflict: acl check failure on source parent %s", GlobalPath);
-	    *mcode = MUTATION_ACL_FAILURE;
-	    *rcode = REPAIR_FAILURE;
-	    break;
-	}
-	if (GlobalObjs[1]->CheckAcRights(vuid, PRSFS_INSERT, 0) == EACCES) {
-	    GlobalObjs[1]->GetPath(GlobalPath, 1);
-	    sprintf(msg, "conflict: acl check failure on target parent %s", GlobalPath);
-	    *mcode = MUTATION_ACL_FAILURE;
-	    *rcode = REPAIR_FAILURE;
-	    break;
-	}
-
-	/* step 3: check mutation semantic integrity */
-	if (GlobalObjs[1]->dir_Lookup((char *)u.u_rename.NewName, &dummy, CLU_CASE_SENSITIVE) == 0) {
-	    GlobalObjs[1]->GetPath(GlobalPath, 1);
-	    sprintf(msg, "conflict: target %s/%s exist on servers\n", GlobalPath, 
-		    (char *)u.u_rename.NewName);
-	    *mcode = MUTATION_NN_CONFLICT;
-	    *rcode = REPAIR_FAILURE;
-	    break;
-	}
-	if (GlobalObjs[0]->dir_Lookup((char *)u.u_rename.OldName, &dummy, CLU_CASE_SENSITIVE) != 0) {
-	    GlobalObjs[0]->GetPath(GlobalPath, 1);
-	    sprintf(msg, "conflict: source %s/%s no longer exist on servers\n", GlobalPath, 
-		    (char *)u.u_rename.OldName);
-	    *mcode = MUTATION_NN_CONFLICT;
-	    *rcode = REPAIR_FAILURE;
-	}
+	rc = CheckRepair_CheckNameConflict(GlobalObjs[1], (char *)NewName, 0,
+					   msg, mcode, rcode);
 	break;
+
     case CML_Repair_OP:
-	fid = &u.u_repair.Fid;
-	LOG(0, ("cmlent::CheckRepair: Disconnected Repair on 0x%x.%x.%x\n",
-		fid->Volume, fid->Vnode, fid->Unique));
+	LOG(0, ("cmlent::CheckRepair: Disconnected Repair on 0x%s\n",
+		FID_(&u.u_repair.Fid)));
 	break;
+
     default:
 	CHOKE("cmlent::CheckRepair: bogus opcode %d", opcode);
     }
+    if (!rc)
+	*mcode = *rcode = 0;
+
     LOG(100, ("cmlent::CheckRepair: mcode = %d rcode = %d msg = %s\n", *mcode, *rcode, msg));
 }
 
@@ -916,9 +530,8 @@ int cmlent::DoRepair(char *msg, int rcode)
 		break;
 	    }
 	    OBJ_ASSERT(this, GObj && LObj && GObj->IsFile() && LObj->IsFile());
-	    LOG(100, ("cmlent::DoRepair: do store on 0x%x.%x.%x and 0x%x.%x.%x\n",
-		      GObj->fid.Volume, GObj->fid.Vnode, GObj->fid.Unique,
-		      LObj->fid.Volume, LObj->fid.Vnode, LObj->fid.Unique));
+	    LOG(100, ("cmlent::DoRepair: do store on %s and %s\n",
+		      FID_(&GObj->fid), FID_2(&LObj->fid)));
 
 	    if (!HAVEALLDATA(LObj))
 		CHOKE("DoRepair: Store with no local data!");
@@ -954,9 +567,8 @@ int cmlent::DoRepair(char *msg, int rcode)
 		sprintf(msg, "can not obtain global mutation objects (%d)", code);
 		break;
 	    }
-	    LOG(100, ("cmlent::DoRepair: do chmod on 0x%x.%x.%x and 0x%x.%x.%x\n",
-		      GObj->fid.Volume, GObj->fid.Vnode, GObj->fid.Unique,
-		      LObj->fid.Volume, LObj->fid.Vnode, LObj->fid.Unique));
+	    LOG(100, ("cmlent::DoRepair: do chmod on %s and %s\n",
+		      FID_(&GObj->fid), FID_2(&LObj->fid)));
 	    unsigned short NewMode = LObj->stat.Mode;		/* use local new mode */
 	    GObj->stat.Mode = NewMode;			        /* set mode for global-obj */
 	    code = GObj->RepairSetAttr((unsigned long)-1, (unsigned long)-1, 
@@ -978,9 +590,8 @@ int cmlent::DoRepair(char *msg, int rcode)
 		break;
 	    }
 	    OBJ_ASSERT(this, GObj && LObj);
-	    LOG(100, ("cmlent::DoRepair: do chown on 0x%x.%x.%x and 0x%x.%x.%x\n",
-		      GObj->fid.Volume, GObj->fid.Vnode, GObj->fid.Unique,
-		      LObj->fid.Volume, LObj->fid.Vnode, LObj->fid.Unique));
+	    LOG(100, ("cmlent::DoRepair: do chown on %s and %s\n",
+		      FID_(&GObj->fid), FID_2(&LObj->fid)));
 	    vuid_t NewOwner = LObj->stat.Owner; 		/* use local new owner */
 	    GObj->stat.Owner = NewOwner; 	    		/* set for global-obj */
 	    code = GObj->RepairSetAttr((unsigned long)-1, (unsigned long)-1, 
@@ -1003,9 +614,8 @@ int cmlent::DoRepair(char *msg, int rcode)
 		break;
 	    }
 	    OBJ_ASSERT(this, GObj && LObj);
-	    LOG(100, ("cmlent::DoRepair: do utimes on 0x%x.%x.%x and 0x%x.%x.%x\n",
-		      GObj->fid.Volume, GObj->fid.Vnode, GObj->fid.Unique,
-		      LObj->fid.Volume, LObj->fid.Vnode, LObj->fid.Unique));
+	    LOG(100, ("cmlent::DoRepair: do utimes on %s and %s\n",
+		      FID_(&GObj->fid), FID_2(&LObj->fid)));
 	    Date_t NewDate = LObj->stat.Date;			/* use local date */
 	    GObj->stat.Date = NewDate;	    			/* set time-stamp for global-obj */
 	    code = GObj->RepairSetAttr((unsigned long)-1, NewDate, (unsigned short)-1,
@@ -1027,9 +637,8 @@ int cmlent::DoRepair(char *msg, int rcode)
 		break;
 	    }
 	    OBJ_ASSERT(this, GPObj && LPObj && GPObj->IsDir() && LPObj->IsDir());
-	    LOG(100, ("cmlent::DoRepair: do create on parent 0x%x.%x.%x and 0x%x.%x.%x\n",
-		      GPObj->fid.Volume, GPObj->fid.Vnode, GPObj->fid.Unique,
-		      LPObj->fid.Volume, LPObj->fid.Vnode, LPObj->fid.Unique));
+	    LOG(100, ("cmlent::DoRepair: do create on parent %s and %s\n",
+		      FID_(&GPObj->fid), FID_2(&LPObj->fid)));
 	    fid = &u.u_create.CFid;
 	    code = LRDB->FindRepairObject(fid, &GObj, &LObj);
 	    if (code != EIO && code != ENOENT) {
@@ -1039,14 +648,14 @@ int cmlent::DoRepair(char *msg, int rcode)
 	    OBJ_ASSERT(this, LObj != NULL && LObj->IsFile());
 	    unsigned short NewMode = LObj->stat.Mode;
 	    fsobj *target = NULL;
-	    code = GPObj->RepairCreate(&target, (char *)u.u_create.Name, NewMode, FSDB->StdPri());
+	    code = GPObj->RepairCreate(&target, (char *)Name, NewMode, FSDB->StdPri());
 	    GPObj->GetPath(GlobalPath, 1);
 	    if (code == 0) {
-		sprintf(msg, "create %s/%s succeeded", GlobalPath, (char *)u.u_create.Name);
+		sprintf(msg, "create %s/%s succeeded", GlobalPath, (char *)Name);
 		target->UnLock(WR);		/* release write lock on the new object */
 		LRDB->ReplaceRepairFid(&target->fid, &u.u_create.CFid);
 	    } else {
-		sprintf(msg, "create %s/%s failed(%d)", GlobalPath, (char *)u.u_create.Name, code);
+		sprintf(msg, "create %s/%s failed(%d)", GlobalPath, (char *)Name, code);
 	    }
 	    break;
 	}
@@ -1059,9 +668,8 @@ int cmlent::DoRepair(char *msg, int rcode)
 		break;
 	    }
 	    OBJ_ASSERT(this, GPObj && LPObj && GPObj->IsDir() && LPObj->IsDir());
-	    LOG(100, ("cmlent::DoRepair: do link on parent 0x%x.%x.%x and 0x%x.%x.%x\n",
-		      GPObj->fid.Volume, GPObj->fid.Vnode, GPObj->fid.Unique,
-		      LPObj->fid.Volume, LPObj->fid.Vnode, LPObj->fid.Unique));
+	    LOG(100, ("cmlent::DoRepair: do link on parent %s and %s\n",
+		      FID_(&GPObj->fid), FID_2(&LPObj->fid)));
 	    fid = &u.u_link.CFid;
 	    code = LRDB->FindRepairObject(fid, &GObj, &LObj);
 	    if (code != 0) {
@@ -1069,15 +677,14 @@ int cmlent::DoRepair(char *msg, int rcode)
 		break;
 	    }
 	    OBJ_ASSERT(this, GObj && LObj && GObj->IsFile() && LObj->IsFile());
-	    LOG(100, ("cmlent::DoRepair: do link on target 0x%x.%x.%x and 0x%x.%x.%x\n",
-		      GObj->fid.Volume, GObj->fid.Vnode, GObj->fid.Unique,
-		      LObj->fid.Volume, LObj->fid.Vnode, LObj->fid.Unique));
-	    code = GPObj->RepairLink((char *)u.u_link.Name, GObj);
+	    LOG(100, ("cmlent::DoRepair: do link on target %s and %s\n",
+		      FID_(&GObj->fid), FID_2(&LObj->fid)));
+	    code = GPObj->RepairLink((char *)Name, GObj);
 	    GPObj->GetPath(GlobalPath, 1);
 	    if (code == 0) {
-		sprintf(msg, "link %s/%s succeeded", GlobalPath, (char *)u.u_link.Name);
+		sprintf(msg, "link %s/%s succeeded", GlobalPath, (char *)Name);
 	    } else {
-		sprintf(msg, "link %s/%s failed(%d)", GlobalPath, (char *)u.u_link.Name, code);
+		sprintf(msg, "link %s/%s failed(%d)", GlobalPath, (char *)Name, code);
 	    }
 	    break;
 	}
@@ -1090,9 +697,8 @@ int cmlent::DoRepair(char *msg, int rcode)
 		break;
 	    }
 	    OBJ_ASSERT(this, GPObj && LPObj && GPObj->IsDir() && LPObj->IsDir());
-	    LOG(100, ("cmlent::DoRepair: do mkdir on parent 0x%x.%x.%x and 0x%x.%x.%x\n",
-		      GPObj->fid.Volume, GPObj->fid.Vnode, GPObj->fid.Unique,
-		      LPObj->fid.Volume, LPObj->fid.Vnode, LPObj->fid.Unique));
+	    LOG(100, ("cmlent::DoRepair: do mkdir on parent %s and %s\n",
+		      FID_(&GPObj->fid), FID_2(&LPObj->fid)));
 	    fid = &u.u_mkdir.CFid;
 	    code = LRDB->FindRepairObject(fid, &GObj, &LObj);
 	    if (code != EIO && code != ENOENT) {
@@ -1102,14 +708,14 @@ int cmlent::DoRepair(char *msg, int rcode)
 	    OBJ_ASSERT(this, LObj != NULL && LObj->IsDir());
 	    unsigned short NewMode = LObj->stat.Mode;
 	    fsobj *target = NULL;
-	    code = GPObj->RepairMkdir(&target, (char *)u.u_mkdir.Name, NewMode, FSDB->StdPri());
+	    code = GPObj->RepairMkdir(&target, (char *)Name, NewMode, FSDB->StdPri());
 	    GPObj->GetPath(GlobalPath, 1);
 	    if (code == 0) {
-		sprintf(msg, "mkdir %s/%s succeeded", GlobalPath, (char *)u.u_mkdir.Name);
+		sprintf(msg, "mkdir %s/%s succeeded", GlobalPath, (char *)Name);
 		target->UnLock(WR);			/* relese write lock on the new object */
 		LRDB->ReplaceRepairFid(&target->fid, &u.u_mkdir.CFid);
 	    } else {
-		sprintf(msg, "mkdir %s/%s failed(%d)", GlobalPath, (char *)u.u_mkdir.Name, code);
+		sprintf(msg, "mkdir %s/%s failed(%d)", GlobalPath, (char *)Name, code);
 	    }
 	    break;
 	}
@@ -1122,9 +728,8 @@ int cmlent::DoRepair(char *msg, int rcode)
 		break;
 	    }
 	    OBJ_ASSERT(this, GPObj && LPObj && GPObj->IsDir() && LPObj->IsDir());
-	    LOG(100, ("cmlent::DoRepair: do symlink on parent 0x%x.%x.%x and 0x%x.%x.%x\n",
-		      GPObj->fid.Volume, GPObj->fid.Vnode, GPObj->fid.Unique,
-		      LPObj->fid.Volume, LPObj->fid.Vnode, LPObj->fid.Unique));
+	    LOG(100, ("cmlent::DoRepair: do symlink on parent %s and %s\n",
+		      FID_(&GPObj->fid), FID_2(&LPObj->fid)));
 	    fid = &u.u_symlink.CFid;
 	    code = LRDB->FindRepairObject(fid, &GObj, &LObj);
 	    if (code != EIO && code != ENOENT) {
@@ -1134,17 +739,17 @@ int cmlent::DoRepair(char *msg, int rcode)
 	    OBJ_ASSERT(this, LObj != NULL && LObj->IsSymLink());
 	    unsigned short NewMode = LObj->stat.Mode;
 	    fsobj *target = NULL;
-	    code = GPObj->RepairSymlink(&target, (char *)u.u_symlink.NewName, 
-					(char *)u.u_symlink.OldName, NewMode, FSDB->StdPri());
+	    code = GPObj->RepairSymlink(&target, (char *)NewName,
+					(char *)Name, NewMode, FSDB->StdPri());
 	    GPObj->GetPath(GlobalPath, 1);
 	    if (code == 0) {
-		sprintf(msg, "symlink %s/%s -> %s succeeded", GlobalPath, (char *)u.u_symlink.NewName,
-			(char *)u.u_symlink.OldName);
+		sprintf(msg, "symlink %s/%s -> %s succeeded",
+			GlobalPath, (char *)NewName, (char *)Name);
 		target->UnLock(WR);			/* relese write lock on the new object */
 		LRDB->ReplaceRepairFid(&target->fid, &u.u_symlink.CFid);
 	    } else {
-		sprintf(msg, "symlink %s/%s -> %s failed(%d)", GlobalPath, (char *)u.u_symlink.NewName,
-			(char *)u.u_symlink.OldName, code);
+		sprintf(msg, "symlink %s/%s -> %s failed(%d)",
+			GlobalPath, (char *)NewName, (char *)Name, code);
 	    }
 	    break;
 	}
@@ -1157,9 +762,8 @@ int cmlent::DoRepair(char *msg, int rcode)
 		break;
 	    }
 	    OBJ_ASSERT(this, GPObj && LPObj && GPObj->IsDir() && LPObj->IsDir());
-	    LOG(100, ("cmlent::DoRepair: do remove on parent 0x%x.%x.%x and 0x%x.%x.%x\n",
-		      GPObj->fid.Volume, GPObj->fid.Vnode, GPObj->fid.Unique,
-		      LPObj->fid.Volume, LPObj->fid.Vnode, LPObj->fid.Unique));
+	    LOG(100, ("cmlent::DoRepair: do remove on parent %s and %s\n",
+		      FID_(&GPObj->fid), FID_2(&LPObj->fid)));
 	    fid = &u.u_remove.CFid;
 	    code = LRDB->FindRepairObject(fid, &GObj, &LObj);
 	    if (code != 0) {
@@ -1167,14 +771,14 @@ int cmlent::DoRepair(char *msg, int rcode)
 		break;
 	    }
 	    OBJ_ASSERT(this, GObj != NULL && (LObj == NULL || DYING(LObj) || LObj->stat.LinkCount > 0));
-	    LOG(100, ("cmlent::DoRepair: do remove on global target 0x%x.%x.%x\n",
-		      GObj->fid.Volume, GObj->fid.Vnode, GObj->fid.Unique));
-	    code = GPObj->RepairRemove((char *)u.u_remove.Name, GObj);
+	    LOG(100, ("cmlent::DoRepair: do remove on global target %s\n",
+		      FID_(&GObj->fid)));
+	    code = GPObj->RepairRemove((char *)Name, GObj);
 	    GPObj->GetPath(GlobalPath, 1);
 	    if (code == 0) {
-		sprintf(msg, "remove %s/%s succeeded", GlobalPath, (char *)u.u_remove.Name);
+		sprintf(msg, "remove %s/%s succeeded", GlobalPath, (char *)Name);
 	    } else {
-		sprintf(msg, "remove %s/%s failed(%d)", GlobalPath, (char *)u.u_remove.Name, code);
+		sprintf(msg, "remove %s/%s failed(%d)", GlobalPath, (char *)Name, code);
 	    }
 	    break;
 	}
@@ -1187,9 +791,8 @@ int cmlent::DoRepair(char *msg, int rcode)
 		break;
 	    }
 	    OBJ_ASSERT(this, GPObj && LPObj && GPObj->IsDir() && LPObj->IsDir());
-	    LOG(100, ("cmlent::DoRepair: do rmdir on parent 0x%x.%x.%x and 0x%x.%x.%x\n",
-		      GPObj->fid.Volume, GPObj->fid.Vnode, GPObj->fid.Unique,
-		      LPObj->fid.Volume, LPObj->fid.Vnode, LPObj->fid.Unique));
+	    LOG(100, ("cmlent::DoRepair: do rmdir on parent %s and %s\n",
+		      FID_(&GPObj->fid), FID_2(&LPObj->fid)));
 	    fid = &u.u_rmdir.CFid;
 	    code = LRDB->FindRepairObject(fid, &GObj, &LObj);
 	    if (code != 0) {
@@ -1197,14 +800,14 @@ int cmlent::DoRepair(char *msg, int rcode)
 		break;
 	    }
 	    OBJ_ASSERT(this, GObj != NULL && (LObj == NULL || DYING(LObj)) && GObj->IsDir());
-	    LOG(100, ("cmlent::DoRepair: do rmdir on global target 0x%x.%x.%x\n",
-		      GObj->fid.Volume, GObj->fid.Vnode, GObj->fid.Unique));
-	    code = GPObj->RepairRmdir((char *)u.u_rmdir.Name, GObj);
+	    LOG(100, ("cmlent::DoRepair: do rmdir on global target %s\n",
+		      FID_(&GObj->fid)));
+	    code = GPObj->RepairRmdir((char *)Name, GObj);
 	    GPObj->GetPath(GlobalPath, 1);
 	    if (code == 0) {
-		sprintf(msg, "rmdir %s/%s succeeded", GlobalPath, (char *)u.u_rmdir.Name);
+		sprintf(msg, "rmdir %s/%s succeeded", GlobalPath, (char *)Name);
 	    } else {
-		sprintf(msg, "rmdir %s/%s failed(%d)", GlobalPath, (char *)u.u_rmdir.Name, code);
+		sprintf(msg, "rmdir %s/%s failed(%d)", GlobalPath, (char *)Name, code);
 	    }
 	    break;
 	}
@@ -1219,9 +822,8 @@ int cmlent::DoRepair(char *msg, int rcode)
 		break;
 	    }
 	    OBJ_ASSERT(this, GSPObj && LSPObj && GSPObj->IsDir() && LSPObj->IsDir());
-	    LOG(100, ("cmlent::DoRepair: do rename on source parent 0x%x.%x.%x and 0x%x.%x.%x\n",
-		      GSPObj->fid.Volume, GSPObj->fid.Vnode, GSPObj->fid.Unique,
-		      LSPObj->fid.Volume, LSPObj->fid.Vnode, LSPObj->fid.Unique));
+	    LOG(100, ("cmlent::DoRepair: do rename on source parent %s and %s\n",
+		      FID_(&GSPObj->fid), FID_2(&LSPObj->fid)));
 	    fid = &u.u_rename.TPFid;
 	    code = LRDB->FindRepairObject(fid, &GTPObj, &LTPObj);
 	    if (code != 0) {
@@ -1229,9 +831,8 @@ int cmlent::DoRepair(char *msg, int rcode)
 		break;
 	    }
 	    OBJ_ASSERT(this, GTPObj && LTPObj && GTPObj->IsDir() && LTPObj->IsDir());
-	    LOG(100, ("cmlent::DoRepair: do rename on target parent 0x%x.%x.%x and 0x%x.%x.%x\n",
-		      GTPObj->fid.Volume, GTPObj->fid.Vnode, GTPObj->fid.Unique,
-		      LTPObj->fid.Volume, LTPObj->fid.Vnode, LTPObj->fid.Unique));
+	    LOG(100, ("cmlent::DoRepair: do rename on target parent %s and %s\n",
+		      FID_(&GTPObj->fid), FID_2(&LTPObj->fid)));
 	    fid = &u.u_rename.SFid;
 	    code = LRDB->FindRepairObject(fid, &GObj, &LObj);
 	    if (code != 0) {
@@ -1239,11 +840,10 @@ int cmlent::DoRepair(char *msg, int rcode)
 		break;
 	    }
 	    OBJ_ASSERT(this, GObj && LObj);
-	    LOG(100, ("cmlent::DoRepair: do rename on source object 0x%x.%x.%x and 0x%x.%x.%x\n",
-		      GObj->fid.Volume, GObj->fid.Vnode, GObj->fid.Unique,
-		      LObj->fid.Volume, LObj->fid.Vnode, LObj->fid.Unique));
-	    code = GTPObj->RepairRename(GSPObj, (char *)u.u_rename.OldName,
-					GObj, (char *)u.u_rename.NewName,
+	    LOG(100, ("cmlent::DoRepair: do rename on source object %s and %s\n",
+		      FID_(&GObj->fid), FID_2(&LObj->fid)));
+	    code = GTPObj->RepairRename(GSPObj, (char *)Name,
+					GObj, (char *)NewName,
 					(fsobj *)NULL);
 	    /* 
 	     * note that the target object is always NULL here because a disconnected rename
@@ -1254,19 +854,19 @@ int cmlent::DoRepair(char *msg, int rcode)
 	    GSPObj->GetPath(SPath, 1);
 	    GTPObj->GetPath(TPath, 1);
 	    if (code == 0) {
-		sprintf(msg, "rename %s/%s -> %s/%s succeeded", SPath, (char *)u.u_rename.OldName,
-			TPath, (char *)u.u_rename.NewName);
+		sprintf(msg, "rename %s/%s -> %s/%s succeeded",
+			SPath, (char *)Name, TPath, (char *)NewName);
 	    } else {
-		sprintf(msg, "rename %s/%s -> %s/%s failed(%d)", SPath, (char *)u.u_rename.OldName,
-			TPath, (char *)u.u_rename.NewName, code);
+		sprintf(msg, "rename %s/%s -> %s/%s failed(%d)",
+			SPath, (char *)Name, TPath, (char *)NewName, code);
 	    }
 	    break;
 	}
     case CML_Repair_OP:
 	{
 	    fid = &u.u_repair.Fid;
-	    LOG(0, ("cmlent::DoRepair: Disconnected Repair on 0x%x.%x.%x\n",
-		    fid->Volume, fid->Vnode, fid->Unique));
+	    LOG(0, ("cmlent::DoRepair: Disconnected Repair on %s\n",
+		    FID_(fid)));
 	    break;
 	}
     default:
@@ -1278,83 +878,84 @@ int cmlent::DoRepair(char *msg, int rcode)
 /* need not be called from within a transaction */
 void cmlent::GetLocalOpMsg(char *msg)
 {
+    char path[MAXPATHLEN];
+
     OBJ_ASSERT(this, msg);
     switch (opcode) {
     case CML_Store_OP:
-	{	char path[MAXPATHLEN];
+	{
 		RecoverPathName(path, &u.u_store.Fid, log, this);
 		sprintf(msg, "store %s", path);
 		break;
 	}
     case CML_Chmod_OP:
-	{	char path[MAXPATHLEN];
+	{
 		RecoverPathName(path, &u.u_chmod.Fid, log, this);
 		sprintf(msg, "chmod %s", path);
 		break;
 	}
     case CML_Chown_OP:
-	{	char path[MAXPATHLEN];
+	{
 		RecoverPathName(path, &u.u_chown.Fid, log, this);
 		sprintf(msg, "chown %s", path);
 		break;
 	}
     case CML_Utimes_OP:
-	{	char path[MAXPATHLEN];
+	{
 		RecoverPathName(path, &u.u_utimes.Fid, log, this);
 		sprintf(msg, "setattr %s", path);
 		break;
 	}
     case CML_Create_OP:
-	{	char path[MAXPATHLEN];
+	{
 		RecoverPathName(path, &u.u_create.CFid, log, this);
 		sprintf(msg, "create %s", path);
 		break;
 	}
     case CML_Link_OP:
-	{	char path[MAXPATHLEN];
+	{
 		RecoverPathName(path, &u.u_link.CFid, log, this);
 		sprintf(msg, "link %s", path);
 		break;
 	}
     case CML_MakeDir_OP:
-	{	char path[MAXPATHLEN];
+	{
 		RecoverPathName(path, &u.u_mkdir.CFid, log, this);
 		sprintf(msg, "mkdir %s", path);
 		break;
 	}
     case CML_SymLink_OP:
-	{	char path[MAXPATHLEN];
+	{
 		RecoverPathName(path, &u.u_symlink.CFid, log, this);
-		sprintf(msg, "symlink %s --> %s", path, (char *)u.u_symlink.NewName);
+		sprintf(msg, "symlink %s --> %s", path, (char *)NewName);
 		break;
 	}
     case CML_Remove_OP:
-	{	char path[MAXPATHLEN];
+	{
 		RecoverPathName(path, &u.u_remove.CFid, log, this);
 		sprintf(msg, "remove %s", path);
 		break;
 	}
     case CML_RemoveDir_OP:
-	{	char path[MAXPATHLEN];
+	{
 		RecoverPathName(path, &u.u_rmdir.CFid, log, this);
 		sprintf(msg, "rmdir %s", path);
 		break;
 	}
     case CML_Rename_OP:
-	{	char sppath[MAXPATHLEN];
+	{
 		char tppath[MAXPATHLEN];
-		RecoverPathName(sppath, &u.u_rename.SPFid, log, this);
+		RecoverPathName(path, &u.u_rename.SPFid, log, this);
 		RecoverPathName(tppath, &u.u_rename.TPFid, log, this);
-		sprintf(msg, "rename %s/%s -> %s/%s", sppath, (char *)u.u_rename.OldName, 
-			tppath, (char *)u.u_rename.NewName);
+		sprintf(msg, "rename %s/%s -> %s/%s",
+			path, (char *)Name, tppath, (char *)NewName);
 		break;
 	}
     case CML_Repair_OP:
 	{	ViceFid *fid = &u.u_repair.Fid;
-		LOG(0, ("cmlent::GetLocalOpMsg: Disconnected Repair on 0x%x.%x.%x\n",
-			fid->Volume, fid->Vnode, fid->Unique));
-		sprintf(msg, "disconnected repair on 0x%lx.%lx.%lx",
- 			fid->Volume, fid->Vnode, fid->Unique);
+		LOG(0, ("cmlent::GetLocalOpMsg: Disconnected Repair on %s\n",
+			FID_(fid)));
+		sprintf(msg, "disconnected repair on %s", FID_(fid));
 		break;
         }
     default:
@@ -1393,8 +994,8 @@ int cmlent::InLocalRepairSubtree(ViceFid *LocalRootFid)
      * the subtree rooted at the object whose fid equals RootFid.
      */
     OBJ_ASSERT(this, LocalRootFid && FID_VolIsLocal(LocalRootFid));
-    LOG(100, ("cmlent::InLocalRepairSubtree: LocalRootFid = 0x%x.%x.%x\n",
-	      LocalRootFid->Volume, LocalRootFid->Vnode, LocalRootFid->Unique));
+    LOG(100, ("cmlent::InLocalRepairSubtree: LocalRootFid = %s\n",
+	      FID_(LocalRootFid)));
     ViceFid *Fids[3];
     fsobj *OBJ;
     ViceVersionVector *VVs[3];
@@ -1425,8 +1026,8 @@ int cmlent::InGlobalRepairSubtree(ViceFid *GlobalRootFid)
      * only at GC time.
      */
     OBJ_ASSERT(this, GlobalRootFid && !FID_VolIsLocal(GlobalRootFid));
-    LOG(100, ("cmlent::InGlobalRepairSubtree: GlobalRootFid = 0x%x.%x.%x\n",
-	GlobalRootFid->Volume, GlobalRootFid->Vnode, GlobalRootFid->Unique));
+    LOG(100, ("cmlent::InGlobalRepairSubtree: GlobalRootFid = %s\n",
+	      FID_(GlobalRootFid)));
 
     if (flags.to_be_repaired || flags.repair_mutation) {
 	LOG(100, ("cmlent::InGlobalRepairSubtree: repair flag(s) set already\n"));

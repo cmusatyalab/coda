@@ -555,6 +555,7 @@ cmlent::cmlent(ClientModifyLog *Log, time_t Mtime, vuid_t vuid, int op, int Tid 
     uid = vuid;
 
     opcode = op;
+    Name = NewName = NULL;
     va_list ap;
     va_start(ap, Tid);
     switch(op) {
@@ -585,7 +586,7 @@ cmlent::cmlent(ClientModifyLog *Log, time_t Mtime, vuid_t vuid, int op, int Tid 
 	case CML_Create_OP:
 	    u.u_create.PFid = *va_arg(ap, ViceFid *);
 	    name = va_arg(ap, RPC2_String);
-	    u.u_create.Name = Copy_RPC2_String(name);
+	    Name = Copy_RPC2_String(name);
 	    u.u_create.CFid = *va_arg(ap, ViceFid *);
 	    u.u_create.Mode = va_arg(ap, RPC2_Unsigned);
 	    break;
@@ -593,7 +594,7 @@ cmlent::cmlent(ClientModifyLog *Log, time_t Mtime, vuid_t vuid, int op, int Tid 
 	case CML_Remove_OP:
 	    u.u_remove.PFid = *va_arg(ap, ViceFid *);
 	    name = va_arg(ap, RPC2_String);
-	    u.u_remove.Name = Copy_RPC2_String(name);
+	    Name = Copy_RPC2_String(name);
 	    u.u_remove.CFid = *va_arg(ap, ViceFid *);
 	    u.u_remove.LinkCount = va_arg(ap, int);
 	    break;
@@ -601,24 +602,24 @@ cmlent::cmlent(ClientModifyLog *Log, time_t Mtime, vuid_t vuid, int op, int Tid 
 	case CML_Link_OP:
 	    u.u_link.PFid = *va_arg(ap, ViceFid *);
 	    name = va_arg(ap, RPC2_String);
-	    u.u_link.Name = Copy_RPC2_String(name);
+	    Name = Copy_RPC2_String(name);
 	    u.u_link.CFid = *va_arg(ap, ViceFid *);
 	    break;
 
 	case CML_Rename_OP:
 	    u.u_rename.SPFid = *va_arg(ap, ViceFid *);
 	    name = va_arg(ap, RPC2_String);
-	    u.u_rename.OldName = Copy_RPC2_String(name);
+	    Name = Copy_RPC2_String(name);
 	    u.u_rename.TPFid = *va_arg(ap, ViceFid *);
 	    name = va_arg(ap, RPC2_String);
-	    u.u_rename.NewName = Copy_RPC2_String(name);
+	    NewName = Copy_RPC2_String(name);
 	    u.u_rename.SFid = *va_arg(ap, ViceFid *);
 	    break;
 
 	case CML_MakeDir_OP:
 	    u.u_mkdir.PFid = *va_arg(ap, ViceFid *);
 	    name = va_arg(ap, RPC2_String);
-	    u.u_mkdir.Name = Copy_RPC2_String(name);
+	    Name = Copy_RPC2_String(name);
 	    u.u_mkdir.CFid = *va_arg(ap, ViceFid *);
 	    u.u_mkdir.Mode = va_arg(ap, RPC2_Unsigned);
 	    break;
@@ -626,16 +627,16 @@ cmlent::cmlent(ClientModifyLog *Log, time_t Mtime, vuid_t vuid, int op, int Tid 
 	case CML_RemoveDir_OP:
 	    u.u_rmdir.PFid = *va_arg(ap, ViceFid *);
 	    name = va_arg(ap, RPC2_String);
-	    u.u_rmdir.Name = Copy_RPC2_String(name);
+	    Name = Copy_RPC2_String(name);
 	    u.u_rmdir.CFid = *va_arg(ap, ViceFid *);
 	    break;
 
 	case CML_SymLink_OP:
 	    u.u_symlink.PFid = *va_arg(ap, ViceFid *);
 	    name = va_arg(ap, RPC2_String);
-	    u.u_symlink.NewName = Copy_RPC2_String(name);
+	    Name = Copy_RPC2_String(name);
 	    name = va_arg(ap, RPC2_String);
-	    u.u_symlink.OldName = Copy_RPC2_String(name);
+	    NewName = Copy_RPC2_String(name);
 	    u.u_symlink.CFid = *va_arg(ap, ViceFid *);
 	    u.u_symlink.Mode = va_arg(ap, RPC2_Unsigned);
 	    break;
@@ -767,43 +768,9 @@ cmlent::~cmlent() {
     DetachFidBindings();
 
     /* Free strings. */
-    switch(opcode) {
-	case CML_Create_OP:
-	    Free_RPC2_String(u.u_create.Name);
-	    break;
-
-	case CML_Remove_OP:
-	    Free_RPC2_String(u.u_remove.Name);
-	    break;
-
-	case CML_Link_OP:
-	    Free_RPC2_String(u.u_link.Name);
-	    break;
-
-	case CML_Rename_OP:
-	    Free_RPC2_String(u.u_rename.OldName);
-	    Free_RPC2_String(u.u_rename.NewName);
-	    break;
-
-	case CML_MakeDir_OP:
-	    Free_RPC2_String(u.u_mkdir.Name);
-	    break;
-
-	case CML_RemoveDir_OP:
-	    Free_RPC2_String(u.u_rmdir.Name);
-	    break;
-
-	case CML_SymLink_OP:
-	    Free_RPC2_String(u.u_symlink.OldName);
-	    Free_RPC2_String(u.u_symlink.NewName);
-	    break;
-
-        case CML_Repair_OP:
-	    break;
-
-	default:
-	    break;
-    }
+    if (Name) Free_RPC2_String(Name);
+    if (NewName) Free_RPC2_String(NewName);
+    Name = NewName = NULL;
 
     CODA_ASSERT(log->list.remove(&handle) == &handle);
     /* update CML statistics */
@@ -832,39 +799,14 @@ void cmlent::operator delete(void *deadobj, size_t len) {
 long cmlent::bytes()
 {
     long result = sizeof(*this);
-    switch (opcode) {
-    case CML_Create_OP:
-	result += strlen((char *)u.u_create.Name);
-	break;
-    case CML_Remove_OP:
-	result += strlen((char *)u.u_remove.Name);
-	break;
-    case CML_Link_OP:
-	result += strlen((char *)u.u_link.Name);
-	break;
-    case CML_Rename_OP:
-	result += strlen((char *)u.u_rename.OldName)
-                 +strlen((char *)u.u_rename.NewName);
-	break;
-    case CML_MakeDir_OP:
-	result += strlen((char *)u.u_mkdir.Name);
-	break;
-    case CML_RemoveDir_OP:
-	result += strlen((char *)u.u_rmdir.Name);
-	break;
-    case CML_SymLink_OP:
-	result += strlen((char *)u.u_symlink.OldName)
-	         +strlen((char *)u.u_symlink.NewName);
-	break;
-    default:
-    	break;
-    }
+
+    if (Name)    result += strlen((char *)Name);
+    if (NewName) result += strlen((char *)NewName);
+
     return result;
 }
 
 
-#define	PRINTFID(fd, fid)\
-    fdprint((fd), "(%x.%x.%x)", (fid).Volume, (fid).Vnode, (fid).Unique);
 #define	PRINTVV(fd, vv)\
     fdprint((fd), "[ %d %d %d %d %d %d %d %d ] [ %d %d ] [ %#x ]",\
 	(vv).Versions.Site0, (vv).Versions.Site1,\
@@ -888,9 +830,8 @@ void cmlent::print(int afd) {
 	    flags.committed);
     switch(opcode) {
 	case CML_Store_OP:
-	    fdprint(afd, "\t\tfid = ");
-	    PRINTFID(afd, u.u_store.Fid);
-	    fdprint(afd, ", length = %d\n", u.u_store.Length);
+	    fdprint(afd, "\t\tfid = %s, length = %d\n",
+		    FID_(&u.u_store.Fid), u.u_store.Length);
 	    fdprint(afd, "\t\tvv = ");
 	    PRINTVV(afd, u.u_store.VV);
 	    fdprint(afd, "\n\t\trhandle = (%d,%d,%d)",
@@ -903,63 +844,54 @@ void cmlent::print(int afd) {
 	    break;
 
 	case CML_Utimes_OP:
-	    fdprint(afd, "\t\tfid = ");
-	    PRINTFID(afd, u.u_utimes.Fid);
-	    fdprint(afd, ", utimes = %d\n", u.u_utimes.Date);
+	    fdprint(afd, "\t\tfid = %s, utimes = %d\n",
+		    FID_(&u.u_utimes.Fid), u.u_utimes.Date);
 	    fdprint(afd, "\t\tvv = ");
 	    PRINTVV(afd, u.u_utimes.VV);
 	    fdprint(afd, "\n");
 	    break;
 
 	case CML_Chown_OP:
-	    fdprint(afd, "\t\tfid = ");
-	    PRINTFID(afd, u.u_chown.Fid);
-	    fdprint(afd, ", chown = %d\n", u.u_chown.Owner);
+	    fdprint(afd, "\t\tfid = %s, chown = %d\n",
+		    FID_(&u.u_chown.Fid), u.u_chown.Owner);
 	    fdprint(afd, "\t\tvv = ");
 	    PRINTVV(afd, u.u_chown.VV);
 	    fdprint(afd, "\n");
 	    break;
 
 	case CML_Chmod_OP:
-	    fdprint(afd, "\t\tfid = ");
-	    PRINTFID(afd, u.u_chmod.Fid);
-	    fdprint(afd, ", chmod = %o\n", u.u_chmod.Mode);
+	    fdprint(afd, "\t\tfid = %s, chmod = %o\n",
+		    FID_(&u.u_chmod.Fid), u.u_chmod.Mode);
 	    fdprint(afd, "\t\tvv = ");
 	    PRINTVV(afd, u.u_chmod.VV);
 	    fdprint(afd, "\n");
 	    break;
 
 	case CML_Create_OP:
-	    fdprint(afd, "\t\tpfid = ");
-	    PRINTFID(afd, u.u_create.PFid);
-	    fdprint(afd, ", name = (%s)\n\t\tcfid = ", u.u_create.Name);
-	    PRINTFID(afd, u.u_create.CFid);
-	    fdprint(afd, ", mode = %o\n", u.u_create.Mode);
+	    fdprint(afd, "\t\tpfid = %s, name = (%s)\n",
+		    FID_(&u.u_create.PFid), Name);
+	    fdprint(afd, "\t\tcfid = %s, mode = %o\n",
+		    FID_(&u.u_create.CFid), u.u_create.Mode);
 	    fdprint(afd, "\t\tpvv = ");
 	    PRINTVV(afd, u.u_create.PVV);
 	    fdprint(afd, "\n");
 	    break;
 
 	case CML_Remove_OP:
-	    fdprint(afd, "\t\tpfid = ");
-	    PRINTFID(afd, u.u_remove.PFid);
-	    fdprint(afd, ", name = (%s)\n\t\tcfid = ", u.u_remove.Name);
-	    PRINTFID(afd, u.u_remove.CFid);
-	    fdprint(afd, "\n");
+	    fdprint(afd, "\t\tpfid = %s, name = (%s)\n",
+		    FID_(&u.u_remove.PFid), Name);
+	    fdprint(afd, "\t\tcfid = %s\n", FID_(&u.u_remove.CFid));
 	    fdprint(afd, "\t\tpvv = ");
 	    PRINTVV(afd, u.u_remove.PVV);
-	    fdprint(afd, "\n");
-	    fdprint(afd, "\t\tcvv = ");
+	    fdprint(afd, "\n\t\tcvv = ");
 	    PRINTVV(afd, u.u_remove.CVV);
 	    fdprint(afd, "\n");
 	    break;
 
 	case CML_Link_OP:
-	    fdprint(afd, "\t\tpfid = ");
-	    PRINTFID(afd, u.u_link.PFid);
-	    fdprint(afd, ", name = (%s)\n\t\tcfid = ", u.u_link.Name);
-	    PRINTFID(afd, u.u_link.CFid);
-	    fdprint(afd, "\n");
+	    fdprint(afd, "\t\tpfid = %s, name = (%s)\n",
+		    FID_(&u.u_link.PFid), Name);
+	    fdprint(afd, "\t\tcfid = %s\n", FID_(&u.u_link.CFid));
 	    fdprint(afd, "\t\tpvv = ");
 	    PRINTVV(afd, u.u_link.PVV);
 	    fdprint(afd, "\n");
@@ -969,13 +901,11 @@ void cmlent::print(int afd) {
 	    break;
 
 	case CML_Rename_OP:
-	    fdprint(afd, "\t\tspfid = ");
-	    PRINTFID(afd, u.u_rename.SPFid);
-	    fdprint(afd, ", sname = (%s)\n\t\ttpfid = ", u.u_rename.OldName);
-	    PRINTFID(afd, u.u_rename.TPFid);
-	    fdprint(afd, ", tname = (%s)\n\t\tsfid = ", u.u_rename.NewName);
-	    PRINTFID(afd, u.u_rename.SFid);
-	    fdprint(afd, "\n");
+	    fdprint(afd, "\t\tspfid = %s, sname = (%s)\n",
+		    FID_(&u.u_rename.SPFid), Name);
+	    fdprint(afd, "\t\ttpfid = %s, tname = (%s)\n",
+		    FID_(&u.u_rename.TPFid), NewName);
+	    fdprint(afd, "\t\tsfid = %s\n", FID_(&u.u_rename.SFid));
 	    fdprint(afd, "\t\tspvv = ");
 	    PRINTVV(afd, u.u_rename.SPVV);
 	    fdprint(afd, "\n");
@@ -988,22 +918,19 @@ void cmlent::print(int afd) {
 	    break;
 
 	case CML_MakeDir_OP:
-	    fdprint(afd, "\t\tpfid = ");
-	    PRINTFID(afd, u.u_mkdir.PFid);
-	    fdprint(afd, ", name = (%s)\n\t\tcfid = ", u.u_mkdir.Name);
-	    PRINTFID(afd, u.u_mkdir.CFid);
-	    fdprint(afd, ", mode = %o\n", u.u_mkdir.Mode);
+	    fdprint(afd, "\t\tpfid = %s, name = (%s)\n",
+		    FID_(&u.u_mkdir.PFid), Name);
+	    fdprint(afd, "\t\tcfid = %s, mode = %o\n",
+		    FID_(&u.u_mkdir.CFid), u.u_mkdir.Mode);
 	    fdprint(afd, "\t\tpvv = ");
 	    PRINTVV(afd, u.u_mkdir.PVV);
 	    fdprint(afd, "\n");
 	    break;
 
 	case CML_RemoveDir_OP:
-	    fdprint(afd, "\t\tpfid = ");
-	    PRINTFID(afd, u.u_rmdir.PFid);
-	    fdprint(afd, ", name = (%s)\n\t\tcfid = ", u.u_rmdir.Name);
-	    PRINTFID(afd, u.u_rmdir.CFid);
-	    fdprint(afd, "\n");
+	    fdprint(afd, "\t\tpfid = %s, name = (%s)\n",
+		    FID_(&u.u_rmdir.PFid), Name);
+	    fdprint(afd, "\t\tcfid = %s\n", FID_(&u.u_rmdir.CFid));
 	    fdprint(afd, "\t\tpvv = ");
 	    PRINTVV(afd, u.u_rmdir.PVV);
 	    fdprint(afd, "\n");
@@ -1013,23 +940,20 @@ void cmlent::print(int afd) {
 	    break;
 
 	case CML_SymLink_OP:
-	    fdprint(afd, "\t\tpfid = ");
-	    PRINTFID(afd, u.u_symlink.PFid);
-	    fdprint(afd, ", name = (%s)\n\t\tcfid = ", u.u_symlink.NewName);
-	    PRINTFID(afd, u.u_symlink.CFid);
-	    fdprint(afd, ", contents = (%s), mode = %o\n",
-		    u.u_symlink.OldName, u.u_symlink.Mode);
+	    fdprint(afd, "\t\tpfid = %s, name = (%s)\n",
+		    FID_(&u.u_symlink.PFid), NewName);
+	    fdprint(afd, "\t\tcfid = %s, contents = (%s), mode = %o\n",
+		    FID_(&u.u_symlink.CFid), Name, u.u_symlink.Mode);
 	    fdprint(afd, "\t\tpvv = ");
 	    PRINTVV(afd, u.u_symlink.PVV);
 	    fdprint(afd, "\n");
 	    break;
 
         case CML_Repair_OP:
-	    fdprint(afd, "\t\tfid = ");
-	    PRINTFID(afd, u.u_repair.Fid);
-	    fdprint(afd, ", Length = %u\n\t\tattrs=[%d %d %o]\n",
-		    u.u_repair.Length, u.u_repair.Date, u.u_repair.Owner,
-		    u.u_repair.Mode);
+	    fdprint(afd, "\t\tfid = %s, Length = %u\n",
+		    FID_(&u.u_repair.Fid), u.u_repair.Length);
+	    fdprint(afd, "\t\tattrs=[%d %d %o]\n",
+		    u.u_repair.Date, u.u_repair.Owner, u.u_repair.Mode);
 	    fdprint(afd, "\t\tOVV = ");
 	    PRINTVV(afd, u.u_repair.OVV);
 	    fdprint(afd, "\n");
@@ -1054,8 +978,8 @@ void cmlent::print(int afd) {
 int repvol::LogStore(time_t Mtime, vuid_t vuid, ViceFid *Fid, RPC2_Unsigned
                      NewLength, int tid)
 {
-    LOG(1, ("repvol::LogStore: %d, %d, (%x.%x.%x), %d %d\n",
-	     Mtime, vuid, Fid->Volume, Fid->Vnode, Fid->Unique, NewLength, tid));
+    LOG(1, ("repvol::LogStore: %d, %d, (%s), %d %d\n",
+	     Mtime, vuid, FID_(Fid), NewLength, tid));
 
     if (LogOpts) {
 	/* Cancel stores, as long as they are not followed by chowns. */
@@ -1123,8 +1047,8 @@ int repvol::LogSetAttr(time_t Mtime, vuid_t vuid, ViceFid *Fid, RPC2_Unsigned
 int repvol::LogTruncate(time_t Mtime, vuid_t vuid, ViceFid *Fid, RPC2_Unsigned
                         NewLength, int tid)
 {
-    LOG(1, ("repvol::LogTruncate: %d, %d, (%x.%x.%x), %d %d\n",
-	     Mtime, vuid, Fid->Volume, Fid->Vnode, Fid->Unique, NewLength, tid));
+    LOG(1, ("repvol::LogTruncate: %d, %d, (%s), %d %d\n",
+	     Mtime, vuid, FID_(Fid), NewLength, tid));
 
     /* Treat truncates as stores for now. -JJK */
     return(LogStore(Mtime, vuid, Fid, NewLength, tid));
@@ -1135,8 +1059,8 @@ int repvol::LogTruncate(time_t Mtime, vuid_t vuid, ViceFid *Fid, RPC2_Unsigned
 int repvol::LogUtimes(time_t Mtime, vuid_t vuid, ViceFid *Fid, Date_t NewDate,
                       int tid)
 {
-    LOG(1, ("repvol::LogUtimes: %d, %d, (%x.%x.%x), %d %d\n",
-	     Mtime, vuid, Fid->Volume, Fid->Vnode, Fid->Unique, NewDate, tid));
+    LOG(1, ("repvol::LogUtimes: %d, %d, (%s), %d %d\n",
+	     Mtime, vuid, FID_(Fid), NewDate, tid));
 
     if (LogOpts) {
 	int cancellation;
@@ -1163,8 +1087,8 @@ int repvol::LogUtimes(time_t Mtime, vuid_t vuid, ViceFid *Fid, Date_t NewDate,
 int repvol::LogChown(time_t Mtime, vuid_t vuid, ViceFid *Fid, UserId NewOwner,
                      int tid)
 {
-    LOG(1, ("repvol::LogChown: %d, %d, (%x.%x.%x), %d %d\n",
-	     Mtime, vuid, Fid->Volume, Fid->Vnode, Fid->Unique, NewOwner, tid));
+    LOG(1, ("repvol::LogChown: %d, %d, (%s), %d %d\n",
+	     Mtime, vuid, FID_(Fid), NewOwner, tid));
 
     if (LogOpts) {
 	int cancellation;
@@ -1191,8 +1115,8 @@ int repvol::LogChown(time_t Mtime, vuid_t vuid, ViceFid *Fid, UserId NewOwner,
 int repvol::LogChmod(time_t Mtime, vuid_t vuid, ViceFid *Fid,
                      RPC2_Unsigned NewMode, int tid)
 {
-    LOG(1, ("repvol::LogChmod: %d, %d, (%x.%x.%x), %o %d\n",
-	     Mtime, vuid, Fid->Volume, Fid->Vnode, Fid->Unique, NewMode, tid));
+    LOG(1, ("repvol::LogChmod: %d, %d, (%s), %o %d\n",
+	     Mtime, vuid, FID_(Fid), NewMode, tid));
 
     if (LogOpts) {
 	int cancellation;
@@ -1227,9 +1151,8 @@ int repvol::LogChmod(time_t Mtime, vuid_t vuid, ViceFid *Fid,
 int repvol::LogCreate(time_t Mtime, vuid_t vuid, ViceFid *PFid, char *Name,
                       ViceFid *CFid, RPC2_Unsigned Mode, int tid)
 {
-    LOG(1, ("repvol::LogCreate: %d, %d, (%x.%x.%x), %s, (%x.%x.%x), %o %d\n",
-	     Mtime, vuid, PFid->Volume, PFid->Vnode, PFid->Unique,
-	     Name, CFid->Volume, CFid->Vnode, CFid->Unique, Mode, tid));
+    LOG(1, ("repvol::LogCreate: %d, %d, (%s), %s, (%s), %o %d\n",
+	     Mtime, vuid, FID_(PFid), Name, FID_2(CFid), Mode, tid));
 
     cmlent *create_mle = new cmlent(&CML, Mtime, vuid, CML_Create_OP, tid,
 				     PFid, Name, CFid, Mode);
@@ -1241,9 +1164,8 @@ int repvol::LogCreate(time_t Mtime, vuid_t vuid, ViceFid *PFid, char *Name,
 int repvol::LogRemove(time_t Mtime, vuid_t vuid, ViceFid *PFid, char *Name,
                       const ViceFid *CFid, int LinkCount, int tid)
 {
-    LOG(1, ("repvol::LogRemove: %d, %d, (%x.%x.%x), %s, (%x.%x.%x), %d %d\n",
-	     Mtime, vuid, PFid->Volume, PFid->Vnode, PFid->Unique,
-	     Name, CFid->Volume, CFid->Vnode, CFid->Unique, LinkCount, tid));
+    LOG(1, ("repvol::LogRemove: %d, %d, (%s), %s, (%s), %d %d\n",
+	     Mtime, vuid, FID_(PFid), Name, FID_2(CFid), LinkCount, tid));
 
     int ObjectCreated = 0;
 
@@ -1340,9 +1262,8 @@ int repvol::LogRemove(time_t Mtime, vuid_t vuid, ViceFid *PFid, char *Name,
 /* local-repair modification */
 int repvol::LogLink(time_t Mtime, vuid_t vuid, ViceFid *PFid, char *Name,
                     ViceFid *CFid, int tid) {
-    LOG(1, ("repvol::LogLink: %d, %d, (%x.%x.%x), %s, (%x.%x.%x) %d\n",
-	     Mtime, vuid, PFid->Volume, PFid->Vnode, PFid->Unique,
-	     Name, CFid->Volume, CFid->Vnode, CFid->Unique, tid));
+    LOG(1, ("repvol::LogLink: %d, %d, (%s), %s, (%s) %d\n",
+	     Mtime, vuid, FID_(PFid), Name, FID_2(CFid), tid));
 
     cmlent *link_mle = new cmlent(&CML, Mtime, vuid, CML_Link_OP, tid,
 				   PFid, Name, CFid);
@@ -1367,9 +1288,8 @@ int repvol::LogRename(time_t Mtime, vuid_t vuid, ViceFid *SPFid,
 
     }
 
-    LOG(1, ("repvol::LogRename: %d, %d, (%x.%x.%x), %s, (%x.%x.%x), %s, (%x.%x.%x) %d\n",
-	     Mtime, vuid, SPFid->Volume, SPFid->Vnode, SPFid->Unique,
-	     OldName, TPFid->Volume, TPFid->Vnode, TPFid->Unique,
+    LOG(1, ("repvol::LogRename: %d, %d, (%s), %s, (%s), %s, (%x.%x.%x) %d\n",
+	     Mtime, vuid, FID_(SPFid), OldName, FID_2(TPFid),
 	     NewName, SFid->Volume, SFid->Vnode, SFid->Unique, tid));
 
     cmlent *rename_mle = new cmlent(&CML, Mtime, vuid, CML_Rename_OP, tid,
@@ -1382,9 +1302,8 @@ int repvol::LogRename(time_t Mtime, vuid_t vuid, ViceFid *SPFid,
 int repvol::LogMkdir(time_t Mtime, vuid_t vuid, ViceFid *PFid, char *Name,
                      ViceFid *CFid, RPC2_Unsigned Mode, int tid)
 {
-    LOG(1, ("repvol::LogMkdir: %d, %d, (%x.%x.%x), %s, (%x.%x.%x), %o %d\n",
-	     Mtime, vuid, PFid->Volume, PFid->Vnode, PFid->Unique,
-	     Name, CFid->Volume, CFid->Vnode, CFid->Unique, Mode, tid));
+    LOG(1, ("repvol::LogMkdir: %d, %d, (%s), %s, (%s), %o %d\n",
+	     Mtime, vuid, FID_(PFid), Name, FID_2(CFid), Mode, tid));
 
     cmlent *mkdir_mle = new cmlent(&CML, Mtime, vuid, CML_MakeDir_OP, tid,
 				    PFid, Name, CFid, Mode);
@@ -1395,9 +1314,8 @@ int repvol::LogMkdir(time_t Mtime, vuid_t vuid, ViceFid *PFid, char *Name,
 /* local-repair modification */
 int repvol::LogRmdir(time_t Mtime, vuid_t vuid, ViceFid *PFid, char *Name,
                      const ViceFid *CFid, int tid) {
-    LOG(1, ("repvol::LogRmdir: %d, %d, (%x.%x.%x), %s, (%x.%x.%x) %d\n",
-	     Mtime, vuid, PFid->Volume, PFid->Vnode, PFid->Unique,
-	     Name, CFid->Volume, CFid->Vnode, CFid->Unique, tid));
+    LOG(1, ("repvol::LogRmdir: %d, %d, (%s), %s, (%s) %d\n",
+	     Mtime, vuid, FID_(PFid), Name, FID_2(CFid), tid));
 
     int ObjectCreated = 0;
     int DependentChildren = 0;
@@ -1512,9 +1430,8 @@ int repvol::LogSymlink(time_t Mtime, vuid_t vuid, ViceFid *PFid,
                        char *OldName, char *NewName, ViceFid *CFid,
                        RPC2_Unsigned Mode, int tid)
 {
-    LOG(1, ("repvol::LogSymlink: %d, %d, (%x.%x.%x), %s, %s, (%x.%x.%x), %o %d\n",
-	     Mtime, vuid, PFid->Volume, PFid->Vnode, PFid->Unique,
-	     OldName, NewName, CFid->Volume, CFid->Vnode, CFid->Unique, Mode, tid));
+    LOG(1, ("repvol::LogSymlink: %d, %d, (%s), %s, %s, (%s), %o %d\n",
+	    Mtime, vuid, FID_(PFid), OldName, NewName, FID_2(CFid), Mode, tid));
 
     cmlent *symlink_mle = new cmlent(&CML, Mtime, vuid, CML_SymLink_OP, tid,
 				      PFid, OldName, NewName, CFid, Mode);
@@ -1526,9 +1443,9 @@ int repvol::LogRepair(time_t Mtime, vuid_t vuid, ViceFid *Fid,
                       RPC2_Unsigned Length, Date_t Date, UserId Owner,
                       RPC2_Unsigned Mode, int tid)
 {
-    LOG(1, ("repvol::LogRepair: %d %d (%x.%x.%x) attrs [%u %d %u %o] %d\n",
-	    Mtime, vuid, Fid->Volume, Fid->Vnode, Fid->Unique, Length,
-	    Date, Owner, Mode, tid));
+    LOG(1, ("repvol::LogRepair: %d %d (%s) attrs [%u %d %u %o] %d\n",
+	    Mtime, vuid, FID_(Fid), Length, Date, Owner, Mode, tid));
+
     cmlent *repair_mle = new cmlent(&CML, Mtime, vuid, CML_Repair_OP, tid,
 				    Fid, Length, Date, Owner, Mode, tid);
     return(repair_mle == 0 ? ENOSPC : 0);
@@ -1541,8 +1458,7 @@ int repvol::LogRepair(time_t Mtime, vuid_t vuid, ViceFid *Fid,
  */
 void repvol::CancelStores(ViceFid *Fid)
 {
-    LOG(1, ("repvol::CancelStores: (%x.%x.%x)\n",
-	    Fid->Volume, Fid->Vnode, Fid->Unique));
+    LOG(1, ("repvol::CancelStores: (%s)\n", FID_(Fid)));
 
     /* this routine should be called at startup only */
     CODA_ASSERT(!IsReintegrating());
@@ -2207,8 +2123,8 @@ int ClientModifyLog::COP1(char *buf, int bufsize, ViceVersionVector *UpdateSet,
 	/* Purge off stale directory fids, if any. fsobj::Kill is idempotent. */
 	LOG(0, ("ClientModifyLog::COP1: %d stale dirs\n", NumStaleDirs));
 	for (int d = 0; d < NumStaleDirs; d++) {
-	    LOG(0, ("ClientModifyLog::COP1: stale dir 0x%x.0x%x.0x%x\n", 
-		    StaleDirs[d].Volume, StaleDirs[d].Vnode, StaleDirs[d].Unique));
+	    LOG(0, ("ClientModifyLog::COP1: stale dir %s\n",
+		    FID_(&StaleDirs[d])));
 	    fsobj *f = FSDB->Find(&StaleDirs[d]);
 	    CODA_ASSERT(f);
 	    Recov_BeginTrans();
@@ -2327,8 +2243,8 @@ int ClientModifyLog::COP1(char *buf, int bufsize, ViceVersionVector *UpdateSet,
 
 		/* purge them off.  fsobj::Kill is idempotent. */
 		for (int d = 0; d < NumStaleDirs; d++) {
-		    LOG(0, ("ClientModifyLog::COP1: stale dir 0x%x.0x%x.0x%x\n", 
-			    StaleDirs[d].Volume, StaleDirs[d].Vnode, StaleDirs[d].Unique));
+		    LOG(0, ("ClientModifyLog::COP1: stale dir %s\n", 
+			    FID_(&StaleDirs[d])));
 		    fsobj *f = FSDB->Find(&StaleDirs[d]);
 		    CODA_ASSERT(f);
 		    Recov_BeginTrans();
@@ -2523,8 +2439,7 @@ void cmlent::translatefid(ViceFid *OldFid, ViceFid *NewFid) {
     }
     if (!found) {
 	print(logFile);
-	CHOKE("cmlent::translatefid: (%x.%x.%x) not matched",
-	      OldFid->Volume, OldFid->Vnode, OldFid->Unique);
+	CHOKE("cmlent::translatefid: (%s) not matched", FID_(OldFid));
     }
 }
 
@@ -2543,8 +2458,7 @@ void cmlent::thread() {
 	if (f == 0) {
 	    print(logFile);
 	    (strbase(repvol, log, CML))->print(logFile);
-	    CHOKE("cmlent::thread: can't find (%x.%x.%x)",
-		fidp->Volume, fidp->Vnode, fidp->Unique);
+	    CHOKE("cmlent::thread: can't find (%s)", FID_(fidp));
 	}
 
 	/* Thread the VVs. */
@@ -2574,35 +2488,33 @@ int cmlent::size()
     switch(opcode) {
 	case CML_Create_OP:
 	    len += RLE_Size(CML_Create_PTR, &u.u_create.PFid, &u.u_create.PVV,
-		     u.u_create.Name, uid, u.u_create.Mode, &u.u_create.CFid,
-                     &sid);
+			    Name, uid, u.u_create.Mode, &u.u_create.CFid, &sid);
 	    break;
 
 	case CML_Link_OP:
 	    len += RLE_Size(CML_Link_PTR, &u.u_link.PFid, &u.u_link.PVV,
-		     u.u_link.Name, &u.u_link.CFid, &u.u_link.CVV, &sid);
+			    Name, &u.u_link.CFid, &u.u_link.CVV, &sid);
 	    break;
 
 	case CML_MakeDir_OP:
 	    len += RLE_Size(CML_MakeDir_PTR, &u.u_mkdir.PFid, &u.u_mkdir.PVV,
-		     u.u_mkdir.Name, &u.u_mkdir.CFid, uid, u.u_mkdir.Mode, &sid);
+			    Name, &u.u_mkdir.CFid, uid, u.u_mkdir.Mode,&sid);
 	    break;
 
 	case CML_SymLink_OP:
 	    len += RLE_Size(CML_SymLink_PTR, &u.u_symlink.PFid,
-		     &u.u_symlink.PVV, u.u_symlink.OldName,
-		     u.u_symlink.NewName, &u.u_symlink.CFid, uid,
-		     u.u_symlink.Mode, &sid);
+			    &u.u_symlink.PVV, Name, NewName,
+			    &u.u_symlink.CFid, uid, u.u_symlink.Mode, &sid);
 	    break;
 
 	case CML_Remove_OP:
 	    len += RLE_Size(CML_Remove_PTR, &u.u_remove.PFid, &u.u_remove.PVV,
-		     u.u_remove.Name, &u.u_remove.CVV, &sid);
+			    Name, &u.u_remove.CVV, &sid);
 	    break;
 
 	case CML_RemoveDir_OP:
 	    len += RLE_Size(CML_RemoveDir_PTR, &u.u_rmdir.PFid, &u.u_rmdir.PVV,
-		     u.u_rmdir.Name, &u.u_rmdir.CVV, &sid);
+			    Name, &u.u_rmdir.CVV, &sid);
 	    break;
 
 	case CML_Store_OP:
@@ -2627,8 +2539,8 @@ int cmlent::size()
 
 	case CML_Rename_OP:
 	    len += RLE_Size(CML_Rename_PTR, &u.u_rename.SPFid, &u.u_rename.SPVV,
-		     u.u_rename.OldName, &u.u_rename.TPFid, &NullVV,
-		     u.u_rename.NewName, &u.u_rename.SVV, &sid);
+			    Name, &u.u_rename.TPFid, &NullVV,
+			    NewName, &u.u_rename.SVV, &sid);
 	    break;
 
 	case CML_Repair_OP:
@@ -2663,35 +2575,33 @@ void cmlent::pack(PARM **_ptr) {
     switch(opcode) {
 	case CML_Create_OP:
 	    RLE_Pack(_ptr, CML_Create_PTR, &u.u_create.PFid, &u.u_create.PVV,
-		     u.u_create.Name, uid, u.u_create.Mode, &u.u_create.CFid,
-                     &sid);
+		     Name, uid, u.u_create.Mode, &u.u_create.CFid, &sid);
 	    break;
 
 	case CML_Link_OP:
 	    RLE_Pack(_ptr, CML_Link_PTR, &u.u_link.PFid, &u.u_link.PVV,
-		     u.u_link.Name, &u.u_link.CFid, &u.u_link.CVV, &sid);
+		     Name, &u.u_link.CFid, &u.u_link.CVV, &sid);
 	    break;
 
 	case CML_MakeDir_OP:
 	    RLE_Pack(_ptr, CML_MakeDir_PTR, &u.u_mkdir.PFid, &u.u_mkdir.PVV,
-		     u.u_mkdir.Name, &u.u_mkdir.CFid, uid, u.u_mkdir.Mode, &sid);
+		     Name, &u.u_mkdir.CFid, uid, u.u_mkdir.Mode, &sid);
 	    break;
 
 	case CML_SymLink_OP:
 	    RLE_Pack(_ptr, CML_SymLink_PTR, &u.u_symlink.PFid,
-		     &u.u_symlink.PVV, u.u_symlink.OldName,
-		     u.u_symlink.NewName, &u.u_symlink.CFid, uid,
+		     &u.u_symlink.PVV, Name, NewName, &u.u_symlink.CFid, uid,
 		     u.u_symlink.Mode, &sid);
 	    break;
 
 	case CML_Remove_OP:
 	    RLE_Pack(_ptr, CML_Remove_PTR, &u.u_remove.PFid, &u.u_remove.PVV,
-		     u.u_remove.Name, &u.u_remove.CVV, &sid);
+		     Name, &u.u_remove.CVV, &sid);
 	    break;
 
 	case CML_RemoveDir_OP:
 	    RLE_Pack(_ptr, CML_RemoveDir_PTR, &u.u_rmdir.PFid, &u.u_rmdir.PVV,
-		     u.u_rmdir.Name, &u.u_rmdir.CVV, &sid);
+		     Name, &u.u_rmdir.CVV, &sid);
 	    break;
 
 	case CML_Store_OP:
@@ -2718,8 +2628,8 @@ void cmlent::pack(PARM **_ptr) {
 	    TPVV = FID_EQ(&u.u_rename.SPFid, &u.u_rename.TPFid) ?
 		u.u_rename.SPVV : u.u_rename.TPVV;
 	    RLE_Pack(_ptr, CML_Rename_PTR, &u.u_rename.SPFid, &u.u_rename.SPVV,
-		     u.u_rename.OldName, &u.u_rename.TPFid, &TPVV,
-		     u.u_rename.NewName, &u.u_rename.SVV, &sid);
+		     Name, &u.u_rename.TPFid, &TPVV,
+		     NewName, &u.u_rename.SVV, &sid);
 	    break;
 
 	case CML_Repair_OP:
@@ -2768,8 +2678,7 @@ void cmlent::commit(ViceVersionVector *UpdateSet)
 
 	cmlent *FinalCmlent = f->FinalCmlent(tid);
 	if (FinalCmlent == this) {
-	    LOG(10, ("cmlent::commit: FinalCmlent for 0x%x.%x.%x\n",
-		     f->fid.Volume, f->fid.Vnode, f->fid.Unique));
+	    LOG(10, ("cmlent::commit: FinalCmlent for %s\n", FID_(&f->fid)));
 	    /* 
 	     * if the final update removed the object, don't bother adding the
 	     * COP2, but do update the version vector as in connected mode.
@@ -3234,11 +3143,11 @@ int PathAltered(ViceFid *cfid, char *suffix, ClientModifyLog *CML, cmlent *start
 	if (m->opcode == CML_Remove_OP && FID_EQ(&m->u.u_remove.CFid, cfid)) {
 	    /* when the cfid is removed, prepend suffix and replace cfid with its father */
 	    if (suffix[0]) 
-	      sprintf(buf, "%s/%s", m->u.u_remove.Name, suffix);
+	      sprintf(buf, "%s/%s", m->Name, suffix);
 	    else 
-	      sprintf(buf, "%s", m->u.u_remove.Name);
+	      sprintf(buf, "%s", m->Name);
 	    strcpy(suffix, buf);
-	    memmove((void *) cfid, (const void *)&m->u.u_remove.PFid, (int) sizeof(ViceFid));
+	    *cfid = m->u.u_remove.PFid;
 	    return 1;
 	}
 
@@ -3248,11 +3157,11 @@ int PathAltered(ViceFid *cfid, char *suffix, ClientModifyLog *CML, cmlent *start
 	     * replace cfid with its father.
 	     */
 	    if (suffix[0])
-	      sprintf(buf, "%s/%s", m->u.u_rmdir.Name, suffix);
+	      sprintf(buf, "%s/%s", m->Name, suffix);
 	    else
-	      sprintf(buf, "%s", m->u.u_rmdir.Name);
+	      sprintf(buf, "%s", m->Name);
 	    strcpy(suffix, buf);
-	    memmove((void *) cfid, (const void *)&m->u.u_rmdir.PFid, (int) sizeof(ViceFid));
+	    *cfid = m->u.u_rmdir.PFid;
 	    return 1;
 	}
 
@@ -3262,11 +3171,11 @@ int PathAltered(ViceFid *cfid, char *suffix, ClientModifyLog *CML, cmlent *start
 	     * suffix and replace cfid with the original father fid.
 	     */
 	    if (suffix[0])
-	      sprintf(buf, "%s/%s", m->u.u_rename.OldName, suffix);
+	      sprintf(buf, "%s/%s", m->Name, suffix);
 	    else
-	      sprintf(buf, "%s", m->u.u_rename.OldName);
+	      sprintf(buf, "%s", m->Name);
 	    strcpy(suffix, buf);
-	    memmove((void *) cfid, (const void *)&m->u.u_rename.SPFid, (int) sizeof(ViceFid));
+	    *cfid = m->u.u_rename.SPFid;
 	    return 1;
 	}
 	m = next();
@@ -3279,13 +3188,12 @@ void RecoverPathName(char *path, ViceFid *fid, ClientModifyLog *CML, cmlent *sta
 {
     /* this algorithm is single-volume based */
     CODA_ASSERT(path && fid && CML && starter);
-    LOG(100, ("RecoverPathName: fid = 0x.%x.%x.%x\n", fid->Volume, fid->Vnode, fid->Unique));
+    LOG(100, ("RecoverPathName: fid = %s\n", FID_(fid)));
 
-    ViceFid cfid;
+    ViceFid cfid = *fid;
     char suffix[MAXPATHLEN];
     char buf[MAXPATHLEN];
 
-    memmove((void *) &cfid, (const void *)fid, (int)sizeof(ViceFid));
     suffix[0] = '\0';
 
     /* the loog invariant is "path(cfid)/suffix == path(fid)" */
@@ -3293,15 +3201,14 @@ void RecoverPathName(char *path, ViceFid *fid, ClientModifyLog *CML, cmlent *sta
 	/* while the current fid is root of the volume */
 	if (!PathAltered(&cfid, suffix, CML, starter)) {
 	    /*
-	     * only deal with the situation when cfid has been not removed or renamed.
-	     * otherwise, cfid and suffix has alread been adjusted by PathAltered to 	
-	     * maintain the loop invariant. Note that the object corresponding to cfid
-	     * now is guaranteed to be alive.
+	     * only deal with the situation when cfid has been not removed or
+	     * renamed. otherwise, cfid and suffix has alread been adjusted by
+	     * PathAltered to maintain the loop invariant. Note that the object
+	     * corresponding to cfid now is guaranteed to be alive.
 	     */
 	    fsobj *f = FSDB->Find(&cfid);
 	    if (f == NULL) {
-		LOG(0, ("RecoverPathName: fid = 0x%x.%x.%x object no cached\n",
-			cfid.Volume, cfid.Vnode, cfid.Unique));
+		LOG(0, ("RecoverPathName: fid = %s object no cached\n", FID_(&cfid)));
 		sprintf(path, "???/%s", suffix);
 		return;
 	    }
@@ -3314,17 +3221,16 @@ void RecoverPathName(char *path, ViceFid *fid, ClientModifyLog *CML, cmlent *sta
 	    /* going up to its parent */
 	    if (f->IsRoot() && f->u.mtpoint) {
 		/* this must be the global-root-node of a local-repair subtree */
-		memmove((void *) &cfid, (const void *)&((f->u.mtpoint)->pfid), (int)sizeof(ViceFid));
+		cfid = f->u.mtpoint->pfid;
 	    } else {
-		memmove((void *) &cfid, (const void *)&f->pfid, (int)sizeof(ViceFid));
+		cfid = f->pfid;
 	    }
 	}
     }
     char prefix[MAXPATHLEN];
     fsobj *f = FSDB->Find(&cfid);	/* find the root object of the lowest volume */
     if (f == NULL) {
-	LOG(0, ("RecoverPathName: volume root 0x%x.%x.%x not cached\n",
-		cfid.Volume, cfid.Vnode, cfid.Unique));
+	LOG(0, ("RecoverPathName: volume root %s not cached\n", FID_(&cfid)));
 	sprintf(path, "???/%s", suffix);
 	return;
     }
@@ -3400,8 +3306,8 @@ int repvol::PurgeMLEs(vuid_t vuid)
 		if (rfm->RootCovered()) continue;
 		ViceFid *RootFid = rfm->GetFakeRootFid();
 		if (RootFid->Volume != vid) continue;
-		LOG(0, ("volent::PurgeMLEs: remove subtree rooted at 0x%x.%x.%x\n", 
-			RootFid->Volume, RootFid->Vnode, RootFid->Unique));
+		LOG(0, ("volent::PurgeMLEs: remove subtree rooted at %s\n", 
+			FID_(RootFid)));
 		LRDB->RemoveSubtree(RootFid);
 		subtree_removal = 1;
 		break;
@@ -3783,14 +3689,14 @@ int cmlent::checkpoint(FILE *fp) {
 	    sprintf(hdr.dbuf.size, "%11lo ", (long)0);
 	    sprintf(hdr.dbuf.mtime, "%11lo ", time);
 	    hdr.dbuf.linkflag = '2';
-	    strcpy(hdr.dbuf.linkname, (char *)u.u_symlink.OldName);
+	    strcpy(hdr.dbuf.linkname, (char *)Name);
 	    if ((code = WriteHeader(fp, hdr)) != 0) break;
 	    }
 	    break;
 
         case CML_Repair_OP:
-	    eprint("Not checkpointing file (%x.%x.%x)that was repaired\n",
-		   u.u_repair.Fid.Volume, u.u_repair.Fid.Vnode, u.u_repair.Fid.Unique);
+	    eprint("Not checkpointing file (%s) that was repaired\n",
+		   FID_(&u.u_repair.Fid));
 	    break;
 
 	default:
@@ -3804,7 +3710,7 @@ int cmlent::checkpoint(FILE *fp) {
 /* MUST be called from within transaction! */
 static void GetPath(char *path, ViceFid *fid, char *lastcomp) {
     fsobj *f = FSDB->Find(fid);
-    if (!f) CHOKE("GetPath: %x.%x.%x", fid->Volume, fid->Vnode, fid->Unique);
+    if (!f) CHOKE("GetPath: %s", FID_(fid));
     char buf[MAXPATHLEN];
     f->GetPath(buf);
     if (lastcomp)
@@ -3928,8 +3834,7 @@ void cmlent::AttachFidBindings()
 	if (f == 0) {
 	    print(logFile);
 	    (strbase(repvol, log, CML))->print(logFile);
-	    CHOKE("cmlent::AttachFidBindings: can't find (%x.%x.%x)",
-		fidp->Volume, fidp->Vnode, fidp->Unique);
+	    CHOKE("cmlent::AttachFidBindings: can't find (%s)", FID_(fidp));
 	}
 
 	binding *b = new binding;
@@ -3999,14 +3904,13 @@ void cmlent::writeops(FILE *fp)
 
     case CML_Link_OP:
 	RecoverPathName(path, &u.u_link.CFid, log, this);
-	sprintf(msg, "Link \t%s to %s", path, u.u_link.Name);
+	sprintf(msg, "Link \t%s to %s", path, Name);
 	break;
 
     case CML_Rename_OP:
 	RecoverPathName(path, &u.u_rename.SPFid, log, this);
 	RecoverPathName(path2, &u.u_rename.TPFid, log, this);
-	sprintf(msg, "Rename \t%s/%s (to: %s/%s)", path, u.u_rename.OldName, path2,
-		u.u_rename.NewName);
+	sprintf(msg, "Rename \t%s/%s (to: %s/%s)", path, Name, path2, NewName);
 	break;
 
     case CML_MakeDir_OP:
@@ -4021,7 +3925,7 @@ void cmlent::writeops(FILE *fp)
 
     case CML_SymLink_OP:
 	RecoverPathName(path, &u.u_symlink.CFid, log, this);
-	sprintf(msg, "Symlink %s (--> %s)", path, u.u_symlink.OldName);
+	sprintf(msg, "Symlink %s (--> %s)", path, Name);
 	break;
 
     case CML_Repair_OP:
@@ -4136,8 +4040,7 @@ cml_iterator::cml_iterator(ClientModifyLog& Log, CmlIterOrder Order,
 	fid = *Fid;
 	fsobj *f = FSDB->Find(&fid);
 	if (f == 0) {
-	    CHOKE("cml_iterator::cml_iterator: can't find (%x.%x.%x)",
-		fid.Volume, fid.Vnode, fid.Unique);
+	    CHOKE("cml_iterator::cml_iterator: can't find (%s)", FID_(&fid));
 	}
 	if (f->mle_bindings)
 	    next = new dlist_iterator(*f->mle_bindings, order);

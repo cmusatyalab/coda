@@ -149,7 +149,7 @@ int DH_Lookup(PDirHandle dh, char *entry, struct ViceFid *vfid, int flags)
 
 	DH_LockR(dh);
 
-	rc  = DIR_Lookup(dh->dh_data, entry, &dfid, flags);
+	rc = DIR_Lookup(dh->dh_data, entry, &dfid, flags);
 
 	DH_UnLockR(dh);
 

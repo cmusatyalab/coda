@@ -507,7 +507,6 @@ class fsobj {
     void SetRcRights(int);
     void ClearRcRights();
     int IsValid(int);
-    int CheckAcRights(vuid_t, long rights, int connected);
     void SetAcRights(vuid_t, long my_rights, long any_rights);
     void DemoteAcRights(vuid_t);
     void PromoteAcRights(vuid_t);
@@ -587,7 +586,6 @@ class fsobj {
     int dir_Length();
     void dir_Delete(char *);
     void dir_MakeDir();
-    int dir_Lookup(char *, ViceFid *, int);
     int dir_LookupByFid(char *, ViceFid *);
     void dir_Rebuild();
     int dir_IsEmpty();
@@ -668,10 +666,13 @@ class fsobj {
     int Readlink(char *, int, int *, vuid_t);
 
     /* Miscellaneous utility routines. */
+    int dir_Lookup(char *, ViceFid *, int);
+    int CheckAcRights(vuid_t, long rights, int connected);
     void GetVattr(struct coda_vattr *);		/* translate attributes to VFS format */
     void GetFid(ViceFid *f) { *f = fid; }
     void ReturnEarly();
     void GetPath(char *, int =0);		/* from volume-root (NOT Venus-root) */
+    ViceVersionVector *VV() { return(&stat.VV); }
     int IsFile() { return(stat.VnodeType == (int)File); }
     int IsDir() { return(stat.VnodeType == (int)Directory); }
     int IsSymLink() { return(stat.VnodeType == (int)SymbolicLink); }

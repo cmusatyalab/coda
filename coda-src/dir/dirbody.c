@@ -64,8 +64,9 @@ void DIR_Print(PDirHeader, FILE *f);
 static int dir_FindBlobs (struct DirHeader **dh, int nblobs);
 static int dir_AddPage (struct DirHeader **dir);
 static int dir_NameBlobs(char *);
-static struct DirEntry *dir_FindItem (struct DirHeader *dir,char *ename, 
-				       struct DirEntry **preventry, int *index, int flags);
+static struct DirEntry *dir_FindItem (struct DirHeader *dir, char *ename, 
+				       struct DirEntry **preventry, int *index,
+				       int flags);
 struct DirEntry *dir_GetBlob (struct DirHeader *dir, long blobno);
 static void dir_FreeBlobs(struct DirHeader *dir, int firstblob, int nblobs);
 static struct DirHeader *dir_Extend(struct DirHeader *olddirh, int in_rvm);
@@ -77,7 +78,7 @@ static void fid_NFid2Fid(struct DirNFid *nfid, struct DirFid *fid);
 static void fid_NFidV2Fid(struct DirNFid *, VolumeId, struct ViceFid *);
 
 struct DirFind {
-	char            *df_ename;
+	char		*df_ename;
 	struct DirEntry *df_tp;
 	struct DirEntry *df_lp;
 	int             df_index;          	
@@ -767,7 +768,8 @@ static void fid_NFidV2Fid(struct DirNFid *dnfid, VolumeId vol, struct ViceFid *f
    return 0 upon success
    return ENOENT upon failure
 */
-int DIR_Lookup (struct DirHeader *dir, char *entry, struct DirFid *fid, int flags)
+int DIR_Lookup(struct DirHeader *dir, char *entry, struct DirFid *fid,
+	       int flags)
 {
 	struct DirEntry *de;
 
@@ -1064,8 +1066,9 @@ int dir_FindCaseInsensitive(PDirEntry de, void *hook){
 
 BUG: index doesn't work with CLU_CASE_INSENSITIVE so far. smarc
 */
-static struct DirEntry *dir_FindItem (struct DirHeader *dir, char *ename, 
-				       struct DirEntry **preventry, int *index, int flags)
+static struct DirEntry *dir_FindItem (struct DirHeader *dir, char *ename,
+				      struct DirEntry **preventry, int *index,
+				      int flags)
 {
 	int rc = 0;
 	int i;	

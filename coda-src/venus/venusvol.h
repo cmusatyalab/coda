@@ -264,6 +264,7 @@ class cmlent {
 
     /* Discriminant and sub-type specific members. */
     int opcode;
+    RPC2_String Name, NewName;
     union {
 	struct {				
 	    ViceFid Fid;
@@ -296,14 +297,12 @@ class cmlent {
 	} u_chmod;
 	struct {
 	    ViceFid PFid;
-	    RPC2_String Name;
 	    ViceFid CFid;
 	    RPC2_Unsigned Mode;
 	    /* T */ViceVersionVector PVV;
 	} u_create;
 	struct {
 	    ViceFid PFid;
-	    RPC2_String Name;
 	    ViceFid CFid;
 	    int LinkCount;
 	    /* T */ViceVersionVector PVV;
@@ -311,16 +310,13 @@ class cmlent {
 	} u_remove;
 	struct {
 	    ViceFid PFid;
-	    RPC2_String Name;
 	    ViceFid CFid;
 	    /* T */ViceVersionVector PVV;
 	    /* T */ViceVersionVector CVV;
 	} u_link;
 	struct {
 	    ViceFid SPFid;
-	    RPC2_String OldName;
 	    ViceFid TPFid;
-	    RPC2_String NewName;
 	    ViceFid SFid;
 	    /* T */ViceVersionVector SPVV;
 	    /* T */ViceVersionVector TPVV;
@@ -328,22 +324,18 @@ class cmlent {
 	} u_rename;
 	struct {
 	    ViceFid PFid;
-	    RPC2_String Name;
 	    ViceFid CFid;
 	    RPC2_Unsigned Mode;
 	    /* T */ViceVersionVector PVV;
 	} u_mkdir;
 	struct {
 	    ViceFid PFid;
-	    RPC2_String Name;
 	    ViceFid CFid;
 	    /* T */ViceVersionVector PVV;
 	    /* T */ViceVersionVector CVV;
 	} u_rmdir;
 	struct {
 	    ViceFid PFid;
-	    RPC2_String OldName;
-	    RPC2_String NewName;
 	    ViceFid CFid;
 	    RPC2_Unsigned Mode;
 	    /* T */ViceVersionVector PVV;
