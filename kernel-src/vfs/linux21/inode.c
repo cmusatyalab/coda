@@ -211,7 +211,7 @@ static void coda_delete_inode(struct inode *inode)
 	}
 
 
-	if ( coda_fid_is_volroot(&cii->c_fid) )
+	if ( ! list_empty(&cii->c_volrootlist) )
 		list_del(&cii->c_volrootlist);
 
         open_inode = cii->c_ovp;

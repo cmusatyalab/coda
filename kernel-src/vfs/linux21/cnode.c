@@ -94,7 +94,7 @@ int coda_cnode_make(struct inode **inode, ViceFid *fid, struct super_block *sb)
 		        printk("Coda: unknown weird fid: ino %ld, fid %s."
 			       "Tell Peter.", ino, coda_f2s(&cnp->c_fid));
 		list_add(&cnp->c_volrootlist, &sbi->sbi_volroothead);
-		CDEBUG(D_CNODE, "Added %ld ,%s to volroothead\n",
+		CDEBUG(D_UPCALL, "Added %ld ,%s to volroothead\n",
 		       ino, coda_f2s(&cnp->c_fid));
 	}
 
@@ -129,7 +129,6 @@ struct inode *coda_fid_to_inode(ViceFid *fid, struct super_block *sb)
 	struct coda_inode_info *cnp;
 	ENTRY;
 
-	CDEBUG(D_INODE, "%s\n", coda_f2s(fid));
 
 	if ( !sb ) {
 		printk("coda_fid_to_inode: no sb!\n");
@@ -140,6 +139,7 @@ struct inode *coda_fid_to_inode(ViceFid *fid, struct super_block *sb)
 		printk("coda_fid_to_inode: no fid!\n");
 		return NULL;
 	}
+	CDEBUG(D_INODE, "%s\n", coda_f2s(fid));
 
 
 	if ( coda_fid_is_weird(fid) ) {
@@ -151,6 +151,8 @@ struct inode *coda_fid_to_inode(ViceFid *fid, struct super_block *sb)
 		while ( (le = le->next) != lh ) {
 			cii = list_entry(le, struct coda_inode_info, 
 					 c_volrootlist);
+			CDEBUG(D_DOWNCALL, "iterating, now doing %s, ino %ld\n", 
+			       coda_f2s(&cii->c_fid), cii->c_vnode->i_ino);
 			if ( coda_fideq(&cii->c_fid, fid) ) {
 				inode = cii->c_vnode;
 				CDEBUG(D_INODE, "volume root, found %ld\n", cii->c_vnode->i_ino);
