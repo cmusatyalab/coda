@@ -222,20 +222,20 @@ void coda_flags_to_cflags(short flags, short *coda_flags)
 		(~(O_RDONLY|O_RDWR|O_WRONLY|O_EXCL|O_TRUNC|O_CREAT));  */
 	if ( flags & (O_RDONLY | O_RDWR) ) { 
 		CDEBUG(D_FILE, "--> C_READ added\n");
-		*coda_flags |= C_READ;
+		*coda_flags |= C_O_READ;
 	}
 	if ( flags & (O_WRONLY | O_RDWR) ) { 
 		CDEBUG(D_FILE, "--> C_READ added\n");
-		*coda_flags |= C_WRITE;
+		*coda_flags |= C_O_WRITE;
 	}
 	if ( flags & O_TRUNC )  { 
-		CDEBUG(D_FILE, "--> C_READ added\n");
-		*coda_flags |= C_TRUNC;
+		CDEBUG(D_FILE, "--> C_O_READ added\n");
+		*coda_flags |= C_O_TRUNC;
 	}
 
 	CDEBUG(D_FILE, "--> coda_flags: %o\n", *coda_flags);
 	if ( flags & O_EXCL ) 
-		*coda_flags |= C_EXCL;
+		*coda_flags |= C_O_EXCL;
 }
 
 /* ask venus to cache the file and return the inode of the container file,

@@ -67,7 +67,6 @@
 #ifndef	_CNODE_H_
 #define	_CNODE_H_
 
-#include <sys/types.h>
 
 #define CODA_CNODE_MAGIC        0x47114711
 

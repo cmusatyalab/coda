@@ -352,16 +352,16 @@ static void coda_vattr_to_iattr(struct inode *inode, struct coda_vattr *attr)
            XXX: is this all we need ??
            */
         switch (attr->va_type) {
-        case VCNON:
+        case C_VNON:
                 inode_type  = 0;
                 break;
-        case VCREG:
+        case C_VREG:
                 inode_type = S_IFREG;
                 break;
-        case VCDIR:
+        case C_VDIR:
                 inode_type = S_IFDIR;
                 break;
-        case VCLNK:
+        case C_VLNK:
                 inode_type = S_IFLNK;
                 break;
         default:
@@ -417,7 +417,7 @@ void coda_iattr_to_vattr(struct iattr *iattr, struct coda_vattr *vattr)
 	vattr->va_atime.tv_nsec =  (time_t) -1;
         vattr->va_mtime.tv_nsec = (time_t) -1;
 	vattr->va_ctime.tv_nsec = (time_t) -1;
-        vattr->va_type = VCNON;
+        vattr->va_type = C_VNON;
 	vattr->va_fileid = (long)-1;
 	vattr->va_gen = (long)-1;
 	vattr->va_bytes = (long)-1;
@@ -429,14 +429,14 @@ void coda_iattr_to_vattr(struct iattr *iattr, struct coda_vattr *vattr)
         /* determine the type */
         mode = iattr->ia_mode;
                 if ( S_ISDIR(mode) ) {
-                vattr->va_type = VCDIR; 
+                vattr->va_type = C_VDIR; 
         } else if ( S_ISREG(mode) ) {
-                vattr->va_type = VCREG;
+                vattr->va_type = C_VREG;
         } else if ( S_ISLNK(mode) ) {
-                vattr->va_type = VCLNK;
+                vattr->va_type = C_VLNK;
         } else {
                 /* don't do others */
-                vattr->va_type = VCNON;
+                vattr->va_type = C_VNON;
         }
 
         /* set those vattrs that need change */
@@ -476,32 +476,32 @@ print_vattr( attr )
     char *typestr;
 
     switch (attr->va_type) {
-    case VCNON:
-	typestr = "VCNON";
+    case C_VNON:
+	typestr = "C_VNON";
 	break;
-    case VCREG:
-	typestr = "VCREG";
+    case C_VREG:
+	typestr = "C_VREG";
 	break;
-    case VCDIR:
-	typestr = "VCDIR";
+    case C_VDIR:
+	typestr = "C_VDIR";
 	break;
-    case VCBLK:
-	typestr = "VCBLK";
+    case C_VBLK:
+	typestr = "C_VBLK";
 	break;
-    case VCCHR:
-	typestr = "VCCHR";
+    case C_VCHR:
+	typestr = "C_VCHR";
 	break;
-    case VCLNK:
-	typestr = "VCLNK";
+    case C_VLNK:
+	typestr = "C_VLNK";
 	break;
-    case VCSOCK:
-	typestr = "VCSCK";
+    case C_VSOCK:
+	typestr = "C_VSCK";
 	break;
-    case VCFIFO:
-	typestr = "VCFFO";
+    case C_VFIFO:
+	typestr = "C_VFFO";
 	break;
-    case VCBAD:
-	typestr = "VCBAD";
+    case C_VBAD:
+	typestr = "C_VBAD";
 	break;
     default:
 	typestr = "????";

@@ -568,8 +568,6 @@ int venus_pioctl(struct super_block *sb, struct ViceFid *fid,
 
 void coda_load_creds(struct coda_cred *cred)
 {
-        int i;
-
         cred->cr_uid = (vuid_t) current->uid;
         cred->cr_euid = (vuid_t) current->euid;
         cred->cr_suid = (vuid_t) current->suid;
