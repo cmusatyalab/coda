@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /usr/rvb/XX/src/coda-src/venus/RCS/worker.cc,v 4.1 1997/01/08 21:51:52 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/ss/coda-src/venus/RCS/worker.cc,v 4.2 1997/02/26 16:03:42 rvb Exp braam $";
 #endif /*_BLURB_*/
 
 
@@ -280,10 +280,20 @@ void VFSMount() {
 #ifdef __linux__
     if ( fork() == 0 ) {
       int error;
+      /* child only makes a system call and should not hang on to 
+	 a /dev/cfs0 file descriptor */
+      error = WorkerCloseMuxfd();
+      if ( error ) {
+	pid_t parent;
+	LOG(1, ("CHILD: cannot close worker::muxfd. Killing parent.\n"));
+	parent = getppid();
+	kill(parent, SIGKILL);
+	exit(1);
+      }
       error = mount("coda", venusRoot, "coda",  MS_MGC_VAL , &kernDevice);
       if ( error ) {
 	pid_t parent;
-	perror("Killing parent, mount error:");
+	LOG(1, ("CHILD: mount system call failed. Killing parent.\n"));
 	parent = getppid();
 	kill(parent, SIGKILL);
 	exit(1);
@@ -303,6 +313,7 @@ void VFSMount() {
 	  exit(0);
 	}
       }
+      exit(1);
     }
 
 #endif
@@ -496,6 +507,10 @@ void WorkerInit() {
     worker::lastresign = Vtime();
 }
 
+int WorkerCloseMuxfd() {
+  int error;
+  return close(worker::muxfd);
+}
 
 worker *FindWorker(u_long seq) {
     worker_iterator next;

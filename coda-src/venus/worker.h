@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/src/coda-4.0.1/RCSLINK/./coda-src/venus/worker.h,v 1.1 1996/11/22 19:12:02 braam Exp $";
+static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/ss/coda-src/venus/RCS/worker.h,v 4.1 1997/01/08 21:51:53 rvb Exp braam $";
 #endif /*_BLURB_*/
 
 
@@ -124,6 +124,7 @@ class worker : public vproc {
   friend void PrintWorkers(int);
   friend int MsgRead(msgent *);
   friend int MsgWrite(char *, int);
+  friend int WorkerCloseMuxfd();
   friend class vproc;
   friend class fsobj;
 
