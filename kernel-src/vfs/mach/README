@@ -1,0 +1,3 @@
+most up-to-date sources for cfs modules are in /coda/project/coda/kernel,
+shadows /afs/cs/project/coda-kernel/coda/kernel/latest.  To build
+a kernel, cd into /coda/project/coda/kernel and type make.  
