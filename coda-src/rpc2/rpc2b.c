@@ -95,10 +95,6 @@ long RPC2_Init(char *VId,		/* magic version string */
 	rpc2_Quit (RPC2_WRONGVERSION);
     }
 
-
-
-    (void) FT_GetTimeOfDay(&rpc2_InitTime, (struct timezone *)0);
-
     rpc2_InitConn();
     rpc2_InitMgrp();
     rpc2_InitHost();
@@ -181,7 +177,7 @@ struct in_addr RPC2_setip(char *host)
 long RPC2_Export(IN Subsys)
     RPC2_SubsysIdent *Subsys;
     {
-    long i, myid;
+    long i, myid = 0;
     struct SubsysEntry *sp;
 
     rpc2_Enter();
@@ -215,7 +211,7 @@ long RPC2_Export(IN Subsys)
 long RPC2_DeExport(IN Subsys)
     RPC2_SubsysIdent *Subsys;
     {
-    long i, myid;
+    long i, myid = 0;
     struct SubsysEntry *sp;
 
     rpc2_Enter();
@@ -327,8 +323,8 @@ long rpc2_AllocBuffer(IN long MinBodySize, OUT RPC2_PacketBuffer **BuffPtr,
 long RPC2_FreeBuffer(INOUT BuffPtr)
     RPC2_PacketBuffer **BuffPtr;
     {
-    RPC2_PacketBuffer **tolist;
-    long *tocount;
+    RPC2_PacketBuffer **tolist = NULL;
+    long *tocount = NULL;
 
     rpc2_Enter();
     CODA_ASSERT(BuffPtr != NULL && *BuffPtr != NULL);
@@ -910,40 +906,19 @@ long rpc2_CreateIPSocket(long *svar, RPC2_PortIdent *pvar)
 	return RPC2_SUCCESS;
 }
 
-unsigned int rpc2_TVTOTS(const struct timeval *tv)
-    /* makes a longword time stamp in 1 msec units since rpc2_InitTime  */
-{
-    struct timeval delta;
-    unsigned long diff;
-
-    delta = *tv;
-
-    SUBTIME(&delta, &rpc2_InitTime);
-    TVTOTS(&delta, diff);
-
-    if (diff == 0) diff = 1;  /* just in case we called right away */
-    return(diff);
-}
-
-void rpc2_TSTOTV(const unsigned int ts, struct timeval *tv)
-    /* converts a longword time stamp in 1 msec units since rpc2_InitTime back
-     * to real-time */
-{
-    TSTOTV(tv, ts);
-    ADDTIME(tv, &rpc2_InitTime);
-    return;
-}
-
 unsigned int rpc2_MakeTimeStamp()
     /* makes a longword time stamp in 1 msec units since rpc2_InitTime  */
 {
     struct timeval now;
+    unsigned int ts;
 
     /* use the approximate version b/c gettimeofday is called often */
     /* but for now we take the safe route */
     FT_GetTimeOfDay(&now, (struct timezone *)0);
 
-    return rpc2_TVTOTS(&now);
+    TVTOTS(&now, ts);
+
+    return(ts);
 }
 
 
@@ -961,19 +936,17 @@ void rpc2_ResetObs(obsp, ceaddr)
 /* Retransmission timer stuff */
 void rpc2_UpdateRTT(RPC2_PacketBuffer *pb, struct CEntry *ceaddr)
 {
-    struct timeval observed, sent;
-    long obs, diff; 
-    unsigned long upperlimit;
+    int diff; 
+    unsigned int obs, upperlimit;
     struct timeval *beta0;
     RPC2_NetLogEntry entry;
 
     if (!pb->Header.TimeStamp) return;
 
-    rpc2_TSTOTV(pb->Header.TimeStamp, &sent);
-    observed = pb->Prefix.RecvStamp;
-    SUBTIME(&observed, &sent);
-
-    rpc2_UpdateEstimates(ceaddr->HostInfo, &observed, ceaddr->reqsize);
+    TVTOTS(&pb->Prefix.RecvStamp, obs);
+    say(15, RPC2_DebugLevel, "updatertt %u %lu\n", obs, pb->Header.TimeStamp);
+    obs = TSDELTA(obs, pb->Header.TimeStamp);
+    RPC2_UpdateEstimates(ceaddr->HostInfo, obs, ceaddr->reqsize);
 
     /* 
      * Requests can be sent and received in the same tick.  
@@ -982,8 +955,8 @@ void rpc2_UpdateRTT(RPC2_PacketBuffer *pb, struct CEntry *ceaddr)
      * the clock may tick on the server (service time > 0) but not
      * on the client. Coerce this case to 1.
      */
-    TVTOTS(&observed, obs);
-    if (obs <= 0) obs = 1;
+    if ((long)obs <= 0) obs = 1000;
+    obs /= 1000;
 
     /* log the round-trip time observation in the host log */
     entry.Tag = RPC2_MEASURED_NLE;
@@ -1003,7 +976,7 @@ void rpc2_UpdateRTT(RPC2_PacketBuffer *pb, struct CEntry *ceaddr)
         }
     else 
         {
-	diff = obs - 1 - (ceaddr->RTT >> RPC2_RTT_SHIFT);
+	diff = (long)obs - 1 - (ceaddr->RTT >> RPC2_RTT_SHIFT);
 	if ((ceaddr->RTT += diff) <= 0)
 	    ceaddr->RTT = 1;
 
@@ -1025,7 +998,7 @@ void rpc2_UpdateRTT(RPC2_PacketBuffer *pb, struct CEntry *ceaddr)
     if (ceaddr->LowerLimit < LOWERLIMIT) ceaddr->LowerLimit = LOWERLIMIT;
     else if (ceaddr->LowerLimit > upperlimit) ceaddr->LowerLimit = upperlimit;
 
-    say(4, RPC2_DebugLevel, "rpc2_UpdateRTT: conn 0x%lx, obs %ld, RTT %ld, RTTVar %ld LL %lu usec\n", 
+    say(4, RPC2_DebugLevel, "rpc2_UpdateRTT: conn 0x%lx, obs %d, RTT %ld, RTTVar %ld LL %lu usec\n", 
 			     ceaddr->UniqueCID, obs, ceaddr->RTT, 
 			     ceaddr->RTTVar, ceaddr->LowerLimit);
 

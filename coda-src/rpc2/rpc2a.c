@@ -130,6 +130,19 @@ void RPC2_SetLog(FILE *file, int level)
 	RPC2_DebugLevel = level;
 }
 
+static void rpc2_StampPacket(struct CEntry *ce, struct RPC2_PacketBuffer *pb)
+{
+    unsigned int delta;
+    
+    CODA_ASSERT(ce->RequestTime);
+
+    delta = TSDELTA(rpc2_MakeTimeStamp(), ce->RequestTime);
+    pb->Header.TimeStamp = (unsigned int)ce->TimeStampEcho + delta;
+
+    say(15, RPC2_DebugLevel, "TSin %u delta %u TSout %lu\n",
+	ce->TimeStampEcho, delta, pb->Header.TimeStamp);
+}
+
 long RPC2_SendResponse(IN ConnHandle, IN Reply)
     RPC2_Handle ConnHandle;
     RPC2_PacketBuffer *Reply;
@@ -178,11 +191,8 @@ long RPC2_SendResponse(IN ConnHandle, IN Reply)
     /* Allocate retry packet before encrypting Bodylength */ 
     RPC2_AllocBuffer(preply->Header.BodyLength, &pretry); 
 
-    if (ceaddr->TimeStampEcho) {     /* service time is now-requesttime */
-	CODA_ASSERT(ceaddr->RequestTime);
-	preply->Header.TimeStamp = ceaddr->TimeStampEcho +
-	    (rpc2_MakeTimeStamp() - ceaddr->RequestTime);
-    }
+    if (ceaddr->TimeStampEcho) /* service time is now-requesttime */
+	rpc2_StampPacket(ceaddr, preply);
 
     /* Sanitize packet */
     rpc2_htonp(preply);
@@ -520,7 +530,7 @@ long RPC2_NewBinding(IN RPC2_HostIdent *Host, IN RPC2_PortIdent *Port,
     struct Init3Body *ib3;
     struct Init4Body *ib4;    
     struct SL_Entry *sl;
-    long rc, init2rc, init4rc, savexrandom, saveyrandom, bsize;
+    long rc, init2rc, init4rc, savexrandom = 0, saveyrandom = 0, bsize;
 
 #define DROPCONN()\
 	    {rpc2_SetConnError(ce); (void) RPC2_Unbind(*ConnHandle); *ConnHandle = 0;}
@@ -1197,11 +1207,10 @@ static void SendOKInit2(IN struct CEntry *ce)
     pb->Header.Opcode = RPC2_INIT2;
     if (ce->Flags & CE_OLDV) pb->Header.ReturnCode = RPC2_OLDVERSION;
     else pb->Header.ReturnCode = RPC2_SUCCESS;
-    if (ce->TimeStampEcho) {
-	CODA_ASSERT(ce->RequestTime);
-	pb->Header.TimeStamp = ce->TimeStampEcho +
-	    (rpc2_MakeTimeStamp() - ce->RequestTime);
-    }
+
+    if (ce->TimeStampEcho)     /* service time is now-requesttime */
+	rpc2_StampPacket(ce, pb);
+
     rpc2_htonp(pb);	/* convert to network order */
     rpc2_XmitPacket(rpc2_RequestSocket, pb, &ce->PeerHost, &ce->PeerPort);
     SavePacketForRetry(pb, ce);
@@ -1292,11 +1301,10 @@ static RPC2_PacketBuffer *Send2Get3(IN ce, IN key, IN xrand, OUT yrand)
     ib2->YRandom = htonl(*yrand);
     say(9, RPC2_DebugLevel, "YRandom = %ld\n", *yrand);
     rpc2_Encrypt((char *)ib2, (char *)ib2, sizeof(struct Init2Body), key, ce->EncryptionType);
-    if (ce->TimeStampEcho) {     /* service time is now-requesttime */
-	CODA_ASSERT(ce->RequestTime);
-        pb2->Header.TimeStamp = ce->TimeStampEcho +
-	    (rpc2_MakeTimeStamp() - ce->RequestTime);
-    }
+
+    if (ce->TimeStampEcho)     /* service time is now-requesttime */
+	rpc2_StampPacket(ce, pb2);
+
     rpc2_htonp(pb2);
 
     /* Send Init2 packet and await Init3 packet */
@@ -1363,11 +1371,10 @@ static void Send4AndSave(ce, xrand, ekey)
     ib4->InitialSeqNumber = htonl(ce->NextSeqNumber);
     ib4->XRandomPlusTwo = htonl(xrand + 2);
     rpc2_Encrypt((char *)ib4, (char *)ib4, sizeof(struct Init4Body), ekey, ce->EncryptionType);
-    if (ce->TimeStampEcho) {     /* service time is now-requesttime */
-	CODA_ASSERT(ce->RequestTime);
-        pb->Header.TimeStamp = ce->TimeStampEcho +
-	    (rpc2_MakeTimeStamp() - ce->RequestTime);
-    }
+
+    if (ce->TimeStampEcho)     /* service time is now-requesttime */
+	rpc2_StampPacket(ce, pb);
+
     rpc2_htonp(pb);
 
     /* Send packet; don't bother waiting for acknowledgement */

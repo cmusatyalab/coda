@@ -642,10 +642,6 @@ long SFTP_GetTime(IN RPC2_Handle ConnHandle, INOUT struct timeval *Time)
 
     if (se == NULL || se->HostInfo == NULL) return(RPC2_NOCONNECTION);
 
-    /* Only report timestamps when there is an active sftp transfer */
-    if (se->XferState != XferInProgress)
-	return(RPC2_NOCONNECTION);
-
     *Time = se->LastWord;
     return(RPC2_SUCCESS);
 }

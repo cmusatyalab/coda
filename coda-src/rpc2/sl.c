@@ -742,7 +742,10 @@ static void HandleNewRequest(RPC2_PacketBuffer *pb, struct CEntry *ce)
 	}
 
 	ce->TimeStampEcho = pb->Header.TimeStamp;
-	ce->RequestTime = rpc2_TVTOTS(&pb->Prefix.RecvStamp);
+	TVTOTS(&pb->Prefix.RecvStamp, ce->RequestTime);
+
+	say(15, RPC2_DebugLevel, "handlenewrequest TS %u RQ %u\n",
+	    ce->TimeStampEcho, ce->RequestTime);
 
 	if (IsMulticast(pb)) {
 		rpc2_MRecvd.Requests++;
@@ -816,7 +819,11 @@ static void HandleCurrentRequest(RPC2_PacketBuffer *pbX, struct CEntry *ceA)
 	ceA->TimeStampEcho = pbX->Header.TimeStamp;
 	/* if we're modifying the TimeStampEcho, we also have to reset the
 	 * RequestTime */
-	ceA->RequestTime = rpc2_TVTOTS(&pbX->Prefix.RecvStamp);
+	TVTOTS(&pbX->Prefix.RecvStamp, ceA->RequestTime);
+
+	say(15, RPC2_DebugLevel, "handlecurrentrequest TS %u RQ %u\n",
+	    ceA->TimeStampEcho, ceA->RequestTime);
+
 	SendBusy(ceA, TRUE);
 	RPC2_FreeBuffer(&pbX);
 }
@@ -840,7 +847,11 @@ static void HandleInit1(RPC2_PacketBuffer *pb)
 			ce->TimeStampEcho = pb->Header.TimeStamp;
 			/* if we're modifying the TimeStampEcho, we also have
 			 * to reset the RequestTime */
-			ce->RequestTime = rpc2_TVTOTS(&pb->Prefix.RecvStamp);
+			TVTOTS(&pb->Prefix.RecvStamp, ce->RequestTime);
+
+			say(15, RPC2_DebugLevel, "handleinit1 TS %u RQ %u\n",
+			    ce->TimeStampEcho, ce->RequestTime);
+
 			HandleRetriedBind(pb, ce);
 			return;
 		}
@@ -889,21 +900,15 @@ static void HandleRetriedBind(RPC2_PacketBuffer *pb, struct CEntry *ce)
 
 	if (TestState(ce, SERVER, S_STARTBIND)) {
 		/* Cases (1) and (2) */
-		say(0, RPC2_DebugLevel, "Busying Init1 on 0x%lx\n",  ce->UniqueCID);
-		/* we want to have busies not confusing regular RTT
-		 * calculations */
-		ce->TimeStampEcho = pb->Header.TimeStamp;
-		/* if we're modifying the TimeStampEcho, we also have to reset
-		 * the RequestTime */
-		ce->RequestTime = rpc2_TVTOTS(&pb->Prefix.RecvStamp);
+		say(0, RPC2_DebugLevel, "Busying Init1 on 0x%lx\n", ce->UniqueCID);
+
 		SendBusy(ce, FALSE);
 		RPC2_FreeBuffer(&pb);
 		return;
 	}
 	if (ce->SecurityLevel == RPC2_OPENKIMONO && ce->HeldPacket != NULL) {
 		/* Case (3): The Init2 must have been dropped; resend it */
-		say(0, RPC2_DebugLevel, "Resending Init2 0x%lx\n",  
-		    ce->UniqueCID);
+		say(0, RPC2_DebugLevel, "Resending Init2 0x%lx\n",  ce->UniqueCID);
 		ce->HeldPacket->Header.TimeStamp = htonl(ce->TimeStampEcho);
 		rpc2_XmitPacket(rpc2_RequestSocket, ce->HeldPacket, 
 				&ce->PeerHost, &ce->PeerPort);
@@ -985,7 +990,11 @@ static void HandleInit3(RPC2_PacketBuffer *pb, struct CEntry *ce)
 	/* Expected Init3 */
 	if (BogusSl(ce, pb)) return;
 	ce->TimeStampEcho = pb->Header.TimeStamp;
-	ce->RequestTime = rpc2_TVTOTS(&pb->Prefix.RecvStamp);
+	TVTOTS(&pb->Prefix.RecvStamp, ce->RequestTime);
+
+	say(15, RPC2_DebugLevel, "handleinit3 TS %u RQ %u\n",
+	    ce->TimeStampEcho, ce->RequestTime);
+
 	sl = ce->MySl;
 	sl->Packet = pb;
 	SetState(ce, S_FINISHBIND);
@@ -1056,7 +1065,10 @@ static struct CEntry *MakeConn(struct RPC2_PacketBuffer *pb)
 
 	ce = rpc2_AllocConn();
 	ce->TimeStampEcho = pb->Header.TimeStamp;
-	ce->RequestTime = rpc2_TVTOTS(&pb->Prefix.RecvStamp);
+	TVTOTS(&pb->Prefix.RecvStamp, ce->RequestTime);
+
+	say(15, RPC2_DebugLevel, "makeconn TS %u RQ %u\n",
+	    ce->TimeStampEcho, ce->RequestTime);
 
 	switch((int) pb->Header.Opcode) {
 	case RPC2_INIT1OPENKIMONO:

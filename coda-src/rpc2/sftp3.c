@@ -166,7 +166,8 @@ int sftp_InitIO(struct SFTP_Entry *sEntry)
 
 
     case FILEBYINODE:
-	sEntry->openfd = iopen(sftpd->FileInfo.ByInode.Device, sftpd->FileInfo.ByInode.Inode, oflags);
+	sEntry->openfd = iopen(sftpd->FileInfo.ByInode.Device,
+			       sftpd->FileInfo.ByInode.Inode, oflags);
 	if (sEntry->openfd < 0) {
 	    if (RPC2_Perror) perror("iopen");
 	    return(-1);
@@ -202,7 +203,7 @@ void sftp_UpdateRTT(RPC2_PacketBuffer *pb, struct SFTP_Entry *sEntry,
       DataArrived.
     */
 {
-    struct timeval now, then;
+    unsigned long obs;
 
     if (!pb->Header.TimeEcho) return;
 
@@ -211,11 +212,9 @@ void sftp_UpdateRTT(RPC2_PacketBuffer *pb, struct SFTP_Entry *sEntry,
     {
 	sftp_rttupdates++;
 
-	rpc2_TSTOTV(pb->Header.TimeEcho, &then);
-	now = pb->Prefix.RecvStamp;
-	SUBTIME(&now, &then);
-
-	rpc2_UpdateEstimates(sEntry->HostInfo, &now, bytes);
+	TVTOTS(&pb->Prefix.RecvStamp, obs);
+	obs = TSDELTA(obs, pb->Header.TimeEcho);
+	RPC2_UpdateEstimates(sEntry->HostInfo, obs, bytes);
     }
 
     return;
@@ -223,25 +222,21 @@ void sftp_UpdateRTT(RPC2_PacketBuffer *pb, struct SFTP_Entry *sEntry,
 
 void sftp_UpdateBW(RPC2_PacketBuffer *pb, unsigned long bytes,
 		   struct SFTP_Entry * sEntry)
-    /* 
-      Updates the bandwidth estimate using the data in the packetbuffer
+    /* Updates the bandwidth estimate using the data in the packetbuffer
       and the amount of data in bytes. Called by AckArrived and DataArrived.
     */
 {
-    struct timeval observed, sent;
-    long obs;
+    unsigned long obs;
     RPC2_NetLogEntry entry;
 
     if (!pb->Header.TimeEcho) return;
 
-    rpc2_TSTOTV(pb->Header.TimeEcho, &sent);
-    observed = pb->Prefix.RecvStamp;
-    SUBTIME(&observed, &sent);
+    TVTOTS(&pb->Prefix.RecvStamp, obs);
+    obs = TSDELTA(obs, pb->Header.TimeEcho);
+    RPC2_UpdateEstimates(sEntry->HostInfo, obs, bytes);
 
-    rpc2_UpdateEstimates(sEntry->HostInfo, &observed, bytes);
-
-    TVTOTS(&observed, obs);
-    if (obs <= 0) obs = 1;
+    obs /= 1000;
+    if ((long)obs <= 0) obs = 1;
 
     entry.Tag = RPC2_MEASURED_NLE;
     entry.Value.Measured.Conn = sEntry->LocalHandle;
@@ -508,8 +503,8 @@ static int sftp_SendAck(struct SFTP_Entry *sEntry)
     now = rpc2_MakeTimeStamp();
     pb->Header.TimeStamp = now;
 #ifdef VERY_FAST_SERVERS
-    pb->Header.TimeEcho = VALID_TIMEECHO(sEntry) ?
-	sEntry->TimeEcho + (now - sEntry->RequestTime) : 0;
+    pb->Header.TimeEcho = VALID_TIMEECHO(sEntry) ? sEntry->TimeEcho +
+	    ((long)TSDELTA(now, sEntry->RequestTime)) : 0;
 #else
     /* The sftp protocol seems to like it better if we do not subtract
      * processing time (only affects network BW estimate when clients are
@@ -796,7 +791,7 @@ static void CheckWorried(struct SFTP_Entry *sEntry)
 	sEntry->SendWorriedLimit = sEntry->SendLastContig;
     
     TVTOTS(&sEntry->RInterval, rexmit);
-    now = rpc2_TVTOTS(&sEntry->LastSS);
+    TVTOTS(&sEntry->LastSS, now);
     for (i = sEntry->SendAckLimit; i > sEntry->SendWorriedLimit; i--) {
 	if (TESTBIT(sEntry->SendTheseBits, i - sEntry->SendLastContig))
 	    continue;
@@ -807,10 +802,10 @@ static void CheckWorried(struct SFTP_Entry *sEntry)
 	thePacket = sEntry->ThesePackets[PBUFF(i)];
 	if (thePacket) {
 	    then = ntohl(thePacket->Header.TimeStamp);
-	    if ((now > then) && (now - then) > rexmit) {
+	    if ((long)TSDELTA(now, then) > rexmit) {
 		say(4, SFTP_DebugLevel,
 		    "Worried packet %ld, sent %lu, (%lu msec ago)\n",
-		    i, then, (now-then));
+		    i, then, (long)TSDELTA(now, then));
 		break;
 	    }
 	}
@@ -874,7 +869,8 @@ static int ResendWorried(struct SFTP_Entry *sEntry, long ackLast)
 	    pb->Header.TimeStamp = htonl(now);
 #ifdef VERY_FAST_SERVERS
 	    pb->Header.TimeEcho = VALID_TIMEECHO(sEntry) ?
-		htonl(sEntry->TimeEcho + (now - sEntry->RequestTime)) :
+		htonl(sEntry->TimeEcho +
+		      ((long)TSDELTA(now, sEntry->RequestTime)) :
 		htonl(0);
 #else
 	    pb->Header.TimeEcho = VALID_TIMEECHO(sEntry) ?
@@ -931,7 +927,9 @@ static int SendFirstUnacked(struct SFTP_Entry *sEntry, long ackMe)
     pb->Header.TimeStamp = htonl(now);
 #ifdef VERY_FAST_SERVERS
     pb->Header.TimeEcho = VALID_TIMEECHO(sEntry) ?
-	htonl(sEntry->TimeEcho + (now - sEntry->RequestTime)) : htonl(0);
+	htonl(sEntry->TimeEcho +
+	      ((long)TSDELTA(now, sEntry->RequestTime)) :
+	htonl(0);
 #else
     pb->Header.TimeEcho = VALID_TIMEECHO(sEntry) ?
 	htonl(sEntry->TimeEcho) : htonl(0);
@@ -995,7 +993,9 @@ static int SendSendAhead(struct SFTP_Entry *sEntry)
 	pb->Header.TimeStamp = htonl(now);
 #ifdef VERY_FAST_SERVERS
 	pb->Header.TimeEcho = VALID_TIMEECHO(sEntry) ?
-	    htonl(sEntry->TimeEcho + (now - sEntry->RequestTime)) : htonl(0);
+	    htonl(sEntry->TimeEcho +
+		  ((long)TSDELTA(now, sEntry->RequestTime)) :
+	    htonl(0);
 #else
 	pb->Header.TimeEcho = VALID_TIMEECHO(sEntry) ?
 	    htonl(sEntry->TimeEcho) : htonl(0);
@@ -1197,8 +1197,8 @@ int sftp_SendStart(struct SFTP_Entry *sEntry)
     now = rpc2_MakeTimeStamp();
     pb->Header.TimeStamp = now;
 #ifdef VERY_FAST_SERVERS
-    pb->Header.TimeEcho = VALID_TIMEECHO(sEntry) ?
-	sEntry->TimeEcho + (now - sEntry->RequestTime) : 0;
+    pb->Header.TimeEcho = VALID_TIMEECHO(sEntry) ? sEntry->TimeEcho +
+	    ((long)TSDELTA(now, sEntry->RequestTime)) : 0;
 #else
     pb->Header.TimeEcho = VALID_TIMEECHO(sEntry) ? sEntry->TimeEcho : 0;
 #endif

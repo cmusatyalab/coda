@@ -169,11 +169,9 @@ struct CEntry		/* describes a single RPC connection */
     unsigned long LowerLimit;           /* minimum retry interval, usec */
 
     long RTT;                           /* Smoothed RTT estimate, 1msec units. */
-#define TimeStampEcho RTT           	/* If Role == SERVER, cannabalize for 
-					   rpc timing */
     long RTTVar;                        /* Variance of RTT, 1msec units. */
-#define RequestTime RTTVar              /* If Role == SERVER, cannabalize for
-					   rpc timing */
+    unsigned int TimeStampEcho;
+    unsigned int RequestTime;
     long Retry_N;                       /* Number of retries for this connection. */
     struct timeval *Retry_Beta;         /* Retry parameters for this connection. */
     struct timeval SaveResponse;        /* 2*Beta0, lifetime of saved response packet. */
@@ -440,7 +438,6 @@ extern struct TM_Elem *rpc2_TimerQueue;
 extern struct CBUF_Header *rpc2_TraceBuffHeader;
 extern PROCESS rpc2_SocketListenerPID;	/* used in IOMGR_Cancel() calls */
 extern unsigned long rpc2_LamportClock;
-extern struct timeval rpc2_InitTime;    /* base for timestamps */
 extern long Retry_N;
 extern struct timeval *Retry_Beta;
 #define MaxRetryInterval Retry_Beta[0]
@@ -632,15 +629,17 @@ do {\
       { (top)->tv_sec++; (top)->tv_usec -= 1000000; }\
 } while(0);
 
-/* macros to convert from timeval to timestamp */
+/* macros to convert between timeval and timestamp */
 #define TVTOTS(_tvp_, _ts_)\
 do {\
-    _ts_ = ((_tvp_)->tv_sec * 1000 + (_tvp_)->tv_usec / 1000);\
+    _ts_ = ((_tvp_)->tv_sec * 1000000 + (_tvp_)->tv_usec);\
 } while(0);
 
 #define TSTOTV(_tvp_, _ts_)\
 do {\
-    (_tvp_)->tv_sec = (_ts_) / 1000;\
-    (_tvp_)->tv_usec = ((_ts_) % 1000) * 1000;\
+    (_tvp_)->tv_sec = (_ts_) / 1000000;\
+    (_tvp_)->tv_usec = (_ts_) % 1000000;\
 } while(0);
+
+#define TSDELTA(_ts1_, _ts2_) ((int)(_ts1_) - (int)(_ts2_))
 

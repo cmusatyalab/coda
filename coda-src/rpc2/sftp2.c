@@ -302,7 +302,7 @@ static void ExaminePacket(RPC2_PacketBuffer *pb)
     sfp->LastWord = sfp->HostInfo->LastWord = pb->Prefix.RecvStamp;
 
     /* remember packet arrival time to compensate RTT errors */
-    sfp->RequestTime = rpc2_TVTOTS(&pb->Prefix.RecvStamp);
+    TVTOTS(&pb->Prefix.RecvStamp, sfp->RequestTime);
 
     /* Go handle the packet appropriately. */
     sftp_TraceStatus(sfp, 2, __LINE__);

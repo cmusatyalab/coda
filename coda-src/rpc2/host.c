@@ -292,23 +292,13 @@ void rpc2_ClearHostLog(struct HEntry *whichHost, NetLogEntryType type)
 	}
 }
 
-void RPC2_UpdateEstimates(struct HEntry *host, RPC2_Unsigned ElapsedTime,
-			  RPC2_Unsigned Bytes)
-{
-    struct timeval tv;
-
-    TSTOTV(&tv, ElapsedTime);
-    rpc2_UpdateEstimates(host, &tv, Bytes);
-}
-
 /* Here we update the RTT and Bandwidth (or more precise byterate in ns per
  * byte) estimates,
- * ElapsedTime  is the observed roundtrip-time in milliseconds
+ * ElapsedTime  is the observed roundtrip-time in microseconds
  * Bytes        is the number of bytes transferred */
-void rpc2_UpdateEstimates(struct HEntry *host, struct timeval *elapsed,
+void RPC2_UpdateEstimates(struct HEntry *host, RPC2_Unsigned elapsed_us,
 			  RPC2_Unsigned Bytes)
 {
-    unsigned long  elapsed_us;
     long	   eRTT;     /* estimated null roundtrip time */
     long	   eBR;      /* estimated byterate (ns/B) */
     unsigned long  eU;       /* temporary unsigned variable */
@@ -316,14 +306,9 @@ void rpc2_UpdateEstimates(struct HEntry *host, struct timeval *elapsed,
 
     if (!host) return;
 
-    if (elapsed->tv_sec < 0) elapsed->tv_sec = elapsed->tv_usec = 0;
-    elapsed_us = elapsed->tv_sec * 1000000 + elapsed->tv_usec;
-
-    /* our measuring precision is in ms, but on a 100Base-T network a small
-     * rpc packet (272 bytes) only takes 22us. We consequently get too many
-     * >1ms measurements, which show up as 0us!. By defining this lower bound
-     * we try to get some sensible information. (mayby 500us is better?) */
-    if (elapsed_us == 0) elapsed_us = 20;
+    say(0, RPC2_DebugLevel, "uRTT: 0x%lx %lu %lu\n", elapsed_us, elapsed_us, Bytes);
+    
+    if ((long)elapsed_us < 0) elapsed_us = 0;
 
     /* we need to clamp elapsed elapsed_us to about 16 seconds to avoid
      * overflows with the 31 bit calculations below */
@@ -380,8 +365,8 @@ void rpc2_UpdateEstimates(struct HEntry *host, struct timeval *elapsed,
 
     say(0, RPC2_DebugLevel,
 	"Est: %s %4ld.%06lu/%-5lu RTT:%lu/%lu us BR:%lu/%lu ns/B\n",
-	    inet_ntoa(host->Host), elapsed->tv_sec, elapsed->tv_usec, Bytes,
-	    host->RTT>>RPC2_RTT_SHIFT, host->RTTVar>>RPC2_RTTVAR_SHIFT,
+	    inet_ntoa(host->Host), elapsed_us / 1000000, elapsed_us % 1000000,
+	    Bytes, host->RTT>>RPC2_RTT_SHIFT, host->RTTVar>>RPC2_RTTVAR_SHIFT,
 	    (host->BR>>RPC2_BR_SHIFT), host->BRVar>>RPC2_BRVAR_SHIFT);
 
     return;

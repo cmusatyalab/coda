@@ -129,7 +129,7 @@ long RPC2_MultiRPC(IN HowMany, IN ConnHandleList, IN RCList, IN MCast,
     long *retcode;
     struct MEntry *me = NULL;
     bool SomeConnsOK;
-    long rc;
+    long rc = 0;
 
 
     rpc2_Enter();
@@ -669,7 +669,7 @@ static long mrpc_SendPacketsReliably(
     struct SL_Entry *slp, **slarray;
     RPC2_PacketBuffer *preply, **Reply;  /* RPC2 Response buffers */
     struct CEntry *c_entry;
-    long finalrc, secode;
+    long finalrc, secode = 0;
     long thispacket, hopeleft;
     long *indexlist, i;			/* array for permuted indices */
     struct timeval *tout;
