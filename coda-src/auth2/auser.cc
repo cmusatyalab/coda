@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /usr/rvb/XX/src/coda-src/auth2/RCS/auser.cc,v 4.1 1997/01/08 21:49:25 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/auth2/auser.cc,v 4.2 1997/02/26 16:02:31 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -237,6 +237,7 @@ int U_BindToServer(char *DefAuthHost, char *uName, char *uPasswd, RPC2_Handle *R
 
 PRIVATE int TryBinding(char *viceName, char *vicePasswd, char *AuthHost, RPC2_Handle *RPCid)
 {
+    RPC2_BindParms bp;
     RPC2_HostIdent hident;
     RPC2_PortalIdent pident;
     RPC2_SubsysIdent sident;
@@ -255,8 +256,14 @@ PRIVATE int TryBinding(char *viceName, char *vicePasswd, char *AuthHost, RPC2_Ha
     cident.SeqBody = (RPC2_ByteSeq)viceName;
     bzero(hkey, RPC2_KEYSIZE);
     bcopy(vicePasswd, hkey, RPC2_KEYSIZE);
-    rc = RPC2_Bind(RPC2_SECURE, RPC2_XOR, &hident, &pident, &sident, NULL,
-		   &cident, &hkey, RPCid);
+
+    bp.SecurityLevel = RPC2_SECURE;
+    bp.EncryptionType = RPC2_XOR;
+    bp.SideEffectType = 0;
+    bp.ClientIdent = &cident;
+    bp.SharedSecret = &hkey;
+
+    rc = RPC2_NewBinding(&hident, &pident, &sident, &bp, RPCid);
 
     return (rc);
 }
