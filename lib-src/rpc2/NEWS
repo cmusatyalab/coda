@@ -8,6 +8,7 @@ New in 1.20:
   is available). On Linux systems this reconfirm that the arp cache
   entry for the destination is valid and as a result avoids the latency
   of the extra(neous) arp request/response before sending the packet.
+* Fix bad byte-swap introduced in 1.14 that caused bandwidth/rtt problems.
 
 New in 1.19:
 
