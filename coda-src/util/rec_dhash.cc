@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/util/rec_dhash.cc,v 4.2 1997/02/26 16:03:05 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/util/rec_dhash.cc,v 4.3 1998/06/11 14:40:10 jaharkes Exp $";
 #endif /*_BLURB_*/
 
 
@@ -77,13 +77,13 @@ extern void Die(char * ...);
 
 void *rec_dhashtab::operator new(size_t size) {
     rec_dhashtab *r = 0;
-    r = (rec_dhashtab *)RVMLIB_REC_MALLOC(sizeof(rec_dhashtab));
+    r = (rec_dhashtab *)rvmlib_rec_malloc(sizeof(rec_dhashtab));
     assert(r);
     return(r);
 }
 
 void rec_dhashtab::operator delete(void *deadobj, size_t size) {
-    RVMLIB_REC_FREE(deadobj);
+    rvmlib_rec_free(deadobj);
 }
 
 rec_dhashtab::rec_dhashtab(int hashtabsize, RHFN hashfn, RCFN CF) {
@@ -105,7 +105,7 @@ void rec_dhashtab::Init(int hashtabsize, RHFN hashfn, RCFN CF) {
     /* Allocate and initialize the array. */
     /* N.B. Normal vector construction won't work because RECOVERABLE vector must be allocated! */
     {
-	a = (rec_dlist *)RVMLIB_REC_MALLOC(sz * sizeof(rec_dlist));
+	a = (rec_dlist *)rvmlib_rec_malloc(sz * sizeof(rec_dlist));
 	
 	for (int bucket = 0; bucket < sz; bucket++)
 	    a[bucket].Init(CF);
@@ -134,7 +134,7 @@ void rec_dhashtab::DeInit() {
 	for (int bucket = 0; bucket < sz; bucket++)
 	    a[bucket].DeInit();
 
-	RVMLIB_REC_FREE(a);
+	rvmlib_rec_free(a);
     }
     
     a = NULL;
@@ -145,7 +145,7 @@ void rec_dhashtab::DeInit() {
 
 /* The hash function is not necessarily recoverable, so don't insist on an enclosing transaction! */
 void rec_dhashtab::SetHFn(RHFN hashfn) {
-    if (RVM_THREAD_DATA->tid != 0)
+    if (rvmlib_thread_data()->tid != 0)
 	RVMLIB_REC_OBJECT(*this);
     hfn = hashfn;
 }

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/util/bitmap.cc,v 4.2 1997/02/26 16:03:00 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/util/bitmap.cc,v 4.3 1998/06/11 14:40:04 jaharkes Exp $";
 #endif /*_BLURB_*/
 
 
@@ -67,7 +67,7 @@ void *bitmap::operator new(size_t size, int recable) {
     bitmap *x;
 
     if (recable) {
-	x = (bitmap *)RVMLIB_REC_MALLOC(sizeof(bitmap));
+	x = (bitmap *)rvmlib_rec_malloc(sizeof(bitmap));
 	assert(x);
     }
     else {
@@ -104,16 +104,16 @@ bitmap::bitmap(int inputmapsize, int recable) {
 
     recoverable = recable;
     if (recoverable)
-	RVMLIB_SET_RANGE(this, sizeof(bitmap));
+	rvmlib_set_range(this, sizeof(bitmap));
 
     while (!(inputmapsize & 7)) 
 	inputmapsize++;			/* must be a multiple of 8 */
     if (inputmapsize > 0) {
 	mapsize = inputmapsize >> 3;
 	if (recoverable) {
-	    map = (char *)RVMLIB_REC_MALLOC(mapsize);
+	    map = (char *)rvmlib_rec_malloc(mapsize);
 	    assert(map);
-	    RVMLIB_SET_RANGE(map, mapsize);
+	    rvmlib_set_range(map, mapsize);
 	}
 	else
 	    map = new char[mapsize];
@@ -134,7 +134,7 @@ bitmap::~bitmap() {
     if (recoverable) {
 	RVMLIB_REC_OBJECT(*this);
 	if (map) 
-	    RVMLIB_REC_FREE(map);
+	    rvmlib_rec_free(map);
     }
     else {
 	if (map) 
@@ -148,7 +148,7 @@ bitmap::~bitmap() {
        test malloced there */
     if (malloced == BITMAP_VIANEW) {
 	if (recoverable)
-	    RVMLIB_REC_FREE(this);
+	    rvmlib_rec_free(this);
 	else
 	    free(this);
     }
@@ -162,9 +162,9 @@ void bitmap::Grow(int newsize) {
     int newmapsize = newsize >> 3;
     char *newmap;
     if (recoverable) {
-	newmap = (char *)RVMLIB_REC_MALLOC(newmapsize);
+	newmap = (char *)rvmlib_rec_malloc(newmapsize);
 	assert(newmap);
-	RVMLIB_SET_RANGE(newmap, newmapsize);
+	rvmlib_set_range(newmap, newmapsize);
     }
     else {
 	newmap = new char[newmapsize];
@@ -175,12 +175,12 @@ void bitmap::Grow(int newsize) {
 	assert(mapsize > 0);
 	bcopy(map, newmap, mapsize);
 	if (recoverable)
-	    RVMLIB_REC_FREE(map);
+	    rvmlib_rec_free(map);
 	else
 	    delete[] map;
     }
     if (recoverable) 
-	RVMLIB_SET_RANGE(this, sizeof(bitmap));
+	rvmlib_set_range(this, sizeof(bitmap));
     mapsize = newmapsize;
     map = newmap;
 }
@@ -196,7 +196,7 @@ int bitmap::GetFreeIndex() {
 		if ((HIGHBIT >> j) & availbits){
 		    /* jth bit is available */
 		    if (recoverable)
-			RVMLIB_SET_RANGE(&map[offset], sizeof(char));
+			rvmlib_set_range(&map[offset], sizeof(char));
 		    map[offset] |= (128 >> j);
 		    break;
 		}
@@ -214,7 +214,7 @@ void bitmap::SetIndex(int index) {
     int bitoffset = index & 7;
     assert(offset < mapsize);
 
-    if (recoverable) RVMLIB_SET_RANGE(&map[offset], sizeof(char));
+    if (recoverable) rvmlib_set_range(&map[offset], sizeof(char));
 
     /* make sure bit is not set */
     if ((~map[offset]) & (1 << (7-bitoffset))) 
@@ -226,7 +226,7 @@ void bitmap::FreeIndex(int index) {
     int bitoffset = index & 7;
     assert(offset < mapsize);
 
-    if (recoverable) RVMLIB_SET_RANGE(&map[offset], sizeof(char));
+    if (recoverable) rvmlib_set_range(&map[offset], sizeof(char));
 
     /* make sure bit is set */
     if (map[offset] & (1 << (7-bitoffset)))
@@ -256,7 +256,7 @@ int bitmap::Size() {
 void bitmap::purge() {
     if (recoverable) {
 	RVMLIB_REC_OBJECT(*this);
-	RVMLIB_REC_FREE(map);
+	rvmlib_rec_free(map);
     }
     else {
 	if (map)
@@ -271,7 +271,7 @@ void bitmap::operator=(bitmap& b) {
 	/* deallocate existing map entry */
 	if (map) {
 	    if (recoverable) 
-		RVMLIB_REC_FREE(map);
+		rvmlib_rec_free(map);
 	    else
 		delete[] map;
 	}
@@ -279,9 +279,9 @@ void bitmap::operator=(bitmap& b) {
 	/* allocate new map */
 	if (recoverable) {
 	    RVMLIB_REC_OBJECT(*this);
-	    map = (char *)RVMLIB_REC_MALLOC(b.mapsize);
+	    map = (char *)rvmlib_rec_malloc(b.mapsize);
 	    assert(map);
-	    RVMLIB_SET_RANGE(map, mapsize);
+	    rvmlib_set_range(map, mapsize);
 	}
 	else {
 	    map = new char[mapsize];
@@ -291,7 +291,7 @@ void bitmap::operator=(bitmap& b) {
     else {
 	/* use space of old map itself */
 	if (recoverable) 
-	    RVMLIB_SET_RANGE(map, mapsize);
+	    rvmlib_set_range(map, mapsize);
     }
     
     bcopy(b.map, map, mapsize);

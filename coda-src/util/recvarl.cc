@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /usr/rvb/XX/src/coda-src/util/RCS/recvarl.cc,v 4.1 1997/01/08 21:51:10 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/util/recvarl.cc,v 4.2 1997/02/26 16:03:07 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -66,7 +66,7 @@ extern "C" {
 
 void *recvarl::operator new(size_t size, int recvsize) {
     recvarl *r = 0;
-    r = (recvarl *)RVMLIB_REC_MALLOC(recvsize + sizeof(recvarl_length_t));
+    r = (recvarl *)rvmlib_rec_malloc(recvsize + sizeof(recvarl_length_t));
     assert(r);
     return(r);
 }
@@ -82,7 +82,7 @@ void recvarl::operator delete(void *deadobj, size_t size) {
 
 
 recvarl::recvarl(int recvarlsize) {
-    RVMLIB_SET_RANGE(this, recvarlsize + sizeof(recvarl_length_t));
+    rvmlib_set_range(this, recvarlsize + sizeof(recvarl_length_t));
     length = recvarlsize;
     char *c = (char *)&(this->vfld[0]);
     bzero(c, recvarlsize);
@@ -107,6 +107,6 @@ void *recvarl::end() {
 /* not sure if this will work */
 void recvarl::destroy() {
     assert(this);
-    RVMLIB_REC_FREE(this);
+    rvmlib_rec_free(this);
 //  this = 0;   Assignment to this no longer allowed; we lose some safety..
 }

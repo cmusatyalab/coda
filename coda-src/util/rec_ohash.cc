@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/util/rec_ohash.cc,v 4.2 1997/02/26 16:03:06 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/util/rec_ohash.cc,v 4.3 1998/06/11 14:40:12 jaharkes Exp $";
 #endif /*_BLURB_*/
 
 
@@ -50,17 +50,12 @@ static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/util/r
 extern "C" {
 #endif __cplusplus
 
-#ifdef __MACH__
-#include <sysent.h>
-#include <libc.h>
-#else	/* __linux__ || __BSD44__ */
 #include <unistd.h>
 #include <stdlib.h>
-#endif
-
 #include <setjmp.h>
 #include <stdio.h>
 
+#include <rvmlib.h>
 #ifdef __cplusplus
 }
 #endif __cplusplus
@@ -76,13 +71,13 @@ extern void Die(char * ...);
 void *rec_ohashtab::operator new(size_t size) {
     rec_ohashtab *r = 0;
 
-    r = (rec_ohashtab *)RVMLIB_REC_MALLOC(size);
+    r = (rec_ohashtab *)rvmlib_rec_malloc(size);
     assert(r);
     return(r);
 }
 
 void rec_ohashtab::operator delete(void *deadobj, size_t size) {
-	RVMLIB_REC_FREE(deadobj);
+	rvmlib_rec_free(deadobj);
 }
 
 rec_ohashtab::rec_ohashtab(int hashtabsize, RHFN hashfn) {
@@ -104,7 +99,7 @@ void rec_ohashtab::Init(int hashtabsize, RHFN hashfn) {
     /* Allocate and initialize the array. */
     /* N.B. Normal vector construction won't work because RECOVERABLE vector must be allocated! */
     {
-	a = (rec_olist *)RVMLIB_REC_MALLOC(sz * sizeof(rec_olist));
+	a = (rec_olist *)rvmlib_rec_malloc(sz * sizeof(rec_olist));
     
 	for (int bucket = 0; bucket < sz; bucket++)
 	    a[bucket].Init();
@@ -123,7 +118,7 @@ void rec_ohashtab::DeInit() {
 	for (int bucket = 0; bucket < sz; bucket++)
 	    a[bucket].DeInit();
 
-	RVMLIB_REC_FREE(a);
+	rvmlib_rec_free(a);
     }
 }
 
@@ -143,7 +138,7 @@ rec_ohashtab::operator=(rec_ohashtab& ht) {
 
 /* The hash function is not necessarily recoverable, so don't insist on an enclosing transaction! */
 void rec_ohashtab::SetHFn(RHFN hashfn) {
-    if (RVM_THREAD_DATA->tid != 0)
+    if (rvmlib_thread_data()->tid != 0)
 	RVMLIB_REC_OBJECT(*this);
     hfn = hashfn;
 }

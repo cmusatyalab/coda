@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/src/coda-4.0.1/RCSLINK/./coda-src/util/rvmtesting.cc,v 1.1 1996/11/22 19:08:25 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/util/rvmtesting.cc,v 4.1 1997/01/08 21:51:11 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -110,9 +110,9 @@ int GPR(struct sigcontext *scp, int x) /* Get value of General Purpose Register 
  * be a store.
  */
 
-PRIVATE int DCSDebug = 0;
+static int DCSDebug = 0;
 
-PRIVATE int getNextPc(struct sigcontext *scp)
+static int getNextPc(struct sigcontext *scp)
 {
     union mips_instruction *pc = (union mips_instruction *)scp->sc_pc;
     unsigned int temp = 0, cond = 0;

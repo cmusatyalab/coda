@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /usr/rvb/XX/src/coda-src/dir/RCS/salvage.cc,v 4.1 1997/01/08 21:49:33 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/dir/salvage.cc,v 4.2 1997/02/26 16:02:37 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -139,7 +139,11 @@ int DirOK (long *file){
             }
         }
 
-    /* For all pages, initialize new allocation map with the proper header entries used.  The first page, as it contains the dir header, uses more room than the others.  Also, check that alloMap has the right count for each page.  Also check the magic number in each page header. */
+    /* For all pages, initialize new allocation map with the proper
+       header entries used.  The first page, as it contains the dir
+       header, uses more room than the others.  Also, check that
+       alloMap has the right count for each page.  Also check the
+       magic number in each page header. */
 
     /* First initialize the allocation map. */
     for(i=0; i<eaSize; i++) eaMap[i] = 0;

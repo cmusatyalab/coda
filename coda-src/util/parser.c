@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/util/parser.c,v 4.3 1998/01/05 16:36:28 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/util/parser.c,v 4.4 1998/01/05 16:48:21 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -82,7 +82,6 @@ static command_t *find_cmd(char *name, command_t cmds[], char **next);
 static int process(char *s, char **next, command_t *lookup, command_t **result, char **prev);
 static char *command_generator(char *text, int state);
 static char **command_completion(char *text, int start, int end);
-static void execute_line(char *line);
 static void print_commands(char *str, command_t *table);
 
 static char * skipwhitespace(char * s) 
@@ -127,8 +126,8 @@ int line2args(char *line, char **argv, int maxargs)
     
 static argcmd_t *Parser_findargcmd(char *name, argcmd_t cmds[])
 {
-	argcmd_t *cmd, *found = NULL;
-	int i, unique = 1;
+	argcmd_t *cmd;
+	int i;
 
 	for (i = 0; cmds[i].ac_name; i++) {
 		cmd = &cmds[i];
@@ -243,7 +242,7 @@ static char * command_generator(char * text, int state)
     }
 
     /* Return the next name in the command list that paritally matches test */
-    while (name = (match_tbl + index)->name) {
+    while ( (name = (match_tbl + index)->name) ) {
 	index++;
 
 	if (strncasecmp(name, text, len) == 0) {
@@ -273,12 +272,11 @@ static char **command_completion(char * text, int start, int end)
 }
 
 /* take a string and execute the function or print help */
-static void execute_line(char * line) 
+void execute_line(char * line) 
 {
     command_t 	*cmd, *ambig;
     char *prev;
     char *next, *tmp;
-    char *args;
     char *argv[MAXARGS];
     int	 i;
 
@@ -365,12 +363,12 @@ int Parser_int(char *s, int *val)
     int ret;
 
     if (*s != '0')
-	ret = sscanf(s, "%ld", val);
+	ret = sscanf(s, "%d", val);
     else if (*(s+1) != 'x')
-	ret = sscanf(s, "%lo", val);
+	ret = sscanf(s, "%o", val);
     else {
 	s++;
-	ret = sscanf(++s, "%lx", val);
+	ret = sscanf(++s, "%x", val);
     }
 
     return(ret);
@@ -493,7 +491,7 @@ int Parser_getint(const char *prompt, long min, long max, long deft, int base)
     int size = strlen(prompt) + 40;
     char *theprompt = malloc(size);
     assert(theprompt);
-    sprintf(theprompt,"%s [%ld, (0x%x)]: ", prompt, deft, deft);
+    sprintf(theprompt,"%s [%ld, (0x%lx)]: ", prompt, deft, deft);
 
     fflush(stdout);
 
@@ -516,7 +514,7 @@ int Parser_getint(const char *prompt, long min, long max, long deft, int base)
 	    fprintf(stdout, "Invalid string.\n");
 	    fflush(stdout);
 	} else if ( result > max || result < min ) {
-	    fprintf(stdout, "Error: response must lie between %d and %d.\n",
+	    fprintf(stdout, "Error: response must lie between %ld and %ld.\n",
 		    min, max);
 	    fflush(stdout);
 	} else {
@@ -533,7 +531,7 @@ int Parser_getint(const char *prompt, long min, long max, long deft, int base)
 /* get boolean (starting with YyNn; loop forever */
 int Parser_getbool(const char *prompt, int deft)
 {
-    int result = 0, rc;
+    int result = 0;
     char *line;
     int size = strlen(prompt) + 8;
     char *theprompt = malloc(size);
@@ -600,8 +598,6 @@ long Parser_intarg(const char *inp, const char *prompt, int deft,
 char *Parser_strarg(char *inp, const char *prompt, const char *deft,
 		    char *answer, int len)
 {
-    long result;
-    int rc; 
     
     if ( inp == NULL || *inp == '\0' ) {
 	return Parser_getstr(prompt, deft, answer, len);

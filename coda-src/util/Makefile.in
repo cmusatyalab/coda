@@ -43,15 +43,19 @@ COMMONHEADERS   = util.h olist.h ohash.h dlist.h dhash.h bstree.h dict.h \
 	    histo.h rvmlib.h rec_olist.h \
 	    rec_smolist.h rec_ohash.h rec_dlist.h rec_dhash.h rec_bstree.h \
 	    vmindex.h bitmap.h arrlist.h recvarl.h rvmtesting.h bitvect.h\
-	    proc.h 
-
+	    pool.h proc.h 
 
 # Multiversion definitions
 
 COMMONOBJECTS = util.o olist.o ohash.o dlist.o dhash.o bstree.o dict.o  \
 	  histo.o rvmlib.o rec_olist.o rec_smolist.o rec_ohash.o rec_dlist.o \
+	  rec_dhash.o rec_bstree.o vmindex.o arrlist.o recvarl.o \
+	  rvmtesting.o bitvect.o proc.o bitmap.o bitvect.o parser.o \
 	  rec_dhash.o rec_bstree.o bitmap.o vmindex.o arrlist.o recvarl.o \
 	  rvmtesting.o bitvect.o proc.o
+
+parser.o: parser.c parser.h
+	$(CC) $(CFLAGS) $(INCREADLINE) -c $< -o parser.o
 
 ifneq ($(SHORTSYS),djgpp)
 HEADERS = $(COMMONHEADERS) parser.h
@@ -61,10 +65,6 @@ HEADERS = $(COMMONHEADERS)
 OBJECTS = $(COMMONOBJECTS) 
 endif
 
-
 libutil.a: ${OBJECTS} 
-
-parser.o: parser.c parser.h
-	$(CC) $(CFLAGS) $(INCREADLINE) -c $< -o parser.o
 
 include $(MAKDIR)/configs/Makerules

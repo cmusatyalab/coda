@@ -29,60 +29,40 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/util/rec_olist.cc,v 4.3 1997/07/14 02:18:12 clement Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/util/rec_olist.cc,v 4.4 1998/06/11 14:40:12 jaharkes Exp $";
 #endif /*_BLURB_*/
 
-
-
-
-
-
-
-
-
 /*
- *
  *    rec_olist.c -- Implementation of recoverable olist type.
- *
  */
 
 #ifdef __cplusplus
 extern "C" {
 #endif __cplusplus
 
-#ifdef __MACH__
-#include <sysent.h>
-#include <libc.h>
-#else	/* __linux__ || __BSD44__ */
 #include <unistd.h>
 #include <stdlib.h>
-#endif
 
 #include <setjmp.h>
 #include <stdio.h>
-
+#include <rvmlib.h>
 #ifdef __cplusplus
 }
 #endif __cplusplus
 
 #include "rec_olist.h"
 
-/* DEBUGGING! -JJK */
-/*
-extern FILE *logFile;
-extern void Die(char * ...);
-*/
 
 void *rec_olist::operator new(size_t size) {
     rec_olist *r = 0;
 
-    r = (rec_olist *)RVMLIB_REC_MALLOC(size);
+    r = (rec_olist *)rvmlib_rec_malloc(size);
     assert(r);
     return(r);
 }
 
 void rec_olist::operator delete(void *deadobj, size_t size) {
-    RVMLIB_REC_FREE(deadobj);
+    rvmlib_rec_free(deadobj);
 }
 
 rec_olist::rec_olist() {
@@ -291,7 +271,7 @@ rec_olink::rec_olink() {
 
 
 void rec_olink::Init() {
-    RVMLIB_REC_OBJECT(*this)
+    RVMLIB_REC_OBJECT(*this);
     next = 0;
 }
 

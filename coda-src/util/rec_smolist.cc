@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/util/rec_smolist.cc,v 4.2 1997/02/26 16:03:07 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/util/rec_smolist.cc,v 4.3 1998/06/11 14:40:13 jaharkes Exp $";
 #endif /*_BLURB_*/
 
 
@@ -81,12 +81,12 @@ void rec_smolist::insert(rec_smolink *p) {
     assert(p->next == 0);
 
     if (last !=	0) {	// at least one entry exists
-	CAMLIB_MODIFY(p->next, last->next);
-	CAMLIB_MODIFY(last->next, p);
+	RVMLIB_MODIFY(p->next, last->next);
+	RVMLIB_MODIFY(last->next, p);
     }
     else {		// no existing entries
-      CAMLIB_MODIFY(p->next, p);
-	CAMLIB_MODIFY(last, p);
+      RVMLIB_MODIFY(p->next, p);
+	RVMLIB_MODIFY(last, p);
     }
 }
 
@@ -95,13 +95,13 @@ void rec_smolist::append(rec_smolink *p) {
     assert(p->next == 0);
 
     if (last !=	0) {	/* at least one entry exists */
-	CAMLIB_MODIFY(p->next, last->next);
-	CAMLIB_MODIFY(last->next, p);
-	CAMLIB_MODIFY(last, p);
+	RVMLIB_MODIFY(p->next, last->next);
+	RVMLIB_MODIFY(last->next, p);
+	RVMLIB_MODIFY(last, p);
     }
     else {		/* no existing entries */
-	CAMLIB_MODIFY(p->next, p);
-	CAMLIB_MODIFY(last, p);
+	RVMLIB_MODIFY(p->next, p);
+	RVMLIB_MODIFY(last, p);
     }
 }
 
@@ -114,14 +114,14 @@ rec_smolink *rec_smolist::remove(rec_smolink *p) {
 	q =  q->next;
     }
     if (q->next	== p) {			    /* q == prev(p) */
-	CAMLIB_MODIFY(q->next, p->next);    // remove p from list
-	CAMLIB_MODIFY(p->next, 0);	    // reset p
+	RVMLIB_MODIFY(q->next, p->next);    // remove p from list
+	RVMLIB_MODIFY(p->next, 0);	    // reset p
 	if (last == p){		    /* we removed entry at end of list */
 	    if (q == p){
-		CAMLIB_MODIFY(last, 0);
+		RVMLIB_MODIFY(last, 0);
 	    }
 	    else {
-		CAMLIB_MODIFY(last, q);
+		RVMLIB_MODIFY(last, q);
 	    }
 	}
 	return(p);
@@ -134,10 +134,10 @@ rec_smolink *rec_smolist::get() {
     if (last ==	0) return(0);	    /* empty list */
     rec_smolink *q = last->next;
     assert(q->next);
-    CAMLIB_MODIFY(last->next, q->next);	    // remove head entry
-    CAMLIB_MODIFY(q->next, 0);		    // reset removed entry
+    RVMLIB_MODIFY(last->next, q->next);	    // remove head entry
+    RVMLIB_MODIFY(q->next, 0);		    // reset removed entry
     if (q == last) {
-	CAMLIB_MODIFY(last, 0);	    // there was only one entry
+	RVMLIB_MODIFY(last, 0);	    // there was only one entry
     }
     return(q);
 }

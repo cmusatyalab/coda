@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/util/util.c,v 4.5 1998/01/28 23:18:24 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/util/util.c,v 4.6 1998/05/27 20:29:26 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -62,9 +62,6 @@ extern "C" {
 
 #include <stdio.h>
 #include <ctype.h>
-#ifdef __MACH__
-#include <libc.h>
-#endif /* __MACH__ */
 #include <math.h>
 #include <strings.h>
 #include <sys/time.h>
@@ -72,11 +69,11 @@ extern "C" {
 #include <netdb.h>
 #include <stdarg.h>
 
+#include "util.h"
 #ifdef __cplusplus
 }
 #endif __cplusplus
 
-#include "util.h"
 
 /* This is probably not the right place for these globals.
    But this works, and I am too tired to figure out a better
@@ -93,40 +90,42 @@ int AuthDebugLevel = 0;		/* Auth package */
 
 extern int CaseFoldedCmp(char *s1, char *s2)
     /* same as strcmp() except that case differences are ignored */
-    {
-    register int i;
-    register char c1, c2;
+{
+	register int i;
+	register char c1, c2;
     
-    i = -1;
-    do
-	{/* Inv: s1[0:i] is identical to s2[0:i] and i is smaller than 
-		the shorter of s1 and s2 */
-	i += 1;
-	c1 = s1[i];
-	if (islower(c1)) c1 -= ('a' - 'A');
-	c2 = s2[i];
-	if (islower(c2)) c2 -= ('a' - 'A');
-	if (c1 == 0 && c2 ==0) return(0);
-	}
-    while(c1 == c2);
+	i = -1;
+	do  {
+		/* Inv: s1[0:i] is identical to s2[0:i] and i is smaller than 
+		   the shorter of s1 and s2 */
+		i += 1;
+		c1 = s1[i];
+		if (islower(c1)) c1 -= ('a' - 'A');
+		c2 = s2[i];
+		if (islower(c2)) c2 -= ('a' - 'A');
+		if (c1 == 0 && c2 ==0) return(0);
+	} while(c1 == c2);
 
-    if (c1 < c2) return (-1);
-    else return(1);
-    }
+	if (c1 < c2) 
+		return (-1);
+	else 
+		return(1);
+}
 
 int SafeStrCat(char *dest, char *src, int totalspace)
-    {
-    if (strlen(dest)+strlen(src) >= totalspace) return(-1);
+{
+    if (strlen(dest)+strlen(src) >= totalspace) 
+	    return(-1);
     strcat(dest,src);
     return(0);
-    }
+}
 
 int SafeStrCpy(char *dest, char *src, int totalspace)
-    {
+{
     if (strlen(src) >= totalspace) return(-1);
     strcpy(dest,src);
     return(0);
-    }
+}
 
 void PrintTimeStamp(FILE *f)
     /* Prints current timestamp on f; 
@@ -160,7 +159,8 @@ extern void LogMsg(int msglevel, int debuglevel, FILE *fout, char *fmt,  ...)
 {
     va_list ap;
 
-    if (debuglevel < msglevel) return;
+    if (debuglevel < msglevel) 
+	    return;
 
     PrintTimeStamp(fout);
     
@@ -212,26 +212,24 @@ void fdprint(long afd, char *fmt, ...)
 /* message to stderr */
 void eprint(char *fmt, ...) 
 {
-    va_list ap;
-    char msg[240];
-    char *cp = msg;
+	va_list ap;
+	char msg[240];
+	char *cp = msg;
 
-    /* Construct message in buffer and add newline */
-    va_start(ap, fmt);
-    vsnprintf(cp, 239, (const char *)fmt, ap); /* leave 1 char for the "\n" */
-    va_end(ap);
-    cp += strlen(cp);
-    strcat(cp, "\n");
+	/* Construct message in buffer and add newline */
+	va_start(ap, fmt);
+	vsnprintf(cp, 239, (const char *)fmt, ap); /* leave 1 char for the "\n" */
+	va_end(ap);
+	cp += strlen(cp);
+	strcat(cp, "\n");
 
-    /* Write to stderr & stdout*/
-#if 0
-    PrintTimeStamp(stdout); 
-    fprintf(stdout, msg); 
-    fflush(stdout);
-#endif
-    PrintTimeStamp(stderr);
-    fprintf(stderr, msg);
-    fflush(stderr);
+	/* Write to stderr & stdout*/
+	PrintTimeStamp(stdout); 
+	fprintf(stdout, msg); 
+	fflush(stdout);
+	PrintTimeStamp(stderr);
+	fprintf(stderr, msg);
+	fflush(stderr);
 }
 
 
