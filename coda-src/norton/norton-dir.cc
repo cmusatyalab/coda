@@ -375,8 +375,6 @@ create_name(int volid, int vnum, int unique, char *name, int cvnum,
 	    vnode->inodeNumber = (long unsigned int)pdi;
     }
 
-
-
     // mark the vnode with inconsistent flag
     SetIncon(vnode->versionvector);
 
@@ -421,5 +419,5 @@ void sh_create_name(int argc, char **argv) {
 	return;
     }
     create_name(volid, vnode, unique, argv[5], cvnode, cunique);
-
 }
+

@@ -215,7 +215,7 @@ int CompareDirs(struct repvol *repv, char *fixfile, struct repinfo *inf, char *m
     }
 
     if (!(inf->interactive)) {
-	if ((inf->fixed == NULL) || (stat(inf->fixed, &sbuf) < 0)) {
+	if (inf->fixed && (stat(inf->fixed, &sbuf) < 0)) {
 	    strerr(msg, msgsize, "Invalid 'fixed' file");
 	    return(-1);
 	}
