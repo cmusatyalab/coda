@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: cnode.h,v 1.1 96/11/22 13:39:27 raiff Exp $";
+static char *rcsid = "$Header: /home/braam/src/kernel-src/vfs/mach/RCS/cnode.h,v 1.1 1996/11/22 19:16:20 braam Exp braam $";
 #endif /*_BLURB_*/
 
 
@@ -113,8 +113,8 @@ typedef struct ViceFid {
 #endif	not VICEFID_DEFINED
 #else	KERNEL
 #ifdef MACH
-#include <vfs/vfs.h>
-#include <vfs/vnode.h>
+#include <cfs/mach_vfs.h>
+#include <cfs/mach_vnode.h>
 #endif
 #ifdef __NetBSD__
 #include <sys/mount.h>

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: blurb.doc,v 1.1 96/11/22 13:29:31 raiff Exp $";
+static char *rcsid = "$Header: /home/braam/src/kernel-src/vfs/mach/RCS/mach_vfs.h,v 1.1 1996/11/22 19:09:37 braam Exp braam $";
 #endif /*_BLURB_*/
 
 
@@ -42,7 +42,10 @@ static char *rcsid = "$Header: blurb.doc,v 1.1 96/11/22 13:29:31 raiff Exp $";
  */
 /*
  * HISTORY
- * $Log:	vfs.h,v $
+ * $Log: mach_vfs.h,v $
+ * Revision 1.1  1996/11/22 19:09:37  braam
+ * First Checkin (pre-release)
+ *
  * Revision 1.1  96/11/22  13:30:21  raiff
  * First Checkin (pre-release)
  * 
@@ -134,8 +137,9 @@ extern "C" {
 #define	b_vp		b_ip
 
 /* dir.h */
+#if 0
 #define	d_fileno	d_ino
-
+#endif
 /* file.h */
 #define	f_cred		f_identity
 
