@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rpc2/sl.c,v 4.6 98/11/02 16:45:27 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rpc2/sl.c,v 4.7 98/11/24 15:34:44 jaharkes Exp $";
 #endif /*_BLURB_*/
 
 
@@ -261,9 +261,8 @@ static bool MorePackets()
  * for FIONREAD, so this should work too. --JH */
 #if defined(FIONREAD)
 	int amount_ready = 0;
-	if (ioctl(rpc2_RequestSocket, FIONREAD, &amount_ready) == 0 &&
-	    amount_ready != 0)
-	    return(TRUE);
+	if (ioctl(rpc2_RequestSocket, FIONREAD, &amount_ready) == 0)
+	    return (amount_ready != 0);
 #endif
 	tv.tv_sec = tv.tv_usec = 0;	    /* do polling select */
 	FD_ZERO(&rmask);

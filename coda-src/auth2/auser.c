@@ -377,6 +377,9 @@ static int SetHost(int write, int index, char *AuthHost)
     return 0;
 }
 
+#ifndef O_BINARY
+#define O_BINARY 0
+#endif
 
 static void GetVSTAB(char *vstab)
 {
@@ -393,7 +396,7 @@ static void GetVSTAB(char *vstab)
     bzero((char *)lHosts,sizeof(lHosts));
     numHosts = 0;
 
-    fd = open(vstab, O_RDONLY, 0); 
+    fd = open(vstab, O_RDONLY | O_BINARY, 0); 
     if ( fd < 0 ) {
 	perror("Error opening VSTAB");
 	return;
@@ -404,7 +407,7 @@ static void GetVSTAB(char *vstab)
 	return;
     }
     
-    area = (char *) malloc(buff.st_size);
+    area = (char *) malloc(buff.st_size+1);
     if(!area) {
 	perror("No memory!");
 	close(fd);
@@ -417,6 +420,7 @@ static void GetVSTAB(char *vstab)
 	free(area);
 	return;
     }
+    area[buff.st_size] = '\0';
 	
     strncpy(pName,area,index(area,':')-area);
     host = index(area,':') + 1;

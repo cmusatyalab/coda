@@ -340,9 +340,7 @@ struct HEntry {
     unsigned long   BW;		/* BW          (B/s<<RPC2_BW_SHIFT) */
     unsigned long   BWVar;	/* BW variance (B/s<<RPC2_BWVAR_SHIFT) */
 
-#define AVG_SHIFT 2
     unsigned long   LastBytes;	/* last packet size */
-    struct timeval  LastTime;	/* last transfer elapsed time */
 };
 
 

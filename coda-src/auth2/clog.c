@@ -99,8 +99,7 @@ int main(int argc, char **argv)
     ClearToken		    cToken;
     EncryptedSecretToken    testSTok;
     ClearToken		    testCTok;
-    struct passwd	    pwent;
-    struct passwd	    *pw = &pwent;
+    struct passwd	    *pw;
     char *hostname=NULL;
     char *username=0;
     long		    rc;
