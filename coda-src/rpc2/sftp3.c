@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rpc2/sftp3.c,v 4.7 98/07/09 11:01:53 jaharkes Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rpc2/sftp3.c,v 4.8 1998/07/22 18:47:24 jaharkes Exp $";
 #endif /*_BLURB_*/
 
 
@@ -213,8 +213,8 @@ void sftp_InitRTT(RPC2_Unsigned obs, register struct SFTP_Entry *sEntry)
     sEntry->RTTVar = obs << (SFTP_RTTVAR_SHIFT-1);
 
     newrex = obs + sEntry->RTTVar;
-    if (newrex > SFTP_MAXRTT) newrex = SFTP_MAXRTT;
-    else if (newrex < SFTP_MINRTT) newrex = SFTP_MINRTT;
+    if (newrex > SFTP_MAXRTO) newrex = SFTP_MAXRTO;
+    else if (newrex < SFTP_MINRTO) newrex = SFTP_MINRTO;
     TSTOTV(&sEntry->RInterval, newrex);
 
     say(4, SFTP_DebugLevel, "sftp_InitRTT: conn 0x%lx, obs %lu, RTT %ld, RTTVar %ld, RI %ld.%0ld sec\n", 
@@ -262,8 +262,8 @@ void sftp_UpdateRTT(RPC2_Unsigned tStamp, register struct SFTP_Entry *sEntry)
     /* we try RTT + (SFTP_RTTVAR_SCALE * RTTVar) first */
 
     newrex = (sEntry->RTT >> SFTP_RTT_SHIFT) + sEntry->RTTVar;
-    if (newrex > SFTP_MAXRTT) newrex = SFTP_MAXRTT;
-    else if (newrex < SFTP_MINRTT) newrex = SFTP_MINRTT;
+    if (newrex > SFTP_MAXRTO) newrex = SFTP_MAXRTO;
+    else if (newrex < SFTP_MINRTO) newrex = SFTP_MINRTO;
     TSTOTV(&sEntry->RInterval, newrex);
 
     say(4, SFTP_DebugLevel, "sftp_UpdateRTT: conn 0x%lx, obs %ld, RTT %ld, RTTVar %ld, RI %ld.%06ld sec\n", 
@@ -273,11 +273,11 @@ void sftp_UpdateRTT(RPC2_Unsigned tStamp, register struct SFTP_Entry *sEntry)
 
 void sftp_Backoff(register struct SFTP_Entry *sEntry)
     /* called when a timeout occurs in GetFile or PutFile.
-       Doubles the retransmission timer, s.t. SFTP_MAXRTT. */
+       Doubles the retransmission timer, s.t. SFTP_MAXRTO. */
 {
 	struct timeval maxrtt;
 
-	TSTOTV(&maxrtt, SFTP_MAXRTT);
+	TSTOTV(&maxrtt, SFTP_MAXRTO);
 	sftp_timeouts++;
 	sEntry->Retransmitting = TRUE;
 
