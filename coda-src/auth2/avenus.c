@@ -131,7 +131,7 @@ int U_SetLocalTokens(IN int setPag, IN ClearToken *cToken, IN EncryptedSecretTok
 }
 
 
-int U_GetLocalTokens(OUT ClearToken *cToken, OUT EncryptedSecretToken sToken, IN char *realm)
+int U_GetLocalTokens(OUT ClearToken *cToken, OUT EncryptedSecretToken sToken, IN const char *realm)
  /* Obtains the clear secret tokens from Venus.
     Fills in cToken and sToken with the clear and secret tokens.
     (Note: at the present time these are fixed-length data structures)
@@ -141,19 +141,20 @@ int U_GetLocalTokens(OUT ClearToken *cToken, OUT EncryptedSecretToken sToken, IN
     struct ViceIoctl buffer;
     venusbuff outbuff;
 
-    buffer.in = realm;
+    buffer.in = (char *)realm;
     buffer.out = (char *)&outbuff;
     buffer.in_size = strlen(realm) + 1;
     buffer.out_size = sizeof(venusbuff);
     GetPathName();
     rc = pioctl(pName, _VICEIOCTL(8), &buffer, 0);
     if(rc) {
-#ifdef __CYGWIN32__
-	return (rc);
+#ifdef __CYGWIN__
+	return rc;
 #else
-	return(-1);
+	return -errno;
 #endif
     }
+
     if(outbuff.sTokenSize != sizeof(EncryptedSecretToken)) return(-1);
     memcpy(sToken, &outbuff.stoken, sizeof(EncryptedSecretToken));
 

@@ -47,8 +47,11 @@ extern "C" {
 #include <unistd.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <dirent.h>
+#include <pwd.h>
 #include "auth2.h"
 #include "avenus.h"
+#include "codaconf.h"
 
 #ifdef __CYGWIN32__
 #include <windows.h>
@@ -60,56 +63,82 @@ extern "C" {
 
 #include <parse_realms.h>
 
-
-int main(int argc, char *argv[])
+static void GetTokens(const char *realm)
 {
     ClearToken clear;
     EncryptedSecretToken secret;
     int rc;
-    char *realm = "", *p = NULL;
 
-    if (argc == 2) {
-	SplitRealmFromName(argv[1], &p);
-	if (p) realm = p;
-    }
-
-
-    /* Header. */
-    fprintf(stdout, "\nToken held by the Cache Manager:\n\n");
-#ifdef __CYGWIN32__
-    fprintf(stdout, "Local username: %s\n", getlogin());
-#else
-    fprintf(stdout, "Local uid: %d\n", (int) geteuid());
-#endif
+    fprintf(stdout, "    @%s\n", realm);
 
     /* Get the tokens.  */
     rc = U_GetLocalTokens(&clear, secret, realm);
     if (rc < 0) {
-#ifdef __CYGWIN32__
-	if ((rc * (-1)) == ENOTCONN)
-#else
-	if (errno == ENOTCONN)
-#endif
-            fprintf(stdout, "Not Authenticated\n\n");
+	if (rc == -ENOTCONN)
+	    fprintf(stdout, "\tNot Authenticated\n");
 	else
-#ifdef __CYGWIN32__
-	    fprintf(stdout, "\nGetLocalTokens error (%d)\n", rc*(-1));
+	    fprintf(stdout, "\tGetLocalTokens error (%d)\n", -rc);
+    }
+    else {
+	fprintf(stdout, "\tCoda user id:\t %lu\n", clear.ViceId);
+
+	/* Check for expiration. */
+	if (clear.EndTimestamp <= time(0))
+	    fprintf(stdout, "\tThis token has expired.\n");
+	else {
+	    fprintf(stdout, "\tExpiration time: %s\n", ctime((time_t *)&clear.EndTimestamp));
+	}
+    }
+}
+
+
+int main(int argc, char *argv[])
+{
+    char *realm = NULL;
+    char *username = NULL;
+
+#ifdef __CYGWIN__
+    username = getlogin();
 #else
-	    fprintf(stdout, "\nGetLocalTokens error (%d)\n", errno);
+    struct passwd *pw = getpwuid(geteuid());
+    if (pw)
+        username = pw->pw_name;
 #endif
 
-	exit(-1);
-    }
+    if (argc == 2)
+	SplitRealmFromName(argv[1], &realm);
 
-    fprintf(stdout, "Coda user id: %lu @%s\n", clear.ViceId, realm);
+    /* Header. */
+    fprintf(stdout, "\nTokens held by the Cache Manager:\n");
+    fprintf(stdout, "Local username: %s\n\n", username);
 
-    /* Check for expiration. */
-    if (clear.EndTimestamp <= time(0))
-	fprintf(stdout, "This token has expired.\n");
-    else {
-	fprintf(stdout, "Expiration time: %s\n", ctime((time_t *)&clear.EndTimestamp));
-    }
+    if (!realm) {
+	char *mountpoint = NULL;
+	struct dirent *entry;
+	DIR *dir;
 
-    return(0);
+	codaconf_init("venus.conf");
+
+#ifdef __CYGWIN__
+	CONF_STR(mountpoint, "mountpoint", "N:");
+#else
+	CONF_STR(mountpoint, "mountpoint", "/coda");
+#endif
+	
+	dir = opendir(mountpoint);
+	if (!dir) {
+	    perror("Failed to get list of realms");
+	    exit(-1);
+	}
+
+	while ((entry = readdir(dir)) != NULL)
+	    if (entry->d_name[0] != '.')
+		GetTokens(entry->d_name);
+
+	closedir(dir);
+    } else
+	GetTokens(realm);
+
+    return 0;
 }
 

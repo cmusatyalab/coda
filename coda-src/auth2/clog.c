@@ -66,6 +66,7 @@ extern "C" {
 #include "avenus.h"
 #include "auser.h"
 #include "tokenfile.h"
+#include "codaconf.h"
 
 #ifdef __cplusplus
 }
@@ -94,10 +95,9 @@ int main(int argc, char **argv)
     ClearToken		    cToken;
     EncryptedSecretToken    testSTok;
     ClearToken		    testCTok;
-    struct passwd	    *pw;
     char *hostname=NULL;
     char *username=NULL;
-    char *realm="";
+    char *realm = NULL;
     long rc;
     int i;
     int testing = 0;
@@ -113,15 +113,8 @@ int main(int argc, char **argv)
     authmethod = AUTH_METHOD_KERBEROS5;
 #endif 
 
-#ifdef __CYGWIN32__
-    username = getlogin();	 
-#elif defined(DJGPP)
-    __djgpp_set_quiet_socket(1);	
-#else
-    pw = getpwuid(geteuid());
-    if (pw) {
-        username=pw->pw_name;
-    }
+#ifdef DJGPP
+	__djgpp_set_quiet_socket(1);	
 #endif
 
     i = 1;
@@ -169,14 +162,8 @@ int main(int argc, char **argv)
 		    hostname = argv[i];
 		    i++;
 	    } else if ( i == argc-1 ) {
-		    char *tmp1, *tmp2 = NULL;
-                    tmp1 = argv[i];
-		    SplitRealmFromName(tmp1, &tmp2);
-		    if (tmp1[0] != '\0')
-			username = tmp1;
-		    if (tmp2) {
-			realm = tmp2;
-		    }
+                    username = argv[i];
+		    SplitRealmFromName(username, &realm);
                     i++;
 	    }
 	    /* still coming: 
@@ -191,9 +178,25 @@ int main(int argc, char **argv)
 
     }
     
-    if (username == NULL) {
-	    fprintf (stderr, "Can't figure out your user id.\n");
-	    fprintf (stderr, "Try \"clog user\"\n");
+    if (!username) {
+#ifdef __CYGWIN32__
+	username = getlogin();	 
+#else
+	struct passwd *pw = getpwuid(geteuid());
+	if (pw) {
+	    username=pw->pw_name;
+	}
+#endif
+    }
+
+    codaconf_init("venus.conf");
+    codaconf_init("auth2.conf");
+
+    CONF_STR(realm, "realm", NULL);
+
+    if (!username || !realm) {
+	    fprintf (stderr, "Can't figure out your username or realm.\n");
+	    fprintf (stderr, "Try \"clog user[@realm]\"\n");
 	    exit (1);
     }
 

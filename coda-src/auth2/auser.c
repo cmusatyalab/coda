@@ -241,8 +241,6 @@ static struct coda_addrinfo *GetAuthServers(const char *realm)
 {
     struct coda_addrinfo *res = NULL;
 
-    codaconf_init("venus.conf");
-
     GetRealmServers(realm, "codaauth2", &res);
     GetRealmServers(realm, "codasrv", &res);
 
