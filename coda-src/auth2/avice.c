@@ -91,8 +91,7 @@ static RPC2_EncryptionKey Key2;
 extern void ntoh_SecretToken(SecretToken *);
 
 /* prototype */
-long GetKeysFromToken(IN RPC2_Integer AuthenticationType, 
-		      INOUT RPC2_CountedBS *cIdent,
+long GetKeysFromToken(INOUT RPC2_CountedBS *cIdent,
                       OUT RPC2_EncryptionKey hKey,
                       OUT RPC2_EncryptionKey sKey);
 
@@ -123,7 +122,7 @@ long GetKeys(RPC2_Integer *AuthenticationType, RPC2_CountedBS *cIdent, RPC2_Encr
 */
 
 			/* use coda password database */
-			return PWGetKeys( cIdent, hKey, sKey);
+			return PWGetKeys(cIdent, hKey, sKey);
 
 #else	/* VICEPWCODADB */
 
@@ -135,7 +134,7 @@ long GetKeys(RPC2_Integer *AuthenticationType, RPC2_CountedBS *cIdent, RPC2_Encr
 
 		case	AUTH_METHOD_CODATOKENS:
 			/* this is a good way to auth to Vice */
-				return GetKeysFromToken(AuthenticationType, cIdent, hKey, sKey);
+				return GetKeysFromToken(cIdent, hKey, sKey);
 
 		case	AUTH_METHOD_PK:
 			/* just a reserved constant, thanks */
