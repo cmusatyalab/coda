@@ -1,0 +1,62 @@
+This file describes how to use the parser.cc library.
+
+First thing you need to set up a set of command tables in your
+program.  These tables are of type command_t, defined below:
+
+typedef struct cmd {
+    char 	* name;
+    void 	(* func)(int, char **);
+    struct cmd 	* sub_cmd;
+} command_t;
+
+
+'name' is the name of the command. what the user types at the command-line.
+'func' is the function to call to execute the command.
+'sub_cmd' is another command table for multi-word commands.
+
+All functions called by the parser are called with an argc, argv
+style.  So all functions that appear in the 'func' field must have a
+prototype of:
+	void func(int, char **)
+
+Here's a sample table.  There are 3 commands contained in the table:
+"?", "list", and "show."  Note that the table is null terminated.
+
+command_t commands[] = {
+    { "?",		quick_help, 	0},
+    { "list",		list_vols,	list_cmds},
+    { "show",		0,		show_cmds},
+    { 0, 0, 0}
+};
+
+The first entry, "?", is a simple command.  If the user types "?" at
+the command-line, the function 'quick_help' will be called.  The third
+entry, "show" will cause the second word of the command to be looked
+up in the 'show_cmds' table.  So, if you want to have two commands,
+"show vnode" and "show directory"  The 'show_cmds' table needs to have
+entries for both "vnode" and "directory."  The second entry, "list" is
+a little more complicated in that it has both a function to perform
+the command and a table of sub-commands.  If the command "list" is
+entered, the function 'list_vols' will be called, but if the commands
+"list volumes" is entered, the parser will look up "volumes" in the
+'list_cmds' table.  
+
+
+Once you have set up your command tables, you can use the parser in
+your program.  Before calling the parsing function, you must
+initialize the parser by calling 'init_parser.'  Its prototype
+follows:
+	void init_parser(char * prompt, command_t * cmds);
+
+'prompt' is the command prompt you want to use.
+'cmds' is the top-level command table to start parsing with.
+
+The only other step is to call 'parse_cmds'  Note that 'parse_cmds'
+will not return until the function 'exit_parser' is called, so there
+should be an entry in your command table that will call 'exit_parser'
+For example:
+    { "exit",		exit_parser,	0},
+
+To add functionality to any program using the parser, simply add an
+entry to the command table.
+
