@@ -431,7 +431,7 @@ int SpoolRenameLogRecord(int opcode, dlist *vl, vle *svle, vle *tvle,
     ViceVersionVector *tvv = NULL;
     rec_dlist *sparentlog = NULL, *tparentlog = NULL;
 
-    if (tvle->vptr) {
+    if (tvle && tvle->vptr) {
         /* target existed and is deleted, we need to add some more info */
         targetexisted = 1;
         tvnodeNumber = tvle->vptr->vnodeNumber;
