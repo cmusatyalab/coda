@@ -17,8 +17,8 @@
 #                            none currently
 #*/
 
-EXTRA_DIST = changelog compat control copyright dirs docs librvm1.install \
-    librvm-dev.install rules rvm-tools.install watch
+EXTRA_DIST = changelog compat control copyright dirs librvm1.install \
+    librvm-dev.install librvm-dev.docs rules rvm-tools.install watch
 
 MAINTAINERCLEANFILES = Makefile.in changelog
 CONFIG_CLEAN_FILES =
