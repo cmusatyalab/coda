@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/vol_reintegrate.cc,v 4.8 1998/03/06 20:20:52 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/vol_reintegrate.cc,v 4.9 1998/06/07 20:15:10 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -126,35 +126,43 @@ void volent::Reintegrate()
     /* step 1.  scan the log, cancelling stores for open-for-write files. */
     CML.CancelStores();
 
-    /*
-     * step 2.  scan the log, gathering records that are ready to 
-     * to reintegrate.
-     */
-    int thisTid = -GetReintId();
-    int nrecs = 0;
+    int nrecs, thisTid, code = 0;
 
-    CML.GetReintegrateable(thisTid, &nrecs);
+    /* We do the actual reintegrating steps in a loop, since we reintegrate in
+     * blocks of 100 cmlents. JH */
+    do {
+        /* reset invariants */
+        thisTid = -GetReintId();
+        nrecs = 0;
 
-    /* step 3.  if we've come up with anything, reintegrate it. */
-    int code = 0;
-    if (CML.HaveElements(thisTid)) {		
-	int startedrecs = CML.count();
-    
-        code = IncReintegrate(thisTid);
+        /*
+         * step 2.  scan the log, gathering records that are ready to 
+         * to reintegrate.
+         */
+        CML.GetReintegrateable(thisTid, &nrecs);
 
-        eprint("Reintegrate: %s, %d/%d records, result = %s", 
-		name, nrecs, startedrecs, VenusRetStr(code));
+        /* step 3.  if we've come up with anything, reintegrate it. */
+        if (CML.HaveElements(thisTid)) {		
+            int startedrecs = CML.count();
 
-    } else if (CML.GetFatHead(thisTid)) {
-	/* 
-	 * there a fat store blocking the head of the log.
-	 * try to reintegrate a piece of it.
-	 */
-	code = PartialReintegrate(thisTid);
+            code = IncReintegrate(thisTid);
 
-	eprint("Reintegrate: %s, partial record, result = %s", 
-	       name, VenusRetStr(code));
-    }
+            eprint("Reintegrate: %s, %d/%d records, result = %s", 
+                    name, nrecs, startedrecs, VenusRetStr(code));
+
+        } else if (CML.GetFatHead(thisTid)) {
+            /* 
+             * there a fat store blocking the head of the log.
+             * try to reintegrate a piece of it.
+             */
+            code = PartialReintegrate(thisTid);
+
+            eprint("Reintegrate: %s, partial record, result = %s", 
+                    name, VenusRetStr(code));
+        }
+
+/* keep going as long as we managed to reintegrate records without errors */
+    } while(nrecs && !code);
 
     flags.reintegrating = 0;
 

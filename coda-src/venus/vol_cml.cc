@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/vol_cml.cc,v 4.12 98/06/11 15:29:25 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/vol_cml.cc,v 4.13 98/06/19 16:31:56 jaharkes Exp $";
 #endif /*_BLURB_*/
 
 
@@ -447,12 +447,12 @@ void ClientModifyLog::GetReintegrateable(int tid, int *nrecs) {
 	 */
 	m->tid = tid;    
 	cur_reintegration_time += this_time;
-	(*nrecs)++;
 
-	/* By sending records in blocks of 100 CMLentries, we loosen the
-	   consistency, but avoid swamping the server, which only processes
-	   the CMLent's in blocks of 100 anyways. JH */
-	if (*nrecs == 100)
+	/*
+	 * By sending records in blocks of 100 CMLentries, we avoid
+	 * overloading the server. JH
+	 */
+	if (++(*nrecs) == 100)
 	    break;
     }
 
