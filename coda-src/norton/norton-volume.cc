@@ -186,7 +186,8 @@ VolHead *GetVol(char *name) {
 }
 
 
-VolHead *GetVol(int volid) {
+VolHead *GetVol(int volid)
+{
     VolHead *vol;
     int	    i,
 	    maxid = GetMaxVolId();
