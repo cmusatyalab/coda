@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/src/coda-4.0.1/RCSLINK/./coda-src/vtools/replay.cc,v 1.1 1996/11/22 19:14:22 braam Exp $";
+static char *rcsid = "$Header: replay.cc,v 4.1 97/01/08 21:52:40 satya Locked $";
 #endif /*_BLURB_*/
 
 
@@ -46,7 +46,14 @@ extern "C" {
 #include <sys/types.h>
 #include <sys/time.h>
 #include <errno.h>
+#if defined(__linux__) || defined(__NetBSD__)
+#include <unistd.h>
+#include <stdlib.h>
+#else
 #include <libc.h>
+#include <sysent.h>
+#endif /* __linux__ || __NetBSD__ */
+#include <string.h>
 
 #ifdef __cplusplus
 }
@@ -376,10 +383,12 @@ void HandleRecord(hblock& hdr) {
 
 
 int checksum(hblock& hdr) {
-    for (char *cp = hdr.dbuf.chksum; cp < &hdr.dbuf.chksum[sizeof(hdr.dbuf.chksum)]; cp++)
+    int i = 0;
+    char *cp;
+
+    for (cp = hdr.dbuf.chksum; cp < &hdr.dbuf.chksum[sizeof(hdr.dbuf.chksum)]; cp++)
 	*cp = ' ';
 
-    int i = 0;
     for (cp = hdr.dummy; cp < &hdr.dummy[TBLOCK]; cp++)
 	i += *cp;
 
