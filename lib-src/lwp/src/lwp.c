@@ -349,7 +349,7 @@ int LWP_WaitProcess(void *event)
     if (event == NULL) return LWP_EBADEVENT;
     tempev[0] = event;
     tempev[1] = NULL;
-    return LWP_MwaitProcess(1, tempev);
+    return LWP_MwaitProcess(1, (char **)tempev);
 }
 
 static void Delete_PCB(PROCESS pid)
