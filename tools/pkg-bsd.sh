@@ -246,6 +246,7 @@ sbin/vice-setup-scm
 sbin/vice-setup-srvdir
 sbin/vice-setup-user
 sbin/volutil
+man/man8/pdbtool.8
 etc/coda/server.conf.ex
 etc/rc.d/rc.vice
 EOF

@@ -32,3 +32,4 @@ usr/sbin/initpw
 usr/sbin/volutil
 usr/sbin/codasrv
 usr/sbin/printvrdb
+usr/share/man/man8/pdbtool.8

@@ -34,6 +34,7 @@ endif
 ifneq ($(SHORTSYS),djgpp)
 EXECUTABLES = pdbtool altest
 SSBINS      = pdbtool
+SMANPAGES   = pdbtool.8
 LIBRARIES   = libal.a
 endif
 HEADERS	    = al.h prs.h

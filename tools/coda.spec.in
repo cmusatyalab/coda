@@ -224,6 +224,7 @@ exit 0
 /usr/bin/rpc2ping
 /usr/bin/rvmsizer
 /usr/bin/smon2
+/usr/share/man/man8/pdbtool.8
 /etc/rc.d/init.d/codasrv.init
 /etc/rc.d/init.d/auth2.init
 /etc/rc.d/init.d/update.init
