@@ -23,6 +23,7 @@ listed in the file CREDITS.
 #include <config.h>
 #endif
 
+#include <coda_string.h>
 #include <stdio.h>
 #include <sys/param.h>
 #include <coda_assert.h>
@@ -35,59 +36,40 @@ void
 vice_dir_init (char *dirname, int serverno)
 {
 	strncpy(vicedir, dirname, MAXPATHLEN);
-	if (serverno != 0) {
-	    snprintf(serverdir, MAXPATHLEN, "%s/server_%d", vicedir, serverno);
-	} else {
-	    strncpy(serverdir,vicedir, MAXPATHLEN);
+	strncpy(serverdir, dirname, MAXPATHLEN);
+	if (serverno) {
+	    int len = strlen(dirname);
+	    snprintf(&serverdir[len], MAXPATHLEN - len, "/server_%d", serverno);
 	}
+}
+
+static char *
+vice_filepath (char *dir, char *name)
+{
+	static char volpath[2][MAXPATHLEN];
+	static int vpidx = 0;
+
+	if (!name)
+		return dir; 
+
+	/* We need at least 2 static volpaths to be able to handle:
+	 *   rename(Vol_vicefile(p1), Vol_vicefile(p2);
+	 * the following indexing takes care of that. -JH */
+	vpidx = 1 - vpidx;
+	snprintf(volpath[vpidx], MAXPATHLEN, "%s/%s",  dir, name);
+
+	return volpath[vpidx];
 }
 
 char *
 vice_file (char *name)
 {
-	static char *volpath[2] = { NULL, NULL };
-	static char  vpidx = 0;
-
-	if (!volpath[0]) {
-		volpath[0] = (char *)malloc(MAXPATHLEN);
-		volpath[1] = (char *)malloc(MAXPATHLEN);
-	}
-	CODA_ASSERT(volpath[0]);
-	if (!vicedir)
-		CODA_ASSERT(0);
-	if (!name)
-		return serverdir; 
-
-	/* We need at least 2 static volpaths to be able to handle:
-	 *   rename(Vol_vicefile(p1), Vol_vicefile(p2);
-	 * the following indexing takes care of that. -JH */
-	vpidx = (vpidx + 1) & 0x1;
-	snprintf(volpath[vpidx], MAXPATHLEN, "%s/%s",  serverdir, name);
-
-	return volpath[vpidx];
+	return vice_filepath(serverdir, name);
 }
 
 char *
 vice_sharedfile (char *name)
 {
-	static char *volpath[2] = { NULL, NULL };
-	static char  vpidx = 0;
-
-	if (!volpath[0]) {
-		volpath[0] = (char *)malloc(MAXPATHLEN);
-		volpath[1] = (char *)malloc(MAXPATHLEN);
-	}
-	CODA_ASSERT(volpath[0]);
-	if (!vicedir)
-		CODA_ASSERT(0);
-	if (!name)
-		return vicedir;
-
-	/* We need at least 2 static volpaths to be able to handle:
-	 *   rename(Vol_vicefile(p1), Vol_vicefile(p2);
-	 * the following indexing takes care of that. -JH */
-	vpidx = (vpidx + 1) & 0x1;
-	snprintf(volpath[vpidx], MAXPATHLEN, "%s/%s",  vicedir, name);
-
-	return volpath[vpidx];
+	return vice_filepath(vicedir, name);
 }
+

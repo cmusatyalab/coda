@@ -45,11 +45,10 @@ command_t list[] = {
     { NULL, NULL, 0, ""},
 };
 
-main(int argc, char **argv) {
-    int i, ret;
+int main(int argc, char **argv)
+{
     struct repvol *repv;
     char msgbuf[DEF_BUF];
-    VolumeId vid;
 
     memset(cfix, 0, sizeof(cfix));
     signal(SIGINT, (void (*)(int))INT); /* catch SIGINT */
@@ -76,7 +75,7 @@ main(int argc, char **argv) {
 		fprintf(stderr, "%s\nError ending repair\n", msgbuf);
 	    Parser_exit(0, NULL);
 	    execlp("rm", "rm", "-Rf", argv[2]);
-	    fprintf(stderr, "%s\nError removing %s: %s\n", argv[2], strerror(errno));
+	    fprintf(stderr, "\nError removing %s: %s\n", argv[2], strerror(errno));
 	    exit(1);
 	}
     }
@@ -221,7 +220,6 @@ void INT(int, int, struct sigcontext *) {
 
 void rep_BeginRepair(int largc, char **largv) {
     char userpath[MAXPATHLEN], msgbuf[DEF_BUF];
-    VolumeId vid;
     struct repvol *repv;
     int rc;
 
@@ -291,7 +289,6 @@ void rep_CheckLocal(int largc, char **largv) {
 
 void rep_ClearInc(int largc, char **largv) {
     char msgbuf[DEF_BUF];
-    struct repvol *repv;
 
     if (session == NOT_IN_SESSION) {
 	printf("You must do \"beginrepair\" first\n");
@@ -307,10 +304,9 @@ void rep_ClearInc(int largc, char **largv) {
 }
 
 void rep_CompareDirs(int largc, char **largv) {
-    char msgbuf[DEF_BUF], space[DEF_BUF], buf[BUFSIZ];
+    char msgbuf[DEF_BUF];
     struct repinfo inf;
     char *fixfile = NULL;
-    struct ViceIoctl vioc;
     int ret;
 
     memset(&inf, 0, sizeof(inf));
@@ -375,10 +371,6 @@ void rep_DiscardLocal(int largc, char **largv) {
 
 void rep_DoRepair(int largc, char **largv) {
     char msgbuf[DEF_BUF], ufixpath[MAXPATHLEN];
-    VolumeId *vids;
-    struct volrep *rwv;
-    long *rcodes;
-    int i, rc;
 
     if (session == NOT_IN_SESSION) {
 	printf("You must do \"beginrepair\" first\n");
@@ -394,7 +386,6 @@ void rep_DoRepair(int largc, char **largv) {
 
 void rep_EndRepair(int largc, char **largv) {
     int commit = 0;
-    struct repvol *repv;
     char msgbuf[DEF_BUF];
 
     switch (session) {
@@ -495,7 +486,6 @@ void rep_PreserveAllLocal(int largc, char **largv) {
 void rep_PreserveLocal(int largc, char **largv) {
     struct ViceIoctl vioc;
     int rc;
-    struct repvol *repv;
     char space[DEF_BUF];
     char buf[BUFSIZ];
 
@@ -545,7 +535,7 @@ void rep_RemoveInc(int largc, char **largv) {
 
 void rep_ReplaceInc(int largc, char **largv)
 {
-    int rc, dirconf;
+    int rc;
     char fixpath[MAXPATHLEN], mergefile[MAXPATHLEN], msgbuf[DEF_BUF];
     ViceFid fixfid;
     char fixrealm[MAXHOSTNAMELEN];
@@ -578,7 +568,7 @@ void rep_ReplaceInc(int largc, char **largv)
 	fprintf(stderr, "File %s is not a regular file (and hence cannot be used for repair)\n", mergefile);
 	return;
     }
-    if (!repair_getfid(mergefile, &fixfid, fixrealm, &fixvv, msgbuf, sizeof(msgbuf)) && (fixvv.StoreId.Host != -1))
+    if (!repair_getfid(mergefile, &fixfid, fixrealm, &fixvv, msgbuf, sizeof(msgbuf)) && (fixvv.StoreId.Host != (unsigned long)-1))
 	sprintf(fixpath, "@%x.%x.%x@%s", fixfid.Volume, fixfid.Vnode, fixfid.Unique, fixrealm);
     else strcpy(fixpath, mergefile);
 

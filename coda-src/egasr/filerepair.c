@@ -110,7 +110,7 @@ int main(int argc, char **argv) {
     }
 
     if (!getfid(argv[2], &fixfid, fixrealm, &fixvv))
-	sprintf(fixpath, "@%x.%x.%x@", fixfid.Volume, fixfid.Vnode, fixfid.Unique, fixrealm);
+	sprintf(fixpath, "@%lx.%lx.%lx@%s", fixfid.Volume, fixfid.Vnode, fixfid.Unique, fixrealm);
     else strcpy(fixpath, argv[2]);
 	
     /* do the repair */

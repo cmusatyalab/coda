@@ -89,10 +89,9 @@ int IsObjInc(char *name, ViceFid *fid)
     if (rc < 0) return(0);
     
     /* it's a sym link, alright */
-    if (symval[0] == '@') {
-	char *realmname;
-	sscanf(symval, "@%x.%x.%x", &fid->Volume, &fid->Vnode, &fid->Unique);
-    }
+    if (symval[0] == '@')
+	sscanf(symval, "@%lx.%lx.%lx", &fid->Volume, &fid->Vnode, &fid->Unique);
+
     return(1);
 }
 

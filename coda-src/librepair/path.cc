@@ -38,7 +38,7 @@ static int repair_getvid(char *path, VolumeId *vid, char *realm, char *msg, int 
  * Returns -1 on error and fills in msg if non-NULL. */
 int repair_isleftmost(char *path, char *realpath, int len, char *msg, int msgsize) {
     register char *car, *cdr;
-    int symlinks, rc = 0;
+    int symlinks;
     char buf[MAXPATHLEN], symbuf[MAXPATHLEN], here[MAXPATHLEN], tmp[MAXPATHLEN];
     
     strncpy(buf, path, sizeof(buf)); /* tentative */
@@ -275,7 +275,7 @@ int repair_getfid(char *path, ViceFid *outfid, char *outrealm,
 
     /* No: 'twas some other bogosity */
     if (errno != EINVAL)
-	strerr(msg, msgsize, "GETFID %s: ", path, saveerrno);
+	strerr(msg, msgsize, "GETFID %s: %d", path, saveerrno);
     return(-1);
 }
 

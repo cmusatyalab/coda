@@ -58,7 +58,8 @@ static void usage();
 
 int use_tcp = 0;
 
-main(int argc, char **argv) {
+int main(int argc, char **argv)
+{
     char *host = 0;
     char *uid = 0;
 
@@ -93,7 +94,8 @@ main(int argc, char **argv) {
 	strcpy(buf, "reporton\n");
     else
 	sprintf(buf, "reporton %s\n", uid);
-    if (write(venusSocket, buf, strlen(buf)) != strlen(buf)) {
+    ssize_t len = strlen(buf);
+    if (write(venusSocket, buf, len) != len) {
 	fprintf(stderr, "spy: reporton command failed (%d)\n", errno);
 	exit(-1);
     }

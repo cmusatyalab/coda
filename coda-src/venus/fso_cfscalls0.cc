@@ -1284,8 +1284,8 @@ void fsobj::LocalSetAttr(Date_t Mtime, unsigned long NewLength,
         stat.Date = Mtime;
     }
     if (NewDate != (Date_t)-1) stat.Date = NewDate;
-    if (NewOwner != (uid_t)-1) stat.Owner = NewOwner;
-    if (NewMode != (unsigned short)-1) stat.Mode = NewMode;
+    if (NewOwner != VA_IGNORE_UID) stat.Owner = NewOwner;
+    if (NewMode != VA_IGNORE_MODE) stat.Mode = NewMode;
 
     UpdateCacheStats((IsDir() ? &FSDB->DirAttrStats : &FSDB->FileAttrStats),
                      WRITE, NBLOCKS(sizeof(fsobj)));
@@ -1530,8 +1530,8 @@ int fsobj::SetAttr(struct coda_vattr *vap, uid_t uid, RPC2_CountedBS *acl)
 {
 	Date_t NewDate = (Date_t) -1;
 	unsigned long NewLength = (unsigned long) -1;
-	uid_t NewOwner = (uid_t) -1;
-	unsigned short NewMode = (unsigned short )-1;
+	uid_t NewOwner = VA_IGNORE_UID;
+	unsigned short NewMode = VA_IGNORE_MODE;
 
 
 	LOG(10, ("fsobj::SetAttr: (%s), uid = %d\n", comp, uid));
@@ -1570,12 +1570,12 @@ int fsobj::SetAttr(struct coda_vattr *vap, uid_t uid, RPC2_CountedBS *acl)
 		Recov_BeginTrans();
 		data.file->Truncate((unsigned) NewLength);
 		Recov_EndTrans(MAXFP);
-		NewLength = (unsigned long)-1;
+		NewLength = VA_IGNORE_SIZE;
 	}
 
 	/* Avoid performing action where possible. */
 	if (NewLength == (unsigned long)-1 && NewDate == (Date_t)-1 &&
-	    NewOwner == (uid_t)-1 && NewMode == (unsigned short)-1) {
+	    NewOwner == VA_IGNORE_UID && NewMode == VA_IGNORE_MODE) {
 		if (acl == 0) return(0);
 	} else {
 		FSO_ASSERT(this, acl == 0);

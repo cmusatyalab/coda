@@ -224,7 +224,7 @@ void rec_dhashtab::print(FILE *fp) {
 void rec_dhashtab::print(int fd) {
     /* first print out the rec_dhashtab header */
     char buf[40];
-    sprintf(buf, "%#08x : Default rec_dhashtab\n", (long)this);
+    sprintf(buf, "%p : Default rec_dhashtab\n", this);
     write(fd, buf, strlen(buf));
 
     /* then print out all of the dlists */

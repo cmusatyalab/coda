@@ -82,7 +82,7 @@ int repair_newrep(char *pathname, struct repvol **repv, char *msg, int msgsize) 
  */
 int repair_mountrw(struct repvol *repv, VolumeId *rwarray, int arraylen, char *msg, int msgsize) {
     char tmppath[MAXPATHLEN], buf[DEF_BUF], space[DEF_BUF], *ptr, *volname;
-    int rc, i, confl, cmlcnt, err = 0;
+    int i, confl, cmlcnt;
     struct volrep *rwv, *rwtail = NULL;
     struct dirent *de;
     VolumeStatus *vs;
@@ -203,7 +203,7 @@ int repair_mountrw(struct repvol *repv, VolumeId *rwarray, int arraylen, char *m
 		}
 	    }
 	    if (i == arraylen) {
-		strerr(msg, msgsize, "No such replica vid=0x%x", ((VolumeStatus *)space)->Vid);
+		strerr(msg, msgsize, "No such replica vid=0x%lx", ((VolumeStatus *)space)->Vid);
 		goto CLEANUP;
 	    }
 	}
@@ -260,7 +260,8 @@ static int srvstr(char *rwpath, char *retbuf, int size) {
     vioc.out = junk;
     vioc.out_size = sizeof(junk);
     memset(junk, 0, sizeof(junk));
-    if (rc = pioctl(rwpath, VIOCWHEREIS, &vioc, 1)) return(-1);
+    rc = pioctl(rwpath, VIOCWHEREIS, &vioc, 1);
+    if (rc) return(-1);
     hosts = (long *)junk;
     memset(retbuf, 0, size);
     if (hosts[0] == 0) return(-1); /* fail if no hosts returned */

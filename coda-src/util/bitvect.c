@@ -174,7 +174,7 @@ void Bitv_print(Bitv b, FILE *fd)
     U_rlock(b);
     fprintf(fd, "Length of map: %d, content: \n", b->length);
     for ( i=0 ; i < nwords(b->length) ; i++)
-	fprintf(fd,"%#08x ", b->words[i]);
+	fprintf(fd,"%lx ", b->words[i]);
     fprintf(fd, "\n");
     U_runlock(b);
 }

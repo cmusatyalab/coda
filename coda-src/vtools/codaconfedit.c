@@ -20,6 +20,7 @@ listed in the file CREDITS.
 #include <stdio.h>
 #include <stdlib.h>
 
+#include "copyfile.h"
 #include "codaconf.h"
 
 #define MAXLINELEN 256
@@ -60,7 +61,7 @@ static int match_var(const char *p, const char *var, int len)
 
 static void do_rewrite(const char *conffile, int argc, char **argv)
 {
-    FILE *inf, *outf, *bakf;
+    FILE *inf, *outf;
     char line[MAXLINELEN], tmpname[MAXPATHLEN+1], *p;
     int ret, len = strlen(argv[2]), lineno = 0, last_line = 0;
 
@@ -150,7 +151,6 @@ static void copy_template(char *confbase)
 int main(int argc, char **argv)
 {
     char *conffile, *val;
-    int ret;
     FAILIF(argc < 2, "Usage: %s <conffile> [<variable> [<value>]]\n", argv[0]);
 
     conffile = codaconf_file(argv[1]);

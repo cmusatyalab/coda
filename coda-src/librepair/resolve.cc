@@ -91,7 +91,7 @@ static int getfid (char *path, ViceFid *Fid, ViceVersionVector *VV, struct ViceI
 		perror("res_getfid: readlink");
 		return errno;	
 	}
-	sscanf(symval, "@%x.%x.%x", &(Fid->Volume), &(Fid->Vnode), &(Fid->Unique));
+	sscanf(symval, "@%lx.%lx.%lx", &(Fid->Volume), &(Fid->Vnode), &(Fid->Unique));
 
 	/* return garbage in VV */
 	return 0;
@@ -143,14 +143,14 @@ struct Acl *ParseAcl (char *buf)
     /* get the + entries */
     alist = ta->pluslist;
     for (i = 0; i < ta->nplus; i++){
-	sscanf(buf, "%255s %d", alist[i].name, &(alist[i].rights));
+	sscanf(buf, "%255s %ld", alist[i].name, &(alist[i].rights));
 	buf = SkipLine(buf);
     }
 
     /* get the - entries */
     alist = ta->minuslist;
     for (i = 0; i < ta->nminus; i++){
-	sscanf(buf, "%100s %d", alist[i].name, &(alist[i].rights));
+	sscanf(buf, "%100s %ld", alist[i].name, &(alist[i].rights));
 	buf = SkipLine(buf);
     }    
     return ta;
@@ -358,7 +358,7 @@ int InRepairList (struct listhdr *opList, unsigned opcode, long vnode, long uniq
 {
     struct repair *repList = opList->repairList;
 
-    for(int i = 0; i < opList->repairCount; i ++)
+    for(unsigned int i = 0; i < opList->repairCount; i ++)
 	if ((repList[i].opcode == opcode) && (repList[i].parms[1] == vnode) && (repList[i].parms[2] == unique))
 	    return 1;
     return 0;
@@ -370,7 +370,7 @@ int IsCreatedEarlier (struct listhdr **opList, int index, long vnode, long uniqu
     struct repair *repList = (*opList)[index].repairList;
     unsigned int count = (*opList)[index].repairCount;
 
-    for (int i = 0; i < count; i++) 
+    for (unsigned int i = 0; i < count; i++) 
       if ((repList[i].opcode == REPAIR_CREATED) && (repList[i].parms[1] == vnode) && (repList[i].parms[2] == unique))
 	return 1;
     return 0;
@@ -454,7 +454,7 @@ int NameNameResolve(int first, int last, int nreplicas, resreplica *dirs, struct
     
     for (i = first; i < last; i++) {
 	resdir_entry *rde = sortedArrByName[i];
-	printf("%s%s\n\tFid: (%x.%x) VV:(%d %d %d %d %d %d %d %d)(%x.%x)\n",
+	printf("%s%s\n\tFid: (%x.%x) VV:(%ld %ld %ld %ld %ld %ld %ld %ld)(%x.%x)\n",
 	       dirs[rde->replicaid].path, sortedArrByName[first]->name,
 	       rde->vno, rde->uniqfier, rde->VV.Versions.Site0,
 	       rde->VV.Versions.Site1, rde->VV.Versions.Site2, rde->VV.Versions.Site3,
@@ -714,7 +714,7 @@ int GetParent(char *realm, ViceFid *cfid, ViceFid *dfid, char *volmtpt, char *dp
     strcpy(path, "/coda");
     rc = pioctl(path, VIOC_GETPFID, &vi, 0);
     if (rc) {
-	printf("Error %d occured while trying to get fid of %s's parent\n", childname);
+	printf("Error %d occured while trying to get fid of %s's parent\n", rc, childname);
 	return(rc);
     }
     memcpy(dfid, tmp, sizeof(ViceFid));

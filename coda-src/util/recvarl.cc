@@ -55,7 +55,6 @@ void *recvarl::operator new(size_t size, int recvsize) {
 
 void *recvarl::operator new(size_t size) {
     CODA_ASSERT(0); /* dummy definition of new() to pacify g++; should never get here*/
-    // return(0);
 }
 
 void recvarl::operator delete(void *deadobj, size_t size) {

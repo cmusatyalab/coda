@@ -140,13 +140,14 @@ void rec_smolist::print(FILE *fp) {
 void rec_smolist::print(int fd) {
     /* first print out the olist header */
     char buf[40];
-    sprintf(buf, "%#08x : Default Olist\n", (long)this);
+    sprintf(buf, "%p : Default Olist\n", this);
     write(fd, buf, strlen(buf));
 
     /* then print out all of the olinks */
     rec_smolist_iterator next(*this);
     rec_smolink *p;
-    while(p = next()) p->print(fd);
+    while((p = next()))
+	p->print(fd);
 }
 
 
@@ -178,7 +179,7 @@ printf("in rec_smolink constructor - shouldnt be \n");
 
 
 rec_smolink::~rec_smolink() {
-    printf("rec_smolink: dtor deleting %x\n", this);
+    printf("rec_smolink: dtor deleting %p\n", this);
 }
 
 void rec_smolink::print() {
@@ -194,6 +195,6 @@ void rec_smolink::print(FILE *fp) {
 
 void rec_smolink::print(int fd) {
     char buf[40];
-    sprintf(buf, "%#08x : Olink next = %d\n", (long)this, next);
+    sprintf(buf, "%p : Olink next = %p\n", this, next);
     write(fd, buf, strlen(buf));
 }

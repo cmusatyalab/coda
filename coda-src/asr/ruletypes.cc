@@ -137,13 +137,14 @@ void depname_t::print(int fd) {
 	    (strlen(dname)> 0) ? '/' : ' ', 
 	    fname);
     write(fd, buf, (int)strlen(buf));
-    sprintf(buf, "(0x%x.%x.%x) ", fid.Volume, fid.Vnode, fid.Unique);
+    sprintf(buf, "(0x%lx.%lx.%lx) ", fid.Volume, fid.Vnode, fid.Unique);
     write(fd, buf, (int) strlen(buf));
 }
 
-command_t::command_t(char *name) {
-    char *c;
-    if (c = rindex(name, '/')) {
+command_t::command_t(char *name)
+{
+    char *c = rindex(name, '/');
+    if (c) {
 	*c = '\0';
 	strcpy(cmddname, name);
 	strcpy(cmdfname, c + 1);
@@ -318,19 +319,19 @@ rule_t::~rule_t() {
     command_t *c;
     
     DEBUG((stdout, "Rule being destroyed\n"));
-    while (o = (objname_t *)objlist.get()) {
+    while ((o = (objname_t *)objlist.get())) {
 	DEBUG((stdout, "Destroying object..."));
 	delete o;
     }
     DEBUG((stdout, "\nDeleted object list\n"));
     
-    while (d = (depname_t *)deplist.get()) {
+    while ((d = (depname_t *)deplist.get())) {
 	DEBUG((stdout, "Destroying dependency..."));
 	delete d;
     }
     DEBUG((stdout, "\nDeleted dependency list \n"));
     
-    while (c = (command_t *)cmdlist.get()) {
+    while ((c = (command_t *)cmdlist.get())) {
 	DEBUG((stdout, "Destroying command..."));
 	delete c;
     }
@@ -356,7 +357,7 @@ void rule_t::addcmd(command_t *cmd) {
 int rule_t::match(char *dname, char *fname) {
     olist_iterator next(objlist);
     objname_t *o;
-    while (o = (objname_t *)next()) {
+    while ((o = (objname_t *)next())) {
 	if (o->match(dname, fname)) {
 	    DEBUG((stdout, "Found matching object\n"));
 	    o->GetPrefix(fname, prefix);
@@ -466,7 +467,7 @@ void rule_t::GetRepInfo(char *dname, char *fname)
 	
 	// it's a sym link, alright 
 	if (symval[0] == '@') {
-	    sscanf(symval, "@%x.%x.%x@",
+	    sscanf(symval, "@%lx.%lx.%lx@",
 		   &incfid.Volume, &incfid.Vnode, &incfid.Unique);
 	    strcpy(increalm, strrchr(symval, '@') + 1);
 	}
@@ -481,7 +482,7 @@ void rule_t::expand()
 {
     olist_iterator next(cmdlist);
     command_t *c;
-    while (c = (command_t *) next()) {
+    while ((c = (command_t *) next())) {
 	c->expandname(prefix,idname, ifname);	// expands the $*, $> and $<
 	c->expandreplicas(nreplicas, repnames);	// expands the [] and $#
     }
@@ -491,12 +492,14 @@ int rule_t::execute() {
     int rc = 0;
     olist_iterator next(cmdlist);
     command_t *c;
-    while (c = (command_t *) next()) 
-	if (rc = c->execute()) {
+    while ((c = (command_t *) next())) {
+	rc = c->execute();
+	if (rc) {
 	    fprintf(stderr, "The following command failed - discontinuing\n");
 	    c->print(stderr);
 	    return(rc);
 	}
+    }
     DEBUG((stdout, "All commands succeeded\n"));
     return(0);
 }
@@ -513,7 +516,7 @@ void rule_t::print(int fd) {
     // print object names 
     olist_iterator onext(objlist);
     objname_t *o;
-    while (o = (objname_t *)onext()) 
+    while ((o = (objname_t *)onext())) 
 	o->print(fd);
     
     char buf[2 * MAXPATHLEN];
@@ -523,7 +526,7 @@ void rule_t::print(int fd) {
     // print dependency names
     olist_iterator dnext(deplist);
     depname_t *d;
-    while (d = (depname_t *)dnext()) 
+    while ((d = (depname_t *)dnext()))
 	d->print(fd);
     
     sprintf(buf, "\n");
@@ -532,14 +535,14 @@ void rule_t::print(int fd) {
     // print commands
     olist_iterator cnext(cmdlist);
     command_t *c;
-    while (c = (command_t *)cnext()) 
+    while ((c = (command_t *)cnext()))
 	c->print();
     
     sprintf(buf, "Prefix is %s\n\n\n", prefix);
     write (fd, buf, (int) strlen(buf));
     
     if (incfid.Volume) {
-	sprintf(buf, "Inc object is %s/%s (%x.%x.%x@%s) with %d replicas\n",
+	sprintf(buf, "Inc object is %s/%s (%lx.%lx.%lx@%s) with %d replicas\n",
 		idname, ifname, incfid.Volume, incfid.Vnode, incfid.Unique,
 		increalm, nreplicas);
 	write(fd, buf, (int) strlen(buf));

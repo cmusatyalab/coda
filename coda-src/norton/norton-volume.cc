@@ -59,8 +59,8 @@ void PrintVV(vv_t *vv) {
     
     printf("{[");
     for (i = 0; i < VSG_MEMBERS; i++)
-        printf(" %d", (&(vv->Versions.Site0))[i]);
-    printf(" ] [ %d %d ] [ 0x%#x ]}\n",
+        printf(" %ld", (&(vv->Versions.Site0))[i]);
+    printf(" ] [ %ld %ld ] [ 0x%#lx ]}\n",
              vv->StoreId.Host, vv->StoreId.Uniquifier, vv->Flags);
 }
 
@@ -333,7 +333,6 @@ void show_volume(char *name) {
 
 void delete_volume(VolHead *vol) {
     byte destroyflag=0xD3;
-    Error error;
     rvm_return_t status;
 
     if (vol) {

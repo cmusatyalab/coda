@@ -73,7 +73,8 @@ void writeblock(hblock&);
 void usage();
 
 
-main(int argc, char *argv[]) {
+int main(int argc, char *argv[])
+{
     /* Parse Args. */
     {
 	if (argc != 2 && argc != 3)

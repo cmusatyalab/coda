@@ -34,7 +34,6 @@ void printAcl(struct Acl *);
  * Returns 0 on success, -1 on error and fills in msg if non-NULL */
 int BeginRepair(char *pathname, struct repvol **repv, char *msg, int msgsize) {
     char msgbuf[DEF_BUF], space[DEF_BUF], cmd[32];
-    VolumeId vid;
     struct ViceIoctl vioc;
     int rc;
 
@@ -161,7 +160,8 @@ int ClearInc(struct repvol *repv, char *msg, int msgsize)
 	    vioc.in_size = sizeof(vv_t);
 	    vioc.out = NULL;
 	    vioc.out_size = 0;
-	    if (rc = pioctl(names[i], VIOC_SETVV, &vioc, 0)) {
+	    rc = pioctl(names[i], VIOC_SETVV, &vioc, 0);
+	    if (rc) {
 		strerr(msg, msgsize, "SETVV %s: %s", names[i], strerror(errno));
 		goto CLEANUP;
 	    }
@@ -187,14 +187,12 @@ int ClearInc(struct repvol *repv, char *msg, int msgsize)
  * should DoRepair to fix them and then do CompareDirs again) */
 int CompareDirs(struct repvol *repv, char *fixfile, struct repinfo *inf, char *msg, int msgsize)
 {
-    char msgbuf[DEF_BUF], space[DEF_BUF], tmppath[MAXPATHLEN];
-    VolumeId vid;
+    char msgbuf[DEF_BUF];
     ViceFid confFid;
-    struct ViceIoctl vioc;
     struct stat sbuf;
     char **names;
     char realm[MAXHOSTNAMELEN];
-    int ret, rc, i, nreps, nConflicts = 0, setmode = 0, setacl = 0, setowner = 0;
+    int ret, i, nreps, nConflicts = 0, setmode = 0, setacl = 0, setowner = 0;
     unsigned long j;
     resreplica *dirs;
     struct volrep *rwv;
@@ -361,13 +359,11 @@ int DiscardAllLocal(struct repvol *repv, char *msg, int msgsize) {
  * Fprints results to res if non-NULL
  * Returns 0 on success, -1 on error and fills in msg if non-NULL */
 int DoRepair(struct repvol *repv, char *ufixpath, FILE *res, char *msg, int msgsize) {
-    char space[DEF_BUF], fixpath[MAXPATHLEN], expath[MAXPATHLEN], buf[BUFSIZ];
+    char space[DEF_BUF], fixpath[MAXPATHLEN], expath[MAXPATHLEN];
     VolumeId *vids;
-    struct ViceIoctl vioc;
     struct volrep *rwv;
     long *rcodes;
-    int i, rc, hcount;
-    struct listhdr *hlist, *l = NULL;
+    int i, rc;
 
     if (repv == NULL) {
       strerr(msg, msgsize, "NULL repv");
@@ -469,14 +465,12 @@ int EndRepair(struct repvol *repv, int commit, char *msg, int msgsize) {
 int RemoveInc(struct repvol *repv, char *msg, int msgsize)
 {
     char msgbuf[DEF_BUF], tmppath[MAXPATHLEN];
-    struct stat buf;
     ViceFid fixfid;
     char fixrealm[MAXHOSTNAMELEN];
     ViceVersionVector confvv;
     vv_t fixvv;
     char *user = NULL, *rights = NULL, *owner = NULL, *mode = NULL, **names;
-    int nreplicas, rc, i, j;
-    struct volrep  *rwv;
+    int nreplicas, rc, i;
     struct listhdr *repairlist = NULL;
     resreplica *dirs = NULL;
 
@@ -520,8 +514,8 @@ int RemoveInc(struct repvol *repv, char *msg, int msgsize)
 	    strerr(msg, msgsize, "repair_getfid(%s): %s", repv->rodir, msgbuf);
 	    goto Error;
 	}
-	if (!((confvv.StoreId.Host == -1) && (confvv.StoreId.Uniquifier == -1))) {
-	    strerr(msg, msgsize, "Unexpected values (Host = %d, Uniquifier = %d)", 
+	if (!((confvv.StoreId.Host == (unsigned long)-1) && (confvv.StoreId.Uniquifier == (unsigned long)-1))) {
+	    strerr(msg, msgsize, "Unexpected values (Host = %ld, Uniquifier = %ld)", 
 		   confvv.StoreId.Host, confvv.StoreId.Uniquifier);
 	    rc = -1;
 	    goto Error;
@@ -533,7 +527,8 @@ int RemoveInc(struct repvol *repv, char *msg, int msgsize)
 	}
     }
     else { /* file conflict */
-	if (rc = repair_getfid(names[0], &fixfid, fixrealm, &fixvv, msgbuf, sizeof(msgbuf))) {
+	rc = repair_getfid(names[0], &fixfid, fixrealm, &fixvv, msgbuf, sizeof(msgbuf));
+	if (rc) {
 	    strerr(msg, msgsize, "repair_getfid(%s): %s", names[0], msgbuf);
 	    goto Error;
 	}
@@ -571,12 +566,13 @@ int isLocal(resreplica *dir) {
 
 int compareAcl(int nreplicas, resreplica *dirs) {
     int init, i, j;
-    struct Acl *al0, *ali;
+    struct Acl *al0 = NULL, *ali;
 
     for (init = 0; init < nreplicas; init++) {
 	if (!(isLocal(&(dirs[init]))))
 	    al0 = dirs[init].al;
     }
+    CODA_ASSERT(al0);
 
     for (i = init + 1; i < nreplicas; i++){
 
@@ -758,7 +754,7 @@ void getremovelists(int nreplicas, resreplica *dirs, struct listhdr **repairlist
  * Returns number of replicas in array on success, -1 on failure (after cleaning up) */
 int getVolrepNames(struct repvol *repv, char ***names, char *msg, int msgsize) {
     struct volrep *rwv;
-    int i, nreps, len;
+    int i, nreps;
 
     /* count and allocate replicas */
     for (nreps = 0, rwv = repv->rwhead; rwv != NULL; rwv = rwv->next, nreps++);
@@ -801,7 +797,8 @@ static void growarray(char ***arrayaddr, int *arraysize) {
 /*  Appends expanded entried to (ASCII) fixfile
  *  Returns 0 on success, -1 on failure */
 int glexpand(char *rodir, char *fixfile, char *msg, int msgsize) {
-    int rc, j, k, cnt, gls = 0, lineno = 0;
+    int rc, cnt, gls = 0, lineno = 0;
+    unsigned int j, k;
     struct in_addr *custodians;
     VolumeId *repID, sID[VSG_MEMBERS];
     struct hostent *hent;

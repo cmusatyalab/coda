@@ -228,13 +228,13 @@ void examine(int argc, char *argv[]) {
 	if (!address_ok((vm_address_t)addr,
 			(vm_size_t)BYTES_PER_LINE/(int)sizeof(int),
 			VM_PROT_READ)) { 
-	    printf("ERROR reading address: 0x%08x\n", addr);
+	    printf("ERROR reading address: %p\n", addr);
 	    break;
 	}
     
-	printf("0x%08x: ", addr);
+	printf("%p: ", addr);
 	for (i = 0; i < BYTES_PER_LINE/sizeof(int); i++) {
-	    printf("  0x%08x", *(addr + i));
+	    printf("  %p", *(addr + i));
 	}
 	
 	printf("  |");

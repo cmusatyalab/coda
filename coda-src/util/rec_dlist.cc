@@ -254,7 +254,7 @@ int rec_dlist::count() {
 int rec_dlist::IsMember(rec_dlink *p) {
     rec_dlist_iterator next(*this);
     rec_dlink *dl;
-    while (dl = next()) {
+    while ((dl = next())) {
 	int res = (CmpFn ? CmpFn(dl, p) : !(dl == p));
 	if (res == 0) return(1);
 
@@ -278,14 +278,13 @@ void rec_dlist::print(FILE *fp) {
 void rec_dlist::print(int fd) {
     /* first print out the dlist header */
     char buf[80];
-    sprintf(buf, "%#08x : Default Rec_Dlist : count = %d\n",
-	     (long)this, cnt);
+    sprintf(buf, "%p : Default Rec_Dlist : count = %d\n", this, cnt);
     write(fd, buf, strlen(buf));
 
     /* then print out all of the olinks */
     rec_dlist_iterator next(*this);
     rec_dlink *p;
-    while(p = next()) p->print(fd);
+    while((p = next())) p->print(fd);
 }
 
 rec_dlist_iterator::rec_dlist_iterator(rec_dlist& l, DlIterOrder Order) 
@@ -354,7 +353,7 @@ void rec_dlink::print(FILE *fp) {
 
 void rec_dlink::print(int fd) {
     char buf[80];
-    sprintf(buf, "%#08x : Default rec_dlink : prev = %x, next = %x\n",
-	     (long)this, prev, next);
+    sprintf(buf, "%p : Default rec_dlink : prev = %p, next = %p\n",
+	    this, prev, next);
     write(fd, buf, strlen(buf));
 }
