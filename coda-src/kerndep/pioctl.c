@@ -19,7 +19,7 @@ Coda are listed in the file CREDITS.
 
 #ifdef __cplusplus
 extern "C" {
-#endif __cplusplus
+#endif
 
 #include <fcntl.h>
 #include <sys/types.h>
@@ -42,7 +42,7 @@ extern "C" {
 
 #ifdef __cplusplus
 }
-#endif __cplusplus
+#endif
 
 #ifdef DJGPP
 //#include <auth2.h>

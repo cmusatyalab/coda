@@ -28,7 +28,7 @@ listed in the file CREDITS.
 
 #ifdef __cplusplus
 extern "C" {
-#endif __cplusplus
+#endif
 
 #include <stdio.h>
 #include <sys/types.h>
@@ -43,7 +43,7 @@ extern "C" {
 #include <util.h>
 #ifdef __cplusplus
 }
-#endif __cplusplus
+#endif
 
 #include "coda_assert.h"
 
@@ -148,9 +148,9 @@ typedef void (*PROC_V_UL)(unsigned long);
 /*  *****  Debugging macros.  *****  */
 #ifdef	VENUSDEBUG
 #define	LOG(level, stmt)    if (LogLevel >= (level)) dprint stmt
-#else	VENUSDEBUG
+#else
 #define	LOG(level, stmt)
-#endif	VENUSDEBUG
+#endif /* !VENUSDEBUG */
 
 /*  *****  Locking macros.  *****  */
 
@@ -223,14 +223,14 @@ enum LockLevel { NL, RD, SH, WR };
     elapsed_ru_utime = SubTimes(&(EndRU.ru_utime), &(StartRU.ru_utime)); \
     elapsed_ru_stime = SubTimes(&(EndRU.ru_stime), &(StartRU.ru_stime));
 */
-#else	TIMING
+#else
 #define	SubTimes(end, start) (0.0)
 #define START_TIMING()
 #define END_TIMING()\
     float elapsed; elapsed = 0.0;\
     float elapsed_ru_utime; elapsed_ru_utime = 0.0;\
     float elapsed_ru_stime; elapsed_ru_stime = 0.0;
-#endif	TIMING
+#endif /* !TIMING */
 
 
 /*  *****  Cache Stuff *****  */
@@ -350,4 +350,4 @@ extern int   masquerade;
 /* spool.cc */
 extern void MakeUserSpoolDir(char *, vuid_t);
 
-#endif not _VENUS_PRIVATE_H_
+#endif /* _VENUS_PRIVATE_H_ */

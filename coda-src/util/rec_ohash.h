@@ -28,13 +28,13 @@ listed in the file CREDITS.
 
 #ifdef __cplusplus
 extern "C" {
-#endif __cplusplus
+#endif
 
 #include <stdio.h>
 
 #ifdef __cplusplus
 }
-#endif __cplusplus
+#endif
 
 #include "ohash.h"
 #include "rec_olist.h"
@@ -94,4 +94,4 @@ class rec_ohashtab_iterator {
     rec_olink *operator()();				/* return next object or 0 */
 };
 
-#endif	not _UTIL_REC_OHASH_H_
+#endif /* _UTIL_REC_OHASH_H_ */

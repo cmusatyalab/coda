@@ -22,7 +22,7 @@ listed in the file CREDITS.
 
 #ifdef __cplusplus
 extern "C" {
-#endif __cplusplus
+#endif
 
 #include <unistd.h>
 #include <stdlib.h>
@@ -32,7 +32,7 @@ extern "C" {
 #include <rvmlib.h>
 #ifdef __cplusplus
 }
-#endif __cplusplus
+#endif
 
 #include "rec_olist.h"
 

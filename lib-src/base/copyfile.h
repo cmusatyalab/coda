@@ -33,7 +33,7 @@ Coda are listed in the file CREDITS.
 
 #ifdef __cplusplus
 extern "C" {
-#endif __cplusplus
+#endif
 
 /* these functions are used to copy files, they return -1 on errors */
 int copyfile(int fromfd, int tofd);
@@ -41,7 +41,7 @@ int copyfile_byname(const char *fromname, const char *toname);
 
 #ifdef __cplusplus
 }
-#endif __cplusplus
+#endif
 
 #endif /* _COPYFILE_H_ */
 

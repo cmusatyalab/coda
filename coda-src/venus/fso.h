@@ -40,7 +40,7 @@ class lrdb;
 
 #ifdef __cplusplus
 extern "C" {
-#endif __cplusplus
+#endif
 
 #include <stdio.h>
 #include <sys/types.h>
@@ -55,7 +55,7 @@ extern "C" {
 extern int global_kernfd;
 #ifdef __cplusplus
 }
-#endif __cplusplus
+#endif
 
 /* interfaces */
 #include <vice.h>

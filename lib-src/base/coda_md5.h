@@ -21,7 +21,7 @@ Coda are listed in the file CREDITS.
 
 #ifdef __cplusplus
 extern "C" {
-#endif __cplusplus
+#endif
 
 #ifdef HAVE_CONFIG_H
 #include <config.h>
@@ -69,7 +69,7 @@ void MD5_Final(unsigned char [16], MD5_CTX *);
 
 #ifdef __cplusplus
 }
-#endif __cplusplus
+#endif
 
 #endif  /* _CODA_MD5_H_ */
 

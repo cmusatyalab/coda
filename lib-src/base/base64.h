@@ -20,7 +20,7 @@ listed in the file CREDITS.
 
 #ifdef __cplusplus
 extern "C" {
-#endif __cplusplus
+#endif
 
 #include <stdio.h>
 
@@ -29,7 +29,7 @@ void coda_base64_decode(FILE *in, char **out, int *len);
 
 #ifdef __cplusplus
 }
-#endif __cplusplus
+#endif
 
 
-#endif _BASE64_H_
+#endif /* _BASE64_H_ */

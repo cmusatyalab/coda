@@ -49,7 +49,7 @@ Pittsburgh, PA.
 
 #ifdef __cplusplus
 extern "C" {
-#endif __cplusplus
+#endif
 
 #ifdef HAVE_CONFIG_H
 #include <config.h>
@@ -69,7 +69,7 @@ extern "C" {
 #include "auth2.common.h"
 #ifdef __cplusplus
 }
-#endif __cplusplus
+#endif
 
 #include <auth2.h>
 

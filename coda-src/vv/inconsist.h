@@ -89,14 +89,14 @@ extern void GetMaxVV (vv_t *, vv_t **, int);
 
 #ifdef __cplusplus
 extern "C" {
-#endif __cplusplus
+#endif
 
 #include <stdio.h>
 
 #ifdef __cplusplus
 }
-#endif __cplusplus
+#endif
 
 extern void PrintVV (FILE *, vv_t *);
 
-#endif _INCON_
+#endif /* _INCON_ */

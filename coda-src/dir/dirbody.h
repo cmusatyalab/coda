@@ -97,6 +97,5 @@ int DIR_DirOK (PDirHeader pdh);
 int DIR_Convert (PDirHeader dir, char *file, VolumeId vol);
 void DIR_Setpages(PDirHeader, int);
 
+#endif /* _DIR_PRIVATE_H_ */
 
-
-#endif _DIR_PRIVATE_H_

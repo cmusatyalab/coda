@@ -51,4 +51,4 @@ class arrlist_iterator {
                                    dlist.h for more explanation */
 };
 
-#endif _ARRLIST_H_
+#endif /* _ARRLIST_H_ */

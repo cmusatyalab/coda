@@ -59,4 +59,4 @@ class vindex_iterator {
     int operator()(VnodeDiskObject *);
 };
     
-#endif _INDEX_H_
+#endif /* _INDEX_H_ */

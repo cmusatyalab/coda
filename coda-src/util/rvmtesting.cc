@@ -23,7 +23,7 @@ listed in the file CREDITS.
 #ifdef	RVMTESTING
 #ifdef __cplusplus
 extern "C" {
-#endif __cplusplus
+#endif
     
 #include <stdio.h>
 #ifdef __MACH__
@@ -34,7 +34,7 @@ extern "C" {
     
 #ifdef __cplusplus
 }
-#endif __cplusplus
+#endif
 
 #include "util.h"
 
@@ -332,4 +332,4 @@ void my_sigBus(int sig, int code, struct sigcontext *scp) {
     
 
 }
-#endif  RVMTESTING
+#endif /* RVMTESTING */

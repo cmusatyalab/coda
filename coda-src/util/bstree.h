@@ -35,13 +35,13 @@ listed in the file CREDITS.
 
 #ifdef __cplusplus
 extern "C" {
-#endif __cplusplus
+#endif
 
 #include <stdio.h>
 
 #ifdef __cplusplus
 }
-#endif __cplusplus
+#endif
 
 
 
@@ -118,4 +118,4 @@ class bstree_iterator {
     bsnode *operator()();			/* return next node or 0 */
 };
 
-#endif	not _UTIL_BSTREE_H_
+#endif /* _UTIL_BSTREE_H_ */

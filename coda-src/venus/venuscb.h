@@ -32,14 +32,14 @@ listed in the file CREDITS.
 
 #ifdef __cplusplus
 extern "C" {
-#endif __cplusplus
+#endif
 
 #include <stdio.h>
 #include <rpc2/rpc2.h>
 
 #ifdef __cplusplus
 }
-#endif __cplusplus
+#endif
 
 /* from venus */
 #include "vproc.h"
@@ -69,4 +69,4 @@ extern int MaxCBServers;
 extern int cbbreaks;
 extern void CallBackInit();
 
-#endif not _VENUSCB_H_
+#endif /* _VENUSCB_H_ */

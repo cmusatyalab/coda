@@ -52,4 +52,4 @@ typedef struct ViceLock
 #define ViceLockCheckLocked(vptr) ((vptr)->lockTime == 0)
 #define ViceLockClear(vptr) ((vptr)->lockCount = (vptr)->lockTime = 0)
 
-#endif ViceLockInclude
+#endif /* ViceLockInclude */

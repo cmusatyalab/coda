@@ -225,7 +225,7 @@ void vproc::open(struct venus_cnode *cp, int flags) {
 
 	/* Do the operation. */
 	u.u_error = f->Open(writep, execp, truncp, cp, CRTORUID(u.u_cred));
-	//if (u.u_error) goto FreeLocks;
+	if (u.u_error) goto FreeLocks;
 
 FreeLocks:
 	FSDB->Put(&f);

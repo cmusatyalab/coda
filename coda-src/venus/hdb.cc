@@ -40,7 +40,7 @@ listed in the file CREDITS.
 
 #ifdef __cplusplus
 extern "C" {
-#endif __cplusplus
+#endif
 
 #ifdef HAVE_CONFIG_H
 #include <config.h>
@@ -67,7 +67,7 @@ extern "C" {
 
 #ifdef __cplusplus
 }
-#endif __cplusplus
+#endif
 
 
 
@@ -99,7 +99,7 @@ char PeriodicWalksAllowed = 1;
 #ifdef	VENUSDEBUG
 int NameCtxt_allocs = 0;
 int NameCtxt_deallocs = 0;
-#endif	VENUSDEBUG
+#endif
 
 
 /*  *****  Private Constants  *****  */
@@ -1577,7 +1577,7 @@ namectxt::namectxt(ViceFid *Cdir, char *Path, vuid_t Vuid,
 
 #ifdef	VENUSDEBUG
     NameCtxt_allocs++;
-#endif	VENUSDEBUG
+#endif
 }
 
 
@@ -1629,7 +1629,7 @@ namectxt::namectxt(namectxt *Parent, char *Component) {
 
 #ifdef	VENUSDEBUG
     NameCtxt_allocs++;
-#endif	VENUSDEBUG
+#endif
 }
 
 
@@ -1651,7 +1651,7 @@ int namectxt::operator=(namectxt& nc) {
 namectxt::~namectxt() {
 #ifdef	VENUSDEBUG
     NameCtxt_deallocs++;
-#endif	VENUSDEBUG
+#endif
 
     LOG(10, ("namectxt::~namectxt: (%x.%x.%x, %s), %d, %d\n",
 	      cdir.Volume, cdir.Vnode, cdir.Unique, path, vuid, priority));

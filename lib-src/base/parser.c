@@ -61,7 +61,7 @@ static char *skipwhitespace(char *s);
 static char *skiptowhitespace(char *s);
 static command_t *find_cmd(char *name, command_t cmds[], char **next);
 static int process(char *s, char **next, command_t *lookup, command_t **result, char **prev);
-static char *command_generator(char *text, int state);
+static char *command_generator(const char *text, int state);
 static char **command_completion(char *text, int start, int end);
 static void print_commands(char *str, command_t *table);
 
@@ -222,7 +222,7 @@ static int process(char *s, char ** next, command_t *lookup,
     }
 }
 
-static char * command_generator(char * text, int state) 
+static char * command_generator(const char * text, int state) 
 {
     static int index,
 	       len;
@@ -265,7 +265,7 @@ static char **command_completion(char * text, int start, int end)
 	if (*(pos - 1) == ' ') match_tbl = table->sub_cmd;
     }
 
-    return(completion_matches(text, command_generator));
+    return(rl_completion_matches(text, command_generator));
 }
 
 /* take a string and execute the function or print help */
@@ -318,7 +318,7 @@ void Parser_commands()
     stifle_history(HISTORY);
 
     rl_attempted_completion_function =(CPPFunction *)command_completion;
-    rl_completion_entry_function = (Function *)command_generator;
+    rl_completion_entry_function = (rl_compentry_func_t *)command_generator;
     
     while(!done) {
 	line = readline(parser_prompt);

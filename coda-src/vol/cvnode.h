@@ -16,13 +16,6 @@ listed in the file CREDITS.
 
 #*/
 
-
-
-
-
-
-
-
 /********************************
  * cvnode.h			*
  ********************************/
@@ -32,7 +25,7 @@ listed in the file CREDITS.
 
 #ifdef __cplusplus
 extern "C" {
-#endif __cplusplus
+#endif
 
 #include <lwp/lwp.h>
 #include <lwp/lock.h>
@@ -44,7 +37,7 @@ extern "C" {
 
 #ifdef __cplusplus
 }
-#endif __cplusplus
+#endif
 
 #include <voltypes.h>
 #include <inconsist.h>
@@ -217,5 +210,5 @@ void VN_CopyOnWrite(struct Vnode *vptr);
 void VN_VN2Fid(struct Vnode *, struct Volume *, struct ViceFid *);
 void VN_VN2PFid(struct Vnode *, struct Volume *, struct ViceFid *);
 
-#endif _CVNODE_H_
+#endif /* _CVNODE_H_ */
 

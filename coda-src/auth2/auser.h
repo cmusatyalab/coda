@@ -69,4 +69,4 @@ int U_BindToServer(char *DefAuthHost, RPC2_Integer AuthenticationType,
 
 char *U_Error(int rc);
 
-#endif _AUSER_INCLUDED
+#endif /* _AUSER_INCLUDED */

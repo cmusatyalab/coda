@@ -25,7 +25,7 @@ listed in the file CREDITS.
 
 #ifdef __cplusplus
 extern "C" {
-#endif __cplusplus
+#endif
 
 #ifdef HAVE_CONFIG_H
 #include <config.h>
@@ -64,7 +64,7 @@ extern void pack_struct(ARG *, PARM **, PARM **);
 
 #ifdef __cplusplus
 }
-#endif __cplusplus
+#endif
 
 /* from util */
 #include <dlist.h>
@@ -538,6 +538,7 @@ cmlent::cmlent(ClientModifyLog *Log, time_t Mtime, vuid_t vuid, int op, int Tid 
 
     LOG(1, ("cmlent::cmlent(...)\n"));
     RVMLIB_REC_OBJECT(*this);
+    RPC2_String name;
 
     log = Log;
     this->tid = Tid;
@@ -582,49 +583,58 @@ cmlent::cmlent(ClientModifyLog *Log, time_t Mtime, vuid_t vuid, int op, int Tid 
 
 	case OLDCML_Create_OP:
 	    u.u_create.PFid = *va_arg(ap, ViceFid *);
-	    u.u_create.Name = Copy_RPC2_String(va_arg(ap, RPC2_String));
+	    name = va_arg(ap, RPC2_String);
+	    u.u_create.Name = Copy_RPC2_String(name);
 	    u.u_create.CFid = *va_arg(ap, ViceFid *);
 	    u.u_create.Mode = va_arg(ap, RPC2_Unsigned);
 	    break;
 
 	case OLDCML_Remove_OP:
 	    u.u_remove.PFid = *va_arg(ap, ViceFid *);
-	    u.u_remove.Name = Copy_RPC2_String(va_arg(ap, RPC2_String));
+	    name = va_arg(ap, RPC2_String);
+	    u.u_remove.Name = Copy_RPC2_String(name);
 	    u.u_remove.CFid = *va_arg(ap, ViceFid *);
 	    u.u_remove.LinkCount = va_arg(ap, int);
 	    break;
 
 	case OLDCML_Link_OP:
 	    u.u_link.PFid = *va_arg(ap, ViceFid *);
-	    u.u_link.Name = Copy_RPC2_String(va_arg(ap, RPC2_String));
+	    name = va_arg(ap, RPC2_String);
+	    u.u_link.Name = Copy_RPC2_String(name);
 	    u.u_link.CFid = *va_arg(ap, ViceFid *);
 	    break;
 
 	case OLDCML_Rename_OP:
 	    u.u_rename.SPFid = *va_arg(ap, ViceFid *);
-	    u.u_rename.OldName = Copy_RPC2_String(va_arg(ap, RPC2_String));
+	    name = va_arg(ap, RPC2_String);
+	    u.u_rename.OldName = Copy_RPC2_String(name);
 	    u.u_rename.TPFid = *va_arg(ap, ViceFid *);
-	    u.u_rename.NewName = Copy_RPC2_String(va_arg(ap, RPC2_String));
+	    name = va_arg(ap, RPC2_String);
+	    u.u_rename.NewName = Copy_RPC2_String(name);
 	    u.u_rename.SFid = *va_arg(ap, ViceFid *);
 	    break;
 
 	case OLDCML_MakeDir_OP:
 	    u.u_mkdir.PFid = *va_arg(ap, ViceFid *);
-	    u.u_mkdir.Name = Copy_RPC2_String(va_arg(ap, RPC2_String));
+	    name = va_arg(ap, RPC2_String);
+	    u.u_mkdir.Name = Copy_RPC2_String(name);
 	    u.u_mkdir.CFid = *va_arg(ap, ViceFid *);
 	    u.u_mkdir.Mode = va_arg(ap, RPC2_Unsigned);
 	    break;
 
 	case OLDCML_RemoveDir_OP:
 	    u.u_rmdir.PFid = *va_arg(ap, ViceFid *);
-	    u.u_rmdir.Name = Copy_RPC2_String(va_arg(ap, RPC2_String));
+	    name = va_arg(ap, RPC2_String);
+	    u.u_rmdir.Name = Copy_RPC2_String(name);
 	    u.u_rmdir.CFid = *va_arg(ap, ViceFid *);
 	    break;
 
 	case OLDCML_SymLink_OP:
 	    u.u_symlink.PFid = *va_arg(ap, ViceFid *);
-	    u.u_symlink.NewName = Copy_RPC2_String(va_arg(ap, RPC2_String));
-	    u.u_symlink.OldName = Copy_RPC2_String(va_arg(ap, RPC2_String));
+	    name = va_arg(ap, RPC2_String);
+	    u.u_symlink.NewName = Copy_RPC2_String(name);
+	    name = va_arg(ap, RPC2_String);
+	    u.u_symlink.OldName = Copy_RPC2_String(name);
 	    u.u_symlink.CFid = *va_arg(ap, ViceFid *);
 	    u.u_symlink.Mode = va_arg(ap, RPC2_Unsigned);
 	    break;
@@ -2659,6 +2669,7 @@ void cmlent::pack(PARM **_ptr) {
     DummyCBS.SeqLen = 0;
     DummyCBS.SeqBody = 0;
     RPC2_Unsigned DummyAllocHost = (unsigned long)-1;
+    ViceVersionVector TPVV;
 
     /* Vice interface does not yet know about {Truncate, Utimes, Chown, Chmod}, */
     /* so we must make them look like (StatusOnly) Stores. XXX */
@@ -2813,8 +2824,7 @@ void cmlent::pack(PARM **_ptr) {
 	    break;
 
 	case CML_Rename_OP:
-	    ViceVersionVector TPVV =
-		FID_EQ(&u.u_rename.SPFid, &u.u_rename.TPFid) ?
+	    TPVV = FID_EQ(&u.u_rename.SPFid, &u.u_rename.TPFid) ?
 		u.u_rename.SPVV : u.u_rename.TPVV;
 	    RLE_Pack(_ptr, CML_Rename_PTR, &u.u_rename.SPFid, &u.u_rename.SPVV,
 		     time, u.u_rename.OldName, &u.u_rename.TPFid, &TPVV,

@@ -41,7 +41,7 @@ Pittsburgh, PA.
 
 #ifdef __cplusplus
 extern "C" {
-#endif __cplusplus
+#endif
 
 #include <unistd.h>
 #include <stdlib.h>
@@ -53,7 +53,7 @@ extern "C" {
 #define	IN	/* Input parameter */
 #define OUT	/* Output parameter */
 #define INOUT	/* Obvious */
-#endif IN
+#endif /* !IN */
 
 
 #define TRUE 1
@@ -116,7 +116,7 @@ long int gethostid(void);
 
 #ifdef __cplusplus
 }
-#endif __cplusplus
+#endif
 
 
 

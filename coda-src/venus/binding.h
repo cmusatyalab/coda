@@ -26,14 +26,14 @@ listed in the file CREDITS.
 
 #ifdef __cplusplus
 extern "C" {
-#endif __cplusplus
+#endif
 
 #include <stdio.h>
 #include <stdlib.h>
 
 #ifdef __cplusplus
 }
-#endif __cplusplus
+#endif
 
 /* from util */
 #include <dlist.h>
@@ -44,7 +44,7 @@ class binding {
 #ifdef	VENUSDEBUG
     static int allocs;
     static int deallocs;
-#endif	VENUSDEBUG
+#endif
 
     dlink binder_handle;
     void *binder;
@@ -65,4 +65,4 @@ class binding {
     void print(int);
 };
 
-#endif	not _BINDING_H_
+#endif /* _BINDING_H_ */

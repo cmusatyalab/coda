@@ -40,7 +40,7 @@ Pittsburgh, PA.
 
 #ifdef __cplusplus
 extern "C" {
-#endif __cplusplus
+#endif
 
 #ifdef HAVE_CONFIG_H
 #include <config.h>
@@ -58,7 +58,7 @@ extern "C" {
 #include "util.h"
 #ifdef __cplusplus
 }
-#endif __cplusplus
+#endif
 
 
 /* This is probably not the right place for these globals.
@@ -191,7 +191,7 @@ extern void LogMsg(int msglevel, int debuglevel, FILE *fout, char *fmt,  ...)
     va_start(ap, fmt);
     vfprintf(fout, fmt, ap);
     fprintf(fout, "\n");
-    fflush(fout);
+/*  fflush(fout); */
     va_end(ap);
 }
 

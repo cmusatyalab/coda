@@ -28,7 +28,7 @@ listed in the file CREDITS.
 
 #ifdef __cplusplus
 extern "C" {
-#endif __cplusplus
+#endif
 
 #include <stdio.h>
 #include <sys/time.h>
@@ -38,7 +38,7 @@ extern "C" {
 
 #ifdef __cplusplus
 }
-#endif __cplusplus
+#endif
 
 /* interfaces */
 #include <callback.h>
@@ -169,7 +169,7 @@ class connent {
 #ifdef	VENUSDEBUG
     static int allocs;
     static int deallocs;
-#endif	VENUSDEBUG
+#endif /* VENUSDEBUG */
 
     int	Suicide(int);		/* 1 --> dead, 0 --> dying */
     int CheckResult(int, VolumeId, int TranslateEINCOMP = 1);
@@ -479,7 +479,7 @@ extern struct CommQueueStruct CommQueue;
 	RPCOpStats.RPCOps[viceop].good++;\
 	RPCOpStats.RPCOps[viceop].time += elapsed;\
     }
-#else	TIMING
+#else
 #define	MULTI_START_MESSAGE(viceop)\
     START_COMMSYNC();\
     LOG(10, ("(Multi)%s: start\n", RPCOpStats.RPCOps[viceop].name));
@@ -500,7 +500,7 @@ extern struct CommQueueStruct CommQueue;
     if (code < 0) RPCOpStats.RPCOps[viceop].rpc_retries++;\
     else if (code > 0) RPCOpStats.RPCOps[viceop].bad++;\
     else RPCOpStats.RPCOps[viceop].good++;
-#endif	TIMING
+#endif /* !TIMING */
 
 #define VENUS_MAXBSLEN 1024   /* For use in ARG_MARSHALL_BS */
 

@@ -43,20 +43,17 @@ Pittsburgh, PA.
 #ifndef _FILESIGNAL_H_
 #define _FILESIGNAL_H_ 1
 
-#ifndef SIGQUIT
-
 #ifdef __cplusplus
 extern "C" {
-#endif __cplusplus
+#endif
 
+#ifndef SIGQUIT
 #include <sys/signal.h>
+#endif
 
 #ifdef __cplusplus
 }
-#endif __cplusplus
-
-#endif  SIGQUIT
-
+#endif
 
 #define FILE_SHUTDOWN		SIGQUIT
 #define FILE_ZERODEBUG		SIGHUP
@@ -64,4 +61,5 @@ extern "C" {
 #define FILE_DUMPSTATUS		SIGXCPU
 #define FILE_CHECKVOLUMES	SIGXFSZ
 
-#endif _FILESIGNAL_H_
+#endif /* _FILESIGNAL_H_ */
+

@@ -86,4 +86,4 @@ struct vldbHeader {
 extern struct vldb *VLDBLookup(char *key);
 extern int VLDBPrint();
 
-#endif _VLDB_H_
+#endif /* _VLDB_H_ */

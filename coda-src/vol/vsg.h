@@ -125,7 +125,7 @@ class vsgent : public olink {
 
 extern vsgtab JoinedVSGs;
 
-#endif notdef
+#endif /* notdef */
 
 
-#endif _VOL_VSG_H_
+#endif /* _VOL_VSG_H_ */

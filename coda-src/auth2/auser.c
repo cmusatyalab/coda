@@ -44,7 +44,7 @@ Pittsburgh, PA.
 
 #ifdef __cplusplus
 extern "C" {
-#endif __cplusplus
+#endif
 
 #ifdef HAVE_CONFIG_H
 #include <config.h>
@@ -75,7 +75,7 @@ extern "C" {
 #include "auser.h"
 #ifdef __cplusplus
 }
-#endif __cplusplus
+#endif
 
 #include <codaconf.h>
 #include <coda_config.h>
@@ -325,7 +325,7 @@ int U_BindToServer(char *DefAuthHost, RPC2_Integer AuthenticationType,
 			Krb5GetSecret(AuthHost, &uName, &uNamelen,
 				&uPasswd, &uPasswdlen);
 		}
-#endif KERBEROS5
+#endif /* KERBEROS5 */
 		bound = TryBinding(AuthenticationType, uName, uNamelen, 
 				   uPasswd, uPasswdlen, AuthHost, RPCid);
 		if (bound == 0 || bound == RPC2_NOTAUTHENTICATED)

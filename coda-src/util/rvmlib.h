@@ -22,7 +22,7 @@ listed in the file CREDITS.
 
 #ifdef __cplusplus
 extern "C" {
-#endif __cplusplus
+#endif
 
 #ifdef HAVE_CONFIG_H
 #include <config.h>
@@ -43,7 +43,7 @@ extern "C" {
 
 #ifdef __cplusplus
 }
-#endif __cplusplus
+#endif
 
 
 
@@ -80,7 +80,7 @@ extern long rvm_no_yield;	 /*  exported by rvm */
 
 #ifdef __cplusplus
 extern "C" {
-#endif __cplusplus
+#endif
 
 int rvmlib_in_transaction(void);
 void rvmlib_abort(int);
@@ -101,7 +101,7 @@ void rvmlib_end_transaction(int flush_mode, rvm_return_t *statusp);
 
 #ifdef __cplusplus
 }
-#endif __cplusplus
+#endif
 
 #define CODA_STACK_LENGTH 0x20000	/* 128 K */
 #define LOGTHRESHOLD	50
@@ -148,5 +148,5 @@ do {									    \
 
 
 
-#endif	_RVMLIB_H_
+#endif /* _RVMLIB_H_ */
 

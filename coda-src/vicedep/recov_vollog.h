@@ -109,7 +109,5 @@ extern void CreateRootLog(Volume *, Vnode *);
 extern void CreateResLog(Volume *, Vnode *);
 
 // subresphase3.c
-#endif _RECOV_VOLLOG_H    
+#endif /* _RECOV_VOLLOG_H */
 
-
-    

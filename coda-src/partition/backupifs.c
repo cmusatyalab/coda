@@ -24,7 +24,7 @@ listed in the file CREDITS.
 
 #ifdef __cplusplus
 extern "C" {
-#endif __cplusplus
+#endif
 
 #include <sys/types.h>
 #include <sys/param.h>
@@ -36,7 +36,7 @@ extern "C" {
 #include <ctype.h>
 #ifdef __cplusplus
 }
-#endif __cplusplus
+#endif
 
 #include <util.h>
 #include "partition.h" /* this includes simpleifs.h */

@@ -18,7 +18,7 @@ listed in the file CREDITS.
 
 #ifdef __cplusplus
 extern "C" {
-#endif __cplusplus
+#endif
 
 #ifdef HAVE_CONFIG_H
 #include <config.h>
@@ -36,7 +36,7 @@ extern "C" {
 
 #ifdef __cplusplus
 }
-#endif __cplusplus
+#endif
 
 #include <volume.h>
 #include <srv.h>
@@ -80,7 +80,7 @@ void vrtab::add(vrent *vre) {
 #ifdef MULTICAST
     if (vre->index(ThisHostAddr) != -1) 
 	JoinedVSGs.join(vre->addr);
-#endif MULTICAST
+#endif
 }
 
 
@@ -176,7 +176,7 @@ void CheckVRDB() {
     VRDB.clear();
 #ifdef MULTICAST
     JoinedVSGs.UnMark();
-#endif MULTICAST
+#endif
 
     /* Build the new VRDB. */
     vrent vre;
@@ -189,7 +189,7 @@ void CheckVRDB() {
 
 #ifdef MULTICAST
     JoinedVSGs.GarbageCollect();
-#endif MULTICAST
+#endif
 
 }
 

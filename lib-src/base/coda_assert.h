@@ -29,7 +29,7 @@ Coda are listed in the file CREDITS.
 
 #ifdef __cplusplus
 extern "C" {
-#endif __cplusplus
+#endif
 
 extern void (*coda_assert_cleanup)(void);
 extern int coda_assert_action;
@@ -39,7 +39,7 @@ void coda_note(char *pred, char *file, int line);
 
 #ifdef __cplusplus
 }
-#endif __cplusplus
+#endif
 
 #endif  /* _CODA_ASSERT_H_ */
 

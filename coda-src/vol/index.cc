@@ -16,20 +16,11 @@ listed in the file CREDITS.
 
 #*/
 
-
-
-
-
-
-
-
 /* Operations on volume/vnode index files */
-
-
 
 #ifdef __cplusplus
 extern "C" {
-#endif __cplusplus
+#endif
 
 #ifdef HAVE_CONFIG_H
 #include <config.h>
@@ -51,7 +42,7 @@ extern "C" {
 #include <rvmlib.h>
 #ifdef __cplusplus
 }
-#endif __cplusplus
+#endif
 
 
 #include "vice.h"
@@ -82,7 +73,7 @@ vindex::vindex(VolumeId volid, int vnodetype, Device dev, int size, int volindex
     /* Make sure objsize is a power of 2 */
     for (objsize = 1; objsize < size; objsize *=2);
     CODA_ASSERT(objsize == size);
-#endif notdef
+#endif
 
     vol_id = volid;
     if (((vol_index = volindex) == -1) &&

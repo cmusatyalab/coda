@@ -64,13 +64,13 @@ class assocrefs_iterator;
 
 #ifdef __cplusplus
 extern "C" {
-#endif __cplusplus
+#endif
 
 #include <stdlib.h>
 
 #ifdef __cplusplus
 }
-#endif __cplusplus
+#endif
 
 #include "coda_assert.h"
 #include "dlist.h"
@@ -182,4 +182,4 @@ class assocrefs_iterator {
     const assoc *operator()(int * =0);
 };
 
-#endif	not _UTIL_DICT_H_
+#endif /* _UTIL_DICT_H_ */

@@ -27,7 +27,7 @@ listed in the file CREDITS.
 
 #ifdef __cplusplus
 extern "C" {
-#endif __cplusplus
+#endif
 
 #ifdef HAVE_CONFIG_H
 #include <config.h>
@@ -46,7 +46,7 @@ extern "C" {
 
 #ifdef __cplusplus
 }
-#endif __cplusplus
+#endif
 
 /* interfaces */
 #include <vcrcommon.h>
@@ -1510,7 +1510,7 @@ void fsdb::print(int fd, int SummaryOnly) {
 	    }
 	fdprint(fd, "Real Blocks: validdata %d, allocated %d, directory %d, owrite %d\n", got_blocks, normal_blocks, udir_blocks, ow_blocks);
     }
-#endif	VENUSDEBUG
+#endif /* VENUSDEBUG */
     fdprint(fd, "Cache Statistics:  [ count : blocks ]\n");
     fdprint(fd,     "                [     HIT     ]  [    MISS     ]  [    RETRY    ]  [   TIMEOUT   ]  [   NOSPACE   ]  [   FAILURE   ]  [   CREATE    ]  [    WRITE    ]  [   REMOVE    ]  [   REPLACE   ]\n");
     PrintCacheStats("Directory ATTR:", &DirAttrStats, fd);

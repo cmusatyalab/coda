@@ -36,14 +36,14 @@ listed in the file CREDITS.
 
 #ifdef __cplusplus
 extern "C" {
-#endif __cplusplus
+#endif
 
 #include <rpc2/rpc2.h>
 #include <vice.h>
 
 #ifdef __cplusplus
 }
-#endif __cplusplus
+#endif
 
 
 
@@ -162,4 +162,4 @@ typedef struct VenusStatistics {
     CommStatistics CommStats;
 } VenusStatistics;
 
-#endif	not _VENUS_STATS_H_
+#endif /* _VENUS_STATS_H_ */

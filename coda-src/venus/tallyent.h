@@ -59,4 +59,4 @@ extern void TallyPrint(vuid_t);
 extern void TallySum(int *, int *);
 
 
-#endif not _TALLYENT_H_
+#endif /* _TALLYENT_H_ */

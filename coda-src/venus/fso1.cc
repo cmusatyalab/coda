@@ -30,7 +30,7 @@ listed in the file CREDITS.
 /* It is needed to ensure that C++ makes up "anonymous types" in the same order.  It sucks! */
 #ifdef __cplusplus
 extern "C" {
-#endif __cplusplus
+#endif
 
 #ifdef HAVE_CONFIG_H
 #include <config.h>
@@ -55,7 +55,7 @@ extern "C" {
 
 #ifdef __cplusplus
 }
-#endif __cplusplus
+#endif
 
 /* interfaces */
 
@@ -256,7 +256,7 @@ fsobj::~fsobj() {
     /* Sanity check. */
     if (!GCABLE(this) || DIRTY(this))
 	{ print(logFile); CHOKE("fsobj::~fsobj: !GCABLE || DIRTY"); }
-#endif	VENUSDEBUG
+#endif /* VENUSDEBUG */
 
     LOG(10, ("fsobj::~fsobj: fid = (%s), comp = %s\n", FID_(&fid), comp));
 
@@ -1461,7 +1461,7 @@ void fsobj::EnableReplacement() {
 	return;
     }
 */
-#endif	VENUSDEBUG
+#endif /* VENUSDEBUG */
 
     /* Already replaceable? */
     if (REPLACEABLE(this))
@@ -1483,14 +1483,14 @@ void fsobj::EnableReplacement() {
 #ifdef	VENUSDEBUG
     if (LogLevel >= 10000)
 	FSDB->prioq->print(logFile);
-#endif	VENUSDEBUG
+#endif
 
     FSDB->prioq->insert(&prio_handle);
 
 #ifdef	VENUSDEBUG
     if (LogLevel >= 10000 && !(FSDB->prioq->IsOrdered()))
 	{ print(logFile); FSDB->prioq->print(logFile); CHOKE("fsobj::EnableReplacement: !IsOrdered after insert"); }
-#endif	VENUSDEBUG
+#endif
 }
 
 
@@ -1505,7 +1505,7 @@ void fsobj::DisableReplacement() {
 	return;
     }
 */
-#endif	VENUSDEBUG
+#endif
 
     /* Already not replaceable? */
     if (!REPLACEABLE(this))
@@ -1517,7 +1517,7 @@ void fsobj::DisableReplacement() {
 #ifdef	VENUSDEBUG
     if (LogLevel >= 10000)
 	FSDB->prioq->print(logFile);
-#endif	VENUSDEBUG
+#endif
 
     if (FSDB->prioq->remove(&prio_handle) != &prio_handle)
 	{ print(logFile); CHOKE("fsobj::DisableReplacement: prioq remove"); }
@@ -1525,7 +1525,7 @@ void fsobj::DisableReplacement() {
 #ifdef	VENUSDEBUG
     if (LogLevel >= 10000 && !(FSDB->prioq->IsOrdered()))
 	{ print(logFile); FSDB->prioq->print(logFile); CHOKE("fsobj::DisableReplacement: !IsOrdered after remove"); }
-#endif	VENUSDEBUG
+#endif
 }
 
 
@@ -2056,6 +2056,18 @@ int fsobj::Fakeify()
 			    GlobalFid->Unique);
 		    LOG(100, ("fsobj::Fakeify: making %s a symlink %s\n",
 			      FID_(&fid), data.symlink));
+		} else if (strcmp(comp, "localhost") == 0) {
+		    /* another special case, fake link for the cached object */
+		    LOG(0, ("fsobj::Fakeify: fake link for a cached object %s\n",
+			      FID_(&fid)));
+		    LOG(0, ("fsobj::Fakeify: parent fid for the fake link is %s\n",
+			      FID_(&pfid)));
+		    /* Write out the link contents. */
+		    data.symlink = (char *)rvmlib_rec_malloc((unsigned) stat.Length);
+		    rvmlib_set_range(data.symlink, stat.Length);
+		    sprintf(data.symlink, "@%08lx.%08lx.%08lx", vp->GetVid(), pfid.Vnode, pfid.Unique);
+		    LOG(100, ("fsobj::Fakeify: making %s a symlink %s\n",
+			      FID_(&fid), data.symlink));
 		} else {
                     VolumeId rwvolumeid;
                     struct in_addr host;
@@ -2080,8 +2092,7 @@ int fsobj::Fakeify()
 		    /* Write out the link contents. */
 		    data.symlink = (char *)rvmlib_rec_malloc((unsigned) stat.Length);
 		    rvmlib_set_range(data.symlink, stat.Length);
-		    sprintf(data.symlink, "@%08lx.%08lx.%08lx", rwvolumeid, pfid.Vnode,
-			    pfid.Unique);
+		    sprintf(data.symlink, "@%08lx.%08lx.%08lx", rwvolumeid, pfid.Vnode, pfid.Unique);
 		    LOG(1, ("fsobj::Fakeify: making %s a symlink %s\n",
 			    FID_(&fid), data.symlink));
 		}
@@ -2115,8 +2126,7 @@ int fsobj::Fakeify()
 		if (!volumehosts[i].s_addr) continue;
 		srvent *s;
 		char Name[CODA_MAXNAMLEN];
-		if ((s = FindServer(&volumehosts[i])) &&
-		    (s->name))
+		if ((s = FindServer(&volumehosts[i])) && s->name)
 		    sprintf(Name, "%s", s->name);
 		else
 		    sprintf(Name, "%08lx", volumehosts[i]);
@@ -2125,6 +2135,12 @@ int fsobj::Fakeify()
 			Name, FID_(&FakeFid)));
 		dir_Create(Name, &FakeFid);
 	    }
+#if 0
+	    { /* testing 1..2..3.. trying to show the local copy as well */
+		ViceFid FakeFid = vp->GenerateFakeFid();
+		dir_Create("localhost", &FakeFid);
+	    }
+#endif
 	}
 
     Reference();

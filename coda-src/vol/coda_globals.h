@@ -72,4 +72,4 @@ extern struct camlib_recoverable_segment *camlibRecoverableSegment;
 #define SRV_RVM(name) \
     (((struct camlib_recoverable_segment *) (camlibRecoverableSegment))->name)
 
-#endif _CODA_GLOBALS_H_
+#endif /* _CODA_GLOBALS_H_ */

@@ -47,7 +47,7 @@ initpw.c -- hack routine to initially generate the pw file used by auth2
 
 #ifdef __cplusplus
 extern "C" {
-#endif __cplusplus
+#endif
 
 #ifdef HAVE_CONFIG_H
 #include <config.h>
@@ -65,7 +65,7 @@ extern "C" {
 
 #ifdef __cplusplus
 }
-#endif __cplusplus
+#endif
 
 
 int main(int argc, char **argv);

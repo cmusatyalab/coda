@@ -472,4 +472,4 @@ int GetVolObj(VolumeId Vid, Volume **volptr,
 	      int LockLevel, int Enque, int LockerAddress);
 
 
-#endif VOLUME_INCLUDED
+#endif /* VOLUME_INCLUDED */

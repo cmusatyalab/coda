@@ -28,7 +28,7 @@ listed in the file CREDITS.
 
 #ifdef __cplusplus
 extern "C" {
-#endif __cplusplus
+#endif
 
 #ifdef HAVE_CONFIG_H
 #include <config.h>
@@ -67,7 +67,7 @@ extern void SFTP_Activate (SFTP_Initializer *initPtr);
 
 #ifdef __cplusplus
 }
-#endif __cplusplus
+#endif
 
 /* from vv */
 #include <inconsist.h>
@@ -124,7 +124,7 @@ int connent::allocs = 0;
 int connent::deallocs = 0;
 int srvent::allocs = 0;
 int srvent::deallocs = 0;
-#endif	VENUSDEBUG
+#endif /* VENUSDEBUG */
 
 
 void CommInit() {
@@ -469,14 +469,14 @@ connent::connent(struct in_addr *host, vuid_t vuid, RPC2_Handle cid, int authfla
 
 #ifdef	VENUSDEBUG
     allocs++;
-#endif	VENUSDEBUG
+#endif
 }
 
 
 connent::~connent() {
 #ifdef	VENUSDEBUG
     deallocs++;
-#endif	VENUSDEBUG
+#endif
 
     LOG(1, ("connent::~connent: host = %#08x, uid = %d, cid = %d, auth = %d\n",
 	    Host, uid, connid, authenticated));
@@ -916,7 +916,7 @@ void MultiProbe(int HowMany, RPC2_Handle *Handles)
     MULTI_START_MESSAGE(ViceGetTime_OP);
     int code = (int) MRPC_MakeMulti(ViceGetTime_OP, ViceGetTime_PTR,
 			       HowMany, Handles, (RPC2_Integer *)0, 0,
-			       (long (*)(...))&HandleProbe, 0, secs_ptrs, usecs_ptrs);
+			       (long (*)())&HandleProbe, 0, secs_ptrs, usecs_ptrs);
     MULTI_END_MESSAGE(ViceGetTime_OP);
     MarinerLog("fetch::probe done\n");
 
@@ -1086,7 +1086,7 @@ srvent::srvent(struct in_addr *Host, int isrootserver)
 
 #ifdef	VENUSDEBUG
     allocs++;
-#endif	VENUSDEBUG
+#endif
 }
 
 
@@ -1094,7 +1094,7 @@ srvent::~srvent()
 {
 #ifdef	VENUSDEBUG
     deallocs++;
-#endif	VENUSDEBUG
+#endif
 
     LOG(1, ("srvent::~srvent: host = %s, conn = %d\n", name, connid));
 

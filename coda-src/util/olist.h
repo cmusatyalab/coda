@@ -36,13 +36,13 @@ listed in the file CREDITS.
 
 #ifdef __cplusplus
 extern "C" {
-#endif __cplusplus
+#endif
 
 #include <stdio.h>
 
 #ifdef __cplusplus
 }
-#endif __cplusplus
+#endif
 
 
 class olist;
@@ -100,4 +100,4 @@ class olink {		    // objects are derived from this class
     virtual void print(int);
 };
 
-#endif	not _UTIL_LIST_H_
+#endif /* _UTIL_LIST_H_ */

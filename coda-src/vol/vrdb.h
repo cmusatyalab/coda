@@ -21,7 +21,7 @@ listed in the file CREDITS.
 
 #ifdef __cplusplus
 extern "C" {
-#endif __cplusplus
+#endif
 
 #include <stdio.h>
 
@@ -29,7 +29,7 @@ extern "C" {
 #include <vice.h>
 #ifdef __cplusplus
 }
-#endif __cplusplus
+#endif
 
 #include <ohash.h>
 #include <inconsist.h>

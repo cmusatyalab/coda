@@ -18,7 +18,7 @@ listed in the file CREDITS.
 
 #ifdef __cplusplus
 extern "C" {
-#endif __cplusplus
+#endif
 
 #include <stdlib.h>
 
@@ -28,7 +28,7 @@ extern "C" {
 
 #ifdef __cplusplus
 }
-#endif __cplusplus
+#endif
 
 const int RVM_THREAD_DATA_ROCK_TAG = 2001;	
 rvm_type_t RvmType = UNSET;     /* What kind of persistence are we relying on? */

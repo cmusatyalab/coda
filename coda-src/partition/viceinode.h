@@ -71,4 +71,4 @@ struct ViceInodeInfo {
 #define INODESPECIAL 0xffffffff	/* This vnode number will never
 					   be used legitimately */
 
-#endif _VICEINODE_H_
+#endif /* _VICEINODE_H_ */

@@ -37,7 +37,7 @@ char mgrpent::mgrp_sync;
 #ifdef VENUSDEBUG
 int mgrpent::allocs = 0;
 int mgrpent::deallocs = 0;
-#endif	VENUSDEBUG
+#endif
 
 /* ***** Mgroup  ***** */
 
@@ -169,7 +169,7 @@ mgrpent::mgrpent(vsgent *VSG, vuid_t vuid, RPC2_Handle mid, int authflag)
 
 #ifdef	VENUSDEBUG
     allocs++;
-#endif	VENUSDEBUG
+#endif
 }
 
 mgrpent::~mgrpent()
@@ -181,7 +181,7 @@ mgrpent::~mgrpent()
 
 #ifdef	VENUSDEBUG
     deallocs++;
-#endif	VENUSDEBUG
+#endif
 
     if (!list_empty(&vsghandle))
         list_del(&vsghandle);

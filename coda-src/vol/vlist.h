@@ -34,7 +34,7 @@ struct vle;
 
 #ifdef __cplusplus
 extern "C" {
-#endif __cplusplus
+#endif
 
 #include <unistd.h>
 #include <stdlib.h>
@@ -42,7 +42,7 @@ extern "C" {
 #include <codadir.h>
 #ifdef __cplusplus
 }
-#endif __cplusplus
+#endif
 #include <srv.h>
 #include <olist.h>
 #include <dlist.h>
@@ -125,4 +125,4 @@ struct vle : public dlink
 };
 
 
-#endif	not _VICE_VLIST_H_
+#endif /* _VICE_VLIST_H_ */

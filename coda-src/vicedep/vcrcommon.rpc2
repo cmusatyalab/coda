@@ -74,7 +74,7 @@ typedef RPC2_Unsigned	FileVersion;
 #define _VUID_T_
 typedef unsigned int vuid_t;
 typedef unsigned int vgid_t;
-#endif _VUID_T_
+#endif
 %}
 
 %{

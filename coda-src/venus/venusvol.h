@@ -27,7 +27,7 @@ listed in the file CREDITS.
 
 #ifdef __cplusplus
 extern "C" {
-#endif __cplusplus
+#endif
 
 #include <stdarg.h>
 #include <stdio.h>
@@ -37,7 +37,7 @@ extern "C" {
 
 #ifdef __cplusplus
 }
-#endif __cplusplus
+#endif
 
 /* interfaces */
 #include <vice.h>
@@ -968,7 +968,7 @@ class cop2ent : public dlink {
 #ifdef	VENUSDEBUG
     static int allocs;
     static int deallocs;
-#endif	VENUSDEBUG
+#endif /* VENUSDEBUG */
 
     void print();
     void print(FILE *);
@@ -997,7 +997,7 @@ class resent : public olink {
 #ifdef	VENUSDEBUG
     static int allocs;
     static int deallocs;
-#endif	VENUSDEBUG
+#endif /* VENUSDEBUG */
 
     void print();
     void print(FILE *);
@@ -1069,4 +1069,4 @@ extern int PathAltered(ViceFid *, char *, ClientModifyLog *, cmlent *);
 #define FAKEROOTFID(fid) ((fid).Vnode == 0xffffffff)/* && ((fid).Unique == 0x80000)) */
 
 
-#endif	not _VENUS_VOLUME_H_
+#endif /* _VENUS_VOLUME_H_ */

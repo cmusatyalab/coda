@@ -34,7 +34,7 @@ listed in the file CREDITS.
 
 #ifdef __cplusplus
 extern "C" {
-#endif __cplusplus
+#endif
 
 #include <sys/types.h>
 
@@ -43,7 +43,7 @@ int unquote(char *dest, char *src, size_t n);
 
 #ifdef __cplusplus
 }
-#endif __cplusplus
+#endif
 
 
 #endif /* _URLQUOTE_H_ */

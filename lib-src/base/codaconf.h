@@ -21,7 +21,7 @@ Coda are listed in the file CREDITS.
 
 #ifdef __cplusplus
 extern "C" {
-#endif __cplusplus
+#endif
 
 /* conf_init reads (or merges) the name=value tuples from the conffile. If a
  * name is seen multiple times, only the last value is remembered. Empty lines
@@ -48,7 +48,7 @@ void conf_free(void);
 
 #ifdef __cplusplus
 }
-#endif __cplusplus
+#endif
 
 #endif /* _CODACONF_H_ */
 

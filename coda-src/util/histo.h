@@ -65,4 +65,4 @@ extern void UpdateHisto (struct hgram *, double);
 extern void MUpdateHisto (struct hgram *, double, int);
 extern int PrintHisto (FILE *, struct hgram *);
 extern int PlotHisto (FILE *, struct hgram *, char *, char *, char *, char*);
-#endif _HISTO_
+#endif /* _HISTO_ */

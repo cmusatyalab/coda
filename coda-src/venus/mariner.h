@@ -32,13 +32,13 @@ class mariner_iterator;
 
 #ifdef __cplusplus
 extern "C" {
-#endif __cplusplus
+#endif
 
 #include <stdio.h>
 
 #ifdef __cplusplus
 }
-#endif __cplusplus
+#endif
 
 
 #include "vproc.h"
@@ -103,4 +103,4 @@ class mariner_iterator : public vproc_iterator {
     mariner *operator()();
 };
 
-#endif	not _VENUS_MARINER_H_
+#endif /* _VENUS_MARINER_H_ */

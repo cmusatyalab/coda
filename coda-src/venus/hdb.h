@@ -25,7 +25,7 @@ listed in the file CREDITS.
 
 #ifdef __cplusplus
 extern "C" {
-#endif __cplusplus
+#endif
 
 #include <stdio.h>
 #include <sys/param.h>
@@ -33,7 +33,7 @@ extern "C" {
 
 #ifdef __cplusplus
 }
-#endif __cplusplus
+#endif
 
 /* interfaces */
 #include <vice.h>
@@ -395,7 +395,7 @@ class namectxt {
     /* Too many problems in trying to keep these variables static member of class namectxt */
     extern int NameCtxt_allocs;
     extern int NameCtxt_deallocs;
-#endif	VENUSDEBUG
+#endif /* VENUSDEBUG */
 
 
 
@@ -434,6 +434,6 @@ extern long HDBD_GetNextHoardWalkTime();
      (state) == PeInconsistent ? "Inconsistent" :\
      "???")
 
-#endif	VENUS
+#endif /* VENUS */
 
-#endif	not _VENUS_HDB_H_
+#endif /* _VENUS_HDB_H_ */

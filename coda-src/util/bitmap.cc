@@ -320,4 +320,4 @@ ostream &operator<<(ostream& s, bitmap *b) {
     s << '\n';
     return(s);
 }
-#endif notdef
+#endif

@@ -46,4 +46,4 @@ struct VolHead {
     struct VolumeData	data;
 };
 
-#endif _CAMPRIVATE_H_
+#endif /* _CAMPRIVATE_H_ */

@@ -91,7 +91,7 @@ class mgrpent : private RefCountedObject {
 #ifdef	VENUSDEBUG
     static int allocs;
     static int deallocs;
-#endif	VENUSDEBUG
+#endif /* VENUSDEBUG */
 
     /* Constructors, destructors, and private utility routines. */
     mgrpent(vsgent *, vuid_t, RPC2_Handle, int);

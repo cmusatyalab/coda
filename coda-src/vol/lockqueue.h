@@ -32,7 +32,7 @@ listed in the file CREDITS.
 
 #ifdef __cplusplus
 extern "C" {
-#endif __cplusplus
+#endif
 
 #include <stdio.h>
 #include <lwp/lock.h>
@@ -40,7 +40,7 @@ extern "C" {
 
 #ifdef __cplusplus
 }
-#endif __cplusplus
+#endif
 
 #include <vice.h>
 #include <dlist.h>
@@ -106,4 +106,4 @@ class lqent : public dlink{
 extern lqman *LockQueueMan;
 extern void InitLockVolQue();
 extern void InitLockQueue();
-#endif not _VOL_LOCKQUEUE_H_
+#endif /* _VOL_LOCKQUEUE_H_ */

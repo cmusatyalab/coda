@@ -51,4 +51,4 @@ class vmindex_iterator {
     ~vmindex_iterator();
     long operator()();	/* return next index */
 };
-#endif _VMINDEX_H
+#endif /* _VMINDEX_H */

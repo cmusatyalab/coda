@@ -21,7 +21,7 @@ listed in the file CREDITS.
 
 #ifdef __cplusplus
 extern "C" {
-#endif __cplusplus
+#endif
 
 #include <unistd.h>
 #include <errno.h>
@@ -35,7 +35,7 @@ extern "C" {
 
 #ifdef __cplusplus
 }
-#endif __cplusplus
+#endif
 
 int myflock(int fd, int type, int block) {
 #ifdef HAVE_FCNTL_LOCKING

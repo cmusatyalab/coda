@@ -57,5 +57,6 @@ extern void SetupVolCache();
 extern VolumeId VAllocateVolumeId(Error *ec);
 extern VolumeId VGetMaxVolumeId();
 extern void VSetMaxVolumeId(VolumeId newid);
-#endif _RECOV_H_
+
+#endif /* _RECOV_H_ */
 

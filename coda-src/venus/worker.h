@@ -34,13 +34,13 @@ listed in the file CREDITS.
 
 #ifdef __cplusplus
 extern "C" {
-#endif __cplusplus
+#endif
 
 #include <sys/types.h>
 
 #ifdef __cplusplus
 }
-#endif __cplusplus
+#endif
 
 /* interfaces */
 #include <vice.h>
@@ -87,7 +87,7 @@ class msgent : public olink {
 #ifdef	VENUSDEBUG
     static int allocs;
     static int deallocs;
-#endif	VENUSDEBUG
+#endif /* VENUSDEBUG */
 };
 
 class msg_iterator : public olist_iterator {
@@ -173,5 +173,5 @@ extern void PrintWorkers();
 extern void PrintWorkers(FILE *);
 extern void PrintWorkers(int);
 
+#endif /* _VENUS_WORKER_H_ */
 
-#endif	not _VENUS_WORKER_H_

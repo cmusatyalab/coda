@@ -40,7 +40,7 @@ struct dllist_head {
 
 #ifdef __cplusplus
 extern "C" {
-#endif __cplusplus
+#endif
 
 int list_empty(struct dllist_head *head);
 void list_del(struct dllist_head *entry);
@@ -49,7 +49,7 @@ void list_head_init(struct dllist_head *ptr);
 
 #ifdef __cplusplus
 }
-#endif __cplusplus
+#endif
 
 #endif /* _DLLIST_H_ */
 

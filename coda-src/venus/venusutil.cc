@@ -26,7 +26,7 @@ listed in the file CREDITS.
 
 #ifdef __cplusplus
 extern "C" {
-#endif __cplusplus
+#endif
 
 #ifdef HAVE_CONFIG_H
 #include <config.h>
@@ -52,7 +52,7 @@ extern "C" {
 
 #ifdef __cplusplus
 }
-#endif __cplusplus
+#endif
 
 /* from util */
 #include <util.h>
@@ -712,7 +712,7 @@ void MallocPrint(int fd)
 	     (cop2ent::allocs - cop2ent::deallocs) * sizeof(cop2ent));
     fdprint(fd, "msgent: %d, %d, %d\n", msgent::allocs, msgent::deallocs,
 	     (msgent::allocs - msgent::deallocs) * sizeof(msgent));
-#endif	VENUSDEBUG
+#endif /* VENUSDEBUG */
 }
 
 

@@ -24,7 +24,7 @@ listed in the file CREDITS.
 #ifdef VENUSDEBUG
 int binding::allocs = 0;
 int binding::deallocs = 0;
-#endif VENUSDEBUG
+#endif /* VENUSDEBUG */
 
 binding::binding() {
 
@@ -34,13 +34,13 @@ binding::binding() {
 
 #ifdef	VENUSDEBUG
     allocs++;
-#endif	VENUSDEBUG
+#endif
 }
 
 binding::~binding() {
 #ifdef	VENUSDEBUG
     deallocs++;
-#endif	VENUSDEBUG
+#endif
     if (referenceCount != 0)
       LOG(0, ("binding::~binding:  somebody forgot to decrement before delete\n"));
 

@@ -31,7 +31,7 @@ listed in the file CREDITS.
 
 #ifdef __cplusplus
 extern "C" {
-#endif __cplusplus
+#endif
 
 #include <stdio.h>
 #include <rpc2/rpc2.h>
@@ -39,7 +39,7 @@ extern "C" {
 
 #ifdef __cplusplus
 }
-#endif __cplusplus
+#endif
 
 /* from venus */
 #include "venus.private.h"
@@ -150,22 +150,22 @@ extern int MAXTS;
 
 /*  *****  Functions  *****  */
 
-extern void Recov_BeginTrans();
-extern void Recov_EndTrans(int);
-extern void Recov_SetBound(int);
-extern void RecovInit();
-extern void RecovFlush(int =0);		/* XXX - parameter is now redundant! */
-extern void RecovTruncate(int =0);	/* XXX - parameter is now redundant! */
-extern void RecovTerminate();
-extern void RecovPrint(int);
-extern RPC2_String Copy_RPC2_String(RPC2_String&);
-extern void Free_RPC2_String(RPC2_String&);
-extern void RECOVD_Init(void);
-extern void RecovDaemon(void);
+void Recov_BeginTrans();
+void Recov_EndTrans(int);
+void Recov_SetBound(int);
+void RecovInit();
+void RecovFlush(int =0);		/* XXX - parameter is now redundant! */
+void RecovTruncate(int =0);	/* XXX - parameter is now redundant! */
+void RecovTerminate();
+void RecovPrint(int);
+RPC2_String Copy_RPC2_String(RPC2_String&);
+void Free_RPC2_String(RPC2_String&);
+void RECOVD_Init(void);
+void RecovDaemon(void);
 
 #define	VALID_REC_PTR(rec_ptr)\
     ((char *)(rec_ptr) >= rvg->recov_HeapAddr &&\
      (char *)(rec_ptr) < rvg->recov_HeapAddr + rvg->recov_HeapLength)
 
 
-#endif	_VENUS_RECOV_H_
+#endif /* _VENUS_RECOV_H_ */

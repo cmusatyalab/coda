@@ -45,4 +45,4 @@ class recvarl {
     void *end();		/* return pointer past end of block */
     void destroy();
 };
-#endif _REC_VARL_H
+#endif /* _REC_VARL_H */

@@ -16,13 +16,6 @@ listed in the file CREDITS.
 
 #*/
 
-
-
-
-
-
-
-
 /*
  *
  * Implementation of the Volume name hash abstraction.
@@ -31,15 +24,16 @@ listed in the file CREDITS.
 
 #ifdef __cplusplus
 extern "C" {
-#endif __cplusplus
+#endif
 
 #include <stdio.h>
 #include <unistd.h>
 #include <stdlib.h>
+#include <string.h>
 
 #ifdef __cplusplus
 }
-#endif __cplusplus
+#endif
 
 #include <inconsist.h>
 #include <util.h>

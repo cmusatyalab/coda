@@ -37,13 +37,13 @@ listed in the file CREDITS.
 
 #ifdef __cplusplus
 extern "C" {
-#endif __cplusplus
+#endif
 
 #include <stdio.h>
 
 #ifdef __cplusplus
 }
-#endif __cplusplus
+#endif
 
 #include "olist.h"
 
@@ -90,4 +90,4 @@ class ohashtab_iterator {
     olink *operator()();	    // return next object or 0
 };
 
-#endif	not _UTIL_HTAB_H_
+#endif /* _UTIL_HTAB_H_ */

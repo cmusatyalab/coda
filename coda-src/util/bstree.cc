@@ -16,13 +16,6 @@ listed in the file CREDITS.
 
 #*/
 
-
-
-
-
-
-
-
 /*
  *
  *    Implementation of binary search tree, based on example in "Data Structures and Algorithms" by AHU.
@@ -32,15 +25,16 @@ listed in the file CREDITS.
 
 #ifdef __cplusplus
 extern "C" {
-#endif __cplusplus
+#endif
 
 #include <stdio.h>
 #include <unistd.h>
 #include <stdlib.h>
+#include <string.h>
 
 #ifdef __cplusplus
 }
-#endif __cplusplus
+#endif
 
 #include "bstree.h"
 

@@ -52,4 +52,4 @@ extern int ListCodaInodes(char *devname, char *mountedOn, char *resultFile, int 
 extern int HashString(register char *s, unsigned int size);
 extern void CloneVolume(Error *error, Volume *original, Volume *newv, Volume *old);
 
-#endif _VUTIL_H_
+#endif /* _VUTIL_H_ */

@@ -16,13 +16,6 @@ listed in the file CREDITS.
 
 #*/
 
-
-
-
-
-
-
-
 /*
  *
  * dlist.c -- Implementation of dlist type.
@@ -32,15 +25,16 @@ listed in the file CREDITS.
 
 #ifdef __cplusplus
 extern "C" {
-#endif __cplusplus
+#endif
 
 #include <stdio.h>
 #include <unistd.h>
 #include <stdlib.h>
+#include <string.h>
 
 #ifdef __cplusplus
 }
-#endif __cplusplus
+#endif
 
 
 #include "coda_assert.h"

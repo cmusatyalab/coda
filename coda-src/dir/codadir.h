@@ -213,4 +213,4 @@ void DC_Rehash(PDCEntry);
 void DC_HashInit();
 
 
-#endif _DIR_H_
+#endif /* _DIR_H_ */

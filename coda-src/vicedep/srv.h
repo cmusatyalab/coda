@@ -43,7 +43,7 @@ Pittsburgh, PA.
 
 #ifdef __cplusplus
 extern "C" {
-#endif __cplusplus
+#endif
 
 #include <sys/file.h>
 #include <stdio.h>
@@ -55,7 +55,7 @@ extern "C" {
 #include <rpc2/errors.h>
 #ifdef __cplusplus
 }
-#endif __cplusplus
+#endif
 
 #include <prs.h>
 #include <voltypes.h>
@@ -288,11 +288,11 @@ extern int pollandyield;
 extern int probingon;
 extern char *CodaSrvIp;
 
-#ifdef	PERFORMANCE
+#ifdef PERFORMANCE
 thread_t *lwpth;
 thread_array_t thread_list;
 int thread_count;
-#endif	PERFORMANCE
+#endif
 
 extern void Die(char *);
 
@@ -348,5 +348,5 @@ extern long FS_ViceTossWBPermit(RPC2_Handle cid, VolumeId Vid, ViceFid *fid);
 extern int CheckWriteBack(ViceFid * Fid,ClientEntry * client);
 extern WBConnEntry * findIdleWBConn(HostTable * VenusId);
 
-#endif	not _VICE_SRV_H_
+#endif /* _VICE_SRV_H_ */
  

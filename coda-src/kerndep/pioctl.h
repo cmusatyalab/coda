@@ -99,4 +99,4 @@ int pioctl(const char *path, unsigned long com, struct
 #define _VALIDVICEIOCTL(com) (com >= _VICEIOCTL(0) && com <= _VICEIOCTL(255))
 
 
-#endif	_PIOCTL_H_
+#endif /* _PIOCTL_H_ */

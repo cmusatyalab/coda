@@ -28,7 +28,7 @@ listed in the file CREDITS.
 
 #ifdef __cplusplus
 extern "C" {
-#endif __cplusplus
+#endif
 
 #ifdef HAVE_CONFIG_H
 #include <config.h>
@@ -59,7 +59,7 @@ extern "C" {
 
 #ifdef __cplusplus
 }
-#endif __cplusplus
+#endif
 
 
 /* from util */
@@ -144,7 +144,7 @@ struct uarea {
 #ifdef	TIMING
     struct timeval u_tv1;	/* for recording elapsed time */
     struct timeval u_tv2;	/*  "	" */
-#endif	TIMING
+#endif /* TIMING */
     char *u_resblk;		/* block to wait on for resolves */
     int	u_rescnt;		/* safeguard against infinite retry loops */
     int	u_retrycnt;		/* safeguard against infinite retry loops */

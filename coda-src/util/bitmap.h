@@ -68,4 +68,4 @@ class bitmap {
     void print(FILE *);
     void print(int);
 };
-#endif _BITMAP_H_
+#endif /* _BITMAP_H_ */

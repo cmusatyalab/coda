@@ -26,7 +26,7 @@ listed in the file CREDITS.
 
 #ifdef __cplusplus
 extern "C" {
-#endif __cplusplus
+#endif
 
 #ifdef HAVE_CONFIG_H
 #include <config.h>
@@ -59,7 +59,7 @@ void rpc2_InitRandom();
 
 #ifdef __cplusplus
 }
-#endif __cplusplus
+#endif
 
 #include "fso.h"
 #include "hdb.h"
@@ -661,7 +661,8 @@ void RecovPrint(int fd) {
 
 /*  *****  RVM String Routines  *****  */
 
-RPC2_String Copy_RPC2_String(RPC2_String& src) {
+RPC2_String Copy_RPC2_String(RPC2_String& src)
+{
     int len = (int) strlen((char *)src) + 1;
 
     RPC2_String tgt = (RPC2_String)rvmlib_rec_malloc(len);

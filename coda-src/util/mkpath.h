@@ -3,10 +3,10 @@
 
 #ifdef __cplusplus
 extern "C" {
-#endif __cplusplus
+#endif
 
 int mkpath (const char *name, mode_t mode);
 
 #ifdef __cplusplus
 }
-#endif __cplusplus
+#endif

@@ -20,7 +20,7 @@ listed in the file CREDITS.
 
 #ifdef __cplusplus
 extern "C" {
-#endif __cplusplus
+#endif
 
 extern int myflock(int fd, int type, int block);
 
@@ -40,6 +40,6 @@ extern int myflock(int fd, int type, int block);
 
 #ifdef __cplusplus
 }
-#endif __cplusplus
+#endif
 
 #endif

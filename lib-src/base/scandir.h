@@ -20,7 +20,7 @@ listed in the file CREDITS.
 
 #ifdef __cplusplus
 extern "C" {
-#endif __cplusplus
+#endif
 
 #include <dirent.h>
 #ifndef HAVE_SCANDIR
@@ -29,6 +29,6 @@ extern int scandir (const char *dir, struct dirent ***namelist, int (*select)(st
 
 #ifdef __cplusplus
 }
-#endif __cplusplus
-
 #endif
+
+#endif /* SCANDIR_H */

@@ -29,7 +29,7 @@ listed in the file CREDITS.
 
 #ifdef __cplusplus
 extern "C" {
-#endif __cplusplus
+#endif
 
 #include <stdio.h>
 #include <fcntl.h>
@@ -53,7 +53,7 @@ extern void rpc2_PrintSEDesc(SE_Descriptor *, FILE *);
 
 #ifdef __cplusplus
 }
-#endif __cplusplus
+#endif
 
 /* from venus */
 #include "comm.h"

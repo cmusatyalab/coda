@@ -16,15 +16,9 @@ listed in the file CREDITS.
 
 #*/
 
-
-
-
-
-
-
 #ifdef __cplusplus
 extern "C" {
-#endif __cplusplus
+#endif
 
 #ifdef HAVE_CONFIG_H
 #include <config.h>
@@ -41,7 +35,7 @@ extern "C" {
 #include <parser.h>
 #ifdef __cplusplus
 }
-#endif __cplusplus
+#endif
 
 #include <vice.h>
 #include <inconsist.h>
@@ -159,7 +153,7 @@ int Renamed (int nreplicas, resreplica *dirs, resdir_entry **deGroup, int nDirEn
 		break;
 	    }
 	}
-#endif notdef
+#endif /* notdef */
     }
     int renamed = 0;
     ViceFid tmpfid;

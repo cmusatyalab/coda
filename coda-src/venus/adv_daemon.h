@@ -30,7 +30,7 @@ listed in the file CREDITS.
 
 #ifdef __cplusplus
 extern "C" {
-#endif __cplusplus
+#endif
 #include <netinet/in.h>
 #include <netdb.h>
 #include <rpc2/rpc2.h>
@@ -39,7 +39,7 @@ extern "C" {
 #include <struct.h>
 #ifdef __cplusplus
 }
-#endif __cplusplus
+#endif
 
 #define CAESUCCESS RPC2_SUCCESS /* All other CAE return codes are defined in ../rpc2/errordb.txt */
 #define MAXTASKS 88

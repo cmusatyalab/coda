@@ -50,13 +50,13 @@ Pittsburgh, PA.
 
 #ifdef __cplusplus
 extern "C" {
-#endif __cplusplus
+#endif
 
 #include <pioctl.h> /* new identity of sys/viceioctl.h */
 
 #ifdef __cplusplus
 }
-#endif __cplusplus
+#endif
 
 
 /* Definitions of Venus-specific ioctls  */
@@ -207,5 +207,5 @@ extern "C" {
 
 #define VIOC_UNLOADKERNEL       _VICEIOCTL(CFS_IOCTL_BASE + 53) /* Unload kernel module, only Win9x so far */
 
-#endif	not _VENUS_IOCTL_H_
+#endif /* _VENUS_IOCTL_H_ */
 

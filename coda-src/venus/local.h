@@ -365,4 +365,4 @@ public:
 }
 
 
-#endif _LOCAL_H_
+#endif /* _LOCAL_H_ */

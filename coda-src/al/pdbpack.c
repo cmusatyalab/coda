@@ -97,15 +97,15 @@ void pdb_unpack(PDB_profile *r, void *data, size_t size)
 	/* Unpack the id and name */
 	r->id = ntohl(tmp[0]);
 	off = 1;
-	len = ntohl(tmp[off++]);
+	len = ntohl(tmp[off]); off++;
 	r->name = malloc(len+1);
 	memcpy(r->name, (char *)&tmp[off], len);
 	r->name[len] = '\0';
 	off += len;
 
 	/* Unpack the owner id and name */
-	r->owner_id = ntohl(tmp[off++]);
-	len = ntohl(tmp[off++]);
+	r->owner_id = ntohl(tmp[off]); off++;
+	len = ntohl(tmp[off]); off++;
 	r->owner_name = malloc(len+1);
 	memcpy(r->owner_name, (char *)&tmp[off], ntohl(tmp[off-1]));
 	r->owner_name[len] = '\0';

@@ -55,7 +55,7 @@ fi
 if [ ${serverconf} = 1 ] ; then
   codasrv $* $XFLAGS
 else
-  codasrv $* $XFLAGS -trunc 5 `grep '^\-rvm ' ${vicedir}/srv.conf`
+  codasrv $* $XFLAGS `grep '^\-rvm ' ${vicedir}/srv.conf`
 fi
 
 rm -f ${vicedir}/srv/pid

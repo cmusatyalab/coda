@@ -69,4 +69,4 @@ Pittsburgh, PA.
 #define CONNECT_FS	1
 #define DONT_CONNECT_FS	0
 
-#endif _VOLDEFS_H_
+#endif /* _VOLDEFS_H_ */

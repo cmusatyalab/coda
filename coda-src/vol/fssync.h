@@ -70,4 +70,4 @@ extern void FSYNC_clientFinis();
 extern int FSYNC_askfs(VolumeId volume, int com, int reason);
 extern unsigned int FSYNC_CheckRelocationSite(VolumeId volumeId);
 
-#endif _FSSYNC_H_
+#endif /* _FSSYNC_H_ */

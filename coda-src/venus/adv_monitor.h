@@ -29,7 +29,7 @@ listed in the file CREDITS.
 
 #ifdef __cplusplus
 extern "C" {
-#endif __cplusplus
+#endif
 #include <netdb.h>
 #include <netinet/in.h>
 #include <rpc2/rpc2.h>
@@ -37,7 +37,7 @@ extern "C" {
 #include <unistd.h>
 #ifdef __cplusplus
 }
-#endif __cplusplus
+#endif
 
 #define MAXEVENTLEN 64
 #define FALSE 0

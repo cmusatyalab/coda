@@ -31,4 +31,4 @@ void htonsid(ViceStoreId *, ViceStoreId *);
 void ntohvv(ViceVersionVector *, ViceVersionVector *);
 void htonvv(ViceVersionVector *, ViceVersionVector *);
  
-#endif  _NETTOHOST_H_ 
+#endif /* _NETTOHOST_H_ */

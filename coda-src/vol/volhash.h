@@ -27,7 +27,7 @@ listed in the file CREDITS.
 
 #ifdef __cplusplus
 extern "C" {
-#endif __cplusplus
+#endif
 
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -37,7 +37,7 @@ extern "C" {
 
 #ifdef __cplusplus
 }
-#endif __cplusplus
+#endif
 
 #include <ohash.h>
 #include <olist.h>
@@ -90,4 +90,4 @@ extern int HashInsert(VolumeId, int);
 extern int HashLookup(VolumeId);
 extern int HashDelete(VolumeId);
 
-#endif _VOLHASH_H
+#endif /* _VOLHASH_H */

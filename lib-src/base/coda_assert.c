@@ -18,6 +18,7 @@ Coda are listed in the file CREDITS.
 
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <unistd.h>
 #include "coda_assert.h"
 

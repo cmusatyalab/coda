@@ -36,13 +36,13 @@ listed in the file CREDITS.
 
 #ifdef __cplusplus
 extern "C" {
-#endif __cplusplus
+#endif
 
 #include <stdio.h>
 
 #ifdef __cplusplus
 }
-#endif __cplusplus
+#endif
 
 
 
@@ -200,4 +200,4 @@ class dlink {		    // objects are derived from this class
     virtual void print(int);
 };
 
-#endif	not _UTIL_DLIST_H_
+#endif /* _UTIL_DLIST_H_ */
