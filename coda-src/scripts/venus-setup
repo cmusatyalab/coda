@@ -68,6 +68,7 @@ fi
 # tell the kernel about the new module 
 if [ X`uname` = XLinux ]; then 
    if ! grep coda /etc/conf.modules > /dev/null; then
+	echo >> /etc/conf.modules
 	echo 'alias char-major-67 coda' >> /etc/conf.modules
    fi
    /sbin/depmod -a
