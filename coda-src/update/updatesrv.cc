@@ -355,6 +355,9 @@ static long Update_GetKeys(RPC2_Integer *authtype, RPC2_CountedBS *cident,
 {
     unsigned int i;
 
+    /* Block unauthenticated connections */
+    if (!cident) return -1;
+
     if (GetSecret(vice_sharedfile("db/update.tk"), sharedsecret) == -1)
 	return -1;
 
@@ -398,15 +401,17 @@ static void ServerLWP(int *Ident)
 		== RPC2_SUCCESS) {
 
 	    RPC2_GetPeerInfo(mycid, &peer);
+	    if (peer.SecurityLevel == RPC2_OPENKIMONO) {
+                LogMsg(0, SrvDebugLevel, stdout,
+                       "Receiving unauthenticated request %d, "
+                       "update rpc2 library!", myrequest->Header.Opcode);
+                RPC2_Unbind(mycid);
+                continue;
+            }
 
-	    if (peer.SecurityLevel != RPC2_OPENKIMONO)
-	    {
-		LogMsg(1, SrvDebugLevel, stdout,"Worker %d received request %d",
-		       lwpid, myrequest->Header.Opcode);
-		rc = update_ExecuteRequest(mycid, myrequest, 0);
-	    }
-	    else
-		rc = RPC2_NOTAUTHENTICATED;
+            LogMsg(1, SrvDebugLevel, stdout,"Worker %d received request %d",
+                   lwpid, myrequest->Header.Opcode);
+            rc = update_ExecuteRequest(mycid, myrequest, 0);
 
 	    if (rc)
 	    {

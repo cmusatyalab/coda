@@ -154,8 +154,13 @@ long GetKeysFromToken(IN RPC2_Integer AuthenticationType,
 		      OUT RPC2_EncryptionKey sKey)
 {
     SecretToken st;
-    register int i;
+    int i;
     struct timeval t;
+
+    if (!cIdent) {
+        /* unauthenticated (RPC2_OPENKIMONO) connections are allowed */
+        return(0);
+    }
 
     if (cIdent->SeqLen != sizeof(SecretToken)) {
 	LogMsg(-1, 0, stdout, "Invalid length token in GetKeysFromToken");
@@ -187,11 +192,11 @@ GotIt:
 		st.EndTimestamp,t.tv_sec,st.ViceId);
 	return(-1);
     }
-    memmove((void *)hKey, (const void *)st.HandShakeKey, sizeof(RPC2_EncryptionKey));
+    memmove(hKey, st.HandShakeKey, sizeof(RPC2_EncryptionKey));
     for (i = 0; i < sizeof(RPC2_EncryptionKey); i++)
 	sKey[i] = rpc2_NextRandom(NULL) & 0xff; 	/* new session key */
-    memmove((void *)cIdent->SeqBody, (const void *)&st, sizeof(SecretToken));   /* to be passed back
-						as new connection packet */
+    memmove(cIdent->SeqBody, &st, sizeof(SecretToken));
+    /* to be passed back as new connection packet */
     return(0);
 }
 

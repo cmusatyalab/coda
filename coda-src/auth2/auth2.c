@@ -207,6 +207,19 @@ int main(int argc, char **argv)
 	    if(AuthTime != buff.st_mtime)
 		InitAl();
 	}
+
+        { /* drop unauthenticated requests on the floor */
+            RPC2_PeerInfo peer;
+            RPC2_GetPeerInfo(cid, &peer);
+            if (peer.SecurityLevel == RPC2_OPENKIMONO) {
+                LogMsg(0, SrvDebugLevel, stdout,
+                       "Receiving unauthenticated request %d, "
+                       "update rpc2 library!", reqbuffer->Header.Opcode);
+                RPC2_Unbind(cid);
+                continue;
+            }
+        }
+
 	if ((rc = auth2_ExecuteRequest(cid, reqbuffer, (SE_Descriptor *)0)) 
 	    < RPC2_WLIMIT)
 		HandleRPCError(rc, cid);
@@ -442,6 +455,9 @@ static void CheckTokenKey()
 long GetKeys(RPC2_Integer *AuthenticationType, RPC2_CountedBS *cIdent, RPC2_EncryptionKey hKey, RPC2_EncryptionKey sKey)
 {
 	int returnval, vid;
+
+        /* reject OPENKIMONO bindings */
+        if (!cIdent) return -1;
 
 	switch (*AuthenticationType)
 	{

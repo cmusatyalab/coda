@@ -416,52 +416,23 @@ static int SetHost(int write, int index, char *AuthHost)
 
 static void GetAuthServers(void)
 {
-    int		fd;
-    int		len;
-    char	* end;
-    char	* area = NULL;
-    char	* host = NULL;
-    char	* endHost = NULL;
-    char	* start;
-    struct	stat	buff;
+    char *host = NULL, *endHost, *start, *end;
+    unsigned int len;
 
     memset(pName, 0, sizeof(pName));
     memset((char *)lHosts, 0, sizeof(lHosts));
     numHosts = 0; 
 
-    fd = open(VSTAB, O_RDONLY | O_BINARY, 0); 
-    if ( fd >= 0  && fstat(fd, &buff) != -1 ) {
-	area = (char *) malloc(buff.st_size+1);
-	if(!area) {
-	    perror("No memory!");
-	    close(fd);
-	    return;
-	}
-
-	len = read(fd, area, buff.st_size);
-	if ( len == buff.st_size ) {
-	    area[buff.st_size] = '\0'; 
-	    strncpy(pName,area,index(area,':')-area);
-	    host = index(area,':') + 1;
-	    host = index(host,':') + 1;
-	    endHost = index(host,':');
-	}
-	free(area);
-	close(fd);
-    }
+    conf_init(SYSCONFDIR "/venus.conf");
+    CONF_STR(host, "authservers", NULL);
+    CONF_STR(host, "rootservers", NULL);
 
     if (!host) {
-	conf_init(SYSCONFDIR "/venus.conf");
-	CONF_STR(host, "authservers", NULL);
-	CONF_STR(host, "rootservers", NULL);
-
-	if (host) endHost = &host[strlen(host)+1];
-	else {
-	    fprintf(stderr,
-"Failed to find either root- or authservers in vstab and venus.conf files\n");
-	    return;
-	}
+        fprintf(stderr, "Failed to find root- or authservers in venus.conf\n");
+        return;
     }
+
+    endHost = &host[strlen(host)+1];
 
     for(start = host; start < endHost;) {
 	end = index(start,',');

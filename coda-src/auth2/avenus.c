@@ -46,8 +46,6 @@ Pittsburgh, PA.
 #define VIRTUE 1
 #define VICE 1
 
-#define VSTAB "/usr/coda/etc/vstab"
-
 #ifdef __cplusplus
 extern "C" {
 #endif __cplusplus
@@ -184,36 +182,7 @@ int U_DeleteLocalTokens()
 
 static void GetPathName()
 {
-    int		fd;
-    int		len;
-    char	* area;
-    struct	stat	buff;
-    int		plen;
-
-#if defined(DJGPP) || defined(__CYGWIN32__) /* hack for now until better solution for all pioctl using programs */
-    pName = "/coda";
-    return;
-#endif
-    
-    if((fd = open(VSTAB,O_RDONLY | O_BINARY,0)) >= 0) {
-	if(!(fstat(fd, &buff))) {
-	    area = (char *)malloc(buff.st_size);
-	    if(area) {
-		len = read(fd, area, buff.st_size);
-		if(len == buff.st_size) {
-		    plen = index(area, ':') - area;
-		    pName = malloc(plen+1);
-		    strncpy(pName,area,plen);
-		    pName[plen] = 0;
-		}
-		free(area);
-	    }
-	}
-	close(fd);
-    }
-
-    if (!pName) {
-	conf_init(SYSCONFDIR "/venus.conf");
-	CONF_STR(pName, "mountpoint", DFLT_MNT);
-    }
+    conf_init(SYSCONFDIR "/venus.conf");
+    CONF_STR(pName, "mountpoint", DFLT_MNT);
 }
+
