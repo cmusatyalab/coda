@@ -261,7 +261,7 @@ sbin/vice-setup-scm
 sbin/vice-setup-srvdir
 sbin/vice-setup-user
 sbin/volutil
-etc/rc.vice
+etc/rc.d/rc.vice
 EOF
     fi
 }
