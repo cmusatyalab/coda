@@ -618,7 +618,7 @@ long FS_ViceGetTime(RPC2_Handle RPCid, RPC2_Unsigned *seconds,
 	    /* we don't need the lock here anymore, because MakeCallBackConn
 	     * does it's own locking */
 
-	    if (!client->VenusId->id) {
+	    if (!client->VenusId->id && !client->DoUnbind) {
 		SLog(0, "GetTime: Building callback conn to %s:%d.",
 		     inet_ntoa(client->VenusId->host),
 		     ntohs(client->VenusId->port));

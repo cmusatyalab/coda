@@ -410,6 +410,18 @@ static void client_RemoveClients(HostTable *ht)
 	    break;
 	}
     }
+
+    /* destroy old writeback connections */
+    while(!list_empty(&ht->WBconns))
+    {
+	    WBConnEntry *WBconn = 
+		list_entry(ht->WBconns.next, WBConnEntry, others);
+
+	    /* destroy this dead conn */
+	    list_del(&WBconn->others);
+	    RPC2_Unbind(WBconn->id);
+	    free(WBconn);
+    }
 }
 
 
