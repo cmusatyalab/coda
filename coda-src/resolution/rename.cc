@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /home/braam/src/coda-src/rvmres/RCS/rename.cc,v 1.1 1996/11/22 19:13:13 braam Exp braam $";
+static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/ss/coda-src/rvmres/RCS/rename.cc,v 1.2 1996/12/05 05:12:56 braam Exp braam $";
 #endif /*_BLURB_*/
 
 
@@ -58,11 +58,11 @@ extern "C" {
 #include <coda_dir.h>
 
 #include <resutil.h>
-#ifndef LINUX
+#include <ops.h>
 #include <operations.h>
-#endif
+
 #include "ruconflict.h"
-#include "ops.h"
+
 #include "rsle.h"
 #include "resstats.h"
 
@@ -125,9 +125,10 @@ int CheckAndPerformRename(rsle *r, Volume *volptr, VolumeId VSGVolnum,
 	    }
 	}
 	/* XXX - MIGHT HAVE TO UPDATE THE VERSION VECTOR FOR THE CHILD ! */
-	SpoolRenameLogRecord(ResolveViceRename_OP, vlist, sv->vptr, 
-			     tv ? tv->vptr : NULL, sdv->vptr, tdv->vptr, volptr, 
-			     r->name1, r->name2, &r->storeid);
+	errorCode = SpoolRenameLogRecord((int) ResolveViceRename_OP, (dlist *) vlist, 
+			     sv->vptr, (Vnode *) (tv ? tv->vptr : NULL), 
+			     sdv->vptr, tdv->vptr, volptr, 
+			     (char *)r->name1, (char *)r->name2, &r->storeid);
     }
     // merge the inconsistencies 
     if (errorCode && errorCode == EINCONS) {

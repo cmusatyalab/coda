@@ -29,7 +29,7 @@
 #Mellon the rights to redistribute these changes without encumbrance.
 #*/
 #
-#static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/src/coda-4.0.1/coda-src/vice/RCS/GNUmakefile.in,v 1.2 1996/12/03 01:30:43 braam Exp braam $";
+#static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/ss/coda-src/vice/RCS/Makefile.in,v 1.1 1996/12/09 14:40:56 raiff Exp braam $";
 #endif /*_BLURB_*/
 
 
@@ -82,8 +82,8 @@ LIBS = 	$(LIBAUTH2)	\
 	$(LIBVOL)	\
 	$(LIBVV)	\
 	$(LIBSYSENT)	\
-	$(DIR_O)	\
-	$(BUFFER_O)	\
+	$(LIBDIRLIB)	\
+	$(LIBIFS)	\
 	$(LIBUTIL) 	\
 	$(LIBCODARDS)       \
 	$(LIBSEG)  	\
@@ -94,11 +94,11 @@ LIBS = 	$(LIBAUTH2)	\
 	$(LIBOLDLWP)	
 
 
-headers=$(INCLDIR)/lwp.h	\
+headers=$(INCLSPECIAL)/lwp.h	\
 	$(INCLDIR)/al.h		\
 	$(INCLDIR)/errors.h	\
 	$(INCLDIR)/prs.h	\
-	$(INCLDIR)/lock.h	\
+	$(INCLSPECIAL)/lock.h	\
 	$(INCLDIR)/volume.h	\
 	$(INCLDIR)/cvnode.h	\
 	$(INCLDIR)/rpc2.h	\
