@@ -282,7 +282,8 @@ AddCallBack: Establish a callback for afid with
 CallBackStatus AddCallBack(HostTable *client, ViceFid *afid) 
 {
     SLog(3, "AddCallBack for Fid 0x%x.%x.%x, Venus %s.%d", afid->Volume,
-	 afid->Vnode, afid->Unique, client->HostName, ntohs(client->port));
+	 afid->Vnode, afid->Unique, inet_ntoa(client->host),
+	 ntohs(client->port));
 
     char aVCB = (afid->Vnode == 0 && afid->Unique == 0);
 
@@ -347,7 +348,7 @@ void BreakCallBack(HostTable *client, ViceFid *afid) {
     LogMsg(3, SrvDebugLevel, stdout, "BreakCallBack for Fid 0x%x.%x.%x",
 	     afid->Volume, afid->Vnode, afid->Unique);
     if (client) LogMsg(3, SrvDebugLevel, stdout, "Venus %s.%d",
-			client->HostName, ntohs(client->port));
+		       inet_ntoa(client->host), ntohs(client->port));
     else LogMsg(3, SrvDebugLevel, stdout, "No connection");
 
     struct FileEntry *tf = FindEntry(afid),
@@ -514,7 +515,7 @@ static void SDeleteCallBack(HostTable *client, struct FileEntry *af)
 	    }
 	    SLog(3, "SDeleteCallBack for Fid 0x%x.%x.%x, Venus %s.%d",
 		 af->theFid.Volume, af->theFid.Vnode, af->theFid.Unique,
-		 client->HostName, client->port);
+		 inet_ntoa(client->host), ntohs(client->port));
 	    break;
 	}
 	lc = &tc->next;
@@ -531,7 +532,8 @@ static void SDeleteCallBack(HostTable *client, struct FileEntry *af)
 */
 void DeleteVenus(HostTable *client) 
 {
-    SLog(1, "DeleteVenus for venus %s.%d", client->HostName, client->port);
+    SLog(1, "DeleteVenus for venus %s.%d",
+	 inet_ntoa(client->host), ntohs(client->port));
 
     for (int i = 0; i < VHASH; i++) {
 	    struct FileEntry *nf = 0;
@@ -760,27 +762,8 @@ static void PrintCBE(struct CallBackEntry *tcbe, FILE *fp)
 {
     CODA_ASSERT (tcbe);
     if (tcbe->conn) {
-	unsigned long host = htonl(tcbe->conn->host);
-	fprintf(fp, "\tHost %ld.%ld.%ld.%ld ",
-		(host & 0xff000000)>>24, (host & 0x00ff0000)>>16, 
-		(host & 0x0000ff00)>>8, host & 0x000000ff);
-	// try to get the host name 
-	long cbhostaddr;
-	if (sscanf(tcbe->conn->HostName, "%lx", &cbhostaddr) == 1) {
-	    unsigned long nhost = htonl(cbhostaddr);
-	    struct hostent *h = gethostbyaddr((char *)&nhost, 
-					      (int)sizeof(unsigned long),
-					      AF_INET); 
-	    if (h) 
-		fprintf(fp, "portal 0x%x name %s\n", 
-			tcbe->conn->port, h->h_name);
-	    else 
-		fprintf(fp, "portal 0x%x name %s\n", 
-			tcbe->conn->port, tcbe->conn->HostName);
-	}
-	else 
-	    fprintf(fp, "portal 0x%x name %s\n", 
-		    tcbe->conn->port, tcbe->conn->HostName);
+	fprintf(fp, "\tHost %s portal 0x%x\n", 
+		inet_ntoa(tcbe->conn->host), ntohs(tcbe->conn->port));
     }  
 }
 

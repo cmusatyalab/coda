@@ -3604,8 +3604,8 @@ int FetchBulkTransfer(RPC2_Handle RPCid, ClientEntry *client,
 	if (len != Length) {
 	    SLog(0, "FetchBulkTransfer: length discrepancy (%d : %d), (%x.%x.%x), %s %s.%d",
 		 Length, len, Fid.Volume, Fid.Vnode, Fid.Unique,
-		 client->UserName, client->VenusId->HostName,
-		 client->VenusId->port);
+		 client->UserName, inet_ntoa(client->VenusId->host),
+		 ntohs(client->VenusId->port));
 	    errorCode = EINVAL;
 	    goto Exit;
 	}
@@ -3755,7 +3755,8 @@ START_TIMING(Store_Xfer);
 	if (Length != -1 && Length != len) {
 	    SLog(0, "StoreBulkTransfer: length discrepancy (%d : %d), (%x.%x.%x), %s %s.%d",
 		    Length, len, Fid.Volume, Fid.Vnode, Fid.Unique,
-		    client->UserName, client->VenusId->HostName, client->VenusId->port);
+		    client->UserName, inet_ntoa(client->VenusId->host),
+		    ntohs(client->VenusId->port));
 	    errorCode = EINVAL;
 	    goto Exit;
 	}

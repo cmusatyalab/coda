@@ -644,8 +644,9 @@ long FS_ViceGetTime(RPC2_Handle RPCid, RPC2_Unsigned *seconds,
 		return ENOTCONN;
 	}
 
-	SLog(1, "ViceGetTime for user %s at %s on conn %d.",
-	     client->UserName, client->VenusId->HostName, RPCid);
+	SLog(1, "ViceGetTime for user %s at %s:%d on conn %d.",
+	     client->UserName, inet_ntoa(client->VenusId->host),
+	     ntohs(client->VenusId->port), RPCid);
 	
 	if (!errorCode && client) {
 	    /* we need a lock, because we cannot do concurrent RPC2 calls on
@@ -656,8 +657,9 @@ long FS_ViceGetTime(RPC2_Handle RPCid, RPC2_Unsigned *seconds,
 	    if (client->VenusId->id != 0) {
 		errorCode = CallBack(client->VenusId->id, &NullFid);
 		if ( errorCode != RPC2_SUCCESS ) {
-		    SLog(0, "GetTime: Destroying callback conn for %s",
-			 client->VenusId->HostName);
+		    SLog(0, "GetTime: Destroying callback conn for %s:%d",
+			 inet_ntoa(client->VenusId->host),
+			 ntohs(client->VenusId->port));
 		    /* tear down nak'd connection */
 		    RPC2_Unbind(client->VenusId->id);
 		    client->VenusId->id = 0;
@@ -668,9 +670,10 @@ long FS_ViceGetTime(RPC2_Handle RPCid, RPC2_Unsigned *seconds,
 	    /* we don't need the lock here anymore, because MakeCallBackConn
 	     * does it's own locking */
 
-	    if (client->VenusId->id == 0) {
-		SLog(0, "GetTime: Building callback conn to %s.",
-		     client->VenusId->HostName);
+	    if (!client->VenusId->id) {
+		SLog(0, "GetTime: Building callback conn to %s:%d.",
+		     inet_ntoa(client->VenusId->host),
+		     ntohs(client->VenusId->port));
 		errorCode = CLIENT_MakeCallBackConn(client);
 	    }
 	}

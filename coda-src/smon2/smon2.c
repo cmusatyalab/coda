@@ -44,14 +44,14 @@ listed in the file CREDITS.
 #include <sys/time.h>
 #include "coda_string.h"
 #include <errno.h>
-
-#include <ports.h>
-#include <lwp.h>
-#include <rpc2.h>
-#include <se.h>
-#include <timer.h>
-#include <sftp.h>
 #include <signal.h>
+
+#include <lwp/lwp.h>
+#include <lwp/timer.h>
+#include <rpc2/rpc2.h>
+#include <rpc2/se.h>
+#include <rpc2/sftp.h>
+#include <ports.h>
 
 #include "vice.h"
 

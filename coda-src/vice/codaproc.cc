@@ -440,7 +440,7 @@ long FS_ViceSetVV(RPC2_Handle cid, ViceFid *Fid, ViceVersionVector *VV, RPC2_Cou
     
     /* if volume is being repaired check if repairer is same as client */
     if (V_VolLock(volptr).IPAddress){
-	if (V_VolLock(volptr).IPAddress != client->VenusId->host){
+	if (V_VolLock(volptr).IPAddress != client->VenusId->host.s_addr){
 	    SLog(0,  "ViceSetVV: Volume Repairer != Locker");
 	    errorCode = EINVAL;
 	    goto FreeLocks;

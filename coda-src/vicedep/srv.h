@@ -130,12 +130,11 @@ typedef struct HostTable {
     RPC2_Handle id;			/* cid for call back connection	*/
     struct dllist_head	WBconns;	/* must have at least one       */
     struct dllist_head	Clients;	/* list of incoming rpc2 conns  */
-    unsigned int	host;		/* IP address of host		*/
+    struct in_addr	host;		/* IP address of host		*/
     unsigned int	port;		/* port address of host		*/
-    unsigned int	LastCall;	/* time of last call from host	*/
-    unsigned int	ActiveCall;	/* time of any call but gettime	*/
+    time_t		LastCall;	/* time of last call from host	*/
+    time_t		ActiveCall;	/* time of any call but gettime	*/
     struct Lock		lock;		/* lock used for client sync	*/
-    char HostName[MAXHOSTLENGTH];	/* name of workstation		*/
 }   HostTable;
 
 
@@ -146,7 +145,7 @@ typedef struct ClientEntry {
     RPC2_Integer	Id;			/* Vice ID of user	   */
     RPC2_Integer	SecurityLevel;		/* Security level of conn  */
     int			SEType;			/* Type of side effect	   */
-    unsigned int	LastCall;		/* time of last call	   */
+    time_t		LastCall;		/* time of last call	   */
     HostTable		*VenusId;		/* ptr to host entry	   */
     RPC2_Integer	LastOp;			/* op code of last call    */
     int			DoUnbind;		/* true if Unbind needed   */

@@ -27,8 +27,8 @@ listed in the file CREDITS.
 #include <sys/time.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <rpc2.h>
-#include <lwp.h>
+#include <lwp/lwp.h>
+#include <rpc2/rpc2.h>
 #include <ports.h>
 
 void Initialize(void)

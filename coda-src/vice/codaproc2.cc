@@ -491,7 +491,8 @@ long FS_ViceSendReintFragment(RPC2_Handle RPCid, VolumeId Vid,
 	SLog(0, "ViceSendReintFragment: length discrepancy (%d : %d), (%d,%d,%d), %s %s.%d",
 	       Length, sid.Value.SmartFTPD.BytesTransferred, 
 	       RHandle->BirthTime, RHandle->Device, RHandle->Inode,
-	       client->UserName, client->VenusId->HostName, client->VenusId->port);
+	       client->UserName, inet_ntoa(client->VenusId->host),
+	       ntohs(client->VenusId->port));
 	errorCode = EINVAL;
 
 	/* restore original state */
@@ -614,7 +615,7 @@ static int ValidateReintegrateParms(RPC2_Handle RPCid, VolumeId *Vid,
 		goto Exit;
 	}
     SLog(2,  "ValidateReintegrateParms: %s %s.%d",
-	     (*client)->UserName, (*client)->VenusId->HostName,
+	     (*client)->UserName, inet_ntoa((*client)->VenusId->host),
 	     ntohs((*client)->VenusId->port));
 
 
@@ -2050,8 +2051,9 @@ START_TIMING(Reintegrate_CheckSemanticsAndPerform);
 		    if (r->u.u_store.Length != len) {
 			SLog(0,  "CBFetch: length discrepancy (%d : %d), (%s), %s %s.%d",
 				r->u.u_store.Length, len, FID_(&v->fid),
-				client->UserName, client->VenusId->HostName,
-				client->VenusId->port);
+				client->UserName,
+				inet_ntoa(client->VenusId->host),
+				ntohs(client->VenusId->port));
 			errorCode = EINVAL;
                         index = -1;
 			goto LockExit;

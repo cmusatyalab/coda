@@ -608,9 +608,6 @@ static void ServerLWP(int *Ident)
     RPC2_Integer opcode;
     long    rc;
     int     lwpid;
-    char    area[256];
-    char   *userName;
-    char   *workName;
     ClientEntry *client = 0;
     ProgramType *pt;
 
@@ -656,14 +653,7 @@ static void ServerLWP(int *Ident)
 	    }
 	    LastOp[lwpid] = myrequest->Header.Opcode;
 	    CurrentClient[lwpid] = client;
-	    if (client == 0) {
-	        userName = workName = area;
-		strcpy(area, "NA");
-	    } else {
-		userName = area;
-		strcpy(userName, client->UserName);
-		workName = userName + strlen(userName) + 1;
-		strcpy(workName, client->VenusId->HostName);
+	    if (client) {
 		client->LastCall = client->VenusId->LastCall = (unsigned int)time(0);
 		/* the next time is used to eliminate GetTime calls from active stat */
 		if (myrequest->Header.Opcode != GETTIME)
@@ -672,7 +662,9 @@ static void ServerLWP(int *Ident)
      	    }
 
 	    SLog(5, "Worker %d received request %d on cid %d for %s at %s",
-		    lwpid, myrequest->Header.Opcode, mycid, userName, workName);
+		    lwpid, myrequest->Header.Opcode, mycid,
+		    client ? client->UserName : "NA",
+		    client ? inet_ntoa(client->VenusId->host) : "NA");
 	    if (myrequest->Header.Opcode > 0 && myrequest->Header.Opcode < FETCHDATA) {
 		Counters[TOTAL]++;
 		Counters[myrequest->Header.Opcode]++;
@@ -688,7 +680,9 @@ static void ServerLWP(int *Ident)
 
 	    if (rc) {
 		SLog(0, "srv.c request %d for %s at %s failed: %s",
-			opcode, userName, workName, ViceErrorMsg((int)rc));
+			opcode, client ? client->UserName : "NA",
+			client ? inet_ntoa(client->VenusId->host) : "NA",
+			ViceErrorMsg((int)rc));
 		if(rc <= RPC2_ELIMIT) {
 		    if(client && client->RPCid == mycid && !client->DoUnbind) {
 			ObtainWriteLock(&(client->VenusId->lock));
