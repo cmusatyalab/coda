@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/fso_cfscalls0.cc,v 4.9 1998/03/06 20:20:43 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/fso_cfscalls0.cc,v 4.10 1998/04/14 21:03:04 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -80,12 +80,6 @@ extern "C" {
 #include "venusvol.h"
 #include "worker.h" 
 
-
-
-/* This is defined in kernel's sys/inode.h, but there's no way to get that file
- * officially installed where it should be. So I'll use this ugly hack.
- */
-#define IPREFETCH 0x8000  
 
 /*  *****  Fetch  *****  */
 
@@ -169,27 +163,10 @@ int fsobj::Fetch(vuid_t vuid) {
 		case File:
 		    RVMLIB_REC_OBJECT(data.file);
 		    data.file = &cf;
-		    /*
-		     * If the operation is a prefetch and the open succeeds, use the open
-		     * file. The IPREFETCH flag tells the kernel to manage the file's 
-		     * buffers to avoid overrunning the buffer cache with prefetch data.
-		     */
-		    if ((VprocSelf())->prefetch) {
-			fd = ::open(data.file->Name(), (IPREFETCH|O_WRONLY|O_CREAT|O_TRUNC | O_BINARY ),V_MODE);
 
-			if (fd > 0) {
-			    sei->Tag = FILEBYFD;
-			    sei->FileInfo.ByFD.fd = fd;
-			} else
-			    fd = 0;
-		    }
-
-		    /* If the open failed (or wasn't tried) use the default mechanism */
-		    if (fd == 0) {
-			sei->Tag = FILEBYNAME;
-			sei->FileInfo.ByName.ProtectionBits = V_MODE;
-			strcpy(sei->FileInfo.ByName.LocalFileName, data.file->Name());
-		    }
+		    sei->Tag = FILEBYNAME;
+		    sei->FileInfo.ByName.ProtectionBits = V_MODE;
+		    strcpy(sei->FileInfo.ByName.LocalFileName, data.file->Name());
 
 		    break;
 
@@ -434,10 +411,6 @@ NonRepExit:
 	PutConn(&c);
     }
 
-    if ((VprocSelf())->prefetch && sed->Value.SmartFTPD.FileInfo.ByFD.fd) {
-	::close(sed->Value.SmartFTPD.FileInfo.ByFD.fd);
-    }
-    
     if (code == 0) {
 	/* Note the presence of data. */
 	ATOMIC(

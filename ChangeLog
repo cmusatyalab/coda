@@ -1,3 +1,9 @@
+1998-06-30    <jaharkes@telos.odyssey.cs.cmu.edu>
+
+	* coda-src/scripts/createvol_rep: Fixed a bug when using fully
+	qualified hostnames in the servers or VSGDB files.
+	* coda-src/venus/fso_cfscalls0.cc: Solved the EBADF bug.
+
 1998-06-24    <braam@carissimi.coda.cs.cmu.edu>
 
 	* kernel-src/vfs/linux21: enormous amounts of changes. New

@@ -199,7 +199,35 @@ tar zxf coda-@CVER@.tgz
 /usr/bin/xfrepair
 /usr/bin/xaskuser
 /usr/sbin/volmunge
-%dir /usr/lib/coda
+/usr/lib/coda/Advice.tcl
+/usr/lib/coda/CodaConsole
+/usr/lib/coda/Consider.tcl
+/usr/lib/coda/ConsiderAdding.tcl
+/usr/lib/coda/ConsiderRemoving.tcl
+/usr/lib/coda/ControlPanel.tcl
+/usr/lib/coda/Date.tcl
+/usr/lib/coda/DiscoMiss.tcl
+/usr/lib/coda/Events.tcl
+/usr/lib/coda/Globals.tcl
+/usr/lib/coda/Helper.tcl
+/usr/lib/coda/HoardWalk.tcl
+/usr/lib/coda/HoardWalkAdvice.tcl
+/usr/lib/coda/Indicators.tcl
+/usr/lib/coda/Initialization.tcl
+/usr/lib/coda/Lock.tcl
+/usr/lib/coda/Log.tcl
+/usr/lib/coda/Network.tcl
+/usr/lib/coda/OutsideWorld.tcl
+/usr/lib/coda/ReadMiss.tcl
+/usr/lib/coda/Reconnection.tcl
+/usr/lib/coda/Reintegration.tcl
+/usr/lib/coda/Repair.tcl
+/usr/lib/coda/Space.tcl
+/usr/lib/coda/Task.tcl
+/usr/lib/coda/Timing.tcl
+/usr/lib/coda/Tokens.tcl
+/usr/lib/coda/WeakMiss.tcl
+/usr/lib/coda/tixCodaMeter.tcl
 
 %files server	
 /usr/sbin/rvmutl
