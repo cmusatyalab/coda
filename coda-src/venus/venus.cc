@@ -471,7 +471,7 @@ static void DefaultCmdlineParms()
 	}
     }
 
-    CONF_STR(VenusControlFile,	"control_file",  NULL);
+    CONF_STR(VenusControlFile,	"run_control_file",  NULL);
     {
 #define CTRLFILE "/VENUS_CTRL"
 	if (!VenusControlFile) {

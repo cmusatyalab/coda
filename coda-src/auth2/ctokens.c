@@ -42,6 +42,7 @@ extern "C" {
 #endif __cplusplus
 
 #include <sys/types.h>
+#include <time.h>
 #include <errno.h>
 #include <unistd.h>
 #include <stdlib.h>

@@ -24,6 +24,7 @@ listed in the file CREDITS.
 #endif
 
 #include <sys/param.h>
+#include <time.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include "coda_string.h"

@@ -57,7 +57,7 @@ extern "C" {
 #include <sys/param.h>
 #include <netinet/in.h>
 #include <sys/stat.h>
-#include <sys/time.h>
+#include <time.h>
 #include <sys/signal.h>
 #include <errno.h>
 #include "coda_string.h"
