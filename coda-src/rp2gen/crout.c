@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rp2gen/crout.c,v 4.10 1998/06/06 00:34:54 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rp2gen/crout.c,v 4.11 98/06/11 12:24:13 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -1088,8 +1088,8 @@ static pack(who, parm, prefix, ptr, where)
     }
     break;
     case RPC2_ENCRYPTIONKEY_TAG:	{
-	    fprintf(where, "    if ( (char *)%s + RPC2_KEYSIZE)\n"
-		           "        return 0;",ptr);
+	    fprintf(where, "    if ( (char *)%s + RPC2_KEYSIZE > _EOB)\n"
+		           "        return 0;\n",ptr);
 	    fprintf(where, "    bcopy((char *)%s, (char *)%s, (long)%s);\n", name, ptr, "RPC2_KEYSIZE");
 	    inc(ptr, "RPC2_KEYSIZE", where);
     }
