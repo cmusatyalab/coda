@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rp2gen/rp2.h,v 4.2 1997/01/23 14:18:11 lily Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rp2gen/rp2.h,v 4.3 1997/12/20 23:34:44 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -127,6 +127,7 @@ typedef struct proc {
     rp2_bool	new_connection;	/* TRUE if this is the unique new connection procedure */
     char	*op_code;	/* Name of op code for this procedure */
     int		op_number;	/* Opcode number for this proc */
+    int         linenum;        /* Line number where this proc was defined */
 } PROC;
 
 /* Language values are specified for use in array */
@@ -150,3 +151,9 @@ typedef struct stubelem {
  */
 
 extern rp2_bool ansi;
+
+
+/* make line number an externally-accessible variable so it can be
+   set on semantic errors for yyerror() and yywarn() */
+
+extern int line;

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rp2gen/crout.c,v 4.2 1997/02/26 16:02:56 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rp2gen/crout.c,v 4.3 1997/09/23 15:13:01 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -282,9 +282,11 @@ copcodes(head, who, where)
     WHO who;
     register FILE *where;
 {
-    register int code;
+    int next_opnum; /* op code number to use if one not explicitly specified */
     register char *args, *def;
     register VAR **var;
+    char msg[100];
+
 
 #define PUTPARMS()\
 	fprintf(where, "RPC2_Handle cid");\
@@ -307,7 +309,7 @@ copcodes(head, who, where)
 	    fprintf(where, "RPC2_Handle cid, RPC2_PacketBuffer *pb, SE_Descriptor *se");
 	fprintf(where, ");\n\n");
     }
-    for (code=1; head!=NIL; head=head->thread)
+    for (next_opnum = 1; head != NIL; head = head->thread)
 	if (!head->new_connection) { /* Normal routine */
 
 	    /* Output extern proc definitions */
@@ -325,7 +327,29 @@ copcodes(head, who, where)
 
 	    /* Output other definitions */
 	    head->op_code = concat(head->name, "_OP");
-	    head->op_number = code++;
+            if (head->op_number == -1) {
+	      sprintf(msg, "no opcode number specified for %s; using %d",
+		      head->name, next_opnum);
+	      line = head->linenum; yywarn(msg);
+              head->op_number = next_opnum;
+              next_opnum += 1;
+            }
+            else {
+	      if (head->op_number < next_opnum) {
+		/* We've encountered a procedure whose opcode number is lower
+                   than expected; this is not necessarily an error since there
+                   may not be duplicates;  we could do duplicate detection with
+		   an extra data structure, but it's so much simpler to 
+                   just demand that opcode numbers be in increasing order;
+                   note that gaps in the opcode numbers are fine, and cause
+                   no trouble   (Satya, 1/7/98)
+                */
+                  sprintf(msg, "opcode number specified for %s too low\n",
+			  head->name);
+       		  line = head->linenum; yyerror(msg);
+	      }
+              next_opnum = head->op_number + 1;
+            }
 	    args = concat(head->name, "_ARGS");
 	    def = concat(head->name, "_PTR");
 	    fprintf(where, "#define %s\t%d\n", head->op_code, head->op_number);
@@ -347,7 +371,7 @@ copcodes(head, who, where)
 	    head -> op_code = "RPC2_NEWCONNECTION";
 	}
     if (subsystem.subsystem_name) {
-	fprintf(where, "#define %sOPARRAYSIZE %d\n", subsystem.subsystem_name, code);
+	fprintf(where, "#define %sOPARRAYSIZE %d\n", subsystem.subsystem_name, next_opnum);
 	fprintf(where, "\nextern CallCountEntry %s_CallCount[];\n", subsystem.subsystem_name);
 	fprintf(where, "\nextern MultiCallEntry %s_MultiCall[];\n", subsystem.subsystem_name);
 	fprintf(where, "\nextern MultiStubWork %s_MultiStubWork[];\n", subsystem.subsystem_name);

@@ -30,7 +30,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: rp2gen.lex,v 4.1 97/01/08 21:50:16 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rp2gen/rp2gen.lex,v 4.2 1997/01/18 19:23:05 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -224,6 +224,8 @@ SPACE		[ \t\014]
 "["				{ RETURN('['); }
 
 "]"				{ RETURN(']'); }
+
+":"				{ RETURN(':'); }
 
 "#"{I}{N}{C}{L}{U}{D}{E}	{ include(); }
 
@@ -428,8 +430,15 @@ int yywrap()
 yyerror(s)
     char *s;
 {
-    printf("[Line %d]: %s\n", line, s);
+    printf("FATAL ERROR, line %d: %s\n", line, s);
     exit(1);
+}
+
+yywarn(s)
+    char *s;
+{
+    printf("WARNING, line %d: %s\n", line, s);
+    return(0);
 }
 
 init_lex()

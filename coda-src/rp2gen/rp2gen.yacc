@@ -30,7 +30,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rp2gen/rp2gen.yacc,v 4.1 1997/01/08 21:50:16 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rp2gen/rp2gen.yacc,v 4.2 1997/12/20 23:34:45 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -218,6 +218,7 @@ static char *createmaxsize(name)
 %type <u_string> DefinedNumber, String, id_number, protocol_version
 %type <u_string> subsystem_name, IDENTIFIER, NUMBER, STRING, array_spec
 %type <u_string> timeout_override
+%type <u_string> opcode_number
 
 %type <u_string_array> identifier_list
 
@@ -428,8 +429,16 @@ array_spec_var		: '[' ']'
 					{ $$ = NIL; }
 			;
 
-procedure_description	: IDENTIFIER '(' formal_list ')' timeout_override new_connection ';'
-					{ insert(check_proc(make_proc($1, make_formal_array(), $5, $6))); }
+procedure_description	: opcode_number IDENTIFIER '(' formal_list ')' timeout_override new_connection ';'
+					{ insert(check_proc(make_proc($1, $2, make_formal_array(), $6, $7))); }
+			;
+
+opcode_number		: NUMBER ':'
+					{ $$ = $1; }
+
+			| empty
+					{ $$ = "-1"; }
+
 			;
 
 formal_list		: formal array_spec_var ',' formal_list

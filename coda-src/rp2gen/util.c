@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: util.c,v 4.1 97/01/08 21:50:18 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rp2gen/util.c,v 4.2 1997/01/23 14:18:13 lily Exp $";
 #endif /*_BLURB_*/
 
 
@@ -201,7 +201,8 @@ ENUM *make_enum(name, rep)
     return e;
 }
 
-PROC *make_proc(name, formals, timeout, new_connection)
+PROC *make_proc(opnum, name, formals, timeout, new_connection)
+    char * opnum;
     char *name;
     VAR **formals;
     char *timeout;
@@ -216,7 +217,9 @@ PROC *make_proc(name, formals, timeout, new_connection)
     proc -> timeout = timeout;
     proc -> bd = NIL;
     proc -> op_code = NIL;
+    proc -> op_number = atoi(opnum);
     proc -> new_connection = new_connection;
+    proc -> linenum = line;
     return proc;
 }
 
