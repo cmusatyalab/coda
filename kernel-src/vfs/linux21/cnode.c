@@ -99,9 +99,9 @@ int coda_cnode_make(struct inode **inode, ViceFid *fid, struct super_block *sb)
 	}
 
         coda_fill_inode(*inode, &attr);
-	CDEBUG(D_CNODE, "Done linking: ino %ld,  at 0x%x with cnp 0x%x,"
-	       "cnp->c_vnode 0x%x\n", (*inode)->i_ino, (int) (*inode), 
-	       (int) cnp, (int)cnp->c_vnode);
+	CDEBUG(D_DOWNCALL, "Done making inode: ino %ld,  count %d with %s\n",
+	        (*inode)->i_ino, (*inode)->i_count, 
+	       coda_f2s(&cnp->c_fid));
 
         EXIT;
         return 0;

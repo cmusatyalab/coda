@@ -37,8 +37,8 @@ static void coda_ccinsert(struct coda_cache *el, struct super_block *sb)
 {
 	struct coda_sb_info *sbi = coda_sbp(sb);
 	ENTRY;
-	if ( !sbi ||  !el) {
-		printk("coda_ccinsert: NULL sbi or el!\n");
+	if ( !sbi ||  ! list_empty(&el->cc_cclist) ) {
+		printk("coda_ccinsert: NULL sbi or el->cc_cclist not empty!\n");
 		return ;
 	}
 
@@ -49,8 +49,8 @@ static void coda_ccinsert(struct coda_cache *el, struct super_block *sb)
 static void coda_cninsert(struct coda_cache *el, struct coda_inode_info *cii)
 {
 	ENTRY;
-	if ( !cii ||  !el) {
-		printk("coda_cninsert: NULL cii or el!\n");
+	if ( !cii ||  ! list_empty(&el->cc_cnlist)) {
+		printk("coda_cninsert: NULL cii or el->cc_cnlist not empty!\n");
 		return ;
 	}
 	list_add(&el->cc_cnlist, &cii->c_cnhead);
@@ -60,20 +60,20 @@ static void coda_cninsert(struct coda_cache *el, struct coda_inode_info *cii)
 static void coda_ccremove(struct coda_cache *el)
 {
 	ENTRY;
-        if (el->cc_cclist.next && el->cc_cclist.prev)
+        if ( ! list_empty(&el->cc_cclist) )
 	        list_del(&el->cc_cclist);
 	else
-		printk("coda_cnremove: trying to remove 0 entry!");
+		printk("coda_cnremove: loose cc entry!");
 }
 
 /* remove a cache entry from the inode's list */
 static void coda_cnremove(struct coda_cache *el)
 {
 	ENTRY;
-	if (el->cc_cnlist.next && el->cc_cnlist.prev)
+	if ( ! list_empty(&el->cc_cnlist) )
 		list_del(&el->cc_cnlist);
 	else
-		printk("coda_cnremove: trying to remove 0 entry!");
+		printk("coda_cnremove: loose cn entry!");
 }
 
 /* create a new cache entry and enlist it */
@@ -83,7 +83,10 @@ static void coda_cache_create(struct inode *inode, int mask)
 	struct super_block *sb = inode->i_sb;
 	struct coda_cache *cc = NULL;
 	ENTRY;
+
 	CODA_ALLOC(cc, struct coda_cache *, sizeof(*cc));
+	INIT_LIST_HEAD(&cc->cc_cclist);
+	INIT_LIST_HEAD(&cc->cc_cnlist);
 
 	if ( !cc ) {
 		printk("Out of memory in coda_cache_enter!\n");
@@ -244,13 +247,15 @@ static void coda_flag_children(struct dentry *parent, int flag)
 	child = parent->d_subdirs.next;
 	while ( child != &parent->d_subdirs ) {
 		de = list_entry(child, struct dentry, d_child);
+		child = child->next;
+		if ( !de->d_inode ) {
+			d_drop(de); 
+			continue ;
+		}
 		coda_flag_inode(de->d_inode, flag);
-		CDEBUG(D_CACHE, "%d for %*s/%*s\n", flag, 
+		CDEBUG(D_DOWNCALL, "%d for %*s/%*s\n", flag, 
 		       de->d_name.len, de->d_name.name, 
 		       de->d_parent->d_name.len, de->d_parent->d_name.name);
-		child = child->next;
-		if ( !de->d_inode )
-			d_drop(de); 
 	}
 	return; 
 }
@@ -270,7 +275,10 @@ void coda_flag_alias_children(struct inode *inode, int flag)
 			printk("Null alias list for inode %ld\n", inode->i_ino);
 			return;
 		}
+#if 0
 		coda_flag_children(alias_de, flag);
+#endif
+		d_drop(alias_de);
 		alias= alias->next;
 	}
 }
@@ -283,8 +291,11 @@ void coda_flag_inode(struct inode *inode, int flag)
 		CDEBUG(D_CACHE, " no inode!\n");
 		return;
 	}
+	coda_flag_alias_children(inode, 0);
+#if 0
 	cii = ITOC(inode);
 	cii->c_flags |= flag;
+#endif 
 }		
 
 
