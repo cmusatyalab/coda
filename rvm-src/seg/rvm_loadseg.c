@@ -28,17 +28,14 @@ long rds_rvmsize;
 char *rds_startaddr;
 
 /*
- * rvm_load_segment locates the place in the process's address space at which the
- * already initialized memory, then maps in the recoverable regions at that
- * point. It returns an array of the region descriptors.
+ * rvm_load_segment 
+ * - locates the place in the process's address where to load segments
+ * - then maps in the recoverable regions at that point. 
+ * - it returns an array of the region descriptors.
  */
 rvm_return_t
-rvm_load_segment(DevName, DevLength, options, nregions, regions)
-     char *DevName;
-     rvm_offset_t DevLength;
-     rvm_options_t *options;
-     unsigned long *nregions;
-     rvm_region_def_t *regions[];
+rvm_load_segment(char *DevName, rvm_offset_t DevLength, rvm_options_t *options,
+		 unsigned long *nregions, rvm_region_def_t **regions)
 {
     rvm_region_t *region = rvm_malloc_region();
     rvm_region_t *hdr_region = rvm_malloc_region();
@@ -87,6 +84,7 @@ rvm_load_segment(DevName, DevLength, options, nregions, regions)
     (*regions) = (rvm_region_def_t *)malloc(sizeof(rvm_region_def_t)*(*nregions));
 
     /* HACK */ rds_startaddr = hdrp->regions[0].vmaddr; /* HACK */
+
     for (i = 0; i < hdrp->nregions; i++) 
 	if ((unsigned int)(hdrp->regions[i].vmaddr) >= 0) {
 	    region->offset = (*regions)[i].offset = hdrp->regions[i].offset;

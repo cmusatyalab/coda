@@ -77,7 +77,6 @@ extern "C" {
 #include <res.h>
 #include <resutil.h>
 #include <rescomm.h>
-#include <pdlist.h>
 #include <reslog.h>
 #include <ops.h>
 #include <timing.h>
@@ -319,36 +318,36 @@ long FS_ViceResolve(RPC2_Handle cid, ViceFid *Fid) {
 	    SLog(2,  "ViceResolve(%d, %s)", cid, FID_(Fid));
 	    VSGVolnum = Fid->Volume;
     } else { 
-	SLog(0, "ViceResolve: I was handed NULL Fid");
-	CODA_ASSERT(0);
+	    SLog(0, "ViceResolve: I was handed NULL Fid");
+	    CODA_ASSERT(0);
     }
 
        
     if (pathtiming && probingon && (!(ISDIR(*Fid)))) {
-	FileresTPinfo = new timing_path(MAXPROBES);
-	PROBE(FileresTPinfo, COORDSTARTVICERESOLVE);
+	    FileresTPinfo = new timing_path(MAXPROBES);
+	    PROBE(FileresTPinfo, COORDSTARTVICERESOLVE);
     }
     
 
     /* get a mgroup */
     unsigned long vsgaddr;
     if (!(vsgaddr = XlateVidToVSG(Fid->Volume))){
-	errorCode = EINVAL;
-	goto FreeGroups;
+	    errorCode = EINVAL;
+	    goto FreeGroups;
     }
     if (!XlateVid(&tmpvid)) {
-	SLog(0,  "ViceResolve: Couldn't xlate vid %x", tmpvid);
-	errorCode = EINVAL;
-	goto FreeGroups;
+	    SLog(0,  "ViceResolve: Couldn't xlate vid %x", tmpvid);
+	    errorCode = EINVAL;
+	    goto FreeGroups;
     }
     reson = GetResFlag(tmpvid);
     SLog(9,  "ViceResolve: Getting Mgroup for VSG %x", vsgaddr);
     if (GetResMgroup(&mgrp, vsgaddr, 0)){
-	/* error getting mgroup */
-	SLog(0,  "ViceResolve: Couldnt get mgroup for vsg %x", 
-		vsgaddr);
-	errorCode = EINVAL;
-	goto FreeGroups;
+	    /* error getting mgroup */
+	    SLog(0,  "ViceResolve: Couldnt get mgroup for vsg %x", 
+		 vsgaddr);
+	    errorCode = EINVAL;
+	    goto FreeGroups;
     }
 
     /* lock volumes at all servers and fetch the vnode vv */
@@ -364,7 +363,7 @@ long FS_ViceResolve(RPC2_Handle cid, ViceFid *Fid) {
     pathelembuf = (ResPathElem *)malloc(sizeof(ResPathElem) * (MAXPATHLEN/2) 
 					* VSG_MEMBERS);
     for (j = 0; j < VSG_MEMBERS; j++) 
-	pathelem_ptrs[j] = &(pathelembuf[j * (MAXPATHLEN/2)]);
+	    pathelem_ptrs[j] = &(pathelembuf[j * (MAXPATHLEN/2)]);
     MRPC_MakeMulti(LockAndFetch_OP, LockAndFetch_PTR, VSG_MEMBERS,
 		   mgrp->rrcc.handles, mgrp->rrcc.retcodes, 
 		   mgrp->rrcc.MIp, 0, 0, Fid, 
@@ -375,7 +374,7 @@ long FS_ViceResolve(RPC2_Handle cid, ViceFid *Fid) {
 
     // delete hosts from mgroup where rpc succeeded but call returned error 
     lockerror = CheckResRetCodes((unsigned long *)mgrp->rrcc.retcodes, 
-			      mgrp->rrcc.hosts, hosts);
+				 mgrp->rrcc.hosts, hosts);
     errorCode = mgrp->GetHostSet(hosts);
 
     // call resolve on object  only if no locking errors 
@@ -1865,7 +1864,7 @@ static int getFids(struct DirEntry *de, void * data)
 {
         dlist *flist = (dlist *)data;
 	char *name = de->name;
-	long vnode, unique;
+	unsigned long vnode, unique;
 	ViceFid fid;
 
 	SLog(9,  "Entering GetFid for %s", name);

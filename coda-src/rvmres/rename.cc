@@ -307,6 +307,7 @@ static int CheckResolveRenameSemantics(rsle *r, Volume *volptr, ViceFid *dFid, d
 		LogMsg(0, SrvDebugLevel, stdout,  
 		       "ChkResRenSem: Target name %s already exists wrongly",
 		       r->name2);
+		VN_PutDirHandle(npv->vptr);
 		errorCode = EINCONS;
 		goto Exit;
 	    }
@@ -452,6 +453,7 @@ static int CleanRenameTarget(rsle *r, dlist *vlist, Volume *volptr,
 	LogMsg(0, SrvDebugLevel, stdout,  
 	       "CleanRenameTarget: Target %x.%x is already empty",
 		tFid.Vnode, tFid.Unique);
+	VN_PutDirHandle(tv->vptr);
 	return(0);
     }
     TreeRmBlk pkdparm;

@@ -1488,7 +1488,9 @@ void sftp_Progress(SE_Descriptor *sdesc, long BytesTransferred)
 {
     sdesc->Value.SmartFTPD.BytesTransferred = BytesTransferred;
 
+#if 0
     if (sdesc->XferCB)
         sdesc->XferCB(sdesc->userp,
                       sdesc->Value.SmartFTPD.SeekOffset + BytesTransferred);
+#endif
 }

@@ -526,7 +526,7 @@ static void purgeDeadVnodes(Volume *backupvp, rec_smolist *BackupLists,
     int vnodeIndex = 0;
     while (vnodeIndex != -1) {			     /* More vnodes to process */
 	int count = 0;
-	bzero((void *)DeadInodes, sizeof(Inode) * (MaxVnodesPerTransaction + 1));
+	bzero((void *)DeadInodes, sizeof(Inode) * MaxVnodesPerTransaction));
 
 	/* Bunch vnode operations into groups of at most 8 per transaction */
 	/* Right now we might have transactions with no operations, oh well. */

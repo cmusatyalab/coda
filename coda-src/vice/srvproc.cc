@@ -3752,8 +3752,8 @@ int FetchBulkTransfer(RPC2_Handle RPCid, ClientEntry *client,
 		break;
 	}
 	if((errorCode = (int) RPC2_InitSideEffect(RPCid, &sid)) <= RPC2_ELIMIT) {
-	    SLog(0, "FetchBulkTransfer: InitSE failed (%d), (%x.%x.%x)",
-		    errorCode, Fid.Volume, Fid.Vnode, Fid.Unique);
+	    SLog(0, "FetchBulkTransfer: InitSE failed (%d), %s",
+		    errorCode, FID_(&Fid));
 	    goto Exit;
 	}
 

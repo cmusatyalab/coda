@@ -59,7 +59,6 @@ extern "C" {
 #include <rescomm.h>
 #include <resutil.h>
 #include <res.h>
-#include <pdlist.h>
 #include <reslog.h>
 #include <remotelog.h>
 #include <resforce.h>

@@ -686,6 +686,7 @@ long RS_DirResPhase3(RPC2_Handle RPCid, ViceFid *Fid, ViceVersionVector *VV,
 	   <= RPC2_ELIMIT) {
 		SLog(0,  
 		       "RS_DirResPhase3:  InitSE failed (%d)", errorCode);
+		VN_PutDirHandle(ov->vptr);
 		goto Exit;
 	}
 	
@@ -694,6 +695,7 @@ long RS_DirResPhase3(RPC2_Handle RPCid, ViceFid *Fid, ViceVersionVector *VV,
 		SLog(0,  
 		       "RS_DirResPhase3: CheckSE failed (%d)", errorCode);
 		if (errorCode == RPC2_SEFAIL1) errorCode = EIO;
+		VN_PutDirHandle(ov->vptr);
 		goto Exit;
 	}
 	VN_PutDirHandle(ov->vptr);
@@ -2161,7 +2163,6 @@ static int CleanRenameTarget(rlent *rl, dlist *vlist, Volume *volptr,
 	return(0);
     }
     
-    
     TreeRmBlk pkdparm;
     pkdparm.init(0, VSGVolnum, volptr, 0, &rl->storeid, vlist, 
 		 1, hvlog, rl->serverid, blocks);
@@ -2479,11 +2480,9 @@ static int PerformResOp(rlent *r, dlist *vlist, olist *hvlog,
 	{
 	    SLog(9,  "PerformResOP: MakeDir %s(%x.%x)",
 		    name, cFid.Vnode, cFid.Unique);
-	    vle *cv = AddVLE(*vlist, &cFid);
-	    cv->d_inodemod = 1;
-	    CODA_ASSERT(!cv->vptr);
+	    Vnode *cvptr = 0;
 	    /* allocate the vnode */
-	    if (errorCode = AllocVnode(&cv->vptr, volptr, (ViceDataType)vDirectory,
+	    if (errorCode = AllocVnode(&cvptr, volptr, (ViceDataType)vDirectory,
 				       &cFid, &pv->fid, 
 				       pv->vptr->disk.owner,
 				       1, blocks)) {
@@ -2491,6 +2490,9 @@ static int PerformResOp(rlent *r, dlist *vlist, olist *hvlog,
 			errorCode);
 		return(errorCode);
 	    }
+	    vle *cv = AddVLE(*vlist, &cFid);
+	    cv->vptr = cvptr;
+	    cv->d_inodemod = 1;
 	    
 	    /* make the directory */
 	    int tblocks = 0;
@@ -2499,6 +2501,7 @@ static int PerformResOp(rlent *r, dlist *vlist, olist *hvlog,
 			 pv->vptr->disk.unixModifyTime,
 			 pv->vptr->disk.modeBits,
 			 0, &r->storeid, &pv->d_cinode, &tblocks);
+	    CODA_ASSERT(DC_Dirty(cvptr->dh));
 	    *blocks += tblocks;
 	    
 	    /* spool log record - NOTE: FOR MKDIR SPOOL A REGULAR MKDIR RECORD 
@@ -2791,17 +2794,20 @@ int CreateObjToMarkInc(Volume *vp, ViceFid *dFid, ViceFid *cFid,
 	}
 	/* object is missing too - create the object */
 	{
-	    cv = AddVLE(*vlist, cFid);
-	    CODA_ASSERT(!cv->vptr);
+	    Vnode *cvptr = 0;
 	    int tblocks = 0;
 	    long errorCode = 0;
-	    if (errorCode = AllocVnode(&cv->vptr, vp, (ViceDataType)vntype,
+	    if (errorCode = AllocVnode(&cvptr, vp, (ViceDataType)vntype,
 				       cFid, dFid, pv->vptr->disk.owner,
 				       1, &tblocks)) {
 		SLog(0,  "CreateIncObj: Error %d in AllocVnode",
 			errorCode);
 		return(errorCode);
 	    }
+	    cv = AddVLE(*vlist, cFid);
+	    cv->vptr = cvptr;
+	    if ( cvptr->disk.type == vDirectory )
+		cv->d_inodemod = 1;
 	    *blocks += tblocks;
 
 	    /* create name in parent */
@@ -2909,6 +2915,7 @@ int CreateObjToMarkInc(Volume *vp, ViceFid *dFid, ViceFid *cFid,
 				errorCode, cFid->Vnode, cFid->Unique, name);
 			return(errorCode);
 		    }
+		    cv->d_inodemod = 1;
 		    int tblocks = 0;
 		    PerformMkdir(NULL, VSGVolnum, vp, pv->vptr,
 				 cv->vptr, name,

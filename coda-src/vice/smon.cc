@@ -58,7 +58,6 @@ extern int nlist(const char*, struct nlist[]);
 #endif __cplusplus
 
 #include <olist.h>
-#include <logalloc.h>
 #include <resstats.h>
 #include <voldump.h>
 

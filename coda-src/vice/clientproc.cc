@@ -401,7 +401,7 @@ static void client_SetUserName(ClientEntry *client)
 	/* Translate the name to a proper Id. */
 	if (AL_NameToId(name, (int *)&(client->Id)) != 0) {
 		if(!STREQ(client->UserName, NEWCONNECT))
-			SLog(0, "User id %s unknown", client->UserName);
+			SLog(0, "User id %s unknown", name);
 		CODA_ASSERT(AL_NameToId("System:AnyUser", 
 				   (int *)&(client->Id)) == 0);
 	}

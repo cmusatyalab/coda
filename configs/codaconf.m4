@@ -50,7 +50,6 @@ case ${host_alias} in
 		vfsdir=bsd44
 		initsuffix=../etc
 ;;
-
 	*-*-freebsd4* )
 		sys=i386_fbsd2
 		vfsdir=bsd44

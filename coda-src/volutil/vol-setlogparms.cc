@@ -47,7 +47,6 @@ extern "C" {
 #include <vrdb.h>
 #include <srv.h>
 #include <vutil.h>
-#include <logalloc.h>
 #include <recov_vollog.h>
 
 #if 0

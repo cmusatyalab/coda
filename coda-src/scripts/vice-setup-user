@@ -63,8 +63,8 @@ done
 cat > pdbsetup<<EOF
 nui Anonymous 776
 nui System 777
-ng System:Anyuser 777
-ci System:Anyuser -101
+ng System:AnyUser 777
+ci System:AnyUser -101
 nui $username $userid
 ng System:Administrators $userid
 ci System:Administrators -204

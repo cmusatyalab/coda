@@ -45,8 +45,7 @@ extern "C" {
 #include <vcrcommon.h>
 #include <cvnode.h>
 #include <olist.h>
-#include "logalloc.h"
-#include "pdlist.h"
+#include <pdlist.h>
 
 class PMemMgr;
 class VNResLog;
@@ -119,7 +118,7 @@ class rlent {
     unsigned long	serverid;
     ViceStoreId 	storeid;
     RPC2_Unsigned 	opcode;
-    pdlink 		link;
+    pdlink 		link; 
     VnodeId		dvnode;
     Unique_t		dunique;
     union {

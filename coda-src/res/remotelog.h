@@ -34,7 +34,6 @@ listed in the file CREDITS.
 #include <vice.h>
 #include <cvnode.h>
 
-#include "pdlist.h"
 #include "reslog.h"
 
 

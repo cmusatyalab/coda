@@ -1274,10 +1274,9 @@ static int PerformResOp(rsle *r, dlist *vlist, olist *AllLogs,
 	{
 	    SLog(9,  "PerformResOP: MakeDir %s(%x.%x)",
 		    name, cFid.Vnode, cFid.Unique);
-	    vle *cv = AddVLE(*vlist, &cFid);
-	    CODA_ASSERT(!cv->vptr);
+	    Vnode *cvptr = 0;
 	    /* allocate the vnode */
-	    if (errorCode = AllocVnode(&cv->vptr, volptr, (ViceDataType)vDirectory,
+	    if (errorCode = AllocVnode(&cvptr, volptr, (ViceDataType)vDirectory,
 				       &cFid, &pv->fid, 
 				       r->u.mkdir.owner,
 				       1, blocks)) {
@@ -1285,7 +1284,10 @@ static int PerformResOp(rsle *r, dlist *vlist, olist *AllLogs,
 			errorCode);
 		return(errorCode);
 	    }
-	    
+	    vle *cv = AddVLE(*vlist, &cFid);
+    	    cv->vptr = cvptr;
+	    cv->d_inodemod = 1;
+
 	    /* make the directory */
 	    int tblocks = 0;
 	    PerformMkdir(0, VSGVolnum, volptr, pv->vptr,

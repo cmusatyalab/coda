@@ -384,8 +384,7 @@ int SpoolVMLogRecord(vle *v, Volume *vol, ViceStoreId *stid, int op, va_list ap)
 
     /* reserve a slot for the record in volume log */
     if (V_VolLog(vol)->AllocRecord(&index, &seqno)) {
-	SLog(0, "SpoolVMLogRecord - no space left in volume");
-	SLog(0, "- returns ENOSPC\n");
+	SLog(0, "SpoolVMLogRecord - no space left in volume return ENOSPC\n");
 	return(ENOSPC);
     }
 
@@ -395,7 +394,7 @@ int SpoolVMLogRecord(vle *v, Volume *vol, ViceStoreId *stid, int op, va_list ap)
     CODA_ASSERT(rsl);
     rsl->init(op, ap);
 
-    //append record to intention list 
+    /* append record to intention list  */
     v->rsl.append(rsl);
     SLog(9,  "Leaving SpoolVMLogRecord_vle() - returns SUCCESS\n");
     return(0);

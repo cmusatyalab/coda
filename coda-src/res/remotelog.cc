@@ -52,7 +52,6 @@ extern "C" {
 #include <util.h>
 #include <olist.h>
 #include "res.h"
-#include "pdlist.h"
 #include "reslog.h"
 #include "remotelog.h"
 #include "resutil.h"
