@@ -50,8 +50,8 @@ static int check_child_completion(int fd)
     return (n && check) ? 0 : 1;
 }
 
-static int pidfd;
-static void update_pidfile(char *pidfile)
+static int pidfd = -1;
+void update_pidfile(char *pidfile)
 {
     char str[11]; /* can we assume that pid_t is limited to 32-bit? */
     int rc, n;
@@ -83,7 +83,7 @@ static void update_pidfile(char *pidfile)
 }
 
 
-int daemonize(char *pidfile)
+int daemonize(void)
 {
     int fds[2];
     int fd, rc;
@@ -126,9 +126,6 @@ int daemonize(char *pidfile)
     for (fd = 3; fd < FD_SETSIZE; fd++)
 	if (fd != fds[1])
 	    close(fd);
-
-    if (pidfile)
-	update_pidfile(pidfile);
 
     /* detach stdin by redirecting from /dev/null. */
     freopen("/dev/null", "r", stdin);

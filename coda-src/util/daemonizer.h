@@ -27,7 +27,10 @@ extern "C" {
  * to that file. this function returns an fd, which we use to signal the
  * parent whenever we're up and running.
  * stdout and stderr still have to be redirected */
-int daemonize(char *pidfile);
+int daemonize(void);
+
+/* write our pid to pidfile and keep the file locked */
+void update_pidfile(char *pidfile);
 
 /* Let the parent process know that we've succesfully started. */
 void gogogo(int parent_fd);
