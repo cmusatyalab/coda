@@ -37,9 +37,9 @@ if [ -f ${vicedir}/srv/pid ]; then
     exit 1 
 fi 
 
-# Remove outdated logfiles
-mv ${vicedir}/srv/SrvErr ${vicedir}/srv/SrvErr.prev 2>/dev/null
-rm -f ${vicedir}/srv/SrvLog-7
+# Rotate logfiles
+@sbindir@/coda-server-logrotate
+
 rm -f ${vicedir}/srv/CRASH
 
 if [ -f ${vicedir}/srv/ZOMBIFY ]; then
@@ -53,9 +53,9 @@ fi
 # These parameters are taken from ${vicedir}/srv.conf
 
 if [ ${serverconf} = 1 ] ; then
-  codasrv $* $XFLAGS
+  @sbindir@/codasrv $* $XFLAGS
 else
-  codasrv $* $XFLAGS `grep '^\-rvm ' ${vicedir}/srv.conf`
+  @sbindir@/codasrv $* $XFLAGS `grep '^\-rvm ' ${vicedir}/srv.conf`
 fi
 
 rm -f ${vicedir}/srv/pid

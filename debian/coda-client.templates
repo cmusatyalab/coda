@@ -1,18 +1,10 @@
-Template: coda/rootservers
+Template: coda/realm
 Type: string
 Default: testserver.coda.cs.cmu.edu
-Description: Initial servers to connect to.
- The Coda client needs to talk to servers in order to do anything useful
- The given default "testserver.coda.cs.cmu.edu" is a public server at CMU
- which can be used for testing a successful installation.
- .
- If this is the first time you are setting up a Coda client it is advised to
- connected to the testserver. However Coda's network protocol doesn't work
- through (masquerading) firewalls, and in that case you need to set up your
- own Coda server and specify it's name or ip address here.
- .
- If you want to specify multiple servers, separate them with comma's, like
- "server1.mydomain.com,server2.mydomain.com".
+Description: Default realm for authentication
+ This options tells the Coda client what our default realm is. This is
+ really only used for convenience by 'clog' and allows a user to type 
+ 'clog <username>' instead of 'clog <username>@<realmname>'.
 
 Template: coda/cachesize
 Type: string

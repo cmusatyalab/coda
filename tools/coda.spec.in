@@ -152,6 +152,7 @@ exit 0
 %dir /usr/coda/venus.cache
 %dir /coda
 %verify() /coda/NOT_REALLY_CODA
+/etc/coda/realms
 /etc/coda/venus.conf.ex
 /etc/coda/sidekick.intr.ex
 /etc/rc.d/init.d/venus.init
@@ -159,6 +160,7 @@ exit 0
 /usr/sbin/sidekick
 /usr/sbin/codaconfedit
 /usr/sbin/coda-setup-ports
+/usr/sbin/coda-client-logrotate
 /usr/sbin/venus
 /usr/sbin/venus-setup
 /usr/sbin/volmunge
@@ -187,6 +189,7 @@ exit 0
 /usr/sbin/bldvldb.sh
 /usr/sbin/codaconfedit
 /usr/sbin/codasrv
+/usr/sbin/coda-server-logrotate
 /usr/sbin/createvol_rep
 /usr/sbin/initpw
 /usr/sbin/inoder

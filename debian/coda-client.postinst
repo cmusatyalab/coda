@@ -28,8 +28,8 @@ if [ ! -f /etc/coda/venus.conf ] ; then
     touch /var/lib/coda/cache/INIT
 fi
 
-db_get coda/rootservers
-codaconfedit venus.conf rootservers "$RET" >&2
+db_get coda/realm
+codaconfedit venus.conf realm "$RET" >&2
 db_get coda/cachesize
 codaconfedit venus.conf cacheblocks "$RET" >&2
 

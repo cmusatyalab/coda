@@ -172,6 +172,7 @@ sbin/au
 sbin/sidekick
 sbin/codaconfedit
 sbin/coda-setup-ports
+sbin/coda-client-logrotate
 sbin/venus
 sbin/venus-setup
 sbin/volmunge
@@ -193,6 +194,7 @@ bin/coda_replay
 bin/spy
 bin/xaskuser
 bin/xfrepair
+etc/coda/realms
 etc/coda/venus.conf.ex
 etc/coda/sidekick.intr.ex
 EOF
@@ -232,6 +234,7 @@ sbin/updatefetch
 sbin/updatesrv
 sbin/vice-killvolumes
 sbin/vice-setup
+sbin/coda-server-logrotate
 sbin/coda-setup-ports
 sbin/vice-setup-rvm
 sbin/vice-setup-scm

@@ -1,4 +1,5 @@
 coda/NOT_REALLY_CODA
+etc/coda/realms
 etc/coda/sidekick.intr.ex
 etc/coda/venus.conf.ex
 usr/bin/cfs
@@ -18,6 +19,7 @@ usr/bin/coda_replay
 usr/bin/spy
 usr/bin/xaskuser
 usr/bin/xfrepair
+usr/sbin/coda-client-logrotate
 usr/sbin/sidekick
 usr/sbin/venus
 usr/sbin/volmunge
