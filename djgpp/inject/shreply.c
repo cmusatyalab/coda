@@ -11,7 +11,7 @@
 #include <sys/time.h>
 
 
-#include <cfs/coda.h>
+#include <coda.h>
 
 #define BUFSIZE 2000
 

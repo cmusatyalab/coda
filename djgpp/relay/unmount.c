@@ -13,7 +13,7 @@
 #include <stdio.h>
 #include <errno.h>
 
-#include <cfs/coda.h>
+#include <coda.h>
 
 #include "vxd.h"
 

@@ -13,7 +13,7 @@
 #include <sys/time.h>
 #include <string.h>
 #include <ctype.h>
-#include <cfs/coda.h>
+#include <coda.h>
 
 #define BUFSIZE 2000
 #define INSIZE(tag) sizeof(struct coda_ ## tag ## _in)
