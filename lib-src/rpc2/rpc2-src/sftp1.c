@@ -59,7 +59,6 @@ Pittsburgh, PA.
 #ifdef HAVE_SYS_STREAM_H
 #include <sys/stream.h>
 #endif
-#include <sys/socketvar.h>
 #include <netinet/in.h>
 #include <netdb.h>
 #include <errno.h>
@@ -69,6 +68,9 @@ Pittsburgh, PA.
 #include <rpc2/se.h>
 #include "sftp.h"
 
+#ifdef __CYGWIN32__
+#define timerclear(tm) ((tm)->tv_sec = 0, (tm)->tv_usec = 0)
+#endif
 
 /*----------------------- Local procedure specs  ----------------------*/
 static long GetFile();

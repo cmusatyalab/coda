@@ -24,7 +24,13 @@ LDADD = libfail.la $(top_builddir)/rpc2-src/librpc2.la \
 
 pkginclude_HEADERS = fail.h 
 lib_LTLIBRARIES = libfail.la
-bin_PROGRAMS = filcon
+
+if HAVE_READLINE
+FILCON = filcon
+else
+FILCON =
+endif
+bin_PROGRAMS = $(FILCON)
 
 libfail_la_SOURCES = filtutil.c fcon.c fail.c delay.c clear.c isolate.c \
     list.c join.c slow.c heal.c partition.c newpartition.c \

@@ -50,7 +50,6 @@ Pittsburgh, PA.
 #ifdef HAVE_SYS_STREAM_H
 #include <sys/stream.h>
 #endif
-#include <sys/socketvar.h>
 #include <sys/ioctl.h>
 #include <net/if.h>
 #include <netinet/in.h>

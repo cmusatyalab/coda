@@ -123,14 +123,12 @@ function MakePLIST () {
     then
 	cat > ${dst} << EOF
 @comment \$NetBSD\$
-bin/filcon
 lib/libfail.so.1.0
 lib/librpc2.so.1.0
 lib/libse.so.1.0
 EOF
     else
 	cat > ${dst} << EOF
-bin/filcon
 lib/libfail.so
 lib/libfail.so.1
 lib/librpc2.so
@@ -141,6 +139,7 @@ EOF
     fi
 
     cat >> ${dst} << EOF
+bin/filcon
 bin/rp2gen
 lib/libfail.a
 lib/libfail.la

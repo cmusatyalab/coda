@@ -1,3 +1,7 @@
+New in 1.2:
+
+* Avoid iopen dependency on systems that don't have that syscall.
+
 New in 1.1:
 
 * Fixed problems with sftp transfers when the fd is shared.

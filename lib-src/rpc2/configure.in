@@ -3,7 +3,7 @@ dnl Process this file with autoconf to produce a configure script
 dnl Initialization
 AC_INIT(rpc2-src/rpc2.private.h)
 CODA_SETUP_BUILD
-AM_INIT_AUTOMAKE(rpc2, 1.1)
+AM_INIT_AUTOMAKE(rpc2, 1.2)
 AM_CONFIG_HEADER(config.h)
 
 CODA_OPTION_LWP
@@ -24,12 +24,14 @@ AC_CHECK_PROG(CP, cp, cp)
 AC_CHECK_PROG(PERL, perl, perl)
 
 dnl Checks for libraries.
-CODA_FIND_LIBLWP
+CODA_FIND_LIB(lwp, [#include <lwp/lwp.h>], [LWP_Init(0,0,0)])
 CODA_CHECK_LIBTERMCAP
 AC_CHECK_LIB(readline, main, [LIBREADLINE=-lreadline], [], [${LIBTERMCAP}])
 AC_SUBST(LIBREADLINE)
 AC_SEARCH_LIBS(inet_ntoa, nsl)
 AC_SEARCH_LIBS(socket, socket)
+
+AM_CONDITIONAL(HAVE_READLINE, test x${LIBREADLINE} != x)
 
 dnl For playing with the _pt version...
 if test ${with_LWP_PT}p = nop ; then
@@ -51,6 +53,7 @@ dnl Checks for compiler characteristics.
 
 dnl Checks for library functions.
 AC_CHECK_FUNCS(inet_aton inet_ntoa ffs iopen)
+AC_FUNC_SELECT_ARGTYPES
 
 dnl Checks for system services.
 AC_CYGWIN
@@ -61,5 +64,5 @@ if test ${with_LWP_PT}p != nop ; then
 fi
 
 dnl Generate output files
-AC_OUTPUT(Makefile pkgs/Makefile pkgs/rpc2.spec include/Makefile include/rpc2/Makefile rpc2-src/Makefile rp2gen/Makefile fail/Makefile)
+AC_OUTPUT(Makefile pkgs/Makefile pkgs/rpc2.spec pkgs/rpc2-dos.spec pkgs/rpc2-nt.spec include/Makefile include/rpc2/Makefile rpc2-src/Makefile rp2gen/Makefile fail/Makefile)
 

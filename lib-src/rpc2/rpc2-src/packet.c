@@ -54,6 +54,13 @@ Pittsburgh, PA.
 #include "cbuf.h"
 #include "trace.h"
 
+#ifdef __CYGWIN32__
+#define timercmp(tm1, tm2, op) ( \
+    ((tm1)->tv_sec == (tm2)->tv_sec \
+    ? (int) (tm1)->tv_usec - (int) (tm2)->tv_usec \
+    : (int) (tm1)->tv_sec - (int) (tm2)->tv_sec) op 0)
+#define timerisset(tm) ((tm)->tv_sec || (tm)->tv_usec)
+#endif
 
 extern int errno;
 
