@@ -30,7 +30,7 @@
 # Mellon the rights to redistribute these changes without encumbrance.
 # */
 # 
-# static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/src/coda-4.0.1/configs/RCS/Makeconf.i386_nbsd1,v 1.2 1996/12/09 19:29:59 braam Exp $";
+# static char *rcsid = "$Header: /afs/cs/project/coda-rcs1/coda-4/configs/Makeconf.i386_nbsd1,v 4.1 1997/01/08 21:52:52 rvb Exp $";
 # 
 
 MACHINE_FLAGS =
@@ -40,7 +40,8 @@ GFLAG         = -g
 CPP 	      = gcc -E -x c-header
 LIBCURSES     = -lcurses
 LIBCOMPAT     = /usr/lib/libcompat.a
-LIBIFS        = $(LIBDIR)/libifs.a
+IFSNAME       = libifs.a
+IFSDIR	      = kern-src/ifs/netbsd
 LIBTRACE      = ../venus/libfaketrace.a
 machine_ifs   = ifs
 #for rvm
