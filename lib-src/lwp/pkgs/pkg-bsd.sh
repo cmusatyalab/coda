@@ -85,7 +85,9 @@ function MakeMakefile () {
 @FreeBSD #
 
 DISTNAME=	lwp-@VERSION@
-PKGNAME=	lwp-@VERSION@
+@NetBSD PKGNAME=	lwp-@VERSION@
+@FreeBSD PORTNAME=	lwp
+@FreeBSD PORTVERSION=	@VERSION@
 CATEGORIES=	devel
 MASTER_SITES=	ftp://ftp.coda.cs.cmu.edu/pub/lwp/src/
 EXTRACT_SUFX=	.tar.gz
@@ -102,7 +104,7 @@ INSTALL_TARGET=	install
 
 GNU_CONFIGURE=	yes
 USE_GMAKE=	yes
-#USE_LIBTOOL=	yes
+USE_LIBTOOL=	yes
 
 @NetBSD .include "../../mk/bsd.pkg.mk"
 @FreeBSD .include <bsd.port.mk>
