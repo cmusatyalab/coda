@@ -32,7 +32,8 @@ void printAcl(struct Acl *);
 /* Assumes pathname is the path of a conflict
  * Fills in repv with repvol created in beginning repair
  * Returns 0 on success, -1 on error and fills in msg if non-NULL */
-int BeginRepair(char *pathname, struct repvol **repv, char *msg, int msgsize) {
+int BeginRepair(char *pathname, struct repvol **repv, char *msg, int msgsize)
+{
     char msgbuf[DEF_BUF], space[DEF_BUF], cmd[32];
     struct ViceIoctl vioc;
     int rc;
@@ -445,7 +446,7 @@ int EndRepair(struct repvol *repv, int commit, char *msg, int msgsize) {
 	vioc.out = NULL;
 	vioc.out_size = 0;
 	errno = 0;
-	if ((rc = pioctl(repv->mnt, VIOC_DISABLEREPAIR, &vioc, 0)) < 0)
+	if ((rc = pioctl(repv->rodir, VIOC_DISABLEREPAIR, &vioc, 0)) < 0)
 	    strerr(msg, msgsize, "DISABLEREPAIR %s: %s", repv->mnt, strerror(errno));
     }
     repair_finish(repv);

@@ -85,6 +85,7 @@ int main(int argc, char **argv)
 	rep_BeginRepair(2, &(argv[0]));
 	rep_CompareDirs(argc - 1 , &(argv[1]));
 	rep_DoRepair(2, &(argv[1]));
+	rep_EndRepair(0, NULL);
 	rep_Exit(0, NULL);
     }
     else if ( argc != 3 ) {
@@ -415,10 +416,8 @@ void rep_Exit(int largc, char **largv) {
     char msgbuf[DEF_BUF];
 
     /* terminate the current session, if there is one */
-    if (session != NOT_IN_SESSION) {
-	if (EndRepair(RepairVol, 1, msgbuf, sizeof(msgbuf)) < 0)
-	    fprintf(stderr, "%s\nError ending repair\n", msgbuf);
-    }
+    if (session != NOT_IN_SESSION)
+	rep_EndRepair(0, NULL);
 
     Parser_exit(0, NULL); /* exit the repair tool */
 }
@@ -524,7 +523,6 @@ void rep_RemoveInc(int largc, char **largv) {
     /* end the repair session */
     else if ((rc = EndRepair(RepairVol, 0, msgbuf, sizeof(msgbuf))) < 0)
 	fprintf(stderr, "%s\nError ending repair session.\n", msgbuf);
-    else session = NOT_IN_SESSION;
 
     if (!rc) { /* no error - try to remove the object */
 	if (((dirconf) ? rmdir(RepairVol->rodir) : unlink(RepairVol->rodir)) < 0)
@@ -580,7 +578,6 @@ void rep_ReplaceInc(int largc, char **largv)
 
     if ((rc = EndRepair(RepairVol, 0, msgbuf, sizeof(msgbuf))) < 0)
 	fprintf(stderr, "%s\nError ending repair session.\n", msgbuf);
-    else session = NOT_IN_SESSION;
 
     if ((dorep(RepairVol, fixpath, NULL, 0) < 0) && (errno != ETOOMANYREFS)) {
 	fprintf(stderr, "Error repairing conflict: %s\n", strerror(errno));
