@@ -184,7 +184,7 @@ ENUM *make_enum(name, rep)
 }
 
 PROC *make_proc(opnum, name, formals, timeout, new_connection)
-    char * opnum;
+    int opnum;
     char *name;
     VAR **formals;
     char *timeout;
@@ -199,7 +199,7 @@ PROC *make_proc(opnum, name, formals, timeout, new_connection)
     proc -> timeout = timeout;
     proc -> bd = NIL;
     proc -> op_code = NIL;
-    proc -> op_number = atoi(opnum);
+    proc -> op_number = opnum;
     proc -> new_connection = new_connection;
     proc -> linenum = line;
     return proc;

@@ -1664,7 +1664,6 @@ static multi_procs(head, where)
     register char *args;
     char *subname;
     int32_t arg = 1;	     /* argument number in order of appearance */
-    int32_t fcn = 1; 	     /* procedure number */
 
 
     /* Preliminary stuff */
@@ -1679,19 +1678,20 @@ static multi_procs(head, where)
     declare_LogFunction(head, where);
 
     /* Generate argument descriptors for MakeMulti call */
-    for(proc =  head; proc != NIL; proc = proc->thread, fcn++) {
+    for(proc =  head; proc != NIL; proc = proc->thread) {
 	args = concat(proc->name, "_ARGS");
 
 	/* recursively write out any structure arguments */
 	for(var = proc->formals; *var != NIL; var++, arg++) {
 	    if ((*var)->type->type->tag == RPC2_STRUCT_TAG)
-	       do_struct((*var)->type->type->fields.struct_fields, fcn, arg, 1, 1, where);
+	       do_struct((*var)->type->type->fields.struct_fields,
+                         proc->op_number, arg, 1, 1, where);
 	}
 	arg = 1;	/* reset argument counter */
 	fprintf(where, "\nARG\t%s[] = {\n", args);
 	for(var = proc->formals; *var != NIL; var++, arg++) {
 	    fprintf(where, "\t\t{%s, %s, ", MultiModes[(int32_t)(*var)->mode], MultiTypes[(int32_t)(*var)->type->type->tag]);
-	    pr_size(*var, where, RP2_TRUE, fcn, arg);
+	    pr_size(*var, where, RP2_TRUE, proc->op_number, arg);
 	    fprintf(where, "},\n");
 	}
 	subname = subsystem.subsystem_name;
@@ -1810,14 +1810,19 @@ static declare_CallCount(head, where)
  PROC *head;
  FILE *where;
 {
+   int i, last_op = -1;
    fprintf(where, "\nlong %s_ElapseSwitch = 0;\n", subsystem.subsystem_name);
    fprintf(where, "\nlong %s_EnqueueRequest = 1;\n", subsystem.subsystem_name);
 
    fprintf(where, "\nCallCountEntry %s_CallCount[] = {\n", subsystem.subsystem_name);
-   fputs("\t/* dummy */\t\t{(RPC2_String)\"dummy\", 0, 0, 0, 0, 0},\n", where);
 
    for ( ; head!=NIL; ) {
        if (!head->new_connection) {
+
+           /* insert dummy entries for not implemented operations */
+           for (i = last_op+1; i < head->op_number; i++)
+               fputs("\t/* dummy */\t\t{(RPC2_String)\"dummy\", 0, 0, 0, 0, 0},\n", where);
+           last_op = head->op_number;
 
 	   fprintf(where, "\t/* %s_OP */\t{(RPC2_String)\"%s\", 0, 0, 0, 0, 0}", head->name, head->name);
 	   /* The above (RPC2_String) avoids compiler's annoyance warning */
@@ -1838,11 +1843,16 @@ static declare_MultiCall(head, where)
  FILE *where;
 {
    PROC *threads;
+   int   i, last_op = -1;
 
    fprintf(where, "\nMultiCallEntry %s_MultiCall[] = {\n", subsystem.subsystem_name);
-   fputs("\t/* dummy */\t\t{(RPC2_String)\"dummy\", 0, 0, 0, 0, 0, 0},\n", where);
    for (threads = head ; threads!=NIL; ) {
        if (!threads->new_connection) {
+
+           /* add dummy entries for not implemented operations */
+           for (i = last_op+1; i < threads->op_number; i++)
+               fputs("\t/* dummy */\t\t{(RPC2_String)\"dummy\", 0, 0, 0, 0, 0, 0},\n", where);
+           last_op = threads->op_number;
 
 	   fprintf(where, "\t/* %s_OP */\t{(RPC2_String)\"%s\", 0, 0, 0, 0, 0, 0}", threads->name, threads->name);
 	   /* The above (RPC2_String) avoids compiler's annoyance warning */
@@ -1856,9 +1866,14 @@ static declare_MultiCall(head, where)
    fputs("\n};\n", where);
 
    fprintf(where, "\nMultiStubWork %s_MultiStubWork[] = {\n", subsystem.subsystem_name);
-   fputs("\t/* dummy */\t\t{0, 0, 0},\n", where);
+   last_op = -1;
    for (threads = head ; threads!=NIL; ) {
        if (!threads->new_connection) {
+
+           /* insert dummy entries for not implemented operations */
+           for (i = last_op+1; i < threads->op_number; i++)
+               fputs("\t/* dummy */\t\t{0, 0, 0},\n", where);
+           last_op = threads->op_number;
 
 	   fprintf(where, "\t/* %s_OP */\t{0, 0, 0}", threads->name);
 

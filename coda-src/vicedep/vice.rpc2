@@ -258,8 +258,6 @@ typedef RPC2_Struct
 		 IN RPC2_CountedBS PiggyCOP2,
 		 IN OUT SE_Descriptor BD);
 
-3: ViceUnused1	();
-
 4: ViceRemove	(IN ViceFid Did,
 		 IN RPC2_String Name,
 		 IN OUT ViceStatus DirStatus,
@@ -328,12 +326,6 @@ typedef RPC2_Struct
 
 11: ViceRemoveCallBack (IN RPC2_CountedBS RCBBS);
 
-12: ViceUnused2	();
-
-13: ViceUnused3	();
-
-14: ViceUnused4	();
-
 15: ViceGetRootVolume (IN OUT RPC2_BoundedBS Volume);
 
 16: ViceSetRootVolume (IN RPC2_String Volume);
@@ -366,11 +358,7 @@ ViceNewConnection (IN RPC2_Integer SideEffectType,
 20: ViceGetTime	(OUT RPC2_Unsigned Seconds,
 		 OUT RPC2_Integer USeconds);
 
-21: ViceUnused5	();
-
 22: ViceGetStatistics (IN OUT ViceStatistics Statistics);
-
-23: ViceUnused6	();
 
 24: ViceGetVolumeInfo (IN RPC2_String Vid,
 		   OUT VolumeInfo Info);
@@ -382,15 +370,9 @@ ViceNewConnection (IN RPC2_Integer SideEffectType,
 27: ViceProbe	(IN RPC2_CountedBS Volumes,
 		 OUT RPC2_CountedBS VVs);
 
-28: ViceUnused7 ();
-
 29: ViceCOP2	(IN RPC2_CountedBS COP2BS);
 
 30: ViceResolve	(IN ViceFid Fid);
-
-31: ViceUnused8	();
-
-32: ViceUnused9	();
 
 33: ViceRepair	(IN ViceFid Fid,
 		 IN OUT ViceStatus status, 
@@ -400,10 +382,6 @@ ViceNewConnection (IN RPC2_Integer SideEffectType,
 34: ViceSetVV	(IN ViceFid Fid,
 		 IN ViceVersionVector VV,
 		 IN RPC2_CountedBS PiggyCOP2);
-
-35: ViceUnused10	();
-
-36: ViceUnused11	();
 
 37: ViceAllocFids	(IN VolumeId Vid,
 		 IN ViceDataType Type,
@@ -418,8 +396,6 @@ ViceNewConnection (IN RPC2_Integer SideEffectType,
 		  IN OUT RPC2_CountedBS VFlagBS,
 		  IN RPC2_CountedBS PiggyCOP2);
 
-39: ViceUnused12	();
-
 40: ViceNewConnectFS (IN RPC2_Unsigned ViceVersion,
 		  IN ViceClient ClientId);
 
@@ -432,10 +408,6 @@ ViceNewConnection (IN RPC2_Integer SideEffectType,
 		 OUT RPC2_CountedBS VFlagBS);
 
 /* new update calls */
-43: ViceUnused14	();
-
-44: ViceUnused13	();
-
 45: ViceVRemove	(IN ViceFid Did,
 		 IN RPC2_String Name,
 		 IN OUT ViceStatus DirStatus,
