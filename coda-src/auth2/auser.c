@@ -315,16 +315,15 @@ static int TryBinding(RPC2_Integer AuthenticationType, char *viceName,
     RPC2_SubsysIdent sident;
     RPC2_EncryptionKey hkey;
     RPC2_CountedBS cident;
+    struct in_addr addrptr;
     long rc;
     int len;
 
-    if (index(AuthHost, '.')){
-	int a, b, c, d;    
-	hident.Tag = RPC2_HOSTBYINETADDR;
-	sscanf(AuthHost, "%d.%d.%d.%d", &a, &b, &c, &d);
-	d &= 0x000000ff;
-	d |= (((a << 24) & 0xff000000) | (b << 16 & 0x00ff0000) | ((c << 8) & 0x0000ff00));
-	hident.Value.InetAddress.s_addr = htonl(d);
+    if (inet_aton(AuthHost, &addrptr)) {
+        /* IP address */
+        hident.Tag = RPC2_HOSTBYINETADDR;
+        /* inet_aton returns IP in network byte order already */
+        hident.Value.InetAddress.s_addr = addrptr.s_addr;
     }else {
 	hident.Tag = RPC2_HOSTBYNAME;
 	strcpy(hident.Value.Name, AuthHost);
