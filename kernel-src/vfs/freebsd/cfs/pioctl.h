@@ -27,7 +27,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-/* $Header: /afs/cs/project/coda-src/cvs/coda/kernel-src/vfs/bsd44/cfs/pioctl.h,v 1.6 1998/08/18 17:05:26 rvb Exp $ */
+/* $Header: /coda/coda.cs.cmu.edu/project/coda/cvs/coda/kernel-src/vfs/freebsd/cfs/Attic/pioctl.h,v 1.7 1998/08/28 18:12:26 rvb Exp $ */
 
 /* 
  * Mach Operating System
@@ -41,6 +41,12 @@ Mellon the rights to redistribute these changes without encumbrance.
 /*
  * HISTORY
  * $Log: pioctl.h,v $
+ * Revision 1.7  1998/08/28 18:12:26  rvb
+ * Now it also works on FreeBSD -current.  This code will be
+ * committed to the FreeBSD -current and NetBSD -current
+ * trees.  It will then be tailored to the particular platform
+ * by flushing conditional code.
+ *
  * Revision 1.6  1998/08/18 17:05:26  rvb
  * Don't use __RCSID now
  *
