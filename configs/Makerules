@@ -255,11 +255,6 @@ show showvar:
 	@echo  BINDIR: $(BINDIR)
 	@echo  SBINDIR: $(SBINDIR)
 	@echo  MANDIR:  $(MANDIR)
-	@echo  SHORTSYS:  $(SHORTSYS)
-	@echo  VFSDIR:  $(VFSDIR)
-	@echo  MANDIR:  $(MANDIR)
-	@echo  MANDIR:  $(MANDIR)
-	@echo  MANDIR:  $(MANDIR)
 
 ##################
 # linting

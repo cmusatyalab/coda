@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/fso_dir.cc,v 4.6 1998/01/14 23:54:09 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/fso_dir.cc,v 4.5 1998/01/10 18:38:49 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -111,11 +111,7 @@ PRIVATE void CompleteCVBlock(CVDescriptor *);
 
 /* CVOpen -- open a ``directory'' for writing */
 PRIVATE void CVOpen(char *filename, CVDescriptor *cvd) {
-#ifndef DJGPP
     cvd->dirFD = open(filename, O_WRONLY | O_TRUNC, V_MODE);
-#else
-    cvd->dirFD = open(filename, O_WRONLY | O_TRUNC | O_BINARY, V_MODE);
-#endif
     if (cvd->dirFD < 0) Choke("CVOpen: open failed (%d)", errno);
 
     cvd->dirBytes = 0;
@@ -151,7 +147,7 @@ PRIVATE void CVWriteEntry(char *name, ino_t inode, CVDescriptor *cvd) {
     dir.d_namlen = strlen(name);
 
     dir.d_fileno = inode;
-    dir.d_type = (cvd->vType == Directory ? CDT_DIR : 
+    dir.d_type = (u_int8_t) (cvd->vType == Directory ? CDT_DIR : 
 			     (cvd->vType == File ? CDT_REG : 
 			      (cvd->vType == SymbolicLink ? CDT_LNK : 
 			       CDT_UNKNOWN)));

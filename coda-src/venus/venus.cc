@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/venus.cc,v 4.9 1998/01/10 18:39:00 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/venus.cc,v 4.8 1997/12/19 23:23:41 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -88,6 +88,7 @@ extern int rpause(int, int, int);  /* why isn't this in sys/resource.h? */
 
 
 /* *****  Exported variables  ***** */
+
 vproc *Main;
 ViceFid	rootfid = {0, 0, 0};
 long rootnodeid = 0;
@@ -127,9 +128,7 @@ extern testKernDevice();
 /* local-repair modification */
 int main(int argc, char **argv) {
     /* Print to the console -- important during reboot. */
-#ifndef DJGPP
     freopen("/dev/console", "w", stderr);
-#endif
     fprintf(stderr, "Coda Venus, version %d.%d (%d)\n\r",
 	    VenusMajorVersion, VenusMinorVersion, RecovVersionNumber);
     fflush(stderr);
@@ -138,7 +137,7 @@ int main(int argc, char **argv) {
     DefaultCmdlineParms();   /* read vstab */
     CdToCacheDir(); 
     CheckInitFile();
-#if ! defined(__CYGWIN32__) && ! defined(DJGPP)
+#ifndef __CYGWIN32__
     SetRlimits();
 #endif
     /* Initialize.  N.B. order of execution is very important here! */
@@ -220,7 +219,6 @@ int main(int argc, char **argv) {
     return(0); /* to pacify g++ */
 }
 
-int IAmChild = 0;
 
 PRIVATE void ParseCmdline(int argc, char **argv) {
     for(int i = 1; i < argc; i++)
@@ -239,11 +237,7 @@ PRIVATE void ParseCmdline(int argc, char **argv) {
 		i++, HDBEs = atoi(argv[i]);
 	    else if (STREQ(argv[i], "-d"))     /* debugging */
 		i++, LogLevel = atoi(argv[i]);
-	    else if (STREQ(argv[i], "-rpcdebug")) {    /* debugging */
-		i++;
-		RPC2_DebugLevel = atoi(argv[i]);
-		RPC2_Trace = 1;
-	    } else if (STREQ(argv[i], "-p"))     /* profiling */
+	    else if (STREQ(argv[i], "-p"))     /* profiling */
 		ProfBoot = 1;
 	     else if (STREQ(argv[i], "-rdstrace"))     /* RDS heap tracing */
 		MallocTrace = 1;
@@ -372,11 +366,6 @@ PRIVATE void ParseCmdline(int argc, char **argv) {
 	    else if (STREQ(argv[i], "-spooldir")) {
 	        i++, SpoolDir = argv[i];
 	    }
-#ifdef DJGPP
-     	    else if (STREQ(argv[i], "-child")) {
-     	        IAmChild = 1;
-     	    }
-#endif
 	    else {
 		eprint("bad command line option %-4s", argv[i]);
 		exit(-1);
@@ -446,11 +435,7 @@ PRIVATE void CheckInitFile() {
     if (Simulating) return;
 
     /* Construct name for INIT file */
-#ifndef DJGPP
-        snprintf(initPath, MAXPATHLEN, "%s/INIT", CacheDir);
-#else
-        sprintf(initPath, "%s/INIT", CacheDir);
-#endif
+    snprintf(initPath, MAXPATHLEN, "%s/INIT", CacheDir);
 
     /* See if it's there */ 
     if (stat(initPath, &tstat) == 0) {
@@ -474,11 +459,7 @@ PRIVATE void UnsetInitFile() {
     if (Simulating) return;
 
     /* Create the file, if it doesn't already exist */
-#ifndef DJGPP
-         snprintf(initPath, MAXPATHLEN, "%s/INIT", CacheDir);
-#else
-        sprintf(initPath, "%s/INIT", CacheDir);
-#endif
+    snprintf(initPath, MAXPATHLEN, "%s/INIT", CacheDir);
     unlink(initPath);
 }
 

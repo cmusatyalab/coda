@@ -118,12 +118,11 @@ struct venus_vnode {
 
 #define VN_TYPE(vn)   (vn)->v_type
 struct venus_cnode {
-	venus_vnode     c_vnode;
-	u_short	    c_flags;	/* flags (see below) */
-	ViceFid	    c_fid;	/* file handle */
-	dev_t	    c_device;	/* associated vnode device */
-	ino_t	    c_inode;	/* associated vnode inode */
-	char        c_cfname[8]; /* container file name */
+    venus_vnode     c_vnode;
+    u_short	    c_flags;	/* flags (see below) */
+    ViceFid	    c_fid;	/* file handle */
+    dev_t	    c_device;	/* associated vnode device */
+    ino_t	    c_inode;	/* associated vnode inode */
     /*    LINKS; */                     /* links if on BSD machine */
 };
 

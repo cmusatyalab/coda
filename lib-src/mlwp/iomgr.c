@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/lib-src/mlwp/iomgr.c,v 4.6 1998/01/10 18:40:35 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/lib-src/mlwp/iomgr.c,v 4.5 1997/12/18 23:44:53 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -267,19 +267,15 @@ PRIVATE int IOMGR_CheckDescriptors(PollingCheck)
 	last_context_switch.tv_sec = 0;
 	last_context_switch.tv_usec = 0;
     }
-
     /* Linux adheres to Posix standard for select and sets
        iomgr_timeout to 0; this needs to be reset before we proceed,
-       otherwise SignalTimeout never gets called.  Since Linux
-    select changes the timeout, we must not pass iomgr_timeout. 
-    if we did, the changes the signal handler may make to this
-    variable will always be lost, since select resets the variable upon return. */
-
+       otherwise SignalTimeout never gets called */
     tmp_timeout = iomgr_timeout;
     fds = select(MAX_FDS, (fd_set *)(readfds ? &readfds : 0), 
 		  (fd_set *)(writefds ? &writefds : 0), 
 		  (fd_set *)(exceptfds ? &exceptfds : 0), 
-		  &tmp_timeout);
+		  &iomgr_timeout);
+    iomgr_timeout = tmp_timeout;
 
     if (fds < 0 && errno != EINTR) {
 	for(fds=0;fds<MAX_FDS;fds++) {

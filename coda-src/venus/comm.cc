@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/comm.cc,v 4.11 1998/01/26 21:31:38 mre Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/comm.cc,v 4.10 98/01/10 18:38:38 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -202,11 +202,7 @@ void CommInit() {
 	Choke("CommInit: gethostname failed");
 
     /* Hostid is needed for storeid generation. */
-#ifdef DJGPP
-    myHostId = 0x12345678;
-#else
     myHostId = gethostid();
-#endif
 
     /* Initialize Connections. */
     connent::conntab = new olist;

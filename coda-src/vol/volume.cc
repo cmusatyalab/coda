@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vol/volume.cc,v 4.8 1998/01/10 18:39:45 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vol/volume.cc,v 4.7 1997/11/14 13:19:28 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -146,6 +146,7 @@ char *VSalvageMessage =	  /* Common message used when the volume goes off line *
 #define VOLUME_HASH(volumeId) (volumeId&(VOLUME_HASH_TABLE_SIZE-1))
 PRIVATE Volume *VolumeHashTable[VOLUME_HASH_TABLE_SIZE];
 
+extern long time(long *tloc);
 extern void dump_storage(int level, char *s);
 extern void VBumpVolumeUsage(Volume *vp);
 extern int VCheckVLDB();
@@ -416,17 +417,6 @@ void VInitServerList() {
 	assert(0);
     }
     gethostname(hostname, sizeof(hostname)-1);
-#ifdef __CYGWIN32__
-    /* HACK --JJK */
-    /* There should be a get_canonical_hostname routine! */
-    {
-	char *cp = hostname;
-	while (*cp) {
-	    *cp = tolower(*cp);
-	    cp++;
-	}
-    }
-#endif
     ThisHost = (char *) malloc((int)strlen(hostname)+1);
     strcpy(ThisHost, hostname);
     while (fgets(line, sizeof(line), file) != NULL) {

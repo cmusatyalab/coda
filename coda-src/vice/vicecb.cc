@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vice/vicecb.cc,v 4.4 1998/01/12 23:35:45 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vice/vicecb.cc,v 4.3 1997/12/20 23:35:31 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -91,7 +91,6 @@ extern "C" {
 #include <callback.h>
 #include <vrdb.h>
 #include <srv.h>
-#include <vice.private.h>
 
 extern const MaxVols;
 
@@ -407,11 +406,10 @@ void BreakCallBack(HostTable *aconnid, ViceFid *afid) {
 
 	for (int i = 0; i < nhosts; i++) {
 	    /* host entry may disappear during yield in CallBack() */
-	    HostTable *he = CLIENT_FindHostEntry(cidlist[i]);
+	    HostTable *he = FindHostEntry(cidlist[i]);
 	    if (he) {
 		/* recursively calls DeleteVenus */
-		if (rclist[i] < RPC2_ELIMIT)  
-			CLIENT_CleanUpHost(he);
+		if (rclist[i] < RPC2_ELIMIT)  CleanUpHost(he);
 
 		/* if a file callback, delete any volume callbacks */
 		if (!aVCB)  DeleteCallBack(he, &vFid);

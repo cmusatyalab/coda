@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vol/cvnode.cc,v 4.4 1997/09/05 12:45:07 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vol/cvnode.cc,v 4.3 1997/04/28 15:08:41 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -63,7 +63,7 @@ extern "C" {
 #include <sys/types.h>
 #include <sys/time.h>
 #include <string.h>
-#include <errno.h>
+#include <sys/errno.h>
 #include <stdio.h>
 #ifdef __MACH__
 #include <sysent.h>
@@ -594,7 +594,7 @@ Vnode *VGetVnode(Error *ec,Volume *vp,VnodeId vnodeNumber,
 	    LogMsg(1, VolDebugLevel, stdout,  "VGetVnode (readlock): vnode %x.%u is write locked!",
 				    V_id(vp), vnodeNumber);
 	    if (locktype == TRY_READ_LOCK) {
-		*ec = CEWOULDBLOCK;
+		*ec = EWOULDBLOCK;
 		return(NULL);
 	    }
 	}
@@ -605,7 +605,7 @@ Vnode *VGetVnode(Error *ec,Volume *vp,VnodeId vnodeNumber,
 	    LogMsg(1, VolDebugLevel, stdout,  "VGetVnode (writelock): vnode %x.%u is not unlocked!",
 				    V_id(vp), vnodeNumber);
 	    if (locktype == TRY_WRITE_LOCK) {
-		*ec = CEWOULDBLOCK;
+		*ec = EWOULDBLOCK;
 		return(NULL);
 	    }
 	}

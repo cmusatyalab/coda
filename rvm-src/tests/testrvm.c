@@ -33,7 +33,7 @@ should be returned to Software.Distribution@cs.cmu.edu.
 
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/rvm-src/tests/testrvm.c,v 4.2 1998/01/10 18:40:52 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/rvm-src/tests/testrvm.c,v 4.1 1997/01/08 21:54:49 rvb Exp $";
 #endif _BLURB_
 
 /*
@@ -114,11 +114,7 @@ rvm_bool_t get_ans(prompt,sense)
     long            i;                  /* loop counters */
     FILE            *F;
 
-#ifdef DJGPP
-    F = fopen(filename,"rb");
-#else
     F = fopen(filename,"r");
-#endif
     if (F == NULL)
         {
         printf("\n? Couldn't open %s\n",filename);

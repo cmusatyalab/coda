@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/daemon.cc,v 4.4 1998/01/10 18:38:39 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/daemon.cc,v 4.3 1997/12/01 17:27:36 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -120,7 +120,7 @@ void InitOneADay() {
     unsigned long curr_time = Vtime();
 
     /* figure out when midnight is */
-    struct tm *lt = localtime((time_t *) &curr_time);
+    struct tm *lt = localtime((long *) &curr_time);
     lt->tm_sec = lt->tm_min = lt->tm_hour = 0;       /* midnight today */
 
 #ifdef __MACH__
@@ -157,7 +157,7 @@ void DispatchDaemons() {
 	    if (((struct DaemonInfo *)tp->BackPointer)->sync) 
 		    VprocSignal(((struct DaemonInfo *)tp->BackPointer)->sync);
 	    else {  /* once a day task */
-		    LOG(0, ("At the tone the time will be %s", ctime((time_t *)&curr_time)));
+		    LOG(0, ("At the tone the time will be %s", ctime((long *)&curr_time)));
 		    RusagePrint(fileno(logFile));
 		    MallocPrint(fileno(logFile));
 	    }

@@ -484,9 +484,7 @@ static int istat(struct DiskPartition *dp, Inode  inode_number, struct stat *sta
     statbuf->st_nlink = header.lnk;
     statbuf->st_size=header.vnode;
     statbuf->st_blksize=header.unique;
-#ifndef DJGPP
     statbuf->st_blocks=header.dataversion;
-#endif
     return 0;
 }
 

@@ -33,7 +33,7 @@ should be returned to Software.Distribution@cs.cmu.edu.
 
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/rvm-src/tests/rvm_basher.c,v 4.6 1998/01/10 18:40:51 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/rvm-src/tests/rvm_basher.c,v 4.5 1997/12/20 23:36:01 braam Exp $";
 #endif _BLURB_
 
 /*
@@ -42,7 +42,7 @@ static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/rvm-src/tests/r
 *
 */
 
-#include <errno.h>
+
 #include <stdlib.h>
 #include <signal.h>
 #include <string.h>
@@ -89,7 +89,6 @@ static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/rvm-src/tests/r
 #include "rvm_lwp.h"
 #endif RVM_USELWP
 
-#if 0
 extern int errno;
 #ifdef	__linux__
 #if !defined(__GLIBC__) || __GLIBC__ < 2
@@ -98,8 +97,6 @@ extern char *sys_errlist[]; /* XXX JET MUCKING */
 #else
 extern const char *const sys_errlist[]; /* XXX JET MUCKING */
 #endif
-#endif
-
 extern int sys_nerr;
 
 extern rvm_region_def_t *RegionDefs;    /* hooks to rds */
@@ -1404,13 +1401,9 @@ void set_data_file()
         }
     switch (sbuf.st_mode & S_IFMT)
         {
-#ifdef S_IFSOCK
       case S_IFSOCK:
-#endif
       case S_IFDIR:
-#ifdef S_IFLNK
       case S_IFLNK:
-#endif
 /* LINUX use the same block device for raw control */
 #ifndef __linux__
       case S_IFBLK: 

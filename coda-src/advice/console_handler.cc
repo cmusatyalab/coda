@@ -141,34 +141,40 @@ void SendToConsole(char *msg) {
     assert(rc == 0);
 }
 
+
 #define READFREQUENCY 1
 #define POLL 0
 
 char *ReadFromConsole(int block) {
     static char inputline[BUFSIZ];
     char *rc;
-    long lrc;
     int returncode;
     int rdfds;
     int consolefd;
     int ConsoleMask = 0;
+    struct timeval BogusExpiry = {5, 0};
 
     consolefd = fileno(fromCONSOLE);
     ConsoleMask |= (1 << consolefd);
     
+    // Check that we haven't reached the end of file.
+    if (feof(fromCONSOLE) == 1) {
+      fprintf(stderr, "ReadFromConsole:  Encountered EOF!\n");
+      fflush(stderr); 
+      exit(-1);
+    }
+
     do {
         rc = NULL;
 	rdfds = ConsoleMask;
 
-	lrc = IOMGR_Select(32, &rdfds, 0, 0, NULL);
-
-	if (lrc > 0) {
+        fprintf(stderr,"IOMGR_Select'ing\n"); fflush(stderr);
+        if (IOMGR_Select(32, &rdfds, 0, 0, &BogusExpiry) > 0) {
 	  if (rdfds & ConsoleMask) {
+	    fprintf(stderr,"IOMGR_Select says ready\n"); fflush(stderr);
 	    rc = fgets(inputline, BUFSIZ, fromCONSOLE);
-	  }
-	} else if (lrc < 0) {
-	  fprintf(stderr, "\t\t\tRFC: IOMGR_Select received error (lrc = %d)\n", lrc);
-	  fflush(stderr);
+	    fprintf(stderr, "fgets: %s\n", inputline); fflush(stderr);
+	  } 
 	}
     } while ((block == 1) && (rc == NULL));                   /* end do */
 

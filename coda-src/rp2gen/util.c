@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rp2gen/util.c,v 4.3 1998/01/08 13:32:34 satya Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rp2gen/util.c,v 4.2 1997/01/23 14:18:13 lily Exp $";
 #endif /*_BLURB_*/
 
 
@@ -60,7 +60,7 @@ supported by Transarc Corporation, Pittsburgh, PA.
 *	Utility routines for RP2GEN				    *
 * 								    *
 \*******************************************************************/
-#include <stdlib.h>
+
 #include <stdio.h>
 #include "rp2.h"
 

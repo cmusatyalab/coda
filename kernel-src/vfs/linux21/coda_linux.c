@@ -32,15 +32,14 @@ int coda_access_cache = 1;
 /* caller must allocate 36 byte string ! */
 char * coda_f2s(ViceFid *f)
 {
-	static char s[60];
+	static char s[50];
 	if ( f ) {
-		sprintf(s, "(%-#lx,%-#lx,%-#lx)", 
+		sprintf(s, "(%10lx,%10lx,%10lx)", 
 			 f->Volume, f->Vnode, f->Unique);
 	}
 	return s;
 }
 
-/* recognize special .CONTROL name */
 int coda_iscontrol(const char *name, size_t length)
 {
 	if ((CFS_CONTROLLEN == length) && 
@@ -49,23 +48,16 @@ int coda_iscontrol(const char *name, size_t length)
 	return 0;
 }
 
-/* recognize /coda inode */
 int coda_isroot(struct inode *i)
 {
     if ( i->i_sb->s_root->d_inode == i ) {
-	    return 1;
+	return 1;
     } else {
-	    return 0;
+	return 0;
     }
 }
 
-/* is this a volume root FID */
-int coda_fid_is_volroot(struct ViceFid *fid)
-{
-	return ( (fid->Vnode == 1) && (fid->Unique == 1 ) );
-}
-
-/* put the current process credentials in the cred */
+	
 void coda_load_creds(struct coda_cred *cred)
 {
         cred->cr_uid = (vuid_t) current->uid;
@@ -105,6 +97,11 @@ unsigned short coda_flags_to_cflags(unsigned short flags)
 	return coda_flags;
 }
 
+
+int coda_fid_is_volroot(struct ViceFid *fid)
+{
+	return ( (fid->Vnode == 1) && (fid->Unique == 1 ) );
+}
 
 /* utility functions below */
 void coda_vattr_to_iattr(struct inode *inode, struct coda_vattr *attr)

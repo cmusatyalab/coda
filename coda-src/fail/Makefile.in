@@ -25,7 +25,7 @@
 # improvements or extensions that  they  make,  and  to  grant  Carnegie
 # Mellon the rights to redistribute these changes without encumbrance.
 # 
-# static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/fail/Makefile.in,v 4.7 1998/01/10 18:37:08 braam Exp $";
+# static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/fail/Makefile.in,v 4.6 1998/01/05 16:41:49 braam Exp $";
 
 TOPDIR = @top_srcdir@
 ifndef MAKDIR
@@ -37,12 +37,9 @@ TOPOBJ = @TOPOBJ@
 
 include $(MAKDIR)/Makeconf
 
-ifneq ($(SHORTSYS),djgpp)
 EXECUTABLES = filcon
 CBINS       = $(EXECUTABLES)
 SBINS       = $(EXECUTABLES)
-endif
-
 LIBRARIES   = libfail.a
 HEADERS     = ${RP2FILES} fail.h ${RP2HEADERS}
 

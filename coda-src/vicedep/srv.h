@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vicedep/srv.h,v 4.2 1997/10/23 19:25:28 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vicedep/srv.h,v 4.1 1997/01/08 21:52:05 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -273,6 +273,17 @@ if ((t1).microseconds < (t2).microseconds){	\
 
 /* ViceErrorMsg.c */
 extern char *ViceErrorMsg(int);
+
+/* clientproc.c */
+extern int BuildClient(RPC2_Handle, char *, RPC2_Integer, ClientEntry **);
+extern int MakeCallBackConn(ClientEntry *);
+extern void DeleteClient(ClientEntry *);
+extern void CallBackCheck();
+extern void CleanUpHost(HostTable *);
+extern void PrintClients();
+extern void SetUserName(ClientEntry *);
+extern void GetWorkStats(int *, int *, unsigned int);
+extern HostTable *FindHostEntry(RPC2_Handle);
 
 /* codaproc.c */
 extern ViceVersionVector NullVV;

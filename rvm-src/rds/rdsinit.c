@@ -33,7 +33,7 @@ should be returned to Software.Distribution@cs.cmu.edu.
 
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/rvm-src/rds/rdsinit.c,v 4.5 1998/01/10 18:40:43 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/rvm-src/rds/rdsinit.c,v 4.4 1997/09/26 21:59:05 clement Exp $";
 #endif _BLURB_
 
 
@@ -461,11 +461,7 @@ int main(argc, argv)
 	exit(-1);
     }
 
-#ifdef DJGPP
-    fd = open(dataName, O_WRONLY | O_CREAT | O_TRUNC | O_BINARY, 00644);
-#else
     fd = open(dataName, O_WRONLY | O_CREAT | O_TRUNC, 00644);
-#endif
     if (fd < 0) {
 	printf("?  Couldn't truncate %s.\n", dataName);
 	exit(-1);

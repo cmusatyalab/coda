@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/venusvm.cc,v 4.7 1998/01/10 18:39:05 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/venusvm.cc,v 4.6 1997/12/20 23:35:10 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -67,12 +67,10 @@ extern "C" {
 #if defined(__GLIBC__) && __GLIBC__ >= 2
 #include <libelf/nlist.h>
 #else
-#ifndef DJGPP 
 #include <nlist.h>
 /* nlist.h defines this function but it isnt getting included because it is
    guarded by an ifdef of CMU which isnt getting defined.  XXXXX pkumar 6/13/95 */ 
 extern int nlist(const char*, struct nlist[]);
-#endif
 #endif
 #endif
 
@@ -291,7 +289,7 @@ PRIVATE int VmonSessionEventSize = 0;
 #endif
 
 PRIVATE int kmem;
-#if  (! defined(__CYGWIN32__)) && (! defined(DJGPP))
+#ifndef __CYGWIN32__
 PRIVATE struct nlist RawStats[3];
 #else
 long RawStats[3];
@@ -331,7 +329,7 @@ int VmonPortal = DFLT_VMONPORTAL;	    /* may be overridden from command line */
 
 void VmonInit() {
 
-#ifndef __BSD44__
+#ifdef	__linux__
     VmonEnabled = 0;
     return;
 #endif
@@ -673,7 +671,7 @@ PRIVATE void CheckCL() {
 }
 
 PRIVATE void CheckMC() {       // Check minicache stats
-#if defined(__linux__) || defined(__BSD44__)
+#ifndef __CYGWIN32__
     int i;
 
     if (!VmonInited || !VmonEnabled) return;

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/advice.cc,v 4.4 98/01/26 21:31:32 mre Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/advice.cc,v 4.3 97/12/16 22:48:58 mre Exp $";
 #endif /*_BLURB_*/
 
 
@@ -920,8 +920,8 @@ int adviceconn::NewConnection(char *hostName, int portNumber, int pgrp) {
   }
 
   if (IsAdviceValid((InterestID)-1, 0) == TRUE) {
-    LOG(0, ("adviceconn::NewConnection:  Maybe we should inform old advice server that it has lost its connection\n"));
-    //    InformLostConnection();
+    LOG(0, ("adviceconn::NewConnection:  Inform old advice server that it has lost its connection\n"));
+    InformLostConnection();
   }
 
   strcpy(hostname, hostName);

@@ -33,7 +33,7 @@ should be returned to Software.Distribution@cs.cmu.edu.
 
 */
 
-static char *rcsid = "$Header: /afs/cs.cmu.edu/user/clement/MS/rvm-src/rvm/RCS/rvm_utils.c,v 4.3 1997/04/01 01:55:57 clement Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/rvm-src/rvm/rvm_utils.c,v 4.5 98/02/18 13:18:03 rvb Exp $";
 #endif _BLURB_
 
 /*
@@ -479,11 +479,7 @@ char *make_full_name(dev_str,dev_name,retval)
     len = strlen(dev_str) + 1;          /* one extra for null terminator */
 
     /* see if working directory must be added to device name */
-#ifndef DJGPP
     if (*dev_str != '/')
-#else
-    if (dev_str[1] != ':')
-#endif
         {
         if (getwd(wd_name) == 0)
             ASSERT(rvm_false);
@@ -508,10 +504,6 @@ char *make_full_name(dev_str,dev_name,retval)
     if (wd_len != 0)
         {
         (void)strcpy(dev_name,wd_name);
-#ifdef DJGPP
-	if (dev_str[0] == '/' || dev_str[0] != '\\')
-	    dev_name[2] = '\0';
-#endif
         dev_name[wd_len] = '/';
         dev_name[wd_len+1] = 0;
         }

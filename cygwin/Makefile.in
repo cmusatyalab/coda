@@ -14,8 +14,10 @@ TOPOBJ = @TOPOBJ@
 
 include $(MAKDIR)/Makeconf
 
-HEADERS = errno.h nlist.h stdlib.h 
-SUBDIRS = sys
+HEADERS = stdlib.h nlist.h errno.h
+
+SUBDIRS= sys
+
 
 include $(MAKDIR)/configs/Makerules
 

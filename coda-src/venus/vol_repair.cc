@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/vol_repair.cc,v 4.3 1998/01/10 18:39:12 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/vol_repair.cc,v 4.2 1997/02/26 16:03:37 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -269,11 +269,11 @@ int volent::ConnectedRepair(ViceFid *RepairFid, char *RepairFile, vuid_t vuid,
 		case S_IFDIR:
 		    status.VnodeType = Directory;
 		    break;
-#ifdef S_IFLNK
+
 		case S_IFLNK:
 		    status.VnodeType = SymbolicLink;
 		    break;
-#endif
+
 		default:
 		    code = EINVAL;
 		    goto Exit;
@@ -648,18 +648,10 @@ int volent::LocalRepair(fsobj *f, ViceStatus *status, char *fname, ViceFid *pfid
     /* now store the new contents of the file */
     {
 	f->data.file = &f->cf;
-#ifndef DJGPP
 	int srcfd = open(fname, O_RDONLY, 0644/*XXX*/);
-#else
-	int srcfd = open(fname, O_RDONLY | O_BINARY, 0644/*XXX*/);
-#endif
 	ASSERT(srcfd);
 	LOG(100, ("LocalRepair: Going to open %s\n", f->data.file->Name()));
-#ifndef DJGPP
 	int tgtfd = open(f->data.file->Name(), O_RDWR | O_TRUNC, 0644/*XXX*/);
-#else
-	int tgtfd = open(f->data.file->Name(), O_RDWR | O_TRUNC | O_BINARY, 0644/*XXX*/);
-#endif
 	ASSERT(tgtfd>0);
 	char buf[512];
 	int rc;

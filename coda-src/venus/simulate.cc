@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/simulate.cc,v 4.7 1998/01/10 18:38:57 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/simulate.cc,v 4.6 1997/12/23 17:20:06 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -430,7 +430,7 @@ void simulator::main(void *parm) {
 		int execp = 0;
 		int truncp = (r->flags & O_TRUNC) && (r->oldSize	!= -1);	/* truncate explicitly below! */
 		f->PromoteLock();
-		if (f->Open(writep, execp, /*truncp*/0, 0, SIMUID) != 0)
+		if (f->Open(writep, execp, /*truncp*/0, 0, 0, SIMUID) != 0)
 		    Choke("Simulate: fsobj::Open failed");
 
 		/* Truncate if necessary. */
@@ -555,7 +555,7 @@ void simulator::main(void *parm) {
 		int execp = 0;
 		int truncp = (r->oldSize != -1);	    /* truncate explicitly below! */
 		cf->PromoteLock();
-		if (cf->Open(writep, execp, /*truncp*/0, 0, SIMUID) != 0)
+		if (cf->Open(writep, execp, /*truncp*/0, 0, 0, SIMUID) != 0)
 		    Choke("Simulate: fsobj::Open failed");
 
 		/* Truncate if necessary. */

@@ -25,7 +25,7 @@
 # improvements or extensions that  they  make,  and  to  grant  Carnegie
 # Mellon the rights to redistribute these changes without encumbrance.
 # 
-# static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/util/Makefile.in,v 4.6 1997/12/23 17:19:57 braam Exp $";
+# static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/util/Makefile.in,v 4.5 1997/12/16 22:46:52 mre Exp $";
 
 
 # 
@@ -59,28 +59,18 @@ TOPOBJ = @TOPOBJ@
 include $(MAKDIR)/Makeconf
 
 LIBRARIES = libutil.a
-COMMONHEADERS   = util.h olist.h ohash.h dlist.h dhash.h bstree.h dict.h process.h \
+HEADERS   = util.h olist.h ohash.h dlist.h dhash.h bstree.h dict.h process.h \
 	    histo.h dtcreg.h timing_paths.h rvmlib.h rec_olist.h \
 	    rec_smolist.h rec_ohash.h rec_dlist.h rec_dhash.h rec_bstree.h \
 	    vmindex.h bitmap.h arrlist.h recvarl.h rvmtesting.h bitvect.h\
-	    proc.h 
-
+	    proc.h parser.h
 
 # Multiversion definitions
 
-COMMONOBJECTS = util.o olist.o ohash.o dlist.o dhash.o bstree.o dict.o process.o \
+OBJECTS = util.o olist.o ohash.o dlist.o dhash.o bstree.o dict.o process.o \
 	  histo.o rvmlib.o rec_olist.o rec_smolist.o rec_ohash.o rec_dlist.o \
 	  rec_dhash.o rec_bstree.o bitmap.o vmindex.o arrlist.o recvarl.o \
-	  rvmtesting.o bitvect.o proc.o
-
-ifneq ($(SHORTSYS),djgpp)
-HEADERS = $(COMMONHEADERS) parser.h
-OBJECTS = $(COMMONOBJECTS) parser.o
-else
-HEADERS = $(COMMONHEADERS)
-OBJECTS = $(COMMONOBJECTS) 
-endif
-
+	  rvmtesting.o bitvect.o proc.o parser.o
 
 libutil.a: ${OBJECTS} 
 

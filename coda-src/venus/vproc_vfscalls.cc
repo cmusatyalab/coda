@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/vproc_vfscalls.cc,v 4.13 1997/12/18 23:44:47 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/vproc_vfscalls.cc,v 4.12 1997/12/16 20:15:59 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -98,8 +98,13 @@ extern "C" {
 extern "C" {
 #endif __cplusplus
 
+#ifdef __MACH__
+#include <sysent.h>
+#include <libc.h>
+#else	/* __linux__ || __BSD44__ */
 #include <unistd.h>
 #include <stdlib.h>
+#endif
 
 #ifdef __cplusplus
 }
@@ -262,7 +267,7 @@ void vproc::open(struct venus_vnode **vpp, int flags) {
 
 	/* Do the operation. */
 	u.u_error = f->Open(writep, execp, truncp,
-			    cp, CRTORUID(u.u_cred));
+			    &cp->c_device, &cp->c_inode, CRTORUID(u.u_cred));
 	if (u.u_error) goto FreeLocks;
 
 FreeLocks:

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/fso_cfscalls2.cc,v 4.9 1998/01/10 18:38:48 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/fso_cfscalls2.cc,v 4.8 1997/12/16 20:15:51 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -96,19 +96,12 @@ extern "C" {
 
 
 /* Call with object write-locked. */
-#if 0
-int fsobj::Open(int writep, int execp, int truncp, dev_t *devp, ino_t *inop, vuid_t vuid) 
-#endif
-int fsobj::Open(int writep, int execp, int truncp, venus_cnode *cp, vuid_t vuid) 
-{
+int fsobj::Open(int writep, int execp, int truncp, dev_t *devp, ino_t *inop, vuid_t vuid) {
     LOG(10, ("fsobj::Open: (%s, %d, %d, %d), uid = %d\n",
 	      comp, writep, execp, truncp, vuid));
 
-    if (cp) {
-	    cp->c_device = 0;
-	    cp->c_inode = 0;
-	    cp->c_cfname[0] = '\0';
-    }
+    if (devp) *devp = 0;
+    if (inop) *inop = 0;
     int code = 0;
 
     /* 
@@ -166,9 +159,6 @@ int fsobj::Open(int writep, int execp, int truncp, venus_cnode *cp, vuid_t vuid)
 	if (!data.dir->udcfvalid) {
 	    LOG(100, ("fsobj::Open: recomputing udir\n"));
 
-	    /* XXXX WHO put this between "#if 0".  If this code is 
-	       ever activated again then the open needs O_BINARY for DJGPP */
-
 #if	0
 	    /* Reset a cache entry that others are still reading, but that we must now change. */
 	    if (openers > 1) {
@@ -203,16 +193,8 @@ int fsobj::Open(int writep, int execp, int truncp, venus_cnode *cp, vuid_t vuid)
     }
 
     /* <device, inode> handle is OUT parameter. */
-    if (cp) {
-	    cp->c_device = FSDB->device;
-	    if ( IsDir() ) {
-		    strncpy(cp->c_cfname, data.dir->udcf->name, 8);
-		    cp->c_inode= data.dir->udcf->Inode();
-	    } else {
-	            cp->c_inode = data.file->Inode();
-		    strncpy(cp->c_cfname, data.file->name, 8);
-	    }
-    }
+    if (devp) *devp = FSDB->device;
+    if (inop) *inop = (IsDir() ? data.dir->udcf->Inode() : data.file->Inode());
 
 Exit:
     if (code != 0) {
@@ -343,13 +325,10 @@ int fsobj::Close(int writep, int execp, vuid_t vuid) {
 }
 
 
-
 /* Call with file contents fetched already. */
 /* Call with object write-locked. */
      int fsobj::RdWr(char *buf, enum uio_rw rwflag, int offset, int len, int *cc, vuid_t vuid) 
 {
-
-    Choke("We think this is deprecated.");
     LOG(10, ("fsobj::RdWr: (%s, %d, %d, %d), uid = %d\n",
 	      comp, rwflag, offset, len, vuid));
 
@@ -572,11 +551,6 @@ static char systype [] = "i386_win32";
 #endif 
 #endif 
 
-#ifdef DJGPP
-static char cputype [] = "i386";
-static char systype [] = "i386_win32";
-#endif 
-
 /* local-repair modification */
 /* inc_fid is an OUT parameter which allows caller to form "fake symlink" if it desires. */
 /* Explicit parameter for TRAVERSE_MTPTS? -JJK */
@@ -722,8 +696,6 @@ int fsobj::Lookup(fsobj **target_fso_addr, ViceFid *inc_fid, char *name, vuid_t 
 /* Call with directory contents fetched already. */
 /* Call with object read-locked. */
 int fsobj::Readdir(char *buf, int offset, int len, int *cc, vuid_t vuid) {
-
-    Choke("fsobj::Readdir is deprecated.");
     LOG(10, ("fsobj::Readdir : (%s, %d, %d), uid = %d\n",
 	      comp, offset, len, vuid));
 
@@ -736,7 +708,7 @@ int fsobj::Readdir(char *buf, int offset, int len, int *cc, vuid_t vuid) {
 
     /* Open the Vice file. */
     PromoteLock();
-    code = Open(0, 0, 0, 0, vuid);
+    code = Open(0, 0, 0, 0, 0, vuid);
     if (code)
 	{ DemoteLock(); return(code); }
 
@@ -759,9 +731,7 @@ int fsobj::Readdir(char *buf, int offset, int len, int *cc, vuid_t vuid) {
 	    if (*cc - pos < DIRSIZ(dp))
 		{ print(logFile); Choke("fsobj::Readdir: dir entry too small"); }
 
-#ifndef DJGPP
 	    if (dp->d_fileno == 0) break;
-#endif
 	    LOG(1000, ("\t<%d, %d, %d, %s>\n",
                        dp->d_fileno, dp->d_reclen, dp->d_namlen, dp->d_name));
 	    pos += (int) DIRSIZ(dp);

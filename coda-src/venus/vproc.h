@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/vproc.h,v 4.15 1998/03/06 20:20:54 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/vproc.h,v 4.13 1998/01/09 13:43:58 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -77,13 +77,13 @@ struct uio {
 #endif
 #endif
 
-#if defined(__linux__) || defined(DJGPP)
+#ifdef __linux__
 #include <sys/user.h>
 #include <sys/uio.h>
 #endif
 
 
-#if    ! defined(__BSD44__)
+#if	defined(__linux__) || defined(__CYGWIN32__)
 /* hmm we need this, so let's define it. Where is it in BSD anyway? */
 enum  uio_rw { UIO_READ, UIO_WRITE };
 
@@ -341,14 +341,8 @@ extern long FidToNodeid(ViceFid *);
 
 /* vnodes in BSD44 don't seem to store effective user & group ids.  So just
    coerce everything to uid */
-
-#ifdef __linux__
-#define	CRTOEUID(cred)	((vuid_t)((cred).cr_uid))
-#define	CRTORUID(cred)	((vuid_t)((cred).cr_fsuid))
-#else
 #define	CRTOEUID(cred)	((vuid_t)((cred).cr_uid))
 #define	CRTORUID(cred)	((vuid_t)((cred).cr_uid))
-#endif
 
 #define	FTTOVT(ft)	((ft) == (int)File ? C_VREG :\
 			 (ft) == (int)Directory ? C_VDIR :\
