@@ -3,7 +3,7 @@ Summary: Coda distributed filesystem
 Name: @CODA@
 Version: @CVER@
 Release: @REL@
-Source: ftp://ftp.coda.cs.cmu.edu/pub/coda-src/coda-@CVER@.tgz
+Source: ftp://ftp.coda.cs.cmu.edu/pub/coda/src/coda-@CVER@.tgz
 Requires: bc
 Copyright: CMU
 BuildRoot: /usr/src/redhat/BUILD/coda-build
