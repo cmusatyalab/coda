@@ -26,6 +26,8 @@ inline void list_del(struct dllist_head *entry)
 {
 	entry->prev->next = entry->next;
 	entry->next->prev = entry->prev;
+	entry->prev = entry;
+	entry->next = entry;
 }
 
 inline int list_empty(struct dllist_head *head)

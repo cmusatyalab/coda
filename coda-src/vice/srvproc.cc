@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vice/srvproc.cc,v 4.15 1998/10/21 22:05:58 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vice/srvproc.cc,v 4.16 1998/10/21 22:23:49 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -2658,6 +2658,7 @@ void PutVolObj(Volume **volptr, int LockLevel, int Dequeue)
 
     VPutVolume(*volptr);
     *volptr = 0;
+    SLog(10, "Returning from PutVolObj");
 }
 
 

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vice/codaproc.cc,v 4.14 1998/10/21 22:05:54 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vice/codaproc.cc,v 4.15 1998/10/21 22:23:47 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -274,28 +274,35 @@ END_TIMING(AllocFids_Total);
 
 static const int COP2EntrySize = (int)(sizeof(ViceStoreId) + sizeof(ViceVersionVector));
 /*
-  BEGIN_HTML
-  <a name="ViceCOP2"><strong>Update the VV that was modified during the first phase (COP1) </tt></strong></a> 
-  END_HTML
+  ViceCOP2: Update the VV that was modified during the first phase (COP1)
 */
-long ViceCOP2(RPC2_Handle cid, RPC2_CountedBS *PiggyBS) {
+long ViceCOP2(RPC2_Handle cid, RPC2_CountedBS *PiggyBS) 
+{
     int errorCode = 0;
     char *cp = (char *)PiggyBS->SeqBody;
-    char *endp = cp + PiggyBS->SeqLen;
+    int count, i;
 
     if (PiggyBS->SeqLen % COP2EntrySize != 0) {
 	errorCode = EINVAL;
 	goto Exit;
     }
 
-    for (; cp < endp; cp += COP2EntrySize) {
+    count = PiggyBS->SeqLen / COP2EntrySize;
+    
+    SLog(1, "ViceCOP2: about to process %d entries", count);
+
+    for (i = 0; i < count ; i++) {
 	ViceStoreId sid;
+	cp += COP2EntrySize;
 	ntohsid((ViceStoreId *)cp, &sid);
 	ViceVersionVector vv;
 	ntohvv((ViceVersionVector *)(cp + sizeof(ViceStoreId)), &vv);
 	
 	(void)InternalCOP2(cid, &sid, &vv);
     }
+
+    SLog(1, "ViceCOP2: returning success.");
+
 
 Exit:
     return(errorCode);
@@ -2219,7 +2226,8 @@ int PerformTreeRemoval(PDirEntry de, void *data)
 }
 
 
-long InternalCOP2(RPC2_Handle cid, ViceStoreId *StoreId, ViceVersionVector *UpdateSet) {
+long InternalCOP2(RPC2_Handle cid, ViceStoreId *StoreId, ViceVersionVector *UpdateSet) 
+{
     int errorCode = 0;
     int i;
     Volume *volptr = 0;	    /* the volume ptr */
@@ -2232,20 +2240,9 @@ long InternalCOP2(RPC2_Handle cid, ViceStoreId *StoreId, ViceVersionVector *Upda
     recov_vol_log *vollog = NULL;
 
 START_TIMING(COP2_Total);
-#if 0
-    /* keep this around for timing again */
-    extern int clockFD;
-#define NSC_GET_COUNTER         _IOR('c', 1, long)
-    unsigned long startcop2 = 0;
-    unsigned long finishgetobj = 0;
-    unsigned long finishputobj = 0;
-    unsigned long finishcop2 = 0;
-    
-    if (clockFD > 0) 
-	ioctl(clockFD, NSC_GET_COUNTER, &startcop2);
-#endif 0
 
-    LogMsg(1, SrvDebugLevel, stdout,  "ViceCOP2, StoreId = (%x.%x), UpdateSet = []",
+
+    LogMsg(1, SrvDebugLevel, stdout,  "InternalCOP2, StoreId = (%x.%x), UpdateSet = []",
 	     StoreId->Host, StoreId->Uniquifier);
 
     /* Dequeue the cop pending entry and sort the fids. */
@@ -2273,10 +2270,6 @@ START_TIMING(COP2_Total);
 	}
     }
 
-#if 0
-    if (clockFD > 0) 
-	ioctl(clockFD, NSC_GET_COUNTER, &finishgetobj);
-#endif 0
     if (!errorCode && volptr && V_RVMResOn(volptr)) vollog = V_VolLog(volptr);
 
 START_TIMING(COP2_Transaction);
@@ -2297,17 +2290,17 @@ START_TIMING(COP2_Transaction);
 
     /* Put the volume. */
     PutVolObj(&volptr, NO_LOCK);
+    SLog(10, "About to call END_TRANSACTION");
     RVMLIB_END_TRANSACTION(flush, &(status));
+    SLog(10, "InternalCOP2: Transaction finished, removing %p", cpe);
 END_TIMING(COP2_Transaction);
-#if 0
-    if (clockFD > 0) 
-	ioctl(clockFD, NSC_GET_COUNTER, &finishputobj);
-#endif 0
 
     if (cpe) {
 	CopPendingMan->remove(cpe);
 	delete cpe;
     }
+
+    SLog(10, "InternalCOP2: remove successful, errorCode %d, status %d, vollog %p");
 
     if ((status == 0) && !errorCode && vollog) {
 	/* the transaction was successful -
@@ -2319,16 +2312,9 @@ END_TIMING(COP2_Transaction);
 	    vollog->DeallocRecord((int)ind);
     }
 
-    LogMsg(2, SrvDebugLevel, stdout,  "ViceCOP2 returns %s", ViceErrorMsg(errorCode));
+    LogMsg(2, SrvDebugLevel, stdout,  "InternalCOP2 returns %s", ViceErrorMsg(errorCode));
 END_TIMING(COP2_Total);
-#if 0
-    if (clockFD > 0) 
-	ioctl(clockFD, NSC_GET_COUNTER, &finishcop2);
-    LogMsg(0, SrvDebugLevel, stdout,
-	   "GetObjects %u usecs, transaction %u usecs, transaction-finishcop2 %u usecs, Cop2Total = %u usecs\n",
-	   (finishgetobj - startcop2)/25, (finishputobj - finishgetobj)/25,
-	   (finishcop2 - finishputobj)/25, (finishcop2-startcop2)/25);
-#endif 0
+
     return(errorCode);
 }
 

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vice/coppend.cc,v 4.6 1998/08/31 12:23:35 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vice/coppend.cc,v 4.7 1998/10/21 22:23:48 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -196,7 +196,8 @@ void cpman::add(cpent *cpe) {
 }
 
 
-void cpman::remove(cpent *cpe) {
+void cpman::remove(cpent *cpe) 
+{
     ObtainWriteLock(&lock);
     objects.remove(&cpe->StoreId, cpe);
     ReleaseWriteLock(&lock);

@@ -49,6 +49,7 @@ static void dc_Grow(int count)
 	for ( i = 0 ; i < count ; i++ ) {
 		pdce = malloc(sizeof(*pdce));
 		assert(pdce);
+		bzero(pdce, sizeof(*pdce));
 
 		list_head_init(&pdce->dc_hash);
 		list_head_init(&pdce->dc_list);
@@ -106,8 +107,10 @@ PDCEntry DC_Get(PDirInode pdi)
 		if ( pdi == pdce->dc_pdi ) {
 			pdce->dc_count++;
 			/* remove from freelist if first user */
-			if ( pdce->dc_count == 1 ) 
+			if ( pdce->dc_count == 1 ) {
 				list_del(&pdce->dc_list);
+				assert(!DC_Dirty(pdce));
+			}
 
 			/* if data was flushed, refresh it */
 			if ( !pdce->dc_dh.dh_data) {
@@ -134,6 +137,7 @@ PDCEntry DC_Get(PDirInode pdi)
 
 	/* copy in the directory handle, init lock, and copy data */
 	pdce->dc_dh.dh_data = DI_DiToDh(pdi);
+	assert(!DC_Dirty(pdce));
 	pdce->dc_refcount = pdi->di_refcount;
 
 	ReleaseWriteLock(&dlock);
@@ -196,6 +200,7 @@ void DC_Put(PDCEntry pdce)
 
 	if ( pdce->dc_count == 1 ) {
 		list_add(&pdce->dc_list, dfreelist.prev);
+		assert(!DC_Dirty(pdce));
 	} 
 	pdce->dc_count--;
 

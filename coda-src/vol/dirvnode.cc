@@ -102,6 +102,7 @@ int VN_DCommit(Vnode *vnp)
 			vnp->vnodeNumber);
 		/* copy the VM pages into RVM */
 		DI_DhToDi(pdce);
+		/* assert the directory inode now exists... */
 		assert(DC_DC2DI(pdce));
 		/* rehash just in case it is new */
 		DC_Rehash(pdce);
@@ -176,6 +177,8 @@ void VN_PutDirHandle(struct Vnode *vn)
 		     vn->vnodeNumber, vn->disk.uniquifier, DC_Count(vn->dh)-1);
 		DC_Put(vn->dh);
 		assert(DC_Count(vn->dh) >= 0);
+		if ( DC_Count(vn->dh) == 0 )
+			vn->dh = 0;
 	}
 }
 
