@@ -28,20 +28,20 @@ struct UserInfo
         int LastUsed;   /* timestamped at each RPC call; for gc'ing */
 };
 
-#ifdef KERBEROS4
-void Krb4Init(void);
-long Krb4GetSecret(char *hostname, char **identity, int *identitylen, 
-		   char **secret,   int *secretlen);
-long Krb4DoKinit();
-long Krb4GetKeys(RPC2_CountedBS * cIdent, RPC2_EncryptionKey hKey, RPC2_EncryptionKey sKey);
+#ifdef HAVE_KRB4
+int Krb4ClientInit(void);
+int Krb4ServerInit(void);
+int Krb4GetSecret(char *hostname, char **identity, int *identitylen, 
+		   char **secret, int *secretlen, int interactive);
+int Krb4Validate(RPC2_CountedBS * cIdent, RPC2_EncryptionKey hKey, RPC2_EncryptionKey sKey);
 #endif
 
-#ifdef KERBEROS5
-long Krb5Init(char *, char *);
-long Krb5DoKinit();
-long Krb5GetSecret(char *hostname, char **identity, int *identitylen, 
-		   char **secret,   int *secretlen);
-long Krb5GetKeys(RPC2_CountedBS * cIdent, RPC2_EncryptionKey hKey, RPC2_EncryptionKey sKey);
+#ifdef HAVE_KRB5
+int Krb5ClientInit(void);
+int Krb5ServerInit(void);
+int Krb5GetSecret(char *hostname, char **identity, int *identitylen, 
+		   char **secret, int *secretlen, int interactive);
+int Krb5Validate(RPC2_CountedBS * cIdent, RPC2_EncryptionKey hKey, RPC2_EncryptionKey sKey);
 #endif
 
 #endif

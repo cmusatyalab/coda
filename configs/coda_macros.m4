@@ -180,7 +180,7 @@ dnl check for library providing md5 checksumming
 AC_SUBST(LIBMD5)
 AC_SUBST(MD5C)
 AC_DEFUN(CODA_CHECK_MD5,
-  [if test "${OPENSSL}" = "yes" ; then
+  [if test "${CRYPTO}" = "yes" ; then
     AC_CHECK_HEADERS(openssl/md5.h)
     AC_SEARCH_LIBS(MD5_Init, crypto,
       [test "$ac_cv_search_MD5_Init" = "none required" || LIBMD5="$ac_cv_search_MD5_Init"
@@ -191,6 +191,31 @@ AC_DEFUN(CODA_CHECK_MD5,
   if test "$ac_cv_search_MD5_Init" = "no"; then
       MD5C="md5c.o"
   fi])
+
+AC_SUBST(LIBKRB4)
+AC_SUBST(LIBKRB5)
+AC_DEFUN(CODA_CHECK_KERBEROS,
+  [if test "${CRYPTO}" = "yes" ; then
+    AC_CHECK_HEADERS(krb5.h com_err.h)
+    if test "$ac_cv_header_krb5_h" = yes -a "$ac_cv_header_com_err_h" = yes ; then
+	AC_SEARCH_LIBS(krb5_init_context, krb5,
+	    [LIBKRB5="$ac_cv_search_krb5_init_context -lk5crypto -lcom_err"
+	     LIBS="$ac_func_search_save_LIBS"])
+	AC_DEFINE(HAVE_KRB5, 1, [Define if kerberos 5 is available])
+    else
+	AC_MSG_WARN([Couldn't find krb5.h or com_err.h headers, not using kerberos 5])
+    fi
+
+    AC_CHECK_HEADERS(krb.h des.h)
+    if test "$ac_cv_header_krb_h" = yes -a "$ac_cv_header_des_h" = yes ; then
+	AC_SEARCH_LIBS(krb_get_lrealm, krb4,
+	    [LIBKRB4="$ac_cv_search_krb_get_lrealm"
+	     LIBS="$ac_func_search_save_LIBS"])
+	AC_DEFINE(HAVE_KRB4, 1, [Define if kerberos 4 is available])
+    else
+	AC_MSG_WARN([Couldn't find krb.h or des.h headers, not using kerberos 4])
+    fi
+   fi])
 
 dnl check whether we have scandir
 AC_DEFUN(CODA_CHECK_DIRENT, 
@@ -218,18 +243,27 @@ dnl Accept user defined path leading to libraries and headers.
 
 AC_DEFUN(CODA_OPTION_SUBSYS,
   [AC_ARG_WITH($1,
-    [  --with-$1=<prefix>	Install prefix of $1],
+    [  --with-$1=DIR	$1 was installed in DIR],
     [ pfx="`(cd ${withval} ; pwd)`"
-      CFLAGS="${CFLAGS} -I${pfx}/include"
-      CXXFLAGS="${CXXFLAGS} -I{pfx}/include"
+      CPPFLAGS="${CPPFLAGS} -I${pfx}/include"
       LDFLAGS="${LDFLAGS} -L${pfx}/lib"
       PATH="${PATH}:${pfx}/bin:${pfx}/sbin"])
     ])
 
-AC_DEFUN(CODA_OPTION_OPENSSL,
-  AC_ARG_WITH(openssl,
-    [  --without-openssl     Do not link against the openssl library],
-    [OPENSSL=${withval}], [OPENSSL=yes]))
+AC_DEFUN(CODA_OPTION_LIBRARY,
+  [AC_ARG_WITH($1-includes,
+    [  --with-$1-includes=DIR	$1 include files are in DIR],
+    [ pfx="`(cd ${withval} ; pwd)`"
+      CPPFLAGS="${CPPFLAGS} -I${pfx}"])
+   AC_ARG_WITH($1-libraries,
+    [  --with-$1-libraries=DIR	$1 library files are in DIR],
+    [ pfx="`(cd ${withval} ; pwd)`"
+      LDFLAGS="${LDFLAGS} -L${pfx}"]) ])
+
+AC_DEFUN(CODA_OPTION_CRYPTO,
+  [AC_ARG_WITH(crypto,
+    [  --with-crypto		Use openssl and/or kerberos libraries],
+    [CRYPTO=${withval}], [CRYPTO=no])])
 
 dnl ---------------------------------------------
 dnl Search for an installed library in:

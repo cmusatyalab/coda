@@ -15,7 +15,10 @@ sinclude(configs/coda_macros.m4)
 CODA_OPTION_SUBSYS(lwp)
 CODA_OPTION_SUBSYS(rvm)
 CODA_OPTION_SUBSYS(rpc2)
-CODA_OPTION_OPENSSL
+
+CODA_OPTION_CRYPTO
+CODA_OPTION_LIBRARY(krb4)
+CODA_OPTION_LIBRARY(krb5)
 
 dnl Checks for programs.
 AC_PROG_CC
@@ -36,15 +39,6 @@ AC_PROG_INSTALL
 AC_PROG_AWK
 AC_PATH_PROG(CP, cp, "")
 AC_PATH_PROG(DF, df, "")
-AC_PATH_PROG(ED, ed, "")
-
-dnl check to see if ED is defined ...
-if test x${ED} = x ; then
-  echo 'program "ed" not found.'
-  echo 'coda needs the program "ed" for proper operation.'
-  exit 1
-fi
-
 AC_PATH_PROG(GREP, grep, "")
 AC_PATH_PROG(HOSTNAME, hostname, "")
 AC_PATH_PROG(MV, mv, "")
@@ -74,10 +68,12 @@ CODA_CHECK_LIBCURSES
 CODA_CHECK_READLINE
 CODA_CHECK_LIBDB185
 CODA_CHECK_MD5
+CODA_CHECK_KERBEROS
 
 AC_SEARCH_LIBS(bcopy, ucb)
 AC_SEARCH_LIBS(bind, socket)
 AC_SEARCH_LIBS(inet_ntoa, nsl)
+AC_SEARCH_LIBS(gethostbyname, resolv)
 
 dnl Checks for header files.
 AC_CHECK_HEADERS(search.h sys/resource.h sys/stream.h ncurses.h)

@@ -38,9 +38,9 @@ Pittsburgh, PA.
 */
 
 /*
- -- Routines used by user-level processes (such as login, su, etc)  to do authentication
-
-*/
+ * Routines used by user-level processes (such as login, su, etc)  to do
+ * authentication
+ */
 
 #ifdef __cplusplus
 extern "C" {
@@ -119,23 +119,15 @@ int U_Authenticate(char *hostname, int AuthenticationType, char *uName,
 		   int passwdpipe, int interactive )
 {
 	RPC2_Handle	RPCid;
-#ifdef KERBEROS5
-	char    AuthHost[MAXHOSTNAMELEN];
-#endif
 	int		rc;
 	int             bound = 0;
 	char            passwd[128];
-	char *secret, *identity;
-	int secretlen, identitylen;
+	char *secret = NULL, *identity = NULL;
+	int secretlen = 0, identitylen = 0;
 
 	memset(passwd, 0, sizeof(passwd));
 
 	switch(AuthenticationType) {
-	case AUTH_METHOD_NULL:
-		/* don't do this */
-		fprintf(stderr, "Calling U_Authenticate without"
-			"any authentication seems pretty stupid.\n");
-		exit(1);
 	case AUTH_METHOD_CODAUSERNAME:
 		if (passwdpipe) {
 			fgets(passwd, sizeof(passwd), stdin);
@@ -154,61 +146,23 @@ int U_Authenticate(char *hostname, int AuthenticationType, char *uName,
 		secretlen = strlen(passwd);
 		rc = 0;
 		break;
+#ifdef HAVE_KRB4
 	case AUTH_METHOD_KERBEROS4:
-#ifdef KERBEROS4
-		Krb4Init(NULL);
+		Krb4ClientInit();
 		rc = Krb4GetSecret(hostname, &identity, &identitylen,
-				   &secret, &secretlen);
-
-		rc = Krb4DoKinit();
-		if ( rc == 0 )
-			rc = Krb4GetSecret(hostname, &identity, &identitylen,
-					   &secret, &secretlen);
-#else
-		fprintf(stderr, "Kerberos4 not supported\n");
-		exit(1);
-#endif
+				   &secret, &secretlen, interactive);
 		break;
+#endif
+#ifdef HAVE_KRB5
 	case AUTH_METHOD_KERBEROS5:
-#ifdef KERBEROS5
-
-		rc = Krb5Init(NULL, NULL);
-
+		rc = Krb5ClientInit();
 		if ( rc != 0 ) {
 			fprintf(stderr, "Cannot initialize KRB5\n");
 			exit(1);
 		}
-
-
-		/* Try and get a hostname to use */
-		if ( !hostname ){
-			GetAuthServers();
-			if (SetHost(1, 0, AuthHost)){
-				fprintf(stderr, "Can't find a host for authentication, try using -host\n");
-				exit(1);
-			}
-			rc = Krb5GetSecret(AuthHost, &identity, &identitylen,
-					&secret, &secretlen);
-			if (rc != 0){
-				fprintf(stderr,
-					"Can't get KRB5 secret, try kinit or use -host option\n");
-				exit(1);
-			}
-		} else {
-		
-			rc = Krb5GetSecret(hostname, &identity, &identitylen,
-				   &secret, &secretlen);
-			if (rc != 0 && interactive != 0)
-				rc = Krb5DoKinit();
-				if ( rc == 0 ) {
-					rc = Krb5GetSecret(hostname, &identity, &identitylen, &secret, &secretlen);
-				}
-		}
-#else
-		fprintf(stderr, "Kerberos5 not supported\n");
-		exit(1);
-#endif
+		/* actual secret recovery is done in U_BindToServer */
 		break;
+#endif
 	default:
 		fprintf(stderr, "Unsupported authentication type\n");
 		exit(1);
@@ -217,8 +171,8 @@ int U_Authenticate(char *hostname, int AuthenticationType, char *uName,
 	if (rc)
 		return rc;
 
-	rc = U_BindToServer(hostname, AuthenticationType, identity,
-			    identitylen, secret, secretlen, &RPCid);;
+	rc = U_BindToServer(hostname, AuthenticationType, identity, identitylen,
+			    secret, secretlen, &RPCid, interactive);
 	if(rc == 0) {
 		bound = 1;
 		rc = AuthGetTokens(RPCid, sToken, cToken);
@@ -234,9 +188,9 @@ int U_Authenticate(char *hostname, int AuthenticationType, char *uName,
 }
 
 
- /* Talks to the central authentication server and changes the password for uName to
-    newPasswd if myName is the same as uName or a system administrator.  MyPasswd
-    is used to validate myName.  */
+ /* Talks to the central authentication server and changes the password for
+  * uName to newPasswd if myName is the same as uName or a system
+  * administrator. MyPasswd is used to validate myName. */
 int U_ChangePassword(IN char *DefAuthHost, IN char *uName, IN char *newPasswd,
                      IN int AuthenticationType, IN char *myName,
                      IN int myNamelen, IN char *myPasswd, IN int myPasswdlen)
@@ -246,8 +200,14 @@ int U_ChangePassword(IN char *DefAuthHost, IN char *uName, IN char *newPasswd,
     RPC2_Handle RPCid;
     RPC2_EncryptionKey ek;
 
+    if (AuthenticationType != AUTH_METHOD_CODAUSERNAME) {
+	fprintf(stderr, "Cannot change kerberos passwords with auth2 tools\n");
+	exit(-1);
+    }
+
     if(!(rc = U_BindToServer(DefAuthHost, AuthenticationType, myName, myNamelen,
-                             myPasswd, myPasswdlen, &RPCid))) {
+                             myPasswd, myPasswdlen, &RPCid, 0)))
+    {
 	memset ((char *)ek, 0, RPC2_KEYSIZE);
 	strncpy((char *)ek, newPasswd, RPC2_KEYSIZE);
 	if(!(rc = AuthNameToId(RPCid, (RPC2_String) uName, &cpid))) {
@@ -296,12 +256,11 @@ char *U_AuthErrorMsg(int rc)
    Sets RPCid to the value of the connection id.    */
 int U_BindToServer(char *DefAuthHost, RPC2_Integer AuthenticationType, 
 		   char *uName, int uNamelen, char *uPasswd, int uPasswdlen,
-		   RPC2_Handle *RPCid)
+		   RPC2_Handle *RPCid, int interactive)
 {
-	char    AuthHost[MAXHOSTNAMELEN];
-	int     i = 0;
-	int     rc;
-	int bound = 0;
+	char AuthHost[MAXHOSTNAMELEN];
+	int bound = RPC2_FAIL;
+	int i = 0;
 
 	if ( DefAuthHost ) {
 		bound = TryBinding(AuthenticationType, uName, uNamelen, 
@@ -314,28 +273,34 @@ int U_BindToServer(char *DefAuthHost, RPC2_Integer AuthenticationType,
 	GetAuthServers();
 
 	/* try all valid entries until we are rejected or accepted */
-	while ((rc = SetHost(1, i, AuthHost)) == 0 ) {		
-#ifdef KERBEROS5	/* Get host secret for next host */
-			/* Either I did this right, or I broke multiple servers
-			 * badly --Troy
-			 */
-		if (i > 0 && AuthenticationType == AUTH_METHOD_KERBEROS5) {
-			/* should this be error checked ?*/
-			Krb5GetSecret(AuthHost, &uName, &uNamelen,
-				&uPasswd, &uPasswdlen);
+	for (i = 0; /* */; i++) {
+	    if (SetHost(1, i, AuthHost))
+		break;
+
+#ifdef HAVE_KRB5
+	    /* Get host secret for next host */
+	    /* Either I did this right, or I broke multiple servers badly
+	     * --Troy
+	     */
+	    if (AuthenticationType == AUTH_METHOD_KERBEROS5) {
+		/* should this be error checked ?*/
+		if (Krb5GetSecret(AuthHost, &uName, &uNamelen, &uPasswd,
+				  &uPasswdlen, interactive))
+		{
+		    fprintf(stderr, "Failed to get secret for %s\n", AuthHost);
+		    continue;
 		}
-#endif /* KERBEROS5 */
-		bound = TryBinding(AuthenticationType, uName, uNamelen, 
-				   uPasswd, uPasswdlen, AuthHost, RPCid);
-		if (bound == 0 || bound == RPC2_NOTAUTHENTICATED)
-			return (bound);
-		i++;
+	    }
+#endif
+	    bound = TryBinding(AuthenticationType, uName, uNamelen, 
+			       uPasswd, uPasswdlen, AuthHost, RPCid);
+
+	    /* break when we are successful or a server rejects our secret */
+	    if (bound == 0 || bound == RPC2_NOTAUTHENTICATED)
+		break;
 	}
 	return bound;
 }
-
-
-
 
 static int TryBinding(RPC2_Integer AuthenticationType, char *viceName, 
 		      int viceNamelen, char *vicePasswd, 

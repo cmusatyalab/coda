@@ -111,7 +111,7 @@ int main(int argc, char **argv)
     }
     strncpy(MyPassword, getpass("Your password: "), sizeof(MyPassword));
 
-    rc = U_BindToServer(DefAuthHost, AUTH_METHOD_CODAUSERNAME, MyViceName, strlen(MyViceName)+1, MyPassword, strlen(MyPassword), &AuthCid);
+    rc = U_BindToServer(DefAuthHost, AUTH_METHOD_CODAUSERNAME, MyViceName, strlen(MyViceName)+1, MyPassword, strlen(MyPassword), &AuthCid, 1);
 
     printf("RPC2_Bind() --> %s\n", RPC2_ErrorMsg(rc));
     if (rc < RPC2_ELIMIT) exit(-1);

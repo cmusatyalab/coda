@@ -86,17 +86,7 @@ void printusage(void)
 int main(int argc, char **argv)
 {
     EncryptedSecretToken    sToken;
-/* Make intelligent default decisions, depending on how we were built..
-		-- Troy <hozer@drgw.net> */
-#if defined(KERBEROS5)
-    RPC2_Integer            authmethod = AUTH_METHOD_KERBEROS5;
-#else 
-#if defined(KERBEROS4)
-    RPC2_Integer            authmethod = AUTH_METHOD_KERBEROS4;
-#else
     RPC2_Integer            authmethod = AUTH_METHOD_CODAUSERNAME;
-#endif
-#endif
     int                     passwdpipe = 0;
     int                     interactive = 1;
     ClearToken		    cToken;
@@ -105,11 +95,20 @@ int main(int argc, char **argv)
     struct passwd	    *pw;
     char *hostname=NULL;
     char *username=NULL;
-    long		    rc;
+    long rc;
     int i;
     int testing = 0;
     char *tofile   = NULL;
     char *fromfile = NULL;
+
+/* Make intelligent default decisions, depending on how we were built..
+		-- Troy <hozer@drgw.net> */
+#ifdef HAVE_KRB4
+    authmethod = AUTH_METHOD_KERBEROS4;
+#endif
+#ifdef HAVE_KRB5
+    authmethod = AUTH_METHOD_KERBEROS5;
+#endif 
 
 #ifdef __CYGWIN32__
     username = getlogin();	 

@@ -30,15 +30,6 @@ typedef enum AuthMethod {
 	AUTH_CODA, AUTH_KERBEROS4, AUTH_KERBEROS5
 } AuthMethod_t;
 
-#ifdef KERBEROS4
-long Krb4GetSecret(char *hostname, char **identity, int *identitylen, char **secret,
-		   int *secretlen);
-#endif
-#ifdef KERBEROS5
-long Krb5GetSecret(char *hostname, char **identity, int *identitylen, char **secret,
-		   int *secretlen);
-#endif
-
 int U_GetAuthMethod(char *arg, RPC2_Integer *type);
 void U_HostToNetClearToken(ClearToken *cToken);
 void U_NetToHostClearToken(ClearToken *cToken);
@@ -64,7 +55,7 @@ char *U_AuthErrorMsg(int rc);
    Sets RPCid to the value of the connection id.    */
 int U_BindToServer(char *DefAuthHost, RPC2_Integer AuthenticationType, 
 		   char *uName, int uNamelen, char *uPasswd, int uPasswdlen,
-		   RPC2_Handle *RPCid);
+		   RPC2_Handle *RPCid, int interactive);
 
 
 char *U_Error(int rc);

@@ -25,50 +25,37 @@ TOPOBJ = @TOPOBJ@
 
 include $(TOPDIR)/Makeconf
 
-#
-# Kerberos stuff
-#
-
-ifeq ($(KERBEROS),)
-CLOG=clog
-AUTH2=auth2
-AU=au
-LIBAUTH2OBJS=auth2.server.o acommon.o avice.o pwsupport.o
-LIBAUSEROBJS=auth2.client.o acommon.o auser.o avenus.o
-LIBKRBS=
-else
-CLOG=kclog
-AUTH2=kauth2
-AU=kau
-LIBAUTH2OBJS=auth2.server.o acommon.o avice.o pwsupport.o krbsupport.o
-LIBAUSEROBJS=auth2.client.o acommon.o auser.o avenus.o krbsupport.o
-CFLAGS += $(KRBINCLFLAGS)
-endif
-
-ifneq ($(KERBEROS5),)
-CFLAGS += -DKERBEROS5
-endif
-
-ifneq ($(KERBEROS4),)
-CFLAGS += -DKERBEROS4
-endif
-
 CFLAGS += -DCODAAUTH
 
+AUTHCOMMON := acommon.o
+LIBKRBS=
 
-#
-# non- Dos stuff
-#
+ifneq ($(LIBKRB4),)
+AUTHCOMMON += krb4.o
+LIBKRBS += $(LIBKRB5)
+endif
 
-ifeq ($(SHORTSYS),djgpp)
-EXECUTABLES = $(CLOG)
-else
-EXECUTABLES = $(CLOG) $(AUTH2) initpw $(AU) cpasswd ctokens cunlog tokentool
-CBINS       = $(CLOG) cpasswd ctokens cunlog
+ifneq ($(LIBKRB5),)
+AUTHCOMMON += krb5.o
+LIBKRBS += $(LIBKRB5)
+endif
 
-CSBINS      = $(AU)
+LIBKRBS += $(LIBMD5)
+
+LIBAUTH2OBJS=auth2.server.o avice.o pwsupport.o $(AUTHCOMMON)
+LIBAUSEROBJS=auth2.client.o auser.o avenus.o $(AUTHCOMMON)
+
+CBINS       = clog cpasswd ctokens cunlog
+CSBINS      = au
 SBINS       = 
-SSBINS      = $(AU) $(AUTH2) initpw
+SSBINS      = au auth2 initpw
+EXECUTABLES = $(CBINS) $(CSBINS) $(SBINS) $(SSBINS) tokentool
+
+#
+# only build clog on win9x
+#
+ifeq ($(SHORTSYS),djgpp)
+EXECUTABLES = clog
 endif
 
 CFLAGS := -Wall $(CFLAGS)
@@ -76,7 +63,7 @@ CFLAGS := -Wall $(CFLAGS)
 RP2HEADERS  = auth2.h
 
 DEPLIBS = ${LIBAL} ${LIBUTIL} ${LIBKERNDEP} ${LIBAUSER} ${LIBBASE}
-LIBS := ${DEPLIBS} ${LIBRPC2} ${LIBLWP} ${LIBS}
+LIBS := ${LIBRPC2} ${LIBLWP} ${LIBS}
 
 LIBRARIES   = libauth2.a libauser.a
 HEADERS     = avenus.h avice.h
@@ -88,26 +75,27 @@ libauth2.a: $(LIBAUTH2OBJS)
 
 libauser.a: $(LIBAUSEROBJS)
 
-$(AUTH2): auth2.o libauth2.a $(DEPLIBS)
-	$(CC) $(LDFLAGS) auth2.o libauth2.a $(LIBKRBS) $(LIBS) $(LIBDB) -o $(AUTH2)
+auth2: auth2.o libauth2.a $(DEPLIBS)
+	${CC} $(LDFLAGS) $^ ${LIBKRBS} ${LIBS} ${LIBDB} -o $@
 
-initpw: initpw.o $(DEPLIBS)
-	$(CC) $(LDFLAGS) initpw.o $(LIBS) -o initpw
+au: au.o libauser.a $(DEPLIBS)
+	${CC} $(LDFLAGS) $^ ${LIBKRBS} ${LIBS} -o $@
 
-$(AU): au.o libauser.a $(DEPLIBS)
-	$(CC) $(LDFLAGS) au.o libauser.a $(LIBKRBS) $(LIBS) -o $(AU)
-
-$(CLOG): clog.o tokenfile.o libauser.a ${DEPLIBS}
-	${CC} $(LDFLAGS) clog.o tokenfile.o libauser.a $(LIBKRBS) ${LIBS} -o $(CLOG)
-
-cunlog: cunlog.o libauser.a ${DEPLIBS}
-	${CC} $(LDFLAGS) cunlog.o libauser.a ${LIBS} -o cunlog
+clog: clog.o tokenfile.o libauser.a ${DEPLIBS}
+	${CC} $(LDFLAGS) $^ ${LIBKRBS} ${LIBS} -o $@
 
 cpasswd: cpasswd.o libauser.a ${DEPLIBS}
-	${CC} $(LDFLAGS) cpasswd.o  libauser.a ${LIBKRBS} ${LIBS} -o cpasswd
+	${CC} $(LDFLAGS) $^ ${LIBKRBS} ${LIBS} -o $@
+
+initpw: initpw.o $(DEPLIBS)
+	${CC} $(LDFLAGS) $^ ${LIBS} -o $@
+
+cunlog: cunlog.o libauser.a ${DEPLIBS}
+	${CC} $(LDFLAGS) $^ ${LIBS} -o $@
 
 ctokens: ctokens.o libauser.a ${DEPLIBS}
-	${CC} $(LDFLAGS) ctokens.o libauser.a ${LIBS} -o ctokens
+	${CC} $(LDFLAGS) $^ ${LIBS} -o $@
 
 tokentool: tokentool.o tokenfile.o ${DEPLIBS}
-	${CC} $(LDFLAGS) tokentool.o tokenfile.o ${LIBS} -o tokentool
+	${CC} $(LDFLAGS) $^ ${LIBS} -o $@
+

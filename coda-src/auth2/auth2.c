@@ -77,6 +77,7 @@ extern "C" {
 #include <al.h>
 #include "auth2.h"
 #include "auth2.common.h"
+
 #ifdef CODAAUTH
 #include "pwdefines.h"
 #include "pwsupport.h"
@@ -113,13 +114,6 @@ int TokenTime = 0;	/* last modified time on TokenKey file	*/
 int AuthTime = 0;	/* last modified time for PDB		*/
 static char *Auth2TKFile = NULL;	/* name of token key file */
 static int AUTime = 0;			/* used to tell if binaries have changed */
-
-#ifdef KERBEROS5
-static char *krb5_keytab_file = NULL;
-#endif  /* KERBEROS5 */
-#if defined(KERBEROS4) || defined(KERBEROS5)
-static char *krb_realm = NULL;
-#endif
 
 #ifdef HAVE_NDBM
 #define CODADB vice_sharedfile("db/prot_users.dir")
@@ -170,14 +164,14 @@ int main(int argc, char **argv)
 
 #ifdef CODAAUTH
     InitPW(PWFIRSTTIME);
-#endif	/* CODAAUTH */
-
-#ifdef KERBEROS4
-    Krb4Init(krb_realm);
 #endif
 
-#ifdef KERBEROS5
-    Krb5Init(krb_realm, krb5_keytab_file);
+#ifdef HAVE_KRB4
+    Krb4ServerInit();
+#endif
+
+#ifdef HAVE_KRB5
+    Krb5ServerInit();
 #endif
     
     LogMsg(-1, 0, stdout, "Server successfully started\n");
@@ -259,22 +253,6 @@ static void InitGlobals(int argc, char **argv)
 	    continue;
 	    }
 #endif	/* PWDCODADB */
-
-#ifdef KERBEROS5
-	if (strcmp(argv[i], "-keytab") == 0 && i < argc - 1)
-	    {
-	    krb5_keytab_file = argv[++i];
-	    continue;
-	    }
-#endif  /* KERBEROS5 */
-
-#if defined(KERBEROS4) || defined(KERBEROS5)
-	if (strcmp(argv[i], "-realm") == 0 && i < argc - 1)
-	    {
-	    krb_realm = argv[++i];
-	    continue;
-	    }
-#endif
 
 	if (strcmp(argv[i], "-tk") == 0 && i < argc - 1)
 	    {
@@ -454,36 +432,26 @@ long GetKeys(RPC2_Integer *AuthenticationType, RPC2_CountedBS *cIdent, RPC2_Encr
 	switch (*AuthenticationType)
 	{
 		case	AUTH_METHOD_NULL:
+		case	AUTH_METHOD_CODATOKENS:
+		case	AUTH_METHOD_PK:
 			/* we don't like this */
 				return -1;
-
 #ifdef CODAAUTH
 		case	AUTH_METHOD_CODAUSERNAME:
 			/* use coda password database */
 				returnval = PWGetKeys(cIdent, hKey, sKey);
 				break;
-#endif	/* CODAAUTH */
-
-		case	AUTH_METHOD_CODATOKENS:
-			/* cannot retrieve tokens using tokens! */
-				return -1;
-
-		case	AUTH_METHOD_PK:
-			/* just a reserved constant, thanks */
-				return -1;
-
-#ifdef KERBEROS4
+#endif
+#ifdef HAVE_KRB4
 		case	AUTH_METHOD_KERBEROS4:
-				returnval = Krb4GetKeys(cIdent, hKey, sKey);
-				break;
-#endif	/* KERBEROS4 */
-
-#ifdef KERBEROS5
-		case	AUTH_METHOD_KERBEROS5:
-				returnval = Krb5GetKeys(cIdent, hKey, sKey);
+				returnval = Krb4Validate(cIdent, hKey, sKey);
 				break;
 #endif
-
+#ifdef HAVE_KRB5
+		case	AUTH_METHOD_KERBEROS5:
+				returnval = Krb5Validate(cIdent, hKey, sKey);
+				break;
+#endif
 		default:
 			/* unrecognized auth type */
 				return -1;
@@ -491,9 +459,7 @@ long GetKeys(RPC2_Integer *AuthenticationType, RPC2_CountedBS *cIdent, RPC2_Encr
 
 	if (returnval == 0)
 	{
-		
 		/* verify has a VID */
-		
 		vid = GetViceId(cIdent);
 		LogMsg(0, AuthDebugLevel, stdout, "\tvid = %d", vid);
 		if (vid < 0) 

@@ -51,11 +51,23 @@
 /* Define if you have the <arpa/nameser.h> header file.  */
 #undef HAVE_ARPA_NAMESER_H
 
+/* Define if you have the <com_err.h> header file.  */
+#undef HAVE_COM_ERR_H
+
 /* Define if you have the <db1/db.h> header file.  */
 #undef HAVE_DB1_DB_H
 
 /* Define if you have the <db_185.h> header file.  */
 #undef HAVE_DB_185_H
+
+/* Define if you have the <des.h> header file.  */
+#undef HAVE_DES_H
+
+/* Define if you have the <krb.h> header file.  */
+#undef HAVE_KRB_H
+
+/* Define if you have the <krb5.h> header file.  */
+#undef HAVE_KRB5_H
 
 /* Define if you have the <ncurses.h> header file.  */
 #undef HAVE_NCURSES_H
@@ -116,6 +128,12 @@
 
 /* Define if you have ndbm */
 #undef HAVE_NDBM
+
+/* Define if kerberos 5 is available */
+#undef HAVE_KRB5
+
+/* Define if kerberos 4 is available */
+#undef HAVE_KRB4
 
 /* Definition for socklen_t if the type is missing */
 #undef socklen_t

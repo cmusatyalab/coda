@@ -24,10 +24,6 @@ extern "C" {
 
 #include <rpc2/rpc2.h>
 
-#ifdef __cplusplus
-}
-#endif
-
 /* Copy the hash of 'secret' into the RPC2 key */
 void HashSecret(unsigned char *secret, int len, RPC2_EncryptionKey key);
 
@@ -36,6 +32,10 @@ int GetSecret(char *tokenfile, RPC2_EncryptionKey key);
 
 /* Fill the RPC2 key with random values (for session keys) */
 void GenerateSecret(RPC2_EncryptionKey key);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* _GETSECRET_H_ */
 
