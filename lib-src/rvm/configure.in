@@ -53,5 +53,5 @@ if test ${with_LWP_PT}p != nop ; then
 fi
 
 dnl Generate output files
-AC_OUTPUT(Makefile include/Makefile include/rvm/Makefile rvm/Makefile seg/Makefile rds/Makefile tests/Makefile pkgs/Makefile pkgs/rvm.spec pkgs/rvm-nt.spec pkgs/rvm-dos.spec)
+AC_OUTPUT(Makefile include/Makefile include/rvm/Makefile rvm/Makefile seg/Makefile rds/Makefile tests/Makefile pkgs/Makefile pkgs/rvm.spec pkgs/rvm-nt.spec pkgs/rvm-dos.spec pkgs/rvm-win95.spec)
 

@@ -1,6 +1,7 @@
 New in 1.2:
 
 * Correctly linking librdslwp from the lwp compiled objects.
+* Updated package descriptions & building against lwp-1.5.
 
 New in 1.1:
 

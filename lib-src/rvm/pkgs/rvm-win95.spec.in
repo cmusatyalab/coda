@@ -1,0 +1,47 @@
+Summary: RVM library development files
+Name: @PACKAGE@-djgpp-mmap
+Version: @VERSION@
+Release: 1
+Source: ftp://ftp.coda.cs.cmu.edu/pub/coda/src/@PACKAGE@-@VERSION@.tar.gz
+Copyright: LGPL
+BuildRoot: /usr/src/redhat/BUILD/@PACKAGE@-@VERSION@/Root
+Group: Development/Libraries
+%description
+Headers and static libraries for developing programs using the RVM library.
+The RVM library is used by the Coda distributed filesystem.
+
+%changelog
+* Tue Oct 26 1999 Jan Harkes <jaharkes@cs.cmu.edu>
+- First stab at packaging the rvm library.
+	
+%prep
+%setup -n @PACKAGE@-@VERSION@
+
+%build
+./configure --prefix=/usr/lib/gcc-lib/i386-go32w95mmap-msdos/2.7.2.1 --target=win95
+make
+
+%install
+rm -rf $RPM_BUILD_ROOT
+mkdir -p $RPM_BUILD_ROOT
+make prefix=$RPM_BUILD_ROOT/usr/lib/gcc-lib/i386-go32w95mmap-msdos/2.7.2.1 install
+
+%clean
+rm -rf $RPM_BUILD_ROOT
+
+%files
+/usr/lib/gcc-lib/i386-go32w95mmap-msdos/2.7.2.1/lib/librvm.la
+/usr/lib/gcc-lib/i386-go32w95mmap-msdos/2.7.2.1/lib/librvm.a
+/usr/lib/gcc-lib/i386-go32w95mmap-msdos/2.7.2.1/lib/librvmlwp.la
+/usr/lib/gcc-lib/i386-go32w95mmap-msdos/2.7.2.1/lib/librvmlwp.a
+/usr/lib/gcc-lib/i386-go32w95mmap-msdos/2.7.2.1/lib/libseg.la
+/usr/lib/gcc-lib/i386-go32w95mmap-msdos/2.7.2.1/lib/libseg.a
+/usr/lib/gcc-lib/i386-go32w95mmap-msdos/2.7.2.1/lib/librds.la
+/usr/lib/gcc-lib/i386-go32w95mmap-msdos/2.7.2.1/lib/librds.a
+/usr/lib/gcc-lib/i386-go32w95mmap-msdos/2.7.2.1/lib/librdslwp.la
+/usr/lib/gcc-lib/i386-go32w95mmap-msdos/2.7.2.1/lib/librdslwp.a
+%dir /usr/lib/gcc-lib/i386-go32w95mmap-msdos/2.7.2.1/include/rvm
+/usr/lib/gcc-lib/i386-go32w95mmap-msdos/2.7.2.1/include/rvm/rvm.h
+/usr/lib/gcc-lib/i386-go32w95mmap-msdos/2.7.2.1/include/rvm/rvm_statistics.h
+/usr/lib/gcc-lib/i386-go32w95mmap-msdos/2.7.2.1/include/rvm/rvm_segment.h
+/usr/lib/gcc-lib/i386-go32w95mmap-msdos/2.7.2.1/include/rvm/rds.h

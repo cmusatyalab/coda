@@ -42,7 +42,7 @@ rds_init_heap(base, length, chunk_size, nlists, tid, err)
     int i, remaining_space;
     unsigned long heap_hdr_len;
     rvm_return_t rvmret;
-    int *addr;
+    guard_t *addr;
     
     /* heap consists of a heap_header_t followed by nlist list headers */
     heap_hdr_len = sizeof(heap_header_t) + nlists * sizeof(free_list_t);
@@ -101,7 +101,7 @@ rds_init_heap(base, length, chunk_size, nlists, tid, err)
     hdrp->stats.freebytes = fbp->size * chunk_size;  /* Num of allocatable bytes*/
 
     /* Add the guard to the end of the block */
-    addr = (int *)((char *)fbp + fbp->size * chunk_size);
+    addr = (guard_t *)((char *)fbp + fbp->size * chunk_size);
     assert((char *)addr <= base + length);
     
     addr--;  /* point to last word in the block */

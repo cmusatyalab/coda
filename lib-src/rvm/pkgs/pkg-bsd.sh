@@ -84,17 +84,19 @@ function MakeMakefile () {
 @FreeBSD #
 
 DISTNAME=	rvm-@VERSION@
-PKGNAME=	rvm-@VERSION@
+@NetBSD PKGNAME=	rvm-@VERSION@
+@FreeBSD PORTNAME=	rvm
+@FreeBSD PORTVERSION=	@VERSION@
 CATEGORIES=	devel
 MASTER_SITES=	ftp://ftp.coda.cs.cmu.edu/pub/rvm/src/
 EXTRACT_SUFX=	.tar.gz
 
 MAINTAINER=	coda@cs.cmu.edu
 @NetBSD HOMEPAGE=	http://www.coda.cs.cmu.edu/
-@FreeBSD LIB_DEPENDS=	lwp.1:\${PORTSDIR}/devel/lwp
-@NetBSD DEPENDS=	lwp-1.4:../lwp
+@FreeBSD LIB_DEPENDS=	lwp.2:\${PORTSDIR}/devel/lwp
+@NetBSD DEPENDS=	lwp-1.5:../lwp
 
-@NetBSD ONLY_FOR_ARCHS=	arm32 i386 ns32k
+@NetBSD #ONLY_FOR_ARCHS=	arm32 i386 ns32k
 @NetBSD 
 @NetBSD LICENSE=	LGPL
 @NetBSD 

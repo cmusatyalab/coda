@@ -3,3 +3,4 @@ Makefile.in
 rvm.spec
 rvm-nt.spec
 rvm-dos.spec
+rvm-win95.spec
