@@ -87,14 +87,14 @@ EXTRACT_SUFX=	.tgz
 MAINTAINER=	rvb@cs.cmu.edu
 @NetBSD HOMEPAGE=	http://www.coda.cs.cmu.edu/
 @FreeBSD LIB_DEPENDS+=	lwp.2:\${PORTSDIR}/devel/lwp
-@FreeBSD LIB_DEPENDS+=	rpc2.2:\${PORTSDIR}/devel/rpc2
+@FreeBSD LIB_DEPENDS+=	rpc2.3:\${PORTSDIR}/devel/rpc2
 @FreeBSD LIB_DEPENDS+=	rvm.1:\${PORTSDIR}/devel/rvm
 
 @NetBSD DEPENDS+=	readline-2.2:../../devel/readline
 @NetBSD DEPENDS+=	perl-5.00404:../../lang/perl5
-@NetBSD DEPENDS+=	lwp-1.5:../../devel/lwp
-@NetBSD DEPENDS+=	rpc2-1.6:../../devel/rpc2
-@NetBSD DEPENDS+=	rvm-1.2:../../devel/rvm
+@NetBSD DEPENDS+=	lwp-1.6:../../devel/lwp
+@NetBSD DEPENDS+=	rpc2-1.9:../../devel/rpc2
+@NetBSD DEPENDS+=	rvm-1.3:../../devel/rvm
 
 @NetBSD #ONLY_FOR_ARCHS=	arm32 i386 ns32k
 @NetBSD 
