@@ -236,7 +236,7 @@ void  coda_dentry_delete(struct dentry *dentry)
 		if ( cnp ) 
 			CHECK_CNODE(cnp);
 	} else {
-		printk("No inode for dentry_delete!\n");
+		CDEBUG(D_CACHE, "No inode for dentry_delete!\n");
 		return;
 	}
 
@@ -253,6 +253,14 @@ void  coda_dentry_delete(struct dentry *dentry)
 	}
 	return;
 }
+
+static void coda_zap_cnode(struct cnode *cnp, int flags)
+{
+	cnp->c_flags |= flags;
+	coda_cache_clear_cnp(cnp);
+}
+
+
 
 /* the dache will notice the flags and drop entries (possibly with
    children) the moment they are no longer in use  */
@@ -273,9 +281,22 @@ void coda_zapfid(struct ViceFid *fid, struct super_block *sb, int flag)
 		return;
 	}
 
+	if ( coda_fid_is_volroot(fid) ) {
+		struct list_head *lh, *le;
+		struct coda_sb_info *sbi = coda_sbp(sb);
+		le = lh = &sbi->sbi_volroothead;
+		while ( (le = le->next) != lh ) {
+			cnp = list_entry(le, struct cnode, c_volrootlist);
+			if ( cnp->c_fid.Volume == fid->Volume) 
+				coda_zap_cnode(cnp, flag);
+		}
+		return;
+	}
+
+
 	inode = coda_fid_to_inode(fid, sb);
 	if ( !inode ) {
-		printk("coda_zapfid: no inode!\n");
+		CDEBUG(D_CACHE, "coda_zapfid: no inode!\n");
 		return;
 	}
 	cnp = ITOC(inode);
@@ -284,8 +305,7 @@ void coda_zapfid(struct ViceFid *fid, struct super_block *sb, int flag)
 		printk("coda_zapfid: no cnode!\n");
 		return;
 	}
-	cnp->c_flags |= flag;
-	coda_cache_clear_cnp(cnp);
+	coda_zap_cnode(cnp, flag);
 }
 		
 

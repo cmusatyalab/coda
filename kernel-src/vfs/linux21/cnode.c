@@ -7,8 +7,8 @@
 
 #include <linux/coda.h>
 #include <linux/coda_linux.h>
-#include <linux/coda_psdev.h>
 #include <linux/coda_cnode.h>
+#include <linux/coda_psdev.h>
 
 extern int coda_debug;
 extern int coda_print_entry;
@@ -29,6 +29,7 @@ static struct cnode *coda_cnode_alloc(void)
 
         memset(result, 0, (int) sizeof(struct cnode));
         INIT_LIST_HEAD(&(result->c_cnhead));
+	INIT_LIST_HEAD(&(result->c_volrootlist));
 	return result;
 }
 
@@ -70,6 +71,7 @@ static void coda_fill_inode (struct inode *inode, struct coda_vattr *attr)
 int coda_cnode_make(struct inode **inode, ViceFid *fid, struct super_block *sb)
 {
         struct cnode *cnp;
+	struct coda_sb_info *sbi= coda_sbp(sb);
         struct coda_vattr attr;
         int error;
 	ino_t ino;
@@ -119,6 +121,9 @@ int coda_cnode_make(struct inode **inode, ViceFid *fid, struct super_block *sb)
 	CHECK_CNODE(cnp);
 
 	/* fill in the inode attributes */
+	if ( coda_fid_is_volroot(fid) ) 
+		list_add(&cnp->c_volrootlist, &sbi->sbi_volroothead);
+
         coda_fill_inode(*inode, &attr);
 	CDEBUG(D_CNODE, "Done linking: ino %ld,  at 0x%x with cnp 0x%x, cnp->c_vnode 0x%x\n", (*inode)->i_ino, (int) (*inode), (int) cnp, (int)cnp->c_vnode);
 
@@ -148,6 +153,7 @@ struct inode *coda_fid_to_inode(ViceFid *fid, struct super_block *sb) {
 ENTRY;
 
 	CDEBUG(D_INODE, "%s\n", coda_f2s(fid, str));
+
 	nr = coda_f2i(fid);
 	inode = iget(sb, nr);
 

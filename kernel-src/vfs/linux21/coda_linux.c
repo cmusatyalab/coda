@@ -97,6 +97,11 @@ unsigned short coda_flags_to_cflags(unsigned short flags)
 }
 
 
+int coda_fid_is_volroot(struct ViceFid *fid)
+{
+	return ( (fid->Vnode == 1) && (fid->Unique == 1 ) );
+}
+
 /* utility functions below */
 void coda_vattr_to_iattr(struct inode *inode, struct coda_vattr *attr)
 {

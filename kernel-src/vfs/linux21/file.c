@@ -25,7 +25,7 @@
 #include <linux/coda_cache.h>
 
 /* file operations */
-static int coda_readpage(struct inode * inode, struct page * page);
+static int coda_readpage(struct dentry * dentry, struct page * page);
 static ssize_t coda_file_read(struct file *f, char *buf, size_t count, loff_t *off);
 static ssize_t coda_file_write(struct file *f, const char *buf, size_t count, loff_t *off);
 static int coda_file_mmap(struct file * file, struct vm_area_struct * vma);
@@ -74,9 +74,11 @@ struct file_operations coda_file_operations = {
 };
 
 /*  File file operations */
-static int coda_readpage(struct inode * inode, struct page * page)
+static int coda_readpage(struct dentry *de, struct page * page)
 {
-        struct inode *open_inode;
+	struct inode *inode = de->d_inode;
+	struct dentry cont_dentry;
+        struct inode *cont_inode;
         struct cnode *cnp;
 
         ENTRY;
@@ -89,11 +91,12 @@ static int coda_readpage(struct inode * inode, struct page * page)
                 return -ENXIO;
         }
 
-        open_inode = cnp->c_ovp;
+        cont_inode = cnp->c_ovp;
+	cont_dentry.d_inode = cont_inode;
 
-        CDEBUG(D_INODE, "coda ino: %ld, cached ino %ld, page offset: %lx\n", inode->i_ino, open_inode->i_ino, page->offset);
+        CDEBUG(D_INODE, "coda ino: %ld, cached ino %ld, page offset: %lx\n", inode->i_ino, cont_inode->i_ino, page->offset);
 
-        generic_readpage(open_inode, page);
+        generic_readpage(&cont_dentry, page);
         EXIT;
         return 0;
 }

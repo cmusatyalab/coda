@@ -41,7 +41,7 @@
 /* VFS super_block ops */
 static struct super_block *coda_read_super(struct super_block *, void *, int);
 static void coda_read_inode(struct inode *);
-static int  coda_notify_change(struct inode *inode, struct iattr *attr);
+static int  coda_notify_change(struct dentry *dentry, struct iattr *attr);
 static void coda_put_inode(struct inode *);
 static void coda_delete_inode(struct inode *);
 static void coda_put_super(struct super_block *);
@@ -101,6 +101,7 @@ static struct super_block * coda_read_super(struct super_block *sb,
         sbi->sbi_psdev = psdev;
 	sbi->sbi_vcomm = vc;
 	INIT_LIST_HEAD(&(sbi->sbi_cchead));
+	INIT_LIST_HEAD(&(sbi->sbi_volroothead));
 
         lock_super(sb);
         sb->u.generic_sbp = sbi;
@@ -208,6 +209,10 @@ static void coda_delete_inode(struct inode *inode)
 	}
 
         cnp = ITOC(inode);
+
+	if ( coda_fid_is_volroot(&cnp->c_fid) )
+		list_del(&cnp->c_volrootlist);
+
         open_inode = cnp->c_ovp;
         if ( open_inode ) {
                 CDEBUG(D_SUPER, "DELINO cached file: ino %ld count %d.\n",  
@@ -224,8 +229,9 @@ static void coda_delete_inode(struct inode *inode)
 	EXIT;
 }
 
-static int  coda_notify_change(struct inode *inode, struct iattr *iattr)
+static int  coda_notify_change(struct dentry *de, struct iattr *iattr)
 {
+	struct inode *inode = de->d_inode;
         struct cnode *cnp;
         struct coda_vattr vattr;
         int error;
