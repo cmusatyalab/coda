@@ -1,0 +1,75 @@
+Basic Installation
+==================
+
+Obtaining the sources
+---------------------
+
+The sources can be downloaded from:
+    ftp://ftp.coda.cs.cmu.edu/pub/coda/src/rvm-x.x.tar.gz
+
+Or obtained from the anonymous CVS repository:
+
+You need to have automake, autoconf, and libtool installed on your system in
+order to set up the build environment. Known versions that work are automake
+1.4, autoconf 2.13, and libtool 1.2f.
+
+    $ cvs -d':pserver:anonymous@coda.cs.cmu.edu:/coda-src' login
+    Password: <return>
+    $ cvs -d':pserver:anonymous@coda.cs.cmu.edu:/coda-src' co rvm
+    $ cd rvm
+    $ sh bootstrap.sh
+
+From here the everything is identical to (but possibly more up-to-date than)
+using the tarball from the Coda ftp site.
+
+
+Configuring
+-----------
+
+Run the ./configure script. The default installation path is /usr/local, but
+this can be modified by using the --prefix option.
+
+Special cross-compilation notes;
+
+Using djgpp on RedHat Linux (dos target). You need the rpms for the djgpp
+cross compiler from the Coda ftp site.
+    $ ./configure --prefix=/usr/djgpp --target=dos
+
+Using cygwin32 on RedHat Linux (win32 target). You need the rpms for the
+cygwin32 cross compiler from the Coda ftp site.
+    $ ./configure --prefix=/usr/djgpp --target=cygwin
+
+
+Building and installing
+-----------------------
+
+$ make
+$ make install
+
+*note: When you encounter any makefile errors, try to build using GNU make.
+    (which is commonly installed as gmake on BSD systems)
+
+
+Building various packages
+=========================
+
+Building RedHat rpm packages;
+- First run configure which creates suitable rpm-spec files in the pkgs
+  directory.
+- If you have made local modifications create a new tarball by running
+  make dist (and preferably modify the Release field in the spec file).
+- Copy the source tarball to /usr/src/redhat/SOURCES.
+- Run 'rpm -ba pkgs/rvm.spec' to build the rvm rpms.
+ 
+  - 'rpm -ba pkgs/rvm-dos.spec' will cross-compile for dos.
+  - 'rpm -ba pkgs/rvm-nt.spec' will cross-compile for win32, and create a zip
+    archive containing .dll's in /tmp.
+    
+Building FreeBSD or NetBSD packages;
+- Run 'pkgs/pkg-bsd.sh <version> FreeBSD|NetBSD'
+- A tarball named pkg-rvm-<version>-<bsd>.tgz is created which can be
+  extracted into the ports/pkgsrc tree.
+
+Building Debian/GNU Linux packages;
+    coming to a theater near you soon?
+
