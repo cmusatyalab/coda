@@ -7,7 +7,8 @@ cd /vice/db
 echo "Setting up users and groups for Coda"
 
 echo "System:Administrators   -204    admin" > group.coda
-echo admin::500::Administrator:: > user.coda
+echo admin::500::Administrator:: > passwd.coda
 
-pwd2pdb -p user.coda -g group.coda > vice.pdb
+pwd2pdb -p passwd.coda -g group.coda > vice.pdb
 pcfgen vice.pdb
+
