@@ -113,12 +113,12 @@ endif
 # Include the make variables (CC, etc...)
 #
 
-ARCHIVES	=kernel/kernel.o mm/mm.o fs/fs.o ipc/ipc.o net/network.a ifs/inode_io.o
+ARCHIVES	=kernel/kernel.o mm/mm.o fs/fs.o ipc/ipc.o net/network.a inodefs/inodefs_io.o
 FILESYSTEMS	=fs/filesystems.a
 DRIVERS		=drivers/block/block.a \
 		 drivers/char/char.a
 LIBS		=$(TOPDIR)/lib/lib.a
-SUBDIRS		=kernel drivers mm fs net ipc lib ifs 
+SUBDIRS		=kernel drivers mm fs net ipc lib inodefs 
 
 ifeq ($(CONFIG_ISDN),y)
 DRIVERS := $(DRIVERS) drivers/isdn/isdn.a
@@ -260,14 +260,14 @@ drivers: dummy
 net: dummy
 	$(MAKE) linuxsubdirs SUBDIRS=net
 
-inode_io: dummy
-	$(MAKE)	linuxsubdirs SUBDIRS=ifs
+inodefs_io: dummy
+	$(MAKE)	linuxsubdirs SUBDIRS=inodefs
 
-ifs: dummy
-	-rmmod ifs
-	$(MAKE)	modules SUBDIRS=ifs
+inodefs: dummy
+	-rmmod inodefs
+	$(MAKE)	modules SUBDIRS=inodefs
 	$(MAKE) modules_install
-	-insmod ifs
+	-insmod inodefs
 
 MODFLAGS = -DMODULE
 ifdef CONFIG_MODULES

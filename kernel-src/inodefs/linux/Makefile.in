@@ -7,9 +7,9 @@
 #
 # Note 2! The CFLAGS definitions are now in the main makefile...
 
-O_TARGET := ifs.o
-O_OBJS  = ifssyscall.o
-M_OBJS  = ifs.o
+O_TARGET := inodefs.o
+O_OBJS  = inodefssyscall.o
+M_OBJS  = inodefs.o
 
 
 include $(TOPDIR)/Rules.make
