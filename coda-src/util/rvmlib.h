@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: blurb.doc,v 1.1 96/11/22 13:29:31 raiff Exp $";
+static char *rcsid = "$Header: /home/braam/src/coda-src/util/RCS/rvmlib.h,v 1.1 1996/11/22 19:08:24 braam Exp braam $";
 #endif /*_BLURB_*/
 
 
@@ -284,7 +284,7 @@ switch (RvmType) {							    \
 	    LogMsg(0, 0, stdout, "Setting Rvm Truncate threshhold to %d.\n", _Rvm_Truncate); \
 	    options->truncate = _Rvm_Truncate;				    \
 	} 								    \
-	sbrk(0x20000000 - sbrk(0)); /* for garbage reasons. */		    \
+	sbrk((void *)(0x20000000 - (int)sbrk(0))); /* for garbage reasons. */		    \
 	stackLimit.rlim_cur = CODA_STACK_LENGTH;			    \
 /*	setrlimit(RLIMIT_STACK, &stackLimit);*/	/* Set stack growth limit */ \
         if ((err = RVM_INIT(options)) != RVM_SUCCESS)	/* Start rvm */	    \
