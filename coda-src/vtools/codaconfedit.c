@@ -187,17 +187,19 @@ int main(int argc, char **argv)
 
     /* argc >= 4 */
     /* check if this value was already set */
-    p = val;
-    for (i = 3; i <= argc; i++) {
-	len = strlen(argv[i]);
-	if (strncmp(argv[i], p, len) != 0)
-	    break;
-	p = p + len;
-	if (*p != ' ') break;
-	p++;
+    if (val) {
+	p = val;
+	for (i = 3; i <= argc; i++) {
+	    len = strlen(argv[i]);
+	    if (strncmp(argv[i], p, len) != 0)
+		break;
+	    p = p + len;
+	    if (*p != ' ') break;
+	    p++;
+	}
+	if (i == argc-1 && *p == '\0')
+	    exit(0);
     }
-    if (i == argc-1 && *p == '\0')
-	exit(0);
 
     do_rewrite(conffile, argc, argv);
 
