@@ -57,7 +57,7 @@ class RepOpCommCtxt {
 
     int AnyReturned(int code);
 
-    void print(FILE *f) { fprintf(f, "%p : HowMany = %d\n", this, HowMany); }
+    void print(FILE *f) { fprintf(f, "%p : HowMany = %d\n", this, (int)HowMany); }
     void print() { print(stdout); }
 };
 
@@ -80,7 +80,7 @@ class mgrpent : private RefCountedObject {
     /* Static state; immutable after construction. */
     vsgent *vsg;
     struct dllist_head vsghandle;
-    vuid_t uid;				/* UID to validate with respect to. */
+    uid_t uid;				/* UID to validate with respect to. */
     RPC2_Multicast McastInfo;
     unsigned authenticated : 1;
     unsigned disconnectfs : 1;
@@ -94,7 +94,7 @@ class mgrpent : private RefCountedObject {
 #endif /* VENUSDEBUG */
 
     /* Constructors, destructors, and private utility routines. */
-    mgrpent(vsgent *, vuid_t, RPC2_Handle, int);
+    mgrpent(vsgent *, uid_t, RPC2_Handle, int);
     ~mgrpent();
     
   public:
@@ -121,7 +121,7 @@ class mgrpent : private RefCountedObject {
 
     void print(FILE *f) {     
 	    fprintf(f, "%p : uid = %d, mid = %d, auth = %d, ref = %d, detached = %d\n",
-		    this, uid, McastInfo.Mgroup, authenticated, refcount, list_empty(&vsghandle));
+		    this, uid, (int)McastInfo.Mgroup, authenticated, refcount, list_empty(&vsghandle));
     }
 };
 

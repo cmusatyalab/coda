@@ -43,19 +43,16 @@ extern "C" {
 
 /* ********** begining of lrdb methods ********** */
 /* must be called from within a transaction */
-ViceFid *lrdb::LGM_LookupLocal(ViceFid *global)
+VenusFid *lrdb::LGM_LookupLocal(VenusFid *global)
 {
     OBJ_ASSERT(this, global);
-    LOG(1000, ("lrdb::LGM_LookupLocal: global = 0x%x.%x.%x\n",
-	       global->Volume, global->Vnode, global->Unique));
+    LOG(1000, ("lrdb::LGM_LookupLocal: global = %s\n", FID_(global)));
     lgm_iterator next(local_global_map);
     lgment *lgm;
     while ((lgm = next())) {
-	if (!memcmp((const void *)global, (const void *) lgm->GetGlobalFid(), 
-		  (int)sizeof(ViceFid))) {
-	    ViceFid *local = lgm->GetLocalFid();
-	    LOG(1000, ("lrdb::LGM_LookupLocal: found local = 0x%x.%x.%x\n",
-		       local->Volume, local->Vnode, local->Unique));
+	if (FID_EQ(global, lgm->GetGlobalFid())) {
+	    VenusFid *local = lgm->GetLocalFid();
+	    LOG(1000, ("lrdb::LGM_LookupLocal: found local = %s\n", FID_(local)));
 	    return local;
 	}
     }
@@ -63,18 +60,17 @@ ViceFid *lrdb::LGM_LookupLocal(ViceFid *global)
     return NULL;
 }
 
-ViceFid *lrdb::LGM_LookupGlobal(ViceFid *local)
+VenusFid *lrdb::LGM_LookupGlobal(VenusFid *local)
 {
     OBJ_ASSERT(this, local);
-    LOG(1000, ("lrdb::LGM_LookupLocal: local = 0x%x.%x.%x\n",
-	       local->Volume, local->Vnode, local->Unique));
+    LOG(1000, ("lrdb::LGM_LookupLocal: local = %s\n", FID_(local)));
     lgm_iterator next(local_global_map);
     lgment *lgm;
     while ((lgm = next())) {
-	if (!memcmp((const void *)local, (const void *) lgm->GetLocalFid(), (int)sizeof(ViceFid))) {
-	    ViceFid *global = lgm->GetGlobalFid();
-	    LOG(1000, ("lrdb::LGM_LookupLocal: found global = 0x%x.%x.%x\n",
-		       global->Volume, global->Vnode, global->Unique));
+	if (FID_EQ(local, lgm->GetLocalFid())) {
+	    VenusFid *global = lgm->GetGlobalFid();
+	    LOG(1000, ("lrdb::LGM_LookupLocal: found global = %s\n",
+		       FID_(global)));
 	    return global;
 	}
     }
@@ -82,31 +78,29 @@ ViceFid *lrdb::LGM_LookupGlobal(ViceFid *local)
     return NULL;
 }
 
-void lrdb::LGM_Insert(ViceFid *local, ViceFid *global)
+void lrdb::LGM_Insert(VenusFid *local, VenusFid *global)
 {
     OBJ_ASSERT(this, local && global);
     /* make sure that the mapping is not already in the list */
-    LOG(100, ("lrdb::LGM_Insert:local = 0x%x.%x.%x. global = 0x%x.%x.%x\n",
-	      local->Volume, local->Vnode, local->Unique,
-	      global->Volume, global->Vnode, global->Unique));
+    LOG(100, ("lrdb::LGM_Insert:local = %s. global = %s\n",
+	      FID_(local), FID_(global)));
     OBJ_ASSERT(this, !LGM_LookupLocal(global) && !LGM_LookupGlobal(local));
     lgment *lgm = new lgment(local, global);
     local_global_map.append(lgm);
 }
 
 /* must be called from within a transaction */
-void lrdb::LGM_Remove(ViceFid *local, ViceFid *global)
+void lrdb::LGM_Remove(VenusFid *local, VenusFid *global)
 {
     OBJ_ASSERT(this, local && global);
-    LOG(100, ("lrdb::LGM_Remove:local = 0x%x.%x.%x. global = 0x%x.%x.%x\n",
-	      local->Volume, local->Vnode, local->Unique,
-	      global->Volume, global->Vnode, global->Unique));
+    LOG(100, ("lrdb::LGM_Remove:local = %s. global = %s\n",
+	      FID_(local), FID_(global)));
     /* make sure the mapping is there and correct */
     lgm_iterator next(local_global_map);
     lgment *lgm, *target = (lgment *)NULL;
     while ((lgm = next())) {
-	if (!memcmp((const void *)local, (const void *) lgm->GetLocalFid(), (int)sizeof(ViceFid)) &&
-	    !memcmp((const void *)global, (const void *) lgm->GetGlobalFid(), (int)sizeof(ViceFid))) {
+	if (FID_EQ(local, lgm->GetLocalFid()) &&
+	    FID_EQ(global, lgm->GetGlobalFid())) {
 	    LOG(100, ("lrdb::LGM_Remove: found the map entry\n"));
 	    target = lgm;
 	    break;
@@ -119,16 +113,16 @@ void lrdb::LGM_Remove(ViceFid *local, ViceFid *global)
 }
 
 /* need not be called from within a transaction */
-ViceFid *lrdb::RFM_LookupGlobalRoot(ViceFid *FakeRootFid)
+VenusFid *lrdb::RFM_LookupGlobalRoot(VenusFid *FakeRootFid)
 {
     /* given fake-root-fid, find out the corresponding global-root-fid */
     OBJ_ASSERT(this, FakeRootFid);
-    LOG(1000, ("lrdb::RFM_LookupGlobalRoot: FakeRootFid = 0x%x.%x.%x\n",
-	       FakeRootFid->Volume, FakeRootFid->Vnode, FakeRootFid->Unique));
+    LOG(1000, ("lrdb::RFM_LookupGlobalRoot: FakeRootFid = %s\n",
+	       FID_(FakeRootFid)));
     rfm_iterator next(root_fid_map);
     rfment *rfm;
     while ((rfm = next())) {
-	if (!memcmp((const void *)rfm->GetFakeRootFid(), (const void *) FakeRootFid, (int)sizeof(ViceFid))) {
+	if (FID_EQ(rfm->GetFakeRootFid(), FakeRootFid)) {
 	    LOG(1000, ("lrdb::RFM_LookupGlobalRoot: found\n"));
 	    return rfm->GetGlobalRootFid();
 	} 
@@ -138,16 +132,16 @@ ViceFid *lrdb::RFM_LookupGlobalRoot(ViceFid *FakeRootFid)
 }
 
 /* need not be called from within a transaction */
-ViceFid *lrdb::RFM_LookupLocalRoot(ViceFid *FakeRootFid)
+VenusFid *lrdb::RFM_LookupLocalRoot(VenusFid *FakeRootFid)
 {
     /* given fake-root-fid, find out the corresponding local-root-fid */
     OBJ_ASSERT(this, FakeRootFid);
-    LOG(1000, ("lrdb::RFM_LookupLocalRoot: FakeRootFid = 0x%x.%x.%x\n",
-	       FakeRootFid->Volume, FakeRootFid->Vnode, FakeRootFid->Unique));
+    LOG(1000, ("lrdb::RFM_LookupLocalRoot: FakeRootFid = %s\n",
+	       FID_(FakeRootFid)));
     rfm_iterator next(root_fid_map);
     rfment *rfm;
     while ((rfm = next())) {
-	if (!memcmp((const void *)rfm->GetFakeRootFid(), (const void *) FakeRootFid, (int)sizeof(ViceFid))) {
+	if (FID_EQ(rfm->GetFakeRootFid(), FakeRootFid)) {
 	    LOG(1000, ("lrdb::RFM_LookupLocalRoot: found\n"));
 	    return rfm->GetLocalRootFid();
 	} 
@@ -157,16 +151,16 @@ ViceFid *lrdb::RFM_LookupLocalRoot(ViceFid *FakeRootFid)
 }
 
 /* need not be called from within a transaction */
-ViceFid *lrdb::RFM_LookupRootParent(ViceFid *FakeRootFid)
+VenusFid *lrdb::RFM_LookupRootParent(VenusFid *FakeRootFid)
 {
     /* given fake-root-fid, find out the corresponding root-parent-fid */
     OBJ_ASSERT(this, FakeRootFid);
-    LOG(1000, ("lrdb::RFM_LookupRootParent: FakeRootFid = 0x%x.%x.%x\n",
-	       FakeRootFid->Volume, FakeRootFid->Vnode, FakeRootFid->Unique));
+    LOG(1000, ("lrdb::RFM_LookupRootParent: FakeRootFid = %s\n",
+	       FID_(FakeRootFid)));
     rfm_iterator next(root_fid_map);
     rfment *rfm;
     while ((rfm = next())) {
-	if (!memcmp((const void *)rfm->GetFakeRootFid(), (const void *) FakeRootFid, (int)sizeof(ViceFid))) {
+	if (FID_EQ(rfm->GetFakeRootFid(), FakeRootFid)) {
 	    LOG(1000, ("lrdb::RFM_LookupRootParent: found\n"));
 	    return rfm->GetRootParentFid();
 	} 
@@ -176,16 +170,16 @@ ViceFid *lrdb::RFM_LookupRootParent(ViceFid *FakeRootFid)
 }
 
 /* need not be called from within a transaction */
-ViceFid *lrdb::RFM_LookupGlobalChild(ViceFid *FakeRootFid)
+VenusFid *lrdb::RFM_LookupGlobalChild(VenusFid *FakeRootFid)
 {
     /* given the fake-root-fid, find out its corresponding global-child-fid */
     OBJ_ASSERT(this, FakeRootFid);
-    LOG(1000, ("lrdb::RFM_LookupGlobalChild: FakeRootFid = 0x%x.%x.%x\n",
-	       FakeRootFid->Volume, FakeRootFid->Vnode, FakeRootFid->Unique));
+    LOG(1000, ("lrdb::RFM_LookupGlobalChild: FakeRootFid = %s\n",
+	       FID_(FakeRootFid)));
     rfm_iterator next(root_fid_map);
     rfment *rfm;
     while ((rfm = next())) {
-	if (!memcmp((const void *)rfm->GetFakeRootFid(), (const void *) FakeRootFid, (int)sizeof(ViceFid))) {
+	if (FID_EQ(rfm->GetFakeRootFid(), FakeRootFid)) {
 	    LOG(1000, ("lrdb::RFM_LookupGlobalChild: found\n"));
 	    return rfm->GetGlobalChildFid();
 	} 
@@ -195,16 +189,16 @@ ViceFid *lrdb::RFM_LookupGlobalChild(ViceFid *FakeRootFid)
 }
 
 /* need not be called from within a transaction */
-ViceFid *lrdb::RFM_LookupLocalChild(ViceFid *FakeRootFid)
+VenusFid *lrdb::RFM_LookupLocalChild(VenusFid *FakeRootFid)
 {
     /* given fake-root-fid, find out the corresponding local-child-fid */
     OBJ_ASSERT(this, FakeRootFid);
-    LOG(1000, ("lrdb::RFM_LookupLocalChild: FakeRootFid = 0x%x.%x.%x\n",
-	       FakeRootFid->Volume, FakeRootFid->Vnode, FakeRootFid->Unique));
+    LOG(1000, ("lrdb::RFM_LookupLocalChild: FakeRootFid = %s\n",
+	       FID_(FakeRootFid)));
     rfm_iterator next(root_fid_map);
     rfment *rfm;
     while ((rfm = next())) {
-	if (!memcmp((const void *)rfm->GetFakeRootFid(), (const void *) FakeRootFid, (int)sizeof(ViceFid))) {
+	if (FID_EQ(rfm->GetFakeRootFid(), FakeRootFid)) {
 	    LOG(1000, ("lrdb::RFM_LookupLocalChild: found\n"));
 	    return rfm->GetLocalChildFid();
 	} 
@@ -214,16 +208,16 @@ ViceFid *lrdb::RFM_LookupLocalChild(ViceFid *FakeRootFid)
 }
 
 /* need not be called from within a transaction */
-fsobj *lrdb::RFM_LookupRootMtPt(ViceFid *FakeRootFid)
+fsobj *lrdb::RFM_LookupRootMtPt(VenusFid *FakeRootFid)
 {
     /* given fake-root-fid, find out the corresponding root-mtpt */
     OBJ_ASSERT(this, FakeRootFid);
-    LOG(1000, ("lrdb::RFM_LookupRootMtPt: FakeRootFid = 0x%x.%x.%x\n",
-	       FakeRootFid->Volume, FakeRootFid->Vnode, FakeRootFid->Unique));
+    LOG(1000, ("lrdb::RFM_LookupRootMtPt: FakeRootFid = %s\n",
+	       FID_(FakeRootFid)));
     rfm_iterator next(root_fid_map);
     rfment *rfm;
     while ((rfm = next())) {
-	if (!memcmp((const void *)rfm->GetFakeRootFid(), (const void *) FakeRootFid, (int)sizeof(ViceFid))) {
+	if (FID_EQ(rfm->GetFakeRootFid(),  FakeRootFid)) {
 	    LOG(1000, ("lrdb::RFM_LookupLocalChild: found\n"));
 	    return rfm->GetRootMtPt();
 	}
@@ -233,16 +227,16 @@ fsobj *lrdb::RFM_LookupRootMtPt(ViceFid *FakeRootFid)
 }
 
 /* need not be called from within a transaction */
-ViceFid *lrdb::RFM_ParentToFakeRoot(ViceFid *RootParentFid)
+VenusFid *lrdb::RFM_ParentToFakeRoot(VenusFid *RootParentFid)
 {
     /* given root-parent-fid, find out the corresponding fake-root-fid */
     OBJ_ASSERT(this, RootParentFid);
-    LOG(1000, ("lrdb::RFM_ParentToFakeRoot: RootParentFid = 0x%x.%x.%x\n",
-	       RootParentFid->Volume, RootParentFid->Vnode, RootParentFid->Unique));
+    LOG(1000, ("lrdb::RFM_ParentToFakeRoot: RootParentFid = %s\n",
+	       FID_(RootParentFid)));
     rfm_iterator next(root_fid_map);
     rfment *rfm;
     while ((rfm = next())) {
-	if (!memcmp((const void *)rfm->GetRootParentFid(), (const void *) RootParentFid, (int)sizeof(ViceFid))) {
+	if (FID_EQ(rfm->GetRootParentFid(), RootParentFid)) {
 	    LOG(1000, ("lrdb::RFM_ParentToFakeRoot: found\n"));
 	    return rfm->GetFakeRootFid();
 	} 
@@ -252,16 +246,16 @@ ViceFid *lrdb::RFM_ParentToFakeRoot(ViceFid *RootParentFid)
 }
 
 /* need not be called from within a transaction */
-ViceFid *lrdb::RFM_FakeRootToParent(ViceFid *FakeRootFid)
+VenusFid *lrdb::RFM_FakeRootToParent(VenusFid *FakeRootFid)
 {
     /* given the root-parent-fid, find out its corresponding fake-root-fid */
     OBJ_ASSERT(this, FakeRootFid);
-    LOG(1000, ("lrdb::RFM_ParentToFakeRoot: FakeRootFid = 0x%x.%x.%x\n",
-	       FakeRootFid->Volume, FakeRootFid->Vnode, FakeRootFid->Unique));
+    LOG(1000, ("lrdb::RFM_ParentToFakeRoot: FakeRootFid = %s\n",
+	       FID_(FakeRootFid)));
     rfm_iterator next(root_fid_map);
     rfment *rfm;
     while ((rfm = next())) {
-	if (!memcmp((const void *)rfm->GetFakeRootFid(), (const void *) FakeRootFid, (int)sizeof(ViceFid))) {
+	if (FID_EQ(rfm->GetFakeRootFid(), FakeRootFid)) {
 	    LOG(1000, ("lrdb::RFM_ParentToFakeRoot: found\n"));
 	    return rfm->GetRootParentFid();
 	} 
@@ -270,14 +264,14 @@ ViceFid *lrdb::RFM_FakeRootToParent(ViceFid *FakeRootFid)
     return NULL;
 }
 
-void lrdb::RFM_CoverRoot(ViceFid *FakeRootFid)
+void lrdb::RFM_CoverRoot(VenusFid *FakeRootFid)
 {
     /* FakeRootFid must be a fake-root-fid already in the map */
     OBJ_ASSERT(this, FakeRootFid);
     rfm_iterator next(root_fid_map);
     rfment *rfm;
     while ((rfm = next())) {
-	if (!memcmp((const void *)rfm->GetFakeRootFid(), (const void *) FakeRootFid, (int)sizeof(ViceFid))) {
+	if (FID_EQ(rfm->GetFakeRootFid(), FakeRootFid)) {
 	    Recov_BeginTrans();
 		   rfm->CoverRoot();
 	    Recov_EndTrans(MAXFP);
@@ -288,122 +282,112 @@ void lrdb::RFM_CoverRoot(ViceFid *FakeRootFid)
 }
 
 /* need not be called from within a transaction */
-int lrdb::RFM_IsRootParent(ViceFid *Fid)
+int lrdb::RFM_IsRootParent(VenusFid *Fid)
 {
     OBJ_ASSERT(this, Fid);
     rfm_iterator next(root_fid_map);
     rfment *rfm;
     while ((rfm = next())) {
-	if (!memcmp((const void *)rfm->GetRootParentFid(), (const void *) Fid, (int)sizeof(ViceFid))) {
+	if (FID_EQ(rfm->GetRootParentFid(), Fid))
 	    return 1;
-	}
     }
     return 0;
 }
 
 /* need not be called from within a transaction */
-int lrdb::RFM_IsFakeRoot(ViceFid *Fid)
+int lrdb::RFM_IsFakeRoot(VenusFid *Fid)
 {
     OBJ_ASSERT(this, Fid);
     rfm_iterator next(root_fid_map);
     rfment *rfm;
     while ((rfm = next())) {
-	if (!memcmp((const void *)rfm->GetFakeRootFid(), (const void *) Fid, (int)sizeof(ViceFid))) {
+	if (FID_EQ(rfm->GetFakeRootFid(), Fid))
 	    return 1;
-	}
     }
     return 0;
 }
 
-int lrdb::RFM_IsGlobalRoot(ViceFid *Fid)
+int lrdb::RFM_IsGlobalRoot(VenusFid *Fid)
 {
     OBJ_ASSERT(this, Fid);
     rfm_iterator next(root_fid_map);
     rfment *rfm;
     while ((rfm = next())) {
 	if (rfm->RootCovered()) continue;
-	if (!memcmp((const void *)rfm->GetGlobalRootFid(), (const void *) Fid, (int)sizeof(ViceFid))) {
+	if (FID_EQ(rfm->GetGlobalRootFid(), Fid))
 	    return 1;
-	}
     }
     return 0;
 }
 
-int lrdb::RFM_IsGlobalChild(ViceFid *Fid)
+int lrdb::RFM_IsGlobalChild(VenusFid *Fid)
 {
     OBJ_ASSERT(this, Fid);
     rfm_iterator next(root_fid_map);
     rfment *rfm;
     while ((rfm = next())) {
 	if (rfm->RootCovered()) continue;
-	if (!memcmp((const void *)rfm->GetGlobalChildFid(), (const void *) Fid, (int)sizeof(ViceFid))) {
+	if (FID_EQ(rfm->GetGlobalChildFid(), Fid))
 	    return 1;
-	}
     }
     return 0;
 }
 
-int lrdb::RFM_IsLocalRoot(ViceFid *Fid)
+int lrdb::RFM_IsLocalRoot(VenusFid *Fid)
 {
     OBJ_ASSERT(this, Fid);
     rfm_iterator next(root_fid_map);
     rfment *rfm;
     while ((rfm = next())) {
 	if (rfm->RootCovered()) continue;
-	if (!memcmp((const void *)rfm->GetLocalRootFid(), (const void *) Fid, (int)sizeof(ViceFid))) {
+	if (FID_EQ(rfm->GetLocalRootFid(), Fid))
 	    return 1;
-	}
     }
     return 0;
 }
 
-int lrdb::RFM_IsLocalChild(ViceFid *Fid)
+int lrdb::RFM_IsLocalChild(VenusFid *Fid)
 {
     OBJ_ASSERT(this, Fid);
     rfm_iterator next(root_fid_map);
     rfment *rfm;
     while ((rfm = next())) {
 	if (rfm->RootCovered()) continue;
-	if (!memcmp((const void *)rfm->GetLocalChildFid(), (const void *) Fid, (int)sizeof(ViceFid))) {
+	if (FID_EQ(rfm->GetLocalChildFid(), Fid))
 	    return 1;
-	}
     }
     return 0;
 }
 
 /* must be called from within a transaction */
-void lrdb::RFM_Insert(ViceFid *FakeRootFid, ViceFid *GlobalRootFid, ViceFid *LocalRootFid, 
-		      ViceFid *RootParentFid, ViceFid *GlobalChildFid,
-		      ViceFid *LocalChildFid, char *Name)
+void lrdb::RFM_Insert(VenusFid *FakeRootFid, VenusFid *GlobalRootFid, VenusFid *LocalRootFid, 
+		      VenusFid *RootParentFid, VenusFid *GlobalChildFid,
+		      VenusFid *LocalChildFid, char *Name)
 {
     OBJ_ASSERT(this, FakeRootFid && GlobalRootFid && LocalRootFid && RootParentFid);
     OBJ_ASSERT(this, GlobalChildFid && LocalChildFid && Name);
-    LOG(1000, ("lrdb::RFM_Insert: FakeRootFid = 0x%x.%x.%x\n", FakeRootFid->Volume, 
-	       FakeRootFid->Vnode, FakeRootFid->Unique));
-    LOG(1000, ("lrdb::RFM_Intert: GlobalRootFid = 0x%x.%x.%x LocalRootFid = 0x%x.%x.%x\n",
-	       GlobalRootFid->Volume, GlobalRootFid->Vnode, GlobalRootFid->Unique,
-	       LocalRootFid->Volume, LocalRootFid->Vnode, LocalRootFid->Unique));
-    LOG(1000, ("lrdb::RFM_Intert: GlobalChildFid = 0x%x.%x.%x LocalChildFid = 0x%x.%x.%x\n",
-	       GlobalChildFid->Volume, GlobalChildFid->Vnode, GlobalChildFid->Unique,
-	       LocalChildFid->Volume, LocalChildFid->Vnode, LocalChildFid->Unique));
-    LOG(1000, ("lrdb::RFM_Insert: RootParentFid = 0x%x.%x.%x Name = %s\n",
-	       RootParentFid->Volume, RootParentFid->Vnode, RootParentFid->Unique, Name));
+    LOG(1000, ("lrdb::RFM_Insert: FakeRootFid = %s\n", FID_(FakeRootFid)));
+    LOG(1000, ("lrdb::RFM_Intert: GlobalRootFid = %s LocalRootFid = %s\n",
+	       FID_(GlobalRootFid), FID_(LocalRootFid)));
+    LOG(1000, ("lrdb::RFM_Intert: GlobalChildFid = %s LocalChildFid = %s\n",
+	       FID_(GlobalChildFid), FID_(LocalChildFid)));
+    LOG(1000, ("lrdb::RFM_Insert: RootParentFid = %s Name = %s\n",
+	       FID_(RootParentFid), Name));
     rfment *rfm = new rfment(FakeRootFid, GlobalRootFid, LocalRootFid, RootParentFid, 
 			     GlobalChildFid, LocalChildFid, Name);
     root_fid_map.insert(rfm);
 }
 
 /* must be called from within a transaction */
-void lrdb::RFM_Remove(ViceFid *FakeRootFid)
+void lrdb::RFM_Remove(VenusFid *FakeRootFid)
 {
     OBJ_ASSERT(this, FakeRootFid);
-    LOG(1000, ("RFM_Remove: FakeRootFid = 0x%x.%x.%x\n",
-	       FakeRootFid->Volume, FakeRootFid->Vnode, FakeRootFid->Unique));
+    LOG(1000, ("RFM_Remove: FakeRootFid = %s\n", FID_(FakeRootFid)));
     /* first find out the map entry */
     rfm_iterator next(root_fid_map);
     rfment *rfm, *target = (rfment *)NULL;
     while ((rfm = next())) {
-	if (!memcmp((const void *)FakeRootFid, (const void *) rfm->GetFakeRootFid(), (int)sizeof(ViceFid))) {
+	if (FID_EQ(FakeRootFid, rfm->GetFakeRootFid())) {
 	    LOG(1000, ("lrdb::RFM_Remove: found the entry\n"));
 	    target = rfm;
 	    break;
@@ -418,42 +402,49 @@ void lrdb::RFM_Remove(ViceFid *FakeRootFid)
 /* must be called from within a transaction */
 
 /* generate local fid used in the faked subtrees */
-ViceFid lrdb::GenerateLocalFakeFid(ViceDataType fidtype)
+VenusFid lrdb::GenerateLocalFakeFid(ViceDataType fidtype)
 {
     ViceFid fid;
+    VenusFid vf;
+
     RVMLIB_REC_OBJECT(local_fid_unique_gen);
     local_fid_unique_gen++;
     if ( fidtype == Directory ) 
 	    FID_MakeLocalDir(&fid, local_fid_unique_gen);
     else 
 	    FID_MakeLocalFile(&fid, local_fid_unique_gen);
-    LOG(1000, ("lrdb::GenerateLocalFakeFid: return %s\n", FID_(&fid)));
-    return fid;
+
+    MakeVenusFid(&vf, LocalRealm->Id(), &fid);
+    LOG(1000, ("lrdb::GenerateLocalFakeFid: return %s\n", FID_(&vf)));
+    return vf;
 }
 
 /* generate a fake-fid whose volume is the special "Local" volume */
 /* must be called from within a transaction */
-ViceFid lrdb::GenerateFakeLocalFid()
+VenusFid lrdb::GenerateFakeLocalFid()
 {
 	ViceFid fid;
+	VenusFid vf;
+
 	FID_MakeLocalSubtreeRoot(&fid, local_fid_unique_gen);
 
 	RVMLIB_REC_OBJECT(local_fid_unique_gen);
 	local_fid_unique_gen++;
-	LOG(1000, ("lrdb::GenerateFakeLocalFid: return %s\n", FID_(&fid)));
-	return fid;
+
+	MakeVenusFid(&vf, LocalRealm->Id(), &fid);
+	LOG(1000, ("lrdb::GenerateFakeLocalFid: return %s\n", FID_(&vf)));
+	return vf;
 }
 
 /* must be called from within a transaction */
-void lrdb::TranslateFid(ViceFid *OldFid, ViceFid *NewFid)
+void lrdb::TranslateFid(VenusFid *OldFid, VenusFid *NewFid)
 {
     OBJ_ASSERT(this, OldFid && NewFid);
-    LOG(100, ("lrdb::TranslateFid: OldFid = 0x%x.%x.%x NewFid = 0x%x.%x.%x\n",
-	      OldFid->Volume, OldFid->Vnode, OldFid->Unique,
-	      NewFid->Volume, NewFid->Vnode, NewFid->Unique));
+    LOG(100, ("lrdb::TranslateFid: OldFid = %s NewFid = %s\n",
+	      FID_(OldFid), FID_(NewFid)));
 
     {	/* translate fid for the local-global fid map list */
-	if (!FID_VolIsLocal(NewFid)) {
+	if (!FID_IsLocalFake(NewFid)) {
 	    /* 
 	     * only when NewFid is not a local fid, i.e., the fid replacement
 	     * was caused cmlent::realloc, instead of cmlent::LocalFakeify. 
@@ -461,9 +452,8 @@ void lrdb::TranslateFid(ViceFid *OldFid, ViceFid *NewFid)
 	    lgm_iterator next(local_global_map);
 	    lgment *lgm;
 	    while ((lgm = next())) {
-		if (!memcmp(lgm->GetGlobalFid(), OldFid, sizeof(ViceFid))) {
+		if (FID_EQ(lgm->GetGlobalFid(), OldFid))
 		    lgm->SetGlobalFid(NewFid);
-		}
 	    }
 	}
     }
@@ -483,21 +473,16 @@ void lrdb::PurgeRootFids()
     rfm_iterator next(root_fid_map);
     rfment *rfm;
     while ((rfm = next())) {
-	ViceFid *FakeRootFid = rfm->GetFakeRootFid();
-	ViceFid *GlobalRootFid = rfm->GetGlobalRootFid();
-	ViceFid *LocalRootFid = rfm->GetLocalRootFid();
-	ViceFid *LocalChildFid = rfm->GetLocalChildFid();
-	ViceFid *GlobalChildFid = rfm->GetGlobalChildFid();
-	LOG(1000, ("lrdb::PurgeRootFids: FakeRootFid = 0x%x.%x.%x\n",
-		   FakeRootFid->Volume, FakeRootFid->Vnode, FakeRootFid->Unique));
-	LOG(1000, ("lrdb::PurgeRootFids: GlobalRootFid = 0x%x.%x.%x\n",
-		   GlobalRootFid->Volume, GlobalRootFid->Vnode, GlobalRootFid->Unique));
-	LOG(1000, ("lrdb::PurgeRootFids: LocalRootFid = 0x%x.%x.%x\n",
-		   LocalRootFid->Volume, LocalRootFid->Vnode, LocalRootFid->Unique));
-	LOG(1000, ("lrdb::PurgeRootFids: GlobalChildFid = 0x%x.%x.%x\n",
-		   GlobalChildFid->Volume, GlobalChildFid->Vnode, GlobalChildFid->Unique));
-	LOG(1000, ("lrdb::PurgeRootFids: LocalChildFid = 0x%x.%x.%x\n",
-		   LocalChildFid->Volume, LocalChildFid->Vnode, LocalChildFid->Unique));
+	VenusFid *FakeRootFid = rfm->GetFakeRootFid();
+	VenusFid *GlobalRootFid = rfm->GetGlobalRootFid();
+	VenusFid *LocalRootFid = rfm->GetLocalRootFid();
+	VenusFid *LocalChildFid = rfm->GetLocalChildFid();
+	VenusFid *GlobalChildFid = rfm->GetGlobalChildFid();
+	LOG(1000, ("lrdb::PurgeRootFids: FakeRootFid = %s\n", FID_(FakeRootFid)));
+	LOG(1000, ("lrdb::PurgeRootFids: GlobalRootFid = %s\n", FID_(GlobalRootFid)));
+	LOG(1000, ("lrdb::PurgeRootFids: LocalRootFid = %s\n", FID_(LocalRootFid)));
+	LOG(1000, ("lrdb::PurgeRootFids: GlobalChildFid = %s\n", FID_(GlobalChildFid)));
+	LOG(1000, ("lrdb::PurgeRootFids: LocalChildFid = %s\n", FID_(LocalChildFid)));
 	(void)k_Purge(FakeRootFid, 1);
 	(void)k_Purge(GlobalRootFid, 1);
 	(void)k_Purge(LocalRootFid, 1);
@@ -517,12 +502,12 @@ void lrdb::DirList_Clear()
 }
 
 /* need not be called from within a transaction */
-void lrdb::DirList_Insert(VolumeId Volume, VnodeId Vnode, Unique_t Unique, char *Name)
+void lrdb::DirList_Insert(VenusFid *fid, char *Name)
 {
     OBJ_ASSERT(this, Name);
-    LOG(1000, ("lrdb::DirList_Insert: Fid = 0x%x.%x.%x and Name = %s\n",
-	       Volume, Vnode, Unique, Name));
-    vdirent *newdir = new vdirent(Volume, Vnode, Unique, Name);
+    LOG(1000, ("lrdb::DirList_Insert: Fid = %s and Name = %s\n",
+	       FID_(fid), Name));
+    vdirent *newdir = new vdirent(fid, Name);
     dir_list.insert(newdir);
 }
 
@@ -536,22 +521,21 @@ void lrdb::DirList_Insert(VolumeId Volume, VnodeId Vnode, Unique_t Unique, char 
 void lrdb::DirList_Process(fsobj *DirObj)
 {
     OBJ_ASSERT(this, DirObj);
-    ViceFid *ParentFid = &DirObj->fid;
-    LOG(1000, ("lrdb::DirList_Process: DirObj = 0x%x.%x.%x\n",
-	       ParentFid->Volume, ParentFid->Vnode, ParentFid->Unique));
+    VenusFid *ParentFid = &DirObj->fid;
+    LOG(1000, ("lrdb::DirList_Process: DirObj = %s\n", FID_(ParentFid)));
     dir_iterator next(dir_list);
     vdirent *dir;
     while ((dir = next())) {
 	char *ChildName = dir->GetName();
-	if (!strcmp(ChildName, ".") || !strcmp(ChildName, ".."))
+	if (STREQ(ChildName, ".") || STREQ(ChildName, ".."))
 	  continue;
-	ViceFid *ChildFid = dir->GetFid();
+	VenusFid *ChildFid = dir->GetFid();
 	if (FSDB->Find(ChildFid) == NULL) {
 	    /* found an un-cached child object in Parent */
-	    LOG(100, ("lrdb::DirList_Process: found uncached child object (%s, 0x%x.%x.%x)\n",
-		      ChildName, ChildFid->Volume, ChildFid->Vnode, ChildFid->Unique));
+	    LOG(100, ("lrdb::DirList_Process: found uncached child object (%s, %s)\n",
+		      ChildName, FID_(ChildFid)));
 	    /* repalce ChildFid with a local fid */
-	    ViceFid LocalFid;
+	    VenusFid LocalFid;
 	    Recov_BeginTrans();
 		   /* we don't know the type of ChildFid, just assume it is a file */
 		   LocalFid = GenerateLocalFakeFid(File);
@@ -560,8 +544,8 @@ void lrdb::DirList_Process(fsobj *DirObj)
 		   DirObj->dir_Create(ChildName, &LocalFid);
 	    Recov_EndTrans(MAXFP);
 	} else {
-	    LOG(100, ("lrdb::DirList_Process: found cached child object (%s, 0x%x.%x.%x)\n",
-		      ChildName, ChildFid->Volume, ChildFid->Vnode, ChildFid->Unique));	    
+	    LOG(100, ("lrdb::DirList_Process: found cached child object (%s, %s)\n",
+		      ChildName, FID_(ChildFid)));	    
 	}
     }
 }
@@ -603,7 +587,7 @@ void lrdb::operator delete(void *deadobj, size_t len)
 void lrdb::ResetTransient()
 {
     memset((void *)&dir_list, 0, (int)sizeof(dlist));
-    repair_root_fid = (ViceFid *)NULL;
+    repair_root_fid = (VenusFid *)NULL;
     current_search_cml = (cmlent *)NULL;
     repair_session_mode = REP_SCRATCH_MODE;
     subtree_view = SUBTREE_MIXED_VIEW;
@@ -641,8 +625,7 @@ void lrdb::print(int fd)
 	fdprint(fd, "bogus subtree_view = %d\n", subtree_view);
     }
     if (repair_root_fid != NULL) {
-	fdprint(fd, "repair_root_fid = 0x%x.%x.%x\n", repair_root_fid->Volume, 
-		repair_root_fid->Vnode, repair_root_fid->Unique);	
+	fdprint(fd, "repair_root_fid = %s\n", FID_(repair_root_fid));
     } else {
 	fdprint(fd, "repair_root_fid = NULL\n");
     }
@@ -735,22 +718,19 @@ void *lgment::operator new(size_t len)
     return(l);
 }
 
-lgment::lgment(ViceFid *l, ViceFid *g)
+lgment::lgment(VenusFid *l, VenusFid *g)
 {
     OBJ_ASSERT(this, l && g);
-    LOG(1000, ("lgment::lgment: Local = 0x%x.%x.%x Global = 0x%x.%x.%x\n",
-	       l->Volume, l->Vnode, l->Unique, g->Volume, g->Vnode, g->Unique));
+    LOG(1000, ("lgment::lgment: Local = %s Global = %s\n", FID_(l), FID_(g)));
 
     RVMLIB_REC_OBJECT(*this);
-    memcpy(&local, l, sizeof(ViceFid));
-    memcpy(&global, g, sizeof(ViceFid));
+    local = *l;
+    global = *g;
 }
 
 lgment::~lgment()
 {
-    LOG(1000, ("lgment::~lgment: Local = 0x%x.%x.%x Global = 0x%x.%x.%x\n",
-	       local.Volume, local.Vnode, local.Unique, 
-	       global.Volume, global.Vnode, global.Unique));
+    LOG(1000, ("lgment::~lgment: Local = %s Global = %s\n", FID_(&local), FID_(&global)));
     /* nothing to do! */
 }
 
@@ -759,30 +739,30 @@ void lgment::operator delete(void *deadobj, size_t len)
     rvmlib_rec_free(deadobj);
 }
 
-ViceFid *lgment::GetLocalFid()
+VenusFid *lgment::GetLocalFid()
 {
     return &local;
 }
 
-ViceFid *lgment::GetGlobalFid()
+VenusFid *lgment::GetGlobalFid()
 {	
     return &global;
 }
 
 /* must be called from within a transation */
-void lgment::SetLocalFid(ViceFid *lfid)
+void lgment::SetLocalFid(VenusFid *lfid)
 {
     OBJ_ASSERT(this, lfid);
     RVMLIB_REC_OBJECT(local);
-    memcpy(&local, lfid, sizeof(ViceFid));
+    local = *lfid;
 }
 
 /* must be called from within a transation */
-void lgment::SetGlobalFid(ViceFid *gfid)
+void lgment::SetGlobalFid(VenusFid *gfid)
 {
     OBJ_ASSERT(this, gfid);
     RVMLIB_REC_OBJECT(global);
-    memcpy(&global, gfid, sizeof(ViceFid));
+    global = *gfid;
 }
 
 void lgment::print(FILE *fp)
@@ -797,8 +777,7 @@ void lgment::print()
 
 void lgment::print(int fd)
 {
-    fdprint(fd, "(local = 0x%x.%x.%x ", local.Volume, local.Vnode, local.Unique);
-    fdprint(fd, "global = 0x%x.%x.%x)", global.Volume, global.Vnode, global.Unique);
+    fdprint(fd, "(local = %s global = %s)", FID_(&local), FID_(&global));
 }
 
 lgm_iterator::lgm_iterator(rec_dlist& dl) : rec_dlist_iterator(dl) 
@@ -822,32 +801,26 @@ void *rfment::operator new(size_t len)
 }
 
 /* must be called from within a transaction */
-rfment::rfment(ViceFid *Fake, ViceFid *Global, ViceFid *Local, ViceFid *Parent, 
-	       ViceFid *GlobalChild, ViceFid *LocalChild, char *CompName)
+rfment::rfment(VenusFid *Fake, VenusFid *Global, VenusFid *Local, VenusFid *Parent, 
+	       VenusFid *GlobalChild, VenusFid *LocalChild, char *CompName)
 {
     OBJ_ASSERT(this, Fake && Global && Local && Parent && GlobalChild && LocalChild && CompName);
-    LOG(1000, ("rfment::rfment:: FakeRootFid = 0x%x.%x.%x\n",
-	       Fake->Volume, Fake->Vnode, Fake->Unique));
-    LOG(1000, ("rfment::rfment:: GlobalRootFid = 0x%x.%x.%x\n",
-	       Global->Volume, Global->Vnode, Global->Unique));
-    LOG(1000, ("rfment::rfment:: LocalRootFid = 0x%x.%x.%x\n",
-	       Local->Volume, Local->Vnode, Local->Unique));
-    LOG(1000, ("rfment::rfment:: RootParentFid = 0x%x.%x.%x\n",
-	       Parent->Volume, Parent->Vnode, Parent->Unique));
-    LOG(1000, ("rfment::rfment:: GlobalChildFid = 0x%x.%x.%x\n",
-	       GlobalChild->Volume, GlobalChild->Vnode, GlobalChild->Unique));
-    LOG(1000, ("rfment::rfment:: LocalChildFid = 0x%x.%x.%x\n",
-	       LocalChild->Volume, LocalChild->Vnode, LocalChild->Unique));
+    LOG(1000, ("rfment::rfment:: FakeRootFid = %s\n", FID_(Fake)));
+    LOG(1000, ("rfment::rfment:: GlobalRootFid = %s\n", FID_(Global)));
+    LOG(1000, ("rfment::rfment:: LocalRootFid = %s\n", FID_(Local)));
+    LOG(1000, ("rfment::rfment:: RootParentFid = %s\n", FID_(Parent)));
+    LOG(1000, ("rfment::rfment:: GlobalChildFid = %s\n", FID_(GlobalChild)));
+    LOG(1000, ("rfment::rfment:: LocalChildFid = %s\n", FID_(LocalChild)));
     LOG(1000, ("rfment::rfment:: CompName = %s\n", CompName));
 
 
     RVMLIB_REC_OBJECT(*this);
-    memcpy(&fake_root_fid, Fake, sizeof(ViceFid));
-    memcpy(&global_root_fid, Global, sizeof(ViceFid));
-    memcpy(&local_root_fid, Local, sizeof(ViceFid));
-    memcpy(&root_parent_fid, Parent, sizeof(ViceFid));
-    memcpy(&global_child_fid, GlobalChild, sizeof(ViceFid));
-    memcpy(&local_child_fid, LocalChild, sizeof(ViceFid));
+    fake_root_fid    = *Fake;
+    global_root_fid  = *Global;
+    local_root_fid   = *Local;
+    root_parent_fid  = *Parent;
+    global_child_fid = *GlobalChild;
+    local_child_fid  = *LocalChild;
     name = (char *)rvmlib_rec_malloc((int)(strlen(CompName) + 1));
     CODA_ASSERT(name);
     strcpy(name, CompName);
@@ -870,32 +843,32 @@ void rfment::operator delete(void *deadobj, size_t len)
     rvmlib_rec_free(deadobj);
 }
 
-ViceFid *rfment::GetFakeRootFid()
+VenusFid *rfment::GetFakeRootFid()
 {
     return &fake_root_fid;
 }
 
-ViceFid *rfment::GetGlobalRootFid()
+VenusFid *rfment::GetGlobalRootFid()
 {
     return &global_root_fid;
 }
 
-ViceFid *rfment::GetLocalRootFid()
+VenusFid *rfment::GetLocalRootFid()
 {
     return &local_root_fid;
 }
 
-ViceFid *rfment::GetRootParentFid()
+VenusFid *rfment::GetRootParentFid()
 {
     return &root_parent_fid;
 }
 
-ViceFid *rfment::GetGlobalChildFid()
+VenusFid *rfment::GetGlobalChildFid()
 {
     return &global_child_fid;
 }
 
-ViceFid *rfment::GetLocalChildFid()
+VenusFid *rfment::GetLocalChildFid()
 {
     return &local_child_fid;
 }
@@ -958,18 +931,12 @@ void rfment::print()
 
 void rfment::print(int fd)
 {
-    fdprint(fd, "\tfake_root_fid = 0x%x.%x.%x\n",
-	    fake_root_fid.Volume, fake_root_fid.Vnode, fake_root_fid.Unique);
-    fdprint(fd, "\tglobal_root_fid = 0x%x.%x.%x\n",
-	    global_root_fid.Volume, global_root_fid.Vnode, global_root_fid.Unique);
-    fdprint(fd, "\tlocal_root_fid = 0x%x.%x.%x\n",
-	    local_root_fid.Volume, local_root_fid.Vnode, local_root_fid.Unique);
-    fdprint(fd, "\troot_parent_fid = 0x%x.%x.%x\n",
-	    root_parent_fid.Volume, root_parent_fid.Vnode, root_parent_fid.Unique);
-    fdprint(fd, "\tglobal_child_fid = 0x%x.%x.%x\n",
-	    global_child_fid.Volume, global_child_fid.Vnode, global_child_fid.Unique);
-    fdprint(fd, "\tLocalChildFid = 0x%x.%x.%x\n",
-	    local_child_fid.Volume, local_child_fid.Vnode, local_child_fid.Unique);
+    fdprint(fd, "\tfake_root_fid = %s\n", FID_(&fake_root_fid));
+    fdprint(fd, "\tglobal_root_fid = %s\n", FID_(&global_root_fid));
+    fdprint(fd, "\tlocal_root_fid = %s\n", FID_(&local_root_fid));
+    fdprint(fd, "\troot_parent_fid = %s\n", FID_(&root_parent_fid));
+    fdprint(fd, "\tglobal_child_fid = %s\n", FID_(&global_child_fid));
+    fdprint(fd, "\tLocalChildFid = %s\n", FID_(&local_child_fid));
     fdprint(fd, "\tname = %s\n", name);
     fdprint(fd, "\troot_mtpt = %x\n", root_mtpt);
     fdprint(fd, "\troot is %s\n", covered ? "covered" : "not covered");
@@ -1001,14 +968,11 @@ rfment *rfm_iterator::operator()()
 
 /* ********** beginning of vdirent ********** */
 /* need not be called from within a transaction */
-vdirent::vdirent(VolumeId Volume, VnodeId Vnode, Unique_t Unique, char *Name)
+vdirent::vdirent(VenusFid *Fid, char *Name)
 {
     OBJ_ASSERT(this, Name);
-    LOG(10, ("vdirent::vdirent: fid = 0x%x.%x.%x and name = %s\n",
-	     Volume, Vnode, Unique, Name));
-    fid.Volume = Volume;
-    fid.Vnode = Vnode;
-    fid.Unique = Unique;
+    LOG(10, ("vdirent::vdirent: fid = %s and name = %s\n", FID_(Fid), Name));
+    fid = *Fid;
     strcpy(name, Name);
 }
 
@@ -1016,7 +980,7 @@ vdirent::~vdirent()
 {
 }
 
-ViceFid *vdirent::GetFid()
+VenusFid *vdirent::GetFid()
 {
     return &fid;
 }
@@ -1038,8 +1002,7 @@ void vdirent::print()
 
 void vdirent::print(int fd)
 {
-    fdprint(fd, "fid = 0x%x.%x.%x and name = %s\n",
-	    fid.Volume, fid.Vnode, fid.Unique, name);
+    fdprint(fd, "fid = %s and name = %s\n", FID_(&fid), name);
 }
 
 dir_iterator::dir_iterator(dlist& dl) : dlist_iterator(dl)
@@ -1164,8 +1127,8 @@ void LRInit()
 	    while ((rfm = next())) {
 		if (rfm->RootCovered() || (rfm->GetView() == SUBTREE_MIXED_VIEW)) 
 		  continue;
-		ViceFid *FakeRootFid = rfm->GetFakeRootFid();
-		ViceFid *RootParentFid = rfm->GetRootParentFid();
+		VenusFid *FakeRootFid = rfm->GetFakeRootFid();
+		VenusFid *RootParentFid = rfm->GetRootParentFid();
 		fsobj *RootParentObj = FSDB->Find(RootParentFid);
 		CODA_ASSERT(RootParentObj && RootParentObj->IsLocalObj());
 		char *Name = rfm->GetName();

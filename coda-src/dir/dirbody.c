@@ -63,7 +63,7 @@ int dir_data_in_rvm;
 void DIR_Print(PDirHeader, FILE *f);
 static int dir_FindBlobs (struct DirHeader **dh, int nblobs);
 static int dir_AddPage (struct DirHeader **dir);
-static int dir_NameBlobs(char *);
+static int dir_NameBlobs(const char *);
 static struct DirEntry *dir_FindItem (struct DirHeader *dir, char *ename, 
 				       struct DirEntry **preventry, int *index,
 				       int flags);
@@ -126,7 +126,7 @@ int DIR_rvm(void)
 
 
 /* Find out how many entries are required to store a name. */
-static int dir_NameBlobs (char *name)
+static int dir_NameBlobs (const char *name)
 {
     int i;
     i = strlen(name)+1;
@@ -342,14 +342,21 @@ int dir_PrintChar(char *addr, int nbits, char *buff)
  * Conversion from Coda to BSD dir entry format
  */
 
-static int dir_DirEntry2VDirent(PDirEntry ep, struct venus_dirent *vd, VolumeId vol)
+static int dir_DirEntry2VDirent(PDirEntry ep, struct venus_dirent *vd, VolumeId vol, RealmId realm)
 {
-	struct ViceFid fid;
+	ViceFid vfid;
+	struct CodaFid kfid;
 	
 	CODA_ASSERT(ep && vd);
-        fid_NFidV2Fid(&ep->fid, vol, &fid);
+
+        fid_NFidV2Fid(&ep->fid, vol, &vfid);
+
+	kfid.opaque[0] = realm;
+	kfid.opaque[1] = vfid.Volume;
+	kfid.opaque[2] = vfid.Vnode;
+	kfid.opaque[3] = vfid.Unique;
 	
-	vd->d_fileno = coda_f2i(&fid);
+	vd->d_fileno = coda_f2i(&kfid);
 #ifdef CDT_UNKNOWN
 	vd->d_type = 0;
 #endif
@@ -801,7 +808,7 @@ int dir_HkCompare(PDirEntry de, void *hook)
 }
 
 /* Rewrite a Coda directory in Venus' BSD format for a container file */
-int DIR_Convert (PDirHeader dir, char *file, VolumeId vol)
+int DIR_Convert (PDirHeader dir, char *file, VolumeId vol, RealmId realm)
 {
 	struct DirEntry *ep;
 	int fd;
@@ -857,7 +864,7 @@ int DIR_Convert (PDirHeader dir, char *file, VolumeId vol)
 				break;
 
 			/* optimistically write the directory entry: */
-			direntlen = dir_DirEntry2VDirent(ep, (struct venus_dirent *) (buf + offset), vol);
+			direntlen = dir_DirEntry2VDirent(ep, (struct venus_dirent *) (buf + offset), vol, realm);
 			/* if what we just wrote crosses a boundary: */
 			if (((offset + direntlen) ^ offset) & ~(DIRBLKSIZ - 1)) {
 				/* Note that offset still points to the *previous* directory 
@@ -869,7 +876,7 @@ int DIR_Convert (PDirHeader dir, char *file, VolumeId vol)
 				((struct venus_dirent *) (buf + oldoffset))->d_reclen += pad;
 				offset += pad;
 				/* do it again ... shifted by pad */
-				direntlen = dir_DirEntry2VDirent(ep, (struct venus_dirent *) (buf + offset), vol);
+				direntlen = dir_DirEntry2VDirent(ep, (struct venus_dirent *) (buf + offset), vol, realm);
 			}
 			oldoffset = offset;
 			offset += direntlen;
@@ -1004,7 +1011,7 @@ struct DirEntry *dir_GetBlob (struct DirHeader *dir, long blobno)
 }
 
 /* Hash a string to a number between 0 and NHASH. */
-int DIR_Hash (char *string)
+int DIR_Hash (const char *string)
 {
     char tc;
     int hval, tval;

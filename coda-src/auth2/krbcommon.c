@@ -36,7 +36,7 @@ extern "C" {
 
 #ifdef __cplusplus
 }
-#endif __cplusplus
+#endif
 
 char *krb_canonicalize_host(const char *host)
 {

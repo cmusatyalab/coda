@@ -58,8 +58,6 @@ rec_olist::~rec_olist() {
 }
 
 void rec_olist::Init() {
-  rvm_perthread_t *_rvm_data;
-  rvm_return_t ret;
   RVMLIB_REC_OBJECT(*this);
   tail = 0;
   cnt = 0;
@@ -168,7 +166,7 @@ int rec_olist::count() {
 int rec_olist::IsMember(rec_olink *p) {
     rec_olist_iterator next(*this);
     rec_olink *ol;
-    while (ol = next())
+    while ((ol = next()))
 	if (ol == p) return(1);
     return(0);
 }
@@ -188,14 +186,13 @@ void rec_olist::print(FILE *fp) {
 void rec_olist::print(int fd) {
     /* first print out the rec_olist header */
     char buf[80];
-    snprintf(buf, 80, "%#08x : Default rec_olist : count = %d\n",
-	     (long)this, cnt);
+    snprintf(buf, 80, "%p : Default rec_olist : count = %d\n", this, cnt);
     write(fd, buf, strlen(buf));
 
     /* then print out all of the rec_olinks */
     rec_olist_iterator next(*this);
     rec_olink *p;
-    while(p = next()) p->print(fd);
+    while((p = next())) p->print(fd);
 }
 
 
@@ -295,6 +292,6 @@ void rec_olink::print(FILE *fp) {
 
 void rec_olink::print(int fd) {
     char buf[40];
-    snprintf(buf, 40, "%#08x : Default rec_olink\n", (long)this);
+    snprintf(buf, 40, "%p : Default rec_olink\n", this);
     write(fd, buf, strlen(buf));
 }

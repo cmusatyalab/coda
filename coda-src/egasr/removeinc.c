@@ -74,8 +74,8 @@ int IsObjInc(char *name, ViceFid *fid)
 	    /* fprintf(stderr, "Error %d for Getfid\n", errno); */
 	    return(0);
 	}
-	memmove((void *)fid, (const void *)space, (int) sizeof(ViceFid));
-	memmove((void *)&vv, (const void *)space+sizeof(ViceFid), (int) sizeof(ViceVersionVector));
+	memcpy(fid, space, sizeof(ViceFid));
+	memcpy(&vv, space+sizeof(ViceFid), sizeof(ViceVersionVector));
 	if (!ISDIR(*fid) && (statbuf.st_mode & S_IFDIR))
 	    return(1);
 	else if (vv.StoreId.Host == -1) 
@@ -90,7 +90,8 @@ int IsObjInc(char *name, ViceFid *fid)
     
     /* it's a sym link, alright */
     if (symval[0] == '@')
-	sscanf(symval, "@%x.%x.%x", &fid->Volume, &fid->Vnode, &fid->Unique);
+	sscanf(symval, "@%lx.%lx.%lx", &fid->Volume, &fid->Vnode, &fid->Unique);
+
     return(1);
 }
 

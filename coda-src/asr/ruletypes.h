@@ -118,7 +118,8 @@ class rule_t : public olink {
     char	*repnames[VSG_MEMBERS];	// canonical ordering of rep names
     int		nreplicas;		// number of replicas of the inc object
     ViceFid	incfid;			// fid of inc object causing the asr invocation
-    char 	idname[CODA_MAXPATHLEN];	// name of inc object 
+    char	increalm[MAXHOSTNAMELEN]; // realm of inc object
+    char 	idname[CODA_MAXPATHLEN]; // name of inc object 
     char 	ifname[CODA_MAXNAMLEN];
     int GetReplicaNames();		// gets name of individual replicas
     //int GetIFid();			// gets fid of inc. object 

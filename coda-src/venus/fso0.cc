@@ -74,9 +74,6 @@ int FSO_SWT = UNSET_SWT;
 int FSO_MWT = UNSET_MWT;
 int FSO_SSF = UNSET_SSF;
 
-static int FSO_HashFN(void *);
-
-
 /* Call with CacheDir the current directory. */
 void FSOInit() {
     int i; 
@@ -285,12 +282,12 @@ FREE_ENTRY: /* release entry from namelist */
     }
 
     /* Set new Data version stamps. */
-    int DataVersion = (int) Vtime();
+    unsigned long DataVersion = (unsigned long) Vtime();
 
     FILE *fp = fopen("CacheInfo", "w+");
     if (fp == NULL)
 	CHOKE("FSOInit: fopen(CacheInfo, WR)");
-    fprintf(fp, "%d", DataVersion);
+    fprintf(fp, "%ld", DataVersion);
     fclose(fp);
 
     Recov_BeginTrans();
@@ -306,8 +303,10 @@ FREE_ENTRY: /* release entry from namelist */
 }
 
 
-static int FSO_HashFN(const void *key) {
-    return(((ViceFid *)key)->Volume + ((ViceFid *)key)->Vnode);
+static int FSO_HashFN(const void *key)
+{
+    VenusFid *fid = (VenusFid *)key;
+    return(fid->Realm + fid->Volume + fid->Vnode);
 }
 
 
@@ -352,7 +351,7 @@ void PrintCacheStats(char *description, CacheStats *c, int fd) {
 }
 
 
-void VenusToViceStatus(VenusStat *venusstat, ViceStatus *vicestat/*, vuid_t vuid*/) {
+void VenusToViceStatus(VenusStat *venusstat, ViceStatus *vicestat/*, uid_t uid*/) {
     vicestat->InterfaceVersion = 1;
     vicestat->VnodeType = venusstat->VnodeType;
     vicestat->LinkCount = venusstat->LinkCount;
@@ -361,10 +360,10 @@ void VenusToViceStatus(VenusStat *venusstat, ViceStatus *vicestat/*, vuid_t vuid
     vicestat->VV = venusstat->VV;
 /*    ClearLocal(vicestat->VV);*/
     vicestat->Date = venusstat->Date;
-    vicestat->Author = venusstat->Author;
-    vicestat->Owner = venusstat->Owner;
+    vicestat->Author = (vuid_t)venusstat->Author;
+    vicestat->Owner = (vuid_t)venusstat->Owner;
 /*    vicestat->CallBack = NoCallBack;*/
-/*    vicestat->MyAccess = venusstat->SpecificUser[index(vuid)].rights;*/
+/*    vicestat->MyAccess = venusstat->SpecificUser[index(uid)].rights;*/
 /*    vicestat->AnyAccess = venusstat->AnyUser.rights;*/
     vicestat->Mode = venusstat->Mode;
 /*    vicestat->vparent = venusstat->pfid.Vnode;*/
@@ -442,7 +441,7 @@ void fsdb::operator delete(void *, size_t){
 }
 
 
-fsobj *fsdb::Find(const ViceFid *key)
+fsobj *fsdb::Find(const VenusFid *key)
 {
     fso_iterator next(NL, key);
     fsobj *f;
@@ -456,12 +455,13 @@ fsobj *fsdb::Find(const ViceFid *key)
 /* MUST NOT be called from within transaction! */
 /* Caller MUST guarantee that the volume is cached and stable! */
 /* Should priority be an implicit argument? -JJK */
-fsobj *fsdb::Create(ViceFid *key, LockLevel level, int priority, char *comp) {
+fsobj *fsdb::Create(VenusFid *key, int priority, char *comp)
+{
     fsobj *f = 0;
     int rc = 0;
 
     /* Check whether the key is already in the database. */
-    if ((f = Find(key)) != 0)
+    if ((f = Find(key)) != NULL)
 	{ f->print(logFile); CHOKE("fsdb::Create: key found"); }
 
     /* Fashion a new object.  This could be a long-running and wide-ranging transaction! */
@@ -475,12 +475,9 @@ fsobj *fsdb::Create(ViceFid *key, LockLevel level, int priority, char *comp) {
         f = new (FROMFREELIST, priority) fsobj(key, comp);
     }
     Recov_EndTrans(MAXFP);
-    if (f != 0)
-	if (level != NL) f->Lock(level);
 
-    if (f == NULL)
-	LOG(0, ("fsdb::Create: (%x.%x.%x, %d) failed\n",
-		key->Volume, key->Vnode, key->Unique, priority));
+    if (!f)
+	LOG(0, ("fsdb::Create: (%s, %d) failed\n", FID_(key), priority));
     return(f);
 }
 
@@ -506,32 +503,33 @@ fsobj *fsdb::Create(ViceFid *key, LockLevel level, int priority, char *comp) {
  * return value of ETOOMANYREFS to the user when there is *nothing* the 
  * poor user can do about it.
  */
-int fsdb::Get(fsobj **f_addr, ViceFid *key, vuid_t vuid, int rights,
+int fsdb::Get(fsobj **f_addr, VenusFid *key, uid_t uid, int rights,
 	      char *comp, int *rcode, int GetInconsistent)
 {
-    CODA_ASSERT(rights != 0);
     int getdata = (rights & RC_DATA);
 
-    LOG(100, ("fsdb::Get-mre: key = (%x.%x.%x), uid = %d, rights = %d, comp = %s\n",
-	       key->Volume, key->Vnode, key->Unique, vuid, rights, (comp ? comp : "")));
+    LOG(100, ("fsdb::Get-mre: key = (%s), uid = %d, rights = %d, comp = %s\n",
+	       FID_(key), uid, rights, (comp ? comp : "")));
 
     { 	/* a special check for accessing already localized object */
-	volent *vol = VDB->Find(key->Volume);
-	if (vol && vol->IsReplicated() &&
-            !((repvol *)vol)->IsUnderRepair(ALL_UIDS) &&
-            ((repvol *)vol)->HasLocalSubtree()) {
-	    lgm_iterator next(LRDB->local_global_map);
-	    lgment *lgm;
-	    ViceFid *gfid;
-	    while ((lgm = next())) {
-		gfid = lgm->GetGlobalFid();
-		if (FID_EQ(gfid, key)) {
-		    LOG(0, ("fsdb::Get: trying to access localized object %s\n",
-			    FID_(key)));
-		    return EACCES;
+	volent *vol = VDB->Find(MakeVolid(key));
+	if (vol && vol->IsReplicated()) {
+	    repvol *vp = (repvol *)vol;
+	    if (!vp->IsUnderRepair(ALL_UIDS) && vp->HasLocalSubtree()) {
+		lgm_iterator next(LRDB->local_global_map);
+		lgment *lgm;
+		VenusFid *gfid;
+		while ((lgm = next())) {
+		    gfid = lgm->GetGlobalFid();
+		    if (FID_EQ(gfid, key)) {
+			LOG(0, ("fsdb::Get: trying to access localized object %s\n",
+				FID_(key)));
+			return EACCES;
+		    }
 		}
 	    }
 	}
+	VDB->Put(&vol);
     }
 
     int code = 0;
@@ -539,15 +537,18 @@ int fsdb::Get(fsobj **f_addr, ViceFid *key, vuid_t vuid, int rights,
     vproc *vp = VprocSelf();
 
     /* if (vp->type != VPT_HDBDaemon)
-     *  NotifyUserOfProgramAccess(vuid, vp->u.u_pid, vp->u.u_pgid, key); */
+     *  NotifyUserOfProgramAccess(uid, vp->u.u_pid, vp->u.u_pgid, key); */
 
     /* Volume state synchronization. */
     /* If a thread is already "in" one volume, we must switch contexts before entering another. */
-    if (vp->u.u_vol && vp->u.u_vol->GetVid() != key->Volume) {
+    if (vp->u.u_vol && 
+	!(vp->u.u_vol->GetRealmId() == key->Realm &&
+	  vp->u.u_vol->GetVolumeId() == key->Volume))
+    {
 	/* Preserve the user context. */
 	struct uarea saved_ctxt = vp->u;
 	vp->u.Init();
-	vp->u.u_cred = saved_ctxt.u_cred;
+	vp->u.u_uid = saved_ctxt.u_uid;
 	vp->u.u_priority = saved_ctxt.u_priority;
 	vp->u.u_flags = saved_ctxt.u_flags;
 	vp->u.u_pid = saved_ctxt.u_pid;
@@ -555,10 +556,10 @@ int fsdb::Get(fsobj **f_addr, ViceFid *key, vuid_t vuid, int rights,
 
 	/* Do the Get on behalf of another volume. */
 	for (;;) {
-	    vp->Begin_VFS(key->Volume, CODA_VGET);
+	    vp->Begin_VFS(MakeVolid(key), CODA_VGET);
 	    if (vp->u.u_error) break;
 
-	    vp->u.u_error = Get(f_addr, key, vuid, rights, comp);
+	    vp->u.u_error = Get(f_addr, key, uid, rights, comp);
 
 	    if (vp->u.u_error != 0)
 		Put(f_addr);
@@ -587,23 +588,15 @@ RestartFind:
 	 * the routine fsobj::IsLocalFid, which checks to see if the _volume_
 	 * the object belongs to is the local volume.  yuck.  --lily
 	 */
-	if (FID_IsDisco(key)) {
+	if (FID_IsDisco(MakeViceFid(key))) {
 		LOG(0, ("fsdb::Get: Locally created fid %s not found!\n", 
 			FID_(key)));
 		return ETIMEDOUT;
 	}
 
-	/* process possible un-cached local objects */
-	if (FID_VolIsLocal(key)) {
-		LOG(0, ("fsdb::Get: Un-cached Local object %s\n",
-			FID_(key)));
-		return ETIMEDOUT;
-	}
-
         /* Must ensure that the volume is cached. */
-retry_vdbget:
         volent *v = 0;
-        if (VDB->Get(&v, key->Volume) != 0) {
+        if (VDB->Get(&v, MakeVolid(key))) {
             LOG(100, ("Volume not cached and we couldn't get it...\n"));
             return(ETIMEDOUT);
         }
@@ -628,29 +621,27 @@ retry_vdbget:
         }
 
 	/* Attempt the create. */
-	f = Create(key, RD, vp->u.u_priority, comp);
-	if (!f) {
-	    VDB->Put(&v);
-	    return(ENOSPC);
-	}
+	f = Create(key, vp->u.u_priority, comp);
 
 	/* Release the volume. */
 	VDB->Put(&v);
 
+	if (!f)
+	    return(ENOSPC);
+
 	/* Transform object into fake mtpt if necessary. */
-	if (FID_IsFakeRoot(key)) {
-	    f->PromoteLock();
+	if (FID_IsLocalFake(key) || FID_IsFakeRoot(MakeViceFid(key))) {
 	    if (f->Fakeify()) {
-		LOG(0, ("fsdb::Get: can't transform %s (%x.%x.%x) into fake mt pt\n",
-			f->comp, f->fid.Volume, f->fid.Vnode, f->fid.Unique));
+		LOG(0, ("fsdb::Get: can't transform %s (%s) into fake mt pt\n",
+			f->comp, FID_(&f->fid)));
 		Recov_BeginTrans();
 		f->Kill();
 		Recov_EndTrans(MAXFP);
 		Put(&f);  		 /* will unlock and garbage collect */
 		return(EIO);
 	    }
-	    f->DemoteLock();
 	}
+	f->DemoteLock();
     }
     else {
 	/* Object without status must be matriculating now.  Wait for it to complete. */
@@ -692,7 +683,8 @@ retry_vdbget:
     }
 
     /* Consider fetching status and/or data. */
-    if ((!getdata && !STATUSVALID(f)) || (getdata && !DATAVALID(f))) {
+    if (!f->IsLocalObj() &&
+	((!getdata && !STATUSVALID(f)) || (getdata && !DATAVALID(f)))) {
 	/* Note that we CANNOT fetch, and must use whatever status/data we have, if : */
 	/*     - the file is being exec'ed (or the VM system refuses to release its pages) */
 	/*     - the file is open for write */
@@ -706,20 +698,22 @@ retry_vdbget:
 	     * do this even if we want data and we don't have any so that we
 	     * ALWAYS know how many blocks to allocate when fetching data. */
 	    if (!STATUSVALID(f)) {
-		code = f->GetAttr(vuid);
+		code = f->GetAttr(uid);
 
 		if (rcode) *rcode = code;	/* added for local-repair */
 		/* Conjure a fake directory to represent an inconsistent object. */
 		if (code == EINCONS) { 
+		    LOG(0, ("fsdb::Get: Object inconsistent. (key = <%s>)\n", 
+			    FID_(key)));
+#if 0
 		    userent *u;
 		    char path[MAXPATHLEN];
 		    
 		    f->GetPath(path,1);
-		    GetUser(&u, vuid);
+		    GetUser(&u, f->vol->realm, uid);
 		    CODA_ASSERT(u != NULL);
+		    PutUser(&u);
 
-		    LOG(0, ("fsdb::Get: Object inconsistent. (key = <%x.%x.%x>)\n", 
-			    key->Volume, key->Vnode, key->Unique));
 		    /* We notify all users that objects are in conflict because
 		     * it is often the case that uid=-1, so we notify nobody.
 		     * It'd be better if we could notify the user whose
@@ -728,6 +722,7 @@ retry_vdbget:
 		     * be the hoard daemon.  Notifying everyone seems to be a
 		     * reasonable alternative, if not terribly satisfying. */
 		    /* NotifyUsersObjectInConflict(path, key); */
+#endif
 
 		    k_Purge(&f->fid, 1);
                     if (f->refcnt > 1) {
@@ -742,7 +737,7 @@ retry_vdbget:
 			 * the fatal error. */
 			f->ClearRcRights();
 			Put(&f);
-			LOG(0, ("fsdb::Get: Object with active reference has gone inconsistent.\n\t Cannot conjure fake directory until object is inactive. (key =  <%x.%x.%x>)\n",  key->Volume, key->Vnode, key->Unique));
+			LOG(0, ("fsdb::Get: Object with active reference has gone inconsistent.\n\t Cannot conjure fake directory until object is inactive. (key =  <%s>)\n", FID_(key)));
 			return(ETOOMANYREFS);
 		    }
 
@@ -756,20 +751,18 @@ retry_vdbget:
 		       and if the refcnt test above didn't catch that
 		       the Put wouldn't, we're hosed!  We'll most likely
 		       get a "Create: key found" fatal error. */
-		    f = Create(key, RD, vp->u.u_priority, comp);
+		    f = Create(key, vp->u.u_priority, comp);
 		    if (!f)
 			return(ENOSPC);
 
 		    /* 
-		     * Transform object into fake directory.  If that doesn't work,
-		     * return EIO...NOT EINCONS, which will get passed back to the 
-		     * user as ENOENT (too alarming).  We must kill the object here, 
-		     * otherwise Venus will think it is "matriculating" and wait 
-		     * (forever) for it to finish.
+		     * Transform object into fake directory.  If that doesn't
+		     * work, return EIO...NOT EINCONS, which will get passed
+		     * back to the user as ENOENT (too alarming).  We must kill
+		     * the object here, otherwise Venus will think it is
+		     * "matriculating" and wait (forever) for it to finish.
 		     */
-		    eprint("%s (%x.%x.%x) inconsistent!",
-			   f->comp, f->fid.Volume, f->fid.Vnode, f->fid.Unique);
-		    f->PromoteLock();
+		    eprint("%s (%s) inconsistent!", f->comp, FID_(&f->fid));
 		    if (f->Fakeify()) {
 			Recov_BeginTrans();
 			f->Kill();
@@ -804,19 +797,19 @@ retry_vdbget:
                         hoard_priority = f->HoardPri;
                     else {
 			f->GetPath(pathname);
-                        hoard_priority = HDB->GetSuspectPriority(f->fid.Volume, pathname, vuid);
+                        hoard_priority = HDB->GetSuspectPriority(MakeVolid(&f->fid), pathname, uid);
 		    }
 
                     int estimatedCost = f->EstimatedFetchCost();
                     /* If the fetch will take too long, coerce the request into a miss */
                     if (f->PredetermineFetchState(estimatedCost, hoard_priority) != 1) {
-                        advice = f->WeaklyConnectedCacheMiss(vp, vuid);
+                        advice = f->WeaklyConnectedCacheMiss(vp, uid);
                         if (advice == CoerceToMiss) {
                             Put(&f);
-                            LOG(0, ("Weak Miss Coersion:\n\tObject:  %s <%x,%x,%x>\n\tEstimated Fetch Cost:  %d seconds\n\tReturn code:  EFBIG\n", 
-                                    comp, key->Volume, key->Vnode, key->Unique, estimatedCost));
-                            MarinerLog("Weak Miss Coersion on %s <%x,%x,%x>\n",
-                                       comp, key->Volume, key->Vnode, key->Unique);
+                            LOG(0, ("Weak Miss Coersion:\n\tObject:  %s <%s>\n\tEstimated Fetch Cost:  %d seconds\n\tReturn code:  EFBIG\n", 
+                                    comp, FID_(key), estimatedCost));
+                            MarinerLog("Weak Miss Coersion on %s <%s>\n",
+                                       comp, FID_(key));
                             return(EFBIG);
                         }
                     }
@@ -838,16 +831,16 @@ retry_vdbget:
 
                 /* Make cache misses non-transparent. */
                 if (advice == CoerceToMiss)
-                    advice = f->ReadDisconnectedCacheMiss(vp, vuid);
+                    advice = f->ReadDisconnectedCacheMiss(vp, uid);
                 switch (advice) {
                 case FetchFromServers:
                     LOG(10, ("The advice was to ReadDiscFetch --> Fetching.\n"));
                     break;
                 case CoerceToMiss:
-                    LOG(0, ("Read Disconnected Miss Coersion:\n\tObject:  %s <%x,%x,%x>\n\tReturn code:  EFBIG\n", 
-                            comp, key->Volume, key->Vnode, key->Unique));
-                    MarinerLog("Read Disconnected Miss Coersion on %s <%x,%x,%x>\n",
-                               comp, key->Volume, key->Vnode, key->Unique);
+                    LOG(0, ("Read Disconnected Miss Coersion:\n\tObject:  %s <%s>\n\tReturn code:  EFBIG\n", 
+                            comp, FID_(key)));
+                    MarinerLog("Read Disconnected Miss Coersion on %s <%s>\n",
+                               comp, FID_(key));
                     /* We have to release any previously allocated
                      * cachespace */
                     FreeBlocks(-nblocks);
@@ -864,7 +857,7 @@ retry_vdbget:
                 nblocks -= NBLOCKS(f->cf.ValidData());
 
                 /* Let fsobj::Fetch go ahead and fetch the object */
-                code = f->Fetch(vuid);
+                code = f->Fetch(uid);
 
                 /* Restart operation in case of inconsistency. */
                 if (code == EINCONS)
@@ -908,15 +901,18 @@ retry_vdbget:
              */
             if (DYING(f)) 
                 LOG(0, ("Active reference prevents refetching object! "
-                        "Allowing access to stale status! (key = <%x.%x.%x>)\n",
-                        key->Volume, key->Vnode, key->Unique));
+                        "Allowing access to stale status! (key = <%s>)\n",
+                        FID_(key)));
 
             else if (!STATUSVALID(f))
-                LOG(0, ("Allowing access to stale status! (key = <%x.%x.%x>)\n",  key->Volume, key->Vnode, key->Unique));
+                LOG(0, ("Allowing access to stale status! (key = <%s>)\n",
+			FID_(key)));
 
             if (getdata) {
                 if (DYING(f)) { 
-                    LOG(0, ("Active reference prevents refetching object!  Disallowing access to stale data! (key = <%x.%x.%x>)\n",  key->Volume, key->Vnode, key->Unique));
+                    LOG(0, ("Active reference prevents refetching object! "
+			    "Disallowing access to stale data! (key = <%s>)\n",
+			    FID_(key)));
                     Put(&f);
                     return(ETOOMANYREFS);
                 } 
@@ -926,26 +922,29 @@ retry_vdbget:
                 }
 
                 if (!DATAVALID(f))
-                    LOG(0, ("Allowing access to stale data! (key = <%x.%x.%x>)\n",  key->Volume, key->Vnode, key->Unique));
+                    LOG(0, ("Allowing access to stale data! (key = <%s>)\n",
+			    FID_(key)));
             }
 	}
     }
 
     /* Finalize handling of fake objects. */
     if (!GetInconsistent && f->IsFake() && f->vol->IsReplicated() &&
-        !((repvol *)f->vol)->IsUnderRepair(vuid))
+        !((repvol *)f->vol)->IsUnderRepair(uid))
     {
         repvol *v = (repvol *)f->vol;
-        LOG(1, ("(Puneet)fsdb::Get:Volume (%u) NOT under repair and IsFake(%x.%x.%x)\n",
-		vuid, f->fid.Volume, f->fid.Vnode, f->fid.Unique));
+        LOG(1, ("(Puneet)fsdb::Get:Volume (%u) NOT under repair and IsFake(%s)\n",
+		uid, FID_(&f->fid)));
         char path[MAXPATHLEN];
         f->GetPath(path, 1);
         LOG(1, ("(Maria, Puneet) After GetPath, path = %s\n", path));
 
         /* object is inconsistent - try running the ASR */
         /* check that ASR time interval has expired */
+#if 0
         userent *u;
-        GetUser(&u, vuid);
+        GetUser(&u, f->vol->realm, uid);
+#endif
         struct timeval tv;
         gettimeofday(&tv, 0);
         int ASRInvokable = (SkkEnabled && ASRallowed && (vp->type == VPT_Worker) &&
@@ -954,7 +953,7 @@ retry_vdbget:
 			    !adv_mon.skkPgid(vp->u.u_pgid) && adv_mon.ConnValid());
 	if (v->asr_running() && vp->u.u_pgid != v->asr_id())
 	  code = EAGAIN; /* bounce out anything which tries to hold kernel locks while repairing */
-        else if (ASRInvokable && (!adv_mon.RequestASRInvokation(v, path, vuid))) {
+        else if (ASRInvokable && (!adv_mon.RequestASRInvokation(v, path, uid))) {
                 gettimeofday(&tv, 0);
                 f->lastresolved = tv.tv_sec;
                 code = ERETRY; /* tell application to retry so that kernel locks get released */
@@ -982,9 +981,8 @@ void fsdb::Put(fsobj **f_addr) {
     if (!(*f_addr)) { LOG(100, ("fsdb::Put: Null FSO\n")); return; }
 
     fsobj *f = *f_addr;
-    LOG(100, ("fsdb::Put: (%x.%x.%x), refcnt = %d, readers = %d, writers = %d, openers = %d\n",
-	     f->fid.Volume, f->fid.Vnode, f->fid.Unique,
-	     f->refcnt, f->readers, f->writers, f->openers));
+    LOG(100, ("fsdb::Put: (%s), refcnt = %d, readers = %d, writers = %d, openers = %d\n",
+	     FID_(&f->fid), f->refcnt, f->readers, f->writers, f->openers));
 
     if (f->readers == 0 && f->writers == 0)
 	{ f->print(logFile); CHOKE("fsdb::Put: no locks!"); }
@@ -993,8 +991,7 @@ void fsdb::Put(fsobj **f_addr) {
 
     /* Perform GC if necessary. */
     if (GCABLE(f)) {
-	LOG(10, ("fsdb::Put: GC (%x.%x.%x)\n",
-		 f->fid.Volume, f->fid.Vnode, f->fid.Unique));
+	LOG(10, ("fsdb::Put: GC (%s)\n", FID_(&f->fid)));
 
 	Recov_BeginTrans();
 	f->GC();
@@ -1006,7 +1003,8 @@ void fsdb::Put(fsobj **f_addr) {
 
 
 /* MUST NOT be called from within transaction! */
-void fsdb::Flush() {
+void fsdb::Flush()
+{
     /*
      * don't flush volume root only because some cached objects may
      * not be reachable.  If the flush actually works, the object
@@ -1030,10 +1028,11 @@ void fsdb::Flush() {
 
 
 /* MUST NOT be called from within transaction! */
-void fsdb::Flush(VolumeId vid) {
+void fsdb::Flush(Volid *vid)
+{
     volent *v;
     v = VDB->Find(vid);
-    CODA_ASSERT(v);
+    if (!v) return;
     
     /* comment in fsdb::Flush applies here */
     int restart = 1;
@@ -1048,6 +1047,7 @@ void fsdb::Flush(VolumeId vid) {
 		break;
 	    }
     }
+    v->release();
 }
 
 
@@ -1068,18 +1068,18 @@ void fsdb::Flush(VolumeId vid) {
 
 */
 
-int fsdb::TranslateFid(ViceFid *OldFid, ViceFid *NewFid) 
+int fsdb::TranslateFid(VenusFid *OldFid, VenusFid *NewFid) 
 {
 	fsobj *f = 0;
-	ViceFid pFid;
+	VenusFid pFid;
 
 	LOG(100, ("fsdb::TranslateFid: %s --> %s", FID_(OldFid), 
-		  FID_2(NewFid)));
+		  FID_(NewFid)));
 
 	/* cross volume replacements are for local fids */
-	if (OldFid->Volume != NewFid->Volume && !FID_VolIsLocal(NewFid))
+	if (!FID_VolEQ(OldFid, NewFid) && NewFid->Realm != LocalRealm->Id())
 		CHOKE("fsdb::TranslateFid: X-VOLUME, %s --> %s",
-		      FID_(OldFid), FID_2(NewFid));
+		      FID_(OldFid), FID_(NewFid));
 
 	/* First, change the object itself. */
 	f = Find(OldFid);
@@ -1151,10 +1151,10 @@ int fsdb::TranslateFid(ViceFid *OldFid, ViceFid *NewFid)
 
 /* Called in event of callback message from server. */
 /* We assume this means that the object needs to be revalidated on the next
- * access and remove the callback status flags (Demote it). -JH
+ * access and remove the callback status flags (Demote it). -JH */
 /* Perhaps there should be a "MUTATED" parameter in the RPC from the server.
  * -JJK */
-int fsdb::CallBackBreak(const ViceFid *fid)
+int fsdb::CallBackBreak(const VenusFid *fid)
 {
     fsobj *f = Find(fid);
     if (!f || !HAVESTATUS(f)) return(0);
@@ -1164,13 +1164,13 @@ int fsdb::CallBackBreak(const ViceFid *fid)
     return(1);
 }
 
-void fsdb::ResetUser(vuid_t vuid) {
+void fsdb::ResetUser(uid_t uid) {
     /* Demote access rights for the user. */
     fso_iterator next(NL);
     fsobj *f;
     while ((f = next()))
 	if (f->IsDir())
-	    f->DemoteAcRights(vuid);
+	    f->DemoteAcRights(uid);
 }
 
 
@@ -1193,14 +1193,18 @@ void fsdb::InvalidateMtPts() {
 	    k_Purge(&f->pfid, 1);	/* force kernel to reevaluate! */
 	}
 
-    /* N.B.  We currently have no way of invalidating the mount point for the Coda root volume. */
-    /* That mount point is a VFS mount, which is known to the kernel (i.e., the MiniCache).   The */
-    /* proper thing to do is have another "back-call" into the MiniCache which unsaves the cnode */
-    /* thought by the kernel to be the current root, and makes a forward cfs_root call to Venus asking */
-    /* for the (new) root.  Of course, Venus would also have to make another ViceGetRootVolume call */
-    /* and update its global value (rootfid) as well.  Someday, someone should make the necessary */
-    /* changes to the MiniCache and Venus.  In the meantime, the only way for a client to reevaluate */
-    /* the Coda root is to shut down and restart Venus.  -JJK */
+    /* N.B.  We currently have no way of invalidating the mount point
+     * for the Coda root volume. That mount point is a VFS mount, which
+     * is known to the kernel (i.e., the MiniCache).   The proper thing
+     * to do is have another "back-call" into the MiniCache which
+     * unsaves the cnode thought by the kernel to be the current root,
+     * and makes a forward cfs_root call to Venus asking for the (new)
+     * root.  Of course, Venus would also have to make another
+     * ViceGetRootVolume call and update its global value (rootfid) as
+     * well.  Someday, someone should make the necessary changes to the
+     * MiniCache and Venus.  In the meantime, the only way for a client
+     * to reevaluate the Coda root is to shut down and restart Venus.
+     * -JJK */
 }
 
 

@@ -52,28 +52,29 @@ extern "C" {
 /* ********** Mist Routines ********** */
 int MakeDirList(struct DirEntry *de, void *hook)
 {
-	VnodeId vnode;
-	Unique_t unique;
-	FID_NFid2Int(&de->fid, &vnode, &unique);
+        Volid *vid = (Volid *)hook;
+	VenusFid fid;
 	char *name = de->name;
-	LOG(100, ("MakeDirList: Fid = 0x%x.%x.%x and Name = %s\n",
-		  (int)hook, vnode, unique, name));
-	LRDB->DirList_Insert((long )hook, vnode, unique, name);
+
+	fid.Realm = vid->Realm;
+	fid.Volume = vid->Volume;
+	FID_NFid2Int(&de->fid, &fid.Vnode, &fid.Unique);
+	LOG(100, ("MakeDirList: Fid = %s and Name = %s\n", FID_(&fid), name));
+	LRDB->DirList_Insert(&fid, name);
 	return 0;
 }
 
 int fsobj::RepairStore() 
-{	
+{
     /* same as ConnectedStore without perform simulation disconnection */
     FSO_ASSERT(this, HOARDING(this) || LOGGING(this));
 
     vproc *vp = VprocSelf();
-    vuid_t vuid = CRTORUID(vp->u.u_cred);
     Date_t Mtime = Vtime();
     unsigned long NewLength = stat.Length;
 
     if (LRDB->repair_session_mode == REP_SCRATCH_MODE) {
-	return DisconnectedStore(Mtime, vuid, NewLength, LRDB->repair_session_tid);
+	return DisconnectedStore(Mtime, vp->u.u_uid, NewLength, LRDB->repair_session_tid);
     }
     int code = 0, fd = -1;
     char prel_str[256];
@@ -125,10 +126,10 @@ int fsobj::RepairStore()
 	ViceStoreId sid;
 	mgrpent *m = 0;
 	int asy_resolve = 0;
-        repvol *vp = (repvol *)vol;
+        repvol *rvp = (repvol *)vol;
 
 	/* Acquire an Mgroup. */
-	code = vp->GetMgrp(&m, vuid, (PIGGYCOP2 ? &PiggyBS : 0));
+	code = rvp->GetMgrp(&m, vp->u.u_uid, (PIGGYCOP2 ? &PiggyBS : 0));
 	if (code != 0) goto RepExit;
 
 	/* The COP1 call. */
@@ -136,14 +137,14 @@ int fsobj::RepairStore()
 	vv_t UpdateSet;
 
 	Recov_BeginTrans();
-	sid = vp->GenerateStoreId();
+	sid = rvp->GenerateStoreId();
 	Recov_EndTrans(MAXFP);
 	{
 	    /* Make multiple copies of the IN/OUT and OUT parameters. */
 	    int ph_ix; unsigned long ph;
             ph = ntohl(m->GetPrimaryHost(&ph_ix)->s_addr);
 
- 	    vp->PackVS(VSG_MEMBERS, &OldVS);
+ 	    rvp->PackVS(VSG_MEMBERS, &OldVS);
 
 	    ARG_MARSHALL(IN_OUT_MODE, ViceStatus, statusvar, status, VSG_MEMBERS);
 	    ARG_MARSHALL(IN_OUT_MODE, SE_Descriptor, sedvar, *sed, VSG_MEMBERS);
@@ -156,8 +157,8 @@ int fsobj::RepairStore()
 	    code = (int)MRPC_MakeMulti(ViceStore_OP, ViceStore_PTR,
 				       VSG_MEMBERS, m->rocc.handles,
 				       m->rocc.retcodes, m->rocc.MIp, 0, 0,
-				       &fid, statusvar_ptrs, NewLength, ph,
-				       &sid, &OldVS, VSvar_ptrs,
+				       MakeViceFid(&fid), statusvar_ptrs,
+				       NewLength, ph, &sid, &OldVS, VSvar_ptrs,
 				       VCBStatusvar_ptrs, &PiggyBS,
 				       sedvar_bufs);
 	    MULTI_END_MESSAGE(ViceStore_OP);
@@ -165,18 +166,18 @@ int fsobj::RepairStore()
 
 	    free(OldVS.SeqBody);
 	    /* Collate responses from individual servers and decide what to do next. */
-	    code = vp->Collate_COP1(m, code, &UpdateSet);
+	    code = rvp->Collate_COP1(m, code, &UpdateSet);
 	    MULTI_RECORD_STATS(ViceStore_OP);
 	    if (code == EASYRESOLVE) { asy_resolve = 1; code = 0; }
 	    if (code != 0) goto RepExit;
 
 	    /* Collate volume callback information */
 	    if (cbtemp == cbbreaks)
-		vp->CollateVCB(m, VSvar_bufs, VCBStatusvar_bufs);
+		rvp->CollateVCB(m, VSvar_bufs, VCBStatusvar_bufs);
 
 	    /* Finalize COP2 Piggybacking. */
 	    if (PIGGYCOP2)
-		vp->ClearCOP2(&PiggyBS);
+		rvp->ClearCOP2(&PiggyBS);
 
 	    /* Manually compute the OUT parameters from the mgrpent::Store() call! -JJK */
 	    int dh_ix; dh_ix = -1;
@@ -196,19 +197,19 @@ int fsobj::RepairStore()
 	/* Do Store locally. */
 	Recov_BeginTrans();
 	LocalStore(Mtime, NewLength);
-	UpdateStatus(&status, &UpdateSet, vuid);
+	UpdateStatus(&status, &UpdateSet, vp->u.u_uid);
 	Recov_EndTrans(CMFP);
 	if (ASYNCCOP2) ReturnEarly();
 
 	/* Send the COP2 message or add an entry for piggybacking. */
-        vp->COP2(m, &sid, &UpdateSet);
+        rvp->COP2(m, &sid, &UpdateSet);
 
 RepExit:
         if (m) m->Put();
 	switch(code) {
 	    case 0:
 		if (asy_resolve)
-		    vp->ResSubmit(0, &fid);
+		    rvp->ResSubmit(0, &fid);
 		break;
 
 	    default:
@@ -219,21 +220,21 @@ RepExit:
 	/* Acquire a Connection. */
 	connent *c;
 	ViceStoreId Dummy;      /* ViceStore needs an address for indirection */
-        volrep *vp = (volrep *)vol;
-	code = vp->GetConn(&c, vuid);
+        volrep *rvp = (volrep *)vol;
+	code = rvp->GetConn(&c, vp->u.u_uid);
 	if (code != 0) goto NonRepExit;
 
 	/* Make the RPC call. */
 	CFSOP_PRELUDE(prel_str, comp, fid);
 	UNI_START_MESSAGE(ViceStore_OP);
-	code = (int) ViceStore(c->connid, &fid, &status, NewLength, 0,
-				   &Dummy, &OldVS, &VS, &VCBStatus, &PiggyBS,
-				   sed);
+	code = (int) ViceStore(c->connid, MakeViceFid(&fid), &status,
+			       NewLength, 0, &Dummy, &OldVS, &VS, &VCBStatus,
+			       &PiggyBS, sed);
 	UNI_END_MESSAGE(ViceStore_OP);
 	CFSOP_POSTLUDE("store::store done\n");
 
 	/* Examine the return code to decide what to do next. */
-	code = vp->Collate(c, code);
+	code = rvp->Collate(c, code);
 	UNI_RECORD_STATS(ViceStore_OP);
 	if (code != 0) goto NonRepExit;
 
@@ -250,7 +251,7 @@ RepExit:
 	/* Do Store locally. */
 	Recov_BeginTrans();
 	LocalStore(Mtime, NewLength);
-	UpdateStatus(&status, 0, vuid);
+	UpdateStatus(&status, 0, vp->u.u_uid);
 	Recov_EndTrans(CMFP);
 
 NonRepExit:
@@ -263,61 +264,56 @@ NonRepExit:
 }
 
 int fsobj::RepairSetAttr(unsigned long NewLength, Date_t NewDate,
-			 vuid_t NewOwner, unsigned short NewMode,
+			 uid_t NewOwner, unsigned short NewMode,
 			 RPC2_CountedBS *acl) 
 {
     Date_t Mtime = Vtime();
     vproc *vp = VprocSelf();
-    vuid_t vuid = CRTORUID(vp->u.u_cred);
     if (LRDB->repair_session_mode == REP_SCRATCH_MODE)
-      return DisconnectedSetAttr(Mtime, vuid, NewLength, NewDate, NewOwner, NewMode, 
+      return DisconnectedSetAttr(Mtime, vp->u.u_uid, NewLength, NewDate, NewOwner, NewMode, 
 				 LRDB->repair_session_tid);
     else
-      return ConnectedSetAttr(Mtime, vuid, NewLength, NewDate, NewOwner, NewMode, acl);
+      return ConnectedSetAttr(Mtime, vp->u.u_uid, NewLength, NewDate, NewOwner, NewMode, acl);
 }
 
 int fsobj::RepairCreate(fsobj **t_fso_addr, char *name, unsigned short Mode, int target_pri) 
 {
     Date_t Mtime = Vtime();
     vproc *vp = VprocSelf();
-    vuid_t vuid = CRTORUID(vp->u.u_cred);
     if (LRDB->repair_session_mode == REP_SCRATCH_MODE)
-      return DisconnectedCreate(Mtime, vuid, t_fso_addr, name, Mode, target_pri,
+      return DisconnectedCreate(Mtime, vp->u.u_uid, t_fso_addr, name, Mode, target_pri,
 				LRDB->repair_session_tid);
     else
-      return ConnectedCreate(Mtime, vuid, t_fso_addr, name, Mode, target_pri);
+      return ConnectedCreate(Mtime, vp->u.u_uid, t_fso_addr, name, Mode, target_pri);
 }
 
 int fsobj::RepairRemove(char *name, fsobj *target_fso) {
     Date_t Mtime = Vtime();
     vproc *vp = VprocSelf();
-    vuid_t vuid = CRTORUID(vp->u.u_cred);
     if (LRDB->repair_session_mode == REP_SCRATCH_MODE)
-      return DisconnectedRemove(Mtime, vuid, name, target_fso, LRDB->repair_session_tid);
+      return DisconnectedRemove(Mtime, vp->u.u_uid, name, target_fso, LRDB->repair_session_tid);
     else
-      return ConnectedRemove(Mtime, vuid, name, target_fso);
+      return ConnectedRemove(Mtime, vp->u.u_uid, name, target_fso);
 }
 
 int fsobj::RepairLink(char *name, fsobj *source_fso) {
     Date_t Mtime = Vtime();
     vproc *vp = VprocSelf();
-    vuid_t vuid = CRTORUID(vp->u.u_cred);
     if (LRDB->repair_session_mode == REP_SCRATCH_MODE)
-      return DisconnectedLink(Mtime, vuid, name, source_fso, LRDB->repair_session_tid);
+      return DisconnectedLink(Mtime, vp->u.u_uid, name, source_fso, LRDB->repair_session_tid);
     else
-      return ConnectedLink(Mtime, vuid, name, source_fso);
+      return ConnectedLink(Mtime, vp->u.u_uid, name, source_fso);
 }
 
 int fsobj::RepairRename(fsobj *s_parent_fso, char *s_name, fsobj *s_fso, char *t_name, fsobj *t_fso) 
 {
     Date_t Mtime = Vtime();
     vproc *vp = VprocSelf();
-    vuid_t vuid = CRTORUID(vp->u.u_cred);
     if (LRDB->repair_session_mode == REP_SCRATCH_MODE)
-      return DisconnectedRename(Mtime, vuid, s_parent_fso, s_name, s_fso, t_name, t_fso,
+      return DisconnectedRename(Mtime, vp->u.u_uid, s_parent_fso, s_name, s_fso, t_name, t_fso,
 				LRDB->repair_session_tid);
     else
-      return ConnectedRename(Mtime, vuid, s_parent_fso, s_name, s_fso, t_name, t_fso);
+      return ConnectedRename(Mtime, vp->u.u_uid, s_parent_fso, s_name, s_fso, t_name, t_fso);
 }
 
 
@@ -325,23 +321,21 @@ int fsobj::RepairMkdir(fsobj **t_fso_addr, char *name, unsigned short Mode, int 
 {
     Date_t Mtime = Vtime();
     vproc *vp = VprocSelf();
-    vuid_t vuid = CRTORUID(vp->u.u_cred);
     if (LRDB->repair_session_mode == REP_SCRATCH_MODE)
-      return DisconnectedMkdir(Mtime, vuid, t_fso_addr, name, Mode, target_pri, 
+      return DisconnectedMkdir(Mtime, vp->u.u_uid, t_fso_addr, name, Mode, target_pri, 
 			       LRDB->repair_session_tid);
     else
-      return ConnectedMkdir(Mtime, vuid, t_fso_addr, name, Mode, target_pri);
+      return ConnectedMkdir(Mtime, vp->u.u_uid, t_fso_addr, name, Mode, target_pri);
 }
 
 int fsobj::RepairRmdir(char *name, fsobj *target_fso)
 {
     Date_t Mtime = Vtime();
     vproc *vp = VprocSelf();
-    vuid_t vuid = CRTORUID(vp->u.u_cred);
     if (LRDB->repair_session_mode == REP_SCRATCH_MODE)
-      return DisconnectedRmdir(Mtime, vuid, name, target_fso, LRDB->repair_session_tid);
+      return DisconnectedRmdir(Mtime, vp->u.u_uid, name, target_fso, LRDB->repair_session_tid);
     else
-      return ConnectedRmdir(Mtime, vuid, name, target_fso);
+      return ConnectedRmdir(Mtime, vp->u.u_uid, name, target_fso);
 }
 
 int fsobj::RepairSymlink(fsobj **t_fso_addr, char *name, char *contents,
@@ -349,12 +343,11 @@ int fsobj::RepairSymlink(fsobj **t_fso_addr, char *name, char *contents,
 {
     Date_t Mtime = Vtime();
     vproc *vp = VprocSelf();
-    vuid_t vuid = CRTORUID(vp->u.u_cred);
     if (LRDB->repair_session_mode == REP_SCRATCH_MODE)
-      return DisconnectedSymlink(Mtime, vuid, t_fso_addr, name, contents, Mode, target_pri,
+      return DisconnectedSymlink(Mtime, vp->u.u_uid, t_fso_addr, name, contents, Mode, target_pri,
 				 LRDB->repair_session_tid);
     else
-      return ConnectedSymlink(Mtime, vuid, t_fso_addr, name, contents, Mode, target_pri);
+      return ConnectedSymlink(Mtime, vp->u.u_uid, t_fso_addr, name, contents, Mode, target_pri);
 }
 
 /*
@@ -364,14 +357,13 @@ int fsobj::RepairSymlink(fsobj **t_fso_addr, char *name, char *contents,
   END_HTML
 */
 /* must not be call from within a transaction */
-void fsobj::DeLocalRootParent(fsobj *RepairRoot, ViceFid *GlobalRootFid, fsobj *MtPt)
+void fsobj::DeLocalRootParent(fsobj *RepairRoot, VenusFid *GlobalRootFid, fsobj *MtPt)
 {
     FSO_ASSERT(this, RepairRoot != NULL && GlobalRootFid != NULL);
-    LOG(100, ("fsobj::DeLocalRootParent: root-parent = 0x%x.%x.%x and repair-root = 0x%x.%x.%x\n",
-	      fid.Volume, fid.Vnode, fid.Unique, RepairRoot->fid.Volume, 
-	      RepairRoot->fid.Vnode, RepairRoot->fid.Unique));
-    LOG(100, ("fsobj::DeLocalRootParent: GlobalRootFid = 0x%x.%x.%x MtPt = %x\n", 
-	      GlobalRootFid->Volume, GlobalRootFid->Vnode, GlobalRootFid->Unique, MtPt));
+    LOG(100, ("fsobj::DeLocalRootParent: root-parent = %s and repair-root = %s\n",
+	      FID_(&fid), FID_(&RepairRoot->fid)));
+    LOG(100, ("fsobj::DeLocalRootParent: GlobalRootFid = %s MtPt = %x\n", 
+	      FID_(GlobalRootFid), MtPt));
 
     /* step 1: find out if the root parent root has other fake subtree as child */
     int shared_parent_count = 0;
@@ -380,8 +372,7 @@ void fsobj::DeLocalRootParent(fsobj *RepairRoot, ViceFid *GlobalRootFid, fsobj *
 	rfment *rfm;
 	while ((rfm = next())) {
 	    if (rfm->RootCovered()) continue;
-	    if (!memcmp((const void *)rfm->GetRootParentFid(), (const void *)&fid, 
-		      (int)sizeof(ViceFid)))
+	    if (FID_EQ(rfm->GetRootParentFid(), &fid))
 	      shared_parent_count++;
 	}
     }
@@ -393,9 +384,8 @@ void fsobj::DeLocalRootParent(fsobj *RepairRoot, ViceFid *GlobalRootFid, fsobj *
 	RVMLIB_REC_OBJECT(*RepairRoot);
 	dir_Delete(RepairRoot->comp);
 	dir_Create(RepairRoot->comp, GlobalRootFid);
-	if (shared_parent_count == 0) {
-		flags.local = 0;
-	}
+	if (shared_parent_count == 0)
+		UnsetLocalObj();
 	DetachChild(RepairRoot);
 	RepairRoot->pfso = NULL;
 	RepairRoot->pfid = NullFid;    
@@ -407,9 +397,8 @@ void fsobj::DeLocalRootParent(fsobj *RepairRoot, ViceFid *GlobalRootFid, fsobj *
 	RVMLIB_REC_OBJECT(*RepairRoot);
 	dir_Delete(RepairRoot->comp);
 	dir_Create(RepairRoot->comp, &MtPt->fid);
-	if (shared_parent_count == 0) {
-		flags.local = 0;
-	}
+	if (shared_parent_count == 0)
+		UnsetLocalObj();
 	DetachChild(RepairRoot);
 	RepairRoot->pfso = NULL;
 	RepairRoot->pfid = NullFid;    
@@ -429,7 +418,7 @@ void fsobj::DeLocalRootParent(fsobj *RepairRoot, ViceFid *GlobalRootFid, fsobj *
 	fsobj *GlobalRootObj = NULL;
 	/* first try to FSDB::Get GlobalRootObj(include possible fetching) */
 	vproc *vp = VprocSelf();
-	if (FSDB->Get(&GlobalRootObj, GlobalRootFid, CRTORUID(vp->u.u_cred), RC_STATUS) != 0) {
+	if (FSDB->Get(&GlobalRootObj, GlobalRootFid, vp->u.u_uid, RC_STATUS) != 0) {
 	    LOG(0, ("fsobj::DeLocalRootParent: FSDB::Get can't get GlobalRootObj\n"));
 	} else {
 	    /* FSDB::Get puts read-locked target, must unlock it.*/
@@ -438,8 +427,7 @@ void fsobj::DeLocalRootParent(fsobj *RepairRoot, ViceFid *GlobalRootFid, fsobj *
 	/* no matter what happened to FSDB::Get(), search it from hash-table */
 	GlobalRootObj = FSDB->Find(GlobalRootFid);
 	if (GlobalRootObj) {
-	    if (!memcmp((const void *)&fid, (const void *)&(GlobalRootObj->pfid), 
-		      (int)sizeof(ViceFid)) &&
+	    if (FID_EQ(&fid, &(GlobalRootObj->pfid)) &&
 		GlobalRootObj->pfso == this) {
 		/* 
 		 * this is the case where the side-effect of FSDB::Get() in
@@ -460,18 +448,17 @@ void fsobj::DeLocalRootParent(fsobj *RepairRoot, ViceFid *GlobalRootFid, fsobj *
 }
 
 /* must not be called from within a transaction */
-void fsobj::MixedToGlobal(ViceFid *FakeRootFid, ViceFid *GlobalChildFid, char *Name)
+void fsobj::MixedToGlobal(VenusFid *FakeRootFid, VenusFid *GlobalChildFid, char *Name)
 {
     FSO_ASSERT(this, FakeRootFid != NULL && GlobalChildFid != NULL && Name != NULL);
-    LOG(100, ("fsobj::MixedToGlobal: FakeRootFid = 0x%x.%x.%x GlobalChildFid = 0x%x.%x.%x\n",
-	      FakeRootFid->Volume, FakeRootFid->Vnode, FakeRootFid->Unique,
-	      GlobalChildFid->Volume, GlobalChildFid->Vnode, GlobalChildFid->Unique));
-    LOG(100, ("fsobj::MixedToGlobal: RootParentFid = 0x%x.%x.%x Name = %s\n",
-	      fid.Volume, fid.Vnode, fid.Unique, Name));
+    LOG(100, ("fsobj::MixedToGlobal: FakeRootFid = %s GlobalChildFid = %s\n",
+	      FID_(FakeRootFid), FID_(GlobalChildFid)));
+    LOG(100, ("fsobj::MixedToGlobal: RootParentFid = %s Name = %s\n",
+	      FID_(&fid), Name));
     /* "this" object is the RootParentObj in the LRDB->RFM map */
     fsobj *FakeRootObj = FSDB->Find(FakeRootFid);
     fsobj *GlobalChildObj = FSDB->Find(GlobalChildFid);
-    FSO_ASSERT(this, FakeRootObj != NULL && GlobalChildObj != NULL);
+    FSO_ASSERT(this, FakeRootObj && GlobalChildObj);
     Recov_BeginTrans();
     RVMLIB_REC_OBJECT(*this);
     RVMLIB_REC_OBJECT(*FakeRootObj);
@@ -489,18 +476,17 @@ void fsobj::MixedToGlobal(ViceFid *FakeRootFid, ViceFid *GlobalChildFid, char *N
 }
 
 /* must not be called from within a transaction */
-void fsobj::GlobalToMixed(ViceFid *FakeRootFid, ViceFid *GlobalChildFid, char *Name)
+void fsobj::GlobalToMixed(VenusFid *FakeRootFid, VenusFid *GlobalChildFid, char *Name)
 {
     FSO_ASSERT(this, FakeRootFid != NULL && GlobalChildFid != NULL && Name != NULL);
-    LOG(100, ("fsobj::GlobalToMixed: FakeRootFid = 0x%x.%x.%x GlobalChildFid = 0x%x.%x.%x\n",
-	      FakeRootFid->Volume, FakeRootFid->Vnode, FakeRootFid->Unique,
-	      GlobalChildFid->Volume, GlobalChildFid->Vnode, GlobalChildFid->Unique));
-    LOG(100, ("fsobj::GlobalToMixed: RootParentFid = 0x%x.%x.%x Name = %s\n",
-	      fid.Volume, fid.Vnode, fid.Unique, Name));    
+    LOG(100, ("fsobj::GlobalToMixed: FakeRootFid = %s GlobalChildFid = %s\n",
+	      FID_(FakeRootFid), FID_(GlobalChildFid)));
+    LOG(100, ("fsobj::GlobalToMixed: RootParentFid = %s Name = %s\n",
+	      FID_(&fid), Name));    
     /* "this" object is the RootParentObj in the LRDB->RFM map */
     fsobj *FakeRootObj = FSDB->Find(FakeRootFid);
     fsobj *GlobalChildObj = FSDB->Find(GlobalChildFid);
-    FSO_ASSERT(this, FakeRootObj != NULL && GlobalChildObj != NULL);
+    FSO_ASSERT(this, FakeRootObj && GlobalChildObj);
     Recov_BeginTrans();
     RVMLIB_REC_OBJECT(*this);
     RVMLIB_REC_OBJECT(*FakeRootObj);
@@ -518,18 +504,17 @@ void fsobj::GlobalToMixed(ViceFid *FakeRootFid, ViceFid *GlobalChildFid, char *N
 }
 
 /* must not be called from within a transaction */
-void fsobj::MixedToLocal(ViceFid *FakeRootFid, ViceFid *LocalChildFid, char *Name)
+void fsobj::MixedToLocal(VenusFid *FakeRootFid, VenusFid *LocalChildFid, char *Name)
 {
     FSO_ASSERT(this, FakeRootFid != NULL && LocalChildFid != NULL && Name != NULL);
-    LOG(100, ("fsobj::MixToLocal: FakeRootFid = 0x%x.%x.%x LocallChildFid = 0x%x.%x.%x\n",
-	      FakeRootFid->Volume, FakeRootFid->Vnode, FakeRootFid->Unique,
-	      LocalChildFid->Volume, LocalChildFid->Vnode, LocalChildFid->Unique));
-    LOG(100, ("fsobj::MixToLocal: RootParentFid = 0x%x.%x.%x Name = %s\n",
-	      fid.Volume, fid.Vnode, fid.Unique, Name));
+    LOG(100, ("fsobj::MixToLocal: FakeRootFid = %s LocallChildFid = %s\n",
+	      FID_(FakeRootFid), FID_(LocalChildFid)));
+    LOG(100, ("fsobj::MixToLocal: RootParentFid = %s Name = %s\n",
+	      FID_(&fid), Name));
     /* "this" object is the RootParentObj in the LRDB->RFM map */
     fsobj *FakeRootObj = FSDB->Find(FakeRootFid);
     fsobj *LocalChildObj = FSDB->Find(LocalChildFid);
-    FSO_ASSERT(this, FakeRootObj != NULL && LocalChildObj != NULL);
+    FSO_ASSERT(this, FakeRootObj && LocalChildObj);
     Recov_BeginTrans();
     RVMLIB_REC_OBJECT(*this);
     RVMLIB_REC_OBJECT(*FakeRootObj);
@@ -547,18 +532,17 @@ void fsobj::MixedToLocal(ViceFid *FakeRootFid, ViceFid *LocalChildFid, char *Nam
 }
 
 /* must not be called from within a transaction */
-void fsobj::LocalToMixed(ViceFid *FakeRootFid, ViceFid *LocalChildFid, char *Name)
+void fsobj::LocalToMixed(VenusFid *FakeRootFid, VenusFid *LocalChildFid, char *Name)
 {
     FSO_ASSERT(this, FakeRootFid != NULL && LocalChildFid != NULL && Name != NULL);
-    LOG(100, ("fsobj::LocalToMixed: FakeRootFid = 0x%x.%x.%x GlobalChildFid = 0x%x.%x.%x\n",
-	      FakeRootFid->Volume, FakeRootFid->Vnode, FakeRootFid->Unique,
-	      LocalChildFid->Volume, LocalChildFid->Vnode, LocalChildFid->Unique));
-    LOG(100, ("fsobj::LocalToMixed: RootParentFid = 0x%x.%x.%x Name = %s\n",
-	      fid.Volume, fid.Vnode, fid.Unique, Name));    
+    LOG(100, ("fsobj::LocalToMixed: FakeRootFid = %s GlobalChildFid = %s\n",
+	      FID_(FakeRootFid), FID_(LocalChildFid)));
+    LOG(100, ("fsobj::LocalToMixed: RootParentFid = %s Name = %s\n",
+	      FID_(&fid), Name));    
     /* "this" object is the RootParentObj in the LRDB->RFM map */
     fsobj *FakeRootObj = FSDB->Find(FakeRootFid);
     fsobj *LocalChildObj = FSDB->Find(LocalChildFid);
-    FSO_ASSERT(this, FakeRootObj != NULL && LocalChildObj != NULL);
+    FSO_ASSERT(this, FakeRootObj && LocalChildObj);
     Recov_BeginTrans();
     RVMLIB_REC_OBJECT(*this);
     RVMLIB_REC_OBJECT(*FakeRootObj);
@@ -592,7 +576,7 @@ void fsobj::SetComp(char *name)
 }
 
 /* must not be called from within a transaction */
-void fsobj::RecoverRootParent(ViceFid *FakeRootFid, char *Name)
+void fsobj::RecoverRootParent(VenusFid *FakeRootFid, char *Name)
 {
     /* 
      * "this" RootParentObj and we put the pair (FakeRootFid, Name) in the
@@ -616,8 +600,7 @@ void fsobj::RecoverRootParent(ViceFid *FakeRootFid, char *Name)
 cmlent *fsobj::FinalCmlent(int tid)
 {
     /* return the last cmlent done by iot tid */
-    LOG(100, ("fsobj::FinalCmlent: 0x%x.%x.%x\n",
-	      fid.Volume, fid.Vnode, fid.Unique));
+    LOG(100, ("fsobj::FinalCmlent: %s\n", FID_(&fid)));
     FSO_ASSERT(this, mle_bindings);
     dlist_iterator next(*mle_bindings);
     dlink *d;
@@ -635,19 +618,18 @@ cmlent *fsobj::FinalCmlent(int tid)
 }
 
 /* need not be called from within a transaction */
-int fsobj::IsAncestor(ViceFid *Fid) 
+int fsobj::IsAncestor(VenusFid *Fid) 
 {
     /* chec if "Fid" is an ancestor of "this" */
     FSO_ASSERT(this, Fid);
-    LOG(100, ("fsobj::IsAncestor:(0x%x.%x.%x) 0x%x.%x.%x\n", fid.Volume, 
-	      fid.Vnode, fid.Unique, Fid->Volume, Fid->Vnode, Fid->Unique));
+    LOG(100, ("fsobj::IsAncestor:(%s) %s\n", FID_(&fid), FID_(Fid)));
     fsobj *cfo = this;
     while (cfo) {
-	LOG(100, ("fsobj::IsAncestor: current node is (%s, 0x%x.%x.%x)\n",
-		  cfo->comp, cfo->fid.Volume, cfo->fid.Vnode, cfo->fid.Unique));
-	if (!memcmp((const void *)&cfo->fid, (const void *)Fid, (int)sizeof(ViceFid))) {
+	LOG(100, ("fsobj::IsAncestor: current node is (%s, %s)\n",
+		  cfo->comp, FID_(&cfo->fid)));
+	if (FID_EQ(&cfo->fid, Fid))
 	    return 1;
-	}
+
 	if (cfo->IsRoot()) {
 	    LOG(100, ("fsobj::IsAncestor: going up to through a mount point\n"));
 	    cfo = cfo->u.mtpoint;
@@ -671,8 +653,8 @@ int fsobj::ReplaceLocalFakeFid()
      * this method replaces fid of objects in the subtree rooted at "this" with 
      * newly generated local fake fids. it uses a stack to avoid recursion.
      */
-    LOG(100, ("fsobj::ReplaceLocalFakeFid: subtree root--(%s, 0x%x.%x.%x)\n",
-	      comp, fid.Volume, fid.Vnode, fid.Unique));
+    LOG(100, ("fsobj::ReplaceLocalFakeFid: subtree root--(%s, %s)\n",
+	      comp, FID_(&fid)));
     dlist stack;
     optent *opt = new optent(this);
     stack.prepend(opt);			/* INIT the stack with the subtree root */
@@ -684,8 +666,8 @@ int fsobj::ReplaceLocalFakeFid()
 	
 	delete opt;			/* GC the optent object */
 	if (obj->IsLocalObj() && LRDB->RFM_IsFakeRoot(&(obj->fid))) {
-	    LOG(100, ("fsobj::ReplaceLocalFakeFid: (%s, 0x%x.%x.%x)faked! merge tree\n",
-		      obj->comp, obj->fid.Volume, obj->fid.Vnode, obj->fid.Unique));
+	    LOG(100, ("fsobj::ReplaceLocalFakeFid: (%s, %s) faked! merge tree\n",
+		      obj->comp, FID_(&obj->fid)));
 	    /*
 	     * Here we need to remove FakeRoot(which is "obj"), its "local" and "global" 
 	     * children. Hookup the relationship of obj's parent and LocalRoot
@@ -693,11 +675,11 @@ int fsobj::ReplaceLocalFakeFid()
 	     * keep track of this merge-point for the de-localization process. 
 	     */
 	    LRDB->RFM_CoverRoot(&obj->fid);
-	    ViceFid *LocalChildFid = LRDB->RFM_LookupLocalChild(&obj->fid);
-	    ViceFid *GlobalChildFid = LRDB->RFM_LookupGlobalChild(&obj->fid);
-	    ViceFid *LocalRootFid = LRDB->RFM_LookupLocalRoot(&obj->fid);
-	    ViceFid *GlobalRootFid = LRDB->RFM_LookupGlobalRoot(&obj->fid);
-	    ViceFid *RootParentFid = LRDB->RFM_LookupRootParent(&obj->fid);
+	    VenusFid *LocalChildFid = LRDB->RFM_LookupLocalChild(&obj->fid);
+	    VenusFid *GlobalChildFid = LRDB->RFM_LookupGlobalChild(&obj->fid);
+	    VenusFid *LocalRootFid = LRDB->RFM_LookupLocalRoot(&obj->fid);
+	    VenusFid *GlobalRootFid = LRDB->RFM_LookupGlobalRoot(&obj->fid);
+	    VenusFid *RootParentFid = LRDB->RFM_LookupRootParent(&obj->fid);
 	    FSO_ASSERT(this, LocalChildFid && GlobalChildFid);
 	    FSO_ASSERT(this, LocalRootFid && GlobalRootFid && RootParentFid);
 	    fsobj *LocalChildObj = FSDB->Find(LocalChildFid);
@@ -717,7 +699,7 @@ int fsobj::ReplaceLocalFakeFid()
 	     * just localized. So we need to map the ParentRootFid into 
 	     * its local from, which must exist in the LGM-map, and Find the fsobj.
 	     */
-	    ViceFid *CurrentRootParentFid = LRDB->LGM_LookupLocal(RootParentFid);
+	    VenusFid *CurrentRootParentFid = LRDB->LGM_LookupLocal(RootParentFid);
 	    OBJ_ASSERT(this, CurrentRootParentFid);
 	    fsobj *RootParentObj = FSDB->Find(CurrentRootParentFid);
 	    OBJ_ASSERT(this, RootParentObj);
@@ -757,10 +739,10 @@ int fsobj::ReplaceLocalFakeFid()
 	if (obj->IsDir() && HAVEALLDATA(obj) && (!obj->IsMtPt())) {
 	    /* deal with possible un-cached children under "obj" */
 	    LRDB->DirList_Clear();
-	    ViceFid *DirFid = &obj->fid;
+	    Volid *DirVolid = MakeVolid(&obj->fid);
 	    VenusData *DirData = &obj->data;
 
-	    DH_EnumerateDir(&DirData->dir->dh, MakeDirList, (void *)DirFid->Volume);
+	    DH_EnumerateDir(&DirData->dir->dh, MakeDirList, (void *)DirVolid);
 	    LRDB->DirList_Process(obj);
 	}
 	if (obj->children != 0) {	/* Try to PUSH the stack if appropriate */
@@ -774,8 +756,8 @@ int fsobj::ReplaceLocalFakeFid()
 		 * children from it so that none of them can point to the dir object. We
 		 * will have very few chances to test whether this fix works well or not.
 		 */
-		LOG(0, ("fsobj::ReplaceLocalFakeFid: directory 0x%x.%x.%x have children but no data\n",
-			obj->fid.Volume, obj->fid.Vnode, obj->fid.Unique));
+		LOG(0, ("fsobj::ReplaceLocalFakeFid: directory %s has children but no data\n",
+			FID_(&obj->fid)));
 		/* need to skip expanding DFS search tree for obj's children, and de-link them */
 		dlink *d = 0;
 		while ((d = obj->children->first())) {
@@ -808,16 +790,15 @@ int fsobj::ReplaceLocalFakeFid()
 	    }
 	}
 	/* process the current fsobj object pointed to by "obj" */
-	LOG(100, ("fsobj::ReplaceLocalFakeFid:  current node -- comp = %s, fid = %x.%x.%x\n", 
-		  obj->comp, obj->fid.Volume, obj->fid.Vnode, obj->fid.Unique));
+	LOG(100, ("fsobj::ReplaceLocalFakeFid:  current node -- comp = %s, fid = %s\n", obj->comp, FID_(&obj->fid)));
 
 	/* do the actual fid replacement */
-	ViceFid LocalFid;
-	ViceFid GlobalFid;
+	VenusFid LocalFid;
+	VenusFid GlobalFid;
 	Recov_BeginTrans();
 	/* LocalFid = LRDB->GenerateLocalFakeFid(stat.VnodeType);  stat.VnodeType is incorrect!  -Remi */
 	LocalFid = LRDB->GenerateLocalFakeFid((ISDIR(obj->fid) ? Directory : File));
-	memmove((void *)&GlobalFid, (const void *)&obj->fid, (int)sizeof(ViceFid));
+	memmove((void *)&GlobalFid, (const void *)&obj->fid, (int)sizeof(VenusFid));
 	/* insert the local-global fid mapping */
 	LRDB->LGM_Insert(&LocalFid, &GlobalFid);
 	/* globally replace the global-fid with the local-fid */
@@ -849,8 +830,7 @@ int fsobj::ReplaceLocalFakeFid()
 /* this method will be called when the volume is exclusively locked */
 int fsobj::LocalFakeify()
 {
-    LOG(100, ("fsobj::LocalFakeify: %s, %x.%x.%x\n",
-	      comp, fid.Volume, fid.Vnode, fid.Unique));
+    LOG(100, ("fsobj::LocalFakeify: %s, %s\n", comp, FID_(&fid)));
     int code = 0;
 
     /* 
@@ -868,9 +848,8 @@ int fsobj::LocalFakeify()
 		fsobj *pf = FSDB->Find(&obj->pfid);
 		if (pf != 0 && HAVESTATUS(pf) && !GCABLE(pf)) {
 		    /* re-estacblish the parent-chile linkage between pf and obj */
-		    LOG(0, ("fsobj::LocalFakeify: relink 0x%x.%x.%x and 0x%x.%x.%x\n",
-			    obj->fid.Volume, obj->fid.Vnode, obj->fid.Unique,
-			    pf->fid.Volume, pf->fid.Vnode, pf->fid.Unique));
+		    LOG(0, ("fsobj::LocalFakeify: relink %s and %s\n",
+			    FID_(&obj->fid), FID_(&pf->fid)));
 		    obj->pfso = pf;
 		    pf->AttachChild(obj);
 		}
@@ -891,14 +870,14 @@ int fsobj::LocalFakeify()
 	    break;
 	}
 	if (pf == 0) {
-	    LOG(0, ("fsobj::LocalFakeify: %s, %x.%x.%x, parent not found\n",
-		    comp, fid.Volume, fid.Vnode, fid.Unique));
+	    LOG(0, ("fsobj::LocalFakeify: %s, %s, parent not found\n",
+		    comp, FID_(&fid)));
 	    return(ENOENT);
 	}
     }
 
-    FSO_ASSERT(this, (pf != NULL) || (NULL == pf && IsRoot()));
-    if (NULL == pf) {
+    FSO_ASSERT(this, pf || (!pf && IsRoot()));
+    if (!pf) {
 	LOG(0, ("fsobj::LocalFakeify: mount-point\n"));
 	return LocalFakeifyRoot();
     }
@@ -908,8 +887,8 @@ int fsobj::LocalFakeify()
      * object with "local fake fid", and mark them RC valid.
      */
     /* preserve the original global fid for "this" object */
-    ViceFid GlobalRootFid;
-    memmove((void *)&GlobalRootFid, (const void *)&fid, (int)sizeof(ViceFid));
+    VenusFid GlobalRootFid;
+    memmove((void *)&GlobalRootFid, (const void *)&fid, (int)sizeof(VenusFid));
 
     if ((code = ReplaceLocalFakeFid()) != 0) {
 	CHOKE("fsobj::LocalFakeify: replace local fake fid failed");
@@ -920,7 +899,7 @@ int fsobj::LocalFakeify()
      * "local" and "global", which will later be used as the mountpoint
      * pointing to the global and local subtrees.
      */
-    ViceFid FakeRootFid, LocalChildFid, GlobalChildFid;
+    VenusFid FakeRootFid, LocalChildFid, GlobalChildFid;
     RPC2_Unsigned AllocHost = 0;
     CODA_ASSERT(vol->IsReplicated());
     repvol *rv = (repvol *)vol;
@@ -936,10 +915,10 @@ int fsobj::LocalFakeify()
     Recov_EndTrans(MAXFP);
 
     vproc *vp = VprocSelf();
-    fsobj *FakeRoot = FSDB->Create(&FakeRootFid, NL, vp->u.u_priority, comp);
+    fsobj *FakeRoot = FSDB->Create(&FakeRootFid, vp->u.u_priority, comp);
     if (NULL == FakeRoot) {
-	LOG(0, ("fsobj::LocalFakeify: can not create Fake Root for %x.%x.%x\n",
-		GlobalRootFid.Volume, GlobalRootFid.Vnode, GlobalRootFid.Unique));
+	LOG(0, ("fsobj::LocalFakeify: can not create Fake Root for %s\n",
+		FID_(&GlobalRootFid)));
 	return (ENOSPC);
     }
     LOG(100, ("fsobj::LocalFakeify: created a new fake-root node\n"));
@@ -980,41 +959,18 @@ int fsobj::LocalFakeify()
     FakeRoot->pfso = pf;
     /* Create the target directory. */
     FakeRoot->dir_MakeDir();
-    FakeRoot->stat.Length = FakeRoot->dir_Length();
-    FakeRoot->RcRights = RC_DATA | RC_STATUS;
-    UpdateCacheStats(&FSDB->DirDataStats, CREATE, BLOCKS(FakeRoot));
+    FakeRoot->SetRcRights(RC_DATA | RC_STATUS);
     
     /* Create the "global" and "local" children. */
     FakeRoot->dir_Create("global", &GlobalChildFid);
     FakeRoot->dir_Create("local", &LocalChildFid);
 
-#if 0
-    {
-	struct in_addr volumehosts[VSG_MEMBERS];
-	srvent *s;
-	int i;
-	/* Make entries for each of the rw-replicas. */
-	vol->GetHosts(volumehosts);
-	for (i = 0; i < VSG_MEMBERS; i++) {
-	    if (!volumehosts[i].s_addr) continue;
-	    srvent *s;
-	    char Name[CODA_MAXNAMLEN];
-	    if ((s = FindServer(&volumehosts[i])) && s->name)
-		sprintf(Name, "%s", s->name);
-	    else
-		sprintf(Name, "%08lx", volumehosts[i]);
-	    ViceFid FakeFid = rv->GenerateFakeFid();
-	    LOG(0, ("fsobj::LocalFakeify: new entry (%s, %s)\n",
-		    Name, FID_(&FakeFid)));
-	    FakeRoot->dir_Create(Name, &FakeFid);
-	}
-    }
-#endif
-    
     /* add an new entry to the LRDB maintained fid-map */
     LRDB->RFM_Insert(&FakeRootFid, &GlobalRootFid, &fid, &pf->fid,
 		     &GlobalChildFid, &LocalChildFid, comp);
     Recov_EndTrans(MAXFP);
+
+    FSDB->Put(&FakeRoot);
 
     return(0);
 }
@@ -1046,8 +1002,7 @@ int fsobj::LocalFakeifyRoot()
 {   
     fsobj *MtPt, *pf;
 
-    LOG(100, ("fsobj::LocalFakeifyRoot: %s, %x.%x.%x\n",
-	      comp, fid.Volume, fid.Vnode, fid.Unique));
+    LOG(100, ("fsobj::LocalFakeifyRoot: %s, %s\n", comp, FID_(&fid)));
 
     /* step 1: sanity checks */
     if (!u.mtpoint || !u.mtpoint->pfso) {
@@ -1063,8 +1018,8 @@ int fsobj::LocalFakeifyRoot()
      * object with "local fake fid", and mark them RC valid as well.
      */
     int code = 0;
-    ViceFid GlobalRootFid;
-    memmove((void *)&GlobalRootFid, (const void *)&fid, (int)sizeof(ViceFid));
+    VenusFid GlobalRootFid;
+    memmove((void *)&GlobalRootFid, (const void *)&fid, (int)sizeof(VenusFid));
 
     if ((code = ReplaceLocalFakeFid()) != 0) {
 	CHOKE("fsobj::LocalFakeifyRoot: replace local fake fid failed");
@@ -1081,7 +1036,7 @@ int fsobj::LocalFakeifyRoot()
      * "local" and "global", which will later be used as the mountpoint
      * pointing to the global and local subtrees.
      */
-    ViceFid FakeRootFid, LocalChildFid, GlobalChildFid;
+    VenusFid FakeRootFid, LocalChildFid, GlobalChildFid;
     RPC2_Unsigned AllocHost = 0;
     CODA_ASSERT(vol->IsReplicated());
     repvol *rv = (repvol *)vol;
@@ -1096,14 +1051,13 @@ int fsobj::LocalFakeifyRoot()
     LocalChildFid = rv->GenerateFakeFid();
     Recov_EndTrans(MAXFP);
 
-    FakeRootFid.Volume = pf->fid.Volume;
-    GlobalChildFid.Volume = pf->fid.Volume;
-    LocalChildFid.Volume = pf->fid.Volume;
+    FakeRootFid.Realm = GlobalChildFid.Realm = LocalChildFid.Realm = pf->fid.Realm;
+    FakeRootFid.Volume = GlobalChildFid.Volume = LocalChildFid.Volume = pf->fid.Volume;
     vproc *vp = VprocSelf();
-    fsobj *FakeRoot = FSDB->Create(&FakeRootFid, NL, vp->u.u_priority, comp);
+    fsobj *FakeRoot = FSDB->Create(&FakeRootFid, vp->u.u_priority, comp);
     if (NULL == FakeRoot) {
-	LOG(0, ("fsobj::LocalFakeifyRoot: can not create FakeRoot for %x.%x.%x\n",
-		GlobalRootFid.Volume, GlobalRootFid.Vnode, GlobalRootFid.Unique));
+	LOG(0, ("fsobj::LocalFakeifyRoot: can not create FakeRoot for %s\n",
+		FID_(&GlobalRootFid)));
 	return (ENOSPC);
     }
     LOG(100, ("fsobj::LocalFakeifyRoot: created a new fake-root node\n"));
@@ -1146,9 +1100,7 @@ int fsobj::LocalFakeifyRoot()
     FakeRoot->pfso = pf;
     /* Create the target directory. */
     FakeRoot->dir_MakeDir();
-    FakeRoot->stat.Length = FakeRoot->dir_Length();
-    FakeRoot->RcRights = RC_DATA | RC_STATUS;
-    UpdateCacheStats(&FSDB->DirDataStats, CREATE, BLOCKS(FakeRoot));
+    FakeRoot->SetRcRights(RC_DATA | RC_STATUS);
     
     /* Create the "global" and "local" children. */
     
@@ -1161,6 +1113,8 @@ int fsobj::LocalFakeifyRoot()
     rfm->SetRootMtPt(MtPt);
     LRDB->root_fid_map.insert(rfm);
     Recov_EndTrans(MAXFP);
+
+    FSDB->Put(&FakeRoot);
 
     return(0);
 }

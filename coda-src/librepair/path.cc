@@ -27,7 +27,7 @@ listed in the file CREDITS.
 #include "repcmds.h"
 
 static char *repair_abspath(char *result, unsigned int len, char *name);
-static int repair_getvid(char *path, VolumeId *vid, char *msg, int msgsize);
+static int repair_getvid(char *path, VolumeId *vid, char *realm, char *msg, int msgsize);
 
 /* leftmost: check pathname for inconsistent object
  * path:	user-provided path of alleged object in conflict
@@ -38,7 +38,7 @@ static int repair_getvid(char *path, VolumeId *vid, char *msg, int msgsize);
  * Returns -1 on error and fills in msg if non-NULL. */
 int repair_isleftmost(char *path, char *realpath, int len, char *msg, int msgsize) {
     register char *car, *cdr;
-    int symlinks, rc = 0;
+    int symlinks;
     char buf[MAXPATHLEN], symbuf[MAXPATHLEN], here[MAXPATHLEN], tmp[MAXPATHLEN];
     
     strncpy(buf, path, sizeof(buf)); /* tentative */
@@ -66,7 +66,7 @@ int repair_isleftmost(char *path, char *realpath, int len, char *msg, int msgsiz
 	    cdr = index(car, '/');
 	    if (!cdr) {
 		/* We're at the end */
-		if (repair_inconflict(car, 0) == 0) {
+		if (repair_inconflict(car, NULL, NULL) == 0) {
 		    repair_abspath(realpath, len, car);
 		    if (chdir(here) < 0) {
 			strerr(msg, msgsize, "cd %s: %s", here, strerror(errno));
@@ -83,7 +83,7 @@ int repair_isleftmost(char *path, char *realpath, int len, char *msg, int msgsiz
 	    cdr++;
 
 	    /* Is this piece ok? */
-	    if (repair_inconflict(car, 0) == 0) {
+	    if (repair_inconflict(car, NULL, NULL) == 0) {
 		strerr(msg, msgsize, "%s is to the left of %s and is in conflict", 
 		       repair_abspath(tmp, MAXPATHLEN, car), path);
 		break;
@@ -127,9 +127,12 @@ int repair_isleftmost(char *path, char *realpath, int len, char *msg, int msgsiz
  * prefix:	part before last volume encountered in realpath
  * suffix:	part inside last volume
  * vid:	        id of last volume */
-int repair_getmnt(char *realpath, char *prefix, char *suffix, VolumeId *vid, char *msg, int msgsize) {
+int repair_getmnt(char *realpath, char *prefix, char *suffix, VolumeId *vid,
+		  char *realm, char *msg, int msgsize)
+{
     char msgbuf[DEF_BUF], buf[MAXPATHLEN];
     VolumeId currvid, oldvid;
+    char currrealm[MAXHOSTNAMELEN], oldrealm[MAXHOSTNAMELEN];
     char *slash;
     char *tail; 
     int rc;
@@ -142,7 +145,7 @@ int repair_getmnt(char *realpath, char *prefix, char *suffix, VolumeId *vid, cha
     strcpy(buf, realpath);
     
     /* obtain volume id of last component */
-    if (repair_getvid(buf, &currvid, msgbuf, sizeof(msgbuf)) < 0) {
+    if (repair_getvid(buf, &oldvid, oldrealm, msgbuf, sizeof(msgbuf)) < 0) {
 	strerr(msg, msgsize, "%s", msgbuf);
 	return(-1);
     }
@@ -156,7 +159,6 @@ int repair_getmnt(char *realpath, char *prefix, char *suffix, VolumeId *vid, cha
     */
     tail = buf + strlen(buf); 
     slash = buf + strlen(buf); /* points at trailing null */
-    oldvid = currvid;
     while (1) {
 	/* break the string and find nex right slash */
 	slash = strrchr(buf, '/'); 
@@ -166,7 +168,7 @@ int repair_getmnt(char *realpath, char *prefix, char *suffix, VolumeId *vid, cha
 	if (slash == buf) break; 
 
 	*slash = '\0';
-	rc = repair_getvid(buf, &currvid, msgbuf, sizeof(msgbuf));
+	rc = repair_getvid(buf, &currvid, currrealm, msgbuf, sizeof(msgbuf));
 	*slash = '/';  /* restore the nuked component */
 
 	/* possibility 2: crossed out of Coda */
@@ -179,7 +181,7 @@ int repair_getmnt(char *realpath, char *prefix, char *suffix, VolumeId *vid, cha
 	}
 
 	/* possibility 3: crossed an internal Coda mount point */
-	if (oldvid != currvid)
+	if (oldvid != currvid && strcmp(oldrealm, currrealm) != 0)
 	    break; /* restore slash to previous value and break */
 
 	/* possibility 4: we are still in the same volume */
@@ -193,6 +195,7 @@ int repair_getmnt(char *realpath, char *prefix, char *suffix, VolumeId *vid, cha
     /* set OUT parameters */
     if (prefix) strcpy(prefix, buf); /* this gives us the mount point */
     if (vid)    *vid = oldvid;
+    if (realm)  strcpy(realm, oldrealm);
     if (suffix) strcpy(suffix, tail); 
     return(0);
 }
@@ -200,7 +203,8 @@ int repair_getmnt(char *realpath, char *prefix, char *suffix, VolumeId *vid, cha
 /* Assumes no conflicts to left of last component.  This is NOT checked. 
  * Returns 0 if name refers to an object in conflict and fills in conflictfid if non-NULL.
  * Returns -1 on error */
-int repair_inconflict(char *name, ViceFid *conflictfid) {
+int repair_inconflict(char *name, ViceFid *conflictfid, char *conflictrealm)
+{
     char symval[MAXPATHLEN];
     struct stat statbuf;
     int rc;
@@ -215,10 +219,13 @@ int repair_inconflict(char *name, ViceFid *conflictfid) {
 
     /* it's a sym link, alright */
     if (symval[0] == '@') {
-	if (conflictfid)
-	    sscanf(symval, "@%lx.%lx.%lx",
-		   &conflictfid->Volume, &conflictfid->Vnode, 
-		   &conflictfid->Unique);
+	if (conflictfid) {
+	    sscanf(symval, "@%lx.%lx.%lx@", &conflictfid->Volume,
+		   &conflictfid->Vnode, &conflictfid->Unique);
+	}
+	if (conflictrealm)
+	    strcpy(conflictrealm, strrchr(symval, '@')+1);
+
 	return(0);
     }
     else return(-1);
@@ -229,7 +236,9 @@ int repair_inconflict(char *name, ViceFid *conflictfid) {
  * Garbage may be copied into outvv for non-replicated files
  *
  * Returns 0 on success, Returns -1 on error and fills in msg if non-null */
-int repair_getfid(char *path, ViceFid *outfid, ViceVersionVector *outvv, char *msg, int msgsize) {
+int repair_getfid(char *path, ViceFid *outfid, char *outrealm,
+		  ViceVersionVector *outvv, char *msg, int msgsize)
+{
     int rc, saveerrno;
     struct ViceIoctl vi;
     char junk[DEF_BUF];
@@ -245,26 +254,33 @@ int repair_getfid(char *path, ViceFid *outfid, ViceVersionVector *outvv, char *m
 
     /* Easy: no conflicts */
     if (!rc) {
-	memcpy(outfid, junk, sizeof(ViceFid));
-	memcpy(outvv, junk+sizeof(ViceFid), sizeof(ViceVersionVector));
+	if (outfid)
+	    memcpy(outfid, junk, sizeof(ViceFid));
+	if (outrealm)
+	    strcpy(outrealm, junk+sizeof(ViceFid)+sizeof(ViceVersionVector));
+	if (outvv)
+	    memcpy(outvv, junk+sizeof(ViceFid), sizeof(ViceVersionVector));
 	return(0);
     }
 
     /* Perhaps the object is in conflict? Get fid from dangling symlink */
-    rc = repair_inconflict(path, outfid);
+    rc = repair_inconflict(path, outfid, outrealm);
     if (!rc) {
-	outvv->StoreId.Host = (u_long)-1; /* indicates VV is undefined */
-	outvv->StoreId.Uniquifier = (u_long)-1;
+	if (outvv) {
+	    outvv->StoreId.Host = (u_long)-1; /* indicates VV is undefined */
+	    outvv->StoreId.Uniquifier = (u_long)-1;
+	}
 	return(0);
     }
 
     /* No: 'twas some other bogosity */
     if (errno != EINVAL)
-	strerr(msg, msgsize, "GETFID %s: ", path, saveerrno);
+	strerr(msg, msgsize, "GETFID %s: %d", path, saveerrno);
     return(-1);
 }
 
-static char *repair_abspath(char *result, unsigned int len, char *name) {
+static char *repair_abspath(char *result, unsigned int len, char *name)
+{
     CODA_ASSERT(getcwd(result, len));     /* XXXX */
     CODA_ASSERT(strlen(name) + 1 <= len); /* XXXX */
 
@@ -275,12 +291,13 @@ static char *repair_abspath(char *result, unsigned int len, char *name) {
 
 /* Returns 0 and fills volid with the volume id of path.  
  * Returns -1 on error and fills in msg if non-NULL. */
-static int repair_getvid(char *path, VolumeId *vid, char *msg, int msgsize) {
+static int repair_getvid(char *path, VolumeId *vid, char *realm, char *msg, int msgsize)
+{
     char msgbuf[DEF_BUF];
     ViceFid vfid;
     ViceVersionVector vv;
 
-    if (repair_getfid(path, &vfid, &vv, msgbuf, sizeof(msgbuf)) < 0) {
+    if (repair_getfid(path, &vfid, realm, &vv, msgbuf, sizeof(msgbuf)) < 0) {
 	strerr(msg, msgsize, "repair_getfid: %s", msgbuf);
 	return(-1);
     }

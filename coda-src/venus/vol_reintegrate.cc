@@ -77,8 +77,6 @@ extern "C" {
 /* must not be called from within a transaction */
 void repvol::Reintegrate()
 {
-    userent *u;
-
     LOG(0, ("repvol::Reintegrate\n"));
 
     /* 
@@ -91,14 +89,23 @@ void repvol::Reintegrate()
     if (IsReintegrating())
 	return;
 
-    GetUser(&u, CML.owner);
+#if 0
+    GetUser(&u, realm, CML.owner);
     CODA_ASSERT(u != NULL);
     /* if (SkkEnabled) u->NotifyReintegrationActive(name); */
+    PutUser(&u);
+#endif
+
     flags.reintegrating = 1;
 
     /* enter the volume */
     vproc *v = VprocSelf();
-    v->Begin_VFS(vid, CODA_REINTEGRATE);
+
+    Volid volid;
+    volid.Realm = realm->Id();
+    volid.Volume = vid;
+
+    v->Begin_VFS(&volid, CODA_REINTEGRATE);
     VOL_ASSERT(this, v->u.u_error == 0);
 
     /* prevent ASRs from slipping in and leaving records we might reintegrate. */
@@ -216,7 +223,7 @@ void repvol::Reintegrate()
 /* must not be called from within a transaction */
 int repvol::IncReintegrate(int tid)
 {
-    LOG(0, ("volent::IncReintegrate: (%s, %d) vuid = %d\n",
+    LOG(0, ("volent::IncReintegrate: (%s, %d) uid = %d\n",
 	    name, tid, CML.owner));
     /* check if transaction "tid" has any cmlent objects */
     if (!CML.HaveElements(tid)) {
@@ -440,7 +447,7 @@ int repvol::PartialReintegrate(int tid)
     if (!m) return(ENOENT);
 
     cur_reint_tid = tid; 
-    LOG(0, ("volent::PartialReintegrate: (%s, %d) vuid = %d\n",
+    LOG(0, ("volent::PartialReintegrate: (%s, %d) uid = %d\n",
 	    name, tid, CML.owner));
 
     /* perform some late prelude functions. */
@@ -560,7 +567,7 @@ int repvol::ReadyToReintegrate()
     int ready = 0;
     userent *u = 0;
 
-    GetUser(&u, CML.owner);	/* if the CML is non-empty, u != 0 */
+    GetUser(&u, realm, CML.owner); /* if the CML is non-empty, u != 0 */
     /* 
      * we're a bit draconian about ASRs.  We want to avoid reintegrating
      * while an ASR is in progress, because the ASR uses the write
@@ -684,9 +691,6 @@ void Reintegrate(repvol *v)
 	
 	/* Set up context for reintegrator. */
 	r->u.Init();
-#ifdef __BSD44__
-	r->u.u_cred.cr_uid = v->CML.Owner();
-#endif /* __BSD44__ */
 	r->u.u_vol = v;
 	v->hold();		    /* vproc::End_VFS() will do release */
 	

@@ -77,37 +77,32 @@ void UserInit() {
     USERD_Init();
 }
 
-userent *FindUser(vuid_t vuid) {
+void GetUser(userent **upp, Realm *realm, uid_t uid)
+{
+    LOG(100, ("GetUser: uid = %x.%d\n", realm, uid));
+
     user_iterator next;
     userent *u;
 
-    while ((u = next()))
-	if (u->uid == vuid) return(u);
-
-    return(NULL);
-}
-
-void GetUser(userent **upp, vuid_t vuid) {
-    LOG(100, ("GetUser: uid = %d\n", vuid));
-
-    userent *u = FindUser(vuid);
-    if (u) {
-	*upp = u;
-	return;
+    while ((u = next())) {
+	if (realm == u->realm && uid == u->uid)
+	    break;
     }
 
-    /* Create a new entry and initialize it. */
-    u = new userent(vuid);
+    if (!u) {
+	/* Create a new entry and initialize it. */
+	u = new userent(realm, uid);
 
-    /* Stick it in the table. */
-    userent::usertab->insert(&u->tblhandle);
+	/* Stick it in the table. */
+	userent::usertab->insert(&u->tblhandle);
+    }
 
     *upp = u;
 }
 
-void PutUser(userent **upp) {
+void PutUser(userent **upp)
+{
     LOG(100, ("PutUser: \n"));
-
 }
 
 void UserPrint() {
@@ -136,8 +131,8 @@ void UserPrint(int fd) {
  *    logged into the console, or 
  *    the primary user of this machine (as defined by a run-time switch).
  */
-int AuthorizedUser(vuid_t thisUser) {
-
+int AuthorizedUser(uid_t thisUser)
+{
     /* If this user is the primary user of this machine, then this user is
      * authorized */
     if (PrimaryUser != UNSET_PRIMARYUSER) {
@@ -161,7 +156,7 @@ int AuthorizedUser(vuid_t thisUser) {
   return(0);
 }
 
-int ConsoleUser(vuid_t user)
+int ConsoleUser(uid_t user)
 {
 #ifdef DJGPP
     return(1);
@@ -192,28 +187,31 @@ int ConsoleUser(vuid_t user)
 #define	UTMP_FILE   "/etc/utmp"
 #endif
 
-    vuid_t vuid = ALL_UIDS;
+    uid_t uid = ALL_UIDS;
 
     FILE *fp = fopen(UTMP_FILE, "r");
-    if (fp == NULL) return(vuid);
+    if (fp == NULL) return(uid);
     struct utmp u;
     while (fread((char *)&u, (int)sizeof(struct utmp), 1, fp) == 1) {
 	if (STREQ(u.ut_line, CONSOLE)) {
 	    struct passwd *pw = getpwnam(u.ut_name);
-	    if (pw) vuid = pw->pw_uid;
+	    if (pw) uid = pw->pw_uid;
 	    break;
 	}
     }
     if (fclose(fp) == EOF)
 	CHOKE("ConsoleUser: fclose(%s) failed", UTMP_FILE);
 
-    return(vuid == user);
+    return(uid == user);
 #endif
 }
 
-userent::userent(vuid_t userid) {
+userent::userent(Realm *r, uid_t userid)
+{
     LOG(100, ("userent::userent: uid = %d\n", userid));
 
+    r->GetRef();
+    realm = r;
     uid = userid;
     tokensvalid = 0;
     told_you_so = 0;
@@ -232,6 +230,7 @@ int userent::operator=(userent& u) { abort(); return(0); }
 userent::~userent() {
     LOG(100, ("userent::~userent: uid = %d\n", uid));
     Invalidate();
+    realm->PutRef();
 }
 
 long userent::SetTokens(SecretToken *asecret, ClearToken *aclear) {
@@ -327,7 +326,7 @@ LOG(100, ("E userent::Reset()\n"));
     FSDB->ResetUser(uid);
 
     /* Invalidate kernel data for the user. */
-    k_Purge((vuid_t) uid);
+    k_Purge(uid);
 LOG(100, ("After k_Purge in userent::Reset\n"));
 
     /* Demote HDB bindings for the user. */
@@ -336,7 +335,7 @@ LOG(100, ("After HDB::ResetUser in userent::Reset\n"));
 
     /* Delete the user's connections. */
     {
-	struct ConnKey Key; Key.host.s_addr = INADDR_ANY; Key.vuid = uid;
+	struct ConnKey Key; Key.host.s_addr = INADDR_ANY; Key.uid = uid;
 	conn_iterator next(&Key);
 	connent *c = 0;
 	connent *tc = 0;

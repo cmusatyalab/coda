@@ -43,7 +43,7 @@ VPATH  = @srcdir@
 TOPOBJ = @TOPOBJ@
 
 include $(TOPDIR)/Makeconf
-CXXFLAGS += -Wall
+
 LIBRARIES = libvol.a
 HEADERS	  = vldb.h \
 	    fssync.h recov.h vutil.h\

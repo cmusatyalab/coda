@@ -115,7 +115,6 @@ static void GetArgs(int argc, char *argv[]);
 static void InitRPC();
 static void DrawCaptions();
 static void PrintServer(struct server *);
-static void cbserver();
 static void srvlwp(int);
 static void kbdlwp(char *);
 static int CmpDisk(ViceDisk **, ViceDisk **);
@@ -139,8 +138,8 @@ cleanup_and_go(int ignored)
     exit(0);
 }
 
-main(int argc, char *argv[])
-    {
+int main(int argc, char *argv[])
+{
     int i;
 
     /* lets try to leave the tty sane */
@@ -440,7 +439,7 @@ char *when(time_t now, time_t then)
     else
 	{
 	fdays = (now - then)/86400.0;
-    	sprintf(answer, "%3.1lf days", fdays);
+    	sprintf(answer, "%3.1f days", fdays);
 	}
     return(answer);
     }

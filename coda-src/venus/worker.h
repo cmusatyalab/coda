@@ -66,16 +66,16 @@ const int DFLT_MAXPREFETCHERS = 1;
 class msgent : public olink {
   friend msgent *FindMsg(olist&, u_long);
   friend int MsgRead(msgent *);
-  friend int MsgWrite(char *, int);
+  friend size_t MsgWrite(char *, int);
   friend worker *FindWorker(u_long);
   friend void DispatchWorker(msgent *);
   friend int IsAPrefetch(msgent *);
   friend class worker;
   friend class vproc;
   friend int k_Purge();
-  friend int k_Purge(ViceFid *, int);
-  friend int k_Purge(vuid_t);
-  friend int k_Replace(ViceFid *, ViceFid *);
+  friend int k_Purge(VenusFid *, int);
+  friend int k_Purge(uid_t);
+  friend int k_Replace(VenusFid *, VenusFid *);
   friend class fsobj;
   friend void WorkerMux(int);
 
@@ -103,10 +103,10 @@ class worker : public vproc {
   friend worker *GetIdleWorker();
   friend void DispatchWorker(msgent *);
   friend void WorkerMux(int);
-  friend int GetWorkerIdleTime();
+  friend time_t GetWorkerIdleTime();
   friend void PrintWorkers(int);
   friend int MsgRead(msgent *);
-  friend int MsgWrite(char *, int);
+  friend size_t MsgWrite(char *, int);
   friend int WorkerCloseMuxfd();
   friend void VFSMount();
   friend class vproc;
@@ -123,7 +123,7 @@ class worker : public vproc {
     unsigned returned : 1;
     msgent *msg;			/* For communication with the kernel */
     int opcode;
-    ViceFid StoreFid;
+    VenusFid StoreFid;
 
   public:
     worker();
@@ -133,7 +133,7 @@ class worker : public vproc {
 
     void AwaitRequest();
     void Resign(msgent *, int);
-    void Return(msgent *, int);
+    void Return(msgent *, size_t);
     void Return(int);
 
   protected:
@@ -155,11 +155,11 @@ extern int KernelMask;
 
 extern msgent *FindMsg(olist&, u_long);
 extern int MsgRead(msgent *);
-extern int MsgWrite(char *, int);
+extern size_t MsgWrite(char *, int);
 extern int k_Purge();
-extern int k_Purge(ViceFid *, int =0);
-extern int k_Purge(vuid_t);
-extern int k_Replace(ViceFid *, ViceFid *);
+extern int k_Purge(VenusFid *, int =0);
+extern int k_Purge(uid_t);
+extern int k_Replace(VenusFid *, VenusFid *);
 extern void VFSMount();
 extern void VFSUnmount();
 extern int VFSUnload();
@@ -168,7 +168,7 @@ extern worker *FindWorker(u_long);
 extern worker *GetIdleWorker();
 extern void DispatchWorker(msgent *);
 extern void WorkerMux(int);
-extern int GetWorkerIdleTime();
+extern time_t GetWorkerIdleTime(void);
 extern void PrintWorkers();
 extern void PrintWorkers(FILE *);
 extern void PrintWorkers(int);

@@ -98,8 +98,8 @@ int repair_putdfile(char *fname, int replicaCount, struct listhdr *replicaList)
      *	Returns -1 on failure, with msg on stderr.
      */
 {
-    int i, j, k;
-    unsigned int x;
+    int i, k;
+    unsigned int x, j;
     struct repair *r;
     FILE *ff;
     
@@ -242,7 +242,6 @@ int repair_parseline(char *line, struct repair *rs)
 {
     char *c, *d, *eos;
     int i;
-    char unquoted_name[3*MAXNAMELEN];
 
 #define NEXTFIELD()								\
     /* Set c to start of next field, d to the null at the end of this field */	\
@@ -544,12 +543,12 @@ void repair_printline(struct repair *rs, FILE *ff) {
 
 
 void repair_printfile(char *fname) {
-    int repcount;
+    int repcount, i;
     struct listhdr *list;
-    int i, j;
+    unsigned int j;
     repair_getdfile(fname, 0, &repcount, &list);
     for (i = 0; i < repcount; i++) {
-	printf("New replica: volume id %x has %d repair entries\n",
+	printf("New replica: volume id %lx has %d repair entries\n",
 	       list[i].replicaId, list[i].repairCount);
 	for (j = 0; j < list[i].repairCount; j++) 
 	    repair_printline(&list[i].repairList[j], stdout);

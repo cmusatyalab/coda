@@ -476,6 +476,7 @@ void vproc::GetStamp(char *buf) {
 	case VPT_VmonDaemon:	t = 'N'; break;
 	case VPT_AdviceDaemon:  t = 'A'; break;
 	case VPT_LRDaemon:  	t = 'L'; break;
+	case VPT_Daemon:	t = 'd'; break;
 	default:
 		t = '?'; 
 		eprint("???vproc::GetStamp: bogus type (%d)!", type);
@@ -528,15 +529,17 @@ static int VolModeMap[CODA_NCALLS] = {
     (((vfsop) >= 0 && (vfsop) < NVFSOPS) ? VolModeMap[vfsop] : VM_MUTATING)
 
 /* local-repair modification */    
-void vproc::Begin_VFS(VolumeId vid, int vfsop, int volmode)
+void vproc::Begin_VFS(Volid *volid, int vfsop, int volmode)
 {
-    LOG(1, ("vproc::Begin_VFS(%s): vid = %x, u.u_vol = %x, mode = %d\n",
-	    VenusOpStr(vfsop), vid, u.u_vol, volmode));
+    LOG(1, ("vproc::Begin_VFS(%s): vid = %x.%x, u.u_vol = %x, mode = %d\n",
+	    VenusOpStr(vfsop), volid->Realm, volid->Volume, u.u_vol, volmode));
     
     /* Set up this thread's volume-related context. */
     if (u.u_vol == 0) {
-	if (VDB->Get(&u.u_vol, vid) != 0)
-	{ u.u_error	= EVOLUME; return; }	    /* ??? -JJK */
+	if (VDB->Get(&u.u_vol, volid)) {
+	    u.u_error = EVOLUME;	    /* ??? -JJK */
+	    return;
+	}
     }
     u.u_volmode = 
 	(volmode == 
@@ -552,7 +555,7 @@ void vproc::Begin_VFS(VolumeId vid, int vfsop, int volmode)
 	 (u.u_pgid != ((repvol *)u.u_vol)->asr_id())))
       u.u_error = EAGAIN;
     else /* Attempt to enter the volume. */
-      u.u_error = u.u_vol->Enter(u.u_volmode, CRTORUID(u.u_cred));
+      u.u_error = u.u_vol->Enter(u.u_volmode, u.u_uid);
 
     if (u.u_error) VDB->Put(&u.u_vol);
 }
@@ -568,7 +571,7 @@ void vproc::End_VFS(int *retryp) {
 
     /* Exit the volume. */
     if (u.u_vol == 0) goto Exit;
-    u.u_vol->Exit(u.u_volmode, CRTORUID(u.u_cred));
+    u.u_vol->Exit(u.u_volmode, u.u_uid);
 
     /* Handle synchronous resolves. */
     if (u.u_error == ESYNRESOLVE) {
@@ -647,7 +650,7 @@ void vproc::End_VFS(int *retryp) {
 	    /* Check whether user wants to wait on blocking events. */
 	    {
 	    userent *ue;
-	    GetUser(&ue, CRTORUID(u.u_cred));
+	    GetUser(&ue, u.u_vol->realm, u.u_uid);
 	    int waitforever = ue->GetWaitForever();
 	    PutUser(&ue);
 	    if (!waitforever) goto Exit;
@@ -764,32 +767,6 @@ void va_init(struct coda_vattr *vap) {
     vap->va_flags = 0; /* must be 0 not IGNORE for BSD */
 }
 
-
-void VattrToStat(struct coda_vattr *vap, struct stat *sp) {
-    sp->st_mode = vap->va_mode;
-    sp->st_nlink = vap->va_nlink;
-    sp->st_uid = (uid_t)(vap->va_uid);
-    sp->st_gid = (vgid_t)(vap->va_gid);
-    sp->st_rdev = vap->va_rdev;
-    sp->st_size = (off_t)(vap->va_size);
-    sp->st_blksize = vap->va_blocksize;
-    sp->st_ino = (ino_t)(vap->va_fileid);
-    sp->st_atime = (time_t)(vap->va_atime.tv_sec);
-    sp->st_mtime = (time_t)(vap->va_mtime.tv_sec);
-    sp->st_ctime = (time_t)(0);
-#ifdef __BSD44__
-    sp->st_blocks = (int64_t)ceil(((double)vap->va_bytes) / S_BLKSIZE);
-    sp->st_flags = 0;
-    sp->st_gen = 0;
-#if !defined(NetBSD1_3) && !defined(__NetBSD_Version__)
-    sp->st_lspare = 0;
-#endif
-    sp->st_qspare[0] = 0;
-    sp->st_qspare[1] = 0;
-#endif /* __BSD44__ */
-}
-
-
 void VPROC_printvattr(struct coda_vattr *vap)
 {     
 	if (LogLevel >= 1000) {
@@ -806,30 +783,24 @@ void VPROC_printvattr(struct coda_vattr *vap)
 	}
 }
 
-long FidToNodeid(ViceFid *fid) 
+long FidToNodeid(VenusFid *fid) 
 {
 	if (FID_EQ(fid, &NullFid))
 		CHOKE("FidToNodeid: null fid");
 
 #ifdef __BSD44__
     /* Venus Root.  Use the mount point's nodeid. */
-	if (FID_EQ(&rootfid, fid))
-		return(rootnodeid);
+	if (FID_EQ(fid, &rootfid))
+	    return(rootnodeid);
 
 	/* Other volume root.  We need the relevant mount point's fid,
            but we don't know what that is! */
-	if ( FID_IsVolRoot(fid) ) {
-		LOG(0, ("FidToNodeid: volume root (%x); returning bogus nodeid\n", 
-		fid->Volume));
+#endif
+	if (FID_IsVolRoot(fid)) {
+		LOG(0, ("FidToNodeid: called for volume root (%x.%x)!!!\n", 
+			fid->Realm, fid->Volume));
 	}
 
 	/* Non volume root. */
-	return(fid->Unique + (fid->Vnode << 10) + (fid->Volume << 20));
-#else
-	if (FID_IsVolRoot(fid)) {
-		LOG(0, ("FidToNodeid: called for volume root (%x)!!!\n", 
-			fid->Volume));
-	}
-	return coda_f2i(fid);
-#endif
+	return coda_f2i(VenusToKernelFid(fid));
 }

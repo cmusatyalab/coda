@@ -418,7 +418,7 @@ static int SalvageVolumeGroup(struct VolumeSummary *vsp, int nVols)
     if (skipvolnums != NULL){
 	for (int i = 0; i < nVols; i++){
 	    if (InSkipVolumeList(vsp[i].header.parent, skipvolnums, nskipvols)){
-		VLog(9, "Volume %x is not to be salvaged",
+		VLog(0, "Volume %x listed in /vice/vol/skipsalvage and is not to be salvaged",
 		    vsp[i].header.parent);
 		return 0;
 	    }
@@ -1041,7 +1041,7 @@ void DirCompletenessCheck(struct VolumeSummary *vsp)
 			    /* You can bring up the server by forcing
 			     * this volume off-line edit
 			     * /"vicedir"/vol/skipsalvage.  The format of
-			     * this file is the fist line has the
+			     * this file is the first line has the
 			     * number of volumes to skip, and each
 			     * subsequent line has a volume number.
 			     */

@@ -16,9 +16,6 @@ listed in the file CREDITS.
 
 #*/
 
-
-
-
 /*
  *  Code relating to volume callbacks.
  */
@@ -60,16 +57,17 @@ extern "C" {
 
 /* ok, so this makes an RPC call to the server to try to get a permit;
    we return PermitSet if we successfully got one, otherwise NoPermit */
-int repvol::GetPermit(vuid_t vuid)
+int repvol::GetPermit(uid_t uid)
 {
     long permit = WB_DISABLED;
     int i,permits_recvd = 0;
     connent *c;
-    int code = GetAdmConn(&c);
+    int code = realm->GetAdmConn(&c);
+
     ViceFid fid;
     fid.Volume = vid;
-    fid.Vnode = 0;
-    fid.Unique = 0;
+    fid.Vnode = fid.Unique = 0;
+
     if (code != 0)
 	return code;
 
@@ -78,15 +76,15 @@ int repvol::GetPermit(vuid_t vuid)
     /* Acquire an Mgroup. */
     
     mgrpent *m = 0;
-    code = GetMgrp(&m, vuid, 0);
+    code = GetMgrp(&m, uid, 0);
     if (code != 0) {
 	ClearPermit();
 	return VPStatus;
     }
 
     /* Marshall arguments */
-    ARG_MARSHALL(IN_MODE, VolumeId, vidvar,vid, VSG_MEMBERS);
-    ARG_MARSHALL(IN_MODE, ViceFid, fidvar,fid, VSG_MEMBERS);
+    ARG_MARSHALL(IN_MODE, VolumeId, vidvar, vid, VSG_MEMBERS);
+    ARG_MARSHALL(IN_MODE, ViceFid, fidvar, fid, VSG_MEMBERS);
     ARG_MARSHALL(OUT_MODE, RPC2_Integer, permitvar, permit, VSG_MEMBERS);
 
     /* Send the MultiRPC */
@@ -94,7 +92,7 @@ int repvol::GetPermit(vuid_t vuid)
     code = (int) MRPC_MakeMulti(ViceGetWBPermit_OP, ViceGetWBPermit_PTR,
 				VSG_MEMBERS, m->rocc.handles,
 				m->rocc.retcodes, m->rocc.MIp, 0, 0,
-				vid, &fid, permitvar_ptrs);
+				vid, fid, permitvar_ptrs);
     MULTI_END_MESSAGE(ViceGetWBPermit_OP);
     MULTI_RECORD_STATS(ViceGetWBPermit_OP);
 
@@ -117,7 +115,7 @@ int repvol::GetPermit(vuid_t vuid)
     }
     else {                                /* need to return those we have */
 	LOG(1, ("repvol::GetPermit(): Have only %d of %d permits, returning others",permits_recvd,AVSGsize()));
-	ReturnPermit(vuid);
+	ReturnPermit(uid);
 	ClearPermit();
     }
     
@@ -131,10 +129,10 @@ void repvol::ClearPermit()
     LOG(1, ("repvol::ClearPermit(): hey, I just cleared a permit!\n"));
 }
 
-int repvol::ReturnPermit(vuid_t vuid)
+void repvol::ReturnPermit(uid_t uid)
 {	
     mgrpent   *m = 0;
-    int     code = GetMgrp(&m, vuid, 0);
+    int     code = GetMgrp(&m, uid, 0);
 
     ARG_MARSHALL(IN_MODE, VolumeId, vidvar,vid, VSG_MEMBERS);
     MULTI_START_MESSAGE(ViceRejectWBPermit_OP);

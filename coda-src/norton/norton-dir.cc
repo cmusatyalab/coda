@@ -189,7 +189,6 @@ delete_name(int volid, int vnum, int unique, char *name, int flag)
     PDirHandle pdh;
     PDCEntry dc;
     PDirInode pdi;
-    struct ViceFid fid;
     Error   error;
     rvm_return_t status;
     VnodeId vnodeindex = vnodeIdToBitNumber(vnum);
@@ -226,7 +225,7 @@ delete_name(int volid, int vnum, int unique, char *name, int flag)
 
     error = DH_Delete(pdh, name);
     if (error) {
-	fprintf(stderr, "ERROR: DH_Delete() returns %d, aborting\n", error);
+	fprintf(stderr, "ERROR: DH_Delete() returns %ld, aborting\n", error);
 	rvmlib_abort(VFAIL);
 	return;
     }
@@ -251,8 +250,9 @@ delete_name(int volid, int vnum, int unique, char *name, int flag)
     // mark the vnode with inconsistent flag
     SetIncon(vnode->versionvector);
 
-    if (error = ReplaceVnode(volindex, vclass, (VnodeId)vnodeindex,
-			     (Unique_t)unique, vnode)) {
+    error = ReplaceVnode(volindex, vclass, (VnodeId)vnodeindex,
+			 (Unique_t)unique, vnode);
+    if (error) {
 	fprintf(stderr, "ERROR: ReplaceVnode returns %d, aborting\n", error);
 	rvmlib_abort(VFAIL);
 	return;
@@ -349,7 +349,7 @@ create_name(int volid, int vnum, int unique, char *name, int cvnum,
     vfid.Unique = cunique;
     error = DH_Create(pdh, name, &vfid);
     if (error) {
-	fprintf(stderr, "ERROR: Create() returns %d, aborting\n", error);
+	fprintf(stderr, "ERROR: Create() returns %ld, aborting\n", error);
 	rvmlib_abort(VFAIL);
 	return;
     }
@@ -380,18 +380,19 @@ create_name(int volid, int vnum, int unique, char *name, int cvnum,
     // mark the vnode with inconsistent flag
     SetIncon(vnode->versionvector);
 
-    if (error = ReplaceVnode(volindex, vclass, (VnodeId)vnodeindex,
-			     (Unique_t)unique, vnode)) {
-	fprintf(stderr, "ReplaceVnode returns %d, for parent, aborting\n", 
+    error = ReplaceVnode(volindex, vclass, (VnodeId)vnodeindex,
+			 (Unique_t)unique, vnode);
+    if (error) {
+	fprintf(stderr, "ReplaceVnode returns %ld, for parent, aborting\n", 
 		error);
 	rvmlib_abort(VFAIL);
 	return;
     }
 
-    if (error = ReplaceVnode(volindex, cvclass, (VnodeId)cvnodeindex,
-			     (Unique_t)cunique, cvnode)) {
-	fprintf(stderr, "ReplaceVnode returns %d, for child, abort\n", 
-		error);
+    error = ReplaceVnode(volindex, cvclass, (VnodeId)cvnodeindex,
+			 (Unique_t)cunique, cvnode);
+    if (error) {
+	fprintf(stderr, "ReplaceVnode returns %ld, for child, abort\n", error);
 	rvmlib_abort(VFAIL);
 	return;
     }
@@ -399,8 +400,7 @@ create_name(int volid, int vnum, int unique, char *name, int cvnum,
     rvmlib_end_transaction(flush, &(status));
 
     if (status) {
-	fprintf(stderr, "ERROR: Transaction aborted with status %d\n",
-		error);
+	fprintf(stderr, "ERROR: Transaction aborted with status %d\n", status);
     }
 }
 

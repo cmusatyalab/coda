@@ -103,7 +103,7 @@ const int RETRY_LIMIT = 10;
 struct cfid {
     u_short     cfid_len;
     u_short     cfid_fill;
-    ViceFid     cfid_fid;
+    VenusFid     cfid_fid;
 };
 
 
@@ -125,7 +125,8 @@ enum vproctype {    VPT_Main,
 		    VPT_VmonDaemon,
 		    VPT_AdviceDaemon,
 		    VPT_LRDaemon,
-		    VPT_WriteBack
+		    VPT_WriteBack,
+		    VPT_Daemon
 };
 
 /* Holds user/call specific context. */
@@ -133,9 +134,9 @@ class namectxt;
 class volent;
 struct uarea {
     int	u_error;		/* implicit return code */
-    struct coda_cred u_cred;	/* implicit user identifier */
+    uid_t u_uid;		/* implicit user identifier */
     int	u_priority;		/* to be used in resource requests */
-    ViceFid u_cdir;		/* for name lookup */
+    VenusFid u_cdir;		/* for name lookup */
     int	u_flags;		/*  "	" */
     namectxt *u_nc;		/*  "	" */
     volent *u_vol;		/* for volume-level concurrency control */
@@ -182,7 +183,7 @@ class vproc : public olink {
     static int counter;
     static char rtry_sync;
 
-    void do_ioctl(ViceFid *, unsigned int, struct ViceIoctl *);
+    void do_ioctl(VenusFid *, unsigned int, struct ViceIoctl *);
 
     void init(void);
 
@@ -218,7 +219,10 @@ class vproc : public olink {
     virtual ~vproc();
 
     /* Volume-level concurrency control. */
-    void Begin_VFS(VolumeId, int, int =-1);
+    void Begin_VFS(Volid *, int, int =-1);
+    void Begin_VFS(VenusFid *fid, int op, int arg=-1) {
+	Begin_VFS(MakeVolid(fid), op, arg);
+    }
     void End_VFS(int * =0);
 
     /* The vproc interface: mostly matching kernel requests.  */
@@ -252,7 +256,7 @@ class vproc : public olink {
 
     /* Pathname translation. */
     int namev(char *, int, struct venus_cnode *);
-    void GetPath(ViceFid *, char *, int *, int =1);
+    void GetPath(VenusFid *, char *, int *, int =1);
     void verifyname(char *name, int flags);
 #define NAME_NO_DOTS      1 /* don't allow '.', '..', '/' */
 #define NAME_NO_CONFLICT  2 /* don't allow @XXXXXXXX.YYYYYYYY.ZZZZZZZZ */
@@ -299,37 +303,7 @@ extern int VprocInterrupted();
 /* Things which should be in vnode.h? -JJK */
 
 extern void va_init(struct coda_vattr *);
-extern long FidToNodeid(ViceFid *);
-
-/* Explanation: 
-   CRTOEUID is only used by HDBD_Request (hdb_deamon.cc)
-   and allows root to always make hoard requests
-  
-   For all filesystem use CRTORUID is used: for Linux we definitely want to 
-   fsuid to be used for filesystem access.  This however breaks the old AFS
-   semantics that if an "su" is performed you retain tokens.
-
-   To make things more complicated, reintegration and resolve (which
-   is in fact repair :) ) use the coda_cred's directly. 
-   XXXXX Let's straighten this out. (pjb/jh)
-
-
-*/
-
-#ifdef __linux__
-
-#define	CRTOEUID(cred)	((vuid_t)((cred).cr_fsuid))
-#define	CRTORUID(cred)	((vuid_t)((cred).cr_fsuid))
-#else
-
-/* XXX BSD needs to think through what they want!!!! 
-   The current behaviour has "AFS semantics" but allows no
-   fileserver to access Coda (since since it will come in with 
-   ruid 0 (at least for samba, nfs etc). */
-
-#define	CRTOEUID(cred)	((vuid_t)((cred).cr_uid))
-#define	CRTORUID(cred)	((vuid_t)((cred).cr_uid))
-#endif
+extern long FidToNodeid(VenusFid *);
 
 #define	FTTOVT(ft)	((ft) == (int)File ? C_VREG :\
 			 (ft) == (int)Directory ? C_VDIR :\
@@ -346,7 +320,7 @@ extern long FidToNodeid(ViceFid *);
 
 struct venus_cnode {
 	u_short	    c_flags;	/* flags (see below) */
-	ViceFid	    c_fid;	/* file handle */
+	VenusFid	    c_fid;	/* file handle */
 	dev_t	    c_device;	/* associated vnode device */
 	ino_t	    c_inode;	/* associated vnode inode */
 	char        c_cfname[CNODE_CFNAME_LEN]; /* container file name */
@@ -354,6 +328,13 @@ struct venus_cnode {
 };
 
 #define	MAKE_CNODE(vp, fid, type)\
+{\
+    KernelToVenusFid(&(vp).c_fid, &fid);\
+    (vp).c_type = type;\
+    (vp).c_flags = 0;\
+}
+
+#define	MAKE_CNODE2(vp, fid, type)\
 {\
     (vp).c_fid = fid;\
     (vp).c_type = type;\
@@ -369,14 +350,15 @@ struct venus_cnode {
 #define	VA_IGNORE_ID		((long)-1)
 #define VA_IGNORE_NLINK		((short)-1)
 #define VA_IGNORE_BLOCKSIZE	((long)-1)
-#define VA_IGNORE_RDEV		(-1)
+#define VA_IGNORE_RDEV		((cdev_t)-1)
 #define VA_IGNORE_STORAGE	((u_quad_t) -1)
 #define VA_IGNORE_MODE		((u_short)-1)
-#define VA_IGNORE_UID		((vuid_t) -1)
+#define VA_IGNORE_UID		((uid_t) -1)
 #define VA_IGNORE_TIME2		((long) -1)
-#define VA_IGNORE_GID		((vgid_t) -1)
+#define VA_IGNORE_GID		((gid_t) -1)
 #define VA_IGNORE_SIZE		((u_quad_t)-1) 
 #define VA_IGNORE_TIME1		((time_t)-1)
 #define VA_IGNORE_FLAGS		((u_long) -1)
 
 #endif /* _VENUS_PROC_H_ */
+

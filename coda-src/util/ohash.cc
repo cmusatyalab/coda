@@ -178,7 +178,7 @@ void ohashtab::print(FILE *fp) {
 void ohashtab::print(int fd) {
     /* first print out the ohashtab header */
     char buf[40];
-    sprintf(buf, "%#08x : Default Ohashtab\n", (long)this);
+    sprintf(buf, "%p : Default Ohashtab\n", this);
     write(fd, buf, strlen(buf));
 
     /* then print out all of the olists */

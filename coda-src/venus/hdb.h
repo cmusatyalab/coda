@@ -64,27 +64,27 @@ extern "C" {
 /* Should be in venusioctl.h! -JJK */
 
 struct hdb_clear_msg {
-    vuid_t cuid;
+    uid_t cuid;
     int    spare;
 };
 
 struct hdb_add_msg {
-    VolumeId volno;
+    VolumeId vid;
+    char     realm[MAXHOSTNAMELEN+1];
     char     name[CODA_MAXPATHLEN];
     int      priority;
     int      attributes;
-    int      spare;
 };
 
 struct hdb_delete_msg {
-    VolumeId volno;
-    char     name[CODA_MAXPATHLEN];
-    int      spare;
+    VolumeId vid;
+    char     realm[MAXHOSTNAMELEN+1];
+    char     name[MAXPATHLEN];
 };
 
 struct hdb_list_msg {
-    char   outfile[CODA_MAXPATHLEN];
-    vuid_t luid;
+    char   outfile[MAXPATHLEN];
+    uid_t luid;
     int    spare;
 };
 
@@ -93,8 +93,8 @@ struct hdb_walk_msg {
 };
 
 struct hdb_verify_msg {
-    char   outfile[CODA_MAXPATHLEN];
-    vuid_t luid;
+    char   outfile[MAXPATHLEN];
+    uid_t luid;
     int    spare;
     int    verbosity;
 };
@@ -211,28 +211,28 @@ class hdb {
     ~hdb() { abort(); }
 
     /* Allocation/Deallocation routines. */
-    hdbent *Create(VolumeId, char *, vuid_t, int, int, int);
+    hdbent *Create(VolumeId, char *realm, char *name, uid_t, int, int, int);
 
 
   public:
-    hdbent *Find(VolumeId, char *);
+    hdbent *Find(VolumeId, char *realm, char *name);
 
     /* The external interface. */
-    int Add(hdb_add_msg *, vuid_t local_id);
-    int Delete(hdb_delete_msg *, vuid_t local_id);
-    int Clear(hdb_clear_msg *, vuid_t local_id);
-    int List(hdb_list_msg *, vuid_t local_id);
-    int Walk(hdb_walk_msg *, vuid_t local_id);
-    int Verify(hdb_verify_msg *, vuid_t local_id);
-    int Enable(hdb_walk_msg *, vuid_t local_id);
-    int Disable(hdb_walk_msg *, vuid_t local_id);
+    int Add(hdb_add_msg *, uid_t local_id);
+    int Delete(hdb_delete_msg *, uid_t local_id);
+    int Clear(hdb_clear_msg *, uid_t local_id);
+    int List(hdb_list_msg *, uid_t local_id);
+    int Walk(hdb_walk_msg *, uid_t local_id);
+    int Verify(hdb_verify_msg *, uid_t local_id);
+    int Enable(hdb_walk_msg *, uid_t local_id);
+    int Disable(hdb_walk_msg *, uid_t local_id);
      
-    void ResetUser(vuid_t);
+    void ResetUser(uid_t);
 
     /* Helper Routines hdb::Walk */
     void ValidateCacheStatus(vproc *, int *, int *);
     void ListPriorityQueue();
-    int GetSuspectPriority(int, char *, int);
+    int GetSuspectPriority(Volid *, char *, uid_t);
     void WalkPriorityQueue(vproc *, int *, int *);
     int CalculateTotalBytesToFetch();
     void StatusWalk(vproc *, int *, int *);
@@ -257,9 +257,10 @@ class hdb {
 class hdb_key {
   public: 
     VolumeId vid;
+    char *realm;
     char *name;
 
-    hdb_key(VolumeId, char *);
+    hdb_key(VolumeId, char *realm, char *name);
 };
 
 class hdbent {
@@ -272,10 +273,11 @@ class hdbent {
 
     /* Key. */
     VolumeId vid;
-    char *path;
+    char *realm;
+    char *name;
 
     /* Assoc(key). */
-    vuid_t vuid;
+    uid_t uid;
     int priority;
     unsigned expand_children : 1;		/* meta-expand children */
     unsigned expand_descendents	: 1;		/* meta-expand descendents */
@@ -287,7 +289,7 @@ class hdbent {
 
     /* Constructors, destructors. */
     void *operator new(size_t);
-    hdbent(VolumeId, char *, vuid_t, int, int, int);
+    hdbent(VolumeId, char *, char *, uid_t, int, int, int);
     void ResetTransient();
     ~hdbent();
     void operator delete(void *, size_t);
@@ -300,11 +302,11 @@ class hdbent {
 };
 
 class hdb_iterator : public rec_ohashtab_iterator {
-    vuid_t vuid;
+    uid_t uid;
 
   public:
     hdb_iterator();
-    hdb_iterator(vuid_t);
+    hdb_iterator(uid_t);
     hdb_iterator(hdb_key *);
     hdbent *operator()();
 };
@@ -325,12 +327,12 @@ class namectxt {
 	friend void NotifyUsersOfKillEvent(dlist *, int);
 
 	/* Key. */
-	ViceFid cdir;			/* starting directory of expansion */
+	VenusFid cdir;			/* starting directory of expansion */
 	char *path;			/* subsequent components */
 
 	/* Assoc(key). */
-	vuid_t vuid;			/* owner of this context */
-	int	priority;		/* priority to be used for resource allocation */
+	uid_t uid;			/* owner of this context */
+	int   priority;		/* priority to be used for resource allocation */
 	enum pestate state;		/* {Valid, Suspect, Indigent} */
 	unsigned inuse : 1;		/* state cannot change when inuse */
 	unsigned dying : 1;		/* commit suicide when next !inuse */
@@ -345,9 +347,9 @@ class namectxt {
 
     /* Expander info. */
     dlist *children;			/* list of expanded children */
-    ViceFid expander_fid;		/* Fid of expanded directory */
+    VenusFid expander_fid;		/* Fid of expanded directory */
     ViceVersionVector expander_vv;	/* VersionVector of expanded directory */
-    long expander_dv;			/* DataVersion of expanded directory */
+    unsigned long expander_dv;		/* DataVersion of expanded directory */
 
     /* Expandee info. */
     namectxt *parent;			/* back pointer to expander */
@@ -368,7 +370,7 @@ class namectxt {
 
   public:
     void *operator new(size_t);
-    namectxt(ViceFid *, char *, vuid_t, int, int, int);
+    namectxt(VenusFid *, char *, uid_t, int, int, int);
     namectxt(namectxt *, char *);
     namectxt(namectxt&);		/* not supported! */
     int operator=(namectxt&);		/* not supported! */
@@ -378,10 +380,8 @@ class namectxt {
     void Demote(int recursive=0);		/* --> immediate or eventual transition to suspect state */
     void CheckComponent(fsobj *);
 
-    int GetPriority()
-        { return(priority); }
-    vuid_t GetUid()
-        { return(vuid); }
+    int GetPriority() { return(priority); }
+    uid_t GetUid() { return(uid); }
 
     void print(void * =0)  { print(stdout); }
     void print(FILE *fp, void * =0)  { fflush(fp); print(fileno(fp)); }

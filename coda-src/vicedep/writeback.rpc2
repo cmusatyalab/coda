@@ -38,6 +38,8 @@ Pittsburgh, PA.
 */
 %}
 
+server prefix "VENUS";
+
 Subsystem "WB" 1 1;
 
 #define SUBSYS_WB 990506

@@ -56,8 +56,10 @@ extern "C" {
 #include <sys/wait.h>
 #include <sys/ioctl.h>
 #include <sys/file.h>
+#ifndef __CYGWIN__
 #include <netdb.h>
 #include <netinet/in.h>
+#endif
 #include <stdio.h>
 #include "coda_string.h"
 #include <unistd.h>
@@ -78,20 +80,7 @@ extern "C" {
 #endif
 
 #include <codaconf.h>
-
-#ifndef O_BINARY
-#define O_BINARY 0
-#endif
-
-static int SetHost(int write, int index, char *AuthHost);
-static void GetAuthServers(void);
-static int TryBinding(RPC2_Integer AuthenticationType, char *viceName, int viceNamelen, char *vicePasswd, int vicePasswdlen, char *AuthHost, RPC2_Handle *RPCid);
-
- /* areas to keep interesting information about what hosts to use */
-#define MAXHOSTS 32
-static	int numHosts;		    /* number of local hosts to use */
-static	char lHosts[MAXHOSTNAMELEN][MAXHOSTS];  /* array of local hosts to use */
-static	char pName[MAXHOSTNAMELEN];		    /* name to use on PIOCTLS */
+#include <parse_realms.h>
 
 void U_HostToNetClearToken(ClearToken *cToken)
 {
@@ -113,17 +102,17 @@ void U_NetToHostClearToken(ClearToken *cToken)
 
 /* Talks to an authentication server and obtains tokens on behalf of user uName.
    Gets back the viceId and clear and secretTokens for this user    */
-int U_Authenticate(char *hostname, int AuthenticationType, char *uName,
-		   int uNamelen, OUT ClearToken *cToken, 
+int U_Authenticate(const char *realm, const int AuthenticationType,
+		   const char *uName, const int uNamelen,
+		   OUT ClearToken *cToken, 
 		   OUT EncryptedSecretToken sToken, 
-		   int passwdpipe, int interactive )
+		   const int passwdpipe, const int interactive )
 {
 	RPC2_Handle	RPCid;
 	int		rc;
 	int             bound = 0;
 	char            passwd[128];
-	char *secret = NULL, *identity = NULL;
-	int secretlen = 0, identitylen = 0;
+	int		secretlen;
 
 	memset(passwd, 0, sizeof(passwd));
 
@@ -140,17 +129,12 @@ int U_Authenticate(char *hostname, int AuthenticationType, char *uName,
 			passwd[sizeof(passwd)-1] ='\0';
 		}
 
-		identity = uName;
-		identitylen = uNamelen;
-		secret = passwd;
-		secretlen = strlen(passwd);
 		rc = 0;
 		break;
 #ifdef HAVE_KRB4
 	case AUTH_METHOD_KERBEROS4:
 		Krb4ClientInit();
-		rc = Krb4GetSecret(hostname, &identity, &identitylen,
-				   &secret, &secretlen, interactive);
+		/* actual secret recovery is done in U_BindToServer */
 		break;
 #endif
 #ifdef HAVE_KRB5
@@ -171,8 +155,9 @@ int U_Authenticate(char *hostname, int AuthenticationType, char *uName,
 	if (rc)
 		return rc;
 
-	rc = U_BindToServer(hostname, AuthenticationType, identity, identitylen,
-			    secret, secretlen, &RPCid, interactive);
+	secretlen = strlen(passwd);
+	rc = U_BindToServer(realm, AuthenticationType, uName, uNamelen,
+			    passwd, secretlen, &RPCid, interactive);
 	if(rc == 0) {
 		bound = 1;
 		rc = AuthGetTokens(RPCid, sToken, cToken);
@@ -191,9 +176,10 @@ int U_Authenticate(char *hostname, int AuthenticationType, char *uName,
  /* Talks to the central authentication server and changes the password for
   * uName to newPasswd if myName is the same as uName or a system
   * administrator. MyPasswd is used to validate myName. */
-int U_ChangePassword(IN char *DefAuthHost, IN char *uName, IN char *newPasswd,
-                     IN int AuthenticationType, IN char *myName,
-                     IN int myNamelen, IN char *myPasswd, IN int myPasswdlen)
+int U_ChangePassword(const char *realm, const char *uName,
+		     const char *newPasswd, const int AuthenticationType,
+		     const char *myName, const int myNamelen,
+		     const char *myPasswd, const int myPasswdlen)
 {
     int rc;
     RPC2_Integer cpid;
@@ -205,8 +191,8 @@ int U_ChangePassword(IN char *DefAuthHost, IN char *uName, IN char *newPasswd,
 	exit(-1);
     }
 
-    if(!(rc = U_BindToServer(DefAuthHost, AuthenticationType, myName, myNamelen,
-                             myPasswd, myPasswdlen, &RPCid, 0)))
+    if(!(rc = U_BindToServer(realm, AuthenticationType, myName, myNamelen,
+			     myPasswd, myPasswdlen, &RPCid, 0)))
     {
 	memset ((char *)ek, 0, RPC2_KEYSIZE);
 	strncpy((char *)ek, newPasswd, RPC2_KEYSIZE);
@@ -239,7 +225,7 @@ void U_InitRPC()
 }
 
 
-char *U_AuthErrorMsg(int rc)
+char *U_AuthErrorMsg(const int rc)
 {
     switch(rc) {
     case AUTH_SUCCESS:	return("AUTH_SUCCESS");
@@ -251,100 +237,53 @@ char *U_AuthErrorMsg(int rc)
     }
 }
 
-
-/* Binds to Auth Server on behalf of uName using uPasswd as password.
-   Sets RPCid to the value of the connection id.    */
-int U_BindToServer(char *DefAuthHost, RPC2_Integer AuthenticationType, 
-		   char *uName, int uNamelen, char *uPasswd, int uPasswdlen,
-		   RPC2_Handle *RPCid, int interactive)
+static struct coda_addrinfo *GetAuthServers(const char *realm)
 {
-	char AuthHost[MAXHOSTNAMELEN];
-	int bound = RPC2_FAIL;
-	int i = 0;
+    struct coda_addrinfo *res = NULL;
 
-	if ( DefAuthHost ) {
-		bound = TryBinding(AuthenticationType, uName, uNamelen, 
-				   uPasswd, uPasswdlen, DefAuthHost, RPCid);
-		return bound;
-	}
-	
+    GetRealmServers(realm, "codaauth2", &res);
+    GetRealmServers(realm, "codasrv", &res);
 
-	/* fill in the host array */
-	GetAuthServers();
-
-	/* try all valid entries until we are rejected or accepted */
-	for (i = 0; /* */; i++) {
-	    if (SetHost(1, i, AuthHost))
-		break;
-
-#ifdef HAVE_KRB5
-	    /* Get host secret for next host */
-	    /* Either I did this right, or I broke multiple servers badly
-	     * --Troy
-	     */
-	    if (AuthenticationType == AUTH_METHOD_KERBEROS5) {
-		/* should this be error checked ?*/
-		if (Krb5GetSecret(AuthHost, &uName, &uNamelen, &uPasswd,
-				  &uPasswdlen, interactive))
-		{
-		    fprintf(stderr, "Failed to get secret for %s\n", AuthHost);
-		    continue;
-		}
-	    }
-#endif
-	    bound = TryBinding(AuthenticationType, uName, uNamelen, 
-			       uPasswd, uPasswdlen, AuthHost, RPCid);
-
-	    /* break when we are successful or a server rejects our secret */
-	    if (bound == 0 || bound == RPC2_NOTAUTHENTICATED)
-		break;
-	}
-	return bound;
+    if (!res) {
+	fprintf(stderr, "Failed to find codasrv or codaauth2 servers for %s\n",
+		realm);
+    }
+    return res;
 }
 
-static int TryBinding(RPC2_Integer AuthenticationType, char *viceName, 
-		      int viceNamelen, char *vicePasswd, 
-		      int vicePasswdlen, char *AuthHost, 
-		      RPC2_Handle *RPCid)
+static int TryBinding(const RPC2_Integer AuthenticationType,
+		      const char *viceName, const int viceNamelen,
+		      const char *vicePasswd, const int vicePasswdlen,
+		      const struct coda_addrinfo *AuthHost, RPC2_Handle *RPCid)
 {
     RPC2_BindParms bp;
     RPC2_HostIdent hident;
     RPC2_PortIdent pident;
     RPC2_SubsysIdent sident;
-    RPC2_EncryptionKey hkey;
     RPC2_CountedBS cident;
-    struct servent *s;
+    RPC2_EncryptionKey hkey;
     long rc;
     int len;
 
-    hident.Tag = RPC2_HOSTBYINETADDR;
-    if (inet_aton(AuthHost, &hident.Value.InetAddress) == 0)
-    {
-	hident.Tag = RPC2_HOSTBYNAME;
-	strcpy(hident.Value.Name, AuthHost);
-    }
-    pident.Tag = RPC2_PORTBYINETNUMBER;
+    struct sockaddr_in *sin = (struct sockaddr_in *)AuthHost->ai_addr;
 
-    s = getservbyname(AUTH_SERVICE, "udp");
-    if (s != 0)
-	pident.Value.InetPortNumber = s->s_port;
-    else {
-	eprint("getservbyname(%s,udp) failed, using 370/udp.\n", AUTH_SERVICE);
-	pident.Value.InetPortNumber = htons(370);
-    }
+    hident.Tag = RPC2_HOSTBYINETADDR;
+    hident.Value.InetAddress = sin->sin_addr;
+
+    pident.Tag = RPC2_PORTBYINETNUMBER;
+    pident.Value.InetPortNumber = sin->sin_port;
 
     sident.Tag = RPC2_SUBSYSBYID;
     sident.Value.SubsysId = htonl(AUTH_SUBSYSID);
 
     cident.SeqLen = viceNamelen;
     cident.SeqBody = (RPC2_ByteSeq)viceName;
-    if ( RPC2_KEYSIZE < vicePasswdlen ) 
+
+    len = vicePasswdlen;
+    if ( len > RPC2_KEYSIZE) 
 	len = RPC2_KEYSIZE; 
-    else 
-	len = vicePasswdlen;
-	       
     memset(hkey, 0, RPC2_KEYSIZE);
-    memmove(hkey, vicePasswd, len);
+    memcpy(hkey, vicePasswd, len);
 
     bp.SecurityLevel = RPC2_SECURE;
     bp.EncryptionType = RPC2_XOR;
@@ -358,60 +297,61 @@ static int TryBinding(RPC2_Integer AuthenticationType, char *viceName,
     return (rc);
 }
 
-
-
-/* sets authhost to host[i] */
-static int SetHost(int write, int index, char *AuthHost)
+/* Binds to Auth Server on behalf of uName using uPasswd as password.
+   Sets RPCid to the value of the connection id.    */
+int U_BindToServer(const char *realm, const RPC2_Integer AuthenticationType, 
+		   const char *uName, const int uNamelen,
+		   const char *uPasswd, const int uPasswdlen,
+		   RPC2_Handle *RPCid, const int interactive)
 {
-    if(index < numHosts && index >= 0) {
-	    strcpy(AuthHost, lHosts[index]);
-    } else
-	    return -1;
-    
-    if( *AuthHost == '\0' )
-	    return -1;
+	struct coda_addrinfo *AuthHost, *srvs;
+	int bound = RPC2_FAIL;
 
-    return 0;
-}
+	/* fill in the host array */
+	srvs = GetAuthServers(realm);
 
-#ifndef O_BINARY
-#define O_BINARY 0
+	/* try all valid entries until we are rejected or accepted */
+	for (AuthHost = srvs; AuthHost; AuthHost = AuthHost->ai_next)
+	{
+#ifdef HAVE_KRB5
+	    /* Get host secret for next host */
+	    /* Either I did this right, or I broke multiple servers badly
+	     * --Troy
+	     */
+	    if (AuthenticationType == AUTH_METHOD_KERBEROS5) {
+		/* should this be error checked ?*/
+		if (Krb5GetSecret(AuthHost->ai_canonname, &uName, &uNamelen,
+				  &uPasswd, &uPasswdlen, interactive))
+		{
+		    fprintf(stderr, "Failed to get secret for %s\n", AuthHost->ai_canonname);
+		    continue;
+		}
+	    }
 #endif
+#ifdef HAVE_KRB4
+	    /* Copied Troy's success or mistake :) -JH */
+	    if (AuthenticationType == AUTH_METHOD_KERBEROS4) {
+		rc = Krb4GetSecret(AuthHost->ai_canonname, &uName, &uNamelen,
+				   &uPasswd, &uPasswdlen, interactive);
+		{
+		    fprintf(stderr, "Failed to get secret from %s\n",
+			    AuthHost->ai_canonname);
+		    continue;
+		}
+	    }
+#endif
+	    bound = TryBinding(AuthenticationType, uName, uNamelen, 
+			       uPasswd, uPasswdlen, AuthHost, RPCid);
 
-static void GetAuthServers(void)
-{
-    char *host = NULL, *endHost, *start, *end;
-    unsigned int len;
-
-    memset(pName, 0, sizeof(pName));
-    memset((char *)lHosts, 0, sizeof(lHosts));
-    numHosts = 0; 
-
-    codaconf_init("venus.conf");
-    CONF_STR(host, "authservers", NULL);
-    CONF_STR(host, "rootservers", NULL);
-
-    if (!host) {
-        fprintf(stderr, "Failed to find root- or authservers in venus.conf\n");
-        return;
-    }
-
-    endHost = &host[strlen(host)+1];
-
-    for(start = host; start < endHost;) {
-	end = index(start,',');
-	if(!end || end>endHost) {
-	    end = endHost;
+	    /* break when we are successful or a server rejects our secret */
+	    if (bound == 0 || bound == RPC2_NOTAUTHENTICATED)
+		break;
 	}
-	len = end - start;
-	strncpy(lHosts[numHosts++],start,len);
-	start += len + 1;
-    }
-    return;
+	coda_freeaddrinfo(srvs);
+	return bound;
 }
 
-
-char *U_Error(int rc)
+char *U_Error(const int rc)
 {
     if(rc < 0)
 	return((char *)RPC2_ErrorMsg(rc));
@@ -420,7 +360,7 @@ char *U_Error(int rc)
 }
 
 /* sets type only if correct flag is found */
-int U_GetAuthMethod(char *arg, RPC2_Integer *type)
+int U_GetAuthMethod(const char *arg, RPC2_Integer *type)
 {
 	if ( strcmp(arg, "-coda") == 0 ) {
 		*type =  AUTH_METHOD_CODAUSERNAME;

@@ -297,12 +297,12 @@ void bitmap::print(FILE *fp) {
 
 void bitmap::print(int fd) {
     char buf[512];
-    sprintf(buf, "mapsize %d\n map:\n\0", mapsize);
+    sprintf(buf, "mapsize %d\n map:\n", mapsize);
     write(fd, buf, strlen(buf));
     for (int i = 0; i < mapsize; i++) {
 	unsigned long l = (unsigned long) map[i];
 	l = l & 0x000000ff;
-	sprintf(buf, "0x%x \0",l);
+	sprintf(buf, "0x%lx ",l);
 	write(fd, buf, strlen(buf));
     }
     sprintf(buf, "\n");

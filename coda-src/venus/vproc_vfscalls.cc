@@ -81,6 +81,7 @@ extern "C" {
 #include "venus.private.h"
 #include "vproc.h"
 #include "worker.h"
+#include "realmdb.h"
 
 /* Temporary!  Move to cnode.h. -JJK */
 #define	C_INCON	0x2
@@ -104,7 +105,7 @@ void vproc::root(struct venus_cnode *vpp) {
     LOG(1, ("vproc::root\n"));
 
     /* Set OUT parameter. */
-    MAKE_CNODE(*vpp, rootfid, C_VDIR);
+    MAKE_CNODE2(*vpp, rootfid, C_VDIR);
 }
 
 
@@ -130,16 +131,16 @@ void vproc::vget(struct venus_cnode *vpp, struct cfid *cfidp) {
 	u.u_nc->print(logFile);
 
     for (;;) {
-	Begin_VFS(cfidp->cfid_fid.Volume, CODA_VGET);
+	Begin_VFS(&cfidp->cfid_fid, CODA_VGET);
 	if (u.u_error) break;
 
-	u.u_error = FSDB->Get(&f, &cfidp->cfid_fid, CRTORUID(u.u_cred), RC_STATUS);
+	u.u_error = FSDB->Get(&f, &cfidp->cfid_fid, u.u_uid, RC_STATUS);
 	if (u.u_error) {
 	    if (u.u_error == EINCONS) {
 		u.u_error = 0;
 
 		/* Set OUT parameter according to "fake" vnode. */
-		MAKE_CNODE(*vpp, cfidp->cfid_fid, C_VLNK);
+		MAKE_CNODE2(*vpp, cfidp->cfid_fid, C_VLNK);
 		vpp->c_flags |= C_INCON;
 	    }
 
@@ -147,7 +148,7 @@ void vproc::vget(struct venus_cnode *vpp, struct cfid *cfidp) {
 	}
 
 	/* Set OUT parameter. */
-	MAKE_CNODE(*vpp, f->fid, FTTOVT(f->stat.VnodeType));
+	MAKE_CNODE2(*vpp, f->fid, FTTOVT(f->stat.VnodeType));
 	if (f->IsFake() || f->IsMTLink())
 		vpp->c_flags |= C_INCON;
 
@@ -185,12 +186,11 @@ void vproc::open(struct venus_cnode *cp, int flags) {
     fsobj *f = 0;
 
     for (;;) {
-	Begin_VFS(cp->c_fid.Volume, CODA_OPEN,
-		  writep ? VM_MUTATING : VM_OBSERVING);
+	Begin_VFS(&cp->c_fid, CODA_OPEN, writep ? VM_MUTATING : VM_OBSERVING);
 	if (u.u_error) break;
 
 	/* Get the object. */
-	u.u_error = FSDB->Get(&f, &cp->c_fid, CRTORUID(u.u_cred), RC_DATA);
+	u.u_error = FSDB->Get(&f, &cp->c_fid, u.u_uid, RC_DATA);
 	if (u.u_error) goto FreeLocks;
 
 	if (exclp) { 
@@ -202,7 +202,7 @@ void vproc::open(struct venus_cnode *cp, int flags) {
 	if (readp) {
 	    long rights = f->IsFile() ? PRSFS_READ : PRSFS_LOOKUP;
 	    int modes = f->IsFile() ? C_A_R_OK : 0;
-	    u.u_error = f->Access(rights, modes, CRTORUID(u.u_cred));
+	    u.u_error = f->Access(rights, modes, u.u_uid);
 	    if (u.u_error) goto FreeLocks;
 	}
 	if (writep || truncp) {
@@ -218,12 +218,12 @@ void vproc::open(struct venus_cnode *cp, int flags) {
 	    long rights = (truncp ?  (long)PRSFS_WRITE :
 				     (long)(PRSFS_WRITE | PRSFS_INSERT));
 	    int modes = (createp ? C_A_C_OK : C_A_W_OK);
-	    u.u_error = f->Access(rights, modes, CRTORUID(u.u_cred));
+	    u.u_error = f->Access(rights, modes, u.u_uid);
 	    if (u.u_error) goto FreeLocks;
 	}
 
 	/* Do the operation. */
-	u.u_error = f->Open(writep, execp, truncp, cp, CRTORUID(u.u_cred));
+	u.u_error = f->Open(writep, execp, truncp, cp, u.u_uid);
 	if (u.u_error) goto FreeLocks;
 
 FreeLocks:
@@ -248,13 +248,12 @@ void vproc::close(struct venus_cnode *cp, int flags)
     /* Expand the flags argument into some useful predicates. */
     int writep = (flags & (C_O_WRITE | C_O_TRUNC)) != 0;
     int	execp =	0;	    /* ??? -JJK */
-    int not_written = 0; /* flags & C_O_NO_WRITES; */
+    //int not_written = 0; /* flags & C_O_NO_WRITES; */
 
     fsobj *f = 0;
 
     for (;;) {
-	Begin_VFS(cp->c_fid.Volume, CODA_CLOSE,
-		  writep ? VM_MUTATING : VM_OBSERVING);
+	Begin_VFS(&cp->c_fid, CODA_CLOSE, writep ? VM_MUTATING : VM_OBSERVING);
 	if (u.u_error) break;
 
 	/* Get the object. */
@@ -265,14 +264,14 @@ void vproc::close(struct venus_cnode *cp, int flags)
          * the DATA causes no problems; however, we'll leave a zero-level 
          * log statement in as evidence to the contrary... (mre:6/14/94) 
          */
-        u.u_error = FSDB->Get(&f, &cp->c_fid, CRTORUID(u.u_cred), RC_STATUS);
+        u.u_error = FSDB->Get(&f, &cp->c_fid, u.u_uid, RC_STATUS);
         if (u.u_error) goto FreeLocks;
 
         if (!DYING(f) && !HAVEALLDATA(f)) 
           LOG(0, ("vproc::close: Don't have DATA and not DYING! (fid = %s, flags = %x)\n", FID_(&cp->c_fid), flags));
 
 	/* Do the operation. */
-	u.u_error = f->Close(writep, execp, CRTORUID(u.u_cred) /*, not_written */);
+	u.u_error = f->Close(writep, execp, u.u_uid /*, not_written */);
 
 FreeLocks:
 	FSDB->Put(&f);
@@ -291,23 +290,9 @@ FreeLocks:
 void vproc::ioctl(struct venus_cnode *cp, unsigned int com,
 		   struct ViceIoctl *data, int flags) 
 {
-    struct venus_cnode repcnode;
-    char xreppath[1024];
-
     LOG(1, ("vproc::ioctl(%d): fid = %s, com = %s\n",
-	     u.u_cred.cr_uid, FID_(&cp->c_fid), IoctlOpStr(com)));
-    /*
-    if ((cp->c_fid.Vnode == 0xffffffff) && (cp->c_fid.Unique == 0x80000)) {
-	xreppath[0] = '\0';
-	if (strlen(xreppath) > 0) {
-	    LOG(0, ("D'oh!  Looking up \"%s\"\n", xreppath));
-	    if (namev(xreppath, 0, &repcnode) == 0) {
-		LOG(0, ("Replacing with fid %s \n", FID_(&repcnode.c_fid)));
-		cp->c_fid = repcnode.c_fid;
-	    }
-	}
-    }
-    */
+	     u.u_uid, FID_(&cp->c_fid), IoctlOpStr(com)));
+
     do_ioctl(&cp->c_fid, com, data);
 
     if (u.u_error == EINCONS) {
@@ -324,11 +309,11 @@ void vproc::getattr(struct venus_cnode *cp, struct coda_vattr *vap)
     fsobj *f = 0;
 
     for (;;) {
-	Begin_VFS(cp->c_fid.Volume, CODA_GETATTR);
+	Begin_VFS(&cp->c_fid, CODA_GETATTR);
 	if (u.u_error) break;
 
 	/* Get the object. */
-	u.u_error = FSDB->Get(&f, &cp->c_fid, CRTORUID(u.u_cred), RC_STATUS);
+	u.u_error = FSDB->Get(&f, &cp->c_fid, u.u_uid, RC_STATUS);
 	if (u.u_error) goto FreeLocks;
 
 	/* No rights required to get attributes? -JJK */
@@ -343,6 +328,7 @@ FreeLocks:
 	if (!retry_call) break;
     }
 
+    /* do we need to do this here? -JH */
     if (u.u_error == EINCONS) {
 	u.u_error = 0;
 
@@ -353,7 +339,9 @@ FreeLocks:
 	vap->va_uid = (short)V_UID;
 	vap->va_gid = (short)V_GID;
 	vap->va_nlink = 1;
-	vap->va_size = 27;  /* @XXXXXXXX.YYYYYYYY.ZZZZZZZZ */
+
+	/* @XXXXXXXX.YYYYYYYY.ZZZZZZZZ. */
+	vap->va_size = 29;
 	vap->va_blocksize = V_BLKSIZE;
 	vap->va_fileid = FidToNodeid(&cp->c_fid);
 	vap->va_atime.tv_sec = Vtime();
@@ -411,7 +399,7 @@ void vproc::setattr(struct venus_cnode *cp, struct coda_vattr *vap) {
 	CHOKE("vproc::setattr: no attributes specified");
 
     for (;;) {
-	Begin_VFS(cp->c_fid.Volume, CODA_SETATTR);
+	Begin_VFS(&cp->c_fid, CODA_SETATTR);
 	if (u.u_error) break;
 
 	/* If we are truncating a file to any non-zero size we NEED the data */
@@ -426,14 +414,14 @@ void vproc::setattr(struct venus_cnode *cp, struct coda_vattr *vap) {
 	 * having an inaccessible object we have to make sure to fetch the
 	 * data as well. */
 	volent *v = 0;
-	u.u_error = VDB->Get(&v, cp->c_fid.Volume);
+	u.u_error = VDB->Get(&v, MakeVolid(&cp->c_fid));
 	if (u.u_error) goto FreeLocks;
 	if (v->IsWriteDisconnected())
 	    rcrights |= RC_DATA;
 	VDB->Put(&v);
 
 	/* Get the object. */
-	u.u_error = FSDB->Get(&f, &cp->c_fid, CRTORUID(u.u_cred), rcrights);
+	u.u_error = FSDB->Get(&f, &cp->c_fid, u.u_uid, rcrights);
 	if (u.u_error) goto FreeLocks;
 
 	/* Symbolic links are immutable. */
@@ -458,10 +446,10 @@ void vproc::setattr(struct venus_cnode *cp, struct coda_vattr *vap) {
 	    if (vap->va_uid != VA_IGNORE_UID) {
 		/* Need to allow for System:Administrators here! -JJK */
 #if 0
-		if (f->stat.Owner != (vuid_t)vap->va_uid)
+		if (f->stat.Owner != (uid_t)vap->va_uid)
 		    { u.u_error = EACCES; goto FreeLocks; }
 #endif
-		u.u_error = f->Access((long)PRSFS_ADMINISTER, 0, CRTORUID(u.u_cred));
+		u.u_error = f->Access((long)PRSFS_ADMINISTER, 0, u.u_uid);
 		if (u.u_error) goto FreeLocks;
 	    }
 	    /* gid should be V_GID for chown requests, 
@@ -475,8 +463,7 @@ void vproc::setattr(struct venus_cnode *cp, struct coda_vattr *vap) {
 		    goto FreeLocks; 
 		}
 
-		u.u_error = f->Access((long)PRSFS_WRITE, C_A_W_OK,
-				      CRTORUID(u.u_cred));
+		u.u_error = f->Access((long)PRSFS_WRITE, C_A_W_OK, u.u_uid);
 		if (u.u_error) 
 		    goto FreeLocks;
 	    }
@@ -485,15 +472,14 @@ void vproc::setattr(struct venus_cnode *cp, struct coda_vattr *vap) {
 	    if ( (vap->va_atime.tv_sec != VA_IGNORE_TIME1) ||
 		 (vap->va_mtime.tv_sec != VA_IGNORE_TIME1) ||
 		 (vap->va_ctime.tv_sec != VA_IGNORE_TIME1) ) {
-		    u.u_error = f->Access((long)PRSFS_WRITE, 0, 
-					  CRTORUID(u.u_cred));
+		    u.u_error = f->Access((long)PRSFS_WRITE, 0, u.u_uid);
 		    if (u.u_error) goto FreeLocks;
 	    }
 	}
 
 	/* Do the operation. */
 	f->PromoteLock();
-	u.u_error = f->SetAttr(vap, CRTORUID(u.u_cred));
+	u.u_error = f->SetAttr(vap, u.u_uid);
 	
 FreeLocks:
 	FSDB->Put(&f);
@@ -542,18 +528,18 @@ void vproc::access(struct venus_cnode *cp, int mode)
     fsobj *f = 0;
 
     for (;;) {
-	Begin_VFS(cp->c_fid.Volume, CODA_ACCESS);
+	Begin_VFS(&cp->c_fid, CODA_ACCESS);
 	if (u.u_error) break;
 
 	/* Get the object. */
-	u.u_error = FSDB->Get(&f, &cp->c_fid, CRTORUID(u.u_cred), RC_STATUS);
+	u.u_error = FSDB->Get(&f, &cp->c_fid, u.u_uid, RC_STATUS);
 	if (u.u_error) goto FreeLocks;
 
 	modes = mode & (OWNERBITS >> 6);
 	rights = f->IsDir()
 	  ? DirAccessMap[modes]
 	  : FileAccessMap[modes];
-	u.u_error = f->Access(rights, modes, CRTORUID(u.u_cred));
+	u.u_error = f->Access(rights, modes, u.u_uid);
 	if (u.u_error) goto FreeLocks;
 
 FreeLocks:
@@ -581,11 +567,11 @@ void vproc::lookup(struct venus_cnode *dcp, char *name,
     fsobj *target_fso = 0;
 
     for (;;) {
-	Begin_VFS(dcp->c_fid.Volume, CODA_LOOKUP);
+	Begin_VFS(&dcp->c_fid, CODA_LOOKUP);
 	if (u.u_error) break;
 
 	/* Get the parent object and verify that it is a directory. */
-	u.u_error = FSDB->Get(&parent_fso, &dcp->c_fid, CRTORUID(u.u_cred), RC_DATA);
+	u.u_error = FSDB->Get(&parent_fso, &dcp->c_fid, u.u_uid, RC_DATA);
 	if (u.u_error) goto FreeLocks;
 	if (!parent_fso->IsDir())
 	    { u.u_error = ENOTDIR; goto FreeLocks; }
@@ -596,15 +582,27 @@ void vproc::lookup(struct venus_cnode *dcp, char *name,
 	    target_fso = parent_fso;
 	    parent_fso = 0;		    /* Fake a FSDB->Put(&parent_fso); */
 	}
+	else if (STREQ(name, "..")) {
+	    if (parent_fso->IsRoot())
+		target_fso = parent_fso->u.mtpoint;
+	    else
+		target_fso = parent_fso->pfso;
+
+	    if (!target_fso) {
+		u.u_error = ENOENT;
+		goto FreeLocks;
+	    }
+	    target_fso->Lock(RD);
+	}
 	else {
-	    ViceFid inc_fid;
-	    u.u_error = parent_fso->Lookup(&target_fso, &inc_fid, name, CRTORUID(u.u_cred), flags);
+	    VenusFid inc_fid;
+	    u.u_error = parent_fso->Lookup(&target_fso, &inc_fid, name, u.u_uid, flags);
 	    if (u.u_error) {
 		if (u.u_error == EINCONS) {
 		    u.u_error = 0;
 
 		    /* Set OUT parameter according to "fake" vnode. */
-		    MAKE_CNODE(*cp, inc_fid, C_VLNK);
+		    MAKE_CNODE2(*cp, inc_fid, C_VLNK);
 		    cp->c_flags |= C_INCON;
 		}
 
@@ -613,7 +611,7 @@ void vproc::lookup(struct venus_cnode *dcp, char *name,
 	}
 
 	/* Set OUT parameter. */
-	MAKE_CNODE(*cp, target_fso->fid, FTTOVT(target_fso->stat.VnodeType));
+	MAKE_CNODE2(*cp, target_fso->fid, FTTOVT(target_fso->stat.VnodeType));
 	if (target_fso->IsFake() || target_fso->IsMTLink())
 	    cp->c_flags |= C_INCON;
 
@@ -657,11 +655,11 @@ void vproc::create(struct venus_cnode *dcp, char *name, struct coda_vattr *vap,
     if (u.u_error) return;
 
     for (;;) {
-	Begin_VFS(dcp->c_fid.Volume, CODA_CREATE);
+	Begin_VFS(&dcp->c_fid, CODA_CREATE);
 	if (u.u_error) break;
 
 	/* Get the parent object and verify that it is a directory. */
-	u.u_error = FSDB->Get(&parent_fso, &dcp->c_fid, CRTORUID(u.u_cred), RC_DATA);
+	u.u_error = FSDB->Get(&parent_fso, &dcp->c_fid, u.u_uid, RC_DATA);
 	if (u.u_error) goto FreeLocks;
 	if (!parent_fso->IsDir())
 	    { u.u_error = ENOTDIR; goto FreeLocks; }
@@ -670,10 +668,10 @@ void vproc::create(struct venus_cnode *dcp, char *name, struct coda_vattr *vap,
 	if ((LRDB->repair_root_fid) && (parent_fso->IsLocalObj() || 
 					LRDB->RFM_IsRootParent(&parent_fso->fid))) {
 	    /* cross mount-point when under local/global repair */
-	    ViceFid dummy;
-	    u.u_error = parent_fso->Lookup(&target_fso, &dummy, name, CRTORUID(u.u_cred), CLU_CASE_SENSITIVE);
+	    VenusFid dummy;
+	    u.u_error = parent_fso->Lookup(&target_fso, &dummy, name, u.u_uid, CLU_CASE_SENSITIVE);
 	} else {
-	    u.u_error = parent_fso->Lookup(&target_fso, 0, name, CRTORUID(u.u_cred), CLU_CASE_SENSITIVE);
+	    u.u_error = parent_fso->Lookup(&target_fso, 0, name, u.u_uid, CLU_CASE_SENSITIVE);
 	}
 	if (u.u_error == 0) {
 	    FSDB->Put(&parent_fso);	    /* avoid deadlock! */
@@ -686,18 +684,18 @@ void vproc::create(struct venus_cnode *dcp, char *name, struct coda_vattr *vap,
 
 	    /* Verify that we have the necessary permissions. */
 	    if (readp) {
-		u.u_error = target_fso->Access((long)PRSFS_READ, C_A_R_OK, CRTORUID(u.u_cred));
+		u.u_error = target_fso->Access((long)PRSFS_READ, C_A_R_OK, u.u_uid);
 		if (u.u_error) goto FreeLocks;
 	    }
 	    if (writep || truncp) {
-		u.u_error = target_fso->Access((long)PRSFS_WRITE, C_A_W_OK, CRTORUID(u.u_cred));
+		u.u_error = target_fso->Access((long)PRSFS_WRITE, C_A_W_OK, u.u_uid);
 		if (u.u_error) goto FreeLocks;
 	    }
 
 	    /* We need the data now. XXX -JJK */
-	    ViceFid target_fid = target_fso->fid;
+	    VenusFid target_fid = target_fso->fid;
 	    FSDB->Put(&target_fso);
-	    u.u_error = FSDB->Get(&target_fso, &target_fid, CRTORUID(u.u_cred), RC_DATA);
+	    u.u_error = FSDB->Get(&target_fso, &target_fid, u.u_uid, RC_DATA);
 	    if (u.u_error) goto FreeLocks;
 
 	    /* Do truncate if necessary. */
@@ -707,7 +705,7 @@ void vproc::create(struct venus_cnode *dcp, char *name, struct coda_vattr *vap,
 		vap->va_size = 0;
 
 		target_fso->PromoteLock();
-		u.u_error = target_fso->SetAttr(vap, CRTORUID(u.u_cred));
+		u.u_error = target_fso->SetAttr(vap, u.u_uid);
 		if (u.u_error) goto FreeLocks;
 		target_fso->DemoteLock();
 	    }
@@ -717,12 +715,12 @@ void vproc::create(struct venus_cnode *dcp, char *name, struct coda_vattr *vap,
 	    u.u_error = 0;
 
 	    /* Verify that we have create permission. */
-	    u.u_error = parent_fso->Access((long)PRSFS_INSERT, 0, CRTORUID(u.u_cred));
+	    u.u_error = parent_fso->Access((long)PRSFS_INSERT, 0, u.u_uid);
 	    if (u.u_error) goto FreeLocks;
 
 	    /* Do the create. */
 	    parent_fso->PromoteLock();
-	    u.u_error = parent_fso->Create(name, &target_fso, CRTORUID(u.u_cred),
+	    u.u_error = parent_fso->Create(name, &target_fso, u.u_uid,
 					   vap->va_mode & 0777, FSDB->StdPri());
 	    /* Probably ought to do something here if EEXIST! -JJK */
 	    if (u.u_error) goto FreeLocks;
@@ -730,7 +728,7 @@ void vproc::create(struct venus_cnode *dcp, char *name, struct coda_vattr *vap,
 
 	/* Set OUT parameters. */
 	target_fso->GetVattr(vap);
-	MAKE_CNODE(*cp, target_fso->fid, C_VREG);
+	MAKE_CNODE2(*cp, target_fso->fid, C_VREG);
 	cp->c_device = FSDB->device;
 	cp->c_inode = target_fso->data.file->Inode();
 
@@ -763,17 +761,17 @@ void vproc::remove(struct venus_cnode *dcp, char *name)
     if (u.u_error) return;
 
     for (;;) {
-	Begin_VFS(dcp->c_fid.Volume, CODA_REMOVE);
+	Begin_VFS(&dcp->c_fid, CODA_REMOVE);
 	if (u.u_error) break;
 
 	/* Get the parent object and verify that it is a directory. */
-	u.u_error = FSDB->Get(&parent_fso, &dcp->c_fid, CRTORUID(u.u_cred), RC_DATA);
+	u.u_error = FSDB->Get(&parent_fso, &dcp->c_fid, u.u_uid, RC_DATA);
 	if (u.u_error) goto FreeLocks;
 	if (!parent_fso->IsDir())
 	    { u.u_error = ENOTDIR; goto FreeLocks; }
 
 	/* Get the target object. */
-	u.u_error = parent_fso->Lookup(&target_fso, 0, name, CRTORUID(u.u_cred), CLU_CASE_SENSITIVE);
+	u.u_error = parent_fso->Lookup(&target_fso, 0, name, u.u_uid, CLU_CASE_SENSITIVE);
 	if (u.u_error) goto FreeLocks;
 
 	/* Verify that it is not a directory. */
@@ -781,13 +779,13 @@ void vproc::remove(struct venus_cnode *dcp, char *name)
 	    { u.u_error = EISDIR; goto FreeLocks; }
 
 	/* Verify that we have delete permission for the parent. */
-	u.u_error = parent_fso->Access((long)PRSFS_DELETE, 0, CRTORUID(u.u_cred));
+	u.u_error = parent_fso->Access((long)PRSFS_DELETE, 0, u.u_uid);
 	if (u.u_error) goto FreeLocks;
 
 	/* Do the remove. */
 	parent_fso->PromoteLock();
 	target_fso->PromoteLock();
-	u.u_error = parent_fso->Remove(name, target_fso, CRTORUID(u.u_cred));
+	u.u_error = parent_fso->Remove(name, target_fso, u.u_uid);
 
 FreeLocks:
 	FSDB->Put(&parent_fso);
@@ -809,7 +807,7 @@ void vproc::link(struct venus_cnode *scp, struct venus_cnode *dcp,
 {
 
     LOG(1, ("vproc::link: fid = %s, td_fid = %s, toname = %s\n",
-	    FID_(&scp->c_fid), FID_2(&dcp->c_fid), toname));
+	    FID_(&scp->c_fid), FID_(&dcp->c_fid), toname));
 
     fsobj *parent_fso = 0;
     fsobj *source_fso = 0;
@@ -828,7 +826,7 @@ void vproc::link(struct venus_cnode *scp, struct venus_cnode *dcp,
 	{ u.u_error = EISDIR; return; }
 
     /* Verify that the source is in the same volume as the target parent. */
-    if (scp->c_fid.Volume != dcp->c_fid.Volume)
+    if (!FID_VolEQ(&scp->c_fid, &dcp->c_fid))
         { u.u_error = EXDEV; return; }
 
 #if 0 /* not possible when source == file and target parent == dir. --JH */
@@ -838,25 +836,21 @@ void vproc::link(struct venus_cnode *scp, struct venus_cnode *dcp,
 #endif
 
     for (;;) {
-	Begin_VFS(dcp->c_fid.Volume, CODA_LINK);
+	Begin_VFS(&dcp->c_fid, CODA_LINK);
 	if (u.u_error) break;
 
         /* Get the source and target objects in correct lock order */
         if (FID_LT(scp->c_fid, dcp->c_fid)) {
-            u.u_error = FSDB->Get(&source_fso, &scp->c_fid, CRTORUID(u.u_cred),
-                                  RC_STATUS);
+            u.u_error = FSDB->Get(&source_fso, &scp->c_fid, u.u_uid, RC_STATUS);
             if (u.u_error) goto FreeLocks;
 
-            u.u_error = FSDB->Get(&parent_fso, &dcp->c_fid, CRTORUID(u.u_cred),
-                                  RC_DATA);
+            u.u_error = FSDB->Get(&parent_fso, &dcp->c_fid, u.u_uid, RC_DATA);
             if (u.u_error) goto FreeLocks;
         } else {
-            u.u_error = FSDB->Get(&parent_fso, &dcp->c_fid, CRTORUID(u.u_cred),
-                                  RC_DATA);
+            u.u_error = FSDB->Get(&parent_fso, &dcp->c_fid, u.u_uid, RC_DATA);
             if (u.u_error) goto FreeLocks;
 
-            u.u_error = FSDB->Get(&source_fso, &scp->c_fid, CRTORUID(u.u_cred),
-                                  RC_STATUS);
+            u.u_error = FSDB->Get(&source_fso, &scp->c_fid, u.u_uid, RC_STATUS);
             if (u.u_error) goto FreeLocks;
         }
 
@@ -868,24 +862,24 @@ void vproc::link(struct venus_cnode *scp, struct venus_cnode *dcp,
         }
                                                              
 	/* Verify that the target doesn't exist. */
-	u.u_error = parent_fso->Lookup(&target_fso, 0, toname,
-                                       CRTORUID(u.u_cred), CLU_CASE_SENSITIVE);
+	u.u_error = parent_fso->Lookup(&target_fso, 0, toname, u.u_uid,
+				       CLU_CASE_SENSITIVE);
 	if (u.u_error == 0) { u.u_error = EEXIST; goto FreeLocks; }
 	if (u.u_error != ENOENT) goto FreeLocks;
 	u.u_error = 0;
 
 	/* Verify that we have insert permission on the target parent. */
-	u.u_error = parent_fso->Access((long)PRSFS_INSERT,0,CRTORUID(u.u_cred));
+	u.u_error = parent_fso->Access((long)PRSFS_INSERT, 0, u.u_uid);
 	if (u.u_error) goto FreeLocks;
 
 	/* Verify that we have write permission on the source. */
-	u.u_error = source_fso->Access((long)PRSFS_WRITE,0,CRTORUID(u.u_cred));
+	u.u_error = source_fso->Access((long)PRSFS_WRITE, 0, u.u_uid);
 	if (u.u_error) goto FreeLocks;
 
 	/* Do the operation. */
 	parent_fso->PromoteLock();
 	source_fso->PromoteLock();
-	u.u_error = parent_fso->Link(toname, source_fso, CRTORUID(u.u_cred));
+	u.u_error = parent_fso->Link(toname, source_fso, u.u_uid);
 
 FreeLocks:
 	FSDB->Put(&source_fso);
@@ -909,7 +903,7 @@ void vproc::rename(struct venus_cnode *spcp, char *name,
 {
 
     LOG(1, ("vproc::rename: fid = %s, td_fid = %s, name = %s, toname = %s\n",
-	     FID_(&spcp->c_fid), FID_2(&tpcp->c_fid), name, toname));
+	     FID_(&spcp->c_fid), FID_(&tpcp->c_fid), name, toname));
 
     int	SameParent = FID_EQ(&spcp->c_fid, &tpcp->c_fid);
     int	TargetExists = 0;
@@ -927,29 +921,29 @@ void vproc::rename(struct venus_cnode *spcp, char *name,
     if (u.u_error) return;
 
     /* Ensure that objects are in the same volume. */
-    if (spcp->c_fid.Volume != tpcp->c_fid.Volume)
+    if (!FID_VolEQ(&spcp->c_fid, &tpcp->c_fid))
 	{ u.u_error = EXDEV; return; }
 
     for (;;) {
-	Begin_VFS(spcp->c_fid.Volume, CODA_RENAME);
+	Begin_VFS(&spcp->c_fid, CODA_RENAME);
 	if (u.u_error) break;
 
 	/* Acquire the parent(s). */
 	if (SameParent) {
-	    u.u_error = FSDB->Get(&t_parent_fso, &tpcp->c_fid, CRTORUID(u.u_cred), RC_DATA);
+	    u.u_error = FSDB->Get(&t_parent_fso, &tpcp->c_fid, u.u_uid, RC_DATA);
 	    if (u.u_error) goto FreeLocks;
 	}
 	else {
 	    if (FID_LT(spcp->c_fid, tpcp->c_fid)) {
-		u.u_error = FSDB->Get(&s_parent_fso, &spcp->c_fid, CRTORUID(u.u_cred), RC_DATA);
+		u.u_error = FSDB->Get(&s_parent_fso, &spcp->c_fid, u.u_uid, RC_DATA);
 		if (u.u_error) goto FreeLocks;
-		u.u_error = FSDB->Get(&t_parent_fso, &tpcp->c_fid, CRTORUID(u.u_cred), RC_DATA);
+		u.u_error = FSDB->Get(&t_parent_fso, &tpcp->c_fid, u.u_uid, RC_DATA);
 		if (u.u_error) goto FreeLocks;
 	    }
 	    else {
-		u.u_error = FSDB->Get(&t_parent_fso, &tpcp->c_fid, CRTORUID(u.u_cred), RC_DATA);
+		u.u_error = FSDB->Get(&t_parent_fso, &tpcp->c_fid, u.u_uid, RC_DATA);
 		if (u.u_error) goto FreeLocks;
-		u.u_error = FSDB->Get(&s_parent_fso, &spcp->c_fid, CRTORUID(u.u_cred), RC_DATA);
+		u.u_error = FSDB->Get(&s_parent_fso, &spcp->c_fid, u.u_uid, RC_DATA);
 		if (u.u_error) goto FreeLocks;
 	    }
 	}
@@ -957,10 +951,10 @@ void vproc::rename(struct venus_cnode *spcp, char *name,
 	/* Verify that we have the necessary permissions in the parent(s). */
 	{
 	    fsobj *f = (SameParent ? t_parent_fso : s_parent_fso);
-	    u.u_error = f->Access((long)PRSFS_DELETE, 0, CRTORUID(u.u_cred));
+	    u.u_error = f->Access((long)PRSFS_DELETE, 0, u.u_uid);
 	    if (u.u_error) goto FreeLocks;
 	}
-	u.u_error = t_parent_fso->Access((long)PRSFS_INSERT, 0, CRTORUID(u.u_cred));
+	u.u_error = t_parent_fso->Access((long)PRSFS_INSERT, 0, u.u_uid);
 	if (u.u_error) goto FreeLocks;
 
 	/* Acquire the source and target (if it exists). */
@@ -978,9 +972,9 @@ void vproc::rename(struct venus_cnode *spcp, char *name,
 	{
 	    fsobj *f = (SameParent ? t_parent_fso : s_parent_fso);
 #ifdef DJGPP
-	    u.u_error = f->Lookup(&s_fso, 0, name, CRTORUID(u.u_cred), CLU_CASE_INSENSITIVE);
+	    u.u_error = f->Lookup(&s_fso, 0, name, u.u_uid, CLU_CASE_INSENSITIVE);
 #else
-	    u.u_error = f->Lookup(&s_fso, 0, name, CRTORUID(u.u_cred), CLU_CASE_SENSITIVE);
+	    u.u_error = f->Lookup(&s_fso, 0, name, u.u_uid, CLU_CASE_SENSITIVE);
 #endif
 	    if (u.u_error) goto FreeLocks;
 
@@ -988,14 +982,14 @@ void vproc::rename(struct venus_cnode *spcp, char *name,
 		{ u.u_error = EINVAL; goto FreeLocks; }
 
 	    if (s_fso->IsDir()) {
-		ViceFid s_fid = s_fso->fid;
+		VenusFid s_fid = s_fso->fid;
 		FSDB->Put(&s_fso);
 
-		u.u_error = FSDB->Get(&s_fso, &s_fid, CRTORUID(u.u_cred), RC_DATA, name);
+		u.u_error = FSDB->Get(&s_fso, &s_fid, u.u_uid, RC_DATA, name);
 		if (u.u_error) goto FreeLocks;
 	    }
 	}
-	u.u_error = t_parent_fso->Lookup(&t_fso, 0, toname, CRTORUID(u.u_cred), CLU_CASE_SENSITIVE);
+	u.u_error = t_parent_fso->Lookup(&t_fso, 0, toname, u.u_uid, CLU_CASE_SENSITIVE);
 	if (u.u_error) {
 	    if (u.u_error != ENOENT) goto FreeLocks;
 	    u.u_error = 0;
@@ -1008,10 +1002,10 @@ void vproc::rename(struct venus_cnode *spcp, char *name,
 		{ u.u_error = EINVAL; goto FreeLocks; }
 
 	    if (t_fso->IsDir()) {
-		ViceFid t_fid = t_fso->fid;
+		VenusFid t_fid = t_fso->fid;
 		FSDB->Put(&t_fso);
 
-		u.u_error = FSDB->Get(&t_fso, &t_fid, CRTORUID(u.u_cred), RC_DATA, toname);
+		u.u_error = FSDB->Get(&t_fso, &t_fid, u.u_uid, RC_DATA, toname);
 		if (u.u_error) goto FreeLocks;
 	    }
 	}
@@ -1033,7 +1027,7 @@ void vproc::rename(struct venus_cnode *spcp, char *name,
 	if (TargetExists) {
 	    /* Verify that we have delete permission in the target parent. */
 	    if (!SameParent) {
-		u.u_error = t_parent_fso->Access((long)PRSFS_DELETE, 0, CRTORUID(u.u_cred));
+		u.u_error = t_parent_fso->Access((long)PRSFS_DELETE, 0, u.u_uid);
 		if (u.u_error) goto FreeLocks;
 	    }
 
@@ -1055,7 +1049,7 @@ void vproc::rename(struct venus_cnode *spcp, char *name,
 	    /* This shoots the locking protocol to hell! -JJK */
 	    /* This fails, perhaps incorrectly, if user doesn't have read permission up to volume root! -JJK */
 	    if (!SameParent && s_fso->IsDir() && !t_parent_fso->IsRoot()) {
-		ViceFid test_fid = t_parent_fso->pfid;
+		VenusFid test_fid = t_parent_fso->pfid;
 		for (;;) {
 		    if (FID_EQ(&s_fso->fid, &test_fid))
 			{ u.u_error = ELOOP; goto FreeLocks; }
@@ -1071,7 +1065,7 @@ void vproc::rename(struct venus_cnode *spcp, char *name,
 			continue;
 		    }
 		    fsobj *test_fso = 0;
-		    u.u_error = FSDB->Get(&test_fso, &test_fid, CRTORUID(u.u_cred), RC_DATA);
+		    u.u_error = FSDB->Get(&test_fso, &test_fid, u.u_uid, RC_DATA);
 		    if (u.u_error) goto FreeLocks;
 		    test_fid = test_fso->pfid;
 		    FSDB->Put(&test_fso);
@@ -1101,7 +1095,7 @@ void vproc::rename(struct venus_cnode *spcp, char *name,
 	}
 
 	u.u_error = t_parent_fso->Rename(s_parent_fso, name, s_fso,
-					 toname, t_fso, CRTORUID(u.u_cred));
+					 toname, t_fso, u.u_uid);
 
 FreeLocks:
 	FSDB->Put(&s_parent_fso);
@@ -1136,35 +1130,35 @@ void vproc::mkdir(struct venus_cnode *dcp, char *name,
     if (u.u_error) return;
 
     for (;;) {
-	Begin_VFS(dcp->c_fid.Volume, CODA_MKDIR);
+	Begin_VFS(&dcp->c_fid, CODA_MKDIR);
 	if (u.u_error) break;
 
 	/* Get the parent object and verify that it is a directory. */
-	u.u_error = FSDB->Get(&parent_fso, &dcp->c_fid, CRTORUID(u.u_cred), RC_DATA);
+	u.u_error = FSDB->Get(&parent_fso, &dcp->c_fid, u.u_uid, RC_DATA);
 	if (u.u_error) goto FreeLocks;
 	if (!parent_fso->IsDir()) { u.u_error = ENOTDIR; goto FreeLocks; }
 
 	/* Verify that the target doesn't exist. */
-	u.u_error = parent_fso->Lookup(&target_fso, 0, name, CRTORUID(u.u_cred), CLU_CASE_SENSITIVE);
+	u.u_error = parent_fso->Lookup(&target_fso, 0, name, u.u_uid, CLU_CASE_SENSITIVE);
 	if (u.u_error == 0) { u.u_error = EEXIST; goto FreeLocks; }
 	if (u.u_error != ENOENT) goto FreeLocks;
 	u.u_error = 0;
 
 	/* Verify that we have insert permission. */
-	u.u_error = parent_fso->Access((long)PRSFS_INSERT, 0, CRTORUID(u.u_cred));
+	u.u_error = parent_fso->Access((long)PRSFS_INSERT, 0, u.u_uid);
 	if (u.u_error) goto FreeLocks;
 
 	/* Do the operation. */
 	parent_fso->PromoteLock();
 
-	u.u_error = parent_fso->Mkdir(name, &target_fso, CRTORUID(u.u_cred),
+	u.u_error = parent_fso->Mkdir(name, &target_fso, u.u_uid,
 				      vap->va_mode & 0777, FSDB->StdPri());
 	if (u.u_error) goto FreeLocks;
 
 	/* Set OUT parameter. */
 	target_fso->GetVattr(vap);
 	if (u.u_error) goto FreeLocks;
-	MAKE_CNODE(*cp, target_fso->fid, C_VDIR);
+	MAKE_CNODE2(*cp, target_fso->fid, C_VDIR);
 
 FreeLocks:
 	FSDB->Put(&parent_fso);
@@ -1194,16 +1188,16 @@ void vproc::rmdir(struct venus_cnode *dcp, char *name)
     if (u.u_error) return;
 
     for (;;) {
-	Begin_VFS(dcp->c_fid.Volume, CODA_RMDIR);
+	Begin_VFS(&dcp->c_fid, CODA_RMDIR);
 	if (u.u_error) break;
 
 	/* Get the parent object and verify that it is a directory. */
-	u.u_error = FSDB->Get(&parent_fso, &dcp->c_fid, CRTORUID(u.u_cred), RC_DATA);
+	u.u_error = FSDB->Get(&parent_fso, &dcp->c_fid, u.u_uid, RC_DATA);
 	if (u.u_error) goto FreeLocks;
 	if (!parent_fso->IsDir()) { u.u_error = ENOTDIR; goto FreeLocks; }
 
 	/* Get the target object. */
-	u.u_error = parent_fso->Lookup(&target_fso, 0, name, CRTORUID(u.u_cred), CLU_CASE_SENSITIVE);
+	u.u_error = parent_fso->Lookup(&target_fso, 0, name, u.u_uid, CLU_CASE_SENSITIVE);
 	if (u.u_error) goto FreeLocks;
 
 	/* Sanity check. */
@@ -1215,9 +1209,9 @@ void vproc::rmdir(struct venus_cnode *dcp, char *name)
 	    { u.u_error = ENOTDIR; goto FreeLocks; }
 
 	/* Must have data for the target. */
-	ViceFid target_fid; target_fid = target_fso->fid;
+	VenusFid target_fid; target_fid = target_fso->fid;
 	FSDB->Put(&target_fso);
-	u.u_error = FSDB->Get(&target_fso, &target_fid, CRTORUID(u.u_cred), RC_DATA, name);
+	u.u_error = FSDB->Get(&target_fso, &target_fid, u.u_uid, RC_DATA, name);
 	if (u.u_error) goto FreeLocks;
 
 	/* Verify that the target is empty. */
@@ -1225,13 +1219,13 @@ void vproc::rmdir(struct venus_cnode *dcp, char *name)
 	    { u.u_error = ENOTEMPTY; goto FreeLocks; }
 
 	/* Verify that we have delete permission for the parent. */
-	u.u_error = parent_fso->Access((long)PRSFS_DELETE, 0, CRTORUID(u.u_cred));
+	u.u_error = parent_fso->Access((long)PRSFS_DELETE, 0, u.u_uid);
 	if (u.u_error) goto FreeLocks;
 
 	/* Do the operation. */
 	parent_fso->PromoteLock();
 	target_fso->PromoteLock();
-	u.u_error = parent_fso->Rmdir(name, target_fso, CRTORUID(u.u_cred));
+	u.u_error = parent_fso->Rmdir(name, target_fso, u.u_uid);
 
 FreeLocks:
 	FSDB->Put(&parent_fso);
@@ -1254,8 +1248,8 @@ void vproc::symlink(struct venus_cnode *dcp, char *contents,
 		    struct coda_vattr *vap, char *name) 
 {
 
-    LOG(1, ("vproc::symlink: fid = (%x.%x.%x), contents = %s, name = %s\n",
-	     dcp->c_fid.Volume, dcp->c_fid.Vnode, dcp->c_fid.Unique, contents, name));
+    LOG(1, ("vproc::symlink: fid = (%s), contents = %s, name = %s\n",
+	    FID_(&dcp->c_fid), contents, name));
 
     fsobj *parent_fso = 0;
     fsobj *target_fso = 0;
@@ -1265,33 +1259,28 @@ void vproc::symlink(struct venus_cnode *dcp, char *contents,
     if (u.u_error) return;
 
     for (;;) {
-	Begin_VFS(dcp->c_fid.Volume, CODA_SYMLINK);
+	Begin_VFS(&dcp->c_fid, CODA_SYMLINK);
 	if (u.u_error) break;
 
 	/* Get the parent object and verify that it is a directory. */
-	u.u_error = FSDB->Get(&parent_fso, &dcp->c_fid, CRTORUID(u.u_cred), RC_DATA);
+	u.u_error = FSDB->Get(&parent_fso, &dcp->c_fid, u.u_uid, RC_DATA);
 	if (u.u_error) goto FreeLocks;
 	if (!parent_fso->IsDir()) { u.u_error = ENOTDIR; goto FreeLocks; }
 
 	/* Verify that the target doesn't exist. */
-	u.u_error = parent_fso->Lookup(&target_fso, 0, name, CRTORUID(u.u_cred), CLU_CASE_SENSITIVE);
+	u.u_error = parent_fso->Lookup(&target_fso, 0, name, u.u_uid, CLU_CASE_SENSITIVE);
 	if (u.u_error == 0) { u.u_error = EEXIST; goto FreeLocks; }
 	if (u.u_error != ENOENT) goto FreeLocks;
 	u.u_error = 0;
 
 	/* Verify that we have insert permission. */
-	u.u_error = parent_fso->Access((long)PRSFS_INSERT, 0, CRTORUID(u.u_cred));
+	u.u_error = parent_fso->Access((long)PRSFS_INSERT, 0, u.u_uid);
 	if (u.u_error) goto FreeLocks;
 
 	/* Do the operation. */
-	unsigned short Mode;
-	Mode = ((contents[0] == '%' || contents[0] == '#' || contents[0] == '@') &&
-		(contents[strlen(contents) - 1] == '.'))
-	  ? 0644		/* mount point */
-	  : 0755;		/* real symbolic link */
 	parent_fso->PromoteLock();
-	u.u_error = parent_fso->Symlink(contents, name, CRTORUID(u.u_cred),
-					Mode, FSDB->StdPri());
+	u.u_error = parent_fso->Symlink(contents, name, u.u_uid,
+					0755, FSDB->StdPri());
 	if (u.u_error) goto FreeLocks;
 
 	/* Set vattr fields? */
@@ -1328,11 +1317,11 @@ void vproc::readlink(struct venus_cnode *cp, struct coda_string *string)
     fsobj *f = 0;
 
     for (;;) {
-	Begin_VFS(cp->c_fid.Volume, CODA_READLINK);
+	Begin_VFS(&cp->c_fid, CODA_READLINK);
 	if (u.u_error) break;
 
 	/* Get the object. */
-	u.u_error = FSDB->Get(&f, &cp->c_fid, CRTORUID(u.u_cred), RC_DATA);
+	u.u_error = FSDB->Get(&f, &cp->c_fid, u.u_uid, RC_DATA);
 	if (u.u_error) goto FreeLocks;
 
 	/* Verify that it is a symlink. */
@@ -1341,13 +1330,13 @@ void vproc::readlink(struct venus_cnode *cp, struct coda_string *string)
 
 	/* Verify that we have read permission for it. */
 /*
-	 u.u_error = f->Access((long)PRSFS_LOOKUP, 0, CRTORUID(u.u_cred));
+	 u.u_error = f->Access((long)PRSFS_LOOKUP, 0, u.u_uid);
 	 if (u.u_error)
 	     { if (u.u_error == EINCONS) u.u_error = ENOENT; goto FreeLocks; }
 */
 
 	/* Retrieve the link contents from the cache. */
-	u.u_error = f->Readlink(buf, len, &string->cs_len, CRTORUID(u.u_cred));
+	u.u_error = f->Readlink(buf, len, &string->cs_len, u.u_uid);
 	if (u.u_error) 
 		goto FreeLocks;
 
@@ -1358,14 +1347,19 @@ FreeLocks:
 	if (!retry_call) break;
     }
 
+    /* do we really need to do this here? -JH */
     if (u.u_error == EINCONS) {
 	u.u_error = 0;
 	k_Purge(&cp->c_fid, 1);
 
 	/* Make a "fake" name for the inconsistent object. */
-	sprintf(buf, "@%08lx.%08lx.%08lx",
-		cp->c_fid.Volume, cp->c_fid.Vnode, cp->c_fid.Unique);
-	string->cs_len = 27;
+	Realm *realm = REALMDB->GetRealm(cp->c_fid.Realm);
+	CODA_ASSERT(realm);
+	len = snprintf(buf, len, "@%08lx.%08lx.%08lx@%s", cp->c_fid.Volume,
+		       cp->c_fid.Vnode, cp->c_fid.Unique, realm->Name());
+	string->cs_len = 28 + strlen(realm->Name());
+	realm->PutRef();
+	CODA_ASSERT(len == string->cs_len);
     }
 }
 
@@ -1377,11 +1371,11 @@ void vproc::fsync(struct venus_cnode *cp)
     fsobj *f = 0;
 
     for (;;) {
-	Begin_VFS(cp->c_fid.Volume, CODA_FSYNC);
+	Begin_VFS(&cp->c_fid, CODA_FSYNC);
 	if (u.u_error) break;
 
 	/* Get the object. */
-	u.u_error = FSDB->Get(&f, &cp->c_fid, CRTORUID(u.u_cred), RC_STATUS);
+	u.u_error = FSDB->Get(&f, &cp->c_fid, u.u_uid, RC_STATUS);
 	if (u.u_error) goto FreeLocks;
 
 	/* 

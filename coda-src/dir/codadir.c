@@ -94,13 +94,13 @@ int DH_Length(PDirHandle dh)
 
 
 /* to convert Coda dir to Unix dir: called by client */
-int DH_Convert(PDirHandle dh, char *file, VolumeId vol)
+int DH_Convert(PDirHandle dh, char *file, VolumeId vol, RealmId realm)
 {
 	int rc;
 
 	DH_LockR(dh);
 
-	rc = DIR_Convert(dh->dh_data, file, vol);
+	rc = DIR_Convert(dh->dh_data, file, vol, realm);
 
 	DH_UnLockR(dh);
 

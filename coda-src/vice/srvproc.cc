@@ -1184,7 +1184,7 @@ long FS_ViceVLink(RPC2_Handle RPCid, ViceFid *Did, RPC2_String Name,
 
 START_TIMING(Link_Total);
     
-    SLog(1, "ViceLink: %s, %s --> %s", FID_(Did), Name, FID_2(Fid));
+    SLog(1, "ViceLink: %s, %s --> %s", FID_(Did), Name, FID_(Fid));
 
     /* Validate parameters. */
     {
@@ -2934,7 +2934,7 @@ int CheckRenameSemantics(ClientEntry *client, Vnode **s_dirvptr, Vnode **t_dirvp
 	if ((*s_dirvptr)->disk.type != vDirectory ||
 	    (*t_dirvptr)->disk.type != vDirectory) {
 	    SLog(0, "CheckRenameSemantics: not directory src: %s tgt: %s", 
-		    FID_(&SDid), FID_2(&TDid));
+		    FID_(&SDid), FID_(&TDid));
 	    return(ENOTDIR);
 	}
 
@@ -3357,7 +3357,7 @@ static int Check_RR_Semantics(ClientEntry *client, Vnode **dirvptr, Vnode **vptr
 	if ((*vptr)->disk.vparent != Did.Vnode || 
 	    (*vptr)->disk.uparent != Did.Unique) {
 		SLog(0, "%s: child %s not in parent %s", ProcName, 
-		     FID_(&Fid), FID_2(&Did));
+		     FID_(&Fid), FID_(&Did));
 		return(EINVAL);
 	}
 

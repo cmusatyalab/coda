@@ -41,15 +41,15 @@ extern "C" {
 #define LOG(level, stmt)	printf stmt
 #endif /* TESTING */
 
-/* List of tallyents sorted by <priority, vuid> */
+/* List of tallyents sorted by <priority, uid> */
 dlist *TallyList;
 
 
-tallyent::tallyent(int p, vuid_t v, int b, TallyStatus s) {
+tallyent::tallyent(int p, uid_t v, int b, TallyStatus s) {
 
     /* Initialize */
     priority = p;
-    vuid = v;
+    uid = v;
     available_blocks = 0;
     available_files = 0;
     unavailable_blocks = 0;
@@ -103,9 +103,9 @@ int tallyentPriorityFN(dlink *d1, dlink *d2) {
 
   if (t1->priority == t2->priority) {
 
-    if (t1->vuid == t2->vuid)
+    if (t1->uid == t2->uid)
       return(0);
-    else if (t1->vuid > t2->vuid)
+    else if (t1->uid > t2->uid)
       return(1);
     else 
       return(-1);
@@ -136,32 +136,32 @@ void InitTally() {
 }
 
 
-dlink *Find(int priority, vuid_t vuid) {
+dlink *Find(int priority, uid_t uid) {
   dlist_iterator next(*TallyList);
   dlink *d;
 
   while ((d = next())) {
     tallyent *te = strbase(tallyent, d, prioq_handle);
-    if ((te->priority == priority) && (te->vuid == vuid)) return(d);
+    if ((te->priority == priority) && (te->uid == uid)) return(d);
   }
 
   return(0);
 }
 
-void Tally(int priority, vuid_t vuid, int blocks, TallyStatus status) {
+void Tally(int priority, uid_t uid, int blocks, TallyStatus status) {
   tallyent *te;
   dlink *d;
 
-  LOG(100, ("Tally: priority=%d, vuid=%d, blocks=%d, status=%d\n", 
-	 priority, (int)vuid, blocks, (int)status));
+  LOG(100, ("Tally: priority=%d, uid=%d, blocks=%d, status=%d\n", 
+	 priority, uid, blocks, (int)status));
 
   CODA_ASSERT(TallyList != NULL);
-  d = Find(priority, vuid);
+  d = Find(priority, uid);
   if (d != NULL) {
     te = strbase(tallyent, d, prioq_handle);
     CODA_ASSERT(te != NULL);
     CODA_ASSERT(te->priority == priority);
-    CODA_ASSERT(te->vuid == vuid);
+    CODA_ASSERT(te->uid == uid);
     switch(status) {
       case TSavailable:
         te->available_blocks += blocks;
@@ -178,23 +178,23 @@ void Tally(int priority, vuid_t vuid, int blocks, TallyStatus status) {
         CODA_ASSERT(1 == 0);
         break;
     }
-    LOG(100, ("tallyent::tallyent: updated <priority=%d, vuid=%d>\n", priority, (int)vuid));
+    LOG(100, ("tallyent::tallyent: updated <priority=%d, uid=%d>\n", priority, uid));
   } else {
-    te = new tallyent(priority, vuid, blocks, status);
+    te = new tallyent(priority, uid, blocks, status);
     TallyList->insert(&(te->prioq_handle));
-    LOG(100, ("tallyent::tallyent: inserted <priority=%d, vuid=%d>\n", priority, (int)vuid));
+    LOG(100, ("tallyent::tallyent: inserted <priority=%d, uid=%d>\n", priority, uid));
   }
 }
 
-void TallyPrint(vuid_t vuid) {
-  LOG(0, ("Tally for vuid=%d:\n", (int)vuid));
+void TallyPrint(uid_t uid) {
+  LOG(0, ("Tally for uid=%d:\n", uid));
   dlist_iterator next(*TallyList);
   dlink *d;
   while ((d = next())) {
     tallyent *te = strbase(tallyent, d, prioq_handle);
     CODA_ASSERT(te != NULL);
 
-    if (te->vuid != vuid) continue;
+    if (te->uid != uid) continue;
 
     int total_blocks = te->available_blocks + te->unavailable_blocks;
     LOG(0, ("\tPriority=%d: Available=%d Unavailable=%d TotalSize=%d Unknown=%d\n",

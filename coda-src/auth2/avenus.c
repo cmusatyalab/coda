@@ -54,6 +54,7 @@ extern "C" {
 #include <config.h>
 #endif
 
+#include <sys/param.h>
 #include <stdio.h>
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -91,13 +92,14 @@ typedef struct {
     EncryptedSecretToken    stoken;
     int			    cTokenSize;
     ClearToken		    ctoken;
+    char		    realm[MAXHOSTNAMELEN];
 } venusbuff;
 
  /* Tells Venus about the clear and secret tokens obtained from the
     auth server.  If setPag is true, a setpag system call is made.
     Returns 0 on success, -1 on failure.  Who knows what setpag did? */
 
-int U_SetLocalTokens(IN int setPag, IN ClearToken *cToken, IN EncryptedSecretToken sToken)
+int U_SetLocalTokens(IN int setPag, IN ClearToken *cToken, IN EncryptedSecretToken sToken, IN char *realm)
 {
     int    rc;
     struct ViceIoctl buffer;
@@ -110,13 +112,16 @@ int U_SetLocalTokens(IN int setPag, IN ClearToken *cToken, IN EncryptedSecretTok
 #endif
 
     inbuff.sTokenSize = sizeof(EncryptedSecretToken);
-    memmove((void *)inbuff.stoken, (const void *)sToken, sizeof(EncryptedSecretToken));
+    memcpy(&inbuff.stoken, sToken, sizeof(EncryptedSecretToken));
     inbuff.cTokenSize = sizeof(ClearToken);
-    memmove((void *)&inbuff.ctoken, (const void *)cToken, sizeof(ClearToken));
+    memcpy(&inbuff.ctoken, cToken, sizeof(ClearToken));
+    strncpy(inbuff.realm, realm, MAXHOSTNAMELEN);
+
     buffer.in = (char *)&inbuff;
     buffer.out = 0;
     buffer.in_size = sizeof(inbuff);
     buffer.out_size = 0;
+
     GetPathName(); 
     rc = pioctl(pName, _VICEIOCTL(3), &buffer, 0);
     if(rc) {
@@ -126,7 +131,7 @@ int U_SetLocalTokens(IN int setPag, IN ClearToken *cToken, IN EncryptedSecretTok
 }
 
 
-int U_GetLocalTokens(OUT ClearToken *cToken, OUT EncryptedSecretToken sToken)
+int U_GetLocalTokens(OUT ClearToken *cToken, OUT EncryptedSecretToken sToken, IN const char *realm)
  /* Obtains the clear secret tokens from Venus.
     Fills in cToken and sToken with the clear and secret tokens.
     (Note: at the present time these are fixed-length data structures)
@@ -136,37 +141,38 @@ int U_GetLocalTokens(OUT ClearToken *cToken, OUT EncryptedSecretToken sToken)
     struct ViceIoctl buffer;
     venusbuff outbuff;
 
-    buffer.in = 0;
+    buffer.in = (char *)realm;
     buffer.out = (char *)&outbuff;
-    buffer.in_size = 0;
+    buffer.in_size = strlen(realm) + 1;
     buffer.out_size = sizeof(venusbuff);
     GetPathName();
     rc = pioctl(pName, _VICEIOCTL(8), &buffer, 0);
     if(rc) {
-#ifdef __CYGWIN32__
-	return (rc);
+#ifdef __CYGWIN__
+	return rc;
 #else
-	return(-1);
+	return -errno;
 #endif
     }
-    if(outbuff.sTokenSize != sizeof(EncryptedSecretToken))
-	    return(-1);
-    memmove((void *)sToken, (const void *)outbuff.stoken, sizeof(EncryptedSecretToken));
-    if(outbuff.cTokenSize != sizeof(ClearToken))
-	    return(-1);
-    memmove((void *)cToken, (const void *)&outbuff.ctoken, sizeof(ClearToken));
+
+    if(outbuff.sTokenSize != sizeof(EncryptedSecretToken)) return(-1);
+    memcpy(sToken, &outbuff.stoken, sizeof(EncryptedSecretToken));
+
+    if(outbuff.cTokenSize != sizeof(ClearToken)) return(-1);
+    memcpy(cToken, &outbuff.ctoken, sizeof(ClearToken));
+
     return(0);
 }
 
 
-int U_DeleteLocalTokens()
+int U_DeleteLocalTokens(char *realm)
  /* Deletes internal state for viceId.  Returns 0.    */
 {
     struct ViceIoctl buffer;
 
-    buffer.in = 0;
+    buffer.in = realm;
     buffer.out = 0;
-    buffer.in_size = 0;
+    buffer.in_size = strlen(realm) + 1;
     buffer.out_size = 0;
     GetPathName();
     pioctl(pName, _VICEIOCTL(9), &buffer, 0);

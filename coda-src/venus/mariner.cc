@@ -68,6 +68,7 @@ extern "C" {
 #include "venuscb.h"
 #include "vproc.h"
 #include "worker.h"
+#include "realmdb.h"
 
 const int MarinerStackSize = 65536;
 const int MaxMariners = 25;
@@ -257,7 +258,7 @@ void MarinerLog(const char *fmt, ...) {
 }
 
 /* This should be made an option to a more general logging facility! -JJK */
-void MarinerReport(ViceFid *fid, vuid_t vuid) {
+void MarinerReport(VenusFid *fid, uid_t uid) {
     int first = 1;
     char buf[MAXPATHLEN];
     int len;
@@ -265,10 +266,10 @@ void MarinerReport(ViceFid *fid, vuid_t vuid) {
     mariner_iterator next;
     mariner *m;
     while ((m = next()))
-	if (m->reporting && (m->vuid == ALL_UIDS || m->vuid == vuid)) {
+	if (m->reporting && (m->uid == ALL_UIDS || m->uid == uid)) {
 	    if (first) {
 		m->u.Init();
-		m->u.u_cred.cr_uid = (uid_t)vuid;
+		m->u.u_uid = uid;
 		len = MAXPATHLEN;
 		m->GetPath(fid, buf, &len);
 		if (m->u.u_error == 0) {
@@ -320,7 +321,7 @@ mariner::mariner(int afd) :
     dying = 0;
     logging = 0;
     reporting = 0;
-    vuid = ALL_UIDS;
+    uid = ALL_UIDS;
     fd = afd;
     memset(commbuf, 0, MWBUFSIZE);
     MarinerMask |= (1 << fd);
@@ -500,7 +501,7 @@ void mariner::main(void)
 	}
 	else if (STREQ(argv[0], "reporton")) {
 	    reporting = 1;
-	    vuid = (argc == 1 ? ALL_UIDS : atoi(argv[1]));
+	    uid = (argc == 1 ? ALL_UIDS : atoi(argv[1]));
 	}
 	else if (STREQ(argv[0], "reportoff")) {
 	    reporting = 0;
@@ -518,11 +519,22 @@ void mariner::main(void)
 	}
 	else if (STREQ(argv[0], "fidstat") && argc == 2) {
 	    /* Lookup the object and print it out. */
-	    ViceFid fid;
-	    if (sscanf(argv[1], "%lx.%lx.%lx", &fid.Volume, &fid.Vnode, &fid.Unique) == 3)
+	    VenusFid fid;
+	    char tmp;
+	    if (sscanf(argv[1], "%lx.%lx.%lx@%c",
+		       &fid.Volume, &fid.Vnode, &fid.Unique, &tmp) == 4)
+	    {
+		/* strrchr should succeed now because sscanf succeeded. */
+		char *realmname = strrchr(argv[1], '@')+1;
+		Realm *realm = REALMDB->GetRealm(realmname);
+		fid.Realm = realm->Id();
+
 		FidStat(&fid);
+
+		realm->PutRef();
+	    }
 	    else
-		Write("badly formed fid; try (%%x.%%x.%%x)\n");
+		Write("badly formed fid; try (%%x.%%x.%%x@%%s)\n");
 	}
 	else if (STREQ(argv[0], "rpc2stat")) {
 	    Rpc2Stat();
@@ -543,8 +555,7 @@ void mariner::main(void)
 void mariner::PathStat(char *path) {
     /* Map pathname to fid. */
     u.Init();
-    u.u_cred.cr_uid = (uid_t)V_UID;
-    u.u_cred.cr_groupid = (vgid_t)V_GID;
+    u.u_uid = V_UID;
     u.u_priority = 0;
     u.u_cdir = rootfid;
     u.u_nc = 0;
@@ -553,40 +564,36 @@ void mariner::PathStat(char *path) {
 	Write("namev(%s) failed (%d)\n", path, u.u_error);
 	return;
     }
-    ViceFid fid = tcp.c_fid;
+    VenusFid fid = tcp.c_fid;
 
-    Write("PathStat: %s --> %x.%x.%x\n",
-	   path, fid.Volume, fid.Vnode, fid.Unique);
+    Write("PathStat: %s --> %s\n", path, FID_(&fid));
 
     /* Print status of corresponding fsobj. */
     FidStat(&fid);
 }
 
 
-void mariner::FidStat(ViceFid *fid) {
+void mariner::FidStat(VenusFid *fid) {
     /* Set up context. */
     u.Init();
-    u.u_cred.cr_uid = (uid_t)V_UID;
-    u.u_cred.cr_groupid = (vgid_t)V_GID;
+    u.u_uid = V_UID;
     u.u_priority = FSDB->MaxPri();
 
     fsobj *f = 0;
     for (;;) {
-	Begin_VFS(fid->Volume, CODA_VGET);
+	Begin_VFS(fid, CODA_VGET);
 	if (u.u_error) {
-	    Write("Begin_VFS(%x) failed (%d)\n", fid->Volume, u.u_error);
+	    Write("Begin_VFS(%s) failed (%d)\n", FID_(fid), u.u_error);
 	    break;
 	}
 
-	u.u_error = FSDB->Get(&f, fid, CRTORUID(u.u_cred), RC_STATUS,
-			      NULL, NULL, 1);
+	u.u_error = FSDB->Get(&f, fid, u.u_uid, RC_STATUS, NULL, NULL, 1);
 	if (u.u_error) {
-	    Write("fsdb::Get(%x.%x.%x) failed (%d)\n",
-		  fid->Volume, fid->Vnode, fid->Unique, u.u_error);
+	    Write("fsdb::Get(%s) failed (%d)\n", FID_(fid), u.u_error);
 	    goto FreeLocks;
 	}
 
-	Write("FidStat(%x.%x.%x):\n", fid->Volume, fid->Vnode, fid->Unique);
+	Write("FidStat(%s):\n", FID_(fid));
 	f->print(fd);
 
 FreeLocks:

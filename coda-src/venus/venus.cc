@@ -59,6 +59,7 @@ extern "C" {
 #include "worker.h"
 #include "coda_assert.h"
 #include "codaconf.h"
+#include "realmdb.h"
 
 #include "nt_util.h"
 #ifdef __CYGWIN32__
@@ -73,7 +74,7 @@ extern "C" {
 /* *****  Exported variables  ***** */
 /* globals in the .bss are implicitly initialized to 0 according to ANSI-C standards */
 vproc *Main;
-ViceFid	rootfid;
+VenusFid	rootfid;
 long rootnodeid;
 int CleanShutDown;
 int SearchForNOreFind;  // Look for better detection method for iterrupted hoard walks. mre 1/18/93
@@ -82,12 +83,12 @@ int SearchForNOreFind;  // Look for better detection method for iterrupted hoard
 char *consoleFile;
 char *venusRoot;
 char *kernDevice;
-char *fsname;
+char *default_realm;
+char *realmtab;
 char *CacheDir;
 char *CachePrefix;
 int   CacheBlocks;
-char *RootVolName;
-vuid_t PrimaryUser = (vuid_t)UNSET_PRIMARYUSER;
+uid_t PrimaryUser = UNSET_PRIMARYUSER;
 char *SpoolDir;
 char *VenusPidFile;
 char *VenusControlFile;
@@ -179,6 +180,7 @@ int main(int argc, char **argv) {
     CommInit();     /* set up RPC2, {connection,server,mgroup} lists, probe daemon */
     UserInit();     /* fire up user daemon */
     VSGDBInit();    /* init VSGDB */
+    RealmDBInit();
     VolInit();      /* init VDB, daemon */
     FSOInit();      /* allocate FSDB if necessary, recover FSOs, start FSO daemon */
     HDB_Init();     /* allocate HDB if necessary, scan entries, start the HDB daemon */
@@ -191,16 +193,8 @@ int main(int argc, char **argv) {
     //    VFSMount();
 
     /* Get the Root Volume. */
-    eprint("Getting Root Volume information...");
-    while (!GetRootVolume()) {
-	ServerProbe();
+    eprint("Mounting root volume...");
 
-	struct timeval tv;
-	tv.tv_sec = 15;
-	tv.tv_usec = 0;
-	VprocSleep(&tv);
-    }
-    
     VFSMount();
 #ifdef DJGPP
     k_Purge();
@@ -257,8 +251,6 @@ static void ParseCmdline(int argc, char **argv) {
 		inet_aton(argv[i], &venus_relay_addr);
  	    } else if (STREQ(argv[i], "-k"))         /* default is /dev/cfs0 */
   		i++, kernDevice = argv[i];
-  	    else if (STREQ(argv[i], "-h"))    /* names of file servers */
-  		i++, fsname = argv[i];        /* should be italians! */
 	    else if (STREQ(argv[i], "-mles")) /* total number of CML entries */
 		i++, MLEs = atoi(argv[i]);
 	    else if (STREQ(argv[i], "-cf"))   /* number of cache files */
@@ -278,8 +270,6 @@ static void ParseCmdline(int argc, char **argv) {
 		lwp_debug =atoi(argv[i]);
 	    } else if (STREQ(argv[i], "-rdstrace"))     /* RDS heap tracing */
 		MallocTrace = 1;
-	    else if (STREQ(argv[i], "-r"))     /* name of root volume */
-		i++, RootVolName = argv[i];
 	    else if (STREQ(argv[i], "-f"))     /* location of cache files */
 		i++, CacheDir = argv[i];
 	    else if (STREQ(argv[i], "-m"))
@@ -428,8 +418,8 @@ static void DefaultCmdlineParms()
     CONF_INT(masquerade_port,	"masquerade_port", 0);
     CONF_STR(venusRoot,         "mountpoint",    DFLT_VR);
     CONF_INT(PrimaryUser,       "primaryuser",   UNSET_PRIMARYUSER);
-    CONF_STR(fsname,            "rootservers",   "");
-    CONF_STR(RootVolName,       "rootvolume",    NULL);
+    CONF_STR(default_realm,     "realm",	 "testserver.coda.cs.cmu.edu");
+    CONF_STR(realmtab,          "realmtab",	 "/etc/coda/realms");
     CONF_STR(VenusLogDevice,    "rvm_log",       "/usr/coda/LOG");
     CONF_STR(VenusDataDevice,   "rvm_data",      "/usr/coda/DATA");
     CONF_INT(T1Interval,	"serverprobe",   12 * 60);
@@ -577,3 +567,4 @@ static void SetRlimits() {
 	{ perror("setrlimit"); exit(-1); }
 #endif
 }
+

@@ -22,6 +22,7 @@ listed in the file CREDITS.
 #include <sys/types.h>
 #include <time.h>
 #include <coda.h>
+#include <vcrcommon.h>
 #include <dllist.h>
 
 /* bytes per page */
@@ -81,7 +82,7 @@ void DH_Free(PDirHandle dh, int in_rvm);
 void DH_FreeData(PDirHandle dh);
 PDirHandle DH_New(int in_rvm, PDirHeader vmdata, PDirHeader rvmdata);
 int DH_Length(PDirHandle dh);
-int DH_Convert(PDirHandle dh, char *file, VolumeId vol);
+int DH_Convert(PDirHandle dh, char *file, VolumeId vol, RealmId realm);
 int DH_Create(PDirHandle dh, char *entry, struct ViceFid *vfid);
 int DH_IsEmpty(PDirHandle dh);
 int DH_Lookup(PDirHandle dh, char *entry, struct ViceFid *vfid, int flags);
@@ -113,36 +114,31 @@ void DH_Init(PDirHandle dh);
 
 
 /* local fid and local volume related stuff */
-inline int FID_IsVolRoot(const struct ViceFid *fid);
-inline void FID_MakeRoot(struct ViceFid *fid);
+int FID_IsVolRoot(const struct ViceFid *fid);
+void FID_MakeRoot(struct ViceFid *fid);
 
 
 
 /* check if this is a local directory or file */
-inline int FID_IsDisco(const struct ViceFid *x);
-inline int FID_IsLocalDir(const struct ViceFid *fid);
-inline int FID_IsLocalFile(const struct ViceFid *fid);
-inline void FID_MakeDiscoFile(struct ViceFid *fid, VolumeId vid, 
+int FID_IsDisco(const struct ViceFid *x);
+int FID_IsLocalDir(const struct ViceFid *fid);
+int FID_IsLocalFile(const struct ViceFid *fid);
+void FID_MakeDiscoFile(struct ViceFid *fid, VolumeId vid, 
 			      Unique_t unique);
-inline void FID_MakeDiscoDir(struct ViceFid *fid, VolumeId vid,
+void FID_MakeDiscoDir(struct ViceFid *fid, VolumeId vid,
 			     Unique_t unique);
 
 /* directory vnode number for dangling links during conflicts - 
    two versions, one for the remote copy one for the local oopy*/
 
 /* make the root of a repair subtree residing on the server */
-inline int FID_IsFakeRoot(struct ViceFid *fid);
-inline void FID_MakeSubtreeRoot(struct ViceFid *fid, VolumeId vid, 
+int FID_IsFakeRoot(struct ViceFid *fid);
+void FID_MakeSubtreeRoot(struct ViceFid *fid, VolumeId vid, 
 				Unique_t unique);
 /* fill fids residing in the local tree */
-inline void FID_MakeLocalDir(struct ViceFid *fid, Unique_t unique);
-inline void FID_MakeLocalFile(struct ViceFid *fid, Unique_t unique);
-inline void FID_MakeLocalSubtreeRoot(struct ViceFid *fid, Unique_t unique);
-
-/* check if the volume is local */
-inline void FID_MakeVolFake(VolumeId *id);
-inline int  FID_VolIsLocal(const struct ViceFid *x);
-inline int FID_VolIsFake(const VolumeId id);
+void FID_MakeLocalDir(struct ViceFid *fid, Unique_t unique);
+void FID_MakeLocalFile(struct ViceFid *fid, Unique_t unique);
+void FID_MakeLocalSubtreeRoot(struct ViceFid *fid, Unique_t unique);
 
 /* compare parts of fids */
 int FID_EQ(const struct ViceFid *fa, const struct ViceFid *fb);
@@ -158,9 +154,7 @@ void FID_Int2DFid(struct DirFid *fid, const int vnode, const int unique);
 void FID_NFid2Int(const struct DirNFid *fid, VnodeId *vnode, Unique_t *unique);
 
 /* print fids */
-char *FID_(const struct ViceFid *);
-char *FID_2(const struct ViceFid *);
-
+char *FID_(const struct ViceFid *fid);
 
 /* extern definitions for dirbody.c */
 int DIR_init(int);
@@ -168,7 +162,7 @@ int DIR_Compare (PDirHeader, PDirHeader);
 int DIR_Length(PDirHeader);
 void DIR_Print(PDirHeader, FILE *f);
 #define DIR_intrans()  DIR_check_trans(__FUNCTION__, __FILE__)
-inline void DIR_check_trans(char *where, char *file);
+void DIR_check_trans(char *where, char *file);
 struct PageHeader *DIR_Page(struct DirHeader *dirh, int page);
 
 

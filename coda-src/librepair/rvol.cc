@@ -41,6 +41,7 @@ static int volstat(char *path, char *space, int size);
 int repair_newrep(char *pathname, struct repvol **repv, char *msg, int msgsize) {
     char msgbuf[DEF_BUF], reppath[MAXPATHLEN], prefix[MAXPATHLEN], suffix[MAXPATHLEN];
     VolumeId vid;
+    char realm[MAXHOSTNAMELEN];
 
     if (repv == NULL) {
 	strerr(msg, msgsize, "NULL repv");
@@ -50,7 +51,7 @@ int repair_newrep(char *pathname, struct repvol **repv, char *msg, int msgsize) 
     if (repair_isleftmost(pathname, reppath, MAXPATHLEN, msg, msgsize) < 0)
 	return(-1);
 
-    if (repair_getmnt(reppath, prefix, suffix, &vid, msgbuf, sizeof(msgbuf)) < 0) {
+    if (repair_getmnt(reppath, prefix, suffix, &vid, realm, msgbuf, sizeof(msgbuf)) < 0) {
 	strerr(msg, msgsize, "Could not get volume mount point: %s", msgbuf);
 	return(-1);
     }
@@ -63,9 +64,10 @@ int repair_newrep(char *pathname, struct repvol **repv, char *msg, int msgsize) 
 
     sprintf((*repv)->rodir, "%s", reppath); /* remember conflict path */
     (*repv)->vid = vid;                     /* remember the volume id */
+//    strcpy((*repv)->realm, realm);
     strcpy((*repv)->mnt, prefix);           /* remember its mount point */
-    sprintf((*repv)->vname, "%#lx", vid);   /* GETVOLSTAT doesn't work on rep vols, 
-					     * so just use hex version of volid */
+    sprintf((*repv)->vname, "%#lx@%s", vid, realm);
+    /* GETVOLSTAT doesn't work on rep vols, so just use hex version of volid */
     return(0);
 }
 
@@ -80,7 +82,7 @@ int repair_newrep(char *pathname, struct repvol **repv, char *msg, int msgsize) 
  */
 int repair_mountrw(struct repvol *repv, VolumeId *rwarray, int arraylen, char *msg, int msgsize) {
     char tmppath[MAXPATHLEN], buf[DEF_BUF], space[DEF_BUF], *ptr, *volname;
-    int rc, i, confl, cmlcnt, err = 0;
+    int i, confl, cmlcnt;
     struct volrep *rwv, *rwtail = NULL;
     struct dirent *de;
     VolumeStatus *vs;
@@ -201,7 +203,7 @@ int repair_mountrw(struct repvol *repv, VolumeId *rwarray, int arraylen, char *m
 		}
 	    }
 	    if (i == arraylen) {
-		strerr(msg, msgsize, "No such replica vid=0x%x", ((VolumeStatus *)space)->Vid);
+		strerr(msg, msgsize, "No such replica vid=0x%lx", ((VolumeStatus *)space)->Vid);
 		goto CLEANUP;
 	    }
 	}
@@ -258,7 +260,8 @@ static int srvstr(char *rwpath, char *retbuf, int size) {
     vioc.out = junk;
     vioc.out_size = sizeof(junk);
     memset(junk, 0, sizeof(junk));
-    if (rc = pioctl(rwpath, VIOCWHEREIS, &vioc, 1)) return(-1);
+    rc = pioctl(rwpath, VIOCWHEREIS, &vioc, 1);
+    if (rc) return(-1);
     hosts = (long *)junk;
     memset(retbuf, 0, size);
     if (hosts[0] == 0) return(-1); /* fail if no hosts returned */

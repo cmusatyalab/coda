@@ -72,10 +72,10 @@ extern "C" {
 
 /* Call with object write-locked. */
 /* MUST NOT be called from within a transaction. */
-int fsobj::Open(int writep, int execp, int truncp, venus_cnode *cp, vuid_t vuid) 
+int fsobj::Open(int writep, int execp, int truncp, venus_cnode *cp, uid_t uid) 
 {
     LOG(10, ("fsobj::Open: (%s, %d, %d, %d), uid = %d\n",
-	      comp, writep, execp, truncp, vuid));
+	      comp, writep, execp, truncp, uid));
 
     if (cp) {
 	    cp->c_device = 0;
@@ -113,7 +113,7 @@ int fsobj::Open(int writep, int execp, int truncp, venus_cnode *cp, vuid_t vuid)
     if (truncp && writep) {	/* truncp is acted upon only if writep */
 	struct coda_vattr va; va_init(&va);
 	va.va_size = 0;
-	if ((code = SetAttr(&va, vuid)) != 0)
+	if ((code = SetAttr(&va, uid)) != 0)
 	    goto Exit;
    }
 
@@ -124,8 +124,8 @@ int fsobj::Open(int writep, int execp, int truncp, venus_cnode *cp, vuid_t vuid)
             RVMLIB_REC_OBJECT(cf);
 	    data.dir->udcf = &cf;
             data.dir->udcf->Create();
+	    data.dir->udcfvalid = 0;
 	    Recov_EndTrans(MAXFP);
-	    FSO_ASSERT(this, data.dir->udcfvalid == 0);
 	}
 
 	/* Recompute udir contents if necessary. */
@@ -208,9 +208,9 @@ Exit:
 /* Sync file to the servers */
 /* Call with object write-locked. */
 /* We CANNOT return ERETRY from this routine! */
-int fsobj::Sync(vuid_t vuid) 
+int fsobj::Sync(uid_t uid) 
 {
-    LOG(10, ("fsobj::Sync: (%s), uid = %d\n", comp, vuid));
+    LOG(10, ("fsobj::Sync: (%s), uid = %d\n", comp, uid));
 
     int code = 0;
 
@@ -227,7 +227,7 @@ int fsobj::Sync(vuid_t vuid)
      * know the time of the mknod so we approximate it by the current time.
      * Note that we are fooled by the truncation and subsequent closing
      * (without further writing) of an existing file. */
-    long NewLength;
+    unsigned long NewLength;
     Date_t NewDate;
     {
         struct stat tstat;
@@ -254,7 +254,7 @@ int fsobj::Sync(vuid_t vuid)
     vproc *v = VprocSelf();
     if (v->type == VPT_Worker)
         ((worker *)v)->StoreFid = fid;
-    code = Store(NewLength, NewDate, vuid);
+    code = Store(NewLength, NewDate, uid);
     if (v->type == VPT_Worker)
         ((worker *)v)->StoreFid = NullFid;
     if (code) {
@@ -307,8 +307,8 @@ void fsobj::Release(int writep, int execp)
 
             /* Fudge size of files that were deleted while open. */
             if (DYING(this)) {
-                LOG(0, ("fsobj::Release: last writer && dying (%x.%x.%x)\n",
-                        fid.Volume, fid.Vnode, fid.Unique));
+                LOG(0, ("fsobj::Release: last writer && dying (%s)\n",
+                        FID_(&fid)));
                 RVMLIB_REC_OBJECT(stat.Length);
                 stat.Length = 0;	    /* Necessary for blocks maintenance! */
             }
@@ -321,14 +321,14 @@ void fsobj::Release(int writep, int execp)
     return;
 }
 
-int fsobj::Close(int writep, int execp, vuid_t vuid) 
+int fsobj::Close(int writep, int execp, uid_t uid) 
 {
     int code = 0;
 
     /* The object only is sent to the server(s) if we are the last writer
      * to close. */
     if (writep && Writers == 1)
-        code = Sync(vuid);
+        code = Sync(uid);
     Release(writep, execp);
     return code;
 }
@@ -336,10 +336,10 @@ int fsobj::Close(int writep, int execp, vuid_t vuid)
 
 /* local-repair modification */
 /* Need to incorporate System:Administrator knowledge here! -JJK */
-int fsobj::Access(long rights, int modes, vuid_t vuid) 
+int fsobj::Access(long rights, int modes, uid_t uid) 
 {
     LOG(10, ("fsobj::Access : (%s, %d, %d), uid = %d\n",
-	      comp, rights, modes, vuid));
+	      comp, rights, modes, uid));
 
     int code = 0;
 
@@ -397,7 +397,7 @@ int fsobj::Access(long rights, int modes, vuid_t vuid)
 	}
 
 	/* Record the parent fid and release the object. */
-	ViceFid parent_fid = pfid;
+	VenusFid parent_fid = pfid;
 	if (FID_EQ(&NullFid, &parent_fid))
 	    { print(logFile); CHOKE("fsobj::Access: pfid == Null"); }
 	UnLock(level);
@@ -408,9 +408,9 @@ int fsobj::Access(long rights, int modes, vuid_t vuid)
 
 	/* Get the parent object, make the check, and put the parent. */
 	fsobj *parent_fso = 0;
-	code = FSDB->Get(&parent_fso, &parent_fid, vuid, RC_STATUS);
+	code = FSDB->Get(&parent_fso, &parent_fid, uid, RC_STATUS);
 	if (code == 0)
-	    code = parent_fso->Access(rights, 0, vuid);
+	    code = parent_fso->Access(rights, 0, uid);
 	FSDB->Put(&parent_fso);
 
 	/* Reacquire the child at the appropriate level and unpin it. */
@@ -437,7 +437,7 @@ int fsobj::Access(long rights, int modes, vuid_t vuid)
 
     if (EMULATING(this) || (DIRTY(this) && LOGGING(this))) {
 	/* Don't insist on validity when disconnected. */
-	if ((code = CheckAcRights(vuid, rights, 0)) != ENOENT)
+	if ((code = CheckAcRights(uid, rights, 0)) != ENOENT)
 	    return(code);
 	return(EACCES);
     }
@@ -448,10 +448,10 @@ int fsobj::Access(long rights, int modes, vuid_t vuid)
     /* !!! important point, this is where we map unauthenticated users to
      * System:AnyUser !!! */
     userent *ue;
-    GetUser(&ue, vuid);
+    GetUser(&ue, vol->realm, uid);
     int tokensvalid = ue->TokensValid();
     PutUser(&ue);
-    vuid_t CheckVuid = (tokensvalid ? vuid : ALL_UIDS);
+    uid_t CheckVuid = (tokensvalid ? uid : ALL_UIDS);
 
     if ((code = CheckAcRights(CheckVuid, rights, 1)) != ENOENT)
 	return(code);
@@ -461,7 +461,7 @@ int fsobj::Access(long rights, int modes, vuid_t vuid)
     if (FETCHABLE(this)) {
 	LockLevel level = (writers > 0 ? WR : RD);
 	if (level == RD) PromoteLock();
-	code = GetAttr(vuid);
+	code = GetAttr(uid);
 	if (level == RD) DemoteLock();
 	if (code != 0) return(code);
     }
@@ -476,28 +476,27 @@ int fsobj::Access(long rights, int modes, vuid_t vuid)
 /* local-repair modification */
 /* inc_fid is an OUT parameter which allows caller to form "fake symlink" if it desires. */
 /* Explicit parameter for TRAVERSE_MTPTS? -JJK */
-int fsobj::Lookup(fsobj **target_fso_addr, ViceFid *inc_fid, char *name, vuid_t vuid, int flags)
+int fsobj::Lookup(fsobj **target_fso_addr, VenusFid *inc_fid, char *name, uid_t uid, int flags)
 {
-    LOG(10, ("fsobj::Lookup: (%s/%s), uid = %d\n",
-	      comp, name, vuid));
+    LOG(10, ("fsobj::Lookup: (%s/%s), uid = %d\n", comp, name, uid));
     int  len;
     char *subst = NULL, expand[CODA_MAXNAMLEN];
 
-    /* We're screwed if (name == "."). -JJK */
-    if (STREQ(name, "."))
-	{ print(logFile); CHOKE("fsobj::Lookup: name = ."); }
+    /* We're screwed if (name == "." or ".."). -JJK */
+    CODA_ASSERT(!STREQ(name, ".") && !STREQ(name, ".."));
 
     int code = 0;
     *target_fso_addr = 0;
     int	traverse_mtpts = (inc_fid != 0);	/* ? -JJK */
+    Realm *realm = NULL;
 
     fsobj *target_fso = 0;
-    ViceFid target_fid;
+    VenusFid target_fid;
 
     /* Map name --> fid. */
     {
 	/* Verify that we have lookup permission. */
-	code = Access((long)PRSFS_LOOKUP, 0, vuid);
+	code = Access((long)PRSFS_LOOKUP, 0, uid);
 	if (code) {
 	    if (code == EINCONS && inc_fid != 0) *inc_fid = fid;
 	    return(code);
@@ -523,45 +522,51 @@ int fsobj::Lookup(fsobj **target_fso_addr, ViceFid *inc_fid, char *name, vuid_t 
 	}
 
 	/* Lookup the target object. */
-	if (STREQ(name, "..")) {
-	    if (IsRoot()) {
-		/* Back up over a mount point. */
-		LOG(100, ("fsobj::Lookup: backing up over a mount point\n"));
-
-		/* Next fid is the parent of the mount point. */
-		if (!traverse_mtpts || u.mtpoint == 0 || FID_EQ(&u.mtpoint->pfid, &NullFid))
-		    return(ENOENT);
-
-		target_fid = u.mtpoint->pfid;
-	    }
-	    else {		
-		if (FID_EQ(&NullFid, &pfid)) {
-		    if (LRDB->RFM_IsGlobalRoot(&fid) || LRDB->RFM_IsLocalRoot(&fid)) {
-			return EACCES;
-		    } else {
-			print(logFile); 
-			CHOKE("fsobj::Lookup(\"..\"): pfid = NULL");
-		    }
-		}
-		target_fid = pfid;
-	    }
-	}
-	else {
+	{
 	    code = dir_Lookup(name, &target_fid, flags);
-	    if (code) return(code);
+
+	    if (code) {
+		Volid fakeroot;
+		fakeroot.Realm = LocalRealm->Id();
+		fakeroot.Volume = FakeRootVolumeId;
+
+		if (!FID_VolEQ(MakeVolid(&fid), &fakeroot))
+		    return code;
+
+		/* regular lookup failed, but if we are in the fake root
+		 * volume, so we can try to check for a new realm */
+
+		// don't even bother to follow lookups of dangling symlinks
+		if (name[0] == '#')
+		    return ENOENT;
+
+		// Try to get and mount the realm.
+		realm = REALMDB->GetRealm(name);
+		target_fid = fid;
+		target_fid.Vnode = 0xfffffffc;
+		target_fid.Unique = realm->Id();
+	    }
 	}
     }
 
     /* Map fid --> fso. */
     {
-	code = FSDB->Get(&target_fso, &target_fid, vuid, RC_STATUS, name);
+	int status = RC_STATUS;
+get_object:
+	code = FSDB->Get(&target_fso, &target_fid, uid, status, name);
+
+	if (realm) {
+	    realm->PutRef();
+	    realm = NULL;
+	}
+
 	if (code) {
 	    if (code == EINCONS && inc_fid != 0) *inc_fid = target_fid;
 
 	    /* If the getattr failed, the object might not exist on all
 	     * servers. This is `fixed' by resolving the parent, but we just
 	     * destroyed the object and RecResolve won't work. That is why we
-	     * submit this directory for resolution as well. -JH */
+	     * submit this directory for resolution. -JH */
 	    if (code == ESYNRESOLVE && vol->IsReplicated())
 		((repvol *)vol)->ResSubmit(&((VprocSelf())->u.u_resblk), &fid);
 
@@ -586,15 +591,12 @@ int fsobj::Lookup(fsobj **target_fso_addr, ViceFid *inc_fid, char *name, vuid_t 
 		/* We must have the data here. */
 		if (!HAVEALLDATA(target_fso)) {
 		    FSDB->Put(&target_fso);
-		    code = FSDB->Get(&target_fso, &target_fid, vuid, RC_DATA, name);
-		    if (code) {
-			if (code == EINCONS) *inc_fid = target_fid;
-			return(code);
-		    }
+		    status |= RC_DATA;
+		    goto get_object;
 		}
 
 		target_fso->PromoteLock();
-		code = target_fso->TryToCover(inc_fid, vuid);
+		code = target_fso->TryToCover(inc_fid, uid);
 		if (code == EINCONS || code == ERETRY) {
 		    FSDB->Put(&target_fso);
 		    return(code);
@@ -622,9 +624,10 @@ int fsobj::Lookup(fsobj **target_fso_addr, ViceFid *inc_fid, char *name, vuid_t 
 
 /* Call with the link contents fetched already. */
 /* Call with object read-locked. */
-int fsobj::Readlink(char *buf, int len, int *cc, vuid_t vuid) {
+int fsobj::Readlink(char *buf, unsigned long len, int *cc, uid_t uid)
+{
     LOG(10, ("fsobj::Readlink : (%s, %x, %d, %x), uid = %d\n",
-	      comp, buf, len, cc, vuid));
+	      comp, buf, len, cc, uid));
 
     if (!HAVEALLDATA(this))
 	{ print(logFile); CHOKE("fsobj::Readlink: called without data"); }

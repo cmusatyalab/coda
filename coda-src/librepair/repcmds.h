@@ -108,14 +108,13 @@ int makedff(char *extfile, char *intfile, char *msg, int msgsize);
 int  repair_cleanup(struct repvol *repv);
 int  repair_countRWReplicas (struct repvol *repv);
 void repair_finish(struct repvol *repv);
-int  repair_getfid(char *path, ViceFid *outfid, ViceVersionVector *outvv, char *msg, int msgsize);
 int  repair_mountrw(struct repvol *repv, VolumeId *rwarray, int arraylen, char *msg, int msgsize);
 int  repair_newrep(char *reppath, struct repvol **repv, char *msg, int msgsize);
 
 /* Path processing routines -- path.cc */
-int  repair_getfid(char *path, ViceFid *outfid, ViceVersionVector *outvv, char *msg, int msgsize);
-int  repair_getmnt(char *realpath, char *prefix, char *suffix, VolumeId *vid, char *msg, int msgsize);
-int  repair_inconflict(char *name, ViceFid *conflictfid);
+int  repair_getfid(char *path, ViceFid *outfid, char *outrealm, ViceVersionVector *outvv, char *msg, int msgsize);
+int  repair_getmnt(char *realpath, char *prefix, char *suffix, VolumeId *vid, char *realm, char *msg, int msgsize);
+int  repair_inconflict(char *name, ViceFid *conflictfid, char *conflictrealm);
 int  repair_isleftmost(char *path, char *realpath, int len, char *msg, int msgsize);
 
 #define freeif(pointer)				\

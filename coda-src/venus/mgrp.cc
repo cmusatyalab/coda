@@ -153,13 +153,13 @@ int RepOpCommCtxt::AnyReturned(int code)
 
 
 
-mgrpent::mgrpent(vsgent *VSG, vuid_t vuid, RPC2_Handle mid, int authflag)
+mgrpent::mgrpent(vsgent *VSG, uid_t Uid, RPC2_Handle mid, int authflag)
 {
     LOG(1,("mgrpent::mgrpent %p, uid = %d, mid = %d, auth = %d\n",
-           this, vuid, mid, authflag));
+           this, uid, mid, authflag));
 
     /* These members are immutable. */
-    uid = vuid;
+    uid = Uid;
     memset(&McastInfo, 0, sizeof(RPC2_Multicast));
     McastInfo.Mgroup = mid;
     McastInfo.ExpandHandle = 0;
@@ -251,7 +251,6 @@ void mgrpent::Kill(int tellservers)
 int mgrpent::CreateMember(int idx)
 {
     struct in_addr hosts[VSG_MEMBERS];
-    int i;
 
     vsg->GetHosts(hosts);
 
@@ -264,8 +263,7 @@ int mgrpent::CreateMember(int idx)
     int code = 0;
 
     /* Bind/Connect to the server. */
-    srvent *s = 0;
-    GetServer(&s, &hosts[idx]);
+    srvent *s = GetServer(&hosts[idx], vsg->realmid);
     RPC2_Handle ConnHandle = 0;
     int auth = authenticated;
     code = s->Connect(&ConnHandle, &auth, uid, 0);
@@ -398,8 +396,7 @@ void mgrpent::CheckResult()
 	switch(rocc.retcodes[i]) {
 	    default:
 		if (rocc.retcodes[i] < 0) {
-		    srvent *s = 0;
-		    GetServer(&s, &rocc.hosts[i]);
+		    srvent *s = GetServer(&rocc.hosts[i], vsg->realmid);
 		    s->ServerError((int *)&rocc.retcodes[i]);
 		    PutServer(&s);
 		}
@@ -650,7 +647,7 @@ int mgrpent::PickDH(vv_t **RVVs)
     /* find strongest host in the dominant set. */
     for (i = 0; i < VSG_MEMBERS; i++) {
 	if (DOMINANT(i)) {
-            GetServer(&s, &rocc.hosts[i]);
+            s = GetServer(&rocc.hosts[i], vsg->realmid);
             s->GetBandwidth(&bw);
             PutServer(&s);
 

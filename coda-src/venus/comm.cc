@@ -84,7 +84,6 @@ extern void SFTP_Activate (SFTP_Initializer *initPtr);
 #include "adv_monitor.h"
 #include "adv_daemon.h"
 
-
 int COPModes = 6;	/* ASYNCCOP2 | PIGGYCOP2 */
 int UseMulticast = 0;
 char myHostName[MAXHOSTNAMELEN];
@@ -110,9 +109,6 @@ struct FailFilterInfoStruct {
 	FailFilterSide side;
 	unsigned char used;
 } FailFilterInfo[MAXFILTERS];
-
-
-static int VSG_HashFN(void *);
 
 olist *srvent::srvtab;
 char srvent::srvtab_sync;
@@ -165,59 +161,6 @@ void CommInit() {
     /* Initialize Servers. */
     srvent::srvtab = new olist;
 
-    /* Create server entries for each bootstrap host. */
-    int hcount = 0;
-    for (char *hp = fsname; hp && *hp;) {
-	/* Parse the next entry in the hostname list. */
-	char ServerName[MAXHOSTNAMELEN];
-	char *cp = strchr(hp, ',');
-
-	if (cp) {
-	    /* This is not the last hostname. */
-	    int len = cp - hp;
-	    strncpy(ServerName, hp, len);
-	    ServerName[len] = 0;
-	    hp = cp + 1;
-	}
-	else {
-            /* This is the last hostname. */
-            strcpy(ServerName, hp);
-            hp = NULL;
-        }
-
-	/* Get the host address and make a server entry. */
-	struct in_addr  addr = { INADDR_ANY };
-	srvent         *s = NULL;
-
-#ifndef GETHOSTBYNAME_ACCEPTS_IPADDRS
-	if (!inet_aton(ServerName, &addr))
-#endif
-        {
-            struct hostent *h;
-            h = gethostbyname(ServerName);
-	    if (!h) {
-		LOG(0, ("Can't resolve server %s\n", ServerName));
-	    }
-            if (h && h->h_length == sizeof(struct in_addr)) {
-                memcpy(&addr, h->h_addr, sizeof(struct in_addr));
-	    } else {
-		LOG(0, ("Failed to resolve an IPv4 address for server %s\n",
-			ServerName));
-	    }
-        }
-
-        if (addr.s_addr != INADDR_ANY) {
-            GetServer(&s, &addr);
-            s->rootserver = 1;
-            /* Don't call PutServer, this keeps a refcount on the rootservers */
-            hcount++;
-        } else {
-	    LOG(0, ("Did not add IP address for server %s\n", ServerName));
-	}
-    }
-    if (!hcount)
-	CHOKE("CommInit: no bootstrap server");
-
     RPC2_Perror = 0;
 
     /* Port initialization. */
@@ -266,10 +209,12 @@ void CommInit() {
     if (RPC2_Init(RPC2_VERSION, 0, &port1, rpc2_retries, &tv) != RPC2_SUCCESS)
 	CHOKE("CommInit: RPC2_Init failed");
 
+#ifdef USE_FAIL_FILTERS
     /* Failure package initialization. */
     memset((void *)FailFilterInfo, 0, (int) (MAXFILTERS * sizeof(struct FailFilterInfoStruct)));
     Fail_Initialize("venus", 0);
     Fcon_Init();
+#endif
 
     /* Fire up the probe daemon. */
     PROD_Init();
@@ -303,53 +248,10 @@ void Conn_Signal() {
 }
 
 
-/* Get a connection to any server (as root). */
-int GetAdmConn(connent **cpp)
+int srvent::GetConn(connent **cpp, uid_t uid, int Force)
 {
-    LOG(100, ("GetAdmConn: \n"));
-
-    *cpp = 0;
-    int code = 0;
-
-    /* Get a connection to any custodian. */
-    for (;;) {
-	int tryagain = 0;
-	srv_iterator next;
-	srvent *s;
-	while ((s = next())) {
-            if (!s->IsRootServer()) continue;
-	    code = s->GetConn(cpp, V_UID);
-	    switch(code) {
-		case 0:
-		    return(0);
-
-		case ERETRY:
-		    tryagain = 1;
-		    continue;
-
-		case EINTR:
-		    return(EINTR);
-
-		case ETIMEDOUT:
-		    continue;
-
-		default:
-		    if (code < 0)
-			CHOKE("GetAdmConn: bogus code (%d)", code);
-		    return(code);
-	    }
-	}
-	if (tryagain) continue;
-
-	return(ETIMEDOUT);
-    }
-}
-
-
-int srvent::GetConn(connent **cpp, vuid_t vuid, int Force)
-{
-    LOG(100, ("srvent::GetConn: host = %s, vuid = %d, force = %d\n",
-              inet_ntoa(host), vuid, Force));
+    LOG(100, ("srvent::GetConn: host = %s, uid = %d, force = %d\n",
+              inet_ntoa(host), uid, Force));
 
     *cpp = 0;
     int code = 0;
@@ -359,7 +261,7 @@ int srvent::GetConn(connent **cpp, vuid_t vuid, int Force)
     /* Before creating a new connection, make sure the per-user limit is not exceeded. */
     for (;;) {
 	/* Check whether there is already a free connection. */
-	struct ConnKey Key; Key.host = host; Key.vuid = vuid;
+	struct ConnKey Key; Key.host = host; Key.uid = uid;
 	conn_iterator next(&Key);
 	int count = 0;
 	while ((c = next())) {
@@ -384,7 +286,7 @@ int srvent::GetConn(connent **cpp, vuid_t vuid, int Force)
     /* Try to connect to the server on behalf of the user. */
     RPC2_Handle ConnHandle = 0;
     int auth = 1;
-    code = Connect(&ConnHandle, &auth, vuid, Force);
+    code = Connect(&ConnHandle, &auth, uid, Force);
 
     switch(code) {
     case 0:      break;
@@ -395,7 +297,7 @@ int srvent::GetConn(connent **cpp, vuid_t vuid, int Force)
     }
 
     /* Create and install the new connent. */
-    c = new connent(&host, vuid, ConnHandle, auth);
+    c = new connent(this, uid, ConnHandle, auth);
     if (!c) return(ENOMEM);
 
     c->inuse = 1;
@@ -415,7 +317,7 @@ void PutConn(connent **cpp)
     }
 
     LOG(100, ("PutConn: host = %s, uid = %d, cid = %d, auth = %d\n",
-	     inet_ntoa(c->Host), c->uid, c->connid, c->authenticated));
+	      c->srv->Name(), c->uid, c->connid, c->authenticated));
 
     if (!c->inuse)
 	{ c->print(logFile); CHOKE("PutConn: conn not in use"); }
@@ -457,14 +359,15 @@ void ConnPrint(int fd) {
 }
 
 
-connent::connent(struct in_addr *host, vuid_t vuid, RPC2_Handle cid, int authflag)
+connent::connent(srvent *server, uid_t Uid, RPC2_Handle cid, int authflag)
 {
     LOG(1, ("connent::connent: host = %s, uid = %d, cid = %d, auth = %d\n",
-	     inet_ntoa(*host), vuid, cid, authflag));
+	     server->Name(), uid, cid, authflag));
 
     /* These members are immutable. */
-    Host = *host;
-    uid = vuid;
+    server->GetRef();
+    srv = server;
+    uid = Uid;
     connid = cid;
     authenticated = authflag;
 
@@ -483,11 +386,12 @@ connent::~connent() {
     deallocs++;
 #endif
 
-    LOG(1, ("connent::~connent: host = %#08x, uid = %d, cid = %d, auth = %d\n",
-	    Host, uid, connid, authenticated));
+    LOG(1, ("connent::~connent: host = %s, uid = %d, cid = %d, auth = %d\n",
+	    srv->Name(), uid, connid, authenticated));
 
     int code = (int) RPC2_Unbind(connid);
     connid = 0;
+    PutServer(&srv);
     LOG(1, ("connent::~connent: RPC2_Unbind -> %s\n", RPC2_ErrorMsg(code)));
 }
 
@@ -507,7 +411,7 @@ int connent::Suicide(int disconnect)
     /* Be nice and disconnect if requested. */
     if (disconnect) {
 	/* Make the RPC call. */
-	MarinerLog("fetch::DisconnectFS %s\n", (FindServer(&Host))->name);
+	MarinerLog("fetch::DisconnectFS %s\n", srv->Name());
 	UNI_START_MESSAGE(ViceDisconnectFS_OP);
 	int code = (int) ViceDisconnectFS(connid);
 	UNI_END_MESSAGE(ViceDisconnectFS_OP);
@@ -540,15 +444,11 @@ int connent::CheckResult(int code, VolumeId vid, int TranslateEINCOMP) {
     /* Translate RPC and Volume errors, and update server state. */
     switch(code) {
 	default:
-	    if (code < 0) {
-		srvent *s = 0;
-		GetServer(&s, &Host);
-		s->ServerError(&code);
-		PutServer(&s);
-	    }
-	    if (code == ETIMEDOUT || code == ERETRY) {
+	    if (code < 0)
+		srv->ServerError(&code);
+
+	    if (code == ETIMEDOUT || code == ERETRY)
 		dying = 1;
-	    }
 	    break;
 
 	case VBUSY:
@@ -591,7 +491,7 @@ int connent::CheckResult(int code, VolumeId vid, int TranslateEINCOMP) {
 
 void connent::print(int fd) {
     fdprint(fd, "%#08x : host = %s, uid = %d, cid = %d, auth = %d, inuse = %d, dying = %d\n",
-	     (long)this, inet_ntoa(Host), uid, connid, authenticated, inuse, dying);
+	     (long)this, srv->Name(), uid, connid, authenticated, inuse, dying);
 }
 
 
@@ -605,9 +505,9 @@ connent *conn_iterator::operator()() {
     while ((o = olist_iterator::operator()())) {
 	connent *c = strbase(connent, o, tblhandle);
 	if (key == (struct ConnKey *)0) return(c);
-	if ((key->host.s_addr == c->Host.s_addr ||
+	if ((key->host.s_addr == c->srv->host.s_addr ||
              key->host.s_addr == INADDR_ANY) &&
-	    (key->vuid == c->uid || key->vuid == ALL_UIDS))
+	    (key->uid == c->uid || key->uid == ALL_UIDS))
 	    return(c);
     }
 
@@ -679,23 +579,22 @@ srvent *FindServerByCBCid(RPC2_Handle connid)
 }
 
 
-void GetServer(srvent **spp, struct in_addr *host)
+srvent *GetServer(struct in_addr *host, RealmId realm)
 {
+    CODA_ASSERT(host && host->s_addr);
     LOG(100, ("GetServer: host = %s\n", inet_ntoa(*host)));
-    CODA_ASSERT(host != 0);
-    CODA_ASSERT(host->s_addr != 0);
 
     srvent *s = FindServer(host);
     if (s) {
         s->GetRef();
-	*spp = s;
-	return;
+	return s;
     }
 
-    s = new srvent(host, 0);
+    s = new srvent(host, realm);
+
     srvent::srvtab->insert(&s->tblhandle);
 
-    *spp = s;
+    return s;
 }
 
 
@@ -735,7 +634,6 @@ probeslave::probeslave(ProbeSlaveTask Task, void *Arg, void *Result, char *Sync)
     start_thread();
 }
 
-
 void probeslave::main(void)
 {
     switch(task) {
@@ -750,11 +648,13 @@ void probeslave::main(void)
 	case BindToServer:
 	    {
 	    /* *result gets pointer to connent on success, 0 on failure. */
-	    struct in_addr *host = (struct in_addr *)arg;
-            srvent *s;
-            GetServer(&s, host);
-	    s->GetConn((connent **)result, V_UID, 1);
-            PutServer(&s);
+	    struct in_addr *Host = (struct in_addr *)arg;
+            srvent *s = FindServer(Host);
+	    if (s) {
+		s->GetRef();
+		s->GetConn((connent **)result, V_UID, 1);
+		PutServer(&s);
+	    }
 	    }
 	    break;
 
@@ -769,43 +669,46 @@ void probeslave::main(void)
     delete VprocSelf();
 }
 
-
 void ProbeServers(int Up)
 {
     LOG(1, ("ProbeServers: %s\n", Up ? "Up" : "Down"));
 
-    /* Hosts and Connections are arrays of addresses and connents respectively representing the servers to */
-    /* be probed.  HowMany is the current size of these arrays, and ix is the number of entries actually used. */
+    /* Hosts and Connections are arrays of addresses and connents respectively
+     * representing the servers to be probed.  HowMany is the current size of
+     * these arrays, and ix is the number of entries actually used. */
     const int GrowSize = 32;
     int HowMany = GrowSize;
-    struct in_addr *Hosts = (struct in_addr *)malloc(HowMany * sizeof(struct in_addr));
+    struct in_addr *Hosts;
     int ix = 0;
 
+    Hosts = (struct in_addr *)malloc(HowMany * sizeof(struct in_addr));
     /* Fill in the Hosts array for each server that is to be probed. */
     {
 	srv_iterator next;
 	srvent *s;
 	while ((s = next())) {
-	    if (!s->probeme ||
-		(Up && s->ServerIsDown()) || (!Up && !s->ServerIsDown())) continue;
+	    if (!s->probeme)
+		continue;
+
+	    if ((Up && s->ServerIsDown()) || (!Up && !s->ServerIsDown()))
+		continue;
 
 	    /* Grow the Hosts array if necessary. */
 	    if (ix == HowMany) {
-		/* I am terrified of realloc */
 		HowMany += GrowSize;
-		struct in_addr *newHosts = (struct in_addr *)malloc(HowMany * sizeof(struct in_addr));
-		memcpy(newHosts, Hosts, ix * sizeof(struct in_addr));
-		free(Hosts);
-		Hosts = newHosts;
+		Hosts = (struct in_addr *)
+		    realloc(Hosts, HowMany * sizeof(struct in_addr));
+		memset(&Hosts[ix], 0, GrowSize * sizeof(struct in_addr));
 	    }
 
 	    /* Stuff the address in the Hosts array. */
-	    Hosts[ix] = s->host;
+	    memcpy(&Hosts[ix], &s->host, sizeof(struct in_addr));
 	    ix++;
 	}
     }
 
-    if (ix > 0) DoProbes(ix, Hosts);
+    if (ix)
+	DoProbes(ix, Hosts);
 
     /* the incorrect "free" in DoProbes() is moved here */
     free(Hosts);
@@ -819,9 +722,10 @@ void DoProbes(int HowMany, struct in_addr *Hosts)
 
     CODA_ASSERT(HowMany > 0);
 
-    /* Bind to the servers. */
     Connections = (connent **)malloc(HowMany * sizeof(connent *));
     memset(Connections, 0, HowMany * sizeof(connent *));
+
+    /* Bind to the servers. */
     MultiBind(HowMany, Hosts, Connections);
 
     /* Probe them. */
@@ -854,16 +758,21 @@ void MultiBind(int HowMany, struct in_addr *Hosts, connent **Connections)
 	fprintf(logFile, "]\n");
     }
 
-    srvent **s = (srvent **)malloc(HowMany * sizeof(srvent *));
-    if (!s) return;
-
     int ix, slaves = 0;
     char slave_sync = 0;
     for (ix = 0; ix < HowMany; ix++) {
 	/* Try to get a connection without forcing a bind. */
 	connent *c = 0;
-        GetServer(&s[ix], &Hosts[ix]);
-	if (s[ix]->GetConn(&c, V_UID) == 0) {
+	int code;
+	srvent *s = FindServer(&Hosts[ix]);
+
+	if (!s) continue;
+
+	s->GetRef();
+	code = s->GetConn(&c, V_UID);
+	PutServer(&s);
+
+	if (code == 0) {
 	    /* Stuff the connection in the array. */
 	    Connections[ix] = c;
 	    continue;
@@ -872,14 +781,10 @@ void MultiBind(int HowMany, struct in_addr *Hosts, connent **Connections)
 	/* Force a bind, but have a slave do it so we can bind in parallel. */
 	{
 	    slaves++;
-	    (void)new probeslave(BindToServer, (void *)(&Hosts[ix]), 
+	    (void)new probeslave(BindToServer, (void *)(&Hosts[ix]),
 				 (void *)(&Connections[ix]), &slave_sync);
 	}
     }
-
-    for (ix = 0; ix < HowMany; ix++)
-        PutServer(&s[ix]);
-    free(s);
 
     /* Reap any slaves we created. */
     while (slave_sync != slaves) {
@@ -1062,10 +967,9 @@ void ServerPrint(FILE *f)
 }
 
 
-srvent::srvent(struct in_addr *Host, int isrootserver)
+srvent::srvent(struct in_addr *Host, RealmId realm)
 {
-    LOG(1, ("srvent::srvent: host = %s, isroot = %d\n",
-            inet_ntoa(*Host), isrootserver));
+    LOG(1, ("srvent::srvent: host = %s\n", inet_ntoa(*Host)));
 
     struct hostent *h = gethostbyaddr((char *)Host, sizeof(struct in_addr), AF_INET);
     if (h) {
@@ -1079,11 +983,11 @@ srvent::srvent(struct in_addr *Host, int isrootserver)
     }
 
     host = *Host;
+    realmid = realm;
     connid = -1;
     Xbinding = 0;
     probeme = 0;
     forcestrong = 0;
-    rootserver = isrootserver;
     isweak = 0;
     bw     = INIT_BW;
     bwmax  = INIT_BW;
@@ -1093,7 +997,6 @@ srvent::srvent(struct in_addr *Host, int isrootserver)
     allocs++;
 #endif
 }
-
 
 srvent::~srvent()
 {
@@ -1112,10 +1015,10 @@ srvent::~srvent()
 }
 
 
-int srvent::Connect(RPC2_Handle *cidp, int *authp, vuid_t vuid, int Force)
+int srvent::Connect(RPC2_Handle *cidp, int *authp, uid_t uid, int Force)
 {
     LOG(100, ("srvent::Connect: host = %s, uid = %d, force = %d\n",
-	     name, vuid, Force));
+	     name, uid, Force));
 
     int code = 0;
 
@@ -1136,9 +1039,11 @@ int srvent::Connect(RPC2_Handle *cidp, int *authp, vuid_t vuid, int Force)
     Xbinding = 1;
     {
 	userent *u = 0;
-	GetUser(&u, vuid);
+	Realm *realm = REALMDB->GetRealm(realmid);
+	GetUser(&u, realm, uid);
 	code = u->Connect(cidp, authp, &host);
 	PutUser(&u);
+	realm->PutRef();
     }
     Xbinding = 0;
     Srvr_Signal();
@@ -1204,7 +1109,7 @@ void srvent::Reset()
 
     /* Kill all direct connections to this server. */
     {
-	struct ConnKey Key; Key.host = host; Key.vuid = ALL_UIDS;
+	struct ConnKey Key; Key.host = host; Key.uid = ALL_UIDS;
 	conn_iterator conn_next(&Key);
 	connent *c = 0;
 	connent *tc = 0;
@@ -1437,8 +1342,8 @@ void srvent::ForceStrong(int on) {
 
 void srvent::print(FILE *f)
 {
-    fprintf(f, "%#08x : %-16s : cid = %d, host = %s, binding = %d, bw = %d, isroot = %d\n",
-            (long)this, name, connid, inet_ntoa(host), Xbinding, bw, rootserver);
+    fprintf(f, "%p : %-16s : cid = %d, host = %s, binding = %d, bw = %ld\n",
+            this, name, (int)connid, inet_ntoa(host), Xbinding, bw);
     PrintRef(f);
 }
 
@@ -1456,6 +1361,22 @@ srvent *srv_iterator::operator()() {
 }
 
 
+#ifndef USE_FAIL_FILTERS
+int FailDisconnect(int nservers, struct in_addr *hostids)
+{
+    return -1;
+}
+
+int FailReconnect(int nservers, struct in_addr *hostids)
+{
+    return -1;
+}
+
+int FailSlow(unsigned *speedp)
+{
+    return -1;
+}
+#else
 /* *****  Fail library manipulations ***** */
 
 /* 
@@ -1582,4 +1503,5 @@ int FailSlow(unsigned *speedp) {
 
     return(-1);
 }
+#endif
 

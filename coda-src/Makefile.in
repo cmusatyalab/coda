@@ -32,11 +32,11 @@ include $(TOPDIR)/Makeconf
 
   I =  scripts
  II =  kerndep 
-III =  util dir 
+III =  util vicedep dir 
  IV =  al portmapper
-  V =  vicedep partition
+  V =  partition
 
-  VI = auth2 vv
+  VI =  auth2 vv
  VII =  vol librepair venus
 VIII =  repair sidekick
   IX =  resolution volutil vtools
@@ -52,3 +52,4 @@ SUBDIRS = $(II) $(III) $(IV) $(V) $(VI) $(VII)
 endif
 
 include $(TOPDIR)/configs/Makerules
+

@@ -16,13 +16,7 @@ listed in the file CREDITS.
 
 #*/
 
-
-
-
-
-
-
-typedef int (*PtrFuncInt)(int, resreplica *, resdir_entry **, int);
+typedef int (*PtrFuncInt)(int, resreplica *, resdir_entry **, int, char *realm);
 extern PtrFuncInt Predicates[];
 
 extern int nPredicates;
@@ -35,12 +29,4 @@ extern int nPredicates;
 #define	SUBSET_REMOVE	5
 #define MAYBESUBSET_REMOVE 6
 #define	UNKNOWN_CONFLICT    -1
-
-int ObjectOK (int , resreplica *, resdir_entry **, int nDirEntries);
-int SubsetRemove (int , resreplica *, resdir_entry **, int );
-int MaybeSubsetRemove (int , resreplica *, resdir_entry **, int );
-int SubsetCreate (int , resreplica *, resdir_entry **, int );
-int AllPresent (int , resreplica *, resdir_entry **, int );
-int Renamed (int , resreplica *, resdir_entry **, int );
-int WeaklyEqual (int , resreplica *, resdir_entry **, int );
 

@@ -53,7 +53,7 @@ void dictionary::Remove(assoc *Assoc) {
 assoc *dictionary::Find(assockey& Key) {
     assoc *a;
     dlist_iterator next(*this);
-    while (a = (assoc *)next())
+    while ((a = (assoc *)next()))
 	if (Key == a->Key())
 	    { a->Hold(); return(a); }
 

@@ -61,7 +61,6 @@ extern "C" {
 #include "venusvol.h"
 #include "vproc.h"
 
-
 /* Forward declarations. */
 class connent;
 class conn_iterator;
@@ -69,6 +68,7 @@ class srvent;
 class srv_iterator;
 class RepOpCommCtxt;
 class mgrpent;
+class probeslave;
 
 /* Bogus forward declarations to placate C++! */
 
@@ -135,7 +135,6 @@ class connent {
   friend class mgrpent;
   friend class fsobj;
   friend int GetTime(long *, long *);
-  friend int GetRootVolume(void);
   friend class vdb;
   friend class volent;
   friend void repvol::Resolve(void);
@@ -150,9 +149,9 @@ class connent {
     olink tblhandle;
 
     /* Static state; immutable after construction. */
-    struct in_addr Host;	/* Who to contact. */
-    vuid_t uid;			/* UID to validate with respect to. */
-    RPC2_Handle connid;		/* RPC connid. */
+    //struct in_addr Host;	/* Who to contact. */
+    srvent *srv;
+    uid_t uid;			/* UID to validate with respect to. */
     unsigned authenticated : 1;
 
     /* Dynamic state; varies with each call. */
@@ -160,7 +159,7 @@ class connent {
     unsigned dying : 1;
 
     /* Constructors, destructors, and private utility routines. */
-    connent(struct in_addr *, vuid_t, RPC2_Handle, int);
+    connent(srvent *, uid_t, RPC2_Handle, int);
     connent(connent&) { abort(); }	/* not supported! */
     int operator=(connent&) { abort(); return(0); }	/* not supported! */
     ~connent();
@@ -170,6 +169,7 @@ class connent {
     static int allocs;
     static int deallocs;
 #endif /* VENUSDEBUG */
+    RPC2_Handle connid;		/* RPC connid. */
 
     int	Suicide(int);		/* 1 --> dead, 0 --> dying */
     int CheckResult(int, VolumeId, int TranslateEINCOMP = 1);
@@ -182,7 +182,7 @@ class connent {
 
 struct ConnKey {
     struct in_addr host;
-    vuid_t vuid;
+    uid_t uid;
 };
 
 class conn_iterator : public olist_iterator {
@@ -199,7 +199,7 @@ class srvent : private RefCountedObject {
   friend void Srvr_Signal();
   friend srvent *FindServer(struct in_addr *);
   friend srvent *FindServerByCBCid(RPC2_Handle);
-  friend void GetServer(srvent **, struct in_addr *);
+  friend srvent *GetServer(struct in_addr *, RealmId realm);
   friend void PutServer(srvent **);
   friend void ProbeServers(int);
   friend void ServerProbe(long *, long *);
@@ -212,7 +212,6 @@ class srvent : private RefCountedObject {
   friend class srv_iterator;
   friend class connent;
   friend class mgrpent;
-  friend int GetAdmConn(connent **);
   friend long VENUS_CallBack(RPC2_Handle, ViceFid *);
   friend long VENUS_CallBackFetch(RPC2_Handle, ViceFid *, SE_Descriptor *);
   friend long VENUS_CallBackConnect(RPC2_Handle, RPC2_Integer, RPC2_Integer, RPC2_Integer, RPC2_Integer, RPC2_CountedBS *);
@@ -224,6 +223,11 @@ class srvent : private RefCountedObject {
   friend class vproc;
   friend class fsobj;
   friend void repvol::SetStagingServer(struct in_addr *srvr);
+
+  friend class Realm;
+  friend connent *conn_iterator::operator()();
+  friend class probeslave;
+  friend void MultiBind(int, struct in_addr *, connent **);
 
     /* The server list. */
     static olist *srvtab;
@@ -238,25 +242,25 @@ class srvent : private RefCountedObject {
     unsigned probeme : 1;	/* should ProbeD probe this server? */
     unsigned forcestrong : 1;	/* the user can force strong connectivity */
     unsigned isweak : 1;	/* is this server considered weak */
-    unsigned rootserver : 1;	/* the server is specified in vstab and can
-                                   be queried for volume-location information */
     unsigned long bw;		/* bandwidth estimate, Bytes/sec */
     unsigned long bwmax;	/* max bandwidth estimate, Bytes/sec */
     struct timeval lastobs;	/* time of most recent estimate */
   
     /* Constructors, destructors, and private utility routines. */
-    srvent(struct in_addr *host, int isrootserver);
+    srvent(struct in_addr *host, RealmId realm);
     srvent(srvent&) { abort(); }	/* not supported! */
     int operator=(srvent&) { abort(); return(0); }	/* not supported! */
     ~srvent();
-    int Connect(RPC2_Handle *, int *, vuid_t, int);
+    int Connect(RPC2_Handle *, int *, uid_t, int);
 
   public:
 #ifdef	VENUSDEBUG
     static int allocs;
     static int deallocs;
 #endif
-    int GetConn(connent **c, vuid_t vuid, int force =0);
+    RealmId realmid;
+
+    int GetConn(connent **c, uid_t uid, int force =0);
 
     int GetStatistics(ViceStatistics *);
 
@@ -272,7 +276,7 @@ class srvent : private RefCountedObject {
     int ServerIsWeak() { return(connid > 0 && bw <= WCThresh); }
     /* quasi-up != up */
 
-    int IsRootServer(void) { return rootserver; }
+    const char *Name(void) { return name; }
 
     void print() { print(stdout); }
     void print(FILE *fp);
@@ -326,29 +330,28 @@ extern int mrpc2_timeflag;
 #define	PIGGYCOP2	(COPModes & 4)
 
 /* comm.c */
-extern void CommInit();
-extern void Conn_Wait();
-extern void Conn_Signal();
-extern int GetAdmConn(connent **);
-extern void PutConn(connent **);
-extern void Srvr_Wait();
-extern void Srvr_Signal();
-extern srvent *FindServer(struct in_addr *);
-extern srvent *FindServerByCBCid(RPC2_Handle);
-extern void GetServer(srvent **, struct in_addr *);
-extern void PutServer(srvent **);
-extern void ProbeServers(int);
-extern void DoProbes(int, struct in_addr *);
-extern void MultiBind(int, struct in_addr *, connent **);
-extern void MultiProbe(int, RPC2_Handle *);
-extern long HandleProbe(int, RPC2_Handle Handles[], long, long, ...);
-extern void ServerProbe(long * =0, long * =0);
-extern void DownServers(char *, unsigned int *);
-extern void DownServers(int, struct in_addr *, char *, unsigned int *);
-extern void CheckServerBW(long);
-extern int FailDisconnect(int, struct in_addr *);
-extern int FailReconnect(int, struct in_addr *);
-extern int FailSlow(unsigned *);
+void CommInit();
+void Conn_Wait();
+void Conn_Signal();
+void PutConn(connent **);
+void Srvr_Wait();
+void Srvr_Signal();
+srvent *FindServer(struct in_addr *);
+srvent *FindServerByCBCid(RPC2_Handle);
+srvent *GetServer(struct in_addr *, RealmId);
+void PutServer(srvent **);
+void ProbeServers(int);
+void DoProbes(int, struct in_addr *);
+void MultiBind(int, struct in_addr *, connent **);
+void MultiProbe(int, RPC2_Handle *);
+long HandleProbe(int, RPC2_Handle Handles[], long, long, ...);
+void ServerProbe(long * =0, long * =0);
+void DownServers(char *, unsigned int *);
+void DownServers(int, struct in_addr *, char *, unsigned int *);
+void CheckServerBW(long);
+int FailDisconnect(int, struct in_addr *);
+int FailReconnect(int, struct in_addr *);
+int FailSlow(unsigned *);
 
 /* comm_daemon.c */
 extern void PROD_Init(void);

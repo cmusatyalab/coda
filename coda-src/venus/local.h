@@ -62,7 +62,7 @@ void LRDBDaemon(void);/*N*/ /* used to be member of class lrdb (Satya 3/31/95) *
 class lrdb {
     struct Lock rfm_lock;		/* for synchronization on root_fid_map list */
 private:
-    int do_FindRepairObject(ViceFid *, fsobj **, fsobj **);
+    int do_FindRepairObject(VenusFid *, fsobj **, fsobj **);
 
 public:
     void *operator new(size_t);							/*T*/
@@ -82,34 +82,34 @@ public:
     int local_fid_unique_gen;	/*P*//* local fid uniquifier generator */
 
     /* below are methods for creating local subtree representation */
-    ViceFid *LGM_LookupLocal(ViceFid *);					/*N*/
-    ViceFid *LGM_LookupGlobal(ViceFid *);					/*N*/
-    void LGM_Insert(ViceFid *, ViceFid *);					/*T*/
-    void LGM_Remove(ViceFid *, ViceFid *);					/*T*/
-    ViceFid *RFM_LookupGlobalRoot(ViceFid *);					/*N*/
-    ViceFid *RFM_LookupLocalRoot(ViceFid *);					/*N*/
-    ViceFid *RFM_LookupRootParent(ViceFid *);					/*N*/
-    ViceFid *RFM_LookupGlobalChild(ViceFid *);					/*N*/
-    ViceFid *RFM_LookupLocalChild(ViceFid *);					/*N*/
-    fsobj *RFM_LookupRootMtPt(ViceFid *);					/*N*/
-    ViceFid *RFM_ParentToFakeRoot(ViceFid *);					/*N*/
-    ViceFid *RFM_FakeRootToParent(ViceFid *);					/*N*/
-    void RFM_CoverRoot(ViceFid *);						/*N*/
-    int RFM_IsRootParent(ViceFid *);						/*N*/
-    int RFM_IsFakeRoot(ViceFid *);						/*N*/
-    int RFM_IsGlobalRoot(ViceFid *);						/*N*/
-    int RFM_IsGlobalChild(ViceFid *);						/*N*/
-    int RFM_IsLocalRoot(ViceFid *);						/*N*/
-    int RFM_IsLocalChild(ViceFid *);						/*N*/
-    void RFM_Remove(ViceFid *);							/*T*/
-    void RFM_Insert(ViceFid *, ViceFid *, ViceFid *, ViceFid *,
-		    ViceFid*, ViceFid *, char *);				/*T*/
-    ViceFid GenerateLocalFakeFid(ViceDataType);					/*T*/
-    ViceFid GenerateFakeLocalFid();						/*T*/
-    void TranslateFid(ViceFid *, ViceFid *);					/*T*/
+    VenusFid *LGM_LookupLocal(VenusFid *);					/*N*/
+    VenusFid *LGM_LookupGlobal(VenusFid *);					/*N*/
+    void LGM_Insert(VenusFid *, VenusFid *);					/*T*/
+    void LGM_Remove(VenusFid *, VenusFid *);					/*T*/
+    VenusFid *RFM_LookupGlobalRoot(VenusFid *);					/*N*/
+    VenusFid *RFM_LookupLocalRoot(VenusFid *);					/*N*/
+    VenusFid *RFM_LookupRootParent(VenusFid *);					/*N*/
+    VenusFid *RFM_LookupGlobalChild(VenusFid *);					/*N*/
+    VenusFid *RFM_LookupLocalChild(VenusFid *);					/*N*/
+    fsobj *RFM_LookupRootMtPt(VenusFid *);					/*N*/
+    VenusFid *RFM_ParentToFakeRoot(VenusFid *);					/*N*/
+    VenusFid *RFM_FakeRootToParent(VenusFid *);					/*N*/
+    void RFM_CoverRoot(VenusFid *);						/*N*/
+    int RFM_IsRootParent(VenusFid *);						/*N*/
+    int RFM_IsFakeRoot(VenusFid *);						/*N*/
+    int RFM_IsGlobalRoot(VenusFid *);						/*N*/
+    int RFM_IsGlobalChild(VenusFid *);						/*N*/
+    int RFM_IsLocalRoot(VenusFid *);						/*N*/
+    int RFM_IsLocalChild(VenusFid *);						/*N*/
+    void RFM_Remove(VenusFid *);							/*T*/
+    void RFM_Insert(VenusFid *, VenusFid *, VenusFid *, VenusFid *,
+		    VenusFid*, VenusFid *, char *);				/*T*/
+    VenusFid GenerateLocalFakeFid(ViceDataType);					/*T*/
+    VenusFid GenerateFakeLocalFid();						/*T*/
+    void TranslateFid(VenusFid *, VenusFid *);					/*T*/
     void PurgeRootFids();							/*N*/
     void DirList_Clear();							/*N*/
-    void DirList_Insert(VolumeId, VnodeId, Unique_t, char *);			/*N*/
+    void DirList_Insert(VenusFid *, char *);			/*N*/
     void DirList_Process(fsobj *);						/*U*/    
     int InRepairSession() { return repair_root_fid != NULL; }			/*N*/
 
@@ -120,7 +120,7 @@ public:
   END_HTML
 */
     /* below are data fields for repairing local subtrees */
-    ViceFid *repair_root_fid;	/*T*//* subtree root fid of current repair session */
+    VenusFid *repair_root_fid;	/*T*//* subtree root fid of current repair session */
     cmlent *current_search_cml;	/*T*//* current search cmlent of current repair session */
     char subtree_view;		/*T*//* current view of the subtree being repaired */
     char repair_session_mode;	/*T*//* indicate whether in scratch mode or direct mode */
@@ -131,24 +131,24 @@ public:
     dlist repair_cml_list;	/*T*//* list of cmlent-ptrs of involved mutations */
 
     /* below are methods for repair local subtrees */
-    void BeginRepairSession(ViceFid *, int, char *);				/*U*/
+    void BeginRepairSession(VenusFid *, int, char *);				/*U*/
     void EndRepairSession(int, char *);						/*U*/
     void ContinueRepairSession(char *);						/*U*/
     void DiscardLocalMutation(char *);					        /*N*/
     void DiscardAllLocalMutation(char *);				        /*N*/
     void PreserveLocalMutation(char *);						/*N*/
     void PreserveAllLocalMutation(char *);					/*N*/
-    void InitCMLSearch(ViceFid *);						/*U*/
-    void ListCML(ViceFid *, FILE *);						/*U*/
+    void InitCMLSearch(VenusFid *);						/*U*/
+    void ListCML(VenusFid *, FILE *);						/*U*/
     void AdvanceCMLSearch();							/*N*/
     void DeLocalization();							/*U*/
-    int FindRepairObject(ViceFid *, fsobj **, fsobj **);			/*N*/
-    fsobj *GetGlobalParentObj(ViceFid *);					/*N*/
+    int FindRepairObject(VenusFid *, fsobj **, fsobj **);			/*N*/
+    fsobj *GetGlobalParentObj(VenusFid *);					/*N*/
     char GetSubtreeView();							/*N*/
     void SetSubtreeView(char, char *);						/*U*/
-    void ReplaceRepairFid(ViceFid *, ViceFid *);				/*U*/
+    void ReplaceRepairFid(VenusFid *, VenusFid *);				/*U*/
     void CheckLocalSubtree();							/*N*/
-    void RemoveSubtree(ViceFid *);						/*U*/
+    void RemoveSubtree(VenusFid *);						/*U*/
     int GetRepairSessionTid() { return repair_session_tid; }		        /*N*/
     int Cancel(cmlent *);                                                       /*T*/
 
@@ -161,17 +161,17 @@ public:
 /* lgment - the entry of the local-global fid-map is defined in lgment */
 /* class for logal-global-map entry */
 class lgment : public rec_dlink {
-    ViceFid local;				/*P*/
-    ViceFid global;				/*P*/
+    VenusFid local;				/*P*/
+    VenusFid global;				/*P*/
 public:
     void *operator new(size_t);			/*T*/
-    lgment(ViceFid *, ViceFid *);		/*T*/
+    lgment(VenusFid *, VenusFid *);		/*T*/
     ~lgment();					/*T*/
     void operator delete(void *, size_t);	/*T*/
-    ViceFid *GetLocalFid();			/*N*/
-    ViceFid *GetGlobalFid();			/*N*/
-    void SetLocalFid(ViceFid *);		/*T*/
-    void SetGlobalFid(ViceFid *);		/*T*/
+    VenusFid *GetLocalFid();			/*N*/
+    VenusFid *GetGlobalFid();			/*N*/
+    void SetLocalFid(VenusFid *);		/*T*/
+    void SetGlobalFid(VenusFid *);		/*T*/
 
     void print(FILE *);				/*N*/
     void print(int);				/*N*/
@@ -196,30 +196,30 @@ public:
  */
 class rfment : public rec_dlink {
     char *name;					/*P*/
-    ViceFid fake_root_fid;			/*P*/
-    ViceFid global_root_fid;			/*P*/
-    ViceFid local_root_fid;			/*P*/
-    ViceFid root_parent_fid;			/*P*/
-    ViceFid local_child_fid;			/*P*/
-    ViceFid global_child_fid;			/*P*/
+    VenusFid fake_root_fid;			/*P*/
+    VenusFid global_root_fid;			/*P*/
+    VenusFid local_root_fid;			/*P*/
+    VenusFid root_parent_fid;			/*P*/
+    VenusFid local_child_fid;			/*P*/
+    VenusFid global_child_fid;			/*P*/
     unsigned short covered;			/*P*/
     char view;					/*P*/
     fsobj *root_mtpt;				/*P*/
 public:
     void *operator new(size_t);			/*T*/
-    rfment(ViceFid *, ViceFid *, ViceFid *, ViceFid *, 
-	   ViceFid *, ViceFid *, char *);	/*T*/
+    rfment(VenusFid *, VenusFid *, VenusFid *, VenusFid *, 
+	   VenusFid *, VenusFid *, char *);	/*T*/
     ~rfment();					/*T*/
     void operator delete(void *, size_t);	/*T*/
 
   /* For a description of the layout, please refer to Lu's thesis, page 82 */
 
-    ViceFid *GetFakeRootFid();			/*N*/
-    ViceFid *GetGlobalRootFid();		/*N*/
-    ViceFid *GetLocalRootFid();			/*N*/
-    ViceFid *GetRootParentFid();		/*N*/
-    ViceFid *GetGlobalChildFid();		/*N*/
-    ViceFid *GetLocalChildFid();		/*N*/
+    VenusFid *GetFakeRootFid();			/*N*/
+    VenusFid *GetGlobalRootFid();		/*N*/
+    VenusFid *GetLocalRootFid();			/*N*/
+    VenusFid *GetRootParentFid();		/*N*/
+    VenusFid *GetGlobalChildFid();		/*N*/
+    VenusFid *GetLocalChildFid();		/*N*/
     char *GetName();				/*N*/
     void CoverRoot();				/*T*/
     unsigned short RootCovered();		/*N*/
@@ -245,12 +245,12 @@ public:
    vdirent to prevent name clash with sys/dirent.h in BSD44
 */
 class vdirent : public dlink {
-    ViceFid fid;
+    VenusFid fid;
     char name[MAXNAMELEN];
 public:
-    vdirent(VolumeId, VnodeId, Unique_t, char *);
+    vdirent(VenusFid *, char *);
     ~vdirent();
-    ViceFid *GetFid();
+    VenusFid *GetFid();
     char *GetName();
     
     void print(FILE *);

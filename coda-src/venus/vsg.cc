@@ -20,6 +20,7 @@ listed in the file CREDITS.
 #include "mgrp.h"
 #include "user.h"
 #include "vsg.h"
+#include "realmdb.h"
 
 vsgdb *VSGDB;
 
@@ -28,7 +29,7 @@ unsigned int vsgent::allocs = 0;
 unsigned int vsgent::deallocs = 0;
 #endif
 
-vsgent::vsgent(struct in_addr Hosts[VSG_MEMBERS])
+vsgent::vsgent(struct in_addr Hosts[VSG_MEMBERS], RealmId id)
 {
     LOG(10, ("vsgent::vsgent %p %08x %08x %08x %08x %08x %08x %08x %08x\n",
              this, Hosts[0], Hosts[1], Hosts[2], Hosts[3],
@@ -36,6 +37,7 @@ vsgent::vsgent(struct in_addr Hosts[VSG_MEMBERS])
 
     int i;
 
+    realmid = id;
     nhosts = 0;
     for (i = 0; i < VSG_MEMBERS; i++) {
         hosts[i] = Hosts[i];
@@ -69,9 +71,9 @@ vsgent::~vsgent(void)
 
 const int MAXMGRPSPERUSER = 30;  /* Max simultaneous mgrps per user per vsg. */
 
-int vsgent::GetMgrp(mgrpent **m, vuid_t vuid, int auth)
+int vsgent::GetMgrp(mgrpent **m, uid_t uid, int auth)
 {
-    LOG(10, ("vsgent::GetMgrp %p %d %d\n", this, vuid, auth));
+    LOG(10, ("vsgent::GetMgrp %p %d %d\n", this, uid, auth));
 
     int code = 0;
 
@@ -83,7 +85,7 @@ try_again:
 
     list_for_each(p, mgrpents) {
         *m = list_entry(p, mgrpent, vsghandle);
-        if (vuid != ALL_UIDS && vuid != (*m)->uid)
+        if (uid != ALL_UIDS && uid != (*m)->uid)
             continue;
 
         count++;
@@ -109,9 +111,12 @@ try_again:
         struct in_addr mgrpaddr;
         mgrpaddr.s_addr = INADDR_ANY; /* Request to form an mgrp */
 
-        GetUser(&u, vuid);
+	Realm *realm = REALMDB->GetRealm(realmid);
+	CODA_ASSERT(realm);
+        GetUser(&u, realm, uid);
         code = u->Connect(&MgrpHandle, &auth, &mgrpaddr);
         PutUser(&u);
+	realm->PutRef();
 
         if (code < 0)
             CHOKE("vsgent::GetMgrp: bogus code (%d) from u->Connect", code);
@@ -120,7 +125,7 @@ try_again:
             return(code);
 
         /* Create and install the new mgrpent. */
-        *m = new mgrpent(this, vuid, MgrpHandle, auth);
+        *m = new mgrpent(this, uid, MgrpHandle, auth);
         /* if we are truly MT we need to grab a refcount here */
         list_add(&(*m)->vsghandle, &mgrpents);
     }
@@ -159,15 +164,15 @@ void vsgent::KillMgrps(void)
     }
 }
 
-void vsgent::KillUserMgrps(vuid_t vuid)
+void vsgent::KillUserMgrps(uid_t uid)
 {
-    LOG(10, ("vsgent::KillUserMgrps %p %d\n", this, vuid));
+    LOG(10, ("vsgent::KillUserMgrps %p %d\n", this, uid));
 
     struct dllist_head *p;
 again:
     list_for_each(p, mgrpents) {
         mgrpent *m = list_entry(p, mgrpent, vsghandle);
-        if (m->uid != vuid) continue;
+        if (m->uid != uid) continue;
 
         m->Kill(1);
         /* p->next has been invalidated by Kill, restart the lookup */
@@ -214,7 +219,7 @@ vsgdb::~vsgdb(void)
     CODA_ASSERT(list_empty(&vsgents));
 }
 
-vsgent *vsgdb::GetVSG(struct in_addr hosts[VSG_MEMBERS])
+vsgent *vsgdb::GetVSG(struct in_addr hosts[VSG_MEMBERS], RealmId realmid)
 {
     LOG(10, ("vsgdb::GetVSG %08x %08x %08x %08x %08x %08x %08x %08x\n",
              hosts[0], hosts[1], hosts[2], hosts[3],
@@ -233,18 +238,18 @@ vsgent *vsgdb::GetVSG(struct in_addr hosts[VSG_MEMBERS])
     }
 
     /* no matches found, create a new VSG */
-    v = new vsgent(hosts);
+    v = new vsgent(hosts, realmid);
     if (v) list_add(&v->vsgs, &vsgents);
 
     return v;
 }
 
-void vsgdb::KillUserMgrps(vuid_t vuid)
+void vsgdb::KillUserMgrps(uid_t uid)
 {
     struct dllist_head *p;
     list_for_each(p, vsgents) {
         vsgent *v = list_entry(p, vsgent, vsgs);
-        v->KillUserMgrps(vuid);
+        v->KillUserMgrps(uid);
     }
 }
 

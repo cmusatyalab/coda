@@ -55,6 +55,7 @@ extern "C" {
 
 /* from venus */
 #include "venusstats.h"
+#include "venusfid.h"
 
 #ifndef O_BINARY
 #define O_BINARY 0
@@ -100,11 +101,10 @@ const int FREE_FACTOR = 16;
 
 /*  *****  Manifest constants for Venus.  *****  */
 const int NFDS = 32;	/* IOMGR-enforced limit!  Kernel may allocate fds numbered higher than this! */
-/* definition of vuid_t that used to be here has been moved to vicedep/vcrcommon.rpc2  (Satya 3/23/92) */
 #ifdef DJGPP
-const vuid_t V_UID = (vuid_t)500;    /* UID that the venus process runs under. */
+const uid_t V_UID = (uid_t)500;    /* UID that the venus process runs under. */
 #else
-const vuid_t V_UID = (vuid_t)0;	    /* UID that the venus process runs under. */
+const uid_t V_UID = (uid_t)0;	    /* UID that the venus process runs under. */
 #endif
 /* Group id fields are 32 bits in BSD44 (not 16 bits); the use of a small 
    negative number (-2) means its unsigned long representation is huge
@@ -113,10 +113,10 @@ const vuid_t V_UID = (vuid_t)0;	    /* UID that the venus process runs under. */
 /* In linux kernel, gid_t is unsigned short, but in venus vgid_t is
    unsigned int which is 32-bit, so we also need to hardcode the number
    here.  (Clement 6/10/97) */
-const vuid_t V_GID = (vuid_t)65534;    /* GID that the venus process runs under. */
-const vuid_t ALL_UIDS = (vuid_t)-1;
-const vuid_t HOARD_UID = (vuid_t)-2; /* uid of hoard daemon */
-const vuid_t UNSET_UID = (vuid_t)-666; /* beastly but recognizable */
+const gid_t V_GID = 65534;    /* GID that the venus process runs under. */
+const uid_t ALL_UIDS = (uid_t)-1;
+const uid_t HOARD_UID = (uid_t)-2; /* uid of hoard daemon */
+const uid_t UNSET_UID = (uid_t)-666; /* beastly but recognizable */
 const unsigned short V_MODE = 0600;
 const int OWNERBITS = 0700;
 const int OWNERREAD = 0400;
@@ -259,7 +259,6 @@ struct CacheStats {
     CacheEventRecord events[10];	    /* indexed by CacheEvent type! */
 };
 
-
 /*  *****  Misc stuff  *****  */
 #define TRANSLATE_TO_LOWER(s)\
 {\
@@ -275,45 +274,48 @@ struct CacheStats {
 #define CHOKE(me...) choke(__FILE__, __LINE__, ##me)
 
 /*  *****  Declarations for source files without their own headers.  ***** */
-extern void dprint(char * ...);
-extern void choke(char *file, int line, char* ...);
-extern void rds_printer(char * ...);
-extern void VenusPrint(int, char **);
-extern void VenusPrint(FILE *, int, char **);
-extern void VenusPrint(int, int, char **);
-extern char *VenusOpStr(int);
-extern char *IoctlOpStr(int);
-extern char *VenusRetStr(int);
-extern void VVPrint(FILE *, vv_t **);
-extern int binaryfloor(int);
-extern void LogInit();
-extern void DebugOn();
-extern void DebugOff();
-extern void Terminate();
-extern void DumpState();
-extern void RusagePrint(int);
-extern void VFSPrint(int);
-extern void RPCPrint(int);
-extern void GetCSS(RPCPktStatistics *);
-extern void SubCSSs(RPCPktStatistics *, RPCPktStatistics *);
-extern void MallocPrint(int);
-extern void StatsInit();
-extern void SwapLog();
-extern void ToggleMallocTrace();
-extern char *lvlstr(LockLevel);
-extern int GetTime(long *, long *);
-extern long Vtime();
-extern int FAV_Compare(ViceFidAndVV *, ViceFidAndVV *);
-extern void DaemonInit();
-extern void RegisterDaemon(unsigned long, char *);
-extern void DispatchDaemons();
+void dprint(char * ...);
+void choke(char *file, int line, char* ...);
+void rds_printer(char * ...);
+void VenusPrint(int, char **);
+void VenusPrint(FILE *, int, char **);
+void VenusPrint(int, int, char **);
+char *VenusOpStr(int);
+char *IoctlOpStr(int);
+char *VenusRetStr(int);
+void VVPrint(FILE *, vv_t **);
+int binaryfloor(int);
+void LogInit();
+void DebugOn();
+void DebugOff();
+void Terminate();
+void DumpState();
+void RusagePrint(int);
+void VFSPrint(int);
+void RPCPrint(int);
+void GetCSS(RPCPktStatistics *);
+void SubCSSs(RPCPktStatistics *, RPCPktStatistics *);
+void MallocPrint(int);
+void StatsInit();
+void SwapLog();
+void ToggleMallocTrace();
+char *lvlstr(LockLevel);
+int GetTime(long *, long *);
+time_t Vtime();
+int FAV_Compare(ViceFidAndVV *, ViceFidAndVV *);
+void DaemonInit();
+void FireAndForget(char *name, void (*f)(void), int interval,
+		   int stacksize=32*1024);
+void RegisterDaemon(unsigned long, char *);
+void DispatchDaemons();
+
 extern FILE *logFile;
 extern int LogLevel;
 extern long int RPC2_DebugLevel;
 extern long int SFTP_DebugLevel;
 extern long int RPC2_Trace;
 extern int MallocTrace;
-extern const ViceFid NullFid;
+extern const VenusFid NullFid;
 extern const vv_t NullVV;
 extern VFSStatistics VFSStats;
 extern RPCOpStatistics RPCOpStats;
@@ -322,18 +324,18 @@ extern struct timeval DaemonExpiry;
 /* venus.c */
 class vproc;
 extern vproc *Main;
-extern ViceFid rootfid;
+extern VenusFid rootfid;
 extern long rootnodeid;
 extern int CleanShutDown;
 extern char *venusRoot;
 extern char *kernDevice;
-extern char *fsname;
+extern char *default_realm;
+extern char *realmtab;
 extern char *CacheDir;
 extern char *CachePrefix;
 extern int CacheBlocks;
 extern char *SpoolDir;
-extern char *RootVolName;
-extern vuid_t PrimaryUser;
+extern uid_t PrimaryUser;
 extern char *VenusPidFile;
 extern char *VenusControlFile;
 extern char *VenusLogFile;
@@ -346,6 +348,6 @@ extern int   PiggyValidations;
 extern int   T1Interval;
 
 /* spool.cc */
-extern void MakeUserSpoolDir(char *, vuid_t);
+extern void MakeUserSpoolDir(char *, uid_t);
 
 #endif /* _VENUS_PRIVATE_H_ */

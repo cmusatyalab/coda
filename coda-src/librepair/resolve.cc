@@ -16,12 +16,6 @@ listed in the file CREDITS.
 
 #*/
 
-
-
-
-
-
-
 /* 
  * resolve.c 
  * Created 09/18/89  - Puneet Kumar
@@ -97,12 +91,13 @@ static int getfid (char *path, ViceFid *Fid, ViceVersionVector *VV, struct ViceI
 		perror("res_getfid: readlink");
 		return errno;	
 	}
-	sscanf(symval, "@%x.%x.%x", &(Fid->Volume), &(Fid->Vnode), &(Fid->Unique));
+	sscanf(symval, "@%lx.%lx.%lx", &(Fid->Volume), &(Fid->Vnode), &(Fid->Unique));
+
 	/* return garbage in VV */
 	return 0;
     }
-    memcpy((void *) Fid, (void *)buf, sizeof(ViceFid));
-    memcpy((void *)VV, (char *)buf+sizeof(ViceFid), sizeof(ViceVersionVector));
+    memcpy(Fid, buf, sizeof(ViceFid));
+    memcpy(VV, buf+sizeof(ViceFid), sizeof(ViceVersionVector));
     return 0;
 }
 
@@ -148,14 +143,14 @@ struct Acl *ParseAcl (char *buf)
     /* get the + entries */
     alist = ta->pluslist;
     for (i = 0; i < ta->nplus; i++){
-	sscanf(buf, "%255s %d", alist[i].name, &(alist[i].rights));
+	sscanf(buf, "%255s %ld", alist[i].name, &(alist[i].rights));
 	buf = SkipLine(buf);
     }
 
     /* get the - entries */
     alist = ta->minuslist;
     for (i = 0; i < ta->nminus; i++){
-	sscanf(buf, "%100s %d", alist[i].name, &(alist[i].rights));
+	sscanf(buf, "%100s %ld", alist[i].name, &(alist[i].rights));
 	buf = SkipLine(buf);
     }    
     return ta;
@@ -211,7 +206,7 @@ int getunixdirreps (int nreplicas, char *names[], resreplica **reps)
 
   for(j = 0; j < nreplicas; j++){
       int count;
-      ViceFid   Fid;
+      ViceFid Fid;
       ViceVersionVector VV;
 
       dirs[j].entry1 = totaldirentries;
@@ -259,7 +254,7 @@ int getunixdirreps (int nreplicas, char *names[], resreplica **reps)
       closedir(dirp);
 
       /* fill in the resreplica */
-      if (res_getfid(names[j], &Fid,  &VV)) return -1;
+      if (res_getfid(names[j], &Fid, &VV)) return -1;
       dirs[j].nentries = count;
       dirs[j].replicaid = Fid.Volume;
       dirs[j].vnode = Fid.Vnode;
@@ -311,12 +306,12 @@ void MarkEntriesByGroup (resdir_entry **mark_arr, int nentries)
 	mark_arr[i]->lookedAt = 1;
 }
 
-int GetConflictType (int nreplicas, resreplica *dirs, resdir_entry **deGroup, int nentries, int *conflictType, char *volmtpt)
+int GetConflictType (int nreplicas, resreplica *dirs, resdir_entry **deGroup, int nentries, int *conflictType, char *volmtpt, char *realm)
 {
     int i;
     *conflictType = STRONGLY_EQUAL;
     for (i = 0; i < nPredicates; i++) {
-	if ((*(Predicates[i]))(nreplicas, dirs, deGroup, nentries))
+	if ((*(Predicates[i]))(nreplicas, dirs, deGroup, nentries, realm))
 	    break;
     }
     if (i == nPredicates){
@@ -363,7 +358,7 @@ int InRepairList (struct listhdr *opList, unsigned opcode, long vnode, long uniq
 {
     struct repair *repList = opList->repairList;
 
-    for(int i = 0; i < opList->repairCount; i ++)
+    for(unsigned int i = 0; i < opList->repairCount; i ++)
 	if ((repList[i].opcode == opcode) && (repList[i].parms[1] == vnode) && (repList[i].parms[2] == unique))
 	    return 1;
     return 0;
@@ -375,13 +370,13 @@ int IsCreatedEarlier (struct listhdr **opList, int index, long vnode, long uniqu
     struct repair *repList = (*opList)[index].repairList;
     unsigned int count = (*opList)[index].repairCount;
 
-    for (int i = 0; i < count; i++) 
+    for (unsigned int i = 0; i < count; i++) 
       if ((repList[i].opcode == REPAIR_CREATED) && (repList[i].parms[1] == vnode) && (repList[i].parms[2] == unique))
 	return 1;
     return 0;
 }
 
-void ResolveConflict (int nreplicas, resreplica *dirs, resdir_entry **deGroup, int nentries, int conflictType, listhdr **opList, char *volmtpt, VolumeId RepVolume)
+void ResolveConflict (int nreplicas, resreplica *dirs, resdir_entry **deGroup, int nentries, int conflictType, listhdr **opList, char *volmtpt, VolumeId RepVolume, char *realm)
 {
     /* call the appropriate repair function */
     switch (conflictType){
@@ -390,7 +385,7 @@ void ResolveConflict (int nreplicas, resreplica *dirs, resdir_entry **deGroup, i
       case ALL_PRESENT:
 	break;
       case SUBSET_RENAME:
-	RepairRename(nreplicas, dirs, deGroup, nentries, opList, volmtpt, RepVolume);
+	RepairRename(nreplicas, dirs, deGroup, nentries, opList, volmtpt, RepVolume, realm);
 	break;
       case SUBSET_CREATE:
 	RepairSubsetCreate(nreplicas, dirs, deGroup, nentries, opList, RepVolume);
@@ -459,7 +454,7 @@ int NameNameResolve(int first, int last, int nreplicas, resreplica *dirs, struct
     
     for (i = first; i < last; i++) {
 	resdir_entry *rde = sortedArrByName[i];
-	printf("%s%s\n\tFid: (0x%x.%x) VV:(%d %d %d %d %d %d %d %d)(0x%x.%x)\n",
+	printf("%s%s\n\tFid: (%lx.%lx) VV:(%ld %ld %ld %ld %ld %ld %ld %ld)(%x.%x)\n",
 	       dirs[rde->replicaid].path, sortedArrByName[first]->name,
 	       rde->vno, rde->uniqfier, rde->VV.Versions.Site0,
 	       rde->VV.Versions.Site1, rde->VV.Versions.Site2, rde->VV.Versions.Site3,
@@ -521,7 +516,7 @@ int NameNameResolve(int first, int last, int nreplicas, resreplica *dirs, struct
 		else if (goodvnode != sortedArrByName[i+first]->vno ||
 			 goodunique != sortedArrByName[i+first]->uniqfier) {
 		    printf("Please try to rename or remove one of the two objects:\n");
-		    printf("(0x%x.%x) and (0x%x.%x) with name %s\n",
+		    printf("(%lx.%lx) and (%lx.%lx) with name %s\n",
 			   goodvnode, goodunique, sortedArrByName[i+first]->vno, 
 			   sortedArrByName[i+first]->uniqfier,
 			   sortedArrByName[first]->name);
@@ -535,7 +530,7 @@ int NameNameResolve(int first, int last, int nreplicas, resreplica *dirs, struct
 	for (i = 0; i < nobjects; i++) {
 	    struct repair rep;
 	    if (answers[i]) {
-		if (ISDIR(sortedArrByName[first+i]->vno))
+		if (ISDIRVNODE(sortedArrByName[first+i]->vno))
 		    rep.opcode = REPAIR_REMOVED;
 		else
 		    rep.opcode = REPAIR_REMOVEFSL;
@@ -551,8 +546,7 @@ int NameNameResolve(int first, int last, int nreplicas, resreplica *dirs, struct
 
 /* dirresolve : returns NNCONFLICTS(-1) if this resolve is definitely not the last needed compare/repair 
    return 0 if the compare implied that the resulting repair will make the directories equal */
-int dirresolve (int nreplicas, resreplica *dirs, int (*cbfn)(char *), struct listhdr **opList, 
-		char *volmtpt, VolumeId RepVolume, struct repinfo *inf)
+int dirresolve (int nreplicas, resreplica *dirs, int (*cbfn)(char *), struct listhdr **opList, char *volmtpt, VolumeId RepVolume, struct repinfo *inf, char *realm)
 {
     int i;
 
@@ -605,14 +599,14 @@ int dirresolve (int nreplicas, resreplica *dirs, int (*cbfn)(char *), struct lis
 	    if (resdirCompareByFidName(&(sortedArrByFidName[i]), &sortedArrByFidName[i+j]))
 	 	break;
 	if (sortedArrByFidName[i]->lookedAt) continue;
-	rc = GetConflictType(nreplicas, dirs, &(sortedArrByFidName[i]), j, &conflict, volmtpt);
+	rc = GetConflictType(nreplicas, dirs, &(sortedArrByFidName[i]), j, &conflict, volmtpt, realm);
 	if (rc){
 	    if (inf->interactive)
 		printf("**** Couldnt get conflict type for %s ****\n", sortedArrByFidName[i]->name);
 	    nConflicts++;
 	}
 	else 
-	    ResolveConflict(nreplicas, dirs, &(sortedArrByFidName[i]), j, conflict, opList, volmtpt, RepVolume);
+	    ResolveConflict(nreplicas, dirs, &(sortedArrByFidName[i]), j, conflict, opList, volmtpt, RepVolume, realm);
     }
     free(sortedArrByFidName);
     return 0;
@@ -654,16 +648,23 @@ void resClean (int nreplicas, resreplica *dirs, struct listhdr *lh)
     free(direntriesarr);
 }
 
-int GetParent(ViceFid *cfid, ViceFid *dfid, char *volmtpt, char *dpath, char *childname) {
+int GetParent(char *realm, ViceFid *cfid, ViceFid *dfid, char *volmtpt, char *dpath, char *childname) {
     /* returns fid and absolute path of parent */
     int rc;
     struct ViceIoctl vi;
     char tmp[2048];
     char path[MAXPATHLEN];
+    struct getpath_args {
+	ViceFid fid;
+	char realm[MAXHOSTNAMELEN];
+    } gp;
+
 
     /* first get the path of the child relative to vol root */
-    vi.in = (char *)cfid;
-    vi.in_size = sizeof(ViceFid);
+    gp.fid = *cfid;
+    strcpy(gp.realm, realm);
+    vi.in = (char *)&gp;
+    vi.in_size = sizeof(gp);
     vi.out = tmp;
     vi.out_size = sizeof(tmp);
     memset(tmp, 0, sizeof(tmp));
@@ -704,14 +705,16 @@ int GetParent(ViceFid *cfid, ViceFid *dfid, char *volmtpt, char *dpath, char *ch
     // get fid of parent 
     //ViceVersionVector VV;
     //res_getfid(path, dfid, &VV);
-    vi.in = (char *)cfid;
-    vi.in_size = sizeof(ViceFid);
+    gp.fid = *cfid;
+    strcpy(gp.realm, realm);
+    vi.in = (char *)&gp;
+    vi.in_size = sizeof(gp);
     vi.out = tmp;
     vi.out_size = sizeof(tmp);
     strcpy(path, "/coda");
     rc = pioctl(path, VIOC_GETPFID, &vi, 0);
     if (rc) {
-	printf("Error %d occured while trying to get fid of %s's parent\n", childname);
+	printf("Error %d occured while trying to get fid of %s's parent\n", rc, childname);
 	return(rc);
     }
     memcpy(dfid, tmp, sizeof(ViceFid));

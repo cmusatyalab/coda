@@ -24,7 +24,6 @@ VPATH  = @srcdir@
 TOPOBJ = @TOPOBJ@
 
 include $(TOPDIR)/Makeconf
-CXXFLAGS += -Wall
 
 LIBRARIES = libres.a
 HEADERS =  rescomm.h  resforce.h resolution.h \

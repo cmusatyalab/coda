@@ -60,9 +60,9 @@ int ObjExists(resreplica *dir, long vnode, long unique)
     return 0;
 }
 
-int RepairRename (int nreplicas, resreplica *dirs, 
-			 resdir_entry **deGroup, int nDirEntries, 
-			 listhdr **ops, char *volmtpt, VolumeId RepVolume)
+int RepairRename (int nreplicas, resreplica *dirs, resdir_entry **deGroup,
+		  int nDirEntries, listhdr **ops, char *volmtpt,
+		  VolumeId RepVolume, char *realm)
 {
     char parentpath[MAXHOSTS][MAXPATHLEN];
     ViceFid parentfid[MAXHOSTS];
@@ -84,7 +84,7 @@ int RepairRename (int nreplicas, resreplica *dirs,
     tmpfid.Unique = deGroup[0]->uniqfier;
     for (i = 0; i < nreplicas; i++) {
 	tmpfid.Volume = dirs[i].replicaid;
-	if (!GetParent(&tmpfid, &parentfid[i], volmtpt, parentpath[i], childpath[i])) {
+	if (!GetParent(realm, &tmpfid, &parentfid[i], volmtpt, parentpath[i], childpath[i])) {
 	    nobjfound ++;
 	    usepath[i] = 1;
 	}
@@ -125,7 +125,7 @@ int RepairRename (int nreplicas, resreplica *dirs,
     struct repair rep;
     if (i == nreplicas) {
 	printf("No renames specified - will try to remove object\n");
-	int isDir = ISDIR(deGroup[0]->vno);
+	int isDir = ISDIRVNODE(deGroup[0]->vno);
 	for (int j = 0; j < nreplicas; j++) 
 	    if ((parentfid[j].Vnode == dirs[j].vnode) && 
 		(parentfid[j].Unique == dirs[j].uniqfier) && 
@@ -176,7 +176,7 @@ int RepairRename (int nreplicas, resreplica *dirs,
 /* do not have that object and places that info in the repair ops list */
 int RepairSubsetCreate (int nreplicas, resreplica *dirs, resdir_entry **deGroup, int nDirEntries, listhdr **ops, VolumeId RepVolume)
 {
-    int isDir = ISDIR(deGroup[0]->vno);
+    int isDir = ISDIRVNODE(deGroup[0]->vno);
     struct repair rep;
     int *ObjFound;
     int i;
@@ -243,7 +243,7 @@ int RepairSubsetCreate (int nreplicas, resreplica *dirs, resdir_entry **deGroup,
 /* have that object and places that info in the repair ops list */
 int RepairSubsetRemove (int nreplicas, resreplica *dirs, resdir_entry **deGroup, int nDirEntries, listhdr **ops)
 {
-    int isDir = ISDIR(deGroup[0]->vno);
+    int isDir = ISDIRVNODE(deGroup[0]->vno);
     struct repair rep;
     int *ObjFound;
     int i;

@@ -188,26 +188,33 @@ void callbackserver::main(void)
  * changed, we assume it was for us. */
 long VENUS_CallBack(RPC2_Handle RPCid, ViceFid *fid)
 {
+    ViceFid nullf = {0,0,0};
+    VenusFid vf;
+
     srvent *s = FindServerByCBCid(RPCid);
-    LOG(1, ("CallBack: host = %s, fid = (%x.%x.%x)\n",
-	     s->name, fid->Volume, fid->Vnode, fid->Unique));
+    if (!s) {
+	LOG(0, ("Callback from unknown host?\n"));
+	return 0;
+    }
+
+    MakeVenusFid(&vf, s->realmid, fid);
+    LOG(1, ("CallBack: host = %s, fid = (%s)\n", s->name, FID_(&vf)));
 
     /* Notify Codacon. */
     {
-	if (FID_EQ(fid, &NullFid))
+	if (FID_EQ(fid, &nullf))
 	    MarinerLog("callback::BackProbe %s\n", s->name);
 	else
-	    MarinerLog("callback::Callback %s (%x.%x.%x)\n",
-		       s->name, fid->Volume, fid->Vnode, fid->Unique);
+	    MarinerLog("callback::Callback %s (%s)\n", s->name, FID_(&vf));
     }
 
-    if (fid->Volume == 0) return(0);	/* just a probe */
+    if (!vf.Volume) return(0);	/* just a probe */
 
-    if (fid->Vnode && fid->Unique)	/* file callback */
-	if (FSDB->CallBackBreak(fid))
+    if (vf.Vnode && vf.Unique)	/* file callback */
+	if (FSDB->CallBackBreak(&vf))
 	    cbbreaks++;
 
-    if (VDB->CallBackBreak(fid->Volume))
+    if (VDB->CallBackBreak(MakeVolid(&vf)))
         cbbreaks++;
 
     return(0);
@@ -216,16 +223,21 @@ long VENUS_CallBack(RPC2_Handle RPCid, ViceFid *fid)
 
 long VENUS_CallBackFetch(RPC2_Handle RPCid, ViceFid *Fid, SE_Descriptor *BD)
 {
+    VenusFid vf;
     srvent *s = FindServerByCBCid(RPCid);
-    LOG(1, ("CallBackFetch: host = %s, fid = (%x.%x.%x)\n",
-	     s->name, Fid->Volume, Fid->Vnode, Fid->Unique));
 
-    long code = 0, fd;
+    MakeVenusFid(&vf, s->realmid, Fid);
+
+    LOG(1, ("CallBackFetch: host = %s, fid = (%s)\n", s->name, FID_(&vf)));
+
+    long code = 0, fd = -1;
 
     /* Get the object. */
-    fsobj *f = FSDB->Find(Fid);
-    if (f == 0)
-	{ code = ENOENT; goto GetLost; }
+    fsobj *f = FSDB->Find(&vf);
+    if (!f) {
+	code = ENOENT;
+	goto GetLost;
+    }
 
     /* 
      * We do not lock the object, because the reintegrator thread has already
@@ -296,7 +308,7 @@ long VENUS_CallBackFetch(RPC2_Handle RPCid, ViceFid *Fid, SE_Descriptor *BD)
     }
 
 GetLost:
-    if (f) f->shadow->Close(fd);
+    if (f && fd != -1) f->shadow->Close(fd);
     LOG(1, ("CallBackFetch: returning %d\n", code));
     return(code);
 }
@@ -320,14 +332,17 @@ long VENUS_CallBackConnect(RPC2_Handle RPCid, RPC2_Integer SideEffectType,
               ntohs(thePeer.RemotePort.Value.InetPortNumber)));
 
     /* Get the server entry and install the new connid. */
-    /* It is NOT a fatal error if the srvent doesn't already exist, because the server may be */
-    /* "calling-back" as a result of a bind by a PREVIOUS Venus incarnation at this client! */
-    srvent *s = 0;
-    GetServer(&s, &thePeer.RemoteHost.Value.InetAddress);
-    LOG(1, ("CallBackConnect: host = %s\n", s->name));
-    MarinerLog("callback::NewConnection %s\n", s->name);
-    s->ServerUp(RPCid);
-    PutServer(&s);
+    /* It is NOT a fatal error if the srvent doesn't already exist, because the
+     * server may be "calling-back" as a result of a bind by a PREVIOUS Venus
+     * incarnation at this client! */
+    srvent *s = FindServer(&thePeer.RemoteHost.Value.InetAddress);
+    if (s) {
+	s->GetRef();
+	LOG(1, ("CallBackConnect: host = %s\n", s->name));
+	MarinerLog("callback::NewConnection %s\n", s->name);
+	s->ServerUp(RPCid);
+	PutServer(&s);
+    }
 
     return(0);
 }

@@ -51,16 +51,16 @@ extern "C" {
   <a name="beginrepair"><strong> begining a local-global repair session </strong></a>
   END_HTML
 */
-void lrdb::BeginRepairSession(ViceFid *RootFid, int RepMode, char *msg)
+void lrdb::BeginRepairSession(VenusFid *RootFid, int RepMode, char *msg)
 {
     /*
      * IN:  RootFid is the fid of the new repair session's subtree root node.
      *	    RepMode is the mode (scratch or direct) of the repair session.
      * OUT: msg is the string that contains the error code to the caller.
      */
-    OBJ_ASSERT(this, RootFid && !FID_VolIsLocal(RootFid) && msg);
-    LOG(100, ("lrdb::BeginRepairSession: RootFid = 0x%x.%x.%x RepMode = %d\n",
-	      RootFid->Volume, RootFid->Vnode, RootFid->Unique, RepMode));
+    OBJ_ASSERT(this, RootFid && !FID_IsLocalFake(RootFid) && msg);
+    LOG(100, ("lrdb::BeginRepairSession: RootFid = %s RepMode = %d\n",
+	      FID_(RootFid), RepMode));
 
     if (repair_root_fid) {
 	strcpy(msg, "1"); /* local/global repair session already in progress */
@@ -86,7 +86,7 @@ void lrdb::BeginRepairSession(ViceFid *RootFid, int RepMode, char *msg)
 	rfm_iterator next(root_fid_map);
 	rfment *rfm;
 	while ((rfm = next())) {
-	    if (!memcmp((const void *)rfm->GetFakeRootFid(), (const void *)repair_root_fid, (int)sizeof(ViceFid))) {
+	    if (FID_EQ(rfm->GetFakeRootFid(), repair_root_fid)) {
 		Recov_BeginTrans();
 		RVMLIB_REC_OBJECT(subtree_view);
 		subtree_view = rfm->GetView();
@@ -114,7 +114,7 @@ void lrdb::BeginRepairSession(ViceFid *RootFid, int RepMode, char *msg)
     while ((vpt = next())) {
 	repvol *vol = vpt->GetVol();
 	VolumeId Vols[VSG_MEMBERS];
-	vuid_t LockUids[VSG_MEMBERS];
+	uid_t LockUids[VSG_MEMBERS];
 	unsigned long LockWSs[VSG_MEMBERS];
 	vol->EnableRepair(ALL_UIDS, Vols, LockUids, LockWSs);
     }
@@ -174,7 +174,7 @@ void lrdb::EndRepairSession(int Commit, char *msg)
 		    repvol *vol = vpt->GetVol();
 		    OBJ_ASSERT(this, vol);
 		    LOG(100, ("lrdb::EndRepairSession: reintegrate mutation for volume %x\n",
-			      vol->GetVid()));
+			      vol->GetVolumeId()));
 		    {	/* freeze cml entries */
 			cml_iterator next(*(vol->GetCML()), CommitOrder);
 			cmlent *m;
@@ -188,7 +188,7 @@ void lrdb::EndRepairSession(int Commit, char *msg)
 		    rc = ((repvol *)vol)->IncReintegrate(repair_session_tid);
 		    if (rc != 0) {
 			sprintf(msg, "commit failed(%d) on volume %lx",
-				rc, vol->GetVid());
+				rc, vol->GetVolumeId());
 			return;
 		    }
 		}
@@ -434,15 +434,14 @@ void lrdb::PreserveAllLocalMutation(char *msg)
   END_HTML
 */
 /* must not be called from within a transaction */
-void lrdb::InitCMLSearch(ViceFid *FakeRootFid)
+void lrdb::InitCMLSearch(VenusFid *FakeRootFid)
 {
     OBJ_ASSERT(this, FakeRootFid);
     OBJ_ASSERT(this, repair_vol_list.count() == 0);
     OBJ_ASSERT(this, current_search_cml == NULL);
-    LOG(100, ("lrdb::InitCMLSearch: FakeRootFid = 0x%x.%x.%x\n",
-	      FakeRootFid->Volume, FakeRootFid->Vnode, FakeRootFid->Unique));
-    ViceFid *LocalRootFid = RFM_LookupLocalRoot(FakeRootFid);
-    ViceFid *GlobalRootFid = RFM_LookupGlobalRoot(FakeRootFid);
+    LOG(100, ("lrdb::InitCMLSearch: FakeRootFid = %s\n", FID_(FakeRootFid)));
+    VenusFid *LocalRootFid = RFM_LookupLocalRoot(FakeRootFid);
+    VenusFid *GlobalRootFid = RFM_LookupGlobalRoot(FakeRootFid);
     OBJ_ASSERT(this, LocalRootFid && GlobalRootFid);
 
     {	/* first gather all related volumes and local objects by traversing the subtree */
@@ -456,13 +455,13 @@ void lrdb::InitCMLSearch(ViceFid *FakeRootFid)
 	    fsobj *obj = opt->GetFso();		/* get the current tree node fsobj object */
 	    repair_obj_list.prepend(opt);		/* stick the node into the local obj list */
 	    OBJ_ASSERT(this, obj && obj->IsLocalObj());
-	    ViceFid *LFid = &obj->fid;
-	    ViceFid *GFid = LGM_LookupGlobal(LFid);
-	    OBJ_ASSERT(this, FID_VolIsLocal(LFid) && GFid != NULL);	    
+	    VenusFid *LFid = &obj->fid;
+	    VenusFid *GFid = LGM_LookupGlobal(LFid);
+	    OBJ_ASSERT(this, FID_IsLocalFake(LFid) && GFid != NULL);	    
 
 	    {	/* built repair_vol_list */
-		volent *Vol = VDB->Find(GFid->Volume);
-                CODA_ASSERT(Vol->IsReplicated());
+		volent *Vol = VDB->Find(MakeVolid(GFid));
+                CODA_ASSERT(Vol && Vol->IsReplicated());
                 repvol *vp = (repvol *)Vol;
 		vpt_iterator next(repair_vol_list);
 		vptent *vpt;
@@ -474,6 +473,7 @@ void lrdb::InitCMLSearch(ViceFid *FakeRootFid)
 		    vpt = new vptent(vp);	
 		    repair_vol_list.append(vpt);
 		}
+		vp->release();
 	    }
 
 	    if (obj->children != 0) {		/* Push the Stack */
@@ -536,16 +536,15 @@ void lrdb::InitCMLSearch(ViceFid *FakeRootFid)
   END_HTML
 */
 /* must not be called from within a transaction */
-void lrdb::ListCML(ViceFid *FakeRootFid, FILE *fp)
+void lrdb::ListCML(VenusFid *FakeRootFid, FILE *fp)
 {
     /* list the CML records of subtree rooted at FakeRootFid in text form */
     OBJ_ASSERT(this, FakeRootFid);
     dlist vol_list;
 
-    LOG(100, ("lrdb::ListCML: FakeRootFid = 0x%x.%x.%x\n",
-	      FakeRootFid->Volume, FakeRootFid->Vnode, FakeRootFid->Unique));
-    ViceFid *LocalRootFid = RFM_LookupLocalRoot(FakeRootFid);
-    ViceFid *GlobalRootFid = RFM_LookupGlobalRoot(FakeRootFid);
+    LOG(100, ("lrdb::ListCML: FakeRootFid = %s\n", FID_(FakeRootFid)));
+    VenusFid *LocalRootFid = RFM_LookupLocalRoot(FakeRootFid);
+    VenusFid *GlobalRootFid = RFM_LookupGlobalRoot(FakeRootFid);
     OBJ_ASSERT(this, LocalRootFid && GlobalRootFid);
 
     {	/* travese the subtree of the local replica */
@@ -558,13 +557,13 @@ void lrdb::ListCML(ViceFid *FakeRootFid, FILE *fp)
 	    opt = (optent *)Stack.get();	/* Pop the Stack */
 	    fsobj *obj = opt->GetFso();		/* get the current tree node fsobj object */
 	    OBJ_ASSERT(this, obj && obj->IsLocalObj());
-	    ViceFid *LFid = &obj->fid;
-	    ViceFid *GFid = LGM_LookupGlobal(LFid);
-	    OBJ_ASSERT(this, FID_VolIsLocal(LFid) && GFid != NULL);	    
+	    VenusFid *LFid = &obj->fid;
+	    VenusFid *GFid = LGM_LookupGlobal(LFid);
+	    OBJ_ASSERT(this, FID_IsLocalFake(LFid) && GFid != NULL);	    
 
 	    {	/* built vol_list */
-		volent *Vol = VDB->Find(GFid->Volume);
-                CODA_ASSERT(Vol->IsReplicated());
+		volent *Vol = VDB->Find(MakeVolid(GFid));
+                CODA_ASSERT(Vol && Vol->IsReplicated());
                 repvol *vp = (repvol *)Vol;
 		vpt_iterator next(vol_list);
 		vptent *vpt;
@@ -576,6 +575,7 @@ void lrdb::ListCML(ViceFid *FakeRootFid, FILE *fp)
 		    vpt = new vptent(vp);	
 		    vol_list.append(vpt);
 		}
+		vp->release();
 	    }
 	    
 	    if (obj->children != 0) {		/* Push the Stack */
@@ -658,11 +658,11 @@ void lrdb::AdvanceCMLSearch()
 void lrdb::DeLocalization()
 {
     OBJ_ASSERT(this, repair_root_fid);
-    ViceFid *RootParentFid = RFM_LookupRootParent(repair_root_fid);
-    ViceFid *LocalRootFid = RFM_LookupLocalRoot(repair_root_fid);
-    ViceFid *GlobalRootFid = RFM_LookupGlobalRoot(repair_root_fid);
-    ViceFid *LocalChildFid = RFM_LookupLocalChild(repair_root_fid);
-    ViceFid *GlobalChildFid = RFM_LookupGlobalChild(repair_root_fid);
+    VenusFid *RootParentFid = RFM_LookupRootParent(repair_root_fid);
+    VenusFid *LocalRootFid = RFM_LookupLocalRoot(repair_root_fid);
+    VenusFid *GlobalRootFid = RFM_LookupGlobalRoot(repair_root_fid);
+    VenusFid *LocalChildFid = RFM_LookupLocalChild(repair_root_fid);
+    VenusFid *GlobalChildFid = RFM_LookupGlobalChild(repair_root_fid);
     fsobj *RootMtPt = RFM_LookupRootMtPt(repair_root_fid);
     OBJ_ASSERT(this, RootParentFid && LocalRootFid && GlobalRootFid);
     OBJ_ASSERT(this, LocalChildFid && GlobalChildFid);
@@ -674,12 +674,12 @@ void lrdb::DeLocalization()
 	while ((opt = (optent *)repair_obj_list.get())) {
 	    fsobj *obj = opt->GetFso();
 	    OBJ_ASSERT(this, obj);
-	    ViceFid *lfid = &obj->fid;
-	    OBJ_ASSERT(this, FID_VolIsLocal(lfid));
+	    VenusFid *lfid = &obj->fid;
+	    OBJ_ASSERT(this, FID_IsLocalFake(lfid));
 	    
 	    {   /* remove the LGM entry */
-		ViceFid *gfid = LGM_LookupGlobal(lfid);
-		OBJ_ASSERT(this, gfid && !FID_VolIsLocal(gfid));
+		VenusFid *gfid = LGM_LookupGlobal(lfid);
+		OBJ_ASSERT(this, gfid && !FID_IsLocalFake(gfid));
 		Recov_BeginTrans();
 		LGM_Remove(lfid, gfid);
 		Recov_EndTrans(MAXFP);
@@ -688,11 +688,11 @@ void lrdb::DeLocalization()
 		rfm_iterator next(root_fid_map);
 		rfment *rfm;
 		while ((rfm = next())) {
-		    if (!memcmp((const void *)rfm->GetLocalRootFid(), (const void *) lfid, (int)sizeof(ViceFid)))
+		    if (FID_EQ(rfm->GetLocalRootFid(), lfid))
 		      break;
 		}
 		if (rfm != NULL) {
-		    ViceFid *frfid = rfm->GetFakeRootFid();
+		    VenusFid *frfid = rfm->GetFakeRootFid();
 		    OBJ_ASSERT(this, frfid != NULL);
 		    Recov_BeginTrans();
 			   RFM_Remove(frfid);
@@ -732,7 +732,7 @@ void lrdb::DeLocalization()
 */
 
 /* need not be called from within a transaction */
-int lrdb::FindRepairObject(ViceFid *fid, fsobj **global, fsobj **local)
+int lrdb::FindRepairObject(VenusFid *fid, fsobj **global, fsobj **local)
 {
     int rc, i = 0;
 
@@ -745,32 +745,32 @@ int lrdb::FindRepairObject(ViceFid *fid, fsobj **global, fsobj **local)
 }
 
 /* need not be called from within a transaction */
-int lrdb::do_FindRepairObject(ViceFid *fid, fsobj **global, fsobj **local)
+int lrdb::do_FindRepairObject(VenusFid *fid, fsobj **global, fsobj **local)
 {
     OBJ_ASSERT(this, fid);
     vproc *vp = VprocSelf();
     int rcode = 0, gcode = 0;
-    LOG(100, ("lrdb::FindRepairObject: 0x%x.%x.%x\n", fid->Volume, fid->Vnode, fid->Unique));
+    LOG(100, ("lrdb::FindRepairObject: %s\n", FID_(fid)));
     
     /* first step: obtain local and global objects according to "fid" */
-    if (FID_VolIsLocal(fid)) {
+    if (FID_IsLocalFake(fid)) {
 	OBJ_ASSERT(this, *local = FSDB->Find(fid));	/* local object always cached */
 	*global = (fsobj *)NULL;			/* initialized global object */
 
 	/* map local fid into its global counterpart and find the global object */
-	ViceFid  *GFid;
+	VenusFid  *GFid;
 	OBJ_ASSERT(this, GFid = LGM_LookupGlobal(fid));
-	rcode = FSDB->Get(global, GFid, CRTORUID(vp->u.u_cred), RC_DATA, 0, &gcode);
+	rcode = FSDB->Get(global, GFid, vp->u.u_uid, RC_DATA, 0, &gcode);
 	if (rcode == 0) {
-	    LOG(100, ("lrdb::FindRepairObject: found global fsobj for 0x%x.%x.%x\n",
-		      GFid->Volume, GFid->Vnode, GFid->Unique));
+	    LOG(100, ("lrdb::FindRepairObject: found global fsobj for %s\n",
+		      FID_(GFid)));
 	    (*global)->UnLock(RD); /* FSDB::Get read-locked *global, must unlock */
 	    /* even if rcode is zero, gcode may still be EINCONS because of succeeded fakeification */
 	    if (gcode == EINCONS || (*global)->IsFake())
 		return EINCONS;
 	} else {
-	    LOG(100, ("lrdb::FindRepairObject: FSDB::GET 0x%x.%x.%x failed (%d)(%d)\n",
-		      GFid->Volume, GFid->Vnode, GFid->Unique, rcode, gcode));
+	    LOG(100, ("lrdb::FindRepairObject: FSDB::GET %s failed (%d)(%d)\n",
+		      FID_(GFid), rcode, gcode));
 	    if (rcode == EIO && gcode == EINCONS) 	
 	      return EINCONS;
 	    else 
@@ -779,17 +779,17 @@ int lrdb::do_FindRepairObject(ViceFid *fid, fsobj **global, fsobj **local)
     } else {
 	*local = (fsobj *)NULL;	 	/* fid is global, so local object must be NULL */
 	*global = (fsobj *)NULL;	/* initialized global object */
-	rcode = FSDB->Get(global, fid, CRTORUID(vp->u.u_cred), RC_DATA, 0 , &gcode);
+	rcode = FSDB->Get(global, fid, vp->u.u_uid, RC_DATA, 0 , &gcode);
 	if (rcode == 0) {
-	    LOG(100, ("lrdb::FindRepairObject: found global fsobj for 0x%x.%x.%x\n",
-		      fid->Volume, fid->Vnode, fid->Unique));
+	    LOG(100, ("lrdb::FindRepairObject: found global fsobj for %s\n",
+		      FID_(fid)));
 	    (*global)->UnLock(RD); /* FSDB::Get read-locked *global, must unlock */
 	    /* even if rcode is zero, gcode may still be EINCONS because of succeeded fakeification */
 	    if (gcode == EINCONS || (*global)->IsFake())
 		return EINCONS;
 	} else {
-	    LOG(100, ("lrdb::FindRepairObject: FSDB::GET 0x%x.%x.%x failed(%d)(%d)\n",
-		      fid->Volume, fid->Vnode, fid->Unique, rcode, gcode));
+	    LOG(100, ("lrdb::FindRepairObject: FSDB::GET %s failed(%d)(%d)\n",
+		      FID_(fid), rcode, gcode));
 	    if (rcode == EIO && gcode == EINCONS) 	
 	      return EINCONS;
 	    else 
@@ -800,15 +800,15 @@ int lrdb::do_FindRepairObject(ViceFid *fid, fsobj **global, fsobj **local)
     /* step 2: make sure the "global" has its ancestors cached up until GlobalRootObj */
     fsobj *parent, *OBJ;
     int count = 0;			/* record the step going upward */
-    ViceFid *PFid;
+    VenusFid *PFid;
 
     /* step 2.1: first pass--going up to grab the ancestors of "*global" */
     OBJ_ASSERT(this, OBJ = *global);
     while ((OBJ->pfso == NULL) && !RFM_IsGlobalRoot(&OBJ->fid)) {
 	PFid = &OBJ->pfid;
-	OBJ_ASSERT(this, memcmp((const void *)PFid, (const void *) &NullFid, (int)sizeof(ViceFid)));
+	OBJ_ASSERT(this, !FID_EQ(PFid, &NullFid));
 	gcode = 0;
-	rcode = FSDB->Get(&parent, PFid, CRTORUID(vp->u.u_cred), RC_DATA, 0 , &gcode);
+	rcode = FSDB->Get(&parent, PFid, vp->u.u_uid, RC_DATA, 0 , &gcode);
 	if (rcode == 0) {
 	    parent->UnLock(RD);		/* unlock read-locked parent */
 	    /* even if rcode is zero, gcode may still be EINCONS because of succeeded fakeification */
@@ -817,8 +817,8 @@ int lrdb::do_FindRepairObject(ViceFid *fid, fsobj **global, fsobj **local)
 	    OBJ = parent;		/* going up */
 	    count++;
 	} else {
-	    LOG(100, ("lrdb::FindRepairObject: FSDB::Get ancestor 0x%x.%x.%x failed (%d)(%d)\n",
-		      PFid->Volume, PFid->Vnode, PFid->Unique, rcode, gcode));
+	    LOG(100, ("lrdb::FindRepairObject: FSDB::Get ancestor %s failed (%d)(%d)\n",
+		      FID_(PFid), rcode, gcode));
 	    if (rcode == EIO && gcode == EINCONS) 	
 	      return EINCONS;
 	    else 
@@ -829,17 +829,17 @@ int lrdb::do_FindRepairObject(ViceFid *fid, fsobj **global, fsobj **local)
     /* may need to fetch one more if OBJ's parent is GlobalRootObj */
     if (!RFM_IsGlobalRoot(&OBJ->fid)) {
 	PFid = &OBJ->pfid;
-	OBJ_ASSERT(this, memcmp((const void *)PFid, (const void *) &NullFid, (int)sizeof(ViceFid)));
+	OBJ_ASSERT(this, !FID_EQ(PFid, &NullFid));
 	gcode = 0;
-	rcode = FSDB->Get(&parent, PFid, CRTORUID(vp->u.u_cred), RC_DATA, 0, &gcode);
+	rcode = FSDB->Get(&parent, PFid, vp->u.u_uid, RC_DATA, 0, &gcode);
 	if (rcode == 0) {
 	    parent->UnLock(RD);		/* unlock read-locked parent */
 	    /* even if rcode is zero, gcode may still be EINCONS because of succeeded fakeification */
 	    if (gcode == EINCONS)	/* do not check IsFake() because parent can be the fake-root */
 		return EINCONS;		
 	} else {
-	    LOG(100, ("lrdb::FindRepairObject: FSDB::Get ancestor 0x%x.%x.%x failed (%d)(%d)\n",
-		      PFid->Volume, PFid->Vnode, PFid->Unique, rcode, gcode));
+	    LOG(100, ("lrdb::FindRepairObject: FSDB::Get ancestor %s failed (%d)(%d)\n",
+		      FID_(PFid), rcode, gcode));
 	    if (rcode == EIO && gcode == EINCONS) 	
 	      return EINCONS;
 	    else 
@@ -853,8 +853,8 @@ int lrdb::do_FindRepairObject(ViceFid *fid, fsobj **global, fsobj **local)
     while (count >= 0) {
 	if (RFM_IsGlobalRoot(&OBJ->fid))
 	  break;
-	ViceFid *PFid = &OBJ->pfid;
-	OBJ_ASSERT(this, memcmp((const void *)PFid, (const void *) &NullFid, (int)sizeof(ViceFid)));
+	VenusFid *PFid = &OBJ->pfid;
+	OBJ_ASSERT(this, !FID_EQ(PFid, &NullFid));
 	OBJ_ASSERT(this, parent = FSDB->Find(PFid)); /* parent must have been cached already */
 	OBJ_ASSERT(this, parent->dir_LookupByFid(comp, &OBJ->fid) == 0);
 	OBJ->SetComp(comp);
@@ -869,7 +869,7 @@ int lrdb::do_FindRepairObject(ViceFid *fid, fsobj **global, fsobj **local)
 }
 
 /* need not be called from within a transaction */
-fsobj *lrdb::GetGlobalParentObj(ViceFid *GlobalChildFid)
+fsobj *lrdb::GetGlobalParentObj(VenusFid *GlobalChildFid)
 {
     /* 
      * given the fid of a global object, find its global parent fsobj object. we 
@@ -878,20 +878,20 @@ fsobj *lrdb::GetGlobalParentObj(ViceFid *GlobalChildFid)
      * (must be in FSDB) and its local parent Fid, and then the global parent Fid 
      * and finally use FSDB::Get() to get the global parent.
      */
-    OBJ_ASSERT(this, GlobalChildFid && !FID_VolIsLocal(GlobalChildFid));
-    LOG(100, ("lrdb::GetGlobalParentObj: GlobalChildFid = 0x%x.%x.%x\n",
-	      GlobalChildFid->Volume, GlobalChildFid->Vnode, GlobalChildFid->Unique));
+    OBJ_ASSERT(this, GlobalChildFid && !FID_IsLocalFake(GlobalChildFid));
+    LOG(100, ("lrdb::GetGlobalParentObj: GlobalChildFid = %s\n",
+	      FID_(GlobalChildFid)));
 
-    ViceFid *LocalChildFid = LGM_LookupLocal(GlobalChildFid);
+    VenusFid *LocalChildFid = LGM_LookupLocal(GlobalChildFid);
     OBJ_ASSERT(this, LocalChildFid);
-    ViceFid *GlobalParentFid = NULL;
+    VenusFid *GlobalParentFid = NULL;
 
 
     {	/* first check to see if LocalChildFid is also the LocalRootFid */
 	rfm_iterator next(root_fid_map);
 	rfment *rfm;
 	while ((rfm = next())) {
-	    if (!memcmp((const void *)rfm->GetLocalRootFid(), (const void *) LocalChildFid, (int)sizeof(ViceFid))) {
+	    if (FID_EQ(rfm->GetLocalRootFid(), LocalChildFid)) {
 		GlobalParentFid = rfm->GetRootParentFid();
 		LOG(100, ("lrdb::GetGlobalParentObj: ChildFid is RootFid\n"));
 		break;
@@ -901,16 +901,16 @@ fsobj *lrdb::GetGlobalParentObj(ViceFid *GlobalChildFid)
     if (GlobalParentFid == NULL) {
 	fsobj *LocalChildObj = FSDB->Find(LocalChildFid);
 	OBJ_ASSERT(this, LocalChildObj);
-	ViceFid *LocalParentFid = &LocalChildObj->pfid;
-	OBJ_ASSERT(this, memcmp((const void *)LocalParentFid, (const void *) &NullFid, (int)sizeof(ViceFid)));
+	VenusFid *LocalParentFid = &LocalChildObj->pfid;
+	OBJ_ASSERT(this, !FID_EQ(LocalParentFid, &NullFid));
 	GlobalParentFid = LGM_LookupGlobal(LocalParentFid);
 	OBJ_ASSERT(this, GlobalParentFid);
     }
-    LOG(100, ("lrdb::GetGlobalParentObj: ParentFid = 0x%x.%x.%x\n",
-	      GlobalParentFid->Volume, GlobalParentFid->Vnode, GlobalParentFid->Unique));
+    LOG(100, ("lrdb::GetGlobalParentObj: ParentFid = %s\n",
+	      FID_(GlobalParentFid)));
     fsobj *GlobalParentObj;
     vproc *vp = VprocSelf();
-    if (FSDB->Get(&GlobalParentObj, GlobalParentFid, CRTORUID(vp->u.u_cred), RC_DATA) != 0) {
+    if (FSDB->Get(&GlobalParentObj, GlobalParentFid, vp->u.u_uid, RC_DATA) != 0) {
 	LOG(100, ("lrdb::GetGlobalParentObj: can not FSDB::Get global parent\n"));
 	return (fsobj *)NULL;
     } else {
@@ -952,11 +952,11 @@ void lrdb::SetSubtreeView(char NewView, char *msg)
     rfment *rfm;
     while ((rfm = next())) {
 	if (rfm->RootCovered()) continue;
-	ViceFid *RootParentFid = rfm->GetRootParentFid();
-	ViceFid *FakeRootFid = rfm->GetFakeRootFid();
-	ViceFid *GlobalChildFid = rfm->GetGlobalChildFid();
-	ViceFid *LocalChildFid = rfm->GetLocalChildFid();
-	ViceFid *GlobalRootFid = rfm->GetGlobalRootFid();
+	VenusFid *RootParentFid = rfm->GetRootParentFid();
+	VenusFid *FakeRootFid = rfm->GetFakeRootFid();
+	VenusFid *GlobalChildFid = rfm->GetGlobalChildFid();
+	VenusFid *LocalChildFid = rfm->GetLocalChildFid();
+	VenusFid *GlobalRootFid = rfm->GetGlobalRootFid();
 	OBJ_ASSERT(this, RootParentFid && FakeRootFid && GlobalChildFid && LocalChildFid && GlobalRootFid);
 	fsobj *RootParentObj = FSDB->Find(RootParentFid);
 	char *Name = rfm->GetName();
@@ -992,7 +992,7 @@ void lrdb::SetSubtreeView(char NewView, char *msg)
 	    /* check global root object */
 	    vproc *vp = VprocSelf();
 	    fsobj *GlobalRootObj = (fsobj *)NULL;
-	    if (FSDB->Get(&GlobalRootObj, GlobalRootFid, CRTORUID(vp->u.u_cred), RC_DATA, "global") != 0) {
+	    if (FSDB->Get(&GlobalRootObj, GlobalRootFid, vp->u.u_uid, RC_DATA, "global") != 0) {
 		LOG(100, ("lrdb::SetSubtreeView: can't get data-valid global root object\n"));
 		sprintf(msg, "%s failed", msg);
 		continue;
@@ -1002,13 +1002,13 @@ void lrdb::SetSubtreeView(char NewView, char *msg)
 
 	    /* check global child object */
 	    fsobj *child = (fsobj *)NULL;
-	    ViceFid dummy;
-	    OBJ_ASSERT(this, FakeRootObj->Lookup(&child, &dummy, "global", CRTORUID(vp->u.u_cred), CLU_CASE_SENSITIVE) == 0);
+	    VenusFid dummy;
+	    OBJ_ASSERT(this, FakeRootObj->Lookup(&child, &dummy, "global", vp->u.u_uid, CLU_CASE_SENSITIVE) == 0);
 	    child->UnLock(RD);
 
 	    /* check local child object */
 	    child = (fsobj *)NULL;
-	    OBJ_ASSERT(this, FakeRootObj->Lookup(&child, &dummy, "local", CRTORUID(vp->u.u_cred), CLU_CASE_SENSITIVE) == 0);
+	    OBJ_ASSERT(this, FakeRootObj->Lookup(&child, &dummy, "local", vp->u.u_uid, CLU_CASE_SENSITIVE) == 0);
 	    child->UnLock(RD);
 	}
 
@@ -1019,7 +1019,7 @@ void lrdb::SetSubtreeView(char NewView, char *msg)
 	Recov_BeginTrans();
 	       rfm->SetView(NewView);
 	Recov_EndTrans(MAXFP);
-	if (!memcmp((const void *)repair_root_fid, (const void *) FakeRootFid, (int)sizeof(ViceFid))) {
+	if (FID_EQ(repair_root_fid, FakeRootFid)) {
 	    Recov_BeginTrans();
 		   RVMLIB_REC_OBJECT(subtree_view);
 		   subtree_view = NewView;
@@ -1066,17 +1066,16 @@ void lrdb::SetSubtreeView(char NewView, char *msg)
 }
 
 /* must not be called from within a transaction */
-void lrdb::ReplaceRepairFid(ViceFid *NewGlobalFid, ViceFid *LocalFid)
+void lrdb::ReplaceRepairFid(VenusFid *NewGlobalFid, VenusFid *LocalFid)
 {   
     OBJ_ASSERT(this, NewGlobalFid != NULL && LocalFid != NULL);
-    LOG(10, ("lrdb::ReplaceRepairFid: NewFid = 0x%x.%x.%x OldFid = 0x%x.%x.%x\n",
-	     NewGlobalFid->Volume, NewGlobalFid->Vnode, NewGlobalFid->Unique,
-	     LocalFid->Volume, LocalFid->Vnode, LocalFid->Unique));
+    LOG(10, ("lrdb::ReplaceRepairFid: NewFid = %s OldFid = %s\n",
+	     FID_(NewGlobalFid), FID_(LocalFid)));
     /* we only need to replace the fid in local-global-fid map */
     lgm_iterator next(local_global_map);
     lgment *lgm;
     while ((lgm = next())) {
-	if (!memcmp((const void *)lgm->GetLocalFid(), (const void *) LocalFid, (int)sizeof(ViceFid))) {
+	if (FID_EQ(lgm->GetLocalFid(), LocalFid)) {
 	    Recov_BeginTrans();
 		   lgm->SetGlobalFid(NewGlobalFid);
 	    Recov_EndTrans(MAXFP);
@@ -1087,21 +1086,20 @@ void lrdb::ReplaceRepairFid(ViceFid *NewGlobalFid, ViceFid *LocalFid)
 }
 
 /* must not be called from within a transactin */
-void lrdb::RemoveSubtree(ViceFid *FakeRootFid)
+void lrdb::RemoveSubtree(VenusFid *FakeRootFid)
 {
     /* 
      * remove the entire subtree rooted at FakeRootFid.
      * the input paramter indicates whether we need to
      * clean the related CML records or not.
      */
-    LOG(0, ("lrdb::RemoveSubtree: FakeRootFid = 0x%x.%x.%x\n",
-	    FakeRootFid->Volume, FakeRootFid->Vnode, FakeRootFid->Unique));
+    LOG(0, ("lrdb::RemoveSubtree: FakeRootFid = %s\n", FID_(FakeRootFid)));
 
-    ViceFid *RootParentFid = RFM_LookupRootParent(FakeRootFid);
-    ViceFid *LocalRootFid = RFM_LookupLocalRoot(FakeRootFid);
-    ViceFid *GlobalRootFid = RFM_LookupGlobalRoot(FakeRootFid);
-    ViceFid *LocalChildFid = RFM_LookupLocalChild(FakeRootFid);
-    ViceFid *GlobalChildFid = RFM_LookupGlobalChild(FakeRootFid);
+    VenusFid *RootParentFid = RFM_LookupRootParent(FakeRootFid);
+    VenusFid *LocalRootFid = RFM_LookupLocalRoot(FakeRootFid);
+    VenusFid *GlobalRootFid = RFM_LookupGlobalRoot(FakeRootFid);
+    VenusFid *LocalChildFid = RFM_LookupLocalChild(FakeRootFid);
+    VenusFid *GlobalChildFid = RFM_LookupGlobalChild(FakeRootFid);
     fsobj *RootMtPt = RFM_LookupRootMtPt(FakeRootFid);
     OBJ_ASSERT(this, RootParentFid && LocalRootFid && GlobalRootFid);
     OBJ_ASSERT(this, LocalChildFid && GlobalChildFid);
@@ -1120,13 +1118,13 @@ void lrdb::RemoveSubtree(ViceFid *FakeRootFid)
 	    fsobj *obj = opt->GetFso();		/* get the current tree node fsobj object */
 	    gc_obj_list.prepend(opt);		/* stick the node into the local obj list */
 	    OBJ_ASSERT(this, obj && obj->IsLocalObj());
-	    ViceFid *LFid = &obj->fid;
-	    ViceFid *GFid = LGM_LookupGlobal(LFid);
-	    OBJ_ASSERT(this, FID_VolIsLocal(LFid) && GFid != NULL);	    
+	    VenusFid *LFid = &obj->fid;
+	    VenusFid *GFid = LGM_LookupGlobal(LFid);
+	    OBJ_ASSERT(this, FID_IsLocalFake(LFid) && GFid != NULL);	    
 
 	    {	/* built gc_vol_list */
-		volent *Vol = VDB->Find(GFid->Volume);
-		OBJ_ASSERT(this, Vol != NULL && Vol->IsReplicated());
+		volent *Vol = VDB->Find(MakeVolid(GFid));
+		OBJ_ASSERT(this, Vol && Vol->IsReplicated());
                 repvol *vp = (repvol *)Vol;
 		vpt_iterator next(gc_vol_list);
 		vptent *vpt;
@@ -1138,6 +1136,7 @@ void lrdb::RemoveSubtree(ViceFid *FakeRootFid)
 		    vpt = new vptent(vp);	
 		    gc_vol_list.append(vpt);
 		}
+		vp->release();
 	    }
 
 	    if (obj->children != 0) {		/* Push the Stack */
@@ -1205,12 +1204,12 @@ void lrdb::RemoveSubtree(ViceFid *FakeRootFid)
 	while ((opt = (optent *)gc_obj_list.get())) {
 	    fsobj *obj = opt->GetFso();
 	    OBJ_ASSERT(this, obj);
-	    ViceFid *lfid = &obj->fid;
-	    OBJ_ASSERT(this, FID_VolIsLocal(lfid));
+	    VenusFid *lfid = &obj->fid;
+	    OBJ_ASSERT(this, FID_IsLocalFake(lfid));
 	    
 	    {   /* remove the LGM entry */
-		ViceFid *gfid = LGM_LookupGlobal(lfid);
-		OBJ_ASSERT(this, gfid && !FID_VolIsLocal(gfid));
+		VenusFid *gfid = LGM_LookupGlobal(lfid);
+		OBJ_ASSERT(this, gfid && !FID_IsLocalFake(gfid));
 		Recov_BeginTrans();
 		       LGM_Remove(lfid, gfid);
 		Recov_EndTrans(MAXFP);
@@ -1221,11 +1220,11 @@ void lrdb::RemoveSubtree(ViceFid *FakeRootFid)
 		rfm_iterator next(root_fid_map);
 		rfment *rfm;
 		while ((rfm = next())) {
-		    if (!memcmp((const void *)rfm->GetLocalRootFid(), (const void *) lfid, (int)sizeof(ViceFid)))
+		    if (FID_EQ(rfm->GetLocalRootFid(), lfid))
 		      break;
 		}
 		if (rfm != NULL) {
-		    ViceFid *frfid = rfm->GetFakeRootFid();
+		    VenusFid *frfid = rfm->GetFakeRootFid();
 		    OBJ_ASSERT(this, frfid != NULL);
 		    Recov_BeginTrans();
 			   RFM_Remove(frfid);

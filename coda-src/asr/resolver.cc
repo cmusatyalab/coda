@@ -92,7 +92,7 @@ FILE *FindResolveFile(char *dname) {
 rule_t *FindRule(olist *RuleList, char *dname, char *fname) {
     olist_iterator next(*RuleList);
     rule_t *r;
-    while (r = (rule_t *)next()) {
+    while ((r = (rule_t *)next())) {
 	if (r->match(dname, fname)) {
 	    r->expand();
 	    if (debug) {
@@ -178,11 +178,12 @@ int main(int argc, char **argv)
     if (debug) {
 	fprintf(stderr, "Parsed rules are: \n");
 	olist_iterator nextr(rules);
-	while (r = (rule_t *)nextr())
+	while ((r = (rule_t *)nextr()))
 	    r->print(stderr);
     }
     
-    if (r= FindRule(&rules, incdname, incfname)) {
+    r = FindRule(&rules, incdname, incfname);
+    if (r) {
 	// expand all the arg names if necessary
 	r->expand();
 	

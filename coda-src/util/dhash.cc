@@ -176,7 +176,7 @@ void dhashtab::print(FILE *fp) {
 void dhashtab::print(int fd) {
     /* first print out the dhashtab header */
     char buf[40];
-    sprintf(buf, "%#08x : Default dhashtab\n", (long)this);
+    sprintf(buf, "%p : Default dhashtab\n", this);
     write(fd, buf, strlen(buf));
 
     /* then print out all of the dlists */

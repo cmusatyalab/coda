@@ -66,10 +66,11 @@ extern "C" {
 #include "vproc.h"
 #include "worker.h" 
 #include "adv_daemon.h"
+#include "realmdb.h"
 
 
 /* local-repair modification */
-void vproc::do_ioctl(ViceFid *fid, unsigned int com, struct ViceIoctl *data) {
+void vproc::do_ioctl(VenusFid *fid, unsigned int com, struct ViceIoctl *data) {
     /*
      *    We partition the ioctls into 3 categories:
      *      O - those on a particular object
@@ -83,6 +84,7 @@ void vproc::do_ioctl(ViceFid *fid, unsigned int com, struct ViceIoctl *data) {
 	case VIOCGETAL:
 	case VIOCFLUSH:
 	case VIOCPREFETCH:
+	case VIOC_ADD_MT_PT:
 	case VIOC_AFS_DELETE_MT_PT:
 	case VIOC_AFS_STAT_MT_PT:
         case VIOC_GETPFID:
@@ -90,13 +92,18 @@ void vproc::do_ioctl(ViceFid *fid, unsigned int com, struct ViceIoctl *data) {
 	    {
 	    fsobj *f = 0;
 
-	    int volmode = ((com == VIOCSETAL || com == VIOC_AFS_DELETE_MT_PT ||
-			    com == VIOC_SETVV) ? VM_MUTATING : VM_OBSERVING);
+	    int volmode = (com == VIOCSETAL || com == VIOC_ADD_MT_PT ||
+			    com == VIOC_AFS_DELETE_MT_PT || com == VIOC_SETVV) ?
+			   VM_MUTATING : VM_OBSERVING;
+	    int rcrights = RC_STATUS;
+	    if (com == VIOC_ADD_MT_PT || com == VIOC_AFS_DELETE_MT_PT)
+		rcrights |= RC_DATA;
+
 	    for (;;) {
-		Begin_VFS(fid->Volume, CODA_IOCTL, volmode);
+		Begin_VFS(fid, CODA_IOCTL, volmode);
 		if (u.u_error) break;
 
-		u.u_error = FSDB->Get(&f, fid, CRTORUID(u.u_cred), RC_STATUS);
+		u.u_error = FSDB->Get(&f, fid, u.u_uid, rcrights);
 		if (u.u_error) goto O_FreeLocks;
 
 		switch(com) {
@@ -112,8 +119,7 @@ void vproc::do_ioctl(ViceFid *fid, unsigned int com, struct ViceIoctl *data) {
 			/* always change ACLs.  Alternatively, we
                            could have venus cache the identity */
 			/* of administrators. */
-			/* u.u_error = f->Access((long)PRSFS_ADMINISTER, 0,
-			 CRTORUID(u.u_cred)); if (u.u_error) break; */
+			/* u.u_error = f->Access((long)PRSFS_ADMINISTER, 0, u.u_uid); if (u.u_error) break; */
 
 			/* Do the operation. */
 			RPC2_CountedBS acl;
@@ -122,7 +128,7 @@ void vproc::do_ioctl(ViceFid *fid, unsigned int com, struct ViceIoctl *data) {
 			    { u.u_error = EINVAL; break; }
 			acl.SeqBody = (RPC2_ByteSeq)(char *) data->in;
 			f->PromoteLock();
-			u.u_error = f->SetACL(&acl, CRTORUID(u.u_cred));
+			u.u_error = f->SetACL(&acl, u.u_uid);
 
 			break;
 			}
@@ -140,7 +146,7 @@ void vproc::do_ioctl(ViceFid *fid, unsigned int com, struct ViceIoctl *data) {
                            could have venus cache the identity */
 			/* of administrators. */
 /*
-			 u.u_error = f->Access((long)PRSFS_LOOKUP, 0, CRTORUID(u.u_cred));
+			 u.u_error = f->Access((long)PRSFS_LOOKUP, 0, u.u_uid);
 			 if (u.u_error) break;
 */
 
@@ -151,7 +157,7 @@ void vproc::do_ioctl(ViceFid *fid, unsigned int com, struct ViceIoctl *data) {
 			acl.SeqBody = (RPC2_ByteSeq)data->out;
 			acl.SeqBody[0] = 0;
 			f->PromoteLock();
-			u.u_error = f->GetACL(&acl, CRTORUID(u.u_cred));
+			u.u_error = f->GetACL(&acl, u.u_uid);
 			if (u.u_error) break;
 
 			data->out_size = (short) (acl.SeqLen == 0 ? 1 : acl.SeqLen);
@@ -195,8 +201,85 @@ void vproc::do_ioctl(ViceFid *fid, unsigned int com, struct ViceIoctl *data) {
 
 			/* Release and reacquire the target (data this time). */
 			FSDB->Put(&f);
-			u.u_error = FSDB->Get(&f, fid, CRTORUID(u.u_cred), RC_DATA);
+			u.u_error = FSDB->Get(&f, fid, u.u_uid, RC_DATA);
 
+			break;
+			}
+
+		    case VIOC_ADD_MT_PT:
+			{
+			/* A mount-link is virtually identical to a symlink.
+			 * In fact Coda stores mount-links as symlinks on the
+			 * server. The only visible differences are that the
+			 * mount-link has a Unix modemask of 0644, while a
+			 * symlink has 0755. And a mountpoint's contents always
+			 * start with '#', '@' (or '%'?)
+			 *
+			 * This code is almost identical to vproc::symlink in
+			 * vproc_vfscalls. -JH
+			 */
+			fsobj *target_fso = NULL;
+			char contents[CODA_MAXNAMLEN+1];
+			char *link_name = (char *) data->in;
+			char *arg = strchr(link_name, '/');
+
+			if (!arg) { u.u_error = EINVAL; break; };
+			*arg = '\0'; arg++;
+
+			/* Disallow special names. */
+			verifyname(link_name, NAME_NO_DOTS | NAME_NO_CONFLICT |
+				   NAME_NO_EXPANSION);
+                        if (u.u_error) break;
+
+			/* Verify that parent is a directory. */
+			if (!f->IsDir()) { u.u_error = ENOTDIR; break; }
+
+			/* Verify that the target doesn't exist. */
+			u.u_error = f->Lookup(&target_fso, 0, link_name, u.u_uid, CLU_CASE_SENSITIVE);
+			FSDB->Put(&target_fso);
+			if (u.u_error == 0) { u.u_error = EEXIST; break; }
+			if (u.u_error != ENOENT) { break; }
+			u.u_error = 0;
+
+			/* Verify that we have insert permission. */
+			u.u_error = f->Access((long)PRSFS_INSERT, 0, u.u_uid);
+			if (u.u_error) { break; }
+
+			/*
+			 * Regular mount-links start with a '@', optionally
+			 * followed by a volume name (GetRootVolume is used in
+			 * case the volume name is not specified), optionally
+			 * followed by '@' and a realm/domain name (the realm
+			 * of the parent volume is used if this is not
+			 * specified), and end with a single '.'.
+			 *
+			 * The ending character doesn't seem too important, it
+			 * looks like the '.' was added mostly because of the
+			 * buggy implementation of TryToCover which strips the
+			 * last character of the volume name.
+			 *
+			 * There are references in the code that indicate there
+			 * used to be mount-links that started with '%'. I
+			 * don't know what they were used for.
+			 *
+			 * Internally, Venus creates mount-links starting with
+			 * '@', followed by a Fid (volume.vnode.unique),
+			 * optionally followed by '@' and a realm/domain name.
+			 * These are used for conflicts and during repair to
+			 * mount a specific object in the fake repair volume.
+			 *
+			 * -JH
+			 */
+			/* make it a 'magic' mount name */
+			snprintf(contents, CODA_MAXNAMLEN,  "#%s.", arg);
+			contents[CODA_MAXNAMLEN] = '\0';
+
+			/* Do the operation. */
+			f->PromoteLock();
+			u.u_error = f->Symlink(contents, link_name, u.u_uid,
+					       0644, FSDB->StdPri());
+			if (u.u_error) { break; }
+			/* set vattr fields? */
 			break;
 			}
 
@@ -215,7 +298,7 @@ void vproc::do_ioctl(ViceFid *fid, unsigned int com, struct ViceIoctl *data) {
 			    { u.u_error = ENOTDIR; break; }
 
 			/* Get the target object. */
-			u.u_error = f->Lookup(&target_fso, 0, target_name, CRTORUID(u.u_cred), CLU_CASE_SENSITIVE);
+			u.u_error = f->Lookup(&target_fso, 0, target_name, u.u_uid, CLU_CASE_SENSITIVE);
 			if (u.u_error) break;
 
 			/* Verify that target is a mount point (either valid or dangling). */
@@ -226,7 +309,7 @@ void vproc::do_ioctl(ViceFid *fid, unsigned int com, struct ViceIoctl *data) {
                         }
 
 			/* Verify that we have delete permission for the parent. */
-			u.u_error = f->Access((long)PRSFS_DELETE, 0, CRTORUID(u.u_cred));
+			u.u_error = f->Access((long)PRSFS_DELETE, 0, u.u_uid);
 			if (u.u_error) {
                             FSDB->Put(&target_fso);
                             break;
@@ -246,7 +329,7 @@ void vproc::do_ioctl(ViceFid *fid, unsigned int com, struct ViceIoctl *data) {
 			/* Do the remove. */
 			f->PromoteLock();
 			target_fso->PromoteLock();
-			u.u_error = f->Remove((char *)(char *) data->in, target_fso, CRTORUID(u.u_cred));
+			u.u_error = f->Remove(target_name, target_fso, u.u_uid);
 			k_Purge(&target_fso->fid, 1);
 
 
@@ -259,6 +342,7 @@ void vproc::do_ioctl(ViceFid *fid, unsigned int com, struct ViceIoctl *data) {
 			fsobj *target_fso = 0;
 			char *target_name = (char *) data->in;
 			int out_size = 0;	/* needed since data->out_size is a short! */
+                        verifyname(target_name, NAME_NO_DOTS);
 
 			/* Verify that parent is a directory. */
 			if (!f->IsDir()) {
@@ -267,17 +351,10 @@ void vproc::do_ioctl(ViceFid *fid, unsigned int com, struct ViceIoctl *data) {
                         }
 
 			/* Get the target object. */
-			/* Take care against getting/putting object twice! */
-			if (STREQ(target_name, ".")) {
-			    target_fso = f;
-			    f = 0;		/* Fake a FSDB->Put(&f); */
-			}
-			else {
-			    u.u_error = f->Lookup(&target_fso, 0, target_name, CRTORUID(u.u_cred), CLU_CASE_SENSITIVE);
-			    if (u.u_error) {
-                                FSDB->Put(&target_fso);
-                                break;
-                            }
+			u.u_error = f->Lookup(&target_fso, 0, target_name, u.u_uid, CLU_CASE_SENSITIVE);
+			if (u.u_error) {
+			    FSDB->Put(&target_fso);
+			    break;
 			}
 
 			/* Verify that target is a mount point (either valid or dangling). */
@@ -285,13 +362,12 @@ void vproc::do_ioctl(ViceFid *fid, unsigned int com, struct ViceIoctl *data) {
 			    { u.u_error = ENOTDIR; FSDB->Put(&target_fso); break; }
 
 			/*Verify that we have read permission for it. */
-			u.u_error = target_fso->Access((long)PRSFS_LOOKUP, 0,
-						       CRTORUID(u.u_cred));
+			u.u_error = target_fso->Access((long)PRSFS_LOOKUP, 0, u.u_uid);
 			if (u.u_error) { FSDB->Put(&target_fso); break; }
 
 			/* Retrieve the link contents from the cache. */
 			u.u_error = target_fso->Readlink((char *)data->out, MAXPATHLEN,
-							 &out_size, CRTORUID(u.u_cred));
+							 &out_size, u.u_uid);
 			if (u.u_error) {
                             FSDB->Put(&target_fso);
                             break;
@@ -308,12 +384,12 @@ void vproc::do_ioctl(ViceFid *fid, unsigned int com, struct ViceIoctl *data) {
 
 		    case VIOC_GETPFID:
 			{
-			if (data->in_size != (int)sizeof(ViceFid))
+			if (data->in_size != (int)sizeof(VenusFid))
 			    { u.u_error = EINVAL; break; }
-			ViceFid *fid = (ViceFid *)data->in;
+			VenusFid *fid = (VenusFid *)data->in;
 
 			FSDB->Put(&f);
-			u.u_error = FSDB->Get(&f, fid, CRTORUID(u.u_cred), RC_STATUS);
+			u.u_error = FSDB->Get(&f, fid, u.u_uid, RC_STATUS);
 			if (u.u_error) break;
 
 			/* if we're at a mount point, back up over it. */
@@ -321,15 +397,15 @@ void vproc::do_ioctl(ViceFid *fid, unsigned int com, struct ViceIoctl *data) {
 			    if (f->u.mtpoint == 0) 
 				{ u.u_error = ENOENT; break; }
 
-			    ViceFid mtptfid = f->u.mtpoint->fid;
+			    VenusFid mtptfid = f->u.mtpoint->fid;
 			    FSDB->Put(&f);
-			    u.u_error = FSDB->Get(&f, &mtptfid, CRTORUID(u.u_cred), RC_STATUS);
+			    u.u_error = FSDB->Get(&f, &mtptfid, u.u_uid, RC_STATUS);
 			    if (u.u_error) break;
 		        }
 
 			/* Copy out the parent fid. */
-			memmove((void *) data->out, (const void *)&f->pfid, (int)sizeof(ViceFid));
-			data->out_size = (short)sizeof(ViceFid);
+			memmove((void *) data->out, (const void *)&f->pfid, (int)sizeof(VenusFid));
+			data->out_size = (short)sizeof(VenusFid);
 
 			break;
 			}
@@ -340,8 +416,7 @@ void vproc::do_ioctl(ViceFid *fid, unsigned int com, struct ViceIoctl *data) {
 			    { u.u_error = EINVAL; break; }
 
 			f->PromoteLock();
-			u.u_error = f->SetVV((ViceVersionVector *)data->in,
-					     CRTORUID(u.u_cred));
+			u.u_error = f->SetVV((ViceVersionVector *)data->in, u.u_uid);
 
 			break;
 			}
@@ -363,10 +438,10 @@ O_FreeLocks:
 	    fsobj *f = 0;
 
 	    for (;;) {
-		Begin_VFS(fid->Volume, CODA_IOCTL, VM_OBSERVING);
+		Begin_VFS(fid, CODA_IOCTL, VM_OBSERVING);
 		if (u.u_error) break;
 
-		u.u_error = FSDB->Get(&f, fid, CRTORUID(u.u_cred), RC_STATUS,
+		u.u_error = FSDB->Get(&f, fid, u.u_uid, RC_STATUS,
 				      NULL, NULL, 1);
 		if (u.u_error) goto OI_FreeLocks;
 
@@ -374,8 +449,8 @@ O_FreeLocks:
 		case VIOC_ENABLEREPAIR:
 		    {
 		    /* Try to enable target volume for repair by this user. */
-		    VolumeId  *RWVols   = (VolumeId *)data->out;
-		    vuid_t    *LockUids = (vuid_t *)&(RWVols[VSG_MEMBERS]);
+		    VolumeId  *RWVols  = (VolumeId *)data->out;
+		    uid_t    *LockUids = (uid_t *)&(RWVols[VSG_MEMBERS]);
 		    unsigned long *LockWSs =
 			(unsigned long *)&(LockUids[VSG_MEMBERS]);
 		    char      *endp     = (char *)&(LockWSs[VSG_MEMBERS]);
@@ -384,8 +459,10 @@ O_FreeLocks:
 		     * also check if the object is really inconsistent */
 		    if (f->IsFake() && f->vol->IsReplicated())
                         u.u_error =
-                            ((repvol *)f->vol)->EnableRepair(CRTORUID(u.u_cred),
-						    RWVols, LockUids, LockWSs);
+			    ((repvol *)f->vol)->EnableRepair(u.u_uid,
+							     RWVols,
+							     LockUids,
+							     LockWSs);
                     else
                         u.u_error = EOPNOTSUPP;
 
@@ -404,8 +481,7 @@ O_FreeLocks:
 		     * --JH */
 		    {
 		    /* ASR flush operation allowed only for files */
-		    LOG(100, ("Going to reset lastresolved time for %x.%x.%x\n",
-			      fid->Volume, fid->Vnode, fid->Unique));
+		    LOG(100, ("Going to reset lastresolved time for %s\n", FID_(fid)));
 		    u.u_error = f->SetLastResolved(0);
 		    break;
 		    }
@@ -418,31 +494,36 @@ O_FreeLocks:
 		    }
 		    /* Backup and use volroot's mount point if directed. */
 		    if (data->in_size == sizeof(int) && *(int *)data->in != 0) {
-			if (f->fid.Volume == rootfid.Volume ||
+			if (FID_EQ(&f->fid, &rootfid) ||
 			    !FID_IsVolRoot(&f->fid) || f->u.mtpoint == 0) {
 			    u.u_error = EINVAL;
 			    break;
 			}
 
-			ViceFid mtptfid = f->u.mtpoint->fid;
+			VenusFid mtptfid = f->u.mtpoint->fid;
 			FSDB->Put(&f);
-			u.u_error = FSDB->Get(&f, &mtptfid, CRTORUID(u.u_cred),
-					      RC_STATUS, NULL, NULL, 1);
+			u.u_error = FSDB->Get(&f, &mtptfid, u.u_uid, RC_STATUS,
+					      NULL, NULL, 1);
 			if (u.u_error) break;
 		    }
 
-		    char *cp = (char *)data->out;
+		    struct GetFid {
+			ViceFid fid;
+			ViceVersionVector vv;
+			char realm[MAXHOSTNAMELEN+1];
+		    } *cp;
+		    cp = (struct GetFid *)data->out;
 
 		    /* Copy out the fid. */
-		    memcpy(cp, &f->fid, sizeof(ViceFid));
-		    cp += sizeof(ViceFid);
+		    memcpy(&cp->fid, MakeViceFid(&f->fid), sizeof(ViceFid));
 
 		    /* Copy out the VV. This will be garbage unless the
 		     * object is replicated! */
-		    memcpy(cp, &f->stat.VV, sizeof(ViceVersionVector));
-		    cp += sizeof(ViceVersionVector);
+		    memcpy(&cp->vv, &f->stat.VV, sizeof(ViceVersionVector));
 
-		    data->out_size = (cp - data->out);
+		    strcpy(cp->realm, f->vol->realm->Name());
+		    
+		    data->out_size = sizeof(struct GetFid);
 		    break;
 		    }
 		}
@@ -481,12 +562,12 @@ OI_FreeLocks:
  	    gettimeofday(&u.u_tv1, 0); u.u_tv2.tv_sec = 0;
 #endif
 	    volent *v = 0;
-	    if ((u.u_error = VDB->Get(&v, fid->Volume)) != 0) break;
+	    if ((u.u_error = VDB->Get(&v, MakeVolid(fid)))) break;
 
 	    int volmode = ((com == VIOC_REPAIR || com == VIOC_PURGEML) ?
 			   VM_MUTATING : VM_OBSERVING);
 	    int entered = 0;
-	    if ((u.u_error = v->Enter(volmode, CRTORUID(u.u_cred))) != 0)
+	    if ((u.u_error = v->Enter(volmode, u.u_uid)) != 0)
 		goto V_FreeLocks;
 	    entered = 1;
 
@@ -574,8 +655,8 @@ OI_FreeLocks:
 		    /* Retrieve the volume status from the server(s). */
 		    u.u_error = v->GetVolStat(&volstat, &Name, &conn_state,
 					      &conflict, &cml_count,
-					      &OfflineMsg,
-					      &MOTD, CRTORUID(u.u_cred), local_only);
+					      &OfflineMsg, &MOTD, u.u_uid,
+					      local_only);
 		    if (u.u_error) break;
 
 		    /* Format is (status, name, conn_state, conflict,
@@ -623,24 +704,27 @@ OI_FreeLocks:
 
 		    /* Volume status block. */
 		    VolumeStatus volstat;
-		    memmove((void *) (char *)&volstat, (const void *)cp, (int)sizeof(VolumeStatus));
+		    memcpy(&volstat, cp, sizeof(VolumeStatus));
 		    cp += sizeof(VolumeStatus);
 
 		    /* Volume name. */
                     char name[V_MAXVOLNAMELEN];
-#if 0 /* Avoid setting the volumename, otherwise cfs setquota renames all
-         volume replicas to that of their replicated parent. This might
-         confuse ViceGetVolumeInfo and leads to subtle corruption. --JH */
 		    unsigned long namelen = strlen(cp) + 1;
 		    if (namelen >= V_MAXVOLNAMELEN) { u.u_error = EINVAL; break; }
 		    strcpy(name, cp);
-#else
-                    unsigned long namelen = 0;
-#endif
+
 		    RPC2_BoundedBS Name;
 		    Name.SeqBody = (RPC2_ByteSeq)name;
 		    Name.MaxSeqLen = V_MAXVOLNAMELEN;
+#if 0
+		    /* Avoid setting the volumename, otherwise cfs setquota
+		     * renames all volume replicas to that of their replicated
+		     * parent. This might confuse ViceGetVolumeInfo and leads
+		     * to subtle corruption. --JH */
 		    Name.SeqLen = namelen;
+#else
+		    Name.SeqLen = 0;
+#endif
 		    cp += namelen;
 
 		    /* Offline message for this volume. */
@@ -666,7 +750,7 @@ OI_FreeLocks:
 
 		    /* Send the volume status to the server(s). */
 		    u.u_error = v->SetVolStat(&volstat, &Name, &OfflineMsg,
-					      &MOTD, CRTORUID(u.u_cred));
+					      &MOTD, u.u_uid);
 		    if (u.u_error) break;
 
 		    /* Copy all the junk back out. */
@@ -700,7 +784,7 @@ OI_FreeLocks:
 		    /* MiniCache vnodes that have the "wrong" type! -JJK */
 		    (void)k_Purge();
 
-		    FSDB->Flush(fid->Volume);
+		    FSDB->Flush(MakeVolid(fid));
 		    Recov_SetBound(DMFP);
 
 		    break;
@@ -711,7 +795,7 @@ OI_FreeLocks:
 		    /* Disable repair of target volume by this user. */
                     if (v->IsReplicated())
                         u.u_error =
-                            ((repvol *)v)->DisableRepair(CRTORUID(u.u_cred));
+                            ((repvol *)v)->DisableRepair(u.u_uid);
                     else
                         u.u_error = EOPNOTSUPP;
 
@@ -736,7 +820,7 @@ OI_FreeLocks:
                     u.u_error = EOPNOTSUPP;
                     if (v->IsReplicated())
                         u.u_error = ((repvol *)v)->Repair(fid, RepairFile,
-                                       CRTORUID(u.u_cred), RWVols, ReturnCodes);
+                                       u.u_uid, RWVols, ReturnCodes);
 
  	            LOG(0, ("MARIA: VIOC_REPAIR calls volent::Repair which returns %d\n",u.u_error));
 		    /* We don't have the object so can't provide a pathname
@@ -773,9 +857,9 @@ OI_FreeLocks:
 		    ViceStatistics *Stats = (ViceStatistics *)data->out;
 		    for (i = 0; i < VSG_MEMBERS; i++)
 			if (Hosts[i].s_addr) {
-			    srvent *s;
-			    GetServer(&s, &Hosts[i]);
+			    srvent *s = GetServer(&Hosts[i], v->GetRealmId());
 			    (void)s->GetStatistics(Stats);
+			    PutServer(&s);
 			    Stats++;
 			}
 
@@ -788,7 +872,7 @@ OI_FreeLocks:
 		    char *ckpdir = (data->in_size == 0 ? 0 : (char *) data->in);
                     u.u_error = EOPNOTSUPP;
                     if (v->IsReplicated())
-                        u.u_error = ((repvol *)v)->CheckPointMLEs(CRTORUID(u.u_cred), ckpdir);
+                        u.u_error = ((repvol *)v)->CheckPointMLEs(u.u_uid, ckpdir);
 		    break;
 		    }
 
@@ -796,7 +880,7 @@ OI_FreeLocks:
 		    {
                     u.u_error = EOPNOTSUPP;
                     if (v->IsReplicated())
-                        u.u_error = ((repvol *)v)->PurgeMLEs(CRTORUID(u.u_cred));
+                        u.u_error = ((repvol *)v)->PurgeMLEs(u.u_uid);
 		    break;
 		    }
      	        case VIOC_BEGINML:
@@ -835,14 +919,14 @@ OI_FreeLocks:
 		    {			
                         u.u_error = EOPNOTSUPP;
                         if (v->IsReplicated())
-                            u.u_error = ((repvol *)v)->EnableASR(CRTORUID(u.u_cred));
+                            u.u_error = ((repvol *)v)->EnableASR(u.u_uid);
 			break;
 		    }
 	      case VIOC_DISABLEASR:
 		    {
                         u.u_error = EOPNOTSUPP;
                         if (v->IsReplicated())
-                            u.u_error = ((repvol *)v)->DisableASR(CRTORUID(u.u_cred));
+                            u.u_error = ((repvol *)v)->DisableASR(u.u_uid);
 			break;
 		    }
               case VIOC_BEGINWB:
@@ -850,7 +934,7 @@ OI_FreeLocks:
 		      /* request writeback caching from the server ! */
                         u.u_error = EOPNOTSUPP;
                         if (v->IsReplicated())
-                            u.u_error = ((repvol *)v)->EnterWriteback(CRTORUID(u.u_cred));
+                            u.u_error = ((repvol *)v)->EnterWriteback(u.u_uid);
 		      break;
 		    }
  	      case VIOC_AUTOWB:
@@ -865,14 +949,14 @@ OI_FreeLocks:
                             if (!v->flags.autowriteback) {
                                 /* first we need to not be an observer on the
                                  * volume! (massive kluge! -leg, 5/9/99) */
-                                v->Exit(volmode, CRTORUID(u.u_cred));
+                                v->Exit(volmode, u.u_uid);
                                 entered = 0;
-                                u.u_error = ((repvol *)v)->LeaveWriteback(CRTORUID(u.u_cred));
+                                u.u_error = ((repvol *)v)->LeaveWriteback(u.u_uid);
                                 //  if (u.u_error == 0)
                                 //	u.u_error = WB_DISABLED;
                             }
                             else {
-                                u.u_error = ((repvol *)v)->EnterWriteback(CRTORUID(u.u_cred));
+                                u.u_error = ((repvol *)v)->EnterWriteback(u.u_uid);
                                 //if (u.u_error == 0)
                                 //	u.u_error = WB_PERMIT_GRANTED;
                             }
@@ -894,11 +978,11 @@ OI_FreeLocks:
                       /* first we need to not be an observer on the volume! 
                          (massive kluge! -leg, 5/9/99) */
                       v->flags.autowriteback = 0;
-                      v->Exit(volmode, CRTORUID(u.u_cred));
+                      v->Exit(volmode, u.u_uid);
                       entered = 0;
                       /* now we'll leave writeback mode */
                       v->flags.autowriteback = 0;
-                      u.u_error = ((repvol *)v)->LeaveWriteback(CRTORUID(u.u_cred));
+                      u.u_error = ((repvol *)v)->LeaveWriteback(u.u_uid);
                       break;
                   }
               }
@@ -908,7 +992,7 @@ OI_FreeLocks:
                   if (v->IsReplicated()) {
 		      int old_wb_flag = 0;
 
-		      v->Exit(volmode, CRTORUID(u.u_cred));
+		      v->Exit(volmode, u.u_uid);
 		      entered = 0;
 		      old_wb_flag = v->flags.writebackreint;
 		      v->flags.writebackreint = 1;
@@ -936,7 +1020,7 @@ OI_FreeLocks:
 	    }
 
 V_FreeLocks:
-	    if (entered) v->Exit(volmode, CRTORUID(u.u_cred));
+	    if (entered) v->Exit(volmode, u.u_uid);
  	    float elapsed = 0.0;
 #ifdef TIMING
  	    
@@ -1019,20 +1103,29 @@ V_FreeLocks:
 		case VIOC_GET_MT_PT:
 	            {
 		      /* Get mount point pathname */
-		      if (data->in_size != (int)sizeof(VolumeId)) {
+		      if (data->in_size < (int)sizeof(VolumeId) + 1) {
 			u.u_error = EINVAL; break;
 		      }
-		      VolumeId *vol_id = (VolumeId *)data->in;
-		      volent *vv = VDB->Find(*vol_id);
-		      if (vv == 0) {
-			MarinerLog("Could not find volume = %x\n", *vol_id);
+		      Volid volid;
+
+		      Realm *r = REALMDB->GetRealm((char *)data->in +
+						   sizeof(VolumeId));
+		      volid.Realm = r->Id();
+		      r->PutRef();
+
+		      volid.Volume = *(VolumeId *)data->in;
+		      volent *vv = VDB->Find(&volid);
+		      if (!vv) {
+			MarinerLog("Could not find volume = %x.%x\n",
+				   volid.Realm, volid.Volume);
 			u.u_error = EINVAL;
 			break;
 		      }
 		      vv->GetMountPath((char *)data->out, 0);
-		      if (strcmp((char *)data->out, "???") == 0) {
-			MarinerLog("Could not get mount point path for %x\n",
-				   *vol_id);
+		      vv->release();
+		      if (STREQ((char *)data->out, "???")) {
+			MarinerLog("Could not get mount point path for %x.%x\n",
+				   volid.Realm, volid.Volume);
 			u.u_error = EINVAL;
 			break;
 		      }
@@ -1048,24 +1141,26 @@ V_FreeLocks:
 #define secretp ((SecretToken *)(secretlen + 1))
 #define clearlen ((long *)(secretp + 1))
 #define clearp ((ClearToken *)(clearlen + 1))
-#define endp ((char *)(clearp + 1))
+#define realmp ((char *)(clearp + 1))
 /*
 		    if (*secretlen != (int)sizeof(SecretToken) ||
 			*clearlen != (int)sizeof(ClearToken))
 			{ u.u_error = EINVAL; break; }
 */
 		    userent *ue;
-		    GetUser(&ue, CRTORUID(u.u_cred));
-		    u.u_error = ue->SetTokens(secretp, clearp)
-		      ? 0
-		      : EPERM;
+		    Realm *realm;
+		    realm = REALMDB->GetRealm(realmp);
+		    GetUser(&ue, realm, u.u_uid);
+		    u.u_error = 0;
+		    if (!ue->SetTokens(secretp, clearp))
+			u.u_error = EPERM;
 		    PutUser(&ue);
+		    realm->PutRef();
 #undef	secretlen
 #undef	secretp
 #undef	clearlen
 #undef	clearp
-#undef	endp
-
+#undef	realmp
 		    break;
 		    }
 
@@ -1079,9 +1174,12 @@ V_FreeLocks:
 #define clearp ((ClearToken *)(clearlen + 1))
 #define endp ((char *)(clearp + 1)) 
 		    userent *ue;
-		    GetUser(&ue, CRTORUID(u.u_cred));	   
+		    Realm *realm;
+		    realm = REALMDB->GetRealm(data->in);
+		    GetUser(&ue, realm, u.u_uid);	   
 		    u.u_error = (int) ue->GetTokens(secretp, clearp);
-		    PutUser(&ue);		   	
+		    PutUser(&ue);
+		    realm->PutRef();
 		    if (u.u_error) break;
 
 		    *secretlen = (int)sizeof(SecretToken);
@@ -1098,9 +1196,11 @@ V_FreeLocks:
 		case VIOCUNLOG:
 		    {
 		    userent *ue;
-		    GetUser(&ue, CRTORUID(u.u_cred));
+		    Realm *realm = REALMDB->GetRealm(data->in);
+		    GetUser(&ue, realm, u.u_uid);
 		    ue->Invalidate();
 		    PutUser(&ue);
+		    realm->PutRef();
 
 		    break;
 		    }
@@ -1136,11 +1236,11 @@ V_FreeLocks:
 
 		case VIOC_VENUSLOG:
 		    {
-		    if (CRTORUID(u.u_cred) != V_UID)
+		    if (u.u_uid != V_UID)
 			{ u.u_error = EACCES; break; }
 
 		    long on;
-		    memmove((void *) &on, (const void *)data->in, (int)sizeof(long));
+		    memcpy(&on, data->in, sizeof(long));
 		    on &= 0xff;
 		    if (on) DebugOn(); else DebugOff();
 
@@ -1273,27 +1373,41 @@ V_FreeLocks:
 		case VIOC_WAITFOREVER:
 		    {
 		    int on;
-		    memmove((void *) &on, (const void *)data->in, (int)sizeof(int));
+		    memcpy(&on, data->in, sizeof(int));
 
-		    /* We would like "waitforever" behavior to be settable on a per-process group basis. */
-		    /* However, this would require cooperation with the kernel, which I don't want to */
-		    /* mess with now.  So instead, we will set it on a per-user basis (at least for now). */
+		    /* We would like "waitforever" behavior to be settable on a
+		     * per-process group basis. However, this would require
+		     * cooperation with the kernel, which I don't want to mess
+		     * with now.  So instead, we will set it on a per-user
+		     * basis (at least for now). */
 		    userent *ue;
-		    GetUser(&ue, CRTORUID(u.u_cred));
+		    Realm *realm = REALMDB->GetRealm((char *)data->in+sizeof(int));
+		    GetUser(&ue, realm, u.u_uid);
 		    ue->SetWaitForever(on);
 		    PutUser(&ue);
+		    realm->PutRef();
 
 		    break;
 		    }
 
 		case VIOC_GETPATH:
 		    {
-		    if (data->in_size != (int)sizeof(ViceFid))
+		    if (data->in_size != (int)sizeof(VenusFid))
 			{ u.u_error = EINVAL; break; }
-		    ViceFid *fid = (ViceFid *)data->in;
+		    ViceFid fid;
+		    memcpy(&fid, data->in, sizeof(ViceFid));
+		    char *realmname = (char *)data->in + sizeof(ViceFid);
+		    Realm *realm = REALMDB->GetRealm(realmname);
+
 		    int	out_size = MAXPATHLEN;	    /* needed since data->out_size is a short! */
-		    GetPath(fid, (char *) data->out, &out_size, 0);
+		    VenusFid vfid;
+		    MakeVenusFid(&vfid, realm->Id(), &fid);
+
+		    GetPath(&vfid, (char *) data->out, &out_size, 0);
+
 		    data->out_size = out_size;
+
+		    realm->PutRef();
 
 		    break;
 		    }
@@ -1410,7 +1524,7 @@ V_FreeLocks:
 			case REP_CMD_END:
 			    {			
 				int commit, dummy;
-				ViceFid *squirrelFid;
+				VenusFid *squirrelFid;
 
 				CODA_ASSERT(LRDB);
 				squirrelFid = LRDB->RFM_LookupGlobalRoot(LRDB->repair_root_fid);

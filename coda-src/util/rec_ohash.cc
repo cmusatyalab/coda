@@ -205,7 +205,7 @@ void rec_ohashtab::print(FILE *fp) {
 void rec_ohashtab::print(int fd) {
     /* first print out the rec_ohashtab header */
     char buf[40];
-    sprintf(buf, "%#08x : Default rec_ohashtab\n", (long)this);
+    sprintf(buf, "%p : Default rec_ohashtab\n", this);
     write(fd, buf, strlen(buf));
 
     /* then print out all of the rec_olists */

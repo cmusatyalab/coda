@@ -86,7 +86,7 @@ int main(int argc, char **argv)
 	char newpw[10];
 	char buf[200];
 	int ok, rc;
-	char *DefAuthHost = NULL;
+	char *Realm_or_Host = NULL;
 
 	memset(newpw, 0, sizeof(newpw));
 	memset(buf, 0, sizeof(buf));
@@ -98,7 +98,7 @@ int main(int argc, char **argv)
     		    exit(1);
  	        }
 
-	        DefAuthHost = argv[2];
+	        Realm_or_Host = argv[2];
 	        argv += 2;
 	        argc -= 2;
  	    }
@@ -179,7 +179,7 @@ tryagain:
 		printf("Mismatch - password unchanged.\n");
 		exit(1);
 	}
-	rc = U_ChangePassword (DefAuthHost, uname, newpw, AUTH_METHOD_CODAUSERNAME, myuser, strlen(myuser)+1, mypasswd, strlen(mypasswd));
+	rc = U_ChangePassword (Realm_or_Host, uname, newpw, AUTH_METHOD_CODAUSERNAME, myuser, strlen(myuser)+1, mypasswd, strlen(mypasswd));
 	switch(rc) {
 	    case RPC2_DEAD:
 		printf("Server to change passwords down, try again later\n");

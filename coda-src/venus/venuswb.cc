@@ -162,30 +162,50 @@ void writebackserver::main(void)
     }
 }
 
-long RevokeWBPermit(RPC2_Handle RPCid, VolumeId Vid)
+long VENUS_RevokeWBPermit(RPC2_Handle RPCid, VolumeId Vid)
 {
+    RPC2_PeerInfo thePeer;
     volent *v;
+    Volid vid;
 
     LOG(1, ("RevokeWBPermit(): Vid = %d\n", Vid));
 
+    RPC2_GetPeerInfo(RPCid, &thePeer);
+    srvent *s = FindServer(&thePeer.RemoteHost.Value.InetAddress);
+
+    if (!s) {
+	LOG(0, ("RevokeWBPermit from unknown host?\n"));
+	return 0;
+    }
+
     if (!Vid) return 0;
 
-    v = VDB->Find(Vid);
-    if (v && v->IsReplicated())
-	((repvol *)v)->StopWriteback(NULL);
+    vid.Realm = s->realmid;
+    vid.Volume = Vid;
+
+    v = VDB->Find(&vid);
+    if (!v) return 0;
+
+    if (v->IsReplicated()) {
+	repvol *vp = (repvol *)v;
+	vp->StopWriteback(NULL);
+    }
+
+    v->release();
 
     return 0;
 }
 
-long WriteBackFetch(RPC2_Handle RPCid, VolumeId Vid, ViceFid *Fid)
+long VENUS_WriteBackFetch(RPC2_Handle RPCid, VolumeId Vid, ViceFid *Fid)
 {
     return 0;
 }
 
 /* WriteBackNEWCONNECTION() */
-long WriteBackConnect(RPC2_Handle RPCid, RPC2_Integer SideEffectType,
-		     RPC2_Integer SecurityLevel, RPC2_Integer EncryptionType,
-		     RPC2_Integer AuthType, RPC2_CountedBS *ClientIdent) 
+long VENUS_WriteBackConnect(RPC2_Handle RPCid, RPC2_Integer SideEffectType,
+			    RPC2_Integer SecurityLevel, RPC2_Integer
+			    EncryptionType, RPC2_Integer AuthType,
+			    RPC2_CountedBS *ClientIdent) 
 {
     /* Get the {host,port} pair for this call. */
     RPC2_PeerInfo thePeer;
@@ -194,7 +214,6 @@ long WriteBackConnect(RPC2_Handle RPCid, RPC2_Integer SideEffectType,
 	thePeer.RemotePort.Tag != RPC2_PORTBYINETNUMBER)
 	CHOKE("WriteBackConnect: getpeerinfo returned bogus type!");
 
-    unsigned long host = ntohl(thePeer.RemoteHost.Value.InetAddress.s_addr);
     unsigned short port = ntohs(thePeer.RemotePort.Value.InetPortNumber);
     LOG(100, ("WriteBackConnect: host = %s, port = %d\n",
 	      inet_ntoa(thePeer.RemoteHost.Value.InetAddress), port));

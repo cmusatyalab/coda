@@ -155,14 +155,14 @@ msgent *FindMsg(olist& ol, u_long seq) {
 int MsgRead(msgent *m) 
 {
 #ifdef DJGPP
-	int cc = read_relay(m->msg_buf);
+	size_t cc = read_relay(m->msg_buf);
 
 #elif defined(__CYGWIN32__)
         DWORD size;  
-        int cc = read(worker::muxfd, (char *)&size, sizeof(size)); 
+        size_t cc = read(worker::muxfd, (char *)&size, sizeof(size)); 
 	cc = read(worker::muxfd, m->msg_buf, (int)size);
 #else
-	int cc = read(worker::muxfd, m->msg_buf, (int) (VC_MAXMSGSIZE));
+	size_t cc = read(worker::muxfd, m->msg_buf, (int) (VC_MAXMSGSIZE));
 #endif
 	if (cc < sizeof(struct coda_in_hdr)) 
 		return(-1);
@@ -171,7 +171,7 @@ int MsgRead(msgent *m)
 }
 
 
-int MsgWrite(char *buf, int size) 
+size_t MsgWrite(char *buf, int size) 
 {
 #ifdef DJGPP
 	 return write_relay(buf, size);
@@ -218,7 +218,7 @@ void testKernDevice()
 	return;
 #else
 	int fd = -1;
-	char *str, *p, *q;
+	char *str, *p, *q = NULL;
 	CODA_ASSERT((str = p = strdup(kernDevice)) != NULL);
 
 	for(p = strtok(p, ","); p && fd == -1; p = strtok(NULL, ",")) {
@@ -234,8 +234,10 @@ void testKernDevice()
 		   kernDevice);
 	    free(str);
 	    exit(-1);
-	} else
-	    kernDevice = strdup(q);
+	}
+
+	CODA_ASSERT(q);
+	kernDevice = strdup(q);
 	free(str);
 
 	/* Construct a purge message */
@@ -330,8 +332,8 @@ void VFSMount()
 	fd = setmntent("/etc/mtab", "r");
 	if ( fd > 0 ) { 
 	  while (!mounted && (ent = getmntent(fd))) {
-	      if (strcmp(ent->mnt_fsname, "Coda") == 0 &&
-		  strcmp(ent->mnt_dir, venusRoot) == 0) {
+	      if (STREQ(ent->mnt_fsname, "Coda") &&
+		  STREQ(ent->mnt_dir, venusRoot)) {
                   mounted = 1;
 	      }
 	  }
@@ -595,13 +597,12 @@ int k_Purge() {
 }
 
 
-int k_Purge(ViceFid *fid, int severely) {
+int k_Purge(VenusFid *fid, int severely) {
     size_t size;
 
     if (KernelMask == 0) return(1);
 
-    LOG(100, ("k_Purge: fid = (%x.%x.%x), severely = %d\n",
-	       fid->Volume, fid->Vnode, fid->Unique, severely));
+    LOG(100, ("k_Purge: fid = (%s), severely = %d\n", FID_(fid), severely));
 
     int retcode = 0;
 
@@ -611,17 +612,17 @@ int k_Purge(ViceFid *fid, int severely) {
     if (severely) {
 	msg.coda_purgefid.oh.opcode = CODA_PURGEFID;
 	msg.coda_purgefid.oh.unique = 0;
-	msg.coda_purgefid.CodaFid = *fid;
+	msg.coda_purgefid.Fid = *VenusToKernelFid(fid);
 	size = sizeof(msg.coda_purgefid);
     } else if (ISDIR(*fid)) {
 	msg.coda_zapdir.oh.opcode = CODA_ZAPDIR;
 	msg.coda_zapdir.oh.unique = 0;
-	msg.coda_zapdir.CodaFid = *fid;
+	msg.coda_zapdir.Fid = *VenusToKernelFid(fid);
 	size = sizeof(msg.coda_zapdir);
     } else {
 	msg.coda_zapfile.oh.opcode = CODA_ZAPFILE;
 	msg.coda_zapfile.oh.unique = 0;
-	msg.coda_zapfile.CodaFid = *fid;
+	msg.coda_zapfile.Fid = *VenusToKernelFid(fid);
 	size = sizeof(msg.coda_zapfile);
     }	
 
@@ -648,12 +649,13 @@ int k_Purge(ViceFid *fid, int severely) {
 }
 
 
-int k_Purge(vuid_t vuid) {
+int k_Purge(uid_t uid)
+{
     size_t size;
 
     if (KernelMask == 0) return(1);
 
-    LOG(1, ("k_Purge: vuid = %d\n", vuid));
+    LOG(1, ("k_Purge: uid = %d\n", uid));
 
     /* Message prefix. */
     union outputArgs msg;
@@ -661,8 +663,7 @@ int k_Purge(vuid_t vuid) {
     msg.coda_purgeuser.oh.opcode = CODA_PURGEUSER;
 
     /* Message data. */
-    memset(&msg.coda_purgeuser.cred, 0, sizeof(struct coda_cred));
-    msg.coda_purgeuser.cred.cr_uid = vuid;
+    msg.coda_purgeuser.uid = uid;
     size = sizeof(msg.coda_purgeuser);
 
     /* Send the message. */
@@ -675,23 +676,22 @@ int k_Purge(vuid_t vuid) {
     return(1);
 }
 
-int k_Replace(ViceFid *fid_1, ViceFid *fid_2) {
+int k_Replace(VenusFid *fid_1, VenusFid *fid_2) {
     if (KernelMask == 0) return(1);
 
     if (!fid_1 || !fid_2)
 	CHOKE("k_Replace: nil fids");
 
-    LOG(0, ("k_Replace: ViceFid (%x.%x.%x) with ViceFid (%x.%x.%x) in mini-cache\n", 
-	    fid_1->Volume, fid_1->Vnode, fid_1->Unique, fid_2->Volume, 
-	    fid_2->Vnode, fid_2->Unique));
+    LOG(0, ("k_Replace: VenusFid (%s) with VenusFid (%s) in mini-cache\n", 
+	    FID_(fid_1), FID_(fid_2)));
 
     /* Message prefix. */
     struct coda_replace_out msg;
     msg.oh.unique = 0;
     msg.oh.opcode = CODA_REPLACE;
 
-    msg.OldFid = *fid_1;
-    msg.NewFid = *fid_2;
+    msg.OldFid = *VenusToKernelFid(fid_1);
+    msg.NewFid = *VenusToKernelFid(fid_2);
 	
     /* Send the message. */
     if (MsgWrite((char *)&msg, sizeof (struct coda_replace_out)) != sizeof (struct coda_replace_out))
@@ -754,9 +754,10 @@ void WorkerInit()
 #if defined(__BSD44__) || defined(__linux__)
     if (::ioctl(worker::muxfd, CIOC_KERNEL_VERSION, &kernel_version) >= 0 ) {
         switch (kernel_version) {
-        case 2: /* luckily 1 & 2 are upwards compatible */
-        case 1:
+        case 3:
             break;
+        case 2: /* 1 & 2 are upwards compatible, but 3 introduced the realms */
+        case 1:
         default:
             eprint("WorkerInit: Version Skew with kernel! Get a newer kernel!");
             eprint("WorkerInit: Kernel version is %d\n.", kernel_version);
@@ -904,7 +905,7 @@ void WorkerMux(int mask) {
 }
 
 
-int GetWorkerIdleTime() {
+time_t GetWorkerIdleTime() {
     /* Return 0 if any call is in progress. */
     worker_iterator next;
     worker *w;
@@ -1044,7 +1045,7 @@ void worker::Resign(msgent *msg, int size) {
 }
 
 
-void worker::Return(msgent *msg, int size) {
+void worker::Return(msgent *msg, size_t size) {
     if (returned)
 	CHOKE("worker::Return: already returned!");
 
@@ -1067,7 +1068,7 @@ void worker::Return(msgent *msg, int size) {
 
     /* There is no reply to an interrupted operation. */
     if (!interrupted) {
-	int cc = MsgWrite(msg->msg_buf, size);
+	size_t cc = MsgWrite(msg->msg_buf, size);
 	int errn = errno;
 	if (cc != size) {
 	    eprint("worker::Return: message write error %d (op = %d, seq = %d), wrote %d of %d bytes\n",
@@ -1094,11 +1095,11 @@ void worker::main(void)
 {
     struct venus_cnode vparent;
     struct venus_cnode vtarget;
-    ViceFid saveFid;
-    int     saveFlags;
+    CodaFid saveFid;
+    int     saveFlags = 0;
     int     opcode;
     int     size;
-    int     openfd;
+    int     openfd = -1;
 
     for (;;) {
 	/* Wait for new request. */
@@ -1123,7 +1124,7 @@ void worker::main(void)
 	u.u_flags = (FOLLOW_SYMLINKS | TRAVERSE_MTPTS | REFERENCE);
 
 	/* GOTTA BE ME */
-	u.u_cred = (in)->ih.cred;
+	u.u_uid  = (in)->ih.uid;
 	u.u_pid  = (in)->ih.pid;
 	u.u_pgid = (in)->ih.pgid;
 
@@ -1133,7 +1134,7 @@ void worker::main(void)
 	    case CODA_ACCESS:
 		{
 		LOG(100, ("CODA_ACCESS: u.u_pid = %d u.u_pgid = %d\n", u.u_pid, u.u_pgid));
-		MAKE_CNODE(vtarget, in->coda_access.VFid, 0);
+		MAKE_CNODE(vtarget, in->coda_access.Fid, 0);
 		access(&vtarget, in->coda_access.flags);
 		break;
 		}
@@ -1141,7 +1142,7 @@ void worker::main(void)
 	    case CODA_CLOSE:
 		{
 		LOG(100, ("CODA_CLOSE: u.u_pid = %d u.u_pgid = %d\n", u.u_pid, u.u_pgid));
-		MAKE_CNODE(vtarget, in->coda_close.VFid, 0);
+		MAKE_CNODE(vtarget, in->coda_close.Fid, 0);
 		close(&vtarget, in->coda_close.flags);
 		break;
 		}
@@ -1149,13 +1150,13 @@ void worker::main(void)
 	  case CODA_CREATE:
 		{
 		LOG(100, ("CODA_CREATE: u.u_pid = %d u.u_pgid = %d\n", u.u_pid,u.u_pgid));
-		MAKE_CNODE(vparent, in->coda_create.VFid, 0);
+		MAKE_CNODE(vparent, in->coda_create.Fid, 0);
 		create(&vparent, (char *)in + (int)in->coda_create.name,
 		       &in->coda_create.attr, in->coda_create.excl,
 		       in->coda_create.mode, &vtarget);
 
 		if (u.u_error == 0) {
-		    out->coda_create.VFid = vtarget.c_fid;
+		    out->coda_create.Fid = *VenusToKernelFid(&vtarget.c_fid);
 		    out->coda_create.attr = in->coda_create.attr;
 		    size = (int)sizeof (struct coda_create_out);
 		}
@@ -1165,7 +1166,7 @@ void worker::main(void)
 	    case CODA_FSYNC:	
 		{
 		LOG(100, ("CODA_FSYNC: u.u_pid = %d u.u_pgid = %d\n", u.u_pid, u.u_pgid));
-		MAKE_CNODE(vtarget, in->coda_fsync.VFid, 0);
+		MAKE_CNODE(vtarget, in->coda_fsync.Fid, 0);
 		fsync(&vtarget);
 		break;
 		}
@@ -1173,7 +1174,7 @@ void worker::main(void)
 	    case CODA_GETATTR:
 		{
 		LOG(100, ("CODA_GETATTR: u.u_pid = %d u.u_pgid = %d\n", u.u_pid, u.u_pgid));
-		MAKE_CNODE(vtarget, in->coda_getattr.VFid, 0);
+		MAKE_CNODE(vtarget, in->coda_getattr.Fid, 0);
 		va_init(&out->coda_getattr.attr);
 		getattr(&vtarget, &out->coda_getattr.attr);
                 size = sizeof(struct coda_getattr_out);
@@ -1213,7 +1214,7 @@ void worker::main(void)
 		if (cmd == VIOCPREFETCH)
 		    worker::nprefetchers++;
 
-		MAKE_CNODE(vtarget, in->coda_ioctl.VFid, 0);
+		MAKE_CNODE(vtarget, in->coda_ioctl.Fid, 0);
 		data.in_size = in->coda_ioctl.len;
 		ioctl(&vtarget, cmd, &data, in->coda_ioctl.rwflag);
 
@@ -1241,11 +1242,11 @@ void worker::main(void)
 		{
 		LOG(100, ("CODA_LOOKUP: u.u_pid = %d u.u_pgid = %d\n", u.u_pid, u.u_pgid));
 
-		MAKE_CNODE(vparent, in->coda_lookup.VFid, 0);
+		MAKE_CNODE(vparent, in->coda_lookup.Fid, 0);
 		lookup(&vparent, (char *)in + (int)in->coda_lookup.name, &vtarget, (int)in->coda_lookup.flags);
 
 		if (u.u_error == 0) {
-		    out->coda_lookup.VFid = vtarget.c_fid;
+		    out->coda_lookup.Fid = *VenusToKernelFid(&vtarget.c_fid);
 		    out->coda_lookup.vtype = vtarget.c_type;
 		    if (vtarget.c_type == C_VLNK && vtarget.c_flags & C_INCON)
 			    out->coda_lookup.vtype |= CODA_NOCACHE;
@@ -1257,12 +1258,12 @@ void worker::main(void)
 	    case CODA_MKDIR:
 		{
 		LOG(100, ("CODA_MKDIR: u.u_pid = %d u.u_pgid = %d\n", u.u_pid, u.u_pgid));
-		MAKE_CNODE(vparent, in->coda_mkdir.VFid, 0);
+		MAKE_CNODE(vparent, in->coda_mkdir.Fid, 0);
 		mkdir(&vparent, (char *)in + (int)in->coda_mkdir.name,
                       &in->coda_mkdir.attr, &vtarget);
 
 		if (u.u_error == 0) {
-		    out->coda_mkdir.VFid = vtarget.c_fid;
+		    out->coda_mkdir.Fid = *VenusToKernelFid(&vtarget.c_fid);
 		    out->coda_mkdir.attr = in->coda_mkdir.attr;
 		    size = sizeof (struct coda_mkdir_out);
 		}
@@ -1273,14 +1274,14 @@ void worker::main(void)
 		{
 		LOG(100, ("CODA_OPEN: u.u_pid = %d u.u_pgid = %d\n", u.u_pid, u.u_pgid)); 
                 /* Remember some info for dealing with interrupted open calls */
-                saveFid = in->coda_open.VFid;
+                saveFid = in->coda_open.Fid;
                 saveFlags = in->coda_open.flags;
 		
-		MAKE_CNODE(vtarget, in->coda_open.VFid, 0);
+		MAKE_CNODE(vtarget, in->coda_open.Fid, 0);
 		open(&vtarget, in->coda_open.flags);
 		
 		if (u.u_error == 0) {
-		    MarinerReport(&vtarget.c_fid, CRTORUID(u.u_cred));
+		    MarinerReport(&vtarget.c_fid, u.u_uid);
 
 		    out->coda_open.dev = vtarget.c_device;
 		    out->coda_open.inode = vtarget.c_inode;
@@ -1294,15 +1295,15 @@ void worker::main(void)
                 LOG(100, ("CODA_OPEN_BY_FD: u.u_pid = %d u.u_pgid = %d\n",
                           u.u_pid, u.u_pgid));
                 /* Remember some info for dealing with interrupted open calls */
-                saveFid = in->coda_open_by_fd.VFid;
+                saveFid = in->coda_open_by_fd.Fid;
                 saveFlags = in->coda_open_by_fd.flags;
 		
-		MAKE_CNODE(vtarget, in->coda_open_by_fd.VFid, 0);
+		MAKE_CNODE(vtarget, in->coda_open_by_fd.Fid, 0);
 		open(&vtarget, in->coda_open_by_fd.flags);
 		
                 openfd = -1;
 		if (u.u_error == 0) {
-		    MarinerReport(&vtarget.c_fid, CRTORUID(u.u_cred));
+		    MarinerReport(&vtarget.c_fid, u.u_uid);
 
 		    openfd = ::open(vtarget.c_cfname, O_RDWR|O_BINARY, V_MODE);
 		    out->coda_open_by_fd.fd = openfd;
@@ -1320,15 +1321,15 @@ void worker::main(void)
 		char *slash;
 #endif
                 /* Remember some info for dealing with interrupted open calls */
-		saveFid = in->coda_open_by_path.VFid;
+		saveFid = in->coda_open_by_path.Fid;
 		saveFlags = in->coda_open_by_path.flags;
 		
-		MAKE_CNODE(vtarget, in->coda_open_by_path.VFid, 0);
+		MAKE_CNODE(vtarget, in->coda_open_by_path.Fid, 0);
 
 		open(&vtarget, in->coda_open_by_path.flags);
 		
 		if (u.u_error == 0) {
-		    MarinerReport(&vtarget.c_fid, CRTORUID(u.u_cred));
+		    MarinerReport(&vtarget.c_fid, u.u_uid);
 
                     char *begin = (char *)(&out->coda_open_by_path.path + 1);
                     out->coda_open_by_path.path = begin - (char *)out;
@@ -1352,14 +1353,14 @@ void worker::main(void)
 	    case CODA_READLINK: 
 		{
 		LOG(100, ("CODA_READLINK: u.u_pid = %d u.u_pgid = %d\n", u.u_pid, u.u_pgid));
-		MAKE_CNODE(vtarget, in->coda_readlink.VFid, 0);
+		MAKE_CNODE(vtarget, in->coda_readlink.Fid, 0);
 		struct coda_string string;
 		string.cs_buf = (char *)out + sizeof(struct coda_readlink_out);
 		string.cs_maxlen = CODA_MAXPATHLEN;
 		readlink(&vtarget, &string);
 
 		if (u.u_error == 0)
-		    MarinerReport(&(vtarget.c_fid), CRTORUID(u.u_cred));
+		    MarinerReport(&(vtarget.c_fid), u.u_uid);
 
 		out->coda_readlink.count = string.cs_len;
 		/* readlink.data is an offset, with the wrong type .. sorry */
@@ -1372,7 +1373,7 @@ void worker::main(void)
 	    case CODA_REMOVE:
 		{
 		LOG(100, ("CODA_REMOVE: u.u_pid = %d u.u_pgid = %d\n", u.u_pid, u.u_pgid));
-		MAKE_CNODE(vparent, in->coda_remove.VFid, 0);
+		MAKE_CNODE(vparent, in->coda_remove.Fid, 0);
 		remove(&vparent, (char *)in + (int)in->coda_remove.name);
 		break;
 		}
@@ -1391,7 +1392,7 @@ void worker::main(void)
 	    case CODA_RMDIR:
 		{
 		LOG(100, ("CODA_RMDIR: u.u_pid = %d u.u_pgid = %d\n", u.u_pid, u.u_pgid));
-		MAKE_CNODE(vparent, in->coda_rmdir.VFid, 0);
+		MAKE_CNODE(vparent, in->coda_rmdir.Fid, 0);
 		rmdir(&vparent, (char *)in + (int)in->coda_rmdir.name);
 		break;
 		}
@@ -1401,7 +1402,7 @@ void worker::main(void)
 		root(&vtarget);
 
 		if (u.u_error == 0) {
-		    out->coda_root.VFid = vtarget.c_fid;
+		    out->coda_root.Fid = *VenusToKernelFid(&vtarget.c_fid);
 		    size = sizeof (struct coda_root_out);
 		}
 		break;
@@ -1410,7 +1411,7 @@ void worker::main(void)
 	    case CODA_SETATTR:
 		{
 		LOG(100, ("CODA_SETATTR: u.u_pid = %d u.u_pgid = %d\n", u.u_pid, u.u_pgid));
-		MAKE_CNODE(vtarget, in->coda_setattr.VFid, 0);
+		MAKE_CNODE(vtarget, in->coda_setattr.Fid, 0);
 		setattr(&vtarget, &in->coda_setattr.attr);
 		break;
 		}
@@ -1419,7 +1420,7 @@ void worker::main(void)
 		{
 		LOG(100, ("CODA_SYMLINK: u.u_pid = %d u.u_pgid = %d\n", u.u_pid, u.u_pgid));
 
-		MAKE_CNODE(vtarget, in->coda_symlink.VFid, 0);
+		MAKE_CNODE(vtarget, in->coda_symlink.Fid, 0);
                 symlink(&vtarget, (char *)in + (int)in->coda_symlink.srcname, &in->coda_symlink.attr, (char *)in + (int)in->coda_symlink.tname);
 		break;
 		}
@@ -1428,12 +1429,12 @@ void worker::main(void)
 		{
 		LOG(100, ("CODA_VGET: u.u_pid = %d u.u_pgid = %d\n", u.u_pid, u.u_pgid));
 		struct cfid fid;
-		fid.cfid_len = (unsigned short)sizeof(ViceFid);
-		fid.cfid_fid = in->coda_vget.VFid;
+		fid.cfid_len = (unsigned short)sizeof(VenusFid);
+		KernelToVenusFid(&fid.cfid_fid, &in->coda_vget.Fid);
 		vget(&vtarget, &fid);
 
 		if (u.u_error == 0) {
-		    out->coda_vget.VFid = vtarget.c_fid;
+		    out->coda_vget.Fid = *VenusToKernelFid(&vtarget.c_fid);
 		    out->coda_vget.vtype = vtarget.c_type;
 		    if (vtarget.c_type == C_VLNK && vtarget.c_flags & C_INCON)
                         out->coda_vget.vtype |= CODA_NOCACHE;
@@ -1473,9 +1474,9 @@ void worker::main(void)
             /* If open was aborted by user we must abort our OPEN too
              *  (if it was successful). */
             if (interrupted && u.u_error == 0) {
-
-                eprint("worker::main: aborting open (%x.%x.%x)",
-                       saveFid.Volume, saveFid.Vnode, saveFid.Unique);
+		VenusFid fid;
+		KernelToVenusFid(&fid, &saveFid);
+                eprint("worker::main: aborting open (%s)", &fid);
 
                 /* NOTE: This may be bogus. It will definately cause a
                  * "message write error" since the uniquifier is bogus. No
@@ -1488,7 +1489,7 @@ void worker::main(void)
 
                 dog->coda_close.ih.unique = (u_long)-1;
                 dog->coda_close.ih.opcode = CODA_CLOSE;
-                dog->coda_close.VFid = saveFid;
+                dog->coda_close.Fid = saveFid;
                 dog->coda_close.flags = saveFlags;
 
                 /* Dispatch it. */

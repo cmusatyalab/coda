@@ -48,7 +48,7 @@ extern "C" {
 class adv_monitor {
     friend class userent;
     friend class fsobj;
-    friend int fsdb::Get(fsobj **f_addr, ViceFid *key, vuid_t vuid, int rights, char *comp, int *rcode, int GetInconstent);
+    friend int fsdb::Get(fsobj **f_addr, VenusFid *key, uid_t uid, int rights, char *comp, int *rcode, int GetInconstent);
     friend long S_ImminentDeath(RPC2_Handle _cid, RPC2_String hostname, RPC2_Integer port);
  private:
 
@@ -81,13 +81,13 @@ class adv_monitor {
     void ServerConnectionWeak(char *);
     void ServerConnectionStrong(char *);
     void ServerBandwidthEstimate(char *, long);
-    int RequestASRInvokation(repvol *vol, char *pathname, vuid_t vuid);
+    int RequestASRInvokation(repvol *vol, char *pathname, uid_t uid);
 
     /* Log stuff */
-    void InitializeProgramLog(vuid_t vuid);
+    void InitializeProgramLog(uid_t uid);
     void SwapProgramLog();
-    void LogProgramAccess(int pid, int pgid, ViceFid *fid);
-    void InitializeReplacementLog(vuid_t vuid);
+    void LogProgramAccess(int pid, int pgid, VenusFid *fid);
+    void InitializeReplacementLog(uid_t uid);
     void SwapReplacementLog();
     void LogReplacement(char *path, int status, int data);
 
@@ -98,7 +98,7 @@ class adv_monitor {
     void ReturnConnection();
     void DestroyConnection();
 
-    int RegisterInterest(vuid_t vuid, long numEvents, InterestValuePair events[]);
+    int RegisterInterest(uid_t uid, long numEvents, InterestValuePair events[]);
 
     void CheckError(long rpc_code, InterestID callType);
 
@@ -114,14 +114,14 @@ class adv_monitor {
     int skkPgid(int x) { return(x == pgid); }
     int sameHandle(RPC2_Handle x) { return (x == handle); }
 
-    CacheMissAdvice ReadDisconnectedAdvice(ViceFid *fid,
+    CacheMissAdvice ReadDisconnectedAdvice(VenusFid *fid,
 					   char *pathname,
 					   int pid)
     {
 	return FetchFromServers;
     }
 
-    CacheMissAdvice WeaklyConnectedAdvice(ViceFid *fid,
+    CacheMissAdvice WeaklyConnectedAdvice(VenusFid *fid,
 					  char *pathname,
 					  int pid, int length,
 					  int estimatedBandwidth,

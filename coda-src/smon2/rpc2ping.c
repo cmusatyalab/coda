@@ -34,7 +34,6 @@ listed in the file CREDITS.
 void Initialize(void)
 {
     PROCESS         *pid;
-    SFTP_Initializer sei;
     struct timeval   tv;
     long             rc;
 
@@ -81,10 +80,10 @@ long Bind(char *host, short port, long subsys, RPC2_Handle *cid)
 int main(int argc, char *argv[])
 {
     RPC2_Handle cid;
+    long	subsys = 1001;
     long        rc;
     char       *host;
     short       port;
-    long	subsys;
 
     if (argc == 1)
         goto badargs;

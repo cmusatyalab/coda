@@ -80,16 +80,16 @@ void VolDaemon(void)
     vproc *vp = VprocSelf();
     RegisterDaemon(VolDaemonInterval, &voldaemon_sync);
 
-    unsigned long curr_time = Vtime();
+    time_t curr_time = Vtime();
 
     /* Avoid checks on first firing! */
-    unsigned long LastGetDown = 0; /* except for GC'ing empty volumes */
-    unsigned long LastCOP2Check = curr_time;
-    unsigned long LastCheckPoint = curr_time;
-    unsigned long LastRPM = curr_time;
-    unsigned long LastLocalSubtree = curr_time;
-    unsigned long LastTrickleReintegrate = curr_time;
-    unsigned long LastWBPermitRequest = curr_time;
+    time_t LastGetDown = 0; /* except for GC'ing empty volumes */
+    time_t LastCOP2Check = curr_time;
+    time_t LastCheckPoint = curr_time;
+    time_t LastRPM = curr_time;
+    time_t LastLocalSubtree = curr_time;
+    time_t LastTrickleReintegrate = curr_time;
+    time_t LastWBPermitRequest = curr_time;
 
     for (;;) {
 	VprocWait(&voldaemon_sync);
@@ -172,7 +172,7 @@ void vdb::GetDown()
         while ((v = n) != NULL) {
             n = next();
             if (v->refcnt == 0) {
-                LOG(10, ("vdb::GetDown destroying %x\n", v->GetVid()));
+                LOG(10, ("vdb::GetDown destroying %x\n", v->GetVolumeId()));
                 delete v;
             }
         }
@@ -183,7 +183,7 @@ void vdb::GetDown()
         while ((v = n) != NULL) {
             n = next();
             if (v->refcnt == 0) {
-                LOG(10, ("vdb::GetDown destroying %x\n", v->GetVid()));
+                LOG(10, ("vdb::GetDown destroying %x\n", v->GetVolumeId()));
                 delete v;
             }
         }
@@ -296,12 +296,11 @@ void vdb::AutoRequestWBPermit()
     repvol_iterator next;
     repvol *v;
     vproc *vp = VprocSelf();
-    vuid_t vuid = CRTORUID(vp->u.u_cred); 
     /* XXX SSS replace this with something useful */
 
     while ((v = next()))
 	if (v->flags.autowriteback && !v->flags.writebacking)
-	    v->EnterWriteback(vuid);
+	    v->EnterWriteback(vp->u.u_uid);
 }
 
 

@@ -51,8 +51,7 @@ extern "C" {
 
 class userent {
   friend void UserInit();
-  friend userent *FindUser(vuid_t);
-  friend void GetUser(userent **, vuid_t);
+  friend void GetUser(userent **, Realm *, uid_t);
   friend void PutUser(userent **);
   friend void UserPrint(int);
   friend class user_iterator;
@@ -64,7 +63,8 @@ class userent {
 
     /* Transient members. */
     olink tblhandle;
-    vuid_t uid;
+    Realm *realm;
+    uid_t uid;
     int tokensvalid;
     int told_you_so;
     SecretToken secret;
@@ -74,7 +74,7 @@ class userent {
     long DemandHoardWalkTime; /* time of last demand hoard walk for this user */
 
     /* Constructors, destructors, and private utility routines. */
-    userent(vuid_t);
+    userent(Realm *, uid_t);
     userent(userent&);	    /* not supported! */
     int operator=(userent&);    /* not supported! */
     ~userent();
@@ -90,7 +90,7 @@ class userent {
     int GetWaitForever();
     void SetWaitForever(int);   
 
-    vuid_t GetUid() { return(uid); }
+    uid_t GetUid() { return(uid); }
 
     void print();
     void print(FILE *);
@@ -109,19 +109,17 @@ class user_iterator : public olist_iterator {
 /*  *****  Functions/Routines  *****  */
 
 /* user.c */
-extern void UserInit();
-extern userent *FindUser(vuid_t);
-extern void GetUser(userent **, vuid_t);
-extern void PutUser(userent **);
-extern void UserPrint();
-extern void UserPrint(FILE *);
-extern void UserPrint(int);
-extern int AuthorizedUser(vuid_t);
-extern int ConsoleUser(vuid_t user);
-
+void UserInit();
+void GetUser(userent **, Realm *, uid_t);
+void PutUser(userent **);
+void UserPrint();
+void UserPrint(FILE *);
+void UserPrint(int);
+int AuthorizedUser(uid_t);
+int ConsoleUser(uid_t user);
 
 /* user_daemon.c */
-extern void USERD_Init(void);
-extern void UserDaemon(void);
+void USERD_Init(void);
+void UserDaemon(void);
 
 #endif /* _VENUS_USER_H_ */

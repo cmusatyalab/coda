@@ -113,11 +113,9 @@ static void CheckServers(int, char**, int);
 static void CheckPointML(int, char**, int);
 static void CheckVolumes(int, char**, int);
 static void ClearPriorities(int, char**, int);
-static void Compress(int, char**, int);
 static void Disconnect(int, char**, int);
 static void DisableASR(int, char**, int);
 static void EnableASR(int, char**, int); 
-static void EndML(int, char**, int);
 static void EndRepair(int, char**, int);
 static void ExamineClosure(int, char**, int);
 static void FlushCache(int, char**, int);
@@ -145,7 +143,6 @@ static void SetVolume(int, char **, int);
 static void Slow(int, char **, int);
 static void Strong(int, char**, int);
 static void TruncateLog(int, char **, int);
-static void Uncompress(int, char**, int);
 static void UnloadKernel(int, char **, int);
 static void WaitForever(int, char**, int);
 static void WhereIs(int, char**, int);
@@ -679,15 +676,14 @@ static void CheckVolumes(int argc, char *argv[], int opslot)
     }
 
 static void ClearPriorities(int argc, char *argv[], int opslot)
-    {
+{
     int rc;
     struct ViceIoctl vio;
 
-    if (argc != 2)
-        {
+    if (argc != 2) {
         printf("Usage: %s\n", cmdarray[opslot].usetxt);
         exit(-1);
-        }
+    }
 
     vio.in = 0;
     vio.in_size = 0;
@@ -695,21 +691,20 @@ static void ClearPriorities(int argc, char *argv[], int opslot)
     vio.out_size = 0;
     rc = pioctl(mountpoint, VIOC_CLEARPRIORITIES, &vio, 0);
     if (rc < 0) { PERROR("  VIOC_CLEARPRIORITIES"); exit(-1); }
-    }
+}
 
+#ifndef NDEBUG
 static void Compress(int argc, char *argv[], int opslot)
-    {
+{
     int i, rc; 
     struct ViceIoctl vio;
 
-    if (argc < 3)
-        {
+    if (argc < 3) {
         printf("Usage: %s\n", cmdarray[opslot].usetxt);
         exit(-1);
-        }
+    }
 
-    for (i = 2; i < argc; i++)
-        {
+    for (i = 2; i < argc; i++) {
         if (argc > 3) printf("  %s", argv[i]);
         vio.in = 0;
         vio.in_size = 0;
@@ -718,8 +713,9 @@ static void Compress(int argc, char *argv[], int opslot)
         rc = pioctl(argv[i], VIOC_COMPRESS, &vio, 1);
         if (rc < 0) { PERROR("VIOC_COMPRESS"); continue; }
         if (argc > 3) printf("\n");
-        }
     }
+}
+#endif
 
 static void Redir (int argc, char *argv[], int opslot)
 {
@@ -909,7 +905,7 @@ static int findclosures(char ***clist)
      */
     int n = 0;
     int len;
-    char *checkpointdir;
+    char *checkpointdir = NULL;
     char spooldir[MAXPATHLEN];
     DIR *dirp;
     struct dirent *td;
@@ -1107,7 +1103,6 @@ static void BeginRepair(int argc, char *argv[], int opslot)
 {
     struct ViceIoctl vio;
     int rc;
-    ViceFid fid;
 
     if (argc != 3) {
         printf("Usage: %s\n", cmdarray[opslot].usetxt);
@@ -1227,11 +1222,12 @@ static void FlushASR(int argc, char *argv[], int opslot) {
     }
 }
 
-static int pioctl_GetFid(char *path, ViceFid *fid, ViceVersionVector *vv)
+static int pioctl_GetFid(char *path, ViceFid *fid, char *realm, ViceVersionVector *vv)
 {
     struct GetFid {
         ViceFid           fid;
         ViceVersionVector vv;
+	char		  realm[MAXHOSTNAMELEN+1];
     }                out;
     struct ViceIoctl vio;
     int              rc;
@@ -1252,17 +1248,19 @@ static int pioctl_GetFid(char *path, ViceFid *fid, ViceVersionVector *vv)
     if (rc < 0) return rc;
 
     /* Got the fid! */
-    if (fid) memcpy(fid, &out.fid, sizeof(ViceFid));
-    if (vv)  memcpy(vv,  &out.vv,  sizeof(ViceVersionVector));
+    if (fid)   memcpy(fid, &out.fid, sizeof(ViceFid));
+    if (realm) strcpy(realm, out.realm);
+    if (vv)    memcpy(vv,  &out.vv,  sizeof(ViceVersionVector));
 
     return rc;
 }
 
 
 static void GetFid(int argc, char *argv[], int opslot)
-    {
+{
     int i, rc, w;
     ViceFid fid;
+    char realmname[MAXHOSTNAMELEN+1];
     ViceVersionVector vv;
     char buf[100];
 
@@ -1275,25 +1273,25 @@ static void GetFid(int argc, char *argv[], int opslot)
     w = getlongest(argc, argv);
 
     for (i = 2; i < argc; i++)
-        {
+    {
         if (argc > 3) printf("  %*s  ", w, argv[i]); /* echo input if more than one fid */
         /* Validate next fid */
 
-        rc = pioctl_GetFid(argv[i], &fid, &vv);
+        rc = pioctl_GetFid(argv[i], &fid, realmname, &vv);
         if (rc < 0) { PERROR("VIOC_GETFID"); continue; }
 
-        sprintf(buf, "0x%x.%x.%x",  fid.Volume, fid.Vnode, fid.Unique);
-        printf("FID = %-20s     ", buf);
-        sprintf(buf, "[%d %d %d %d %d %d %d %d]",
-               vv.Versions.Site0, vv.Versions.Site1,vv.Versions.Site2,
-               vv.Versions.Site3, vv.Versions.Site4,vv.Versions.Site5,
-               vv.Versions.Site6,vv.Versions.Site7);
+	sprintf(buf, "%x.%x.%x@%s", (unsigned int)fid.Volume,
+		(unsigned int)fid.Vnode, (unsigned int)fid.Unique, realmname);
+        printf("FID = %-20s  ", buf);
+        sprintf(buf, "[%ld %ld %ld %ld %ld %ld %ld %ld]",
+               vv.Versions.Site0, vv.Versions.Site1, vv.Versions.Site2,
+               vv.Versions.Site3, vv.Versions.Site4, vv.Versions.Site5,
+               vv.Versions.Site6, vv.Versions.Site7);
         printf("VV = %-24s  ", buf);
-        printf("STOREID = 0x%x.%x  FLAGS = 0x%x\n", vv.StoreId.Host, 
+        printf("STOREID = %lx.%lx  FLAGS = 0x%lx\n", vv.StoreId.Host, 
                 vv.StoreId.Uniquifier, vv.Flags);
-        }
-    
     }
+}
 
 static int pioctl_SetVV(char *path, ViceVersionVector *vv)
 {
@@ -1315,10 +1313,8 @@ static int pioctl_SetVV(char *path, ViceVersionVector *vv)
 
 static void MarkFidIncon(int argc, char *argv[], int opslot)
 {
-    int i, rc, w;
-    ViceFid fid;
+    int i, w;
     ViceVersionVector vv;
-    char buf[100];
 
     if (argc < 3)
     {
@@ -1334,7 +1330,7 @@ static void MarkFidIncon(int argc, char *argv[], int opslot)
 	if (argc > 3) printf("%s\n", argv[i]);
 
 	/* Validate next fid */
-	if (pioctl_GetFid(argv[i], &fid, &vv) < 0)
+	if (pioctl_GetFid(argv[i], NULL, NULL, &vv) < 0)
 	    { PERROR("VIOC_GETFID"); continue; }
 
 	SetIncon(vv);
@@ -1362,15 +1358,19 @@ static void GetPath(int argc, char *argv[], int opslot)
         {
         if (argc > 3) printf("  %*s  ", w, argv[i]); /* echo input if more than one fid */
         /* Validate next fid */
-        if (sscanf(argv[i], "%lx.%lx.%lx", &fid.Volume, &fid.Vnode, &fid.Unique) != 3)
-            {
-            printf("Malformed fid: should look like %%x.%%x.%%x\n");
+	char tmp;
+        if (sscanf(argv[i], "%lx.%lx.%lx@%c", &fid.Volume, &fid.Vnode, &fid.Unique, &tmp) != 4)
+	{
+            printf("Malformed fid: should look like %%x.%%x.%%x@<realm>\n");
             continue;
-            }
+	}
 
         /* Get its path */
-        vio.in = (char *)&fid;
-        vio.in_size = (int) sizeof(ViceFid);
+	char *realmname = strrchr(argv[i], '@')+1;
+	memcpy(piobuf, &fid, sizeof(ViceFid));
+	strcpy(piobuf + sizeof(ViceFid), realmname);
+        vio.in = piobuf;
+        vio.in_size = sizeof(ViceFid) + strlen(realmname) + 1;
         vio.out = piobuf;
         vio.out_size = PIOBUFSIZE;
         rc = pioctl(mountpoint, VIOC_GETPATH, &vio, 0);
@@ -1576,7 +1576,12 @@ static void GetMountPoint(int argc, char *argv[], int opslot)
 {
   int i, rc;
   struct ViceIoctl vio;
-  VolumeId vol_id;
+  struct {
+      VolumeId volume;
+      char realm[MAXHOSTNAMELEN+1];
+  } arg;
+
+  memset(&arg, 0, sizeof(arg));
   
   /* Parse command line arguments. */
   if (argc < 3) {
@@ -1585,12 +1590,14 @@ static void GetMountPoint(int argc, char *argv[], int opslot)
   }
 
   for (i = 2; i < argc; i++) {
-    if ( sscanf(argv[i], "%x", &vol_id) != 1 ) {
-      printf("Usage: %s\n", cmdarray[opslot].usetxt);
-      exit(-1);
+    rc = sscanf(argv[i], "%x@%s", (unsigned int *)&arg.volume, arg.realm);
+    if (rc < 2) {
+	printf("Usage: %s\n", cmdarray[opslot].usetxt);
+	exit(-1);
     }
-    vio.in = (char *)&vol_id;
-    vio.in_size = (int) sizeof(VolumeId);
+
+    vio.in = (char *)&arg;
+    vio.in_size = sizeof(arg);
     vio.out = piobuf;
     vio.out_size = PIOBUFSIZE;
 
@@ -1599,13 +1606,13 @@ static void GetMountPoint(int argc, char *argv[], int opslot)
     if (rc < 0) { PERROR("Failed in GetMountPoint."); exit(-1); }
     
     /* Print output field */
-    printf("%x:  %s\n", vol_id, (char *)piobuf);
+    printf("%s:  %s\n", argv[i], (char *)piobuf);
   }
 }
 
 static void ListCache(int argc, char *argv[], int opslot)
 {
-  int i, rc;
+  int i, rc = 0;
 
   int long_format = 0;          /* If == 1, list in a long format. */
   unsigned int valid = 0;       /* list the following fsobjs, if
@@ -1632,7 +1639,7 @@ static void ListCache(int argc, char *argv[], int opslot)
     printf("Usage: %s\n", cmdarray[opslot].usetxt);
     exit(-1);
   }
-  int argi;                     /* Index for argv. */
+  int argi = 0;                     /* Index for argv. */
   if (argc < 3) {
     file_specified = 0;
     vol_specified = 0;
@@ -1681,7 +1688,7 @@ static void ListCache(int argc, char *argv[], int opslot)
       /* Set up parms to pioctl */
       VolumeId vol_id;
       char mtptpath[MAXPATHLEN];
-      if ( sscanf(argv[i], "%x", &vol_id) == 1 ) {
+      if ( sscanf(argv[i], "%x", (unsigned int *)&vol_id) == 1 ) {
         vio.in = (char *)&vol_id;
         vio.in_size = (int) sizeof(VolumeId);
         vio.out = piobuf;
@@ -1733,23 +1740,30 @@ static void ListCache(int argc, char *argv[], int opslot)
    * cat the contens of venus_file to stdout or a specified file.
    */
   FILE *src_fp;
-  FILE *dest_fp;
-  if (file_specified)
-    if ( (dest_fp = fopen(filename, "w") ) == NULL ) {
+  FILE *dest_fp = stdout;
+  if (file_specified) {
+    dest_fp = fopen(filename, "w");
+    if (!dest_fp) {
       printf("Cannot open file: %s\n", filename);
       exit(-1);
     }
-  if ( src_fp = fopen(venus_file, "r") ) {
-    while ( fgets(buf, max_line, src_fp) != NULL )
-      if ( fputs(buf, (file_specified ? dest_fp : stdout) ) == EOF ) {
-        printf("Output error\n");
-        fclose(src_fp);
-        if (file_specified) fclose(dest_fp);
-        exit(-1);
-      }
-    fclose(src_fp);
-    if (file_specified) fclose(dest_fp);
   }
+  src_fp = fopen(venus_file, "r");
+  if (!src_fp) {
+      printf("Cannot open file: %s\n", filename);
+      if (file_specified)
+	  fclose(dest_fp);
+      exit(-1);
+  }
+
+  while (rc != EOF && fgets(buf, max_line, src_fp) != NULL )
+      rc = fputs(buf, dest_fp);
+
+  fclose(src_fp);
+  if (file_specified)
+      fclose(dest_fp);
+  if (rc == EOF)
+      exit(-1);
 }
 
 
@@ -1939,18 +1953,33 @@ static void LsMount (int argc, char *argv[], int opslot)
 static void MkMount (int argc, char *argv[], int opslot)
 {
     int rc;
-    char *vol, *dir;
+    struct ViceIoctl vio;
+    char *dir, *entry, *vol = "";
     char buf[MAXPATHLEN+2];
 
     switch (argc)
         {
-        case 4:   dir = argv[2]; vol = argv[3]; break;
+        case 4:   vol = argv[3];
+        case 3:   dir = argv[2]; break;
         
         default: printf("Usage: %s\n", cmdarray[opslot].usetxt); exit(-1);
         }
 
-    sprintf(buf, "#%s.", vol);
-    rc = symlink(buf, dir);
+    entry = strrchr(dir, '/');
+    if (!entry) {
+	entry = dir;
+	dir = ".";
+    } else {
+	*entry = '\0';
+	entry++;
+    }
+
+    sprintf(buf, "%s/%s", entry, vol);
+    vio.in_size = strlen(entry) + strlen(vol) + 2;
+    vio.in = buf;
+    vio.out_size = 0;
+    vio.out = 0;
+    rc = pioctl(dir, VIOC_ADD_MT_PT, &vio, 1);
     if (rc < 0) { PERROR(dir); exit(-1); }
     }
 
@@ -2285,18 +2314,17 @@ static void SetQuota    (int argc, char *argv[], int opslot)
     }
 }
 
-
+#ifndef NDEBUG
 static void Slow(int argc, char *argv[], int opslot) 
-    {
+{
     int rc;
     struct ViceIoctl vio;
     unsigned speed;
 
-    if (argc < 3)
-        {
-        printf("Usage: %s\n", cmdarray[opslot].usetxt);
-        exit(-1);
-        }
+    if (argc < 3) {
+	printf("Usage: %s\n", cmdarray[opslot].usetxt);
+	exit(-1);
+    }
 
     speed = atoi(argv[2]);
     vio.in = (char *)&speed;
@@ -2305,18 +2333,18 @@ static void Slow(int argc, char *argv[], int opslot)
     vio.out_size = 0;
     rc = pioctl(mountpoint, VIOC_SLOW, &vio, 1);
     if (rc < 0){ PERROR("VIOC_SLOW"); exit(-1);}    
-    }
+}
+#endif
 
 static void Strong(int argc, char *argv[], int opslot) 
-    {
+{
     int rc;
     struct ViceIoctl vio;
 
-    if (argc < 2)
-        {
+    if (argc < 2) {
         printf("Usage: %s\n", cmdarray[opslot].usetxt);
         exit(-1);
-        }
+    }
 
     vio.in = 0;
     vio.in_size = 0;
@@ -2324,18 +2352,17 @@ static void Strong(int argc, char *argv[], int opslot)
     vio.out_size = 0;
     rc = pioctl(mountpoint, VIOC_STRONG, &vio, 1);
     if (rc < 0){ PERROR("VIOC_STRONG"); exit(-1); }
-    }
+}
 
 static void Adaptive(int argc, char *argv[], int opslot) 
-    {
+{
     int rc;
     struct ViceIoctl vio;
 
-    if (argc < 2)
-        {
+    if (argc < 2) {
         printf("Usage: %s\n", cmdarray[opslot].usetxt);
         exit(-1);
-        }
+    }
 
     vio.in = 0;
     vio.in_size = 0;
@@ -2343,18 +2370,17 @@ static void Adaptive(int argc, char *argv[], int opslot)
     vio.out_size = 0;
     rc = pioctl(mountpoint, VIOC_ADAPTIVE, &vio, 1);
     if (rc < 0){ PERROR("VIOC_ADAPTIVE"); exit(-1); } 
-    }
+}
 
 static void TruncateLog(int argc, char *argv[], int opslot)
-    {
+{
     int rc;
     struct ViceIoctl vio;
 
-    if (argc != 2)
-        {
+    if (argc != 2) {
         printf("Usage: %s\n", cmdarray[opslot].usetxt);
         exit(-1);
-        }
+    }
 
     vio.in = 0;
     vio.in_size = 0;
@@ -2362,22 +2388,22 @@ static void TruncateLog(int argc, char *argv[], int opslot)
     vio.out_size = 0;
     rc = pioctl(mountpoint, VIOC_TRUNCATELOG, &vio, 1);
     if (rc < 0) { PERROR("  VIOC_TRUNCATELOG"); exit(-1); }
-    }
+}
 
 
+#ifndef NDEBUG
 static void Uncompress(int argc, char *argv[], int opslot)
-    {
+{
     int i, rc; 
     struct ViceIoctl vio;
 
-    if (argc < 3)
-        {
+    if (argc < 3) {
         printf("Usage: %s\n", cmdarray[opslot].usetxt);
         exit(-1);
-        }
+    }
 
     for (i = 2; i < argc; i++)
-        {
+    {
         if (argc > 3) printf("  %s", argv[i]);
         vio.in = 0;
         vio.in_size = 0;
@@ -2386,11 +2412,12 @@ static void Uncompress(int argc, char *argv[], int opslot)
         rc = pioctl(argv[i], VIOC_UNCOMPRESS, &vio, 1);
         if (rc < 0) { PERROR("  VIOC_UNCOMPRESS"); continue; }
         if (argc > 3) printf("\n");
-        }
     }
+}
+#endif
 
 static void UnloadKernel(int argc, char *argv[], int opslot)
-    {
+{
     struct ViceIoctl vio;
     int rc;
 
@@ -2400,27 +2427,24 @@ static void UnloadKernel(int argc, char *argv[], int opslot)
     vio.out = 0;
     rc = pioctl(mountpoint, VIOC_UNLOADKERNEL, &vio, 0);
     if (rc < 0) { PERROR("  VIOC_UNLOADKERNEL"); exit(-1); }
-    }
+}
 
 static void WhereIs (int argc, char *argv[], int opslot)
-    {
+{
     int rc, i, j, w;
     struct ViceIoctl vio;
     struct in_addr *custodians;
     struct hostent *hent;
 
-
-    if (argc < 3)
-        {
+    if (argc < 3) {
         printf("Usage: %s\n", cmdarray[opslot].usetxt);
         exit(-1);
-        }
+    }
 
     w = getlongest(argc, argv);
 
     for (i = 2; i < argc; i++)
-        {
-
+    {
         /* Set up parms to pioctl */
         vio.in = 0;
         vio.in_size = 0;
@@ -2436,43 +2460,51 @@ static void WhereIs (int argc, char *argv[], int opslot)
         /* pioctl returns array of IP addrs */
         custodians = (struct in_addr *)piobuf;
         for (j = 0; j < 8; j++)
-            {
-            long a;
-            
+	{
             if (custodians[j].s_addr == 0) continue;
             hent = gethostbyaddr((char *)&custodians[j], sizeof(long), AF_INET);
             if (hent) printf("  %s", hent->h_name);
             else      printf("  %s", inet_ntoa(custodians[j]));
-            }
-        printf("\n");
-        }
+	}
+	printf("\n");
     }
+}
 
 
 static void WaitForever (int argc, char *argv[], int opslot)
-    {
-    int rc, value = -1;
+{
+    int rc;
     struct ViceIoctl vio;
+    struct {
+	int value;
+	char realm[MAXHOSTNAMELEN+1];
+    } arg;
 
-    if (argc == 3)
-        {
-        if (strcmp(argv[2], "-on") == 0) value = 1;
-        if (strcmp(argv[2], "-off") == 0) value = 0;
-        }
+    memset(&arg, 0, sizeof(arg));
+    arg.value = -1;
 
-    if (value == -1)
-        {
-        printf("Usage: %s\n", cmdarray[opslot].usetxt);
-        exit(-1);
-        }
+    if (argc > 3) {
+	strncpy(arg.realm, argv[3], MAXHOSTNAMELEN);
+	arg.realm[MAXHOSTNAMELEN] = '\0';
+    }
 
-    vio.in = (caddr_t)&value;
-    vio.in_size = (short) sizeof(value);
+    if (argc > 2) {
+	if (strcmp(argv[2], "-on") == 0) arg.value = 1;
+	if (strcmp(argv[2], "-off") == 0) arg.value = 0;
+    }
+
+    if (arg.value == -1) {
+	printf("Usage: %s\n", cmdarray[opslot].usetxt);
+	exit(-1);
+    }
+
+    vio.in = (char *)&arg;
+    vio.in_size = sizeof(arg);
     vio.out = 0;
     vio.out_size = 0;
     rc = pioctl(mountpoint, VIOC_WAITFOREVER, &vio, 0);
     if (rc < 0){ PERROR("VIOC_WAITFOREVER"); exit(-1); }
-    }
+}
 
 
 static void WriteDisconnect(int argc, char *argv[], int opslot)
@@ -2606,8 +2638,7 @@ static void ForceReintegrate(int argc, char *argv[], int opslot)
   int  i = 2, rc, w;
   struct ViceIoctl vio;
   VolumeStatus *vs;
-  char *volname, *omsg, *motd;
-  VolumeStateType conn_state;
+  char *volname;
   int conflict;
   int cml_count;
   char *ptr;  
@@ -2643,7 +2674,7 @@ static void ForceReintegrate(int argc, char *argv[], int opslot)
         rc = pioctl(argv[i], VIOCGETVOLSTAT, &vio, 1);
         if (rc < 0) {
 	    PERROR("VIOC_GETVOLSTAT");
-	    fprintf(stderr, "  VIOC_GETVOLSTAT returns %d\n");
+	    fprintf(stderr, "  VIOC_GETVOLSTAT returns %d\n", rc);
 	}
 	else {  /* Get pointers to output fields */
 	        /* Format is (status, name, conn_state, conflict,

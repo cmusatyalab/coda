@@ -89,7 +89,8 @@ int main(int argc, char *argv[])
 	}
 	FILE *fp = fdopen(venusSocket, "r");
 	char *p = "set:fetch\n";
-	if (write(venusSocket, p, strlen(p)) != strlen(p)) {
+	ssize_t len = strlen(p);
+	if (write(venusSocket, p, len) != len) {
 	    fprintf(stderr, "codacon: set:fetch command failed (%d)\n", errno);
 	} else {
 	    /* Read until someone kills the connection. */
@@ -101,9 +102,9 @@ int main(int argc, char *argv[])
 }
 
 
-int Bind(const char *service, const char *host) {
+int Bind(const char *service, const char *host)
+{
     int s;
-    char buf[100];
     
 #ifdef HAVE_SYS_UN_H
     if (!use_tcp) {

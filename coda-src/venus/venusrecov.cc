@@ -88,8 +88,8 @@ int CMFP = UNSET_CMFP;
 int DMFP = UNSET_DMFP;
 int MAXFP = UNSET_MAXFP;
 int WITT = UNSET_WITT;
-int MAXFS = UNSET_MAXFS;
-int MAXTS = UNSET_MAXTS;
+unsigned long MAXFS = UNSET_MAXFS;
+unsigned long MAXTS = UNSET_MAXTS;
 
 #ifndef MAX
 #define MAX(a,b)  ( ((a) > (b)) ? (a) : (b) )
@@ -157,6 +157,7 @@ int RecovVenusGlobals::validate()
 
     if (!VALID_REC_PTR(recov_FSDB)) return(0);
     if (!VALID_REC_PTR(recov_VDB)) return(0);
+    if (!VALID_REC_PTR(recov_REALMDB)) return(0);
     if (!VALID_REC_PTR(recov_HDB)) return(0);
     if (!VALID_REC_PTR(recov_LRDB)) return(0);
 
@@ -177,14 +178,14 @@ void RecovVenusGlobals::print(FILE *fp) {
 /* local-repair modification */
 void RecovVenusGlobals::print(int fd) {
     fdprint(fd, "RVG values: what they are (what they should be)\n");    
-    fdprint(fd, "Magic = %x(%x), Version = %d(%d), CleanShutDown= %d(0 or 1), RootVolName = %s\n",
+    fdprint(fd, "Magic = %x(%x), Version = %d(%d), CleanShutDown= %d(0 or 1)\n",
 	    recov_MagicNumber, RecovMagicNumber,
 	    recov_VersionNumber, RecovVersionNumber,
-	    recov_CleanShutDown, recov_RootVolName);
-    fdprint(fd, "The following pointers should be between %x and %x:\n",
+	    recov_CleanShutDown);
+    fdprint(fd, "The following pointers should be between %p and %p:\n",
 	    recov_HeapAddr, recov_HeapAddr + recov_HeapLength);
-    fdprint(fd, "Ptrs = [%x %x %x %x], Heap = [%x] HeapLen = %x\n",
-	     recov_FSDB, recov_VDB, recov_HDB, recov_LRDB, 
+    fdprint(fd, "Ptrs = [%p %p %p %p %p], Heap = [%p] HeapLen = %x\n",
+	     recov_FSDB, recov_VDB, recov_HDB, recov_REALMDB, recov_LRDB, 
 	     recov_HeapAddr, recov_HeapLength);
 
     fdprint(fd, "UUID = %08x-%04x-%04x-%02x%02x-%02x%02x%02x%02x%02x%02x\n",
@@ -711,7 +712,7 @@ void RecovDaemon(void) {
 
 	/* First task is to get statistics. */
 	Recov_GetStatistics();
-	int WorkerIdleTime = GetWorkerIdleTime();
+	time_t WorkerIdleTime = GetWorkerIdleTime();
 
 	/* Consider truncating. */
 	unsigned long TruncateSize = RVM_OFFSET_TO_LENGTH(Recov_Statistics.log_written);

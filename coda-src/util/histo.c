@@ -32,7 +32,7 @@ listed in the file CREDITS.
 #endif
 
 
-  InitHisto(hg, lolimit, hilimit, bucketcount, ht)
+int InitHisto(hg, lolimit, hilimit, bucketcount, ht)
     struct hgram *hg;
     double lolimit;
     double hilimit;
@@ -206,7 +206,7 @@ static double CIFactor(dFreedom)
     return(lowCI[dFreedom]);
     }
 
-PrintHisto(outfile, hg)
+int PrintHisto(outfile, hg)
      FILE *outfile;
      register struct hgram *hg;
     {
@@ -247,6 +247,7 @@ PrintHisto(outfile, hg)
     if (hg->oflow.count)
 	if (fprintf (outfile, "        %d samples in the range %g to INFINITY\n",
 	    	hg->oflow.count, hg->oflow.loval) == -1) return -1;
+    return 0;
     }
 
 
@@ -324,4 +325,5 @@ int PlotHisto(outfile, hg, graphtitle, xtitle, ytitle, psfileprefix)
 
     if (fprintf(outfile, "Plot postscript %s%d.PS nodocument noprint\n\n", psfileprefix, plotid++) == -1) 
               return -1;
+    return 0;
     }

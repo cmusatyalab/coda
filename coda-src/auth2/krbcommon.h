@@ -29,6 +29,6 @@ void krb_fork_kinit(const char *kinit);
 
 #ifdef __cplusplus
 }
-#endif __cplusplus
+#endif
 
 #endif /* _KRBCOMMON_H_ */

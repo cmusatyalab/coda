@@ -65,6 +65,7 @@ extern "C" {
 #include <prs.h>
 #include "auth2.h"
 #include "auser.h"
+#include "codaconf.h"
 
 #ifdef __cplusplus
 }
@@ -76,7 +77,7 @@ static int GetVid(char *s, int *id);
 
 static int DebugLevel;
 
-static char *DefAuthHost = NULL;
+static char *realm = NULL;
 static char *AuthPortal = AUTH_SERVICE;
 
 static int ChangeUserFlag;
@@ -111,7 +112,7 @@ int main(int argc, char **argv)
     }
     strncpy(MyPassword, getpass("Your password: "), sizeof(MyPassword));
 
-    rc = U_BindToServer(DefAuthHost, AUTH_METHOD_CODAUSERNAME, MyViceName, strlen(MyViceName)+1, MyPassword, strlen(MyPassword), &AuthCid, 1);
+    rc = U_BindToServer(realm, AUTH_METHOD_CODAUSERNAME, MyViceName, strlen(MyViceName)+1, MyPassword, strlen(MyPassword), &AuthCid, 1);
 
     printf("RPC2_Bind() --> %s\n", RPC2_ErrorMsg(rc));
     if (rc < RPC2_ELIMIT) exit(-1);
@@ -205,6 +206,12 @@ Done:
 static void SetGlobals(int argc, char **argv)
 {
     int i;
+
+    codaconf_init("venus.conf");
+    codaconf_init("auth2.conf");
+
+    CONF_STR(realm, "realm", NULL);
+
     for (i = 1; i < argc; i++)
 	{
 	if (strcmp(argv[i], "-x") == 0)
@@ -215,7 +222,7 @@ static void SetGlobals(int argc, char **argv)
 
 	if (strcmp(argv[i], "-h") == 0 && i < argc - 1)
 	    {
-	    DefAuthHost = argv[++i];
+	    realm = argv[++i];
 	    continue;
 	    }
 

@@ -66,10 +66,13 @@ extern "C" {
 #include "avenus.h"
 #include "auser.h"
 #include "tokenfile.h"
+#include "codaconf.h"
 
 #ifdef __cplusplus
 }
 #endif
+
+#include <parse_realms.h>
 
 #ifndef O_BINARY
 #define O_BINARY 0
@@ -92,9 +95,9 @@ int main(int argc, char **argv)
     ClearToken		    cToken;
     EncryptedSecretToken    testSTok;
     ClearToken		    testCTok;
-    struct passwd	    *pw;
     char *hostname=NULL;
     char *username=NULL;
+    char *realm = NULL;
     long rc;
     int i;
     int testing = 0;
@@ -110,15 +113,8 @@ int main(int argc, char **argv)
     authmethod = AUTH_METHOD_KERBEROS5;
 #endif 
 
-#ifdef __CYGWIN32__
-    username = getlogin();	 
-#elif defined(DJGPP)
-    __djgpp_set_quiet_socket(1);	
-#else
-    pw = getpwuid(geteuid());
-    if (pw) {
-        username=pw->pw_name;
-    }
+#ifdef DJGPP
+	__djgpp_set_quiet_socket(1);	
 #endif
 
     i = 1;
@@ -167,6 +163,7 @@ int main(int argc, char **argv)
 		    i++;
 	    } else if ( i == argc-1 ) {
                     username = argv[i];
+		    SplitRealmFromName(username, &realm);
                     i++;
 	    }
 	    /* still coming: 
@@ -181,23 +178,39 @@ int main(int argc, char **argv)
 
     }
     
-    if (username == NULL) {
-	    fprintf (stderr, "Can't figure out your user id.\n");
-	    fprintf (stderr, "Try \"clog user\"\n");
+    if (!username) {
+#ifdef __CYGWIN32__
+	username = getlogin();	 
+#else
+	struct passwd *pw = getpwuid(geteuid());
+	if (pw) {
+	    username=pw->pw_name;
+	}
+#endif
+    }
+
+    codaconf_init("venus.conf");
+    codaconf_init("auth2.conf");
+
+    CONF_STR(realm, "realm", NULL);
+
+    if (!username || !realm) {
+	    fprintf (stderr, "Can't figure out your username or realm.\n");
+	    fprintf (stderr, "Try \"clog user[@realm]\"\n");
 	    exit (1);
     }
 
     if (!isatty(0)) passwdpipe = 1;
 
     if (passwdpipe == 0)
-	printf("username: %s\n", username);
+	printf("username: %s@%s\n", username, realm);
 
     U_InitRPC();
 
     if (fromfile) {
         ReadTokenFromFile(fromfile, &cToken, sToken);
     } else {
-        rc = U_Authenticate(hostname, authmethod, username, 
+        rc = U_Authenticate(hostname ? hostname : realm, authmethod, username, 
                             strlen(username)+1, &cToken, sToken, passwdpipe, 
                             interactive);
         if (rc != 0) {
@@ -213,22 +226,21 @@ int main(int argc, char **argv)
         WriteTokenToFile(tofile, &cToken, sToken);
     }
 
-    if(U_SetLocalTokens(0, &cToken, sToken))
+    if(U_SetLocalTokens(0, &cToken, sToken, realm))
 	printf("Local login only, could not contact venus\n");
     
     if (testing) {
 	    printf("Getting tokens back from venus\n");
-	    if (U_GetLocalTokens(&testCTok, testSTok) < 0)
+	    if (U_GetLocalTokens(&testCTok, testSTok, realm) < 0)
 		    perror("U_GetLocalTokens");
 	    
 	    printf("Comparing clear token\n");
-	    if(memcmp((char *)&cToken,(char *)&testCTok,sizeof(ClearToken)) != 0) {
+	    if(memcmp(&cToken, &testCTok, sizeof(ClearToken)) != 0) {
 		    printf("Bad ClearToken\n");
 	    }
 	    printf("Comparing secret token\n");
-	    if(memcmp((char *)sToken,(char *)testSTok,
-		    sizeof(EncryptedSecretToken)) != 0) {
-	    printf("Bad SecretToken\n");
+	    if(memcmp(sToken, testSTok, sizeof(EncryptedSecretToken)) != 0) {
+		printf("Bad SecretToken\n");
 	    }
 
 	    fprintf(stderr,"net order:\n");		
@@ -247,3 +259,4 @@ int main(int argc, char **argv)
     }
     return 0;
 }
+

@@ -78,7 +78,7 @@ void RegisterDaemon(unsigned long interval, char *sync) {
 
 void InitOneADay() {    
     /* want once-a-day tasks to run around midnight */
-    unsigned long curr_time = Vtime();
+    time_t curr_time = Vtime();
 
     /* figure out when midnight is */
     struct tm *lt = localtime((time_t *) &curr_time);
@@ -98,7 +98,7 @@ void InitOneADay() {
 }
 
 void DispatchDaemons() {
-    unsigned long curr_time = Vtime();
+    time_t curr_time = Vtime();
 
     int num_expired = TM_Rescan(DaemonList);
     for (int i = 0; i < num_expired; i++) {
@@ -117,5 +117,62 @@ void DispatchDaemons() {
 		    MallocPrint(fileno(logFile));
 	    }
     }
+}
+
+/* helper functions to create a simple daemon thread */
+class Daemon : protected vproc {
+public:
+    char sync;
+
+    Daemon(char *name, PROCBODY function, int interval, int stacksize);
+    ~Daemon();
+
+private:
+    PROCBODY function;
+    int interval;
+
+    void main(void);
+};
+
+
+Daemon::Daemon(char *name, PROCBODY f, int i, int stacksize) :
+    vproc(name, NULL, VPT_Daemon, stacksize)
+{
+    function = f;
+    interval = i;
+
+    start_thread();
+}
+
+Daemon::~Daemon() {}
+
+void Daemon::main(void)
+{
+    VprocYield(); /* make sure our parent is waiting for us */
+    VprocSignal(&sync);
+
+    RegisterDaemon(interval, &sync);
+
+    while(1) {
+	VprocWait(&sync);
+	
+	LOG(10, ("%s: running\n", name));
+
+	START_TIMING();
+	function();
+	END_TIMING();
+
+	LOG(10, ("%s: elapsed = %3.1f\n", name, elapsed));
+
+	seq++;
+    }
+}
+
+
+/* helper to run trivial daemon threads */
+void FireAndForget(char *name, PROCBODY function, int interval, int stack)
+{
+    Daemon *d = new Daemon(name, function, interval, stack);
+    VprocWait(&d->sync);
 }
 

@@ -212,7 +212,7 @@ inline void *rvmlib_malloc(unsigned long size, char *file, int line)
 					err, size, file, line);
 			RVMLIB_ASSERT("error in rvmlib_malloc\n");
 		}
-		RDS_LOG("rdstrace: rec_malloc addr %x size %lx file %s line %d\n",
+		RDS_LOG("rdstrace: rec_malloc addr %p size %lx file %s line %d\n",
 			p, size, file, line);
 		return p;
 	default :
@@ -237,7 +237,7 @@ inline void rvmlib_free(void *p, char *file, int line)
 		err = rds_fake_free((char *)p, &(_rvm_data->list));
 		if ( err != RVM_SUCCESS ) 
 			RVMLIB_ASSERT("Error in rvmlib_free\n");
-		RDS_LOG("rdstrace: rec_free addr %x file %s line %d\n",
+		RDS_LOG("rdstrace: rec_free addr %p file %s line %d\n",
 			p, file, line);
 		break; 
 	default:

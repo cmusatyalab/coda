@@ -256,7 +256,7 @@ bsnode *bstree::get(BstGetType type) {
 
 void bstree::clear() {
     bsnode *b;
-    while(b = get())
+    while((b = get()))
 	;
     if (cnt != 0) abort();
 /*	{ print(logFile); Die("bstree::clear: tree not empty"); }*/
@@ -296,7 +296,7 @@ int bstree::IsOrdered() {
     bstree_iterator next(*this);
     bsnode *curr = 0;
     bsnode *prev = 0;
-    while (curr = next()) {
+    while ((curr = next())) {
 	if (prev != 0) {
 	    int res = CmpFn(prev, curr);
 
@@ -351,14 +351,14 @@ void bstree::print(FILE *fp) {
 void bstree::print(int fd) {
     /* first print out the bstree header */
     char buf[160];
-    sprintf(buf, "%#08x : root = %x, cnt = %d, inserts = %d, removes = %d, gets = %d\n",
-	     (long)this, root, cnt, inserts, removes, gets);
+    sprintf(buf, "%p : root = %p, cnt = %d, inserts = %d, removes = %d, gets = %d\n",
+	    this, root, cnt, inserts, removes, gets);
     write(fd, buf, strlen(buf));
 
     /* then print out all of the bsnodes */
     bstree_iterator next(*this);
     bsnode *b;
-    while (b = next())
+    while ((b = next()))
 	b->print(fd);
 }
 
@@ -410,8 +410,8 @@ void bsnode::print(FILE *fp) {
 
 void bsnode::print(int fd) {
     char buf[80];
-    sprintf(buf, "%#08x : tree = %x, parent = %x, left = %x, right = %x\n",
-	     (long)this, mytree, parent, leftchild, rightchild);
+    sprintf(buf, "%p : tree = %p, parent = %p, left = %p, right = %p\n",
+	    this, mytree, parent, leftchild, rightchild);
     write(fd, buf, strlen(buf));
 }
 

@@ -87,7 +87,7 @@ void FSODaemon(void) {
 	VprocWait(&fsdaemon_sync);
 
 	START_TIMING();
-	long curr_time = Vtime();
+	time_t curr_time = Vtime();
 
 	/* Periodic events. */
 	{

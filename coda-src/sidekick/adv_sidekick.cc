@@ -34,7 +34,6 @@ int main(int argc, char **argv) {
     RPC2_PacketBuffer *reqbuffer;
     char hostname[MAXHOSTNAMELEN];
     int rc, uid, pid, pgid;
-    PROCESS lwpid;
     struct pnode *ptmp;
     struct stat sbuf;
 
@@ -140,16 +139,17 @@ RPC2_Handle contact_venus(const char *hostname) {
     bp.ClientIdent = NULL;
     bp.SharedSecret = NULL;
     rc = RPC2_NewBinding(&hid, &portid, &subsysid, &bp, &cid);
-    if (rc != RPC2_SUCCESS) quit("%s\nCannot connect to machine %s (rc = %d)", RPC2_ErrorMsg((int)rc), hostname, rc);
+    if (rc != RPC2_SUCCESS) quit("%s\nCannot connect to machine %s (rc = %ld)", RPC2_ErrorMsg((int)rc), hostname, rc);
     return(cid);
 }
 
-int executor(char *pathname, int vuid, int req_no) {
+int executor(char *pathname, int vuid, int req_no)
+{
     char space[DEF_BUF];
     char asr[MAXPATHLEN], asrlog[MAXPATHLEN], conf[MAXPATHLEN];
     char fixfile[MAXPATHLEN], fixed[MAXPATHLEN], parent[MAXPATHLEN], hd[MAXPATHLEN];
-    VolumeId vid;
     ViceFid fixfid;
+    char fixrealm[MAXHOSTNAMELEN];
     vv_t fixvv;
     struct stat sbuf;
     struct repinfo inf;
@@ -305,8 +305,8 @@ int executor(char *pathname, int vuid, int req_no) {
 		if (!(sbuf.st_mode & S_IFREG))
 		    quit("File %s is not a regular file (and hence cannot be used for repair)", fixed);
 
-		if (!repair_getfid(fixed, &fixfid, &fixvv, space, sizeof(space)) && (fixvv.StoreId.Host != -1))
-		    sprintf(fixfile, "@%x.%x.%x", fixfid.Volume, fixfid.Vnode, fixfid.Unique);
+		if (!repair_getfid(fixed, &fixfid, fixrealm, &fixvv, space, sizeof(space)) && (fixvv.StoreId.Host != (unsigned long)-1))
+		    sprintf(fixfile, "@%lx.%lx.%lx@%s", fixfid.Volume, fixfid.Vnode, fixfid.Unique, fixrealm);
 		else strcpy(fixfile, fixed);
 
 		if (EndRepair(repv, 1, space, sizeof(space)) < 0)
@@ -336,7 +336,7 @@ int get_homedir(int uid, char *homedir) {
     }
     if ((strlen(passwd_ent->pw_name) + strlen(HOMEDIR_PREFIX) + 1) >= MAXPATHLEN)
 	{
-	    lprintf("%s\nReturned name %s for uid %d is too long.\n", passwd_ent->pw_name, uid);
+	    lprintf("%s\nReturned name %s for uid %d is too long.\n", strerror(errno), passwd_ent->pw_name, uid);
 	    return(-1);
 	}
     sprintf(homedir, "%s%s", HOMEDIR_PREFIX, passwd_ent->pw_name);
@@ -386,20 +386,20 @@ int interests(int uid) {
 	if (sscanf(line, "%s", tmp) < 1) {
 	    lprintf("Error in %s: unexpected end of input on line %d.\n", INTEREST_FILE, ln+1);
 	    if (fclose(intfile) < 0)
-		lprintf("%s\nError closing %s.\n", INTEREST_FILE);
+		lprintf("%s\nError closing %s.\n", strerror(errno), INTEREST_FILE);
 	    return(-1);
 	}
 	else if ((tmp[0] == '#') || (tmp[0] == '\n')) continue;
 	if (sscanf(line, "%s%d%d", tmp, &tmpV, &tmpA) < 3) {
 	    lprintf("Error in %s: unexpected end of input on line %d.\n", INTEREST_FILE, ln+1);
 	    if (fclose(intfile) < 0)
-		lprintf("%s\nError closing %s.\n", INTEREST_FILE);
+		lprintf("%s\nError closing %s.\n", strerror(errno), INTEREST_FILE);
 	    return(-1);
 	}
 	if (strcmp(tmp, InterestNames[i]) != 0) {
 	    lprintf("Error in %s: expected %s, got %s.\n", INTEREST_FILE, InterestNames[i], tmp);
 	    if (fclose(intfile) < 0)
-		lprintf("%s\nError closing %s.\n", INTEREST_FILE);
+		lprintf("%s\nError closing %s.\n", strerror(errno), INTEREST_FILE);
 	    return(-1);
 	}
 	interests[i].interest = (InterestID)i;
@@ -411,7 +411,7 @@ int interests(int uid) {
     interests[i].value = tmpV;
     interests[i].argument = tmpA;
     if (fclose(intfile) < 0) {
-	lprintf("%s\nError closing %s.\n", INTEREST_FILE);
+	lprintf("%s\nError closing %s.\n", strerror(errno), INTEREST_FILE);
 	return(-1);
     }
 
@@ -513,7 +513,7 @@ int parse_resolvefile(const char *homedir, const char *pathname, char *asrpath) 
 	}
 	if (strncmp(tpath, pathname, strlen(tpath)) == 0) {
 	    if (fclose(rfile) < 0) { 
-		lprintf("%s\nError closing %s.\n", rfilename);
+		lprintf("%s\nError closing %s.\n", strerror(errno), rfilename);
 		return(-1);
 	    }
 	    strcpy(asrpath, tasr);
@@ -524,7 +524,7 @@ int parse_resolvefile(const char *homedir, const char *pathname, char *asrpath) 
     lprintf("No ASR specified for path %s.\n", rfilename);
 
  ResolveExit:
-    if (fclose(rfile) < 0) lprintf("%s\nError closing %s.\n", rfilename);
+    if (fclose(rfile) < 0) lprintf("%s\nError closing %s.\n", strerror(errno), rfilename);
     return(-1);
 }
 
@@ -533,7 +533,6 @@ int parse_resolvefile(const char *homedir, const char *pathname, char *asrpath) 
  * Returns -1 on error (e.g. linkpath isn't a symlink) */
 int point(char *linkpath, char *target) {
     char lnpath[MAXPATHLEN];
-    struct stat sbuf;
 
     memset(lnpath, 0, MAXPATHLEN);
     if (readlink(linkpath, lnpath, MAXPATHLEN - 1) < 0)
@@ -553,7 +552,7 @@ int worker(void *arg) {
     while (1) {
 	/* Let the scheduling thread wait for more requests */
 	if ((rc = LWP_DispatchProcess()) != LWP_SUCCESS)
-	    quit("Error dispatching to scheduler (%d)");
+	    quit("Error dispatching to scheduler (%d)", rc);
 	/* Execute the request */
 	rc = AdvSkk_ExecuteRequest(cid, pinfo->pbuf, se);
 	if (rc != RPC2_SUCCESS) quit(RPC2_ErrorMsg(rc));
@@ -563,7 +562,7 @@ int worker(void *arg) {
 		    quit("Error waiting for ASR to finish: %s", strerror(errno));
 		if (WIFEXITED(status)) code = WEXITSTATUS(status);
 		else code = -1;
-		if ((rc = C_ResultOfASR(VenusCID, pinfo->tmp, pinfo->kid, code)) != RPC2_SUCCESS)
+		if ((rc = C_ResultOfASR(VenusCID, pinfo->realm, pinfo->volume, pinfo->kid, code)) != RPC2_SUCCESS)
 		    quit(RPC2_ErrorMsg(rc));
 		pinfo->kid = 0;
 	    }
@@ -817,7 +816,9 @@ long S_InvokeASR(RPC2_Handle _cid, RPC2_String pathname, RPC2_Integer vol_id,
     }
     else {
 	pinfo->kid = ret;
-	pinfo->tmp = vol_id;
+#warning "need realm here"
+	pinfo->realm = 0;
+	pinfo->volume = vol_id;
 	*ASRid = ret;
 	*ASRrc = SKK_SUCCESS;
     }

@@ -357,7 +357,7 @@ int rec_bstree::IsOrdered() {
     rec_bstree_iterator next(*this);
     rec_bsnode *curr = 0;
     rec_bsnode *prev = 0;
-    while (curr = next()) {
+    while ((curr = next())) {
 	if (prev != 0) {
 	    int res = CmpFn(prev, curr);
 
@@ -412,14 +412,14 @@ void rec_bstree::print(FILE *fp) {
 void rec_bstree::print(int fd) {
     /* first print out the rec_bstree header */
     char buf[160];
-    sprintf(buf, "%#08x : root = %x, cnt = %d, inserts = %d, removes = %d, gets = %d\n",
-	     (long)this, root, cnt, inserts, removes, gets);
+    sprintf(buf, "%p : root = %p, cnt = %d, inserts = %d, removes = %d, gets = %d\n",
+	    this, root, cnt, inserts, removes, gets);
     write(fd, buf, strlen(buf));
 
     /* then print out all of the rec_bsnodes */
     rec_bstree_iterator next(*this);
     rec_bsnode *b;
-    while (b = next())
+    while ((b = next()))
 	b->print(fd);
 }
 
@@ -487,8 +487,8 @@ void rec_bsnode::print(FILE *fp) {
 
 void rec_bsnode::print(int fd) {
     char buf[80];
-    sprintf(buf, "%#08x : tree = %x, parent = %x, left = %x, right = %x\n",
-	     (long)this, mytree, parent, leftchild, rightchild);
+    sprintf(buf, "%p : tree = %p, parent = %p, left = %p, right = %p\n",
+	    this, mytree, parent, leftchild, rightchild);
     write(fd, buf, strlen(buf));
 }
 

@@ -70,7 +70,7 @@ extern "C" {
 #include "local.h"
 
 
-static const int COP2EntrySize = (int)(sizeof(ViceStoreId) + sizeof(ViceVersionVector));
+static const unsigned int COP2EntrySize = (int)(sizeof(ViceStoreId) + sizeof(ViceVersionVector));
 
 #ifdef VENUSDEBUG
 int cop2ent::allocs = 0;

@@ -101,7 +101,7 @@ static int SkipToNextVolHead(int fd)
 
     while (magic != VOLUMEHEADERMAGIC) {
 	n = read(fd, (void *)&magic, sizeof(unsigned int));
-	if (n < sizeof(unsigned int)) return 0;
+	if (n < (int)sizeof(unsigned int)) return 0;
     }
     lseek(fd, -sizeof(unsigned int), SEEK_CUR);
     return 1;
@@ -585,17 +585,17 @@ static int ReadVolVnodes(int fd, Volume *vp, int ResOn) {
 }
 
 
-static void NortonSetupVolume(VolHead *vh, Volume *vp, int volindex) {
+static void NortonSetupVolume(VolHead *vh, Volume *vp, int volindex)
+{
     // This turns out to be a global since its static, but if the
     // compiler semantics ever change, we need to move it.
     static struct volHeader header;
 
-    memset((void *)&header, 0, sizeof(struct volHeader));
-    memmove((void *)&header.diskstuff, (const void *)vh->data.volumeInfo, 
-	  sizeof(VolumeDiskData));
+    memset(&header, 0, sizeof(struct volHeader));
+    memcpy(&header.diskstuff, vh->data.volumeInfo, sizeof(VolumeDiskData));
     header.back = vp;
     
-    memset((void *)vp, 0, sizeof(Volume));
+    memset(vp, 0, sizeof(Volume));
     vp->hashid = vh->header.id;
     vp->header = &header;
     vp->vol_index = volindex;
@@ -885,12 +885,12 @@ static int dump_server_state(char *dump_file, VolumeId *skipvols, int nskipvols)
 
 
 
-int main(int argc, char * argv[]) {
+int main(int argc, char * argv[])
+{
     char *rvm_log;
     char *rvm_data;
     int  data_len;
     int  ok = 0;
-    char *dump_file;
     rvm_return_t 	err;
     VolumeId *skipvols = NULL;
     int       nskipvols = 0;

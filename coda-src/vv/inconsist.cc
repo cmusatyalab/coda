@@ -288,22 +288,22 @@ void GetMaxVV(vv_t *newvv, vv_t **vvgroup, int domindex)
 	for (i = 0; i < VSG_MEMBERS; i++) 
 	    if (vvgroup[i]) break;
 	if (i < VSG_MEMBERS) 
-	    memmove((void *)&(newvv->StoreId), (const void *)&(vvgroup[i]->StoreId),
-		  sizeof(ViceStoreId));
+	    memcpy(&newvv->StoreId, &vvgroup[i]->StoreId, sizeof(ViceStoreId));
 	break;
     case -2:
 	/* do nothing */
 	break;
     default:
-	memmove((void *)&(newvv->StoreId), (const void *)&(vvgroup[domindex]->StoreId),
-	      sizeof(ViceStoreId));
+	memcpy(&newvv->StoreId, &vvgroup[domindex]->StoreId, sizeof(ViceStoreId));
     }
 }
 
-void PrintVV(FILE *fp, vv_t *v) {
+void PrintVV(FILE *fp, vv_t *v)
+{
     fprintf(fp, "{[");
     for (int i = 0; i < VSG_MEMBERS; i++)
-	fprintf(fp, " %d", (&(v->Versions.Site0))[i]);
-    fprintf(fp, " ] [ %d %d ] [ %#x ]}\n",
-	     v->StoreId.Host, v->StoreId.Uniquifier, v->Flags);
+	fprintf(fp, " %ld", (&(v->Versions.Site0))[i]);
+    fprintf(fp, " ] [ %ld %ld ] [ %#x ]}\n",
+	     v->StoreId.Host, v->StoreId.Uniquifier, (unsigned int)v->Flags);
 }
+

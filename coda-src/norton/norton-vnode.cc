@@ -238,7 +238,6 @@ setcount(int volid, int vnum, int unique, int count)
 
     char buf[SIZEOF_LARGEDISKVNODE];
     VnodeDiskObject *vnode = (VnodeDiskObject *)buf;
-    struct ViceFid fid;
     Error   error;
     VnodeId vnodeindex = vnodeIdToBitNumber(vnum);
     int     vclass = vnodeIdToClass(vnum);
@@ -263,8 +262,9 @@ setcount(int volid, int vnum, int unique, int count)
 
     vnode->linkCount = count;
 
-    if (error = ReplaceVnode(volindex, vclass, (VnodeId)vnodeindex,
-			     (Unique_t)unique, vnode)) {
+    error = ReplaceVnode(volindex, vclass, (VnodeId)vnodeindex,
+			 (Unique_t)unique, vnode);
+    if (error) {
 	fprintf(stderr, "ERROR: ReplaceVnode returns %d, aborting\n", error);
 	rvmlib_abort(VFAIL);
 	return;
@@ -273,8 +273,7 @@ setcount(int volid, int vnum, int unique, int count)
     rvmlib_end_transaction(flush, &status);
 
     if (status) {
-	fprintf(stderr, "ERROR: Transaction aborted with status %d\n",
-		error);
+	fprintf(stderr, "ERROR: Transaction aborted with status %d\n", error);
     }
 }
 

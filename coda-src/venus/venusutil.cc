@@ -77,6 +77,7 @@ extern "C" {
 #include "vproc.h"
 #include "vsg.h"
 #include "worker.h"
+#include "realmdb.h"
 
 
 /* *****  Exported variables  ***** */
@@ -84,7 +85,7 @@ extern "C" {
 FILE *logFile = 0;
 int LogLevel = 0;
 int MallocTrace = 0;
-const ViceFid NullFid = {0, 0, 0};
+const VenusFid NullFid = {0, 0, 0, 0};
 const vv_t NullVV = {{0, 0, 0, 0, 0, 0, 0, 0}, {0, 0}, 0};
 VFSStatistics VFSStats;
 RPCOpStatistics RPCOpStats;
@@ -270,8 +271,9 @@ void VenusPrint(int fd, int argc, char **argv) {
 
     fdprint(fd, "*****  VenusPrint  *****\n\n");
     FILE *f = fdopen(dup(fd), "a");
+    if (allp) REALMDB->print(f);
     if (serverp || allp)  ServerPrint(f);
-    if (mgrpp || allp)    VSGDB->print(f);
+    if ((mgrpp || allp) && VSGDB) VSGDB->print(f);
     fclose(f);
 
     if (rusagep || allp)  RusagePrint(fd);
@@ -334,6 +336,7 @@ char *IoctlOpStr(int opcode) {
 	case VIOCFLUSHCB:	    return("Flush CB");
 	case VIOCNEWCELL:	    return("New Cell");
 	case VIOCGETCELL:	    return("Get Cell");
+	case VIOC_ADD_MT_PT:	    return("Add Mount Point");
 	case VIOC_AFS_DELETE_MT_PT: return("[AFS] Delete Mount Point");
 	case VIOC_AFS_STAT_MT_PT:   return("[AFS] Stat Mount Point");
 	case VIOC_FILE_CELL_NAME:   return("File Cell Name");
@@ -786,13 +789,13 @@ char *lvlstr(LockLevel level) {
 }
 
 
-long Vtime() {
+time_t Vtime() {
     return(::time(0));
 }
 
 
 /* 
- * compares fids embedded in a ViceFidAndVersionVector. 
+ * compares fids embedded in a VenusFidAndVersionVector. 
  * assumes that the fids are in the same volume.
  */
 int FAV_Compare(ViceFidAndVV *fav1, ViceFidAndVV *fav2) {

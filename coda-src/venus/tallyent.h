@@ -27,16 +27,16 @@ enum TallyStatus { TSavailable, TSunavailable, TSunknown };
 class tallyent {
   friend void InitTally();
   friend int tallyentPriorityFN(dlink *, dlink *);
-  friend void Tally(int, vuid_t, int, TallyStatus);
-  friend dlink *Find(int, vuid_t);
-  friend void TallyPrint(vuid_t);
+  friend void Tally(int, uid_t, int, TallyStatus);
+  friend dlink *Find(int, uid_t);
+  friend void TallyPrint(uid_t);
   friend void TallySum(int *, int *);
   friend void NotifyUsersTaskAvailability();
 
   dlink prioq_handle;
 
   int priority;
-  vuid_t vuid;
+  uid_t uid;
   int available_blocks;
   int available_files;
   int unavailable_blocks;
@@ -44,7 +44,7 @@ class tallyent {
   int incomplete;  
 
  public:
-   tallyent(int priority, vuid_t vuid, int blocks, TallyStatus status);
+   tallyent(int priority, uid_t uid, int blocks, TallyStatus status);
    tallyent(tallyent&);
    int operator=(tallyent&);
    ~tallyent();
@@ -53,9 +53,9 @@ class tallyent {
 extern dlist *TallyList;
 
 extern void InitTally();
-extern dlink *Find(int priority, vuid_t uid);
-extern void Tally(int, vuid_t, int, TallyStatus);
-extern void TallyPrint(vuid_t);
+extern dlink *Find(int priority, uid_t uid);
+extern void Tally(int, uid_t, int, TallyStatus);
+extern void TallyPrint(uid_t);
 extern void TallySum(int *, int *);
 
 

@@ -89,7 +89,8 @@ DoMatch(register char *text, register char *p)
 	    /* Trailing star matches everything. */
 	    return *++p ? Star(text, p) : TRUE;
 	case '[':
-	    if (reverse = p[1] == NEGATE_CLASS)
+	    reverse = (p[1] == NEGATE_CLASS);
+	    if (reverse)
 		/* Inverted character class. */
 		p++;
 	    for (last = 0400, matched = FALSE; *p && *p != ']'; last = *p, p++) {

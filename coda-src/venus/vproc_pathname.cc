@@ -94,7 +94,7 @@ int vproc::namev(char *path, int flags, struct venus_cnode *vpp) {
     /* Initialize the parent (i.e., the root of the expansion). */
     {
 	struct cfid fid;
-	fid.cfid_len = sizeof(ViceFid);
+	fid.cfid_len = sizeof(VenusFid);
 	fid.cfid_fid = u.u_cdir;
 	vget(&pvp, &fid);
 	if (u.u_error) goto Exit;
@@ -121,7 +121,7 @@ int vproc::namev(char *path, int flags, struct venus_cnode *vpp) {
 	SkipSlashes(&pptr, &plen);
 
 	/* Handle ".." out of venus here! */
-	if (FID_EQ(&(pvp.c_fid), &rootfid) && STREQ(comp, "..")) {
+	if (FID_EQ(&pvp.c_fid, &rootfid) && STREQ(comp, "..")) {
 	    LOG(100, ("vproc::namev: .. out of this venus\n"));
 
 	    u.u_error = ENOENT;
@@ -231,7 +231,7 @@ int vproc::namev(char *path, int flags, struct venus_cnode *vpp) {
 
 		    /* Release the parent and reset it to the VenusRoot. */
 		    struct cfid fid;
-		    fid.cfid_len = sizeof(ViceFid);
+		    fid.cfid_len = sizeof(VenusFid);
 		    fid.cfid_fid = rootfid;
 		    vget(&pvp, &fid);
 		    if (u.u_error) goto Exit;
@@ -286,10 +286,11 @@ Exit:
 
 /* Map fid to full or volume-relative pathname.  Kind of like getwd(). */
 /* XXX - Need fsobj::IsRealRoot predicate which excludes "fake" roots! -JJK */
-void vproc::GetPath(ViceFid *fid, char *out, int *outlen, int fullpath) {
+void vproc::GetPath(VenusFid *fid, char *out, int *outlen, int fullpath)
+{
     LOG(1, ("vproc::GetPath: %s, %d\n", FID_(fid), fullpath));
 
-    if (*outlen < CODA_MAXPATHLEN)
+    if (*outlen < MAXPATHLEN)
 	{ u.u_error = ENAMETOOLONG; *outlen = 0; goto Exit; }
 
     /* Handle degenerate case of file system or volume root! */
@@ -300,7 +301,7 @@ void vproc::GetPath(ViceFid *fid, char *out, int *outlen, int fullpath) {
 	    goto Exit;
 	}
 
-	if (fid->Volume == rootfid.Volume) {
+	if (FID_EQ(fid, &rootfid)) {
 	    strcpy(out, venusRoot);
 	    *outlen = strlen(venusRoot) + 1;
 	    goto Exit;
@@ -309,16 +310,16 @@ void vproc::GetPath(ViceFid *fid, char *out, int *outlen, int fullpath) {
 
     for (;;) {
 	fsobj *f = 0;
-	ViceFid currFid;
-	ViceFid prevFid;
+	VenusFid currFid;
+	VenusFid prevFid;
 	out[0] = '\0';
 	*outlen = 0;
 
-	Begin_VFS(fid->Volume, CODA_VGET);
+	Begin_VFS(fid, CODA_VGET);
 	if (u.u_error) goto Exit;
 
 	/* Initialize the "prev" and "current" fids to the target object and its parent, respectively. */
-	u.u_error = FSDB->Get(&f, fid, CRTORUID(u.u_cred), RC_STATUS);
+	u.u_error = FSDB->Get(&f, fid, u.u_uid, RC_STATUS);
 	if (u.u_error) goto FreeLocks;
 	if (FID_IsVolRoot(&f->fid)) {
 	    fsobj *newf = f->u.mtpoint;
@@ -337,7 +338,7 @@ void vproc::GetPath(ViceFid *fid, char *out, int *outlen, int fullpath) {
 
 	for (;;) {
 	    /* Get the current object. */
-	    u.u_error = FSDB->Get(&f, &currFid, CRTORUID(u.u_cred), RC_DATA);
+	    u.u_error = FSDB->Get(&f, &currFid, u.u_uid, RC_DATA);
 	    if (u.u_error) goto FreeLocks;
 
 	    /* Lookup the name of the previous component. */
@@ -369,7 +370,7 @@ void vproc::GetPath(ViceFid *fid, char *out, int *outlen, int fullpath) {
 		    goto FreeLocks;
 		}
 
-		if (f->fid.Volume == rootfid.Volume) {
+		if (FID_EQ(&f->fid, &rootfid)) {
 		    char tbuf[MAXPATHLEN];
 		    strcpy(tbuf, out);
 		    strcpy(out, venusRoot);
@@ -431,9 +432,9 @@ void vproc::verifyname(char *name, int flags)
 
     length = strlen(name);
 
-    /* Disallow names of the form "@XXXXXXXX.YYYYYYYY.ZZZZZZZZ". */
-    if ((flags & NAME_NO_CONFLICT) && length == 27 &&
-	name[0] == '@' && name[9] == '.' && name[18] == '.')
+    /* Disallow names of the form "@XXXXXXXX.YYYYYYYY.ZZZZZZZZ@RRRRRRRR". */
+    if ((flags & NAME_NO_CONFLICT) && length > 27 &&
+	name[0] == '@' && name[9] == '.' && name[18] == '.' && name[27] == '@')
     {
 	u.u_error = EINVAL;
 	return;

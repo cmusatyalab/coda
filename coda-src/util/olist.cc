@@ -161,7 +161,7 @@ olink *olist::get() {
 
 void olist::clear() {
     olink *p;
-    while(p = get()) ;
+    while ((p = get())) ;
     if (cnt != 0) abort();
     /*	{ print(logFile); Die("olist::clear: cnt != 0 after gets"); }*/
 }
@@ -175,7 +175,7 @@ int olist::count() {
 int olist::IsMember(olink *p) {
     olist_iterator next(*this);
     olink *ol;
-    while (ol = next())
+    while ((ol = next()))
 	if (ol == p) return(1);
     return(0);
 }
@@ -195,14 +195,14 @@ void olist::print(FILE *fp) {
 void olist::print(int fd) {
     /* first print out the olist header */
     char buf[1000];
-    sprintf(buf, "this: %#08x, tail: %#08x : Default Olist : count = %d\n",
-	    (long)this, (long)this->tail, cnt);
+    sprintf(buf, "this: %p, tail: %p : Default Olist : count = %d\n",
+	    this, this->tail, cnt);
     write(fd, buf, strlen(buf));
 
     /* then print out all of the olinks */
     olist_iterator next(*this);
     olink *p;
-    while(p = next()) p->print(fd);
+    while((p = next())) p->print(fd);
 }
 
 
@@ -284,7 +284,7 @@ void olink::print(FILE *fp) {
 
 void olink::print(int fd) {
     char buf[80];
-    sprintf(buf, "this: %#08x , next: %#08x: Default Olink\n",
-	    (long)this,(long)this->next);
+    sprintf(buf, "this: %p, next: %p: Default Olink\n",
+	    this, this->next);
     write(fd, buf, strlen(buf));
 }

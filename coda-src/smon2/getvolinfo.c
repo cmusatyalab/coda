@@ -35,7 +35,6 @@ listed in the file CREDITS.
 void Initialize(void)
 {
     PROCESS         *pid;
-    SFTP_Initializer sei;
     struct timeval   tv;
     long             rc;
 
@@ -134,54 +133,54 @@ int main(int argc, char *argv[])
     }
 
     printf("Returned volume information for %s\n", volume);
-    printf("\tVolumeId %x\n", volinfo.Vid);
+    printf("\tVolumeId %lx\n", volinfo.Vid);
     switch(volinfo.Type) {
     case ReadOnly:
-	printf("\tReadonly clone (type %d)\n", volinfo.Type);
+	printf("\tReadonly clone (type %ld)\n", volinfo.Type);
 	break;
 
     case ReadWrite:
-	printf("\tReadwrite underlying volume replica (type %d)\n", volinfo.Type);
+	printf("\tReadwrite underlying volume replica (type %ld)\n", volinfo.Type);
 	break;
 
     case Backup:
-	printf("\tBackup volume (type %d)\n", volinfo.Type);
+	printf("\tBackup volume (type %ld)\n", volinfo.Type);
 	break;
 
     case Replicated:
-	printf("\tReplicated volume (type %d)\n", volinfo.Type);
+	printf("\tReplicated volume (type %ld)\n", volinfo.Type);
 	break;
 
     default:
-	printf("\tUnknown volume type %d\n", volinfo.Type);
+	printf("\tUnknown volume type %ld\n", volinfo.Type);
 	break;
     }
     printf("\n");
-    printf("\tType0 id %x\n", volinfo.Type0);
-    printf("\tType1 id %x\n", volinfo.Type1);
-    printf("\tType2 id %x\n", volinfo.Type2);
-    printf("\tType3 id %x\n", volinfo.Type3);
-    printf("\tType4 id %x\n", volinfo.Type4);
+    printf("\tType0 id %lx\n", volinfo.Type0);
+    printf("\tType1 id %lx\n", volinfo.Type1);
+    printf("\tType2 id %lx\n", volinfo.Type2);
+    printf("\tType3 id %lx\n", volinfo.Type3);
+    printf("\tType4 id %lx\n", volinfo.Type4);
     printf("\n");
-    printf("\tServerCount %d\n", volinfo.ServerCount);
-    printf("\tReplica0 id %08x, Server0 %s\n",
+    printf("\tServerCount %ld\n", volinfo.ServerCount);
+    printf("\tReplica0 id %08lx, Server0 %s\n",
 	   volinfo.RepVolMap.Volume0, viceaddr(volinfo.Server0));
-    printf("\tReplica1 id %08x, Server1 %s\n",
+    printf("\tReplica1 id %08lx, Server1 %s\n",
 	   volinfo.RepVolMap.Volume1, viceaddr(volinfo.Server1));
-    printf("\tReplica2 id %08x, Server2 %s\n",
+    printf("\tReplica2 id %08lx, Server2 %s\n",
 	   volinfo.RepVolMap.Volume2, viceaddr(volinfo.Server2));
-    printf("\tReplica3 id %08x, Server3 %s\n",
+    printf("\tReplica3 id %08lx, Server3 %s\n",
 	   volinfo.RepVolMap.Volume3, viceaddr(volinfo.Server3));
-    printf("\tReplica4 id %08x, Server4 %s\n",
+    printf("\tReplica4 id %08lx, Server4 %s\n",
 	   volinfo.RepVolMap.Volume4, viceaddr(volinfo.Server4));
-    printf("\tReplica5 id %08x, Server5 %s\n",
+    printf("\tReplica5 id %08lx, Server5 %s\n",
 	   volinfo.RepVolMap.Volume5, viceaddr(volinfo.Server5));
-    printf("\tReplica6 id %08x, Server6 %s\n",
+    printf("\tReplica6 id %08lx, Server6 %s\n",
 	   volinfo.RepVolMap.Volume6, viceaddr(volinfo.Server6));
-    printf("\tReplica7 id %08x, Server7 %s\n",
+    printf("\tReplica7 id %08lx, Server7 %s\n",
 	   volinfo.RepVolMap.Volume7, viceaddr(volinfo.Server7));
     printf("\n");
-    printf("\tVSGAddr %X\n", volinfo.VSGAddr);
+    printf("\tVSGAddr %lX\n", volinfo.VSGAddr);
     printf("\n");
 
     RPC2_Unbind(cid);

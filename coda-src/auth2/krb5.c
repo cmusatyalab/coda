@@ -34,7 +34,7 @@ extern "C" {
 
 #ifdef __cplusplus
 }
-#endif __cplusplus
+#endif
 
 /* The following can be specified/overridden using /etc/coda/auth.conf */
 static char *kerberos5kinit;   /* client only, defaults to "kinit" */
