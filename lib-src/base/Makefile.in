@@ -42,8 +42,8 @@ LIBRARIES = libbase.a
 HEADERS   = assert.h configfiles.h dllist.h
 # OBJECTS = configfiles.o
 
-ifneq ($(SHORTSYS),djgpp)
 HEADERS += parser.h
+ifneq ($(SHORTSYS),djgpp)
 OBJECTS += parser.o
 endif
 

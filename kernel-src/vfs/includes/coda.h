@@ -15,6 +15,10 @@
 #include <sys/types.h>
 #endif 
 
+#ifndef CODA_MAXSYMLINKS
+#define CODA_MAXSYMLINKS 10
+#endif
+
 #if defined(DJGPP) || defined(__CYGWIN32__)
 #ifdef KERNEL
 typedef unsigned long u_long;
@@ -23,7 +27,7 @@ typedef unsigned short u_short;
 typedef u_long ino_t;
 typedef u_long dev_t;
 typedef void * caddr_t;
-typedef u_long u_quad_t;
+typedef unsigned long long u_quad_t;
 
 #define inline
 
@@ -34,12 +38,12 @@ struct timespec {
 #else  /* DJGPP but not KERNEL */
 #include <sys/types.h>
 #include <sys/time.h>
-typedef u_long u_quad_t;
+typedef unsigned long long u_quad_t;
 #endif /* !KERNEL */
 #endif /* !DJGPP */
 
 
-#if defined(__linux__) || defined(__CYGWIN32__)
+#if defined(__linux__)
 #define cdev_t u_quad_t
 #if !defined(_UQUAD_T_) && (!defined(__GLIBC__) || __GLIBC__ < 2)
 #define _UQUAD_T_ 1

@@ -42,7 +42,10 @@ include $(MAKDIR)/Makeconf
 
 LIBRARIES = libcodadir.a 
 HEADERS   = codadir.h dirprivate.h
+
+ifneq ($(SHORTSYS),djgpp)
 TESTS = dirtest
+endif
 
 CFLAGS += -Wall
 CXXFLAGS := $(CFLAGS)
