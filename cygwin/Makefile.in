@@ -15,10 +15,10 @@ include $(TOPDIR)/Makeconf
 HEADERS = errno.h nlist.h stdlib.h 
 SUBDIRS = sys
 
-include $(TOPDIR)/configs/Makerules
-
-ifeq ($(SHORTSYS),cygwin)
+ifeq ($(SYS),cygwin32)
 LIBRARIES = libbraindead.a
 OBJECTS = braindead.o
 libbraindead.a: $(OBJECTS)
 endif
+
+include $(TOPDIR)/configs/Makerules
