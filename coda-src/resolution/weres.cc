@@ -57,7 +57,6 @@ long RS_ForceVV(RPC2_Handle RPCid, ViceFid *Fid, ViceVersionVector *VV,
     Volume *volptr = 0;
     VolumeId VSGVolnum = Fid->Volume;
     rvm_return_t status = RVM_SUCCESS;
-    ViceVersionVector *DiffVV = 0;
     int errorcode = 0;
     conninfo *cip = GetConnectionInfo(RPCid);
 
@@ -99,13 +98,11 @@ long RS_ForceVV(RPC2_Handle RPCid, ViceFid *Fid, ViceVersionVector *VV,
     res = VV_Cmp(&Vnode_vv(vptr), VV);
     if (res != VV_EQ) {
 	if (res == VV_SUB) {
-	    DiffVV = new ViceVersionVector;
-	    *DiffVV = *VV;
-	    SubVVs(DiffVV, &Vnode_vv(vptr));
-	    AddVVs(&Vnode_vv(vptr), DiffVV);
-	    AddVVs(&V_versionvector(volptr), DiffVV);
+	    ViceVersionVector DiffVV = *VV;
+	    SubVVs(&DiffVV, &Vnode_vv(vptr));
+	    AddVVs(&Vnode_vv(vptr), &DiffVV);
+	    AddVVs(&V_versionvector(volptr), &DiffVV);
 	    CodaBreakCallBack(0, Fid, VSGVolnum);
-	    delete DiffVV;
 	}
 	else {
 	    errorcode = EINCOMPATIBLE;

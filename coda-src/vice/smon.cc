@@ -253,7 +253,7 @@ static void CheckRVMResStat()
 		break;
 	    if (RVMResList->remove(re) != re)
 		CODA_ASSERT(0);
-	    delete re;
+	    free(re);
 	}
     /* we don't enqueue anything if there was already something on the list */
     } else {
@@ -266,7 +266,8 @@ static void CheckRVMResStat()
 	    /* We don't need to check the size -- we know that only
 	       one set of stats will exist in the queue at any one time */
 	    while ((s=(struct resstats*)next())) {
-		struct rvmrese *e = new(struct rvmrese);
+		struct rvmrese *e =
+		    (struct rvmrese *)malloc(sizeof(struct rvmrese));
 		s->precollect();
 		e->Init(curr_time,s);
 		s->postcollect();

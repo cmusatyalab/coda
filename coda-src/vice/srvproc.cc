@@ -4594,7 +4594,7 @@ START_TIMING(PutObjects_Transaction);
 	PutVolObj(&volptr, LockLevel);
 	rvmlib_end_transaction(flush, &(status));
 	CODA_ASSERT(status == 0);
-    } else { 
+    } else {
 /*  NO transaction */
 	if (vlist) {
 	    dlist_iterator next(*vlist);

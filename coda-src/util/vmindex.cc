@@ -92,4 +92,3 @@ long vmindex_iterator::operator()() {
     return(rval);
 }
 
-    

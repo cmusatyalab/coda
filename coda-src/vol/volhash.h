@@ -78,7 +78,6 @@ class hashent: public olink {
   friend int HashDelete(VolumeId);
     VolumeId	id;
     int		index;
-    hashent	*next;
 
     int get_index() {return(index);};
   public:

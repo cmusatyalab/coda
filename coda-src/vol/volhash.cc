@@ -84,7 +84,7 @@ vhashtab::vhashtab(int size, int (*hashfn)(void *), char *n)
 
 vhashtab::~vhashtab()
 {
-    if (name) delete name;
+    if (name) delete [] name;
 }
 
 void vhashtab::Lock(int level)
