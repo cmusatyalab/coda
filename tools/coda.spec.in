@@ -147,7 +147,7 @@ fi
 /etc/coda/venus.conf.ex
 /etc/rc.d/init.d/venus.init
 /usr/sbin/@AU@
-/usr/sbin/adv_sidekick
+/usr/sbin/sidekick
 /usr/sbin/codaconfedit
 /usr/sbin/coda-setup-ports
 /usr/sbin/venus

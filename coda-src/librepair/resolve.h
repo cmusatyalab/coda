@@ -16,11 +16,8 @@ listed in the file CREDITS.
 
 #*/
 
-
-
-
-
-
+#ifndef _RESOLVE_H_
+#define _RESOLVE_H_
 
 /*
  * resolve.h 
@@ -53,6 +50,14 @@ struct AclEntry {
     long rights;
 };
 
+struct repinfo {
+    char *user, *rights;      /* ACL sets   (what to set ACL's to if conflicting) */
+    char *owner;              /* Owner sets (what to set owner to...) */
+    char *mode;               /* Mode sets */
+    char *fixed;              /* Location of 'fixed' file/directory if non-interactive */
+    char interactive;         /* flag indicating whether repair is interactive */
+};
+
 /* definition of each directory entry in memory as used 
  * by the resolution subsystem */
 typedef struct {
@@ -76,7 +81,7 @@ typedef struct {
     u_short modebits;		    
     struct  Acl *al;
     short   owner;
-}resreplica;
+} resreplica;
 
 /* globals */
 extern resdir_entry	*direntriesarr;
@@ -93,6 +98,8 @@ extern void InitListHdr (int , resreplica *, struct listhdr **);
 extern int InsertListHdr (struct repair *, struct listhdr **, int );
 extern int InRepairList (struct listhdr *, unsigned , long , long );
 extern int getunixdirreps (int , char **, resreplica **);
-extern int dirresolve (int , resreplica *, int (*)(char *), struct listhdr **, char *);
+extern int dirresolve (int , resreplica *, int (*)(char *), struct listhdr **, char *, struct repinfo *);
 extern void resClean (int, resreplica *, struct listhdr *);
 extern int GetParent (ViceFid *, ViceFid *, char *, char *, char *);
+
+#endif

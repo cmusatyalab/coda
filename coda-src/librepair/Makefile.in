@@ -25,16 +25,20 @@ TOPOBJ = @TOPOBJ@
 
 include $(TOPDIR)/Makeconf
 
-LIBRARIES = librepair.a
-HEADERS   = resolve.h repio.h
+LIBRARIES = libsrvrepair.a libclnrepair.a
+HEADERS   = resolve.h repio.h repcmds.h
 
 LIBS= $(LIBKERNDEP) $(LIBVV)
 
-OFILES= resolve.o cure.o predicate.o repio.o 
+SRVOFILES = repio.o
+CLNOFILES = resolve.o cure.o predicate.o repio.o repcmds.o rvol.o path.o
 
-librepair.a: $(OFILES)
+libsrvrepair.a: $(SRVOFILES)
+libclnrepair.a: $(CLNOFILES)
 
-HFILES = resolve.h predicate.h cure.h repio.h
-$(OFILES): $(HFILES)
+SRVHFILES = resolve.h predicate.h cure.h repio.h
+CLNHFILES = repcmds.h
+$(SRVOFILES): $(SRVHFILES)
+$(CLNOFILES): $(CLNHFILES)
 
 include $(TOPDIR)/configs/Makerules

@@ -167,7 +167,7 @@ EOF
     then
 	cat >> ${dst} << EOF
 sbin/au
-sbin/adv_sidekick
+sbin/sidekick
 sbin/codaconfedit
 sbin/coda-setup-ports
 sbin/venus

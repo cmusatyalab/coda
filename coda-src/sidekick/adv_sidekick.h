@@ -56,12 +56,12 @@ extern "C" {
 
 #define ASRARGS 7 /* XXX - maximum number of arguments to an ASR */
 #define ASRLOGDIR "/tmp/asrlogs"
-#define DEF_LOGFILE "/usr/coda/etc/skk.log"
+#define DEF_LOGFILE "/usr/coda/etc/sidekick.log"
 #define DEF_ROCK 1
-#define DSTACK 65536
+#define DSTACK 131072
 #define FIXEDDIR "/tmp"
 #define HOMEDIR_PREFIX "/coda/usr/"
-#define INTEREST_FILE SYSCONFDIR "/skk.interests"
+#define INTEREST_FILE SYSCONFDIR "/sidekick.intr"
 
 int table(int, int, char *, int, int);
 int ffilecopy(FILE*, FILE*);
@@ -90,6 +90,7 @@ void knock(const char *, int, int);
 int parse_cmd_line(int, char **);
 int parse_path(const char *, char *, char *);
 int parse_resolvefile(const char *, const char *, char *);
+int point(char *linkpath, char *target);
 int worker(void *);
 
 #define lprintf(msg...)				\

@@ -49,7 +49,9 @@ int main(int argc, char **argv) {
     if ((mkdir(ASRLOGDIR, 0777) < 0) && 
 	((errno != EEXIST) || (stat(ASRLOGDIR, &sbuf) < 0) || (!S_ISDIR(sbuf.st_mode))))
 	quit("Could not create asr log directory");
-
+    if (chmod(ASRLOGDIR, 0777) < 0)
+	quit("%s\nCould set permissions on asr log directory", strerror(errno));
+    
     /* Get necessary information */
     if (gethostname(hostname, MAXHOSTNAMELEN) < 0)
 	quit("%s\nCould not get hostname", strerror(errno));
@@ -145,9 +147,10 @@ RPC2_Handle contact_venus(const char *hostname) {
 int executor(char *pathname, int vuid, int req_no) {
     char space[DEF_BUF];
     char asr[MAXPATHLEN], asrlog[MAXPATHLEN], conf[MAXPATHLEN];
-    char fixed[MAXPATHLEN], parent[MAXPATHLEN], hd[MAXPATHLEN];
+    char fixfile[MAXPATHLEN], fixed[MAXPATHLEN], parent[MAXPATHLEN], hd[MAXPATHLEN];
     VolumeId vid;
     struct stat sbuf;
+    struct repinfo inf;
     char svuid[32];
     char *zargs[ASRARGS];  /* asr, fixed, lgrep, ssrep1, ssrep2, ssrep3, NULL */
     int ret, pid, status, i;
@@ -230,18 +233,47 @@ int executor(char *pathname, int vuid, int req_no) {
 	}
     }
     if (ret == 0) { /* if ASR exited normally */
+
 	/* repair the conflict using "fixed" file */
 	lprintf("ASR finished, now repairing conflict...\n");
+
 	if (repv->dirconf) { /* directory conflict */
+
 	    if (repv->local) { /* local/global conflict */
-		lprintf("Sorry, can't handle directory conflicts, yet.\n");
+
+		lprintf("Sorry, can't handle local/global directory conflicts, yet.\n");
+
 	    }
 	    else { /* server/server conflict */
-		lprintf("Sorry, can't handle directory conflicts, yet.\n");
+		memset(&inf, 0, sizeof(inf));
+		inf.fixed = fixed;
+
+		sprintf(fixfile, "%s/fix.%d.XXXXXX", FIXEDDIR, req_no);
+		if (mktemp(fixfile) == NULL)
+		    quit("Could not created fixfile: %s", strerror(errno));
+
+		/* do the compare */
+		while ((ret = CompareDirs(repv, fixfile, &inf, space, sizeof(space))) == -2) {
+		    if (DoRepair(repv, fixfile, logfile, space, sizeof(space)) < 0) {
+			ret = -1;
+			break;
+		    }
+		}
+		lprintf("CompareDirs finished, ret = %d\n", ret);
+		/* then the repair */
+		if ((ret < 0) || (DoRepair(repv, fixfile, logfile, space, sizeof(space)) < 0)) {
+		    lprintf("%s\nError repairing conflicts\n", space);
+		    if (EndRepair(repv, 0, space, sizeof(space)) < 0)
+			lprintf("Error ending repair: %s\n", space);
+		    quit("Repair failed");
+		}
+		lprintf("DoRepair finished\n");
 	    }
 
 	    if (EndRepair(repv, 0, space, sizeof(space)) < 0)
 		lprintf("Error ending repair: %s\n", space);
+	    lprintf("EndRepair finished\n");
+
 	}
 	else { /* file conflict -- "repair" it by removing the file or discarding 
 		  all local mutations, then move the fixed file into place */
@@ -481,6 +513,19 @@ int parse_resolvefile(const char *homedir, const char *pathname, char *asrpath) 
  ResolveExit:
     if (fclose(rfile) < 0) lprintf("%s\nError closing %s.\n", rfilename);
     return(-1);
+}
+
+/* Checks if linkpath is a symlink which points to target
+ * Returns whether link points to target
+ * Returns -1 on error (e.g. linkpath isn't a symlink) */
+int point(char *linkpath, char *target) {
+    char lnpath[MAXPATHLEN];
+    struct stat sbuf;
+
+    memset(lnpath, 0, MAXPATHLEN);
+    if (readlink(linkpath, lnpath, MAXPATHLEN - 1) < 0)
+	return(-1);
+    else return(strcmp(lnpath, linkpath) == 0);
 }
 
 int worker(void *arg) {

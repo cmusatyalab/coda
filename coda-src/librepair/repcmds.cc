@@ -114,7 +114,10 @@ int ClearInc(struct repvol *repv, char *msg, int msgsize) {
     vv_t vv[MAXHOSTS];
     struct ViceIoctl vioc;
     int rc, i, nreplicas;
-    char **names, *user = NULL, *rights = NULL, *owner = NULL, *mode = NULL;
+    struct repinfo inf;
+    char **names;
+
+    memset(&inf, 0, sizeof(inf));
 
     if (repv == NULL) {
 	strerr(msg, msgsize, "NULL repv");
@@ -131,7 +134,7 @@ int ClearInc(struct repvol *repv, char *msg, int msgsize) {
     confFid.Volume = repv->vid;
     confFid.Vnode = confFid.Unique = 0;
     /* do the compare */
-    if (!CompareDirs(repv, "/dev/null", user, rights, owner, mode, msgbuf, sizeof(msgbuf))) {
+    if (!CompareDirs(repv, "/dev/null", &inf, msgbuf, sizeof(msgbuf))) {
 	/* XXXX if a get fid is done between two setvv's resolve might get called 
 	   - therefore get the vv for each replica  before doing the setvv */
 	for (i = 0; i < nreplicas; i++) {
@@ -177,8 +180,7 @@ int ClearInc(struct repvol *repv, char *msg, int msgsize) {
  * Returns number of conflicts on success, -1 on error and fills in msg if non-NULL 
  * Returns -2 if there are name/name conflicts (in which case the caller
  * should DoRepair to fix them and then do CompareDirs again) */
-int CompareDirs(struct repvol *repv, char *fixfile, char *user, char *rights, 
-		char *owner, char *mode, char *msg, int msgsize) {
+int CompareDirs(struct repvol *repv, char *fixfile, struct repinfo *inf, char *msg, int msgsize) {
     char msgbuf[DEF_BUF], space[DEF_BUF], tmppath[MAXPATHLEN];
     VolumeId vid;
     ViceFid confFid;
@@ -193,6 +195,11 @@ int CompareDirs(struct repvol *repv, char *fixfile, char *user, char *rights,
     struct  listhdr *k;
     FILE *file;
 
+    if ((repv == NULL) || (inf == NULL)) {
+      strerr(msg, msgsize, "NULL %s", (repv ? "repinfo" : "repv"));
+      return(-1);
+    }
+
     if (repair_getfid(repv->rodir, &confFid, &confvv, msgbuf, sizeof(msgbuf))) {
 	strerr(msg, msgsize, "repair_getfid(%s): %s", repv->rodir, msgbuf);
 	return(-1);
@@ -203,13 +210,18 @@ int CompareDirs(struct repvol *repv, char *fixfile, char *user, char *rights,
 	return(-1);
     }
 
+    if (!(inf->interactive)) {
+	if ((inf->fixed == NULL) || (stat(inf->fixed, &sbuf) < 0)) {
+	    strerr(msg, msgsize, "Invalid 'fixed' file");
+	    return(-1);
+	}
+    }
+
     if ((nreps = getVolrepNames(repv, &names, msgbuf, sizeof(msgbuf))) <= 0) {
 	strerr(msg, msgsize, "Error getting replica names: %s", msgbuf);
 	return(-1);
     }
  
-    /* begin old "doCompare" */
-
     if (nreps == 1) {
 	strerr(msg, msgsize, "Only one replica, nothing to compare");
 	goto Cleanup;
@@ -226,7 +238,7 @@ int CompareDirs(struct repvol *repv, char *fixfile, char *user, char *rights,
     }
 
     /* Set the global RepVolume to the volume we are repairing */
-    RepVolume = repv->vid;
+    RepVolume = repv->vid; /* XXXX Why do we need this??  -Remington */
 
     if (getunixdirreps(nreps, names, &dirs)) {
 	strerr(msg, msgsize, "Could not get replica information");
@@ -234,35 +246,34 @@ int CompareDirs(struct repvol *repv, char *fixfile, char *user, char *rights,
     }
 
     /* Do the resolve! */
-    ret = dirresolve(nreps, dirs, NULL, &k, repv->mnt);
+    ret = dirresolve(nreps, dirs, NULL, &k, repv->mnt, inf);
 
     if (compareAcl(nreps, dirs)){
 	nConflicts++;
-	if ( user && rights ) {
-	    printf("Acls will be set to %s %s.\n", user, rights);
+	if ( inf->user && inf->rights ) {
+	    printf("Acls will be set to %s %s.\n", inf->user, inf->rights);
 	    setacl = 1;
 	} 
 	else printf("Acls differ: Please repair manually using setacl <user> <rights>\n");
     }
 
-    if (compareStatus(nreps, dirs)){
-	nConflicts++;
-	if ( mode ) {
-	    printf("Modebits will be set to %s.\n", mode);
-	    setmode = 1;
-	} 
-	else printf("Modebits differ - a repair should set the bits\n");
-    }
-
     if (compareOwner(nreps, dirs)) {
 	nConflicts++;
-	if ( owner ) {
-	    printf("owner uid will be set to %s\n", owner);
+	if ( inf->owner ) {
+	    printf("owner uid will be set to %s\n", inf->owner);
 	    setowner = 1;
 	} 
 	else printf("Owner differs: Please repair manually using setowner <uid>\n");
     }
 
+    if (compareStatus(nreps, dirs)){
+	nConflicts++;
+	if ( inf->mode ) {
+	    printf("Modebits will be set to %s.\n", inf->mode);
+	    setmode = 1;
+	} 
+	else printf("Modebits differ - a repair should set the bits\n");
+    }
 
     for (i = 0; i < nreps; i++) {
 	/* find the server name */
@@ -276,11 +287,11 @@ int CompareDirs(struct repvol *repv, char *fixfile, char *user, char *rights,
 	for (j = 0; j < k[i].repairCount; j++)
 	    repair_printline(&(k[i].repairList[j]), file);
 	if ( setacl )
-	    fprintf(file, "\tsetacl %s %s\n", user, rights);
+	    fprintf(file, "\tsetacl %s %s\n", inf->user, inf->rights);
 	if ( setmode )
-	    fprintf(file, "\tsetmode %s\n", mode);
+	    fprintf(file, "\tsetmode %s\n", inf->mode);
 	if ( setowner )
-	    fprintf(file, "\tsetowner %s\n", owner);
+	    fprintf(file, "\tsetowner %s\n", inf->owner);
     }
 
     /* Close the fixfile */

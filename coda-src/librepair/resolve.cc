@@ -411,7 +411,7 @@ void ResolveConflict (int nreplicas, resreplica *dirs, resdir_entry **deGroup, i
 	MarkEntriesByFid(deGroup[0]->vno, deGroup[0]->uniqfier);
 }
 
-int NameNameResolve(int first, int last, int nreplicas, resreplica *dirs, struct listhdr **opList) {
+int NameNameResolve(int first, int last, int nreplicas, resreplica *dirs, struct listhdr **opList, struct repinfo *inf) {
     printf("\n \nNAME/NAME CONFLICT EXISTS FOR %s\n\n", sortedArrByName[first]->name);
 
     // first print the ls output for each replica
@@ -422,14 +422,12 @@ int NameNameResolve(int first, int last, int nreplicas, resreplica *dirs, struct
     strcpy(replicatedname, dirs[sortedArrByName[first]->replicaid].path);
     char *lastslash = rindex(replicatedname, '/'); // the trailing /
     if (!lastslash) 
-	printf("Couldn't find the parent directory of %s\n",
-	       sortedArrByName[first]->name);
+	printf("Couldn't find the parent directory of %s\n", sortedArrByName[first]->name);
     else {
 	*lastslash = '\0';
 	lastslash = rindex(replicatedname, '/'); // the / before the replica name
-	if (!lastslash) 
-	    printf("Couldn't find the parent directory of %s\n",
-		   sortedArrByName[first]->name);
+	if (!lastslash)
+	    printf("Couldn't find the parent directory of %s\n", sortedArrByName[first]->name);
 	else {
 	    uselsoutput = 1;
 	    *lastslash = '\0';
@@ -466,13 +464,33 @@ int NameNameResolve(int first, int last, int nreplicas, resreplica *dirs, struct
 	       rde->VV.Versions.Site7, rde->VV.StoreId.Host, rde->VV.StoreId.Uniquifier);
     }
     int answers[MAXHOSTS];
+    char nnpath[MAXPATHLEN], fixedpath[MAXPATHLEN], lnpath[MAXPATHLEN];
+    struct stat sbuf;
     for (i= 0; i < MAXHOSTS; i++) answers[i] = -1;
     CODA_ASSERT((last-first) <= MAXHOSTS);
     for (i = first; i < last; i++) {
 	resdir_entry *rde = sortedArrByName[i];
-	printf("Should %s%s be removed? ",
-	       dirs[rde->replicaid].path, rde->name);
-	answers[i-first] = Parser_getbool("", 0);
+	sprintf(nnpath, "%s%s", dirs[rde->replicaid].path, rde->name);
+	if (inf->interactive) {
+	    printf("Should %s be removed? ", nnpath);
+	    answers[i-first] = Parser_getbool("", 0);
+	}
+	else { /* Non-interactive mode
+		*  -- keep file if link in fixed dir points to the replica */
+	    printf("Checking \"%s\"... ", nnpath);
+	    sprintf(fixedpath, "%s%s%s", inf->fixed, 
+		    ((inf->fixed[(strlen(inf->fixed) - 1)] == '/') ? "" : "/"), rde->name);
+	    if ((lstat(fixedpath, &sbuf) < 0) || (!(S_ISLNK(sbuf.st_mode))))
+		answers[i-first] = 1; /* remove anything not explicitly saved */
+	    else {
+		memset(lnpath, 0, MAXPATHLEN);
+		if ((readlink(fixedpath, lnpath, MAXPATHLEN - 1) < 0) /* keep data if link is bad */
+		    || (strcmp(lnpath, nnpath) == 0)) /* or if it points to the replica */
+		    answers[i-first] = 0; 
+		else answers[i-first] = 1; 
+	    }
+	    printf("%s\n", (answers[i-first]) ? "remove" : "save");
+	}
     }
     int nobjects = last - first;
     int nyes = 0;
@@ -482,12 +500,11 @@ int NameNameResolve(int first, int last, int nreplicas, resreplica *dirs, struct
 	else if (answers[i] == 1) nyes++;
     }
     /* check for obvious problems */
-    if (nyes == nobjects) 
-	printf("WARNING: ALL REPLICAS OF OBJECT %s WILL BE REMOVED\n", 
-	       sortedArrByName[first]->name);
-    if (nno == nobjects)
-	printf("WARNING: Nothing will change; NAME/NAME conflict will remain\n");
-	    
+    if ((nyes == nobjects) && (inf->interactive))
+	    printf("WARNING: ALL REPLICAS OF OBJECT %s WILL BE REMOVED\n", sortedArrByName[first]->name);
+    if ((nno == nobjects) && (inf->interactive))
+	    printf("WARNING: Nothing will change; NAME/NAME conflict will remain\n");
+
     if (nno) {
 	/* check that only single unique object will exist */
 	long goodvnode = -1;
@@ -531,8 +548,8 @@ int NameNameResolve(int first, int last, int nreplicas, resreplica *dirs, struct
 
 /* dirresolve : returns NNCONFLICTS(-1) if this resolve is definitely not the last needed compare/repair 
    return 0 if the compare implied that the resulting repair will make the directories equal */
-int dirresolve (int nreplicas, resreplica *dirs, int (*cbfn)(char *), 
-		       struct listhdr **opList, char *volmtpt)
+int dirresolve (int nreplicas, resreplica *dirs, int (*cbfn)(char *), struct listhdr **opList, 
+		char *volmtpt, struct repinfo *inf)
 {
     int i;
 
@@ -559,8 +576,8 @@ int dirresolve (int nreplicas, resreplica *dirs, int (*cbfn)(char *),
 	    if ((sortedArrByName[i]->vno != sortedArrByName[first]->vno) || 
 		(sortedArrByName[i]->uniqfier != sortedArrByName[first]->uniqfier)) {
 		/* name/name conflict exists - process it */
-		if (NameNameResolve(first, next, nreplicas, dirs, opList)) {
-		    nConflicts ++;
+		if (NameNameResolve(first, next, nreplicas, dirs, opList, inf)) {
+		    nConflicts++;
 		    break;
 		}
 	    }
@@ -587,7 +604,8 @@ int dirresolve (int nreplicas, resreplica *dirs, int (*cbfn)(char *),
 	if (sortedArrByFidName[i]->lookedAt) continue;
 	rc = GetConflictType(nreplicas, dirs, &(sortedArrByFidName[i]), j, &conflict, volmtpt);
 	if (rc){
-	    printf("**** Couldnt get conflict type for %s ****\n", sortedArrByFidName[i]->name);
+	    if (inf->interactive)
+		printf("**** Couldnt get conflict type for %s ****\n", sortedArrByFidName[i]->name);
 	    nConflicts++;
 	}
 	else 
@@ -595,7 +613,7 @@ int dirresolve (int nreplicas, resreplica *dirs, int (*cbfn)(char *),
     }
     free(sortedArrByFidName);
     return 0;
-}   
+}
 
 int resdirCompareByName (resdir_entry **a, resdir_entry **b)
 {

@@ -114,33 +114,32 @@ void GetArgs(int argc, char *argv[]) {
     }
 }
 
-int getcompareargs(int largc, char **largv, char **filepath,
-		   char **user, char **rights, char **owner, char **mode) {
+int getcompareargs(int largc, char **largv, char **filepath, struct repinfo *inf) {
     ViceFid fixfid;
     vv_t fixvv;
     int j;
 
     if (largc == 1) goto exit;
 
-    *user = *rights = *owner = *mode = NULL;
+    inf->user = inf->rights = inf->owner = inf->mode = NULL;
     for ( j = 2; j < largc ; j++ ) {
 	if ( strcmp(largv[j], "-acl") == 0 ) {
 	    if ( largc < j+3 ) 
 		goto exit;
-	    *user = largv[j+1];
-	    *rights = largv[j+2];
+	    inf->user = largv[j+1];
+	    inf->rights = largv[j+2];
 	    j = j + 2;
 	}
 	else if ( strcmp(largv[j], "-owner") == 0 ) {
 	    if ( largc < j+2 ) 
 		goto exit;
-	    *owner = largv[j+1];
+	    inf->owner = largv[j+1];
 	    j = j+1;
 	}
 	else if ( strcmp(largv[j], "-mode") == 0) {
 	    if ( largc < j+2 ) 
 		goto exit;
-	    *mode = largv[j+1];
+	    inf->mode = largv[j+1];
 	    j = j+1;
 	}
 	else goto exit;
@@ -289,8 +288,12 @@ void rep_ClearInc(int largc, char **largv) {
 
 void rep_CompareDirs(int largc, char **largv) {
     char msgbuf[DEF_BUF];
-    char *fixfile = NULL, *user = NULL, *rights = NULL, *owner = NULL, *mode = NULL;
+    struct repinfo inf;
+    char *fixfile = NULL;
     int ret;
+
+    memset(&inf, 0, sizeof(inf));
+    inf.interactive = 1;
 
     switch (session) {
     case LOCAL_GLOBAL:
@@ -304,18 +307,16 @@ void rep_CompareDirs(int largc, char **largv) {
     }
 
     /* Obtain parameters from user */
-    if (getcompareargs(largc, largv, &fixfile, &user, &rights, &owner, &mode) < 0)
+    if (getcompareargs(largc, largv, &fixfile, &inf) < 0)
 	return;
 
-    if ((ret = CompareDirs(RepairVol, fixfile, user, rights, owner, mode, msgbuf, sizeof(msgbuf))) < 0) {
-	if (ret == -2) {
-	    if (DoRepair(RepairVol, fixfile, stdout, msgbuf, sizeof(msgbuf)) < 0)
-		fprintf(stderr, "%s\nError removing name/name conflicts\n", msgbuf);
-	    else if (CompareDirs(RepairVol, fixfile, user, rights, owner, mode, msgbuf, sizeof(msgbuf)) < 0)
-		fprintf(stderr, "%s\ncomparedirs failed\n", msgbuf);
-	}
-	else fprintf(stderr, "%s\ncomparedirs failed\n", msgbuf);
+    while ((ret = CompareDirs(RepairVol, fixfile, &inf, msgbuf, sizeof(msgbuf))) == -2) {
+	if (DoRepair(RepairVol, fixfile, stdout, msgbuf, sizeof(msgbuf)) < 0)
+	    break;
     }
+    if (ret < 0)
+	fprintf(stderr, "%s\n%scomparedirs failed\n", msgbuf, 
+		((ret == -2) ? "Error removing name/name conflicts\n" : ""));
 }
 
 void rep_DiscardAllLocal(int largc, char **largv) {

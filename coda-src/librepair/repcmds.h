@@ -88,8 +88,7 @@ struct volrep {
 /* Non-interactive repair calls */
 int BeginRepair(char *pathname, struct repvol **repv, char *msg, int msgsize);
 int ClearInc(struct repvol *repv, char *msg, int msgsize);
-int CompareDirs(struct repvol *repv, char *fixfile, char *user, char *rights, 
-		char *owner, char *mode, char *msg, int msgsize);
+int CompareDirs(struct repvol *repv, char *fixfile, struct repinfo *inf, char *msg, int msgsize);
 int DiscardAllLocal(struct repvol *repv, char *msg, int msgsize);
 int DoRepair(struct repvol *repv, char *ufixpath, FILE *res, char *msg, int msgsize);
 int EndRepair(struct repvol *repv, int commit, char *msg, int msgsize);

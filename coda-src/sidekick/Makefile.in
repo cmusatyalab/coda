@@ -25,20 +25,20 @@ TOPOBJ = @TOPOBJ@
 
 include $(TOPDIR)/Makeconf
 
-EXECUTABLES = adv_sidekick
-LIBRARIES = 
-CSBINS = $(EXECUTABLES)
+EXECUTABLES = sidekick
+CSBINS      = $(EXECUTABLES)
+LIBRARIES   = 
+HEADERS	    = adv_sidekick.h
+CCONFFILES  = sidekick.intr.ex
 
-DEPLIBS := $(LIBUTIL) $(LIBVICEDEP) $(LIBREPAIR) $(LIBVV) \
+DEPLIBS := $(LIBUTIL) $(LIBVICEDEP) $(LIBCLNREPAIR) $(LIBVV) \
 	$(LIBAUTH2) $(LIBKERNDEP) $(LIBUTIL) $(LIBAUSER) $(LIBBASE)
-LIBS := $(TOPOBJ)/coda-src/repair/repcmds.o $(TOPOBJ)/coda-src/repair/rvol.o \
-	$(TOPOBJ)/coda-src/repair/path.o \
-	$(DEPLIBS) $(LIBRPC2) $(LIBSE) $(LIBFAIL) $(LIBLWP) $(LIBSYS) \
+LIBS := $(DEPLIBS) $(LIBRPC2) $(LIBSE) $(LIBFAIL) $(LIBLWP) $(LIBSYS) \
 	$(LIBKVM) $(LIBDB) $(LIBREADLINE) $(LIBTERMCAP) $(LIBS)
 
 OBJS = adv_sidekick.o
 
-adv_sidekick: adv_sidekick.h $(DEPLIBS) $(OBJS)
-	$(CXX) $(LDFLAGS) $(OBJS) $(LIBS) -o adv_sidekick
+sidekick: $(HEADERS) $(DEPLIBS) $(OBJS)
+	$(CXX) $(LDFLAGS) $(OBJS) $(LIBS) -o sidekick
 
 include $(TOPDIR)/configs/Makerules
