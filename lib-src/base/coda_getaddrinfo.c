@@ -40,6 +40,14 @@ Coda are listed in the file CREDITS.
 #include <netdb.h>
 #endif
 
+#ifdef __NetBSD__
+#define NS_INT32SZ INT32SZ
+#define NS_INT16SZ INT16SZ
+#define NS_HFIXEDSZ HFIXEDSZ
+#define ns_t_srv T_SRV
+#define ns_c_in  C_IN
+#endif
+
 #include "coda_getaddrinfo.h"
 
 #if 0
