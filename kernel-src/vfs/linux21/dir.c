@@ -578,7 +578,7 @@ static int coda_rename(struct inode *old_dir, struct dentry *old_dentry,
 	struct inode *old_inode = old_dentry->d_inode;
 	struct inode *new_inode = new_dentry->d_inode;
         struct coda_inode_info *new_cnp, *old_cnp;
-        int error, rehash = 0, update = 1;
+        int error;
 
 	ENTRY;
 	coda_vfs_stat.rename++;
@@ -598,8 +598,6 @@ static int coda_rename(struct inode *old_dir, struct dentry *old_dentry,
 	if (new_inode == old_inode)
 		return 0;
 
-	if (new_dir == old_dir)
-		goto do_rename;
 	/* make sure target is not in use */
 	if (new_inode && S_ISDIR(new_inode->i_mode)) { 
 		/*
@@ -612,37 +610,10 @@ static int coda_rename(struct inode *old_dir, struct dentry *old_dentry,
                         return -EBUSY;
         }
 
+	/* the C library will do unlink/create etc */
 	if ( coda_crossvol_rename == 0 && 
 	     old_cnp->c_fid.Volume != new_cnp->c_fid.Volume )
 		return -EXDEV;
-
-	/* if the volumeid are the same we can reuse the inode,
-	   otherwise we need a new inode, since the new file 
-	   will have a new inode number. */
-
-	/* if moving a directory, clean the dcache */
-	if (S_ISDIR(old_inode->i_mode) && old_dentry->d_count > 1) 
-		shrink_dcache_parent(old_dentry);
-
-#if 0
-	if (old_dentry->d_count > 1) {
-		return -EBUSY;
-	}
-#endif
-
-	if (new_dentry->d_count > 1) {
-		return -EBUSY;
-	}
-	d_drop(old_dentry);
-	update = 0;
-
- do_rename:
-	if (!list_empty(&new_dentry->d_hash)) {
-		d_drop(new_dentry);
-		rehash = update;
-	}
-	if ( new_inode ) 
-		d_delete(new_dentry);
 
         error = venus_rename(old_dir->i_sb, &(old_cnp->c_fid), 
 			     &(new_cnp->c_fid), old_length, new_length, 
@@ -652,14 +623,13 @@ static int coda_rename(struct inode *old_dir, struct dentry *old_dentry,
                 CDEBUG(D_INODE, "returned error %d\n", error);
                 return error;
         }
-	/* Update the dcache if needed */
-	if (rehash) {
-		d_add(new_dentry, NULL);
-	}
-	if (update)
-	        d_move(old_dentry, new_dentry);
-	
-        CDEBUG(D_INODE, "result %d\n", error); 
+
+	coda_flag_inode(new_inode, C_VATTR);
+	coda_flag_inode(old_dir, C_VATTR);
+	coda_flag_inode(new_dir, C_VATTR);
+
+	CDEBUG(D_INODE, "result %d\n", error); 
+	d_move(old_dentry, new_dentry);
 
 	EXIT;
 	return 0;

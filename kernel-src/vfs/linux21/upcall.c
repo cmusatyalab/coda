@@ -895,6 +895,7 @@ int coda_downcall(int opcode, union outputArgs * out, struct super_block *sb)
 		  inode = coda_fid_to_inode(fid, sb);
 		  if ( inode ) { 
 			  CDEBUG(D_DOWNCALL, "replacefid: inode = %ld\n", inode->i_ino);
+			  coda_purge_children(inode);
                           coda_purge_dentries(inode);
 		  }else 
 			  CDEBUG(D_DOWNCALL, "purgefid: no inode\n");
