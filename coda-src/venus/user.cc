@@ -582,9 +582,11 @@ static const int UserDaemonStackSize = 16384;
 
 static char userdaemon_sync;
 
+/* Disabled the user daemon. --JH
+ * It used to force the token expiry, but that is now handled by the server */
 void USERD_Init() {
-    (void)new vproc("UserDaemon", (PROCBODY)&UserDaemon,
-		     VPT_UserDaemon, UserDaemonStackSize);
+    //(void)new vproc("UserDaemon", (PROCBODY)&UserDaemon,
+    //		     VPT_UserDaemon, UserDaemonStackSize);
 }
 
 void UserDaemon() {

@@ -74,6 +74,8 @@ void fsobj::FetchProgressIndicator(long offset)
     unsigned long last;
     unsigned long curr;
     
+    if (stat.Length == 0) return;
+
     if      (offset == stat.Length) { last = 0; curr = 100; }
     else if (offset == 0)           { last = 100; curr = 0; }
     else {
@@ -180,6 +182,8 @@ int fsobj::Fetch(vuid_t vuid) {
 		    /* I don't know how to lock the DH here, but it should
 		       be done. */
 		case Directory:
+		    CODA_ASSERT(!data.dir);
+
 		    RVMLIB_REC_OBJECT(data.dir);
 		    data.dir = (VenusDirData *)rvmlib_rec_malloc(sizeof(VenusDirData));
 		    CODA_ASSERT(data.dir);
@@ -194,8 +198,11 @@ int fsobj::Fetch(vuid_t vuid) {
 		    break;
 
 		case SymbolicLink:
+		    CODA_ASSERT(!data.symlink);
+
 		    RVMLIB_REC_OBJECT(data.symlink);
-		    /* Malloc one extra byte in case length is 0 (as for runts)! */
+		    /* Malloc one extra byte in case length is 0
+		     * (as for runts)! */
 		    data.symlink = (char *)rvmlib_rec_malloc((unsigned) stat.Length + 1);
 		    sei->Tag = FILEINVM;
 		    sei->FileInfo.ByAddr.vmfile.MaxSeqLen = stat.Length;
@@ -208,6 +215,8 @@ int fsobj::Fetch(vuid_t vuid) {
 	Recov_EndTrans(CMFP);
     }
 
+    long cbtemp = cbbreaks;
+
     if (flags.replicated) {
 	mgrpent *m = 0;
 	int asy_resolve = 0;
@@ -217,7 +226,6 @@ int fsobj::Fetch(vuid_t vuid) {
 	if (code != 0) goto RepExit;
 
 	/* The COP:Fetch call. */
-	long cbtemp; cbtemp = cbbreaks;
 	{
 	    /* Make multiple copies of the IN/OUT and OUT parameters. */
 	    int ph_ix;
@@ -243,6 +251,13 @@ int fsobj::Fetch(vuid_t vuid) {
 				  &fid, &NullFid, fetchtype, aclvar_ptrs,
 				  statusvar_ptrs, ph, &PiggyBS, sedvar_bufs);
 	    MULTI_END_MESSAGE(ViceFetch_OP);
+
+	    CFSOP_POSTLUDE("fetch::fetch done\n");
+
+	    /* Collate responses from individual servers and decide what to do
+	     * next. */
+	    code = vol->Collate_NonMutating(m, code);
+	    MULTI_RECORD_STATS(ViceFetch_OP);
 #else
 	    MULTI_START_MESSAGE(ViceNewFetch_OP);
 	    code = (int) MRPC_MakeMulti(ViceNewFetch_OP, ViceNewFetch_PTR,
@@ -252,19 +267,15 @@ int fsobj::Fetch(vuid_t vuid) {
 				  statusvar_ptrs, ph, offset, -1, &PiggyBS,
 				  sedvar_bufs);
 	    MULTI_END_MESSAGE(ViceNewFetch_OP);
-#endif
+
 	    CFSOP_POSTLUDE("fetch::fetch done\n");
 
-	    /* Collate responses from individual servers and decide what to do next. */
+	    /* Collate responses from individual servers and decide what to do
+	     * next. */
 	    code = vol->Collate_NonMutating(m, code);
-#ifdef OLDFETCH
-	    MULTI_RECORD_STATS(ViceFetch_OP);
-	    if (code != 0) stat.GotThisData = 0;
-#else
 	    MULTI_RECORD_STATS(ViceNewFetch_OP);
 #endif
 	    if (code == EASYRESOLVE) { asy_resolve = 1; code = 0; }
-	    if (code == EAGAIN) { stat.GotThisData = 0; code = ERETRY; }
 
 	    Recov_BeginTrans();
 	    RVMLIB_REC_OBJECT(stat.GotThisData);
@@ -290,17 +301,21 @@ int fsobj::Fetch(vuid_t vuid) {
 	     * returned as a side-effect. */
 	    int dh_ix; dh_ix = -1;
 	    code = m->DHCheck(vv_ptrs, ph_ix, &dh_ix, 1);
+
 	    if (code != 0) goto RepExit;
 
 	    /* Manually compute the OUT parameters from the mgrpent::Fetch() call! -JJK */
+	    /* we get the status from the dominant host, and validate it
+	     * against the amount of data transferred from the primary host */
 	    ARG_UNMARSHALL(statusvar, status, dh_ix);
 	    {
-		long bytes = sedvar_bufs[dh_ix].Value.SmartFTPD.BytesTransferred;
+		long bytes = sedvar_bufs[ph_ix].Value.SmartFTPD.BytesTransferred;
 		LOG(10, ("(Multi)ViceFetch: fetched %d bytes\n", bytes));
 		if (bytes != (status.Length - offset)) {
-		    print(logFile);
-		    CHOKE("fsobj::Fetch: bytes mismatch (%d, %d)",
-			bytes, (status.Length - offset));
+		    // print(logFile);
+		    LOG(0, ("fsobj::Fetch: bytes mismatch (%d, %d)",
+			    bytes, (status.Length - offset)));
+		    code = ERETRY;
 		}
 
 #ifdef OLDFETCH
@@ -320,8 +335,7 @@ int fsobj::Fetch(vuid_t vuid) {
 		     */
 		    if (IsFile()) 
 			FSDB->ChangeDiskUsage((int) (NBLOCKS(bytes) - BLOCKS(this)));
-		    else 
-			code = ERETRY;
+		    else code = ERETRY;
 		}
 #endif
 	    }
@@ -339,26 +353,13 @@ int fsobj::Fetch(vuid_t vuid) {
 			   l[0], l[1], l[2], l[3], l[4],
 			   l[5], l[6], l[7], l[8], l[9], l[10]);
 		}
-		Demote(0);
+		code = ERETRY;
 	    }
 	}
 
 	Recov_BeginTrans();
 	UpdateStatus(&status, vuid);
 	Recov_EndTrans(CMFP);
-
-	/* Read/Write Sharing Stat Collection */
-	if (flags.discread) {	
-	    Recov_BeginTrans();
-	    RVMLIB_REC_OBJECT(flags);
-	    flags.discread = 0;
-	    Recov_EndTrans(MAXFP);
-	}
-
-	if (flags.usecallback &&
-	    status.CallBack == CallBackSet &&
-	    cbtemp == cbbreaks)
-	    SetRcRights(RC_STATUS | RC_DATA);
 
 RepExit:
 	PutMgrp(&m);
@@ -385,7 +386,6 @@ RepExit:
 	if (code != 0) goto NonRepExit;
 
 	/* Make the RPC call. */
-	long cbtemp; cbtemp = cbbreaks;
 	CFSOP_PRELUDE(prel_str, comp, fid);
 #ifdef OLDFETCH
 	UNI_START_MESSAGE(ViceFetch_OP);
@@ -404,19 +404,9 @@ RepExit:
 	code = vol->Collate(c, code);
 #ifdef OLDFETCH
 	UNI_RECORD_STATS(ViceFetch_OP);
-	if (code != 0) stat.GotThisData = 0;
 #else
 	UNI_RECORD_STATS(ViceNewFetch_OP);
 #endif
-
-	/* when the server responds with EAGAIN, the VersionVector was
-	 * changed, so this can effectively be handled like a failed
-	 * validation */
-	if (code == EAGAIN) {
-	    stat.GotThisData = 0;
-	    code = ERETRY;
-	    Demote(0);
-	}
 
 	Recov_BeginTrans();
 	RVMLIB_REC_OBJECT(stat.GotThisData);
@@ -428,9 +418,10 @@ RepExit:
 	    long bytes = sed->Value.SmartFTPD.BytesTransferred;
 	    LOG(10, ("ViceFetch: fetched %d bytes\n", bytes));
 	    if (bytes != ((long)status.Length - offset)) {
-		print(logFile);
-		CHOKE("fsobj::Fetch: bytes mismatch (%d, %d)",
-		    bytes, (status.Length - offset));
+		//print(logFile);
+		LOG(0, ("fsobj::Fetch: bytes mismatch (%d, %d)",
+		        bytes, (status.Length - offset)));
+		code = ERETRY;
 	    }
 
 #ifdef OLDFETCH
@@ -438,8 +429,9 @@ RepExit:
 	    if (NBLOCKS(bytes) != BLOCKS(this)) {
 		LOG(0, ("fsobj::Fetch: nblocks changed during fetch (%d, %d)\n",
 			NBLOCKS(bytes), BLOCKS(this)));
-		FSO_ASSERT(this, IsFile());
-		FSDB->ChangeDiskUsage((int) (NBLOCKS(bytes) - BLOCKS(this)));
+		if (IsFile())
+		    FSDB->ChangeDiskUsage((int) (NBLOCKS(bytes) - BLOCKS(this)));
+		else code = ERETRY;
 	    }
 #endif
 	}
@@ -448,14 +440,18 @@ RepExit:
 	if (HAVESTATUS(this) && status.DataVersion != stat.DataVersion) {
 	    LOG(1, ("fsobj::Fetch: failed validation (%d, %d)\n",
 		    status.DataVersion, stat.DataVersion));
-
-	    Demote(0);
+	    code = ERETRY;
 	}
 
 	Recov_BeginTrans();
 	UpdateStatus(&status, vuid);
 	Recov_EndTrans(CMFP);
 
+NonRepExit:
+	PutConn(&c);
+    }
+
+    if (code == 0) {
 	/* Read/Write Sharing Stat Collection */
 	if (flags.discread) {	
 	    Recov_BeginTrans();
@@ -469,11 +465,6 @@ RepExit:
 	    cbtemp == cbbreaks)
 	    SetRcRights(RC_STATUS | RC_DATA);
 
-NonRepExit:
-	PutConn(&c);
-    }
-
-    if (code == 0) {
 	/* Note the presence of data. */
 	Recov_BeginTrans();
 	RVMLIB_REC_OBJECT(flags);
@@ -506,13 +497,23 @@ NonRepExit:
 	Recov_BeginTrans();
 	RVMLIB_REC_OBJECT(flags);
 	flags.fetching = 0;
+
+	/* when the server responds with EAGAIN, the VersionVector was
+	 * changed, so this should effectively be handled like a failed
+	 * validation, and we can throw away the data */
 #ifdef OLDFETCH
-	if (HAVEALLDATA(this)) {
+	if (HAVEDATA(this) || code == EAGAIN) {
 	    if (IsFile()) 
 		data.file->SetLength((unsigned) stat.Length);
 	    DiscardData();
 	}
+#else
+	if ((HAVEDATA(this) && !IsFile()) || code == EAGAIN)
+	    DiscardData();
 #endif
+	/* ERETRY makes us drop back to the vproc_vfscalls level, and retry
+	 * the whole FSDB->Get operation */
+	if (code == EAGAIN) code = ERETRY;
 	
 	/* Demote existing status. */
 	Demote();

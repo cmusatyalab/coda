@@ -2009,6 +2009,9 @@ void fsobj::DiscardData() {
 
     CODA_ASSERT(!flags.dirty);
 
+    RVMLIB_REC_OBJECT(stat.GotThisData);
+    stat.GotThisData = 0;
+
     RVMLIB_REC_OBJECT(data);
     switch(stat.VnodeType) {
 	case File:
