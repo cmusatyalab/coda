@@ -4,23 +4,18 @@
 
 # Uncomment this to turn on verbose mode.
 #export DH_VERBOSE=1
-
-# This is the debhelper compatability version to use.
-export DH_COMPAT=1
+export DH_ALWAYS_EXCLUDE=CVS
 
 DEB_BUILD_GNU_TYPE := $(shell dpkg-architecture -qDEB_BUILD_GNU_TYPE )
 DEB_HOST_GNU_TYPE := $(shell dpkg-architecture -qDEB_HOST_GNU_TYPE )
 
 # As we're not yet 'stable' we default to building unstripped binaries.
 # This can be overridden by setting an empty DEB_BUILD_OPTIONS.
-${DEB_BUILD_OPTIONS=debug,nostrip}
+${DEB_BUILD_OPTIONS=nostrip}
 export DEB_BUILD_OPTIONS
 
-# avoid '-g' flag when 'DEB_BUILD_OPTIONS=debug' is not set.
-ifeq (,$(findstring debug,$(DEB_BUILD_OPTIONS)))
-CFLAGS += -O2
+CFLAGS += -Wall
 export CFLAGS
-endif
 
 build: build-stamp
 build-stamp:
@@ -34,15 +29,15 @@ build-stamp:
 
 clean:
 	dh_testdir
-	dh_testroot
-	rm -f build-stamp
+	rm -f build-stamp install-stamp
 
 	# Add here commands to clean up after the build process.
 	-$(MAKE) distclean
 
 	dh_clean
 
-install: build
+install: install-stamp
+install-stamp: build-stamp
 	dh_testdir
 	dh_testroot
 	dh_clean -k
@@ -50,6 +45,8 @@ install: build
 
 	# Add here commands to install the package into debian/tmp.
 	$(MAKE) install prefix=`pwd`/debian/tmp/usr
+
+	touch install-stamp
 
 
 # Build architecture-independent files here.
@@ -61,7 +58,7 @@ binary-arch: build install
 	dh_testdir
 	dh_testroot
 
-	dh_movefiles || true
+	dh_install --sourcedir=debian/tmp --fail-missing
 #	dh_installdebconf	
 	dh_installdocs
 	dh_installexamples
