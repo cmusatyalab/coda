@@ -2184,7 +2184,6 @@ int fsobj::Fakeify()
 		     FID_(&pfid)));
 	    flags.local = 1;
 	    VenusFid *Fid = LRDB->RFM_LookupLocalRoot(&pfid);
-	    FSO_ASSERT(this, Fid && Fid->Realm == vol->realm->Id());
 
 	    LinkFid = *MakeViceFid(Fid);
 	    realmname = vol->realm->Name();
