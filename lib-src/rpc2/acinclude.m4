@@ -14,7 +14,7 @@ case ${host_alias} in
   arm ) host_alias=arm-unknown-linux-gnuelf ;;
 esac
 AC_CANONICAL_HOST
-if test ${cross_compiling} == yes ; then
+if test ${cross_compiling} = yes ; then
   case ${host} in
    i386-pc-msdos )
     dnl shared libraries don't work here
