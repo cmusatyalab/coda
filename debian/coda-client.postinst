@@ -21,8 +21,6 @@ if [ ! -f /etc/coda/venus.conf ] ; then
     codaconfedit venus.conf pid_file /var/run/coda-client.pid >&2
     codaconfedit venus.conf run_control_file /var/run/coda-client.ctrl >&2
     codaconfedit venus.conf marinersocket /var/run/coda-client.mariner >&2
-    # Not really a path, but a useful optimization
-    codaconfedit venus.conf mapprivate 1 >&2
 
     # first time? we need to initialize RVM on startup.
     touch /var/lib/coda/cache/INIT

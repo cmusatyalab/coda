@@ -1,3 +1,29 @@
+2003-07-??	<jaharkes@cs.cmu.edu>
+        * ======== Release 6.0.2 =========
+	* Make sure the server stays responsive while computing SHA
+	  checksums by occasionally yielding to other threads.
+	* Instantiate a realm in /coda when a user gets tokens.
+	* Using double fork to let init catch our zombie processes.
+	* Avoid codacon crash when pathnames are very long.
+	* Fix '..' traversal across mountpoints which was causing problems
+	  on every system but Linux (which never passes '..' to venus).
+	* Make sure that updateclnt actually reconnects after the updatesrv
+	  was down for some time.
+	* Improved performance and importing large groups in pdbtool.
+	* Returning a fake ACL for fake local objects. Realm mountpoints,
+	  repair related trees, etc. (Ivan Popov)
+	* Redzone/yellowzone to avoid running a client into the brick
+	  wall of 'no more CML or blocks available' when we are
+	  (write-)disconnected. When the CML or disk fills up we start slowing
+	  down when we are starting to run low on space, and start blocking
+	  mutating threads when space is pretty much exhausted. This way the
+	  reintegrating thread has a chance to catch up.
+	* Added fts.c/.h when libc doesn't provide it. (Phil Nelson)
+	* Removed per-user rpc2 connection limit.
+	* Removed masquerade option (it is now always enabled).
+	* Fixed mount problems for cloned volumes.
+	* Fixed a couple more problems in repair.
+
 2003-06-03	<jaharkes@cs.cmu.edu>
         * ======== Release 6.0.1 =========
 	* Added autoconf test to detect (size_t)(&type::member) off-by-one
