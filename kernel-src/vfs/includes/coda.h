@@ -109,7 +109,6 @@ typedef unsigned long long u_quad_t;
 #endif
 
 #ifdef __CYGWIN32__
-typedef unsigned char u_int8_t;
 struct timespec {
         time_t  tv_sec;         /* seconds */
         long    tv_nsec;        /* nanoseconds */
@@ -748,20 +747,11 @@ struct ViceIoctl {
         short out_size;         /* Maximum size of output buffer, <= 2K */
 };
 
-#if defined(__CYGWIN32__) || defined(DJGPP)
-struct PioctlData {
-	unsigned long cmd;
-        const char *path;
-        int follow;
-        struct ViceIoctl vi;
-};
-#else
 struct PioctlData {
         const char *path;
         int follow;
         struct ViceIoctl vi;
 };
-#endif
 
 #define	CODA_CONTROL		".CONTROL"
 #define CODA_CONTROLLEN           8
