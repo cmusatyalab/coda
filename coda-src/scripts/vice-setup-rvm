@@ -103,21 +103,33 @@ fi
 echo LOG file has been initialized!
 
 echo
+
+case `uname -sr` in
+	"NetBSD 1.2" )
+		rvmstart=0x20000000 ;;
+	"NetBSD 1.3" )
+		rvmstart=0x50000000 ;;
+	"FreeBSD 2.2.5-RELEASE" )
+		rvmstart=0x50000000 ;;
+	*)
+		rvmstart=0x20000000 ;;
+esac
+
 case $datasize in 
     22M )
-       parms="20480000 0x20000000 0x1000000 0x100000 80 32"
+       parms="20480000 $rvmstart 0x1000000 0x100000 80 32"
        dsparm=20480000
        ;;
      44M )
-       parms="39690240 0x20000000 0x1000000 0x100000 80 32"
+       parms="39690240 $rvmstart 0x1000000 0x100000 80 32"
        dsparm=39690240
         ;;
      90M )
-       parms="79380480 0x20000000 0x1000000 0x100000 80 32"
+       parms="79380480 $rvmstart 0x1000000 0x100000 80 32"
        dsparm=79380480
         ;;
      130M )
-       parms="119070700 0x20000000 0x1000000 0x100000 80 32"
+       parms="119070700 $rvmstart 0x1000000 0x100000 80 32"
        dsparm=119070700
         ;;
      * )
