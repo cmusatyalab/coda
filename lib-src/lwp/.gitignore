@@ -13,7 +13,6 @@ config.sub
 configure
 depcomp
 install-sh
-install-stamp
 libtool
 ltconfig
 ltmain.sh
