@@ -331,8 +331,8 @@ int U_BindToServer(const char *realm, const RPC2_Integer AuthenticationType,
 #ifdef HAVE_KRB4
 	    /* Copied Troy's success or mistake :) -JH */
 	    if (AuthenticationType == AUTH_METHOD_KERBEROS4) {
-		rc = Krb4GetSecret(AuthHost->ai_canonname, &uName, &uNamelen,
-				   &uPasswd, &uPasswdlen, interactive);
+		if (Krb4GetSecret(AuthHost->ai_canonname, &uName, &uNamelen,
+				   &uPasswd, &uPasswdlen, interactive))
 		{
 		    fprintf(stderr, "Failed to get secret from %s\n",
 			    AuthHost->ai_canonname);
