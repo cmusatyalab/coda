@@ -1,3 +1,7 @@
+New in 1.7:
+
+* Fixed <sys/time.h> vs. <time.h> mixup.
+
 New in 1.6:
 
 * Merged debian packaging files.
