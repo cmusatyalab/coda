@@ -30,7 +30,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/lib-src/mlwp/process.s,v 4.3 1998/09/14 19:13:22 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/lib-src/mlwp/process.s,v 4.4 1998/10/07 15:01:31 rvb Exp $";
 #endif undef
 #endif /*_BLURB_*/
 
@@ -447,20 +447,29 @@ returnto:
 #include <linux/linkage.h>	
 #define SYMB(name)  ENTRY(name)
 #define EXT(x) SYMBOL_NAME(x)
+
+#elif	defined(__BSD44__)
+
+#ifdef __STDC__
+#include <machine/asm.h>
+#define SYMB(x)  ENTRY(x)
+#ifdef	__FreeBSD__
+#define EXT(x)	CNAME(x)
 #else
-#ifdef __STDC__	
-#ifdef	__ELF__
-#define SYMB(x)  x:
-#define EXT(x)	x
-#else
-#define SYMB(x)  _##x:
-#define EXT(x)	_##x
-#endif	/*__ELF__*/
+#define EXT(x)	_C_LABEL(x)
+#endif	/*__FreeBSD__*/
 #else
 #define SYMB(x)  _/**/x:
 #define EXT(x)	_/**/x
 #endif
-#endif	
+
+#else
+
+/* some kind of win32 machine */
+#define SYMB(x) .align 4;  .globl _##x; _##x:
+#define EXT(x) _##x
+	
+#endif	/* ! __linux__ */
 
 
 
@@ -471,9 +480,6 @@ returnto:
 
         .globl  EXT(PRE_Block)
 	.text
-
-	.align	2
-	.globl	EXT(savecontext)
 SYMB(savecontext)
 	movl	$1, EXT(PRE_Block)	/* Set PRE_Block to 1 to prevent interruption. */
 
@@ -499,9 +505,6 @@ L1:	call	*%ebp			/* f(); */
 */
 #define	area2	4
 
-
-	.align	2
-	.globl	EXT(returnto)
 SYMB(returnto)
 	movl	area2(%esp), %edx	/* address of save area. */
 	movl	topstack(%edx), %esp	/* Restore stack pointer. */
