@@ -1,0 +1,145 @@
+#!/bin/sh
+# BLURB gpl
+# 
+#                            Coda File System
+#                               Release 5
+# 
+#           Copyright (c) 1987-1999 Carnegie Mellon University
+#                   Additional copyrights listed below
+# 
+# This  code  is  distributed "AS IS" without warranty of any kind under
+# the terms of the GNU General Public Licence Version 2, as shown in the
+# file  LICENSE.  The  technical and financial  contributors to Coda are
+# listed in the file CREDITS.
+# 
+#                         Additional copyrights
+#                            none currently
+# 
+#*/
+
+echon() {
+    if [ "`echo -n`" = "-n" ] ; then
+        echo "$@"'\c'
+    else
+        echo -n "$@"
+    fi
+}
+
+#
+# Configuration
+#
+vicedir=/vice
+numservers=1
+. "`codaconfedit server.conf`"
+
+hn=`hostname`
+bn=`echo $hn | cut -f 1 -d .`
+if [ x$bn = x ]; then
+    bn=$hn
+fi
+
+n=1
+while [ $n -le $numservers ]; do
+
+    # server information prefix
+    if [ $numservers -gt 1 ]; then
+	srvprefix=${vicedir}/server_$n
+	. "codaconfedit server_$n.conf`"
+	bn=$hostname
+    else
+	srvprefix=${vicedir}
+    fi
+
+    #
+    # Setting up the server directory
+    #
+
+    echo 
+    echo Your server directories will hold the files \(not directories\). 
+    echo You can currently only have one directory per disk partition.
+    echo
+    
+    if [ $numservers -gt 1 ]; then
+	echon "Where shall we store your file data for server $n ($bn) [/vicepa]? "
+    else
+	echon 'Where shall we store your file data [/vicepa]? '
+    fi
+    srvdir=
+    read srvdir
+
+    if [ "x$srvdir" = x ]; then
+	srvdir=/vicepa
+    fi
+
+    # Create the directory if needed.  (Symlink is OK.)
+    
+    if [ -d "$srvdir" -o -h "$srvdir" ]; then
+	if [ -f "$srvdir/FTREEDB" ]; then
+	echo "An FTREEDB exists in $srvdir.  Clean up first and rerun $0"
+	echo "You may also want to clean up ${vicedir}/db/vicetab"
+	exit 1
+	fi
+    else
+	mkdir "$srvdir"
+	if [ $? != 0 ]; then
+	    echo Could not make $srvdir as a directory. Exiting.
+	    echo Run vice-setup-srvdir to repeat this step.
+	    exit 1
+	fi
+    fi
+    touch "$srvdir/FTREEDB"
+    
+    yesno=""
+    until [ "x$yesno" != x ]; do
+        echon "Shall I set up a vicetab entry for $srvdir (y/n) "
+	read yesno
+    done
+    if [ "x$yesno" = xy -o "x$yesno" = xyes -o "x$yesno" = xY ]; then
+	grep $srvdir ${vicedir}/db/vicetab >/dev/null 2>&1
+	if [ $? = 0 ]; then
+	    echo "$srvdir already in ${vicedir}/db/vicetab. Please clean up first."
+	    exit 1
+	fi
+	
+	size=""
+	until [ "x$size" != x ]; do
+	    echo "Select the maximum number of files for the server."
+	    echo "[256K, 1M, 2M, 16M]: "
+	    read size
+	    case "$size" in
+		256[kK] )
+		    echo "$bn   $srvdir   ftree   width=64,depth=3" \
+			 >> ${vicedir}/db/vicetab
+		    ;;
+		1[mM] )
+		    echo "$bn   $srvdir   ftree   width=32,depth=4" \
+			 >> ${vicedir}/db/vicetab
+		    ;;
+		2[mM] )
+		    echo "$bn   $srvdir   ftree   width=128,depth=3" \
+			>> ${vicedir}/db/vicetab
+		    ;;
+		16[mM] )
+		    echo "$bn   $srvdir   ftree   width=256,depth=3" \
+			>> ${vicedir}/db/vicetab
+		    ;;
+		* )
+		    echo "Choose from one of the listed values."
+		    size=""
+		    ;;
+	    esac
+	done	      
+	echo
+	echo "Server directory $srvdir is set up!"
+    else
+	echo
+	echo  "Read vicetab(5) for set up info."
+	echo
+	echo  "Press return to continue"
+	read ok
+    fi
+
+    echo
+
+    n=`expr $n + 1`
+done
