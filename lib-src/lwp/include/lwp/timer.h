@@ -42,7 +42,7 @@ Pittsburgh, PA.
 
 #ifdef __cplusplus
 extern "C" {
-#endif __cplusplus
+#endif
 
 struct TM_Elem {
     struct TM_Elem	*Next;		/* filled by package */
@@ -81,6 +81,6 @@ extern struct TM_Elem *TM_GetEarliest (struct TM_Elem *tlist);
 
 #ifdef __cplusplus
 }
-#endif __cplusplus
+#endif
 
 #endif /* _LWP_TIMER_H_ */

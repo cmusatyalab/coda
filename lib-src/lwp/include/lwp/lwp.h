@@ -42,7 +42,7 @@ Pittsburgh, PA.
 
 #ifdef __cplusplus
 extern "C" {
-#endif __cplusplus
+#endif
 
 #include <sys/time.h>
 #include <sys/types.h>
@@ -169,7 +169,7 @@ extern unsigned int FT_ApproxTime() ;
 
 #ifdef __cplusplus
 }
-#endif __cplusplus
+#endif
 
 #endif /* _LWP_LWP_H_ */
 

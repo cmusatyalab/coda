@@ -42,7 +42,7 @@ Pittsburgh, PA.
 
 #ifdef __cplusplus
 extern "C" {
-#endif __cplusplus
+#endif
 
 #include <lwp/lwp.h>
 
@@ -102,7 +102,7 @@ void Lock_Init (struct Lock *lock);
 
 #ifdef __cplusplus
 }
-#endif __cplusplus
+#endif
 
 #endif /* _LWP_LOCK_H_ */
 
