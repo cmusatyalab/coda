@@ -70,6 +70,9 @@ void PDB_lookupById(int32_t id, char **name);
 int PDB_nameInUse(char *name);
 void PDB_changeId(int32_t oldid, int32_t newid);
 
+/* fix known problems in PDB profiles created by older versions of pdbtool */
+void PDB_bugfixes(void);
+
 /* internal packing functions */
 void pdb_pack(PDB_profile *r, void **data, size_t *size);
 void pdb_unpack(PDB_profile *r, void *data, size_t size);

@@ -425,6 +425,99 @@ int PDB_nameInUse(char *name)
 }
 
 
+void PDB_bugfixes(void)
+{
+    PDB_HANDLE h;
+    /* fixups for old bugs */
+    int32_t id, id2;
+    pdb_array_off off, off2;
+    int rc;
+    PDB_profile p, r;
+
+    h = PDB_db_open(O_RDWR);
+
+    while ( (rc = PDB_db_nextkey(h, &id)) ) {
+	if ( rc == -1 ) continue; 
+	PDB_readProfile(h, id, &p);
+
+	if (PDB_ISGROUP(p.id)) {
+	    /* BUG: forgot to update owner_id when changing a user's uid */
+	    PDB_lookupByName(p.owner_name, &id);
+	    if (p.owner_id != id) {
+		fprintf(stderr, "Group %d owner name %s didn't match owner id %d, FIXED\n", p.id, p.owner_name, p.owner_id);
+		p.owner_id = id;
+		PDB_writeProfile(h, &p);
+	    }
+
+	    /* BUG: we added userid's to a group's member_of list */
+again:
+	    id = pdb_array_head(&p.member_of, &off);
+	    while(id != 0) {
+		if (PDB_ISUSER(id)) {
+		    fprintf(stderr, "Group %d was listed as a member of userid %d, FIXED\n", p.id, id);
+		    pdb_array_del(&p.member_of, id);
+		    PDB_updateCps(h, &p);
+		    PDB_writeProfile(h, &p);
+		    goto again;
+		}
+		id = pdb_array_next(&p.member_of, &off);
+	    }
+
+	    /* BUG: we forgot to change userid's in a group's groups_or_members
+	     *      list (fix part 1, removes non-existing or non-member
+	     *      userids) */
+again2:
+	    id = pdb_array_head(&p.groups_or_members, &off);
+	    while(id != 0) {
+		if (PDB_ISUSER(id)) {
+		    PDB_readProfile(h, id, &r);
+		    id2 = pdb_array_head(&r.member_of, &off2);
+		    while (id2 != 0) {
+			if (id2 == p.id) break;
+			id2 = pdb_array_next(&r.member_of, &off2);
+		    }
+		    if (id2 == 0) {
+			pdb_array_del(&p.groups_or_members, id);
+			PDB_updateCps(h, &p);
+			PDB_writeProfile(h, &p);
+			fprintf(stderr, "Group %d had nonexisting member %d, FIXED\n", p.id, id);
+			PDB_freeProfile(&r);
+			goto again2;
+		    }
+		    PDB_freeProfile(&r);
+		}
+		id = pdb_array_next(&p.groups_or_members, &off);
+	    }
+	}
+	else /* PDB_ISUSER(p.id) */
+	{
+	    /* BUG: we forgot to change userid's in a group's groups_or_members
+	     *      list (fix part 2, adds missing members to groups)*/
+	    id = pdb_array_head(&p.member_of, &off);
+	    while (id != 0) {
+		if (PDB_ISGROUP(id)) {
+		    PDB_readProfile(h, id, &r);
+		    id2 = pdb_array_head(&r.groups_or_members, &off2);
+		    while (id2 != 0) {
+			if (id2 == p.id) break;
+			id2 = pdb_array_next(&r.groups_or_members, &off2);
+		    }
+		    if (id2 == 0) {
+			fprintf(stderr, "Group %d was missing member %d, FIXED\n", id, p.id);
+			pdb_array_add(&r.groups_or_members, p.id);
+			PDB_updateCps(h, &r);
+			PDB_writeProfile(h, &r);
+		    }
+		    PDB_freeProfile(&r);
+		}
+		id = pdb_array_next(&p.member_of, &off);
+	    }
+	}
+	PDB_freeProfile(&p);
+    }
+    PDB_db_close(h);
+}
+
 void PDB_changeId(int32_t oldId, int32_t newId)
 {
 	PDB_HANDLE h;
@@ -466,35 +559,44 @@ void PDB_changeId(int32_t oldId, int32_t newId)
 	else
 		PDB_db_update_maxids(h, newId, 0, PDB_MAXID_SET);
 
-	/* update groups is member of */
+	/* update groups we are a member of */
 	nextid = pdb_array_head(&(r.member_of), &off);
 	while(nextid != 0){
 		PDB_readProfile(h, nextid, &p);
 		CODA_ASSERT(p.id != 0);
 		pdb_array_del(&(p.groups_or_members), oldId);
 		pdb_array_add(&(p.groups_or_members), newId);
+
 		/* Don't need CPS updates */
 		PDB_writeProfile(h, &p);
 		PDB_freeProfile(&p);
-		nextid = pdb_array_next(&(r.groups_or_members), &off);
+		nextid = pdb_array_next(&(r.member_of), &off);
 	}
 
-	/* update members */
+	/* update members or ownership */
 	nextid = pdb_array_head(&(r.groups_or_members), &off);
-	while(nextid != 0){
-		PDB_readProfile(h, nextid, &p);
-		CODA_ASSERT(p.id != 0);
+	while(nextid != 0) {
+	    PDB_readProfile(h, nextid, &p);
+	    CODA_ASSERT(p.id != 0);
+
+	    if (PDB_ISGROUP(oldId)) {
 		pdb_array_del(&(p.member_of), oldId);
 		pdb_array_add(&(p.member_of), newId);
-		if(PDB_ISGROUP(oldId)){
-			if(PDB_ISGROUP(p.id))
-				PDB_updateCps(h, &p);
-			else
-				PDB_updateCpsSelf(h, &p);
+	    } else {
+		if (PDB_ISGROUP(p.id)) {
+		    if(p.owner_id == oldId)
+			p.owner_id = newId;
 		}
-		PDB_writeProfile(h, &p);
-		PDB_freeProfile(&p);
-		nextid = pdb_array_next(&(r.groups_or_members), &off);
+	    }
+
+	    if(PDB_ISGROUP(p.id))
+		PDB_updateCps(h, &p);
+	    else
+		PDB_updateCpsSelf(h, &p);
+
+	    PDB_writeProfile(h, &p);
+	    PDB_freeProfile(&p);
+	    nextid = pdb_array_next(&(r.groups_or_members), &off);
 	}
 
 	PDB_db_close(h);

@@ -362,12 +362,17 @@ void tool_update(int argc,char *argv[]){
 }
 
 /* COMPACT DATABASES */
-void tool_compact(int argc,char *argv[]){
+void tool_compact(int argc,char *argv[])
+{
 	PDB_HANDLE h;
+
 	if(check_args_num(argc,1)){
 		printf("Usage: cm\n");
 		return;
 	}
+	/* fix database consistency bugs */
+	PDB_bugfixes();
+
 	h = PDB_db_open(O_RDWR);
 	PDB_db_compact(h);
 	PDB_db_close(h);
@@ -757,7 +762,7 @@ void tool_help(int argc, char *argv[])
 	printf("cu <newusername> <userid>\tclone a user\n");
 	printf("ag <groupid/name> <id/name>\tadd a group or user to a group\n");
 	printf("rg <groupid/name> <id/name>\tremove a group or user from a group\n");
-	printf("d <id/name>\t\t\t\tdelete a user or a group\n");
+	printf("d <id/name>\t\t\tdelete a user or a group\n");
 	printf("cm\t\t\t\tcompact the database (RARE)\n");
 	printf("ci <name> <newid>\t\tchange the Id of a user or group\n");
 	printf("cn <id> <newname>\t\tchange the Name of a user or group\n");
