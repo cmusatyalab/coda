@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /usr/rvb/XX/src/coda-src/res/RCS/resforce.cc,v 4.2 1997/01/28 11:49:24 satya Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/res/resforce.cc,v 4.3 97/02/26 16:02:52 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -503,7 +503,7 @@ int ObtainDirOps(struct getdiropParm *gdop, char *name,
     VPutVnode((Error *)&error, vptr);
     assert(error == 0);
 
-    assert(strlen(name) < (DIROPNAMESIZE - 1));
+    assert(strlen(name) < (DIROPNAMESIZE));
     diroplink	*direntry = new diroplink(op, vnode, unique, name);
 
     /* now insert the entry into the list */
