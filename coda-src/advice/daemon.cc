@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /usr/rvb/XX/src/coda-src/advice/RCS/daemon.cc,v 4.1 1997/01/08 21:49:16 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/advice/daemon.cc,v 4.2 97/02/26 16:02:27 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -135,7 +135,7 @@ void InitOneADay() {
 void DispatchDaemons() {
     unsigned long curr_time = time(0);
 
-    LogMsg(100,LogLevel,LogFile, "E DispatchDaemons()");
+    LogMsg(200,LogLevel,LogFile, "E DispatchDaemons()");
     assert(DaemonList != NULL);
 
     int num_expired = TM_Rescan(DaemonList);
@@ -152,10 +152,10 @@ void DispatchDaemons() {
             tp->TotalTime.tv_usec = 0;
             TM_Insert(DaemonList, tp);
 
-            if (((struct DaemonInfo *)tp->BackPointer)->sync) 
-                    LWP_SignalProcess(((struct DaemonInfo *)tp->BackPointer)->sync);
-            else   /* once a day task */
-                    LogMsg(0,LogLevel,LogFile, "At the tone the time will be %s", ctime((long *)&curr_time));
+            if (((struct DaemonInfo *)tp->BackPointer)->sync) {
+	        LWP_SignalProcess(((struct DaemonInfo *)tp->BackPointer)->sync);
+	    } else   /* once a day task */
+	        LogMsg(0,LogLevel,LogFile, "At the tone the time will be %s", ctime((long *)&curr_time));
     }
-    LogMsg(100,LogLevel,LogFile, "L DispatchDaemons()");
+    LogMsg(200,LogLevel,LogFile, "L DispatchDaemons()");
 }

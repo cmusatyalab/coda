@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /usr/rvb/XX/src/coda-src/advice/RCS/miss.cc,v 4.1 1997/01/08 21:49:17 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/advice/miss.cc,v 4.2 97/02/26 16:02:28 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -207,10 +207,7 @@ void ReinstatePreviousMissQueue() {
     previous = NULL;
 }
 
-void HandleWeakAdvice() {
-    struct stat buf;
-    char command[256];
-    int rc;
+void OutputMissStatistics() {
 
     // First move current to previous and create a new current
     assert(previous == NULL);
@@ -220,21 +217,5 @@ void HandleWeakAdvice() {
     // Generate the input to the tcl script
     PrintMissList(TMPMISSLIST);
 
-    // Execute the tcl script
-    {
-       char *args[3];
-
-       args[0] = MISSLIST;
-       args[1] = TMPMISSLIST;
-       args[2] = NULL;
-
-       int rc = execute_tcl(MISSLIST, args);
-       if (rc == -1) {
-         LogMsg(0,LogLevel,LogFile, "HandleWeakAdvice: execute_tcl ERROR");
-	 ReinstatePreviousMissQueue();
-       } 
-       else
-	 ClearPreviousMissQueue();
-    }
+    ClearPreviousMissQueue();
 }
-

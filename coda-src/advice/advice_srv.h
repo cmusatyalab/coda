@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/advice/advice_srv.h,v 4.1 1997/01/08 21:49:15 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/advice/advice_srv.h,v 4.2 97/07/15 14:20:11 lily Exp $";
 #endif /*_BLURB_*/
 
 
@@ -45,52 +45,33 @@ static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/advice
 #define STARTASR_INTERVAL  300   /* Number seconds before asr can be retired */
 
 /* Definitions:  Pathnames to other executables... */
+#define CODACONSOLEOUT "/usr/local/bin/tixwish"
+#define CODACONSOLE "/usr/local/lib/coda/CodaConsole"
 #define JUMPSTARTASR "/usr/coda/etc/parser"        
-#define RECONNECTION_SURVEY "/usr/coda/etc/reconnection"
-#define DISCOMISS_SURVEY "/usr/coda/etc/discomiss"
-#define HOARDLIST "/usr/coda/etc/hoardlist"
-#define USERINITIATED "/usr/coda/etc/user_initiated"
-#define REINT_PENDING "/usr/coda/etc/reintegration_pending"
-#define WEAKMISS "/usr/coda/etc/weakmiss"
-#define READMISS "/usr/coda/etc/readmiss"
-#define STOPLIGHT "/usr/coda/etc/stoplight"
-#define STOPLIGHT_STATECHANGE "/usr/coda/etc/stoplight_statechange"
 
 #define CFS "/usr/coda/etc/cfs"
 
-/* Environment variables */
-/*
- * #define TCL "/usr/misc/.tcl/lib/tcl"
- * #define TK "/usr/misc/.tcl/lib/tk"
- */
-#define TCL "/usr/coda/tcl/lib/tcl"
-#define TK "/usr/coda/tcl/lib/tk"
-
+#define UserVolume "/coda/usr"
+#define UsernameEnvironmentVariable "USER"
+#define HoardDir "newHoarding"
+#define DataFile "Data"
+#define ProgramFile "Programs"
+#define ProfileDirectoryName "ProgramProfiles"
+#define GhostDBName "ghostdb"
+#define CodaSpoolingArea "/usr/coda/spool"
 
 extern int LogLevel;
 extern FILE *LogFile;
 
+extern struct Lock VenusLock;
+
 extern int execute_tcl(char *script, char *args[]);
-
-/* Stuff related to user-initiated requests. */
-#define LINELENGTH 256
-#define CommandFileName "/tmp/advice_srv_command_file"
-#define SolicitHoardAdvice 'a'
-#define UnsolicitHoardAdvice 'b'
-#define RequestMissList 'c'
-#define RequestLongFetchQuery 'd'
-#define BeginStoplight 'e'
-#define EndStoplight 'f'
-#define RequestDiscoMissQs 'g'
-#define UnrequestDiscoMissQs 'h'
-#define UnrequestLongFetchQuery 'i'
-#define QuitAdvice 'q'
-
 
 /* Monitor Definitions */
 enum StoplightStates { SLunknown, SLdisconnect, SLweak, SLstrong, SLoff, SLquit };
 #define VDBFileName "/tmp/advice_vdb.out"
 
 
+extern void Yield();
 
 
