@@ -224,11 +224,13 @@ long RPC2_GetRequest(IN RPC2_RequestFilter *Filter,
 	TR_GETREQUEST();
 #endif RPC2DEBUG
 
-#define DROPIT()\
-	/* worthless request */\
-	RPC2_FreeBuffer(Request);\
-	(void) RPC2_Unbind(*ConnHandle);\
-	goto ScanWorkList;\
+/* worthless request */
+#define DROPIT()  do { \
+	    rpc2_SetConnError(ce); \
+	    RPC2_FreeBuffer(Request); \
+	    (void) RPC2_Unbind(*ConnHandle); \
+	    goto ScanWorkList; \
+	} while(0);
 
 
 	if (!GetFilter(Filter, &myfilter)) 
@@ -299,22 +301,22 @@ long RPC2_GetRequest(IN RPC2_RequestFilter *Filter,
 	    {
 	    if (AuthFail)
 		{/* Client could be iterating through keys; log this */
-		(*AuthFail)(AuthenticationType, &cident, ce->EncryptionType, &ce->PeerHost, &ce->PeerPort);
+		(*AuthFail)(AuthenticationType, &cident, ce->EncryptionType,
+			    &ce->PeerHost, &ce->PeerPort);
 		}
 	    DROPIT();
 	    }
 	}
-
 
     /* Do final processing: we need is RPC2_Enable() */
     SetState(ce, S_AWAITENABLE); 
 
     /* Call side effect routine if present */
     if (ce->SEProcs && ce->SEProcs->SE_NewConnection)
-    	{
+    {
 	rc = (*ce->SEProcs->SE_NewConnection)(*ConnHandle, &cident);
-	if (rc < RPC2_FLIMIT) {DROPIT();}
-	}
+	if (rc < RPC2_FLIMIT) { DROPIT(); }
+    }
 
     /* Set up host linkage -- host & port numbers are resolved by now. */
     ce->HostInfo = rpc2_GetHost(&ce->PeerHost);
@@ -326,7 +328,9 @@ long RPC2_GetRequest(IN RPC2_RequestFilter *Filter,
     {
 	say(-1, RPC2_DebugLevel, "Request from %s: Old rpc2 version\n",
 		inet_ntoa(ce->PeerHost.Value.InetAddress));
-	rpc2_Quit(RPC2_OLDVERSION);
+
+	/* Get rid of allocated connection entry. */
+	DROPIT();
     }
     else rpc2_Quit(RPC2_SUCCESS);
 
