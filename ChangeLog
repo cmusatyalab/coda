@@ -1,3 +1,12 @@
+2001-01-xx    <jaharkes@cs.cmu.edu>
+        * ======== Release 5.3.13 =========
+	* Fixed incorrect ACL creation on new volumes.
+	* Caught memory leak in volutil dumpestimates.
+	* Corrected include file search order to pick up local headers
+	  before system headers. 
+	* Turned off rpc2 packet tracing in the servers.
+	* volutil info now accepts replicated volume names/ids.
+
 2001-01-19    <jaharkes@cs.cmu.edu>
         * ======== Release 5.3.12 =========
 	* Fixed partition initialization bug.

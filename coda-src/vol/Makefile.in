@@ -49,14 +49,14 @@ HEADERS	  = vldb.h \
 	    fssync.h recov.h vutil.h\
 	    srvsignal.h index.h vicelock.h treeremove.h \
 	    vlist.h cvnode.h coda_globals.h voldefs.h volume.h camprivate.h \
-	    volres.h volhash.h vrdb.h vsg.h struct.h lockqueue.h
+	    volres.h volhash.h vrdb.h vsg.h struct.h lockqueue.h vollocate.h
 # TESTS	  = testvrdb testvsg # these don't compile
 
 VICEDEPHDRS = $(INCLDIR)/vice.h
 
 LIBVOLOBJS= dirvnode.o cvnode.o volume.o vutil.o vldb.o fssync.o \
 	index.o recova.o recovb.o recovc.o volhash.o dumpcamstorage.o \
-        vrdb.o vsg.o vlist.o lockqueue.o
+        vrdb.o vsg.o vlist.o lockqueue.o vollocate.o
 
 
 libvol.a: ${LIBVOLOBJS}

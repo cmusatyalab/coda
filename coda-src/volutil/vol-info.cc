@@ -74,10 +74,9 @@ extern "C" {
 #include <viceinode.h>
 #include <vutil.h>
 #include <index.h>
-#include <vldb.h>
-#include <volhash.h>
 #include <resstats.h>
 #include <dllist.h>
+#include <vollocate.h>
 
 #define INFOFILE    "/tmp/volinfo.tmp"
 static FILE * infofile;    // descriptor for info file
@@ -109,17 +108,11 @@ long int S_VolInfo(RPC2_Handle rpcid, RPC2_String formal_volkey, RPC2_Integer du
     VInitVolUtil(volumeUtility);
 
     /* If user entered volume name, use it to find volid. */
-    struct vldb *vldbp = VLDBLookup(volkey);
-    if (vldbp)
-	volid = ntohl(vldbp->volumeId[vldbp->volumeType]);
-    else {
-	sscanf(volkey, "%lX", &volid);
-	long index = HashLookup(volid);
-	if (index == -1) {
-	    VLog(0, "Info: Invalid name or volid %s!", volkey);
-	    status = -1;
-	    goto exit;
-	}
+    volid = VOL_Locate(volkey);
+    if (!volid) {
+	VLog(0, "Info: Invalid name or volid %s!", volkey);
+	status = EINVAL;
+	goto exit;
     }
 
     vp = VGetVolume(&error, volid);

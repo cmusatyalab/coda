@@ -76,11 +76,9 @@ static int GetVid(char *s, int *id);
 
 static int DebugLevel;
 
-static int IAmMaster;	/* TRUE iff this is the master auth server */
 static char *DefAuthHost = NULL;
 static char *AuthPortal = AUTH_SERVICE;
 
-static int GetTokensFlag;
 static int ChangeUserFlag;
 static int NewUserFlag;
 static int DeleteUserFlag;
@@ -206,18 +204,12 @@ Done:
 /* Set globals from command line args */
 static void SetGlobals(int argc, char **argv)
 {
-    register int i;
+    int i;
     for (i = 1; i < argc; i++)
 	{
 	if (strcmp(argv[i], "-x") == 0)
 	    {
 	    DebugLevel++;
-	    continue;
-	    }
-
-	if (strcmp(argv[i], "-m") == 0)
-	    {
-	    IAmMaster = TRUE;
 	    continue;
 	    }
 
@@ -233,11 +225,6 @@ static void SetGlobals(int argc, char **argv)
 	    continue;
 	    }
 
-	if (strcmp(argv[i], "gt") == 0)
-	    {
-	    GetTokensFlag = TRUE;
-	    break;
-	    }
 	if (strcmp(argv[i], "cu") == 0)
 	    {
 	    ChangeUserFlag = TRUE;
@@ -259,9 +246,12 @@ static void SetGlobals(int argc, char **argv)
 	    break;
 	    }
 
-	printf("Usage: au [-x] [-h host] [-p portal]  {gt,cp,cu,nu,du}\n");
-	exit(-1);
 	}
+	if (ChangePasswordFlag || ChangeUserFlag || NewUserFlag || DeleteUserFlag)
+	    return;
+
+	printf("Usage: au [-x] [-h host] [-p portal]  {cp,cu,nu,du}\n");
+	exit(-1);
 }
 
 
