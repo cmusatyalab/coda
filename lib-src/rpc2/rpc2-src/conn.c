@@ -62,7 +62,7 @@ void rpc2_InitConn()
     int i;
     
     /* safety check, never initialize twice */
-    assert(EntriesInUse == -1);
+    if (EntriesInUse != -1) return;
 
     for (i = 0; i < HASHLENGTH; i++)
     {
