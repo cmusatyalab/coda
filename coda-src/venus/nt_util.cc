@@ -234,7 +234,8 @@ int nt_initialize_ipc (int sock)
 			  OPEN_EXISTING, 0, NULL);
 
     if (kerndev == INVALID_HANDLE_VALUE) {
-	eprint ("nt_initialize_ipc: CreateFile failed.");
+	eprint ("nt_initialize_ipc: CreateFile failed. "
+		"Is the coda service started?");
 	return 0; 
     } 
 
