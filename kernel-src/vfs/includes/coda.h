@@ -15,7 +15,7 @@
 #include <sys/types.h>
 #endif 
 
-#ifdef DJGPP
+#if defined(DJGPP) || defined(__CYGWIN32__)
 #ifdef KERNEL
 typedef unsigned long u_long;
 typedef unsigned int u_int;
