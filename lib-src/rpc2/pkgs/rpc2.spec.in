@@ -4,15 +4,15 @@ Version: @VERSION@
 Release: 1
 Source: ftp://ftp.coda.cs.cmu.edu/pub/coda/src/@PACKAGE@-@VERSION@.tar.gz
 Copyright: LGPL
-BuildRoot: /usr/src/redhat/BUILD/@PACKAGE@-@VERSION@/Root
+BuildRoot: %{_topdir}/BUILD/@PACKAGE@-@VERSION@/Root
 Group: Development/Libraries
 %description
 The RPC2 library.
 
-%package dev
+%package devel
 Summary: RPC2 library development files
 Group: Development/Libraries
-%description dev
+%description devel
 Headers and static libraries for developing programs using the RPC2 library.
 
 %changelog
@@ -44,12 +44,14 @@ rm -rf $RPM_BUILD_ROOT
 /sbin/ldconfig
 
 %files
+%defattr(-,root,root)
 /usr/bin/filcon
 /usr/lib/libfail.so.@LINUX_VERSION@
 /usr/lib/librpc2.so.@LINUX_VERSION@
 /usr/lib/libse.so.@LINUX_VERSION@
 
-%files dev
+%files devel
+%defattr(-,root,root)
 /usr/bin/rp2gen
 /usr/lib/libfail.a
 /usr/lib/libfail.la
