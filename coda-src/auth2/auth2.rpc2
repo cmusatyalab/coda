@@ -61,6 +61,7 @@ Subsystem  "auth2";
 #define AUTH_METHOD_KERBEROS4		3 /* use existing TGT */
 #define AUTH_METHOD_KERBEROS5		4 /* use existing TGT */
 #define AUTH_METHOD_PK			5 /* for the future */
+#define AUTH_METHOD_VICEKEY		6 /* for inter-vice authentication */
 
 /* Vice Ioctls for authentication calls */
 /*  #define AUTH_GETVICEID	16	Not yet implemented */
