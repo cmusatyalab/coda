@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/src/coda-4.0.1/RCSLINK/./coda-src/rp2gen/rp2.h,v 1.1 1996/11/22 19:08:48 braam Exp $";
+static char *rcsid = "$Header: rp2.h,v 4.1 97/01/08 21:50:15 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -57,7 +57,6 @@ supported by Transarc Corporation, Pittsburgh, PA.
 
 
 #include "rpc2.h"
-extern char *malloc(), *calloc();
 
 /* Satya (7/31/96): changed bool, FALSE, TRUE to rp2_bool, RP2_{FALSE,TRUE}
 to avoid name clash with builtin bool on some versions of gcc; similar to

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/src/coda-4.0.1/RCSLINK/./coda-src/rp2gen/util.c,v 1.1 1996/11/22 19:08:55 braam Exp $";
+static char *rcsid = "$Header: util.c,v 4.1 97/01/08 21:50:18 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -74,7 +74,6 @@ no_storage(proc)
 char *copy(s)
     char *s;
 {
-    extern char *malloc();
     register char *new;
     register int len;
 
