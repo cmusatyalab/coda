@@ -142,14 +142,14 @@ void FSOInit() {
 #ifdef __BSD44__
 	struct dirent **namelist;
 	int nentries;
-	char *cwd,*abspath,*eos;
+	char *cwd,*abspath,*eos,*origpath;
 	struct stat statbuf;
 
 	nentries = scandir(".", &namelist, 0, 0) ;
 	if (nentries < 0) CHOKE("FSOInit: scandir");
 
 	cwd = getwd(NULL);
-	abspath = (char*)malloc(sizeof(char)*MAXPATHLEN);
+	abspath = origpath = (char*)malloc(sizeof(char)*MAXPATHLEN);
 	CODA_ASSERT(abspath != NULL);
 
 	abspath = strncpy(abspath,cwd,MAXPATHLEN);
@@ -181,7 +181,7 @@ FREE_ENTRY: /* release entry from namelist */
 	}
 	/* Free the array allocated by scandir() */
 	free(namelist);
-	free(abspath);
+	free(origpath);
 	free(cwd);
 #endif /* __BSD44__ */
 

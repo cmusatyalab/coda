@@ -7,14 +7,19 @@ shift
 FILES=$@
 
 SYS=`uname -s`
+VER=`uname -r | head -c 1`
 
 PATH=/bin:/usr/bin:/sbin:/usr/sbin:/usr/ucb
 export PATH
 
-if [ $SYS = NetBSD -o $SYS = FreeBSD -o $SYS = OpenBSD ] ; then
+if [ $SYS = NetBSD -o $SYS = OpenBSD ] ; then
 OWNGRP=root.wheel
 else
-OWNGRP=root:root
+  if [ $SYS = FreeBSD ]; then
+  OWNGRP=root:wheel
+  else 
+  OWNGRP=root:root
+  fi
 fi
 
 if [ ! -d $DIR ] ;  then mkdir -p $DIR; fi

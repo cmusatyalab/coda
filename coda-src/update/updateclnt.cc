@@ -226,7 +226,7 @@ int main(int argc, char **argv)
     gettimeofday(&tp, &tsp);
     LogMsg(0, SrvDebugLevel, stdout, 
 	   "Update Client pid = %d started at %s", 
-	   getpid(), ctime(&tp.tv_sec));
+	   getpid(), ctime((time_t*)&tp.tv_sec));
 
     time.tv_sec = waitinterval;
     time.tv_usec = 0;
@@ -694,10 +694,10 @@ static void SwapLog()
     }
     else {
 	gettimeofday(&tv, &tz);
-	LogMsg(0, SrvDebugLevel, stdout, "Moving UpdateLog to UpdateLog.old at %s", ctime(&tv.tv_sec));
+	LogMsg(0, SrvDebugLevel, stdout, "Moving UpdateLog to UpdateLog.old at %s", ctime((time_t*)&tv.tv_sec));
 	freopen("UpdateLog","a+",stdout);
 	freopen("UpdateLog","a+",stderr);
-	LogMsg(0, SrvDebugLevel, stdout, "New UpdateLog started at %s", ctime(&tv.tv_sec));
+	LogMsg(0, SrvDebugLevel, stdout, "New UpdateLog started at %s", ctime((time_t*)&tv.tv_sec));
     }
 }
 
