@@ -83,19 +83,21 @@ int coda_cnode_make(struct inode **inode, ViceFid *fid, struct super_block *sb)
         }
 
 	cnp = ITOC(*inode);
-	if  ( cnp->c_magic == 0 ) {
-		memset(cnp, 0, (int) sizeof(struct coda_inode_info));
-		cnp->c_fid = *fid;
-		cnp->c_magic = CODA_CNODE_MAGIC;
-		cnp->c_flags = 0;
-		cnp->c_vnode = *inode;
-		INIT_LIST_HEAD(&(cnp->c_cnhead));
-		INIT_LIST_HEAD(&(cnp->c_volrootlist));
-	} else {
-	        cnp->c_flags = 0;
-		printk("coda_cnode make on initialized inode %ld, %s!\n",
-		       (*inode)->i_ino, coda_f2s(&cnp->c_fid));
-	}
+       if  ( cnp->c_magic != 0 ) {
+               printk("coda_cnode make on initialized inode %ld, old %s new
+%s!\n",
+                      (*inode)->i_ino, coda_f2s(&cnp->c_fid), coda_f2s2(fid));
+               iput(*inode);
+               return -ENOENT;
+        }
+ 
+       memset(cnp, 0, (int) sizeof(struct coda_inode_info));
+       cnp->c_fid = *fid;
+       cnp->c_magic = CODA_CNODE_MAGIC;
+       cnp->c_flags = 0;
+       cnp->c_vnode = *inode;
+       INIT_LIST_HEAD(&(cnp->c_cnhead));
+       INIT_LIST_HEAD(&(cnp->c_volrootlist));
 
 	/* fill in the inode attributes */
 	if ( coda_f2i(fid) != ino ) {

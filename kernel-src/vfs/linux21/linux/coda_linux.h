@@ -46,6 +46,7 @@ extern int coda_access_cache;
 /* this file:  heloers */
 static __inline__ struct ViceFid *coda_i2f(struct inode *);
 char *coda_f2s(ViceFid *f);
+char *coda_f2s2(ViceFid *f);
 int coda_isroot(struct inode *i);
 int coda_fid_is_volroot(struct ViceFid *);
 int coda_fid_is_weird(struct ViceFid *fid);

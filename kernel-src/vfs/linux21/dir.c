@@ -1,3 +1,4 @@
+
 /*
  * Directory operations for Coda filesystem
  * Original version: (C) 1996 P. Braam and M. Callahan
@@ -834,11 +835,18 @@ CDEBUG(D_FILE, "entry %d: ino %ld, namlen %d, reclen %d, type %d, pos %d, string
 		if ( !vdirent->d_reclen ) {
 			printk("CODA: Invalid directory, cfino: %ld\n", 
 			       filp->f_dentry->d_inode->i_ino);
+			result -EINVAL;
 			break;
 		}
                 pos += (unsigned int) vdirent->d_reclen;
 		i++;
         } 
+
+       if ( i >= 1024 ) {
+               printk("Repeating too much in readdir %ld\n", 
+                      filp->f_dentry->d_inode->i_ino);
+               result = -EINVAL;
+       }
 
 exit:
         CODA_FREE(buff, DIR_BUFSIZE);
@@ -853,18 +861,35 @@ static int coda_dentry_revalidate(struct dentry *de)
 	struct coda_inode_info *cii;
 	ENTRY;
 
-	if (inode) {
-		if (is_bad_inode(inode))
-			return 0;
-		cii = ITOC(de->d_inode);
-		if (cii->c_flags & C_PURGE) 
-			valid = 0;
-		if (cii->c_flags & C_FLUSH) {
-			coda_flag_inode_children(inode, C_FLUSH);
-			valid = 0;
-		}
+	if (!inode)
+		return 1;
+
+	cii = ITOC(de->d_inode);
+	if (coda_isroot(inode))
+		return 1;
+	if (is_bad_inode(inode))
+		return 0;
+
+	if (! (cii->c_flags & (C_PURGE | C_FLUSH)) )
+		return valid;
+
+	dcache_shrink_parent(de);
+
+	if (de->d_count > 1) {
+		/* pretend it's valid, but don't change the flags */
+		CDEBUG(D_DOWNCALL, "BOOM for: ino %ld, %s\n",
+		       de->d_inode->i_ino, coda_f2s(&cii->c_fid));
+		return 1;
 	}
-	return valid ||  coda_isroot(de->d_inode);
+
+	/* propagate for a flush */
+	if (cii->c_flags & C_FLUSH) 
+		coda_flag_inode_children(inode, C_FLUSH);
+
+	/* clear the flags. */
+	cii->c_flags &= ~(C_VATTR | C_PURGE | C_FLUSH);
+
+	return 0;
 }
 
 /*
