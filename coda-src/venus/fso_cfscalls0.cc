@@ -1631,7 +1631,7 @@ int fsobj::SetAttr(struct coda_vattr *vap, vuid_t vuid, RPC2_CountedBS *acl)
 	}
 
 	/* Cannot chown a file until the first store has been done! */
-	if (NewOwner != (vuid_t)-1 && IsVirgin()) {
+	if (NewOwner != (vuid_t)-1 && IsFile() && IsVirgin()) {
 		return(EINVAL);
 	}
 
