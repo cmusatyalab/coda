@@ -140,6 +140,7 @@ int main(int argc, char **argv)
 		    i++;
 	    }  else if ( strcmp(argv[i], "-pipe") == 0 ) {
 		    /* obsolete option -pipe used to mainly reduce verbosity */
+		    interactive = 0;
 		    verbose = 0;
 		    i++;
 	    }  else if ( strcmp(argv[i], "-tofile") == 0 ) {
@@ -223,7 +224,10 @@ int main(int argc, char **argv)
 	    exit (1);
     }
 
-    if (!isatty(0)) verbose = 0;
+    if (!isatty(0)) {
+	verbose = 0;
+	interactive = 0;
+    }
 
     if (verbose)
 	printf("username: %s@%s\n", username, realm);
