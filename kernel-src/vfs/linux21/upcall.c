@@ -616,10 +616,12 @@ int venus_statfs(struct super_block *sb, struct statfs *sfs)
 static inline unsigned long coda_waitfor_upcall(struct upc_req *vmp)
 {
 	struct wait_queue	wait = { current, NULL };
-	unsigned long posttime;
+	struct timeval begin = { 0, 0 }, end = { 0, 0 };
 
 	vmp->uc_posttime = jiffies;
-	posttime = jiffies;
+
+	if (coda_upcall_timestamping)
+		do_gettimeofday(&begin);
 
 	add_wait_queue(&vmp->uc_sleep, &wait);
 	for (;;) {
@@ -648,8 +650,20 @@ static inline unsigned long coda_waitfor_upcall(struct upc_req *vmp)
 	remove_wait_queue(&vmp->uc_sleep, &wait);
 	current->state = TASK_RUNNING;
 
-	CDEBUG(D_SPECIAL, "posttime: %ld, returned: %ld\n", posttime, jiffies-posttime);
-	return 	(jiffies - posttime);
+        if (coda_upcall_timestamping && begin.tv_sec != 0) {
+		do_gettimeofday(&end);
+
+		if (end.tv_usec < begin.tv_usec) {
+			end.tv_usec += 1000000; end.tv_sec--;
+		}
+		end.tv_sec  -= begin.tv_sec;
+		end.tv_usec -= begin.tv_usec;
+	}
+
+	CDEBUG(D_SPECIAL, "begin: %ld.%06ld, elapsed: %ld.%06ld\n",
+		begin.tv_sec, begin.tv_usec, end.tv_sec, end.tv_usec);
+
+	return 	((end.tv_sec * 1000000) + end.tv_usec);
 
 }
 

@@ -98,6 +98,7 @@ struct coda_cache_inv_stats
 extern struct coda_vfs_stats		coda_vfs_stat;
 extern struct coda_permission_stats	coda_permission_stat;
 extern struct coda_cache_inv_stats	coda_cache_inv_stat;
+extern int                              coda_upcall_timestamping;
 
 /* reset statistics to 0 */
 void reset_coda_vfs_stats( void );

@@ -255,10 +255,10 @@ static int coda_statfs(struct super_block *sb, struct statfs *buf,
 	if (error) {
 		/* fake something like AFS does */
 		tmp.f_blocks = 9000000;
-		tmp.f_bfree = 9000000;
-		tmp.f_bavail = 9000000 ;
-		tmp.f_files = 9000000;
-		tmp.f_ffree = 9000000;
+		tmp.f_bfree  = 9000000;
+		tmp.f_bavail = 9000000;
+		tmp.f_files  = 9000000;
+		tmp.f_ffree  = 9000000;
 	}
 
 	/* and fill in the rest */
