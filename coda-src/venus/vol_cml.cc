@@ -3318,7 +3318,7 @@ static int RLE_Size(ARG *ArgTypes ...)
 
     for	(a_types = ArgTypes; a_types->mode != C_END; a_types++)
     {
-	args = (PARM *)va_arg(ap, unsigned long);
+	args = (PARM *)&va_arg(ap, unsigned long);
 	LOG(1000, ("RLE_Size: a_types = [%d %d %d %x], args = (%x %x)\n",
 		   a_types->mode, a_types->type, a_types->size, a_types->field,
 		   args, *args));
@@ -3326,12 +3326,15 @@ static int RLE_Size(ARG *ArgTypes ...)
 	if (a_types->mode != IN_MODE && a_types->mode != IN_OUT_MODE)
 	    continue;
 
+        PARM *xargs = args;
+        if (a_types->mode == IN_OUT_MODE)
+            xargs = (PARM *)&args;
+
+        a_types->bound = 0;
 	if (a_types->type == RPC2_STRUCT_TAG)
-	    len += struct_len(&a_types, &args);
-	else {
-	    a_types->bound = 0;
-	    len += get_len(&a_types, &args, a_types->mode);
-	}
+	    len += struct_len(&a_types, &xargs);
+	else
+	    len += get_len(&a_types, &xargs, a_types->mode);
     }
 
     va_end(ap);
@@ -3350,7 +3353,7 @@ static void RLE_Pack(PARM **ptr, ARG *ArgTypes ...)
 
     /* see comment about GNU C above. */
     for	(ARG *a_types =	ArgTypes; a_types->mode	!= C_END; a_types++) {
-	args = (PARM *) va_arg(ap, unsigned long);
+	args = (PARM *)&va_arg(ap, unsigned long);
 	LOG(1000, ("RLE_Pack: a_types = [%d %d %d %x], ptr = (%x %x %x), args = (%x %x)\n",
 		   a_types->mode, a_types->type, a_types->size, a_types->field,
 		   ptr, *ptr, **ptr, args, *args));
@@ -3358,10 +3361,14 @@ static void RLE_Pack(PARM **ptr, ARG *ArgTypes ...)
 	if (a_types->mode != IN_MODE && a_types->mode != IN_OUT_MODE)
 	    continue;
 
+        PARM *xargs = args;
+        if (a_types->mode == IN_OUT_MODE)
+            xargs = (PARM *)&args;
+
 	if (a_types->type == RPC2_STRUCT_TAG)
-	    pack_struct(a_types, &args, (PARM **)ptr);
+	    pack_struct(a_types, &xargs, (PARM **)ptr);
 	else
-	    pack(a_types, &args, (PARM **)ptr);
+	    pack(a_types, &xargs, (PARM **)ptr);
     }
 
     va_end(ap);
