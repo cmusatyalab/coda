@@ -437,27 +437,204 @@ void tool_changeId(int argc,char *argv[])
 	PDB_changeId(id,arg2);
 }
 
+/* dump/restore database contents */
+void tool_export(int argc, char *argv[])
+{
+    int32_t id, i;
+    PDB_profile rec;
+    PDB_HANDLE h;
+    FILE *userfile, *groupfile;
+    char *s;
+    int rc;
+
+    if (check_args_num(argc, 3)) {
+	printf("Usage: export <userfile> <groupfile>\n");
+	return;
+    }
+
+    userfile  = fopen(argv[1], "w");
+    groupfile = fopen(argv[2], "w");
+
+    h = PDB_db_open(O_RDONLY);
+    while ((rc = PDB_db_nextkey(h, &id))) {
+	if (rc == -1) continue;
+
+	PDB_readProfile(h, id, &rec);
+	{
+	    if (PDB_ISUSER(rec.id)) {
+		/* users are dumped in an /etc/passwd like format
+		 * "<username>:x:<userid>:500::/:" */
+		fprintf(userfile, "%s:*:%d:500::/:\n", rec.name, rec.id);
+	    } else {
+		/* groups and group members are dumped in an /etc/group like
+		 * format "<groupname>:x:<groupid>:<owner>[,<members>]*" */
+
+		/* escape the :'s in the group names */
+		s = rec.name; while ((s = strchr(s, ':')) != NULL) *s = '%';
+
+		fprintf(groupfile, "%s:*:%d:%s", rec.name, rec.id,
+						 rec.owner_name);
+		for (i = 0; i < rec.groups_or_members.size; i++) {
+		    if (rec.groups_or_members.data[i] == rec.owner_id)
+			continue;
+
+		    PDB_lookupById(rec.groups_or_members.data[i], &s);
+		    if (s == NULL) continue;
+
+		    fprintf(groupfile, ",%s", s);
+		    free(s);
+		}
+		fprintf(groupfile, "\n");
+	    }
+	}
+	PDB_freeProfile(&rec);
+    }
+    PDB_db_close(h);
+
+    fclose(userfile);
+    fclose(groupfile);
+}
+
+void tool_import(int argc, char *argv[])
+{
+    FILE *userfile, *groupfile;
+    char user[64], group[64], owner_and_members[1024], *owner, *member, *s;
+    int32_t user_id, group_id, owner_id, member_id, create_id;
+    int rc;
+
+    if (check_args_num(argc, 3)) {
+	printf("Usage: import <userfile> <groupfile>\n");
+	return;
+    }
+
+    /* recreate all users */
+    userfile = fopen(argv[1], "r");
+    while(1) {
+	rc = fscanf(userfile, "%[^:]:%*[^:]:%d:%*s\n", user, &user_id);
+	if (rc < 0) break;
+
+	/* create user */
+	PDB_lookupById(user_id, &s);
+	if (s) {
+	    printf("Duplicate user for id %d, found both %s and %s\n",
+		   user_id, s, user);
+	    free(s);
+	    continue;
+	}
+
+	PDB_createUser(user, &create_id);
+	PDB_changeId(create_id, user_id);
+	printf("Created user %s, id %d\n", user, user_id);
+    }
+    fclose(userfile);
+    
+    /* recreate groups */
+    groupfile = fopen(argv[2], "r");
+    while (1) {
+	rc = fscanf(groupfile, "%[^:]:%*[^:]:%d:%s\n",
+		    group, &group_id, owner_and_members);
+	if (rc < 0) break;
+
+	/* restore the :'s in the group name */
+	s = group; while ((s = strchr(s, '%')) != NULL) *s = ':';
+
+	owner = strtok(owner_and_members, ",");
+
+	/* create group */
+	PDB_lookupByName(owner, &owner_id);
+	if (owner_id == 0) {
+	    printf("Group %s's owner %s cannot be found\n", group, owner);
+	    continue;
+	}
+	if (!PDB_ISUSER(owner_id)) {
+	    printf("Group %s's owner %s is a group but should be a user\n",
+		   group, owner);
+	    continue;
+	}
+	PDB_createGroup(group, owner_id, &create_id);
+	PDB_changeId(create_id, group_id);
+	printf("Created group %s, id %d, owner %s\n", group, group_id, owner);
+    }   
+
+    /* add group members*/
+    rewind(groupfile);
+    while (1) {
+	rc = fscanf(groupfile, "%[^:]:%*[^:]:%d:%s\n",
+		    group, &group_id, owner_and_members);
+	if (rc < 0) break;
+
+	/* restore the :'s in the group name */
+	s = group; while ((s = strchr(s, '%')) != NULL) *s = ':';
+
+	/* skip the owner */
+	(void)strtok(owner_and_members, ",");
+
+	/* add group members */
+	printf("Adding members to %s\n\t", group);
+	while ((member = strtok(NULL, ",")) != NULL) {
+	    /* restore the :'s in the name */
+	    s = member; while ((s = strchr(s, '%')) != NULL) *s = ':';
+
+	    PDB_lookupByName(member, &member_id);
+	    if (member_id == 0) {
+		printf("\nGroup %s's member %s cannot be found\n\t",
+		       group, member);
+		continue;
+	    }
+	    PDB_addToGroup(member_id, group_id);
+	    printf(" %s", member);
+	}
+	printf("\n");
+    }   
+    fclose(groupfile);
+}
+
+void tool_source(int argc, char *argv[])
+{
+	char line[1024];
+	char *nl;
+
+	FILE *file = fopen(argv[1], "r");
+	if ( !file ) {
+	    perror("");
+	    return;
+	}
+	while ( fgets(line, 1024, file) ) {
+	    if ( (nl = strchr(line, '\n')) )
+		*nl = '\0';
+	    execute_line(line);
+	}
+}
 
 
 /* HELP */
-void tool_help(int argc, char *argv[]){
-        printf("i\tread database by user ID\n");
-	printf("n\tread database by user name\n");
-	printf("nu\tcreate a new user\n");
-	printf("nui\tcreate a new user with id\n");
-	printf("ng\tcreate a new group\n");
-	printf("l\tlook up an ID by name\n");
-	printf("list\tlist all entries\n");
-	printf("cu\tclone a user\n");
-	printf("ag\tadd a group or user to a group\n");
-	printf("rg\tremove a group or user from a group\n");
-	printf("d\tdelete a user or a group\n");
-	printf("cm\tcompact the database (RARE)\n");
-	printf("ci\tchange the Id of a new user or group\n");
-	printf("cn\tchange the Name of a user\n");
-	printf("ids\tget the database maxids\n");
-	printf("maxids\tset the database maxids\n");
-	printf("u\tupdate an id\n");
+void tool_help(int argc, char *argv[])
+{
+	if (argc > 1) {
+	    Parser_help(argc, argv);
+	    return;
+	}
+
+        printf("i <id>\t\t\t\tread database by ID\n");
+	printf("n <name>\t\t\tread database by name\n");
+	printf("nu <username>\t\t\tcreate a new user\n");
+	printf("nui <username> <userid>\t\tcreate a new user with id\n");
+	printf("ng <groupname> <ownerid>\tcreate a new group\n");
+	printf("l <name>\t\t\tlook up an ID by name\n");
+	printf("list\t\t\t\tlist all entries\n");
+	printf("cu <newusername> <userid>\tclone a user\n");
+	printf("ag <groupid> <id>\t\tadd a group or user to a group\n");
+	printf("rg <groupid> <id>\t\tremove a group or user from a group\n");
+	printf("d <id>\t\t\t\tdelete a user or a group\n");
+	printf("cm\t\t\t\tcompact the database (RARE)\n");
+	printf("ci <name> <newid>\t\tchange the Id of a user or group\n");
+	printf("cn <id> <newname>\t\tchange the Name of a user or group\n");
+	printf("u <id>\t\t\t\tupdate an id\n");
+	printf("ids\t\t\t\tget the database maxids\n");
+	printf("maxids <userid> <groupid>\tset the database maxids\n");
+	printf("export <userfile> <groupfile>\tdump the contents of the pdb database\n");
+	printf("import <userfile> <groupfile>\tread a dumped pdb database\n");
+	printf("source <file>\t\t\tread commands from file\n");
 }
 
 command_t pdbcmds[] =
@@ -480,6 +657,9 @@ command_t pdbcmds[] =
 	{"u", tool_update, 0, "update an id"},
 	{"ids", tool_get_maxids, 0, "get the database maxids"},
 	{"maxids", tool_maxids, 0, "set the database maxids"},
+	{"export", tool_export, 0, "dump the contents of the database"},
+	{"import", tool_import, 0, "load the contents of the database"},
+	{"source", tool_source, 0, "read commands from file"},
 	{"help", tool_help, 0, "print help on commands"},
 	{"quit", Parser_exit, 0, "get me out of here"},
 	{"exit", Parser_exit, 0, "get me out of here"},
@@ -489,8 +669,7 @@ command_t pdbcmds[] =
 
 int main(int argc, char **argv)
 {
-	char *nl;
-
+	int i;
 	coda_assert_action = CODA_ASSERT_EXIT;
 
 	PDB_setupdb();
@@ -499,16 +678,12 @@ int main(int argc, char **argv)
 		Parser_commands();
 	else {
 		char line[1024];
-		FILE *file = fopen(argv[1], "r");
-		if ( !file ) {
-			perror("");
-			return 1;
+		strcpy(line, argv[1]);
+		for (i = 2; i < argc; i++) {
+		    strcat(line, " ");
+		    strcat(line, argv[i]);
 		}
-		while ( fgets(line, 1024, file) ) {
-			if ( (nl = strchr(line, '\n')) )
-				*nl = '\0';
-			execute_line(line);
-		}
+		execute_line(line);
 	}
 	return 0;
 }

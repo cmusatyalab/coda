@@ -176,7 +176,7 @@ void PDB_db_update_maxids(PDB_HANDLE h, int32_t uid, int32_t gid, int mode)
 	int rc;
 	char zero = 0;
 	int32_t olduid, oldgid;
-	int32_t *ids = NULL;
+	int32_t ids[2];
 	
 	CODA_ASSERT(uid >= 0 && gid <= 0);
 
@@ -190,18 +190,16 @@ void PDB_db_update_maxids(PDB_HANDLE h, int32_t uid, int32_t gid, int mode)
 
 	if ( rc != RET_SUCCESS ) {
 		CODA_ASSERT( (uid == 0) && (gid == 0) );
-		olduid = -1; 
-		oldgid = 1;
-		value.size = 2 * sizeof(int32_t);
-		ids = malloc(value.size);
-		value.data = (void *) ids;
-	} else {		
+		ids[0] = htonl(0);
+		ids[1] = htonl(0);
+	} else {
 		CODA_ASSERT(value.size == 2*sizeof(int32_t));
-		ids = (int32_t *) value.data;
-		olduid = ntohl(ids[0]);
-		oldgid = ntohl(ids[1]);
-		CODA_ASSERT(olduid >= 0 || oldgid <= 0); 
+		ids[0] = ((int32_t *)value.data)[0];
+		ids[1] = ((int32_t *)value.data)[1];
 	}
+	olduid = ntohl(ids[0]);
+	oldgid = ntohl(ids[1]);
+	CODA_ASSERT(olduid >= 0 || oldgid <= 0); 
 
 	if ( mode != PDB_MAXID_FORCE ) {
 		if (  uid > olduid )
@@ -213,6 +211,9 @@ void PDB_db_update_maxids(PDB_HANDLE h, int32_t uid, int32_t gid, int mode)
 		ids[0] = htonl(uid);
 		ids[1] = htonl(gid);
 	}
+
+	value.size = 2 * sizeof(int32_t);
+	value.data = (void *) &ids;
 
         rc = h->main->put(h->main, &key, &value, 0);
 	CODA_ASSERT(rc == RET_SUCCESS);
@@ -361,7 +362,7 @@ int PDB_db_exists(void)
 
 	/* this record has a special 1-byte key equal to zero */
 	memset(&key, 0, sizeof(DBT));
-	key.size = 1;
+	key.size = sizeof(zero);
 	key.data = &zero;
 
 	/* open the profile database in read mode */
