@@ -68,7 +68,8 @@ passed across on RPC2_NewBinding for advisory information to other
 side.  Changes to this string may cause RPC2_OLDVERSION to be returned
 on RPC2_NewBinding()s.  For really minor changes alter rpc2_LastEdit
 in globals.c.  */
-#define RPC2_VERSION "Version 14.0: Satya, 6 May 1988, 10:00"
+/* #define RPC2_VERSION "Version 14.0: Satya, 6 May 1988, 10:00" */
+#define RPC2_VERSION "Version 15.0: JH, 10 Dec 1998, 12:00"
 
 
 /* Found as the first 4 bytes of EVERY packet.  Change this if you

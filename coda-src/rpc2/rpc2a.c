@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rpc2/rpc2a.c,v 4.12 98/11/02 16:45:21 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rpc2/rpc2a.c,v 4.13 98/11/24 15:34:38 jaharkes Exp $";
 #endif /*_BLURB_*/
 
 
@@ -61,6 +61,7 @@ supported by Transarc Corporation, Pittsburgh, PA.
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
+#include <arpa/inet.h>
 #include <netdb.h>
 #include <sys/time.h>
 #include <errno.h>
@@ -341,7 +342,12 @@ long RPC2_GetRequest(IN RPC2_RequestFilter *Filter,
 	ce->HostInfo = rpc2_AllocHost(&ce->PeerHost);
 	
     /* And now we are really done */
-    if (ce->Flags & CE_OLDV) rpc2_Quit(RPC2_OLDVERSION);
+    if (ce->Flags & CE_OLDV)
+    {
+	say(-1, RPC2_DebugLevel, "Request from %s: Old rpc2 version\n",
+		inet_ntoa(ce->PeerHost.Value.InetAddress));
+	rpc2_Quit(RPC2_OLDVERSION);
+    }
     else rpc2_Quit(RPC2_SUCCESS);
 
 #undef DROPIT

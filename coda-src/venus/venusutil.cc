@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/venusutil.cc,v 4.18 1998/12/03 21:52:50 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/venusutil.cc,v 4.19 98/12/04 22:29:36 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -456,8 +456,8 @@ void LogInit() {
     if (logFile == NULL)
 	{ eprint("LogInit failed"); exit(-1); }
     LogInited = 1;
-    LOG(0, ("Coda Venus, version %d.%d (%d)\n", 
-	    VenusMajorVersion, VenusMinorVersion, RecovVersionNumber));
+    LOG(0, ("Coda Venus, version %d.%d.%d\n", 
+	    VenusMajorVersion, VenusMinorVersion, VenusReleaseVersion));
 
     struct timeval now;
     gettimeofday(&now, 0);
