@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/update/updateclnt.cc,v 4.10 1998/05/15 01:23:25 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/update/updateclnt.cc,v 4.11 1998/05/27 20:29:23 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -148,6 +148,12 @@ int main(int argc, char **argv)
     int     i,
 	    dirfd,
             len,
+
+    rc = chdir("/vice/db");
+    if ( rc ) {
+	    perror("Cannot cd to /vice/db");
+	    exit(1);
+    }
 
 
     UtilDetach();

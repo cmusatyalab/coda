@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/update/updatesrv.cc,v 4.9 1998/05/15 01:23:27 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/update/updatesrv.cc,v 4.10 1998/05/27 20:29:24 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -125,6 +125,15 @@ int main(int argc, char **argv)
     RPC2_PortalIdent portal1, *portallist[1];
     RPC2_SubsysIdent server;
     SFTP_Initializer sftpi;
+    int rc;
+    
+    rc = chdir("/vice/srv");
+    if ( rc ) {
+	    perror("Cannot cd to /vice/srv");
+	    exit(1);
+    }
+
+
 
     UtilDetach();
 
