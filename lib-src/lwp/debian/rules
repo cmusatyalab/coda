@@ -13,7 +13,7 @@ DEB_HOST_GNU_TYPE  := $(shell dpkg-architecture -qDEB_HOST_GNU_TYPE )
 
 # avoid '-g' flag when 'DEB_BUILD_OPTIONS=debug' is not set.
 ifeq (,$(findstring debug,$(DEB_BUILD_OPTIONS)))
-CFLAGS = -O2
+CFLAGS += -O2
 export CFLAGS
 endif
 
