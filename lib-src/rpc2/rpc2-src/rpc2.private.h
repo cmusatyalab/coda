@@ -530,7 +530,8 @@ long rpc2_InitRetry(long HowManyRetries, struct timeval *Beta0);
 void rpc2_NoteBinding(RPC2_HostIdent *whichHost, RPC2_PortIdent *whichPort, 
 		 RPC2_Integer whichUnique, RPC2_Handle whichConn);
 
-
+int mkcall(RPC2_HandleResult_func *ClientHandler, int ArgCount, int HowMany,
+	   RPC2_Handle ConnList[], long offset, long rpcval, int *args);
 
 
 /*-----------  Macros ---------- */

@@ -46,7 +46,7 @@ Pittsburgh, PA.
 #include <assert.h>
 #include <rpc2/rpc2.h>
 
-int mkcall(long (*ClientHandler)(), int ArgCount, int HowMany,
+int mkcall(RPC2_HandleResult_func *ClientHandler, int ArgCount, int HowMany,
 	   RPC2_Handle ConnList[], long offset, long rpcval, int *args)
 {
 	switch (ArgCount) {

@@ -43,7 +43,7 @@ Pittsburgh, PA.
 #include "se.h"
 #define MAXSERVERS 100
 
-typedef long RPC2_HandleResult_func(int HowMany, RPC2_Handle ConnList, long offset, long rpcval, ...);
+typedef long RPC2_HandleResult_func(int HowMany, RPC2_Handle ConnList[], long offset, long rpcval, ...);
 
 
 /* union for packing and unpacking unspecified arguments (identified by parallel ARG

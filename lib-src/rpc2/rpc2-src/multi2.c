@@ -67,10 +67,6 @@ Pittsburgh, PA.
 #define _PADWORD(n)(((n)+1) & ~1)
 #define _PADLONG(n)_PAD(n)
 
-extern int mkcall(RPC2_HandleResult_func *ClientHandler, int ArgCount,
-		  int HowMany, RPC2_Handle ConnList[], long offset, long rpcval,
-		  int *args);
-
 long MRPC_UnpackMulti(int HowMany, RPC2_Handle ConnHandleList[],
                       ARG_INFO *ArgInfo, RPC2_PacketBuffer *rspbuffer,
                       long rpcval, long offset);
