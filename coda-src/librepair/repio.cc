@@ -79,6 +79,10 @@ extern "C" {
 }
 #endif
 
+#ifndef O_BINARY
+#define O_BINARY 0
+#endif
+
 #include <vice.h>
 #include <urlquote.h>
 #include "coda_assert.h"
@@ -89,6 +93,7 @@ static int acldecode(char *, unsigned int *);
 static int growarray(char **arrayaddr, int *arraysize, int elemsize);
 
 
+#define ewrite(f, b, l) do { if (write(f, b, l) != l) goto err; } while(0);
 int repair_putdfile(char *fname, int replicaCount, struct listhdr *replicaList)
     /*	fname		name of file to write list to
      *	replicaCount 	no of replicas
@@ -98,24 +103,28 @@ int repair_putdfile(char *fname, int replicaCount, struct listhdr *replicaList)
      *	Returns -1 on failure, with msg on stderr.
      */
 {
-    int i, k;
+    int i, k, n;
     unsigned int x, j;
     struct repair *r;
-    FILE *ff;
-    
-    ff = fopen(fname,"w");
-    if (!ff) {perror(fname); return(-1);}
+    int fd;
+
+    fd = open(fname, O_WRONLY | O_BINARY);
+    if (fd < 0) {
+	perror(fname);
+	return -1;
+    }
     
     /* Write out number of replicas */
     x = htonl(replicaCount);
-    fwrite(&x, sizeof(int), 1, ff);
+    ewrite(fd, &x, sizeof(int));
     
     /* Write out header for each replica */
     for (i = 0; i < replicaCount; i++) {
 	x = htonl(replicaList[i].replicaId);
-	fwrite(&x, sizeof(int), 1, ff);
+	ewrite(fd, &x, sizeof(int));
+
 	x = htonl(replicaList[i].repairCount);
-	fwrite(&x, sizeof(int), 1, ff);
+	ewrite(fd, &x, sizeof(int));
     }
 
     /* Write out list of repairs for each replica */
@@ -123,23 +132,30 @@ int repair_putdfile(char *fname, int replicaCount, struct listhdr *replicaList)
 	r = replicaList[i].repairList;
 	for (j = 0; j < replicaList[i].repairCount; j++) {
 	    x = htonl(r[j].opcode);
-	    fwrite(&x, sizeof(int), 1, ff);
-	    fputs(r[j].name, ff);
-	    fputs("\n", ff);
-	    fputs(r[j].newname, ff);
-	    fputs("\n", ff);	    
+	    ewrite(fd, &x, sizeof(int));
+
+	    n = strlen(r[j].name);
+	    ewrite(fd, r[j].name, n);
+
+	    ewrite(fd, "\n", 1);
+
+	    n = strlen(r[j].newname);
+	    ewrite(fd, r[j].newname, n);
+
+	    ewrite(fd, "\n", 1);
 	    for (k = 0; k < REPAIR_MAX; k++) {
 		x = htonl(r[j].parms[k]);
-		fwrite(&x, sizeof(int), 1, ff);
+		ewrite(fd, &x, sizeof(int));
 	    }
 	}
     }
+    close(fd);
+    return 0;
 
-    /* Do a batch check for I/O errors; we don't worry about
-       checking each I/O opn, since the only expected error is diskfull and
-       this is likely to persist till the end */
-    if (ferror(ff)) { perror(fname); fclose(ff); return(-1); }
-    else { fclose(ff); return(0); }
+err:
+    perror("repair_putdfile");
+    close(fd);
+    return -1;
 }
 
 int repair_getdfile(char *fname, int infd, int *replicaCount, struct listhdr **replicaList)
