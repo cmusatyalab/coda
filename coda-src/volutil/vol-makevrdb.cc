@@ -91,13 +91,13 @@ long S_VolMakeVRDB(RPC2_Handle rpcid, RPC2_String formal_infile) {
     while (fgets(line, sizeof(line), vrlist) != NULL) {
 	lineno++;
 	int servercount;
-	if (sscanf(line, "%32s %lx %d %lx %lx %lx %lx %lx %lx %lx %lx %lx",
+	if (sscanf(line, "%s %lx %d %lx %lx %lx %lx %lx %lx %lx %lx %lx",
 		   vre->key, &vre->volnum, &servercount,
 		   &vre->ServerVolnum[0], &vre->ServerVolnum[1],
 		   &vre->ServerVolnum[2], &vre->ServerVolnum[3],
 		   &vre->ServerVolnum[4], &vre->ServerVolnum[5],
 		   &vre->ServerVolnum[6], &vre->ServerVolnum[7],
-		   &vre->addr) != 12) {
+		   &vre->addr) != 12 || strlen(key) >= V_MAXVOLNAMELEN) {
 	    LogMsg(0, VolDebugLevel, stdout, "Bad input line(%d): %s", lineno, line);
 	    LogMsg(0, VolDebugLevel, stdout, "makevrdb aborted");
 	    err = VFAIL;
