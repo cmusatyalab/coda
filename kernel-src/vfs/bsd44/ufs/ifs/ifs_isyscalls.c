@@ -44,7 +44,7 @@ getroot(dev, rootvp)
     if (!mp)	/* no mount struct corresponding to device */
 	return(ENXIO); 
 
-    if (error = VFS_ROOT(mp, (&vp)))
+    if ((error = VFS_ROOT(mp, &vp)) != 0)
 	return(ENXIO); 
 	
     *rootvp = vp;
@@ -61,7 +61,6 @@ igetvnode(dev, i_number)
 	ino_t i_number;
 {
 	register struct inode *ip;
-	register struct fs *fs;
 	register struct mount *mp;
 	struct vnode *vp; 
 	int error; 
@@ -71,26 +70,17 @@ igetvnode(dev, i_number)
 
 	/* get the vnode/inode.
 	   Assume we are on ffs for now.			XXX */ 
-	if (error = VFS_VGET(mp, i_number, &vp))
+	if ((error = VFS_VGET(mp, i_number, &vp)) != 0)
 	    return NULL;
 	ip = VTOI(vp); 
 
-	if (ip->i_nlink == 0 || (ip->i_mode&IFMT) != IFREG) {
+	if (ip->i_xxx_nlink == 0 || (ip->i_xxx_mode&IFMT) != IFREG) {
 	    vput(vp);
 	    return NULL;
 	}
 
 	return vp; 
 }
-
-struct icreate_args {
-    int	dev;
-    int	near_inode;	/* ignored */
-    int	param1;
-    int	param2;
-    int	param3;
-    int	param4;
-};
 /* icreate() system call to create a new inode on a given device.
    If successful the call returns the number of the newly created inode (> 0).
    Otherwise it returns -1 */ 
@@ -113,20 +103,20 @@ int sys_icreate(p, uap, retval)
     /*
      * Must be super user
      */
-    if (error = suser(p->p_ucred, &p->p_acflag)) {
+    if ((error = suser(p->p_ucred, &p->p_acflag)) != 0) {
 	*retval = -1;
 	return (error);
     }
     
 
     /* get vnode of root inode for given device */
-    if (error = getroot(uap->dev, &rootvp)) {
+    if ((error = getroot(uap->dev, &rootvp)) != 0) {
 	*retval = -1; 
 	return(error);
     }
     
     /* allocate the inode on disk and get a vnode pointer */
-    if (error = VOP_VALLOC(rootvp, IFREG, p->p_ucred, &vp)) {
+    if ((error = VOP_VALLOC(rootvp, IFREG, p->p_ucred, &vp)) != 0) {
 	vput(rootvp);
 	*retval = -1; 
 	return(error); 
@@ -138,24 +128,27 @@ int sys_icreate(p, uap, retval)
     newip = VTOI(vp); 
     newip->i_flag |= IN_ACCESS | IN_CHANGE | IN_UPDATE;
 
-    newip->i_nlink = 1;
-    newip->i_uid = 0;
-    newip->i_gid = -2;
-    newip->i_mode = IFREG;
+    newip->i_xxx_nlink = 1;
+    newip->i_xxx_uid = 0;
+    newip->i_xxx_gid = -2;
+    newip->i_xxx_mode = IFREG;
 /*  newip->i_vicemagic = VICEMAGIC; Can't use generation number any more in NetBSD */
-    newip->i_vicep1 = uap->param1;
-    newip->i_vicep2 = uap->param2;
-    newip->i_vicep3 = uap->param3;
-    newip->i_vicep4 = uap->param4;
+    newip->i_xxx_vicep1 = uap->param1;
+    newip->i_xxx_vicep2 = uap->param2;
+    newip->i_xxx_vicep3 = uap->param3;
+    newip->i_xxx_vicep4 = uap->param4;
     
     /*
      * Make sure inode goes to disk.
      */ 
     tv = time;
+#ifdef	__NetBSD__
     ts.tv_sec = tv.tv_sec;
     ts.tv_nsec = tv.tv_usec * 1000;
     error = VOP_UPDATE(vp, &ts, &ts, 1); 
-
+#elif	defined(__FreeBSD__)
+    error = VOP_UPDATE(vp, &tv, &tv, 1); 
+#endif
     /* ignore writing out the parent vnode (rootvp?) XXX */
     
     *retval = error ? -1 : newip->i_number; 
@@ -165,12 +158,6 @@ int sys_icreate(p, uap, retval)
     return(error);
 }
 
-
-struct iopen_args {
-    int	dev;
-    int	inode;
-    int	usermode;
-};
 /*
  * iopen system call -- open an inode for reading/writing
  * Restricted to super user. Any IFREG files.
@@ -189,14 +176,15 @@ sys_iopen(p, uap, retval)
     int indx;
     struct vnode *vp;
     int error; 
+#ifdef	__NetBSD__
     extern struct fileops vnops;
-    
+#endif
     printf("iopen(dev=%d inode=%d usermode=%o) called\n",
 	   uap->dev, uap->inode, uap->usermode);
     /*
      * Must be super user
      */
-    if (error = suser(p->p_ucred, &p->p_acflag)) {
+    if ((error = suser(p->p_ucred, &p->p_acflag)) != 0) {
 	*retval = -1;
 	return (error);
     }
@@ -218,7 +206,7 @@ sys_iopen(p, uap, retval)
      * because we are running out of fields in the dinode structure
      * and vicemagic is no longer used. 
      */ 
-    if (ip->i_gid != (gid_t)-2) {
+    if (ip->i_xxx_gid != (gid_t)-2) {
 	vput(vp);
 	*retval = -1;
 	return (EPERM);
@@ -231,7 +219,7 @@ sys_iopen(p, uap, retval)
     }
 
     /* allocate and set up a file structure needed to do i/o */ 
-    if (error = falloc(p, &nfp, &indx)) {
+    if ((error = falloc(p, &nfp, &indx)) != 0) {
 	vput(vp);
 	*retval = -1; 
 	return (error);
@@ -269,6 +257,9 @@ readwritevnode(p, rw, vp, base, len, offset, segflg, aresid)
      int segflg; 
      int *aresid;
 {
+    return(EOPNOTSUPP); 
+
+#if	0
     struct uio auio;
     struct iovec aiov;
     int error;
@@ -277,12 +268,10 @@ readwritevnode(p, rw, vp, base, len, offset, segflg, aresid)
     register struct file *fp; 
     int indx; 
 
-    return(EOPNOTSUPP); 
-#ifdef 0    
     /* From Mach.  We don't understand this yet.  Figure it out! */
 
     /* allocate a file struct to do the i/o */ 
-    if (error = falloc(p, &nfp, &indx)) {
+    if ((error = falloc(p, &nfp, &indx)) != 0) {
 	*retval = error; 
  	return (error);
     }
@@ -329,7 +318,7 @@ readwritevnode(p, rw, vp, base, len, offset, segflg, aresid)
 		return EINVAL;
 
 	cnt = uap->nbyte;
-	if (error = (*fp->f_ops->fo_read)(fp, &auio, fp->f_cred))
+	if ((error = (*fp->f_ops->fo_read)(fp, &auio, fp->f_cred)) != 0)
 		if (auio.uio_resid != cnt && (error == ERESTART ||
 		    error == EINTR || error == EWOULDBLOCK))
 			error = 0;
@@ -341,14 +330,6 @@ readwritevnode(p, rw, vp, base, len, offset, segflg, aresid)
 #endif 0
 }
 
-struct ireadwrite_args {
-    int			dev;
-    int			inode;
-    long		inode_p1;
-    unsigned int 	offset;
-    char		*cbuf;
-    unsigned int 	count;
-};
 /*
  * Support for iread/iwrite system calls.
  * Restricted to super user.
@@ -365,13 +346,15 @@ ireadwrite(p, uap, retval, rw)
     register struct inode *ip;
     struct vnode *vp; 
     unsigned int resid;
+#if	0
     daddr_t	db[NDADDR], ib[NIADDR];
-    int size, error; 
-
+    int size; 
+#endif
+    int error;
     /*
      * Must be super user
      */
-    if (error = suser(p->p_ucred, &p->p_acflag)) {
+    if ((error = suser(p->p_ucred, &p->p_acflag)) != 0) {
 	*retval = -1;
 	return (error);
     }
@@ -391,20 +374,20 @@ ireadwrite(p, uap, retval, rw)
      * because we are running out of fields in the dinode structure
      * and vicemagic is no longer used. 
      */ 
-    if (ip->i_gid != (gid_t)-2) {
+    if (ip->i_xxx_gid != (gid_t)-2) {
 	vput(vp);
 	*retval = EPERM;
 	return (-1);
     }
     
-    if (ip->i_vicep1 != uap->inode_p1) {
+    if (ip->i_xxx_vicep1 != uap->inode_p1) {
 	vput(vp);
 	*retval = ENXIO;
 	return (-1);
     }
 
-    if (error = readwritevnode(p, rw, vp, (caddr_t) uap->cbuf, uap->count, 
-			       uap->offset, UIO_USERSPACE, &resid)) {
+    if ((error = readwritevnode(p, rw, vp, (caddr_t) uap->cbuf, uap->count, 
+			       uap->offset, UIO_USERSPACE, &resid)) != 0) {
 	vput(vp);
 	*retval = error;
 	return (-1);
@@ -414,15 +397,15 @@ ireadwrite(p, uap, retval, rw)
     /* From Mach.  We don't understand it yet, so we aren't running with
        it.  Perhaps we should lobotomize i{read/write}? Slow...*/
 
-    bcopy((caddr_t)ip->i_db, (caddr_t)db, sizeof db);
-    bcopy((caddr_t)ip->i_ib, (caddr_t)ib, sizeof ib);
+    bcopy((caddr_t)ip->i_xxx_db, (caddr_t)db, sizeof db);
+    bcopy((caddr_t)ip->i_xxx_ib, (caddr_t)ib, sizeof ib);
     size = ip->i_size;
     resid = 0;
     u.u_error = rdwri(rw, ip, (caddr_t) uap->cbuf, uap->count, uap->offset, 0, &resid);
     u.u_r.r_val1 = uap->count - resid;
     if (size == ip->i_size
-	&& bcmp((caddr_t)ip->i_db, (caddr_t)db, sizeof db) == 0
-	&& bcmp((caddr_t)ip->i_ib, (caddr_t)ib, sizeof ib) == 0) {
+	&& bcmp((caddr_t)ip->i_xxx_db, (caddr_t)db, sizeof db) == 0
+	&& bcmp((caddr_t)ip->i_xxx_ib, (caddr_t)ib, sizeof ib) == 0) {
 	/* Don t write out the inode if it hasn t really changed.
 	   We don t care about inode dates in file server files */
 	ip->i_flag &= ~(IUPD|IACC|ICHG);
@@ -448,7 +431,7 @@ sys_iread(p, uap, retval)
     register struct ireadwrite_args *uap;
     int *retval;
 {
-    printf("iread(dev=%d inode=%d inode_p1=%d offset=%u cbuf=%x count=%u) called\n",
+    printf("iread(dev=%d inode=%d inode_p1=%ld offset=%u cbuf=%p count=%u) called\n",
 	   uap->dev, uap->inode, uap->inode_p1, uap->offset,
 	   uap->cbuf, uap->count);
     
@@ -461,7 +444,7 @@ sys_iwrite(p, uap, retval)
     register struct ireadwrite_args *uap;
     int *retval;
 {
-    printf("iwrite(dev=%d inode=%d inode_p1=%d offset=%u cbuf=%x count=%u) called\n", 
+    printf("iwrite(dev=%d inode=%d inode_p1=%ld offset=%u cbuf=%p count=%u) called\n", 
 	   uap->dev, uap->inode, uap->inode_p1, uap->offset,
 	   uap->cbuf, uap->count);
     return(ireadwrite(p, uap, retval, UIO_WRITE)); 
@@ -473,11 +456,6 @@ sys_iwrite(p, uap, retval)
  * Restricted to super user.
  * Return 0 on success; non-zero otherwise. 
  */
-struct iincdec_args {
-    int		dev;
-    int		inode;
-    long	inode_p1;
-};
 int 
 iincdec(p, uap, retval, amount)
      struct proc *p;
@@ -495,7 +473,7 @@ iincdec(p, uap, retval, amount)
     /*
      * Must be super user
      */
-    if (error = suser(p->p_ucred, &p->p_acflag)) {
+    if ((error = suser(p->p_ucred, &p->p_acflag)) != 0) {
 	*retval = error; 
 	return (error);
     }
@@ -513,30 +491,35 @@ iincdec(p, uap, retval, amount)
     /*
      * Check the inode is a vice inode. See comment above. 
      */ 
-    if (ip->i_gid != (gid_t)-2) {
+    if (ip->i_xxx_gid != (gid_t)-2) {
 	vput(vp);
 	*retval = EPERM;
 	return (EPERM);
     }
     
-    if (ip->i_vicep1 != uap->inode_p1) {
+    if (ip->i_xxx_vicep1 != uap->inode_p1) {
 	vput(vp);
 	*retval = ENXIO;
 	return ENXIO;
     }
 
-    ip->i_nlink += amount;
+    ip->i_xxx_nlink += amount;
     
-    if (ip->i_nlink == 0)
+    if (ip->i_xxx_nlink == 0)
 	/* ip->i_vicemagic = 0;	Not possible to use VICEMAGIC in NetBSD*/
-	ip->i_gid = 0;
+	ip->i_xxx_gid = 0;
 
     /* write out the inode */ 
     ip->i_flag |= IN_CHANGE;
     tv = time; 
+#ifdef	__NetBSD__
     ts.tv_sec = tv.tv_sec;
     ts.tv_nsec = tv.tv_usec * 1000;
-    if (error = VOP_UPDATE(vp, &ts, &ts, 1)) {
+    error = VOP_UPDATE(vp, &ts, &ts, 1);
+#elif	defined(__FreeBSD__)
+    error = VOP_UPDATE(vp, &tv, &tv, 1);
+#endif
+     if (error != 0) {
 	*retval = EIO;
 	return(EIO); 
     }
@@ -547,37 +530,29 @@ iincdec(p, uap, retval, amount)
     return(0);
 }
 
-
-
-
 int
 sys_iinc(p, uap, retval)
     struct proc *p;
     register struct iincdec_args *uap;
     int *retval;
 {
-    printf("iinc(dev=%d inode=%d inode_p1=%d) called\n",
+    printf("iinc(dev=%d inode=%d inode_p1=%ld) called\n",
 	   uap->dev, uap->inode, uap->inode_p1);
     return(iincdec(p, uap, retval, 1)); 
 }
+
 int
 sys_idec(p, uap, retval)
     struct proc *p;
     register struct iincdec_args *uap;
     int *retval;
 {
-    printf("idec(dev=%d inode=%d inode_p1=%d) called\n",
+    printf("idec(dev=%d inode=%d inode_p1=%ld) called\n",
 	   uap->dev, uap->inode, uap->inode_p1);
     return(iincdec(p, uap, retval, -1)); 
 }
 
 /* Grab from Mach vice-only pioctl. */
-struct pioctl_args {
-    char	*path;
-    int		com;
-    caddr_t	comarg;
-    int		follow;
-};
 int
 sys_pioctl(p, uap, retval)
     struct proc *p;

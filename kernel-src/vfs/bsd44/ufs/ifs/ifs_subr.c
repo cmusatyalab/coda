@@ -20,7 +20,10 @@ struct mount *devtomp(dev)
     
     for (mp = mountlist.cqh_first; mp != (void*)&mountlist; mp = nmp) {
 	nmp = mp->mnt_list.cqe_next;
-	if ((!strcmp(mp->mnt_op->vfs_name, MOUNT_UFS)) &&
+	if (
+#ifdef	__NetBSD__
+	    (!strcmp(mp->mnt_op->vfs_name, MOUNT_UFS)) &&
+#endif
 	    ((VFSTOUFS(mp))->um_dev == (dev_t) dev)) {
 	    /* mount corresponds to UFS and the device matches one we want */
 	    return(mp); 
