@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/venusutil.cc,v 4.9 98/01/10 18:39:03 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/venusutil.cc,v 4.10 1998/01/26 21:31:53 mre Exp $";
 #endif /*_BLURB_*/
 
 
@@ -467,7 +467,6 @@ int binaryfloor(int n) {
 void LogInit() {
     rename(LOGFILE, LOGFILE_OLD);
 
-    fclose(stderr);
     logFile = fopen(LOGFILE, "w+");
     if (logFile == NULL)
 	{ eprint("LogInit failed"); exit(-1); }
