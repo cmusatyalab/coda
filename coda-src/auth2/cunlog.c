@@ -50,11 +50,12 @@ extern "C" {
 #include <stdlib.h>
 #include <auth2.h>
 #include "avenus.h"
+#include "parse_realms.h"
+#include "codaconf.h"
+
 #ifdef __cplusplus
 }
 #endif
-
-#include <parse_realms.h>
 
 
 int main(int argc, char **argv)
@@ -65,6 +66,10 @@ int main(int argc, char **argv)
 	SplitRealmFromName(argv[1], &p);
 	if (p) realm = p;
     }
+
+    codaconf_init("venus.conf");
+    codaconf_init("auth2.conf");
+    CODACONF_STR(realm, "realm", NULL);
 
     U_DeleteLocalTokens(realm);
     exit(0);
