@@ -419,7 +419,7 @@ int CreateObjToMarkInc(Volume *vp, ViceFid *dFid, ViceFid *cFid,
 				  0, &stid, &pv->d_cinode, &tblocks);
 		    *blocks += tblocks;
 		    cv->vptr->disk.dataVersion = 1;
-		    cv->f_finode = icreate((int) V_device(vp), 0, (int) V_id(vp),
+		    cv->f_finode = icreate((int) V_device(vp), (int) V_id(vp),
 					   (int) cv->vptr->vnodeNumber,
 					   (int) cv->vptr->disk.uniquifier,
 					   (int) cv->vptr->disk.dataVersion);
@@ -449,7 +449,7 @@ int CreateObjToMarkInc(Volume *vp, ViceFid *dFid, ViceFid *cFid,
 				   0, &stid, &pv->d_cinode, &tblocks);
 		    *blocks += tblocks;
 		    cv->vptr->disk.dataVersion = 1;
-		    cv->f_finode = icreate((int) V_device(vp), 0, (int) V_id(vp),
+		    cv->f_finode = icreate((int) V_device(vp), (int) V_id(vp),
 					   (int) cv->vptr->vnodeNumber,
 					   (int) cv->vptr->disk.uniquifier,
 					   (int) cv->vptr->disk.dataVersion);

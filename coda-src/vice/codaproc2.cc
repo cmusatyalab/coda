@@ -306,7 +306,7 @@ long FS_ViceOpenReintHandle(RPC2_Handle RPCid, ViceFid *Fid,
     /* create a new inode */
     RHandle->BirthTime = (RPC2_Integer) StartTime;
     RHandle->Device = (RPC2_Integer) V_device(volptr);
-    RHandle->Inode = icreate((int) V_device(volptr), 0, (int) V_id(volptr), 
+    RHandle->Inode = icreate((int) V_device(volptr), (int) V_id(volptr), 
 		      (int) v->vptr->vnodeNumber, (int) v->vptr->disk.uniquifier, 
 		      (int) v->vptr->disk.dataVersion + 1);
     CODA_ASSERT(RHandle->Inode > 0);
@@ -1360,7 +1360,7 @@ START_TIMING(Reintegrate_CheckSemanticsAndPerform);
 			/* inode already allocated, use it. */
 			v->f_finode = r->u.u_store.Inode;
 		    } else {
-			v->f_finode = icreate(V_device(volptr), 0, V_id(volptr),
+			v->f_finode = icreate(V_device(volptr), V_id(volptr),
 					      v->vptr->vnodeNumber, v->vptr->disk.uniquifier,
 					      v->vptr->disk.dataVersion + 1);
 		    }
@@ -1936,7 +1936,7 @@ START_TIMING(Reintegrate_CheckSemanticsAndPerform);
 
 		    /* Perform. */
 		    CODA_ASSERT(child_v->f_finode == 0);
-		    child_v->f_finode = icreate(V_device(volptr), 0, V_id(volptr),
+		    child_v->f_finode = icreate(V_device(volptr), V_id(volptr),
 					       child_v->vptr->vnodeNumber,
 					       child_v->vptr->disk.uniquifier, 1);
 		    CODA_ASSERT(child_v->f_finode > 0);

@@ -88,8 +88,7 @@ union PartitionData {
 };
 
 struct inodeops {
-    Inode (*icreate) (struct DiskPartition *, Inode, u_long, u_long, 
-		    u_long, u_long);
+    Inode (*icreate) (struct DiskPartition *, u_long, u_long, u_long, u_long);
     int (*iopen)   (struct DiskPartition *, Inode, int);
     int (*iread)   (struct DiskPartition *, Inode inode_number, 
 		    Inode parent_vol, 

@@ -575,7 +575,7 @@ static int VnodeInodeCheck(int RW, struct ViceInodeInfo *ip, int nInodes,
 		CODA_ASSERT(RW);
 		CODA_ASSERT(vnode->dataVersion == 0); // inodenumber == 0 only after create 
 		VLog(0, "SalvageIndex: Creating an empty object for it");
-		vnode->inodeNumber = icreate(fileSysDevice, 0,
+		vnode->inodeNumber = icreate(fileSysDevice,
 					     vsp->header.id, vnodeNumber,
 					     vnode->uniquifier, 0);
 		CODA_ASSERT(vnode->inodeNumber > 0);
@@ -646,7 +646,7 @@ static int VnodeInodeCheck(int RW, struct ViceInodeInfo *ip, int nInodes,
 		VLog(0, 
 		       "Vnode 0x%x.%x in a ro volume has no inode - creating one\n",
 		       vnodeNumber, vnode->uniquifier);
-		vnode->inodeNumber = icreate(fileSysDevice, 0,
+		vnode->inodeNumber = icreate(fileSysDevice,
 					     vsp->header.parent, vnodeNumber,
 					     vnode->uniquifier, vnode->dataVersion);
 		CODA_ASSERT(vnode->inodeNumber > 0);
@@ -668,7 +668,7 @@ static int VnodeInodeCheck(int RW, struct ViceInodeInfo *ip, int nInodes,
 			VLog(0, 
 			       "Vnode 0x%x.%x.%x incorrect inode - Correcting\n",
 			       vsp->header.id, vnodeNumber, vnode->uniquifier);
-			vnode->inodeNumber = icreate(fileSysDevice, 0,
+			vnode->inodeNumber = icreate(fileSysDevice,
 						     vsp->header.parent, vnodeNumber,
 						     vnode->uniquifier, vnode->dataVersion);
 			CODA_ASSERT(vnode->inodeNumber > 0);
@@ -684,7 +684,7 @@ static int VnodeInodeCheck(int RW, struct ViceInodeInfo *ip, int nInodes,
 			VLog(0, 
 			       "Vnode 0x%x.%x.%x is BARREN - Debarrenizing\n",
 			       vsp->header.id, vnodeNumber, vnode->uniquifier);
-			vnode->inodeNumber = icreate(fileSysDevice, 0,
+			vnode->inodeNumber = icreate(fileSysDevice,
 						     vsp->header.parent, vnodeNumber,
 						     vnode->uniquifier, vnode->dataVersion);
 			CODA_ASSERT(vnode->inodeNumber > 0);

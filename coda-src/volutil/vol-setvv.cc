@@ -136,7 +136,7 @@ long S_VolSetVV(RPC2_Handle rpcid, RPC2_Unsigned formal_volid,
 	vnp->disk.cloned = 0;
 	
 	vnp->disk.dataVersion++;
-	vnp->disk.inodeNumber = icreate((int)V_device(vp), 0, (int)V_id(vp), 
+	vnp->disk.inodeNumber = icreate((int)V_device(vp), (int)V_id(vp), 
 					(int)vnp->vnodeNumber,
 					(int)vnp->disk.uniquifier, 
 					(int)vnp->disk.dataVersion);

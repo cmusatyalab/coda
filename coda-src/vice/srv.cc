@@ -520,8 +520,8 @@ int main(int argc, char *argv[])
     CODA_ASSERT(LWP_NewRock(FSTAG, (char *)pt) == LWP_SUCCESS);
 
     InitCallBack();
-    VInitVolumePackage(large,small, ForceSalvage);
     CheckVRDB();
+    VInitVolumePackage(large,small, ForceSalvage);
 
 
     InitCopPendingTable();

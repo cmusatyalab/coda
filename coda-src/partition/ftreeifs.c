@@ -57,7 +57,7 @@ static int f_get_header(struct DiskPartition *dp, struct i_header *header,
                         Inode ino);
 static int f_idec(struct DiskPartition *dp, Inode inode_number, 
                   Inode parent_vol);
-static Inode f_icreate(struct DiskPartition *dp, Inode inode_number, 
+static Inode f_icreate(struct DiskPartition *dp,
 		       u_long volume, u_long vnode, u_long unique, 
 		       u_long dataversion);
 static int f_iread(struct DiskPartition *dp, Inode inode_number, 
@@ -287,8 +287,8 @@ static int f_iopen(struct DiskPartition *dp, Inode inode_number, int flag)
  */
 
 static Inode 
-f_icreate(struct DiskPartition *dp, Inode inode_number, u_long volume, 
-	  u_long vnode, u_long unique, u_long dataversion)
+f_icreate(struct DiskPartition *dp, u_long volume, u_long vnode, u_long unique,
+	  u_long dataversion)
 {
     struct part_ftree_opts *opts=&(dp->d->ftree);
     int	fd, rc, pos;

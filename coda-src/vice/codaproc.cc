@@ -529,7 +529,7 @@ long FS_ViceRepair(RPC2_Handle cid, ViceFid *Fid, ViceStatus *status,
     /* 3. Fetch Repair file */
     {
 	if (FRep){
-	    ov->f_finode  = icreate((int)V_device(volptr), 0, (int) V_id(volptr), 
+	    ov->f_finode  = icreate((int)V_device(volptr), (int) V_id(volptr), 
 			       (int) ov->vptr->vnodeNumber, (int)ov->vptr->disk.uniquifier, 
 			       (int) ov->vptr->disk.dataVersion + 1);
 	    CODA_ASSERT(ov->f_finode > 0);
@@ -1301,7 +1301,7 @@ static int PerformDirRepair(ClientEntry *client, vle *ov, Volume *volptr,
 
 		/* create the inode */
 		cv->vptr->disk.dataVersion = 1;
-		cv->f_finode = icreate((int)V_device(volptr), 0, (int)V_id(volptr),
+		cv->f_finode = icreate((int)V_device(volptr), (int)V_id(volptr),
 				       (int)cv->vptr->vnodeNumber, 
 				       (int)cv->vptr->disk.uniquifier,
 				       (int)cv->vptr->disk.dataVersion);
@@ -1358,7 +1358,7 @@ static int PerformDirRepair(ClientEntry *client, vle *ov, Volume *volptr,
 		
 		/* create the inode */
 		cv->vptr->disk.dataVersion = 1;
-		cv->f_finode = icreate((int)V_device(volptr), 0, (int)V_id(volptr),
+		cv->f_finode = icreate((int)V_device(volptr), (int)V_id(volptr),
 				       (int)cv->vptr->vnodeNumber, 
 				       (int)cv->vptr->disk.uniquifier,
 				       (int)cv->vptr->disk.dataVersion);

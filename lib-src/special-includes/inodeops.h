@@ -27,7 +27,7 @@ Coda are listed in the file CREDITS.
  * This is done for backward compatibility.
  */
 
-Inode icreate (Device, Inode, u_long, u_long, u_long, u_long);
+Inode icreate (Device, u_long, u_long, u_long, u_long);
 int iopen   (Device, Inode, int);
 int iread   (Device dev, Inode inode_number, Inode parent_vol, 
 		    int offset, char *buf, int count);

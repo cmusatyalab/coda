@@ -261,7 +261,7 @@ long RS_FetchFile(RPC2_Handle RPCid, ViceFid *Fid,
 	    fd = iopen(V_device(volptr), vptr->disk.inodeNumber, O_RDONLY);
     else {
 	/* no inode for this file - send over an empty file */
-	tmpinode = icreate(V_device(volptr), 0, V_id(volptr), 
+	tmpinode = icreate(V_device(volptr), V_id(volptr), 
 			   vptr->vnodeNumber, vptr->disk.uniquifier, 0);
 	fd = iopen(V_device(volptr), tmpinode, O_RDONLY);
     }
@@ -369,7 +369,7 @@ long RS_ForceFile(RPC2_Handle RPCid, ViceFid *Fid,
 	CODA_ASSERT(res == VV_SUB);
 
 	/* make space for new file */
-	newinode = icreate(V_device(volptr), 0, V_id(volptr), 
+	newinode = icreate(V_device(volptr), V_id(volptr), 
 			    vptr->vnodeNumber, vptr->disk.uniquifier,
 			    vptr->disk.dataVersion + 1);
 	CODA_ASSERT(newinode > 0);

@@ -705,7 +705,7 @@ static int ReadVnodeDiskObject(DumpBuffer_t *buf, VnodeDiskObject *vdop,
 	if (tag == D_FILEDATA) {
 	    int fd;
 	
-	    vdop->inodeNumber = icreate((int)V_device(vp), 0, 
+	    vdop->inodeNumber = icreate((int)V_device(vp),
 					(int)V_parentId(vp),
 					(int)*vnodeNumber, 
 					(int)vdop->uniquifier,
@@ -738,7 +738,7 @@ static int ReadVnodeDiskObject(DumpBuffer_t *buf, VnodeDiskObject *vdop,
 	    close(fd);
 	} else if (tag == D_BADINODE) {
 	    /* Create a null inode. */
-	    vdop->inodeNumber = icreate((int)V_device(vp), 0, 
+	    vdop->inodeNumber = icreate((int)V_device(vp),
 					(int)V_parentId(vp),
 					(int)*vnodeNumber, 
 					(int)vdop->uniquifier,

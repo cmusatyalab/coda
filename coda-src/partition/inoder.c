@@ -73,7 +73,7 @@ main(int argc, char **argv)
 	    vnode = atoi(argv[5]);
 	    uniq = atoi(argv[6]);
 	    vers = atoi(argv[7]);
-	    ino = icreate(dev, 0, vol, vnode, uniq, vers);
+	    ino = icreate(dev, vol, vnode, uniq, vers);
 	    printf("Created inode %ld (error if <=0)\n", ino);
 	    if ( ino > 0 ) 
 		exit(0);

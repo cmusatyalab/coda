@@ -474,7 +474,7 @@ int CloneVnode(Volume *rwVp, Volume *cloneVp, int vnodeIndex,
 	    docreate = (int)IsBarren(vnode->versionvector);
 	
 	if (docreate) {
-	    vnode->inodeNumber = icreate((int)V_device(cloneVp), 0,
+	    vnode->inodeNumber = icreate((int)V_device(cloneVp),
 					 (int)V_id(rwVp), vnodeNum,
 					 (int)vnode->uniquifier, 0);
 	    vnode->length = 0;	/* Reset length since we have a new null inode. */

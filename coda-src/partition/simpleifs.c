@@ -74,7 +74,7 @@ static int s_get_header(struct DiskPartition *dp, struct i_header *header,
 			Inode ino);
 static int s_idec(struct DiskPartition *dp, Inode inode_number, 
 		  Inode parent_vol);
-static Inode s_icreate(struct DiskPartition *dp, Inode inode_number, u_long volume, u_long vnode, u_long unique, u_long dataversion);
+static Inode s_icreate(struct DiskPartition *dp, u_long volume, u_long vnode, u_long unique, u_long dataversion);
 static int s_iread(struct DiskPartition *dp, Inode inode_number, Inode parent_vol, int offset, char *buf, int count);
 static int s_iwrite(struct DiskPartition *dp, Inode inode_number,Inode  parent_vol, int  offset, char *buf, int count);
 static int s_put_header(struct DiskPartition *dp, struct i_header *header, Inode ino);
@@ -185,9 +185,8 @@ static int s_iopen(struct DiskPartition *dp, Inode inode_number,int flag)
  */
 
 static Inode 
-s_icreate(struct DiskPartition *dp, Inode inode_number, 
-	u_long volume, u_long vnode, 
-	u_long unique, u_long dataversion)
+s_icreate(struct DiskPartition *dp, u_long volume, u_long vnode, u_long unique,
+	  u_long dataversion)
 {
     struct part_simple_opts *opts=&dp->d->simple;
     int	fd, rc;

@@ -621,7 +621,7 @@ int ForceDir(vle *pv, Volume *volptr, VolumeId repvolid,
 		
 		/*create the inode */
 		cv->vptr->disk.dataVersion = 1;
-		cv->f_finode = icreate((int) V_device(volptr), 0, (int) V_id(volptr),
+		cv->f_finode = icreate((int) V_device(volptr), (int) V_id(volptr),
 				       (int) cv->vptr->vnodeNumber, 
 				       (int) cv->vptr->disk.uniquifier,
 				       (int) cv->vptr->disk.dataVersion);
@@ -665,7 +665,7 @@ int ForceDir(vle *pv, Volume *volptr, VolumeId repvolid,
 		
 		/*create the inode */
 		cv->vptr->disk.dataVersion = 1;
-		cv->f_finode = icreate((int) V_device(volptr), 0, (int) V_id(volptr),
+		cv->f_finode = icreate((int) V_device(volptr), (int) V_id(volptr),
 				       (int) cv->vptr->vnodeNumber, 
 				       (int) cv->vptr->disk.uniquifier,
 				       (int) cv->vptr->disk.dataVersion);

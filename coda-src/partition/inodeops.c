@@ -26,8 +26,8 @@ listed in the file CREDITS.
 #endif
 
 Inode 
-icreate (Device devno, Inode ino, u_long volume, u_long vnode, 
-	 u_long unique, u_long dataversion)
+icreate (Device devno, u_long volume, u_long vnode, u_long unique,
+	 u_long dataversion)
 {
     struct DiskPartition *dp;
     Inode rc = 0;
@@ -35,7 +35,7 @@ icreate (Device devno, Inode ino, u_long volume, u_long vnode,
     dp = DP_Find(devno);
 
     if ( dp )
-	rc = dp->ops->icreate(dp, ino, volume, vnode, unique, dataversion);
+	rc = dp->ops->icreate(dp, volume, vnode, unique, dataversion);
      
     return rc;
 }

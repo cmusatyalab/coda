@@ -1199,7 +1199,7 @@ static int PerformResOp(rsle *r, dlist *vlist, olist *AllLogs,
 	    cv->vptr->disk.owner = r->u.slink.owner;
 	    cv->vptr->disk.author = r->u.slink.owner;
 	    /* create the inode */
-	    cv->f_finode = icreate((int)V_device(volptr), 0, (int)V_id(volptr),
+	    cv->f_finode = icreate((int)V_device(volptr), (int)V_id(volptr),
 				   (int) cv->vptr->vnodeNumber,
 				   (int) cv->vptr->disk.uniquifier, 1);
 	    CODA_ASSERT(cv->f_finode > 0);

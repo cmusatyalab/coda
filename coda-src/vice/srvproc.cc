@@ -628,7 +628,7 @@ START_TIMING(Store_Total);
 	    goto FreeLocks;
 	deltablocks = tblocks;
 
-	v->f_finode = icreate((int) V_device(volptr), 0, (int) V_id(volptr),
+	v->f_finode = icreate((int) V_device(volptr), (int) V_id(volptr),
 			      (int) v->vptr->vnodeNumber,
 			      (int) v->vptr->disk.uniquifier,
 			      (int) v->vptr->disk.dataVersion + 1);
@@ -1861,7 +1861,7 @@ START_TIMING(SymLink_Total);
 
     /* Perform operation. */
     {
-	cv->f_finode = icreate((int) V_device(volptr), 0, (int) V_id(volptr),
+	cv->f_finode = icreate((int) V_device(volptr), (int) V_id(volptr),
 			       (int) cv->vptr->vnodeNumber,
 			       (int) cv->vptr->disk.uniquifier, 1);
 	CODA_ASSERT(cv->f_finode > 0);
@@ -2186,7 +2186,7 @@ static void CopyOnWrite(Vnode *vptr, Volume *volptr)
 		SLog(0, "CopyOnWrite: Copying inode for files (vnode%d)", 
 		     vptr->vnodeNumber);
 		size = (int) vptr->disk.length;
-		ino = icreate((int) V_device(volptr), 0, (int) V_id(volptr),
+		ino = icreate((int) V_device(volptr), (int) V_id(volptr),
 			      (int) vptr->vnodeNumber, 
 			      (int) vptr->disk.uniquifier, 
 			      (int) vptr->disk.dataVersion);
