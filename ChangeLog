@@ -2,7 +2,7 @@
 
 	* ======== Release 4.6.3 =========
 	* Removed some network flooding avoidance mechanism which caused SFTP
-	to work at 10KB/s on high bandwidth/low latency networks (100Base-T).
+	to work at 100KB/s on high bandwidth/low latency networks (100Base-T).
 	* When a volume is not automatically salvage-able, ALL errors are
 	reported instead of one. This is helpful when attempting to repair
 	by hand.
