@@ -16,10 +16,6 @@ listed in the file CREDITS.
 
 #*/
 
-
-
-
-
 #ifdef __cplusplus
 extern "C" {
 #endif __cplusplus
@@ -44,13 +40,35 @@ extern "C" {
 #include <volume.h>
 #include <camprivate.h>
 #include <vutil.h>
+#include <vrdb.h>
 #include "vvlist.h"
 
 /*
-  BEGIN_HTML
-  <a name="S_VolMarkAsAncient"><strong>Mark the older dump file of a volume as ancient</strong></a> 
-  END_HTML
+  VolMarkAsAncient - Mark the older dump file of a volume as ancient
 */
+long S_NewVolMarkAsAncient(RPC2_Handle rpcid, VolumeId backupId)
+{
+    Volume *vp;
+    vrent *vre;
+    long volnum = 0, retcode;
+    unsigned long error;
+
+    vp = VGetVolume(&error, backupId);    
+    if (error) {
+	SLog(0, "Unable to get the volume %x",backupId);
+	return (long)error;
+    }
+
+    /* Find the vrdb entry for the parent volume */
+    vre = VRDB.ReverseFind(V_parentId(vp));
+    if (vre) volnum = vre->volnum;
+
+    retcode = S_VolMarkAsAncient(rpcid, volnum, V_parentId(vp));
+
+    VPutVolume(vp);
+    return retcode;
+}
+
 long S_VolMarkAsAncient(RPC2_Handle rpcid, VolumeId groupId, VolumeId repId)
 {
     ProgramType *pt;

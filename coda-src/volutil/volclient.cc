@@ -317,22 +317,18 @@ bad_options:
  */
 static void markasancient(void) 
 {
-    long repid, groupid;
+    long backupid;
     
-    if (these_args != 4) {
-	fprintf(stderr, "Usage: volutil ancient <groupid> <repid>\n");
+    if (these_args != 3) {
+	fprintf(stderr, "Usage: volutil ancient <backupid>\n");
 	exit(-1);
     }
-    if (sscanf(this_argp[2], "%lX", &groupid) != 1){
-	fprintf(stderr, "MarkAsAncient: Bad Groupid %s\n", this_argp[2]);
-	exit(-1);
-    }
-    if (sscanf(this_argp[3], "%lX", &repid) != 1){
-	fprintf(stderr, "MarkAsAncient: Bad Repid %s\n", this_argp[3]);
+    if (sscanf(this_argp[2], "%lX", &backupid) != 1){
+	fprintf(stderr, "MarkAsAncient: Bad backupId %s\n", this_argp[2]);
 	exit(-1);
     }
 
-    rc = VolMarkAsAncient(rpcid, groupid, repid);
+    rc = NewVolMarkAsAncient(rpcid, backupid);
     if (rc != RPC2_SUCCESS){
 	fprintf(stderr, "VolMarkAsAncient failed with %s\n",
 		RPC2_ErrorMsg((int)rc));
