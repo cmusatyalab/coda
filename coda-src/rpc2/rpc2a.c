@@ -351,15 +351,11 @@ long RPC2_GetRequest(IN RPC2_RequestFilter *Filter,
 #undef DROPIT
 }
 
-long RPC2_MakeRPC(IN ConnHandle, IN Request, IN SDesc, OUT Reply,
-		IN BreathOfLife, IN EnqueueRequest)
-    RPC2_Handle ConnHandle;
-    RPC2_PacketBuffer *Request;	/* Gets clobbered during call: BEWARE */
-    SE_Descriptor *SDesc;
-    RPC2_PacketBuffer **Reply;
-    struct timeval *BreathOfLife;
-    long EnqueueRequest;
-    {
+long RPC2_MakeRPC(RPC2_Handle ConnHandle, RPC2_PacketBuffer *Request,
+		  SE_Descriptor *SDesc, RPC2_PacketBuffer **Reply,
+		  struct timeval *BreathOfLife, long EnqueueRequest)
+/* 'RPC2_PacketBuffer *Request' Gets clobbered during call: BEWARE */
+{
     struct CEntry *ce;
     struct SL_Entry *sl;
     RPC2_PacketBuffer *preply = NULL;
@@ -502,8 +498,6 @@ long RPC2_MakeRPC(IN ConnHandle, IN Request, IN SDesc, OUT Reply,
 	    }
 	}
 
-    LWP_NoYieldSignal((char *)ce);	/* return code may be LWP_SUCCESS or LWP_ENOWAIT */
-
     if (rc == RPC2_SUCCESS)
 	{
 	if (SDesc != NULL && (secode != RPC2_SUCCESS || 
@@ -515,9 +509,13 @@ long RPC2_MakeRPC(IN ConnHandle, IN Request, IN SDesc, OUT Reply,
 	}
     else finalrc = rc;
     
-QuitMRPC:	/* finalrc has been correctly set by now */
+QuitMRPC: /* finalrc has been correctly set by now */
+
+    /* wake up any enqueue'd threads */
+    LWP_NoYieldSignal((char *)ce);
+
     rpc2_Quit(finalrc);
-    }
+}
     
 
     
