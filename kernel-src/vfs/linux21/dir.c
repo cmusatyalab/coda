@@ -546,9 +546,8 @@ static int coda_rename(struct inode *old_dir, struct dentry *old_dentry,
 	   otherwise we need a new inode, since the new file 
 	   will have a new ionde number. */
 
-
 	/* if moving a directory, clean the dcache */
-	if (S_ISDIR(old_inode->i_mode) & old_dentry->d_count > 1) 
+	if (S_ISDIR(old_inode->i_mode) && old_dentry->d_count > 1) 
 		shrink_dcache_parent(old_dentry);
 
 	if (old_dentry->d_count > 1) {
