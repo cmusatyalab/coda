@@ -245,8 +245,7 @@ static struct coda_addrinfo *GetAuthServers(const char *realm)
     GetRealmServers(realm, "codasrv", &res);
 
     if (!res) {
-	fprintf(stderr, "Failed to find codasrv or codaauth2 servers for %s\n",
-		realm);
+	fprintf(stderr, "Unable to resolve addresses for Coda auth2 servers in realm '%s'\n", realm);
     }
     return res;
 }

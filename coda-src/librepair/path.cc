@@ -256,10 +256,10 @@ int repair_getfid(char *path, ViceFid *outfid, char *outrealm,
     if (!rc) {
 	if (outfid)
 	    memcpy(outfid, junk, sizeof(ViceFid));
-	if (outrealm)
-	    strcpy(outrealm, junk+sizeof(ViceFid)+sizeof(ViceVersionVector));
 	if (outvv)
 	    memcpy(outvv, junk+sizeof(ViceFid), sizeof(ViceVersionVector));
+	if (outrealm)
+	    strcpy(outrealm, junk+sizeof(ViceFid)+sizeof(ViceVersionVector));
 	return(0);
     }
 
