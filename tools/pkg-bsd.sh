@@ -85,7 +85,7 @@ EXTRACT_SUFX=	.tgz
 MAINTAINER=	rvb@cs.cmu.edu
 @NetBSD HOMEPAGE=	http://www.coda.cs.cmu.edu/
 @FreeBSD LIB_DEPENDS+=	lwp.1:\${PORTSDIR}/devel/lwp
-@FreeBSD LIB_DEPENDS+=	rpc2.1:\${PORTSDIR}/devel/rpc2
+@FreeBSD LIB_DEPENDS+=	rpc2.2:\${PORTSDIR}/devel/rpc2
 @FreeBSD LIB_DEPENDS+=	rvm.1:\${PORTSDIR}/devel/rvm
 
 @NetBSD DEPENDS+=	readline-2.2:../../devel/readline
