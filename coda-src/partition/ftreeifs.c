@@ -342,14 +342,14 @@ f_icreate(struct DiskPartition *dp, u_long volume, u_long vnode, u_long unique,
 
     rc = write(opts->resource, (char *)&header, sizeof(struct i_header)); 
     if ( rc != sizeof(struct i_header)) {
-	printf("Error writing header for inode file %ld\n",i);
+	printf("Error writing header for inode file %u\n",i);
 	unlink(filename);
 	return 0;
     }
 
     rc = fsync(opts->resource);
     if ( rc != 0 ) {
-	printf("Error syncing header for inode file %ld\n",i);
+	printf("Error syncing header for inode file %u\n",i);
 	unlink(filename);
 	return 0;
     }
@@ -366,12 +366,12 @@ f_put_header(struct DiskPartition *dp, struct i_header *header, Inode ino)
 
     pos = lseek(opts->resource, (ino - 1) * sizeof(struct i_header), SEEK_SET);
     if ( pos != (ino -1) * sizeof(struct i_header) ){
-        printf("Error seeking resource for inode file %ld\n",ino);
+        printf("Error seeking resource for inode file %u\n",ino);
         return -1;
     } else { 
 	rc = write(opts->resource, (char *)header, sizeof(struct i_header)); 
 	if ( rc != sizeof(struct i_header)) {
-	    printf("Error writing header for inode file %ld\n",ino);
+	    printf("Error writing header for inode file %u\n",ino);
 	    return -1;
 	}
     }
@@ -387,12 +387,12 @@ f_get_header(struct DiskPartition *dp, struct i_header *header, Inode ino)
 
     pos = lseek(opts->resource, (ino - 1) * sizeof(struct i_header), SEEK_SET);
     if ( pos != (ino -1) * sizeof(struct i_header) ){
-        printf("Error seeking resource for inode file %ld\n",ino);
+        printf("Error seeking resource for inode file %u\n",ino);
         return -1;
     } else { 
         rc = read(opts->resource, (char *)header, sizeof(struct i_header)); 
         if ( rc != sizeof(struct i_header)) {
-            printf("Error reading header for inode file %ld\n",ino);
+            printf("Error reading header for inode file %u\n",ino);
             return -1;
         }
     }
@@ -413,7 +413,7 @@ f_change_lnk(struct DiskPartition *dp, Inode  ino, long value, int inc)
 
     rc = f_get_header(dp, &header, ino);
     if ( rc != 0 ) {
-        printf("Cannot get header %ld\n", ino);
+        printf("Cannot get header %u\n", ino);
         return -1;
     }
 
@@ -423,8 +423,7 @@ f_change_lnk(struct DiskPartition *dp, Inode  ino, long value, int inc)
 	header.lnk = header.lnk + inc;
 
     if ( header.lnk < 0 ) {
-	printf("Cannot set link count of ino %ld to negative number.",
-	       ino);
+	printf("Cannot set link count of ino %u to negative number.", ino);
 	return -1;
     }
 
@@ -435,7 +434,7 @@ f_change_lnk(struct DiskPartition *dp, Inode  ino, long value, int inc)
         f_inotostr(dp, ino, filename);
 	rc = unlink(filename);
 	if ( rc != 0 ) {
-	    printf("Error unlinking inode file %ld!\n", ino);
+	    printf("Error unlinking inode file %u!\n", ino);
 	    return -1;
 	}
 	memset(&header, 0, sizeof(struct i_header));
@@ -444,7 +443,7 @@ f_change_lnk(struct DiskPartition *dp, Inode  ino, long value, int inc)
 
     rc = f_put_header(dp, &header, ino);
     if ( rc != 0 ) {
-        printf("Cannot put header %ld\n", ino);
+        printf("Cannot put header %u\n", ino);
         return -1;
     }
 

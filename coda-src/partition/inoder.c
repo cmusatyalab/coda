@@ -74,7 +74,7 @@ main(int argc, char **argv)
 	    uniq = atoi(argv[6]);
 	    vers = atoi(argv[7]);
 	    ino = icreate(dev, vol, vnode, uniq, vers);
-	    printf("Created inode %ld (error if <=0)\n", ino);
+	    printf("Created inode %u (error if <=0)\n", ino);
 	    if ( ino > 0 ) 
 		exit(0);
 	    else 
@@ -93,16 +93,16 @@ main(int argc, char **argv)
 	    rc = dp->ops->get_header(dp, &header, ino);
 	    
 	    if ( rc == 0 ) {
-		printf("Header for inode %ld\n", ino);
+		printf("Header for inode %u\n", ino);
 		printf(" lnk   %ld\n", header.lnk);
 		printf(" vol   0x%lx\n", header.volume);
 		printf(" vnode 0x%lx\n", header.vnode);
 		printf(" uniq  0x%lx\n", header.unique);
-		printf(" vers  %ld\n", header.dataversion);
+		printf(" vers  %u\n", header.dataversion);
 		printf(" magic %ld\n", header.magic);
 		exit(0);
 	    } else {
-		printf("Error getting inode header %ld\n", ino);
+		printf("Error getting inode header %u\n", ino);
 		exit(1);
 	    }
 	} else {
@@ -142,7 +142,7 @@ main(int argc, char **argv)
 	    
 	    rc = dp->ops->put_header(dp, &header, ino);
 	    if ( rc != 0 ) {
-		printf("Could not put header for ino %ld\n", ino);
+		printf("Could not put header for ino %u\n", ino);
 		exit(1);
 	    }
 	    exit(0);
