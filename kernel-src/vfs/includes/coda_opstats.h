@@ -1,27 +1,14 @@
-/*
- * Operations statistics for Coda.
- * Original version: (C) 1996 Peter Braam 
- * Rewritten for Linux 2.1: (C) 1997 Carnegie Mellon University
- *
- * Carnegie Mellon encourages users of this code to contribute improvements
- * to the Coda project. Contact Peter Braam <coda@cs.cmu.edu>.
- */
-
 
 /*
- * operation stats: what the minicache can intercept that
- * *isn't* seen by venus.  These stats are kept to augment
- * the stats maintained by the Volume-Session mechanism.
+ * Operation statistics for Coda.
+ * Copyright (C) 1997 Carnegie Mellon University
+ * 
+ * Carnegie Mellon University encourages users of this software
+ * to contribute improvements to the Coda project. Contact Peter Braam
+ * <coda@coda.cs.cmu.edu>.
  */
 
-/* vfsops:
- *          mount: not currently bounced to Venus
- *          umount: nope
- *          root: only first call, rest is cached.
- *          statfs: none (bogus)
- *          sync: none (bogus)
- *          vget: all
- */
+
 
 #define CFS_MOUNT_STATS  0
 #define CFS_UMOUNT_STATS 1
