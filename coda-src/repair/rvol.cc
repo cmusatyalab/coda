@@ -16,13 +16,6 @@ listed in the file CREDITS.
 
 #*/
 
-/*
-    Routines to mainpulate data structures of volumes in repair
-    
-    Created: M. Satyanarayanan
-	     October 1989
-*/
-
 #ifdef __cplusplus
 extern "C" {
 #endif __cplusplus
@@ -39,261 +32,251 @@ extern "C" {
 
 #include "repair.h"
 
-/* Head of circular linked list of volumes in repair */
-struct repvol *RepVolHead = NULL;
-static char compresult[DEF_BUF];
-static char junk[DEF_BUF];
+/* Assumes pathname refers to a conflict
+ * Allocates new repvol and returns it in repv
+ * Returns 0 on success, -1 on error and fills in msg if non-NULL */
+int repair_newrep(char *pathname, struct repvol **repv, char *msg, int msgsize) {
+    char reppath[MAXPATHLEN], prefix[MAXPATHLEN], suffix[MAXPATHLEN];
+    VolumeId vid;
 
-static char *volstr(char *), *srvstr(char *, VolumeId);
-static char *compstr(char *, VolumeId);
+    if (repv == NULL) {
+	strerr(msg, msgsize, "NULL repv");
+	return(-1);
+    }
 
-/* Returns 0 and fills repv if an entry exists for rep vol vid.
- * Returns -1 and sets repv to null otherwise.
- */
-struct repvol *repair_findrep(VolumeId vid) {
-  register struct repvol *repv;
+    if (repair_isleftmost(pathname, reppath, MAXPATHLEN) < 0) {
+	strerr(msg, msgsize, "Not the leftmost object in conflict");
+	return(-1);
+    }
 
-  for (repv = RepVolHead; repv != NULL; repv = repv->next) {
-    if (repv->vid == vid)
-      return(repv);
-  }
-  return(NULL);
+    if (repair_getmnt(reppath, prefix, suffix, &vid) < 0) {
+	strerr(msg, msgsize, "Could not get mount point of volume");
+	return(-1);
+    }
+
+    *repv = (struct repvol *)calloc(1, sizeof(struct repvol)); /* inits all fields to 0 */
+    if (*repv == NULL) { 
+	strerr(msg, msgsize, "Malloc failed");
+	return(-1);
+    }
+
+    sprintf((*repv)->rodir, "%s", reppath); /* remember conflict path */
+    (*repv)->vid = vid;                     /* remember the volume id */
+    strcpy((*repv)->mnt, prefix);           /* remember its mount point */
+    sprintf((*repv)->vname, "%#lx", vid);   /* GETVOLSTAT doesn't work on rep vols, 
+					     * so just use hex version of volid */
+    return(0);
 }
 
-/* Allocates a new element */
-int repair_newrep(VolumeId vid, char *mnt, struct repvol **repv /* OUT */) {
-
-  *repv = (struct repvol *)calloc(1, sizeof(struct repvol)); /* inits all fields to 0 */
-  if (*repv == NULL) return(-1);
-  (*repv)->vid = vid;
-  strcpy((*repv)->mnt, mnt);  /* remember its mount point */
-    
-  /* get its vol name: GETVOLSTAT does not work on rep volumes right now.
-   * so just use hex version of volid */
-  sprintf((*repv)->vname, "%#lx", vid);
-
-  return(0);
+int volstat(char *path, char *space, int size) {
+    struct ViceIoctl vioc;
+    memset(space, 0, size);
+    vioc.in = NULL;
+    vioc.in_size = 0;
+    vioc.out = space;
+    vioc.out_size = size;
+    return(pioctl(path, VIOCGETVOLSTAT, &vioc, 1));
 }
 
 /* rwarray:	non-zero elements specify volids of replicas
  * arraylen:	how many elements in rwarray
  *
- *  Allocates and links each rw replica in rwarray.
+ *  Determines conflict type and fills in repv->local
+ *  Allocates and links each rw replica in rwarray 
+ *     (after matching against directory entries)
  *  "mount" in function name is historical
- *     Returns 0 on success
- *     Returns -1 on failure. NO CLEANUP IS DONE.
+ *  Returns 0 on success, -1 on failure (after cleaning up)
  */
-int repair_mountrw(struct repvol *repv, VolumeId *rwarray, int arraylen) {
-  register int i;
-  register struct volrep *rwv, *rwtail;
+int repair_mountrw(struct repvol *repv, VolumeId *rwarray, int arraylen, char *msg, int msgsize) {
+    char tmppath[MAXPATHLEN], buf[DEF_BUF], space[DEF_BUF], *ptr, *volname;
+    int rc, i, confl, cmlcnt, err = 0;
+    struct volrep *rwv, *rwtail = NULL;
+    struct dirent *de;
+    VolumeStatus *vs;
+    DIR *d;
 
-  rwtail = NULL;
-  for (i = 0; i < arraylen; i++) {
-    /* Create an entry for each RW replica */
+    if (repv == NULL) {
+	strerr(msg, msgsize, "NULL repv");
+	return(-1);
+    }
 
-    if (!rwarray[i]) continue;  /* pioctl output need not be contiguous */
+    /* determine conflict type (local/global or server/server) */
+    if (volstat(repv->rodir, buf, sizeof(buf))) {
+	strerr(msg, msgsize, "VIOCGETVOLSTAT %s failed", tmppath);
+	return(-1);
+    }
+    ptr = buf; /* invariant: ptr always point to next obj to be read */
+    vs = (VolumeStatus *)ptr;
+    ptr += sizeof(VolumeStatus);
+    volname = ptr;
+    ptr += strlen(volname) + 1 + sizeof(int); /* skip past connection state */
+    memcpy(&confl, ptr, sizeof(int));
+    ptr += sizeof(int);
+    memcpy (&cmlcnt, ptr, sizeof(int));
+    repv->local = (confl && (cmlcnt > 0)) ? 1 : 0;
 
-    /* Create  element */
-    rwv = (struct volrep *) calloc(1, sizeof(struct volrep));
-    CODA_ASSERT(rwv);
-    rwv->vid = rwarray[i];
+    if ((d = opendir(repv->rodir)) == NULL) {
+	strerr(msg, msgsize, "opendir failed: %s", strerror(errno));
+	return(-1);
+    }
 
-    /* Link it in */
-    if (rwtail) rwtail->next = rwv;
-    else repv->rwhead = rwv;
-    rwtail = rwv;
+    if (repv->local) { /* local/global conflict */
 
-    /* Get its component name */
-    strncpy(rwv->compname, compstr(repv->rodir, rwv->vid), sizeof(rwv->compname)-1);
+	/* rwarray is useless here, since it holds the vid's of the replicas
+	 * of the volume in conflict, while the directory entries 
+	 * (local and global) have the vid's of the local fake volume (0xffffffff) 
+	 * and the volume itself, not the replicas */
 
-    /* Get its volume name */
-    strncpy(rwv->vname, volstr(repv->rodir), sizeof(rwv->vname)-1);
-	
-    /* And its server */
-    strncpy(rwv->srvname, srvstr(repv->rodir, rwv->vid), sizeof(rwv->srvname)-1);
-  }
-  return(0);
+	i = 0;
+	while ((de = readdir(d)) != NULL) {
+	    if (!strcmp(de->d_name, ".") || !strcmp(de->d_name, "..")) continue;
+
+	    snprintf(tmppath, sizeof(tmppath), "%s/%s", repv->rodir, de->d_name);
+	    if (volstat(tmppath, space, sizeof(space))) {
+		strerr(msg, msgsize, "VIOCGETVOLSTAT %s failed", tmppath);
+		return(-1);
+	    }
+
+	    /* allocate new replica and link it in */
+	    rwv = (struct volrep *)calloc(1, sizeof(struct volrep));
+	    if (rwv == NULL) goto CLEANUP;
+	    if (rwtail != NULL) rwtail->next = rwv;
+	    else repv->rwhead = rwv;
+	    rwtail = rwv;
+
+	    /* set replica values */
+	    rwv->vid = ((VolumeStatus *)space)->Vid;
+	    strcpy(rwv->vname, space + sizeof(VolumeStatus));
+	    strcpy(rwv->compname, de->d_name);
+
+	    if (strcmp(de->d_name, "global") == 0) { /* global entry */
+		if ((vs->Vid != rwv->vid)
+		    || (strcmp(rwv->vname, volname) != 0)) {
+		    strerr(msg, msgsize, "Entry mismatch");
+		    goto CLEANUP;
+		}
+		strcpy(rwv->srvname, "global"); /* XXXX */
+	    }
+	    else if (strcmp(de->d_name, "local") == 0) { /* local entry */
+		if ((strcmp(rwv->vname, "A_Local_Fake_Volume") != 0)
+		    || (rwv->vid != 0xffffffff)) {
+		    strerr(msg, msgsize, "Entry mismatch");
+		    goto CLEANUP;
+		}
+		strcpy(rwv->srvname, "localhost"); /* XXXX */
+	    }
+	    else { /* problem */
+		strerr(msg, msgsize, "Unexpected entry \"%s\"", de->d_name);
+		goto CLEANUP;
+	    }
+	    i++;
+	}
+	if (i != 2) {
+	    strerr(msg, msgsize, "Too %s directory entries", ((i < 2) ? "few" : "many"));
+	    goto CLEANUP;
+	}
+    }
+    else { /* server/server conflict */
+
+	while ((de = readdir(d)) != NULL) {
+	    if (!strcmp(de->d_name, ".") || !strcmp(de->d_name, "..")) continue;
+
+	    snprintf(tmppath, sizeof(tmppath), "%s/%s", repv->rodir, de->d_name);
+	    if (volstat(tmppath, space, sizeof(space))) {
+		strerr(msg, msgsize, "VIOCGETVOLSTAT %s failed", tmppath);
+		return(-1);
+	    }
+
+	    for (i = 0; i < arraylen; i++) { /* find the array entry for this de */
+		if (!rwarray[i]) continue;  /* pioctl output need not be contiguous */
+		if (rwarray[i] == ((VolumeStatus *)space)->Vid) { /* found it! */
+
+		    /* allocate new replica and link it in */
+		    rwv = (struct volrep *)calloc(1, sizeof(struct volrep));
+		    if (rwv == NULL) goto CLEANUP;
+		    if (rwtail != NULL) rwtail->next = rwv;
+		    else repv->rwhead = rwv;
+		    rwtail = rwv;
+
+		    /* set replica values */
+		    rwv->vid = ((VolumeStatus *)space)->Vid;
+		    strcpy(rwv->vname, space + sizeof(VolumeStatus));
+		    strcpy(rwv->compname, de->d_name);
+		    if (srvstr(tmppath, rwv->srvname, sizeof(rwv->srvname)) < 0)
+			goto CLEANUP;
+
+		    rwarray[i] = 0; /* blank this array entry */
+		    break;
+		}
+	    }
+	    if (i == arraylen) {
+		strerr(msg, msgsize, "No such replica vid=0x%x", ((VolumeStatus *)space)->Vid);
+		goto CLEANUP;
+	    }
+	}
+
+    }
+
+    if (closedir(d) < 0) {
+	strerr(msg, msgsize, "closedir failed: %s", strerror(errno));
+	d = NULL;
+	goto CLEANUP;
+    }
+
+    return(0);
+
+ CLEANUP:
+    while ((rwv = repv->rwhead) != NULL) {
+	repv->rwhead = rwv->next;
+	free(rwv);
+    }
+    if (d != NULL) closedir(d);
+    return(-1);
 }
 
-/* Adds an element to the circular list */
-int repair_linkrep(struct repvol *repv) {
-  if (RepVolHead) { /* Add just before head */
-    repv->prev = RepVolHead->prev;
-    repv->next = RepVolHead;
-    RepVolHead->prev->next = repv;
-    RepVolHead->prev = repv;
-  }
-  else {
-    RepVolHead = repv;
-    repv->prev = repv->next = repv;
-  }
-  return(0);
-}
-
-/* Removes an element from circular list.
- * repv better be in the linked list; I don't verify this */
-int repair_unlinkrep(struct repvol *repv) {
-  repv->prev->next = repv->next;
-  repv->next->prev = repv->prev;
-  if (RepVolHead == repv) RepVolHead = repv->next;
-  if (RepVolHead == repv) RepVolHead = NULL; /* must have been a 1-element list */
-  return(0);
-}
-
-/* Frees all data structures associated with repv.*/
+/* Frees all data structures associated with repv. */
 void repair_finish(struct repvol *repv) {
-  struct volrep *rwv, *next;
+    struct volrep *rwv, *next;
 
-  if (repv == NULL) {
-    printf("Error:  trying to free null repvol\n");
-    exit(2);
-  }
-  rwv = repv->rwhead;
-  while (rwv)	{
-    next = rwv->next;
-    free(rwv);
-    rwv = next;
-  }
-  free(repv);
+    if (repv == NULL) {
+	printf("Error:  trying to free null repvol\n");
+	exit(2);
+    }
+    rwv = repv->rwhead;
+    while (rwv)	{
+	next = rwv->next;
+	free(rwv);
+	rwv = next;
+    }
+    free(repv);
 }
 
-int repair_countRWReplicas(struct repvol *repv) {
-  int count = 0;
-  struct volrep *rwv = repv->rwhead;
-  for ( ; rwv; rwv = rwv->next)
-    count++;
-  return(count);
-}
+/* fills in retbuf with string identifying the server housing replica 
+ * retbuf contains error message if pioctl (or something else) fails
+ * returns 0 on success, -1 on failure */    
+int srvstr(char *rwpath, char *retbuf, int size) {
+    struct ViceIoctl vioc;
+    struct hostent *thp;
+    char junk[DEF_BUF];
+    long *hosts;
+    int rc;
 
-/* Returns a static string identifying volume name of path.
- * String contains msg if pioctl fails */
-static char *volstr(char *path) {
-  struct ViceIoctl vioc;
-  int rc;
-
-  memset(junk, 0, sizeof(junk));
-  vioc.in = 0;
-  vioc.in_size = 0;
-  vioc.out = junk;
-  vioc.out_size = sizeof(junk);
-  rc = pioctl(path, VIOCGETVOLSTAT, &vioc, 1);
-  if (rc) return("VIOCGETVOLSTAT failed");
-  else return(junk+sizeof(struct VolumeStatus)); /* name is after VolumeStatus */
-}
-
-/* Returns a static string identifying servers with replicas of path
- * String contains msg if pioctl fails */    
-static char *srvstr(char *path, VolumeId rwid) {
-  struct ViceIoctl vioc;
-  char junk[DEF_BUF], tmp[64];
-  static char result[DEF_BUF];
-  struct hostent *thp;
-  long *hosts;
-  int i, rc;
-  char rwpath[MAXPATHLEN];
-  VolumeStatus *vs;
-
-  /* this is a big hack.  Venus returns volumeids for beginrepair 
-   * but puts names in the fake directory.  To get the location we
-   * check each entry in the directory until we find the volume id
-   * that matches */
-  struct dirent *de;
-  DIR *d = opendir(path);
-  if (!d) {
-    sprintf(result, "srvstr couldn't open %s", path);
-    return(result);
-  }
-  while ( (de = readdir(d)) ) {
-    if (!strcmp(de->d_name, ".") ||
-	!strcmp(de->d_name, ".."))
-      continue;
-    /* get volume id of pathname */
-    sprintf(rwpath, "%s/%s", path, de->d_name);
-    memset(junk, 0, sizeof(junk));
-    vioc.in = 0;
+    /* get the server name by doing the pioctl (for compatibility with old venii) */
+    vioc.in = NULL;
     vioc.in_size = 0;
     vioc.out = junk;
     vioc.out_size = sizeof(junk);
-    rc = pioctl(rwpath, VIOCGETVOLSTAT, &vioc, 1);
-    if (rc) continue;
-    else {
-      vs = (VolumeStatus *)junk;
-      if (vs->Vid == rwid)  break;
-    }
-  }
-  if (de) {
-    /* get the server name by doing the pioctl (for compatibility with old venii)*/
-    vioc.in_size = 0;
-    vioc.in = 0;
-    vioc.out_size = sizeof(junk);
-    vioc.out = junk;
     memset(junk, 0, sizeof(junk));
-    sprintf(rwpath, "%s/%s", path, de->d_name);
-    rc = pioctl(rwpath, VIOCWHEREIS, &vioc, 1);
-    if (rc) return("VIOCWHEREIS failed");
-    hosts = (long *) junk;
-    memset(result, 0, sizeof(result));
-    for(i = 0; i < 8; i++) {
-      if (hosts[i] == 0) break;
-      hosts[i] = htonl(hosts[i]);    /* gethostbyaddr requires network order */
-      thp = gethostbyaddr((char *)&hosts[i], sizeof(long), AF_INET);
-      if (thp) sprintf(tmp, "%s ", thp->h_name);
-      else sprintf(tmp, "%08lx ", hosts[i]);
-      strcat(result, tmp);
-    }
-  }
-  else sprintf(result, "UnknownServer");
+    if (rc = pioctl(rwpath, VIOCWHEREIS, &vioc, 1)) return(-1);
+    hosts = (long *)junk;
+    memset(retbuf, 0, size);
+    if (hosts[0] == 0) return(-1); /* fail if no hosts returned */
+    if (hosts[1] != 0) return(-1); /* fail if more than one host returned */
 
-  closedir(d);
+    hosts[1] = htonl(hosts[0]); /* gethostbyaddr requires network order */
 
-  return(result);
-}
-
-/* returns a static string identifying the component corresponding to
- * this rw volume id. */
-static char *compstr(char *path, VolumeId rwid) {
-  struct ViceIoctl vioc;
-  char junk[DEF_BUF];
-  int rc;
-  char rwpath[MAXPATHLEN];
-  VolumeStatus *vs;
-
-  /* this is a big hack.  Venus returns volumeids for beginrepair 
-   * but puts names in the fake directory.  To get the location we
-   * check each entry in the directory until we find the volume id
-   * that matches */
-  struct dirent *de;
-  DIR *d = opendir(path);
-  if (!d) {
-    sprintf(compresult, "compstr couldn't open %s", path);
-    return(compresult);
-  }
-  while ( (de = readdir(d)) ) {
-    if (!strcmp(de->d_name, ".") ||
-	!strcmp(de->d_name, ".."))
-      continue;
-    /* get volume id of pathname */
-    sprintf(rwpath, "%s/%s", path, de->d_name);
-    memset(junk, 0, sizeof(junk));
-    vioc.in = 0;
-    vioc.in_size = 0;
-    vioc.out = junk;
-    vioc.out_size = sizeof(junk);
-    rc = pioctl(rwpath, VIOCGETVOLSTAT, &vioc, 1);
-    if (rc) continue;
-    else {
-      vs = (VolumeStatus *)junk;
-      if (vs->Vid == rwid)  break;
-    }
-  }
-
-  if (de) {
-    strncpy(compresult, de->d_name, 2047);
-    compresult[(DEF_BUF-1)] = '\0';
-  } 
-  else strcpy(compresult, "UnknownComponent");
-
-  closedir(d);
-
-  return(compresult);
+    thp = gethostbyaddr((char *)&hosts[1], sizeof(long), AF_INET);
+    if (thp != NULL) snprintf(retbuf, size, "%s", thp->h_name);
+    else snprintf(retbuf, size, "%08lx", hosts[1]);
+    return(0);
 }

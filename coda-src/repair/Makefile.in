@@ -21,7 +21,7 @@ TOPDIR = @top_srcdir@
 srcdir = @srcdir@
 VPATH  = @srcdir@
 TOPOBJ = @TOPOBJ@
-HEADERS = repair.h
+HEADERS = repair.h repcmds.h
 
 include $(TOPDIR)/Makeconf
 

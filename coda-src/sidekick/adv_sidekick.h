@@ -1,3 +1,21 @@
+/* BLURB gpl
+
+                           Coda File System
+                              Release 5
+
+          Copyright (c) 1987-1999 Carnegie Mellon University
+                  Additional copyrights listed below
+
+This  code  is  distributed "AS IS" without warranty of any kind under
+the terms of the GNU General Public Licence Version 2, as shown in the
+file  LICENSE.  The  technical and financial  contributors to Coda are
+listed in the file CREDITS.
+
+                        Additional copyrights
+                           none currently
+
+#*/
+
 #ifndef _ADV_SIDEKICK_H_
 #define _ADV_SIDEKICK_H_
 
@@ -32,18 +50,18 @@ extern "C" {
 #include "coda_string.h" 
 #include "coda_wait.h"
 #include "copyfile.h"
+#include "repcmds.h"
 #include "venus_adv.h"
 #include "venusioctl.h"
 
-#define HOMEDIR_PREFIX "/coda/usr/"
+#define ASRARGS 7 /* XXX - maximum number of arguments to an ASR */
+#define ASRLOGDIR "/tmp/.asrlogs"
 #define DEF_LOGFILE "/usr/coda/etc/skk.log"
-#define INTEREST_FILE SYSCONFDIR "/skk.interests"
-#define DSTACK 65536
 #define DEF_ROCK 1
-#define ASRARGS 7
-#define NOT_IN_SESSION	0
-#define LOCAL_GLOBAL	1
-#define SERVER_SERVER	2
+#define DSTACK 65536
+#define FIXEDDIR "/tmp"
+#define HOMEDIR_PREFIX "/coda/usr/"
+#define INTEREST_FILE SYSCONFDIR "/skk.interests"
 
 extern int table(int, int, char *, int, int);
 extern int ffilecopy(FILE*, FILE*);
@@ -54,6 +72,14 @@ extern int vmajor, vminor, session;
 extern RPC2_PortIdent rpc2_LocalPort;
 extern RPC2_Handle VenusCID;
 extern char *InterestNames[MAXEVENTS];
+
+struct pnode {
+    PROCESS cpid;
+    RPC2_PacketBuffer *pbuf;
+    pnode *next;
+    char name[32];
+    int kid, tmp, req;
+};
 
 RPC2_Handle contact_venus(const char *);
 int executor(char *, int, int);
@@ -66,14 +92,6 @@ int parse_path(const char *, char *, char *);
 int parse_resolvefile(const char *, const char *, char *);
 int worker(void *);
 
-#define freeif(pointer)				\
-do {						\
- if (pointer != NULL) {				\
-   free(pointer);				\
-   pointer = NULL;				\
- } 						\
-} while (0)
-
 #define lprintf(msg...)				\
 do {						\
   if (err) fprintf(stderr, ##msg);		\
@@ -83,6 +101,7 @@ do {						\
 
 #define quit(msg...)				\
 do {						\
+  struct pnode *tmp;				\
   if (logfile != NULL) {			\
     fprintf(logfile, ##msg);			\
     fprintf(logfile, "\n");			\
@@ -91,16 +110,11 @@ do {						\
     fprintf(stderr, ##msg);			\
     fprintf(stderr, "\n");			\
   }						\
-  if (lwp_ready) LWP_TerminateProcessSupport();	\
+  while ((tmp = phead) != NULL) {		\
+    phead = phead->next;			\
+    free(tmp);					\
+  }						\
   exit(-1);					\
 } while (0)
-
-struct pnode {
-  PROCESS cpid;
-  RPC2_PacketBuffer *pbuf;
-  pnode *next;
-  char name[32];
-  int kid, tmp, req;
-};
 
 #endif /* _ADV_SIDEKICK_H_ */
