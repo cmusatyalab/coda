@@ -29,23 +29,25 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /home/braam/src/coda-src/vicedep/RCS/admon.rpc2,v 1.2 1996/11/24 21:13:55 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vicedep/admon.rpc2,v 4.1 97/01/08 21:52:02 rvb Exp $";
 #endif /*_BLURB_*/%}
 
 
 
+server prefix "S";
+client prefix "C";
 
 
 Subsystem  "AdMon";
 
 #define ADMONSUBSYSID 100
 
-#define ADMONPORTAL 4000
+#define ADMONPORTAL 1433
 
 #include "vcrcommon.rpc2"
 
 /* IMPORTANT!  Change this anytime this file is changed! */
-#define ADMON_VERSION 8
+#define ADMON_VERSION 9
 
 typedef RPC2_Enum
 {
@@ -53,17 +55,20 @@ typedef RPC2_Enum
 	True = 1
 } Boolean;
 
-typedef RPC2_Struct
+typedef RPC2_Enum
 {
-	RPC2_Integer DMQVersionNumber;
-	RPC2_Integer pid;
-	RPC2_Unsigned TimeOfDisconnection;
-	RPC2_Unsigned TimeOfCacheMiss;  
-	ViceFid Fid;
-	RPC2_String Pathname;  
-} DisconnectedMissQuestionnaire;
-/* IMPORTANT!  Change this anytime you change this structure! */
-#define DMQ_VERSION 2
+	FileAccess			= 0,
+	ObjectNeedsRepair		= 1,
+	ObjectNeedsReintegration	= 2
+} ActivityID;
+
+typedef RPC2_Enum
+{
+	EmulatingState 	= 0,
+	HoardingState 	= 1,
+	LoggingState	= 2,
+	ResolvingState	= 3
+} VolumeStateID;
 
 typedef RPC2_Struct
 {
@@ -84,22 +89,120 @@ typedef RPC2_Struct
 /* IMPORTANT!  Change this anytime you change this structure! */
 #define RQ_VERSION 1
 
-typedef RPC2_Struct
-{
-	RPC2_String Pathname;
-	RPC2_Integer pid;
-	RPC2_Integer ExpectedFetchTime;
-} WeaklyConnectedInformation;
+
+/*******************************************************************/
+
+/* Administrivia */
 
 /*
- * ReadDisconnectedMiss
+ * LostConnection
  *
- * Venus uses this call to request advice about whether or 
- * not to service a read disconnected cache miss.
+ * Venus uses this call to inform an advice server that it has lost its 
+ * connection, when it is able to behave as a good citizen.
  */
-ReadDisconnectedMiss 	(IN RPC2_String Pathname, 
-			 IN RPC2_Integer pid,
-			 OUT RPC2_Integer Advice);
+LostConnection();
+
+
+
+/*******************************************************************/
+
+/* Authentication Information */
+
+TokensAcquired	(IN RPC2_Integer EndTimestamp);
+
+TokensExpired	();
+
+ActivityPendingTokens	(IN ActivityID activityType,
+			 IN RPC2_String argument);
+
+
+
+
+/*******************************************************************/
+
+/* Space Information */
+
+SpaceInformation(IN RPC2_Integer PercentFilesFilledByHoardedData,
+		 IN RPC2_Integer PercentBlocksFilledByHoardedData,
+		 IN RPC2_Integer PercentRVMFull,
+		 IN Boolean RVMFragmented);
+
+
+
+/*******************************************************************/
+
+typedef RPC2_Struct
+{
+	RPC2_String ServerName;
+	RPC2_Integer BandwidthEstimate;
+	Boolean Intermittent;
+} QualityEstimate;
+
+/* Network Information */
+
+ServerAccessible	(IN RPC2_String ServerName);
+ServerInaccessible	(IN RPC2_String ServerName);
+ServerConnectionStrong	(IN RPC2_String ServerName);
+ServerConnectionWeak	(IN RPC2_String ServerName);
+NetworkQualityEstimate	(IN QualityEstimate serverList[]);
+
+
+
+
+/*******************************************************************/
+
+/* 
+ * Volume Transition Events
+ *
+ * Venus uses this call to inform the advice monitor that
+ * a volume has transitioned to a new state.  
+ */
+VolumeTransitionEvent(IN RPC2_String VolumeName,
+  		      IN RPC2_Integer vid,
+		      IN VolumeStateID NewState,
+		      IN VolumeStateID OldState);
+
+
+/* 
+ * Reconnection Questionnaire 
+ * 
+ * Venus uses this call to trigger a reconnection question.
+ * This questionnaire is used to collect qualitative data
+ * from users regarding the success of a disconnected session.
+ */
+Reconnection(IN ReconnectionQuestionnaire Questionnaire,
+	     OUT RPC2_Integer ReturnCode);
+
+
+
+
+/*******************************************************************/
+
+/*  Advice Requests */
+
+typedef RPC2_Enum
+{
+	Status = 0,
+	Data = 1
+} CacheMissType;
+
+typedef RPC2_Enum
+{
+	FetchFromServers = 0,
+	CoerceToMiss = 1
+} CacheMissAdvice;
+#define MaxCacheMissAdvice 1
+
+typedef RPC2_Struct
+{
+	ViceFid Fid;
+	RPC2_String Pathname;
+} ObjectInformation;
+
+typedef RPC2_Struct
+{
+ 	RPC2_Integer pid;
+} ProcessInformation;
 
 
 /*
@@ -114,63 +217,118 @@ DataFetchEvent		(IN RPC2_String Pathname,
 			 IN RPC2_String Vfile);
 
 
+
+ReadDisconnectedCacheMissEvent	(IN ObjectInformation objInfo,
+				 IN ProcessInformation processInfo,
+				 IN RPC2_Unsigned TimeOfMiss,
+				 OUT CacheMissAdvice Advice,
+				 OUT RPC2_Integer ReturnCode);
+
+
+/*
+ * WeaklyConnectedMiss
+ *
+ * Venus uses this call to inform an advice server that a request
+ * during a weakly connected session is unavailable in the cache.
+ */
+WeaklyConnectedCacheMissEvent	(IN ObjectInformation objInfo,
+				 IN ProcessInformation processInfo,
+				 IN RPC2_Unsigned TimeOfMiss,
+				 IN RPC2_Integer Length,
+				 IN RPC2_Integer EstimatedBandwidth,
+				 IN RPC2_String Vfile,
+				 OUT CacheMissAdvice Advice,
+				 OUT RPC2_Integer ReturnCode);
+
+/* IMPORTANT!  Increment this anytime this call is changed! */
+#define DMQ_VERSION 3
+DisconnectedCacheMissEvent	(IN ObjectInformation objInfo,
+				 IN ProcessInformation processInfo,
+				 IN RPC2_Unsigned TimeOfMiss,
+				 IN RPC2_Unsigned TimeOfDisconnection,
+				 OUT RPC2_Integer ReturnCode);
+
+
 /*
  * HoardWalkAdvice
  *
  * Venus uses this call to request advice about what objects
  * should be fetched in the process of a hoard walk.
  */
-HoardWalkAdvice		(IN RPC2_String InputPathname,
+HoardWalkAdviceRequest	(IN RPC2_String InputPathname,
 			 IN RPC2_String OutputPathname,
 			 OUT RPC2_Integer ReturnCode);
 
 
-/*
- * DisconnectedMiss
- *
- * Venus uses this call to determine the impact of this 
- * disconnected cache miss.
- */
-DisconnectedMiss	(IN DisconnectedMissQuestionnaire Questionnaire,
-			 OUT RPC2_Integer ReturnCode);
 
 
-Reconnection	(IN ReconnectionQuestionnaire Questionnaire,
-		 OUT RPC2_Integer ReturnCode);
+/*******************************************************************/
 
+/* Hoard Walk Information */
 
-/* 
- * Volume Events
- *
- * Venus uses these calls to inform the advice monitor that
- * a volume has transitioned to a new state.  
- */
+HoardWalkBegin();
 
-VSEmulating       (IN RPC2_String VolumeName,
-                   IN VolumeId vid);
+HoardWalkStatus(IN RPC2_Integer Percentage);
 
-VSHoarding        (IN RPC2_String VolumeName,
-                   IN VolumeId vid);
+HoardWalkEnd();
 
-VSLogging         (IN RPC2_String VolumeName,
-                   IN VolumeId vid);
+HoardWalkPeriodicOn();
 
-VSResolving       (IN RPC2_String VolumeName,
-                   IN VolumeId vid);
+HoardWalkPeriodicOff();
 
 
 
-/*
- * ReintegratePending
- *
- * Venus uses this call to inform the Advice Monitor that
- * a reintegration is pending tokens for this user and also
- * to inform the Advice Monitor that the reintegration is
- * no longer pending.
- */
-ReintegratePending(IN RPC2_String VolumeName,
-		   IN Boolean PendingFlag);
 
+/*******************************************************************/
+
+/* Repair Information */
+
+ObjectInConflict	(IN RPC2_String Pathname,
+			 IN ViceFid fid);
+
+ObjectConsistent	(IN RPC2_String Pathname,
+			 IN ViceFid fid);
+
+
+
+/*******************************************************************/
+
+/* Reintegration Information */
+
+ReintegrationPendingTokens	(IN RPC2_String volumeID);
+
+ReintegrationEnabled		(IN RPC2_String volumeID);
+
+ReintegrationActive		(IN RPC2_String volumeID);
+
+ReintegrationCompleted		(IN RPC2_String volumeID);
+
+
+
+
+/*******************************************************************/
+
+/* Task Information */
+typedef RPC2_Struct
+{
+	RPC2_Integer TaskPriority;
+	RPC2_Integer AvailableBlocks;
+	RPC2_Integer UnavailableBlocks;
+	RPC2_Integer IncompleteInformation;
+} TallyInfo;
+
+TaskAvailability	(IN TallyInfo taskList[]);
+
+TaskUnavailable		(IN RPC2_Integer TaskPriority,
+			 IN RPC2_Integer ElementSize);
+
+ProgramAccessLogAvailable (IN RPC2_String LogFile);
+ReplacementLogAvailable (IN RPC2_String LogFile);
+
+
+/*******************************************************************/
+
+/* Do we need this anymore??? */
 
 /*
  * Resolution
@@ -183,19 +341,4 @@ InvokeASR	(IN RPC2_String Pathname,
 		 OUT RPC2_Integer ReturnCode);
 
 
-/*
- * WeaklyConnectedMiss
- *
- * Venus uses this call to inform an advice server that a request
- * during a weakly connected session is unavailable in the cache.
- */
-WeaklyConnectedMiss	(IN WeaklyConnectedInformation Information,
-			 OUT RPC2_Integer ReturnCode);
 
-/*
- * LostConnection
- *
- * Venus uses this call to inform an advice server that it has
- * lost its connection.
- */
-LostConnection();
