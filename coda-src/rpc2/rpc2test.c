@@ -1051,7 +1051,7 @@ static int mkfile(char *name, int length)
 	perror(name);
 	return(-1);
 	}
-    lseek(fd, length-1, L_SET);
+    lseek(fd, length-1, SEEK_SET);
     write(fd, "0", 1);
     close(fd);    
     return(0);

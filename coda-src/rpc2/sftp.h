@@ -219,6 +219,8 @@ struct SFTP_Entry		/* per-connection data structure */
 				 */
     long openfd;		/* file descriptor: valid during actual
 				   transfer */
+    off_t fd_offset;		/* For FILEBYFD transfers, we save the offset
+				   within the file after each read/write */
     struct SLSlot *Sleeper;	/* SLSlot of LWP sleeping on this connection,
 				   or NULL */
     long PacketSize;		/* Amount of  data in each packet */
@@ -426,10 +428,10 @@ int sftp_StartArrived(RPC2_PacketBuffer *pBuff, struct SFTP_Entry *sEntry);
 int sftp_SendTrigger(struct SFTP_Entry *sEntry);
 void sftp_InitPacket(RPC2_PacketBuffer *pb, struct SFTP_Entry *sfe, long bodylen);
 void sftp_InitTrace(void);
-int sftp_vfwritefile(SE_Descriptor *sdesc, int openfd, char *buf, int nbytes);
-void sftp_vfclose(SE_Descriptor *sdesc, int openfd);
-int sftp_piggybackfileread(SE_Descriptor *sdesc, long openfd, char *buf);
-int sftp_piggybackfilesize(SE_Descriptor *sdesc, long openfd);
+int sftp_vfwritefile(struct SFTP_Entry *se, char *buf, int nbytes);
+void sftp_vfclose(struct SFTP_Entry *se);
+int sftp_piggybackfileread(struct SFTP_Entry *se, char *buf);
+int sftp_piggybackfilesize(struct SFTP_Entry *se);
 void sftp_TraceBogus(long filenum, long linenum);
 void sftp_TraceStatus(struct SFTP_Entry *sEntry, int filenum, int linenum);
 void sftp_DumpTrace(char *fName);
@@ -460,8 +462,6 @@ extern long sftp_datas, sftp_datar, sftp_acks, sftp_ackr, sftp_busy,
 
 extern long sftp_PacketsInUse;
 extern long SFTP_MaxPackets;
-
-#define CLOSE(sfe) (sftp_vfclose(sfe->SDesc, sfe->openfd), (sfe->openfd  = -1))
 
 /* SFTP's version of RPC2_AllocBuffer and RPC2_FreeBuffer */
 
