@@ -15,7 +15,7 @@
 #*/
 #
 #
-#static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/scripts/recreatevol,v 4.2 1997/08/18 14:54:50 raiff Exp $";
+#static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/scripts/recreatevol,v 4.3 1998/01/15 20:43:48 braam Exp $";
 #endif _BLURB_
 
 #/*
@@ -38,8 +38,8 @@ endif
 
 #
 # Can only run these scripts from the SCM (Should this change?)
-if (`cat /.hostname` != `cat /.scm`) then
-        echo "This must be run from the scm ("`cat /.scm`")"
+if (`cat /vice/hostname` != `cat /vice/db/scm`) then
+        echo "This must be run from the scm ("`cat /vice/db/scm`")"
         exit
 endif
 

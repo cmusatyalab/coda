@@ -30,7 +30,7 @@
 #Mellon the rights to redistribute these changes without encumbrance.
 #*/
 #
-#static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/scripts/reinit.sh,v 4.1 1997/01/08 21:50:52 rvb Exp $";
+#static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/scripts/reinit.sh,v 4.2 1998/01/15 20:43:53 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -65,7 +65,7 @@
 #Mellon the rights to redistribute these changes without encumbrance.
 #*/
 #
-#static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/scripts/reinit.sh,v 4.1 1997/01/08 21:50:52 rvb Exp $";
+#static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/scripts/reinit.sh,v 4.2 1998/01/15 20:43:53 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -199,14 +199,14 @@ fi
 
 
 # Make sure we are on a Coda server.
-if [ ! -f /.scm -o ! -f /.hostname ] ; then
+if [ ! -f /vice/db/scm -o ! -f /vice/hostname ] ; then
     echo "$0 must be run on the Coda Sytem Control Machine (SCM)"
     exit 1
 fi
 
 # Make sure we are on the SCM.
-if [ "`cat /.scm`" != "`cat /.hostname`" ] ; then
-    SCM = "`cat /.scm`"
+if [ "`cat /vice/db/scm`" != "`cat /vice/hostname`" ] ; then
+    SCM = "`cat /vice/db/scm`"
     echo "$0 must be run on the SCM ($SCM)"
     exit 1
 fi
@@ -270,14 +270,14 @@ if (\`whoami | awk '{print substr(\$1, 1, 4)}'\` != "root") then
 endif
 
 # Make sure we are on a Coda server.
-if ( ! -e /.scm || ! -e /.hostname ) then
+if ( ! -e /vice/db/scm || ! -e /vice/hostname ) then
     echo "\$argv[0] must be run on the Coda Sytem Control Machine (SCM)"
     exit 1
 endif
 
 # Make sure we are on the SCM.
-if (\`cat /.scm\` != \`cat /.hostname\`) then
-    set SCM = \`cat /.scm\`
+if (\`cat /vice/db/scm\` != \`cat /vice/hostname\`) then
+    set SCM = \`cat /vice/db/scm\`
     echo "\$argv[0] must be run on the SCM (\$SCM)"
     exit 1
 endif

@@ -34,9 +34,9 @@ if [ x$bn = x ]; then
 fi
 
 #
-#  this is the scm so put hostname in /.scm
+#  this is the scm so put hostname in /vice/db/scm
 #
-echo $bn > /.scm
+echo $bn > /vice/db/scm
 
 ip=""
 
@@ -53,6 +53,26 @@ done
 #
 # set up the initial VSG on the SCM; this is the SCM itself only. 
 #
+echo "Initializing the VSGDB to contain the SCM as E0000100"
 echo E0000100 $bn > /vice/db/VSGDB
 echo /vice/db/VSGDB set up
+
+id=""
+echo
+echo Setting up ROOTVOLUME file
+cd /vice/db
+until [ x$id != x ]; do
+   echo -n 'Enter the name of the rootvolume (< 32 chars) : '
+   read id
+   if [ x$id != x ]; then
+	echo $id > /vice/db/ROOTVOLUME
+   fi
+done
+echo done!
+echo 
+echo "** When srv, updatesrv and updateclnt are running, "
+echo "** and you have a data partition PART (such as /vicepa) issue "
+echo "** the command createvol $id  scm-hostname PART"
+echo
+
 

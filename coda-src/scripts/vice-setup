@@ -55,6 +55,7 @@ echo tokens done!
 echo
 echo Setting up the file list for update
 cat > /vice/db/files <<EOF
+ROOTVOLUME
 VLDB
 auth2.pw
 auth2.tk
@@ -111,19 +112,24 @@ yesno=""
 until [ x$yesno != x ]; do
    echo -n 'Do you want to start the server at boot time? (y/n) '
    read yesno
-   if [ x$yesno = xy  -o  x$yesno = xyes ]; then
+   if [ x$yesno = xy  -o  x$yesno = xyes -o x$yesno = xY]; then
+       touch /vice/srv/STARTFROMBOOT
        if [ `uname` = Linux ]; then
 	    ln -s /etc/rc.d/init.d/vice.init /etc/rc.d/rc3.d/S98vice
        fi
        if [ `uname` = NetBSD ]; then
-	    echo 'if [ -e /etc/rc.vice ]; then /etc/rc.vice start ; fi' >> /etc/rc.local 
+	    mv /etc/vice.init /etc/rc.vice
+	    grep '/etc/rc.vice' /etc/rc.local > /dev/null 2>1
+	    if [ $? != 0]; then 
+	         echo 'if [ -e /etc/rc.vice ]; then /etc/rc.vice start ; fi' >> /etc/rc.local 
+	    fi
        fi
        echo "Startup scripts now installed."
    fi
 done
 
 #
-# /.hostname 
+# /vice/hostname 
 # 
 hn=`hostname`
 bn=${hn%%.*}
@@ -132,7 +138,7 @@ if [ x$bn = x ]; then
     bn=$hn
 fi
 
-echo $bn > /.hostname
+echo $bn > /vice/hostname
 
 #
 # end of common setup area, now specialize to scm or non scm
@@ -168,15 +174,15 @@ until [ x$scmhost != x ]; do
     echo -n "Enter the hostname of the SCM machine : "
     read scmhost
     if [ x$scmhost != x ]; then
-       echo $scmhost > /.scm
+       echo $scmhost > /vice/db/scm
     fi
 done
 
 vice-setup-rvm
 vice-setup-srvdir
 
-echo "You have set up " `cat /.hostname`
-echo "Your scm is " `cat /.scm`
+echo "You have set up " `cat /vice/hostname`
+echo "Your scm is " `cat /vice/db/scm`
 echo "Other config files will be fetched from the SCM by updateclnt."
 
 

@@ -30,7 +30,7 @@
 #Mellon the rights to redistribute these changes without encumbrance.
 #*/
 #
-#static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/scripts/createvol,v 4.2 1998/01/04 14:58:35 braam Exp $";
+#static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/scripts/createvol,v 4.3 1998/01/15 20:43:32 braam Exp $";
 #endif /*_BLURB_*/
 
 # /*
@@ -64,8 +64,8 @@ endif
 
 #
 # Can only run these scripts from the SCM (Should this change?)
-if (`cat /.hostname` != `cat /.scm`) then
-        echo "This must be run from the scm ("`cat /.scm`")"
+if (`cat /vice/hostname` != `cat /vice/db/scm`) then
+        echo "This must be run from the scm ("`cat /vice/db/scm`")"
         exit
 endif
 
@@ -86,7 +86,7 @@ if ($VOLNAME == `awk ' $1 ~ /^'$1'$/  {print $1}' /vice/vol/AllVolumes` ||\
 endif
 
 volutil -h $SERVER create $PARTITION $VOLNAME
-bldvldb.sh
+bldvldb.sh $SERVER
 
 echo -n "Do you wish this volume to be Backed Up (y/n)? [n] "
 set _ans_ = "$<"

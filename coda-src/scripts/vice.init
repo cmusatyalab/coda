@@ -21,7 +21,7 @@ case "$1" in
   start)
 	# start auth2 & update stuff: first the scm case
     	echo -n "Starting Coda: "
-	if [ "`cat /.hostname`" = "`cat /.scm`" ]; then
+	if [ "`cat /vice/hostname`" = "`cat /vice/db/scm`" ]; then
 	    if [ -f "authmon"  ]; then
  		authmon &
 		echo -n "authmon/auth2,"
@@ -34,18 +34,16 @@ case "$1" in
 	fi
 
 	# update srv and updatemon run on all servers
-	if [ -f updatemon ]; then
-		updatemon -h `cat /.scm`  -q coda_udpsrv &
+	if [ -f /usr/sbin/updatemon ]; then
+		updatemon -h `cat /vice/db/scm`  -q coda_udpsrv &
 		echo "updatemon/updateclnt."
-	fi
-	if [ -f updatemon ]; then
 		updatemon -s -p /vice/db &
 		echo "updatemon/updatesrv."
 	fi
 
 	# now the server
 	if [  -f ${VICESRV}/STARTFROMBOOT -a ! -f ${VICESRV}/CRASH ]; then
-	    if [ -f "startserver" ]; then
+	    if [ -f /usr/sbin/startserver ]; then
 	      	rm -f $VICESRV/pid
 		startserver &
 		echo "srv."
@@ -64,9 +62,9 @@ case "$1" in
 	# if pid file doesn't exist, it isn't likely that srv is running.
 	echo -n "Shutting down Coda: "
 	if [ -f /vice/srv/pid ]; then
-	    if [ -f "volutil" ]; then
+	    if [ -f /usr/sbin/volutil ]; then
 	      	volutil shutdown
-		echo -n "srv: sleeping 30 secs to let srv shutdown..."
+		echo -n "vice.init: sleeping 30 secs to let srv shutdown..."
 		sleep 30
 		echo "..done"
 	    fi

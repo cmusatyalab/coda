@@ -62,9 +62,9 @@ fi
 
 #
 # Can only run these scripts from the SCM (Should this change?)
-if [ `cat /.hostname` != `cat /.scm` ]
+if [ `cat /vice/hostname` != `cat /vice/db/scm` ]
 then
-        echo "This must be run from the scm ("`cat /.scm`")"
+        echo "This must be run from the scm ("`cat /vice/db/scm`")"
         exit
 fi
 

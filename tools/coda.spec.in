@@ -136,6 +136,8 @@ if [ -e /usr/coda/etc/vstab ]; then
 else
 	/usr/sbin/venus-setup testserver.coda.cs.cmu.edu
 fi
+cd /usr/lib/coda
+tixindex *tcl
 
 %post source
 cd /usr/src/redhat/BUILD
@@ -250,7 +252,7 @@ tar zxf coda-@CVER@.tgz
 /usr/sbin/updatemon
 /usr/sbin/updatesrv
 /usr/sbin/updateclnt
-/usr/sbin/updfetch
+/usr/sbin/updatefetch
 /usr/bin/filcon
 /usr/bin/norton
 /usr/bin/norton-reinit
