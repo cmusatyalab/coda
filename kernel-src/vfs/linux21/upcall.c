@@ -535,16 +535,12 @@ int venus_pioctl(struct super_block *sb, struct ViceFid *fid,
         inp->cfs_ioctl.data = (char *)(INSIZE(ioctl));
      
         /* get the data out of user space */
-#ifdef L20
-        memcpy_fromfs((char*)inp + (int)inp->cfs_ioctl.data,
-                      data->vi.in, data->vi.in_size);
-#else
         if ( copy_from_user((char*)inp + (int)inp->cfs_ioctl.data,
 			    data->vi.in, data->vi.in_size) ) {
 	        error = EINVAL;
 	        goto exit;
 	}
-#endif
+
         error = coda_upcall(coda_sbp(sb), insize, &outsize, inp);
         
         if (error) {
@@ -563,18 +559,13 @@ int venus_pioctl(struct super_block *sb, struct ViceFid *fid,
 		error = verify_area(VERIFY_WRITE, data->vi.out, 
                                     data->vi.out_size);
 		if ( error ) goto exit;
-#ifdef L20
-                memcpy_tofs(data->vi.out, 
-                            (char *)outp + (int)outp->cfs_ioctl.data, 
-                            data->vi.out_size);                
-#else
+
 		if (copy_to_user(data->vi.out, 
 				 (char *)outp + (int)outp->cfs_ioctl.data, 
 				 data->vi.out_size)) {
 		        error = EINVAL;
 			goto exit;
 		}
-#endif
         }
 
  exit:
@@ -889,18 +880,20 @@ int coda_downcall(int opcode, union outputArgs * out, struct super_block *sb)
 
 	  case CFS_REPLACE : {
 	          struct inode *inode;
-		  ViceFid *fid = &out->cfs_replace.OldFid;
+		  ViceFid *oldfid = &out->cfs_replace.OldFid;
+		  ViceFid *newfid = &out->cfs_replace.NewFid;
 		  clstats(CFS_REPLACE);
 		  CDEBUG(D_DOWNCALL, "CFS_REPLACE\n");
-		  inode = coda_fid_to_inode(fid, sb);
+		  inode = coda_fid_to_inode(newfid, sb);
 		  if ( inode ) { 
 			  CDEBUG(D_DOWNCALL, "replacefid: inode = %ld\n", inode->i_ino);
-			  coda_purge_children(inode);
+			  coda_replace_fid(inode, oldfid, newfid);
                           coda_purge_dentries(inode);
 		  }else 
 			  CDEBUG(D_DOWNCALL, "purgefid: no inode\n");
+		  
 		  return 0;
-	  }			   
+	  }
 	  }
 	  return 0;
 }

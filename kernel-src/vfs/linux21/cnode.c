@@ -14,7 +14,6 @@ extern int coda_debug;
 extern int coda_print_entry;
 
 /* cnode.c */
-
 static void coda_fill_inode(struct inode *inode, struct coda_vattr *attr)
 {
         CDEBUG(D_SUPER, "ino: %ld\n", inode->i_ino);
@@ -117,7 +116,6 @@ int coda_cnode_make(struct inode **inode, ViceFid *fid, struct super_block *sb)
         return 0;
 }
 
-
 inline int coda_fideq(ViceFid *fid1, ViceFid *fid2)
 {
 	int eq;
@@ -126,6 +124,27 @@ inline int coda_fideq(ViceFid *fid1, ViceFid *fid2)
 		 (fid1->Unique == fid2->Unique) );
 	return eq;
 }
+
+void coda_replace_fid(struct inode *inode, struct ViceFid *oldfid, 
+		      struct ViceFid *newfid)
+{
+	struct coda_inode_info *cnp;
+	struct coda_sb_info *sbi= coda_sbp(inode->i_sb);
+	
+	cnp = ITOC(inode);
+
+	if ( ! coda_fideq(&cnp->c_fid, oldfid) )
+		printk("What? oldfid != cnp->c_fid. Call 911.\n");
+
+	cnp->c_fid = *newfid;
+
+	list_del(&cnp->c_volrootlist);
+	if ( !coda_fid_is_weird(newfid) ) 
+		list_add(&cnp->c_volrootlist, &sbi->sbi_volroothead);
+
+	return;
+}
+
 
  
 

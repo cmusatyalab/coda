@@ -96,6 +96,7 @@ struct file_operations coda_dir_operations = {
         NULL,                   /* ioctl */
         NULL,                   /* mmap */
         coda_open,              /* open */
+	NULL,
         coda_release,           /* release */
 	coda_fsync,             /* fsync */
         NULL,                   

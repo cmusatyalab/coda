@@ -51,7 +51,6 @@ int coda_fid_is_volroot(struct ViceFid *);
 int coda_fid_is_weird(struct ViceFid *fid);
 int coda_iscontrol(const char *name, size_t length);
 
-
 void coda_load_creds(struct coda_cred *cred);
 int coda_mycred(struct coda_cred *);
 void coda_vattr_to_iattr(struct inode *, struct coda_vattr *);
@@ -70,6 +69,11 @@ void coda_restore_codafile(struct inode *coda_inode, struct file *coda_file,
 int coda_inode_grab(dev_t dev, ino_t ino, struct inode **ind);
 
 #define NB_SFS_SIZ 0x895440
+
+/* cache.c */
+void coda_purge_children(struct inode *);
+void coda_purge_dentries(struct inode *);
+
 
 /* debugging masks */
 #define D_SUPER     1   /* print results returned by Venus */ 

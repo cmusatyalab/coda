@@ -46,14 +46,6 @@
 #include <linux/coda_cache.h>
 #include <linux/coda_proc.h>
 
-
-/*
- * Where is the prototype?
- */
-
-int proc_register_dynamic(struct proc_dir_entry * dir,
-			  struct proc_dir_entry * dp);
-
 /* 
  * Coda stuff
  */
@@ -390,6 +382,7 @@ static struct file_operations coda_psdev_fops = {
       NULL,                  /* ioctl */
       NULL,		     /* coda_psdev_mmap */
       coda_psdev_open,       /* open */
+      NULL,
       coda_psdev_release,    /* release */
       NULL,                  /* fsync */
       NULL,                  /* fasync */
@@ -496,6 +489,7 @@ struct proc_dir_entry proc_coda_cache_inv_control =  {
 
 #endif
 
+
 __initfunc(int init_coda(void)) 
 {
 	int status;
@@ -553,14 +547,12 @@ int init_coda_psdev(void)
 
 #ifdef MODULE
 
-EXPORT_NO_SYMBOLS;
-
 MODULE_AUTHOR("Peter J. Braam <braam@cs.cmu.edu>");
 
 int init_module(void)
 {
 	int status;
-	printk(KERN_INFO "Coda Kernel/Venus communications (module), v4.6.0, braam@cs.cmu.edu\n");
+	printk(KERN_INFO "Coda Kernel/Venus communications (module), v4.7.1, braam@cs.cmu.edu.\n");
 
 	status = init_coda_psdev();
 	if ( status ) {

@@ -65,6 +65,7 @@ struct file_operations coda_ioctl_operations = {
 	coda_pioctl,	        /* ioctl */
 	NULL,                   /* mmap */
 	coda_ioctl_open,        /* open */
+	NULL,
 	coda_ioctl_release,     /* release */
 	NULL,		        /* fsync */
 };
