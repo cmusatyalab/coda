@@ -93,7 +93,7 @@ until [ "x$datasize" != x ]; do
     echo  "We have templates for servers of approx: 500M, 1G, 2.2G, 3.3G, 8G"
     echo  "(you can store less, but not more on such servers)."
     echo  "The corresponding data sizes are  22M, 44M, 90M, 130M, 315M." 
-    echo  "(use 330M only on very fast machines)"
+    echo  "(use 315M only on very fast machines)"
     echo  "Pick one of the defaults, otherwise I will bail out"
     echo
     echo "What is the size of you data partition (or file)"
