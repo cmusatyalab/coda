@@ -288,7 +288,7 @@ coda_pioctl(struct inode * inode, struct file * filp, unsigned int cmd,
                 printk("coda_pioctl: cannot copy from user space.\n");
                 iput(target_inode);
                 if (buf) CODA_FREE(buf, VC_MAXMSGSIZE);
-                return -error;
+                return error;
         }
         memcpy_fromfs((char*)in + (int)in->d.cfs_ioctl.data,
                       iap.vidata.in, iap.vidata.in_size);
@@ -301,7 +301,7 @@ coda_pioctl(struct inode * inode, struct file * filp, unsigned int cmd,
         DEBUG("pioclt-debugging\n");
         
         if (!error) {
-                error = out->result;
+                error = -out->result;
                 if ( error ) {
                         printk("coda_pioctl: Venus returns: %d\n", error);
                         goto exit; 
