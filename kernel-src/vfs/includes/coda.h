@@ -77,21 +77,21 @@ struct venus_dirent {
 /*
  * File types
  */
-#define	DT_UNKNOWN	 0
-#define	DT_FIFO		 1
-#define	DT_CHR		 2
-#define	DT_DIR		 4
-#define	DT_BLK		 6
-#define	DT_REG		 8
-#define	DT_LNK		10
-#define	DT_SOCK		12
-#define	DT_WHT		14
+#define	CDT_UNKNOWN	 0
+#define	CDT_FIFO		 1
+#define	CDT_CHR		 2
+#define	CDT_DIR		 4
+#define	CDT_BLK		 6
+#define	CDT_REG		 8
+#define	CDT_LNK		10
+#define	CDT_SOCK		12
+#define	CDT_WHT		14
 
 /*
  * Convert between stat structure types and directory types.
  */
-#define	IFTODT(mode)	(((mode) & 0170000) >> 12)
-#define	DTTOIF(dirtype)	((dirtype) << 12)
+#define	IFTOCDT(mode)	(((mode) & 0170000) >> 12)
+#define	CDTTOIF(dirtype)	((dirtype) << 12)
 
 #endif
 
