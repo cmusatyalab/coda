@@ -28,7 +28,6 @@ Coda are listed in the file CREDITS.
 
 #include <lwp/lwp.h>
 #include <lwp/lock.h>
-#include <lwp/preempt.h>
 #include "lwp.private_pt.h"
 
 /* BEGIN - NOT USED exported variables */
