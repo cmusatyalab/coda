@@ -868,7 +868,6 @@ void DispatchWorker(msgent *m) {
 
 		/* Poke the vproc in case it is waiting on some event. */
 		Rtry_Signal();
-		Conn_Signal();
 		Srvr_Signal();
 		Mgrp_Signal();
 	    }

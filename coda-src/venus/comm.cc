@@ -220,31 +220,6 @@ void CommInit() {
 
 /* *****  Connection  ***** */
 
-const int MAXCONNSPERUSER = 9;		    /* Max simultaneous conns per user per server. */
-
-#define	CONNQ_LOCK()
-#define	CONNQ_UNLOCK()
-#define	CONNQ_WAIT()	    VprocWait((char *)&connent::conntab_sync)
-#define	CONNQ_SIGNAL()	    VprocSignal((char *)&connent::conntab_sync)
-
-void Conn_Wait() {
-    CONNQ_LOCK();
-    LOG(0, ("WAITING(CONNQ):\n"));
-    START_TIMING();
-    CONNQ_WAIT();
-    END_TIMING();
-    LOG(0, ("WAIT OVER, elapsed = %3.1f\n", elapsed));
-    CONNQ_UNLOCK();
-}
-
-
-void Conn_Signal() {
-    CONNQ_LOCK();
-    CONNQ_SIGNAL();
-    CONNQ_UNLOCK();
-}
-
-
 int srvent::GetConn(connent **cpp, uid_t uid, int Force)
 {
     LOG(100, ("srvent::GetConn: host = %s, uid = %d, force = %d\n",
@@ -255,8 +230,7 @@ int srvent::GetConn(connent **cpp, uid_t uid, int Force)
     connent *c = 0;
 
     /* Grab an existing connection if one is free. */
-    /* Before creating a new connection, make sure the per-user limit is not exceeded. */
-    for (;;) {
+    {
 	/* Check whether there is already a free connection. */
 	struct ConnKey Key; Key.host = host; Key.uid = uid;
 	conn_iterator next(&Key);
@@ -269,15 +243,6 @@ int srvent::GetConn(connent **cpp, uid_t uid, int Force)
                 return 0;
 	    }
 	}
-
-	if (count < MAXCONNSPERUSER) break;
-
-	/* Wait here if MAX conns are already in use. */
-	/* Synchronization needs fixed for MP! -JJK */
-	if (VprocInterrupted()) return(EINTR);
-/*	    RPCOpStats.RPCOps[opcode].busy++;*/
-	Conn_Wait();
-	if (VprocInterrupted()) return(EINTR);
     }
 
     /* Try to connect to the server on behalf of the user. */
@@ -326,8 +291,6 @@ void PutConn(connent **cpp)
     else {
 	c->inuse = 0;
     }
-
-    Conn_Signal();
 }
 
 
