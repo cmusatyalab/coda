@@ -93,7 +93,7 @@ vpath %.rpc2 $(INCLPATH)
 # LIBINODEFS = $(TOPOBJ)/$(INODEFSDIR)/$(INODEFSNAME)
 
 # -- CS --
-LIBCS =$(TOPOBJ)/lib-src/libcs/libcs.a
+LIBBASE =$(TOPOBJ)/lib-src/base/libbase.a
 
 # -- LWP --
 # LIBNEWLWP =$(TOPOBJ)/lib-src/mlwp/libnewlwp.a			
@@ -127,7 +127,7 @@ LIBPORTMAP =../portmapper/libportmap.a
 LIBSE =../rpc2/libse.a
 LIBFAIL =../fail/libfail.a
 LIBRVMRES =../rvmres/librvmres.a
-LIBDIRLIB= ../dir/libdir.a
+LIBDIRLIB= ../dir/libcodadir.a
 LIBVICEERROR  = ../vice/libviceerror.a
 LIBDS = ../ds/libds.a
 LIBPARTITION = ../partition/libpartition.a

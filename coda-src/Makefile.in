@@ -43,8 +43,8 @@ TOPOBJ = @TOPOBJ@
 include $(MAKDIR)/Makeconf
 
   I =  scripts
- II =  kerndep dir 
-III =  rpc2 util
+ II =  kerndep 
+III =  rpc2 util dir 
  IV =  libal rp2gen portmapper pdbstuff blurb
   V =  fail vicedep partition
 

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/auth2/avice.c,v 4.1.2.1 1998/05/15 16:50:48 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/auth2/avice.c,v 4.2 1998/08/05 23:49:13 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -91,7 +91,8 @@ static RPC2_EncryptionKey Key2;
 extern void ntoh_SecretToken(SecretToken *);
 
 /* prototype */
-long GetKeysFromToken(INOUT RPC2_CountedBS *cIdent,
+long GetKeysFromToken(IN RPC2_Integer AuthenticationType, 
+		      INOUT RPC2_CountedBS *cIdent,
                       OUT RPC2_EncryptionKey hKey,
                       OUT RPC2_EncryptionKey sKey);
 
@@ -134,7 +135,7 @@ long GetKeys(RPC2_Integer *AuthenticationType, RPC2_CountedBS *cIdent, RPC2_Encr
 
 		case	AUTH_METHOD_CODATOKENS:
 			/* this is a good way to auth to Vice */
-				return GetKeysFromToken(cIdent, hKey, sKey);
+				return GetKeysFromToken(AuthenticationType, cIdent, hKey, sKey);
 
 		case	AUTH_METHOD_PK:
 			/* just a reserved constant, thanks */
@@ -164,7 +165,8 @@ long GetKeys(RPC2_Integer *AuthenticationType, RPC2_CountedBS *cIdent, RPC2_Encr
     connection routine, which can access the fields of SecretToken.  
 */
 
-long GetKeysFromToken(INOUT RPC2_CountedBS *cIdent, 
+long GetKeysFromToken(IN RPC2_Integer AuthenticationType,
+		      INOUT RPC2_CountedBS *cIdent, 
 		      OUT RPC2_EncryptionKey hKey, 
 		      OUT RPC2_EncryptionKey sKey)
 {

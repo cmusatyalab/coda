@@ -40,14 +40,14 @@ CFLAGS += -Wall
 
 LIBRARIES = libbase.a 
 HEADERS   = assert.h configfiles.h dllist.h
-# OBJS = configfiles.o
+# OBJECTS = configfiles.o
 
 ifneq ($(SHORTSYS),djgpp)
 HEADERS += parser.h
 OBJECTS += parser.o
 endif
 
-libbase.a: $(OBJS)
+libbase.a: $(OBJECTS)
 
 
 parser.o: parser.c parser.h

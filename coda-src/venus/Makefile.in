@@ -25,7 +25,7 @@
 # improvements or extensions that  they  make,  and  to  grant  Carnegie
 # Mellon the rights to redistribute these changes without encumbrance.
 # 
-# static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/Makefile.in,v 4.16 1998/04/14 21:03:02 braam Exp $";
+# static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/Makefile.in,v 4.17 1998/08/26 21:24:24 braam Exp $";
 
 
 TOPDIR = @top_srcdir@
@@ -57,7 +57,7 @@ LIBS=	$(LIBUTIL)\
 	$(LIBFAIL)\
 	$(LIBKERNDEP) \
 	$(LIBVV)\
-	$(LIBCDIRLIB)\
+	$(LIBDIRLIB)\
 	$(LIBSYS)\
 	$(LIBMACH)\
 	$(LIBCOMPAT)\
