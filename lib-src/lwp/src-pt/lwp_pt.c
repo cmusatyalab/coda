@@ -273,7 +273,9 @@ static void *lwp_newprocess(void *arg)
     sigemptyset(&mask);
     /* just adding the ones that venus tends to use */
     sigaddset(&mask, SIGHUP);
+#ifdef SIGIOT
     sigaddset(&mask, SIGIOT);
+#endif
     sigaddset(&mask, SIGTERM);
     sigaddset(&mask, SIGINT);
     sigaddset(&mask, SIGXCPU);
