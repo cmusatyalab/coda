@@ -179,7 +179,7 @@ long S_VolPeekMem(RPC2_Handle cid, RPC2_String address, RPC2_BoundedBS *buf)
 	buf->SeqLen = buf->MaxSeqLen;
 	if ((status = okaddr(&x, address, (vm_size_t) buf->SeqLen, VM_PROT_READ))
 	    == RPC2_SUCCESS)
-		bcopy((char *) x, (char *) buf->SeqBody, (int) buf->SeqLen);
+		memmove((char *) buf->SeqBody, (char *) x, (int) buf->SeqLen);
 	LogMsg(0, VolDebugLevel, stdout, "S_:VolPeekMem returning %ld\n", status);
 	return(status);
 }
@@ -195,7 +195,7 @@ long S_VolPokeMem(RPC2_Handle cid, RPC2_String address, RPC2_CountedBS *buf)
 	vm_address_t	x;
 	if ((status = okaddr(&x, address, (vm_size_t) buf->SeqLen, VM_PROT_WRITE))
 	    == RPC2_SUCCESS)
-		bcopy((char *) buf->SeqBody, (char *) x, (int) buf->SeqLen);
+		memmove((char *) x, (char *) buf->SeqBody, (int) buf->SeqLen);
 	LogMsg(0, VolDebugLevel, stdout, "S_:VolPokeMem returning %ld\n", status);
 	return(status);
 }

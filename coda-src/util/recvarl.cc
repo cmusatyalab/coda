@@ -67,7 +67,7 @@ recvarl::recvarl(int recvarlsize) {
     rvmlib_set_range(this, recvarlsize + sizeof(recvarl_length_t));
     length = recvarlsize;
     char *c = (char *)&(this->vfld[0]);
-    bzero(c, recvarlsize);
+    memset(c, 0, recvarlsize);
 }
 
 /* the destructor should never be called 

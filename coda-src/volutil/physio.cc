@@ -95,7 +95,7 @@ int ReallyRead (void *formal_file, long block, char *data)
 	    }
 	}
 	if (nsdp) {
-	    bcopy(nsdp->Data, data, PAGESIZE);
+	    memmove((void *)data, (const void *)nsdp->Data, PAGESIZE);
 	    return PAGESIZE;
 	}
     }
@@ -105,7 +105,7 @@ int ReallyRead (void *formal_file, long block, char *data)
 /*	printf("ReallyRead: page number	%d, vnode %d \n", block,
 	       file->vnode);
 */	
-	bcopy((void *)((dinode->Pages)[block]), data, PAGESIZE);
+	memmove((void *)data, (const void *)((dinode->Pages)[block]), PAGESIZE);
 	return PAGESIZE;
     }
     else {
@@ -150,14 +150,14 @@ int ReallyWrite (void *formal_file, long block, char *data)
 void FidZap (void *formal_file)
 {
     DirHandle *file = (DirHandle *)formal_file;
-    bzero((char *)file, sizeof(DirHandle));
+    memset((char *)file, 0, sizeof(DirHandle));
 }
 
 int FidEq (void *formal_afile, void *formal_bfile)
 {
     DirHandle *afile = (DirHandle *)formal_afile;
     DirHandle *bfile = (DirHandle *)formal_bfile;
-    return (bcmp((char *)afile, (char *)bfile, sizeof(DirHandle)) == 0);
+    return (memcmp((char *)afile, (char *)bfile, sizeof(DirHandle)) == 0);
 }
 
 void FidCpy (void *formal_tofile, void *formal_fromfile)

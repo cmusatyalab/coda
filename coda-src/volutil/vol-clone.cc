@@ -357,7 +357,7 @@ static void VUCloneIndex(Error *error, Volume *rwVp, Volume *cloneVp, VnodeClass
     rvlist = (rec_smolist *)(rvmlib_rec_malloc(sizeof(rec_smolist) * vnlistSize));
     rec_smolist *tmpvlist = (rec_smolist *)malloc((int)(sizeof(rec_smolist) * vnlistSize));
     CODA_ASSERT(tmpvlist != 0);
-    bzero((void *)tmpvlist, (int)(sizeof(rec_smolist) * vnlistSize));
+    memset((void *)tmpvlist, 0, (int)(sizeof(rec_smolist) * vnlistSize));
     rvmlib_modify_bytes(rvlist, tmpvlist, sizeof(rec_smolist)*vnlistSize);
     free(tmpvlist);
 
@@ -447,7 +447,7 @@ int CloneVnode(Volume *rwVp, Volume *cloneVp, int vnodeIndex,
 	   (vclass == vLarge)?"Large":"Small",
 	   V_id(rwVp), vnodeNum, vnode->uniquifier);
 
-    bzero((void *)&(vnode->nextvn), sizeof(rec_smolink));
+    memset((void *)&(vnode->nextvn), 0, sizeof(rec_smolink));
     vnode->vol_index = V_volumeindex(cloneVp);
     
     /* update inode */

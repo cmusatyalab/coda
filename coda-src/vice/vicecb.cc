@@ -394,7 +394,7 @@ void BreakCallBack(HostTable *client, ViceFid *afid) {
     /* allocate space for multirpc lists.  tf->users is an upper bound. */
     RPC2_Handle *cidlist = (RPC2_Handle *) malloc(sizeof(RPC2_Handle) * tf->users);
     RPC2_Integer *rclist = (RPC2_Integer *) malloc(sizeof(RPC2_Integer) * tf->users);
-    bzero((char *) rclist, (int) sizeof(RPC2_Integer) * tf->users);
+    memset((char *) rclist, 0, (int) sizeof(RPC2_Integer) * tf->users);
     
     /* how many client entries, other than us?  fill conn id list, and obtain
      * locks on the hostentry structures */
@@ -684,7 +684,7 @@ void PrintCallBackState(FILE *fp)
 	
 	// shouldn't need to do this -- maxvols is really a constant. 
 	CBStats = (struct CBStat *) malloc(MaxVols * sizeof(struct CBStat));
-	bzero((char *)CBStats, (int)sizeof(struct CBStat) * MaxVols);
+	memset((char *)CBStats, 0, (int)sizeof(struct CBStat) * MaxVols);
 
 	for (int i = 0; i < VHASH; i++) {
 	    struct FileEntry *tfe = hashTable[i];

@@ -167,7 +167,7 @@ void rep_DoRepair(int largc, char **largv) {
   }
   vioc.out_size = (short)sizeof(space);
   vioc.out = space;
-  bzero(space, (short)sizeof(space));
+  memset(space, 0, (short)sizeof(space));
   rc = pioctl(reppath, VIOC_REPAIR, &vioc, 0);
   if (rc < 0 && errno != ETOOMANYREFS) 
     repair_perror(" REPAIR", reppath, errno);
@@ -345,7 +345,7 @@ void rep_CompareDirs(int largc, char **largv) {
       vioc.in = tmppath;
       vioc.out_size = (short) sizeof(space);
       vioc.out = space;
-      bzero(space, (int)sizeof(space));
+      memset(space, 0, (int)sizeof(space));
       rc = pioctl(reppath, VIOC_REPAIR, &vioc, 0);
       if (!rc) {
 	/* name/name conflicts were repaired 
@@ -609,7 +609,7 @@ int RemoveInc(char *uconflictpath, struct repvol **retv, int *dirconf) {
     vioc.in = tmppath;
     vioc.out_size = (int)sizeof(space);
     vioc.out = space;
-    bzero(space, (int)sizeof(space));
+    memset(space, 0, (int)sizeof(space));
     rc = pioctl(reppath, VIOC_REPAIR, &vioc, 0);
     if (rc < 0 && errno != ETOOMANYREFS) 
       repair_perror(" REPAIR", reppath, errno);
@@ -660,7 +660,7 @@ int RemoveInc(char *uconflictpath, struct repvol **retv, int *dirconf) {
       vioc.in = tmppath;
       vioc.out_size = (short)sizeof(space);
       vioc.out = space;
-      bzero(space, (int)sizeof(space));
+      memset(space, 0, (int)sizeof(space));
       rc = pioctl(reppath, VIOC_REPAIR, &vioc, 0);
       if (rc < 0 && errno != ETOOMANYREFS) 
 	repair_perror(" REPAIR", reppath, errno);
@@ -1442,7 +1442,7 @@ int BeginRepair(char *userpath, struct repvol **repv) {
   vioc.out_size = (short)sizeof(space);
   vioc.in_size = 0;
   vioc.out = space;
-  bzero(space, (int)sizeof(space));
+  memset(space, 0, (int)sizeof(space));
   rc = pioctl(reppath, VIOC_ENABLEREPAIR, &vioc, 0);
   if (rc < 0) {
     if (errno == EWOULDBLOCK)

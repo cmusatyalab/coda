@@ -76,7 +76,7 @@ long RS_LockAndFetch(RPC2_Handle RPCid, ViceFid *Fid,
     // first set out parameters
     InitVV(VV);
     *logsize = 0;
-    bzero((void *)rstatus, sizeof(ResStatus));
+    memset((void *)rstatus, 0, sizeof(ResStatus));
 
     // get info from connection
     conninfo *cip = NULL;
@@ -111,8 +111,8 @@ long RS_LockAndFetch(RPC2_Handle RPCid, ViceFid *Fid,
     }
 
     // set out parameter 
-    bcopy((const void *)&(Vnode_vv(vptr)), (void *) VV, 
-	  sizeof(ViceVersionVector));
+    memmove((void *)VV, (const void *)&(Vnode_vv(vptr)), 
+	    sizeof(ViceVersionVector));
     ObtainResStatus(rstatus, &(vptr->disk));
 
     /* set log size as the volume log size - 

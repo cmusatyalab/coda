@@ -193,7 +193,7 @@ void BuildPWArray(char *fileBuf)
 	char holder[3];
 	
 	PWCount = 0;	/* no of valid entries in PWArray */
-	bzero((char *)PWArray, PWLen*RPC2_KEYSIZE);
+	memset((char *)PWArray, 0, PWLen*RPC2_KEYSIZE);
 	nextline = fileBuf;	/* index into start of next line  in fbuf */
 
 	while (TRUE)
@@ -404,7 +404,7 @@ long PWChangePasswd(RPC2_Handle cid, RPC2_Integer viceId, RPC2_String Passwd)
 	RPC2_EncryptionKey newPasswd;
 	int len;
 
-	bzero(newPasswd, sizeof(newPasswd));
+	memset(newPasswd, 0, sizeof(newPasswd));
 	if (strlen((char *) Passwd) < RPC2_KEYSIZE)
 		len = strlen((char *) Passwd);
 	else
@@ -446,7 +446,7 @@ long PWChangePasswd(RPC2_Handle cid, RPC2_Integer viceId, RPC2_String Passwd)
 int IsAUser(int viceId)
 {
 	if (viceId < 0 || viceId >= PWLen) return (FALSE);  
-	if (bcmp(PWArray[viceId], NullKey, RPC2_KEYSIZE) == 0) return (FALSE);
+	if (memcmp(PWArray[viceId], NullKey, RPC2_KEYSIZE) == 0) return (FALSE);
 	return(TRUE);
 }
 
@@ -454,7 +454,7 @@ int IsAUser(int viceId)
 int IsADeletedUser(int viceId)
 {
 	if (viceId < 0 || viceId >= PWLen) return (FALSE);
-	if (bcmp(PWArray[viceId], DeleteKey, RPC2_KEYSIZE) == 0) return (TRUE);
+	if (memcmp(PWArray[viceId], DeleteKey, RPC2_KEYSIZE) == 0) return (TRUE);
 	return(FALSE);
 }
 
@@ -476,8 +476,8 @@ int BogusKey(RPC2_EncryptionKey x)
 {
 	RPC2_EncryptionKey temp;
 	rpc2_Encrypt((char *)x, (char *)temp, RPC2_KEYSIZE, (char *)FileKey, RPC2_XOR);
-	if (bcmp(temp, NullKey, RPC2_KEYSIZE) == 0) return(TRUE);
-	if (bcmp(temp, DeleteKey, RPC2_KEYSIZE) == 0) return(TRUE);
+	if (memcmp(temp, NullKey, RPC2_KEYSIZE) == 0) return(TRUE);
+	if (memcmp(temp, DeleteKey, RPC2_KEYSIZE) == 0) return(TRUE);
 	return(FALSE);
 }
 

@@ -271,7 +271,7 @@ static struct DirHeader *dir_Extend(struct DirHeader *olddir, int in_rvm)
 		rvmlib_set_range((void *)dirh, newsize);
 	memmove(dirh, olddir, oldsize);
 	
-	bzero((void *)dirh + oldsize, newsize - oldsize);
+	memset((void *)dirh + oldsize, 0, newsize - oldsize);
 
 	/* if old dirh exists, free it */
 	if ( in_rvm ) 
@@ -414,7 +414,7 @@ int DIR_Init(int data_loc)
 		return 0;
 	} else
 		return 1;
-	bzero((char *)&dir_stats, sizeof(dir_stats));
+	memset((char *)&dir_stats, 0, sizeof(dir_stats));
 }
 
 void DH_PrintStats(FILE *fp)
@@ -617,7 +617,7 @@ int DIR_MakeDir (struct DirHeader **dir,struct DirFid *me,
 	}
 	*dir = dhp;
 
-	bzero(dhp, DIR_PAGESIZE);
+	memset(dhp, 0, DIR_PAGESIZE);
 
 	dhp->dirh_ph.tag =  htonl(1234);
 	dhp->dirh_ph.freecount = (EPP-DHE-1);
@@ -845,7 +845,7 @@ int DIR_Convert (PDirHeader dir, char *file, VolumeId vol)
 	CODA_ASSERT(buf);
 #endif
 
-	bzero(buf, len);
+	memset(buf, 0, len);
 
 	for (i=0; i<NHASH; i++) {
 		num = ntohs(dir->dirh_hashTable[i]);
@@ -953,7 +953,7 @@ void dir_Copy(PDirHeader old, PDirHeader *new, int to_rvm)
 		rvmlib_set_range((void *) new, size);
 	} else
 		*new = (PDirHeader)malloc(size);
-	bcopy((const char *)old, (char *) *new, size);
+	memmove((void *) *new, (const void *)old, size);
 
 }
 
@@ -1224,7 +1224,7 @@ int DIR_DirOK(PDirHeader pdh)
 	}
 
 	/* build an entry allocation map for the entire directory */
-	bzero(eaMap, sizeof(eaMap));
+	memset(eaMap, 0, sizeof(eaMap));
 	
 	/* take care of page and dir header blob usage */
 	/* first page */ 

@@ -187,10 +187,10 @@ GotIt:
 		st.EndTimestamp,t.tv_sec,st.ViceId);
 	return(-1);
     }
-    bcopy(st.HandShakeKey, hKey, sizeof(RPC2_EncryptionKey));
+    memmove((void *)hKey, (const void *)st.HandShakeKey, sizeof(RPC2_EncryptionKey));
     for (i = 0; i < sizeof(RPC2_EncryptionKey); i++)
 	sKey[i] = rpc2_NextRandom(NULL) & 0xff; 	/* new session key */
-    bcopy((void *)&st, cIdent->SeqBody, sizeof(SecretToken));   /* to be passed back
+    memmove((void *)cIdent->SeqBody, (const void *)&st, sizeof(SecretToken));   /* to be passed back
 						as new connection packet */
     return(0);
 }
@@ -202,19 +202,19 @@ GotIt:
 void SetServerKeys(IN RPC2_EncryptionKey serverKey1, 
 		   IN RPC2_EncryptionKey serverKey2)
 {
-    bzero(Key1, sizeof(Key1));
-    bzero(Key2, sizeof(Key2));
+    memset(Key1, 0, sizeof(Key1));
+    memset(Key2, 0, sizeof(Key2));
 
     if (serverKey1 == NULL) 
 	    Key1IsValid = FALSE;
     else {
-	bcopy(serverKey1, Key1, sizeof(RPC2_EncryptionKey));
+	memmove((void *)Key1, (const void *)serverKey1, sizeof(RPC2_EncryptionKey));
 	Key1IsValid = TRUE;
     }
     if (serverKey2 == NULL) 
 	    Key2IsValid = FALSE;
     else {
-	bcopy(serverKey2, Key2, sizeof(RPC2_EncryptionKey));
+	memmove((void *)Key2, (const void *)serverKey2, sizeof(RPC2_EncryptionKey));
 	Key2IsValid = TRUE;
     }
 }

@@ -765,7 +765,7 @@ static void restorefromback(void)
     stripslash(partition);
 
     if (these_args < 4) 
-	bzero((void *)volname, 70);
+	memset((void *)volname, 0, 70);
     else
 	strcpy(volname, this_argp[3]);
 
@@ -1201,7 +1201,7 @@ static void setvv(void)
 	fprintf(stderr, "setvv: Bogus vnode uniquifier %s\n", this_argp[4]);
 	exit(-1);
     }
-    bzero((void *)&vv, sizeof(vv));
+    memset((void *)&vv, 0, sizeof(vv));
     vv.Versions.Site0 = (bit32) atoi(this_argp[5]);
     vv.Versions.Site1 = (bit32) atoi(this_argp[6]);
     vv.Versions.Site2 = (bit32) atoi(this_argp[7]);
@@ -2054,7 +2054,7 @@ static int V_BindToServer(char *fileserver, RPC2_Handle *RPCid)
 
     fprintf(stderr, "V_BindToServer: binding to host %s\n", fileserver);
     RPC2_BindParms bparms;
-    bzero((void *)&bparms, sizeof(bparms));
+    memset((void *)&bparms, 0, sizeof(bparms));
     bparms.SecurityLevel = RPC2_OPENKIMONO;
     bparms.SideEffectType = SMARTFTP;
 

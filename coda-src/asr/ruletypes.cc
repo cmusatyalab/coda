@@ -383,7 +383,7 @@ int rule_t::GetReplicaNames() {
     vioc.out_size = (short) sizeof(space);
     vioc.in_size = 0;
     vioc.out = space;
-    bzero(space, (int) sizeof(space));
+    memset(space, 0, (int) sizeof(space));
     rc = pioctl(namep, VIOC_ENABLEREPAIR, &vioc, 0);
     if (rc < 0) {
 	fprintf(stderr, "Error %d(%d) trying to get replicas of %s\n", 
@@ -424,7 +424,7 @@ int rule_t::enablerepair() {
     vioc.out_size = (short) sizeof(space);
     vioc.in_size = 0;
     vioc.out = space;
-    bzero(space, (int) sizeof(space));
+    memset(space, 0, (int) sizeof(space));
     int rc = pioctl(name, VIOC_ENABLEREPAIR, &vioc, 0);
     if (rc < 0) 
 	fprintf(stderr, "Error %d(%d) trying to enable repair for %s\n", 
@@ -438,7 +438,7 @@ void rule_t::disablerepair() {
     char name[MAXPATHLEN]; 
     
     sprintf(name, "%s", idname);
-    bzero((void *)&vioc, (int) sizeof(vioc));
+    memset((void *)&vioc, 0, (int) sizeof(vioc));
     rc = pioctl(name, VIOC_DISABLEREPAIR, &vioc, 0);
     if (rc < 0) 
 	fprintf(stderr, "Error(%d) during disablerepair of %s", errno, name);

@@ -119,7 +119,7 @@ int main(int argc, char **argv)
  /* Bind to auth server using auid and apw */
 
     U_InitRPC();
-    bzero(key, sizeof(RPC2_EncryptionKey));
+    memset(key, 0, sizeof(RPC2_EncryptionKey));
     strncpy(key, apw, sizeof(RPC2_EncryptionKey));
     rc = U_BindToServer(1, auid, key, &AuthID);
     if(rc != AUTH_SUCCESS) {
@@ -178,7 +178,7 @@ PRIVATE int AddNewUser (char *uid, char *pw)
     char		userid[256];
 
     /* get vid from input uid */
-    bzero(ek, sizeof(RPC2_EncryptionKey));
+    memset(ek, 0, sizeof(RPC2_EncryptionKey));
     strncpy(ek, pw, sizeof(RPC2_EncryptionKey));
     rc = AuthNameToId(AuthID, uid, &vid);
     if(rc != AUTH_SUCCESS) {

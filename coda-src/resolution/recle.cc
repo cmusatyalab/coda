@@ -257,7 +257,7 @@ char *recle::DumpToBuf(int *bufsize) {
     l[1] = *bufsize;
     char *rlep = &(buf[2 * sizeof(long)]);
     /* copy the fixed length part */
-    bcopy((char *)this, rlep, (int) sizeof(recle));
+    memmove((void *)rlep, (const void *)this, (int) sizeof(recle));
     rlep += (int) sizeof(recle);
 
     /* word align the variable length part */
@@ -265,7 +265,7 @@ char *recle::DumpToBuf(int *bufsize) {
 	rlep++;
 
     CODA_ASSERT((long)(rlep + size) <= (long)lastlong);
-    bcopy((const void *)&(vle->vfld[0]), (void *) rlep, size);
+    memmove((void *) rlep, (const void *)&(vle->vfld[0]), size);
     
     *lastlong = DUMP_ENTRY_END_STAMP;
     return(buf);

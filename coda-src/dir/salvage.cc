@@ -80,8 +80,8 @@ int DirSalvage (long *fromFile, long *toFile)
 	struct DirEntry *ep;
 	int entry;
 
-    bzero((char *)dot, sizeof(dot));
-    bzero((char *)dotdot, sizeof(dotdot));
+    memset((char *)dot, 0, sizeof(dot));
+    memset((char *)dotdot, 0, sizeof(dotdot));
     MakeDir(toFile, dot, dotdot);	/* Returns no error code. */
     code = Delete(toFile, ".");
     if (code) printf("makedir screwup on '.', code %d.\n", code);

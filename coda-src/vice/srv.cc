@@ -282,7 +282,7 @@ extern void dumpvm();
 void zombie(int sig) {
 #else
 void zombie(int sig, int code, struct sigcontext *scp) {
-    bcopy(scp, &OldContext, sizeof(struct sigcontext));
+    memmove((void *)&OldContext, (const void *)scp, sizeof(struct sigcontext));
 #endif
 
 #ifndef  __BSD44__
@@ -1689,7 +1689,7 @@ static void InitServerKeys(char *fkey1, char *fkey2)
 
     /* two keys: don't do a double key if they are equal */
     if( NoKey1 == 0  && NoKey2 == 0 ) {
-	if ( bcmp(ptrkey1, ptrkey2, sizeof(ptrkey1)) == 0 ) 
+	if ( memcmp(ptrkey1, ptrkey2, sizeof(ptrkey1)) == 0 ) 
 	    SetServerKeys(ptrkey1, NULL);
 	else
 	    SetServerKeys(ptrkey1, ptrkey2);

@@ -88,7 +88,7 @@ recov_vol_log::recov_vol_log(VolumeId vid, int adm) :recov_inuse(adm, 1)
 	index = (recle **)rvmlib_rec_malloc(index_size * sizeof(void *));
 	CODA_ASSERT(index);
 	rvmlib_set_range(index, index_size * sizeof(void *));
-	bzero((void *)index, index_size * sizeof(void *));
+	memset((void *)index, 0, index_size * sizeof(void *));
     }
     else 
 	index = NULL;
@@ -151,7 +151,7 @@ int recov_vol_log::Grow(int offset)
     
     recle *l = index[pos];
     rvmlib_set_range(index[pos], LOGRECORD_BLOCKSIZE * sizeof(recle));
-    bzero((void *)l, LOGRECORD_BLOCKSIZE * sizeof(recle));
+    memset((void *)l, 0, LOGRECORD_BLOCKSIZE * sizeof(recle));
     
     
     rvmlib_set_range(&size, sizeof(int));

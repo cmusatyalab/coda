@@ -239,7 +239,7 @@ long userent::SetTokens(SecretToken *asecret, ClearToken *aclear) {
 	eprint("root acquiring Coda tokens!");
     }
 
-    /* N.B. Using direct assignment to the Token structs rather than the bcopys doesn't seem to work! */
+    /* N.B. Using direct assignment to the Token structs rather than the bcopys (now memmove) doesn't seem to work! XXXX Bogus comment? Phil Nelson*/
     tokensvalid = 1;
     memmove((void *) &secret, (const void *)asecret, (int) sizeof(SecretToken));
     memmove((void *) &clear, (const void *)aclear, (int) sizeof(ClearToken));

@@ -144,7 +144,7 @@ static void parse(char *line, RPC2_EncryptionKey outpw, char **last)
 	abort();
 	}
     *pp++ = 0;
-    bzero(outpw, sizeof(RPC2_EncryptionKey));
+    memset(outpw, 0, sizeof(RPC2_EncryptionKey));
     i = 0;
     while(pp && *pp != 0 && *pp != '\t' && i < sizeof(RPC2_EncryptionKey))
 	outpw[i++] = *pp++;

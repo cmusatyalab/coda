@@ -112,9 +112,9 @@ int U_SetLocalTokens(IN int setPag, IN ClearToken *cToken, IN EncryptedSecretTok
 #endif
 
     inbuff.sTokenSize = sizeof(EncryptedSecretToken);
-    bcopy((char *)sToken,(char *)inbuff.stoken, sizeof(EncryptedSecretToken));
+    memmove((void *)inbuff.stoken, (const void *)sToken, sizeof(EncryptedSecretToken));
     inbuff.cTokenSize = sizeof(ClearToken);
-    bcopy((char *)cToken, (char*)&inbuff.ctoken, sizeof(ClearToken));
+    memmove((void *)&inbuff.ctoken, (const void *)cToken, sizeof(ClearToken));
     buffer.in = (char *)&inbuff;
     buffer.out = 0;
     buffer.in_size = sizeof(inbuff);
@@ -153,10 +153,10 @@ int U_GetLocalTokens(OUT ClearToken *cToken, OUT EncryptedSecretToken sToken)
     }
     if(outbuff.sTokenSize != sizeof(EncryptedSecretToken))
 	    return(-1);
-    bcopy((char *)outbuff.stoken, (char *)sToken, sizeof(EncryptedSecretToken));
+    memmove((void *)sToken, (const void *)outbuff.stoken, sizeof(EncryptedSecretToken));
     if(outbuff.cTokenSize != sizeof(ClearToken))
 	    return(-1);
-    bcopy((char *)&outbuff.ctoken, (char *)cToken, sizeof(ClearToken));
+    memmove((void *)cToken, (const void *)&outbuff.ctoken, sizeof(ClearToken));
     return(0);
 }
 

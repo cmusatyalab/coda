@@ -99,7 +99,7 @@ static char *get(DumpBuffer_t *buf, int size, int *error)
 	    }
 
 	    /* Save unused portion of buffer. */
-	    bcopy(buf->DumpBufPtr, buf->DumpBuf, (int)nbytes);	
+	    memmove(buf->DumpBuf, buf->DumpBufPtr, (int)nbytes);	
 
 	    buf->DumpBufPtr = buf->DumpBuf + nbytes;
 	}
@@ -394,7 +394,7 @@ int EndOfDump(DumpBuffer_t *buf)
 int ReadVolumeDiskData(DumpBuffer_t *buf, VolumeDiskData *vol)
 {
     int tag;
-    bzero((char *)vol, sizeof(*vol));
+    memset((char *)vol, 0, sizeof(*vol));
     while ((tag = ReadTag(buf)) > D_MAX && tag) {
 	switch (tag) {
 	    case 'i':

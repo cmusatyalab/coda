@@ -244,7 +244,7 @@ static int RestoreVolume(DumpBuffer_t *buf, char *partition,
 	return VFAIL;
     }
 
-    bzero((void *)&vol, sizeof(VolumeDiskData));
+    memset((void *)&vol, 0, sizeof(VolumeDiskData));
     if (!ReadVolumeDiskData(buf, &vol)) {
 	VLog(0, "VolRestore: ReadVolDiskData failed; not restored.");
 	return VFAIL;
@@ -451,7 +451,7 @@ static int ReadLargeVnodeIndex(DumpBuffer_t *buf, Volume *vp)
 
     rlist = (rec_smolist *)(rvmlib_rec_malloc(sizeof(rec_smolist) * list_size));
     rec_smolist *vmrlist = (rec_smolist *)malloc(sizeof(rec_smolist) * list_size);
-    bzero((void *)vmrlist, sizeof(rec_smolist) * list_size);
+    memset((void *)vmrlist, 0, sizeof(rec_smolist) * list_size);
     rvmlib_modify_bytes(rlist, vmrlist, sizeof(rec_smolist) * list_size);
     free(vmrlist);
 
@@ -493,7 +493,7 @@ static int ReadLargeVnodeIndex(DumpBuffer_t *buf, Volume *vp)
 		vdo->vol_index = volindex;
 		vdo->vnodeMagic = LARGEVNODEMAGIC;
 		ViceLockClear((&vdo->lock));
-		bcopy((const void *)&(camvdo->nextvn), (void *) &(vdo->nextvn), sizeof(rec_smolink));
+		memmove((void *) &(vdo->nextvn), (const void *)&(camvdo->nextvn), sizeof(rec_smolink));
 		rvmlib_modify_bytes(camvdo, vdo, SIZEOF_LARGEDISKVNODE);
 		nvnodes ++;
 	    }
@@ -547,7 +547,7 @@ static int ReadSmallVnodeIndex(DumpBuffer_t *buf, Volume *vp)
 
     rlist = (rec_smolist *)(rvmlib_rec_malloc(sizeof(rec_smolist) * list_size));
     rec_smolist *vmrlist = (rec_smolist *)malloc(sizeof(rec_smolist) * list_size);
-    bzero((void *)vmrlist, sizeof(rec_smolist) * list_size);
+    memset((void *)vmrlist, 0, sizeof(rec_smolist) * list_size);
     rvmlib_modify_bytes(rlist, vmrlist, sizeof(rec_smolist) * list_size);
     free(vmrlist);
 
@@ -578,7 +578,7 @@ static int ReadSmallVnodeIndex(DumpBuffer_t *buf, Volume *vp)
 		vdo->vol_index = volindex;
 		vdo->vnodeMagic = SMALLVNODEMAGIC;
 		ViceLockClear((&vdo->lock));
-		bcopy((const void *)&(camvdo->nextvn), (void *) &(vdo->nextvn), sizeof(rec_smolink));
+		memmove((void *) &(vdo->nextvn), (const void *)&(camvdo->nextvn), sizeof(rec_smolink));
 		rvmlib_modify_bytes(camvdo, vdo, SIZEOF_SMALLDISKVNODE);
 		nvnodes ++;
 	    }
@@ -621,7 +621,7 @@ static int ReadVnodeDiskObject(DumpBuffer_t *buf, VnodeDiskObject *vdop,
 	    return -1;
     }
 
-    bzero((void *)&(vdop->nextvn), sizeof(rec_smolink));
+    memset((void *)&(vdop->nextvn), 0, sizeof(rec_smolink));
     /* Let the following ReadTag catch any errors. */
     while ((tag = ReadTag(buf)) > D_MAX && tag) {
 	switch (tag) {
@@ -684,7 +684,7 @@ static int ReadVnodeDiskObject(DumpBuffer_t *buf, VnodeDiskObject *vdop,
 	    return -1;
 	}
 	*dinode = (DirInode *)malloc(sizeof(DirInode));
-	bzero((void *)*dinode, sizeof(DirInode));
+	memset((void *)*dinode, 0, sizeof(DirInode));
 	for (int i = 0; i < npages; i++){
 	    (*dinode)->di_pages[i] = (long *)malloc(DIR_PAGESIZE);
 	    int tmp = ReadTag(buf);

@@ -138,11 +138,11 @@ void assocrefs::Attach(assoc *Assoc, int ix) {
 
 	if (assocs == 0) {
 	    assocs = (assoc **)malloc(NewMax * sizeof(assoc *));
-	    bzero((char *)assocs, NewMax * sizeof(assoc *));
+	    memset((char *)assocs, 0, NewMax * sizeof(assoc *));
 	}
 	else {
 	    assocs = (assoc **)realloc(assocs, NewMax * sizeof(assoc *));
-	    bzero((char *)assocs + max - ActualGrowSize, ActualGrowSize * sizeof(assoc *));
+	    memset((char *)assocs + max - ActualGrowSize, 0, ActualGrowSize * sizeof(assoc *));
 	}
 
 	max = NewMax;

@@ -237,7 +237,7 @@ long S_VolMakeBackups(RPC2_Handle rpcid, VolumeId originalId,
 	V_backupDate(originalvp) = time(0);
 
 	/* Put the RW's VVV in the backupvp so vol-dump can create an ordering of dumps. */
-	bcopy((const void *)&V_versionvector(originalvp), (void *) &V_versionvector(backupvp), sizeof(vv_t));
+	memmove((void *) &V_versionvector(backupvp), (const void *)&V_versionvector(originalvp), sizeof(vv_t));
 	
 	*backupId = V_backupId(originalvp);
     }
@@ -530,7 +530,7 @@ static void purgeDeadVnodes(Volume *backupvp, rec_smolist *BackupLists,
     int vnodeIndex = 0;
     while (vnodeIndex != -1) {			     /* More vnodes to process */
 	int count = 0;
-	bzero((void *)DeadInodes, sizeof(Inode) * MaxVnodesPerTransaction);
+	memset((void *)DeadInodes, 0, sizeof(Inode) * MaxVnodesPerTransaction);
 
 	/* Bunch vnode operations into groups of at most 8 per transaction */
 	/* Right now we might have transactions with no operations, oh well. */
@@ -621,7 +621,7 @@ static void updateBackupVnodes(Volume *rwvp, Volume *backupvp,
     while (vnodeIndex != -1) {
 	int count = 0;
 
-	bzero((void *)DeadInodes, sizeof(Inode) * (MaxVnodesPerTransaction + 1));
+	memset((void *)DeadInodes, 0, sizeof(Inode) * (MaxVnodesPerTransaction + 1));
 
 	rvmlib_begin_transaction(restore);
 

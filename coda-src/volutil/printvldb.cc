@@ -71,9 +71,9 @@ void heapify(struct vldb a[], int i, int size)
 	largest = r;
 	
     if (largest != i) {
-	bcopy(&a[i], &tmp, sizeof(struct vldb));
-	bcopy(&a[largest], &a[i], sizeof(struct vldb));
-	bcopy(&tmp, &a[largest], sizeof(struct vldb));
+	memmove( &tmp, &a[i], sizeof(struct vldb));
+	memmove( &a[i], &a[largest], sizeof(struct vldb));
+	memmove( &a[largest], &tmp, sizeof(struct vldb));
 	heapify(a, largest, size);
     }
 }
@@ -87,9 +87,9 @@ void heapsort(struct vldb a[], int length)
 	heapify(a, i, size);
 
     for (i = length; i >= 2; i--) {
-	bcopy(&a[i], &tmp, sizeof(struct vldb));
-	bcopy(&a[1], &a[i], sizeof(struct vldb));
-	bcopy(&tmp, &a[1], sizeof(struct vldb));
+	memmove( &tmp, &a[i], sizeof(struct vldb));
+	memmove( &a[i], &a[1], sizeof(struct vldb));
+	memmove( &a[1], &tmp, sizeof(struct vldb));
 	heapify(a, 1, --size);
     }
 }
@@ -130,13 +130,13 @@ void main(int argc, char **argv)
    I feel we should only print out the entry with the volume name. */
 	    
 	    if ((VID(vldp) != 0) && (VID(vldp) != atoi(vldp->key))) {
-		bcopy(vldp, &VLDB[nentries++], sizeof(struct vldb));
+		memmove( &VLDB[nentries++], vldp, sizeof(struct vldb));
 		if (nentries == size) {
 		    struct vldb *tmp;
 
 		    size *= 2;
 		    tmp = (struct vldb *)malloc(size * sizeof(struct vldb));
-		    bcopy(VLDB, tmp, nentries * sizeof(struct vldb));
+		    memmove( tmp, VLDB, nentries * sizeof(struct vldb));
 		    free(VLDB);
 		    VLDB = tmp;
 		}

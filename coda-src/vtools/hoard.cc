@@ -1255,7 +1255,7 @@ static int CreateOutFile(char *in, char *out) {
 		ViceFid fid;
 		ViceVersionVector vv;
 	    } gf;
-	    bzero((void *)&gf, sizeof(struct GetFid));
+	    memset((void *)&gf, 0, sizeof(struct GetFid));
 
 	    struct ViceIoctl vi;
 	    vi.in = 0;

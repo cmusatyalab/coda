@@ -159,7 +159,7 @@ static int DumpResLog(int fd, struct VolumeData *voldata,
     }
     
     /* Mush the data into the right data structure */
-    bcopy((const char *)voldata->volumeInfo, (char *)&vh.diskstuff, (int)sizeof(VolumeDiskData));
+    memmove((void *)&vh.diskstuff, (const void *)voldata->volumeInfo, (int)sizeof(VolumeDiskData));
     vp = &vol;
     vp->header = &vh;
 
@@ -411,7 +411,7 @@ int CopyDirInode(DirInode *oldinode, DirInode **newinode)
        return -1;
     }
     *newinode = (DirInode *)rvmlib_rec_malloc(sizeof(DirInode));
-    bzero((void *)&shadowInode, sizeof(DirInode));
+    memset((void *)&shadowInode, 0, sizeof(DirInode));
     for(int i = 0; i < DIR_MAXPAGES; i++)
         if (oldinode->di_pages[i]){
             shadowInode.di_pages[i] = (long *)rvmlib_rec_malloc(DIR_PAGESIZE);
@@ -458,7 +458,7 @@ static int ReadVnodeList(int fd, Volume *vp, VnodeClass vclass, int ResOn) {
 	}
 	if (norton_debug) printf("Reading vnode number 0x%x\n", vnode_num);
 
-	bzero((void *)(void *)vnode, VNODESIZE(vclass));
+	memset((void *)(void *)vnode, 0, VNODESIZE(vclass));
 	
 	if (read(fd, (void *) vnode, VNODESIZE(vclass)) == -1) {
 	    perror("Reading vnode\n");
@@ -484,13 +484,13 @@ static int ReadVnodeList(int fd, Volume *vp, VnodeClass vclass, int ResOn) {
 	vnode->vol_index = vnp->disk.vol_index;
 
 	/* Now copy the disk data into the vnode */
-	bcopy((void *)vnode, (void *)&vnp->disk, VNODESIZE(vclass));
+	memmove((void *)&vnp->disk, (const void *)vnode, VNODESIZE(vclass));
 	vnp->changed = 1;
 	vnp->delete_me = 0;
 	
 	rvmlib_begin_transaction(restore);
 	if (vclass == vLarge) {
-	    bzero((void *)inode, (int)sizeof(DirInode));
+	    memset((void *)inode, 0, (int)sizeof(DirInode));
 		
 	    /* Read in the directory pages */
 	    if (read(fd, (void *)&npages, (int)sizeof(npages)) == -1) {
@@ -577,12 +577,12 @@ static void NortonSetupVolume(VolHead *vh, Volume *vp, int volindex) {
     // compiler semantics ever change, we need to move it.
     static struct volHeader header;
 
-    bzero((void *)&header, sizeof(struct volHeader));
-    bcopy((const void *)vh->data.volumeInfo, (void *)&header.diskstuff, 
+    memset((void *)&header, 0, sizeof(struct volHeader));
+    memmove((void *)&header.diskstuff, (const void *)vh->data.volumeInfo, 
 	  sizeof(VolumeDiskData));
     header.back = vp;
     
-    bzero((void *)vp, sizeof(Volume));
+    memset((void *)vp, 0, sizeof(Volume));
     vp->hashid = vh->header.id;
     vp->header = &header;
     vp->vol_index = volindex;
@@ -669,7 +669,7 @@ static int load_server_state(char *dump_file) {
 	return 0;
     }
     
-    bzero((void *)&vol_head, (int)sizeof(VolHead));
+    memset((void *)&vol_head, 0, (int)sizeof(VolHead));
     while (ReadVolHead(dump_fd, &vol_head)) {
 	/* Check the magic number */
 	if (vol_head.header.stamp.magic != VOLUMEHEADERMAGIC) {
@@ -702,7 +702,7 @@ static int load_server_state(char *dump_file) {
 	}
 
 
-	bzero((void *)&data, (int)sizeof(VolumeDiskData));
+	memset((void *)&data, 0, (int)sizeof(VolumeDiskData));
 	if (!ReadVolDiskData(dump_fd, &data, &res_adm_limit)) {
 	    fprintf(stderr, "Aborting...\n");
 	    rvmlib_abort(VFAIL);
@@ -788,7 +788,7 @@ static int load_server_state(char *dump_file) {
 	    
 	    
 	FreeVolumeHeader(vp);
-	bzero((void *)&vol_head, (int)sizeof(VolHead));
+	memset((void *)&vol_head, 0, (int)sizeof(VolHead));
 
 	// Truncate the RVM log.
 	rvm_truncate();

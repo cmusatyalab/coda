@@ -130,7 +130,7 @@ void dt_init(int argc, char **argv)
 	rvmlib_begin_transaction(RESTORE);
 		
         rvmlib_set_range(dd, sizeof(struct dirdata));
-	bzero(dd, sizeof(struct dirdata));
+	memset(dd, 0, sizeof(struct dirdata));
 
 	rvmlib_end_transaction(FLUSH, &status);
 
@@ -311,7 +311,7 @@ void dt_bulktest(int argc, char **argv)
 			rvmlib_begin_transaction(RESTORE);
 			ino2 = rvmlib_rec_malloc(sizeof(int) * 512); 
 			rvmlib_set_range(ino2, 512 * sizeof(int));
-			bzero(ino2, 256 *sizeof(int));
+			memset(ino2, 0, 256 *sizeof(int));
 			rvmlib_set_range(ino1, sizeof(int));
 			ino1[1] = 0;
 			rvmlib_end_transaction(FLUSH, &err);

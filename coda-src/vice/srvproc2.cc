@@ -380,7 +380,8 @@ void PerformSetQuota(ClientEntry *client, VolumeId VSGVolnum, Volume *volptr, Vn
 
     /* Await COP2 message. */
     if (ReplicatedOp) {
-	ViceFid fids[MAXFIDS]; bzero((void *)fids, (int)(MAXFIDS * sizeof(ViceFid)));
+	ViceFid fids[MAXFIDS];
+	memset((void *)fids, 0, (int)(MAXFIDS * sizeof(ViceFid)));
 	fids[0] = *fid;
 	CopPendingMan->add(new cpent(StoreId, fids));
     }

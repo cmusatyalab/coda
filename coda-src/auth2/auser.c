@@ -128,7 +128,7 @@ int U_Authenticate(char *hostname, int AuthenticationType, char *uName,
 	char *secret, *identity;
 	int secretlen, identitylen;
 
-	bzero(passwd, sizeof(passwd));
+	memset(passwd, 0, sizeof(passwd));
 
 	switch(AuthenticationType) {
 	case AUTH_METHOD_NULL:
@@ -248,7 +248,7 @@ int U_ChangePassword(IN char *DefAuthHost, IN char *uName, IN char *newPasswd,
 
     if(!(rc = U_BindToServer(DefAuthHost, AuthenticationType, myName, myNamelen,
                              myPasswd, myPasswdlen, &RPCid))) {
-	bzero((char *)ek, RPC2_KEYSIZE);
+	memset ((char *)ek, 0, RPC2_KEYSIZE);
 	strncpy((char *)ek, newPasswd, RPC2_KEYSIZE);
 	if(!(rc = AuthNameToId(RPCid, (RPC2_String) uName, &cpid))) {
 	    rc = AuthChangePasswd(RPCid, cpid, ek);
@@ -378,8 +378,8 @@ static int TryBinding(RPC2_Integer AuthenticationType, char *viceName,
     else 
 	len = vicePasswdlen;
 	       
-    bzero(hkey, RPC2_KEYSIZE);
-    bcopy(vicePasswd, hkey, len);
+    memset(hkey, 0, RPC2_KEYSIZE);
+    memmove(hkey, vicePasswd, len);
 
     bp.SecurityLevel = RPC2_SECURE;
     bp.EncryptionType = RPC2_XOR;
@@ -424,9 +424,9 @@ static void GetAuthServers(void)
     char	* start;
     struct	stat	buff;
 
-    bzero(pName,sizeof(pName));
-    bzero((char *)lHosts,sizeof(lHosts));
-    numHosts = 0;
+    memset(pName, 0, sizeof(pName));
+    memset((char *)lHosts, 0, sizeof(lHosts));
+    numHosts = 0; 
 
     fd = open(VSTAB, O_RDONLY | O_BINARY, 0); 
     if ( fd >= 0  && fstat(fd, &buff) != -1 ) {

@@ -211,7 +211,7 @@ static void BuildTable(dumpstream *dump, vtable *table)
 
     table->table = (ventry **)malloc(sizeof(ventry*) * table->nslots);
     CODA_ASSERT(table->table != NULL);
-    bzero((void *)table->table, sizeof(ventry*) * table->nslots);
+    memset((void *)table->table, 0, sizeof(ventry*) * table->nslots);
     for (int i = 0; i < table->nvnodes; i++) {
 	long offset;
 	int deleted;
@@ -259,7 +259,7 @@ static void ModifyTable(dumpstream *dump, VnodeClass vclass, vtable *Table)
     if (nslots > Table->nslots) { /* "Grow" Vnode Array */
 	ventry **tmp = (ventry **)malloc(sizeof(ventry*) * nslots);
 	CODA_ASSERT(tmp != NULL);
-	bcopy((const void *)Table->table, (void *)tmp, sizeof(ventry*) * Table->nslots);
+	memmove((void *)tmp, (const void *)Table->table, sizeof(ventry*) * Table->nslots);
 	free(Table->table);
 	Table->nslots = nslots;
 	Table->table = tmp;

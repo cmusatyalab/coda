@@ -1085,7 +1085,7 @@ static void BeginRepair(int argc, char *argv[], int opslot)
     vio.in = argv[2];
     vio.out_size = PIOBUFSIZE;
     vio.out = piobuf;
-    bzero(piobuf, PIOBUFSIZE);
+    memset(piobuf, 0, PIOBUFSIZE);
 
     rc = pioctl(argv[2], VIOC_ENABLEREPAIR, &vio, 0);
     if (rc < 0) {
@@ -1111,7 +1111,7 @@ static void DisableASR(int argc, char *argv[], int opslot)
     vio.in = argv[2];
     vio.out_size = PIOBUFSIZE;
     vio.out = piobuf;
-    bzero(piobuf, PIOBUFSIZE);
+    memset(piobuf, 0, PIOBUFSIZE);
 
     rc = pioctl(argv[2], VIOC_DISABLEASR, &vio, 0);
     if (rc < 0){fflush(stdout); perror("VIOC_DISABLEASR"); exit(-1);}
@@ -1130,7 +1130,7 @@ static void EnableASR(int argc, char *argv[], int opslot)
     vio.in = argv[2];
     vio.out_size = PIOBUFSIZE;
     vio.out = piobuf;
-    bzero(piobuf, PIOBUFSIZE);
+    memset(piobuf, 0, PIOBUFSIZE);
 
     rc = pioctl(argv[2], VIOC_ENABLEASR, &vio, 0);
     if (rc < 0){fflush(stdout); perror("VIOC_ENABLEASR"); exit(-1);}
@@ -1149,7 +1149,7 @@ static void EndRepair(int argc, char *argv[], int opslot)
     vio.in = argv[2];
     vio.out_size = PIOBUFSIZE;
     vio.out = piobuf;
-    bzero(piobuf, PIOBUFSIZE);
+    memset(piobuf, 0, PIOBUFSIZE);
 
     rc = pioctl(argv[2], VIOC_DISABLEREPAIR, &vio, 0);
     if (rc < 0){fflush(stdout); perror("VIOC_DISABLEREPAIR"); exit(-1);}
@@ -1174,7 +1174,7 @@ static void FlushASR(int argc, char *argv[], int opslot) {
         vio.in_size = 0;
         vio.out = piobuf;
         vio.out_size = PIOBUFSIZE;
-        bzero(piobuf, PIOBUFSIZE);
+        memset(piobuf, 0, PIOBUFSIZE);
 
         rc = pioctl(argv[i], VIOC_FLUSHASR, &vio, 0);
         if (rc < 0){fflush(stdout); perror("VIOC_FLUSHASR"); continue;}
@@ -1655,7 +1655,7 @@ static void ListCache(int argc, char *argv[], int opslot)
         vio.in_size = (int) sizeof(VolumeId);
         vio.out = piobuf;
         vio.out_size = PIOBUFSIZE;
-        bzero(piobuf, PIOBUFSIZE);      
+        memset(piobuf, 0, PIOBUFSIZE);      
 
         /* Do the pioctl getting mount point pathname */
         rc = pioctl(mountpoint, VIOC_GET_MT_PT, &vio, 1);
@@ -1673,7 +1673,7 @@ static void ListCache(int argc, char *argv[], int opslot)
       vio.in_size = (int) sizeof(struct listcache_in);
       vio.out_size = PIOBUFSIZE;
       vio.out = piobuf;
-      bzero(piobuf, PIOBUFSIZE);
+      memset(piobuf, 0, PIOBUFSIZE);
 
       /* Do the pioctl */
       if (vol_id)       /* VolumeId is specified. */
@@ -1694,7 +1694,7 @@ static void ListCache(int argc, char *argv[], int opslot)
 
       vio.out_size = PIOBUFSIZE;
       vio.out = piobuf;
-      bzero(piobuf, PIOBUFSIZE);
+      memset(piobuf, 0, PIOBUFSIZE);
       /* Do the pioctl */
       rc = pioctl(mountpoint, VIOC_LISTCACHE, &vio, 1);
       if (rc < 0) {
@@ -1893,7 +1893,7 @@ static void LsMount (int argc, char *argv[], int opslot)
         vio.in_size = (int) strlen(part2)+1;
         vio.out = piobuf;
         vio.out_size = PIOBUFSIZE;
-        bzero(piobuf, PIOBUFSIZE);
+        memset(piobuf, 0, PIOBUFSIZE);
         rc = pioctl(part1, VIOC_AFS_STAT_MT_PT, &vio, 0);
         if (rc < 0)
             {

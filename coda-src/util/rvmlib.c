@@ -184,7 +184,7 @@ void rvmlib_set_range(void *base, unsigned long size)
 void rvmlib_modify_bytes(void *dest, const void *newval, int len)
 {
 	rvmlib_set_range(dest, len);
-	bcopy(newval, dest, len);
+	memmove(dest, newval, len);
 }
 
 inline void *rvmlib_malloc(unsigned long size, char *file, int line)

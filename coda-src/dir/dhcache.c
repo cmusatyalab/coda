@@ -70,7 +70,7 @@ static void dc_Grow(int count)
 	for ( i = 0 ; i < count ; i++ ) {
 		pdce = malloc(sizeof(*pdce));
 		CODA_ASSERT(pdce);
-		bzero(pdce, sizeof(*pdce));
+		memset(pdce, 0, sizeof(*pdce));
 
 		list_head_init(&pdce->dc_hash);
 		list_head_init(&pdce->dc_list);
@@ -96,7 +96,7 @@ static PDCEntry dc_GetFree()
 		/* clean it up before use */
 		if ( DH_Data(&pdce->dc_dh) )
 			DH_FreeData(&pdce->dc_dh);
-		bzero(pdce, sizeof(*pdce));
+		memset(pdce, 0, sizeof(*pdce));
 		list_head_init(&pdce->dc_list);
 		list_head_init(&pdce->dc_hash);
 		DH_Init(&pdce->dc_dh);

@@ -2167,8 +2167,9 @@ START_TIMING(Reintegrate_PutObjects);
 		    ViceStoreId *newlist = (ViceStoreId *) 
 			malloc(sizeof(ViceStoreId) * (i + VNREINTEGRATORS));
 		    if (volptr->reintegrators) {
-			bcopy((char *)volptr->reintegrators, (char *)newlist,
-			      (int) sizeof(ViceStoreId) * (i + VNREINTEGRATORS));
+			memmove((void *)newlist,
+				(const void *)volptr->reintegrators,
+				(int) sizeof(ViceStoreId) * (i + VNREINTEGRATORS));
 			free(volptr->reintegrators);
 		    }
 		    volptr->reintegrators = newlist;

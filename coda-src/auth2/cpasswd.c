@@ -88,8 +88,8 @@ int main(int argc, char **argv)
 	int ok, rc;
 	char *DefAuthHost = NULL;
 
-	bzero(newpw, sizeof(newpw));
-	bzero(buf, sizeof(buf));
+	memset(newpw, 0, sizeof(newpw));
+	memset(buf, 0, sizeof(buf));
 
 	if (argc > 1) {
 	    if (strcmp(argv[1], "-h") == 0) {
@@ -134,7 +134,7 @@ int main(int argc, char **argv)
 		strcpy(mypasswd, getpass("Your password:"));
 tryagain:
 	sprintf(buf, "New password for %s:", uname);
-	bzero(newpw, sizeof(newpw));
+	memset(newpw, 0, sizeof(newpw));
 	strcpy(newpw, getpass(buf));
 	pwlen = strlen(newpw);
 	if (pwlen == 0) {

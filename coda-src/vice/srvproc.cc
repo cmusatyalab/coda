@@ -2166,7 +2166,7 @@ void HandleWeakEquality(Volume *volptr, Vnode *vptr, ViceVersionVector *vv) {
 	ViceVersionVector DiffVV;
 	{
 	    ViceVersionVector *vvs[VSG_MEMBERS];
-	    bzero((void *)vvs, (int)(VSG_MEMBERS * sizeof(ViceVersionVector *)));
+	    memset((void *)vvs, 0, (int)(VSG_MEMBERS * sizeof(ViceVersionVector *)));
 	    vvs[0] = vva;
 	    vvs[1] = vvb;
 	    GetMaxVV(&DiffVV, vvs, -1);
@@ -3681,7 +3681,8 @@ void PerformStore(ClientEntry *client, VolumeId VSGVolnum, Volume *volptr,
 	NewCOP1Update(volptr, vptr, StoreId, vsptr);
 
 	/* Await COP2 message. */
-	ViceFid fids[MAXFIDS]; bzero((void *)fids, (int)(MAXFIDS * sizeof(ViceFid)));
+	ViceFid fids[MAXFIDS];
+	memset((void *)fids, 0, (int)(MAXFIDS * sizeof(ViceFid)));
 	fids[0] = Fid;
 	CopPendingMan->add(new cpent(StoreId, fids));
     }
@@ -3808,7 +3809,8 @@ void PerformSetAttr(ClientEntry *client, VolumeId VSGVolnum, Volume *volptr,
 	NewCOP1Update(volptr, vptr, StoreId, vsptr);
 
 	/* Await COP2 message. */
-	ViceFid fids[MAXFIDS]; bzero((void *)fids, MAXFIDS * (int) sizeof(ViceFid));
+	ViceFid fids[MAXFIDS];
+	memset((void *)fids, 0, MAXFIDS * (int) sizeof(ViceFid));
 	fids[0] = Fid;
 	CopPendingMan->add(new cpent(StoreId, fids));
     }
@@ -3829,13 +3831,14 @@ void PerformSetACL(ClientEntry *client, VolumeId VSGVolnum, Volume *volptr,
     AL_AccessList *aCL = 0;
     int aCLSize = 0;
     SetAccessList(vptr, aCL, aCLSize);
-    bcopy((char *)newACL, (char *)aCL, (int)(newACL->MySize));
+    memmove((void *)aCL, (const void *)newACL, (int)(newACL->MySize));
 
     if (ReplicatedOp) {
 	NewCOP1Update(volptr, vptr, StoreId, vsptr);
 
 	/* Await COP2 message. */
-	ViceFid fids[MAXFIDS]; bzero((void *)fids, (int) (MAXFIDS * sizeof(ViceFid)));
+	ViceFid fids[MAXFIDS];
+	memset((void *)fids, 0, (int) (MAXFIDS * sizeof(ViceFid)));
 	fids[0] = Fid;
 	CopPendingMan->add(new cpent(StoreId, fids));
     }
@@ -4052,7 +4055,8 @@ void PerformRename(ClientEntry *client, VolumeId VSGVolnum, Volume *volptr,
 
     /* Await COP2 message. */
     if (ReplicatedOp) {
-	ViceFid fids[MAXFIDS]; bzero((void *)fids, (int) (MAXFIDS * sizeof(ViceFid)));
+	ViceFid fids[MAXFIDS];
+	memset((void *)fids, 0, (int) (MAXFIDS * sizeof(ViceFid)));
 	fids[0] = SDid;
 	if (!SameParent) fids[1] = TDid;
 	fids[2] = SFid;
@@ -4212,7 +4216,7 @@ static void Perform_CLMS(ClientEntry *client, VolumeId VSGVolnum,
 		int newACLSize = 0;
 		SetAccessList(vptr, newACL, newACLSize);
 
-		bcopy((char *)aCL, (char *)newACL, aCLSize);
+		memmove((void *)newACL, (const void *)aCL, aCLSize);
 	    }
 	    break;
 
@@ -4239,7 +4243,8 @@ static void Perform_CLMS(ClientEntry *client, VolumeId VSGVolnum,
 
     /* Await COP2 message. */
     if (ReplicatedOp) {
-	ViceFid fids[MAXFIDS]; bzero((void *)fids, (int) (MAXFIDS * sizeof(ViceFid)));
+	ViceFid fids[MAXFIDS];
+	memset((void *)fids, 0, (int) (MAXFIDS * sizeof(ViceFid)));
 	fids[0] = Did;
 	fids[1] = Fid;
 	CopPendingMan->add(new cpent(StoreId, fids));
@@ -4316,7 +4321,7 @@ static void Perform_RR(ClientEntry *client, VolumeId VSGVolnum, Volume *volptr,
     /* Await COP2 message. */
     if (ReplicatedOp) {
 	    ViceFid fids[MAXFIDS]; 
-	    bzero((void *)fids,  (MAXFIDS * sizeof(ViceFid)));
+	    memset((void *)fids, 0, (MAXFIDS * sizeof(ViceFid)));
 	    fids[0] = Did;
 	    SLog(3, "Perform_RR: delete_me = %d, !delete_me = %d",
 		 vptr->delete_me, !vptr->delete_me);

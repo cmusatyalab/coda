@@ -228,8 +228,8 @@ static int ViceCreateRoot(Volume *vp)
     Vnode *vn = (Vnode *)buf3;
     vindex v_index(V_id(vp), vLarge, V_device(vp), SIZEOF_LARGEDISKVNODE);
 
-    bzero((void *)vn, sizeof(Vnode));
-    bzero((char *)vnode, SIZEOF_LARGEDISKVNODE);    
+    memset((void *)vn, 0, sizeof(Vnode));
+    memset((char *)vnode, 0, SIZEOF_LARGEDISKVNODE);    
 
     /* SetSalvageDirHandle(&dir, V_id(vp), vp->device, 0); */
     dir = VN_SetDirHandle(vn);

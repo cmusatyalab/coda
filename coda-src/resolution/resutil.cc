@@ -309,7 +309,7 @@ void ObtainResStatus(ResStatus *status, VnodeDiskObjectStruct *vdop) {
 
 void GetResStatus(unsigned long *succflags, ResStatus **status_p, 
 		  ViceStatus *finalstatus) {
-    bzero((void *)finalstatus, sizeof(ViceStatus));
+    memset((void *)finalstatus, 0, sizeof(ViceStatus));
     int gotmbits = 0;
     for (int i = 0; i < VSG_MEMBERS; i++) {
 	if (succflags[i]) {

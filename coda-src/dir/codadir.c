@@ -74,7 +74,7 @@ void DH_UnLockR(PDirHandle dh)
 void DH_Init(PDirHandle dh)
 {
 	CODA_ASSERT(dh);
-	bzero(dh, sizeof(*dh));
+	memset(dh, 0, sizeof(*dh));
 	Lock_Init(&dh->dh_lock);
 }
 
@@ -221,11 +221,11 @@ void DH_Alloc(PDirHandle dh, int size, int in_rvm)
 		RVMLIB_REC_OBJECT(*dh);
 		dh->dh_data = rvmlib_rec_malloc(size);
 		CODA_ASSERT(dh->dh_data);
-		bzero((void *)dh->dh_data, size);
+		memset((void *)dh->dh_data, 0, size);
 	} else {
 		dh->dh_data = malloc(size);
 		CODA_ASSERT(dh->dh_data);
-		bzero((void *)dh->dh_data, size);
+		memset((void *)dh->dh_data, 0, size);
 	}
 
 	DH_UnLockW(dh);

@@ -47,7 +47,8 @@ PDirHeader DI_DiToDh(PDirInode pdi)
 	for (i = 0; i < DIR_MAXPAGES; i++) {
 		if (pdi->di_pages[i] == 0) 
 			break;
-		bcopy(pdi->di_pages[i], &pdh[i * DIR_PAGESIZE], DIR_PAGESIZE);
+		memmove((void *)&pdh[i * DIR_PAGESIZE],
+			(const void *)pdi->di_pages[i], DIR_PAGESIZE);
 	}
 	return (PDirHeader) pdh;
 }
@@ -68,7 +69,7 @@ void DI_DhToDi(PDCEntry pdce)
 	if (pdi == NULL) {
 		pdi = (PDirInode) rvmlib_rec_malloc(sizeof(*pdi));
 		CODA_ASSERT(pdi);
-		bzero((char *)pdi, sizeof(*pdi));
+		memset((char *)pdi, 0, sizeof(*pdi));
 		DC_SetDI(pdce, pdi);
 	} 
 
@@ -82,8 +83,8 @@ void DI_DhToDi(PDCEntry pdce)
 			CODA_ASSERT(pdi->di_pages[i]); 
 		}
 		rvmlib_set_range(pdi->di_pages[i], DIR_PAGESIZE);
-		bcopy((const void *)DIR_Page(pdh->dh_data, i), 
-		      pdi->di_pages[i], DIR_PAGESIZE);
+		memmove((void *)pdi->di_pages[i],
+			(const void *)DIR_Page(pdh->dh_data, i), DIR_PAGESIZE);
 	}
 
 	/* free pages which have disappeared */
@@ -178,7 +179,7 @@ void DI_Copy(PDirInode oldinode, PDirInode *newinode)
 	CODA_ASSERT(*newinode);
 	rvmlib_set_range(*newinode, sizeof(*newinode));
 
-	bzero((void *)*newinode, sizeof(**newinode));
+	memset((void *)*newinode, 0, sizeof(**newinode));
 	for(i = 0; i < DIR_MAXPAGES; i++)
 		if (oldinode->di_pages[i]){
 			DLog(29, "CopyDirInode: Copying page %d", i);
@@ -201,13 +202,14 @@ void DI_VMCopy(PDirInode oldinode, PDirInode *newinode)
 	*newinode = (PDirInode)malloc(sizeof(**newinode));
 	CODA_ASSERT(*newinode);
 
-	bzero((void *)*newinode, sizeof(**newinode));
+	memset((void *)*newinode, 0, sizeof(**newinode));
 	for(i = 0; i < DIR_MAXPAGES; i++)
 		if (oldinode->di_pages[i]){
 			DLog(29, "CopyDirInode: Copying page %d", i);
 			(*newinode)->di_pages[i] = malloc(DIR_PAGESIZE);
-			bcopy((*newinode)->di_pages[i], oldinode->di_pages[i], 
-			      DIR_PAGESIZE);
+			memmove((void *)oldinode->di_pages[i],
+				(const void *)(*newinode)->di_pages[i], 
+				DIR_PAGESIZE);
 		}
 	(*newinode)->di_refcount = oldinode->di_refcount;
 	return;
@@ -255,7 +257,7 @@ PDirInode DI_New()
 	newinode = (PDirInode)rvmlib_rec_malloc(sizeof(*newinode));
 	CODA_ASSERT(newinode);
 	rvmlib_set_range(newinode, sizeof(newinode));
-	bzero((void *)newinode, sizeof(*newinode));
+	memset((void *)newinode, 0, sizeof(*newinode));
 	newinode->di_refcount = 1;
 	return newinode;
 }

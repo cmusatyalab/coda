@@ -171,7 +171,7 @@ static char *volstr(char *path) {
   struct ViceIoctl vioc;
   int rc;
 
-  bzero(junk, sizeof(junk));
+  memset(junk, 0, sizeof(junk));
   vioc.in = 0;
   vioc.in_size = 0;
   vioc.out = junk;
@@ -209,7 +209,7 @@ static char *srvstr(char *path, VolumeId rwid) {
       continue;
     /* get volume id of pathname */
     sprintf(rwpath, "%s/%s", path, de->d_name);
-    bzero(junk, sizeof(junk));
+    memset(junk, 0, sizeof(junk));
     vioc.in = 0;
     vioc.in_size = 0;
     vioc.out = junk;
@@ -227,12 +227,12 @@ static char *srvstr(char *path, VolumeId rwid) {
     vioc.in = 0;
     vioc.out_size = sizeof(junk);
     vioc.out = junk;
-    bzero(junk, sizeof(junk));
+    memset(junk, 0, sizeof(junk));
     sprintf(rwpath, "%s/%s", path, de->d_name);
     rc = pioctl(rwpath, VIOCWHEREIS, &vioc, 1);
     if (rc) return("VIOCWHEREIS failed");
     hosts = (long *) junk;
-    bzero(result, sizeof(result));
+    memset(result, 0, sizeof(result));
     for(i = 0; i < 8; i++) {
       if (hosts[i] == 0) break;
       hosts[i] = htonl(hosts[i]);    /* gethostbyaddr requires network order */
@@ -274,7 +274,7 @@ static char *compstr(char *path, VolumeId rwid) {
       continue;
     /* get volume id of pathname */
     sprintf(rwpath, "%s/%s", path, de->d_name);
-    bzero(junk, sizeof(junk));
+    memset(junk, 0, sizeof(junk));
     vioc.in = 0;
     vioc.in_size = 0;
     vioc.out = junk;

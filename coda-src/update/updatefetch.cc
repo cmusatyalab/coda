@@ -240,7 +240,7 @@ static void Connect()
     ssid.Value.SubsysId = SUBSYS_UPDATE;
 
     RPC2_BindParms bparms;
-    bzero((void *)&bparms, sizeof(bparms));
+    memset((void *)&bparms, 0, sizeof(bparms));
     bparms.SecurityLevel = RPC2_AUTHONLY;
     bparms.EncryptionType = RPC2_XOR;
     bparms.SideEffectType = SMARTFTP;

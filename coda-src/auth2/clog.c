@@ -223,11 +223,11 @@ int main(int argc, char **argv)
 		    perror("U_GetLocalTokens");
 	    
 	    printf("Comparing clear token\n");
-	    if(bcmp((char *)&cToken,(char *)&testCTok,sizeof(ClearToken)) != 0) {
+	    if(memcmp((char *)&cToken,(char *)&testCTok,sizeof(ClearToken)) != 0) {
 		    printf("Bad ClearToken\n");
 	    }
 	    printf("Comparing secret token\n");
-	    if(bcmp((char *)sToken,(char *)testSTok,
+	    if(memcmp((char *)sToken,(char *)testSTok,
 		    sizeof(EncryptedSecretToken)) != 0) {
 	    printf("Bad SecretToken\n");
 	    }

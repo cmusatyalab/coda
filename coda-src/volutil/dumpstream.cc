@@ -254,7 +254,7 @@ int dumpstream::getDumpHeader(struct DumpHeader *hp)
 int dumpstream::getVolDiskData(VolumeDiskData *vol)
 {
     int  tag;
-    bzero((char *)vol, (int) sizeof(*vol));
+    memset((char *)vol, 0, (int) sizeof(*vol));
 
     if (fgetc(stream) != D_VOLUMEDISKDATA) {
 	LogMsg(0, VolDebugLevel, stdout, "Volume header missing from dump %s!\n", name);

@@ -236,7 +236,7 @@ static int f_init (union PartitionData **data,
 
     /* mark bits with resource records */
     size = sizeof(struct i_header);
-    bzero(&nullheader, size);
+    memset(&nullheader, 0, size);
     i = 0; 
     while ( read(options->resource, &header, size) == size) {
 	if ( memcmp(&header, &nullheader, size) != 0 ) {
@@ -434,7 +434,7 @@ f_change_lnk(struct DiskPartition *dp, Inode  ino, long value, int inc)
 	    printf("Error unlinking inode file %ld!\n", ino);
 	    return -1;
 	}
-	bzero(&header, sizeof(struct i_header));
+	memset(&header, 0, sizeof(struct i_header));
 	Bitv_clear(opts->freebm, ino-1);
     }
 

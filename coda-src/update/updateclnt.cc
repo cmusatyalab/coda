@@ -635,7 +635,7 @@ static void ReConnect()
 	    time.tv_usec = 0;
 	    
 	    RPC2_BindParms bparms;
-	    bzero((void *)&bparms, sizeof(bparms));
+	    memset((void *)&bparms, 0, sizeof(bparms));
 	    bparms.SecurityLevel = RPC2_AUTHONLY;
 	    bparms.EncryptionType = RPC2_XOR;
 	    bparms.SideEffectType = SMARTFTP;
@@ -762,7 +762,7 @@ static int U_BindToServer(char *fileserver, RPC2_Handle *RPCid)
     sident.Value.SubsysId = UTIL_SUBSYSID;
 
     RPC2_BindParms bparms;
-    bzero((void *)&bparms, sizeof(bparms));
+    memset((void *)&bparms, 0, sizeof(bparms));
     bparms.SecurityLevel = RPC2_OPENKIMONO;
     bparms.EncryptionType = RPC2_XOR;
     bparms.SideEffectType = SMARTFTP;

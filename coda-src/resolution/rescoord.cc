@@ -100,9 +100,9 @@ int IsWeaklyEqual(ViceVersionVector **VV, int nvvs)
     for (j = i + 1; j < nvvs; j++) {
 	    if (VV[j] == NULL) 
 		    continue;
-	    if (bcmp((const void *)&(VV[i]->StoreId), 
-		     (const void *) &(VV[j]->StoreId), 
-		     sizeof(ViceStoreId))) {
+	    if (memcmp((const void *)&(VV[i]->StoreId), 
+		       (const void *) &(VV[j]->StoreId), 
+		       sizeof(ViceStoreId))) {
 		    SLog(10,  "IsWeaklyEqual returning 0");
 		    return 0;
 	    }
@@ -159,7 +159,7 @@ static int WEResPhase2(res_mgrpent *mgrp, ViceFid *Fid,
 
 	SLog(9,  "Entering ResPhase2 %s", FID_(Fid));
 	/* form the update set */
-	bzero((void *)&UpdateSet, sizeof(ViceVersionVector));
+	memset((void *)&UpdateSet, 0, sizeof(ViceVersionVector));
 	
 	for (i = 0; i < VSG_MEMBERS; i++)
 		if (successHosts[i])
@@ -261,7 +261,7 @@ int WERes(ViceFid *Fid, ViceVersionVector **VV, ResStatus **rstatusp,
 			  succflags);
 	    GetResStatus(succflags, rstatusp, &vstatus);
 	}
-	else bzero((void *)&vstatus, (int) sizeof(ViceStatus));	// for now send a zeroed vstatus.
+	else memset((void *)&vstatus, 0, (int) sizeof(ViceStatus));	// for now send a zeroed vstatus.
 	// rpc2 doesn\'t like a NULL being passed as an IN parameter 
 	MRPC_MakeMulti(ForceDirVV_OP, ForceDirVV_PTR, VSG_MEMBERS, 
 		       mgrp->rrcc.handles, mgrp->rrcc.retcodes,

@@ -68,14 +68,14 @@ int IsObjInc(char *name, ViceFid *fid)
 	vioc.in = name;
 	vioc.out_size = (short) sizeof(space);
 	vioc.out = space;
-	bzero(space, (int) sizeof(space));
+	memset(space, 0, (int) sizeof(space));
 	rc = pioctl(name, VIOC_GETFID, &vioc, 0);
 	if (rc < 0 && errno != ETOOMANYREFS) {
 	    /* fprintf(stderr, "Error %d for Getfid\n", errno); */
 	    return(0);
 	}
-	bcopy((const void *)space, (void *)fid, (int) sizeof(ViceFid));
-	bcopy((const void *)space+sizeof(ViceFid), (void *)&vv, (int) sizeof(ViceVersionVector));
+	memmove((void *)fid, (const void *)space, (int) sizeof(ViceFid));
+	memmove((void *)&vv, (const void *)space+sizeof(ViceFid), (int) sizeof(ViceVersionVector));
 	if (!ISDIR(*fid) && (statbuf.st_mode & S_IFDIR))
 	    return(1);
 	else if (vv.StoreId.Host == -1) 
@@ -135,7 +135,7 @@ int main(int argc, char **argv)
 	vioc.in = tmpfname;
 	vioc.out_size = (short) sizeof(space);
 	vioc.out = space;
-	bzero(space, (int) sizeof(space));
+	memset(space, 0, (int) sizeof(space));
 	rc = pioctl(argv[1], VIOC_REPAIR, &vioc, 0);
 	if (rc < 0 && errno != ETOOMANYREFS) {
 		fprintf(stderr, "Error %d for repair\n", errno);

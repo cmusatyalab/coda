@@ -251,15 +251,15 @@ int repair_getfid(char *path, ViceFid *outfid /* OUT */, ViceVersionVector *outv
   vi.in_size = 0;
   vi.out = junk;
   vi.out_size = sizeof(junk);
-  bzero(junk, sizeof(junk));
+  memset(junk, 0, sizeof(junk));
 
   rc = pioctl(path, VIOC_GETFID, &vi, 0);
   saveerrno = errno;
 
   /* Easy: no conflicts */
   if (!rc) {
-    bcopy((const char *)junk, (void *)outfid, sizeof(ViceFid));
-    bcopy((const char *)junk+sizeof(ViceFid), (void *)outvv, sizeof(ViceVersionVector));
+    memmove((void *)outfid, (const char *)junk, sizeof(ViceFid));
+    memmove((void *)outvv, (const char *)junk+sizeof(ViceFid), sizeof(ViceVersionVector));
     return(0);
   }
 

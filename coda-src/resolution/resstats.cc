@@ -43,11 +43,11 @@ olist ResStatsList;	// list of all volume's res stats
 
 
 fileresstats::fileresstats() {
-    bzero((void *)this, sizeof(fileresstats));
+    memset((void *)this, 0, sizeof(fileresstats));
 }
 
 logshiphisto::logshiphisto() {
-    bzero((void *)this, sizeof(logshiphisto));
+    memset((void *)this, 0, sizeof(logshiphisto));
 }
 
 void logshiphisto::print(int fd) {
@@ -99,11 +99,11 @@ void logshiphisto::update(logshiphisto *newlsh) {
   } /* drop scope for int i above; to avoid identifier clash */
 }
 dirresstats::dirresstats() {
-    bzero((void *)this, sizeof(dirresstats));
+    memset((void *)this, 0, sizeof(dirresstats));
 }
 
 conflictstats::conflictstats() {
-    bzero((void *)this, sizeof(conflictstats));
+    memset((void *)this, 0, sizeof(conflictstats));
 }
 
 void conflictstats::update(conflictstats *cs) {
@@ -146,7 +146,7 @@ void logsize::print(int fd) {
 }
 
 varlhisto::varlhisto() {
-    bzero((void *)this, sizeof(varlhisto));
+    memset((void *)this, 0, sizeof(varlhisto));
 }
 
 void varlhisto::countalloc(int varsz) {

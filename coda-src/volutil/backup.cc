@@ -387,7 +387,7 @@ int ParseDumpList(char *VolumeListFile, volinfo_t **vols)
     while (getVolId(VolumeList, &volId, &flags, comment) == 0) {
 	vol = (volinfo_t *) malloc(sizeof(volinfo_t));
 
-	bzero((char *)vol, sizeof(volinfo_t));		/* Initialize the structure */
+	memset((char *)vol, 0, sizeof(volinfo_t));		/* Initialize the structure */
 	vol->volId = volId;
 	vol->flags |= flags;
 	strncpy(vol->comment, comment, 40);
@@ -399,7 +399,7 @@ int ParseDumpList(char *VolumeListFile, volinfo_t **vols)
 	    vol->nReplicas = 1;		/* Use replica list to hold server info */
 	    vol->replicas = (repinfo_t *) malloc(sizeof(repinfo_t));
 	    
-	    bzero((char *)vol->replicas, sizeof(repinfo_t));
+	    memset((char *)vol->replicas, 0, sizeof(repinfo_t));
 
 	    vol->replicas[0].repvolId = volId;
 	    if (getReplica(vol->replicas) == -1) {
@@ -414,7 +414,7 @@ int ParseDumpList(char *VolumeListFile, volinfo_t **vols)
 	    vol->nReplicas = vre->nServers;
 	    vol->replicas=(repinfo_t *)malloc(vol->nReplicas * sizeof(repinfo_t));
 
-	    bzero((char *)vol->replicas, vol->nReplicas * sizeof(repinfo_t));
+	    memset((char *)vol->replicas, 0, vol->nReplicas * sizeof(repinfo_t));
 
 	    for (char i = 0; i < vol->nReplicas; i++) {
 		vol->replicas[i].repvolId = vre->ServerVolnum[i];
@@ -828,7 +828,7 @@ int main(int argc, char **argv) {
 
     /* Start up thread to handle WriteDump requests. */
     PROCESS dumpPid;
-    bzero((char *)&Rock, sizeof(struct rockInfo));
+    memset((char *)&Rock, 0, sizeof(struct rockInfo));
     LWP_CreateProcess((PFIC)VolDumpLWP, 5 * 1024, LWP_NORMAL_PRIORITY,
 		      (char *)&Rock, "VolDumpLWP", &dumpPid);
 
@@ -1068,7 +1068,7 @@ static void VUInitServerList() {
     FILE *file;
 
     LogMsg(9, Debug, stdout, "Entering VUInitServerList");
-    bzero((char *)Hosts, sizeof(Hosts));
+    memset((char *)Hosts, 0, sizeof(Hosts));
 
     file = fopen(serverList, "r");
     if (file == NULL) {
@@ -1097,7 +1097,7 @@ static void VUInitServerList() {
 	    } else {
 		long netaddress;
 		CODA_ASSERT(hostent->h_length == 4);
-		bcopy((char *)hostent->h_addr, (char *)&netaddress, 4);
+		memmove((char *)&netaddress, (char *)hostent->h_addr, 4);
 		HostAddress[sid] = Hosts[sid].address = ntohl(netaddress);
 		strncpy(Hosts[sid].name, hostent->h_name, 100);
 	    }
@@ -1167,7 +1167,7 @@ static void V_BindToServer(char *fileserver, RPC2_Handle *RPCid)
     sident.Tag = RPC2_SUBSYSBYID;
     sident.Value.SubsysId = UTIL_SUBSYSID;
 
-    bzero((char *)&bparms, sizeof(bparms));
+    memset((char *)&bparms, 0, sizeof(bparms));
     bparms.SecurityLevel = RPC2_OPENKIMONO;
     bparms.SideEffectType = SMARTFTP;
 

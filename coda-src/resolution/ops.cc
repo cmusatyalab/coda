@@ -46,7 +46,7 @@ extern "C" {
 
 void aclstore::init(char *a) {
     type = ACLSTORE;
-    bcopy(a, acl, SIZEOF_LARGEDISKVNODE - SIZEOF_SMALLDISKVNODE);
+    memmove((void *)acl, (const void *)a, SIZEOF_LARGEDISKVNODE - SIZEOF_SMALLDISKVNODE);
 }
 
 void aclstore::print(int fd) {
@@ -576,12 +576,12 @@ void DumpLog(rec_dlist *log, Volume *vp, char **buf, int *bufsize, int *nentries
 		newmaxsize = maxsize * 2;
 	    char *newbuf = (char *)malloc(newmaxsize);
 	    CODA_ASSERT(newbuf);
-	    bcopy(*buf, newbuf, lastentry);
+	    memmove((void *)newbuf, (const void *)*buf, lastentry);
 	    free(*buf);
 	    *buf = newbuf;
 	    maxsize = newmaxsize;
 	}
-	bcopy(rbuf, &((*buf)[lastentry]), rbufsize);
+	memmove((void *)&((*buf)[lastentry]), (const void *)rbuf, rbufsize);
 	delete[] rbuf;
 	lastentry += rbufsize;
 
@@ -599,12 +599,12 @@ void DumpLog(rec_dlist *log, Volume *vp, char **buf, int *bufsize, int *nentries
 		    newmaxsize = maxsize * 2;
 		char *newbuf = (char *)malloc(newmaxsize);
 		CODA_ASSERT(newbuf);
-		bcopy(*buf, newbuf, lastentry);
+		memmove((void *)newbuf, (const void *)*buf, lastentry);
 		free(*buf);
 		*buf = newbuf;
 		maxsize = newmaxsize;
 	    }
-	    bcopy(childdump, &((*buf)[lastentry]), childdumplength);
+	    memmove((void *)&((*buf)[lastentry]), (const void *)childdump, childdumplength);
 	    lastentry += childdumplength;
 	    free(childdump);
 	}

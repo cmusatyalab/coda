@@ -97,10 +97,10 @@ int main(int argc, char **argv)
     char cname[PRS_MAXNAMELEN];
     RPC2_EncryptionKey ek;
 
-    bzero(ek, sizeof(ek));
-    bzero(cname, sizeof(cname));
-    bzero(MyViceName, sizeof(MyViceName));
-    bzero(MyPassword, sizeof(MyPassword));    
+    memset(ek, 0, sizeof(ek));
+    memset(cname, 0, sizeof(cname));
+    memset(MyViceName, 0, sizeof(MyViceName));
+    memset(MyPassword, 0, sizeof(MyPassword));    
     
     SetGlobals(argc, argv);
 
@@ -123,7 +123,7 @@ int main(int argc, char **argv)
 	int rc;
 	int cpid;
 
-	bzero(buf, sizeof(buf));
+	memset(buf, 0, sizeof(buf));
 
 	printf("User name: ");
 	fgets(cname, sizeof(cname), stdin);
@@ -167,7 +167,7 @@ int main(int argc, char **argv)
 	int rc, cpid;
 	char otherinfo[200];
 
-	bzero(otherinfo, sizeof(otherinfo));
+	memset(otherinfo, 0, sizeof(otherinfo));
 	printf("Vice user: ");
 	fgets(cname, sizeof(cname), stdin);
 	if ( cname[strlen(cname)-1] == '\n' ) 

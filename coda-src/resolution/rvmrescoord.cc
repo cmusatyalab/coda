@@ -429,7 +429,7 @@ static char *ConcatLogs(res_mgrpent *mgrp, char **bufs,
 	    if (mgrp->rrcc.hosts[i] &&
 		(mgrp->rrcc.retcodes[i] == 0) &&
 		bufs[i]) {
-		bcopy(bufs[i], tmp, sizes[i]);
+		memmove((void *)tmp, (const void *)bufs[i], sizes[i]);
 		tmp += sizes[i];
 	    }
     }

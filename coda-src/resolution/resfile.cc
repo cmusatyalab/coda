@@ -494,7 +494,7 @@ static int IncVVGroup(ViceVersionVector **VV, int *domindex) {
 	if (res == VV_EQ) continue;
 	/* check for weak equality */
 	if (res == VV_INC){
-	    if (!bcmp((const void *)&(VV[i]->StoreId), (void *)&(VV[*domindex]->StoreId),
+	    if (!memcmp((const void *)&(VV[i]->StoreId), (void *)&(VV[*domindex]->StoreId),
 		      sizeof(ViceStoreId)))
 		continue;
 	    else 

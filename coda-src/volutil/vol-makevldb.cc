@@ -285,7 +285,7 @@ static void VolumeEntry(char type, int byname, char *name, unsigned long volume,
 {
     struct vldb vnew;
     haveEntry = 1;
-    bzero((char *)&vnew, sizeof(vnew));
+    memset((char *)&vnew, 0, sizeof(vnew));
     strncpy(vnew.key, name, sizeof(vnew.key)-1);
     vnew.hashNext = 0;
     vnew.volumeType = (type=='B' ? backupVolume : type=='R' ? readonlyVolume : readwriteVolume);

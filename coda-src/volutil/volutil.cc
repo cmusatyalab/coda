@@ -174,7 +174,7 @@ static long VolGetKey(RPC2_Integer *authtype, RPC2_CountedBS *cid,
     sprintf(name, "%s", VolName);
     if (strncmp((char *)cid->SeqBody, name, RPC2_KEYSIZE) != 0)
 	return(-1);
-    bcopy(vkey, id, RPC2_KEYSIZE);
+    memmove(id, vkey, RPC2_KEYSIZE);
     return(0);
 }
 

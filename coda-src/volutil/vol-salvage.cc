@@ -928,7 +928,7 @@ static void DistilVnodeEssence(VnodeClass vclass, VolumeId volid) {
 			vnodeIndex);
 		    vip->nAllocatedVnodes--;
 		    vip->volumeBlockCount -= vep->blockCount;
-		    bzero((void *)vep, sizeof(struct VnodeEssence));
+		    memset((void *)vep, 0, sizeof(struct VnodeEssence));
 		    vnode->type = vNull;
 		    v_index.oput(vnodeIndex, vnode->uniquifier, vnode);
 		}
@@ -1256,11 +1256,11 @@ static void SanityCheckFreeLists() {
     int i,j;
     char zerobuf[SIZEOF_LARGEDISKVNODE];
     VnodeDiskObject *zerovn = (VnodeDiskObject *) zerobuf;
-    bzero((void *)zerovn, SIZEOF_LARGEDISKVNODE);
+    memset((void *)zerovn, 0, SIZEOF_LARGEDISKVNODE);
     
     VLog(0, "SanityCheckFreeLists: Checking RVM Vnode Free lists.");
     for (i = 0; i < SRV_RVM(SmallVnodeIndex); i++) {
-	if (bcmp((const void *)SRV_RVM(SmallVnodeFreeList[i]), (const void *) zerovn,
+	if (memcmp((const void *)SRV_RVM(SmallVnodeFreeList[i]), (const void *) zerovn,
 		 SIZEOF_SMALLDISKVNODE) != 0) {
 	    VLog(0,"Small Free Vnode at index %d not zero!", i);
 	    CODA_ASSERT(0);
@@ -1276,7 +1276,7 @@ static void SanityCheckFreeLists() {
     }
     
     for (i = 0; i < SRV_RVM(LargeVnodeIndex); i++) {
-	if (bcmp((const void *)SRV_RVM(LargeVnodeFreeList[i]), (const void *) zerovn,
+	if (memcmp((const void *)SRV_RVM(LargeVnodeFreeList[i]), (const void *) zerovn,
 		 SIZEOF_LARGEDISKVNODE) != 0) {
 	    VLog(0, "Large Free Vnode at index %d not zero!", i);
 	    CODA_ASSERT(0);
@@ -1368,7 +1368,7 @@ static void zero_globals()
 	free(inodeSummary);
         inodeSummary = NULL;
     }
-    bzero((void *)volumeSummary,
+    memset((void *)volumeSummary, 0,
 	sizeof(struct VolumeSummary) * MAXVOLS_PER_PARTITION);
 }
 

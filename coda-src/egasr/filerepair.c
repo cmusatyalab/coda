@@ -94,7 +94,7 @@ int getfid(char *path, ViceFid *outfid /* OUT */,
     vi.in_size = 0;
     vi.out = junk;
     vi.out_size = (short) sizeof(junk);
-    bzero(junk, (int) sizeof(junk));
+    memset(junk, 0, (int) sizeof(junk));
 
     rc = pioctl(path, VIOC_GETFID, &vi, 0);
     saveerrno = errno;
@@ -102,8 +102,8 @@ int getfid(char *path, ViceFid *outfid /* OUT */,
     /* Easy: no conflicts */
     if (!rc)
     	{
-	bcopy((const void *)junk, (void *)outfid, (int) sizeof(ViceFid));
-	bcopy((const void *)junk+sizeof(ViceFid), (void *)outvv, (int)sizeof(ViceVersionVector));
+	memmove((void *)outfid, (const void *)junk, (int) sizeof(ViceFid));
+	memmove((void *)outvv, (const void *)junk+sizeof(ViceFid), (int)sizeof(ViceVersionVector));
 	return(0);
 	}
 
@@ -154,7 +154,7 @@ int main(int argc, char **argv)
 	vioc.in = fixpath;
 	vioc.out_size = (short)sizeof(space);
 	vioc.out = space;
-	bzero(space, sizeof(space));
+	memset(space, 0, sizeof(space));
 	rc = pioctl(argv[1], VIOC_REPAIR, &vioc, 0);
 	if (rc < 0 && errno != ETOOMANYREFS) {
 		fprintf(stderr, "Error %d for repair\n", errno);

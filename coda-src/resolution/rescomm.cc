@@ -99,12 +99,12 @@ RepResCommCtxt::RepResCommCtxt() {
     LogMsg(100, SrvDebugLevel, stdout,  "RepResCommCtxt::RepResCommCtxt()");
     
     HowMany = 0;
-    bzero((void *)handles, VSG_MEMBERS * sizeof(RPC2_Handle));
-    bzero((void *)hosts, VSG_MEMBERS * sizeof(unsigned long));
-    bzero((void *)retcodes, VSG_MEMBERS * sizeof(int));
+    memset((void *)handles, 0, VSG_MEMBERS * sizeof(RPC2_Handle));
+    memset((void *)hosts, 0, VSG_MEMBERS * sizeof(unsigned long));
+    memset((void *)retcodes, 0, VSG_MEMBERS * sizeof(int));
     primaryhost = 0;
     MIp = 0;
-    bzero((void *)dying, VSG_MEMBERS * sizeof(unsigned));
+    memset((void *)dying, 0, VSG_MEMBERS * sizeof(unsigned));
 }
 
 RepResCommCtxt::~RepResCommCtxt() {
@@ -135,7 +135,7 @@ res_mgrpent::res_mgrpent(unsigned long vsgaddr, RPC2_Handle mid)
 	SLog(20,  "res_mgrpent::resmgrpent vsgaddr = %#08x, mid = %d",
 	     vsgaddr, mid);
 	VSGAddr = vsgaddr;
-	bzero((void *)&McastInfo, sizeof(RPC2_Multicast));
+	memset((void *)&McastInfo, 0, sizeof(RPC2_Multicast));
 	McastInfo.Mgroup = mid;
 	McastInfo.ExpandHandle = 0;
 	
