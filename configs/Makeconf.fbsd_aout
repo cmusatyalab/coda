@@ -15,7 +15,6 @@ LIBTHREADS    =
 
 #for advice_srv
 LIBKVM        = /usr/lib/aout/libkvm.a
-LIBDB         =
 LIBMATH       = -lm
 GUIDIR        = /usr/local/lib/coda
 

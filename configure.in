@@ -54,8 +54,6 @@ AC_PATH_PROG(RP2GEN, rp2gen, "", $PATH:${prefix}/sbin:/usr/sbin:/usr/local/sbin:
 AC_PATH_PROG(RDSINIT, rdsinit, "", $PATH:${prefix}/sbin:/usr/sbin:/usr/local/sbin:/usr/pkg/sbin)
 AC_PATH_PROG(RVMUTL, rvmutl, "", $PATH:${prefix}/sbin:/usr/sbin:/usr/local/sbin:/usr/pkg/sbin)
 
-dnl AC_PATH_PROGS(TIXWISH, [tixwish tixwish-tk4.1 tixwish4.1.8.0], "/usr/bin/tixwish")
-
 CODA_FAIL_IF_MISSING(RP2GEN, "unable to find rp2gen. try --with-lwp option");
 CODA_FAIL_IF_MISSING(RDSINIT, "unable to find rdsinit. try --with-rvm option");
 CODA_FAIL_IF_MISSING(RVMUTL, "unable to find rvmutl. try --with-rvm option");
@@ -73,7 +71,6 @@ CODA_FIND_LIB(readline, [#include<stdio.h>
 CODA_CHECK_LIBTERMCAP
 CODA_CHECK_LIBCURSES
 CODA_CHECK_READLINE
-CODA_CHECK_LIBDB185
 CODA_CHECK_MD5
 CODA_CHECK_KERBEROS
 
@@ -103,7 +100,7 @@ CODA_CXX_FEATURE_TEST(no_operator_names, -fno-operator-names)
 CODA_DARWIN_BROKEN_CPP_WORKAROUND
 
 dnl Checks for library functions.
-AC_CHECK_FUNCS(inet_aton inet_ntoa res_search)
+AC_CHECK_FUNCS(inet_aton inet_ntoa res_search pread)
 AC_CHECK_FUNCS(scandir select setenv snprintf statfs strerror strtol)
 AC_FUNC_MMAP
 AC_FUNC_SELECT_ARGTYPES
@@ -126,6 +123,7 @@ lib-src/Makefile
 lib-src/base/Makefile
 lib-src/kernel-includes/Makefile 
 lib-src/special-includes/Makefile 
+lib-src/rwcdb/Makefile 
 coda-src/Makefile 
 coda-src/scripts/Makefile 
 coda-src/scripts/bldvldb.sh

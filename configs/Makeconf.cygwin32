@@ -21,5 +21,4 @@ INCREADLINE	=
 LIBREADLINE	= 
 LIBTERMCAP	= -ltermcap
 #for rvm
-LIBDB         = -ldb
 GUIDIR        = /usr/lib/coda

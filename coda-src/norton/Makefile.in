@@ -32,6 +32,7 @@ SSCRIPTS    = $(SCRIPTS)
 DEPLIBS = $(LIBAUTH2)	\
 	$(LIBRES)	\
 	$(LIBAL)	\
+	$(LIBRWCDB)	\
 	$(LIBREPIO)	\
 	$(LIBVOL)	\
 	$(LIBVOLUTIL)	\
@@ -43,7 +44,7 @@ DEPLIBS = $(LIBAUTH2)	\
 	$(LIBBASE)
 
 LIBS := $(DEPLIBS) $(LIBRDSLWP) $(LIBSEG) $(LIBRVMLWP) $(LIBRPC2) $(LIBLWP) \
-	$(LIBDB) $(LIBREADLINE) $(LIBTERMCAP) $(LIBMATH) $(LIBS)
+	$(LIBREADLINE) $(LIBTERMCAP) $(LIBMATH) $(LIBS)
 
 common_objects = norton-setup.o commands.o norton-volume.o \
 		 norton-recov.o norton-vnode.o norton-dir.o norton-rds.o dummy.o

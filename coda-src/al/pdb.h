@@ -90,6 +90,7 @@ void PDB_updateCps(PDB_HANDLE h, PDB_profile *r);
 
 /* interface to the bottom end */
 PDB_HANDLE PDB_db_open(int mode);
+void PDB_db_reopen(PDB_HANDLE h);
 void PDB_db_close(PDB_HANDLE h);
 void PDB_db_maxids(PDB_HANDLE h, int32_t *uid, int32_t *gid);
 void PDB_db_update_maxids(PDB_HANDLE h, int32_t uid, int32_t gid, int mode);

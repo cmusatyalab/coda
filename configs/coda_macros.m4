@@ -85,57 +85,6 @@ AC_DEFUN(CODA_CHECK_LIBCURSES,
   fi)
 
 
-dnl Find an installed libdb-1.85
-dnl  cygwin and glibc-2.0 have libdb
-dnl  BSD systems have it in libc
-dnl  glibc-2.1 has libdb1 (and libdb is db2)
-dnl  Solaris systems have dbm in libc
-dnl All coda-servers _must_ use the same library, otherwise certain databases
-dnl cannot be replicated.
-AC_SUBST(LIBDB)
-AC_DEFUN(CODA_CHECK_LIBDB185,
- [AC_CHECK_HEADERS([db1/db.h db_185.h])
-  coda_save_LIBS="$LIBS"
-  dnl look for dbopen in libc, libdb1 and libdb
-  AC_SEARCH_LIBS(dbopen, [db1 db],
-   dnl found dbopen somewhere
-   [test "$ac_cv_search_dbopen" = "none required" || LIBDB="$ac_cv_search_dbopen"
-    dnl Check if the found libdb happens to be libdb2 using compatibility mode.
-    AC_MSG_CHECKING("if $LIBDB is libdb 1.85")
-    AC_TRY_LINK([char db_open();], db_open(),
-     [AC_MSG_RESULT("no")
-      dnl It probably will compile but it wont be compatible..
-      AC_MSG_WARN([Found libdb2 in libdb 1.85 'compatibility' mode. ])
-      AC_MSG_WARN([This uses an incompatible disk file format and the programs])
-      AC_MSG_WARN([might not be able to read replicated shared databases.])
-      sleep 5],
-     [AC_MSG_RESULT("yes")])],
-
-   dnl failed to find dbopen, fall back on db3
-   [AC_CHECK_LIB(db, __db185_open,
-    dnl found a Sleepycat libdb3 library with 1.85 compatibility
-    [LIBDB="-ldb"
-     dnl It probably will compile but it wont be compatible..
-     AC_MSG_WARN([Found libdb3 with libdb 1.85 'compatibility' mode.])
-     AC_MSG_WARN([This uses an incompatible disk file format and the programs])
-     AC_MSG_WARN([might not be able to read replicated shared databases.])
-     sleep 5],
-
-   dnl failed to find even the Sleepycat db2/db3, fall back on another library
-   [AC_SEARCH_LIBS(dbm_open, [ndbm],
-     [test "$ac_cv_search_dbm_open" = "none required" || LIBDB="$ac_cv_search_dbm_open"
-      AC_DEFINE(HAVE_NDBM, 1, [Define if you have ndbm])
-
-      AC_MSG_WARN([Found ndbm instead of libdb 1.85. This uses])
-      AC_MSG_WARN([an incompatible disk file format and the programs])
-      AC_MSG_WARN([will not be able to read replicated shared databases.])
-      sleep 5],
-      dnl nothing appropriate found bomb everywhere except for the DOS build.
-     [if test $target != i386-pc-djgpp ; then
-        AC_MSG_ERROR("failed to find libdb")
-      fi])])])
-  LIBS="$coda_save_LIBS"])
-
 dnl check wether we have flock or fcntl
 AC_DEFUN(CODA_CHECK_FILE_LOCKING,
   AC_CACHE_CHECK(for file locking by fcntl,

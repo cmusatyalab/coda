@@ -382,28 +382,31 @@ void tool_get_maxids(int argc,char *argv[]){
       if(check_args_num(argc,1)){
               printf("Usage: get_maxids\n");
       }
-      h = PDB_db_open(O_RDWR);
+      h = PDB_db_open(O_RDONLY);
       PDB_db_maxids(h, &maxuid, &maxgid);
       PDB_db_close(h);
       printf("maxuid %d maxgid %d\n", maxuid, maxgid);
 }
 
 /* SET MAXIDS */
-void tool_maxids(int argc,char *argv[]){
+void tool_maxids(int argc,char *argv[])
+{
 	PDB_HANDLE h;
 	long arg1, arg2;
+	char *end;
+
 	if(check_args_num(argc,3)){
 		printf("Usage: maxids usermax groupmin\n");
 		return;
 	}
-	arg1 = atol(argv[1]);
-	if(arg1 == 0){
-		printf("Give numerical value.\n");
+	arg1 = strtol(argv[1], &end, 10);
+	if(argv[1] == end || arg1 < 0){
+		printf("User max should be a positive numerical value.\n");
 		return;
 	}
-	arg2 = atol(argv[2]);
-	if(arg2 == 0){
-		printf("Give numerical value.\n");
+	arg2 = strtol(argv[2], &end, 10);
+	if(argv[2] == end || arg2 > 0){
+		printf("Group min should be a negative numerical value.\n");
 		return;
 	}
 	h = PDB_db_open(O_RDWR);

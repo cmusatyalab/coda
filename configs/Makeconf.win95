@@ -37,5 +37,4 @@ LIBTERMCAP    =
 # for rvm
 LIBTHREADS    =
 LIBMATH       = 
-#LIBDB        = -ldb
 GUIDIR        = /usr/lib/coda
