@@ -76,7 +76,7 @@ rm -rf $RPM_BUILD_DIR/obj-@VERSION@
 mkdir $RPM_BUILD_DIR/obj-@VERSION@
 cd $RPM_BUILD_DIR/obj-@VERSION@
 $RPM_BUILD_DIR/coda-@VERSION@/configure --prefix=$RPM_BUILD_ROOT/usr
-make GFLAG="" coda
+make
 
 %install
 cd $RPM_BUILD_DIR/obj-@CVER@
@@ -87,8 +87,8 @@ mkdir -p $RPM_BUILD_ROOT/usr/coda/venus.cache $RPM_BUILD_ROOT/dev \
 	$RPM_BUILD_ROOT/$RPM_BUILD_DIR\
 	$RPM_BUILD_ROOT/usr/lib/coda $RPM_BUILD_ROOT/etc/rc.d/init.d
 
-make GFLAG="" client-install
-make GFLAG="" server-install
+make client-install
+make server-install
 
 touch $RPM_BUILD_ROOT/usr/coda/venus.cache/INIT
 mknod $RPM_BUILD_ROOT/dev/cfs0 c 67 0
