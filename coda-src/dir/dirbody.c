@@ -502,6 +502,8 @@ int DIR_Create (struct DirHeader **dh, char *entry, struct DirFid *fid)
 
 	if ( strlen(entry) > CODA_MAXNAMLEN )
 		return ENAMETOOLONG;
+	if ( strlen(entry) == 0 )
+		return EINVAL;
     
 	/* First check if file already exists. */
 	ep = dir_FindItem(dir, entry, 0, 0, CLU_CASE_SENSITIVE);
