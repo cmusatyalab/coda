@@ -62,7 +62,6 @@ extern int errno;
 
 static void ClientPacket();
 static void ServerPacket();
-static void ExaminePacket(RPC2_PacketBuffer *whichPacket);
 static void SFSendNAK(RPC2_PacketBuffer *pb);
 static void sftp_ProcessPackets();
 static bool sftp_MorePackets();
@@ -120,20 +119,25 @@ static void sftp_ProcessPackets()
     int rc;
 
     /* A packet has arrived: read it in  */
+    assert(sftp_Port.Tag);
 
     SFTP_AllocBuffer(SFTP_MAXBODYSIZE, &pb);
     rc = sftp_RecvPacket(sftp_Socket, pb);
-    if (rc < 0)
-	{
+    if (rc < 0) {
 	/* If errno = 0, libfail killed the packet.
 	   else packet greater than RPC2_MAXPACKETSIZE */
-	if (errno != 0)
-	    BOGUS(pb);
+	if (errno != 0) BOGUS(pb);
 	return;
-	}
+    }
 
-    /* Go look at this  packet */
-    ExaminePacket(pb);
+    if (pb->Prefix.LengthOfPacket < sizeof(struct RPC2_PacketHeader)) {
+        /* avoid memory reference errors */
+        BOGUS(pb);
+        return;
+    }
+
+    /* Go look at this packet */
+    sftp_ExaminePacket(pb);
 }
 
 static void ScanTimerQ()
@@ -164,11 +168,8 @@ static bool sftp_MorePackets(bool *rpc2, bool *sftp)
 #if defined(FIONREAD)
     int ready_rpc2 = 0, ready_sftp = 0;
 
-    *rpc2 = ((ioctl(rpc2_RequestSocket, FIONREAD, &ready_rpc2) == 0) &&
-	     (ready_rpc2 != 0));
-
-    *sftp = ((ioctl(sftp_Socket, FIONREAD, &ready_sftp) == 0) &&
-	     (ready_sftp != 0));
+    *rpc2 = ioctl(rpc2_RequestSocket, FIONREAD, &ready_rpc2) == 0 && ready_rpc2 != 0;
+    *sftp = sftp_Port.Tag && ioctl(sftp_Socket, FIONREAD, &ready_sftp) == 0 && ready_sftp != 0;
     
     fprintf(stderr, "sftp_MorePackets: rpc2 %d, sftp %d\n",
 	    ready_rpc2, ready_sftp);
@@ -179,17 +180,22 @@ static bool sftp_MorePackets(bool *rpc2, bool *sftp)
     fd_set rmask;
     struct timeval tv;
 
-    nfds = MAX(sftp_Socket, rpc2_RequestSocket) + 1;
     FD_ZERO(&rmask);
     FD_SET(rpc2_RequestSocket, &rmask);
-    FD_SET(sftp_Socket, &rmask);
+
+    if (sftp_Port.Tag) {
+        FD_SET(sftp_Socket, &rmask);
+        nfds = MAX(sftp_Socket, rpc2_RequestSocket) + 1;
+    } else
+        nfds = rpc2_RequestSocket + 1;
+
     tv.tv_sec = tv.tv_usec = 0;	    /* do polling select */
     /* We use select rather than IOMGR_Select to avoid overheads. This is
      * acceptable only because we are doing a polling select */
     if (select(nfds, &rmask, NULL, NULL, &tv) > 0)
     {
 	*rpc2 = FD_ISSET(rpc2_RequestSocket, &rmask);
-	*sftp = FD_ISSET(sftp_Socket, &rmask);
+	*sftp = sftp_Port.Tag && FD_ISSET(sftp_Socket, &rmask);
 	return(TRUE);
     }
     else return(FALSE);
@@ -208,6 +214,8 @@ static int AwaitEvent()
     t = TM_GetEarliest(sftp_Chain);
     if (t == NULL) tvp = NULL;
     else tvp = &t->TimeLeft;
+
+    assert(sftp_Port.Tag);
     
     FD_ZERO(&rmask);
     FD_SET(sftp_Socket, &rmask);
@@ -219,7 +227,7 @@ static int AwaitEvent()
 }
 
 
-static void ExaminePacket(RPC2_PacketBuffer *pb)
+void sftp_ExaminePacket(RPC2_PacketBuffer *pb)
 {
     struct SFTP_Entry	*sfp;
     struct CEntry	*ce;
@@ -353,7 +361,7 @@ static void ClientPacket(RPC2_PacketBuffer *whichPacket,
     switch ((int) whichPacket->Header.Opcode)
     {
     case SFTP_NAK:
-	assert(FALSE);  /* should have been dealt with in ExaminePacket()*/
+	assert(FALSE);  /* should have been dealt with in sftp_ExaminePacket()*/
 	break;	    
 
     case SFTP_ACK:
@@ -418,6 +426,8 @@ static void ClientPacket(RPC2_PacketBuffer *whichPacket,
 
 static void SFSendNAK(RPC2_PacketBuffer *pb)
 {
+    struct SFTP_Entry fake_se;
+
     RPC2_PacketBuffer *nakpb;
     RPC2_Handle remoteHandle  = pb->Header.LocalHandle;
     RPC2_HostIdent *whichHost = &pb->Prefix.PeerHost;
@@ -437,6 +447,12 @@ static void SFSendNAK(RPC2_PacketBuffer *pb)
     nakpb->Header.Opcode = SFTP_NAK;
     /* All other fields are irrelevant in a NAK packet */
     rpc2_htonp(nakpb);
-    sftp_XmitPacket(sftp_Socket, nakpb, whichHost, whichPort);    /* ignore return code */
+
+    /* XXX hack so we can use sftp_XmitPacket */
+    fake_se.PInfo.RemoteHost = *whichHost;
+    fake_se.PInfo.RemotePort = *whichPort;
+    fake_se.PeerPort.Tag = 0;
+
+    sftp_XmitPacket(&fake_se, nakpb);    /* ignore return code */
     SFTP_FreeBuffer(&nakpb);
 }

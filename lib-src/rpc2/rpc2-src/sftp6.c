@@ -714,9 +714,8 @@ static int SDescCmp(desc1, desc2)
     }
 
 
-static void SFSendBusy(whichEntry)
-    struct SFTP_Entry	*whichEntry;
-    {
+static void SFSendBusy(struct SFTP_Entry *whichEntry)
+{
     RPC2_PacketBuffer *busypb;
 
     sftp_Sent.Busies++;
@@ -727,9 +726,9 @@ static void SFSendBusy(whichEntry)
     busypb->Header.Opcode = SFTP_BUSY;
     rpc2_htonp(busypb);
 
-    sftp_XmitPacket(sftp_Socket, busypb, &whichEntry->PInfo.RemoteHost, &whichEntry->PeerPort);
+    sftp_XmitPacket(whichEntry, busypb);
     SFTP_FreeBuffer(&busypb);
-    }
+}
 
 
 static void MC_AppendParmsToPacket(mse, sse, req)

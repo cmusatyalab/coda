@@ -529,7 +529,7 @@ static void sftp_SendAck(struct SFTP_Entry *sEntry)
     if (shiftlen > 0) B_ShiftLeft((unsigned int *)btemp, shiftlen);
     B_CopyToPacket((unsigned int *)btemp, pb);
     rpc2_htonp(pb);
-    sftp_XmitPacket(sftp_Socket, pb, &sEntry->PInfo.RemoteHost, &sEntry->PeerPort);
+    sftp_XmitPacket(sEntry, pb);
     sEntry->RecvSinceAck = 0;
 
     say(/*9*/4, SFTP_DebugLevel, "A-%lu [%lu] {%lu} %lu\n",
@@ -881,7 +881,7 @@ static int ResendWorried(struct SFTP_Entry *sEntry, long ackLast)
 		    (unsigned long)ntohl(pb->Header.SeqNumber), 
 		    (unsigned long)ntohl(pb->Header.TimeStamp), 
 		    (unsigned long)ntohl(pb->Header.TimeEcho));
-	    sftp_XmitPacket(sftp_Socket, pb, &sEntry->PInfo.RemoteHost, &sEntry->PeerPort);
+	    sftp_XmitPacket(sEntry, pb);
 	}
     }
 
@@ -939,7 +939,7 @@ static int SendFirstUnacked(struct SFTP_Entry *sEntry, long ackMe)
 	    (unsigned long)ntohl(pb->Header.SeqNumber), 
 	    (unsigned long)ntohl(pb->Header.TimeStamp),
 	    (unsigned long)ntohl(pb->Header.TimeEcho));
-    sftp_XmitPacket(sftp_Socket, pb, &sEntry->PInfo.RemoteHost, &sEntry->PeerPort);
+    sftp_XmitPacket(sEntry, pb);
     return(1);
 }
 
@@ -1001,7 +1001,7 @@ static int SendSendAhead(struct SFTP_Entry *sEntry)
 	    htonl(sEntry->TimeEcho) : htonl(0);
 #endif
 
-	sftp_XmitPacket(sftp_Socket, pb, &sEntry->PInfo.RemoteHost, &sEntry->PeerPort);
+	sftp_XmitPacket(sEntry, pb);
 	say(/*9*/4, SFTP_DebugLevel, "S-%lu [%lu] {%lu}\n",
 		(unsigned long)ntohl(pb->Header.SeqNumber), 
 		(unsigned long)ntohl(pb->Header.TimeStamp),
@@ -1219,7 +1219,7 @@ int sftp_SendStart(struct SFTP_Entry *sEntry)
 
     rpc2_htonp(pb);
 
-    sftp_XmitPacket(sftp_Socket, pb, &sEntry->PInfo.RemoteHost, &sEntry->PeerPort);
+    sftp_XmitPacket(sEntry, pb);
     say(/*9*/4, SFTP_DebugLevel, "X-%lu [%lu]\n",
 	    (unsigned long)ntohl(pb->Header.SeqNumber),
 	    (unsigned long)ntohl(pb->Header.TimeStamp));

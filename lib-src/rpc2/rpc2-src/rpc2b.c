@@ -100,10 +100,8 @@ long RPC2_Init(char *VId,		/* magic version string */
     rpc2_InitMgrp();
     rpc2_InitHost();
 
-    if (Port) 
-	    rpc2_LocalPort = *Port; 
-    else 
-	    rpc2_LocalPort.Tag = (PortTag)0;  
+    if (Port) rpc2_LocalPort = *Port; 
+    else      rpc2_LocalPort.Tag = (PortTag)0;  
     
     /* We put the localhost IP-address in rpc2_LocalHost, this value is _ONLY_
      * used to hash the Mgroup entries, and we are _not_ sending it to the
@@ -115,9 +113,7 @@ long RPC2_Init(char *VId,		/* magic version string */
     rpc2_LocalHost.Value.InetAddress.s_addr = htonl(INADDR_LOOPBACK);
     
     rc = rpc2_CreateIPSocket(&rpc2_RequestSocket, &rpc2_LocalPort);
-
-    if ( Port ) 
-	    *Port = rpc2_LocalPort; 
+    if (Port) *Port = rpc2_LocalPort; 
 
     if (rc < RPC2_ELIMIT) {
 	say(-1, RPC2_DebugLevel, "RPC2_Init(): Couldn't create socket\n");
@@ -135,6 +131,11 @@ long RPC2_Init(char *VId,		/* magic version string */
 
     IOMGR_Initialize();
     TM_Init(&rpc2_TimerQueue);
+
+    /* Register rpc2 packet handler with rpc2_SocketListener before
+     * initializing the sideeffects */
+    SL_RegisterHandler(RPC2_PROTOVERSION, rpc2_HandlePacket);
+    
     /* Call side effect initialization routines */
     for (i = 0; i < SE_DefCount; i++)
 	if (SE_DefSpecs[i].SE_Init != NULL)

@@ -502,6 +502,10 @@ bool rpc2_FilterMatch();
 /* Autonomous LWPs */
 void rpc2_SocketListener(), rpc2_ClockTick();
 
+/* rpc2_SocketListener packet handlers */
+void SL_RegisterHandler(unsigned int proto, void (*func)(RPC2_PacketBuffer *));
+void rpc2_HandlePacket(RPC2_PacketBuffer *pb);
+
 /* Packet timestamp creation */
 unsigned int rpc2_TVTOTS(const struct timeval *tv);
 void         rpc2_TSTOTV(const unsigned int ts, struct timeval *tv);

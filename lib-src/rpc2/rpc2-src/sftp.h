@@ -350,9 +350,9 @@ extern long SFTP_DebugLevel;
 
 
 long sftp_RecvPacket(long whichSocket, RPC2_PacketBuffer *whichPacket);
-int  sftp_XmitPacket(long whichSocket, RPC2_PacketBuffer *whichPacket,
-		     RPC2_HostIdent *whichHost, RPC2_PortIdent *whichPort);
+int  sftp_XmitPacket(struct SFTP_Entry *sentry, RPC2_PacketBuffer *pb);
 void sftp_Listener(void);
+void sftp_ExaminePacket(RPC2_PacketBuffer *pb);
 
 #define IsSource(sfe)\
     ((sfe->WhoAmI == SFCLIENT && sfe->SDesc && sfe->SDesc->Value.SmartFTPD.TransmissionDirection == CLIENTTOSERVER) ||\

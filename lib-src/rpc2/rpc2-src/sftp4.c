@@ -61,49 +61,57 @@ extern int errno;
 
 #define TRACELEN 1000
 
-struct TraceEntry
-    {
+struct TraceEntry {
     enum PktType {SENT, RECVD, STATUS, BOGUS} tcode;
     struct RPC2_PacketHeader ph;
-    };
+};
 
 #ifdef RPC2DEBUG
 struct CBUF_Header *TraceBuf;
 #endif RPC2DEBUG
 
-int sftp_XmitPacket(long whichSocket, RPC2_PacketBuffer *whichPacket,
-		    RPC2_HostIdent *whichHost, RPC2_PortIdent *whichPort)
-    {
+int sftp_XmitPacket(struct SFTP_Entry *sEntry, RPC2_PacketBuffer *pb)
+{
+    int whichSocket;
+    RPC2_PortIdent *whichPort;
 #ifdef RPC2DEBUG
     struct TraceEntry *te;
 
     te = (struct TraceEntry *)CBUF_NextSlot(TraceBuf);
     te->tcode = SENT;
-    te->ph = whichPacket->Header;	/* structure assignment */
+    te->ph = pb->Header;	/* structure assignment */
 #endif RPC2DEBUG
 
-    rpc2_XmitPacket(whichSocket, whichPacket, whichHost, whichPort);
+    whichSocket = sftp_Socket;
+    whichPort = &sEntry->PeerPort;
 
-    if (ntohl(whichPacket->Header.Flags) & RPC2_MULTICAST)
-	{
-	rpc2_MSent.Total--;
-	rpc2_MSent.Bytes -= whichPacket->Prefix.LengthOfPacket;
-	sftp_MSent.Total++;
-	sftp_MSent.Bytes += whichPacket->Prefix.LengthOfPacket;
-	}
-    else
-	{
-	rpc2_Sent.Total--;
-	rpc2_Sent.Bytes -= whichPacket->Prefix.LengthOfPacket;
-	sftp_Sent.Total++;
-	sftp_Sent.Bytes += whichPacket->Prefix.LengthOfPacket;
-	}
-
-    return(RPC2_SUCCESS);
+    /* when either side is in `masquerading mode', send the packet out
+     * of the rpc2 socket */
+    if (!sftp_Port.Tag || !sEntry->PeerPort.Tag)
+    {
+        whichSocket = rpc2_RequestSocket;
+        whichPort = &sEntry->PInfo.RemotePort;
     }
 
+    rpc2_XmitPacket(whichSocket, pb, &sEntry->PInfo.RemoteHost, whichPort);
+
+    if (ntohl(pb->Header.Flags) & RPC2_MULTICAST) {
+	rpc2_MSent.Total--;
+	rpc2_MSent.Bytes -= pb->Prefix.LengthOfPacket;
+	sftp_MSent.Total++;
+	sftp_MSent.Bytes += pb->Prefix.LengthOfPacket;
+    } else {
+	rpc2_Sent.Total--;
+	rpc2_Sent.Bytes -= pb->Prefix.LengthOfPacket;
+	sftp_Sent.Total++;
+	sftp_Sent.Bytes += pb->Prefix.LengthOfPacket;
+    }
+
+    return(RPC2_SUCCESS);
+}
+
 long sftp_RecvPacket(long whichSocket, RPC2_PacketBuffer *whichPacket)
-    {
+{
 #ifdef RPC2DEBUG
     struct TraceEntry *te;
 #endif RPC2DEBUG
@@ -113,20 +121,17 @@ long sftp_RecvPacket(long whichSocket, RPC2_PacketBuffer *whichPacket)
     rc = rpc2_RecvPacket(whichSocket, whichPacket);
     if (rc < 0) return(rc);
 
-    if (ntohl(whichPacket->Header.Flags) & RPC2_MULTICAST)
-	{
+    if (ntohl(whichPacket->Header.Flags) & RPC2_MULTICAST) {
 	rpc2_MRecvd.Total--;
 	rpc2_MRecvd.Bytes -= whichPacket->Prefix.LengthOfPacket;
 	sftp_MRecvd.Total++;
 	sftp_MRecvd.Bytes += whichPacket->Prefix.LengthOfPacket;
-	}
-    else
-	{
+    } else {
 	rpc2_Recvd.Total--;
 	rpc2_Recvd.Bytes -= whichPacket->Prefix.LengthOfPacket;
 	sftp_Recvd.Total++;
 	sftp_Recvd.Bytes += whichPacket->Prefix.LengthOfPacket;
-	}
+    }
 
 #ifdef RPC2DEBUG
     te = (struct TraceEntry *)CBUF_NextSlot(TraceBuf);
@@ -135,7 +140,7 @@ long sftp_RecvPacket(long whichSocket, RPC2_PacketBuffer *whichPacket)
 #endif RPC2DEBUG
 
     return(rc);
-    }
+}
 
 void sftp_TraceStatus(struct SFTP_Entry *sEntry, int filenum, int linenum)
     {

@@ -78,7 +78,7 @@ void rpc2_ExpireEvents();
 static RPC2_PacketBuffer *PullPacket(), *ShrinkPacket();
 static struct CEntry *MakeConn(), *FindOrNak();
 static struct SL_Entry *FindRecipient();
-static bool PoisonPacket(), BogusSl(), MorePackets(), PacketCame();
+static bool BogusSl(), MorePackets(), PacketCame();
 static void
 	    Tell(), HandleSLPacket(), DecodePacket(),
 	    HandleCurrentReply(),
@@ -102,11 +102,28 @@ static void SendNak(RPC2_PacketBuffer *pb);
 /* Flag to toggle ip-address/port matching for received packets */
 long RPC2_strict_ip_matching = 0;
 
+/* Multiple transports can register a handler with the rpc2 socketlistener
+ * when their headers are RPC2 compatible */
+#define MAXPACKETHANDLERS 4
+static unsigned int nPacketHandlers = 0;
+static struct PacketHandlers {
+    unsigned int ProtoVersion;
+    void (*Handler)(RPC2_PacketBuffer *pb);
+} PacketHandlers[MAXPACKETHANDLERS];
+
+void SL_RegisterHandler(unsigned int pv, void (*handler)(RPC2_PacketBuffer *pb))
+{
+    assert(nPacketHandlers <= MAXPACKETHANDLERS);
+    PacketHandlers[nPacketHandlers].ProtoVersion = pv;
+    PacketHandlers[nPacketHandlers].Handler = handler;
+    nPacketHandlers++;
+}
+
 void rpc2_SocketListener()
 {
 	/* just once, at RPC2_Init time, to be nice */
 	LWP_DispatchProcess();  
-    
+
     /* The funny if-do construct  below assures the following:
        1. All packets in the socket buffer are processed before expiring events
        2. The number of select() system calls is kept to bare minimum
@@ -147,6 +164,7 @@ void rpc2_ProcessPackets()
 {
 	struct CEntry *ce = NULL;
 	RPC2_PacketBuffer *pb = NULL;
+        unsigned int i, ProtoVersion;
 	
 	/* We are guaranteed that there is a packet in the socket
            buffer at this point */
@@ -155,8 +173,27 @@ void rpc2_ProcessPackets()
 		return;
 	assert(pb->Prefix.Qname == &rpc2_PBList);
 
-	if (PoisonPacket(pb))  
-		return;
+        if (pb->Prefix.LengthOfPacket < sizeof(struct RPC2_PacketHeader)) {
+            /* avoid memory reference errors */
+            BOGUS(pb, "Runt packet\n");
+            return;
+        }
+
+        ProtoVersion = ntohl(pb->Header.ProtoVersion);
+        for (i = 0; i < nPacketHandlers; i++) {
+            if (ProtoVersion == PacketHandlers[i].ProtoVersion) {
+                PacketHandlers[i].Handler(pb);
+                return;
+            }
+        }
+
+        /* we don't have a ghost of a chance */
+        BOGUS(pb, "Wrong version\n");
+}
+
+void rpc2_HandlePacket(RPC2_PacketBuffer *pb)
+{
+        struct CEntry *ce;
 	assert(pb->Prefix.Qname == &rpc2_PBList);
 
 	if (ntohl(pb->Header.LocalHandle) == -1) {
@@ -306,23 +343,6 @@ static RPC2_PacketBuffer *PullPacket()
 
 	return(pb);
 }
-
-static bool PoisonPacket(RPC2_PacketBuffer *pb)
-{
-	if (pb->Prefix.LengthOfPacket < sizeof(struct RPC2_PacketHeader)) {
-		/* avoid memory reference errors */
-		BOGUS(pb, "Runt packet\n");
-		return(TRUE);
-	}
-    
-	if (ntohl(pb->Header.ProtoVersion) != RPC2_PROTOVERSION) {
-		/* we don't have a ghost of a chance */
-		BOGUS(pb, "Wrong version\n");
-		return(TRUE);
-	}
-	return(FALSE);
-}
-
 
 static void Tell(RPC2_PacketBuffer *pb, struct CEntry *ce)
 {

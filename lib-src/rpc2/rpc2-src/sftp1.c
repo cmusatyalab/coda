@@ -100,22 +100,30 @@ static long MakeBigEnough();
 /*------------- Procedures directly invoked by RPC2 ---------------*/
 
 long SFTP_Init()
-    {
+{
     char *sname;
     
     say(0, SFTP_DebugLevel, "SFTP_Init()\n");
 
-    /* Create socket for SFTP packets */
-    if (rpc2_CreateIPSocket(&sftp_Socket, &sftp_Port) != RPC2_SUCCESS)
-	return(RPC2_FAIL);
+    if (sftp_Port.Tag)
+    {
+        /* Create socket for SFTP packets */
+        if (rpc2_CreateIPSocket(&sftp_Socket, &sftp_Port) != RPC2_SUCCESS)
+            return(RPC2_FAIL);
 
-
-    /* Create SFTP listener process */
-    sname = "sftp_Listener";
-    LWP_CreateProcess((PFIC)sftp_Listener, 16384, LWP_NORMAL_PRIORITY, sname, sname, &sftp_ListenerPID);
-    sftp_InitTrace();
-    return (RPC2_SUCCESS);
+        /* Create SFTP listener process */
+        sname = "sftp_Listener";
+        LWP_CreateProcess((PFIC)sftp_Listener, 16384, LWP_NORMAL_PRIORITY,
+                          sname, sname, &sftp_ListenerPID);
     }
+
+    sftp_InitTrace();
+
+    /* Register SFTP packet handler with RPC2 socket listener */
+    SL_RegisterHandler(SFTPVERSION, sftp_ExaminePacket);
+
+    return (RPC2_SUCCESS);
+}
 
 void SFTP_SetDefaults(initPtr)
     SFTP_Initializer *initPtr;
