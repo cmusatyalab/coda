@@ -220,14 +220,14 @@ class hdb {
     hdbent *Find(VolumeId, char *);
 
     /* The external interface. */
-    int Add(hdb_add_msg *, vuid_t local_id, vuid_t coda_id);
-    int Delete(hdb_delete_msg *, vuid_t local_id, vuid_t coda_id);
-    int Clear(hdb_clear_msg *, vuid_t local_id, vuid_t coda_id);
-    int List(hdb_list_msg *, vuid_t local_id, vuid_t coda_id);
-    int Walk(hdb_walk_msg *, vuid_t local_id, vuid_t coda_id);
-    int Verify(hdb_verify_msg *, vuid_t local_id, vuid_t coda_id);
-    int Enable(hdb_walk_msg *, vuid_t local_id, vuid_t coda_id);
-    int Disable(hdb_walk_msg *, vuid_t local_id, vuid_t coda_id);
+    int Add(hdb_add_msg *, vuid_t local_id);
+    int Delete(hdb_delete_msg *, vuid_t local_id);
+    int Clear(hdb_clear_msg *, vuid_t local_id);
+    int List(hdb_list_msg *, vuid_t local_id);
+    int Walk(hdb_walk_msg *, vuid_t local_id);
+    int Verify(hdb_verify_msg *, vuid_t local_id);
+    int Enable(hdb_walk_msg *, vuid_t local_id);
+    int Disable(hdb_walk_msg *, vuid_t local_id);
      
     void ResetUser(vuid_t);
 

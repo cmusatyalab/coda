@@ -16,11 +16,6 @@ listed in the file CREDITS.
 
 #*/
 
-
-
-
-
-
 /*
  *    Hoard database (HDB) management.
  *
@@ -239,7 +234,7 @@ hdbent *hdb::Find(VolumeId vid, char *name) {
 
 
 /* MUST NOT be called from within transaction! */
-hdbent *hdb::Create(VolumeId vid, char *name, vuid_t coda_id,
+hdbent *hdb::Create(VolumeId vid, char *name, vuid_t local_id,
 		     int priority, int expand_children, int expand_descendents) {
     hdbent *h = 0;
 
@@ -249,7 +244,7 @@ hdbent *hdb::Create(VolumeId vid, char *name, vuid_t coda_id,
 
     /* Fashion a new object. */
     Recov_BeginTrans();
-    h = new hdbent(vid, name, coda_id, priority, expand_children,
+    h = new hdbent(vid, name, local_id, priority, expand_children,
 		   expand_descendents);
     Recov_EndTrans(DMFP);
 
@@ -259,20 +254,20 @@ hdbent *hdb::Create(VolumeId vid, char *name, vuid_t coda_id,
 }
 
 
-int hdb::Add(hdb_add_msg *m, vuid_t local_id, vuid_t coda_id) {
-    LOG(10, ("hdb::Add: <%x, %s, %d, %d, %d, %d>\n",
-	     m->volno, m->name, m->priority, m->attributes, local_id, coda_id));
+int hdb::Add(hdb_add_msg *m, vuid_t local_id) {
+    LOG(10, ("hdb::Add: <%x, %s, %d, %d, %d>\n",
+	     m->volno, m->name, m->priority, m->attributes, local_id));
 
     /* See if an entry already exists.  If it does, try to delete it. */
     hdbent *h = Find(m->volno, m->name);
     if (h) {
-	LOG(1, ("hdb::Add: (%x, %s, %d, %d) already exists (%d)\n",
-		m->volno, m->name, local_id, coda_id, h->vuid));
+	LOG(1, ("hdb::Add: (%x, %s, %d) already exists (%d)\n",
+		m->volno, m->name, local_id, h->vuid));
 
 	hdb_delete_msg dm;
 	dm.volno = m->volno;
 	strcpy(dm.name, m->name);
-	int code = Delete(&dm, local_id, coda_id);
+	int code = Delete(&dm, local_id);
 	if (code != 0) return(code);
 
 	h = 0;
@@ -287,7 +282,7 @@ int hdb::Add(hdb_add_msg *m, vuid_t local_id, vuid_t coda_id) {
 	else if (m->attributes & H_CHILDREN)
 	    expand_children = 1;
     }
-    h = Create(m->volno, m->name, coda_id, m->priority,
+    h = Create(m->volno, m->name, local_id, m->priority,
 		expand_children, expand_descendents);
     if (h == 0) return(ENOSPC);
 
@@ -295,22 +290,22 @@ int hdb::Add(hdb_add_msg *m, vuid_t local_id, vuid_t coda_id) {
 }
 
 
-int hdb::Delete(hdb_delete_msg *m, vuid_t local_id, vuid_t coda_id) {
-    LOG(10, ("hdb::Delete: <%x, %s, %d, %d>\n",
-	      m->volno, m->name, local_id, coda_id));
+int hdb::Delete(hdb_delete_msg *m, vuid_t local_id) {
+    LOG(10, ("hdb::Delete: <%x, %s, %d>\n",
+	      m->volno, m->name, local_id));
 
     /* Look up the entry. */
     hdbent *h = Find(m->volno, m->name);
     if (h == 0) {
-	LOG(1, ("hdb::Delete: (%x, %s, %d, %d) not found\n",
-		m->volno, m->name, local_id, coda_id));
+	LOG(1, ("hdb::Delete: (%x, %s, %d) not found\n",
+		m->volno, m->name, local_id));
 	return(ENOENT);
     }
 
     /* Can only delete one's own entries unless root or authorized user. */
-    if (coda_id != h->vuid && local_id != V_UID && !AuthorizedUser(local_id)) {
-	LOG(1, ("hdb::Delete: (%x, %s, %d, %d) not authorized\n",
-		m->volno, m->name, local_id, coda_id));
+    if (local_id != h->vuid && local_id != V_UID && !AuthorizedUser(local_id)) {
+	LOG(1, ("hdb::Delete: (%x, %s, %d) not authorized\n",
+		m->volno, m->name, local_id));
 	return(EACCES);
     }
 
@@ -324,13 +319,13 @@ int hdb::Delete(hdb_delete_msg *m, vuid_t local_id, vuid_t coda_id) {
 
 /* cuid = ALL_UIDS is a wildcard meaning "clear all entries." */
 extern FILE *logFile;
-int hdb::Clear(hdb_clear_msg *m, vuid_t local_id, vuid_t coda_id) {
-    LOG(10, ("hdb::Clear: <%d, %d, %d>\n", m->cuid, local_id, coda_id));
+int hdb::Clear(hdb_clear_msg *m, vuid_t local_id) {
+    LOG(10, ("hdb::Clear: <%d, %d>\n", m->cuid, local_id));
 
     /* Can only clear one's own entries unless root or authorized user. */
-    if (coda_id != m->cuid && local_id != V_UID && !AuthorizedUser(local_id)) {
-	LOG(1, ("hdb::Clear: (%d, %d, %d) not authorized\n",
-		m->cuid, local_id, coda_id));
+    if (local_id != m->cuid && local_id != V_UID && !AuthorizedUser(local_id)) {
+	LOG(1, ("hdb::Clear: (%d, %d) not authorized\n",
+		m->cuid, local_id));
 	return(EACCES);
     }
 
@@ -353,22 +348,22 @@ int hdb::Clear(hdb_clear_msg *m, vuid_t local_id, vuid_t coda_id) {
 
 
 /* luid = ALL_UIDS is a wildcard meaning "list all entries." */
-int hdb::List(hdb_list_msg *m, vuid_t local_id, vuid_t coda_id) {
-    LOG(10, ("hdb::List: <%s, %d, %d, %d>\n",
-	      m->outfile, m->luid, local_id, coda_id));
+int hdb::List(hdb_list_msg *m, vuid_t local_id) {
+    LOG(10, ("hdb::List: <%s, %d, %d>\n",
+	      m->outfile, m->luid, local_id));
 
     /* Can only list one's own entries unless root. */
-    if (coda_id != m->luid && local_id != V_UID && !AuthorizedUser(local_id)) {
-	LOG(1, ("hdb::List: (%s, %d, %d) not authorized\n",
-		m->outfile, m->luid, local_id, coda_id));
+    if (local_id != m->luid && local_id != V_UID && !AuthorizedUser(local_id)) {
+	LOG(1, ("hdb::List: (%s, %d) not authorized\n",
+		m->outfile, m->luid, local_id));
 	return(EACCES);
     }
 
     /* Open the list file. */
     int outfd = ::open(m->outfile, O_TRUNC | O_WRONLY | O_CREAT | O_BINARY, 0600);
     if (outfd < 0) {
-	LOG(1, ("hdb::List: (%s, %d, %d, %d) open failed (%d)\n",
-		m->outfile, m->luid, local_id, coda_id, errno));
+	LOG(1, ("hdb::List: (%s, %d, %d) open failed (%d)\n",
+		m->outfile, m->luid, local_id, errno));
 	return(errno);
     }
 
@@ -380,8 +375,8 @@ int hdb::List(hdb_list_msg *m, vuid_t local_id, vuid_t coda_id) {
     int err = ::chown(m->outfile, local_id, (gid_t) -1);
 #endif
     if (err) {
-	LOG(1, ("hdb::List: (%s, %d, %d) fchown failed (%d)\n",
-		m->outfile, local_id, coda_id, errno));
+	LOG(1, ("hdb::List: (%s, %d) fchown failed (%d)\n",
+		m->outfile, local_id, errno));
 	return(errno);
     }
 #endif
@@ -1121,8 +1116,8 @@ void hdb::PostWalkStatus() {
 }
 
 
-int hdb::Walk(hdb_walk_msg *m, vuid_t local_id, vuid_t coda_id) {
-    LOG(10, ("hdb::Walk: <%d, %d>\n", local_id, coda_id));
+int hdb::Walk(hdb_walk_msg *m, vuid_t local_id) {
+    LOG(10, ("hdb::Walk: <%d>\n", local_id));
 
     int TotalBytesToFetch = 0;
 
@@ -1160,23 +1155,23 @@ int hdb::Walk(hdb_walk_msg *m, vuid_t local_id, vuid_t coda_id) {
 }
 
 
-int hdb::Verify(hdb_verify_msg *m, vuid_t local_id, vuid_t coda_id) {
+int hdb::Verify(hdb_verify_msg *m, vuid_t local_id) {
 
-    LOG(0, ("hdb::Verify: <%s, %d, %d, %d, %d>\n", m->outfile, m->verbosity, m->luid, local_id, coda_id));
+    LOG(0, ("hdb::Verify: <%s, %d, %d, %d>\n", m->outfile, m->verbosity, m->luid, local_id));
 
 
     /* Can only list one's own entries unless root. */
-    if (coda_id != m->luid && local_id != V_UID && !AuthorizedUser(local_id)) {
-	LOG(1, ("hdb::List: (%s, %d, %d, %d) not authorized\n",
-		m->outfile, m->luid, local_id, coda_id));
+    if (local_id != m->luid && local_id != V_UID && !AuthorizedUser(local_id)) {
+	LOG(1, ("hdb::List: (%s, %d, %d) not authorized\n",
+		m->outfile, m->luid, local_id));
 	return(EACCES);
     }
 
     /* Open the list file. */
     int outfd = ::open(m->outfile, O_TRUNC | O_WRONLY | O_CREAT | O_BINARY, 0600);
     if (outfd < 0) {
-	LOG(1, ("hdb::Verify: (%s, %d, %d, %d, %d) open failed (%d)\n",
-		m->outfile, m->verbosity, m->luid, local_id, coda_id, errno));
+	LOG(1, ("hdb::Verify: (%s, %d, %d, %d) open failed (%d)\n",
+		m->outfile, m->verbosity, m->luid, local_id, errno));
 	return(errno);
     }
 
@@ -1189,8 +1184,8 @@ int hdb::Verify(hdb_verify_msg *m, vuid_t local_id, vuid_t coda_id) {
 
 #endif
     if (err) {
-	LOG(1, ("hdb::Verify: (%s, %d, %d) fchown failed (%d)\n",
-		m->outfile, local_id, coda_id, errno));
+	LOG(1, ("hdb::Verify: (%s, %d) fchown failed (%d)\n",
+		m->outfile, local_id, errno));
 	return(errno);
     }
 
@@ -1209,8 +1204,8 @@ int hdb::Verify(hdb_verify_msg *m, vuid_t local_id, vuid_t coda_id) {
 }
 
 
-int hdb::Enable(hdb_walk_msg *m, vuid_t local_id, vuid_t coda_id) {
-    LOG(10, ("hdb::Enable: <%d, %d>\n", local_id, coda_id));
+int hdb::Enable(hdb_walk_msg *m, vuid_t local_id) {
+    LOG(10, ("hdb::Enable: <%d>\n", local_id));
 
     eprint("Enabling periodic hoard walks");
     PeriodicWalksAllowed = 1;
@@ -1218,8 +1213,8 @@ int hdb::Enable(hdb_walk_msg *m, vuid_t local_id, vuid_t coda_id) {
     return 0;
 }
 
-int hdb::Disable(hdb_walk_msg *m, vuid_t local_id, vuid_t coda_id) {
-    LOG(10, ("hdb::Disable: <%d, %d>\n", local_id, coda_id));
+int hdb::Disable(hdb_walk_msg *m, vuid_t local_id) {
+    LOG(10, ("hdb::Disable: <%d>\n", local_id));
 
     eprint("Disabling periodic hoard walks");
     PeriodicWalksAllowed = 0;
