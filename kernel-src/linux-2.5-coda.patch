@@ -1,6 +1,6 @@
-diff -urN linux-2.5.56/fs/coda/cache.c linux/fs/coda/cache.c
---- linux-2.5.56/fs/coda/cache.c	2002-12-17 21:09:56.000000000 -0500
-+++ linux/fs/coda/cache.c	2003-01-11 15:36:37.000000000 -0500
+diff -urN --exclude-from=dontdiff linux-2.5.63/fs/coda/cache.c linux-2.5.63-coda/fs/coda/cache.c
+--- linux-2.5.63/fs/coda/cache.c	2002-12-17 21:09:56.000000000 -0500
++++ linux-2.5.63-coda/fs/coda/cache.c	2003-02-27 11:52:35.000000000 -0500
 @@ -28,8 +28,8 @@
  {
  	struct coda_inode_info *cii = ITOC(inode);
@@ -41,9 +41,9 @@ diff -urN linux-2.5.56/fs/coda/cache.c linux/fs/coda/cache.c
  
          return hit;
  }
-diff -urN linux-2.5.56/fs/coda/cnode.c linux/fs/coda/cnode.c
---- linux-2.5.56/fs/coda/cnode.c	2002-12-17 21:09:56.000000000 -0500
-+++ linux/fs/coda/cnode.c	2003-01-11 15:36:37.000000000 -0500
+diff -urN --exclude-from=dontdiff linux-2.5.63/fs/coda/cnode.c linux-2.5.63-coda/fs/coda/cnode.c
+--- linux-2.5.63/fs/coda/cnode.c	2002-12-17 21:09:56.000000000 -0500
++++ linux-2.5.63-coda/fs/coda/cnode.c	2003-02-27 11:52:35.000000000 -0500
 @@ -11,18 +11,11 @@
  #include <linux/coda_fs_i.h>
  #include <linux/coda_psdev.h>
@@ -119,9 +119,9 @@ diff -urN linux-2.5.56/fs/coda/cnode.c linux/fs/coda/cnode.c
  {
  	struct inode *inode;
  	unsigned long hash = coda_f2i(fid);
-diff -urN linux-2.5.56/fs/coda/coda_linux.c linux/fs/coda/coda_linux.c
---- linux-2.5.56/fs/coda/coda_linux.c	2002-12-17 21:09:56.000000000 -0500
-+++ linux/fs/coda/coda_linux.c	2003-01-11 15:36:37.000000000 -0500
+diff -urN --exclude-from=dontdiff linux-2.5.63/fs/coda/coda_linux.c linux-2.5.63-coda/fs/coda/coda_linux.c
+--- linux-2.5.63/fs/coda/coda_linux.c	2002-12-17 21:09:56.000000000 -0500
++++ linux-2.5.63-coda/fs/coda/coda_linux.c	2003-02-27 11:52:35.000000000 -0500
 @@ -26,10 +26,11 @@
  int coda_fake_statfs;
  
@@ -250,9 +250,9 @@ diff -urN linux-2.5.56/fs/coda/coda_linux.c linux/fs/coda/coda_linux.c
 -    printk("      ctime sec %d nsec %d\n",
 -	      (int)attr->va_ctime.tv_sec, (int)attr->va_ctime.tv_nsec);
 -}
-diff -urN linux-2.5.56/fs/coda/dir.c linux/fs/coda/dir.c
---- linux-2.5.56/fs/coda/dir.c	2002-12-17 21:09:56.000000000 -0500
-+++ linux/fs/coda/dir.c	2003-01-11 15:36:37.000000000 -0500
+diff -urN --exclude-from=dontdiff linux-2.5.63/fs/coda/dir.c linux-2.5.63-coda/fs/coda/dir.c
+--- linux-2.5.63/fs/coda/dir.c	2002-12-17 21:09:56.000000000 -0500
++++ linux-2.5.63-coda/fs/coda/dir.c	2003-02-27 11:52:35.000000000 -0500
 @@ -93,12 +93,14 @@
  static struct dentry *coda_lookup(struct inode *dir, struct dentry *entry)
  {
@@ -296,9 +296,9 @@ diff -urN linux-2.5.56/fs/coda/dir.c linux/fs/coda/dir.c
  
  	lock_kernel();
  	coda_vfs_stat.mkdir++;
-diff -urN linux-2.5.56/fs/coda/file.c linux/fs/coda/file.c
---- linux-2.5.56/fs/coda/file.c	2002-12-17 21:09:56.000000000 -0500
-+++ linux/fs/coda/file.c	2003-01-11 15:36:37.000000000 -0500
+diff -urN --exclude-from=dontdiff linux-2.5.63/fs/coda/file.c linux-2.5.63-coda/fs/coda/file.c
+--- linux-2.5.63/fs/coda/file.c	2002-12-17 21:09:56.000000000 -0500
++++ linux-2.5.63-coda/fs/coda/file.c	2003-02-27 11:52:35.000000000 -0500
 @@ -136,7 +136,6 @@
  	cfi->cfi_magic = CODA_MAGIC;
  	cfi->cfi_mapcount = 0;
@@ -325,9 +325,9 @@ diff -urN linux-2.5.56/fs/coda/file.c linux/fs/coda/file.c
  
  	host_inode = cfi->cfi_container->f_dentry->d_inode;
  	cii = ITOC(coda_inode);
-diff -urN linux-2.5.56/fs/coda/inode.c linux/fs/coda/inode.c
---- linux-2.5.56/fs/coda/inode.c	2003-01-02 10:58:45.000000000 -0500
-+++ linux/fs/coda/inode.c	2003-01-11 15:36:37.000000000 -0500
+diff -urN --exclude-from=dontdiff linux-2.5.63/fs/coda/inode.c linux-2.5.63-coda/fs/coda/inode.c
+--- linux-2.5.63/fs/coda/inode.c	2003-01-02 10:58:45.000000000 -0500
++++ linux-2.5.63-coda/fs/coda/inode.c	2003-02-27 11:52:35.000000000 -0500
 @@ -44,10 +44,10 @@
  	ei = (struct coda_inode_info *)kmem_cache_alloc(coda_inode_cachep, SLAB_KERNEL);
  	if (!ei)
@@ -350,9 +350,9 @@ diff -urN linux-2.5.56/fs/coda/inode.c linux/fs/coda/inode.c
          int error;
  	int idx;
  
-diff -urN linux-2.5.56/fs/coda/psdev.c linux/fs/coda/psdev.c
---- linux-2.5.56/fs/coda/psdev.c	2002-12-17 21:09:56.000000000 -0500
-+++ linux/fs/coda/psdev.c	2003-01-11 15:36:37.000000000 -0500
+diff -urN --exclude-from=dontdiff linux-2.5.63/fs/coda/psdev.c linux-2.5.63-coda/fs/coda/psdev.c
+--- linux-2.5.63/fs/coda/psdev.c	2002-12-17 21:09:56.000000000 -0500
++++ linux-2.5.63-coda/fs/coda/psdev.c	2003-02-27 11:52:35.000000000 -0500
 @@ -61,7 +61,6 @@
  
  
@@ -397,9 +397,9 @@ diff -urN linux-2.5.56/fs/coda/psdev.c linux/fs/coda/psdev.c
  		nbytes = req->uc_outSize; /* don't have more space! */
  	}
          if (copy_from_user(req->uc_data, buf, nbytes)) {
-diff -urN linux-2.5.56/fs/coda/upcall.c linux/fs/coda/upcall.c
---- linux-2.5.56/fs/coda/upcall.c	2003-01-02 10:58:45.000000000 -0500
-+++ linux/fs/coda/upcall.c	2003-01-11 15:36:37.000000000 -0500
+diff -urN --exclude-from=dontdiff linux-2.5.63/fs/coda/upcall.c linux-2.5.63-coda/fs/coda/upcall.c
+--- linux-2.5.63/fs/coda/upcall.c	2003-01-02 10:58:45.000000000 -0500
++++ linux-2.5.63-coda/fs/coda/upcall.c	2003-02-27 11:52:35.000000000 -0500
 @@ -55,7 +55,7 @@
          inp->ih.opcode = opcode;
  	inp->ih.pid = current->pid;
@@ -872,10 +872,10 @@ diff -urN linux-2.5.56/fs/coda/upcall.c linux/fs/coda/upcall.c
  		  inode = coda_fid_to_inode(oldfid, sb);
  		  if ( inode ) { 
  			  coda_replace_fid(inode, oldfid, newfid);
-diff -urN linux-2.5.56/include/linux/coda.h linux/include/linux/coda.h
---- linux-2.5.56/include/linux/coda.h	2002-12-17 21:09:56.000000000 -0500
-+++ linux/include/linux/coda.h	2003-01-11 15:36:37.000000000 -0500
-@@ -194,54 +194,13 @@
+diff -urN --exclude-from=dontdiff linux-2.5.63/include/linux/coda.h linux-2.5.63-coda/include/linux/coda.h
+--- linux-2.5.63/include/linux/coda.h	2002-12-17 21:09:56.000000000 -0500
++++ linux-2.5.63-coda/include/linux/coda.h	2003-02-27 11:54:01.000000000 -0500
+@@ -194,55 +194,14 @@
  
  #endif
  
@@ -915,8 +915,8 @@ diff -urN linux-2.5.56/include/linux/coda.h linux/include/linux/coda.h
  #define coda_f2i(fid)\
 -	((fid) ? ((fid)->Unique + ((fid)->Vnode<<10) + ((fid)->Volume<<20)) : 0)
 -#endif
--
 +	((fid) ? ((fid)->opaque[3] + ((fid)->opaque[2]<<10) + ((fid)->opaque[1]<<20)) : 0)
+ 
  
 -#ifndef _VUID_T_
 -#define _VUID_T_
@@ -931,9 +931,10 @@ diff -urN linux-2.5.56/include/linux/coda.h linux/include/linux/coda.h
 -    vgid_t cr_groupid,     cr_egid, cr_sgid, cr_fsgid; /* same for groups */
 -};
 -#endif 
- 
+-
  #ifndef _VENUS_VATTR_T_
  #define _VENUS_VATTR_T_
+ /*
 @@ -254,8 +213,8 @@
  	long     	va_type;	/* vnode type (for create) */
  	u_short		va_mode;	/* files access mode and type */
@@ -945,7 +946,17 @@ diff -urN linux-2.5.56/include/linux/coda.h linux/include/linux/coda.h
  	long		va_fileid;	/* file id */
  	u_quad_t	va_size;	/* file size in bytes */
  	long		va_blocksize;	/* blocksize preferred for i/o */
-@@ -336,25 +295,24 @@
+@@ -329,32 +288,33 @@
+ #if 0
+ #define CODA_KERNEL_VERSION 0 /* don't care about kernel version number */
+ #define CODA_KERNEL_VERSION 1 /* The old venus 4.6 compatible interface */
+-#endif
+ #define CODA_KERNEL_VERSION 2 /* venus_lookup gets an extra parameter */
++#endif
++#define CODA_KERNEL_VERSION 3 /* 128-bit file identifiers */
++
+ 
+ /*
   *        Venus <-> Coda  RPC arguments
   */
  struct coda_in_hdr {
@@ -980,7 +991,7 @@ diff -urN linux-2.5.56/include/linux/coda.h linux/include/linux/coda.h
  };
  
  struct coda_root_in {
-@@ -364,7 +322,7 @@
+@@ -364,7 +324,7 @@
  /* coda_open: */
  struct coda_open_in {
      struct coda_in_hdr ih;
@@ -989,7 +1000,7 @@ diff -urN linux-2.5.56/include/linux/coda.h linux/include/linux/coda.h
      int	flags;
  };
  
-@@ -378,7 +336,7 @@
+@@ -378,7 +338,7 @@
  /* coda_store: */
  struct coda_store_in {
      struct coda_in_hdr ih;
@@ -998,7 +1009,7 @@ diff -urN linux-2.5.56/include/linux/coda.h linux/include/linux/coda.h
      int	flags;
  };
  
-@@ -389,7 +347,7 @@
+@@ -389,7 +349,7 @@
  /* coda_release: */
  struct coda_release_in {
      struct coda_in_hdr ih;
@@ -1007,7 +1018,7 @@ diff -urN linux-2.5.56/include/linux/coda.h linux/include/linux/coda.h
      int	flags;
  };
  
-@@ -400,7 +358,7 @@
+@@ -400,7 +360,7 @@
  /* coda_close: */
  struct coda_close_in {
      struct coda_in_hdr ih;
@@ -1016,7 +1027,7 @@ diff -urN linux-2.5.56/include/linux/coda.h linux/include/linux/coda.h
      int	flags;
  };
  
-@@ -411,7 +369,7 @@
+@@ -411,7 +371,7 @@
  /* coda_ioctl: */
  struct coda_ioctl_in {
      struct coda_in_hdr ih;
@@ -1025,7 +1036,7 @@ diff -urN linux-2.5.56/include/linux/coda.h linux/include/linux/coda.h
      int	cmd;
      int	len;
      int	rwflag;
-@@ -421,14 +379,14 @@
+@@ -421,14 +381,14 @@
  struct coda_ioctl_out {
      struct coda_out_hdr oh;
      int	len;
@@ -1042,7 +1053,7 @@ diff -urN linux-2.5.56/include/linux/coda.h linux/include/linux/coda.h
  };
  
  struct coda_getattr_out {
-@@ -440,7 +398,7 @@
+@@ -440,7 +400,7 @@
  /* coda_setattr: NO_OUT */
  struct coda_setattr_in {
      struct coda_in_hdr ih;
@@ -1051,7 +1062,7 @@ diff -urN linux-2.5.56/include/linux/coda.h linux/include/linux/coda.h
      struct coda_vattr attr;
  };
  
-@@ -451,7 +409,7 @@
+@@ -451,7 +411,7 @@
  /* coda_access: NO_OUT */
  struct coda_access_in {
      struct coda_in_hdr ih;
@@ -1060,7 +1071,7 @@ diff -urN linux-2.5.56/include/linux/coda.h linux/include/linux/coda.h
      int	flags;
  };
  
-@@ -467,14 +425,14 @@
+@@ -467,14 +427,14 @@
  /* coda_lookup: */
  struct  coda_lookup_in {
      struct coda_in_hdr ih;
@@ -1079,7 +1090,7 @@ diff -urN linux-2.5.56/include/linux/coda.h linux/include/linux/coda.h
      int	vtype;
  };
  
-@@ -482,16 +440,16 @@
+@@ -482,16 +442,16 @@
  /* coda_create: */
  struct coda_create_in {
      struct coda_in_hdr ih;
@@ -1099,7 +1110,7 @@ diff -urN linux-2.5.56/include/linux/coda.h linux/include/linux/coda.h
      struct coda_vattr attr;
  };
  
-@@ -499,8 +457,8 @@
+@@ -499,8 +459,8 @@
  /* coda_remove: NO_OUT */
  struct coda_remove_in {
      struct coda_in_hdr ih;
@@ -1110,7 +1121,7 @@ diff -urN linux-2.5.56/include/linux/coda.h linux/include/linux/coda.h
  };
  
  struct coda_remove_out {
-@@ -510,9 +468,9 @@
+@@ -510,9 +470,9 @@
  /* coda_link: NO_OUT */
  struct coda_link_in {
      struct coda_in_hdr ih;
@@ -1123,7 +1134,7 @@ diff -urN linux-2.5.56/include/linux/coda.h linux/include/linux/coda.h
  };
  
  struct coda_link_out {
-@@ -523,10 +481,10 @@
+@@ -523,10 +483,10 @@
  /* coda_rename: NO_OUT */
  struct coda_rename_in {
      struct coda_in_hdr ih;
@@ -1138,7 +1149,7 @@ diff -urN linux-2.5.56/include/linux/coda.h linux/include/linux/coda.h
  };
  
  struct coda_rename_out {
-@@ -536,14 +494,14 @@
+@@ -536,14 +496,14 @@
  /* coda_mkdir: */
  struct coda_mkdir_in {
      struct coda_in_hdr ih;
@@ -1156,7 +1167,7 @@ diff -urN linux-2.5.56/include/linux/coda.h linux/include/linux/coda.h
      struct coda_vattr attr;
  };
  
-@@ -551,8 +509,8 @@
+@@ -551,8 +511,8 @@
  /* coda_rmdir: NO_OUT */
  struct coda_rmdir_in {
      struct coda_in_hdr ih;
@@ -1167,7 +1178,7 @@ diff -urN linux-2.5.56/include/linux/coda.h linux/include/linux/coda.h
  };
  
  struct coda_rmdir_out {
-@@ -562,7 +520,7 @@
+@@ -562,7 +522,7 @@
  /* coda_symlink: NO_OUT */
  struct coda_symlink_in {
      struct coda_in_hdr ih;
@@ -1176,7 +1187,7 @@ diff -urN linux-2.5.56/include/linux/coda.h linux/include/linux/coda.h
      int srcname;
      struct coda_vattr attr;
      int tname;
-@@ -575,20 +533,20 @@
+@@ -575,20 +535,20 @@
  /* coda_readlink: */
  struct coda_readlink_in {
      struct coda_in_hdr ih;
@@ -1200,7 +1211,7 @@ diff -urN linux-2.5.56/include/linux/coda.h linux/include/linux/coda.h
  };
  
  struct coda_fsync_out {
-@@ -598,12 +556,12 @@
+@@ -598,12 +558,12 @@
  /* coda_vget: */
  struct coda_vget_in {
      struct coda_in_hdr ih;
@@ -1215,7 +1226,7 @@ diff -urN linux-2.5.56/include/linux/coda.h linux/include/linux/coda.h
      int	vtype;
  };
  
-@@ -616,51 +574,50 @@
+@@ -616,51 +576,50 @@
  /* CODA_PURGEUSER is a venus->kernel call */
  struct coda_purgeuser_out {
      struct coda_out_hdr oh;
@@ -1276,7 +1287,7 @@ diff -urN linux-2.5.56/include/linux/coda.h linux/include/linux/coda.h
  };
  
  struct coda_open_by_fd_out {
-@@ -675,13 +632,13 @@
+@@ -675,13 +634,13 @@
  /* coda_open_by_path: */
  struct coda_open_by_path_in {
      struct coda_in_hdr ih;
@@ -1292,7 +1303,7 @@ diff -urN linux-2.5.56/include/linux/coda.h linux/include/linux/coda.h
  };
  
  /* coda_statfs: NO_IN */
-@@ -780,16 +737,7 @@
+@@ -780,16 +739,7 @@
  
  #define	CODA_CONTROL		".CONTROL"
  #define CODA_CONTROLLEN           8
@@ -1309,9 +1320,9 @@ diff -urN linux-2.5.56/include/linux/coda.h linux/include/linux/coda.h
  
  /* Data passed to mount */
  
-diff -urN linux-2.5.56/include/linux/coda_cache.h linux/include/linux/coda_cache.h
---- linux-2.5.56/include/linux/coda_cache.h	2002-12-17 21:09:56.000000000 -0500
-+++ linux/include/linux/coda_cache.h	2003-01-11 15:36:38.000000000 -0500
+diff -urN --exclude-from=dontdiff linux-2.5.63/include/linux/coda_cache.h linux-2.5.63-coda/include/linux/coda_cache.h
+--- linux-2.5.63/include/linux/coda_cache.h	2002-12-17 21:09:56.000000000 -0500
++++ linux-2.5.63-coda/include/linux/coda_cache.h	2003-02-27 11:52:35.000000000 -0500
 @@ -13,7 +13,7 @@
  /* credential cache */
  void coda_cache_enter(struct inode *inode, int mask);
@@ -1321,9 +1332,9 @@ diff -urN linux-2.5.56/include/linux/coda_cache.h linux/include/linux/coda_cache
  int coda_cache_check(struct inode *inode, int mask);
  
  /* for downcalls and attributes and lookups */
-diff -urN linux-2.5.56/include/linux/coda_fs_i.h linux/include/linux/coda_fs_i.h
---- linux-2.5.56/include/linux/coda_fs_i.h	2002-12-17 21:09:56.000000000 -0500
-+++ linux/include/linux/coda_fs_i.h	2003-01-11 15:36:38.000000000 -0500
+diff -urN --exclude-from=dontdiff linux-2.5.63/include/linux/coda_fs_i.h linux-2.5.63-coda/include/linux/coda_fs_i.h
+--- linux-2.5.63/include/linux/coda_fs_i.h	2002-12-17 21:09:56.000000000 -0500
++++ linux-2.5.63-coda/include/linux/coda_fs_i.h	2003-02-27 11:52:35.000000000 -0500
 @@ -17,11 +17,11 @@
   * coda fs inode data
   */
@@ -1362,9 +1373,9 @@ diff -urN linux-2.5.56/include/linux/coda_fs_i.h linux/include/linux/coda_fs_i.h
  
  #endif
  #endif
-diff -urN linux-2.5.56/include/linux/coda_linux.h linux/include/linux/coda_linux.h
---- linux-2.5.56/include/linux/coda_linux.h	2002-12-17 21:09:56.000000000 -0500
-+++ linux/include/linux/coda_linux.h	2003-01-11 15:36:38.000000000 -0500
+diff -urN --exclude-from=dontdiff linux-2.5.63/include/linux/coda_linux.h linux-2.5.63-coda/include/linux/coda_linux.h
+--- linux-2.5.63/include/linux/coda_linux.h	2002-12-17 21:09:56.000000000 -0500
++++ linux-2.5.63-coda/include/linux/coda_linux.h	2003-02-27 11:52:35.000000000 -0500
 @@ -42,26 +42,23 @@
  int coda_revalidate_inode(struct dentry *);
  int coda_getattr(struct vfsmount *, struct dentry *, struct kstat *);
@@ -1404,9 +1415,9 @@ diff -urN linux-2.5.56/include/linux/coda_linux.h linux/include/linux/coda_linux
  {
  	return &(ITOC(inode)->c_fid);
  }
-diff -urN linux-2.5.56/include/linux/coda_psdev.h linux/include/linux/coda_psdev.h
---- linux-2.5.56/include/linux/coda_psdev.h	2003-01-02 10:58:54.000000000 -0500
-+++ linux/include/linux/coda_psdev.h	2003-01-11 15:36:38.000000000 -0500
+diff -urN --exclude-from=dontdiff linux-2.5.63/include/linux/coda_psdev.h linux-2.5.63-coda/include/linux/coda_psdev.h
+--- linux-2.5.63/include/linux/coda_psdev.h	2003-01-02 10:58:54.000000000 -0500
++++ linux-2.5.63-coda/include/linux/coda_psdev.h	2003-02-27 11:52:35.000000000 -0500
 @@ -10,7 +10,7 @@
  
  struct coda_sb_info
