@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/fail/filcon.c,v 4.4 1998/08/05 23:49:24 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/fail/filcon.c,v 4.5 98/09/29 16:37:36 braam Exp $";
 #endif /*_BLURB_*/
 
 /*
@@ -353,7 +353,7 @@ FailFilterSide getside()
     do {
 	printf("Side (in, out) ");
 	fflush(stdout);
-	gets(input);
+	fgets(input, 128, stdin);
 	p = input;
 	side = SideArg(&p);
     } while (side == noSide);
@@ -587,7 +587,7 @@ void cmdPurgeFilters(int argc, char **argv)
     
 	printf("Side (in, out, both) ");
 	fflush(stdout);
-	gets(p);
+	fgets(p, 128, stdin);
 	if (!strncmp("out", p, 3) || !strncmp("send", p, 4))
 	    side = sendSide;
 	else if (!strncmp("in", p, 2) || !strncmp("rec", p, 3))
