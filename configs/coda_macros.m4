@@ -219,9 +219,11 @@ dnl Accept user defined path leading to libraries and headers.
 AC_DEFUN(CODA_OPTION_SUBSYS,
   [AC_ARG_WITH($1,
     [  --with-$1=<prefix>	Install prefix of $1],
-    [ CFLAGS="${CFLAGS} -I`(cd ${withval} ; pwd)`/include"
-      CXXFLAGS="${CXXFLAGS} -I`(cd ${withval} ; pwd)`/include"
-      LDFLAGS="${LDFLAGS} -L`(cd ${withval} ; pwd)`/lib" ])
+    [ pfx="`(cd ${withval} ; pwd)`"
+      CFLAGS="${CFLAGS} -I${pfx}/include"
+      CXXFLAGS="${CXXFLAGS} -I{pfx}/include"
+      LDFLAGS="${LDFLAGS} -L${pfx}/lib"
+      PATH="${PATH}:${pfx}/bin:${pfx}/sbin"])
     ])
 
 AC_DEFUN(CODA_OPTION_OPENSSL,
@@ -260,6 +262,11 @@ AC_DEFUN(CODA_FIND_LIB,
 	  fi
           ;;
   esac])
+
+dnl ---------------------------------------------
+dnl Fail if we haven't been able to find some required component
+dnl
+AC_DEFUN(CODA_FAIL_IF_MISSING, [ test -z "${$1}" && AC_MSG_ERROR($2) ])
 
 AC_DEFUN(CODA_RFLAG,
   [ dnl put in standard -R flag if needed

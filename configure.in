@@ -50,9 +50,12 @@ AC_PATH_PROG(HOSTNAME, hostname, "")
 AC_PATH_PROG(MV, mv, "")
 AC_PATH_PROG(PERL, perl, "")
 AC_PATH_PROG(RM, rm, "")
-AC_PATH_PROG(RDSINIT, rdsinit, "", $PATH:/usr/sbin:/usr/local/sbin:/usr/pkg/sbin)
-AC_PATH_PROG(RVMUTL, rvmutl, "", $PATH:/usr/sbin:/usr/local/sbin:/usr/pkg/sbin)
+AC_PATH_PROG(RDSINIT, rdsinit, "", $PATH:${prefix}/sbin:/usr/sbin:/usr/local/sbin:/usr/pkg/sbin)
+AC_PATH_PROG(RVMUTL, rvmutl, "", $PATH:${prefix}/sbin:/usr/sbin:/usr/local/sbin:/usr/pkg/sbin)
 dnl AC_PATH_PROGS(TIXWISH, [tixwish tixwish-tk4.1 tixwish4.1.8.0], "/usr/bin/tixwish")
+
+CODA_FAIL_IF_MISSING(RDSINIT, "unable to find rdsinit. try --with-rvm option");
+CODA_FAIL_IF_MISSING(RVMUTL, "unable to find rvmutl. try --with-rvm option");
 
 MV="${MV} -f"
 RM="${RM} -f"
@@ -71,7 +74,6 @@ CODA_CHECK_MD5
 AC_SEARCH_LIBS(bcopy, ucb)
 AC_SEARCH_LIBS(bind, socket)
 AC_SEARCH_LIBS(inet_ntoa, nsl)
-
 
 dnl Checks for header files.
 AC_CHECK_HEADERS(search.h sys/resource.h sys/stream.h ncurses.h)
