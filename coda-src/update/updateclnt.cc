@@ -351,7 +351,7 @@ ReadConfigFile()
         for (int i = 0; i<nservers; i++) {
 	    hostlist[i] = new char[256];
 	    hostlist[i][0] = '\0';
-	    sprintf (confname, "server_%d", i+1);
+	    sprintf (confname, "server_%d.conf", i+1);
 	    codaconf_init(confname);
 	    CONF_STR(hostlist[i],  "hostname",  "");
 	    if (hostlist[i][0] == '\0') {
