@@ -10,16 +10,17 @@ pidfile=/usr/coda/venus.cache/pid
 
 for i in 9 8 7 6 5 4 3 2 1 0 ; do
     j=`expr $i + 1`
-    mv -f "${logfile}-$i"  "${logfile}-$j"
-    mv -f "${errorlog}-$i" "${errorlog}-$j"
+    [ -f "${logfile}-$i" ]  && mv -f "${logfile}-$i"  "${logfile}-$j"
+    [ -f "${errorlog}-$i" ] && mv -f "${errorlog}-$i" "${errorlog}-$j"
 done
 
-mv -f "${logfile}"  "${logfile}-0"
-mv -f "${errorlog}" "${errorlog}-0"
+[ -f "${logfile}" ]  && mv -f "${logfile}"  "${logfile}-0"
+[ -f "${errorlog}" ] && mv -f "${errorlog}" "${errorlog}-0"
 
 # Tell venus to reopen the logfiles
-kill -HUP `cat ${pidfile}`
+kill -HUP `cat ${pidfile}` 2>/dev/null
 
 # alternatively use one of the following,
 # vutil swap
 # killall -HUP venus
+

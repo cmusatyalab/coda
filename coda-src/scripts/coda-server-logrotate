@@ -6,24 +6,26 @@
 vicedir=/vice
 . "`codaconfedit server.conf`"
 
-srvlog="${vicedir}/srv/SrvLog"
-srverr="${vicedir}/srv/SrvErr"
-authlog="${vicedir}/auth2/AuthLog"
+srvdir="${vicedir}/srv"
+srvlog="${srvdir}/SrvLog"
+srverr="${srvdir}/SrvErr"
+authdir="${vicedir}/auth2"
+authlog="${authdir}/AuthLog"
 
 for i in 9 8 7 6 5 4 3 2 1 0 ; do
     j=`expr $i + 1`
-    mv -f "${srvlog}-$i"  "${srvlog}-$j"
-    mv -f "${srverr}-$i"  "${srverr}-$j"
-    mv -f "${authlog}-$i" "${authlog}-$j"
+    [ -f "${srvlog}-$i" ]  && mv -f "${srvlog}-$i"  "${srvlog}-$j"
+    [ -f "${srverr}-$i" ]  && mv -f "${srverr}-$i"  "${srverr}-$j"
+    [ -f "${authlog}-$i" ] && mv -f "${authlog}-$i" "${authlog}-$j"
 done
 
-mv -f "${srvlog}"  "${srvlog}-0"
-mv -f "${srverr}"  "${srverr}-0"
-mv -f "${authlog}" "${authlog}-0"
+[ -f "${srvlog}" ]  && mv -f "${srvlog}"  "${srvlog}-0"
+[ -f "${srverr}" ]  && mv -f "${srverr}"  "${srverr}-0"
+[ -f "${authlog}" ] && mv -f "${authlog}" "${authlog}-0"
 
 # Tell codasrv and auth2 to reopen their logfiles
-kill -HUP `cat ${srvdir}/pid`
-kill -HUP `cat ${authdir}/pid`
+kill -HUP `cat ${srvdir}/pid`  2>/dev/null
+kill -HUP `cat ${authdir}/pid` 2>/dev/null
 
 # alternatively use one of the following,
 ## run volutil in the background, just in case the server isn't running.
@@ -32,3 +34,4 @@ kill -HUP `cat ${authdir}/pid`
 #
 # and,
 # killall -HUP auth2
+
