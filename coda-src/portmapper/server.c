@@ -39,7 +39,7 @@ int portmapper_is_local_connection(RPC2_Handle cid)
        	return 1;
 #endif
        
-	return (ip == 0x7F000001);
+	return (ip == INADDR_LOOPBACK);
 }
 
 /* Register a mapping between a name and port number -- only accepted from

@@ -69,7 +69,7 @@ main(int argc, char *argv[])
   } while (res == 0);
 
   /*  out.oh.opcode = 99;
-  addr.sin_addr.s_addr = htonl (0x7f000001);
+  addr.sin_addr.s_addr = htonl (INADDR_LOOPBACK);
   addr.sin_port = htons(8001); 
   res = sendto(udpfd, (char *) &out, sizeof(out), 0,
 	       (struct sockaddr *) &addr, sizeof(addr));

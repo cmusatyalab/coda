@@ -26,6 +26,7 @@ extern "C" {
 #include <sys/time.h>
 #include <sys/resource.h>
 #include <sys/param.h>
+#include <netinet/in.h>
 #include <stdio.h>
 #include <unistd.h>
 #include <stdlib.h>
@@ -92,7 +93,7 @@ static void SetRlimits();
 /* **** defined in worker.c **** */
 extern testKernDevice();
 
-int venus_relay_addr = 0x7f000001;
+int venus_relay_addr = INADDR_LOOPBACK;
 
 /* *****  venus.c  ***** */
 

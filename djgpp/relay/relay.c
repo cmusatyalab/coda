@@ -226,7 +226,7 @@ void send_buf (int udpfd, int flag, char *buf, int n)
   *(int *)buffer = flag;
   memcpy (buffer + 4, buf, n);
 
-  addr.sin_addr.s_addr = ntohl(0x7f000001);
+  addr.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
   addr.sin_port = ntohs(9000);
   sendto (udpfd, buffer, n+4, 0, (struct sockaddr *) &addr, sizeof(addr));
 }
@@ -443,7 +443,7 @@ main()
       }
       send_buf (udpfd, 0, buffer, BUFSIZE);
       printrequest (buffer);
-      addr.sin_addr.s_addr = htonl(0x7f000001);
+      addr.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
       addr.sin_port = htons(8000);
       res = sendto(udpfd, buffer, BUFSIZE, 0, (struct sockaddr *) &addr,
 		   sizeof(addr));

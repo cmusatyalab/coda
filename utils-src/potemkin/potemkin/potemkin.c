@@ -348,7 +348,7 @@ int MsgWrite(char *buf, int size)
 
          addr.sin_family = AF_INET;
          addr.sin_port = htons(8001);
-         addr.sin_addr.s_addr = htonl(0x7f000001);
+         addr.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
          return sendto(KernFD, buf, size, 0, (struct sockaddr *) &addr,
      		    sizeof(addr));
 #else 
