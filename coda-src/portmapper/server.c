@@ -222,5 +222,3 @@ long portmapper_server_lookup_pbyn(RPC2_Handle cid,
 	return PM_SUCCESS;
 }
 
-
-

@@ -27,6 +27,8 @@ listed in the file CREDITS.
 #ifndef _MAP_H
 #define _MAP_H
 
+#include <dllist.h>
+
 /* Hash for a particular protocol -- by name */
 #define NAMEHASHSIZE	397
 #define MAXNAMELEN	256
@@ -35,7 +37,7 @@ struct protoentry
 {
 	char	*name;
 	int	version, port, protocol;
-	struct protoentry	*next, *prev;
+	struct dllist_head chain;
 };
 
 /* functions available */
@@ -45,6 +47,5 @@ void initnamehashtable(void);
 struct protoentry *find_mapping(char *name, int version, int protocol, int port);
 void register_mapping(char *name, int version, int protocol, int port);
 void delete_mapping(struct protoentry *pe);
-
 
 #endif

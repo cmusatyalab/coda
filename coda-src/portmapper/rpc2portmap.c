@@ -23,7 +23,6 @@ listed in the file CREDITS.
 #include <netinet/in.h>
 #include <stdlib.h>
 
-
 #include <ports.h>
 #include <lwp/lwp.h>
 #include <rpc2/rpc2.h>

@@ -34,7 +34,7 @@ listed in the file CREDITS.
 #include "portmapper.h"
 #include "map.h"
 
-struct protoentry *namehashtable[NAMEHASHSIZE];
+struct dllist_head namehashtable[NAMEHASHSIZE];
 
 /* takes a nul-terminated name, returns a hash % NAMEHASHSIZE */
 int namehash(char *name)
@@ -59,101 +59,80 @@ void initnamehashtable(void)
 {
 	int i;
 	for (i = 0; i <NAMEHASHSIZE; i++)
-	{
-		namehashtable[i] = (struct protoentry *) 0;
-	}
+		list_head_init(&namehashtable[i]);
 }
 
 /* find a service, return a null pointer if not found; rudimentary wildcard
    support -- ignore the following:
-	name (if null)
 	version (if -1)
 	protocol (if -1)
 	port (if -1)
 */
 struct protoentry *find_mapping(char *name, int version, int protocol, int port)
 {
-
-#define COMPARE(pe, name, version, protocol, port)		\
-	( ((version != -1)&&(!(version == pe->version))) &&	\
-	  ((protocol != -1)&&(!(protocol == pe->protocol))) &&	\
-	  ((port != -1)&&(!(port == pe->port))) &&		\
-	  ((name)&&(strcmp(name, pe->name)))			\
-	)
-
-	struct protoentry *temp;
+	struct dllist_head *le;
+	struct protoentry *pe;
 	int bucket;
 
 	CODA_ASSERT(name);
 
 	bucket = namehash(name);
 
-	if (!namehashtable[bucket])
+	/* not even anything in the name's bucket */
+	if (list_empty(&namehashtable[bucket]))
+		return NULL;
+
+	for (le = namehashtable[bucket].next ;
+	     le != &namehashtable[bucket];
+	     le = le->next)
 	{
-		/* not even anything in the name's bucket */
-		return 0;
+		pe = list_entry(le, struct protoentry, chain);
+		if (version != -1 && version != pe->version)
+			continue;
+		if (protocol != -1 && protocol != pe->protocol)
+			continue;
+		if (port != -1 && port != pe->port)
+			continue;
+		if (strcmp(name, pe->name) != 0)
+			continue;
+
+		/* found it, or at least something remarkably similar */
+		return pe;
 	}
 
-	for (temp=namehashtable[bucket]; temp &&
-		COMPARE(temp, name, version, protocol, port); temp=temp->next)
-	{
-		/* nothing */
-	}
-
-	return temp;
-#undef COMPARE
+	return NULL;
 }
 
 /* register a new service -- assumes that there are no collisions -- be
    careful to delete the old one first */
 void register_mapping(char *name, int version, int protocol, int port)
 {
-	struct protoentry *temp;
+	struct protoentry *pe;
 	int bucket;
 
 	CODA_ASSERT(name);
 
 	bucket = namehash(name);
 
-	CODA_ASSERT(temp = (struct protoentry *) malloc(sizeof(struct protoentry)));
+	CODA_ASSERT(pe = (struct protoentry *)
+			malloc(sizeof(struct protoentry)));
 
-	temp->next = namehashtable[bucket];
-	namehashtable[bucket] = temp;
-	if (temp->next)
-		temp->next->prev = temp;
-	temp->prev = (struct protoentry *) 0;
+	pe->name = strdup(name);
+	pe->version = version;
+	pe->protocol = protocol;
+	pe->port = port;
 
-	temp->name = strdup(name);
-	temp->version = version;
-	temp->protocol = protocol;
-	temp->port = port;
+	list_head_init(&pe->chain);
+	list_add(&pe->chain, &namehashtable[bucket]);
 }
 
 /* given a pointer to an entry, delete it */
 void delete_mapping(struct protoentry *pe)
 {
-	int bucket;
 	CODA_ASSERT(pe);
 	CODA_ASSERT(pe->name);
 
-	bucket = namehash(pe->name);
-	
-	if (pe->prev)
-	{
-		/* not first entry */
-		pe->prev->next = pe->next;
-	}
-	else
-	{
-		/* first entry */
-		namehashtable[bucket] = pe->next;
-	}
-
-	if (pe->next)
-	{
-		/* not last entry */
-		pe->next->prev = pe->prev;
-	}
+	list_del(&pe->chain);
 
 	free(pe->name);
 	free(pe);
