@@ -215,7 +215,12 @@ sub VerifyTape {
     chdir "/tmp";
     unlink("TAPELABEL");
     print "REWINDING TAPE...\n";
-    system("mt -f $tape rewind");
+    $rc = 0xffff & system("mt -f $tape rewind");
+    if ( $rc != 0 ) {
+	print " VerifyTape: Cannot access the tapedrive.\n";
+	return 1;
+    }
+
     printf "Done. Now extracting.\n";
     open( CFD , "|restore -b $blocksize -x -f $tape TAPELABEL");
     print CFD "1\nn\n";
