@@ -600,7 +600,7 @@ done:
 	realm = NULL;
     }
 
-    return(0);
+    return(code);
 }
 
 /* Call with the link contents fetched already. */
