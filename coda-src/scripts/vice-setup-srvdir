@@ -55,13 +55,14 @@ while [ $n -le $numservers ]; do
     #
 
     echo
-    echo The container file directories on the server will hold the data for
-    echo files stored in Coda. Directory contents as well as metadata will be
-    echo stored in the RVM segment that we already configured earlier.
+    echo Directories on the server will be used to store container files
+    echo that hold the actual data of files stored in Coda. Directory
+    echo contents as well as metadata will be stored in the RVM segment
+    echo that we already configured earlier.
     echo
-    echo You should only have one such container file directory on a disk
-    echo partition, otherwise the server will have an incorrect estimates
-    echo about the actual amount of exportable disk space.
+    echo You should only have one container file hierarchy for each disk
+    echo partition, otherwise the server will generate incorrect
+    echo estimates about the actual amount of exportable disk space.
     echo
     
     if [ $numservers -gt 1 ]; then
