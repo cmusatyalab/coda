@@ -334,13 +334,9 @@ fsobj::~fsobj() {
 	    /* Detach mtpt. */
 	    if (u.mtpoint != 0) {
 		fsobj *mtpt_fso = u.mtpoint;
-		if (mtpt_fso->u.root != this) {
-		    mtpt_fso->print(logFile);
-		    print(logFile);
-		    CHOKE("fsobj::~fsobj: mf->root != rf");
-		}
+		if (mtpt_fso->u.root == this)
+		    mtpt_fso->UncoverMtPt();
 		UnmountRoot();
-		mtpt_fso->UncoverMtPt();
 	    }
 	    break;
 
@@ -1163,7 +1159,7 @@ int fsobj::TryToCover(VenusFid *inc_fid, vuid_t vuid)
     else {
 	/* Turn volume name into a proper string. */
 	data.symlink[len-1] = '\0';
-	code = VDB->Get(&tvol, vol->realm, &data.symlink[1]);
+	code = VDB->Get(&tvol, vol->realm, &data.symlink[1], this);
     }
     if (code != 0) {
 /*
@@ -2398,18 +2394,32 @@ void fsobj::ReturnEarly() {
 
 
 /* Need not be called from within transaction! */
-void fsobj::GetPath(char *buf, int fullpath) {
+void fsobj::GetPath(char *buf, int scope)
+{
     if (IsRoot()) {
-	if (!fullpath)
-	    { strcpy(buf, "."); return; }
+	if (scope == PATH_VOLUME) {
+	    buf[0] = '\0';
+	    return;
+	}
 
-	if (IsVenusRoot())
-	    { strcpy(buf, venusRoot); return; }
+	if (scope == PATH_REALM &&
+	    (!u.mtpoint || vol->GetRealmId() != u.mtpoint->vol->GetRealmId()))
+	{
+	    buf[0] = '\0';
+	    return;
+	}
 
-	if (u.mtpoint == 0)
-	    { strcpy(buf, "???"); return; }
+	if (IsVenusRoot()) {
+	    strcpy(buf, venusRoot);
+	    return;
+	}
 
-	u.mtpoint->GetPath(buf, fullpath);
+	if (!u.mtpoint) {
+	    strcpy(buf, "???");
+	    return;
+	}
+
+	u.mtpoint->GetPath(buf, scope);
 	return;
     }
 
@@ -2422,9 +2432,10 @@ void fsobj::GetPath(char *buf, int fullpath) {
     }
 
     if (pfso)
-	pfso->GetPath(buf, fullpath);
+	pfso->GetPath(buf, scope);
     else
 	strcpy(buf, "???");
+
     strcat(buf, "/");
     strcat(buf, comp);
 }

@@ -501,7 +501,7 @@ class vdb {
     volent *Find(Volid *);
     volent *Find(Realm *, const char *);
     int Get(volent **, Volid *);
-    int Get(volent **, Realm *, const char *);
+    int Get(volent **, Realm *, const char *, fsobj *f);
     void Put(volent **);
 
     void DownEvent(struct in_addr *host);

@@ -557,7 +557,7 @@ int vdb::Get(volent **vpp, Volid *volid)
     int err = ENOENT;
     Realm *realm = REALMDB->GetRealm(volid->Realm);
     if (realm) {
-	err = Get(vpp, realm, volname);
+	err = Get(vpp, realm, volname, NULL);
 	realm->PutRef();
     }
     return err;
@@ -566,7 +566,7 @@ int vdb::Get(volent **vpp, Volid *volid)
 
 /* MUST NOT be called from within transaction! */
 /* This call ALWAYS goes through to servers! */
-int vdb::Get(volent **vpp, Realm *prealm, const char *name)
+int vdb::Get(volent **vpp, Realm *prealm, const char *name, fsobj *f)
 {
     int code = 0;
     volent *v = NULL;
@@ -586,23 +586,22 @@ int vdb::Get(volent **vpp, Realm *prealm, const char *name)
     }
 
     if (volname[0] == '\0') {
+	free(volname);
+
 	/* never mount a realm's rootvolume within the realm itself! */
 	if (realm == prealm) {
-	    code = ELOOP;
-	    goto error_exit;
-#if 0
+	    volname = (char *)malloc(MAXPATHLEN);
+	    if (!f)
+		goto error_exit;
+
 	    /* Ivan Popov's suggestion, we just need to allow for long volume
 	     * names and have a realm relative GetPath implementation */
-	    long_volname = f->GetPath(REALM_RELATIVE, buf);
+	    f->GetPath(volname, PATH_REALM);
 	} else {
-	    long_volname = "";
-#endif
+	    code = GetRootVolume(realm, &volname);
+	    if (code)
+		goto error_exit;
 	}
-
-	free(volname);
-	code = GetRootVolume(realm, &volname);
-	if (code)
-	    goto error_exit;
     }
 
 

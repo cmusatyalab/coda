@@ -672,7 +672,12 @@ class fsobj {
     void GetVattr(struct coda_vattr *);		/* translate attributes to VFS format */
     void GetFid(VenusFid *f) { *f = fid; }
     void ReturnEarly();
-    void GetPath(char *, int =0);		/* from volume-root (NOT Venus-root) */
+
+#define PATH_VOLUME 0
+#define PATH_FULL   1
+#define PATH_REALM  2
+    void GetPath(char *, int scope=PATH_VOLUME);
+
     ViceVersionVector *VV() { return(&stat.VV); }
     int IsFile() { return(stat.VnodeType == (int)File); }
     int IsDir() { return(stat.VnodeType == (int)Directory); }

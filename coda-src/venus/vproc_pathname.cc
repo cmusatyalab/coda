@@ -286,10 +286,11 @@ Exit:
 
 /* Map fid to full or volume-relative pathname.  Kind of like getwd(). */
 /* XXX - Need fsobj::IsRealRoot predicate which excludes "fake" roots! -JJK */
-void vproc::GetPath(VenusFid *fid, char *out, int *outlen, int fullpath) {
+void vproc::GetPath(VenusFid *fid, char *out, int *outlen, int fullpath)
+{
     LOG(1, ("vproc::GetPath: %s, %d\n", FID_(fid), fullpath));
 
-    if (*outlen < CODA_MAXPATHLEN)
+    if (*outlen < MAXPATHLEN)
 	{ u.u_error = ENAMETOOLONG; *outlen = 0; goto Exit; }
 
     /* Handle degenerate case of file system or volume root! */

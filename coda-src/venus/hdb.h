@@ -79,11 +79,11 @@ struct hdb_add_msg {
 struct hdb_delete_msg {
     VolumeId vid;
     char     realm[MAXHOSTNAMELEN+1];
-    char     name[CODA_MAXPATHLEN];
+    char     name[MAXPATHLEN];
 };
 
 struct hdb_list_msg {
-    char   outfile[CODA_MAXPATHLEN];
+    char   outfile[MAXPATHLEN];
     vuid_t luid;
     int    spare;
 };
@@ -93,7 +93,7 @@ struct hdb_walk_msg {
 };
 
 struct hdb_verify_msg {
-    char   outfile[CODA_MAXPATHLEN];
+    char   outfile[MAXPATHLEN];
     vuid_t luid;
     int    spare;
     int    verbosity;
