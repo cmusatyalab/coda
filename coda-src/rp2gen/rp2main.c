@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/src/coda-4.0.1/RCSLINK/./coda-src/rp2gen/rp2main.c,v 1.1 1996/11/22 19:08:53 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rp2gen/rp2main.c,v 4.1 1997/01/08 21:50:17 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -98,7 +98,7 @@ static char *server_includes[] = {
 
 static char *h_includes[] = {
 	/* NONE */	"Can't happen",
-	/* C */		"#ifdef __cplusplus\nextern \"C\" {\n#endif __cplusplus\n#include \"rpc2.h\"\n#include \"se.h\"\n#ifdef __cplusplus\n}\n#endif __cplusplus\n",
+	/* C */		"#ifdef __cplusplus\nextern \"C\" {\n#endif __cplusplus\n#include \"rpc2.h\"\n#include \"se.h\"\n#include \"errors.h\"\n#ifdef __cplusplus\n}\n#endif __cplusplus\n",
 	/* PASCAL */	"Can't happen",
 	/* F77 */	"Can't happen"
 };
@@ -113,6 +113,7 @@ static char *multi_includes[] = {
 rp2_bool testing;
 rp2_bool c_plus, cplusplus;
 rp2_bool ansi; 
+rp2_bool neterrors;
 
 char **cpatharray;  /* array of strings indicating search paths for 
                   included files (defined by -I flag) */
@@ -160,6 +161,7 @@ static int GetArgs(argc, argv)
     c_plus = RP2_FALSE;   /* generate C++ compatible code? */
     cplusplus = RP2_FALSE; /* by default generate .c not .cc files */
     ansi = RP2_FALSE;     /* generate ## paste tokens rather than double-comment */
+    neterrors = RP2_FALSE; /* exchange errors in OS independent fashion */
     /* Wire-in client, server and multi languages to be C.
        Should be settable on command line when other languages are
        supported */
@@ -194,6 +196,8 @@ static int GetArgs(argc, argv)
 	    mfile_name = argv[i];
 	    continue;
 	    }
+	if (strcmp(argv[i], "-e") == 0)
+	    {neterrors = RP2_TRUE; continue;}
 	if (strcmp(argv[i], "-n") == 0)
 	    {c_plus = RP2_TRUE; continue;}
 	if (strcmp(argv[i], "-t") == 0)

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/src/coda-4.0.1/RCSLINK/./coda-src/rpc2/debug.c,v 1.1 1996/11/22 19:07:18 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rpc2/debug.c,v 4.1 1997/01/08 21:50:21 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -514,7 +514,7 @@ PRIVATE char *CallName(x)
 	case SENDRESPONSE:	return("RPC2_SendResponse");
 	case GETREQUEST:	return("RPC2_GetRequest");
 	case MAKERPC:		return("RPC2_MakeRPC");
-	case BIND:		return("RPC2_Bind");
+	case BIND:		return("RPC2_NewBinding");
 	case INITSIDEEFFECT:	return("RPC2_InitSideEffect");
 	case CHECKSIDEEFFECT:	return("RPC2_CheckSideEffect");
 	case UNBIND:		return("RPC2_Unbind");

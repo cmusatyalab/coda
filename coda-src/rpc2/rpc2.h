@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/src/coda-4.0.1/RCSLINK/./coda-src/rpc2/rpc2.h,v 1.1 1996/11/22 19:07:48 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rpc2/rpc2.h,v 4.1 1997/01/08 21:50:26 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -61,23 +61,24 @@ supported by Transarc Corporation, Pittsburgh, PA.
 
 #include <cargs.h> /* from LWP */
 
+/* This string is used in RPC initialization calls to ensure that the
+runtime system and the header files are mutually consistent.  Also
+passed across on RPC2_NewBinding for advisory information to other
+side.  Changes to this string may cause RPC2_OLDVERSION to be returned
+on RPC2_NewBinding()s.  For really minor changes alter rpc2_LastEdit
+in globals.c.  */
 #define RPC2_VERSION "Version 14.0: Satya, 6 May 1988, 10:00"
-/*
-This string is used  in  RPC  initialization 
-calls  to ensure that the runtime system and the header files are mutually consistent.
-Also passed across on RPC2_Bind for advisory information to other side.  Changes to this
-string may cause RPC2_OLDVERSION to be returned on RPC2_Bind()s.  For really minor changes
-alter rpc2_LastEdit in globals.c.
-*/
 
 
+/* Found as the first 4 bytes of EVERY packet.  Change this if you
+change any aspect of the protocol sequence, or if you change the
+packet header, or the body formats of the initialization packets.
+Used in inital packet exchange to verify that the client and server
+speak exactly the same protocol.  Orthogonal to RPC2_VERSION.  We need
+this in the header at the very beginning, else we cannot change packet
+formats in a detectable manner.  */
 #define RPC2_PROTOVERSION 7
-/* Found as the first 4 bytes of EVERY packet.  Change this if you change any aspect of the 
-protocol sequence, or if you change the packet header, or the body formats of the initialization packets.
-Used in inital packet exchange to verify that the client and server speak exactly
-the same protocol.  Orthogonal to RPC2_VERSION.  We need this in the header at the very beginning,
-else we cannot change packet formats in a detectable manner.
-*/
+
 
 /*
 The following constants are used to indicate the security-level of RPC connections.
@@ -87,17 +88,19 @@ The following constants are used to indicate the security-level of RPC connectio
 #define RPC2_HEADERSONLY	73	/* Authenticated but only headers encrypted */
 #define RPC2_SECURE 		66	/* Authenticated and fully encrypted */
 
-/*
-RPC2 supports multiple encryption types; the key length is fixed, and you must always supply a
-field of RPC2_KEYSIZE bytes wherever an encryption key is called for.  However, individual algorithms can choose
-to ignore excess bytes in the keys.
+/* RPC2 supports multiple encryption types; the key length is fixed,
+and you must always supply a field of RPC2_KEYSIZE bytes wherever an
+encryption key is called for.  However, individual algorithms can
+choose to ignore excess bytes in the keys.
 
-The encryption types are specified as integer bit positions so that the EncryptionTypesMask  field of RPC2_GetRequest()
-can be a mask of  these types.  The required type must also be specified in RPC2_Bind().
+The encryption types are specified as integer bit positions so that
+the EncryptionTypesMask field of RPC2_GetRequest() can be a mask of
+these types.  The required type must also be specified in
+RPC2_NewBinding().
 
-To add support for other encryption types only the constants below and the internal runtime procedures rpc2_Encrypt()
-and rpc2_Decrypt() have to be modified.
-*/
+To add support for other encryption types only the constants below and
+the internal runtime procedures rpc2_Encrypt() and rpc2_Decrypt() have
+to be modified.  */
 #define RPC2_DES 1
 #define RPC2_XOR 2
 #define RPC2_ENCRYPTIONTYPES (RPC2_DES | RPC2_XOR)
@@ -112,20 +115,21 @@ Values of 0 and below in those fields are reserved for RPC stub use.
 Codes greater than 0  are  assigned  and managed by subsystems.
 
 There are three levels of errors: Warning, Error, and Fatal Error.
-RPC2_SUCCESS > RPC2_WLIMIT > warning codes > RPC2_ELIMIT > error codes > RPC2_FLIMIT > fatal error codes 
+RPC2_SUCCESS > RPC2_WLIMIT > warning codes > RPC2_ELIMIT > error codes
+> RPC2_FLIMIT > fatal error codes
 
 The semantics of these codes are:
 
 RPC2_SUCCESS:	Everything was perfect.
 
-Warning: 	Advisory information.
+Warning: 	         Advisory information.
 
 Error:		Something went wrong, but the connection (if any)  is still usable.
 
 Fatal:		The connection (if any) has been marked unusable.
 
-Note that the routine RPC2_ErrorMsg() will translate return codes into printable strings.
-*/
+Note that the routine RPC2_ErrorMsg() will translate return codes into
+printable strings.  */
 
 #define RPC2_SUCCESS	0
 
@@ -291,11 +295,12 @@ typedef
          RPC2_ByteSeq SeqBody; /*No restrictions on contents*/
          }
     RPC2_BoundedBS;
-/*
-RPC2_BoundedBS  is  intended  to  allow you to remotely play the game that C programmers play all the
-time: allocate a large buffer, fill in some bytes, then call a procedure which takes this buffer  as
-a parameter and replaces its contents by a possibly longer sequence of bytes.  Example: strcat().
-*/
+
+/* RPC2_BoundedBS is intended to allow you to remotely play the game
+that C programmers play all the time: allocate a large buffer, fill in
+some bytes, then call a procedure which takes this buffer as a
+parameter and replaces its contents by a possibly longer sequence of
+bytes.  Example: strcat().  */
 
 typedef
     RPC2_Byte RPC2_EncryptionKey[RPC2_KEYSIZE];
@@ -379,10 +384,9 @@ typedef
 	}
     RPC2_PeerInfo;
 
-/*
-The RPC2_PacketBuffer definition below deals with both requests and replies.  The runtime system
-provides efficient buffer storage management routines --- use them!
-*/
+/* The RPC2_PacketBuffer definition below deals with both requests and
+replies.  The runtime system provides efficient buffer storage
+management routines --- use them!  */
 
 typedef
     struct RPC2_PacketBuffer
@@ -414,10 +418,10 @@ typedef
 	    RPC2_Integer  ProtoVersion;	/* Set by runtime system */
 	    RPC2_Integer  RemoteHandle;	/* Set by runtime system; -1 indicates unencrypted error packet */
 	    RPC2_Integer  LocalHandle;	/* Set by runtime system */
-	    RPC2_Integer  Flags;	/* Used by runtime system only.  First byte reserved for
-					   side effect use.  Second byte reserved for indicating
-					   color (see libfail documentation).  Last two bytes
-					   reserved for RPC2 use. */
+	    RPC2_Integer  Flags;	/* Used by runtime system
+	    only.  First byte reserved for side effect use.  Second
+	    byte reserved for indicating color (see libfail
+	    documentation).  Last two bytes reserved for RPC2 use. */
 
 	    /* Everything below here can be encrypted */
 	    RPC2_Unsigned  BodyLength;	/* of the portion after the header. Set by client.*/
@@ -638,9 +642,6 @@ extern long RPC2_GetRequest C_ARGS((RPC2_RequestFilter *Filter, RPC2_Handle *Con
 	long EncryptionTypeMask, long (*AuthFail)()));
 extern long RPC2_MakeRPC C_ARGS((RPC2_Handle ConnHandle, RPC2_PacketBuffer *Request,
 	 SE_Descriptor *SDesc, RPC2_PacketBuffer **Reply, struct timeval *Patience, long EnqueueRequest));
-extern long RPC2_Bind C_ARGS((long SecurityLevel, long EncryptionType, RPC2_HostIdent *Host,
-	RPC2_PortalIdent *Portal,  RPC2_SubsysIdent *Subsys, long SideEffectType,
-	RPC2_CountedBS *ClientIdent, RPC2_EncryptionKey *SharedSecret, RPC2_Handle *ConnHandle));
 extern long RPC2_MultiRPC C_ARGS((int HowMany, RPC2_Handle ConnHandleList[], RPC2_Integer RCList[],
 	RPC2_Multicast *MCast, RPC2_PacketBuffer *Request, SE_Descriptor SDescList[],
 	long (*UnpackMulti)(), ARG_INFO *ArgInfo, struct timeval *BreathOfLife));
@@ -677,6 +678,9 @@ extern long RPC2_GetNetInfo C_ARGS((RPC2_Handle ConnHandle, RPC2_NetLog *RPCLog,
 extern long RPC2_PutNetInfo C_ARGS((RPC2_Handle ConnHandle, RPC2_NetLog *RPCLog, RPC2_NetLog *SELog));
 extern long RPC2_ClearNetInfo C_ARGS((RPC2_Handle ConnHandle));
 extern long getsubsysbyname C_ARGS((char *subsysName));
+extern int RPC2_R2SError C_ARGS((int error));
+extern int RPC2_S2RError C_ARGS((int error));
+
 
 /* These shouldn't really be here: they are internal RPC2 routines
    But some applications (e.g. Coda auth server) use them */

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/src/coda-4.0.1/RCSLINK/./coda-src/rpc2/multi1.c,v 1.1 1996/11/22 19:07:24 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rpc2/multi1.c,v 4.1 1997/01/08 21:50:24 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -113,25 +113,32 @@ PRIVATE long mrpc_SendPacketsReliably();
 PRIVATE PacketCon *spcon[MaxLWPs] = { 0, 0, 0, 0, 0, 0, 0, 0 };
 PRIVATE PacketCon *get_packet_con();
 PRIVATE void MSend_Cleanup();
-
+PRIVATE void mrpc_ProcessRC(long *in, long *out, int howmany);
+static inline long  EXIT_MRPC(long code, long *retcode, long *RCList, 
+			      int HowMany, struct RPC2_PacketBuffer **req, 
+			      RPC2_PacketBuffer **preq, 
+			      struct SL_Entry **slarray, MultiCon *context, 
+			      struct MEntry *me);
 
 #define GOODSEDLE(i)  (SDescList != NULL && SDescList[i].Tag != OMITSE)
 
-long RPC2_MultiRPC(IN HowMany, IN ConnHandleList, IN RCList, IN MCast, IN Request, IN SDescList,
-		    IN UnpackMulti, IN OUT ArgInfo, IN BreathOfLife)
-     int	HowMany;				/* no of connections involved */
+
+long RPC2_MultiRPC(IN HowMany, IN ConnHandleList, IN RCList, IN MCast, 
+		   IN Request, IN SDescList, IN UnpackMulti, IN OUT ArgInfo, 
+		   IN BreathOfLife)
+    int	HowMany;			/* no of connections involved */
     RPC2_Handle	ConnHandleList[];
-    RPC2_Integer RCList[];			/* NULL or list of per-connection return codes */
-    RPC2_Multicast *MCast;			/* NULL if multicast not used */
-    register RPC2_PacketBuffer *Request;	/* Gets clobbered during call: BEWARE */
+    RPC2_Integer RCList[];	/* NULL or list of per-connection return codes */
+    RPC2_Multicast *MCast;		/* NULL if multicast not used */
+    register RPC2_PacketBuffer *Request;/* Gets clobbered during call: BEWARE */
     SE_Descriptor SDescList[];
     long (*UnpackMulti)();
     register ARG_INFO *ArgInfo;
     struct timeval *BreathOfLife;
-    {
+{
     struct CEntry **ceaddr;
-    register RPC2_PacketBuffer **req;		/* server specific copies of request packet */
-    RPC2_PacketBuffer **preq;			/* keep original buffers for reference */
+    register RPC2_PacketBuffer **req;	/* server specific copies of request packet */
+    RPC2_PacketBuffer **preq;		/* keep original buffers for reference */
     struct SL_Entry **slarray;
     MultiCon *context;
     int	host;
@@ -140,12 +147,6 @@ long RPC2_MultiRPC(IN HowMany, IN ConnHandleList, IN RCList, IN MCast, IN Reques
     bool SomeConnsOK;
     long rc;
 
-#define EXIT_MRPC(code)\
-	{\
-	if (RCList) bcopy(retcode, RCList, HowMany*sizeof(long));\
-	cleanup(HowMany, req, preq, slarray, context, me);\
-	rpc2_Quit(code);\
-	}
 
     rpc2_Enter();
     say(0, RPC2_DebugLevel, ("Entering RPC2_MultiRPC\n"));
@@ -158,12 +159,10 @@ long RPC2_MultiRPC(IN HowMany, IN ConnHandleList, IN RCList, IN MCast, IN Reques
     assert(Request->Prefix.MagicNumber == OBJ_PACKETBUFFER);
 
     /* get context pointer */
-    /* the multi_con management should be redone to ensure that allocation never fails! */
+    /* the multi_con management should be redone to ensure that 
+       allocation never fails! */
     assert((context = get_multi_con(HowMany)) != NULL);
-/*
-    if((context = get_multi_con(HowMany)) == NULL)
-	rpc2_Quit(RPC2_FAIL);
-*/
+
     /* alias the context arrays for convenience */
     slarray = context->slarray;
     req = context->req;
@@ -178,16 +177,16 @@ long RPC2_MultiRPC(IN HowMany, IN ConnHandleList, IN RCList, IN MCast, IN Reques
 	retcode[host] = RPC2_ABANDONED;
 
     /* setup for multicast */
-    if (MCast)
-	{
+    if (MCast) {
 	rc = SetupMulticast(MCast, &me, HowMany, ConnHandleList);
-	if (rc != RPC2_SUCCESS)
-	    {
-	    for (host = 0; host < HowMany; host++)
+	if (rc != RPC2_SUCCESS) {
+	    for (host = 0; host < HowMany; host++) {
 		retcode[host] = rc;
-	    EXIT_MRPC(rc);
 	    }
+	    return EXIT_MRPC(rc, retcode, RCList, HowMany, req, preq, 
+			     slarray, context, me);
 	}
+    }
 
     /*  verify and set connection state */
     SetupConns(HowMany, ConnHandleList, ceaddr, MCast,
@@ -195,54 +194,94 @@ long RPC2_MultiRPC(IN HowMany, IN ConnHandleList, IN RCList, IN MCast, IN Reques
 
     /* prepare all of the packets */
     SetupPackets(HowMany, ConnHandleList, ceaddr, slarray, MCast,
-			me, req, preq, retcode, SDescList, Request);
+		 me, req, preq, retcode, SDescList, Request);
 
-    /* call UnpackMulti on all bad connections; if there are NO good connections, exit */
+    /* call UnpackMulti on all bad connections; 
+       if there are NO good connections, exit */
     SomeConnsOK = FALSE;
-    for (host = 0; host < HowMany; host++)
-	if (retcode[host] > RPC2_ELIMIT)
+    for (host = 0; host < HowMany; host++) {
+	if (retcode[host] > RPC2_ELIMIT) {
 	    SomeConnsOK = TRUE;
-	else if ((*UnpackMulti)(HowMany, ConnHandleList, ArgInfo, NULL, retcode[host], host) == -1)
-	    EXIT_MRPC(RPC2_FAIL);
-    if (!SomeConnsOK)
+	} else {
+	    if ((*UnpackMulti)(HowMany, ConnHandleList, ArgInfo, NULL, 
+			       retcode[host], host) == -1) {
+		return EXIT_MRPC(rc, retcode, RCList, HowMany, req, preq, 
+				 slarray, context, me);
+	    }
+	}
+    }
+
+    if (!SomeConnsOK) {
 	/* NO usable connections */
-	EXIT_MRPC(RPC2_FAIL);
+	return EXIT_MRPC(rc, retcode, RCList, HowMany, req, preq, slarray, 
+			 context, me);
+    }
 
     /* finally safe to update the state of the good connections */
-    for	(host =	0; host	< HowMany; host++)
-	if (retcode[host] > RPC2_ELIMIT)
+    for	(host =	0; host	< HowMany; host++) { 
+	if (retcode[host] > RPC2_ELIMIT) { 
 	    SetState(ceaddr[host], C_AWAITREPLY);
+	}
+    }
 
     /* send packets and await replies */
     say(9, RPC2_DebugLevel, ("Sending requests\n"));
-    slarray[HowMany] = rpc2_AllocSle(OTHER, NULL);  /* allocate timer entry */
+    /* allocate timer entry */
+    slarray[HowMany] = rpc2_AllocSle(OTHER, NULL);  
     slarray[HowMany + 1] = NULL;
     rc = mrpc_SendPacketsReliably(HowMany, ConnHandleList, MCast,
 				   me, ceaddr, slarray, preq,
 				   ArgInfo, SDescList, UnpackMulti,
 				   BreathOfLife, retcode);
-    rpc2_FreeSle(&(slarray[HowMany]));		    /* free timer entry */
-
-    switch((int) rc)
-	{
-	case RPC2_SUCCESS:	break;
-
-	case RPC2_TIMEOUT:	
-	case RPC2_FAIL:
-	    say(9, RPC2_DebugLevel, ("mrpc_SendPacketsReliably()--> %s\n", RPC2_ErrorMsg(rc)));
-	    break;
-
-	default:
-	    say(9, RPC2_DebugLevel, ("Bad return code for mrpc_SendPacketsReliably: %ld\n", rc));
-	    rc = RPC2_FAIL;
-	}
-
+    /* free timer entry */
+    rpc2_FreeSle(&(slarray[HowMany]));	
+    
+    switch((int) rc) {
+    case RPC2_SUCCESS:	
+	break;
+    case RPC2_TIMEOUT:	
+    case RPC2_FAIL:
+	say(9, RPC2_DebugLevel, 
+	    ("mrpc_SendPacketsReliably()--> %s\n", RPC2_ErrorMsg(rc)));
+	break;
+    default:
+	say(9, RPC2_DebugLevel, 
+	    ("Bad return code for mrpc_SendPacketsReliably: %ld\n", rc));
+	rc = RPC2_FAIL;
+    }
 
     host = HowMany - 1;
-    EXIT_MRPC(rc);
-#undef	EXIT_MRPC
+    return EXIT_MRPC(rc, retcode, RCList, HowMany, req, preq, slarray, 
+		     context, me);
 }
 
+
+/* easier to manage than the former macro definition */
+static inline long
+EXIT_MRPC(long code, long *retcode, long *RCList, int HowMany,
+	  struct RPC2_PacketBuffer **req, RPC2_PacketBuffer **preq, 
+	  struct SL_Entry **slarray, MultiCon *context, 
+	  struct MEntry *me)
+{
+    if (RCList) {
+	mrpc_ProcessRC(retcode, RCList, HowMany);
+    }
+    cleanup(HowMany, req, preq, slarray, context, me);
+    rpc2_Quit(code);
+}
+
+/* copy arguments into the return code lists, possibly translating 
+   error codes */
+PRIVATE void mrpc_ProcessRC(long *in, long *out, int howmany) 
+{
+#ifdef ERRORTR
+    int host;
+    for ( host = 0 ; host < howmany ; host++ )
+	out[host] = RPC2_R2SError(in[host]);
+#else
+    bcopy(in, out, sizeof(long) * howmany);
+#endif 
+}
 
 PRIVATE void SetupConns(HowMany, ConnHandleList, ceaddr, MCast, me, SDescList, retcode)
     int		    HowMany;
@@ -321,7 +360,8 @@ PRIVATE void SetupConns(HowMany, ConnHandleList, ceaddr, MCast, me, SDescList, r
     for (host = 0; host < HowMany; host++)
 	if (retcode[host] > RPC2_ELIMIT)
 	    {
-	    long this_setype = ceaddr[host]->SEProcs ? ceaddr[host]->SEProcs->SideEffectType: NULL;
+	    long this_setype = ceaddr[host]->SEProcs ? 
+		ceaddr[host]->SEProcs->SideEffectType: 0;
 
 	    if (setype == -1)		/* first time through loop */
 		setype = this_setype;

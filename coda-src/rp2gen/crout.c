@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /usr/rvb/XX/src/coda-src/rp2gen/RCS/crout.c,v 4.1 1997/01/08 21:50:12 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rp2gen/crout.c,v 4.2 1997/02/26 16:02:56 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -120,6 +120,7 @@ static print_stubpredefined(FILE *where);
 extern char *concat(), *concat3elem(), *server_prefix, *client_prefix;;
 extern rp2_bool testing;
 extern rp2_bool c_plus;	    /* generate c++ compatible code */
+extern rp2_bool neterrors;  /* exchange OS independent errors */
 extern struct subsystem subsystem;
 extern unsigned versionnumber;	/* used to check version */
 extern ENTRY *find();
@@ -405,7 +406,7 @@ static common(where)
 	fputs("\n#include <sys/types.h>\n#include <netinet/in.h>\n#include <sys/time.h>\n", where);
 	fputs("#include <string.h>\n", where);
 	fputs("#ifdef __MACH__\n#include <sysent.h>\n#include <libc.h>\n#endif /* __MACH__ */\n", where);
-	fputs("#if defined(__BSD44__)\n#include <unistd.h>\n#include <stdlib.h>\n#endif /*__BSD44__*/\n", where);
+	fputs("#ifndef __MACH__\n#include <unistd.h>\n#include <stdlib.h>\n#endif /*__BSD44__*/\n", where);
 	fputs("\n#ifdef __cplusplus\n}\n#endif __cplusplus\n", where);
     }
     else {
@@ -693,7 +694,12 @@ static spit_body(proc, in_parms, out_parms, where)
 	for (parm=proc->formals; *parm!=NIL; parm++)
 	    if ((*parm)->mode != IN_MODE) unpack(CLIENT, *parm, "", ptr, where);
     }
+    /* Optionally translate OS independent errors back */
+    if ( neterrors  ) {
+    fprintf(where, "    %s = RPC2_R2SError(%s->Header.ReturnCode);\n", code, rspbuffer);
+    } else {
     fprintf(where, "    %s = %s->Header.ReturnCode;\n", code, rspbuffer);
+    }
     /* Throw away response buffer */
     fprintf(where, "    %s = RPC2_FreeBuffer(&%s);\n", rpc2val, rspbuffer);
     fprintf(where, "    if (%s != RPC2_SUCCESS) return %s;\n", rpc2val, rpc2val);
@@ -1296,8 +1302,12 @@ static one_server_proc(proc, where)
     
     fprintf(where, "    %s = RPC2_AllocBuffer(%s, &%s);\n", rpc2val, length, rspbuffer);
     fprintf(where, "    if (%s != RPC2_SUCCESS) return 0;\n", rpc2val);
+    if ( neterrors ) { 
+    fprintf(where, "    %s->Header.ReturnCode = RPC2_S2RError(%s);\n", 
+	    rspbuffer, code);
+    } else {
     fprintf(where, "    %s->Header.ReturnCode = %s;\n", rspbuffer, code);
-
+    }
     if (out_parms) {
 	/* Pack return parameters */
 	fputs("\n    /* Pack return parameters */\n", where);

@@ -25,7 +25,7 @@
 # improvements or extensions that  they  make,  and  to  grant  Carnegie
 # Mellon the rights to redistribute these changes without encumbrance.
 # 
-# static char *rcsid = "$Header: Makefile.in,v 4.1 97/01/08 21:50:19 rvb Exp $";
+# static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rpc2/Makefile.in,v 4.2 1997/04/29 21:27:25 rvb Exp $";
 
 
 # 
@@ -64,24 +64,28 @@ include $(MAKDIR)/Makeconf
 
 EXECUTABLES  = ctest stest rpc2test
 LIBRARIES    = librpc2.a libse.a
-HEADERS	     = rpc2.h se.h multi.h sftp.h rpc2.private.h
+HEADERS	     = rpc2.h se.h multi.h sftp.h rpc2.private.h errors.h errorsdefs.h
 
-CFLAGS := -DRPC2DEBUG $(CFLAGS)
+CFLAGS := -DRPC2DEBUG -DERRORTR $(CFLAGS)
 AFLAGS := -DRPC2DEBUG $(AFLAGS)
 
 LIBS	= $(LIBOLDLWP) $(LIBCOMPAT)
 
 
-HFILES	  = rpc2.h rpc2.private.h se.h cbuf.h trace.h multi.h
+HFILES	  = rpc2.h rpc2.private.h se.h cbuf.h trace.h multi.h 
 SEHFILES  = sftp.h
 OFILES	  = rpc2a.o  rpc2b.o sl.o packet.o secure.o globals.o\
 	    se.o lists.o ct.o debug.o conn.o cbuf.o ffs.o\
 	    host.o multi1.o multi2.o multi3.o mkcall.o\
-	    stats.o
+	    stats.o errors.o
 SEOFILES  = sftp1.o sftp2.o sftp3.o sftp4.o sftp5.o sftp6.o
 ASMOFILES = fxor.o
 TESTHFILES = test.h
 
+# Special case of errors:
+errors.o: errordb.txt
+	perl ${srcdir}/makeinc.pl < ${srcdir}/errordb.txt
+	$(CC) $(CFLAGS) -c ${srcdir}/errors.c
 
 # Libraries
 librpc2.a: $(OFILES) $(ASMOFILES)
