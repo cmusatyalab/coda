@@ -16,11 +16,6 @@ listed in the file CREDITS.
 
 #*/
 
-
-
-
-
-
 /********************************************************
  * resfile.c						*
  * Implements File resolution.				*

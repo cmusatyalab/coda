@@ -432,7 +432,7 @@ int AL_NameToId(IN char *Name, OUT int *Id){
 	LogMsg(1, AL_DebugLevel, stdout, "in AL_NameToId(%s)", Name);
 	if(Name == NULL) return -1;
 	PDB_lookupByName(Name, (int32_t *) Id);
-	return (*Id == 0)?1:0;
+	return (*Id == 0)?-1:0;
 }
 
 

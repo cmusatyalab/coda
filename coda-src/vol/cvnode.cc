@@ -474,13 +474,13 @@ Vnode *VGetVnode(Error *ec, Volume *vp, VnodeId vnodeNumber,
 	struct VnodeClassInfo *vcp;
 	ProgramType *pt;
 
-	SLog(9, "Entering VGetVnode(vol %x, vnode %u, lock %d, ignoreIncon %d)",
+	SLog(9, "Entering VGetVnode(vol %x, vnode %lx, lock %d, ignoreIncon %d)",
 	     V_id(vp), vnodeNumber, locktype, ignoreIncon);
 	*ec = 0;
 
 	if (vnodeNumber == 0) {
 		*ec = VNOVNODE;
-		SLog(0, "VGetVnode: Bogus vnodenumber %u", vnodeNumber);
+		SLog(0, "VGetVnode: Bogus vnodenumber %lx", vnodeNumber);
 		return NULL;
 	}
 
@@ -503,7 +503,7 @@ Vnode *VGetVnode(Error *ec, Volume *vp, VnodeId vnodeNumber,
 
 	/* See whether the vnode is in the cache. */
 	newHash = VNODE_HASH(vp, vnodeNumber, unq);
-	SLog(19,  "VGetVnode: newHash = %d, vp = 0x%x, vnodeNumber = %x Unique = %x",
+	SLog(19,  "VGetVnode: newHash = %d, vp = 0x%x, vnodeNumber = %lx Unique = %x",
 	     newHash, vp, vnodeNumber, unq);
 	for (vnp = VnodeHashTable[newHash];
 	     vnp && (vnp->vnodeNumber!=vnodeNumber ||
@@ -518,7 +518,7 @@ Vnode *VGetVnode(Error *ec, Volume *vp, VnodeId vnodeNumber,
 		int     n;
 		/* Not in cache; tentatively grab most distantly used
 		   one from the LRU chain */
-		SLog(1,  "VGetVnode: going to rvm for vnode %x.%u", V_id(vp), vnodeNumber);
+		SLog(1,  "VGetVnode: going to rvm for vnode %x.%lx", V_id(vp), vnodeNumber);
 		vcp->reads++;
 		if (vcp->lruHead == vcp->lruHead->lruPrev) {
 			SLog(0,  "VGetVode: Only 1 entry left in lru cache - growing cache");
@@ -538,19 +538,19 @@ Vnode *VGetVnode(Error *ec, Volume *vp, VnodeId vnodeNumber,
 		if ((n = v_index.get(vnodeNumber, unq, &vnp->disk)) != 0) {
 			/* Vnode is not allocated */
 			*ec = VNOVNODE;
-			SLog(0, "VGetVnode: vnode %x.%u is not allocated", 
+			SLog(0, "VGetVnode: vnode %x.%lx is not allocated", 
 			     V_id(vp), vnodeNumber);
 			return NULL;
 		}
 		/* Quick check to see that the data is reasonable */
 		if (vnp->disk.type == vNull) {
 			*ec = VNOVNODE;
-			SLog(0, "VGetVnode: vnode %x.%u not allocated", 
+			SLog(0, "VGetVnode: vnode %x.%lx not allocated", 
 			     V_id(vp), vnodeNumber);
 			return NULL;
 		}
 		if (vnp->disk.vnodeMagic != vcp->magic) {
-			SLog(0, "VGetVnode: Bad vnodeMagic, vnode %x.%u, (%s); volume needs salvage",  
+			SLog(0, "VGetVnode: Bad vnodeMagic, vnode %x.%lx, (%s); volume needs salvage",  
 			     V_id(vp), vnodeNumber, V_name(vp));
 			SLog(0, "VGetVnode: magic = %u, LVNODEMAGIC = %u, vcp->magic = %u",
 			     vnp->disk.vnodeMagic, LARGEVNODEMAGIC, vcp->magic);

@@ -539,6 +539,14 @@ int fsobj::Lookup(fsobj **target_fso_addr, ViceFid *inc_fid, char *name, vuid_t 
 	code = FSDB->Get(&target_fso, &target_fid, vuid, RC_STATUS, name);
 	if (code) {
 	    if (code == EINCONS && inc_fid != 0) *inc_fid = target_fid;
+
+	    /* If the getattr failed, the object might not exist on all server.
+	     * As this is `fixed' by resolving the parent, and we just
+	     * destroyed the object RecResolve won't work. That is why we
+	     * submit this directory for resolution as well. -JH */
+	    if (code == ESYNRESOLVE)
+		vol->ResSubmit(&((VprocSelf())->u.u_resblk), &fid);
+
 	    return(code);
 	}
 

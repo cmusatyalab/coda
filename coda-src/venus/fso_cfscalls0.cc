@@ -735,8 +735,6 @@ int fsobj::GetAttr(vuid_t vuid, RPC2_BoundedBS *acl) {
 			    }
 		    }
 		}
-
-		if (code != 0) goto RepExit;
 	    } else {
 		/* The COP:Fetch call. */
 		CFSOP_PRELUDE(prel_str, comp, fid);
@@ -772,8 +770,8 @@ int fsobj::GetAttr(vuid_t vuid, RPC2_BoundedBS *acl) {
 		}
 
 		if (code == EASYRESOLVE) { asy_resolve = 1; code = 0; }
-		if (code != 0) goto RepExit;
 	    }
+	    if (code != 0) goto RepExit;
 
 	    /* common code for replicated case */
 
@@ -967,8 +965,9 @@ RepExit:
 	    Demote();
 
 	    /* If we have data, it is stale and must be discarded. */
-	    /* Operation MUST be restarted from beginning since, even though this */
-	    /* fetch was for status-only, the operation MAY be requiring data! */
+	    /* Operation MUST be restarted from beginning since, even though
+	     * this fetch was for status-only, the operation MAY be requiring
+	     * data! */
 	    if (HAVEDATA(this)) {
 		Recov_BeginTrans();
 		UpdateCacheStats((IsDir() ? &FSDB->DirDataStats : &FSDB->FileDataStats),
