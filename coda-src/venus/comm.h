@@ -259,12 +259,14 @@ class srvent {
     unsigned probeme : 1;	/* should ProbeD probe this server? */
     unsigned forcestrong : 1;	/* the user can force strong connectivity */
     unsigned isweak : 1;	/* is this server considered weak */
+    unsigned rootserver : 1;	/* the server is specified in vstab and can
+                                   be queried for volume-location information */
     unsigned long bw;		/* bandwidth estimate, Bytes/sec */
     unsigned long bwmax;	/* upper bound of the bandwidth estimate */
     struct timeval lastobs;	/* time of most recent estimate */
   
     /* Constructors, destructors, and private utility routines. */
-    srvent(unsigned long);
+    srvent(unsigned long host, int isrootserver);
     srvent(srvent&) { abort(); }	/* not supported! */
     operator=(srvent&) { abort(); return(0); }	/* not supported! */
     ~srvent();
@@ -290,6 +292,7 @@ class srvent {
     int ServerIsUp() { return(connid != 0); }
     int ServerIsWeak() { return(connid > 0 && bw <= WCThresh); }
                          /* quasi-up != up */
+    int IsRootServer(void);
 
     void print() { print(stdout); }
     void print(FILE *fp) { fflush(fp); print(fileno(fp)); }

@@ -203,19 +203,17 @@ void CommInit() {
 	/* Get the host address and make a server entry. */
 	struct in_addr  addr;
 	struct hostent *h;
-	srvent         *s;
+	srvent         *s = NULL;
 	/* Allow use of IP addrs */
 	if (AllowIPAddrs && inet_aton(ServerName, &addr) != 0) {
-	    srvent *s = new srvent(ntohl(addr.s_addr));
+	    s = new srvent(ntohl(addr.s_addr), 1);
+	} else if ((h = gethostbyname(ServerName)) != NULL) {
+	    s = new srvent(ntohl(*((unsigned long *)h->h_addr)), 1);
+	}
+        if (s != NULL) {
 	    srvent::srvtab->insert(&s->tblhandle);
 	    hcount++;
-	}
-	else if ((h = gethostbyname(ServerName)) != NULL) {
-	    s = new srvent(ntohl(*((unsigned long *)h->h_addr)));
-	    srvent::srvtab->insert(&s->tblhandle);
-	    hcount++;
-	}
-	/* CHANGE */	
+        }
     }
     if (hcount == 0)
 	CHOKE("CommInit: no bootstrap server");
@@ -303,6 +301,7 @@ int GetAdmConn(connent **cpp) {
 	srv_iterator next;
 	srvent *s;
 	while ((s = next())) {
+            if (!s->IsRootServer()) continue;
 	    code = GetConn(cpp, s->host, V_UID, 0);
 	    switch(code) {
 		case 0:
@@ -682,7 +681,7 @@ void GetServer(srvent **spp, unsigned long host) {
 	return;
     }
 
-    s = new srvent(host);
+    s = new srvent(host, 0);
     srvent::srvtab->insert(&s->tblhandle);
 
     *spp = s;
@@ -1040,8 +1039,8 @@ void ServerPrint(int fd) {
 }
 
 
-srvent::srvent(unsigned long Host) {
-    LOG(1, ("srvent::srvent: host = %x\n", Host));
+srvent::srvent(unsigned long Host, int isrootserver) {
+    LOG(1, ("srvent::srvent: host = %x, isroot = %d\n", Host, isrootserver));
 
     unsigned long nHost = htonl(Host);
     struct hostent *h = gethostbyaddr((char *)&nHost, (int)sizeof(unsigned long), AF_INET);
@@ -1063,6 +1062,7 @@ srvent::srvent(unsigned long Host) {
     probeme = 0;
     EventCounter = 0;
     forcestrong = 0;
+    rootserver = isrootserver;
     isweak = 0;
     bw     = INIT_BW;
     bwmax  = 0;
@@ -1148,7 +1148,6 @@ int srvent::Connect(RPC2_Handle *cidp, int *authp, vuid_t vuid, int Force) {
     if (code == ETIMEDOUT && VprocInterrupted()) return(EINTR);
     return(code);
 }
-
 
 int srvent::GetStatistics(ViceStatistics *Stats) {
     LOG(100, ("srvent::GetStatistics: host = %s\n", name));
@@ -1415,9 +1414,15 @@ void srvent::ForceStrong(int on) {
 }
 
 
-void srvent::print(int fd) {
-    fdprint(fd, "%#08x : %-16s : cid = %d, host = %#08x, binding = %d, bw = %d\n",
-	     (long)this, name, connid, host, Xbinding, bw);
+int srvent::IsRootServer(void)
+{
+    return rootserver;
+}
+
+void srvent::print(int fd)
+{
+    fdprint(fd, "%#08x : %-16s : cid = %d, host = %#08x, binding = %d, bw = %d, isroot = %d\n",
+	     (long)this, name, connid, host, Xbinding, bw, rootserver);
 }
 
 

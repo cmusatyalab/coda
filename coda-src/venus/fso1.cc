@@ -493,8 +493,9 @@ void fsobj::Recover() {
     switch(stat.VnodeType) {
 	case File:
 	    {
+
 	    if ((HAVEDATA(this) && cf.Length() != stat.GotThisData) ||
-		(!HAVEDATA(this) && cf.Length() != 0)) {
+                (!HAVEDATA(this) && cf.Length() != 0)) {
 		eprint("\t(%s, %x.%x.%x) cache file validation failed",
 		       comp, fid.Volume, fid.Vnode, fid.Unique);
 		goto Failure;
@@ -2601,10 +2602,10 @@ void fsobj::print(int fdes) {
 	     (long)this, fid.Volume, fid.Vnode, fid.Unique, comp, vol);
 
     /* < FsoState, VenusStat, Replica Control Rights, Access Rights, flags > */
-    fdprint(fdes, "\tstate = %s, stat = { %d, %d, %d, %d, %#o, %d, %s }, rc rights = %d\n",
-	     PrintFsoState(state), stat.Length, stat.DataVersion,
-	     stat.Date, stat.Owner, stat.Mode, stat.LinkCount,
-	     PrintVnodeType(stat.VnodeType), RcRights);
+    fdprint(fdes, "\tstate = %s, stat = { %d(%d), %d, %d, %d, %#o, %d, %s }, rc rights = %d\n",
+	     PrintFsoState(state), stat.Length, stat.GotThisData,
+             stat.DataVersion, stat.Date, stat.Owner, stat.Mode,
+             stat.LinkCount, PrintVnodeType(stat.VnodeType), RcRights);
     fdprint(fdes, "\tVV = {[");
     for (int i = 0; i < VSG_MEMBERS; i++)
 	fdprint(fdes, " %d", (&(stat.VV.Versions.Site0))[i]);
