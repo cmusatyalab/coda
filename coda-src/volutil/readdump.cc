@@ -164,12 +164,12 @@ void showVolumeDiskData(int largc, char **largv) {
     
     CODA_ASSERT(DumpStream->getVolDiskData(&data) == 0);
 
-    printf("\tversion stamp = %lx, %lu\n", data.stamp.magic, data.stamp.version);
+    printf("\tversion stamp = %x, %u\n", data.stamp.magic, data.stamp.version);
     printf("\tid = %lx\n\tpartition = %s\n\tname = %s\n\tinUse = %u\n\tinService = %u\n",
 	    data.id, data.partition, data.name, data.inUse, data.inService);
 
     if (data.stamp.magic != 0) {
-	printf("\tblessed = %u\n\tneedsSalvaged = %u\n\tuniquifier= %lu\n\ttype = %d\n",
+	printf("\tblessed = %u\n\tneedsSalvaged = %u\n\tuniquifier= %u\n\ttype = %d\n",
 	    data.blessed, data.needsSalvaged, data.uniquifier, data.type);
 	printf("\tparentId = %lx\n\tgrpId = %lx\n\tcloneId = %lx\n\tbackupId = %lxn\trestoreFromId = %lx\n",
 	    data.parentId, data.groupId, data.cloneId, data.backupId, data.restoredFromId);
@@ -179,15 +179,15 @@ void showVolumeDiskData(int largc, char **largv) {
     }
     printf("\t");
     for (i = 0; i < 3; i++) {
-	printf("reserved1[%d] = %lu, ", i, data.reserved1[i]);
+	printf("reserved1[%d] = %u, ", i, data.reserved1[i]);
     }
     printf("\n\t");
     for (i = 3; i < 6; i++) {
-	printf("reserved1[%d] = %lu, ", i, data.reserved1[i]);
+	printf("reserved1[%d] = %u, ", i, data.reserved1[i]);
     }
     printf("\n");
 
-    printf("\tmaxquota = %d\n\tminquota = %d\n\tmaxfiles = %d\n\tacctNum = %lu\n\towner = %lu\n",
+    printf("\tmaxquota = %d\n\tminquota = %d\n\tmaxfiles = %d\n\tacctNum = %u\n\towner = %u\n",
 	data.maxquota, data.minquota, data.maxfiles, data.accountNumber, data.owner);
     printf("\t");
     for (i = 0; i < 3; i++) {
@@ -243,15 +243,15 @@ void showVolumeDiskData(int largc, char **largv) {
     printf("\tbackupDate = %lu\n\tcopyDate = %lu\n", data.backupDate, data.copyDate);
     printf("\t");
     for (i = 0; i < 3; i++) {
-	printf("reserved4[%d] = %ld, ", i, data.reserved4[i]);
+	printf("reserved4[%d] = %u, ", i, data.reserved4[i]);
     }
     printf("\n\t");
     for (i = 3; i < 6; i++) {
-	printf("reserved4[%d] = %ld, ", i, data.reserved4[i]);
+	printf("reserved4[%d] = %u, ", i, data.reserved4[i]);
     }
     printf("\n\t");
     for (i = 6; i < 8; i++) {
-	printf("reserved4[%d] = %ld, ", i, data.reserved4[i]);
+	printf("reserved4[%d] = %u, ", i, data.reserved4[i]);
     }
     printf("\n");
     printf("\tofflineMessage = %s\n", data.offlineMessage);
@@ -364,21 +364,21 @@ void skipVnodes(int largc, char **largv) {
     }
 
     if (del) {
-	printf("Vnode 0x%#08lx at offset %ld was deleted.\n", vnum, offset);
+	printf("Vnode 0x%#08lx at offset %lld was deleted.\n", vnum, offset);
 	return;
     }
     
-    printf("Vnode %#8lx is at offset %ld in the dump.\n", vnum, offset);
+    printf("Vnode %#8lx is at offset %lld in the dump.\n", vnum, offset);
     if (vnode->type == vNull && vnode->linkCount == 0)
 	return;
     printf("\ttype = %u\n\tcloned = %u\n\tmode = %o\n\tlinks = %u\n",
 	vnode->type, vnode->cloned, vnode->modeBits, vnode->linkCount);
-    printf("\tlength = %lu\n\tunique = %lu\n\tversion = %lu\n\tinode = %lu\n",
+    printf("\tlength = %u\n\tunique = %lu\n\tversion = %u\n\tinode = %u\n",
 	vnode->length, vnode->uniquifier, vnode->dataVersion, vnode->inodeNumber);
     PrintVersionVector(&vnode->versionvector, "\t");
     printf("\tvolindex = %u\n\tmodtime = %lu\n\tauthor = %lu\n\towner = %lu\n\tparent = %lx.%lx\n",
 	vnode->vol_index, vnode->unixModifyTime, vnode->author, vnode->owner, vnode->vparent, vnode->uparent);
-    printf("\tmagic = %lx\n\tservermodtime = %lu\n",
+    printf("\tmagic = %x\n\tservermodtime = %lu\n",
 	vnode->vnodeMagic, vnode->serverModifyTime);
     return;
 }    
@@ -402,21 +402,21 @@ void showVnodeDiskObject(int largc, char **largv)
     }
 
     if (del) {
-	printf("Vnode 0x%#08lx at offset %ld was deleted.\n", vnum, offset);
+	printf("Vnode 0x%#08lx at offset %lld was deleted.\n", vnum, offset);
 	return;
     }
     
-    printf("Vnode %#8lx is at offset %ld in the dump.\n", vnum, offset);
+    printf("Vnode %#8lx is at offset %lld in the dump.\n", vnum, offset);
     if (vnode->type == vNull && vnode->linkCount == 0)
 	return;
     printf("\ttype = %u\n\tcloned = %u\n\tmode = %o\n\tlinks = %u\n",
 	vnode->type, vnode->cloned, vnode->modeBits, vnode->linkCount);
-    printf("\tlength = %lu\n\tunique = %lu\n\tversion = %lu\n\tinode = %lu\n",
+    printf("\tlength = %u\n\tunique = %lu\n\tversion = %u\n\tinode = %u\n",
 	vnode->length, vnode->uniquifier, vnode->dataVersion, vnode->inodeNumber);
     PrintVersionVector(&vnode->versionvector, "\t");
     printf("\tvolindex = %d\n\tmodtime = %lu\n\tauthor = %lu\n\towner = %lu\n\tparent = %lx.%lx\n",
 	vnode->vol_index, vnode->unixModifyTime, vnode->author, vnode->owner, vnode->vparent, vnode->uparent);
-    printf("\tmagic = %lx\n\tservermodtime = %lu\n",
+    printf("\tmagic = %x\n\tservermodtime = %lu\n",
 	vnode->vnodeMagic, vnode->serverModifyTime);
     return;
 }

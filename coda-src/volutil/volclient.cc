@@ -1152,8 +1152,9 @@ static void info(void)
 static void showvnode(void)
 {
     SE_Descriptor sed;
-    bit32 volumeNumber, vnodeNumber;
-    bit32 unique;
+    VolumeId volumeNumber;
+    VnodeId vnodeNumber;
+    Unique_t unique;
     FILE *outf;
 
     if (these_args < 5) {
@@ -1198,9 +1199,10 @@ static void showvnode(void)
 */
 static void setvv(void) 
 {
-    bit32   volumeNumber, vnodeNumber;
-    bit32   unique;
-    ViceVersionVector	vv;
+    VolumeId volumeNumber;
+    VnodeId vnodeNumber;
+    Unique_t unique;
+    ViceVersionVector vv;
 
     if (these_args != 16){
 	fprintf(stderr, "Usage: volutil setvv volumeNumber vnodeNumber unique <version nubmers(8)> <StoreId (host) (Uniquifier)> <flags>\n");

@@ -37,7 +37,7 @@ Pittsburgh, PA.
 
 */
 
-#define RCSVERSION $Revision: 4.28 $
+#define RCSVERSION $Revision: 4.29 $
 
 /* vol-dump.c */
 
@@ -277,7 +277,7 @@ static int DumpVnodeIndex(DumpBuffer_t *dbuf, Volume *vp,
     if (DumpInt32(dbuf, 's', nLists) == -1)
 	return -1;
     
-    sprintf(buf, "Start of %s list, %ld vnodes, %ld lists.\n",
+    sprintf(buf, "Start of %s list, %u vnodes, %u lists.\n",
 	    ((vclass == vLarge)? "Large" : "Small"), nVnodes, nLists);
     if (write(VVListFd, buf, strlen(buf)) != (int)strlen(buf)) {
 	SLog(0, "Write %s Index header didn't succeed.", ((vclass == vLarge)? "Large" : "Small"));

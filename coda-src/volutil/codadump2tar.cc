@@ -83,7 +83,7 @@ typedef struct {
 } objectid_t;
 
 /* pathname of object */
-typedef struct{
+typedef struct {
   char *fullpathname; /* pointer to malloc'ed string */
   int prefixlen; /* how many chars in prefix (sans trailing slash) */
 } objname_t;

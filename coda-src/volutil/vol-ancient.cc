@@ -52,7 +52,7 @@ long S_NewVolMarkAsAncient(RPC2_Handle rpcid, VolumeId backupId)
     Volume *vp;
     vrent *vre;
     long volnum = 0, retcode;
-    unsigned long error;
+    Error error;
 
     vp = VGetVolume(&error, backupId);    
     if (error) {
