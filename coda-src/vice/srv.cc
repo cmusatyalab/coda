@@ -57,6 +57,7 @@ extern "C" {
 #include <sys/time.h>
 #include <sys/resource.h>
 #include <sys/file.h>
+#include <time.h>
 #include "coda_string.h"
 #include <errno.h>
 #include <signal.h>
@@ -1215,7 +1216,7 @@ void SwapLog()
     
     /* Print out time/date, since date info has "scrolled off" */
     TM_GetTimeOfDay(&tp, 0);
-    SLog(0, "New SrvLog started at %s", ctime((const time_t *)&tp.tv_sec));
+    SLog(0, "Coda Vice, version " PACKAGE_VERSION "\tlog started at %s", ctime(&tp.tv_sec));
 }
 
 static void FileMsg()
