@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rpc2/multi1.c,v 4.6 98/11/02 16:45:18 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rpc2/multi1.c,v 4.7 98/11/24 15:34:35 jaharkes Exp $";
 #endif /*_BLURB_*/
 
 
@@ -740,7 +740,7 @@ static long mrpc_SendPacketsReliably(
     bzero(Reply, sizeof(char *) * HowMany);
 
     timestamp = rpc2_MakeTimeStamp();
-    say(9, RPC2_DebugLevel, "Sending initial packets at time %d\n", timestamp);
+    say(9, RPC2_DebugLevel, "Sending initial packets at time %ld\n", timestamp);
 
     /* Do an initial send of packets on all good connections */
     /* for estimating the effiency of the calculation */

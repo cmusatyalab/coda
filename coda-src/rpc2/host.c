@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rpc2/host.c,v 4.8 1998/12/14 15:51:51 jaharkes Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rpc2/host.c,v 4.9 1998/12/14 19:00:17 smarc Exp $";
 #endif /*_BLURB_*/
 
 
@@ -164,8 +164,8 @@ struct HEntry *rpc2_AllocHost(RPC2_HostIdent *host)
 
 	he->RTT       = 0;
 	he->RTTVar    = 0;
-	he->BW        = 16 << RPC2_BW_SHIFT;
-	he->BWVar     = 16 << RPC2_BWVAR_SHIFT;
+	he->BW        = 10000000 << RPC2_BW_SHIFT;
+	he->BWVar     = 0 << RPC2_BWVAR_SHIFT;
 	he->LastBytes = 0;
 
 	/* insert into hash table */
@@ -299,22 +299,10 @@ void rpc2_UpdateEstimates(struct HEntry *host, struct timeval *elapsed,
     unsigned long  eU;       /* temporary unsigned variable */
     long	   eL;       /* temporary signed variable */
 
-    unsigned long  estimate, i, tries = 0;
-    struct timeval tv;
-
     if (!host) return;
 
-    if (0 < RPC2_DebugLevel)
-    {
-	if (elapsed->tv_sec < 0) elapsed->tv_sec = elapsed->tv_usec = 0;
-	elapsed_us = elapsed->tv_sec * 1000000 + elapsed->tv_usec;
-
-	/* for estimating the efficiency of the calculation */
-	rpc2_RetryInterval(host, Bytes, 1, &tv);
-	estimate = tv.tv_sec * 1000000 + tv.tv_usec;
-	i = 1;
-	while (estimate && (elapsed_us > (estimate * i))) { tries++; i <<= 1; }
-    }
+    if (elapsed->tv_sec < 0) elapsed->tv_sec = elapsed->tv_usec = 0;
+    elapsed_us = elapsed->tv_sec * 1000000 + elapsed->tv_usec;
 
     /* we need to clamp Bytes to a maximum value that avoids overflows in the
      * following calculations  */
@@ -370,11 +358,10 @@ void rpc2_UpdateEstimates(struct HEntry *host, struct timeval *elapsed,
     host->LastBytes = Bytes;
 
     say(0, RPC2_DebugLevel,
-	"Est: %s %4lu %4ld.%06lu/%-5lu RTT:%lu/%lu us BW:%lu/%lu B/s, x%ld\n",
-	    inet_ntoa(host->Host), estimate,
-	    elapsed->tv_sec, elapsed->tv_usec, Bytes,
+	"Est: %s %4ld.%06lu/%-5lu RTT:%lu/%lu us BW:%lu/%lu B/s\n",
+	    inet_ntoa(host->Host), elapsed->tv_sec, elapsed->tv_usec, Bytes,
 	    host->RTT>>RPC2_RTT_SHIFT, host->RTTVar>>RPC2_RTTVAR_SHIFT,
-	    host->BW>>RPC2_BW_SHIFT, host->BWVar>>RPC2_BWVAR_SHIFT, tries);
+	    host->BW>>RPC2_BW_SHIFT, host->BWVar>>RPC2_BWVAR_SHIFT);
 
     return;
 }
@@ -423,16 +410,46 @@ void rpc2_RetryInterval(struct HEntry *host, RPC2_Unsigned Bytes, int retry,
     return;
 }
 
-unsigned long RPC2_GetRTT(struct HEntry *host, unsigned long *RTTvar)
+int RPC2_GetRTT(RPC2_Handle handle, unsigned long *RTT, unsigned long *RTTvar)
 {
-    if (RTTvar) *RTTvar = host->RTT >> RPC2_RTTVAR_SHIFT;
-    return (host->RTT >> RPC2_RTT_SHIFT);
+    struct CEntry *ce;
+
+    ce = rpc2_GetConn(handle);
+    if (ce == NULL) 
+	return(RPC2_NOCONNECTION);
+
+    if (RTT)    *RTT    = ce->HostInfo->RTT    >> RPC2_RTT_SHIFT;
+    if (RTTvar) *RTTvar = ce->HostInfo->RTTVar >> RPC2_RTTVAR_SHIFT;
+
+    return(RPC2_SUCCESS);
 }
 
-unsigned long RPC2_GetBandwidth(struct HEntry *host, unsigned long *BWvar)
+int RPC2_GetBandwidth(RPC2_Handle handle, unsigned long *BW,
+		      unsigned long *BWvar)
 {
-    if (BWvar) *BWvar = host->BWVar >> RPC2_BWVAR_SHIFT;
-    return (host->BW >> RPC2_BW_SHIFT);
+    struct CEntry *ce;
+
+    ce = rpc2_GetConn(handle);
+    if (ce == NULL) 
+	return(RPC2_NOCONNECTION);
+
+    if (BW)    *BW    = ce->HostInfo->BW    >> RPC2_BW_SHIFT;
+    if (BWvar) *BWvar = ce->HostInfo->BWVar >> RPC2_BWVAR_SHIFT;
+
+    return(RPC2_SUCCESS);
+}
+
+int RPC2_GetLastObs(RPC2_Handle handle, struct timeval *tv)
+{
+    struct CEntry *ce;
+
+    ce = rpc2_GetConn(handle);
+    if (ce == NULL) 
+	return(RPC2_NOCONNECTION);
+
+    if (tv) *tv = ce->HostInfo->LastWord;
+
+    return(RPC2_SUCCESS);
 }
 
 #if defined(DJGPP) || defined(__CYGWIN32__) 
