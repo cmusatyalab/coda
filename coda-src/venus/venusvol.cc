@@ -1286,7 +1286,9 @@ void volent::GetCacheInfo(int uid, int *hits, int *misses) {
     }
 }
 
-void volent::DisconnectedCacheMiss(vproc *vp, vuid_t vuid, ViceFid *fid, char *comp) {
+void volent::DisconnectedCacheMiss(vproc *vp, vuid_t vuid, ViceFid *fid,
+                                   char *comp)
+{
     userent *u;
     char pathname[MAXPATHLEN];
 
@@ -1295,7 +1297,7 @@ void volent::DisconnectedCacheMiss(vproc *vp, vuid_t vuid, ViceFid *fid, char *c
 
     /* If advice not enabled, simply return */
     if (!AdviceEnabled) {
-        LOG(0, ("ADMON STATS:  DMQ Advice NOT enabled.\n"));
+        LOG(100, ("ADMON STATS:  DMQ Advice NOT enabled.\n"));
         u->AdviceNotEnabled();
         return;
     }
@@ -1314,7 +1316,7 @@ void volent::DisconnectedCacheMiss(vproc *vp, vuid_t vuid, ViceFid *fid, char *c
         return;
     }
     if (u->IsAdviceValid(DisconnectedCacheMissEventID, 1) != TRUE) {
-        LOG(0, ("ADMON STATS:  DMQ Advice NOT valid. (uid = %d)\n", vuid));
+        LOG(100, ("ADMON STATS:  DMQ Advice NOT valid. (uid = %d)\n", vuid));
         return;
     }
 

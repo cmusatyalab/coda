@@ -1739,7 +1739,9 @@ void fsdb::ChangeDiskUsage(int delta_blocks) {
 
 
 /* fsobj and volent are both missing */
-void fsdb::DisconnectedCacheMiss(vproc *vp, vuid_t vuid, ViceFid *fid, char *comp) {
+void fsdb::DisconnectedCacheMiss(vproc *vp, vuid_t vuid, ViceFid *fid,
+                                 char *comp)
+{
     userent *u;
 
     GetUser(&u, vuid);

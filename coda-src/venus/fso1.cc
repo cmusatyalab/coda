@@ -1858,7 +1858,8 @@ CacheMissAdvice fsobj::WeaklyConnectedCacheMiss(vproc *vp, vuid_t vuid) {
     return(advice);
 }
 
-void fsobj::DisconnectedCacheMiss(vproc *vp, vuid_t vuid, char *comp) {
+void fsobj::DisconnectedCacheMiss(vproc *vp, vuid_t vuid, char *comp)
+{
     userent *u;
     char pathname[MAXPATHLEN];
 

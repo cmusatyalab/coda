@@ -865,6 +865,7 @@ static rvm_return_t queue_tid(tid)
                     }
                 BCOPY(tid,q_tid,sizeof(int_tid_t));
                 init_tree_root(&q_tid->range_tree);
+                RVM_ZERO_OFFSET(q_tid->log_size);
                 tid->x_ranges = NULL; /* array now owned by q_tid */
                 (void)move_list_entry(NULL,&log->flush_list,
                                       &q_tid->links);
