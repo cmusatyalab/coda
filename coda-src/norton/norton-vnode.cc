@@ -163,12 +163,14 @@ void show_vnode(int volid, int vnum, int uniquifier) {
 }
 
 
-void show_free(int argc, char *argv[]) {
-    VnodeDiskObject **free_list;
-    int	nvnodes,
-	i;
+void show_free(int argc, char *argv[])
+{
+    char zerobuf[SIZEOF_LARGEDISKVNODE];
+    VnodeDiskObject *zerovn = (VnodeDiskObject *)zerobuf, **free_list;
+    int	nvnodes, vnsize, i, j;
+    memset(zerovn, 0, SIZEOF_LARGEDISKVNODE);
     
-    if (argc != 3) {
+    if (argc < 3) {
 	fprintf(stderr, "Usage: show free <large> | <small>\n");
 	return;
     }
@@ -176,24 +178,56 @@ void show_free(int argc, char *argv[]) {
     if (strncasecmp("small", argv[2], (int)strlen(argv[2])) == 0) {
 	free_list = SRV_RVM(SmallVnodeFreeList);
 	nvnodes = SRV_RVM(SmallVnodeIndex);
+	vnsize = SIZEOF_SMALLDISKVNODE;
 	printf("    There are %d small vnodes in the free list\n", nvnodes);
     } else if (strncasecmp("large", argv[2], (int)strlen(argv[2])) == 0) {
 	free_list = SRV_RVM(LargeVnodeFreeList);
 	nvnodes = SRV_RVM(LargeVnodeIndex);
+	vnsize = SIZEOF_LARGEDISKVNODE;
 	printf("    There are %d large vnodes in the free list\n", nvnodes);	
     } else {
-	fprintf(stderr, "Usage: show free <large> | <small>\n");
+	fprintf(stderr, "Usage: show free <large> | <small> [-clear]\n");
 	return;
     }
 
     for (i = 0; i < nvnodes; i++) {
-	/* We should check if the vnode is != 0 and only print then */
-	if (*(free_list + i)) {
+	if (!free_list[i]) {
 	    printf("---------------------------\n");
-	    PrintVnodeDiskObject(*(free_list + i));
+	    printf("NULL entry at index %d\n", i);
+	    continue;
+	}
+	if (memcmp(free_list[i], zerovn, vnsize) != 0) {
+	    printf("---------------------------\n");
+	    printf("Non-zero vnode object at index %d\n", i);
+	    PrintVnodeDiskObject(free_list[i]);
+#if 0
+    /* This code can clear non-zero VNodes in the freelist. However...
+     * If the vnode is possibly used by an existing volume this will
+     * corrupt the volume and it would have been better to unlink the
+     * vnode from the freelist (and allocate a new empty one to fill the
+     * spot. So it is only usable in the case where we have an obvious
+     * singly bit or byte corruption.
+     *
+     * i.e. This is dangerous juju! --JH
+     */
+	    if (clear) {
+		rvm_return_t status;
+		printf("\tclearing entry!!!\n");
+		rvmlib_begin_transaction(restore);
+		rvmlib_modify_bytes(free_list[i], zerovn, vnsize);
+		rvmlib_end_transaction(flush, &status);
+	    }
+#endif
+	}
+	for (j = i+1; j < nvnodes; j++) {
+	    if (free_list[i] == free_list[j]) {
+		printf("---------------------------\n");
+		printf("Vnode object at index %d is also in the freelist at "
+		       "index %d\n", i, j);
+	    }
 	}
     }
-}    
+}
 
 
 // remove name from the given directory and mark its vnode in conflict
