@@ -83,10 +83,15 @@ objects=srvproc.o	\
 	ViceErrorMsg.o	\
 	writeback.o
 
-codasrv: ${objects} srv.o dummyplumber.o ${CLIBS} $(LIBFIXUP)
+ifeq ($(SYS),sol2)
+LIBFIXUP += -R/usr/ucblib -L/usr/ucblib -lucb
+endif
+
+
+codasrv: ${objects} srv.o dummyplumber.o ${CLIBS}
 	$(CXX) $(LIBFLAGS) srv.o ${objects} dummyplumber.o ${CLIBS} $(LIBDB) -lm $(LIBFIXUP) -o codasrv
 
-printvrdb: printvrdb.o $(LIBFIXUP)
+printvrdb: printvrdb.o 
 	$(CXX) ${LIBFLAGS} printvrdb.o $(LIBFIXUP) -o printvrdb
 
 libviceerror.a: ViceErrorMsg.o

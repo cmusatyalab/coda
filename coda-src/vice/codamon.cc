@@ -51,7 +51,11 @@ extern "C" {
 #include <stdio.h>
 #include <signal.h>
 #include <sys/time.h>
+#ifdef sun
+#include "/usr/ucbinclude/sys/wait.h"
+#else
 #include <sys/wait.h>
+#endif
 #include <stdlib.h>
 
 #ifdef __cplusplus

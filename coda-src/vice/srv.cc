@@ -61,6 +61,10 @@ extern "C" {
 #include <stdarg.h>
 #include <stdlib.h>
 
+#ifdef sun
+#include "sunflock.h"
+#endif
+
 #include <ports.h>
 #include <lwp.h>
 #include <timer.h>

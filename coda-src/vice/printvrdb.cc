@@ -36,6 +36,7 @@ extern "C" {
 #include <netinet/in.h>
 #include <sys/file.h>
 #include <unistd.h>
+#include <fcntl.h>
 
 #ifdef __cplusplus
 }

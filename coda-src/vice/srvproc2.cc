@@ -69,6 +69,11 @@ extern "C" {
 #include <al.h>
 #include <callback.h>
 #include <vice.h>
+
+#ifdef sun
+#include "sunflock.h"
+#endif
+
 #ifdef __cplusplus
 }
 #endif __cplusplus
