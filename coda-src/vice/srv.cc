@@ -1705,15 +1705,6 @@ static void InitializeServerRVM(char *name)
 	    options->truncate = _Rvm_Truncate;
 	}
 
-#if	defined(__FreeBSD__)
-	sbrk((int)(0x50000000 - (int)sbrk(0))); /* for garbage reasons. */
-#elif	defined(__NetBSD__) && (defined(NetBSD1_3) || defined(__NetBSD_Version__))
-	/*sbrk((void *)(0x50000000 - (int)sbrk(0))); / * for garbage reasons. */
-	/* Commented out by Phil Nelson because it caused a SIGBUS on 1.4.2
-	   and it appears to work just fine without this for 1.4.1 ... */
-#elif	defined(__NetBSD__) && NetBSD1_2
-	sbrk((void *)(0x20000000 - (int)sbrk(0))); /* for garbage reasons. */
-#endif
         err = RVM_INIT(options);                   /* Start rvm */           
         if ( err == RVM_ELOG_VERSION_SKEW ) {                                
             SLog(0, 
