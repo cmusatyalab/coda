@@ -83,12 +83,12 @@ static int isbadaddr(struct RPC2_addrinfo *ai, const char *name)
 
     ip = &((struct sockaddr_in *)ai->ai_addr)->sin_addr;
 
-    if (ip->s_addr == INADDR_ANY ||
-	ip->s_addr == INADDR_NONE ||
-	ip->s_addr == INADDR_LOOPBACK ||
-	(ip->s_addr & IN_CLASSA_NET) == IN_LOOPBACKNET ||
-	IN_MULTICAST(ip->s_addr) ||
-	IN_BADCLASS(ip->s_addr))
+    if (ntohl(ip->s_addr) == INADDR_ANY ||
+	ntohl(ip->s_addr) == INADDR_NONE ||
+	ntohl(ip->s_addr) == INADDR_LOOPBACK ||
+	(ntohl(ip->s_addr) & IN_CLASSA_NET) == IN_LOOPBACKNET ||
+	IN_MULTICAST(ntohl(ip->s_addr)) ||
+	IN_BADCLASS(ntohl(ip->s_addr)))
     {
 	fprintf(stderr, "An address in realm '%s' resolved to unusable address '%s', ignoring it\n", name, inet_ntoa(*ip));
 	return 1;
