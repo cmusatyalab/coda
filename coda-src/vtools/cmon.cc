@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vtools/cmon.cc,v 4.3 1997/02/27 18:07:36 raiff Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vtools/cmon.cc,v 4.4 1997/12/20 23:35:43 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -55,9 +55,7 @@ extern "C" {
 #include <sys/time.h>
 #include <strings.h>
 #include <errno.h>
-#if !defined(__FreeBSD__) && !defined(__GLIBC__)
-#include <libc.h>
-#endif  /*__FreeBSD__ && __GLIBC__ */
+
 #ifdef	__linux__
 #include <ncurses.h>
 #else
@@ -70,10 +68,7 @@ extern "C" {
 #include <timer.h>
 #include <sftp.h>
 
-#ifdef __MACH__
-extern void wmove(WINDOW *, int, int), wclear(WINDOW *), wrefresh(WINDOW *),
-	wprintw(WINDOW *, char *...);
-#endif
+#include "vice.h"
 
 int iopen(int x, int y, int z){return(0);};  /* BLETCH!! */
 
@@ -82,7 +77,6 @@ int iopen(int x, int y, int z){return(0);};  /* BLETCH!! */
 }
 #endif __cplusplus
 
-#include "vice.h"
 
 
 static long MonBirthTime; /* when this monitor was born */
@@ -187,8 +181,8 @@ PRIVATE void srvlwp(int slot)
     strcpy(hi.Value.Name, moi->srvname);
     pi.Tag = RPC2_PORTALBYINETNUMBER;
     pi.Value.InetPortNumber = htons(1361); /* wired-in! YUKKK! */
-    si.Tag = RPC2_SUBSYSBYNAME;
-    strcpy(si.Value.Name, "Vice2-FileServer");
+    si.Tag = RPC2_SUBSYSBYID;
+    si.Value.SubsysId= SUBSYS_SRV;
     
     
     moi->state = DEAD;
@@ -343,7 +337,7 @@ PRIVATE void InitRPC()
     SFTP_Activate(&sei);
     tv.tv_sec = 15;
     tv.tv_usec = 0;
-    RPC2_Init(RPC2_VERSION, 0, 0, 0, -1, &tv);
+    RPC2_Init(RPC2_VERSION, 0, 0, -1, &tv);
     }
 
 
