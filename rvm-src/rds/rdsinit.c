@@ -33,7 +33,7 @@ should be returned to Software.Distribution@cs.cmu.edu.
 
 */
 
-static char *rcsid = "$Header: /usr/rvb/XX/src/rvm-src/rds/RCS/rdsinit.c,v 4.1 1997/01/08 21:54:30 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs.cmu.edu/user/clement/mysrcdir3/rvm-src/rds/RCS/rdsinit.c,v 4.2 1997/02/26 16:05:01 rvb Exp clement $";
 #endif _BLURB_
 
 
@@ -296,10 +296,17 @@ int main(argc, argv)
   case S_IFSOCK:
   case S_IFDIR:
   case S_IFLNK:
+/* LINUX use the same block device for raw control */
+#ifndef LINUX
   case S_IFBLK: 
+#endif
     printf("?  Illegal file type!\n");
     exit(-1);
     
+/* LINUX use the same block device for raw control */
+#ifdef LINUX
+  case S_IFBLK:
+#endif
   case S_IFCHR:
   get_size:
     get_dev_size(argv[2], &length);

@@ -33,7 +33,7 @@ should be returned to Software.Distribution@cs.cmu.edu.
 
 */
 
-static char *rcsid = "$Header: rds_zap.c,v 1.1 96/11/22 13:40:03 raiff Exp $";
+static char *rcsid = "$Header: /afs/cs.cmu.edu/user/clement/mysrcdir3/rvm-src/rds/RCS/rds_zap.c,v 4.1 1997/01/08 21:54:30 rvb Exp clement $";
 #endif _BLURB_
 
 #include <stdlib.h>
@@ -60,7 +60,7 @@ rds_zap_heap(DevName, DevLength, startAddr, staticLength, heapLength, nlists, ch
 {
     rvm_region_def_t regions[2], *loadregions;
     rvm_tid_t *tid;
-    int n_loadregions;
+    unsigned long n_loadregions;
     rvm_return_t rvmret;
     
     regions[0].length = heapLength;

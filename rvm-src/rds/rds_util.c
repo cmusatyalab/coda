@@ -33,7 +33,7 @@ should be returned to Software.Distribution@cs.cmu.edu.
 
 */
 
-static char *rcsid = "$Header: rds_util.c,v 1.1 96/11/22 13:40:02 raiff Exp $";
+static char *rcsid = "$Header: /afs/cs.cmu.edu/user/clement/mysrcdir3/rvm-src/rds/RCS/rds_util.c,v 4.1 1997/01/08 21:54:29 rvb Exp clement $";
 #endif _BLURB_
 
 
@@ -43,6 +43,10 @@ static char *rcsid = "$Header: rds_util.c,v 1.1 96/11/22 13:40:02 raiff Exp $";
 #include <rds_private.h>
 #include <rvm_segment.h>
     
+#ifndef ZERO
+#define ZERO 0
+#endif
+
 int
 enqueue(list, block, tid, err)
      free_list_t  *list;
@@ -109,14 +113,14 @@ rm_from_list(list, bp, tid, err)
     if (bp == list->head) {
 	bp = dequeue(list, tid, err);
 	if (bp == NULL)
-	    return NULL;
+	    return ZERO;
     } else {
 	/* Because we're not at the end, we know bp->prev is a valid pointer. */
 	ptr = bp->prev;
 	rvmret = rvm_set_range(tid, &(ptr->next), sizeof(free_block_t *));
 	if (rvmret != RVM_SUCCESS) {
 	    (*err) = (int) rvmret;
-	    return NULL;
+	    return ZERO;
 	}
 	ptr->next = bp->next;
 	
@@ -125,7 +129,7 @@ rm_from_list(list, bp, tid, err)
 	    rvmret = rvm_set_range(tid, &(ptr->prev), sizeof(free_block_t *));
 	    if (rvmret != RVM_SUCCESS) {
 		(*err) = (int) rvmret;
-		return NULL;
+		return ZERO;
 	    }
 	    ptr->prev = bp->prev; /* NOTE: this may be zero */
 	}

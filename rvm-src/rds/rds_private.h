@@ -33,7 +33,7 @@ should be returned to Software.Distribution@cs.cmu.edu.
 
 */
 
-static char *rcsid = "$Header: rds_private.h,v 1.1 96/11/22 13:39:54 raiff Exp $";
+static char *rcsid = "$Header: /afs/cs.cmu.edu/user/clement/mysrcdir3/rvm-src/rds/RCS/rds_private.h,v 4.1 1997/01/08 21:54:28 rvb Exp clement $";
 #endif _BLURB_
 
 
@@ -165,7 +165,7 @@ extern free_block_t  *RecoverableHeapHighAddress;
 extern RVM_MUTEX heap_lock;
 
 extern int tracing_rds;
-extern void (*rds_trace_printer) ();
+extern void (*rds_trace_printer) (char *, ...);
 
 #define HEAP_INIT   		(RecoverableHeapStartAddress != 0)
 #define RDS_VERSION_STAMP	(RecoverableHeapStartAddress->version)

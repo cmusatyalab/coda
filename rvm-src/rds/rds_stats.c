@@ -33,7 +33,7 @@ should be returned to Software.Distribution@cs.cmu.edu.
 
 */
 
-static char *rcsid = "$Header: rds_stats.c,v 1.1 96/11/22 13:39:56 raiff Exp $";
+static char *rcsid = "$Header: /afs/cs.cmu.edu/user/clement/mysrcdir3/rvm-src/rds/RCS/rds_stats.c,v 4.1 1997/01/08 21:54:29 rvb Exp clement $";
 #endif _BLURB_
 
 
@@ -44,7 +44,7 @@ static char *rcsid = "$Header: rds_stats.c,v 1.1 96/11/22 13:39:56 raiff Exp $";
 #include <rvm_segment.h>
 
 int tracing_rds = FALSE;
-void (*rds_trace_printer) ();
+void (*rds_trace_printer) (char *, ...);
     
 /*
  * Print out the current statistics
