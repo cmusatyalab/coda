@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rvmres/rvmrescoord.cc,v 4.2 1997/12/20 23:34:55 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rvmres/rvmrescoord.cc,v 4.3 1998/01/10 18:38:20 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -50,46 +50,47 @@ extern "C" {
 #include <struct.h>
 #include <lwp.h>
 #include <rpc2.h>
+#include <util.h>
+#include <codadir.h>
 
 #ifdef __cplusplus
 }
 #endif __cplusplus
 
-#include <util.h>
 #include <olist.h>
 #include <errors.h>
 #include <res.h>
 #include <srv.h>
 #include <inconsist.h>
-#include <rvmdir.h>
 #include <vlist.h>
 #include <vrdb.h>
 #include <resutil.h>
 #include <rescomm.h>
+#include <reslog.h>
 #include <resforce.h>
 #include <timing.h>
 #include "rvmrestiming.h"
 #include "resstats.h"
 
 // ********** Private Routines *************
-PRIVATE int ComparePhase3Status(res_mgrpent *, int *, ViceStatus *, ViceStatus *);
-PRIVATE int RegDirResRequired(res_mgrpent *, ViceFid *, ViceVersionVector **, ResStatus **, int *);
-PRIVATE char *CoordPhase2(res_mgrpent *, ViceFid *, int *, int *, int *, unsigned long *,dirresstats *);
-PRIVATE int CoordPhase3(res_mgrpent*, ViceFid*, char*, int, int, ViceVersionVector**, dlist*, ResStatus**, unsigned long*, int*);
-PRIVATE int CoordPhase4(res_mgrpent *, ViceFid *, unsigned long *, int *);
-PRIVATE int CoordPhase34(res_mgrpent *, ViceFid *, dlist *, int *, int *);
-PRIVATE int AlreadyIncGroup(ViceVersionVector **, int);
-PRIVATE void AllocateBufs(res_mgrpent *, char **, int *);
-PRIVATE void DeAllocateBufs(char **);
-PRIVATE char *ConcatLogs(res_mgrpent *, char **, RPC2_Integer *, RPC2_Integer *, int *, int *);
-PRIVATE int ResolveInc(res_mgrpent *, ViceFid *, ViceVersionVector **);
-PRIVATE int CompareDirContents(SE_Descriptor *, ViceFid *);
-PRIVATE int CompareDirStatus(ViceStatus *, res_mgrpent *, ViceVersionVector **);
-PRIVATE DumpDirContents(SE_Descriptor *, ViceFid *);
-PRIVATE PrintPaths(int *sizes, ResPathElem **paths, res_mgrpent *);
-PRIVATE int AllIncGroup(ViceVersionVector **, int );
-PRIVATE void UpdateStats(ViceFid *, dirresstats *);
-PRIVATE void UpdateStats(ViceFid *, int , int );
+static int ComparePhase3Status(res_mgrpent *, int *, ViceStatus *, ViceStatus *);
+static int RegDirResRequired(res_mgrpent *, ViceFid *, ViceVersionVector **, ResStatus **, int *);
+static char *CoordPhase2(res_mgrpent *, ViceFid *, int *, int *, int *, unsigned long *,dirresstats *);
+static int CoordPhase3(res_mgrpent*, ViceFid*, char*, int, int, ViceVersionVector**, dlist*, ResStatus**, unsigned long*, int*);
+static int CoordPhase4(res_mgrpent *, ViceFid *, unsigned long *, int *);
+static int CoordPhase34(res_mgrpent *, ViceFid *, dlist *, int *, int *);
+static int AlreadyIncGroup(ViceVersionVector **, int);
+static void AllocateBufs(res_mgrpent *, char **, int *);
+static void DeAllocateBufs(char **);
+static char *ConcatLogs(res_mgrpent *, char **, RPC2_Integer *, RPC2_Integer *, int *, int *);
+static int ResolveInc(res_mgrpent *, ViceFid *, ViceVersionVector **);
+static int CompareDirContents(SE_Descriptor *, ViceFid *);
+static int CompareDirStatus(ViceStatus *, res_mgrpent *, ViceVersionVector **);
+static DumpDirContents(SE_Descriptor *, ViceFid *);
+static PrintPaths(int *sizes, ResPathElem **paths, res_mgrpent *);
+static int AllIncGroup(ViceVersionVector **, int );
+static void UpdateStats(ViceFid *, dirresstats *);
+static void UpdateStats(ViceFid *, int , int );
 
 // * Dir Resolution with logs in RVM
 // * This consists of 4 phases
@@ -282,7 +283,7 @@ long RecovDirResolve(res_mgrpent *mgrp, ViceFid *Fid, ViceVersionVector **VV,
     return(retval);
 }
 
-PRIVATE int RegDirResRequired(res_mgrpent *mgrp, ViceFid *Fid, 
+static int RegDirResRequired(res_mgrpent *mgrp, ViceFid *Fid, 
 			      ViceVersionVector **VV, ResStatus **rstatusp, 
 			      int *errorCode) {
     LogMsg(1, SrvDebugLevel, stdout,
@@ -354,7 +355,7 @@ PRIVATE int RegDirResRequired(res_mgrpent *mgrp, ViceFid *Fid,
 
 // collect logs for a directory 
 // return pointer to buffer.
-PRIVATE char *CoordPhase2(res_mgrpent *mgrp, ViceFid *fid, 
+static char *CoordPhase2(res_mgrpent *mgrp, ViceFid *fid, 
 			  int *totalentries, int *sizes, 
 			  int *totalsize, unsigned long *successFlags, 
 			  dirresstats *drstats) {
@@ -434,7 +435,7 @@ PRIVATE char *CoordPhase2(res_mgrpent *mgrp, ViceFid *fid,
        
 }
 
-PRIVATE void AllocateBufs(res_mgrpent *mgrp, char **bufs, int *sizes) {
+static void AllocateBufs(res_mgrpent *mgrp, char **bufs, int *sizes) {
     for (int i = 0; i < VSG_MEMBERS; i++) {
 	if (sizes[i] > 0 && mgrp->rrcc.handles[i]) 
 	    bufs[i] = (char *)malloc(sizes[i]);
@@ -449,7 +450,7 @@ PRIVATE void AllocateBufs(res_mgrpent *mgrp, char **bufs, int *sizes) {
 	   sizes[6], sizes[7]);
 }
 
-PRIVATE void DeAllocateBufs(char **bufs) {
+static void DeAllocateBufs(char **bufs) {
     for (int i = 0; i < VSG_MEMBERS; i++) 
 	if (bufs[i]) {
 	    free(bufs[i]);
@@ -457,7 +458,7 @@ PRIVATE void DeAllocateBufs(char **bufs) {
 	}
 }
 
-PRIVATE char *ConcatLogs(res_mgrpent *mgrp, char **bufs, 
+static char *ConcatLogs(res_mgrpent *mgrp, char **bufs, 
 			 RPC2_Integer *sizes, RPC2_Integer *entries, 
 			 int *totalsize, int *totalentries) {
     char *logbuffer = NULL;
@@ -490,7 +491,7 @@ PRIVATE char *ConcatLogs(res_mgrpent *mgrp, char **bufs,
 }
 
 
-PRIVATE int CoordPhase3(res_mgrpent *mgrp, ViceFid *Fid, char *AllLogs, int logsize,
+static int CoordPhase3(res_mgrpent *mgrp, ViceFid *Fid, char *AllLogs, int logsize,
 			int totalentries, ViceVersionVector **VV, 
 			dlist *inclist, ResStatus **rstatusp, 
 			unsigned long *successFlags, int *dirlengths) {
@@ -559,7 +560,7 @@ PRIVATE int CoordPhase3(res_mgrpent *mgrp, ViceFid *Fid, char *AllLogs, int logs
     }
 }
 
-PRIVATE int ComparePhase3Status(res_mgrpent *mgrp, int *dirlengths, 
+static int ComparePhase3Status(res_mgrpent *mgrp, int *dirlengths, 
 				ViceStatus *status_bufs, ViceStatus *status) {
     int statusgotalready = 0;
     for (int i = 0; i < VSG_MEMBERS; i++) {
@@ -587,7 +588,7 @@ PRIVATE int ComparePhase3Status(res_mgrpent *mgrp, int *dirlengths,
 }
 
 
-PRIVATE int CoordPhase4(res_mgrpent *mgrp, ViceFid *Fid, 
+static int CoordPhase4(res_mgrpent *mgrp, ViceFid *Fid, 
 			unsigned long *succflags, int *dirlengths) {
     ViceVersionVector UpdateSet;
     char *dirbufs[VSG_MEMBERS];
@@ -665,7 +666,7 @@ PRIVATE int CoordPhase4(res_mgrpent *mgrp, ViceFid *Fid,
     return(Phase4Err);
 }
 
-PRIVATE int CoordPhase34(res_mgrpent *mgrp, ViceFid *Fid, 
+static int CoordPhase34(res_mgrpent *mgrp, ViceFid *Fid, 
 			 dlist *inclist, int *dirlengths, int *noinc) {
     RPC2_BoundedBS PB;
     char buf[RESCOMM_MAXBSLEN];
@@ -713,7 +714,7 @@ PRIVATE int CoordPhase34(res_mgrpent *mgrp, ViceFid *Fid,
 #define MAXPAGES 128
 #define PAGESIZE 2048
 
-PRIVATE int ResolveInc(res_mgrpent *mgrp, ViceFid *Fid, ViceVersionVector **VVGroup) {
+static int ResolveInc(res_mgrpent *mgrp, ViceFid *Fid, ViceVersionVector **VVGroup) {
     SE_Descriptor sid;
     char *dirbufs[VSG_MEMBERS];
     int *dirlengths[VSG_MEMBERS];
@@ -815,7 +816,7 @@ PRIVATE int ResolveInc(res_mgrpent *mgrp, ViceFid *Fid, ViceVersionVector **VVGr
 }
 
 //taken from rescoord.c
-PRIVATE int AlreadyIncGroup(ViceVersionVector **VV, int nvvs) {
+static int AlreadyIncGroup(ViceVersionVector **VV, int nvvs) {
     for (int i = 0; i < nvvs; i++) {
 	if (VV[i] == NULL) continue;
 	if (IsIncon((*(VV[i])))) return(1);
@@ -824,7 +825,7 @@ PRIVATE int AlreadyIncGroup(ViceVersionVector **VV, int nvvs) {
 }
 
 // return 1 if all the vectors in a group show inconsistency
-PRIVATE int AllIncGroup(ViceVersionVector **VV, int nvvs) {
+static int AllIncGroup(ViceVersionVector **VV, int nvvs) {
     for (int i = 0; i < nvvs; i++) {
 	if (VV[i] == NULL) continue;
 	if (!IsIncon((*(VV[i])))) return(0);
@@ -833,7 +834,7 @@ PRIVATE int AllIncGroup(ViceVersionVector **VV, int nvvs) {
 
 }
 extern int comparedirreps;
-PRIVATE int CompareDirContents(SE_Descriptor *sid_bufs, ViceFid *fid) {
+static int CompareDirContents(SE_Descriptor *sid_bufs, ViceFid *fid) {
     LogMsg(9, SrvDebugLevel, stdout,  "Entering CompareDirContents()");
 
     if (!comparedirreps) return(0);
@@ -867,7 +868,7 @@ PRIVATE int CompareDirContents(SE_Descriptor *sid_bufs, ViceFid *fid) {
     return(0);
 }
 
-PRIVATE DumpDirContents(SE_Descriptor *sid_bufs, ViceFid *fid) {
+static DumpDirContents(SE_Descriptor *sid_bufs, ViceFid *fid) {
     for (int j = 0; j < VSG_MEMBERS; j++) {
 	int length = sid_bufs[j].Value.SmartFTPD.FileInfo.ByAddr.vmfile.SeqLen;
 	if (length) {
@@ -882,7 +883,7 @@ PRIVATE DumpDirContents(SE_Descriptor *sid_bufs, ViceFid *fid) {
     }
 }
 
-PRIVATE void PrintStatus(ViceStatus *status) {
+static void PrintStatus(ViceStatus *status) {
     LogMsg(0, SrvDebugLevel, stdout,
 	   "LinkCount(%d), Length(%d), Author(%u), Owner(%u), Mode(%u), Parent(0x%x.%x)\n",
 	   status->LinkCount, status->Length, status->Author, status->Owner, status->Mode,
@@ -890,7 +891,7 @@ PRIVATE void PrintStatus(ViceStatus *status) {
     PrintVV(stdout, &(status->VV));
 }
 
-PRIVATE int CompareDirStatus(ViceStatus *status, res_mgrpent *mgrp, ViceVersionVector **VV) {
+static int CompareDirStatus(ViceStatus *status, res_mgrpent *mgrp, ViceVersionVector **VV) {
     int dirfound = -1;
     for (int i = 0; i < VSG_MEMBERS; i++) {
 	if (mgrp->rrcc.hosts[i] && (mgrp->rrcc.retcodes[i] == 0)) {
@@ -920,7 +921,7 @@ PRIVATE int CompareDirStatus(ViceStatus *status, res_mgrpent *mgrp, ViceVersionV
     return(0);
 }
 
-PRIVATE PrintPaths(int *sizes, ResPathElem **paths, res_mgrpent *mgrp) {
+static PrintPaths(int *sizes, ResPathElem **paths, res_mgrpent *mgrp) {
     for (int i = 0; i < VSG_MEMBERS; i++) 
 	if (sizes[i] && !mgrp->rrcc.retcodes[i] && mgrp->rrcc.handles) {
 	    LogMsg(0, SrvDebugLevel, stdout,
@@ -936,7 +937,7 @@ PRIVATE PrintPaths(int *sizes, ResPathElem **paths, res_mgrpent *mgrp) {
 	}
 }
 
-PRIVATE void UpdateStats(ViceFid *Fid, dirresstats *drstats) {
+static void UpdateStats(ViceFid *Fid, dirresstats *drstats) {
     VolumeId vid = Fid->Volume;
     Volume *volptr = 0;
     if (XlateVid(&vid)) {
@@ -958,7 +959,7 @@ PRIVATE void UpdateStats(ViceFid *Fid, dirresstats *drstats) {
 
 }
 
-PRIVATE void UpdateStats(ViceFid *Fid, int success, int dirdepth) {
+static void UpdateStats(ViceFid *Fid, int success, int dirdepth) {
     VolumeId vid = Fid->Volume;
     Volume *volptr = 0;
     if (XlateVid(&vid)) {

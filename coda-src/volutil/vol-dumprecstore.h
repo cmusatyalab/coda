@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/src/coda-4.0.1/RCSLINK/./coda-src/volutil/vol-dumprecstore.h,v 1.1 1996/11/22 19:13:36 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/volutil/vol-dumprecstore.h,v 4.1 1997/01/08 21:52:30 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -55,7 +55,6 @@ static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/src/coda-4.0.1
 #define	VOLDISKDATAT	5
 #define	DIRINODET	6
 #define	DIRPAGET	7
-#define CAMELOTFREESTORE 8
 #define	SFREEVNODEPTRARRT	9
 #define	LFREEVNODEPTRARRT	10
 #define	SFREEVNODEDISKPTRT	11

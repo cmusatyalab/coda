@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/volutil/vol-makevldb.cc,v 4.4 1998/03/06 20:21:12 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/volutil/vol-makevldb.cc,v 4.5 1998/04/14 21:00:38 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -105,15 +105,15 @@ extern "C" {
 
 /* static int debug = 0; */
 
-PRIVATE char *ServerName[256];
-PRIVATE char *args[50]={NULL};
-PRIVATE struct vldb *vldb_array;/* In core copy of vldb */
-PRIVATE long *Dates;	  /* copy date for the volume at this slot in vldb */
-PRIVATE struct vldb **RWindex; /* index of named rw entry */
-PRIVATE int vldbSize;	  /* array size, in elements */
-PRIVATE int vldbHashSize; /* Hash index space (1 to vldbHashSize) */
-PRIVATE int haveEntry = 0;
-PRIVATE int MaxStride;
+static char *ServerName[256];
+static char *args[50]={NULL};
+static struct vldb *vldb_array;/* In core copy of vldb */
+static long *Dates;	  /* copy date for the volume at this slot in vldb */
+static struct vldb **RWindex; /* index of named rw entry */
+static int vldbSize;	  /* array size, in elements */
+static int vldbHashSize; /* Hash index space (1 to vldbHashSize) */
+static int haveEntry = 0;
+static int MaxStride;
 
 #define vldbindex(p)	((p) - &vldb_array[0])
 
@@ -124,35 +124,35 @@ PRIVATE int MaxStride;
 #define ALL_TEMP	"/vice/vol/AllVolumes.new"
 #define ALL_PATH	"/vice/vol/AllVolumes"
 
-PRIVATE FILE *BackupList, *RWList, *PartList, *AllList, *volumelist;
+static FILE *BackupList, *RWList, *PartList, *AllList, *volumelist;
 
-PRIVATE int Pass(char type);
-PRIVATE void InitAddEntry();
-PRIVATE void VolumeEntry(char type, int byname, char *name,
+static int Pass(char type);
+static void InitAddEntry();
+static void VolumeEntry(char type, int byname, char *name,
 		unsigned long volume, int server, unsigned long readwrite,
 		int creationdate, int copydate, int backupdate);
-PRIVATE void AddReadWriteEntry(struct vldb *vnew, int byname,
+static void AddReadWriteEntry(struct vldb *vnew, int byname,
 			char *name, unsigned long volume, int server,
 			unsigned long readwrite, int creationdate,
 			int copydate, int backupdate);
-PRIVATE void AddReadOnlyEntry(struct vldb *vnew, int byname,
+static void AddReadOnlyEntry(struct vldb *vnew, int byname,
 			char *name, unsigned long volume, int server,
 			unsigned long readwrite, int creationdate,
 			int copydate, int backupdate);
-PRIVATE void AddBackupEntry(struct vldb *vnew, int byname,
+static void AddBackupEntry(struct vldb *vnew, int byname,
 		char *name, unsigned long volume, int server,
 		unsigned long readwrite, int creationdate,
 		int copydate, int backupdate);
-PRIVATE struct vldb *Lookup(char *key, long *date);
-PRIVATE void Add(struct vldb *vnew, long date);
-PRIVATE void Replace(struct vldb *old, struct vldb *vnew, long date);
-PRIVATE void AddServer(struct vldb *old, struct vldb *vnew);
-PRIVATE void AddAssociate(struct vldb *old, struct vldb *vnew);
-PRIVATE void CheckRWindex(unsigned long volume, char *name);
-PRIVATE void GetPartitionInfo(char **argp, int nargs);
-PRIVATE void GetArgs(char *line, char **args, int *nargs);
-PRIVATE char *AllocString(char *s);
-PRIVATE void GetServerNames();
+static struct vldb *Lookup(char *key, long *date);
+static void Add(struct vldb *vnew, long date);
+static void Replace(struct vldb *old, struct vldb *vnew, long date);
+static void AddServer(struct vldb *old, struct vldb *vnew);
+static void AddAssociate(struct vldb *old, struct vldb *vnew);
+static void CheckRWindex(unsigned long volume, char *name);
+static void GetPartitionInfo(char **argp, int nargs);
+static void GetArgs(char *line, char **args, int *nargs);
+static char *AllocString(char *s);
+static void GetServerNames();
 
 /* debugging hack: */
 char rootname[32];
@@ -285,7 +285,7 @@ long S_VolMakeVLDB(RPC2_Handle rpcid, RPC2_String formal_infile) {
     return(err?VFAIL:RPC2_SUCCESS);
 }
 
-PRIVATE int Pass(char type)
+static int Pass(char type)
 {
     char *name;
     unsigned long volume;
@@ -381,13 +381,13 @@ PRIVATE int Pass(char type)
 /*int (*AddEntry[MAXVOLTYPES])();*/
 int (*AddEntry[MAXVOLTYPES])(...);
 
-PRIVATE void InitAddEntry() {
+static void InitAddEntry() {
     AddEntry[backupVolume] = (int (*)(...))AddBackupEntry;
     AddEntry[readonlyVolume] = (int (*)(...))AddReadOnlyEntry;
     AddEntry[readwriteVolume] = (int (*)(...))AddReadWriteEntry;
 }
 
-PRIVATE void VolumeEntry(char type, int byname, char *name, unsigned long volume,
+static void VolumeEntry(char type, int byname, char *name, unsigned long volume,
 		int server, unsigned long readwrite, int creationdate,
 		int copydate, int backupdate)
 {
@@ -407,7 +407,7 @@ PRIVATE void VolumeEntry(char type, int byname, char *name, unsigned long volume
 
 
 
-PRIVATE void AddReadWriteEntry(register struct vldb *vnew, int byname,
+static void AddReadWriteEntry(register struct vldb *vnew, int byname,
 			char *name, unsigned long volume, int server,
 			unsigned long readwrite, int creationdate,
 			int copydate, int backupdate)
@@ -426,7 +426,7 @@ PRIVATE void AddReadWriteEntry(register struct vldb *vnew, int byname,
 	CheckRWindex(volume, name);
 }
 
-PRIVATE void AddReadOnlyEntry(register struct vldb *vnew, int byname,
+static void AddReadOnlyEntry(register struct vldb *vnew, int byname,
 			char *name, unsigned long volume, int server,
 			unsigned long readwrite, int creationdate,
 			int copydate, int backupdate)
@@ -464,7 +464,7 @@ PRIVATE void AddReadOnlyEntry(register struct vldb *vnew, int byname,
     }
 }
 
-PRIVATE void AddBackupEntry(register struct vldb *vnew, int byname,
+static void AddBackupEntry(register struct vldb *vnew, int byname,
 		char *name, unsigned long volume, int server,
 		unsigned long readwrite, int creationdate,
 		int copydate, int backupdate)
@@ -499,7 +499,7 @@ PRIVATE void AddBackupEntry(register struct vldb *vnew, int byname,
     }
 }
 
-PRIVATE struct vldb *Lookup(char *key, long *date)
+static struct vldb *Lookup(char *key, long *date)
 {
     register struct vldb *p;
     int index = HashString(key, vldbHashSize);
@@ -514,7 +514,7 @@ PRIVATE struct vldb *Lookup(char *key, long *date)
     return 0;
 }
 
-PRIVATE void Add(register struct vldb *vnew, long date)
+static void Add(register struct vldb *vnew, long date)
 {
     register struct vldb *p, *prev, *first;
     int index = HashString(vnew->key, vldbHashSize);
@@ -533,7 +533,7 @@ PRIVATE void Add(register struct vldb *vnew, long date)
     return;
 }
 
-PRIVATE void Replace(register struct vldb *old, register struct vldb *vnew,
+static void Replace(register struct vldb *old, register struct vldb *vnew,
 							long date)
 {
     vnew->hashNext = old->hashNext;
@@ -541,7 +541,7 @@ PRIVATE void Replace(register struct vldb *old, register struct vldb *vnew,
     Dates[vldbindex(old)] = date;
 }
 
-PRIVATE void AddServer(register struct vldb *old, register struct vldb *vnew)
+static void AddServer(register struct vldb *old, register struct vldb *vnew)
 {
     register int i;
     for (i = 0; i<old->nServers; i++) {
@@ -551,12 +551,12 @@ PRIVATE void AddServer(register struct vldb *old, register struct vldb *vnew)
     old->serverNumber[old->nServers++] = vnew->serverNumber[0];
 }
 
-PRIVATE void AddAssociate(register struct vldb *old, register struct vldb *vnew)
+static void AddAssociate(register struct vldb *old, register struct vldb *vnew)
 {
     old->volumeId[vnew->volumeType] = vnew->volumeId[vnew->volumeType];
 }
 
-PRIVATE void CheckRWindex(unsigned long volume, char *name)
+static void CheckRWindex(unsigned long volume, char *name)
 {
     long date;
     register struct vldb *idp, *namep;
@@ -571,7 +571,7 @@ PRIVATE void CheckRWindex(unsigned long volume, char *name)
     RWindex[vldbindex(idp)] = namep;
 }
 
-PRIVATE void GetPartitionInfo(char **argp, int nargs)
+static void GetPartitionInfo(char **argp, int nargs)
 {
     char *partition;
     char *server = 0;
@@ -593,7 +593,7 @@ PRIVATE void GetPartitionInfo(char **argp, int nargs)
     fprintf(PartList, "%s %s %u %u\n", server, partition, total, free);
 }
 
-PRIVATE void GetArgs(register char *line,register char **args,
+static void GetArgs(register char *line,register char **args,
 						register int *nargs)
 {
     *nargs = 0;
@@ -611,14 +611,14 @@ PRIVATE void GetArgs(register char *line,register char **args,
     }
 }
 
-PRIVATE char *AllocString(char *s)
+static char *AllocString(char *s)
 {
     char *as = (char *) malloc(strlen(s)+1);
     strcpy(as, s);
     return(as);
 }
 
-PRIVATE void GetServerNames() {
+static void GetServerNames() {
     char line[200];
     char *serverList = SERVERLISTPATH;
     FILE *file;

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/volutil/volclient.cc,v 4.8 1998/06/07 20:15:22 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/volutil/volclient.cc,v 4.9 1998/08/05 23:50:34 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -82,61 +82,61 @@ extern "C" {
 #include <volume.h>
 #include "velapse.h"
 
-PRIVATE char vkey[RPC2_KEYSIZE+1];	/* Encryption key for bind authentication */
+static char vkey[RPC2_KEYSIZE+1];	/* Encryption key for bind authentication */
 /* file variables for utils with file transfer */
-PRIVATE char infile[256];
-PRIVATE char outfile[256];	// file name for requested info
+static char infile[256];
+static char outfile[256];	// file name for requested info
 /* hack to make argc and argv visible to subroutines */
-PRIVATE char **this_argp;
-PRIVATE int these_args;
+static char **this_argp;
+static int these_args;
 
 int VolumeChanged = 0;	/* needed by physio.c, not really used */
 
-PRIVATE char s_hostname[100];
-PRIVATE int timeout = 0;
-PRIVATE RPC2_Handle rpcid;
-PRIVATE long rc;
+static char s_hostname[100];
+static int timeout = 0;
+static RPC2_Handle rpcid;
+static long rc;
 
-PRIVATE void backup();
-PRIVATE void salvage();
-PRIVATE void create();
-PRIVATE void create_rep();
-PRIVATE void clone();
-PRIVATE void makevldb();
-PRIVATE void makevrdb();
-PRIVATE void info();
-PRIVATE void showvnode();
-PRIVATE void setvv();
-PRIVATE void purge();
-PRIVATE void lookup();
-PRIVATE void lock();
-PRIVATE void unlock();
-PRIVATE void updatedb();
-PRIVATE void shutdown();
-PRIVATE void swaplog();
-PRIVATE void swapmalloc();
-PRIVATE void setdebug();
-PRIVATE void oldstyledump();
-PRIVATE void dump();
-PRIVATE void restorefromback();
-PRIVATE void dumpmem();
-PRIVATE void rvmsize();
-PRIVATE void setlogparms();
-PRIVATE void markasancient();
+static void backup();
+static void salvage();
+static void create();
+static void create_rep();
+static void clone();
+static void makevldb();
+static void makevrdb();
+static void info();
+static void showvnode();
+static void setvv();
+static void purge();
+static void lookup();
+static void lock();
+static void unlock();
+static void updatedb();
+static void shutdown();
+static void swaplog();
+static void swapmalloc();
+static void setdebug();
+static void oldstyledump();
+static void dump();
+static void restorefromback();
+static void dumpmem();
+static void rvmsize();
+static void setlogparms();
+static void markasancient();
 void timing();
-PRIVATE void elapse();
-PRIVATE void tracerpc();
-PRIVATE void printstats();
-PRIVATE void showcallbacks();
-PRIVATE void truncatervmlog();
-PRIVATE void getmaxvol();
-PRIVATE void setmaxvol();
-PRIVATE void peekint();
-PRIVATE void pokeint();
-PRIVATE void peekmem();
-PRIVATE void pokemem();
-PRIVATE void peekxmem();
-PRIVATE void pokexmem();
+static void elapse();
+static void tracerpc();
+static void printstats();
+static void showcallbacks();
+static void truncatervmlog();
+static void getmaxvol();
+static void setmaxvol();
+static void peekint();
+static void pokeint();
+static void peekmem();
+static void pokemem();
+static void peekxmem();
+static void pokexmem();
 
 #define ROCKTAG 12345
 struct rockInfo {
@@ -146,11 +146,11 @@ struct rockInfo {
     unsigned long numbytes; /* Number of bytes already written to the file. */
 };
 
-PRIVATE void V_InitRPC(int timeout);
-PRIVATE int V_BindToServer(char *fileserver, RPC2_Handle *RPCid);
-PRIVATE void Die(char *msg);
-PRIVATE void VolDumpLWP(struct rockInfo *rock);
-extern long int volDump_ExecuteRequest(RPC2_Handle, RPC2_PacketBuffer*,SE_Descriptor*);
+static void V_InitRPC(int timeout);
+static int V_BindToServer(char *fileserver, RPC2_Handle *RPCid);
+static void Die(char *msg);
+static void VolDumpLWP(struct rockInfo *rock);
+extern long volDump_ExecuteRequest(RPC2_Handle, RPC2_PacketBuffer*,SE_Descriptor*);
 
 int main(int argc, char **argv) {
 #ifndef __CYGWIN32__
@@ -324,7 +324,7 @@ int main(int argc, char **argv) {
   <a name="ancient"><strong>Client end of the <tt>ancient</tt> request</strong></a> 
   END_HTML
 */
-PRIVATE void markasancient() 
+static void markasancient() 
 {
     long repid, groupid;
     
@@ -360,7 +360,7 @@ PRIVATE void markasancient()
   <a name="setlogparms"><strong>Client end of the <tt>setlogparms</tt> request</strong></a> 
   END_HTML
 */
-PRIVATE void setlogparms() {
+static void setlogparms() {
     long volid;
     long flag;
     long nentries;
@@ -408,7 +408,7 @@ PRIVATE void setlogparms() {
     printf("Set Log parameters\n");
     exit(0);
 }
-PRIVATE void salvage() {
+static void salvage() {
     int err = 0;
     int debug = 0;			/* -d flag */
     int listinodeoption = 0;
@@ -465,7 +465,7 @@ PRIVATE void salvage() {
   <a name="create"><strong>Client end of the <tt>create</tt> request</strong></a> 
   END_HTML
 */
-PRIVATE void create() {
+static void create() {
     char *partition, *volumeName;
     long volumeid = 0;
 
@@ -500,7 +500,7 @@ PRIVATE void create() {
   <a name="clone"><strong>Client end of the <tt>clone</tt> request</strong></a> 
   END_HTML
 */
-PRIVATE void clone()
+static void clone()
 {
     if (these_args < 3) {
 	printf("Usage: volutil clone <volume-id> [-n <new volume name>]\n");
@@ -537,7 +537,7 @@ PRIVATE void clone()
     exit(0);
 }
 
-PRIVATE void printSFTPstats()
+static void printSFTPstats()
 {
     printf("Sent: Total %d, Starts %d, Datas %d, Retries %d\n", sftp_Sent.Total,
 	   sftp_Sent.Starts, sftp_Sent.Datas, sftp_Sent.DataRetries);
@@ -555,7 +555,7 @@ PRIVATE void printSFTPstats()
   <a name="dump"><strong>Client end of the <tt>dump</tt> request</strong></a> 
   END_HTML
 */
-PRIVATE void dump()
+static void dump()
 {
     long rc = 0;
     RPC2_Unsigned Incremental = 0;
@@ -610,7 +610,7 @@ PRIVATE void dump()
 }
 
 
-PRIVATE void VolDumpLWP(struct rockInfo *rock)
+static void VolDumpLWP(struct rockInfo *rock)
 {
     RPC2_RequestFilter myfilter;
     RPC2_PacketBuffer *myrequest;
@@ -704,7 +704,7 @@ long WriteDump(RPC2_Handle rpcid, unsigned long offset, unsigned long *nbytes, V
   <a name="restore"><strong>Client end of the <tt>restore</tt> request</strong></a> 
   END_HTML
 */
-PRIVATE void restorefromback()
+static void restorefromback()
 {
     char volname[70];
     long rc = 0;
@@ -832,7 +832,7 @@ long ReadDump(RPC2_Handle rpcid, RPC2_Unsigned offset, RPC2_Integer *nbytes, Vol
   <a name="dumpmem"><strong>Client end of the <tt>dumpmem</tt> request</strong></a> 
   END_HTML
 */
-PRIVATE void dumpmem() 
+static void dumpmem() 
 {
     if (these_args != 5) {
 	printf("Usage: volutil dumpmem <file-name> <address> <size>\n");
@@ -863,7 +863,7 @@ PRIVATE void dumpmem()
   <a name="rvmsize"><strong>Client end of the <tt>rvmsize</tt> request</strong></a> 
   END_HTML
 */
-PRIVATE void rvmsize()
+static void rvmsize()
 {
     long volid;
     RVMSize_data data;
@@ -901,7 +901,7 @@ PRIVATE void rvmsize()
   END_HTML
 */
 #ifdef notdef
-PRIVATE void checkrec() {
+static void checkrec() {
     /*
       BEGIN_HTML
       <pre>
@@ -916,7 +916,7 @@ PRIVATE void checkrec() {
     printf("Check Recoverable Storage found no corruption\n");
     exit(0);
 }
-PRIVATE void dumprecstore()
+static void dumprecstore()
 {
     if (these_args > 4 || these_args < 3) {
 	printf("Usage: volutil dumprecstore <file-name> <volumeid>\n");
@@ -940,7 +940,7 @@ PRIVATE void dumprecstore()
   <a name="backup"><strong>Client end of the <tt>backup</tt> request</strong></a> 
   END_HTML
 */
-PRIVATE void backup() {
+static void backup() {
     long Vid, backupVid;
 
     if (these_args != 3) {
@@ -972,7 +972,7 @@ PRIVATE void backup() {
   <a name="create_rep"><strong>Client end of the <tt>create_rep</tt> request</strong></a> 
   END_HTML
 */
-PRIVATE void create_rep() {
+static void create_rep() {
     char *partition, *volumeName;
     long volumeid = 0;
     long groupid;
@@ -1022,7 +1022,7 @@ PRIVATE void create_rep() {
   <a name="makevldb"><strong>Client end of the <tt>makevldb</tt> request</strong></a> 
   END_HTML
 */
-PRIVATE void makevldb() {
+static void makevldb() {
     char *infile;
     if (these_args != 3) {
 	printf("Usage: volutil makevldb VolumeListFile\n");
@@ -1049,7 +1049,7 @@ PRIVATE void makevldb() {
   <a name="makevrdb"><strong>Client end of the <tt>makevrdb</tt> request</strong></a> 
   END_HTML
 */
-PRIVATE void makevrdb() {
+static void makevrdb() {
     char *infile;
     if (these_args != 3) {
 	printf("Usage: volutil makevrdb VRListFile\n");
@@ -1075,7 +1075,7 @@ PRIVATE void makevrdb() {
   <a name="info"><strong>Client end of the <tt>info</tt> request</strong></a> 
   END_HTML
 */
-PRIVATE void info() {
+static void info() {
     long DumpAll = 0;
     SE_Descriptor sed;
     int err = 0;
@@ -1128,7 +1128,7 @@ PRIVATE void info() {
   <a name="showvnode"><strong>Client end of the <tt>showvnode</tt> request</strong></a>
   END_HTML
 */
-PRIVATE void showvnode() {
+static void showvnode() {
     SE_Descriptor sed;
 
     bit32 volumeNumber, vnodeNumber;
@@ -1178,7 +1178,7 @@ PRIVATE void showvnode() {
   <a name="setvv"><strong>Client end of the <tt>setvv</tt> request</strong></a> 
   END_HTML
 */
-PRIVATE void setvv() 
+static void setvv() 
 {
     bit32   volumeNumber, vnodeNumber;
     bit32   unique;
@@ -1235,7 +1235,7 @@ PRIVATE void setvv()
   <a name="purge"><strong>Client end of the <tt>purge</tt> request</strong></a> 
   END_HTML
 */
-PRIVATE void purge() {
+static void purge() {
     long rc;
     VolumeId volid = 0;
 
@@ -1269,7 +1269,7 @@ PRIVATE void purge() {
   <a name="lock"><strong>Client end of request to <tt>lock</tt> a volume</strong></a>
   END_HTML
 */
-PRIVATE void lock() {
+static void lock() {
     long Vid;
     ViceVersionVector	vvv;
     long rc;
@@ -1306,7 +1306,7 @@ PRIVATE void lock() {
   <a name="unlock"><strong>Client end of request to <tt>unlock</tt> a volume</strong></a>
   END_HTML
 */
-PRIVATE void unlock() {
+static void unlock() {
     long Vid;
     
     if (these_args != 3) {
@@ -1339,7 +1339,7 @@ PRIVATE void unlock() {
   <a name="lookup"><strong>Client end of request to <tt>lookup</tt> a volume</strong></a>
   END_HTML
 */
-PRIVATE void lookup() {
+static void lookup() {
     SE_Descriptor sed;
 
     if (these_args != 4) {
@@ -1377,7 +1377,7 @@ PRIVATE void lookup() {
   <a name="updatedb"><strong>Client end of the <tt>updatedb()</tt> request</strong> </a>
   END_HTML
  */
-PRIVATE void updatedb() {
+static void updatedb() {
     if (these_args != 2) {
 	printf("Usage: volutil updatedb\n");
 	exit (-1);
@@ -1403,7 +1403,7 @@ PRIVATE void updatedb() {
   <a name="shutdown"><strong>Client end of the <tt>shutdown</tt> request</strong></a> 
   END_HTML
 */
-PRIVATE void shutdown() {
+static void shutdown() {
     if (these_args != 2) {
 	printf("Usage: volutil shutdown\n");
 	exit (-1);
@@ -1427,7 +1427,7 @@ PRIVATE void shutdown() {
   <a name="swaplog"><strong>Client end of the <tt>swaplog</tt> request</strong></a> 
   END_HTML
 */
-PRIVATE void swaplog() {
+static void swaplog() {
     if (these_args != 2) {
 	printf("Usage: volutil swaplog\n");
 	exit (-1);
@@ -1454,7 +1454,7 @@ PRIVATE void swaplog() {
   <a name="swapmalloc"><strong>Client end of the <tt>togglemalloc</tt> request</strong></a> 
   END_HTML
 */
-PRIVATE void swapmalloc() {
+static void swapmalloc() {
     if (these_args != 2) {
 	printf("Usage: volutil togglemalloc\n");
 	exit (-1);
@@ -1482,7 +1482,7 @@ PRIVATE void swapmalloc() {
   </pre>
   END_HTML
 */
-PRIVATE void setdebug() {
+static void setdebug() {
     int debuglevel = 0;
 
     if (these_args != 3) {
@@ -1633,7 +1633,7 @@ void elapse() {
   </pre>
   END_HTML
 */
-PRIVATE void tracerpc() {
+static void tracerpc() {
     SE_Descriptor sed;
     if (these_args != 3) {
 	printf("Usage: volutil tracerpc outputfile\n");
@@ -1673,7 +1673,7 @@ PRIVATE void tracerpc() {
   </pre>
   END_HTML
 */
-PRIVATE void printstats() {
+static void printstats() {
     SE_Descriptor sed;
     if (these_args != 3) {
 	printf("Usage: volutil printstats outputfile\n");
@@ -1712,7 +1712,7 @@ PRIVATE void printstats() {
   </pre>
   END_HTML
 */
-PRIVATE void showcallbacks() {
+static void showcallbacks() {
     if (these_args != 6) {
 	printf("Usage: volutil showcallbacks <volumeid> <vnode> <unique> <out-file>\n");
 	exit(-1);
@@ -1754,7 +1754,7 @@ PRIVATE void showcallbacks() {
   <a name="truncatervmlog"><strong>Client end of the <tt>truncatervmlog</tt> request</strong></a> 
   END_HTML
 */
-PRIVATE void truncatervmlog() {
+static void truncatervmlog() {
     /*
       BEGIN_HTML
       <pre>
@@ -1776,7 +1776,7 @@ PRIVATE void truncatervmlog() {
   <a name="getmaxvol"><strong>Client end of the getmaxvol request</strong></a> 
   END_HTML
 */
-PRIVATE void getmaxvol() {
+static void getmaxvol() {
     VolumeId maxid;
 
     if (these_args != 2) {
@@ -1805,7 +1805,7 @@ PRIVATE void getmaxvol() {
   <a name="setmaxvol"><strong>Client end of the setmaxvol request</strong></a> 
   END_HTML
 */
-PRIVATE void setmaxvol() {
+static void setmaxvol() {
     VolumeId volid;
 
     if ((these_args != 3) || (sscanf(this_argp[2], "%X", &volid) != 1)) {
@@ -1871,7 +1871,7 @@ static int sscani(char *s, RPC2_Integer *px)
   <a name="peekint"><strong>Client end of the peek request</strong></a> 
   END_HTML
 */
-PRIVATE void peekint() {
+static void peekint() {
 	RPC2_Integer value;
 
 	if (these_args != 3) usageerr("<address>");
@@ -1893,7 +1893,7 @@ PRIVATE void peekint() {
   <a name="pokeint"><strong>Client end of the poke request</strong></a> 
   END_HTML
 */
-PRIVATE void pokeint() {
+static void pokeint() {
 	RPC2_Integer value;
 
 	if ((these_args != 4) || (sscani(this_argp[3], &value) != 1))
@@ -1916,7 +1916,7 @@ PRIVATE void pokeint() {
   <a name="peekmem"><strong>Client end of the <tt>peeks()</tt> request</strong></a> 
   END_HTML
 */
-PRIVATE void peekmem() {
+static void peekmem() {
 	RPC2_BoundedBS buf;
 
 	if ((these_args != 4) || (sscani(this_argp[3], &buf.MaxSeqLen) != 1))
@@ -1946,7 +1946,7 @@ PRIVATE void peekmem() {
   <a name="pokemem"><strong>Client end of the <tt>pokes()</tt> request</strong></a> 
   END_HTML
 */
-PRIVATE void pokemem() {
+static void pokemem() {
 	RPC2_CountedBS buf;
 
 	if ((these_args != 5) || (sscani(this_argp[3], &buf.SeqLen) != 1))
@@ -1971,7 +1971,7 @@ PRIVATE void pokemem() {
   <a name="peekxmem"><strong>Client end of the <tt>peekx()</tt> request</strong></a> 
   END_HTML
 */
-PRIVATE void peekxmem() {
+static void peekxmem() {
 	RPC2_BoundedBS buf;
 
 	if ((these_args != 4) || (sscani(this_argp[3], &buf.MaxSeqLen) != 1))
@@ -2002,7 +2002,7 @@ PRIVATE void peekxmem() {
   <a name="pokexmem"><strong>Client end of the <tt>pokex()</tt> request</strong></a> 
   END_HTML
 */
-PRIVATE void pokexmem() {
+static void pokexmem() {
 	RPC2_CountedBS buf;
 	char	*t, *s;
 	RPC2_Integer size;
@@ -2047,7 +2047,7 @@ PRIVATE void pokexmem() {
 }
 
 
-PRIVATE void V_InitRPC(int timeout)
+static void V_InitRPC(int timeout)
 {
     PROCESS mylpid;
     FILE *tokfile;
@@ -2080,7 +2080,7 @@ PRIVATE void V_InitRPC(int timeout)
 }
 
 
-PRIVATE int V_BindToServer(char *fileserver, RPC2_Handle *RPCid)
+static int V_BindToServer(char *fileserver, RPC2_Handle *RPCid)
 {
  /* Binds to File Server on volume utility port on behalf of uName.
     Sets RPCid to the value of the connection id.    */
@@ -2121,7 +2121,7 @@ PRIVATE int V_BindToServer(char *fileserver, RPC2_Handle *RPCid)
     }
 }
 
-PRIVATE void Die (char *msg)
+static void Die (char *msg)
 {
     printf("%s\n", msg);
     assert(0);

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rvmres/rsle.cc,v 4.1 1997/01/08 21:50:39 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rvmres/rsle.cc,v 4.2 1997/12/20 23:34:53 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -81,8 +81,8 @@ rsle::rsle() {
     seqno = -1;
     storeid.Host = 0;
     storeid.Uniquifier = 0;
-    dvn = -1;
-    du = -1;
+    dvn = (long unsigned int)-1;
+    du = (long unsigned int)-1;
     opcode = 0;
     name1 = name2 = NULL;
     namesalloced = 0;

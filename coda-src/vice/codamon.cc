@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/src/coda-4.0.1/RCSLINK/./coda-src/vice/codamon.cc,v 1.1 1996/11/22 19:14:31 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vice/codamon.cc,v 4.1 1997/01/08 21:51:54 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -80,7 +80,7 @@ extern "C" {
 
 
 int ShutDown = 0;
-PRIVATE void	Terminate();
+static void	Terminate();
 
 main(int argc, char **argv, char **envp) {
 
@@ -113,7 +113,7 @@ main(int argc, char **argv, char **envp) {
     }
 }
 
-PRIVATE void	Terminate()
+static void	Terminate()
 
 {
     struct timeval tp;

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vice/vicecb.cc,v 4.4 1998/01/12 23:35:45 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vice/vicecb.cc,v 4.5 1998/03/06 20:21:03 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -108,34 +108,33 @@ int VCBEs = 0;          /* number of CBEs that are for volumes */
 
 const int VHASH = 256;
 
-
 /* *****  Private types  ***** */
 
 /* One per file. */
 struct FileEntry {
-    struct FileEntry *next;
-    struct Lock cblock;
-    ViceFid theFid;
-    int users;
-    struct CallBackEntry *callBacks;
+	struct FileEntry *next;
+	struct Lock cblock;
+	ViceFid theFid;
+	int users;
+	struct CallBackEntry *callBacks;
 };
 
 /* Block of file entries. */
 #define FESPERBLOCK 219
 struct FEBlock {
-    struct FileEntry entry[FESPERBLOCK];
+	struct FileEntry entry[FESPERBLOCK];
 };
 
 /* A callback entry represents one fid being referenced by one venus. */
 struct CallBackEntry {
-    struct CallBackEntry *next;	    /* The next dude same file id. */
-    HostTable *conn;		    /* The bogon to notify. */
+	struct CallBackEntry *next;	    /* The next dude same file id. */
+	HostTable *conn;		    /* The bogon to notify. */
 };
 
 /* Block of callback entries. */
 #define CBESPERBLOCK 1024
 struct CBEBlock {
-    struct CallBackEntry entry[CBESPERBLOCK];
+	struct CallBackEntry entry[CBESPERBLOCK];
 };
 
 /* Callback statistics, per volume */
@@ -149,100 +148,108 @@ struct CBStat {
 
 /* *****  Private variables  ***** */
 
-PRIVATE	struct FileEntry *hashTable[VHASH]; /* File entry hash table */
-PRIVATE struct CallBackEntry *CBEFree =	0;  /* first free CBE */
-PRIVATE struct FileEntry *FEFree = 0;	    /* first free file entry */
+static	struct FileEntry *hashTable[VHASH]; /* File entry hash table */
+static struct CallBackEntry *CBEFree =	0;  /* first free CBE */
+static struct FileEntry *FEFree = 0;	    /* first free file entry */
 
 /* *****  Private routines  ***** */
 
-PRIVATE long VHash(ViceFid *);
-PRIVATE void GetFEBlock();
-PRIVATE struct FileEntry *GetFE();
-PRIVATE void FreeFE(struct FileEntry *);
-PRIVATE struct FileEntry *FindEntry(ViceFid *);
-PRIVATE void DeleteFileStruct(struct FileEntry *);
+static long VHash(ViceFid *);
+static void GetFEBlock();
+static struct FileEntry *GetFE();
+static void FreeFE(struct FileEntry *);
+static struct FileEntry *FindEntry(ViceFid *);
+static void DeleteFileStruct(struct FileEntry *);
 
-PRIVATE void GetCBEBlock();
-PRIVATE struct CallBackEntry *GetCBE();
-PRIVATE void FreeCBE(struct CallBackEntry *);
-PRIVATE void SDeleteCallBack(HostTable *, struct FileEntry *);
+static void GetCBEBlock();
+static struct CallBackEntry *GetCBE();
+static void FreeCBE(struct CallBackEntry *);
+static void SDeleteCallBack(HostTable *, struct FileEntry *);
 
 
 /* *****  File Entries  ***** */
 
-PRIVATE long VHash(ViceFid *afid) {
+static long VHash(ViceFid *afid) {
     long i = ((afid->Volume + afid->Vnode) % VHASH);
     return((i < 0) ? i + VHASH : i);
 }
 
 
 /* Get a new block of FEs and chain it on FEFree. */
-PRIVATE void GetFEBlock() {
-    struct FEBlock *block = (struct FEBlock *)malloc(sizeof(struct FEBlock));
-    assert(block);
+static void GetFEBlock() 
+{
+	struct FEBlock *block = 
+		(struct FEBlock *)malloc(sizeof(struct FEBlock));
+	assert(block);
 
-    for(int i = 0; i < (FESPERBLOCK - 1); i++) {
-	Lock_Init(&block->entry[i].cblock);
-	block->entry[i].next = &(block->entry[i + 1]);
-    }
-    block->entry[FESPERBLOCK - 1].next = 0;
-    Lock_Init(&block->entry[FESPERBLOCK - 1].cblock);
-
-    FEFree = (struct FileEntry *)block;
-    FEBlocks++;
+	for(int i = 0; i < (FESPERBLOCK - 1); i++) {
+		Lock_Init(&block->entry[i].cblock);
+		block->entry[i].next = &(block->entry[i + 1]);
+	}
+	block->entry[FESPERBLOCK - 1].next = 0;
+	Lock_Init(&block->entry[FESPERBLOCK - 1].cblock);
+	
+	FEFree = (struct FileEntry *)block;
+	FEBlocks++;
 }
 
 
 /* Get the next available FE. */
-PRIVATE struct FileEntry *GetFE() {
-    if (FEFree == 0) GetFEBlock();
+static struct FileEntry *GetFE() 
+{
+	if (FEFree == 0) 
+		GetFEBlock();
 
-    struct FileEntry *entry = FEFree;
-    FEFree = entry->next;
-    FEs++;
+	struct FileEntry *entry = FEFree;
+	FEFree = entry->next;
+	FEs++;
 
-    return(entry);
+	return(entry);
 }
 
 
 /* Return an entry to the free list. */
-PRIVATE void FreeFE(struct FileEntry *entry) {
-    if (entry->theFid.Vnode == 0 && entry->theFid.Unique == 0) VEs--;
-    entry->theFid.Volume = 0;
-    entry->theFid.Vnode = 0;
-    entry->theFid.Unique = 0;
-    entry->next = FEFree;
-    FEFree = entry;
-    FEs--;
+static void FreeFE(struct FileEntry *entry) 
+{
+	if (entry->theFid.Vnode == 0 && entry->theFid.Unique == 0) 
+		VEs--;
+	entry->theFid.Volume = 0;
+	entry->theFid.Vnode = 0;
+	entry->theFid.Unique = 0;
+	entry->next = FEFree;
+	FEFree = entry;
+	FEs--;
 }
 
 
-PRIVATE struct FileEntry *FindEntry(ViceFid *afid) {
+static struct FileEntry *FindEntry(ViceFid *afid) 
+{
     for (struct FileEntry *tf = hashTable[VHash(afid)]; tf; tf = tf->next)
-	if (FID_EQ(tf->theFid, *afid)) return(tf);
+	    if (FID_EQ(&tf->theFid, afid)) return(tf);
 
     return(0);
 }
 
 
-PRIVATE void DeleteFileStruct(struct FileEntry *af) {
-    long bucket = VHash(&af->theFid);
-    struct FileEntry **lf = &hashTable[bucket];
-    for (struct FileEntry *tf = hashTable[bucket]; tf; tf = tf->next) {
-	if (tf == af) {
-	    *lf = af->next;
-	    FreeFE(af);
-	    return;
+static void DeleteFileStruct(struct FileEntry *af) 
+{
+	long bucket = VHash(&af->theFid);
+	struct FileEntry **lf = &hashTable[bucket];
+	for (struct FileEntry *tf = hashTable[bucket]; tf; tf = tf->next) {
+		if (tf == af) {
+			*lf = af->next;
+			FreeFE(af);
+			return;
+		}
+		lf = &tf->next;
 	}
-	lf = &tf->next;
-    }
 }
 
 
 /* ***** Callback Entries ***** */
 
 /* Get a new block of CBEs and chain it on CBEFree. */
-PRIVATE void GetCBEBlock() {
+static void GetCBEBlock() {
     struct CBEBlock *block = (struct CBEBlock *)malloc(sizeof(struct CBEBlock));
     assert(block);
 
@@ -256,7 +263,7 @@ PRIVATE void GetCBEBlock() {
 
 
 /* Get the next available CBE. */
-PRIVATE struct CallBackEntry *GetCBE() {
+static struct CallBackEntry *GetCBE() {
     if (CBEFree == 0) GetCBEBlock();
 
     struct CallBackEntry *entry = CBEFree;
@@ -268,7 +275,7 @@ PRIVATE struct CallBackEntry *GetCBE() {
 
 
 /* Return an entry to the free list. */
-PRIVATE void FreeCBE(struct CallBackEntry *entry) {
+static void FreeCBE(struct CallBackEntry *entry) {
     entry->next = CBEFree;
     CBEFree = entry;
     CBEs--;
@@ -283,14 +290,13 @@ int InitCallBack() {
 }
 
 /*
-  BEGIN_HTML
-  <a name="AddCallBack"><strong>Establish a callback for <tt>afid</tt> with
-  client connected via <tt>aconnid</tt> </strong> </a>
-  END_HTML 
-*/
-CallBackStatus AddCallBack(HostTable *aconnid, ViceFid *afid) {
-    LogMsg(3, SrvDebugLevel, stdout, "AddCallBack for Fid 0x%x.%x.%x, Venus %s.%d", afid->Volume,
-	     afid->Vnode, afid->Unique, aconnid->HostName, aconnid->port);
+AddCallBack: Establish a callback for afid with
+  client connected via */
+
+CallBackStatus AddCallBack(HostTable *client, ViceFid *afid) 
+{
+    SLog(3, "AddCallBack for Fid 0x%x.%x.%x, Venus %s.%d", afid->Volume,
+	 afid->Vnode, afid->Unique, client->HostName, client->port);
 
     char aVCB = (afid->Vnode == 0 && afid->Unique == 0);
 
@@ -320,7 +326,7 @@ CallBackStatus AddCallBack(HostTable *aconnid, ViceFid *afid) {
     /* Don't add it if it is already in the list. */
     struct CallBackEntry *tc;
     for (tc = tf->callBacks; tc; tc = tc->next)
-	if (tc->conn == aconnid) return(CallBackSet);
+	if (tc->conn == client) return(CallBackSet);
 
     /* Otherwise, set it up and add it to the head of the linked list */
     tf->users++;
@@ -328,7 +334,7 @@ CallBackStatus AddCallBack(HostTable *aconnid, ViceFid *afid) {
     tc = GetCBE();
     tc->next = tf->callBacks;
     tf->callBacks = tc;
-    tc->conn = aconnid;
+    tc->conn = client;
 
     return(CallBackSet);
 }
@@ -337,16 +343,16 @@ CallBackStatus AddCallBack(HostTable *aconnid, ViceFid *afid) {
 /*
   BEGIN_HTML
   <a name="BreakCallBack"><strong>Break a callback for <tt>afid</tt> with
-  client connected via <tt>aconnid</tt> </strong> </a>
+  client connected via <tt>client</tt> </strong> </a>
   END_HTML 
 */
-void BreakCallBack(HostTable *aconnid, ViceFid *afid) {
+void BreakCallBack(HostTable *client, ViceFid *afid) {
     struct CallBackEntry *tc;
 
     LogMsg(3, SrvDebugLevel, stdout, "BreakCallBack for Fid 0x%x.%x.%x",
 	     afid->Volume, afid->Vnode, afid->Unique);
-    if (aconnid) LogMsg(3, SrvDebugLevel, stdout, "Venus %s.%d",
-			aconnid->HostName, aconnid->port);
+    if (client) LogMsg(3, SrvDebugLevel, stdout, "Venus %s.%d",
+			client->HostName, client->port);
     else LogMsg(3, SrvDebugLevel, stdout, "No connection");
 
     struct FileEntry *tf = FindEntry(afid),
@@ -394,7 +400,7 @@ void BreakCallBack(HostTable *aconnid, ViceFid *afid) {
     /* how many client entries, other than us?  fill conn id list */
     int nhosts = 0;
     for (tc = tf->callBacks; tc; tc = tc->next) 
-	if (tc->conn && tc->conn != aconnid && tc->conn->id)
+	if (tc->conn && tc->conn != client && tc->conn->id)
 	    cidlist[nhosts++] = tc->conn->id;
 
     LogMsg(3, SrvDebugLevel, stdout, "BreakCallBack: %d conns, %d users", 
@@ -429,11 +435,11 @@ void BreakCallBack(HostTable *aconnid, ViceFid *afid) {
     struct CallBackEntry *nextc = 0;
     for (tc = tf->callBacks; tc; tc = nextc) {
 	nextc = tc->next;
-	if (tc->conn == 0 || tc->conn != aconnid) {
+	if (tc->conn == 0 || tc->conn != client) {
 	    FreeCBE(tc);
 	    if (aVCB) VCBEs--;
         }
-	else goodc = tc;	/* Must be aconnid */
+	else goodc = tc;	/* Must be client */
     }
 
     /* Now see if we have any good callbacks left on this file.  If not, nuke it */
@@ -451,16 +457,18 @@ void BreakCallBack(HostTable *aconnid, ViceFid *afid) {
 
 
 /*
-  BEGIN_HTML
-  <a name="DeleteCallBack"><strong>Delete a callback for <tt>afid</tt> with
-  client connected via <tt>aconnid</tt>.  </strong> </a>
-  END_HTML 
+  
+  DeleteCallBack : Delete a callback for afid with client connected
+  via client
+ 
 */
-void DeleteCallBack(HostTable *aconnid, ViceFid *afid) {
-    SDeleteCallBack(aconnid, FindEntry(afid));
+void DeleteCallBack(HostTable *client, ViceFid *afid) 
+{
+    SDeleteCallBack(client, FindEntry(afid));
 }
 
-PRIVATE void SDeleteCallBack(HostTable *aconnid, struct FileEntry *af) {
+static void SDeleteCallBack(HostTable *client, struct FileEntry *af) 
+{
     if (!af) return;
 
     struct FileEntry *tf = af;
@@ -471,7 +479,7 @@ PRIVATE void SDeleteCallBack(HostTable *aconnid, struct FileEntry *af) {
     struct CallBackEntry *nc = 0;
     for (struct CallBackEntry *tc = tf->callBacks; tc; tc = nc) {
 	nc = tc->next;
-	if (tc->conn == aconnid) {
+	if (tc->conn == client) {
 	    if (busy) {
 		tc->conn = 0;
 	    }
@@ -481,9 +489,9 @@ PRIVATE void SDeleteCallBack(HostTable *aconnid, struct FileEntry *af) {
 		(*lc) = nc;
 		tf->users--;
 	    }
-	    LogMsg(3, SrvDebugLevel, stdout, "SDeleteCallBack for Fid 0x%x.%x.%x, Venus %s.%d",
-		    af->theFid.Volume, af->theFid.Vnode, af->theFid.Unique,
-		    aconnid->HostName, aconnid->port);
+	    SLog(3, "SDeleteCallBack for Fid 0x%x.%x.%x, Venus %s.%d",
+		 af->theFid.Volume, af->theFid.Vnode, af->theFid.Unique,
+		 client->HostName, client->port);
 	    break;
 	}
 	lc = &tc->next;
@@ -496,28 +504,27 @@ PRIVATE void SDeleteCallBack(HostTable *aconnid, struct FileEntry *af) {
 
 
 /*
-  BEGIN_HTML
-  <a name="DeleteVenus"><strong>Delete all callbacks for a client 
-  connected via <tt>aconnid</tt> </strong> </a>
-  END_HTML 
+  DeleteVenus: Delete all callbacks for a client 
 */
-void DeleteVenus(HostTable *aconnid) {
-    LogMsg(1, SrvDebugLevel, stdout, "DeleteVenus for venus %s.%d",
-	     aconnid->HostName, aconnid->port);
+void DeleteVenus(HostTable *client) 
+{
+    SLog(1, "DeleteVenus for venus %s.%d", client->HostName, client->port);
 
     for (int i = 0; i < VHASH; i++) {
-	struct FileEntry *nf = 0;
-	for (struct FileEntry *tf = hashTable[i]; tf; tf = nf) {
-	    /* Pull this out before it gets zapped */
-	    nf = tf->next;
-	    SDeleteCallBack(aconnid, tf);   /* May or may not delete the block. */
-	}
+	    struct FileEntry *nf = 0;
+	    for (struct FileEntry *tf = hashTable[i]; tf; tf = nf) {
+		    /* Pull this out before it gets zapped */
+		    nf = tf->next;
+		    /* May or may not delete the block. */
+		    SDeleteCallBack(client, tf);
+	    }
     }
 }
 
 
 /* Delete all the status on a file--used when a file is removed. */
-void DeleteFile(ViceFid *afid) {
+void DeleteFile(ViceFid *afid) 
+{
     LogMsg(3, SrvDebugLevel, stdout, "DeleteFile for Fid 0x%x.%x.%x",
 	     afid->Volume, afid->Vnode, afid->Unique);
 
@@ -544,72 +551,78 @@ void DeleteFile(ViceFid *afid) {
 
 /* ***** Coda Callbacks ***** */
 /*
-  BEGIN_HTML
-  <a name="CodaAddCallBack"><strong>Establish a callback with a client
-  for the non-replicated and replicated fid of an object. </strong> </a>
-  END_HTML 
+  CodaAddCallBack: Establish a callback with a client
+  for the non-replicated and replicated fid of an object
 */
-CallBackStatus CodaAddCallBack(HostTable *VenusId, ViceFid *Fid, VolumeId VSGVolnum) {
-    if (Fid->Volume == VSGVolnum)
-	return(AddCallBack(VenusId, Fid));
+CallBackStatus CodaAddCallBack(HostTable *VenusId, ViceFid *Fid, 
+			       VolumeId VSGVolnum) 
+{
+	if (Fid->Volume == VSGVolnum)
+		return(AddCallBack(VenusId, Fid));
 
-    ViceFid VSGFid;
-    VSGFid.Volume = VSGVolnum;
-    VSGFid.Vnode = (Fid)->Vnode;
-    VSGFid.Unique = (Fid)->Unique;
-    return(AddCallBack(VenusId, &VSGFid));
+	ViceFid VSGFid;
+	VSGFid.Volume = VSGVolnum;
+	VSGFid.Vnode = (Fid)->Vnode;
+	VSGFid.Unique = (Fid)->Unique;
+	return(AddCallBack(VenusId, &VSGFid));
 }
 
 /*
-  BEGIN_HTML
-  <a name="CodaBreakCallBack"><strong>Break the callback with a client, for the
-  non-replicated and replicated fid of an object. </strong> </a>
-  END_HTML 
-*/
-void CodaBreakCallBack(HostTable *VenusId, ViceFid *Fid, VolumeId VSGVolnum) {
-    ViceFid VolFid;
+  
+  CodaBreakCallBack: Break the callback with a client, for the
+  non-replicated and replicated fid of an object.
 
-    VolFid.Volume = Fid->Volume;
-    VolFid.Vnode = VolFid.Unique = 0;
-    BreakCallBack(VenusId, Fid);
-    BreakCallBack(VenusId, &VolFid);
+  */
+void CodaBreakCallBack(HostTable *VenusId, ViceFid *Fid, VolumeId VSGVolnum) 
+{
+	ViceFid VolFid;
 
-    if (Fid->Volume != VSGVolnum) {
-	ViceFid VSGFid;
-	VSGFid.Volume = VSGVolnum;
-	VSGFid.Vnode = Fid->Vnode;
-	VSGFid.Unique = Fid->Unique;
-	VolFid.Volume = VSGVolnum;
-	BreakCallBack(VenusId, &VSGFid);
+	VolFid.Volume = Fid->Volume;
+	VolFid.Vnode = VolFid.Unique = 0;
+	BreakCallBack(VenusId, Fid);
 	BreakCallBack(VenusId, &VolFid);
-    }
-    return;
+
+	if (Fid->Volume != VSGVolnum) {
+		ViceFid VSGFid;
+		VSGFid.Volume = VSGVolnum;
+		VSGFid.Vnode = Fid->Vnode;
+		VSGFid.Unique = Fid->Unique;
+		VolFid.Volume = VSGVolnum;
+		BreakCallBack(VenusId, &VSGFid);
+		BreakCallBack(VenusId, &VolFid);
+	}
+	return;
 }
 
-void CodaDeleteCallBack(HostTable *VenusId, ViceFid *Fid, VolumeId VSGVolnum) {
-    if (Fid->Volume == VSGVolnum)
-	DeleteCallBack(VenusId, Fid);
-    else {
-	ViceFid VSGFid;
-	VSGFid.Volume = VSGVolnum;
-	VSGFid.Vnode = Fid->Vnode;
-	VSGFid.Unique = Fid->Unique;
-	DeleteCallBack(VenusId, &VSGFid);
-    }
-    return;
+void CodaDeleteCallBack(HostTable *VenusId, ViceFid *Fid, VolumeId VSGVolnum) 
+{
+	if (Fid->Volume == VSGVolnum)
+		DeleteCallBack(VenusId, Fid);
+	else {
+		ViceFid VSGFid;
+		VSGFid.Volume = VSGVolnum;
+		VSGFid.Vnode = Fid->Vnode;
+		VSGFid.Unique = Fid->Unique;
+		DeleteCallBack(VenusId, &VSGFid);
+	}
+	return;
 }
 
 
 
 /* ***** Debugging ***** */
 
-PRIVATE int CompareCBSEnts(struct CBStat *a, struct CBStat *b) {
-    if (a->volid < b->volid) return -1;
-    if (a->volid > b->volid) return 1;
-    return(0);
+static int CompareCBSEnts(struct CBStat *a, struct CBStat *b) 
+{
+	if (a->volid < b->volid) 
+		return -1;
+	if (a->volid > b->volid) 
+		return 1;
+	return(0);
 }
 
-void PrintCallBackState(FILE *fp) {
+void PrintCallBackState(FILE *fp) 
+{
     fprintf(fp, "Callback entries:\n");
     fprintf(fp, "\tCBEs allocated %d (%d blocks) \n",
 	    CBEBlocks * CBESPERBLOCK, CBEBlocks);
@@ -720,7 +733,8 @@ void PrintCallBackState(FILE *fp) {
 }
 
 
-PRIVATE void PrintCBE(struct CallBackEntry *tcbe, FILE *fp) {
+static void PrintCBE(struct CallBackEntry *tcbe, FILE *fp) 
+{
     assert (tcbe);
     if (tcbe->conn) {
 	unsigned long host = htonl(tcbe->conn->host);
@@ -748,7 +762,8 @@ PRIVATE void PrintCBE(struct CallBackEntry *tcbe, FILE *fp) {
 }
 
 
-PRIVATE void GetCallBacks(ViceFid *fid, FILE *fp) {
+static void GetCallBacks(ViceFid *fid, FILE *fp) 
+{
     fprintf(fp, "Printing callbacks for 0x%x.%x.%x\n", 
 	    fid->Volume, fid->Vnode, fid->Unique);
     struct FileEntry *tfe = FindEntry(fid);
@@ -760,7 +775,8 @@ PRIVATE void GetCallBacks(ViceFid *fid, FILE *fp) {
 	    fid->Volume, fid->Vnode, fid->Unique); 
 }
 
-PRIVATE void GetCallBacks(VolumeId vid, FILE *fp) {
+static void GetCallBacks(VolumeId vid, FILE *fp) 
+{
     fprintf(fp, "Printing callbacks for 0x%x\n", vid);
 
     /* print volume callbacks first */
@@ -791,7 +807,8 @@ PRIVATE void GetCallBacks(VolumeId vid, FILE *fp) {
 // print all the callbacks for given fid.
 // if the fid is volid.0.0, print callback status
 // for the entire volume.
-void PrintCallBacks(ViceFid *fid, FILE *fp) {
+void PrintCallBacks(ViceFid *fid, FILE *fp) 
+{
     // check for the replicated id also 
 
     ViceFid ofid = *fid;

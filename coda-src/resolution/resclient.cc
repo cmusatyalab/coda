@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/res/resclient.cc,v 4.4 1997/10/23 19:24:32 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/res/resclient.cc,v 4.5 1998/01/10 18:37:46 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -47,30 +47,27 @@ extern "C" {
 #include <sys/types.h>
 #include <assert.h>
 #include <stdio.h>
-#ifdef __MACH__
-#include <sysent.h>
-#include <libc.h>
-#else	/* __linux__ || __BSD44__ */
 #include <unistd.h>
 #include <stdlib.h>
-#endif
+
 #include <struct.h>
 #ifndef __CYGWIN32__
 #include <sys/dir.h>
 #endif
+
 #include <lwp.h>
 #include <rpc2.h>
 #include <inodeops.h>
+#include <util.h>
+#include <codadir.h>
 #ifdef __cplusplus
 }
 #endif __cplusplus
 
-#include <util.h>
+#include <cvnode.h>
 #include <olist.h>
 #include <errors.h>
 #include <srv.h>
-#include <coda_dir.h>
-#include <rvmdir.h>
 #include <vlist.h>
 #include <operations.h>
 #include <res.h>
@@ -139,37 +136,35 @@ extern void PollAndYield();
 #define CREATEINCOBJ	4
 
 /* extern routine declarations */
-extern void SetDirHandle(DirHandle *, Vnode *);
 extern void AllocIncBSEntry(RPC2_BoundedBS *, char *, ViceFid *, ViceFid *, long);
 extern int GetSubTree(ViceFid *, Volume *, dlist *);
 extern int GetParentFid(Volume *, ViceFid *, ViceFid *);
-extern char *FindName(long *dir, long vnode, long unique, char *buf);
 
 int DirRUConf(RUParm *, char *, long, long);
+int EDirRUConf(PDirEntry, void *);
 
 /* private routine declarations */
-PRIVATE rlent *FindRmtPartialOps(int , rlent *, int , rlent **, int *);
-PRIVATE rlent *CreateCompList(int *, rlent **, int , int *, int , rlent **);
-PRIVATE int ComputeCompOps(olist *, ViceFid *, rlent **, int *);
-PRIVATE void PreProcessCompOps(rlent *, int);
-PRIVATE int GetResObjs(rlent *, int , ViceFid *, Volume **, dlist *);
-PRIVATE int CheckSemPerformRes(rlent *, int, Volume *, ViceFid *, dlist *, olist *, dlist *, int *);
-PRIVATE int CheckValidityResOp(rlent *, int, int, int,dlist *, ViceFid *, olist *);
-PRIVATE int PerformResOp(rlent *, dlist *, olist *, vle *, Volume *, VolumeId, int *);
-PRIVATE void ProcessResResult(int *, int, rlent *, ViceFid *, dlist *, int, RPC2_BoundedBS *);
-PRIVATE RUConflict(rlent *, dlist *, olist *, ViceFid *);
-PRIVATE char *ExtractNameFromRLE(rlent *);
-PRIVATE void ExtractChildFidFromRLE(rlent *, ViceFid *);
-PRIVATE int ExtractVNTypeFromRLE(rlent *);
-PRIVATE int CompareStoreId(ViceStoreId *, ViceStoreId *);
-PRIVATE int CmpLogEntries(rlent **, rlent **);
-int CmpFid(ViceFid *, ViceFid *);
-PRIVATE int CmpFidOp(rlent **, rlent **);
-PRIVATE int CmpNames(rlent *, rlent *);
-PRIVATE int ResolveRename(rlent *, Volume *, VolumeId, ViceFid *, dlist *, olist *, dlist *, int *);
-PRIVATE int ResolveCrossDirRename(rlent *, ViceFid *, Volume *, dlist *, dlist *);
-PRIVATE int CleanRenameTarget(rlent *, dlist *, Volume *, VolumeId, olist *, int *);
-PRIVATE int CheckResolveRenameSemantics(rlent *, Volume *, ViceFid *, dlist *, vle **, vle **, vle **, vle **,olist *, dlist *, dlist *, int *);
+static rlent *FindRmtPartialOps(int , rlent *, int , rlent **, int *);
+static rlent *CreateCompList(int *, rlent **, int , int *, int , rlent **);
+static int ComputeCompOps(olist *, ViceFid *, rlent **, int *);
+static void PreProcessCompOps(rlent *, int);
+static int GetResObjs(rlent *, int , ViceFid *, Volume **, dlist *);
+static int CheckSemPerformRes(rlent *, int, Volume *, ViceFid *, dlist *, olist *, dlist *, int *);
+static int CheckValidityResOp(rlent *, int, int, int,dlist *, ViceFid *, olist *);
+static int PerformResOp(rlent *, dlist *, olist *, vle *, Volume *, VolumeId, int *);
+static void ProcessResResult(int *, int, rlent *, ViceFid *, dlist *, int, RPC2_BoundedBS *);
+static RUConflict(rlent *, dlist *, olist *, ViceFid *);
+static char *ExtractNameFromRLE(rlent *);
+static void ExtractChildFidFromRLE(rlent *, ViceFid *);
+static int ExtractVNTypeFromRLE(rlent *);
+static int CompareStoreId(ViceStoreId *, ViceStoreId *);
+static int CmpLogEntries(rlent **, rlent **);
+static int CmpFidOp(rlent **, rlent **);
+static int CmpNames(rlent *, rlent *);
+static int ResolveRename(rlent *, Volume *, VolumeId, ViceFid *, dlist *, olist *, dlist *, int *);
+static int ResolveCrossDirRename(rlent *, ViceFid *, Volume *, dlist *, dlist *);
+static int CleanRenameTarget(rlent *, dlist *, Volume *, VolumeId, olist *, int *);
+static int CheckResolveRenameSemantics(rlent *, Volume *, ViceFid *, dlist *, vle **, vle **, vle **, vle **,olist *, dlist *, dlist *, int *);
 
 long RS_FetchLog(RPC2_Handle RPCid, ViceFid *Fid, RPC2_Integer *size,
 		 SE_Descriptor *sed)
@@ -616,7 +611,6 @@ long RS_DirResPhase3(RPC2_Handle RPCid, ViceFid *Fid, ViceVersionVector *VV,
     long errorCode = 0;
     vle *ov = 0;
     vrent *vre = 0;
-    char *buf = 0;
     
     {
 	if (!XlateVid(&Fid->Volume)) {
@@ -689,47 +683,40 @@ long RS_DirResPhase3(RPC2_Handle RPCid, ViceFid *Fid, ViceVersionVector *VV,
     
     /* return contents of directory in a buffer for coordinator to compare */
     {
-	DirHandle dh;
+	PDirHandle dh;
 	int size = 0;
-	SetDirHandle(&dh, ov->vptr);
-	buf = (char *)malloc(ov->vptr->disk.length);
-	if (DirToNetBuf((long *)&dh, buf, (int) ov->vptr->disk.length, &size) == 0) {
-	    LogMsg(9, SrvDebugLevel, stdout,  "RS_DirResPhase3: Shipping dir contents ");
-	    SE_Descriptor sid;
-	    bzero((void *)&sid, (int) sizeof(SE_Descriptor));
-	    sid.Tag = SMARTFTP;
-	    sid.Value.SmartFTPD.TransmissionDirection = SERVERTOCLIENT;
-	    sid.Value.SmartFTPD.SeekOffset = 0;
-	    sid.Value.SmartFTPD.hashmark = (SrvDebugLevel > 2 ? '#' : '\0');
-	    sid.Value.SmartFTPD.Tag = FILEINVM;
-	    sid.Value.SmartFTPD.FileInfo.ByAddr.vmfile.SeqLen = size;
-	    sid.Value.SmartFTPD.FileInfo.ByAddr.vmfile.MaxSeqLen = size;
-	    sid.Value.SmartFTPD.FileInfo.ByAddr.vmfile.SeqBody = 
-		(RPC2_ByteSeq)buf;
-	    
-	    if((errorCode = RPC2_InitSideEffect(RPCid, &sid)) 
-	       <= RPC2_ELIMIT) {
+	dh = VN_SetDirHandle(ov->vptr);
+	LogMsg(9, SrvDebugLevel, stdout,  "RS_DirResPhase3: Shipping dir contents ");
+	SE_Descriptor sid;
+	bzero((void *)&sid, (int) sizeof(SE_Descriptor));
+	sid.Tag = SMARTFTP;
+	sid.Value.SmartFTPD.TransmissionDirection = SERVERTOCLIENT;
+	sid.Value.SmartFTPD.SeekOffset = 0;
+	sid.Value.SmartFTPD.hashmark = (SrvDebugLevel > 2 ? '#' : '\0');
+	sid.Value.SmartFTPD.Tag = FILEINVM;
+	sid.Value.SmartFTPD.FileInfo.ByAddr.vmfile.SeqLen = size;
+	sid.Value.SmartFTPD.FileInfo.ByAddr.vmfile.MaxSeqLen = size;
+	sid.Value.SmartFTPD.FileInfo.ByAddr.vmfile.SeqBody = 
+		(RPC2_ByteSeq)DH_Data(dh);
+	
+	if((errorCode = RPC2_InitSideEffect(RPCid, &sid)) 
+	   <= RPC2_ELIMIT) {
 		LogMsg(0, SrvDebugLevel, stdout,  
 		       "RS_DirResPhase3:  InitSE failed (%d)", errorCode);
 		goto Exit;
-	    }
-	    
-	    if ((errorCode = RPC2_CheckSideEffect(RPCid, &sid, SE_AWAITLOCALSTATUS)) 
-		<= RPC2_ELIMIT) {
+	}
+	
+	if ((errorCode = RPC2_CheckSideEffect(RPCid, &sid, SE_AWAITLOCALSTATUS)) 
+	    <= RPC2_ELIMIT) {
 		LogMsg(0, SrvDebugLevel, stdout,  
 		       "RS_DirResPhase3: CheckSE failed (%d)", errorCode);
 		if (errorCode == RPC2_SEFAIL1) errorCode = EIO;
 		goto Exit;
-	    }
 	}
-	else 
-	    LogMsg(0, SrvDebugLevel, stdout,  "ResPhase3: Couldnt Dump Dir to buffer");
-	free(buf);
-	buf = 0;
+	VN_PutDirHandle(ov->vptr);
     }
   Exit:
     PutObjects((int)errorCode, volptr, NO_LOCK, vlist, 0, 1);
-    if (buf) free(buf);
     LogMsg(9, SrvDebugLevel, stdout,  "DirResPhase3 returns %d", errorCode);
     PROBE(tpinfo, CPHASE3END);
     return(errorCode);
@@ -742,7 +729,7 @@ long RS_DirResPhase3(RPC2_Handle RPCid, ViceFid *Fid, ViceVersionVector *VV,
  * 	Determine the "highest" common point between the logs &
  *	Return the address of the remote operations not executed locally
  */
-PRIVATE rlent *FindRmtPartialOps(int nrmtentries, rlent *RmtLog,
+static rlent *FindRmtPartialOps(int nrmtentries, rlent *RmtLog,
 				 int nlocalentries, rlent **SortedLocalLog,
 				 int *npartialentries) {
     
@@ -826,7 +813,7 @@ PRIVATE rlent *FindRmtPartialOps(int nrmtentries, rlent *RmtLog,
 }
 #define KEEPFLAG 12345678
 
-PRIVATE rlent *CreateCompList(int *sizes, rlent **partialops, 
+static rlent *CreateCompList(int *sizes, rlent **partialops, 
 			      int nhosts, int *complistsize,
 			      int nlentries, rlent **sortedLlog) {
     rlent **opsptrs = 0;
@@ -971,7 +958,7 @@ PRIVATE rlent *CreateCompList(int *sizes, rlent **partialops,
 }
 #undef KEEPFLAG
 
-PRIVATE int ComputeCompOps(olist *AllHostsList, ViceFid *Fid, 
+static int ComputeCompOps(olist *AllHostsList, ViceFid *Fid, 
 			   rlent **CompOps, int *nCompOps) {
     
     int nlentries = 0;
@@ -1103,7 +1090,7 @@ PRIVATE int ComputeCompOps(olist *AllHostsList, ViceFid *Fid,
  *	i.e. Create foo followed by Rm foo. 
  *	w/o intervening link creations
  */
-PRIVATE void PreProcessCompOps(rlent *rlog, int nrents) {
+static void PreProcessCompOps(rlent *rlog, int nrents) {
     
     rlent **rlptrs = 0;
     
@@ -1124,7 +1111,7 @@ PRIVATE void PreProcessCompOps(rlent *rlog, int nrents) {
 		ViceFid c1Fid, c2Fid;
 		ExtractChildFidFromRLE(rlptrs[i], &c1Fid);
 		ExtractChildFidFromRLE(rlptrs[i-1], &c2Fid);
-		if (CmpFid(&c1Fid, &c2Fid) == 0 && 
+		if (FID_Cmp(&c1Fid, &c2Fid) == 0 && 
 		    CmpNames(rlptrs[i], rlptrs[i-1]) == 0) {
 		    rlptrs[i]->opcode = ResolveNULL_OP;
 		    rlptrs[i-1]->opcode = ResolveNULL_OP;
@@ -1135,7 +1122,7 @@ PRIVATE void PreProcessCompOps(rlent *rlog, int nrents) {
     free(rlptrs);
 }
 
-PRIVATE int GetResObjs(rlent *rlog, int nrentries, ViceFid *Fid, 
+static int GetResObjs(rlent *rlog, int nrentries, ViceFid *Fid, 
 		       Volume **volptr, dlist *vlist) {
     
     LogMsg(9, SrvDebugLevel, stdout,  "Entering GetResObjs(%x.%x.%x)",
@@ -1261,7 +1248,7 @@ PRIVATE int GetResObjs(rlent *rlog, int nrentries, ViceFid *Fid,
 			AddVLE(*vlist, &NewDFid);
 			AddVLE(*vlist, &ndvpFid);
 		    }
-		    if (!FID_EQ(NewDFid, OldDFid) &&
+		    if (!FID_EQ(&NewDFid, &OldDFid) &&
 			ObjectExists(V_volumeindex(*volptr),
 				     vLarge, 
 				     vnodeIdToBitNumber(OldDFid.Vnode),
@@ -1443,7 +1430,7 @@ PRIVATE int GetResObjs(rlent *rlog, int nrentries, ViceFid *Fid,
  *			CREATEINCOBJ
  *			
  */
-PRIVATE int CheckSemPerformRes(rlent *rlog, int nrents, 
+static int CheckSemPerformRes(rlent *rlog, int nrents, 
 			       Volume *volptr, ViceFid *dFid, 
 			       dlist *vlist, olist *hvlog,
 			       dlist *inclist, int *nblocks) {
@@ -1516,9 +1503,9 @@ PRIVATE int CheckSemPerformRes(rlent *rlog, int nrents,
 		NameExists = FALSE;
 		name = ExtractNameFromRLE(&rlog[i]);
 		if (name) {
-		    DirHandle dh;
-		    SetDirHandle(&dh, pv->vptr);
-		    if (Lookup((long *)&dh, name, (long *)&nFid) == 0)
+		    PDirHandle dh;
+		    dh = VN_SetDirHandle(pv->vptr);
+		    if (DH_Lookup(dh, name, &nFid) == 0)
 			NameExists = TRUE;
 		    else 
 			NameExists = FALSE;
@@ -1652,7 +1639,7 @@ PRIVATE int CheckSemPerformRes(rlent *rlog, int nrents,
  *		Create Inconsistent Object (CREATEINCOBJ)
  *		Null Op - dont do the operation (NULLOP)
  */
-PRIVATE int CheckValidityResOp(rlent *rle, int NE, 
+static int CheckValidityResOp(rlent *rle, int NE, 
 			       int OE, int ParentPtrOk,
 			       dlist *vlist, ViceFid *dFid, 
 			       olist *hvlog) {
@@ -1811,7 +1798,7 @@ PRIVATE int CheckValidityResOp(rlent *rle, int NE,
     }
 }
 /* Resolve renames: serious errors return non zero errorcode */
-PRIVATE int ResolveRename(rlent *rl, Volume *volptr, VolumeId VSGVolnum, 
+static int ResolveRename(rlent *rl, Volume *volptr, VolumeId VSGVolnum, 
 			  ViceFid *dFid, dlist *vlist, olist *hvlog, 
 			  dlist *inclist, int *blocks) {
     dlist *newinclist = 0;
@@ -1896,7 +1883,7 @@ PRIVATE int ResolveRename(rlent *rl, Volume *volptr, VolumeId VSGVolnum,
     return(errorCode);
 }
 
-PRIVATE int CheckResolveRenameSemantics(rlent *rl, Volume *volptr, 
+static int CheckResolveRenameSemantics(rlent *rl, Volume *volptr, 
 					ViceFid *dFid, dlist *vlist, 
 					vle **srcv, vle **tgtv, vle **srcdv, 
 					vle **tgtdv,olist *hvlog, dlist *inclist, 
@@ -1940,7 +1927,7 @@ PRIVATE int CheckResolveRenameSemantics(rlent *rl, Volume *volptr,
 		    OldDid.Volume, OldDid.Vnode, OldDid.Unique);
 	    return(EINVAL);
 	}
-	if (!FID_EQ(OldDid, NewDid)) {
+	if (!FID_EQ(&OldDid, &NewDid)) {
 	    npv = FindVLE(*vlist, &NewDid);
 	    if (!npv || !npv->vptr) {
 		LogMsg(0, SrvDebugLevel, stdout,  "ChkResRenSem: New Dir(%x.%x.%x) doesnt exist",
@@ -1954,18 +1941,18 @@ PRIVATE int CheckResolveRenameSemantics(rlent *rl, Volume *volptr,
     /* source object checks */
     {
 	ViceFid tmpFid;
-	DirHandle odh;
+	PDirHandle odh;
 	ViceFid spFid;	/* source parent Fid */
 	
 	SrcFid.Vnode = rl->u.u_rename.rename_src.cvnode;
 	SrcFid.Unique = rl->u.u_rename.rename_src.cunique;
 	
-	SetDirHandle(&odh, opv->vptr);
-	if (Lookup((long *)&odh, rl->u.u_rename.rename_src.oldname, 
-		   (long *)&tmpFid) == 0) {
+	odh = VN_SetDirHandle(opv->vptr);
+	if (DH_Lookup(odh, rl->u.u_rename.rename_src.oldname, 
+		   &tmpFid) == 0) {
 	    SrcNameExists = TRUE;
 	    tmpFid.Volume = SrcFid.Volume;
-	    SrcNameFidBindingOK = FID_EQ(tmpFid, SrcFid);
+	    SrcNameFidBindingOK = FID_EQ(&tmpFid, &SrcFid);
 	}
 	sv = FindVLE(*vlist, &SrcFid);
 	if (sv && sv->vptr && !sv->vptr->delete_me)
@@ -1975,7 +1962,7 @@ PRIVATE int CheckResolveRenameSemantics(rlent *rl, Volume *volptr,
 	    spFid.Volume = V_id(volptr);
 	    spFid.Vnode = sv->vptr->disk.vparent;
 	    spFid.Unique = sv->vptr->disk.uparent;
-	    SrcParentPtrOK = FID_EQ(spFid, OldDid);
+	    SrcParentPtrOK = FID_EQ(&spFid, &OldDid);
 	    if (!SrcParentPtrOK) {
 		/* set child's parent to be marked inc */
 		LogMsg(0, SrvDebugLevel, stdout,  "ChkResRenSem: Parent(%x.%x) on src vnode(%x.%x) not same as parent %x.%x",
@@ -2008,12 +1995,12 @@ PRIVATE int CheckResolveRenameSemantics(rlent *rl, Volume *volptr,
     /* target object checks */
     {
 	if (!rl->u.u_rename.rename_tgt.tgtexisted) {
-	    DirHandle ndh;
+	    PDirHandle ndh;
 	    ViceFid tmpfid;
 	    tmpfid.Volume = V_id(volptr);
-	    SetDirHandle (&ndh, npv->vptr);
-	    if (Lookup((long *)&ndh, rl->u.u_rename.rename_tgt.newname, 
-		       (long *)&tmpfid) == 0) {
+	    ndh = VN_SetDirHandle (npv->vptr);
+	    if (DH_Lookup(ndh, rl->u.u_rename.rename_tgt.newname, 
+		       &tmpfid) == 0) {
 		LogMsg(0, SrvDebugLevel, stdout,  "ChkResRenSem: Target name %s already exists wrongly",
 			rl->u.u_rename.rename_tgt.newname);
 		errorCode = EINCONS;
@@ -2024,7 +2011,7 @@ PRIVATE int CheckResolveRenameSemantics(rlent *rl, Volume *volptr,
 	    /* target is supposed to exist */
 	    TgtFid.Vnode = rl->u.u_rename.rename_tgt.TgtVnode;
 	    TgtFid.Unique = rl->u.u_rename.rename_tgt.TgtUnique;
-	    DirHandle ndh;
+	    PDirHandle ndh;
 	    ViceFid tmpFid;
 	    ViceFid tpFid;	/* target vnode's parent fid */
 	    int TgtNameExists, TgtNameFidBindingOK;
@@ -2035,11 +2022,11 @@ PRIVATE int CheckResolveRenameSemantics(rlent *rl, Volume *volptr,
 	    TgtObjExists = FALSE;
 	    TgtParentPtrOK = TRUE;
 	    tmpFid.Volume = V_id(volptr);
-	    SetDirHandle(&ndh, npv->vptr);
-	    if (Lookup((long *)&ndh, rl->u.u_rename.rename_tgt.newname, 
-		       (long *)&tmpFid) == 0) {
+	    ndh = VN_SetDirHandle(npv->vptr);
+	    if (DH_Lookup(ndh, rl->u.u_rename.rename_tgt.newname, 
+		       &tmpFid) == 0) {
 		TgtNameExists = TRUE;
-		TgtNameFidBindingOK = FID_EQ(tmpFid, TgtFid);
+		TgtNameFidBindingOK = FID_EQ(&tmpFid, &TgtFid);
 	    }
 	    tv = FindVLE(*vlist, &TgtFid);
 	    if (tv && tv->vptr && !tv->vptr->delete_me)
@@ -2048,7 +2035,7 @@ PRIVATE int CheckResolveRenameSemantics(rlent *rl, Volume *volptr,
 		tpFid.Volume = V_id(volptr);
 		tpFid.Vnode = tv->vptr->disk.vparent;
 		tpFid.Unique = tv->vptr->disk.uparent;
-		TgtParentPtrOK = FID_EQ(tpFid, NewDid);
+		TgtParentPtrOK = FID_EQ(&tpFid, &NewDid);
 		if (!TgtParentPtrOK) {
 		    LogMsg(0, SrvDebugLevel, stdout,  "ChkResRenSem: Parent(%x.%x) on tgtvnode(%x.%x)",	
 			    tpFid.Vnode, tpFid.Unique, TgtFid.Vnode, TgtFid.Unique);
@@ -2158,7 +2145,7 @@ PRIVATE int CheckResolveRenameSemantics(rlent *rl, Volume *volptr,
 /* CleanRenameTarget
  * If it is a non-empty directory then remove the children
  */
-PRIVATE int CleanRenameTarget(rlent *rl, dlist *vlist, Volume *volptr,
+static int CleanRenameTarget(rlent *rl, dlist *vlist, Volume *volptr,
 			      VolumeId VSGVolnum, olist *hvlog, int *blocks) {
     LogMsg(9, SrvDebugLevel, stdout,  "Entering CleanRenameTarget");
     if (!rl->u.u_rename.rename_tgt.tgtexisted)
@@ -2176,9 +2163,9 @@ PRIVATE int CleanRenameTarget(rlent *rl, dlist *vlist, Volume *volptr,
 	return(0);
     }
     
-    DirHandle	tdh;
-    SetDirHandle(&tdh, tv->vptr);
-    if (IsEmpty((long *)&tdh) == 0) {
+    PDirHandle	tdh;
+    tdh = VN_SetDirHandle(tv->vptr);
+    if (DH_IsEmpty(tdh)) {
 	LogMsg(0, SrvDebugLevel, stdout,  "CleanRenameTarget: Target %x.%x is already empty",
 		tFid.Vnode, tFid.Unique);
 	return(0);
@@ -2187,7 +2174,7 @@ PRIVATE int CleanRenameTarget(rlent *rl, dlist *vlist, Volume *volptr,
     TreeRmBlk pkdparm;
     pkdparm.init(0, VSGVolnum, volptr, 0, &rl->storeid, vlist, 
 		 1, hvlog, rl->serverid, blocks);
-    EnumerateDir((long *)&tdh, (int (*) (void * ...))PerformTreeRemoval, (long)&pkdparm);
+    DH_EnumerateDir(tdh, PerformTreeRemoval, (void *)&pkdparm);
     return(0);
 }
 
@@ -2213,7 +2200,7 @@ void SpoolRenameLogRecord(int opcode, vle *sv, vle *tv, vle *sdv,
     NewDid.Unique = tdv->vptr->disk.uniquifier;
     SrcFid.Vnode = sv->vptr->vnodeNumber;
     SrcFid.Unique = sv->vptr->disk.uniquifier;
-    int SameParent = FID_EQ(OldDid, NewDid);
+    int SameParent = FID_EQ(&OldDid, &NewDid);
     if (tv) {
 	/* probably want to attach target directory's ghost log only
 	   to the target parent directory's log record for rename -
@@ -2310,7 +2297,7 @@ void MarkObjInc(ViceFid *fid, Vnode *vptr) {
     SetIncon(vptr->disk.versionvector);
 }
 
-PRIVATE int PerformResOp(rlent *r, dlist *vlist, olist *hvlog,
+static int PerformResOp(rlent *r, dlist *vlist, olist *hvlog,
 			 vle *pv, Volume *volptr, 
 			 VolumeId VSGVolnum, 
 			 int *blocks) {
@@ -2551,23 +2538,23 @@ PRIVATE int PerformResOp(rlent *r, dlist *vlist, olist *hvlog,
 	    assert(cv);
 	    assert(cv->vptr);
 	    
-	    DirHandle cdir;
-	    SetDirHandle(&cdir, cv->vptr);
+	    PDirHandle dh;
+	    dh = VN_SetDirHandle(cv->vptr);
 	    /* first make the directory empty */
 	    {
-		if (IsEmpty((long *)&cdir) != 0) {
+		if (! DH_IsEmpty(dh)) {
 		    /* remove children first */
 		    TreeRmBlk	pkdparm;
 		    pkdparm.init(0, VSGVolnum, volptr, 0, &r->storeid, 
 				 vlist, 1, hvlog, r->serverid, blocks);
-		    EnumerateDir((long *)&cdir, (int (*) (void * ...))PerformTreeRemoval, (long)&pkdparm);
+		    DH_EnumerateDir(dh, PerformTreeRemoval, (void *)&pkdparm);
+		    
 		}
+		assert(DH_IsEmpty(dh));
 	    }
 	    int tblocks = 0;
 	    /* remove the empty directory */
 	    {
-		SetDirHandle(&cdir, cv->vptr);
-		assert(IsEmpty((long *)&cdir) == 0);
 		tblocks = 0;
 		PerformRmdir(0, VSGVolnum, volptr, 
 			     pv->vptr, cv->vptr, name, 
@@ -2615,7 +2602,7 @@ PRIVATE int PerformResOp(rlent *r, dlist *vlist, olist *hvlog,
  * different.  
  * For now just mark both source and target directories inconsistent.
  */
-PRIVATE int ResolveCrossDirRename(rlent *rl, ViceFid *dFid, Volume *volptr, 
+static int ResolveCrossDirRename(rlent *rl, ViceFid *dFid, Volume *volptr, 
 				  dlist *vlist, dlist *inclist) {
 
     ViceFid OldDid, NewDid;
@@ -2694,10 +2681,10 @@ int CreateObjToMarkInc(Volume *vp, ViceFid *dFid, ViceFid *cFid,
     
     {
 	
-	DirHandle dh;
+	PDirHandle dh;
 	ViceFid newfid;
-	SetDirHandle(&dh, pv->vptr);
-	if (Lookup((long *)&dh, name, (long *)&newfid) == 0) {
+	dh = VN_SetDirHandle(pv->vptr);
+	if (DH_Lookup(dh, name, &newfid) == 0) {
 	    // parent has name 
 	    if ((newfid.Vnode == cFid->Vnode) && (newfid.Unique == cFid->Unique)){
 		cv = FindVLE(*vlist, cFid);
@@ -3110,7 +3097,7 @@ int CreateResPhase2Objects(ViceFid *pfid, dlist *vlist, dlist *inclist,
  */
 #define FileRemove 0
 #define DirRemove 1
-PRIVATE RUConflict(rlent *r, dlist *vlist, olist *hvlog, 
+static RUConflict(rlent *r, dlist *vlist, olist *hvlog, 
 		   ViceFid *dFid) {
 
     LogMsg(9, SrvDebugLevel, stdout,  "Entering RUConflict for %x.%x",
@@ -3224,8 +3211,19 @@ void GetRemoteRemoveStoreId(ViceStoreId *stid, olist *hvlog, unsigned long serve
  *	Called on each child via Enumerate Dir 
  *	Detects remove/update conflicts on objects.
  */
-int DirRUConf(RUParm *rup, char *name, long vnode, long unique) {
+int EDirRUConf(PDirEntry de, void *data) 
+{
+    VnodeId vnode;
+    Unique_t unique;
+    char *name = de->name;
+    RUParm *rup = (RUParm *)data;
+    FID_NFid2Int(&de->fid, &vnode, &unique);
     
+    DirRUConf(rup, name, vnode, unique);
+}
+
+int DirRUConf(RUParm *rup, char *name, long vnode, long unique)
+{
     if (rup->rcode) return(1);
     if (!strcmp(name, ".") || !strcmp(name, "..")) return(0);
     
@@ -3357,220 +3355,236 @@ int DirRUConf(RUParm *rup, char *name, long vnode, long unique) {
 	
 	/* check ru conflict for children */
 	{
-	    DirHandle dh;
-	    SetDirHandle(&dh, cv->vptr);
-	    if (IsEmpty((long *)&dh) != 0) 
-                    EnumerateDir((long *)&dh, (int (*) (void * ...))DirRUConf, (long)rup);
+	    PDirHandle dh;
+	    dh = VN_SetDirHandle(cv->vptr);
+	    if (DH_IsEmpty(dh)) 
+                    DH_EnumerateDir(dh, EDirRUConf, (void *)rup);
 	}
     }
     return(0);
 }
 
-char *GetNameInParent(Vnode *vptr, dlist *vlist, 
-		      Volume *volptr, char *name) {
-    long errorCode = 0;
-    ViceFid pFid;
-    pFid.Volume = V_id(volptr);
-    pFid.Vnode = vptr->disk.vparent;
-    pFid.Unique = vptr->disk.uparent;
+/* warning: name must have size MAXNAMELEN or larger */
+/* Find the name of a vnode in its parent directory:
+   return 0 upon finding the name
+   return 0 upon failure to find vnodes
+   return 0 upon failure to find name in parent
+   return 1 upon success
+*/
 
-    if (pFid.Unique == 0 || pFid.Vnode == 0) {
-	LogMsg(0, SrvDebugLevel, stdout,  "GetNameInParent(%x.%x.%x): Parent had 0 in id; returning NULL",
-		pFid.Volume, vptr->vnodeNumber, vptr->disk.uniquifier);
-	return(NULL);
-    }
-    vle *pv = FindVLE(*vlist, &pFid);
-    if (!pv) {
-	pv = AddVLE(*vlist, &pFid);
-	/* THE LOCK NEED NOT BE WRITE_LOCK - PARANOIA FOR OTHER OPS TOUCHING 
-	   THIS VNODE */
-	if (errorCode = GetFsObj(&pFid, &volptr, &pv->vptr, WRITE_LOCK, 
-				 NO_LOCK, 1, 0)) {
-	    LogMsg(0, SrvDebugLevel, stdout,  "GetNameInParent(%x.%x.%x): Error %d getting parent(%x.%x)",
-		    pFid.Volume, vptr->vnodeNumber, vptr->disk.uniquifier,
-		    errorCode, pFid.Vnode, pFid.Unique);
-	    if (!pv->vptr) 
-		vlist->remove(pv);
-	    return(NULL);
+int GetNameInParent(Vnode *vptr, dlist *vlist, Volume *volptr, char *name) 
+{
+	long errorCode = 0;
+	PDirHandle dh;
+	ViceFid pFid;
+	ViceFid Fid;
+	
+	VN_VN2PFid(vptr, volptr, &pFid);
+	VN_VN2Fid(vptr, volptr, &Fid);
+
+	if (pFid.Unique == 0 || pFid.Vnode == 0) {
+		SLog(0,"GetNameInParent %s: Parent had 0 in id; returning 0", 
+		     FID_(&pFid));
+		return 0;
 	}
-    }
-    
-    DirHandle pdir;
-    SetDirHandle(&pdir, pv->vptr);
-    return(FindName((long *)&pdir, vptr->vnodeNumber, vptr->disk.uniquifier, name));
+	vle *pv = FindVLE(*vlist, &pFid);
+	if (!pv) {
+		pv = AddVLE(*vlist, &pFid);
+		/* THE LOCK NEED NOT BE WRITE_LOCK - PARANOIA FOR OTHER OPS
+		   TOUCHING THIS VNODE */
+		errorCode = GetFsObj(&pFid, &volptr, &pv->vptr, WRITE_LOCK, 
+				     NO_LOCK, 1, 0);
+		if (errorCode) {
+			SLog(0, "GetNameInParent for %s: Error %d getting parent %s",
+			     FID_(&pFid), errorCode, FID_2(&Fid));
+			if (!pv->vptr) 
+				vlist->remove(pv);
+			return 0;
+		}
+	}
+	
+	dh = VN_SetDirHandle(pv->vptr);
+	return ! DH_LookupByFid(dh, name, &Fid);
 }
-PRIVATE char *ExtractNameFromRLE(rlent *a) {
-    char *ca = NULL;
 
-    switch((a)->opcode) {
-      case ResolveViceRemove_OP:
-      case ViceRemove_OP:
-	ca = (a)->u.u_remove.name;
-	break;
-      case ResolveViceCreate_OP:
-      case ViceCreate_OP:
-	ca = (a)->u.u_create.name;
-	break;
-      case ResolveViceRename_OP:
-      case ViceRename_OP:
-	if ((a)->u.u_rename.srctgt == SOURCE) 
-	    ca = (a)->u.u_rename.rename_src.oldname;
-	else 
-	    ca = (a)->u.u_rename.rename_tgt.newname;
-	break;
-      case ResolveViceSymLink_OP:
-      case ViceSymLink_OP:
-	ca = (a)->u.u_symlink.name;
-	break;
-      case ResolveViceLink_OP:
-      case ViceLink_OP:
-	ca = (a)->u.u_hardlink.name;
-	break;
-      case ResolveViceMakeDir_OP:
-      case ViceMakeDir_OP:
-	ca = (a)->u.u_makedir.name;
-	break;
-      case ResolveViceRemoveDir_OP:
-      case ViceRemoveDir_OP:
-	ca = (a)->u.u_removedir.name;
-	break;
-      default:
-	break;
-    }
+static char *ExtractNameFromRLE(rlent *a) 
+{
+	char *ca = NULL;
 
-    return(ca);
+	switch((a)->opcode) {
+	case ResolveViceRemove_OP:
+	case ViceRemove_OP:
+		ca = (a)->u.u_remove.name;
+		break;
+	case ResolveViceCreate_OP:
+	case ViceCreate_OP:
+		ca = (a)->u.u_create.name;
+		break;
+	case ResolveViceRename_OP:
+	case ViceRename_OP:
+		if ((a)->u.u_rename.srctgt == SOURCE) 
+			ca = (a)->u.u_rename.rename_src.oldname;
+		else 
+			ca = (a)->u.u_rename.rename_tgt.newname;
+		break;
+	case ResolveViceSymLink_OP:
+	case ViceSymLink_OP:
+		ca = (a)->u.u_symlink.name;
+		break;
+	case ResolveViceLink_OP:
+	case ViceLink_OP:
+		ca = (a)->u.u_hardlink.name;
+		break;
+	case ResolveViceMakeDir_OP:
+	case ViceMakeDir_OP:
+		ca = (a)->u.u_makedir.name;
+		break;
+	case ResolveViceRemoveDir_OP:
+	case ViceRemoveDir_OP:
+		ca = (a)->u.u_removedir.name;
+		break;
+	default:
+		break;
+	}
+
+	return(ca);
 }
-PRIVATE int ExtractVNTypeFromRLE(rlent *a) {
-    switch(a->opcode) {
-      case ResolveViceRemove_OP:
-      case ViceRemove_OP:
-      case ResolveViceCreate_OP:
-      case ViceCreate_OP:
-      case ResolveViceLink_OP:
-      case ViceLink_OP:
-	return(vFile);
-      case ResolveViceRename_OP:
-      case ViceRename_OP:
-	{
-	    ViceFid tgtFid;
-	    /* XXX BE CAREFUL WITH CHILD FIDS AND RENAMES */
-	    ExtractChildFidFromRLE(a, &tgtFid);
-	    if (ISDIR(tgtFid))
+
+static int ExtractVNTypeFromRLE(rlent *a) 
+{
+	switch(a->opcode) {
+	case ResolveViceRemove_OP:
+	case ViceRemove_OP:
+	case ResolveViceCreate_OP:
+	case ViceCreate_OP:
+	case ResolveViceLink_OP:
+	case ViceLink_OP:
+		return(vFile);
+	case ResolveViceRename_OP:
+	case ViceRename_OP: {
+		ViceFid tgtFid;
+		/* XXX BE CAREFUL WITH CHILD FIDS AND RENAMES */
+		ExtractChildFidFromRLE(a, &tgtFid);
+		if (ISDIR(tgtFid))
+			return(vDirectory);
+		else
+			return(vFile);	/* XXX - what about symlinks ? */
+	}
+	break;
+	case ResolveViceSymLink_OP:
+	case ViceSymLink_OP:
+		return(vSymlink);
+	case ResolveViceMakeDir_OP:
+	case ViceMakeDir_OP:
+	case ResolveViceRemoveDir_OP:
+	case ViceRemoveDir_OP:
 		return(vDirectory);
-	    else
-		return(vFile);	/* XXX - what about symlinks ? */
+	default:
+		assert(0);
+		break;
 	}
-	break;
-      case ResolveViceSymLink_OP:
-      case ViceSymLink_OP:
-	return(vSymlink);
-      case ResolveViceMakeDir_OP:
-      case ViceMakeDir_OP:
-      case ResolveViceRemoveDir_OP:
-      case ViceRemoveDir_OP:
-	return(vDirectory);
-      default:
-	assert(0);
-	break;
-    }
-
-    return(0); /* dummy for g++ */		
-}
-PRIVATE void ExtractChildFidFromRLE(rlent *a, ViceFid *fa) {
-
-    fa->Volume = 0;
-    fa->Vnode = fa->Unique = 0;
-    switch((a)->opcode) {
-      case ViceNewStore_OP:
-      case ResolveViceNewStore_OP:
-	fa->Vnode = a->dvnode;
-	fa->Unique = a->dunique;
-	break;
-      case ResolveViceRemove_OP:
-      case ViceRemove_OP:
-	fa->Vnode = a->u.u_remove.cvnode;
-	fa->Unique = a->u.u_remove.cunique;
-	break;
-      case ResolveViceCreate_OP:
-      case ViceCreate_OP:
-	fa->Vnode = a->u.u_create.cvnode;
-	fa->Unique = a->u.u_create.cunique;
-	break;
-      case ResolveViceRename_OP:
-      case ViceRename_OP:
-	if (a->u.u_rename.srctgt == SOURCE || 
-	    !a->u.u_rename.rename_tgt.tgtexisted) {
-	    fa->Vnode = a->u.u_rename.rename_src.cvnode;
-	    fa->Unique = a->u.u_rename.rename_src.cunique;
-	}
-	else {
-	    fa->Vnode = a->u.u_rename.rename_tgt.TgtVnode;
-	    fa->Unique = a->u.u_rename.rename_tgt.TgtUnique;
-	}
-	LogMsg(1, SrvDebugLevel, stdout,  " Fid %x.%x", fa->Vnode, fa->Unique);
-	break;
-      case ResolveViceSymLink_OP:
-      case ViceSymLink_OP:
-	fa->Vnode = a->u.u_symlink.cvnode;
-	fa->Unique = a->u.u_symlink.cunique;
-	break;
-      case ResolveViceLink_OP:
-      case ViceLink_OP:
-	fa->Vnode = a->u.u_hardlink.cvnode;
-	fa->Unique = a->u.u_hardlink.cunique;
-	break;
-      case ResolveViceMakeDir_OP:
-      case ViceMakeDir_OP:
-	fa->Vnode = a->u.u_makedir.cvnode;
-	fa->Unique = a->u.u_makedir.cunique;
-	break;
-      case ResolveViceRemoveDir_OP:
-      case ViceRemoveDir_OP:
-	fa->Vnode = a->u.u_removedir.cvnode;
-	fa->Unique = a->u.u_removedir.cunique;
-	break;
-      case ResolveNULL_OP:
-	fa->Vnode = a->dvnode;		/* XXX hack! */
-	fa->Unique = a->dunique;	/* XXX hack! */
-	break;
-      default:
-	LogMsg(0, SrvDebugLevel, stdout,  "ExtractChildFidFromRLE: Illegal opcode %d",
-		a->opcode);
-	assert(0);
-	break;
-    }
+	
+	return(0); /* dummy for g++ */		
 }
 
-PRIVATE int CompareStoreId(ViceStoreId *a, ViceStoreId *b) {
-    if (a->Host < b->Host) return(-1);
-    else if (a->Host > b->Host) return(1);
-    else if (a->Uniquifier < b->Uniquifier) return(-1);
-    else if (a->Uniquifier > b->Uniquifier) return(1);
-    else return(0);
+static void ExtractChildFidFromRLE(rlent *a, ViceFid *fa) 
+{
+
+	fa->Volume = 0;
+	fa->Vnode = 0;
+	fa->Unique = 0;
+
+	switch((a)->opcode) {
+	case ViceNewStore_OP:
+	case ResolveViceNewStore_OP:
+		fa->Vnode = a->dvnode;
+		fa->Unique = a->dunique;
+		break;
+	case ResolveViceRemove_OP:
+	case ViceRemove_OP:
+		fa->Vnode = a->u.u_remove.cvnode;
+		fa->Unique = a->u.u_remove.cunique;
+		break;
+	case ResolveViceCreate_OP:
+	case ViceCreate_OP:
+		fa->Vnode = a->u.u_create.cvnode;
+		fa->Unique = a->u.u_create.cunique;
+		break;
+	case ResolveViceRename_OP:
+	case ViceRename_OP:
+		if (a->u.u_rename.srctgt == SOURCE || 
+		    !a->u.u_rename.rename_tgt.tgtexisted) {
+			fa->Vnode = a->u.u_rename.rename_src.cvnode;
+			fa->Unique = a->u.u_rename.rename_src.cunique;
+		} else {
+			fa->Vnode = a->u.u_rename.rename_tgt.TgtVnode;
+			fa->Unique = a->u.u_rename.rename_tgt.TgtUnique;
+		}
+		SLog(1, "Fid %x.%x", fa->Vnode, fa->Unique);
+		break;
+	case ResolveViceSymLink_OP:
+	case ViceSymLink_OP:
+		fa->Vnode = a->u.u_symlink.cvnode;
+		fa->Unique = a->u.u_symlink.cunique;
+		break;
+	case ResolveViceLink_OP:
+	case ViceLink_OP:
+		fa->Vnode = a->u.u_hardlink.cvnode;
+		fa->Unique = a->u.u_hardlink.cunique;
+		break;
+	case ResolveViceMakeDir_OP:
+	case ViceMakeDir_OP:
+		fa->Vnode = a->u.u_makedir.cvnode;
+		fa->Unique = a->u.u_makedir.cunique;
+		break;
+	case ResolveViceRemoveDir_OP:
+	case ViceRemoveDir_OP:
+		fa->Vnode = a->u.u_removedir.cvnode;
+		fa->Unique = a->u.u_removedir.cunique;
+		break;
+	case ResolveNULL_OP:
+		fa->Vnode = a->dvnode;		/* XXX hack! */
+		fa->Unique = a->dunique;	/* XXX hack! */
+		break;
+	default:
+		SLog(0,  "ExtractChildFidFromRLE: Illegal opcode %d",
+		     a->opcode);
+		assert(0);
+		break;
+	}
+}
+
+static int CompareStoreId(ViceStoreId *a, ViceStoreId *b) 
+{
+	if (a->Host < b->Host) 
+		return(-1);
+	else if (a->Host > b->Host) 
+		return(1);
+	else if (a->Uniquifier < b->Uniquifier) 
+		return(-1);
+	else if (a->Uniquifier > b->Uniquifier) 
+		return(1);
+	else 
+		return(0);
 }
 
 /* Compare Log Records:
  *	Storeid is the major sorting index.
  *	Serverid is the secondary sorting index
  */
-PRIVATE int CmpLogEntries(rlent **a, rlent **b) {
+static int CmpLogEntries(rlent **a, rlent **b) 
+{
     int res = CompareStoreId(&((*a)->storeid), &((*b)->storeid));
-    if (res) return(res);
+    if (res) 
+	    return(res);
     
-    if ((*a)->serverid < (*b)->serverid) return(-1);
-    if ((*a)->serverid > (*b)->serverid) return(1);
+    if ((*a)->serverid < (*b)->serverid) 
+	    return(-1);
+    if ((*a)->serverid > (*b)->serverid) 
+	    return(1);
     return(0);
 }
 
-int CmpFid(ViceFid *fa, ViceFid *fb) {
-    if ((fa->Volume) < (fb->Volume)) return(-1);
-    if ((fa->Volume) > (fb->Volume)) return(1);
-    if ((fa->Vnode) < (fb->Vnode)) return(-1);
-    if ((fa->Vnode) > (fb->Vnode)) return(1);
-    if ((fa->Unique) < (fb->Unique)) return(-1);
-    if ((fa->Unique) > (fb->Unique)) return(1);
-    return(0);
-}
 /*
  * CmpFidOp:
  * 	Compare 2 rlents by fid and operation
@@ -3579,72 +3593,75 @@ int CmpFid(ViceFid *fa, ViceFid *fb) {
  *	If fids are equal then order of operation are :
  *		CREATE(Fid) <ALL OTHER OPS (Fid)> DELETE(Fid)
  */
-PRIVATE int CmpFidOp(rlent **a, rlent **b) {
-    ViceFid fa, fb;
-    int res = 0;
-
-    /* fill in the fids */
-    {
-	fa.Volume = fb.Volume = 0;
-	ExtractChildFidFromRLE(*a, &fa);
-	ExtractChildFidFromRLE(*b, &fb);
-    }
-
-    /* Compare the fid first */
-    {
-	res = CmpFid(&fa, &fb);
-	if (res) return(res);
-    }
-    /* Compare the ops if fids are same */
-    {
-	int oa = (int)((*a)->opcode);
-	int ob = (int)((*b)->opcode);
+static int CmpFidOp(rlent **a, rlent **b) 
+{
+	ViceFid fa, fb;
+	int res = 0;
 	
-	switch(oa) {
-	  case ViceCreate_OP:
-	  case ResolveViceCreate_OP:
-	  case ViceMakeDir_OP:
-	  case ResolveViceMakeDir_OP:
-	  case ViceSymLink_OP:
-	  case ResolveViceSymLink_OP:
-	    return(-1);
-	  case ViceRemove_OP:
-	  case ResolveViceRemove_OP:
-	  case ViceRemoveDir_OP:
-	  case ResolveViceRemoveDir_OP:
-	    return(1);
-	  default:
-	    break;
+	/* fill in the fids */
+	{
+		fa.Volume = fb.Volume = 0;
+		ExtractChildFidFromRLE(*a, &fa);
+		ExtractChildFidFromRLE(*b, &fb);
 	}
-	switch(ob) {
-	  case ViceCreate_OP:
-	  case ResolveViceCreate_OP:
-	  case ViceMakeDir_OP:
-	  case ResolveViceMakeDir_OP:
-	  case ViceSymLink_OP:
-	  case ResolveViceSymLink_OP:
-	    return(1);
-	  case ViceRemove_OP:
-	  case ResolveViceRemove_OP:
-	  case ViceRemoveDir_OP:
-	  case ResolveViceRemoveDir_OP:
-	    return(-1);
-	  default:
-	    break;
+
+	/* Compare the fid first */
+	{
+		res = FID_Cmp(&fa, &fb);
+		if (res) 
+			return(res);
 	}
-	return(0);
-    }
+	/* Compare the ops if fids are same */
+	{
+		int oa = (int)((*a)->opcode);
+		int ob = (int)((*b)->opcode);
+	
+		switch(oa) {
+		case ViceCreate_OP:
+		case ResolveViceCreate_OP:
+		case ViceMakeDir_OP:
+		case ResolveViceMakeDir_OP:
+		case ViceSymLink_OP:
+		case ResolveViceSymLink_OP:
+			return(-1);
+		case ViceRemove_OP:
+		case ResolveViceRemove_OP:
+		case ViceRemoveDir_OP:
+		case ResolveViceRemoveDir_OP:
+			return(1);
+		default:
+			break;
+		}
+		switch(ob) {
+		case ViceCreate_OP:
+		case ResolveViceCreate_OP:
+		case ViceMakeDir_OP:
+		case ResolveViceMakeDir_OP:
+		case ViceSymLink_OP:
+		case ResolveViceSymLink_OP:
+			return(1);
+		case ViceRemove_OP:
+		case ResolveViceRemove_OP:
+		case ViceRemoveDir_OP:
+		case ResolveViceRemoveDir_OP:
+			return(-1);
+		default:
+			break;
+		}
+		return(0);
+	}
 }
 
-PRIVATE int CmpNames(rlent *a, rlent *b) {
-    char *ca = 0;
-    char *cb = 0;
-
-    ca = ExtractNameFromRLE(a);
-    cb = ExtractNameFromRLE(b);
-    
-    if (ca && cb)
-	return(strcmp(ca, cb));
-    else
-	return(-1);
+static int CmpNames(rlent *a, rlent *b) 
+{
+	char *ca = 0;
+	char *cb = 0;
+	
+	ca = ExtractNameFromRLE(a);
+	cb = ExtractNameFromRLE(b);
+	
+	if (ca && cb)
+		return(strcmp(ca, cb));
+	else
+		return(-1);
 }

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/volutil/vol-elapse.cc,v 4.2 1997/02/26 16:04:07 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/volutil/vol-elapse.cc,v 4.3 1998/04/14 21:00:37 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -58,7 +58,7 @@ extern "C" {
 #include <voldump.h>
 #include "velapse.h"
 
-PRIVATE void Elapse_resolution(RPC2_Integer on, RPC2_Integer multi)
+static void Elapse_resolution(RPC2_Integer on, RPC2_Integer multi)
 {
     if (multi == 1) {
         if (on == 1 || on == 0) resolution_MultiStubWork[0].opengate = on;
@@ -70,7 +70,7 @@ PRIVATE void Elapse_resolution(RPC2_Integer on, RPC2_Integer multi)
         LogMsg(0, VolDebugLevel, stdout, "VolElapse: resolution %s %s", (on == 1) ? "ON" : "OFF", (multi == 1) ? "for MultiRPC" : "");
 }    
 
-PRIVATE void Elapse_cb(RPC2_Integer on, RPC2_Integer multi)
+static void Elapse_cb(RPC2_Integer on, RPC2_Integer multi)
 {
     if (multi == 1) {
         LogMsg(0, VolDebugLevel, stdout, "VolElapse: MultiRPC in cb is not supported");
@@ -82,7 +82,7 @@ PRIVATE void Elapse_cb(RPC2_Integer on, RPC2_Integer multi)
         LogMsg(0, VolDebugLevel, stdout, "VolElapse: cb %s %s", (on == 1) ? "ON" : "OFF", (multi == 1) ? "for MultiRPC" : "");
 }    
 
-PRIVATE void Elapse_mond(RPC2_Integer on, RPC2_Integer multi)
+static void Elapse_mond(RPC2_Integer on, RPC2_Integer multi)
 {
     if (multi == 1) {
         LogMsg(0, VolDebugLevel, stdout, "VolElapse: MultiRPC in mond is not supported");
@@ -94,7 +94,7 @@ PRIVATE void Elapse_mond(RPC2_Integer on, RPC2_Integer multi)
         LogMsg(0, VolDebugLevel, stdout, "VolElapse: mond %s %s", (on == 1) ? "ON" : "OFF", (multi == 1) ? "for MultiRPC" : "");
 }    
 
-PRIVATE void Elapse_volDump(RPC2_Integer on, RPC2_Integer multi)
+static void Elapse_volDump(RPC2_Integer on, RPC2_Integer multi)
 {
     if (multi == 1) {
         LogMsg(0, VolDebugLevel, stdout, "VolElapse: MultiRPC in volDump is not supported");

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/res/reslock.cc,v 4.3 1997/12/20 23:34:38 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/res/reslock.cc,v 4.4 1998/01/10 18:37:53 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -49,33 +49,19 @@ extern "C" {
 #include <sys/types.h>
 #include <sys/time.h>
 #include <sys/stat.h>
-#ifdef CAMELOT
-#include <cam/camelot_prefixed.h>
-#include <camlib/camlib_prefixed.h>
-#include <cam/_setjmp.h>
-#endif CAMELOT
 
-#if 0
-#include <cthreads.h>
-#endif
 #include <stdio.h>
-#if !defined(__GLIBC__)
-#include <libc.h>
-#endif
 #include <struct.h>
 #include "rpc2.h"
 
 #include <sys/ioctl.h>
+#include <util.h>
+#include <rvmlib.h>
 
 #ifdef __cplusplus
 }
 #endif __cplusplus
 
-#include <util.h>
-
-#ifndef CAMELOT
-#include <rvmlib.h>
-#endif CAMELOT 
 
 #include <olist.h>
 #include <errors.h>
@@ -132,7 +118,7 @@ long RS_LockAndFetch(RPC2_Handle RPCid, ViceFid *Fid,
 	return(EINVAL);
     }
 
-#ifdef 0
+#if 0
     unsigned long startgetvolume; 
     if (clockFD > 0) 
 	ioctl(clockFD, NSC_GET_COUNTER, &startgetvolume);
@@ -148,7 +134,7 @@ long RS_LockAndFetch(RPC2_Handle RPCid, ViceFid *Fid,
     }
     ObtainedLock = 1;
 
-#ifdef 0
+#if 0
     unsigned long startgetvnode; 
     if (clockFD > 0) 
 	ioctl(clockFD, NSC_GET_COUNTER, &startgetvnode);
@@ -162,7 +148,7 @@ long RS_LockAndFetch(RPC2_Handle RPCid, ViceFid *Fid,
 		errorcode);
 	goto FreeLocks;
     }
-#ifdef 0
+#if 0
     unsigned long finishgetobj; 
     if (clockFD > 0) 
 	ioctl(clockFD, NSC_GET_COUNTER, &finishgetobj);
@@ -202,7 +188,7 @@ long RS_LockAndFetch(RPC2_Handle RPCid, ViceFid *Fid,
 	PROBE(tpinfo, RESBEGIN);
     }
 
-#ifdef 0
+#if 0
     unsigned long startgetpath; 
     if (clockFD > 0) 
 	ioctl(clockFD, NSC_GET_COUNTER, &startgetpath);
@@ -214,7 +200,7 @@ long RS_LockAndFetch(RPC2_Handle RPCid, ViceFid *Fid,
 	LogMsg(0, SrvDebugLevel, stdout, 
 	       "RS_LockAndFetch:GetPath returns error %d\n", errorcode);
   FreeLocks:
-#ifdef 0
+#if 0
     unsigned long starttrans; 
     if (clockFD > 0) 
 	ioctl(clockFD, NSC_GET_COUNTER, &starttrans);
@@ -222,7 +208,7 @@ long RS_LockAndFetch(RPC2_Handle RPCid, ViceFid *Fid,
 	   starttrans, (starttrans - startgetpath)/25);
 #endif 0
     
-    CAMLIB_BEGIN_TOP_LEVEL_TRANSACTION_2(CAM_TRAN_NV_SERVER_BASED)
+    RVMLIB_BEGIN_TRANSACTION(restore)
 	int filecode = 0;
         if (vptr){
 	    VPutVnode((Error *)&filecode, vptr);
@@ -235,13 +221,13 @@ long RS_LockAndFetch(RPC2_Handle RPCid, ViceFid *Fid,
 	    PutVolObj(&volptr, VOL_EXCL_LOCK, 1);
         else if (volptr)
 	    PutVolObj(&volptr, NO_LOCK);
-    CAMLIB_END_TOP_LEVEL_TRANSACTION_2(CAM_PROT_TWO_PHASED, camstatus)
+    RVMLIB_END_TRANSACTION(flush, &(camstatus));
     if (camstatus){
 	LogMsg(0, SrvDebugLevel, stdout,  
 	       "LockAndFetch: Error during transaction");
 	return(camstatus);
     }
-#ifdef 0
+#if 0
     if (clockFD > 0) 
 	ioctl(clockFD, NSC_GET_COUNTER, &endlockandfetch);
     LogMsg(0, SrvDebugLevel, stdout,

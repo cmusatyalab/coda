@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rvmres/ruconflict.cc,v 4.1 1997/01/08 21:50:39 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rvmres/ruconflict.cc,v 4.2 1997/12/20 23:34:54 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -40,21 +40,18 @@ static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rvmres
 extern "C" {
 #endif __cplusplus
 #include <stdio.h>
-#if !defined(__GLIBC__)
-#include <libc.h>
-#endif
+#include <util.h>
 #ifdef __cplusplus
 }
 #endif __cplusplus
 
-#include <util.h>
 #include <olist.h>
 #include <dlist.h>
 #include <cvnode.h>
 #include <vcrcommon.h>
-#include <coda_dir.h>
-#include <vlist.h>
+#include <codadir.h>
 #include <srv.h>
+#include <vlist.h>
 #include <inconsist.h>
 #include <resutil.h>
 #include <remotelog.h>
@@ -63,9 +60,9 @@ extern "C" {
 #include "parselog.h"
 
 // ************* Private Routines ***********
-PRIVATE ViceVersionVector *FindDeletedFileVV(olist *, unsigned long, 
+static ViceVersionVector *FindDeletedFileVV(olist *, unsigned long, 
 					     ViceFid *, char *, ViceFid *);
-PRIVATE int ChildDirRUConf(RUParm *, ViceFid *, Vnode *);
+static int ChildDirRUConf(RUParm *, ViceFid *, Vnode *);
 
 
 /* RUConflict
@@ -152,6 +149,17 @@ int FileRUConf(ViceVersionVector *DeletedVV, Vnode *vptr) {
  *	Called on each child via Enumerate Dir 
  *	Detects remove/update conflicts on objects.
  */
+int ENewDirRUConf(PDirEntry de, void *data)
+{
+	RUParm *rup = (RUParm *) data;
+	VnodeId vnode;
+	Unique_t unique;
+	char *name = de->name;
+	FID_NFid2Int(&de->fid, &vnode, &unique);
+	
+	NewDirRUConf(rup, name, vnode, unique);
+}
+
 int NewDirRUConf(RUParm *rup, char *name, long vnode, long unique) {
     
     if (rup->rcode) return(1);
@@ -187,16 +195,16 @@ int NewDirRUConf(RUParm *rup, char *name, long vnode, long unique) {
     {
 	if (!ChildDirRUConf(rup, &cFid, cv->vptr)) {
 	    // check recursively for children too 
-	    DirHandle dh;
-	    SetDirHandle(&dh, cv->vptr);
-	    if (IsEmpty((long *)&dh) != 0) 
-		EnumerateDir((long *)&dh, (int (*) (void * ...))NewDirRUConf, (long)rup);
+	    PDirHandle dh;
+	    dh = VN_SetDirHandle(cv->vptr);
+	    if (DH_IsEmpty(dh)) 
+		DH_EnumerateDir(dh, ENewDirRUConf, (void *)rup);
 	}
     }
     return(rup->rcode);
 }
 
-PRIVATE ViceVersionVector *FindDeletedFileVV(olist *AllLogs, unsigned long hostid, 
+static ViceVersionVector *FindDeletedFileVV(olist *AllLogs, unsigned long hostid, 
 					     ViceFid *filefid, char *name, ViceFid *pFid) {
     ViceVersionVector *VV = NULL;
     olist *rmtloglist = NULL;
@@ -234,7 +242,7 @@ PRIVATE ViceVersionVector *FindDeletedFileVV(olist *AllLogs, unsigned long hosti
 }
 
 
-PRIVATE int ChildDirRUConf(RUParm *rup, ViceFid *cFid, Vnode *cvptr) {
+static int ChildDirRUConf(RUParm *rup, ViceFid *cFid, Vnode *cvptr) {
     //get log for directory where it was removed 
     olist *DeletedDirLog = NULL;
     {

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/src/coda-4.0.1/RCSLINK/./coda-src/vice/srvlock.cc,v 1.1 1996/11/22 19:14:41 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vice/srvlock.cc,v 4.1 1997/01/08 21:51:59 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -51,15 +51,14 @@ extern "C" {
 
 #include <stdio.h>
 #include <sys/types.h>
-#include <libc.h>
+#include <util.h>
+#include <rvmlib.h>
 
 
 #ifdef __cplusplus
 }
 #endif __cplusplus
 
-#include <util.h>
-#include <rvmlib.h>
 #include <srv.h>
 #include <vicelock.h>
 

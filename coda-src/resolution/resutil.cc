@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/res/resutil.cc,v 4.4 1998/01/10 18:37:53 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/res/resutil.cc,v 4.5 1998/08/05 23:49:40 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -45,31 +45,21 @@ extern "C" {
 #include <sys/types.h>
 #include <sys/time.h>
 #include <sys/stat.h>
-#ifdef CAMELOT
-#include <cam/camelot_prefixed.h>
-#include <camlib/camlib_prefixed.h>
-#include <cam/_setjmp.h>
-#endif CAMELOT
 
 #include <netinet/in.h>
 #include <assert.h>
 #include <stdio.h>
-#if !defined(__GLIBC__)
-#include <libc.h>
-#endif
 #include <rpc2.h>
+#include <util.h>
+#include <rvmlib.h>
 
 #ifdef __cplusplus
 }
 #endif __cplusplus
 
-#include <util.h>
-#ifndef CAMELOT
-#include <rvmlib.h>
-#endif CAMELOT 
 #include <errors.h>
 #include <srv.h>
-#include <rvmdir.h>
+#include <codadir.h>
 #include <res.h>
 #include <vrdb.h>
 
@@ -119,7 +109,7 @@ long RS_MarkInc(RPC2_Handle RPCid, ViceFid *Fid) {
     SetIncon(vptr->disk.versionvector);
 
 FreeLocks:
-    CAMLIB_BEGIN_TOP_LEVEL_TRANSACTION_2(CAM_TRAN_NV_SERVER_BASED)
+    RVMLIB_BEGIN_TRANSACTION(restore)
     LogMsg(9, SrvDebugLevel, stdout,  "ResMarkInc: Putting back vnode and volume");
     if (vptr){
 	Error fileCode = 0;
@@ -127,7 +117,7 @@ FreeLocks:
 	assert(fileCode == 0);
     }
     PutVolObj(&volptr, NO_LOCK);
-    CAMLIB_END_TOP_LEVEL_TRANSACTION_2(CAM_PROT_TWO_PHASED, status)
+    RVMLIB_END_TRANSACTION(flush, &(status));
     LogMsg(2, SrvDebugLevel, stdout,  "ResMarkInc returns code %d", errorcode);
     return(errorcode);
 }
@@ -409,7 +399,7 @@ long GetPath(ViceFid *fid, int maxcomponents,
 }
 
 // Only compare fid and VV 
-PRIVATE int CmpComponent(ResPathElem *a, ResPathElem *b) {
+static int CmpComponent(ResPathElem *a, ResPathElem *b) {
     if ((a->vn != b->vn) ||
 	(a->un != b->un) ||
 	(VV_Cmp(&a->vv, &b->vv) != VV_EQ))
@@ -417,7 +407,7 @@ PRIVATE int CmpComponent(ResPathElem *a, ResPathElem *b) {
     return(0);
 }
 
-PRIVATE int GetUnEqFid(int nreplicas, int *nentries, 
+static int GetUnEqFid(int nreplicas, int *nentries, 
 		       ResPathElem **paths, ViceFid *UnEqFid) {
     int BadIndex = -1;
     UnEqFid->Volume = 0;
@@ -443,7 +433,7 @@ PRIVATE int GetUnEqFid(int nreplicas, int *nentries,
     return(BadIndex);
 }
 
-PRIVATE void GetUnEqVV(int *sizes, ResPathElem **paths, 
+static void GetUnEqVV(int *sizes, ResPathElem **paths, 
 		       int BadIndex, ViceVersionVector **UnEqVV) {
     for (int i = 0; i < VSG_MEMBERS; i++) {
 	if (sizes[i] && (sizes[i] > BadIndex)) 
@@ -452,7 +442,7 @@ PRIVATE void GetUnEqVV(int *sizes, ResPathElem **paths,
     }
 }
 
-PRIVATE void GetUnEqResStatus(int *sizes, ResPathElem **paths, 
+static void GetUnEqResStatus(int *sizes, ResPathElem **paths, 
 			      int BadIndex, ResStatus **rstatusp) {
     for (int i = 0; i < VSG_MEMBERS; i++) {
 	if (sizes[i] && (sizes[i] > BadIndex)) 

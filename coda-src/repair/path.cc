@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/repair/path.cc,v 4.6 1998/01/04 14:58:13 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/repair/path.cc,v 4.7 1998/01/10 18:37:36 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -63,14 +63,8 @@ extern "C" {
 #include <strings.h>
 #include <sys/stat.h>
 #include <rpc2.h>
-#ifdef __MACH__
-#include <sysent.h>
-#include <libc.h>
-#else	/* __linux__ || __BSD44__ */
 #include <unistd.h>
 #include <stdlib.h>
-#define MAXSYMLINKS 16
-#endif
 
 #include <inodeops.h>
 #ifdef __cplusplus
@@ -84,8 +78,8 @@ extern "C" {
 
 extern int session;
 
-PRIVATE char *repair_abspath(char *result, unsigned int len, char *name);
-PRIVATE int repair_getvid(char *, VolumeId *);
+static char *repair_abspath(char *result, unsigned int len, char *name);
+static int repair_getvid(char *, VolumeId *);
 
 /*
  leftmost: check pathname for inconsistent object
@@ -106,7 +100,7 @@ int repair_isleftmost(char *path, char *realpath, int len)
     DEBUG(("repair_isleftmost(%s, %s)\n", path, realpath));
     strcpy(buf, path); /* tentative */
     symlinks = 0;
-    if (!getwd(here)) { /* remember where we are */
+    if (!getcwd(here, sizeof(here))) { /* remember where we are */
 	printf("Couldn't stat current working directory\n");
 	exit(-1);
     }
@@ -368,7 +362,7 @@ int repair_IsInCoda(char *name)
 	    return (0);
 }
 
-PRIVATE char *repair_abspath(char *result, unsigned int len, char *name)
+static char *repair_abspath(char *result, unsigned int len, char *name)
 {
     assert(getcwd(result, len));
     assert( strlen(name) + 1 <= len );
@@ -382,7 +376,7 @@ PRIVATE char *repair_abspath(char *result, unsigned int len, char *name)
 /* Returns 0 and fills volid with the volume id of path.  Returns -1
    on failure */
 
-PRIVATE int repair_getvid(char *path, VolumeId *vid)
+static int repair_getvid(char *path, VolumeId *vid)
 {
     ViceFid vfid;
     ViceVersionVector vv;

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /usr/rvb/XX/src/coda-src/volutil/RCS/parserecdump.cc,v 4.1 1997/01/08 21:52:25 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/volutil/parserecdump.cc,v 4.2 1997/02/26 16:04:02 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -84,7 +84,7 @@ int cmprec(dumprec_t *a, dumprec_t *b)
     else return 0;
 }	
 
-PRIVATE void printdump(dumprec_t *a, int size)
+static void printdump(dumprec_t *a, int size)
 {
     char    name[32];
     for (int i = 0; i < size; i++){
@@ -113,9 +113,6 @@ PRIVATE void printdump(dumprec_t *a, int size)
 	    case DIRPAGET:
 		strcpy(name, "DIRPAGET");
 		break;
-	    case CAMELOTFREESTORE:
-		strcpy(name, "CAMELOTFREESTORE");
-		break;
 	    case SFREEVNODEPTRARRT:
 		strcpy(name,"SFREEVNODEPTRARRT");
 		break;
@@ -137,7 +134,7 @@ PRIVATE void printdump(dumprec_t *a, int size)
 	       i, a[i].rec_addr, a[i].size, name, a[i].index);
     }
 }
-PRIVATE void checkdump(dumprec_t *a, int size)
+static void checkdump(dumprec_t *a, int size)
 {
     printf("Checking dump....\n");
     for(int i = 1; i < size; i++)

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rvmres/recov_vollog.cc,v 4.3 1997/12/20 23:34:51 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rvmres/recov_vollog.cc,v 4.4 1998/01/10 18:38:14 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -75,7 +75,7 @@ extern "C" {
 void *recov_vol_log::operator new(size_t len) {
     recov_vol_log *rcvl = 0;
     
-    rcvl = (recov_vol_log *)RVMLIB_REC_MALLOC((int) len);
+    rcvl = (recov_vol_log *)rvmlib_rec_malloc((int) len);
     assert(rcvl);
     return(rcvl);
 }
@@ -95,17 +95,17 @@ recov_vol_log::recov_vol_log(VolumeId vid, int adm) :recov_inuse(adm, 1) {
     
     if (admin_limit) {
 	int index_size = admin_limit / LOGRECORD_BLOCKSIZE;
-	index = (recle **)RVMLIB_REC_MALLOC(index_size * sizeof(void *));
+	index = (recle **)rvmlib_rec_malloc(index_size * sizeof(void *));
 	assert(index);
-	RVMLIB_SET_RANGE(index, index_size * sizeof(void *));
+	rvmlib_set_range(index, index_size * sizeof(void *));
 	bzero((void *)index, index_size * sizeof(void *));
     }
     else 
 	index = NULL;
     
     rec_max_seqno = 0;
-    wrapvn = -1;
-    wrapun = -1;
+    wrapvn = (unsigned int) -1;
+    wrapun = (unsigned int) -1;
     lastwrapindex = -1;
     ResetTransients(vid);
     rec_max_seqno = SEQNO_GROWSIZE;
@@ -124,11 +124,11 @@ void recov_vol_log::ResetTransients(VolumeId vid) {
 }
 
 recov_vol_log::~recov_vol_log() {
-    if (index) RVMLIB_REC_FREE(index); 
+    if (index) rvmlib_rec_free(index); 
 }
 
 void recov_vol_log::operator delete(void *deadobj, size_t len) {
-    RVMLIB_REC_FREE(deadobj);
+    rvmlib_rec_free(deadobj);
 }
 
 
@@ -150,17 +150,17 @@ int recov_vol_log::Grow(int offset) {
     
     assert(index[pos] == NULL);
     
-    RVMLIB_SET_RANGE(&index[pos], sizeof(void *)); 
+    rvmlib_set_range(&index[pos], sizeof(void *)); 
     
-    index[pos] = (recle *)RVMLIB_REC_MALLOC(LOGRECORD_BLOCKSIZE * sizeof(recle)); 
+    index[pos] = (recle *)rvmlib_rec_malloc(LOGRECORD_BLOCKSIZE * sizeof(recle)); 
     assert(index[pos]);
     
     recle *l = index[pos];
-    RVMLIB_SET_RANGE(index[pos], LOGRECORD_BLOCKSIZE * sizeof(recle));
+    rvmlib_set_range(index[pos], LOGRECORD_BLOCKSIZE * sizeof(recle));
     bzero((void *)l, LOGRECORD_BLOCKSIZE * sizeof(recle));
     
     
-    RVMLIB_SET_RANGE(&size, sizeof(int));
+    rvmlib_set_range(&size, sizeof(int));
     size += LOGRECORD_BLOCKSIZE;
     
     return(0);
@@ -169,27 +169,27 @@ int recov_vol_log::Grow(int offset) {
 // called from within a transaction
 void recov_vol_log::FreeBlock(int i) {
     assert(index[i]);
-    RVMLIB_REC_FREE(index[i]);
+    rvmlib_rec_free(index[i]);
     
-    RVMLIB_SET_RANGE(&index[i], sizeof(void *));
+    rvmlib_set_range(&index[i], sizeof(void *));
     index[i] = NULL;
     
-    RVMLIB_SET_RANGE(&size, sizeof(int));
+    rvmlib_set_range(&size, sizeof(int));
     size -= LOGRECORD_BLOCKSIZE;
 }
 /* outside or within a transaction */
 void recov_vol_log::Increase_rec_max_seqno(int i) {
     int status;
     
-    if (!RVMLIB_IN_TRANSACTION) {
+    if (!rvmlib_in_transaction()) {
 	RVMLIB_BEGIN_TRANSACTION(restore);
-	RVMLIB_SET_RANGE(&rec_max_seqno, sizeof(int));
+	rvmlib_set_range(&rec_max_seqno, sizeof(int));
 	rec_max_seqno += i;
 	RVMLIB_END_TRANSACTION(flush, &status);
 	assert(status == RVM_SUCCESS);
     }
     else { 
-	RVMLIB_SET_RANGE(&rec_max_seqno, sizeof(int));
+	rvmlib_set_range(&rec_max_seqno, sizeof(int));
 	rec_max_seqno += i;
     }
 }
@@ -241,17 +241,17 @@ void recov_vol_log::Increase_Admin_Limit(int newsize) {
     while (newsize & (LOGRECORD_BLOCKSIZE - 1)) newsize++;
     
     int new_index_size = newsize / LOGRECORD_BLOCKSIZE;
-    recle **new_index = (recle **)RVMLIB_REC_MALLOC(new_index_size * sizeof(void *));
+    recle **new_index = (recle **)rvmlib_rec_malloc(new_index_size * sizeof(void *));
     assert(new_index);
-    RVMLIB_SET_RANGE(new_index, new_index_size * sizeof(void *));
+    rvmlib_set_range(new_index, new_index_size * sizeof(void *));
     bzero((void *)new_index, new_index_size * sizeof(void *));
     bcopy((const void *)index, (void *)new_index, sizeof(void *) * (admin_limit / LOGRECORD_BLOCKSIZE));
     
-    if (index) RVMLIB_REC_FREE(index);
-    RVMLIB_SET_RANGE(&index, sizeof(recle **));
+    if (index) rvmlib_rec_free(index);
+    rvmlib_set_range(&index, sizeof(recle **));
     index = new_index;
     
-    RVMLIB_SET_RANGE(&admin_limit, sizeof(int));
+    rvmlib_set_range(&admin_limit, sizeof(int));
     admin_limit = newsize;
     
     /* change the bitmaps */
@@ -275,7 +275,7 @@ int recov_vol_log::AllocRecord(int *index, int *seqno) {
     
     int status;
     
-    if (!RVMLIB_IN_TRANSACTION){
+    if (!rvmlib_in_transaction()){
 	// start new transaction if one is not started already 
 	RVMLIB_BEGIN_TRANSACTION(restore);
 	Increase_Admin_Limit(admin_limit * 2);
@@ -354,8 +354,8 @@ void recov_vol_log::purge() {
     /* the variable length part of each log record should have already been purged */
     for (int i = 0; i < index_size; i++) 
 	if (index[i]) 
-	    RVMLIB_REC_FREE(index[i]);
-    RVMLIB_REC_FREE(index);
+	    rvmlib_rec_free(index[i]);
+    rvmlib_rec_free(index);
     index = NULL;
     size = 0;
     rec_max_seqno = 0; 
@@ -509,7 +509,7 @@ recov_vol_log::ChooseWrapAroundVnode(Volume *vol, int different)
 		}
 
 		int status;
-		assert(!RVMLIB_IN_TRANSACTION);
+		assert(!rvmlib_in_transaction());
 		RVMLIB_BEGIN_TRANSACTION(restore);
 		RVMLIB_REC_OBJECT(wrapvn);
 		wrapvn = r[j].dvnode;
@@ -604,7 +604,7 @@ int recov_vol_log::AllocViaWrapAround(int *index, int *seqno,
 	    LogMsg(0, SrvDebugLevel, stdout,
 		   "AllocViaWrapAround: Reclaiming first log rec of 0x%x.%x\n\n",
 		   wrapvn, wrapun);
-	    assert(!RVMLIB_IN_TRANSACTION);
+	    assert(!rvmlib_in_transaction());
 	    RVMLIB_BEGIN_TRANSACTION(restore);
 	    recle *le = (recle *)VnLog(vptr)->get();
 	    rec_dlist *childlog;

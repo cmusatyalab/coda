@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/dir/coda_dir.h,v 4.1 1997/01/08 21:49:32 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/dir/codadir.h,v 4.1 1998/08/26 21:15:06 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -220,16 +220,8 @@ void DI_VMFree(PDirInode pdi);
 void DI_VMDec(PDirInode pdi);
 
 /* dir handle cache */
-/* directory handle cache entry */
-struct DCEntry {
-	struct dllist_chain   dc_list;
-	int                   dc_count;  /* number of vnodes referencing us */
-	int                   dc_refcount; /* new refcount upon commit */
-	struct DirHandle      dc_dh;
-	PDirInode             dc_pdi;
-	PDirInode             dc_cowpdi;
-};
 
+int DC_Refcount(PDCEntry);
 void DC_Put(PDCEntry);
 void DC_Drop(PDCEntry);
 void DC_SetDirh(PDCEntry pdce, PDirHeader pdh);

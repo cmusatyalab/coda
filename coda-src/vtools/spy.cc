@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vtools/spy.cc,v 4.3 1997/02/26 16:04:23 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vtools/spy.cc,v 4.4 1998/08/06 00:18:41 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -70,8 +70,8 @@ const char MarinerService[] = "venus";
 
 int Bind(const char *, const char *);
 void CheckMariner(FILE *);
-PRIVATE void TERM(int, int, struct sigcontext *);
-PRIVATE void usage();
+static void TERM(int, int, struct sigcontext *);
+static void usage();
 
 
 main(int argc, char **argv) {
@@ -175,7 +175,7 @@ void CheckMariner(FILE *fp) {
 }
 
 
-PRIVATE void TERM(int sig, int code, struct sigcontext *contextPtr) {
+static void TERM(int sig, int code, struct sigcontext *contextPtr) {
     fflush(stdout);
     fflush(stderr);
     exit(0);

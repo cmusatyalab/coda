@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vtools/cmon.cc,v 4.6 1998/06/24 18:47:45 jaharkes Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vtools/cmon.cc,v 4.7 1998/08/05 23:50:37 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -133,17 +133,17 @@ WINDOW *curWin;  /* where cursor sits */
 #define HOME() wmove(curWin, 0, 0); wclear(curWin); wrefresh(curWin);
 
 
-PRIVATE void GetArgs(int argc, char *argv[]);
-PRIVATE void InitRPC();
-PRIVATE void DrawCaptions();
-PRIVATE void PrintServer(struct server *);
-PRIVATE void cbserver();
-PRIVATE void srvlwp(int);
-PRIVATE void kbdlwp(char *);
-PRIVATE CmpDisk(ViceDisk **, ViceDisk **);
-PRIVATE ValidServer(char *);
-PRIVATE void ComputePV(struct server *s, struct printvals *pv);
-PRIVATE char *ShortDiskName(char *s);
+static void GetArgs(int argc, char *argv[]);
+static void InitRPC();
+static void DrawCaptions();
+static void PrintServer(struct server *);
+static void cbserver();
+static void srvlwp(int);
+static void kbdlwp(char *);
+static CmpDisk(ViceDisk **, ViceDisk **);
+static ValidServer(char *);
+static void ComputePV(struct server *s, struct printvals *pv);
+static char *ShortDiskName(char *s);
 
 char Dummy; /* dummy variable for LWP_WaitProcess() */
 
@@ -167,7 +167,7 @@ main(int argc, char *argv[])
     LWP_WaitProcess(&Dummy); /* wait for Godot */
     }
 
-PRIVATE void srvlwp(int slot)
+static void srvlwp(int slot)
     {
     struct server *moi;
     RPC2_HostIdent hi;
@@ -226,7 +226,7 @@ PRIVATE void srvlwp(int slot)
 	}
     }
 
-PRIVATE void kbdlwp(char *p)
+static void kbdlwp(char *p)
     /* LWP to listen for keyboard activity */
     {
     fd_set rset;
@@ -260,7 +260,7 @@ PRIVATE void kbdlwp(char *p)
 	}
     }
 
-PRIVATE void GetArgs(int argc, char *argv[])
+static void GetArgs(int argc, char *argv[])
     {
     int next;
     char *c;
@@ -320,7 +320,7 @@ BadArgs:
     }
 
 
-PRIVATE void InitRPC()
+static void InitRPC()
     {
     int pid;
     int rc;
@@ -342,7 +342,7 @@ PRIVATE void InitRPC()
     }
 
 
-PRIVATE void DrawCaptions()
+static void DrawCaptions()
     {
     WINDOW *w1;
     
@@ -400,7 +400,7 @@ char *when(long now, long then)
     }
 
 
-PRIVATE void PrintServer(struct server *s)
+static void PrintServer(struct server *s)
     {
     char shortname[SRVCOLWIDTH+1];
     register WINDOW *w;
@@ -480,7 +480,7 @@ PRIVATE void PrintServer(struct server *s)
     }
 
 
-PRIVATE void ComputePV(struct server *s, struct printvals *pv)
+static void ComputePV(struct server *s, struct printvals *pv)
     {
     long t;
     ViceDisk *di[10];
@@ -569,7 +569,7 @@ CmpDisk(ViceDisk **d1, ViceDisk **d2)
     return(0);
     }
 
-PRIVATE ValidServer(char *s)
+static ValidServer(char *s)
     {
     struct hostent *he;
     
@@ -578,7 +578,7 @@ PRIVATE ValidServer(char *s)
     else return(0);
     }
 
-PRIVATE char *ShortDiskName(char *s)
+static char *ShortDiskName(char *s)
     /* Returns 5-char abbreviation of a disk name returned
        by ViceGetStatistics(). */
     {

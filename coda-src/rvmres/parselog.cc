@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rvmres/parselog.cc,v 4.1 1997/01/08 21:50:36 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rvmres/parselog.cc,v 4.2 1997/12/20 23:34:49 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -62,7 +62,7 @@ extern "C" {
 
 // *********** Private Routines *************
 
-PRIVATE void ReadOpsFromBuf(char *, int, int, rsle **);
+static void ReadOpsFromBuf(char *, int, int, rsle **);
 
 /* ParseRemoteLogs
  *	Parse the byte stream of log entries shipped 
@@ -130,7 +130,7 @@ void DeallocateRemoteLogs(olist *AllLogs) {
 // ReadOpsFromBuf: 
 //	Parse buf into individual log entries
 //	Log entries are allocated in an array - RemoteLogEntries
-PRIVATE void ReadOpsFromBuf(char *buf, int bufsize, 
+static void ReadOpsFromBuf(char *buf, int bufsize, 
 			    int nentries, rsle **RemoteLogEntries) {
     *RemoteLogEntries = new rsle[nentries];
     char *tmpptr = buf;

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/volutil/vol-restore.cc,v 4.6 1998/01/10 18:40:02 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/volutil/vol-restore.cc,v 4.7 1998/04/14 21:00:40 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -76,6 +76,8 @@ extern "C" {
 #include <lwp.h>
 #include <lock.h>
 #include <rpc2.h>
+#include <util.h>
+#include <codadir.h>
 #include <inodeops.h>
 
 #include <volutil.h>
@@ -84,7 +86,6 @@ extern "C" {
 }
 #endif __cplusplus
 
-#include <util.h>
 #include <rvmlib.h>
 #include <voltypes.h>
 #include <vldb.h>
@@ -92,13 +93,11 @@ extern "C" {
 #include <cvnode.h>
 #include <volume.h>
 #include <camprivate.h>
-#include <coda_dir.h>
 #include <errors.h>
 #include <recov.h>
 #include <dump.h>
 #include <fssync.h>
 #include <al.h>
-#include <rvmdir.h>
 #include <rec_smolist.h>
 #include <partition.h>
 #include <viceinode.h>
@@ -108,13 +107,13 @@ extern "C" {
 #include <coda_globals.h>
 #include <voldump.h>
 
-PRIVATE int RestoreVolume(DumpBuffer_t *, char *, char *, VolumeId *);
-PRIVATE int ReadLargeVnodeIndex(DumpBuffer_t *, Volume *);
-PRIVATE int ReadSmallVnodeIndex(DumpBuffer_t *, Volume *);
-PRIVATE void ReadVnodeDiskObject(DumpBuffer_t *, VnodeDiskObject *, DirInode **, Volume *, long *);
+static int RestoreVolume(DumpBuffer_t *, char *, char *, VolumeId *);
+static int ReadLargeVnodeIndex(DumpBuffer_t *, Volume *);
+static int ReadSmallVnodeIndex(DumpBuffer_t *, Volume *);
+static void ReadVnodeDiskObject(DumpBuffer_t *, VnodeDiskObject *, DirInode **, Volume *, long *);
 extern void VMFreeDirInode(DirInode *inode);
 
-PRIVATE int VnodePollPeriod = 16;  /* Number of vnodes restored per transaction */
+static int VnodePollPeriod = 16;  /* Number of vnodes restored per transaction */
 extern void PollAndYield();
 #define DUMPBUFSIZE 512000
 
@@ -184,7 +183,7 @@ long S_VolRestore(RPC2_Handle rpcid, RPC2_String formal_partition, RPC2_String f
     sid.Value.SubsysId = VOLDUMP_SUBSYSTEMID;
     bparms.SecurityLevel = RPC2_OPENKIMONO;
     bparms.SideEffectType = SMARTFTP;
-    bparms.EncryptionType = NULL;
+    bparms.EncryptionType = 0;
     bparms.ClientIdent = NULL;
     bparms.SharedSecret = NULL;
     
@@ -221,7 +220,7 @@ long S_VolRestore(RPC2_Handle rpcid, RPC2_String formal_partition, RPC2_String f
     return(status?status:rc);
 }
 
-PRIVATE int RestoreVolume(DumpBuffer_t *buf, char *partition, char *volname, VolumeId *volid)
+static int RestoreVolume(DumpBuffer_t *buf, char *partition, char *volname, VolumeId *volid)
 {
     VolumeDiskData vol;
     struct DumpHeader header;
@@ -259,21 +258,21 @@ PRIVATE int RestoreVolume(DumpBuffer_t *buf, char *partition, char *volname, Vol
 	return VFAIL;
     }
 
-    CAMLIB_BEGIN_TOP_LEVEL_TRANSACTION_2(CAM_TRAN_NV_SERVER_BASED)
+    RVMLIB_BEGIN_TRANSACTION(restore);
     if (*volid != 0) {
 	/* update Maxid of the volumes so that the volume routines will work */
 	unsigned long maxid = *volid & 0x00FFFFFF;
-	if (maxid > (CAMLIB_REC(MaxVolId) & 0x00FFFFFF)){
+	if (maxid > (SRV_RVM(MaxVolId) & 0x00FFFFFF)){
 	    LogMsg(0, VolDebugLevel, stdout, "Restore: Updating MaxVolId; maxid = 0x%x MaxVolId = 0x%x", 
-		maxid, CAMLIB_REC(MaxVolId));
-	    CAMLIB_MODIFY(CAMLIB_REC(MaxVolId),
-			  (maxid + 1) | (CAMLIB_REC(MaxVolId) & 0xFF000000));
+		maxid, SRV_RVM(MaxVolId));
+	    RVMLIB_MODIFY(SRV_RVM(MaxVolId),
+			  (maxid + 1) | (SRV_RVM(MaxVolId) & 0xFF000000));
 	}
     } else {
 	*volid = VAllocateVolumeId(&error);
 	if (error) {
 	    LogMsg(0, VolDebugLevel, stdout, "Unable to allocate volume id; restore aborted");
-	    CAMLIB_ABORT(-1);
+	    rvmlib_abort(VFAIL);
 	}
     }
     /* NOTE:  Do NOT set the parentId of restore RO volumes to the ORIGINAL
@@ -285,17 +284,17 @@ PRIVATE int RestoreVolume(DumpBuffer_t *buf, char *partition, char *volname, Vol
     vp = VCreateVolume(&error, partition, *volid, parentid, 0, volumeType);
     if (error) {
 	LogMsg(0, VolDebugLevel, stdout,"Unable to create volume %x; not restored", *volid);
-	CAMLIB_ABORT(-1);
+	rvmlib_abort(-1);
     }
 
     V_blessed(vp) = 0;
     VUpdateVolume(&error, vp);
     if (error) {
 	LogMsg(0, VolDebugLevel, stdout, "S_VolClone: Trouble updating voldata for %#8x!", *volid);
-	CAMLIB_ABORT(VFAIL);
+	rvmlib_abort(VFAIL);
     }
 
-    CAMLIB_END_TOP_LEVEL_TRANSACTION_2(CAM_PROT_TWO_PHASED, status)
+    RVMLIB_END_TRANSACTION(flush, &status)
     if (status == 0)
 	LogMsg(9, VolDebugLevel, stdout, "restore createvol completed successfully");
     else {
@@ -342,22 +341,22 @@ PRIVATE int RestoreVolume(DumpBuffer_t *buf, char *partition, char *volname, Vol
     V_inService(vp) = V_blessed(vp) = 1;
     
     LogMsg(0, VolDebugLevel, stdout, "partname -%s-", V_partname(vp));
-    CAMLIB_BEGIN_TOP_LEVEL_TRANSACTION_2(CAM_TRAN_NV_SERVER_BASED)
+    RVMLIB_BEGIN_TRANSACTION(restore);
 
     VUpdateVolume(&error, vp);
     if (error) {
 	LogMsg(0, VolDebugLevel, stdout, "restore: Unable to rewrite volume header; restore aborted");
-	CAMLIB_ABORT(-1);
+	rvmlib_abort(-1);
     }
 
     VDetachVolume(&error, vp); /* Let file server get its hands on it */
     if (error) {
 	LogMsg(0, VolDebugLevel, stdout, "restore: Unable to detach volume; restore aborted");
-	CAMLIB_ABORT(-1);
+	rvmlib_abort(-1);
     }
     VListVolumes();			/* Create updated /vice/vol/VolumeList */
 
-    CAMLIB_END_TOP_LEVEL_TRANSACTION_2(CAM_PROT_TWO_PHASED, status)
+    RVMLIB_END_TRANSACTION(flush, &status)
     if (status == 0)
 	LogMsg(9, VolDebugLevel, stdout, "S_VolRestore: VUpdateVolume completed successfully");
     else {
@@ -373,7 +372,7 @@ PRIVATE int RestoreVolume(DumpBuffer_t *buf, char *partition, char *volname, Vol
  * lists are created as well, but no vnodes should be added. So this routine
  * will free up the empty indexes and would delete any vnodes if there are any.
  */
-PRIVATE void FreeVnodeIndex(Volume *vp, VnodeClass vclass)
+static void FreeVnodeIndex(Volume *vp, VnodeClass vclass)
 {
     rec_smolist *list;
     bit32 listsize;
@@ -381,21 +380,21 @@ PRIVATE void FreeVnodeIndex(Volume *vp, VnodeClass vclass)
     VnodeDiskObject *vdo;
     int status = 0;
 
-    CAMLIB_BEGIN_TOP_LEVEL_TRANSACTION_2(CAM_TRAN_NV_SERVER_BASED)
+    RVMLIB_BEGIN_TRANSACTION(restore);
 
     if (vclass == vSmall){
-	list = CAMLIB_REC(VolumeList[volindex]).data.smallVnodeLists;
-	listsize = CAMLIB_REC(VolumeList[volindex]).data.nsmallLists;
-	CAMLIB_MODIFY(CAMLIB_REC(VolumeList[volindex]).data.smallVnodeLists, 0); 
-	CAMLIB_MODIFY(CAMLIB_REC(VolumeList[volindex]).data.nsmallvnodes, 0);
-	CAMLIB_MODIFY(CAMLIB_REC(VolumeList[volindex]).data.nsmallLists, 0);
+	list = SRV_RVM(VolumeList[volindex]).data.smallVnodeLists;
+	listsize = SRV_RVM(VolumeList[volindex]).data.nsmallLists;
+	RVMLIB_MODIFY(SRV_RVM(VolumeList[volindex]).data.smallVnodeLists, 0); 
+	RVMLIB_MODIFY(SRV_RVM(VolumeList[volindex]).data.nsmallvnodes, 0);
+	RVMLIB_MODIFY(SRV_RVM(VolumeList[volindex]).data.nsmallLists, 0);
     }
     else if (vclass == vLarge){
-	list = CAMLIB_REC(VolumeList[volindex]).data.largeVnodeLists;
-	listsize = CAMLIB_REC(VolumeList[volindex]).data.nlargeLists;
-	CAMLIB_MODIFY(CAMLIB_REC(VolumeList[volindex]).data.largeVnodeLists, 0); 
-	CAMLIB_MODIFY(CAMLIB_REC(VolumeList[volindex]).data.nlargevnodes, 0);
-	CAMLIB_MODIFY(CAMLIB_REC(VolumeList[volindex]).data.nlargeLists, 0);
+	list = SRV_RVM(VolumeList[volindex]).data.largeVnodeLists;
+	listsize = SRV_RVM(VolumeList[volindex]).data.nlargeLists;
+	RVMLIB_MODIFY(SRV_RVM(VolumeList[volindex]).data.largeVnodeLists, 0); 
+	RVMLIB_MODIFY(SRV_RVM(VolumeList[volindex]).data.nlargevnodes, 0);
+	RVMLIB_MODIFY(SRV_RVM(VolumeList[volindex]).data.nlargeLists, 0);
     }
     else 
 	assert(1==2);
@@ -406,17 +405,17 @@ PRIVATE void FreeVnodeIndex(Volume *vp, VnodeClass vclass)
 	    LogMsg(0, VolDebugLevel, stdout, "Vol_Restore: Found a vnode on the new volume's %s list!",
 		(vclass == vLarge) ? "Large" : "Small");
 	    vdo = strbase(VnodeDiskObject, p, nextvn);
-	    CAMLIB_REC_FREE((char *)vdo);
+	    rvmlib_rec_free((char *)vdo);
 	    
 	}
     }	
-    CAMLIB_REC_FREE(((char *)list));
+    rvmlib_rec_free(((char *)list));
 
-    CAMLIB_END_TOP_LEVEL_TRANSACTION_2(CAM_PROT_TWO_PHASED, status)
+    RVMLIB_END_TRANSACTION(flush, &status);
     assert(status == 0);	/* Never aborts ... */
 }
 
-PRIVATE int ReadLargeVnodeIndex(DumpBuffer_t *buf, Volume *vp)
+static int ReadLargeVnodeIndex(DumpBuffer_t *buf, Volume *vp)
 {
     int num_vnodes, list_size = 0, status = 0;
     long vnodenumber;
@@ -448,52 +447,52 @@ PRIVATE int ReadLargeVnodeIndex(DumpBuffer_t *buf, Volume *vp)
     PutTag(tag, buf);
 
     /* Set up a list structure. */
-    CAMLIB_BEGIN_TOP_LEVEL_TRANSACTION_2(CAM_TRAN_NV_SERVER_BASED)
+    RVMLIB_BEGIN_TRANSACTION(restore);
 
-    rlist = (rec_smolist *)(CAMLIB_REC_MALLOC(sizeof(rec_smolist) * list_size));
+    rlist = (rec_smolist *)(rvmlib_rec_malloc(sizeof(rec_smolist) * list_size));
     rec_smolist *vmrlist = (rec_smolist *)malloc(sizeof(rec_smolist) * list_size);
     bzero((void *)vmrlist, sizeof(rec_smolist) * list_size);
-    CAMLIB_MODIFY_BYTES(rlist, vmrlist, sizeof(rec_smolist) * list_size);
+    rvmlib_modify_bytes(rlist, vmrlist, sizeof(rec_smolist) * list_size);
     free(vmrlist);
 
     /* Update Volume structure to point to new vnode list. 
      * Doing this here so that if an abort happens during the loop the
      * commited vnodes will be scavanged.
      */
-    CAMLIB_MODIFY(CAMLIB_REC(VolumeList[volindex]).data.nlargevnodes, num_vnodes);
-    CAMLIB_MODIFY(CAMLIB_REC(VolumeList[volindex]).data.nlargeLists, list_size);
-    CAMLIB_MODIFY(CAMLIB_REC(VolumeList[volindex]).data.largeVnodeLists, rlist);
+    RVMLIB_MODIFY(SRV_RVM(VolumeList[volindex]).data.nlargevnodes, num_vnodes);
+    RVMLIB_MODIFY(SRV_RVM(VolumeList[volindex]).data.nlargeLists, list_size);
+    RVMLIB_MODIFY(SRV_RVM(VolumeList[volindex]).data.largeVnodeLists, rlist);
     
-    CAMLIB_END_TOP_LEVEL_TRANSACTION_2(CAM_PROT_TWO_PHASED, status)
+    RVMLIB_END_TRANSACTION(flush, &status)
     assert(status == 0);			/* Never aborts... */
 
     VnodeDiskObject *camvdo;
     long tmp = 0, i = 0;
     while (i < num_vnodes) {
-	CAMLIB_BEGIN_TOP_LEVEL_TRANSACTION_2(CAM_TRAN_NV_SERVER_BASED)
+	RVMLIB_BEGIN_TRANSACTION(restore);
 	do {
 	    ReadVnodeDiskObject(buf, vdo, &dinode, vp, &vnodenumber);
 	    LogMsg(19, VolDebugLevel, stdout, "Just read vnode for index %d.", vnodenumber);
 	    if (vdo->type != vNull){
 		/* this vnode is allocated */
 		/* copy the directory pages into rec storage */
-		dinode->refcount = 1;
-		CopyDirInode(dinode, &camdInode);
-		VMFreeDirInode(dinode);
+		dinode->di_refcount = 1;
+		DI_Copy(dinode, &camdInode);
+		DI_VMFree(dinode);
 		vdo->inodeNumber = (Inode)camdInode;
-		camvdo=(VnodeDiskObject *)CAMLIB_REC_MALLOC(SIZEOF_LARGEDISKVNODE);
-		CAMLIB_MODIFY_BYTES(&(camvdo->nextvn), &tmp, sizeof(long));
+		camvdo=(VnodeDiskObject *)rvmlib_rec_malloc(SIZEOF_LARGEDISKVNODE);
+		rvmlib_modify_bytes(&(camvdo->nextvn), &tmp, sizeof(long));
 		rlist[vnodeIdToBitNumber(vnodenumber)].append(&(camvdo->nextvn));
 		vdo->cloned = 0;
 		vdo->vol_index = volindex;
 		vdo->vnodeMagic = LARGEVNODEMAGIC;
 		ViceLockClear((&vdo->lock));
 		bcopy((const void *)&(camvdo->nextvn), (void *) &(vdo->nextvn), sizeof(rec_smolink));
-		CAMLIB_MODIFY_BYTES(camvdo, vdo, SIZEOF_LARGEDISKVNODE);
+		rvmlib_modify_bytes(camvdo, vdo, SIZEOF_LARGEDISKVNODE);
 		nvnodes ++;
 	    }
 	} while ((i++ < num_vnodes) && (i % VnodePollPeriod));
-	CAMLIB_END_TOP_LEVEL_TRANSACTION_2(CAM_PROT_TWO_PHASED, status)
+	RVMLIB_END_TRANSACTION(flush, &status)
 	assert(status == 0);			/* Never aborts... */
 	LogMsg(9, VolDebugLevel, stdout, "S_VolRestore: Did another series of Vnode restores.");
 	PollAndYield();
@@ -508,7 +507,7 @@ PRIVATE int ReadLargeVnodeIndex(DumpBuffer_t *buf, Volume *vp)
 }
 
 
-PRIVATE int ReadSmallVnodeIndex(DumpBuffer_t *buf, Volume *vp)
+static int ReadSmallVnodeIndex(DumpBuffer_t *buf, Volume *vp)
 {
     long vnodenumber;
     int num_vnodes, list_size = 0, status = 0;
@@ -531,54 +530,54 @@ PRIVATE int ReadSmallVnodeIndex(DumpBuffer_t *buf, Volume *vp)
 		break;
 	    default:
 		LogMsg(0, VolDebugLevel, stdout, "Unexpected field of Vnode found; restore aborted");
-		CAMLIB_ABORT(-1);
+		rvmlib_abort(-1);
 	}
     }
     PutTag(tag, buf);
 
     /* Set up a list structure. */
-    CAMLIB_BEGIN_TOP_LEVEL_TRANSACTION_2(CAM_TRAN_NV_SERVER_BASED)
+    RVMLIB_BEGIN_TRANSACTION(restore);
 
-    rlist = (rec_smolist *)(CAMLIB_REC_MALLOC(sizeof(rec_smolist) * list_size));
+    rlist = (rec_smolist *)(rvmlib_rec_malloc(sizeof(rec_smolist) * list_size));
     rec_smolist *vmrlist = (rec_smolist *)malloc(sizeof(rec_smolist) * list_size);
     bzero((void *)vmrlist, sizeof(rec_smolist) * list_size);
-    CAMLIB_MODIFY_BYTES(rlist, vmrlist, sizeof(rec_smolist) * list_size);
+    rvmlib_modify_bytes(rlist, vmrlist, sizeof(rec_smolist) * list_size);
     free(vmrlist);
 
     /* Update Volume structure to point to new vnode list. 
      * Doing this here so that if an abort happens during the loop the
      * commited vnodes will be scavanged.
      */
-    CAMLIB_MODIFY(CAMLIB_REC(VolumeList[volindex]).data.nsmallvnodes, num_vnodes);
-    CAMLIB_MODIFY(CAMLIB_REC(VolumeList[volindex]).data.nsmallLists, list_size);
-    CAMLIB_MODIFY(CAMLIB_REC(VolumeList[volindex]).data.smallVnodeLists, rlist);
+    RVMLIB_MODIFY(SRV_RVM(VolumeList[volindex]).data.nsmallvnodes, num_vnodes);
+    RVMLIB_MODIFY(SRV_RVM(VolumeList[volindex]).data.nsmallLists, list_size);
+    RVMLIB_MODIFY(SRV_RVM(VolumeList[volindex]).data.smallVnodeLists, rlist);
 
-    CAMLIB_END_TOP_LEVEL_TRANSACTION_2(CAM_PROT_TWO_PHASED, status)
+    RVMLIB_END_TRANSACTION(flush, &status)
     assert(status == 0);			/* Never aborts... */
     
     VnodeDiskObject *camvdo;
     long    tmp = 0, i = 0, count = 0;
     while (i < num_vnodes) {
-	CAMLIB_BEGIN_TOP_LEVEL_TRANSACTION_2(CAM_TRAN_NV_SERVER_BASED)
+	RVMLIB_BEGIN_TRANSACTION(restore);
 	do {
 	    ReadVnodeDiskObject(buf, vdo, NULL, vp, &vnodenumber);
 	    LogMsg(19, VolDebugLevel, stdout, "Just read vnode for index %d.", vnodenumber);
 	    if (vdo->type != vNull){
 		/* this vnode is allocated */
-		camvdo=(VnodeDiskObject *)CAMLIB_REC_MALLOC(SIZEOF_SMALLDISKVNODE);
-		CAMLIB_MODIFY_BYTES(&(camvdo->nextvn), &tmp, sizeof(long));
+		camvdo=(VnodeDiskObject *)rvmlib_rec_malloc(SIZEOF_SMALLDISKVNODE);
+		rvmlib_modify_bytes(&(camvdo->nextvn), &tmp, sizeof(long));
 		rlist[vnodeIdToBitNumber(vnodenumber)].append(&(camvdo->nextvn));
 		vdo->cloned = 0;
 		vdo->vol_index = volindex;
 		vdo->vnodeMagic = SMALLVNODEMAGIC;
 		ViceLockClear((&vdo->lock));
 		bcopy((const void *)&(camvdo->nextvn), (void *) &(vdo->nextvn), sizeof(rec_smolink));
-		CAMLIB_MODIFY_BYTES(camvdo, vdo, SIZEOF_SMALLDISKVNODE);
+		rvmlib_modify_bytes(camvdo, vdo, SIZEOF_SMALLDISKVNODE);
 		nvnodes ++;
 	    }
  	} while ((i++ < num_vnodes) && (i % VnodePollPeriod));
 
-	CAMLIB_END_TOP_LEVEL_TRANSACTION_2(CAM_PROT_TWO_PHASED, status)
+	RVMLIB_END_TRANSACTION(flush, &status)
 	if (status != 0)
 	    return FALSE;
 	LogMsg(9, VolDebugLevel, stdout, "S_VolRestore: Did another series of Vnode restores.");
@@ -593,7 +592,7 @@ PRIVATE int ReadSmallVnodeIndex(DumpBuffer_t *buf, Volume *vp)
     return TRUE;
 }
 
-PRIVATE void ReadVnodeDiskObject(DumpBuffer_t *buf, VnodeDiskObject *vdop, DirInode **dinode, Volume *vp, long *vnodeNumber)
+static void ReadVnodeDiskObject(DumpBuffer_t *buf, VnodeDiskObject *vdop, DirInode **dinode, Volume *vp, long *vnodeNumber)
 {
     register char tag;
     *vnodeNumber = -1;
@@ -610,7 +609,7 @@ PRIVATE void ReadVnodeDiskObject(DumpBuffer_t *buf, VnodeDiskObject *vdop, DirIn
     
     if (!ReadLong(buf, (unsigned long *)vnodeNumber) || !ReadLong(buf, (unsigned long *)&vdop->uniquifier)) {
 	LogMsg(0, VolDebugLevel, stdout, "ReadVnodeDiskObject: Readstuff failed, aborting.");
-	CAMLIB_ABORT(-1);
+	rvmlib_abort(-1);
     }
 
     bzero((void *)&(vdop->nextvn), sizeof(rec_smolink));
@@ -661,7 +660,7 @@ PRIVATE void ReadVnodeDiskObject(DumpBuffer_t *buf, VnodeDiskObject *vdop, DirIn
 
     if (!tag) {
 	LogMsg(0, VolDebugLevel, stdout, "ReadVnodeDiskObject: Readstuff failed, aborting.");
-	CAMLIB_ABORT(-1);
+	rvmlib_abort(-1);
     }
 
     PutTag(tag, buf);
@@ -669,27 +668,27 @@ PRIVATE void ReadVnodeDiskObject(DumpBuffer_t *buf, VnodeDiskObject *vdop, DirIn
     if (vdop->type == vDirectory) {
 	int npages = 0;
 	assert(ReadTag(buf) == D_DIRPAGES);
-	if (!ReadLong(buf, (unsigned long *)&npages) || (npages > MAXPAGES)) {
+	if (!ReadLong(buf, (unsigned long *)&npages) || (npages > DIR_MAXPAGES)) {
 	    LogMsg(0, VolDebugLevel, stdout, "Restore: Dir has to many pages for vnode %d", *vnodeNumber);
-	    CAMLIB_ABORT(-1);
+	    rvmlib_abort(-1);
 	}
 	*dinode = (DirInode *)malloc(sizeof(DirInode));
 	bzero((void *)*dinode, sizeof(DirInode));
 	for (int i = 0; i < npages; i++){
-	    (*dinode)->Pages[i] = (long *)malloc(PAGESIZE);
+	    (*dinode)->di_pages[i] = (long *)malloc(DIR_PAGESIZE);
 	    register tmp = ReadTag(buf);
 	    if ((byte)tmp != 'P'){
 		LogMsg(0, VolDebugLevel, stdout, "Restore: Dir page does not have a P tag");
-		CAMLIB_ABORT(-1);
+		rvmlib_abort(-1);
 	    }
-	    if (!ReadByteString(buf, (byte *)((*dinode)->Pages[i]), PAGESIZE)) {
+	    if (!ReadByteString(buf, (byte *)((*dinode)->di_pages[i]), DIR_PAGESIZE)) {
 		LogMsg(0, VolDebugLevel, stdout, "Restore: Failure reading dir page, aborting.");
-		CAMLIB_ABORT(-1);
+		rvmlib_abort(-1);
 	    }
 		
 	}
 	vdop->inodeNumber = (Inode)(*dinode);
-	(*dinode)->refcount = 1;
+	(*dinode)->di_refcount = 1;
     } else {
 	tag = ReadTag(buf);
 	if (tag == D_FILEDATA) {
@@ -702,24 +701,24 @@ PRIVATE void ReadVnodeDiskObject(DumpBuffer_t *buf, VnodeDiskObject *vdop, DirIn
 		LogMsg(0, VolDebugLevel, stdout,
 		       "Unable to allocate inode for vnode %d: Restore aborted",
 		       *vnodeNumber);
-		CAMLIB_ABORT(-1);
+		rvmlib_abort(-1);
 	    }
 	    fd = iopen((int)vp->device, (int)vdop->inodeNumber, O_WRONLY);
 	    if (fd == -1){
 		LogMsg(0, VolDebugLevel, stdout, "Failure to open inode for writing %d", errno);
-		CAMLIB_ABORT(-1);
+		rvmlib_abort(-1);
 	    }
 
 	    FILE *ifile = fdopen(fd, "w");
 	    if (ifile == NULL) {
 		LogMsg(0, VolDebugLevel, stdout, "Failure to open inode file stream %d", errno);
-		CAMLIB_ABORT(-1);
+		rvmlib_abort(-1);
 	    }
 
 	    vdop->length = ReadFile(buf, ifile);
 	    if (vdop->length == -1) {
 		LogMsg(0, VolDebugLevel, stdout, "Failure to read in data for vnode %d: Restore aborted", *vnodeNumber);
-		CAMLIB_ABORT(-1);
+		rvmlib_abort(-1);
 	    }
 
 	    fclose(ifile);
@@ -733,11 +732,11 @@ PRIVATE void ReadVnodeDiskObject(DumpBuffer_t *buf, VnodeDiskObject *vdop, DirIn
 		LogMsg(0, VolDebugLevel, stdout,
 		       "Unable to allocate inode for vnode %d: Restore aborted",
 		       *vnodeNumber);
-		CAMLIB_ABORT(-1);
+		rvmlib_abort(-1);
 	    }
 	} else {
 	    LogMsg(0, VolDebugLevel, stdout, "Restore: FileData not properly tagged, aborting.");
-	    CAMLIB_ABORT(-1);
+	    rvmlib_abort(-1);
 	}
 	
     }

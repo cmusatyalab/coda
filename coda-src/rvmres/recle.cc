@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rvmres/recle.cc,v 4.2 1997/12/20 23:34:50 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rvmres/recle.cc,v 4.3 1998/01/10 18:38:12 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -99,7 +99,7 @@ void recle::InitFromsle(rsle *sl) {
 	    size = sizeof(aclstore);
 	    vle = new (size) recvarl(size);
 	    assert(vle);
-	    RVMLIB_SET_RANGE(vle, vle->size());
+	    rvmlib_set_range(vle, vle->size());
 	    aclstore *acls = (aclstore *)(&(vle->vfld[0]));
 	    acls->init(sl->u.acl.acl);
 	}
@@ -107,7 +107,7 @@ void recle::InitFromsle(rsle *sl) {
 	    size = sizeof(newstore);
 	    vle = new (size) recvarl(size);
 	    assert(vle);
-	    RVMLIB_SET_RANGE(vle, vle->size());
+	    rvmlib_set_range(vle, vle->size());
 	    newstore *newst = (newstore *)(&(vle->vfld[0]));
 	    newst->init(sl->u.newst.owner, sl->u.newst.mode, sl->u.newst.author, 
 		     sl->u.newst.mtime, sl->u.newst.mask, &sl->u.st.vv);
@@ -119,7 +119,7 @@ void recle::InitFromsle(rsle *sl) {
 	size = sizeof(create_rle) + strlen(sl->name1); // size of information; vle is 4 bytes more
 	vle = new (size) recvarl(size);
 	assert(vle);
-	RVMLIB_SET_RANGE(vle, vle->size());
+	rvmlib_set_range(vle, vle->size());
 	c = (create_rle *)(&(vle->vfld[0]));
 	c->init(sl->u.create.cvnode, sl->u.create.cunique, sl->u.create.owner, 
 		sl->name1);
@@ -129,7 +129,7 @@ void recle::InitFromsle(rsle *sl) {
 	size = sizeof(symlink_rle) + strlen(sl->name1); // size of information; vle is 4 bytes more
 	vle = new (size) recvarl(size);
 	assert(vle);
-	RVMLIB_SET_RANGE(vle, vle->size());
+	rvmlib_set_range(vle, vle->size());
 	s = (symlink_rle *)(&(vle->vfld[0]));
 	s->init(sl->u.slink.cvnode, sl->u.slink.cunique, sl->u.slink.owner, sl->name1);
 	break;
@@ -138,7 +138,7 @@ void recle::InitFromsle(rsle *sl) {
 	size = sizeof(link_rle) + strlen(sl->name1); // size of information; vle is 4 bytes more
 	vle = new (size) recvarl(size);
 	assert(vle);
-	RVMLIB_SET_RANGE(vle, vle->size());
+	rvmlib_set_range(vle, vle->size());
 	l = (link_rle *)(&(vle->vfld[0]));
 	l->init(sl->u.link.cvnode, sl->u.link.cunique, &sl->u.link.cvv, sl->name1);
 	break;
@@ -147,7 +147,7 @@ void recle::InitFromsle(rsle *sl) {
 	size = sizeof(mkdir_rle) + strlen(sl->name1); // size of information; vle is 4 bytes more
 	vle = new (size) recvarl(size);
 	assert(vle);
-	RVMLIB_SET_RANGE(vle, vle->size());
+	rvmlib_set_range(vle, vle->size());
 	mk = (mkdir_rle *)(&(vle->vfld[0]));
 	mk->init(sl->u.mkdir.cvnode, sl->u.mkdir.cunique, sl->u.mkdir.owner, sl->name1);
 	break;
@@ -156,7 +156,7 @@ void recle::InitFromsle(rsle *sl) {
 	size = sizeof(rm_rle) + strlen(sl->name1); // size of information; vle is 4 bytes more
 	vle = new (size) recvarl(size);
 	assert(vle);
-	RVMLIB_SET_RANGE(vle, vle->size());
+	rvmlib_set_range(vle, vle->size());
 	rm = (rm_rle *)(&(vle->vfld[0]));
 	rm->init(sl->u.rm.cvnode, sl->u.rm.cunique, &sl->u.rm.cvv, sl->name1);
 	break;	
@@ -165,7 +165,7 @@ void recle::InitFromsle(rsle *sl) {
 	size = sizeof(rmdir_rle) + strlen(sl->name1); // size of information; vle is 4 bytes more
 	vle = new (size) recvarl(size);
 	assert(vle);
-	RVMLIB_SET_RANGE(vle, vle->size());
+	rvmlib_set_range(vle, vle->size());
 	rmd = (rmdir_rle *)(&(vle->vfld[0]));
 	rmd->init(sl->u.rmdir.cvnode, sl->u.rmdir.cunique, sl->u.rmdir.childlist,
 		    &sl->u.rmdir.childLCP, &sl->u.rmdir.csid, sl->name1);
@@ -175,7 +175,7 @@ void recle::InitFromsle(rsle *sl) {
 	size = sizeof(rename_rle) + strlen(sl->name1) + strlen(sl->name2) + 2;
 	vle = new (size) recvarl(size);
 	assert(vle);
-	RVMLIB_SET_RANGE(vle, vle->size());
+	rvmlib_set_range(vle, vle->size());
 	mvle = (rename_rle *)(&(vle->vfld[0]));
 	mvle->init(sl->u.mv.type, sl->u.mv.otherdirv, sl->u.mv.otherdiru,
 		   sl->u.mv.svnode, sl->u.mv.sunique, &sl->u.mv.svv, 
@@ -187,7 +187,7 @@ void recle::InitFromsle(rsle *sl) {
 	size = sizeof(setquota_rle);
 	vle = new (size) recvarl(size);
 	assert(vle);
-	RVMLIB_SET_RANGE(vle, vle->size());
+	rvmlib_set_range(vle, vle->size());
 	sq = (setquota_rle *)(&(vle->vfld[0]));
 	sq->init(sl->u.sq.oldquota, sl->u.sq.newquota);
 	break;
@@ -207,7 +207,7 @@ int recle::FreeVarl() {
     LogMsg(9, SrvDebugLevel, stdout, "Entering FreeVarl() 0x%x.%x %s\n", 
 	   dvnode, dunique, PRINTOPCODE(opcode));
     if (vle) {
-	RVMLIB_SET_RANGE(&vle, sizeof(recvarl *));
+	rvmlib_set_range(&vle, sizeof(recvarl *));
 	vle->destroy();
 	vle = NULL;
     }

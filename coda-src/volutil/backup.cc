@@ -28,7 +28,7 @@ Carnegie Mellon encourages users of this software to return any
 improvements or extensions that they make, and to grant Carnegie
 Mellon the rights to redistribute these changes without encumbrance.  */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/volutil/backup.cc,v 4.11 1998/06/07 20:15:20 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/volutil/backup.cc,v 4.12 1998/08/05 23:50:31 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -102,10 +102,10 @@ extern "C" {
 #include <vutil.h>
 
 
-PRIVATE char vkey[RPC2_KEYSIZE+1];    /* Encryption key for bind authentication */
-PRIVATE int Timeout = 30;	      /* Default Timeout value in seconds. */
-PRIVATE int Debug = 0;		      /* Global debugging flag */
-PRIVATE int Naptime = 30;	      /* Sleep period for PollLWP */
+static char vkey[RPC2_KEYSIZE+1];    /* Encryption key for bind authentication */
+static int Timeout = 30;	      /* Default Timeout value in seconds. */
+static int Debug = 0;		      /* Global debugging flag */
+static int Naptime = 30;	      /* Sleep period for PollLWP */
 
 struct hostinfo {
     bit32      	address;  /* Assume host IP addresses are 32 bits */
@@ -178,16 +178,16 @@ struct DiskPartition *DiskPartitionList = NULL;
 struct DiskPartition *Partitions = NULL;
 
 /* Procedure definitions. */
-PRIVATE void V_InitRPC();
-PRIVATE void V_BindToServer(char *fileserver, RPC2_Handle *RPCid);
-PRIVATE void VolDumpLWP(struct rockInfo *rock);
-PRIVATE void PollLWP(int naptime);
-PRIVATE void PollServers();
-PRIVATE int lockReplicas(volinfo_t *vol);
-PRIVATE void unlockReplicas(volinfo_t *vol);
-PRIVATE int backup(volinfo_t *vol);
-PRIVATE void VUInitServerList();
-extern int long volDump_ExecuteRequest(RPC2_Handle, RPC2_PacketBuffer*,
+static void V_InitRPC();
+static void V_BindToServer(char *fileserver, RPC2_Handle *RPCid);
+static void VolDumpLWP(struct rockInfo *rock);
+static void PollLWP(int naptime);
+static void PollServers();
+static int lockReplicas(volinfo_t *vol);
+static void unlockReplicas(volinfo_t *vol);
+static int backup(volinfo_t *vol);
+static void VUInitServerList();
+extern long volDump_ExecuteRequest(RPC2_Handle, RPC2_PacketBuffer*,
 				  SE_Descriptor*);
 
 
@@ -420,7 +420,7 @@ int ParseDumpList(char *VolumeListFile, volinfo_t **vols)
 /*
  * Lock all the replicas of a volume.
  */
-PRIVATE int lockReplicas(volinfo_t *vol)
+static int lockReplicas(volinfo_t *vol)
 {
     long rc = 0;
     repinfo_t *reps = vol->replicas;
@@ -452,7 +452,7 @@ PRIVATE int lockReplicas(volinfo_t *vol)
 /*
  * Unlock all the replicas of a volume. We dont care if one fails, just report it.
  */
-PRIVATE void unlockReplicas(volinfo_t *vol)
+static void unlockReplicas(volinfo_t *vol)
 {
     long rc;
     repinfo_t *reps = vol->replicas;
@@ -481,7 +481,7 @@ PRIVATE void unlockReplicas(volinfo_t *vol)
  * the assumptions that make optomistic replication work also apply
  * here. Unlock all the replicas after cloning. Store the # of cloned
  * replicas in the volinfo_t.  */
-PRIVATE int backup(volinfo_t *vol) {
+static int backup(volinfo_t *vol) {
     VolumeId volId = vol->volId;
     int Incremental = (vol->flags & INCREMENTAL);
     repinfo_t *reps = vol->replicas;
@@ -1050,7 +1050,7 @@ int main(int argc, char **argv) {
 
 /* copied from VInitServerList() in vol/volume.c and modified to suit
    my needs. */
-PRIVATE void VUInitServerList() {
+static void VUInitServerList() {
     /* Find the server id */
     char hostname[100];
     char line[200];
@@ -1101,7 +1101,7 @@ PRIVATE void VUInitServerList() {
 
 /* The following three routines were copied directly from volclient.c */
 
-PRIVATE void V_InitRPC()
+static void V_InitRPC()
 {
     PROCESS mylpid;
     FILE *tokfile;
@@ -1137,7 +1137,7 @@ PRIVATE void V_InitRPC()
     }
 }
 
-PRIVATE void V_BindToServer(char *fileserver, RPC2_Handle *RPCid)
+static void V_BindToServer(char *fileserver, RPC2_Handle *RPCid)
 {
  /* Binds to File Server on volume utility port on behalf of uName.
     Sets RPCid to the value of the connection id.    */
@@ -1184,7 +1184,7 @@ PRIVATE void V_BindToServer(char *fileserver, RPC2_Handle *RPCid)
  * PollLWP will cycle: sleep for a time, then trying to rebind to any servers
  * which are down. Should it be forced to exit if the main program exits?
  */
-PRIVATE void PollLWP(int naptime)
+static void PollLWP(int naptime)
 {
     struct timeval time;
 
@@ -1208,7 +1208,7 @@ PRIVATE void PollLWP(int naptime)
     }
 }
 
-PRIVATE void PollServers()
+static void PollServers()
 {
     for (int i = 0; i < N_SERVERIDS; i++) {
 	if (Hosts[i].rpcid == BADCONNECTION) {
@@ -1242,7 +1242,7 @@ PRIVATE void PollServers()
 
 
 
-PRIVATE void VolDumpLWP(struct rockInfo *rock)
+static void VolDumpLWP(struct rockInfo *rock)
 {
     RPC2_RequestFilter myfilter;
     RPC2_PacketBuffer *myrequest;

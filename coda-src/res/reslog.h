@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/src/coda-4.0.1/RCSLINK/./coda-src/res/reslog.h,v 1.1 1996/11/22 19:12:46 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/res/reslog.h,v 4.1 1997/01/08 21:50:04 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -67,7 +67,7 @@ extern "C" {
 class PMemMgr;
 class VNResLog;
 
-#define MAXVOLS	1024	/* XX taken from coda_globals.h */
+#define MAXVOLS	1024	/* size of the RVM volume array */
 #define DIROPNAMESIZE	48 /* FOR NOW USE LOW NUMBER - IN FINAL VERSION WE 
 			      WILL HAVE TO HAVE SOME OPTIMIZATION TRICKS AND THE
 			      NAME BE 256 CHARS LONG */

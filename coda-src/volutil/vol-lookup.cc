@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/volutil/vol-lookup.cc,v 4.4 1998/01/10 18:40:00 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/volutil/vol-lookup.cc,v 4.5 1998/04/14 21:00:38 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -66,13 +66,14 @@ extern "C" {
 #include <timer.h>
 #include <rpc2.h>
 #include <se.h>
+#include <util.h>
+#include <rvmlib.h>
+
 #include <volutil.h>
 #ifdef __cplusplus
 }
 #endif __cplusplus
 
-#include <util.h>
-#include <rvmlib.h>
 #include <voltypes.h>
 #include <vice.h>
 #include <cvnode.h>
@@ -115,7 +116,7 @@ long int S_VolLookup(RPC2_Handle rpcid, RPC2_String formal_vol, SE_Descriptor *f
     assert(LWP_GetRock(FSTAG, (char **)&pt) == LWP_SUCCESS);
 
 
-    CAMLIB_BEGIN_TOP_LEVEL_TRANSACTION_2(CAM_TRAN_NV_SERVER_BASED)
+    RVMLIB_BEGIN_TRANSACTION(restore)
     VInitVolUtil(volumeUtility);
 
     infofile = fopen (INFOFILE, "w");
@@ -123,7 +124,7 @@ long int S_VolLookup(RPC2_Handle rpcid, RPC2_String formal_vol, SE_Descriptor *f
     /* See if user passed in volid rather than volname */
     long volid, index;
     if ((sscanf(vol, "%X", &volid) ==  1) && ((index = HashLookup(volid)) > 0)) {
-	VolumeDiskData *vp = CAMLIB_REC(VolumeList[index]).data.volumeInfo;
+	VolumeDiskData *vp = SRV_RVM(VolumeList[index]).data.volumeInfo;
 	VGetVolumeInfo(&error, vp->name, &info);
     } else {
 	VGetVolumeInfo(&error, vol, &info);
@@ -132,7 +133,7 @@ long int S_VolLookup(RPC2_Handle rpcid, RPC2_String formal_vol, SE_Descriptor *f
     if (error) {
 	LogMsg(0, VolDebugLevel, stdout, "SVolLookup: error code %d returned for volume \"%s\"",
 		    error, vol);
-	CAMLIB_ABORT(error);
+	rvmlib_abort(error);
     }
     else {
         register VolumeId *p;
@@ -174,16 +175,16 @@ long int S_VolLookup(RPC2_Handle rpcid, RPC2_String formal_vol, SE_Descriptor *f
 
     if ((rc = RPC2_InitSideEffect(rpcid, &sed)) <= RPC2_ELIMIT) {
 	LogMsg(0, VolDebugLevel, stdout, "VolLookup: InitSideEffect failed with %s", RPC2_ErrorMsg(rc));
-	CAMLIB_ABORT(VFAIL);
+	rvmlib_abort(VFAIL);
     }
 
     if ((rc = RPC2_CheckSideEffect(rpcid, &sed, SE_AWAITLOCALSTATUS)) <=
 		RPC2_ELIMIT) {
 	LogMsg(0, VolDebugLevel, stdout, "VolLookup: CheckSideEffect failed with %s", RPC2_ErrorMsg(rc));
-	CAMLIB_ABORT(VFAIL);
+	rvmlib_abort(VFAIL);
     }
 
-    CAMLIB_END_TOP_LEVEL_TRANSACTION_2(CAM_PROT_TWO_PHASED, status)
+    RVMLIB_END_TRANSACTION(flush, &(status));
     VDisconnectFS();
 
     if (status)

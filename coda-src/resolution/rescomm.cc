@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/res/rescomm.cc,v 4.4 1998/05/15 01:23:08 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/res/rescomm.cc,v 4.5 1998/08/05 23:49:38 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -469,7 +469,7 @@ int srvent::Connect(RPC2_Handle *cidp, int Force) {
 	ssid.Value.SubsysId = RESOLUTIONSUBSYSID;
 	RPC2_BindParms bp;
 	bp.SecurityLevel = RPC2_OPENKIMONO;
-	bp.EncryptionType = NULL;
+	bp.EncryptionType = 0;
 	bp.SideEffectType = SMARTFTP;
 	bp.ClientIdent  = NULL;
 	bp.SharedSecret = NULL;

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/volutil/vol-create.cc,v 4.4 1998/01/10 18:39:56 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/volutil/vol-create.cc,v 4.5 1998/04/14 21:00:36 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -64,33 +64,34 @@ extern "C" {
 #include <sys/time.h>
 #include <stdio.h>
 #include <sys/signal.h>
-
 #include <unistd.h>
 #include <stdlib.h>
 
 #include <lwp.h>
 #include <lock.h>
 #include <rpc2.h>
+#include <util.h>
+#include <rvmlib.h>
+#include <codadir.h>
+
+#include <partition.h>
+
+#include <vice.h>
 #include <volutil.h>
 
 #ifdef __cplusplus
 }
 #endif __cplusplus
 
-#include <util.h>
-#include <rvmlib.h>
-#include <coda_dir.h>
-#include <vice.h>
 #include <voltypes.h>
 #include <cvnode.h>
 #include <volume.h>
 #include <errors.h>
-#include <partition.h>
 #include <viceinode.h>
 #include <vutil.h>
 #include <index.h>
 #include <recov.h>
-#include <rvmdir.h>
+#include <codadir.h>
 #include <camprivate.h>
 #include <logalloc.h>
 #include <reslog.h>
@@ -100,21 +101,24 @@ extern "C" {
 
 Error error;
 extern void PrintVnode(FILE *outfile, VnodeDiskObject *vnode, VnodeId vnodeNumber);
-PRIVATE int ViceCreateRoot(Volume *vp);
+static int ViceCreateRoot(Volume *vp);
 
-/* Create a new volume (readwrite or replicated). Invoked through rpc2 by volume utility. */
+/* Create a new volume (readwrite or replicated). Invoked through rpc2
+   by volume utility. */
 /*
-  BEGIN_HTML
-  <a name="S_VolCreate"><strong>Service request to create a volume</strong></a>
-  END_HTML
+  S_VolCreate: Service request to create a volume
+  Note: Puneet envisaged this having an extra parameter to set
+        the resolution flag (RPC2_Integer resflag)
 */
+
 long S_VolCreate(RPC2_Handle rpcid, RPC2_String formal_partition,
-	RPC2_String formal_volname, VolumeId *volid, RPC2_Integer repvol,
-	VolumeId grpId /* , RPC2_Integer resflag - not added until ready to release new server */) {
+		 RPC2_String formal_volname, VolumeId *volid, RPC2_Integer repvol,
+		 VolumeId grpId) 
+{
     VolumeId volumeId = 0;
     VolumeId parentId = 0;
     Volume *vp = NULL;
-    int status = 0;    // transaction status variable
+    int status = 0;    /* transaction status variable */
     int rc = 0;
     int volidx;
     ProgramType *pt;
@@ -132,46 +136,43 @@ long S_VolCreate(RPC2_Handle rpcid, RPC2_String formal_partition,
 	   "Entering S_VolCreate: rpcid = %d, partition = %s, volname = %s,"
 	   " volumeid = %x, repvol = %d, grpid = %x",
 	   rpcid, partition, volname, volid ? *volid : 0, repvol, grpId);
-    CAMLIB_BEGIN_TOP_LEVEL_TRANSACTION_2(CAM_TRAN_NV_SERVER_BASED)
+    RVMLIB_BEGIN_TRANSACTION(restore)
 
     rc = VInitVolUtil(volumeUtility);
     if (rc != 0)
-	CAMLIB_ABORT(rc);
-    /* DInit(10); - Should not be called everytime - called in main of file server */
+	    rvmlib_abort(rc);
 
     /* Use a new volumeId only if the user didn't specify any */
     if (!volid  || !(*volid) )
-	volumeId = VAllocateVolumeId(&error);
+	    volumeId = VAllocateVolumeId(&error);
     else {
-	volumeId = *volid;
-
-	/* check that volume id is legal */
-	if (volumeId > VGetMaxVolumeId()) {
-	    LogMsg(0, VolDebugLevel, stdout,
-		   "Warning: %x is > MaxVolID; setting MaxVolID to %x\n",
-		   volumeId, volumeId);
-	    VSetMaxVolumeId(volumeId);
-	}
+	    volumeId = *volid;
+	    /* check that volume id is legal */
+	    if (volumeId > VGetMaxVolumeId()) {
+		    SLog(0, "Warning: %x is > MaxVolID; setting MaxVolID to %x\n",
+			 volumeId, volumeId);
+		    VSetMaxVolumeId(volumeId);
+	    }
     }
     LogMsg(9, VolDebugLevel, stdout,
 	   "VolCreate: VAllocateVolumeId returns %x", volumeId);
     if (error) {
 	LogMsg(0, VolDebugLevel, stdout, "Unable to allocate a volume number; volume not created");
-	CAMLIB_ABORT(VNOVOL);
+	rvmlib_abort(VNOVOL);
     }
 
     parentId = volumeId;    // we are creating a readwrite (or replicated) volume
 
     if (repvol && grpId == 0) {
         LogMsg(0, VolDebugLevel, stdout, "S_VolCreate: can't create replicated volume without group id");
-	CAMLIB_ABORT(VFAIL);
+	rvmlib_abort(VFAIL);
     }
 
     /* If we are creating a replicated volume, pass along group id */
     vp = VCreateVolume(&error, partition, volumeId, parentId, repvol?grpId:0, readwriteVolume, repvol? resflag : 0);
     if (error) {
 	LogMsg(0, VolDebugLevel, stdout, "Unable to create the volume; aborted");
-	CAMLIB_ABORT(VNOVOL);
+	rvmlib_abort(VNOVOL);
     }
     V_uniquifier(vp) = 1;
     V_creationDate(vp) = V_copyDate(vp);
@@ -188,17 +189,18 @@ long S_VolCreate(RPC2_Handle rpcid, RPC2_String formal_partition,
     VUpdateVolume(&error, vp);
     VDetachVolume(&error, vp);	/* Allow file server to grab it */
     assert(error == 0);
-    CAMLIB_END_TOP_LEVEL_TRANSACTION_2(CAM_PROT_TWO_PHASED, status)
+    RVMLIB_END_TRANSACTION(flush, &(status));
+
     /* to make sure that rvm records are getting flushed - to find this bug */
     assert(rvm_flush() == RVM_SUCCESS);
     VDisconnectFS();
     if (status == 0) {
 	LogMsg(0, VolDebugLevel, stdout, "create: volume %x (%s) created", volumeId, volname);
 	*volid = volumeId;	    /* set value of out parameter */
-	if (CAMLIB_REC(VolumeList[volidx]).data.volumeInfo)
-	    if (CAMLIB_REC(VolumeList[volidx]).data.volumeInfo->maxlogentries)
+	if (SRV_RVM(VolumeList[volidx]).data.volumeInfo)
+	    if (SRV_RVM(VolumeList[volidx]).data.volumeInfo->maxlogentries)
 	        LogStore[volidx] = new PMemMgr(sizeof(rlent), 0, volidx,
-						 CAMLIB_REC(VolumeList[volidx]).data.volumeInfo->maxlogentries);
+						 SRV_RVM(VolumeList[volidx]).data.volumeInfo->maxlogentries);
 	    else
 	        LogStore[volidx] = new PMemMgr(sizeof(rlent), 0, volidx, MAXLOGSIZE);
 	else
@@ -213,41 +215,40 @@ long S_VolCreate(RPC2_Handle rpcid, RPC2_String formal_partition,
 
 /* Adapted from the file server; create a root directory for */
 /* a new volume */
-PRIVATE int ViceCreateRoot(Volume *vp)
+static int ViceCreateRoot(Volume *vp)
 {
-    DirHandle dir;
+    PDirHandle dir;
     AL_AccessList * ACL;
     ViceFid	did;
     Inode inodeNumber;
     char buf[SIZEOF_LARGEDISKVNODE];
     struct VnodeDiskObject *vnode = (struct VnodeDiskObject *) buf;
     struct VnodeClassInfo *vcp = &VnodeClassInfo_Array[vLarge];
+    char buf3[sizeof(Vnode)];
+    Vnode *vn = (Vnode *)buf3;
     vindex v_index(V_id(vp), vLarge, vp->device, SIZEOF_LARGEDISKVNODE);
 
+    bzero((void *)vn, sizeof(Vnode));
     bzero((char *)vnode, SIZEOF_LARGEDISKVNODE);    
 
-    /* create an inode to hold the volume's root directory */
-/*    inodeNumber = icreate(vp->device, 0, V_id(vp), 1, 1, 0);
-    assert(inodeNumber >= 0);
-*/
-    /* since we have dirpages in rvm dont create inode now */
-/*  SetSalvageDirHandle(&dir, V_id(vp), vp->device, inodeNumber);
-*/
-    SetSalvageDirHandle(&dir, V_id(vp), vp->device, 0);
+    /* SetSalvageDirHandle(&dir, V_id(vp), vp->device, 0); */
+    dir = VN_SetDirHandle(vn);
     /* Updated the vnode number in the dirhandle for rvm dir package */
+#if 0
     dir.vnode = bitNumberToVnodeNumber(0, vLarge);
     dir.unique = 1;
     did.Volume = V_id(vp);
+#endif
     /* not sure if this wants bit number or vnode id **ehs***/
     did.Vnode = (VnodeId)bitNumberToVnodeNumber(0, vLarge);
-    LogMsg(29, VolDebugLevel, stdout, "ViceCreateRoot: did.Vnode = %d", did.Vnode);
+    LogMsg(29, VolDebugLevel, stdout, 
+	   "ViceCreateRoot: did.Vnode = %d", did.Vnode);
     did.Unique = 1;
 
     /* set up the physical directory */
-    assert(!(MakeDir((long *)&dir, (long *)&did, (long *)&did)));
-    DFlush();
+    assert(!(DH_MakeDir(dir, &did, &did)));
 
- /* build a single entry ACL that gives all rights to everyone */
+    /* build a single entry ACL that gives all rights to everyone */
     ACL = VVnodeDiskACL(vnode);
     ACL->MySize = sizeof(AL_AccessList);
     ACL->Version = AL_ALISTVERSION;
@@ -262,7 +263,7 @@ PRIVATE int ViceCreateRoot(Volume *vp)
     vnode->cloned = 0;
     vnode->modeBits = 0777;
     vnode->linkCount = 2;
-    vnode->length = Length((long *)&dir);
+    vnode->length = DH_Length(dir);
     vnode->uniquifier = 1;
     V_uniquifier(vp) = vnode->uniquifier+1;
     vnode->dataVersion = 1;
@@ -279,15 +280,12 @@ PRIVATE int ViceCreateRoot(Volume *vp)
 
     /* write out the directory in rvm - that will create the inode */
     /* set up appropriate fields in a vnode for DCommit */
-    char buf3[sizeof(Vnode)];
-    Vnode *vn = (Vnode *)buf3;
-    bzero((void *)vn, sizeof(Vnode));
     vn->changed = 1;
     vn->delete_me = 0;
     vn->vnodeNumber = (VnodeId)bitNumberToVnodeNumber(0, vLarge);
     vn->volumePtr = vp;
     bcopy((const void *)vnode, (void *)&vn->disk, sizeof(VnodeDiskObject));
-    DCommit(vn);   
+    VN_DCommit(vn);   
     bcopy((const void *)&(vn->disk), (void *) vnode, sizeof(VnodeDiskObject));
     /* should be cautious here - it is a large vnode - so acl should also be 
       copied.  But DCommit doesnt touch it */

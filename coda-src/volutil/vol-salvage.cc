@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/volutil/vol-salvage.cc,v 4.14 98/04/14 21:00:40 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/volutil/vol-salvage.cc,v 4.16 1998/08/05 23:50:33 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -70,9 +70,8 @@ supported by Transarc Corporation, Pittsburgh, PA.
       exists but the call is commented out, for now.
 */
 
-#define SalvageVersion "2.0"
+#define SalvageVersion "3.0"
 
-#include <coda_dir.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -101,6 +100,9 @@ extern "C" {
 #include <util.h>
 #include <partition.h>
 #include <inodeops.h>
+#include <rvmlib.h>
+#include <codadir.h>
+
 #include <vice.h>
 #include <volutil.h>
 #ifdef __cplusplus
@@ -118,7 +120,6 @@ extern "C" {
 #include <camprivate.h>
 #include <coda_globals.h>
 #include <volhash.h>
-#include <rvmlib.h>
 #include <bitmap.h>
 #include <recle.h>
 
@@ -130,9 +131,9 @@ extern "C" {
 
 static int debug = 0;			/* -d flag */
 
-PRIVATE int ListInodeOption = 0;	/* -i flag */
+static int ListInodeOption = 0;	/* -i flag */
 
-PRIVATE int ForceSalvage = 0;		/* If salvage should occur despite the
+static int ForceSalvage = 0;		/* If salvage should occur despite the
 					   DONT_SALVAGE flag
 					   in the volume header */
 
@@ -142,11 +143,11 @@ VolumeId *skipvolnums = NULL;
 
 int debarrenize = 0;			/* flag for debarrenizing vnodes on startup */
 
-PRIVATE Device fileSysDevice;		/* The device number of
+static Device fileSysDevice;		/* The device number of
 					   partition being salvaged */
-PRIVATE char *fileSysDeviceName; 	/* The block device where the file system 
+static char *fileSysDeviceName; 	/* The block device where the file system 
 					   being salvaged was mounted */
-PRIVATE char    *fileSysPath;		/* The path of the mounted
+static char    *fileSysPath;		/* The path of the mounted
 					   partition currently being
 					   salvaged, i.e. the
 					   diqrectory containing the
@@ -157,14 +158,14 @@ int	VolumeChanged = 0;		/* Set by any routine which would change
 					   put back on line by an active file server */
     
 struct InodeSummary *inodeSummary;
-PRIVATE int nVolumesInInodeFile; 	/* Number of read-write volumes summarized */
-PRIVATE int inodeFd;			/* File descriptor for inode file */
+static int nVolumesInInodeFile; 	/* Number of read-write volumes summarized */
+static int inodeFd;			/* File descriptor for inode file */
 
 struct VolumeSummary volumeSummary[MAXVOLS_PER_PARTITION];
 
-PRIVATE int nVolumes;			/* Number of volumes in volume summary */
+static int nVolumes;			/* Number of volumes in volume summary */
 
-PRIVATE struct VnodeInfo  vnodeInfo[nVNODECLASSES];
+static struct VnodeInfo  vnodeInfo[nVNODECLASSES];
 
 /*
  *  S_VolSalvage is the RPC2 Volume Utility subsystem call used to salvage
@@ -273,7 +274,7 @@ cleanup:
  *	* a vnode exists for all names in each directory(SalvageVolume)
  */
 
-PRIVATE int SalvageFileSys(char *path, VolumeId singleVolumeNumber)
+static int SalvageFileSys(char *path, VolumeId singleVolumeNumber)
 {
     struct stat status;
     struct ViceInodeInfo *ip = NULL;
@@ -360,7 +361,7 @@ PRIVATE int SalvageFileSys(char *path, VolumeId singleVolumeNumber)
 
 
     /* there we go: salvage it */
-    CAMLIB_BEGIN_TOP_LEVEL_TRANSACTION_2(CAM_TRAN_NV_SERVER_BASED)
+    RVMLIB_BEGIN_TRANSACTION(restore)
 
     for (i = 0, vsp = volumeSummary; i < nVolumesInInodeFile; i++){
 	VolumeId rwvid = inodeSummary[i].RWvolumeId;
@@ -397,7 +398,7 @@ PRIVATE int SalvageFileSys(char *path, VolumeId singleVolumeNumber)
 	    if (rc) {
 		LogMsg(9, VolDebugLevel, stdout, 
 		       "SalvageVolumeGroup failed with rc = %d, ABORTING", rc);
-		CAMLIB_ABORT(VFAIL);
+		rvmlib_abort(VFAIL);
 	    }
 	    continue;
 	} else {
@@ -418,7 +419,7 @@ PRIVATE int SalvageFileSys(char *path, VolumeId singleVolumeNumber)
 	vsp++;
     }
 
-    CAMLIB_END_TOP_LEVEL_TRANSACTION_2(CAM_PROT_TWO_PHASED, camstatus)
+    RVMLIB_END_TRANSACTION(flush, &(camstatus));
     if (camstatus){
 	LogMsg(0, VolDebugLevel, stdout, 
 	       "SFS: aborting salvage with status %d", camstatus);
@@ -433,7 +434,7 @@ PRIVATE int SalvageFileSys(char *path, VolumeId singleVolumeNumber)
     return (0);
 }
 
-PRIVATE	int SalvageVolumeGroup(register struct VolumeSummary *vsp, int nVols)
+static int SalvageVolumeGroup(register struct VolumeSummary *vsp, int nVols)
 {
     struct ViceInodeInfo *inodes=0;
     int	size;
@@ -505,7 +506,7 @@ PRIVATE	int SalvageVolumeGroup(register struct VolumeSummary *vsp, int nVols)
 
 
 /* Check to see if VolumeDiskData info looks ok */
-PRIVATE int QuickCheck(register struct VolumeSummary *vsp, register int nVols)
+static int QuickCheck(register struct VolumeSummary *vsp, register int nVols)
 {
     register int i;
     Error ec;
@@ -540,7 +541,7 @@ PRIVATE int QuickCheck(register struct VolumeSummary *vsp, register int nVols)
     return 1;	// ok to skip detailed salvage
 }
 
-PRIVATE int SalvageVolHead(register struct VolumeSummary *vsp)
+static int SalvageVolHead(register struct VolumeSummary *vsp)
 {
     Error ec = 0;
     LogMsg(9, VolDebugLevel, stdout, "Entering SalvageVolHead(rw = %#08x, vid = %#08x)",
@@ -569,7 +570,7 @@ PRIVATE int SalvageVolHead(register struct VolumeSummary *vsp)
  *		vnode was created but no store was done 
  * 		create an empty object for this vnode 
  */
-PRIVATE int VnodeInodeCheck(int RW, struct ViceInodeInfo *ip, int nInodes, 
+static int VnodeInodeCheck(int RW, struct ViceInodeInfo *ip, int nInodes, 
 			    struct VolumeSummary *vsp) {
 
     LogMsg(9, VolDebugLevel, stdout, "Entering VnodeInodeCheck()");    
@@ -740,7 +741,7 @@ PRIVATE int VnodeInodeCheck(int RW, struct ViceInodeInfo *ip, int nInodes,
 /* inodes corresponding to a volume that has been blown away.
  * We need to idec them
  */
-PRIVATE void CleanInodes(struct InodeSummary *isp) {
+static void CleanInodes(struct InodeSummary *isp) {
     int size;
     struct ViceInodeInfo *inodes = 0;
 
@@ -771,7 +772,7 @@ PRIVATE void CleanInodes(struct InodeSummary *isp) {
 }
 
 
-PRIVATE struct VnodeEssence *CheckVnodeNumber(VnodeId vnodeNumber, Unique_t unq)
+static struct VnodeEssence *CheckVnodeNumber(VnodeId vnodeNumber, Unique_t unq)
 {
     VnodeClass vclass;
     struct VnodeInfo *vip;
@@ -788,72 +789,94 @@ PRIVATE struct VnodeEssence *CheckVnodeNumber(VnodeId vnodeNumber, Unique_t unq)
 }
 
 /* iterate through entries in a directory and check them for */
-/* validity. This routine is passed as a paramter to EnumerateDir */
-PRIVATE void JudgeEntry(struct DirSummary *dir, char *name,
-		VnodeId vnodeNumber, Unique_t unique)
+/* validity. This routine is passed as a paramter to EnumerateDir 
+   Checks performed:
+   - is there a vnode for the entry with matching unique
+   - if the entry is "." is the vnode number right
+   - if the entry is ".." and the vnode has a parent 
+     is the vnode number right
+   - if the entry is ".." and the vnode has no parent 
+     is the vnode number right
+   - does the vnode of other entries point to the correct parent
+   - finally reduce the linkcount in the vnodeEssence by one, indicating
+     that a directory entry for the vnode has been found (eventually the 
+     link count in the vnodeEssence should be 0).
+*/
+
+static int JudgeEntry(struct DirEntry *de, void *data)
 {
-    int rc = 0;
-    struct VnodeEssence *vnodeEssence;
+	struct DirSummary *dir = (struct DirSummary *)data;
+	char *name = de->name;
+	VnodeId vnodeNumber;
+	Unique_t unique;
+	int rc = 0;
+	struct VnodeEssence *vnodeEssence;
 
-    LogMsg(39, VolDebugLevel, stdout, "Entering JudgeEntry(%s (0x%#08x.%x.%x))", name, dir->Vid, vnodeNumber, unique);
+	FID_NFid2Int(&de->fid, &vnodeNumber, &unique);
 
-    vnodeEssence = CheckVnodeNumber(vnodeNumber, unique);
-    if (vnodeEssence == NULL || vnodeEssence->unique != unique) {
-	LogMsg(0, VolDebugLevel, stdout, "JE: directory vnode 0x%#08x.%x.%x: invalid entry %s; ",
-	    dir->Vid, dir->vnodeNumber, dir->unique, name);
-	LogMsg(0, VolDebugLevel, stdout, "JE: child vnode not allocated or uniqfiers dont match; cannot happen");
-	assert(0);
-      }
-    if (strcmp(name,".") == 0) {
-	if (dir->vnodeNumber != vnodeNumber || dir->unique != unique) {
-	    LogMsg(0, VolDebugLevel, stdout, "JE:directory vnode 0x%#08x.%x.%x: bad '.' entry (was 0x%x.%x); ",
-	        dir->Vid, dir->vnodeNumber, dir->unique, vnodeNumber, unique);
-	    LogMsg(0, VolDebugLevel, stdout, "JE: Bad '.' - cannot happen ");
-	    assert(0);
+	LogMsg(39, VolDebugLevel, stdout, 
+	       "Entering JudgeEntry(%s (%#x.%x.%x))", 
+	       name, dir->Vid, vnodeNumber, unique);
+
+	vnodeEssence = CheckVnodeNumber(vnodeNumber, unique);
+	if (vnodeEssence == NULL || vnodeEssence->unique != unique) {
+		LogMsg(0, VolDebugLevel, stdout, 
+	       "JE: directory vnode %#x.%x.%x: invalid entry %s; ",
+	       dir->Vid, dir->vnodeNumber, dir->unique, name);
+		LogMsg(0, VolDebugLevel, stdout, 
+	       "JE: child vnode not allocated or uniqfiers dont match; cannot happen");
+		assert(0);
 	}
-	dir->haveDot = 1;
-    }
-    else if (strcmp(name,"..") == 0) {
-	ViceFid pa;
+	if (strcmp(name,".") == 0) {
+		if (dir->vnodeNumber != vnodeNumber || dir->unique != unique) {
+			SLog(0, "JE:directory vnode %#x.%x.%x: bad '.' entry (was 0x%x.%x); ",
+			     dir->Vid, dir->vnodeNumber, dir->unique, vnodeNumber, unique);
+			LogMsg(0, VolDebugLevel, stdout, "JE: Bad '.' - cannot happen ");
+			assert(0);
+		}
+		dir->haveDot = 1;
+	}  else if (strcmp(name,"..") == 0) {
+		ViceFid pa;
 	
-	if (dir->vparent) {
-	    struct VnodeEssence *dotdot;
-	    pa.Vnode = dir->vparent;
-	    dotdot = CheckVnodeNumber(pa.Vnode, dir->uparent);
-	    assert(dotdot != NULL); /* XXX Should not be assert */
-	    pa.Unique = dotdot->unique;
-	    assert(pa.Unique == dir->uparent);
+		if (dir->vparent) {
+			struct VnodeEssence *dotdot;
+			pa.Vnode = dir->vparent;
+			dotdot = CheckVnodeNumber(pa.Vnode, dir->uparent);
+			assert(dotdot != NULL); /* XXX Should not be assert */
+			pa.Unique = dotdot->unique;
+			assert(pa.Unique == dir->uparent);
+		} else {
+			pa.Vnode = dir->vnodeNumber;
+			pa.Unique = dir->unique;
+		}
+		if (pa.Vnode != vnodeNumber || pa.Unique != unique) {
+			SLog(0, "JE: directory vnode 0x%#08x.%x.%x: bad '..' entry (was 0x%x.%x); Shouldnt Happen ",
+			     dir->Vid, dir->vnodeNumber, dir->unique, vnodeNumber, unique);
+			assert(0);
+		}
+		dir->haveDotDot = 1;
+	} else {
+		if ((vnodeEssence->vparent != dir->vnodeNumber)	||
+		    (vnodeEssence->uparent != dir->unique)){
+			SLog(0, "JE: parent = %#x.%x.%x ; child thinks parent is 0x%x.%x; Shouldnt Happen", 
+			     dir->Vid, dir->vnodeNumber, dir->unique, 
+			     vnodeEssence->vparent, vnodeEssence->uparent);
+			assert(0);
+		}
+		vnodeEssence->claimed = 1;
 	}
-	else {
-	    pa.Vnode = dir->vnodeNumber;
-	    pa.Unique = dir->unique;
-	}
-	if (pa.Vnode != vnodeNumber || pa.Unique != unique) {
-	    LogMsg(0, VolDebugLevel, stdout, "JE: directory vnode 0x%#08x.%x.%x: bad '..' entry (was 0x%x.%x); Shouldnt Happen ",
-	        dir->Vid, dir->vnodeNumber, dir->unique, vnodeNumber, unique);
-	    assert(0);
-	}
-	dir->haveDotDot = 1;
-    }
-    else {
-	if ((vnodeEssence->vparent != dir->vnodeNumber)	||
-	    (vnodeEssence->uparent != dir->unique)){
-	    LogMsg(0, VolDebugLevel, stdout, "JE: parent = 0x%#08x.%x.%x ; child thinks parent is 0x%x.%x; Shouldnt Happen", 
-		dir->Vid, dir->vnodeNumber, dir->unique, 
-		vnodeEssence->vparent, vnodeEssence->uparent);
-	    assert(0);
-	}
-	vnodeEssence->claimed = 1;
-    }
     
-    LogMsg(39, VolDebugLevel, stdout, "JE: resetting copy of linkcount from %d to %d", 
-	 vnodeEssence->count, vnodeEssence->count - 1);
-    vnodeEssence->count--;
-    LogMsg(39, VolDebugLevel, stdout, "Leaving JudgeEntry(%s (0x%#08x.%x.%x))", name, dir->Vid, vnodeNumber, unique);
+	SLog(39, "JE: resetting copy of linkcount from %d to %d", 
+	     vnodeEssence->count, vnodeEssence->count - 1);
+	vnodeEssence->count--;
+	VLog(39, "Leaving JudgeEntry(%s (0x%#08x.%x.%x))", 
+	     name, dir->Vid, vnodeNumber, unique);
+
+	return 0;
 
 }
 
-PRIVATE void MarkLogEntries(rec_dlist *loglist, VolumeSummary *vsp) {
+static void MarkLogEntries(rec_dlist *loglist, VolumeSummary *vsp) {
     LogMsg(9, SrvDebugLevel, stdout,
 	   "Entering MarkLogEntries....\n");
     if (!loglist) {
@@ -886,7 +909,7 @@ PRIVATE void MarkLogEntries(rec_dlist *loglist, VolumeSummary *vsp) {
 }
 
 
-PRIVATE void DistilVnodeEssence(VnodeClass vclass, VolumeId volid) {
+static void DistilVnodeEssence(VnodeClass vclass, VolumeId volid) {
 
     register struct VnodeInfo *vip = &vnodeInfo[vclass];
     struct VnodeClassInfo *vcp = &VnodeClassInfo_Array[vclass];
@@ -969,138 +992,141 @@ void DirCompletenessCheck(struct VolumeSummary *vsp)
     register VnodeClass vclass;
     VolumeDiskData volHeader;
     struct DirSummary dir;
-    struct DirHandle dirHandle;
     struct VnodeInfo *dirVnodeInfo;
     int RecoverableResLogs = (AllowResolution && vsp->vollog != NULL);
     Error ec = 0;
 
-    LogMsg(0, VolDebugLevel, stdout, "Entering DCC(0x%x)", vsp->header.id);
     vid = vsp->header.id;
-    LogMsg(29, VolDebugLevel, stdout, "DCC: Extracting DiskInfo for 0x%#08x", vid);
+    VLog(0, "Entering DCC(0x%x)", vsp->header.id);
     ExtractVolDiskInfo(&ec, vsp->volindex, &volHeader);
-    if (ec != 0){
-	LogMsg(0, VolDebugLevel, stdout, "DCC: Error during ExtractVolDiskInfo(%#08x)",
-	    vid);
-	return;
+    if (ec != 0) {
+	    VLog(0, "DCC: Error during ExtractVolDiskInfo(%#08x)", vid);
+	    return;
     }
     
     assert(volHeader.destroyMe != DESTROY_ME);
     DistilVnodeEssence(vLarge, vid);
     DistilVnodeEssence(vSmall, vid);
 
-    if (RecoverableResLogs) vsp->logbm = new bitmap(vsp->vollog->bmsize(), 0);
+    if (RecoverableResLogs) 
+	    vsp->logbm = new bitmap(vsp->vollog->bmsize(), 0);
     dir.Vid = vid;
     dirVnodeInfo = &vnodeInfo[vLarge];
     /* iterate through all directory vnodes in this volume */
     for (i = 0; i < dirVnodeInfo->nVnodes; i++) {
-	if (dirVnodeInfo->inodes[i] == 0)
-	    continue;	/* Not allocated to any directory */
-	dir.vnodeNumber = dirVnodeInfo->vnodes[i].vid;
-	dir.unique = dirVnodeInfo->vnodes[i].unique;
-	dir.copied = 0;
-	dir.vparent = dirVnodeInfo->vnodes[i].vparent;
-	dir.uparent = dirVnodeInfo->vnodes[i].uparent;
-	dir.haveDot = dir.haveDotDot = 0;
-	/* dir inode is data inode of directory vnode */
-	SetSalvageDirHandle(&dir.dirHandle, dir.Vid, fileSysDevice, dirVnodeInfo->inodes[i]);
-	dir.dirHandle.vnode = dir.vnodeNumber;
-	dir.dirHandle.unique = dir.unique;
-	LogMsg(9, VolDebugLevel, stdout, "DCC: Going to check Directory (0x%#08x.%x.%x)", 
-	    vid, dir.vnodeNumber, dir.unique);
-	if (!DirOK((long *)&dir.dirHandle)) {
-	    LogMsg(0, VolDebugLevel, stdout, "DCC: Bad Dir(0x%#08x.%x.%x) in rvm...Aborting", 
-		dir.dirHandle.volume, dir.vnodeNumber, dir.unique);
-	    doassert = 1;
-	}
-	dirHandle = dir.dirHandle;
-	EnumerateDir((long *)&dirHandle, (int (*)(void * ...))JudgeEntry, (long)&dir);
-	LogMsg(9, VolDebugLevel, stdout, "DCC: Finished checking directory(%#08x.%x.%x)",
-	    vsp->header.id, dir.vnodeNumber, dir.unique);
-	if (RecoverableResLogs) {
-	    LogMsg(9, SrvDebugLevel, stdout, 
-		   "DCC: Marking log entries for 0x%x.%x.%x\n",
-		   vid, dirVnodeInfo->vnodes[i].vid, 
-		   dirVnodeInfo->vnodes[i].unique);
-	    MarkLogEntries(dirVnodeInfo->vnodes[i].log, vsp);
-	}
+	    if (dirVnodeInfo->inodes[i] == 0)
+		    continue;	/* Not allocated to any directory */
+	    dir.vnodeNumber = dirVnodeInfo->vnodes[i].vid;
+	    dir.unique = dirVnodeInfo->vnodes[i].unique;
+	    dir.copied = 0;
+	    dir.vparent = dirVnodeInfo->vnodes[i].vparent;
+	    dir.uparent = dirVnodeInfo->vnodes[i].uparent;
+	    dir.haveDot = dir.haveDotDot = 0;
+
+	    dir.dirCache = DC_Get((PDirInode) dirVnodeInfo->inodes[i]);
+
+	    /* dir inode is data inode of directory vnode */
+	    VLog(9, "DCC: Going to check Directory (%#x.%x.%x)", vid, 
+		 dir.vnodeNumber, dir.unique);
+
+	    if (!DH_DirOK(DC_DC2DH(dir.dirCache))) {
+		    VLog(0, "DCC: Bad Dir(0x%x.%x.%x) in rvm...Aborting", 
+			 vsp->header.id, dir.vnodeNumber, dir.unique);
+		    doassert = 1;
+	    }
+
+	    DH_EnumerateDir(DC_DC2DH(dir.dirCache), JudgeEntry, (void *)&dir);
+	    /* XXX We could call DC_Put here equally well and 
+	       retain some cache */
+	    DC_Drop(dir.dirCache);
+	    VLog(9, "DCC: Finished checking directory(%#x.%x.%x)",
+		   vsp->header.id, dir.vnodeNumber, dir.unique);
+
+	    if (RecoverableResLogs) {
+		    SLog(9, "DCC: Marking log entries for %#x.%x.%x\n",
+			 vid, dirVnodeInfo->vnodes[i].vid, 
+			 dirVnodeInfo->vnodes[i].unique);
+		    MarkLogEntries(dirVnodeInfo->vnodes[i].log, vsp);
+	    }
     }
 
     // salvage the resolution logs 
     if (RecoverableResLogs) {
-	LogMsg(0, SrvDebugLevel, stdout, 
-	       "DCC: Salvaging Logs for volume 0x%x\n",
-	       vid);
-	vsp->vollog->SalvageLog(vsp->logbm);
-	delete vsp->logbm;
+	    SLog(0, "DCC: Salvaging Logs for volume 0x%x\n", vid);
+	    vsp->vollog->SalvageLog(vsp->logbm);
+	    delete vsp->logbm;
     }
     /* check link counts, parent pointers */
-    for (vclass = 0; vclass < nVNODECLASSES; vclass++){
-	int nVnodes = vnodeInfo[vclass].nVnodes;
-	struct VnodeClassInfo *vcp = &VnodeClassInfo_Array[vclass];
-	struct VnodeEssence *vnodes = vnodeInfo[vclass].vnodes;
-	FilesInVolume += vnodeInfo[vclass].nAllocatedVnodes;
-	BlocksInVolume += vnodeInfo[vclass].volumeBlockCount;
-
-	for (i = 0; i<nVnodes; i++) {
-	    register struct VnodeEssence *vnp = &vnodes[i];
-	    LogMsg(29, VolDebugLevel, stdout, "DCC: Check Link counts:");
-	    LogMsg(29, VolDebugLevel, stdout, "\t linkcount = %d, index = %d, parent = 0x%x, unique = 0x%x",
-		vnp->count, i, vnp->vparent, vnp->unique);
-	    if (vnp->changed || vnp->count != 0) {
-		LogMsg(0, VolDebugLevel, stdout, "DCC: For Vnode (0x%x.%x.%x) parent (0x%x.%x): linkcount is %d",
-		    vid, vnp->vid, vnp->unique, vnp->vparent, vnp->uparent, vnp->count);
-		doassert = 1;
-		/* You can bring up the server by forcing this volume off-line
-		 * edit /vice/vol/skipsalvage.  The format of this file is
-		 * the fist line has the number of volumes to skip, and
-		 * each subsequent line has a volume number.  
-		 */
+    for (vclass = 0; vclass < nVNODECLASSES; vclass++) {
+	    int nVnodes = vnodeInfo[vclass].nVnodes;
+	    struct VnodeClassInfo *vcp = &VnodeClassInfo_Array[vclass];
+	    struct VnodeEssence *vnodes = vnodeInfo[vclass].vnodes;
+	    FilesInVolume += vnodeInfo[vclass].nAllocatedVnodes;
+	    BlocksInVolume += vnodeInfo[vclass].volumeBlockCount;
+	    
+	    for (i = 0; i<nVnodes; i++) {
+		    register struct VnodeEssence *vnp = &vnodes[i];
+		    VLog(29, "DCC: Check Link counts:");
+		    VLog(29, "\t linkcount = %d, index = %d, parent = 0x%x, unique = 0x%x",
+			 vnp->count, i, vnp->vparent, vnp->unique);
+		    if (vnp->changed || vnp->count != 0) {
+			    VLog(0, "DCC: For Vnode (%#x.%x.%x) parent (0x%x.%x): linkcount is %d",
+				 vid, vnp->vid, vnp->unique, vnp->vparent, 
+				 vnp->uparent, vnp->count);
+			    doassert = 1;
+			    /* You can bring up the server by forcing
+			     * this volume off-line edit
+			     * /vice/vol/skipsalvage.  The format of
+			     * this file is the fist line has the
+			     * number of volumes to skip, and each
+			     * subsequent line has a volume number.
+			     */
+		    }
 	    }
-	}
     }
-
+    
     if  ( doassert ) {
-	    	LogMsg(0, VolDebugLevel, stdout, "Salvage vol 0x%x: fatal error.", vid);
+	    LogMsg(0, VolDebugLevel, stdout, "Salvage vol 0x%x: fatal error.", vid);
 	    assert(0);
     }
     /* clean up state */
     for (vclass = 0; vclass < nVNODECLASSES; vclass++) {
 	register struct VnodeInfo *vip = &vnodeInfo[vclass];
 	if (vip->vnodes)
-	    free((char *)vip->vnodes);
+		free((char *)vip->vnodes);
 	if (vip->inodes)
-	    free((char *)vip->inodes);
+		free((char *)vip->inodes);
     }
-
+    
     /* Set correct resource utilization statistics */
     volHeader.filecount = FilesInVolume;
     volHeader.diskused = BlocksInVolume;
-
+    
     /* Make sure the uniquifer is big enough */
     if (volHeader.uniquifier < (vsp->inSummary->maxUniquifier + 1)) {
-	LogMsg(0, VolDebugLevel, stdout, "DCC: Warning - uniquifier is too low for volume (0x%x)", vid);
+	    LogMsg(0, VolDebugLevel, stdout, "DCC: Warning - uniquifier is too low for volume (0x%x)", vid);
     }
-
+    
     /* Turn off the inUse bit; the volume's been salvaged! */
     volHeader.inUse = 0;
     LogMsg(9, VolDebugLevel, stdout, "DCC: setting volHeader.inUse = %d for volume 0x%#08x",
-	 volHeader.inUse, volHeader.id);
+	   volHeader.inUse, volHeader.id);
     volHeader.needsSalvaged = 0;
     volHeader.needsCallback = (VolumeChanged != 0);    
     volHeader.dontSalvage = DONT_SALVAGE;
     VolumeChanged = 0;
     ReplaceVolDiskInfo(&ec, vsp->volindex, &volHeader);
     if (ec != 0){
-	LogMsg(0, VolDebugLevel, stdout, "DCC: Couldnt write the volHeader for volume (%#08x)",
-	    vsp->header.id);
-	return;    /* couldn't write out the volHeader */
+	    LogMsg(0, VolDebugLevel, stdout, "DCC: Couldnt write the volHeader for volume (%#08x)",
+		   vsp->header.id);
+	    return;    /* couldn't write out the volHeader */
     }
     LogMsg(0, VolDebugLevel, stdout, "done:\t%d files/dirs,\t%d blocks", FilesInVolume, BlocksInVolume);
     LogMsg(9, VolDebugLevel, stdout, "Leaving DCC()");
 }
 
 /* Zero inUse and needsSalvaged fields in VolumeDiskData */
-PRIVATE void ClearROInUseBit(struct VolumeSummary *summary)
+static void ClearROInUseBit(struct VolumeSummary *summary)
 {
     Error ec;
     VolumeId headerVid = summary->header.id;
@@ -1124,7 +1150,7 @@ PRIVATE void ClearROInUseBit(struct VolumeSummary *summary)
 }
 
 /* "ask" the fileserver to take a volume offline */
-PRIVATE int AskOffline(VolumeId volumeId)
+static int AskOffline(VolumeId volumeId)
 {
     ProgramType *pt, tmp;
     int rc = 0;
@@ -1148,7 +1174,7 @@ PRIVATE int AskOffline(VolumeId volumeId)
 }
 
 /* "ask" the fileserver to put a volume back online */
-PRIVATE int AskOnline(VolumeId volumeId)
+static int AskOnline(VolumeId volumeId)
 {
     ProgramType *pt, tmp;
     int rc = 0;
@@ -1170,7 +1196,7 @@ PRIVATE int AskOnline(VolumeId volumeId)
 }
 
 /* copy data from one inode to another */
-PRIVATE int CopyInode(Device device, Inode inode1, Inode inode2)
+static int CopyInode(Device device, Inode inode1, Inode inode2)
 {
     char buf[4096];
     register int fd1, fd2, n;
@@ -1190,7 +1216,7 @@ PRIVATE int CopyInode(Device device, Inode inode1, Inode inode2)
 }
 
 /* Prints out a list of all inodes into the Log */
-PRIVATE void PrintInodeList() {
+static void PrintInodeList() {
     register struct ViceInodeInfo *ip;
     struct ViceInodeInfo *buf;
     struct stat status;
@@ -1214,7 +1240,7 @@ PRIVATE void PrintInodeList() {
 }
 
 /* release file server and volume utility locks (for full salvage only) */
-PRIVATE void release_locks(int volUtil) {
+static void release_locks(int volUtil) {
     int fslock;
 
     if (volUtil) {  /* not running full salvage */
@@ -1246,7 +1272,7 @@ PRIVATE void release_locks(int volUtil) {
    and read in the volume numbers.  The format of the 
    file is "<number of volumes> \n <volume numbers in hex>"
 */
-PRIVATE void GetSkipVolumeNumbers() {
+static void GetSkipVolumeNumbers() {
     struct stat s1;
     FILE *skipsalv;
 
@@ -1282,41 +1308,41 @@ int InSkipVolumeList(VolumeId v, VolumeId *vl, int nvols)
 }
 
 /* Check to make sure the Vnode Free lists aren't corrupt. */
-PRIVATE void SanityCheckFreeLists() {
+static void SanityCheckFreeLists() {
     int i,j;
     char zerobuf[SIZEOF_LARGEDISKVNODE];
     struct VnodeDiskObject *zerovn = (struct VnodeDiskObject *) zerobuf;
     bzero((void *)zerovn, SIZEOF_LARGEDISKVNODE);
     
     LogMsg(0, VolDebugLevel, stdout, "SanityCheckFreeLists: Checking RVM Vnode Free lists.");
-    for (i = 0; i < CAMLIB_REC(SmallVnodeIndex); i++) {
-	if (bcmp((const void *)CAMLIB_REC(SmallVnodeFreeList[i]), (const void *) zerovn,
+    for (i = 0; i < SRV_RVM(SmallVnodeIndex); i++) {
+	if (bcmp((const void *)SRV_RVM(SmallVnodeFreeList[i]), (const void *) zerovn,
 		 SIZEOF_SMALLDISKVNODE) != 0) {
 	    LogMsg(0, VolDebugLevel, stdout,"Small Free Vnode at index %d not zero!", i);
 	    assert(0);
 	}
 	
-	for (j = i + 1; j < CAMLIB_REC(SmallVnodeIndex); j++)
-	    if (CAMLIB_REC(SmallVnodeFreeList[i]) ==
-		CAMLIB_REC(SmallVnodeFreeList[j])) {
+	for (j = i + 1; j < SRV_RVM(SmallVnodeIndex); j++)
+	    if (SRV_RVM(SmallVnodeFreeList[i]) ==
+		SRV_RVM(SmallVnodeFreeList[j])) {
 		LogMsg(0, VolDebugLevel, stdout, "Vdo 0x%x appears twice (%d and %d) in smallfreelist!",
-		       CAMLIB_REC(SmallVnodeFreeList[i]), i, j);
+		       SRV_RVM(SmallVnodeFreeList[i]), i, j);
 		assert(0);
 	    }
     }
     
-    for (i = 0; i < CAMLIB_REC(LargeVnodeIndex); i++) {
-	if (bcmp((const void *)CAMLIB_REC(LargeVnodeFreeList[i]), (const void *) zerovn,
+    for (i = 0; i < SRV_RVM(LargeVnodeIndex); i++) {
+	if (bcmp((const void *)SRV_RVM(LargeVnodeFreeList[i]), (const void *) zerovn,
 		 SIZEOF_LARGEDISKVNODE) != 0) {
 	    LogMsg(0, VolDebugLevel, stdout, "Large Free Vnode at index %d not zero!", i);
 	    assert(0);
 	}
 	
-	for (j = i + 1; j < CAMLIB_REC(LargeVnodeIndex); j++)
-	    if (CAMLIB_REC(LargeVnodeFreeList[i]) ==
-		CAMLIB_REC(LargeVnodeFreeList[j])) {
+	for (j = i + 1; j < SRV_RVM(LargeVnodeIndex); j++)
+	    if (SRV_RVM(LargeVnodeFreeList[i]) ==
+		SRV_RVM(LargeVnodeFreeList[j])) {
 		LogMsg(0, VolDebugLevel, stdout, "Vdo 0x%x appears twice (%d and %d) in largefreelist!",
-		       CAMLIB_REC(LargeVnodeFreeList[i]), i, j);
+		       SRV_RVM(LargeVnodeFreeList[i]), i, j);
 		assert(0);
 	    }		    
     }
@@ -1327,7 +1353,7 @@ PRIVATE void SanityCheckFreeLists() {
  * have the destroyMe flag set in VolDiskData. Current opinion feels that
  * the volume shouldn't be destroyed if it's in the skipsalvage file.
  */
-PRIVATE int DestroyBadVolumes() {
+static int DestroyBadVolumes() {
     LogMsg(0, VolDebugLevel, stdout, "DestroyBadVolumes: Checking for destroyed volumes.");
     for (int i = 0; i <= MAXVOLS; i++) {
 	struct VolumeHeader header;
@@ -1340,12 +1366,12 @@ PRIVATE int DestroyBadVolumes() {
 	if (header.stamp.magic != VOLUMEHEADERMAGIC)
 	    continue; 	/* corresponds to purged volume */
 	
-	if (CAMLIB_REC(VolumeList[i].data.volumeInfo)->destroyMe==DESTROY_ME){
+	if (SRV_RVM(VolumeList[i].data.volumeInfo)->destroyMe==DESTROY_ME){
 	    LogMsg(0, VolDebugLevel, stdout, "Salvage: Removing destroyed volume %x", header.id);
 	    
 	    /* Need to get device */
 	    struct stat status;
-	    char *part = CAMLIB_REC(VolumeList[i].data.volumeInfo)->partition;
+	    char *part = SRV_RVM(VolumeList[i].data.volumeInfo)->partition;
 	    if (stat(part, &status) == -1) {
 		LogMsg(0, VolDebugLevel, stdout, "Couldn't find partition \"%s\" for destroy", part);
 		return(VFAIL);
@@ -1357,7 +1383,7 @@ PRIVATE int DestroyBadVolumes() {
     return(0);
 }
 
-PRIVATE void FixInodeLinkcount(struct ViceInodeInfo *inodes, 
+static void FixInodeLinkcount(struct ViceInodeInfo *inodes, 
 			       struct InodeSummary *isp) {
     struct ViceInodeInfo *ip;
     int totalInodes = isp->nInodes;
@@ -1384,7 +1410,7 @@ PRIVATE void FixInodeLinkcount(struct ViceInodeInfo *inodes,
     }
 }
 /* zero out global variables */
-PRIVATE void zero_globals() 
+static void zero_globals() 
 {
     debug = 0;
     ListInodeOption = 0;
@@ -1405,7 +1431,7 @@ PRIVATE void zero_globals()
 /* routines that get inode and volume summaries */
 
 
-PRIVATE void CountVolumeInodes(register struct ViceInodeInfo *ip,
+static void CountVolumeInodes(register struct ViceInodeInfo *ip,
 		int maxInodes, register struct InodeSummary *summary)
 {
     int volume = ip->VolumeNo;
@@ -1448,7 +1474,7 @@ int OnlyOneVolume(struct ViceInodeInfo *inodeinfo,
 
 /* Comparison routine for inode sort. Inodes are sorted */
 /* by volume and vnode number */
-PRIVATE int CompareInodes(struct ViceInodeInfo *p1, struct ViceInodeInfo *p2)
+static int CompareInodes(struct ViceInodeInfo *p1, struct ViceInodeInfo *p2)
 {
     int i;
     if ( (p1->VnodeNumber == INODESPECIAL) ||
@@ -1484,7 +1510,7 @@ PRIVATE int CompareInodes(struct ViceInodeInfo *p1, struct ViceInodeInfo *p2)
  *  respectively, with which they are associated.
  */
 
-PRIVATE int GetInodeSummary(char *fspath, char *path, VolumeId singleVolumeNumber)
+static int GetInodeSummary(char *fspath, char *path, VolumeId singleVolumeNumber)
 {
     struct stat status;
     int summaryFd;
@@ -1596,7 +1622,7 @@ PRIVATE int GetInodeSummary(char *fspath, char *path, VolumeId singleVolumeNumbe
 /* Comparison routine for volume sort. This is setup so */
 /* that a read-write volume comes immediately before */
 /* any read-only clones of that volume */
-PRIVATE int CompareVolumes(register struct VolumeSummary *p1,
+static int CompareVolumes(register struct VolumeSummary *p1,
 				register struct VolumeSummary *p2)
 {
 
@@ -1617,7 +1643,7 @@ PRIVATE int CompareVolumes(register struct VolumeSummary *p1,
  *  Gets a volume summary list based on the contents of recoverable
  *  storage.
  */
-PRIVATE int GetVolumeSummary(VolumeId singleVolumeNumber) {
+static int GetVolumeSummary(VolumeId singleVolumeNumber) {
 
     DIR *dirp;
     Error ec;
@@ -1651,18 +1677,18 @@ PRIVATE int GetVolumeSummary(VolumeId singleVolumeNumber) {
 	    continue; 	/* corresponds to purged volume */
 
 	/* Sanity checks */
-	assert(vsp->header.id == CAMLIB_REC(VolumeList[i]).data.volumeInfo->id);
+	assert(vsp->header.id == SRV_RVM(VolumeList[i]).data.volumeInfo->id);
 	assert(vsp->header.parent ==
-	       CAMLIB_REC(VolumeList[i]).data.volumeInfo->parentId);
+	       SRV_RVM(VolumeList[i]).data.volumeInfo->parentId);
 
 	for (int j = i+1; j < MAXVOLS; j++) 
-	    if (vsp->header.id == CAMLIB_REC(VolumeList[j]).header.id) assert(0);
+	    if (vsp->header.id == SRV_RVM(VolumeList[j]).header.id) assert(0);
 	
 	/* reject volumes from other partitions */
 	LogMsg(39, VolDebugLevel, stdout, 
 	       "Partition for vol-index %d, (id 0x%x) is (%s)",
 	       i, vsp->header.id, 
-	       (CAMLIB_REC(VolumeList[i]).data.volumeInfo)->partition);
+	       (SRV_RVM(VolumeList[i]).data.volumeInfo)->partition);
 	GetVolPartition(&ec, vsp->header.id, i, thispartition);
 	LogMsg(39, VolDebugLevel, stdout, "GetVolSummary: For Volume id 0x%x GetVolPartition returns %s",
 	    vsp->header.id, thispartition);
@@ -1676,9 +1702,9 @@ PRIVATE int GetVolumeSummary(VolumeId singleVolumeNumber) {
 
 	// prepare for checking resolution logs
 	vsp->logbm = NULL;
-	if ((CAMLIB_REC(VolumeList[i]).data.volumeInfo->ResOn & RVMRES) && AllowResolution &&
+	if ((SRV_RVM(VolumeList[i]).data.volumeInfo->ResOn & RVMRES) && AllowResolution &&
 	    (vsp->header.type == readwriteVolume))
-	    vsp->vollog = CAMLIB_REC(VolumeList[i]).data.volumeInfo->log;
+	    vsp->vollog = SRV_RVM(VolumeList[i]).data.volumeInfo->log;
 	else 
 	    vsp->vollog = NULL;
 	

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/norton/norton-dir.cc,v 4.4 1997/12/23 17:19:39 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/norton/norton-dir.cc,v 4.5 1998/07/22 18:47:17 jaharkes Exp $";
 #endif /*_BLURB_*/
 
 
@@ -59,17 +59,17 @@ extern "C" {
 #include <recov.h>
 #include <camprivate.h>
 #include <coda_globals.h>
-#include <rvmdir.h>
+#include <codadir.h>
 
 #include <parser.h>
 #include "norton.h"
 
-PRIVATE void printentry(struct DirSummary *dir, char *name, VnodeId
+static void printentry(struct DirSummary *dir, char *name, VnodeId
 			vnodeNumber, Unique_t unique) {
     printf("    (0x%x 0x%x)\t%s\n", vnodeNumber, unique, name);
 }
 
-PRIVATE int 
+static int 
 SetDirHandle(DirHandle *dir, int volid, int vnum, int unique) 
 { 
     char buf[SIZEOF_LARGEDISKVNODE];
@@ -162,7 +162,7 @@ show_dir(int volid, int vnum, int unique)
 
 // remove name from the given directory and mark its vnode in conflict
 // if flag not null, decrease linkCount of directory vnode
-PRIVATE void 
+static void 
 delete_name(int volid, int vnum, int unique, char *name, int flag) 
 {
     char buf[SIZEOF_LARGEDISKVNODE];
@@ -189,20 +189,20 @@ delete_name(int volid, int vnum, int unique, char *name, int flag)
     }
     dirh.cacheCheck = 1; // XXX hack 
 
-    CAMLIB_BEGIN_TOP_LEVEL_TRANSACTION_2(CAM_TRAN_NV_SERVER_BASED)
+    RVMLIB_BEGIN_TRANSACTION(restore)
 	    
     if (ExtractVnode(&error, volindex, vclass, (VnodeId)vnodeindex,
 		     (Unique_t)unique, vnode) < 0) {
 	fprintf(stderr, "Unable to get vnode 0x%x.0x%x.0x%x\n", volid, vnum,
 		unique);
-	CAMLIB_ABORT(VFAIL);
+	rvmlib_abort(VFAIL);
 	return;
     }
 
 
     if ((error = Delete((long *)&dirh, name)) != 0) {
 	fprintf(stderr, "ERROR: Delete() returns %d, aborting\n", error);
-	CAMLIB_ABORT(VFAIL);
+	rvmlib_abort(VFAIL);
 	return;
     }
     
@@ -225,11 +225,11 @@ delete_name(int volid, int vnum, int unique, char *name, int flag)
     if (error = ReplaceVnode(volindex, vclass, (VnodeId)vnodeindex,
 			     (Unique_t)unique, vnode)) {
 	fprintf(stderr, "ERROR: ReplaceVnode returns %d, aborting\n", error);
-	CAMLIB_ABORT(VFAIL);
+	rvmlib_abort(VFAIL);
 	return;
     }
 	    
-    CAMLIB_END_TOP_LEVEL_TRANSACTION_2(CAM_PROT_TWO_PHASED, error)
+    RVMLIB_END_TRANSACTION(flush, &error);
 
     if (error) {
 	fprintf(stderr, "ERROR: Transaction aborted with status %d\n",
@@ -259,7 +259,7 @@ void delete_name(int argc, char *argv[]) {
 }
 
 
-PRIVATE void 
+static void 
 create_name(int volid, int vnum, int unique, char *name, int cvnum, 
 	    int cunique) 
 {
@@ -293,13 +293,13 @@ create_name(int volid, int vnum, int unique, char *name, int cvnum,
     }
     dirh.cacheCheck = 1; // XXX hack 
 
-    CAMLIB_BEGIN_TOP_LEVEL_TRANSACTION_2(CAM_TRAN_NV_SERVER_BASED)
+    RVMLIB_BEGIN_TRANSACTION(restore)
 	    
     if (ExtractVnode(&error, volindex, vclass, (VnodeId)vnodeindex,
 		     (Unique_t)unique, vnode) < 0) {
 	fprintf(stderr, "Unable to get vnode 0x%x.0x%x.0x%x\n", volid, vnum,
 		unique);
-	CAMLIB_ABORT(VFAIL);
+	rvmlib_abort(VFAIL);
 	return;
     }
 
@@ -307,7 +307,7 @@ create_name(int volid, int vnum, int unique, char *name, int cvnum,
 		     (Unique_t)cunique, cvnode) < 0) {
 	fprintf(stderr, "Unable to get vnode 0x%x.0x%x.0x%x\n", volid, cvnum,
 		cunique);
-	CAMLIB_ABORT(VFAIL);
+	rvmlib_abort(VFAIL);
 	return;
     }
 
@@ -316,7 +316,7 @@ create_name(int volid, int vnum, int unique, char *name, int cvnum,
     vfid[2] = cunique;
     if ((error = Create((long *)&dirh, name, vfid)) != 0) {
 	fprintf(stderr, "ERROR: Create() returns %d, aborting\n", error);
-	CAMLIB_ABORT(VFAIL);
+	rvmlib_abort(VFAIL);
 	return;
     }
 
@@ -345,7 +345,7 @@ create_name(int volid, int vnum, int unique, char *name, int cvnum,
 			     (Unique_t)unique, vnode)) {
 	fprintf(stderr, "ReplaceVnode returns %d, for parent, aborting\n", 
 		error);
-	CAMLIB_ABORT(VFAIL);
+	rvmlib_abort(VFAIL);
 	return;
     }
 
@@ -353,11 +353,11 @@ create_name(int volid, int vnum, int unique, char *name, int cvnum,
 			     (Unique_t)cunique, cvnode)) {
 	fprintf(stderr, "ReplaceVnode returns %d, for child, abort\n", 
 		error);
-	CAMLIB_ABORT(VFAIL);
+	rvmlib_abort(VFAIL);
 	return;
     }
 	    
-    CAMLIB_END_TOP_LEVEL_TRANSACTION_2(CAM_PROT_TWO_PHASED, error)
+    RVMLIB_END_TRANSACTION(flush, &(error));
 
     if (error) {
 	fprintf(stderr, "ERROR: Transaction aborted with status %d\n",

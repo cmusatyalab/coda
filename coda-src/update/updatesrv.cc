@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/update/updatesrv.cc,v 4.11 1998/06/19 21:07:56 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/update/updatesrv.cc,v 4.12 1998/08/05 23:50:06 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -107,15 +107,15 @@ extern void SFTP_Activate (SFTP_Initializer *initPtr);
 #define UPDSRVNAME "updatesrv"
 extern char *ViceErrorMsg(int errorCode);   /* should be in libutil */
 
-PRIVATE void SetDebug();
-PRIVATE void ResetDebug();
-PRIVATE void Terminate();
-PRIVATE void ServerLWP(int *Ident);
+static void SetDebug();
+static void ResetDebug();
+static void Terminate();
+static void ServerLWP(int *Ident);
 
-PRIVATE char prefix[1024];
+static char prefix[1024];
 
-PRIVATE struct timeval  tp;
-PRIVATE struct timezone tsp;
+static struct timeval  tp;
+static struct timezone tsp;
 
 
 int main(int argc, char **argv)
@@ -240,7 +240,7 @@ int main(int argc, char **argv)
 }
 
 
-PRIVATE void SetDebug()
+static void SetDebug()
 {
 
     if (SrvDebugLevel > 0) {
@@ -256,21 +256,21 @@ PRIVATE void SetDebug()
 }
 
 
-PRIVATE void ResetDebug()
+static void ResetDebug()
 {
     RPC2_DebugLevel = SrvDebugLevel = 0;
     LogMsg(0, SrvDebugLevel, stdout, "Reset Debug levels to 0\n");
 }
 
 
-PRIVATE void Terminate()
+static void Terminate()
 {
     LogMsg(0, SrvDebugLevel, stdout, "Exiting updateclnt\n");
     exit(0);
 }
 
 
-PRIVATE void ServerLWP(int *Ident)
+static void ServerLWP(int *Ident)
 {
     RPC2_RequestFilter myfilter;
     RPC2_PacketBuffer * myrequest;

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/volutil/vol-info.cc,v 4.3 1998/01/10 18:39:57 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/volutil/vol-info.cc,v 4.4 1998/04/14 21:00:37 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -84,13 +84,14 @@ extern "C" {
 #include <rpc2.h>
 #include <se.h>
 #include <util.h>
+#include <rvmlib.h>
+#include <util.h>
 #include <vice.h>
 #include <volutil.h>
 #ifdef __cplusplus
 }
 #endif __cplusplus
 
-#include <rvmlib.h>
 #include <cvnode.h>
 #include <volume.h>
 #include <partition.h>
@@ -106,9 +107,9 @@ static FILE * infofile;    // descriptor for info file
 
 void PrintVnode(FILE *outfile, VnodeDiskObject *vnode, VnodeId vnodeNumber);
 
-PRIVATE void PrintHeader(Volume *);
-PRIVATE void printvns(Volume *, VnodeClass);
-PRIVATE void date(unsigned long, char *);
+static void PrintHeader(Volume *);
+static void printvns(Volume *, VnodeClass);
+static void date(unsigned long, char *);
 
 /*
   BEGIN_HTML
@@ -130,7 +131,7 @@ long int S_VolInfo(RPC2_Handle rpcid, RPC2_String formal_volkey, RPC2_Integer du
     assert(LWP_GetRock(FSTAG, (char **)&pt) == LWP_SUCCESS);
     LogMsg(9, VolDebugLevel, stdout, "Entering S_VolInfo(%u, %s, %d)", rpcid, volkey, dumpall);
 
-    CAMLIB_BEGIN_TOP_LEVEL_TRANSACTION_2(CAM_TRAN_NV_SERVER_BASED)
+    RVMLIB_BEGIN_TRANSACTION(restore)
     VInitVolUtil(volumeUtility);
 
     /* If user entered volume name, use it to find volid. */
@@ -142,14 +143,14 @@ long int S_VolInfo(RPC2_Handle rpcid, RPC2_String formal_volkey, RPC2_Integer du
 	long index = HashLookup(volid);
 	if (index == -1) {
 	    LogMsg(0, VolDebugLevel, stdout, "Info: Invalid name or volid %s!", volkey);
-	    CAMLIB_ABORT(-1);
+	    rvmlib_abort(-1);
 	}
     }
 
     vp = VGetVolume(&error, volid);
     if (vp == NULL) {
 	LogMsg(0, VolDebugLevel, stdout, "S_VolInfo: failure attaching volume %x", volid);
-        CAMLIB_ABORT(error);
+        rvmlib_abort(error);
     }
 
     if (error) {
@@ -185,16 +186,16 @@ long int S_VolInfo(RPC2_Handle rpcid, RPC2_String formal_volkey, RPC2_Integer du
 
     if ((rc = RPC2_InitSideEffect(rpcid, &sed)) <= RPC2_ELIMIT) {
 	LogMsg(0, VolDebugLevel, stdout, "VolInfo: InitSideEffect failed with %s", RPC2_ErrorMsg(rc));
-	CAMLIB_ABORT(VFAIL);
+	rvmlib_abort(VFAIL);
     }
 
     if ((rc = RPC2_CheckSideEffect(rpcid, &sed, SE_AWAITLOCALSTATUS)) <=
 		RPC2_ELIMIT) {
 	LogMsg(0, VolDebugLevel, stdout, "VolInfo: CheckSideEffect failed with %s", RPC2_ErrorMsg(rc));
-	CAMLIB_ABORT(VFAIL);
+	rvmlib_abort(VFAIL);
     }
 
-    CAMLIB_END_TOP_LEVEL_TRANSACTION_2(CAM_PROT_TWO_PHASED, status)
+    RVMLIB_END_TRANSACTION(flush, &(status));
     VDisconnectFS();
 
     if (status)
@@ -207,7 +208,7 @@ long int S_VolInfo(RPC2_Handle rpcid, RPC2_String formal_volkey, RPC2_Integer du
 
 #define typestring(type) (type == RWVOL? "read/write": type == ROVOL? "readonly": type == BACKVOL? "backup": "unknown")
 
-PRIVATE void PrintHeader(register Volume *vp)
+static void PrintHeader(register Volume *vp)
 {
     char d1[100];
     char d2[100];
@@ -242,7 +243,7 @@ PRIVATE void PrintHeader(register Volume *vp)
     }
 }
 
-PRIVATE void printvns(Volume *vp, VnodeClass vclass)
+static void printvns(Volume *vp, VnodeClass vclass)
 {
     register struct VnodeClassInfo *vcp = &VnodeClassInfo_Array[vclass];
     char buf[SIZEOF_LARGEDISKVNODE];
@@ -267,7 +268,7 @@ void PrintVnode(FILE *outfile, VnodeDiskObject *vnode, VnodeId vnodeNumber)
     PrintVV(outfile, &(vnode->versionvector));
 }
 
-PRIVATE void date(unsigned long date, char *result)
+static void date(unsigned long date, char *result)
 {
     struct tm *tm = localtime((long *)&date);
     sprintf(result, "%u (%02d/%02d/%02d.%02d:%02d:%02d)", date,

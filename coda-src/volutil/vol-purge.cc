@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/volutil/vol-purge.cc,v 4.2 1997/02/26 16:04:11 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/volutil/vol-purge.cc,v 4.3 1998/04/14 21:00:39 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -66,24 +66,19 @@ extern "C" {
 #include <sys/file.h>
 #include <sys/stat.h>
 
-#ifdef __MACH__
-#include <sysent.h>
-#include <libc.h>
-#else	/* __linux__ || __BSD44__ */
 #include <unistd.h>
 #include <stdlib.h>
-#endif
-
 #include <lwp.h>
 #include <lock.h>
+#include <util.h>
+#include <rvmlib.h>
 #include <volutil.h>
+#include <vice.h>
+
 #ifdef __cplusplus
 }
 #endif __cplusplus
 
-#include <util.h>
-#include <rvmlib.h>
-#include <vice.h>
 #include <cvnode.h>
 #include <volume.h>
 #include <viceinode.h>
@@ -123,7 +118,7 @@ long int S_VolPurge(RPC2_Handle rpcid, RPC2_Unsigned formal_purgeId, RPC2_String
     }
 
     /* I think VAttachVolume needs a transaction, not sure if VGetVolume does. */
-    CAMLIB_BEGIN_TOP_LEVEL_TRANSACTION_2(CAM_TRAN_NV_SERVER_BASED)
+    RVMLIB_BEGIN_TRANSACTION(restore)
     
     vp = VGetVolume(&error, purgeId);	/* Does this need a transaction? */
     if (error){
@@ -136,7 +131,7 @@ long int S_VolPurge(RPC2_Handle rpcid, RPC2_Unsigned formal_purgeId, RPC2_String
 	    vp = VAttachVolume(&error2, purgeId, V_UPDATE);
 	    if (error2) {
 		LogMsg(0, VolDebugLevel, stdout, "Unable to attach volume %x; not purged", purgeId);
-		CAMLIB_ABORT(VNOVOL);
+		rvmlib_abort(VNOVOL);
 	    }
 	    AlreadyOffline = 1;
 	}
@@ -144,7 +139,7 @@ long int S_VolPurge(RPC2_Handle rpcid, RPC2_Unsigned formal_purgeId, RPC2_String
 	    if (vp)
 		VPutVolume(vp);
 	    LogMsg(0, VolDebugLevel, stdout, "VolPurge: GetVolume %x  returns error %d", purgeId, error);
-	    CAMLIB_ABORT(error);
+	    rvmlib_abort(error);
 	}
     }
 
@@ -153,7 +148,7 @@ long int S_VolPurge(RPC2_Handle rpcid, RPC2_Unsigned formal_purgeId, RPC2_String
 	LogMsg(0, VolDebugLevel, stdout, "The name you specified (%s) does not match the internal name (%s) for volume %x; not purged",
 	   (int) purgeName, (int) V_name(vp), purgeId);
 	VPutVolume(vp);
-	CAMLIB_ABORT(VNOVOL);
+	rvmlib_abort(VNOVOL);
     }
 
     if (!AlreadyOffline){
@@ -166,7 +161,7 @@ long int S_VolPurge(RPC2_Handle rpcid, RPC2_Unsigned formal_purgeId, RPC2_String
 	assert(error == VOFFLINE);
     }
 
-    CAMLIB_END_TOP_LEVEL_TRANSACTION_2(CAM_PROT_TWO_PHASED, status)
+    RVMLIB_END_TRANSACTION(flush, &(status));
     if (status != 0) {
 	LogMsg(0, VolDebugLevel, stdout, "S_VolPurge: Transaction aborted!");
 	VDisconnectFS();

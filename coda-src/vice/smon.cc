@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vice/smon.cc,v 4.7 1998/08/05 23:50:22 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vice/smon.cc,v 4.8 1998/08/23 16:46:30 jaharkes Exp $";
 #endif /*_BLURB_*/
 
 
@@ -83,19 +83,19 @@ extern int nlist(const char*, struct nlist[]);
 #define	DFLT_MONDHOST	"barber.coda.cs.cmu.edu"
 #define	DFLT_MONDPORTAL	1356
 
-PRIVATE const int SmonMaxDataSize = 1024 * 1024;
-PRIVATE const int SmonBindInterval = 300;
-PRIVATE const int TIMERINTERVAL = 3600;
-PRIVATE const int callReportInterval = 4*60*60;
-PRIVATE const int rvmresReportInterval = 4*60*60;
+static const int SmonMaxDataSize = 1024 * 1024;
+static const int SmonBindInterval = 300;
+static const int TIMERINTERVAL = 3600;
+static const int callReportInterval = 4*60*60;
+static const int rvmresReportInterval = 4*60*60;
 
 /* Need this for the definition of rvmrese */
 
-PRIVATE RPC2_Handle SmonHandle = 0;
+static RPC2_Handle SmonHandle = 0;
 
 /* ***** Private types ***** */
 
-PRIVATE SmonViceId MyViceId;
+static SmonViceId MyViceId;
 
 struct rvmrese : public olink {
     SmonViceId Vice;
@@ -202,7 +202,7 @@ struct smoe {
 
 #ifdef __MACH__
 /* Raw Statistic Entry. */
-PRIVATE struct nlist RawStats[] = 
+static struct nlist RawStats[] = 
 {
 #define CPTIME	0
     {
@@ -236,21 +236,21 @@ PRIVATE struct nlist RawStats[] =
 
 /* ***** Private variables  ***** */
 
-PRIVATE int SmonEnabled = 0;
-PRIVATE int SmonInited = 0;
-PRIVATE smoe SOE;
-PRIVATE olist *RVMResList = 0;
-PRIVATE unsigned long LastSmonBindAttempt = 0;
-PRIVATE SmonStatistics stats;
+static int SmonEnabled = 0;
+static int SmonInited = 0;
+static smoe SOE;
+static olist *RVMResList = 0;
+static unsigned long LastSmonBindAttempt = 0;
+static SmonStatistics stats;
 
 /* ***** Private routines  ***** */
 
-PRIVATE void SmonNoteOverflow(RPC2_Unsigned);
-PRIVATE	void CheckCallStat();		    /* Daemon Report Entries */
-PRIVATE void CheckRVMResStat();
-PRIVATE int ValidateSmonHandle();
-PRIVATE long CheckSmonResult(long);
-PRIVATE int GetRawStatistics(SmonStatistics *);
+static void SmonNoteOverflow(RPC2_Unsigned);
+static void CheckCallStat();		    /* Daemon Report Entries */
+static void CheckRVMResStat();
+static int ValidateSmonHandle();
+static long CheckSmonResult(long);
+static int GetRawStatistics(SmonStatistics *);
 
 
 /*  *****  External variables  *****  */
@@ -272,7 +272,7 @@ void SmonInit()
 
 
 
-PRIVATE void SmonNoteOverflow(RPC2_Unsigned time) {
+static void SmonNoteOverflow(RPC2_Unsigned time) {
     if (SOE.Count++ == 0)
 	SOE.StartTime = time;
 }
@@ -283,7 +283,7 @@ PRIVATE void SmonNoteOverflow(RPC2_Unsigned time) {
 ** be wiped out by the old result anyway.
 */
 
-PRIVATE void CheckCallStat() {
+static void CheckCallStat() {
     static unsigned long last_time = 0;
     
     if (!SmonEnabled || !SmonInited 
@@ -305,7 +305,7 @@ PRIVATE void CheckCallStat() {
 }
 
 
-PRIVATE void CheckRVMResStat()
+static void CheckRVMResStat()
 {
     static unsigned long last_time = 0; 
 
@@ -350,7 +350,7 @@ PRIVATE void CheckRVMResStat()
 }
 
 
-PRIVATE void CheckSOE() 
+static void CheckSOE() 
 {
     if (SOE.Count > 0) {
 	if (!SmonEnabled || !SmonInited) return;
@@ -368,7 +368,7 @@ PRIVATE void CheckSOE()
 }
 
 
-PRIVATE int ValidateSmonHandle()
+static int ValidateSmonHandle()
 {
     RPC2_HostIdent hid;
     RPC2_PortalIdent pid;
@@ -395,8 +395,8 @@ PRIVATE int ValidateSmonHandle()
     sid.Value.SubsysId = MondSubsysId;
 
     bp.SecurityLevel = RPC2_OPENKIMONO;
-    bp.EncryptionType = NULL;
-    bp.SideEffectType = NULL;
+    bp.EncryptionType = 0;
+    bp.SideEffectType = 0;
     bp.ClientIdent = NULL;
     bp.SharedSecret = NULL;
 
@@ -431,7 +431,7 @@ PRIVATE int ValidateSmonHandle()
 }
 
 
-PRIVATE long CheckSmonResult(long code)
+static long CheckSmonResult(long code)
 {
     if (code == 0) return(0);
 
@@ -444,7 +444,7 @@ PRIVATE long CheckSmonResult(long code)
 }
 
 
-PRIVATE int GetRawStatistics(SmonStatistics *stats)
+static int GetRawStatistics(SmonStatistics *stats)
 {
 #ifdef __MACH__
     static	int	kmem = 0;
@@ -514,7 +514,7 @@ PRIVATE int GetRawStatistics(SmonStatistics *stats)
 // *********************************************************************
 
 
-PRIVATE const int SmonDaemonInterval = TIMERINTERVAL;
+static const int SmonDaemonInterval = TIMERINTERVAL;
 
 void SmonDaemon()
 {

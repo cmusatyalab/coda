@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/norton/norton-reinit.cc,v 4.2 1997/08/20 13:46:31 raiff Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/norton/norton-reinit.cc,v 4.3 1998/01/10 18:37:21 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -58,7 +58,7 @@ extern "C" {
 #include <volume.h>
 #include <index.h>
 #include <recov.h>
-#include <rvmdir.h>
+#include <codadir.h>
 #include <camprivate.h>
 #include <coda_globals.h>
 
@@ -72,7 +72,7 @@ void usage(char * name) {
 }
 
 
-PRIVATE int DumpGlobalState(int fd) {
+static int DumpGlobalState(int fd) {
     int maxvolid = VGetMaxVolumeId();
     
     if (write(fd, (void *)&maxvolid, (int)sizeof(int)) == -1) {
@@ -82,7 +82,7 @@ PRIVATE int DumpGlobalState(int fd) {
     return 1;
 }
 
-PRIVATE int ReadGlobalState(int fd) {
+static int ReadGlobalState(int fd) {
     VolumeId maxvolid;
     int status;
 
@@ -93,16 +93,16 @@ PRIVATE int ReadGlobalState(int fd) {
 
     if (norton_debug) printf("Read maximum vol ID: 0x%x\n", maxvolid);
 
-    CAMLIB_BEGIN_TOP_LEVEL_TRANSACTION_2(CAM_TRAN_NV_SERVER_BASED);
+    RVMLIB_BEGIN_TRANSACTION(restore);
     VSetMaxVolumeId(maxvolid);
-    CAMLIB_END_TOP_LEVEL_TRANSACTION_2(CAM_PROT_TWO_PHASED, status);
+    RVMLIB_END_TRANSACTION(flush, &(status));
     if (norton_debug) printf("Set max vol id to 0x%08x.  RVM Status = %d\n",
 		      maxvolid, status);
     return 1;
 }
 
 
-PRIVATE int DumpVolHead(int fd, VolHead *vol) {
+static int DumpVolHead(int fd, VolHead *vol) {
     if (write(fd, (void *)vol, (int)sizeof(VolHead)) == -1) {
 	perror("Writing volume header");
 	return 0;
@@ -110,7 +110,7 @@ PRIVATE int DumpVolHead(int fd, VolHead *vol) {
     return 1;
 }
 
-PRIVATE int ReadVolHead(int fd, VolHead *vol) {
+static int ReadVolHead(int fd, VolHead *vol) {
     int ret;
 
     if ((ret = read(fd, (void *)vol, (int)sizeof(VolHead))) == -1) {
@@ -138,7 +138,7 @@ int DumpVolDiskData(int fd, VolumeDiskData *data){
     return 1;
 }
 
-PRIVATE int ReadVolDiskData(int fd, VolumeDiskData *data, int *adm_limit){
+static int ReadVolDiskData(int fd, VolumeDiskData *data, int *adm_limit){
     int ret;
 
     if ((ret = read(fd, (void *)data, (int)sizeof(VolumeDiskData))) == -1) {
@@ -157,7 +157,7 @@ PRIVATE int ReadVolDiskData(int fd, VolumeDiskData *data, int *adm_limit){
 }
 
 
-PRIVATE int DumpResLog(int fd, struct VolumeData *voldata, struct
+static int DumpResLog(int fd, struct VolumeData *voldata, struct
 		       VnodeDiskObject *vnode) {
     Volume    vol, *vp;		// We need to fake out the DumpLog routine
     volHeader vh;
@@ -210,7 +210,7 @@ PRIVATE int DumpResLog(int fd, struct VolumeData *voldata, struct
 
 
 // Must be called withing a transaction.
-PRIVATE recle *AllocLogEntry(Volume *vp, rsle *entry) {
+static recle *AllocLogEntry(Volume *vp, rsle *entry) {
     recle *rle;
     int   index = -1;
     int   seqno = -1;
@@ -236,7 +236,7 @@ PRIVATE recle *AllocLogEntry(Volume *vp, rsle *entry) {
 
 
 // If an error occures, set *err = 1, otherwise *err = 0
-PRIVATE int BuildResLog(Volume *vp, rec_dlist *log,
+static int BuildResLog(Volume *vp, rec_dlist *log,
 			 VnodeId pvn, /*Parent vnode */ 
 			 Unique_t pu, /*parent uniquifier */
 			 int nentries, int start,
@@ -280,7 +280,7 @@ PRIVATE int BuildResLog(Volume *vp, rec_dlist *log,
 /* Warning: ReadResLog better not be called for a volume that does not
  * have resolution turned on.
  */
-PRIVATE int ReadResLog(int fd, Volume *vp, Vnode *vnp) {
+static int ReadResLog(int fd, Volume *vp, Vnode *vnp) {
     int   nentries,
 	  size,
 	  err;
@@ -333,7 +333,7 @@ PRIVATE int ReadResLog(int fd, Volume *vp, Vnode *vnp) {
 
 #define VNODECLASS(vclass) ((vclass) == vLarge ? "large" : "small")
 
-PRIVATE int DumpVnodeList(int fd, struct VolumeData *vol, int vol_index,
+static int DumpVnodeList(int fd, struct VolumeData *vol, int vol_index,
 			  VnodeClass vclass) {
     char   buf[SIZEOF_LARGEDISKVNODE];
     struct VnodeDiskObject *vnode = (struct VnodeDiskObject *) buf;
@@ -412,14 +412,14 @@ PRIVATE int DumpVnodeList(int fd, struct VolumeData *vol, int vol_index,
     return 1;
 }
     
-PRIVATE int DumpVolVnodes(int fd, struct VolumeData *vol, int vol_index) { 
+static int DumpVolVnodes(int fd, struct VolumeData *vol, int vol_index) { 
     if (!DumpVnodeList(fd, vol, vol_index, vLarge)) return 0;
     if (!DumpVnodeList(fd, vol, vol_index, vSmall)) return 0;
     return 1;
 }
 
 
-PRIVATE int ReadVnodeList(int fd, Volume *vp, VnodeClass vclass, int ResOn) {
+static int ReadVnodeList(int fd, Volume *vp, VnodeClass vclass, int ResOn) {
     char   buf[SIZEOF_LARGEDISKVNODE];
     struct VnodeDiskObject *vnode = (struct VnodeDiskObject *) buf;
     Vnode 	*vnp;
@@ -483,21 +483,21 @@ PRIVATE int ReadVnodeList(int fd, Volume *vp, VnodeClass vclass, int ResOn) {
 	vnp->changed = 1;
 	vnp->delete_me = 0;
 	
-	CAMLIB_BEGIN_TOP_LEVEL_TRANSACTION_2(CAM_TRAN_NV_SERVER_BASED);
+	RVMLIB_BEGIN_TRANSACTION(restore);
 	if (vclass == vLarge) {
 	    bzero((void *)inode, (int)sizeof(DirInode));
 		
 	    /* Read in the directory pages */
 	    if (read(fd, (void *)&npages, (int)sizeof(npages)) == -1) {
 		perror("Reading inode");
-		CAMLIB_ABORT(VFAIL);
+		rvmlib_abort(VFAIL);
 		return 0;
 	    }
 
 	    if (read(fd, (void *)&inode->refcount,
 		     (int)sizeof(inode->refcount)) == -1) {
 		perror("Reading inode reference count");
-		CAMLIB_ABORT(VFAIL);
+		rvmlib_abort(VFAIL);
 		return 0;
 	    }
 
@@ -505,20 +505,20 @@ PRIVATE int ReadVnodeList(int fd, Volume *vp, VnodeClass vclass, int ResOn) {
 		inode->Pages[i] = (long *)malloc(PAGESIZE);
 		if (!inode->Pages[i]) {
 		    fprintf(stderr, "Unable to allocate a new directory page.\n");
-		    CAMLIB_ABORT(VFAIL);
+		    rvmlib_abort(VFAIL);
 		    return 0;
 		}
 
 		if (read(fd, (void *)inode->Pages[i], PAGESIZE) == -1) {
 		    perror("Reading directory page\n");
-		    CAMLIB_ABORT(VFAIL);
+		    rvmlib_abort(VFAIL);
 		    return 0;
 		}
 	    }
 
 	    if (CopyDirInode(inode, &newinode)) {
 		fprintf(stderr, "Cannot copy inode to RVM, aborting\n");
-		CAMLIB_ABORT(VFAIL);
+		rvmlib_abort(VFAIL);
 		return 0;
 	    }
 		
@@ -527,7 +527,7 @@ PRIVATE int ReadVnodeList(int fd, Volume *vp, VnodeClass vclass, int ResOn) {
 	    /* Read in the resolution log */
 	    if (ResOn) {
 		if (!ReadResLog(fd, vp, vnp)) {
-		    CAMLIB_ABORT(VFAIL);
+		    rvmlib_abort(VFAIL);
 		    return 0;
 		}
 	    } else {
@@ -548,7 +548,7 @@ PRIVATE int ReadVnodeList(int fd, Volume *vp, VnodeClass vclass, int ResOn) {
 		    vnp->vnodeNumber);
 	    return 0;
 	}
-	CAMLIB_END_TOP_LEVEL_TRANSACTION_2(CAM_PROT_TWO_PHASED, status);
+	RVMLIB_END_TRANSACTION(flush, &(status));
 	if (status != 0) {
 	    fprintf(stderr,
 		    "Transaction exited with status %d!, aborting\n",
@@ -560,14 +560,14 @@ PRIVATE int ReadVnodeList(int fd, Volume *vp, VnodeClass vclass, int ResOn) {
 }
     
 
-PRIVATE int ReadVolVnodes(int fd, Volume *vp, int ResOn) {
+static int ReadVolVnodes(int fd, Volume *vp, int ResOn) {
     if (!ReadVnodeList(fd, vp, vLarge, ResOn)) return 0;
     if (!ReadVnodeList(fd, vp, vSmall, ResOn)) return 0;
     return 1;
 }
 
 
-PRIVATE void NortonSetupVolume(VolHead *vh, Volume *vp, int volindex) {
+static void NortonSetupVolume(VolHead *vh, Volume *vp, int volindex) {
     // This turns out to be a global since its static, but if the
     // compiler semantics ever change, we need to move it.
     static struct volHeader header;
@@ -584,7 +584,7 @@ PRIVATE void NortonSetupVolume(VolHead *vh, Volume *vp, int volindex) {
 }
 
 // Can't re-use code in vol-salvage since this comes from command line.
-PRIVATE void GetSkipVols(int num, VolumeId *ids, char *vol_nums[]) {
+static void GetSkipVols(int num, VolumeId *ids, char *vol_nums[]) {
     while(num > 0) {
 	sscanf(*vol_nums, "%x", ids);
 	printf("Skipping volume: 0x%x\n", *ids);
@@ -597,7 +597,7 @@ PRIVATE void GetSkipVols(int num, VolumeId *ids, char *vol_nums[]) {
 // In vol-salvage.c  GetSkipVols above builds the correct list.
 extern int InSkipVolumeList(VolumeId v, VolumeId *vl, int nvols);
 
-PRIVATE int HasBackVols(VolumeId *skipvols, int nskipvols) {
+static int HasBackVols(VolumeId *skipvols, int nskipvols) {
     VolumeHeader *header;
     VolHead	 *vol;
     int          i,
@@ -641,7 +641,7 @@ PRIVATE int HasBackVols(VolumeId *skipvols, int nskipvols) {
 // So we can add volume headers back to LRU.
 extern void FreeVolumeHeader(register Volume *vp);
 
-PRIVATE int load_server_state(char *dump_file) {
+static int load_server_state(char *dump_file) {
     int dump_fd, volindex;
     int res_adm_limit;
     int status;
@@ -675,7 +675,7 @@ PRIVATE int load_server_state(char *dump_file) {
 
 	printf("Reading volume 0x%x\n", vol_head.header.id);
 	
-	CAMLIB_BEGIN_TOP_LEVEL_TRANSACTION_2(CAM_TRAN_NV_SERVER_BASED);
+	RVMLIB_BEGIN_TRANSACTION(restore);
 
 	if ((vol_type = vol_head.header.type) != RWVOL) {
 	    // Pretend that this is a read-write volume, restore
@@ -692,21 +692,21 @@ PRIVATE int load_server_state(char *dump_file) {
 			"Error code %d while creating volume %x, Aborting\n",
 			err, vol_head.header.id);
 	    }
-	    CAMLIB_ABORT(VFAIL);
+	    rvmlib_abort(VFAIL);
 	}
 
 
 	bzero((void *)&data, (int)sizeof(VolumeDiskData));
 	if (!ReadVolDiskData(dump_fd, &data, &res_adm_limit)) {
 	    fprintf(stderr, "Aborting...\n");
-	    CAMLIB_ABORT(VFAIL);
+	    rvmlib_abort(VFAIL);
 	    return 0;
 	}
 
 	/* Check the magic number */
 	if (data.stamp.magic != VOLUMEINFOMAGIC) {
 	    fprintf(stderr, "ERROR! Bad volume disk data magic number.\n");
-	    CAMLIB_ABORT(VFAIL);
+	    rvmlib_abort(VFAIL);
 	    return 0;
 	}
 
@@ -726,7 +726,7 @@ PRIVATE int load_server_state(char *dump_file) {
 	if (err != 0) {
 	    fprintf(stderr,
 		    "ReplaceVolDiskInfo returned %d, aborting\n", err);
-	    CAMLIB_ABORT(VFAIL);
+	    rvmlib_abort(VFAIL);
 	}
 
 	vp = VAttachVolume(&err, vol_head.header.id, V_SECRETLY);
@@ -734,10 +734,10 @@ PRIVATE int load_server_state(char *dump_file) {
 	    fprintf(stderr,
 		    "VAttachVolume returns error %d when attaching 0x%x\n",
 		    err, vol_head.header.id);
-	    CAMLIB_ABORT(VFAIL);
+	    rvmlib_abort(VFAIL);
 	}
 
-	CAMLIB_END_TOP_LEVEL_TRANSACTION_2(CAM_PROT_TWO_PHASED, status);
+	RVMLIB_END_TRANSACTION(flush, &(status));
 	if (status != 0) {
 	    fprintf(stderr,
 		    "Transaction exited with status %d!, aborting\n",
@@ -761,15 +761,15 @@ PRIVATE int load_server_state(char *dump_file) {
 
 	if (vol_type != RWVOL) {
 	    // Need to change the volume type.
-	    CAMLIB_BEGIN_TOP_LEVEL_TRANSACTION_2(CAM_TRAN_NV_SERVER_BASED);
+	    RVMLIB_BEGIN_TRANSACTION(restore);
 
 	    vol_head.header.type = vol_type;
 	    vp->header->diskstuff.type = vol_type;
-	    CAMLIB_MODIFY_BYTES(&(CAMLIB_REC(VolumeList[volindex]).header),
+	    rvmlib_modify_bytes(&(SRV_RVM(VolumeList[volindex]).header),
 				&vol_head.header, 
 				sizeof(struct VolumeHeader));
 	    ReplaceVolDiskInfo(&err, volindex, &vp->header->diskstuff);
-	    CAMLIB_END_TOP_LEVEL_TRANSACTION_2(CAM_PROT_TWO_PHASED, status);
+	    RVMLIB_END_TRANSACTION(flush, &(status));
 	    if (status != 0) {
 		fprintf(stderr,
 			"Transaction exited with status %d!, aborting\n",
@@ -789,7 +789,7 @@ PRIVATE int load_server_state(char *dump_file) {
     return 1;
 }
 
-PRIVATE int dump_server_state(char *dump_file, char *skipvollist[], int nskipvols) {
+static int dump_server_state(char *dump_file, char *skipvollist[], int nskipvols) {
     VolumeHeader *header;
     VolHead	 *vol;
     VolumeId	 *skipvols = NULL;

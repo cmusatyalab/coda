@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vice/codaproc.cc,v 4.9 1998/01/12 23:35:28 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vice/codaproc.cc,v 4.10 1998/04/14 20:55:35 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -67,6 +67,8 @@ extern "C" {
 #include <rpc2.h>
 #include <se.h>
 #include <util.h>
+#include <rvmlib.h>
+
 #include <prs.h>
 #include <al.h>
 #include <vice.h>
@@ -74,9 +76,7 @@ extern "C" {
 }
 #endif __cplusplus
 
-#include <rvmlib.h>
 #include <vmindex.h>
-#include <coda_dir.h>
 #include <srv.h>
 #include <recov_vollog.h>
 #include "coppend.h"
@@ -87,7 +87,7 @@ extern "C" {
 #include <vlist.h>
 #include <callback.h>
 #include "codaproc.h"
-#include <rvmdir.h>
+#include <codadir.h>
 #include <nettohost.h>
 #include <operations.h>
 #include <res.h>
@@ -116,8 +116,6 @@ extern int CmpPlus(AL_AccessEntry *a, AL_AccessEntry *b);
 
 extern int CmpMinus(AL_AccessEntry *a, AL_AccessEntry *b);
 
-extern void SetDirHandle(DirHandle *, Vnode *);
-
 extern int CheckWriteMode(ClientEntry *, Vnode *);
 
 extern void ChangeDiskUsage(Volume *, int);
@@ -128,53 +126,53 @@ extern long FileResolve(res_mgrpent *, ViceFid *, ViceVersionVector **);
 
 int GetSubTree(ViceFid *, Volume *, dlist *);
 
-int PerformTreeRemoval(TreeRmBlk *, char *, long, long);
+int PerformTreeRemoval(struct DirEntry *, void *);
 
 
 /* ***** Private routines  ***** */
-PRIVATE int FidSort(ViceFid *);
+static int FidSort(ViceFid *);
 void UpdateVVs(ViceVersionVector *, ViceVersionVector *, ViceVersionVector *);
 
-PRIVATE int PerformDirRepair(ClientEntry *, vle *, Volume *, 
+static int PerformDirRepair(ClientEntry *, vle *, Volume *, 
 			     VolumeId , ViceStatus *, ViceStoreId *,
 			     struct repair *, int, dlist *, Rights, Rights, int *);
 
-PRIVATE int CheckDirRepairSemantics(vle *, dlist *, Volume *, ViceStatus *, 
+static int CheckDirRepairSemantics(vle *, dlist *, Volume *, ViceStatus *, 
 				    ClientEntry *, Rights *, Rights *, int , 
 				    struct repair *);
 
-PRIVATE int CheckRepairSetNACLSemantics(ClientEntry *, Vnode *, Volume *, char *,int);
+static int CheckRepairSetNACLSemantics(ClientEntry *, Vnode *, Volume *, char *,int);
 
-PRIVATE int CheckRepairSetACLSemantics(ClientEntry *, Vnode *, Volume *, char *, int);
+static int CheckRepairSetACLSemantics(ClientEntry *, Vnode *, Volume *, char *, int);
 
-PRIVATE int CheckRepairACLSemantics(ClientEntry *, Vnode *, Volume *, 
+static int CheckRepairACLSemantics(ClientEntry *, Vnode *, Volume *, 
 				    AL_AccessList **, int *);
 
-PRIVATE int CheckFileRepairSemantics(vle *, vle *, Volume *, ViceStatus *, 
+static int CheckFileRepairSemantics(vle *, vle *, Volume *, ViceStatus *, 
 				     ClientEntry *, Rights *, Rights *);
 
-PRIVATE int CheckRepairSemantics(vle *, Volume *, dlist *, ViceStatus *, 
+static int CheckRepairSemantics(vle *, Volume *, dlist *, ViceStatus *, 
 				 ClientEntry *, Rights *, Rights *, int , 
 				 struct repair *);
 
-PRIVATE int PerformFileRepair(vle *, Volume *, VolumeId, ViceStatus *, 
+static int PerformFileRepair(vle *, Volume *, VolumeId, ViceStatus *, 
 			      ViceStoreId *, Rights, Rights);
 
-PRIVATE int GetMyRepairList(ViceFid *, struct listhdr *, int , 
+static int GetMyRepairList(ViceFid *, struct listhdr *, int , 
 			    struct repair **, int *);
 
 
-PRIVATE int CheckTreeRemoveSemantics(ClientEntry *, Volume *, 
+static int CheckTreeRemoveSemantics(ClientEntry *, Volume *, 
 				     ViceFid *, dlist *);
 
-PRIVATE int getFids(dlist *, char *, long , long );
+static int getFids(dlist *, char *, long , long );
 
 
-PRIVATE int GetRepairObjects(Volume *, vle *, dlist *, 
+static int GetRepairObjects(Volume *, vle *, dlist *, 
 			     struct repair *, int );
-PRIVATE int GetResFlag(VolumeId );
+static int GetResFlag(VolumeId );
 
-PRIVATE void COP2Update(Volume *, Vnode *, ViceVersionVector *, vmindex * =NULL);
+static void COP2Update(Volume *, Vnode *, ViceVersionVector *, vmindex * =NULL);
 
 
 /*
@@ -276,7 +274,7 @@ END_TIMING(AllocFids_Total);
 }
 
 
-PRIVATE const int COP2EntrySize = (int)(sizeof(ViceStoreId) + sizeof(ViceVersionVector));
+static const int COP2EntrySize = (int)(sizeof(ViceStoreId) + sizeof(ViceVersionVector));
 /*
   BEGIN_HTML
   <a name="ViceCOP2"><strong>Update the VV that was modified during the first phase (COP1) </tt></strong></a> 
@@ -494,7 +492,7 @@ long ViceSetVV(RPC2_Handle cid, ViceFid *Fid, ViceVersionVector *VV, RPC2_Counte
     bcopy((const void *)VV, (void *) &(Vnode_vv(vptr)), (int)sizeof(ViceVersionVector));
     
 FreeLocks:
-    CAMLIB_BEGIN_TOP_LEVEL_TRANSACTION_2(CAM_TRAN_NV_SERVER_BASED)
+    RVMLIB_BEGIN_TRANSACTION(restore)
        int fileCode = 0;
        if (vptr){
 	   VPutVnode((Error *)&fileCode, vptr);
@@ -502,7 +500,7 @@ FreeLocks:
        }
        if (volptr)
 	   PutVolObj(&volptr, NO_LOCK);
-    CAMLIB_END_TOP_LEVEL_TRANSACTION_2(CAM_PROT_TWO_PHASED, camstatus)       
+    RVMLIB_END_TRANSACTION(flush, &(camstatus));       
     if (camstatus){
 	LogMsg(0, SrvDebugLevel, stdout,  "ViceSetVV: Error during transaction");
 	return(camstatus);
@@ -514,9 +512,7 @@ FreeLocks:
 
 
 /*
-  BEGIN_HTML
-  <a name="ViceRepair"><strong>Manually resolve the object</strong></a> 
-  END_HTML
+  ViceRepair: Manually resolve the object
 */
 long ViceRepair(RPC2_Handle cid, ViceFid *Fid, ViceStatus *status,
 		 ViceStoreId *StoreId,  SE_Descriptor *BD)
@@ -732,7 +728,7 @@ FreeLocks:
   reparing a file object </strong></a> 
   END_HTML
 */
-PRIVATE int PerformFileRepair(vle *ov, Volume *volptr, VolumeId VSGVolnum, 
+static int PerformFileRepair(vle *ov, Volume *volptr, VolumeId VSGVolnum, 
 			      ViceStatus *status, ViceStoreId *StoreId, 
 			      Rights rights, Rights anyrights)
 {
@@ -985,7 +981,7 @@ int CheckRepairSetNACLSemantics(ClientEntry *client, Vnode *vptr, Volume *volptr
     }
 }
 
-PRIVATE int CheckRepairRenameSemantics(ClientEntry *client, Volume *volptr, vle *sdv, 
+static int CheckRepairRenameSemantics(ClientEntry *client, Volume *volptr, vle *sdv, 
 				       vle *tdv, vle *sv, vle *tv, char *name, 
 				       char *newname) {
     int errorCode;
@@ -1227,9 +1223,9 @@ int CheckDirRepairSemantics(vle *ov, dlist *vlist, Volume *volptr,
 						     0, NULL, NULL, NULL, NULL, NULL))
 		    return(errorCode);
 		
-		DirHandle cDir;
-		SetDirHandle(&cDir, cv->vptr);
-		if (IsEmpty((long *)&cDir) != 0) {
+		PDirHandle cDir;
+		cDir = VN_SetDirHandle(cv->vptr);
+		if (!DH_IsEmpty(cDir)) {
 		    /* do semantic checking recursively */
 		    if (errorCode = CheckTreeRemoveSemantics(client, volptr, 
 							     (ViceFid *)(&repairent.parms[0]),
@@ -1254,18 +1250,18 @@ int CheckDirRepairSemantics(vle *ov, dlist *vlist, Volume *volptr,
 		assert(tdv->vptr);
 
 		// get source vnode ptr
-		DirHandle sdh;
-		SetDirHandle(&sdh, sdv->vptr);
-		assert(Lookup((long *)&sdh, repairent.name, (long *)&sfid) == 0);
+		PDirHandle sdh;
+		sdh = VN_SetDirHandle(sdv->vptr);
+		assert(DH_Lookup(sdh, repairent.name, &sfid) == 0);
 		sfid.Volume = repairent.parms[0];
 		vle *sv = FindVLE(*vlist, &sfid);
 		assert(sv); assert(sv->vptr);
 
 		// get target vnode 
-		DirHandle tdh;
+		PDirHandle tdh;
 		vle *tv = NULL;
-		SetDirHandle(&tdh, tdv->vptr);
-		if (Lookup((long *)&tdh, repairent.newname, (long *)&tfid) == 0) {
+		tdh = VN_SetDirHandle(tdv->vptr);
+		if (DH_Lookup(tdh, repairent.newname, &tfid) == 0) {
 		    tfid.Volume = repairent.parms[0];
 		    tv = FindVLE(*vlist, &tfid);
 		    assert(tv); assert(tv->vptr);
@@ -1331,7 +1327,7 @@ int CheckDirRepairSemantics(vle *ov, dlist *vlist, Volume *volptr,
   reparing a directory object </strong></a> 
   END_HTML
 */
-PRIVATE int PerformDirRepair(ClientEntry *client, vle *ov, Volume *volptr, 
+static int PerformDirRepair(ClientEntry *client, vle *ov, Volume *volptr, 
 			     VolumeId VSGVolnum,
 			     ViceStatus *status, ViceStoreId *StoreId,
 			     struct repair *repList, int repCount, 
@@ -1487,27 +1483,27 @@ PRIVATE int PerformDirRepair(ClientEntry *client, vle *ov, Volume *volptr,
 		vle *cv = FindVLE(*vlist, &cFid);
 		assert(cv != 0);
 		
-		DirHandle cdir;
-		SetDirHandle(&cdir, cv->vptr);
+		PDirHandle cdir;
+		cdir = VN_SetDirHandle(cv->vptr);
 		int tblocks = 0;
 		/* first make the directory empty */
 		{
-		    if (IsEmpty((long *)&cdir) != 0) {
+		    if (!DH_IsEmpty(cdir)) {
 			/* remove children first */
 			TreeRmBlk	pkdparm;
 			pkdparm.init(client, VSGVolnum, volptr,
 				     status, StoreId, vlist, 0, 
 				     NULL, 0, &tblocks);
-			EnumerateDir((long *)&cdir, (int (*) (void *,...))PerformTreeRemoval, 
-				     (long)&pkdparm);
+			DH_EnumerateDir(cdir, 
+					(int (*) (PDirEntry, void *))PerformTreeRemoval, 
+					(void *)&pkdparm);
 			*deltablocks += tblocks;
 		    }
 		}
 		
 		/* remove the empty directory */
 		{
-		    SetDirHandle(&cdir, cv->vptr);
-		    assert(IsEmpty((long *)&cdir) == 0);
+		    assert(DH_IsEmpty(cdir));
 		    tblocks = 0;
 		    PerformRmdir(client, VSGVolnum, volptr, 
 				 ov->vptr, cv->vptr, repairent.name, status->Date,
@@ -1536,18 +1532,18 @@ PRIVATE int PerformDirRepair(ClientEntry *client, vle *ov, Volume *volptr,
 		assert(tdv->vptr);
 
 		// get source vnode ptr
-		DirHandle sdh;
-		SetDirHandle(&sdh, sdv->vptr);
-		assert(Lookup((long *)&sdh, repairent.name, (long *)&sfid) == 0);
+		PDirHandle sdh;
+		sdh = VN_SetDirHandle(sdv->vptr);
+		assert(DH_Lookup(sdh, repairent.name, &sfid) == 0);
 		sfid.Volume = repairent.parms[0];
 		vle *sv = FindVLE(*vlist, &sfid);
 		assert(sv); assert(sv->vptr);
 
 		// get target vnode 
-		DirHandle tdh;
+		PDirHandle tdh;
 		vle *tv = NULL;
-		SetDirHandle(&tdh, tdv->vptr);
-		if (Lookup((long *)&tdh, repairent.newname, (long *)&tfid) == 0) {
+		tdh = VN_SetDirHandle(tdv->vptr);
+		if (DH_Lookup(tdh, repairent.newname, &tfid) == 0) {
 		    tfid.Volume = repairent.parms[0];
 		    tv = FindVLE(*vlist, &tfid);
 		    assert(tv); assert(tv->vptr);
@@ -1682,7 +1678,7 @@ PRIVATE int PerformDirRepair(ClientEntry *client, vle *ov, Volume *volptr,
 			 ((op) == REPAIR_CREATED) || \
 			 ((op) == REPAIR_CREATEL))
 			 
-PRIVATE int GetRepairObjects(Volume *volptr, vle *ov, dlist *vlist, 
+static int GetRepairObjects(Volume *volptr, vle *ov, dlist *vlist, 
 			     struct repair *repList, int repCount)
 {
     int errorCode = 0;
@@ -1739,10 +1735,10 @@ PRIVATE int GetRepairObjects(Volume *volptr, vle *ov, dlist *vlist,
 		    break;
 		  case REPAIR_REMOVEFSL:
 		    {
-			DirHandle dh;
-			SetDirHandle(&dh, ov->vptr);
-			if (Lookup((long *)&dh, repairent.name, 
-				   (long *)&(repairent.parms[0])) != 0) {
+			PDirHandle dh;
+			dh = VN_SetDirHandle(ov->vptr);
+			if (DH_Lookup(dh, repairent.name, 
+				   (struct ViceFid *)&(repairent.parms[0])) != 0) {
 			    LogMsg(0, SrvDebugLevel, stdout,  "REMOVEFSL: No name %s in directory",
 				    repairent.name);
 			    return(ENOENT);
@@ -1753,11 +1749,12 @@ PRIVATE int GetRepairObjects(Volume *volptr, vle *ov, dlist *vlist,
 		    break;
 		  case REPAIR_REMOVED:
 		    {
-			DirHandle dh;
-			SetDirHandle(&dh, ov->vptr);
-			if (Lookup((long *)&dh, repairent.name, 
-				   (long *)&(repairent.parms[0])) != 0) {
-			    LogMsg(0, SrvDebugLevel, stdout,  "REMOVED: No name %s in directory",
+			PDirHandle dh;
+			dh = VN_SetDirHandle(ov->vptr);
+			if (DH_Lookup(dh, repairent.name, 
+				      (struct ViceFid *)&(repairent.parms[0])) != 0) {
+			    LogMsg(0, SrvDebugLevel, stdout,  
+				   "REMOVED: No name %s in directory",
 				    repairent.name);
 			    return(ENOENT);
 			}
@@ -1850,11 +1847,11 @@ int GetSubTree(ViceFid *fid, Volume *volptr, dlist *vlist) {
 	
     /* obtain fids of immediate children */
     {
-	DirHandle dh;
-	SetDirHandle(&dh, vptr);
+	PDirHandle dh;
+	dh = VN_SetDirHandle(vptr);
 	
-	if (IsEmpty((long *)&dh) != 0)
-	    EnumerateDir((long *)&dh, (int (*) (void *,...))getFids, (long)tmplist);
+	if (!DH_IsEmpty(dh))
+	    DH_EnumerateDir(dh, (int (*) (PDirEntry, void *))getFids, (void *)tmplist);
     }
     
     /* put root's vnode */
@@ -1898,7 +1895,7 @@ int GetSubTree(ViceFid *fid, Volume *volptr, dlist *vlist) {
     return(errorCode);
 }
 
-PRIVATE int getFids(dlist *flist, char *name, long vnode, long unique)
+static int getFids(dlist *flist, char *name, long vnode, long unique)
 {
     LogMsg(9, SrvDebugLevel, stdout,  "Entering GetFid for %s", name);
     if (!strcmp(name, ".") || !strcmp(name, ".."))
@@ -1929,51 +1926,57 @@ class rmblk {
     }
 };
 
-PRIVATE int RecursiveCheckRemoveSemantics(rmblk *rb, char *name, 
-					  long vnode, long unique) {
-    if (rb->result) return(rb->result);
-    if (!strcmp(name, ".") || !strcmp(name, "..")) return(0);
+static int RecursiveCheckRemoveSemantics(PDirEntry de, void * data) 
+{
+	rmblk *rb = (rmblk *)data;
+	VnodeId vnode;
+	Unique_t unique;
+	char *name = de->name;
+	FID_NFid2Int(&de->fid, &vnode, &unique);
 
-    int errorCode = 0;
-    ViceFid fid;
-    vle *pv = 0;
-    vle *ov = 0;
-    vle *tv = 0;
-    /* form the fid */
-    {
-	fid.Volume = V_id(rb->volptr);
-	fid.Vnode = vnode;
-	fid.Unique = unique;
-    }
+	if (rb->result) 
+		return(rb->result);
+	if (!strcmp(name, ".") || !strcmp(name, "..")) 
+		return(0);
 
-    /* get the object and its parent */
-    {
-	ov = FindVLE(*(rb->vlist), &fid);
-	assert(ov != NULL);
+	int errorCode = 0;
+	ViceFid fid;
+	vle *pv = 0;
+	vle *ov = 0;
+	vle *tv = 0;
+	/* form the fid */
+	{
+		fid.Volume = V_id(rb->volptr);
+		fid.Vnode = vnode;
+		fid.Unique = unique;
+	}
+
+	/* get the object and its parent */
+	{
+		ov = FindVLE(*(rb->vlist), &fid);
+		assert(ov != NULL);
 	
-	ViceFid pfid;
-	pfid.Volume = fid.Volume;
-	pfid.Vnode = ov->vptr->disk.vparent;
-	pfid.Unique = ov->vptr->disk.uparent;
+		ViceFid pfid;
+		pfid.Volume = fid.Volume;
+		pfid.Vnode = ov->vptr->disk.vparent;
+		pfid.Unique = ov->vptr->disk.uparent;
 	
-	pv = FindVLE(*(rb->vlist), &pfid);
-	assert(pv != NULL);
-    }
-    /* Check Semantics for the object's removal */
-    {
-	if (ov->vptr->disk.type == vFile ||
-	    ov->vptr->disk.type == vSymlink) {
+		pv = FindVLE(*(rb->vlist), &pfid);
+		assert(pv != NULL);
+	}
+	/* Check Semantics for the object's removal */
+	{
+		if (ov->vptr->disk.type == vFile ||
+		    ov->vptr->disk.type == vSymlink) {
 	    errorCode = CheckRemoveSemantics(rb->client, &(pv->vptr), &(ov->vptr),
 					      name, &(rb->volptr), 0, NULL,
 					      NULL, NULL, NULL, NULL);
-	    if (errorCode) {
-		rb->result = errorCode;
-		return(errorCode);
-	    }
-	    return(0);
-	}
-	
-	else {
+	        if (errorCode) {
+			rb->result = errorCode;
+			return(errorCode);
+		}
+		return(0);
+		} else {
 	    /* child is a directory */
 	    errorCode = CheckRmdirSemantics(rb->client, &(pv->vptr), &(ov->vptr),
 					     name, &(rb->volptr), 0, NULL, 
@@ -1983,10 +1986,10 @@ PRIVATE int RecursiveCheckRemoveSemantics(rmblk *rb, char *name,
 		return(errorCode);
 	    }
 	    
-	    DirHandle td;
-	    SetDirHandle(&td, ov->vptr);
-	    if (IsEmpty((long *)&td) != 0) 
-		EnumerateDir((long *)&td, (int (*) (void *,...))RecursiveCheckRemoveSemantics, (long)rb);
+	    PDirHandle td;
+	    td = VN_SetDirHandle(ov->vptr);
+	    if (!DH_IsEmpty(td)) 
+		DH_EnumerateDir(td, RecursiveCheckRemoveSemantics, (void *)rb);
 	}
     }
 
@@ -1994,116 +1997,123 @@ PRIVATE int RecursiveCheckRemoveSemantics(rmblk *rb, char *name,
 }
 
 /*
-  BEGIN_HTML
-  <a name="CheckTreeRemoveSemantics"><strong> Check the semantic
-  constraints for removing a subtree </strong></a>
-  END_HTML
+  CheckTreeRemoveSemantics: Check the semantic constraints for 
+  removing a subtree 
 */
-PRIVATE int CheckTreeRemoveSemantics(ClientEntry *client, Volume *volptr, 
-				     ViceFid *tFid, dlist *vlist) {
-    int errorCode = 0;
-    vle *tv = 0;
+static int CheckTreeRemoveSemantics(ClientEntry *client, Volume *volptr, 
+				     ViceFid *tFid, dlist *vlist) 
+{
+	int errorCode = 0;
+	vle *tv = 0;
 
-    /* get the root's vnode */
-    {
-	tv = FindVLE(*vlist, tFid);
-	assert(tv != 0);
-    }
+	/* get the root's vnode */
+	{
+		tv = FindVLE(*vlist, tFid);
+		assert(tv != 0);
+	}
 
-    /* recursively check semantics */
-    {
-	DirHandle td;
-	SetDirHandle(&td, tv->vptr);
-	rmblk enumparm(vlist, volptr, client); 
-	if (IsEmpty((long *)&td) != 0) 
-	    EnumerateDir((long *)&td, (int (*) (void *,...))RecursiveCheckRemoveSemantics, 
-			 (long)&enumparm);
-	return(enumparm.result);
-    }
+	/* recursively check semantics */
+	{
+		PDirHandle td;
+		td = VN_SetDirHandle(tv->vptr);
+		rmblk enumparm(vlist, volptr, client); 
+		if (!DH_IsEmpty(td)) 
+			DH_EnumerateDir(td, RecursiveCheckRemoveSemantics, 
+					(void *)&enumparm);
+		return(enumparm.result);
+	}
 }
 
 
 /*
-  BEGIN_HTML
-  <a name="PerformTreeRemove"><strong> Perform the actions
-  for removing a subtree </strong></a> 
-  END_HTML
-*/
-int PerformTreeRemoval(TreeRmBlk *pkdparm, char *name, 
-		       long vnode, long unique) {
+ *  PerformTreeRemove: Perform the actions for removing a subtree
+ */
 
-    if (!strcmp(name, ".") || !strcmp(name, "..")) return(0);
-    ViceFid cFid;
-    ViceFid pFid;
-    vle *cv, *pv;
-    /* get vnode of object */
-    {
-	cFid.Volume = V_id(pkdparm->volptr);
-	cFid.Vnode = vnode;
-	cFid.Unique = unique;
-	
-	cv = FindVLE(*(pkdparm->vlist), &cFid);
-	assert(cv != 0);
-    }
-    /* get vnode of parent */
-    {
-	pFid.Volume = cFid.Volume;
-	pFid.Vnode = cv->vptr->disk.vparent;
-	pFid.Unique = cv->vptr->disk.uparent;
+int PerformTreeRemoval(PDirEntry de, void *data)
+{
+	TreeRmBlk *pkdparm = (TreeRmBlk *)data;
+	VnodeId vnode;
+	Unique_t unique;
+	char *name = de->name;
+	ViceFid cFid;
+	ViceFid pFid;
+	vle *cv, *pv;
 
-	pv = FindVLE(*(pkdparm->vlist), &pFid);
-	assert(pv != 0);
-    }
+	FID_NFid2Int(&de->fid, &vnode, &unique);
 
-    /* delete children first */
-    {
-	if (cv->vptr->disk.type == vDirectory) {
-	    DirHandle cDir;
-	    SetDirHandle(&cDir, cv->vptr);
-	    if (IsEmpty((long *)&cDir) != 0) 
-		EnumerateDir((long *)&cDir, (int (*) (void *,...))PerformTreeRemoval, (long) pkdparm);
+	if (!strcmp(name, ".") || !strcmp(name, "..")) 
+		return(0);
+	/* get vnode of object */
+	{
+		cFid.Volume = V_id(pkdparm->volptr);
+		cFid.Vnode = vnode;
+		cFid.Unique = unique;
+		
+		cv = FindVLE(*(pkdparm->vlist), &cFid);
+		assert(cv != 0);
 	}
-    }
+	/* get vnode of parent */
+	{
+		pFid.Volume = cFid.Volume;
+		pFid.Vnode = cv->vptr->disk.vparent;
+		pFid.Unique = cv->vptr->disk.uparent;
+		
+		pv = FindVLE(*(pkdparm->vlist), &pFid);
+		assert(pv != 0);
+	}
+
+	/* delete children first */
+	{
+		if (cv->vptr->disk.type == vDirectory) {
+			PDirHandle cDir;
+			cDir = VN_SetDirHandle(cv->vptr);
+			if (!DH_IsEmpty(cDir)) 
+				DH_EnumerateDir(cDir, PerformTreeRemoval, 
+						(void *) pkdparm);
+		}
+	}
 
     /* delete the object */
-    {
-	int nblocks = 0;
-	if (cv->vptr->disk.type == vDirectory) {
-	    PerformRmdir(pkdparm->client, pkdparm->VSGVnum, pkdparm->volptr, 
-			 pv->vptr, cv->vptr, name, 
-			 pkdparm->status?pkdparm->status->Date : 
-			 pv->vptr->disk.unixModifyTime,
-			 0, pkdparm->storeid, &pv->d_cinode, &nblocks);
-	    *(pkdparm->blocks) += nblocks;
-	    assert(cv->vptr->delete_me);
-	    nblocks = (int)-nBlocks(cv->vptr->disk.length);
-	    assert(AdjustDiskUsage(pkdparm->volptr, nblocks) == 0);
-	    *(pkdparm->blocks) += nblocks;
-	    if (AllowResolution && V_VMResOn(pkdparm->volptr)) {
-		//spool log record for resolution 
-		if (pkdparm->IsResolve) {
-		    // find log record for original remove operation - extract storeid
-		    ViceStoreId stid;
-		    GetRemoteRemoveStoreId(&stid, pkdparm->hvlog, pkdparm->srvrid,
-					   &pFid, &cFid, name);
-		    assert(stid.Host != 0);
+	{
+		int nblocks = 0;
+		if (cv->vptr->disk.type == vDirectory) {
+			PerformRmdir(pkdparm->client, pkdparm->VSGVnum, 
+				     pkdparm->volptr, 
+				     pv->vptr, cv->vptr, name, 
+				     pkdparm->status?pkdparm->status->Date : 
+				     pv->vptr->disk.unixModifyTime,
+				     0, pkdparm->storeid, 
+				     &pv->d_cinode, &nblocks);
+			*(pkdparm->blocks) += nblocks;
+			assert(cv->vptr->delete_me);
+			nblocks = (int)-nBlocks(cv->vptr->disk.length);
+			assert(AdjustDiskUsage(pkdparm->volptr, nblocks) == 0);
+			*(pkdparm->blocks) += nblocks;
+			if (AllowResolution && V_VMResOn(pkdparm->volptr)) {
+				//spool log record for resolution 
+				if (pkdparm->IsResolve) {
+					// find log record for original remove operation - extract storeid
+					ViceStoreId stid;
+					GetRemoteRemoveStoreId(&stid, pkdparm->hvlog, pkdparm->srvrid,
+							       &pFid, &cFid, name);
+					assert(stid.Host != 0);
 		    
-		    VNResLog *vnlog;
-		    pdlist *pl = GetResLogList(cv->vptr->disk.vol_index, vnode, 
-					       unique, &vnlog);
-		    assert(pl != NULL);
-		    int ind;
-		    ind = InitVMLogRecord(V_volumeindex(pkdparm->volptr),
-					  &pv->fid, &stid, ResolveViceRemoveDir_OP, 
-					  name, vnode, unique, (int)(pl->head),
-					  pl->cnt + cv->sl.count(), &(vnlog->LCP),
-					  &cv->vptr->disk.versionvector.StoreId);
-		    LogMsg(9, SrvDebugLevel, stdout,  "TreeRemove: Spooling Log Record for removing dir %s",
-			    name);
-		    sle *SLE = new sle(ind);
-		    pv->sl.append(SLE);
-		}
-	    }
+					VNResLog *vnlog;
+					pdlist *pl = GetResLogList(cv->vptr->disk.vol_index, vnode, 
+								   unique, &vnlog);
+					assert(pl != NULL);
+					int ind;
+					ind = InitVMLogRecord(V_volumeindex(pkdparm->volptr),
+							      &pv->fid, &stid, ResolveViceRemoveDir_OP, 
+							      name, vnode, unique, (int)(pl->head),
+							      pl->cnt + cv->sl.count(), &(vnlog->LCP),
+							      &cv->vptr->disk.versionvector.StoreId);
+					LogMsg(9, SrvDebugLevel, stdout,  "TreeRemove: Spooling Log Record for removing dir %s",
+					       name);
+					sle *SLE = new sle(ind);
+					pv->sl.append(SLE);
+				}
+			}
 	    if (AllowResolution && V_RVMResOn(pkdparm->volptr)) {
 		//spool log record for resolution 
 		if (pkdparm->IsResolve) {
@@ -2215,7 +2225,7 @@ long InternalCOP2(RPC2_Handle cid, ViceStoreId *StoreId, ViceVersionVector *Upda
     recov_vol_log *vollog = NULL;
 
 START_TIMING(COP2_Total);
-#ifdef 0
+#if 0
     /* keep this around for timing again */
     extern int clockFD;
 #define NSC_GET_COUNTER         _IOR('c', 1, long)
@@ -2256,14 +2266,14 @@ START_TIMING(COP2_Total);
 	}
     }
 
-#ifdef 0
+#if 0
     if (clockFD > 0) 
 	ioctl(clockFD, NSC_GET_COUNTER, &finishgetobj);
 #endif 0
     if (!errorCode && volptr && V_RVMResOn(volptr)) vollog = V_VolLog(volptr);
 
 START_TIMING(COP2_Transaction);
-    CAMLIB_BEGIN_TOP_LEVEL_TRANSACTION_2(CAM_TRAN_NV_SERVER_BASED)
+    RVMLIB_BEGIN_TRANSACTION(restore)
     if (!errorCode) {
 	/* Update the version vectors. */
 	for (i = 0; i < nfids; i++)
@@ -2280,9 +2290,9 @@ START_TIMING(COP2_Transaction);
 
     /* Put the volume. */
     PutVolObj(&volptr, NO_LOCK);
-    CAMLIB_END_TOP_LEVEL_TRANSACTION_2(CAM_PROT_TWO_PHASED, status)
+    RVMLIB_END_TRANSACTION(flush, &(status));
 END_TIMING(COP2_Transaction);
-#ifdef 0
+#if 0
     if (clockFD > 0) 
 	ioctl(clockFD, NSC_GET_COUNTER, &finishputobj);
 #endif 0
@@ -2304,7 +2314,7 @@ END_TIMING(COP2_Transaction);
 
     LogMsg(2, SrvDebugLevel, stdout,  "ViceCOP2 returns %s", ViceErrorMsg(errorCode));
 END_TIMING(COP2_Total);
-#ifdef 0
+#if 0
     if (clockFD > 0) 
 	ioctl(clockFD, NSC_GET_COUNTER, &finishcop2);
     LogMsg(0, SrvDebugLevel, stdout,
@@ -2316,7 +2326,7 @@ END_TIMING(COP2_Total);
 }
 
 /* get resolution flags for a given volume */
-PRIVATE int GetResFlag(VolumeId Vid) {
+static int GetResFlag(VolumeId Vid) {
     int error = 0;
     Volume *volptr = 0;
 
@@ -2331,7 +2341,7 @@ PRIVATE int GetResFlag(VolumeId Vid) {
     return(reson);
 }
 
-PRIVATE int FidSort(ViceFid *fids) {
+static int FidSort(ViceFid *fids) {
     int nfids = 0;
     int i, j;
 
@@ -2345,10 +2355,10 @@ PRIVATE int FidSort(ViceFid *fids) {
 
     /* First remove any duplicates.  Also determine the number of unique, non-null fids. */
     for (i = 0; i < MAXFIDS; i++)
-	if (!(FID_EQ(fids[i], NullFid))) {
+	if (!(FID_EQ(&fids[i], &NullFid))) {
 	    nfids++;
 	    for (j = 0; j < i; j++)
-		if (FID_EQ(fids[i], fids[j])) {
+		if (FID_EQ(&fids[i], &fids[j])) {
 		    fids[j] = NullFid;
 		    nfids--;
 		    break;
@@ -2358,8 +2368,8 @@ PRIVATE int FidSort(ViceFid *fids) {
     /* Now sort the fids in increasing order (null fids are HIGHEST). */
     for (i = 0; i < MAXFIDS - 1; i++)
 	for (j = i + 1; j < MAXFIDS; j++)
-	    if (!(FID_EQ(fids[j], NullFid)) &&
-		(FID_EQ(fids[i], NullFid) || !(FID_LTE(fids[i], fids[j])))) {
+	    if (!(FID_EQ(&fids[j], &NullFid)) &&
+		(FID_EQ(&fids[i], &NullFid) || !(FID_LTE(fids[i], fids[j])))) {
 		ViceFid tmpfid = fids[i];
 		fids[i] = fids[j];
 		fids[j] = tmpfid;
@@ -2427,7 +2437,7 @@ void NewCOP1Update(Volume *volptr, Vnode *vptr, ViceStoreId *StoreId, RPC2_Integ
   END_HTML
 */
 
-PRIVATE void COP2Update(Volume *volptr, Vnode *vptr, 
+static void COP2Update(Volume *volptr, Vnode *vptr, 
 			ViceVersionVector *UpdateSet, vmindex *freed_indices) {
     /* Look up the VRDB entry. */
     vrent *vre = VRDB.find(V_groupId(volptr));

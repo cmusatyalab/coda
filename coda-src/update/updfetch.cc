@@ -29,6 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/update/updfetch.cc,v 4.5 1998/01/20 20:56:51 braam dead $";
 #endif /*_BLURB_*/
 
 
@@ -49,16 +50,13 @@ extern "C" {
 #include <signal.h>
 #include <stdio.h>
 #include <stdarg.h>
-
-#include <portmapper.h>
-#include <map.h>
 #include <lock.h>
 #include <lwp.h>
 #include <rpc2.h>
 #include <se.h>
 #include "timer.h"
 #include "sftp.h"
-#include <vice.h>
+
 #ifdef __cplusplus
 }
 #endif __cplusplus
@@ -154,7 +152,7 @@ static void ProcessArgs(int argc, char **argv)
 
 static void PrintHelp(){
 	    LogMsg(0, SrvDebugLevel, stdout, 
-		   "usage: updatefetch -h serverhostname");
+		   "usage: updfetch -h serverhostname");
 	    LogMsg(0, SrvDebugLevel, stdout, 
 		   "-r remotefile -l localfile");
 	    LogMsg(0, SrvDebugLevel, stdout, 
@@ -200,28 +198,13 @@ static void Connect()
     RPC2_SubsysIdent ssid;
     RPC2_HostIdent hid;
     RPC2_CountedBS dummy;
-    long portmapid;
-    long port;
-
-    portmapid = portmap_bind(host);
-    if ( !portmapid ) {
-	    fprintf(stderr, "Cannot bind to rpc2portmap; exiting\n");
-	    exit(1);
-    }
-    rc = portmapper_client_lookup_pbynvp(portmapid, (unsigned char *)"codaupdate", 0, 17, &port);
-
-    if ( rc ) {
-	    fprintf(stderr, "Cannot get port from rpc2portmap; exiting\n");
-	    exit(1);
-    }
-    RPC2_Unbind(portmapid);
 
     hid.Tag = RPC2_HOSTBYNAME;
     strcpy(hid.Value.Name, host);
-    sid.Tag = RPC2_PORTALBYINETNUMBER;
-    sid.Value.InetPortNumber = port;
-    ssid.Tag = RPC2_SUBSYSBYID;
-    ssid.Value.SubsysId = SUBSYS_UPDATE;
+    sid.Tag = RPC2_PORTALBYNAME;
+    strcpy(sid.Value.Name, pname);
+    ssid.Tag = RPC2_SUBSYSBYNAME;
+    strcpy(ssid.Value.Name, "Vice2-UpdateServer");
     dummy.SeqLen = 0;
 
 
@@ -258,7 +241,7 @@ static void U_InitRPC()
     sftpi.SendAhead = 4;
     sftpi.AckPoint = 4;
     SFTP_Activate(&sftpi);
-    rcode = RPC2_Init(RPC2_VERSION, 0, NULL, -1, 0);
+    rcode = RPC2_Init(RPC2_VERSION, 0, NULL, 1, -1, 0);
     if (rcode != RPC2_SUCCESS) {
 	LogMsg(0, SrvDebugLevel, stdout, "RPC2_Init failed with %s\n", RPC2_ErrorMsg((int)rcode));
 	exit(-1);

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/volutil/merge.cc,v 4.5 1998/01/10 18:39:53 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/volutil/merge.cc,v 4.6 1998/07/13 11:14:42 jaharkes Exp $";
 #endif /*_BLURB_*/
 
 
@@ -85,12 +85,12 @@ typedef struct {
 
 int DumpFd = -1;
 
-PRIVATE void BuildTable(dumpstream *, vtable *);
-PRIVATE void ModifyTable(dumpstream *, VnodeClass, vtable *);
-PRIVATE void WriteTable(DumpBuffer_t *, vtable *, VnodeClass);
-PRIVATE void WriteVnodeDiskObject(DumpBuffer_t *, VnodeDiskObject *, int);
-PRIVATE void DumpVolumeDiskData(DumpBuffer_t *, register VolumeDiskData *);
-PRIVATE void WriteDumpHeader(DumpBuffer_t *buf, struct DumpHeader *, struct DumpHeader *);
+static void BuildTable(dumpstream *, vtable *);
+static void ModifyTable(dumpstream *, VnodeClass, vtable *);
+static void WriteTable(DumpBuffer_t *, vtable *, VnodeClass);
+static void WriteVnodeDiskObject(DumpBuffer_t *, VnodeDiskObject *, int);
+static void DumpVolumeDiskData(DumpBuffer_t *, register VolumeDiskData *);
+static void WriteDumpHeader(DumpBuffer_t *buf, struct DumpHeader *, struct DumpHeader *);
 
 #define DUMPBUFSIZE 512000
 
@@ -218,7 +218,7 @@ void main(int argc, char **argv)
  * incremental implies it has been changed.
  */
 
-PRIVATE void BuildTable(dumpstream *dump, vtable *table)
+static void BuildTable(dumpstream *dump, vtable *table)
 {
     long vnodeNumber;
     char *buf[SIZEOF_LARGEDISKVNODE];
@@ -257,7 +257,7 @@ PRIVATE void BuildTable(dumpstream *dump, vtable *table)
  * the old one, or was added to list for that vnode in the original volume.
  */
 
-PRIVATE void ModifyTable(dumpstream *dump, VnodeClass vclass, vtable *Table)
+static void ModifyTable(dumpstream *dump, VnodeClass vclass, vtable *Table)
 {
     char *buf[SIZEOF_LARGEDISKVNODE];
     VnodeDiskObject *vdo = (VnodeDiskObject *)buf;
@@ -332,7 +332,7 @@ PRIVATE void ModifyTable(dumpstream *dump, VnodeClass vclass, vtable *Table)
 }
 
 /* Write the combined headers to the output dump file. */
-PRIVATE void WriteDumpHeader(DumpBuffer_t *buf, struct DumpHeader *head, struct DumpHeader *ihead)
+static void WriteDumpHeader(DumpBuffer_t *buf, struct DumpHeader *head, struct DumpHeader *ihead)
 {
     DumpDouble(buf, (byte) D_DUMPHEADER, DUMPBEGINMAGIC, DUMPVERSION);
     DumpLong(buf, 'v', head->volumeId);
@@ -343,7 +343,7 @@ PRIVATE void WriteDumpHeader(DumpBuffer_t *buf, struct DumpHeader *head, struct 
     DumpDouble(buf, 'I', head->oldest, ihead->latest);
 }
 
-PRIVATE void WriteTable(DumpBuffer_t *buf, vtable *table, VnodeClass vclass)
+static void WriteTable(DumpBuffer_t *buf, vtable *table, VnodeClass vclass)
 {
     char *vbuf[SIZEOF_LARGEDISKVNODE];
     VnodeDiskObject *vdo = (VnodeDiskObject *)vbuf;
@@ -369,7 +369,7 @@ PRIVATE void WriteTable(DumpBuffer_t *buf, vtable *table, VnodeClass vclass)
     }
 }
 
-PRIVATE void WriteVnodeDiskObject(DumpBuffer_t *buf, VnodeDiskObject *v, int vnodeNumber)
+static void WriteVnodeDiskObject(DumpBuffer_t *buf, VnodeDiskObject *v, int vnodeNumber)
 {
     DumpDouble(buf, (byte) D_VNODE, vnodeNumber, v->uniquifier);
     DumpByte(buf, 't', v->type);
@@ -391,7 +391,7 @@ PRIVATE void WriteVnodeDiskObject(DumpBuffer_t *buf, VnodeDiskObject *v, int vno
 }
 
 
-PRIVATE void DumpVolumeDiskData(DumpBuffer_t *buf, register VolumeDiskData *vol)
+static void DumpVolumeDiskData(DumpBuffer_t *buf, register VolumeDiskData *vol)
 {
     DumpTag(buf, (byte) D_VOLUMEDISKDATA);
     DumpLong(buf, 'i',vol->id);

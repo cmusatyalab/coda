@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rvmres/subresphase3.cc,v 4.4 1997/10/23 19:24:47 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rvmres/subresphase3.cc,v 4.5 1998/01/10 18:38:22 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -40,30 +40,25 @@ static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rvmres
 extern "C" {
 #endif __cplusplus
 
-#ifdef __MACH__
-#include <sysent.h>
-#include <libc.h>
-#else	/* __linux__ || __BSD44__ */
 #include <unistd.h>
 #include <stdlib.h>
-#endif
 
 #include <stdio.h>
 #include <rpc2.h>
 #include <inodeops.h>
+#include <codadir.h>
+#include <util.h>
 
 #ifdef __cplusplus
 }
 #endif __cplusplus
 
-#include <util.h>
 #include <olist.h>
 #include <dlist.h>
 #include <cvnode.h>
 #include <vcrcommon.h>
 #include <vlist.h>
 #include <vrdb.h>
-#include <coda_dir.h>
 #include <srv.h>
 #include <res.h>
 #include <operations.h>
@@ -101,23 +96,23 @@ extern "C" {
 // 		Subs return list of inconsistencies, if any, that arose.
 
 // ********** Private Routines **********
-PRIVATE int FetchLog(RPC2_Handle, char **, int );
-PRIVATE int AddChildToList(dlist *, Volume *, Vnode *, VnodeId , Unique_t , int =0);
-PRIVATE int GatherFids(dlist *, Vnode *, Volume *, arrlist *);
-PRIVATE int AddRenameChildrenToList(dlist *, Volume *, Vnode *, rsle *);
-PRIVATE int SetPhase3DirStatus(ViceStatus *, ViceFid *, Volume *, dlist *);
-PRIVATE int GetResObjs(arrlist *, ViceFid *, Volume **, dlist *);
-PRIVATE int CheckSemPerformRes(arrlist *, Volume *, ViceFid *, dlist *, 
+static int FetchLog(RPC2_Handle, char **, int );
+static int AddChildToList(dlist *, Volume *, Vnode *, VnodeId , Unique_t , int =0);
+static int GatherFids(dlist *, Vnode *, Volume *, arrlist *);
+static int AddRenameChildrenToList(dlist *, Volume *, Vnode *, rsle *);
+static int SetPhase3DirStatus(ViceStatus *, ViceFid *, Volume *, dlist *);
+static int GetResObjs(arrlist *, ViceFid *, Volume **, dlist *);
+static int CheckSemPerformRes(arrlist *, Volume *, ViceFid *, dlist *, 
 			       olist *, dlist *, int *);
-PRIVATE int CheckRegularCompOp(rsle *, dlist *, vle *, ViceFid *, Volume *, olist *);
-PRIVATE int PerformRegularCompOp(int, rsle *, dlist *, dlist *, 
+static int CheckRegularCompOp(rsle *, dlist *, vle *, ViceFid *, Volume *, olist *);
+static int PerformRegularCompOp(int, rsle *, dlist *, dlist *, 
 				 olist *, ViceFid *, vle *, Volume *, VolumeId, int *);
-PRIVATE int CheckValidityResOp(rsle *, int, int, int, int, dlist *, 
+static int CheckValidityResOp(rsle *, int, int, int, int, dlist *, 
 			       ViceFid *, olist *, conflictstats *, Volume *);
-PRIVATE int PerformResOp(rsle *, dlist *, olist *,vle *, Volume *, VolumeId, int *);
-PRIVATE void PreProcessCompOps(arrlist *);
-PRIVATE int CmpFidOp(rsle **, rsle **);
-PRIVATE void UpdateStats(ViceFid *, conflictstats *);
+static int PerformResOp(rsle *, dlist *, olist *,vle *, Volume *, VolumeId, int *);
+static void PreProcessCompOps(arrlist *);
+static int CmpFidOp(rsle **, rsle **);
+static void UpdateStats(ViceFid *, conflictstats *);
 
 /* XXX remember to take this out */
 extern int CmpFid(ViceFid *fa, ViceFid *fb);
@@ -131,12 +126,13 @@ const int Yield_rp3CheckSemPerformRes_Mask = Yield_rp3CheckSemPerformRes_Period 
 
 
 
-
-long Sub_ResPhase3(RPC2_Handle RPCid, ViceFid *Fid, RPC2_Integer size, 
+long RS_ResPhase3(RPC2_Handle RPCid, ViceFid *Fid, RPC2_Integer size, 
 		   RPC2_Integer nentries, ViceStatus *status, 
-		   RPC2_BoundedBS *piggyinc, SE_Descriptor *sed) {
+		   RPC2_BoundedBS *piggyinc, SE_Descriptor *sed) 
+{
+
     LogMsg(1, SrvDebugLevel, stdout, 
-	   "Sub_ResPhase3: Entering for Fid (0x%x.%x.%x)\n",
+	   "RS_ResPhase3: Entering for Fid (0x%x.%x.%x)\n",
 	   Fid->Volume, Fid->Vnode, Fid->Unique);
 
     PROBE(tpinfo, RecovSubP3Begin);
@@ -169,7 +165,7 @@ long Sub_ResPhase3(RPC2_Handle RPCid, ViceFid *Fid, RPC2_Integer size,
 	PROBE(tpinfo, RecovCompOpsEnd);
 	if (!CompOps) {
 	    LogMsg(0, SrvDebugLevel, stdout,
-		   "Sub_ResPhase3 - Coulnt find common point with all sites\n");
+		   "RS_ResPhase3 - Coulnt find common point with all sites\n");
 	    errorCode = EINCONS;
 
 	    // update res stats
@@ -190,7 +186,7 @@ long Sub_ResPhase3(RPC2_Handle RPCid, ViceFid *Fid, RPC2_Integer size,
     {
 	if (errorCode = GetResObjs(CompOps, Fid, &volptr, vlist)) {
 	    LogMsg(0, SrvDebugLevel, stdout,  
-		   "Sub_ResPhase3 Error %d in Getting objs",
+		   "RS_ResPhase3 Error %d in Getting objs",
 		    errorCode);
 	    goto Exit;
 	}
@@ -203,7 +199,7 @@ long Sub_ResPhase3(RPC2_Handle RPCid, ViceFid *Fid, RPC2_Integer size,
 					   vlist, AllLogs, inclist, 
 					   &nblocks)) {
 	    LogMsg(0, SrvDebugLevel, stdout,  
-		   "Sub_ResPhase3: Error %d during CheckSemPerformRes",
+		   "RS_ResPhase3: Error %d during CheckSemPerformRes",
 		   errorCode);
 	    goto Exit;
 	}
@@ -214,7 +210,7 @@ long Sub_ResPhase3(RPC2_Handle RPCid, ViceFid *Fid, RPC2_Integer size,
     {
 	if (errorCode = SetPhase3DirStatus(status, Fid, volptr, vlist)) {
 	    LogMsg(0, SrvDebugLevel, stdout,
-		   "Sub_ResPhase3: Error %d during set status\n",
+		   "RS_ResPhase3: Error %d during set status\n",
 		   errorCode);
 	    goto Exit;
 	}
@@ -244,17 +240,12 @@ long Sub_ResPhase3(RPC2_Handle RPCid, ViceFid *Fid, RPC2_Integer size,
     
     PROBE(tpinfo, RecovSubP3End);
     LogMsg(0, SrvDebugLevel, stdout,  
-	   "Sub_ResPhase3 - returning %d", errorCode);
+	   "RS_ResPhase3 - returning %d", errorCode);
     return(errorCode);
 }
 
-long RS_ResPhase3(RPC2_Handle RPCid, ViceFid *Fid, RPC2_Integer size, 
-		   RPC2_Integer nentries, ViceStatus *status, 
-		   RPC2_BoundedBS *piggyinc, SE_Descriptor *sed) {
-    return(Sub_ResPhase3(RPCid, Fid, size, nentries, status, piggyinc, sed));
-}
 
-PRIVATE int FetchLog(RPC2_Handle RPCid, char **buf, int size) {
+static int FetchLog(RPC2_Handle RPCid, char **buf, int size) {
     int errorCode = 0;
     *buf = (char *)malloc(size);
     assert(*buf);
@@ -287,7 +278,7 @@ PRIVATE int FetchLog(RPC2_Handle RPCid, char **buf, int size) {
     return(errorCode);
 }
 
-PRIVATE int GetResObjs(arrlist *ops, ViceFid *Fid, Volume **volptr, dlist *vlist) {
+static int GetResObjs(arrlist *ops, ViceFid *Fid, Volume **volptr, dlist *vlist) {
     
     LogMsg(1, SrvDebugLevel, stdout,  
 	   "Entering GetResObjs(0x%x.%x.%x)\n",
@@ -369,7 +360,7 @@ PRIVATE int GetResObjs(arrlist *ops, ViceFid *Fid, Volume **volptr, dlist *vlist
 // Add Fid of Child to vlist 
 //	Make sure child exists before adding to list 
 //	If Child's parent is different add that also to list 
-PRIVATE int AddChildToList(dlist *vlist, Volume *volptr, 
+static int AddChildToList(dlist *vlist, Volume *volptr, 
 			   Vnode *pvptr, VnodeId vn, Unique_t un, 
 			   int getsubtree) {
     int errorCode = 0;
@@ -393,7 +384,7 @@ PRIVATE int AddChildToList(dlist *vlist, Volume *volptr,
 }
 
 // Gather all fids involved in a rename 
-PRIVATE int AddRenameChildrenToList(dlist *vlist, Volume *volptr, 
+static int AddRenameChildrenToList(dlist *vlist, Volume *volptr, 
 				     Vnode *pvtr, rsle *r) {
     int errorCode = 0;
     ViceFid rnsrcFid;	// rename source object 
@@ -438,7 +429,7 @@ PRIVATE int AddRenameChildrenToList(dlist *vlist, Volume *volptr,
 	AddVLE(*vlist, &NewDFid);
 	AddVLE(*vlist, &ndvpFid);
     }
-    if (!FID_EQ(NewDFid, OldDFid) &&
+    if (!FID_EQ(&NewDFid, &OldDFid) &&
 	ObjectExists(V_volumeindex(volptr),
 		     vLarge, 
 		     vnodeIdToBitNumber(OldDFid.Vnode),
@@ -476,7 +467,7 @@ PRIVATE int AddRenameChildrenToList(dlist *vlist, Volume *volptr,
     return(errorCode);
 }
     
-PRIVATE int GatherFids(dlist *vlist, Vnode *pvptr, 
+static int GatherFids(dlist *vlist, Vnode *pvptr, 
 		       Volume *volptr, arrlist *ops) {
 
     LogMsg(1, SrvDebugLevel, stdout, 
@@ -552,7 +543,7 @@ PRIVATE int GatherFids(dlist *vlist, Vnode *pvptr,
  *			CREATEINCOBJ
  *			
  */
-PRIVATE int CheckSemPerformRes(arrlist *ops, Volume *volptr, 
+static int CheckSemPerformRes(arrlist *ops, Volume *volptr, 
 			       ViceFid *dFid, dlist *vlist, 
 			       olist *AllLogs, dlist *inclist, 
 			       int *nblocks) {
@@ -616,14 +607,14 @@ PRIVATE int CheckSemPerformRes(arrlist *ops, Volume *volptr,
 }
 
 
-PRIVATE int NameExistsInParent(rsle *r, Vnode *pvptr) {
+static int NameExistsInParent(rsle *r, Vnode *pvptr) {
     int NameExists = FALSE;
     char *name = ExtractNameFromrsle(r);
     ViceFid nfid;
     if (name) {
-	DirHandle dh;
-	SetDirHandle(&dh, pvptr);
-	if (Lookup((long *)&dh, name, (long *)&nfid) == 0)
+	PDirHandle dh;
+	dh = VN_SetDirHandle(pvptr);
+	if (DH_Lookup(dh, name, &nfid) == 0)
 	    NameExists = TRUE;
     }
     LogMsg(39, SrvDebugLevel, stdout,  
@@ -631,7 +622,7 @@ PRIVATE int NameExistsInParent(rsle *r, Vnode *pvptr) {
     return(NameExists);
 }
 
-PRIVATE int DoesObjExist(rsle *r, dlist *vlist, VolumeId vid) {
+static int DoesObjExist(rsle *r, dlist *vlist, VolumeId vid) {
     ViceFid cfid;
     ExtractChildFidFromrsle(r, &cfid);
     cfid.Volume = vid;
@@ -644,7 +635,7 @@ PRIVATE int DoesObjExist(rsle *r, dlist *vlist, VolumeId vid) {
     return(ObjExists);
 }
 
-PRIVATE int IsParentPtrOk(rsle *r, dlist *vlist, ViceFid *dFid) {
+static int IsParentPtrOk(rsle *r, dlist *vlist, ViceFid *dFid) {
     int ParentPtrOk = TRUE;
     ViceFid cfid;
     ExtractChildFidFromrsle(r, &cfid);
@@ -655,7 +646,7 @@ PRIVATE int IsParentPtrOk(rsle *r, dlist *vlist, ViceFid *dFid) {
 	ParentPtrOk = FALSE;
     return(ParentPtrOk);
 }
-PRIVATE int IsNameFidBindingOK(rsle *r, Vnode *pvptr) {
+static int IsNameFidBindingOK(rsle *r, Vnode *pvptr) {
     int rc = FALSE;
     char *name = ExtractNameFromrsle(r);
 
@@ -663,9 +654,9 @@ PRIVATE int IsNameFidBindingOK(rsle *r, Vnode *pvptr) {
     ExtractChildFidFromrsle(r, &cfid);
     ViceFid nfid;
     if (name) {
-	DirHandle dh;
-	SetDirHandle(&dh, pvptr);
-	if ((Lookup((long *)&dh, name, (long *)&nfid) == 0) &&
+	PDirHandle dh;
+	dh = VN_SetDirHandle(pvptr);
+	if ((DH_Lookup(dh, name, &nfid) == 0) &&
 	    (nfid.Vnode == cfid.Vnode) && (nfid.Unique == cfid.Unique))
 	    rc = TRUE;
     }
@@ -675,7 +666,7 @@ PRIVATE int IsNameFidBindingOK(rsle *r, Vnode *pvptr) {
     
 }
 
-PRIVATE int CheckRegularCompOp(rsle *r, dlist *vlist, vle *pv, 
+static int CheckRegularCompOp(rsle *r, dlist *vlist, vle *pv, 
 			       ViceFid *pFid, Volume *volptr, olist *AllLogs) {
     
     // check the different flags first  
@@ -703,7 +694,7 @@ PRIVATE int CheckRegularCompOp(rsle *r, dlist *vlist, vle *pv,
  *		Create Inconsistent Object (CREATEINCOBJ)
  *		Null Op - dont do the operation (NULLOP)
  */
-PRIVATE int CheckValidityResOp(rsle *r, int NE, 
+static int CheckValidityResOp(rsle *r, int NE, 
 			       int OE, int ParentPtrOk,
 			       int NameFidBindingOk, 
 			       dlist *vlist, ViceFid *pFid, 
@@ -1006,7 +997,7 @@ PRIVATE int CheckValidityResOp(rsle *r, int NE,
     }
 }
 
-PRIVATE int PerformRegularCompOp(int result, rsle *rp, dlist *vlist, dlist *inclist, 
+static int PerformRegularCompOp(int result, rsle *rp, dlist *vlist, dlist *inclist, 
 				 olist *AllLogs, ViceFid *dFid, vle *pv, 
 				 Volume *volptr, VolumeId VSGVolnum, int *nblocks) {
     int tblocks = 0;
@@ -1085,7 +1076,7 @@ PRIVATE int PerformRegularCompOp(int result, rsle *rp, dlist *vlist, dlist *incl
 
 
 
-PRIVATE int PerformResOp(rsle *r, dlist *vlist, olist *AllLogs,
+static int PerformResOp(rsle *r, dlist *vlist, olist *AllLogs,
 			 vle *pv, Volume *volptr, VolumeId VSGVolnum, 
 			 int *blocks) {
     
@@ -1361,23 +1352,23 @@ PRIVATE int PerformResOp(rsle *r, dlist *vlist, olist *AllLogs,
 	    assert(cv);
     	    assert(cv->vptr);
 	    
-	    DirHandle cdir;
-	    SetDirHandle(&cdir, cv->vptr);
+	    PDirHandle cdir;
+	    cdir = VN_SetDirHandle(cv->vptr);
 	    /* first make the directory empty */
 	    {
-		if (IsEmpty((long *)&cdir) != 0) {
+		if (!DH_IsEmpty(cdir)) {
 		    /* remove children first */
 		    TreeRmBlk	pkdparm;
 		    pkdparm.init(0, VSGVolnum, volptr, 0, &r->storeid, 
 				 vlist, 1, AllLogs, r->index, blocks);
-		    EnumerateDir((long *)&cdir, (int (*) (void * ...))PerformTreeRemoval, (long)&pkdparm);
+		    DH_EnumerateDir(cdir, PerformTreeRemoval, (void *)&pkdparm);
 		}
 	    }
 	    int tblocks = 0;
 	    // remove the empty directory 
 	    {
-		SetDirHandle(&cdir, cv->vptr);
-		assert(IsEmpty((long *)&cdir) == 0);
+		cdir = VN_SetDirHandle(cv->vptr);
+		assert(DH_IsEmpty(cdir));
 		tblocks = 0;
 		PerformRmdir(0, VSGVolnum, volptr, 
 			     pv->vptr, cv->vptr, name, 
@@ -1481,7 +1472,7 @@ ViceStoreId *GetRemoteRemoveStoreId(olist *AllLogs, unsigned long serverid,
 //		resolution will need to be reinvoked 
 //	Set the VV sent over from coordinator first simulating a COP1
 //	Spool a new resolution log record indicating a resolve was done 
-PRIVATE int SetPhase3DirStatus(ViceStatus *status, ViceFid *Fid, 
+static int SetPhase3DirStatus(ViceStatus *status, ViceFid *Fid, 
 			       Volume *volptr, dlist *vlist) {
     ViceStoreId stid;
     AllocStoreId(&stid);
@@ -1527,7 +1518,7 @@ PRIVATE int SetPhase3DirStatus(ViceStatus *status, ViceFid *Fid,
     return(SpoolVMLogRecord(vlist, ov, volptr, &stid, ResolveNULL_OP, 0));
 }
 
-PRIVATE void PreProcessCompOps(arrlist *ops) {
+static void PreProcessCompOps(arrlist *ops) {
     // form new arrlist 
     arrlist newops(ops->maxsize);
     
@@ -1558,7 +1549,7 @@ PRIVATE void PreProcessCompOps(arrlist *ops) {
 	    c1fid.Volume = c2fid.Volume = 0;
 	    ExtractChildFidFromrsle(curr, &c1fid);
 	    ExtractChildFidFromrsle(prev, &c2fid);
-	    if (!CmpFid(&c1fid, &c2fid) &&
+	    if (FID_Cmp(&c1fid, &c2fid) &&
 		!strcmp(curr->name1, prev->name1)) {
 		curr->opcode = ResolveNULL_OP;
 		prev->opcode = ResolveNULL_OP;
@@ -1575,7 +1566,7 @@ PRIVATE void PreProcessCompOps(arrlist *ops) {
  *	If fids are equal then order of operation are :
  *		CREATE(Fid) <ALL OTHER OPS (Fid)> DELETE(Fid)
  */
-PRIVATE int CmpFidOp(rsle **a, rsle **b) {
+static int CmpFidOp(rsle **a, rsle **b) {
     ViceFid fa, fb;
     int res = 0;
 
@@ -1588,8 +1579,9 @@ PRIVATE int CmpFidOp(rsle **a, rsle **b) {
 
     /* Compare the fid first */
     {
-	res = CmpFid(&fa, &fb);
-	if (res) return(res);
+	res = FID_Cmp(&fa, &fb);
+	if (res) 
+		return(res);
     }
     /* Compare the ops if fids are same */
     {
@@ -1632,7 +1624,7 @@ PRIVATE int CmpFidOp(rsle **a, rsle **b) {
     }
 }
 
-PRIVATE void UpdateStats(ViceFid *Fid, conflictstats *cs) {
+static void UpdateStats(ViceFid *Fid, conflictstats *cs) {
     VolumeId vid = Fid->Volume;
     Volume *volptr = 0;
     if (XlateVid(&vid)) {

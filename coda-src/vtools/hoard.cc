@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vtools/hoard.cc,v 4.5 1997/12/16 16:19:43 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vtools/hoard.cc,v 4.6 1998/01/10 18:40:14 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -90,9 +90,6 @@ extern int execvp(const char *, const char **);
 #include <vice.h>
 #include <hdb.h>
 
-#ifdef	__linux__
-#define MAXSYMLINKS 10
-#endif
 
 /* Manifest Constants. */
 #define	CODA_ROOT   "/coda"
@@ -113,30 +110,30 @@ int Verbose = 0;
 #define	DEBUG(stmt) { if (Debug) { stmt ; fflush(stdout); } }
 
 /* Private routines. */
-PRIVATE FILE *ParseCommandLine(int, char *[]);
-PRIVATE void ParseHoardCommands(FILE *, olist&, olist&, olist&, olist&, olist&, olist&, olist&, olist&);
-PRIVATE char *my_fgets(char *, int, FILE *);
-PRIVATE char *GetToken(char *, char *, char **);
-PRIVATE int my_atoi(char *, int *);
-PRIVATE int canonicalize(char *, VolumeId *, char *, char *, VolumeId *, char (*)[MAXPATHLEN]);
-PRIVATE char *vol_getwd(VolumeId *, char *, char *);
-PRIVATE VolumeId GetVid(char *);
-PRIVATE void DoClears(olist&);
-PRIVATE void DoAdds(olist&);
-PRIVATE void DoModifies(olist&);
-PRIVATE void DoDeletes(olist&);
-PRIVATE void DoLists(olist&);
-PRIVATE void DoWalks(olist&);
-PRIVATE void DoVerifies(olist&);
-PRIVATE void DoEnables(olist&);
-PRIVATE void DoDisables(olist&);
-PRIVATE void MetaExpand(olist&, char *, int, int);
-PRIVATE void ExpandNode(char *, VolumeId, char *, olist&, int, int);
-PRIVATE int CreateOutFile(char *, char *);
-PRIVATE void RenameOutFile(char *, char *);
-PRIVATE void error(int, char * ...);
-PRIVATE void usage();
-PRIVATE void parse_error(char *);
+static FILE *ParseCommandLine(int, char *[]);
+static void ParseHoardCommands(FILE *, olist&, olist&, olist&, olist&, olist&, olist&, olist&, olist&);
+static char *my_fgets(char *, int, FILE *);
+static char *GetToken(char *, char *, char **);
+static int my_atoi(char *, int *);
+static int canonicalize(char *, VolumeId *, char *, char *, VolumeId *, char (*)[MAXPATHLEN]);
+static char *vol_getwd(VolumeId *, char *, char *);
+static VolumeId GetVid(char *);
+static void DoClears(olist&);
+static void DoAdds(olist&);
+static void DoModifies(olist&);
+static void DoDeletes(olist&);
+static void DoLists(olist&);
+static void DoWalks(olist&);
+static void DoVerifies(olist&);
+static void DoEnables(olist&);
+static void DoDisables(olist&);
+static void MetaExpand(olist&, char *, int, int);
+static void ExpandNode(char *, VolumeId, char *, olist&, int, int);
+static int CreateOutFile(char *, char *);
+static void RenameOutFile(char *, char *);
+static void error(int, char * ...);
+static void usage();
+static void parse_error(char *);
 
 /* *****  Wrapper classes for HDB pioctl messages.  ***** */
 
@@ -271,7 +268,7 @@ main(int argc, char *argv[]) {
     exit(0);
 }
 
-PRIVATE FILE *ParseCommandLine(int argc, char **argv) {
+static FILE *ParseCommandLine(int argc, char **argv) {
     if (argc == 1)
 	usage();
 
@@ -335,7 +332,7 @@ PRIVATE FILE *ParseCommandLine(int argc, char **argv) {
 }
 
 
-PRIVATE void ParseHoardCommands(FILE *fp, olist& Clear, olist& Add,
+static void ParseHoardCommands(FILE *fp, olist& Clear, olist& Add,
 				olist& Delete, olist& List, olist& Walk, 
 				olist& Verify, olist& Enable, olist &Disable) {
 /*
@@ -637,7 +634,7 @@ next_cmd:
 
 /* I created my own fgets() because the 'cmds' style of input didn't work when I used the CMUCS version. */
 /* I simply copied this code from the /lib/libc.a source.  -JJK */
-PRIVATE char *my_fgets(char *s, int n, FILE *iop) {
+static char *my_fgets(char *s, int n, FILE *iop) {
 /*
     DEBUG(printf("my_fgets: cnt = %d, ptr = %x, base = %x, bufsiz = %d, flag = %d, file = %d\n",
 		  iop->_cnt, iop->_ptr, iop->_base, iop->_bufsiz, iop->_flag, iop->_file);)
@@ -661,7 +658,7 @@ PRIVATE char *my_fgets(char *s, int n, FILE *iop) {
 /* Copies next token out of first argument and into second.  Token is null-terminated. */
 /* Function returns first argument or NULL if no token was found. */
 /* Third argument is set to point at first char after this token (or NULL). */
-PRIVATE char *GetToken(char *buf, char *token, char **nextp) {
+static char *GetToken(char *buf, char *token, char **nextp) {
 /*
     DEBUG(printf("Entering GetToken\n"););
 */
@@ -690,7 +687,7 @@ PRIVATE char *GetToken(char *buf, char *token, char **nextp) {
 
 
 /* Simply ensures that all characters are digits. */
-PRIVATE int my_atoi(char *token, int *ip) {
+static int my_atoi(char *token, int *ip) {
 /*
     DEBUG(printf("Entering my_atoi\n"););
 */
@@ -709,7 +706,7 @@ PRIVATE int my_atoi(char *token, int *ip) {
 /* Caller may ask for either "volume" or "full" canonicalization, or both. */
 /* "Volume" canonicalization splits the result into a <volid, canonical-name-from-volroot> pair. */
 /* Returns 1 on success, 0 on failure. */
-PRIVATE int canonicalize(char *path, VolumeId *vp, char *vname, char *fullname,
+static int canonicalize(char *path, VolumeId *vp, char *vname, char *fullname,
 			 VolumeId *svp, char (*sname)[MAXPATHLEN]) {
 /*
     DEBUG(printf("Entering canonicalize (%s)\n", path););
@@ -875,7 +872,7 @@ done:
 /*     tail:  path from volume_root to working directory */
 /* The volume number is also returned. */
 /* The caller may pass in NULL for vp, head or both. */
-PRIVATE char *vol_getwd(VolumeId *vp, char *head, char *tail) {
+static char *vol_getwd(VolumeId *vp, char *head, char *tail) {
     if (vp) *vp = 0;
     tail[0] = '\0';
     if (head) head[0] = '\0';
@@ -943,7 +940,7 @@ PRIVATE char *vol_getwd(VolumeId *vp, char *head, char *tail) {
 }
 
 
-PRIVATE VolumeId GetVid(char *name) {
+static VolumeId GetVid(char *name) {
 /**/
     DEBUG(printf("Entering GetVid (%s)\n", name););
 /**/
@@ -982,7 +979,7 @@ PRIVATE VolumeId GetVid(char *name) {
 }
 
 
-PRIVATE void DoClears(olist& Clear) {
+static void DoClears(olist& Clear) {
     olist_iterator next(Clear);
     clear_entry *c;
     while (c = (clear_entry *)next()) {
@@ -1000,7 +997,7 @@ PRIVATE void DoClears(olist& Clear) {
 }
 
 
-PRIVATE void DoAdds(olist& Add) {
+static void DoAdds(olist& Add) {
     olist_iterator next(Add);
     add_entry *a;
     while (a = (add_entry *)next()) {
@@ -1018,7 +1015,7 @@ PRIVATE void DoAdds(olist& Add) {
 }
 
 
-PRIVATE void DoDeletes(olist& Delete) {
+static void DoDeletes(olist& Delete) {
     olist_iterator next(Delete);
     delete_entry *d;
     while (d = (delete_entry *)next()) {
@@ -1036,7 +1033,7 @@ PRIVATE void DoDeletes(olist& Delete) {
 }
 
 
-PRIVATE void DoLists(olist& List) {
+static void DoLists(olist& List) {
     olist_iterator next(List);
     list_entry *l;
     while (l = (list_entry *)next()) {
@@ -1058,7 +1055,7 @@ PRIVATE void DoLists(olist& List) {
 }
 
 
-PRIVATE void DoWalks(olist& Walk) {
+static void DoWalks(olist& Walk) {
     olist_iterator next(Walk);
     walk_entry *w;
     while (w = (walk_entry *)next()) {
@@ -1079,7 +1076,7 @@ PRIVATE void DoWalks(olist& Walk) {
 }
 
 
-PRIVATE void DoVerifies(olist& Verify) {
+static void DoVerifies(olist& Verify) {
     olist_iterator next(Verify);
     verify_entry *v;
     while (v = (verify_entry *)next()) {
@@ -1101,7 +1098,7 @@ PRIVATE void DoVerifies(olist& Verify) {
 }
 
 
-PRIVATE void DoEnables(olist& Enable) {
+static void DoEnables(olist& Enable) {
     olist_iterator next(Enable);
     enable_entry *w;
     w = (enable_entry *)next();
@@ -1120,7 +1117,7 @@ PRIVATE void DoEnables(olist& Enable) {
 }
 
 
-PRIVATE void DoDisables(olist& Disable) {
+static void DoDisables(olist& Disable) {
     olist_iterator next(Disable);
     disable_entry *w;
     w = (disable_entry *)next();
@@ -1140,7 +1137,7 @@ PRIVATE void DoDisables(olist& Disable) {
 
 
 /* Meta-expansion is only applicable to Adds. */
-PRIVATE void MetaExpand(olist& Add, char *FullName, int priority, int attributes) {
+static void MetaExpand(olist& Add, char *FullName, int priority, int attributes) {
     if (Verbose)
 	printf("Meta expanding %s\n", FullName);
 
@@ -1174,7 +1171,7 @@ done:
 
 
 /* N.B. Format of "name" is "./comp1/.../compn".  cwd = "name/..". */
-PRIVATE void ExpandNode(char *mtpt, VolumeId vid, char *name,
+static void ExpandNode(char *mtpt, VolumeId vid, char *name,
 			 olist& Add, int priority, int attributes) {
     DEBUG(printf("ExpandNode: %s, %x, %s, %d, %d\n",
 		  mtpt, vid, name, priority, attributes););
@@ -1235,7 +1232,7 @@ PRIVATE void ExpandNode(char *mtpt, VolumeId vid, char *name,
 
 /* Creating the output file must be done with an euid of the real user! */
 /* Return 0 on success, -1 on failure with errno set appropriately. */
-PRIVATE int CreateOutFile(char *in, char *out) {
+static int CreateOutFile(char *in, char *out) {
     int child = fork();
     if (child == -1)
 	error(FATAL, "CreateOutFile: fork failed(%s)", sys_errlist[errno]);
@@ -1295,7 +1292,7 @@ PRIVATE int CreateOutFile(char *in, char *out) {
 }
 
 
-PRIVATE void RenameOutFile(char *from, char *to) {
+static void RenameOutFile(char *from, char *to) {
     int child = fork();
     if (child == -1)
 	error(FATAL, "RenameOutFile: fork failed(%s)", sys_errlist[errno]);
@@ -1347,7 +1344,7 @@ PRIVATE void RenameOutFile(char *from, char *to) {
 }
 
 
-PRIVATE void error(int fatal, char *fmt ...) {
+static void error(int fatal, char *fmt ...) {
     va_list ap;
 
     char msg[240];
@@ -1365,11 +1362,11 @@ PRIVATE void error(int fatal, char *fmt ...) {
 }
 
 
-PRIVATE void usage() {
+static void usage() {
     error(FATAL, "Usage: hoard [-f source | 'cmds']");
 }
 
 
-PRIVATE void parse_error(char *line) {
+static void parse_error(char *line) {
     error(!FATAL, "parse error: %s", line);
 }

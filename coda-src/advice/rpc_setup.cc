@@ -25,9 +25,6 @@ extern "C" {
 #include "helpers.h"
 #include "rpc_setup.h"
 
-#ifdef __FAKE__
-#define ADSRVPORTAL     1435
-#endif /* __FAKE__ */
 
 /* RPC Variables */
 extern RPC2_PortalIdent rpc2_LocalPortal;
@@ -92,7 +89,7 @@ RPC2_Handle connect_to_machine(char *machine_name)
   strcpy(hid.Value.Name, machine_name);
   pid.Tag = RPC2_PORTALBYINETNUMBER;
 #ifdef __FAKE__
-  pid.Value.InetPortNumber = htons(ntohs(ADSRVPORTAL));
+  pid.Value.InetPortNumber = htons(PORT_venus);
 #else
   pid.Value.InetPortNumber = htons(PORT_venus);
 #endif /* __FAKE__ */

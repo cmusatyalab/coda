@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vtools/up.cc,v 4.1 1997/01/08 21:52:41 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vtools/up.cc,v 4.2 1997/09/23 17:57:06 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -90,26 +90,26 @@ extern "C" {
 /* ************************************************************* */
 
 void main(int argc, char **argv);
-PRIVATE void ScanArgs(int argc, char **argv);
-PRIVATE Boolean MakeParent(char *file, long owner);
-PRIVATE void Copy(char *file1, char *file2, Boolean recursive, int level, Boolean strip);
+static void ScanArgs(int argc, char **argv);
+static Boolean MakeParent(char *file, long owner);
+static void Copy(char *file1, char *file2, Boolean recursive, int level, Boolean strip);
 
 #define MAXACL 400
 
-PRIVATE Boolean   debug = false;
-PRIVATE Boolean   verbose = false;
-PRIVATE Boolean   TraceOnly = false;
-PRIVATE Boolean   renameTargets = false;
-PRIVATE Boolean   oneLevel = false;
-PRIVATE Boolean   strip = false;
-PRIVATE Boolean   preserveDate = true;	
+static Boolean   debug = false;
+static Boolean   verbose = false;
+static Boolean   TraceOnly = false;
+static Boolean   renameTargets = false;
+static Boolean   oneLevel = false;
+static Boolean   strip = false;
+static Boolean   preserveDate = true;	
 
-PRIVATE int   pageSize;
-PRIVATE Boolean oldAcl = false;
-PRIVATE char file1[MAXPATHLEN];
-PRIVATE char file2[MAXPATHLEN];
+static int   pageSize;
+static Boolean oldAcl = false;
+static char file1[MAXPATHLEN];
+static char file2[MAXPATHLEN];
 
-PRIVATE struct OldAcl
+static struct OldAcl
     {int nplus;
     int nminus;
     int offset;
@@ -139,7 +139,7 @@ void main(int argc, char **argv)
 /* 								 */
 /* ************************************************************ */
 
-PRIVATE void ScanArgs(int argc, char **argv)
+static void ScanArgs(int argc, char **argv)
 {
     /* skip program name */
     argc--, argv++;
@@ -211,7 +211,7 @@ argc--, argv++;
 /* 
 ************************************************************ */
 
-PRIVATE Boolean MakeParent(char *file, long owner)
+static Boolean MakeParent(char *file, long owner)
 {
    char  parent[MAXPATHLEN];
    char *p;
@@ -249,7 +249,7 @@ PRIVATE Boolean MakeParent(char *file, long owner)
 /* 								 */
 /* ************************************************************ */
 
-PRIVATE void Copy(char *file1, char *file2, Boolean recursive, int level, Boolean strip)
+static void Copy(char *file1, char *file2, Boolean recursive, int level, Boolean strip)
 /*
 char	*file1	    input file name
 char	*file2	    output file name

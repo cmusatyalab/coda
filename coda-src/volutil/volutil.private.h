@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/src/coda-4.0.1/RCSLINK/./coda-src/volutil/volutil.private.h,v 1.1 1996/11/22 19:13:40 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/volutil/volutil.private.h,v 4.1 1997/01/08 21:52:38 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -71,7 +71,6 @@ supported by Transarc Corporation, Pittsburgh, PA.
 #define VOLUTIL_ABORT	1	/* do not restart this job */
 
 
-extern void SetSalvageDirHandle(DirHandle *dir, int volume, int device, int inode);
 extern void PrintVersionVector(FILE *outfile, vv_t vv);
 
 #endif _VOLUTIL_PRIVATE_H_

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rvmres/rename.cc,v 4.2 1997/12/20 23:34:52 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rvmres/rename.cc,v 4.3 1998/01/10 18:38:16 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -47,11 +47,12 @@ extern "C" {
 #ifndef __CYGWIN32__
 #include <sys/dir.h>
 #endif
+#include <util.h>
+#include <codadir.h>
 #ifdef __cplusplus
 }
 #endif __cplusplus
 
-#include <util.h>
 #include <olist.h>
 #include <dlist.h>
 #include <srv.h>
@@ -59,7 +60,6 @@ extern "C" {
 #include <vcrcommon.h>
 #include <vlist.h>
 #include <treeremove.h>
-#include <coda_dir.h>
 
 #include <resutil.h>
 #include <ops.h>
@@ -70,11 +70,11 @@ extern "C" {
 #include "rsle.h"
 #include "resstats.h"
 
-PRIVATE int ResolveCrossDirRename(rsle *, ViceFid *, Volume *, dlist *, dlist *);
-PRIVATE void AddToIncList(dlist *, dlist *, Volume *, ViceFid *, int =0);
-PRIVATE int CheckResolveRenameSemantics(rsle *, Volume *, ViceFid *, dlist *, vle **, vle **, vle **, 
+static int ResolveCrossDirRename(rsle *, ViceFid *, Volume *, dlist *, dlist *);
+static void AddToIncList(dlist *, dlist *, Volume *, ViceFid *, int =0);
+static int CheckResolveRenameSemantics(rsle *, Volume *, ViceFid *, dlist *, vle **, vle **, vle **, 
 					vle **,olist *, dlist *, dlist *, int *);
-PRIVATE int CleanRenameTarget(rsle *, dlist *, Volume *, VolumeId , olist *, int *);
+static int CleanRenameTarget(rsle *, dlist *, Volume *, VolumeId , olist *, int *);
 
 int CheckAndPerformRename(rsle *r, Volume *volptr, VolumeId VSGVolnum, 
 			  ViceFid *dFid, dlist *vlist, olist *AllLogs, 
@@ -172,7 +172,7 @@ int CheckAndPerformRename(rsle *r, Volume *volptr, VolumeId VSGVolnum,
 
 // Resolve Rename across directories 
 // For now just mark both source and target directories inconsistent.
-PRIVATE int ResolveCrossDirRename(rsle *r, ViceFid *dFid, Volume *volptr, 
+static int ResolveCrossDirRename(rsle *r, ViceFid *dFid, Volume *volptr, 
 				  dlist *vlist, dlist *inclist) {
     LogMsg(1, SrvDebugLevel, stdout,
 	   "Entering ResolveCrossDirRename()\n");
@@ -193,7 +193,7 @@ PRIVATE int ResolveCrossDirRename(rsle *r, ViceFid *dFid, Volume *volptr,
 }
 
 // mark an object inconsistent and form and add the ilist entry 
-PRIVATE void AddToIncList(dlist *inclist, dlist *vlist, Volume *volptr, ViceFid *fid, int markobjinc) {
+static void AddToIncList(dlist *inclist, dlist *vlist, Volume *volptr, ViceFid *fid, int markobjinc) {
     vle *ov = FindVLE(*vlist, fid);
     if (ov && ov->vptr) {
 	if (markobjinc) {
@@ -215,7 +215,7 @@ PRIVATE void AddToIncList(dlist *inclist, dlist *vlist, Volume *volptr, ViceFid 
 }
 
 
-PRIVATE int CheckResolveRenameSemantics(rsle *r, Volume *volptr, ViceFid *dFid, dlist *vlist, 
+static int CheckResolveRenameSemantics(rsle *r, Volume *volptr, ViceFid *dFid, dlist *vlist, 
 					vle **srcv, vle **tgtv, vle **srcdv, vle **tgtdv,olist *AllLogs, 
 					dlist *inclist, dlist *newinclist, int *blocks) {
     LogMsg(9, SrvDebugLevel, stdout,  "Entering CheckResolveRenameSemantics");
@@ -255,7 +255,7 @@ PRIVATE int CheckResolveRenameSemantics(rsle *r, Volume *volptr, ViceFid *dFid, 
 		    OldDid.Volume, OldDid.Vnode, OldDid.Unique);
 	    return(EINVAL);
 	}
-	if (!FID_EQ(OldDid, NewDid)) {
+	if (!FID_EQ(&OldDid, &NewDid)) {
 	    npv = FindVLE(*vlist, &NewDid);
 	    if (!npv || !npv->vptr) {
 		LogMsg(0, SrvDebugLevel, stdout,  "ChkResRenSem: New Dir(%x.%x.%x) doesnt exist",
@@ -270,16 +270,16 @@ PRIVATE int CheckResolveRenameSemantics(rsle *r, Volume *volptr, ViceFid *dFid, 
     // source object checks 
     {
 	ViceFid tmpFid;
-	DirHandle odh;
+	PDirHandle odh;
 	ViceFid spFid;	/* source parent Fid */
 
 	// check that source exists in same parent with same fid 
 	FormFid(SrcFid, V_id(volptr),  r->u.mv.svnode, r->u.mv.sunique);
-	SetDirHandle(&odh, opv->vptr);
-	if (Lookup((long *)&odh, r->name1,(long *)&tmpFid) == 0) {
+	odh = VN_SetDirHandle(opv->vptr);
+	if (DH_Lookup(odh, r->name1,&tmpFid) == 0) {
 	    SrcNameExists = TRUE;
 	    tmpFid.Volume = SrcFid.Volume;
-	    SrcNameFidBindingOK = FID_EQ(tmpFid, SrcFid);
+	    SrcNameFidBindingOK = FID_EQ(&tmpFid, &SrcFid);
 	}
 	sv = FindVLE(*vlist, &SrcFid);
 	if (sv && sv->vptr && !sv->vptr->delete_me)
@@ -287,7 +287,7 @@ PRIVATE int CheckResolveRenameSemantics(rsle *r, Volume *volptr, ViceFid *dFid, 
 	
 	if (SrcObjExists) {
 	    FormFid(spFid, V_id(volptr), sv->vptr->disk.vparent, sv->vptr->disk.uparent);
-	    SrcParentPtrOK = FID_EQ(spFid, OldDid);
+	    SrcParentPtrOK = FID_EQ(&spFid, &OldDid);
 	    if (!SrcParentPtrOK) {
 		//set child's parent to be marked inc 
 		LogMsg(0, SrvDebugLevel, stdout,  
@@ -317,11 +317,11 @@ PRIVATE int CheckResolveRenameSemantics(rsle *r, Volume *volptr, ViceFid *dFid, 
 	if (!r->u.mv.tvnode && !r->u.mv.tunique) {
 	    // target didn't exist at time of removal
 	    // check that it doesn't exist now
-	    DirHandle ndh;
+	    PDirHandle ndh;
 	    ViceFid tmpfid;
 	    tmpfid.Volume = V_id(volptr);
-	    SetDirHandle (&ndh, npv->vptr);
-	    if (Lookup((long *)&ndh, r->name2,(long *)&tmpfid) == 0) {
+	    ndh = VN_SetDirHandle (npv->vptr);
+	    if (DH_Lookup(ndh, r->name2, &tmpfid) == 0) {
 		LogMsg(0, SrvDebugLevel, stdout,  
 		       "ChkResRenSem: Target name %s already exists wrongly",
 		       r->name2);
@@ -332,7 +332,7 @@ PRIVATE int CheckResolveRenameSemantics(rsle *r, Volume *volptr, ViceFid *dFid, 
 	else {
 	    // target is supposed to exist 
 	    FormFid(TgtFid, V_id(volptr), r->u.mv.tvnode, r->u.mv.tunique);
-	    DirHandle ndh;
+	    PDirHandle ndh;
 	    ViceFid tmpFid;
 	    ViceFid tpFid;	//target vnode's parent fid 
 	    int TgtNameExists, TgtNameFidBindingOK;
@@ -345,17 +345,17 @@ PRIVATE int CheckResolveRenameSemantics(rsle *r, Volume *volptr, ViceFid *dFid, 
 
 	    
 	    tmpFid.Volume = V_id(volptr);
-	    SetDirHandle(&ndh, npv->vptr);
-	    if (Lookup((long *)&ndh, r->name2, (long *)&tmpFid) == 0) {
+	    ndh = VN_SetDirHandle(npv->vptr);
+	    if (DH_Lookup(ndh, r->name2, &tmpFid) == 0) {
 		TgtNameExists = TRUE;
-		TgtNameFidBindingOK = FID_EQ(tmpFid, TgtFid);
+		TgtNameFidBindingOK = FID_EQ(&tmpFid, &TgtFid);
 	    }
 	    tv = FindVLE(*vlist, &TgtFid);
 	    if (tv && tv->vptr && !tv->vptr->delete_me)
 		TgtObjExists = TRUE;
 	    if (TgtObjExists) {
 		FormFid(tpFid, V_id(volptr), tv->vptr->disk.vparent, tv->vptr->disk.uparent);
-		TgtParentPtrOK = FID_EQ(tpFid, NewDid);
+		TgtParentPtrOK = FID_EQ(&tpFid, &NewDid);
 		if (!TgtParentPtrOK) {
 		    LogMsg(0, SrvDebugLevel, stdout,  
 			   "ChkResRenSem: Parent(%x.%x) on tgtvnode(%x.%x)",	
@@ -445,7 +445,7 @@ PRIVATE int CheckResolveRenameSemantics(rsle *r, Volume *volptr, ViceFid *dFid, 
 
 // CleanRenameTarget
 // If it is a non-empty directory then remove the children
-PRIVATE int CleanRenameTarget(rsle *r, dlist *vlist, Volume *volptr,
+static int CleanRenameTarget(rsle *r, dlist *vlist, Volume *volptr,
 			      VolumeId VSGVolnum, olist *AllLogs, int *blocks) {
     LogMsg(9, SrvDebugLevel, stdout,  "Entering CleanRenameTarget");
     if (!r->u.mv.tvnode && !r->u.mv.tunique)
@@ -462,9 +462,9 @@ PRIVATE int CleanRenameTarget(rsle *r, dlist *vlist, Volume *volptr,
 	return(0);
     }
     
-    DirHandle	tdh;
-    SetDirHandle(&tdh, tv->vptr);
-    if (IsEmpty((long *)&tdh) == 0) {
+    PDirHandle	tdh;
+    tdh = VN_SetDirHandle(tv->vptr);
+    if (DH_IsEmpty(tdh)) {
 	LogMsg(0, SrvDebugLevel, stdout,  
 	       "CleanRenameTarget: Target %x.%x is already empty",
 		tFid.Vnode, tFid.Unique);
@@ -473,6 +473,6 @@ PRIVATE int CleanRenameTarget(rsle *r, dlist *vlist, Volume *volptr,
     TreeRmBlk pkdparm;
     pkdparm.init(0, VSGVolnum, volptr, 0, &r->storeid, vlist, 
 		 1, AllLogs, r->index, blocks);
-    EnumerateDir((long *)&tdh, (int (*) (void * ...))PerformTreeRemoval, (long)&pkdparm);
+    DH_EnumerateDir(tdh, PerformTreeRemoval, (void *)&pkdparm);
     return(0);
 }

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/volutil/vol-setvv.cc,v 4.5 1998/01/10 18:40:04 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/volutil/vol-setvv.cc,v 4.6 1998/04/14 21:00:41 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -60,13 +60,15 @@ extern "C" {
 #include <lock.h>
 #include <inodeops.h>
 #include <util.h>
+#include <rvmlib.h>
+
+#include <util.h>
 #include <vice.h>
 #include <volutil.h>
 #ifdef __cplusplus
 }
 #endif __cplusplus
 
-#include <rvmlib.h>
 #include <cvnode.h>
 #include <volume.h>
 #include <vrdb.h>
@@ -108,7 +110,7 @@ long S_VolSetVV(RPC2_Handle rpcid, RPC2_Unsigned formal_volid, RPC2_Unsigned vno
 	tmpvolid = volid;
     }
 
-    CAMLIB_BEGIN_TOP_LEVEL_TRANSACTION_2(CAM_TRAN_NV_SERVER_BASED)
+    RVMLIB_BEGIN_TRANSACTION(restore)
     VInitVolUtil(volumeUtility);
 /*    vp = VAttachVolume(&error, volid, V_READONLY); */
     /* Ignoring the volume lock for now - assume this will be used in bad situations only*/
@@ -118,14 +120,14 @@ long S_VolSetVV(RPC2_Handle rpcid, RPC2_Unsigned formal_volid, RPC2_Unsigned vno
 	if (error != VNOVOL) {
 	    VPutVolume(vp);
 	}
-        CAMLIB_ABORT((int)error);
+        rvmlib_abort((int)error);
     }
     /* VGetVnode moved from after VOffline to here 11/88 ***/
     vnp = VGetVnode(&error, vp, vnodeid, unique, WRITE_LOCK, 1);
     if (error && error != EIO) {
 	LogMsg(0, VolDebugLevel, stdout, "S_VolSetVV: VGetVnode failed with %d", error);
 	VPutVolume(vp);
-	CAMLIB_ABORT(VFAIL);
+	rvmlib_abort(VFAIL);
     }
 
     if (error && error == EIO) {
@@ -172,11 +174,11 @@ long S_VolSetVV(RPC2_Handle rpcid, RPC2_Unsigned formal_volid, RPC2_Unsigned vno
     if (error){
 	LogMsg(0, VolDebugLevel, stdout, "S_VolSetVV: VPutVnode failed with %d", error);
 	VPutVolume(vp);
-	CAMLIB_ABORT(VFAIL);
+	rvmlib_abort(VFAIL);
     }
 
     VPutVolume(vp);
-    CAMLIB_END_TOP_LEVEL_TRANSACTION_2(CAM_PROT_TWO_PHASED, status)
+    RVMLIB_END_TRANSACTION(flush, &(status));
     VDisconnectFS();
     if (status)
 	LogMsg(0, VolDebugLevel, stdout, "S_VolSetVV failed with %d", status);

@@ -29,15 +29,13 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/volutil/vol-salvage.private.h,v 4.3 1997/11/14 13:32:38 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/volutil/vol-salvage.private.h,v 4.3 1997/11/17 21:46:24 braam Exp $";
 #endif /*_BLURB_*/
 
 
 
 
 
-#define ROOTINODE	2	/* Root inode of a 4.2 Unix file system
-				   partition */
 #define	DONTSALVVOLS	"/vice/vol/skipsalvage"
 #define readOnly(vsp)	((vsp)->header.type==ROVOL || (vsp)->header.type == BACKVOL)
 
@@ -92,7 +90,7 @@ struct VnodeInfo {
 };
 
 struct DirSummary {
-    struct DirHandle dirHandle;
+    PDCEntry    dirCache;
     VnodeId 	vnodeNumber;
     Unique_t 	unique;
     unsigned 	haveDot, haveDotDot;
@@ -104,45 +102,45 @@ struct DirSummary {
 
 
 /* routines that get summaries */
-PRIVATE int GetInodeSummary(char *fspath, char *path, 
+static int GetInodeSummary(char *fspath, char *path, 
 			    VolumeId singleVolumeNumber);
-PRIVATE int GetVolumeSummary(VolumeId singleVolumeNumber);
-PRIVATE void DistilVnodeEssence(VnodeClass vclass, Inode indexInode);
+static int GetVolumeSummary(VolumeId singleVolumeNumber);
+static void DistilVnodeEssence(VnodeClass vclass, Inode indexInode);
 
 /* the checking routines */
-PRIVATE int SalvageFileSys(char *path, VolumeId singleVolumeNumber);
-PRIVATE int SalvageVolumeGroup(struct VolumeSummary *vsp, int nVols);
-PRIVATE int QuickCheck(struct VolumeSummary *vsp, int nVols);
-PRIVATE int SalvageVolHead(register struct VolumeSummary *vsp);
+static int SalvageFileSys(char *path, VolumeId singleVolumeNumber);
+static int SalvageVolumeGroup(struct VolumeSummary *vsp, int nVols);
+static int QuickCheck(struct VolumeSummary *vsp, int nVols);
+static int SalvageVolHead(register struct VolumeSummary *vsp);
 #if 0
-PRIVATE int SalvageHeader(register struct stuff *sp,
+static int SalvageHeader(register struct stuff *sp,
 			struct InodeSummary *isp, int check, int *deleteMe);
 #endif 
-PRIVATE int VnodeInodeCheck(int, struct ViceInodeInfo *, int, struct VolumeSummary *);
-PRIVATE void DirCompletenessCheck(struct VolumeSummary *vsp);
-PRIVATE void JudgeEntry(struct DirSummary *dir, char *name,
+static int VnodeInodeCheck(int, struct ViceInodeInfo *, int, struct VolumeSummary *);
+static void DirCompletenessCheck(struct VolumeSummary *vsp);
+static void JudgeEntry(struct DirSummary *dir, char *name,
 		VnodeId vnodeNumber, Unique_t unique);
-PRIVATE void SanityCheckFreeLists();
+static void SanityCheckFreeLists();
 
 /* correcting/action routines */
-PRIVATE int MaybeZapVolume(struct InodeSummary *isp,
+static int MaybeZapVolume(struct InodeSummary *isp,
 			char *message, int deleteMe);
-PRIVATE void CleanInodes(struct InodeSummary *);
-PRIVATE void ClearROInUseBit(struct VolumeSummary *summary);
-PRIVATE int CopyInode(Device device, Inode inode1, Inode inode2);
-PRIVATE void FixInodeLinkcount(struct ViceInodeInfo *, struct InodeSummary *);
-PRIVATE int DestroyBadVolumes();
+static void CleanInodes(struct InodeSummary *);
+static void ClearROInUseBit(struct VolumeSummary *summary);
+static int CopyInode(Device device, Inode inode1, Inode inode2);
+static void FixInodeLinkcount(struct ViceInodeInfo *, struct InodeSummary *);
+static int DestroyBadVolumes();
 
 
 /* misc routines */
 extern long time(long *);
 int OnlyOneVolume(struct ViceInodeInfo *, VolumeId);
 int InSkipVolumeList(VolumeId, VolumeId *, int);
-PRIVATE char *devName(unsigned int dev);
-PRIVATE struct VnodeEssence *CheckVnodeNumber(VnodeId vnodeNumber, Unique_t);
-PRIVATE int AskOffline(VolumeId volumeId);
-PRIVATE int AskOnline(VolumeId volumeId);
-PRIVATE void PrintInodeList();
-PRIVATE void release_locks(int);
-PRIVATE void GetSkipVolumeNumbers();
-PRIVATE void zero_globals();
+static char *devName(unsigned int dev);
+static struct VnodeEssence *CheckVnodeNumber(VnodeId vnodeNumber, Unique_t);
+static int AskOffline(VolumeId volumeId);
+static int AskOnline(VolumeId volumeId);
+static void PrintInodeList();
+static void release_locks(int);
+static void GetSkipVolumeNumbers();
+static void zero_globals();

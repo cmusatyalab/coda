@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/volutil/vol-maxid.cc,v 4.2 1997/02/26 16:04:10 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/volutil/vol-maxid.cc,v 4.3 1998/04/14 21:00:39 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -87,19 +87,19 @@ long S_VolSetMaxVolId(RPC2_Handle cid, RPC2_Integer newid) {
     int status;
 
     /* Make sure this request won't change the server id! */
-    if ( (CAMLIB_REC(MaxVolId) & 0xff000000) != (newid & 0xff000000)) {
+    if ( (SRV_RVM(MaxVolId) & 0xff000000) != (newid & 0xff000000)) {
         LogMsg(0, VolDebugLevel, stdout, "VSetMaxVolumeId: New volume id has a different server id!  Not changing id.");
 	return(RPC2_FAIL);
     }
 
-    if ( CAMLIB_REC(MaxVolId) > newid) {
+    if ( SRV_RVM(MaxVolId) > newid) {
 	LogMsg(0, VolDebugLevel, stdout,  "VSetMaxVolumeId: MaxVolId > newid, not setting MaxVolId");
 	return (RPC2_FAIL);
     }
 
-    CAMLIB_BEGIN_TOP_LEVEL_TRANSACTION_2(CAM_TRAN_NV_SERVER_BASED);
+    RVMLIB_BEGIN_TRANSACTION(restore);
     VSetMaxVolumeId(newid);
-    CAMLIB_END_TOP_LEVEL_TRANSACTION_2(CAM_PROT_TWO_PHASED, status);
+    RVMLIB_END_TRANSACTION(flush, &(status));
     LogMsg(0, VolDebugLevel, stdout, "S_VolSetMaxVolId: returning 0\n");
     return (0);
 }

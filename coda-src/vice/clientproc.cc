@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vice/clientproc.cc,v 4.7 1998/04/14 20:55:34 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vice/clientproc.cc,v 4.8 1998/06/07 20:15:15 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -88,16 +88,16 @@ extern "C" {
 
 /* *****  Private variables  ***** */
 
-PRIVATE HostTable hostTable[MAXHOSTTABLEENTRIES];
-PRIVATE int maxHost = 0;
+static HostTable hostTable[MAXHOSTTABLEENTRIES];
+static int maxHost = 0;
 
 
 /* *****  Private routines  ***** */
 
-PRIVATE HostTable *client_GetVenusId(RPC2_Handle);
-PRIVATE void client_RemoveClients(HostTable *);
-PRIVATE char *client_SLDecode(RPC2_Integer);
-PRIVATE void client_SetUserName(ClientEntry *);
+static HostTable *client_GetVenusId(RPC2_Handle);
+static void client_RemoveClients(HostTable *);
+static char *client_SLDecode(RPC2_Integer);
+static void client_SetUserName(ClientEntry *);
 
 
 int CLIENT_Build(RPC2_Handle RPCid, char *User, RPC2_Integer sl, 
@@ -112,17 +112,19 @@ int CLIENT_Build(RPC2_Handle RPCid, char *User, RPC2_Integer sl,
 	if (AL_IdToName(atoi(User + 4), username))
 	    strcpy(username,"System:AnyUser");
     } else {
-	strcpy(username, User);
+	    strcpy(username, User);
     }
 
-    /* Get the private pointer; it will be used to hold a reference to the new client entry. */
+    /* Get the private pointer; it will be used to hold a reference to
+       the new client entry. */
     errorCode = (int) RPC2_GetPrivatePointer(RPCid, (char **)client);
     if(errorCode != RPC2_SUCCESS)
 	    return(errorCode);
     if (*client) {
-	/* I added this; couldn't see any reason not to free it. -JJK */
-	free((char *)*client);
-	*client = 0;
+	    SLog(0, "Someone left garbage in the client pointer. Freeing.");
+	    /* I added this; couldn't see any reason not to free it. -JJK */
+	    free((char *)*client);
+	    *client = 0;
     }
 
     /* Get a free client table entry and initialize it. */
@@ -162,21 +164,22 @@ int CLIENT_Build(RPC2_Handle RPCid, char *User, RPC2_Integer sl,
 void CLIENT_Delete(ClientEntry *clientPtr) 
 {
     if (clientPtr == 0) {
-	LogMsg(0, SrvDebugLevel, stdout,  "Client pointer is zero in CLIENT_Delete");
-	return;
+	    SLog(0, "Client pointer is zero in CLIENT_Delete");
+	    return;
     }
 
-    LogMsg(1, SrvDebugLevel, stdout,  "Deleting client entry for user %s at %s.%d",
-	     clientPtr->UserName, clientPtr->VenusId->HostName, clientPtr->VenusId->port);
+    SLog(1, "Deleting client entry for user %s at %s.%d",
+	 clientPtr->UserName, clientPtr->VenusId->HostName, 
+	 clientPtr->VenusId->port);
 
     if(clientPtr->DoUnbind) {
-	LogMsg(0, SrvDebugLevel, stdout,  "DoUnbind is TRUE in CLIENT_Delete");
-	return;
+	    SLog(0, "DoUnbind is TRUE in CLIENT_Delete");
+	    return;
     }
 
     if (clientPtr->VenusId && clientPtr->VenusId->FirstClient) {
-	if (clientPtr->VenusId->FirstClient == clientPtr) {
-		clientPtr->VenusId->FirstClient = clientPtr->NextClient;
+	    if (clientPtr->VenusId->FirstClient == clientPtr) {
+		    clientPtr->VenusId->FirstClient = clientPtr->NextClient;
 	} else {
 		for (ClientEntry *searchPtr = clientPtr->VenusId->FirstClient;
 		     searchPtr; searchPtr = searchPtr->NextClient)
@@ -204,7 +207,7 @@ void CLIENT_Delete(ClientEntry *clientPtr)
 }
 
 
-PRIVATE HostTable *client_GetVenusId(RPC2_Handle RPCid) 
+static HostTable *client_GetVenusId(RPC2_Handle RPCid) 
 {
 
 	/* Look up the Peer info corresponding to the given RPC
@@ -237,18 +240,6 @@ PRIVATE HostTable *client_GetVenusId(RPC2_Handle RPCid)
 	/* Lock the host entry. */
 	ObtainWriteLock(&hostTable[i].lock);
 
-#if 0  /* XXX This causes a consistent problem that the first RPC made on this connection
-	  which is opcode 40 (NewConnectFS) has its packet buffer dropped, because the 
-	  connection is not enabled in time */ 
-
-	/* If the host entry is not new, validate it by making a
-           gratuitous callback. */
-	/* Note that failure will cause the callback connection to be
-       discarded. */
-	if ((hostTable[i].id != 0) && 
-	    (CallBack(hostTable[i].id, &NullFid) != 0))
-		CLIENT_CleanUpHost(&hostTable[i]);
-#endif
 	/* Unlock the host entry. */
 	ReleaseWriteLock(&hostTable[i].lock);
 
@@ -303,33 +294,38 @@ int CLIENT_MakeCallBackConn(ClientEntry *Client)
     ObtainWriteLock(&HostEntry->lock);
 
     /* Attempt the bind. */
-    long errorCode = RPC2_NewBinding(&peer.RemoteHost, &peer.RemotePortal, &sid, &bp, &HostEntry->id);
+    long errorCode = RPC2_NewBinding(&peer.RemoteHost, 
+				     &peer.RemotePortal, &sid, &bp, 
+				     &HostEntry->id);
     if (errorCode > RPC2_ELIMIT) {
-	if (errorCode != 0) {
-	    LogMsg(0, SrvDebugLevel, stdout,  "RPC2_Bind to %s portal %d for callback got %s",
-		    HostEntry->HostName, HostEntry->port, ViceErrorMsg((int) errorCode));
-	}
-
-	/* Make a gratuitous callback. */
-	errorCode = CallBack(HostEntry->id, &NullFid);
-	if (errorCode != 0) {
-	    LogMsg(0, SrvDebugLevel, stdout,  "Callback message to %s portal %d failed %s",
-		    HostEntry->HostName, HostEntry->port, ViceErrorMsg((int) errorCode));
-	    if (errorCode <= RPC2_ELIMIT) {
-		HostEntry->id = 0;
+	    if (errorCode != 0) {
+		    SLog(0, "RPC2_Bind to %s portal %d for callback got %s",
+			 HostEntry->HostName, HostEntry->port, 
+			 ViceErrorMsg((int) errorCode));
 	    }
-	}
+
+	    /* Make a gratuitous callback. */
+	    errorCode = CallBack(HostEntry->id, &NullFid);
+	    if (errorCode != 0) {
+		    SLog(0, "Callback message to %s portal %d failed %s",
+			 HostEntry->HostName, HostEntry->port, 
+			 ViceErrorMsg((int) errorCode));
+		    if (errorCode <= RPC2_ELIMIT) {
+			    HostEntry->id = 0;
+		    }
+	    }
     } else {
-	LogMsg(0, SrvDebugLevel, stdout,  "RPC2_Bind to %s portal %d for callback failed %s",
-		HostEntry->HostName, HostEntry->port, ViceErrorMsg((int) errorCode));
-	HostEntry->id = 0;
+	    SLog(0, "RPC2_Bind to %s portal %d for callback failed %s",
+		 HostEntry->HostName, HostEntry->port, 
+		 ViceErrorMsg((int) errorCode));
+	    HostEntry->id = 0;
     }
 
     if (HostEntry->id == 0) 
 	    errorCode = EPIPE;  /* don't return an RPC2 error */
 
     ReleaseWriteLock(&HostEntry->lock);
-
+    
     return((int) errorCode);
 }
 
@@ -372,7 +368,7 @@ void CLIENT_CleanUpHost(HostTable *ht)
 }
 
 
-PRIVATE void client_RemoveClients(HostTable *ht) 
+static void client_RemoveClients(HostTable *ht) 
 {
     for (ClientEntry *cp = ht->FirstClient; cp; cp = ht->FirstClient) {
 	CLIENT_Delete(cp);
@@ -384,7 +380,7 @@ PRIVATE void client_RemoveClients(HostTable *ht)
 }
 
 
-PRIVATE char *client_SLDecode(RPC2_Integer sl) 
+static char *client_SLDecode(RPC2_Integer sl) 
 {
     if(sl == RPC2_OPENKIMONO) return("OpenKimono");
     if(sl == RPC2_AUTHONLY) return("AuthOnly");

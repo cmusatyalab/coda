@@ -30,11 +30,11 @@
 #Mellon the rights to redistribute these changes without encumbrance.
 #*/
 #
-#static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/src/coda-4.0.1/RCSLINK/./coda-src/egasr/xaskuser,v 1.1 1996/11/22 19:15:21 braam Exp $";
+#static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/egasr/xaskuser,v 4.1 1997/01/08 21:49:34 rvb Exp $";
 #endif /*_BLURB_*/
 
 # The next line restarts using wish\
-exec /coda/misc/tcl/@sys/beta/bin/wish "$0" "$@"
+exec wish "$0" "$@"
 
 proc mkbuttons {frame} {
    radiobutton $frame.remove -text "Remove inconsistent file" -variable action \
@@ -75,7 +75,7 @@ proc GetIncResp {{w .f}} {
 
    #frame for announcing what has happened
    message $w.announce -font -Adobe-times-medium-r-normal--*-180* \
-	-relief raised -width [expr $width]c \
+	-relief raised \
 	-text "repairing inconsistent file $oname"
 
    # frame for making the buttons

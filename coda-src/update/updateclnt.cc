@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/update/updateclnt.cc,v 4.13 1998/07/01 10:35:25 jaharkes Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/update/updateclnt.cc,v 4.14 1998/08/05 23:50:05 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -110,38 +110,38 @@ extern char *ViceErrorMsg(int errorCode);   /* should be in libutil */
 #define LISTNAME "files"
 #define LISTLEN 4096
 
-PRIVATE void CheckLibStructure();
-PRIVATE int CheckDir(char *prefix, int mode);
-PRIVATE int CheckFile(char *fileName, int mode);
-PRIVATE void ProcessArgs(int argc, char ** argv);
-PRIVATE void ReConnect();
-PRIVATE void SetDebug();
-PRIVATE void ResetDebug();
-PRIVATE void Terminate();
-PRIVATE void SetCheck();
-PRIVATE void SwapLog();
-PRIVATE void U_InitRPC();
-PRIVATE int U_BindToServer(char *fileserver, RPC2_Handle *RPCid);
+static void CheckLibStructure();
+static int CheckDir(char *prefix, int mode);
+static int CheckFile(char *fileName, int mode);
+static void ProcessArgs(int argc, char ** argv);
+static void ReConnect();
+static void SetDebug();
+static void ResetDebug();
+static void Terminate();
+static void SetCheck();
+static void SwapLog();
+static void U_InitRPC();
+static int U_BindToServer(char *fileserver, RPC2_Handle *RPCid);
 
-PRIVATE int Rebind = 0;
-PRIVATE int Reexec = 0;
-PRIVATE int ReadOnlyAllowed = 0;
-PRIVATE int CheckAll = 1;
+static int Rebind = 0;
+static int Reexec = 0;
+static int ReadOnlyAllowed = 0;
+static int CheckAll = 1;
 
-PRIVATE RPC2_Unsigned operatorSecs = 0;
-PRIVATE RPC2_Integer operatorUsecs = 0;
+static RPC2_Unsigned operatorSecs = 0;
+static RPC2_Integer operatorUsecs = 0;
 
-PRIVATE RPC2_Handle con;
-PRIVATE char host[256];
-PRIVATE int waitinterval = 30;	/* 5 min */
-PRIVATE int reps = 6;
-PRIVATE char pname[20];
+static RPC2_Handle con;
+static char host[256];
+static int waitinterval = 30;	/* 5 min */
+static int reps = 6;
+static char pname[20];
 
-PRIVATE struct timeval  tp;
-PRIVATE struct timezone tsp;
+static struct timeval  tp;
+static struct timezone tsp;
 
-PRIVATE char s_hostname[100];
-PRIVATE char vkey[RPC2_KEYSIZE+1];	/* Encryption key for bind authentication */
+static char s_hostname[100];
+static char vkey[RPC2_KEYSIZE+1];	/* Encryption key for bind authentication */
 
 int main(int argc, char **argv)
 {
@@ -278,7 +278,7 @@ int main(int argc, char **argv)
     }
 }
 
-PRIVATE void ProcessArgs(int argc, char **argv)
+static void ProcessArgs(int argc, char **argv)
 {
     int i;
     for (i = 1; i < argc; i++) {
@@ -313,7 +313,7 @@ PRIVATE void ProcessArgs(int argc, char **argv)
 }
 
 
-PRIVATE void CheckLibStructure()
+static void CheckLibStructure()
 {
     struct stat lbuf;
 
@@ -346,7 +346,7 @@ PRIVATE void CheckLibStructure()
 }
 
 
-PRIVATE int CheckDir(char *prefix, int mode)
+static int CheckDir(char *prefix, int mode)
 {
     static char list[LISTLEN],
 	name[256],
@@ -430,7 +430,7 @@ PRIVATE int CheckDir(char *prefix, int mode)
 
 
 /* fileName is the full pathname */
-PRIVATE int CheckFile(char *fileName, int mode)
+static int CheckFile(char *fileName, int mode)
 {
     static char oldname[1024];
     static char tmpname[1024];
@@ -515,7 +515,7 @@ PRIVATE int CheckFile(char *fileName, int mode)
 }
 
 
-PRIVATE void ReConnect()
+static void ReConnect()
 {
     long     rc;
     struct timeval  time;
@@ -581,7 +581,7 @@ PRIVATE void ReConnect()
 }
 
 
-PRIVATE void SetDebug()
+static void SetDebug()
 {
     if (SrvDebugLevel > 0) {
 	SrvDebugLevel *= 5;
@@ -594,21 +594,21 @@ PRIVATE void SetDebug()
 }
 
 
-PRIVATE void ResetDebug()
+static void ResetDebug()
 {
     RPC2_DebugLevel = SrvDebugLevel = 0;
     LogMsg(0, SrvDebugLevel, stdout, "Reset Debug levels to 0\n");
 }
 
 
-PRIVATE void Terminate()
+static void Terminate()
 {
     LogMsg(0, SrvDebugLevel, stdout, "Exiting updateclnt\n");
     exit(0);
 }
 
 
-PRIVATE void SwapLog()
+static void SwapLog()
 {
     struct timeval tv;
     struct timezone tz;
@@ -626,13 +626,13 @@ PRIVATE void SwapLog()
 }
 
 
-PRIVATE void SetCheck()
+static void SetCheck()
 {
     CheckAll = 1;
     LogMsg(0, SrvDebugLevel, stdout, "Check all files at next interval\n");
 }
 
-PRIVATE void U_InitRPC()
+static void U_InitRPC()
 {
     PROCESS mylpid;
     FILE *tokfile;
@@ -660,7 +660,7 @@ PRIVATE void U_InitRPC()
 }
 
 
-PRIVATE int U_BindToServer(char *fileserver, RPC2_Handle *RPCid)
+static int U_BindToServer(char *fileserver, RPC2_Handle *RPCid)
 {
  /* Binds to File Server on volume utility port on behalf of uName.
     Sets RPCid to the value of the connection id.    */

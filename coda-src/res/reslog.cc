@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /usr/rvb/XX/src/coda-src/res/RCS/reslog.cc,v 4.1 1997/01/08 21:50:03 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/res/reslog.cc,v 4.2 1997/02/26 16:02:52 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -58,22 +58,16 @@ extern "C" {
 #include <struct.h>
 #include <stdarg.h>
 #include <strings.h>
-#ifdef __MACH__
-#include <sysent.h>
-#include <libc.h>
-#include <mach.h>
-#else	/* __linux__ || __BSD44__ */
 #include <unistd.h>
 #include <stdlib.h>
-#endif
 #include <rpc2.h>
+#include <util.h>
+#include <rvmlib.h>
 
 #ifdef __cplusplus
 }
 #endif __cplusplus
 
-#include <util.h>
-#include <rvmlib.h>
 #include <olist.h>
 #include <errors.h>
 #include <srv.h>
@@ -101,20 +95,20 @@ olist *VolLogPtrs[MAXVOLS];	/* olist *, because it is an array of olists*/
 void InitLogStorage() {
     for (int i = 0; i < MAXVOLS; i++) {
 	/* initialize to empty storage */
-	if (CAMLIB_REC(VolumeList[i]).data.volumeInfo)
-	    if (CAMLIB_REC(VolumeList[i]).data.volumeInfo->maxlogentries)
+	if (SRV_RVM(VolumeList[i]).data.volumeInfo)
+	    if (SRV_RVM(VolumeList[i]).data.volumeInfo->maxlogentries)
 		LogStore[i] = new PMemMgr((int)sizeof(rlent), 0, i, 
-					  CAMLIB_REC(VolumeList[i]).data.volumeInfo->maxlogentries);
+					  SRV_RVM(VolumeList[i]).data.volumeInfo->maxlogentries);
 	    else
 		LogStore[i] = new PMemMgr((int)sizeof(rlent), 0, i, MAXLOGSIZE);
 	else
 	    LogStore[i] = NULL;
 /* bug fix: comment out original logic */
 #if 0
-	if ((CAMLIB_REC(VolumeList[i]).data.volumeInfo) && 
-	    (CAMLIB_REC(VolumeList[i]).data.volumeInfo->maxlogentries))
+	if ((SRV_RVM(VolumeList[i]).data.volumeInfo) && 
+	    (SRV_RVM(VolumeList[i]).data.volumeInfo->maxlogentries))
 	    LogStore[i] = new PMemMgr(sizeof(rlent), 0, i, 
-		      CAMLIB_REC(VolumeList[i]).data.volumeInfo->maxlogentries);
+		      SRV_RVM(VolumeList[i]).data.volumeInfo->maxlogentries);
 	else
 	    LogStore[i] = new PMemMgr(sizeof(rlent), 0, i, MAXLOGSIZE);
 #endif 0
@@ -130,7 +124,7 @@ void InitVolLog(int index) {
 
     if (VolLogPtrs[index] != NULL) return;
 
-    int nlists = (int) CAMLIB_REC(VolumeList[index]).data.nlargeLists;
+    int nlists = (int) SRV_RVM(VolumeList[index]).data.nlargeLists;
     /* set up template of olists for housing per vnode info */
     VolLogPtrs[index] = new olist[nlists];
     rec_smolist *vlist;
@@ -138,7 +132,7 @@ void InitVolLog(int index) {
     
     /* each iteration corresponds to one vnode number */
     for (int i = 0; i < nlists; i++) {
-	vlist = &(CAMLIB_REC(VolumeList[index]).data.largeVnodeLists[i]);
+	vlist = &(SRV_RVM(VolumeList[index]).data.largeVnodeLists[i]);
 	rec_smolist_iterator	next(*vlist);
 	rec_smolink *p;
 	while (p = next()){
@@ -652,7 +646,7 @@ void GetResStatistics(PMemMgr *p, int *wm, int *ac, int *dc) {
 }
 
 VolumeId VolindexToVolid(int i) {
-    return CAMLIB_REC(VolumeList[i]).header.id;
+    return SRV_RVM(VolumeList[i]).header.id;
 }
 
 /* read in a resolution log from a file; 

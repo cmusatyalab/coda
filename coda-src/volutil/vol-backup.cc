@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/volutil/vol-backup.cc,v 4.6 1998/01/10 18:39:54 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/volutil/vol-backup.cc,v 4.7 1998/04/14 21:00:36 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -77,17 +77,16 @@ extern "C" {
 #include <struct.h>
 #include <lock.h>
 #include <inodeops.h>
+#include <util.h>
+#include <rvmlib.h>
 #include <volutil.h>
+#include <vice.h>
 
 #ifdef __cplusplus
 }
 #endif __cplusplus
 
-#include <volutil.h>
-#include <util.h>
-#include <rvmlib.h>
 #include <voltypes.h>
-#include <vice.h>
 #include <cvnode.h>
 #include <volume.h>
 #include <camprivate.h>
@@ -95,7 +94,7 @@ extern "C" {
 #include <vutil.h>
 #include <index.h>
 #include <recov.h>
-#include <rvmdir.h>
+#include <codadir.h>
 #include <volhash.h>
 #include <coda_globals.h>
 
@@ -106,9 +105,9 @@ extern int CloneVnode(Volume *, Volume *, int, rec_smolist *,
 /* Temp check for debugging. */
 void checklists(int vol_index)
 {
-    bit32 nlists = CAMLIB_REC(VolumeList[vol_index]).data.nsmallLists;
-    bit32 nvnodes = CAMLIB_REC(VolumeList[vol_index]).data.nsmallvnodes;
-    int *lists = (int *)CAMLIB_REC(VolumeList[vol_index]).data.smallVnodeLists;
+    bit32 nlists = SRV_RVM(VolumeList[vol_index]).data.nsmallLists;
+    bit32 nvnodes = SRV_RVM(VolumeList[vol_index]).data.nsmallvnodes;
+    int *lists = (int *)SRV_RVM(VolumeList[vol_index]).data.smallVnodeLists;
 
     for (int i = 0; i < nlists; i++) {
 	/* Make sure any lists that are single elements are circular */
@@ -117,21 +116,21 @@ void checklists(int vol_index)
     }
 }
 
-PRIVATE int MakeNewClone(Volume *rwvp, VolumeId *backupId, Volume **backupvp);
-PRIVATE void ModifyIndex(Volume *rwvp, Volume *backupvp, VnodeClass vclass);
-PRIVATE void purgeDeadVnodes(Volume *backupvp, rec_smolist *BackupLists,
+static int MakeNewClone(Volume *rwvp, VolumeId *backupId, Volume **backupvp);
+static void ModifyIndex(Volume *rwvp, Volume *backupvp, VnodeClass vclass);
+static void purgeDeadVnodes(Volume *backupvp, rec_smolist *BackupLists,
 		     rec_smolist *RWLists, VnodeClass vclass, bit32 *nBackupVnodes);
 			  
-PRIVATE void updateBackupVnodes(Volume *rwvp, Volume *backupvp,
+static void updateBackupVnodes(Volume *rwvp, Volume *backupvp,
 				rec_smolist *BackupLists, VnodeClass vclass,
 				bit32 *nBackupVnodes);
 
 /* Numerous times we repeat exactly the same code, so MACRO-ize it */
 #define CLEANUP(vp)	\
     if (vp) { \
-	CAMLIB_BEGIN_TOP_LEVEL_TRANSACTION_2(CAM_TRAN_NV_SERVER_BASED) \
+	RVMLIB_BEGIN_TRANSACTION(restore) \
 	VPutVolume(originalvp); \
-	CAMLIB_END_TOP_LEVEL_TRANSACTION_2(CAM_PROT_TWO_PHASED, status) \
+	RVMLIB_END_TRANSACTION(flush, &(status)); \
 	assert(status == 0); \
     } \
     VDisconnectFS();
@@ -228,9 +227,9 @@ long S_VolMakeBackups(RPC2_Handle rpcid, VolumeId originalId, VolumeId *backupId
 	V_destroyMe(backupvp) = DESTROY_ME;
 	V_blessed(backupvp) = 0;
 
-	CAMLIB_BEGIN_TOP_LEVEL_TRANSACTION_2(CAM_TRAN_NV_SERVER_BASED)
+	RVMLIB_BEGIN_TRANSACTION(restore)
 	VUpdateVolume(&error, backupvp);/* Disallow further use of this volume */
-	CAMLIB_END_TOP_LEVEL_TRANSACTION_2(CAM_PROT_TWO_PHASED, status)
+	RVMLIB_END_TRANSACTION(flush, &(status));
 	if (error || status) {
 	    LogMsg(0, VolDebugLevel, stdout, "S_VolMakeBackup: Couldn't force old backup clone offline, aborting!");
 	    CLEANUP(originalvp);
@@ -253,13 +252,13 @@ long S_VolMakeBackups(RPC2_Handle rpcid, VolumeId originalId, VolumeId *backupId
     V_destroyMe(backupvp) = 0;
     V_blessed(backupvp) = 1;		/* Volume is valid now. */
     
-    CAMLIB_BEGIN_TOP_LEVEL_TRANSACTION_2(CAM_TRAN_NV_SERVER_BASED)
+    RVMLIB_BEGIN_TRANSACTION(restore)
     VUpdateVolume(&error, backupvp);		/* Write new info to RVM */
     VDetachVolume(&error, backupvp);    	/* causes vol to be attached(?) */
     VUpdateVolume(&error, originalvp);		/* Update R/W vol data */
     assert(error == 0);
     VPutVolume(originalvp);
-    CAMLIB_END_TOP_LEVEL_TRANSACTION_2(CAM_PROT_TWO_PHASED, status)
+    RVMLIB_END_TRANSACTION(flush, &(status));
 #ifndef __linux__
 /* temporarily disable for linux, need to fix this */
     if (status == 0) {
@@ -286,7 +285,7 @@ long S_VolMakeBackups(RPC2_Handle rpcid, VolumeId originalId, VolumeId *backupId
  * flushed to access the new clone.
  */
 
-PRIVATE int MakeNewClone(Volume *rwvp, VolumeId *backupId, Volume **backupvp)
+static int MakeNewClone(Volume *rwvp, VolumeId *backupId, Volume **backupvp)
 {
     int status = 0;
     Error error;
@@ -294,14 +293,14 @@ PRIVATE int MakeNewClone(Volume *rwvp, VolumeId *backupId, Volume **backupvp)
     Volume *newvp;
 
     *backupId = 0;
-    CAMLIB_BEGIN_TOP_LEVEL_TRANSACTION_2(CAM_TRAN_NV_SERVER_BASED)
+    RVMLIB_BEGIN_TRANSACTION(restore)
     
     newId = VAllocateVolumeId(&error);
 
     if (error){
 	LogMsg(0, VolDebugLevel, stdout,
 	       "VolMakeBackups: Unable to allocate a volume number; ABORTING");
-	CAMLIB_ABORT(VNOVOL);
+	rvmlib_abort(VNOVOL);
     } else
 	LogMsg(29, VolDebugLevel, stdout, "Backup: VAllocateVolumeId returns %x",
 	       newId);
@@ -312,7 +311,7 @@ PRIVATE int MakeNewClone(Volume *rwvp, VolumeId *backupId, Volume **backupvp)
     if (error) {
 	LogMsg(0, VolDebugLevel, stdout,
 	       "S_VolMakeBackups:Unable to create the volume; aborted");
-	CAMLIB_ABORT(VNOVOL);
+	rvmlib_abort(VNOVOL);
     }
 
     /* Don't let other users get at new volume until clone is done. */
@@ -320,10 +319,10 @@ PRIVATE int MakeNewClone(Volume *rwvp, VolumeId *backupId, Volume **backupvp)
     VUpdateVolume(&error, newvp);
     if (error) {
 	LogMsg(0, VolDebugLevel, stdout, "S_VolMakeBackups: Volume %x can't be unblessed!", newId);
-	CAMLIB_ABORT(VFAIL);
+	rvmlib_abort(VFAIL);
     }
     
-    CAMLIB_END_TOP_LEVEL_TRANSACTION_2(CAM_PROT_TWO_PHASED, status)
+    RVMLIB_END_TRANSACTION(flush, &(status));
     if (status != 0) {
 	LogMsg(0, VolDebugLevel, stdout, "S_VolMakeBackups: volume backup creation failed for volume %x",
 	    V_id(rwvp));
@@ -374,9 +373,9 @@ PRIVATE int MakeNewClone(Volume *rwvp, VolumeId *backupId, Volume **backupvp)
 	DeleteVolumeFromHashTable(newvp);
 	newId = V_id(newvp) = oldId;  /* Modify the Id in the vm cache and rvm */
 
-	CAMLIB_BEGIN_TOP_LEVEL_TRANSACTION_2(CAM_TRAN_NV_SERVER_BASED)
-	    CAMLIB_MODIFY(CAMLIB_REC(VolumeList[V_volumeindex(newvp)]).header.id, oldId);
-	CAMLIB_END_TOP_LEVEL_TRANSACTION_2(CAM_PROT_TWO_PHASED, status)
+	RVMLIB_BEGIN_TRANSACTION(restore)
+	    RVMLIB_MODIFY(SRV_RVM(VolumeList[V_volumeindex(newvp)]).header.id, oldId);
+	RVMLIB_END_TRANSACTION(flush, &(status));
 	assert(status == 0);
 
 	HashInsert(oldId, V_volumeindex(newvp));
@@ -401,7 +400,7 @@ PRIVATE int MakeNewClone(Volume *rwvp, VolumeId *backupId, Volume **backupvp)
 
 
 
-PRIVATE void ModifyIndex(Volume *rwvp, Volume *backupvp, VnodeClass vclass)
+static void ModifyIndex(Volume *rwvp, Volume *backupvp, VnodeClass vclass)
 {
     int rwIndex = V_volumeindex(rwvp);
     int backupIndex = V_volumeindex(backupvp);
@@ -412,46 +411,46 @@ PRIVATE void ModifyIndex(Volume *rwvp, Volume *backupvp, VnodeClass vclass)
     
     /* Make sure there are as many backup lists as there are rw lists. */
     if (vclass == vSmall) {
-	if (CAMLIB_REC(VolumeList[rwIndex]).data.nsmallLists >
-	    CAMLIB_REC(VolumeList[backupIndex]).data.nsmallLists) {
+	if (SRV_RVM(VolumeList[rwIndex]).data.nsmallLists >
+	    SRV_RVM(VolumeList[backupIndex]).data.nsmallLists) {
 
 	    /* Growvnodes for backupvolume */
-	    CAMLIB_BEGIN_TOP_LEVEL_TRANSACTION_2(CAM_TRAN_NV_SERVER_BASED)
+	    RVMLIB_BEGIN_TRANSACTION(restore)
 	    GrowVnodes(V_id(backupvp), vclass, rwvp->vnIndex[vclass].bitmapSize);
-	    CAMLIB_END_TOP_LEVEL_TRANSACTION_2(CAM_PROT_TWO_PHASED, status)
+	    RVMLIB_END_TRANSACTION(flush, &(status));
 	    assert(status == 0);
 	}
 
 	/* Since lists never shrink, how could there be more backup lists? */
-	assert(CAMLIB_REC(VolumeList[rwIndex]).data.nsmallLists ==
-	       CAMLIB_REC(VolumeList[backupIndex]).data.nsmallLists);
+	assert(SRV_RVM(VolumeList[rwIndex]).data.nsmallLists ==
+	       SRV_RVM(VolumeList[backupIndex]).data.nsmallLists);
 
-	nBackupVnodes = CAMLIB_REC(VolumeList[backupIndex]).data.nsmallvnodes;	
-	backupVnodes = CAMLIB_REC(VolumeList[backupIndex]).data.smallVnodeLists;
+	nBackupVnodes = SRV_RVM(VolumeList[backupIndex]).data.nsmallvnodes;	
+	backupVnodes = SRV_RVM(VolumeList[backupIndex]).data.smallVnodeLists;
 
-	nRWVnodes = CAMLIB_REC(VolumeList[rwIndex]).data.nsmallvnodes;	
-	rwVnodes = CAMLIB_REC(VolumeList[rwIndex]).data.smallVnodeLists;
+	nRWVnodes = SRV_RVM(VolumeList[rwIndex]).data.nsmallvnodes;	
+	rwVnodes = SRV_RVM(VolumeList[rwIndex]).data.smallVnodeLists;
 
     } else {
-	if (CAMLIB_REC(VolumeList[rwIndex]).data.nlargeLists >
-	    CAMLIB_REC(VolumeList[backupIndex]).data.nlargeLists) {
+	if (SRV_RVM(VolumeList[rwIndex]).data.nlargeLists >
+	    SRV_RVM(VolumeList[backupIndex]).data.nlargeLists) {
 
 	    /* Growvnodes for backupvolume */
-	    CAMLIB_BEGIN_TOP_LEVEL_TRANSACTION_2(CAM_TRAN_NV_SERVER_BASED)
+	    RVMLIB_BEGIN_TRANSACTION(restore)
 	    GrowVnodes(V_id(backupvp), vclass, rwvp->vnIndex[vclass].bitmapSize);
-	    CAMLIB_END_TOP_LEVEL_TRANSACTION_2(CAM_PROT_TWO_PHASED, status)
+	    RVMLIB_END_TRANSACTION(flush, &(status));
 	    assert(status == 0);
 	}
 
 	/* Since lists never shrink, how could there be more backup lists? */
-	assert(CAMLIB_REC(VolumeList[rwIndex]).data.nlargeLists ==
-	       CAMLIB_REC(VolumeList[backupIndex]).data.nlargeLists);
+	assert(SRV_RVM(VolumeList[rwIndex]).data.nlargeLists ==
+	       SRV_RVM(VolumeList[backupIndex]).data.nlargeLists);
 
-	nBackupVnodes = CAMLIB_REC(VolumeList[backupIndex]).data.nlargevnodes;	
-	backupVnodes = CAMLIB_REC(VolumeList[backupIndex]).data.largeVnodeLists;
+	nBackupVnodes = SRV_RVM(VolumeList[backupIndex]).data.nlargevnodes;	
+	backupVnodes = SRV_RVM(VolumeList[backupIndex]).data.largeVnodeLists;
 
-	nRWVnodes = CAMLIB_REC(VolumeList[rwIndex]).data.nlargevnodes;	
-	rwVnodes = CAMLIB_REC(VolumeList[rwIndex]).data.largeVnodeLists;
+	nRWVnodes = SRV_RVM(VolumeList[rwIndex]).data.nlargevnodes;	
+	rwVnodes = SRV_RVM(VolumeList[rwIndex]).data.largeVnodeLists;
     }
     
     /* First, purge any backup vnodes corresponding to rw vnodes that have
@@ -468,13 +467,13 @@ PRIVATE void ModifyIndex(Volume *rwvp, Volume *backupvp, VnodeClass vclass)
     assert(nBackupVnodes == nRWVnodes);
 
     /* Update the number of vnodes in the backup volume header */
-    CAMLIB_BEGIN_TOP_LEVEL_TRANSACTION_2(CAM_TRAN_NV_SERVER_BASED)
+    RVMLIB_BEGIN_TRANSACTION(restore)
     if (vclass == vSmall)
-	CAMLIB_MODIFY(CAMLIB_REC(VolumeList[backupIndex]).data.nsmallvnodes, nBackupVnodes);
+	RVMLIB_MODIFY(SRV_RVM(VolumeList[backupIndex]).data.nsmallvnodes, nBackupVnodes);
     else
-	CAMLIB_MODIFY(CAMLIB_REC(VolumeList[backupIndex]).data.nlargevnodes, nBackupVnodes);
+	RVMLIB_MODIFY(SRV_RVM(VolumeList[backupIndex]).data.nlargevnodes, nBackupVnodes);
 	
-    CAMLIB_END_TOP_LEVEL_TRANSACTION_2(CAM_PROT_TWO_PHASED, status)
+    RVMLIB_END_TRANSACTION(flush, &(status));
     assert(status == 0);
 }
 
@@ -485,7 +484,7 @@ PRIVATE void ModifyIndex(Volume *rwvp, Volume *backupvp, VnodeClass vclass)
  */
 extern int MaxVnodesPerTransaction;
 
-PRIVATE void deleteDeadVnode(rec_smolist *list,
+static void deleteDeadVnode(rec_smolist *list,
 			     VnodeDiskObject *vdop,
 			     bit32 *nBackupVnodes)
 {
@@ -495,18 +494,18 @@ PRIVATE void deleteDeadVnode(rec_smolist *list,
     /* decrement the reference count by one */
     if (vdop->inodeNumber) {
 	if (vdop->type == vDirectory)
-	    DDec((DirInode *)vdop->inodeNumber); 
+	    DI_Dec((DirInode *)vdop->inodeNumber); 
     }
     
     /* Don't bother with the vnode free list */
-    CAMLIB_REC_FREE((char *)strbase(VnodeDiskObject, &(vdop->nextvn), nextvn)); 
+    rvmlib_rec_free((char *)strbase(VnodeDiskObject, &(vdop->nextvn), nextvn)); 
     
     /* decrement the vnode count on the volume. */
     (*nBackupVnodes)--;
 }
 
 
-PRIVATE void purgeDeadVnodes(Volume *backupvp, rec_smolist *BackupLists,
+static void purgeDeadVnodes(Volume *backupvp, rec_smolist *BackupLists,
 		      rec_smolist *RWLists, VnodeClass vclass, bit32 *nBackupVnodes)
 {
     int status = 0;
@@ -534,7 +533,7 @@ PRIVATE void purgeDeadVnodes(Volume *backupvp, rec_smolist *BackupLists,
 
 	/* Bunch vnode operations into groups of at most 8 per transaction */
 	/* Right now we might have transactions with no operations, oh well. */
-	CAMLIB_BEGIN_TOP_LEVEL_TRANSACTION_2(CAM_TRAN_NV_SERVER_BASED)
+	RVMLIB_BEGIN_TRANSACTION(restore)
 
 	for (count = 0; count < MaxVnodesPerTransaction; count++) {
 
@@ -567,7 +566,7 @@ PRIVATE void purgeDeadVnodes(Volume *backupvp, rec_smolist *BackupLists,
 		deleteDeadVnode(&BackupLists[vnodeIndex], bvdop, nBackupVnodes);
 	    }
 	}
-	CAMLIB_END_TOP_LEVEL_TRANSACTION_2(CAM_PROT_TWO_PHASED, status)
+	RVMLIB_END_TRANSACTION(flush, &(status));
 	assert(status == 0);		/* Should never abort... */
 
 	/* Now delete the inodes for the vnodes we already purged. */
@@ -594,7 +593,7 @@ PRIVATE void purgeDeadVnodes(Volume *backupvp, rec_smolist *BackupLists,
  * or changed because the clone bit isn't set.
  */
 
-PRIVATE void updateBackupVnodes(Volume *rwvp, Volume *backupvp,
+static void updateBackupVnodes(Volume *rwvp, Volume *backupvp,
 				rec_smolist *BackupLists, VnodeClass vclass, 
 				bit32 *nBackupVnodes)
 {
@@ -625,7 +624,7 @@ PRIVATE void updateBackupVnodes(Volume *rwvp, Volume *backupvp,
 
 	bzero((void *)DeadInodes, sizeof(Inode) * (MaxVnodesPerTransaction + 1));
 
-	CAMLIB_BEGIN_TOP_LEVEL_TRANSACTION_2(CAM_TRAN_NV_SERVER_BASED)
+	RVMLIB_BEGIN_TRANSACTION(restore)
 
 	/* break out every 8 vnodes, regardless of if they've changed.*/
 	for (count = 0; count < MaxVnodesPerTransaction; count++) {
@@ -715,7 +714,7 @@ PRIVATE void updateBackupVnodes(Volume *rwvp, Volume *backupvp,
 		    rwVnode->lock = bvdop->lock;	// Use the backupVnode's lock
 		    rwVnode->nextvn = bvdop->nextvn;
 
-		    CAMLIB_MODIFY_BYTES(bvdop, rwVnode, (vclass == vLarge) ?
+		    rvmlib_modify_bytes(bvdop, rwVnode, (vclass == vLarge) ?
 					SIZEOF_LARGEDISKVNODE : SIZEOF_SMALLDISKVNODE);
 		}
 
@@ -735,7 +734,7 @@ PRIVATE void updateBackupVnodes(Volume *rwvp, Volume *backupvp,
 		       V_id(backupvp), bitNumberToVnodeNumber(vnodeIndex, vclass),
 		       bvdop->uniquifier);
 
-		/* Directory Inodes are in RVM so DDecs get undone on abort. */
+		/* Directory Inodes are in RVM so DI_Decs get undone on abort. */
 		if (vclass == vSmall)	
 		    DeadInodes[count] = bvdop->inodeNumber;
 		
@@ -751,7 +750,7 @@ PRIVATE void updateBackupVnodes(Volume *rwvp, Volume *backupvp,
 	    (*nBackupVnodes)++;
 	    
 	} /* Inner loop -> less than MaxVnodesPerTransaction times around */
-	CAMLIB_END_TOP_LEVEL_TRANSACTION_2(CAM_PROT_TWO_PHASED, status)
+	RVMLIB_END_TRANSACTION(flush, &(status));
 	assert(status == 0);  /* Do we ever abort? */
 
 	/* Now delete the inodes for the vnodes we already purged. */

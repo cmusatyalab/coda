@@ -30,7 +30,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vice/srv.cc,v 4.19 1998/06/16 20:45:42 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vice/srv.cc,v 4.20 1998/08/05 23:50:23 braam Exp $";
 #endif /*_BLURB_*/
 
 /*
@@ -92,6 +92,7 @@ extern "C" {
 #include <fcon.h>
 #include <partition.h>
 #include <util.h>
+#include <rvmlib.h>
 
 extern int nice(int);
 extern int Fcon_Init(); 
@@ -105,7 +106,6 @@ extern int Fcon_Init();
 #endif __cplusplus
 
 
-#include <rvmlib.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -121,6 +121,7 @@ extern "C" {
 #include <res.h>
 #include <vice.h>
 #include <volutil.h>
+#include <codadir.h>
 #ifdef __cplusplus
 
 }
@@ -130,12 +131,11 @@ extern "C" {
 
 
 #include <srv.h>
+#include <codadir.h>
 #include <vice.private.h>
-#include <coda_dir.h>
 #include <recov.h>
 #include <camprivate.h>
 #include <coda_globals.h>
-#include <rvmdir.h>
 #include <vrdb.h>
 #include <rescomm.h>
 #include <lockqueue.h>
@@ -196,78 +196,78 @@ int thread_count;
 /* *****  Private variables  ***** */
 
 /* File server parameters. */
-PRIVATE int trace = 0;
-PRIVATE int SrvWindowSize = 32;
-PRIVATE int SrvSendAhead = 8;
-PRIVATE	int timeout = 60;	/* formerly 30 */
-PRIVATE	int retrycnt = 6;	/* formerly 20 */
-PRIVATE int Statistics;
-PRIVATE int debuglevel = 0;
-PRIVATE int lwps = 6;
-PRIVATE	int buffs = 100;	/* formerly 200 */
+static int trace = 0;
+static int SrvWindowSize = 32;
+static int SrvSendAhead = 8;
+static int timeout = 60;	/* formerly 30 */
+static int retrycnt = 6;	/* formerly 20 */
+static int Statistics;
+static int debuglevel = 0;
+static int lwps = 6;
+static int buffs = 100;	/* formerly 200 */
 int stack = 96;
-PRIVATE int cbwait = 300;
-PRIVATE int chk = 30;
-/* PRIVATE int ProcSize = 0; */
-PRIVATE int ForceSalvage = 1;
-PRIVATE int SalvageOnShutdown = 1;
-PRIVATE int ViceShutDown = 0;
+static int cbwait = 300;
+static int chk = 30;
+/* static int ProcSize = 0; */
+static int ForceSalvage = 1;
+static int SalvageOnShutdown = 1;
+static int ViceShutDown = 0;
 
 /* Camelot/RVM stuff. */
-DEFINE_RECOVERABLE_OBJECTS
+struct camlib_recoverable_segment *camlibRecoverableSegment;
 
 extern int etext, edata;	/* Info to be used in creating rvm segment */
-/*PRIVATE */char *_Rvm_Log_Device;
-/*PRIVATE */char *_Rvm_Data_Device;
-/*PRIVATE */rvm_offset_t _Rvm_DataLength;
-/*PRIVATE */int _Rvm_Truncate = 0;
-/*PRIVATE */char *cam_log_file;
-/*PRIVATE */int camlog_fd;
-/*PRIVATE */char camlog_record[SIZEOF_LARGEDISKVNODE + 8 + sizeof(VolumeDiskData)];
-/* PRIVATE */ char *_DEBUG_p;
-/*PRIVATE */int nodumpvm = FALSE;
+/*static */char *_Rvm_Log_Device;
+/*static */char *_Rvm_Data_Device;
+/*static */rvm_offset_t _Rvm_DataLength;
+/*static */int _Rvm_Truncate = 0;
+/*static */char *cam_log_file;
+/*static */int camlog_fd;
+/*static */char camlog_record[SIZEOF_LARGEDISKVNODE + 8 + sizeof(VolumeDiskData)];
+/* static */ char *_DEBUG_p;
+/*static */int nodumpvm = FALSE;
 int prottrunc = FALSE;
-/* PRIVATE */int MallocTrace = FALSE;
-/* PRIVATE */void rds_printer(char *fmt ...);
+/* static */int MallocTrace = FALSE;
+/* static */void rds_printer(char *fmt ...);
 
 /* vicetab */
 #define VCT "/vice/db/vicetab"
 
 /* PDB stuff. */
-PRIVATE int pdbtime = 0;
+static int pdbtime = 0;
 #define PDB "/vice/db/vice.pdb"
 #define PCF "/vice/db/vice.pcf"
 
 /* Token stuff. */
-PRIVATE int keytime = 0;
+static int keytime = 0;
 #define KEY1 "/vice/db/auth2.tk"
 #define KEY2 "/vice/db/auth2.tk.BAK"
 
 /* (Worker) LWP statistics.  Currently unused. */
 #define MAXLWP 16
-PRIVATE RPC2_Integer LastOp[MAXLWP];
-PRIVATE int StackUsed[MAXLWP];
-PRIVATE int StackAllocated[MAXLWP];
-PRIVATE ClientEntry *CurrentClient[MAXLWP];
+static RPC2_Integer LastOp[MAXLWP];
+static int StackUsed[MAXLWP];
+static int StackAllocated[MAXLWP];
+static ClientEntry *CurrentClient[MAXLWP];
 
 /* *****  Private routines  ***** */
 
-PRIVATE void ServerLWP(int *);
-PRIVATE void ResLWP(int *);
-PRIVATE void CallBackCheckLWP();
-PRIVATE void CheckLWP();
+static void ServerLWP(int *);
+static void ResLWP(int *);
+static void CallBackCheckLWP();
+static void CheckLWP();
 
-PRIVATE void ClearCounters();
-PRIVATE void FileMsg();
-PRIVATE void SetDebug();
-PRIVATE void ResetDebug();
-PRIVATE void ShutDown();
-PRIVATE int pushlog();
+static void ClearCounters();
+static void FileMsg();
+static void SetDebug();
+static void ResetDebug();
+static void ShutDown();
+static int pushlog();
 
-PRIVATE int ParseArgs(int, char **);
-PRIVATE void NewParms(int);
-PRIVATE void InitServerKeys(char *, char *);
-PRIVATE void DaemonizeSrv(void);
+static int ParseArgs(int, char **);
+static void NewParms(int);
+static void InitServerKeys(char *, char *);
+static void DaemonizeSrv(void);
 static void InitializeServerRVM(char *name);
 
 #ifdef RVMTESTING
@@ -280,11 +280,6 @@ struct sigcontext OldContext; /* zombie() saves original context here */
 #endif
 extern void dumpvm();
 
-  /* We need to have this zombie because of Camelot and the IBM-RT stack bogosity.
-       The zombie can be attached to via gdb, and the context set to OldContext.
-       Backtraces will then make sense.
-       Otherwise the gap in the RT stack causes the backtrace to end prematurely.
-    */
 
 /* Signal handlers in Linux will not be passed the arguments code and scp */
 #ifndef	__BSD44__
@@ -340,6 +335,7 @@ void zombie(int sig, int code, struct sigcontext *scp) {
 	sigset_t mask;
 
 	sigemptyset(&mask);
+	assert(0);
 	while (living_dead) {
 	    sigsuspend(&mask); /* pending gdb attach */
 	}
@@ -434,25 +430,24 @@ main(int argc, char *argv[])
     LogMsg(0, SrvDebugLevel, stdout, "Main process doing a LWP_Init()");
     assert(LWP_Init(LWP_VERSION, LWP_NORMAL_PRIORITY,&parentPid)==LWP_SUCCESS);
 
-    /* using rvm - so set the per thread data structure for executing transactions */
+    /* using rvm - so set the per thread data structure for executing
+       transactions */
     rvm_perthread_t rvmptt;
     if (RvmType == RAWIO || RvmType == UFS) {
 	rvmptt.tid = NULL;
 	rvmptt.list.table = NULL;
 	rvmptt.list.count = 0;
 	rvmptt.list.size = 0;
-	rvmptt.die = NULL;
-	RVM_SET_THREAD_DATA(&rvmptt);
-	assert(RVM_THREAD_DATA != 0);
+	rvmlib_init_threaddata(&rvmptt);
+	assert(rvmlib_thread_data() != 0);
 	LogMsg(0, SrvDebugLevel, stdout, 
 	       "Main thread just did a RVM_SET_THREAD_DATA\n");
     }
-
     InitializeServerRVM("codaserver"); 
 
     /* Trace mallocs and frees in the persistent heap if requested. */
     if (MallocTrace) {	
-      rds_trace_on(rds_printer);
+      rds_trace_on(stdout);
       rds_trace_dump_heap();
     }
     
@@ -494,6 +489,8 @@ main(int argc, char *argv[])
     RPC2_Trace = trace;
 
     InitPartitions(VCT);
+    DIR_Init(DIR_DATA_IN_VM);
+    DC_HashInit();
 
     FileMsg();
 
@@ -508,8 +505,7 @@ main(int argc, char *argv[])
     VolDebugLevel = SrvDebugLevel;
     RPC2_Perror = 1;
     nice(-5);
-    assert(DInit(buffs) == 0);
-    DirHtbInit();  /* initialize rvm dir package */
+    DIR_Init(DIR_DATA_IN_VM);
 
     stat(PDB, &buff);
     pdbtime = (int)buff.st_mtime;
@@ -611,7 +607,7 @@ main(int argc, char *argv[])
 
 
 #define BADCLIENT 1000
-PRIVATE void ServerLWP(int *Ident)
+static void ServerLWP(int *Ident)
 {
     RPC2_RequestFilter myfilter;
     RPC2_PacketBuffer * myrequest;
@@ -626,19 +622,8 @@ PRIVATE void ServerLWP(int *Ident)
 
     /* using rvm - so set the per thread data structure */
     rvm_perthread_t rvmptt;
-    if (RvmType == RAWIO || RvmType == UFS) {
-	rvmptt.tid = NULL;
-	rvmptt.list.table = NULL;
-	rvmptt.list.count = 0;
-	rvmptt.list.size = 0;
-	rvmptt.die = NULL;
-	RVM_SET_THREAD_DATA(&rvmptt);
-	assert(RVM_THREAD_DATA != 0);
-	LogMsg(0, SrvDebugLevel, stdout, 
-	       "ServerLWP %d just did a RVM_SET_THREAD_DATA\n", 
-	       *Ident);
-    }
-
+    rvmlib_init_threaddata(&rvmptt);
+    LogMsg(0, SrvDebugLevel, stdout, "ServerLWP %d just did a rvmlib_set_thread_data()\n", *Ident);
 
     myfilter.FromWhom = ONESUBSYS;
     myfilter.OldOrNew = OLDORNEW;
@@ -747,27 +732,18 @@ PRIVATE void ServerLWP(int *Ident)
     }
 }
 
-PRIVATE void ResLWP(int *Ident){
+static void ResLWP(int *Ident){
     RPC2_RequestFilter myfilter;
     RPC2_Handle	mycid;
     RPC2_PacketBuffer *myrequest;
     ProgramType pt;
     register long rc;
-
-    /* using rvm - so set the per thread data structure for executing transactions */
     rvm_perthread_t rvmptt;
-    if (RvmType == RAWIO || RvmType == UFS) {
-	rvmptt.tid = NULL;
-	rvmptt.list.table = NULL;
-	rvmptt.list.count = 0;
-	rvmptt.list.size = 0;
-	rvmptt.die = NULL;
-	RVM_SET_THREAD_DATA(&rvmptt);
-	assert(RVM_THREAD_DATA != 0);
-	LogMsg(0, SrvDebugLevel, stdout, 
-	       "ResLWP-%d just did a RVM_SET_THREAD_DATA\n",
-	       *Ident);
-    }
+
+    /* using rvm - so set the per thread data structure for executing
+       transactions */
+    rvmlib_init_threaddata(&rvmptt);
+    LogMsg(0, SrvDebugLevel, stdout, "ResLWP-%d just did a rvmlib_set_thread_data()\n", *Ident);
 
     pt = fileServer;
     assert(LWP_NewRock(FSTAG, (char *)&pt) == LWP_SUCCESS);
@@ -796,29 +772,21 @@ PRIVATE void ResLWP(int *Ident){
 
 }
 
-PRIVATE void CallBackCheckLWP()
+static void CallBackCheckLWP()
 {
     struct timeval  time;
     ProgramType *pt;
+    rvm_perthread_t rvmptt;
 
     /* tag lwps as fsUtilities */
     pt = (ProgramType *) malloc(sizeof(ProgramType));
     *pt = fsUtility;
     assert(LWP_NewRock(FSTAG, (char *)pt) == LWP_SUCCESS);
 
-    /* using rvm - so set the per thread data structure for executing transactions */
-    rvm_perthread_t rvmptt;
-    if (RvmType == RAWIO || RvmType == UFS) {
-	rvmptt.tid = NULL;
-	rvmptt.list.table = NULL;
-	rvmptt.list.count = 0;
-	rvmptt.list.size = 0;
-	rvmptt.die = NULL;
-	RVM_SET_THREAD_DATA(&rvmptt);
-	assert(RVM_THREAD_DATA != 0);
-	LogMsg(0, SrvDebugLevel, stdout, 
-	       "CallBackCheckLWP just did a RVM_SET_THREAD_DATA\n");
-    }
+    /* using rvm - so set the per thread data structure for executing
+       transactions */
+    rvmlib_init_threaddata(&rvmptt);
+    LogMsg(0, SrvDebugLevel, stdout, "CallBackCheckLWP just did a rvmlib_set_thread_data()\n");
 
     LogMsg(1, SrvDebugLevel, stdout, "Starting CallBackCheck process");
     time.tv_sec = cbwait;
@@ -836,27 +804,19 @@ PRIVATE void CallBackCheckLWP()
 }
 
 
-PRIVATE void CheckLWP()
+static void CheckLWP()
 {
     struct timeval  time;
     struct timeval  tpl;
     struct timezone tspl;
     ProgramType *pt;
-
-    /* using rvm - so set the per thread data structure for executing transactions */
     rvm_perthread_t rvmptt;
-    if (RvmType == RAWIO || RvmType == UFS) {
-	rvmptt.tid = NULL;
-	rvmptt.list.table = NULL;
-	rvmptt.list.count = 0;
-	rvmptt.list.size = 0;
-	rvmptt.die = NULL;
-	RVM_SET_THREAD_DATA(&rvmptt);
-	assert(RVM_THREAD_DATA != 0);
-	LogMsg(0, SrvDebugLevel, stdout, 
-	       "CheckLWP just did a RVM_SET_THREAD_DATA\n");
 
-    }
+    /* using rvm - so set the per thread data structure for executing
+       transactions */
+    rvmlib_init_threaddata(&rvmptt);
+    LogMsg(0, SrvDebugLevel, stdout, "CheckLWP just did a rvmlib_set_thread_data()\n");
+
     
     /* tag lwps as fsUtilities */
     pt = (ProgramType *) malloc(sizeof(ProgramType));
@@ -892,7 +852,7 @@ PRIVATE void CheckLWP()
     }
 }
 
-PRIVATE void ShutDown()
+static void ShutDown()
 {
     int     fd;
     int camstatus = 0;
@@ -954,7 +914,7 @@ void ViceUpdateDB()
 }
 
 
-PRIVATE void ClearCounters()
+static void ClearCounters()
 {
     register	int	i;
 
@@ -965,7 +925,6 @@ PRIVATE void ClearCounters()
 
 void PrintCounters(FILE *fp)
 {
-    int	dirbuff, dircall, dirio;
     struct timeval  tpl;
     struct timezone tspl;
     int seconds;
@@ -1043,10 +1002,7 @@ void PrintCounters(FILE *fp)
 	   Counters[STORED4], SIZE4 / 1024, Counters[STORED5]);
     VPrintCacheStats();
     VPrintDiskStats();
-    DStat(&dirbuff, &dircall, &dirio);
-    LogMsg(0, 0, fp,
-	   "With %d directory buffers; %d reads resulted in %d read I/Os",
-	   dirbuff, dircall, dirio);
+    DH_PrintStats(fp);
     LogMsg(0, 0, fp,
 	   "RPC Total bytes:     sent = %u, received = %u",
 	   rpc2_Sent.Bytes + rpc2_MSent.Bytes + sftp_Sent.Bytes + sftp_MSent.Bytes,
@@ -1181,7 +1137,7 @@ void PrintCounters(FILE *fp)
 }
 
 
-PRIVATE void SetDebug()
+static void SetDebug()
 {
 
     if (SrvDebugLevel > 0) {
@@ -1198,7 +1154,7 @@ PRIVATE void SetDebug()
 }
 
 
-PRIVATE void ResetDebug()
+static void ResetDebug()
 {
     AL_DebugLevel = 0;
     RPC2_DebugLevel = 0;
@@ -1218,7 +1174,7 @@ void SwapMalloc()
     rds_trace_off();
     MallocTrace = FALSE;
   } else {
-    rds_trace_on(rds_printer);
+    rds_trace_on(stdout);
     rds_trace_dump_heap();
     MallocTrace = TRUE;
   }
@@ -1228,7 +1184,7 @@ void SwapMalloc()
    implementation.  I couldn't get LogMsg to work directly, because
    of problem relating to varargs.  SMN
    */
-PRIVATE void RdsTimeStamp(FILE *f)
+static void RdsTimeStamp(FILE *f)
     {
     struct tm *t;
     time_t clock;
@@ -1288,7 +1244,7 @@ void SwapLog()
 }
 
 /* Filter for scandir(); eliminates all but names of form "SrvLog-" */
-PRIVATE int xselect(struct dirent *d) {
+static int xselect(struct dirent *d) {
     if (strncmp(d->d_name, "SrvLog-", sizeof("SrvLog-")-1)) 
 	return(0); 
     else 
@@ -1301,7 +1257,7 @@ PRIVATE int xselect(struct dirent *d) {
 	        +ve if d1 < d2
 		0  if d1 == d2
 */
-PRIVATE int compar(struct dirent **dp1, struct dirent **dp2) { 
+static int compar(struct dirent **dp1, struct dirent **dp2) { 
     struct dirent *d1, *d2;
 
     d1 = *dp1;
@@ -1320,7 +1276,7 @@ PRIVATE int compar(struct dirent **dp1, struct dirent **dp2) {
    Then "pushes" them, resulting in SrvLog-1, SrvLog-2,....SrvLog-(N+1).
    All work is done in the current directory.
 */
-PRIVATE pushlog() { 
+static pushlog() { 
     int i, count;
     char buf[100], buf2[100]; /* can't believe there will be more logs! */
     struct dirent **namelist;
@@ -1353,7 +1309,7 @@ PRIVATE pushlog() {
 }
 
 
-PRIVATE void FileMsg()
+static void FileMsg()
     {
     int srvpid;
     
@@ -1379,7 +1335,7 @@ void ViceTerminate()
 
 
 
-PRIVATE int ParseArgs(int argc, char *argv[])
+static int ParseArgs(int argc, char *argv[])
 {
     int   i;
 
@@ -1516,8 +1472,9 @@ PRIVATE int ParseArgs(int argc, char *argv[])
 		    exit(-1);
 		}
 
-		if (i + 3 > argc) {	/* Need three arguments here */
-		    LogMsg(0, 0, stdout, "rvm needs 3 args: LOGDEV DATADEV DATA-LENGTH.");
+		if (i + 4 > argc) {	/* Need three more arguments here */
+		    eprint("-rvm needs 3 args: LOGDEV DATADEV DATA-LENGTH.\n");
+		    SLog(0, "-rvm needs 3 args: LOGDEV DATADEV DATA-LENGTH.");
 		    exit(-1);
 		}
 		
@@ -1572,7 +1529,7 @@ PRIVATE int ParseArgs(int argc, char *argv[])
 
 
 #define MAXPARMS 15
-PRIVATE void NewParms(int initializing)
+static void NewParms(int initializing)
 {
     static struct stat sbuf;
     register int      i, fd;
@@ -1633,7 +1590,7 @@ PRIVATE void NewParms(int initializing)
 
 /*char	* fkey1;		 name of file that contains key1 (normally KEY1) */
 /*char	* fkey2;		 name of file that contains key2 (normally KEY2  */
-PRIVATE void InitServerKeys(char *fkey1, char *fkey2)
+static void InitServerKeys(char *fkey1, char *fkey2)
 {
     FILE                * tf;
     char                  inkey[RPC2_KEYSIZE+1];
@@ -1698,7 +1655,7 @@ void Die(char *msg)
 }
 
 
-PRIVATE void DaemonizeSrv() { 
+static void DaemonizeSrv() { 
     int child, rc; 
    /* Set DATA segment limit to maximum allowable. */
 #ifndef __CYGWIN32__

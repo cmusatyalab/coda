@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/norton/norton-setup.cc,v 4.2 1997/10/23 19:24:07 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/norton/norton-setup.cc,v 4.3 1998/01/10 18:37:22 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -66,7 +66,7 @@ extern "C" {
 #include <coda_dir.h>
 #include <voltypes.h>
 #include <partition.h>
-#include <rvmdir.h>
+#include <codadir.h>
 #include <rvmlib.h>
 #include <volume.h>
 
@@ -106,8 +106,8 @@ void LoadRVM(char * log_dev, char * data_dev, rvm_offset_t data_len) {
     rvmptt->list.count = 0;
     rvmptt->list.size = 0;
     rvmptt->die = NULL;
-    RVM_SET_THREAD_DATA(rvmptt);
-    assert(RVM_THREAD_DATA != 0);
+    rvmlib_set_thread_data()(rvmptt);
+    assert(rvmlib_thread_data() != 0);
 
     options = rvm_malloc_options();
     options->log_dev = log_dev;

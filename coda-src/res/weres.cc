@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/res/weres.cc,v 4.2 1997/12/20 23:34:41 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/res/weres.cc,v 4.3 1998/01/10 18:37:54 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -41,32 +41,17 @@ extern "C" {
 #endif __cplusplus
 
 #include <stdio.h>
-#if !defined(__GLIBC__)
-#include <libc.h>
-#endif
 #include <sys/types.h>
 #include <sys/time.h>
-#ifdef CAMELOT
-#include <cam/camelot_prefixed.h>
-#include <camlib/camlib_prefixed.h>
-#include <cam/_setjmp.h>
-#endif CAMELOT
-#if 0
-#include <cthreads.h>
-#else
-#include <dummy_cthreads.h>
-#endif
 #include <rpc2.h>
+#include <util.h>
+#include <rvmlib.h>
 
 #ifdef __cplusplus
 }
 #endif __cplusplus
 
 
-#include <util.h>
-#ifndef CAMELOT
-#include <rvmlib.h>
-#endif CAMELOT 
 #include <vcrcommon.h>
 #include <srv.h>
 #include <vrdb.h>
@@ -216,7 +201,7 @@ long RS_ForceVV(RPC2_Handle RPCid, ViceFid *Fid, ViceVersionVector *VV, ViceStat
     }
 
 FreeLocks:
-    CAMLIB_BEGIN_TOP_LEVEL_TRANSACTION_2(CAM_TRAN_NV_SERVER_BASED);
+    RVMLIB_BEGIN_TRANSACTION(restore);
     /* release lock on vnode and put the volume */
     Error filecode = 0;
     if (vptr) {
@@ -224,7 +209,7 @@ FreeLocks:
 	assert(filecode == 0);
     }
     PutVolObj(&volptr, NO_LOCK);
-    CAMLIB_END_TOP_LEVEL_TRANSACTION_2(CAM_PROT_TWO_PHASED, status);
+    RVMLIB_END_TRANSACTION(flush, &(status));
     LogMsg(9, SrvDebugLevel, stdout,  "RS_ForceVV returns %d", errorcode);
     return(errorcode);
 }

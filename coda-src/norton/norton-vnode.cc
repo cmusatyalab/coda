@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/norton/norton-vnode.cc,v 4.2 1997/10/15 15:53:02 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/norton/norton-vnode.cc,v 4.3 1997/12/23 17:19:40 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -192,12 +192,12 @@ void show_free(int argc, char *argv[]) {
     }
 
     if (strncasecmp("small", argv[2], (int)strlen(argv[2])) == 0) {
-	free_list = CAMLIB_REC(SmallVnodeFreeList);
-	nvnodes = CAMLIB_REC(SmallVnodeIndex);
+	free_list = SRV_RVM(SmallVnodeFreeList);
+	nvnodes = SRV_RVM(SmallVnodeIndex);
 	printf("    There are %d small vnodes in the free list\n", nvnodes);
     } else if (strncasecmp("large", argv[2], (int)strlen(argv[2])) == 0) {
-	free_list = CAMLIB_REC(LargeVnodeFreeList);
-	nvnodes = CAMLIB_REC(LargeVnodeIndex);
+	free_list = SRV_RVM(LargeVnodeFreeList);
+	nvnodes = SRV_RVM(LargeVnodeIndex);
 	printf("    There are %d large vnodes in the free list\n", nvnodes);	
     } else {
 	fprintf(stderr, "Usage: show free <large> | <small>\n");
@@ -216,7 +216,7 @@ void show_free(int argc, char *argv[]) {
 
 #if 0
 // delete the RVM held vnode
-PRIVATE void 
+static void 
 delete_smallvnode(int volid, int vnum, int unique)
 {
     char buf[SIZEOF_SMALLDISKVNODE];
@@ -232,13 +232,13 @@ delete_smallvnode(int volid, int vnum, int unique)
 	return;
     }
 
-    CAMLIB_BEGIN_TOP_LEVEL_TRANSACTION_2(CAM_TRAN_NV_SERVER_BASED)
+    RVMLIB_BEGIN_TRANSACTION(restore)
 	    
     if (ExtractVnode(&error, volindex, vclass, (VnodeId)vnodeindex,
 		     (Unique_t)unique, vnode) < 0) {
 	fprintf(stderr, "Unable to get vnode 0x%x.0x%x.0x%x\n", volid, vnum,
 		unique);
-	CAMLIB_ABORT(VFAIL);
+	rvmlib_abort(VFAIL);
 	return;
     }
 
@@ -246,11 +246,11 @@ delete_smallvnode(int volid, int vnum, int unique)
     if (error = ReplaceVnode(volindex, vclass, (VnodeId)vnodeindex,
 			     (Unique_t)unique, vnode)) {
 	fprintf(stderr, "ERROR: ReplaceVnode returns %d, aborting\n", error);
-	CAMLIB_ABORT(VFAIL);
+	rvmlib_abort(VFAIL);
 	return;
     }
 	    
-    CAMLIB_END_TOP_LEVEL_TRANSACTION_2(CAM_PROT_TWO_PHASED, error)
+    RVMLIB_END_TRANSACTION(flush, &(error));
 
     if (error) {
 	fprintf(stderr, "ERROR: Transaction aborted with status %d\n",

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vice/srvproc2.cc,v 4.14 1998/08/05 23:50:24 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vice/srvproc2.cc,v 4.15 1998/08/23 16:46:31 jaharkes Exp $";
 #endif /*_BLURB_*/
 
 
@@ -56,7 +56,6 @@ supported by Transarc Corporation, Pittsburgh, PA.
 */
 
 
-#define	TRAFFIC	    /* ? -JJK */
 
 #ifdef __cplusplus
 extern "C" {
@@ -88,6 +87,7 @@ extern int nlist(const char*, struct nlist[]);
 #include <lock.h>
 #include <rpc2.h>
 #include <util.h>
+#include <rvmlib.h>
 #include <partition.h>
 #include <auth2.h>
 #include <prs.h>
@@ -98,14 +98,13 @@ extern int nlist(const char*, struct nlist[]);
 }
 #endif __cplusplus
 
-#include <rvmlib.h>
 #include <errors.h>
 #include <voltypes.h>
 #include <vsg.h>
-#include <vlist.h>
 #include <vrdb.h>
 #include <vldb.h>
 #include <srv.h>
+#include <vlist.h>
 #include <vice.private.h>
 #include <operations.h>
 #include <ops.h>
@@ -123,66 +122,26 @@ unsigned int etherBytesWritten = 0;
 
 /* *****  Private variables  ***** */
 
-PRIVATE	unsigned Cont_Sws = 0;		/* Count context switches for LWP */
-
-#ifdef __MACH__
-PRIVATE struct nlist RawStats[] =
-{
-#define CPTIME 0
-    {
-	"_cp_time"
-    },
-#define SWAPMAP 1
-    {
-	"_swapmap"
-    },
-#define BOOT 2
-    {
-	"_boottime"
-    },
-#define DISK 3
-    {
-	"_dk_xfer"
-    },
-#define NSWAPMAP 4
-    {
-	"_nswapmap"
-    },
-#define NSWAPBLKS 5
-    {
-	"_nswap"
-    },
-#define DMMAX 6
-    {
-	"_dmmax"
-    },
-    {
-	0
-    },
-};
-#endif
-
+static unsigned Cont_Sws = 0;		/* Count context switches for LWP */
 
 /* *****  External routines ***** */
 extern int ValidateParms(RPC2_Handle, ClientEntry **, int, VolumeId *, 
 			 RPC2_CountedBS *);
 /* *****  Private routines  ***** */
 
-PRIVATE long InternalRemoveCallBack(RPC2_Handle, ViceFid *);
-PRIVATE void SetVolumeStatus(VolumeStatus *, RPC2_BoundedBS *,
+static long InternalRemoveCallBack(RPC2_Handle, ViceFid *);
+static void SetVolumeStatus(VolumeStatus *, RPC2_BoundedBS *,
 			      RPC2_BoundedBS *, RPC2_BoundedBS *, Volume *);
-PRIVATE void SetViceStats(ViceStatistics *);
-PRIVATE void SetRPCStats(ViceStatistics *);
-PRIVATE void SetVolumeStats(ViceStatistics *);
-PRIVATE void SetSystemStats(ViceStatistics *);
-PRIVATE void PrintVolumeStatus(VolumeStatus *);
-PRIVATE void PrintUnusedComplaint(RPC2_Handle, RPC2_Integer, char *);
+static void SetViceStats(ViceStatistics *);
+static void SetRPCStats(ViceStatistics *);
+static void SetVolumeStats(ViceStatistics *);
+static void SetSystemStats(ViceStatistics *);
+static void PrintVolumeStatus(VolumeStatus *);
+static void PrintUnusedComplaint(RPC2_Handle, RPC2_Integer, char *);
 
 
 /*
-  BEGIN_HTML
-  <a name="ViceConnectFS"><strong>Client request to connect to file server</strong></a>
-  END_HTML
+  ViceConnectFS: Client request to connect to file server
 */ 
 long ViceConnectFS(RPC2_Handle RPCid, RPC2_Unsigned ViceVersion, ViceClient *ClientId)
 {
@@ -209,6 +168,10 @@ long ViceConnectFS(RPC2_Handle RPCid, RPC2_Unsigned ViceVersion, ViceClient *Cli
 		}
 	}			
     }
+    if (errorCode)
+	    CLIENT_CleanUpHost(client->VenusId);
+
+
     LogMsg(2, SrvDebugLevel, stdout, "ViceConnectFS returns %s", 
 	   ViceErrorMsg((int) errorCode));
 
@@ -295,7 +258,7 @@ long ViceGetStatistics(RPC2_Handle RPCid, ViceStatistics *Statistics)
 }
 
 
-PRIVATE const int RCBEntrySize = (int) sizeof(ViceFid);
+static const int RCBEntrySize = (int) sizeof(ViceFid);
 
 /*
   BEGIN_HTML
@@ -321,7 +284,7 @@ Exit:
 }
 
 
-PRIVATE long InternalRemoveCallBack(RPC2_Handle RPCid, ViceFid *fid)
+static long InternalRemoveCallBack(RPC2_Handle RPCid, ViceFid *fid)
 {
     long   errorCode;
     ClientEntry * client;
@@ -674,7 +637,7 @@ long ViceGetRootVolume(RPC2_Handle RPCid, RPC2_BoundedBS *volume)
     }
     volume->SeqLen = strlen((char *)volume->SeqBody) + 1;
 #if 0
-    /* almost right: sadle we need to check the VRDB instead */
+    /* almost right: sadly we need to check the VRDB instead */
     if ( VLDBLookup(volume->SeqBody) == NULL ) {
 	    LogMsg(0, SrvDebugLevel, stdout, 
 		   "ViceGetRootVolume Volume = %s in ROOTVOLUME is bogus!",
@@ -780,15 +743,16 @@ long ViceNewConnection(RPC2_Handle RPCid, RPC2_Integer set, RPC2_Integer sl,
     }
 
     errorCode = CLIENT_Build(RPCid, user, sl, &client);
-    if (!errorCode) client->SEType = (int) set;
+    if (!errorCode) 
+	    client->SEType = (int) set;
 
-    LogMsg(1, SrvDebugLevel, stdout, "New connection received RPCid %d, security level %d, remote cid %d returns %s",
+    SLog(1,"New connection received RPCid %d, security level %d, remote cid %d returns %s",
 	    RPCid, sl, cid, ViceErrorMsg((int) errorCode));
     return(errorCode);
 }
 
 
-PRIVATE void SetVolumeStatus(VolumeStatus *status, RPC2_BoundedBS *name, RPC2_BoundedBS *offMsg,
+static void SetVolumeStatus(VolumeStatus *status, RPC2_BoundedBS *name, RPC2_BoundedBS *offMsg,
 		RPC2_BoundedBS *motd, Volume *volptr)
 {
     status->Vid = V_id(volptr);
@@ -818,7 +782,7 @@ PRIVATE void SetVolumeStatus(VolumeStatus *status, RPC2_BoundedBS *name, RPC2_Bo
 }
 
 
-PRIVATE void SetViceStats(ViceStatistics *stats)
+static void SetViceStats(ViceStatistics *stats)
 {
     int	seconds;
 
@@ -848,7 +812,7 @@ PRIVATE void SetViceStats(ViceStatistics *stats)
 }
 
 
-PRIVATE void SetRPCStats(ViceStatistics *stats)
+static void SetRPCStats(ViceStatistics *stats)
 {
     /* get send/receive statistics from rpc, multirpc, and sftp */
     stats->TotalRPCBytesSent = rpc2_Sent.Bytes + rpc2_MSent.Bytes + 
@@ -932,7 +896,7 @@ return(0);
 }
 
 
-PRIVATE void SetVolumeStats(ViceStatistics *stats)
+static void SetVolumeStats(ViceStatistics *stats)
 {
     struct DiskPartition * part;
 
@@ -1030,7 +994,7 @@ PRIVATE void SetVolumeStats(ViceStatistics *stats)
 }
 
 
-PRIVATE void SetSystemStats(ViceStatistics *stats)
+static void SetSystemStats(ViceStatistics *stats)
 {
 #ifdef __MACH__
     struct	timeval	time;
@@ -1132,7 +1096,7 @@ PRIVATE void SetSystemStats(ViceStatistics *stats)
 }
 
 
-PRIVATE void PrintVolumeStatus(VolumeStatus *status)
+static void PrintVolumeStatus(VolumeStatus *status)
 {
     LogMsg(5, SrvDebugLevel, stdout,"Volume header contains:");
     LogMsg(5, SrvDebugLevel, stdout,"Vid = %u, Parent = %u, Online = %d, InService = %d, Blessed = %d, NeedsSalvage = %d",
@@ -1185,9 +1149,7 @@ long ViceDisableGroup(RPC2_Handle cid, RPC2_String GroupName)
 
 
 /*
-  BEGIN_HTML
-  <a name="ViceNewConnectFS"><strong>Called by client after connection setup</strong></a> 
-  END_HTML
+  ViceNewConnectFS: Called by client (userent::Connect) after connection setup
 */
 long ViceNewConnectFS(RPC2_Handle RPCid, RPC2_Unsigned ViceVersion, ViceClient *ClientId)
 {
@@ -1295,7 +1257,7 @@ long ViceUnused14(RPC2_Handle RPCid)
 }
 
 
-PRIVATE void PrintUnusedComplaint(RPC2_Handle RPCid, RPC2_Integer Opcode, char *OldName) {
+static void PrintUnusedComplaint(RPC2_Handle RPCid, RPC2_Integer Opcode, char *OldName) {
     ClientEntry *client = 0;
     long   errorCode;
 

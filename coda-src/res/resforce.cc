@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/res/resforce.cc,v 4.6 1998/01/10 18:37:52 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/res/resforce.cc,v 4.7 1998/04/14 21:08:26 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -46,28 +46,23 @@ extern "C" {
 #include <netinet/in.h>
 #include <assert.h>
 #include <stdio.h>
-#ifdef __MACH__
-#include <sysent.h>
-#include <libc.h>
-#else	/* __linux__ || __BSD44__ */
 #include <unistd.h>
 #include <stdlib.h>
-#endif
 #include <rpc2.h>
 #include <inodeops.h>
+#include <util.h>
+#include <rvmlib.h>
+
 #include <prs.h>
 #include <al.h>
 #ifdef __cplusplus
 }
 #endif __cplusplus
 
-#include <util.h>
-#include <rvmlib.h>
 #include <olist.h>
 #include <errors.h>
 #include <vcrcommon.h>
 #include <srv.h>
-#include <coda_dir.h>
 #include <vlist.h>
 #include <operations.h>
 #include <dlist.h>
@@ -84,13 +79,12 @@ extern "C" {
 #define	EMPTYDIRBLOCKS	    2
 
 extern void ChangeDiskUsage(Volume *, int);
-extern void SetDirHandle(DirHandle *, Vnode *);
 extern int FetchFileByName(RPC2_Handle, char *, ClientEntry *);
 
-PRIVATE int GetOpList(char *, olist *);
-PRIVATE int ObtainDirOps(struct getdiropParm * , char *, long, long );
-PRIVATE int ForceDir(vle *, Volume *, VolumeId , olist *, dlist *, int *);
-PRIVATE int CheckForceDirSemantics(olist *, Volume *, Vnode *);
+static int GetOpList(char *, olist *);
+static int ObtainDirOps(PDirEntry, void *);
+static int ForceDir(vle *, Volume *, VolumeId , olist *, dlist *, int *);
+static int CheckForceDirSemantics(olist *, Volume *, Vnode *);
 
 
 void UpdateRunts(res_mgrpent *mgrp, ViceVersionVector **VV,
@@ -371,7 +365,7 @@ long RS_GetForceDirOps(RPC2_Handle RPCid, ViceFid *Fid,
     int fd = 0;
     char buf[20];
     char *filename = 0;
-    DirHandle dir;
+    PDirHandle dir;
     struct getdiropParm gdop;
     diroplink *dop;
 
@@ -388,10 +382,10 @@ long RS_GetForceDirOps(RPC2_Handle RPCid, ViceFid *Fid,
     }
 
     /* get the ops */
-    SetDirHandle(&dir, vptr);
+    dir = VN_SetDirHandle(vptr);
     gdop.volptr = volptr;
     gdop.oplist = new olist();
-    EnumerateDir((long *)&dir, (int (*) (void * ...))ObtainDirOps, (long) &gdop);
+    DH_EnumerateDir(dir, ObtainDirOps, (void *) &gdop);
 
     /* open file to store directory ops */
     strcpy(buf, "/tmp/dirop.XXXXXXX");
@@ -430,8 +424,7 @@ long RS_GetForceDirOps(RPC2_Handle RPCid, ViceFid *Fid,
 	   filename);
     if ((errorcode = RPC2_InitSideEffect(RPCid, &sid))
 	<= RPC2_ELIMIT) {
-	LogMsg(0, SrvDebugLevel, stdout,  "RS_GetForceDirOps: InitSideEffect failed %d", 
-		errorcode);
+	SLog(0, "RS_GetForceDirOps: InitSideEffect failed %d", errorcode);
 	errorcode = EINVAL;
 	goto FreeLocks;
     }
@@ -460,9 +453,14 @@ long RS_GetForceDirOps(RPC2_Handle RPCid, ViceFid *Fid,
 
 
 /* called by EnumerateDir - adds dir op entry to the list(passed in gdop) */
-int ObtainDirOps(struct getdiropParm *gdop, char *name, 
-		 long vnode, long unique) 
+int ObtainDirOps(PDirEntry de, void *data) 
 {
+    struct getdiropParm *gdop = (struct getdiropParm *)data;
+    char *name = de->name;
+    VnodeId vnode;
+    Unique_t unique;
+    FID_NFid2Int(&de->fid, &vnode, &unique);
+
     dirop_t op;
     LogMsg(9, SrvDebugLevel, stdout,  "Entering ObtainDirOps for %s(%x.%x)",
 	    name, vnode, unique);
@@ -535,7 +533,7 @@ int GetOpList(char *filename, olist *List) {
 }
 
 /* check semantics for force dir */
-PRIVATE int CheckForceDirSemantics(olist *flist, Volume *volptr, Vnode *dirvptr) {
+static int CheckForceDirSemantics(olist *flist, Volume *volptr, Vnode *dirvptr) {
     LogMsg(19, SrvDebugLevel, stdout,  "Entering CheckForceDirSemantics %x.%x", dirvptr->vnodeNumber, 
 	    dirvptr->disk.uniquifier);
     int deltablocks = 0;

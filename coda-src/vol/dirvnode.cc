@@ -65,12 +65,18 @@ extern "C" {
    The Directory Handle cache is controlled by the Vnode cache. 
    When directory content is needed, VN_SetDirHandle must be called. 
    When the Vnode goes away is calls DC_Drop to eliminate the cache.
+   It could call DC_Put but presently the calls VN_SetDirHandle is not
+   paired with a corresponding VN_PutDirHandle call. 
 
-   The reference counting done by DC is ignored: i.e. VN_SetDirHandle
-   can be called at any time and need not te matched by equally many
-   "Puts", when VN_PutDirHandle is called the cache entry will go away. 
+   The reference counting done by DC is therefore ignored:
+   i.e. VN_SetDirHandle can be called at any time and need not te
+   matched by equally many "Puts", when VN_PutDirHandle is called the
+   cache entry will go away.
 
-*/ 
+   This would be a good thing to fix, since it would potentially enhance 
+   performance.
+
+*/
 
 /* copies DirHandle data  into pages in recoverable storage */
 /* Called from within a transaction */
@@ -79,24 +85,25 @@ int VN_DCommit(Vnode *vnp)
 	PDirInode   pdi = (PDirInode) vnp->disk.inodeNumber;
 	PDCEntry    pdce = vnp->dh;
 
-	if (!vnp || (vnp->disk.type != vDirectory) || !pdce){
-		DLog(29, "VN_DCommit: Vnode or dh not allocated or not a directory");
+	if (!vnp || (vnp->disk.type != vDirectory) || !pdce) {
+		DLog(29, "VN_DCommit: Vnode or dh not allocated/not a directory");
 		return 0;
 	}
 
-	if (vnp->delete_me){
+	if (vnp->delete_me) {
 		/* directory was deleted */
-		DLog(29, "VN_DCommit: deleted directory, vnode = %d",  vnp->vnodeNumber);
-		DI_Dec(pdi);
+		DLog(29, "VN_DCommit: deleted directory, vnode = %d",  
+		     vnp->vnodeNumber);
 		vnp->disk.inodeNumber = 0;
+		DI_Dec(pdi);
 	} else if (!vnp->delete_me && vnp->changed) {
 		/* directory was modified - commit the pages */
 		DLog(29, "VN_DCommit: Commiting pages for dir vnode = %d", 
 			vnp->vnodeNumber);
 		/* copy the VM pages into RVM */
 		pdi = DI_DhToDi(pdce, pdi);
-		/* rehash just in case it is new */
 		assert(pdi);
+		/* rehash just in case it is new */
 		DC_Commit(pdce);
 		vnp->disk.inodeNumber = (long unsigned int) pdi;
 	}
@@ -114,11 +121,12 @@ int VN_DAbort(Vnode *vnp)
 		return(0);
 	}
     
+#if 0    /* better safe than sorry */
 	if (!vnp->changed)
 		return(0);
-    
+#endif 
 	DH_FreeData(DC_DC2DH(vnp->dh));
-	
+
 	return(0);
 }
 
@@ -128,11 +136,13 @@ int VN_DAbort(Vnode *vnp)
 PDirHandle VN_SetDirHandle(struct Vnode *vn)
 {
 	PDCEntry pdce = NULL;
+
 	if ( vn->disk.inodeNumber == 0 )
 		pdce = DC_New();
 	else
 		pdce = DC_Get((PDirInode)vn->disk.inodeNumber);
 	vn->dh = pdce;
+
 	return DC_DC2DH(pdce);
 }
 

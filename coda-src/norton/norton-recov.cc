@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/src/coda-4.0.1/RCSLINK/./coda-src/norton/norton-recov.cc,v 1.1 1996/11/22 19:14:57 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/norton/norton-recov.cc,v 4.1 1997/01/08 21:49:50 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -56,7 +56,7 @@ extern "C" {
 
 /* Return the MaxVolId from recoverable storage */
 int GetMaxVolId() {
-    return(CAMLIB_REC(MaxVolId) & 0x00FFFFFF);
+    return(SRV_RVM(MaxVolId) & 0x00FFFFFF);
 }
 
 
@@ -69,7 +69,7 @@ VolumeHeader *VolHeaderByIndex(int myind) {
     if ((myind < 0) || (myind >= maxid) || (myind >= MAXVOLS)) {
 	return(NULL);
     }
-    return(&CAMLIB_REC(VolumeList[myind]).header);
+    return(&SRV_RVM(VolumeList[myind]).header);
 }
 
 
@@ -80,10 +80,10 @@ VolumeHeader *VolHeaderByIndex(int myind) {
 VolHead *VolByIndex(int myind) {
     VolumeId maxid = GetMaxVolId();
 
-    maxid = (CAMLIB_REC(MaxVolId) & 0x00FFFFFF);
+    maxid = (SRV_RVM(MaxVolId) & 0x00FFFFFF);
     if ((myind < 0) || (myind >= maxid) || (myind >= MAXVOLS)) {
 	return(NULL);
     }
 
-    return(&CAMLIB_REC(VolumeList[myind]));
+    return(&SRV_RVM(VolumeList[myind]));
 }

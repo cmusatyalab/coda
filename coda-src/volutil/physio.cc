@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /usr/rvb/XX/src/coda-src/volutil/RCS/physio.cc,v 4.1 1997/01/08 21:52:26 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/volutil/physio.cc,v 4.2 1997/02/26 16:04:03 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -90,28 +90,6 @@ extern "C" {
 #define PAGESIZE 2048
 
 void SetDirHandle(DirHandle *dir, Vnode *vnode);
-
-
-void SetDirHandle(register DirHandle *dir, register Vnode *vnode)
-{
-    register Volume *volume = vnode->volumePtr;
-    dir->inode = vnode->disk.inodeNumber;
-    dir->device = (unsigned short) volume->device;
-    dir->cacheCheck = volume->cacheCheck;
-    dir->volume = V_parentId(volume);
-    dir->unique = vnode->disk.uniquifier;
-    dir->vnode = vnode->vnodeNumber;
-}
-
-void SetSalvageDirHandle(register DirHandle *dir, int volume, int device, int inode)
-{
-    private SalvageCacheCheck = 1;
-    bzero((char *)dir, sizeof(DirHandle));
-    dir->inode = inode;
-    dir->device = device;
-    dir->volume = volume;
-    dir->cacheCheck = SalvageCacheCheck++;  /* Always re-read for a new dirhandle */
-}
 
 
 int ReallyRead (void *formal_file, long block, char *data)

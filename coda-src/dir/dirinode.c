@@ -53,7 +53,7 @@ PDirInode DI_DhToDi(PDCEntry pdce, PDirInode pdi)
 	}
 
 	rvmlib_set_range(lpdi, sizeof(*lpdi));
-	lpdi->di_refcount = pdce->dc_refcount;
+	lpdi->di_refcount = DC_Refcount(pdce);
 	
 	/* copy pages to the dir inode */
 	for ( i=0 ; i<pages ; i++) {

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/volutil/vol-clone.cc,v 4.5 1998/01/10 18:39:55 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/volutil/vol-clone.cc,v 4.6 1998/04/14 21:00:36 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -70,28 +70,24 @@ extern "C" {
 
 #include <stdio.h>
 #include <sys/signal.h>
-
-#ifdef __MACH__
-#include <sysent.h>
-#include <libc.h>
-#include <mach.h>
-#else	/* __linux__ || __BSD44__ */
 #include <unistd.h>
 #include <stdlib.h>
-#endif
 
 #include <struct.h>
 #include <lwp.h>
 #include <lock.h>
 #include <rpc2.h>
 #include <inodeops.h>
+#include <util.h>
+#include <rvmlib.h>
+#include <codadir.h>
+
 #include <volutil.h>
 #include <vice.h>
 #ifdef __cplusplus
 }
 #endif __cplusplus
 
-#include <coda_dir.h>
 #include <voltypes.h>
 #include <cvnode.h>
 #include <volume.h>
@@ -102,26 +98,22 @@ extern "C" {
 #include <vutil.h>
 #include <index.h>
 #include <recov.h>
-#include <rvmdir.h>
+#include <codadir.h>
 #include <camprivate.h>
 #include <coda_globals.h>
 #include <vldb.h>
 #include <rec_smolist.h>
 #include <inconsist.h>
-#include <util.h>
-#include <rvmlib.h>
     
 extern void PollAndYield();
 
-PRIVATE void VUCloneIndex(Error *, Volume *, Volume *, VnodeClass);
+static void VUCloneIndex(Error *, Volume *, Volume *, VnodeClass);
 
 int CloneVnode(Volume *rwVp, Volume *cloneVp, int vnodeIndex, rec_smolist *vlist,
 	       VnodeDiskObject *rwVnode, VnodeClass vclass);
 
 /*
-  BEGIN_HTML
-  <a name="S_VolClone"><strong>Create a new readonly clone of a volume.</strong></a>
-  END_HTML
+S_VolClone: Create a new readonly clone of a volume.
 */
 /* ovolid: Volume Id of the volume to be cloned 
  * cloneId: OUT Parameter; Id of cloned volume returned in that param.
@@ -171,9 +163,9 @@ long S_VolClone(RPC2_Handle rpcid, RPC2_Unsigned formal_ovolid,
     if (error) {
 	LogMsg(0, VolDebugLevel, stdout, "S_VolClone: failure attaching volume %x", originalId);
 	if (originalvp) {
-	    CAMLIB_BEGIN_TOP_LEVEL_TRANSACTION_2(CAM_TRAN_NV_SERVER_BASED)
+	    RVMLIB_BEGIN_TRANSACTION(restore)
 		VPutVolume(originalvp);	/* Do these need transactions? */
-	    CAMLIB_END_TOP_LEVEL_TRANSACTION_2(CAM_PROT_TWO_PHASED, status)
+	    RVMLIB_END_TRANSACTION(flush, &(status));
 	    assert(status == 0);
 	}
 	VDisconnectFS();
@@ -191,9 +183,9 @@ long S_VolClone(RPC2_Handle rpcid, RPC2_Unsigned formal_ovolid,
 	/* lock the whole volume for the duration of the clone */
 	if (V_VolLock(originalvp).IPAddress){
 	    LogMsg(0, VolDebugLevel, stdout, "S_VolClone: old volume already locked; Aborting... ");
-	    CAMLIB_BEGIN_TOP_LEVEL_TRANSACTION_2(CAM_TRAN_NV_SERVER_BASED)
+	    RVMLIB_BEGIN_TRANSACTION(restore)
 		VPutVolume(originalvp);	/* Do these need transactions? */
-	    CAMLIB_END_TOP_LEVEL_TRANSACTION_2(CAM_PROT_TWO_PHASED, status)
+	    RVMLIB_END_TRANSACTION(flush, &(status));
 	    assert(status == 0);
 	    VDisconnectFS();
 	    return EWOULDBLOCK;
@@ -208,19 +200,19 @@ long S_VolClone(RPC2_Handle rpcid, RPC2_Unsigned formal_ovolid,
 	LogMsg(9, VolDebugLevel, stdout, "S_VolClone:Obtained write lock on old volume");
     }
 
-    CAMLIB_BEGIN_TOP_LEVEL_TRANSACTION_2(CAM_TRAN_NV_SERVER_BASED)
+    RVMLIB_BEGIN_TRANSACTION(restore)
     newId = VAllocateVolumeId(&error);
     LogMsg(9, VolDebugLevel, stdout, "VolClone: VAllocateVolumeId returns %x", newId);
     if (error){
 	LogMsg(0, VolDebugLevel, stdout, "S_VolClone:Unable to allocate a volume number; volume not cloned");
 	VPutVolume(originalvp);
-	CAMLIB_ABORT(VNOVOL);
+	rvmlib_abort(VNOVOL);
     }
     newvp = VCreateVolume(&error, V_partname(originalvp), newId, originalId, 0, readonlyVolume);
     if (error) {
 	LogMsg(0, VolDebugLevel, stdout, "S_VolClone:Unable to create the volume; aborted");
 	VPutVolume(originalvp);
-	CAMLIB_ABORT(VNOVOL);
+	rvmlib_abort(VNOVOL);
     }
 
     V_blessed(newvp) = 0;
@@ -228,10 +220,10 @@ long S_VolClone(RPC2_Handle rpcid, RPC2_Unsigned formal_ovolid,
     if (error) {
 	LogMsg(0, VolDebugLevel, stdout, "S_VolClone: Volume %x can't be unblessed!", newId);
 	VPutVolume(originalvp);
-	CAMLIB_ABORT(VFAIL);
+	rvmlib_abort(VFAIL);
     }
     
-    CAMLIB_END_TOP_LEVEL_TRANSACTION_2(CAM_PROT_TWO_PHASED, status)
+    RVMLIB_END_TRANSACTION(flush, &(status));
     if (status != 0) {
 	LogMsg(0, VolDebugLevel, stdout, "S_VolClone: volume creation failed for volume %x", originalId);
 	V_VolLock(originalvp).IPAddress = 0;
@@ -248,9 +240,9 @@ long S_VolClone(RPC2_Handle rpcid, RPC2_Unsigned formal_ovolid,
 	    originalId, newId);
 	V_VolLock(originalvp).IPAddress = 0;
 	ReleaseWriteLock(&(V_VolLock(originalvp).VolumeLock));
-	CAMLIB_BEGIN_TOP_LEVEL_TRANSACTION_2(CAM_TRAN_NV_SERVER_BASED)
+	RVMLIB_BEGIN_TRANSACTION(restore)
 	    VPutVolume(originalvp);	/* Do these need transactions? */
-	CAMLIB_END_TOP_LEVEL_TRANSACTION_2(CAM_PROT_TWO_PHASED, status)
+	RVMLIB_END_TRANSACTION(flush, &(status));
 	assert(status == 0);
 	VDisconnectFS();
 	return error;
@@ -280,7 +272,7 @@ long S_VolClone(RPC2_Handle rpcid, RPC2_Unsigned formal_ovolid,
     V_destroyMe(newvp) = 0;
     V_blessed(newvp) = 1;
 
-    CAMLIB_BEGIN_TOP_LEVEL_TRANSACTION_2(CAM_TRAN_NV_SERVER_BASED)
+    RVMLIB_BEGIN_TRANSACTION(restore)
     VUpdateVolume(&error, newvp);
     VDetachVolume(&error, newvp);
     VUpdateVolume(&error, originalvp);
@@ -289,7 +281,7 @@ long S_VolClone(RPC2_Handle rpcid, RPC2_Unsigned formal_ovolid,
     ReleaseWriteLock(&(V_VolLock(originalvp).VolumeLock)); 
     VPutVolume(originalvp);
     VListVolumes();			/* Create updated /vice/vol/VolumeList */
-    CAMLIB_END_TOP_LEVEL_TRANSACTION_2(CAM_PROT_TWO_PHASED, status)
+    RVMLIB_END_TRANSACTION(flush, &(status));
     VDisconnectFS();
     if (status == 0) {
 	LogMsg(0, VolDebugLevel, stdout, "S_VolClone: volume %x cloned", originalId);
@@ -319,7 +311,7 @@ int MaxVnodesPerTransaction = 8;
 #include <rvmtesting.h>
 #endif DCS
 
-PRIVATE void VUCloneIndex(Error *error, Volume *rwVp, Volume *cloneVp, VnodeClass vclass)
+static void VUCloneIndex(Error *error, Volume *rwVp, Volume *cloneVp, VnodeClass vclass)
 {
     int status;
     bit32 nvnodes;
@@ -329,30 +321,30 @@ PRIVATE void VUCloneIndex(Error *error, Volume *rwVp, Volume *cloneVp, VnodeClas
     int cvolInd = V_volumeindex(cloneVp);
     
     if (vclass == vSmall){
-	nvnodes = CAMLIB_REC(VolumeList[ovolInd]).data.nsmallvnodes;
-	vnlistSize = CAMLIB_REC(VolumeList[ovolInd]).data.nsmallLists;
+	nvnodes = SRV_RVM(VolumeList[ovolInd]).data.nsmallvnodes;
+	vnlistSize = SRV_RVM(VolumeList[ovolInd]).data.nsmallLists;
     }
     else if (vclass == vLarge){
-	nvnodes = CAMLIB_REC(VolumeList[ovolInd]).data.nlargevnodes;
-	vnlistSize = CAMLIB_REC(VolumeList[ovolInd]).data.nlargeLists;
+	nvnodes = SRV_RVM(VolumeList[ovolInd]).data.nlargevnodes;
+	vnlistSize = SRV_RVM(VolumeList[ovolInd]).data.nlargeLists;
     }
     else 
 	assert(0);
 
-    CAMLIB_BEGIN_TOP_LEVEL_TRANSACTION_2(CAM_TRAN_NV_SERVER_BASED)
+    RVMLIB_BEGIN_TRANSACTION(restore)
     
     /* free vnodes allocated earlier by VCreateVolume. */
     bit32 onVnodes, onLists;
     rec_smolist *ovList;
     
     if (vclass == vSmall) {
-	onVnodes = CAMLIB_REC(VolumeList[cvolInd]).data.nsmallvnodes;
-	ovList = CAMLIB_REC(VolumeList[cvolInd]).data.smallVnodeLists;
-	onLists = CAMLIB_REC(VolumeList[cvolInd]).data.nsmallLists;
+	onVnodes = SRV_RVM(VolumeList[cvolInd]).data.nsmallvnodes;
+	ovList = SRV_RVM(VolumeList[cvolInd]).data.smallVnodeLists;
+	onLists = SRV_RVM(VolumeList[cvolInd]).data.nsmallLists;
     } else { /* vclass == vLarge */
-	onVnodes = CAMLIB_REC(VolumeList[cvolInd]).data.nlargevnodes;
-	ovList = CAMLIB_REC(VolumeList[cvolInd]).data.largeVnodeLists;
-	onLists = CAMLIB_REC(VolumeList[cvolInd]).data.nlargeLists;
+	onVnodes = SRV_RVM(VolumeList[cvolInd]).data.nlargevnodes;
+	ovList = SRV_RVM(VolumeList[cvolInd]).data.largeVnodeLists;
+	onLists = SRV_RVM(VolumeList[cvolInd]).data.nlargeLists;
     }
 
     assert(ovList);	/* How can it not have a list? */
@@ -361,34 +353,34 @@ PRIVATE void VUCloneIndex(Error *error, Volume *rwVp, Volume *cloneVp, VnodeClas
 	while(p = ovList[i].get()) {
 	    VnodeDiskObject *vdo;
 	    vdo = strbase(VnodeDiskObject, p, nextvn);
-	    CAMLIB_REC_FREE((char *)vdo);
+	    rvmlib_rec_free((char *)vdo);
 	    onVnodes--;
 	}
     }
-    CAMLIB_REC_FREE((char *)ovList);
+    rvmlib_rec_free((char *)ovList);
 
     /* initialize a new list of vnodes */
-    rvlist = (rec_smolist *)(CAMLIB_REC_MALLOC(sizeof(rec_smolist) * vnlistSize));
+    rvlist = (rec_smolist *)(rvmlib_rec_malloc(sizeof(rec_smolist) * vnlistSize));
     rec_smolist *tmpvlist = (rec_smolist *)malloc((int)(sizeof(rec_smolist) * vnlistSize));
     assert(tmpvlist != 0);
     bzero((void *)tmpvlist, (int)(sizeof(rec_smolist) * vnlistSize));
-    CAMLIB_MODIFY_BYTES(rvlist, tmpvlist, sizeof(rec_smolist)*vnlistSize);
+    rvmlib_modify_bytes(rvlist, tmpvlist, sizeof(rec_smolist)*vnlistSize);
     free(tmpvlist);
 
     /* Store the new list in the volume structure. Do this now so that
      * if an abort happens, already commited vnodes will be scavanged.
      */
     if (vclass == vSmall) {
-	CAMLIB_MODIFY(CAMLIB_REC(VolumeList[cvolInd]).data.smallVnodeLists,rvlist);
-	CAMLIB_MODIFY(CAMLIB_REC(VolumeList[cvolInd]).data.nsmallvnodes, nvnodes);
-	CAMLIB_MODIFY(CAMLIB_REC(VolumeList[cvolInd]).data.nsmallLists,vnlistSize);
+	RVMLIB_MODIFY(SRV_RVM(VolumeList[cvolInd]).data.smallVnodeLists,rvlist);
+	RVMLIB_MODIFY(SRV_RVM(VolumeList[cvolInd]).data.nsmallvnodes, nvnodes);
+	RVMLIB_MODIFY(SRV_RVM(VolumeList[cvolInd]).data.nsmallLists,vnlistSize);
     } else { /* vclass == vLarge */
-	CAMLIB_MODIFY(CAMLIB_REC(VolumeList[cvolInd]).data.largeVnodeLists,rvlist);
-	CAMLIB_MODIFY(CAMLIB_REC(VolumeList[cvolInd]).data.nlargevnodes, nvnodes);
-	CAMLIB_MODIFY(CAMLIB_REC(VolumeList[cvolInd]).data.nlargeLists,vnlistSize);
+	RVMLIB_MODIFY(SRV_RVM(VolumeList[cvolInd]).data.largeVnodeLists,rvlist);
+	RVMLIB_MODIFY(SRV_RVM(VolumeList[cvolInd]).data.nlargevnodes, nvnodes);
+	RVMLIB_MODIFY(SRV_RVM(VolumeList[cvolInd]).data.nlargeLists,vnlistSize);
     }
 
-    CAMLIB_END_TOP_LEVEL_TRANSACTION_2(CAM_PROT_TWO_PHASED, status)
+    RVMLIB_END_TRANSACTION(flush, &(status));
     assert(status == 0);				/* Never aborts... */
 	
     char buf[SIZEOF_LARGEDISKVNODE];
@@ -407,7 +399,7 @@ PRIVATE void VUCloneIndex(Error *error, Volume *rwVp, Volume *cloneVp, VnodeClas
 	rec_smolist_iterator *DecrementBug;
 #endif DCS
 	
-	CAMLIB_BEGIN_TOP_LEVEL_TRANSACTION_2(CAM_TRAN_NV_SERVER_BASED)
+	RVMLIB_BEGIN_TRANSACTION(restore)
 	for (int count = 0; count < MaxVnodesPerTransaction; count++) {
 	    if ((vnodeindex = vnext(vnode)) == -1) {
 		moreVnodes = FALSE;
@@ -419,7 +411,7 @@ PRIVATE void VUCloneIndex(Error *error, Volume *rwVp, Volume *cloneVp, VnodeClas
 
 	    *error = CloneVnode(rwVp, cloneVp, vnodeindex, rvlist, vnode, vclass);
 	    if (*error)
-		CAMLIB_ABORT(VFAIL);
+		rvmlib_abort(VFAIL);
 
 #ifdef	DCS
 	    /* Code to check for corruption of rec_smolist iterator. -JJK */
@@ -434,7 +426,7 @@ PRIVATE void VUCloneIndex(Error *error, Volume *rwVp, Volume *cloneVp, VnodeClas
 #endif DCS
 
 	} 
-	CAMLIB_END_TOP_LEVEL_TRANSACTION_2(CAM_PROT_TWO_PHASED, status)
+	RVMLIB_END_TRANSACTION(flush, &(status));
 	if (status != 0) {
 	    LogMsg(0, VolDebugLevel, stdout, "CloneIndex: abort for RW %x RO %x",
 		   V_id(rwVp), V_id(cloneVp));
@@ -498,7 +490,7 @@ int CloneVnode(Volume *rwVp, Volume *cloneVp, int vnodeIndex, rec_smolist *rvlis
 	   V_id(rwVp), vnodeNum, vnode->uniquifier);
     
     int size=(vclass==vSmall)?SIZEOF_SMALLDISKVNODE:SIZEOF_LARGEDISKVNODE;
-    VnodeDiskObject *vdo = (VnodeDiskObject *) CAMLIB_REC_MALLOC(size);
+    VnodeDiskObject *vdo = (VnodeDiskObject *) rvmlib_rec_malloc(size);
 
     bzero((void *)&(vnode->nextvn), sizeof(rec_smolink));
     vnode->vol_index = V_volumeindex(cloneVp);
@@ -515,11 +507,9 @@ int CloneVnode(Volume *rwVp, Volume *cloneVp, int vnodeIndex, rec_smolist *rvlis
     int docreate = FALSE;
 	
     if (vclass == vLarge) { /* Directory -- no way it can be BARREN */
-	int linkcount = ((DirInode *)(vnode->inodeNumber))->refcount;
+	int linkcount = DI_Count((PDirInode)(vnode->inodeNumber));
 	assert(linkcount > 0);
-	CAMLIB_MODIFY(((DirInode *)(vnode->inodeNumber))->refcount,
-		      ++linkcount);
-
+	DI_Inc((PDirInode)(vnode->inodeNumber));
     } else {	/* Small Vnode -- file or symlink. */
 
 	if (vnode->inodeNumber == 0) {
@@ -560,7 +550,7 @@ int CloneVnode(Volume *rwVp, Volume *cloneVp, int vnodeIndex, rec_smolist *rvlis
     vnode->versionvector.Flags = 0;
     vnode->cloned = 0;		/* R/O Vnode should not be marked as cloned. */
     
-    CAMLIB_MODIFY_BYTES(vdo, vnode, size);
+    rvmlib_modify_bytes(vdo, vnode, size);
     rvlist[vnodeIndex].append(&vdo->nextvn);
     return 0;
 }

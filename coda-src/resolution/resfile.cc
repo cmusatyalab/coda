@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rvmres/resfile.cc,v 4.4 1997/10/23 19:24:46 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rvmres/resfile.cc,v 4.5 1998/01/10 18:38:17 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -60,27 +60,22 @@ extern "C" {
 #endif
 
 #include <struct.h>
-
-#include <dummy_cthreads.h>
 #include <inodeops.h>
 #include <rpc2.h>
 #include <se.h>
+#include <util.h>
+#include <rvmlib.h>
 
 #ifdef __cplusplus
 }
 #endif __cplusplus
 
-#include <util.h>
-
-#ifndef CAMELOT
-#include <rvmlib.h>
-#endif CAMELOT 
 
 #include <olist.h>
 #include <errors.h>
 #include <vcrcommon.h>
 #include <srv.h>
-#include <coda_dir.h>
+#include <codadir.h>
 #include <vrdb.h>
 #include <inconsist.h>
 
@@ -95,9 +90,9 @@ extern "C" {
 
 #include "resstats.h"
 /* declarations of routines */
-PRIVATE int IncVVGroup(ViceVersionVector **, int *);
-PRIVATE void SetResStatus(Vnode *, ResStatus *);
-PRIVATE void UpdateStats(ViceFid *, fileresstats *);    
+static int IncVVGroup(ViceVersionVector **, int *);
+static void SetResStatus(Vnode *, ResStatus *);
+static void UpdateStats(ViceFid *, fileresstats *);    
 
 /* FILE RESOLUTION 
  *	Look at Version Vectors from all hosts;
@@ -494,7 +489,7 @@ FreeLocks:
 
     device = (volptr ? V_device(volptr) : 0);
     parentId = (volptr ? V_parentId(volptr) : 0);
-    CAMLIB_BEGIN_TOP_LEVEL_TRANSACTION_2(CAM_TRAN_NV_SERVER_BASED) 
+    RVMLIB_BEGIN_TRANSACTION(restore) 
     Error filecode = 0;
     if (vptr) { 
 	if (!errorcode) 
@@ -504,7 +499,7 @@ FreeLocks:
 	assert(filecode == 0);
     }
     PutVolObj(&volptr, NO_LOCK);
-    CAMLIB_END_TOP_LEVEL_TRANSACTION_2(CAM_PROT_TWO_PHASED, status); 
+    RVMLIB_END_TRANSACTION(flush, &(status)); 
     assert(status == 0);
     if (oldinode && device && parentId)
 	assert(!(idec(device, oldinode, parentId)));
@@ -520,7 +515,7 @@ long RS_COP2(RPC2_Handle RPCid, ViceStoreId *StoreId,
 
 /* there are max VSG_MEMBERS VV pointers */
 /* non-NULL VV pointers correspond to real VVs */
-PRIVATE int IncVVGroup(ViceVersionVector **VV, int *domindex) {
+static int IncVVGroup(ViceVersionVector **VV, int *domindex) {
     *domindex = -1;
     
     for (int i = 0; i < VSG_MEMBERS; i++)
@@ -549,7 +544,7 @@ PRIVATE int IncVVGroup(ViceVersionVector **VV, int *domindex) {
     return(0);
 }
 
-PRIVATE void SetResStatus(Vnode *vptr, ResStatus *Status) {
+static void SetResStatus(Vnode *vptr, ResStatus *Status) {
     Status->status = 0;
     Status->Author = vptr->disk.author;
     Status->Owner = vptr->disk.owner;
@@ -557,7 +552,7 @@ PRIVATE void SetResStatus(Vnode *vptr, ResStatus *Status) {
     Status->Mode = vptr->disk.modeBits;
 }
 
-PRIVATE void UpdateStats(ViceFid *Fid, fileresstats *frstats) {
+static void UpdateStats(ViceFid *Fid, fileresstats *frstats) {
     
     VolumeId vid = Fid->Volume;
     Volume *volptr = 0;

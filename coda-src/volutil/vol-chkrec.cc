@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /usr/rvb/XX/src/coda-src/volutil/RCS/vol-chkrec.cc,v 4.1 1997/01/08 21:52:28 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/volutil/vol-chkrec.cc,v 4.2 1997/02/26 16:04:05 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -69,6 +69,8 @@ extern "C" {
 #include <lock.h>
 
 #include <mach.h>
+#include <util.h>
+#include <rvmlib.h>
 #ifdef __cplusplus
 }
 #endif __cplusplus
@@ -76,8 +78,6 @@ extern "C" {
 #include "vol-rcvheap.h"
 
 
-#include <util.h>
-#include <rvmlib.h>
 #include <coda_globals.h>
 #include <vice.h>
 #include <cvnode.h>
@@ -88,9 +88,9 @@ extern "C" {
 #include <vrdb.h>
 
 
-PRIVATE int ChkRecAddr(char *address);
-PRIVATE int ChkRecSeg(int volindex);
-PRIVATE int ChkRecObj(char *addr, int size);
+static int ChkRecAddr(char *address);
+static int ChkRecSeg(int volindex);
+static int ChkRecObj(char *addr, int size);
 
 /*
   BEGIN_HTML
@@ -108,7 +108,7 @@ long S_VolChkRec(RPC2_Handle rpcid, VolumeId volid){
     assert(LWP_GetRock(FSTAG, (char **)&pt) == LWP_SUCCESS);
 
     LogMsg(9, VolDebugLevel, stdout, "Entering VolChkRec()");
-    CAMLIB_BEGIN_TOP_LEVEL_TRANSACTION_2(CAM_TRAN_NV_SERVER_BASED)
+    RVMLIB_BEGIN_TRANSACTION(restore)
     VInitVolUtil(volumeUtility);
     if (volid){
 	vp = VGetVolume(&error, volid);
@@ -117,7 +117,7 @@ long S_VolChkRec(RPC2_Handle rpcid, VolumeId volid){
 	    if (error != VNOVOL) {
 		VPutVolume(vp);
 	    }
-	    CAMLIB_ABORT(error);
+	    rvmlib_abort(error);
 	}
 	
 	int volindex = V_volumeindex(vp);
@@ -134,14 +134,14 @@ long S_VolChkRec(RPC2_Handle rpcid, VolumeId volid){
 	}
 	/* check the free vnode lists */
 	struct VnodeDiskObject **vnlist;
-	vnlist = &(CAMLIB_REC(SmallVnodeFreeList[0]));
+	vnlist = &(SRV_RVM(SmallVnodeFreeList[0]));
 	for (i = 0; i < SMALLFREESIZE; i++){
 	    if (vnlist[i] && ChkRecAddr((char *)vnlist[i])){
 		LogMsg(0, VolDebugLevel, stdout, "S_VolChkRec: Bad Small Free Vnode %d", i);
 		rc = -1;
 	    }
 	}
-	vnlist = &(CAMLIB_REC(LargeVnodeFreeList[0]));
+	vnlist = &(SRV_RVM(LargeVnodeFreeList[0]));
 	for (i = 0; i < LARGEFREESIZE; i++){
 	    if (vnlist[i] && ChkRecAddr((char *)vnlist[i])){
 		LogMsg(0, VolDebugLevel, stdout, "S_VolChkRec: Bad Large Free Vnode %d", i);
@@ -149,7 +149,7 @@ long S_VolChkRec(RPC2_Handle rpcid, VolumeId volid){
 	    }
 	}
     }
-    CAMLIB_END_TOP_LEVEL_TRANSACTION_2(CAM_PROT_TWO_PHASED, status)
+    RVMLIB_END_TRANSACTION(flush, &(status));
     VDisconnectFS();
     printf("VolChkRec: printing Volume Hash table\n");
     extern void PrintVolumesInHashTable();
@@ -159,11 +159,11 @@ long S_VolChkRec(RPC2_Handle rpcid, VolumeId volid){
     return (status?status:rc);
 }
 
-PRIVATE int ChkRecSeg(int volindex)
+static int ChkRecSeg(int volindex)
 {   int	rc = 0;
     struct VolHead *vol;
     struct VolumeData *voldata;
-    vol = &(CAMLIB_REC(VolumeList[volindex]));
+    vol = &(SRV_RVM(VolumeList[volindex]));
     voldata = &(vol->data);
     if (voldata->volumeInfo && ChkRecAddr((char *)(voldata->volumeInfo)) == -1){
 	LogMsg(0, VolDebugLevel, stdout, "ChkRecSeg: Disk Data for volume index %d is corrupted", volindex);
@@ -209,7 +209,7 @@ extern rcv_heap_free_list_t *rcv_heap_free_list;
 /* Does the same checks that RECFREE does 
  * returns -1 if there is an error; 0 otherwise
  */
-PRIVATE int ChkRecAddr(char *address)
+static int ChkRecAddr(char *address)
 {
     rcv_heap_header_t *hPtr;
     char           *free_list_ptr;
@@ -232,7 +232,7 @@ PRIVATE int ChkRecAddr(char *address)
     return 0;
 }
 
-PRIVATE int ChkRecObj(char *address, int length)
+static int ChkRecObj(char *address, int length)
 {
     if (((u_int) (address) < camlibRecSegLow)				    
 	 || (((u_int) (address) + (length)) > camlibRecSegHigh)

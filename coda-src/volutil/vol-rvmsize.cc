@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /usr/rvb/XX/src/coda-src/volutil/RCS/vol-rvmsize.cc,v 4.1 1997/01/08 21:52:33 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/volutil/vol-rvmsize.cc,v 4.2 1997/02/26 16:04:12 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -54,19 +54,19 @@ extern "C" {
 
 #include <lwp.h>
 #include <lock.h>
+#include <util.h>
+#include <rvmlib.h>
 #ifdef __cplusplus
 }
 #endif __cplusplus
 
-#include <util.h>
-#include <rvmlib.h>
 #include <cvnode.h>
 #include <volume.h>
 #include <camprivate.h>
 #include <vrdb.h>
 #include <vutil.h>
 #include <index.h>
-#include <rvmdir.h>
+#include <codadir.h>
 #include <coda_globals.h>
 #include "volutil.h"
 
@@ -91,7 +91,7 @@ long S_VolRVMSize(RPC2_Handle rpcid, VolumeId VolID, RVMSize_data *data) {
     assert(LWP_GetRock(FSTAG, (char **)&pt) == LWP_SUCCESS);
 
     LogMsg(9, VolDebugLevel, stdout, "Entering VolRVMSize()");
-    CAMLIB_BEGIN_TOP_LEVEL_TRANSACTION_2(CAM_TRAN_NV_SERVER_BASED)
+    RVMLIB_BEGIN_TRANSACTION(restore)
     VInitVolUtil(volumeUtility);
 
     XlateVid(&VolID);	/* Translate Volid into Replica Id if necessary */
@@ -102,11 +102,11 @@ long S_VolRVMSize(RPC2_Handle rpcid, VolumeId VolID, RVMSize_data *data) {
 	if (error != VNOVOL) {
 	    VPutVolume(vp);
 	}
-	CAMLIB_ABORT((int)error);
+	rvmlib_abort((int)error);
     }
 
     /* Location of the volume's data in RVM */
-    voldata = &(CAMLIB_REC(VolumeList[V_volumeindex(vp)]).data);
+    voldata = &(SRV_RVM(VolumeList[V_volumeindex(vp)]).data);
 
     /* Size of volume header information */
     size = sizeof(struct VolHead) + sizeof(struct VolumeDiskData); 
@@ -141,19 +141,19 @@ long S_VolRVMSize(RPC2_Handle rpcid, VolumeId VolID, RVMSize_data *data) {
     data->DirPagesSize = 0;
     int vnodeindex;
     while ((vnodeindex = vnext(vnode)) != -1) {
-	int i;
+	int tmp;
 	assert(vnode->inodeNumber != 0);
 	DirInode *dip = (DirInode *)(vnode->inodeNumber);
-	for (i = 0; i < MAXPAGES && dip->Pages[i]; i++) ;
-	size += (i * PAGESIZE);
-	data->DirPagesSize += (i * PAGESIZE);
-	LogMsg(5, VolDebugLevel, stdout, "Vnode %d had %d DirPages.", vnodeindex, i);
+	tmp = DI_Pages(dip) * DIR_PAGESIZE;
+	size +=  tmp;
+	data->DirPagesSize += tmp;
+	LogMsg(5, VolDebugLevel, stdout, "Dir Vnode %d had length %d.", vnodeindex, tmp);
     }
 	
     data->VolumeSize = size;
 
     VPutVolume(vp);
-    CAMLIB_END_TOP_LEVEL_TRANSACTION_2(CAM_PROT_TWO_PHASED, status)
+    RVMLIB_END_TRANSACTION(flush, &(status));
     VDisconnectFS();
     if (status)
 	LogMsg(0, VolDebugLevel, stdout, "S_VolRVMSize failed with %d", status);

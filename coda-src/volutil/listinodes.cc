@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/volutil/listinodes.cc,v 4.5 1997/12/20 23:35:34 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/volutil/listinodes.cc,v 4.6 1998/01/12 23:35:49 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -56,7 +56,6 @@ supported by Transarc Corporation, Pittsburgh, PA.
 */
 
 
-#define ITC	/* Required by inode.h */
 
 #ifdef __cplusplus
 extern "C" {
@@ -67,24 +66,9 @@ extern "C" {
 #include <ctype.h>
 #include <sys/param.h>
 
-#ifdef __MACH__
-#include <sys/fs.h>
-#include <sys/inode.h>
-#include <sys/file.h>
-#endif /* __MACH__ */
-
-#ifdef	__linux__
-#include <linux/fs.h>
-#endif /* __linux__*/
-
-#ifdef __MACH__
-#include <sysent.h>
-#include <libc.h>
-#else	/* __linux__ || __BSD44__ */
 #include <unistd.h>
 #include <stdlib.h>
 #include <inodeops.h>
-#endif
 
 #include <lwp.h>
 #include <lock.h>
@@ -104,10 +88,10 @@ extern "C" {
 /* Notice:  parts of this module have been cribbed from fsck.c */
 
 
-PRIVATE char *partition;
+static char *partition;
 extern Testing;
 
-PRIVATE int bread(int fd, char *buf, daddr_t blk, long size);
+static int bread(int fd, char *buf, daddr_t blk, long size);
 
 int ListViceInodes(char *devname, char *mountedOn, char *resultFile,
 		   int (*judgeInode)(struct ViceInodeInfo*, VolumeId), 

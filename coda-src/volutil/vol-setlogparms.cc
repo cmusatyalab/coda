@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/volutil/vol-setlogparms.cc,v 4.5 1998/05/27 17:08:09 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/volutil/vol-setlogparms.cc,v 4.6 1998/05/27 21:57:09 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -48,13 +48,14 @@ extern "C" {
 
 #include <lwp.h>
 #include <lock.h>
+#include <util.h>
+#include <rvmlib.h>
+
 #include <volutil.h>
 #ifdef __cplusplus
 }
 #endif __cplusplus
 
-#include <util.h>
-#include <rvmlib.h>
 #include <vice.h>
 #include <voltypes.h>
 #include <cvnode.h>
@@ -79,22 +80,22 @@ long S_VolSetLogParms(RPC2_Handle rpcid, VolumeId Vid, RPC2_Integer OnFlag,
     int rc = 0;
     int status = 0;
 
-    LogMsg(9, VolDebugLevel, stdout, "Entering S_VolSetLogParms: rpcid = %d, Volume = %x", 
+    VLog(9, "Entering S_VolSetLogParms: rpcid = %d, Volume = %x", 
 	 rpcid, Vid);
     
     assert(LWP_GetRock(FSTAG, (char **)&pt) == LWP_SUCCESS);
 
-    CAMLIB_BEGIN_TOP_LEVEL_TRANSACTION_2(CAM_TRAN_NV_SERVER_BASED);
+    RVMLIB_BEGIN_TRANSACTION(restore);
     rc = VInitVolUtil(volumeUtility);
     if (rc != 0){
-	CAMLIB_ABORT(rc);
+	rvmlib_abort(rc);
     }
     XlateVid(&Vid);
     volptr = VGetVolume(&error, Vid);
 
     if (error) {
 	LogMsg(0, SrvDebugLevel, stdout, "S_VolSetLogParms: VGetVolume error %d",error);
-	CAMLIB_ABORT(error);
+	rvmlib_abort(error);
     }
 
     LogMsg(9, SrvDebugLevel, stdout, "S_VolSetLogParms: Got Volume %x",Vid);
@@ -112,20 +113,20 @@ long S_VolSetLogParms(RPC2_Handle rpcid, VolumeId Vid, RPC2_Integer OnFlag,
 	LogMsg(0, SrvDebugLevel, stdout, "S_VolSetLogParms: VM resolution no longer supported (volume %lx)", Vid);
     default:
 	VPutVolume(volptr);
-	CAMLIB_ABORT(EINVAL);
+	rvmlib_abort(EINVAL);
     }
 
     if (maxlogsize != 0) {
 	if ((maxlogsize & 0x1F) != 0) {
 	    LogMsg(0, SrvDebugLevel, stdout, "S_VolSetLogParms: Log Size has to be a multiple of 32");
 	    VPutVolume(volptr);
-	    CAMLIB_ABORT(EINVAL);
+	    rvmlib_abort(EINVAL);
 	}
 	if (AllowResolution && V_VMResOn(volptr)) {
 	    if (LogStore[V_volumeindex(volptr)]->maxRecordsAllowed > maxlogsize) {
 		LogMsg(0, SrvDebugLevel, stdout, "S_VolSetLogParms: Cant reduce log size");
 		VPutVolume(volptr);
-		CAMLIB_ABORT(EINVAL);
+		rvmlib_abort(EINVAL);
 	    }
 	    LogMsg(0, SrvDebugLevel, stdout, "S_VolSetLogParms: Changing log size from %d to %d\n", 
 		   LogStore[V_volumeindex(volptr)]->maxRecordsAllowed,
@@ -143,10 +144,10 @@ long S_VolSetLogParms(RPC2_Handle rpcid, VolumeId Vid, RPC2_Integer OnFlag,
     if (error) {
 	LogMsg(0, SrvDebugLevel, stdout, "S_VolSetLogParms: Error updating volume %x", Vid);
 	VPutVolume(volptr);
-	CAMLIB_ABORT(error);
+	rvmlib_abort(error);
     }
     VPutVolume(volptr);
-    CAMLIB_END_TOP_LEVEL_TRANSACTION_2(CAM_PROT_TWO_PHASED, status);
+    RVMLIB_END_TRANSACTION(flush, &(status));
     VDisconnectFS();
     if (status == 0) 
 	LogMsg(0, VolDebugLevel, stdout, "S_VolSetLogParms: volume %x log parms set", Vid);

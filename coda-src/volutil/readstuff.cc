@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/volutil/readstuff.cc,v 4.2 1997/02/26 16:04:04 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/volutil/readstuff.cc,v 4.3 1997/11/14 13:32:34 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -104,7 +104,7 @@ extern "C" {
 #define VOLID DumpFd		/* Overload this field if using newstyle dump */
 
 
-PRIVATE char *get(DumpBuffer_t *buf, int size, int *error)
+static char *get(DumpBuffer_t *buf, int size, int *error)
 {
     char *retptr;
     unsigned long nbytes;
@@ -194,7 +194,7 @@ PRIVATE char *get(DumpBuffer_t *buf, int size, int *error)
     return (char *)retptr;
 }
 
-PRIVATE char *put(DumpBuffer_t *buf, int size, int *error)
+static char *put(DumpBuffer_t *buf, int size, int *error)
 {
     *error = 0;
     assert(buf->DumpBufPtr - size >= buf->DumpBuf);

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/volutil/vol-showvnode.cc,v 4.3 1998/01/10 18:40:05 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/volutil/vol-showvnode.cc,v 4.4 1998/04/14 21:00:42 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -72,14 +72,14 @@ extern "C" {
 #include <stdlib.h>
 #include <lwp.h>
 #include <lock.h>
+#include <util.h>
+#include <rvmlib.h>
 
 #include <volutil.h>
 #ifdef __cplusplus
 }
 #endif __cplusplus
-
-#include <util.h>
-#include <rvmlib.h>
+#include <srv.h>
 #include <vice.h>
 #include <cvnode.h>
 #include <volume.h>
@@ -123,7 +123,7 @@ long S_VolShowVnode(RPC2_Handle rpcid, RPC2_Unsigned formal_volid, RPC2_Unsigned
     if (!XlateVid(&volid))
 	volid = tmpvolid;
 
-    CAMLIB_BEGIN_TOP_LEVEL_TRANSACTION_2(CAM_TRAN_NV_SERVER_BASED)
+    RVMLIB_BEGIN_TRANSACTION(restore);
     VInitVolUtil(volumeUtility);
 /*    vp = VAttachVolume(&error, volid, V_READONLY); */
     vp = VGetVolume(&error, volid);
@@ -132,14 +132,14 @@ long S_VolShowVnode(RPC2_Handle rpcid, RPC2_Unsigned formal_volid, RPC2_Unsigned
 	if (error != VNOVOL) {
 	    VPutVolume(vp);
 	}
-        CAMLIB_ABORT(error);
+        rvmlib_abort(error);
     }
     /* VGetVnode moved from after VOffline to here 11/88 ***/
     vnp = VGetVnode(&error, vp, vnodeid, unique, READ_LOCK, 1, 1);
     if (error) {
 	LogMsg(0, VolDebugLevel, stdout, "S_VolShowVnode: VGetVnode failed with %d", error);
 	VPutVolume(vp);
-	CAMLIB_ABORT(VFAIL);
+	rvmlib_abort(VFAIL);
     }
 
     infofile = fopen(INFOFILE, "w");
@@ -177,16 +177,16 @@ long S_VolShowVnode(RPC2_Handle rpcid, RPC2_Unsigned formal_volid, RPC2_Unsigned
 
     if ((rc = RPC2_InitSideEffect(rpcid, &sed)) <= RPC2_ELIMIT) {
 	LogMsg(0, VolDebugLevel, stdout, "VolShowVnode: InitSideEffect failed with %s", RPC2_ErrorMsg(rc));
-	CAMLIB_ABORT(VFAIL);
+	rvmlib_abort(VFAIL);
     }
 
     if ((rc = RPC2_CheckSideEffect(rpcid, &sed, SE_AWAITLOCALSTATUS)) <=
 		RPC2_ELIMIT) {
 	LogMsg(0, VolDebugLevel, stdout, "VolShowVnode: CheckSideEffect failed with %s", RPC2_ErrorMsg(rc));
-	CAMLIB_ABORT(VFAIL);
+	rvmlib_abort(VFAIL);
     }
 
-    CAMLIB_END_TOP_LEVEL_TRANSACTION_2(CAM_PROT_TWO_PHASED, status)
+    RVMLIB_END_TRANSACTION(flush, &(status));
     if (vnp){
 	VPutVnode(&error, vnp);
 	if (error) 

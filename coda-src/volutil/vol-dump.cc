@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/volutil/vol-dump.cc,v 4.5 1998/04/14 21:00:37 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/volutil/vol-dump.cc,v 4.6 1998/07/13 11:14:45 jaharkes Exp $";
 #endif /*_BLURB_*/
 
 
@@ -55,7 +55,7 @@ supported by Transarc Corporation, Pittsburgh, PA.
 
 */
 
-#define RCSVERSION $Revision: 4.5 $
+#define RCSVERSION $Revision: 4.6 $
 
 /* vol-dump.c */
 
@@ -74,26 +74,23 @@ extern "C" {
 #include <netdb.h>
 #include <netinet/in.h>
 
-#ifdef __MACH__
-#include <sysent.h>
-#include <libc.h>
-#include <mach.h>
-#else	/* __linux__ || __BSD44__ */
 #include <unistd.h>
 #include <stdlib.h>
-#endif
 
+#include <assert.h>
 #include <struct.h>
 #include <lwp.h>
 #include <lock.h>
 #include <rpc2.h>
 #include <inodeops.h>
+#include <util.h>
+#include <rvmlib.h>
 #include <volutil.h>
+#include <vice.h>
 #ifdef __cplusplus
 }
 #endif __cplusplus
 
-#include <vice.h>
 #include <voltypes.h>
 #include <cvnode.h>
 #include <volume.h>
@@ -103,22 +100,18 @@ extern "C" {
 #include <vutil.h>
 #include <index.h>
 #include <recov.h>
-#include <rvmdir.h>
+#include <codadir.h>
 #include <camprivate.h>
 #include <coda_globals.h>
 #include <vrdb.h>
 #include <srv.h>
 #include <voldump.h>
-#undef assert
-#undef _ASSERT_H_
-#include <util.h>		/* Redefine assert to produce zombies */
-#include <rvmlib.h>
 
 #include "vvlist.h"
 #include "dump.h"
 
 extern void PollAndYield();
-PRIVATE int VnodePollPeriod = 32;     /* How many vnodes to dump before polling */
+static int VnodePollPeriod = 32;     /* How many vnodes to dump before polling */
 
 int VVListFd = -1;
 int DumpFd = -1;
@@ -126,11 +119,15 @@ FILE *Ancient = NULL;
 
 #define DUMPFILE "/tmp/volumedump"
 
-PRIVATE int DumpVnodeIndex(DumpBuffer_t *, Volume *, VnodeClass, RPC2_Unsigned);
-PRIVATE int DumpDumpHeader(DumpBuffer_t *, Volume *, RPC2_Unsigned, long);
-PRIVATE int DumpVolumeDiskData(DumpBuffer_t *, register VolumeDiskData *);
-PRIVATE int DumpVnodeDiskObject(DumpBuffer_t *, struct VnodeDiskObject *, int );
+static int DumpVnodeIndex(DumpBuffer_t *, Volume *, VnodeClass, RPC2_Unsigned);
+static int DumpDumpHeader(DumpBuffer_t *, Volume *, RPC2_Unsigned, long);
+static int DumpVolumeDiskData(DumpBuffer_t *, register VolumeDiskData *);
+static int DumpVnodeDiskObject(DumpBuffer_t *, struct VnodeDiskObject *, int );
 Device DumpDev;   /* Device the volume being dumped resides on */
+
+#if (LISTLINESIZE >= SIZEOF_LARGEDISKVNODE)	/* Compile should fail.*/
+Help, LISTLINESIZE >= SIZEOF_LARGEDISKVNODE)!
+#endif
 
 #define DUMPBUFSIZE 512000
 long S_VolDump(RPC2_Handle rpcid)
@@ -251,7 +248,7 @@ long S_VolNewDump(RPC2_Handle rpcid, RPC2_Unsigned formal_volumeNumber, RPC2_Uns
     sid.Value.SubsysId = VOLDUMP_SUBSYSTEMID;
     bparms.SecurityLevel = RPC2_OPENKIMONO;
     bparms.SideEffectType = SMARTFTP;
-    bparms.EncryptionType = NULL;
+    bparms.EncryptionType = 0;
     bparms.ClientIdent = NULL;
     bparms.SharedSecret = NULL;
     
@@ -284,9 +281,9 @@ failure:
     
     VDisconnectFS();
 
-    CAMLIB_BEGIN_TOP_LEVEL_TRANSACTION_2(CAM_TRAN_NV_SERVER_BASED)
+    RVMLIB_BEGIN_TRANSACTION(restore)
 	VPutVolume(vp);
-    CAMLIB_END_TOP_LEVEL_TRANSACTION_2(CAM_PROT_TWO_PHASED, status)
+    RVMLIB_END_TRANSACTION(flush, &(status));
     assert(status == 0);
 
     if (dbuf) {
@@ -312,11 +309,10 @@ failure:
     return retcode;
 }
 
-
 
 /* Guts of the dump code */
 
-PRIVATE int DumpDumpHeader(DumpBuffer_t *dbuf, Volume *vp, RPC2_Unsigned Incremental, long unique)
+static int DumpDumpHeader(DumpBuffer_t *dbuf, Volume *vp, RPC2_Unsigned Incremental, long unique)
 {
     DumpDev = vp->device;
     DumpDouble(dbuf, (byte) D_DUMPHEADER, DUMPBEGINMAGIC, DUMPVERSION);
@@ -340,7 +336,7 @@ PRIVATE int DumpDumpHeader(DumpBuffer_t *dbuf, Volume *vp, RPC2_Unsigned Increme
 	return DumpDouble(dbuf, (byte) 'I', unique, unique);
 }
 
-PRIVATE int DumpVolumeDiskData(DumpBuffer_t *dbuf, register VolumeDiskData *vol)
+static int DumpVolumeDiskData(DumpBuffer_t *dbuf, register VolumeDiskData *vol)
 {
     DumpTag(dbuf, (byte) D_VOLUMEDISKDATA);
     DumpLong(dbuf, 'i',vol->id);
@@ -376,7 +372,7 @@ PRIVATE int DumpVolumeDiskData(DumpBuffer_t *dbuf, register VolumeDiskData *vol)
     return DumpVV(dbuf, 'V', &(vol->versionvector));
 }
 
-PRIVATE int DumpVnodeIndex(DumpBuffer_t *dbuf, Volume *vp, VnodeClass vclass, RPC2_Unsigned Incremental)
+static int DumpVnodeIndex(DumpBuffer_t *dbuf, Volume *vp, VnodeClass vclass, RPC2_Unsigned Incremental)
 {
     register struct VnodeClassInfo *vcp;
     char buf[SIZEOF_LARGEDISKVNODE];
@@ -389,28 +385,24 @@ PRIVATE int DumpVnodeIndex(DumpBuffer_t *dbuf, Volume *vp, VnodeClass vclass, RP
 
     if (vclass == vLarge) {
 	DumpTag(dbuf, (byte) D_LARGEINDEX);
-	nVnodes = CAMLIB_REC(VolumeList[V_volumeindex(vp)]).data.nlargevnodes;
-	nLists = CAMLIB_REC(VolumeList[V_volumeindex(vp)]).data.nlargeLists;
+	nVnodes = SRV_RVM(VolumeList[V_volumeindex(vp)]).data.nlargevnodes;
+	nLists = SRV_RVM(VolumeList[V_volumeindex(vp)]).data.nlargeLists;
     }
     else {
 	DumpTag(dbuf, (byte) D_SMALLINDEX);
-	nVnodes = CAMLIB_REC(VolumeList[V_volumeindex(vp)]).data.nsmallvnodes;
-	nLists = CAMLIB_REC(VolumeList[V_volumeindex(vp)]).data.nsmallLists;
+	nVnodes = SRV_RVM(VolumeList[V_volumeindex(vp)]).data.nsmallvnodes;
+	nLists = SRV_RVM(VolumeList[V_volumeindex(vp)]).data.nsmallLists;
     }
     DumpLong(dbuf, 'v', nVnodes);
     if (DumpLong(dbuf, 's', nLists) == -1)
 	return -1;
-
-#if (LISTLINESIZE >= SIZEOF_LARGEDISKVNODE)	/* Compile should fail.*/
-    Help, LISTLINESIZE >= SIZEOF_LARGEDISKVNODE)!
-#endif
     
     sprintf(buf, "Start of %s list, %d vnodes, %d lists.\n",
 	    ((vclass == vLarge)? "Large" : "Small"), nVnodes, nLists);
     if (write(VVListFd, buf, (int)strlen(buf)) != strlen(buf)) {
 	LogMsg(0, VolDebugLevel, stdout, "Write %s Index header didn't succeed.", ((vclass == vLarge)? "Large" : "Small"));
 	VPutVolume(vp);
-	CAMLIB_ABORT(-1);
+	rvmlib_abort(-1);
     }
 
    /* Currently we have two counts of vnodes: nVnodes and nvnodes; the # of vnodes
@@ -423,7 +415,7 @@ PRIVATE int DumpVnodeIndex(DumpBuffer_t *dbuf, Volume *vp, VnodeClass vclass, RP
     vindex v_index(V_id(vp), vclass, V_device(vp), vcp->diskSize);
     vindex_iterator vnext(v_index);
 	
-    if (Incremental) {
+       if (Incremental) {
 	LogMsg(9, VolDebugLevel, stdout, "Beginning Incremental dump of vnodes.");
 
 	/* Determine how many entries in the list... */
@@ -441,7 +433,7 @@ PRIVATE int DumpVnodeIndex(DumpBuffer_t *dbuf, Volume *vp, VnodeClass vclass, RP
 	    LogMsg(0, VolDebugLevel, stdout, "Couldn't scan head of %s Index.", 
 		(vclass==vLarge?"Large":"Small"));
 	    VPutVolume(vp);
-	    CAMLIB_ABORT(-1);
+	    rvmlib_abort(-1);
 	}
 
 	assert(strcmp(Class,((vclass == vLarge)? "Large" : "Small")) == 0);
@@ -451,9 +443,9 @@ PRIVATE int DumpVnodeIndex(DumpBuffer_t *dbuf, Volume *vp, VnodeClass vclass, RP
 	vvtable vvlist(Ancient, vclass, nlists);
 
 	if (vclass == vLarge) 
-	    vnList = CAMLIB_REC(VolumeList[V_volumeindex(vp)]).data.largeVnodeLists;
+	    vnList = SRV_RVM(VolumeList[V_volumeindex(vp)]).data.largeVnodeLists;
 	else
-	    vnList = CAMLIB_REC(VolumeList[V_volumeindex(vp)]).data.smallVnodeLists;
+	    vnList = SRV_RVM(VolumeList[V_volumeindex(vp)]).data.smallVnodeLists;
 	/* Foreach list, check to see if vnodes on the list were created,
 	 * modified, or deleted.
 	 */
@@ -535,17 +527,18 @@ PRIVATE int DumpVnodeIndex(DumpBuffer_t *dbuf, Volume *vp, VnodeClass vclass, RP
     }
 
     if (vclass == vLarge) { 	/* Output End of Large Vnode list */
-	sprintf(buf, "%s", ENDLARGEINDEX);	/* Macro contains a new-line */
-	if (write(VVListFd, buf, (int)strlen(buf)) != strlen(buf))
-	    LogMsg(0, VolDebugLevel, stdout, "EndLargeIndex write didn't succeed.");
+	    sprintf(buf, "%s", ENDLARGEINDEX);	/* Macro contains a new-line */
+	    if (write(VVListFd, buf, (int)strlen(buf)) != strlen(buf))
+		    LogMsg(0, VolDebugLevel, stdout, "EndLargeIndex write didn't succeed.");
     }
     LogMsg(9, VolDebugLevel, stdout, "Leaving DumpVnodeIndex()");
     return 0;
 }
 
-PRIVATE int DumpVnodeDiskObject(DumpBuffer_t *dbuf, struct VnodeDiskObject *v, int vnodeNumber)
+static int DumpVnodeDiskObject(DumpBuffer_t *dbuf, struct VnodeDiskObject *v, int vnodeNumber)
 {
     int fd;
+    int i;
     LogMsg(9, VolDebugLevel, stdout, "Dumping vnode number %x", vnodeNumber);
     if (!v || v->type == vNull) {
 	return DumpTag(dbuf, (byte) D_NULLVNODE);
@@ -591,10 +584,9 @@ PRIVATE int DumpVnodeDiskObject(DumpBuffer_t *dbuf, struct VnodeDiskObject *v, i
 		   vnodeNumber, v->uniquifier);
 	    DumpTag(dbuf, (byte) D_BADINODE);
 	}
-    }
-    else {
-	DirInode *dip;
-	long num_pages;
+    } else {
+            DirInode *dip;
+	int size;
 
 	assert(v->inodeNumber != 0);
 	dip = (DirInode *)(v->inodeNumber);
@@ -606,13 +598,14 @@ PRIVATE int DumpVnodeDiskObject(DumpBuffer_t *dbuf, struct VnodeDiskObject *v, i
 	}
 
 	/* Count number of pages in DirInode */
-	for (num_pages = 0; num_pages < MAXPAGES && dip->Pages[num_pages]; num_pages++);
-	if (DumpLong(dbuf, D_DIRPAGES, num_pages) == -1)
-	    return -1;
-
-	for (int i = 0; i < num_pages; i++)
-	    if (DumpByteString(dbuf, (byte)'P', (byte *)(dip->Pages[i]), PAGESIZE) == -1)
+        size = DI_Pages(dip);
+	if (DumpLong(dbuf, D_DIRPAGES, size) == -1)
 		return -1;
+
+	for ( i = 0; i < size; i++) {
+		if (DumpByteString(dbuf, (byte)'P', (byte *)DI_Page(dip, i), DIR_PAGESIZE) == -1)
+		return -1;
+	}
 
 	LogMsg(9, VolDebugLevel, stdout, "DumpVnode finished dumping directory");
     }

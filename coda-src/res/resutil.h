@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/ss/coda-src/res/RCS/resutil.h,v 4.1 1997/01/08 21:50:04 rvb Exp braam $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/res/resutil.h,v 4.2 1997/06/14 22:07:23 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -144,7 +144,7 @@ extern int CreateResPhase2Objects(ViceFid *, dlist *, dlist *, Volume *,
 				   VolumeId, int *);
 extern void GetRemoteRemoveStoreId(ViceStoreId *, olist *, unsigned long, ViceFid *, ViceFid *, char *);
 extern ViceStoreId *GetRemoteRemoveStoreId(olist *, unsigned long , ViceFid *, ViceFid *,  char*);
-extern char *GetNameInParent(Vnode *, dlist *, Volume *, char *);
+extern int GetNameInParent(Vnode *, dlist *, Volume *, char *);
 
 /* declarations from rescoord.c */
 extern long DirResolve(res_mgrpent *, ViceFid *, ViceVersionVector **, int *);

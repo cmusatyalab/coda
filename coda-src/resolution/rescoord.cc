@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/res/rescoord.cc,v 4.3 1998/01/10 18:37:52 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/res/rescoord.cc,v 4.4 1998/01/14 15:16:43 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -53,17 +53,17 @@ extern "C" {
 #include <struct.h>
 #include <lwp.h>
 #include <rpc2.h>
+#include <util.h>
+#include <codadir.h>
 
 #ifdef __cplusplus
 }
 #endif __cplusplus
 
-#include <util.h>
 #include <olist.h>
 #include <errors.h>
 #include <srv.h>
 #include <inconsist.h>
-#include <rvmdir.h>
 #include <vlist.h>
 #include <operations.h>
 #include <res.h>
@@ -75,6 +75,7 @@ extern "C" {
 #include "reslog.h" 
 #include "remotelog.h"
 #include "resforce.h"
+#include "reslog.h"
 #include "timing.h"
 
 timing_path *tpinfo = 0;
@@ -83,15 +84,15 @@ extern void PollAndYield();
 extern void ResCheckServerLWP();
 
 /* private routines */
-PRIVATE int AlreadyIncGroup(ViceVersionVector **VV, int nvvs);
-PRIVATE char *CollectLogs(res_mgrpent *, ViceFid *, int *, int *);
-PRIVATE int Phase1(res_mgrpent *, ViceFid *, rlent *, int, ViceVersionVector **,
+static int AlreadyIncGroup(ViceVersionVector **VV, int nvvs);
+static char *CollectLogs(res_mgrpent *, ViceFid *, int *, int *);
+static int Phase1(res_mgrpent *, ViceFid *, rlent *, int, ViceVersionVector **,
 		   dlist *, ViceStatus *, unsigned long *, int *);
-PRIVATE int Phase2(res_mgrpent *, ViceFid *, dlist *, int *);
-PRIVATE int WEResPhase1(ViceVersionVector **, res_mgrpent *, ViceFid *, 
+static int Phase2(res_mgrpent *, ViceFid *, dlist *, int *);
+static int WEResPhase1(ViceVersionVector **, res_mgrpent *, ViceFid *, 
 			unsigned long *, ViceStoreId *);
-PRIVATE int WEResPhase2(res_mgrpent *, ViceFid *, unsigned long *, ViceStoreId *);
-PRIVATE int CompareDirContents(SE_Descriptor *);
+static int WEResPhase2(res_mgrpent *, ViceFid *, unsigned long *, ViceStoreId *);
+static int CompareDirContents(SE_Descriptor *);
 
 /* Directory Resolution
  * Coordinator side of resolution algorithm
@@ -315,7 +316,7 @@ long DirResolve(res_mgrpent *mgrp, ViceFid *Fid, ViceVersionVector **VV,
 /* collect logs for a directory 
  * return pointer to buffer.
  */
-PRIVATE char *CollectLogs(res_mgrpent *mgrp, ViceFid *fid, int *sizes, 
+static char *CollectLogs(res_mgrpent *mgrp, ViceFid *fid, int *sizes, 
 			  int *totalsize) {
    char *bufs[VSG_MEMBERS];
    char *logbuffer = 0;
@@ -420,7 +421,7 @@ PRIVATE char *CollectLogs(res_mgrpent *mgrp, ViceFid *fid, int *sizes,
        
 }
 
-PRIVATE int Phase1(res_mgrpent *mgrp, ViceFid *Fid, rlent *log, int logsize,
+static int Phase1(res_mgrpent *mgrp, ViceFid *Fid, rlent *log, int logsize,
 		   ViceVersionVector **VV, dlist *inclist, ViceStatus *status,
 		   unsigned long *successFlags, int *dirlengths) {
 
@@ -499,7 +500,7 @@ PRIVATE int Phase1(res_mgrpent *mgrp, ViceFid *Fid, rlent *log, int logsize,
     }
 }
 
-PRIVATE int Phase2(res_mgrpent *mgrp, ViceFid *Fid, dlist *inclist, int *dirlengths) {
+static int Phase2(res_mgrpent *mgrp, ViceFid *Fid, dlist *inclist, int *dirlengths) {
     RPC2_BoundedBS PB;
     char buf[RESCOMM_MAXBSLEN];
     int errorCode = 0;
@@ -569,7 +570,7 @@ int IsWeaklyEqual(ViceVersionVector **VV, int nvvs) {
     return(1);
 }
 
-PRIVATE int AlreadyIncGroup(ViceVersionVector **VV, int nvvs) {
+static int AlreadyIncGroup(ViceVersionVector **VV, int nvvs) {
     for (int i = 0; i < nvvs; i++) {
 	if (VV[i] == NULL) continue;
 	if (IsIncon((*(VV[i])))) return(1);
@@ -577,7 +578,7 @@ PRIVATE int AlreadyIncGroup(ViceVersionVector **VV, int nvvs) {
     return(0);
 }
 
-PRIVATE int WEResPhase1(ViceVersionVector **VV, 
+static int WEResPhase1(ViceVersionVector **VV, 
 			res_mgrpent *mgrp, ViceFid *Fid, 
 			unsigned long *hosts, ViceStoreId *stid) {
 
@@ -606,7 +607,7 @@ PRIVATE int WEResPhase1(ViceVersionVector **VV,
     return(errorCode);
 }
 
-PRIVATE int WEResPhase2(res_mgrpent *mgrp, ViceFid *Fid, 
+static int WEResPhase2(res_mgrpent *mgrp, ViceFid *Fid, 
 		      unsigned long *successHosts, ViceStoreId *stid) {
 
     LogMsg(9, SrvDebugLevel, stdout,  "Entering ResPhase2(%x.%x)", Fid->Vnode, Fid->Unique);
@@ -635,7 +636,7 @@ PRIVATE int WEResPhase2(res_mgrpent *mgrp, ViceFid *Fid,
 }
 
 extern int comparedirreps;
-PRIVATE int CompareDirContents(SE_Descriptor *sidvar_bufs) {
+static int CompareDirContents(SE_Descriptor *sidvar_bufs) {
     LogMsg(9, SrvDebugLevel, stdout,  "Entering CompareDirContents()");
 
     if (!comparedirreps) return(0);
@@ -669,7 +670,7 @@ PRIVATE int CompareDirContents(SE_Descriptor *sidvar_bufs) {
 		firstreplicasize = len;
 	    } else {
 		int cmplen = (len < firstreplicasize) ? len : firstreplicasize;
-		if (bcmp(firstreplica, buf, cmplen)) {
+		if ( DIR_Compare((PDirHeader) firstreplica, (PDirHeader)buf) ) {
 		    LogMsg(0, SrvDebugLevel, stdout,  
 			   "DirContents ARE DIFFERENT");
 		    return(-1);

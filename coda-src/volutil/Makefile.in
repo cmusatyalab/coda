@@ -25,7 +25,7 @@
 # improvements or extensions that  they  make,  and  to  grant  Carnegie
 # Mellon the rights to redistribute these changes without encumbrance.
 # 
-# static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/volutil/Makefile.in,v 4.8 1998/01/10 18:39:51 braam Exp $";
+# static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/volutil/Makefile.in,v 4.9 1998/05/15 16:55:08 braam Exp $";
 
 
 # 
@@ -100,7 +100,6 @@ LOCALOBJS = readstuff.o dumpstuff.o vvlist.o
 # comparison with ls output 
 VOLUTILOBJS = \
 	listinodes.o \
-	physio.o \
 	vol-ancient.o \
 	vol-backup.o \
 	vol-clone.o \

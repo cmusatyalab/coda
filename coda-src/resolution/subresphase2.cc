@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rvmres/subresphase2.cc,v 4.2 1997/12/20 23:34:57 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rvmres/subresphase2.cc,v 4.3 1998/01/10 18:38:21 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -40,44 +40,40 @@ static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rvmres
 extern "C" {
 #endif __cplusplus
 #include <stdio.h>
-#if !defined(__GLIBC__)
-#include <libc.h>
-#endif
 #include <rpc2.h>
+#include <util.h>
+#include <vcrcommon.h>
+#include <res.h>
+
 #ifdef __cplusplus
 }
 #endif __cplusplus
 
-#include <util.h>
+#include <srv.h>
 #include <olist.h>
 #include <dlist.h>
 #include <cvnode.h>
-#include <vcrcommon.h>
 #include <vlist.h>
-#include <srv.h>
-#include <res.h>
 #include <operations.h>
 #include <vrdb.h>
 #include <timing.h>
 #include "ops.h"
 #include "rvmrestiming.h"
 
-// resubphase2:
-//	Subordinate side of Phase 2 during resolution: 
-//		Log Collection and Merging
-//		Subordinate returns the log of related objects as a byte stream
-//		Coordinator merges these logs together into a big linear buffer
+/* resubphase2:
+	Subordinate side of Phase 2 during resolution: 
+		Log Collection and Merging
+		Subordinate returns the log of related objects as a byte stream
+		Coordinator merges these logs together into a big linear buffer
+*/
+	/* *********** Private Routines ***************/
 
-// *********** Private Routines ***************
-PRIVATE int ShipLogs(RPC2_Handle, char *, int);
+static int rs_ShipLogs(RPC2_Handle, char *, int);
 
-
-long Sub_ResPhase2(RPC2_Handle RPCid, ViceFid *Fid, RPC2_Integer *size, 
-		   RPC2_Integer *nentries, SE_Descriptor *sed) {
-    LogMsg(1, SrvDebugLevel, stdout,
-	   "Sub_ResPhase2: Entering for Fid = (0x%x.%x.%x)\n",
-	   Fid->Volume, Fid->Vnode, Fid->Unique);
-    
+long RS_ResPhase2(RPC2_Handle RPCid, ViceFid *Fid, RPC2_Integer *size, 
+		  RPC2_Integer *nentries, SE_Descriptor *sed)
+{
+    SLog(1, "RS_ResPhase2: Entering for Fid = %s\n", FID_(Fid));
     PROBE(tpinfo, RecovSubP2Begin);
     int errorCode = 0;
     Volume *volptr = 0;
@@ -90,8 +86,7 @@ long Sub_ResPhase2(RPC2_Handle RPCid, ViceFid *Fid, RPC2_Integer *size,
     // Validate parameters 
     {
 	if (!XlateVid(&Fid->Volume)) {
-	    LogMsg(0, SrvDebugLevel, stdout,  
-		   "RS_FetchLog: Couldn't Xlate VSG %x", Fid->Volume);
+	    SLog(0, "RS_FetchLog: Couldn't Xlate VSG for %s", FID_(Fid));
 	    return(EINVAL);
 	}
     }
@@ -109,16 +104,14 @@ long Sub_ResPhase2(RPC2_Handle RPCid, ViceFid *Fid, RPC2_Integer *size,
     }
     // dump log to buffer 
     {
-	LogMsg(9, SrvDebugLevel, stdout,  
-	       "Sub_ResPhase2: Dumping  log\n");
+	SLog(9, "RS_ResPhase2: Dumping  log for %s\n", FID_(Fid));
 	DumpLog(VnLog(v->vptr), volptr, &buf, (int *)size, (int *)nentries);
 	PollAndYield();
     }
     // Ship log back to coordinator
     {
-	LogMsg(9, SrvDebugLevel, stdout,  
-	       "Sub_ResPhase2: Shipping log\n");
-	errorCode = ShipLogs(RPCid, buf, *size);
+	SLog(9, "RS_ResPhase2: Shipping log for %s\n", FID_(Fid));
+	errorCode = rs_ShipLogs(RPCid, buf, *size);
     }
 
   Exit:
@@ -127,22 +120,18 @@ long Sub_ResPhase2(RPC2_Handle RPCid, ViceFid *Fid, RPC2_Integer *size,
 	PutObjects(errorCode, volptr, NO_LOCK, vlist, 0, 0);
     }
     // clean up 
-    if (buf) free(buf);
+    if (buf) 
+	    free(buf);
     PROBE(tpinfo, RecovSubP2End);
-    LogMsg(1, SrvDebugLevel, stdout,
-	   "Sub_ResPhase2: Leaving for Fid = (0x%x.%x.%x) result %d\n",
-	   Fid->Volume, Fid->Vnode, Fid->Unique, errorCode);
+    SLog(1, "RS_ResPhase2: Leaving for Fid = %s result %d\n", 
+	 FID_(Fid), errorCode);
     return(errorCode);
 }
 
-long RS_ResPhase2(RPC2_Handle RPCid, ViceFid *Fid, RPC2_Integer *size, 
-		  RPC2_Integer *nentries, SE_Descriptor *sed) {
-    
-    return(Sub_ResPhase2(RPCid, Fid, size, nentries, sed));
-}
 
 
-PRIVATE int ShipLogs(RPC2_Handle RPCid, char *buf, int bufsize) {
+static int rs_ShipLogs(RPC2_Handle RPCid, char *buf, int bufsize) 
+{
     int errorCode = 0;
 
     SE_Descriptor sid;

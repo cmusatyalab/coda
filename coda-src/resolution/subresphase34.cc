@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rvmres/subresphase34.cc,v 4.1 1997/01/08 21:50:43 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rvmres/subresphase34.cc,v 4.2 1997/12/20 23:34:58 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -63,13 +63,13 @@ extern "C" {
 #include "rvmrestiming.h"
 
 // ******* Private Routines ***********
-PRIVATE void ProcessIncList(ViceFid *, dlist *, dlist *);
+static void ProcessIncList(ViceFid *, dlist *, dlist *);
 
 
-//Sub_ResPhase34
+//RS_ResPhase34
 //	called between phase 3 and phase 4 of resolution 
 //		only if needed i.e. if there are inconsistencies
-long Sub_ResPhase34(RPC2_Handle RPCid, ViceFid *Fid, ViceStoreId *logid, 
+long RS_ResPhase34(RPC2_Handle RPCid, ViceFid *Fid, ViceStoreId *logid, 
 		    ViceStatus *status, RPC2_BoundedBS *piggyinc) {
     PROBE(tpinfo, RecovSubP34Begin);
     Volume *volptr = 0;
@@ -82,7 +82,7 @@ long Sub_ResPhase34(RPC2_Handle RPCid, ViceFid *Fid, ViceStoreId *logid,
     {
 	if (!XlateVid(&Fid->Volume)) {
 	    LogMsg(0, SrvDebugLevel, stdout,  
-		   "Sub_ResPhase34: Coudnt Xlate VSG %x", Fid->Volume);
+		   "RS_ResPhase34: Coudnt Xlate VSG %x", Fid->Volume);
 	    //PROBE(tpinfo, CPHASE2END);
 	    return(EINVAL);
 	}
@@ -100,7 +100,7 @@ long Sub_ResPhase34(RPC2_Handle RPCid, ViceFid *Fid, ViceStoreId *logid,
 	
 	if (errorCode = GetPhase2Objects(Fid, vlist, inclist, &volptr)) {
 	    LogMsg(0, SrvDebugLevel, stdout,  
-		   "Sub_ResPhase34: Error getting objects");
+		   "RS_ResPhase34: Error getting objects");
 	    goto Exit;
 	}
     }
@@ -128,12 +128,12 @@ long Sub_ResPhase34(RPC2_Handle RPCid, ViceFid *Fid, ViceStoreId *logid,
 					 logid, ResolveNULL_OP, 0)) {
 	    if (errorCode == ENOSPC) {
 		LogMsg(0, SrvDebugLevel, stdout, 
-		       "Sub_ResPhase34 - no space for spooling log record - ignoring\n");
+		       "RS_ResPhase34 - no space for spooling log record - ignoring\n");
 		errorCode = 0;
 	    }
 	    else {
 		LogMsg(0, SrvDebugLevel, stdout, 
-		       "Sub_ResPhase34 - error during SpoolVMLogRecord\n");
+		       "RS_ResPhase34 - error during SpoolVMLogRecord\n");
 		goto Exit;
 	    }
 	}
@@ -152,12 +152,6 @@ long Sub_ResPhase34(RPC2_Handle RPCid, ViceFid *Fid, ViceStoreId *logid,
     return(errorCode);
 }
 
-// for rpc2 compatibility
-long RS_ResPhase34(RPC2_Handle RPCid, ViceFid *Fid, ViceStoreId *logid, 
-		    ViceStatus *status, RPC2_BoundedBS *piggyinc) {
-    return(Sub_ResPhase34(RPCid, Fid, logid, status, piggyinc));
-}
-
 // ProcessIncList
 //	For each entry in the inclist 
 //		If object exists in the same directory
@@ -168,7 +162,7 @@ long RS_ResPhase34(RPC2_Handle RPCid, ViceFid *Fid, ViceStoreId *logid,
 //		If Object doesn't exist at all then try to mark the 
 //			parent directory in conflict 
 
-PRIVATE void ProcessIncList(ViceFid *Fid, dlist *inclist, 
+static void ProcessIncList(ViceFid *Fid, dlist *inclist, 
 			    dlist *vlist) {
     dlist_iterator next(*inclist);
     ilink *il;

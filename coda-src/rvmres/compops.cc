@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rvmres/compops.cc,v 4.1 1997/01/08 21:50:34 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rvmres/compops.cc,v 4.2 1997/12/20 23:34:47 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -63,24 +63,24 @@ extern "C" {
 #include "parselog.h"
 
 // ********** Private Routines *************
-PRIVATE olist *ExtractLog(olist *, unsigned long, ViceFid *);
-PRIVATE olist **ExtractRemoteLogs(olist *, ViceFid *, int *);
-PRIVATE void CleanRemoteLogs(olist **);
-PRIVATE arrlist *FindRemoteOps(arrlist *, olist **, int );
-PRIVATE arrlist *MergeRemoteOps(arrlist *, int);
-PRIVATE arrlist *RemoveLocalOps(arrlist *, arrlist *);
-PRIVATE void SortLog(olist *, arrlist *);
-PRIVATE arrlist *SortLog(olist *);
-PRIVATE arrlist *SortRemoteLogs(olist **, int);
-PRIVATE rsle *LatestCommonPoint(arrlist *, arrlist *);
-PRIVATE int CmpIndex(rsle **, rsle **);
-PRIVATE int CmpCompEntries(rsle **, rsle **);
-PRIVATE int CompareStoreId(ViceStoreId *, ViceStoreId *);
-PRIVATE int CmpSleEntries(rsle **, rsle **);
-PRIVATE IsLater(rsle *a, rsle *b);
-PRIVATE void PrintArrList(arrlist *, char *);
-PRIVATE void PrintRemoteLogs(olist **, int );
-PRIVATE void PrintLogList(olist *);
+static olist *ExtractLog(olist *, unsigned long, ViceFid *);
+static olist **ExtractRemoteLogs(olist *, ViceFid *, int *);
+static void CleanRemoteLogs(olist **);
+static arrlist *FindRemoteOps(arrlist *, olist **, int );
+static arrlist *MergeRemoteOps(arrlist *, int);
+static arrlist *RemoveLocalOps(arrlist *, arrlist *);
+static void SortLog(olist *, arrlist *);
+static arrlist *SortLog(olist *);
+static arrlist *SortRemoteLogs(olist **, int);
+static rsle *LatestCommonPoint(arrlist *, arrlist *);
+static int CmpIndex(rsle **, rsle **);
+static int CmpCompEntries(rsle **, rsle **);
+static int CompareStoreId(ViceStoreId *, ViceStoreId *);
+static int CmpSleEntries(rsle **, rsle **);
+static IsLater(rsle *a, rsle *b);
+static void PrintArrList(arrlist *, char *);
+static void PrintRemoteLogs(olist **, int );
+static void PrintLogList(olist *);
 
 arrlist *ComputeCompOps(olist *AllLogs, ViceFid *Fid) {
     int nrmtsites = 0;
@@ -154,7 +154,7 @@ arrlist *ComputeCompOps(olist *AllLogs, ViceFid *Fid) {
 
 // ExtractLog
 //	Find the log entries for a vnode spooled by a given host
-PRIVATE olist *ExtractLog(olist *logs, 
+static olist *ExtractLog(olist *logs, 
 			  unsigned long hostid, 
 			  ViceFid *Fid) {
     LogMsg(9, SrvDebugLevel, stdout, 
@@ -189,7 +189,7 @@ PRIVATE olist *ExtractLog(olist *logs,
     }
 }
 
-PRIVATE olist **ExtractRemoteLogs(olist *logs, ViceFid *Fid, int *nlists) {
+static olist **ExtractRemoteLogs(olist *logs, ViceFid *Fid, int *nlists) {
     olist **rmtlogs = (olist **)malloc(logs->count() * sizeof(olist *));
     assert(rmtlogs);
 
@@ -205,7 +205,7 @@ PRIVATE olist **ExtractRemoteLogs(olist *logs, ViceFid *Fid, int *nlists) {
     return(rmtlogs);
 }
 
-PRIVATE arrlist *FindRemoteOps(arrlist *sllog, olist **rlogs,
+static arrlist *FindRemoteOps(arrlist *sllog, olist **rlogs,
 			       int nrmtsites) {
     rsle **CommonPoints = NULL;
     arrlist *srlogs = NULL;
@@ -255,7 +255,7 @@ PRIVATE arrlist *FindRemoteOps(arrlist *sllog, olist **rlogs,
 
 // MergeRemoteOps
 //	put together unique entries from all remote ops
-PRIVATE arrlist *MergeRemoteOps(arrlist *rmtops, int nsites) {
+static arrlist *MergeRemoteOps(arrlist *rmtops, int nsites) {
     arrlist allops;
     arrlist *mergedops = NULL;
 
@@ -295,7 +295,7 @@ PRIVATE arrlist *MergeRemoteOps(arrlist *rmtops, int nsites) {
 // Remove the local ops that also appear in the merged rmt ops
 // IMPORTANT: This assumes that sllog and ops have already been 
 // 		sorted by storeid
-PRIVATE arrlist *RemoveLocalOps(arrlist *ops, arrlist *sllog) {
+static arrlist *RemoveLocalOps(arrlist *ops, arrlist *sllog) {
     int i, j;
     int res = -1;
     arrlist *newlist = new arrlist(ops->cursize);
@@ -333,7 +333,7 @@ PRIVATE arrlist *RemoveLocalOps(arrlist *ops, arrlist *sllog) {
 }
 
 
-PRIVATE void SortLog(olist *log, arrlist *slp) {
+static void SortLog(olist *log, arrlist *slp) {
     olist_iterator next(*log);
     void *p;
     while (p = (void *)next()) 
@@ -342,14 +342,14 @@ PRIVATE void SortLog(olist *log, arrlist *slp) {
 	  (int (*)(const void *, const void *))CmpSleEntries);
 }
     
-PRIVATE arrlist *SortLog(olist *log) {
+static arrlist *SortLog(olist *log) {
     arrlist *slp = new arrlist(log->count());
     assert(slp);
     SortLog(log, slp);
     return(slp);
 }
 
-PRIVATE arrlist *SortRemoteLogs(olist **logs, int nlogs) {
+static arrlist *SortRemoteLogs(olist **logs, int nlogs) {
     arrlist *slogs = new arrlist[nlogs];
     for (int i = 0; i < nlogs; i++) 
 	SortLog(logs[i], &slogs[i]);
@@ -361,7 +361,7 @@ PRIVATE arrlist *SortRemoteLogs(olist **logs, int nlogs) {
 //	Given two sorted logs a and b
 //	Return pointer to latest entry 
 //		in b that also occurs in a
-PRIVATE rsle *LatestCommonPoint(arrlist *a, arrlist *b) {
+static rsle *LatestCommonPoint(arrlist *a, arrlist *b) {
     rsle *LatestCommonEntry = NULL;
     int na = a->cursize;
     int nb = b->cursize;
@@ -394,7 +394,7 @@ PRIVATE rsle *LatestCommonPoint(arrlist *a, arrlist *b) {
     return(LatestCommonEntry);
 }
 
-PRIVATE int CompareStoreId(ViceStoreId *a, ViceStoreId *b) {
+static int CompareStoreId(ViceStoreId *a, ViceStoreId *b) {
     if (a->Host < b->Host) return(-1);
     else if (a->Host > b->Host) return(1);
     else if (a->Uniquifier < b->Uniquifier) return(-1);
@@ -402,7 +402,7 @@ PRIVATE int CompareStoreId(ViceStoreId *a, ViceStoreId *b) {
     else return(0);
 }
 
-PRIVATE int CmpIndex(rsle **a, rsle **b) {
+static int CmpIndex(rsle **a, rsle **b) {
     // index is overloaded to contain serverid 
     if ((*a)->index < (*b)->index) return(-1);
     if ((*a)->index > (*b)->index) return(1);
@@ -413,7 +413,7 @@ PRIVATE int CmpIndex(rsle **a, rsle **b) {
  *	Storeid is the major sorting index.
  *	Serverid is the secondary sorting index
  */
-PRIVATE int CmpSleEntries(rsle **a, rsle **b) {
+static int CmpSleEntries(rsle **a, rsle **b) {
     int res = CompareStoreId(&((*a)->storeid), &((*b)->storeid));
     if (res) return(res);
     else return(CmpIndex(a, b));
@@ -422,7 +422,7 @@ PRIVATE int CmpSleEntries(rsle **a, rsle **b) {
 //  CmpCompEntries
 //	Hostid(index) is the primary key 
 //	seq no is the secondary key
-PRIVATE int CmpCompEntries(rsle **a, rsle **b) {
+static int CmpCompEntries(rsle **a, rsle **b) {
     int res = CmpIndex(a, b);
     if (res) return(res);
     if ((*a)->seqno < (*b)->seqno) return(-1);
@@ -432,7 +432,7 @@ PRIVATE int CmpCompEntries(rsle **a, rsle **b) {
 
 // IsLater
 //	Return 1 if a is later in time than b
-PRIVATE int IsLater(rsle *a, rsle *b) {
+static int IsLater(rsle *a, rsle *b) {
     if (a->seqno > b->seqno) return(1);
     else return(0);
 }
@@ -440,7 +440,7 @@ PRIVATE int IsLater(rsle *a, rsle *b) {
 
 // routines to print out different logs 
 // for debugging
-PRIVATE void PrintArrList(arrlist *a, char *s) {
+static void PrintArrList(arrlist *a, char *s) {
     printf("*** %s Begin *** \n", s);
     arrlist_iterator next(a);
     rsle *r;
@@ -458,7 +458,7 @@ void PrintCompOps(arrlist *a) {
     PrintArrList(a, "Compensating Operations");
 }
 
-PRIVATE void PrintLogList(olist *l) {
+static void PrintLogList(olist *l) {
     olist_iterator next(*l);
     rsle *r;
     while (r = (rsle *)next()) {
@@ -469,7 +469,7 @@ PRIVATE void PrintLogList(olist *l) {
 	       "-----------------\n");
     }
 }
-PRIVATE void PrintRemoteLogs(olist **r, int nrmtsites) {
+static void PrintRemoteLogs(olist **r, int nrmtsites) {
     printf("Printing remote logs\n");
     printf("There are %d remotesites \n", nrmtsites);
     for (int i = 0; i < nrmtsites; i++) {

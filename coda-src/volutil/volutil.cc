@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/volutil/volutil.cc,v 4.3 1998/04/14 21:00:43 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/volutil/volutil.cc,v 4.4 1998/06/07 20:15:22 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -62,15 +62,15 @@ extern "C" {
 #include <lock.h>
 #include <rpc2.h>
 #include <se.h>
-#include <vice.h> 
+#include <rvmlib.h>
 #include <util.h>
+#include <vice.h> 
 #include <volutil.h>
 
 #ifdef __cplusplus
 }
 #endif __cplusplus
 
-#include <rvmlib.h>
 #include <cvnode.h>
 #include <volume.h>
 #include <vldb.h>
@@ -84,12 +84,12 @@ extern void SwapLog();
 extern void SwapMalloc();
 extern long int volUtil_ExecuteRequest(RPC2_Handle, RPC2_PacketBuffer*, SE_Descriptor*);
 
-PRIVATE void InitServer();
-PRIVATE void VolUtilLWP(int *);
+static void InitServer();
+static void VolUtilLWP(int *);
 /* RPC key lookup routine */
-PRIVATE long VolGetKey(RPC2_CountedBS *, RPC2_EncryptionKey, RPC2_EncryptionKey);
+static long VolGetKey(RPC2_CountedBS *, RPC2_EncryptionKey, RPC2_EncryptionKey);
 
-PRIVATE char vkey[RPC2_KEYSIZE+1];	/* Encryption key for bind authentication */
+static char vkey[RPC2_KEYSIZE+1];	/* Encryption key for bind authentication */
 
 
 /*
@@ -128,10 +128,9 @@ void VolUtilLWP(int *myindex) {
 	rvmptt.list.table = NULL;
 	rvmptt.list.count = 0;
 	rvmptt.list.size = 0;
-	rvmptt.die = NULL;
-	RVM_SET_THREAD_DATA(&rvmptt);
+	rvmlib_set_thread_data(&rvmptt);
 	LogMsg(0, SrvDebugLevel, stdout, 
-	       "VolUtilLWP %d just did a RVM_SET_THREAD_DATA\n",
+	       "VolUtilLWP %d just did a rvmlib_set_thread_data()\n",
 	       *myindex);
     }
 
@@ -171,7 +170,7 @@ void VolUtilLWP(int *myindex) {
 }
 
 
-PRIVATE void InitServer() {
+static void InitServer() {
     RPC2_SubsysIdent subsysid;
     FILE *tokfile;
 
@@ -185,7 +184,7 @@ PRIVATE void InitServer() {
     assert(RPC2_Export(&subsysid) == RPC2_SUCCESS);
     }
 
-PRIVATE long VolGetKey(RPC2_CountedBS *cid, RPC2_EncryptionKey id, RPC2_EncryptionKey skey) {
+static long VolGetKey(RPC2_CountedBS *cid, RPC2_EncryptionKey id, RPC2_EncryptionKey skey) {
     char name[32];
 
     sprintf(name, "%s", VolName);

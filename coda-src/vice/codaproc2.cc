@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vice/codaproc2.cc,v 4.6 1998/01/12 23:35:30 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vice/codaproc2.cc,v 4.7 1998/04/14 20:55:36 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -65,6 +65,8 @@ extern "C" {
 
 #include <rpc2.h>
 #include <se.h>
+#include <util.h>
+#include <rvmlib.h>
 #include <callback.h>
 #include <vice.h>
 
@@ -74,9 +76,6 @@ extern "C" {
 
 
 
-#include <util.h>
-#include <rvmlib.h>
-#include <coda_dir.h>
 #include <srv.h>
 #include <coppend.h>
 #include <lockqueue.h>
@@ -85,7 +84,7 @@ extern "C" {
 #include <repio.h>
 #include <vlist.h>
 #include <codaproc.h>
-#include <rvmdir.h>
+#include <codadir.h>
 #include <dlist.h>
 #include <operations.h>
 #include <reslog.h>
@@ -96,10 +95,6 @@ extern "C" {
 
 extern void MakeLogNonEmpty(Vnode *);
 extern void HandleWeakEquality(Volume *, Vnode *, ViceVersionVector *);
-
-/* From Vol package. */
-extern void SetDirHandle(DirHandle *, Vnode *);
-
 
 /* Yield parameters (i.e., after how many loop iterations do I poll and yield). */
 /* N.B.  Yield "periods" MUST all be power of two so that AND'ing can be used! */
@@ -133,7 +128,7 @@ extern void unpack_struct(ARG *, PARM **, PARM **, long);
 }
 #endif __cplusplus
 
-PRIVATE void RLE_Unpack(int, int, PARM **, ARG * ...);
+static void RLE_Unpack(int, int, PARM **, ARG * ...);
 
 
 /*  *****  Reintegration Log  *****  */
@@ -244,26 +239,26 @@ struct rle : public dlink {
  *
  */
 
-PRIVATE int ValidateReintegrateParms(RPC2_Handle, VolumeId *, Volume **, 
+static int ValidateReintegrateParms(RPC2_Handle, VolumeId *, Volume **, 
 				     ClientEntry **, int, dlist *, RPC2_Integer *,
 				     ViceReintHandle *);
-PRIVATE int GetReintegrateObjects(ClientEntry *, dlist *, dlist *, int *, 
+static int GetReintegrateObjects(ClientEntry *, dlist *, dlist *, int *, 
 				  RPC2_Integer *);
-PRIVATE int CheckSemanticsAndPerform(ClientEntry *, VolumeId, VolumeId,
+static int CheckSemanticsAndPerform(ClientEntry *, VolumeId, VolumeId,
 				      dlist *, dlist *, int *, RPC2_Integer *);
-PRIVATE void PutReintegrateObjects(int, Volume *, dlist *, dlist *, int, ClientEntry *, 
+static void PutReintegrateObjects(int, Volume *, dlist *, dlist *, int, ClientEntry *, 
 				   RPC2_Integer, RPC2_Integer *, ViceFid *, 
 				   RPC2_CountedBS *, RPC2_Integer *, CallBackStatus *);
 
-PRIVATE int AllocReintegrateVnode(Volume **, dlist *, ViceFid *, ViceFid *,
+static int AllocReintegrateVnode(Volume **, dlist *, ViceFid *, ViceFid *,
 				   ViceDataType, UserId, RPC2_Unsigned, int *);
 
-PRIVATE int AddParent(Volume **, dlist *, ViceFid *);
-PRIVATE int ReintNormalVCmp(int, VnodeType, void *, void *);
-PRIVATE int ReintNormalVCmpNoRes(int, VnodeType, void *, void *);
-PRIVATE void ReintPrelimCOP(vle *, ViceStoreId *, ViceStoreId *, Volume *);
-PRIVATE void ReintFinalCOP(vle *, Volume *, RPC2_Integer *);
-PRIVATE int ValidateRHandle(VolumeId, int, ViceReintHandle[], ViceReintHandle **);
+static int AddParent(Volume **, dlist *, ViceFid *);
+static int ReintNormalVCmp(int, VnodeType, void *, void *);
+static int ReintNormalVCmpNoRes(int, VnodeType, void *, void *);
+static void ReintPrelimCOP(vle *, ViceStoreId *, ViceStoreId *, Volume *);
+static void ReintFinalCOP(vle *, Volume *, RPC2_Integer *);
+static int ValidateRHandle(VolumeId, int, ViceReintHandle[], ViceReintHandle **);
 
 
 /*
@@ -602,7 +597,7 @@ long ViceCloseReintHandle(RPC2_Handle RPCid, VolumeId Vid, RPC2_Integer LogSize,
  *      6. Acquiring the volume in exclusive mode
  *
  */
-PRIVATE int ValidateReintegrateParms(RPC2_Handle RPCid, VolumeId *Vid,
+static int ValidateReintegrateParms(RPC2_Handle RPCid, VolumeId *Vid,
 				     Volume **volptr, ClientEntry **client,
 				     int rlen, dlist *rlog, RPC2_Integer *Index,
 				     ViceReintHandle *RHandle) {
@@ -974,7 +969,7 @@ END_TIMING(Reintegrate_ValidateParms);
  *      3. Acquiring all corresponding vnodes in Fid-order, and under write-locks
  *
  */
-PRIVATE int GetReintegrateObjects(ClientEntry *client, dlist *rlog, dlist *vlist, 
+static int GetReintegrateObjects(ClientEntry *client, dlist *rlog, dlist *vlist, 
 				  int *blocks, RPC2_Integer *Index) {
 START_TIMING(Reintegrate_GetObjects);
     LogMsg(10, SrvDebugLevel, stdout, 	"GetReintegrateObjects: client = %s", client->UserName);
@@ -1223,7 +1218,7 @@ END_TIMING(Reintegrate_GetObjects);
  *      2. Do the bulk transfers
  *
  */
-PRIVATE int CheckSemanticsAndPerform(ClientEntry *client, VolumeId Vid, VolumeId VSGVolnum,
+static int CheckSemanticsAndPerform(ClientEntry *client, VolumeId Vid, VolumeId VSGVolnum,
 				        dlist *rlog, dlist *vlist, int *blocks, RPC2_Integer *Index) {
 START_TIMING(Reintegrate_CheckSemanticsAndPerform);
     LogMsg(10, SrvDebugLevel, stdout, 	"CheckSemanticsAndPerform: Vid = %x, client = %s",
@@ -2147,7 +2142,7 @@ END_TIMING(Reintegrate_CheckSemanticsAndPerform);
  *      4. Releasing the exclusive-mode volume reference
  *
  */
-PRIVATE void PutReintegrateObjects(int errorCode, Volume *volptr, dlist *rlog, 
+static void PutReintegrateObjects(int errorCode, Volume *volptr, dlist *rlog, 
  	                           dlist *vlist, int blocks, ClientEntry *client, 
 				   RPC2_Integer MaxDirs, RPC2_Integer *NumDirs,
 				   ViceFid *StaleDirs, RPC2_CountedBS *OldVS, 
@@ -2250,7 +2245,7 @@ END_TIMING(Reintegrate_PutObjects);
 }
 
 
-PRIVATE int AllocReintegrateVnode(Volume **volptr, dlist *vlist, ViceFid *pFid,
+static int AllocReintegrateVnode(Volume **volptr, dlist *vlist, ViceFid *pFid,
 				   ViceFid *cFid, ViceDataType Type, UserId ClientId,
 				   RPC2_Unsigned AllocHost, int *blocks) {
     int errorCode = 0;
@@ -2324,24 +2319,26 @@ Exit:
 }
 
 
-int LookupChild(Volume *volptr, Vnode *vptr, char *Name, ViceFid *Fid) {
-    int errorCode = 0;
+int LookupChild(Volume *volptr, Vnode *vptr, char *Name, ViceFid *Fid) 
+{
+	int errorCode = 0;
     
-    DirHandle dh;
-    SetDirHandle(&dh, vptr);
-    if (Lookup((long *)&dh, Name, (long *)Fid) != 0) {
-	errorCode = ENOENT;
-	goto Exit;
-    }
-    Fid->Volume = V_id(volptr);
+	PDirHandle dh;
+	dh = VN_SetDirHandle(vptr);
+	if (DH_Lookup(dh, Name, Fid) != 0) {
+		errorCode = ENOENT;
+		goto Exit;
+	}
+	Fid->Volume = V_id(volptr);
 
-Exit:
-    LogMsg(10, SrvDebugLevel, stdout,  "LookupChild returns %s", ViceErrorMsg(errorCode));
-    return(errorCode);
+ Exit:
+	LogMsg(10, SrvDebugLevel, stdout,  
+	       "LookupChild returns %s", ViceErrorMsg(errorCode));
+	return(errorCode);
 }
 
 
-PRIVATE int AddParent(Volume **volptr, dlist *vlist, ViceFid *Fid) {
+static int AddParent(Volume **volptr, dlist *vlist, ViceFid *Fid) {
     int errorCode = 0;
     Vnode *vptr = 0;
 
@@ -2375,7 +2372,7 @@ Exit:
 
 /* Makes no version check for directories. */
 /* Permits only Strong and Weak Equality for files. */
-PRIVATE int ReintNormalVCmp(int ReplicatedOp, VnodeType type, void *arg1, void *arg2) {
+static int ReintNormalVCmp(int ReplicatedOp, VnodeType type, void *arg1, void *arg2) {
     assert(ReplicatedOp == 1);
 
     switch(type) {
@@ -2400,7 +2397,7 @@ PRIVATE int ReintNormalVCmp(int ReplicatedOp, VnodeType type, void *arg1, void *
 
 
 /* Permits only Strong and Weak Equality for both files and directories. */
-PRIVATE int ReintNormalVCmpNoRes(int ReplicatedOp, VnodeType type, void *arg1, void *arg2) {
+static int ReintNormalVCmpNoRes(int ReplicatedOp, VnodeType type, void *arg1, void *arg2) {
     assert(ReplicatedOp == 1);
     ViceVersionVector *vva = (ViceVersionVector *)arg1;
     ViceVersionVector *vvb = (ViceVersionVector *)arg2;
@@ -2411,7 +2408,7 @@ PRIVATE int ReintNormalVCmpNoRes(int ReplicatedOp, VnodeType type, void *arg1, v
 
 
 /* This probably ought to be folded into the PerformXXX routines!  -JJK */
-PRIVATE void ReintPrelimCOP(vle *v, ViceStoreId *OldSid,
+static void ReintPrelimCOP(vle *v, ViceStoreId *OldSid,
 			     ViceStoreId *NewSid, Volume *volptr) {
     /* Directories which are not identical to "old" contents MUST be stamped with unique Sid at end! */
     if (!SID_EQ(Vnode_vv(v->vptr).StoreId, *OldSid)) {
@@ -2424,7 +2421,7 @@ PRIVATE void ReintPrelimCOP(vle *v, ViceStoreId *OldSid,
 }
 
 
-PRIVATE void ReintFinalCOP(vle *v, Volume *volptr, RPC2_Integer *VS) {
+static void ReintFinalCOP(vle *v, Volume *volptr, RPC2_Integer *VS) {
     ViceStoreId *FinalSid;
     ViceStoreId UniqueSid;
     if (v->vptr->disk.type == vDirectory && v->d_needsres) {
@@ -2462,7 +2459,7 @@ PRIVATE void ReintFinalCOP(vle *v, Volume *volptr, RPC2_Integer *VS) {
 
 /* Unpack a ReintegrationLog Entry. */
 /* Patterned after code in MRPC_MakeMulti(). */
-PRIVATE void RLE_Unpack(int dummy1, int dummy2, PARM **ptr, ARG *ArgTypes ...) {
+static void RLE_Unpack(int dummy1, int dummy2, PARM **ptr, ARG *ArgTypes ...) {
     LogMsg(100, SrvDebugLevel, stdout,  "RLE_Unpack: ptr = %x, ArgTypes = %x", ptr, ArgTypes);
 
     va_list ap;
@@ -2512,7 +2509,7 @@ PRIVATE void RLE_Unpack(int dummy1, int dummy2, PARM **ptr, ARG *ArgTypes ...) {
  * Extract and validate the reintegration handle.  Handle errors are
  * propagated back to the client as EBADF.
  */
-PRIVATE int ValidateRHandle(VolumeId Vid, int numHandles, 
+static int ValidateRHandle(VolumeId Vid, int numHandles, 
 			   ViceReintHandle RHandle[], ViceReintHandle **MyHandle) {
 
     LogMsg(10, SrvDebugLevel, stdout,  "ValidateRHandle: Vid = %x", Vid);
