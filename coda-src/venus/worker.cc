@@ -1128,6 +1128,9 @@ void worker::main(void *parm) {
 	    case CODA_OPEN_BY_PATH:
 		{
 		LOG(100, ("CODA_OPEN_BY_PATH: u.u_pid = %d u.u_pgid = %d\n", u.u_pid, u.u_pgid));
+#if defined(DJGPP) || defined(__CYGWIN32__)
+		char *slash;
+#endif
 
 		ViceFid saveFid = in->coda_open_by_path.VFid;
 		int saveFlags = in->coda_open_by_path.flags;

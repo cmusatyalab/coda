@@ -478,7 +478,7 @@ int fsobj::Access(long rights, int modes, vuid_t vuid)
 #define SYSTYPE CPUTYPE"_nbsd1"
 #endif
 #if defined(__CYGWIN32__) || defined(DJGPP)
-#define SYSTYPE CPYTYPE"_win32"
+#define SYSTYPE CPUTYPE"_win32"
 #endif 
 #ifndef SYSTYPE
 #define SYSTYPE CPUTYPE"_unknown"
