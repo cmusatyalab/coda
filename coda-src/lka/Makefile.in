@@ -31,16 +31,17 @@ HEADERS = lka.h
 LIBRARIES := liblka.a
 OBJS := lka.o shaprocs.o
 
-LIBS := $(LIBUTIL) $(LIBRWCDB) $(LIBBASE) $(LIBCRYPTO)
+DEPLIBS := $(LIBUTIL) $(LIBRWCDB) $(LIBBASE)
+LIBS := $(DEPLIBS) $(LIBCRYPTO)
 
 include $(TOPDIR)/configs/Makerules
 
 
 liblka.a: $(OBJS)
 
-mklka:  mklka.o liblka.a $(LIBS)
+mklka:  mklka.o liblka.a $(DEPLIBS)
 	$(CXX) $(LDFLAGS) mklka.o liblka.a $(LIBS) -o mklka
 
-testlka: testlka.o liblka.a $(LIBS)
+testlka: testlka.o liblka.a $(DEPLIBS)
 	$(CXX) $(LDFLAGS) testlka.o liblka.a $(LIBS) -o testlka
 
