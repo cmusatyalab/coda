@@ -1048,26 +1048,25 @@ long FS_ViceNewConnectFS(RPC2_Handle RPCid, RPC2_Unsigned ViceVersion,
 
     errorCode = RPC2_GetPrivatePointer(RPCid, (char **)&client);
 
-    if (!client) 
+    if (errorCode || !client) {
         SLog(0, "No client structure built by ViceNewConnection");
-
-    if (!errorCode && client) {
-        /* set up a callback channel 
-           if there isn't one for this host */
-        if (client->VenusId->id == 0) {
-            SLog(0, "Building callback conn.");
-            errorCode = CLIENT_MakeCallBackConn(client);
-        } else {
-            errorCode = CallBack(client->VenusId->id, &NullFid);
-            if ( errorCode  != RPC2_SUCCESS ) {
-                /* XXX tear down naked connection */
-                errorCode = CLIENT_MakeCallBackConn(client);
-            }
-        }			
+	return(ENOTCONN);
     }
-    if (errorCode)
-        CLIENT_CleanUpHost(client->VenusId);
 
+    /* set up a callback channel if there isn't one for this host */
+    if (client->VenusId->id == 0) {
+	SLog(0, "Building callback conn.");
+	errorCode = CLIENT_MakeCallBackConn(client);
+    } else {
+	errorCode = CallBack(client->VenusId->id, &NullFid);
+	if ( errorCode  != RPC2_SUCCESS ) {
+	    /* XXX tear down naked connection */
+	    errorCode = CLIENT_MakeCallBackConn(client);
+	}
+    }			
+
+    if (errorCode)
+	CLIENT_CleanUpHost(client->VenusId);
 
     SLog(2, "FS_ViceNewConnectFS returns %s", 
          ViceErrorMsg((int) errorCode));
