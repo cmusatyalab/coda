@@ -30,7 +30,7 @@
 #Mellon the rights to redistribute these changes without encumbrance.
 #*/
 #
-#static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/src/coda-4.0.1/RCSLINK/./coda-src/scripts/backup.sh,v 1.1 1996/11/22 19:06:40 braam Exp $";
+#static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/ss/coda-src/scripts/RCS/backup.sh,v 4.1 1997/01/08 21:50:45 rvb Exp braam $";
 #endif /*_BLURB_*/
 
 
@@ -67,7 +67,7 @@
 #Mellon the rights to redistribute these changes without encumbrance.
 #*/
 #
-#static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/src/coda-4.0.1/RCSLINK/./coda-src/scripts/backup.sh,v 1.1 1996/11/22 19:06:40 braam Exp $";
+#static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/ss/coda-src/scripts/RCS/backup.sh,v 4.1 1997/01/08 21:50:45 rvb Exp braam $";
 #endif /*_BLURB_*/
 
 if ( ($#argv < 1) || (($#argv > 1) && ($#argv < 3))) then
@@ -209,9 +209,9 @@ echo " " >>${OUTFILE}
 echo " " >>${OUTFILE}
 cat ${LOGFILE} >>${OUTFILE}
 
-mail -s "backup for $dir" raiff@cs dcs@cs <${OUTFILE}
+mail -s "backup for $dir" raiff@cs ambyrne@cs <${OUTFILE}
+mail -s "backup for $dir" backuplogs@coda.cs.cmu.edu <${OUTFILE}
 
-post - -subject "backup for ${dir}" cmu.cs.proj.coda.backuplogs <${OUTFILE}
 
 mt -f $TAPE rewoffl
 
