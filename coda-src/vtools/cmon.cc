@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /usr/rvb/XX/src/coda-src/vtools/RCS/cmon.cc,v 4.1 1997/01/08 21:52:39 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-raiff/coda-objs/i386_nbsd1/coda-src/vtools/RCS/cmon.cc,v 4.2 97/02/26 16:04:20 rvb Exp Locker: raiff $";
 #endif /*_BLURB_*/
 
 
@@ -418,6 +418,7 @@ PRIVATE void PrintServer(struct server *s)
     shortname[SRVCOLWIDTH] = 0;
 
     wclear(w);
+    wmove(w, 0, 0);
     wprintw(w, "%*s\n", SRVCOLWIDTH, shortname);
     wprintw(w, "\n");
     wprintw(w, "%*s\n", SRVCOLWIDTH, when(s->probe, MonBirthTime));
