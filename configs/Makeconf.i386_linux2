@@ -18,6 +18,7 @@ LIBCOMPAT     =
 INODEFSNAME   = libuinodefs.a
 INODEFSDIR    = kernel-src/inodefs/common
 LIBREADLINE   = /usr/lib/libreadline.a
+INCREADLINE   = -I/usr/include/readline
 LIBIBERTY     = /usr/lib/libiberty.a
 machine_inodefs   = 
 #for rvm

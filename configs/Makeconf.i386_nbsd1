@@ -30,7 +30,7 @@
 # Mellon the rights to redistribute these changes without encumbrance.
 # */
 # 
-# static char *rcsid = "$Header: /usr/rvb/XX/src/configs/RCS/Makeconf.i386_nbsd1,v 4.6 1997/02/09 22:23:19 rvb Exp $";
+# static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-1/coda-4.0.1/configs/RCS/Makeconf.i386_nbsd1,v 4.7 97/02/26 16:04:26 rvb Exp Locker: braam $";
 # 
 
 MACHINE_FLAGS = -D__BSD44__
@@ -40,6 +40,8 @@ GFLAG         = -g
 CPP 	      = gcc -E -x c-header
 LIBCURSES     = -lcurses
 LIBCOMPAT     = /usr/lib/libcompat.a
+LIBREADLINE   = /usr/local/lib/libreadline.a
+INCREADLINE   = -I/usr/local/include/readline
 INODEFSNAME   = libinodefs.a
 INODEFSDIR    = kernel-src/inodefs/bsd44
 machine_inodefs   = bsd44
