@@ -33,6 +33,7 @@ dnl Checks for libraries.
 CODA_CHECK_LIBTERMCAP
 CODA_CHECK_LIBCURSES
 CODA_CHECK_LIBDB185
+AC_CHECK_LIB(nsl, inet_ntoa)
 
 dnl Checks for header files.
 AC_CHECK_HEADERS(search.h sys/resource.h sys/stream.h)
