@@ -46,6 +46,10 @@ listed in the file CREDITS.
 #include <coda_assert.h>
 #include "pdb.h"
 
+#ifdef sun
+typedef unsigned int u_int32_t;
+#endif
+
 #define PDB_MAIN "/vice/db/prot_users"
 #define PDB_NAME "/vice/db/prot_index"
 
