@@ -38,7 +38,7 @@
 # Export of Technical Data.
 
 #
-# static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/lib-src/libcs/Makefile.in,v 4.2 97/04/29 21:27:25 rvb Exp $";
+# static char *rcsid = "$Header: /coda/coda.cs.cmu.edu/project/coda/cvs/coda/lib-src/libcs/Attic/Makefile.in,v 4.3 1997/07/16 15:09:16 rvb Exp $";
 
 TOPDIR = @top_srcdir@
 ifndef MAKDIR
