@@ -1,3 +1,7 @@
+New in 1.6:
+
+* Fixed stray fsync calls when using partitions on BSD platforms.
+
 New in 1.5:
 
 * Fixed shared library build breakage.
