@@ -231,14 +231,12 @@ distclean: clean
 	-$(RM) Makeconf.setup `find . -name "Makefile" | grep -v linux`
 	-$(RM) config.h coda_config.h
 	-$(RM) coda-src/scripts/bldvldb.sh
-	-$(RM) coda-src/scripts/codaconfedit
 	-$(RM) coda-src/scripts/createvol_rep
 	-$(RM) coda-src/scripts/rc.vice
 	-$(RM) coda-src/scripts/startserver
 	-$(RM) coda-src/scripts/venus.init
 	-$(RM) coda-src/scripts/vice-setup
 	-$(RM) coda-src/scripts/vice-setup-rvm
-	-$(RM) coda-src/scripts/vutil
 
 
 #####################
