@@ -170,8 +170,8 @@ int fsobj::Fetch(vuid_t vuid) {
                     
 		    /* create a sparse file of the desired size */
                     if (!HAVEDATA(this)) {
-                        data.file = &cf;
                         RVMLIB_REC_OBJECT(cf);
+                        data.file = &cf;
                         data.file->Create(stat.Length);
                     }
 
@@ -1593,8 +1593,9 @@ int fsobj::SetAttr(struct coda_vattr *vap, vuid_t vuid, RPC2_CountedBS *acl)
 	if (NewLength == 0) {
 	    Recov_BeginTrans();
 	    RVMLIB_REC_OBJECT(data.file);
+	    RVMLIB_REC_OBJECT(cf);
 	    data.file = &cf;
-	    data.file->Truncate((unsigned) NewLength);
+            data.file->Create(0);
 	    Recov_EndTrans(MAXFP);
 	}
 	
@@ -1682,9 +1683,12 @@ void fsobj::LocalCreate(Date_t Mtime, fsobj *target_fso, char *name,
 	target_fso->Matriculate();
 	target_fso->SetParent(fid.Vnode, fid.Unique);
 
-	/* Contents are already initialized to null. */
+        RVMLIB_REC_OBJECT(target_fso->cf);
 	target_fso->data.file = &target_fso->cf;
-	/* We don't bother doing a ChangeDiskUsage() here since NBLOCKS(target_fso->stat.Length) == 0. */
+        target_fso->data.file->Create();
+
+        /* We don't bother doing a ChangeDiskUsage() here since
+         * NBLOCKS(target_fso->stat.Length) == 0. */
 
 	target_fso->Reference();
 	target_fso->ComputePriority();

@@ -130,8 +130,8 @@ int fsobj::Open(int writep, int execp, int truncp, venus_cnode *cp, vuid_t vuid)
     if (IsDir()) {
 	if (data.dir->udcf == 0) {
 	    Recov_BeginTrans();
-	    data.dir->udcf = &cf;
             RVMLIB_REC_OBJECT(cf);
+	    data.dir->udcf = &cf;
             data.dir->udcf->Create();
 	    Recov_EndTrans(MAXFP);
 	    FSO_ASSERT(this, data.dir->udcfvalid == 0);

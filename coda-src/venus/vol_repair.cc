@@ -641,8 +641,8 @@ int volent::LocalRepair(fsobj *f, ViceStatus *status, char *fname, ViceFid *pfid
 
     /* now store the new contents of the file */
     {
-	f->data.file = &f->cf;
         RVMLIB_REC_OBJECT(f->cf);
+	f->data.file = &f->cf;
         f->data.file->Create();
 
 	int srcfd = open(fname, O_RDONLY | O_BINARY, V_MODE);
