@@ -46,7 +46,6 @@ rds_init_heap(base, length, chunk_size, nlists, tid, err)
     
     /* heap consists of a heap_header_t followed by nlist list headers */
     heap_hdr_len = sizeof(heap_header_t) + nlists * sizeof(free_list_t);
-    heap_hdr_len = heap_hdr_len 
     if (heap_hdr_len > length) {
 	printf("Heap not long enough to hold heap header\n");
 	(*err) = ENO_ROOM;
