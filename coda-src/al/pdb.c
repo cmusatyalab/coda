@@ -420,6 +420,8 @@ void PDB_changeId(int32_t oldId, int32_t newId)
 	int32_t nextid;
 	pdb_array_off off;
 
+	if (oldId == newId) return;
+
 	h = PDB_db_open(O_RDWR);
 
 	tmp = PDB_db_read(h, newId, NULL);
