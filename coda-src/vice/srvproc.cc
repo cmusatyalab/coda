@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/ss/coda-src/vice/RCS/srvproc.cc,v 4.3 1997/02/26 16:03:45 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/ss/coda-src/vice/RCS/srvproc.cc,v 4.4 1997/04/15 20:26:51 braam Exp braam $";
 #endif /*_BLURB_*/
 
 
@@ -701,7 +701,11 @@ START_TIMING(Store_Total);
 	v->f_finode = icreate((int) V_device(volptr), 0, (int) V_id(volptr), 
 			      (int) v->vptr->vnodeNumber, (int) v->vptr->disk.uniquifier, 
 			      (int) v->vptr->disk.dataVersion + 1);
+#if   defined(__linux__) 
+	assert(v->f_finode > (unsigned long) 0);
+#else
 	assert(v->f_finode > 0);
+#endif /* __linux__ */
 	if (errorCode = StoreBulkTransfer(RPCid, client, volptr, v->vptr, v->f_finode, Length))
 	    goto FreeLocks;
 	v->f_sinode = v->vptr->disk.inodeNumber;
