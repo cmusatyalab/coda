@@ -41,6 +41,7 @@ case "$1" in
 		echo "$pid_file exists, venus already running?."
 		exit 1
 	fi
+	[ -d /var/lock/subsys ] && touch /var/lock/subsys/venus.init
 	@sbindir@/venus &
 	echo "done."
     ;;
@@ -51,6 +52,7 @@ case "$1" in
 		umount /coda
 	fi
 	rm -f $pid_file
+	[ -d /var/lock/subsys ] && rm -f /var/lock/subsys/venus.init
 	echo "done."
     ;;
   hardstop)
