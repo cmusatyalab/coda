@@ -172,7 +172,7 @@ dnl
 dnl (taken from http://fink.sourceforge.net/darwin/porting.php)
 
 AC_DEFUN(CODA_DARWIN_BROKEN_CPP_WORKAROUND,
-  [if test $build == powerpc-apple-darwin1.3 ; then
+  [if test $build = powerpc-apple-darwin1.3 ; then
     CPPFLAGS="$CPPFLAGS -traditional-cpp"
    fi])
 
