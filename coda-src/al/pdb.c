@@ -65,7 +65,7 @@ void PDB_addToGroup(int32_t id, int32_t groupId)
 	PDB_readProfile(h, id, &r);
 	CODA_ASSERT(r.id != 0);
 	pdb_array_add(&(r.member_of), groupId);
-	PDB_updateCpsSelf(h, &r);
+	PDB_updateCps(h, &r);
 	PDB_writeProfile(h, &r);
 	PDB_freeProfile(&r);
 
@@ -79,18 +79,18 @@ void PDB_removeFromGroup(int32_t id, int32_t groupId)
 	PDB_profile r;
    
 	/* sanity check arguments (groupId must be < 0) */
-	CODA_ASSERT(PDB_ISGROUP(groupId) && PDB_ISUSER(id));
+	CODA_ASSERT(PDB_ISGROUP(groupId) && (id != 0));
 
 	h = PDB_db_open(O_RDWR);
 
-	/* add id to the group's member list */
+	/* remove id from the group's member list */
 	PDB_readProfile(h, groupId, &r);
 	CODA_ASSERT(r.id != 0);
 	pdb_array_del(&(r.groups_or_members), id);
 	PDB_writeProfile(h, &r);
 	PDB_freeProfile(&r);
    
-	/* add groupId to user's member_of list */
+	/* remove groupId from user's member_of list */
 	PDB_readProfile(h, id, &r);
 	CODA_ASSERT(r.id != 0);
 	pdb_array_del(&(r.member_of), groupId);

@@ -193,6 +193,9 @@ void PDB_updateCpsSelf(PDB_HANDLE h, PDB_profile *r)
 	}
 	/* Add self to list */
 	pdb_array_add(&(r->cps), r->id);
+
+	/* write the updated CPS */
+	PDB_writeProfile(h, r);
 }
 
 /* Updates the CPS entries of the given id's children's CPS entries */
@@ -222,7 +225,7 @@ void PDB_updateCpsChildren(PDB_HANDLE h, PDB_profile *r)
    its children */
 void PDB_updateCps(PDB_HANDLE h, PDB_profile *r)
 {
-	PDB_updateCpsSelf(h,r);
-	PDB_updateCpsChildren(h,r);
+	PDB_updateCpsSelf(h, r);
+	PDB_updateCpsChildren(h, r);
 }
 
