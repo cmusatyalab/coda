@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/src/coda-4.0.1/RCSLINK/./coda-src/auth2/auth2.rpc2,v 1.1 1996/11/22 19:09:53 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/auth2/auth2.rpc2,v 4.1 1997/01/08 21:49:26 rvb Exp $";
 #endif /*_BLURB_*/%}
 
 
@@ -155,9 +155,9 @@ AuthNewConn (IN RPC2_Integer seType, IN RPC2_Integer secLevel, IN RPC2_Integer e
 
 AuthChangePasswd (IN RPC2_Integer viceId, IN RPC2_String newPasswd);
 
-		/* Change a user's password. You can change your own password always.
-		   Caller must be a system administrator to change someone else's password.
-		*/
+/* Change a user's password. You can change your own password always.
+Caller must be a system administrator to change someone else's
+password. */
 
 AuthGetTokens (OUT EncryptedSecretToken sToken, OUT ClearToken cToken);
 

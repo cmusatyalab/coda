@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/auth2/auser.cc,v 4.3 1997/09/05 12:27:12 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/auth2/auser.cc,v 4.4 1997/12/01 17:27:13 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -67,15 +67,9 @@ static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/auth2/
 extern "C" {
 #endif __cplusplus
 
-#include <sys/types.h>
+#include <sys/param.h>
 #include <sys/stat.h>
 #include <sys/ioctl.h>
-#ifdef __MACH__
-#include <sys/viceioctl.h>
-#endif /* __MACH__ */
-#ifdef __BSD44__
-#include <pioctl.h> /* new location/name of sys/viceioctl.h */
-#endif /* __BSD44__ */
 #include <sys/file.h>
 #include <netdb.h>
 #include <netinet/in.h>
@@ -90,28 +84,28 @@ extern "C" {
 #endif
 #include <errno.h>
 #include <lwp.h>
+#include <pioctl.h> 
 #include <rpc2.h>
+#include <util.h>
 
 #ifdef __cplusplus
 }
 #endif __cplusplus
 
-#include <util.h>
 #include "auth2.h"
 
 #define VSTAB "/usr/coda/etc/vstab"
 
 PRIVATE int SetHost(int write, int index, char *AuthHost);
-PRIVATE void GetVSTAB();
-PRIVATE int TryBinding(char *viceName, char *vicePasswd, char *AuthHost, RPC2_Handle *RPCid);
+PRIVATE void GetVSTAB(char *);
+PRIVATE int TryBinding(char *viceName, char *vicePasswd, char *AuthHost, 
+		       RPC2_Handle *RPCid);
 
  /* areas to keep interesting information about what hosts to use */
 #define MAXHOSTS 32
 PRIVATE	int numHosts;		    /* number of local hosts to use */
-PRIVATE	char lHosts[64][MAXHOSTS];  /* array of local hosts to use */
-PRIVATE	char pName[64];		    /* name to use on PIOCTLS */
-
-char *DefAuthHost = "scarlatti.coda.cs.cmu.edu";
+PRIVATE	char lHosts[MAXHOSTNAMELEN][MAXHOSTS];  /* array of local hosts to use */
+PRIVATE	char pName[MAXHOSTNAMELEN];		    /* name to use on PIOCTLS */
 
 void U_HostToNetClearToken(ClearToken *cToken)
 {
@@ -144,9 +138,10 @@ void hton_SecretToken(SecretToken *stoken) {
     stoken->EndTimestamp = htonl(stoken->EndTimestamp);
 }
 
-int U_Authenticate(IN char *uName, IN char *uPasswd, OUT ClearToken *cToken, OUT EncryptedSecretToken sToken)
- /* Talks to an authentication server and obtains tokens on behalf of user uName.
-    Gets back the viceId and clear and secretTokens for this user    */
+/* Talks to an authentication server and obtains tokens on behalf of user uName.
+   Gets back the viceId and clear and secretTokens for this user    */
+int U_Authenticate(IN char *uName, IN char *uPasswd, OUT ClearToken *cToken, 
+		   OUT EncryptedSecretToken sToken)
 {
     RPC2_Handle	RPCid;
     int		rc;
@@ -159,11 +154,11 @@ int U_Authenticate(IN char *uName, IN char *uPasswd, OUT ClearToken *cToken, OUT
 }
 
 
-int U_ChangePassword(IN char *uName, IN char *newPasswd, IN char *myName, IN char *myPasswd)
  /* Talks to the central authentication server and changes the password for uName to
     newPasswd if myName is the same as uName or a system administrator.  MyPasswd
     is used to validate myName.  */
-
+int U_ChangePassword(IN char *uName, IN char *newPasswd, IN char *myName, 
+		     IN char *myPasswd)
 {
     int rc;
     RPC2_Integer cpid;
@@ -205,28 +200,24 @@ char *U_AuthErrorMsg(int rc)
 }
 
 
-int U_BindToServer(char *DefAuthHost, char *uName, char *uPasswd, RPC2_Handle *RPCid)
+/* Binds to Auth Server on behalf of uName using uPasswd as password.
+   Sets RPCid to the value of the connection id.    */
+int U_BindToServer(char *DefAuthHost, char *uName, char *uPasswd, 
+		   RPC2_Handle *RPCid)
 {
- /* Binds to Auth Server on behalf of uName using uPasswd as password.
-    Sets RPCid to the value of the connection id.    */
-
     char    AuthHost[128];
     int     i = 0;
     int     rc;
 
-    if (DefAuthHost) {
-        rc = TryBinding(uName, uPasswd, DefAuthHost, RPCid);
-    } else {
-        GetVSTAB();
-        while (1) {
-	    if (SetHost(1, i, AuthHost) == 0) {
-                rc = TryBinding(uName, uPasswd, AuthHost, RPCid);
-                if (rc == 0 || rc == RPC2_NOTAUTHENTICATED)
-		    return (rc);
-                i++;
-	    } else {
-                return(rc);
-	    }
+    GetVSTAB(VSTAB);
+    while (1) {
+	if (SetHost(1, i, AuthHost) == 0) {
+	    rc = TryBinding(uName, uPasswd, AuthHost, RPCid);
+	    if (rc == 0 || rc == RPC2_NOTAUTHENTICATED)
+		return (rc);
+	    i++;
+	} else {
+	    return(rc);
 	}
     }
     return(rc);
@@ -235,7 +226,8 @@ int U_BindToServer(char *DefAuthHost, char *uName, char *uPasswd, RPC2_Handle *R
 
 
 
-PRIVATE int TryBinding(char *viceName, char *vicePasswd, char *AuthHost, RPC2_Handle *RPCid)
+PRIVATE int TryBinding(char *viceName, char *vicePasswd, char *AuthHost, 
+		       RPC2_Handle *RPCid)
 {
     RPC2_BindParms bp;
     RPC2_HostIdent hident;
@@ -244,6 +236,8 @@ PRIVATE int TryBinding(char *viceName, char *vicePasswd, char *AuthHost, RPC2_Ha
     RPC2_EncryptionKey hkey;
     RPC2_CountedBS cident;
     long rc;
+    int len;
+
 
     hident.Tag = RPC2_HOSTBYNAME;
     strcpy(hident.Value.Name, AuthHost);
@@ -254,8 +248,13 @@ PRIVATE int TryBinding(char *viceName, char *vicePasswd, char *AuthHost, RPC2_Ha
 
     cident.SeqLen = 1+strlen(viceName);
     cident.SeqBody = (RPC2_ByteSeq)viceName;
+    if ( RPC2_KEYSIZE < strlen(vicePasswd) ) 
+	len = RPC2_KEYSIZE; 
+    else 
+	len = strlen(vicePasswd);
+	       
     bzero(hkey, RPC2_KEYSIZE);
-    bcopy(vicePasswd, hkey, RPC2_KEYSIZE);
+    bcopy(vicePasswd, hkey, len);
 
     bp.SecurityLevel = RPC2_SECURE;
     bp.EncryptionType = RPC2_XOR;
@@ -285,7 +284,7 @@ PRIVATE int SetHost(int write, int index, char *AuthHost)
 }
 
 
-PRIVATE void GetVSTAB()
+PRIVATE void GetVSTAB(char *vstab)
 {
     int		fd;
     int		len;
@@ -299,46 +298,48 @@ PRIVATE void GetVSTAB()
     bzero(pName,sizeof(pName));
     bzero((char *)lHosts,sizeof(lHosts));
     numHosts = 0;
-    if(fd = open(VSTAB,O_RDONLY,0)) {
-	if(!(fstat(fd, &buff))) {
-	    area = (char *)malloc(buff.st_size);
-	    if(!area) {
-		free(area);
-		(void)close(fd);
-		goto fini;
-	    }
-	    len = read(fd, area, buff.st_size);
-	    if(len == buff.st_size) {
-		strncpy(pName,area,index(area,':')-area);
-		host = index(area,':') + 1;
-		host = index(host,':') + 1;
-		endHost = index(host,':');
-		for(start = host; start < endHost;) {
-		    end = index(start,',');
-		    if(!end || end>endHost) {
-			end = endHost;
-		    }
-		    len = end - start;
-		    strncpy(lHosts[numHosts++],start,len);
-		    start += len + 1;
-		}
-	    }
-	    else {
-		perror("Read of VSTAB failed\n");
-	    }
-	    free(area);
-	}
-	else {
-	    perror("fstat for VSTAB failed");
-	}
+
+    fd = open(vstab, O_RDONLY, 0); 
+    if ( fd < 0 ) {
+	perror("Error opening VSTAB");
+	return;
+    }
+
+    if(fstat(fd, &buff) == -1 ) {
+	perror("Error statting VSTAB");
+	return;
+    }
+    
+    area = malloc(buff.st_size);
+    if(!area) {
+	perror("No memory!");
 	close(fd);
+	return;
     }
-    else {
-	perror("open for VSTAB failed");
+
+    len = read(fd, area, buff.st_size);
+    if ( len != buff.st_size ) {
+	perror("Error reading VSTAB");
+	free(area);
+	return;
     }
- fini:
-    if(strlen(pName) == 0)
-	strcpy(pName, "/cmu");
+	
+    strncpy(pName,area,index(area,':')-area);
+    host = index(area,':') + 1;
+    host = index(host,':') + 1;
+    endHost = index(host,':');
+    for(start = host; start < endHost;) {
+	end = index(start,',');
+	if(!end || end>endHost) {
+	    end = endHost;
+	}
+	len = end - start;
+	strncpy(lHosts[numHosts++],start,len);
+	start += len + 1;
+    }
+    free(area);
+    close(fd);
+    return;
 }
 
 

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /usr/rvb/XX/src/coda-src/auth2/RCS/auth2.cc,v 4.1 1997/01/08 21:49:26 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/auth2/auth2.cc,v 4.2 1997/02/26 16:02:31 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -166,7 +166,7 @@ PRIVATE int DoRedirectLog = 1;	/* set to zero by -r switch on command line */
 
 
 int main(int argc, char **argv)
-    {
+{
     RPC2_PacketBuffer *reqbuffer;
     RPC2_Handle cid;
     register int rc;
@@ -184,40 +184,27 @@ int main(int argc, char **argv)
     
     LogMsg(-1, 0, stdout, "Server successfully started\n");
 
-    while(TRUE)
-	{
+    while(TRUE) {
 	cid = 0;
-	if ((rc = RPC2_GetRequest(NULL, &cid, &reqbuffer, NULL, (long (*)())PWGetKeys, RPC2_XOR, (long (*)())LogFailures)) < RPC2_WLIMIT)
-	    HandleRPCError(rc, cid);
-	if(stat(PDB, &buff))
-	    {
+	if ((rc = RPC2_GetRequest(NULL, &cid, &reqbuffer, NULL, 
+				  (long (*)())PWGetKeys, RPC2_XOR, 
+				  (long (*)())LogFailures)) 
+	    < RPC2_WLIMIT)
+		HandleRPCError(rc, cid);
+
+	if(stat(PDB, &buff)) {
 	    printf("stat for vice.pdb failed\n");
 	    fflush(stdout);
-	    }
-	else
-	    {
+	} else {
 	    if(AuthTime != buff.st_mtime)
 		InitAl();
-	    }
-	if ((rc = auth2_ExecuteRequest(cid, reqbuffer, (SE_Descriptor *)0)) < RPC2_WLIMIT)
-	    HandleRPCError(rc, cid);
-	if(stat("/vice/bin/auth2",&buff)) 
-	    {
-	    printf("stat for binaries failed\n");
-	    fflush(stdout);
-	    }
-	else
-	    {
-	    if(AUTime != buff.st_mtime)
-		{
-		printf("Binaries have changed, restarting auth server\n");
-		fflush(stdout);
-		exit(0);
-		}
-	    }
 	}
-    return(0);  /* dummy to keep various C++ compilers happy */
+	if ((rc = auth2_ExecuteRequest(cid, reqbuffer, (SE_Descriptor *)0)) 
+	    < RPC2_WLIMIT)
+		HandleRPCError(rc, cid);
     }
+    return(0);
+}
 
 
 PRIVATE void InitGlobals(int argc, char **argv)
@@ -550,10 +537,20 @@ long S_AuthGetTokens(RPC2_Handle cid, EncryptedSecretToken est, ClearToken *cTok
     }
 
 
-long S_AuthChangePasswd (RPC2_Handle cid, RPC2_Integer viceId, RPC2_EncryptionKey newPasswd)
-    {
+long S_AuthChangePasswd (RPC2_Handle cid, RPC2_Integer viceId, 
+			 RPC2_String Passwd)
+{
     int i;
     struct UserInfo *p;
+    RPC2_EncryptionKey newPasswd;
+    int len;
+
+    bzero(newPasswd, sizeof(newPasswd));
+    if (strlen(Passwd) < RPC2_KEYSIZE) 
+	    len = strlen(Passwd);
+    else
+	    len = RPC2_KEYSIZE;
+    bcopy(Passwd, newPasswd, len); 
 
     if (AuthDebugLevel)
 	{

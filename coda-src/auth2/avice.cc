@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /usr/rvb/XX/src/coda-src/auth2/RCS/avice.cc,v 4.1 1997/01/08 21:49:27 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/auth2/avice.cc,v 4.2 1997/02/26 16:02:33 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -59,11 +59,8 @@ supported by Transarc Corporation, Pittsburgh, PA.
 */
 
 
-
-
 /*
- -- Routines used by Vice file servers to do authentication
-
+  Routines used by Vice file servers to do authentication
 */
 
 #ifdef __cplusplus
@@ -75,23 +72,16 @@ extern "C" {
 #include <netinet/in.h>
 #include <sys/time.h>
 #include <string.h>
-#ifdef __MACH__
-#include <sysent.h>
-#include <libc.h>
-#else	/* __linux__ || __BSD44__ */
 #include <unistd.h>
 #include <stdlib.h>
-#endif
-
+#include <util.h>
 #include <rpc2.h>
 
 #ifdef __cplusplus
 }
 #endif __cplusplus
 
-#include <util.h>
 #include "auth2.h"
-
 
 static int Key1IsValid = FALSE;
 static int Key2IsValid = FALSE;
@@ -100,17 +90,19 @@ static RPC2_EncryptionKey Key2;
 
 extern void ntoh_SecretToken(SecretToken *);
 
-long GetKeysFromToken(INOUT RPC2_CountedBS *cIdent, OUT RPC2_EncryptionKey hKey, OUT RPC2_EncryptionKey sKey)
-    /* 
-    Use a pointer to this routine in RPC2_GetRequest().
-    Derives hKey and sKey from ClientIdent using one or the other of the global
-	server keys to decrypt the secret token in cIdent.
-    Returns 0 if the handshake is to be continued, -1 if not.  The sKey is synthesized.
-    If 0 is returned, cIdent's body has been decrypted and converted to host
-	order --- this will be passed on to the new connection routine, which
-	can access the fields of SecretToken.
-    */
-    {
+/*  Use a pointer to this routine in RPC2_GetRequest().  Derives hKey
+    and sKey from ClientIdent using one or the other of the global
+    server keys to decrypt the secret token in cIdent.  Returns 0 if
+    the handshake is to be continued, -1 if not.  The sKey is
+    synthesized.  If 0 is returned, cIdent's body has been decrypted
+    and converted to host order --- this will be passed on to the new
+    connection routine, which can access the fields of SecretToken.  
+*/
+
+long GetKeysFromToken(INOUT RPC2_CountedBS *cIdent, 
+		      OUT RPC2_EncryptionKey hKey, 
+		      OUT RPC2_EncryptionKey sKey)
+{
     SecretToken st;
     register int i;
     struct timeval t;
@@ -120,55 +112,59 @@ long GetKeysFromToken(INOUT RPC2_CountedBS *cIdent, OUT RPC2_EncryptionKey hKey,
 	return(-1);
     }
 
-    if (Key1IsValid)
-	{
-	rpc2_Decrypt((char *)cIdent->SeqBody, (char *)&st, cIdent->SeqLen, (unsigned char *)Key1, RPC2_XOR);
-	if (strncmp((char *)st.MagicString, AUTH_MAGICVALUE, sizeof(AuthMagic)) == 0) goto GotIt;
-	}
-    if (Key2IsValid)
-	{
-	rpc2_Decrypt((char *)cIdent->SeqBody, (char *)&st, cIdent->SeqLen, (unsigned char *)Key2, RPC2_XOR);
-	if (strncmp((char *)st.MagicString, AUTH_MAGICVALUE, sizeof(AuthMagic)) == 0) goto GotIt;
-	}
+    if (Key1IsValid) {
+	rpc2_Decrypt((char *)cIdent->SeqBody, (char *)&st, cIdent->SeqLen, 
+		     (unsigned char *)Key1, RPC2_XOR);
+	if (strncmp((char *)st.MagicString, AUTH_MAGICVALUE, 
+		    sizeof(AuthMagic)) == 0) goto GotIt;
+    }
+    if (Key2IsValid) {
+	rpc2_Decrypt((char *)cIdent->SeqBody, (char *)&st, cIdent->SeqLen, 
+		     (unsigned char *)Key2, RPC2_XOR);
+	if (strncmp((char *)st.MagicString, AUTH_MAGICVALUE, 
+		    sizeof(AuthMagic)) == 0) goto GotIt;
+    }
     LogMsg(-1, 0, stdout, "Could not get a valid key in GetKeysFromToken");
     return(-1);	/* no valid key did the job */
-
+    
 GotIt:
-    LogMsg(10, SrvDebugLevel, stdout, "Before ntoh_SecretToken: ViceId= %d, BeginTimeStamp = %d EndTimeStamp= %d",st.ViceId, st.BeginTimestamp, st.EndTimestamp);
     ntoh_SecretToken(&st);
-
-    LogMsg(10, SrvDebugLevel, stdout, "After ntoh_SecretToken: ViceId= %d, BeginTimeStamp = %d EndTimeStamp= %d", st.ViceId, st.BeginTimestamp, st.EndTimestamp);
     
     gettimeofday(&t, 0);
     if (t.tv_sec < st.BeginTimestamp || t.tv_sec > st.EndTimestamp) {
-	LogMsg(10, SrvDebugLevel, stdout,"End time stamp %d > time %d for user %d",
+	LogMsg(10, SrvDebugLevel, stdout,
+	       "End time stamp %d > time %d for user %d",
 		st.EndTimestamp,t.tv_sec,st.ViceId);
 	return(-1);
     }
     bcopy(st.HandShakeKey, hKey, sizeof(RPC2_EncryptionKey));
     for (i = 0; i < sizeof(RPC2_EncryptionKey); i++)
 	sKey[i] = rpc2_NextRandom(NULL) & 0xff; 	/* new session key */
-    bcopy((char *)&st, cIdent->SeqBody, sizeof(SecretToken));   /* to be passed back
+    bcopy((void *)&st, cIdent->SeqBody, sizeof(SecretToken));   /* to be passed back
 						as new connection packet */
     return(0);
-    }
+}
 
+/* Sets the global server keys to the specified value.  Either of the
+   keys may be NULL, in which case the corresponding key is merely
+   marked invalid */
 
-void SetServerKeys(IN RPC2_EncryptionKey serverKey1, IN RPC2_EncryptionKey serverKey2)
-    /* Sets the global server keys to the specified value.  Either of the keys
-	may be NULL, in which case the corresponding key is merely marked invalid
-    */
-    {
-    if (serverKey1 == NULL) Key1IsValid = FALSE;
-    else
-	{
+void SetServerKeys(IN RPC2_EncryptionKey serverKey1, 
+		   IN RPC2_EncryptionKey serverKey2)
+{
+    bzero(Key1, sizeof(Key1));
+    bzero(Key2, sizeof(Key2));
+
+    if (serverKey1 == NULL) 
+	    Key1IsValid = FALSE;
+    else {
 	bcopy(serverKey1, Key1, sizeof(RPC2_EncryptionKey));
 	Key1IsValid = TRUE;
-	}
-    if (serverKey2 == NULL) Key2IsValid = FALSE;
-    else
-	{
+    }
+    if (serverKey2 == NULL) 
+	    Key2IsValid = FALSE;
+    else {
 	bcopy(serverKey2, Key2, sizeof(RPC2_EncryptionKey));
 	Key2IsValid = TRUE;
-	}
     }
+}

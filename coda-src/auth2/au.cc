@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /usr/rvb/XX/src/coda-src/auth2/RCS/au.cc,v 4.1 1997/01/08 21:49:25 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/auth2/au.cc,v 4.2 1997/02/26 16:02:30 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -73,6 +73,7 @@ extern "C" {
 #include <strings.h>
 #include <sys/types.h>
 #include <netinet/in.h>
+#include <pwd.h>
 #ifdef __MACH__
 #include <sysent.h>
 #include <libc.h>
@@ -92,18 +93,6 @@ extern "C" {
 #include <prs.h>
 #include "auth2.h"
 
-#ifdef NOTUSED
-extern int SetHost(int write, int index, char *AuthHost);
-extern void GetVSTAB();
-#endif
-
-int main(int argc, char **argv);
-
-#ifdef NOTUSED
-PRIVATE int DoBinding(char *viceName, char *vicePasswd);
-PRIVATE int TryBinding(char *viceName, char *vicePasswd, char *AuthHost);
-#endif
-
 PRIVATE void SetGlobals(int argc, char **argv);
 PRIVATE int GetVid(char *s, int *id);
 
@@ -120,43 +109,46 @@ PRIVATE int DeleteUserFlag;
 PRIVATE int ChangePasswordFlag;
 
 PRIVATE int MyViceId;
-PRIVATE char MyViceName[PRS_MAXNAMELEN];
-PRIVATE char MyPassword[100];
 PRIVATE RPC2_Handle AuthCid;
 
 
 int main(int argc, char **argv)
-    {
+{
     register int rc;
+    char MyViceName[PRS_MAXNAMELEN];
+    char MyPassword[100];
+    char cname[PRS_MAXNAMELEN];
+    RPC2_EncryptionKey ek;
+    
+    bzero(ek, sizeof(ek));
+    bzero(cname, sizeof(cname));
+    bzero(MyViceName, sizeof(MyViceName));
+    bzero(MyPassword, sizeof(MyPassword));    
     
     SetGlobals(argc, argv);
     U_InitRPC();
+
     printf("Your Vice name: ");
     gets(MyViceName);
     strcpy(MyPassword, getpass("Your password: "));
 
-#ifdef NOTUSED
-    rc = DoBinding(MyViceName, MyPassword);
-#else
     rc = U_BindToServer(DefAuthHost, MyViceName, MyPassword, &AuthCid);
-#endif
 
     printf("RPC2_Bind() --> %s\n", RPC2_ErrorMsg(rc));
     if (rc < RPC2_ELIMIT) exit(-1);
 
-    if (ChangePasswordFlag)
-	{
+    if (ChangePasswordFlag) {
 	char buf[100];
-	RPC2_EncryptionKey ek;
 	int rc;
 	int cpid;
-	char cname[PRS_MAXNAMELEN];
+
+	bzero(buf, sizeof(buf));
 
 	printf("User name: ");
 	gets(cname);
 	printf("New password: ");
 	gets(buf);
-	bzero(ek, RPC2_KEYSIZE);
+	
 	strncpy((char *)ek, buf, RPC2_KEYSIZE);
 	
 	if (GetVid(cname, &cpid) < 0) goto Done;
@@ -165,12 +157,10 @@ int main(int argc, char **argv)
 	if (rc < 0)
 	    printf("AuthChangePasswd() --> %s\n", RPC2_ErrorMsg(rc));
 	else printf("AuthChangePasswd() --> %s\n", U_AuthErrorMsg(rc));
-	}
+    }
 	
-    if (DeleteUserFlag)
-	{
+    if (DeleteUserFlag) {
 	int vid;
-	char cname[PRS_MAXNAMELEN];
 
 	printf("Vice user to delete: ");
 	gets(cname);
@@ -180,109 +170,47 @@ int main(int argc, char **argv)
 	rc = AuthDeleteUser(AuthCid, vid);
 	if (rc < 0)
 	    printf("AuthDeleteUser() --> %s\n", RPC2_ErrorMsg(rc));
-	else printf("AuthDeleteUser() --> %s\n", U_AuthErrorMsg(rc));
-	}
+	else 
+	    printf("AuthDeleteUser() --> %s\n", U_AuthErrorMsg(rc));
+    }
 
-    if (ChangeUserFlag || NewUserFlag)
-	{
+    if (ChangeUserFlag || NewUserFlag)	{
 	char buf[100];
-	RPC2_EncryptionKey ek;
 	int rc, cpid;
-	char otherinfo[200], cname[PRS_MAXNAMELEN];
+	char otherinfo[200];
 
+	bzero(otherinfo, sizeof(otherinfo));
 	printf("Vice user: ");
 	gets(cname);
 	printf("New password: ");
 	gets(buf);
-	bzero(ek, RPC2_KEYSIZE);
 	strncpy((char *)ek, buf, RPC2_KEYSIZE);
 	printf("New info: ");
 	gets(otherinfo);
 	
 	if (GetVid(cname, &cpid) < 0) goto Done;
-	if (ChangeUserFlag)
-	    {
+	if (ChangeUserFlag) {
 	    rc = AuthChangeUser(AuthCid, cpid, ek, (RPC2_String)otherinfo);
 	    if (rc < 0)
 		printf("AuthChangeUser() --> %s\n", RPC2_ErrorMsg(rc));
 	    else printf("AuthChangeUser() --> %s\n", U_AuthErrorMsg(rc));
-	    }
-	else
-	    {
+	} else {
 	    rc = AuthNewUser(AuthCid, cpid, ek, (RPC2_String)otherinfo);
 	    if (rc < 0)
 		printf("AuthNewUser() --> %s\n", RPC2_ErrorMsg(rc));
 	    else printf("AuthNewUser() --> %s\n", U_AuthErrorMsg(rc));
 	    
-	    }
 	}
+    }
 	
 Done:
     RPC2_Unbind(AuthCid);
     return(0);
-    }
-
-
-#ifdef NOTUSED
-
-PRIVATE int DoBinding(char *viceName, char *vicePasswd)
-    /* Binds to (AuthHost, AuthPortal) on behalf of viceId using vicePasswd
-	as password.  Sets AuthCid to the value of the connection id.
-    */
-    	
-{
-    int rc, i = 0;
-    char AuthHost[128];
-
-    if (DefAuthHost) {
-        rc = TryBinding(viceName, vicePasswd, DefAuthHost);
-    } else {
-        GetVSTAB();
-        while (1) {
-	    if (SetHost(1, i, AuthHost) == 0) {
-                rc = TryBinding(viceName, vicePasswd, AuthHost);
-                if (rc == 0 || rc == RPC2_NOTAUTHENTICATED)
-		    return (rc);
-                i++;
-	    } else {
-                return(rc);
-	    }
-	}
-    }
-    return(rc);
 }
 
-
-PRIVATE int TryBinding(char *viceName, char *vicePasswd, char *AuthHost)
-{
-    RPC2_HostIdent hident;
-    RPC2_PortalIdent pident;
-    RPC2_SubsysIdent sident;
-    RPC2_EncryptionKey hkey;
-    RPC2_CountedBS cident;
-    long rc;
-
-    hident.Tag = RPC2_HOSTBYNAME;
-    strcpy(hident.Value.Name, AuthHost);
-    pident.Tag = RPC2_PORTALBYNAME;
-    strcpy(pident.Value.Name, AuthPortal);
-    sident.Tag = RPC2_SUBSYSBYID;
-    sident.Value.SubsysId = htonl(AUTH_SUBSYSID);
-
-    cident.SeqLen = 1+strlen(viceName);
-    cident.SeqBody = (RPC2_ByteSeq)viceName;
-    bzero(hkey, RPC2_KEYSIZE);
-    bcopy(vicePasswd, hkey, RPC2_KEYSIZE);
-    rc = RPC2_Bind(RPC2_SECURE, RPC2_XOR, &hident, &pident, &sident, NULL,
-	&cident, hkey, &AuthCid);
-
-    return (rc);
-}
-#endif
-
+/* Set globals from command line args */
 PRIVATE void SetGlobals(int argc, char **argv)
-    /* Set globals from command line args */
-    {
+{
     register int i;
     for (i = 1; i < argc; i++)
 	{
@@ -339,11 +267,11 @@ PRIVATE void SetGlobals(int argc, char **argv)
 	printf("Usage: au [-x] [-h host] [-p portal]  {gt,cp,cu,nu,du}\n");
 	exit(-1);
 	}
-    }
+}
 
 
 PRIVATE int GetVid(char *s, int *id)
-    {
+{
     int rc;
     rc = AuthNameToId(AuthCid, (RPC2_String)s, (RPC2_Integer *)id);
     if (rc == AUTH_SUCCESS) return(0);
@@ -351,4 +279,4 @@ PRIVATE int GetVid(char *s, int *id)
 	printf("AuthNameToId() --> %s\n", RPC2_ErrorMsg(rc));
     else   printf("AuthNameToId() --> %s\n", U_AuthErrorMsg(rc));
     return(-1);
-    }
+}
