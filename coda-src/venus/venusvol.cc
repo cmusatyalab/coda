@@ -2429,6 +2429,8 @@ VenusFid repvol::GenerateLocalFid(ViceDataType fidtype)
     else 
 	    FID_MakeDiscoFile(MakeViceFid(&fid), vid, FidUnique);
 
+    fid.Realm = realm->Id();
+
     Recov_BeginTrans();
     RVMLIB_REC_OBJECT(FidUnique);
     FidUnique++;
