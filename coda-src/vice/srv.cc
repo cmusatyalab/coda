@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /home/braam/src/coda-src/vice/RCS/srv.cc,v 1.3 1996/12/09 22:42:10 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vice/srv.cc,v 4.1 1997/01/08 21:51:58 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -331,6 +331,15 @@ void zombie(int sig, int code, struct sigcontext *scp) {
     LogMsg(0, 0, stdout, "To debug via gdb: attach %d, setcontext OldContext", getpid());
     LogMsg(0, 0, stdout, "Becoming a zombie now ........");
     task_suspend(task_self());
+#else
+    LogMsg(0, 0, stdout, "Becoming a zombie now ........");
+    LogMsg(0, 0, stdout, "You may use gdb to attach to %d", getpid());
+    {
+	int living_dead = 1;
+	while (living_dead) {
+	    sleep(1000000);	/* forever sleep, pending gdb attach */
+	}
+    }
 #endif
     }
 
