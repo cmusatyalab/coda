@@ -35,7 +35,7 @@
 # changes  without  encumbrance.   Such improvements and extensions
 # should be returned to Software.Distribution@cs.cmu.edu.
 #
-# rcsid = $Header: Makefile.in,v 4.1 97/01/08 21:54:47 rvb Exp $
+# rcsid = $Header: /afs/cs/project/coda-src/cvs/coda/rvm-src/tests/Makefile.in,v 4.2 1997/04/29 21:27:25 rvb Exp $
 #
 
 #   	RVM Test Programs Makefile
@@ -51,13 +51,18 @@ TOPOBJ = @TOPOBJ@
 # Need to conditionalize this
 include $(MAKDIR)/Makeconf
 
-EXECUTABLES = testrvm rvm_basher
-TESTS = testrvm rvm_basher
+EXECUTABLES = testrvm rvm_basher lwp_basher
+TESTS = testrvm rvm_basher lwp_basher
 
 TESTRVM_LIBS    = $(LIBRVM) $(LIBCOMPAT) $(LIBMACH)
 RVM_BASHER_LIBS = $(LIBRDS) $(LIBSEG) $(LIBRVM) $(LIBCOMPAT) $(LIBMACH)
 LWP_BASHER_LIBS = $(LIBRDSLWP) $(LIBSEG) $(LIBRVMLWP) $(LIBOLDLWP) \
-		  $(LIBPLUMBER) $(LIBMACH)
+		  $(LIBMACH)
+
+# re-install this when libplumber is ready, for mach platform -- clement
+# LWP_BASHER_LIBS = $(LIBRDSLWP) $(LIBSEG) $(LIBRVMLWP) $(LIBOLDLWP) \
+#                  $(LIBPLUMBER) $(LIBMACH)
+# CFLAGS := $(CFLAGS) -DHAS_PLUMBER
 
 # CFLAGS = -g3 -O2 -I/afs/cs.cmu.edu/user/tilt/rvm-top/include
 
