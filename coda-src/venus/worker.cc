@@ -546,6 +546,8 @@ int k_Purge() {
 
 
 int k_Purge(ViceFid *fid, int severely) {
+    size_t size;
+
     if (KernelMask == 0) return(1);
 
     LOG(100, ("k_Purge: fid = (%x.%x.%x), severely = %d\n",
@@ -560,22 +562,26 @@ int k_Purge(ViceFid *fid, int severely) {
 	msg.coda_purgefid.oh.opcode = CODA_PURGEFID;
 	msg.coda_purgefid.oh.unique = 0;
 	msg.coda_purgefid.CodaFid = *fid;
+	size = sizeof(msg.coda_purgefid);
     } else if (ISDIR(*fid)) {
 	msg.coda_zapdir.oh.opcode = CODA_ZAPDIR;
 	msg.coda_zapdir.oh.unique = 0;
 	msg.coda_zapdir.CodaFid = *fid;
+	size = sizeof(msg.coda_zapdir);
     } else {
 	msg.coda_zapfile.oh.opcode = CODA_ZAPFILE;
 	msg.coda_zapfile.oh.unique = 0;
 	msg.coda_zapfile.CodaFid = *fid;
+	size = sizeof(msg.coda_zapfile);
     }	
 
     /* Send the message. */
-    if (MsgWrite((char *)&msg, (int) sizeof(msg)) !=  (int) sizeof(msg)) {
+    if (MsgWrite((char *)&msg, (int) size) !=  size) {
 	retcode = errno;
-	CHOKE("k_Purge: %s, message write fails: errno %d", 
+	LOG(0, ("k_Purge: %s, message write fails: errno %d\n", 
 	      msg.oh.opcode == CODA_PURGEFID ? "CODA_PURGEFID" :
-	      msg.oh.opcode == CODA_ZAPFILE ? "CODA_ZAPFILE" : "CODA_ZAPDIR", retcode);
+	      msg.oh.opcode == CODA_ZAPFILE ? "CODA_ZAPFILE" : "CODA_ZAPDIR",
+	      retcode));
     }
 
     LOG(100, ("k_Purge: %s, returns %d\n", 
