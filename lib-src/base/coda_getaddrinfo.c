@@ -120,8 +120,6 @@ static int resolve_host(const char *name, int port, const struct summary *sum,
     struct hostent *he;
     int i, resolved = 0;
 
-    //fprintf(stderr, "resolving %s\n", name);
-
 #ifdef HAVE_GETIPNODEBYNAME
     int err, flags = (sum->family == PF_INET6) ? AI_ALL : 0;
 
@@ -179,8 +177,6 @@ static int resolve_host(const char *name, int port, const struct summary *sum,
 
 	ai->ai_addrlen = sizeof(*sin);
 	ai->ai_addr = (struct sockaddr *)sin;
-
-	//fprintf(stderr, "got server %s:%d\n", inet_ntoa(sin->sin_addr), ntohs(sin->sin_port));
 
 	if (sum->flags & AI_CANONNAME)
 	    ai->ai_canonname = strdup(he->h_name);
@@ -244,8 +240,6 @@ static int parse_res_reply(char *answer, int alen, const struct summary *sum,
 	    continue;
 	}
 
-	//fprintf(stderr, "got srv record for %s:%d\n", name, port);
-
 	tmperr = resolve_host(name, port, sum, priority, weight, res);
 	if (err == EAI_AGAIN)
 	    err = tmperr;
@@ -259,6 +253,9 @@ static int do_srv_lookup(const char *realm, const char *service,
     char answer[1024], *srvdomain;
     int len;
     
+#ifdef TESTING
+    fprintf(stderr, "Doing SRV record lookup for %s %s\n", realm, service);
+#endif
     srvdomain = srvdomainname(realm, service, sum);
     if (!srvdomain)
 	return EAI_MEMORY;
@@ -334,7 +331,7 @@ int coda_getaddrinfo(const char *node, const char *service,
     if (*service == '\0' || *end != '\0')
 	port = 0;
 
-    if (!is_ip && port != 0)
+    if (!is_ip && !port)
 	/* try to find SRV records */
 	err = do_srv_lookup(tmpnode, service, &sum, &srvs);
     else
@@ -349,8 +346,11 @@ int coda_getaddrinfo(const char *node, const char *service,
 		free(tmpnode);
 		return EAI_SERVICE;
 	    }
-	    port = se->s_port;
+	    port = ntohs(se->s_port);
 	}
+#ifdef TESTING
+	fprintf(stderr, "Doing A record lookup for %s\n", tmpnode);
+#endif
 	err = resolve_host(tmpnode, port, &sum, 0, 0, &srvs);
     }
 
