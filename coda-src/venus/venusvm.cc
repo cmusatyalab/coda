@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/venusvm.cc,v 4.12 98/09/15 14:28:05 jaharkes Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/venusvm.cc,v 4.13 98/09/23 20:26:35 jaharkes Exp $";
 #endif /*_BLURB_*/
 
 
@@ -269,8 +269,8 @@ static struct nlist RawStats[3];
 #else
 long RawStats[3];
 #endif
-static struct cfs_op_stats vfsop_init_stats[CFS_VFSOPS_SIZE];
-static struct cfs_op_stats vnode_init_stats[CFS_VNODEOPS_SIZE];
+static struct coda_op_stats vfsop_init_stats[CODA_VFSOPS_SIZE];
+static struct coda_op_stats vnode_init_stats[CODA_VNODEOPS_SIZE];
 
 /* ***** Private routines  ***** */
 
@@ -344,11 +344,11 @@ void VmonInit() {
 
     lseek(kmem, (long)RawStats[0].n_value, 0);
     read(kmem, (char *)vfsop_init_stats, 
-	 (int) (sizeof(struct cfs_op_stats)*CFS_VFSOPS_SIZE));
+	 (int) (sizeof(struct cfs_op_stats)*CODA_VFSOPS_SIZE));
     
     lseek(kmem, (long)RawStats[1].n_value, 0);
     read(kmem, (char*)vnode_init_stats,
-	 (int)(sizeof(struct cfs_op_stats)*CFS_VNODEOPS_SIZE));
+	 (int)(sizeof(struct cfs_op_stats)*CODA_VNODEOPS_SIZE));
 
     VmonSessionEventArraySize = (int) sizeof(VmonSessionEventArray);
 
@@ -648,14 +648,14 @@ static void CheckMC() {       // Check minicache stats
     if (Time - LastTime < VmonMiniCacheInterval) return;
     LastTime = Time;
 
-    struct cfs_op_stats vfsop_stats[CFS_VFSOPS_SIZE];
-    struct cfs_op_stats vnode_stats[CFS_VNODEOPS_SIZE];
+    struct cfs_op_stats vfsop_stats[CODA_VFSOPS_SIZE];
+    struct cfs_op_stats vnode_stats[CODA_VNODEOPS_SIZE];
 
     lseek(kmem, (long)RawStats[0].n_value, 0);
     read(kmem, (char *)vfsop_stats, 
-	 (int)(sizeof(struct cfs_op_stats)*CFS_VFSOPS_SIZE));
+	 (int)(sizeof(struct cfs_op_stats)*CODA_VFSOPS_SIZE));
     
-    for (i=0; i<CFS_VFSOPS_SIZE; i++) {
+    for (i=0; i<CODA_VFSOPS_SIZE; i++) {
 	vfsop_stats[i].opcode = i;
 	vfsop_stats[i].entries -= vfsop_init_stats[i].entries;
 	vfsop_stats[i].sat_intrn -= vfsop_init_stats[i].sat_intrn;
@@ -665,9 +665,9 @@ static void CheckMC() {       // Check minicache stats
 
     lseek(kmem, (long)RawStats[1].n_value, 0);
     read(kmem, (char*)vnode_stats,
-	 (int)(sizeof(struct cfs_op_stats)*CFS_VNODEOPS_SIZE));
+	 (int)(sizeof(struct cfs_op_stats)*CODA_VNODEOPS_SIZE));
 
-    for (i=0; i<CFS_VNODEOPS_SIZE; i++) {
+    for (i=0; i<CODA_VNODEOPS_SIZE; i++) {
 	vnode_stats[i].opcode = i;
 	vnode_stats[i].entries -= vnode_init_stats[i].entries;
 	vnode_stats[i].sat_intrn -= vnode_init_stats[i].sat_intrn;
@@ -680,9 +680,9 @@ static void CheckMC() {       // Check minicache stats
     long code = VmonReportMiniCache (VmonHandle,
 				    &MyVenusId,
 				    Vtime(),
-				    CFS_VNODEOPS_SIZE,
+				    CODA_VNODEOPS_SIZE,
 				    (VmonMiniCacheStat *)vnode_stats,
-				    CFS_VFSOPS_SIZE,
+				    CODA_VFSOPS_SIZE,
 				    (VmonMiniCacheStat *)vfsop_stats);
     CheckVmonResult(code);
     if (LogLevel >= 100) 
