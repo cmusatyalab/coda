@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/src/coda-4.0.1/RCSLINK/./coda-src/fail/ttyfcon.c,v 1.1 1996/11/22 19:09:23 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/fail/ttyfcon.c,v 4.1 1997/01/08 21:49:39 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -55,6 +55,7 @@ static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/src/coda-4.0.1
 #include <sys/socket.h>
 #include <ci.h>
 #include <del.h>
+#include <netinet/in.h>
 #include "fail.h"
 
 extern void ntohFF(FailFilter *);
