@@ -199,11 +199,19 @@ AC_DEFUN(CODA_CHECK_KERBEROS,
     AC_CHECK_HEADERS(krb5.h com_err.h)
     if test "$ac_cv_header_krb5_h" = yes -a "$ac_cv_header_com_err_h" = yes ; then
 	AC_SEARCH_LIBS(krb5_init_context, krb5,
-	    [LIBKRB5="$ac_cv_search_krb5_init_context -lk5crypto -lcom_err"
+	    [LIBKRB5="$ac_cv_search_krb5_init_context"
 	     LIBS="$ac_func_search_save_LIBS"])
-	AC_DEFINE(HAVE_KRB5, 1, [Define if kerberos 5 is available])
+	AC_SEARCH_LIBS(krb5_encrypt, k5crypto,
+	    [LIBKRB5="${LIBKRB5} $ac_cv_search_krb5_encrypt"
+	     LIBS="$ac_func_search_save_LIBS"])
+	AC_SEARCH_LIBS(com_err, com_err,
+	    [LIBKRB5="${LIBKRB5} $ac_cv_search_com_err"
+	     LIBS="$ac_func_search_save_LIBS"])
+	if test -n "${LIBKRB5}" ; then
+	    AC_DEFINE(HAVE_KRB5, 1, [Define if kerberos 5 is available])
+	fi
     else
-	AC_MSG_WARN([Couldn't find krb5.h or com_err.h headers, not using kerberos 5])
+	AC_MSG_WARN([Couldn't find krb5.h and com_err.h headers, not using kerberos 5])
     fi
 
     AC_CHECK_HEADERS(krb.h des.h)
@@ -211,9 +219,11 @@ AC_DEFUN(CODA_CHECK_KERBEROS,
 	AC_SEARCH_LIBS(krb_get_lrealm, krb4,
 	    [LIBKRB4="$ac_cv_search_krb_get_lrealm"
 	     LIBS="$ac_func_search_save_LIBS"])
-	AC_DEFINE(HAVE_KRB4, 1, [Define if kerberos 4 is available])
+	if test -n "${LIBKRB4}" ; then
+	    AC_DEFINE(HAVE_KRB4, 1, [Define if kerberos 4 is available])
+	fi
     else
-	AC_MSG_WARN([Couldn't find krb.h or des.h headers, not using kerberos 4])
+	AC_MSG_WARN([Couldn't find krb.h and des.h headers, not using kerberos 4])
     fi
    fi])
 
@@ -258,7 +268,10 @@ AC_DEFUN(CODA_OPTION_LIBRARY,
    AC_ARG_WITH($1-libraries,
     [  --with-$1-libraries=DIR	$1 library files are in DIR],
     [ pfx="`(cd ${withval} ; pwd)`"
-      LDFLAGS="${LDFLAGS} -L${pfx}"]) ])
+      LDFLAGS="${LDFLAGS} -L${pfx}"
+      if test x$RFLAG != x ; then
+            LDFLAGS="${LDFLAGS} -R${coda_cv_path_$1}/lib "
+      fi]) ])
 
 AC_DEFUN(CODA_OPTION_CRYPTO,
   [AC_ARG_WITH(crypto,
@@ -288,8 +301,7 @@ AC_DEFUN(CODA_FIND_LIB,
           ;;
     default)
 	  ;;
-    *)    CFLAGS="-I${coda_cv_path_$1}/include ${CFLAGS}"
-          CXXFLAGS="-I${coda_cv_path_$1}/include ${CXXFLAGS}"
+    *)    CPPFLAGS="-I${coda_cv_path_$1}/include ${CPPFLAGS}"
           LDFLAGS="${LDFLAGS} -L${coda_cv_path_$1}/lib" 
 	  if test x$RFLAG != x ; then
             LDFLAGS="${LDFLAGS} -R${coda_cv_path_$1}/lib "
