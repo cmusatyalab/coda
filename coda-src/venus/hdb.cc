@@ -678,7 +678,7 @@ void hdb::ValidateCacheStatus(vproc *vp, int *interrupt_failures, int *statusByt
 	        statusBytesFetched += tf->stat.Length;
 
 	    FSDB->Put(&tf);
-	    int retry_call = 0;
+	    int retry_call;
 	    vp->End_VFS(&retry_call);
 
 	    if (!retry_call) break;
@@ -728,7 +728,7 @@ void hdb::ValidateCacheStatus(vproc *vp, int *interrupt_failures, int *statusByt
 			    tfid.Volume, tfid.Vnode, tfid.Unique, f->fid.Volume, 
 			    f->fid.Vnode, f->fid.Unique));
 		if (f->fid.Volume == 0)
-		    LOG(0, ("HoardWalk vid=0, f->fid=<%x.%x.%x>", 
+		    LOG(0, ("HoardWalk vid=0, f->fid=<%x.%x.%x>", f->fid.Volume,
 			    f->fid.Volume, f->fid.Vnode, f->fid.Unique));
 		f->print();
 	    }

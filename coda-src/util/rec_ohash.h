@@ -16,14 +16,6 @@ listed in the file CREDITS.
 
 #*/
 
-
-
-
-
-
-
-
-
 /*
  *
  *    rec_ohash.h -- Specification of hash-table type where each bucket is a recoverable
