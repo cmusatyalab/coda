@@ -143,8 +143,14 @@ typedef struct ViceFid {
 #endif	/* VICEFID */
 
 
+#ifdef __linux__
+#define coda_f2i(fid)\
+	(fid) ? (((fid)->Volume << 20) | ((fid)->Unique & 0xfffff)) : 0
+#else
 #define coda_f2i(fid)\
 	(fid) ? ((fid)->Unique + ((fid)->Vnode<<10) + ((fid)->Volume<<20)) : 0
+#endif
+
 
 #ifndef __BIT_TYPES_DEFINED__
 #define u_int32_t unsigned int

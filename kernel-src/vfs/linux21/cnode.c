@@ -93,8 +93,7 @@ int coda_cnode_make(struct inode **inode, ViceFid *fid, struct super_block *sb)
 		INIT_LIST_HEAD(&(cnp->c_volrootlist));
 	} else {
 	        cnp->c_flags = 0;
-		CDEBUG(D_CNODE, "coda_cnode make on initialized"
-		       "inode %ld, %s!\n",
+		printk("coda_cnode make on initialized inode %ld, %s!\n",
 		       (*inode)->i_ino, coda_f2s(&cnp->c_fid));
 	}
 
