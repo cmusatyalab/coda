@@ -150,9 +150,6 @@ const int HDB_NBUCKETS = 2048;
 const int HDBENT_MagicNumber = 8204933;
 const int HDBMaxFreeEntries = 32;
 
-const int BLOCKS_PER_HDBE = 48;
-const int MIN_HDBE = MIN_CB / BLOCKS_PER_HDBE;
-
 
 /*  *****  Types  *****  */
 

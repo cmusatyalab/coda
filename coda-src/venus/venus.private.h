@@ -90,9 +90,18 @@ extern "C" {
 #define	DFLT_CD	"/usr/coda/venus.cache"	    /* cache directory */
 #endif
 
-const int MIN_CB = 2048;
-#define UNSET_PRIMARYUSER 0		    /* primary user of this machine */
+/* rule of thumb */
+const int BLOCKS_PER_FILE = 24;
+const int MLES_PER_FILE = 4;
+const int FILES_PER_HDBE = 2;
 
+const int MIN_CB = 2048;
+const int MIN_CF = MIN_CB / BLOCKS_PER_FILE;
+const int MIN_MLE = MIN_CF * MLES_PER_FILE;
+const int MIN_HDBE = MIN_CF / FILES_PER_HDBE;
+
+
+#define UNSET_PRIMARYUSER 0		    /* primary user of this machine */
 const int FREE_FACTOR = 16;
 
 

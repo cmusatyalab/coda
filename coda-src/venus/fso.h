@@ -92,9 +92,6 @@ const int FSDB_MagicNumber = 3620289;
 const int FSDB_NBUCKETS = 2048;
 const int FSO_MagicNumber = 2687694;
 
-const int BLOCKS_PER_FILE = 24;			    /* rule of thumb */
-const int MIN_CF = MIN_CB / BLOCKS_PER_FILE;
-
 const int MAX_PIGGY_VALIDATIONS = 50;
 
 /* Priorities. */

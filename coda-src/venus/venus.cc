@@ -463,7 +463,7 @@ static void DefaultCmdlineParms()
 
     CODACONF_INT(MLEs, "cml_entries", 0);
     {
-	if (!MLEs) MLEs = CacheBlocks / BLOCKS_PER_MLE;
+	if (!MLEs) MLEs = CacheFiles * MLES_PER_FILE;
 
 	if (MLEs < MIN_MLE) {
 	    eprint("Cannot start: minimum number of cml entries is %d",MIN_MLE);
@@ -473,7 +473,7 @@ static void DefaultCmdlineParms()
 
     CODACONF_INT(HDBEs, "hoard_entries", 0);
     {
-	if (!HDBEs) HDBEs = CacheBlocks / BLOCKS_PER_HDBE;
+	if (!HDBEs) HDBEs = CacheFiles / FILES_PER_HDBE;
 
 	if (HDBEs < MIN_HDBE) {
 	    eprint("Cannot start: minimum number of hoard entries is %d",
