@@ -232,9 +232,20 @@ int nt_initialize_ipc (int sock)
 			  OPEN_EXISTING, 0, NULL);
 
     if (kerndev == INVALID_HANDLE_VALUE) {
-	eprint ("nt_initialize_ipc: CreateFile failed. "
-		"Is the coda service started?");
-	return 0; 
+        int rv ;
+
+	eprint ("nt_initialize_ipc: trying to start coda file system.");
+	rv = system ("net start coda");  // Ignore value.
+	kerndev = CreateFile ("\\\\.\\codadev", GENERIC_READ | GENERIC_WRITE,
+			      FILE_SHARE_READ | FILE_SHARE_WRITE, NULL,
+			      OPEN_EXISTING, 0, NULL);
+
+	if (kerndev == INVALID_HANDLE_VALUE) {
+        
+	    eprint ("nt_initialize_ipc: CreateFile failed. "
+		    "Is the coda installed properly?");
+	    return 0; 
+	}
     } 
 
     // Other initialization
