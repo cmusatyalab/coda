@@ -991,7 +991,7 @@ static void create_rep(void)
     long groupid;
 
     if (these_args != 5 && these_args != 6) {
-	fprintf(stderr, "Usage:  volutil create_rep partition-path volumeName grpid [rw-volid]\n");
+	fprintf(stderr, "Usage: volutil create_rep partition volumename replicated-volid [replica-volid]\n");
 	exit(-1);
     }
     partition = this_argp[2];
