@@ -28,7 +28,7 @@ CFLAGS  := -D__KERNEL__ $(INCL)   $(DEFINES)  $(CFLAGS)
 
 
 coda.o: $(OBJS)
-	$(LD) -m elf_i386 -r -o $@ $(OBJS)
+	$(LD) -m "`ld --help | awk '/supported emulations/ {print $$4}'`" -r -o $@ $(OBJS)
 
 include $(MAKDIR)/Makerules
 
