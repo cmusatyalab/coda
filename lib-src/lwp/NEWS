@@ -1,6 +1,6 @@
 New in 1.11:
 
-* (not yet released)
+* Updated to automake 1.7, autoconf 2.52, libtool 1.5.2
 * Some pthreaded lwp issues.
 * Corrected substitution when register_t is not defined.
 
