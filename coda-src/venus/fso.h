@@ -614,45 +614,46 @@ class fsobj {
 
     /* Private portions of the CFS interface. */
     void LocalStore(Date_t, unsigned long);
-    int ConnectedStore(Date_t, vuid_t, unsigned long, ViceStoreId *sid);
-    int DisconnectedStore(Date_t, vuid_t, unsigned long, int, ViceStoreId *sid);
-    void LocalSetAttr(Date_t, unsigned long, Date_t, vuid_t, unsigned short);
-    int ConnectedSetAttr(Date_t, vuid_t, unsigned long, Date_t, vuid_t,
-                         unsigned short, RPC2_CountedBS *);
-    int DisconnectedSetAttr(Date_t, vuid_t, unsigned long, Date_t, vuid_t,
-                            unsigned short, int);
-    void LocalCreate(Date_t, fsobj *, char *, vuid_t, unsigned short);
-    int ConnectedCreate(Date_t, vuid_t, fsobj **, char *, unsigned short, int,
-                        ViceStoreId *sid);
-    int DisconnectedCreate(Date_t, vuid_t, fsobj **, char *, unsigned short,
-                           int, int, ViceStoreId *sid);
+    int ConnectedStore(Date_t, vuid_t, unsigned long);
+    int DisconnectedStore(Date_t, vuid_t, unsigned long, int);
+    void LocalSetAttr(Date_t, unsigned long, Date_t,
+		       vuid_t, unsigned short);
+    int ConnectedSetAttr(Date_t, vuid_t, unsigned long, Date_t,
+			  vuid_t, unsigned short, RPC2_CountedBS *);
+    int DisconnectedSetAttr(Date_t, vuid_t, unsigned long, Date_t,
+			     vuid_t, unsigned short, int);
+    void LocalCreate(Date_t, fsobj *, char *,
+		      vuid_t, unsigned short);
+    int ConnectedCreate(Date_t, vuid_t, fsobj **,
+			 char *, unsigned short, int);
+    int DisconnectedCreate(Date_t, vuid_t, fsobj **,
+			    char *, unsigned short, int, int);
     void LocalRemove(Date_t, char *, fsobj *);
-    int ConnectedRemove(Date_t, vuid_t, char *, fsobj *, ViceStoreId *sid);
-    int DisconnectedRemove(Date_t, vuid_t, char *, fsobj *, int,
-                           ViceStoreId *sid);
+    int ConnectedRemove(Date_t, vuid_t, char *, fsobj *);
+    int DisconnectedRemove(Date_t, vuid_t, char *, fsobj *, int);
     void LocalLink(Date_t, char *, fsobj *);
-    int ConnectedLink(Date_t, vuid_t, char *, fsobj *, ViceStoreId *sid);
-    int DisconnectedLink(Date_t, vuid_t, char *, fsobj *, int,
-                         ViceStoreId *sid);
-    void LocalRename(Date_t, fsobj *, char *, fsobj *, char *, fsobj *);
-    int ConnectedRename(Date_t, vuid_t, fsobj *, char *, fsobj *, char *,
-                        fsobj *, ViceStoreId *sid);
-    int DisconnectedRename(Date_t, vuid_t, fsobj *, char *, fsobj *, char *,
-                           fsobj *, int, ViceStoreId *Xsid, ViceStoreId *sid);
+    int ConnectedLink(Date_t, vuid_t, char *, fsobj *);
+    int DisconnectedLink(Date_t, vuid_t, char *, fsobj *, int);
+    void LocalRename(Date_t, fsobj *, char *,
+		      fsobj *, char *, fsobj *);
+    int ConnectedRename(Date_t, vuid_t, fsobj *,
+			 char *, fsobj *, char *, fsobj *);
+    int DisconnectedRename(Date_t, vuid_t, fsobj *,
+			    char *, fsobj *, char *, fsobj *, int);
     void LocalMkdir(Date_t, fsobj *, char *, vuid_t, unsigned short);
-    int ConnectedMkdir(Date_t, vuid_t, fsobj **, char *, unsigned short, int,
-                       ViceStoreId *sid);
-    int DisconnectedMkdir(Date_t, vuid_t, fsobj **, char *, unsigned short,
-                          int, int, ViceStoreId *sid);
+    int ConnectedMkdir(Date_t, vuid_t, fsobj **,
+			char *, unsigned short, int);
+    int DisconnectedMkdir(Date_t, vuid_t, fsobj **,
+			   char *, unsigned short, int, int);
     void LocalRmdir(Date_t, char *, fsobj *);
-    int ConnectedRmdir(Date_t, vuid_t, char *, fsobj *, ViceStoreId *sid);
-    int DisconnectedRmdir(Date_t, vuid_t, char *, fsobj *, int,
-                          ViceStoreId *sid);
-    void LocalSymlink(Date_t, fsobj *, char *, char *, vuid_t, unsigned short);
+    int ConnectedRmdir(Date_t, vuid_t, char *, fsobj *);
+    int DisconnectedRmdir(Date_t, vuid_t, char *, fsobj *, int);
+    void LocalSymlink(Date_t, fsobj *, char *,
+		       char *, vuid_t, unsigned short);
     int ConnectedSymlink(Date_t, vuid_t, fsobj **, char *,
-			  char *, unsigned short, int, ViceStoreId *sid);
-    int DisconnectedSymlink(Date_t, vuid_t, fsobj **, char *, char *, unsigned
-                            short, int, int, ViceStoreId *sid);
+			  char *, unsigned short, int);
+    int DisconnectedSymlink(Date_t, vuid_t, fsobj **, char *,
+			     char *, unsigned short, int, int);
 
   public:
     /* The public CFS interface (Vice portion). */

@@ -114,29 +114,20 @@ int volent::EnableRepair(vuid_t vuid, VolumeId *RWVols,
 /* local-repair modification */
 /* Attempt the Repair. */
 int volent::Repair(ViceFid *RepairFid, char *RepairFile, vuid_t vuid,
-		    VolumeId *RWVols, int *ReturnCodes)
-{
+		    VolumeId *RWVols, int *ReturnCodes) {
     
     LOG(100, ("volent::Repair: fid = (%x.%x.%x), file = %s, uid = %d\n",
 	       RepairFid->Volume, RepairFid->Vnode, RepairFid->Unique,
 	       RepairFile, vuid));
     if (!IsReplicated()) return(EINVAL);
-
-    Recov_BeginTrans();
-    ViceStoreId sid = GenerateStoreId();
-    Recov_EndTrans(MAXFP);
-    
     switch (state) {
     case Hoarding:
-	return ConnectedRepair(RepairFid, RepairFile, vuid, RWVols,
-                               ReturnCodes, &sid);
+	return ConnectedRepair(RepairFid, RepairFile, vuid, RWVols, ReturnCodes);
     case Logging:
 	if (1 /* to be replaced by a predicate for not being issued by ASR */)
-	    return ConnectedRepair(RepairFid, RepairFile, vuid, RWVols,
-                                   ReturnCodes, &sid);
+	    return ConnectedRepair(RepairFid, RepairFile, vuid, RWVols, ReturnCodes);
 	else
-	    return DisconnectedRepair(RepairFid, RepairFile, vuid, RWVols,
-                                      ReturnCodes, &sid);
+	    return DisconnectedRepair(RepairFid, RepairFile, vuid, RWVols, ReturnCodes);
     case Emulating:
 	return ETIMEDOUT;
     case Resolving:
@@ -148,9 +139,7 @@ int volent::Repair(ViceFid *RepairFid, char *RepairFile, vuid_t vuid,
 }
 
 int volent::ConnectedRepair(ViceFid *RepairFid, char *RepairFile, vuid_t vuid,
-			    VolumeId *RWVols, int *ReturnCodes,
-                            ViceStoreId *sid)
-{
+			    VolumeId *RWVols, int *ReturnCodes) {
 
     int code = 0;
     int i, j;
@@ -196,6 +185,10 @@ int volent::ConnectedRepair(ViceFid *RepairFid, char *RepairFile, vuid_t vuid,
 	    }
 	}
     }
+
+    Recov_BeginTrans();
+    ViceStoreId sid = GenerateStoreId();
+    Recov_EndTrans(MAXFP);
 
     mgrpent *m = 0;
     int asy_resolve = 0;
@@ -316,7 +309,7 @@ int volent::ConnectedRepair(ViceFid *RepairFid, char *RepairFile, vuid_t vuid,
 	code = MRPC_MakeMulti(ViceRepair_OP, ViceRepair_PTR,
 			      VSG_MEMBERS, m->rocc.handles,
 			      m->rocc.retcodes, m->rocc.MIp, 0, 0,
-			      RepairFid, statusvar_ptrs, sid, sedvar_bufs);
+			      RepairFid, statusvar_ptrs, &sid, sedvar_bufs);
 	MULTI_END_MESSAGE(ViceRepair_OP);
 	MarinerLog("store::repair done\n");
 
@@ -350,7 +343,7 @@ int volent::ConnectedRepair(ViceFid *RepairFid, char *RepairFile, vuid_t vuid,
     }
 
     /* Send the COP2 message.  Don't Piggy!  */
-    (void)COP2(m, sid, &UpdateSet);
+    (void)COP2(m, &sid, &UpdateSet);
 
 Exit:
     PutMgrp(&m);
@@ -385,9 +378,7 @@ Exit:
   END_HTML
 */
 int volent::DisconnectedRepair(ViceFid *RepairFid, char *RepairFile,
-			       vuid_t vuid, VolumeId *RWVols, int
-                               *ReturnCodes, ViceStoreId *sid)
-{
+			       vuid_t vuid, VolumeId *RWVols, int *ReturnCodes) {
     int code = 0;
     fsobj *RepairF = 0;
     ViceStatus status;
@@ -497,6 +488,7 @@ int volent::DisconnectedRepair(ViceFid *RepairFid, char *RepairFile,
 		FSDB->Put(&f);
 	    }
 	GetMaxVV(&tvv, RepairVVs, -2);
+	/* don't generate a new storeid yet - LogRepair will do that */
 
 	/* set up status block */
 	bzero((void *)&status, (int)sizeof(ViceStatus));
@@ -579,7 +571,7 @@ int volent::DisconnectedRepair(ViceFid *RepairFid, char *RepairFile,
 		  RepairFid->Volume, RepairFid->Vnode, RepairFid->Unique));
 	Recov_BeginTrans();
 	   code = LogRepair(Mtime, vuid, RepairFid, status.Length, status.Date,
-			    status.Owner, status.Mode, sid);
+			    status.Owner, status.Mode);
 	   /*
 	    * LogRepair puts a ViceRepair_OP record into the CML and it
 	    * will be reintegrated to the servers at the end of the ASR
@@ -614,9 +606,7 @@ int volent::DisconnectedRepair(ViceFid *RepairFid, char *RepairFile,
 }
 
 /* MUST be called from within a transaction */
-int volent::LocalRepair(fsobj *f, ViceStatus *status, char *fname,
-                        ViceFid *pfid)
-{
+int volent::LocalRepair(fsobj *f, ViceStatus *status, char *fname, ViceFid *pfid) {
     LOG(100, ("LocalRepair: %x.%x.%x local file %s \n",
 	      f->fid.Volume, f->fid.Vnode, f->fid.Unique, fname));
     RVMLIB_REC_OBJECT(*f);

@@ -70,15 +70,9 @@ int fsobj::RepairStore()
     Date_t Mtime = Vtime();
     unsigned long NewLength = stat.Length;
 
-    Recov_BeginTrans();
-    ViceStoreId sid = vol->GenerateStoreId();
-    Recov_EndTrans(MAXFP);
-
     if (LRDB->repair_session_mode == REP_SCRATCH_MODE) {
-	return DisconnectedStore(Mtime, vuid, NewLength,
-                                 LRDB->repair_session_tid, &sid);
+	return DisconnectedStore(Mtime, vuid, NewLength, LRDB->repair_session_tid);
     }
-
     int code = 0;
     char prel_str[256];
     sprintf(prel_str, "store::Store %%s [%ld]\n", NBLOCKS(NewLength));
@@ -128,6 +122,7 @@ int fsobj::RepairStore()
     OldVS.SeqBody = 0;
 
     if (flags.replicated) {
+	ViceStoreId sid;
 	mgrpent *m = 0;
 	int asy_resolve = 0;
 
@@ -140,6 +135,7 @@ int fsobj::RepairStore()
 	vv_t UpdateSet;
 
 	Recov_BeginTrans();
+	sid = vol->GenerateStoreId();
 	Recov_EndTrans(MAXFP);
 	{
 	    /* Make multiple copies of the IN/OUT and OUT parameters. */
@@ -226,6 +222,7 @@ RepExit:
     else {
 	/* Acquire a Connection. */
 	connent *c;
+	ViceStoreId Dummy;              /* ViceStore needs an address for indirection */
 	code = vol->GetConn(&c, vuid);
 	if (code != 0) goto NonRepExit;
 
@@ -234,7 +231,7 @@ RepExit:
 	UNI_START_MESSAGE(ViceNewVStore_OP);
 	code = (int) ViceNewVStore(c->connid, &fid, StoreStatusData,
 				   acl, &status, NewLength, 0, /* Null Mask */
-				   0, &sid, &OldVS, &VS, &VCBStatus,
+				   0, &Dummy, &OldVS, &VS, &VCBStatus,
 				   &PiggyBS, sed);
 	UNI_END_MESSAGE(ViceNewVStore_OP);
 	CFSOP_POSTLUDE("store::store done\n");
@@ -285,49 +282,31 @@ int fsobj::RepairCreate(fsobj **t_fso_addr, char *name, unsigned short Mode, int
     Date_t Mtime = Vtime();
     vproc *vp = VprocSelf();
     vuid_t vuid = CRTORUID(vp->u.u_cred);
-
-    Recov_BeginTrans();
-    ViceStoreId sid = vol->GenerateStoreId();
-    Recov_EndTrans(MAXFP);
-
     if (LRDB->repair_session_mode == REP_SCRATCH_MODE)
       return DisconnectedCreate(Mtime, vuid, t_fso_addr, name, Mode, target_pri,
-				LRDB->repair_session_tid, &sid);
+				LRDB->repair_session_tid);
     else
-      return ConnectedCreate(Mtime, vuid, t_fso_addr, name, Mode, target_pri,
-                             &sid);
+      return ConnectedCreate(Mtime, vuid, t_fso_addr, name, Mode, target_pri);
 }
 
 int fsobj::RepairRemove(char *name, fsobj *target_fso) {
     Date_t Mtime = Vtime();
     vproc *vp = VprocSelf();
     vuid_t vuid = CRTORUID(vp->u.u_cred);
-
-    Recov_BeginTrans();
-    ViceStoreId sid = vol->GenerateStoreId();
-    Recov_EndTrans(MAXFP);
-
     if (LRDB->repair_session_mode == REP_SCRATCH_MODE)
-      return DisconnectedRemove(Mtime, vuid, name, target_fso,
-                                LRDB->repair_session_tid, &sid);
+      return DisconnectedRemove(Mtime, vuid, name, target_fso, LRDB->repair_session_tid);
     else
-      return ConnectedRemove(Mtime, vuid, name, target_fso, &sid);
+      return ConnectedRemove(Mtime, vuid, name, target_fso);
 }
 
 int fsobj::RepairLink(char *name, fsobj *source_fso) {
     Date_t Mtime = Vtime();
     vproc *vp = VprocSelf();
     vuid_t vuid = CRTORUID(vp->u.u_cred);
-
-    Recov_BeginTrans();
-    ViceStoreId sid = vol->GenerateStoreId();
-    Recov_EndTrans(MAXFP);
-
     if (LRDB->repair_session_mode == REP_SCRATCH_MODE)
-      return DisconnectedLink(Mtime, vuid, name, source_fso,
-                              LRDB->repair_session_tid, &sid);
+      return DisconnectedLink(Mtime, vuid, name, source_fso, LRDB->repair_session_tid);
     else
-      return ConnectedLink(Mtime, vuid, name, source_fso, &sid);
+      return ConnectedLink(Mtime, vuid, name, source_fso);
 }
 
 int fsobj::RepairRename(fsobj *s_parent_fso, char *s_name, fsobj *s_fso, char *t_name, fsobj *t_fso) 
@@ -335,20 +314,11 @@ int fsobj::RepairRename(fsobj *s_parent_fso, char *s_name, fsobj *s_fso, char *t
     Date_t Mtime = Vtime();
     vproc *vp = VprocSelf();
     vuid_t vuid = CRTORUID(vp->u.u_cred);
-
-    ViceStoreId Xsid, sid;
-    Recov_BeginTrans();
-    Xsid = vol->GenerateStoreId();
-    sid = vol->GenerateStoreId();
-    Recov_EndTrans(MAXFP);
-
     if (LRDB->repair_session_mode == REP_SCRATCH_MODE)
-      return DisconnectedRename(Mtime, vuid, s_parent_fso, s_name, s_fso,
-                                t_name, t_fso, LRDB->repair_session_tid, &Xsid,
-                                &sid);
+      return DisconnectedRename(Mtime, vuid, s_parent_fso, s_name, s_fso, t_name, t_fso,
+				LRDB->repair_session_tid);
     else
-      return ConnectedRename(Mtime, vuid, s_parent_fso, s_name, s_fso, t_name,
-                             t_fso, &sid);
+      return ConnectedRename(Mtime, vuid, s_parent_fso, s_name, s_fso, t_name, t_fso);
 }
 
 
@@ -357,17 +327,11 @@ int fsobj::RepairMkdir(fsobj **t_fso_addr, char *name, unsigned short Mode, int 
     Date_t Mtime = Vtime();
     vproc *vp = VprocSelf();
     vuid_t vuid = CRTORUID(vp->u.u_cred);
-
-    Recov_BeginTrans();
-    ViceStoreId sid = vol->GenerateStoreId();
-    Recov_EndTrans(MAXFP);
-
     if (LRDB->repair_session_mode == REP_SCRATCH_MODE)
       return DisconnectedMkdir(Mtime, vuid, t_fso_addr, name, Mode, target_pri, 
-			       LRDB->repair_session_tid, &sid);
+			       LRDB->repair_session_tid);
     else
-      return ConnectedMkdir(Mtime, vuid, t_fso_addr, name, Mode, target_pri,
-                            &sid);
+      return ConnectedMkdir(Mtime, vuid, t_fso_addr, name, Mode, target_pri);
 }
 
 int fsobj::RepairRmdir(char *name, fsobj *target_fso)
@@ -375,16 +339,10 @@ int fsobj::RepairRmdir(char *name, fsobj *target_fso)
     Date_t Mtime = Vtime();
     vproc *vp = VprocSelf();
     vuid_t vuid = CRTORUID(vp->u.u_cred);
-
-    Recov_BeginTrans();
-    ViceStoreId sid = vol->GenerateStoreId();
-    Recov_EndTrans(MAXFP);
-
     if (LRDB->repair_session_mode == REP_SCRATCH_MODE)
-      return DisconnectedRmdir(Mtime, vuid, name, target_fso,
-                               LRDB->repair_session_tid, &sid);
+      return DisconnectedRmdir(Mtime, vuid, name, target_fso, LRDB->repair_session_tid);
     else
-      return ConnectedRmdir(Mtime, vuid, name, target_fso, &sid);
+      return ConnectedRmdir(Mtime, vuid, name, target_fso);
 }
 
 int fsobj::RepairSymlink(fsobj **t_fso_addr, char *name, char *contents,
@@ -393,18 +351,11 @@ int fsobj::RepairSymlink(fsobj **t_fso_addr, char *name, char *contents,
     Date_t Mtime = Vtime();
     vproc *vp = VprocSelf();
     vuid_t vuid = CRTORUID(vp->u.u_cred);
-
-    Recov_BeginTrans();
-    ViceStoreId sid = vol->GenerateStoreId();
-    Recov_EndTrans(MAXFP);
-
     if (LRDB->repair_session_mode == REP_SCRATCH_MODE)
-      return DisconnectedSymlink(Mtime, vuid, t_fso_addr, name, contents,
-                                 Mode, target_pri, LRDB->repair_session_tid,
-                                 &sid);
+      return DisconnectedSymlink(Mtime, vuid, t_fso_addr, name, contents, Mode, target_pri,
+				 LRDB->repair_session_tid);
     else
-      return ConnectedSymlink(Mtime, vuid, t_fso_addr, name, contents, Mode,
-                              target_pri, &sid);
+      return ConnectedSymlink(Mtime, vuid, t_fso_addr, name, contents, Mode, target_pri);
 }
 
 /*

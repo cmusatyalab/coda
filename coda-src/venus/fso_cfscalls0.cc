@@ -1109,8 +1109,7 @@ void fsobj::LocalStore(Date_t Mtime, unsigned long NewLength)
 }
 
 
-int fsobj::ConnectedStore(Date_t Mtime, vuid_t vuid, unsigned long NewLength,
-                          ViceStoreId *sid)
+int fsobj::ConnectedStore(Date_t Mtime, vuid_t vuid, unsigned long NewLength)
 {
     FSO_ASSERT(this, HOARDING(this));
 
@@ -1163,6 +1162,7 @@ int fsobj::ConnectedStore(Date_t Mtime, vuid_t vuid, unsigned long NewLength,
     OldVS.SeqBody = 0;
 
     if (flags.replicated) {
+	ViceStoreId sid;
 	mgrpent *m = 0;
 	int asy_resolve = 0;
 
@@ -1173,6 +1173,10 @@ int fsobj::ConnectedStore(Date_t Mtime, vuid_t vuid, unsigned long NewLength,
 	/* The COP1 call. */
 	long cbtemp; cbtemp = cbbreaks;
 	vv_t UpdateSet;
+
+	Recov_BeginTrans();
+	sid = vol->GenerateStoreId();
+	Recov_EndTrans(MAXFP);
 	{
 	    /* Make multiple copies of the IN/OUT and OUT parameters. */
 	    int ph_ix; unsigned long ph; ph = m->GetPrimaryHost(&ph_ix);
@@ -1195,7 +1199,7 @@ int fsobj::ConnectedStore(Date_t Mtime, vuid_t vuid, unsigned long NewLength,
 				  m->rocc.retcodes, m->rocc.MIp, 0, 0,
 				  &fid, StoreStatusData, aclvar_ptrs,
 				  statusvar_ptrs, NewLength, 0, /* NULL Mask */
-				  ph, sid, &OldVS, VSvar_ptrs, VCBStatusvar_ptrs,
+				  ph, &sid, &OldVS, VSvar_ptrs, VCBStatusvar_ptrs,
 				  &PiggyBS, sedvar_bufs);
 	    MULTI_END_MESSAGE(ViceNewVStore_OP);
 	    CFSOP_POSTLUDE("store::store done\n");
@@ -1239,9 +1243,9 @@ int fsobj::ConnectedStore(Date_t Mtime, vuid_t vuid, unsigned long NewLength,
 
 	/* Send the COP2 message or add an entry for piggybacking. */
 	if (PIGGYCOP2)
-	    vol->AddCOP2(sid, &UpdateSet);
+	    vol->AddCOP2(&sid, &UpdateSet);
 	else
-	    (void)vol->COP2(m, sid, &UpdateSet);
+	    (void)vol->COP2(m, &sid, &UpdateSet);
 
 RepExit:
 	PutMgrp(&m);
@@ -1254,7 +1258,7 @@ RepExit:
 	    default:
 		/* Simulate a disconnection, to be followed by reconnection/reintegration. */
 		Recov_BeginTrans();
-		code = vol->LogStore(Mtime, vuid, &fid, NewLength, sid);
+		code = vol->LogStore(Mtime, vuid, &fid, NewLength);
 
 		if (code == 0) {
 			LocalStore(Mtime, NewLength);
@@ -1267,6 +1271,7 @@ RepExit:
     else {
 	/* Acquire a Connection. */
 	connent *c;
+	ViceStoreId Dummy;              /* ViceStore needs an address for indirection */
 	code = vol->GetConn(&c, vuid);
 	if (code != 0) goto NonRepExit;
 
@@ -1275,7 +1280,7 @@ RepExit:
 	UNI_START_MESSAGE(ViceNewVStore_OP);
 	code = (int) ViceNewVStore(c->connid, &fid, StoreStatusData,
 				   acl, &status, NewLength, 0, /* Null Mask */
-				   0, sid, &OldVS, &VS, &VCBStatus,
+				   0, &Dummy, &OldVS, &VS, &VCBStatus,
 				   &PiggyBS, sed);
 	UNI_END_MESSAGE(ViceNewVStore_OP);
 	CFSOP_POSTLUDE("store::store done\n");
@@ -1308,9 +1313,7 @@ NonRepExit:
     return(code);
 }
 
-int fsobj::DisconnectedStore(Date_t Mtime, vuid_t vuid, unsigned long NewLength,
-                             int Tid, ViceStoreId *sid)
-{
+int fsobj::DisconnectedStore(Date_t Mtime, vuid_t vuid, unsigned long NewLength, int Tid) {
     FSO_ASSERT(this, (EMULATING(this) || LOGGING(this)));
 
     int code = 0;
@@ -1321,10 +1324,9 @@ int fsobj::DisconnectedStore(Date_t Mtime, vuid_t vuid, unsigned long NewLength,
     }
 
     Recov_BeginTrans();
-    /* Failure to log a store would be most unpleasant for the user! */
-    /* Probably we should try to guarantee that it never happens (e.g., by
-     * reserving a record at open). */
-    code = vol->LogStore(Mtime, vuid, &fid, (RPC2_Unsigned)NewLength, sid, Tid);
+	/* Failure to log a store would be most unpleasant for the user! */
+	/* Probably we should try to guarantee that it never happens (e.g., by reserving a record at open). */
+    code = vol->LogStore(Mtime, vuid, &fid, NewLength, Tid);
     
     if (code == 0)
 	    LocalStore(Mtime, NewLength);
@@ -1342,16 +1344,11 @@ int fsobj::Store(unsigned long NewLength, Date_t Mtime, vuid_t vuid) {
 
     int conn, tid;
     GetOperationState(&conn, &tid);
-
-    Recov_BeginTrans();
-    ViceStoreId sid = vol->GenerateStoreId();
-    Recov_EndTrans(MAXFP);
-
-    if (conn) {
-	code = ConnectedStore(Mtime, vuid, NewLength, &sid);
+    if (conn == 0) {
+	code = DisconnectedStore(Mtime, vuid, NewLength, tid);
     }
     else {
-	code = DisconnectedStore(Mtime, vuid, NewLength, tid, &sid);
+	code = ConnectedStore(Mtime, vuid, NewLength);
     }
 
     if (code != 0) {
@@ -1455,11 +1452,8 @@ int fsobj::ConnectedSetAttr(Date_t Mtime, vuid_t vuid, unsigned long NewLength,
     OldVS.SeqLen = 0;
     OldVS.SeqBody = 0;
 
-    Recov_BeginTrans();
-    ViceStoreId sid = vol->GenerateStoreId();
-    Recov_EndTrans(MAXFP);
-
     if (flags.replicated) {
+	ViceStoreId sid;
 	mgrpent *m = 0;
 	int asy_resolve = 0;
 
@@ -1470,6 +1464,10 @@ int fsobj::ConnectedSetAttr(Date_t Mtime, vuid_t vuid, unsigned long NewLength,
 	/* The COP1 call. */
 	long cbtemp; cbtemp = cbbreaks;
 	vv_t UpdateSet;
+
+	Recov_BeginTrans();
+	sid = vol->GenerateStoreId();
+	Recov_EndTrans(MAXFP);
 	{
 	    /* Make multiple copies of the IN/OUT and OUT parameters. */
 	    int ph_ix; unsigned long ph; ph = m->GetPrimaryHost(&ph_ix);
@@ -1554,6 +1552,7 @@ RepExit:
     else {
 	/* Acquire a Connection. */
 	connent *c;
+	ViceStoreId Dummy;              /* ViceStore needs an address for indirection */
 	code = vol->GetConn(&c, vuid);
 	if (code != 0) goto NonRepExit;
 
@@ -1562,7 +1561,7 @@ RepExit:
 	UNI_START_MESSAGE(ViceNewVStore_OP);
 	code = (int) ViceNewVStore(c->connid, &fid, 
 				   (setacl ? StoreNeither : StoreStatus),
-				   acl, &status, 0, Mask, 0, &sid, 
+				   acl, &status, 0, Mask, 0, &Dummy, 
 				   &OldVS, &VS, &VCBStatus, &PiggyBS, 0);
 	UNI_END_MESSAGE(ViceNewVStore_OP);
 	CFSOP_POSTLUDE("store::setattr done\n");
@@ -1586,17 +1585,14 @@ NonRepExit:
     return(code);
 }
 
-int fsobj::DisconnectedSetAttr(Date_t Mtime, vuid_t vuid,
-                               unsigned long NewLength, Date_t NewDate, 
-			       vuid_t NewOwner, unsigned short NewMode,
-                               int Tid)
-{
+int fsobj::DisconnectedSetAttr(Date_t Mtime, vuid_t vuid, unsigned long NewLength, Date_t NewDate, 
+			       vuid_t NewOwner, unsigned short NewMode, int Tid) {
     FSO_ASSERT(this, (EMULATING(this) || LOGGING(this)));
 
     int code = 0;
 
     Recov_BeginTrans();
-    RPC2_Integer tNewMode = (short)NewMode;	    /* sign-extend!!! */
+    RPC2_Integer tNewMode =	(short)NewMode;	    /* sign-extend!!! */
     code = vol->LogSetAttr(Mtime, vuid, &fid, NewLength, NewDate, NewOwner, 
 			   (RPC2_Unsigned)tNewMode, Tid);
     if (code == 0)
@@ -1612,6 +1608,7 @@ int fsobj::SetAttr(struct coda_vattr *vap, vuid_t vuid, RPC2_CountedBS *acl)
 	unsigned long NewLength = (unsigned long) -1;
 	vuid_t NewOwner = (vuid_t) -1;
 	unsigned short NewMode = (unsigned short )-1;
+
 
 	LOG(10, ("fsobj::SetAttr: (%s), uid = %d\n", comp, vuid));
 	VPROC_printvattr(vap);
@@ -1657,12 +1654,12 @@ int fsobj::SetAttr(struct coda_vattr *vap, vuid_t vuid, RPC2_CountedBS *acl)
 	int conn, tid;
 	GetOperationState(&conn, &tid);
 	
-	if (conn) {
-		code = ConnectedSetAttr(Mtime, vuid, NewLength, NewDate, 
-                                        NewOwner, NewMode, acl);
-	} else {
+	if (conn == 0) {
                 code = DisconnectedSetAttr(Mtime, vuid, NewLength, NewDate,
                                            NewOwner, NewMode, tid);
+	} else {
+		code = ConnectedSetAttr(Mtime, vuid, NewLength, NewDate, 
+                                        NewOwner, NewMode, acl);
 	}
 
 	if (code != 0) {
@@ -1700,8 +1697,7 @@ int fsobj::SetACL(RPC2_CountedBS *acl, vuid_t vuid) {
 
 /* MUST be called from within transaction! */
 void fsobj::LocalCreate(Date_t Mtime, fsobj *target_fso, char *name,
-			 vuid_t Owner, unsigned short Mode)
-{
+			 vuid_t Owner, unsigned short Mode) {
     /* Update parent status. */
     {
 	/* Add the new <name, fid> to the directory. */
@@ -1739,9 +1735,7 @@ void fsobj::LocalCreate(Date_t Mtime, fsobj *target_fso, char *name,
 
 
 int fsobj::ConnectedCreate(Date_t Mtime, vuid_t vuid, fsobj **t_fso_addr,
-			    char *name, unsigned short Mode, int target_pri,
-                            ViceStoreId *sid)
-{
+			    char *name, unsigned short Mode, int target_pri) {
     FSO_ASSERT(this, HOARDING(this));
 
     int code = 0;
@@ -1775,6 +1769,7 @@ int fsobj::ConnectedCreate(Date_t Mtime, vuid_t vuid, fsobj **t_fso_addr,
     OldVS.SeqBody = 0;
 
     if (flags.replicated) {
+	ViceStoreId sid;
 	mgrpent *m = 0;
 	int asy_resolve = 0;
 
@@ -1800,6 +1795,10 @@ int fsobj::ConnectedCreate(Date_t Mtime, vuid_t vuid, fsobj **t_fso_addr,
 	/* The COP1 call. */
 	long cbtemp; cbtemp = cbbreaks;
 	vv_t UpdateSet;
+
+	Recov_BeginTrans();
+	sid = vol->GenerateStoreId();
+	Recov_EndTrans(MAXFP);
 	{
 	    /* Make multiple copies of the IN/OUT and OUT parameters. */
 	    vol->PackVS(m->nhosts, &OldVS);
@@ -1817,7 +1816,7 @@ int fsobj::ConnectedCreate(Date_t Mtime, vuid_t vuid, fsobj **t_fso_addr,
 					m->rocc.retcodes, m->rocc.MIp, 0, 0,
 					&fid, &NullFid, name,
 					target_statusvar_ptrs, target_fidvar_ptrs,
-					parent_statusvar_ptrs, AllocHost, sid,
+					parent_statusvar_ptrs, AllocHost, &sid,
 					&OldVS, VSvar_ptrs, VCBStatusvar_ptrs,
 					&PiggyBS);
 	    MULTI_END_MESSAGE(ViceVCreate_OP);
@@ -1860,9 +1859,9 @@ int fsobj::ConnectedCreate(Date_t Mtime, vuid_t vuid, fsobj **t_fso_addr,
 
 	/* Send the COP2 message or add an entry for piggybacking. */
 	if (PIGGYCOP2)
-	    vol->AddCOP2(sid, &UpdateSet);
+	    vol->AddCOP2(&sid, &UpdateSet);
 	else
-	    (void)vol->COP2(m, sid, &UpdateSet);
+	    (void)vol->COP2(m, &sid, &UpdateSet);
 
 RepExit:
 	PutMgrp(&m);
@@ -1888,6 +1887,7 @@ RepExit:
     else {
 	/* Acquire a Connection. */
 	connent *c;
+	ViceStoreId Dummy;                   /* Need an address for ViceCreate */
 	code = vol->GetConn(&c, vuid);
 	if (code != 0) goto NonRepExit;
 
@@ -1897,7 +1897,7 @@ RepExit:
 	UNI_START_MESSAGE(ViceVCreate_OP);
 	code = (int) ViceVCreate(c->connid, &fid, &NullFid,
 				 (RPC2_String)name, &target_status, 
-				 &target_fid, &parent_status, 0, sid, 
+				 &target_fid, &parent_status, 0, &Dummy, 
 				 &OldVS, &VS, &VCBStatus, &PiggyBS);
 	UNI_END_MESSAGE(ViceVCreate_OP);
 	CFSOP_POSTLUDE("store::create done\n");
@@ -1948,10 +1948,8 @@ NonRepExit:
     return(code);
 }
 
-int fsobj::DisconnectedCreate(Date_t Mtime, vuid_t vuid, fsobj **t_fso_addr,
-                              char *name, unsigned short Mode, int target_pri,
-                              int Tid, ViceStoreId *sid)
-{
+int fsobj::DisconnectedCreate(Date_t Mtime, vuid_t vuid, fsobj **t_fso_addr, char *name, 
+			      unsigned short Mode, int target_pri, int Tid) {
     FSO_ASSERT(this, (EMULATING(this) || LOGGING(this)));
 
     int code = 0;
@@ -1981,8 +1979,7 @@ int fsobj::DisconnectedCreate(Date_t Mtime, vuid_t vuid, fsobj **t_fso_addr,
 		      NBLOCKS(sizeof(fsobj)));
 
     Recov_BeginTrans();
-    code = vol->LogCreate(Mtime, vuid, &fid, name, &target_fso->fid, Mode,
-                          sid, Tid);
+    code = vol->LogCreate(Mtime, vuid, &fid, name, &target_fso->fid, Mode, Tid);
 
     if (code == 0) {
 	    /* This MUST update second-class state! */
@@ -2025,17 +2022,13 @@ int fsobj::Create(char *name, fsobj **target_fso_addr,
     int conn, tid;
     GetOperationState(&conn, &tid);
 
-    Recov_BeginTrans();
-    ViceStoreId sid = vol->GenerateStoreId();
-    Recov_EndTrans(MAXFP);
-
     if (conn == 0) {
 	code = DisconnectedCreate(Mtime, vuid, target_fso_addr,
-				  name, Mode, target_pri, tid, &sid);
+				  name, Mode, target_pri, tid);
     }
     else {
 	code = ConnectedCreate(Mtime, vuid, target_fso_addr,
-			       name, Mode, target_pri, &sid);
+			       name, Mode, target_pri);
     }
 
     if (code != 0) {
