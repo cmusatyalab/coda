@@ -1,5 +1,9 @@
-1999-01-19    <jaharkes@cs.cmu.edu>
+1999-02-25    <jaharkes@cs.cmu.edu>
+	* ======== Release 5.0.3 =========
+	* Fixed a bug introduced by the rpc2 cleanups, where lost packets
+	  were not retried, this was the cause of the server deadlocks.
 
+1999-02-19    <jaharkes@cs.cmu.edu>
 	* ======== Release 5.0.2 =========
 	* Resolution refcounting fixes. (Peter)
 	* Test if the compiler has -fno-exceptions.

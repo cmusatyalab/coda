@@ -189,8 +189,9 @@ struct SFTP_Entry		/* per-connection data structure */
     enum  SFState WhoAmI;
     RPC2_Handle LocalHandle;	/* which RPC2 conn on this side do I
 				   correspond to? */
-    RPC2_PeerInfo PInfo;	/* all the RPC info  about the other side */
+    RPC2_PeerInfo   PInfo;	/* all the RPC info  about the other side */
     RPC2_PortIdent  PeerPort;	/* SFTP port on other side */
+    struct timeval *LastWord;	/* Last time we received something on this SE */
     struct HEntry *HostInfo;	/* Connection-independent host info. set by
 				   ExaminePacket on client side (if
 				   !GotParms), and sftp_ExtractParmsFromPacket

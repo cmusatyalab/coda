@@ -640,7 +640,7 @@ long SFTP_GetTime(IN ConnHandle, INOUT Time)
 
     if (se == NULL || se->HostInfo == NULL) return(RPC2_NOCONNECTION);
 
-    *Time = se->HostInfo->LastWord;
+    *Time = se->LastWord;
     return(RPC2_SUCCESS);
     }
 
@@ -1135,6 +1135,7 @@ struct SFTP_Entry *sftp_AllocSEntry(void)
     sfp->RInterval.tv_usec = (SFTP_RetryInterval*1000) % 1000000;
     sfp->Retransmitting = FALSE;
     sfp->RequestTime = 0;
+    sfp->LastWord.tv_sec = sfp->LastWord.tv_usec = 0;
     return(sfp);
     }
 
