@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/vol_cml.cc,v 4.7 1997/12/16 16:08:40 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/vol_cml.cc,v 4.8 1998/01/10 18:39:10 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -421,7 +421,7 @@ void ClientModifyLog::GetReintegrateable(int tid, int *nrecs) {
 
     while (m = next()) {
 	if (!m->ReintReady())
-	    continue;    
+	    break;    
 
 	this_time = m->ReintTime();
 
@@ -463,32 +463,29 @@ void ClientModifyLog::GetReintegrateable(int tid, int *nrecs) {
  */
 cmlent *ClientModifyLog::GetFatHead(int tid) {
     volent *vol = strbase(volent, this, CML);
-    cmlent *m, *fathead = 0; 
+    cmlent *m;
     cml_iterator next(*this, CommitOrder);
 
-    while (m = next()) {
-	if (!m->ReintReady())
-	    continue;    
+    if (m = next()) {
+        /* 
+         * the head of ready records (heady). insist that it is a
+         * store.  We do not mark it frozen here because the
+         * partial file transfer protocol checks the status of the
+         * object after a failure.
+         */
 
-	/* 
-	 * the head of ready records (heady). insist that it is a
-	 * store.  We do not mark it frozen here because the
-	 * partial file transfer protocol checks the status of the
-	 * object after a failure.
-	 */
-	if (!ASRinProgress && m->opcode == ViceNewStore_OP &&
-	    (m->ReintTime() > vol->ReintLimit)) {
-	    /* 
-	     * don't use the settid call because it is transactional.
-	     * Here the tid is transient.
-	     */
-	    m->tid = tid;
-	    fathead = m;
-	    break;
-	}
+        if (m->ReintReady() && !ASRinProgress && m->opcode == ViceNewStore_OP &&
+            (m->ReintTime() > vol->ReintLimit)) {
+            /* 
+             * don't use the settid call because it is transactional.
+             * Here the tid is transient.
+             */
+            m->tid = tid;
+            return(m);
+        }
     }
 
-    return(fathead);
+    return((cmlent *)0);
 }
 
 

@@ -500,7 +500,6 @@ int venus_pioctl(struct super_block *sb, struct ViceFid *fid,
         union outputArgs *outp;
         int insize, outsize, error;
 	int iocsize;
-	char str[50];
 
 	insize = VC_MAXMSGSIZE;
 	UPARG(CFS_IOCTL);
@@ -587,7 +586,6 @@ int venus_pioctl(struct super_block *sb, struct ViceFid *fid,
 static inline void coda_waitfor_upcall(struct vmsg *vmp)
 {
 	struct wait_queue	wait = { current, NULL };
-	old_sigset_t pending;
 
 	vmp->vm_posttime = jiffies;
 
@@ -608,13 +606,9 @@ static inline void coda_waitfor_upcall(struct vmsg *vmp)
 		if ( jiffies > vmp->vm_posttime + coda_timeout * HZ )
 			break; 
 				
-		spin_lock_irq(&current->sigmask_lock);
-		pending = current->blocked.sig[0] & current->signal.sig[0];
-		spin_unlock_irq(&current->sigmask_lock);
-
 		/* if this process really wants to die, let it go */
-		if ( sigismember(&pending, SIGKILL) ||
-		     sigismember(&pending, SIGINT) )
+		if ( sigismember(&current->signal, SIGKILL) ||
+		     sigismember(&current->signal, SIGINT) )
 			break;
 		else 
 			schedule();
@@ -765,10 +759,14 @@ ENTRY;
  *                  This call is a result of token expiration.
  *
  * The next arise as the result of callbacks on a file or directory.
- * CFS_ZAPDIR    -- flush the attributes for the dir from its cnode.
- *                  Zap all children of this directory from the namecache.
  * CFS_ZAPFILE   -- flush the cached attributes for a file.
- * CFS_ZAPVNODE  -- intended to be a zapfile for just one cred. Not used?
+
+ * CFS_ZAPDIR    -- flush the attributes for the dir and
+ *                  force a new lookup for all the children
+                    of this dir.
+
+ * CFS_ZAPVNODE  -- intended to be a zapfile for just one cred. 
+                    Not used?
  *
  * The next is a result of Venus detecting an inconsistent file.
  * CFS_PURGEFID  -- flush the attribute for the file
@@ -803,53 +801,48 @@ int coda_downcall(int opcode, union outputArgs * out, struct super_block *sb)
 	    return(0);
     }
     case CFS_ZAPDIR : {
+	    struct inode *inode;
 	    ViceFid *fid = &out->cfs_zapdir.CodaFid;
-	    char str[50];
 	    if ( !fid ) {
 		    printk("ZAPDIR: Null fid\n");
 		    return 0;
 	    }
 	    CDEBUG(D_DOWNCALL, "zapdir: fid = %s\n", coda_f2s(fid));
 	    clstats(CFS_ZAPDIR);
-	    coda_zapfid(fid, sb, C_ZAPDIR);
+	    inode = coda_fid_to_inode(fid, sb);
+	    coda_flag_inode(inode, C_VATTR);
+	    coda_cache_clear_inode(inode);
+	    coda_flag_alias_children(inode, C_PURGE);
 	    return(0);
     }
-    case CFS_ZAPVNODE : {
-	    ViceFid *fid = &out->cfs_zapvnode.VFid;
-	    char str[50];
-	    struct coda_cred *cred = &out->cfs_zapvnode.cred;
-	    if ( !fid || !cred ) {
-		    printk("ZAPVNODE: Null fid or cred\n");
-		    return 0;
-	    }
-	    CDEBUG(D_DOWNCALL, "zapvnode: fid = %s\n", coda_f2s(fid));
-	    coda_zapfid(fid, sb, C_ZAPFID);
-	    coda_cache_clear_cred(sb, cred);
-	    clstats(CFS_ZAPVNODE);
-	    return(0);
-    }
+
+    case CFS_ZAPVNODE : 
     case CFS_ZAPFILE : {
+	    struct inode *inode;
 	    struct ViceFid *fid = &out->cfs_zapfile.CodaFid;
-	    char str[50];
 	    clstats(CFS_ZAPFILE);
 	    if ( !fid ) {
 		    printk("ZAPFILE: Null fid\n");
 		    return 0;
 	    }
 	    CDEBUG(D_DOWNCALL, "zapfile: fid = %s\n", coda_f2s(fid));
-	    coda_zapfid(fid, sb, C_ZAPFID);
+	    inode = coda_fid_to_inode(fid, sb);
+	    coda_flag_inode(inode, C_VATTR);
+	    coda_cache_clear_inode(inode);
 	    return 0;
     }
     case CFS_PURGEFID : {
+	    struct inode *inode;
 	    ViceFid *fid = &out->cfs_purgefid.CodaFid;
-	    char str[50];
 	    if ( !fid ) {
 		    printk("PURGEFID: Null fid\n");
 		    return 0;
 	    }
 	    CDEBUG(D_DOWNCALL, "purgefid: fid = %s\n", coda_f2s(fid));
 	    clstats(CFS_PURGEFID);
-	    coda_zapfid(fid, sb, C_ZAPDIR);
+	    inode = coda_fid_to_inode(fid, sb);
+	    coda_flag_inode(inode, C_PURGE);
+	    coda_cache_clear_inode(inode);
 	    return 0;
     }
     case CFS_REPLACE : {

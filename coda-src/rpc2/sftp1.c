@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rpc2/sftp1.c,v 4.2 1997/11/13 15:03:16 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rpc2/sftp1.c,v 4.3 1998/01/29 00:52:15 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -776,6 +776,7 @@ GotData:
 PRIVATE long PutFile(register struct SFTP_Entry *sEntry)
 {
     RPC2_PacketBuffer *pb;
+    struct CEntry     *ce;
     register long i;
 
     sEntry->SDesc->Value.SmartFTPD.BytesTransferred = 0;
@@ -785,7 +786,17 @@ PRIVATE long PutFile(register struct SFTP_Entry *sEntry)
     sEntry->SendMostRecent = sEntry->SendLastContig;	/* Really redundant */
     sEntry->SendWorriedLimit = sEntry->SendLastContig;  /* Really redundant */
     sEntry->SendAckLimit = sEntry->SendLastContig;      /* Really redundant */
-    sEntry->TimeEcho = 0;
+
+    /* Kip: instead of sEntry->TimeEcho = 0, we will go ahead and
+     * use the Timestamp from the first rpc2 packet since the putfile
+     * may not span more than one round-trip, and no RTT update would
+     * occur. */
+    ce = rpc2_GetConn(sEntry->LocalHandle);
+    if (ce == NULL)
+	sEntry->TimeEcho = 0;
+    else
+	sEntry->TimeEcho = ce->TimeStampEcho;
+
     bzero(sEntry->SendTheseBits, sizeof(int)*BITMASKWIDTH);
 
     if (sftp_SendStrategy(sEntry) < 0)

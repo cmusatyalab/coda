@@ -30,7 +30,7 @@ static ssize_t coda_file_read(struct file *f, char *buf, size_t count, loff_t *o
 static ssize_t coda_file_write(struct file *f, const char *buf, size_t count, loff_t *off);
 static int coda_file_mmap(struct file * file, struct vm_area_struct * vma);
 
-/* exported from this file */
+/* also exported from this file (used for dirs) */
 int coda_fsync(struct file *, struct dentry *dentry);
 
 struct inode_operations coda_file_inode_operations = {
@@ -43,7 +43,7 @@ struct inode_operations coda_file_inode_operations = {
 	NULL,			/* mkdir */
 	NULL,			/* rmdir */
 	NULL,			/* mknod */
-	NULL,		/* rename */
+	NULL,		        /* rename */
 	NULL,			/* readlink */
 	NULL,			/* follow_link */
 	coda_readpage,    	/* readpage */
@@ -53,7 +53,7 @@ struct inode_operations coda_file_inode_operations = {
         coda_permission,        /* permission */
 	NULL,                   /* smap */
 	NULL,                   /* update page */
-        NULL                    /* revalidate */
+        coda_revalidate_inode   /* revalidate */
 };
 
 struct file_operations coda_file_operations = {
@@ -74,41 +74,47 @@ struct file_operations coda_file_operations = {
 };
 
 /*  File file operations */
-static int coda_readpage(struct file * file, struct page * page)
+static int coda_readpage(struct file * coda_file, struct page * page)
 {
-	struct dentry *de = file->f_dentry;
-	struct inode *inode = de->d_inode;
+	struct dentry *de = coda_file->f_dentry;
+	struct inode *coda_inode = de->d_inode;
 	struct dentry cont_dentry;
-        struct inode *cont_inode;
-        struct coda_inode_info *cnp;
+	struct file cont_file;
+        struct coda_inode_info *cii;
 
         ENTRY;
         
-        cnp = ITOC(inode);
-        CHECK_CNODE(cnp);
+        cii = ITOC(coda_inode);
 
-        if ( ! cnp->c_ovp ) {
-            printk("coda_readpage: no open inode for ino %ld\n", inode->i_ino);
+        if ( ! cii->c_ovp ) {
+		printk("coda_readpage: no open inode for ino %ld, %s\n", 
+		       coda_inode->i_ino, de->d_name.name);
                 return -ENXIO;
         }
+       
+        coda_prepare_openfile(coda_inode, coda_file, cii->c_ovp,
+			      &cont_file, &cont_dentry);
 
-        cont_inode = cnp->c_ovp;
-	cont_dentry.d_inode = cont_inode;
+        CDEBUG(D_INODE, "coda ino: %ld, cached ino %ld, page offset: %lx\n", 
+	       coda_inode->i_ino, cii->c_ovp->i_ino, page->offset);
 
-        CDEBUG(D_INODE, "coda ino: %ld, cached ino %ld, page offset: %lx\n", inode->i_ino, cont_inode->i_ino, page->offset);
-
-        generic_readpage(&cont_dentry, page);
+        generic_readpage(&cont_file, page);
         EXIT;
         return 0;
 }
 
 static int coda_file_mmap(struct file * file, struct vm_area_struct * vma)
 {
-        struct coda_inode_info *cnp;
-	cnp = ITOC(file->f_dentry->d_inode);
-	cnp->c_mmcount++;
+        struct coda_inode_info *cii;
+	int res;
+
+        ENTRY;
+	cii = ITOC(file->f_dentry->d_inode);
+	cii->c_mmcount++;
   
-	return generic_file_mmap(file, vma);
+	res =generic_file_mmap(file, vma);
+	EXIT;
+	return res;
 }
 
 static ssize_t coda_file_read(struct file *coda_file, char *buff, 
@@ -120,7 +126,6 @@ static ssize_t coda_file_read(struct file *coda_file, char *buff,
         struct file  cont_file;
 	struct dentry cont_dentry;
         int result = 0;
-
         ENTRY;
 
         cnp = ITOC(coda_inode);

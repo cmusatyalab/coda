@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rpc2/rpc2b.c,v 4.2 1998/01/10 18:38:09 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rpc2/rpc2b.c,v 4.3 1998/01/29 00:52:12 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -1025,7 +1025,7 @@ long rpc2_GetLocalHost(localhost, remotehost)
     }
 
 unsigned long rpc2_MakeTimeStamp()
-    /* makes a longword time stamp in 10 msec units since rpc2_InitTime  */
+    /* makes a longword time stamp in 1 msec units since rpc2_InitTime  */
     {
     struct timeval now;
     unsigned long diff;
@@ -1063,6 +1063,7 @@ void rpc2_UpdateRTT(tStamp, ceaddr)
 
     /* 
      * Requests can be sent and received in the same tick.  
+     * (though this is unlikely in the 1ms/tick case)
      * Adding in service time on the server complicates things -- 
      * the clock may tick on the server (service time > 0) but not
      * on the client. Coerce this case to 1.
@@ -1073,7 +1074,8 @@ void rpc2_UpdateRTT(tStamp, ceaddr)
     /* log the round-trip time observation in the host log */
     entry.Tag = RPC2_MEASURED_NLE;
     entry.Value.Measured.Bytes = ceaddr->reqsize-2*sizeof(struct RPC2_PacketHeader);
-    entry.Value.Measured.ElapsedTime = obs * 10;
+    /* YYY used to be obs*10 */
+    entry.Value.Measured.ElapsedTime = obs;
     entry.Value.Measured.Conn = ceaddr->UniqueCID;
     (void) rpc2_AppendHostLog(ceaddr->HostInfo, &entry);
 
@@ -1103,7 +1105,7 @@ void rpc2_UpdateRTT(tStamp, ceaddr)
      * rpc2_SetRetry. It should be at least LOWERLIMIT, but no more than
      * Retry_Beta[0]. Try RTT + (RPC2_RTTVAR_SCALE * RTTVar) first.
      */
-    ceaddr->LowerLimit = ((ceaddr->RTT >> RPC2_RTT_SHIFT) + ceaddr->RTTVar) * 10000;
+    ceaddr->LowerLimit = ((ceaddr->RTT >> RPC2_RTT_SHIFT) + ceaddr->RTTVar) * 1000; /* YYY */
     beta0 = &ceaddr->Retry_Beta[0];
     upperlimit = beta0->tv_usec + beta0->tv_sec * 1000000;
 

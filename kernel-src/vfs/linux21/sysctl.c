@@ -8,7 +8,6 @@
  */
 /* sysctl entries for Coda! */
 
-#include <linux/config.h>
 #include <linux/sched.h>
 #include <linux/mm.h>
 #include <linux/sysctl.h>

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rpc2/rpc2.h,v 4.1 1997/01/08 21:50:26 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rpc2/rpc2.h,v 4.2 1997/09/23 15:13:31 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -257,6 +257,9 @@ typedef
                         conversion may be needed.*/
 typedef
     unsigned long RPC2_Unsigned;     /* 32-bits.*/
+
+typedef
+    double RPC2_Double;     /* 64 bit IEEE double-precision.*/
 
 typedef
     unsigned char RPC2_Byte;      /*A single 8-bit byte.*/
@@ -529,7 +532,8 @@ typedef enum{ NO_MODE=0, IN_MODE=1, OUT_MODE=2, IN_OUT_MODE=3, C_END=4 } MODE;
 typedef enum{ RPC2_INTEGER_TAG=0,	RPC2_UNSIGNED_TAG=1,	RPC2_BYTE_TAG=2,
 	      RPC2_STRING_TAG=3,	RPC2_COUNTEDBS_TAG=4,	RPC2_BOUNDEDBS_TAG=5,
 	      RPC2_BULKDESCRIPTOR_TAG=6,			RPC2_ENCRYPTIONKEY_TAG=7,
-	      RPC2_STRUCT_TAG=8,	RPC2_ENUM_TAG=9 } TYPE_TAG;
+	      RPC2_STRUCT_TAG=8,	RPC2_ENUM_TAG=9,
+		  RPC2_DOUBLE_TAG=10} TYPE_TAG;
 
 
  /* struct for MakeMulti argument packing and unpacking */

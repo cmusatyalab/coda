@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/src/coda-4.0.1/RCSLINK/./coda-src/rpc2/cbuf.c,v 1.1 1996/11/22 19:07:15 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rpc2/cbuf.c,v 4.1 1997/01/08 21:50:20 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -55,11 +55,17 @@ supported by Transarc Corporation, Pittsburgh, PA.
 
 */
 
-
-#ifdef RPC2DEBUG
 #include <stdio.h>
 #include <strings.h>
+#include <sys/time.h>
+
 #include "cbuf.h"
+#include <lwp.h>
+#include <timer.h>
+#include "rpc2.h"
+#include "rpc2.private.h"
+
+#ifdef RPC2DEBUG
 
 #ifdef CMUCS
 #include <stdlib.h>

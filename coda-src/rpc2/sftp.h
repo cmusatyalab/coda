@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/src/coda-4.0.1/RCSLINK/./coda-src/rpc2/sftp.h,v 1.1 1996/11/22 19:07:51 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rpc2/sftp.h,v 4.1 1997/01/08 21:50:29 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -75,7 +75,8 @@ supported by Transarc Corporation, Pittsburgh, PA.
 */
 
 
-#define SFTPVERSION	2	/* Changed from 1 on 7 Jan 1988 by Satya (ThisRPCCall check added) */
+#define SFTPVERSION	3	/* Changed from 1 on 7 Jan 1988 by Satya (ThisRPCCall check added) */
+                                /* Changed from 2 on 27 Feb 1997 by bnoble */
 
 #define SFTP_MAXPACKETSIZE	2900 /* (prefix+header+body) of largest sftp packet (2 IP fragments on Ether) */
 #define SFTP_MAXBODYSIZE	SFTP_MAXPACKETSIZE - sizeof(RPC2_PacketBuffer)
@@ -240,18 +241,18 @@ struct SFTP_Entry		/* per-connection data structure */
 
 #define SFTP_RTT_SCALE 8        /* scale of stored RTT. (uses TCP alpha = .875) */
 #define SFTP_RTT_SHIFT 3        /* number of bits to the right of the binary point of RTT */
-    long RTT;                   /* Current RTT estimate (like TCP's "smooth RTT") in 10 msec units */
+    long RTT;                   /* Current RTT estimate (like TCP's "smooth RTT") in 1 msec units */
 
 #define SFTP_RTTVAR_SCALE 4     /* scale of stored RTTvar. (uses TCP alpha = .75) */
 #define SFTP_RTTVAR_SHIFT 2     /* number of bits to the right of the binary point of RTTvar */
-    long RTTVar;                /* Variance of above in 10 msec units */
+    long RTTVar;                /* Variance of above in 1 msec units */
     unsigned long TimeEcho;     /* Timestamp to send on next packet */
     struct timeval LastSS;	/* time SendStrategy was last invoked by an Ack on this connection */
     SE_Descriptor *PiggySDesc;	/* malloc()ed copy of SDesc; held on until SendResponse, if piggybacking
 					might take place */
 
-#define SFTP_MINRTT   10        /* min rtt is 100 msec */
-#define SFTP_MAXRTT   30000     /* max rtt is 300 seconds */
+#define SFTP_MINRTT   100        /* min rtt is 100 msec */
+#define SFTP_MAXRTT   300000     /* max rtt is 300 seconds */
 
 /*  Transmission Parameters:
 
@@ -387,7 +388,7 @@ extern sftp_Listener();
 extern long SFTP_PacketSize;	
 extern long SFTP_WindowSize;	
 extern long SFTP_RetryCount;
-extern long SFTP_RetryInterval;
+extern long SFTP_RetryInterval; /* In what units? */
 extern long SFTP_EnforceQuota;	/* Nonzero to activate ByteQuota in SE_Descriptors */
 extern long SFTP_SendAhead;
 extern long SFTP_AckPoint;

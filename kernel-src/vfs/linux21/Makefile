@@ -10,10 +10,10 @@ CBINS       =  coda.o
 # CSBINS 	    =  coda-cache coda-debug coda-flush coda-resize coda-trace
 EXECUTABLES =  coda.o
 HEADERS     =  
-OBJS        =  psdev.o cache.o cnode.o super.o dir.o file.o upcall.o coda_linux.o symlink.o pioctl.o sysctl.o 
+OBJS        =  psdev.o cache.o cnode.o inode.o dir.o file.o upcall.o coda_linux.o symlink.o pioctl.o sysctl.o 
 
 DEFINES =  -DMODULE  -DMODVERSIONS -Wstrict-prototypes -Wall -O2
-INCL    =  -I../common -I. -I/usr/src/linux/include  -include /usr/src/linux/include/linux/modversions.h
+INCL    =  -I../common -I. -I/usr/src/linux/include  
 CFLAGS  := -D__KERNEL__ $(INCL)   $(DEFINES)  $(CFLAGS)
 coda:	coda.o
 	echo  ""

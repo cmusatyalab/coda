@@ -40,17 +40,21 @@ static int coda_rename(struct inode *old_inode, struct dentry *old_dentry,
 /* dir file-ops */
 static int coda_readdir(struct file *file, void *dirent, filldir_t filldir);
 
+/* dentry ops */
+int coda_dentry_revalidate(struct dentry *de);
+
 /* support routines */
 static int coda_venus_readdir(struct file *filp, void *dirent, 
 			      filldir_t filldir);
 int coda_fsync(struct file *, struct dentry *dentry);
+static int coda_refresh_inode(struct dentry *dentry);
 
 struct dentry_operations coda_dentry_operations =
 {
-	NULL, /* revalidate */
+	coda_dentry_revalidate, /* revalidate */
 	NULL, /* hash */
 	NULL,
-	coda_dentry_delete
+	NULL,
 };
 
 struct inode_operations coda_dir_inode_operations =
@@ -74,7 +78,7 @@ struct inode_operations coda_dir_inode_operations =
 	coda_permission,        /* permission */
 	NULL,                   /* smap */
 	NULL,                   /* update page */
-        NULL                    /* revalidate */
+        coda_revalidate_inode   /* revalidate */
 };
 
 struct file_operations coda_dir_operations = {
@@ -117,7 +121,6 @@ static int coda_lookup(struct inode *dir, struct dentry *entry)
 	}
 
 	dircnp = ITOC(dir);
-	CHECK_CNODE(dircnp);
 
 	if ( length > CFS_MAXNAMLEN ) {
 	        printk("name too long: lookup, %s (%*s)\n", 
@@ -141,9 +144,13 @@ static int coda_lookup(struct inode *dir, struct dentry *entry)
 			     (const char *)name, length, &type, &resfid);
 
 	res_inode = NULL;
-	if (!error || (error == -CFS_NOCACHE) ) {
-		if (error == -CFS_NOCACHE) 
+	if (!error) {
+		if (type & CFS_NOCACHE) {
+			type &= (~CFS_NOCACHE);
+			CDEBUG(D_INODE, "dropme set for %s\n", 
+			       coda_f2s(&resfid));
 			dropme = 1;
+		}
 	    	error = coda_cnode_make(&res_inode, &resfid, dir->i_sb);
 		if (error)
 			return -error;
@@ -152,7 +159,7 @@ static int coda_lookup(struct inode *dir, struct dentry *entry)
 		       coda_f2s(&dircnp->c_fid), length, name, error);
 		return error;
 	}
-	CDEBUG(D_INODE, "lookup: %s is (%s) type %d result %d, dropme %d\n",
+	CDEBUG(D_INODE, "lookup: %s is (%s), type %d result %d, dropme %d\n",
 	       name, coda_f2s(&resfid), type, error, dropme);
 
 exit:
@@ -228,7 +235,6 @@ static int coda_create(struct inode *dir, struct dentry *de, int mode)
         CHECK_CNODE(dircnp);
 
         if ( length > CFS_MAXNAMLEN ) {
-		char str[50];
 		printk("name too long: create, %s(%s)\n", 
 		       coda_f2s(&dircnp->c_fid), name);
 		return -ENAMETOOLONG;
@@ -238,7 +244,6 @@ static int coda_create(struct inode *dir, struct dentry *de, int mode)
 				0, mode, &newfid, &attrs);
 
         if ( error ) {
-		char str[50];
 		CDEBUG(D_INODE, "create: %s, result %d\n",
 		       coda_f2s(&newfid), error); 
 		d_drop(de);
@@ -321,7 +326,6 @@ static int coda_link(struct dentry *source_de, struct inode *dir_inode,
         const char * name = de->d_name.name;
 	int len = de->d_name.len;
         struct coda_inode_info *dir_cnp, *cnp;
-	char str[50];
 	int error;
 
         ENTRY;
@@ -408,7 +412,6 @@ int coda_unlink(struct inode *dir, struct dentry *de)
         int error;
 	const char *name = de->d_name.name;
 	int len = de->d_name.len;
-	char fidstr[50];
 
 	ENTRY;
 
@@ -781,3 +784,82 @@ exit:
         CODA_FREE(buff, size);
         return error;
 }
+
+int coda_dentry_revalidate(struct dentry *de)
+{
+	int valid = 1;
+	struct inode *inode = de->d_inode;
+	struct coda_inode_info *cii;
+	ENTRY;
+
+	if (inode) {
+		if (is_bad_inode(inode))
+			return 0;
+		cii = ITOC(de->d_inode);
+		if (cii->c_flags & C_PURGE) 
+			valid = 0;
+	}
+	return valid ||  coda_isroot(de->d_inode);
+}
+
+
+static int coda_refresh_inode(struct dentry *dentry)
+{
+	struct coda_vattr attr;
+	int error;
+	int old_mode;
+	ino_t old_ino;
+	struct inode *inode = dentry->d_inode;
+	struct coda_inode_info *cii = ITOC(inode);
+	
+	ENTRY;
+	error = venus_getattr(inode->i_sb, &(cii->c_fid), &attr);
+	if ( error ) { 
+		make_bad_inode(inode);
+		return -EIO;
+	}
+
+	/* this baby may be lost if:
+	   - it's type changed
+            - it's ino changed 
+	*/
+	old_mode = inode->i_mode;
+	old_ino = inode->i_ino;
+	coda_vattr_to_iattr(inode, &attr);
+
+	if ((inode->i_ino != old_ino) ||
+	    ((old_mode & S_IFMT) != (inode->i_mode & S_IFMT))) {
+		make_bad_inode(inode);
+		inode->i_mode = old_mode;
+		return -EIO;
+	}
+	
+	cii->c_flags &= ~C_VATTR;
+	return 0;
+}
+
+
+/*
+ * This is called when we want to check if the inode has
+ * changed on the server.  Coda makes this easy since the
+ * cache manager Venus issues a downcall to the kernel when this 
+ * happens 
+ */
+
+int coda_revalidate_inode(struct dentry *dentry)
+{
+	int error = 0;
+	struct coda_inode_info *cii = ITOC(dentry->d_inode);
+
+	ENTRY;
+	CDEBUG(D_INODE, "revalidating: %*s/%*s\n", 
+	       dentry->d_name.len, dentry->d_name.name,
+	       dentry->d_parent->d_name.len, dentry->d_parent->d_name.name);
+
+	if ( cii->c_flags & (C_VATTR | C_PURGE )) {
+		error = coda_refresh_inode(dentry);
+	}
+
+	return error;
+}
+
