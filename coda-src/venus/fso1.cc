@@ -1978,7 +1978,7 @@ int fsobj::Fakeify()
 		/* Found! */
 		break;
 	    }
-	    if (!pf) {
+	    if (p == &vol->fso_list) {
 		LOG(0, ("fsobj::Fakeify: %s, (%s), parent not found\n",
 			comp, FID_(&fid)));
 		return(ENOENT);
