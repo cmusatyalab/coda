@@ -632,7 +632,7 @@ RestartFind:
 	    return(ENOSPC);
 
 	/* Transform object into fake mtpt if necessary. */
-	if (FID_IsLocalFake(key)) {
+	if (FID_IsLocalFake(key) || FID_IsFakeRoot(MakeViceFid(key))) {
 	    if (f->Fakeify()) {
 		LOG(0, ("fsdb::Get: can't transform %s (%s) into fake mt pt\n",
 			f->comp, FID_(&f->fid)));

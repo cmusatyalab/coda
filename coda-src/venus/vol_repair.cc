@@ -154,9 +154,11 @@ static int GetRepairF(char *RepairFile, vuid_t vuid, fsobj **RepairF)
     char tmp;
     int code;
 
+    *RepairF = NULL;
+
     if (sscanf(RepairFile, "@%lx.%lx.%lx@%c", &RepairFileFid.Volume,
 	       &RepairFileFid.Vnode, &RepairFileFid.Unique, &tmp) != 4)
-	return EINVAL;
+	return 0;
 
     /* strrchr should succeed now because sscanf succeeded. */
     char *realmname = strrchr(RepairFile, '@')+2;
@@ -173,6 +175,7 @@ static int GetRepairF(char *RepairFile, vuid_t vuid, fsobj **RepairF)
 	FSDB->Put(RepairF);
 	return EINVAL;
     }
+    return 0;
 }
 
 int repvol::ConnectedRepair(VenusFid *RepairFid, char *RepairFile, vuid_t vuid,

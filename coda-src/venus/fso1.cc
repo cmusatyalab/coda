@@ -1128,6 +1128,10 @@ int fsobj::TryToCover(VenusFid *inc_fid, vuid_t vuid)
     }
 
     /* Look up the volume that is to be mounted on us. */
+
+    /* Turn volume name into a proper string. */
+    data.symlink[len-1] = '\0';
+
     volent *tvol = 0;
     if (IsFake()) {
 	Volid vid;
@@ -1156,11 +1160,9 @@ int fsobj::TryToCover(VenusFid *inc_fid, vuid_t vuid)
 
 	r->PutRef();
     }
-    else {
-	/* Turn volume name into a proper string. */
-	data.symlink[len-1] = '\0';
+    else
 	code = VDB->Get(&tvol, vol->realm, &data.symlink[1], this);
-    }
+
     if (code != 0) {
 /*
 	 eprint("TryToCover(%s) failed (%d)", data.symlink, code);
@@ -2155,6 +2157,7 @@ int fsobj::Fakeify()
     }
 
     /* XXX I eventually want to end up removing the rest of this function -JH */
+    LOG(0, ("fsobj::Fakeify: going into the old code\n"));
 
     if (FID_IsFakeRoot(MakeViceFid(&fid))) {		/* Fake MTLink */
 	ViceFid LinkFid;

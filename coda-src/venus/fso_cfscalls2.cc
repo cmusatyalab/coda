@@ -527,7 +527,11 @@ int fsobj::Lookup(fsobj **target_fso_addr, VenusFid *inc_fid, char *name, vuid_t
 	    code = dir_Lookup(name, &target_fid, flags);
 
 	    if (code) {
-		if (!FID_IsLocalFake(&fid) || fid.Volume != FakeRootVolumeId)
+		Volid fakeroot;
+		fakeroot.Realm = LocalRealm->Id();
+		fakeroot.Volume = FakeRootVolumeId;
+
+		if (!FID_VolEQ(MakeVolid(&fid), &fakeroot))
 		    return code;
 
 		/* regular lookup failed, but if we are in the fake root
