@@ -172,23 +172,26 @@ void PDB_printProfile(FILE *out, PDB_profile *r)
 }
 
 
-/* Updates the CPS entry of the given id */
-void PDB_updateCpsSelf(PDB_HANDLE h, PDB_profile *r)
+/* Updates the CPS entries of the given id and the CPS entries of its children*/
+void PDB_updateCps(PDB_HANDLE h, PDB_profile *r)
 {
-	PDB_profile p;
+	PDB_profile p, c;
 	int32_t nextid;
 	pdb_array_off off;
 
 	CODA_ASSERT(r != NULL);
+
+/* Update the CPS entry of the given id */
 
 	pdb_array_free(&(r->cps));
 	/* Add the CPS of parents into list */
 	nextid = pdb_array_head(&(r->member_of), &off);
 	while(nextid != 0){
 		PDB_readProfile(h, nextid, &p);
-		if(p.id != 0)
-			pdb_array_merge(&(r->cps), &(p.cps));
-		PDB_freeProfile(&p);
+		if(p.id != 0) {
+		    pdb_array_merge(&(r->cps), &(p.cps));
+		    PDB_freeProfile(&p);
+		}
 		nextid = pdb_array_next(&(r->member_of), &off);
 	}
 	/* Add self to list */
@@ -196,36 +199,20 @@ void PDB_updateCpsSelf(PDB_HANDLE h, PDB_profile *r)
 
 	/* write the updated CPS */
 	PDB_writeProfile(h, r);
-}
 
-/* Updates the CPS entries of the given id's children's CPS entries */
-void PDB_updateCpsChildren(PDB_HANDLE h, PDB_profile *r)
-{
-	PDB_profile c;
-	int32_t nextid;
-	pdb_array_off off;
-
-	CODA_ASSERT(r != NULL);
+/* Update the CPS entries of the given id's children's CPS entries */
+	if (!PDB_ISGROUP(r->id)) return;
 
 	/* Add the CPS of parents into list */
 	nextid = pdb_array_head(&(r->groups_or_members), &off);
 	while(nextid != 0){
 		PDB_readProfile(h, nextid, &c);
-		/* Resurse through all children */
-		if(PDB_ISGROUP(c.id))
-			PDB_updateCps(h, &c);
-		else
-			PDB_updateCpsSelf(h, &c);
-		PDB_freeProfile(&c);
+		if (c.id != 0) {
+		    /* Recurse through all children */
+		    PDB_updateCps(h, &c);
+		    PDB_freeProfile(&c);
+		}
 		nextid = pdb_array_next(&(r->groups_or_members), &off);
 	}
-}
-
-/* Updates the CPS entries of the given id and the CPS entries of
-   its children */
-void PDB_updateCps(PDB_HANDLE h, PDB_profile *r)
-{
-	PDB_updateCpsSelf(h, r);
-	PDB_updateCpsChildren(h, r);
 }
 

@@ -48,6 +48,7 @@ void PDB_addToGroup(int32_t id, int32_t groupId)
 {
 	PDB_HANDLE h;
 	PDB_profile r;
+	int n;
    
 	/* sanity check arguments */
 	CODA_ASSERT(PDB_ISGROUP(groupId) && (id != 0));
@@ -57,6 +58,16 @@ void PDB_addToGroup(int32_t id, int32_t groupId)
 	/* add id to the group's member list */
 	PDB_readProfile(h, groupId, &r);
 	CODA_ASSERT(r.id != 0);
+
+	/* make sure we don't introduce an infinite loop */
+	n = pdb_array_search(&(r.cps), id);
+	if (n != -1) {
+	    fprintf(stderr, "Cannot add %d, it is already a parent of %d\n",
+		    id, groupId);
+	    PDB_freeProfile(&r);
+	    return;
+	}
+
 	pdb_array_add(&(r.groups_or_members), id);
 	PDB_writeProfile(h, &r);
 	PDB_freeProfile(&r);
@@ -66,7 +77,6 @@ void PDB_addToGroup(int32_t id, int32_t groupId)
 	CODA_ASSERT(r.id != 0);
 	pdb_array_add(&(r.member_of), groupId);
 	PDB_updateCps(h, &r);
-	PDB_writeProfile(h, &r);
 	PDB_freeProfile(&r);
 
 	PDB_db_close(h);
@@ -95,7 +105,6 @@ void PDB_removeFromGroup(int32_t id, int32_t groupId)
 	CODA_ASSERT(r.id != 0);
 	pdb_array_del(&(r.member_of), groupId);
 	PDB_updateCps(h, &r);
-	PDB_writeProfile(h, &r);
 	PDB_freeProfile(&r);
 
 	PDB_db_close(h);
@@ -223,10 +232,8 @@ void PDB_cloneUser(char *name, int32_t cloneid, int32_t *newId)
 		nextid = pdb_array_next(&(r.member_of), &off);
 	}
    
+	/* updateCps also writes the new user's information to the databases */
 	PDB_updateCps(h, &r);
-
-	/* write the new user's information to the databases */
-	PDB_writeProfile(h, &r);
 	PDB_db_close(h);
 
 	*newId = r.id;
@@ -353,11 +360,7 @@ void PDB_deleteGroup(int32_t id)
 		PDB_readProfile(h, nextid, &p);
 		CODA_ASSERT(p.id != 0);
 		pdb_array_del(&(p.member_of), id);
-		if(PDB_ISGROUP(p.id))
-			PDB_updateCps(h, &p);
-		else
-			PDB_updateCpsSelf(h, &p);
-		PDB_writeProfile(h, &p);
+		PDB_updateCps(h, &p);
 		PDB_freeProfile(&p);
 		nextid = pdb_array_next(&(r.groups_or_members), &off);
 	}
@@ -366,7 +369,6 @@ void PDB_deleteGroup(int32_t id)
 	PDB_readProfile(h, r.owner_id, &p);
 	CODA_ASSERT(p.id != 0);
 	PDB_updateCps(h, &p);
-	PDB_writeProfile(h, &p);
 	PDB_freeProfile(&p);
 
 	PDB_freeProfile(&r);
@@ -429,9 +431,9 @@ void PDB_bugfixes(void)
 {
     PDB_HANDLE h;
     /* fixups for old bugs */
-    int32_t id, id2;
-    pdb_array_off off, off2;
-    int rc;
+    int32_t id;
+    pdb_array_off off;
+    int rc, n;
     PDB_profile p, r;
 
     h = PDB_db_open(O_RDWR);
@@ -439,6 +441,7 @@ void PDB_bugfixes(void)
     while ( (rc = PDB_db_nextkey(h, &id)) ) {
 	if ( rc == -1 ) continue; 
 	PDB_readProfile(h, id, &p);
+	CODA_ASSERT(p.id != 0);
 
 	if (PDB_ISGROUP(p.id)) {
 	    /* BUG: forgot to update owner_id when changing a user's uid */
@@ -454,10 +457,9 @@ again:
 	    id = pdb_array_head(&p.member_of, &off);
 	    while(id != 0) {
 		if (PDB_ISUSER(id)) {
-		    fprintf(stderr, "Group %d was listed as a member of userid %d, FIXED\n", p.id, id);
 		    pdb_array_del(&p.member_of, id);
 		    PDB_updateCps(h, &p);
-		    PDB_writeProfile(h, &p);
+		    fprintf(stderr, "Group %d was listed as a member of userid %d, FIXED\n", p.id, id);
 		    goto again;
 		}
 		id = pdb_array_next(&p.member_of, &off);
@@ -471,17 +473,13 @@ again2:
 	    while(id != 0) {
 		if (PDB_ISUSER(id)) {
 		    PDB_readProfile(h, id, &r);
-		    id2 = pdb_array_head(&r.member_of, &off2);
-		    while (id2 != 0) {
-			if (id2 == p.id) break;
-			id2 = pdb_array_next(&r.member_of, &off2);
-		    }
-		    if (id2 == 0) {
+		    CODA_ASSERT(r.id != 0);
+		    n = pdb_array_search(&r.member_of, p.id);
+		    if (n == -1) {
 			pdb_array_del(&p.groups_or_members, id);
 			PDB_updateCps(h, &p);
-			PDB_writeProfile(h, &p);
-			fprintf(stderr, "Group %d had nonexisting member %d, FIXED\n", p.id, id);
 			PDB_freeProfile(&r);
+			fprintf(stderr, "Group %d had nonexisting member %d, FIXED\n", p.id, id);
 			goto again2;
 		    }
 		    PDB_freeProfile(&r);
@@ -497,22 +495,32 @@ again2:
 	    while (id != 0) {
 		if (PDB_ISGROUP(id)) {
 		    PDB_readProfile(h, id, &r);
-		    id2 = pdb_array_head(&r.groups_or_members, &off2);
-		    while (id2 != 0) {
-			if (id2 == p.id) break;
-			id2 = pdb_array_next(&r.groups_or_members, &off2);
-		    }
-		    if (id2 == 0) {
-			fprintf(stderr, "Group %d was missing member %d, FIXED\n", id, p.id);
+		    CODA_ASSERT(r.id != 0);
+		    n = pdb_array_search(&r.groups_or_members, p.id);
+		    if (n == -1) {
 			pdb_array_add(&r.groups_or_members, p.id);
 			PDB_updateCps(h, &r);
-			PDB_writeProfile(h, &r);
+			fprintf(stderr, "Group %d was missing member %d, FIXED\n", id, p.id);
 		    }
 		    PDB_freeProfile(&r);
 		}
 		id = pdb_array_next(&p.member_of, &off);
 	    }
 	}
+	PDB_freeProfile(&p);
+    }
+    PDB_db_close(h);
+
+    /* iterate through the whole database again and this time make sure that
+     * all the CPS arrays are consistent. */
+    h = PDB_db_open(O_RDWR);
+    while ( (rc = PDB_db_nextkey(h, &id)) ) {
+	if ( rc == -1 ) continue; 
+
+	PDB_readProfile(h, id, &p);
+	if (p.id == 0) continue;
+
+	PDB_updateCps(h, &p);
 	PDB_freeProfile(&p);
     }
     PDB_db_close(h);
@@ -543,8 +551,7 @@ void PDB_changeId(int32_t oldId, int32_t newId)
 	
 	/* Change the id */
 	r.id = newId;
-	PDB_updateCpsSelf(h, &r);
-	PDB_writeProfile(h, &r);
+	PDB_updateCps(h, &r);
 
 	if(PDB_ISGROUP(oldId)){
 		/* Need to change owner info */
@@ -589,12 +596,7 @@ void PDB_changeId(int32_t oldId, int32_t newId)
 		}
 	    }
 
-	    if(PDB_ISGROUP(p.id))
-		PDB_updateCps(h, &p);
-	    else
-		PDB_updateCpsSelf(h, &p);
-
-	    PDB_writeProfile(h, &p);
+	    PDB_updateCps(h, &p);
 	    PDB_freeProfile(&p);
 	    nextid = pdb_array_next(&(r.groups_or_members), &off);
 	}

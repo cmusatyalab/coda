@@ -45,18 +45,19 @@ typedef struct pdb_array {
 
 typedef int pdb_array_off;
 
-__inline__ void pdb_array_init(pdb_array *l);
-__inline__ void pdb_array_free(pdb_array *l);
-__inline__ void pdb_array_add(pdb_array *l, int32_t x);
-__inline__ void pdb_array_del(pdb_array *l, int32_t x);
-__inline__ void pdb_array_copy(pdb_array *d, pdb_array *s);
-__inline__ void pdb_array_merge(pdb_array *d, pdb_array *s);
-__inline__ int32_t pdb_array_head(pdb_array *l, pdb_array_off *off);
-__inline__ int32_t pdb_array_next(pdb_array *l, pdb_array_off *off);
-__inline__ int32_t pdb_array_size(pdb_array *l);
-__inline__ int pdb_array_pack(int32_t *d, pdb_array *l);
-__inline__ int pdb_array_unpack(int32_t *s, pdb_array *l);
-__inline__ int pdb_array_to_array(int32_t *d, pdb_array *l);
-__inline__ int pdb_array_snprintf(char *d, pdb_array *l, int len);
+void pdb_array_init(pdb_array *l);
+void pdb_array_free(pdb_array *l);
+int pdb_array_search(pdb_array *l, int32_t x);
+void pdb_array_add(pdb_array *l, int32_t x);
+void pdb_array_del(pdb_array *l, int32_t x);
+void pdb_array_copy(pdb_array *d, pdb_array *s);
+void pdb_array_merge(pdb_array *d, pdb_array *s);
+int32_t pdb_array_head(pdb_array *l, pdb_array_off *off);
+int32_t pdb_array_next(pdb_array *l, pdb_array_off *off);
+int32_t pdb_array_size(pdb_array *l);
+int pdb_array_pack(int32_t *d, pdb_array *l);
+int pdb_array_unpack(int32_t *s, pdb_array *l);
+int pdb_array_to_array(int32_t *d, pdb_array *l);
+int pdb_array_snprintf(char *d, pdb_array *l, int len);
 
 #endif

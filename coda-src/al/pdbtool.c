@@ -357,8 +357,11 @@ void tool_update(int argc,char *argv[]){
 		return;
 	}
 	PDB_readProfile(h, arg1, &p);
-	if(p.id != 0)
-		PDB_writeProfile(h, &p);
+	if(p.id != 0) {
+		PDB_updateCps(h, &p);
+		PDB_freeProfile(&p);
+	}
+
 	PDB_db_close(h);
 }
 
@@ -467,6 +470,8 @@ again:
 
 	PDB_readProfile(h, id, &rec);
 	{
+	    if (rec.id == 0) continue;
+
 	    if (PDB_ISUSER(rec.id)) {
 		/* skip users during the second pass */
 		if (pass == 1) continue;
@@ -564,6 +569,8 @@ void tool_export(int argc, char *argv[])
 
 	PDB_readProfile(h, id, &rec);
 	{
+	    if (rec.id == 0) continue;
+
 	    if (PDB_ISUSER(rec.id)) {
 		/* users are dumped in an /etc/passwd like format
 		 * "<username>:x:<userid>:500::/:" */

@@ -39,7 +39,7 @@ listed in the file CREDITS.
 #include <coda_assert.h>
 #include "pdbarray.h"
 
-static int pdb_array_search(pdb_array *l, int32_t x)
+int pdb_array_search(pdb_array *l, int32_t x)
 {
 	int32_t b,t,m;
 
@@ -160,17 +160,23 @@ void pdb_array_merge(pdb_array *d, pdb_array *s)
 
 	si = 0; di = 0;
 	for (i = 0; i < s->size + d->size; i++) {
-	    if (si < s->size && (di == d->size || s->data[si] < d->data[di]))
+	    if (si == s->size && di == d->size)
+		break;
+	    if (si == s->size)
+		new[i] = d->data[di++];
+	    else if (di == d->size)
+		new[i] = s->data[si++];
+	    else if (s->data[si] < d->data[di])
 		new[i] = s->data[si++];
 	    else {
-		if (si < s->size && s->data[si] == d->data[di])
+		if (s->data[si] == d->data[di])
 		    si++;
 		new[i] = d->data[di++];
 	    }
 	}
 
 	d->memsize = s->size + d->size;
-	d->size = d->memsize;
+	d->size = i;
 	if (d->data)
 	    free(d->data);
 	d->data = new;

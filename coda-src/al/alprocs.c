@@ -457,11 +457,17 @@ int AL_GetInternalCPS(IN int Id, OUT PRS_InternalCPS **ICPS){
 	LogMsg(1,AL_DebugLevel,stdout,"in AL_GetInternalCPS(%d, 0x%x)",
 	       Id, ICPS);
 
+	if(Id == 0) {
+		*ICPS = NULL;
+		return -1;
+	}
+
 	h = PDB_db_open(O_RDONLY);
 	PDB_readProfile(h, Id, &profile);
 	PDB_db_close(h);
 
-	if((Id == 0) || (profile.id != Id)){
+	if(profile.id == 0){
+		PDB_freeProfile(&profile);
 		*ICPS = NULL;
 		return -1;
 	}

@@ -84,8 +84,6 @@ void PDB_readProfile(PDB_HANDLE h, int32_t id, PDB_profile *r);
 void PDB_readProfile_byname(PDB_HANDLE h, char *name, PDB_profile *r);
 void PDB_deleteProfile(PDB_HANDLE h, PDB_profile *r);
 void PDB_printProfile(FILE *out, PDB_profile *r);
-void PDB_updateCpsSelf(PDB_HANDLE h, PDB_profile *r);
-void PDB_updateCpsChildren(PDB_HANDLE h, PDB_profile *r);
 void PDB_updateCps(PDB_HANDLE h, PDB_profile *r);
 
 /* interface to the bottom end */
