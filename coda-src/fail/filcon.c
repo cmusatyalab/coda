@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/fail/ttyfcon.c,v 4.3 1997/12/23 17:19:35 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/fail/filcon.c,v 4.1 1998/01/05 16:41:52 braam Exp $";
 #endif /*_BLURB_*/
 
 /*
@@ -136,7 +136,7 @@ main(int argc, char **argv)
 		return Parser_execarg(argc-1, &argv[1], argcmdlist);
 	} else {
 		InitRPC();
-		Parser_init("ttyfcon> ", list);
+		Parser_init("filcon> ", list);
 		Parser_commands();
 	}
 }
