@@ -37,9 +37,9 @@ if [ -f $conf ] ; then
   echon "Do you want to continue? [no] "
   yesno=""
   read yesno
-  if [ x$yesno = x -o (x$yesno != xyes -a x$yesno != xy) ] ; then
+  if [ x$yesno = x -o \( x$yesno != xyes -a x$yesno != xy \) ] ; then
     echo "Not configuring a coda server!"
-    exit -1
+    exit 1
   fi
   rm -f $conf
 fi
