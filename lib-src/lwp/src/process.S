@@ -676,7 +676,7 @@ ENTRY(returnto)
 	
 #endif /* __arm32__ or __arm__ */
 
-#if defined(__powerpc__)
+#if defined(__powerpc__) || defined(__ppc__)
 
 /* Comments:
  *    1. Registers R10..R31 and CR0..CR7 are saved
@@ -725,7 +725,7 @@ ENTRY(returnto)
 #define EXT(x) x
 
 #else /* NeXT && __APPLE__ */
-#define EXT(x) _x
+#define EXT(x) _##x
 #endif
 
 /*
