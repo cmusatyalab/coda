@@ -22,12 +22,12 @@ case "$1" in
 	# start auth2 & update stuff: first the scm case
     	echo -n "Starting Coda: "
 	if [ "`cat /vice/hostname`" = "`cat /vice/db/scm`" ]; then
-	    if [ -f "authmon"  ]; then
+	    if [ -f /usr/sbin/authmon  ]; then
  		authmon &
 		echo -n "authmon/auth2,"
 	    fi
 	else 	# for non-scm machines.
-	    if [ -f "authmon"  ]; then
+	    if [ -f /usr/sbin/authmon  ]; then
 		authmon -chk &
 		echo -n "authmon/auth2(ro),"
 	    fi
