@@ -29,7 +29,7 @@
 #Mellon the rights to redistribute these changes without encumbrance.
 #*/
 #
-#static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/src/coda-4.0.1/coda-src/venus/RCS/GNUmakefile.in,v 1.3 1996/12/03 00:58:39 braam Exp braam $";
+#static char *rcsid = "$Header: /usr/bnoble/coda/coda-src/venus/RCS/Makefile.in,v 1.1 1996/12/09 14:40:48 raiff Exp bnoble $";
 #endif /*_BLURB_*/
 
 
@@ -93,7 +93,7 @@ RP2FLAGS := -n $(RP2FLAGS)
 # Conditional definition of MACHLIBS for NetBSD port (Satya, 8/16/96)
 MACHLIBS_pmax_mach = -lmach -lsys
 MACHLIBS_i386_mach = -lmach
-MACHLIBS_i386_nbsd1 = 
+MACHLIBS_i386_nbsd1 = -lcompat
 
 LIBS=	$(LIBUTIL)\
 	$(LIBCODARDS)\
