@@ -419,11 +419,7 @@ int RPC2_GetBandwidth(RPC2_Handle handle, unsigned long *BW,
     if (ce == NULL) 
 	return(RPC2_NOCONNECTION);
 
-#ifdef NS_per_BYTE
     if (BW)    *BW    = 1000000000 / (ce->HostInfo->BW >> RPC2_BW_SHIFT);
-#else
-    if (BW)    *BW    = ce->HostInfo->BW    >> RPC2_BW_SHIFT;
-#endif
     if (BWvar) *BWvar = ce->HostInfo->BWVar >> RPC2_BWVAR_SHIFT;
 
     return(RPC2_SUCCESS);
