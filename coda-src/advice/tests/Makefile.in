@@ -25,7 +25,7 @@
 # improvements or extensions that  they  make,  and  to  grant  Carnegie
 # Mellon the rights to redistribute these changes without encumbrance.
 # 
-# static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/advice/Makefile.in,v 4.2 1997/04/29 21:27:25 rvb Exp $";
+# static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/util/Makefile.in,v 4.2 1997/04/29 21:27:25 rvb Exp $";
 
 
 TOPDIR = @top_srcdir@
@@ -38,57 +38,12 @@ TOPOBJ = @TOPOBJ@
 
 include $(MAKDIR)/Makeconf
 
-EXECUTABLES = advice_srv
-SCRIPTS     = $(TCLSCRIPTS) $(SCRIPT)
-CSBINS      = $(EXECUTABLES)
-CBINS       = $(SCRIPTS)
-HEADERS     = advice_srv.h miss.h volent.h mybstree.h
+# example test program
 
-RP2FILES    = $(ADMON_RPC2) $(ADSRV_RPC2)
-RP2HEADERS  = $(notdir $(RP2FILES:.rpc2=.h))
+#OBJECTS = test.o
+#TESTS = test
 
-LIBS =	$(LIBSE)\
-	$(LIBOLDLWP)\
-	$(LIBUTIL)\
-	$(LIBVICEDEP)\
-	$(LIBRPC2)\
-	$(LIBCOMPAT)
-
-OTHERLIBS = $(LIBSYS)
-
-HFILES =	$(INCLDIR)/admon.rpc2	\
-		$(INCLDIR)/adsrv.rpc2	\
-		$(INCLDIR)/advice.h	\
-		$(INCLDIR)/rpc2.h       \
-                $(INCLDIR)/se.h         \
-		$(INCLSPECIAL)/lwp.h
-
-TCLSCRIPTS =	discomiss hoardlist misslist pseudomiss reconnection \
-		reintegration_pending stoplight stoplight_statechange \
-		user_initiated weakmiss
-SCRIPTS    =	advice_install.sh
-
-AOBJS = advice_srv.o miss.o volent.o  mybstree.o daemon.o filecopy.o
-
-advice: advice_srv
-
-advice_srv: $(AOBJS) $(LIBS) $(OTHERLIBS)
-	$(CXX) $(LIBFLAGS) $(AOBJS) $(LIBS) $(OTHERLIBS) -o advice_srv
-
-test_bstree: test_bstree.o mybstree.o $(LIBS) $(OTHERLIBS)
-	$(CXX) $(LIBFLAGS) test_bstree.o mybstree.o $(LIBS) $(OTHERLIBS) -o test_bstree
-
-
-
-# Dependencies
-advice_srv.o: $(HFILES) $(HEADERS)
-daemon.o: $(HFILES) $(HEADERS)
-filecopy.o: $(HFILES) $(HEADERS)
-miss.o: $(HFILES) $(HEADERS)
-volent.o: $(HFILES) $(HEADERS)
-admon.server.o:  $(HFILES) $(HEADERS)
-adsrv.client.o:  $(HFILES) $(HEADERS)
-
-test_bstree.o: test_bstree.h test_bstree.cc mybstree.h mybstree.cc
+#test: test.o
+#	$(CC) -o test test.o -L../libutil.a
 
 include $(MAKDIR)/Makerules
