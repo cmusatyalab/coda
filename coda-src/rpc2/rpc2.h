@@ -655,7 +655,7 @@ extern long RPC2_DeExport (RPC2_SubsysIdent *Subsys);
 #define RPC2_AllocBuffer(x, y)  (rpc2_AllocBuffer((long) (x), y, __FILE__, (long) __LINE__))
 #else
 #define  RPC2_AllocBuffer(x, y)  (rpc2_AllocBuffer((long) (x), y, 0, (long) 0))
-#endif NONDEBUG
+#endif /* NONDEBUG */
 extern long rpc2_AllocBuffer (long MinBodySize, RPC2_PacketBuffer **BufferPtr, char *SrcFile, long SrcLine);
 extern long RPC2_FreeBuffer (RPC2_PacketBuffer **Buffer);
 extern long RPC2_SendResponse (RPC2_Handle ConnHandle, RPC2_PacketBuffer *Reply);
@@ -767,4 +767,4 @@ extern struct RStats rpc2_MRecvd;
 
 extern int rpc2_43bsd;	/* TRUE  on 4.3BSD, FALSE on 4.2BSD */
 
-#endif _RPC2_
+#endif /* _RPC2_ */

@@ -368,6 +368,7 @@ static void ClientPacket(RPC2_PacketBuffer *whichPacket,
 		SFSendNAK(whichPacket); /* NAK this packet */
 		sftp_SetError(sEntry, ERROR);
 	    }
+	    SFTP_FreeBuffer(&whichPacket);
 	} else {
 	    BOGUS(whichPacket);
 	}
@@ -381,6 +382,7 @@ static void ClientPacket(RPC2_PacketBuffer *whichPacket,
 		    sftp_SetError(sEntry, ERROR);
 		SFSendNAK(whichPacket); /* NAK this packet */
 	    }
+	    SFTP_FreeBuffer(&whichPacket);
 	} else {
 	    BOGUS(whichPacket);
 	}
@@ -393,6 +395,7 @@ static void ClientPacket(RPC2_PacketBuffer *whichPacket,
 		SFSendNAK(whichPacket); /* NAK this packet */
 		sftp_SetError(sEntry, ERROR);
 	    }
+	    SFTP_FreeBuffer(&whichPacket);
 	} else {
 	    BOGUS(whichPacket);
 	}

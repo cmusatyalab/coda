@@ -143,4 +143,4 @@ typedef struct arg_info {
 
 
 
-#endif _MULTI_H_
+#endif /* _MULTI_H_ */

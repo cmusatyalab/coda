@@ -29,10 +29,15 @@ listed in the file CREDITS.
 #include <stdlib.h>
 #include <rpc2.h>
 #include <lwp.h>
+#include <ports.h>
+
+/* sftp wants this one defined, sigh */
+int iopen(int x, int y, int z){return(0);}
 
 void Initialize(void)
 {
     PROCESS         *pid;
+    SFTP_Initializer sei;
     struct timeval   tv;
     long             rc;
 
@@ -45,7 +50,6 @@ void Initialize(void)
 
     tv.tv_sec = 15;
     tv.tv_usec = 0;
-
     rc = RPC2_Init(RPC2_VERSION, 0, 0, -1, &tv);
     if (rc != LWP_SUCCESS) {
 	printf("RPC_Init() failed\n");
@@ -53,28 +57,28 @@ void Initialize(void)
     }
 }
 
-long Bind(char *host, short port, RPC2_Handle *cid)
+long Bind(char *host, short port, long subsys, RPC2_Handle *cid)
 {
-    RPC2_HostIdent   hostident;
-    RPC2_PortIdent   portident;
-    RPC2_SubsysIdent subsys;
+    RPC2_HostIdent   hostid;
+    RPC2_PortIdent   portid;
+    RPC2_SubsysIdent subsysid;
     RPC2_BindParms   bindparms;
 
     /* Initialize connection stuff */
-    hostident.Tag = RPC2_HOSTBYNAME;
-    strcpy(hostident.Value.Name, host);
+    hostid.Tag = RPC2_HOSTBYNAME;
+    strcpy(hostid.Value.Name, host);
 
-    portident.Tag = RPC2_PORTBYINETNUMBER;
-    portident.Value.InetPortNumber = htons(port);
+    portid.Tag = RPC2_PORTBYINETNUMBER;
+    portid.Value.InetPortNumber = htons(port);
 
-    subsys.Tag = RPC2_SUBSYSBYID;
-    subsys.Value.SubsysId= 0; /* fake, doesn't seem to be actually used by the
-                                 connection setup */
+    subsysid.Tag = RPC2_SUBSYSBYID;
+    subsysid.Value.SubsysId= subsys;
+
     bindparms.SideEffectType = 0;
     bindparms.SecurityLevel = RPC2_OPENKIMONO;
     bindparms.ClientIdent = 0;
 
-    return RPC2_NewBinding(&hostident, &portident, &subsys, &bindparms, cid);
+    return RPC2_NewBinding(&hostid, &portid, &subsysid, &bindparms, cid);
 }
 
 int main(int argc, char *argv[])
@@ -83,6 +87,7 @@ int main(int argc, char *argv[])
     long        rc;
     char       *host;
     short       port;
+    long	subsys;
 
     if (argc == 1)
         goto badargs;
@@ -95,12 +100,13 @@ int main(int argc, char *argv[])
         port = atoi(argv[2]);
     } else {
         host = argv[1];
-        port = 2432; /* codasrv portnumber */
+        port = PORT_codasrv; /* codasrv portnumber */
+	subsys = 1001;       /* SUBSYS_SRV */
     }
 
     Initialize();
 
-    rc = Bind(host, port, &cid);
+    rc = Bind(host, port, subsys, &cid);
 
     RPC2_Unbind(cid);
 

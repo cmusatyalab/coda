@@ -285,14 +285,13 @@ int sftp_DataArrived(RPC2_PacketBuffer *pBuff, struct SFTP_Entry *sEntry)
 	contention resolution algorithms are a pain and not likely to
 	be really useful.  */
 	sftp_starved++; 
-	SFTP_FreeBuffer(&pBuff); 
 	return(0); 
     }
 
     moffset = pBuff->Header.SeqNumber-sEntry->RecvLastContig;
 
     if (moffset > sEntry->WindowSize)
-	{ BOGOSITY(sEntry, pBuff); SFTP_FreeBuffer(&pBuff); return(-1); }
+	{ BOGOSITY(sEntry, pBuff); return(-1); }
 
     if (moffset <= 0 || TESTBIT(sEntry->RecvTheseBits, moffset)) {
 	/* we have already seen this packet */
@@ -307,13 +306,11 @@ int sftp_DataArrived(RPC2_PacketBuffer *pBuff, struct SFTP_Entry *sEntry)
 	    /* we already saw this packet, so this must be considered
 	     * as a retransmission. -JH */
 	    sEntry->Retransmitting = TRUE;
-	    if (sftp_SendAck(sEntry) < 0) {SFTP_FreeBuffer(&pBuff); return(-1);}
+	    if (sftp_SendAck(sEntry) < 0) return(-1);
 	    /* we need write here 'cause we may not flush buffers otherwise */
-	    if (sftp_WriteStrategy(sEntry) < 0)
-		{SFTP_FreeBuffer(&pBuff); return(-1);}
+	    if (sftp_WriteStrategy(sEntry) < 0) return(-1);
 	    sEntry->DupsSinceAck = 0;
 	}
-	SFTP_FreeBuffer(&pBuff);
 	return(0);
     }
 
@@ -376,10 +373,11 @@ int sftp_DataArrived(RPC2_PacketBuffer *pBuff, struct SFTP_Entry *sEntry)
      * flying by? Send a gratitious ack reply */
     if ((pBuff->Header.Flags & SFTP_ACKME) ||
 	(sEntry->RecvSinceAck >= sEntry->WindowSize)) {
-	if (sftp_SendAck(sEntry) < 0) 
-	    return(-1);
-	if (sftp_WriteStrategy(sEntry) < 0)
-	    return(-1);	    /* may modify RecvLastContig and RecvTheseBits */
+
+	if (sftp_SendAck(sEntry) < 0) return(-1);
+
+	/* WriteStrategy may modify RecvLastContig and RecvTheseBits */
+	if (sftp_WriteStrategy(sEntry) < 0) return(-1);
     }
 
     /* Is this the last packet for the file? */
@@ -562,10 +560,10 @@ int sftp_AckArrived(RPC2_PacketBuffer *pBuff, struct SFTP_Entry *sEntry)
     prun = pBuff->Header.GotEmAll - sEntry->SendLastContig;
 
     if (prun < 0)   /* Out-of-sequence Ack, probably */
-	{ SFTP_FreeBuffer(&pBuff); return(0); }
+	return(0);
 
     if (prun > sEntry->SendMostRecent - sEntry->SendLastContig)
-	{ BOGOSITY(sEntry, pBuff); 	SFTP_FreeBuffer(&pBuff); return(-1); }
+	{ BOGOSITY(sEntry, pBuff); return(-1); }
 
     /*  update the RTT estimate if 
      *
@@ -629,7 +627,6 @@ int sftp_AckArrived(RPC2_PacketBuffer *pBuff, struct SFTP_Entry *sEntry)
     /* Update counters to match other side */
     sEntry->SendLastContig = pBuff->Header.GotEmAll;
     B_CopyFromPacket(pBuff, sEntry->SendTheseBits);
-    SFTP_FreeBuffer(&pBuff);
 
     /* Handle multicast STOREs here */
     if (sEntry->UseMulticast)
@@ -1271,7 +1268,6 @@ int sftp_StartArrived(RPC2_PacketBuffer *pBuff, struct SFTP_Entry *sEntry)
      */
     sEntry->TimeEcho = pBuff->Header.TimeStamp;
     
-    SFTP_FreeBuffer(&pBuff);
     sEntry->XferState = XferInProgress;
 
     if (sEntry->UseMulticast)

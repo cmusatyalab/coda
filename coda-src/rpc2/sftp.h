@@ -478,7 +478,7 @@ extern long SFTP_MaxPackets;
     rpc2_Decrypt((char *)&pb->Header.BodyLength, (char *)&pb->Header.BodyLength,\
 	    pb->Prefix.LengthOfPacket-4*sizeof(RPC2_Integer),\
 	    sfe->PInfo.SessionKey, sfe->PInfo.EncryptionType)
-#endif _SFTP
+#endif /* _SFTP */
 
 
 /* Predicate to test if file is in vm */

@@ -676,15 +676,14 @@ long SFTP_GetHostInfo(IN ConnHandle, INOUT HPtr)
 
 
 /*-------------------- Data transmission routines -----------------------*/
-static long GetFile(sEntry)
-    struct SFTP_Entry *sEntry;
+static long GetFile(struct SFTP_Entry *sEntry)
     /* Local file is already opened */
-    {
+{
     struct CEntry *ce;
     long packetsize;
     long startmode = TRUE;
     RPC2_PacketBuffer *pb;
-    int i;
+    int i, rc = 0;
     
     sEntry->XferState = XferInProgress;
     sftp_Progress(sEntry->SDesc, 0);
@@ -704,10 +703,8 @@ static long GetFile(sEntry)
     /* Set timeout to be large enough for size of (possibly sent) ack + size
      * of the next data packet */
     packetsize = sEntry->PacketSize + 2 * sizeof(struct RPC2_PacketHeader);
-    while (sEntry->XferState == XferInProgress)
-	{
-	for (i = 1; i <= sEntry->RetryCount; i++)
-	{
+    while (sEntry->XferState == XferInProgress) {
+	for (i = 1; i <= sEntry->RetryCount; i++) {
 	    /* get a new retry interval estimate */
 	    rpc2_RetryInterval(sEntry->LocalHandle, packetsize, &i,
 			       sEntry->RetryCount, &sEntry->RInterval);
@@ -715,35 +712,39 @@ static long GetFile(sEntry)
 	    pb = (RPC2_PacketBuffer *)AwaitPacket(&sEntry->RInterval, sEntry);
 
 	    /* Make sure nothing bad happened while we were waiting */
-	    if (sEntry->WhoAmI == ERROR)
-		{QUIT(sEntry, SE_FAILURE, RPC2_SEFAIL2);}
-	    if (sEntry->WhoAmI == DISKERROR)
-		{QUIT(sEntry, SE_FAILURE, RPC2_SEFAIL3);}
+	    if (sEntry->WhoAmI == ERROR) {
+		if (pb) { SFTP_FreeBuffer(&pb); }
+		QUIT(sEntry, SE_FAILURE, RPC2_SEFAIL2);
+	    }
+	    if (sEntry->WhoAmI == DISKERROR) {
+		if (pb) { SFTP_FreeBuffer(&pb); }
+		QUIT(sEntry, SE_FAILURE, RPC2_SEFAIL3);
+	    }
 
 	    /* Did we receive a packet? */
-	    if (pb == NULL)
-	    {
+	    if (pb == NULL) {
 		sftp_timeouts++;
 		sEntry->Retransmitting = TRUE;
 		say(4, SFTP_DebugLevel, "GetFile: Backoff\n");
 
 		if (startmode)
 		{
-		    if (sftp_SendStart(sEntry) < 0)
-		    {QUIT(sEntry, SE_FAILURE, RPC2_SEFAIL2);}
+		    if (sftp_SendStart(sEntry) < 0) {
+			QUIT(sEntry, SE_FAILURE, RPC2_SEFAIL2);
+		    }
 		}
 		else
 		{
-		    if (sftp_SendTrigger(sEntry) < 0)
-		    {QUIT(sEntry, SE_FAILURE, RPC2_SEFAIL2);}
+		    if (sftp_SendTrigger(sEntry) < 0) {
+			QUIT(sEntry, SE_FAILURE, RPC2_SEFAIL2);
+		    }
 		}
 		continue;
 	    }
 
 	    /* If so process it */
-	    switch((int) pb->Header.Opcode)
+	    switch((int) pb->Header.Opcode) {
 		/* punt CtrlSeqNumber consistency for now */
-	    {
 	    case SFTP_NAK:
 		CODA_ASSERT(FALSE); /* my SEntry state should already be ERRORR */
 	    case SFTP_DATA:
@@ -751,8 +752,11 @@ static long GetFile(sEntry)
 
 	    case SFTP_BUSY:
 		sftp_Recvd.Busies++;
-		if (startmode)
-		{ sftp_busy++; i = 0; SFTP_FreeBuffer(&pb); }
+		if (startmode) {
+		    sftp_busy++;
+		    i = 0;
+		    SFTP_FreeBuffer(&pb);
+		}
 		else
 		    BOGUS(pb);
 		continue;
@@ -767,17 +771,21 @@ static long GetFile(sEntry)
 
 GotData:
 	startmode = FALSE;
-	if (sftp_DataArrived(pb, sEntry) < 0)
-	    {
-	    if (sEntry->WhoAmI == DISKERROR)
-		{QUIT(sEntry, SE_FAILURE, RPC2_SEFAIL3);}
-	    else
-		{QUIT(sEntry, SE_FAILURE, RPC2_SEFAIL2);}
+	rc = sftp_DataArrived(pb, sEntry);
+	SFTP_FreeBuffer(&pb);
+
+	if (rc < 0) { /* sftp_DataArrived failed */
+	    if (sEntry->WhoAmI == DISKERROR) {
+		QUIT(sEntry, SE_FAILURE, RPC2_SEFAIL3);
+	    }
+	    else {
+		QUIT(sEntry, SE_FAILURE, RPC2_SEFAIL2);
 	    }
 	}
+    }
 
     QUIT(sEntry, SE_SUCCESS, RPC2_SUCCESS);
-    }
+}
 
 
 /* Local file is already opened */
@@ -785,7 +793,7 @@ static long PutFile(struct SFTP_Entry *sEntry)
 {
     RPC2_PacketBuffer *pb;
     struct CEntry     *ce;
-    int i;
+    int i, rc = 0;
     unsigned long bytes;
     
     sftp_Progress(sEntry->SDesc, 0);
@@ -822,10 +830,14 @@ static long PutFile(struct SFTP_Entry *sEntry)
 	    pb = (RPC2_PacketBuffer *)AwaitPacket(&sEntry->RInterval, sEntry);
 
 	    /* Make sure nothing bad happened while we were waiting */
-	    if (sEntry->WhoAmI == ERROR)
-		{QUIT(sEntry, SE_FAILURE, RPC2_SEFAIL2);}
-	    if (sEntry->WhoAmI == DISKERROR)
-		{QUIT(sEntry, SE_FAILURE, RPC2_SEFAIL3);}
+	    if (sEntry->WhoAmI == ERROR) {
+		if (pb) { SFTP_FreeBuffer(&pb); }
+		QUIT(sEntry, SE_FAILURE, RPC2_SEFAIL2);
+	    }
+	    if (sEntry->WhoAmI == DISKERROR) {
+		if (pb) { SFTP_FreeBuffer(&pb); }
+		QUIT(sEntry, SE_FAILURE, RPC2_SEFAIL3);
+	    }
 
 	    /* Things still look ok */
 	    if (pb != NULL)
@@ -835,8 +847,9 @@ static long PutFile(struct SFTP_Entry *sEntry)
 	    sftp_timeouts++;
 	    sEntry->Retransmitting = TRUE;
 
-	    if (sftp_SendStrategy(sEntry) < 0)
-		{QUIT(sEntry, SE_FAILURE, RPC2_SEFAIL2);}
+	    if (sftp_SendStrategy(sEntry) < 0) {
+		QUIT(sEntry, SE_FAILURE, RPC2_SEFAIL2);
+	    }
 	}
 	sftp_SetError(sEntry, ERROR);
 	QUIT(sEntry, SE_FAILURE, RPC2_SEFAIL2);
@@ -849,13 +862,16 @@ GotAck:
 	    CODA_ASSERT(FALSE);  /* should have already set sEntry state */
 	    
 	case SFTP_ACK:
-	    if (sftp_AckArrived(pb, sEntry) < 0)
-		{QUIT(sEntry, SE_FAILURE, RPC2_SEFAIL2);}
+	    rc = sftp_AckArrived(pb, sEntry);
 	    break;
 	    
 	default:
-	    SFTP_FreeBuffer(&pb);
 	    break;	    
+	}
+
+	SFTP_FreeBuffer(&pb);
+	if (rc < 0) { /* sftp_AckArrived failed */
+	    QUIT(sEntry, SE_FAILURE, RPC2_SEFAIL2);
 	}
     }
 

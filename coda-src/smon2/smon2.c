@@ -22,6 +22,10 @@ listed in the file CREDITS.
  * that logs & graphs arbitrary dataseries. See
  *	http://www.caida.org/Tools/RRDtool/.
  *
+ * -- Jan
+ *
+ * The description from cmon follows:
+ *
  * Simple program to monitor Coda servers
  *   M. Satyanarayanan, June 1990
  */
