@@ -10,22 +10,20 @@ C++FLAGS := $(CXXFLAGS)
 subdirinstall: 
 ifdef SUBDIRS
 	@for d in $(SUBDIRS) ; do \
-	  if [ -r $$d/GNUmakefile.coda ] ; then \
 	    echo "----> entering directory $$d"; \
-	    ${MAKE} -C $$d -f GNUmakefile.coda SUBDIRS= install; \
+	    ${MAKE} -C $$d SUBDIRS= coda; \
 	    if [ $$? != 0 ] ; then echo "----> error in $$d"; exit ; else echo "----> done in $$d"; fi \
-	  else \
-	    echo "----> entering directory $$d"; \
-	    ${MAKE} -C $$d SUBDIRS= install; \
-	    if [ $$? != 0 ] ; then echo "----> error in $$d"; exit ; else echo "----> done in $$d"; fi \
-	  fi \
 	done
 endif
 
 ###################
 # Installation rules
 ###################
-install: subdirinstall bininstall libinstall hdrinstall 
+ifeq ($(SHOB),)
+coda: subdirinstall $(LIBRARIES) $(EXECUTABLES)  $(TESTS) hdrinstall 
+else
+coda: subdirinstall $(LIBRARIES) $(EXECUTABLES)  $(TESTS) bininstall libinstall hdrinstall 
+endif
 
 #####################
 # install executables
@@ -35,7 +33,7 @@ ifdef EXECUTABLES
 	$(TOPDIR)/tools/our-install 755 $(BINDIR) $?
 	touch bininstall
 endif
-	
+
 #####################
 # install libraries
 #####################
@@ -71,11 +69,34 @@ srcinstall:
 # cleaning: important too
 # XXX must add rule to remove rp2gen generated .h files
 ##################
-clean: 
+clean: subdirclean realclean
+
+subdirclean:
+ifdef SUBDIRS
+	@for d in $(SUBDIRS) ; do \
+	    echo "----> entering directory $$d"; \
+	    ${MAKE} -C $$d SUBDIRS= realclean; \
+	    echo "----> done in $$d"; \
+	done
+endif
+
+realclean:
 	$(RM) *.o *.a *.client.c *.server.c *.multi.c core
-	$(RM) $(EXECUTABLES) $(LIBRARIES) $(TEST)
+	$(RM) $(EXECUTABLES) $(LIBRARIES) $(TESTS) 
 	$(RM) hdrinstall libinstall bininstall
 	$(RM) *.l.c *.pt.c *.l.o *.pt.o
+
+##################
+# build coda from the top
+##################
+topcoda:
+	${MAKE} -C kernel-src/vfs/$(SHORTSYS) hdrinstall 
+ifneq ($(SYS),i386_linux2)
+	${MAKE} -C kernel-src/ifs/$(SHORTSYS) coda; 
+endif
+	${MAKE} -C lib-src coda 
+	${MAKE} -C rvm-src coda 
+	${MAKE} -C coda-src coda
 
 ##################
 # build a single subdirectory
@@ -83,19 +104,32 @@ clean:
 ifdef SUBDIRS
 $(SUBDIRS): FORCE
 	echo "----> entering $@"; \
-	if [ -r $@/GNUmakefile.coda ] ; then \
-	  ${MAKE} -C $@ -f GNUmakefile.coda SUBDIRS= all; \
-	else \
-	  ${MAKE} -C $@ SUBDIRS= all; \
-	fi
+	${MAKE} -C $@ all; 
 endif
 
 
+##################
+# testing variables
+##################
+showvar:
+	@echo  RP2GEN: $(RP2GEN)
+	@echo  SHADOWINCLS: $(SHADOWINCLS)
+	@echo  SHADOWRP2: $(SHADOWRP2)
+	@echo  VPATH: $(VPATH)
+	@echo  SECSRC: $(SECSRC) 
+	@echo  CFLAGS: $(CFLAGS)
+	@echo  TOPDIR: $(TOPDIR) 
+
+##################
+# linting
+##################
 lint: $(SOURCES)
 	lint $(INCDIRS) $(SOURCES)
 
+##################
+# suffix rules:
+##################
 
-# General rules:
 %.o: %.s
 	$(CPP) -P -D__ASSEMBLY__ $(CFLAGS) $< > $*.ss
 	$(AS) -o $@ $*.ss
@@ -120,4 +154,14 @@ y.tab.c:
 endif
 
 .PHONY FORCE:
+
+########################
+# If you need to override globally during the build, place
+# Makeconf.overrule at the top of your build tree and uncomment
+# the line below
+########################
+
+ifdef OVERRIDE
+include $(TOPOBJ)/Makeconf.override
+endif
 

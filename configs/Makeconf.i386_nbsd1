@@ -29,9 +29,70 @@
 #Mellon the rights to redistribute these changes without encumbrance.
 #*/
 #
-#static char *rcsid = "$Header: Makeconf.i386_nbsd1,v 3.2.7.1 96/08/26 12:07:54 raiff Exp $";
+#static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/src/coda-4.0.1/configs/RCS/Makeconf.NetBSD,v 1.1 1996/11/22 19:20:04 braam Exp braam $";
 #endif /*_BLURB_*/
 
-# Makeconf.sys for i386_nbsd1
+# For mach, make sure we are using gcc
+SHORTSYS=netbsd
+CC=gcc
+CXX = g++
 
-SYS=i386_nbsd1
+#
+MACHDIR = /usr/mach
+CSDIR = /usr/cs
+KERNELDIR = /coda/project/coda/kernel
+
+#
+# INCLSPECIALSUBDIR= ${ROOT}/INCLUDE-SPECIAL/readline -I${ROOT}/INCLUDE-SPECIAL/sets
+# PERSONAL_INCLUDE = .
+# INCLFLAGS = -I- -I$(PERSONAL_INCLUDE) -I. -I$(srcdir) -I$(INCLDIR) -I$(INCLSPECIAL)  -I$(INCLSPECIALSUBDIR) 	-I$(CSDIR)/include -I/usr/include
+
+ifeq ($(SHOB),)
+INCLFLAGS = -I-  -I. -I$(INCLDIR) $(SHADOWINCLS)  -I/usr/include
+else
+INCLFLAGS = -I-  -I. -I$(INCLDIR) -I$(INCLSPECIAL) $(SHADOWINCLS) -I/usr/include
+endif
+
+LIBFLAGS =  -L$(CSDIR)/lib 
+
+RP2FLAGS :=  -I $(srcdir) -I .  `printenv MAKEPSD | awk -F:  '{for (i=1; i<NF+1; i++) {printf("-I %s ", $$i)}}'` -I $(INCLDIR)
+
+
+CFLAGS := -g $(INCLFLAGS) -DPRIVATE=static  $(PERSONAL_FLAGS)
+CXXFLAGS := $(CFLAGS)
+C++FLAGS := $(CFLAGS)	# Mach uses c++ flags, not CXX
+
+INSTALL= cp -p
+CPP= gcc -E -x c-header
+
+LIBCURSES =-lcurses
+
+# Define each library individually for easy substitution
+LIBTRACE =	libfaketrace.a
+LIBCOMPAT =     /usr/lib/libcompat.a
+
+
+# platform dependent libraries
+ifeq ($(SHOB),)
+LIBIFS          =$(TOPOBJ)/kernel-src/ifs/netbsd/libifs.a
+LIBTRACE = ../venus/libfaketrace.a
+else
+LIBTRACE = ../venus/libfaketrace.a
+LIBIFS          =$(LIBDIR)/libifs.a
+
+endif
+
+
+#ALPHACI = $(SCRIPTDIR)/alphaci
+
+
+grr:
+	echo $(CPP)
+
+#on exit from the program write the source directory and path of Makeconf into the
+#object directory
+# this was added to facilitate writing resolvers.
+.EXIT:
+	@echo set SOURCEDIR = $(VPATH) > .SRCDIRS
+	@echo -n "setenv MAKECONF " >> .SRCDIRS
+	@printenv MAKECONF >> .SRCDIRS

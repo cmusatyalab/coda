@@ -30,7 +30,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: blurb.doc,v 1.1 96/11/22 13:29:31 raiff Exp $";
+static char *rcsid = "$Header: /home/braam/src/lib-src/mlwp/process.s,v 1.1 1996/12/05 18:58:46 braam Exp braam $";
 #endif undef
 #endif /*_BLURB_*/
 
@@ -429,8 +429,13 @@ returnto:
 #define SYMB(name)  ENTRY(name)
 #define EXT(x) SYMBOL_NAME(x)
 #else
+#ifdef __STDC__	
 #define SYMB(x)  _##x:
 #define EXT(x)	_##x
+#else
+#define SYMB(x)  _/**/x:
+#define EXT(x)	_/**/x
+#endif
 #endif	
 
 

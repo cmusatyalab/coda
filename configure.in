@@ -13,7 +13,29 @@ AC_PROG_RANLIB
 AC_PROG_YACC
 
 
-AC_OUTPUT(GNUmakefile lib-src/GNUmakefile lib-src/mlwp/GNUmakefile.coda lib-src/mlwp/GNUmakefile.real lib-src/libcs/GNUmakefile lib-src/special-includes/GNUmakefile rvm-src/GNUmakefile rvm-src/rvm/Makefile rvm-src/seg/Makefile rvm-src/rds/Makefile rvm-src/tests/Makefile coda-src/GNUmakefile coda-src/scripts/GNUmakefile coda-src/sys/GNUmakefile coda-src/dir/GNUmakefile  coda-src/rpc2/GNUmakefile coda-src/util/GNUmakefile coda-src/libal/GNUmakefile coda-src/rp2gen/GNUmakefile coda-src/pdbstuff/GNUmakefile coda-src/blurb/GNUmakefile coda-src/camstuff/GNUmakefile coda-src/fail/GNUmakefile coda-src/vicedep/GNUmakefile  coda-src/auth2/GNUmakefile coda-src/vv/GNUmakefile coda-src/login/GNUmakefile coda-src/vol/GNUmakefile coda-src/resolve/GNUmakefile coda-src/venus/GNUmakefile coda-src/advice/GNUmakefile coda-src/repair/GNUmakefile coda-src/res/GNUmakefile coda-src/rvmres/GNUmakefile coda-src/volutil/GNUmakefile coda-src/vtools/GNUmakefile coda-src/vice/GNUmakefile coda-src/update/GNUmakefile coda-src/norton/GNUmakefile coda-src/asr/GNUmakefile coda-src/egasr/GNUmakefile kernel-src/GNUmakefile kernel-src/ifs/GNUmakefile kernel-src/ifs/mach/GNUmakefile kernel-src/ifs/netbsd/GNUmakefile kernel-src/vfs/Makefile kernel-src/vfs/linux/Makefile kernel-src/vfs/mach/GNUmakefile kernel-src/vfs/netbsd/GNUmakefile)
+
+dnl  Substitute the top of the object directory
+AC_SUBST(TOPOBJ)
+TOPOBJ=`pwd`
+
+dnl  Enable second shadow source area
+AC_SUBST(SECSRC)
+AC_ARG_ENABLE(srcdir, [Second shadow directory], SECSRC=$enable_srcdir)
+
+dnl Enable RCS directory
+AC_SUBST(RCSDIR)
+AC_ARG_ENABLE(rcsdir, [RCS directory], RCSDIR=$enable_rcsdir)
+
+dnl Enable Shared objects
+AC_SUBST(SHOB)
+AC_ARG_ENABLE(shareobjs, [Shared library dirs], SHOB=$enable_shareobjs)
+
+dnl Enable Platform Selection
+AC_SUBST(PLATFORM)
+AC_ARG_ENABLE(platform, [Platform (i386_linux2 i386_nbsd1 i386_mach pmax_mach)], PLATFORM=$enable_platform)
+
+
+AC_OUTPUT(Makefile Makeconf.setup  lib-src/Makefile lib-src/mlwp/Makefile lib-src/libcs/Makefile lib-src/special-includes/Makefile rvm-src/Makefile rvm-src/rvm/Makefile rvm-src/seg/Makefile rvm-src/rds/Makefile rvm-src/tests/Makefile coda-src/Makefile coda-src/scripts/Makefile coda-src/sys/Makefile coda-src/dir/Makefile  coda-src/rpc2/Makefile coda-src/util/Makefile coda-src/libal/Makefile coda-src/rp2gen/Makefile coda-src/pdbstuff/Makefile coda-src/blurb/Makefile coda-src/camstuff/Makefile coda-src/fail/Makefile coda-src/vicedep/Makefile  coda-src/auth2/Makefile coda-src/vv/Makefile coda-src/login/Makefile coda-src/vol/Makefile coda-src/resolve/Makefile coda-src/venus/Makefile coda-src/advice/Makefile coda-src/repair/Makefile coda-src/res/Makefile coda-src/rvmres/Makefile coda-src/volutil/Makefile coda-src/vtools/Makefile coda-src/vice/Makefile coda-src/update/Makefile coda-src/norton/Makefile coda-src/asr/Makefile coda-src/egasr/Makefile kernel-src/Makefile kernel-src/ifs/Makefile kernel-src/ifs/mach/Makefile kernel-src/ifs/netbsd/Makefile kernel-src/vfs/Makefile kernel-src/vfs/linux/Makefile kernel-src/vfs/mach/Makefile kernel-src/vfs/netbsd/Makefile)
 
 
 

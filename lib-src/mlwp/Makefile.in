@@ -30,7 +30,7 @@
 #Mellon the rights to redistribute these changes without encumbrance.
 #*/
 #
-#static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/src/coda-4.0.1/RCSLINK/./lib-src/mlwp/Makefile.coda.in,v 1.1 1996/11/22 19:19:02 braam Exp $";
+#static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/src/coda-4.0.1/lib-src/mlwp/RCS/Makefile.in,v 1.1 1996/12/07 20:27:37 braam Exp braam $";
 #endif /*_BLURB_*/
 
 TOPDIR = @top_srcdir@
@@ -91,7 +91,7 @@ new:  clean
 
 # Coda Installation
 
-coda: old
+coda: old 
 
 liboldlwp.a: $(OFILES)
 
@@ -105,16 +105,6 @@ warn:
 	@echo "Type 'make old' for liboldlwp.a, and"
 	@echo "Type 'make new' for libnewlwp.a."
 	@exit 1
-
-# Rules for object files
-
-ifeq ($(sys), Mach)
-process.o: process.s
-	echo "-P $(CFLAGS)" > cppflags
-	csh -c "$(CPP) `sed s/-g// cppflags` $< > $*.ss"
-	$(AS) $*.ss -o $@
-	$(RM) $*.ss cppflags
-endif
 
 # Dependencies for object files
 $(OFILES):  $(HFILES) $(PRIVHFILES)

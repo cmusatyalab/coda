@@ -31,7 +31,7 @@
 # changes  without  encumbrance.   Such improvements and extensions
 # should be returned to Software.Distribution@cs.cmu.edu.
 #
-# rcsid = $Header: /afs/cs.cmu.edu/project/coda-braam/src/coda-4.0.1/rvm-src/tests/RCS/Makefile.in,v 1.1 1996/11/22 19:17:28 braam Exp braam $
+# rcsid = $Header: /afs/cs.cmu.edu/project/coda-braam/src/coda-4.0.1/rvm-src/tests/RCS/Makefile.in,v 1.2 1996/11/24 23:29:56 braam Exp $
 #
 #endif _BLURB_
 
@@ -43,6 +43,7 @@
 TOPDIR = @top_srcdir@
 srcdir = @srcdir@
 VPATH = @srcdir@
+TOPOBJ= @TOPOBJ@
 
 # Need to conditionalize this
 include $(TOPDIR)/Makeconf

@@ -31,7 +31,7 @@
 # changes  without  encumbrance.   Such improvements and extensions
 # should be returned to Software.Distribution@cs.cmu.edu.
 #
-# rcsid = $Header: Makefile,v 1.11 96/11/19 14:24:41 tilt Exp $
+# rcsid = $Header: /afs/cs.cmu.edu/project/coda-braam/src/coda-4.0.1/rvm-src/rvm/RCS/Makefile.in,v 1.1 1996/11/22 19:17:07 braam Exp braam $
 #
 #endif _BLURB_
 
@@ -50,6 +50,7 @@
 TOPDIR = @top_srcdir@
 srcdir = @srcdir@
 VPATH = @srcdir@
+TOPOBJ= @TOPOBJ@
 
 # Need to conditionalize this
 include $(TOPDIR)/Makeconf
@@ -70,8 +71,8 @@ PTOBJ1  = ${OBJ1:.o=.pt.o} rvm_pthread.o
 
 # to compile these, we have to look in the VPATH directories to ensure
 # that we pick up correct copies of local include files.  Urg.
-SHADOWINCLS=${VPATH/:/ -I}
-CFLAGS := -I${INCLSPECIAL} -I${SHADOWINCLS} ${CFLAGS}
+
+# CFLAGS := -I${INCLSPECIAL} -I${SHADOWINCLS} ${CFLAGS}
 
 LWPSRC1 = ${OBJ1:.o=.l.c}
 PTSRC1  = ${OBJ1:.o=.pt.c} rvm_pthread.c
@@ -87,6 +88,7 @@ OBJECTS_sun4_mach   = ${OBJ1} ${LWPOBJ1} ${OBJ2}
 OBJECTS_alpha_osf20 = ${OBJ1} ${OBJ2}
 OBJECTS_hp700_ux90  = ${OBJ1} ${PTOBJ1} ${OBJ2}
 OBJECTS_i386_nbsd1  = ${OBJ1} ${LWPOBJ1} ${OBJ2}
+OBJECTS_i386_linux  = ${OBJ1} ${LWPOBJ1} ${OBJ2}
 OBJECTS             = $(OBJECTS_${SYS})
 
 # Used to make depend
@@ -104,7 +106,7 @@ LIBS_sun4_mach   = librvm.a librvmlwp.a
 LIBS_alpha_osf20 = librvm.a
 LIBS_hp700_ux90  = librvm.a librvmpt.a
 LIBS_i386_nbsd1  = librvm.a librvmlwp.a
-LIBS             = $(LIBS_${SYS})
+LIBS             = $(LIBS_$(SYS))
 
 # For mach platforms, we need to add libthread.a and libmach.a
 # LIBTHREADS and LIBMACH are defined in the all_mach Makeconf.sys
@@ -115,7 +117,8 @@ RVMUTLLIBS_sun4_mach   = ${LIBTHREADS} ${LIBMACH}
 RVMUTLLIBS_alpha_osf20 = 
 RVMUTLLIBS_hp700_ux90  = 
 RVMUTLLIBS_i386_nbsd1  = ${LIBCOMPAT}
-RVMUTLLIBS             = $(RVMUTLLIBS_${SYS})
+RVMUTLLIBS_i386_linux  = 
+RVMUTLLIBS             = $(RVMUTLLIBS_$(SYS))
 
 BINS = rvmutl
 
@@ -167,6 +170,7 @@ librvmpt.a: $(PTOBJ1)
 	ranlib $@
 
 rvmutl: $(NEED_CTHREAD) ${OBJ2} librvm.a ${RVMUTLLIBS}
+	echo $(RVMUTLLIBS)
 	$(CC) $(CFLAGS) -o $@ ${OBJ2} librvm.a ${RVMUTLLIBS} ${LIBFLAGS}
 
 clean:  
@@ -220,5 +224,10 @@ nothing:
 	@echo $(NEED_CTHREAD)
 	@echo $(LIBS)
 	@echo $(CTHREAD_${SYS})
+
+
+# to install in lib-special and lib-include
+LIBDIR := $(LIBSPECIAL)
+INCLDIR := $(INCLSPECIAL)
 
 include $(TOPDIR)/Makerules

@@ -1,0 +1,88 @@
+XXX - why isn't device checking a subroutine?
+
+***** vc_nb_open()
+
+Arguments:
+	A device to open
+	flags (unused)
+	mode (unused)
+	process pointer
+
+If minor number is more than the # of minor devices or negative
+	return ENXIO
+Initialize namecache, control fid if necessary (calling makecfsnode)
+Ensure no one else has the device open
+Mark the device as the "regular" coda device (i.e. not a tome)
+Zero out the mount information.
+
+
+***** vc_nb_close()
+
+Arguments:
+	A device to close
+	unused flag, mode, process pointer
+
+Check minor number of device
+Panic if device not already open
+Free name if it's allocated (i.e. it's a tome)
+Unmount each VFS hanging off this device.  (Can there ever be more
+                                             than one?)
+Wake up any clients sleeping on request/reply queues, so they can return.
+
+
+***** vc_nb_read
+
+Arguments:
+	A device on which to read
+	a uio structure
+	an (unused) flag word
+
+Check the device number
+If nothing to read, return zero.
+Copy out the first request to the uiop, and remove it from the request
+   queue.
+If we aren't SIGNALing the venus, expect a reply from this message.
+
+
+***** vc_nb_write
+
+Arguments:
+	Same as read
+
+Check the device number.
+Grab the opcode, uniqifier pair
+If the opcode is a downcall, grab the rest of the downcall, and
+	call handleDownCall (in cfs_subr.c) and return
+Find the message to which we are expecting a reply
+Copy in the rest of the reply
+Wake up the process that slept on this request in cfscall.
+
+
+***** vc_nb_ioctl
+
+XXX - we need to check that the minor device is okay, and that
+      the device is open, and whatever else.
+
+The ioctl arguments are defined in cfsio.h
+
+Four ioctls:
+	CFSRESIZE
+		Calls cfsnc_resize with the argument.
+
+	CFSSTATS
+		Calls cfsnc_gather_stats()
+
+	CFSPRINT
+		Calls print_cfsnc()
+
+	ODYBIND
+		Identifies a name (type) with this device.
+
+
+***** vc_nb_select
+
+Check device minor number
+If flag isn't FREAD return 0 (not ready)  (XXX - that can't be right!)
+If the requests queue isn't empty return 1 (ready)
+Record the selector and return 0 (not ready)
+

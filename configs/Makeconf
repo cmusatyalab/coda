@@ -12,37 +12,155 @@
 #
 #########################################################
 
+include $(TOPOBJ)/Makeconf.setup
+
+##############################
+# tools
+##############################
+
+ALPHACI=$(TOPDIR)/tools/alphaci
+
+
+##############################
+# VPATH
+##############################
+
+
+# edit VPATH appropiately
+
+ifneq ($(SECSRC),)
+VPATHTAIL:= $(subst $(TOPDIR),,$(VPATH))
+OLDVPATH := $(VPATH)
+NEWVPATH:= $(SECSRC)$(VPATHTAIL):$(VPATH)
+VPATH:=$(NEWVPATH)
+endif
+
+ifneq ($(VPATH),)
+colon=:
+SHADOWINCLS:= -I$(subst $(colon), -I,$(VPATH))
+SHADOWRP2 := ../vicedep $(subst $(colon),../vicedep ,$(VPATH))
+endif
+
+
+##############################
+# Location of objects
+##############################
+ifeq ($(SHOB),)
+
+INCLDIR=$(TOPOBJ)/include
+INCLSPECIAL=$(INCLDIR)
+RP2GEN=../rp2gen/rp2gen
+PCFGEN=../pcfgen/pcfgen
+
+else
+
+BINSPECIAL = ${ROOT}/BIN-SPECIAL
+BINDIR = ${ROOT}/bin
+LIBSPECIAL = ${ROOT}/LIB-SPECIAL
+LIBDIR=	 ${ROOT}/lib
+INCLSPECIAL= ${ROOT}/INCLUDE-SPECIAL
+INCLDIR= ${ROOT}/include
+MANDIR = ${ROOT}/man
+SCRIPTDIR = ${BINDIR}
+DOCDIR = ${ROOT}/doc
+
+RP2GEN = $(BINDIR)/rp2gen
+PCFGEN = $(BINDIR)/pcfgen
+
+endif
 
 ##############################
 # Library definitions
 ##############################
+ifeq ($(SHOB),)
+
+##############################
+# CASE 1: no shared object directory
+##############################
+
 # -- IFS --
 # platform dependent: choice from user level and kernel level version
+# defined in configs/Makeconf.$(SYS)
+
+# -- CS --
+LIBCS =$(TOPOBJ)/lib-src/libcs/libcs.a
+
+# -- LWP --
+# LIBNEWLWP =$(TOPOBJ)/lib-src/mlwp/libnewlwp.a			
+LIBOLDLWP =$(TOPOBJ)/lib-src/mlwp/liboldlwp.a			
+
+# -- RVM --
+LIBRVM= $(TOPOBJ)/rvm-src/rvm/librvm.a
+LIBRDS= $(TOPOBJ)/rvm-src/rds/librds.a	 		
+# with threads
+LIBRVMLWP = $(TOPOBJ)/rvm-src/rvm/librvmlwp.a
+LIBRDSLWP = $(TOPOBJ)/rvm-src/rds/librdslwp.a
+# libseg doesn't use threads.
+LIBSEG= $(TOPOBJ)/rvm-src/seg/libseg.a 			
+
+# -- CODA --
+LIBCODARVM = $(LIBRVMLWP)
+LIBCODARDS = $(LIBRDSLWP)
+LIBCODASYS =../sys/libcodasys.a   # --- (pioctl, setpag)
+LIBAUTH2 =../auth2/libauth2.a
+LIBAL = ../libal/libal.a
+LIBVOLUTIL =../volutil/libvolutil.a
+LIBVOL = ../vol/libvol.a
+LIBVV = ../vv/libvv.a
+LIBRESOLVE =../resolve/libresolve.a
+LIBRESLIB =../res/libreslib.a
+LIBUTIL =../util/libutil.a
+LIBRPC2 =../rpc2/librpc2.a
+LIBSE =../rpc2/libse.a
+LIBFAIL =../fail/libfail.a
+LIBRVMRES =../rvmres/librvmres.a
+LIBDIRLIB= ../dir/libdir.a
+# LIBSETPAG= ../sys/libsetpag.a
+# LIBMTCORE =../??/libmtcore.a
+# LIBCOMM =/libcomm.a
+# LIBGROUP =$(LIBDIR)/libgroup.a
+
+##############################
+# RPC2 interface definitions in module vicedep
+##############################
+CALLBACK_RPC2 = ../vicedep/callback.rpc2
+MOND_RPC2 = ../vicedep/mond.rpc2
+VCRCOMMON_RPC2 = ../vicedep/vcrcommon.rpc2
+VICE_RPC2 = ../vicedep/vice.rpc2
+VOLDUMP_RPC2 = ../vicedep/voldump.rpc2
+VOLUTIL_RPC2 = ../vicedep/volutil.rpc2
+RES_RPC2 = ../vicedep/res.rpc2
+ADMON_RPC2 = ../vicedep/admon.rpc2
+ADSRV_RPC2 = ../vicedep/adsrv.rpc2
+vpath %.rpc2 $(SHADOWRP2)        # needed to pick up "shared" rpc2's
+
+else
+##############################
+# CASE 2: using shared SHOBJ
+##############################
+# -- IFS --
+# platform dependent: choice from user level and kernel level version
+# defined in configs/Makeconf.$(SYS)
 
 # -- CS --
 LIBCS     =$(LIBSPECIAL)/libcs.a
 
 # -- LWP --
-LIBNEWLWP =${LIBSPECIAL}/libnewlwp.a			
+# LIBNEWLWP =${LIBSPECIAL}/libnewlwp.a	(should not be used)
 LIBOLDLWP =${LIBSPECIAL}/liboldlwp.a			
 
 # -- RVM --
-# Uncomment the follwing lines to use the non-lwp versions of RVM. (Be sure the
-# to comment out the variable defs below)
-#LIBRVM= $(LIBSPECIAL)/librvm.a
-#LIBRDS= $(LIBSPECIAL)/librds.a	 		
-
-# Uncomment the following lines to use the lwp package with RVM. (Be sure to 
-# comment the variable defs above).
-LIBRVM = $(LIBSPECIAL)/librvmlwp.a		
-LIBRDS = $(LIBSPECIAL)/librdslwp.a
-
+LIBRVM= $(LIBSPECIAL)/librvm.a
+LIBRDS= $(LIBSPECIAL)/librds.a	 		
+# threaded
+LIBRVMLWP = $(LIBSPECIAL)/librvmlwp.a		
+LIBRDSLWP = $(LIBSPECIAL)/librdslwp.a
 # libseg doesn't use threads.
 LIBSEG= $(LIBSPECIAL)/libseg.a 			
 
-
-
 # -- CODA --
+LIBCODARVM = $(LIBRVMLWP)
+LIBCODARDS = $(LIBRDSLWP)
 LIBCODASYS =$(LIBDIR)/libcodasys.a   # --- (pioctl, setpag)
 LIBAUTH2 =$(LIBDIR)/libauth2.a
 LIBAL = $(LIBDIR)/libal.a
@@ -60,18 +178,31 @@ LIBFAIL =$(LIBDIR)/libfail.a
 LIBMTCORE =$(LIBSPECIAL)/libmtcore.a
 LIBCOMM =$(LIBDIR)/libcomm.a
 LIBRVMRES =$(LIBDIR)/librvmres.a
-
 LIBDIRLIB=$(LIBDIR)/libdir.a
-
 LIBSETPAG=      $(LIBDIR)/libsetpag.a
 
+##############################
+# RPC2 interface definitions in module vicedep
+##############################
+CALLBACK_RPC2 = $(INCLDIR)/callback.rpc2
+MOND_RPC2 = $(INCLDIR)/mond.rpc2
+VCRCOMMON_RPC2 = $(INCLDIR)/vcrcommon.rpc2
+VICE_RPC2 = $(INCLDIR)/vice.rpc2
+VOLDUMP_RPC2 = $(INCLDIR)/voldump.rpc2
+VOLUTIL_RPC2 = $(INCLDIR)/volutil.rpc2
+RES_RPC2 = $(INCLDIR)/res.rpc2
+ADMON_RPC2 = $(INCLDIR)/admon.rpc2
+ADSRV_RPC2 = $(INCLDIR)/adsrv.rpc2
+
+vpath %.rpc2 $(INCLDIR)        # needed to pick up "shared" rpc2's
+
+endif
 
 # Just include the system Makeconf
-sys=$(shell uname)
-include $(TOPDIR)/configs/Makeconf.$(sys)
+include $(TOPDIR)/configs/Makeconf.$(SYS)
 
-ALPHACI=$(TOPDIR)/tools/simpleci
-vpath %.rpc2 $(INCLDIR)
+# Force all to be the first target
+all:
 
 
 

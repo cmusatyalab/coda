@@ -31,7 +31,7 @@
 # changes  without  encumbrance.   Such improvements and extensions
 # should be returned to Software.Distribution@cs.cmu.edu.
 #
-# rcsid = $Header: Makefile,v 1.5 95/01/13 20:14:49 bnoble Exp $
+# rcsid = $Header: /afs/cs.cmu.edu/project/coda-braam/src/coda-4.0.1/rvm-src/seg/RCS/Makefile.in,v 1.1 1996/11/22 19:17:21 braam Exp braam $
 #
 #endif _BLURB_
 
@@ -40,6 +40,7 @@
 TOPDIR = @top_srcdir@
 srcdir = @srcdir@
 VPATH = @srcdir@
+TOPOBJ= @TOPOBJ@
 
 # Need to conditionalize this
 include $(TOPDIR)/Makeconf
@@ -117,5 +118,10 @@ Depend: ${DEPDEP}
 #	-chmod 0644 $(BINDIR)/*
 #	${INSTALL} $> $(BINDIR)
 #	-chmod 0444 $(BINDIR)/*
+
+
+# to install in lib-special and lib-include
+LIBDIR := $(LIBSPECIAL)
+INCLDIR := $(INCLSPECIAL)
 
 include $(TOPDIR)/Makerules

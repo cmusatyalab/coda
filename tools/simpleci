@@ -1,0 +1,84 @@
+#!/bin/sh 
+#ifndef _BLURB_
+#define _BLURB_
+#/*
+#
+#            Coda: an Experimental Distributed File System
+#                             Release 4.0
+#
+#          Copyright (c) 1987-1996 Carnegie Mellon University
+#                         All Rights Reserved
+#
+#Permission  to  use, copy, modify and distribute this software and its
+#documentation is hereby granted,  provided  that  both  the  copyright
+#notice  and  this  permission  notice  appear  in  all  copies  of the
+#software, derivative works or  modified  versions,  and  any  portions
+#thereof, and that both notices appear in supporting documentation, and
+#that credit is given to Carnegie Mellon University  in  all  documents
+#and publicity pertaining to direct or indirect use of this code or its
+#derivatives.
+#
+#CODA IS AN EXPERIMENTAL SOFTWARE SYSTEM AND IS  KNOWN  TO  HAVE  BUGS,
+#SOME  OF  WHICH MAY HAVE SERIOUS CONSEQUENCES.  CARNEGIE MELLON ALLOWS
+#FREE USE OF THIS SOFTWARE IN ITS "AS IS" CONDITION.   CARNEGIE  MELLON
+#DISCLAIMS  ANY  LIABILITY  OF  ANY  KIND  FOR  ANY  DAMAGES WHATSOEVER
+#RESULTING DIRECTLY OR INDIRECTLY FROM THE USE OF THIS SOFTWARE  OR  OF
+#ANY DERIVATIVE WORK.
+#
+#Carnegie  Mellon  encourages  users  of  this  software  to return any
+#improvements or extensions that  they  make,  and  to  grant  Carnegie
+#Mellon the rights to redistribute these changes without encumbrance.
+#*/
+#
+#static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/src/coda-4.0.1/tools/RCS/alphaci,v 1.1 1996/11/22 19:48:02 braam Exp braam $";
+#endif /*_BLURB_*/
+
+
+#
+#static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/src/coda-4.0.1/tools/RCS/alphaci,v 1.1 1996/11/22 19:48:02 braam Exp braam $";
+#endif /*_BLURB_*/
+
+#############################################################################
+# Script to install modified sources into RCS and in alpha source directory #
+############################################################################# 
+
+
+# No arguments; typically invoked via make in a directory whose name is <module>
+#	E.g. (cd /coda/usr/satya/venus; make install)
+#
+# Expects
+#	-  symlink named RCS in the current directory.
+#	-  a file named RCSMSG in the current directory.
+#	-  the environment variables SRCDIR and MAKEPSD
+#	   (these are defined by Coda Makeconf and CMU-CS make respectively)
+#
+# Checks for $FREEZE_FILE (defined below) and will not check in changes if this
+# file exists.
+#
+# cd's into MAKEPSD and obtains names of all files in it.
+#
+# Excludes those files with explicitly IGNORE-able extensions (specified below).
+#
+# Prompts the user about any other files not already in RCS.
+#
+# Checks in the appropriate files (from above) with the checkin message in RCSMSG.
+#
+# Checks out the newly-checked-in files (unlocked) in the current dir & SRCDIR/<module>
+#
+# Can be suppressed by setting environment variable SUPPRESS_ALPHACI
+
+
+
+if [ ! -d $SRCDIR ]; then
+  echo "ERROR:  Can't find SRCDIR: $SRCDIR"
+  exit 1 
+fi
+
+
+echo -n "Which file would you like to check in (hit Ctrl-D or . to quit): "
+while read f ; do
+    if [ "$f" = "." ] ; then  exit ; fi
+    ci $f
+    ( cd $SRCDIR ; co $f ) 
+    echo -n "Which file would you like to check in (hit . to quit): "
+done

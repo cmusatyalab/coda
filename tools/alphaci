@@ -30,7 +30,7 @@
 #Mellon the rights to redistribute these changes without encumbrance.
 #*/
 #
-#static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-raiff/coda-objs/tools/RCS/alphaci,v 1.4 1996/12/06 14:15:18 raiff Exp raiff $";
+#static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/src/coda-4.0.1/tools/RCS/alphaci,v 1.5 1996/12/06 14:23:25 raiff Exp braam $";
 #endif /*_BLURB_*/
 
 
@@ -66,7 +66,7 @@
 #Mellon the rights to redistribute these changes without encumbrance.
 #*/
 #
-#static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-raiff/coda-objs/tools/RCS/alphaci,v 1.4 1996/12/06 14:15:18 raiff Exp raiff $";
+#static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/src/coda-4.0.1/tools/RCS/alphaci,v 1.5 1996/12/06 14:23:25 raiff Exp braam $";
 #endif /*_BLURB_*/
 
 #############################################################################
@@ -229,7 +229,7 @@ if ($DOCHECKIN) then
   echo "  "
   echo "Checking in files into RCS ...."
   echo "  "
-  ci -u $CHECKIN_FILES < RCSMSG
+  ci  $CHECKIN_FILES < RCSMSG
 
   echo "  "
   echo "Checking out files into $SRCDIR"
@@ -240,26 +240,26 @@ else
 endif
 
 # Create HTML documents if necessary
-set CC2HTML = "/coda/project/coda/alpha/bin/c++2html"
-set HTMLDIR = "/coda/project/coda/alpha/coda-internals/src-html"
-set HTML_FILES = "Updated HTML files : "
-foreach i ($CHECKIN_FILES)
-	grep -l BEGIN_HTML $i > /dev/null
-	# Check whether HTML documents are needed for $i
-	if (! $status) then
-	   if (!(-d ${HTMLDIR}/$MODULE)) then 
-		/bin/mkdir ${HTMLDIR}/${MODULE}
-		if ($status) then
-		    echo "failed to mkdir ${HTMLDIR}/${MODULE}"
-		    set HTML_FILES = "failed to mkdir ${HTMLDIR}/${MODULE}"
-		    break;
-	        endif
-	   endif
-	   echo "creating HTML document for $i"
-	   $CC2HTML $i >! ${HTMLDIR}/${MODULE}/${i}.html
-	   set HTML_FILES = "$HTML_FILES ${i}.html"
-	endif
-end
+# set CC2HTML = "/coda/project/coda/alpha/bin/c++2html"
+# set HTMLDIR = "/coda/project/coda/alpha/coda-internals/src-html"
+# set HTML_FILES = "Updated HTML files : "
+# foreach i ($CHECKIN_FILES)
+# 	grep -l BEGIN_HTML $i > /dev/null
+# 	# Check whether HTML documents are needed for $i
+# 	if (! $status) then
+# 	   if (!(-d ${HTMLDIR}/$MODULE)) then 
+# 		/bin/mkdir ${HTMLDIR}/${MODULE}
+# 		if ($status) then
+# 		    echo "failed to mkdir ${HTMLDIR}/${MODULE}"
+# 		    set HTML_FILES = "failed to mkdir ${HTMLDIR}/${MODULE}"
+# 		    break;
+# 	        endif
+# 	   endif
+# 	   echo "creating HTML document for $i"
+# 	   $CC2HTML $i >! ${HTMLDIR}/${MODULE}/${i}.html
+# 	   set HTML_FILES = "$HTML_FILES ${i}.html"
+# 	endif
+#end
 
 
 # Move RCSMSG out of the way, so it doesn't get reused accidentally
@@ -285,7 +285,7 @@ echo "" >> /tmp/$$
 echo "Posted by alphaci from $HOST" >> /tmp/$$
 if ($DOCHECKIN) then
   echo "Files checked into RCS:     $CHECKIN_FILES" >> /tmp/$$
-  echo "$HTML_FILES" >> /tmp/$$
+#  echo "$HTML_FILES" >> /tmp/$$
   echo "RCS message follows:" >> /tmp/$$
   cat RCSMSG.old >> /tmp/$$
 else

@@ -1,0 +1,585 @@
+XXX - check the "attr" invalidation steps.  Did I correctly document
+all of them?
+
+XXX - handling of control failures should be standardized.
+
+Terminology
+
+	An object is "dying" if it was established by a dead venus.
+	An object is the "control" object if it corresponds to
+            /coda/.CONTROL
+
+
+***** MARK_ENTRY(op)
+      MARK_INT_SAT(op)
+      MARK_INT_FAIL(op)
+      MARK_INT_GEN(op)  : macros
+	
+Used to keep statistics on mini-cache-only operations.
+
+
+***** cfs_open: function
+
+Arguments (old): struct vnode **vpp;
+                 int flag;
+	         struct ucred *ucred;
+
+          (new): struct vop_open_args {
+		     struct vnodeop_desc *a_desc;
+		     struct vnode *a_vp;
+		     int a_mode;
+		     struct ucred a_cred;
+		     struct proc *a_p; };
+
+Precondition: a_vp is set up.  We are just doing the work we need to
+manage the on-disk file, and to tell Venus what's going on.
+
+NOTE: Even though the old-style args had a struct vnode **, it was
+never treated as an OUT parameter.  Don't Panic!
+
+If the fid is dying, (from a previous venus incarnation) return ENODEV
+If the fid is control fid
+	and you are writing to it, return EACCESS
+	and you aren't writing to it, return success.
+Tell Venus we want to open the file.
+Place a hold on the vnode.  (XXX - why don't we do this first?  Can
+                             Venus' open flush the vnode?)
+Grab the vnode for the local cache file (given the device/inode pair)
+	This needs to be substantially re-written.
+        Side effect: place hold on cached vnode
+If we are writing, flush the cached attributes of the file
+If we don't have the file currently open, remember the cache vnode
+VOP_OPEN the cache file.
+Increment the openers count.
+
+
+***** cfs_close: function
+
+Arguments (old): struct vnode *vp;
+                 int flag;
+                 struct ucred *ucred;
+
+          (new): struct vop_close_args *ap {
+                     struct vnodeop_desc *a_desc;
+                     struct vnode *a_vp;
+                     int a_fflag;
+                     struct ucred *a_cred;
+                     struct proc *a_p; };
+
+Precondition: a_vp is open.
+
+XXX - precondition is not checked.
+
+If object is dying, return ENODEV
+If object is control, close trivially, (return success.
+Close the cache file (which we established in cfs_open)
+Release the (implied) hold on the open cache file.
+Decrement the openers count.
+   if zero, forget about cache file.
+Tell Venus about the close
+Release the hold on the Coda vnode
+Return
+
+
+***** cfs_read()
+***** cfs_write()
+
+These functions are just used to MUX into cfs_rdwr.  NetBSD uses
+different type signatures for read and write vnode operations.
+
+***** cfs_rdwr : function
+
+Arguments: struct vnode *vp;
+	   struct uio *uiop;
+           enum uio_rw rw;
+           int ioflag;
+           struct ucred *cred;
+
+The arguments are unchanged.
+
+If the object is dying, return ENODEV
+If the object is the control object, return EINVAL
+If we are redirecting to UFS:
+  If the file isn't already open (page_read/write from the inode pager)
+    If we have the inode number, and we aren't dumping core
+      Get the inode directly
+    If we don't have the inode number or we are dumping core
+      Do a cfs_open to derive the inode, and tell venus about it.
+  Do a VOP_RDWR to redirect to the ufs inode.
+  If we called cfs_open, we need to call cfs_close.
+If we aren't redirecting to UFS:
+  (XXX - dcs tells me this code doesn't work.)
+  allocate a message buffer btwn Venus/Kernel
+  While there are bytes to transfer
+    if this vector is empty, move to the next one.
+    plan to tranfer MAX(largest_transfer, bytes left in this xfer)
+    Send the request to venus (+ data if a write)
+    Increment base ptr+offset index.
+    Decreement length to transfer for this vector/total transfer
+    Break if we didn't xfer everything we wanted to.
+If we wrote, invalidate cached attributes.
+
+
+***** cfs_ioctl
+
+Arguments: (old) struct vnode *vp;
+                 int com;
+                 caddr_t data;
+                 int flag;
+                 struct ucred *cred;
+
+           (new) struct vop_ioctl_args *ap {   XXX - name conflict!
+		   struct vnodeop_desc *a_desc;
+		   struct vnode *a_vp;
+		   int a_command;
+		   caddr_t a_data;
+		   int a_fflag;
+		   struct ucred *a_cred;
+                   struct proc *a_p; }; 
+
+A coda ioctl's format looks like this:
+struct ia {
+    char *path;
+    struct ViceIoctl vidata;
+    int follow;
+} *iap;
+
+Ioctl's must be on the control object.  (Because these are pioctl's?)
+Lookup the vnode for the iap->path
+Ensure that that vnode's type is CFS (v_type in Mach, v_tag in NetBSD)
+Alloocate a buffer.
+Adjust the size of the ioctl command word to only cover iap->vidata
+Copy in iap->vidata.in.
+Call up to venus.
+Copy out the out buffer.
+Free resources and return.
+
+
+***** cfs_select
+	
+	NOT SUPPORTED.
+
+***** cfs_getattr 
+
+Arguments: (old) struct vnode *vp;
+                 struct vattr *vap;
+                 struct ucred *cred;
+
+           (new) struct vop_getattr_args {
+                   struct vnodeop_desc *a_desc;
+                   struct vnode *a_vp;
+                   struct vattr *a_vap;
+                   struct ucred *a_cred;
+                   struct proc *a_p;
+                 } *ap;
+
+If the vnode is dying, try to get a quick fake vnode for it.
+If the vnode is control, return ENOENT
+If there are valid cached attributes
+  return them and exit.
+If there aren't valid cached attributes
+  Ask venus what the attributes are.
+  Cache them if we aren't writing.
+  return the results.
+
+
+***** cfs_setattr
+
+Arguments: (old) struct vnode *vp;
+                 struct vattr *vap;
+                 struct ucred *cred;
+
+           (new) struct vop_setattr_args {
+                   struct vnodeop_desc *a_desc;
+                   struct vnode *a_vp;
+                   struct vattr *a_vap;
+                   struct ucred *a_cred;
+                   struct proc *p;
+                 } *ap;
+
+If the vnode is dying, return ENODEV
+If the vnode is control, return ENOENT
+Send the attributes up to venus.
+Invalidate the cached attributes.
+XXX - why don't we cache the new results?
+return
+
+
+***** cfs_access
+
+Arguments: (old) struct vnode *vp;
+                 int mode;
+                 struct ucred *cred;
+
+           (new) struct vop_access_args {
+		   struct vnodeop_desc *a_desc;
+		   struct vnode *a_vp;
+		   int a_mode;
+		   struct ucred *a_cred;
+		   struct proc *a_p;
+                 } *ap;
+
+If vnode is dying, return ENODEV
+If vnode is control
+  and we are reading, return success
+  and we are writing, return EACCESS
+If we cache access info
+  and this is a directory and we are looking through it
+    check the cache against this credential
+    (This is legitimate: we only could have cached the directory
+     if we already had access to it.)
+Otherwise, send the call to venus, and return it's answer
+
+
+***** cfs_readlink
+
+Arguments: (old) struct vnode *vp;
+                 struct uio *uiop;
+                 struct ucred *cred;
+
+           (new) struct vop_readlink_args {
+                   struct vnodeop_desc *a_desc;
+                   struct vnode *a_vp;
+                   struct uio *a_uio;
+                   struct ucred *a_cred;
+                 } *ap;
+
+If vnode is dying, return ENODEV
+If vnode is control, return ENOENT
+If we are caching symlinks and this symlink is valid
+  copy it out and return
+Otherwise
+  call up to venus to ask for the symlink
+  If we are caching symlinks
+    save the symlink in the cache, and mark it valid
+  Copy the symlink out, and return
+
+
+***** cfs_fsync
+
+Arguments: (old) struct vnode *vp;
+                 struct ucred *cred;
+
+           (new) struct vop_fsync_args {
+                   struct vnodeop_desc *a_desc;
+                   struct vnode *a_vp;
+                   struct ucred *a_cred;
+                   struct a_waitfor;
+                   struct proc *a_p;
+                 } *ap;
+
+If the object is dying, return ENODEV
+If the object is control, return success.
+Send the sync request up to venus.  (XXX What does that do?)
+return.
+
+
+***** cfs_inactive
+
+Arguments: (old) struct vnode *vp;
+                 struct ucred *cred;
+
+           (new) struct vop_inactive_args {
+                   struct vnodeop_desc *a_desc;
+                   struct vnode *a_vp;
+                 } *ap;
+
+If the vnode is control, return success
+If there is a symlink cached, deallocate it
+Remove the cnode from the hash table.
+Panic if the vnode is open.
+Make sure that the vnode is well formed (either v_data or IS_DYING)
+If it is well formed, and there is a mountinfo structure, decrement
+  the refcount.  (XXX - So what?)
+
+
+***** cfs_lookup
+
+Arguments: (old) struct vnode *dvp;
+                 char *nm;
+                 struct vnode **vpp;
+                 struct cnode *cp;
+                 struct ucred *cred;
+
+           (new) struct vop_lookup_args {
+                   struct vnodeop_desc *a_desc;
+                   struct vnode *a_dvp;
+                   struct vnode **a_vpp;
+                   struct componentname *a_cnp;
+                 } *ap;
+
+If directory vnode (dvp) is dying, try to grab a temporary vnode for it.
+Grab a handle to the component name.
+If we are looking up the control object, satisfy trivially and return.
+If we can find it in the namecache
+  Put a HOLD on the child vnode
+Otherwise
+  Ask Venus to do the name resolve for us. (yielding a fid)
+  Create the cnode/vnode pair for this fid
+  If this is an uncacheable cnode, or we are looking up in a dead directory
+    Don't cache the result.
+  Otherwise
+    Cache it.
+If we were using a temporary vnode for the directory,
+  release our hold on it.
+
+
+***** cfs_create
+
+Arguments: (old) struct vnode *dvp;
+                 struct cnode *cp;   (XXX -this shouldn't be here)
+                 char *nm;
+                 struct vattr *va;
+                 enum vcexcl exclusive;
+                 int mode; 
+                 struct vnode **vpp;
+                 struct ucred *cred;
+
+           (new) struct vnodeop_desc *a_desc;
+                 struct vnode *a_dvp;
+                 struct vnode **a_vpp;
+                 struct componentname *a_cnp;
+                 struct vattr *a_vap;
+
+If directory vnode is dying return ENODEV
+If directory vnode+name is control object, return EACCESS
+Send call to Venus (assigns fid)
+Panic if a fid is re-used.
+Create a cnode for the fid
+Set attributes and cache them if we are caching attributes
+Invalidate parent's attrs.
+Enter the new cnode in the name cache
+return
+
+
+***** cfs_remove
+
+Arguments: (old) struct vnode *dvp;
+                 char *nm;
+                 struct ucred *cred;
+
+           (new) struct vop_remove_args {
+                   struct vnodeop_desc *a_desc;
+                   struct vnode *a_dvp;
+                   struct vnode *a_vp;
+                   struct componentname *a_cnp;
+                 } *ap;
+
+If the vnode is dying, return ENODEV
+If the cnode is cached, zap it, and decrement the link count.
+Invalidate parent vnode attr cache
+If we are trying to remove the control object, return ENOENT
+Send the remove up to Venus
+return
+
+
+***** cfs_link
+
+Arguments: (old) struct vnode *vp;
+                 struct vnode *tdvp;
+                 char *tnm;
+                 struct ucred *cred;
+
+           (new) struct vop_link_args {
+                   struct vnodeop_desc *a_desc;
+                   struct vnode *a_vp;
+                   struct vnode *a_tdvp;
+                   struct componentname *a_cnp;
+                 } *ap;
+
+If either the parent directory of link or linked-to vnode is dying, 
+  return ENODEV
+If linking to/from the control object, return EACCESS
+Send the link request to venus
+Invalidate the attributes of parent of link and linked-to vnode
+return
+
+
+***** cfs_rename
+
+XXX - it looks as though rename will have to be substantially
+rewritten?  The new arugment list seems to include extra stuff that
+we used to do ourselves (???)
+
+Arguments: (old) struct vnode *odvp;
+                 char *onm;
+                 struct vnode *ndvp;
+                 char *nnm;
+                 struct ucred *cred;
+
+           (new) struct vop_rename_args {
+                   struct vnodeop_desc *a_desc;
+                   struct vnode *a_fdvp;
+                   struct vnode *a_fvp;
+                   struct componentname *a_fcnp;
+                   struct vnode *a_tdvp;
+                   struct vnode *a_tvp;
+                   struct componentname *a_tcnp;
+                 } *ap;
+
+If the new parent or old parent is dying, return ENODEV
+  (XXX - return ENODEV for new or old vnode, too)
+If the rename inolves the control object, return EACCESS
+If we are doing cross-directory rename
+  and we are renaming a directory
+  flush whoever lives at ".." of the old directory name
+  (XXX - which may not be the parent????)
+Flush the old name entry, and the new name entry
+Invalidate parent directories' attr caches
+Ask Venus to perform the rename.
+return
+
+
+***** cfs_mkdir
+
+Arguments: (old) struct vnode *dvp;
+                 struct cnode *cp;   (XXX - bogus; not an argument)
+                 char *nm;
+                 struct vattr *va;
+                 struct vnode **vpp;
+                 struct ucred *cred;
+
+           (new) struct vop_mkdir_args {
+                   struct vnodeop_desc *a_desc;
+                   struct vnode *a_dvp;
+                   struct vnode **a_vpp;
+                   struct componentname *a_cnp;
+                   struct vattr *a_vap;
+                 } *ap;
+
+If the parent directory is dying, return ENODEV
+If we are trying to mkdir the control name, return EACCESS
+Ask Venus to do the mkdir (returning a fid)
+If all went well
+  Ensure that this fid has never been seen before
+  create a cnode/vnode pair for the fid
+  Cache the name, and ".", ".." entries
+  Cache the attrs if we keep them around
+  Invalidate parent's attrs
+return
+
+
+***** cfs_rmdir
+
+Arguments: (old) struct vnode *dvp;
+                 char *nm;
+                 struct ucred *cred;
+
+           (new) struct vop_rmdir_args {
+                   struct vnodeop_desc *a_desc;
+                   struct vnode *a_dvp;
+                   struct vnode *a_vp;
+                   struct componentname *a_cnp;
+                 } *ap;
+
+If the parent vnode is dying, return ENODEV
+If the rmdir is of the control object, return ENOENT
+If we have cached the name to remove, zap that name's vnode's parent.
+Invalidate the parent's attributes
+Ask Venus to do the rmdir.
+Return the result.
+
+
+***** cfs_symlink
+
+Arguments: (old) struct vnode *tdvp;
+                 char *tnm;
+                 struct vattr *tva;
+                 char *lnm;
+                 struct ucred *cred;
+
+           (new) struct vop_symlink_args {
+                   struct vnodeop_desc *a_desc;
+                   struct vnode *a_dvp;
+                   struct vnode **a_vpp;
+                   struct componentname *a_cnp;
+                   struct vattr *a_vap;
+                   char *a_target;
+                 } *ap;
+
+If the new symlink's parent's vnode is dying, return ENODEV
+If we are trying to plop a symlink over the control object, return EACCESS
+Send the symlink request to Venus
+Invalidate the new symlink's parent
+return
+
+
+***** cfs_readdir
+
+Arguments: (old) struct vnode *vp;
+                 struct uio *uiop;
+                 struct ucred *cred;
+
+           (new) struct vop_readdir_args {
+                   struct vnodeop_desc *a_desc;
+                   struct vnode *a_vp;
+                   struct uio *a_uio;
+                   struct ucred *a_cred;
+                   int *a_eofflag;
+                   u_long *a_cookies;
+                   int a_ncookies;
+                 } *ap;
+
+If the directory vnode is dying, return ENODEV.
+If we are trying to readdir the control element, return ENOENT.
+If we are redirecting to UFS
+  If no one else has the directory open, we need to do it.
+  Call UFS's readdir.
+  If we opened internally, close.
+Otherwise
+  If the request is for multiple iov's
+  OR the request is for less than an integral blocksize
+  OR the current offset of the iov isn't on a blocksize boundary
+    return EINVAL
+  Truncate count at blocksize boundary
+  Remember how much residual.
+  If there are more than VC_DATASIZE/BLOCKSIZE blocks, return EINVAL
+  Ask venus for the blocks.
+  Copy out what venus gave us.
+return any error conditions that arose
+
+
+***** cfs_bmap
+
+Arguments: (old) struct vnode *vp;
+                 daddr_t bn;
+                 struct vnode **vpp;
+                 daddr_t *bnp;
+
+           (new) struct vop_bmap_args {
+                   struct vnodeop_desc *a_desc;
+                   struct vnode *a_vp;
+                   daddr_t a_bn;
+                   struct vnode **a_vpp;
+                   daddr_t *a_bnp;
+                   int *a_runp;
+                 } *ap;
+
+NOT SUPPORTED; we can't do that.  Need to fiddle arguments, but that's
+it.
+
+
+***** cfs_strategy
+
+NOT SUPPORTED, no argument changes needed.
+
+
+*********** Unsupported vnode operations ***********
+
+mknod
+mmap
+seek
+abortop
+reclaim
+lock
+unlock
+print
+islocked
+pathconf
+advlock
+blkatoff
+valloc
+vfree
+truncate
+update
+bwrite

@@ -31,7 +31,7 @@
 # changes  without  encumbrance.   Such improvements and extensions
 # should be returned to Software.Distribution@cs.cmu.edu.
 #
-# rcsid = $Header: Makefile,v 1.9 95/02/28 12:22:54 bnoble Exp $
+# rcsid = $Header: /afs/cs.cmu.edu/project/coda-braam/src/coda-4.0.1/rvm-src/rds/RCS/Makefile.in,v 1.1 1996/11/22 13:40:07 raiff Exp braam $
 #
 #endif _BLURB_
 
@@ -44,6 +44,7 @@
 TOPDIR = @top_srcdir@
 srcdir = @srcdir@
 VPATH = @srcdir@
+TOPOBJ= @TOPOBJ@
 
 include $(TOPDIR)/Makeconf
 
@@ -65,8 +66,7 @@ PTOBJ1  = ${OBJ1:.o=.pt.o}
 
 # to compile the lwp sources, we need to look in the VPATH directories
 # to ensure that we pick up th ecorrect copies of local include files
-SHADOWINCLS=${VPATH/:/ -I}
-CFLAGS := -I${SHADOWINCLS} ${CFLAGS}
+
 
 LWPSRC1 = ${OBJ1:.o=.l.c}
 PTSRC1  = ${OBJ1:.o=.pt.c}
@@ -81,6 +81,7 @@ OBJECTS_i386_mach   = ${OBJ1} ${LWPOBJ1} ${OBJ2}
 OBJECTS_sun4_mach   = ${OBJ1} ${LWPOBJ1} ${OBJ2}
 OBJECTS_alpha_osf20 = ${OBJ1} ${OBJ2}
 OBJECTS_i386_nbsd1  = ${OBJ1} ${LWPOBJ1} ${OBJ2}
+OBJECTS_i386_linux2  = ${OBJ1} ${LWPOBJ1} ${OBJ2}
 OBJECTS_hp700_ux90  = $(OBJ1) $(PTOBJ1) $(OBJ2)
 OBJECTS             = $(OBJECTS_${SYS})
 
@@ -99,7 +100,8 @@ LIBS_sun4_mach   = librds.a librdslwp.a
 LIBS_alpha_osf20 = librds.a
 LIBS_i386_nbsd1  = librds.a librdslwp.a
 LIBS_hp700_ux90  = librds.a librdspt.a
-LIBS             = $(LIBS_${SYS})
+LIBS_i386_linux2 = librds.a librdslwp.a
+LIBS             = $(LIBS_$(SYS))
 
 # Mach platforms need libthread.a and libmach.a.
 # LIBTHREADS and LIBMACH are defined in the all_mach Makeconf.sys
@@ -110,9 +112,10 @@ RDSINITLIBS_pmax_ul4    = ${LIBSEG} ${LIBRVM}
 RDSINITLIBS_i386_mach   = ${LIBSEG} ${LIBRVM} ${LIBTHREADS} ${LIBMACH}
 RDSINITLIBS_sun4_mach   = ${LIBSEG} ${LIBRVM} ${LIBTHREADS} ${LIBMACH}
 RDSINITLIBS_alpha_osf20 = ${LIBSEG} ${LIBRVM} 
-RDSINITLIBS_i386_nbsd1  = ${LIBSEG} ${LIBRVM} ${LIBCOMPAT}
+RDSINITLIBS_i386_nbsd1  = ${LIBSEG} ${LIBRVM} $(LIBOLDLWP) ${LIBCOMPAT}
 RDSINITLIBS_hp700_ux90  = $(LIBSEG) $(LIBRVM)
-RDSINITLIBS             = $(RDSINITLIBS_${SYS})
+RDSINITLIBS_i386_linux2 = $(LIBSEG) $(LIBRVM) 
+RDSINITLIBS             = $(RDSINITLIBS_$(SYS))
 
 BINS = rdsinit
 
@@ -199,6 +202,11 @@ Depend: $(DEPDEP)
 
 nothing:
 	@echo $(LIBFLAGS)
+
+
+# to install in lib-special and lib-include
+LIBDIR := $(LIBSPECIAL)
+INCLDIR := $(INCLSPECIAL)
 
 include $(TOPDIR)/Makerules
 

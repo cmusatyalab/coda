@@ -1,0 +1,14 @@
+cfs_grab_vnode(dev_t dev, ino_t ino, struct vnode **vpp): function
+	Given a device, inode pair, returns the vnode for that pair.
+	Used to be cfs_iget.
+	Called by: cfs_open, and cfs_rdwr (for internal opens)
+	Calls vfinddev, VFS_VGET (for ffs_vget or lfs_vget)
+
+print_vattr(struct vattr *a): function
+	Prints out a vnode attribute set to console
+
+print_cred(strict ucred *cred): function
+	Prints out a credential to console
+
+vcfsattach(int n): function
+	Does nothing.  Called by main() during pseudo-device probe.

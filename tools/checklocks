@@ -1,3 +1,5 @@
-#!/bin/csh
+#!/bin/sh
 
-egrep "locks[\ ]+[a-z | A-Z | 0-9]+:" RCS/*
+rlog -L   RCS/* | grep 'locked\|,v'
+
+
