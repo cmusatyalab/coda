@@ -917,7 +917,7 @@ static int ValidateReintegrateParms(RPC2_Handle RPCid, VolumeId *Vid,
 	int i = 0;
 
 	while (i < (*volptr)->nReintegrators) {
-	    if ((r->sid.Host == (*volptr)->reintegrators[i].Host) &&
+	    if (r && (r->sid.Host == (*volptr)->reintegrators[i].Host) &&
 		(r->sid.Uniquifier <= (*volptr)->reintegrators[i].Uniquifier)) {
 		errorCode = VLOGSTALE;
 		index = (*volptr)->reintegrators[i].Uniquifier;
