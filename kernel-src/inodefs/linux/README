@@ -1,0 +1,35 @@
+
+*** WARNING ***
+
+The code is still unstable, avoid running any of it. 
+I cannot guarantee the safety of your data if you execute any of this. 
+If you do so it is at your own risk, and I cannot be held responsible.
+
+***************
+
+ifs kernel code.
+
+Makefile	: Linux makefile.
+Makefile.root	: Sample linux source Makefile.
+ifssyscall.c	: Kernel code for IFS.
+inode_io.c	: Entry point for sys_inode_io.c (Kept separate for modules).
+ifs.h		: Header file for IFS (should be place in include/linux).
+
+To allow compilation as a module, two files were created.
+
+ifssyscall.c	: Contains the inode_io code.
+inode_io.c	: Contains the sys_inode_io entry point.
+
+The easiest way to get this working is to edit the following files:
+
+kernel/ksyms.c 	:	add an entry X(kern_inode_io)
+arch/i386/kernel :	add an entry X(inode_io)
+
+Copy ifs.h to include/linux.
+
+Edit the root Makefile to compile and link inode_io.c into the kernel,
+and ifssyscall.c as a module.  There is a sample Makefile.root to show
+how I did this here.
+
+Werner.
+

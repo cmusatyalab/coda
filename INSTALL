@@ -1,0 +1,29 @@
+
+These are instructions how to build the Coda file system.
+
+
+1. Subsystems
+2. Build procedure
+
+
+
+1.  There are 5 subsystems that need to be build
+
+	a) kernel-src kernel code for coda filesystem calls and 
+	   inode manipulation kernel code.
+	b) lib-src contains libraries needed by other components,
+	   including a threads package used by many other user
+	   level components
+	c) rvm-src contains the rvm transaction package, depends 
+           on threads
+        d) coda-src contains source for coda, depends on a, b, c
+        e) util-src contains a variety of tools, for testing, kernel
+           hacking helps. Dependency varies.
+
+
+2.  Building coda. 
+	a) at the top level type make config, answer the questions
+	b) at the top level type make coda
+	c) at the top level type make install-client, or make install-server
+	d) rebuild kernels if needed
+	e) configure clients/servers and you should be up.

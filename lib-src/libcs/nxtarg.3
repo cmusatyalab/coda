@@ -1,0 +1,163 @@
+.\" COPYRIGHT NOTICE
+.\" Copyright (c) 1994 Carnegie Mellon University
+.\" All Rights Reserved.
+.\" 
+.\" See <cmu_copyright.h> for use and distribution information.
+.\" 
+.\" 
+.\" HISTORY
+.\" $Log:	nxtarg.3,v $
+Revision 1.1  96/06/03  19:00:50  satya
+Initial revision
+
+.\" Revision 1.2  1995/10/18  14:58:44  moore
+.\" 	Created libcs man(3) pages from mach entries
+.\" 	[1995/10/18  14:55:12  moore]
+.\"
+.\" $EndLog$
+.\" Copyright (c) 1990 Carnegie Mellon University
+.\" All Rights Reserved.
+.\" 
+.\" Permission to use, copy, modify and distribute this software and its
+.\" documentation is hereby granted, provided that both the copyright
+.\" notice and this permission notice appear in all copies of the
+.\" software, derivative works or modified versions, and any portions
+.\" thereof, and that both notices appear in supporting documentation.
+.\"
+.\" THE SOFTWARE IS PROVIDED "AS IS" AND CARNEGIE MELLON UNIVERSITY
+.\" DISCLAIMS ALL WARRANTIES WITH REGARD TO THIS SOFTWARE, INCLUDING ALL
+.\" IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS.  IN NO EVENT
+.\" SHALL CARNEGIE MELLON UNIVERSITY BE LIABLE FOR ANY SPECIAL, DIRECT,
+.\" INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER
+.\" RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF
+.\" CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN
+.\" CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+.\"
+.\" Users of this software agree to return to Carnegie Mellon any
+.\" improvements or extensions that they make and grant Carnegie the
+.\" rights to redistribute these changes.
+.\"
+.\" Export of this software is permitted only after complying with the
+.\" regulations of the U.S. Deptartment of Commerce relating to the
+.\" Export of Technical Data.
+.\"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+.\" HISTORY
+.\" $Log:	nxtarg.3,v $
+Revision 1.1  96/06/03  19:00:50  satya
+Initial revision
+
+.\" Revision 1.2  1995/10/18  14:58:44  moore
+.\" 	Created libcs man(3) pages from mach entries
+.\" 	[1995/10/18  14:55:12  moore]
+.\"
+.\" Revision 1.1.1.2  1995/10/18  14:55:12  moore
+.\" 	Created libcs man(3) pages from mach entries
+.\"
+.\" Revision 1.2  90/12/12  15:54:17  mja
+.\" 	Add copyright/disclaimer for distribution.
+.\" 
+.\" 13-Nov-86  Andi Swimmer (andi) at Carnegie-Mellon University
+.\" 	Revised for 4.3.
+.\" 
+.\" 31-May-86  Rudy Nedved (ern) at Carnegie-Mellon University
+.\" 	Updated for 4.2BSD.
+.\" 
+.\" 05-Dec-79  Steven Shafer (sas) at Carnegie-Mellon University
+.\" 	Created.
+.\" 
+.TH NXTARG 3 5/31/86
+.CM 4
+.SH NAME
+nxtarg \- parse arguments from a string
+.SH SYNOPSIS
+.B 
+extern char _argbreak;
+.sp
+.B 
+char *nxtarg (p,brk);
+.br
+.B
+char **p,*brk;
+.SH DESCRIPTION
+.I 
+Nxtarg
+is used to parse a string, picking off one argument
+with each call of
+.I 
+nxtarg.
+The arguments are separated by some special "break"
+characters, and may additionally be surrounded by
+leading and trailing blanks and tabs.
+
+When you have a string which you wish to parse, you should
+declare a pointer and point to the start of the string:
+.nf
+
+.RS
+.ta \w'char string[100];        'u
+char string[100];	/* the arg list */
+char *pointer;	/* a pointer */
+char *argument;	/* one argument */
+.li
+...
+pointer = string;	/* start of arg list */
+.DT
+.RE
+.fi
+
+Then, each call to
+.I 
+nxtarg
+will fetch the next argument:
+
+.RS
+argument = nxtarg (&pointer,"delimiters");
+.RE
+
+Each call to 
+.I nxtarg 
+will space the pointer up to one of the
+delimiters or the end of the string, whichever comes first.
+Then, the string will be chopped into two pieces: the part
+containing the argument just parsed, and the rest of the string.
+The address of the first part will be returned; the pointer
+will be left pointing to the second part, all ready for the
+next call to 
+.IR nxtarg .
+Note that the pointer must not be in a register, since it
+is passed by address.
+
+The delimiter character (or null character at the end of the string)
+encountered is placed into the external variable called,
+.I 
+_argbreak.
+You may look at this value to see what delimiter was encountered.
+If no delimiters were encountered before the end of the string,
+then the null character will be placed into
+.I 
+_argbreak.
+
+If
+.I 
+brk,
+the list of break characters, is 0, then the space character will
+be used as the only delimiter.
+.SH "LIBRARY NOTES"
+You must link against /usr/local/lib/libcs.a to define this routine.
+.SH "SEE ALSO"
+.IR scanf (3), 
+.IR boolarg (3), 
+.IR intarg (3), 
+.IR stabarg (3), 
+.IR strarg (3), 
+etc.
+.SH DIAGNOSTICS
+If the argument points to the null string,
+or the end of the string is reached,
+then a pointer to the null string will be returned.
+At the
+end of the string, 
+.IR nxtarg () 
+may be repeated any number of
+times -- it will continue to leave the pointer unchanged,
+and return a pointer to the null string.

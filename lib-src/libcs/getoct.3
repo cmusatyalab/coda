@@ -1,0 +1,167 @@
+.\" COPYRIGHT NOTICE
+.\" Copyright (c) 1994 Carnegie Mellon University
+.\" All Rights Reserved.
+.\" 
+.\" See <cmu_copyright.h> for use and distribution information.
+.\" 
+.\" 
+.\" HISTORY
+.\" $Log:	getoct.3,v $
+Revision 1.1  96/06/03  19:00:35  satya
+Initial revision
+
+.\" Revision 1.2  1995/10/18  14:58:27  moore
+.\" 	Created libcs man(3) pages from mach entries
+.\" 	[1995/10/18  14:54:20  moore]
+.\"
+.\" $EndLog$
+.\" Copyright (c) 1990 Carnegie Mellon University
+.\" All Rights Reserved.
+.\" 
+.\" Permission to use, copy, modify and distribute this software and its
+.\" documentation is hereby granted, provided that both the copyright
+.\" notice and this permission notice appear in all copies of the
+.\" software, derivative works or modified versions, and any portions
+.\" thereof, and that both notices appear in supporting documentation.
+.\"
+.\" THE SOFTWARE IS PROVIDED "AS IS" AND CARNEGIE MELLON UNIVERSITY
+.\" DISCLAIMS ALL WARRANTIES WITH REGARD TO THIS SOFTWARE, INCLUDING ALL
+.\" IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS.  IN NO EVENT
+.\" SHALL CARNEGIE MELLON UNIVERSITY BE LIABLE FOR ANY SPECIAL, DIRECT,
+.\" INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER
+.\" RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF
+.\" CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN
+.\" CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+.\"
+.\" Users of this software agree to return to Carnegie Mellon any
+.\" improvements or extensions that they make and grant Carnegie the
+.\" rights to redistribute these changes.
+.\"
+.\" Export of this software is permitted only after complying with the
+.\" regulations of the U.S. Deptartment of Commerce relating to the
+.\" Export of Technical Data.
+.\"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+.\" HISTORY
+.\" $Log:	getoct.3,v $
+Revision 1.1  96/06/03  19:00:35  satya
+Initial revision
+
+.\" Revision 1.2  1995/10/18  14:58:27  moore
+.\" 	Created libcs man(3) pages from mach entries
+.\" 	[1995/10/18  14:54:20  moore]
+.\"
+.\" Revision 1.1.1.2  1995/10/18  14:54:20  moore
+.\" 	Created libcs man(3) pages from mach entries
+.\"
+.\" Revision 1.2  90/12/12  15:51:50  mja
+.\" 	Add copyright/disclaimer for distribution.
+.\" 
+.\" 13-Nov-86  Andi Swimmer (andi) at Carnegie-Mellon University
+.\" 	Revised for 4.3.
+.\" 
+.\" 23-Oct-82  Steven Shafer (sas) at Carnegie-Mellon University
+.\" 	Error or EOF on standard input now causes default value to be used.
+.\" 
+.\" 05-Dec-79  Steven Shafer (sas) at Carnegie-Mellon University
+.\" 	Created.
+.\" 
+.TH GETOCT 3 10/23/82
+.CM 3
+.SH "NAME"
+getoct, gethex \- ask user to type an octal or hexadecimal integer
+.SH "SYNOPSIS"
+.B
+#include <stdio.h>
+.br
+.B
+#include <ctype.h>
+.sp
+.B
+unsigned int getoct (prompt,min,max,defalt);
+.br
+.B
+unsigned int gethex (prompt,min,max,defalt);
+.sp
+.B
+char *prompt;
+.br
+.B
+unsigned int min,max,defalt;
+.SH "DESCRIPTION"
+.I
+Getoct
+and
+.I
+gethex
+ask the user to type in an unsigned octal or hexadecimal integer.
+.sp
+They begin by printing the string
+.I
+prompt
+as a message to the user.
+The user then types in a number of
+the appropriate form.
+If the number is valid and is
+within the range
+.I
+min
+to
+.I
+max,
+then it is returned as the value of
+.I
+getoct
+or
+.I
+gethex.
+If it is invalid or is out of range, then an error message is
+printed and the prompt-and-response cycle is repeated.
+If the user types just a carriage return, then the value
+.I
+defalt
+is assumed.
+.sp
+.I
+Getoct
+and
+.I
+gethex
+are identical, except in the manner in which the user's
+input is converted into an unsigned integer.
+.sp
+.I
+Getoct
+converts the input by assuming it represents a
+string of octal digits.
+Leading blanks and tabs are ignored; conversion
+stops at the first character which is not a legal
+octal digit.
+No signs (+ or \-) are allowed.
+.sp
+.I
+Gethex
+converts the input by assuming it represents a
+string of hexadecimal digits.
+There may be leading
+blanks and tabs; in addition, the digit string may be
+preceded by "0x" or "0X", which will be ignored.
+The valid characters include "0" through "9", "a" through "f",
+and "A" through "F".
+Conversion stops at the first character
+which is not a legal hexadecimal digit.
+No signs (+ or \-) are
+allowed.
+.SH "LIBRARY NOTES"
+You must link against /usr/local/lib/libcs.a to define this routine.
+.SH "SEE ALSO"
+.IR atoo (3), 
+.IR atoh (3),
+.IR getint (3), 
+.IR getbool (3), 
+.IR getstr (3), 
+etc.
+.br
+.IR octarg (3), 
+.IR hexarg (3)
+.SH "BUGS"
+No provision is made for overflow.

@@ -1,0 +1,2 @@
+set SOURCEDIR =
+setenv MAKECONF /coda/usr/lily/src/Makeconf

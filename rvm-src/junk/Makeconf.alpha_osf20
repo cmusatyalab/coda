@@ -1,0 +1,7 @@
+# system-specific Makeconf for alpha_osf20 platform
+
+SYS=alpha_osf20
+
+SYS_INCLFLAGS=
+SYS_CFLAGS=
+SYS_LIBFLAGS=

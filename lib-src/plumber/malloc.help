@@ -1,0 +1,374 @@
+\begindata{text,538465820}
+\textdsversion{12}
+\template{help}
+\define{global
+
+attr:[FontSize ConstantFontSize Point 12]}
+\define{itemize
+menu:[Region~4,Itemize~31]
+attr:[LeftMargin LeftMargin Inch 32768]}
+\define{enumerate
+menu:[Region~4,Enumerate~30]
+attr:[LeftMargin LeftMargin Inch 32768]}
+\define{excerptedcaption
+
+attr:[LeftMargin LeftMargin Inch 32768]
+attr:[RightMargin RightMargin Inch 32768]
+attr:[FontFace Bold Int Set]
+attr:[FontFace Italic Int Set]}
+\define{literal
+menu:[Region~4,Literal~62]
+attr:[Flags PassThru Int Set]}
+\define{black
+menu:[Color,Black]
+attr:['color' 'Black']}
+\define{red
+menu:[Color,Red]
+attr:['color' 'Red']}
+\define{green
+menu:[Color,Green]
+attr:['color' 'Green']}
+\define{blue
+menu:[Color,Blue]
+attr:['color' 'Blue']}
+\define{magenta
+menu:[Color,Magenta]
+attr:['color' 'Magenta']}
+\define{cyan
+menu:[Color,Cyan]
+attr:['color' 'Cyan']}
+\define{yellow
+menu:[Color,Yellow]
+attr:['color' 'Yellow']}
+\majorheading{MALLOC 3 Sept 9, 1985}
+
+
+\heading{NAME}
+
+
+malloc, free, realloc, calloc, cfree, alloca - memory allocator
+
+
+\heading{SYNOPSIS}
+
+
+\bold{char *malloc(size)} \bold{unsigned size;}
+
+
+\bold{free(ptr)} \bold{char *ptr;}
+
+
+\bold{char *realloc(ptr, size)} \bold{char *ptr;} \bold{unsigned size;}
+
+
+\bold{char *calloc(nelem, elsize)} \bold{unsigned nelem, elsize;}
+
+
+\bold{cfree(ptr)} \bold{char *ptr;}
+
+
+\bold{char *alloca(size)} \bold{int size;}
+
+
+\heading{DESCRIPTION} \italic{
+
+
+Malloc} and \italic{free} provide a simple general-purpose memory allocation 
+package.  \italic{Malloc} returns a pointer to a block of at least 
+\italic{size} bytes beginning on a word boundary.
+
+
+The argument to \italic{free} is a pointer to a block previously allocated by 
+\italic{malloc}; this space is made available for further allocation, but its 
+contents are left undisturbed.
+
+
+Needless to say, grave disorder will result if the space assigned by 
+\italic{malloc} is overrun or if some random number is handed to 
+\italic{free}.
+
+
+\italic{Malloc} allocates the first big enough contiguous reach of free space 
+found in a circular search from the last block allocated or freed, coalescing 
+adjacent free blocks as it searches.  It calls \italic{sbrk} (see 
+\italic{\helptopic{brk}}(2)) to get more memory from the system when there is 
+no suitable space already free.
+
+
+\italic{Realloc} changes the size of the block pointed to by \italic{ptr} to 
+\italic{size} bytes and returns a pointer to the (possibly moved) block.  The 
+contents will be unchanged up to the lesser of the new and old sizes.
+
+
+\italic{Realloc} also works if \italic{ptr} points to a block freed since the 
+last call of \italic{malloc, realloc} or \italic{calloc}; thus sequences of 
+\italic{free, malloc} and \italic{realloc} can exploit the search strategy of 
+\italic{malloc} to do storage compaction.
+
+
+\italic{Calloc} allocates space for an array of \italic{nelem} elements of 
+size \italic{elsize.} The space is initialized to zeros, and can be freed with 
+\italic{cfree.}
+
+
+\italic{Alloca} allocates \italic{size} bytes of space in the stack frame of 
+the caller.  This temporary space is automatically freed on return.
+
+
+Each of the allocation routines returns a pointer to space suitably aligned 
+(after possible pointer coercion) for storage of any type of object.
+
+
+\heading{DIAGNOSTICS}\italic{
+
+
+Malloc, realloc} and \italic{calloc} return a null pointer (0) if there is no 
+available memory or if the arena has been detectably corrupted by storing 
+outside the bounds of a block.  \italic{Malloc} may be recompiled to check the 
+arena very stringently on every transaction; those sites with a source code 
+license may check the source code to see how this can be done.
+
+
+\heading{BUGS
+
+
+}When \italic{realloc} returns 0, the block pointed to by \italic{ptr} may be 
+destroyed.
+
+
+The current incarnation of the allocator is unsuitable for direct use in a 
+large virtual environment where many small blocks are to be kept, since it 
+keeps all allocated and freed blocks on a single circular list.  Just before 
+more memory is allocated, all allocated and freed blocks are referenced; this 
+can cause a huge number of page faults.
+
+
+\italic{Alloca} is machine dependent; it's use is discouraged.
+
+
+\heading{NEW MALLOC
+
+
+}In early June, 1985 a new malloc was installed in libitc.a for the ITC.  The 
+following are emendations to the above notes:
+
+
+\heading{SYNOPSIS OF NEW FUNCTIONS
+
+
+}In addition to the above functions, the following are now defined:
+
+
+\bold{char *MallocStats(m, f)}  \bold{char *m;  FILE *f;}
+
+
+\bold{char *mstats(m)}  \bold{char *m;}
+
+
+\bold{char *resetmstats()}
+
+
+\bold{CheckAllocs(m)} \bold{char *m;}
+
+
+\bold{SetMallocCheckLevel(l)} \bold{int l;
+
+
+SetM0Handler(p) int (*p)();}
+
+
+\bold{AbortFullMessage(nbytes)} \bold{int nbytes;
+
+
+#include "malloc.h"
+
+struct arenacontrol *GetMallocArena()
+
+
+NewMallocArena()
+
+
+plumber(FILE *)
+
+
+}\heading{DESCRIPTIONS} \italic{
+
+
+Mstats} prints on stderr a statistical description of current memory usage. 
+Here is a sample:
+
+
+\indent{		Active	   Free  Segments 
+
+requests		 183	  25         8 
+
+current		 165	   9         1 
+
+avg size		 310	1950      69632 
+
+avg ops		  1.6	0.680 
+
+% space		 73.5%	  25.2% 
+
+total space 69632   headers 1.3% }
+
+
+The "requests" line shows the number of malloc and free calls since the last 
+call to resetmstats (183 and 25). Also shown are the number of malloc calls 
+which resulted in a request to the kernel for more space  (8).  The "current" 
+line shows the number of active and free blocks currently in memory (165 and 
+9). \{These statistics may not add up; realloc calls malloc and free in 
+non-standard ways.\}  The "avg size" line gives the average size of an active 
+block, a free block, and a segment acquired from the operating system. 
+\{Adjacent segments are coallesced.\} The "avg ops" for Active blocks are the 
+average number of cells scanned to find a free block that can be split to meet 
+the request.  For free blocks, the ops counted are the number of times a freed 
+block is combined with a neighbor.  This can increment at most twice for each 
+block freed, so the value will generally be around one.  The final two lines 
+show the distribution of memory among active, free, and header blocks.  Also 
+shown is the total memory managed.
+
+
+\italic{MallocStats} is like mstats, but prints the statistics to file 
+\italic{f.}
+
+
+\italic{Resetmstats} sets the statistics counters to zero.
+
+
+\italic{CheckAllocs} checks the free lists and header blocks of active blocks 
+to see that all fields are accurate.  If the check fails a message, including 
+\italic{s,} is printed on stderr and the process aborts.  In the released 
+version, a successful CheckAllocs returns 1+the number of available bytes; 
+ this information should not be relied upon.
+
+
+\italic{SetMallocCheckLevel} sets an internal variable that controls how much 
+checking is done: \indent{ 0 - No checking is done.  (This is the default.)
+
+
+1 - The free list pointer and the block it points at are checked, but not 
+others.
+
+
+2 - All free blocks are checked for validity as they are scanned looking for a 
+block to satisfy the request.
+
+
+3 - All free and active blocks are checked for validity at the start of every 
+\italic{malloc}() and \italic{free}() call.  (This is done by calling 
+\italic{CheckAllocs}().)  The \italic{value} returned by 
+\italic{SetMallocCheckLevel} is the former value of the \italic{CheckLevel}.
+
+
+4 - In addition to the checks for level 3, a message is printed to stdout for 
+every malloc, free, and realloc.  The message includes the address of the 
+call, which can be used with \italic{adb} to determine what routine contains 
+the call.
+
+
+5 - This option includes all the above, but further output is generated for 
+every call to addarena (sbrk), CheckAllocs, and mstats.  For addarena the 
+information gives the location and contents of the beginning and end of the 
+allocatable storage.  For the others, the output starts with an initial line 
+giving the addresses of the start and end of managed memory and the current 
+value of the pointer to the free block.  It goes on to give the last five 
+words of the allocated memory.  Finally, the output includes one line for each 
+managed block, free or active.  This line has the word before the block, the 
+location of the block, and the first three words of the block. 
+ } \italic{SetMallocCheckLevel} returns the previous value of the check level.
+
+
+\italic{SetM0Handler} sets an internal procedure pointer, M0Handler, to 
+\italic{p}.  It returns the prior value of M0Handler.  M0Handler is called 
+when \italic{malloc} (even when called from within \italic{realloc}) cannot 
+find space to allocate.  If an M0Handler has been set, it is called with one 
+parameter, the size to allocate.  It may return a zero or non-zero size:  If 
+non-zero, an attempt is made to allocate that size;  if zero, malloc returns 
+zero.  The M0Handler may itself call SetM0Handler to provide for failure of 
+the new size;  if it does not, a failure in the attempt to allocate the new 
+size will cause the default M0Handler to be called.  The default handler will 
+also be called if no call has been made to \italic{SetM0Handler}.  The default 
+handler prints a message identifying the cause of failure, closes stdout and 
+stderr, and aborts with a core dump.
+
+
+\italic{GetMallocArena}  Returns a pointer to a block of words which contain 
+the state of the malloc.  The words are defined in malloc.h.
+
+
+\italic{NewMallocArena}  Causes malloc to abandon the allocation arena is use 
+and create a new one.  This is useful for a debugger to call after the arena 
+has been corrupted.  The debugger can use the new arena and can still examine 
+the old one.
+
+
+\italic{plumber}  This routine is part of new instrumentation designed to help 
+detect core leaks.  When the malloc package is compiled with IDENTIFY defined, 
+two extra words are included in the header of every block.  They contain the 
+return address of the caller to malloc and a sequence number.  The 
+\italic{plumber} routine prints a table listing return addresses and a 
+description of the blocks they allocated.
+
+
+\heading{NOTES}
+
+
+Blocks are guaranteed to begin on a full word boundary, but this cannot be 
+guaranteed with other versions of \italic{malloc.}
+
+
+When using \italic{dbx,} the variable \italic{CheckLevel} may be set to a 
+value between 0 and 5 to get detailed information.
+
+
+\italic{Realloc} does coalesce the block with adjoining blocks if they are 
+free.  The kludge described above of calling \italic{realloc} on a block which 
+has been freed will work, but only if the block is the last one to have been 
+freed.
+
+
+Some sleazy applications free a block and then use one of the values in it. 
+ This is only supported if the values are used from the most recently freed 
+block.  (The free operation is queued and and actually performed the next time 
+a malloc, realloc, or free is done.)
+
+
+This package is suitable for virtual memory to the extent that in scanning for 
+a block to allocate it examines only the free blocks.  Experiments indicate 
+that few blocks are scanned on average to make an allocation.
+
+
+As released in early June, 1985, statistics are enabled.  Even if statistics 
+collection is turned off\italic{, mstats} is still defined, but it does 
+nothing.  IDENTIFY is disabled.  
+
+
+There are three versions of malloc available in source form: malloc.c is as 
+described above;  malloc.std.c uses the standard algorithm, but includes the 
+checking and statistics;  malloc.2k.c  is a very fast allocator, but uses a 
+lot of space because it allocates all blocks to a size of a power of two.  The 
+latter two do not yet support most of the advanced facilities described above.
+
+
+There is a register variable in malloc that contains a pointer to free block 
+prior to the current one.  This may be useful for debugging.
+
+
+Sometimes a signal handler in a program will be invoked during a malloc.  If 
+the signal handler calls malloc, the allocation arena may be corrupted. 
+ Malloc, free, and realloc now check for recursive entry and fail.
+
+
+The April, 1986 verion of the package has improved error checking facilities, 
+but the core requirement has shrunk by 1K to just over 10K bytes. 
+
+
+\begindata{bp,537558784}
+\enddata{bp,537558784}
+\view{bpv,537558784,1729,0,0}
+Copyright 1992 Carnegie Mellon University and IBM.  All rights reserved.
+
+\smaller{\smaller{$Disclaimer:  $
+
+}}\enddata{text,538465820}

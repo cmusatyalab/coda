@@ -1,0 +1,1286 @@
+.\" COPYRIGHT NOTICE
+.\" Copyright (c) 1994 Carnegie Mellon University
+.\" All Rights Reserved.
+.\" 
+.\" See <cmu_copyright.h> for use and distribution information.
+.\" 
+.\" 
+.\" HISTORY
+.\" $Log:	ci.3,v $
+Revision 1.1  96/06/03  19:00:05  satya
+Initial revision
+
+.\" Revision 1.2  1995/10/18  14:57:50  moore
+.\" 	Created libcs man(3) pages from mach entries
+.\" 	[1995/10/18  14:53:13  moore]
+.\"
+.\" $EndLog$
+.\" Copyright (c) 1990 Carnegie Mellon University
+.\" All Rights Reserved.
+.\" 
+.\" Permission to use, copy, modify and distribute this software and its
+.\" documentation is hereby granted, provided that both the copyright
+.\" notice and this permission notice appear in all copies of the
+.\" software, derivative works or modified versions, and any portions
+.\" thereof, and that both notices appear in supporting documentation.
+.\"
+.\" THE SOFTWARE IS PROVIDED "AS IS" AND CARNEGIE MELLON UNIVERSITY
+.\" DISCLAIMS ALL WARRANTIES WITH REGARD TO THIS SOFTWARE, INCLUDING ALL
+.\" IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS.  IN NO EVENT
+.\" SHALL CARNEGIE MELLON UNIVERSITY BE LIABLE FOR ANY SPECIAL, DIRECT,
+.\" INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER
+.\" RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF
+.\" CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN
+.\" CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+.\"
+.\" Users of this software agree to return to Carnegie Mellon any
+.\" improvements or extensions that they make and grant Carnegie the
+.\" rights to redistribute these changes.
+.\"
+.\" Export of this software is permitted only after complying with the
+.\" regulations of the U.S. Deptartment of Commerce relating to the
+.\" Export of Technical Data.
+.\"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+.\" HISTORY
+.\" $Log:	ci.3,v $
+Revision 1.1  96/06/03  19:00:05  satya
+Initial revision
+
+.\" Revision 1.2  1995/10/18  14:57:50  moore
+.\" 	Created libcs man(3) pages from mach entries
+.\" 	[1995/10/18  14:53:13  moore]
+.\"
+.\" Revision 1.1.1.2  1995/10/18  14:53:13  moore
+.\" 	Created libcs man(3) pages from mach entries
+.\"
+.\" Revision 1.2  90/12/12  15:47:16  mja
+.\" 	Add copyright/disclaimer for distribution.
+.\" 
+.\" 13-Nov-86  Andi Swimmer (andi) at Carnegie-Mellon University
+.\" 	Revised for 4.3.
+.\" 
+.\" 20-May-83  Steven Shafer (sas) at Carnegie-Mellon University
+.\" 	Added redirection of output with ">filename", and new quiet
+.\" 	bits CINOSEM, CINOFILE, and CIFIRSTEQUAL.
+.\" 
+.\" 15-Apr-83  Steven Shafer (sas) at Carnegie-Mellon University
+.\" 	Added "cidepth" and "ciprev" variables, "@" command, "CICMDNOINDENT"
+.\" 	quiet bit.  Changes made by Dave McKeown.
+.\" 
+.\" 22-Feb-83  Steven Shafer (sas) at Carnegie-Mellon University
+.\" 	Added "^" command, "cinext" variable.
+.\" 
+.\" 07-Jul-82  Steven Shafer (sas) at Carnegie-Mellon University
+.\" 	Now uses "SHELL" environment variable to get name of shell to
+.\" 	use for "!" command.  Changes courtesy of William Chiles and Gandalf
+.\" 	group.
+.\" 
+.\" 08-Oct-80  Steven Shafer (sas) at Carnegie-Mellon University
+.\" 	Added "class variables" and CICMDFPEEK.
+.\" 
+.\" 12-Mar-80  Steven Shafer (sas) at Carnegie-Mellon University
+.\" 	Ci now trims leading blanks and tabs from string variable
+.\" 	assignments, and from the arg list for procedure variables
+.\" 	and commands.  The meta-help facility was fixed.
+.\" 
+.\" 29-Jan-80  Steven Shafer (sas) at Carnegie-Mellon University
+.\" 	Created.
+.\" 
+.TH CI 3 5/20/83
+.CM 3
+.SH "NAME"
+ci \- command interpreter
+.SH "SYNOPSIS"
+.B
+#include <stdio.h>
+.br
+.B
+#include <ci.h>
+.sp
+.B
+ci (prompt,file,depth,list,helppath,cmdfpath);
+.br
+.B
+char *prompt,*helppath,*cmdfpath;
+.br
+.B
+FILE *file;
+.br
+.B
+int depth;
+.br
+.B
+CIENTRY *list;
+.SH "DESCRIPTION"
+.I
+Ci
+allows the user to type instructions which execute commands and which
+display
+and assign values to variables.
+The commands which are executed correspond
+to procedures supplied by the user's program; the variables correspond
+to variables in the program.
+The most basic facilities
+of
+.I
+ci
+are easily learned and used, and it provides other, more sophisticated, features
+which make it suitable for complex command-driven programs.
+.sp
+.I
+Ci
+has a basic loop which consists of printing the string
+.I
+prompt,
+reading a line from its current input
+file, and executing the specified instructions.
+The format and
+meaning of these instructions is as follows:
+.TP
+command [ arg ... ]
+Execute the procedure which corresponds to the named command.
+The list of arguments will be passed to this procedure.
+See details
+below.
+.TP
+variable [ param ... ]
+Display the value of the named variable.
+Some variables may require
+parameters; see details below.
+.TP
+variable = [ param ... ] value
+Assign the given value to the named variable.
+The equals sign (=)
+may appear anywhere in the line.
+.TP
+command*
+List the names of commands which begin with "command".
+.TP
+variable*=
+List the names and values of variables which begin with "variable".
+.TP
+<commandfile
+Recursively call
+.I
+ci,
+with the new procedure reading its commands from "commandfile".
+.TP
+?topic
+.br
+.ns
+.TP
+help topic
+.br
+Print help message related to topic; or, if topic matches more than
+one help message name, list the names of matching topics.
+If no topic is specified, a standard help message is displayed
+which describes how to use
+.I
+ci.
+If the topic is "*", a list of help topics is produced.
+.TP
+instruction >filename
+.br
+Execute the given instruction,placing the output in the specified
+file rather than on the terminal.  If more than one
+instruction appears on the input line, >filename must
+appear at the end of
+the input line and applies to the entire line.
+.TP
+!
+.br
+.ns
+.TP
+!shellcommand
+.br
+Fork a shell; if a command is specified, execute it and have the
+shell exit.  The shell invoked is that specified by the environment
+variable SHELL.  If SHELL is not defined the standard shell is used.
+.TP
+:comment
+Ignore this instruction.
+.TP
+^instruction ("^" character followed by instruction)
+Exit from this instance of
+.I
+ci,
+then execute the given instruction.  Used when one
+.I
+ci
+is running as a subroutine of another -- the child exits,
+and the parent executes the given instruction.
+.TP
+@instruction ("@" character followed by instruction)
+.br
+Exit from this instance of
+.I
+ci,
+execute the given instruction, then return to this instance of
+.I
+ci.
+Used when
+one
+.I
+ci
+is running as a subroutine of another -- the child exits, the
+parent executes the given instruction, and the child is re-entered.
+.TP
+^D (control-D)
+Exit from
+.I
+ci.
+.i0
+.DT
+.PP
+Several instructions may appear on the same line, separated by semicolons.
+In addition,
+.I
+ci
+allows abbreviation of command names, variable names, and help topics
+to any unique prefix.
+.SH "PARAMETERS TO CI"
+.I
+Prompt
+is the string which is printed to tell the user to type a command line to
+.I
+ci.
+During execution of command files, the prompt will be echoed along with
+each line read from the file; both will be indented to indicate that this
+command was read from a command file.
+.sp
+.I
+File
+is the file to be used for input.
+Normally, the standard input
+.I
+(stdin)
+is used; if you specify 0,
+.I
+ci
+will assume you are using the standard input.
+.sp
+.I
+Depth
+is used for indenting the prompt; this should usually be 0 when you
+execute
+.I
+ci,
+but, when it calls itself recursively for command files, this will be
+non-zero.
+.sp
+.I
+List
+is an array of the entry descriptors for commands and variables;
+you declare this to be of type
+.I
+CIENTRY
+(see below), and use the macros described below to describe the entries.
+.sp
+.I
+Helppath
+is a list of directories containing help files, separated by colons.
+If you specify a single directory, that's fine;
+.I
+ci
+will assume all help files lie in that directory.
+When the user asks
+for help on some topic,
+.I
+ci
+looks for a file in one of the help directories which has a matching
+name.
+The contents of the file will simply be typed out to the user.
+If you specify 0 for
+.I
+helppath,
+.I
+ci
+will assume that no help files exist.
+.sp
+.I
+Cmdfpath
+is a list of directories containing command files, separated by colons.
+This is useful for libraries of prepared command files.
+The current
+directory should be included in the list; this is best done by
+indicating a null directory name (i.e.
+a colon as the first character
+of the path, or two consecutive colons within the path).
+If you specify
+0 (which you will probably do most of the time),
+.I
+ci
+will assume that all command file names are evaluated with respect to the
+current directory only.
+Absolute pathnames, of course, are always valid.
+.SH "THE ENTRY LIST"
+The parameter
+.I
+list
+is a list of objects of type
+.I
+CIENTRY.
+These objects, defined by a set of macros, consist of a name which is
+a character string, a pointer to a value, and a type.
+You declare
+the list in this manner:
+.nf
+	CIENTRY list[] = {
+		CIINT(...),
+		CIDOUBLE(...),
+		CICMD(...),
+		...
+		CIEND
+	};
+.fi
+.sp
+The macros which define entries are described below.
+.SH "COMMANDS"
+A
+.I
+command
+is a procedure provided by your program, which can be executed by
+a user by typing its name and, optionally, a list of arguments.
+You specify a command by providing the procedure, which must take a
+character string as an argument, and by placing an entry into the
+CIENTRY list:
+.nf
+	mycommand (arglist)
+	char *arglist;
+	{
+		char *p;	/* recommended for parsing */
+		int arg1,arg2;
+		p = arglist;
+		arg1 = intarg (&p,0,...);	/* see intarg(3) */
+		arg2 = intarg (&p,0,...);
+		...
+	}
+	...
+	CIENTRY list[] =
+	{
+		...
+		CICMD ("munch",mycommand),
+		...
+		CIEND
+	};
+.fi
+.sp
+The user can then type "munch 3 4", and myproc will be executed
+with arglist equal to "3 4".
+The parsing sequence shown above
+(using
+.IR intarg (3)),
+will assign 3 to arg1 and 4 to arg2.
+If the user were to type
+"munch" with no arguments, he would be prompted for arg1 and arg2
+as described in
+.IR intarg (3).
+.SH "SIMPLE VARIABLES"
+.I
+Ci
+knows how to manipulate several kinds of simple variables.
+To use
+these, you declare a variable of the appropriate type, and
+place an entry into the CIENTRY list.
+The types of variables known
+to
+.I
+ci
+correspond to the macros which you place into the list:
+.TP
+CIINT ("name", variable)
+This specifies a variable of type
+.I
+int.
+"Name" is the name of
+the variable as it will appear to the user who is executing the
+program.
+.TP
+CILONG ("name", variable)
+.br
+.ns
+.TP
+CISHORT ("name", variable)
+.br
+These specify variables of type
+.I
+long
+(actually,
+.I
+long int),
+and
+.I
+short
+(actually,
+.I
+short int),
+respectively.
+.TP
+CIOCT ("name", variable)
+.br
+.ns
+.TP
+CIHEX ("name", variable)
+.br
+These specify
+.I
+unsigned int
+variables, whose values will be shown and interpreted as
+octal and hexadecimal integers, respectively.
+Thus, the
+value of an octal variable might be 07773; the value of
+a hexadecimal variable might be 0xabc.
+.TP
+CIDOUBLE ("name", variable)
+.br
+.ns
+.TP
+CIFLOAT ("name", variable)
+.br
+These indicate floating-point variables of types
+.I
+double
+and
+.I
+float,
+respectively.
+.TP
+CIBOOL ("name", variable)
+This indicates a variable of type
+.I
+int,
+whose value will be either "yes" (i.e.
+non-zero), or
+"no" (i.e.
+zero).
+.TP
+CISTRING ("name", variable)
+This indicates a variable of type "char *" or "char []", which
+will be treated as a character string.
+For
+.I
+ci
+to work properly, this should not contain garbage when you
+call
+.I
+ci.
+.i0
+.DT
+.PP
+.sp
+Here is an example of two variables and how they might be used:
+.nf
+.sp
+	int i;
+	char s[100];
+	...
+	CIENTRY list[] =
+	{
+		CIINT ("number",i),
+		CISTRING ("string",s),
+		...
+		CIEND
+	};
+.fi
+.sp
+Here is an excerpt of a dialogue with the program containing the
+above statements
+(lines typed by the user are indicated by italics):
+.nf
+.sp
+.I
+	n=3
+	number		3
+.I
+	s=Hello, mom!
+	string		Hello, mom!
+.I
+	nu
+	number		3
+.I
+	num=4
+	number		4
+.I
+	*=
+	number		4
+	string		Hello, mom!
+.fi
+.SH "CLUSTER VARIABLES"
+In addition to the simple variables described above,
+.I
+ci
+can manipulate "clustered variables", which consist of a variable
+and some descriptive information about it.
+The descriptive
+information for a variable of type X (int, float, etc.) is exactly
+the information in the parameter list of the routine called "getX"
+.RI ( getint (3),
+.IR getfloat (3),
+etc.).
+It typically includes some
+description of the legal values for the variable, and a prompt string
+printed to remind the user what this variable means.
+.sp
+To use a clustered variable involves two steps:  you must declare
+the variable itself, together with its description; and you must
+insert the proper declaration into the CIENTRY list.
+.sp
+To declare a clustered "int" variable, use this macro:
+.br
+	CINT (sname, vname, min, max, "prompt");
+.br
+This macro appears just like any other declaration, but must be
+outside of any procedures (i.e.
+global).
+It will create
+an int variable called
+.I
+vname,
+which you may refer to in other parts of your program; it also
+declares a structure called
+.I
+sname
+which contains the description of
+.I
+vname.
+The description consists of three values:
+.I
+min,
+the minimum allowable value for
+.I
+vname;
+.I
+max,
+the maximum allowed value; and
+.I
+prompt,
+the prompt string for assigning a value to
+.I
+vname.
+.sp
+The corresponding entry of the CIENTRY list would be:
+.br
+	CICINT ("name", sname)
+.br
+where
+.I
+sname
+is the same as
+.I
+sname
+in the CINT macro.
+.sp
+A clustered variable differs from a simple variable in two ways.
+When a user tries to assign a value to a clustered variable, the
+new value is checked for legality.
+If it is legal, it is assigned;
+otherwise, a message is printed and the user can type another value.
+Also, the user may type "name=", omitting the value, and will be
+prompted for the value to be assigned.
+.sp
+Here are the clustered types known to
+.I
+ci:
+.TP
+CINT (sname, vname, min, max, "prompt");
+.br
+.ns
+.TP
+CICINT ("name", sname)
+.br
+Declares a clustered int variable.
+The legal range of
+values is [min..max].
+The variable will be called
+.I
+vname.
+As indicated above, CINT is a declaration, and CICINT is the
+corresponding entry in the CIENTRY list.
+.TP
+CLONG (sname, vname, min, max, "prompt");
+.br
+.ns
+.TP
+CICLONG ("name", sname)
+.br
+.br
+.ns
+.TP
+CSHORT (sname, vname, min, max, "prompt");
+.br
+.br
+.ns
+.TP
+CICSHORT ("name", sname)
+.br
+These define long and short clustered variables, respectively.
+CLONG and CSHORT are the declaractions; CICLONG and CICSHORT
+are the entries for the CIENTRY list.
+.TP
+COCT (sname, vname, min, max, "prompt");
+.br
+.ns
+.TP
+CICOCT ("name", sname)
+.br
+.br
+.ns
+.TP
+CHEX (sname, vname, min, max, "prompt");
+.br
+.br
+.ns
+.TP
+CICHEX ("name", sname)
+.br
+These define unsigned int clustered variables whose values are
+interpreted as octal or hexadecimal numbers, respectively.
+COCT and CHEX are declarations; CICOCT and CICHEX are CIENTRYs.
+.TP
+CDOUBLE (sname, vname, min, max, "prompt");
+.br
+.ns
+.TP
+CICDOUBLE ("name", sname)
+.br
+.br
+.ns
+.TP
+CFLOAT (sname, vname, min, max, "prompt");
+.br
+.br
+.ns
+.TP
+CICFLOAT ("name", sname)
+.br
+These define floating-point variables (double and float,
+respectively).
+CDOUBLE and CFLOAT are declarations; CICDOUBLE
+and CICFLOAT are CIENTRYs.
+.TP
+CBOOL (sname, vname, "prompt");
+.br
+.ns
+.TP
+CICBOOL ("name", sname)
+.br
+Defines an int variable whose value is interpreted as "yes"
+(non-zero) or "no" (zero).
+.TP
+CCHR (sname, vname, "legals", "prompt");
+.br
+.ns
+.TP
+CICCHR ("name", sname)
+.br
+Defines an int variable whose value corresponds to a single character
+within the string
+.I
+legals.
+The value will be printed as the character indexed by the current
+value of the variable (i.e.
+.IR legals[vname] ),
+and, when assigning a value to it, the user types a character.
+The index of that character within
+.I
+legals
+will then be assigned to
+.I
+vname.
+.TP
+CSTRING (sname, vname, length, "prompt");
+.br
+.ns
+.TP
+CICSTRING ("name", sname)
+.br
+These define a variable which is a character array of length
+.I
+length.
+It will be treated as a character string.
+.TP
+CSTAB (sname, vname, table, "prompt");
+.br
+.ns
+.TP
+CICSTAB ("name", sname)
+.br
+.br
+.ns
+.TP
+CSEARCH (sname, vname, table, "prompt");
+.br
+.br
+.ns
+.TP
+CICSEARCH ("name", sname)
+.br
+These define a variable of type int, which corresponds to one
+of the strings in the string array
+.I
+table.
+The table is declared as for
+.IR getstab (3)
+or
+.IR getsearch (3),
+respectively, and the corresponding routine is actually used
+for assigning a value to the variable.
+The value is displayed
+as the string it indexes (e.g.
+.IR table[vname] ),
+and, to assign a value, the user types a string which matches
+an entry of the table.
+.i0
+.DT
+.PP
+Here is an example using two clustered variables:
+.nf
+.sp
+	CINT (si, i, 1, 10, "What's your favorite number?");
+	CSTRING (sname, name, 100, "What's your name?");
+	...
+	CIENTRY list[] =
+	{
+		CICINT ("favorite",si),
+		CICSTRING ("name",sname),
+		...
+		CEND
+	}
+.fi
+.sp
+This might be part of a dialogue with the program containing the above
+declarations (lines typed by the user are indicated in italics):
+.nf
+.sp
+.I
+	fav=7
+	favorite	7
+.I
+	name=Humpty Dumpty
+	name		Humpty Dumpty
+.I
+	fav=32
+	32 out of range.  What's your favorite number?  (1 to 10)  [7] \fI4\fR
+	favorite	4
+.I
+	f=
+	What's your favorite number?  (1 to 10)  [4]  \fI8\fR
+	favorite	8
+.I
+	name=
+	What's your name?  [Humpty Dumpty]  \fIMinnie Mouse\fR
+	name		Minnie Mouse
+.I
+	*=
+	favorite	8
+	name		Minnie Mouse
+.fi
+.sp
+Most users, for most programs, will find clustered variables to be
+preferable to simple variables.
+.SH "PROCEDURE VARIABLES"
+.I
+Ci
+allows you to specify any type of variable you want -- an ordered pair,
+a character font, a buffer of a color TV display, a strange plotter,
+a robot arm, a file, the color of the pajama tops worn by three
+hippopotami in the CS lounge, absolutely anything at all!
+.sp
+There is, however, a catch.
+You have to write the procedure that
+manipulates the variable.
+.sp
+This type of variable is called a
+.I
+procedure variable.
+It consists of a procedure which you must provide, and an entry on
+the CIENTRY list which looks like this:
+.nf
+	CIPROC ("name", procname)
+.fi
+where
+.I
+procname
+is the name of your procedure.
+.sp
+Your procedure will be called with two parameters:
+.nf
+	proc (mode,arglist)
+	CIMODE mode;
+	char *arglist;
+.fi
+The first parameter,
+.I
+mode,
+indicates what
+.I
+ci
+is trying to do; the second,
+.I
+arglist
+is the list of parameters and values typed by the user.
+.sp
+The
+.I
+mode
+parameter may have one of three values:
+.TP
+CISET
+.I
+ci
+is trying to assign a value to the variable; i.e.
+the user
+typed "name=" or "name=value" or something like that.
+.TP
+CISHOW
+.I
+ci
+is trying to display the value of the variable; i.e.
+the
+user typed "name".
+.TP
+CIPEEK
+.I
+ci
+is trying to do a one-line printed display of the variable
+in the format "name\<TAB><TAB>value".
+This is normally
+performed when the user types "*=", and you should do this
+following a CISET.
+.i0
+.DT
+.PP
+Typically, the procedure will use a
+.I
+switch
+statement to deal with the three cases.
+If the value can be
+displayed by printing it on one line, the CISET and CIPEEK
+cases may be the same.
+This is true, for example, for an ordered
+pair of integers; it is not true, say, for a variable which
+represents a color picture (to display this may involve writing
+it onto a color TV monitor).
+.sp
+Here is an example of a procedure variable which represents an
+ordered pair:
+.nf
+.sp
+	int x,y;
+	...
+	xy (mode,arg)
+	CIMODE mode;
+	char *arg;
+	{
+		char *p;		/* for parsing */
+		switch (mode) {
+		case CISET:
+			p = arg;
+			x = intarg (&p,0,"X coordinate?",-100,100,x);
+			y = intarg (&p,0,"Y coordinate?",-100,100,y);
+			/* now, fall through to display the value */
+		case CISHOW:
+		case CIPEEK:
+			printf ("point\\t\\tx %d\\ty %d\\n",x,y);
+		}
+	}
+	...
+	CIENTRY list[] =
+	{
+		CIPROC ("point",xy),
+		...
+		CIEND
+	}
+.fi
+.sp
+Here is an example of dialogue with the program containing the above code
+(lines typed by the user are indicated by italics):
+.nf
+.sp
+.I
+	point=3 5
+	point		x 3	y 5
+.I
+	p=
+	X coordinate?  (-100 to 100)  [3]  \fI72\fR
+	Y coordinate?  (-100 to 100)  [5]  \fI39\fR
+	point		x 72	y 39
+.I
+	p= 287
+	287 out of range.  X coordinate?  (-100 to 100)  [72]  \fI28\fR
+	Y coordinate?  (-100 to 100)  [39]  \fI29\fR
+	point		x 28	y 29
+.I
+	p
+	point		x 28	y 29
+.fi
+.sp
+Note that some kinds of variables may require parameters just to be
+displayed; you will receive a (possibly null) argument list every
+time your procedure variable is called, and may parse arguments
+for all three activities specified by
+.I
+mode.
+.SH "CLASS VARIABLES"
+On occasion, you may want to have several procedure variables which
+require the exact same code for their processing.
+For example, you may
+have sixteen different robot arms that you want the user to treat as
+variables; or have several windows on the color TV screen that you
+want to treat as variables.
+In such cases, it would be a shame to have
+to create several procedure variables, each with exactly the same
+code.
+To eliminate this duplication,
+.I
+ci
+provides a facility called the
+.I
+class.
+.sp
+A
+class is a collection of procedure variables which share the same
+code.
+Each variable, however, is distinguished by its own data.
+The entries on the CIENTRY list look like this:
+.nf
+	CICLASS ("name1",var1,classname),
+	CICLASS ("name2",var2,classname),
+.fi
+and so on, one entry for each variable.
+.I
+Var1
+and
+.I
+var2
+are the names of the data areas for the variables; they might be
+declared like this:
+.nf
+	typedef struct { int field1; ... } DATAAREA;
+	DATAAREA var1, var2;
+.fi
+.I
+Classname
+is the name of the procedure which is used by these variables for
+displaying and assigning a value.
+.sp
+The procedure will be called with four parameters.
+Continuing
+the above example, the procedure might begin like this:
+.nf
+	classname (mode,arglist,varptr,varname)
+	CIMODE mode;
+	char *arglist, *varptr, *varname;
+	{
+		DATAAREA *p;
+		. . .
+		p = (DATAAREA *) varptr;
+		. . . p->field1 . . .
+.fi
+In this example, note that the first two parameters are just the same
+as the first two parameters for a procedure variable.
+They have
+exactly the same meaning.
+The third parameter is a pointer to the
+data area for the variable being displayed or assigned to.
+This value
+must be of type "char *" for C's type-checking to work properly, so
+you will want to coerce it by a type-cast to be a pointer to the proper
+type.
+Note also that
+.I
+var1
+and
+.I
+var2
+are DATAAREAs, not (DATAAREA *)s.
+In general, whatever type of object
+you declare in the CICLASS macro, the parameter passed to the procedure
+will be a pointer to that type of object.
+The fourth (last) parameter passed to the procedure will be the
+name of the variable being processed, in a character string.
+.sp
+Here is an example of two ordered pairs represented by two class
+variables:
+.nf
+.sp
+	typedef struct {int x,y;} ORDPAIR;
+	ORDPAIR startp,endp;
+	...
+	ordproc (mode,arg,cdata,name)
+	CIMODE mode;
+	char *arg, *cdata, *name;
+	{
+		char *p;
+		ORDPAIR *data;
+		data = (ORDPAIR *) cdata;
+		switch (mode) {
+		case CISET:
+			p = arg;
+			data->x = intarg (&p,0,"X coordinate?",-100,100,data->x);
+			data->y = intarg (&p,0,"Y coordinate?",-100,100,data->y);
+		case CISHOW:
+		case CIPEEK:
+			printf ("%s\\t\\tx %d\\ty %d\\n",name,data->x,data->y);
+		}
+	}
+	...
+	CIENTRY list[] =
+	{
+		CICLASS ("start",startp,ordproc),
+		CICLASS ("end",endp,ordproc),
+		...
+		CIEND
+	}
+.fi
+.sp
+Here is an example of dialogue with the program containing the above
+code (lines typed by the user are indicated by italics):
+.nf
+.sp
+	
+.I
+	start = 3 5
+	start		x 3	y 5
+.I
+	end = 6 10
+	end		x 6	y 10
+.I
+	start =
+	X coordinate?  (-100 to 100)  [3]  72
+	Y coordinate?  (-100 to 100)  [5]  39
+	start		x 72	y 39
+.fi
+.SH "INTERRUPT HANDLING"
+If you use
+.IR del (3)
+to trap interrupts,
+you will receive a bonus from
+.I
+ci.
+If you hit DEL during the execution of a command, that command
+may trap it (by
+.I
+DELRETURN,
+etc.); if the command ignores it,
+.I
+ci
+will deal with it when the command is finished executing.
+.sp
+If the interrupt occurred while
+.I
+ci
+was reading from the standard input, it will just print "Interrupt
+ignored".
+.sp
+If, however, the interrupt occurred during a command file,
+.I
+ci
+will print:
+.nf
+	INTERRUPT:  Abort or breakpoint?  [abort]
+.fi
+and wait for you to type something.
+If you type "a", or "abort",
+or just a carriage return, 
+.I
+ci
+will abort the command file (i.e.
+pretend it just encountered the
+end of the file).
+If you type "b", or "breakpoint", or something
+like that, then
+.I
+ci
+will recursively call itself, with the new
+.I
+ci
+taking input from the standard input (e.g.
+terminal).
+The
+prompt will be "Breakpoint for
+.I
+prompt",
+where
+.I
+prompt
+is the prompt for the interrupted command file.
+When you exit from
+the new
+.I
+ci,
+the command file will be resumed as if nothing had happened.
+.SH "EXTERNAL VARIABLES"
+.I
+Ci
+uses six external variables (declared in the file
+.IR <ci.h> )
+which you may also use in your program.
+.TP
+int cidepth;
+This variable is the current depth of nesting of invocations of
+.I
+ci.
+It is automatically updated by
+.I
+ci
+to have the proper value.
+.TP
+FILE *ciinput;
+This variable is the current input file for
+.I
+ci.
+You can read lines from this file within your commands and
+variables, if you want to read from the same place that
+.I
+ci
+is reading from.
+.TP
+char cinext[];
+Normally the null string.  If you place a
+.I
+ci
+instruction in this string, it will be executed before
+.I
+ci
+reads any new input lines.
+.TP
+char ciprev[];
+Normally the null string.  When an instance of
+.I
+ci
+(the "parent") contains a command which invokes a new
+.I
+ci
+with a different entry list (the "child"), the
+string
+.I
+ciprev
+must be used to enable the "@" instruction to function.
+In the parent, immediately after the ci() invocation for the child,
+place the statement: 'strcpy (ciprev,"childname");' where
+"childname" is the command the user would type to invoke the child
+instance of
+.I
+ci.
+.TP
+int ciexit;
+If you put a non-zero value into this variable,
+.I
+ci
+will exit (i.e.
+return) when the current command (or procedure
+variable) is finished.
+This allows you to write a command which
+causes
+.I
+ci
+to exit.
+.TP
+int ciquiet;
+This word contains several bits which govern the output produced
+by
+.I
+ci.
+.i0
+.DT
+.PP
+The bits for
+.I
+ciquiet
+are also declared in the macro file.
+If a bit is 0, the output will
+be produced; if it is 1, the output is suppressed:
+.TP
+CISHEXIT
+print a message when
+.I
+ci
+resumes after a shell command (i.e.
+"!").
+.TP
+CISETPEEK
+automatically display the new value of a variable when that variable
+has a new value assigned.
+This effectively performs a CIPEEK on a
+variable after a CISET.
+The automatic display is never performed for
+variable procedures or class variables.
+CISETPEEK is only used when the input to
+.I
+ci
+is coming from the terminal.  For command files, see CICMDFPEEK
+below.
+.TP
+CICMDFECHO
+echo on the terminal each line which is read from a command file.
+.TP
+CICMDFPROMPT
+echo the prompt (indented) on the terminal before each line
+read from a command file.
+.TP
+CICMDFEXIT
+print an end-of-file message on the terminal after executing a command
+file.
+.TP
+CICMDFPEEK
+display new value of a variable after assigning; used when input
+is from command file.
+See CISETPEEK, above.
+.TP
+CICMDNOINDENT
+indent commands to reflect nesting of
+.I
+ci
+invocations.
+.i0
+.DT
+.PP
+.sp
+Certain bits in
+.I
+ciquiet
+control the processing of input rather than output.
+If these bits are
+0, all special input symbols are processed; if 1, the corresponding
+special input character is treated just like ordinary data with no
+special meaning to
+.I
+ci:
+.TP
+CINOSEM
+If 1, semicolons (;) are data characters; if 0, semicolons separate
+multiple instructions on a single input line.
+.TP
+CINOFILE
+If 1, right angle-brackets (>) are data characters; if 0, ">filename"
+instructs
+.I
+ci
+to place output into the named file.
+.TP
+CIFIRSTEQUAL
+If 1, an equals sign (=) is a data character unless it appears
+immediately after a variable name; if 0, any equals sign indicates
+that the instruction is assigning a value to a variable.
+.i0
+.DT
+.PP
+.SH "ENVIRONMENT VARIABLES"
+.TP
+SHELL
+Name of shell to invoke for "!" instruction.
+If not defined, "sh" is
+used.
+.SH "LIBRARY NOTES"
+You must link against /usr/local/lib/libcs.a to define this routine.
+.SH "SEE ALSO"
+intarg(3), shortarg(3), longarg(3), octarg(3), hexarg(3), doublearg(3),
+.br
+floatarg(3), chrarg(3), boolarg(3), strarg(3), stabarg(3), searcharg(3),
+del(3)
+.SH "BUGS"
+"Depth" argument is now a no-op, since its function is subsumed by the
+"cidepth" global variable.
+The argument has been retained for backward
+compatibility; its value is ignored.

@@ -1,0 +1,55 @@
+/* ********************************************************************** *\
+ *         Copyright IBM Corporation 1988,1991 - All Rights Reserved      *
+ *        For full copyright information see:'andrew/config/COPYRITE'     *
+\* ********************************************************************** */
+
+/*
+	$Disclaimer:  $
+*/
+
+
+#if (defined(sun4) || defined(sparc))
+
+#include	<sun4/asm_linkage.h>
+
+	.text
+ENTRY(getcaller)
+        mov     %i7, %o0
+        retl
+        nop
+
+#endif
+
+#if defined(i386)
+#include <i386/asm.h>
+
+ENTRY(getcaller)
+	movl	8(%esp), %ax
+	ret
+#endif
+
+#if (defined(mips) || defined(pmax))
+
+#ifndef CMUCS
+#include <asm.h>
+#include <regdef.h>
+#else
+#include <mips/asm.h>
+#include <mips/regdef.h>
+#endif
+	
+	BSS(store_return_address,4)
+LEAF(malloc)
+	sw	ra,store_return_address
+	j	malloc_sidedoor
+	END(malloc)
+LEAF(free)
+	sw	ra,store_return_address
+	j	free_sidedoor
+	END(free)
+LEAF(realloc)
+	sw	ra,store_return_address
+	j	realloc_sidedoor
+	END(realloc)
+
+#endif /* (defined(mips) || defined(pmax)) */

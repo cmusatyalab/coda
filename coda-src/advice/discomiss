@@ -1,0 +1,254 @@
+#!/usr/coda/etc/wish -f
+#ifndef _BLURB_
+#define _BLURB_
+#/*
+#
+#            Coda: an Experimental Distributed File System
+#                             Release 4.0
+#
+#          Copyright (c) 1987-1996 Carnegie Mellon University
+#                         All Rights Reserved
+#
+#Permission  to  use, copy, modify and distribute this software and its
+#documentation is hereby granted,  provided  that  both  the  copyright
+#notice  and  this  permission  notice  appear  in  all  copies  of the
+#software, derivative works or  modified  versions,  and  any  portions
+#thereof, and that both notices appear in supporting documentation, and
+#that credit is given to Carnegie Mellon University  in  all  documents
+#and publicity pertaining to direct or indirect use of this code or its
+#derivatives.
+#
+#CODA IS AN EXPERIMENTAL SOFTWARE SYSTEM AND IS  KNOWN  TO  HAVE  BUGS,
+#SOME  OF  WHICH MAY HAVE SERIOUS CONSEQUENCES.  CARNEGIE MELLON ALLOWS
+#FREE USE OF THIS SOFTWARE IN ITS "AS IS" CONDITION.   CARNEGIE  MELLON
+#DISCLAIMS  ANY  LIABILITY  OF  ANY  KIND  FOR  ANY  DAMAGES WHATSOEVER
+#RESULTING DIRECTLY OR INDIRECTLY FROM THE USE OF THIS SOFTWARE  OR  OF
+#ANY DERIVATIVE WORK.
+#
+#Carnegie  Mellon  encourages  users  of  this  software  to return any
+#improvements or extensions that  they  make,  and  to  grant  Carnegie
+#Mellon the rights to redistribute these changes without encumbrance.
+#*/
+#
+#static char *rcsid = "$Header: blurb.doc,v 1.1 96/11/22 13:29:31 raiff Exp $";
+#endif /*_BLURB_*/
+
+
+#
+# A nice interface to the disconnected cache miss questionnaire
+#
+# History :
+#  94/4/6 : mre@cs.cmu.edu : code
+#
+
+#
+#
+#
+
+proc Quit {} {
+	destroy .
+	exit 0
+}
+
+proc quit {} {
+	global Practice
+	global Determined
+	global argv
+	global Sanitized
+
+	SanityCheck [.affect.scale get] $Determined
+	if { $Sanitized == 0 } {
+		return
+	}
+
+        set outFileName [lindex $argv 0]
+        set outFile [open $outFileName a]
+
+	puts $outFile [format "Practice: %d" $Practice]
+	OutputAffect $outFile
+	OutputComments $outFile
+	Quit
+}
+
+proc PopUpDialog {} {
+
+	toplevel .panel
+	message .panel.msg \
+		-text "\nPlease choose a value from 1 to 6 by clicking the mouse\nover your selection." \
+		-justify left \
+		-width "5i"
+	button .panel.ok \
+		-text "OK" \
+		-command "destroy .panel"
+	pack append .panel \
+		.panel.msg	{top fill} \
+		.panel.ok	{pady 10 padx 10}
+	grab set .panel
+	tkwait window .panel
+}
+
+proc SanityCheck {scale_value be_determined} {
+	global Sanitized
+
+	set Sanitized 1
+	if { $scale_value == 0 } {
+		if { $be_determined == 0 } {
+			PopUpDialog
+			set Sanitized 0
+		}
+	}
+}
+
+proc labeltext {path text length} {
+    frame $path 
+    label $path.label -text $text
+	
+    text $path.text -relief raised -bd 2 -height 3 -width 60\
+	-yscrollcommand "$path.scroll set"
+    scrollbar $path.scroll -command "$path.text yview"
+    pack append $path $path.label {left frame nw} $path.text {left} $path.scroll {left filly}
+}
+
+proc labelentry {path text length} {
+    frame $path
+    label $path.label -text $text 
+    entry $path.entry -width $length -relief sunken
+    pack append $path $path.label {left expand} $path.entry {right expand}
+}
+
+proc PresentInfo {} {
+	global fontinfo
+	global argv
+
+	#
+        # Informational Dialog
+        #
+
+        frame .info -relief raised -borderwidth 2
+        message .info.msg \
+		-text "\nA disconnected cache miss has occurred on the object `[lindex $argv 1]'.\nThe object was referenced by `[lindex $argv 2]'." \
+                -justify left \
+                -width "6i"
+
+        pack append .info \
+                .info.msg       {top fill}
+
+}
+
+proc SetAffectScale {} {
+	global Determined
+
+	if { $Determined } {
+		.affect.scale set 0
+	}
+}
+
+proc ResetDetermined {value} {
+	global Determined
+
+	if { $value > 0 } {
+		set Determined 0
+	}
+}
+
+proc QuestionAffect {} {
+	global fontinfo
+
+	#
+	# Affect of cache miss?
+	#
+
+	frame .affect -relief raised -borderwidth 2
+	message .affect.msg \
+		-text "How much do you believe this cache miss will affect your current work?" \
+		-justify left \
+		-width "6i"
+	scale .affect.scale -from 0 -to 6 -length 400 -tickinterval 1 \
+		-label "Invalid | Not at all!                                    Seriously Impede!" \
+		-orient horizontal \
+		-bg Bisque1 \
+		-activeforeground Gray \
+		-command ResetDetermined
+
+
+	frame .affect.cbs -relief flat -borderwidth 2
+
+	checkbutton .affect.cbs.determined \
+		-text "It cannot be determined." \
+		-variable Determined \
+		-command SetAffectScale
+
+	checkbutton .affect.cbs.practice \
+		-text "This is a practice disconnection." \
+		-variable Practice 
+
+	pack append .affect.cbs \
+		.affect.cbs.determined	{left padx 100} \
+		.affect.cbs.practice {right padx 10}
+
+	pack append .affect \
+		.affect.msg 	{top frame nw} \
+		.affect.scale 	{top} \
+		.affect.cbs {top frame nw}
+}
+
+proc OutputAffect {outFile} {
+	puts $outFile [format "ExpectedAffect: %s" [.affect.scale get]]
+}
+
+proc PresentComments {} {
+	global fontinfo
+
+	frame .comments -relief raised -borderwidth 2
+	labeltext .comments.label "Other comments:" 50
+
+	pack append .comments .comments.label {top frame nw}
+}
+proc OutputComments {outFile} {
+	puts $outFile [format "OtherComments:\n%s\nEndComment.\n" [.comments.label.text get 1.0 end]]
+}
+
+proc PresentOtherOptions {} {
+	global fontinfo
+
+	frame .other -relief raised -borderwidth 2
+	button .other.donebutton \
+		-command quit \
+		-text "Done" \
+		-state active
+
+	pack append .other \
+		.other.donebutton {pady 10 padx 10}
+}
+
+#
+# Check that we have precisely 2 arguments.
+#
+
+if { $argc != 3 } then {
+	puts "Usage: discomiss outfile pathname program"
+	puts "       where outfile is the name of the output file"
+	puts "       where pathname is the name of an object not in the cache"
+	puts "       where program is the name of the program referencing the object"
+	exit 1
+}
+
+#
+# Create all windows
+#
+PresentInfo
+QuestionAffect
+PresentComments
+PresentOtherOptions
+
+wm geometry . +0+0
+wm title . "Disconnected Cache Miss Questionnaire"
+pack append . .info	{top fill pady 10 expand} 
+pack append . .affect	{top fill pady 10 expand} 
+pack append . .comments {top fill pady 10 expand}
+pack append . .other	{top fill pady 10 expand}
+
+#
+# Now, wait for user actions...
+#
+

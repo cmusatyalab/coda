@@ -1,0 +1,97 @@
+#ifndef _BLURB_
+#define _BLURB_
+#/*
+#
+#            Coda: an Experimental Distributed File System
+#                             Release 3.1
+#
+#          Copyright (c) 1987-1995 Carnegie Mellon University
+#                         All Rights Reserved
+#
+#Permission  to  use, copy, modify and distribute this software and its
+#documentation is hereby granted,  provided  that  both  the  copyright
+#notice  and  this  permission  notice  appear  in  all  copies  of the
+#software, derivative works or  modified  versions,  and  any  portions
+#thereof, and that both notices appear in supporting documentation, and
+#that credit is given to Carnegie Mellon University  in  all  documents
+#and publicity pertaining to direct or indirect use of this code or its
+#derivatives.
+#
+#CODA IS AN EXPERIMENTAL SOFTWARE SYSTEM AND IS  KNOWN  TO  HAVE  BUGS,
+#SOME  OF  WHICH MAY HAVE SERIOUS CONSEQUENCES.  CARNEGIE MELLON ALLOWS
+#FREE USE OF THIS SOFTWARE IN ITS "AS IS" CONDITION.   CARNEGIE  MELLON
+#DISCLAIMS  ANY  LIABILITY  OF  ANY  KIND  FOR  ANY  DAMAGES WHATSOEVER
+#RESULTING DIRECTLY OR INDIRECTLY FROM THE USE OF THIS SOFTWARE  OR  OF
+#ANY DERIVATIVE WORK.
+#
+#Carnegie  Mellon  encourages  users  of  this  software  to return any
+#improvements or extensions that  they  make,  and  to  grant  Carnegie
+#Mellon the rights to redistribute these changes without encumbrance.
+#*/
+#
+#static char *rcsid = "$Header: README.historical,v 1.1 96/11/22 13:24:57 raiff Exp $";
+#endif /*_BLURB_*/
+
+
+Part I: How to compile Coda
+===========================
+
+Follow this sequence to build Coda from scratch.
+
+Look in ./MAKECODA and copy in the following files by hand:
+	the files defined as  INCLUDE_FILES into include-special
+	the files defined as  LIB_FILES into lib-special
+	the files defined as  BIN_FILES into bin-special
+
+
+Define the variable ALPHA in ./Makeconf to point to the root of the installation tree.
+
+At this point, run the shell script MAKECODA for a "canned" installation.
+If you want to do anything else, read on.
+
+Items in a group  can be compiled in any order, or in parallel.
+The order of groups is critical.
+Comments indicate dependencies.
+Only dependencies on immediately preceding groups are listed.
+
+"make install" in each subsystem will do the job.
+There should be no exotic dependencies on PATH, LPATH or CPATH.
+This can be achieved by sourcing SOURCEME
+
+Now you can compile, adhering to the dependencies specified in ./MAKECODA.
+
+
+
+Part II: Module Descriptions
+=============================
+
+advice		Advice monitor
+auth2		Authentication server
+blurb 		Program to adjust copyrights
+camstuff	Camelot related support files
+cfs		The vnode driver (NOTE this is NOT the user program cfs(1))
+comm		Communication layer above RPC2 for connection management
+dir		Directory package
+fail		Network failure and variable speed emulator
+igmp		Internet multicast support - old RFC (dummied out; have Klemets fix these)
+libal		Maintain access lists.
+login		Implements clog, cunlog, ctokens, etc.
+mlwp		Merged lightweight process package
+pdbstuff	Protection database management
+repair		Repair tool
+res/resolve	Directory resolution algorithms
+rp2gen		Stub generator for RPC2
+rpc2		RPC package
+scripts		Misc. scripts
+sunrpc		XDR interface for device driver/venus interaction
+sys		Miscellaneous routines
+update		The daemon which updates server databases
+util		Utility routines
+venus		Cache manager
+vice		Server code
+vicedep		.h and .rpc2 files put here to break circular dependencies
+vol		Volume package
+volutil		Volume utilities
+vtools		Miscellaneous tools for Vice & Venus
+vv		Version vector routines
+

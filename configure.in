@@ -1,0 +1,25 @@
+
+AC_INIT(coda-src/resolve/resolve.h)
+
+dnl Checks for programs.
+AC_PROG_CXX
+AC_PROG_AWK
+AC_PROG_CC
+AC_PROG_CPP
+AC_PROG_LEX
+AC_PROG_LN_S
+AC_PROG_MAKE_SET
+AC_PROG_RANLIB
+AC_PROG_YACC
+
+
+AC_OUTPUT(lib-src/GNUmakefile lib-src/mlwp/GNUmakefile.coda lib-src/mlwp/GNUmakefile.real lib-src/libcs/GNUmakefile lib-src/special-includes/GNUmakefile rvm-src/GNUmakefile rvm-src/rvm/GNUmakefile rvm-src/seg/GNUmakefile rvm-src/rds/GNUmakefile rvm-src/tests/GNUmakefile rvm-src/rvm/Makefile rvm-src/seg/Makefile rvm-src/rds/Makefile rvm-src/tests/Makefile coda-src/GNUmakefile coda-src/scripts/GNUmakefile coda-src/sys/GNUmakefile coda-src/dir/GNUmakefile  coda-src/rpc2/GNUmakefile coda-src/util/GNUmakefile coda-src/libal/GNUmakefile coda-src/rp2gen/GNUmakefile coda-src/pdbstuff/GNUmakefile coda-src/blurb/GNUmakefile coda-src/camstuff/GNUmakefile coda-src/fail/GNUmakefile coda-src/vicedep/GNUmakefile  coda-src/auth2/GNUmakefile coda-src/vv/GNUmakefile coda-src/login/GNUmakefile coda-src/vol/GNUmakefile coda-src/resolve/GNUmakefile coda-src/venus/GNUmakefile coda-src/advice/GNUmakefile coda-src/repair/GNUmakefile coda-src/res/GNUmakefile coda-src/rvmres/GNUmakefile coda-src/volutil/GNUmakefile coda-src/vtools/GNUmakefile coda-src/vice/GNUmakefile coda-src/update/GNUmakefile coda-src/norton/GNUmakefile coda-src/asr/GNUmakefile coda-src/egasr/GNUmakefile kernel-src/GNUmakefile kernel-src/ifs/GNUmakefile kernel-src/ifs/mach/GNUmakefile kernel-src/ifs/netbsd/GNUmakefile)
+
+dnl AC_OUTPUT( coda-src/GNUmakefile rvm-src/GNUmakefile lib-src/GNUmakefile kernel-src/GNUmakefile coda-src/login/GNUmakefile rvm-linux/rvm/GNUmakefile rvm-src/tests/GNUmakefile rvm-src/rvm/GNUmakefile coda-src/pdbstuff/GNUmakefile coda-src/resolve/GNUmakefile coda-src/vicedep/GNUmakefile kernel-src/vfs/mach/GNUmakefile coda-src/libal/GNUmakefile coda-src/auth2/GNUmakefile rvm-linux/seg/GNUmakefile rvm-src/seg/GNUmakefile rvm-src/rds/GNUmakefile coda-src/vtools/GNUmakefile coda-src/vv/GNUmakefile coda-src/advice/GNUmakefile lib-src/libcs/GNUmakefile coda-src/volutil/GNUmakefile rvm-src/tests/GNUmakefile coda-src/vol/GNUmakefile coda-src/venus/GNUmakefile rvm-src/rvm/GNUmakefile kernel-src/vfs/linux/GNUmakefile rvm-src/GNUmakefile rvm-linux/rds/GNUmakefile rvm-src/seg/GNUmakefile coda-src/util/GNUmakefile coda-src/rvmres/GNUmakefile coda-src/sys/GNUmakefile rvm-linux/tests/GNUmakefile coda-src/repair/GNUmakefile rvm-linux/rvm/GNUmakefile coda-src/res/GNUmakefile kernel-src/vfs/mach/GNUmakefile kernel-src/ifs/linux/GNUmakefile rvm-linux/seg/GNUmakefile rvm-linux/rds/GNUmakefile rvm-src/rds/GNUmakefile lib-src/plumber/GNUmakefile)
+
+
+
+
+
+
+

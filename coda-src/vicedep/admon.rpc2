@@ -1,0 +1,201 @@
+%{#ifndef _BLURB_
+#define _BLURB_
+/*
+
+            Coda: an Experimental Distributed File System
+                             Release 4.0
+
+          Copyright (c) 1987-1996 Carnegie Mellon University
+                         All Rights Reserved
+
+Permission  to  use, copy, modify and distribute this software and its
+documentation is hereby granted,  provided  that  both  the  copyright
+notice  and  this  permission  notice  appear  in  all  copies  of the
+software, derivative works or  modified  versions,  and  any  portions
+thereof, and that both notices appear in supporting documentation, and
+that credit is given to Carnegie Mellon University  in  all  documents
+and publicity pertaining to direct or indirect use of this code or its
+derivatives.
+
+CODA IS AN EXPERIMENTAL SOFTWARE SYSTEM AND IS  KNOWN  TO  HAVE  BUGS,
+SOME  OF  WHICH MAY HAVE SERIOUS CONSEQUENCES.  CARNEGIE MELLON ALLOWS
+FREE USE OF THIS SOFTWARE IN ITS "AS IS" CONDITION.   CARNEGIE  MELLON
+DISCLAIMS  ANY  LIABILITY  OF  ANY  KIND  FOR  ANY  DAMAGES WHATSOEVER
+RESULTING DIRECTLY OR INDIRECTLY FROM THE USE OF THIS SOFTWARE  OR  OF
+ANY DERIVATIVE WORK.
+
+Carnegie  Mellon  encourages  users  of  this  software  to return any
+improvements or extensions that  they  make,  and  to  grant  Carnegie
+Mellon the rights to redistribute these changes without encumbrance.
+*/
+
+static char *rcsid = "$Header: blurb.doc,v 1.1 96/11/22 13:29:31 raiff Exp $";
+#endif /*_BLURB_*/%}
+
+
+
+
+
+Subsystem  "AdMon";
+
+#define ADMONSUBSYSID 100
+
+#define ADMONPORTAL 4000
+
+#include "vcrcommon.rpc2"
+
+/* IMPORTANT!  Change this anytime this file is changed! */
+#define ADMON_VERSION 7
+
+typedef RPC2_Enum
+{
+	False = 0,
+	True = 1
+} Boolean;
+
+typedef RPC2_Struct
+{
+	RPC2_Integer DMQVersionNumber;
+	RPC2_Integer pid;
+	RPC2_Unsigned TimeOfDisconnection;
+	RPC2_Unsigned TimeOfCacheMiss;  
+	ViceFid Fid;
+	RPC2_String Pathname;  
+} DisconnectedMissQuestionnaire;
+/* IMPORTANT!  Change this anytime you change this structure! */
+#define DMQ_VERSION 2
+
+typedef RPC2_Struct
+{
+	RPC2_Integer RQVersionNumber;
+	RPC2_String VolumeName;
+	VolumeId VID;
+	RPC2_Unsigned CMLcount;
+	RPC2_Unsigned TimeOfDisconnection;
+	RPC2_Unsigned TimeOfReconnection; 
+	RPC2_Unsigned TimeOfLastDemandHoardWalk;
+	RPC2_Unsigned NumberOfReboots; 
+	RPC2_Unsigned NumberOfCacheHits;
+	RPC2_Unsigned NumberOfCacheMisses;
+	RPC2_Unsigned NumberOfUniqueCacheHits;
+	/* UniqueCacheMiss will be calculated by the advice monitor */
+	RPC2_Unsigned NumberOfObjectsNotReferenced;
+} ReconnectionQuestionnaire;
+/* IMPORTANT!  Change this anytime you change this structure! */
+#define RQ_VERSION 1
+
+typedef RPC2_Struct
+{
+	RPC2_String Pathname;
+	RPC2_Integer pid;
+	RPC2_Integer ExpectedFetchTime;
+} WeaklyConnectedInformation;
+
+/*
+ * PseudoConnectedMiss
+ *
+ * Venus uses this call to request advice about whether or 
+ * not to service a pseudo-connected cache miss.
+ */
+PseudoConnectedMiss 	(IN RPC2_String Pathname, 
+			 IN RPC2_Integer pid,
+			 OUT RPC2_Integer Advice);
+
+
+/*
+ * DataFetchEvent
+ *
+ * Venus uses this call to inform the advice monitor that a
+ * data fetch is taking place.  This allows the advice
+ * monitor to display a progress bar as the fetch takes place.
+ */
+DataFetchEvent		(IN RPC2_String Pathname,
+			 IN RPC2_Integer Size,
+			 IN RPC2_String Vfile);
+
+
+/*
+ * HoardWalkAdvice
+ *
+ * Venus uses this call to request advice about what objects
+ * should be fetched in the process of a hoard walk.
+ */
+HoardWalkAdvice		(IN RPC2_String InputPathname,
+			 IN RPC2_String OutputPathname,
+			 OUT RPC2_Integer ReturnCode);
+
+
+/*
+ * DisconnectedMiss
+ *
+ * Venus uses this call to determine the impact of this 
+ * disconnected cache miss.
+ */
+DisconnectedMiss	(IN DisconnectedMissQuestionnaire Questionnaire,
+			 OUT RPC2_Integer ReturnCode);
+
+
+Reconnection	(IN ReconnectionQuestionnaire Questionnaire,
+		 OUT RPC2_Integer ReturnCode);
+
+
+/* 
+ * Volume Events
+ *
+ * Venus uses these calls to inform the advice monitor that
+ * a volume has transitioned to a new state.  
+ */
+
+VSEmulating       (IN RPC2_String VolumeName,
+                   IN VolumeId vid);
+
+VSHoarding        (IN RPC2_String VolumeName,
+                   IN VolumeId vid);
+
+VSLogging         (IN RPC2_String VolumeName,
+                   IN VolumeId vid);
+
+VSResolving       (IN RPC2_String VolumeName,
+                   IN VolumeId vid);
+
+
+
+/*
+ * ReintegratePending
+ *
+ * Venus uses this call to inform the Advice Monitor that
+ * a reintegration is pending tokens for this user and also
+ * to inform the Advice Monitor that the reintegration is
+ * no longer pending.
+ */
+ReintegratePending(IN RPC2_String VolumeName,
+		   IN Boolean PendingFlag);
+
+
+/*
+ * Resolution
+ * 
+ * Venus uses this call to invoke Application Specific Resolvers.
+ */
+InvokeASR	(IN RPC2_String Pathname, 
+		 IN RPC2_Integer uid, 
+		 OUT RPC2_Integer ASRid,
+		 OUT RPC2_Integer ReturnCode);
+
+
+/*
+ * WeaklyConnectedMiss
+ *
+ * Venus uses this call to inform an advice server that a request
+ * during a weakly connected session is unavailable in the cache.
+ */
+WeaklyConnectedMiss	(IN WeaklyConnectedInformation Information,
+			 OUT RPC2_Integer ReturnCode);
+
+/*
+ * LostConnection
+ *
+ * Venus uses this call to inform an advice server that it has
+ * lost its connection.
+ */
+LostConnection();

@@ -1,0 +1,104 @@
+#!/usr/cs/bin/csh -f 
+#ifndef _BLURB_
+#define _BLURB_
+#/*
+#
+#            Coda: an Experimental Distributed File System
+#                             Release 4.0
+#
+#          Copyright (c) 1987-1996 Carnegie Mellon University
+#                         All Rights Reserved
+#
+#Permission  to  use, copy, modify and distribute this software and its
+#documentation is hereby granted,  provided  that  both  the  copyright
+#notice  and  this  permission  notice  appear  in  all  copies  of the
+#software, derivative works or  modified  versions,  and  any  portions
+#thereof, and that both notices appear in supporting documentation, and
+#that credit is given to Carnegie Mellon University  in  all  documents
+#and publicity pertaining to direct or indirect use of this code or its
+#derivatives.
+#
+#CODA IS AN EXPERIMENTAL SOFTWARE SYSTEM AND IS  KNOWN  TO  HAVE  BUGS,
+#SOME  OF  WHICH MAY HAVE SERIOUS CONSEQUENCES.  CARNEGIE MELLON ALLOWS
+#FREE USE OF THIS SOFTWARE IN ITS "AS IS" CONDITION.   CARNEGIE  MELLON
+#DISCLAIMS  ANY  LIABILITY  OF  ANY  KIND  FOR  ANY  DAMAGES WHATSOEVER
+#RESULTING DIRECTLY OR INDIRECTLY FROM THE USE OF THIS SOFTWARE  OR  OF
+#ANY DERIVATIVE WORK.
+#
+#Carnegie  Mellon  encourages  users  of  this  software  to return any
+#improvements or extensions that  they  make,  and  to  grant  Carnegie
+#Mellon the rights to redistribute these changes without encumbrance.
+#*/
+#
+#static char *rcsid = "$Header: blurb.doc,v 1.1 96/11/22 13:29:31 raiff Exp $";
+#endif /*_BLURB_*/
+
+
+if ($#argv != 1) then 
+   echo "Usage: $0 <filename>"
+   exit -1
+endif 
+
+# check for coda authentication
+/usr/coda/etc/ctokens | grep "Not Authenticated" > /dev/null
+if ($status == 255) then
+   echo "You are not authenticated to the Coda servers"
+   exit 1
+endif
+
+set fname = $argv[1]
+set RMINCFILE = /usr/coda/bin/removeinc
+set CFS = /usr/coda/bin/cfs
+if ($?DISPLAY) then
+   set xisrunning = 1
+   set ASKUSERSCRIPT = "/usr/coda/bin/xaskuser"
+else 
+   set xisrunning = 0
+   echo "Non-X version of this repair tool isn't available yet"
+   exit -1
+endif
+
+set idir = $fname:h
+set ifile = $fname:t
+if ($ifile == $idir) set idir = $cwd
+
+$CFS beginrepair $idir/$ifile
+if ($status) then 
+   exit $status
+endif
+
+# check for local/global conflicts
+if ((-e ${fname}/local) && (-e ${fname}/global)) then
+   echo "$fname has a local/global conflict, please use the regular repair tool"	
+   $CFS endrepair $idir/$ifile
+   exit -1
+endif
+
+set askout = `$ASKUSERSCRIPT $idir $ifile`
+set rc = $status
+$CFS endrepair $idir/$ifile
+switch ($rc)
+   case 0:
+      # do nothing
+      exit 0
+      breaksw;
+   case 1:
+      # remove the inconsistent object
+      $RMINCFILE $idir/$ifile
+      exit $status
+      breaksw
+   case 2:
+      # use one of the replicas for repair, which has already been 
+      # done by the xaskuer script
+      exit 0
+      breaksw
+   case 3:
+      # use a new file for repair , which has already been
+      # done by the xaskuer script
+      exit 0
+      breaksw
+   default:
+      echo "Couldn't figure out what the user wanted to do"
+      exit -1
+      breaksw
+endsw

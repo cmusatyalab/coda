@@ -1,0 +1,165 @@
+#!/bin/csh -f -b
+#ifndef _BLURB_
+#define _BLURB_
+#/*
+#
+#            Coda: an Experimental Distributed File System
+#                             Release 4.0
+#
+#          Copyright (c) 1987-1996 Carnegie Mellon University
+#                         All Rights Reserved
+#
+#Permission  to  use, copy, modify and distribute this software and its
+#documentation is hereby granted,  provided  that  both  the  copyright
+#notice  and  this  permission  notice  appear  in  all  copies  of the
+#software, derivative works or  modified  versions,  and  any  portions
+#thereof, and that both notices appear in supporting documentation, and
+#that credit is given to Carnegie Mellon University  in  all  documents
+#and publicity pertaining to direct or indirect use of this code or its
+#derivatives.
+#
+#CODA IS AN EXPERIMENTAL SOFTWARE SYSTEM AND IS  KNOWN  TO  HAVE  BUGS,
+#SOME  OF  WHICH MAY HAVE SERIOUS CONSEQUENCES.  CARNEGIE MELLON ALLOWS
+#FREE USE OF THIS SOFTWARE IN ITS "AS IS" CONDITION.   CARNEGIE  MELLON
+#DISCLAIMS  ANY  LIABILITY  OF  ANY  KIND  FOR  ANY  DAMAGES WHATSOEVER
+#RESULTING DIRECTLY OR INDIRECTLY FROM THE USE OF THIS SOFTWARE  OR  OF
+#ANY DERIVATIVE WORK.
+#
+#Carnegie  Mellon  encourages  users  of  this  software  to return any
+#improvements or extensions that  they  make,  and  to  grant  Carnegie
+#Mellon the rights to redistribute these changes without encumbrance.
+#*/
+#
+#static char *rcsid = "$Header: blurb.doc,v 1.1 96/11/22 13:29:31 raiff Exp $";
+#endif /*_BLURB_*/
+
+
+#ifndef _BLURB_
+#define _BLURB_
+#/*
+#
+#            Coda: an Experimental Distributed File System
+#                             Release 3.1
+#
+#          Copyright (c) 1987-1995 Carnegie Mellon University
+#                         All Rights Reserved
+#
+#Permission  to  use, copy, modify and distribute this software and its
+#documentation is hereby granted,  provided  that  both  the  copyright
+#notice  and  this  permission  notice  appear  in  all  copies  of the
+#software, derivative works or  modified  versions,  and  any  portions
+#thereof, and that both notices appear in supporting documentation, and
+#that credit is given to Carnegie Mellon University  in  all  documents
+#and publicity pertaining to direct or indirect use of this code or its
+#derivatives.
+#
+#CODA IS AN EXPERIMENTAL SOFTWARE SYSTEM AND IS  KNOWN  TO  HAVE  BUGS,
+#SOME  OF  WHICH MAY HAVE SERIOUS CONSEQUENCES.  CARNEGIE MELLON ALLOWS
+#FREE USE OF THIS SOFTWARE IN ITS "AS IS" CONDITION.   CARNEGIE  MELLON
+#DISCLAIMS  ANY  LIABILITY  OF  ANY  KIND  FOR  ANY  DAMAGES WHATSOEVER
+#RESULTING DIRECTLY OR INDIRECTLY FROM THE USE OF THIS SOFTWARE  OR  OF
+#ANY DERIVATIVE WORK.
+#
+#Carnegie  Mellon  encourages  users  of  this  software  to return any
+#improvements or extensions that  they  make,  and  to  grant  Carnegie
+#Mellon the rights to redistribute these changes without encumbrance.
+#*/
+#
+#static char *rcsid = "$Header: vutil,v 1.1 96/11/22 13:25:58 raiff Exp $";
+#endif /*_BLURB_*/
+
+
+
+set prog=$0
+set kill=/bin/kill
+set vpid=`/bin/cat /usr/coda/venus.cache/pid`
+set ckpfile=/usr/coda/venus.cache/DUMP
+set copfile=/usr/coda/venus.cache/COPMODES
+set mcfile=/usr/coda/venus.cache/MCAST
+set debugfile=/usr/coda/venus.cache/DEBUG
+
+if ($#argv == 0) goto usage
+while ($#argv > 0)
+    if ("$argv[1]" !~ -*) goto usage
+
+    switch ("$argv[1]")
+	case "-ckp":
+	    echo > ${ckpfile}
+	    ${kill} -SYS ${vpid}
+	    breaksw
+
+	case "-m":
+	case "-cop":
+	    shift
+	    if ($#argv == 0) goto usage
+	    set val="$argv[1]"
+	    if ("$val" != 0 && "$val" != 2 && "$val" != 3 && "$val" != 6 && "$val" != 7) goto usage
+	    echo "$val" > ${copfile}
+	    ${kill} -SYS ${vpid}
+	    breaksw
+
+	case "-cs":
+	    ${kill} -XFSZ ${vpid}
+	    breaksw
+
+	case "-d":
+	    shift
+	    if ($#argv == 0) goto usage
+	    set val="$argv[1]"
+	    if ("$val" < 0) goto usage
+	    echo "$val" > ${debugfile}
+	    ${kill} -SYS ${vpid}
+	    breaksw
+
+	case "-mc":
+	    shift
+	    if ($#argv == 0) goto usage
+	    set val="$argv[1]"
+	    if ("$val" != 0 && "$val" != 1) goto usage
+	    echo "$val" > ${mcfile}
+	    ${kill} -SYS ${vpid}
+	    breaksw
+
+	case "-p":
+	    shift
+	    if ($#argv == 0) goto usage
+	    set val="$argv[1]"
+	    if ("$val" == 0) then
+		${kill} -EMT ${vpid}
+	    else
+		if ("$val" != 1) goto usage
+		${kill} -IOT ${vpid}
+	    endif
+	    breaksw
+
+	case "-shutdown":
+	    ${kill} -TERM ${vpid}
+	    breaksw
+
+	case "-stats":
+	    ${kill} -XCPU ${vpid}
+	    breaksw
+
+	case "-swap":
+	    ${kill} -VTALRM ${vpid}
+	    breaksw
+
+	case "-malloc":
+	    ${kill} -USR1 ${vpid}
+	    breaksw
+
+	default:
+	    echo "${prog}: unknown switch ($argv[1])"
+	    goto usage
+	    breaksw
+    endsw
+
+    shift
+end
+
+exit 0
+
+
+usage:
+echo "Usage: ${prog} [-ckp] [-cs] [-d <debug_level>] [-m <0|2|3|6|7>] [-mc <0|1>] [-p <0|1>] [-shutdown] [-stats] [-swap] [-malloc]"
+exit 0

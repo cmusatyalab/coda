@@ -1,0 +1,731 @@
+%{#ifndef _BLURB_
+#define _BLURB_
+/*
+
+            Coda: an Experimental Distributed File System
+                             Release 4.0
+
+          Copyright (c) 1987-1996 Carnegie Mellon University
+                         All Rights Reserved
+
+Permission  to  use, copy, modify and distribute this software and its
+documentation is hereby granted,  provided  that  both  the  copyright
+notice  and  this  permission  notice  appear  in  all  copies  of the
+software, derivative works or  modified  versions,  and  any  portions
+thereof, and that both notices appear in supporting documentation, and
+that credit is given to Carnegie Mellon University  in  all  documents
+and publicity pertaining to direct or indirect use of this code or its
+derivatives.
+
+CODA IS AN EXPERIMENTAL SOFTWARE SYSTEM AND IS  KNOWN  TO  HAVE  BUGS,
+SOME  OF  WHICH MAY HAVE SERIOUS CONSEQUENCES.  CARNEGIE MELLON ALLOWS
+FREE USE OF THIS SOFTWARE IN ITS "AS IS" CONDITION.   CARNEGIE  MELLON
+DISCLAIMS  ANY  LIABILITY  OF  ANY  KIND  FOR  ANY  DAMAGES WHATSOEVER
+RESULTING DIRECTLY OR INDIRECTLY FROM THE USE OF THIS SOFTWARE  OR  OF
+ANY DERIVATIVE WORK.
+
+Carnegie  Mellon  encourages  users  of  this  software  to return any
+improvements or extensions that  they  make,  and  to  grant  Carnegie
+Mellon the rights to redistribute these changes without encumbrance.
+*/
+
+static char *rcsid = "$Header: blurb.doc,v 1.1 96/11/22 13:29:31 raiff Exp $";
+#endif /*_BLURB_*/%}
+
+
+
+
+/************************************************************************/
+/*									*/
+/*  mond.rpc2	- Vmon & Smon interface descriptions			*/
+/*									*/
+/*  Function	- A set of routines to handle Venus & Server monitoring	*/
+/*		  and reporting functions.				*/
+/*									*/
+/************************************************************************/
+
+Subsystem "mond" 1 1;
+
+#include "vcrcommon.rpc2"
+
+#define	MondSubsysId	171717 /* now same for Vmon & Smon */
+
+/*
+ ** return codes for MondEstablishConn:
+ ** OK, CONNECTED are pure successes,
+ ** OLDVERSION is ok, but should be updated
+ ** INCOMPATIBLE, BADCONNECTION fail
+ */
+
+#define MOND_OK           0
+#define MOND_CONNECTED    0
+
+#define MOND_OLDVERSION    257
+#define MOND_INCOMPATIBLE  258
+#define MOND_BADCONNECTION 258
+
+/*
+ ** returned for hosts which don't have entries in the collector
+ */
+
+#define MOND_NOTCONNECTED 513
+
+#define MOND_VENUS_CLIENT 1
+#define MOND_VICE_CLIENT  2
+
+
+/*
+ * Currently, there are eight unused entries in the RepairSessionStats
+ * structure (NewCommand1Num - NewCommand8Num).  These entries have
+ * been removed from the underlying repair_stats table in mond.  However,
+ * we have left them here to maintain compatibility with the current
+ * version of this interface.  The next time this interface gets changed
+ * (and the MOND_CURRENT_VERSION gets bumped) these entries should be
+ * cleaned out of this interface as well as out of mond and venus.
+ * Please contact luqi@cs so that he can remove them.
+ */
+%{
+/* IMPORTANT!  Change this anytime this file is changed! */
+#ifdef MOND  /* the real version of the interface understood by mond */
+#define MOND_CURRENT_VERSION  26
+#endif
+
+/* maintain the following two to reflect which, if any are out of date */
+#ifndef MOND
+#ifdef VENUS /* we are building a venus */
+#define MOND_CURRENT_VERSION 26  /* and it is current */
+#else        /* we are building a server */
+#define MOND_CURRENT_VERSION 26   /* and it now current as well */
+#endif /* VENUS */
+#endif /* MOND */
+%}
+
+#define	nVSEs		41  /* Number of entries in the big hacked array (later...) */
+/*
+  These are bogus...
+#define	VSE_VGET	0
+#define	VSE_OPEN	1
+#define	VSE_CLOSE	2
+#define	VSE_RDWR	3
+#define	VSE_GETATTR	4
+#define	VSE_SETATTR	5
+#define	VSE_ACCESS	6
+#define	VSE_LOOKUP	7
+#define	VSE_CREATE	8
+#define	VSE_REMOVE	9
+#define	VSE_LINK	10
+#define	VSE_RENAME	11
+#define	VSE_MKDIR	12
+#define	VSE_RMDIR	13
+#define	VSE_READDIR	14
+#define	VSE_SYMLINK	15
+#define	VSE_READLINK	16
+#define	VSE_FSYNC	17
+*/
+
+typedef RPC2_Struct
+{
+	RPC2_Unsigned	IPAddress;  /* IP Address of host this venus is on */
+	RPC2_Unsigned	BirthTime;  /* Time this venus began (apppx) - used to id */
+}	VmonVenusId;
+
+typedef RPC2_Unsigned	VmonSessionId;
+
+typedef RPC2_Struct
+{
+	RPC2_Unsigned	Member0;  /* 0 if no host fills that slot, or the host filling that */
+	RPC2_Unsigned	Member1;  /* slot is down, IP address of the host otherwise */
+	RPC2_Unsigned	Member2;
+	RPC2_Unsigned	Member3;
+	RPC2_Unsigned	Member4;
+	RPC2_Unsigned	Member5;
+	RPC2_Unsigned	Member6;
+	RPC2_Unsigned	Member7;
+}	VmonAVSG;
+
+typedef RPC2_Struct
+{
+	RPC2_Integer		Opcode;        /* vfsopcode, as defined in vrpoc.c */
+	RPC2_Integer		SuccessCount;  /* number of times this call succeeded */
+	RPC2_Unsigned		SigmaT;        /* total time in ms for successful calls */
+	RPC2_Unsigned		SigmaTSquared; /* sum-of-squares of SigmaT */
+	RPC2_Integer		FailureCount;  /* Number of times this call failed */
+}	VmonSessionEvent;
+
+typedef RPC2_Struct                /* this bogosity is left over from the days when we */
+{                                  /* didn't have dynamic RPC2 arrays. It should be removed */
+	VmonSessionEvent	Event0;
+	VmonSessionEvent	Event1;
+	VmonSessionEvent	Event2;
+	VmonSessionEvent	Event3;
+	VmonSessionEvent	Event4;
+	VmonSessionEvent	Event5;
+	VmonSessionEvent	Event6;
+	VmonSessionEvent	Event7;
+	VmonSessionEvent	Event8;
+	VmonSessionEvent	Event9;
+	VmonSessionEvent	Event10;
+	VmonSessionEvent	Event11;
+	VmonSessionEvent	Event12;
+	VmonSessionEvent	Event13;
+	VmonSessionEvent	Event14;
+	VmonSessionEvent	Event15;
+	VmonSessionEvent	Event16;
+	VmonSessionEvent	Event17;
+	VmonSessionEvent	Event18;
+	VmonSessionEvent	Event19;
+	VmonSessionEvent	Event20;
+	VmonSessionEvent	Event21;
+	VmonSessionEvent	Event22;
+	VmonSessionEvent	Event23;
+	VmonSessionEvent	Event24;
+	VmonSessionEvent	Event25;
+	VmonSessionEvent	Event26;
+	VmonSessionEvent	Event27;
+	VmonSessionEvent	Event28;
+	VmonSessionEvent	Event29;
+	VmonSessionEvent	Event30;
+	VmonSessionEvent	Event31;
+	VmonSessionEvent	Event32;
+	VmonSessionEvent	Event33;
+	VmonSessionEvent	Event34;
+	VmonSessionEvent	Event35;
+	VmonSessionEvent	Event36;
+	VmonSessionEvent	Event37;
+	VmonSessionEvent	Event38;
+	VmonSessionEvent	Event39;
+	VmonSessionEvent	Event40;
+	/* WARNING: don't add or subtract entries w/out changing nVSEs */
+}	VmonSessionEventArray;
+
+typedef RPC2_Struct
+{
+	RPC2_Integer		Count;      /* Number of hits/misses */
+	RPC2_Integer		Blocks;     /* Total blocks in the count operations */
+}	CacheEventEntry;
+
+typedef RPC2_Struct
+{
+	RPC2_Integer		BytesStart;       /* Bytes added to the CML */
+	RPC2_Integer            BytesEnd;         /* Bytes removed from the CML */
+	RPC2_Integer            BytesHighWater;   /* High water mark for length of the CML */
+	RPC2_Integer		EntriesStart;     /* Number of entries added to the CML */
+	RPC2_Integer		EntriesEnd;       /* Number of entries added to the CML */
+	RPC2_Integer		EntriesHighWater; /* Number of entries added to the CML */
+	RPC2_Integer		RecordsCancelled; /* CML records overwritten */
+	RPC2_Integer		RecordsCommitted; /* CML records committed (reintegrated) */
+	RPC2_Integer		RecordsAborted;   /* CML records tossed out */
+	RPC2_Integer		FidsRealloced;    /* # of temporary fids realloced on reintegration */
+	RPC2_Integer		BytesBackFetched; /* bytes backfetched for committed records */
+	RPC2_Integer		SystemCPU;        /* System CPU seconds used since beginning of this session */
+	RPC2_Integer		UserCPU;          /* User CPU seconds used since beginning of this session */
+	RPC2_Integer		IdleCPU;          /* Idle CPU seconds since beginning of this session */
+	RPC2_Integer		CacheHighWater;   /* Not used */
+}	SessionStatistics;
+
+typedef RPC2_Struct
+{
+        /* The following 18 CacheEventEntries represent the count and the number of blocks  *
+         * of fsobj cache events.  The measurements are categorized along three dimensions: *
+         *      whether the request was for data or attributes (status)                     *
+         *      whether the fsobj hit, missed, or the cache is full                         *
+         *      whether the fsobj is hoarded, not hoarded, or its hoard status is unknown.  */
+        CacheEventEntry         HoardAttrHit;     
+        CacheEventEntry         HoardAttrMiss;
+        CacheEventEntry         HoardAttrNoSpace;
+        CacheEventEntry         HoardDataHit;
+        CacheEventEntry         HoardDataMiss;
+        CacheEventEntry         HoardDataNoSpace;
+        CacheEventEntry         NonHoardAttrHit;
+        CacheEventEntry         NonHoardAttrMiss;
+        CacheEventEntry         NonHoardAttrNoSpace;
+        CacheEventEntry         NonHoardDataHit;
+        CacheEventEntry         NonHoardDataMiss;
+        CacheEventEntry         NonHoardDataNoSpace;
+        CacheEventEntry         UnknownHoardAttrHit;
+        CacheEventEntry         UnknownHoardAttrMiss;
+        CacheEventEntry         UnknownHoardAttrNoSpace; 
+        CacheEventEntry         UnknownHoardDataHit;
+        CacheEventEntry         UnknownHoardDataMiss;
+        CacheEventEntry         UnknownHoardDataNoSpace;
+}	CacheStatistics;
+
+typedef RPC2_Struct
+{
+	RPC2_Integer	NotEnabled;                   /* Number of times advice not enabled */
+	RPC2_Integer	NotValid;          /* Number of times connection to admon not valid */
+	RPC2_Integer	Outstanding;	   /* Number of times advice outstanding prevents newconn */
+	RPC2_Integer	ASRnotAllowed;	   /* Number of times ASRnotAllowed() */
+	RPC2_Integer	ASRinterval;	   /* Number of times ASR interval not yet reached */
+	RPC2_Integer	VolumeNull;        /* Number of times we couldn't access the volent */
+	RPC2_Integer	TotalNumberAttempts;  /* Number of advice attempts (incl. failures) */
+}	AdviceStatistics;
+
+typedef RPC2_Struct
+{
+	RPC2_Integer success;
+	RPC2_Integer failures;
+} 	AdviceCalls; 
+
+typedef RPC2_Struct
+{
+	RPC2_Integer count;
+}	AdviceResults;  /* Stupid structure because RPC2 doesn't DO arrays of RPC2_Integers */
+
+typedef RPC2_Struct
+{
+	RPC2_Integer		Malloc;      /* Number of RVM allocations */
+	RPC2_Integer		Free;        /* Number of RVM deallocations */
+	RPC2_Integer		FreeBytes;   /* Total RVM bytes allocated */
+	RPC2_Integer		MallocBytes; /* Total RVM bytes deallocated */
+}	RvmStatistics;
+
+typedef RPC2_Struct	/* iot event information */
+{
+	RPC2_Integer	Tid;		/* transaction id */
+	RPC2_Unsigned	ResOpt;		/* resolution option */
+	RPC2_Unsigned	ElapsedTime;	/* elapsed time for transaction duration */
+	RPC2_Integer	ReadSetSize;	/* number of objects read */
+	RPC2_Integer	WriteSetSize;	/* number of objects written */
+	RPC2_Integer	ReadVolNum;	/* number volumes read */
+	RPC2_Integer	WriteVolNum;	/* number of volumes written */
+	RPC2_Unsigned	Validation;	/* validation result */
+	RPC2_Integer	InvalidSize;	/* number of objects invalidated */
+	RPC2_Integer	BackupObjNum;	/* number of objects backed up */
+	RPC2_Unsigned	LifeCycle;	/* the states sequence */
+	RPC2_Integer	PredNum;	/* the number of predecessors */
+	RPC2_Integer	SuccNum;	/* the number of successors */
+} IOT_INFO;
+
+typedef RPC2_Struct 	/* iot statistics */
+{	RPC2_Integer	MaxElapsedTime;	/* maximum elapsed time among iots */
+	RPC2_Integer	AvgElapsedTime;	/* average elapsed time among iots */
+	RPC2_Integer	MaxReadSetSize;	/* maximum readset size */
+	RPC2_Integer	AvgReadSetSize;	/* average readset size */
+	RPC2_Integer	MaxWriteSetSize;/* maximum writeset size */
+	RPC2_Integer	AvgWriteSetSize;/* average writeset size */
+	RPC2_Integer	MaxReadVolNum;	/* maximum read volume numner */
+	RPC2_Integer	AvgReadVolNum;	/* average read volume number */
+	RPC2_Integer	MaxWriteVolNum;	/* maximum write volume number */
+	RPC2_Integer	AvgWriteVolNum;	/* average write volume number */
+	RPC2_Integer	Committed;	/* number of committed iots */
+	RPC2_Integer	Pending;	/* number of pending iots */
+	RPC2_Integer	Resolved;	/* number of resolved iots */
+	RPC2_Integer	Repaired;	/* number of repaired iots */
+	RPC2_Integer	OCCRerun;	/* number of occ-rerun iots */
+} IOT_STAT;
+
+typedef RPC2_Struct	/* local subtree stats */
+{
+	RPC2_Integer	SubtreeNum;	/* number of subtrees */
+	RPC2_Integer	MaxSubtreeSize;	/* maximum number of nodes in the subtrees */
+	RPC2_Integer	AvgSubtreeSize;	/* average number of nodes in the subtrees */
+	RPC2_Integer	MaxSubtreeHgt;	/* maximum height of the subtrees */
+	RPC2_Integer	AvgSubtreeHgt;	/* average height of the subtrees */
+	RPC2_Integer	MaxMutationNum;	/* maximum local mutation number */
+	RPC2_Integer	AvgMutationNum;	/* average local mutation number */
+} LocalSubtreeStats;
+
+typedef RPC2_Struct	/* local-global-repair-session stats */
+{
+	RPC2_Integer	SessionNum;	/* number of repair sessions */
+	RPC2_Integer	CommitNum;	/* number of committed repair sessions */
+	RPC2_Integer	AbortNum;	/* number of aborted repair sessions */
+	RPC2_Integer	CheckNum;	/* number of times checklocal command is used */
+	RPC2_Integer	PreserveNum;	/* number of times preservelocal is used */
+	RPC2_Integer	DiscardNum;	/* number of times discardlocal is used */
+	RPC2_Integer	RemoveNum;	/* number of times removealllocal is used */
+	RPC2_Integer	GlobalViewNum;	/* number of times setglobalview is used */
+	RPC2_Integer	LocalViewNum;	/* number of times setglocalview is used */
+	RPC2_Integer	KeepLocalNum;	/* number of times keeplocal is used */
+	RPC2_Integer	ListLocalNum;	/* number of times keeplocal is used */
+	RPC2_Integer	NewCommand1Num;	/* reserved for future use */
+	RPC2_Integer	NewCommand2Num;	/* reserved for future use */
+	RPC2_Integer	NewCommand3Num;	/* reserved for future use */
+	RPC2_Integer	NewCommand4Num;	/* reserved for future use */
+	RPC2_Integer	NewCommand5Num;	/* reserved for future use */
+	RPC2_Integer	NewCommand6Num;	/* reserved for future use */
+	RPC2_Integer	NewCommand7Num;	/* reserved for future use */
+	RPC2_Integer	NewCommand8Num;	/* reserved for future use */
+	RPC2_Integer	RepMutationNum;	/* number of mutations performed for repair */
+	RPC2_Integer	MissTargetNum;	/* miss-target-conflict number */
+	RPC2_Integer	MissParentNum;	/* miss-parent-conflict number */
+	RPC2_Integer	AclDenyNum;	/* denied-acl-conflict number */
+	RPC2_Integer	UpdateUpdateNum;/* update-update-conflict number */
+	RPC2_Integer	NameNameNum;	/* name-name-conflict number */
+	RPC2_Integer	RemoveUpdateNum;/* remove-update-conflict number */
+} RepairSessionStats;
+
+typedef RPC2_Struct
+{
+	RPC2_Unsigned	Acquires;		/* acquire events */
+	RPC2_Unsigned	AcquireObjs;		/* objects in volume, sum over acquire events */
+	RPC2_Unsigned	AcquireChecked;		/* objects checked on acquires */
+	RPC2_Unsigned	AcquireFailed;		/* objects failing check */
+	RPC2_Unsigned	AcquireNoObjFails;	/* acquires with no objects failing */
+	RPC2_Unsigned	Validates;		/* successful volume validations */
+	RPC2_Unsigned	ValidateObjs;		/* objects in volume, over validations */
+	RPC2_Unsigned	FailedValidates;	/* failed volume validations */
+	RPC2_Unsigned	FailedValidateObjs;	/* objects in volume, over failed validations */
+	RPC2_Unsigned	Breaks;			/* volume callbacks broken */
+	RPC2_Unsigned 	BreakObjs;		/* objects in volume, over breaks */
+	RPC2_Unsigned	BreakVolOnly;		/* breaks on volume only (not through object) */
+	RPC2_Unsigned	BreakRefs;		/* hits due to volume callback */
+	RPC2_Unsigned 	Clears;			/* volume callbacks cleared */
+	RPC2_Unsigned	ClearObjs;		/* objects in volume, over clears */
+	RPC2_Unsigned	ClearRefs;		/* hits due to volume callback */
+	RPC2_Unsigned	NoStamp;		/* missed opportunities for volume validation */
+	RPC2_Unsigned	NoStampObjs;		/* objects in volume, over no stamp events */
+}	VCBStatistics;	
+
+typedef	RPC2_Enum
+{
+	ServerDown	= 0,   /* the server went down in this comm event */
+	ServerUp	= 1    /* the server went up in this comm event */
+}	VmonCommEventType;
+
+typedef RPC2_Enum              /* used internally as an enum */
+{
+	VmonSession	= 0,    
+	VmonCommEvent	= 1,
+	VmonOverflow	= 2
+}	VmonRecordType;
+
+typedef RPC2_Struct
+{
+    RPC2_Unsigned      Opcode;         /* defined in cfs_opstats.h */
+    RPC2_Unsigned      Entries;        /* number of times the kernel saw this call */
+    RPC2_Unsigned      SatIntrn;       /* # the kernel satisfied internally */
+    RPC2_Unsigned      UnsatIntrn;     /* # the kernel returned failure on */
+    RPC2_Unsigned      GenIntrn;       /* # the kernel generated spontaneously */
+}   VmonMiniCacheStat;
+
+
+typedef RPC2_Struct
+{
+	RPC2_Unsigned	IPAddress;  /* IP Address of server's host */
+	RPC2_Unsigned	BirthTime;  /* Time (appx) that server was started */
+}	SmonViceId;
+
+typedef RPC2_Struct
+{
+	RPC2_Integer	SystemCPU;  /* System CPU seconds since server started */
+	RPC2_Integer	UserCPU;    /* User CPU seconds since server started */
+	RPC2_Integer	IdleCPU;    /* Idle CPU seconds since server started */
+	RPC2_Unsigned	BootTime;   /* Time this machine was last booted */
+	RPC2_Integer	TotalIO;    /* Total (bytes?) of IO */
+}	SmonStatistics;
+
+typedef RPC2_Struct   /* this structure will be superceded soon, and isn't used now */
+{
+	RPC2_Integer	alloccount;   
+	RPC2_Integer	dealloccount;
+}	ResOpEntry;
+
+typedef RPC2_Struct   /* File resolve statistics */
+{
+    RPC2_Integer     Resolves;        /* total number of file resolve attempts */
+    RPC2_Integer     NumSucc;         /* number of successful file resolves    */
+    RPC2_Integer     NumConf;         /* number of file conflicts */
+    RPC2_Integer     RuntForce;       /* resolves that forced a runt */
+    RPC2_Integer     WeakEq;          /* resolves due to weak equality */
+    RPC2_Integer     NumReg;          /* number of regular resolves */
+    RPC2_Integer     UsrResolver;     /* file resolves that invoked a user installed resolver */
+    RPC2_Integer     SuccUsrResolver; /* Number of those that succeeded */
+    RPC2_Integer     PartialVSG;      /* number of resovles with only a partial VSG */
+}   FileResStats;
+
+typedef RPC2_Struct   /* Directory resolve statistics */
+{
+    RPC2_Integer    Resolves;   /* Number of directory resolve attempts */
+    RPC2_Integer    NumSucc;    /* Number of successful resolves */
+    RPC2_Integer    NumConf;    /* Number of conflicts */
+    RPC2_Integer    NumNoWork;  /* Trivial resolves */
+    RPC2_Integer    Problems;   /* Number of resolves with lock problems, unequal ancestors, etc. */
+    RPC2_Integer    PartialVSG; /* number of resovles with only a partial VSG */
+} DirResStats;
+
+typedef RPC2_Struct /* generic histogram bucket */
+{
+    RPC2_Integer   bucket;
+} HistoElem;
+
+typedef RPC2_Struct  /* distribution of conflicts by type */
+{
+    RPC2_Integer   NameName;    
+    RPC2_Integer   RemoveUpdate;
+    RPC2_Integer   UpdateUpdate;
+    RPC2_Integer   Rename;
+    RPC2_Integer   LogWrap;
+    RPC2_Integer   Other;
+} ResConflictStats;
+
+typedef RPC2_Struct  /* Various resolution log statistics */
+{
+    RPC2_Integer   NumWraps;      /* number of wraparounds */
+    RPC2_Integer   NumAdmGrows;   /* number of times admin limit changes */
+    RPC2_Integer   NumVAllocs;    /* number of variable-length-part allocs */
+    RPC2_Integer   NumVFrees;     /* number of variable-length-part frees */
+    RPC2_Integer   Highest;       /* Highwater since birth */
+                                  /* Don't need to keep high or currentsize */
+} ResLogStats;
+
+typedef RPC2_Struct  /* used because arrays can only be arrays of structs. */
+{
+        RPC2_Integer    spare;
+}	SpareEntry;
+
+/*
+** Establish Connections
+**
+** The data collector has a high level protocol to prevent clients and
+** servers with incompatible reporting semantics/implementations from talking to
+** one another.  A client should send the version number defined in this file,
+** along with it's type.
+*/
+/* THIS CALL *CANNOT* CHANGE POSITION IN THIS FILE! IT MUST
+   BE THE 1st RPC.  I know, it's braindamaged.  Backward
+   compatibility sucks...
+ */
+
+MondEstablishConn(IN RPC2_Unsigned Version,     /* Version number of client */
+		  IN RPC2_Integer ClientType,   /* Venus or Server */
+		  IN SpareEntry Expansion[]);   /* spare */
+
+/*
+** ReportSession
+**
+** A session is defined as a unit of time for each venus/user/volume tuple
+** in which the AVSG does not change.  In other words, a session the period
+** of time between comm events for a given venus/volume/user tuple.
+**
+** Sessions are reported once every so often in anticipation of a venus crash.
+** If the AVSG of a venus/volume/user tuple doesn't change, then only the last
+** such record need be kept, the previous ones can be thrown out.  The Session
+** field is a serial number denoting changes in the AVSG.
+*/
+
+VmonReportSession	(IN VmonVenusId Venus,           /* unique venus id */
+			 IN VmonSessionId Session,       /* strictly increasing id per venus/volume/user */
+			 IN VolumeId Volume,             /* volume id of this session */
+			 IN UserId User,                 /* user id of this session */
+			 IN VmonAVSG AVSG,               /* this sessions' AVSG */
+			 IN RPC2_Unsigned StartTime,     /* time of first operation of this session */
+			 IN RPC2_Unsigned EndTime,       /* time of last operation/comm event of this session */
+			 IN RPC2_Unsigned CETime,        /* time of the comm event forcing the end of */
+			                                 /* this session.  0==no such event */
+			 IN VmonSessionEvent Event[],    /* the aggregate vfsops so far for this session */
+			 IN SessionStatistics Stats,     /* the aggregate session stats */
+			 IN CacheStatistics CacheStats); /* the cache stats for this session */
+
+/*
+** ReportComm
+**
+** A comm event is generated every time a venus senses change in the status of a server.
+** It also guarantees that any active sessions affected by this comm event will be flushed,
+** and that the end time of those sessions will match the timestamp of the comm event
+*/
+
+VmonReportCommEvent	(IN VmonVenusId Venus,             /* Unique venus id */
+			 IN RPC2_Unsigned ServerIPAddress, /* IP Address of server generating this event */
+			 IN RPC2_Integer SerialNumber,     /* bouncing servers can have the otherwise identical */
+                                                           /* timestamps - SN ensures they are recognized as */
+                                                           /* distinct events */
+			 IN RPC2_Unsigned Time,            /* Time of event */
+			 IN VmonCommEventType Type);       /* Up or Down event */
+
+/*
+** ReportCall
+**
+** This information is collected by the client-side stub logging
+** generated by rp2gen. 
+** It is collected from the birth of this client, and only the latest
+** record sent 
+** by any particular venus need be kept.  It is not event driven.  
+**
+** Because of the 
+*/
+
+VmonReportCallEvent	(IN VmonVenusId Venus,          
+			 IN RPC2_Integer Time,          /* Time event was reported - used to order reports */
+			 IN CallCountEntry SrvCount[]); /* Single-host calls to vice subsystem */
+                         
+
+VmonReportMCallEvent    (IN VmonVenusId Venus,           /* Unique venus id */
+                         IN RPC2_Integer Time,           /* Time event was reported - used to order reports */
+			 IN MultiCallEntry MSrvCount[]); /* Multicasts calls to vice subsystem */
+
+
+/* ReportRVMStats
+** 
+** Miscellaneous rvm info
+**
+*/
+
+VmonReportRVMStats      (IN VmonVenusId Venus,          /* Unique venus id */
+                         IN RPC2_Integer Time,          /* Time event was reported - used to order reports */
+			 IN RvmStatistics Stats);       /* RVM usage so far */
+
+/* ReportAdviceStats 
+**
+** Miscellaneous advice monitor info
+**
+*/
+
+VmonReportAdviceStats	(IN VmonVenusId Venus,		   /* Unique venus id */
+			 IN RPC2_Integer Time,		   /* timestamp */
+			 IN UserId User,                   /* user id for this data*/
+			 IN AdviceStatistics Stats,        /* Advice information */
+			 IN AdviceCalls CallStats[],	   /* SUCCESS/FAILURE by call type */
+			 IN AdviceResults ResultStats[]);  /* Count of results of calls */
+
+/*
+** ReportMiniCache
+**
+** This reports the statistics gathered by the MiniCache at the vfsop
+** and vnodeop level.
+*/
+
+VmonReportMiniCache    (IN VmonVenusId Venus,               /* venus making this call */
+                        IN RPC2_Integer Time,               /* timestamp */
+			IN VmonMiniCacheStat VnodeOps[],    /* vnode operations */
+			IN VmonMiniCacheStat VfsOps[]);     /* vfs operations */
+
+/*
+** Overflow events track data lost.  In the event the venus cannot send data
+** to the collector, it saves it up to a fixed amount of VM and RVM it can commit
+** to carrying the information, after that info is dropped.
+*/
+
+VmonReportOverflow	(IN VmonVenusId Venus,          /* Unique venus id */
+			 IN RPC2_Unsigned VMStartTime,  /* Time VM records began to be dropped */
+			 IN RPC2_Unsigned VMEndTime,    /* Time connection was reestablished */
+			 IN RPC2_Integer VMCount,       /* Number of dropped VM records */
+			 IN RPC2_Unsigned RVMStartTime, /* Time RVM records (session events) began to be dropped */
+			 IN RPC2_Unsigned RVMEndTime,   /* Time connection was reestablished */
+			 IN RPC2_Integer RVMCount);     /* Number of dropped RVM records */
+
+/* 
+** SmonNoop(): where establish conn used to be...
+** This needs to be there, since outdated clients would otherwise
+** crash the data collector.
+*/
+
+SmonNoop();
+
+/*
+** ReportCall
+**
+** This information is collected by the client-side stub logging generated by rp2gen.
+** It is collected from the birth of this server, and only the latest record sent
+** by any particular server need be kept.  It is not event driven.
+*/
+
+SmonReportCallEvent(IN SmonViceId Vice,             /* Unique server id */
+		    IN RPC2_Unsigned Time,          /* Timestamp -used to order records */
+		    IN CallCountEntry CBCount[],    /* Call back subsystem */
+		    IN CallCountEntry ResCount[],   /* Resolution subsystem */
+		    IN CallCountEntry SmonCount[],  /* Smon subsystem */
+		    IN CallCountEntry VolDCount[],  /* VolDump subsystem */
+		    IN MultiCallEntry MultiCount[], /* Multicast (resolution) */
+		    IN SmonStatistics Stats);       /* Generic server info */
+
+/*
+** ReportRes
+** 
+** Currently lobotomized - unused
+*/
+
+SmonReportResEvent(IN SmonViceId Vice, IN RPC2_Unsigned Time,
+		IN VolumeId Volid,
+		IN RPC2_Integer HighWaterMark,
+		IN RPC2_Integer AllocNumber,
+		IN RPC2_Integer DeallocNumber,
+		IN ResOpEntry ResOp[]);
+
+
+/*
+** ReportOverflow
+**
+** This serves the same purpose as the venus overflow, except that no records
+** are kept in rvm (servers don't operate disconnected...)
+*/
+
+SmonReportOverflow(IN SmonViceId Vice,         /* Unique Server identifier */
+		   IN RPC2_Unsigned Time,      /* Timestamp */
+		   IN RPC2_Unsigned StartTime, /* Time first record was dropped */
+		   IN RPC2_Unsigned EndTime,   /* Time connection reestablished */
+		   IN RPC2_Integer Count);     /* Number of records dropped */
+
+SmonReportRVMResStats (IN SmonViceId Vice,            /* Unique server id */
+                       IN RPC2_Unsigned Time,         /* Timestamp */
+                       IN RPC2_Integer VolID,         /* Volume id */
+		       IN FileResStats FileRes,       /* File resolutions for this volume/server */
+                       IN DirResStats DirRes,         /* Directory resoltions for this volume/server */
+		       IN HistoElem LogSizeHisto[],   /* Histogram for size of logs shipped */
+		       IN HistoElem LogMaxHisto[],    /* Histogram for max entries of logs */
+		       IN ResConflictStats Conflicts, /* Conflicts for this volume */
+		       IN HistoElem SuccHierHist[],   /* Depth of successful resolutions */
+		       IN HistoElem FailHierHist[],   /* Depth of failures due to log wrap */
+		       IN ResLogStats ResLog,         /* Resolution stats for this volume */
+		       IN HistoElem VarLogHisto[],    /* Distribution of variable log entry sizes ??? */
+		       IN HistoElem LogSize[]);       /* Distribution of log sizes */
+
+
+/* 
+** Report IOT Event
+** Each call reports information about only one transaction
+*/
+VmonReportIotInfo      	(IN VmonVenusId Venus,  	/* Unique venus id */
+			 IN IOT_INFO Info,		/* Fixed IOT Info */
+			 IN RPC2_Integer AppNameLenth,	/* Variable AppName length */
+			 IN RPC2_String AppName);
+
+/*
+** Report IOT Statistics
+*/
+VmonReportIotStats	(IN VmonVenusId Venus,		/* Unique venus id */
+			 IN RPC2_Integer Time,		/* timestamp */
+			 IN IOT_STAT Stats);		/* IOT Stats */
+
+/*
+** Report Local Subtree Stats
+*/
+VmonReportSubtreeStats	(IN VmonVenusId Venus,		/* Unique venus id */
+			 IN RPC2_Integer Time,		/* timestamp */
+			 IN LocalSubtreeStats Stats);	/* Subtree Stats */
+
+/*
+** Report Local-Global Repair Session Stats
+*/
+VmonReportRepairStats	(IN VmonVenusId Venus,		/* Unique venus id */
+			 IN RPC2_Integer Time,		/* timestamp */
+			 IN RepairSessionStats Stats);	/* Repair Session Stats */
+
+typedef RPC2_Struct	/* disconnected read-write sharing stats */
+{
+	RPC2_Integer	Vid;		/* id of the volume */
+	RPC2_Integer	RwSharingCount;	/* number of read/write sharing detected */
+	RPC2_Integer	DiscReadCount;	/* number of disconnected read */
+	RPC2_Integer	DiscDuration;	/* number of seconds during disconnection */
+} ReadWriteSharingStats;
+
+
+/*
+** Report stats about disconnected read/write sharing 
+*/
+VmonReportRwsStats	(IN VmonVenusId Venus,		/* Unique venus id */
+			 IN RPC2_Integer Time,		/* timestamp */
+			 IN ReadWriteSharingStats Stats);/* Read/Write Sharing Stats */
+
+/* ReportVCBStats
+**
+** Volume Callback statistics
+**
+*/
+
+VmonReportVCBStats	(IN VmonVenusId Venus,		/* Unique Venus ID */
+			 IN RPC2_Integer VenusInit,	/* Time of last Venus initialization */
+			 IN RPC2_Integer Time,		/* Time event was reported - used to order reports */
+			 IN VolumeId Volume,		/* Volume ID */
+			 IN VCBStatistics Stats);	/* Cumulative statistics since VenusInit */

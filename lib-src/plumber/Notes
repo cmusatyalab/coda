@@ -1,0 +1,11 @@
+andrewos.h is in /afs/andrew/itc/src/base/itc-config/config/andrewos.h
+	includes system.h (that's about it), which contains machine
+	specific stuff, like in 
+        /afs/andrew/itc/src/base/itc-config/config/sun4_40/system.h
+
+The Imakefile is junk.  Makefile is a link to Makefile.coda, which
+	has the advantage that /usr/cs/bin/make doesn't spit at it.
+
+Added an #ifndef __STDC__ to the defintions of {m,re,c}alloc in 
+        malloc.h; ANSI code that includes <stdlib.h> are distinctly
+        upset by seeing them defined to return both char * and void *

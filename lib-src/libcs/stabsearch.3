@@ -1,0 +1,141 @@
+.\" COPYRIGHT NOTICE
+.\" Copyright (c) 1994 Carnegie Mellon University
+.\" All Rights Reserved.
+.\" 
+.\" See <cmu_copyright.h> for use and distribution information.
+.\" 
+.\" 
+.\" HISTORY
+.\" $Log:	stabsearch.3,v $
+Revision 1.1  96/06/03  19:01:22  satya
+Initial revision
+
+.\" Revision 1.2  1995/10/18  14:59:19  moore
+.\" 	Created libcs man(3) pages from mach entries
+.\" 	[1995/10/18  14:56:10  moore]
+.\"
+.\" $EndLog$
+.\" Copyright (c) 1990 Carnegie Mellon University
+.\" All Rights Reserved.
+.\" 
+.\" Permission to use, copy, modify and distribute this software and its
+.\" documentation is hereby granted, provided that both the copyright
+.\" notice and this permission notice appear in all copies of the
+.\" software, derivative works or modified versions, and any portions
+.\" thereof, and that both notices appear in supporting documentation.
+.\"
+.\" THE SOFTWARE IS PROVIDED "AS IS" AND CARNEGIE MELLON UNIVERSITY
+.\" DISCLAIMS ALL WARRANTIES WITH REGARD TO THIS SOFTWARE, INCLUDING ALL
+.\" IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS.  IN NO EVENT
+.\" SHALL CARNEGIE MELLON UNIVERSITY BE LIABLE FOR ANY SPECIAL, DIRECT,
+.\" INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER
+.\" RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF
+.\" CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN
+.\" CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+.\"
+.\" Users of this software agree to return to Carnegie Mellon any
+.\" improvements or extensions that they make and grant Carnegie the
+.\" rights to redistribute these changes.
+.\"
+.\" Export of this software is permitted only after complying with the
+.\" regulations of the U.S. Deptartment of Commerce relating to the
+.\" Export of Technical Data.
+.\"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+.\" HISTORY
+.\" $Log:	stabsearch.3,v $
+Revision 1.1  96/06/03  19:01:22  satya
+Initial revision
+
+.\" Revision 1.2  1995/10/18  14:59:19  moore
+.\" 	Created libcs man(3) pages from mach entries
+.\" 	[1995/10/18  14:56:10  moore]
+.\"
+.\" Revision 1.1.1.2  1995/10/18  14:56:10  moore
+.\" 	Created libcs man(3) pages from mach entries
+.\"
+.\" Revision 1.2  90/12/12  15:58:30  mja
+.\" 	Add copyright/disclaimer for distribution.
+.\" 
+.\" 13-Nov-86  Andi Swimmer (andi) at Carnegie-Mellon University
+.\" 	Revised for 4.3.
+.\" 
+.\" 11-Nov-83  Steven Shafer (sas) at Carnegie-Mellon University
+.\" 	Stabsearch now detects an exact match with a string, even if it is
+.\" 	a substring of some other table entries, and returns without asking
+.\" 	you to select one of the matching strings.
+.\" 	Changes made by Leonard Hamey.
+.\" 
+.\" 27-Jan-81  Steven Shafer (sas) at Carnegie-Mellon University
+.\" 	Added better handling of long string tables.
+.\" 
+.\" 15-Mar-80  Steven Shafer (sas) at Carnegie-Mellon University
+.\" 	Stabsearch now detects a unique match with the initial characters
+.\" 	of a table entry, and returns the index without asking "Did you
+.\" 	mean X?"
+.\" 
+.\" 05-Dec-79  Steven Shafer (sas) at Carnegie-Mellon University
+.\" 	Based on Dave McKeown's string matching routines.
+.\" 
+.TH STABSEARCH 3 11/11/83
+.CM 3
+.SH "NAME"
+stabsearch \- best-match string table lookup
+.SH "SYNOPSIS"
+.B
+int stabsearch (string,table,quiet);
+.br
+.B
+char *string,**table;
+.br
+.B
+int quiet;
+.SH "DESCRIPTION"
+.I
+Stabsearch
+searches in the string table
+.IR table ,
+looking for a string which best matches
+.IR string .
+If exactly one such string is found, then the index
+of that string is returned.
+If no such strings are found,
+then \-1 is returned.
+.sp
+If
+.I
+quiet
+is false and several strings match reasonably, the user is given
+the option to approve or disapprove of the choice of matching
+strings.  If he disapproves, then the few best matches are listed
+and \-1 is returned.
+.sp
+If several strings match, then \-2 will be returned.
+Before
+returning, if
+.I
+quiet
+is 0, then the user will be asked if he wants a list
+of matching strings; if he says "yes", then a list is printed.
+.sp
+The string table may be declared like this:
+.sp
+.nf
+.RS
+char *stable[] = {
+	"first string",
+	"second string",
+	...
+	"n-th string",
+	0};
+.RE
+.fi
+.sp
+Note that the last entry of the table must be a zero.
+.SH "LIBRARY NOTES"
+You must link against /usr/local/lib/libcs.a to define this routine.
+.SH "SEE ALSO"
+.IR stablk (3), 
+.IR srchscore (3)
+.SH "DIAGNOSTICS"
+If nothing matches at all, or if the user does not approve
+the choice of the best matching string, \-1 is returned.

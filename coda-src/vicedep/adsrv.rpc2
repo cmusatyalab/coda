@@ -1,0 +1,120 @@
+%{#ifndef _BLURB_
+#define _BLURB_
+/*
+
+            Coda: an Experimental Distributed File System
+                             Release 4.0
+
+          Copyright (c) 1987-1996 Carnegie Mellon University
+                         All Rights Reserved
+
+Permission  to  use, copy, modify and distribute this software and its
+documentation is hereby granted,  provided  that  both  the  copyright
+notice  and  this  permission  notice  appear  in  all  copies  of the
+software, derivative works or  modified  versions,  and  any  portions
+thereof, and that both notices appear in supporting documentation, and
+that credit is given to Carnegie Mellon University  in  all  documents
+and publicity pertaining to direct or indirect use of this code or its
+derivatives.
+
+CODA IS AN EXPERIMENTAL SOFTWARE SYSTEM AND IS  KNOWN  TO  HAVE  BUGS,
+SOME  OF  WHICH MAY HAVE SERIOUS CONSEQUENCES.  CARNEGIE MELLON ALLOWS
+FREE USE OF THIS SOFTWARE IN ITS "AS IS" CONDITION.   CARNEGIE  MELLON
+DISCLAIMS  ANY  LIABILITY  OF  ANY  KIND  FOR  ANY  DAMAGES WHATSOEVER
+RESULTING DIRECTLY OR INDIRECTLY FROM THE USE OF THIS SOFTWARE  OR  OF
+ANY DERIVATIVE WORK.
+
+Carnegie  Mellon  encourages  users  of  this  software  to return any
+improvements or extensions that  they  make,  and  to  grant  Carnegie
+Mellon the rights to redistribute these changes without encumbrance.
+*/
+
+static char *rcsid = "$Header: blurb.doc,v 1.1 96/11/22 13:29:31 raiff Exp $";
+#endif /*_BLURB_*/%}
+
+
+
+
+/*
+ * adsrv.rpc2
+ * Defines the Advice Server subsystem interface of Venus.
+ *
+ * Created by Maria Ebling, May 1993
+ */
+
+Subsystem "AdSrv";
+
+#define ADSRVSUBSYSID 300
+
+#define ADSRVPORTAL 1363
+
+
+/* IMPORTANT!  Change this anytime this file is changed! */
+#define ADSRV_VERSION 2
+
+/*
+ * NewAdviceService
+ *
+ * Advice Servers use this call to inform Venus of
+ * their existance.
+ */
+NewAdviceService	(IN RPC2_String HostName,
+			 IN RPC2_Integer UserID,
+			 IN RPC2_Integer Port,
+			 IN RPC2_Integer PGrpID,
+			 IN RPC2_Integer AdSrvVersion,
+			 IN RPC2_Integer AdMonVersion,
+			 OUT RPC2_Integer VenusMajorVersionNum,
+			 OUT RPC2_Integer VenusMinorVersionNum);
+
+/*
+ * ConnectionAlive
+ *
+ * Advice Servers use this call to make sure that the connection
+ * to Venus is alive.
+ */
+ConnectionAlive(IN RPC2_Integer UserID);
+
+/*
+ * SolicitHoardWalkAdvice
+ *
+ * Advice Servers use this call to request that Venus request
+ * advice during hoard walks.  This call causes Venus to use
+ * the HoardWalkAdvice call in admon.rpc2 during subsequent
+ * hoard walks (until a call to UnsolicitHoardWalkAdvice is
+ * made by the advice server).
+ */
+SolicitHoardWalkAdvice(IN RPC2_Integer UserID);
+
+/*
+ * UnsolicitHoardWalkAdvice
+ *
+ * Advice Servers use this call to request that Venus no longer
+ * request advice during hoard walks. 
+ */
+UnsolicitHoardWalkAdvice(IN RPC2_Integer UserID);
+
+
+BeginStoplightMonitor(IN RPC2_Integer UserID);
+EndStoplightMonitor(IN RPC2_Integer UserID);
+
+
+/*
+ * ResultOfASR
+ *
+ * Advice Servers use this call to return the result
+ * of an ASR Invokation.
+ */
+ResultOfASR		(IN RPC2_Integer ASRid,
+			 IN RPC2_Integer result);
+
+/*
+ * ImminentDeath
+ *
+ * Advice Servers use this call to inform Venus of
+ * their imminent death (when they are being good
+ * citizens).
+ */
+ImminentDeath		(IN RPC2_String HostName,
+			 IN RPC2_Integer UserID,
+			 IN RPC2_Integer Port);

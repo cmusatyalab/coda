@@ -1,0 +1,149 @@
+.\" COPYRIGHT NOTICE
+.\" Copyright (c) 1994 Carnegie Mellon University
+.\" All Rights Reserved.
+.\" 
+.\" See <cmu_copyright.h> for use and distribution information.
+.\" 
+.\" 
+.\" HISTORY
+.\" $Log:	getint.3,v $
+Revision 1.1  96/06/03  19:00:32  satya
+Initial revision
+
+.\" Revision 1.2  1995/10/18  14:58:23  moore
+.\" 	Created libcs man(3) pages from mach entries
+.\" 	[1995/10/18  14:54:12  moore]
+.\"
+.\" $EndLog$
+.\" Copyright (c) 1990 Carnegie Mellon University
+.\" All Rights Reserved.
+.\" 
+.\" Permission to use, copy, modify and distribute this software and its
+.\" documentation is hereby granted, provided that both the copyright
+.\" notice and this permission notice appear in all copies of the
+.\" software, derivative works or modified versions, and any portions
+.\" thereof, and that both notices appear in supporting documentation.
+.\"
+.\" THE SOFTWARE IS PROVIDED "AS IS" AND CARNEGIE MELLON UNIVERSITY
+.\" DISCLAIMS ALL WARRANTIES WITH REGARD TO THIS SOFTWARE, INCLUDING ALL
+.\" IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS.  IN NO EVENT
+.\" SHALL CARNEGIE MELLON UNIVERSITY BE LIABLE FOR ANY SPECIAL, DIRECT,
+.\" INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER
+.\" RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF
+.\" CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN
+.\" CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+.\"
+.\" Users of this software agree to return to Carnegie Mellon any
+.\" improvements or extensions that they make and grant Carnegie the
+.\" rights to redistribute these changes.
+.\"
+.\" Export of this software is permitted only after complying with the
+.\" regulations of the U.S. Deptartment of Commerce relating to the
+.\" Export of Technical Data.
+.\"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+.\" HISTORY
+.\" $Log:	getint.3,v $
+Revision 1.1  96/06/03  19:00:32  satya
+Initial revision
+
+.\" Revision 1.2  1995/10/18  14:58:23  moore
+.\" 	Created libcs man(3) pages from mach entries
+.\" 	[1995/10/18  14:54:12  moore]
+.\"
+.\" Revision 1.1.1.2  1995/10/18  14:54:12  moore
+.\" 	Created libcs man(3) pages from mach entries
+.\"
+.\" Revision 1.2  90/12/12  15:51:17  mja
+.\" 	Add copyright/disclaimer for distribution.
+.\" 
+.\" 13-Nov-86  Andi Swimmer (andi) at Carnegie-Mellon University
+.\" 	Revised for 4.3.
+.\" 
+.\" 23-Oct-82  Steven Shafer (sas) at Carnegie-Mellon University
+.\" 	Error or EOF on standard input now causes default value to be used.
+.\" 
+.\" 05-Dec-79  Steven Shafer (sas) at Carnegie-Mellon University
+.\" 	Created.
+.\" 
+.TH GETINT 3 10/23/82
+.CM 3
+.SH "NAME"
+getint, getlong, getshort \- ask user to type an integer value
+.SH "SYNOPSIS"
+.B
+#include <stdio.h>
+.br
+.B
+#include <ctype.h>
+.sp
+.nf
+.B
+int getint (prompt,min,max,defalt);
+.B
+char *prompt;
+.B
+int min,max,defalt;
+.sp
+.B
+long getlong (prompt,min,max,defalt);
+.B
+char *prompt;
+.B
+long min,max,defalt;
+.sp
+.B
+short getshort (prompt,min,max,defalt);
+.B
+char *prompt;
+.B
+short min,max,defalt;
+.fi
+.SH "DESCRIPTION"
+.I
+Getint,
+.I
+getlong,
+and
+.I
+getshort
+ask the user to type in an integer.
+.sp
+They begin by printing the string
+.I
+prompt
+as a message to the user.
+The user then types in a number.
+If the number is valid and is within the range
+.I
+min
+to
+.I
+max,
+then it is returned as the value of
+.IR "getint (getlong, getshort)" .
+If it is invalid or is out of range, then an error message
+is printed and the prompt-and-response cycle is repeated.
+If the user types just a carriage return, then the value
+.I
+defalt
+is assumed.
+.sp
+.I
+Getint, getlong,
+and
+.I
+getshort
+are identical, except for the type of the parameters and the results.
+.SH "LIBRARY NOTES"
+You must link against /usr/local/lib/libcs.a to define this rotine.
+.SH "SEE ALSO"
+.IR getbool (3), 
+.IR getstr (3), 
+.IR gethex (3), 
+.IR getstab (3), 
+.IR getdouble (3), 
+etc.
+.br
+.IR intarg (3), 
+.IR longarg (3), 
+.IR shortarg (3)

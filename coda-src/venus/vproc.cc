@@ -1,0 +1,873 @@
+#ifndef _BLURB_
+#define _BLURB_
+/*
+
+            Coda: an Experimental Distributed File System
+                             Release 4.0
+
+          Copyright (c) 1987-1996 Carnegie Mellon University
+                         All Rights Reserved
+
+Permission  to  use, copy, modify and distribute this software and its
+documentation is hereby granted,  provided  that  both  the  copyright
+notice  and  this  permission  notice  appear  in  all  copies  of the
+software, derivative works or  modified  versions,  and  any  portions
+thereof, and that both notices appear in supporting documentation, and
+that credit is given to Carnegie Mellon University  in  all  documents
+and publicity pertaining to direct or indirect use of this code or its
+derivatives.
+
+CODA IS AN EXPERIMENTAL SOFTWARE SYSTEM AND IS  KNOWN  TO  HAVE  BUGS,
+SOME  OF  WHICH MAY HAVE SERIOUS CONSEQUENCES.  CARNEGIE MELLON ALLOWS
+FREE USE OF THIS SOFTWARE IN ITS "AS IS" CONDITION.   CARNEGIE  MELLON
+DISCLAIMS  ANY  LIABILITY  OF  ANY  KIND  FOR  ANY  DAMAGES WHATSOEVER
+RESULTING DIRECTLY OR INDIRECTLY FROM THE USE OF THIS SOFTWARE  OR  OF
+ANY DERIVATIVE WORK.
+
+Carnegie  Mellon  encourages  users  of  this  software  to return any
+improvements or extensions that  they  make,  and  to  grant  Carnegie
+Mellon the rights to redistribute these changes without encumbrance.
+*/
+
+static char *rcsid = "$Header: blurb.doc,v 1.1 96/11/22 13:29:31 raiff Exp $";
+#endif /*_BLURB_*/
+
+
+
+
+
+
+
+/*
+ *
+ * Implementation of the Venus process abstraction
+ *
+ */
+
+#ifdef __cplusplus
+extern "C" {
+#endif __cplusplus
+
+#include <stdio.h>
+#include <sys/types.h>
+#include <sys/time.h>
+#include <string.h>
+
+#ifdef __MACH__
+#include <sysent.h>
+#include <libc.h>
+#endif __MACH__
+#ifdef __NetBSD__
+#include <unistd.h>
+#include <stdlib.h>
+#endif __NetBSD__
+
+#include <math.h>
+#include <lwp.h>
+#include <lock.h>
+
+#ifdef __cplusplus
+}
+#endif __cplusplus
+
+/* interfaces */
+#include <vice.h>
+
+/* from venus */
+#include "local.h"
+#include "user.h"
+#include "venus.private.h"
+#include "venusrecov.h"
+#include "venusvol.h"
+#include "vproc.h"
+#include "worker.h"
+
+
+olist vproc::tbl;
+int vproc::counter;
+char vproc::rtry_sync;
+
+/* These used to be inside #ifdef VENUSDEBUG, but port to NetBSD
+   causes the MAKE_VNODE() & DISCARD_VNODE() macros to become too 
+   convoluted (Satya, 8/14/96) */
+int vnode_allocs = 0;
+int vnode_deallocs = 0;
+
+
+PRIVATE const int VPROC_ROCK_TAG = 1776;
+
+
+void VprocInit() {
+    vproc::counter = 0;
+
+    /* 
+     * Create main process.
+     * This call initializes LWP and IOMGR support. 
+     * That's why it doesn't pass in a function.
+     */
+    Main = new vproc("Main", (PROCBODY)0, VPT_Main);
+
+    VprocSetRetry();
+}
+
+
+void Rtry_Wait() {
+    LOG(0, ("WAITING(RTRYQ):\n"));
+    START_TIMING();
+    VprocWait(&vproc::rtry_sync);
+    END_TIMING();
+    LOG(0, ("WAIT OVER, elapsed = %3.1f\n", elapsed));
+}
+
+
+void Rtry_Signal() {
+    VprocSignal(&vproc::rtry_sync);
+}
+
+
+vproc *FindVproc(int vpid) {
+    vproc_iterator next;
+    vproc *vp;
+    while (vp = next())
+	if (vp->vpid == vpid) return(vp);
+
+    return(0);
+}
+
+
+/* This code gets control when the new vproc starts running. */
+/* It's job is to initialize state which needs to be set in the context of the new vproc. */
+/* Certain things can't be done in the vproc::ctor because that may be executed in a different context! */
+void VprocPreamble(struct Lock *init_lock) {
+
+    /* Yield is required so stupid LWP package can set our lwpid! */
+    /* VprocYield();*/
+    /* Changed to use exclusive locks; yield doesn't work if priority of creating
+       thread is lower than created thread */
+    ObtainWriteLock(init_lock);  /* we never have to give it up. */
+
+    /* VPROC rock permits mapping back to vproc object. */
+    PROCESS x;
+    int lwprc = LWP_CurrentProcess(&x);
+    if (lwprc != LWP_SUCCESS)
+	Choke("VprocPreamble: LWP_CurrentProcess failed (%d)", lwprc);
+    vproc_iterator next;
+    vproc *vp;
+    while (vp = next())
+	if (vp->lwpid == (int)x) break;
+    if (vp == 0)
+	Choke("VprocPreamble: lwp not found");
+    lwprc = LWP_NewRock(VPROC_ROCK_TAG, (char *)vp);
+    if (lwprc != LWP_SUCCESS)
+	Choke("VprocPreamble: LWP_NewRock(VPROC) failed (%d)", lwprc);
+
+    /* RVM_THREAD_DATA rock allows rvmlib to derive tids, etc. */
+    lwprc = LWP_NewRock(RVM_THREAD_DATA_ROCK_TAG, (char *)&vp->rvm_data);
+    if (lwprc != LWP_SUCCESS)
+	Choke("VprocPreamble: LWP_NewRock(RVM_THREAD) failed (%d)", lwprc);
+
+    /* Invoke main procedure.  (func == NULL) --> we're running in the root LWP. */
+    /* Passing vp as the first arg is a hacky way of setting the "this" pointer */
+    /* in the common case where f is a member of a class derived from vproc. */
+    /* It's a horrible hack though, and should be changed! -JJK */
+    if (vp->func != 0)
+	vp->func(vp);
+
+}
+
+
+vproc *VprocSelf() {
+    vproc *vp = 0;
+    if (LWP_GetRock(VPROC_ROCK_TAG, (char **)&vp) == LWP_SUCCESS)
+	return(vp);
+
+    /* Presumably this is the first call.  Set the rock so that future lookups will be fast. */
+    {
+    }
+
+    /* Presumably, we are in the midst of handling a signal. */
+    return(Main);
+}
+
+
+void VprocWait(char *addr) {
+#ifdef	VENUSDEBUG
+    {
+	/* Sanity-check: vproc must not context-switch in mid-transaction! */
+	rvm_perthread_t *_rvm_data = RVM_THREAD_DATA;
+	if (_rvm_data && _rvm_data->tid != 0)
+	    Choke("VprocWait: in transaction (tid = %x)", _rvm_data->tid);
+    }
+#endif	VENUSDEBUG
+
+    int lwprc = LWP_WaitProcess(addr);
+    if (lwprc != LWP_SUCCESS)
+	Choke("VprocWait(%x): LWP_WaitProcess failed (%d)",
+	    addr, lwprc);
+}
+
+
+void VprocMwait(int wcount, char **addrs) {
+#ifdef	VENUSDEBUG
+    {
+	/* Sanity-check: vproc must not context-switch in mid-transaction! */
+	rvm_perthread_t *_rvm_data = RVM_THREAD_DATA;
+	if (_rvm_data && _rvm_data->tid != 0)
+	    Choke("VprocMwait: in transaction (tid = %x)", _rvm_data->tid);
+    }
+#endif	VENUSDEBUG
+
+    int lwprc = LWP_MwaitProcess(wcount, addrs);
+    if (lwprc != LWP_SUCCESS)
+	Choke("VprocMwait(%d, %x): LWP_MwaitProcess failed (%d)",
+	    wcount, addrs, lwprc);
+}
+
+
+void VprocSignal(char *addr, int yield) {
+#ifdef	VENUSDEBUG
+    if (yield) {
+	/* Sanity-check: vproc must not context-switch in mid-transaction! */
+	rvm_perthread_t *_rvm_data = RVM_THREAD_DATA;
+	if (_rvm_data && _rvm_data->tid != 0)
+	    Choke("VprocSignal: in transaction (tid = %x)", _rvm_data->tid);
+    }
+#endif	VENUSDEBUG
+
+    int lwprc = (yield ? LWP_SignalProcess(addr) : LWP_NoYieldSignal(addr));
+    if (lwprc != LWP_SUCCESS && lwprc != LWP_ENOWAIT)
+	Choke("VprocSignal(%x): %s failed (%d)",
+	    addr, (yield ? "LWP_SignalProcess" : "LWP_NoYieldSignal"), lwprc);
+/*
+    if (lwprc == LWP_ENOWAIT)
+	LOG(100, ("VprocSignal: ENOWAIT returned for addr %x\n",
+		addr, (yield ? "LWP_SignalProcess" : "LWP_NoYieldSignal")));
+*/
+}
+
+
+void VprocSleep(struct timeval *delay) {
+#ifdef	VENUSDEBUG
+    {
+	/* Sanity-check: vproc must not context-switch in mid-transaction! */
+	rvm_perthread_t *_rvm_data = RVM_THREAD_DATA;
+	if (_rvm_data && _rvm_data->tid != 0)
+	    Choke("VprocSleep: in transaction (tid = %x)", _rvm_data->tid);
+    }
+#endif	VENUSDEBUG
+
+    IOMGR_Select(0, 0, 0, 0, delay);
+}
+
+
+void VprocYield() {
+#ifdef	VENUSDEBUG
+    {
+	/* Sanity-check: vproc must not context-switch in mid-transaction! */
+	rvm_perthread_t *_rvm_data = RVM_THREAD_DATA;
+	if (_rvm_data && _rvm_data->tid != 0)
+	    Choke("VprocYield: in transaction (tid = %x)", _rvm_data->tid);
+    }
+#endif	VENUSDEBUG
+
+    /* Do a polling select first to make vprocs with pending I/O runnable. */
+    (void)IOMGR_Poll();
+
+    LOG(1000, ("VprocYield: pre-yield\n"));
+    int lwprc = LWP_DispatchProcess();
+    if (lwprc != LWP_SUCCESS)
+	Choke("VprocYield: LWP_DispatchProcess failed (%d)", lwprc);
+    LOG(1000, ("VprocYield: post-yield\n"));
+}
+
+
+int VprocSelect(int nfds, int *readfds, int *writefds, int *exceptfds, struct timeval *timeout) {
+#ifdef	VENUSDEBUG
+    {
+	/* Sanity-check: vproc must not context-switch in mid-transaction! */
+	rvm_perthread_t *_rvm_data = RVM_THREAD_DATA;
+	if (_rvm_data && _rvm_data->tid != 0)
+	    Choke("VprocSelect: in transaction (tid = %x)", _rvm_data->tid);
+    }
+#endif	VENUSDEBUG
+
+    return(IOMGR_Select(nfds, readfds, writefds, exceptfds, timeout));
+}
+
+
+const int DFLT_VprocRetryCount = 5;
+const struct timeval DFLT_VprocRetryBeta0 = {15, 0};
+/*PRIVATE*/ int VprocRetryN = -1;	    /* total number of retries */
+/*PRIVATE*/ struct timeval *VprocRetryBeta = 0; /* array of timeout intervals */
+
+/*
+ *  This implementation has:
+ *    (1)  Beta[i+1] = 2*Beta[i]
+ *    (2)  Beta[0] = Beta[1] + Beta[2] ... + Beta[RetryN+1]
+ *
+ *  Time constants less than LOWERLIMIT are set to LOWERLIMIT.
+ */
+void VprocSetRetry(int HowManyRetries, struct timeval *Beta0) {
+    if (HowManyRetries >= 30) HowManyRetries = DFLT_VprocRetryCount;	/* else overflow with 32-bit integers */
+    if (HowManyRetries < 0) HowManyRetries = DFLT_VprocRetryCount;
+    if (Beta0 == 0) Beta0 = (struct timeval *)&DFLT_VprocRetryBeta0;
+
+    ASSERT(VprocRetryN == -1 && VprocRetryBeta == 0);
+    VprocRetryN = HowManyRetries;
+    VprocRetryBeta = (struct timeval *)malloc(sizeof(struct timeval)*(2+HowManyRetries));
+    bzero(VprocRetryBeta, (int)sizeof(struct timeval)*(2+HowManyRetries));
+    VprocRetryBeta[0] = *Beta0;
+
+    /* compute VprocRetryBeta[1] .. VprocRetryBeta[N] */
+#define	LOWERLIMIT  300000			/* .3 seconds */
+    int	betax, timeused, beta0;			/* entirely in microseconds */
+    betax = (int) (1000000*VprocRetryBeta[0].tv_sec + VprocRetryBeta[0].tv_usec)/((1 << (VprocRetryN+1)) - 1);
+    beta0 = (int) (1000000*VprocRetryBeta[0].tv_sec + VprocRetryBeta[0].tv_usec);
+    timeused = 0;
+    for (int i = 1; i < VprocRetryN+2 && beta0 > timeused; i++) {
+	if (betax < LOWERLIMIT) {
+	    /* NOTE: we don't bother with (beta0 - timeused < LOWERLIMIT) */
+	    VprocRetryBeta[i].tv_sec = 0;
+	    VprocRetryBeta[i].tv_usec = LOWERLIMIT;
+	    timeused += LOWERLIMIT;
+	}
+	else {
+	    if (beta0 - timeused > betax) {
+		VprocRetryBeta[i].tv_sec = betax/1000000;
+		VprocRetryBeta[i].tv_usec = betax % 1000000;
+		timeused += betax;
+	    }
+	    else {
+		VprocRetryBeta[i].tv_sec = (beta0 - timeused)/1000000;
+		VprocRetryBeta[i].tv_usec = (beta0 - timeused)%1000000;
+		timeused = beta0;
+	    }
+	}
+	betax = betax << 1;
+    }
+}
+
+
+int VprocIdle() {
+    return((VprocSelf())->idle);
+}
+
+
+int VprocInterrupted() {
+    return((VprocSelf())->interrupted);
+}
+
+
+void PrintVprocs() {
+    PrintVprocs(stdout);
+}
+
+
+void PrintVprocs(FILE *fp) {
+    fflush(fp);
+    PrintVprocs(fileno(fp));
+    fflush(fp);
+}
+
+
+void PrintVprocs(int fd) {
+    fdprint(fd, "Vprocs: tbl = %#08x, counter = %d, nprocs = %d\n",
+	     (long)&vproc::tbl, vproc::counter, vproc::tbl.count());
+
+    vproc_iterator next;
+    vproc *vp;
+    while(vp = next()) vp->print(fd);
+
+    fdprint(fd, "\n");
+}
+
+
+vproc::vproc(char *n, PROCBODY f, vproctype t, int stksize, int priority) {
+
+    static int initialized = 0;
+
+    /* Initialize the data members.  LWPid is filled in as a side effect of LWP operations below. */
+    lwpid = 0;
+    name = new char[strlen(n) + 1];
+    strcpy(name, n);
+    func = f;
+    vpid = counter++;
+    bzero(&rvm_data, (int) sizeof(rvm_perthread_t));
+    rvm_data.die = &Choke;
+    type = t;
+    seq = 0;
+    idle = 0;
+    interrupted = 0;
+    u.Init();
+    ve = NULL;
+    /* Create a lock to get startup synchronization correct */
+    Lock_Init(&init_lock);
+
+    /* Insert the new vproc into the table. */
+    tbl.insert(this);
+    
+    if (initialized) {
+	/* grab the lock */
+	ObtainWriteLock(&init_lock);
+
+	/* Create an LWP for this vproc. */
+	/* pass the lock, instead of the function; we can get back to the function
+	   once we know which vproc the new lwp is */
+	int lwprc = LWP_CreateProcess((PFIC)VprocPreamble, stksize, priority,
+				      (char *)&init_lock, name, (PROCESS *)&lwpid);
+	if (lwprc != LWP_SUCCESS)
+	    Choke("vproc::vproc: LWP_CreateProcess(%d, %s) failed (%d)", stksize, name, lwprc);
+
+	/* Bogus handshaking so that new LWP continues after its (bogus) yield! */
+	ReleaseWriteLock(&init_lock);
+	VprocYield();
+    }
+    else {
+	/* Initialize the LWP subsystem. */
+	int lwprc = LWP_Init(LWP_VERSION, LWP_NORMAL_PRIORITY, (PROCESS *)&lwpid);
+	if (lwprc != LWP_SUCCESS)
+	    Choke("VprocInit: LWP_Init failed (%d)", lwprc);
+
+	int iomgrrc = IOMGR_Initialize();
+	if (iomgrrc != LWP_SUCCESS)
+	    Choke("VprocInit: IOMGR_Initialize failed (%d)", iomgrrc);
+
+	VprocPreamble(&init_lock);
+
+	initialized = 1;
+    }
+}
+
+
+
+/* 
+ * we don't support assignments to objects of this type.
+ * bomb in an obvious way if it inadvertently happens.
+ */
+vproc::operator=(vproc& vp) {
+    abort();
+    return(0);
+}
+
+
+vproc::~vproc() {
+    if (LogLevel >= 1)
+	print(logFile);
+
+    if (!idle) Choke("vproc::~vproc: not idle!");
+
+    /* Remove the entry from the table. */
+    tbl.remove(this);
+
+    if (LWP_DestroyProcess((PROCESS)lwpid) != LWP_SUCCESS)
+	Choke("vproc::~vproc: LWP_DestroyProcess failed");
+}
+
+/* local-repair modification */
+void vproc::GetStamp(char *buf) {
+    char t;
+    switch (type) {
+	case VPT_Main:		t = 'X'; break;
+	case VPT_Worker:	t = 'W'; break;
+	case VPT_Mariner:	t = 'M'; break;
+	case VPT_CallBack:	t = 'C'; break;
+	case VPT_HDBDaemon:	t = 'H'; break;
+	case VPT_Reintegrator:	t = 'I'; break;
+	case VPT_Resolver:	t = 'R'; break;
+	case VPT_FSODaemon:	t = 'F'; break;
+	case VPT_ProbeDaemon:	t = 'D'; break;
+	case VPT_VSGDaemon:	t = 'G'; break;
+	case VPT_VolDaemon:	t = 'V'; break;
+	case VPT_UserDaemon:	t = 'U'; break;
+	case VPT_RecovDaemon:	t = 'T'; break;
+	case VPT_VmonDaemon:	t = 'N'; break;
+	case VPT_Simulator:	t = 'S'; break;
+	case VPT_AdviceDaemon:  t = 'A'; break;
+	case VPT_LRDaemon:  	t = 'L'; break;
+	default:	Choke("vproc::GetStamp: bogus type (%d)!", type);
+    }
+    time_t curr_time = Vtime();
+    struct tm *lt = localtime(&curr_time);
+    sprintf(buf, "[ %c(%02d) : %04d : %02d:%02d:%02d ] ",
+	     t, vpid, seq, lt->tm_hour, lt->tm_min, lt->tm_sec);
+}
+
+
+PRIVATE int VolModeMap[NVFSOPS] = {
+    VM_MUTATING,
+    VM_MUTATING,
+    VM_OBSERVING,	    /* VFSOP_ROOT */
+    VM_MUTATING,	    /* VFSOP_SYNC */
+    /*VM_UNSET*/-1,	    /* VFSOP_OPEN */
+    /*VM_UNSET*/-1,	    /* VFSOP_CLOSE */
+    /*VM_UNSET*/-1,	    /* VFSOP_IOCTL */
+    VM_OBSERVING,	    /* VFSOP_GETATTR */
+    VM_MUTATING,	    /* VFSOP_SETATTR */
+    VM_OBSERVING,	    /* VFSOP_ACCESS */
+    VM_OBSERVING,	    /* VFSOP_LOOKUP */
+    VM_MUTATING,	    /* VFSOP_CREATE */
+    VM_MUTATING,	    /* VFSOP_REMOVE */
+    VM_MUTATING,	    /* VFSOP_LINK */
+    VM_MUTATING,	    /* VFSOP_RENAME */
+    VM_MUTATING,	    /* VFSOP_MKDIR */
+    VM_MUTATING,	    /* VFSOP_RMDIR */
+    VM_OBSERVING,	    /* VFSOP_READDIR */
+    VM_MUTATING,	    /* VFSOP_SYMLINK */
+    VM_OBSERVING,	    /* VFSOP_READLINK */
+    VM_MUTATING,	    /* VFSOP_FSYNC */
+    VM_OBSERVING,	    /* VFSOP_INACTIVE */
+    VM_OBSERVING,	    /* VFSOP_VGET */
+    VM_MUTATING,
+    VM_MUTATING,
+    VM_MUTATING,
+    VM_MUTATING,
+    VM_MUTATING,
+    VM_MUTATING,
+    VM_MUTATING,
+    VM_MUTATING,
+    /*VM_UNSET*/-1,	    /* VFSOP_RDWR */
+    VM_RESOLVING,	    /* VFSOP_RESOLVE */
+    VM_OBSERVING,	    /* VFSOP_REINTEGRATE */
+    VM_MUTATING,
+    VM_MUTATING,
+    VM_MUTATING,
+    VM_MUTATING,
+    VM_MUTATING,
+    VM_MUTATING
+};
+#define	VFSOP_TO_VOLMODE(vfsop)\
+    (((vfsop) >= 0 && (vfsop) < NVFSOPS) ? VolModeMap[vfsop] : VM_MUTATING)
+
+/* local-repair modification */    
+void vproc::Begin_VFS(VolumeId vid, int vfsop, int volmode) {
+    LOG(1, ("vproc::Begin_VFS(%s): vid = %x, u.u_vol = %x, mode = %d\n",
+	    VenusOpStr(vfsop), vid, u.u_vol, volmode));
+    
+    /* Set up this thread's volume-related context. */
+    if (u.u_vol == 0) {
+	if (VDB->Get(&u.u_vol, vid) != 0)
+	{ u.u_error	= EVOLUME; return; }	    /* ??? -JJK */
+    }
+    u.u_volmode = 
+	(volmode == 
+	 /*VM_UNSET*/-1 ? VFSOP_TO_VOLMODE(vfsop) : volmode);
+    u.u_vfsop = vfsop;
+#ifdef	TIMING
+    if (!Simulating)
+	gettimeofday(&u.u_tv1, 0);
+#endif	TIMING
+		   
+    /* Attempt to enter the volume. */
+    u.u_error = u.u_vol->Enter(u.u_volmode, CRTORUID(u.u_cred));
+    if (u.u_error) VDB->Put(&u.u_vol);
+    vsr *vsr;
+		   
+    if (u.u_vol != 0 && u.u_vol->vid != LocalFakeVid) {
+        if (type == VPT_HDBDaemon)
+	    vsr = u.u_vol->GetVSR(HOARD_UID);
+	else
+	    vsr = u.u_vol->GetVSR(CRTORUID(u.u_cred));
+    }
+}
+
+
+/* local-repair modification */
+/* Retryp MUST be non-null in order to do any form of waiting. */
+void vproc::End_VFS(int *retryp) {
+    LOG(1, ("vproc::End_VFS(%s): code = %d\n",
+	     VenusOpStr(u.u_vfsop), u.u_error));
+
+    if (retryp) *retryp = 0;
+
+    /* Exit the volume. */
+    if (u.u_vol == 0) goto Exit;
+    u.u_vol->Exit(u.u_volmode, CRTORUID(u.u_cred));
+
+    /* Handle synchronous resolves. */
+    if (u.u_error == ESYNRESOLVE) {
+	u.u_rescnt++;
+	if (u.u_rescnt > 5) {			/* XXX */
+	    eprint("ResolveMax exceeded...returning EWOULDBLOCK");
+	    u.u_error = EWOULDBLOCK;
+	    goto Exit;
+	}
+	int code = u.u_vol->ResAwait(u.u_resblk);
+
+	/* Reset counter if result was equivocal. */
+	if (code == ERETRY || code == EWOULDBLOCK)
+	    u.u_rescnt = 0;
+
+	/* Retry on success, failure, or timeout. */
+	if (code == 0 || code == EINCONS || code == ETIMEDOUT)
+	    u.u_error = ERETRY;
+	else
+	    u.u_error = code;
+    }
+
+    /* This is the set of errors we may retry. */
+    if ( u.u_error != ETIMEDOUT &&
+	 u.u_error != EWOULDBLOCK &&
+	 u.u_error != ERETRY &&
+	 u.u_error != EASRSTARTED)
+	goto Exit;
+
+    /* Now safe to return if interrupted. */
+    if (VprocInterrupted())
+	{ u.u_error = EINTR; goto Exit; }
+
+    /* Cannot retry CFS_CLOSE operations! */
+    if (type == VPT_Worker) {
+	worker *w = (worker *)this;
+	if (w->opcode == CFS_CLOSE) {
+	    u.u_error = EINVAL;
+	    goto Exit;
+	}
+    }
+
+    /* Caller should be prepared to retry! */
+    if (!retryp)
+	{ if (u.u_error == ERETRY) u.u_error = EWOULDBLOCK; goto Exit; }
+
+    switch(u.u_error) {
+	case ERETRY:
+	    {
+	    u.u_retrycnt++;
+	    if (u.u_retrycnt > VprocRetryN) {
+		eprint("MaxRetries exceeded...returning EWOULDBLOCK");
+		u.u_error = EWOULDBLOCK;
+		goto Exit;
+	    }
+	    VprocSleep(&VprocRetryBeta[u.u_retrycnt]);
+	    }
+	    break;
+
+	case EWOULDBLOCK:
+	    {
+	    u.u_wdblkcnt++;
+	    if (u.u_wdblkcnt > 20) {	/* XXX */
+		eprint("MaxWouldBlock exceeded...returning EWOULDBLOCK");
+		goto Exit;
+	    }
+	    eprint("Volume %s busy, waiting", u.u_vol->name);
+	    struct timeval delay;
+	    delay.tv_sec = 20;		/* XXX */
+	    delay.tv_usec = 0;
+	    VprocSleep(&delay);
+	    }
+	    break;
+
+	case ETIMEDOUT:
+	    /* Check whether user wants to wait on blocking events. */
+	    {
+	    userent *ue;
+	    GetUser(&ue, CRTORUID(u.u_cred));
+	    int waitforever = ue->GetWaitForever();
+	    PutUser(&ue);
+	    if (!waitforever) goto Exit;
+
+	    /* Clear other counts. */
+	    u.u_rescnt = 0;
+	    u.u_retrycnt = 0;
+	    u.u_wdblkcnt = 0;
+
+	    /* Wait a few seconds before retrying. */
+	    /* Perhaps exponential back-off would be good here? */
+	    /* Could also/instead wait for relevant event to happen! */
+	    struct timeval delay;
+	    delay.tv_sec = 20;		/* XXX */
+	    delay.tv_usec = 0;
+	    VprocSleep(&delay);
+
+	    if (VprocInterrupted())
+		{ u.u_error = EINTR; goto Exit; }
+	    }
+	    break;
+
+        case EASRSTARTED:
+            {   // wait for jumper to finish and ask for application to retry
+                extern int ASRinProgress;
+                if (ASRinProgress) {
+                  LOG(1, ("VFS_End: Block waiting for ASR\n"));
+                  VprocWait((char*)&ASRinProgress);
+                  LOG(1, ("VFS_End: Woken up by ASR Result\n"));
+                  extern int ASRresult;
+                  if (ASRresult) { // ASR failed
+                     LOG(1, ("VFS_End: ASR returned %d\n", ASRresult));
+                     u.u_error = EINCONS;
+                     goto Exit;
+				 }
+                  else {
+                    // ASR succeeded
+                    u.u_retrycnt++;
+                    LOG(1, ("VFS_End: ASR finished successfully\n"));
+                    LOG(1, ("VFS_End: retries = %d\n", u.u_retrycnt));
+                    // Fall through so call will be retried
+		    }
+                }
+                else {
+                  // ASR was not started
+                  LOG(1, ("VFS_END: ASR not started\n"));
+                  u.u_error = EINCONS; // XXX - Puneet
+                  goto Exit;
+                }
+	      }
+            break;
+
+	default:
+	    ASSERT(0);
+    }
+
+    /* Give this call another try. */
+    u.u_error = 0;
+    *retryp = 1;
+
+Exit:
+#ifdef TIMING
+    if (!Simulating) 
+	gettimeofday(&u.u_tv2, 0);
+#endif TIMING
+
+    /* Update VFS statistics. */
+    if (u.u_vfsop >= 0 && u.u_vfsop < NVFSOPS) {
+	VFSStat *t = &VFSStats.VFSOps[u.u_vfsop];
+	float elapsed = 0.0;
+
+	if (u.u_error == 0) {
+	    if (retryp && *retryp != 0)
+		t->retry++;
+	    else {
+		t->success++;
+#ifdef	TIMING
+		if (!Simulating) {
+		    elapsed = SubTimes(u.u_tv2, u.u_tv1);
+		    t->time += (double)elapsed;
+		    t->time2 += (double)(elapsed * elapsed);
+		}
+#endif	TIMING
+	    }
+	}
+	else if (u.u_error == ETIMEDOUT)
+	    t->timeout++;
+	else
+	    t->failure++;
+
+	/* Update VSR statistics too! */
+	vsr *vsr;
+	if (u.u_vol != 0 && (!retryp || *retryp == 0) && (u.u_vol->vid != LocalFakeVid)) {
+	    if (type == VPT_HDBDaemon)
+		vsr = u.u_vol->GetVSR(HOARD_UID);
+	    else
+		vsr = u.u_vol->GetVSR(CRTORUID(u.u_cred));
+	    vsr->RecordEvent(VFSOP_TO_VSE(u.u_vfsop), u.u_error, (RPC2_Unsigned)elapsed);
+	    u.u_vol->PutVSR(vsr);
+	}
+    }
+
+    VDB->Put(&u.u_vol);
+}
+
+
+void vproc::print() {
+    print(stdout);
+}
+
+
+void vproc::print(FILE *fp) {
+    fflush(fp);
+    print(fileno(fp));
+}
+
+
+void vproc::print(int fd) {
+    int max = 0, used = 0;
+
+    /* LWP_StackUsed broken for initial LWP? -JJK */
+    if (type != VPT_Main && lwpid != 0)
+	(void)LWP_StackUsed((PROCESS)lwpid, &max, &used);
+    fdprint(fd, "%#08x : %-16s : id = (%x : %d), stack = (%d : %d), seq = %d, flags = (%x%x)\n",
+	     (long)this, name, lwpid, vpid, max, used, seq, idle, interrupted);
+}
+
+
+vproc_iterator::vproc_iterator(vproctype t) : olist_iterator(vproc::tbl) {
+    type = t;
+}
+
+
+vproc *vproc_iterator::operator()() {
+    if (type == (vproctype)-1) return((vproc *)olist_iterator::operator()());
+
+    vproc *vp;
+    while (vp = (vproc *)olist_iterator::operator()())
+	if (vp->type == type) return(vp);
+    return(0);
+}
+
+
+void va_init(struct vattr *vap) {
+    vap->va_mode = (u_short)-1;
+    vap->va_uid = (short)-1;
+    vap->va_gid = (short)-1;
+    vap->va_fsid = (long)-1;
+    VA_ID(vap) = (long)-1;
+    VA_ATIME_1(vap) = (long)-1;
+    VA_ATIME_2(vap) = (long)-1;
+    VA_STORAGE(vap) = (long)-1;
+    vap->va_nlink = (short)-1;
+    vap->va_size = (u_long)-1;
+    vap->va_blocksize = (long)-1;
+    vap->va_mtime = vap->va_atime;
+    vap->va_ctime = vap->va_atime;
+    vap->va_rdev = (dev_t)-1;
+}
+
+
+void VattrToStat(struct vattr *vap, struct stat *sp) {
+    sp->st_dev = (dev_t)(vap->va_fsid);
+    sp->st_mode = vap->va_mode;
+    sp->st_nlink = vap->va_nlink;
+    sp->st_uid = (uid_t)(vap->va_uid);
+    sp->st_gid = (gid_t)(vap->va_gid);
+    sp->st_rdev = vap->va_rdev;
+    sp->st_size = (off_t)(vap->va_size);
+    sp->st_blksize = vap->va_blocksize;
+    sp->st_ino = (ino_t)(VA_ID(vap));
+    sp->st_atime = (time_t)(VA_ATIME_1(vap));
+    sp->st_mtime = (time_t)(VA_MTIME_1(vap));
+    sp->st_ctime = (time_t)(VA_CTIME_1(vap));
+#ifdef __MACH__
+    sp->st_spare1 = 0;
+    sp->st_spare2 = 0;
+    sp->st_spare3 = 0;
+    sp->st_blocks = vap->va_blocks;
+    sp->st_spare4[0] = 0;
+    sp->st_spare4[1] = 0;
+#endif __MACH__
+#ifdef __NetBSD__
+    sp->st_blocks = (int64_t)ceil(((double)vap->va_bytes) / S_BLKSIZE);
+    sp->st_flags = 0;
+    sp->st_gen = 0;
+    sp->st_lspare = 0;
+    sp->st_qspare[0] = 0;
+    sp->st_qspare[1] = 0;
+#endif __NetBSD__
+}
+
+
+long FidToNodeid(ViceFid *fid) {
+    if (FID_EQ(*fid, NullFid))
+	Choke("FidToNodeid: null fid");
+
+    /* Venus Root.  Use the mount point's nodeid. */
+    if (FID_EQ(rootfid, *fid))
+	return(rootnodeid);
+
+    /* Other volume root.  We need the relevant mount point's fid, but we don't know what that is! */
+    if (fid->Vnode == ROOT_VNODE && fid->Unique == ROOT_UNIQUE) {
+	LOG(0, ("FidToNodeid: volume root (%x); returning bogus nodeid\n", fid->Volume));
+	return(0);
+    }
+
+    /* Non volume root. */
+    return(fid->Unique + (fid->Vnode << 10) + (fid->Volume << 20));
+}

@@ -1,0 +1,13 @@
+# Master Coda Makeconf file
+
+# 11/18/96 Created, Josh Raiff
+# 11/19/96 Modified, Peter Braam
+
+# Just include the system Makeconf
+sys=$(shell uname)
+include $(TOPDIR)/configs/Makeconf.$(sys)
+
+vpath %.rpc2 $(INCLDIR)
+
+# Force all to be the first target
+all:

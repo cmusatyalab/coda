@@ -1,0 +1,315 @@
+#!/bin/csh -f
+#ifndef _BLURB_
+#define _BLURB_
+#/*
+#
+#            Coda: an Experimental Distributed File System
+#                             Release 4.0
+#
+#          Copyright (c) 1987-1996 Carnegie Mellon University
+#                         All Rights Reserved
+#
+#Permission  to  use, copy, modify and distribute this software and its
+#documentation is hereby granted,  provided  that  both  the  copyright
+#notice  and  this  permission  notice  appear  in  all  copies  of the
+#software, derivative works or  modified  versions,  and  any  portions
+#thereof, and that both notices appear in supporting documentation, and
+#that credit is given to Carnegie Mellon University  in  all  documents
+#and publicity pertaining to direct or indirect use of this code or its
+#derivatives.
+#
+#CODA IS AN EXPERIMENTAL SOFTWARE SYSTEM AND IS  KNOWN  TO  HAVE  BUGS,
+#SOME  OF  WHICH MAY HAVE SERIOUS CONSEQUENCES.  CARNEGIE MELLON ALLOWS
+#FREE USE OF THIS SOFTWARE IN ITS "AS IS" CONDITION.   CARNEGIE  MELLON
+#DISCLAIMS  ANY  LIABILITY  OF  ANY  KIND  FOR  ANY  DAMAGES WHATSOEVER
+#RESULTING DIRECTLY OR INDIRECTLY FROM THE USE OF THIS SOFTWARE  OR  OF
+#ANY DERIVATIVE WORK.
+#
+#Carnegie  Mellon  encourages  users  of  this  software  to return any
+#improvements or extensions that  they  make,  and  to  grant  Carnegie
+#Mellon the rights to redistribute these changes without encumbrance.
+#*/
+#
+#static char *rcsid = "$Header: blurb.doc,v 1.1 96/11/22 13:29:31 raiff Exp $";
+#endif /*_BLURB_*/
+
+
+
+set STARTSERVER = /vice/bin/startserver
+set RESTARTSERVER = /vice/bin/restartserver
+set SKIPSALVAGE = /vice/vol/skipsalvage
+
+echo "WARNING: This program reinitializes a server."
+echo -n "Are you sure you want to proceed? (yes/no) "
+set ans = "$<"
+while ("$ans" !~ [Yy][Ee][Ss] && "$ans" !~ [Nn][Oo])
+  echo -n "Please answer yes or no: "
+  set ans = "$<"
+end
+
+if  ("$ans" !~ [Yy][Ee][Ss]) then
+  echo "Exitting"
+  exit 1
+endif
+
+# First purge backups
+while ( 1 )
+  grep backup /vice/vol/VolumeList > /dev/null
+  if ( "$status" == "0" ) then
+    echo ""
+    echo "Reinit cannot restore backup volumes.  You must purge all of the backup"
+    echo "volumes from the server before proceeding"
+    echo ""
+    echo "Reinit still detects backup volumes on this server\!"
+    echo -n "Have you already deleted them (yes to continue, no to delete)? "
+    set ans = "$<"
+    while ("$ans" !~ [Yy][Ee][Ss] && "$ans" !~ [Nn][Oo])
+      echo -n "Please answer yes or no: "
+      set ans = "$<"
+    end
+    if ("$ans" =~ [Yy][Ee][Ss]) then
+      break
+    else
+      echo ""
+      echo "Delete the backup volumes"
+      echo "Press <return> when you are ready to proceed"
+      set ans = "$<"
+      echo ""
+    endif
+  else
+    break
+  endif
+end
+
+echo ""
+
+# Test for renamed startserver, restartserver files
+if (-e $STARTSERVER.dontrun) then
+  echo "$STARTSERVER.dontrun exists\!"
+  echo -n "Is this the real startserver script (yes/no) "
+  set ans = "$<"
+  while ("$ans" !~ [Yy][Ee][Ss] && "$ans" !~ [Nn][Oo])
+    echo -n "Please answer yes or no: "
+    set ans = "$<"
+  end
+  if ( "$ans" =~ [Yy][Ee][Ss] ) then
+    echo "Restoring $STARTSERVER"
+    mv -f $STARTSERVER.dontrun $STARTSERVER
+  endif
+endif
+
+echo "Renaming $STARTSERVER to $STARTSERVER.dontrun"
+mv -f $STARTSERVER $STARTSERVER.dontrun
+
+# Test for renamed startserver, restartserver files
+if (-e $RESTARTSERVER.dontrun) then
+  echo "$RESTARTSERVER.dontrun exists\!"
+  echo -n "Is this the real restartserver script (yes/no) "
+  set ans = "$<"
+  while ("$ans" !~ [Yy][Ee][Ss] && "$ans" !~ [Nn][Oo])
+    echo -n "Please answer yes or no: "
+    set ans = "$<"
+  end
+  if ( "$ans" =~ [Yy][Ee][Ss] ) then
+    echo "Restoring $RESTARTSERVER"
+    mv -f $RESTARTSERVER.dontrun $RESTARTSERVER
+  endif
+endif
+
+echo "Renaming $RESTARTSERVER to $RESTARTSERVER.dontrun"
+mv -f $RESTARTSERVER $RESTARTSERVER.dontrun
+
+echo "Creating new startserver and motd"
+cat << __EOF__ > $STARTSERVER
+echo ""
+echo "DON'T START THIS SERVER IT IS BEING REINITIALIZED"
+echo ""
+__EOF__
+chmod a+x $STARTSERVER
+
+mv -f /etc/motd /etc/motd.before_reinit
+cat << __EOF__ >> /etc/motd
+
+###############################
+DON'T START THIS SERVER IT IS BEING REINITIALIZED
+###############################
+
+__EOF__
+
+
+# Check that the server is not running
+while (-e /vice/srv/pid)
+  echo "The server is still running."
+  echo "Shut it down and press <return> to continue"
+  set ans = "$<"
+end
+
+# Get the skip volume list
+while ( 1 )
+  set skiplist = ""
+  if (-e $SKIPSALVAGE) then
+    echo "$SKIPSALVAGE exists.  Its contents are:"
+    cat $SKIPSALVAGE
+    echo ""
+
+    echo -n "Do you want reinit to purge these volumes (yes/no)? "
+    set ans = "$<"
+    while ("$ans" !~ [Yy][Ee][Ss] && "$ans" !~ [Nn][Oo])
+      echo -n "Please answer yes or no: "
+      set ans = "$<"
+    end
+
+    if ("$ans" =~ [Yy][Ee][Ss]) then
+      set skiplist = `cat $SKIPSALVAGE`
+
+      # get rid of the volume count
+      shift skiplist
+
+      echo "Reinit will skip volumes: $skiplist"
+    else
+      echo "WARNING: Reinit will fail if these volumes are corrupt."
+    endif
+  else
+    echo "$SKIPSALVAGE does not exist"
+  endif
+
+  echo -n "Are there any other volumes you want to skip? [yes] "
+  set ans = "$<"
+  if ("$ans" == "") set ans = "yes"
+  while ("$ans" !~ [Yy][Ee][Ss] && "$ans" !~ [Nn][Oo])
+    echo -n "Please answer yes or no: "
+    set ans = "$<"
+  end
+  if ("$ans" =~ [Yy][Ee][Ss]) then
+    set newvol = "yes"
+    echo "Enter volume numbers terminated with a new line"
+    while ("$newvol" != "")
+      echo -n "Volume Number (in hex): "
+      set newvol = "$<"
+      set skiplist = "$skiplist $newvol"
+    end
+  endif
+
+  echo ""
+  if ("$skiplist" == "") then
+    echo "Reinit will not skip any volumes"
+  else
+    echo "Reinit will skip the following volumes:"
+    echo $skiplist
+    echo ""
+    echo "THESE VOLUMES WILL NOT BE PRESENT AFTER THE REINIT\!"
+  endif
+  echo -n "Do you want to proceed? [yes] "
+  set ans = "$<"  
+  if ("$ans" == "") set ans = "yes"
+  while ("$ans" !~ [Yy][Ee][Ss] && "$ans" !~ [Nn][Oo])
+    echo -n "Please answer yes or no: "
+    set ans = "$<"
+  end
+  if ("$ans" =~ [Yy][Ee][Ss]) break
+end
+
+  
+# Dump the server state.
+echo ""
+echo ""
+echo "Now 'reinit' needs to know the server RVM characteristics"
+echo -n "Enter server log device: "
+set logdev = "$<"
+echo -n "Enter log length: "
+set loglen = "$<"
+echo -n "Enter server data device: "
+set datadev = "$<"
+echo -n "Enter server data length: "
+set datalen = "$<"
+echo -n "Enter RVM starting address: 0x"
+set rvmstart = "$<"
+echo -n "Enter heap length: 0x"
+set heaplen = "$<"
+echo -n "Enter static length: 0x"
+set staticlen = "$<"
+echo -n "Enter nlists: "
+set nlists = "$<"
+echo -n "Enter chunksize: "
+set chunksize = "$<"
+
+echo ""
+echo "'Reinit' needs a place to dump the server's rvm state, there must"
+echo "be enough free space to fit all of the server's RVM space."
+echo -n "Enter a dumpfile name: "
+set dumpfile = "$<"
+
+echo ""
+echo "Dumping server RVM state to $dumpfile..."
+if ("$skiplist" == "") then
+  /vice/bin/norton-reinit -rvm $logdev $datadev $datalen -dump $dumpfile
+else
+  /vice/bin/norton-reinit -rvm $logdev $datadev $datalen -dump $dumpfile skip $skiplist
+endif
+
+if ("$status" != "0") then
+  echo "ERROR: Dump failed\!"
+  goto cleanup
+  exit 1
+endif
+
+echo ""
+echo "THIS IS THE POINT OF NO RETURN\!"
+echo "RVM is about to be initialized."
+echo -n "Are you sure you want to continue? (yes/no) "
+set ans = "$<"
+while ("$ans" !~ [Yy][Ee][Ss] && "$ans" !~ [Nn][Oo])
+  echo -n "Please answer yes or no: "
+  set ans = "$<"
+end
+if ("$ans" == "no") goto cleanup
+
+# Initilize RVM
+echo ""
+echo "Running rvmutl"
+/vice/bin/rvmutl << __EOF__
+init $logdev $loglen
+quit
+__EOF__
+
+if ("$status" != "0") then
+  echo "rvmutl failed, exitting"
+  goto cleanup
+endif
+
+echo ""
+echo "Running rdsinit"
+/vice/bin/rdsinit $logdev $datadev <<__EOF__
+$datalen
+$rvmstart
+$heaplen
+$staticlen
+$nlists
+$chunksize
+__EOF__
+
+if ("$status" != "0") then
+  echo "rdsinit failed, exitting"
+  goto cleanup
+endif
+
+echo ""
+echo "Re-loading RVM"
+/vice/bin/norton-reinit -rvm $logdev $datadev $datalen -load $dumpfile
+if ("$status" != "0") then
+  echo "norton-reinit failed, exitting"
+  goto cleanup
+endif
+
+# Restore scripts
+cleanup:
+
+echo ""
+if (-e $dumpfile) then
+  echo "Dumpfile left in $dumpfile"
+  echo "Please remove $dumpfile when you are sure the reinit succeeded."
+endif
+
+mv -f $STARTSERVER.dontrun $STARTSERVER
+mv -f $RESTARTSERVER.dontrun $RESTARTSERVER
+mv -f /etc/motd.before_reinit /etc/motd

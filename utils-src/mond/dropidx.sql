@@ -1,0 +1,33 @@
+bogus -- don't run me unless you know what I do!
+
+drop index i_vein_birth;
+drop index i_vein_index;
+drop index i_viin_birth;
+drop index i_viin_index;
+drop index i_sess_venindex;
+drop index i_sess_sesindex;
+drop index i_ssst_sesindex;
+drop index i_clrvst_venusidx;
+drop index i_noev_sesindex;
+drop index i_noev_opcode;
+drop index i_noop_opcode;
+drop index i_coev_venindex;
+drop index i_ovev_venindex;
+drop index i_sest_viceindex;
+drop index i_srcana_callindex;
+drop index i_srmlna_callindex;
+drop index i_srca_viceindex;
+drop index i_srca_callindex;
+drop index i_clcana_callindex;
+drop index i_clmlna_callindex;
+drop index i_srml_viceindex;
+drop index i_srml_callindex;
+drop index i_clca_venusindex;
+drop index i_clca_callindex;
+drop index i_clml_venusindex;
+drop index i_clml_callindex;
+drop index i_rest_viceindex;
+drop index i_rest_resindex;
+drop index i_reop_resindex;
+drop index i_reop_resopindex;
+drop index i_srov_time;

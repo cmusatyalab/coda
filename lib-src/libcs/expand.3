@@ -1,0 +1,139 @@
+.\" COPYRIGHT NOTICE
+.\" Copyright (c) 1994 Carnegie Mellon University
+.\" All Rights Reserved.
+.\" 
+.\" See <cmu_copyright.h> for use and distribution information.
+.\" 
+.\" 
+.\" HISTORY
+.\" $Log:	expand.3,v $
+Revision 1.1  96/06/03  19:00:16  satya
+Initial revision
+
+.\" Revision 1.2  1995/10/18  14:58:04  moore
+.\" 	Created libcs man(3) pages from mach entries
+.\" 	[1995/10/18  14:53:32  moore]
+.\"
+.\" $EndLog$
+.\" Copyright (c) 1990 Carnegie Mellon University
+.\" All Rights Reserved.
+.\" 
+.\" Permission to use, copy, modify and distribute this software and its
+.\" documentation is hereby granted, provided that both the copyright
+.\" notice and this permission notice appear in all copies of the
+.\" software, derivative works or modified versions, and any portions
+.\" thereof, and that both notices appear in supporting documentation.
+.\"
+.\" THE SOFTWARE IS PROVIDED "AS IS" AND CARNEGIE MELLON UNIVERSITY
+.\" DISCLAIMS ALL WARRANTIES WITH REGARD TO THIS SOFTWARE, INCLUDING ALL
+.\" IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS.  IN NO EVENT
+.\" SHALL CARNEGIE MELLON UNIVERSITY BE LIABLE FOR ANY SPECIAL, DIRECT,
+.\" INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER
+.\" RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF
+.\" CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN
+.\" CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+.\"
+.\" Users of this software agree to return to Carnegie Mellon any
+.\" improvements or extensions that they make and grant Carnegie the
+.\" rights to redistribute these changes.
+.\"
+.\" Export of this software is permitted only after complying with the
+.\" regulations of the U.S. Deptartment of Commerce relating to the
+.\" Export of Technical Data.
+.\"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+.\" HISTORY
+.\" $Log:	expand.3,v $
+Revision 1.1  96/06/03  19:00:16  satya
+Initial revision
+
+.\" Revision 1.2  1995/10/18  14:58:04  moore
+.\" 	Created libcs man(3) pages from mach entries
+.\" 	[1995/10/18  14:53:32  moore]
+.\"
+.\" Revision 1.1.1.2  1995/10/18  14:53:32  moore
+.\" 	Created libcs man(3) pages from mach entries
+.\"
+.\" Revision 1.2  90/12/12  15:48:51  mja
+.\" 	Add copyright/disclaimer for distribution.
+.\" 
+.\" 13-Nov-86  Andi Swimmer (andi) at Carnegie-Mellon University
+.\" 	Revised for 4.3.
+.\" 
+.\" 08-May-85  Steven Shafer (sas) at Carnegie-Mellon University
+.\" 	Added handling of ~ and {aaa,bbb}.
+.\" 
+.\" 05-Dec-79  Steven Shafer (sas) at Carnegie-Mellon University
+.\" 	Created.
+.\" 
+.TH EXPAND 3 5/8/85
+.CM 4
+.SH "NAME"
+expand \- expand filename specification
+.SH "SYNOPSIS"
+.B
+int expand (spec,buffer,bufsize);
+.br
+.B
+char *spec,**buffer;
+.br
+.B
+int bufsize;
+.SH "DESCRIPTION"
+.I
+Expand
+takes a file specification, and expands it into a set of
+filenames by resolving the characters '*', '?', '[', '{', and '~'
+in the same way as the shell does.
+.sp
+You must provide
+.I
+buffer,
+an array of string pointers (\fIchar *\fR), and you tell how
+big this array is in
+.I
+bufsize.
+.I
+Expand
+will compute the corresponding filenames, and fill up
+the entries of
+.I
+buffer,
+putting ponters to
+.IR malloc 'd
+strings into the slots.
+.sp
+The value returned by
+.I
+expand
+is the number of filenames found.
+If any error occurs,
+the value returned will be \-1.
+In such a case, not all
+of the files were discoverable.
+If too many files are
+found, then the value returned will be
+.I
+bufsize
++ 1; you should try again with a bigger buffer.
+.SH "LIBRARY NOTES"
+You must link against /usr/local/lib/libcs.a to define this routine.
+.SH "SEE ALSO"
+.IR sh (1), 
+.IR getwd (3), 
+.IR malloc (3), 
+.IR path (3)
+.SH "DIAGNOSTICS"
+Returns \-1 on error;
+.I
+bufsize
++ 1 if too many files are found.
+.SH "BUGS"
+Error recovery is too drastic; it should continue to find
+all the names that can be found.
+Also, if an error
+occurs, the strings 
+.IR malloc 'd 
+so far will never be garbage-collected.
+.sp
+Within braces {...}, the substrings may contain other meta-characters
+but may not contain slashes / or additional braces {}.

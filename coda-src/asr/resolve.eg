@@ -1,0 +1,26 @@
+
+
+!foo.o: foo.c foo.h
+!	cc -c bar foo.c 
+
+!gorp.dvi: 
+!	latex gorp.tex[0] gorp.tex[*]
+
+*.o: 
+	cc -c $*.c
+
+
+*.key, *.key.B, *.cb, *.cb.B:
+	/usr/coda/etc/merge -n $# -f $</$*.cb[*] -db /tmp/newdb
+	/usr/coda/etc/fileresolve $*.key.B /tmp/newdb.key.B
+	/usr/coda/etc/fileresolve $*.cb.B /tmp/newdb.cb.B
+	/usr/coda/etc/fileresolve $*.cb /tmp/newdb.cb
+	/usr/coda/etc/fileresolve $*.key /tmp/newdb.key
+
+*:
+	/bin/mkdir $*.inc
+	/bin/ls -l  $>[0] $>[1] $>[2] $<
+	/bin/cp -p $>[*] $*.inc
+	/usr/coda/bin/merge.csh $</$>[*] /tmp/mergedfile
+	/usr/coda/bin/fileresolve $* /tmp/mergedfile
+	

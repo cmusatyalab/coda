@@ -1,0 +1,466 @@
+#!/usr/coda/etc/wish -f
+#ifndef _BLURB_
+#define _BLURB_
+#/*
+#
+#            Coda: an Experimental Distributed File System
+#                             Release 4.0
+#
+#          Copyright (c) 1987-1996 Carnegie Mellon University
+#                         All Rights Reserved
+#
+#Permission  to  use, copy, modify and distribute this software and its
+#documentation is hereby granted,  provided  that  both  the  copyright
+#notice  and  this  permission  notice  appear  in  all  copies  of the
+#software, derivative works or  modified  versions,  and  any  portions
+#thereof, and that both notices appear in supporting documentation, and
+#that credit is given to Carnegie Mellon University  in  all  documents
+#and publicity pertaining to direct or indirect use of this code or its
+#derivatives.
+#
+#CODA IS AN EXPERIMENTAL SOFTWARE SYSTEM AND IS  KNOWN  TO  HAVE  BUGS,
+#SOME  OF  WHICH MAY HAVE SERIOUS CONSEQUENCES.  CARNEGIE MELLON ALLOWS
+#FREE USE OF THIS SOFTWARE IN ITS "AS IS" CONDITION.   CARNEGIE  MELLON
+#DISCLAIMS  ANY  LIABILITY  OF  ANY  KIND  FOR  ANY  DAMAGES WHATSOEVER
+#RESULTING DIRECTLY OR INDIRECTLY FROM THE USE OF THIS SOFTWARE  OR  OF
+#ANY DERIVATIVE WORK.
+#
+#Carnegie  Mellon  encourages  users  of  this  software  to return any
+#improvements or extensions that  they  make,  and  to  grant  Carnegie
+#Mellon the rights to redistribute these changes without encumbrance.
+#*/
+#
+#static char *rcsid = "$Header: blurb.doc,v 1.1 96/11/22 13:29:31 raiff Exp $";
+#endif /*_BLURB_*/
+
+
+
+#
+# A nice interface to help provide advice to the hoard daemon
+#
+# History :
+#  95/1/18 : mre@cs.cmu.edu : code
+#
+#
+#
+#
+#
+
+proc ReallyQuit {} {
+        destroy .
+        exit 0
+}
+
+proc CleanQuit {} {
+    global argv
+    global Selected
+    global StopAsking
+    global FID
+    global linenum
+
+    # Take care of output
+    set outFile [open [lindex $argv 1] w]
+
+    foreach i [array names Selected] {
+        if {$Selected($i) == 1} {
+	    puts $outFile [format "%s 0" $FID($i)]
+        }
+    }
+
+    foreach i [array names StopAsking] {
+	if {$StopAsking($i) == 1} {
+	    puts $outFile [format "%s 1" $FID($i)]
+	}
+    }
+
+    # Really quit
+    ReallyQuit
+}
+
+proc TimerQuit {} {
+    global argv
+    global FID
+
+    # Take care of output
+    set outFile [open [lindex $argv 1] w]
+    
+    foreach i [array names FID] {
+        puts $outFile [format "%s 0" $FID($i)]
+    }
+
+    # Really quit
+    ReallyQuit
+}
+
+proc SetTimer {timeout} {
+    
+    after $timeout {TimerQuit}
+}
+
+proc watch {framename labelname varname} {
+    frame $framename -relief raised -borderwidth 2
+    label $framename.label -text "$labelname = "
+    label $framename.value -textvariable $varname
+    pack append $framename \
+	$framename.label {left} \
+	$framename.value {left}
+}
+
+proc doublewatch {framename labeloverview label1 label2 var1 var2} {
+    frame $framename -relief raised -borderwidth 2
+    label $framename.labeloverview -text "$labeloverview:"
+    label $framename.label1 -text "$label1 = "
+    label $framename.value1 -textvariable $var1
+    label $framename.label2 -text "$label2 = "
+    label $framename.value2 -textvariable $var2
+    pack append $framename \
+	$framename.labeloverview {left} \
+	$framename.label1 {left} \
+	$framename.value1 {left} \
+	$framename.label2 {left} \
+	$framename.value2 {left}
+}
+
+proc triplewatch {framename labeloverview label1 label2 label3 var1 var2 var3} {
+    frame $framename -relief raised -borderwidth 2
+    label $framename.labeloverview -text "$labeloverview:"
+    label $framename.label1 -text "$label1 = "
+    label $framename.value1 -textvariable $var1
+    label $framename.label2 -text "$label2 = "
+    label $framename.value2 -textvariable $var2
+    label $framename.label3 -text "$label3 = "
+    label $framename.value3 -textvariable $var3
+    pack append $framename \
+	$framename.labeloverview {left} \
+	$framename.label1 {left} \
+	$framename.value1 {left} \
+	$framename.label2 {left} \
+	$framename.value2 {left} \
+	$framename.label3 {left} \
+	$framename.value3 {left}
+}
+
+
+proc CreateMainWindow { title } {
+    global TotalNumberOfObjects
+    global NumDefaults
+    global TotalExpectedFetchTime
+    global WinWidth
+    global WinHeight
+    global FudgeFactor
+    global CacheFilesAllocated 
+    global CacheBlocksAllocated
+    global CacheFilesOccupied 
+    global CacheBlocksOccupied
+    global CacheFilesAvailable
+    global CacheBlocksAvailable
+    global CacheFilesOccupiedAfter
+    global CacheBlocksOccupiedAfter
+    global CacheFilesAvailableAfter
+    global CacheBlocksAvailableAfter
+    global NetworkBandwidth
+
+    # Create and position a resizable toplevel window
+    wm minsize . 200 100
+    wm geometry . +0+0
+    wm title . $title
+
+    # Create the BEGINNING summary information
+    frame .begininfo -relief raised -borderwidth 2
+    triplewatch .begininfo.cachefiles \
+	"Cache Files" "Allocated" "Occupied" "Available" \
+	CacheFilesAllocated CacheFilesOccupied CacheFilesAvailable
+    triplewatch .begininfo.cachespace \
+	"Cache Space (KB)" "Allocated" "Occupied" "Available" \
+	CacheBlocksAllocated CacheBlocksOccupied CacheBlocksAvailable
+    watch .begininfo.network "Speed of Network Connection (b/s)" NetworkBandwidth
+    watch .begininfo.preapproved "Number of Objects Preapproved for Fetch" NumDefaults
+    pack append .begininfo \
+	.begininfo.cachefiles {top fillx expand} \
+	.begininfo.cachespace {top fillx expand} \
+	.begininfo.network {top fillx expand} \
+	.begininfo.preapproved {top fillx expand} 
+    pack append . .begininfo {top fillx}
+
+    # Create the table labels
+    frame .labels -relief raised -borderwidth 2
+    pack append . .labels {top fillx}
+
+    # Create the Control Buttons
+    frame .controls -relief raised -borderwidth 2
+    button .controls.cancel \
+	-command ReallyQuit\
+        -text "Cancel" \
+	-state active
+    button .controls.done \
+        -command CleanQuit\
+        -text "Done" \
+        -state active
+    pack append .controls \
+	.controls.cancel {left padx 50} \
+	.controls.done {right padx 50}
+    pack append . .controls {bottom fillx}
+
+    # Create the ENDING summary information
+    frame .endinfo -relief raised -borderwidth 2
+    triplewatch .endinfo.cachespaceafter \
+	"Cache Space (KB) After Walk" "Alloc'd" "Occ'd" "Avail" \
+	CacheBlocksAllocated CacheBlocksOccupiedAfter CacheBlocksAvailableAfter
+    watch .endinfo.totalnumobjs "Total Number of Objects to be Fetched" TotalNumberOfObjects
+    watch .endinfo.totaltime "Total Expected Fetch Time (s)" TotalExpectedFetchTime
+    pack append .endinfo \
+	.endinfo.totaltime {top fillx expand} \
+	.endinfo.totalnumobjs {top fillx expand} \
+	.endinfo.cachespaceafter {top fillx expand} 
+    pack append . .endinfo {bottom fillx}
+
+
+    # Create a scrollable canvas
+    frame .c
+    canvas .c.canvas  -width 10 -height 10 \
+	-yscrollcommand [list .c.yscroll set]
+    scrollbar .c.yscroll -orient vertical  \
+	-command [list .c.canvas yview]
+    pack append .c .c.yscroll {right filly}
+    pack append .c .c.canvas {left fillx filly expand}
+    pack append . .c {top fillx filly expand}
+
+    ProcessInput .c.canvas
+}
+
+proc SetTotalExpectedFetchTime {linenum} {
+    global TotalExpectedFetchTime
+    global Selected
+    global Cost
+    global TotalNumberOfObjects
+    global CacheBlocksOccupiedAfter
+    global CacheBlocksAvailableAfter
+    global BlockDiff
+
+    if {$Selected($linenum) == 1} {
+	set TotalExpectedFetchTime [expr $TotalExpectedFetchTime+$Cost($linenum)]
+	set TotalNumberOfObjects [expr $TotalNumberOfObjects+1]
+	set CacheBlocksOccupiedAfter [expr $CacheBlocksOccupiedAfter+$BlockDiff($linenum)]
+	set CacheBlocksAvailableAfter [expr $CacheBlocksAvailableAfter-$BlockDiff($linenum)]
+    } else {
+	set TotalExpectedFetchTime [expr $TotalExpectedFetchTime-$Cost($linenum)]
+	set TotalNumberOfObjects [expr $TotalNumberOfObjects-1]
+	set CacheBlocksOccupiedAfter [expr $CacheBlocksOccupiedAfter-$BlockDiff($linenum)]
+	set CacheBlocksAvailableAfter [expr $CacheBlocksAvailableAfter+$BlockDiff($linenum)]
+    }
+}
+
+proc FixThingsUp {linenum} {
+    global Selected
+    
+    if {$Selected($linenum) == 1} {
+	set Selected($linenum) 0
+	SetTotalExpectedFetchTime $linenum
+    }
+}
+
+proc ProcessInput {canvas} {
+    global argv
+    global linenum; set linenum 0
+    global Selected
+    global Filename
+    global Priority
+    global Cost
+    global MaxCost
+    global FID
+    global TotalNumberOfObjects
+    global NumDefaults
+    global TotalExpectedFetchTime
+    global CacheFilesAllocated 
+    global CacheBlocksAllocated
+    global CacheFilesOccupied 
+    global CacheBlocksOccupied
+    global CacheFilesAvailable
+    global CacheBlocksAvailable
+    global CacheFilesAvailableAfter 
+    global CacheBlocksAvailableAfter 
+    global CacheFilesOccupiedAfter
+    global CacheBlocksOccupiedAfter
+    global NetworkBandwidth
+    global BlockDiff
+
+    set inFile [open [lindex $argv 0] r]
+
+    gets $inFile thisLine
+    scan $thisLine "Cache Space Allocated: %d files (%d blocks)" \
+	CacheFilesAllocated CacheBlocksAllocated
+
+    gets $inFile thisLine
+    scan $thisLine "Cache Space Occupied: %d files (%d blocks)" \
+	CacheFilesOccupied CacheBlocksOccupied
+
+    set CacheFilesAvailable [expr $CacheFilesAllocated-$CacheFilesOccupied]
+    set CacheBlocksAvailable [expr $CacheBlocksAllocated-$CacheBlocksOccupied]
+    set CacheFilesOccupiedAfter $CacheFilesOccupied
+    set CacheBlocksOccupiedAfter $CacheBlocksOccupied
+    set CacheFilesAvailableAfter $CacheFilesAvailable
+    set CacheBlocksAvailableAfter $CacheBlocksAvailable
+
+    gets $inFile thisLine
+    scan $thisLine "Speed of Network Connection = %s" NetworkBandwidth
+
+    set max 0
+    while {[gets $inFile thisLine] >= 0} {
+        scan $thisLine "%s & %s & %s & %4d & %s & %d" \
+	    fid askUser filename priority cost blockdiff
+	if { $askUser == 0 } {
+            set linenum [expr $linenum+1]
+ 	    set FID($linenum) $fid
+    	    set Selected($linenum) 0
+	    set StopAsking($linenum) 0
+	    set BlockDiff($linenum) $blockdiff
+	    set Filename($linenum) $filename
+	    set Priority($linenum) $priority
+	    if { $cost == "??" } {
+		set Cost($linenum) $MaxCost
+	    } else {
+	        set Cost($linenum) $cost
+	    }
+	    set len [string length $filename]
+	    if {$len > $max} {
+		set max $len
+	    }
+	} elseif { $askUser == 1 } {
+	    set NumDefaults [expr $NumDefaults+1]
+	    if { $cost == "??" } {
+		set TotalExpectedFetchTime [expr $TotalExpectedFetchTime+$MaxCost]
+	    } else {
+  	        set TotalExpectedFetchTime [expr $TotalExpectedFetchTime+$cost]
+	    }
+	    set TotalNumberOfObjects [expr $TotalNumberOfObjects+1]
+	} elseif { $askUser == -1 } {
+	    puts [format "ERROR:  Cannot handle askUser value of -1"]
+	}
+    }
+    close $inFile
+
+    if { $linenum == 0 } {
+        ReallyQuit
+    }
+
+    # Create one frame to hold everything and position it on the canvas
+    set f [frame $canvas.f -bd 0]
+    $canvas create window 0 0 -anchor nw -window $f
+
+    label .labels.title1a -text "Object Name" -width [expr $max-10]
+    label .labels.title1b -text "   " -width 6
+    label .labels.title2 -text "Priority" -width 8
+    label .labels.title3 -text "Cost (s)" -width 10
+    label .labels.title4 -text "Fetch?" -width 8
+    label .labels.title5 -text "Stop Asking?" -width 10
+    pack append .labels .labels.title1a {left}
+    pack append .labels .labels.title1b {left}
+    pack append .labels .labels.title2 {left}
+    pack append .labels .labels.title3 {left}
+    pack append .labels .labels.title4 {left}
+    pack append .labels .labels.title5 {left}
+
+    set i 0
+    foreach file [array names Filename] {
+	frame $f.$i
+
+	entry $f.$i.filename -width $max -textvariable Filename($file)
+	$f.$i.filename configure -state disabled
+	pack append $f.$i $f.$i.filename {left}
+
+	entry $f.$i.priority -width 8 -textvariable Priority($file)
+	$f.$i.priority configure -state disabled
+	pack append $f.$i $f.$i.priority {left}
+
+	entry $f.$i.cost -width 8 -textvariable Cost($file)
+	$f.$i.cost configure -state disabled
+	pack append $f.$i $f.$i.cost {left}
+
+        checkbutton $f.$i.stopasking -variable StopAsking($file) \
+	    -command "FixThingsUp $file"
+	pack append $f.$i $f.$i.stopasking {right}
+
+        checkbutton $f.$i.selected -variable Selected($file) \
+    	    -command "SetTotalExpectedFetchTime $file; set StopAsking($file) 0"
+	pack append $f.$i $f.$i.selected {right padx 55}
+
+	pack append $f $f.$i {top fillx}
+	incr i
+    }
+    set i [expr $i-1]
+    set child $f.$i.filename
+
+    # Wait for the window to become visible and then
+    # set up the scroll region and increment based on
+    # the size of the frame and the subframes
+    
+    tkwait visibility $child
+    set incr [winfo height $child]
+    set width [winfo width $f]
+    set height [winfo height $f]
+    $canvas config -scrollregion "0 0 $width $height"
+    $canvas config -scrollincrement $incr
+    if {$height > 4 * $incr} {
+	set height [expr 4*$incr]
+    }
+    $canvas config -width $width -height $height
+}
+
+
+##############################################################################
+# Main program
+#
+# Check that we have the correct number of arguments.
+#
+	set argv0 hoardlist
+	if { $argc != 2 } then {
+	    puts [format "Usage: %s InputFileName OutputFileName" $argv0]
+	    puts "       where InputFileName is the name of the input file, and"
+	    puts "       where OutputFileName is the name of the output file"
+	    exit 0
+	}
+
+#
+# Set global variables
+set Title "Advice for Hoard Daemon"
+set TotalNumberOfObjects 0
+set NumDefaults 0
+set TotalExpectedFetchTime 0
+set CacheFilesAllocated 0
+set CacheBlocksAllocated 0
+set CacheFilesOccupied 0
+set CacheBlocksOccupied 0
+set NetworkBandwidth 0
+set CacheFilesAvailable 0
+set CacheBlocksAvailable 0
+set CacheFilesAvailableAfter 0
+set CacheBlocksAvailableAfter 0
+set MaxCost 99999
+
+#
+# Begin by creating the main window.  This window consists of:
+#	-- a summary of the number of objects and the number of preapproved objects
+#	-- a header containing useful information,
+#	-- a scrollable canvas in which we'll deposit 1 frame/input line
+#	-- an indicator of the total expected fetch time, and
+#	-- a couple of control buttons.
+#
+	CreateMainWindow $Title 
+
+#
+# Finally, set a timer so that we return in a reasonable amount of time even
+# if the user is not here...
+#
+set VenusPatience 180000
+
+        SetTimer $VenusPatience
+
+#
+# Now, wait for user actions...
+#
+#
+#
+# End of program
+##############################################################################
+
+

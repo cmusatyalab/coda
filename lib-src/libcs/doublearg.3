@@ -1,0 +1,151 @@
+.\" COPYRIGHT NOTICE
+.\" Copyright (c) 1994 Carnegie Mellon University
+.\" All Rights Reserved.
+.\" 
+.\" See <cmu_copyright.h> for use and distribution information.
+.\" 
+.\" 
+.\" HISTORY
+.\" $Log:	doublearg.3,v $
+Revision 1.1  96/06/03  19:00:12  satya
+Initial revision
+
+.\" Revision 1.2  1995/10/18  14:57:59  moore
+.\" 	Created libcs man(3) pages from mach entries
+.\" 	[1995/10/18  14:53:25  moore]
+.\"
+.\" $EndLog$
+.\" Copyright (c) 1990 Carnegie Mellon University
+.\" All Rights Reserved.
+.\" 
+.\" Permission to use, copy, modify and distribute this software and its
+.\" documentation is hereby granted, provided that both the copyright
+.\" notice and this permission notice appear in all copies of the
+.\" software, derivative works or modified versions, and any portions
+.\" thereof, and that both notices appear in supporting documentation.
+.\"
+.\" THE SOFTWARE IS PROVIDED "AS IS" AND CARNEGIE MELLON UNIVERSITY
+.\" DISCLAIMS ALL WARRANTIES WITH REGARD TO THIS SOFTWARE, INCLUDING ALL
+.\" IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS.  IN NO EVENT
+.\" SHALL CARNEGIE MELLON UNIVERSITY BE LIABLE FOR ANY SPECIAL, DIRECT,
+.\" INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER
+.\" RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF
+.\" CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN
+.\" CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+.\"
+.\" Users of this software agree to return to Carnegie Mellon any
+.\" improvements or extensions that they make and grant Carnegie the
+.\" rights to redistribute these changes.
+.\"
+.\" Export of this software is permitted only after complying with the
+.\" regulations of the U.S. Deptartment of Commerce relating to the
+.\" Export of Technical Data.
+.\"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+.\" HISTORY
+.\" $Log:	doublearg.3,v $
+Revision 1.1  96/06/03  19:00:12  satya
+Initial revision
+
+.\" Revision 1.2  1995/10/18  14:57:59  moore
+.\" 	Created libcs man(3) pages from mach entries
+.\" 	[1995/10/18  14:53:25  moore]
+.\"
+.\" Revision 1.1.1.2  1995/10/18  14:53:25  moore
+.\" 	Created libcs man(3) pages from mach entries
+.\"
+.\" Revision 1.3  90/12/12  15:48:11  mja
+.\" 	Add copyright/disclaimer for distribution.
+.\" 
+.\" 13-Nov-86  Andi Swimmer (andi) at Carnegie-Mellon University
+.\" 	Revised for 4.3.
+.\" 
+.\" 05-Dec-79  Steven Shafer (sas) at Carnegie-Mellon University
+.\" 	Created.
+.\" 
+.TH DOUBLEARG 3 12/5/79
+.CM 1
+.SH "NAME"
+doublearg, floatarg \- parse floating-point value or ask user
+.SH "SYNOPSIS"
+.B
+#include <ctype.h>
+.sp
+.B
+double doublearg (ptr,brk,prompt,min,max,defalt);
+.br
+.B
+char **ptr,*brk,*prompt;
+.br
+.B
+double min,max,defalt;
+.sp
+.B
+float floatarg (ptr,brk,prompt,min,max,defalt);
+.br
+.B
+char **ptr,*brk,*prompt;
+.br
+.B
+float min,max,defalt;
+.SH "DESCRIPTION"
+.I
+Doublearg
+and
+.I
+floatarg
+attempt to parse an argument from a string, passing the string pointer
+.I
+ptr
+and the break character seg
+.I
+brk
+to the
+.IR nxtarg (3)
+routine.
+If there is an argument parsed, and it is a legal floating-point
+value between
+.I
+min
+and
+.I
+max,
+then it is returned by
+.I
+doublearg
+or
+.I
+floatarg.
+If there is no argument, or if it is not a valid floating-point number,
+or if it is out of range, then an error message is printed and
+the routine
+.IR getdouble (3)
+or
+.IR getfloat (3)
+is passed the remaining parameters; the value returned by
+.I
+getdouble
+or
+.I
+getfloat
+is then returned by
+.I
+doublearg
+or
+.I
+floatarg.
+.sp
+.I
+Doublearg
+and
+.I
+floatarg
+are epxecially useful for parsing floating-point values from
+argument lists in programs using the command interpreter,
+.IR ci (3).
+.SH "LIBRARY NOTES"
+You must link against /usr/local/lib/libcs.a to define this routine.
+.SH "SEE ALSO"
+.IR nxtarg (3), 
+.IR getdouble (3), 
+.IR getfloat (3), 
+.IR ci (3)

@@ -1,0 +1,91 @@
+all: $(SUBDIRS) $(LIBRARIES) $(HEADERS) $(EXECUTABLES) $(TESTS)
+
+# Catch all, most versions of gnu make use CXXFLAGS for g++, but mach's 
+# version uses C++FLAGS.
+C++FLAGS := $(CXXFLAGS)
+
+
+# Installation rules
+install: all subdirinstall bininstall libinstall \
+	 hdrinstall srcinstall
+
+clean-install:
+	$(RM) hdrinstall srcinstall libinstall
+
+reinstall: clean-install install
+
+bininstall: $(EXECUTABLES)
+ifdef EXECUTABLES
+	$(TOPDIR)/tools/our-install 755 $(BINDIR) $?
+	touch bininstall
+endif
+
+libinstall: $(LIBRARIES)
+ifdef LIBRARIES
+	$(TOPDIR)/tools/our-install 644 $(LIBDIR) $?
+	touch libinstall
+endif
+
+hdrinstall: $(HEADERS)
+ifdef HEADERS
+	$(TOPDIR)/tools/our-install 644 $(INCLDIR) $?
+	touch hdrinstall
+endif
+
+srcinstall:
+	SRCDIR=$(srcdir); export SRCDIR; $(ALPHACI)
+
+ifdef SUBDIRS
+$(SUBDIRS): FORCE
+	if [ -r $@/GNUmakefile.coda ] ; then \
+	  ${MAKE} -C $@ -f GNUmakefile.coda SUBDIRS= all; \
+	else \
+	  ${MAKE} -C $@ SUBDIRS= all; \
+	fi
+endif
+
+subdirinstall: 
+ifdef SUBDIRS
+	for d in $(SUBDIRS) ; do \
+	  if [ -r $$d/GNUmakefile.coda ] ; then \
+	    ${MAKE} -C $$d -f GNUmakefile.coda SUBDIRS= install; \
+	  else \
+	    ${MAKE} -C $$d SUBDIRS= install; \
+	  fi \
+	done
+endif
+
+lint: $(SOURCES)
+	lint $(INCDIRS) $(SOURCES)
+
+clean: 
+	$(RM) *.o *.a *.client.c *.server.c *.multi.c core
+	$(RM) $(EXECUTABLES) $(LIBRARIES) $(TEST)
+	$(RM) hdrinstall libinstall bininstall
+
+# General rules:
+%.o: %.s
+	$(CPP) -P -D__ASSEMBLY__ $(CFLAGS) $< > $*.ss
+	$(AS) -o $@ $*.ss
+	$(RM) $*.ss
+
+%.a:
+	$(AR) rv $@ $?
+	ranlib $@
+
+%.doc: %.mss
+	-scribe $?  # Scribe doesn't exist most places.
+
+%.client.cc %.server.cc %.multi.cc %.client.c %.server.c %.multi.c %.h: %.rpc2
+	${RP2GEN} ${RP2FLAGS} $<
+
+ifndef NO_LEX
+lex.yy.c:
+	$(LEX) $(LFLAGS) $<
+
+y.tab.c:
+	$(YACC) $(YFLAGS) $<
+endif
+
+.PHONY FORCE:
+

@@ -1,0 +1,110 @@
+# Configuration file for /usr/cs/bin/make
+
+
+# Location of objects (relative to sources if not beginning with slash)
+# Set to a bogus name, so that user is forced to explicitly define it.
+OBJECTDIR=DEFINEME
+
+# Where to find installed files (generates abs pathnames)
+# Points to alpha by default, but can be set by hand
+# or by setting the environment variable ROOT
+ROOT = $(ROOT?$(ROOT):/coda/project/coda/alpha)
+
+#
+BINSPECIAL = ${ROOT}/bin-special
+BINDIR = ${ROOT}/bin
+INCLSPECIAL= ${ROOT}/include-special
+INCLDIR= ${ROOT}/include
+LIBSPECIAL = ${ROOT}/lib-special
+LIBDIR=	 ${ROOT}/lib
+MANDIR = ${ROOT}/man
+SCRIPTDIR = ${BINDIR}
+SRCDIR = ${ROOT}/src
+DOCDIR = ${ROOT}/doc
+
+# these are all the subdirectories in INCLDIR.
+# need to reset the mode bits after chmoding INCLDIR/* to 644
+INCLSUBS = ${INCLDIR}/camlib ${INCLDIR}/cfs ${INCLDIR}/rpc ${INCLDIR}/vfs 
+
+#
+#CAMDIR = /afs/cs/project/camelot/release83
+MACHDIR = /usr/mach
+CSDIR = /usr/cs
+KERNELDIR = /coda/project/coda/kernel
+PERSONAL_INCLUDE = .
+
+#
+INCLFLAGS = -I$(PERSONAL_INCLUDE) -I. -I$(INCLDIR) -I$(INCLSPECIAL)\
+	 -I$(CSDIR)/include -I$(MACHDIR)/include -I/usr/include
+#	 -I$(CAMDIR)/include -I$(CSDIR)/include -I$(MACHDIR)/include -I/usr/include
+
+#LIBFLAGS = -L$(LIBDIR) -L$(LIBSPECIAL) -L$(CAMDIR)/lib -L$(MACHDIR)/lib -L$(CSDIR)/lib
+LIBFLAGS = -L$(LIBDIR) -L$(LIBSPECIAL) -L$(MACHDIR)/lib -L$(CSDIR)/lib
+
+RP2FLAGS = -I .  -I $(INCLDIR) -I `expr $$MAKEPSD: : '\([^:]*\):.*'`
+
+
+CFLAGS= -g $(INCLFLAGS) -DPRIVATE=static  $(PERSONAL_FLAGS)
+# Add -DCAMELOT to CFLAGS to build Coda servers with both Camelot and RVM linked in
+
+INSTALL= cp -p
+
+# Define SYS to be what Venus would produce as value of @sys in a symlink
+# We assume we are on a Mach system
+SYS = $(target_machine:ibmrt=rt)
+SYS = $(SYS:at386=i386)_mach
+
+# Define each library individually for easy substitution for devlopment's sake
+LIBAUTH2 = 	$(LIBDIR)/libauth2.a
+LIBAL = 	$(LIBDIR)/libal.a		
+LIBVOLUTIL = 	${LIBDIR}/libvolutil.a
+LIBVOL = 	${LIBDIR}/libvol.a			
+LIBVV = 	$(LIBDIR)/libvv.a		
+LIBSYSENT =	$(LIBDIR)/libsysent.a	
+LIBRESOLVE =	$(LIBDIR)/libresolve.a	
+LIBRESLIB =	${LIBDIR}/libreslib.a			
+LIBGROUP =	$(LIBDIR)/libgroup.a		
+DIR_O =		$(LIBDIR)/dir.o		
+BUFFER_O =	$(LIBDIR)/buffer.o		
+SALVAGE_O =  	$(LIBDIR)/salvage.o	
+CFS_XDR_O =	$(LIBDIR)/cfs_xdr.o	
+VICEERRORMSG_O= $(LIBDIR)/ViceErrorMsg.o
+PIOCTL_O =	${LIBDIR}/pioctl.o
+LIBUTIL =	$(LIBDIR)/libutil.a		
+LIBRDS =        $(LIBSPECIAL)/librdslwp.a	 		
+LIBSEG = 	$(LIBSPECIAL)/libseg.a 			
+LIBRVMLWP =	$(LIBSPECIAL)/librvmlwp.a		
+LIBRPC2 =	$(LIBDIR)/librpc2.a		
+LIBRPCLIB =	$(LIBDIR)/librpclib.a		
+LIBSE =		$(LIBDIR)/libse.a		
+LIBFAIL =	$(LIBDIR)/libfail.a		
+LIBNEWLWP =	${LIBDIR}/libnewlwp.a			
+LIBOLDLWP =	${LIBDIR}/liboldlwp.a			
+LIBMTCORE =	$(LIBSPECIAL)/libmtcore.a
+LIBCOMM =	$(LIBDIR)/libcomm.a		
+LIBPLUMBER =	$(LIBSPECIAL)/libplumber.a
+LIBNEWPLUMBER =	$(LIBSPECIAL)/libnewplumb.a
+LIBTRACE =	$(LIBSPECIAL)/libtrace.a
+LIBRVMRES =	$(LIBDIR)/librvmres.a
+
+# Don't put all the binaries here; just ones that get used in compiling the code
+RP2GEN = $(BINDIR)/rp2gen
+PCFGEN = $(BINDIR)/pcfgen
+ALPHACI = $(SCRIPTDIR)/alphaci
+
+# RPC2 interface definitions in module vicedep
+CALLBACK_RPC2 = $(INCLDIR)/callback.rpc2
+MOND_RPC2 = $(INCLDIR)/mond.rpc2
+VCRCOMMON_RPC2 = $(INCLDIR)/vcrcommon.rpc2
+VICE_RPC2 = $(INCLDIR)/vice.rpc2
+VOLDUMP_RPC2 = $(INCLDIR)/voldump.rpc2
+VOLUTIL_RPC2 = $(INCLDIR)/volutil.rpc2
+RES_RPC2 = $(INCLDIR)/res.rpc2
+
+#on exit from the program write the source directory and path of Makeconf into the
+#object directory
+# this was added to facilitate writing resolvers.
+.EXIT:
+	@echo set SOURCEDIR = $(VPATH) > .SRCDIRS
+	@echo -n "setenv MAKECONF " >> .SRCDIRS
+	@printenv MAKECONF >> .SRCDIRS

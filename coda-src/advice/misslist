@@ -1,0 +1,311 @@
+#!/usr/coda/etc/wish -f
+#ifndef _BLURB_
+#define _BLURB_
+#/*
+#
+#            Coda: an Experimental Distributed File System
+#                             Release 4.0
+#
+#          Copyright (c) 1987-1996 Carnegie Mellon University
+#                         All Rights Reserved
+#
+#Permission  to  use, copy, modify and distribute this software and its
+#documentation is hereby granted,  provided  that  both  the  copyright
+#notice  and  this  permission  notice  appear  in  all  copies  of the
+#software, derivative works or  modified  versions,  and  any  portions
+#thereof, and that both notices appear in supporting documentation, and
+#that credit is given to Carnegie Mellon University  in  all  documents
+#and publicity pertaining to direct or indirect use of this code or its
+#derivatives.
+#
+#CODA IS AN EXPERIMENTAL SOFTWARE SYSTEM AND IS  KNOWN  TO  HAVE  BUGS,
+#SOME  OF  WHICH MAY HAVE SERIOUS CONSEQUENCES.  CARNEGIE MELLON ALLOWS
+#FREE USE OF THIS SOFTWARE IN ITS "AS IS" CONDITION.   CARNEGIE  MELLON
+#DISCLAIMS  ANY  LIABILITY  OF  ANY  KIND  FOR  ANY  DAMAGES WHATSOEVER
+#RESULTING DIRECTLY OR INDIRECTLY FROM THE USE OF THIS SOFTWARE  OR  OF
+#ANY DERIVATIVE WORK.
+#
+#Carnegie  Mellon  encourages  users  of  this  software  to return any
+#improvements or extensions that  they  make,  and  to  grant  Carnegie
+#Mellon the rights to redistribute these changes without encumbrance.
+#*/
+#
+#static char *rcsid = "$Header: blurb.doc,v 1.1 96/11/22 13:29:31 raiff Exp $";
+#endif /*_BLURB_*/
+
+
+#
+# A nice interface to the disconnected cache miss questionnaire
+#
+# History :
+#  95/1/12 : mre@cs.cmu.edu : code
+#
+#
+#
+#
+#
+
+proc ReallyQuit {} {
+        destroy .
+        exit 0
+}
+
+proc CleanQuit {walk} {
+    global HDB
+    global linenum
+    global hdbFile
+
+    # Take care of output
+    set outFile [open $hdbFile w]
+    foreach i [array names HDB] {
+	if {$HDB($i) == 1} {
+	    OutputHDBInfo $outFile $i
+        }
+    }
+    flush $outFile
+    close $outFile
+    eval exec /usr/coda/etc/hoard -f $hdbFile
+
+    if {$walk == 1} {
+        eval exec /usr/coda/etc/hoard walk
+    }
+
+    # Really quit
+    ReallyQuit
+}
+
+proc OutputHDBInfo {outFile linenum} {
+    global HDB
+    global File
+    global Priority
+    global Meta
+    global Plus
+
+    if {($Meta($linenum) == "c") || ($Meta($linenum) == "d")} {
+	if {$Plus($linenum) == 1} {
+	    puts $outFile [format "a %s %d:%s+" $File($linenum) $Priority($linenum) $Meta($linenum)]
+	} else {
+	    puts $outFile [format "a %s %d:%s" $File($linenum) $Priority($linenum) $Meta($linenum)]
+	}
+    } else {
+    puts $outFile [format "a %s %d" $File($linenum) $Priority($linenum)]
+    }
+}
+
+proc CreateMainWindow {} {
+    global canvas; set canvas ".c"
+
+    # Position the window
+    wm geometry . +0+0
+    wm title . "Miss List"
+
+
+    # Create the table Label
+    frame .label -relief raised -borderwidth 2
+    label .label.title1 -text "File/Directory" -width 40
+    label .label.title2 -text "Program" -width 14
+    label .label.title3 -text "HDB?" -width 7
+    pack append .label \
+	.label.title1 {left} \
+	.label.title2 {left} \
+ 	.label.title3 {left}
+
+    # Create the Control Buttons
+    frame .controls -relief raised -borderwidth 2
+    button .controls.cancel \
+	-command ReallyQuit\
+        -text "Cancel" \
+	-state active
+    button .controls.walknow \
+        -command {CleanQuit 1}\
+        -text "Done -- Please walk" \
+        -state active
+    button .controls.walklater \
+        -command {CleanQuit 0}\
+        -text "Done" \
+        -state active
+    pack append .controls \
+	.controls.cancel {left padx 50} \
+	.controls.walknow {right padx 50} \
+	.controls.walklater {right}
+
+    # The canvas size gets fixed up in packwindows
+    canvas $canvas -yscrollcommand {.scrollbar set} -width 200 -height 100
+    scrollbar .scrollbar -command "$canvas yview"
+
+    pack append . .label {top fillx}
+    pack append . .controls {bottom fillx}
+    pack append . .scrollbar {right filly}
+    pack append . $canvas {left fillx filly expand}
+
+    frame $canvas.main
+
+    $canvas create window 0 0 -anchor nw -window $canvas.main
+}
+
+proc CreateHDBForm { linenum } {
+    set Form .form
+
+    global Meta
+    global Plus
+    global HDB
+    global File
+    global Program
+    global Priority
+
+    if {$HDB($linenum) == 0} {
+	return
+    }
+
+    toplevel $Form
+
+    frame $Form.pathname
+    label $Form.pathname.label -text "Pathname: "
+    entry $Form.pathname.filename -width 50 -textvariable File($linenum)
+    pack append $Form.pathname \
+	$Form.pathname.label {left} \
+	$Form.pathname.filename {right}
+
+    frame $Form.info
+
+    scale $Form.info.hoardpriority \
+	-label "Hoard Priority" \
+	-from 0 -to 1000 \
+	-length 10c \
+	-orient horizontal \
+	-command "set Priority($linenum)"
+    $Form.info.hoardpriority set $Priority($linenum)
+
+    frame $Form.info.rb
+    radiobutton $Form.info.rb.children \
+	-text "Children" \
+	-variable Meta($linenum) \
+	-value c \
+	-anchor w
+    radiobutton $Form.info.rb.descendents \
+	-text Descendents \
+	-variable Meta($linenum) \
+	-value d \
+	-anchor w
+    pack append $Form.info.rb \
+	$Form.info.rb.children {top fill} \
+	$Form.info.rb.descendents {top fill}
+
+    checkbutton $Form.info.plus -text + -variable Plus($linenum) -anchor w
+
+    pack append $Form.info \
+	$Form.info.hoardpriority {left} \
+	$Form.info.rb {left} \
+	$Form.info.plus {right filly}
+
+    frame $Form.control
+    button $Form.control.cancel -text Cancel -command "set HDB($linenum) 0; destroy .form"
+    button $Form.control.done -text Done -command "destroy .form"
+    pack append $Form.control \
+	$Form.control.cancel {left padx 200} \
+	$Form.control.done {left padx 200}
+
+    pack append .form \
+        $Form.pathname {top} \
+	$Form.info {top} \
+	$Form.control {bottom fill frame se} 
+
+    grab set .form
+    tkwait window .form
+}
+
+proc CreateFrameForInputLine { canvas file program count linenum} {
+
+    set framename [format ".line%d" $linenum]
+
+    global Meta
+    global Plus
+    global HDB
+    global File
+    global Program
+    global Priority
+
+#    puts [format "file: %s    program: %s    frame: %s" $file $program $framename]
+
+    frame $framename
+    
+    entry $framename.file -width 40 -textvariable File($linenum)
+    $framename.file insert 0 $file
+    $framename.file configure -state disabled
+
+    entry $framename.program -width 10 -textvariable Program($linenum)
+    $framename.program insert 0 "$program $count"
+    $framename.program configure -state disabled
+
+    checkbutton $framename.hdb -variable HDB($linenum) \
+	-command "CreateHDBForm $linenum"
+
+    pack append $framename \
+	$framename.file {left} \
+	$framename.program {left padx 10} \
+	$framename.hdb {left}
+
+    pack append $canvas $framename {top}
+}
+
+proc ProcessInput {} {
+    global argv
+    global canvas
+    global linenum; set linenum 0
+    global File
+    global Program
+    global Priority
+
+    set inFile [open [lindex $argv 0] r]
+
+    while {[gets $inFile thisLine] >= 0} {
+	set linenum [expr $linenum+1]
+	scan $thisLine "%s & %s %s" filename programname count
+	set Priority($linenum) 20
+	CreateFrameForInputLine $canvas $filename $programname $count $linenum
+    }
+    close $inFile
+}
+
+##############################################################################
+# Main program
+#
+# Check that we have the correct number of arguments.
+#
+	set argv0 weakmisslist
+	if { $argc != 1 } then {
+	    puts [format "Usage: %s InputFileName" $argv0]
+	    puts "       where InputFileName is the name of the input file."
+	    exit 0
+	}
+
+#
+# Set global variables
+#
+set hdbFile /tmp/hdb.input
+
+#
+# Begin by creating the main window.  This window consists of:
+#	-- a header containing useful information,
+#	-- a scrollable canvas in which we'll deposit 1 frame/input, and
+#	-- a couple of control buttons.
+#
+	CreateMainWindow
+#
+# Next, process the input file.  Each line of input will be made into a 
+# frame and deposited into the scrollable canvas.
+#
+	ProcessInput
+#
+#
+# Now, wait for user actions...
+#
+#
+#
+# End of program
+##############################################################################
+
+
+
+
+

@@ -1,0 +1,13 @@
+
+
+    	    	    	    RVM Release 1.2 3 Mar 1993
+
+This version replaces the previous alpha version and contains only a bug fix
+that was causing misreds on mapping raw partitions.
+
+The log format is the same as the previous alpha version (21 Dec., 1992), so 
+no re-init needs to be done.
+
+The header file rvm.h has a fix to the definition of the symbol MAX_READ_LEN.
+If you don't use that symbol, make -t will be sufficient to synchronize
+comnpilations.

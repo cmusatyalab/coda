@@ -1,0 +1,234 @@
+.\" COPYRIGHT NOTICE
+.\" Copyright (c) 1994 Carnegie Mellon University
+.\" All Rights Reserved.
+.\" 
+.\" See <cmu_copyright.h> for use and distribution information.
+.\" 
+.\" 
+.\" HISTORY
+.\" $Log:	del.3,v $
+Revision 1.1  96/06/03  19:00:09  satya
+Initial revision
+
+.\" Revision 1.2  1995/10/18  14:57:57  moore
+.\" 	Created libcs man(3) pages from mach entries
+.\" 	[1995/10/18  14:53:21  moore]
+.\"
+.\" $EndLog$
+.\" Copyright (c) 1990 Carnegie Mellon University
+.\" All Rights Reserved.
+.\" 
+.\" Permission to use, copy, modify and distribute this software and its
+.\" documentation is hereby granted, provided that both the copyright
+.\" notice and this permission notice appear in all copies of the
+.\" software, derivative works or modified versions, and any portions
+.\" thereof, and that both notices appear in supporting documentation.
+.\"
+.\" THE SOFTWARE IS PROVIDED "AS IS" AND CARNEGIE MELLON UNIVERSITY
+.\" DISCLAIMS ALL WARRANTIES WITH REGARD TO THIS SOFTWARE, INCLUDING ALL
+.\" IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS.  IN NO EVENT
+.\" SHALL CARNEGIE MELLON UNIVERSITY BE LIABLE FOR ANY SPECIAL, DIRECT,
+.\" INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER
+.\" RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF
+.\" CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN
+.\" CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+.\"
+.\" Users of this software agree to return to Carnegie Mellon any
+.\" improvements or extensions that they make and grant Carnegie the
+.\" rights to redistribute these changes.
+.\"
+.\" Export of this software is permitted only after complying with the
+.\" regulations of the U.S. Deptartment of Commerce relating to the
+.\" Export of Technical Data.
+.\"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+.\" HISTORY
+.\" $Log:	del.3,v $
+Revision 1.1  96/06/03  19:00:09  satya
+Initial revision
+
+.\" Revision 1.2  1995/10/18  14:57:57  moore
+.\" 	Created libcs man(3) pages from mach entries
+.\" 	[1995/10/18  14:53:21  moore]
+.\"
+.\" Revision 1.1.1.2  1995/10/18  14:53:21  moore
+.\" 	Created libcs man(3) pages from mach entries
+.\"
+.\" Revision 1.2  90/12/12  15:47:46  mja
+.\" 	Add copyright/disclaimer for distribution.
+.\" 
+.\" 13-Nov-86  Andi Swimmer (andi) at Carnegie-Mellon University
+.\" 	Revised for 4.3.
+.\" 
+.\" 06-Dec-79  Steven Shafer (sas) at Carnegie-Mellon University
+.\" 	Created.
+.\" 
+.TH DEL 3 12/6/79
+.CM 1
+.SH "NAME"
+del \- interrupt handling package
+.SH "SYNOPSIS"
+.B
+#include <del.h>
+.sp
+.B
+ENABLEDEL;
+.br
+.B
+IGNOREDEL;
+.br
+.B
+DISABLEDEL;
+.sp
+.li
+...
+.BR DELBREAK ;
+.li
+...
+.br
+.li
+...
+.BR DELRETURN ;
+.li
+...
+.br
+.li
+...
+.BR DELRETN(value) ;
+.li
+...
+.br
+.li
+...
+.BR DELCLEAR ;
+.li
+...
+.SH "DESCRIPTION"
+.I
+Del
+is a small subroutine used as an interrupt trap routine.
+It is used
+with the macro package
+.I
+<del.h>
+to provide a complete
+facility for trapping interrupts
+.I
+(DEL
+or
+.I
+RUBOUT
+key on the terminal).
+.sp
+The macro file incldes all the definitions listed above, and uses an
+external int
+.RI ( _del_ )
+as an interrupt flag.
+When an interrupt occurs, the
+.I
+del
+subroutine will increment
+.I
+_del_
+(usually from 0 to 1),
+.IR signal (2)
+itself for further interrupts, and return.
+The user may then test
+this variable with the macros listed above.
+.sp
+These macros control overall interrupt handling:
+.TP
+ENABLEDEL
+clears
+.I
+_del_
+and begins interrupt trapping.
+.TP
+IGNOREDEL
+clears
+.I
+_del_
+and ignores interrupts.
+.TP
+DISABLEDEL
+clears
+.I
+_del_
+and restores normal interrupt handling (kill process on interrupt).
+.i0
+.DT
+.PP
+These macros allow you to see if an interrupt has occurred (they
+do nothing if none has occurred):
+.TP
+DELBREAK
+clears
+.I
+_del_
+and acts like a
+.I
+break
+statement.
+.TP
+DELRETURN
+clears
+.I
+_del_
+and acts like a
+.I
+return
+statement.
+.TP
+DELRETN(value)
+clears
+.I
+_del_
+and acts like the statement
+.IR return ( value ).
+.TP
+DELCLEAR
+clears
+.I
+_del_
+and prints "Break ignored".
+.i0
+.DT
+.PP
+In addition, you may perform a simpler test for interrupts like this:
+.nf
+	if (_del_) ...
+.fi
+This is useful in conjunction with the above macros when you wish,
+for example, to exit from several layers of loops or procedures.
+.SH "FILES"
+/usr/local/include/del.h -- macro package
+.SH "LIBRARY NOTES"
+You must link against /usr/local/lib/libcs.a to define this routine.
+.SH "SEE ALSO"
+.IR signal (2)
+.SH "DIAGNOSTICS"
+.TP
+.B
+Break!
+.br
+printed by
+.I
+DELBREAK, DELRETURN,
+and
+.I
+DELRETURN(value)
+if an interrupt has occurred.
+.TP
+.B
+Break ignored.
+.br
+printed by
+.I
+DELCLEAR
+if an interrupt has occurred.
+.i0
+.DT
+.PP
+.SH "BUGS"
+It is possible, in any UNIX program which traps interrupts, for
+an interrupt to be missed if it immediately follows a previous
+interrupt of the same kind.

@@ -1,0 +1,18 @@
+#!/bin/sh
+
+MODE=$1
+DIR=$2
+shift
+shift
+FILES=$@
+
+
+if [ ! -d $DIR ] ;  then mkdir $DIR; fi
+
+for f in $FILES ; do
+  TARGET=$DIR/`basename $f`
+  if [ -f $TARGET ] ; then chmod 644 $TARGET; fi
+  cp $f $TARGET
+  chmod $MODE $TARGET
+done
+

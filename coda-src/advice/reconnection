@@ -1,0 +1,922 @@
+#!/usr/coda/etc/wish -f
+#ifndef _BLURB_
+#define _BLURB_
+#/*
+#
+#            Coda: an Experimental Distributed File System
+#                             Release 4.0
+#
+#          Copyright (c) 1987-1996 Carnegie Mellon University
+#                         All Rights Reserved
+#
+#Permission  to  use, copy, modify and distribute this software and its
+#documentation is hereby granted,  provided  that  both  the  copyright
+#notice  and  this  permission  notice  appear  in  all  copies  of the
+#software, derivative works or  modified  versions,  and  any  portions
+#thereof, and that both notices appear in supporting documentation, and
+#that credit is given to Carnegie Mellon University  in  all  documents
+#and publicity pertaining to direct or indirect use of this code or its
+#derivatives.
+#
+#CODA IS AN EXPERIMENTAL SOFTWARE SYSTEM AND IS  KNOWN  TO  HAVE  BUGS,
+#SOME  OF  WHICH MAY HAVE SERIOUS CONSEQUENCES.  CARNEGIE MELLON ALLOWS
+#FREE USE OF THIS SOFTWARE IN ITS "AS IS" CONDITION.   CARNEGIE  MELLON
+#DISCLAIMS  ANY  LIABILITY  OF  ANY  KIND  FOR  ANY  DAMAGES WHATSOEVER
+#RESULTING DIRECTLY OR INDIRECTLY FROM THE USE OF THIS SOFTWARE  OR  OF
+#ANY DERIVATIVE WORK.
+#
+#Carnegie  Mellon  encourages  users  of  this  software  to return any
+#improvements or extensions that  they  make,  and  to  grant  Carnegie
+#Mellon the rights to redistribute these changes without encumbrance.
+#*/
+#
+#static char *rcsid = "$Header: blurb.doc,v 1.1 96/11/22 13:29:31 raiff Exp $";
+#endif /*_BLURB_*/
+
+
+
+#
+# A nice interface to the reconnection questionnaire
+#
+# History :
+#  94/3/19 : mre@cs.cmu.edu : code
+#
+
+#
+#
+#
+
+# Changing colors...
+#       -activebackground $pink2 \
+#    set pink2 [format {#%2x%2x%2x} 238 169 184]
+# or maybe
+#    set pink2 [format {#eea9b8}]
+
+proc quit {} {
+        global AwareOfDisconnection
+        global argv
+
+	global Sanitized; set Sanitized 0
+
+        global VoluntaryDisconnection
+        global PracticeDisconnection
+        global Codacon
+        global Cmon
+        global Stoplight
+        global Sluggishness
+        global ObservedCacheMiss
+
+	SanityCheck
+	if { $Sanitized == 0 } { return }
+
+        set outFile [open [lindex $argv 0] a]
+
+        puts $outFile [format "AwareOfDisconnection: %s" $AwareOfDisconnection]
+
+        case $AwareOfDisconnection in {
+                {Yes}
+                        {
+                                puts $outFile [format "VoluntaryDisconnection: %s" $VoluntaryDisconnection]
+                                puts $outFile [format "PracticeDisconnection: %s" $PracticeDisconnection]
+                                puts $outFile [format "Codacon: %s" $Codacon]
+                                puts $outFile [format "Cmon: %s" $Cmon]
+                                puts $outFile [format "Stoplight: %s" $Stoplight]
+                                puts $outFile [format "Sluggish: %s" $Sluggishness]
+                                puts $outFile [format "ObservedCacheMiss: %s" $ObservedCacheMiss]
+                                puts $outFile [format "KnownOtherComments:\n%s\nEndComment.\n" [.known.other.comments.text get 1.0 end]]
+
+                                OutputPrepare $outFile
+                                OutputOverall $outFile
+                        }
+                {No}
+                        {
+
+                        }
+                {Suspected}
+                        {
+                                puts $outFile [format "Codacon: %s" $Codacon]
+                                puts $outFile [format "Cmon: %s" $Cmon]
+                                puts $outFile [format "Stoplight: %s" $Stoplight]
+                                puts $outFile [format "Sluggish: %s" $Sluggishness]
+                                puts $outFile [format "ObservedCacheMiss: %s" $ObservedCacheMiss]
+                                puts $outFile [format "SuspectedOtherComments:\n%s\nEndComment.\n" [.suspicions.other.comments.text get 1.0 end]]
+                                OutputOverall $outFile
+
+                        }
+        }
+
+        puts $outFile [format "FinalComments:\n%s\nEndComment.\n" [.comments.label.text get 1.0 end]]
+
+        close $outFile
+        destroy .
+        exit 0
+}
+
+
+#
+# Sanity Checks
+#
+proc SanityCheck { } {
+        global AwareOfDisconnection
+        global VoluntaryDisconnection
+        global PracticeDisconnection
+        global Codacon
+        global Cmon
+        global Stoplight
+        global Sluggishness
+        global ObservedCacheMiss
+	global Stoplight
+	global Sanitized
+        global NoPreparation
+        global HoardWalk
+        global PseudoDisconnection
+        global PracticeDisconnectionPreparation
+        global PrepOtherComments
+
+	set Sanitized 0
+        case $AwareOfDisconnection in {
+            {Yes}
+                {
+		    set Sanitized 0
+		    set OtherKnowledge 0
+
+		    if { [string length [.known.other.comments.text get 1.0 end]] > 0 } then {
+			set OtherKnowledge 1 
+		    }
+
+		    if {($VoluntaryDisconnection) || ($PracticeDisconnection) || 
+			($Codacon) || ($Cmon) || ($Stoplight) || ($Sluggishness) || 
+			($ObservedCacheMiss) || ($OtherKnowledge)} then { 
+			    set Sanitized 1 
+		    }
+
+		    if {$Sanitized != 1} then { 
+			PopUpDialog "\nPlease tell us how you knew you were operating\
+				disconnected.  \Feel free to use the `Other' text entry\
+				field if necessary." 
+			return 
+		    }
+
+
+		    if {$VoluntaryDisconnection} then {
+			set Sanitized 0
+			set NumberPracticeSessions 0
+			set OtherPreparation 0
+
+			if {$PracticeDisconnectionPreparation} then {
+				set value [.prepare.le.practicedisconnection.scale get]
+		                set IsInteger [regexp {^[0-9]*$} $value]
+				if {$IsInteger} {set NumberPracticeSessions $value}
+			}
+		        if { [string length [.prepare.le.comments.text get 1.0 end]] > 0 } then {
+				 set OtherPreparation 1 
+			}
+
+			if {($NoPreparation) || ($HoardWalk) || ($PseudoDisconnection) || 
+			    ($NumberPracticeSessions) || ($OtherPreparation) } { set Sanitized 1 }
+
+			if {$Sanitized != 1} then { 
+			    PopUpDialog "\nPlease tell us what, if anything, you did to \
+					prepare for this disconnected session." 
+			    return 
+			}
+		    }
+		}
+	    {No}
+		{
+		    set Sanitized 1
+		    return
+		}
+	    {Suspected} 
+		{
+		    set Sanitized 0
+		    set OtherSuspicion 0
+
+		    if { [string length [.suspicions.other.comments.text get 1.0 end]] > 0 } then { 
+			set OtherSuspicion 1
+		    }
+
+		    if {($Codacon) || ($Cmon) || ($Stoplight) || ($Sluggishness) || 
+			($ObservedCacheMiss) || ($OtherSuspicion)} then { 
+			    set Sanitized 1 
+		    }
+
+		    if {$Sanitized != 1} then { 
+			PopUpDialog "\nPlease tell us why you suspected you were operating\ disconnected.  Feel free to use the `Other' text entry field if necessary." 
+			return 
+		    }
+		}
+	}
+
+	set Sanitized 0
+	if {[.overall.scale get] == 0} {
+		if { $PracticeDisconnection == 0} {
+			PopUpDialog "\nPlease tell us how successful you believe this disconnected session \ was by choose a value from 1 to 9." 
+			return
+		}
+	}
+	set Sanitized 1
+} 
+
+proc PopUpDialog {msg} {
+	toplevel .panel
+	message .panel.msg \
+		-text $msg \
+		-justify left \
+		-width "5i"
+	button .panel.ok \
+		-text "OK" \
+		-command "destroy .panel"
+	pack append .panel \
+		.panel.msg	{top fill} \
+		.panel.ok	{pady 10 padx 10}
+	grab set .panel
+	tkwait window .panel
+}
+
+
+#
+# Helpful Routines
+#
+
+proc cbentry {path text length var command} {
+
+    frame $path
+    checkbutton $path.cb \
+        -text $text \
+        -variable $var \
+        -relief flat \
+        -activebackground Bisque1 \
+        -command $command
+    entry $path.entry -width $length -relief sunken
+    pack append $path $path.cb {left expand} $path.entry {right expand}
+}
+
+proc cbtext {path text length var command} {
+
+    frame $path
+    checkbutton $path.cb \
+        -text $text \
+        -variable $var \
+        -relief flat \
+        -activebackground Bisque1 \
+        -command $command
+    text $path.text \
+	-relief raised \
+	-bd 2 \
+	-height 2 \
+	-width $length \
+        -yscrollcommand "$path.scroll set" \
+	-state disabled
+    scrollbar $path.scroll -command "$path.text yview"
+    pack append $path $path.cb {left frame nw} $path.text {left} $path.scroll {left filly}
+}
+
+proc labeltext {path text length} {
+    frame $path
+    label $path.label -text $text
+
+    text $path.text \
+	-relief raised \
+	-bd 2 \
+	-height 3 \
+	-width 60 \
+        -yscrollcommand "$path.scroll set"
+    scrollbar $path.scroll -command "$path.text yview"
+    pack append $path $path.label {left frame nw} $path.text {left} $path.scroll {left filly}
+}
+
+proc labelentry {path text length} {
+    frame $path
+    label $path.label -text $text
+    entry $path.entry -width $length -relief sunken
+    pack append $path $path.label {left expand} $path.entry {right expand}
+}
+
+proc Transition { newState } {
+        global State
+        set State $newState
+}
+
+proc Unpack {} {
+        pack unpack .suspicions
+        pack unpack .known
+        pack unpack .prepare
+        pack unpack .overall
+        pack unpack .comments
+}
+
+proc InitializeGlobals {} {
+        global State; set State "Aware"
+        global AwareOfDisconnection; set AwareOfDisconnection "Unknown"
+        global Suspicious; set Suspicious 0
+        global OtherSuspicious; set OtherSuspicious 0
+        global PracticeDisconnection; set PracticeDisconnection 0
+
+        # Use xfontsel to select an appropriate font.
+        global fontinfo; set fontinfo \
+		"-Adobe-helvetica-bold-r-normal-*-*-160-*-*-*-*-*-*"
+}
+
+proc packwindows {} {
+
+        global State
+        global AwareOfDisconnection
+        global OtherSuspicious
+
+        wm geometry . +0+0
+        wm title . "Reconnection Questionnaire"
+
+	set f .c.main
+
+        case $State in {
+                {Aware}
+                        {
+                                pack append $f \
+                                        .info {top fill}\
+                                        .aware  {top fill pady 10}
+				set child .aware
+                        }
+                {Knows}
+                        {
+                                pack unpack .prepare
+                                pack after .aware .known {top fill pady 10}
+                                pack append $f .overall {top fill pady 10}
+                                pack append $f .comments {top fill pady 10}
+				set child .comments
+                        }
+                {Suspicions}
+                        {
+                                pack after .aware .suspicions {top fill pady 10}
+                                pack append $f .overall {top fill pady 10}
+                                pack append $f .comments {top fill pady 10}
+				set child .comments
+                        }
+                {Prepare}
+                        {
+                                pack append $f .prepare {top fill pady 10}
+                                pack append $f .overall {top fill pady 10}
+                                pack append $f .comments {top fill pady 10}
+				set child .comments
+                        }
+                {FinalComments}
+                        {
+                                pack append $f .comments {top fill pady 10}
+				set child .comments
+                        }
+        }
+
+        #
+        # Let the user resize this window
+        #
+        wm minsize . 10 10
+
+	#
+	# Wait for the packer to add the frame, then fix up the
+	# size of the canvas
+
+	# Brent originally suggested that I use:
+	#	tkwait visibility $child
+	# but this triggers a bug because the $child window becomes visible
+	# before packing is finished.  Thus the size of the frame is not yet
+	# set which causes the size of the scrollregion to get set incorrectly.
+	# Note that this bug only occurs on the pmax when the screenheight is
+	# artifically set to allow us to test the scrollbar on large screen 
+	# monitors.  Henry Rowley (har@cs) suggested that I use:
+	#	update idletasks
+	# This causes the bug to disappear on the pmax but creates an even
+	# worse bug on the 386 (the questionnaire window .is about 20x40).
+	# I'm going back to the tkwait command since that appears to work well
+	# on the pmax and the 386 so long as we use the real screenheights.
+	tkwait visibility $child
+
+	set w [winfo width $f]
+	set h [winfo height $f]
+	.c config -scrollregion "0 0 $w $h" -scrollincrement 10
+	set sh [winfo screenheight $f]
+#	set sh 300 ; # hack to test on large screen monitors
+	if {$h > $sh} {
+	    # Subtract off 25 to account for the title bar (I think)
+	    set h [expr $sh-25]
+	}
+	.c config -width $w -height $h
+}
+
+
+#
+# Questions
+#
+
+proc QuestionAware {} {
+        global fontinfo
+
+        #
+        # Aware of disconnection?
+        #
+
+        frame .aware -relief raised -borderwidth 2
+        message .aware.msg -text "Were you aware you were operating disconnected?" \
+                -justify left \
+                -width "8i"
+
+        frame .aware.rb
+        radiobutton .aware.rb.yes \
+                -text "Yes" \
+                -variable AwareOfDisconnection \
+                -value "Yes" \
+                -relief flat \
+                -activebackground Bisque1 \
+                -command "Unpack; Transition Knows; packwindows"
+        radiobutton .aware.rb.no \
+                -text "No" \
+                -variable AwareOfDisconnection \
+                -value "No" \
+                -relief flat \
+                -activebackground Bisque1 \
+                -command "Unpack; Transition FinalComments; packwindows"
+        radiobutton .aware.rb.suspected \
+                -text "I suspected, but wasn't sure" \
+                -variable AwareOfDisconnection \
+                -value "Suspected" \
+                -relief flat \
+                -activebackground Bisque1 \
+                -command "Unpack; Transition Suspicions; packwindows"
+        pack append .aware.rb \
+                .aware.rb.yes           {left padx 40} \
+                .aware.rb.no            {left padx 40} \
+                .aware.rb.suspected     {left padx 40}
+
+
+        pack append .aware \
+                .aware.msg      {top frame nw} \
+                .aware.rb  {top expand}
+}
+
+proc QuestionComments {} {
+        #
+        # Final comments
+        #
+
+        frame .comments -relief raised -borderwidth 2
+        labeltext .comments.label "Final comments:" 50
+        button .comments.done \
+                -command quit\
+                -text "Done" \
+                -state active
+
+        pack append .comments \
+                .comments.label {left frame nw} \
+                .comments.done {right padx 10}
+}
+
+proc TransitionFromKnows {} {
+        global VoluntaryDisconnection
+
+        if {$VoluntaryDisconnection} then {
+                Transition Prepare
+        } else {
+                Transition Knows
+        }
+}
+
+proc QuestionKnown {} {
+        global AwareOfDisconnection
+        global fontinfo
+
+        #
+        # What gives us away?
+        #
+
+        frame .known -relief raised -borderwidth 2
+        message .known.msg \
+                -text "How did you know that you were disconnected?  Choose \
+all that apply." \
+                -justify left \
+                -width "8i"
+
+        #
+        # Possible suspicious activity
+        #
+
+        frame .known.cbfirstline
+
+        checkbutton .known.cbfirstline.voluntary \
+                -text "Voluntary Disconnection" \
+                -relief flat \
+                -variable VoluntaryDisconnection \
+                -command "TransitionFromKnows ; packwindows"
+        checkbutton .known.cbfirstline.practice \
+                -text "Practice Disconnection" \
+                -relief flat \
+                -variable PracticeDisconnection \
+                -command "TransitionFromKnows; packwindows"
+
+        pack append .known.cbfirstline \
+                .known.cbfirstline.voluntary    {left expand fill} \
+                .known.cbfirstline.practice     {left expand fill}
+
+        frame .known.cbsecondline
+
+        checkbutton .known.cbsecondline.codacon    \
+                -text "codacon" \
+                -relief flat \
+                -variable Codacon
+        checkbutton .known.cbsecondline.cmon    \
+                -text "cmon" \
+                -relief flat \
+                -variable Cmon
+        checkbutton .known.cbsecondline.stoplight    \
+                -text "Stoplight" \
+                -relief flat \
+                -variable Stoplight
+
+        pack append .known.cbsecondline \
+                .known.cbsecondline.codacon     {left expand fill} \
+                .known.cbsecondline.cmon        {left expand fill} \
+                .known.cbsecondline.stoplight   {left expand fill}
+
+	frame .known.cbthirdline 
+
+        checkbutton .known.cbthirdline.sluggish \
+                -text "sluggishness at point of disconnection" \
+                -relief flat \
+                -variable "Sluggishness"
+
+        checkbutton .known.cbthirdline.cachemiss \
+                -text "Observed a cache miss" \
+                -relief flat \
+                -variable "ObservedCacheMiss"
+
+        pack append .known.cbthirdline \
+		.known.cbthirdline.sluggish	{left expand fill} \
+                .known.cbthirdline.cachemiss    {left expand fill}
+
+        frame .known.other
+        cbtext .known.other.comments "Other (please specify):" 40 KnownOtherComments "ResetKnownOtherComments"
+        pack append .known.other \
+                .known.other.comments {left}
+
+        pack append .known \
+                .known.msg {top frame nw} \
+                .known.cbfirstline {top frame nw} \
+                .known.cbsecondline {top frame nw} \
+                .known.cbthirdline {top frame nw} \
+                .known.other {top frame nw}
+
+}
+
+proc ResetKnownOtherComments {} {
+        global KnownOtherComments
+
+        if { $KnownOtherComments == 0 } then {
+                .known.other.comments.text delete 1.0 end
+                .known.other.comments.text config -state disabled
+        } else {
+                .known.other.comments.text config -state normal
+        }
+}
+
+proc QuestionSuspicious {} {
+        global AwareOfDisconnection
+        global fontinfo
+
+        #
+        # What gives us away?
+        #
+
+        frame .suspicions -relief raised -borderwidth 2
+        message .suspicions.msg \
+                -text "What made you suspect that you were disconnected? Choose all that apply." \
+                -justify left \
+                -width "8i"
+
+        #
+        # Possible suspicious activity
+        #
+
+        frame .suspicions.cbfirstline
+
+        checkbutton .suspicions.cbfirstline.codacon \
+                -text "codacon" \
+                -relief flat \
+                -variable Codacon
+
+        checkbutton .suspicions.cbfirstline.cmon \
+                -text "cmon" \
+                -relief flat \
+                -variable Cmon
+
+        checkbutton .suspicions.cbfirstline.stoplight \
+                -text "stoplight" \
+                -relief flat \
+                -variable Stoplight
+
+	pack append .suspicions.cbfirstline \
+		.suspicions.cbfirstline.codacon    {left expand fill} \
+		.suspicions.cbfirstline.cmon       {left expand fill} \
+		.suspicions.cbfirstline.stoplight  {left expand fill} 
+
+	frame .suspicions.cbsecondline
+
+        checkbutton .suspicions.cbsecondline.sluggish \
+                -text "sluggishness at point of disconnection" \
+                -relief flat \
+                -variable "Sluggishness"
+
+        checkbutton .suspicions.cbsecondline.cachemiss \
+                -text "Observed a cache miss" \
+                -relief flat \
+                -variable "ObservedCacheMiss"
+
+	pack append .suspicions.cbsecondline \
+		.suspicions.cbsecondline.sluggish  {left expand fill} \
+		.suspicions.cbsecondline.cachemiss {left expand fill}
+
+        frame .suspicions.other
+        cbtext .suspicions.other.comments "Other (please specify):" 40 SuspiciousOtherComments "ResetSuspiciousOtherComments"
+        pack append .suspicions.other \
+                .suspicions.other.comments {left}
+
+        pack append .suspicions \
+                .suspicions.msg {top frame nw} \
+                .suspicions.cbfirstline {top frame nw} \
+                .suspicions.cbsecondline {top frame nw} \
+                .suspicions.other {top frame nw}
+}
+
+proc ResetSuspiciousOtherComments {} {
+        global SuspiciousOtherComments
+
+        if {$SuspiciousOtherComments == 0 } then {
+                .suspicions.other.comments.text delete 1.0 end
+                .suspicions.other.comments.text config -state disabled
+        } else {
+                .suspicions.other.comments.text config -state normal
+        }
+}
+
+proc ResetPractice {} {
+        global PracticeDisconnectionPreparation
+
+        if { $PracticeDisconnectionPreparation == 0 } then {
+                SetPracticeScale
+        }
+}
+
+proc ResetPrepOtherComments {} {
+        global PrepOtherComments
+
+        if { $PrepOtherComments == 0 } then {
+                .prepare.le.comments.text delete 1.0 end
+                .prepare.le.comments.text config -state disabled
+        } else {
+                .prepare.le.comments.text config -state normal
+        }
+}
+
+proc ResetNoPreparation {} {
+        global NoPreparation
+        global HoardWalk
+        global PseudoDisconnection
+        global PracticeDisconnectionPreparation
+        global PrepOtherComments
+
+        if { ($NoPreparation) && (($HoardWalk) || ($PseudoDisconnection) || ($PracticeDisconnectionPreparation) || ($PrepOtherComments)) } then {
+                set NoPreparation 0
+        }
+}
+
+proc ResetOtherPreps {} {
+        global HoardWalk
+        global PseudoDisconnection
+        global PracticeDisconnectionPreparation
+        global PrepOtherComments
+
+
+        set HoardWalk 0
+        set PseudoDisconnection 0
+        set PracticeDisconnectionPreparation 0
+        set PrepOtherComments 0
+        ResetPractice
+        ResetPrepOtherComments
+}
+
+proc QuestionPrepare {} {
+        global NoPreparation
+        global HoardWalk
+        global PseudoDisconnection
+        global fontinfo
+
+        #
+        # What Preparation?
+        #
+
+        frame .prepare -relief raised -borderwidth 2
+        message .prepare.msg -text "What did you do to prepare for this disconnection?  Choose all that apply." \
+                -justify left \
+                -width "8i"
+
+        frame .prepare.cb
+        checkbutton .prepare.cb.nothing \
+                -text "Nothing" \
+                -variable NoPreparation \
+                -relief flat \
+                -activebackground Bisque1 \
+                -command "ResetOtherPreps"
+        checkbutton .prepare.cb.hoardwalk \
+                -text "Hoard Walk" \
+                -variable HoardWalk \
+                -relief flat \
+                -activebackground Bisque1 \
+                -command "ResetNoPreparation"
+        checkbutton .prepare.cb.pseudodisconnection \
+                -text "Pseudo Disconnection" \
+                -variable PseudoDisconnection \
+                -relief flat \
+                -activebackground Bisque1 \
+                -command "ResetNoPreparation"
+        pack append .prepare.cb \
+                .prepare.cb.nothing     {left expand fill} \
+                .prepare.cb.hoardwalk           {left expand fill} \
+                .prepare.cb.pseudodisconnection {left expand fill}
+
+        frame .prepare.le
+        frame .prepare.le.practicedisconnection
+        checkbutton .prepare.le.practicedisconnection.cb \
+                -text "Practice Disconnection(s), how many?" \
+                -variable PracticeDisconnectionPreparation \
+                -relief flat \
+                -activebackground Bisque1 \
+                -command "SetPracticeScale"
+        scale .prepare.le.practicedisconnection.scale -from 0 -to 5 -length 300 \
+                -tickinterval 1 \
+                -label "None                                                 (5 or more)"  \
+                -orient horizontal \
+                -bg Bisque1 \
+                -activeforeground Gray \
+                -command "SetPracticeCB"
+
+        pack append .prepare.le.practicedisconnection \
+                .prepare.le.practicedisconnection.cb {left frame nw padx 25} \
+                .prepare.le.practicedisconnection.scale {left}
+
+        cbtext .prepare.le.comments "Other (please specify):" 40 PrepOtherComments "ResetPrepOtherComments; ResetNoPreparation"
+        pack append .prepare.le \
+                .prepare.le.practicedisconnection {top frame nw} \
+                .prepare.le.comments {top frame nw}
+
+        pack append .prepare \
+                .prepare.msg    {top frame nw} \
+                .prepare.cb     {top frame nw} \
+                .prepare.le     {top frame nw}
+}
+
+proc SetPracticeScale {} {
+        global PracticeDisconnectionPreparation
+
+        if { $PracticeDisconnectionPreparation } then {
+                .prepare.le.practicedisconnection.scale set 1
+        } else {
+                .prepare.le.practicedisconnection.scale set 0
+        }
+}
+
+proc SetPracticeCB {value} {
+        global PracticeDisconnectionPreparation
+
+        if { $value == 0 } then {
+                set PracticeDisconnectionPreparation 0
+        } else {
+                set PracticeDisconnectionPreparation 1
+        }
+}
+
+proc OutputPrepare {outFile} {
+        global NoPreparation
+        global HoardWalk
+        global PseudoDisconnection
+        global PracticeDisconnectionPreparation
+        global PrepOtherComments
+
+        puts $outFile [format "NoPreparation: %s" $NoPreparation]
+        puts $outFile [format "HoardWalk: %s" $HoardWalk]
+        puts $outFile [format "PseudoDisconnection: %s" $PseudoDisconnection]
+        puts $outFile [format "PracticeDisconnection(s): %s" $PracticeDisconnectionPreparation]
+        if { $PracticeDisconnectionPreparation } then {
+                set value [.prepare.le.practicedisconnection.scale get]
+                set IsInteger [regexp {^[0-9]*$} $value]
+
+                puts $outFile [format "NumberPracticeDisconnection(s): %s" [.prepare.le.practicedisconnection.scale get]]
+        }
+        puts $outFile [format "PreparationComments:\n %s\nEndComment.\n" [.prepare.le.comments.text get 1.0 end]]
+}
+
+proc QuestionOverall {} {
+        global fontinfo
+
+        #
+        # Overall Impression
+        #
+
+        frame .overall -relief raised -borderwidth 2
+        message .overall.msg \
+                -text "Overall, how successful would you consider this disconnected session?\n"\
+                -justify left \
+                -width "8i"
+        scale .overall.scale -from 0 -to 9 -length 400 -tickinterval 1 \
+                -label "Invalid | Not at all!    Not very         Hard To Say Somewhat          Very!"\
+		-orient horizontal \
+                -bg Bisque1 \
+		-activeforeground Gray \
+		-showvalue False
+
+
+        pack append .overall \
+                .overall.msg    {top frame nw} \
+                .overall.scale  {top}
+}
+
+
+proc OutputOverall {outFile} {
+	
+        puts $outFile [format "OveralImpression: %s" [.overall.scale get]]
+}
+
+proc PresentInfo {} {
+        global fontinfo
+        global argv
+
+        #
+        # Informational Dialog
+        #
+
+	set Date [lindex $argv 1]
+	set Time [lindex $argv 2]
+	set Length [lindex $argv 3]
+
+	if {$Date == "12/31/69"} then {
+	    set msg "A network connection has been established.\nDisconnection Time:  prior to Venus start-up"
+	} else {
+	    set msg "A network connection has been reestablished.\nDisconnection Time:  [lindex $argv 1] at [lindex $argv 2].\nDisconnection Length:  [lindex $argv 3]."
+	}
+
+        frame .info -relief raised -borderwidth 2
+        message .info.msg -text $msg \
+                -justify left \
+                -width "8i"
+
+        pack append .info \
+                .info.msg       {top fill}
+}
+
+proc CreateMainScrollBar {} {
+    # The canvas size gets fixed up in packwindows
+    canvas .c -yscrollcommand {.scrollbar set} -width 200 -height 100
+    scrollbar .scrollbar -command ".c yview"
+
+    pack append . .scrollbar {right filly}
+    pack append . .c {left fillx filly expand}
+
+    frame .c.main
+
+    .c create window 0 0 -anchor nw -window .c.main
+}
+
+##############################################################################
+# Main program
+
+#
+#  Check that we have precisely 4 arguments.
+#
+if { $argc != 4 } then {
+        puts "Usage: reconnection outfile DisconnectionDate DisconnectionTime DisconnectionLength"
+        puts "       where outfile is the output file name"
+        puts "       where DisconnectionDate is the day the disconnection occurred (e.g. 4/8/94)"
+        puts "       where DisconnectionTime is the time the disconnection occurred (e.g. 4:52pm)"
+        puts "       where DisconnectionLength is the length of the disconnection (e.g. 1 day)"
+        exit 0
+}
+
+#
+# Global Variables
+#
+InitializeGlobals
+
+#
+# Create all windows
+#
+CreateMainScrollBar
+PresentInfo
+QuestionAware
+QuestionComments
+QuestionPrepare
+QuestionSuspicious
+QuestionKnown
+QuestionOverall
+
+packwindows
+
+#
+# Now, wait for user actions...
+#
+

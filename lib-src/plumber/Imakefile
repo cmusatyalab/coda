@@ -1,0 +1,42 @@
+/* ********************************************************************** *\
+ *         Copyright IBM Corporation 1988,1991 - All Rights Reserved      *
+ *        For full copyright information see:'andrew/config/COPYRITE'     *
+\* ********************************************************************** */
+
+/*
+	$Disclaimer:  $
+*/
+
+
+DependTarget()
+
+DEFINES = -DWORD=$(MALLOCALIGNMENT) -DMSTATS 
+
+#ifdef ANDREW_MALLOC_ENV
+NormalObjectRule()
+
+
+#if (defined(sun4) || defined(sparc) || defined(pmax) || defined(mips))
+
+NormalAsmPPRule()
+LibraryTarget(libmalloc.a, malloc.o getcallr.o plumber.o)
+LibraryTarget(libplumber.a, pmalloc.o getcallr.o pplumber.o)
+
+#else /* defined(sun4) || defined(sparc) || defined(pmax) || defined(mips) */
+
+LibraryTarget(libmalloc.a, malloc.o plumber.o)
+LibraryTarget(libplumber.a, pmalloc.o pplumber.o)
+
+#endif /* defined(sun4) || defined(sparc) || defined(pmax) || defined(mips) */
+
+
+InstallLibrary(libmalloc.a, $(DESTDIR)/lib)
+InstallLibrary(libplumber.a, $(DESTDIR)/lib)
+InstallFile(malloc.h, $(INSTINCFLAGS), $(DESTDIR)/include)
+InstallDocs(malloc.help, ${DESTDIR}/help)
+#endif
+
+malloc.o: malloc.ci
+plumber.o: plumber.ci
+pmalloc.o: malloc.ci
+pplumber.o: plumber.ci

@@ -1,0 +1,136 @@
+#!/bin/csh -f 
+#ifndef _BLURB_
+#define _BLURB_
+#/*
+#
+#            Coda: an Experimental Distributed File System
+#                             Release 4.0
+#
+#          Copyright (c) 1987-1996 Carnegie Mellon University
+#                         All Rights Reserved
+#
+#Permission  to  use, copy, modify and distribute this software and its
+#documentation is hereby granted,  provided  that  both  the  copyright
+#notice  and  this  permission  notice  appear  in  all  copies  of the
+#software, derivative works or  modified  versions,  and  any  portions
+#thereof, and that both notices appear in supporting documentation, and
+#that credit is given to Carnegie Mellon University  in  all  documents
+#and publicity pertaining to direct or indirect use of this code or its
+#derivatives.
+#
+#CODA IS AN EXPERIMENTAL SOFTWARE SYSTEM AND IS  KNOWN  TO  HAVE  BUGS,
+#SOME  OF  WHICH MAY HAVE SERIOUS CONSEQUENCES.  CARNEGIE MELLON ALLOWS
+#FREE USE OF THIS SOFTWARE IN ITS "AS IS" CONDITION.   CARNEGIE  MELLON
+#DISCLAIMS  ANY  LIABILITY  OF  ANY  KIND  FOR  ANY  DAMAGES WHATSOEVER
+#RESULTING DIRECTLY OR INDIRECTLY FROM THE USE OF THIS SOFTWARE  OR  OF
+#ANY DERIVATIVE WORK.
+#
+#Carnegie  Mellon  encourages  users  of  this  software  to return any
+#improvements or extensions that  they  make,  and  to  grant  Carnegie
+#Mellon the rights to redistribute these changes without encumbrance.
+#*/
+#
+#static char *rcsid = "$Header: blurb.doc,v 1.1 96/11/22 13:29:31 raiff Exp $";
+#endif /*_BLURB_*/
+
+
+#ifndef _BLURB_
+#define _BLURB_
+#/*
+#
+#            Coda: an Experimental Distributed File System
+#                             Release 3.1
+#
+#          Copyright (c) 1987-1995 Carnegie Mellon University
+#                         All Rights Reserved
+#
+#Permission  to  use, copy, modify and distribute this software and its
+#documentation is hereby granted,  provided  that  both  the  copyright
+#notice  and  this  permission  notice  appear  in  all  copies  of the
+#software, derivative works or  modified  versions,  and  any  portions
+#thereof, and that both notices appear in supporting documentation, and
+#that credit is given to Carnegie Mellon University  in  all  documents
+#and publicity pertaining to direct or indirect use of this code or its
+#derivatives.
+#
+#CODA IS AN EXPERIMENTAL SOFTWARE SYSTEM AND IS  KNOWN  TO  HAVE  BUGS,
+#SOME  OF  WHICH MAY HAVE SERIOUS CONSEQUENCES.  CARNEGIE MELLON ALLOWS
+#FREE USE OF THIS SOFTWARE IN ITS "AS IS" CONDITION.   CARNEGIE  MELLON
+#DISCLAIMS  ANY  LIABILITY  OF  ANY  KIND  FOR  ANY  DAMAGES WHATSOEVER
+#RESULTING DIRECTLY OR INDIRECTLY FROM THE USE OF THIS SOFTWARE  OR  OF
+#ANY DERIVATIVE WORK.
+#
+#Carnegie  Mellon  encourages  users  of  this  software  to return any
+#improvements or extensions that  they  make,  and  to  grant  Carnegie
+#Mellon the rights to redistribute these changes without encumbrance.
+#*/
+#
+#static char *rcsid = "$Header: installbetasrv.csh,v 1.1 96/11/22 13:25:37 raiff Exp $";
+#endif /*_BLURB_*/
+
+
+if ($#argv != 2) then
+    echo "Usage: $0 <Source Client Host> <Beta-base directory>"
+    exit 1
+endif 
+
+set SRCHOST=$1
+set BaseDir=/../$1/$2
+set SRVPIDFILE = "/vice/srv/pid"
+
+set SCMBINS=(purgevol purgevol_rep createvol createvol_rep bldvldb.sh)
+
+set SRVBINS=(auth2 authmon printvrdb srv updateclnt updatemon updatesrv volutil)
+
+set SPCLBINS=( rds_test rdsinit rvmutl)
+
+#make sure server is officially down 
+if (-f SRVPIDFILE) then
+    echo "A server is running"
+    echo "Make sure it is dead and remove the file $SRVPIDFILE"
+    exit 1
+endif
+
+echo Getting binaries from  $BaseDir
+cd /vice
+
+echo "removing really old binaries in bin.old"
+rm -rf /vice/bin.old
+
+echo "moving existing binaries to bin.old"
+mv bin bin.old
+mkdir bin
+
+echo -n "copying bin files: "
+foreach f ($SRVBINS ) 
+    echo -n $f " "
+    copy $BaseDir/bin/$f bin
+end
+echo ""
+
+if (`cat /.hostname` == `cat /.scm`) then
+    echo -n "copying scm files: "
+    foreach f ($SCMBINS)
+        echo -n $f " "
+        copy $BaseDir/bin/$f bin
+    end
+endif
+echo ""
+
+echo -n "copying special binaries(RVM): "
+foreach f ($SPCLBINS ) 
+    echo -n $f " "
+    copy $BaseDir/bin-special/$f bin
+end
+
+echo ""
+
+echo "copying old startserver script"
+/bin/cp /vice/bin.old/startserver /vice/bin/startserver
+
+echo "copying old restartserver script"
+/bin/cp /vice/bin.old/restartserver /vice/bin
+
+echo "copying old startfromboot script"
+/bin/cp /vice/bin.old/startfromboot /vice/bin
+

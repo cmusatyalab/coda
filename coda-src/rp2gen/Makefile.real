@@ -1,0 +1,96 @@
+#ifndef _BLURB_
+#define _BLURB_
+#/*
+#
+#            Coda: an Experimental Distributed File System
+#                             Release 4.0
+#
+#          Copyright (c) 1987-1996 Carnegie Mellon University
+#                         All Rights Reserved
+#
+#Permission  to  use, copy, modify and distribute this software and its
+#documentation is hereby granted,  provided  that  both  the  copyright
+#notice  and  this  permission  notice  appear  in  all  copies  of the
+#software, derivative works or  modified  versions,  and  any  portions
+#thereof, and that both notices appear in supporting documentation, and
+#that credit is given to Carnegie Mellon University  in  all  documents
+#and publicity pertaining to direct or indirect use of this code or its
+#derivatives.
+#
+#CODA IS AN EXPERIMENTAL SOFTWARE SYSTEM AND IS  KNOWN  TO  HAVE  BUGS,
+#SOME  OF  WHICH MAY HAVE SERIOUS CONSEQUENCES.  CARNEGIE MELLON ALLOWS
+#FREE USE OF THIS SOFTWARE IN ITS "AS IS" CONDITION.   CARNEGIE  MELLON
+#DISCLAIMS  ANY  LIABILITY  OF  ANY  KIND  FOR  ANY  DAMAGES WHATSOEVER
+#RESULTING DIRECTLY OR INDIRECTLY FROM THE USE OF THIS SOFTWARE  OR  OF
+#ANY DERIVATIVE WORK.
+#
+#Carnegie  Mellon  encourages  users  of  this  software  to return any
+#improvements or extensions that  they  make,  and  to  grant  Carnegie
+#Mellon the rights to redistribute these changes without encumbrance.
+#*/
+#
+#static char *rcsid = "$Header: blurb.doc,v 1.1 96/11/22 13:29:31 raiff Exp $";
+#endif /*_BLURB_*/
+
+
+#/*
+#
+#                         IBM COPYRIGHT NOTICE
+#
+#                          Copyright (C) 1986
+#             International Business Machines Corporation
+#                         All Rights Reserved
+#
+#This  file  contains  some  code identical to or derived from the 1986
+#version of the Andrew File System ("AFS"), which is owned by  the  IBM
+#Corporation.    This  code is provded "AS IS" and IBM does not warrant
+#that it is free of infringement of  any  intellectual  rights  of  any
+#third  party.    IBM  disclaims  liability of any kind for any damages
+#whatsoever resulting directly or indirectly from use of this  software
+#or  of  any  derivative work.  Carnegie Mellon University has obtained
+#permission to distribute this code, which is based on Version 2 of AFS
+#and  does  not  contain the features and enhancements that are part of
+#Version 3 of AFS.  Version 3 of  AFS  is  commercially  available  and
+#supported by Transarc Corporation, Pittsburgh, PA.
+#
+#*/
+
+
+# The REAL Makefile
+# The other Makefiles invoke this after setting: CC CFLAGS LFLAGS
+
+
+SOURCES = crout.c rp2gen.h rp2.h rp2gen.mss rp2gen.yacc rp2gen.lex rp2main.c symtab.c test.c test.rpc2 util.c
+
+# All the things that seem to depend on y.tab.c (except y.tab.o) really depend
+# on y.tab.h, but it gets generated at the same time by yacc...
+
+all: rp2gen
+
+rp2gen: rp2main.o y.tab.o lex.yy.o symtab.o crout.o util.o
+	${CC} $(CFLAGS) rp2main.o y.tab.o lex.yy.o symtab.o crout.o util.o -o rp2gen
+
+rp2main.o: rp2main.c rp2.h
+
+y.tab.o: y.tab.c rp2.h
+
+y.tab.c: rp2gen.yacc
+	yacc -d rp2gen.yacc
+
+lex.yy.o: lex.yy.c rp2.h
+
+lex.yy.c: rp2gen.lex
+	lex $(LFLAGS) rp2gen.lex
+
+symtab.o: symtab.c rp2.h
+
+crout.o: crout.c rp2.h
+
+util.o	: util.c rp2.h
+
+clean:
+	-rm -rf *.o rp2gen lex.yy.c y.tab.*
+
+.INOBJECTDIR: rp2.h
+	cp -p $< ./$<
+	chmod 0644 ./$<

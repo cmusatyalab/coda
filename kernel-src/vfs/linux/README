@@ -1,0 +1,70 @@
+Coda implementation under Linux
+-------------------------------
+
+
+psdev: 
+------
+
+DS: cfs_mnttbl -- is statically (super.c) assigned array of cfs_mntinfo
+indexed by minor device number of coda_psdev's.  Provides the link
+between mounted filesystems and coda psdevs.  Normally there is one
+venus, one psdev, and one Linux mountpoint associated with using
+coda. However provisions are made for multiple veni, psdevs and mounts.
+
+DS: vcomm -- each coda psdev has an associated vcomm structure. This holds
+a process wait queue, with a request - read: "request from kernel to
+Venus" - and reply queue.
+
+PR: coda_inode_vcomm -- check if inode is coda_psdev, then give a
+pointer to the corresponding vcomm pointer in the mnttbl.
+
+PR: codadev_open -- zeroes out the corresponding mnttbl entry and
+initializes the queues for a vcomm.
+
+DS: vmsg -- message between kernel and Venus. This struct starts with
+the queue pointers (vmsg.vm_chain), has a data pointer, sizes,
+opcodes, flags and unique id (vmsg.vm_unique).
+
+PR: codadev_read -- removes the vmsg from the request queue, copies it
+into Venus' buffer and places the entire vmsg message structure on the
+reply queue, unless it was a SIGNAL, in which case it deallocates the
+message.
+
+DS: outputArgs -- opcode, unique, result and then a union "d" of all
+possible out structures.
+
+PR: codadev_write -- gets character buffer from Venus'. Check if
+opcode is a downcall -- if so copy data into outputArgs structure and
+do handleDownCall.  If kernel can find which vmsg on the reply queue
+the message belongs to -- take the message out of the reply queue --
+the message has now been taken of the vcomm structure.  Copy the data
+into the vmsg, and wakeup the process waiting for it.
+
+
+super.c
+-------
+
+DS:  cfs_mntinfo -- structure sitting in the cfs_mnttbl (one entry for
+every psdev). The fields are a refcount, a pointer (mi_ctlvp) to the
+control inode, a vcomm structure (mi_vcomm) and an ody_mntinfo
+structure (mi_vfschain).
+
+DS:  ody_mntinfo -- a chain of mounts. Holds a pointer to the root
+inode (rootvp), a pointer the the coda_sb_info (vfsp) and a pointer to
+the next mount in the chain (next).
+
+DS:  cnode -- kernel structure to identify coda object. Contains
+pointer (c_vnode) to coda inode of the file, (c_flags) an int
+indicating the state of the cnode, and c_fid, the ViceFid of the
+cnode.  Has pointer to psdev.
+
+DS:  coda_sb_info -- 
+
+cfs_subr.c
+----------
+
+PR: cfscall -- takes a mntinfo, inSize, outSize and Buffer
+argument. Find the vcomm associated with mntinfo. Allocte a vmsg, and
+put the buffer in its data. Put the message in the vcomm request
+queue, and wait up the process doing a select on the psdev device.
+

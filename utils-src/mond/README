@@ -1,0 +1,24 @@
+Adding a new data collection call to mond.
+
+(1) add the call spec and associated data types to mond.rpc2
+
+(2) add a type name to the enum dataClass in mondgen.h for each new type.
+
+(3) add a subclass of vmon_data in data.h for each new type, defining
+Type and Report as inline methods.  Add any methods you may need for
+constructors, destructors, or support methods.
+
+(4) add the method <class>::init() and <class>::Release() in data.c
+for each new type.  This is also a good time to write any class
+constructors (e.g. to allocate space for strings, etc.)
+
+(5) add the case for this type in bufpool::getSlot in data.c
+
+(6) add a buffer pool for each new type in data.c.  Add the extern
+declaration for the pool in data.h.  Add the prefetch for the buffers
+in mondutil.c (Buff_Init).
+
+(7) add the headers for Report* in report.h; add the
+definitions for Report* and MondReport* (or VmonReport*/SmonReport*).
+
+(8) in the talker thread, add the cases for freeing the buffer entry

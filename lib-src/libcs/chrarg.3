@@ -1,0 +1,121 @@
+.\" COPYRIGHT NOTICE
+.\" Copyright (c) 1994 Carnegie Mellon University
+.\" All Rights Reserved.
+.\" 
+.\" See <cmu_copyright.h> for use and distribution information.
+.\" 
+.\" 
+.\" HISTORY
+.\" $Log:	chrarg.3,v $
+Revision 1.1  96/06/03  19:00:02  satya
+Initial revision
+
+.\" Revision 1.2  1995/10/18  14:57:48  moore
+.\" 	Created libcs man(3) pages from mach entries
+.\" 	[1995/10/18  14:52:44  moore]
+.\"
+.\" $EndLog$
+.\" Copyright (c) 1990 Carnegie Mellon University
+.\" All Rights Reserved.
+.\" 
+.\" Permission to use, copy, modify and distribute this software and its
+.\" documentation is hereby granted, provided that both the copyright
+.\" notice and this permission notice appear in all copies of the
+.\" software, derivative works or modified versions, and any portions
+.\" thereof, and that both notices appear in supporting documentation.
+.\"
+.\" THE SOFTWARE IS PROVIDED "AS IS" AND CARNEGIE MELLON UNIVERSITY
+.\" DISCLAIMS ALL WARRANTIES WITH REGARD TO THIS SOFTWARE, INCLUDING ALL
+.\" IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS.  IN NO EVENT
+.\" SHALL CARNEGIE MELLON UNIVERSITY BE LIABLE FOR ANY SPECIAL, DIRECT,
+.\" INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER
+.\" RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF
+.\" CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN
+.\" CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+.\"
+.\" Users of this software agree to return to Carnegie Mellon any
+.\" improvements or extensions that they make and grant Carnegie the
+.\" rights to redistribute these changes.
+.\"
+.\" Export of this software is permitted only after complying with the
+.\" regulations of the U.S. Deptartment of Commerce relating to the
+.\" Export of Technical Data.
+.\"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+.\" HISTORY
+.\" $Log:	chrarg.3,v $
+Revision 1.1  96/06/03  19:00:02  satya
+Initial revision
+
+.\" Revision 1.2  1995/10/18  14:57:48  moore
+.\" 	Created libcs man(3) pages from mach entries
+.\" 	[1995/10/18  14:52:44  moore]
+.\"
+.\" Revision 1.1.1.2  1995/10/18  14:52:44  moore
+.\" 	Created libcs man(3) pages from mach entries
+.\"
+.\" Revision 1.2  90/12/12  15:47:02  mja
+.\" 	Add copyright/disclaimer for distribution.
+.\" 
+.\" 13-Nov-86  Andi Swimmer (andi) at Carnegie-Mellon University
+.\" 	Revised for 4.3.
+.\" 
+.\" 05-Dec-79  Steven Shafer (sas) at Carnegie-Mellon University
+.\" 	Created.
+.\" 
+.TH CHRARG 3 12/5/79
+.CM 1
+.SH "NAME"
+chrarg \- parse character argument or ask user
+.SH "SYNOPSIS"
+.B
+int chrarg (ptr,brk,prompt,legals,defalt);
+.br
+.B
+char **ptr,*brk,*prompt,*legals,defalt;
+.SH "DESCRIPTION"
+.I
+Chrarg
+attemps to parse an argument from a string, passing
+the string pointer
+.I
+ptr
+and the break character set
+.I
+brk
+to the
+.IR nxtarg (3)
+routine.
+If there is an argument parsed, and
+it begins with a character which is present in the
+string
+.I
+legals
+of legal character responses, then the index of that
+character within
+.I
+legals
+is returned.
+If there is no argument, or if it does
+not begin with a legal character, then the parameters
+.I
+prompt, legals,
+and
+.I
+defalt
+are passed to the
+.IR getchr (3)
+routine, whose value is then returned by
+.I
+chrarg.
+.sp
+.I
+Chrarg
+is especially useful for parsing character values
+from argument lists in programs using the command interpreter,
+.IR ci (3).
+.SH "LIBRARY NOTES"
+You must link against /usr/local/lib/libcs.a to define this routine.
+.SH "SEE ALSO"
+.IR nxtarg (3), 
+.IR getchr (3), 
+.IR ci (3)

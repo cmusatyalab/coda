@@ -1,0 +1,104 @@
+#ifndef _BLURB_
+#define _BLURB_
+#/*
+#                    RVM - Recoverable Virtual Memory
+#                             Release 1.2
+#                      School of Computer Science
+#                      Carnegie Mellon University
+#                          Copyright 1987-92
+#
+#Use of RVM outside Carnegie Mellon University requires a license.
+#*/
+
+# XXX N.B. this is a munged version of this file by me (tilt).
+#          i'm munging it so I can get a quick compile, but
+#          at some point this stuff needs fixed for the distribution
+#          version.
+
+#
+#static char *rcsid = "$Header: Makeconf,v 1.4 95/01/16 23:44:05 bnoble Exp $";
+#endif _BLURB_
+#ifndef _BLURB_
+
+INSTALL = cp -p
+
+# ROOT: the root directory of the install directory
+# XXX should really be somewhere that is in general space?
+ROOT=/afs/cs.cmu.edu/project/coda-tilt/rvm-top
+
+# EXPORT: a list of roots to which we should export
+EXPORT=
+
+# OBJECTDIR: the root of the object tree: if multiple folks are
+# building at once, change this to something that is bogus
+
+OBJECTDIR=$(ROOT)/obj
+
+# Build tools
+# XXX keeping this pointing at bnoble's for now.
+BUILD_TOOLS=/afs/cs.cmu.edu/project/coda-bnoble/build-tools/bin
+DOSRCINSTALL=$(BUILD_TOOLS)/dosrcinstall
+
+# Install directories: where to install local releases
+
+INCLDIR=$(ROOT)/include
+BINDIR =$(ROOT)/bin
+LIBDIR =$(ROOT)/lib
+ETCDIR =$(ROOT)/etc
+DOCDIR =$(ROOT)/doc
+MANDIR =$(ROOT)/man
+SRCDIR =$(ROOT)/src
+
+# Use this to override anything important
+PERSONAL_INCLUDE = .
+PERSONAL_LIB= .
+
+CC = gcc
+
+# include any system-specific makeconf stuff: must be present,
+# typically as a symlink to @sys/Makeconf.sys in the Makeconf
+# directory.  Makeconf.sys can define any of the following three
+# additions to INCLFLAGS, LIBFLAGS, and CFLAGS
+SYS_INCLFLAGS=
+SYS_CFLAGS=
+# It should also define the correct value of SYS, so that individual
+# makefiles can do the right thing
+SYS=
+# Error if we can't find Makeconf.sys
+include Makeconf.sys
+
+# Many of the components require cthreads for part of their execution.
+# If they do, but we are not on a mach machine, use dummy_cthreads.h
+# instead.  Requires that individual component directories have
+# dummy_cthreads.h if needed
+NEED_CTHREAD_pmax_mach   = 
+NEED_CTHREAD_i386_mach   = 
+NEED_CTHREAD_sun4_mach   = 
+NEED_CTHREAD_alpha_osf20 = cthreads.h
+NEED_CTHREAD_i386_nbsd1  = cthreads.h
+NEED_CTHREAD             = $(NEED_CTHREAD_${SYS})
+
+${NEED_CTHREAD} : dummy_cthreads.h
+	ln -s $> $@
+
+# LWP info
+# LWPROOT      =  /afs/cs/project/coda/member/bnoble/coda-clone
+# XXX this is also a hack, since LWP for NetBSD is living somewhere
+#     other than /coda/project/coda/alpha.
+LWPROOT      =  ${ROOT}/LWPROOT
+LWPINCLDIR   =  ${LWPROOT}/include
+LWPLIBDIR    =  ${LWPROOT}/lib
+LIBLWP       =  ${LIBLWPDIR}/liboldlwp.a
+
+# Libraries to pick up for building bin: used for non-local libs only
+LIBRVM       =  ${LIBDIR}/librvm.a
+LIBSEG       =  ${LIBDIR}/libseg.a
+
+INCLFLAGS = -I$(PERSONAL_INCLUDE) -I. -I$(INCLDIR) -I$(LWPINCLDIR) \
+	     $(SYS_INCLFLAGS) -I/usr/include
+
+# both optimization and debugging, as well as -Wall
+CFLAGS = -g3 -O2 -Wall $(PERSONAL_CFLAGS) $(SYS_CFLAGS) $(INCLFLAGS)
+
+LIBFLAGS = -L$(PERSONAL_LIB) -L$(LIBDIR) $(SYS_LIBFLAGS)
+

@@ -1,0 +1,168 @@
+#!/bin/csh -f
+#ifndef _BLURB_
+#define _BLURB_
+#/*
+#
+#            Coda: an Experimental Distributed File System
+#                             Release 4.0
+#
+#          Copyright (c) 1987-1996 Carnegie Mellon University
+#                         All Rights Reserved
+#
+#Permission  to  use, copy, modify and distribute this software and its
+#documentation is hereby granted,  provided  that  both  the  copyright
+#notice  and  this  permission  notice  appear  in  all  copies  of the
+#software, derivative works or  modified  versions,  and  any  portions
+#thereof, and that both notices appear in supporting documentation, and
+#that credit is given to Carnegie Mellon University  in  all  documents
+#and publicity pertaining to direct or indirect use of this code or its
+#derivatives.
+#
+#CODA IS AN EXPERIMENTAL SOFTWARE SYSTEM AND IS  KNOWN  TO  HAVE  BUGS,
+#SOME  OF  WHICH MAY HAVE SERIOUS CONSEQUENCES.  CARNEGIE MELLON ALLOWS
+#FREE USE OF THIS SOFTWARE IN ITS "AS IS" CONDITION.   CARNEGIE  MELLON
+#DISCLAIMS  ANY  LIABILITY  OF  ANY  KIND  FOR  ANY  DAMAGES WHATSOEVER
+#RESULTING DIRECTLY OR INDIRECTLY FROM THE USE OF THIS SOFTWARE  OR  OF
+#ANY DERIVATIVE WORK.
+#
+#Carnegie  Mellon  encourages  users  of  this  software  to return any
+#improvements or extensions that  they  make,  and  to  grant  Carnegie
+#Mellon the rights to redistribute these changes without encumbrance.
+#*/
+#
+#static char *rcsid = "$Header: blurb.doc,v 1.1 96/11/22 13:29:31 raiff Exp $";
+#endif /*_BLURB_*/
+
+
+#ifndef _BLURB_
+#define _BLURB_
+#/*
+#
+#            Coda: an Experimental Distributed File System
+#                             Release 3.1
+#
+#          Copyright (c) 1987-1995 Carnegie Mellon University
+#                         All Rights Reserved
+#
+#Permission  to  use, copy, modify and distribute this software and its
+#documentation is hereby granted,  provided  that  both  the  copyright
+#notice  and  this  permission  notice  appear  in  all  copies  of the
+#software, derivative works or  modified  versions,  and  any  portions
+#thereof, and that both notices appear in supporting documentation, and
+#that credit is given to Carnegie Mellon University  in  all  documents
+#and publicity pertaining to direct or indirect use of this code or its
+#derivatives.
+#
+#CODA IS AN EXPERIMENTAL SOFTWARE SYSTEM AND IS  KNOWN  TO  HAVE  BUGS,
+#SOME  OF  WHICH MAY HAVE SERIOUS CONSEQUENCES.  CARNEGIE MELLON ALLOWS
+#FREE USE OF THIS SOFTWARE IN ITS "AS IS" CONDITION.   CARNEGIE  MELLON
+#DISCLAIMS  ANY  LIABILITY  OF  ANY  KIND  FOR  ANY  DAMAGES WHATSOEVER
+#RESULTING DIRECTLY OR INDIRECTLY FROM THE USE OF THIS SOFTWARE  OR  OF
+#ANY DERIVATIVE WORK.
+#
+#Carnegie  Mellon  encourages  users  of  this  software  to return any
+#improvements or extensions that  they  make,  and  to  grant  Carnegie
+#Mellon the rights to redistribute these changes without encumbrance.
+#*/
+#
+#static char *rcsid = "$Header: swapmach,v 1.1 96/11/22 13:25:57 raiff Exp $";
+#endif /*_BLURB_*/
+
+
+# Script to swap between Mach 2.5 and Mach 3.0
+# Invoked with one argument:
+# 	Eg: "swapmach 2-5" converts a 3.0 machine to a 2.5 machine
+# 	Eg: "swapmach 3-0" does the reverse
+# Leaves behind file /MACH.2-5.WILL.BOOT if a reboot would result in Mach 2.5 running
+# Otherwise leaves behind /MACH.3-0.WILL.BOOT
+# You must reboot after running this script
+# Obviously you must be root to run this script
+
+# Assumes you have set the machine up correctly:
+#	- assume you have Mach 2.5 running already
+#	- populate /mach_servers as specified in Mach 3.0 setup document
+#	- copy Mach 3.0  microkernel and BSD server, and make hard links to 
+#		names in / and in /../.., as specified in Mach 3.0 setup.
+#		But remember to make all the names end with "3-0", 
+#		(e.g. mach.3-0, mach.boot.3-0, vmunix.3-0, vmunix.ok.3-0 and so on)
+#	- edit /etc/fstab and set pagehiwat=pagelowat=XX where XX is the (fixed) size of
+#	    the paging file you would like.  If this is larger than the current size of the
+#	    paging file you will (very carefully!!!) have to grow it.  Better to boot
+#	    standalone and grow it.
+#	- make /MACH.2-5.WILL.BOOT a symlink to /dev/null.   This is really a hack
+#	    to prevent the /MACH*  from being deleted by the nightly /etc/cleanroot script.
+
+
+if ($#argv != 1 || ($1 != 2-5 && $1 != 3-0)) then
+echo 'Usage: "swapmach 2-5"  or "swapmach 3-0"'
+exit(-1)
+endif
+
+# Define OLDMACH and NEWMACH
+set NEWMACH = $1
+if (-e /MACH.$NEWMACH.WILL.BOOT) then
+echo "Mach.$NEWMACH is already set to boot"
+exit(-1)
+endif
+if ($NEWMACH == 3-0) then
+set OLDMACH = 2-5
+else
+set OLDMACH = 3-0
+endif
+
+# Indicate swap is in progress (to assist in crash detection/recovery)
+if (-e /MACH.$OLDMACH.WILL.BOOT) then
+mv /MACH.$OLDMACH.WILL.BOOT /MACH.SWAP.IN.PROGRESS
+else
+echo "You must have /MACH.$OLDMACH.WILL.BOOT set"
+exit(-1)
+endif
+
+echo "Moving current vmunix's and mach's out of the way......"
+foreach F (/vmunix* /mach* /../../vmunix* /../../mach*)
+if ($F =~ *.$NEWMACH) continue
+if ($F =~ *mach_servers) continue
+mv $F $F.$OLDMACH
+echo "    $F --> $F.$OLDMACH"
+end
+
+echo ""
+echo "Moving new vmunix's and mach's into place ....."
+foreach F (/vmunix*.$NEWMACH /mach*.$NEWMACH /../../vmunix*.$NEWMACH /../../mach*.$NEWMACH)
+set NEWNAME = $F:r
+mv $F $NEWNAME
+echo "    $F --> $NEWNAME"
+end
+
+# The device numbers below are for i386 only
+# Fix this to be more general, when we are interested in other architectures
+echo ""
+if (`/etc/machine` != I386) then
+echo "NOT A 386 MACHINE --- FIX /dev/cfs0 MANUALLY"
+else
+echo -n "Changing device number of /dev/cfs0..."
+mv /dev/cfs0 /dev/cfs0.$OLDMACH
+if (-e /dev/cfs0.$NEWMACH) then
+mv /dev/cfs0.$NEWMACH /dev/cfs0
+else
+if ($NEWMACH == 3-0) then
+/etc/mknod /dev/cfs0 c 29 0
+else 
+/etc/mknod /dev/cfs0 c 24 0
+endif
+endif
+echo "Done"
+endif
+
+# Indicate new clean state
+mv /MACH.SWAP.IN.PROGRESS /MACH.$NEWMACH.WILL.BOOT 
+
+set noglob
+# Warn user about paging files; we need to do this because Mach-2.5 truncates
+# the paging file upon bootup and grows it as needed.  But Mach-3.0
+# can't grow the paging file.   So if you swap to 2.5, then swap back
+# to 3.0, you could be left with a miniscule paging file and will die.
+echo "  "
+echo "***  Check hiwat==lowat in /etc/fstab; then reboot for Mach.$NEWMACH ***"
+unset noglob
+
