@@ -15,9 +15,11 @@
 
 set -e
 
+prefix="@prefix@"
+
 if [ $# != 3 ] ; then
     echo "Usage: $0 <conffile> <variable> <newvalue>"
-    exit -1
+    exit 1
 fi
 
 conffile="$1"
@@ -36,7 +38,7 @@ done
 
 if [ ! -f "$cpath$conffile" ] ; then
     echo "Couldn't find $conffile"
-    exit -1
+    exit 1
 fi
 
 if `@GREP@ -q "^$variable=\"\?$newvalue\"\?$" $cpath$conffile` ; then
