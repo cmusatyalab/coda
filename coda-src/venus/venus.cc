@@ -89,6 +89,7 @@ char *VenusPidFile;
 char *VenusControlFile;
 char *VenusLogFile;
 char *MarinerSocketPath;
+int masquerade;
 
 #ifdef HAVE_SYS_UN_H
 int mariner_tcp_enable = 0;
@@ -364,18 +365,6 @@ static void ParseCmdline(int argc, char **argv) {
 	        extern char PeriodicWalksAllowed;
 	        PeriodicWalksAllowed = 0;
 	    }
-	    else if (STREQ(argv[i], "-noRoundRobin")) {
-	        extern int RoundRobin;
-	        RoundRobin = 0;
-	    }
-	    else if (STREQ(argv[i], "-RoundRobin")) {
-	        extern int RoundRobin;
-	        RoundRobin = 1;
-	    }
-	    else if (STREQ(argv[i], "-noAllowIP")) {
-	        extern int AllowIPAddrs;
-	        AllowIPAddrs = 0;
-	    }
 	    else if (STREQ(argv[i], "-spooldir")) {
 	        i++, SpoolDir = argv[i];
 	    }
@@ -387,6 +376,8 @@ static void ParseCmdline(int argc, char **argv) {
 		mariner_tcp_enable = 0;
 	    else if (STREQ(argv[i], "-allow-reattach"))
 		allow_reattach = 1;
+  	    else if (STREQ(argv[i], "-masquerade"))
+  		masquerade = 1;
 	    /* Private mapping ... */
 	    else if (STREQ(argv[i], "-mapprivate"))
 		MapPrivate = true;

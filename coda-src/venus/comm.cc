@@ -99,9 +99,6 @@ int mrpc2_timeflag = UNSET_MT;
 unsigned long WCThresh = UNSET_WCT;  	/* in Bytes/sec */
 int WCStale = UNSET_WCS;	/* seconds */
 
-int RoundRobin = 1;
-int AllowIPAddrs = 1;
-
 extern long RPC2_Perror;
 struct CommQueueStruct CommQueue;
 
@@ -173,10 +170,10 @@ void CommInit() {
 
     /* Create server entries for each bootstrap host. */
     int hcount = 0;
-    for (char *hp = fsname; hp;) {
+    for (char *hp = fsname; hp && *hp;) {
 	/* Parse the next entry in the hostname list. */
 	char ServerName[MAXHOSTNAMELEN];
-	char *cp = index(hp, ',');
+	char *cp = strchr(hp, ',');
 
 	if (cp) {
 	    /* This is not the last hostname. */
@@ -186,39 +183,50 @@ void CommInit() {
 	    hp = cp + 1;
 	}
 	else {
-	    /* This is the last hostname. */
-	    strcpy(ServerName, hp);
-	    hp = 0;
-	}
+            /* This is the last hostname. */
+            strcpy(ServerName, hp);
+            hp = NULL;
+        }
 
 	/* Get the host address and make a server entry. */
-	struct in_addr  addr;
-	struct hostent *h;
+	struct in_addr  addr = { INADDR_ANY };
 	srvent         *s = NULL;
-	/* Allow use of IP addrs */
-	if (AllowIPAddrs && inet_aton(ServerName, &addr) != 0) {
-	    s = new srvent(&addr, 1);
-	} else if ((h = gethostbyname(ServerName)) != NULL) {
-	    s = new srvent((struct in_addr *)h->h_addr, 1);
-	}
-        if (s != NULL) {
-	    srvent::srvtab->insert(&s->tblhandle);
-	    hcount++;
+
+#ifndef GETHOSTBYNAME_ACCEPTS_IPADDRS
+	if (!inet_aton(ServerName, &addr))
+#endif
+        {
+            struct hostent *h;
+            h = gethostbyname(ServerName);
+            CODA_ASSERT(h->h_length != sizeof(struct in6_addr));
+            if (h && h->h_length == sizeof(struct in_addr))
+                memcpy(&addr, h->h_addr, sizeof(struct in_addr));
+        }
+
+        if (addr.s_addr != INADDR_ANY) {
+            GetServer(&s, &addr);
+            s->rootserver = 1;
+            /* Don't call PutServer, keeps a refcount on the rootservers */
+            hcount++;
         }
     }
-    if (hcount == 0)
+    if (!hcount)
 	CHOKE("CommInit: no bootstrap server");
 
     RPC2_Perror = 0;
 
     /* Port initialization. */
+    struct servent *s;
     RPC2_PortIdent port1;
-    port1.Tag = RPC2_PORTBYINETNUMBER;
-    port1.Value.InetPortNumber = htons(2430);
+    port1.Tag = (enum PortTag)0;
+    if (!masquerade) {
+        port1.Tag = RPC2_PORTBYINETNUMBER;
+        port1.Value.InetPortNumber = htons(2430);
 
-    struct servent *s = getservbyname("venus", "udp");
-    if (s) port1.Value.InetPortNumber = s->s_port;
-    else eprint("getservbyname(venus,udp) failed, using 2430/udp\n");
+        s = getservbyname("venus", "udp");
+        if (s) port1.Value.InetPortNumber = s->s_port;
+        else eprint("getservbyname(venus,udp) failed, using 2430/udp\n");
+    }
 
     /* SFTP initialization. */
     SFTP_Initializer sei;
@@ -229,12 +237,15 @@ void CommInit() {
     sei.PacketSize = sftp_packetsize;
     sei.EnforceQuota = 1;
 
-    sei.Port.Tag = RPC2_PORTBYINETNUMBER;
-    sei.Port.Value.InetPortNumber = htons(2431);
+    sei.Port.Tag = (enum PortTag)0;
+    if (!masquerade) {
+        sei.Port.Tag = RPC2_PORTBYINETNUMBER;
+        sei.Port.Value.InetPortNumber = htons(2431);
 
-    s = getservbyname("venus-se", "udp");
-    if (s) sei.Port.Value.InetPortNumber = s->s_port;
-    else eprint("getservbyname(venus-se,udp) failed, using 2431/udp\n");
+        s = getservbyname("venus-se", "udp");
+        if (s) sei.Port.Value.InetPortNumber = s->s_port;
+        else eprint("getservbyname(venus-se,udp) failed, using 2431/udp\n");
+    }
 
     SFTP_Activate(&sei);
 
@@ -2138,6 +2149,7 @@ struct in_addr *mgrpent::GetPrimaryHost(int *ph_ixp)
     for (i = 0; i < VSG_MEMBERS; i++)
 	if (rocc.hosts[i].s_addr == rocc.primaryhost.s_addr) {
 	    if (ph_ixp) *ph_ixp = i;
+#if 0
             /* Add a round robin distribution, primarily to spread fetches
              * across AVSG. */
             /* Added a random factor to reduce the amount of switching
@@ -2155,6 +2167,7 @@ struct in_addr *mgrpent::GetPrimaryHost(int *ph_ixp)
 			break;
 		    }
 	    }
+#endif
 	    return(&rocc.hosts[i]);
 	}
 
