@@ -889,7 +889,6 @@ void ViceUpdateDB()
     }
     VCheckVLDB();
     CheckVRDB();
-    CheckVSGDB();
     SLog(0, "New Data Base received");
 
 }

@@ -88,9 +88,6 @@ void ResCommInit() {
     /* Initialize connection infos */
     conninfo::CInfoTab = new olist;
     conninfo::ncinfos = 0;
-    
-    /* Initialize VSGDB */
-    InitVSGDB();	
 }
 
 /* RepResCommCtxt - implementation */

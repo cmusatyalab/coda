@@ -207,9 +207,10 @@ long FS_ViceGetVolumeInfo(RPC2_Handle RPCid, RPC2_String VolName, VolumeInfo *In
 	VGetVolumeInfo((Error *)&errorCode, (char *)VolName, Info);
 
 	if (errorCode == 0) {
-	    if (Info->Type == ROVOL) 
-		Info->VSGAddr = GetVSGAddress(&(Info->Server0), (int) Info->ServerCount);
-	    else if (Info->Type == RWVOL) {
+	    if (Info->Type == ROVOL) {
+		SLog(0, "GetVolumeInfo called for ROVOL");
+		Info->VSGAddr = 0;
+	    } else if (Info->Type == RWVOL) {
 		/* Stuff the GroupId in the Info->Type[REPVOL] field. */
 		VolumeId Vid = Info->Vid;
 		if (ReverseXlateVid(&Vid))

@@ -41,7 +41,6 @@ extern "C" {
 #include <volume.h>
 #include <srv.h>
 #include <util.h>
-#include "vsg.h"
 #include "vrdb.h"
 
 vrtab VRDB("VRDB");

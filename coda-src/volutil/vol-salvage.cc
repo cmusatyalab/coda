@@ -702,7 +702,6 @@ static int VnodeInodeCheck(int RW, struct ViceInodeInfo *ip, int nInodes,
     CODA_ASSERT(vnext(vnode) == -1);
     CODA_ASSERT(nVnodes == 0);
     return 0;
-
 }
 
 /* inodes corresponding to a volume that has been blown away.
