@@ -30,7 +30,7 @@
 # Mellon the rights to redistribute these changes without encumbrance.
 # */
 # 
-# static char *rcsid = "$Header: Makeconf.i386_nbsd1,v 4.8 97/04/23 13:32:40 rvb Exp $";
+# static char *rcsid = "$Header: /afs/cs/project/coda/coda-4.0.1/configs/RCS/Makeconf.i386_nbsd1,v 4.9 97/04/24 14:18:44 braam Exp Locker: rvb $";
 # 
 
 MACHINE_FLAGS = -D__BSD44__
@@ -44,7 +44,6 @@ LIBREADLINE   = /usr/local/lib/libreadline.a
 INCREADLINE   = -I/usr/local/include/readline
 INODEFSNAME   = libuinodefs.a
 INODEFSDIR    = kernel-src/inodefs/common
-LIBREADLINE   = /usr/lib/libreadline.a
 # When we are ready use kernel inode ops
 # INODEFSNAME   = libinodefs.a
 # INODEFSDIR    = kernel-src/inodefs/bsd44
