@@ -27,12 +27,19 @@ LIBNEWLWP =${LIBSPECIAL}/libnewlwp.a
 LIBOLDLWP =${LIBSPECIAL}/liboldlwp.a			
 
 # -- RVM --
-LIBRVM= $(LIBSPECIAL)/librvm.a
-LIBRDS= $(LIBSPECIAL)/librds.a	 		
+# Uncomment the follwing lines to use the non-lwp versions of RVM. (Be sure the
+# to comment out the variable defs below)
+#LIBRVM= $(LIBSPECIAL)/librvm.a
+#LIBRDS= $(LIBSPECIAL)/librds.a	 		
+
+# Uncomment the following lines to use the lwp package with RVM. (Be sure to 
+# comment the variable defs above).
+LIBRVM = $(LIBSPECIAL)/librvmlwp.a		
+LIBRDS = $(LIBSPECIAL)/librdslwp.a
+
+# libseg doesn't use threads.
 LIBSEG= $(LIBSPECIAL)/libseg.a 			
-# threaded versions
-LIBRVMLWP = $(LIBSPECIAL)/librvmlwp.a		
-LIBRDSLWP = $(LIBSPECIAL)/librdslwp.a
+
 
 
 # -- CODA --
