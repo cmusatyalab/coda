@@ -428,7 +428,9 @@ static void DefaultCmdlineParms()
     CODACONF_STR(realmtab,	    "realmtab",	      "/etc/coda/realms");
     CODACONF_STR(VenusLogDevice,    "rvm_log",        "/usr/coda/LOG");
     CODACONF_STR(VenusDataDevice,   "rvm_data",       "/usr/coda/DATA");
-    CODACONF_INT(T1Interval,	    "serverprobe",    12 * 60);
+
+    CODACONF_INT(T1Interval,	    "serverprobe",    150);
+    // used to be 12 minutes
 
 #if defined(__CYGWIN32__)
     CODACONF_STR(CachePrefix, "cache_prefix", "/?" "?/C:/cygwin");
@@ -497,7 +499,7 @@ static void DefaultCmdlineParms()
 	}
     }
 
-    CODACONF_INT(PiggyValidations, "validateattrs", MAX_PIGGY_VALIDATIONS);
+    CODACONF_INT(PiggyValidations, "validateattrs", 21);
     {
 	if (PiggyValidations > MAX_PIGGY_VALIDATIONS)
 	    PiggyValidations = MAX_PIGGY_VALIDATIONS;

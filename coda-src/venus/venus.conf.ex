@@ -176,26 +176,28 @@ mapprivate=1
 
 #
 # Maximum number of fids & versionvectors that will be piggybacked with a
-# ValidateAttrs RPC2 call. The default (and maximum) is 50, however the
-# resulting outgoing packet is around 2900 bytes which will be fragmented by
-# the IP layer. In some cases this IP fragmentation is not wanted (unreliable
-# networks, IPSec, and in the future IPv6 networks). Setting this number to 15
-# piggybacked validations limits the outgoing ValidateAttr packet size to
-# about 1032 bytes, and 21 validations would result in a 1452 byte packet.
+# ValidateAttrs RPC2 call. The maximum is 50, however the resulting outgoing
+# packet is around 2900 bytes which will be fragmented by the IP layer. In
+# some cases this IP fragmentation is not wanted (unreliable networks, IPSec,
+# and in IPv6 networks). The default value is set to 21 which approximately
+# results in a 1452 byte packet which should be good for typical ethernet LAN
+# networks.
 #
-#validateattrs=50
+# If you are having problems with non-local servers, you might want to lower
+# this number even further to 15 piggybacked validations, the packet size
+# would then be about 1032 bytes. Lower than that is not really useful because
+# at that point many other packets would be larger (f.i. SFTP data packets).
+#
+#validateattrs=21
 
 #
 # How many seconds between checks whether the servers are still alive. The
-# default is 12 minutes. However masquerading firewalls will typically forget
-# about UDP connections sooner. For instance, connection tracking in Linux's
-# netfilter only remembers UDP streams for about 3 minutes, so 150 seconds
-# would be a good choice here.
+# default used to be 12 minutes. However masquerading firewalls typically
+# forget about UDP connections a lot sooner. For instance, connection tracking
+# in Linux's netfilter only remembers UDP streams for about 3 minutes, so the
+# default value has been lowered to trigger a probe every 150 seconds.
 #
-# If you are going through a firewall and regularily see messages that the
-# servers nak'ed lowering this timeout could very well help a lot.
-#
-#serverprobe=720
+#serverprobe=150
 
 #
 # Kerberos 4/5 settings.
