@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/vproc.h,v 4.5 1997/03/06 21:04:54 lily Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/vproc.h,v 4.6 1997/12/01 17:28:13 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -72,12 +72,6 @@ extern "C" {
 #else
 #include <sys/user.h>
 #endif /* __NetBSD__ */
-
-#ifdef __MACH__
-/* Pick up private versions of vnode headers from vicedep */
-#include <cfs/mach_vfs.h>
-#include <cfs/mach_vnode.h>
-#endif /* __MACH__ */
 
 #ifdef	__linux__
 #include <sys/uio.h>
@@ -338,17 +332,11 @@ extern void va_init(struct coda_vattr *);
 extern void VattrToStat(struct coda_vattr *, struct stat *);
 extern long FidToNodeid(ViceFid *);
 
-#ifdef __MACH__
-#define	CRTOEUID(cred)	((vuid_t)((cred).cr_uid))
-#define	CRTORUID(cred)	((vuid_t)((cred).cr_ruid))
-#endif /* __MACH__ */
 
-#if defined(__linux__) || defined(__BSD44__)
 /* vnodes in BSD44 don't seem to store effective user & group ids.  So just
    coerce everything to uid */
 #define	CRTOEUID(cred)	((vuid_t)((cred).cr_uid))
 #define	CRTORUID(cred)	((vuid_t)((cred).cr_uid))
-#endif /* __linux__ || __BSD44__ */
 
 #define	FTTOVT(ft)	((ft) == (int)File ? VREG :\
 			 (ft) == (int)Directory ? VDIR :\
