@@ -145,7 +145,7 @@ int repair_mountrw(struct repvol *repv, VolumeId *rwarray, int arraylen, char *m
 	    if (strcmp(de->d_name, "global") == 0) { /* global entry */
 		if ((vs->Vid != rwv->vid)
 		    || (strcmp(rwv->vname, volname) != 0)) {
-		    strerr(msg, msgsize, "Entry mismatch");
+		    strerr(msg, msgsize, "Global entry mismatch");
 		    goto CLEANUP;
 		}
 		strcpy(rwv->srvname, "global"); /* XXXX */
@@ -154,7 +154,7 @@ int repair_mountrw(struct repvol *repv, VolumeId *rwarray, int arraylen, char *m
 		if (((strcmp(rwv->vname, "Repair") != 0) &&
 		     (strcmp(rwv->vname, "A_Local_Fake_Volume") != 0)) ||
 		    (rwv->vid != 0xffffffff)) {
-		    strerr(msg, msgsize, "Entry mismatch");
+		    strerr(msg, msgsize, "Local entry mismatch");
 		    goto CLEANUP;
 		}
 		strcpy(rwv->srvname, "localhost"); /* XXXX */
