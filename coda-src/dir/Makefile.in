@@ -45,7 +45,7 @@ ifneq ($(SHORTSYS),djgpp)
 TESTS = dirtest
 endif
 
-CFLAGS += -Wall
+CFLAGS += -Wall $(INCREADLINE)
 CXXFLAGS := $(CFLAGS)
 
 OBJS= fid.o codadir.o dirinode.o dhcache.o  # salvage.o 
