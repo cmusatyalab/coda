@@ -21,7 +21,6 @@ CODA_OPTION_LWP
 dnl Checks for programs.
 AC_PROG_CC
 AC_PROG_CPP
-AC_PROG_RANLIB
 AC_CHECK_PROG(AR, ar, ar)
 export AR
 AC_PROG_INSTALL
