@@ -123,6 +123,7 @@ void rsle::init(int op, va_list ap)
 	    u.create.cvnode = va_arg(ap, VnodeId);
 	    u.create.cunique = va_arg(ap, Unique_t);
 	    u.create.owner = va_arg(ap, UserId);
+	    u.create.name[0] = '\0';
 	}
 	break;
       case ResolveViceSymLink_OP:
@@ -136,6 +137,7 @@ void rsle::init(int op, va_list ap)
 	    u.slink.cvnode = va_arg(ap, VnodeId);
 	    u.slink.cunique = va_arg(ap, Unique_t);
 	    u.slink.owner = va_arg(ap, UserId);
+	    u.slink.name[0] = '\0';
 	}
 	break;
       case ResolveViceLink_OP:
@@ -149,6 +151,7 @@ void rsle::init(int op, va_list ap)
 	    u.link.cvnode = va_arg(ap, VnodeId);
 	    u.link.cunique = va_arg(ap, Unique_t);
 	    u.link.cvv = *(va_arg(ap, ViceVersionVector *));
+	    u.link.name[0] = '\0';
 	}
 	break;
       case ResolveViceMakeDir_OP:
@@ -162,6 +165,7 @@ void rsle::init(int op, va_list ap)
 	    u.mkdir.cvnode = va_arg(ap, VnodeId);
 	    u.mkdir.cunique = va_arg(ap, Unique_t);
 	    u.mkdir.owner = va_arg(ap, UserId);
+	    u.mkdir.name[0] = '\0';
 	}
 	break;
       case ResolveViceRemove_OP:
@@ -175,6 +179,7 @@ void rsle::init(int op, va_list ap)
 	    u.rm.cvnode = va_arg(ap, VnodeId);
 	    u.rm.cunique = va_arg(ap, Unique_t);
 	    u.rm.cvv = *(va_arg(ap, ViceVersionVector*));
+	    u.rm.name[0] = '\0';
 	}
 	break;
       case ResolveViceRemoveDir_OP:
@@ -191,6 +196,7 @@ void rsle::init(int op, va_list ap)
 	    u.rmdir.childlist = va_arg(ap, rec_dlist *);
 	    u.rmdir.childLCP = *(va_arg(ap, ViceStoreId *));
 	    u.rmdir.csid = *(va_arg(ap, ViceStoreId *));
+	    u.rmdir.name[0] = '\0';
 	}
 	break;
       case ResolveViceRename_OP:
@@ -219,6 +225,8 @@ void rsle::init(int op, va_list ap)
 	    u.mv.otherdiru = va_arg(ap, Unique_t);
 	    u.mv.svnode = va_arg(ap, VnodeId);
 	    u.mv.sunique = va_arg(ap, Unique_t);
+	    u.mv.oldname[0] = '\0';
+	    u.mv.newname_offset = 0;
 	    LogMsg(39, SrvDebugLevel, stdout, 
 		   "rsle:init(Rename) got d and s vnodes %x.%x %x.%x\n",
 		   u.mv.otherdirv, u.mv.otherdiru, u.mv.svnode, u.mv.sunique);
