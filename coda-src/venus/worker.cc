@@ -158,16 +158,9 @@ int MsgRead(msgent *m)
 	int cc = read_relay(m->msg_buf);
 
 #elif defined(__CYGWIN32__)
-#ifdef NEW_NT_IPC
         DWORD size;  
         int cc = read(worker::muxfd, (char *)&size, sizeof(size)); 
 	cc = read(worker::muxfd, m->msg_buf, (int)size);
-#else
-        struct sockaddr_in addr;
-	int len = sizeof(addr);
-	int cc = ::recvfrom(worker::muxfd, m->msg_buf, (int) (VC_MAXMSGSIZE),
-			    0, (struct sockaddr *) &addr, &len);
-#endif 
 #else
 	int cc = read(worker::muxfd, m->msg_buf, (int) (VC_MAXMSGSIZE));
 #endif
@@ -183,17 +176,7 @@ int MsgWrite(char *buf, int size)
 #ifdef DJGPP
 	 return write_relay(buf, size);
 #elif defined(__CYGWIN32__)
-#ifdef NEW_NT_IPC
 	 return nt_msg_write(buf, size);
-#else
-         struct sockaddr_in addr;
-
-         addr.sin_family = AF_INET;
-         addr.sin_port = htons(8001);
-         addr.sin_addr.s_addr = htonl(venus_relay_addr);
-         return ::sendto(worker::muxfd, buf, size, 0, 
-			 (struct sockaddr *) &addr, sizeof(addr));
-#endif
 #else 
 	return write(worker::muxfd, buf, size);
 #endif
@@ -743,7 +726,6 @@ void WorkerInit()
     worker::muxfd = MCFD;
     dprint("WorkerInit: muxfd = %d", worker::muxfd);
 #elif defined(__CYGWIN32__)
-#ifdef NEW_NT_IPC 
     int sd[2];
     if (socketpair(AF_LOCAL, SOCK_STREAM, 0, sd)) {
 	    eprint("WorkerInit: socketpair() returns %d", errno);
@@ -755,25 +737,6 @@ void WorkerInit()
             exit (-1);
     }
     dprint("WorkerInit: muxfd = %d", worker::muxfd);
-#else
-    worker::muxfd = ::socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
-    if (worker::muxfd < 0) {
-            eprint("WorkerInit: socket() returns %d", errno);
-            exit(-1);
-    }
-    dprint("WorkerInit: muxfd = %d", worker::muxfd);
-    { /* Bind to port */
-         struct sockaddr_in addr;
-
-         addr.sin_family = AF_INET;
-         addr.sin_port = htons(8000);
-         addr.sin_addr.s_addr = htonl(venus_relay_addr);
-	 if (bind(worker::muxfd, (struct sockaddr *) &addr, sizeof(addr))) {
-	     eprint("WorkerInit: could not bind (%d)", errno);
-	     exit(-1);
-	 }
-    }
-#endif
 #else 
     /* Open the communications channel. */
     worker::muxfd = ::open(kernDevice, O_RDWR, 0);

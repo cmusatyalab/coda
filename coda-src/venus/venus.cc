@@ -61,6 +61,9 @@ extern "C" {
 #include "codaconf.h"
 
 #include "nt_util.h"
+#ifdef __CYGWIN32__
+#define main venus_main
+#endif
 
 #include <coda_config.h>
 
@@ -240,9 +243,11 @@ int main(int argc, char **argv) {
 
     LWP_TerminateProcessSupport();
 
-#if defined(__CYGWIN32__) && defined(NEW_NT_IPC)
+#if defined(__CYGWIN32__)
     nt_stop_ipc();
+    return 0;
 #endif
+
     exit(0);
 }
 

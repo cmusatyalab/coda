@@ -54,8 +54,4 @@ int nt_initialize_ipc (int sock);
 int nt_msg_write (char *buf, int size);
 void nt_stop_ipc (void);
 
-// NTipc switch!
-
-#define NEW_NT_IPC
-
 #endif
