@@ -13,15 +13,15 @@ case ${host_alias} in
 
 	windows95 )
 		sys=win95
-		initsuffix=../../etc
+		initsuffix=../etc
  ;;
 	nt )
 		sys=cygwin32
-		initsuffix=../../etc
+		initsuffix=../etc
  ;;
 	cygwin32 )
 		sys=cygwin32
-		initsuffix=../../etc
+		initsuffix=../etc
  ;;
 
 	*-*-netbsd* )
@@ -29,13 +29,13 @@ case ${host_alias} in
 	    	sys=i386_nbsd1
 		vfsdir=bsd44
 		os=`uname -r`
-		initsuffix=../../etc
+		initsuffix=../etc
  ;;
 
 	*-*-freebsd* )
 		sys=i386_fbsd2
 		vfsdir=bsd44
-		initsuffix=../../etc
+		initsuffix=../etc
  ;;
 
 	*-*-linux-* )
