@@ -35,4 +35,8 @@ rcs RCS:
 	find * -type d -print | while  read thedir ; do  ln -s $(TOPOBJ)/RCSLINK/$$thedir $$thedir/RCS; done
 
 reconfigure:
+ifdef SECSRC
+	$(TOPDIR)/configure --enable-platform=$(SYS) --enable-srcdir=$(SECSRC)
+else
 	$(TOPDIR)/configure --enable-platform=$(SYS)
+endif
