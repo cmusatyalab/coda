@@ -1622,7 +1622,8 @@ static int DaemonizeSrv(char *pidfile)
     int parent = -1; 
 
     if (SrvDebugLevel == 0)
-	parent = daemonize(pidfile);
+	parent = daemonize();
+    update_pidfile(pidfile);
 
    /* Set DATA segment limit to maximum allowable. */
 #ifndef __CYGWIN32__
