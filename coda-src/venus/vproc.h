@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-nbsd-port/coda-4.0.1/OBJS/coda-src/venus/RCS/vproc.h,v 1.2 1996/11/25 17:50:14 braam Exp satya $";
+static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/src/coda-4.0.1/coda-src/venus/RCS/vproc.h,v 1.3 1996/12/03 15:55:21 braam Exp braam $";
 #endif /*_BLURB_*/
 
 
@@ -68,15 +68,9 @@ extern "C" {
 
 #ifdef __MACH__
 /* Pick up private versions of vnode headers from vicedep */
-#include <vfs/vfs.h>
-#include <vfs/vnode.h>
+#include <cfs/mach_vfs.h>
+#include <cfs/mach_vnode.h>
 #endif __MACH__
-
-#ifdef __NetBSD__
-/* Pick up system versions of vnode headers from /usr/include */
-/* #include <sys/mount.h> (Satya, 11/25/96) */
-#include "venus_vnode.h"
-#endif __NetBSD__
 
 #ifdef LINUX
 #include <sys/uio.h>
