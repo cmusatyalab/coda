@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/src/coda-4.0.1/RCSLINK/./coda-src/util/rec_olist.h,v 1.1 1996/11/22 19:08:21 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/util/rec_olist.h,v 4.1 1997/01/08 21:51:09 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -105,6 +105,7 @@ class rec_olist {
 class rec_olist_iterator {
     rec_olist *clist;				    /* current rec_olist */
     rec_olink *clink;				    /* current rec_olink */
+    rec_olink *nlink;				    /* next rec_olink in list */
 
   public:
     rec_olist_iterator(rec_olist&);

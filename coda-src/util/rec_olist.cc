@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /usr/rvb/XX/src/coda-src/util/RCS/rec_olist.cc,v 4.1 1997/01/08 21:51:09 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/util/rec_olist.cc,v 4.2 1997/02/26 16:03:06 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -223,8 +223,8 @@ void rec_olist::print(FILE *fp) {
 
 void rec_olist::print(int fd) {
     /* first print out the rec_olist header */
-    char buf[40];
-    sprintf(buf, "%#08x : Default rec_olist : count = %d\n",
+    char buf[80];
+    snprintf(buf, 80, "%#08x : Default rec_olist : count = %d\n",
 	     (long)this, cnt);
     write(fd, buf, strlen(buf));
 
@@ -238,26 +238,47 @@ void rec_olist::print(int fd) {
 rec_olist_iterator::rec_olist_iterator(rec_olist& l) {
     clist = &l;
     clink = (rec_olink *)-1;
+    nlink = (rec_olink *)-1;
 }
 
 
 rec_olink *rec_olist_iterator::operator()() {
+    if ( clist->last() == 0 ) {	/* empty list */
+	clink = (rec_olink *)-1;
+	nlink = (rec_olink *)-1;
+	return 0;
+    }
+    
     switch((unsigned int)clink) {
 	case -1:		/* state == NOTSTARTED */
 	    clink = clist->first();
+	    if ( clink != 0 ) {
+		nlink = clink->next; /* clink may be deleted before next iter.,
+				        keep ptr to next rec_olink now */
+		return clink;
+	    } else {
+		nlink = (rec_olink *)-1;
+		return 0;
+	    }
+	    
 	    break;
+
+        case 0:			/* not reached */
+	    return 0;
 
 	default:		/* state == INPROGRESS */
-	    clink = clink->next;
-	    if (clink == clist->first())
-		clink = 0;
-	    break;
-
-	case 0:			/* state == FINISHED */
-	    break;
+	    if (clink == clist->last()) { /* last already done */
+		clink = (rec_olink *)0;
+		nlink = (rec_olink *)-1;
+		return 0;
+	    }
+	    assert(nlink != (rec_olink *)-1);
+	    clink = nlink;	/* we saved nlink in last iteration */
+	    nlink = clink->next; /* clink may be del. before next iter.,
+				    keep ptr to next rec_olink now*/
+	    return clink;
     }
-
-    return(clink);
+    
 }
 
 
@@ -310,6 +331,6 @@ void rec_olink::print(FILE *fp) {
 
 void rec_olink::print(int fd) {
     char buf[40];
-    sprintf(buf, "%#08x : Default rec_olink\n", (long)this);
+    snprintf(buf, 40, "%#08x : Default rec_olink\n", (long)this);
     write(fd, buf, strlen(buf));
 }
