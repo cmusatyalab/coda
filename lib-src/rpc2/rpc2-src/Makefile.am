@@ -19,7 +19,7 @@
 #*/
 
 INCLUDES = -I$(top_builddir)/include -I$(top_srcdir)/include \
-    -DRPC2DEBUG -DERRORTR
+    -DRPC2DEBUG -DERRORTR -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64
 LDADD = librpc2.la libse.la $(LIBLWP)
 
 pkginclude_HEADERS = sftp.h

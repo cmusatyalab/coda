@@ -57,6 +57,7 @@ int lwp_nextindex;
 #include <netdb.h>
 #include <assert.h>
 #include <string.h>
+#include <unistd.h>
 #include <lwp/lwp.h>
 #include <lwp/timer.h>
 #include <rpc2/rpc2.h>

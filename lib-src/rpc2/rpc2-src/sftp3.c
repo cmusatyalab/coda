@@ -54,6 +54,7 @@ Pittsburgh, PA.
 #include <errno.h>
 #include <assert.h>
 #include <string.h>
+#include <unistd.h>
 #include "rpc2.private.h"
 #include <rpc2/se.h>
 #include "sftp.h"
@@ -1374,10 +1375,10 @@ the file, and a file descriptor that is already open in the correct mode */
        ByteQuota if a quota has been specified.		- JH
        !!!!! BEWARE !!!!
     */
-int sftp_piggybackfilesize(struct SFTP_Entry *se)
+off_t sftp_piggybackfilesize(struct SFTP_Entry *se)
 {
     struct stat stbuf;
-    int length;
+    off_t length;
 
     if (MEMFILE(se->SDesc))
 	{
@@ -1565,12 +1566,12 @@ static int sftp_vfwritev(struct SFTP_Entry *se, struct iovec *iovarray, long how
     return(result);
 }
 
-void sftp_Progress(SE_Descriptor *sdesc, long BytesTransferred)
+void sftp_Progress(SE_Descriptor *sdesc, off_t BytesTransferred)
 {
     sdesc->Value.SmartFTPD.BytesTransferred = BytesTransferred;
 
     if (sdesc->XferCB)
         sdesc->XferCB(sdesc->userp,
-                      sdesc->Value.SmartFTPD.SeekOffset + BytesTransferred);
+/* needs LFS fixup */ (int) sdesc->Value.SmartFTPD.SeekOffset + BytesTransferred);
 }
 

@@ -61,6 +61,7 @@ Pittsburgh, PA.
 #include <netdb.h>
 #include <assert.h>
 #include <string.h>
+#include <unistd.h>
 #include "rpc2.private.h"
 #include <rpc2/se.h>
 #include "sftp.h"
@@ -207,7 +208,7 @@ long SFTP_MultiRPC1(IN HowMany, IN ConnHandleList, IN MCast, INOUT SDescList, IN
 		/* piggyback file if possible; parms are guaranteed to already be there */
 		if (SFTP_DoPiggy)
 		    {
-		    int rc = sftp_AppendFileToPacket(mse, &me->CurrentPacket);
+		    off_t rc = sftp_AppendFileToPacket(mse, &me->CurrentPacket);
 		    switch(rc)
 			{
 			case -1:				/* system call failure */

@@ -426,11 +426,11 @@ void sftp_InitTrace(void);
 int sftp_vfwritefile(struct SFTP_Entry *se, char *buf, int nbytes);
 void sftp_vfclose(struct SFTP_Entry *se);
 int sftp_piggybackfileread(struct SFTP_Entry *se, char *buf);
-int sftp_piggybackfilesize(struct SFTP_Entry *se);
+off_t sftp_piggybackfilesize(struct SFTP_Entry *se);
 void sftp_TraceBogus(long filenum, long linenum);
 void sftp_TraceStatus(struct SFTP_Entry *sEntry, int filenum, int linenum);
 void sftp_DumpTrace(char *fName);
-void sftp_Progress(SE_Descriptor *sdesc, long BytesTransferred);
+void sftp_Progress(SE_Descriptor *sdesc, off_t BytesTransferred);
 
 void sftp_UpdateRTT(RPC2_PacketBuffer *pb, struct SFTP_Entry *sEntry,
 		    unsigned long inbytes, unsigned long outbytes);
@@ -440,13 +440,13 @@ int MC_CheckStart(struct SFTP_Entry *whichEntry);
 
 struct SFTP_Entry *sftp_AllocSEntry(void);
 void sftp_FreeSEntry(struct SFTP_Entry *se);
-void sftp_AllocPiggySDesc(struct SFTP_Entry *se, long len, enum WhichWay direction);
+void sftp_AllocPiggySDesc(struct SFTP_Entry *se, off_t len, enum WhichWay direction);
 void sftp_FreePiggySDesc(struct SFTP_Entry *se);
 int sftp_AppendParmsToPacket(struct SFTP_Entry *sEntry, RPC2_PacketBuffer **whichP);
 int sftp_ExtractParmsFromPacket(struct SFTP_Entry *sEntry, RPC2_PacketBuffer *whichP);
-long sftp_AppendFileToPacket(struct SFTP_Entry *sEntry, RPC2_PacketBuffer **whichP);
-long sftp_ExtractFileFromPacket(struct SFTP_Entry *sEntry, RPC2_PacketBuffer *whichP);
-int sftp_AddPiggy(RPC2_PacketBuffer **whichP, char *dPtr, long dSize, long maxSize);
+off_t sftp_AppendFileToPacket(struct SFTP_Entry *sEntry, RPC2_PacketBuffer **whichP);
+off_t sftp_ExtractFileFromPacket(struct SFTP_Entry *sEntry, RPC2_PacketBuffer *whichP);
+int sftp_AddPiggy(RPC2_PacketBuffer **whichP, char *dPtr, off_t dSize, long maxSize);
 void sftp_SetError(struct SFTP_Entry *s, enum SFState e);
 int sftp_MorePackets(int *rpc2, int *sftp);
 

@@ -63,6 +63,7 @@ Pittsburgh, PA.
 #include <netdb.h>
 #include <assert.h>
 #include <string.h>
+#include <unistd.h>
 #include "rpc2.private.h"
 #include <rpc2/se.h>
 #include "sftp.h"
@@ -72,7 +73,6 @@ static long GetFile();
 static long PutFile();
 static RPC2_PacketBuffer *AwaitPacket();
 static void AddTimerEntry();
-static long MakeBigEnough();
 
 /*---------------------------  Local macros ---------------------------*/
 #define FAIL(se, rCode)\
@@ -281,6 +281,7 @@ long SFTP_MakeRPC1(IN ConnHandle, INOUT SDesc, INOUT RequestPtr)
     {
     struct SFTP_Entry *se;
     int rc;
+    off_t len;
 
     say(0, SFTP_DebugLevel, "SFTP_MakeRPC1 ()\n");
 
@@ -323,14 +324,14 @@ long SFTP_MakeRPC1(IN ConnHandle, INOUT SDesc, INOUT RequestPtr)
 	/* Try piggybacking file on store */
 	if (SDesc->Value.SmartFTPD.TransmissionDirection == CLIENTTOSERVER && SFTP_DoPiggy)
 	    {
-	    rc = sftp_AppendFileToPacket(se, RequestPtr);
-	    switch (rc)
+	    len = sftp_AppendFileToPacket(se, RequestPtr);
+	    switch (len)
 		{
 		case -1:	FAIL(se, RPC2_SEFAIL4);
 		
 		case -2:	break;	/* file too big to fit */
 		
-		default:        sftp_Progress(SDesc, rc);
+		default:        sftp_Progress(SDesc, len);
 				sftp_didpiggy++;
 				break;
 		}
@@ -346,7 +347,8 @@ long SFTP_MakeRPC2(IN ConnHandle, INOUT SDesc, INOUT Reply)
     RPC2_PacketBuffer *Reply;
     {
     struct SFTP_Entry *se;
-    int i, nbytes;
+    int i;
+    off_t nbytes;
 
     say(0, SFTP_DebugLevel, "SFTP_MakeRPC2()\n");
     
@@ -402,7 +404,7 @@ long SFTP_MakeRPC2(IN ConnHandle, INOUT SDesc, INOUT Reply)
 long SFTP_GetRequest(RPC2_Handle ConnHandle, RPC2_PacketBuffer *Request)
 {
     struct SFTP_Entry *se;
-    long len;
+    off_t len;
     int retry;
 
     say(0, SFTP_DebugLevel, "SFTP_GetRequest()\n");
@@ -472,7 +474,8 @@ long SFTP_InitSE(RPC2_Handle ConnHandle, SE_Descriptor *SDesc)
 
 long SFTP_CheckSE(RPC2_Handle ConnHandle, SE_Descriptor *SDesc, long Flags)
 {
-    long rc, flen;
+    long rc;
+    off_t flen;
     struct SFTP_Entry *se;
     struct SFTP_Descriptor *sftpd;
     struct FileInfoByAddr *p;
@@ -947,7 +950,34 @@ static void AddTimerEntry(whichElem)
 
 /*---------------------- Piggybacking routines -------------------------*/
 
-int sftp_AddPiggy(RPC2_PacketBuffer **whichP, char *dPtr, long dSize,
+static long MakeBigEnough(RPC2_PacketBuffer **whichP, off_t extraBytes,
+			  long maxSize)
+    /* Checks if whichP is a packet buffer to which extraBytes can be appended.  
+    	If so returns whichP unmodified.
+	Otherwise, allocates new packet, copies old contents to it, and sets whichP to new packet.
+	If reallocation would cause packet size to exceed maxSize, no reallocation is done.
+	Returns 0 if extraBytes can be appended to whichP; -1 otherwise.
+    */
+{
+    long freebytes, curlen;
+    RPC2_PacketBuffer *pb;
+
+    curlen = (*whichP)->Header.BodyLength + sizeof(struct RPC2_PacketHeader);
+    freebytes = (*whichP)->Prefix.BufferSize - sizeof(struct RPC2_PacketBufferPrefix) - curlen;
+    if (freebytes >= extraBytes) return(0);
+    if (curlen + extraBytes > maxSize) return (-1);
+
+    /* Realloc and copy */
+    assert(extraBytes <= INT_MAX); /* LFS */
+    RPC2_AllocBuffer(extraBytes + (*whichP)->Header.BodyLength, &pb);
+    pb->Header.BodyLength = (*whichP)->Header.BodyLength;
+    memcpy(&pb->Header, &(*whichP)->Header, curlen);
+    *whichP = pb;	/* DON'T free old packet !!! */
+    return(0);
+}
+
+
+int sftp_AddPiggy(RPC2_PacketBuffer **whichP, char *dPtr, off_t dSize,
 		  long maxSize)
 /* whichP	- packet to be enlarged
  * dPtr		- data to be piggybacked
@@ -959,7 +989,8 @@ int sftp_AddPiggy(RPC2_PacketBuffer **whichP, char *dPtr, long dSize,
 	Returns 0 if data has been piggybacked, -1 if maxSize would be exceeded
     */
 {
-    say(9, SFTP_DebugLevel, "sftp_AddPiggy: %ld\n", dSize);
+    assert(dSize <= INT_MAX); /* LFS */
+    say(9, SFTP_DebugLevel, "sftp_AddPiggy: %ld\n", (int)dSize);
     
     if (MakeBigEnough(whichP, dSize, maxSize) < 0) return (-1);
 
@@ -978,33 +1009,7 @@ int sftp_AddPiggy(RPC2_PacketBuffer **whichP, char *dPtr, long dSize,
 }
 
 
-static long MakeBigEnough(RPC2_PacketBuffer **whichP, long extraBytes,
-			  long maxSize)
-    /* Checks if whichP is a packet buffer to which extraBytes can be appended.  
-    	If so returns whichP unmodified.
-	Otherwise, allocates new packet, copies old contents to it, and sets whichP to new packet.
-	If reallocation would cause packet size to exceed maxSize, no reallocation is done.
-	Returns 0 if extraBytes can be appended to whichP; -1 otherwise.
-    */
-{
-    long freebytes, curlen;
-    RPC2_PacketBuffer *pb;
-
-    curlen = (*whichP)->Header.BodyLength + sizeof(struct RPC2_PacketHeader);
-    freebytes = (*whichP)->Prefix.BufferSize - sizeof(struct RPC2_PacketBufferPrefix) - curlen;
-    if (freebytes >= extraBytes) return(0);
-    if (curlen + extraBytes > maxSize) return (-1);
-
-    /* Realloc and copy */
-    RPC2_AllocBuffer(extraBytes + (*whichP)->Header.BodyLength, &pb);
-    pb->Header.BodyLength = (*whichP)->Header.BodyLength;
-    memcpy(&pb->Header, &(*whichP)->Header, curlen);
-    *whichP = pb;	/* DON'T free old packet !!! */
-    return(0);
-}
-
-
-long sftp_AppendFileToPacket(struct SFTP_Entry *sEntry,
+off_t sftp_AppendFileToPacket(struct SFTP_Entry *sEntry,
 			     RPC2_PacketBuffer **whichP)
     /* Tries to add a file to the end of whichP
     Returns:
@@ -1013,7 +1018,8 @@ long sftp_AppendFileToPacket(struct SFTP_Entry *sEntry,
 	-2 if appending file would make packet larger than SFTP_MAXPACKETSIZE
     */
 {
-    long rc, maxbytes, filelen;
+    long rc, maxbytes;
+    off_t filelen;
     static char GlobalJunk[SFTP_MAXBODYSIZE];	/* buffer for read();
 				    avoids huge local on my stack */
     
@@ -1029,7 +1035,7 @@ long sftp_AppendFileToPacket(struct SFTP_Entry *sEntry,
 	    maxbytes -= (SFTP_MAXPACKETSIZE - sEntry->PacketSize);
 #endif
 
-    if (filelen > maxbytes) return(-2);
+    if (filelen > (off_t)maxbytes) return(-2);
 
     /* enough space: append the file! */
     rc = sftp_piggybackfileread(sEntry, GlobalJunk);
@@ -1043,12 +1049,13 @@ long sftp_AppendFileToPacket(struct SFTP_Entry *sEntry,
 }
 
 
-long sftp_ExtractFileFromPacket(struct SFTP_Entry *sEntry,
+off_t sftp_ExtractFileFromPacket(struct SFTP_Entry *sEntry,
 				RPC2_PacketBuffer *whichP)
     /* Plucks off piggybacked file.
        Returns number of bytes plucked off, or < 0 if error */
 {
-    long len, rc;
+    long rc;
+    off_t len;
 
     len = whichP->Header.BodyLength - whichP->Header.SEDataOffset;
     rc = sftp_vfwritefile(sEntry, &whichP->Body[whichP->Header.BodyLength-len],
@@ -1187,7 +1194,7 @@ void sftp_FreeSEntry(struct SFTP_Entry *se)
     free(se);
 }
 
-void sftp_AllocPiggySDesc(struct SFTP_Entry *se, long len,
+void sftp_AllocPiggySDesc(struct SFTP_Entry *se, off_t len,
 			  enum WhichWay direction)
 {
     struct FileInfoByAddr *p;
@@ -1209,6 +1216,7 @@ void sftp_AllocPiggySDesc(struct SFTP_Entry *se, long len,
     if (len == 0)  p->vmfile.SeqBody = (RPC2_ByteSeq)malloc(1);
     else p->vmfile.SeqBody = (RPC2_ByteSeq)malloc(len);
     assert(p->vmfile.SeqBody);  /* malloc failure is fatal */
+    assert(len <= INT_MAX); /* LFS */
     p->vmfile.MaxSeqLen = len;
     p->vmfile.SeqLen = len;
     p->vmfilep = 0;
