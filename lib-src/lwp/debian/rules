@@ -11,7 +11,7 @@ DEB_HOST_GNU_TYPE  := $(shell dpkg-architecture -qDEB_HOST_GNU_TYPE )
 
 # As we're not yet 'stable' we default to building unstripped binaries.
 # This can be overridden by setting an empty DEB_BUILD_OPTIONS.
-${DEB_BUILD_OPTIONS=nostrip}
+${DEB_BUILD_OPTIONS:=nostrip}
 export DEB_BUILD_OPTIONS
 
 CFLAGS += -Wall
