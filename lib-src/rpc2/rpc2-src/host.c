@@ -298,7 +298,7 @@ void rpc2_ClearHostLog(struct HEntry *whichHost, NetLogEntryType type)
  * ElapsedTime  is the observed roundtrip-time in microseconds
  * Bytes        is the number of bytes transferred */
 void RPC2_UpdateEstimates(struct HEntry *host, RPC2_Unsigned elapsed_us,
-			  RPC2_Unsigned Bytes)
+			  RPC2_Unsigned InBytes, RPC2_Unsigned OutBytes)
 {
     long	   eRTT;     /* estimated null roundtrip time */
     long	   eBR;      /* estimated byterate (ns/B) */
@@ -307,7 +307,7 @@ void RPC2_UpdateEstimates(struct HEntry *host, RPC2_Unsigned elapsed_us,
 
     if (!host) return;
 
-    say(0, RPC2_DebugLevel, "uRTT: 0x%lx %lu %lu\n", elapsed_us, elapsed_us, Bytes);
+    say(0, RPC2_DebugLevel, "uRTT: 0x%lx %lu %lu %lu\n", elapsed_us, elapsed_us, InBytes, OutBytes);
     
     if ((long)elapsed_us < 0) elapsed_us = 0;
 
@@ -322,7 +322,7 @@ void RPC2_UpdateEstimates(struct HEntry *host, RPC2_Unsigned elapsed_us,
     else		   eU = 0;
 
     /* eBR = ( eU * 1000 ) / Bytes ; */
-    eBR = ((eU << 7) / Bytes) << 3;
+    eBR = ((eU << 7) / (InBytes + OutBytes)) << 3;
     eBR -= (host->BR >> RPC2_BR_SHIFT);
 
     /* HACK! to avoid small packets with RTT's that are not within the current
@@ -348,8 +348,8 @@ void RPC2_UpdateEstimates(struct HEntry *host, RPC2_Unsigned elapsed_us,
      * byterate, eRTT will contain a updated RTT estimate */
     eBR = (host->BR >> RPC2_BR_SHIFT) + ((host->BR >> RPC2_BRVAR_SHIFT) >> 1);
 
-    /* eU = ( eBR * Bytes ) / 1000 ; */
-    eU = ((eBR >> 4) * Bytes) >> 6;
+    /* eU = ( eBR * (InBytes + OutBytes ) / 1000 ; */
+    eU = ((eBR >> 4) * (InBytes + OutBytes)) >> 6;
 
     if (elapsed_us > eU) eL = elapsed_us - eU;
     else		 eL = 0;
@@ -365,15 +365,17 @@ void RPC2_UpdateEstimates(struct HEntry *host, RPC2_Unsigned elapsed_us,
     host->RTTVar += eL;
 
     say(0, RPC2_DebugLevel,
-	"Est: %s %4ld.%06lu/%-5lu RTT:%lu/%lu us BR:%lu/%lu ns/B\n",
+	"Est: %s %4ld.%06lu/%-5lu<%-5lu RTT:%lu/%lu us BR:%lu/%lu ns/B\n",
 	    inet_ntoa(host->Host), elapsed_us / 1000000, elapsed_us % 1000000,
-	    Bytes, host->RTT>>RPC2_RTT_SHIFT, host->RTTVar>>RPC2_RTTVAR_SHIFT,
-	    (host->BR>>RPC2_BR_SHIFT), host->BRVar>>RPC2_BRVAR_SHIFT);
+	    InBytes, OutBytes, host->RTT>>RPC2_RTT_SHIFT,
+	    host->RTTVar>>RPC2_RTTVAR_SHIFT, (host->BR>>RPC2_BR_SHIFT),
+	    host->BRVar>>RPC2_BRVAR_SHIFT);
 
     return;
 }
 
-void rpc2_RetryInterval(RPC2_Handle whichConn, RPC2_Unsigned Bytes, int *retry,
+void rpc2_RetryInterval(RPC2_Handle whichConn, RPC2_Unsigned InBytes,
+			RPC2_Unsigned OutBytes, int *retry,
 			int maxretry, struct timeval *tv)
 {
     struct CEntry *ce;
@@ -398,8 +400,8 @@ void rpc2_RetryInterval(RPC2_Handle whichConn, RPC2_Unsigned Bytes, int *retry,
 
     effBR = (ce->HostInfo->BR >> RPC2_BR_SHIFT);
 
-    /* rto += ( effBR * Bytes ) / 1000 ; */
-    rto += ((effBR >> 3) * Bytes) >> 7;
+    /* rto += ( effBR * (InBytes + OutBytes) ) / 1000 ; */
+    rto += ((effBR >> 3) * (InBytes + OutBytes)) >> 7;
     
     if (*retry != 1) {
 	rtt = ce->MaxRetryInterval.tv_sec * 1000000 +

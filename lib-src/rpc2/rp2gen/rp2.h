@@ -115,12 +115,7 @@ typedef struct proc {
 /* Language values are specified for use in array */
 typedef enum{ NONE=0, C=1, PASCAL=2, F77=3 } LANGUAGE;
 
-
-#if defined(CLIENT) || defined(SERVER)
-#undef CLIENT
-#undef SERVER
-#endif
-typedef enum{ CLIENT=0, SERVER=1, MULTI=2, DUMP=3} WHO;
+typedef enum{ RP2_CLIENT=0, RP2_SERVER=1, RP2_MULTI=2, RP2_DUMP=3} WHO;
 
 typedef struct stubelem {
     char        *type;

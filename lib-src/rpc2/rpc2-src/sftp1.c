@@ -231,11 +231,13 @@ long SFTP_Bind2(IN RPC2_Handle ConnHandle, IN RPC2_Unsigned BindTime)
     {
         /* XXX Do some estimate of the amount of transferred data --JH */
 	RPC2_UpdateEstimates(se->HostInfo, BindTime,
-			     2 * sizeof(struct RPC2_PacketHeader));
+			     sizeof(struct RPC2_PacketHeader),
+			     sizeof(struct RPC2_PacketHeader));
 
 	retry = 1;
-        rpc2_RetryInterval(ConnHandle, 2 * sizeof(struct RPC2_PacketHeader),
-			   &retry, se->RetryCount, &se->RInterval);
+        rpc2_RetryInterval(ConnHandle, sizeof(struct RPC2_PacketHeader),
+			   sizeof(struct RPC2_PacketHeader), &retry,
+			   se->RetryCount, &se->RInterval);
     }
     
     return(RPC2_SUCCESS);
@@ -414,10 +416,12 @@ long SFTP_GetRequest(RPC2_Handle ConnHandle, RPC2_PacketBuffer *Request)
     {
         /* XXX Do some estimate of the amount of transferred data --JH */
 	RPC2_UpdateEstimates(se->HostInfo, Request->Header.BindTime,
-			     2 * sizeof(struct RPC2_PacketHeader));
+			     sizeof(struct RPC2_PacketHeader),
+			     sizeof(struct RPC2_PacketHeader));
 	retry = 1;
-        rpc2_RetryInterval(ConnHandle, 2 * sizeof(struct RPC2_PacketHeader),
-			   &retry, se->RetryCount, &se->RInterval);
+        rpc2_RetryInterval(ConnHandle, sizeof(struct RPC2_PacketHeader),
+			   sizeof(struct RPC2_PacketHeader), &retry,
+			   se->RetryCount, &se->RInterval);
     }
 
     se->PiggySDesc = NULL; /* default is no piggybacked file */
@@ -711,11 +715,12 @@ static long GetFile(struct SFTP_Entry *sEntry)
 
     /* Set timeout to be large enough for size of (possibly sent) ack + size
      * of the next data packet */
-    packetsize = sEntry->PacketSize + 2 * sizeof(struct RPC2_PacketHeader);
+    packetsize = sEntry->PacketSize + sizeof(struct RPC2_PacketHeader);
     while (sEntry->XferState == XferInProgress) {
 	for (i = 1; i <= sEntry->RetryCount; i++) {
 	    /* get a new retry interval estimate */
-	    rpc2_RetryInterval(sEntry->LocalHandle, packetsize, &i,
+	    rpc2_RetryInterval(sEntry->LocalHandle, packetsize,
+			       sizeof(struct RPC2_PacketHeader), &i,
 			       sEntry->RetryCount, &sEntry->RInterval);
 
 	    pb = (RPC2_PacketBuffer *)AwaitPacket(&sEntry->RInterval, sEntry);
@@ -827,13 +832,13 @@ static long PutFile(struct SFTP_Entry *sEntry)
 
     /* estimated size of an sftp data transfer */
     bytes = ((sEntry->PacketSize + sizeof(struct RPC2_PacketHeader)) *
-	     sEntry->AckPoint) + sizeof(struct RPC2_PacketHeader);
+	     sEntry->AckPoint);
 
     while (sEntry->XferState == XferInProgress) {
 	for (i = 1; i <= sEntry->RetryCount; i++) {
 	    /* get a new retry interval estimate */
-	    rpc2_RetryInterval(sEntry->LocalHandle, bytes, &i,
-			       sEntry->RetryCount, &sEntry->RInterval);
+	    rpc2_RetryInterval(sEntry->LocalHandle, sizeof(struct RPC2_PacketHeader),
+			       bytes, &i, sEntry->RetryCount, &sEntry->RInterval);
 
 	    pb = (RPC2_PacketBuffer *)AwaitPacket(&sEntry->RInterval, sEntry);
 

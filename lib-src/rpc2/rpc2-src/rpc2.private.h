@@ -163,7 +163,8 @@ struct CEntry		/* describes a single RPC connection */
     RPC2_PacketBuffer *HeldPacket;	/* NULL or pointer to packet held in readiness
 					    for retransmission (reply or last packet
 					    of Bind handshake */
-    unsigned long reqsize;              /* size of request (+response), for RTT calcs */
+    unsigned long reqsize;              /* size of request, for RTT calcs */
+    unsigned long respsize;              /* size of response, for RTT calcs */
 
     /* Retransmission info - client */
 #define LOWERLIMIT 300000               /* floor on lower limit, usec. */
@@ -485,12 +486,12 @@ void rpc2_GetHostLog(struct HEntry *whichHost, RPC2_NetLog *log,
 int rpc2_AppendHostLog(struct HEntry *whichHost, RPC2_NetLogEntry *entry,
 		       NetLogEntryType type);
 void rpc2_ClearHostLog(struct HEntry *whichHost, NetLogEntryType type);
+
 void RPC2_UpdateEstimates(struct HEntry *whichHost, RPC2_Unsigned ElapsedTime,
-			  RPC2_Unsigned Bytes);
-void rpc2_UpdateEstimates(struct HEntry *whichHost, struct timeval *elapsed,
-			  RPC2_Unsigned Bytes);
-void rpc2_RetryInterval(RPC2_Handle whichConn, RPC2_Unsigned Bytes, int *retry,
-			int maxretry, struct timeval *tv);
+			  RPC2_Unsigned InBytes, RPC2_Unsigned OutBytes);
+void rpc2_RetryInterval(RPC2_Handle whichConn, RPC2_Unsigned InBytes,
+			RPC2_Unsigned OutBytes, int *retry, int maxretry,
+			struct timeval *tv);
 
 /* Multicast group manipulation routines */
 void rpc2_InitMgrp(), rpc2_FreeMgrp(), rpc2_RemoveFromMgrp(), rpc2_DeleteMgrp();

@@ -402,7 +402,7 @@ void rpc2_ResetLowerLimit(IN Conn, IN Packet)
     Conn->reqsize = Packet->Prefix.LengthOfPacket;
 
     /* take response into account.  At least a packet header, probably more */
-    bits = (Packet->Prefix.LengthOfPacket + 2*sizeof(struct RPC2_PacketHeader)) * 8;
+    bits = (Conn->reqsize + 2*sizeof(struct RPC2_PacketHeader)) * 8;
     delta = bits * 1000 / rpc2_Bandwidth;
     delta *= 1000;  /* was in msec to avoid overflow */
 

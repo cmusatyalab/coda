@@ -391,7 +391,7 @@ void spit_type(type)
 	puts("RP2GEN: warning, SPIT_TYPE does not support multiple languages");
 	exit(1);
     }
-    (*lang_struct[(int32_t) clanguage].type)(type, CLIENT, hfile);		/* Types always go to .h file */
+    (*lang_struct[(int32_t) clanguage].type)(type, RP2_CLIENT, hfile);		/* Types always go to .h file */
 }
 
 void spit_include(filename)
@@ -401,7 +401,7 @@ void spit_include(filename)
 	puts("RP2GEN: warning, SPIT_INCLUDE does not support multiple languages");
 	exit(1);
     }
-    (*lang_struct[(int32_t) clanguage].include)(filename, CLIENT, hfile);
+    (*lang_struct[(int32_t) clanguage].include)(filename, RP2_CLIENT, hfile);
 }
 
 void spit_define(id, value)
@@ -411,7 +411,7 @@ void spit_define(id, value)
 	puts("RP2GEN: warning, SPIT_DEFINE does not support multiple languages");
 	exit(1);
     }
-    (*lang_struct[(int32_t) clanguage].define)(id, value, CLIENT, hfile);
+    (*lang_struct[(int32_t) clanguage].define)(id, value, RP2_CLIENT, hfile);
 }
 
 static int32_t do_procs()
@@ -437,26 +437,26 @@ static int32_t do_procs()
     }
 
     /* Generate op codes in .h file */
-    (*lang_struct[(int32_t) clanguage].op_codes)(head, CLIENT, hfile);
+    (*lang_struct[(int32_t) clanguage].op_codes)(head, RP2_CLIENT, hfile);
 
     /* Generate client file */
     if (HeaderOnlyFlag)
 	    {if(cfile) { fclose(cfile); cfile = NULL; } unlink(cfile_name);}
-    else (*lang_struct[(int32_t) clanguage].proc)(head, CLIENT, cfile);
+    else (*lang_struct[(int32_t) clanguage].proc)(head, RP2_CLIENT, cfile);
 
     /* Generate server file */
     if (HeaderOnlyFlag)
 	    {if(sfile) { fclose(sfile); sfile = NULL; } unlink(sfile_name);}
-    else (*lang_struct[(int32_t) slanguage].proc)(head, SERVER, sfile);
+    else (*lang_struct[(int32_t) slanguage].proc)(head, RP2_SERVER, sfile);
 
     /* Generate multi file */
     if (HeaderOnlyFlag)
 	    {if(mfile) { fclose(mfile); mfile = NULL; } unlink(mfile_name);}
-    else (*lang_struct[(int32_t) mlanguage].proc)(head, MULTI, mfile);
+    else (*lang_struct[(int32_t) mlanguage].proc)(head, RP2_MULTI, mfile);
     
     if (HeaderOnlyFlag)
 	    {if(pfile) { fclose(pfile); pfile = NULL; } unlink(pfile_name); }
-    else (*lang_struct[(int32_t) slanguage].proc)(head, DUMP, pfile);
+    else (*lang_struct[(int32_t) slanguage].proc)(head, RP2_DUMP, pfile);
 
     return -1;
 }

@@ -213,6 +213,7 @@ struct CEntry *rpc2_AllocConn()
     ce->MySl = NULL;
     ce->HeldPacket = NULL;
     ce->reqsize = 0;
+    ce->respsize = 0;
     ce->HostInfo = NULL;
 
     /* Then make it unique */

@@ -915,7 +915,7 @@ void rpc2_ResetObs(obsp, ceaddr)
     long *obsp;
     struct CEntry *ceaddr;
     {
-    long delta = ceaddr->reqsize * 8 * 100 / rpc2_Bandwidth;
+    long delta = (ceaddr->reqsize + ceaddr->respsize) * 8 * 100 / rpc2_Bandwidth;
     say(4, RPC2_DebugLevel, "rpc2_ResetObs: conn 0x%lx, obs %ld, delta %ld, new %ld\n", 
 			     ceaddr->UniqueCID, *obsp, delta, *obsp-delta);
     if (*obsp > delta)  *obsp -= delta;
@@ -935,7 +935,7 @@ void rpc2_UpdateRTT(RPC2_PacketBuffer *pb, struct CEntry *ceaddr)
     TVTOTS(&pb->Prefix.RecvStamp, obs);
     say(15, RPC2_DebugLevel, "updatertt %u %lu\n", obs, pb->Header.TimeStamp);
     obs = TSDELTA(obs, pb->Header.TimeStamp);
-    RPC2_UpdateEstimates(ceaddr->HostInfo, obs, ceaddr->reqsize);
+    RPC2_UpdateEstimates(ceaddr->HostInfo, obs, ceaddr->respsize, ceaddr->reqsize);
 
     /* 
      * Requests can be sent and received in the same tick.  
@@ -949,7 +949,7 @@ void rpc2_UpdateRTT(RPC2_PacketBuffer *pb, struct CEntry *ceaddr)
 
     /* log the round-trip time observation in the host log */
     entry.Tag = RPC2_MEASURED_NLE;
-    entry.Value.Measured.Bytes = ceaddr->reqsize; //-2*sizeof(struct RPC2_PacketHeader);
+    entry.Value.Measured.Bytes = ceaddr->reqsize + ceaddr->respsize; //-2*sizeof(struct RPC2_PacketHeader);
     entry.Value.Measured.ElapsedTime = obs;
     entry.Value.Measured.Conn = ceaddr->UniqueCID;
     (void) rpc2_AppendHostLog(ceaddr->HostInfo, &entry, RPC2_MEASUREMENT);

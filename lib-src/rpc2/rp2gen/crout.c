@@ -260,7 +260,7 @@ void copcodes(PROC *head, WHO who, FILE *where)
 	fprintf(where, "RPC2_Handle cid");\
 	for(var = head->formals; *var != NIL; var++) {\
 	    fprintf(where, ", ");\
-	    spit_parm(*var, CLIENT, where, RP2_TRUE);\
+	    spit_parm(*var, RP2_CLIENT, where, RP2_TRUE);\
 	}\
 
     macro_define(where);
@@ -369,13 +369,13 @@ cproc(head, who, where)
     FILE *where;
 {
 	switch (who) {
-	case CLIENT:	client_procs(head, where);
+	case RP2_CLIENT: client_procs(head, where);
 		break;
-	case SERVER:	server_procs(head, where);
+	case RP2_SERVER: server_procs(head, where);
 		break;
-	case MULTI:	multi_procs(head, where);
+	case RP2_MULTI:	 multi_procs(head, where);
 		break;
-	case DUMP:      dump_procs(head,where);
+	case RP2_DUMP:   dump_procs(head,where);
 		break;
 	default:	printf("RP2GEN [can't happen]: Impossible WHO: %d\n", who);
 			abort();
@@ -451,7 +451,7 @@ static void one_client_proc(PROC *proc, FILE *where)
     if(strictproto) {
 	for (parm=proc->formals; *parm!=NIL; parm++) {
 		    fprintf(where, ", ");
-		    spit_parm(*parm, CLIENT, where, RP2_TRUE);
+		    spit_parm(*parm, RP2_CLIENT, where, RP2_TRUE);
 		    switch ((*parm)->mode) {
 		    case IN_MODE:   in_parms = RP2_TRUE;
 				    break;
@@ -475,7 +475,7 @@ static void one_client_proc(PROC *proc, FILE *where)
 	/* Now output types for parameters */
 	fprintf(where, "\t\tRPC2_Handle %s;\n", cid);
 	for (parm=proc->formals; *parm!=NIL; parm++) {
-	    spit_parm(*parm, CLIENT, where, RP2_FALSE);
+	    spit_parm(*parm, RP2_CLIENT, where, RP2_FALSE);
 	    switch ((*parm)->mode) {
 		case IN_MODE:	in_parms = RP2_TRUE;
 				break;
@@ -528,7 +528,7 @@ static void spit_parm(VAR *parm, WHO who, FILE *where, rp2_bool header)
     /* Output appropriate levels of referencing */
     if (type -> bound == NIL) {
 	levels = deref_table[(int32_t) type->type->tag][(int32_t) parm->mode];
-	if (who == SERVER && levels > 0) levels--;
+	if (who == RP2_SERVER && levels > 0) levels--;
 	switch (levels) {
 	    case -2:	puts("RP2GEN [can't happen]: impossible MODE for variable");
 			abort();
@@ -546,7 +546,7 @@ static void spit_parm(VAR *parm, WHO who, FILE *where, rp2_bool header)
 	    fputs("[]", where);
     } else {
 	if (parm->array != NIL)
-	    if (who == SERVER)
+	    if (who == RP2_SERVER)
 	        fprintf(where, "*%s = NULL;\n", parm->name);
 	    else
 	        fprintf(where, "%s[];\n", parm->name);
@@ -561,7 +561,7 @@ static void for_limit(VAR *parm, WHO who, FILE *where)
 
     /* Output appropriate levels of referencing */
     levels = deref_table[(int32_t)RPC2_INTEGER_TAG][(int32_t) parm->mode];
-    if (who == SERVER && levels > 0) levels--;
+    if (who == RP2_SERVER && levels > 0) levels--;
     switch (levels) {
             case -2:	puts("RP2GEN [can't happen]: impossible MODE for variable");
 			abort();
@@ -624,7 +624,7 @@ static void spit_body(PROC *proc, rp2_bool in_parms, rp2_bool out_parms, FILE *w
 		    has_bd = (*parm) -> name;
 		if (!first) fputc('+', where); else first = RP2_FALSE;
 		if ((*parm)->array == NIL) {
-		    print_size(CLIENT, *parm, "", where);
+		    print_size(RP2_CLIENT, *parm, "", where);
 		} else {
 		    fputc('0', where);
 		}
@@ -641,10 +641,10 @@ static void spit_body(PROC *proc, rp2_bool in_parms, rp2_bool out_parms, FILE *w
 		if ((*parm)->array != NIL) {
 		    fprintf(where, "    /* %s of %s */\n", length, (*parm)->name);
 		    fprintf(where, "    for ( %s = 0; %s < ", iterate, iterate);
-		    for_limit(*parm, CLIENT, where);
+		    for_limit(*parm, RP2_CLIENT, where);
                     fprintf(where, "; %s++)\n", iterate);
 		    fprintf(where, "        %s += ", length);
-		    array_print_size(CLIENT, *parm, "", where);
+		    array_print_size(RP2_CLIENT, *parm, "", where);
 		    fputs(";\n", where);
 		}
     }
@@ -660,7 +660,7 @@ static void spit_body(PROC *proc, rp2_bool in_parms, rp2_bool out_parms, FILE *w
 	/* Now, do the packing */
 	fprintf(where, "\n    /* Pack arguments */\n    %s = %s->Body;\n", ptr, reqbuffer);
 	for (parm=proc->formals; *parm!=NIL; parm++)
-	    if ((*parm)->mode != OUT_MODE) pack(CLIENT, *parm, "", ptr, where);
+	    if ((*parm)->mode != OUT_MODE) pack(RP2_CLIENT, *parm, "", ptr, where);
     } else {
 	/* Reference _ptr to avoid compiler warning in stub */
         fprintf (where, "\n    %s = 0; /* This avoids compiler warning */\n", ptr); 
@@ -685,7 +685,7 @@ static void spit_body(PROC *proc, rp2_bool in_parms, rp2_bool out_parms, FILE *w
 	fprintf(where, "\n    /* Unpack arguments */\n    %s = %s->Body;\n", ptr, rspbuffer);
 	fprintf(where,"     _EOB = (char *) %s + %s->Prefix.LengthOfPacket + \n\t\t\tsizeof(struct RPC2_PacketBufferPrefix);\n", rspbuffer, rspbuffer);
 	for (parm=proc->formals; *parm!=NIL; parm++)
-	    if ((*parm)->mode != IN_MODE) unpack(CLIENT, *parm, "", ptr, where);
+	    if ((*parm)->mode != IN_MODE) unpack(RP2_CLIENT, *parm, "", ptr, where);
     }
     /* Optionally translate OS independent errors back */
     if ( neterrors  ) {
@@ -769,7 +769,7 @@ static void array_print_size(WHO who, VAR *parm, char *prefix, FILE *where)
 					    VAR **field;
 					    rp2_bool first;
 					    char *newprefix;
-					/*  newprefix = (who == SERVER
+					/*  newprefix = (who == RP2_SERVER
 								? concat(prefix, concat(parm->name, concat(suffix, ".")))
 								: field_name2(parm, prefix, suffix));
 					*/
@@ -795,10 +795,10 @@ static void print_size(WHO who, VAR *parm, char *prefix, FILE *where)
 
     name = concat(prefix, parm->name);
 /*  In addition to the following check, mode should be examined       */
-/*  select = (who == CLIENT ? "->" : ".");                            */
+/*  select = (who == RP2_CLIENT ? "->" : ".");                            */
 /*  I guess CountedBS and BoundedBS have not been used as elements of */
 /*  RPC2_Struct.                                                 M.K. */
-    select = ((who == CLIENT && parm->mode != NO_MODE) ? "->" : ".");
+    select = ((who == RP2_CLIENT && parm->mode != NO_MODE) ? "->" : ".");
     switch (parm->type->type->tag) {
 	case RPC2_BYTE_TAG:		/* Check for array */
   					if (parm->type->bound != NIL) {
@@ -817,14 +817,14 @@ static void print_size(WHO who, VAR *parm, char *prefix, FILE *where)
 	case RPC2_STRING_TAG:		fprintf(where, "4+_PAD(strlen((char *)%s)+1)", name);
 					break;
 	case RPC2_COUNTEDBS_TAG:	fputs("4+_PAD(", where);
-					if ((parm->mode == OUT_MODE) && (who == CLIENT))
+					if ((parm->mode == OUT_MODE) && (who == RP2_CLIENT))
 					    fprintf(where, "(*%s)", name);
 					else
 					    fputs(name, where);
 					fprintf(where, "%sSeqLen)", select);
 					break;
 	case RPC2_BOUNDEDBS_TAG:	fputs("8+_PAD(", where);
-					if ((parm->mode == OUT_MODE) && (who == CLIENT))
+					if ((parm->mode == OUT_MODE) && (who == RP2_CLIENT))
 					    fprintf(where, "(*%s)", name);
 					else
 					    fputs(name, where);
@@ -839,7 +839,7 @@ static void print_size(WHO who, VAR *parm, char *prefix, FILE *where)
 					    rp2_bool first;
 					    char *newprefix;
 /*	How could this ever have worked?    newprefix = field_name(parm, prefix); */
-					    newprefix = (who == SERVER
+					    newprefix = (who == RP2_SERVER
 								? concat(prefix, concat(parm->name, "."))
 								: field_name(parm, prefix));
 					    fputc('(', where);
@@ -911,7 +911,7 @@ static void pack(WHO who, VAR *parm, char *prefix, char *ptr, FILE *where)
     name = concat(prefix, parm->name);
     mode = parm -> mode;
 /*  The following sentence was modified. See print_size() for detailed information.  M.K.  */
-    select = ((who == CLIENT && mode != NO_MODE) ? "->" : ".");
+    select = ((who == RP2_CLIENT && mode != NO_MODE) ? "->" : ".");
     suffix = concat3elem("[", iterate, "]");
     switch (parm->type->type->tag) {
     case RPC2_INTEGER_TAG:		
@@ -919,7 +919,7 @@ static void pack(WHO who, VAR *parm, char *prefix, char *ptr, FILE *where)
 	    checkbuffer(where,ptr,4);
 #endif
 	    fprintf(where, "    *(RPC2_Integer *) %s = htonl(", ptr);
-	    if (who == CLIENT && mode == IN_OUT_MODE) fputc('*', where);
+	    if (who == RP2_CLIENT && mode == IN_OUT_MODE) fputc('*', where);
 	    fprintf(where, "%s);\n", name);
 	    inc4(ptr, where);
 	    break;
@@ -928,7 +928,7 @@ static void pack(WHO who, VAR *parm, char *prefix, char *ptr, FILE *where)
 	    checkbuffer(where,ptr,4);
 #endif
 	    fprintf(where, "    *(RPC2_Unsigned *) %s = htonl(", ptr);
-	    if (who == CLIENT && mode == IN_OUT_MODE) fputc('*', where);
+	    if (who == RP2_CLIENT && mode == IN_OUT_MODE) fputc('*', where);
 	    fprintf(where, "%s);\n", name);
 	    inc4(ptr, where);
 	    break;
@@ -945,7 +945,7 @@ static void pack(WHO who, VAR *parm, char *prefix, char *ptr, FILE *where)
 		    checkbuffer(where,ptr,4);
 #endif
 		    fprintf(where, "    *(RPC2_Byte *) %s = ", ptr);
-		    if (who == CLIENT && mode == IN_OUT_MODE) fputc('*', where);
+		    if (who == RP2_CLIENT && mode == IN_OUT_MODE) fputc('*', where);
 		    fprintf(where, "%s;\n", name);
 		    inc4(ptr, where);
 	    }
@@ -955,7 +955,7 @@ static void pack(WHO who, VAR *parm, char *prefix, char *ptr, FILE *where)
 	    checkbuffer(where,ptr,4);
 #endif
 	    fprintf(where, "    *(RPC2_Integer *) %s = htonl((RPC2_Integer) ", ptr);
-	    if (who == CLIENT && mode == IN_OUT_MODE) fputc('*', where);
+	    if (who == RP2_CLIENT && mode == IN_OUT_MODE) fputc('*', where);
 	    fprintf(where, "%s);\n", name);
 	    inc4(ptr, where);
 	    break;
@@ -964,7 +964,7 @@ static void pack(WHO who, VAR *parm, char *prefix, char *ptr, FILE *where)
 	    checkbuffer(where,ptr,8);
 #endif
 	    fprintf(where, "    *(RPC2_Double *) %s = ", ptr);
-	    if (who == CLIENT && mode == IN_OUT_MODE) fputc('*', where);
+	    if (who == RP2_CLIENT && mode == IN_OUT_MODE) fputc('*', where);
 	    fprintf(where, "%s;\n", name);
 	    inc8(ptr, where);
 	    break;
@@ -1006,12 +1006,12 @@ static void pack(WHO who, VAR *parm, char *prefix, char *ptr, FILE *where)
 		    for_limit(parm, who, where);
 		    fprintf(where, "; %s++) {\n", iterate);
 		    
-		    newprefix = (who == SERVER
+		    newprefix = (who == RP2_SERVER
 				 ? concat(concat3elem(prefix, parm->name, suffix), ".")
 				 : field_name2(parm, prefix, suffix));
 	    } 
 	    else {
-		    newprefix = (who == SERVER
+		    newprefix = (who == RP2_SERVER
 				 ? concat(prefix, concat(parm->name, "."))
 				 : field_name(parm, prefix));
 	    }
@@ -1050,20 +1050,20 @@ static void unpack(WHO who, VAR *parm, char *prefix, char *ptr, FILE *where)
     name = concat(prefix, parm->name);
     mode = parm -> mode;
 /*  The following sentence was modified. See print_size() for detailed information.  M.K.  */
-    select = ((who == CLIENT && mode != NO_MODE) ? "->" : ".");
+    select = ((who == RP2_CLIENT && mode != NO_MODE) ? "->" : ".");
     suffix = concat3elem("[", iterate, "]");
     switch (parm->type->type->tag) {
     case RPC2_INTEGER_TAG:	
 	    checkbuffer(where,ptr,4);
 	    fputs("    ", where);
-	    if (mode != NO_MODE && who == CLIENT) fputc('*', where);
+	    if (mode != NO_MODE && who == RP2_CLIENT) fputc('*', where);
 	    fprintf(where, "%s = ntohl(*(RPC2_Integer *) %s);\n", name, ptr);		 
 	    inc4(ptr, where);
 	    break;
     case RPC2_UNSIGNED_TAG:		
 	    checkbuffer(where,ptr,4);
 	    fputs("    ", where);
-	    if (mode != NO_MODE && who == CLIENT) fputc('*', where);
+	    if (mode != NO_MODE && who == RP2_CLIENT) fputc('*', where);
 	    fprintf(where, "%s = ntohl(*(RPC2_Unsigned *) %s);\n", name, ptr);
 	    inc4(ptr, where);
 	    break;
@@ -1077,7 +1077,7 @@ static void unpack(WHO who, VAR *parm, char *prefix, char *ptr, FILE *where)
 	    else {
 		    checkbuffer(where,ptr,4);
 		    fputs("    ", where);		    
-		    if (mode != NO_MODE && who == CLIENT) fputc('*', where);
+		    if (mode != NO_MODE && who == RP2_CLIENT) fputc('*', where);
 		    fprintf(where, "%s = *(RPC2_Byte *) %s;\n", name, ptr);
 		    inc4(ptr, where);
 	    }
@@ -1085,7 +1085,7 @@ static void unpack(WHO who, VAR *parm, char *prefix, char *ptr, FILE *where)
     case RPC2_ENUM_TAG:		
 	    checkbuffer(where,ptr,4);
 	    fputs("    ", where);
-	    if (mode != NO_MODE && who == CLIENT) fputc('*', where);
+	    if (mode != NO_MODE && who == RP2_CLIENT) fputc('*', where);
 	    fprintf(where, "%s = (%s) ntohl(*(RPC2_Integer *) %s);\n",
 		    name, parm->type->name, ptr);
 	    inc4(ptr, where);
@@ -1093,7 +1093,7 @@ static void unpack(WHO who, VAR *parm, char *prefix, char *ptr, FILE *where)
     case RPC2_DOUBLE_TAG:		
 	    checkbuffer(where,ptr,8);
 	    fputs("    ", where);
-	    if (mode != NO_MODE && who == CLIENT) fputc('*', where);
+	    if (mode != NO_MODE && who == RP2_CLIENT) fputc('*', where);
 	    fprintf(where, "%s = *(RPC2_Double *) %s;\n", name, ptr);
 	    inc8(ptr, where);
 	    break;
@@ -1109,8 +1109,8 @@ static void unpack(WHO who, VAR *parm, char *prefix, char *ptr, FILE *where)
             buffer_checked = 1;
 	    /* If RPC2_String is the element of RPC2_Struct, mode should be NO_MODE. */
 	    /* So mode should not be examined here. */
-	    /* if (mode == IN_OUT_MODE && who == CLIENT) { */
-	    if (/* mode == IN_OUT_MODE && */ who == CLIENT) {
+	    /* if (mode == IN_OUT_MODE && who == RP2_CLIENT) { */
+	    if (/* mode == IN_OUT_MODE && */ who == RP2_CLIENT) {
 		    /* Just copy characters back */
 		    fprintf(where,  "    memcpy((char *)%s, (char *)%s, (long)%s);\n", name, ptr, length);
 		    fprintf(where, "     %s[%s] = '\\0';\n", name, length);
@@ -1118,14 +1118,14 @@ static void unpack(WHO who, VAR *parm, char *prefix, char *ptr, FILE *where)
 	    else {
 		    fputs("    ", where);
 		    /* After the above condition check, the following never occurs.. */
-		    /* if (mode != NO_MODE && who == CLIENT) fputc('*', where); */
+		    /* if (mode != NO_MODE && who == RP2_CLIENT) fputc('*', where); */
 		    fprintf(where, "%s = (RPC2_String) %s;\n", name, ptr);
 	    }
 	    inc(ptr, length, where);
 	    break;
 	case RPC2_COUNTEDBS_TAG:	
 		checkbuffer(where,ptr,4);
-		if (who == SERVER) {
+		if (who == RP2_SERVER) {
 			/* Special hack */
 			fprintf(where, "    %s.SeqLen = ntohl(*(RPC2_Integer *) %s);\n", name, ptr);
 			inc4(ptr, where);
@@ -1161,7 +1161,7 @@ static void unpack(WHO who, VAR *parm, char *prefix, char *ptr, FILE *where)
 		           BUFFEROVERFLOW
 		           "    }\n", ptr,name,select);
             buffer_checked = 1;
-	    if (who == CLIENT /* && mode == IN_OUT_MODE */) {
+	    if (who == RP2_CLIENT /* && mode == IN_OUT_MODE */) {
 		    fprintf(where, "    memcpy((char *)%s%sSeqBody, (char *)%s, (long)%s%sSeqLen);\n",
 			    name, select, ptr, name, select);
 		    fprintf(where, "    %s += _PAD(%s%sSeqLen);\n", ptr, name, select);
@@ -1172,7 +1172,7 @@ static void unpack(WHO who, VAR *parm, char *prefix, char *ptr, FILE *where)
 		    fprintf(where, "        %s%sSeqBody = (RPC2_String) malloc(%s%sMaxSeqLen);\n",
 			    name, select, name, select);
 		    fprintf(where, "        if (%s%sSeqBody == 0) return ", name, select);
-		    fputs(who == CLIENT ? "RPC2_FAIL" : "0", where);
+		    fputs(who == RP2_CLIENT ? "RPC2_FAIL" : "0", where);
 		    fputs(";\n", where);
 		    fprintf(where, "        memcpy((char *)%s%sSeqBody, (char *)%s, (long)%s%sSeqLen);\n",
 			    name, select, ptr, name, select);
@@ -1195,11 +1195,11 @@ static void unpack(WHO who, VAR *parm, char *prefix, char *ptr, FILE *where)
 		    fprintf(where, "\n    for(%s = 0; %s < ", iterate, iterate);
 		    for_limit(parm, who, where);
 		    fprintf(where, "; %s++) {\n", iterate);
-		    newprefix = (who == SERVER
+		    newprefix = (who == RP2_SERVER
 				 ? concat(concat3elem(prefix, parm->name, suffix), ".")
 				 : field_name2(parm, prefix, suffix));
 	    } else {
-		    newprefix = (who == SERVER
+		    newprefix = (who == RP2_SERVER
 				 ? concat(prefix, concat(parm->name, "."))
 				 : field_name(parm, prefix));
 	    }
@@ -1306,7 +1306,7 @@ static void one_server_proc(PROC *proc, FILE *where)
     array_parms = RP2_FALSE;
     for (formals=proc->formals; *formals!=NIL; formals++) {
 	if ((*formals)->type->type->tag != RPC2_BULKDESCRIPTOR_TAG)
-	    spit_parm(*formals, SERVER, where, RP2_FALSE);
+	    spit_parm(*formals, RP2_SERVER, where, RP2_FALSE);
 	if ((*formals)->array != NIL)
 	    array_parms = RP2_TRUE;
 	switch ((*formals)->mode) {
@@ -1338,10 +1338,10 @@ static void one_server_proc(PROC *proc, FILE *where)
 		   it is good place to allocate buffer */
 	        /* Allocate dynamic array buffer */
 	        if ((*formals)->array != NIL) {
-		    alloc_dynamicarray(*formals, SERVER, where);
+		    alloc_dynamicarray(*formals, RP2_SERVER, where);
 		}
 	        if ((*formals)->mode != OUT_MODE) {
-		    unpack(SERVER, *formals, "", ptr, where);
+		    unpack(RP2_SERVER, *formals, "", ptr, where);
 		}
 	    }
     } else {
@@ -1365,7 +1365,7 @@ static void one_server_proc(PROC *proc, FILE *where)
 	if ((*formals)->mode != IN_MODE) {
 	    if (!first) fputc('+', where); else first = RP2_FALSE;
 	    if ((*formals)->array == NIL) {
-		print_size(SERVER, *formals, "", where);
+		print_size(RP2_SERVER, *formals, "", where);
 	    } else {
 		fputc('0', where);
 	    }
@@ -1381,10 +1381,10 @@ static void one_server_proc(PROC *proc, FILE *where)
 		if ((*formals)->array != NIL) {
 		    fprintf(where, "    /* %s of %s */\n", length, (*formals)->name);
 		    fprintf(where, "    for ( %s = 0; %s < ", iterate, iterate);
-		    for_limit(*formals, SERVER, where);
+		    for_limit(*formals, RP2_SERVER, where);
 		    fprintf(where, "; %s++)\n", iterate);
 		    fprintf(where, "        %s += ", length);
-		    array_print_size(SERVER, *formals, "", where);
+		    array_print_size(RP2_SERVER, *formals, "", where);
 		    fputs(";\n", where);
 		}
     }
@@ -1410,7 +1410,7 @@ static void one_server_proc(PROC *proc, FILE *where)
 	tag = (*formals)->type->type->tag;
 	if (tag != RPC2_BULKDESCRIPTOR_TAG) {
 	    if ((*formals)->mode != IN_MODE) {
-	        pack(SERVER, *formals, "", ptr, where);
+	        pack(RP2_SERVER, *formals, "", ptr, where);
 	    }
 	    if ((*formals)->array != NIL) {
 	        free_dynamicarray(*formals, where);	    
@@ -1440,8 +1440,8 @@ static void alloc_dynamicarray(VAR *parm, WHO who, FILE *where)
 
     mode = parm -> mode;
     /* parm->arraymax is used without any modification.                 *
-     * it is valid, because this routine is used only in SERVER case,   *
-     * and in SERVER case, no * is needed.                              */
+     * it is valid, because this routine is used only in RP2_SERVER case,   *
+     * and in RP2_SERVER case, no * is needed.                              */
     fprintf(where, "\n    if (%s > 0) {", (mode == IN_MODE) 
 	                                  ? parm->array : parm->arraymax);
     fprintf(where, "\n        %s = (%s *)malloc(sizeof(%s)*(%s));",

@@ -371,11 +371,11 @@ static void ClientPacket(RPC2_PacketBuffer *whichPacket,
 
 	    /* estimated size of an sftp data transfer */
 	    bytes = ((sEntry->PacketSize + sizeof(struct RPC2_PacketHeader)) *
-		     sEntry->SendAhead) + sizeof(struct RPC2_PacketHeader);
+		     sEntry->SendAhead);
 
 	    retry = 1;
-	    rpc2_RetryInterval(sEntry->LocalHandle, bytes, &retry,
-			       sEntry->RetryCount, &sEntry->RInterval);
+	    rpc2_RetryInterval(sEntry->LocalHandle, sizeof(struct RPC2_PacketHeader),
+			       bytes, &retry, sEntry->RetryCount, &sEntry->RInterval);
 
 	    if (sftp_AckArrived(whichPacket, sEntry) < 0) {
 		SFSendNAK(whichPacket); /* NAK this packet */

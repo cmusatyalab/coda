@@ -194,7 +194,7 @@ int sftp_InitIO(struct SFTP_Entry *sEntry)
 }
 
 void sftp_UpdateRTT(RPC2_PacketBuffer *pb, struct SFTP_Entry *sEntry,
-		    unsigned long bytes)
+		    unsigned long inbytes, unsigned long outbytes)
     /* 
       Updates the round trip time estimate and variance in sEntry->HostInfo
       using the observation in pb->Header.TimeEcho, Called by AckArrived and
@@ -212,14 +212,14 @@ void sftp_UpdateRTT(RPC2_PacketBuffer *pb, struct SFTP_Entry *sEntry,
 
 	TVTOTS(&pb->Prefix.RecvStamp, obs);
 	obs = TSDELTA(obs, pb->Header.TimeEcho);
-	RPC2_UpdateEstimates(sEntry->HostInfo, obs, bytes);
+	RPC2_UpdateEstimates(sEntry->HostInfo, obs, inbytes, outbytes);
     }
 
     return;
 }
 
-void sftp_UpdateBW(RPC2_PacketBuffer *pb, unsigned long bytes,
-		   struct SFTP_Entry * sEntry)
+void sftp_UpdateBW(RPC2_PacketBuffer *pb, unsigned long inbytes,
+		   unsigned long outbytes, struct SFTP_Entry * sEntry)
     /* Updates the bandwidth estimate using the data in the packetbuffer
       and the amount of data in bytes. Called by AckArrived and DataArrived.
     */
@@ -231,18 +231,18 @@ void sftp_UpdateBW(RPC2_PacketBuffer *pb, unsigned long bytes,
 
     TVTOTS(&pb->Prefix.RecvStamp, obs);
     obs = TSDELTA(obs, pb->Header.TimeEcho);
-    RPC2_UpdateEstimates(sEntry->HostInfo, obs, bytes);
+    RPC2_UpdateEstimates(sEntry->HostInfo, obs, inbytes, outbytes);
 
     obs /= 1000;
     if ((long)obs <= 0) obs = 1;
 
     entry.Tag = RPC2_MEASURED_NLE;
     entry.Value.Measured.Conn = sEntry->LocalHandle;
-    entry.Value.Measured.Bytes = bytes;
+    entry.Value.Measured.Bytes = inbytes + outbytes;
     entry.Value.Measured.ElapsedTime = obs;
     (void) rpc2_AppendHostLog(sEntry->HostInfo, &entry, SE_MEASUREMENT);
-    say(0/*4*/, SFTP_DebugLevel, "sftp_UpdateBW: conn 0x%lx, %ld bytes, %ld ms\n", 
-				  sEntry->LocalHandle, bytes, obs);
+    say(0/*4*/, SFTP_DebugLevel, "sftp_UpdateBW: conn 0x%lx, %ld inbytes, %ld outbytes, %ld ms\n", 
+	sEntry->LocalHandle, inbytes, outbytes, obs);
 }
 
 
@@ -320,8 +320,8 @@ int sftp_DataArrived(RPC2_PacketBuffer *pBuff, struct SFTP_Entry *sEntry)
     /* Harvest the RTT observation if this is the first packet. (And try to
      * get an estimate of the amount of bytes transferred on this roundtrip) */
     if (pBuff->Header.SEFlags & SFTP_FIRST) 
-	sftp_UpdateRTT(pBuff, sEntry, pBuff->Prefix.LengthOfPacket +    /*data*/
-				      sizeof(struct RPC2_PacketHeader));/*ack?*/
+	sftp_UpdateRTT(pBuff, sEntry, pBuff->Prefix.LengthOfPacket,
+				      sizeof(struct RPC2_PacketHeader));
 #endif
 	    
     sEntry->RecvSinceAck++;
@@ -362,11 +362,13 @@ int sftp_DataArrived(RPC2_PacketBuffer *pBuff, struct SFTP_Entry *sEntry)
 	    if (dataThisRound)
 		/* XXX The dataThisRound value is NOT equal to the data that
 		 * was actually sent if we sent duplicate packets! -JH */
-		sftp_UpdateBW(pBuff, dataThisRound, sEntry);
+		sftp_UpdateBW(pBuff, dataThisRound,
+			      sizeof(struct RPC2_PacketHeader), sEntry);
 
 	    /* recalculate the retry timeout */
 	    retry = 1;
-	    rpc2_RetryInterval(sEntry->LocalHandle, dataThisRound, &retry,
+	    rpc2_RetryInterval(sEntry->LocalHandle, dataThisRound,
+			       sizeof(struct RPC2_PacketHeader), &retry,
 			       sEntry->RetryCount, &sEntry->RInterval);
 	}
     }
@@ -586,8 +588,8 @@ int sftp_AckArrived(RPC2_PacketBuffer *pBuff, struct SFTP_Entry *sEntry)
     if (pBuff->Header.TimeEcho && 
 	(sEntry->WhoAmI != SFCLIENT || !(pBuff->Header.SEFlags & SFTP_TRIGGER))) 
         {
-	sftp_UpdateRTT(pBuff, sEntry, sEntry->PacketSize +         /* data? */
-				      pBuff->Prefix.LengthOfPacket /* ack */);
+	sftp_UpdateRTT(pBuff, sEntry, pBuff->Prefix.LengthOfPacket, /* ack */
+	/* data */     sEntry->PacketSize + sizeof(struct RPC2_PacketHeader));
 
 	/*  Update the bandwidth estimate.  To determine the amount of
 	 * useful data involved, first look at the initial run of
@@ -601,7 +603,7 @@ int sftp_AckArrived(RPC2_PacketBuffer *pBuff, struct SFTP_Entry *sEntry)
 	     * by a large amount the actual transferred data size (as reported
 	     * to sftp_UpdateBW) -JH */
 	    /* if (!(ntohl(pb->Header.SEFlags) & SFTP_COUNTED)) */
-	    dataThisRound += ntohl(pb->Header.BodyLength);
+	    dataThisRound += ntohl(pb->Prefix.LengthOfPacket);
 	    }
 
 	for (i = 1; i <= sizeof(int)*BITMASKWIDTH; i++)
@@ -619,7 +621,8 @@ int sftp_AckArrived(RPC2_PacketBuffer *pBuff, struct SFTP_Entry *sEntry)
 	if (dataThisRound)
 	    /* XXX This is bogus, the succesfully acked data is NOT equal to
 	     * the data we actually transferred over the wire! -JH */
-	    sftp_UpdateBW(pBuff, dataThisRound, sEntry);
+	    sftp_UpdateBW(pBuff, sizeof(struct RPC2_PacketHeader),
+			  dataThisRound, sEntry);
     }
 
     /* grab the timestamp because we're going to send more data. */

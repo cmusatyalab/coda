@@ -433,7 +433,7 @@ void sftp_DumpTrace(char *fName);
 void sftp_Progress(SE_Descriptor *sdesc, long BytesTransferred);
 
 void sftp_UpdateRTT(RPC2_PacketBuffer *pb, struct SFTP_Entry *sEntry,
-		    unsigned long bytes);
+		    unsigned long inbytes, unsigned long outbytes);
 int SFXlateMcastPacket(RPC2_PacketBuffer *pb);
 int MC_CheckAckorNak(struct SFTP_Entry *whichEntry);
 int MC_CheckStart(struct SFTP_Entry *whichEntry);
