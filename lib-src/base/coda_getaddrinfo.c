@@ -98,7 +98,12 @@ static int resolve_host(const char *name, int port, const struct summary *sum,
     int i, resolved = 0;
 
 #ifdef HAVE_GETIPNODEBYNAME
+#ifdef PF_INET6
     int err, flags = (sum->family == PF_INET6) ? AI_ALL : 0;
+#else
+    int err, flags = 0;
+#endif
+
 
     he = getipnodebyname(name, sum->family, flags, &err);
     if (!he) {
@@ -314,9 +319,12 @@ int coda_getaddrinfo(const char *node, const char *service,
     }
 
     /* check arguments */
-    if (sum.family != PF_UNSPEC &&
-	sum.family != PF_INET &&
-	sum.family != PF_INET6)
+    if (sum.family != PF_UNSPEC
+	&& sum.family != PF_INET
+#ifdef PF_INET6
+	&& sum.family != PF_INET6
+#endif
+	)
 	return CODA_EAI_FAMILY;
 
     if (sum.socktype &&
