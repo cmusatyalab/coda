@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/venusrecov.cc,v 4.2 1997/02/26 16:03:28 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/venusrecov.cc,v 4.3 1997/08/25 22:16:30 clement Exp $";
 #endif /*_BLURB_*/
 
 
@@ -490,12 +490,15 @@ PRIVATE void Recov_InitRVM() {
     }
 
     rvm_return_t ret = RVM_INIT(&Recov_Options);
-    if (ret != RVM_SUCCESS) {
-	if (ret == RVM_EINTERNAL)
-	    Choke("Recov_InitRVM: RVM_INIT failed, internal error %s", rvm_errmsg);
-	else
-	    Choke("Recov_InitRVM: RVM_INIT failed (%d)", ret);
-    }
+    if (ret == RVM_ELOG_VERSION_SKEW) {
+	eprint("Recov_InitRVM: RVM_INIT failed, RVM log version skew");
+	eprint("Venus not started");
+	exit(-1);
+    } else if (ret == RVM_EINTERNAL)
+	Choke("Recov_InitRVM: RVM_INIT failed, internal error %s", rvm_errmsg);
+    else if (ret != RVM_SUCCESS)
+	Choke("Recov_InitRVM: RVM_INIT failed (%d)", ret);
+
 }
 
 
