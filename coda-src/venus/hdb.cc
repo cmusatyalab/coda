@@ -778,8 +778,8 @@ void hdb::WalkPriorityQueue(vproc *vp, int *expansions, int *enospc_failure) {
 
     bnext = next();
     while ((b = bnext) != NULL) {
-	bnext = next();
 	namectxt *n = strbase(namectxt, b, prio_handle);
+
 	n->hold();
 
 	/* Yield periodically. */
@@ -787,11 +787,14 @@ void hdb::WalkPriorityQueue(vproc *vp, int *expansions, int *enospc_failure) {
 	if (((*expansions) & HDB_YIELDMASK) == 0)
 	    VprocYield();
 
+	/* grab the next namecontext */
+	bnext = next();
+
 	/* Skip over indigent contexts in cleaning mode. */
 	if (cleaning && n->state == PeIndigent) {
 	    n->release();
 	    continue;
-        }
+	}
 
 	/* Validate/Expand this context. */
 	pestate next_state = n->CheckExpansion();
@@ -800,7 +803,7 @@ void hdb::WalkPriorityQueue(vproc *vp, int *expansions, int *enospc_failure) {
 	if (vp->u.u_error == ENOSPC) {
 	    cleaning = 1;
 	    (*enospc_failure) = 1;
-        }
+	}
 
 	/* Take transition and release context. */
 	n->Transit(next_state);
@@ -1402,77 +1405,94 @@ hdbent *hdb_iterator::operator()() {
 /*  *****  Name Contexts  *****  */
 
 /*
+ *    Hoarding requires that the cache be in "priority equilibrium" with
+ *    respect to explicitly and implicitly defined working-sets.  The explicit
+ *    part requires binding of "hoard entries" to fso status blocks, and
+ *    prefetching/replacement of fso contents to maintain both "status" and
+ *    "data" equilibrium.  The binding of hoard entries is complicated by the
+ *    fact that bindings may change over time, due to both local and remote
+ *    directory operations.  Further, equilibrium is potentially perturbed as a
+ *    result of every object reference (since the implicit component of an
+ *    object's priority is reduced as a function of its time since last usage).
+ *    Finally, binding maintenance should be computationally efficient, since
+ *    the number of hoard entries may be very large.  We address the efficiency
+ *    issue by retaining binding state (in VM), and employing an event-driven
+ *    philosophy towards hoard entry expansion/validation.  Binding state is
+ *    organized into a data structure called a "name-context", one of which is
+ *    associated with each hoard entry.  Meta-expansion may cause additional
+ *    name-contexts to be associated with a root hoard entry.
  *
- *    Hoarding requires that the cache be in "priority equilibrium" with respect to
- *    explicitly and implicitly defined working-sets.  The explicit part requires
- *    binding of "hoard entries" to fso status blocks, and prefetching/replacement
- *    of fso contents to maintain both "status" and "data" equilibrium.  The binding
- *    of hoard entries is complicated by the fact that bindings may change over time,
- *    due to both local and remote directory operations.  Further, equilibrium is
- *    potentially perturbed as a result of every object reference (since the implicit
- *    component of an object's priority is reduced as a function of its time since last
- *    usage).  Finally, binding maintenance should be computationally efficient, since
- *    the number of hoard entries may be very large.  We address the efficiency issue
- *    by retaining binding state (in VM), and employing an event-driven philosophy
- *    towards hoard entry expansion/validation.  Binding state is organized into a data
- *    structure called a "name-context", one of which is associated with each hoard
- *    entry.  Meta-expansion may cause additional name-contexts to be associated
- *    with a root hoard entry.
+ *    Name-contexts are partitioned into four classes:  {Valid, Suspect,
+ *    Indigent, Inconsistent}.  Valid contexts are those for which a
+ *    "CheckExpansion" is not needed (i.e., a CheckExpansion would not
+ *    add/delete any bindings).  Note that Valid does _not_ imply that the
+ *    context is completely bound.  Suspect contexts are those for which a
+ *    CheckExpansion _might_ add/delete some bindings.  Hence, Suspect contexts
+ *    are linked together on a queue and each will be checked in the first pass
+ *    of the next hoard walk.  Indigent contexts are a special case of Suspect
+ *    which, for efficiency reasons, are managed separately.  An Indigent
+ *    context is suspect _solely_ because a trailing component could not be
+ *    bound during a previous hoard walk due to low priority.  Rather than
+ *    checking each Indigent context at the next walk, we maintain them on a
+ *    priority queue and check in decreasing priority order only as long as the
+ *    check does not (again) fail due to low priority.  Checking lower priority
+ *    contexts would be futile, and the effort of doing so is avoided.
  *
- *    Name-contexts are partitioned into four classes:  {Valid, Suspect, Indigent,
- *    Inconsistent}.  Valid contexts are those for which a "CheckExpansion" is not
- *    needed (i.e., a CheckExpansion would not add/delete any bindings).  Note that
- *    Valid does _not_ imply that the context is completely bound.  Suspect contexts
- *    are those for which a CheckExpansion _might_ add/delete some bindings.  Hence,
- *    Suspect contexts are linked together on a queue and each will be checked in
- *    the first pass of the next hoard walk.  Indigent contexts are a special case of
- *    Suspect which, for efficiency reasons, are managed separately.  An Indigent
- *    context is suspect _solely_ because a trailing component could not be bound
- *    during a previous hoard walk due to low priority.  Rather than checking each
- *    Indigent context at the next walk, we maintain them on a priority queue and
- *    check in decreasing priority order only as long as the check does not (again)
- *    fail due to low priority.  Checking lower priority contexts would be futile, and
- *    the effort of doing so is avoided.
- *
- *    The contexts of each state have an (informal) invariant associated with them:
+ *    The contexts of each state have an (informal) invariant associated with
+ *    them:
  *       Valid:
  *          - the context is fully bound, or
- *          - the opportunity to bind the "first unbound" component will be signalled by:
- *             - local mutation of the last bound component, or
- *             - remote mutation of the last bound component (signified by callback break), or
- *             - AVSG enlargement (with respect to one or more bound components), or
- *             - acquisition of new authentication tokens for the context-owner
- *            (each of these events induces a transition of the context to Suspect state)
+ *          - the opportunity to bind the "first unbound" component will be
+ *            signalled by:
+ *		- local mutation of the last bound component, or
+ *		- remote mutation of the last bound component (signified by
+ *		  callback break), or
+ *		- AVSG enlargement (with respect to one or more bound
+ *		  components), or
+ *		- acquisition of new authentication tokens for the
+ *		  context-owner
+ *		(each of these events induces a transition of the context to
+ *		Suspect state)
  *       Suspect:
- *          - the context has yet to be expanded (i.e., it was created after the last hoard walk), or
- *          - the context was Valid or Indigent at conclusion of the last hoard walk and a
- *            corresponding "suspect-signalling" event has been registered since then
+ *          - the context has yet to be expanded (i.e., it was created after
+ *            the last hoard walk), or
+ *          - the context was Valid or Indigent at conclusion of the last hoard
+ *            walk and a corresponding "suspect-signalling" event has been
+ *            registered since then
  *       Indigent:
  *          - the context is not fully bound, and
- *          - full expansion was impeded at conclusion of the last hoard walk due to low priority, and
- *          - the opportunity to bind the "first unbound" component will be signalled by:
- *             - successful expansion of the preceding highest priority context, or
- *             - demand-fetching of the "first unbound" component
- *            (each of these events induces a transition of the context to Suspect state)
+ *          - full expansion was impeded at conclusion of the last hoard walk
+ *            due to low priority, and
+ *          - the opportunity to bind the "first unbound" component will be
+ *            signalled by:
+ *		- successful expansion of the preceding highest priority
+ *		  context, or
+ *		- demand-fetching of the "first unbound" component
+ *		(each of these events induces a transition of the context to
+ *		 Suspect state)
  *       Inconsistent:
  *          - the context is not fully bound, and
- *          - full expansion was impeded at conclusion of the last hoard walk due to inconsistency, and
- *          - the opportunity to bind the "first unbound" component will not be signalled
+ *          - full expansion was impeded at conclusion of the last hoard walk
+ *            due to inconsistency, and
+ *          - the opportunity to bind the "first unbound" component will not be
+ *            signalled
  *
- *    Meta-expansion complicates the hoard maintenance task, since the system must
- *    1) decide when to meta-expand contexts, and 2) when to destroy meta-expanded
- *    contexts that are no longer useful.  Our strategy for the first requirement is to
- *    attempt meta-expansion only when a so-designated entry transits from Suspect or
- *    Indigent state to Valid.  Meta-expansion creates a name-context for every entry
- *    of the directory being expanded.  These new contexts start off in Suspect state,
- *    just as a new, non-meta-expanded context does.  A meta-expanded context which
- *    fails validation is discarded, UNLESS its parent is in the Valid state.  This
- *    exceptional handling avoids continual re-validation of a directory which is valid,
- *    but all or some of whose children are not.  Discarding a meta-expanded context
- *    causes recursive discarding of its own expandees.  The ranking function for
- *    name-contexts guarantees that the priority of an expanded context will be less
- *    than its parent.  This fact is needed for the above-mentioned check in the discard
- *    decision as to whether a context's parent is valid or not.
+ *    Meta-expansion complicates the hoard maintenance task, since the system
+ *    must 1) decide when to meta-expand contexts, and 2) when to destroy
+ *    meta-expanded contexts that are no longer useful.  Our strategy for the
+ *    first requirement is to attempt meta-expansion only when a so-designated
+ *    entry transits from Suspect or Indigent state to Valid.  Meta-expansion
+ *    creates a name-context for every entry of the directory being expanded.
+ *    These new contexts start off in Suspect state, just as a new,
+ *    non-meta-expanded context does.  A meta-expanded context which fails
+ *    validation is discarded, UNLESS its parent is in the Valid state.  This
+ *    exceptional handling avoids continual re-validation of a directory which
+ *    is valid, but all or some of whose children are not.  Discarding a
+ *    meta-expanded context causes recursive discarding of its own expandees.
+ *    The ranking function for name-contexts guarantees that the priority of an
+ *    expanded context will be less than its parent.  This fact is needed for
+ *    the above-mentioned check in the discard decision as to whether a
+ *    context's parent is valid or not.
  *
  */
 
@@ -1527,7 +1547,8 @@ namectxt::namectxt(ViceFid *Cdir, char *Path, vuid_t Vuid,
 
     parent = 0;
 
-    /* Mustn't insert into priority queue until "depth" and "random" have been initialized! */
+    /* Mustn't insert into priority queue until "depth" and "random" have been
+     * initialized! */
     HDB->prioq->insert(&prio_handle);
     SuspectCount++;
 
@@ -1572,9 +1593,11 @@ namectxt::namectxt(namectxt *Parent, char *Component) {
 	expander_dv = -1;
     }
 
-    parent = Parent;	    /* caller will link our child_link into appropriate list! */
+    parent = Parent;
+    /* caller will link our child_link into appropriate list! */
 
-    /* Mustn't insert into priority queue until "depth" and "random" have been initialized! */
+    /* Mustn't insert into priority queue until "depth" and "random" have been
+     * initialized! */
     HDB->prioq->insert(&prio_handle);
     SuspectCount++;
 
@@ -1674,7 +1697,6 @@ namectxt::~namectxt() {
 
     if (children != 0 || parent != 0)
 	{ print(logFile); CHOKE("namectxt::~namectxt: links still active"); }
-
 }
 
 
@@ -1693,6 +1715,9 @@ void namectxt::operator delete(void *deadobj, size_t len){
 void namectxt::hold() {
     if (inuse)
 	{ print(logFile); CHOKE("namectxt::hold: already inuse"); }
+
+    if (dying)
+	{ LOG(0, ("namectxt::hold: dead or dying object")); }
 
     inuse = 1;
 }
@@ -1853,6 +1878,7 @@ void namectxt::Kill() {
     if (inuse)
 	return;
 
+    LOG(10, ("namectxt::Kill(%p)\n", this));
     delete this;
 }
 
@@ -1949,16 +1975,18 @@ pestate namectxt::CheckExpansion() {
 	    return(state);
 	}
 
-	/* Retry namev for a context that became suspect during the last attempt. */
-        /* This if statement cause a looping bug in HoardWalks.  The namev succeeds
-         * but the following MetaExpand results in a TIMEOUT error and causes the
-         * object to be Demoted.  Because a demote is pending, we then transition into
-         * the PeSuspect state, unset the demote_pending flag and try again.  This
-         * causes us to retry the namev and the MetaExpand ad infinitum...  
-         * I do not understand under what conditions retrying the namev/MetaExpand
-         * will succeed.  However, if the retry repeatably does not succeed, we
-         * will clearly loop indefinitely.  I've reorganized the loop to prevent
-         * the indefinite loop.                                             mre 6/14/94 */
+	/* Retry namev for a context that became suspect during the last
+	 * attempt. */
+	/* This if statement cause a looping bug in HoardWalks.  The namev
+	 * succeeds but the following MetaExpand results in a TIMEOUT error and
+	 * causes the object to be Demoted.  Because a demote is pending, we
+	 * then transition into the PeSuspect state, unset the demote_pending
+	 * flag and try again.  This causes us to retry the namev and the
+	 * MetaExpand ad infinitum...  I do not understand under what
+	 * conditions retrying the namev/MetaExpand will succeed.  However, if
+	 * the retry repeatably does not succeed, we will clearly loop
+	 * indefinitely.  I've reorganized the loop to prevent the indefinite
+	 * loop.                                             mre 6/14/94 */
 	if (demote_pending) {
 	    LOG(10, ("namectxt::CheckExpansion: demote_pending context\n"));
 	    Transit(PeSuspect);
@@ -2020,14 +2048,15 @@ pestate namectxt::CheckExpansion() {
 
         case ETIMEDOUT:
             {
-              /* Context is partially valid. */
-              /* In most cases, the next opportunity for full validation will be */
-
-              /* signalled (by AVSG expansion).  However, there are some exceptions. */
-              /*   1. expansion.count() == 0 */
-              /*   2. the first "unbound component" evaluates to a different volume */
-              /* These cases are sufficiently obscure that I will ignore them */
-              /* for now, but they should be accounted for eventually. */
+              /* Context is partially valid.
+	       * In most cases, the next opportunity for full validation will
+	       * be signalled (by AVSG expansion).  However, there are some
+	       * exceptions.
+	       *   1. expansion.count() == 0
+	       *   2. the first "unbound component" evaluates to a different
+	       *      volume
+	       * These cases are sufficiently obscure that I will ignore them
+	       * for now, but they should be accounted for eventually. */
               LOG(10, ("Received ETIMEOUT during CheckExpansion.\n"));
               next_state = PeValid;
             }
@@ -2035,7 +2064,8 @@ pestate namectxt::CheckExpansion() {
 
         case ETOOMANYREFS:
     	    {
-	      /* Cannot fully validate context because there is an outstanding reference. */
+	      /* Cannot fully validate context because there is an outstanding
+	       * reference. */
 	      LOG(10, ("Received ETOOMANYREFS during CheckExpansion.\n"));
 	      next_state = PeValid;
     	    }	
@@ -2045,11 +2075,12 @@ pestate namectxt::CheckExpansion() {
             {
               /* Context is too "poor" to be fully validated. */
 
-              /* Unlike other partially valid contexts, next opportunity for */
-              /* full validation will NOT be signalled.  Hence, the next hoard */
-              /* walk will poll for that condition.  The polling is done in order */
-              /* of decreasing priority (i.e., from least to most "poor"), and */
-              /* terminates when an indigent context remains indigent after namev. */
+	      /* Unlike other partially valid contexts, next opportunity for
+	       * full validation will NOT be signalled.  Hence, the next hoard
+	       * walk will poll for that condition.  The polling is done in
+	       * order of decreasing priority (i.e., from least to most
+	       * "poor"), and terminates when an indigent context remains
+	       * indigent after namev. */
               next_state = PeIndigent;
             }
             break;
@@ -2062,7 +2093,6 @@ pestate namectxt::CheckExpansion() {
             {
               /* Obscure and/or transient errors!  Coerce them to EINCONS. */
               vp->u.u_error = EINCONS;
-              
               next_state = PeInconsistent;
             }
             break;
@@ -2073,7 +2103,7 @@ pestate namectxt::CheckExpansion() {
     }
 
     /* Meta-contract if appropriate. */
-    if (vp->u.u_error != 0 && meta_expanded) {
+    if (vp->u.u_error != 0 && !meta_expanded) {
       /* Only nuke children in case of {ENOSPC, EINCONS}. */
       if (vp->u.u_error == ENOSPC || vp->u.u_error == EINCONS) {
         if (expand_children || expand_descendents)
@@ -2188,30 +2218,32 @@ void namectxt::MetaExpand() {
     if (!FID_EQ(&expander_fid, &f->fid))
 	KillChildren();
 
-    /* ?MARIA?  Is it possible for the fid's to be different but the VV's to be the same
-       or the data versions be the same?
+    /* ?MARIA?  Is it possible for the fid's to be different but the VV's to be
+     * the same or the data versions be the same?
     */
 
-    /* Meta-expand only if current version of directory differs from last expanded version. */
+    /* Meta-expand only if current version of directory differs from last
+     * expanded version. */
     if ((f->flags.replicated && VV_Cmp(&expander_vv, &f->stat.VV) != VV_EQ) ||
 	 (!f->flags.replicated && expander_dv != f->stat.DataVersion)) {
 
       /* 
 	 ?MARIA?:  Why doesn't the KillChildren above appear here??? 
 	 Hmm.. Perhaps the difference is that if the FID has changed, we can't
-	 believe the old children list.  If the fid hasn't changed but the vv has 
-	 (or the data version has), we have some reason to suspect that the new 
-	 children list will be almost identical to the old one so we can move the
-	 old children onto a new list and save some work???
+	 believe the old children list.  If the fid hasn't changed but the vv
+	 has (or the data version has), we have some reason to suspect that the
+	 new children list will be almost identical to the old one so we can
+	 move the old children onto a new list and save some work???
        */
 
 	LOG(1, ("namectxt::MetaExpand: enumerating (%x.%x.%x)\n",
 		f->fid.Volume, f->fid.Vnode, f->fid.Unique));
 
-	/* Iterate through current contents of directory. */
-	/* The idea is to make a new children list of namectxts corresponding to */
-	/* directory entries. The elements of the new list are either moved from */
-	/* the current list (if found), or created fresh (if not found). */
+	/* Iterate through current contents of directory.
+	 * The idea is to make a new children list of namectxts corresponding
+	 * to directory entries. The elements of the new list are either moved
+	 * from the current list (if found), or created fresh (if not found).
+	 */
 	ViceFid tfid = f->fid;
 	{
 	    /* Must have valid data for directory! */
@@ -2234,8 +2266,9 @@ void namectxt::MetaExpand() {
 		k_Purge(&tfid, 1);
 
 	    if (vp->u.u_error != 0) {
-	       /* Following statement commented out so that caller can handle errors. */
-               /* vp->u.u_error = 0; */
+	       /* Following statement commented out so that caller can handle
+		* errors. */
+                // vp->u.u_error = 0;
 		Demote();
 		return;
 	    }

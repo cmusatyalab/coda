@@ -45,9 +45,6 @@ extern "C" {
 #include <dlist.h>
 
 
-class binding;
-
-
 class binding {
   public:
 #ifdef	VENUSDEBUG
