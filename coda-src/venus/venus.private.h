@@ -86,7 +86,7 @@ extern "C" {
 #define	DFLT_VR	"/coda"			 /* venus root */
 #endif
 
-#if defined(DJGPP) || defined(__CYGWIN32__)
+#if defined(DJGPP) /* || defined(__CYGWIN32__) Not right now ... */
 #define	DFLT_CD	"C:/usr/coda/venus.cache"    /* Win cache directory */
 #else 
 #define	DFLT_CD	"/usr/coda/venus.cache"	    /* cache directory */
