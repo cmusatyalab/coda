@@ -61,10 +61,8 @@ int GetSecret(char *tokenfile, RPC2_EncryptionKey key)
 
     /* check if the cached key we have is still valid */
     n = stat(tokenfile, &statbuf);
-    if (n < 0) {
-	LogMsg(0, SrvDebugLevel, stdout, "Could not stat %s", tokenfile);
+    if (n < 0)
 	return -1;
-    }
 
     if (size != statbuf.st_size || mtime != statbuf.st_mtime) {
 	fd = open(tokenfile, O_RDONLY);
@@ -98,6 +96,6 @@ void GenerateSecret(RPC2_EncryptionKey key)
 {
     int i;
     for (i = 0; i < RPC2_KEYSIZE; i++)
-        key[i] = rpc2_NextRandom(NULL);
+        key[i] = rpc2_NextRandom(NULL) & 0xff;
 }
 

@@ -56,6 +56,8 @@ extern "C" {
 #include <callback.h>
 #include <volutil.h>
 #include <voldump.h>
+#include <auth2.h>
+#include <avenus.h>
 
 #ifdef __cplusplus
 }
@@ -72,7 +74,6 @@ extern "C" {
 static char *vicedir = NULL;
 static int   nservers = 0;
 
-static RPC2_EncryptionKey vkey;	/* Encryption key for bind authentication */
 /* hack to make argc and argv visible to subroutines */
 static char **this_argp;
 static int these_args;
@@ -133,7 +134,7 @@ struct rockInfo {
 };
 
 static void V_InitRPC(int timeout);
-static int V_BindToServer(char *fileserver, RPC2_Handle *RPCid);
+static int V_BindToServer(char *fileserver, char *realm, RPC2_Handle *RPCid);
 static void VolDumpLWP(struct rockInfo *rock);
 extern long volDump_ExecuteRequest(RPC2_Handle, RPC2_PacketBuffer*,SE_Descriptor*);
 
@@ -151,48 +152,44 @@ void ReadConfigFile(void)
 
 int main(int argc, char **argv)
 {
+    char *realm = NULL;
+
     /* Set the default timeout and server host */
     timeout = 30;	/* Default rpc2 timeout is 30 seconds. */
     gethostname(s_hostname, sizeof(s_hostname) -1);
 
     ReadConfigFile();
 	
-    while (argc > 2 && *argv[1] == '-') { /* Both options require 2 arguments. */
+    while (argc > 2 && *argv[1] == '-') { /* All options require an argument. */
 	if (strcmp(argv[1], "-h") == 0) { /* User specified other host. */
 	    struct hostent *hp;
-	    argv++; argc--;
-	    hp = gethostbyname(argv[1]);
-	    if (hp) {
-		strcpy(s_hostname, hp->h_name);
-		argv++; argc--;
-	    } else {
-		fprintf(stderr, "%s is not a valid host name.\n", argv[1]);
+	    hp = gethostbyname(argv[2]);
+	    if (!hp) {
+		fprintf(stderr, "%s is not a valid host name.\n", argv[2]);
 		exit(-1);
 	    }
+	    strcpy(s_hostname, hp->h_name);
 	}
-	
-	if ((argc > 2) && strcmp(argv[1], "-t") == 0) { 
-	    /* User gave timeout */
+	else if (strcmp(argv[1], "-r") == 0) { /* User specified realm. */
+	    realm = argv[2];
+	}
+	else if (strcmp(argv[1], "-t") == 0) {     /* timeout */
 	    timeout = atoi(argv[2]);
-	    argv++; argc--;
-	    argv++; argc--;
 	}
-
-	if ((argc > 2) && strcmp(argv[1], "-d") == 0) { 
-	    /* User gave debuglevel */
+	else if (strcmp(argv[1], "-d") == 0) { /* debuglevel */
 	    RPC2_DebugLevel = atoi(argv[2]);
 	    VolDebugLevel = atoi(argv[2]);
-	    argv++; argc--;
-	    argv++; argc--;
 	}
+	argv++; argc--;
+	argv++; argc--;
     }
 
     if (argc < 2)
     	goto bad_options;
 
-    CODA_ASSERT(s_hostname != NULL);
+    CODA_ASSERT(*s_hostname != '\0');
     V_InitRPC(timeout);
-    V_BindToServer(s_hostname, &rpcid);
+    V_BindToServer(s_hostname, realm, &rpcid);
 
     this_argp = argv;
     these_args = argc;
@@ -290,7 +287,7 @@ int main(int argc, char **argv)
 
 bad_options:
     fprintf(stderr,
-"Usage: volutil [-h host] [-t timeout] [-d debuglevel] <option>,\n"
+"Usage: volutil [-h host] [-r realm] [-t timeout] [-d debuglevel] <option>,\n"
 "    where <option> is one of the following:\n"
 "\tancient, backup, create, create_rep, clone, dump, dumpestimate,\n"
 "\trestore, info, lock, lookup, makevldb, makevrdb, purge, salvage,\n"
@@ -1973,18 +1970,6 @@ static void V_InitRPC(int timeout)
     struct timeval tout;
     long rcode;
 
-    /* store authentication key */
-    tokfile = fopen(vice_sharedfile(VolTKFile), "r");
-    if (!tokfile) {
-	char estring[80];
-	sprintf(estring, "Tokenfile %s", vice_sharedfile(VolTKFile));
-	perror(estring);
-	exit(-1);
-    }
-    memset(vkey, 0, RPC2_KEYSIZE);
-    fread(vkey, 1, RPC2_KEYSIZE, tokfile);
-    fclose(tokfile);
-
     CODA_ASSERT(LWP_Init(LWP_VERSION, LWP_MAX_PRIORITY-1, &mylpid) == LWP_SUCCESS);
 
     SFTP_SetDefaults(&sftpi);
@@ -2003,7 +1988,7 @@ static void V_InitRPC(int timeout)
 }
 
 
-static int V_BindToServer(char *fileserver, RPC2_Handle *RPCid)
+static int V_BindToServer(char *fileserver, char *realm, RPC2_Handle *RPCid)
 {
  /* Binds to File Server on volume utility port on behalf of uName.
     Sets RPCid to the value of the connection id.    */
@@ -2012,7 +1997,10 @@ static int V_BindToServer(char *fileserver, RPC2_Handle *RPCid)
     RPC2_PortIdent pident;
     RPC2_SubsysIdent sident;
     RPC2_EncryptionKey secret;
-    long     rcode;
+    ClearToken ctok;
+    EncryptedSecretToken stok;
+    RPC2_CountedBS clientident;
+    long rcode;
 
     hident.Tag = RPC2_HOSTBYNAME;
     strcpy(hident.Value.Name, fileserver);
@@ -2034,8 +2022,25 @@ static int V_BindToServer(char *fileserver, RPC2_Handle *RPCid)
     bparms.EncryptionType = RPC2_XOR;
     bparms.SideEffectType = SMARTFTP;
 
-    GetSecret(vice_sharedfile(VolTKFile), secret);
-    bparms.SharedSecret = &secret;
+    if (GetSecret(vice_sharedfile(VolTKFile), secret) == 0)
+    {
+	bparms.AuthenticationType = AUTH_METHOD_VICEKEY;
+	bparms.SharedSecret = &secret;
+    }
+    else if (realm && U_GetLocalTokens(&ctok, stok, realm) == 0)
+    {
+	clientident.SeqLen = sizeof(SecretToken);
+	clientident.SeqBody = (RPC2_ByteSeq)&secret;
+
+	bparms.AuthenticationType = AUTH_METHOD_CODATOKENS;
+	bparms.ClientIdent = &clientident;
+	bparms.SharedSecret = &ctok.HandShakeKey;
+    }
+    else
+    {
+	printf("Couldn't get a token to authenticate with the server\n");
+	exit(-1);
+    }
 
     rcode = RPC2_NewBinding(&hident, &pident, &sident, &bparms, RPCid);
     if (rcode < 0 && rcode > RPC2_ELIMIT)

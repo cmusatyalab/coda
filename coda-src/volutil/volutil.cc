@@ -44,6 +44,7 @@ extern "C" {
 #include <util.h>
 #include <vice.h> 
 #include <volutil.h>
+#include <avice.h>
 
 #ifdef __cplusplus
 }
@@ -54,8 +55,7 @@ extern "C" {
 #include <vldb.h>
 #include <vutil.h>
 #include <getsecret.h>
-
-
+#include <auth2.h>
 
 extern void ViceTerminate();
 extern void ViceUpdateDB();
@@ -159,21 +159,67 @@ static void InitServer()
     CODA_ASSERT(RPC2_Export(&subsysid) == RPC2_SUCCESS);
 }
 
+/* For Coda Token authentication */
+/* We decode the Coda token and check if the user is a member of the
+ * System:Administrators group */
+static int IsAdminUser(RPC2_CountedBS *cid)
+{
+    SecretToken *st;
+    PRS_InternalCPS *CPS;
+    int SystemId;
+    int rc;
+
+    st = (SecretToken *)cid->SeqBody;
+
+    /* sanity check, do we have a correctly decoded CodaToken? */
+    if (strncmp((char *)st->MagicString, AUTH_MAGICVALUE,
+		sizeof(AuthMagic)) != 0)
+	return 0;
+
+    if (AL_NameToId(PRS_ADMINGROUP, &SystemId) == -1) {
+	/* Log warning, can't find System:Administrators group in pdb */
+	return 0;
+    }
+
+    rc = AL_GetInternalCPS(st->ViceId, &CPS);
+    if (rc == -1)
+	return 0;
+
+    rc = AL_IsAMember(SystemId, CPS);
+    AL_FreeCPS(&CPS);
+
+    if (rc == -1)
+	return 0;
+
+    return 1;
+}
+
 static long VolGetKey(RPC2_Integer *authtype, RPC2_CountedBS *cid,
 		      RPC2_EncryptionKey sharedsecret,
 		      RPC2_EncryptionKey sessionkey)
 {
-    unsigned int i;
-
     /* reject OPENKIMONO connections */
     if (!cid) return -1;
 
-    if (GetSecret(vice_sharedfile(VolTKFile), sharedsecret) == -1)
-	return -1;
+    switch (*authtype) {
+    case AUTH_METHOD_CODATOKENS:
+	if (GetKeysFromToken(authtype, cid, sharedsecret, sessionkey) == -1 ||
+	    !IsAdminUser(cid))
+	    return -1;
+	return 0;
 
-    memset(sessionkey, 0, RPC2_KEYSIZE);
-    for (i = 0; i < RPC2_KEYSIZE / sizeof(int); i++)
-	((int *)sessionkey)[i] = rpc2_NextRandom(NULL);
+    case AUTH_METHOD_VICEKEY:
+    case AUTH_METHOD_NULL: /* backward compatibility, old volutil clients never
+			      set the AuthenticationType field in BindParms */
+	if (GetSecret(vice_sharedfile(VolTKFile), sharedsecret) == -1)
+	    return -1;
+	break;
+
+    default:
+	return -1;
+    }
+
+    GenerateSecret(sessionkey);
 
     return(0);
 }

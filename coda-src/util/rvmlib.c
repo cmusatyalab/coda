@@ -200,7 +200,7 @@ char *rvmlib_strdup(const char *src)
     return dst;
 }
 
-inline void *rvmlib_malloc(unsigned long size, char *file, int line)
+void *rvmlib_malloc(unsigned long size, char *file, int line)
 {
 	int err;
 	void *p;

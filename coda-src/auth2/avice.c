@@ -65,6 +65,7 @@ extern "C" {
 }
 #endif
 
+#include <getsecret.h>
 #include "auth2.h"
 
 static int Key1IsValid = FALSE;
@@ -148,7 +149,6 @@ long GetKeysFromToken(IN RPC2_Integer *AuthenticationType,
 		      OUT RPC2_EncryptionKey sKey)
 {
     SecretToken st;
-    int i;
     struct timeval t;
 
     if (!cIdent) {
@@ -187,10 +187,12 @@ GotIt:
 	return(-1);
     }
     memcpy(hKey, st.HandShakeKey, sizeof(RPC2_EncryptionKey));
-    for (i = 0; i < sizeof(RPC2_EncryptionKey); i++)
-	sKey[i] = rpc2_NextRandom(NULL) & 0xff; 	/* new session key */
+
+    GenerateSecret(sKey);
+
     memcpy(cIdent->SeqBody, &st, sizeof(SecretToken));
     /* to be passed back as new connection packet */
+
     return(0);
 }
 

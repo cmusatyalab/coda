@@ -55,6 +55,7 @@ DEPLIBS := ${LIBVOL} ${LIBVV} $(LIBVICEDEP) ${LIBPARTITION} ${LIBUTIL} \
 LIBS := ${DEPLIBS} ${LIBRDSLWP} ${LIBSEG} ${LIBRVMLWP} ${LIBSE} ${LIBRPC2} \
 	${LIBLWP} ${LIBREADLINE} $(LIBTERMCAP) $(LIBCRYPTO) $(LIBS)
 
+VOLUTILLIBS := ${LIBAUSER} ${LIBKERNDEP}
 
 LOCALOBJS = readstuff.o dumpstuff.o vvlist.o
 
@@ -105,9 +106,8 @@ parserecdump.o:	parserecdump.cc
 
 local.a: ${LOCALOBJS}
 
-
-volutil:    ${VOLCLIENTOBJS} ${DEPLIBS}
-	${CXX} $(LDFLAGS) ${VOLCLIENTOBJS} ${LIBS} -lm -o volutil
+volutil:    ${VOLCLIENTOBJS} ${VOLUTILLIBS} ${DEPLIBS}
+	${CXX} $(LDFLAGS) ${VOLCLIENTOBJS} ${VOLUTILLIBS} ${LIBS} -lm -o volutil
 
 merge:	merge.o dumpstream.o dumpstuff.o ${DEPLIBS}
 	$(CXX) $(LDFLAGS) merge.o dumpstream.o dumpstuff.o ${LIBS} -o merge
