@@ -6,7 +6,7 @@
 
 TOPDIR = @top_srcdir@
 ifndef MAKDIR
-MAKDIR = @top_srcdir@/configs
+MAKDIR = @top_srcdir@
 endif
 srcdir = @srcdir@
 VPATH  = @srcdir@
@@ -19,5 +19,5 @@ INCLDIR := $(INCLSPECIAL)
 
 HEADERS = assert.h voltypes.h inodeops.h
 
-include $(MAKDIR)/Makerules
+include $(MAKDIR)/configs/Makerules
 

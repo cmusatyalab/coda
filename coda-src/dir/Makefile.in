@@ -25,7 +25,7 @@
 # improvements or extensions that  they  make,  and  to  grant  Carnegie
 # Mellon the rights to redistribute these changes without encumbrance.
 # 
-# static char *rcsid = "$Header: Makefile.in,v 4.1 97/01/08 21:49:31 rvb Exp $";
+# static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/dir/Makefile.in,v 4.2 1997/04/29 21:27:25 rvb Exp $";
 
 
 # 
@@ -51,7 +51,7 @@
 
 TOPDIR = @top_srcdir@
 ifndef MAKDIR
-MAKDIR = @top_srcdir@/configs
+MAKDIR = @top_srcdir@
 endif
 srcdir = @srcdir@
 VPATH  = @srcdir@
@@ -72,5 +72,5 @@ libdir.a:  $(OFILES)
 
 $(OFILES): $(HEADERS)
 
-include $(MAKDIR)/Makerules
+include $(MAKDIR)/configs/Makerules
 

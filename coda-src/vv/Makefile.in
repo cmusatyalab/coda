@@ -25,12 +25,12 @@
 # improvements or extensions that  they  make,  and  to  grant  Carnegie
 # Mellon the rights to redistribute these changes without encumbrance.
 # 
-# static char *rcsid = "$Header: Makefile.in,v 4.1 97/01/08 21:52:42 rvb Exp $";
+# static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vv/Makefile.in,v 4.2 1997/04/29 21:27:25 rvb Exp $";
 
 
 TOPDIR = @top_srcdir@
 ifndef MAKDIR
-MAKDIR = @top_srcdir@/configs
+MAKDIR = @top_srcdir@
 endif
 srcdir = @srcdir@
 VPATH  = @srcdir@
@@ -46,5 +46,5 @@ libvv.a:	inconsist.o nettohost.o
 inconsist.o:	inconsist.cc inconsist.h
 nettohost.o:    nettohost.cc inconsist.h nettohost.h
 
-include $(MAKDIR)/Makerules
+include $(MAKDIR)/configs/Makerules
 

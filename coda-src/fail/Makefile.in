@@ -25,11 +25,11 @@
 # improvements or extensions that  they  make,  and  to  grant  Carnegie
 # Mellon the rights to redistribute these changes without encumbrance.
 # 
-# static char *rcsid = "$Header: /afs/cs/project/coda/coda-4.0.1/coda-src/fail/RCS/Makefile.in,v 4.2 97/04/29 21:27:25 rvb Exp Locker: rvb $";
+# static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/fail/Makefile.in,v 4.3 1997/05/22 10:32:05 rvb Exp $";
 
 TOPDIR = @top_srcdir@
 ifndef MAKDIR
-MAKDIR = @top_srcdir@/configs
+MAKDIR = @top_srcdir@
 endif
 srcdir = @srcdir@
 VPATH  = @srcdir@
@@ -78,4 +78,4 @@ fcon.client.o: fcon.client.c
 fcon.server.o: fcon.server.c
 ttyfcon.o: ttyfcon.c fcon.h
 
-include $(MAKDIR)/Makerules
+include $(MAKDIR)/configs/Makerules

@@ -31,7 +31,7 @@
 # improvements or extensions that  they  make,  and  to  grant  Carnegie
 # Mellon the rights to redistribute these changes without encumbrance.
 # 
-# static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-1/coda-4.0.1/kernel-src/vfs/mach/RCS/Makefile.in,v 4.2 1997/02/26 16:04:32 rvb Exp $";
+# static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/kernel-src/vfs/mach/Makefile.in,v 4.3 1997/04/29 21:27:25 rvb Exp $";
 
 #  Mach Operating System
 #  Copyright (c) 1990 Carnegie-Mellon University
@@ -48,7 +48,7 @@
 
 TOPDIR = @top_srcdir@
 ifndef MAKDIR
-MAKDIR = @top_srcdir@/configs
+MAKDIR = @top_srcdir@
 endif
 srcdir = @srcdir@
 VPATH = @srcdir@
@@ -67,7 +67,7 @@ EXECUTABLES = cfsnstat
 LIBRARIES =
 EXECUTABLES =
 
-include $(MAKDIR)/Makerules
+include $(MAKDIR)/configs/Makerules
 
 ##################################################################################
 #		CLEAN UP

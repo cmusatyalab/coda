@@ -27,11 +27,11 @@
 # improvements or extensions that  they  make,  and  to  grant  Carnegie
 # Mellon the rights to redistribute these changes without encumbrance.
 #
-# static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/kernel-src/inodefs/common/Makefile.in,v 4.5 1997/06/24 15:47:35 braam Exp $";
+# static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/partition/Makefile.in,v 1.3 1997/11/13 18:16:57 braam Exp $";
 
 TOPDIR = @top_srcdir@
 ifndef MAKDIR
-MAKDIR = @top_srcdir@/configs
+MAKDIR = @top_srcdir@
 endif
 srcdir = @srcdir@
 VPATH  = @srcdir@
@@ -57,4 +57,4 @@ inoder: inoder.o $(LIBOBS)
 	$(CC) -o inoder inoder.o $(LIBS) -lm
 
 
-include $(MAKDIR)/Makerules
+include $(MAKDIR)/configs/Makerules

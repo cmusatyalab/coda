@@ -42,12 +42,12 @@
 # changes  without  encumbrance.   Such improvements and extensions
 # should be returned to Software.Distribution@cs.cmu.edu.
 #
-# rcsid = $Header: /afs/cs/project/coda-src/cvs/coda/rvm-src/rvm/Makefile.in,v 4.6 97/07/23 00:10:26 clement Exp $
+# rcsid = $Header: /afs/cs/project/coda-src/cvs/coda/rvm-src/rvm/Makefile.in,v 4.7 1997/09/26 16:43:54 rvb Exp $
 #
 
 TOPDIR = @top_srcdir@
 ifndef MAKDIR
-MAKDIR = @top_srcdir@/configs
+MAKDIR = @top_srcdir@
 endif
 srcdir = @srcdir@
 VPATH  = @srcdir@
@@ -198,4 +198,4 @@ nothing:
 	@echo $(LIBS)
 	@echo $(CTHREAD_${SYS})
 
-include $(MAKDIR)/Makerules
+include $(MAKDIR)/configs/Makerules

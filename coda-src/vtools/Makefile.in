@@ -25,12 +25,12 @@
 # improvements or extensions that  they  make,  and  to  grant  Carnegie
 # Mellon the rights to redistribute these changes without encumbrance.
 # 
-# static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vtools/Makefile.in,v 4.3 1997/04/29 21:27:25 rvb Exp $";
+# static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vtools/Makefile.in,v 4.4 1997/09/04 22:19:36 braam Exp $";
 
 
 TOPDIR = @top_srcdir@
 ifndef MAKDIR
-MAKDIR = @top_srcdir@/configs
+MAKDIR = @top_srcdir@
 endif
 srcdir = @srcdir@
 VPATH  = @srcdir@
@@ -76,4 +76,4 @@ up: up.o
 vice.h vice.client.c: $(VICE_RPC2) $(VCRCOMMON_RPC2)
 cmon.o: $(INCLDIR)/vice.rpc2
 
-include $(MAKDIR)/Makerules
+include $(MAKDIR)/configs/Makerules

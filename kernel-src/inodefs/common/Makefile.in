@@ -27,11 +27,11 @@
 # improvements or extensions that  they  make,  and  to  grant  Carnegie
 # Mellon the rights to redistribute these changes without encumbrance.
 #
-# static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-1/coda-4.0.1/kernel-src/inodefs/common/RCS/Makefile.in,v 4.4 1997/04/29 21:27:25 rvb Exp braam $";
+# static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/kernel-src/inodefs/common/Makefile.in,v 4.5 1997/06/24 15:47:35 braam Exp $";
 
 TOPDIR = @top_srcdir@
 ifndef MAKDIR
-MAKDIR = @top_srcdir@/configs
+MAKDIR = @top_srcdir@
 endif
 srcdir = @srcdir@
 VPATH  = @srcdir@
@@ -45,4 +45,4 @@ LIBRARIES = libuinodefs.a
 
 libuinodefs.a: inodefsulib.o
 
-include $(MAKDIR)/Makerules
+include $(MAKDIR)/configs/Makerules

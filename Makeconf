@@ -20,7 +20,7 @@ BINDIR = $(prefix)/bin
 SBINDIR = $(prefix)/etc
 MANDIR = $(prefix)/man
 
-include $(MAKDIR)/Makeconf.$(SYS)
+include $(MAKDIR)/configs/Makeconf.$(SYS)
 
 
 ##############################

@@ -3,7 +3,7 @@
 
 TOPDIR = @top_srcdir@
 ifndef MAKDIR
-MAKDIR = @top_srcdir@/configs
+MAKDIR = @top_srcdir@
 endif
 srcdir = @srcdir@
 VPATH  = @srcdir@
@@ -13,4 +13,4 @@ include $(MAKDIR)/Makeconf
 
 SUBDIRS = includes $(SHORTSYS)
 
-include $(MAKDIR)/Makerules
+include $(MAKDIR)/configs/Makerules

@@ -35,14 +35,14 @@
 # changes  without  encumbrance.   Such improvements and extensions
 # should be returned to Software.Distribution@cs.cmu.edu.
 #
-# rcsid = $Header: /afs/cs/project/coda-src/cvs/coda/rvm-src/tests/Makefile.in,v 4.3 1997/07/23 00:12:01 clement Exp $
+# rcsid = $Header: /afs/cs/project/coda-src/cvs/coda/rvm-src/tests/Makefile.in,v 4.4 1997/07/24 15:37:04 clement Exp $
 #
 
 #   	RVM Test Programs Makefile
 
 TOPDIR = @top_srcdir@
 ifndef MAKDIR
-MAKDIR = @top_srcdir@/configs
+MAKDIR = @top_srcdir@
 endif
 srcdir = @srcdir@
 VPATH  = @srcdir@
@@ -103,5 +103,5 @@ installlwp:
 
 lwp:	lwp_basher
 
-include $(MAKDIR)/Makerules
+include $(MAKDIR)/configs/Makerules
 
