@@ -146,9 +146,8 @@ void GetArgs(int argc, char *argv[]) {
     }
 }
 
-int getcompareargs(int largc, char **largv, char **filepath, struct repinfo *inf) {
-    VenusFid fixfid;
-    vv_t fixvv;
+int getcompareargs(int largc, char **largv, char **filepath, struct repinfo *inf)
+{
     int j;
 
     if (largc == 1) goto exit;
@@ -178,7 +177,7 @@ int getcompareargs(int largc, char **largv, char **filepath, struct repinfo *inf
     }
 
     *filepath = largv[1];
-    if (!repair_getfid(*filepath, &fixfid, &fixvv, NULL, 0)) {
+    if (!repair_getfid(*filepath, NULL, NULL, NULL, NULL, 0)) {
 	fprintf(stderr, "%s is in /coda and cannot be used as the fix file\n", *filepath);
 	return(-1); 
     }
@@ -193,16 +192,13 @@ int getcompareargs(int largc, char **largv, char **filepath, struct repinfo *inf
 
 int getrepairargs(int largc, char **largv, char *fixpath)
 {
-    VenusFid fixfid;
-    vv_t fixvv;
-
     if (largc == 1) Parser_getstr("Pathname of fixfile?", cfix, fixpath, MAXPATHLEN);
     else if (largc == 2) strncpy(fixpath, largv[1], MAXPATHLEN);
     else {
 	fprintf(stderr, "%s {object fixfile }\n", largv[0]);
 	return(-1);
     }
-    if (!repair_getfid(fixpath, &fixfid, &fixvv, NULL, 0)) {
+    if (!repair_getfid(fixpath, NULL, NULL, NULL, NULL, 0)) {
 	fprintf(stderr, "%s is in /coda and cannot be used as the fix file\n", fixpath);
 	return(-1); 
     }
@@ -211,7 +207,8 @@ int getrepairargs(int largc, char **largv, char *fixpath)
 }
 
 /* return zero if user has valid tokens */
-int GetTokens() {
+int GetTokens()
+{
     ClearToken clear;
     EncryptedSecretToken secret;
     return (U_GetLocalTokens(&clear, secret, ""));
@@ -547,10 +544,12 @@ void rep_RemoveInc(int largc, char **largv) {
     else exit(2);
 }
 
-void rep_ReplaceInc(int largc, char **largv) {
+void rep_ReplaceInc(int largc, char **largv)
+{
     int rc, dirconf;
     char fixpath[MAXPATHLEN], mergefile[MAXPATHLEN], msgbuf[DEF_BUF];
-    VenusFid fixfid;
+    ViceFid fixfid;
+    char fixrealm[MAXHOSTNAMELEN];
     vv_t fixvv;
     struct stat sbuf;
 
@@ -580,8 +579,8 @@ void rep_ReplaceInc(int largc, char **largv) {
 	fprintf(stderr, "File %s is not a regular file (and hence cannot be used for repair)\n", mergefile);
 	return;
     }
-    if (!repair_getfid(mergefile, &fixfid, &fixvv, msgbuf, sizeof(msgbuf)) && (fixvv.StoreId.Host != -1))
-	sprintf(fixpath, "@%x.%x.%x", fixfid.Volume, fixfid.Vnode, fixfid.Unique);
+    if (!repair_getfid(mergefile, &fixfid, fixrealm, &fixvv, msgbuf, sizeof(msgbuf)) && (fixvv.StoreId.Host != -1))
+	sprintf(fixpath, "@%x.%x.%x@%s", fixfid.Volume, fixfid.Vnode, fixfid.Unique, fixrealm);
     else strcpy(fixpath, mergefile);
 
     printf("Replace %s\n   with %s?", RepairVol->rodir, mergefile);
@@ -600,7 +599,8 @@ void rep_ReplaceInc(int largc, char **largv) {
     }
 }
 
-void rep_SetGlobalView(int largc, char **largv) {
+void rep_SetGlobalView(int largc, char **largv)
+{
     struct ViceIoctl vioc;
     int rc;
     char space[DEF_BUF];

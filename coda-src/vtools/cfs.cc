@@ -952,7 +952,7 @@ static int validateclosurespec(char *name, char *volname, char *volrootpath)
     int rc;
     char *cp, *ap, *Volname;
     struct ViceIoctl vio;
-    VenusFid *fid;
+    ViceFid *fid;
 
     /* Parse the closure spec into a <volname, volume-root path> pair. */
 
@@ -1012,7 +1012,7 @@ static int validateclosurespec(char *name, char *volname, char *volrootpath)
     vio.out_size = PIOBUFSIZE;
     rc = pioctl(volrootpath, VIOC_GETFID, &vio, 1);
     if (rc) { PERROR(volrootpath); return(0);}
-    fid = (VenusFid *)piobuf;
+    fid = (ViceFid *)piobuf;
     if (fid->Vnode != 1 || fid->Unique != 1)
         {
         printf("%s is not the root of volume %s\n", volrootpath, volname);
@@ -1227,11 +1227,12 @@ static void FlushASR(int argc, char *argv[], int opslot) {
     }
 }
 
-static int pioctl_GetFid(char *path, VenusFid *fid, ViceVersionVector *vv)
+static int pioctl_GetFid(char *path, ViceFid *fid, char *realm, ViceVersionVector *vv)
 {
     struct GetFid {
-        VenusFid          fid;
+        ViceFid           fid;
         ViceVersionVector vv;
+	char		  realm[MAXHOSTNAMELEN];
     }                out;
     struct ViceIoctl vio;
     int              rc;
@@ -1252,17 +1253,19 @@ static int pioctl_GetFid(char *path, VenusFid *fid, ViceVersionVector *vv)
     if (rc < 0) return rc;
 
     /* Got the fid! */
-    if (fid) memcpy(fid, &out.fid, sizeof(VenusFid));
-    if (vv)  memcpy(vv,  &out.vv,  sizeof(ViceVersionVector));
+    if (fid)   memcpy(fid, &out.fid, sizeof(ViceFid));
+    if (realm) strcpy(realm, out.realm);
+    if (vv)    memcpy(vv,  &out.vv,  sizeof(ViceVersionVector));
 
     return rc;
 }
 
 
 static void GetFid(int argc, char *argv[], int opslot)
-    {
+{
     int i, rc, w;
-    VenusFid fid;
+    ViceFid fid;
+    char realmname[MAXHOSTNAMELEN];
     ViceVersionVector vv;
     char buf[100];
 
@@ -1279,14 +1282,15 @@ static void GetFid(int argc, char *argv[], int opslot)
         if (argc > 3) printf("  %*s  ", w, argv[i]); /* echo input if more than one fid */
         /* Validate next fid */
 
-        rc = pioctl_GetFid(argv[i], &fid, &vv);
+        rc = pioctl_GetFid(argv[i], &fid, realmname, &vv);
         if (rc < 0) { PERROR("VIOC_GETFID"); continue; }
 
-        printf("FID = %-20s     ", FID_(&fid));
+	sprintf(buf, "%x.%x.%x@%s", fid.Volume, fid.Vnode, fid.Unique, realmname);
+        printf("FID = %-20s  ", buf);
         sprintf(buf, "[%d %d %d %d %d %d %d %d]",
-               vv.Versions.Site0, vv.Versions.Site1,vv.Versions.Site2,
-               vv.Versions.Site3, vv.Versions.Site4,vv.Versions.Site5,
-               vv.Versions.Site6,vv.Versions.Site7);
+               vv.Versions.Site0, vv.Versions.Site1, vv.Versions.Site2,
+               vv.Versions.Site3, vv.Versions.Site4, vv.Versions.Site5,
+               vv.Versions.Site6, vv.Versions.Site7);
         printf("VV = %-24s  ", buf);
         printf("STOREID = %x.%x  FLAGS = 0x%x\n", vv.StoreId.Host, 
                 vv.StoreId.Uniquifier, vv.Flags);
@@ -1315,7 +1319,6 @@ static int pioctl_SetVV(char *path, ViceVersionVector *vv)
 static void MarkFidIncon(int argc, char *argv[], int opslot)
 {
     int i, rc, w;
-    VenusFid fid;
     ViceVersionVector vv;
     char buf[100];
 
@@ -1333,7 +1336,7 @@ static void MarkFidIncon(int argc, char *argv[], int opslot)
 	if (argc > 3) printf("%s\n", argv[i]);
 
 	/* Validate next fid */
-	if (pioctl_GetFid(argv[i], &fid, &vv) < 0)
+	if (pioctl_GetFid(argv[i], NULL, NULL, &vv) < 0)
 	    { PERROR("VIOC_GETFID"); continue; }
 
 	SetIncon(vv);
@@ -1347,7 +1350,7 @@ static void GetPath(int argc, char *argv[], int opslot)
     {
     int i, rc, w;
     struct ViceIoctl vio;
-    VenusFid fid;
+    ViceFid fid;
 
     if (argc < 3)
         {
@@ -1361,15 +1364,19 @@ static void GetPath(int argc, char *argv[], int opslot)
         {
         if (argc > 3) printf("  %*s  ", w, argv[i]); /* echo input if more than one fid */
         /* Validate next fid */
-        if (sscanf(argv[i], "%lx.%lx.%lx", &fid.Volume, &fid.Vnode, &fid.Unique) != 3)
-            {
-            printf("Malformed fid: should look like %%x.%%x.%%x\n");
+	char tmp;
+        if (sscanf(argv[i], "%lx.%lx.%lx@%c", &fid.Volume, &fid.Vnode, &fid.Unique, &tmp) != 4)
+	{
+            printf("Malformed fid: should look like %%x.%%x.%%x@<realm>\n");
             continue;
-            }
+	}
 
         /* Get its path */
-        vio.in = (char *)&fid;
-        vio.in_size = (int) sizeof(VenusFid);
+	char *realmname = strrchr(argv[i], '@')+1;
+	memcpy(piobuf, &fid, sizeof(ViceFid));
+	strcpy(piobuf + sizeof(ViceFid), realmname);
+        vio.in = piobuf;
+        vio.in_size = sizeof(ViceFid) + strlen(realmname) + 1;
         vio.out = piobuf;
         vio.out_size = PIOBUFSIZE;
         rc = pioctl(mountpoint, VIOC_GETPATH, &vio, 0);

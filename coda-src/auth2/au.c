@@ -76,7 +76,7 @@ static int GetVid(char *s, int *id);
 
 static int DebugLevel;
 
-static char *DefAuthHost = NULL;
+static char *Realm_or_Host = NULL;
 static char *AuthPortal = AUTH_SERVICE;
 
 static int ChangeUserFlag;
@@ -111,7 +111,7 @@ int main(int argc, char **argv)
     }
     strncpy(MyPassword, getpass("Your password: "), sizeof(MyPassword));
 
-    rc = U_BindToServer(DefAuthHost, AUTH_METHOD_CODAUSERNAME, MyViceName, strlen(MyViceName)+1, MyPassword, strlen(MyPassword), &AuthCid, 1);
+    rc = U_BindToServer(Realm_or_Host, AUTH_METHOD_CODAUSERNAME, MyViceName, strlen(MyViceName)+1, MyPassword, strlen(MyPassword), &AuthCid, 1);
 
     printf("RPC2_Bind() --> %s\n", RPC2_ErrorMsg(rc));
     if (rc < RPC2_ELIMIT) exit(-1);
@@ -215,7 +215,7 @@ static void SetGlobals(int argc, char **argv)
 
 	if (strcmp(argv[i], "-h") == 0 && i < argc - 1)
 	    {
-	    DefAuthHost = argv[++i];
+	    Realm_or_Host = argv[++i];
 	    continue;
 	    }
 

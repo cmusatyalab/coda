@@ -47,37 +47,14 @@ extern int wildmat(char *text, char *pattern);
 }
 #endif
 
-#define ISDIR(vnode) ((vnode) & 1)  /* directory vnodes are odd */
-
-int IsObjInc(char *name, ViceFid *fid) {
-    int rc;
-    char symval[MAXPATHLEN];
-    struct stat statbuf;
-
-    rc = stat(name, &statbuf);
-    if ((rc == 0) || (errno != ENOENT)) return(0);
-    
-    /* is it a sym link */
-    symval[0] = 0;
-    rc = readlink(name, symval, MAXPATHLEN);
-    if (rc < 0) return(0);
-    
-    /* it's a sym link, alright  */
-    if (symval[0] == '@') {
-	sscanf(symval, "@%x.%x.%x", &fid->Volume, &fid->Vnode, &fid->Unique);
-
-	return(1);
-    }
-    else return(0);
-}
-
 /* Returns 0 and fills outfid and outvv with fid and version vector
    for specified Coda path.  If version vector is not accessible,
    the StoreId fields of outvv are set to -1.
    Garbage may be copied into outvv for non-replicated files
    
    Returns -1 after printing error msg on failures. */
-int getfid(char *path, ViceFid *outfid, ViceVersionVector *outvv) {
+int getfid(char *path, ViceFid *outfid, char *outrealm, ViceVersionVector *outvv)
+{
     int rc, saveerrno;
     struct ViceIoctl vi;
     char junk[2048];
@@ -93,8 +70,9 @@ int getfid(char *path, ViceFid *outfid, ViceVersionVector *outvv) {
 
     /* Easy: no conflicts */
     if (!rc) {
-	memmove((void *)outfid, (const void *)junk, (int) sizeof(ViceFid));
-	memmove((void *)outvv, (const void *)junk+sizeof(ViceFid), (int)sizeof(ViceVersionVector));
+	memcpy(outfid, junk, sizeof(ViceFid));
+	memcpy(outvv, junk+sizeof(ViceFid), sizeof(ViceVersionVector));
+	strcpy(outrealm, junk+sizeof(ViceFid)+sizeof(ViceVersionVector));
 	return(0);
     }
 
@@ -109,6 +87,7 @@ int main(int argc, char **argv) {
     struct stat statbuf;
     int rc;
     ViceFid fixfid;
+    char fixrealm[MAXHOSTNAMELEN];
     vv_t fixvv;
     char fixpath[MAXPATHLEN];
     struct ViceIoctl vioc;
@@ -130,8 +109,8 @@ int main(int argc, char **argv) {
 	exit(-1);
     }
 
-    if (!getfid(argv[2], &fixfid, &fixvv))
-	sprintf(fixpath, "@%x.%x.%x", fixfid.Volume, fixfid.Vnode, fixfid.Unique);
+    if (!getfid(argv[2], &fixfid, fixrealm, &fixvv))
+	sprintf(fixpath, "@%x.%x.%x@", fixfid.Volume, fixfid.Vnode, fixfid.Unique, fixrealm);
     else strcpy(fixpath, argv[2]);
 	
     /* do the repair */

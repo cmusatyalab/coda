@@ -68,6 +68,7 @@ extern "C" {
 #include "venuscb.h"
 #include "vproc.h"
 #include "worker.h"
+#include "realmdb.h"
 
 const int MarinerStackSize = 65536;
 const int MaxMariners = 25;
@@ -519,10 +520,21 @@ void mariner::main(void)
 	else if (STREQ(argv[0], "fidstat") && argc == 2) {
 	    /* Lookup the object and print it out. */
 	    VenusFid fid;
-	    if (sscanf(argv[1], "%lx.%lx.%lx.%lx", &fid.Realm, &fid.Volume, &fid.Vnode, &fid.Unique) == 4)
+	    char tmp;
+	    if (sscanf(argv[1], "%lx.%lx.%lx@%c",
+		       &fid.Volume, &fid.Vnode, &fid.Unique, &tmp) == 4)
+	    {
+		/* strrchr should succeed now because sscanf succeeded. */
+		char *realmname = strrchr(argv[1], '@')+1;
+		Realm *realm = REALMDB->GetRealm(realmname);
+		fid.Realm = realm->Id();
+
 		FidStat(&fid);
+
+		realm->PutRef();
+	    }
 	    else
-		Write("badly formed fid; try (%%x.%%x.%%x.%%x)\n");
+		Write("badly formed fid; try (%%x.%%x.%%x@%%s)\n");
 	}
 	else if (STREQ(argv[0], "rpc2stat")) {
 	    Rpc2Stat();

@@ -30,8 +30,6 @@ listed in the file CREDITS.
 #define MAXLINELEN 256
 static char line[MAXLINELEN];
 
-#define CODASRV "codasrv"
-
 void SplitRealmFromName(char *name, char **realm)
 {
     /* Here we do the following 'translation' */
@@ -50,8 +48,8 @@ void SplitRealmFromName(char *name, char **realm)
 }
 
 /* Coda only looks up IPv4 UDP addresses */
-static int simpleaddrinfo(const char *realm, const char *service,
-			  struct addrinfo **res)
+static void simpleaddrinfo(const char *realm, const char *service,
+			   struct addrinfo **res)
 {
     struct addrinfo hints;
     int proto = IPPROTO_UDP;
@@ -67,75 +65,52 @@ static int simpleaddrinfo(const char *realm, const char *service,
     hints.ai_family   = PF_INET;
     hints.ai_socktype = SOCK_DGRAM;
     hints.ai_protocol = proto;
+    hints.ai_flags    = AI_CANONNAME;
 
-    return coda_getaddrinfo(realm, service, &hints, res);
+    coda_getaddrinfo(realm, service, &hints, res);
 }
 
-static struct addrinfo *ResolveRootServers(char *servers)
+static void ResolveRootServers(char *servers, const char *service,
+			       struct addrinfo **res)
 {
-    struct addrinfo *res = NULL, *tmp, *p;
     char *host;
-    int i, err;
 
-    i = 0;
-    for (i = 0; (host = strtok(servers, ", \t\n")) != NULL; servers = NULL)
+    while ((host = strtok(servers, ", \t\n")) != NULL)
     {
-	tmp = NULL;
-	err = simpleaddrinfo(host, CODASRV, &tmp);
-	if (err) continue;
-	for (p = tmp; p && p->ai_next; p = p->ai_next) /*loop*/;
-	if (p)
-	    p->ai_next = res;
-	res = tmp;
+	servers = NULL;
+	simpleaddrinfo(host, service, res);
     }
-    return res;
 }
 	
-
-#if 0
-/* where to put this test, could be useful */
-	if (hosts[i].s_addr == INADDR_ANY ||
-	    hosts[i].s_addr == INADDR_NONE ||
-	    hosts[i].s_addr == INADDR_LOOPBACK ||
-	    (hosts[i].s_addr & IN_CLASSA_NET) == IN_LOOPBACKNET ||
-	    IN_MULTICAST(hosts[i].s_addr) ||
-	    IN_BADCLASS(hosts[i].s_addr))
-	{
-	    fprintf(stderr, "Address for '%s' resolved to bad or unusable address '%s', ignoring it", host, inet_ntoa(hosts[i]));
-	    continue;
-	}
-#endif
-
-struct addrinfo *GetRealmServers(const char *realm_name)
+void GetRealmServers(const char *name, const char *service,
+		     struct addrinfo **res)
 {
     char *realmtab = NULL;
-    struct addrinfo *res = NULL;
     FILE *f;
-    int namelen = strlen(realm_name), found;
+    int namelen, found = 0;
+
+    if (!name || name[0] == '\0')
+	CONF_STR(name, "realm", "DEFAULT");
+
 
     CONF_STR(realmtab, "realmtab", SYSCONFDIR "/realms");
 
     f = fopen(realmtab, "r");
-    if (!f) {
-	fprintf(stderr, "Couldn't open '%s'", realmtab);
-	return NULL;
+    if (f) {
+	namelen = strlen(name);
+	while (!found && fgets(line, MAXLINELEN, f))
+	{
+	    if (line[0] == '#') continue;
+
+	    if (strncmp(line, name, namelen) == 0 && isspace(line[namelen])) {
+		ResolveRootServers(&line[namelen], service, res);
+		found = 1;
+	    }
+	}
+	fclose(f);
     }
 
-    found = 0;
-    while (!found && fgets(line, MAXLINELEN, f)) {
-	if (line[0] == '#') continue;
-
-	if (strncmp(line, realm_name, namelen) == 0 && isspace(line[namelen]))
-	    found = 1;
-    }
-    fclose(f);
-
-    if (found)
-	return ResolveRootServers(&line[namelen]);
-
-    if (simpleaddrinfo(realm_name, CODASRV, &res) == 0)
-	return res;
-
-    return NULL;
+    if (!found)
+	simpleaddrinfo(name, service, res);
 }
 

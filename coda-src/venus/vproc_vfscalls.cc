@@ -81,6 +81,7 @@ extern "C" {
 #include "venus.private.h"
 #include "vproc.h"
 #include "worker.h"
+#include "realmdb.h"
 
 /* Temporary!  Move to cnode.h. -JJK */
 #define	C_INCON	0x2
@@ -341,6 +342,7 @@ FreeLocks:
 	if (!retry_call) break;
     }
 
+    /* do we need to do this here? -JH */
     if (u.u_error == EINCONS) {
 	u.u_error = 0;
 
@@ -351,7 +353,13 @@ FreeLocks:
 	vap->va_uid = (short)V_UID;
 	vap->va_gid = (short)V_GID;
 	vap->va_nlink = 1;
-	vap->va_size = 36;  /* @RRRRRRRR.XXXXXXXX.YYYYYYYY.ZZZZZZZZ */
+
+	/* @XXXXXXXX.YYYYYYYY.ZZZZZZZZ@RRRRRRRR */
+	Realm *realm = REALMDB->GetRealm(cp->c_fid.Realm);
+	CODA_ASSERT(realm);
+	vap->va_size = 28 + strlen(realm->Name());
+	realm->PutRef();
+
 	vap->va_blocksize = V_BLKSIZE;
 	vap->va_fileid = FidToNodeid(&cp->c_fid);
 	vap->va_atime.tv_sec = Vtime();
@@ -1356,14 +1364,19 @@ FreeLocks:
 	if (!retry_call) break;
     }
 
+    /* do we really need to do this here? -JH */
     if (u.u_error == EINCONS) {
 	u.u_error = 0;
 	k_Purge(&cp->c_fid, 1);
 
 	/* Make a "fake" name for the inconsistent object. */
-	sprintf(buf, "@%08lx.%08lx.%08lx.%08lx",
-		cp->c_fid.Realm, cp->c_fid.Volume, cp->c_fid.Vnode, cp->c_fid.Unique);
-	string->cs_len = 36;
+	Realm *realm = REALMDB->GetRealm(cp->c_fid.Realm);
+	CODA_ASSERT(realm);
+	len = snprintf(buf, len, "@%08lx.%08lx.%08lx@%s", cp->c_fid.Volume,
+		       cp->c_fid.Vnode, cp->c_fid.Unique, realm->Name());
+	string->cs_len = 28 + strlen(realm->Name());
+	realm->PutRef();
+	CODA_ASSERT(len == string->cs_len);
     }
 }
 

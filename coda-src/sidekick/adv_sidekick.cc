@@ -145,12 +145,14 @@ RPC2_Handle contact_venus(const char *hostname) {
     return(cid);
 }
 
-int executor(char *pathname, int vuid, int req_no) {
+int executor(char *pathname, int vuid, int req_no)
+{
     char space[DEF_BUF];
     char asr[MAXPATHLEN], asrlog[MAXPATHLEN], conf[MAXPATHLEN];
     char fixfile[MAXPATHLEN], fixed[MAXPATHLEN], parent[MAXPATHLEN], hd[MAXPATHLEN];
     VolumeId vid;
-    VenusFid fixfid;
+    ViceFid fixfid;
+    char fixrealm[MAXHOSTNAMELEN];
     vv_t fixvv;
     struct stat sbuf;
     struct repinfo inf;
@@ -306,8 +308,8 @@ int executor(char *pathname, int vuid, int req_no) {
 		if (!(sbuf.st_mode & S_IFREG))
 		    quit("File %s is not a regular file (and hence cannot be used for repair)", fixed);
 
-		if (!repair_getfid(fixed, &fixfid, &fixvv, space, sizeof(space)) && (fixvv.StoreId.Host != -1))
-		    sprintf(fixfile, "@%x.%x.%x", fixfid.Volume, fixfid.Vnode, fixfid.Unique);
+		if (!repair_getfid(fixed, &fixfid, fixrealm, &fixvv, space, sizeof(space)) && (fixvv.StoreId.Host != -1))
+		    sprintf(fixfile, "@%x.%x.%x@%s", fixfid.Volume, fixfid.Vnode, fixfid.Unique, fixrealm);
 		else strcpy(fixfile, fixed);
 
 		if (EndRepair(repv, 1, space, sizeof(space)) < 0)

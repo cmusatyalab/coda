@@ -69,7 +69,7 @@ extern "C" {
 #include "venusvol.h"
 #include "vproc.h"
 #include "worker.h"
-
+#include "realmdb.h"
 
 /*
  *    New Repair Strategy
@@ -147,6 +147,34 @@ int repvol::Repair(VenusFid *RepairFid, char *RepairFile, vuid_t vuid,
     return -1;
 }
 
+/* Translate RepairFile to cache entry if "REPAIRFILE_BY_FID." */
+static int GetRepairF(char *RepairFile, vuid_t vuid, fsobj **RepairF)
+{
+    VenusFid RepairFileFid;
+    char tmp;
+    int code;
+
+    if (sscanf(RepairFile, "@%lx.%lx.%lx@%c", &RepairFileFid.Volume,
+	       &RepairFileFid.Vnode, &RepairFileFid.Unique, &tmp) != 4)
+	return EINVAL;
+
+    /* strrchr should succeed now because sscanf succeeded. */
+    char *realmname = strrchr(RepairFile, '@')+2;
+    Realm *realm = REALMDB->GetRealm(realmname);
+    RepairFileFid.Realm = realm->Id();
+
+    code = FSDB->Get(RepairF, &RepairFileFid, vuid, RC_DATA);
+
+    realm->PutRef();
+
+    if (code) return code;
+
+    if (!(*RepairF)->IsFile()) {
+	FSDB->Put(RepairF);
+	return EINVAL;
+    }
+}
+
 int repvol::ConnectedRepair(VenusFid *RepairFid, char *RepairFile, vuid_t vuid,
 			    VolumeId *RWVols, int *ReturnCodes)
 {
@@ -211,22 +239,11 @@ int repvol::ConnectedRepair(VenusFid *RepairFid, char *RepairFile, vuid_t vuid,
 	if (code != 0) { FSDB->Put(&local); FSDB->Put(&global); return(code); }
     }
 
-    /* Translate RepairFile to cache entry if "REPAIRFILE_BY_FID." */
-    {
-	VenusFid RepairFileFid;
-	if (sscanf(RepairFile, "@%lx.%lx.%lx.%lx", &RepairFileFid.Realm,
-		   &RepairFileFid.Volume, &RepairFileFid.Vnode,
-		   &RepairFileFid.Unique) == 4) {
-	    code = FSDB->Get(&RepairF, &RepairFileFid, vuid, RC_DATA);
-	    if (code != 0) { FSDB->Put(&local); FSDB->Put(&global); return(code); }
-
-	    if (!RepairF->IsFile()) {
-		FSDB->Put(&local);
-		FSDB->Put(&global);
-		FSDB->Put(&RepairF);
-		return(EINVAL);
-	    }
-	}
+    code = GetRepairF(RepairFile, vuid, &RepairF);
+    if (code) {
+	FSDB->Put(&local);
+	FSDB->Put(&global);
+	return code;
     }
 
     Recov_BeginTrans();
@@ -603,11 +620,7 @@ Exit:
     return(code);
 }
 
-/*
-  BEGIN_HTML
-  <a name="disablerepair"><strong> unset the volume from the repair state </strong></a>
-  END_HTML
-*/
+/* disablerepair - unset the volume from the repair state */
 int repvol::DisconnectedRepair(VenusFid *RepairFid, char *RepairFile,
 			       vuid_t vuid, VolumeId *RWVols, int *ReturnCodes)
 {
@@ -683,23 +696,8 @@ int repvol::DisconnectedRepair(VenusFid *RepairFid, char *RepairFile,
 	FSDB->Put(&parentf);
     }
     LOG(100, ("DisconnectedRepair: going to check repair file %s\n", RepairFile));
-    /* Translate RepairFile to cache entry if "REPAIRFILE_BY_FID." */
-    {
-	VenusFid RepairFileFid;
-	if (sscanf(RepairFile, "@%lx.%lx.%lx.%lx", &RepairFileFid.Realm,
-		   &RepairFileFid.Volume, &RepairFileFid.Vnode,
-		   &RepairFileFid.Unique) == 4) {
-	    code = FSDB->Get(&RepairF, &RepairFileFid, vuid, RC_DATA);
-	    if (code != 0) return(code);
-
-	    if (!RepairF->IsFile()) {
-		eprint("DisconnectedRepair: Repair file (%s) isn't a file\n",
-		       FID_(&RepairFileFid));
-		FSDB->Put(&RepairF);
-		return(EINVAL);
-	    }
-	}
-    }
+    code = GetRepairF(RepairFile, vuid, &RepairF);
+    if (code) return code;
 
     /* prepare to fake the call */
     {

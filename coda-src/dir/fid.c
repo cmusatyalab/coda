@@ -80,23 +80,6 @@ void FID_DFid2VFid(const struct DirFid *df, struct ViceFid *vf)
 	vf->Unique = df->df_unique;
 }
 
-char *FID_(const struct ViceFid *vf)
-{
-	static char str1[50];
-	snprintf(str1, 50, "(0x%lx.0x%lx.0x%lx)", 
-		 vf->Volume, vf->Vnode, vf->Unique);
-	return str1;
-}
-
-char *FID_2(const struct ViceFid *vf)
-{
-	static char str1[50];
-	snprintf(str1, 50, "(0x%lx.0x%lx.0x%lx)", 
-		 vf->Volume, vf->Vnode, vf->Unique);
-	return str1;
-}
-
-
 int FID_Cmp(const struct ViceFid *fa, const struct ViceFid *fb) 
 {
 	if ((fa->Volume) < (fb->Volume)) 
@@ -134,17 +117,17 @@ int FID_VolEQ(const struct ViceFid *fa, const struct ViceFid *fb)
 
 /* to determine if the volume is the local copy during a repair/conflict */
 static VolumeId LocalFakeVid = 0xffffffff;
-inline int  FID_VolIsLocal(const struct ViceFid *x) 
+int  FID_VolIsLocal(const struct ViceFid *x) 
 {
 	return (x->Volume == LocalFakeVid);
 }
 
-inline void FID_MakeVolFake(VolumeId *id)
+void FID_MakeVolFake(VolumeId *id)
 {
 	*id = LocalFakeVid;
 }
 
-inline int FID_VolIsFake(const VolumeId id)
+int FID_VolIsFake(const VolumeId id)
 {
 	return(id == LocalFakeVid);
 }
@@ -154,22 +137,22 @@ inline int FID_VolIsFake(const VolumeId id)
 /* was this fid created during a disconnection */
 static VnodeId LocalFileVnode = 0xfffffffe;
 static VnodeId LocalDirVnode  = 0xffffffff;
-inline int FID_IsDisco(const struct ViceFid *x)
+int FID_IsDisco(const struct ViceFid *x)
 {
   return  ( (x->Vnode == LocalFileVnode) || (x->Vnode == LocalDirVnode));
 }
 
-inline int FID_IsLocalDir(const struct ViceFid *fid)
+int FID_IsLocalDir(const struct ViceFid *fid)
 {
 	return fid->Vnode == LocalDirVnode;
 }
 
-inline int FID_IsLocalFile(const struct ViceFid *fid)
+int FID_IsLocalFile(const struct ViceFid *fid)
 {
 	return fid->Vnode == LocalFileVnode;
 }
 
-inline void FID_MakeDiscoFile(struct ViceFid *fid, VolumeId vid, 
+void FID_MakeDiscoFile(struct ViceFid *fid, VolumeId vid, 
 			      Unique_t unique)
 {
 	fid->Volume = vid;
@@ -178,7 +161,7 @@ inline void FID_MakeDiscoFile(struct ViceFid *fid, VolumeId vid,
 
 }
 
-inline void FID_MakeDiscoDir(struct ViceFid *fid, VolumeId vid,
+void FID_MakeDiscoDir(struct ViceFid *fid, VolumeId vid,
 			     Unique_t unique)
 {
 	fid->Volume = vid;
@@ -189,7 +172,7 @@ inline void FID_MakeDiscoDir(struct ViceFid *fid, VolumeId vid,
 
 static VnodeId FakeVnode = 0xfffffffc;
 
-inline void FID_MakeSubtreeRoot(struct ViceFid *fid, VolumeId vid, 
+void FID_MakeSubtreeRoot(struct ViceFid *fid, VolumeId vid, 
 				Unique_t unique)
 {
 	fid->Volume = vid;
@@ -201,7 +184,7 @@ inline void FID_MakeSubtreeRoot(struct ViceFid *fid, VolumeId vid,
 
 /* Local stuff is for the repair tree arising from client copies */
 
-inline void FID_MakeLocalDir(struct ViceFid *fid, Unique_t unique)
+void FID_MakeLocalDir(struct ViceFid *fid, Unique_t unique)
 {
 	fid->Volume = LocalFakeVid;
 	fid->Vnode = LocalDirVnode;
@@ -211,7 +194,7 @@ inline void FID_MakeLocalDir(struct ViceFid *fid, Unique_t unique)
 
 
 
-inline void FID_MakeLocalFile(struct ViceFid *fid, Unique_t unique)
+void FID_MakeLocalFile(struct ViceFid *fid, Unique_t unique)
 {
 	fid->Volume = LocalFakeVid;
 	fid->Vnode = LocalFileVnode;
@@ -219,15 +202,14 @@ inline void FID_MakeLocalFile(struct ViceFid *fid, Unique_t unique)
 
 }
 
-
 /* directory vnode number for dangling links during conflicts:
    top of the local subtree expanded by repair.*/
-inline int FID_IsFakeRoot(struct ViceFid *fid) 
+int FID_IsFakeRoot(struct ViceFid *fid) 
 {
 	return ((fid)->Vnode == FakeVnode);
 }
 
-inline void FID_MakeLocalSubtreeRoot(struct ViceFid *fid, Unique_t unique)
+void FID_MakeLocalSubtreeRoot(struct ViceFid *fid, Unique_t unique)
 {
 	fid->Volume = LocalFakeVid;
 	fid->Vnode = FakeVnode;
@@ -240,14 +222,25 @@ inline void FID_MakeLocalSubtreeRoot(struct ViceFid *fid, Unique_t unique)
 static VnodeId ROOT_VNODE = 1;
 static Unique_t ROOT_UNIQUE = 1;
 
-inline void FID_MakeRoot(struct ViceFid *fid)
+void FID_MakeRoot(struct ViceFid *fid)
 {
 	fid->Vnode = ROOT_VNODE;
 	fid->Unique = ROOT_UNIQUE;
 }
 
-inline int FID_IsVolRoot(const struct ViceFid *fid)
+int FID_IsVolRoot(const struct ViceFid *fid)
 {
 	return ((fid->Vnode == ROOT_VNODE) && (fid->Unique == ROOT_UNIQUE));
 
 }
+
+char *FID_(const struct ViceFid *fid)
+{
+	static char buf[2][28];
+	static int i = 0;
+	i = 1 - i;
+	sprintf(buf[i], "%x.%x.%x", (unsigned)fid->Volume,
+		(unsigned)fid->Vnode, (unsigned)fid->Unique);
+	return buf[i];
+}
+

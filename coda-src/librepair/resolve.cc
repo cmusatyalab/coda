@@ -16,12 +16,6 @@ listed in the file CREDITS.
 
 #*/
 
-
-
-
-
-
-
 /* 
  * resolve.c 
  * Created 09/18/89  - Puneet Kumar
@@ -79,7 +73,7 @@ int totaldirentries = 0;
 int nConflicts;
 static char AclBuf[2048];
 
-static int getfid (char *path, VenusFid *Fid, ViceVersionVector *VV, struct ViceIoctl *vi)
+static int getfid (char *path, ViceFid *Fid, ViceVersionVector *VV, struct ViceIoctl *vi)
 {
     char buf[2048];
     vi->out = buf;
@@ -97,16 +91,17 @@ static int getfid (char *path, VenusFid *Fid, ViceVersionVector *VV, struct Vice
 		perror("res_getfid: readlink");
 		return errno;	
 	}
-	sscanf(symval, "@%x.%x.%x.%x", &(Fid->Realm), &(Fid->Volume), &(Fid->Vnode), &(Fid->Unique));
+	sscanf(symval, "@%x.%x.%x", &(Fid->Volume), &(Fid->Vnode), &(Fid->Unique));
+
 	/* return garbage in VV */
 	return 0;
     }
-    memcpy((void *) Fid, (void *)buf, sizeof(VenusFid));
-    memcpy((void *)VV, (char *)buf+sizeof(VenusFid), sizeof(ViceVersionVector));
+    memcpy(Fid, buf, sizeof(ViceFid));
+    memcpy(VV, buf+sizeof(ViceFid), sizeof(ViceVersionVector));
     return 0;
 }
 
-int res_getfid (char *path, VenusFid *Fid, ViceVersionVector *VV)
+int res_getfid (char *path, ViceFid *Fid, ViceVersionVector *VV)
 {
     struct ViceIoctl vi;
     vi.in = 0;
@@ -114,7 +109,7 @@ int res_getfid (char *path, VenusFid *Fid, ViceVersionVector *VV)
     return getfid(path, Fid, VV, &vi);
 }
 
-int res_getmtptfid (char *path, VenusFid *Fid, ViceVersionVector *VV)
+int res_getmtptfid (char *path, ViceFid *Fid, ViceVersionVector *VV)
 {
     int getmtpt = 1;
     struct ViceIoctl vi;
@@ -211,7 +206,7 @@ int getunixdirreps (int nreplicas, char *names[], resreplica **reps)
 
   for(j = 0; j < nreplicas; j++){
       int count;
-      VenusFid   Fid;
+      ViceFid Fid;
       ViceVersionVector VV;
 
       dirs[j].entry1 = totaldirentries;
@@ -259,7 +254,7 @@ int getunixdirreps (int nreplicas, char *names[], resreplica **reps)
       closedir(dirp);
 
       /* fill in the resreplica */
-      if (res_getfid(names[j], &Fid,  &VV)) return -1;
+      if (res_getfid(names[j], &Fid, &VV)) return -1;
       dirs[j].nentries = count;
       dirs[j].replicaid = Fid.Volume;
       dirs[j].vnode = Fid.Vnode;

@@ -41,12 +41,14 @@ extern "C" {
 #include "vice.h"
 
 struct GetFid {
-    VenusFid fid;
+    ViceFid fid;
     ViceVersionVector vv;
+    char realm[MAXHOSTNAMELEN];
 };
 
 
-void main(int argc, char **argv) {
+void main(int argc, char **argv)
+{
     GetFid out;
     memset(&out, 0, sizeof(struct GetFid));
 
@@ -61,7 +63,7 @@ void main(int argc, char **argv) {
 	exit(-1);
     }
 
-    printf("FID = (%s)\n", FID_(&out.fid));
+    printf("FID = (%s@%s)\n", FID_(&out.fid), out.realm);
     printf("\tVV = {[");
     for (int i = 0; i < VSG_MEMBERS; i++)
 	printf(" %d", (&(out.vv.Versions.Site0))[i]);

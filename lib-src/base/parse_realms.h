@@ -32,7 +32,8 @@ void SplitRealmFromName(char *name, char **realm);
 
 /* Given a realm name, returns a list of ip-addresses of the realm's root
  * servers. */
-struct addrinfo *GetRealmServers(const char *realm_name);
+void GetRealmServers(const char *realm_name, const char *service,
+		     struct addrinfo **res);
 
 #ifdef __cplusplus
 }

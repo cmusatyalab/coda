@@ -103,7 +103,6 @@ int main(int argc, char **argv)
     int testing = 0;
     char *tofile   = NULL;
     char *fromfile = NULL;
-    char buf[16];
 
 /* Make intelligent default decisions, depending on how we were built..
 		-- Troy <hozer@drgw.net> */
@@ -176,15 +175,7 @@ int main(int argc, char **argv)
 		    if (tmp1[0] != '\0')
 			username = tmp1;
 		    if (tmp2) {
-			struct addrinfo *srvs;
 			realm = tmp2;
-			srvs = GetRealmServers(realm);
-			if (srvs) {
-			    struct sockaddr_in *sin = srvs->ai_addr;
-			    sprintf(buf, "%s", inet_ntoa(sin->sin_addr));
-			    hostname = buf;
-			    coda_freeaddrinfo(srvs);
-			}
 		    }
                     i++;
 	    }
@@ -216,7 +207,7 @@ int main(int argc, char **argv)
     if (fromfile) {
         ReadTokenFromFile(fromfile, &cToken, sToken);
     } else {
-        rc = U_Authenticate(hostname, authmethod, username, 
+        rc = U_Authenticate(hostname ? hostname : realm, authmethod, username, 
                             strlen(username)+1, &cToken, sToken, passwdpipe, 
                             interactive);
         if (rc != 0) {

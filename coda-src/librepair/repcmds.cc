@@ -111,9 +111,10 @@ int BeginRepair(char *pathname, struct repvol **repv, char *msg, int msgsize) {
 
 /* Clears inconsistencies on repv
  * Returns 0 on success, -1 on error and fills in msg if non-NULL */
-int ClearInc(struct repvol *repv, char *msg, int msgsize) {
+int ClearInc(struct repvol *repv, char *msg, int msgsize)
+{
     char msgbuf[DEF_BUF];
-    VenusFid confFid, Fid[MAXHOSTS];
+    ViceFid confFid, Fid[MAXHOSTS];
     vv_t vv[MAXHOSTS];
     struct ViceIoctl vioc;
     int rc, i, nreplicas;
@@ -141,7 +142,8 @@ int ClearInc(struct repvol *repv, char *msg, int msgsize) {
 	/* XXXX if a get fid is done between two setvv's resolve might get called 
 	   - therefore get the vv for each replica  before doing the setvv */
 	for (i = 0; i < nreplicas; i++) {
-	    if ((rc = repair_getfid(names[i], &Fid[i], &vv[i], msgbuf, sizeof(msgbuf))) < 0) {
+	    if ((rc = repair_getfid(names[i], &Fid[i], NULL, &vv[i], msgbuf,
+				    sizeof(msgbuf))) < 0) {
 		strerr(msg, msgsize, "repair_getfid(%s): %s", names[i], msgbuf);
 		goto CLEANUP;
 	    }
@@ -183,11 +185,11 @@ int ClearInc(struct repvol *repv, char *msg, int msgsize) {
  * Returns number of conflicts on success, -1 on error and fills in msg if non-NULL 
  * Returns -2 if there are name/name conflicts (in which case the caller
  * should DoRepair to fix them and then do CompareDirs again) */
-int CompareDirs(struct repvol *repv, char *fixfile, struct repinfo *inf, char *msg, int msgsize) {
+int CompareDirs(struct repvol *repv, char *fixfile, struct repinfo *inf, char *msg, int msgsize)
+{
     char msgbuf[DEF_BUF], space[DEF_BUF], tmppath[MAXPATHLEN];
     VolumeId vid;
-    VenusFid confFid;
-    vv_t confvv;
+    ViceFid confFid;
     struct ViceIoctl vioc;
     struct stat sbuf;
     char **names;
@@ -203,7 +205,7 @@ int CompareDirs(struct repvol *repv, char *fixfile, struct repinfo *inf, char *m
       return(-1);
     }
 
-    if (repair_getfid(repv->rodir, &confFid, &confvv, msgbuf, sizeof(msgbuf))) {
+    if (repair_getfid(repv->rodir, &confFid, NULL, NULL, msgbuf, sizeof(msgbuf))) {
 	strerr(msg, msgsize, "repair_getfid(%s): %s", repv->rodir, msgbuf);
 	return(-1);
     }
@@ -463,10 +465,12 @@ int EndRepair(struct repvol *repv, int commit, char *msg, int msgsize) {
 
 /* Removes inconsistencies on repv (first does a repair, then clears the inc)
  * Returns 0 on success, -1 on error and fills in msg if non-NULL */
-int RemoveInc(struct repvol *repv, char *msg, int msgsize) {
+int RemoveInc(struct repvol *repv, char *msg, int msgsize)
+{
     char msgbuf[DEF_BUF], tmppath[MAXPATHLEN];
     struct stat buf;
-    VenusFid fixfid, confFid;
+    ViceFid fixfid;
+    char fixrealm[MAXHOSTNAMELEN];
     ViceVersionVector confvv;
     vv_t fixvv;
     char *user = NULL, *rights = NULL, *owner = NULL, *mode = NULL, **names;
@@ -511,7 +515,7 @@ int RemoveInc(struct repvol *repv, char *msg, int msgsize) {
 	unlink(tmppath); /* Clean up */
 
 	/* clear the inconsistency if needed and possible */ 
-	if ((rc = repair_getfid(repv->rodir, &confFid, &confvv, msgbuf, sizeof(msgbuf))) < 0) {
+	if ((rc = repair_getfid(repv->rodir, NULL, NULL, &confvv, msgbuf, sizeof(msgbuf))) < 0) {
 	    strerr(msg, msgsize, "repair_getfid(%s): %s", repv->rodir, msgbuf);
 	    goto Error;
 	}
@@ -528,12 +532,12 @@ int RemoveInc(struct repvol *repv, char *msg, int msgsize) {
 	}
     }
     else { /* file conflict */
-	if (rc = repair_getfid(names[0], &fixfid, &fixvv, msgbuf, sizeof(msgbuf))) {
+	if (rc = repair_getfid(names[0], &fixfid, fixrealm, &fixvv, msgbuf, sizeof(msgbuf))) {
 	    strerr(msg, msgsize, "repair_getfid(%s): %s", names[0], msgbuf);
 	    goto Error;
 	}
 
-	sprintf(tmppath, "@%lx.%lx.%lx", fixfid.Volume, fixfid.Vnode, fixfid.Unique);
+	sprintf(tmppath, "@%lx.%lx.%lx@%s", fixfid.Volume, fixfid.Vnode, fixfid.Unique, fixrealm);
 
 	rc = dorep(repv, tmppath, NULL, 0); /* do the repair */
 	if ((rc < 0) && (errno != ETOOMANYREFS))
@@ -652,11 +656,11 @@ int compareStatus(int nreplicas, resreplica *dirs) {
     return 0;
 }
 
-int compareVV(int nreplicas, char **names, struct repvol *repv) {
+int compareVV(int nreplicas, char **names, struct repvol *repv)
+{
     char msgbuf[DEF_BUF];
     vv_t vv[MAXHOSTS];
     vv_t *vvp[MAXHOSTS];
-    VenusFid fid;
     int nhosts = 0;
     int i;
     int HowMany = 0;
@@ -665,7 +669,7 @@ int compareVV(int nreplicas, char **names, struct repvol *repv) {
 	vvp[i] = NULL;
 
     for (i = 0; i < nreplicas; i++) {
-	if (repair_getfid(names[i], &fid, &vv[nhosts], msgbuf, sizeof(msgbuf)))
+	if (repair_getfid(names[i], NULL, NULL, &vv[nhosts], msgbuf, sizeof(msgbuf)))
 	    printf("Couldn't get vv for %s: %s\n", names[i], msgbuf);
 	else
 	    nhosts++;

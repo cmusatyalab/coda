@@ -41,6 +41,7 @@ static int volstat(char *path, char *space, int size);
 int repair_newrep(char *pathname, struct repvol **repv, char *msg, int msgsize) {
     char msgbuf[DEF_BUF], reppath[MAXPATHLEN], prefix[MAXPATHLEN], suffix[MAXPATHLEN];
     VolumeId vid;
+    char realm[MAXHOSTNAMELEN];
 
     if (repv == NULL) {
 	strerr(msg, msgsize, "NULL repv");
@@ -50,7 +51,7 @@ int repair_newrep(char *pathname, struct repvol **repv, char *msg, int msgsize) 
     if (repair_isleftmost(pathname, reppath, MAXPATHLEN, msg, msgsize) < 0)
 	return(-1);
 
-    if (repair_getmnt(reppath, prefix, suffix, &vid, msgbuf, sizeof(msgbuf)) < 0) {
+    if (repair_getmnt(reppath, prefix, suffix, &vid, realm, msgbuf, sizeof(msgbuf)) < 0) {
 	strerr(msg, msgsize, "Could not get volume mount point: %s", msgbuf);
 	return(-1);
     }
@@ -63,9 +64,10 @@ int repair_newrep(char *pathname, struct repvol **repv, char *msg, int msgsize) 
 
     sprintf((*repv)->rodir, "%s", reppath); /* remember conflict path */
     (*repv)->vid = vid;                     /* remember the volume id */
+//    strcpy((*repv)->realm, realm);
     strcpy((*repv)->mnt, prefix);           /* remember its mount point */
-    sprintf((*repv)->vname, "%#lx", vid);   /* GETVOLSTAT doesn't work on rep vols, 
-					     * so just use hex version of volid */
+    sprintf((*repv)->vname, "%#lx@%s", vid, realm);
+    /* GETVOLSTAT doesn't work on rep vols, so just use hex version of volid */
     return(0);
 }
 

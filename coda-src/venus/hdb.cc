@@ -181,8 +181,12 @@ void HDB_Init()
 static int HDB_HashFN(const void *key)
 {
     hdb_key *k = (hdb_key *)key;
-    int value = k->vid.Realm + k->vid.Volume;
+    int value = k->vid;
+    int rlen = strlen(k->realm);
     int len = strlen(k->name);
+
+    for (int i=0; i < len; i++)
+      value += (int)((k->realm)[i]);
 
     for (int i=0; i < len; i++)
       value += (int)((k->name)[i]);
@@ -245,13 +249,13 @@ void hdb::operator delete(void *deadobj, size_t len){
 }
 
 
-hdbent *hdb::Find(Volid *vid, char *name)
+hdbent *hdb::Find(VolumeId vid, char *realm, char *name)
 {
-    class hdb_key key(vid, name);
+    class hdb_key key(vid, realm, name);
     hdb_iterator next(&key);
     hdbent *h;
     while ((h = next()))
-	if (FID_VolEQ(vid, &h->vid) && STREQ(name, h->path))
+	if (vid == h->vid && STREQ(realm, h->realm) && STREQ(name, h->name))
 	    return(h);
 
     return(0);
@@ -259,41 +263,43 @@ hdbent *hdb::Find(Volid *vid, char *name)
 
 
 /* MUST NOT be called from within transaction! */
-hdbent *hdb::Create(Volid *vid, char *name, vuid_t local_id, int priority,
-		    int expand_children, int expand_descendents)
+hdbent *hdb::Create(VolumeId vid, char *realm, char *name, vuid_t local_id,
+		    int priority, int expand_children, int expand_descendents)
 {
     hdbent *h = 0;
 
     /* Check whether the key is already in the database. */
-    if ((h = Find(vid, name)) != 0)
+    if ((h = Find(vid, realm, name)) != 0)
 	{ h->print(logFile); CHOKE("hdb::Create: key exists"); }
 
     /* Fashion a new object. */
     Recov_BeginTrans();
-    h = new hdbent(vid, name, local_id, priority, expand_children,
+    h = new hdbent(vid, realm, name, local_id, priority, expand_children,
 		   expand_descendents);
     Recov_EndTrans(DMFP);
 
     if (h == 0)
-	LOG(0, ("hdb::Create: (%x.%x, %s) failed\n", vid->Realm, vid->Volume, name));
+	LOG(0, ("hdb::Create: (%x@%s, %s) failed\n", vid, realm, name));
     return(h);
 }
 
 
 int hdb::Add(hdb_add_msg *m, vuid_t local_id)
 {
-    LOG(10, ("hdb::Add: <%x.%x, %s, %d, %d, %d>\n", m->vid.Realm, m->vid.Volume,
+    LOG(10, ("hdb::Add: <%x@%s, %s, %d, %d, %d>\n", m->vid, m->realm,
 	     m->name, m->priority, m->attributes, local_id));
 
     /* See if an entry already exists.  If it does, try to delete it. */
     hdbent *h;
-    h = Find(&m->vid, m->name);
+    h = Find(m->vid, m->realm, m->name);
+
     if (h) {
-	LOG(1, ("hdb::Add: (%x.%x, %s, %d) already exists (%d)\n",
-		m->vid.Realm, m->vid.Volume, m->name, local_id, h->vuid));
+	LOG(1, ("hdb::Add: (%x@%s, %s, %d) already exists (%d)\n",
+		m->vid, m->realm, m->name, local_id, h->vuid));
 
 	hdb_delete_msg dm;
 	dm.vid = m->vid;
+	strcpy(dm.realm, m->realm);
 	strcpy(dm.name, m->name);
 	int code = Delete(&dm, local_id);
 	if (code != 0) return(code);
@@ -310,7 +316,7 @@ int hdb::Add(hdb_add_msg *m, vuid_t local_id)
 	else if (m->attributes & H_CHILDREN)
 	    expand_children = 1;
     }
-    h = Create(&m->vid, m->name, local_id, m->priority,
+    h = Create(m->vid, m->realm, m->name, local_id, m->priority,
 	       expand_children, expand_descendents);
     if (!h) return(ENOSPC);
 
@@ -320,22 +326,22 @@ int hdb::Add(hdb_add_msg *m, vuid_t local_id)
 
 int hdb::Delete(hdb_delete_msg *m, vuid_t local_id)
 {
-    LOG(10, ("hdb::Delete: <%x.%x, %s, %d>\n", m->vid.Realm, m->vid.Volume,
+    LOG(10, ("hdb::Delete: <%x@%s, %s, %d>\n", m->vid, m->realm,
 	     m->name, local_id));
 
     /* Look up the entry. */
     hdbent *h;
-    h = Find(&m->vid, m->name);
+    h = Find(m->vid, m->realm, m->name);
     if (h == 0) {
 	LOG(1, ("hdb::Delete: (%x@%s, %s, %d) not found\n",
-		m->vid.Realm, m->vid.Volume, m->name, local_id));
+		m->vid, m->realm, m->name, local_id));
 	return(ENOENT);
     }
 
     /* Can only delete one's own entries unless root or authorized user. */
     if (local_id != h->vuid && local_id != V_UID && !AuthorizedUser(local_id)) {
-	LOG(1, ("hdb::Delete: (%x.%x, %s, %d) not authorized\n",
-		m->vid.Realm, m->vid.Volume, m->name, local_id));
+	LOG(1, ("hdb::Delete: (%x@%s, %s, %d) not authorized\n",
+		m->vid, m->realm, m->name, local_id));
 	return(EACCES);
     }
 
@@ -613,6 +619,7 @@ void hdb::RequestHoardWalkAdvice() {
     
     while (!feof(HoardAdviceFILE)) {
 	int ask_state;
+#warning "hoardadvicefile"
         fscanf(HoardAdviceFILE, "%lx.%lx.%lx.%lx %d\n", &(fid.Realm), &(fid.Volume), &(fid.Vnode), &(fid.Unique), &ask_state);
         g = FSDB->Find(&fid);
         if (g == NULL) 
@@ -1323,18 +1330,24 @@ void *hdbent::operator new(size_t len){
 }
 
 /* MUST be called from within transaction! */
-hdbent::hdbent(Volid *Vid, char *Name, vuid_t Vuid, int Priority, int Children,
-	       int Descendents)
+hdbent::hdbent(VolumeId Vid, char *Realm, char *Name, vuid_t Vuid,
+	       int Priority, int Children, int Descendents)
 {
 
     RVMLIB_REC_OBJECT(*this);
     MagicNumber = HDBENT_MagicNumber;
-    vid = *Vid;
+    vid = Vid;
+    {
+	int len = (int) strlen(Realm) + 1;
+	realm = (char *)rvmlib_rec_malloc(len);
+	rvmlib_set_range(realm, len);
+	strcpy(realm, Realm);
+    }
     {
 	int len = (int) strlen(Name) + 1;
-	path = (char *)rvmlib_rec_malloc(len);
-	rvmlib_set_range(path, len);
-	strcpy(path, Name);
+	name = (char *)rvmlib_rec_malloc(len);
+	rvmlib_set_range(name, len);
+	strcpy(name, Name);
     }
     vuid = Vuid;
     priority = Priority;
@@ -1344,7 +1357,7 @@ hdbent::hdbent(Volid *Vid, char *Name, vuid_t Vuid, int Priority, int Children,
     ResetTransient();
 
     /* Insert into hash table. */
-    hdb_key key(&vid, path);
+    hdb_key key(vid, realm, name);
     HDB->htab.append(&key, &tbl_handle);
 }
 
@@ -1354,30 +1367,33 @@ void hdbent::ResetTransient() {
     if (MagicNumber != HDBENT_MagicNumber)
 	{ print(logFile); CHOKE("hdbent::ResetTransient: bogus MagicNumber"); }
 
+    Realm *r = REALMDB->GetRealm(realm);
     VenusFid cdir;
-    cdir.Realm = vid.Realm;
-    cdir.Volume = vid.Volume;
+    cdir.Realm = r->Id();
+    cdir.Volume = vid;
     FID_MakeRoot(MakeViceFid(&cdir));
-    nc = new namectxt(&cdir, path, vuid, priority,
+    nc = new namectxt(&cdir, name, vuid, priority,
 		       expand_children, expand_descendents);
+    r->PutRef();
 }
 
 
 /* MUST be called from within transaction! */
 hdbent::~hdbent()
 {
-    LOG(10, ("hdbent::~hdbent: (%x.%x, %s)\n", vid.Realm, vid.Volume, path));
+    LOG(10, ("hdbent::~hdbent: (%x@%s, %s)\n", vid, realm, name));
 
     /* Shut down the name-context. */
     nc->Kill();
 
     /* Remove from the hash table. */
-    hdb_key key(&vid, path);
+    hdb_key key(vid, realm, name);
     if (HDB->htab.remove(&key, &tbl_handle) != &tbl_handle)
 	{ print(logFile); CHOKE("hdbent::~hdbent: htab remove"); }
 
     /* Release path. */
-    rvmlib_rec_free(path);
+    rvmlib_rec_free(name);
+    rvmlib_rec_free(realm);
 
     /* Stick on free list or give back to heap. */
     if (HDB->freelist.count() < HDBMaxFreeEntries)
@@ -1393,9 +1409,9 @@ void hdbent::operator delete(void *deadobj, size_t len){
 }
 
 
-void hdbent::print(int afd) {
-    fdprint(afd, "<%x, %s>, %d, %d%s\n",
-	     vid, path, vuid, priority,
+void hdbent::print(int afd)
+{
+    fdprint(afd, "<%x@%s, %s>, %d, %d%s\n", vid, realm, name, vuid, priority,
 	     (expand_children ? ":c+" : expand_descendents ? ":d+" : ""));
 }
 
@@ -2434,7 +2450,7 @@ void namectxt::print(int fd, void *filter) {
 void namectxt::getpath(char *buf) {
         volent *v = VDB->Find(MakeVolid(&cdir));
 	if (v) v->GetMountPath(buf, 0);
-	if (!v || !strcmp(buf, "???")) sprintf(buf, "0x%lx.%lx", cdir.Realm, cdir.Volume);
+	if (!v || !strcmp(buf, "???")) sprintf(buf, "%lx.%lx", cdir.Realm, cdir.Volume);
 	strcat(buf, "/");
 	if (path[0] == '.') strcat(buf, &path[2]); /* strip leading "./" */
 	else strcat(buf, path);
@@ -2519,9 +2535,10 @@ int NC_PriorityFN(bsnode *b1, bsnode *b2) {
 }
 
 
-hdb_key::hdb_key(Volid *Vid, char *Name)
+hdb_key::hdb_key(VolumeId Vid, char *Realm, char *Name)
 {
-    vid = *Vid;
+    vid = Vid;
+    realm = Realm;
     name = Name;
 }
 

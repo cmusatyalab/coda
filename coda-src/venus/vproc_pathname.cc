@@ -431,9 +431,9 @@ void vproc::verifyname(char *name, int flags)
 
     length = strlen(name);
 
-    /* Disallow names of the form "@RRRRRRRR.XXXXXXXX.YYYYYYYY.ZZZZZZZZ". */
-    if ((flags & NAME_NO_CONFLICT) && length == 36 &&
-	name[0] == '@' && name[9] == '.' && name[18] == '.' && name[27] == '.')
+    /* Disallow names of the form "@XXXXXXXX.YYYYYYYY.ZZZZZZZZ@RRRRRRRR". */
+    if ((flags & NAME_NO_CONFLICT) && length > 27 &&
+	name[0] == '@' && name[9] == '.' && name[18] == '.' && name[27] == '@')
     {
 	u.u_error = EINVAL;
 	return;

@@ -251,6 +251,7 @@ static void reorder_srvs(struct srv **srvs)
 static int resolve_host(const char *name, int port, const struct summary *sum,
 			struct addrinfo **res)
 {
+    struct addrinfo **next;
     struct hostent *he;
     int i, resolved = 0;
 
@@ -282,6 +283,9 @@ static int resolve_host(const char *name, int port, const struct summary *sum,
     }
 #endif
 
+    next = res;
+    while(*next) next = &(*next)->ai_next;
+
     for (i = 0; he->h_addr_list[i]; i++) {
 	struct addrinfo *ai;
 	struct sockaddr_in *sin;
@@ -310,8 +314,8 @@ static int resolve_host(const char *name, int port, const struct summary *sum,
 	ai->ai_addrlen   = sizeof(*sin);
 	ai->ai_addr      = (struct sockaddr *)sin;
 
-	ai->ai_next = *res;
-	*res = ai;
+	*next = ai;
+	next = &ai->ai_next;
 	resolved++;
 	//fprintf(stderr, "got server %s:%d\n", inet_ntoa(sin->sin_addr), ntohs(sin->sin_port));
     }
@@ -349,7 +353,6 @@ static int do_srv_lookup(const char *realm, const char *service,
     reorder_srvs(&srvs);
 
     /* turn all srvs into resolved addrinfo structs */
-    *res = NULL;
     err = 0;
     while (srvs) {
 	struct srv *this = srvs;
@@ -372,6 +375,7 @@ int coda_getaddrinfo(const char *node, const char *service,
 		     struct addrinfo **res)
 {
     struct summary sum = { PF_UNSPEC, 0, 0, 0 };
+    struct in_addr addr;
     int err;
 
     if (hints) {
@@ -409,10 +413,11 @@ int coda_getaddrinfo(const char *node, const char *service,
 	    sum.protocol = IPPROTO_UDP;
     }
 
-    err = EAI_NONAME;
-    if (node && service)
+    if (node && !inet_aton(node, &addr) && service)
 	/* try to find SRV records */
 	err = do_srv_lookup(node, service, &sum, res);
+    else
+	err = EAI_NONAME;
 
     /* fall back to A records */
     if (err) {

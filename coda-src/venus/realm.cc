@@ -113,6 +113,20 @@ void Realm::print(FILE *f)
     }
 }
 
+static int isbadaddr(struct in_addr *ip, char *name)
+{
+	if (ip->s_addr == INADDR_ANY ||
+	    ip->s_addr == INADDR_NONE ||
+	    ip->s_addr == INADDR_LOOPBACK ||
+	    (ip->s_addr & IN_CLASSA_NET) == IN_LOOPBACKNET ||
+	    IN_MULTICAST(ip->s_addr) ||
+	    IN_BADCLASS(ip->s_addr))
+	{
+	    fprintf(stderr, "An address in realm '%s' resolved to bad or unusable address '%s', ignoring it\n", name, inet_ntoa(*ip));
+	    return 1;
+	}
+	return 0;
+}
 
 /* Get a connection to any server (as root). */
 int Realm::GetAdmConn(connent **cpp)
@@ -127,7 +141,7 @@ int Realm::GetAdmConn(connent **cpp)
 
 retry:
     if (!rootservers)
-	rootservers = GetRealmServers(name);
+	GetRealmServers(name, "codasrv", &rootservers);
 
     if (!rootservers) {
 	eprint("Failed to find servers for realm '%s'", name);
@@ -137,7 +151,9 @@ retry:
     /* Get a connection to any custodian. */
     for (p = rootservers; p; p = p->ai_next) {
 	struct sockaddr_in *sin = (struct sockaddr_in *)p->ai_addr;
-	srvent *s = ::GetServer(&sin->sin_addr, Id());
+	srvent *s;
+	if (isbadaddr(&sin->sin_addr, name)) continue;
+	s = ::GetServer(&sin->sin_addr, Id());
 	code = s->GetConn(cpp, V_UID);
 	switch(code) {
 	case ERETRY:
@@ -156,7 +172,7 @@ retry:
 	}
     }
     if (tryagain) {
-	freeaddrinfo(rootservers);
+	coda_freeaddrinfo(rootservers);
 	rootservers = NULL;
 	goto retry;
     }

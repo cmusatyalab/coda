@@ -431,18 +431,23 @@ O_FreeLocks:
 			if (u.u_error) break;
 		    }
 
-		    char *cp = (char *)data->out;
+		    struct GetFid {
+			ViceFid fid;
+			ViceVersionVector vv;
+			char realm[MAXHOSTNAMELEN+1];
+		    } *cp;
+		    cp = (struct GetFid *)data->out;
 
 		    /* Copy out the fid. */
-		    memcpy(cp, &f->fid, sizeof(VenusFid));
-		    cp += sizeof(VenusFid);
+		    memcpy(&cp->fid, MakeViceFid(&f->fid), sizeof(ViceFid));
 
 		    /* Copy out the VV. This will be garbage unless the
 		     * object is replicated! */
-		    memcpy(cp, &f->stat.VV, sizeof(ViceVersionVector));
-		    cp += sizeof(ViceVersionVector);
+		    memcpy(&cp->vv, &f->stat.VV, sizeof(ViceVersionVector));
 
-		    data->out_size = (cp - data->out);
+		    strcpy(cp->realm, f->vol->realm->Name());
+		    
+		    data->out_size = sizeof(struct GetFid);
 		    break;
 		    }
 		}
@@ -1308,10 +1313,20 @@ V_FreeLocks:
 		    {
 		    if (data->in_size != (int)sizeof(VenusFid))
 			{ u.u_error = EINVAL; break; }
-		    VenusFid *fid = (VenusFid *)data->in;
+		    ViceFid *fid;
+		    memcpy(fid, data->in, sizeof(ViceFid));
+		    char *realmname = (char *)data->in + sizeof(ViceFid);
+		    Realm *realm = REALMDB->GetRealm(realmname);
+
 		    int	out_size = MAXPATHLEN;	    /* needed since data->out_size is a short! */
-		    GetPath(fid, (char *) data->out, &out_size, 0);
+		    VenusFid vfid;
+		    MakeVenusFid(&vfid, realm->Id(), fid);
+
+		    GetPath(&vfid, (char *) data->out, &out_size, 0);
+
 		    data->out_size = out_size;
+
+		    realm->PutRef();
 
 		    break;
 		    }

@@ -664,7 +664,7 @@ int GetNameInParent(Vnode *vptr, dlist *vlist, Volume *volptr, char *name)
 				     NO_LOCK, 1, 0, 0);
 		if (errorCode) {
 			SLog(0, "GetNameInParent for %s: Error %d getting parent %s",
-			     FID_(&pFid), errorCode, FID_2(&Fid));
+			     FID_(&pFid), errorCode, FID_(&Fid));
 			if (!pv->vptr) 
 				vlist->remove(pv);
 			return 0;
