@@ -49,7 +49,7 @@ int copyfile_byname(const char *in, const char *out)
     if ((infd = open(in, O_RDONLY)) < 0)
 	return -1;
 
-    if ((outfd = open(out, O_WRONLY|O_CREAT|O_TRUNC|O_BINARY)) < 0)
+    if ((outfd = open(out, O_WRONLY|O_CREAT|O_TRUNC|O_BINARY, 0600)) < 0)
 	goto err_exit;
     outopen = 1;
 
