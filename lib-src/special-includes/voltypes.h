@@ -1,3 +1,4 @@
+
 #ifndef _BLURB_
 #define _BLURB_
 /*
@@ -29,7 +30,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/lib-src/special-includes/voltypes.h,v 4.1 1997/10/23 18:53:40 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/lib-src/special-includes/voltypes.h,v 4.1 1997/11/17 18:26:43 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -79,8 +80,8 @@ typedef bit32	Device;		/* Unix device number */
 typedef bit32	Inode;		/* Unix inode number */
 typedef bit32	Error;		/* Error return code */
 
-#ifndef VOLTYPES_DEFINED
-#define VOLTYPES_DEFINED
+#ifndef _FID_T_
+#define _FID_T_
 typedef unsigned long VolumeId;
 typedef unsigned long VolId;
 typedef unsigned long VnodeId;
