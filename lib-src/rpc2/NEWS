@@ -1,6 +1,12 @@
 New in 1.16:
 
 * Fix for missing lseek that caused truncated backup files.
+* Correctly use off_t for lseek and friends. Defining _LARGEFILE_SOURCE
+  and _FILE_OFFSET_BITS=64 to enable large file support. Now if only the
+  rpc2/sftp API was compliant we would be done. However anything that
+  is using FILEBYNAME or FILEBYINODE or specifies a non-zero SeekOffset
+  still won't work right on >2GB files. However FILEBYFD with zero
+  SeekOffset should work just fine.
 
 New in 1.15:
 
