@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /usr/rvb/XX/src/coda-src/venus/RCS/venusutil.cc,v 4.2 1997/01/17 15:22:59 satya Exp $";
+static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/ss/coda-src/venus/RCS/venusutil.cc,v 4.3 1997/02/26 16:03:29 rvb Exp braam $";
 #endif /*_BLURB_*/
 
 
@@ -862,7 +862,7 @@ void StatsInit() {
 void ProfInit() {
     LOG(0, ("ProfInit(): profiling is broken; fix it!"));
     return;
-#if undef 
+#if 0
     /* This code used to work once upon a time */
     moncontrol(0);
     if (ProfBoot) ToggleProfiling();
@@ -873,7 +873,7 @@ void ProfInit() {
 void ToggleProfiling() {
     LOG(0, ("ToggleProfiling(): profiling is broken; fix it!"));
     return;
-#ifdef undef
+#if 0
     /* This is the code that used to work */
     Profiling = 1 - Profiling;
     moncontrol(Profiling);
