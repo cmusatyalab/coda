@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/src/coda-4.0.1/RCSLINK/./coda-src/sys/ifsulib.c,v 1.1 1996/11/22 19:15:34 braam Exp $";
+static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/ss/kernel-src/inodefs/common/RCS/inodefsulib.c,v 4.2 1997/04/30 20:02:23 braam Exp braam $";
 #endif /*_BLURB_*/
 
 /*
@@ -51,7 +51,7 @@ static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/src/coda-4.0.1
  * resource forks:
  * .1 .2 .3 .4 etc.
  */
-
+#if defined(__linux__) || defined(__BSD44__)
 #include <sys/types.h>
 #include <sys/param.h>
 #include <sys/stat.h>
@@ -437,6 +437,4 @@ static int inosort(const struct dirent **a, const struct dirent **b)
 
 }
 
-
-
-
+#endif

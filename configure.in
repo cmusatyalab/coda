@@ -20,15 +20,15 @@ TOPOBJ=`pwd`
 
 dnl  Enable second shadow source area
 AC_SUBST(SECSRC)
-AC_ARG_ENABLE(srcdir, [Second shadow directory], SECSRC=$enable_srcdir)
+AC_ARG_ENABLE(srcdir, [Second shadow directory (srcdir)], SECSRC=$enable_srcdir)
 
 dnl Enable RCS directory
 AC_SUBST(RCSDIR)
-AC_ARG_ENABLE(rcsdir, [RCS directory], RCSDIR=$enable_rcsdir)
+AC_ARG_ENABLE(rcsdir, [RCS directory (rcsdir)], RCSDIR=$enable_rcsdir)
 
 dnl Enable Shared objects
 AC_SUBST(SHOB)
-AC_ARG_ENABLE(shareobjs, [Shared library dirs], SHOB=$enable_shareobjs)
+AC_ARG_ENABLE(shareobjs, [Shared library dirs (shareobjs)], SHOB=$enable_shareobjs)
 
 dnl Enable Platform Selection
 AC_SUBST(PLATFORM)
