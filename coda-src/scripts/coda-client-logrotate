@@ -6,16 +6,16 @@
 logfile=/usr/coda/etc/venus.log
 errorlog=/usr/coda/etc/console
 pidfile=/usr/coda/venus.cache/pid
-. `codaconfedit venus.conf`
+. "`codaconfedit venus.conf`"
 
 for i in 9 8 7 6 5 4 3 2 1 0 ; do
     j=`expr $i + 1`
-    mv -f ${logfile}-$i ${logfile}-$j
-    mv -f ${errorlog}-$i ${errorlog}-$j
+    mv -f "${logfile}-$i"  "${logfile}-$j"
+    mv -f "${errorlog}-$i" "${errorlog}-$j"
 done
 
-mv -f ${logfile} ${logfile}-0
-mv -f ${errorlog} ${errorlog}-0
+mv -f "${logfile}"  "${logfile}-0"
+mv -f "${errorlog}" "${errorlog}-0"
 
 # Tell venus to reopen the logfiles
 kill -HUP `cat ${pidfile}`

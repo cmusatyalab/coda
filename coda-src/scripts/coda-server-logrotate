@@ -4,21 +4,22 @@
 #
 
 vicedir=/vice
-. `codaconfedit server.conf`
+. "`codaconfedit server.conf`"
 
-srvdir=${vicedir}/srv
-authdir=${vicedir}/auth2
+srvlog="${vicedir}/srv/SrvLog"
+srverr="${vicedir}/srv/SrvErr"
+authlog="${vicedir}/auth2/AuthLog"
 
 for i in 9 8 7 6 5 4 3 2 1 0 ; do
     j=`expr $i + 1`
-    mv -f ${srvdir}/SrvLog-$i ${srvdir}/SrvLog-$j
-    mv -f ${srvdir}/SrvErr-$i ${srvdir}/SrvErr-$j
-    mv -f ${authdir}/AuthLog-$i ${authdir}/AuthLog-$j
+    mv -f "${srvlog}-$i"  "${srvlog}-$j"
+    mv -f "${srverr}-$i"  "${srverr}-$j"
+    mv -f "${authlog}-$i" "${authlog}-$j"
 done
 
-mv -f ${srvdir}/SrvLog ${srvdir}/SrvLog-0
-mv -f ${srvdir}/SrvErr ${srvdir}/SrvErr-0
-mv -f ${authdir}/AuthLog ${authdir}/AuthLog-0
+mv -f "${srvlog}"  "${srvlog}-0"
+mv -f "${srverr}"  "${srverr}-0"
+mv -f "${authlog}" "${authlog}-0"
 
 # Tell codasrv and auth2 to reopen their logfiles
 kill -HUP `cat ${srvdir}/pid`
