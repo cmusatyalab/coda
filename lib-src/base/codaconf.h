@@ -28,6 +28,9 @@ extern "C" {
  * and lines starting with '#' are ignored. */
 int conf_init(char *conffile);
 
+/* make conf_init shut up about not finding the configuration file */
+extern int codaconf_quiet;
+
 /* conf_lookup returns the value associated with name, or NULL on error. */
 char *conf_lookup(char *name, char *defaultvalue);
 

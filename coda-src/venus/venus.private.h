@@ -362,6 +362,8 @@ extern vuid_t PrimaryUser;
 extern char *VenusPidFile;
 extern char *VenusControlFile;
 extern char *VenusLogFile;
+extern char *MarinerSocketPath;
+extern int   mariner_tcp_enable;
 
 /* spool.cc */
 extern void SpoolInit();

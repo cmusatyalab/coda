@@ -90,3 +90,11 @@ run_control_file=/usr/coda/venus.cache/VENUS_CTRL
 #
 logfile=/usr/coda/venus.cache/venus.log
 
+#
+# Mariner socket, 
+# On platforms that support unix domain sockets this is the socket that
+# codacon and spy use to talk to venus. On other platforms they will
+# connect to venus through tcp port 2430.
+# 
+marinersocket=/usr/coda/spool/mariner
+

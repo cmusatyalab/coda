@@ -39,6 +39,9 @@ extern "C" {
 #include <sys/file.h>
 #include <sys/socket.h>
 #include <sys/stat.h>
+#ifdef HAVE_SYS_UN_H
+#include <sys/un.h>
+#endif
 #include <netinet/in.h>
 #include <errno.h>
 #include <netdb.h>
@@ -65,8 +68,6 @@ extern "C" {
 #include "vproc.h"
 #include "worker.h"
 
-
-
 const int MarinerStackSize = 65536;
 const int MaxMariners = 25;
 const char MarinerService[] = "venus";
@@ -74,82 +75,141 @@ const char MarinerProto[] = "tcp";
 int MarinerMask = 0;
 
 
-int mariner::muxfd;
+int mariner::tcp_muxfd;
+int mariner::unix_muxfd;
 int mariner::nmariners;
 
 void MarinerInit() {
+    int sock, opt = 1; 
+
     MarinerMask = 0;
     mariner::nmariners = 0;
 
-    /* Socket at which we rendevous with new mariner clients. */
-    mariner::muxfd = socket(AF_INET, SOCK_STREAM, 0);
-    if (mariner::muxfd < 0 || mariner::muxfd >= NFDS) {
-	eprint("MarinerInit: bogus socket (%d)", mariner::muxfd);
-	return;
+    mariner::tcp_muxfd  = -1;
+    mariner::unix_muxfd = -1;
+
+#ifdef HAVE_SYS_UN_H
+    /* use unix domain sockets wherever available */
+    struct sockaddr_un sun;
+
+    unlink(MarinerSocketPath);
+    
+    memset(&sun, 0, sizeof(struct sockaddr_un));
+    sun.sun_family = AF_UNIX;
+    strcpy(sun.sun_path, MarinerSocketPath);
+
+    if ((sock = socket(AF_UNIX, SOCK_STREAM, 0)) < 0) {
+        eprint("MarinerInit: socket creation failed", errno);
+        goto Next;
     }
 
-    /* Make address reusable. */
-    int on = 1;
+    setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, (char *)&opt, sizeof(int));
+    
+    if (bind(sock, (struct sockaddr *)&sun, sizeof(sun)) < 0) {
+        eprint("MarinerInit: socket bind failed", errno);
+        close(sock);
+        goto Next;
+    }
+    
+    /* make sure the socket is accessible */
+    chmod(MarinerSocketPath, 0777);
+    
+    if (listen(sock, 2) < 0) {
+        eprint("MarinerInit: socket listen failed", errno);
+        close(sock);
+        goto Next;
+    }
+    mariner::unix_muxfd = sock;
+#endif /* HAVE_SYS_UN_H */
+
+Next:
+    if (mariner_tcp_enable) {
+        /* Look up the well-known CODA mariner service. */
+        struct servent *serventp = getservbyname(MarinerService, MarinerProto);
+        if (!serventp) {
+            eprint("MarinerInit: mariner service lookup failed!");
+            goto Done;
+        }
+
+        /* Socket at which we rendevous with new mariner clients. */
+        if ((sock = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
+            eprint("MarinerInit: bogus socket (%d)", sock);
+            goto Done;
+        }
+
+        /* Make address reusable. */
 #ifndef DJGPP
-    if (setsockopt(mariner::muxfd, SOL_SOCKET, SO_REUSEADDR, (void *)&on, (int)sizeof(int)) < 0)
-	eprint("MarinerInit: setsockopt failed (%d)", errno);
+        setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, (char *)&opt, sizeof(int));
 #endif
-    /* Look up the well-known CODA mariner service. */
-    struct servent *serventp = getservbyname(MarinerService, MarinerProto);
-    if (!serventp) {
-      eprint("MarinerInit: mariner service lookup failed!");
-      return;
-    }
 
-    /* Bind to it. */
-    struct sockaddr_in marsock;
-    marsock.sin_family = AF_INET;
-    marsock.sin_addr.s_addr = INADDR_ANY;
-    marsock.sin_port = serventp->s_port;
-    if (bind(mariner::muxfd, (struct sockaddr *)&marsock, (int) sizeof(marsock)) < 0) {
-	eprint("MarinerInit: bind failed (%d)", errno);
-	return;
-    }
+        /* Bind to it. */
+        struct sockaddr_in sin;
+        sin.sin_family = AF_INET;
+        sin.sin_addr.s_addr = INADDR_ANY;
+        sin.sin_port = serventp->s_port;
+        if (bind(sock, (struct sockaddr *)&sin, (int) sizeof(sin)) < 0) {
+            eprint("MarinerInit: bind failed (%d)", errno);
+            close(sock);
+            goto Done;
+        }
 
-    /* Listen for requesters. */
-    if (listen(mariner::muxfd, 2) < 0) {
-	eprint("MarinerInit: mariner listen failed (%d)", errno);
-	return;
+        /* Listen for requesters. */
+        if (listen(sock, 2) < 0) {
+            eprint("MarinerInit: mariner listen failed (%d)", errno);
+            close(sock);
+            goto Done;
+        }
+        
+        eprint("Mariner: listening on tcp port enabled, "
+               "disable with -noMarinerTcp");
+        mariner::tcp_muxfd = sock;
     }
-
+Done:
     /* Allows the MessageMux to distribute incoming messages to us. */
-    MarinerMask |= (1 << mariner::muxfd);
+    if (mariner::tcp_muxfd != -1)  MarinerMask |= (1 << mariner::tcp_muxfd);
+    if (mariner::unix_muxfd != -1) MarinerMask |= (1 << mariner::unix_muxfd);
 }
 
 
 void MarinerMux(int mask) {
+    int newfd = -1;
+
     LOG(100, ("MarinerMux: mask = %#08x\n", mask));
 
     /* Handle any new "Mariner Connect" requests. */
-    if (mask & (1 << mariner::muxfd)) {
-	struct sockaddr_in addr;
-	unsigned int addrlen = sizeof(struct sockaddr_in);
-	int newfd = ::accept(mariner::muxfd, (sockaddr *)&addr, &addrlen);
-	if (newfd < 0)
-	    eprint("MarinerMux: accept failed (%d)", errno);
-	else if (newfd >= NFDS)
-	    ::close(newfd);
-	else if (mariner::nmariners >= MaxMariners)
-	    ::close(newfd);
-#ifndef DJGPP
-	else if	(::fcntl(newfd, F_SETFL, O_NDELAY) < 0) {
-	    eprint("MarinerMux: fcntl failed (%d)", errno);
-	    ::close(newfd);
-	}
-#else
-     	else if (::__djgpp_set_socket_blocking_mode(newfd, 1) < 0) {
-		eprint("MarinerMux: set nonblock failed (%d)", errno);
-		::close(newfd);
-	}
-#endif
-	else
-	    new mariner(newfd);
+    if      (mariner::tcp_muxfd != -1 && (mask & (1 << mariner::tcp_muxfd))) {
+        struct sockaddr_in sin;
+        unsigned int sinlen = sizeof(struct sockaddr_in);
+	newfd = ::accept(mariner::tcp_muxfd, (sockaddr *)&sin, &sinlen);
     }
+#ifdef HAVE_SYS_UN_H
+    else if (mariner::unix_muxfd != -1 && (mask & (1 << mariner::unix_muxfd))) {
+        struct sockaddr_un sun;
+        unsigned int sunlen = sizeof(struct sockaddr_un);
+	newfd = ::accept(mariner::unix_muxfd, (sockaddr *)&sun, &sunlen);
+    }
+#endif
+
+    if (newfd >= NFDS)
+        ::close(newfd);
+    else if (mariner::nmariners >= MaxMariners)
+        ::close(newfd);
+    else if (newfd > 0) {
+#ifndef DJGPP
+        if (::fcntl(newfd, F_SETFL, O_NDELAY) < 0) {
+            eprint("MarinerMux: fcntl failed (%d)", errno);
+            ::close(newfd);
+        }
+#else
+        if (::__djgpp_set_socket_blocking_mode(newfd, 1) < 0) {
+            eprint("MarinerMux: set nonblock failed (%d)", errno);
+            ::close(newfd);
+        }
+#endif
+        else new mariner(newfd);
+    }
+//  else
+//      eprint("MarinerMux: accept failed (%d)", errno);
 
     /* Dispatch mariners which have pending requests, and kill dying mariners. */
     mariner_iterator next;
@@ -234,8 +294,9 @@ void PrintMariners(FILE *fp) {
 
 
 void PrintMariners(int fd) {
-    fdprint(fd, "%#08x : %-16s : muxfd = %d, nmariners = %d\n",
-	     &mariner::tbl, "Mariners", mariner::muxfd, mariner::nmariners);
+    fdprint(fd, "%#08x : %-16s : unix_muxfd = %d, tcp_muxfd = %d, "
+            "nmariners = %d\n", &mariner::tbl, "Mariners",
+            mariner::unix_muxfd, mariner::tcp_muxfd, mariner::nmariners);
 
     mariner_iterator next;
     mariner *m;

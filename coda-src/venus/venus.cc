@@ -87,6 +87,13 @@ char *SpoolDir = UNSET_SPOOLDIR;
 char *VenusPidFile = NULL;
 char *VenusControlFile = NULL;
 char *VenusLogFile = NULL;
+char *MarinerSocketPath = NULL;
+
+#ifdef HAVE_SYS_UN_H
+int mariner_tcp_enable = 0;
+#else
+int mariner_tcp_enable = 1;
+#endif
 
 /* *****  Private constants  ***** */
 
@@ -397,6 +404,12 @@ static void ParseCmdline(int argc, char **argv) {
 	    else if (STREQ(argv[i], "-spooldir")) {
 	        i++, SpoolDir = argv[i];
 	    }
+            /* let venus listen to tcp port `venus', as mariner port, normally
+             * it only listens to a unix domain socket */
+	    else if (STREQ(argv[i], "-MarinerTcp"))
+		mariner_tcp_enable = 1;
+	    else if (STREQ(argv[i], "-noMarinerTcp"))
+		mariner_tcp_enable = 0;
 	    else {
 		eprint("bad command line option %-4s", argv[i]);
 		exit(-1);
@@ -428,15 +441,16 @@ static void DefaultCmdlineParms()
     /* Load the venusdotconf file */
     conf_init(venusdotconf);
 
-    CONF_INT(CacheBlocks,     "cacheblocks",   DFLT_CB);
-    CONF_STR(CacheDir,        "cachedir",      DFLT_CD);
-    CONF_STR(SpoolDir,        "checkpointdir", DFLT_SPOOLDIR);
-    CONF_STR(consoleFile,     "errorlog",      DFLT_CONSOLE);
-    CONF_INT(PrimaryUser,     "primaryuser",   UNSET_PRIMARYUSER);
-    CONF_STR(fsname,          "rootservers",   DFLT_FS);
-    CONF_STR(RootVolName,     "rootvolume",    UNSET_RV);
-    CONF_STR(VenusLogDevice,  "rvm_log",       DFLT_VLD);
-    CONF_STR(VenusDataDevice, "rvm_data",      DFLT_VDD);
+    CONF_INT(CacheBlocks,       "cacheblocks",   DFLT_CB);
+    CONF_STR(CacheDir,          "cachedir",      DFLT_CD);
+    CONF_STR(SpoolDir,          "checkpointdir", DFLT_SPOOLDIR);
+    CONF_STR(consoleFile,       "errorlog",      DFLT_CONSOLE);
+    CONF_INT(PrimaryUser,       "primaryuser",   UNSET_PRIMARYUSER);
+    CONF_STR(fsname,            "rootservers",   DFLT_FS);
+    CONF_STR(RootVolName,       "rootvolume",    UNSET_RV);
+    CONF_STR(VenusLogDevice,    "rvm_log",       DFLT_VLD);
+    CONF_STR(VenusDataDevice,   "rvm_data",      DFLT_VDD);
+    CONF_STR(MarinerSocketPath, "marinersocket", "/usr/coda/spool/mariner");
 
     CONF_INT(CacheFiles, "cachefiles", UNSET_CF);
     {

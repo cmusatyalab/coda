@@ -28,6 +28,9 @@ extern "C" {
 #include <sys/ioctl.h>
 #include <sys/socket.h>
 #include <sys/time.h>
+#ifdef HAVE_SYS_UN_H
+#include <sys/un.h>
+#endif
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <netdb.h>
@@ -37,6 +40,7 @@ extern "C" {
 #include "coda_string.h"
 #include <unistd.h>
 #include <stdlib.h>
+#include "codaconf.h"
 
 #ifdef __cplusplus
 }
@@ -55,17 +59,23 @@ int Bind(const char *, const char *);
 void CheckMariner(FILE *);
 void CheckTheMariner(char *);
 
+int use_tcp = 0;
 
 void main(int argc, char *argv[])
 {
     int running = 1;
     int venusSocket;
+    char *host = NULL;
 
-    if (argc > 2) {
-	fprintf(stderr, "Bad args: %s [host]\n", argv[0]);
-	exit(-1);
+    while (--argc) {
+        argv++;
+        if (strcmp(*argv, "-tcp") == 0) use_tcp = 1;
+        else if (host) {
+            fprintf(stderr, "Bad args: %s [-tcp] [host]\n", argv[0]);
+            exit(-1);
+        }
+        else host = *argv;
     }
-    char *host = (argc == 1 ? NULL : argv[1]);
 
     while (running)
     {
@@ -94,33 +104,59 @@ void main(int argc, char *argv[])
 int Bind(const char *service, const char *host) {
     int s;
     char buf[100];
-    struct sockaddr_in server;
-    struct servent *sp;
-    struct hostent *hp;
+    
+#ifdef HAVE_SYS_UN_H
+    if (!use_tcp) {
+        struct sockaddr_un sun;
+        char *MarinerSocketPath;
+        
+        codaconf_quiet = 1;
+        conf_init(SYSCONFDIR "/venus.conf");
+        MarinerSocketPath = conf_lookup("marinersocket",
+                                        "/usr/coda/spool/mariner"); 
+        memset(&sun, 0, sizeof(sun));
+        sun.sun_family = AF_UNIX;
+        strcpy(sun.sun_path, MarinerSocketPath);
 
-    memset(&server, 0, sizeof(server));
+        if ((s = socket(AF_UNIX, SOCK_STREAM, 0)) < 0){
+            return(-1);
+        }
+        if (connect(s, (sockaddr *)&sun, sizeof(sun)) < 0) {
+            close(s);
+            return(-1);
+        }
+    } else
+#endif /* !HAVE_SYS_UN_H */
+    {
+        struct sockaddr_in sin;
+        struct servent *sp;
+        struct hostent *hp;
 
-    if (host) {
-	hp = gethostbyname(host);
-	if (hp == NULL) return(-1);
-        memcpy((char *)&server.sin_addr, hp->h_addr, hp->h_length);
-	server.sin_family = hp->h_addrtype;
-    } else {
-	server.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
-	server.sin_family = AF_INET;
+        memset(&sin, 0, sizeof(sin));
+
+        if (host) {
+            hp = gethostbyname(host);
+            if (hp == NULL) return(-1);
+            memcpy((char *)&sin.sin_addr, hp->h_addr, hp->h_length);
+            sin.sin_family = hp->h_addrtype;
+        } else {
+            sin.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
+            sin.sin_family = AF_INET;
+        }
+
+        sp = getservbyname(service, "tcp");
+        if (sp == NULL) return(-1);
+        sin.sin_port = sp->s_port;
+
+        if ((s = socket(AF_INET, SOCK_STREAM, 0)) < 0){
+            return(-1);
+        }
+        if (connect(s, (sockaddr *)&sin, sizeof(sin)) < 0) {
+            close(s);
+            return(-1);
+        }
     }
 
-    sp = getservbyname(service, "tcp");
-    if (sp == NULL) return(-1);
-    server.sin_port = sp->s_port;
-
-    if ((s = socket(AF_INET, SOCK_STREAM, 0)) < 0){
-	return(-1);
-    }
-    if (connect(s, (sockaddr *)&server, sizeof(server)) < 0) {
-        close(s);
-        return(-1);
-    }
     return(s);
 }
 

@@ -33,6 +33,7 @@ Coda are listed in the file CREDITS.
 #define MAXLINELEN 256
 static char line[MAXLINELEN];
 static char conffile[MAXPATHLEN];
+int codaconf_quiet = 0;
 
 /* nobody outside of this file needs to be exposed to these structures. */
 typedef char *string_t;
@@ -177,8 +178,9 @@ int conf_init(char *cf)
 
     conf = fopen(cf, "r");
     if (!conf) {
-	fprintf(stderr, "Cannot read configuration file '%s', "
-			"will use default values.\n", conffile);
+        if (!codaconf_quiet)
+            fprintf(stderr, "Cannot read configuration file '%s', "
+                    "will use default values.\n", conffile);
         return(-1);
     }
     

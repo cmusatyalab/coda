@@ -16,11 +16,6 @@ listed in the file CREDITS.
 
 #*/
 
-
-
-
-
-
 #ifdef __cplusplus
 extern "C" {
 #endif __cplusplus
@@ -36,6 +31,9 @@ extern "C" {
 #include <sys/signal.h>
 #include <sys/socket.h>
 #include <sys/time.h>
+#ifdef HAVE_SYS_UN_H
+#include <sys/un.h>
+#endif
 #include <netinet/in.h>
 #include <netdb.h>
 #include <ctype.h>
@@ -43,6 +41,7 @@ extern "C" {
 #include "coda_string.h"
 #include <unistd.h>
 #include <stdlib.h>
+#include "codaconf.h"
 
 #ifdef __cplusplus
 }
@@ -57,6 +56,7 @@ void CheckMariner(FILE *);
 static void TERM(int, int, struct sigcontext *);
 static void usage();
 
+int use_tcp = 0;
 
 main(int argc, char **argv) {
     char *host = 0;
@@ -68,6 +68,9 @@ main(int argc, char **argv) {
 	    if (argc == 1) usage();
 	    argc--; argv++;
 	    host = argv[0];
+	}
+	else if (strcmp(argv[0], "-tcp") == 0) {
+            use_tcp = 1;
 	}
 	else if (strcmp(argv[0], "-uid") == 0) {
 	    if (argc == 1) usage();
@@ -106,33 +109,59 @@ main(int argc, char **argv) {
 int Bind(const char *service, const char *host) {
     int s;
     char buf[100];
-    struct sockaddr_in server;
-    struct servent *sp;
-    struct hostent *hp;
 
-    if (host == NULL) {
-        gethostname(buf, sizeof(buf));
-        host = buf;
+#ifdef HAVE_SYS_UN_H
+    if (!use_tcp) {
+        struct sockaddr_un sun;
+        char *MarinerSocketPath;
+        
+        codaconf_quiet = 1;
+        conf_init(SYSCONFDIR "/venus.conf");
+        MarinerSocketPath = conf_lookup("marinersocket",
+                                        "/usr/coda/spool/mariner"); 
+        memset(&sun, 0, sizeof(sun));
+        sun.sun_family = AF_UNIX;
+        strcpy(sun.sun_path, MarinerSocketPath);
+
+        if ((s = socket(AF_UNIX, SOCK_STREAM, 0)) < 0){
+            return(-1);
+        }
+        if (connect(s, (sockaddr *)&sun, sizeof(sun)) < 0) {
+            close(s);
+            return(-1);
+        }
+    } else
+#endif /* !HAVE_SYS_UN_H */
+    {
+        struct sockaddr_in sin;
+        struct servent *sp;
+        struct hostent *hp;
+
+        if (host == NULL) {
+            gethostname(buf, sizeof(buf));
+            host = buf;
+        }
+        sp = getservbyname(service, "tcp");
+        if (sp == NULL){
+            return(-1);
+        }
+        hp = gethostbyname(host);
+        if (hp == NULL){
+            return(-1);
+        }
+        memset(&sin, 0, sizeof(sin));
+        memcpy(&sin.sin_addr, hp->h_addr, hp->h_length);
+        sin.sin_family = hp->h_addrtype;
+        sin.sin_port = sp->s_port;
+        if ((s = socket(AF_INET, SOCK_STREAM, 0)) < 0){
+            return(-1);
+        }
+        if (connect(s, (sockaddr *)&sin, sizeof(sin)) < 0) {
+            close(s);
+            return(-1);
+        }
     }
-    sp = getservbyname(service, "tcp");
-    if (sp == NULL){
-	return(-1);
-    }
-    hp = gethostbyname(host);
-    if (hp == NULL){
-	return(-1);
-    }
-    bzero((char *)&server, sizeof(server));
-    bcopy(hp->h_addr, (char *)&server.sin_addr, hp->h_length);
-    server.sin_family = hp->h_addrtype;
-    server.sin_port = sp->s_port;
-    if ((s = socket(AF_INET, SOCK_STREAM, 0)) < 0){
-	return(-1);
-    }
-    if (connect(s, (sockaddr *)&server, sizeof(server)) < 0) {
-        close(s);
-        return(-1);
-    }
+
     return(s);
 }
 
@@ -167,6 +196,6 @@ static void TERM(int sig, int code, struct sigcontext *contextPtr) {
 
 
 void usage() {
-    fprintf(stderr, "usage: spy [-host host] [-uid uid]\n");
+    fprintf(stderr, "usage: spy [-tcp] [-host host] [-uid uid]\n");
     exit(-1);
 }

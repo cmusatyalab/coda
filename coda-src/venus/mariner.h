@@ -63,7 +63,8 @@ class mariner : public vproc {
   friend void MarinerReport(ViceFid *, vuid_t);
   friend void PrintMariners(int);
 
-    static int muxfd;
+    static int tcp_muxfd;
+    static int unix_muxfd;
     static int nmariners;
 
     unsigned DataReady : 1;

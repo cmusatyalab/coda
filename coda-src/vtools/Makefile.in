@@ -38,8 +38,7 @@ CFS_LIBS    = $(LIBKERNDEP) $(LIBUTIL) $(LIBBASE)
 HOARD_LIBS  = $(LIBUTIL) $(LIBKERNDEP) $(LIBBASE)
 STD_LIBS = $(LIBCURSES) $(LIBCOMPAT) $(LIBFIXUP)
 
-
-CXXFLAGS := $(CXXFLAGS) -UVENUS
+CXXFLAGS := $(CXXFLAGS) -UVENUS -DSYSCONFDIR=\"@sysconfdir@\"
 
 include $(TOPDIR)/configs/Makerules
 
@@ -47,7 +46,7 @@ cmon: cmon.o $(CMON_LIBS)
 	$(CXX) $(LDFLAGS) cmon.o $(CMON_LIBS) $(STD_LIBS) -o cmon
 
 codacon:    codacon.o
-	$(CXX) $(LDFLAGS) $(LIBFIXUP) -o codacon codacon.o
+	$(CXX) $(LDFLAGS) codacon.o $(LIBBASE) $(LIBFIXUP) -o codacon
 
 cfs:  cfs.o $(CFS_LIBS)
 	$(CXX) $(LDFLAGS) cfs.o $(CFS_LIBS) $(STD_LIBS) -o cfs
@@ -56,10 +55,10 @@ hoard: hoard.o $(HOARD_LIBS)
 	$(CXX) $(LDFLAGS) hoard.o $(HOARD_LIBS) $(STD_LIBS) -o hoard
 
 spy: spy.o
-	$(CXX) $(LDFLAGS) $(LIBFIXUP) spy.o -o spy
+	$(CXX) $(LDFLAGS) spy.o $(LIBBASE) $(LIBFIXUP) -o spy
 
 replay: replay.o
-	$(CXX) $(LDFLAGS) $(LIBFIXUP) replay.o -o replay
+	$(CXX) $(LDFLAGS) replay.o $(LIBFIXUP) -o replay
 
 # up is broken on the pmax because a.out.h seems incomplete
 # fix if up is really needed (Satya 3/23/92)
