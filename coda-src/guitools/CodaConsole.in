@@ -1,0 +1,104 @@
+#!+TIXWISH+
+#
+# An interface that alerts users to potential problems and opportunities
+#
+# History :
+#  96/5/28 : mre@cs.cmu.edu : code
+#
+#
+
+proc ReallyQuit {} {
+        destroy .
+        exit 0
+}
+ 
+proc gettimeofday { } {
+
+}
+
+##############################################################################
+#                                 Main program                               #
+##############################################################################
+
+
+#
+# Setup the auto_path variable to use the Coda tcl library
+#
+lappend auto_path +GUIDIR+
+
+#
+#  Start Timing Events
+#
+SetTime "CodaConsole:begin"
+
+#
+#  Check the arguments
+#
+
+#
+# Set global variables
+#
+set Window ""
+set user [exec whoami]
+set password ""
+
+#
+# Withdraw the main window
+#
+wm withdraw .
+
+#
+# Very basic testing
+#
+
+#
+# Initialization
+#
+InitLocks
+InitSystemAdministrator
+InitPathnamesArray
+InitDimensionsArray
+InitColorArray
+InitDisplayStyleArray
+InitVenusLog
+InitStatistics
+InitServers 
+InitEventsArray
+InitData
+InitIndicatorArray
+InitLog
+
+#
+# Hoard that which is already hoarded
+#
+Hoard
+
+#
+# Create the dashboard
+#
+CreateIndicators 
+
+#
+# Set the options database for this application
+#
+option add *selectColor gray24
+
+#
+#  Timing
+#
+update idletasks
+SetTime "CodaConsole:visible"
+
+#
+#  Call the demo (if appropriate)
+#
+#Demo
+
+#
+# Now, wait for user actions...
+#
+#
+#
+# End of program
+##############################################################################
+

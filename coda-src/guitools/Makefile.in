@@ -1,0 +1,97 @@
+# 
+#             Coda: an Experimental Distributed File System
+#                              Release 4.0
+# 
+#           Copyright (c) 1987-1996 Carnegie Mellon University
+#                          All Rights Reserved
+# 
+# Permission  to  use, copy, modify and distribute this software and its
+# documentation is hereby granted,  provided  that  both  the  copyright
+# notice  and  this  permission  notice  appear  in  all  copies  of the
+# software, derivative works or  modified  versions,  and  any  portions
+# thereof, and that both notices appear in supporting documentation, and
+# that credit is given to Carnegie Mellon University  in  all  documents
+# and publicity pertaining to direct or indirect use of this code or its
+# derivatives.
+# 
+# CODA IS AN EXPERIMENTAL SOFTWARE SYSTEM AND IS  KNOWN  TO  HAVE  BUGS,
+# SOME  OF  WHICH MAY HAVE SERIOUS CONSEQUENCES.  CARNEGIE MELLON ALLOWS
+# FREE USE OF THIS SOFTWARE IN ITS "AS IS" CONDITION.   CARNEGIE  MELLON
+# DISCLAIMS  ANY  LIABILITY  OF  ANY  KIND  FOR  ANY  DAMAGES WHATSOEVER
+# RESULTING DIRECTLY OR INDIRECTLY FROM THE USE OF THIS SOFTWARE  OR  OF
+# ANY DERIVATIVE WORK.
+# 
+# Carnegie  Mellon  encourages  users  of  this  software  to return any
+# improvements or extensions that  they  make,  and  to  grant  Carnegie
+# Mellon the rights to redistribute these changes without encumbrance.
+# 
+# static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vtools/Makefile.in,v 4.3 97/04/29 21:27:25 rvb Exp $";
+
+
+TOPDIR = @top_srcdir@
+ifndef MAKDIR
+MAKDIR = @top_srcdir@
+endif
+srcdir = @srcdir@
+VPATH  = @srcdir@
+TOPOBJ = @TOPOBJ@
+
+include $(MAKDIR)/Makeconf
+
+
+TCLSCRIPTS  = 	Advice.tcl              \
+		Consider.tcl            \
+		ConsiderAdding.tcl      \
+		ConsiderRemoving.tcl    \
+		ControlPanel.tcl        \
+		Date.tcl                \
+		DiscoMiss.tcl           \
+		Events.tcl              \
+		Globals_specific.tcl    \
+		Helper.tcl              \
+		HoardWalk.tcl           \
+		HoardWalkAdvice.tcl     \
+		Indicators.tcl          \
+		Initialization.tcl      \
+		Lock.tcl                \
+		Log.tcl                 \
+		ManualDemo.tcl          \
+		Network.tcl             \
+		OutsideWorld.tcl        \
+		ReadMiss.tcl            \
+		Reconnection.tcl        \
+		Reintegration.tcl       \
+		Repair.tcl              \
+		Space.tcl               \
+		Task.tcl                \
+		Timing.tcl              \
+		Tokens.tcl              \
+		WeakMiss.tcl            \
+		tixCodaMeter.tcl        
+
+
+CLIBS	    = $(TCLSCRIPTS)
+
+CODAWISH_LIBS  = $(LIBTIX) $(LIBTK) $(LIBTCL) $(LIBMATH) $(LIBX11)
+
+CFLAGS = -I$(INCTIX) -I$(INCTK) -I$(INCTCL) -I$(INCX11)
+
+
+CodaConsole: CodaConsole.in translate.sed
+	sed -f translate.sed  $< > $@
+
+Globals.tcl: Globals.tcl.in translate.sed
+	sed -f translate.sed $< > $@
+
+translate.sed: translate
+	cat translate >> $@
+	echo "s%+GUIDIR+%${LIBDIR}/coda%g" >> $@
+	echo "s%+CFS+%${BINDIR}/cfs%g" >> $@
+	echo "s%+CLOG+%${BINDIR}/clog%g" >> $@
+	echo "s%+CTOKENS+%${BINDIR}/ctokens%g" >> $@
+	echo "s%+CUNLOG+%${BINDIR}/cunlog%g" >> $@
+	echo "s%+HOARD+%${BINDIR}/hoard%g" >> $@
+	echo "s%+VUTIL+%${BINDIR}/vutil%g" >> $@
+
+
+include $(MAKDIR)/configs/Makerules

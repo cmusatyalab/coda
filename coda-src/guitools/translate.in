@@ -1,0 +1,6 @@
+s%+AWK+%@AWK@%g
+s%+CP+%@CP@%g
+s%+DF+%@DF@%g
+s%+GREP+%@GREP@%g
+s%+HOSTNAME+%@HOSTNAME@%g
+s%+TIXWISH+%@TIXWISH@%g
