@@ -219,7 +219,7 @@ int coda_inode_grab(dev_t dev, ino_t ino, struct inode **ind)
 {
         struct super_block *sbptr;
 
-        sbptr = coda_find_super(dev);
+        sbptr = get_super(dev);
 
         if ( !sbptr ) {
                 printk("coda_inode_grab: coda_find_super returns NULL.\n");
@@ -238,14 +238,3 @@ int coda_inode_grab(dev_t dev, ino_t ino, struct inode **ind)
         return 0;
 }
 
-struct super_block *coda_find_super(kdev_t device)
-{
-        struct super_block *super;
-
-        for (super = super_blocks + 0; super < super_blocks + NR_SUPER ; 
-	     super++) {
-                if (super->s_dev == device) 
-                        return super;
-        }
-        return NULL;
-}

@@ -1,16 +1,11 @@
-/* 
- * Mach Operating System
- * Copyright (c) 1990 Carnegie-Mellon University
- * Copyright (c) 1989 Carnegie-Mellon University
- * All rights reserved.  The CMU software License Agreement specifies
- * the terms and conditions for use and redistribution.
- */
-
 /*
- * This code was written for the Coda file system at Carnegie Mellon University.
- * Contributers include David Steere, James Kistler, and M. Satyanarayanan.
+ * Cache operations for Coda.
+ * Original version: (C) 1996 Peter Braam 
+ * Rewritten for Linux 2.1: (C) 1997 Carnegie Mellon University
+ *
+ * Carnegie Mellon encourages users of this code to contribute improvements
+ * to the Coda project. Contact Peter Braam <coda@cs.cmu.edu>.
  */
-
 
 /*
  * This module contains the routines to implement the CFS name cache. The
@@ -46,7 +41,6 @@
 #include <linux/coda_linux.h>
 #include <linux/coda_cnode.h>
 #include <linux/coda_namecache.h>
-
 
 int cfsnc_use;
 

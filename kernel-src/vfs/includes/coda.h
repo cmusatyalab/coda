@@ -1,3 +1,11 @@
+/*
+ * Venus interface for Coda.
+ * Original version: (C) 1996 Peter Braam 
+ * Rewritten for Linux 2.1: (C) 1997 Carnegie Mellon University
+ *
+ * Carnegie Mellon encourages users of this code to contribute improvements
+ * to the Coda project. Contact Peter Braam <coda@cs.cmu.edu>.
+ */
 
 /*
  *
@@ -475,7 +483,7 @@ struct PioctlData {
 #define	IS_CTL_FID(fidp)	((fidp)->Volume == CTL_VOL &&\
 				 (fidp)->Vnode == CTL_VNO &&\
 				 (fidp)->Unique == CTL_UNI)
-#define	ISDIR(fid)		((fid).Vnode & 0x1)
+     /*#define	ISDIR(fid)		((fid).Vnode & 0x1) */
 
 #endif 
 

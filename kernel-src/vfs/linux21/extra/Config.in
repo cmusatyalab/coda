@@ -1,0 +1,70 @@
+#
+# Filesystem configuration
+#
+mainmenu_option next_comment
+comment 'Filesystems'
+
+bool	 'Quota support' CONFIG_QUOTA
+
+tristate 'Minix fs support' CONFIG_MINIX_FS
+tristate 'Second extended fs support' CONFIG_EXT2_FS
+
+tristate 'ISO9660 cdrom filesystem support' CONFIG_ISO9660_FS
+if [ "$CONFIG_ISO9660_FS" != "n" ]; then
+  bool 'Microsoft Joliet cdrom extensions' CONFIG_JOLIET
+fi
+
+# msdos filesystems
+tristate 'DOS FAT fs support' CONFIG_FAT_FS
+dep_tristate 'MSDOS fs support' CONFIG_MSDOS_FS $CONFIG_FAT_FS
+dep_tristate 'umsdos: Unix like fs on top of std MSDOS FAT fs' CONFIG_UMSDOS_FS $CONFIG_MSDOS_FS
+dep_tristate 'VFAT (Windows-95) fs support' CONFIG_VFAT_FS $CONFIG_FAT_FS
+
+bool '/proc filesystem support' CONFIG_PROC_FS
+if [ "$CONFIG_INET" = "y" ]; then
+  tristate 'NFS filesystem support' CONFIG_NFS_FS
+  if [ "$CONFIG_NFS_FS" = "y" ]; then
+    bool '   Root file system on NFS' CONFIG_ROOT_NFS
+    if [ "$CONFIG_ROOT_NFS" = "y" ]; then
+      bool '      BOOTP support' CONFIG_RNFS_BOOTP
+      bool '      RARP support' CONFIG_RNFS_RARP
+    fi
+  fi
+  tristate 'NFS server support' CONFIG_NFSD
+  if [ "$CONFIG_NFS_FS" = "y" -o "$CONFIG_NFSD" = "y" ]; then
+    define_bool CONFIG_SUNRPC y
+    define_bool CONFIG_LOCKD y
+  else
+    if [ "$CONFIG_NFS_FS" = "m" -o "$CONFIG_NFSD" = "m" ]; then
+      define_bool CONFIG_SUNRPC m
+      define_bool CONFIG_LOCKD m
+    else
+      define_bool CONFIG_SUNRPC n
+      define_bool CONFIG_LOCKD n
+    fi
+  fi
+  tristate 'Coda filesystem support (advanced network fs)' CONFIG_CODA_FS
+  tristate 'SMB filesystem support (to mount WfW shares etc..)' CONFIG_SMB_FS
+  if [ "$CONFIG_SMB_FS" != "n" ]; then
+    bool 'SMB Win95 bug work-around' CONFIG_SMB_WIN95
+  fi
+fi
+if [ "$CONFIG_IPX" != "n" ]; then
+  tristate 'NCP filesystem support (to mount NetWare volumes)' CONFIG_NCP_FS
+fi
+tristate 'OS/2 HPFS filesystem support (read only)' CONFIG_HPFS_FS
+tristate 'System V and Coherent filesystem support' CONFIG_SYSV_FS
+tristate 'Amiga FFS filesystem support' CONFIG_AFFS_FS
+tristate 'ROM filesystem support' CONFIG_ROMFS_FS
+tristate 'Kernel automounter support (experimental)' CONFIG_AUTOFS_FS
+if [ "$CONFIG_AFFS_FS" != "n" ]; then
+  define_bool CONFIG_AMIGA_PARTITION y
+fi
+tristate 'UFS filesystem support (read only)' CONFIG_UFS_FS
+if [ "$CONFIG_UFS_FS" != "n" ]; then
+  bool 'BSD disklabel (FreeBSD partition tables) support' CONFIG_BSD_DISKLABEL
+  bool 'SMD disklabel (Sun partition tables) support' CONFIG_SMD_DISKLABEL
+fi
+bool 'Macintosh partition map support' CONFIG_MAC_PARTITION
+endmenu
+
