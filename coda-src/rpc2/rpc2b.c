@@ -66,7 +66,7 @@ void GetLocalIP(RPC2_HostIdent *localhost)
 {
 #ifdef DJGPP
     localhost->Tag = RPC2_HOSTBYINETADDR;
-    localhost->Value.InetAddress = (struct in_addr)__djgpp_get_my_host();
+    localhost->Value.InetAddress.s_addr = __djgpp_get_my_host();
 #else
     char hostname[128];
     struct hostent *h;

@@ -1082,6 +1082,9 @@ void rvm_free_options(rvm_options)
         rvm_options->recovery_buf_len = RECOVERY_BUF_LEN;
         rvm_options->flush_buf_len = FLUSH_BUF_LEN;
         rvm_options->max_read_len = MAX_READ_LEN;
+        rvm_options->create_log_file = rvm_false;
+        RVM_ZERO_OFFSET(rvm_options->create_log_size);
+        rvm_options->create_log_mode = 0600;
         }
     }
 

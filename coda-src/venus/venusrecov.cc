@@ -350,87 +350,46 @@ static void Recov_InitRVM() {
 
     rvm_init_statistics(&Recov_Statistics);
 
-    if (InitMetaData) {
+    if (InitMetaData)
+    {
 	/* Compute recoverable storage requirements, and verify that log/data sizes are adequate. */
+        int RecovBytesNeeded = (int) RECOV_BYTES_NEEDED();
+
+        /* Set segment sizes if necessary. */
+        if (VenusDataDeviceSize == UNSET_VDDS)
+            VenusDataDeviceSize = RecovBytesNeeded;
+        if (VenusLogDeviceSize == UNSET_VLDS)
+            VenusLogDeviceSize = VenusDataDeviceSize / DataToLogSizeRatio;
+
+        /* Check that sizes meet minimums. */
+        if (VenusLogDeviceSize < MIN_VLDS) {
+            eprint("log segment too small (%#x); minimum %#x",
+                   VenusLogDeviceSize, MIN_VLDS);
+            exit(-1);
+        }
+        if (VenusDataDeviceSize < MAX(RecovBytesNeeded, MIN_VDDS)) {
+            eprint("data segment too small (%#x); minimum %#x",
+                   VenusDataDeviceSize, MAX(RecovBytesNeeded, MIN_VDDS));
+            exit(-1);
+        }
+
+        LOG(0, ("RecovDataSizes: Log = %#x, Data = %#x\n",
+                VenusLogDeviceSize, VenusDataDeviceSize));
+
+	/* Initialize log and data segments. */
 	{
-	    int RecovBytesNeeded = (int) RECOV_BYTES_NEEDED();
-
-	    /* Set segment sizes if necessary. */
-	    if (VenusDataDeviceSize == UNSET_VDDS)
-		VenusDataDeviceSize = RecovBytesNeeded;
-	    if (VenusLogDeviceSize == UNSET_VLDS)
-		VenusLogDeviceSize = VenusDataDeviceSize / DataToLogSizeRatio;
-
-	    /* Check that sizes meet minimums. */
-	    if (VenusLogDeviceSize < MIN_VLDS) {
-		eprint("log segment too small (%#x); minimum %#x",
-		       VenusLogDeviceSize, MIN_VLDS);
-		exit(-1);
-	    }
-	    if (VenusDataDeviceSize < MAX(RecovBytesNeeded, MIN_VDDS)) {
-		eprint("data segment too small (%#x); minimum %#x",
-		       VenusDataDeviceSize, MAX(RecovBytesNeeded, MIN_VDDS));
-		exit(-1);
-	    }
-
-	    LOG(0, ("RecovDataSizes: Log = %#x, Data = %#x\n",
-		    VenusLogDeviceSize, VenusDataDeviceSize));
-	}
-
-	/* Initialize log and data segment. */
-	{
-#ifndef DJGPP
+            /* Pass in the correct parameters so that RVM_INIT can create
+             * a new logfile */
 	    unlink(VenusLogDevice);
-#endif
-	    {
-		/* Log initialization must be done by another process, since an RVM_INIT */
-		/* with NULL log must be specified (to prevent RVM from trying to do recovery). */
-#ifndef DJGPP
-		int child = fork();
-		if (child == -1)
-		    CHOKE("Recov_InitRVM: fork failed (%d)", errno);
-		if (child == 0) {
-#else
-		if (IAmChild) {
-		    unlink(VenusLogDevice);
-#endif
-		    rvm_return_t ret = RVM_INIT(NULL);
-		    if (ret != RVM_SUCCESS) {
-			if (ret == RVM_EINTERNAL)
-			    eprint("Recov_InitRVM(child): RVM_INIT failed, internal error %s",
-				   rvm_errmsg);
-			else
-			    eprint("Recov_InitRVM(child): RVM_INIT failed (%d)", ret);
-			exit(ret);
-		    }
+            Recov_Options.create_log_file = rvm_true;
+            Recov_Options.create_log_size = RVM_MK_OFFSET(0,VenusLogDeviceSize);
+            Recov_Options.create_log_mode = 0600;
 
-		    rvm_offset_t logsize = RVM_MK_OFFSET(0, VenusLogDeviceSize);
-		    ret = rvm_create_log(&Recov_Options, &logsize, 0600);
-		    if (ret != RVM_SUCCESS) {
-			eprint("Recov_InitRVM(child): rvm_create_log failed (%d)", ret);
-			exit(ret);
-		    }
-#ifdef DJGPP
-		    printf("Recov_InitRVM child lived happily\n");
-#endif
-		    exit(RVM_SUCCESS);
-
-		}
-		else {
-#ifndef DJGPP
-		    union wait status;
-		    int exiter = wait(&status.w_status);
-		    if (exiter != child)
-			CHOKE("Recov_InitRVM: exiter (%d) != child (%d)", exiter, child);
-#ifdef __BSD44__
-		    if (WEXITSTATUS(status.w_status) != RVM_SUCCESS)
-			CHOKE("Recov_InitRVM: log initialization failed (%d)", WEXITSTATUS(status.w_status));
-#endif /* __BSD44__ */
-#endif /* !DJGPP */
-		}
-	    }
-	    eprint("%s initialized at size %#x",
+	    eprint("%s setup for size %#x",
 		   VenusLogDevice, VenusLogDeviceSize);
+            
+            /* as far as the log is concerned RVM_INIT will now handle the
+             * rest of the creation. */
 
 	    int fd = 0;
 	    if ((fd = open(VenusDataDevice,

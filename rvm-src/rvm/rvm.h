@@ -302,6 +302,11 @@ typedef struct
 
     rvm_length_t    flags;              /* bit vector for optimization and
                                            other flags */
+    rvm_bool_t      create_log_file;    /* TRUE  ==> create the log file */
+    rvm_offset_t    create_log_size;    /* when creating a new log file, this
+                                           is the wanted size */
+    long            create_log_mode;    /* when creating a new log file, this
+                                           is the wanted mode */
     }
 rvm_options_t;
 

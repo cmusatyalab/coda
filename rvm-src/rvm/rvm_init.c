@@ -95,6 +95,21 @@ rvm_return_t rvm_initialize(char *rvm_version, rvm_options_t *rvm_options)
         init_map_roots();               /* mapping list and tree */
         init_log_list();                /* log device list */
 
+        if (rvm_options->create_log_file)
+        {
+            /* we need to pretend were already initialized, and for all
+             * purposes of rvm_create_log, we are. */
+            inited = rvm_true;
+            retval = rvm_create_log(rvm_options, &rvm_options->create_log_size,
+                                    rvm_options->create_log_mode);
+            inited = rvm_false;
+
+            if (retval != RVM_SUCCESS) {
+		printf("rvm_create_log failed\n");
+		goto err_exit;
+            }
+        }
+
         /* process options */
         if ((retval=do_rvm_options(rvm_options)) != RVM_SUCCESS) {
 		printf("do_rvm_options failed\n");
