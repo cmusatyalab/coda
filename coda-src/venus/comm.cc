@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs.cmu.edu/user/clement/mysrcdir3/coda-src/venus/RCS/comm.cc,v 4.5 1997/05/27 14:33:03 braam Exp clement $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/comm.cc,v 4.6 1997/05/27 21:32:49 clement Exp $";
 #endif /*_BLURB_*/
 
 
@@ -917,12 +917,22 @@ void MultiProbe(int HowMany, RPC2_Handle *Handles) {
     }
 
     /* Make multiple copies of the IN/OUT and OUT parameters. */
-    long **secs_ptrs = (long **)malloc(HowMany * sizeof(long *));
-    long *secs_bufs = (long *)malloc(HowMany * sizeof(long));
-    { for (int i = 0; i < HowMany; i++) secs_ptrs[i] = &secs_bufs[i]; }
-    long **usecs_ptrs = (long **)malloc(HowMany * sizeof(long *));
-    long *usecs_bufs = (long *)malloc(HowMany * sizeof(long));
-    { for (int i = 0; i < HowMany; i++) usecs_ptrs[i] = &usecs_bufs[i]; }
+    RPC2_Unsigned  **secs_ptrs =
+	(RPC2_Unsigned **)malloc(HowMany * sizeof(RPC2_Unsigned *));
+    ASSERT(secs_ptrs);
+    RPC2_Unsigned   *secs_bufs =
+	(RPC2_Unsigned *)malloc(HowMany * sizeof(RPC2_Unsigned));
+    ASSERT(secs_bufs);
+    for (int i = 0; i < HowMany; i++)
+	secs_ptrs[i] = &secs_bufs[i]; 
+    RPC2_Integer  **usecs_ptrs =
+	(RPC2_Integer **)malloc(HowMany * sizeof(RPC2_Integer *));
+    ASSERT(usecs_ptrs);
+    RPC2_Integer   *usecs_bufs =
+	(RPC2_Integer *)malloc(HowMany * sizeof(RPC2_Integer));
+    ASSERT(usecs_bufs);
+    for (int i = 0; i < HowMany; i++)
+	usecs_ptrs[i] = &usecs_bufs[i]; 
 
     /* Make the RPC call. */
     MarinerLog("fetch::Probe\n");

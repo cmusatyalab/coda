@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs.cmu.edu/user/clement/mysrcdir3/coda-src/venus/RCS/fso_cfscalls2.cc,v 4.3 1997/02/26 16:03:19 rvb Exp clement $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/fso_cfscalls2.cc,v 4.4 1997/04/27 00:27:52 clement Exp $";
 #endif /*_BLURB_*/
 
 
@@ -540,6 +540,14 @@ static char systype [] = "i386_fbsd2";
 static char cputype [] = "i386";
 static char systype [] = "i386_linux";
 #endif /* i386 */
+#ifdef sparc
+static char cputype [] = "sparc";
+static char systype [] = "sparc_linux";
+#endif
+#ifdef __alpha__
+static char cputype [] = "alpha";
+static char systype [] = "alpha_linux";
+#endif
 #endif /* __linux__ */
 
 /* local-repair modification */

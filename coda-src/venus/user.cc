@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /home/braam/src/coda-src/venus/RCS/user.cc,v 1.2 1996/11/24 21:02:00 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/user.cc,v 4.1 1997/01/08 21:51:35 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -186,8 +186,9 @@ int AuthorizedUser(vuid_t thisUser) {
   LOG(100, ("AuthorizedUser: User (%d) --> NOT authorized.\n", thisUser));
   return(0);
 }
-
+#ifndef UTMP_FILE
 #define	UTMP_FILE   "/etc/utmp"
+#endif
 #define	CONSOLE	    "console"
 vuid_t ConsoleUser() {
     vuid_t vuid = ALL_UIDS;
