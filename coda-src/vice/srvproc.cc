@@ -4063,8 +4063,7 @@ void PerformRename(ClientEntry *client, VolumeId VSGVolnum, Volume *volptr,
 
 	/* Flush directory pages for deleted child. */
 	if (t_vptr->disk.type == vDirectory) {
-	    PDirHandle t_dh;
-	    t_dh = VN_SetDirHandle(t_vptr);
+	    VN_PutDirHandle(t_vptr);
 	    DC_Drop(t_vptr->dh);
 	}
     }

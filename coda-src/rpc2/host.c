@@ -388,7 +388,7 @@ void rpc2_UpdateEstimates(struct HEntry *host, struct timeval *elapsed,
 }
 
 void rpc2_RetryInterval(RPC2_Handle whichConn, RPC2_Unsigned Bytes, int *retry,
-			struct timeval *tv)
+			int maxretry, struct timeval *tv)
 {
     struct CEntry *ce;
     unsigned long rto, rtt;
@@ -423,7 +423,7 @@ void rpc2_RetryInterval(RPC2_Handle whichConn, RPC2_Unsigned Bytes, int *retry,
 	rtt = ce->MaxRetryInterval.tv_sec * 1000000 +
 	      ce->MaxRetryInterval.tv_usec;
 
-	for (i = ce->Retry_N; i > *retry; i--) {
+	for (i = maxretry; i > *retry; i--) {
 	    rtt >>= 1;
 	    if (rtt < rto) break;
 	}

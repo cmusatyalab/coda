@@ -299,6 +299,12 @@ void recle::print(int fd) {
     rmdir_rle *rmdir;
     setquota_rle *sq;
 
+    if (vle == NULL) {
+	sprintf(buf, "!!!!!!!! vle == NULL pointer !!!!!!\n");
+	write(fd, buf, (int) strlen(buf));
+	goto Exit;
+    }
+
     switch (opcode) {
       case ResolveViceNewStore_OP:
       case RES_NewStore_OP:
@@ -364,7 +370,8 @@ void recle::print(int fd) {
 	write(fd, buf, (int) strlen(buf));
 	break;
     }
-    
+
+Exit:
     sprintf(buf, "    ** End of Record **\n\n");
     write(fd, buf, (int) strlen(buf));
     

@@ -222,7 +222,7 @@ long SFTP_Bind2(IN RPC2_Handle ConnHandle, IN RPC2_Unsigned BindTime)
 
 	retry = 1;
         rpc2_RetryInterval(ConnHandle, 2 * sizeof(struct RPC2_PacketHeader),
-			   &retry, &se->RInterval);
+			   &retry, se->RetryCount, &se->RInterval);
     }
     
     return(RPC2_SUCCESS);
@@ -404,7 +404,7 @@ long SFTP_GetRequest(RPC2_Handle ConnHandle, RPC2_PacketBuffer *Request)
 			     2 * sizeof(struct RPC2_PacketHeader));
 	retry = 1;
         rpc2_RetryInterval(ConnHandle, 2 * sizeof(struct RPC2_PacketHeader),
-			   &retry, &se->RInterval);
+			   &retry, se->RetryCount, &se->RInterval);
     }
 
     se->PiggySDesc = NULL; /* default is no piggybacked file */
@@ -714,7 +714,7 @@ static long GetFile(sEntry)
 	{
 	    /* get a new retry interval estimate */
 	    rpc2_RetryInterval(sEntry->LocalHandle, packetsize, &i,
-			       &sEntry->RInterval);
+			       sEntry->RetryCount, &sEntry->RInterval);
 
 	    pb = (RPC2_PacketBuffer *)AwaitPacket(&sEntry->RInterval, sEntry);
 
@@ -821,7 +821,7 @@ static long PutFile(struct SFTP_Entry *sEntry)
 	for (i = 1; i <= sEntry->RetryCount; i++) {
 	    /* get a new retry interval estimate */
 	    rpc2_RetryInterval(sEntry->LocalHandle, bytes, &i,
-			       &sEntry->RInterval);
+			       sEntry->RetryCount, &sEntry->RInterval);
 
 	    pb = (RPC2_PacketBuffer *)AwaitPacket(&sEntry->RInterval, sEntry);
 

@@ -495,7 +495,7 @@ void RPC2_UpdateEstimates(struct HEntry *whichHost, RPC2_Unsigned ElapsedTime,
 void rpc2_UpdateEstimates(struct HEntry *whichHost, struct timeval *elapsed,
 			  RPC2_Unsigned Bytes);
 void rpc2_RetryInterval(RPC2_Handle whichConn, RPC2_Unsigned Bytes, int *retry,
-			struct timeval *tv);
+			int maxretry, struct timeval *tv);
 
 /* Multicast group manipulation routines */
 void rpc2_InitMgrp(), rpc2_FreeMgrp(), rpc2_RemoveFromMgrp(), rpc2_DeleteMgrp();

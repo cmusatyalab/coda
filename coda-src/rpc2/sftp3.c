@@ -373,7 +373,7 @@ int sftp_DataArrived(RPC2_PacketBuffer *pBuff, struct SFTP_Entry *sEntry)
 	    /* recalculate the retry timeout */
 	    retry = 1;
 	    rpc2_RetryInterval(sEntry->LocalHandle, dataThisRound, &retry,
-			       &sEntry->RInterval);
+			       sEntry->RetryCount, &sEntry->RInterval);
 	}
     }
 

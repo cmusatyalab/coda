@@ -362,7 +362,7 @@ static void ClientPacket(RPC2_PacketBuffer *whichPacket,
 
 	    retry = 1;
 	    rpc2_RetryInterval(sEntry->LocalHandle, bytes, &retry,
-			       &sEntry->RInterval);
+			       sEntry->RetryCount, &sEntry->RInterval);
 
 	    if (sftp_AckArrived(whichPacket, sEntry) < 0) {
 		SFSendNAK(whichPacket); /* NAK this packet */
