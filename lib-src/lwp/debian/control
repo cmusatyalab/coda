@@ -16,7 +16,7 @@ Description: LWP thread library
 
 Package: liblwp2
 Architecture: alpha arm i386 m68k powerpc sparc
-Depends: ${shlibs:Depends} ${misc:Depends}
+Depends: ${shlibs:Depends}
 Description: LWP thread library
  The LWP userspace threads library. The LWP threads library is used by the
  Coda distributed filesystem, RVM (a persistent VM library), and RPC2/SFTP

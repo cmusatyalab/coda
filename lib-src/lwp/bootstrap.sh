@@ -13,6 +13,6 @@
 touch ChangeLog
 autoheader
 aclocal
-libtoolize
+libtoolize --copy --force
 automake --copy --add-missing
 autoconf
