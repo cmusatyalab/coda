@@ -15,7 +15,6 @@
 
 LOCKDIR=/var/lock/subsys
 PIDDIR=/vice/misc
-DBDIR=/vice/db
 
 PATH=/sbin:/usr/sbin:/usr/local/sbin:$PATH
 export PATH
@@ -57,7 +56,7 @@ case "$1" in
 
 	if [ "`cat /vice/hostname`" = "`cat /vice/db/scm`" ]; then
 		echon "updatesrv "
-		updatesrv -p $DBDIR &
+		updatesrv &
 	fi
 
 	echon "updateclnt "
