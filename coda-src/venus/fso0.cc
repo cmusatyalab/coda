@@ -282,21 +282,6 @@ FREE_ENTRY: /* release entry from namelist */
 			   (!DIRTY(f) && f->mle_bindings == 0));
 	    }
 	}
-
-	/* Cancel store records for any dataless dirty file. */
-	{
-	    fso_iterator next(NL);
-	    fsobj *f;
-	    while ((f = next())) {
-		/* we should never have dirty incomplete objects! */
-		FSO_ASSERT(f, (!DIRTY(f) || HAVEALLDATA(f)))
-#ifdef REMOVE_THIS
-		/* this is what we used to do, doesn't seem to safe. */
-		if (DIRTY(f) && !HAVEALLDATA(f))
-		    f->CancelStores();
-#endif
-	    }
-	}
     }
 
     /* Set new Data version stamps. */
