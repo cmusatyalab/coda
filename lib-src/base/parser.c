@@ -309,7 +309,7 @@ void Parser_commands()
     stifle_history(HISTORY);
 
     rl_attempted_completion_function = command_completion;
-    rl_completion_entry_function = command_generator;
+    rl_completion_entry_function = &command_generator;
     
     while(!done) {
 	line = readline(parser_prompt);
