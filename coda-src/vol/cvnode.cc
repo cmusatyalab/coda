@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /usr/rvb/XX/src/coda-src/vol/RCS/cvnode.cc,v 4.1 1997/01/08 21:52:09 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/ss/coda-src/vol/RCS/cvnode.cc,v 4.2 1997/02/26 16:03:49 rvb Exp braam $";
 #endif /*_BLURB_*/
 
 
@@ -572,11 +572,17 @@ Vnode *VGetVnode(Error *ec,Volume *vp,VnodeId vnodeNumber,
     }
 
     if (++vnp->nUsers == 1) {
+        int cdn1, cdn2, cdn3;
     /* First user.  Remove it from the LRU chain.  We can assume that
        there is at least one item in the queue */
 	if (vnp == vcp->lruHead)
 	    vcp->lruHead = vcp->lruHead->lruNext;
-	if (vnp == vcp->lruHead || vcp->lruHead == NULL){
+	cdn1 = (vnp == vcp->lruHead);
+	cdn2 = (vcp->lruHead == NULL);
+	cdn3 = (cdn1 || cdn2) ; 
+	/* g++ goes haywire here? Why? 
+	if ( (vnp == vcp->lruHead) || (vcp->lruHead == NULL) ) */
+	if ( cdn3 ) {
 	    LogMsg(-1, 0, stdout, "VGetVnode: lru chain addled!");
 	    assert(0);
 	}

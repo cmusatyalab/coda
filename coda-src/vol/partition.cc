@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /home/braam/cs/coda-src/vol/RCS/partition.cc,v 4.2 1997/02/26 16:03:53 rvb Exp braam $";
+static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/ss/coda-src/vol/RCS/partition.cc,v 4.3 1997/04/16 14:31:51 braam Exp braam $";
 #endif /*_BLURB_*/
 
 
@@ -61,8 +61,9 @@ extern "C" {
 
 #include <ctype.h>
 #include <sys/param.h>
+#include <sys/mount.h>
 #ifdef __MACH__
-#include <sys/fs.h>
+#include <sys/vfs.h>
 #endif /* __MACH__ */
 #include <sys/errno.h>
 #include <sys/stat.h>
@@ -80,9 +81,11 @@ extern "C" {
 #include <stdlib.h>
 #endif
 
-#ifdef	__linux__
+#ifdef __linux__
 #include <sys/vfs.h>
 #endif
+
+
 
 #include <lwp.h>
 #include <lock.h>
@@ -100,6 +103,10 @@ extern "C" {
 #include "vutil.h"
 
 struct DiskPartition *DiskPartitionList;
+
+#ifdef __MACH__
+extern "C" int statfs(char *, struct statfs *);
+#endif
 
 
 PRIVATE void VSetPartitionDiskUsage(register struct DiskPartition *dp);
@@ -142,13 +149,14 @@ struct DiskPartition *VGetPartition(char *name)
     return dp;		/* Return null if name wasn't found.*/
 }
 
+
 PRIVATE void VSetPartitionDiskUsage(register struct DiskPartition *dp)
 {
-#ifdef	__linux__
   struct statfs fsbuf;
   int rc;
-#endif
-#ifdef __MACH__
+  long reserved_blocks;
+
+#if 0
     /* Note:  we don't bother syncing because it's only an estimate, update
        is syncing every 30 seconds anyway, we only have to keep the disk
        approximately 10% from full--you just can't get the stuff in from
@@ -174,21 +182,14 @@ PRIVATE void VSetPartitionDiskUsage(register struct DiskPartition *dp)
     dp->free = availblks - used; /* May be negative, which is OK */
 #endif
 
-#ifdef	__linux__
- rc = statfs(dp->devName, &fsbuf);
- assert( rc == 0 );
- 
- dp->free = fsbuf.f_bavail;  /* available free blocsk */
- dp->totalUsable = fsbuf.f_blocks * 9 /10; 
- dp->minFree = 10;
-#endif
+    rc = statfs(dp->devName, &fsbuf);
+    assert( rc == 0 );
+    
+    reserved_blocks = fsbuf.f_bfree - fsbuf.f_bavail; /* reserved for s-user */
+    dp->free = fsbuf.f_bavail;  /* free blocks for non s-users */
+    dp->totalUsable = fsbuf.f_blocks - reserved_blocks; 
+    dp->minFree = 100 * reserved_blocks / fsbuf.f_blocks;
 
-#ifdef __BSD44__
-    /* Satya (8/5/96): skipped porting this routine since it is not
-    		used by Venus; needs to be ported for server; depends on sys/fs.h in Mach */
-    LogMsg(0, VolDebugLevel, stdout,  "PORTING ERROR: VSetPartitionDiskUsage() not yet ported");
-    assert(0); /* die horribly */
-#endif /* __MACH__ */
 
 }
 
