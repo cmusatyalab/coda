@@ -30,7 +30,7 @@
 # Mellon the rights to redistribute these changes without encumbrance.
 # */
 # 
-# static char *rcsid = "$Header: /coda/usr/satya/STM/coda-4.0.1/configs/RCS/Makeconf.i386_mach,v 4.3 1997/01/09 14:42:36 satya Exp satya $";
+# static char *rcsid = "$Header: Makeconf.i386_mach,v 4.4 97/01/28 16:10:38 satya Exp $";
 
 MACHINE_FLAGS =
 SHORTSYS      = mach
@@ -45,7 +45,7 @@ INODEFSDIR    = kernel-src/inodefs/mach
 LIBTRACE      = ../venus/libfaketrace.a
 LIBREADLINE   = /usr/new/lib/libreadline.a
 INCREADLINE   = -I/usr/new/include/readline
-machine_inodefs   = inodefs
+machine_inodefs   = mach
 #for rvm
 LIBTHREADS    = /usr/mach/lib/libthreads.a
 LIBMACH       = /usr/mach/lib/libmach.a
