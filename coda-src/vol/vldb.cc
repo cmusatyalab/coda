@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vol/vldb.cc,v 4.2 1997/02/26 16:03:56 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vol/vldb.cc,v 4.3 1998/01/10 18:39:43 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -104,8 +104,10 @@ PRIVATE int VLDB_size = 0;
 
 struct vldb *VLDBLookup(char *key);
 
-int VCheckVLDB() {
+int VCheckVLDB() 
+{
     struct vldbHeader header;
+
     LogMsg(19, VolDebugLevel, stdout, "Checking VLDB...");
     close(VLDB_fd);
     VLDB_fd = open(VLDB_PATH, O_RDONLY, 0);
@@ -127,10 +129,15 @@ int VCheckVLDB() {
 struct vldb *VLDBLookup(char *key)
 {
     private struct vldb VLDB_records[8];
+    int rc;
 
     if (VLDB_size == 0) {
 	LogMsg(0, VolDebugLevel, stdout, "VLDBLookup: VLDB_size unset. Calling VCheckVLDB()");
-	VCheckVLDB();
+	rc = VCheckVLDB();
+	if ( rc != 0 ) {
+		LogMsg(0, VolDebugLevel, stdout, "VLDBLookup: No or bad vldb.");
+		return 0;
+	}
     }
     int index = HashString(key, VLDB_size);
     LogMsg(9, VolDebugLevel, stdout, "VLDBLookup: index = %d, VLDB_size = %d, LOG_VLDBSIZE = %d",
