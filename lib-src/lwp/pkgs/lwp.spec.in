@@ -1,0 +1,62 @@
+Summary: LWP thread library
+Name: @PACKAGE@
+Version: @VERSION@
+Release: 1
+Source: ftp://ftp.coda.cs.cmu.edu/pub/coda/src/@PACKAGE@-@VERSION@.tar.gz
+Copyright: LGPL
+BuildRoot: /usr/src/redhat/BUILD/lwp-build
+Group: Development/Libraries
+%description
+The LWP userspace threads library. The LWP threads library is used by the Coda
+distributed filesystem, RVM (a persistent VM library), and RPC2/SFTP (remote
+procedure call library)
+
+%package dev
+Summary: LWP thread library development files
+Group: Development/Libraries
+%description dev
+Headers and static libraries for developing programs using the LWP userspace
+threads library. The LWP threads library is used by the Coda distributed
+filesystem, RVM (a persistent VM library), and RPC2/SFTP (a remote procedure
+call library)
+
+%changelog
+* Mon Oct 25 1999 Jan Harkes <jaharkes@cs.cmu.edu>
+- First stab at packaging the lwp library.
+	
+%prep
+%setup -n @PACKAGE@-@VERSION@
+
+%build
+./configure --prefix=/usr
+make
+
+%install
+rm -rf $RPM_BUILD_ROOT
+mkdir -p $RPM_BUILD_ROOT
+make prefix=$RPM_BUILD_ROOT/usr install
+chmod 755 $RPM_BUILD_ROOT/usr/lib/liblwp.so.1.0.0
+
+%clean
+rm -rf $RPM_BUILD_ROOT
+
+%post
+/sbin/ldconfig
+
+%postun
+/sbin/ldconfig
+
+%files
+/usr/lib/liblwp.so
+/usr/lib/liblwp.so.1
+/usr/lib/liblwp.so.1.0.0
+
+%files dev
+/usr/lib/liblwp.la
+/usr/lib/liblwp.a
+%dir /usr/include/lwp
+/usr/include/lwp/lock.h
+/usr/include/lwp/lwp.h
+/usr/include/lwp/preempt.h
+/usr/include/lwp/timer.h
+

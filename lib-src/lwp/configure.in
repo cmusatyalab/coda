@@ -1,0 +1,73 @@
+dnl Process this file with autoconf to produce a configure script
+
+dnl Initialization
+AC_INIT(src/lwp.private.h)
+
+dnl Cross compilation stuff
+case ${target} in
+    djgpp | win95 | dos )   target=i386-pc-msdos ;;
+    cygwin32 | winnt | nt ) target=i386-pc-cygwin32 ;;
+esac
+
+AC_CANONICAL_SYSTEM
+
+if test ${build} != ${target} ; then
+    case ${target} in
+	i386-pc-msdos )
+            dnl shared libraries don't work here
+            AM_DISABLE_SHARED
+	    CC="dos-gcc -bmmap"
+	    CXX="dos-gcc -bmmap"
+	    AR="dos-ar"
+	    RANLIB="true"
+	    AS="dos-as"
+	    NM="dos-nm"
+            dnl We have to override some things the configure script tends to
+            dnl get wrong
+	    ac_cv_func_mmap_fixed_mapped=yes
+	;;
+	i386-pc-cygwin32 )
+            dnl shared libraries don't work here
+            AM_DISABLE_SHARED
+            dnl -D__CYGWIN32__ should be defined but sometimes isn't (wasn't?)
+	    CC="gnuwin32gcc -D__CYGWIN32__"
+	    CXX="gnuwin32g++"
+	    AR="gnuwin32ar"
+	    RANLIB="gnuwin32ranlib"
+	    AS="gnuwin32as"
+	    NM="gnuwin32nm"
+            dnl -liberty is for insque(), remque()
+	    LDFLAGS="-L/usr/gnuwin32/lib -liberty"
+	;;
+    esac
+fi
+
+dnl Finalizing initialization
+AM_INIT_AUTOMAKE(lwp, 1.0)
+AM_CONFIG_HEADER(config.h)
+
+dnl Checks for programs.
+AC_PROG_CC
+AC_PROG_CPP
+AC_PROG_RANLIB
+AC_CHECK_PROG(AR, ar, ar)
+export AR
+AC_CHECK_PROG(AS, as, as)
+AM_PROG_INSTALL
+AC_PROG_MAKE_SET
+AM_PROG_LIBTOOL
+
+dnl Checks for libraries.
+dnl Checks for header files.
+AC_CHECK_HEADERS(search.h)
+
+dnl Checks for typedefs.
+dnl Checks for compiler characteristics.
+
+dnl Checks for library functions.
+AC_FUNC_MMAP
+
+dnl Checks for system services.
+dnl Generate output files
+AC_OUTPUT(Makefile lwp.spec src/Makefile)
+
