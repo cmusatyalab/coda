@@ -615,7 +615,6 @@ int LWP_CreateProcess(ep, stacksize, priority, parm, name, pid)
     PROCESS temp, temp2;
     char *stackptr;
     int pagesize;
-    char msg[80];
 
     lwpdebug(0, "Entered LWP_CreateProcess");
     /* Throw away all dead process control blocks */
@@ -1179,9 +1178,11 @@ static void Trace_Swapped_Stack(top, fp, depth, name)
      * ip = caller of savecontext 
      */
     while (depth--) {
-	fprintf(fp,"\tStack: %s Depth %d - 0x%x\n", name, depth, ip);
+	fprintf(fp,"\tStack: %s - 0x%x\n", name, ip);
+
         /* make sure we don't segfault while going to the next frame --JH */
         if (reg.ebp == 0) break;
+
 	if (depth) {
 	    /* LEAVE */
 	    esp = reg.ebp;
@@ -1215,12 +1216,12 @@ static void Dump_One_Process(pid, fp, dofree)
 	default:	fprintf(fp,"unknown");
 	}
     fprintf(fp, "\n");
-    fprintf(fp,"***LWP: Priority: %d \tInitial parameter: 0x%p\n",
+    fprintf(fp,"***LWP: Priority: %d \t\tInitial parameter: %p\n",
 	    pid->priority, pid->parm);
 
 #ifdef OLDLWP
     if (pid->stacksize != 0) {
-	fprintf(fp,"***LWP:  Stacksize: %d \tStack base address: 0x%p\n",
+	fprintf(fp,"***LWP: Stacksize: %d \tStack base address: %p\n",
 		pid->stacksize, pid->stack);
 	fprintf(fp,"***LWP: HWM stack usage: ");
 	fprintf(fp,"%d\n", Stack_Used(pid->stack,pid->stacksize));
@@ -1228,7 +1229,7 @@ static void Dump_One_Process(pid, fp, dofree)
 	    free (pid->stack);
 	    }
 	}
-    fprintf(fp,"***LWP: Current Stack Pointer: 0x%p\n", pid->context.topstack);
+    fprintf(fp,"***LWP: Current Stack Pointer: %p\n", pid->context.topstack);
 #endif OLDLWP
 
     /* Add others here as needed */
@@ -1250,6 +1251,8 @@ static void Dump_One_Process(pid, fp, dofree)
     }
     if (pid->wakevent>0)
 	fprintf(fp,"***LWP: Number of last wakeup event: %d\n", pid->wakevent);
+
+    fprintf(fp,"==========================================\n");
 }
 
 static void Dispatcher()		/* Lightweight process dispatcher */
