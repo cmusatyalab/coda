@@ -200,22 +200,5 @@ long WriteBackConnect(RPC2_Handle RPCid, RPC2_Integer SideEffectType,
     LOG(100, ("WriteBackConnect: host = %s, port = %d\n",
 	      inet_ntoa(thePeer.RemoteHost.Value.InetAddress), port));
 
-    /* we don't do this here because this isn't a callback connection.
-       we only need to keep track of one connection to know the server,
-       and we don't need the writeback one */
-#if 0
-
-    /* Get the server entry and install the new connid. */
-    /* It is NOT a fatal error if the srvent doesn't already exist, because the server may be */
-    /* "calling-back" as a result of a bind by a PREVIOUS Venus incarnation at this client! */
-    srvent *s = 0;
-    GetServer(&s, host);
-    LOG(10, ("WriteBackConnect: host = %s\n", s->name));
-    MarinerLog("WriteBack::NewConnection %s\n", s->name);
-    s->ServerUp(RPCid);
-    PutServer(&s);
-
-#endif
-
     return(0);
 }

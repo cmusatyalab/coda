@@ -153,7 +153,7 @@ void vproc::vget(struct venus_cnode *vpp, struct cfid *cfidp) {
 
 FreeLocks:
 	/* Update namectxt if applicable. */
-	if (u.u_error == 0 && u.u_nc)
+	if (u.u_error && u.u_nc)
 	    u.u_nc->CheckComponent(f);
 	FSDB->Put(&f);
 	int retry_call = 0;
@@ -225,7 +225,7 @@ void vproc::open(struct venus_cnode *cp, int flags) {
 
 	/* Do the operation. */
 	u.u_error = f->Open(writep, execp, truncp, cp, CRTORUID(u.u_cred));
-	if (u.u_error) goto FreeLocks;
+	//if (u.u_error) goto FreeLocks;
 
 FreeLocks:
 	FSDB->Put(&f);
@@ -345,9 +345,6 @@ FreeLocks:
 
     if (u.u_error == EINCONS) {
 	u.u_error = 0;
-	/* purging is not necessary here. Why would the kernel asking for the
-	 * attributes if it still considers them valid. */
-	/* k_Purge(&cp->c_fid, 1); */
 
 	/* Make a "fake" vattr block for the inconsistent object. */
 	va_init(vap);
@@ -366,6 +363,8 @@ FreeLocks:
 	vap->va_ctime.tv_nsec = 0;
 	vap->va_rdev = 1;
 	vap->va_bytes = vap->va_size;
+
+	cp->c_flags |= C_INCON;
     }
 }
 
@@ -554,7 +553,7 @@ FreeLocks:
     }
 
     if (u.u_error == EINCONS) {
-	u.u_error = ENOENT;
+	u.u_error = (mode == R_OK || mode == F_OK) ? 0 : ENOENT;
 	k_Purge(&cp->c_fid, 1);
     }
 }
@@ -618,6 +617,7 @@ FreeLocks:
 	if (!retry_call) break;
     }
 
+    /* parent directory is in conflict, return ENOENT and zap the parent */
     if (u.u_error == EINCONS) {
 	u.u_error = ENOENT;
 	k_Purge(&dcp->c_fid, 1);
@@ -1328,7 +1328,7 @@ void vproc::readlink(struct venus_cnode *cp, struct coda_string *string)
 	if (!f->IsSymLink())
 	    { u.u_error = EINVAL; goto FreeLocks; }
 
-	/*Verify that we have read permission for it. */
+	/* Verify that we have read permission for it. */
 /*
 	 u.u_error = f->Access((long)PRSFS_LOOKUP, 0, CRTORUID(u.u_cred));
 	 if (u.u_error)

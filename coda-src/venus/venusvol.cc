@@ -635,7 +635,7 @@ void vdb::DownEvent(struct in_addr *host)
     volrep *v;
     while ((v = next()))
         if (v->IsHostedBy(host))
-            v->DownMember();
+            v->DownMember(host);
 
     /* provoke state transitions now */
     VprocSignal(&voldaemon_sync);
@@ -1286,9 +1286,9 @@ void volent::TakeTransition()
     Recov_SetBound(DMFP);
 }
 
-void volrep::DownMember(void)
+void volrep::DownMember(struct in_addr *host)
 {
-    LOG(10, ("volrep::DownMember: vid = %08x\n", vid));
+    LOG(10, ("volrep::DownMember: vid = %08x, host = %s\n", vid, inet_ntoa(*host)));
 
     flags.transition_pending = 1;
     flags.available = 0;
@@ -1302,18 +1302,20 @@ void volrep::DownMember(void)
         volent *v = VDB->Find(ReplicatedVol());
         if (v) {
             CODA_ASSERT(v->IsReplicated());
-            ((repvol *)v)->DownMember();
+            ((repvol *)v)->DownMember(host);
         }
     }
 }
 
-void repvol::DownMember(void)
+void repvol::DownMember(struct in_addr *host)
 {
     /* ignore events from VSG servers when a staging server is used */
     if (ro_replica && !ro_replica->TransitionPending())
 	return;
 
     LOG(10, ("repvol::DownMember: vid = %08x\n", vid));
+
+    vsg->KillMgrpMember(host);
 
     ResetStats();
 
@@ -1888,20 +1890,6 @@ int repvol::GetMgrp(mgrpent **m, vuid_t vuid, RPC2_CountedBS *PiggyBS)
     }
 
     return code;
-}
-
-void volrep::KillMgrpMember(struct in_addr *member)
-{
-    volent *v = VDB->Find(ReplicatedVol());
-    if (v) {
-        CODA_ASSERT(v->IsReplicated());
-        ((repvol *)v)->KillMgrpMember(member);
-    }
-}
-
-void repvol::KillMgrpMember(struct in_addr *member)
-{
-    vsg->KillMgrpMember(member);
 }
 
 /* returns minimum bandwidth in Bytes/sec, or INIT_BW if none obtainable */

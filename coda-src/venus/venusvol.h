@@ -714,10 +714,9 @@ class volrep : public volent {
     int IsReadWriteReplica() { return (ReplicatedVol() != 0); }
 
     int GetConn(connent **, vuid_t);
-    void KillMgrpMember(struct in_addr *);
     void GetBandwidth(unsigned long *bw);
 
-    void DownMember();
+    void DownMember(struct in_addr *host);
     void UpMember();
     void WeakMember();
     void StrongMember();
@@ -793,10 +792,9 @@ class repvol : public volent {
 #endif
 
     int GetMgrp(mgrpent **, vuid_t, RPC2_CountedBS * =0);
-    void KillMgrpMember(struct in_addr *);
     void GetBandwidth(unsigned long *bw);
 
-    void DownMember();
+    void DownMember(struct in_addr *host);
     void UpMember();
     void WeakMember();
     void StrongMember();

@@ -393,8 +393,8 @@ int srvent::GetConn(connent **cpp, vuid_t vuid, int Force)
     c = new connent(&host, vuid, ConnHandle, auth);
     if (!c) return(ENOMEM);
 
-    connent::conntab->insert(&c->tblhandle);
     c->inuse = 1;
+    connent::conntab->insert(&c->tblhandle);
     *cpp = c;
     return(0);
 }
@@ -826,7 +826,7 @@ void DoProbes(int HowMany, struct in_addr *Hosts)
 	if (Connections[i] == 0) { Handles[i] = 0; continue; }
 
 	AnyHandlesValid = 1;
-	Handles[i] = (Connections[i])->connid;
+	Handles[i] = Connections[i]->connid;
     }
 
     if (AnyHandlesValid)
@@ -1155,14 +1155,11 @@ int srvent::Connect(RPC2_Handle *cidp, int *authp, vuid_t vuid, int Force)
 */
 		code = ETIMEDOUT; break;
 	}
-    if (code == ETIMEDOUT) {
+    if (!ServerIsDown() && code == ETIMEDOUT) {
 	/* Not already considered down. */
-	if (!ServerIsDown()) {
-	    MarinerLog("connection::unreachable %s\n", name);
-	    Reset();
-	    VDB->DownEvent(&host);
-  	    adv_mon.ServerInaccessible(name);
-	}
+	MarinerLog("connection::unreachable %s\n", name);
+	Reset();
+	adv_mon.ServerInaccessible(name);
     }
 
     if (code == ETIMEDOUT && VprocInterrupted()) return(EINTR);
@@ -1212,20 +1209,14 @@ void srvent::Reset()
 	}
     }
 
-    /* Kill all indirect connections to this server. */
-    {
-	volrep_iterator next;
-	volrep *v;
-	while ((v = next())) {
-            if (v->IsHostedBy(&host))
-                v->KillMgrpMember(&host);
-        }
-    }
-
     /* Unbind callback connection for this server. */
     int code = (int) RPC2_Unbind(connid);
     LOG(1, ("srvent::Reset: RPC2_Unbind -> %s\n", RPC2_ErrorMsg(code)));
     connid = 0;
+
+    /* Send a downevent to volumes associated with this server */
+    /* Also kills all indirect connections to the server. */
+    VDB->DownEvent(&host);
 }
 
 
@@ -1261,17 +1252,12 @@ void srvent::ServerError(int *codep)
 	    CHOKE("srvent::ServerError: illegal RPC code (%d)", *codep);
     }
 
-    if (connid == 0) {
-	/* Already considered down. */
-	;
-    }
-    else {
+    if (!ServerIsDown()) {
 	/* Reset if TIMED'out or NAK'ed. */
 	switch (*codep) {
 	    case ETIMEDOUT:
 	        MarinerLog("connection::unreachable %s\n", name);
 		Reset();
-		VDB->DownEvent(&host);
 		adv_mon.ServerInaccessible(name);
 		break;
 
@@ -1279,7 +1265,6 @@ void srvent::ServerError(int *codep)
 		/* Must have missed a down event! */
 		eprint("%s nak'ed", name);
 		Reset();
-		VDB->DownEvent(&host);
 		connid = -2;
 		VDB->UpEvent(&host);
 		break;
@@ -1318,7 +1303,6 @@ void srvent::ServerUp(RPC2_Handle newconnid)
     default:
 	/* Already considered up.  Must have missed a down event! */
 	Reset();
-	VDB->DownEvent(&host);
 	connid = newconnid;
 	VDB->UpEvent(&host);
     }
