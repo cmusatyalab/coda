@@ -94,24 +94,17 @@ static int GetInputOutput(OUT FILE **infile, OUT FILE **outfile);
 int main(int argc, char *argv[])
     {
     int DoMore, MajorOp, i;
-    char pdbf[1000], pcff[1000];
 
-    pdbf[0] = 0;
-    pcff[0] = 0;
     for (i = 1; i < argc; i++)
 	{
 	if (strcmp(argv[i], "-x") == 0 && i < argc -1)
 	    {AL_DebugLevel = atoi(argv[++i]); continue;}
-	if (strcmp(argv[i], "-p") == 0 && i < argc - 1)
-	    {strcpy(pdbf, argv[++i]); continue;}
-	if (strcmp(argv[i], "-f") == 0 && i < argc - 1)
-	    {strcpy(pcff, argv[++i]);  continue;}
-	printf("Usage: altest  [-x debuglevel] [-p pdbfile] [-f pcffile]\n");
+	printf("Usage: altest  [-x debuglevel]\n");
 	exit(-1);
 	}    
 	    
     i = 0;
-    if (AL_Initialize(AL_VERSION, (pdbf[0] == 0 ? NULL : pdbf), (pcff[0] == 0 ? NULL : pcff)) < 0)
+    if (AL_Initialize(AL_VERSION) < 0)
 	{printf("Initialize failed\n."); exit(-1);}
     else printf("AL_Initialize-->%d\n", ++i);
     

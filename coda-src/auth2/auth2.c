@@ -106,8 +106,7 @@ int AuthTime = 0;	/* last modified time for PDB		*/
 static char *TKFile = "/vice/db/auth2.tk";	/* name of token key file */
 static int AUTime = 0;			/* used to tell if binaries have changed */
 
-#define PDB "/vice/db/coda.pdb"
-#define PCF "/vice/db/name.pdb"
+#define CODADB "/vice/db/coda.db"
 
 static int CheckOnly = 0;	/* only allow password checking at this server */
 static int DoRedirectLog = 1;	/* set to zero by -r switch on command line */
@@ -156,8 +155,8 @@ int main(int argc, char **argv)
 		continue;
 	}
 
-	if(stat(PDB, &buff)) {
-	    printf("stat for vice.pdb failed\n");
+	if(stat(CODADB, &buff)) {
+	    printf("stat for coda.db failed\n");
 	    fflush(stdout);
 	} else {
 	    if(AuthTime != buff.st_mtime)
@@ -350,13 +349,12 @@ static void InitAl()
     RPC2_Integer rc;
     struct stat buff;
 
-    CODA_ASSERT(stat(PDB, &buff) == 0);
-    AuthTime = buff.st_mtime;
-/*    CODA_ASSERT(AL_Initialize(AL_VERSION, PDB, PCF) == 0); */
-    if ((rc = AL_Initialize(AL_VERSION, PDB, PCF)) != 0) {
+    if ((rc = AL_Initialize(AL_VERSION)) != 0) {
 	LogMsg(-1, 0, stdout, "AL_Initialize failed with %d", rc);
 	exit(-1);
     }
+    CODA_ASSERT(stat(CODADB, &buff) == 0);
+    AuthTime = buff.st_mtime;
 }
 
 
@@ -365,6 +363,8 @@ static void CheckTokenKey()
     struct stat statbuf;
     FILE *tf;
     char mykey[RPC2_KEYSIZE+1];
+
+    memset(mykey, 0, RPC2_KEYSIZE+1);
 
     if(stat(TKFile, &statbuf))
 	{

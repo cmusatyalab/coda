@@ -212,8 +212,7 @@ int prottrunc = FALSE;
 
 /* PDB stuff. */
 static int pdbtime = 0;
-#define PDB "/vice/db/vice.pdb"
-#define PCF "/vice/db/vice.pcf"
+#define CODADB "/vice/db/vice.db"
 
 /* Token stuff. */
 static int keytime = 0;
@@ -483,9 +482,9 @@ main(int argc, char *argv[])
     nice(-5);
     DIR_Init(DIR_DATA_IN_VM);
 
-    stat(PDB, &buff);
+    stat(CODADB, &buff);
     pdbtime = (int)buff.st_mtime;
-    CODA_ASSERT(AL_Initialize(AL_VERSION, PDB, PCF) == 0);
+    CODA_ASSERT(AL_Initialize(AL_VERSION) == 0);
 
     CODA_ASSERT(AL_NameToId("System:Administrators", &SystemId) == 0);
 
@@ -851,11 +850,11 @@ void ViceUpdateDB()
 {
     struct stat vbuff;
 
-    stat(PDB, &vbuff);
+    stat(CODADB, &vbuff);
 
     if(pdbtime != vbuff.st_mtime) {
 	pdbtime = (int)vbuff.st_mtime;
-	CODA_ASSERT(AL_Initialize(AL_VERSION, PDB, PCF) == 0);
+	CODA_ASSERT(AL_Initialize(AL_VERSION) == 0);
     }
     stat(KEY1, &vbuff);
     if(keytime != vbuff.st_mtime) {

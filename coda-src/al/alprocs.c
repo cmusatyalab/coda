@@ -403,17 +403,13 @@ int AL_CheckRights(IN AL_AccessList *Alist, IN PRS_InternalCPS *CPS,
 
 
 /* Initializes the access list package. Version should always be AL_VERSION.
-   pdbFile is a string defining the protection database file; set to NULL for
-   default.  pcfFile is a string defining the protection configuration file;
-   set to NULL for default.
    
    This routine may be called many times -- it will perform reinitialization
    each time.  Synchronization code here guarantees that the .pdb and .pcf
    files are mutually consistent, provided all updaters follow the locking
    discipline.  */
-int AL_Initialize(IN char *Version, IN char *pdbFile, IN char *pcfFile){
-	LogMsg(1,AL_DebugLevel,stdout,"AL_Initialize(%s, %s, %s)",
-	       Version,pdbFile,pcfFile);
+int AL_Initialize(IN char *Version) {
+	LogMsg(1,AL_DebugLevel,stdout,"AL_Initialize(%s)", Version);
 	LogMsg(4,AL_DebugLevel,stdout,
 	       "Library version: '%s'\tHeader version: '%s'\t",
 	       AL_VERSION,Version);

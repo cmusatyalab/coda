@@ -39,7 +39,7 @@ supported by Transarc Corporation, Pittsburgh, PA.
 #ifndef _AL_
 #define _AL_
 
-#define AL_VERSION "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/libal/al.h,v 4.2 1998/04/14 20:51:46 braam Exp $"
+#define AL_VERSION "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/al/al.h,v 1.2 1999/02/11 21:37:32 smarc Exp $"
 
 typedef struct {
         int Id;         /*internally-used ID of user or group*/
@@ -97,7 +97,7 @@ extern int AL_Externalize(AL_AccessList *Alist, AL_ExternalAccessList *Elist);
 extern int AL_Internalize(AL_ExternalAccessList Elist, AL_AccessList **Alist);
 extern int AL_CheckRights(AL_AccessList *Alist, PRS_InternalCPS *CPS,
 			  int *WhichRights);
-extern int AL_Initialize(char *Version, char *pdbFile, char *pcfFile);
+extern int AL_Initialize(char *Version);
 extern int AL_NameToId(char *Name,  int *Id);
 extern int AL_IdToName(int Id,  char *Name);
 extern int AL_GetInternalCPS(int Id, PRS_InternalCPS **ICPS);
