@@ -195,6 +195,10 @@ bin/spy
 bin/xaskuser
 bin/xfrepair
 man/man1/cfs.1
+man/man1/cmon.1
+man/man1/coda_replay.1
+man/man1/hoard.1
+man/man1/spy.1
 etc/coda/realms
 etc/coda/venus.conf.ex
 etc/coda/sidekick.intr.ex

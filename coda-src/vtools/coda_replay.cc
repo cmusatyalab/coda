@@ -43,7 +43,7 @@ int utimes(const char *, const struct timeval *);
 }
 #endif
 
-#include "replay.h"
+#include "coda_replay.h"
 
 /* Key letters are: */
 /*     r  :  replay non-tar commands and pass others to tar */

@@ -178,7 +178,7 @@ endif
 
 c_man_install: $(CMANPAGES)
 ifdef CMANPAGES
-	@for page in $(CMANPAGES) ; do \
+	for page in $(CMANPAGES) ; do \
 	    sect=`echo $$page | cut -d. -f2` ; \
 	    $(TOPDIR)/tools/our-install 644 $(MANDIR)/man$$sect $$page ; \
 	done
@@ -186,7 +186,7 @@ endif
 
 s_man_install: $(SMANPAGES)
 ifdef SMANPAGES
-	@for page in $(SMANPAGES) ; do \
+	for page in $(SMANPAGES) ; do \
 	    sect=`echo $$page | cut -d. -f2` ; \
 	    $(TOPDIR)/tools/our-install 644 $(MANDIR)/man$$sect $$page ; \
 	done

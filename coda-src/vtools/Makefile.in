@@ -35,7 +35,7 @@ CBINS := $(EXECUTABLES)
 CSBINS = codaconfedit
 SSBINS = codaconfedit
 EXECUTABLES += codaconfedit
-CMANPAGES := cfs.1 cmon.1 hoard.1 spy.1
+CMANPAGES := cfs.1 cmon.1 coda_replay.1 hoard.1 spy.1
 
 CMON_LIBS   = $(LIBVICEDEP) $(LIBBASE)
 CFS_LIBS    = $(LIBKERNDEP) $(LIBUTIL) $(LIBBASE)
@@ -64,8 +64,8 @@ hoard: hoard.o $(HOARD_LIBS)
 spy: spy.o $(LIBBASE)
 	$(CXX) $(LDFLAGS) spy.o $(LIBBASE) $(LIBCRYPTO) $(LIBS) -o spy
 
-coda_replay: replay.o
-	$(CXX) $(LDFLAGS) replay.o $(LIBS) -o coda_replay
+coda_replay: coda_replay.o
+	$(CXX) $(LDFLAGS) coda_replay.o $(LIBS) -o coda_replay
 
 # up is broken on the pmax because a.out.h seems incomplete
 # fix if up is really needed (Satya 3/23/92)

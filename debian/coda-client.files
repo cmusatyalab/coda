@@ -25,3 +25,7 @@ usr/sbin/venus
 usr/sbin/volmunge
 usr/sbin/vutil
 usr/share/man/man1/cfs.1
+usr/share/man/man1/cmon.1
+usr/share/man/man1/coda_replay.1
+usr/share/man/man1/hoard.1
+usr/share/man/man1/spy.1

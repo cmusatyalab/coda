@@ -182,6 +182,10 @@ exit 0
 /usr/bin/xaskuser
 /usr/bin/xfrepair
 /usr/share/man/man1/cfs.1
+/usr/share/man/man1/cmon.1
+/usr/share/man/man1/coda_replay.1
+/usr/share/man/man1/hoard.1
+/usr/share/man/man1/spy.1
 
 %files server	
 /etc/coda/server.conf.ex
