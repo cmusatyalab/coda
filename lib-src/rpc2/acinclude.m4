@@ -128,33 +128,3 @@ AC_DEFUN(CODA_CHECK_BCOPY,
     AC_DEFINE(HAVE_BCOPY_IN_STRINGS_H)
   fi)
 
-dnl ---------------------------------------------
-dnl Check whether we have inet_aton
-
-AC_DEFUN(CODA_CHECK_INET_ATON, 
-  AC_CACHE_CHECK(for inet_aton,
-    fu_cv_lib_c_inet_aton,  
-    [AC_TRY_LINK([#include <stdlib.h>
-#include <arpa/inet.h>], 
-      [ struct in_addr res; (void) inet_aton("255.255.255.255", &res);],
-      fu_cv_lib_c_inet_aton=yes,
-      fu_cv_lib_c_inet_aton=no)])
-  if test $fu_cv_lib_c_inet_aton = yes; then
-    AC_DEFINE(HAVE_INET_ATON)
-  fi)
-
-dnl ---------------------------------------------
-dnl Check whether we have inet_ntoa
-
-AC_DEFUN(CODA_CHECK_INET_NTOA, 
-  AC_CACHE_CHECK(for inet_ntoa,
-    fu_cv_lib_c_inet_ntoa,  
-    [AC_TRY_LINK([#include <stdlib.h>
-#include <arpa/inet.h>], 
-      [ struct in_addr res; (void) inet_ntoa(res);],
-      fu_cv_lib_c_inet_ntoa=yes,
-      fu_cv_lib_c_inet_ntoa=no)])
-  if test $fu_cv_lib_c_inet_ntoa = yes; then
-    AC_DEFINE(HAVE_INET_NTOA)
-  fi)
-
