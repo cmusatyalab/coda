@@ -30,16 +30,34 @@ extern "C" {
 
 #include <sys/types.h>
 #include <sys/socket.h>
-#include <netdb.h>
+//#include <netdb.h>
+
+struct coda_addrinfo {
+    int ai_flags;
+    int ai_family;
+    int ai_socktype;
+    int ai_protocol;
+    size_t ai_addrlen;
+    struct sockaddr *ai_addr;
+    char *ai_canonname;
+    struct coda_addrinfo *ai_next;
+    /* some additional SRV RR info */
+    int ai_priority;
+    int ai_weight;
+    int ai_port;
+};
 
 int coda_getaddrinfo(const char *node, const char *service,
-		     const struct addrinfo *hints,
-		     struct addrinfo **res);
-void coda_freeaddrinfo(struct addrinfo *res);
+		     const struct coda_addrinfo *hints,
+		     struct coda_addrinfo **res);
+
+void coda_freeaddrinfo(struct coda_addrinfo *res);
+
+void coda_reorder_addrs(struct coda_addrinfo **res);
 
 #ifdef __cplusplus
 }
 #endif
 
-
 #endif /* _CODA_GETADDRINFO_H_ */
+

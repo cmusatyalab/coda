@@ -28,6 +28,7 @@ Coda are listed in the file CREDITS.
 #include <stdio.h>
 #include <string.h>
 #include <resolv.h>
+#include <netdb.h>
 
 #include "coda_getaddrinfo.h"
 
@@ -36,7 +37,7 @@ Coda are listed in the file CREDITS.
  * lookup. Having hints will help, otherwise we have to fallback on trying
  * getservbyname for the various protocols. */
 static char *get_proto_from_hints(const char *service,
-				  const struct addrinfo *hints)
+				  const struct coda_addrinfo *hints)
 {
     struct protoent *pe;
 
@@ -87,14 +88,6 @@ static char *srvdomainname(const char *realm, const char *service,
 }
 
 
-struct srv {
-    char name[MAXHOSTNAMELEN];
-    int  port;
-    int  priority;
-    int  weight;
-    struct srv *next;
-};
-
 static int DN_HOST(char *msg, int mlen, char **ptr, char *dest)
 {
     int len = dn_expand(msg, msg + mlen, *ptr, dest, MAXHOSTNAMELEN);
@@ -121,137 +114,9 @@ static int DN_INT(char *msg, int mlen, char **ptr, int *dest)
     return 0;
 }
 
-static int parse_res_reply(char *answer, int alen, const struct summary *sum,
-			   struct srv **srvs)
-{
-    char *p = answer, name[MAXHOSTNAMELEN];
-    int dummy;
-
-    /* arghhhhh, I don't like digging through libresolv output */
-    p += NS_HFIXEDSZ; /* what is in the header? probably nothing interesting */
-
-    /* skip original query + type + class */
-    if (DN_HOST(answer, alen, &p, name) ||
-	DN_SHORT(answer, alen, &p, &dummy) ||
-        DN_SHORT(answer, alen, &p, &dummy))
-	return EAI_AGAIN; /* corrupted packet, retryable? */
-
-    while (p < answer + alen) {
-	int type, size;
-	struct srv *new;
-
-	if (DN_HOST(answer, alen, &p, name) ||
-	    DN_SHORT(answer, alen, &p, &type) ||
-	    DN_SHORT(answer, alen, &p, &dummy) || // class
-	    DN_INT(answer, alen, &p, &dummy) ||   // ttl
-	    DN_SHORT(answer, alen, &p, &size))
-	{
-	    break; /* corrupted packet? */
-	}
-
-	if (type != ns_t_srv) {
-	    p += size; 
-	    continue;
-	}
-
-	new = malloc(sizeof(*new));
-	if (!new) {
-	    p += size;
-	    continue;
-	}
-
-	if (DN_SHORT(answer, alen, &p, &new->priority) ||
-	    DN_SHORT(answer, alen, &p, &new->weight) ||
-	    DN_SHORT(answer, alen, &p, &new->port) ||
-	    DN_HOST(answer, alen, &p, new->name))
-	{
-	    free(new);
-	    break; /* corrupted packet? */
-	}
-	/* easier to work with */
-	new->weight++;
-
-	//fprintf(stderr, "got srv record for %s:%d\n", new->name, new->port);
-	if (new->name[0] == '.' && new->name[1] == '\0') {
-	    free(new);
-	    continue;
-	}
-
-	new->next = *srvs;
-	*srvs = new;
-    }
-    return *srvs ? 0 : EAI_AGAIN;
-}
-
-static int srv_compare(const void *A, const void *B)
-{
-    struct srv *a = (struct srv *)A, *b = (struct srv *)B; 
-
-    if (a->priority < b->priority) return -1;
-    if (a->priority > b->priority) return 1;
-
-    if (a->weight < b->weight) return -1;
-    if (a->weight > b->weight) return 1;
-
-    return 0;
-}
-
-static void reorder_srvs(struct srv **srvs)
-{
-    struct srv *p, **srvlist;
-    int i, len = 0, total_weight = 0;
-
-    /* sort by priority, lowest first */
-    /* how many entries do we have */
-    for (p = *srvs ; p; p = p->next) len++;
-
-    /* make an array and sort it */
-    srvlist = malloc(len * sizeof(*srvlist));
-    p = *srvs;
-    for (i = 0; i < len; i++) {
-	srvlist[i] = p;
-	p = p->next;
-    }
-    qsort(srvlist, len, sizeof(*srvlist), srv_compare);
-
-    /* pull everything back out ordered by weight */
-    *srvs = NULL;
-    while(1) {
-	int priority = -1;
-	for (i = 0; i < len; i++) {
-	    if (!srvlist[i]) continue;
-	    if (priority == -1)
-		priority = srvlist[i]->priority;
-	    if (srvlist[i]->priority != priority)
-		break;
-	    total_weight += srvlist[i]->weight;
-	}
-	/* done? */
-	if (priority == -1)
-	    break;
-
-	while (total_weight > 0) {
-	    int current = rand() % total_weight;
-	    for (i = 0; i < len; i++) {
-		if (!srvlist[i]) continue;
-		current -= srvlist[i]->weight;
-		if (current <= 0) {
-		    total_weight -= srvlist[i]->weight;
-
-		    srvlist[i]->next = *srvs;
-		    *srvs = srvlist[i];
-		    srvlist[i] = NULL;
-		}
-	    }
-	}
-    }
-    free(srvlist);
-}
-
 static int resolve_host(const char *name, int port, const struct summary *sum,
-			struct addrinfo **res)
+			int priority, int weight, struct coda_addrinfo **res)
 {
-    struct addrinfo **next;
     struct hostent *he;
     int i, resolved = 0;
 
@@ -283,22 +148,26 @@ static int resolve_host(const char *name, int port, const struct summary *sum,
     }
 #endif
 
-    next = res;
-    while(*next) next = &(*next)->ai_next;
+    /* we want to append, so skip to the tail */
+    while(*res) res = &(*res)->ai_next;
+
+    /* count number of distinct ip's for this server and adjust weight */
+    for (i = 0; he->h_addr_list[i]; i++) /**/;
+    if (i) weight /= i;
 
     for (i = 0; he->h_addr_list[i]; i++) {
-	struct addrinfo *ai;
+	struct coda_addrinfo *ai;
 	struct sockaddr_in *sin;
 
 	ai = malloc(sizeof(*ai));
 	if (!ai) break;
 	memset(ai, 0, sizeof(*ai));
 
-	ai->ai_family    = sum->family;
-	ai->ai_socktype  = sum->socktype;
-	ai->ai_protocol  = sum->protocol;
-	if (sum->flags & AI_CANONNAME)
-	    ai->ai_canonname = strdup(he->h_name);
+	ai->ai_family = sum->family;
+	ai->ai_socktype = sum->socktype;
+	ai->ai_protocol = sum->protocol;
+	ai->ai_priority = priority;
+	ai->ai_weight = weight;
 
 	sin = malloc(sizeof(*sin));
 	if (!sin) {
@@ -311,13 +180,17 @@ static int resolve_host(const char *name, int port, const struct summary *sum,
 	sin->sin_port = htons(port);
 	sin->sin_addr = *(struct in_addr *)he->h_addr_list[i];
 
-	ai->ai_addrlen   = sizeof(*sin);
-	ai->ai_addr      = (struct sockaddr *)sin;
+	ai->ai_addrlen = sizeof(*sin);
+	ai->ai_addr = (struct sockaddr *)sin;
 
-	*next = ai;
-	next = &ai->ai_next;
-	resolved++;
 	//fprintf(stderr, "got server %s:%d\n", inet_ntoa(sin->sin_addr), ntohs(sin->sin_port));
+
+	if (sum->flags & AI_CANONNAME)
+	    ai->ai_canonname = strdup(he->h_name);
+
+	*res = ai;
+	res = &ai->ai_next;
+	resolved++;
     }
 
 #ifdef HAVE_GETIPNODEBYNAME
@@ -327,13 +200,67 @@ static int resolve_host(const char *name, int port, const struct summary *sum,
     return resolved ? 0 : (i ? EAI_MEMORY : EAI_NODATA);
 }
 
+static int parse_res_reply(char *answer, int alen, const struct summary *sum,
+			   struct coda_addrinfo **res)
+{
+    char *p = answer, name[MAXHOSTNAMELEN];
+    int priority, weight, port, dummy;
+    int err = EAI_AGAIN, tmperr;
+
+    /* arghhhhh, I don't like digging through libresolv output */
+    p += NS_HFIXEDSZ; /* what is in the header? probably nothing interesting */
+
+    /* skip original query + type + class */
+    if (DN_HOST(answer, alen, &p, name) ||
+	DN_SHORT(answer, alen, &p, &dummy) ||
+        DN_SHORT(answer, alen, &p, &dummy))
+	return err; /* corrupted packet, retryable? */
+
+    while (p < answer + alen)
+    {
+	int type, size;
+
+	if (DN_HOST(answer, alen, &p, name) ||
+	    DN_SHORT(answer, alen, &p, &type) ||
+	    DN_SHORT(answer, alen, &p, &dummy) || // class
+	    DN_INT(answer, alen, &p, &dummy) || // ttl
+	    DN_SHORT(answer, alen, &p, &size))
+	{
+	    break; /* corrupted packet? */
+	}
+
+	if (type != ns_t_srv) {
+	    p += size; 
+	    continue;
+	}
+
+	if (DN_SHORT(answer, alen, &p, &priority) ||
+	    DN_SHORT(answer, alen, &p, &weight) ||
+	    DN_SHORT(answer, alen, &p, &port) ||
+	    DN_HOST(answer, alen, &p, name))
+	{
+	    break; /* corrupted packet? */
+	}
+
+	if (name[0] == '.' && name[1] == '\0')
+	{
+	    continue;
+	}
+
+	//fprintf(stderr, "got srv record for %s:%d\n", name, port);
+
+	tmperr = resolve_host(name, port, sum, priority, weight, res);
+	if (err == EAI_AGAIN)
+	    err = tmperr;
+    }
+    return err;
+}
 
 static int do_srv_lookup(const char *realm, const char *service,
-			 const struct summary *sum, struct addrinfo **res)
+			 const struct summary *sum, struct coda_addrinfo **res)
 {
-    struct srv *srvs = NULL;
     char answer[1024], *srvdomain;
-    int err, len, resolved = 0;
+    int len;
     
     srvdomain = srvdomainname(realm, service, sum);
     if (!srvdomain)
@@ -346,34 +273,14 @@ static int do_srv_lookup(const char *realm, const char *service,
     if (len == -1)
 	return EAI_FAIL;
 
-    err = parse_res_reply(answer, len, sum, &srvs);
-    if (err)
-	return err;
-
-    reorder_srvs(&srvs);
-
-    /* turn all srvs into resolved addrinfo structs */
-    err = 0;
-    while (srvs) {
-	struct srv *this = srvs;
-	int ret;
-
-	srvs = srvs->next;
-
-	ret = resolve_host(this->name, this->port, sum, res);
-	if (!err) err = ret;
-	else resolved++;
-
-	free(this);
-    }
-
-    return resolved ? 0 : err;
+    return parse_res_reply(answer, len, sum, res);
 }
 
 int coda_getaddrinfo(const char *node, const char *service,
-		     const struct addrinfo *hints,
-		     struct addrinfo **res)
+		     const struct coda_addrinfo *hints,
+		     struct coda_addrinfo **res)
 {
+    struct coda_addrinfo *srvs = NULL;
     struct summary sum = { PF_UNSPEC, 0, 0, 0 };
     struct in_addr addr;
     int err;
@@ -415,7 +322,7 @@ int coda_getaddrinfo(const char *node, const char *service,
 
     if (node && !inet_aton(node, &addr) && service)
 	/* try to find SRV records */
-	err = do_srv_lookup(node, service, &sum, res);
+	err = do_srv_lookup(node, service, &sum, &srvs);
     else
 	err = EAI_NONAME;
 
@@ -425,16 +332,22 @@ int coda_getaddrinfo(const char *node, const char *service,
 	struct servent *se = getservbyname(service, proto);
 	if (!se) return EAI_SERVICE;
 
-	err = resolve_host(node, se->s_port, &sum, res);
+	err = resolve_host(node, se->s_port, &sum, 0, 0, &srvs);
     }
+
+    coda_reorder_addrs(&srvs);
+
+    /* append new addresses to the end */
+    while (*res) res = &(*res)->ai_next;
+    *res = srvs;
 
     return err;
 }
 
-void coda_freeaddrinfo(struct addrinfo *res)
+void coda_freeaddrinfo(struct coda_addrinfo *res)
 {
     while (res) {
-	struct addrinfo *ai = res;
+	struct coda_addrinfo *ai = res;
 	res = res->ai_next;
 
 	if (ai->ai_addr)      free(ai->ai_addr);
@@ -443,14 +356,77 @@ void coda_freeaddrinfo(struct addrinfo *res)
     }
 }
 
+void coda_reorder_addrs(struct coda_addrinfo **srvs)
+{
+    struct coda_addrinfo **tmp, *res, **tail;
+
+    /* sort by priority, lowest first */
+start:
+    /* very simple sort, should be efficient for already sorted list */
+    for (tmp = srvs; *tmp && (*tmp)->ai_next; tmp = &(*tmp)->ai_next) {
+	struct coda_addrinfo *next = (*tmp)->ai_next;
+
+	if ((*tmp)->ai_priority < next->ai_priority)
+	    continue;
+
+	/* move 0-weight items to the beginning of their priority */
+	if ((*tmp)->ai_priority == next->ai_priority &&
+	    ((*tmp)->ai_weight == 0 || next->ai_weight != 0))
+	    continue;
+
+	/* swap current and next */
+	(*tmp)->ai_next = next->ai_next;
+	next->ai_next = *tmp;
+	*tmp = next;
+
+	/* and start again from the beginning */
+	goto start;
+    }
+
+    /* then order within each priority by weight */
+    res = NULL; tail = &res;
+    while(*srvs)
+    {
+	int total_weight = 0;
+
+	/* calculate the sum of all weights of the lowest priority */
+	for (tmp = srvs; *tmp; tmp = &(*tmp)->ai_next) {
+	    if ((*tmp)->ai_priority != (*srvs)->ai_priority)
+		break;
+	    total_weight += (*tmp)->ai_weight + 1; 
+	}
+
+	while (total_weight > 0)
+	{
+	    int selector = (rand() % total_weight) + 1;
+
+	    for (tmp = srvs; *tmp; tmp = &(*tmp)->ai_next) {
+		selector -= (*tmp)->ai_weight + 1;
+		if (selector <= 0)
+		    break;
+	    }
+
+	    /* selected an entry, pull it off the list and append it to a
+	     * temporary list */
+	    total_weight -= (*tmp)->ai_weight + 1;
+
+	    *tail = *tmp;
+	    *tmp = (*tail)->ai_next;
+	    tail = &(*tail)->ai_next;
+	    *tail = NULL;
+	}
+    }
+    *srvs = res;
+}
+
 #ifdef TESTING
 int main(int argc, char **argv)
 {
-    struct addrinfo *res = NULL, *p;
+    struct coda_addrinfo *res = NULL, *p;
     struct sockaddr_in *sin;
     int err;
 
-    struct addrinfo hints;
+    struct coda_addrinfo hints;
     memset(&hints, 0, sizeof(hints));
     hints.ai_family   = PF_INET;
     hints.ai_socktype = SOCK_STREAM;
@@ -458,6 +434,8 @@ int main(int argc, char **argv)
 
     err = coda_getaddrinfo(argv[1], argv[2], &hints, &res);
     printf("err: %d\n", err);
+
+    coda_reorder_addrs(&res);
 
     for (p = res; p; p = p->ai_next) {
 	printf("flags %d family %d socktype %d protocol %d\n",

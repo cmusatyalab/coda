@@ -53,7 +53,7 @@ public:
 private:
     char *name;
 
-/*T*/struct addrinfo *rootservers;
+/*T*/struct coda_addrinfo *rootservers;
 /*T*/struct dllist_head servers;
 };
 

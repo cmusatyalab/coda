@@ -49,9 +49,9 @@ void SplitRealmFromName(char *name, char **realm)
 
 /* Coda only looks up IPv4 UDP addresses */
 static void simpleaddrinfo(const char *realm, const char *service,
-			   struct addrinfo **res)
+			   struct coda_addrinfo **res)
 {
-    struct addrinfo hints;
+    struct coda_addrinfo hints;
     int proto = IPPROTO_UDP;
 
 #ifdef HAVE_GETPROTOBYNAME
@@ -71,7 +71,7 @@ static void simpleaddrinfo(const char *realm, const char *service,
 }
 
 static void ResolveRootServers(char *servers, const char *service,
-			       struct addrinfo **res)
+			       struct coda_addrinfo **res)
 {
     char *host;
 
@@ -83,7 +83,7 @@ static void ResolveRootServers(char *servers, const char *service,
 }
 	
 void GetRealmServers(const char *name, const char *service,
-		     struct addrinfo **res)
+		     struct coda_addrinfo **res)
 {
     char *realmtab = NULL;
     FILE *f;

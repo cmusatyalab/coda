@@ -103,7 +103,7 @@ Server *Realm::GetServer(struct in_addr *host)
 
 void Realm::print(FILE *f)
 {
-    struct addrinfo *p;
+    struct coda_addrinfo *p;
     int i = 0;
 
     fprintf(f, "%08x realm '%s', refcount %d\n", Id(), Name(), refcount);
@@ -131,7 +131,7 @@ static int isbadaddr(struct in_addr *ip, char *name)
 /* Get a connection to any server (as root). */
 int Realm::GetAdmConn(connent **cpp)
 {
-    struct addrinfo *p;
+    struct coda_addrinfo *p;
     int code = 0;
     int tryagain = 0;
 
@@ -142,6 +142,8 @@ int Realm::GetAdmConn(connent **cpp)
 retry:
     if (!rootservers)
 	GetRealmServers(name, "codasrv", &rootservers);
+    else
+	coda_reorder_addrs(&rootservers);
 
     if (!rootservers) {
 	eprint("Failed to find servers for realm '%s'", name);
