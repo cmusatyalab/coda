@@ -37,7 +37,7 @@ Pittsburgh, PA.
 
 */
 
-#define RCSVERSION $Revision: 4.22 $
+#define RCSVERSION $Revision: 4.23 $
 
 /* vol-dump.c */
 
@@ -415,11 +415,9 @@ static int DumpVnodeIndex(DumpBuffer_t *dbuf, Volume *vp,
     return 0;
 }
 
-static unsigned int DumpVnodeDiskObject_estimate(VnodeDiskObject *v,
-						 int vnodeNumber, Device device)
+static unsigned int DumpVnodeDiskObject_estimate(VnodeDiskObject *v)
 {
     unsigned int size;
-    int fd;
 
     if (!v || v->type == vNull) return 1;
 
@@ -427,15 +425,7 @@ static unsigned int DumpVnodeDiskObject_estimate(VnodeDiskObject *v,
     size = 109;
     
     if (v->type != vDirectory) {
-	if (v->inodeNumber &&
-	    (fd = iopen((int)device, (int)v->inodeNumber, O_RDONLY)) >= 0)
-	{
-	    struct stat status;
-	    fstat(fd, &status);
-	    size += 5 + status.st_size;
-	    close(fd);
-	} else
-	    size += 1;
+	size += 5 + v->length;
     } else {
 	DirInode *dip;
 
@@ -514,7 +504,6 @@ static int DumpVnodeIndex_estimate(Volume *vp, VnodeClass vclass,
 
 	while ( (vptr = nextVnode()) ) {	/* While more vnodes */
 	    vnode = strbase(VnodeDiskObject, vptr, nextvn);
-	    int VnodeNumber = bitNumberToVnodeNumber(vnodeIndex, vclass);
 	    unsigned int dumplevel = 9;
 	    nVnodes--;
 
@@ -524,8 +513,7 @@ static int DumpVnodeIndex_estimate(Volume *vp, VnodeClass vclass,
 				&(vnode->versionvector.StoreId),
 				9, &dumplevel);
 
-	    sizes[dumplevel] +=
-		DumpVnodeDiskObject_estimate(vnode, VnodeNumber, V_device(vp));
+	    sizes[dumplevel] += DumpVnodeDiskObject_estimate(vnode);
 	}
 
 	/* Check for deleted files. If there exists an entry which wasn't
