@@ -461,7 +461,7 @@ void fsobj::Recover()
 
     /* Get rid of fake objects, and other objects that are not likely to be
      * useful anymore. */
-    if ((IsFake() && !LRDB->RFM_IsFakeRoot(&fid)) || !vol->IsReplicated()) {
+    if ((IsFake() && !LRDB->RFM_IsFakeRoot(&fid)) || !vol->IsReplicated())
 	goto Failure;
 
     /* Get rid of a former mount-root whose fid is not a volume root and whose
