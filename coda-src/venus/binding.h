@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/binding.h,v 4.1 97/01/08 21:51:18 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/binding.h,v 4.2 97/12/16 16:08:22 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -82,9 +82,9 @@ class binding {
     operator=(binding&) { abort(); }	/* not supported! */
     ~binding();
 
-    IncrRefCount() { referenceCount++; }
-    DecrRefCount() { referenceCount--; }
-    GetRefCount() { return(referenceCount); }
+    void IncrRefCount() { referenceCount++; }
+    void DecrRefCount() { referenceCount--; }
+    int GetRefCount() { return(referenceCount); }
 
     void print() { print(stdout); }
     void print(FILE *fp) { fflush(fp); print(fileno(fp)); }

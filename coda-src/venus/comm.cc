@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/comm.cc,v 4.9 1997/12/16 16:08:23 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/comm.cc,v 4.10 98/01/10 18:38:38 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -97,6 +97,7 @@ extern void SFTP_Activate (SFTP_Initializer *initPtr);
 
 /* interfaces */
 #include <vice.h>
+#include <adsrv.h>
 
 /* from vol */
 #include <errors.h>

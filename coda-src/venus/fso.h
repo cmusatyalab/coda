@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/fso.h,v 4.4 97/12/16 16:08:25 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/fso.h,v 4.5 98/01/09 13:43:55 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -268,7 +268,7 @@ class fsdb {
 
     void DisconnectedCacheMiss(vproc *, vuid_t, ViceFid *, char *);
     void UpdateDisconnectedUseStatistics(volent *);
-    void OutputDisconnectedUseStatistics(char *);
+    void OutputDisconnectedUseStatistics(char *, int, int, int);
 
     void GetStats(int *fa, int *fo, int *ba, int *bo) 
       { *fa = MaxFiles; *fo = htab.count(); *ba = MaxBlocks; *bo = blocks; }

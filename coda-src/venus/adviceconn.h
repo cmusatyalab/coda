@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/adviceconn.h,v 4.1 97/01/08 21:51:18 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/adviceconn.h,v 4.2 97/12/16 16:08:22 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -169,7 +169,7 @@ class adviceconn {
 
     int NewConnection(char *hostname, int port, int pgrp);
     int RegisterInterest(vuid_t vuid, long numEvents, InterestValuePair events[]);
-    int OutputUsageStatistics(vuid_t vuid, char *pathname);
+    int OutputUsageStatistics(vuid_t vuid, char *pathname, int discosSinceLastUse, int percentDiscosUsed, int totalDiscosUsed);
 
     void InitializeProgramLog(vuid_t vuid);
     void SwapProgramLog();
@@ -209,9 +209,9 @@ class adviceconn {
 
     int SendStoplightData()
         { return(stoplight_data); }
-    int SetStoplightData()
+    void SetStoplightData()
         { stoplight_data = 1; }
-    int UnsetStoplightData()
+    void UnsetStoplightData()
         { stoplight_data = 0; }
 
     int Getpgid();

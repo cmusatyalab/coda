@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/fso1.cc,v 4.10 1998/01/10 18:38:41 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/fso1.cc,v 4.11 98/01/22 18:42:09 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -2668,6 +2668,8 @@ void fsobj::RecordReplacement(int status, int data) {
       NotifyUserOfReplacement(&fid, path, status, 1);
     else
       NotifyUserOfReplacement(&fid, path, status, 0);
+
+    LOG(0, ("RecordReplacement complete.\n"));
 }
 
 /* local-repair modification */

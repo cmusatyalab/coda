@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/ss/coda-src/venus/RCS/comm.h,v 4.3 1997/04/23 17:46:23 lily Exp braam $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/comm.h,v 4.4 97/06/14 21:48:36 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -66,6 +66,7 @@ extern "C" {
 /* interfaces */
 #include <callback.h>
 #include <vice.h>
+#include <adsrv.h>
 
 /* from util */
 #include <olist.h>
@@ -249,6 +250,7 @@ class srvent {
   friend void DownServers(char *, int *);
   friend void DownServers(int, unsigned long *, char *, int *);
   friend void ServerPrint(int);
+  friend long S_GetServerInformation(RPC2_Handle, RPC2_Integer, RPC2_Integer *, ServerEnt *);
   friend class srv_iterator;
   friend class connent;
   friend class mgrpent;

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/hdb.h,v 4.1 97/01/08 21:51:28 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/hdb.h,v 4.2 97/12/16 16:08:30 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -439,6 +439,7 @@ extern int NC_PriorityFN(bsnode *, bsnode *);
 /* hdb_daemon.c */
 extern void HDBD_Init();
 extern int HDBD_Request(hdbd_request, void *, vuid_t, vuid_t);
+extern long HDBD_GetNextHoardWalkTime();
 
 #define	PRINT_HDBDREQTYPE(type)\
     ((type) == HdbAdd ? "Add" :\

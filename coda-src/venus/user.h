@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/user.h,v 4.1 97/01/08 21:51:36 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/user.h,v 4.2 97/12/16 16:08:34 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -215,8 +215,8 @@ class userent {
     void LogReplacement(char *path, int status, int data)
         { admon.LogReplacement(path, status, data); }
 
-    int OutputUsageStatistics(vuid_t vuid, char *pathname)
-        { return(admon.OutputUsageStatistics(vuid, pathname)); }
+    int OutputUsageStatistics(vuid_t vuid, char *pathname, int discosSinceLastUse, int percentDiscosUsed, int totalDiscosUsed)
+        { return(admon.OutputUsageStatistics(vuid, pathname, discosSinceLastUse, percentDiscosUsed, totalDiscosUsed)); }
 
     void GetStatistics(AdviceCalls *calls, AdviceResults *results, AdviceStatistics *stats)
         { admon.GetStatistics(calls, results, stats); }

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/hdb.cc,v 4.7 98/01/10 18:38:50 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/hdb.cc,v 4.8 98/01/22 10:18:30 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -436,7 +436,10 @@ int hdb::MakeAdviceRequestFile(char *HoardListFileName) {
     FILE *HoardListFILE;
 
     HoardListFILE = fopen(HoardListFileName, "w");
-    assert(HoardListFILE != NULL);
+    if (HoardListFILE == NULL) {
+      LOG(0, ("hdb::MakeAdviceRequestFile: failed to open %s (errno=%d)\n", HoardListFileName, errno));
+      return(-1);
+    }
 
     /* Generate the initial cache state statistics */
     fprintf(HoardListFILE, "Cache Space Allocated: %d files (%d blocks)\n", 

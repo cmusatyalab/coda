@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/venusutil.cc,v 4.8 1997/12/16 16:08:36 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/venusutil.cc,v 4.9 98/01/10 18:39:03 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -822,6 +822,7 @@ void MallocPrint(int fd) {
 void StatsInit() {
     int i;
 
+LOG(0, ("E StatsInit()\n"));
     bzero((void *)&VFSStats, (int)sizeof(VFSStatistics));
     for (i = 0; i < NVFSOPS; i++)
 	strncpy(VFSStats.VFSOps[i].name, VFSOpsNameTemplate[i],
@@ -831,6 +832,7 @@ void StatsInit() {
     for (i = 0; i < srvOPARRAYSIZE; i++)
 	strncpy(RPCOpStats.RPCOps[i].name, (char *) srv_CallCount[i].name+4, 
 		RPCOPSTATNAMELEN);
+LOG(0, ("L StatsInit()\n"));
 }
 
 

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/advice_daemon.cc,v 4.1 97/01/08 21:51:17 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/advice_daemon.cc,v 4.2 97/12/16 16:08:21 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -65,6 +65,8 @@ extern "C" {
 #include "adviceconn.h"
 #include "advice_daemon.h"
 
+#define CAESUCCESS RPC2_SUCCESS
+// All other CAE return codes are defined in ../rpc2/errordb.txt
 
 const char AdviceSubsys[] = "AdviceSubsys";
 
@@ -117,7 +119,7 @@ void AdviceInit() {
 
 adviceserver::adviceserver() : vproc("AdviceServer", (PROCBODY) &adviceserver::main, VPT_AdviceDaemon, AdviceDaemonStackSize) {
 
-  LOG(100, ("E adviceserver::adviceserver: %-16s\n", name));
+  LOG(0, ("E adviceserver::adviceserver: %-16s\n", name));
 
   /* Setup filter */
   filter.FromWhom = ONESUBSYS; 
@@ -153,6 +155,7 @@ adviceserver::~adviceserver() {
 void adviceserver::main(void *parm) {
   /* Wait for ctor to poke us. */
   VprocWait((char *)this);
+  LOG(0, ("adviceserver::main()\n"));
 
   for (;;) {
     idle = 1;
@@ -189,7 +192,7 @@ void adviceserver::CheckConnections() {
   user_iterator next;
   userent *u;
 
-  while (u = next()) 
+  while ((u = next()))
     u->admon.CheckConnection();
 }
 
@@ -202,8 +205,12 @@ void adviceserver::CheckConnections() {
  *                        that its connection is alive.
  *     RegisterInterest -- an advice monitor makes this call to Venus to register
  * 			   its interest (or disinterest) in certain events.
+ *     GetServerNames -- an advice monitor makes this call to Venus to request
+ *                       a list of server names and their bandwidth estimates
  *     GetCacheStatistics -- an advice monitor makes this call to Venus to
  *                           request cache statistics information
+ *     GetNextHoardWalk -- an advice monitor makes this call to Venus to 
+ *                         determine the time of the next scheduled hoard walk
  *     OutputUsageStatistics -- an advice monitor makes this call to Venus to 
  *                              obtain statistics on fsobj usage during discos
  *     HoardCommands -- an advice monitor makes this call to Venus to hand off 
@@ -217,7 +224,6 @@ void adviceserver::CheckConnections() {
  ********************************************************************************/
 
 long S_NewAdviceService(RPC2_Handle _cid, RPC2_String hostname, RPC2_Integer userId, RPC2_Integer port, RPC2_Integer pgrp, RPC2_Integer AdSrvVersion, RPC2_Integer AdMonVersion, RPC2_Integer *VenusMajorVersionNum, RPC2_Integer *VenusMinorVersionNum) {
-  char versionstring[8];
   userent *u;
   int rc;
 
@@ -288,10 +294,35 @@ long S_RegisterInterest(RPC2_Handle _cid, RPC2_Integer userId, long numEvents, I
   return RPC2_SUCCESS;
 }
 
+long S_GetServerInformation(RPC2_Handle _cid, RPC2_Integer maxServers, RPC2_Integer *numServers, ServerEnt *servers) {
+    LOG(0, ("E GetServerInformation\n"));
+
+    if (srvent::srvtab == 0) {
+      *numServers = 0;
+      return(CAENOSERVERS);
+    }
+
+    LOG(0, ("GetServerInformation: numServers = %d\n", *numServers));
+
+    *numServers = (long)srvent::srvtab->count();
+
+    srv_iterator next;
+    srvent *s;
+    int i = 0;
+    while (((s = next())) && (i < maxServers)) {
+      if (s->name != NULL) 
+	strncpy((char *)servers[i].name, s->name, strlen(s->name)+1);
+      servers[i].bw = s->bw;
+      i++;
+    }
+
+    LOG(0, ("L GetServerInformation\n"));
+    return(RPC2_SUCCESS);
+}
+
 long S_GetCacheStatistics(RPC2_Handle _cid, RPC2_Integer *FilesAllocated, RPC2_Integer *FilesOccupied, RPC2_Integer *BlocksAllocated, RPC2_Integer *BlocksOccupied, RPC2_Integer *RVMAllocated, RPC2_Integer *RVMOccupied) {
 
     rds_stats_t rdsstats;
-    int hoarded_blocks;
 
     LOG(0, ("E GetCacheStatistics\n"));
 
@@ -308,9 +339,19 @@ long S_GetCacheStatistics(RPC2_Handle _cid, RPC2_Integer *FilesAllocated, RPC2_I
     }
 
     LOG(0, ("L GettCacheStatistics\n"));
+    return RPC2_SUCCESS;
 }
 
-long S_OutputUsageStatistics(RPC2_Handle _cid, RPC2_Integer userId, RPC2_String pathname) {
+long S_GetNextHoardWalk(RPC2_Handle _cid, RPC2_Integer *nextHoardWalkTimeSeconds) {
+    LOG(0, ("E GetNextHoardWalk\n"));
+
+    *nextHoardWalkTimeSeconds = HDBD_GetNextHoardWalkTime();
+
+    LOG(0, ("L GetNextHoardWalk\n"));
+    return RPC2_SUCCESS;
+}
+
+long S_OutputUsageStatistics(RPC2_Handle _cid, RPC2_Integer userId, RPC2_String pathname, RPC2_Integer DisconnectionsSinceLastUse, RPC2_Integer PercentDisconnectionsUsed, RPC2_Integer TotalDisconnectionsUsed) {
   userent *u;
   
   LOG(0, ("E OutputUsageStatistics\n"));
@@ -320,7 +361,7 @@ long S_OutputUsageStatistics(RPC2_Handle _cid, RPC2_Integer userId, RPC2_String 
   if (u == 0)
     return CAENOSUCHUSER;
 
-  u->OutputUsageStatistics((vuid_t)userId, (char *)pathname);
+  u->OutputUsageStatistics((vuid_t)userId, (char *)pathname, (int)DisconnectionsSinceLastUse, (int)PercentDisconnectionsUsed, (int)TotalDisconnectionsUsed);
 
   LOG(0, ("L OutputUsageStatistics\n"));
   return RPC2_SUCCESS;
@@ -332,7 +373,6 @@ long S_HoardCommands(RPC2_Handle _cid, RPC2_Integer userId, long numCommands, Ho
 }
 
 long S_SetParameters(RPC2_Handle _cid, RPC2_Integer userId, long numParameters, ParameterValuePair parameters[]) {
-  userent *u;
   int uid;
 
   LOG(0, ("E SetParameters\n"));
@@ -458,7 +498,7 @@ void NotifyUsersOfServerUpEvent(char *name) {
     userent *u;
 
   LOG(0, ("NotifyUserOfServerUpEvent\n"));
-    while (u = next()) 
+    while ((u = next())) 
         u->ServerAccessible(name);
 }
 
@@ -467,7 +507,7 @@ void NotifyUsersOfServerDownEvent(char *name) {
     userent *u;
 
   LOG(0, ("NotifyUserOfServerDownEvent\n"));
-    while (u = next()) 
+    while ((u = next()))
         u->ServerInaccessible(name);
 }
 
@@ -476,7 +516,7 @@ void NotifyUsersOfServerWeakEvent(char *name) {
     userent *u;
 
   LOG(0, ("NotifyUserOfServerWeakEvent\n"));
-    while (u = next()) 
+    while ((u = next()))
         u->ServerConnectionWeak(name);
 }
 
@@ -485,7 +525,7 @@ void NotifyUsersOfServerStrongEvent(char *name) {
     userent *u;
 
   LOG(0, ("NotifyUserOfServerStrongEvent\n"));
-    while (u = next()) 
+    while ((u = next())) 
         u->ServerConnectionStrong(name);
 }
 
@@ -494,7 +534,7 @@ void NotifyUsersOfServerBandwidthEvent(char *name, long bandwidth) {
     userent *u;
 
   LOG(0, ("NotifyUserOfServerBandwidthEvent\n"));
-    while (u = next()) 
+    while ((u = next())) 
         u->ServerBandwidthEstimate(name, bandwidth);
 }
 
@@ -505,7 +545,7 @@ void NotifyUsersOfHoardWalkBegin() {
     lastPercentage = 0;
     totalToFetch = 0;
     totalFetched = 0;
-    while (u = next()) 
+    while ((u = next()))
         u->HoardWalkBegin();
 }
 
@@ -520,14 +560,17 @@ void NotifyUsersOfHoardWalkProgress(int fetched, int total) {
     assert(total == totalToFetch);
 
     thisPercentage = (int) ((double)totalFetched*(double)100/(double)total);
-    if (thisPercentage < lastPercentage)
+    if (thisPercentage < lastPercentage) {
+      LOG(0, ("fetched=%d, totalFetched=%d, totalToFetch=%d, thisPercentage=%d\n", 
+	      fetched, totalFetched, total, thisPercentage));
       LOG(0, ("NotifyUsersOfHoardWalkProgress: percentage decreasing!\n"));
+      }
     if (thisPercentage == lastPercentage)
       return;
     lastPercentage = thisPercentage;
 
     LOG(0, ("NotifyUsersOfHoardWalkProgress(%d)\n", thisPercentage));
-    while (u = next()) 
+    while ((u = next()))
         u->HoardWalkStatus(thisPercentage);
 }
 
@@ -535,7 +578,7 @@ void NotifyUsersOfHoardWalkEnd() {
     user_iterator next;
     userent *u;
 
-    while (u = next()) 
+    while ((u = next()))
         u->HoardWalkEnd();
     lastPercentage = 0;
     totalToFetch = 0;
@@ -546,7 +589,7 @@ void NotifyUsersOfHoardWalkPeriodicOn() {
     user_iterator next;
     userent *u;
 
-    while (u = next()) 
+    while ((u = next()))
         u->HoardWalkPeriodicOn();
 }
 
@@ -554,7 +597,7 @@ void NotifyUsersOfHoardWalkPeriodicOff() {
     user_iterator next;
     userent *u;
 
-    while (u = next()) 
+    while ((u = next()))
         u->HoardWalkPeriodicOff();
 }
 
@@ -562,7 +605,7 @@ void NotifyUsersObjectInConflict(char *path, ViceFid *key) {
     user_iterator next;
     userent *u;
 
-    while (u = next()) 
+    while ((u = next()))
         u->NotifyObjectInConflict(path, key);
 }
 
@@ -570,7 +613,7 @@ void NotifyUsersObjectConsistent(char *path, ViceFid *key) {
     user_iterator next;
     userent *u;
 
-    while (u = next()) 
+    while ((u = next()))
         u->NotifyObjectConsistent(path, key);
 }
 
@@ -579,13 +622,13 @@ void NotifyUsersTaskAvailability() {
     user_iterator next;
     userent *u;
 
-    while (u = next()) {
+    while ((u = next())) {
         TallyInfo tallyInfo[MAXTASKS];
 	int ti = 0;
 
         dlist_iterator next_tallyent(*TallyList);
         dlink *d;
-        while (d = next_tallyent()) {
+        while ((d = next_tallyent())) {
  	    tallyent *te = strbase(tallyent, d, prioq_handle);
 	    if (te->vuid != u->GetUid()) continue;
 
@@ -612,7 +655,7 @@ void NotifyUsersOfKillEvent(dlist *hdb_bindings, int blocks) {
 
   LOG(0, ("NotifyUsersOfKillEvent: hdb_bindings != NULL\n"));
 
-  while (d = next_hdbent()) {
+  while ((d = next_hdbent())) {
     assert(d != NULL);
     binding *b = strbase(binding, d, bindee_handle);
     if (b == NULL)
@@ -664,7 +707,7 @@ void SwapProgramLogs() {
     user_iterator next;
     userent *u;
 
-    while (u = next()) 
+    while ((u = next())) 
         u->SwapProgramLog();
 }
 
@@ -672,6 +715,6 @@ void SwapReplacementLogs() {
     user_iterator next;
     userent *u;
 
-    while (u = next()) 
+    while ((u = next())) 
         u->SwapReplacementLog();
 }
