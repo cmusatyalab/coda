@@ -117,20 +117,20 @@ static struct RPC2_addrinfo *addrinfo_init(int family, const void *addr,
 	    addrlen = sizeof(*sin6);
 	    break;
 	}
-#else
+#endif
     default:
 	return NULL;
-#endif
     }
     ai = RPC2_allocaddrinfo((struct sockaddr *)&ss, addrlen);
-    if (ai) {
-	if (hints) {
-	    ai->ai_socktype = hints->ai_socktype;
-	    ai->ai_protocol = hints->ai_protocol;
-	} else {
-	    ai->ai_socktype = SOCK_STREAM;
-	    ai->ai_protocol = IPPROTO_TCP;
-	}
+    if (!ai)
+	return NULL;
+
+    if (hints) {
+	ai->ai_socktype = hints->ai_socktype;
+	ai->ai_protocol = hints->ai_protocol;
+    } else {
+	ai->ai_socktype = SOCK_STREAM;
+	ai->ai_protocol = IPPROTO_TCP;
     }
     return ai;
 }
@@ -150,10 +150,6 @@ static int getaddrinfo_noresolve(const char *node, short port,
     if (hints->ai_family != PF_INET &&
 	node && inet_pton(PF_INET6, node, &addr) > 0)
 	family = PF_INET6;
-
-    /* unspecified family and we couldn't figure it out from the address */
-    if (family == PF_UNSPEC)
-	return RPC2_EAI_NONAME;
 
     switch(family) {
     case PF_INET:
@@ -177,16 +173,19 @@ static int getaddrinfo_noresolve(const char *node, short port,
 	    }
 	    break;
 	}
-#else
-    default:
-	*res = NULL;
-	return RPC2_EAI_MEMORY; 
 #endif       
+    /* unspecified family and we couldn't figure it out from the address */
+    default:
+	return RPC2_EAI_NONAME; 
     }
+
     ai = addrinfo_init(family, &addr, port, hints);
+    if (!ai)
+	return RPC2_EAI_MEMORY;
+
     ai->ai_next = *res;
     *res = ai;
-    return ai ? 0 : RPC2_EAI_MEMORY;
+    return 0;
 }
 #endif /* !HAVE_GETADDRINFO */
 
