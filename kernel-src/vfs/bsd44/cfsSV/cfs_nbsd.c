@@ -15,6 +15,10 @@
 /* 
  * HISTORY
  * $Log: cfs_nbsd.c,v $
+ * Revision 1.13  1997/02/18 23:46:25  bnoble
+ * NetBSD swapped the order of arguments to VOP_LINK between 1.1 and 1.2.
+ * This tracks that change.
+ *
  * Revision 1.12  1997/02/18 22:23:38  bnoble
  * Rename lockdebug to cfs_lockdebug
  *
@@ -210,7 +214,8 @@ cfs_nb_statfs(vfsp, sbp, p)
     sbp->f_type = 0;
     sbp->f_bsize = 8192; /* XXX */
     sbp->f_iosize = 8192; /* XXX */
-#define NB_SFS_SIZ 0x895440
+/* #define NB_SFS_SIZ 0x895440 */
+    #define NB_SFS_SIZ 0x8ab75d
     sbp->f_blocks = NB_SFS_SIZ;
     sbp->f_bfree = NB_SFS_SIZ;
     sbp->f_bavail = NB_SFS_SIZ;
