@@ -30,7 +30,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/lib-src/mlwp/process.s,v 4.1 1997/01/08 21:54:16 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/lib-src/mlwp/process.s,v 4.2 1997/09/23 18:02:18 braam Exp $";
 #endif undef
 #endif /*_BLURB_*/
 
@@ -582,5 +582,147 @@ _returnto:
 	jmp	r1
 
 #endif	/* luna88k */
+
+#ifdef __ns32k__
+
+#ifdef __STDC__	
+#define SYMB(x)  _##x:
+#define EXT(x)	_##x
+#else
+#define SYMB(x)  _/**/x:
+#define EXT(x)	_/**/x
+#endif
+
+/*
+   savecontext(f, area1, newsp)
+	int (*f)();
+ 	struct savearea *area1;
+	char *newsp;
+*/
+
+/* Stack offsets of arguments */
+f	=	8
+area1	=	12
+newsp	=	16
+
+	.globl  _PRE_Block
+	.globl	_abort
+	.text
+
+	.align	2
+	.globl	EXT(savecontext)
+SYMB(savecontext)
+	movb	1, _PRE_Block(pc)	# Do not allow any interrupt finagling 
+	enter	[r0,r1,r2,r3,r4,r5,r6,r7], 0	# save registers
+	sprd	fp, r0			# push frame pointer
+	movd	r0, tos
+	movd	area1(fp), r0		# save sp to area1
+	sprd	sp, 0(r0)
+	movd	f(fp), r0		# get f()
+	movd	newsp(fp), r1		# Get new sp
+	cmpd	0, r1
+	beq	noswitch		# Set if sp != 0
+	lprd	sp, r1
+noswitch:
+	jsr	0(r0)
+
+/*	should never get here ... */
+	jsr	_abort
+		
+	
+/*
+  returnto(area2)
+     struct savearea *area2;
+*/
+area2	=	8
+	
+	.globl EXT(returnto)
+SYMB(returnto)
+	enter	[], 0	
+	movd	area2(fp), r0
+	lprd	sp, 0(r0)
+	movd	tos, r0
+	lprd	fp, r0
+	exit	[r0,r1,r2,r3,r4,r5,r6,r7]
+	movb	0, _PRE_Block(pc)
+	ret	0
+		
+#endif /* __ns32k__ */
+
+#ifdef __arm32__
+#ifdef __STDC__	
+#define SYMB(x)  _##x:
+#define EXT(x)	_##x
+#else
+#define SYMB(x)  _/**/x:
+#define EXT(x)	_/**/x
+#endif
+
+/* register definitions */
+fp	.req	r11
+ip	.req	r12
+sp	.req	r13
+lp	.req	r14
+pc	.req	r15
+
+/*
+   savecontext(f, area1, newsp)
+	int (*f)();
+ 	struct savearea *area1;
+	char *newsp;
+*/
+
+/* Arguments appear as:  f in r0, area1 in r1, newsp in r2 */
+
+	.globl  _PRE_Block
+	.globl	_abort
+	.text
+	.align	0
+	.globl	EXT(savecontext)
+	.type   EXT(savecontext), #function
+SYMB(savecontext)
+	@ build the frame
+	mov 	ip, sp
+	stmfd	sp!, {fp, ip, lr, pc}
+	sub	fp, ip, #4
+	@ stack r0 - r10, current fp
+	stmfd	sp!, {r0, r1, r2, r3, r4, r5, r6, r7, r8, r9, r10, fp}
+	str	sp, [r1, #0]
+	@ set _PRE_Block
+	ldr	r3, L1
+	mov	r4, #1
+	str	r4, [r3, #0]
+	@ check if newsp is zero
+	movs	r2, r2
+	movne	sp, r2
+	@ call function ...
+	mov	pc, r0
+
+/*	should never get here ... */
+	bl	_abort
+
+L1:	.word _PRE_Block		
+	
+/*
+  returnto(area2)
+     struct savearea *area2;
+*/
+
+/* area2 is in r0. */
+	
+	.globl EXT(returnto)
+	.type  EXT(returnto), #function
+SYMB(returnto)
+	@ clear _PRE_Block
+	ldr	r3, L1
+	mov	r4, #0
+	str	r4, [r3, #0]
+	@ restore r0-r10, fp
+	ldr	r0, [r0, #0]
+	ldmfd	r0, {r0, r1, r2, r3, r4, r5, r6, r7, r8, r9, r10, fp}
+	@ return from function call
+	ldmea	fp, {fp, sp, pc}
+	
+#endif /* __arm32__ */
 
 #endif OLDLWP
