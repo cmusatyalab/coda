@@ -34,6 +34,7 @@ listed in the file CREDITS.
 #include "pdb.h"
 #include <parser.h>
 #include <string.h>
+#include <coda_assert.h>
 
 /* Check if correct number of arguments,Too Few=1,Too Many=2,Just Right=0 */
 int check_args_num(int argc,int n){
@@ -474,8 +475,9 @@ command_t pdbcmds[] =
 
 int main(int argc, char **argv)
 {
-	
 	char *nl;
+
+	coda_assert_action = CODA_ASSERT_EXIT;
 
 	PDB_setupdb();
 	Parser_init("pdbtool> ", pdbcmds);
