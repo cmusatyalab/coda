@@ -82,9 +82,6 @@ extern "C" {
  * if out of dumpfile -- how should errors be reported?
  */
 
-#define VOLID DumpFd		/* Overload this field if using newstyle dump */
-
-
 static char *get(DumpBuffer_t *buf, int size, int *error)
 {
     char *retptr;
@@ -187,7 +184,7 @@ static char *put(DumpBuffer_t *buf, int size, int *error)
 signed char ReadTag(DumpBuffer_t *buf)
 {
     int error = 0;
-    register byte *p = (byte *)get(buf, 1, &error);
+    byte *p = (byte *)get(buf, 1, &error);
     if (!p || (error == EOF)) return FALSE;
     return *p;
 }
@@ -195,7 +192,7 @@ signed char ReadTag(DumpBuffer_t *buf)
 int PutTag(char tag, DumpBuffer_t *buf)
 {
     int error = 0;
-    register byte *p = (byte *)put(buf, 1, &error);
+    byte *p = (byte *)put(buf, 1, &error);
     if (!p || (error == EOF)) return FALSE;
     *p = tag;
     return TRUE;
@@ -212,25 +209,25 @@ int ReadShort(DumpBuffer_t *buf, unsigned short *sp)
     return TRUE;	/* Return TRUE if successful */
 }
 
-int ReadLong(DumpBuffer_t *buf, unsigned long *lp)
+int ReadInt32(DumpBuffer_t *buf, unsigned int *lp)
 {
     int error = 0;
-    unsigned long v = 0;
-    unsigned char *p = (unsigned char *)get(buf, sizeof(long), &error);
+    unsigned int v = 0;
+    unsigned char *p = (unsigned char *)get(buf, sizeof(unsigned int), &error);
     if (!p || (error == EOF)) return FALSE;
     v = (p[0] << 24) | (p[1] << 16) | (p[2] << 8) | (p[3]);
     *lp = v;
     return TRUE;
 }
 
-int ReadString(register DumpBuffer_t *buf, register char *to, register int max)
+int ReadString(DumpBuffer_t *buf, char *to, int max)
 {
     int error = 0;
-    unsigned long len;
-    if (!ReadLong(buf, &len)) 
+    unsigned int len;
+    if (!ReadInt32(buf, &len)) 
 	return FALSE;
 
-    register char *str = (char *)get(buf, (int)len, &error);
+    char *str = (char *)get(buf, (int)len, &error);
     if (!str || (error == EOF)) return FALSE;
 
     if ((int)len + 1 > max) { 	/* Ensure we only use max room */
@@ -250,10 +247,10 @@ int ReadString(register DumpBuffer_t *buf, register char *to, register int max)
     return TRUE;
 }
 
-int ReadByteString(DumpBuffer_t *buf, register byte *to, register int size)
+int ReadByteString(DumpBuffer_t *buf, byte *to, int size)
 {
     int error = 0;
-    register byte *str = (byte *)get(buf, size, &error);
+    byte *str = (byte *)get(buf, size, &error);
     if (!str || (error == EOF)) return FALSE;
 
     while (size--)
@@ -261,53 +258,53 @@ int ReadByteString(DumpBuffer_t *buf, register byte *to, register int size)
     return TRUE;
 }
 
-int ReadVV(register DumpBuffer_t *buf, register vv_t *vv)
+int ReadVV(DumpBuffer_t *buf, vv_t *vv)
 {
     int tag;
     while ((tag = ReadTag(buf)) > D_MAX && tag) {
 	switch (tag) {
 	    case '0':
-		if (!ReadLong(buf, (unsigned long *)&vv->Versions.Site0))
+		if (!ReadInt32(buf, (unsigned int *)&vv->Versions.Site0))
 		    return FALSE;
 		break;
 	    case '1':
-		if (!ReadLong(buf, (unsigned long *)&vv->Versions.Site1))
+		if (!ReadInt32(buf, (unsigned int *)&vv->Versions.Site1))
 		    return FALSE;
 		break;
 	    case '2':
-		if (!ReadLong(buf, (unsigned long *)&vv->Versions.Site2))
+		if (!ReadInt32(buf, (unsigned int *)&vv->Versions.Site2))
 		    return FALSE;
 		break;
 	    case '3':
-		if (!ReadLong(buf, (unsigned long *)&vv->Versions.Site3))
+		if (!ReadInt32(buf, (unsigned int *)&vv->Versions.Site3))
 		    return FALSE;
 		break;
 	    case '4':
-		if (!ReadLong(buf, (unsigned long *)&vv->Versions.Site4))
+		if (!ReadInt32(buf, (unsigned int *)&vv->Versions.Site4))
 		    return FALSE;
 		break;
 	    case '5':
-		if (!ReadLong(buf, (unsigned long *)&vv->Versions.Site5))
+		if (!ReadInt32(buf, (unsigned int *)&vv->Versions.Site5))
 		    return FALSE;
 		break;
 	    case '6':
-		if (!ReadLong(buf, (unsigned long *)&vv->Versions.Site6))
+		if (!ReadInt32(buf, (unsigned int *)&vv->Versions.Site6))
 		    return FALSE;
 		break;
 	    case '7':
-		if (!ReadLong(buf, (unsigned long *)&vv->Versions.Site7))
+		if (!ReadInt32(buf, (unsigned int *)&vv->Versions.Site7))
 		    return FALSE;
 		break;
 	    case 's':
-		if (!ReadLong(buf, (unsigned long *)&vv->StoreId.Host))
+		if (!ReadInt32(buf, (unsigned int *)&vv->StoreId.Host))
 		    return FALSE;
 		break;
 	    case 'u':
-		if (!ReadLong(buf, (unsigned long *)&vv->StoreId.Uniquifier))
+		if (!ReadInt32(buf, (unsigned int *)&vv->StoreId.Uniquifier))
 		    return FALSE;
 		break;
 	    case 'f':
-		if (!ReadLong(buf, (unsigned long *)&vv->Flags))
+		if (!ReadInt32(buf, (unsigned int *)&vv->Flags))
 		    return FALSE;
 		break;
 	}
@@ -325,19 +322,20 @@ int ReadDumpHeader(DumpBuffer_t *buf, struct DumpHeader *hp)
 {
     int tag;
     unsigned long beginMagic;
-    if (ReadTag(buf) != D_DUMPHEADER
-       || !ReadLong(buf, (unsigned long *)&beginMagic) || !ReadLong(buf, (unsigned long *)&hp->version)
-       || beginMagic != DUMPBEGINMAGIC
+    if (ReadTag(buf) != D_DUMPHEADER ||
+	!ReadInt32(buf, (unsigned int *)&beginMagic) ||
+	!ReadInt32(buf, (unsigned int *)&hp->version) ||
+	beginMagic != DUMPBEGINMAGIC
        ) return FALSE;
     hp->volumeId = 0;
     while ((tag = ReadTag(buf)) > D_MAX && tag) {
 	switch(tag) {
 	    case 'v':
-	    	if (!ReadLong(buf, (unsigned long *)&hp->volumeId))
+	    	if (!ReadInt32(buf, (unsigned int *)&hp->volumeId))
 		    return FALSE;
 		break;
 	    case 'p':
-	    	if (!ReadLong(buf, (unsigned long *)&hp->parentId))
+	    	if (!ReadInt32(buf, (unsigned int *)&hp->parentId))
 		    return FALSE;
 		break;
 	    case 'n':
@@ -345,15 +343,15 @@ int ReadDumpHeader(DumpBuffer_t *buf, struct DumpHeader *hp)
 		    return FALSE;
 		break;
 	    case 'b':
-	        if (!ReadLong(buf, (unsigned long *)&hp->backupDate))
+	        if (!ReadInt32(buf, (unsigned int *)&hp->backupDate))
 		    return FALSE;
 		break;
 	    case 'i' :
-		if (!ReadLong(buf, (unsigned long *)&hp->Incremental))
+		if (!ReadInt32(buf, &hp->Incremental))
 		    return FALSE;
 		break;
 	    case 'I' :
-		if (!ReadLong(buf, (unsigned long *)&hp->oldest) || !ReadLong(buf, (unsigned long *)&hp->latest))
+		if (!ReadInt32(buf, &hp->oldest) || !ReadInt32(buf, &hp->latest))
 		    return FALSE;
 		break;
 	}
@@ -376,7 +374,7 @@ int EndOfDump(DumpBuffer_t *buf)
 	return FALSE;
     }
 
-    if (!ReadLong(buf, (unsigned long *)&magic) || (magic != DUMPENDMAGIC)) {
+    if (!ReadInt32(buf, (unsigned int *)&magic) || (magic != DUMPENDMAGIC)) {
 	LogMsg(0, VolDebugLevel, stdout, "Dump Magic Value Incorrect; restore aborted");
 	return FALSE;
     }
@@ -400,10 +398,10 @@ int ReadVolumeDiskData(DumpBuffer_t *buf, VolumeDiskData *vol)
     while ((tag = ReadTag(buf)) > D_MAX && tag) {
 	switch (tag) {
 	    case 'i':
-		ReadLong(buf, &vol->id);
+		ReadInt32(buf, (unsigned int *)&vol->id);
 		break;
 	    case 'v':
-	        ReadLong(buf, &(vol->stamp.version));
+	        ReadInt32(buf, (unsigned int *)&(vol->stamp.version));
 		break;
 	    case 'n':
 		ReadString(buf, vol->name, sizeof(vol->name));
@@ -418,61 +416,61 @@ int ReadVolumeDiskData(DumpBuffer_t *buf, VolumeDiskData *vol)
 		vol->blessed = ReadTag(buf);
 		break;
 	    case 'u':
-		ReadLong(buf, &vol->uniquifier);
+		ReadInt32(buf, (unsigned int *)&vol->uniquifier);
 		break;
 	    case 't':
 		vol->type = ReadTag(buf);
 		break;
 	    case 'p':
-	        ReadLong(buf, &vol->parentId);
+	        ReadInt32(buf, (unsigned int *)&vol->parentId);
 		break;
 	    case 'g':
-		ReadLong(buf, &vol->groupId);
+		ReadInt32(buf, (unsigned int *)&vol->groupId);
 		break;
 	    case 'c':
-	        ReadLong(buf, &vol->cloneId);
+	        ReadInt32(buf, (unsigned int *)&vol->cloneId);
 		break;
 	    case 'b' :
-		ReadLong(buf, &vol->backupId);
+		ReadInt32(buf, (unsigned int *)&vol->backupId);
 		break;
 	    case 'q':
-	        ReadLong(buf, (unsigned long *)&vol->maxquota);
+	        ReadInt32(buf, (unsigned int *)&vol->maxquota);
 		break;
 	    case 'm':
-		ReadLong(buf, (unsigned long *)&vol->minquota);
+		ReadInt32(buf, (unsigned int *)&vol->minquota);
 		break;
 	    case 'x':
-		ReadLong(buf, (unsigned long *)&vol->maxfiles);
+		ReadInt32(buf, (unsigned int *)&vol->maxfiles);
 		break;
 	    case 'd':
-	        ReadLong(buf, (unsigned long *)&vol->diskused); /* Bogus:  should calculate this */
+	        ReadInt32(buf, (unsigned int *)&vol->diskused); /* Bogus:  should calculate this */
 		break;
 	    case 'f':
-		ReadLong(buf, (unsigned long *)&vol->filecount);
+		ReadInt32(buf, (unsigned int *)&vol->filecount);
 		break;
 	    case 'l': 
 		ReadShort(buf, (unsigned short *)&vol->linkcount);
 		break;
 	    case 'a':
-		ReadLong(buf, &vol->accountNumber);
+		ReadInt32(buf, (unsigned int *)&vol->accountNumber);
 		break;
 	    case 'o':
-	  	ReadLong(buf, &vol->owner);
+	  	ReadInt32(buf, (unsigned int *)&vol->owner);
 		break;
 	    case 'C':
-		ReadLong(buf, &vol->creationDate);
+		ReadInt32(buf, (unsigned int *)&vol->creationDate);
 		break;
 	    case 'A':
-		ReadLong(buf, &vol->accessDate);
+		ReadInt32(buf, (unsigned int *)&vol->accessDate);
 		break;
 	    case 'U':
-	    	ReadLong(buf, &vol->updateDate);
+	    	ReadInt32(buf, (unsigned int *)&vol->updateDate);
 		break;
 	    case 'E':
-	    	ReadLong(buf, &vol->expirationDate);
+	    	ReadInt32(buf, (unsigned int *)&vol->expirationDate);
 		break;
 	    case 'B':
-	    	ReadLong(buf, &vol->backupDate);
+	    	ReadInt32(buf, (unsigned int *)&vol->backupDate);
 		break;
 	    case 'O':
 	    	ReadString(buf, vol->offlineMessage, sizeof(vol->offlineMessage));
@@ -481,22 +479,20 @@ int ReadVolumeDiskData(DumpBuffer_t *buf, VolumeDiskData *vol)
 		ReadString(buf, vol->motd, sizeof(vol->motd));
 		break;
 	    case 'W': {
-		unsigned long length;
-		int i;
-    		unsigned long data;
-	  	ReadLong(buf, &length);
-		for (i = 0; i<(int)length; i++) {
-		    ReadLong(buf, &data);
-		    if (i < (int)(sizeof(vol->weekUse)/sizeof(vol->weekUse[0])))
-			vol->weekUse[i] = (int)data;
+		unsigned int i, length, data;
+	  	ReadInt32(buf, &length);
+		for (i = 0; i < length; i++) {
+		    ReadInt32(buf, &data);
+		    if (i < sizeof(vol->weekUse)/sizeof(vol->weekUse[0]))
+			vol->weekUse[i] = data;
 		}
 		break;
 	    }
 	    case 'D':
-		ReadLong(buf, &vol->dayUseDate);
+		ReadInt32(buf, (unsigned int*)&vol->dayUseDate);
 		break;
 	    case 'Z':
-		ReadLong(buf, (unsigned long *)&vol->dayUse);
+		ReadInt32(buf, (unsigned int*)&vol->dayUse);
 		break;
 	    case 'V':
 		ReadVV(buf, &vol->versionvector);
@@ -513,11 +509,11 @@ int ReadFile(DumpBuffer_t *buf, FILE *outfile)
 {
     char *bptr;
     int error = 0;
-    long filesize;
-    register long size = 4096;		/* What's the best value for this? */
-    register long nbytes;
+    unsigned int filesize;
+    long size = 4096;		/* What's the best value for this? */
+    long nbytes;
 
-    if (!ReadLong(buf, (unsigned long *)&filesize))
+    if (!ReadInt32(buf, &filesize))
 	return -1;
     for (nbytes = filesize; nbytes; nbytes -= size) {
 	if (nbytes < size)

@@ -16,11 +16,6 @@ listed in the file CREDITS.
 
 #*/
 
-
-
-
-
-
 /*
  * codaproc.h
  * Created November 1989
@@ -29,7 +24,7 @@ listed in the file CREDITS.
 /* for recursive removes during repairs */
 typedef struct rmBlk {
     struct VListStruct *vlist;
-    long    VolumeId;
+    long VolumeId;
     Volume  *volptr;
     ViceStoreId	*StoreId;
     ClientEntry *client;
@@ -43,7 +38,4 @@ typedef struct semBlk {
     ViceFid pFid;
     int	error;
 } semBlk;
-
-    
-
 

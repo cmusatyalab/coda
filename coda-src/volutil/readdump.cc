@@ -143,7 +143,8 @@ void showHeader(int largc, char **largv) {
 	   head.version);
     printf("VolId = 0x%lx, name = %s\n", head.volumeId, head.volumeName);
     printf("Parent = 0x%lx, backupDate = %s", head.parentId, ctime((long *)&head.backupDate));
-    printf("Ordering references: Oldest %ld, Latest %ld\n",head.oldest,head.latest);
+    printf("Ordering references: Oldest %d, Latest %d\n",
+	   head.oldest, head.latest);
     return;
 }
 

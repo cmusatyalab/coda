@@ -107,8 +107,8 @@ extern void PollAndYield();
 /*
   S_VolRestore: Restore a volume from a dump file
 */ 
-long S_VolRestore(RPC2_Handle rpcid, RPC2_String formal_partition, RPC2_String formal_volname,
-	RPC2_Unsigned *formal_volid)
+long S_VolRestore(RPC2_Handle rpcid, RPC2_String formal_partition,
+		  RPC2_String formal_volname, RPC2_Unsigned *formal_volid)
 {
     int status = 0;
     long rc = 0;
@@ -434,10 +434,10 @@ static int ReadLargeVnodeIndex(DumpBuffer_t *buf, Volume *vp)
     while ((tag = ReadTag(buf)) > D_MAX && tag != EOF) {
 	switch(tag) {
 	    case 'v':
-		ReadLong(buf, (unsigned long *)&num_vnodes);
+		ReadInt32(buf, (unsigned int *)&num_vnodes);
 		break;
 	    case 's':
-		ReadLong(buf, (unsigned long *)&list_size);
+		ReadInt32(buf, (unsigned int *)&list_size);
 		break;
 	    default:
 		VLog(0, "Unexpected field of Vnode found; restore aborted");
@@ -531,10 +531,10 @@ static int ReadSmallVnodeIndex(DumpBuffer_t *buf, Volume *vp)
     while ((tag = ReadTag(buf)) > D_MAX && tag != EOF) {
 	switch(tag) {
 	    case 'v':
-		ReadLong(buf, (unsigned long *)&num_vnodes);
+		ReadInt32(buf, (unsigned int *)&num_vnodes);
 		break;
 	    case 's':
-		ReadLong(buf, (unsigned long *)&list_size);
+		ReadInt32(buf, (unsigned int *)&list_size);
 		break;
 	    default:
 		VLog(0, "Unexpected field of Vnode found; restore aborted");
@@ -616,8 +616,8 @@ static int ReadVnodeDiskObject(DumpBuffer_t *buf, VnodeDiskObject *vdop,
 	return 0;
     }
     
-    if (!ReadLong(buf, (unsigned long *)vnodeNumber) || 
-	!ReadLong(buf, (unsigned long *)&vdop->uniquifier)) {
+    if (!ReadInt32(buf, (unsigned int *)vnodeNumber) || 
+	!ReadInt32(buf, (unsigned int *)&vdop->uniquifier)) {
 	    VLog(0, "ReadVnodeDiskObject: Readstuff failed, aborting.");
 	    return -1;
     }
@@ -638,28 +638,28 @@ static int ReadVnodeDiskObject(DumpBuffer_t *buf, VnodeDiskObject *vdop,
 	    ReadShort(buf, (unsigned short *)&vdop->linkCount);
 	    break;
 	  case 'L':
-	    ReadLong(buf, (unsigned long *)&vdop->length);
+	    ReadInt32(buf, (unsigned int *)&vdop->length);
 	    break;
 	  case 'v':
-	    ReadLong(buf, (unsigned long *)&vdop->dataVersion);
+	    ReadInt32(buf, (unsigned int *)&vdop->dataVersion);
 	    break;
 	  case 'V':
 	    ReadVV(buf, &vdop->versionvector);
 	    break;
 	  case 'm':
-	    ReadLong(buf, (unsigned long *)&vdop->unixModifyTime);
+	    ReadInt32(buf, (unsigned int *)&vdop->unixModifyTime);
 	    break;
 	  case 'a':
-	    ReadLong(buf, (unsigned long *)&vdop->author);
+	    ReadInt32(buf, (unsigned int *)&vdop->author);
 	    break;
 	  case 'o':
-	    ReadLong(buf, (unsigned long *)&vdop->owner);
+	    ReadInt32(buf, (unsigned int *)&vdop->owner);
 	    break;
 	  case 'p':
-	    ReadLong(buf, (unsigned long *)&vdop->vparent);
+	    ReadInt32(buf, (unsigned int *)&vdop->vparent);
 	    break;
 	  case 'q':
-	    ReadLong(buf, (unsigned long *)&vdop->uparent);
+	    ReadInt32(buf, (unsigned int *)&vdop->uparent);
 	    break;
 	  case 'A':
 	    CODA_ASSERT(vdop->type == vDirectory);
@@ -678,7 +678,7 @@ static int ReadVnodeDiskObject(DumpBuffer_t *buf, VnodeDiskObject *vdop,
     if (vdop->type == vDirectory) {
 	int npages = 0;
 	CODA_ASSERT(ReadTag(buf) == D_DIRPAGES);
-	if (!ReadLong(buf, (unsigned long *)&npages) || 
+	if (!ReadInt32(buf, (unsigned int *)&npages) || 
 	    (npages > DIR_MAXPAGES)) {
 	    VLog(0, "Restore: Dir has to many pages for vnode %d", 
 		 *vnodeNumber);

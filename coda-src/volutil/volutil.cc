@@ -16,18 +16,7 @@ listed in the file CREDITS.
 
 #*/
 
-
-
-
-
-
-
-
-/*
-
-    volutil.c -- file server routine for servicing volume utility requests 
-
-*/
+/* volutil.c -- file server routine for servicing volume utility requests */
 
 #ifdef __cplusplus
 extern "C" {

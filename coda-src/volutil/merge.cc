@@ -318,11 +318,11 @@ static void ModifyTable(dumpstream *dump, VnodeClass vclass, vtable *Table)
 static void WriteDumpHeader(DumpBuffer_t *buf, struct DumpHeader *head, struct DumpHeader *ihead)
 {
     DumpDouble(buf, (byte) D_DUMPHEADER, DUMPBEGINMAGIC, DUMPVERSION);
-    DumpLong(buf, 'v', head->volumeId);
-    DumpLong(buf, 'p', head->parentId);
+    DumpInt32(buf, 'v', head->volumeId);
+    DumpInt32(buf, 'p', head->parentId);
     DumpString(buf, 'n', head->volumeName);
-    DumpLong(buf, 'b', ihead->backupDate);    /* Date the backup clone was made */
-    DumpLong(buf, 'i', head->Incremental);
+    DumpInt32(buf, 'b', ihead->backupDate);    /* Date the backup clone was made */
+    DumpInt32(buf, 'i', head->Incremental);
     DumpDouble(buf, 'I', head->oldest, ihead->latest);
 }
 
@@ -331,8 +331,8 @@ static void WriteTable(DumpBuffer_t *buf, vtable *table, VnodeClass vclass)
     char *vbuf[SIZEOF_LARGEDISKVNODE];
     VnodeDiskObject *vdo = (VnodeDiskObject *)vbuf;
 
-    DumpLong(buf, 'v', table->nvnodes);
-    DumpLong(buf, 's', table->nslots);
+    DumpInt32(buf, 'v', table->nvnodes);
+    DumpInt32(buf, 's', table->nslots);
     
     for (int i = 0; i < table->nslots; i++) {
 	ventry *ptr = table->table[i];
@@ -358,14 +358,14 @@ static void WriteVnodeDiskObject(DumpBuffer_t *buf, VnodeDiskObject *v, int vnod
     DumpByte(buf, 't', v->type);
     DumpShort(buf, 'b', v->modeBits);
     DumpShort(buf, 'l', v->linkCount); /* May not need this */
-    DumpLong(buf, 'L', v->length);
-    DumpLong(buf, 'v', v->dataVersion);
+    DumpInt32(buf, 'L', v->length);
+    DumpInt32(buf, 'v', v->dataVersion);
     DumpVV(buf, 'V', (ViceVersionVector *)(&(v->versionvector)));
-    DumpLong(buf, 'm', v->unixModifyTime);
-    DumpLong(buf, 'a', v->author);
-    DumpLong(buf, 'o', v->owner);
-    DumpLong(buf, 'p', v->vparent);
-    DumpLong(buf, 'q', v->uparent);
+    DumpInt32(buf, 'm', v->unixModifyTime);
+    DumpInt32(buf, 'a', v->author);
+    DumpInt32(buf, 'o', v->owner);
+    DumpInt32(buf, 'p', v->vparent);
+    DumpInt32(buf, 'q', v->uparent);
 
     if (v->type == vDirectory) {
 	/* Dump the Access Control List */
@@ -377,35 +377,36 @@ static void WriteVnodeDiskObject(DumpBuffer_t *buf, VnodeDiskObject *v, int vnod
 static void DumpVolumeDiskData(DumpBuffer_t *buf, register VolumeDiskData *vol)
 {
     DumpTag(buf, (byte) D_VOLUMEDISKDATA);
-    DumpLong(buf, 'i',vol->id);
-    DumpLong(buf, 'v',vol->stamp.version);
+    DumpInt32(buf, 'i',vol->id);
+    DumpInt32(buf, 'v',vol->stamp.version);
     DumpString(buf, 'n',vol->name);
     DumpString(buf, 'P',vol->partition);
     DumpBool(buf, 's',vol->inService);
     DumpBool(buf, '+',vol->blessed);
-    DumpLong(buf, 'u',vol->uniquifier);
+    DumpInt32(buf, 'u',vol->uniquifier);
     DumpByte(buf, 't',vol->type);
-    DumpLong(buf, 'p',vol->parentId);
-    DumpLong(buf, 'g',vol->groupId);
-    DumpLong(buf, 'c',vol->cloneId);
-    DumpLong(buf, 'b',vol->backupId);
-    DumpLong(buf, 'q',vol->maxquota);
-    DumpLong(buf, 'm',vol->minquota);
-    DumpLong(buf, 'x',vol->maxfiles);
-    DumpLong(buf, 'd',vol->diskused);
-    DumpLong(buf, 'f',vol->filecount);
+    DumpInt32(buf, 'p',vol->parentId);
+    DumpInt32(buf, 'g',vol->groupId);
+    DumpInt32(buf, 'c',vol->cloneId);
+    DumpInt32(buf, 'b',vol->backupId);
+    DumpInt32(buf, 'q',vol->maxquota);
+    DumpInt32(buf, 'm',vol->minquota);
+    DumpInt32(buf, 'x',vol->maxfiles);
+    DumpInt32(buf, 'd',vol->diskused);
+    DumpInt32(buf, 'f',vol->filecount);
     DumpShort(buf, 'l',(int)(vol->linkcount));
-    DumpLong(buf, 'a', vol->accountNumber);
-    DumpLong(buf, 'o', vol->owner);
-    DumpLong(buf, 'C',vol->creationDate);	/* Rw volume creation date */
-    DumpLong(buf, 'A',vol->accessDate);
-    DumpLong(buf, 'U',vol->updateDate);
-    DumpLong(buf, 'E',vol->expirationDate);
-    DumpLong(buf, 'B',vol->backupDate);		/* Rw volume backup clone date */
+    DumpInt32(buf, 'a', vol->accountNumber);
+    DumpInt32(buf, 'o', vol->owner);
+    DumpInt32(buf, 'C',vol->creationDate);	/* Rw volume creation date */
+    DumpInt32(buf, 'A',vol->accessDate);
+    DumpInt32(buf, 'U',vol->updateDate);
+    DumpInt32(buf, 'E',vol->expirationDate);
+    DumpInt32(buf, 'B',vol->backupDate);		/* Rw volume backup clone date */
     DumpString(buf, 'O',vol->offlineMessage);
     DumpString(buf, 'M',vol->motd);
-    DumpArrayLong(buf, 'W', (unsigned long *)vol->weekUse, sizeof(vol->weekUse)/sizeof(vol->weekUse[0]));
-    DumpLong(buf, 'D', vol->dayUseDate);
-    DumpLong(buf, 'Z', vol->dayUse);
+    DumpArrayInt32(buf, 'W', (unsigned int *)vol->weekUse,
+		  sizeof(vol->weekUse)/sizeof(vol->weekUse[0]));
+    DumpInt32(buf, 'D', vol->dayUseDate);
+    DumpInt32(buf, 'Z', vol->dayUse);
     DumpVV(buf, 'V', &(vol->versionvector));
 }

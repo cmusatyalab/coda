@@ -66,22 +66,28 @@ void ReadTokenFromFile(char *filename, ClearToken *cToken,
                        EncryptedSecretToken sToken)
 {
     FILE *f;
-    char *buf, c;
+    char *buf = NULL, c;
     int len;
 
     f = fopen(filename, "r");
+    if (!f) {
+        fprintf(stderr, "Failed to open %s.\n");
+	exit(-1);
+    }
+
     /* skip the first line */
     while((c = fgetc(f)) != EOF && c != '\n' && c != '\r') /* skip */;
     base64_decode(f, &buf, &len);
     fclose(f);
 
-    if (len != (sizeof(ClearToken) + sizeof(EncryptedSecretToken))) {
+    if (len != sizeof(ClearToken) + sizeof(EncryptedSecretToken)) {
         fprintf(stderr, "Corrupted token file?\n");
         free(buf);
-        exit(-EINVAL);
+        exit(-1);
     }
     memcpy((char *)cToken, buf, sizeof(ClearToken));
     memcpy(sToken, buf + sizeof(ClearToken), sizeof(EncryptedSecretToken));
     import(cToken);
     free(buf);
 }
+

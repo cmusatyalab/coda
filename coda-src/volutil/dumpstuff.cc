@@ -79,8 +79,8 @@ extern "C" {
  * If the buffer overflows, write to file descriptor fd, or use an rpc
  * if doing newstyle dumps (if rpcid > 0)
  */
-DumpBuffer_t *
-    InitDumpBuf(byte *ptr, long size, VolumeId volId, RPC2_Handle rpcid)
+DumpBuffer_t *InitDumpBuf(byte *ptr, long size, VolumeId volId,
+			  RPC2_Handle rpcid)
 {
     DumpBuffer_t *buf;
     LogMsg(20, VolDebugLevel, stdout, "InitDumpbuf: ptr %x size %d volId %x rpcid %d", ptr, size, volId, rpcid);
@@ -96,8 +96,7 @@ DumpBuffer_t *
     return buf;
 }
 
-DumpBuffer_t *
-    InitDumpBuf(byte *ptr, long size, int fd)
+DumpBuffer_t *InitDumpBuf(byte *ptr, long size, int fd)
 {
     LogMsg(20, VolDebugLevel, stdout, "InitDumpbuf: ptr %x size %d fd %d", ptr, size, fd);
 
@@ -170,9 +169,9 @@ byte *Reserve(DumpBuffer_t *buf, int n)
 }
 
 /* Throughout this code are implicit assumptions as to the size of objects */
-int DumpTag(DumpBuffer_t *buf, register byte tag)
+int DumpTag(DumpBuffer_t *buf, byte tag)
 {
-    register byte *p = Reserve(buf, 1);
+    byte *p = Reserve(buf, 1);
     if (p) {
 	*p = tag;
 	return 0;
@@ -180,9 +179,9 @@ int DumpTag(DumpBuffer_t *buf, register byte tag)
     return -1;
 }
 
-int DumpByte(DumpBuffer_t *buf, register byte tag, byte value)
+int DumpByte(DumpBuffer_t *buf, byte tag, byte value)
 {
-    register byte *p = Reserve(buf, 2);
+    byte *p = Reserve(buf, 2);
     if (p) {
 	*p++ = tag;
 	*p = value;
@@ -196,9 +195,9 @@ int DumpByte(DumpBuffer_t *buf, register byte tag, byte value)
 
 #define putshort(p, v) *p++ = (byte)(v>>8); *p++ = (byte)(v);
 
-int DumpDouble(DumpBuffer_t *buf, byte tag, register unsigned long value1, register unsigned long value2)
+int DumpDouble(DumpBuffer_t *buf, byte tag, unsigned int value1, unsigned int value2)
 {
-    register byte *p = Reserve(buf, 1 + 2 * sizeof(long));
+    byte *p = Reserve(buf, 1 + 2 * sizeof(unsigned int));
     if (p) {
 	*p++ = tag;
 	putlong(p, value1);
@@ -208,9 +207,9 @@ int DumpDouble(DumpBuffer_t *buf, byte tag, register unsigned long value1, regis
     return -1;
 }
 
-int DumpLong(DumpBuffer_t *buf, byte tag, register unsigned long value)
+int DumpInt32(DumpBuffer_t *buf, byte tag, unsigned int value)
 {
-    register byte *p = Reserve(buf, 1 + sizeof(long));
+    byte *p = Reserve(buf, 1 + sizeof(unsigned int));
     if (p) {
 	*p++ = tag;
 	putlong(p, value);
@@ -219,14 +218,15 @@ int DumpLong(DumpBuffer_t *buf, byte tag, register unsigned long value)
     return -1;
 }
 
-int DumpArrayLong(DumpBuffer_t *buf, byte tag, register unsigned long *array, register int nelem)
+int DumpArrayInt32(DumpBuffer_t *buf, byte tag, unsigned int *array, int nelem)
 {
-    register byte *p = Reserve(buf, 1 + sizeof(long) + (nelem * sizeof(long)));
+    byte *p = Reserve(buf, 1 + sizeof(unsigned int) +
+		      (nelem * sizeof(unsigned int)));
     if (p) {
 	*p++ = tag;
 	putlong(p, nelem);
 	while (nelem--) {
-	    register unsigned long v = *array++;
+	    unsigned int v = *array++;
 	    putlong(p, v);
 	}
 	return 0;
@@ -236,7 +236,7 @@ int DumpArrayLong(DumpBuffer_t *buf, byte tag, register unsigned long *array, re
 
 int DumpShort(DumpBuffer_t *buf, byte tag, unsigned int value)
 {
-    register byte *p = Reserve(buf, 1 + sizeof(short));
+    byte *p = Reserve(buf, 1 + sizeof(short));
     if (p) {
 	*p++ = tag;
 	*p++ = value>>8;
@@ -248,7 +248,7 @@ int DumpShort(DumpBuffer_t *buf, byte tag, unsigned int value)
 
 int DumpBool(DumpBuffer_t *buf, byte tag, unsigned int value)
 {
-    register byte *p = Reserve(buf, 2);	/* Assume bool is same as byte */
+    byte *p = Reserve(buf, 2);	/* Assume bool is same as byte */
     if (p) {
 	*p++ = tag;
 	*p = (byte) value;
@@ -257,26 +257,26 @@ int DumpBool(DumpBuffer_t *buf, byte tag, unsigned int value)
     return -1;
 }
 
-int DumpString(DumpBuffer_t *buf, byte tag, register char *s)
+int DumpString(DumpBuffer_t *buf, byte tag, char *s)
 {
     byte *p;
     int n;
     n = strlen(s)+1;
-    if ((p = Reserve(buf, 1 + n + sizeof(long)))) {
+    if ((p = Reserve(buf, 1 + n + sizeof(unsigned int)))) {
 	*p++ = tag;
 	putlong(p, n);
-	bcopy(s, p, n);
+	memcpy(p, s, n);
 	return 0;
     }
     return -1;
 }
 
-int DumpByteString(DumpBuffer_t *buf, byte tag, register byte *bs, register int nbytes)
+int DumpByteString(DumpBuffer_t *buf, byte tag, byte *bs, int nbytes)
 {
-    register byte *p = Reserve(buf, 1+nbytes);
+    byte *p = Reserve(buf, 1+nbytes);
     if (p) {
 	*p++ = tag;
-	bcopy(bs, p, nbytes);
+	memcpy(p, bs, nbytes);
 	return 0;
     }
     return -1;
@@ -288,23 +288,23 @@ int DumpByteString(DumpBuffer_t *buf, byte tag, register byte *bs, register int 
 int DumpVV(DumpBuffer_t *buf, byte tag, struct ViceVersionVector *vv)
 {
     DumpTag(buf, tag);
-    DumpLong(buf, '0', vv->Versions.Site0);
-    DumpLong(buf, '1', vv->Versions.Site1);
-    DumpLong(buf, '2', vv->Versions.Site2);
-    DumpLong(buf, '3', vv->Versions.Site3);
-    DumpLong(buf, '4', vv->Versions.Site4);
-    DumpLong(buf, '5', vv->Versions.Site5);
-    DumpLong(buf, '6', vv->Versions.Site6);
-    DumpLong(buf, '7', vv->Versions.Site7);
-    DumpLong(buf, 's', vv->StoreId.Host);
-    DumpLong(buf, 'u', vv->StoreId.Uniquifier);
-    DumpLong(buf, 'f', vv->Flags);
+    DumpInt32(buf, '0', vv->Versions.Site0);
+    DumpInt32(buf, '1', vv->Versions.Site1);
+    DumpInt32(buf, '2', vv->Versions.Site2);
+    DumpInt32(buf, '3', vv->Versions.Site3);
+    DumpInt32(buf, '4', vv->Versions.Site4);
+    DumpInt32(buf, '5', vv->Versions.Site5);
+    DumpInt32(buf, '6', vv->Versions.Site6);
+    DumpInt32(buf, '7', vv->Versions.Site7);
+    DumpInt32(buf, 's', vv->StoreId.Host);
+    DumpInt32(buf, 'u', vv->StoreId.Uniquifier);
+    DumpInt32(buf, 'f', vv->Flags);
     return DumpTag(buf, (byte)D_ENDVV);
 }
 
 int DumpFile(DumpBuffer_t *buf, byte tag, int fd, int vnode)
 {
-    register long n, nbytes, howMany;
+    long n, nbytes, howMany;
     byte *p;
     struct stat status;
     fstat(fd, &status);
@@ -315,17 +315,18 @@ int DumpFile(DumpBuffer_t *buf, byte tag, int fd, int vnode)
 	LogMsg(0, VolDebugLevel, stdout, "Dump Buffer not big enough!");
 	return -1;
     }
-    DumpLong(buf, tag, status.st_size);
+    DumpInt32(buf, tag, status.st_size);
     howMany = status.st_blksize;
-    for (nbytes = status.st_size;nbytes;nbytes -= n) {
+    for (nbytes = status.st_size; nbytes; nbytes -= n) {
 	if (howMany > nbytes)
 	    howMany = nbytes;
 	p = Reserve(buf, (int)howMany);
 	if (!p) return -1;
 	n = read(fd, p, (int)howMany);
-	if (n < howMany){
-	    LogMsg(0, VolDebugLevel, stdout, "Error reading inode %d for vnode %d; dump aborted",
-	    	status.st_ino, vnode);
+	if (n < howMany) {
+	    LogMsg(0, VolDebugLevel, stdout,
+		   "Error reading inode %d for vnode %d; dump aborted",
+		   status.st_ino, vnode);
 	    CODA_ASSERT(0);
 	}
     }
@@ -333,7 +334,7 @@ int DumpFile(DumpBuffer_t *buf, byte tag, int fd, int vnode)
 }
 
 int DumpEnd(DumpBuffer_t *buf) {
-    DumpLong(buf, D_DUMPEND, DUMPENDMAGIC);
+    DumpInt32(buf, D_DUMPEND, DUMPENDMAGIC);
     return FlushBuf(buf);	 /* Force whatever is left in buffer to disk. */
 }
 

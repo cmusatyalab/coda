@@ -44,6 +44,19 @@ typedef RPC2_Struct {
     RPC2_Integer VolumeSize;
 } RVMSize_data;
 
+typedef RPC2_Struct {
+    RPC2_Unsigned Lvl0;
+    RPC2_Unsigned Lvl1;
+    RPC2_Unsigned Lvl2;
+    RPC2_Unsigned Lvl3;
+    RPC2_Unsigned Lvl4;
+    RPC2_Unsigned Lvl5;
+    RPC2_Unsigned Lvl6;
+    RPC2_Unsigned Lvl7;
+    RPC2_Unsigned Lvl8;
+    RPC2_Unsigned Lvl9;
+} VolDumpEstimates;
+
 1: VolSalvage(IN RPC2_String partition, IN RPC2_Unsigned VolumeNumber, IN RPC2_Integer force, IN RPC2_Integer debug, IN RPC2_Integer list);
 
 2 :VolCreate(IN RPC2_String partition, IN RPC2_String volname, IN OUT VolumeId volid, IN RPC2_Integer repvol, IN VolumeId grpid);
@@ -70,7 +83,7 @@ typedef RPC2_Struct {
 
 13: VolSetDebug(IN RPC2_Integer debuglevel);
 
-14 : VolDump();	/* Place holder, replaced by next call. */
+14: VolDumpEstimate(IN RPC2_Unsigned volid, OUT VolDumpEstimates sizes);
 
 15: VolNewDump(IN RPC2_Unsigned volid, IN OUT RPC2_Unsigned Incremental);
 
@@ -126,3 +139,4 @@ typedef RPC2_Struct {
 38: VolSwapmalloc();
 
 39: VolSetWBParms(IN VolumeId Vid, IN RPC2_Integer newWBFlag);
+

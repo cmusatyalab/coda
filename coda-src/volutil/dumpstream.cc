@@ -70,7 +70,8 @@ int GetShort(FILE *stream, unsigned short *sp) { /* Assuming two byte words. */
     return TRUE;
 }
 
-int GetLong(FILE *stream, unsigned long *lp) {	 /* Assuming four byte words. */
+int GetInt32(FILE *stream, unsigned int *lp)
+{
     unsigned char a, b, c, d;
     a = fgetc(stream);
     b = fgetc(stream);
@@ -79,15 +80,15 @@ int GetLong(FILE *stream, unsigned long *lp) {	 /* Assuming four byte words. */
     if (feof(stream))
 	return FALSE;
 
-    unsigned long v = (a << 24) | (b << 16) | (c << 8) | d;
+    unsigned int v = (a << 24) | (b << 16) | (c << 8) | d;
     *lp = v;
     return TRUE;
 }
 
 int GetString(FILE *stream, register char *to, register int max)
 {
-    unsigned long len;
-    if (!GetLong(stream, &len))
+    unsigned int len;
+    if (!GetInt32(stream, &len))
 	return FALSE;
 
     if ((int)len + 1 > max) {	/* Ensure we only use max room */
@@ -123,47 +124,47 @@ int GetVV(FILE *stream, register vv_t *vv)
     while ((tag = fgetc(stream)) > D_MAX && tag) {
 	switch (tag) {
 	    case '0':
-		if (!GetLong(stream, (unsigned long *)&vv->Versions.Site0))
+		if (!GetInt32(stream, (unsigned int *)&vv->Versions.Site0))
 		    return FALSE;
 		break;
 	    case '1':
-		if (!GetLong(stream, (unsigned long *)&vv->Versions.Site1))
+		if (!GetInt32(stream, (unsigned int *)&vv->Versions.Site1))
 		    return FALSE;
 		break;
 	    case '2':
-		if (!GetLong(stream, (unsigned long *)&vv->Versions.Site2))
+		if (!GetInt32(stream, (unsigned int *)&vv->Versions.Site2))
 		    return FALSE;
 		break;
 	    case '3':
-		if (!GetLong(stream, (unsigned long *)&vv->Versions.Site3))
+		if (!GetInt32(stream, (unsigned int *)&vv->Versions.Site3))
 		    return FALSE;
 		break;
 	    case '4':
-		if (!GetLong(stream, (unsigned long *)&vv->Versions.Site4))
+		if (!GetInt32(stream, (unsigned int *)&vv->Versions.Site4))
 		    return FALSE;
 		break;
 	    case '5':
-		if (!GetLong(stream, (unsigned long *)&vv->Versions.Site5))
+		if (!GetInt32(stream, (unsigned int *)&vv->Versions.Site5))
 		    return FALSE;
 		break;
 	    case '6':
-		if (!GetLong(stream, (unsigned long *)&vv->Versions.Site6))
+		if (!GetInt32(stream, (unsigned int *)&vv->Versions.Site6))
 		    return FALSE;
 		break;
 	    case '7':
-		if (!GetLong(stream, (unsigned long *)&vv->Versions.Site7))
+		if (!GetInt32(stream, (unsigned int *)&vv->Versions.Site7))
 		    return FALSE;
 		break;
 	    case 's':
-		if (!GetLong(stream, (unsigned long *)(unsigned long *)&vv->StoreId.Host))
+		if (!GetInt32(stream, (unsigned int *)&vv->StoreId.Host))
 		    return FALSE;
 		break;
 	    case 'u':
-		if (!GetLong(stream, (unsigned long *)&vv->StoreId.Uniquifier))
+		if (!GetInt32(stream, (unsigned int *)&vv->StoreId.Uniquifier))
 		    return FALSE;
 		break;
 	    case 'f':
-		if (!GetLong(stream, (unsigned long *)&vv->Flags))
+		if (!GetInt32(stream, (unsigned int *)&vv->Flags))
 		    return FALSE;
 		break;
 	}
@@ -208,36 +209,36 @@ dumpstream::dumpstream(char *filename)
 int dumpstream::getDumpHeader(struct DumpHeader *hp)
 {
     int tag;
-    unsigned long beginMagic;
+    unsigned int beginMagic;
     if (fgetc(stream) != D_DUMPHEADER
-       || !GetLong(stream, &beginMagic)
-       || !GetLong(stream, (unsigned long *)&hp->version)
+       || !GetInt32(stream, &beginMagic)
+       || !GetInt32(stream, (unsigned int *)&hp->version)
        || beginMagic != DUMPBEGINMAGIC)
 	return 0;
     hp->volumeId = 0;
     while ((tag = fgetc(stream)) > D_MAX) {
 	switch(tag) {
 	    case 'v':
-	    	if (!GetLong(stream, &hp->volumeId))
+	    	if (!GetInt32(stream, (unsigned int *)&hp->volumeId))
 		    return 0;
 		break;
 	    case 'p':
-	    	if (!GetLong(stream, &hp->parentId))
+	    	if (!GetInt32(stream, (unsigned int *)&hp->parentId))
 		    return 0;
 		break;
 	    case 'n':
 	        GetString(stream, hp->volumeName, (int) sizeof(hp->volumeName));
 		break;
 	    case 'b':
-	        if (!GetLong(stream, &hp->backupDate))
+	        if (!GetInt32(stream, (unsigned int *)&hp->backupDate))
 		    return 0;
 		break;
 	    case 'i' :
-		if (!GetLong(stream, (unsigned long *)&hp->Incremental))
+		if (!GetInt32(stream, (unsigned int *)&hp->Incremental))
 		    return 0;
 		break;
 	    case 'I' :
-		if (!GetLong(stream, (unsigned long *)&hp->oldest) || !GetLong(stream, (unsigned long *)&hp->latest))
+		if (!GetInt32(stream, (unsigned int *)&hp->oldest) || !GetInt32(stream, (unsigned int *)&hp->latest))
 		    return 0;
 		break;
 	}
@@ -264,10 +265,10 @@ int dumpstream::getVolDiskData(VolumeDiskData *vol)
     while ((tag = fgetc(stream)) > D_MAX && tag != EOF) {
 	switch (tag) {
 	    case 'i':
-		GetLong(stream, &vol->id);
+		GetInt32(stream, (unsigned int *)&vol->id);
 		break;
 	    case 'v':
-	        GetLong(stream, &(vol->stamp.version));
+	        GetInt32(stream, (unsigned int *)&(vol->stamp.version));
 		break;
 	    case 'n':
 		GetString(stream, vol->name, (int) sizeof(vol->name));
@@ -282,61 +283,61 @@ int dumpstream::getVolDiskData(VolumeDiskData *vol)
 		vol->blessed = fgetc(stream);
 		break;
 	    case 'u':
-		GetLong(stream, &vol->uniquifier);
+		GetInt32(stream, (unsigned int *)&vol->uniquifier);
 		break;
 	    case 't':
 		vol->type = fgetc(stream);
 		break;
 	    case 'p':
-	        GetLong(stream, &vol->parentId);
+	        GetInt32(stream, (unsigned int *)&vol->parentId);
 		break;
 	    case 'g':
-		GetLong(stream, &vol->groupId);
+		GetInt32(stream, (unsigned int *)&vol->groupId);
 		break;
 	    case 'c':
-	        GetLong(stream, &vol->cloneId);
+	        GetInt32(stream, (unsigned int *)&vol->cloneId);
 		break;
 	    case 'b' :
-		GetLong(stream, &vol->backupId);
+		GetInt32(stream, (unsigned int *)&vol->backupId);
 		break;
 	    case 'q':
-	        GetLong(stream, (unsigned long *)&vol->maxquota);
+	        GetInt32(stream, (unsigned int *)&vol->maxquota);
 		break;
 	    case 'm':
-		GetLong(stream, (unsigned long *)&vol->minquota);
+		GetInt32(stream, (unsigned int *)&vol->minquota);
 		break;
 	    case 'x':
-		GetLong(stream, (unsigned long *)&vol->maxfiles);
+		GetInt32(stream, (unsigned int *)&vol->maxfiles);
 		break;
 	    case 'd':
-	        GetLong(stream, (unsigned long *)&vol->diskused); /* Bogus:  should calculate this */
+	        GetInt32(stream, (unsigned int *)&vol->diskused); /* Bogus:  should calculate this */
 		break;
 	    case 'f':
-		GetLong(stream, (unsigned long *)&vol->filecount);
+		GetInt32(stream, (unsigned int *)&vol->filecount);
 		break;
 	    case 'l': 
 		GetShort(stream, (unsigned short *)&vol->linkcount);
 		break;
 	    case 'a':
-		GetLong(stream, &vol->accountNumber);
+		GetInt32(stream, (unsigned int *)&vol->accountNumber);
 		break;
 	    case 'o':
-	  	GetLong(stream, &vol->owner);
+	  	GetInt32(stream, (unsigned int *)&vol->owner);
 		break;
 	    case 'C':
-		GetLong(stream, &vol->creationDate);
+		GetInt32(stream, (unsigned int *)&vol->creationDate);
 		break;
 	    case 'A':
-		GetLong(stream, &vol->accessDate);
+		GetInt32(stream, (unsigned int *)&vol->accessDate);
 		break;
 	    case 'U':
-	    	GetLong(stream, &vol->updateDate);
+	    	GetInt32(stream, (unsigned int *)&vol->updateDate);
 		break;
 	    case 'E':
-	    	GetLong(stream, &vol->expirationDate);
+	    	GetInt32(stream, (unsigned int *)&vol->expirationDate);
 		break;
 	    case 'B':
-	    	GetLong(stream, &vol->backupDate);
+	    	GetInt32(stream, (unsigned int *)&vol->backupDate);
 		break;
 	    case 'O':
 	    	GetString(stream, vol->offlineMessage, (int) sizeof(vol->offlineMessage));
@@ -345,22 +346,22 @@ int dumpstream::getVolDiskData(VolumeDiskData *vol)
 		GetString(stream, vol->motd, (int) sizeof(vol->motd));
 		break;
 	    case 'W': {
-		unsigned long length;
+		unsigned int length;
 		int i;
-    		unsigned long data;
-	  	GetLong(stream, &length);
+    		unsigned int data;
+	  	GetInt32(stream, &length);
 		for (i = 0; i<(int)length; i++) {
-		    GetLong(stream, &data);
+		    GetInt32(stream, &data);
 		    if (i < (int)(sizeof(vol->weekUse)/sizeof(vol->weekUse[0])))
 			vol->weekUse[i] = data;
 		}
 		break;
 	    }
 	    case 'D':
-		GetLong(stream, &vol->dayUseDate);
+		GetInt32(stream, (unsigned int *)&vol->dayUseDate);
 		break;
 	    case 'Z':
-		GetLong(stream, (unsigned long *)&vol->dayUse);
+		GetInt32(stream, (unsigned int *)&vol->dayUse);
 		break;
 	    case 'V':
 		GetVV(stream, &vol->versionvector);
@@ -375,7 +376,7 @@ int dumpstream::getVolDiskData(VolumeDiskData *vol)
    magic number marking the end of a dump */
 int dumpstream::EndOfDump()
 {
-    unsigned long magic;
+    unsigned int magic;
 
     /* Skip over whatever garbage exists on the stream (remains of last vnode) */
     skip_vnode_garbage();
@@ -385,7 +386,7 @@ int dumpstream::EndOfDump()
 	return -1;
     }
 
-    GetLong(stream, &magic);
+    GetInt32(stream, &magic);
     if (magic != DUMPENDMAGIC) {
 	LogMsg(0, VolDebugLevel, stderr, "Dump Magic Value Incorrect for %s", name);
 	return -1;
@@ -425,11 +426,11 @@ int dumpstream::getVnodeIndex(VnodeClass Type, long *nVnodes, long *listsize)
     while ((tag = fgetc(stream)) > D_MAX && tag != EOF) {
 	switch(tag) {
 	  case 'v':
-	    if (!GetLong(stream, (unsigned long *)nVnodes))
+	    if (!GetInt32(stream, (unsigned int *)nVnodes))
 		return -1;
 	    break;
 	  case 's':
-	    if (!GetLong(stream, (unsigned long *)listsize))
+	    if (!GetInt32(stream, (unsigned int *)listsize))
 		return -1;
 	    break;
 	  default:
@@ -456,7 +457,7 @@ int dumpstream::skip_vnode_garbage()
 
 	CODA_ASSERT (IndexType == vLarge);
 	LogMsg(10, VolDebugLevel, stdout, "SkipVnodeData: Skipping dirpages for %s", name);
-	if (!GetLong(stream, (unsigned long *)&npages))
+	if (!GetInt32(stream, (unsigned int *)&npages))
 	    return -1;
 	
 	for (int i = 0; i < npages; i++){ 	/* Skip directory pages */
@@ -474,7 +475,7 @@ int dumpstream::skip_vnode_garbage()
 	CODA_ASSERT (IndexType == vSmall);
 	LogMsg(10, VolDebugLevel, stdout, "SkipVnodeData: Skipping file data for %s", name);
 
-	if (!GetLong(stream, (unsigned long *)&filesize))
+	if (!GetInt32(stream, (unsigned int *)&filesize))
 	    return -1;
 
 	for (nbytes = filesize; nbytes; nbytes -= size) { /* Skip the filedata */
@@ -532,8 +533,8 @@ int dumpstream::getNextVnode(VnodeDiskObject *vdop, long *vnodeNumber, int *dele
 	vdop->type = vNull;
 	return 0;
     } else if (tag == D_RMVNODE) { /* Vnode was deleted */
-	if (!GetLong(stream, (unsigned long *)vnodeNumber) ||
-	    !GetLong(stream, &vdop->uniquifier)) 
+	if (!GetInt32(stream, (unsigned int *)vnodeNumber) ||
+	    !GetInt32(stream, (unsigned int *)&vdop->uniquifier)) 
 	    return -1;
 	LogMsg(10, VolDebugLevel, stdout, "Deleted Vnode (%x.%x) found ",
 	       *vnodeNumber, vdop->uniquifier);
@@ -546,8 +547,8 @@ int dumpstream::getNextVnode(VnodeDiskObject *vdop, long *vnodeNumber, int *dele
     }
 
     LogMsg(10, VolDebugLevel, stdout, "GetNextVnode: Real Vnode found! ");
-    if (!GetLong(stream, (unsigned long *)vnodeNumber) ||
-	!GetLong(stream, &vdop->uniquifier))
+    if (!GetInt32(stream, (unsigned int *)vnodeNumber) ||
+	!GetInt32(stream, (unsigned int *)&vdop->uniquifier))
 	return -1;
     LogMsg(10, VolDebugLevel, stdout, "%d", *vnodeNumber);
 
@@ -565,28 +566,28 @@ int dumpstream::getNextVnode(VnodeDiskObject *vdop, long *vnodeNumber, int *dele
 	    GetShort(stream, &vdop->linkCount);
 	    break;
 	  case 'L':
-	    GetLong(stream, &vdop->length);
+	    GetInt32(stream, (unsigned int *)&vdop->length);
 	    break;
 	  case 'v':
-	    GetLong(stream, &vdop->dataVersion);
+	    GetInt32(stream, (unsigned int *)&vdop->dataVersion);
 	    break;
 	  case 'V':
 	    GetVV(stream, &vdop->versionvector);
 	    break;
 	  case 'm':
-	    GetLong(stream, &vdop->unixModifyTime);
+	    GetInt32(stream, (unsigned int *)&vdop->unixModifyTime);
 	    break;
 	  case 'a':
-	    GetLong(stream, &vdop->author);
+	    GetInt32(stream, (unsigned int *)&vdop->author);
 	    break;
 	  case 'o':
-	    GetLong(stream, &vdop->owner);
+	    GetInt32(stream, (unsigned int *)&vdop->owner);
 	    break;
 	  case 'p':
-	    GetLong(stream, &vdop->vparent);
+	    GetInt32(stream, (unsigned int *)&vdop->vparent);
 	    break;
 	  case 'q':
-	    GetLong(stream, &vdop->uparent);
+	    GetInt32(stream, (unsigned int *)&vdop->uparent);
 	    break;
 	  case 'A':
 	    CODA_ASSERT(vdop->type == vDirectory);
@@ -619,10 +620,10 @@ dumpstream::copyVnodeData(DumpBuffer_t *dbuf)
 	/* We get a number of pages, pages are PAGESIZE bytes long. */
 	long num_pages;
 	
-	if (!GetLong(stream, (unsigned long *)&num_pages))
+	if (!GetInt32(stream, (unsigned int *)&num_pages))
 	    return -1;
 
-	DumpLong(dbuf, D_DIRPAGES, num_pages);
+	DumpInt32(dbuf, D_DIRPAGES, num_pages);
 
 	for (int i = 0; i < num_pages; i++) { /* copy PAGESIZE bytes to output. */
 	    tag = fgetc(stream);
@@ -643,10 +644,10 @@ dumpstream::copyVnodeData(DumpBuffer_t *dbuf)
 
 	/* First need to output the tag and the length */
 	long filesize, size = PAGESIZE;
-	if (!GetLong(stream, (unsigned long *)&filesize)) 
+	if (!GetInt32(stream, (unsigned int *)&filesize)) 
 	    return -1;
 	byte *p;
-	DumpLong(dbuf, D_FILEDATA, filesize);
+	DumpInt32(dbuf, D_FILEDATA, filesize);
 	for (nbytes = filesize; nbytes; nbytes -= size) {
 	    if (nbytes < size)
 		size = nbytes;
