@@ -1,0 +1,33 @@
+#!/bin/sh
+#
+# Simple logrotation for Coda server logfiles
+#
+
+vicedir=/vice
+. `codaconfedit server.conf`
+
+srvdir=${vicedir}/srv
+authdir=${vicedir}/auth2
+
+for i in 9 8 7 6 5 4 3 2 1 0 ; do
+    j=`expr $i + 1`
+    mv -f ${srvdir}/SrvLog-$i ${srvdir}/SrvLog-$j
+    mv -f ${srvdir}/SrvErr-$i ${srvdir}/SrvErr-$j
+    mv -f ${authdir}/AuthLog-$i ${authdir}/AuthLog-$j
+done
+
+mv -f ${srvdir}/SrvLog ${srvdir}/SrvLog-0
+mv -f ${srvdir}/SrvErr ${srvdir}/SrvErr-0
+mv -f ${authdir}/AuthLog ${authdir}/AuthLog-0
+
+# Tell codasrv and auth2 to reopen their logfiles
+kill -HUP `cat ${srvdir}/pid`
+kill -HUP `cat ${authdir}/pid`
+
+# alternatively use one of the following,
+## run volutil in the background, just in case the server isn't running.
+# volutil swaplog &
+# killall -HUP codasrv
+#
+# and,
+# killall -HUP auth2
