@@ -396,6 +396,9 @@ static int SalvageFileSys(char *path, VolumeId singleVolumeNumber)
 	return (camstatus);
     }
 
+    if (inodeFd != -1)
+	close(inodeFd);
+
     if (ForceSalvage && !singleVolumeNumber) {
 	if (stat(forcepath, &force) == 0)
 	    unlink("forcepath");
