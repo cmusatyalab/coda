@@ -47,7 +47,7 @@ extern "C" {
 #include <string.h>
 #include <stdlib.h>
 #include <time.h>
-#if	defined(__FreeBSD__) && !defined(__FreeBSD__version)
+#if	defined(__FreeBSD__) && !defined(__FreeBSD_version)
 #include <sys/time.h>
 #endif
 
