@@ -19,10 +19,6 @@ listed in the file CREDITS.
 #include <config.h>
 #endif
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 #include <unistd.h>
 #include <errno.h>
 
@@ -31,10 +27,6 @@ extern "C" {
 #include <string.h>
 #else /* HAVE_FLOCK_LOCKING */
 #include <sys/file.h>
-#endif
-
-#ifdef __cplusplus
-}
 #endif
 
 int myflock(int fd, int type, int block) {
