@@ -30,7 +30,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vice/srv.cc,v 4.19 1998/06/16 20:45:42 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vice/srv.cc,v 4.20 1998/08/05 23:50:23 braam Exp $";
 #endif /*_BLURB_*/
 
 /*
@@ -145,7 +145,7 @@ extern "C" {
 
 
 /* Auth2 imports. */
-extern "C" long GetKeysFromToken(RPC2_CountedBS *, RPC2_EncryptionKey, RPC2_EncryptionKey);
+extern "C" long GetKeysFromToken(IN RPC2_Integer AuthenticationType, RPC2_CountedBS *, RPC2_EncryptionKey, RPC2_EncryptionKey);
 extern "C" void SetServerKeys(RPC2_EncryptionKey, RPC2_EncryptionKey);
 
 
