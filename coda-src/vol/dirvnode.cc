@@ -226,7 +226,9 @@ void VN_CopyOnWrite(struct Vnode *vptr)
 	     (void *) pdce, (void *) pdirh);
 	vptr->disk.inodeNumber = 0;
 	vptr->disk.cloned = 0;
+	/* put _both_ back decreasing the count */
 	VN_PutDirHandle(vptr);
+	DC_SetCount(oldpdce, DC_Count(oldpdce)-1);
 	vptr->dh = pdce;
 
 }
