@@ -8,7 +8,10 @@ AC_DEFUN(CODA_SETUP_BUILD,
 [AC_SUBST(LIBTOOL_LDFLAGS)
 
 case ${target} in
-  djgpp | win95 | dos )  target=i386-pc-msdos ;;
+  djgpp | dos )  target=i386-pc-msdos
+		 dosmmap=false ;;
+  win95 | win98 ) target=i386-pc-msdos 
+		 dosmmap=true ;;
   cygwin* | winnt | nt ) target=i386-pc-cygwin ;;
   arm ) target=arm-unknown-linux-gnuelf ;;
 esac
@@ -40,9 +43,16 @@ if test ${build} != ${host} ; then
    i*86-pc-msdos )
     dnl no shared libs for dos
     AM_DISABLE_SHARED
+   
 
-    CC="dos-gcc -bmmap"
-    CXX="dos-gcc -bmmap"
+    if ${dosmmap} ; then 
+      CC="dos-gcc -bmmap"	
+      CXX="dos-gcc -bmmap"
+    else
+      CC="dos-gcc -bw95"	
+      CXX="dos-gcc -bw95"
+    fi
+
     AR="dos-ar"
     RANLIB="true"
     AS="dos-as"
@@ -50,7 +60,7 @@ if test ${build} != ${host} ; then
 
     dnl We have to override some things the configure script tends to
     dnl get wrong as it tests the build platform feature
-    ac_cv_func_mmap_fixed_mapped=yes
+    ac_cv_func_mmap_fixed_mapped=no
     ;;
    i*86-pc-cygwin )
     dnl -D__CYGWIN32__ should be defined but sometimes isn't (wasn't?)
