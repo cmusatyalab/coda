@@ -1,0 +1,5 @@
+Makefile
+Makefile.in
+rvm.spec
+rvm-nt.spec
+rvm-dos.spec

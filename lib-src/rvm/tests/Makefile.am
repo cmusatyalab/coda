@@ -22,16 +22,18 @@ noinst_PROGRAMS = testrvm rvm_basher lwp_basher
 INCLUDES = -I$(top_srcdir)/include
 
 testrvm_SOURCES = testrvm.c testrvm.h
-testrvm_LDADD = ../rvm/librvm.la
+testrvm_LDADD = $(top_builddir)/rvm/librvm.la
 
-rvm_basher_LDADD = ../rds/librds.la ../seg/libseg.la ../rvm/librvm.la
+rvm_basher_LDADD = $(top_builddir)/rds/librds.la \
+    $(top_builddir)/seg/libseg.la $(top_builddir)/rvm/librvm.la
 
 lwp_basher_SOURCES =
 lwp_basher_LDFLAGS = -static
-lwp_basher_LDADD = lwp_basher.o ../rds/librdslwp.la ../seg/libseg.la \
-    ../rvm/librvmlwp.la $(LIBLWP) $(LIBPTHREAD)
+lwp_basher_LDADD = lwp_basher.o $(top_builddir)/rds/librdslwp.la \
+    $(top_builddir)/seg/libseg.la $(top_builddir)/rvm/librvmlwp.la \
+    $(LIBLWP) $(LIBPTHREAD)
 
-EXTRA_DIST = README basher_parms log_file map_chk_file map_data_file \
+EXTRA_DIST = README basher_parms map_chk_file map_data_file \
     t1_chk_file t3_chk_file t5_chk_file test_data_file
 MAINTAINERCLEANFILES = Makefile.in
 

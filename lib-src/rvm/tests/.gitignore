@@ -1,0 +1,6 @@
+Makefile
+Makefile.in
+rvm_basher
+lwp_basher
+.deps
+.libs

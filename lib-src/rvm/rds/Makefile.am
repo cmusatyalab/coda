@@ -33,7 +33,7 @@ librdslwp_la_LIBADD = rds_coalesce.lo rds_free.lo rds_init.lo rds_malloc.lo \
 librdslwp_la_LDFLAGS = -version-info 1:0:0 $(LIBTOOL_LDFLAGS)
 
 sbin_PROGRAMS = rdsinit
-rdsinit_LDADD = librds.la ../seg/libseg.la ../rvm/librvm.la
+rdsinit_LDADD = librds.la $(top_builddir)/seg/libseg.la $(top_builddir)/rvm/librvm.la
 
 MAINTAINERCLEANFILES = Makefile.in
 

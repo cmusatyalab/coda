@@ -39,7 +39,7 @@ if test ${build} != ${target} ; then
     OBJDUMP="gnuwin32objdump"
 
     LDFLAGS="-L/usr/gnuwin32/lib"
-    
+
     dnl We seem to need these to get a dll built
     libtool_flags="--enable-win32-dll"
     LIBTOOL_LDFLAGS="-no-undefined"
@@ -51,8 +51,7 @@ dnl ---------------------------------------------
 dnl Specify paths to the lwp includes and libraries
 
 AC_DEFUN(CODA_OPTION_LWP,
- [AC_SUBST(LWPINCLUDES)
-  AC_ARG_WITH(lwp-includes,
+ [AC_ARG_WITH(lwp-includes,
     [  --with-lwp-includes     Location of the the lwp include files],
     [ CPPFLAGS="${CPPFLAGS} -I`(cd ${withval} ; pwd)`" ])
   AC_ARG_WITH(lwp-library,
@@ -83,4 +82,4 @@ AC_DEFUN(CODA_FIND_LIBLWP,
    *)    CPPFLAGS="${CPPFLAGS} -I${coda_cv_lwppath}/include"
          LDFLAGS="${LDFLAGS} -L${coda_cv_lwppath}/lib" ;;
  esac])
-                                                
+
