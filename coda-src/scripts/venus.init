@@ -11,9 +11,6 @@
 # Source function library if we are a System V type OS using SYSV init.
 # Otherwise, we are probably a BSD like OS.
 
-VICE=/vice
-VICESRV=${VICE}/srv
-
 PATH=/sbin:/usr/sbin:$PATH
 export PATH
 
