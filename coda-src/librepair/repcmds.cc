@@ -82,7 +82,7 @@ int BeginRepair(char *pathname, struct repvol **repv, char *msg, int msgsize) {
     /* Determine conflict type */
     sscanf(vioc.out, "%d", &rc);
     if (rc == 0)
-	(*repv)->local = 1; /* LOCAL_GLOBAL */
+	(*repv)->local = 1; /* local/global */
     else if (rc == 1) {
 	(*repv)->local = 1;
 	if (EndRepair(*repv, 0, msgbuf, sizeof(msgbuf)) < 0)
@@ -91,8 +91,10 @@ int BeginRepair(char *pathname, struct repvol **repv, char *msg, int msgsize) {
 	return(-1);
     }
     else if (rc == 2)
-	(*repv)->local = 0; /* SERVER_SERVER */
-    else { /* (rc < 0) || (rc > 2) */
+	(*repv)->local = 0; /* server/server */
+    else if (rc == 3)
+	(*repv)->local = 2; /* mixed lg_ss */
+    else { /* (rc < 0) || (rc > 3) */
 	strerr(msg, msgsize, "Bogus return code from venus (%d)", rc);
 	repair_finish(*repv);
 	return(-1);
@@ -361,13 +363,13 @@ int DiscardAllLocal(struct repvol *repv, char *msg, int msgsize) {
  * Fprints results to res if non-NULL
  * Returns 0 on success, -1 on error and fills in msg if non-NULL */
 int DoRepair(struct repvol *repv, char *ufixpath, FILE *res, char *msg, int msgsize) {
-    char space[DEF_BUF], fixpath[MAXPATHLEN];
+    char space[DEF_BUF], fixpath[MAXPATHLEN], expath[MAXPATHLEN], buf[BUFSIZ];
     VolumeId *vids;
+    struct ViceIoctl vioc;
     struct volrep *rwv;
     long *rcodes;
-    int i, rc, llen, glen;
-    struct listhdr *localhd;
-    struct listhdr *serverhd;
+    int i, rc, hcount;
+    struct listhdr *hlist, *l = NULL;
 
     if (repv == NULL) {
       strerr(msg, msgsize, "NULL repv");
@@ -375,10 +377,18 @@ int DoRepair(struct repvol *repv, char *ufixpath, FILE *res, char *msg, int msgs
     }
 
     if (repv->dirconf) { /* directory conflict */
-	if (makedff(ufixpath, fixpath) < 0) { /* Create internal form of fix file */
-	    strerr(msg, msgsize, "Error in fix file");
-	    return(-1);
+	if ((repv->local) &&  (repv->local != 2)) {
+	    /* Expand all "global" entries into individual server replicas */
+	    strcpy(expath, "/tmp/REPAIR.XXXXXX");
+	    mktemp(expath);
+	    copyfile_byname(ufixpath, expath);
+	    if (chmod(expath, 0644) < 0) { unlink(expath); return(-1); }
+	    if (glexpand(repv->rodir, expath, msg, msgsize) < 0) 
+		{ unlink(expath); return(-1); }
+	    if (makedff(expath, fixpath, msg, msgsize) < 0) return(-1);
 	}
+	/* Create internal form of fix file */
+	else if (makedff(ufixpath, fixpath, msg, msgsize) < 0) return(-1);
     }
     else strncpy(fixpath, ufixpath, sizeof(fixpath));
 
@@ -411,9 +421,13 @@ int DoRepair(struct repvol *repv, char *ufixpath, FILE *res, char *msg, int msgs
 	for (i = 0; (i < MAXHOSTS); i++)
 	    if (vids[i]) fprintf(res, "Return code %d for unexpected vid 0x%lx!\n", rcodes[i], vids[i]);
     }
-    
+
     /* Clean up */
-    if (repv->dirconf) unlink(fixpath); /* ignore rc */
+    if (repv->dirconf) { 
+	unlink(fixpath); /* ignore rc */
+	if ((repv->local) &&  (repv->local != 2))
+	    unlink(expath); /* ignore rc again */
+    }
     return(0);
 }
 
@@ -463,8 +477,8 @@ int RemoveInc(struct repvol *repv, char *msg, int msgsize) {
     char *user = NULL, *rights = NULL, *owner = NULL, *mode = NULL, **names;
     int nreplicas, rc, i, j;
     struct volrep  *rwv;
-    struct listhdr *repairlist;
-    resreplica *dirs;
+    struct listhdr *repairlist = NULL;
+    resreplica *dirs = NULL;
 
     user = rights = owner = mode = NULL;
 
@@ -777,16 +791,157 @@ int getVolrepNames(struct repvol *repv, char ***names, char *msg, int msgsize) {
     return (nreps);
 }
 
+
+static void growarray(char ***arrayaddr, int *arraysize) {
+    *arraysize += 1; /* grow by one element */
+    if (*arraysize > 1)
+    	*arrayaddr = (char **)realloc(*arrayaddr, (*arraysize)*sizeof(char *));
+    else 
+	*arrayaddr = (char **)malloc(sizeof(char *));    
+}
+
+/*  Appends expanded entried to (ASCII) fixfile
+ *  Returns 0 on success, -1 on failure */
+int glexpand(char *rodir, char *fixfile, char *msg, int msgsize) {
+    int rc, j, k, cnt, gls = 0, lineno = 0;
+    struct in_addr *custodians;
+    VolumeId *repID, sID[VSG_MEMBERS];
+    struct hostent *hent;
+    struct ViceIoctl vio;
+    char **snames = NULL, **glents = NULL, *tail = NULL;
+    char mangle[MAXPATHLEN], line[MAXPATHLEN], gline[MAXPATHLEN];
+    char piobuf[2048]; /* max size of pioctl buffer */
+    struct repair rentry;
+    FILE *ff;
+    
+    if ((ff = fopen(fixfile, "r")) == NULL) {
+        strerr(msg, msgsize, "Could not open ASCII fixfile");
+        return(-1);
+    }
+
+    gline[0] = '\0';
+    for (fgets(line, sizeof(line), ff); !(feof(ff)); fgets(line, sizeof(line), ff)) {
+	lineno++;
+	strcpy(mangle, line);
+
+	/* parse it */
+	mangle[strlen(mangle)-1] = '\0'; /* nuke trailing \n */
+	rc = repair_parseline(mangle, &rentry);
+	switch(rc) {
+	case 0:  /* good line */
+	    if (rentry.opcode == REPAIR_REPLICA) { /* new replica */
+		if (strlen(gline) > 0) goto Out;
+		if (!strcmp(rentry.name, "global")) {
+		    strcpy(gline, line);
+		}
+	    }
+	    else if (strlen(gline) > 0) {
+		growarray(&glents, &gls);
+		glents[(gls - 1)] = strdup(line);
+	    }
+	    break; 	    
+	case -2: /* blankline */
+	    continue;
+	case -1: /* some other bogosity */
+	    strerr(msg, msgsize, "%s: Syntax error, line %d\n", fixfile, lineno);
+	    fclose(ff);
+	    return(-1);
+	}
+    }
+ Out:
+    if (fclose(ff) != 0) {
+	strerr(msg, msgsize, "Error closing ASCII fixfile: %s", strerror(errno));
+	return(-1);
+    }
+    for (j = 0; j < strlen(gline); j++) {
+	if (strncmp(&(gline[j]), "global", 6) == 0) {
+	    gline[j] = '\0';
+	    tail = &(gline[j+6]);
+	    break;
+	}
+    }
+    if (tail == NULL) {
+	strerr(msg, msgsize, "No \"global\" ASCII fixfile");
+	return(-1);
+    }
+
+    /* Set up parms to pioctl */
+    vio.in = 0;
+    vio.in_size = 0;
+    vio.out = piobuf;
+    vio.out_size = sizeof(piobuf);
+
+    /* Do the pioctl */
+    rc = pioctl(rodir, VIOCWHEREIS, &vio, 1);
+    if (rc < 0) {
+        strerr(msg, msgsize, "VIOCWHEREIS failed");
+        return(-1);
+    }
+
+    /* pioctl returns array of IP addrs */
+    custodians = (struct in_addr *)piobuf;
+    repID = (VolumeId *)(piobuf + (sizeof(struct in_addr) * VSG_MEMBERS));
+
+    /* Count up hosts */
+    for (cnt = 0, j = 0; j < 8; j++)
+	if (custodians[j].s_addr == 0) cnt++;
+
+    /* Create array of server names */
+    snames = (char **)calloc(cnt, sizeof(char *));
+    for (cnt = 0, j = 0; j < 8; j++) {
+	if (custodians[j].s_addr == 0) continue;
+	hent = gethostbyaddr((char *)&custodians[j], sizeof(long), AF_INET);
+	sID[cnt] = repID[j];
+	if (hent) {
+	    snames[cnt] = strdup(hent->h_name);
+	    for (k = 0; k < strlen(snames[cnt]); k++)
+		snames[cnt][k] = tolower(snames[j][k]);
+	}
+	else 
+	    snames[cnt] = inet_ntoa(custodians[j]);
+	cnt++;
+    }
+    for (j = 0; j < cnt; j++) {
+    }
+
+    /* Append the new entries */
+    if ((ff = fopen(fixfile, "a")) == NULL) {
+	strerr(msg, msgsize, "Error opening ASCII fixfile: %s", strerror(errno));
+	return(-1);
+    }
+    fprintf(ff, "\n");
+    for (j = 0; j < cnt; j++) {
+	//	fprintf(ff, "%s%s%s", gline, snames[j], tail);
+	fprintf(ff, "%s%s %lx \n", gline, snames[j], sID[j]);
+	for (k = 0; k < gls; k++)
+	    fprintf(ff, "%s", glents[k]);
+	fprintf(ff, "\n");
+    }
+
+    /* Clean up */
+    for (j = 0; j < cnt; j++) 
+	free(snames[j]);
+    free(snames);
+    if (fclose(ff) != 0) {
+	strerr(msg, msgsize, "Error closing ASCII fixfile: %s", strerror(errno));
+	return(-1);
+    }
+    return(0);
+}
+
 /*  extfile: external (ASCII) rep
  *  intfile: internal (binary) rep
  *  Returns 0 on success, -1 on failure */
-int makedff(char *extfile, char *intfile) {
+int makedff(char *extfile, char *intfile, char *msg, int msgsize) {
     struct listhdr *hl;
     int hlc, rc;
 
     /* parse input file and obtain internal rep  */
     rc = repair_parsefile(extfile, &hlc, &hl);
-    if (rc < 0) return(-1);
+    if (rc < 0) {
+        strerr(msg, msgsize, "Error in fix file");
+        return(-1);
+    }
 
     /* generate temp file name */
     strcpy(intfile, "/tmp/REPAIR.XXXXXX");
@@ -794,7 +949,10 @@ int makedff(char *extfile, char *intfile) {
 
     /* write out internal rep */
     rc = repair_putdfile(intfile, hlc, hl);
-    if (rc) return (-1);
+    if (rc) {
+        strerr(msg, msgsize, "Error in fix file");
+        return(-1);
+    }
     /* repair_printfile(intfile); */
 
     free(hl);

@@ -658,6 +658,7 @@ class volent {
 
     /* Utility routines. */
     void GetHosts(struct in_addr hosts[VSG_MEMBERS]);
+    void GetVids(VolumeId out[VSG_MEMBERS]);
     int AVSGsize();
     int IsBackup() { return (!flags.replicated && flags.readonly); }
     int IsReplicated() { return flags.replicated; }
@@ -797,6 +798,7 @@ class repvol : public volent {
 
     /* Utility routines. */
     void GetHosts(struct in_addr hosts[VSG_MEMBERS]);
+    void GetVids(VolumeId out[VSG_MEMBERS]);
     int AVSGsize();
     int WeakVSGSize();
     int IsHostedBy(const struct in_addr *addr); /* XXX not called? */
@@ -1052,6 +1054,8 @@ extern int PathAltered(ViceFid *, char *, ClientModifyLog *, cmlent *);
 			    (op) == OLDCML_SymLink_OP ? "Symlink" :\
 			    (op) == OLDCML_Repair_OP ? "Repair" :\
 			    "???")
+
+#define FAKEROOTFID(fid) (((fid).Vnode == 0xffffffff) && ((fid).Unique == 0x80000))
 
 
 #endif	not _VENUS_VOLUME_H_

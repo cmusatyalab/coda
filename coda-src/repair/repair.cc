@@ -100,7 +100,7 @@ main(int argc, char **argv) {
     }
 }
 
-int checklocal(char *arg) {
+int checkIfLocal(char *arg) {
     switch (session) {
     case SERVER_SERVER:
 	printf("\"%s\" can only be used to repair a local/global conflict\n", arg);
@@ -275,7 +275,7 @@ void rep_CheckLocal(int largc, char **largv) {
     char space[DEF_BUF];
     char buf[DEF_BUF];
 
-    if (checklocal("checklocal")) return;
+    if (checkIfLocal("checklocal")) return;
 
     sprintf(buf, "%d", REP_CMD_CHECK);
     vioc.in = buf;
@@ -307,9 +307,10 @@ void rep_ClearInc(int largc, char **largv) {
 }
 
 void rep_CompareDirs(int largc, char **largv) {
-    char msgbuf[DEF_BUF];
+    char msgbuf[DEF_BUF], space[DEF_BUF], buf[BUFSIZ];
     struct repinfo inf;
     char *fixfile = NULL;
+    struct ViceIoctl vioc;
     int ret;
 
     memset(&inf, 0, sizeof(inf));
@@ -329,14 +330,26 @@ void rep_CompareDirs(int largc, char **largv) {
 	    break;
     }
     if (ret < 0)
-	fprintf(stderr, "%s\n%scomparedirs failed\n", msgbuf, 
-		((ret == -2) ? "Error removing name/name conflicts\n" : ""));
+	fprintf(stderr, "%s\n%s failed\n", msgbuf, ((ret == -2) ? "dorepair" : "comparedirs"));
+    
+    if ((session == LOCAL_GLOBAL) && (ret == 0)) {
+	vioc.out = space;
+	vioc.out_size = DEF_BUF;
+	sprintf(buf, "%d", REP_CMD_PRESERVE_ALL);
+	vioc.in = buf;
+	vioc.in_size = (short) strlen(buf) + 1;
+
+	ret = pioctl("/coda", VIOC_REP_CMD, &vioc, 0);
+	if (ret < 0) perror("VIOC_REP_CMD(REP_CMD_PRESERVE_ALL)");
+	printf("%s\n", vioc.out);
+	fflush(stdout);
+    }
 }
 
 void rep_DiscardAllLocal(int largc, char **largv) {
     char msgbuf[DEF_BUF];
 
-    if (checklocal("discardalllocal")) return;
+    if (checkIfLocal("discardalllocal")) return;
 
     if (DiscardAllLocal(RepairVol, msgbuf, sizeof(msgbuf)) < 0)
 	fprintf(stderr, "%s\ndiscardalllocal failed\n", msgbuf);
@@ -348,7 +361,7 @@ void rep_DiscardLocal(int largc, char **largv) {
     char space[DEF_BUF];
     char buf[BUFSIZ];
     
-    if (checklocal("discardlocal")) return;
+    if (checkIfLocal("discardlocal")) return;
 
     vioc.out = space;
     vioc.out_size = DEF_BUF;
@@ -434,7 +447,7 @@ void rep_ListLocal(int largc, char **largv) {
     char buf[DEF_BUF];
     char filename[MAXPATHLEN];
 
-    if (checklocal("listlocal")) return;
+    if (checkIfLocal("listlocal")) return;
 
     vioc.out = space;
     vioc.out_size = DEF_BUF;
@@ -455,7 +468,7 @@ void rep_ListLocal(int largc, char **largv) {
 	    while (read(fd, buf, DEF_BUF) > 0)
 		write(1, buf, strlen(buf));
 	    close(fd);
-	}	
+	}
     }
     unlink(filename);
 }
@@ -466,7 +479,7 @@ void rep_PreserveAllLocal(int largc, char **largv) {
     char space[DEF_BUF];
     char buf[BUFSIZ];
 
-    if (checklocal("preservealllocal")) return;
+    if (checkIfLocal("preservealllocal")) return;
 
     /* Release volume-level locks */
     vioc.out = space;
@@ -476,7 +489,7 @@ void rep_PreserveAllLocal(int largc, char **largv) {
     vioc.in_size = (short) strlen(buf) + 1;
 
     rc = pioctl("/coda", VIOC_REP_CMD, &vioc, 0);
-    if (rc < 0) perror("VIOC_REP_CMD(REP_CMU_PRESERVE_ALL)");
+    if (rc < 0) perror("VIOC_REP_CMD(REP_CMD_PRESERVE_ALL)");
     printf("%s\n", vioc.out);
     fflush(stdout);
 }
@@ -488,7 +501,7 @@ void rep_PreserveLocal(int largc, char **largv) {
     char space[DEF_BUF];
     char buf[BUFSIZ];
 
-    if (checklocal("preservelocal")) return;
+    if (checkIfLocal("preservelocal")) return;
 
     vioc.out = space;
     vioc.out_size = DEF_BUF;
@@ -591,7 +604,7 @@ void rep_SetGlobalView(int largc, char **largv) {
     char space[DEF_BUF];
     char buf[BUFSIZ];
 
-    if (checklocal("setglobalview")) return;
+    if (checkIfLocal("setglobalview")) return;
     
     vioc.out = space;
     vioc.out_size = DEF_BUF;
@@ -611,7 +624,7 @@ void rep_SetLocalView(int largc, char **largv) {
     char space[DEF_BUF];
     char buf[BUFSIZ];
 
-    if (checklocal("setlocalview")) return;
+    if (checkIfLocal("setlocalview")) return;
 
     vioc.out = space;
     vioc.out_size = DEF_BUF;
@@ -631,7 +644,7 @@ void rep_SetMixedView(int largc, char **largv) {
     char space[DEF_BUF];
     char buf[BUFSIZ];
 
-    if (checklocal("setmixedview")) return;
+    if (checkIfLocal("setmixedview")) return;
 
     vioc.out = space;
     vioc.out_size = DEF_BUF;

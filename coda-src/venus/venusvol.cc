@@ -2214,6 +2214,30 @@ void repvol::GetHosts(struct in_addr hosts[VSG_MEMBERS])
             vsg[i]->Host(&hosts[i]);
 }
 
+void volent::GetVids(VolumeId out[VSG_MEMBERS])
+{
+    if (IsReplicated()) {
+        ((repvol *)this)->GetVids(out);
+    } else {
+        memset(out, 0, VSG_MEMBERS * sizeof(VolumeId));
+        out[0] = ((volrep *)this)->GetVid();
+    }
+}
+
+void repvol::GetVids(VolumeId out[VSG_MEMBERS])
+{
+    memset(out, 0, VSG_MEMBERS * sizeof(VolumeId));
+
+    if (ro_replica) {
+	out[0] = ro_replica->GetVid();
+	return;
+    }
+
+    for (int i = 0; i < VSG_MEMBERS; i++)
+        if (vsg[i])
+            out[i] = vsg[i]->GetVid();
+}
+
 int repvol::IsHostedBy(const struct in_addr *host)
 {
     if (ro_replica)

@@ -309,7 +309,7 @@ Opfound:
 	switch(rs->opcode) {
 	case REPAIR_REMOVEFSL:
 	case REPAIR_REMOVED:
-	    if (i >= 0) goto DoneParse; /* "else" can never happen */
+	    /* if (i >= 0) */ goto DoneParse; /* "else" can never happen */
 
 	case REPAIR_REPLICA:
 	case REPAIR_SETACL:
@@ -362,8 +362,6 @@ int repair_parsefile(char *fname, int *hdcount, struct listhdr **hdarray)
     /*  fname		ascii input file
      *  hdcount		OUT: number of replicas
      *  hdarray		OUT: repair data structure
-     *  lhdcount        OUT: number of local replicas
-     *  lhdarray        OUT: local repair data structure
      *
      *  Reads in ASCII file fname, parses each line, and constructs hdarray.
      *

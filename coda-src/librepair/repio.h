@@ -43,15 +43,17 @@ listed in the file CREDITS.
 #ifndef MAXNAMELEN
 #define MAXNAMELEN 255 /* Max len of pathname component: should this be defined 
                           somewhere in /usr/include/sys? */
+
+#define LOCAL_VID  0xffffffff  /* VolumeId of local fake repair volume */
+
 #endif
 
-struct repair
-    {
+struct repair {
     unsigned opcode;   		/* values defined below */
     char name[MAXNAMELEN];  	/* overloaded; null-terminated */
     char newname[MAXNAMELEN];	/* used only by rename */
     unsigned parms[REPAIR_MAX];  	/* overloaded */
-    };
+};
 
 /* Repair opcodes */
 
@@ -108,12 +110,11 @@ struct repair
    produce one conflicting replica per client.
 */
    
-struct listhdr
-    {
+struct listhdr {
     VolumeId replicaId;		/* unique id of this replica (== its rw volid) */
     unsigned int repairCount;	/* number of entries in array repairList[] */
     struct repair *repairList;	/* pointer to array of repair entries for this replica */
-    };
+};
 
 /* I/O routines */
 int repair_putdfile(char *fname, int replicaCount, struct listhdr *replicaList);

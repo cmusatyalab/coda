@@ -288,14 +288,26 @@ FreeLocks:
 }
 
 
-
 void vproc::ioctl(struct venus_cnode *cp, unsigned int com,
 		   struct ViceIoctl *data, int flags) 
 {
+    struct venus_cnode repcnode;
+    char xreppath[1024];
 
     LOG(1, ("vproc::ioctl(%d): fid = %s, com = %s\n",
 	     u.u_cred.cr_uid, FID_(&cp->c_fid), IoctlOpStr(com)));
-
+    /*
+    if ((cp->c_fid.Vnode == 0xffffffff) && (cp->c_fid.Unique == 0x80000)) {
+	xreppath[0] = '\0';
+	if (strlen(xreppath) > 0) {
+	    LOG(0, ("D'oh!  Looking up \"%s\"\n", xreppath));
+	    if (namev(xreppath, 0, &repcnode) == 0) {
+		LOG(0, ("Replacing with fid %s \n", FID_(&repcnode.c_fid)));
+		cp->c_fid = repcnode.c_fid;
+	    }
+	}
+    }
+    */
     do_ioctl(&cp->c_fid, com, data);
 
     if (u.u_error == EINCONS) {
@@ -303,7 +315,6 @@ void vproc::ioctl(struct venus_cnode *cp, unsigned int com,
 	k_Purge(&cp->c_fid, 1);
     }
 }
-
 
 
 void vproc::getattr(struct venus_cnode *cp, struct coda_vattr *vap) 

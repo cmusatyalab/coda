@@ -668,7 +668,9 @@ OI_FreeLocks:
 		    {
                         /* Extract the host array from the vsgent or volent as appropriate. */
                         v->GetHosts((struct in_addr *)data->out);
-                        data->out_size = VSG_MEMBERS * sizeof(struct in_addr);
+                        /* Extract an array if vids from the vsgent or volent as appropriate. */
+			v->GetVids((VolumeId *)(data->out + (VSG_MEMBERS * sizeof(struct in_addr))));
+                        data->out_size = VSG_MEMBERS * (sizeof(struct in_addr) + sizeof(VolumeId));
                         break;
 		    }
 

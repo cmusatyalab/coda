@@ -27,8 +27,10 @@ extern "C" {
 #include <config.h>
 #endif
 
+#include <ctype.h>
 #include <errno.h>
 #include <inodeops.h>
+#include <netdb.h>
 #include <netinet/in.h>
 #include <parser.h>
 #include <rpc2/rpc2.h>
@@ -38,6 +40,7 @@ extern "C" {
 #include <stdlib.h>
 #include <sys/file.h>
 #include <sys/param.h>
+#include <sys/socket.h>
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <unistd.h>
@@ -47,6 +50,8 @@ extern "C" {
 #include "coda_assert.h"
 #include "coda_string.h"
 #include <vice.h>
+
+#include <copyfile.h>
 
 #ifdef __cplusplus
 }
@@ -96,7 +101,8 @@ int RemoveInc(struct repvol *repv, char *msg, int msgsize);
 
 /* Other utility functions */
 int dorep(struct repvol *repv, char *fixpath, char *buf, int len);
-int makedff(char *extfile, char *intfile);
+int glexpand(char *rodir, char *fixfile, char *msg, int msgsize);
+int makedff(char *extfile, char *intfile, char *msg, int msgsize);
 
 /* Volume data structure manipulation routines -- rvol.cc */
 int  repair_cleanup(struct repvol *repv);

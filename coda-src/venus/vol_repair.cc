@@ -56,6 +56,9 @@ extern "C" {
 /* from libal */
 #include <prs.h>
 
+/* from librepair */
+#include <repio.h>
+
 /* from venus */
 #include "comm.h"
 #include "fso.h"
@@ -149,7 +152,8 @@ int repvol::ConnectedRepair(ViceFid *RepairFid, char *RepairFile, vuid_t vuid,
 {
     int code = 0;
     int i, j, fd;
-    fsobj *RepairF = 0;
+    fsobj *RepairF = NULL;
+    struct ViceFid gfid, *rFid = NULL;
     
     memset(ReturnCodes, 0, VSG_MEMBERS * sizeof(int));
     memset(RWVols, 0, VSG_MEMBERS * sizeof(VolumeId));
@@ -159,6 +163,7 @@ int repvol::ConnectedRepair(ViceFid *RepairFid, char *RepairFile, vuid_t vuid,
     /* Verify that RepairFid is inconsistent. */
     {
 	fsobj *f = 0;
+
 	code = FSDB->Get(&f, RepairFid, vuid, RC_STATUS);
 	if (!(code == 0 && f->IsFakeDir()) && code != EINCONS) {
 	    if (code == 0) {
@@ -169,6 +174,17 @@ int repvol::ConnectedRepair(ViceFid *RepairFid, char *RepairFile, vuid_t vuid,
 	    FSDB->Put(&f);
 	    return(code);
 	}
+
+	/* Check for local repair expansion */
+	if ((code == 0) && FAKEROOTFID(*RepairFid)) {
+	    fsobj *g;
+	    f->Lookup(&g, NULL, "global", vuid, CLU_CASE_SENSITIVE);
+	    gfid = g->fid;
+	    rFid = &gfid;
+	}
+	else /* normal repair, proceed as usual */
+	    rFid = RepairFid; 
+
 	FSDB->Put(&f);
     }
 
@@ -208,7 +224,6 @@ int repvol::ConnectedRepair(ViceFid *RepairFid, char *RepairFile, vuid_t vuid,
     /* The COP1 call. */
     vv_t UpdateSet;
     {
-
 	/* Compute template VV. */
 	vv_t tvv = NullVV;
 	vv_t *RepairVVs[VSG_MEMBERS];
@@ -218,8 +233,8 @@ int repvol::ConnectedRepair(ViceFid *RepairFid, char *RepairFile, vuid_t vuid,
 		fsobj *f = 0;
 		ViceFid rwfid;
 		rwfid.Volume = vsg[i]->GetVid();
-		rwfid.Vnode = RepairFid->Vnode;
-		rwfid.Unique = RepairFid->Unique;
+		rwfid.Vnode = rFid->Vnode;
+		rwfid.Unique = rFid->Unique;
 		if (FSDB->Get(&f, &rwfid, vuid, RC_STATUS) != 0)
 		    continue;
 		RepairVVs[i] = &f->stat.VV;	/* XXX */
@@ -269,12 +284,12 @@ int repvol::ConnectedRepair(ViceFid *RepairFid, char *RepairFile, vuid_t vuid,
 		    goto Exit;
 	    }
 	}
-	status.DataVersion = (FileVersion)0;			/* Anything but -1? -JJK */
+	status.DataVersion = (FileVersion)0; /* Anything but -1? -JJK */
 	status.VV = tvv;
 
 	/* A little debugging help. */
 	if (LogLevel >= 1) {
-	    fprintf(logFile, "Repairing %s:\n", FID_(RepairFid));
+	    fprintf(logFile, "Repairing %s:\n", FID_(rFid));
 	    fprintf(logFile, "\tIV = %d, VT = %d, LC = %d, LE = %ld, DV = %d, DA = %d\n",
 		    status.InterfaceVersion, status.VnodeType, status.LinkCount,
 		    status.Length, status.DataVersion, status.Date);
@@ -317,12 +332,12 @@ int repvol::ConnectedRepair(ViceFid *RepairFid, char *RepairFile, vuid_t vuid,
 
 	/* Make the RPC call. */
 	MarinerLog("store::Repair (%x.%x.%x)\n",
-		   RepairFid->Volume, RepairFid->Vnode, RepairFid->Unique);
+		   rFid->Volume, rFid->Vnode, rFid->Unique);
 	MULTI_START_MESSAGE(ViceRepair_OP);
 	code = MRPC_MakeMulti(ViceRepair_OP, ViceRepair_PTR,
 			      VSG_MEMBERS, m->rocc.handles,
 			      m->rocc.retcodes, m->rocc.MIp, 0, 0,
-			      RepairFid, statusvar_ptrs, &sid, sedvar_bufs);
+			      rFid, statusvar_ptrs, &sid, sedvar_bufs);
 	MULTI_END_MESSAGE(ViceRepair_OP);
 	MarinerLog("store::repair done\n");
 
@@ -353,6 +368,143 @@ int repvol::ConnectedRepair(ViceFid *RepairFid, char *RepairFile, vuid_t vuid,
 	if (HostCount != m->rocc.HowMany)
 	    CHOKE("volent::Repair: collate failed");
 	if (code != 0) goto Exit;
+    }
+
+    /* Prune CML entries if localhost is specified in fixfile */
+    {
+	time_t modtime;
+	int hcount, rc, repLC, mvLC;
+	struct listhdr *hlist, *l = NULL;
+	struct repair *rep_ent;
+	struct ViceFid entryFid, mvFid, mvPFid;
+
+	/* parse input file and obtain internal rep  */
+	if (repair_getdfile(RepairFile, &hcount, &hlist) < 0) {
+	    code = errno; /* XXXX - Could use a more meaningful return code here */
+	    goto Exit;
+	}
+
+	for (i = 0; i < hcount; i++)
+	    if (hlist[i].replicaId == LOCAL_VID) 
+		{ l = &(hlist[i]); break; }
+	if (l != NULL) {
+	    /* found localhost in fixfile */
+	    rep_ent = l->repairList;
+
+	    rc = time(&modtime);
+	    if (code == (time_t)-1) {
+	      code = errno;
+	      goto Exit;
+	    }
+
+	    for (i = 0; i < l->repairCount; i++) {
+
+		if   ( (rep_ent[i].opcode != REPAIR_SETMODE)
+		    && (rep_ent[i].opcode != REPAIR_SETOWNER)
+		    && (rep_ent[i].opcode != REPAIR_SETMTIME))
+		/* Lookup fid of the current CML entry name */
+		{
+		    fsobj *f = NULL, *e = NULL;
+
+		    code = FSDB->Get(&f, rFid, vuid, RC_STATUS);
+		    if (code != 0) {
+			LOG(15, ("Repair: FSDB->Get(%x.%x.%x) error", 
+				 rFid->Volume, rFid->Vnode, rFid->Unique));
+			FSDB->Put(&f);
+			goto Exit;
+		    }
+		    
+		    code = f->Lookup(&e, NULL, rep_ent[i].name, vuid, CLU_CASE_SENSITIVE);
+		    if (code != 0) {
+			LOG(15, ("Repair: (%x.%x.%x)->Lookup(%s) error", 
+				 rFid->Volume, rFid->Vnode, rFid->Unique, rep_ent[i].name));
+			FSDB->Put(&f);
+			goto Exit;
+		    }
+		    entryFid = e->fid;
+		    repLC = e->stat.LinkCount;
+
+		    if (rep_ent[i].opcode == REPAIR_RENAME) {
+			code = f->Lookup(&e, NULL, rep_ent[i].newname, vuid, CLU_CASE_SENSITIVE);
+			if (code != 0) {
+			    LOG(15, ("Repair: (%x.%x.%x)->Lookup(%s) error", 
+				     rFid->Volume, rFid->Vnode, rFid->Unique, rep_ent[i].newname));
+			    FSDB->Put(&f);
+			    goto Exit;
+			}
+		    }
+		    mvFid = e->fid;
+		    mvPFid = e->pfid;
+		    mvLC = e->stat.LinkCount;
+
+		    FSDB->Put(&f);
+		}
+
+		switch (rep_ent[i].opcode) {
+
+		case REPAIR_REMOVEFSL: /* Remove file or (hard) link */
+		    Recov_BeginTrans();
+		    code = LogRemove(modtime, vuid, rFid, rep_ent[i].name,
+				     &entryFid, repLC, UNSET_TID);
+		    Recov_EndTrans(CMFP);
+		    break;
+		case REPAIR_REMOVED:   /* Remove dir */
+		    Recov_BeginTrans();
+		    code = LogRmdir(modtime, vuid, rFid, rep_ent[i].name,
+				    &entryFid, UNSET_TID);
+		    Recov_EndTrans(CMFP);
+		    break;
+		case REPAIR_SETMODE:
+		    Recov_BeginTrans();
+		    code = LogChmod(modtime, vuid, rFid, 
+				    (RPC2_Unsigned)rep_ent[i].parms[0], UNSET_TID);
+		    Recov_EndTrans(CMFP);
+		    break;
+		case REPAIR_SETOWNER: /* Have to be a sys administrator for this */
+		    Recov_BeginTrans();
+		    code = LogChown(modtime, vuid, rFid, 
+				    (UserId)rep_ent[i].parms[0], UNSET_TID);
+		    Recov_EndTrans(CMFP);
+		    break;
+		case REPAIR_SETMTIME:
+		    Recov_BeginTrans();
+		    code = LogUtimes(modtime, vuid, rFid, 
+				     (Date_t)rep_ent[i].parms[0], UNSET_TID);
+		    Recov_EndTrans(CMFP);
+		    break;
+		case REPAIR_RENAME:
+		    Recov_BeginTrans();
+		    code = LogRename(modtime, vuid, rFid, rep_ent[i].name, &mvPFid, 
+				     rep_ent[i].name, &entryFid, &mvFid, mvLC, UNSET_TID);
+		    Recov_EndTrans(CMFP);
+		    break;
+
+		/* These should never occur in the fixfile for the local replica */
+		case REPAIR_CREATEF: 	 /* Create file */
+		case REPAIR_CREATED:	 /* Create directory */
+		case REPAIR_CREATES:	 /* Create sym link */
+		case REPAIR_CREATEL:	 /* Create (hard) link */
+		case REPAIR_SETACL:	 /* Set rights */
+		case REPAIR_SETNACL:	 /* Set negative rights */
+		    LOG(1, ("Unexpected local repair command code (%d)", rep_ent[i].opcode));
+		    code = EINVAL; /* XXXX - Could use a more meaningful return code here */
+		    break;
+
+		case REPAIR_REPLICA: 
+		    LOG(1, ("Unexpected REPAIR_REPLICA -- truncated fixfile?"));
+		    code = EINVAL; /* XXXX - Could use a more meaningful return code here */
+		    break;
+
+		default:
+		    LOG(1, ("Unknown local repair command code (%d)", rep_ent[i].opcode));
+		    code = EINVAL; /* XXXX - Could use a more meaningful return code here */
+		    break;
+		}
+		
+		if (code != 0) goto Exit;
+	    }
+
+	}
     }
 
     /* Send the COP2 message.  Don't Piggy!  */

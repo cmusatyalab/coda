@@ -63,14 +63,21 @@ void lrdb::BeginRepairSession(ViceFid *RootFid, int RepMode, char *msg)
 	      RootFid->Volume, RootFid->Vnode, RootFid->Unique, RepMode));
 
     if (repair_root_fid) {
-	strcpy(msg, "1");
+	strcpy(msg, "1"); /* local/global repair session already in progress */
 	return;
     }
 
     if (!RFM_IsFakeRoot(RootFid)) {
-	strcpy(msg, "2");
+	strcpy(msg, "2"); /* server/server repair session */
 	return;	
     }
+
+    /* Need to do a strcpy(msg, "3"); somewhere about here when 
+     * expanding global => verdi, mozart, marais (or the like) 
+     * 
+     * At some point, we might want to do away with this
+     * "magic number" stuff and use an enum type or #define's
+     */
 
     repair_root_fid = RootFid;
     repair_session_mode = RepMode;	/* default repair session mode */
@@ -112,7 +119,7 @@ void lrdb::BeginRepairSession(ViceFid *RootFid, int RepMode, char *msg)
 	vol->EnableRepair(ALL_UIDS, Vols, LockUids, LockWSs);
     }
 
-    strcpy(msg, "0");
+    strcpy(msg, "0"); /* local/global repair session successfully begun! */
 }
 
 /*
