@@ -1,3 +1,11 @@
+1999-10-21    <jaharkes@cs.cmu.edu>
+	* ======== Release 5.3.3 =========
+	* Dumpdir argument of the backup program was not considered optional.
+	* Skip invalid lines while parsing the VSGDB. 
+	* Build cleanup, now correctly builds vcrcommon.h.
+	* Setattr sometimes wanted fso data even when it was not required.
+	* Removed broken fcntl locking for directories.
+
 1999-10-11    <jaharkes@cs.cmu.edu>
 	* ======== Release 5.3.2 =========
 	* Bugfixes:
