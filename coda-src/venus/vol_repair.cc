@@ -302,7 +302,7 @@ int repvol::ConnectedRepair(VenusFid *RepairFid, char *RepairFile, uid_t uid,
 
 	    status.Length = (RPC2_Unsigned)tstat.st_size;
 	    status.Date = (Date_t)tstat.st_mtime;
-	    RPC2_Integer se_uid = (short)tstat.st_uid;		/* sign-extend uid! */
+	    RPC2_Integer se_uid = tstat.st_uid;
 	    status.Owner = (UserId)se_uid;
 	    status.Mode = (RPC2_Unsigned)tstat.st_mode & 0777;
 	    status.LinkCount = (RPC2_Integer)tstat.st_nlink;

@@ -1294,8 +1294,7 @@ static int PerformDirRepair(ClientEntry *client, vle *ov, Volume *volptr,
 		/* add name to parent */
 		PerformCreate(client, VSGVolnum, volptr, ov->vptr,
 			      cv->vptr, repairent.name, status->Date,
-			      status->Mode, 0, StoreId, 
-			      &ov->d_cinode, &tblocks);
+			      0644, 0, StoreId, &ov->d_cinode, &tblocks);
 		*deltablocks += tblocks;
 
 		/* create the inode */
@@ -1327,8 +1326,7 @@ static int PerformDirRepair(ClientEntry *client, vle *ov, Volume *volptr,
 		/* make the child directory and insert name in parent */
 		PerformMkdir(client, VSGVolnum, volptr, ov->vptr,
 			     cv->vptr, repairent.name, status->Date,
-			     status->Mode, 0, StoreId, 
-			     &ov->d_cinode, &tblocks);
+			     0755, 0, StoreId, &ov->d_cinode, &tblocks);
 		*deltablocks += tblocks;
 
 		/* set the delete flag to true - for abort case */
@@ -1350,9 +1348,8 @@ static int PerformDirRepair(ClientEntry *client, vle *ov, Volume *volptr,
 
 		/* create the symlink */
 		PerformSymlink(client, VSGVolnum, volptr, ov->vptr,
-			       cv->vptr, repairent.name, 0, 0, 
-			       status->Date, status->Mode,
-			       0, StoreId, &ov->d_cinode, &tblocks);
+			       cv->vptr, repairent.name, 0, 0, status->Date,
+			       0777, 0, StoreId, &ov->d_cinode, &tblocks);
 		*deltablocks += tblocks;
 		
 		/* create the inode */
@@ -1566,11 +1563,8 @@ static int PerformDirRepair(ClientEntry *client, vle *ov, Volume *volptr,
 	}
     }
     
-    /* set status of directory being repaired */
+    /* update VV (and status) of directory being repaired */
     {
-	ov->vptr->disk.author = status->Author;
-	ov->vptr->disk.unixModifyTime = status->Date;
-	ov->vptr->disk.modeBits = status->Mode;
 	ViceVersionVector DiffVV;
 	DiffVV = status->VV;
 	SubVVs(&DiffVV, &Vnode_vv(ov->vptr));
