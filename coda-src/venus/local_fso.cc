@@ -875,7 +875,7 @@ int fsobj::LocalFakeify()
 	    /* Found! */
 	    break;
 	}
-	if (pf == 0) {
+	if (p == &vol->fso_list) {
 	    LOG(0, ("fsobj::LocalFakeify: %s, %s, parent not found\n",
 		    comp, FID_(&fid)));
 	    return(ENOENT);
