@@ -5,7 +5,7 @@ AC_PREREQ(2.50)
 AC_INIT
 AC_CONFIG_SRCDIR(rpc2-src/rpc2.private.h)
 CODA_SETUP_BUILD
-AM_INIT_AUTOMAKE(rpc2, 1.20)
+AM_INIT_AUTOMAKE(rpc2, 1.21)
 AC_CONFIG_HEADERS(config.h)
 
 dnl For library version updates, follow these steps in order.
@@ -14,7 +14,7 @@ dnl - when interfaces were added/removed changed, increment second and set
 dnl   first to 0
 dnl - if any interfaces were added, increment third
 dnl - if any interfaces were removed, set third to 0
-CODA_LIBRARY_VERSION(2, 5, 2)
+CODA_LIBRARY_VERSION(0, 6, 2)
 
 CODA_OPTION_LWP
 
