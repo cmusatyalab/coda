@@ -25,7 +25,7 @@
 # improvements or extensions that  they  make,  and  to  grant  Carnegie
 # Mellon the rights to redistribute these changes without encumbrance.
 # 
-# static char *rcsid = "$Header: Makefile.in,v 1.1 96/12/09 14:40:54 raiff Exp $";
+# static char *rcsid = "$Header: /coda/usr/lily/newbuild/src/coda-src/volutil/RCS/Makefile.in,v 4.1 1997/01/08 21:52:23 rvb Exp lily $";
 
 
 # 
@@ -77,7 +77,8 @@ LIBS =	${LIBVOL} \
 	${LIBMACH}  \
 	${LIBIFS}\
 	$(LIBCS)\
-	$(LIBCOMPAT)
+	$(LIBCOMPAT)\
+	$(LIBINODEFS)
         
 
 HFILES= $(INCLDIR)/voldump.rpc2 $(INCLDIR)/volutil.rpc2 \
