@@ -145,10 +145,10 @@ void fsobj::dir_Delete(const char *Name)
 /* TRANS */
 void fsobj::dir_MakeDir() 
 {
-
 	FSO_ASSERT(this, !HAVEDATA(this));
 
 	data.dir = (VenusDirData *)rvmlib_rec_malloc((int)sizeof(VenusDirData));
+	FSO_ASSERT(this, data.dir);
 	RVMLIB_REC_OBJECT(*data.dir);
 	memset((void *)data.dir, 0, (int)sizeof(VenusDirData));
 	DH_Init(&data.dir->dh);
@@ -168,7 +168,6 @@ void fsobj::dir_MakeDir()
 
 int fsobj::dir_Lookup(char *Name, VenusFid *Fid, int flags) 
 {
-	
 	if (!HAVEALLDATA(this)) { 
 		print(logFile); 
 		CHOKE("fsobj::dir_Lookup: (%s) no data", Name); 
