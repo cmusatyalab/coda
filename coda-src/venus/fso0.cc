@@ -1035,15 +1035,23 @@ void fsdb::Flush(Volid *vid)
     /* comment in fsdb::Flush applies here */
     int restart = 1;
     while (restart) {
-	fsobj *f;
-	fso_vol_iterator next(NL, v);
-	
+	struct dllist_head *p, *next;
 	restart = 0;
-	while ((f = next())) 
-	    if (f->Flush() == 0) {
-		restart = 1;
-		break;
+
+	for(p = v->fso_list.next; p != &v->fso_list; p = next) {
+	    fsobj *n = NULL, *f = list_entry_plusplus(p, fsobj, vol_handle);
+	    next = p->next;
+
+	    if (next != &v->fso_list) {
+		n = list_entry_plusplus(next, fsobj, vol_handle);
+		FSO_HOLD(n);
 	    }
+	
+	    if (f->Flush() == 0)
+		restart = 1;
+
+	    if (n) FSO_RELE(n);
+	}
     }
     v->release();
 }

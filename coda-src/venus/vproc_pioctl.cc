@@ -1160,7 +1160,7 @@ V_FreeLocks:
 		    u.u_error = realm->NewUserToken(u.u_uid, secretp, clearp);
 		    if (!u.u_error) {
 			connent *c = NULL;
-			/* attempt to trigger resolution */
+			/* attempt to trigger reintegration */
 			realm->GetAdmConn(&c);
 			PutConn(&c);
 		    }

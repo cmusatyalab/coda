@@ -590,7 +590,6 @@ class volent {
   friend class fsobj;
   friend class userent;
   friend class vdb;
-  friend class fso_vol_iterator;
   friend class repvol_iterator;
   friend class volrep_iterator;
   friend class vproc;                /* flags.autowriteback */
@@ -622,7 +621,7 @@ class volent {
     rec_olink handle;			/* link for repvol_hash/volrep_hash */
 
     /* Fso's. */
-    /*T*/olist *fso_list;
+    /*T*/struct dllist_head fso_list;
 
     /* State information. */
     /*T*/short mutator_count;

@@ -865,8 +865,10 @@ int fsobj::LocalFakeify()
     fsobj *pf = 0;
     if (!IsRoot()) {
 	/* Laboriously scan database */
-	fso_vol_iterator next(NL, vol);
-	while ((pf = next())) {
+	struct dllist_head *p;
+	list_for_each(p, vol->fso_list) {
+	    fsobj *pf = list_entry_plusplus(p, fsobj, vol_handle);
+
 	    if (!pf->IsDir() || pf->IsMtPt()) continue;
 	    if (!HAVEALLDATA(pf)) continue;
 	    if (!pf->dir_IsParent(&fid)) continue;
@@ -997,7 +999,7 @@ int fsobj::LocalFakeify()
     /* Create the target directory. */
     FakeRoot->dir_MakeDir();
     FakeRoot->SetRcRights(RC_DATA | RC_STATUS);
-    
+
     /* Create the "global" and "local" children. */
     FakeRoot->dir_Create("global", &GlobalChildFid);
     FakeRoot->dir_Create("local", &LocalChildFid);

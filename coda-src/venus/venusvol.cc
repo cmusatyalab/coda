@@ -371,7 +371,6 @@ volent *vdb::Find(Volid *volid)
     return(0);
 }
 
-
 volent *vdb::Find(Realm *realm, const char *volname)
 {
     repvol_iterator rvnext;
@@ -920,7 +919,7 @@ void volent::ResetVolTransients()
     flags.weaklyconnected = 0;
     flags.available = 1;
 
-    fso_list = new olist;
+    list_head_init(&fso_list);
 
     /* 
      * sync doesn't need to be initialized. 
@@ -938,9 +937,8 @@ volent::~volent()
 
     /* Drain and delete transient lists. */
     {
-	if (fso_list->count() != 0)
+	if (!list_empty(&fso_list))
 	    CHOKE("volent::~volent: fso_list not empty");
-	delete fso_list;
     }
 
     realm->Rec_PutRef();
@@ -1042,11 +1040,12 @@ int volent::Enter(int mode, uid_t uid)
 
         if (IsReplicated()) ((repvol *)this)->ClearCallBack();
 
-        fso_vol_iterator next(NL, this);
-        fsobj *f;
-        while ((f = next()))
-            f->Demote();
-
+	struct dllist_head *p;
+	list_for_each(p, fso_list) {
+	    fsobj *f = list_entry_plusplus(p, fsobj, vol_handle);
+	    /* demote does not yield or delete the object */
+	    f->Demote();
+	}
         just_transitioned = 1;
     } 
 
@@ -1239,10 +1238,12 @@ void volent::Exit(int mode, uid_t uid)
 
         if (IsReplicated()) ((repvol *)this)->ClearCallBack();
 
-	fso_vol_iterator next(NL, this);
-	fsobj *f;
-	while ((f = next()))
+	struct dllist_head *p;
+	list_for_each(p, fso_list) {
+	    fsobj *f = list_entry_plusplus(p, fsobj, vol_handle);
+	    /* demote does not yield or delete the object */
 	    f->Demote();
+	}
     }
 
     /* Step 2 is to "exit" this volume. */
@@ -2750,11 +2751,16 @@ void volent::GetMountPath(char *buf, int ok_to_assert)
 
 void volent::print(int afd)
 {
+    struct dllist_head *p;
+    int nfsos = 0;
+
+    list_for_each(p, fso_list) { nfsos++; }
+
     fdprint(afd, "%#08x : %-16s : vol = %x @%s\n", (long)this, name, vid,
 	    realm->Name());
 
     fdprint(afd, "\trefcnt = %d, fsos = %d, logv = %d, weak = %d\n",
-	    refcnt, fso_list->count(), flags.logv, flags.weaklyconnected);
+	    refcnt, nfsos, flags.logv, flags.weaklyconnected);
     fdprint(afd, "\tstate = %s, t_p = %d, d_p = %d, counts = [%d %d %d %d], repair = %d\n",
 	    PRINT_VOLSTATE(state), flags.transition_pending, flags.demotion_pending,
 	    observer_count, mutator_count, waiter_count, resolver_count, 
@@ -2818,13 +2824,11 @@ void volent::ListCache(FILE* fp, int long_format, unsigned int valid)
     char mountpath[MAXPATHLEN];
     GetMountPath(mountpath, 0);
     fprintf(fp, "%s: %lx\n", mountpath, vid);
-    fsobj *f = 0;
-    fso_vol_iterator next(NL, this);
-    while ((f = next())) {
-        if ( !FSDB->Find(&f->fid) )
-            fprintf(fp, "Not Cached.");
-        else 
-            f->ListCache(fp, long_format, valid);
+
+    struct dllist_head *p;
+    list_for_each(p, fso_list) {
+	fsobj *f = list_entry_plusplus(p, fsobj, vol_handle);
+	f->ListCache(fp, long_format, valid);
     }
     fprintf(fp, "\n");
     fflush(fp);

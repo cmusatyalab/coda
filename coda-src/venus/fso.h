@@ -33,7 +33,6 @@ listed in the file CREDITS.
 class fsdb;
 class fsobj;
 class fso_iterator;
-class fso_vol_iterator;
 
 class cmlent;			    /* we have compiler troubles if volume.h is included! */
 class lrdb;
@@ -393,7 +392,6 @@ class fsobj {
   friend int FSO_PriorityFN(bsnode *, bsnode *);
   friend class fsdb;
   friend class fso_iterator;
-  friend class fso_vol_iterator;
   friend long VENUS_CallBackFetch(RPC2_Handle, ViceFid *, SE_Descriptor *);
   friend class vproc;
   friend class namectxt;
@@ -418,7 +416,7 @@ class fsobj {
 
     /* Links for various lists. */
     rec_olink primary_handle;			/* link for {fstab, free-list} */
-    /*T*/olink vol_handle;                      /* link for volent fso_list */
+    /*T*/struct dllist_head vol_handle;         /* link for volent fso_list */
     /*T*/bsnode prio_handle;			/* link for priority queue */
     /*T*/dlink del_handle;			/* link for delete queue */
     /*T*/olink owrite_handle;			/* link for owrite queue */
@@ -747,14 +745,6 @@ class fso_iterator : public rec_ohashtab_iterator {
 
   public:
     fso_iterator(LockLevel, const VenusFid * =(VenusFid *)-1);
-    fsobj *operator()();
-};
-
-class fso_vol_iterator : public olist_iterator {
-    LockLevel clevel;
-
- public:
-    fso_vol_iterator(LockLevel, volent *);
     fsobj *operator()();
 };
 

@@ -48,7 +48,6 @@ extern "C" {
 #include "comm.h"
 #include "venus.private.h"
 
-
 class userent {
   friend void UserInit();
   friend void PutUser(userent **);

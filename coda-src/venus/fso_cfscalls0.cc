@@ -614,11 +614,17 @@ int fsobj::GetAttr(uid_t uid, RPC2_BoundedBS *acl)
 		 * So others that need to be checked may be missed,
 		 * resulting in more rpcs!
 		 */
-		fso_vol_iterator next(NL, vol);
-		fsobj *f = 0;
 		int numPiggyFids = 0;
 
-		while ((f = next()) && (numPiggyFids < PiggyValidations)) {
+		struct dllist_head *p;
+		list_for_each(p, vol->fso_list) {
+		    fsobj *f;
+
+		    if (numPiggyFids >= PiggyValidations)
+			break;
+
+		    f = list_entry_plusplus(p, fsobj, vol_handle);
+
 		    if (!HAVESTATUS(f) || STATUSVALID(f) || DYING(f) ||
 			FID_EQ(&f->fid, &fid) || f->IsLocalObj() || BUSY(f) ||
 			DIRTY(f))
@@ -1005,11 +1011,24 @@ RepExit:
 		 * returns this error for all servers, we should get rid of
 		 * all cached fsobjs for this volume. */
 		if (vol) {
-		    fso_vol_iterator next(NL, vol);
-		    fsobj *f;
+		    struct dllist_head *p, *next;
 		    Recov_BeginTrans();
-		    while ((f = next()))
+		    for(p = vol->fso_list.next; p != &vol->fso_list; p = next) {
+			fsobj *n = NULL, *f;
+			f = list_entry_plusplus(p, fsobj, vol_handle);
+
+			/* Kill is scary, so we make sure we keep an active
+			 * reference to the ->next object */
+			next = p->next;
+			if (next != &vol->fso_list) {
+			    n = list_entry_plusplus(next, fsobj, vol_handle);
+			    FSO_HOLD(n);
+			}
+
 			f->Kill(0);
+
+			if (n) FSO_RELE(n);
+		    }
 		    Recov_EndTrans(CMFP);
 		}
 		break;

@@ -189,7 +189,7 @@ void fsobj::ResetTransient()
 	{ print(logFile); CHOKE("fsobj::ResetTransient: bogus MagicNumber"); }
 
     /* This is a horrible way of resetting handles! */
-    memset((void *)&vol_handle, 0, (int)sizeof(vol_handle));
+    list_head_init(&vol_handle);
     memset((void *)&prio_handle, 0, (int)sizeof(prio_handle));
     memset((void *)&del_handle, 0, (int)sizeof(del_handle));
     memset((void *)&owrite_handle, 0, (int)sizeof(owrite_handle));
@@ -240,7 +240,7 @@ void fsobj::ResetTransient()
     }
 
     /* Add to volume list */
-    vol->fso_list->append(&vol_handle);
+    list_add(&vol_handle, &vol->fso_list);
 
     if (IsLocalObj()) {
 	/* set valid RC status for local object */
@@ -345,8 +345,7 @@ fsobj::~fsobj() {
     }
 
     /* Remove from volume's fso list */
-    if (vol->fso_list->remove(&vol_handle) != &vol_handle)
-	{ print(logFile); CHOKE("fsobj::~fsobj: fso_list remove"); }
+    list_del(&vol_handle);
 
     /* Unlink from volume. */
     VDB->Put(&vol);
@@ -583,6 +582,7 @@ void fsobj::Matriculate()
 /* Need not be called from within transaction. */
 /* Call with object write-locked. */
 /* CallBack handler calls this with NoLock (to avoid deadlock)! -JJK */
+/* >> Demote should not yield or destroy the object << */
 void fsobj::Demote(void)
 {
     if (!HAVESTATUS(this) || DYING(this)) return;
@@ -2004,8 +2004,10 @@ int fsobj::Fakeify()
 
 	else {
 	    /* Laboriously scan database to find our parent! */
-	    fso_vol_iterator next(NL, vol);
-	    while ((pf = next())) {
+	    struct dllist_head *p;
+	    list_for_each(p, vol->fso_list) {
+		fsobj *pf = list_entry_plusplus(p, fsobj, vol_handle);
+
 		if (!pf->IsDir() || pf->IsMtPt()) continue;
 		if (!HAVEALLDATA(pf)) continue;
 		if (!pf->dir_IsParent(&fid)) continue;
@@ -2789,20 +2791,6 @@ fsobj *fso_iterator::operator()() {
 	    return(f);
 	}
     }
-}
-
-/* for iteration by volume */
-fso_vol_iterator::fso_vol_iterator(LockLevel level, volent *vol) : olist_iterator(*vol->fso_list) {
-    clevel = level;
-}
-
-fsobj *fso_vol_iterator::operator()() {
-    olink *o = olist_iterator::operator()();
-    if (!o) return(0);
-
-    fsobj *f = strbase(fsobj, o, vol_handle);
-    if (clevel != NL) f->Lock(clevel);
-    return(f);
 }
 
 void fsobj::GetOperationState(int *conn, int *tid)

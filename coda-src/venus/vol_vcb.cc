@@ -303,8 +303,6 @@ int repvol::GetVolAttr(uid_t uid)
 
 		CODA_ASSERT(v->IsReplicated());
 		repvol *vp = (repvol *)v;
-		fso_vol_iterator next(NL, vp);
-		fsobj *f;
 
 		switch (VFlags[i]) {
 		case 1:  /* OK, callback */
@@ -314,11 +312,15 @@ int repvol::GetVolAttr(uid_t uid)
 			vp->SetCallBack();
 
 			/* validate cached access rights for the caller */
-			while ((f = next())) 
-			    if (f->IsDir()) {
-				f->PromoteAcRights(ALL_UIDS);
-				f->PromoteAcRights(uid);
-			    }
+			struct dllist_head *p;
+			list_for_each(p, vp->fso_list) {
+			    fsobj *f=list_entry_plusplus(p, fsobj, vol_handle);
+			    if (!f->IsDir())
+				continue;
+
+			    f->PromoteAcRights(ALL_UIDS);
+			    f->PromoteAcRights(uid);
+			}
 		    } 
 		    break;
 		case 0:  /* OK, no callback */
@@ -419,17 +421,24 @@ void repvol::CollateVCB(mgrpent *m, RPC2_Integer *sbufs, CallBackStatus *cbufs)
  */
 int repvol::ValidateFSOs()
 {
-    fsobj *f;
     int code = 0;
 
     LOG(100, ("repvol::ValidateFSOs: vid = 0x%x\n", vid));
 
     vproc *vp = VprocSelf();
-    fso_vol_iterator next(NL, this);
 
-    while ((f = next())) {
+    struct dllist_head *p, *next;
+    for(p = fso_list.next; p != &fso_list; p = next) {
+	fsobj *n = NULL, *f = list_entry_plusplus(p, fsobj, vol_handle);
+	next = p->next;
+
 	if (DYING(f) || (STATUSVALID(f) && (!HAVEDATA(f) || DATAVALID(f))))
 	    continue;
+
+	if (next != &fso_list) {
+	    n = list_entry_plusplus(next, fsobj, vol_handle);
+	    FSO_HOLD(n);
+	}
 
 	int whatToGet = 0;
 	if (!STATUSVALID(f)) 
@@ -445,8 +454,9 @@ int repvol::ValidateFSOs()
 	code = FSDB->Get(&tf, &f->fid, vp->u.u_uid, whatToGet);
 	FSDB->Put(&tf);
 
-	LOG(100, ("volent::ValidateFSOs: vget returns %s\n", VenusRetStr(code)));
+	if (n) FSO_RELE(n);
 
+	LOG(100, ("volent::ValidateFSOs: vget returns %s\n", VenusRetStr(code)));
 	if (code == EINCONS)
 	    k_Purge(&f->fid, 1);
 	if (code) 
@@ -514,11 +524,17 @@ int repvol::WantCallBack()
      * rate (p), and CallbackBreaks as an approximation
      * to the mutation rate (m). 
      */
-    int getit = 0;
+    struct dllist_head *p;
+    int count = 0;
 
-    if ((VCBStatus == NoCallBack) &&
-	(fso_list->count() > 1))
-	getit = 1;
+    if (VCBStatus != NoCallBack)
+	return 0;
+    
+    /* this used to be (fso_list->count() > 1) */
+    list_for_each(p, fso_list) {
+	if (++count > 1)
+	    return 1;
+    }
 
-    return(getit);
+    return 0;
 }
