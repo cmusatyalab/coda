@@ -142,15 +142,8 @@ int iopen(long dev, long ino, long flags) { return 0; }
 }
 #endif __cplusplus
 
-int main(int argc, char **argv) {
-#ifndef __CYGWIN32__
-	/* XXX -JJK */
-    if (getuid() != 0) {
-	printf("Volume utilities must be run as root; sorry\n");
-	exit(1);
-    }
-#endif
-
+int main(int argc, char **argv)
+{
     /* Set the default timeout and server host */
     timeout = 30;	/* Default rpc2 timeout is 30 seconds. */
     gethostname(s_hostname, sizeof(s_hostname) -1);

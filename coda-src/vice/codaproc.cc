@@ -2383,7 +2383,9 @@ static void COP2Update(Volume *volptr, Vnode *vptr,
     }
     
     /* do a cop2 only if the cop2 pending flag is set */
-    if (COP2Pending(Vnode_vv(vptr))) {
+	
+    if ((&(UpdateSet->Versions.Site0))[ix] != 0 &&
+	COP2Pending(Vnode_vv(vptr))) {
 	SLog(1,  "Cop2 is pending for fid 0x%x.%x.%x", 
 		V_id(volptr), vptr->vnodeNumber, vptr->disk.uniquifier);
 	/* Extract ThisHost from the UpdateSet. */
