@@ -55,13 +55,13 @@ const char *RPC2_gai_strerror(int errcode);
 #define RPC2_EAI_NONAME     -2
 #define RPC2_EAI_AGAIN      -3
 #define RPC2_EAI_FAIL       -4
-#define RPC2_EAI_NODATA     -5
 #define RPC2_EAI_FAMILY     -6
 #define RPC2_EAI_SOCKTYPE   -7
 #define RPC2_EAI_SERVICE    -8
-#define RPC2_EAI_ADDRFAMILY -9
 #define RPC2_EAI_MEMORY     -10
 #define RPC2_EAI_SYSTEM     -11
+/* #define RPC2_EAI_NODATA     -3 ** deprecated by RFC3493 */
+/* #define RPC2_EAI_ADDRFAMILY -9 ** deprecated by RFC3493 */
 
 /* copyaddrinfo is in my opinion missing from the getaddrinfo suite */
 /* cmpaddrinfo tests whether 'host' matches any of the entries in 'node' */

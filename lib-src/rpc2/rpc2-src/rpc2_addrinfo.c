@@ -374,8 +374,6 @@ int RPC2_getaddrinfo(const char *node, const char *service,
     case EAI_BADFLAGS:	 return RPC2_EAI_BADFLAGS;
     case EAI_NONAME:	 return RPC2_EAI_NONAME;
     case EAI_SERVICE:	 return RPC2_EAI_SERVICE;
-    case EAI_ADDRFAMILY: return RPC2_EAI_ADDRFAMILY;
-    case EAI_NODATA:	 return RPC2_EAI_NODATA;
     case EAI_MEMORY:	 return RPC2_EAI_MEMORY;
     case EAI_FAIL:	 return RPC2_EAI_FAIL;
     case EAI_AGAIN:	 return RPC2_EAI_AGAIN;
@@ -445,7 +443,7 @@ int RPC2_getaddrinfo(const char *node, const char *service,
     if (!he) {
 	switch (err) {
 	case HOST_TRY_AGAIN: return RPC2_EAI_AGAIN;
-	case HOST_NOADDRESS: return RPC2_EAI_NODATA;
+	case HOST_NOADDRESS:
 	case HOST_NOT_FOUND: return RPC2_EAI_NONAME;
 	case HOST_NORECOVERY:
 	default:	     return RPC2_EAI_FAIL;
@@ -465,7 +463,7 @@ int RPC2_getaddrinfo(const char *node, const char *service,
     }
     freehostent(he);
 
-    return resolved ? 0 : (i ? RPC2_EAI_MEMORY : RPC2_EAI_NODATA);
+    return resolved ? 0 : (i ? RPC2_EAI_MEMORY : RPC2_EAI_NONAME);
 #endif
 }
 
@@ -493,12 +491,11 @@ const char *RPC2_gai_strerror(const int errcode)
     case RPC2_EAI_BADFLAGS:   str = "Invalid flags"; break;
     case RPC2_EAI_NONAME:     str = "Node or service not found"; break;
     case RPC2_EAI_SERVICE:    str = "Service not available"; break;
-    case RPC2_EAI_ADDRFAMILY: str = "Bad address family"; break;
-    case RPC2_EAI_NODATA:     str = "No known addresses"; break;
     case RPC2_EAI_MEMORY:     str = "Allocation failure"; break;
     case RPC2_EAI_FAIL:       str = "Permanent lookup failure"; break;
     case RPC2_EAI_AGAIN:      str = "Temporary lookup failure"; break;
     case RPC2_EAI_SYSTEM:     str = "System error"; break;
+    default:		      str = "Unknown failure"; break;
     }
     return str;
 #endif
