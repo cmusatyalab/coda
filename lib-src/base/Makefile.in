@@ -39,9 +39,13 @@ include $(MAKDIR)/Makeconf
 CFLAGS += -Wall 
 
 LIBRARIES = libbase.a 
-HEADERS   = parser.h assert.h configfiles.h
+HEADERS   = assert.h configfiles.h
+OBJS = configfiles.o
 
-OBJS = parser.o configfiles.o
+ifneq ($(SHORTSYS),djgpp)
+HEADERS += parser.h
+OBJECTS += parser.o
+endif
 
 libbase.a: $(OBJS)
 
