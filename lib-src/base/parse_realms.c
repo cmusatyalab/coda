@@ -90,19 +90,21 @@ static void ResolveRootServers(char *servers, const char *service,
 static int isbadaddr(struct RPC2_addrinfo *ai, const char *name)
 {
     struct in_addr *ip;
+    unsigned long h_ip;
 
 #warning "assuming ipv4 only"
     if (ai->ai_family != PF_INET)
 	return 0;
 
     ip = &((struct sockaddr_in *)ai->ai_addr)->sin_addr;
+    h_ip = ntohl(ip->s_addr);
 
-    if (ntohl(ip->s_addr) == INADDR_ANY ||
-	ntohl(ip->s_addr) == INADDR_NONE ||
-	ntohl(ip->s_addr) == INADDR_LOOPBACK ||
-	(ntohl(ip->s_addr) & IN_CLASSA_NET) == IN_LOOPBACKNET ||
-	IN_MULTICAST(ntohl(ip->s_addr)) ||
-	IN_BADCLASS(ntohl(ip->s_addr)))
+    if (h_ip == INADDR_ANY ||
+	h_ip == INADDR_NONE ||
+	h_ip == INADDR_LOOPBACK ||
+	(h_ip & IN_CLASSA_NET) == IN_LOOPBACKNET ||
+	IN_MULTICAST(h_ip) ||
+	IN_BADCLASS(h_ip))
     {
 	fprintf(stderr, "An address in realm '%s' resolved to unusable address '%s', ignoring it\n", name, inet_ntoa(*ip));
 	return 1;
@@ -121,7 +123,7 @@ void GetRealmServers(const char *name, const char *service,
     if (!name || name[0] == '\0')
 	CODACONF_STR(name, "realm", "DEFAULT");
 
-    if (name[0] == '.' ||		/* realm names don't start with a '.' */
+    if (!name || name[0] == '\0' || name[0] == '.' ||
 	strcmp(name, "localhost") == 0) /* is not a globally accessible realm */
 	return;
 
@@ -130,7 +132,7 @@ void GetRealmServers(const char *name, const char *service,
     f = fopen(realmtab, "r");
     if (f) {
 	namelen = strlen(name);
-	while (!found && fgets(line, MAXLINELEN, f))
+	while (fgets(line, MAXLINELEN, f))
 	{
 	    if (line[0] == '#') continue;
 
@@ -139,6 +141,7 @@ void GetRealmServers(const char *name, const char *service,
 	    {
 		ResolveRootServers(&line[namelen], service, &results);
 		found = 1;
+		break;
 	    }
 	}
 	fclose(f);

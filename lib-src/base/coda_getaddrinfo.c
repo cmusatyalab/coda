@@ -166,8 +166,12 @@ static int parse_res_reply(char *answer, int alen,
 	    break; /* corrupted packet? */
 	}
 
-	if (name[0] == '.' && name[1] == '\0')
-	    continue;
+	/* according to the RFC, if there is a SRV record that has '.' as the
+	 * target, the service is decidedly not available at this domain */
+	if (name[0] == '.' && name[1] == '\0') {
+	    err = RPC2_EAI_FAIL; /* SERVICE, NODATA, or FAIL? */
+	    break;
+	}
 
 	tmperr = RPC2_getaddrinfo(name, NULL, hints, &cur);
 	if (!tmperr) {
@@ -197,7 +201,7 @@ static int parse_res_reply(char *answer, int alen,
 	    cur->ai_next = *res;
 	    *res = cur;
 	}
-	if (err == RPC2_EAI_AGAIN)
+	if (!err || err == RPC2_EAI_AGAIN)
 	    err = tmperr;
     }
     return err;
@@ -321,21 +325,16 @@ int coda_getaddrinfo(const char *node, const char *service,
 	initialized = 1;
     }
 
-    /* If the user specified hints, copy them. We might need to clear the
-     * CODA_AI_RES_SRV flag at some point */
-    if (hints) {
-	Hints = *hints;
-	hints = &Hints;
-    }
-
     err = RPC2_EAI_NONAME;
     if (hints && (hints->ai_flags & CODA_AI_RES_SRV))
     {
-#ifdef PF_INET6
 	char *end, tmp[sizeof(struct in6_addr)];
-#else
-	char *end, tmp[sizeof(struct in_addr)];
-#endif
+
+	/* We want to clear the CODA_AI_RES_SRV, but hints is const
+	 * so we make a copy */
+	Hints = *hints;
+	Hints.ai_flags &= ~CODA_AI_RES_SRV;
+	hints = &Hints;
 
 	/* we can only do an IN SRV record lookup if both node and
 	 * service are specified and not numerical */
@@ -352,18 +351,18 @@ int coda_getaddrinfo(const char *node, const char *service,
 	/* check whether we were given an IP address in a format that doesn't
 	 * match the hinted address family */
 	if (hints->ai_family == PF_INET6 && inet_pton(PF_INET, node, &tmp) > 0)
-		return RPC2_EAI_BADFLAGS;
+	    return RPC2_EAI_BADFLAGS;
 
 	if (hints->ai_family == PF_INET && inet_pton(PF_INET6, node, &tmp) > 0)
 	    return RPC2_EAI_BADFLAGS;
 #endif
 
-	/* lower layers don't really like unknown flagbits */
-	Hints.ai_flags &= ~CODA_AI_RES_SRV;
-
 #ifdef HAVE_RES_SEARCH
 	/* try to find SRV records */
 	err = do_srv_lookup(node, service, hints, &srvs);
+	if (err == RPC2_EAI_FAIL) /* found a SRV record with a '.' target? */
+	    goto Exit;
+
 	if (!err) {
 	    coda_reorder_addrinfo(&srvs);
 	    goto Exit;
@@ -371,8 +370,8 @@ int coda_getaddrinfo(const char *node, const char *service,
 #endif
     }
 
-    /* when not doing SRV record lookup or when it failed, we use
-     * a normal lookup */
+    /* when not doing SRV record lookup or when SRV lookup failed, we fall back
+     * to a normal lookup */
     err = RPC2_getaddrinfo(node, service, hints, &srvs);
     if (err == RPC2_EAI_SERVICE) {
 	fprintf(stderr, "Unable to map '%s' to a port, check /etc/services.\n",
