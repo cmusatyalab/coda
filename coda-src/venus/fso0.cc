@@ -667,15 +667,11 @@ RestartFind:
 	f->Lock(RD);
 
 	/* Update component. */
-	if (comp && comp[0] != '\0' && !STREQ(comp, ".") && !STREQ(comp, "..") &&
-	    !STREQ(comp, f->comp)) {
+	if (comp && comp[0] != '\0' && !STREQ(comp, ".") && !STREQ(comp, "..") && !STREQ(comp, f->comp)) {
 		Recov_BeginTrans();
 		RVMLIB_REC_OBJECT(f->comp);
 		rvmlib_rec_free(f->comp);
-		int len = (int) strlen(comp) + 1;
-		f->comp = (char *)rvmlib_rec_malloc(len);
-		rvmlib_set_range(f->comp, len);
-		strcpy(f->comp, comp);
+		f->comp = rvmlib_strdup(comp);
 		Recov_EndTrans(MAXFP);
 	}
     }

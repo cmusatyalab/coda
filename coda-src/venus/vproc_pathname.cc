@@ -85,8 +85,9 @@ int vproc::namev(char *path, int flags, struct venus_cnode *vpp) {
     struct venus_cnode vp;
     char comp[CODA_MAXNAMLEN];
     comp[0] = '\0';
-    char workingpath[CODA_MAXNAMLEN];
-    strcpy(workingpath, path);
+    char workingpath[CODA_MAXPATHLEN+1];
+    strncpy(workingpath, path, CODA_MAXPATHLEN);
+    workingpath[CODA_MAXPATHLEN] = '\0';
     char *pptr = workingpath;
     int plen = strlen(pptr);
     int nlinks = 0;

@@ -3663,7 +3663,7 @@ int cmlent::checkpoint(FILE *fp) {
 	    }
 
 	    GetPath(hdr.dbuf.name, &u.u_store.Fid);
-	    char CacheFileName[CODA_MAXNAMLEN];
+	    char CacheFileName[CODA_MAXPATHLEN];
 	    {
 		fsobj *f = FSDB->Find(&u.u_store.Fid);
 		CODA_ASSERT(f != 0);

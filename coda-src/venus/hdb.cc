@@ -760,7 +760,7 @@ int hdb::GetSuspectPriority(Volid *vid, char *pathname, uid_t uid)
     fflush(logFile);
 
     /* make a prefix for testing child expansions */
-    char parentpath[MAXPATHLEN];
+    char parentpath[CODA_MAXPATHLEN];
     (void) strncpy(parentpath, pathname, strlen(pathname));
     lastslash = rindex(parentpath, '/');
     if (lastslash != 0) *lastslash = '\0';
@@ -2451,7 +2451,7 @@ void namectxt::getpath(char *buf) {
 
 void namectxt::putmsg(int fd, char *reason, int include_modifier)
 {
-    char fullpath[MAXPATHLEN+1];
+    char fullpath[MAXPATHLEN];
     const char *modifier = !include_modifier ? "" :
 	(expand_descendents ? " d+" : (expand_children ? " c+" : "   "));
 

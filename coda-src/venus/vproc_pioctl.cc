@@ -363,7 +363,8 @@ void vproc::do_ioctl(VenusFid *fid, unsigned int com, struct ViceIoctl *data) {
 			if (u.u_error) { FSDB->Put(&target_fso); break; }
 
 			/* Retrieve the link contents from the cache. */
-			u.u_error = target_fso->Readlink((char *)data->out, MAXPATHLEN,
+			u.u_error = target_fso->Readlink((char *)data->out,
+							 CODA_MAXPATHLEN,
 							 &out_size, u.u_uid);
 			if (u.u_error) {
                             FSDB->Put(&target_fso);
@@ -1404,7 +1405,7 @@ V_FreeLocks:
 		    char *realmname = (char *)data->in + sizeof(ViceFid);
 		    Realm *realm = REALMDB->GetRealm(realmname);
 
-		    int	out_size = MAXPATHLEN;	    /* needed since data->out_size is a short! */
+		    int	out_size = CODA_MAXPATHLEN;	    /* needed since data->out_size is a short! */
 		    VenusFid vfid;
 		    MakeVenusFid(&vfid, realm->Id(), &fid);
 
@@ -1619,7 +1620,7 @@ V_FreeLocks:
 			    {  
 				/* list local mutations belonging to this session */
 				int dummy;
-				char fpath[MAXNAMELEN];
+				char fpath[CODA_MAXPATHLEN];
 				sscanf((char *) data->in, "%d %s", &dummy, fpath);
 				if (LRDB->repair_root_fid == NULL) {
 				    sprintf((char *) data->out, "no repair session going on\n");
