@@ -1,52 +1,96 @@
-This file is Readme.bsd current as of 01/09/98.
+$Id:$
 
-To build Coda on a BSD system (NetBSD/FreeBSD), you must first make
-sure that perl, and readline are installed on your machine.
-Secondly, you must copy the sys/mount.h from the Coda kernel sources
-to /usr/include/sys.  This defines MOUNT_CFS in a way appropriate for
-the particular BSD system.
+This file is README.BSD, rewritten by Greg Troxel and current as of
+2004-02-24.
 
-Under NetBSD:
+* INTRODUCTION
 
-1. To install perl:
-	cd /usr/pkgsrc/languages/perl
-	make install;
-3. To intall readline:
-	get the readline tar.gz
-		ftp to prep.ai.mit.edu
-		cd /u2/emacs
-		get readline-2.1.tar.gz
-		quit ftp.
-	tar xvzf readline-2.1.tar.gz
-	cd readline-2.1
-	./configure
-	make install
-4. cp <foo>/src/sys/sys/mount.h /usr/include/sys
+Most BSDs have support for coda in the kernel already.  There is a
+minor complication of version 2 versus version 3 of the venus/kernel
+interface.  This file is in Coda 6, which uses version 3 in order to
+support multiple realms.
 
+This file contains BSD-specific notes.  Also see INSTALL.
 
+* KERNEL SUPPORT
 
-Under FreeBSD:
+To use Coda 6, you must have version 3 'pseudo-device vcoda' (only one
+needed, but people typically put in 4), and 'file-system CODA' in your
+kernel config.  Some systems have version 3, and some require patches.
 
-1. cd /usr/ports/languages/perl
-	make install;
-2. cd /usr/ports/databases/gbdm
-	make install
-3. To intall readline:
-	get the readline tar.gz
-		ftp to prep.ai.mit.edu
-		cd /u2/emacs
-		get readline-2.1.tar.gz
-		quit ftp.
-	tar xvzf readline-2.1.tar.gz
-	cd readline-2.1
-	./configure
-	make install
-4. cp <foo>/src/sys/sys/mount.h /usr/include/sys
+You must ensure that /dev/cfs0 exists.
 
-Building Coda:
+** NetBSD
 
-1. unpack the tar ball, say in SRC=/moose/coda-4.?.?
+If /dev/cfs0 does not exist (it is not created by default on 1.6.2 or
+-current), run ./MAKEDEV cfs0.
 
-2. cd $SRC ; mkdir obj ; cd obj $SRC/configure ; make coda
+NetBSD-current (as of 2004-01) has up-to-date version 3 support.
+Ensure that the two lines above are in the kernel config and simply
+compile coda.
 
-3. to install: cd $SRC/obj 
+NetBSD 1.6.2 (the entire netbsd-1-6 branch) has version 2 support.
+Apply Phil Nelson's patch at:
+  ftp://ftp.coda.cs.cmu.edu/pub/coda/netbsd/netbsd-1.6-realms.patch
+and build a new kernel
+
+Some bugs were fixed in 2003 in vnode handling in the kernel code.  It
+is recommnded to be running either recent -current or netbsd-1-6.
+Aside from having to apply the patch, -current and netbsd-1-6 are
+equally good from the coda viewpoint.
+
+** FreeBSD
+
+Check /dev/cfs0 and create it if it is missing.
+[XXX Does MAKEDEV support this?  If not, what numbers to use?]
+
+[XXX Explain whether 4.9, 5.2, and -current have realms support.]
+
+Obtain the realms patch for 4.8 or -current from
+  ftp://ftp.coda.cs.cmu.edu/pub/coda/freebsd/
+and build a new kernel.
+
+** OpenBSD
+
+[unknown.  check /dev/cfs0, and see if the kernel support in sys/coda
+is version 2.  If so, apply the netbsd-1-6 patch, which might or might
+not be hard.]
+
+** Darwin
+
+As of this writing, there is not known to be kernel support.  Study
+the vnode interface in Darwin, and adapt either FreeBSD or NetBSD's
+sys/coda to Darwin.  Put the resulting patch on your web site, and
+send email announcing it to codalist@coda.cs.cmu.edu
+
+** BSDI
+
+[unknown]
+
+* PREREQUISITES
+
+** ALL SYSTEMS
+
+Ensure that GNU make, autoconf, perl, and GNU readline are installed.
+Use pkgsrc (NetBSD) or ports (FreeBSD/OpenBSD), and refer to your OS's
+documentation for help - there is nothing coda-specific about
+installing these packages.
+
+** PKGSRC (NetBSD and others):
+
+When configuring, pass LDFLAGS and CFLAGS so that programs in /usr/pkg
+(namely readline) will be found.  The following may be helpful:
+
+#!/bin/sh
+for i in lwp rpc2 rvm coda; do
+  echo "BUILDING $i" && \
+  (cd $i && \
+  ./bootstrap.sh && \
+  rm -f config.cache && \
+  LDFLAGS="-L/usr/pkg/lib -R/usr/pkg/lib" CFLAGS="-I/usr/pkg/include" CXXFLAGS="-I/usr/pkg/include" ./configure --prefix=/usr/local/coda && \
+  gmake -k clean && 
+  gmake -k &&
+  gmake install)
+done
+(cd coda && gmake -k client-install server-install)
+

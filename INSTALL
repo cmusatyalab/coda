@@ -1,0 +1,57 @@
+Basic Installation
+==================
+
+Obtaining the sources
+---------------------
+
+The sources can be downloaded from:
+    ftp://ftp.coda.cs.cmu.edu/pub/coda/src/rpc2-6.x.y.tar.gz
+
+Or obtained from the anonymous CVS repository:
+
+Autoconf must be installed on your system in order to set up the build
+environment.  Autoconf 2.59 is known to work.  (The coda sources,
+unlike lwp, rpc2 and rvm, do not yet use automake and libtool.)
+
+    $ cvs -d':pserver:anonymous@coda.cs.cmu.edu:/coda-src' login
+    Password: <return>
+    $ cvs -d':pserver:anonymous@coda.cs.cmu.edu:/coda-src' co coda
+    $ cd coda
+    $ ./bootstrap.sh
+
+From here the everything is identical to (but possibly more up-to-date
+than) using the tarball from the Coda ftp site.
+
+Prerequisites
+-------------
+
+GNU Make is required to build coda; 3.80 is known to work.
+
+Perl is required; 5.6.1 is known to work.
+
+GNU readline is used by a large number of programs.  [FIXME: describe what you
+lose without readline, and how much it matters.]
+
+Configuring
+-----------
+
+Run the ./configure script. The default installation path is /usr/local, but
+this can be modified by using the --prefix option.
+
+Building and installing
+-----------------------
+
+# The following assumes that GNU make is gmake.
+
+# Build the entire tree (libraries, client (venus), server (codasrv)
+$ gmake
+
+# Install the libraries and programs needed to run venus.
+$ gmake client-install
+
+# Install the libraries and programs needed to run codasrv
+$ gmake server-install
+
+# Note that one may do both installs with no ill effects, e.g. on a
+# server that is also a client.
+
