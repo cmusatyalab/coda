@@ -20,9 +20,6 @@ listed in the file CREDITS.
  * slow.h -- include file for network delay package
  *           L. Mummert
  */
-#define MINDELAY  16   /* minimum delay time, in msec */
- 		       /* anything less is not delayed */
-
 
 /* Exported Routines */
 int Delay_Init ();

@@ -99,9 +99,6 @@ int DelayPacket(int latency, int speed, long socket, struct sockaddr_in *sap,
 
 	dq = &DelayQueues.queues[queue];
 
-	if (dq->numPackets == 0 && msec < MINDELAY) 
-		return(1);
-
 	dq->numPackets++;
 
 	pp = (packetInfo *)malloc(sizeof(packetInfo));
