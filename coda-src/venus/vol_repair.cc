@@ -152,10 +152,11 @@ int repvol::ConnectedRepair(ViceFid *RepairFid, char *RepairFile, vuid_t vuid,
 {
     int code = 0, i, j, fd, localFake = 0;
     int *LCarr = NULL; /* repLC, mvLC */
-    fsobj *RepairF = NULL, *global = NULL;
-    struct ViceFid gfid, *rFid = NULL;
+    fsobj *RepairF = NULL, *global = NULL, *local = NULL;
+    struct ViceFid gfid, lfid, *rFid = NULL;
     struct ViceFid *fidarr = NULL; /* entryFid, mvFid, mvPFid */
     struct listhdr *hlist = NULL, *l = NULL;
+    dlist CMLappends;
     
     memset(ReturnCodes, 0, VSG_MEMBERS * sizeof(int));
     memset(RWVols, 0, VSG_MEMBERS * sizeof(VolumeId));
@@ -186,9 +187,16 @@ int repvol::ConnectedRepair(ViceFid *RepairFid, char *RepairFile, vuid_t vuid,
 		FSDB->Put(&f);
 		return(code);
 	    }
+	    code = f->Lookup(&local, &inc, "local", vuid, CLU_CASE_SENSITIVE);
+	    if (code != 0) {
+		FSDB->Put(&global);
+		FSDB->Put(&f);
+		return(code);
+	    }
 	    LOG(100, ("Local-Repair expansion, got (%x.%x.%x) inc (%x.%x.%x)\n", 
 		      global->fid.Volume, global->fid.Vnode, global->fid.Unique, inc.Volume, inc.Vnode, inc.Unique));
 	    gfid = global->fid;
+	    lfid = local->fid;
 	    rFid = &gfid;
 	}
 	else /* normal repair, proceed as usual */
@@ -201,7 +209,7 @@ int repvol::ConnectedRepair(ViceFid *RepairFid, char *RepairFile, vuid_t vuid,
     /* This would NOT be necessary if ViceRepair took a "PiggyCOP2" parameter! */
     {
 	code = FlushCOP2();
-	if (code != 0) { FSDB->Put(&global); return(code); }
+	if (code != 0) { FSDB->Put(&local); FSDB->Put(&global); return(code); }
     }
 
     /* Translate RepairFile to cache entry if "REPAIRFILE_BY_FID." */
@@ -210,9 +218,10 @@ int repvol::ConnectedRepair(ViceFid *RepairFid, char *RepairFile, vuid_t vuid,
 	if (sscanf(RepairFile, "@%lx.%lx.%lx", &RepairFileFid.Volume,
 	   &RepairFileFid.Vnode, &RepairFileFid.Unique) == 3) {
 	    code = FSDB->Get(&RepairF, &RepairFileFid, vuid, RC_DATA);
-	    if (code != 0) { FSDB->Put(&global); return(code); }
+	    if (code != 0) { FSDB->Put(&local); FSDB->Put(&global); return(code); }
 
 	    if (!RepairF->IsFile()) {
+		FSDB->Put(&local);
 		FSDB->Put(&global);
 		FSDB->Put(&RepairF);
 		return(EINVAL);
@@ -344,7 +353,7 @@ int repvol::ConnectedRepair(ViceFid *RepairFid, char *RepairFile, vuid_t vuid,
 	    }
 
 	    for (i = 0; i < hcount; i++)
-		if (hlist[i].replicaId == LOCAL_VID) 
+		if (IS_LOCAL_VID(hlist[i].replicaId))
 		    { l = &(hlist[i]); break; }
 
 	    if (l != NULL) {
@@ -362,17 +371,18 @@ int repvol::ConnectedRepair(ViceFid *RepairFid, char *RepairFile, vuid_t vuid,
 
 		for (i = 0; i < l->repairCount; i++) {
 
-		    if   ( (rep_ent[i].opcode == REPAIR_REMOVEFSL)
-			   || (rep_ent[i].opcode == REPAIR_REMOVED)
-			   || (rep_ent[i].opcode == REPAIR_RENAME))
+		    if ((rep_ent[i].opcode == REPAIR_REMOVEFSL)
+			|| (rep_ent[i].opcode == REPAIR_REMOVED)
+			|| (rep_ent[i].opcode == REPAIR_RENAME))
 			/* Lookup fid of the current CML entry name */
 		    {
 			fsobj *e = NULL;
 
-			code = global->Lookup(&e, NULL, rep_ent[i].name, vuid, CLU_CASE_SENSITIVE);
+			CODA_ASSERT(local != NULL);
+			code = local->Lookup(&e, NULL, rep_ent[i].name, vuid, CLU_CASE_SENSITIVE);
 			if (code != 0) {
-			    LOG(15, ("Repair: global(%x.%x.%x)->Lookup(%s) error", 
-				     rFid->Volume, rFid->Vnode, rFid->Unique, rep_ent[i].name));
+			    LOG(15, ("Repair: local(%x.%x.%x)->Lookup(%s) error", 
+				     local->fid.Volume, local->fid.Vnode, local->fid.Unique, rep_ent[i].name));
 			    goto Exit;
 			}
 			fidarr[i] = e->fid;
@@ -380,10 +390,10 @@ int repvol::ConnectedRepair(ViceFid *RepairFid, char *RepairFile, vuid_t vuid,
 			FSDB->Put(&e);
 			
 			if (rep_ent[i].opcode == REPAIR_RENAME) {
-			    code = global->Lookup(&e, NULL, rep_ent[i].newname, vuid, CLU_CASE_SENSITIVE);
+			    code = local->Lookup(&e, NULL, rep_ent[i].newname, vuid, CLU_CASE_SENSITIVE);
 			    if (code != 0) {
 				LOG(15, ("Repair: (%x.%x.%x)->Lookup(%s) error", 
-					 rFid->Volume, rFid->Vnode, rFid->Unique, rep_ent[i].newname));
+					 local->fid.Volume, local->fid.Vnode, local->fid.Unique, rep_ent[i].newname));
 				goto Exit;
 			    }
 			    fidarr[(l->repairCount + i)] = e->fid;
@@ -476,41 +486,53 @@ int repvol::ConnectedRepair(ViceFid *RepairFid, char *RepairFile, vuid_t vuid,
 
 		case REPAIR_REMOVEFSL: /* Remove file or (hard) link */
 		    Recov_BeginTrans();
+		    CML.cancelFreezes(1);
 		    code = LogRemove(modtime, vuid, rFid, rep_ent[i].name,
 				     &(fidarr[i]), LCarr[i], UNSET_TID);
+		    CML.cancelFreezes(0);
 		    Recov_EndTrans(CMFP);
 		    break;
 		case REPAIR_REMOVED:   /* Remove dir */
 		    Recov_BeginTrans();
+		    CML.cancelFreezes(1);
 		    code = LogRmdir(modtime, vuid, rFid, rep_ent[i].name,
 				    &(fidarr[i]), UNSET_TID);
+		    CML.cancelFreezes(0);
 		    Recov_EndTrans(CMFP);
 		    break;
 		case REPAIR_SETMODE:
 		    Recov_BeginTrans();
+		    CML.cancelFreezes(1);
 		    code = LogChmod(modtime, vuid, rFid, 
 				    (RPC2_Unsigned)rep_ent[i].parms[0], UNSET_TID);
+		    CML.cancelFreezes(0);
 		    Recov_EndTrans(CMFP);
 		    break;
 		case REPAIR_SETOWNER: /* Have to be a sys administrator for this */
 		    Recov_BeginTrans();
+		    CML.cancelFreezes(1);
 		    code = LogChown(modtime, vuid, rFid, 
 				    (UserId)rep_ent[i].parms[0], UNSET_TID);
+		    CML.cancelFreezes(0);
 		    Recov_EndTrans(CMFP);
 		    break;
 		case REPAIR_SETMTIME:
 		    Recov_BeginTrans();
+		    CML.cancelFreezes(1);
 		    code = LogUtimes(modtime, vuid, rFid, 
 				     (Date_t)rep_ent[i].parms[0], UNSET_TID);
+		    CML.cancelFreezes(0);
 		    Recov_EndTrans(CMFP);
 		    break;
 		case REPAIR_RENAME:
 		    Recov_BeginTrans();
+		    CML.cancelFreezes(1);
 		    code = LogRename(modtime, vuid, rFid, rep_ent[i].name, 
 				     &(fidarr[((2 * l->repairCount) + i)]), 
 				     rep_ent[i].name, &(fidarr[i]), 
 				     &(fidarr[(l->repairCount + i)]), 
 				     LCarr[(l->repairCount + i)], UNSET_TID);
+		    CML.cancelFreezes(0);
 		    Recov_EndTrans(CMFP);
 		    break;
 
@@ -536,9 +558,9 @@ int repvol::ConnectedRepair(ViceFid *RepairFid, char *RepairFile, vuid_t vuid,
 		    break;
 		}
 		
-		if (code != 0) goto Exit;
+		/* if (code != 0) goto Exit; */
+		CODA_ASSERT(code == 0);
 	    }
-
 	}
     }
 
@@ -550,6 +572,7 @@ Exit:
     else         close(fd);
 
     PutMgrp(&m);
+    FSDB->Put(&local);
     FSDB->Put(&global);
     FSDB->Put(&RepairF);
 

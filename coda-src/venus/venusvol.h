@@ -160,6 +160,8 @@ class ClientModifyLog {
     /*T*/long entriesHighWater;                 /* reset when count == zero */
     /*T*/long bytes;                            /* number of bytes used by CML */
     /*T*/long bytesHighWater;                   /* reset when size == 0 */
+    /*T*/char cancelFrozenEntries;              /* flag indicating whether it's safe to 
+                                                 * auto-thaw and cancel frozen entries */
     cmlstats cancellations;
 
     /* Size of the Log -- private, because it is only called
@@ -191,6 +193,9 @@ class ClientModifyLog {
 
     void GetReintegrateable(int, int *);
     cmlent *GetFatHead(int);
+
+    /* Call to set/clear flags for whether it's safe to cancel frozen entries */
+    void cancelFreezes(char flag) { cancelFrozenEntries = flag; }
 
     /* Routines for handling inconsistencies and safeguarding against catastrophe! */
     void MakeUsrSpoolDir(char *);

@@ -86,7 +86,7 @@ void lrdb::BeginRepairSession(ViceFid *RootFid, int RepMode, char *msg)
 	rfm_iterator next(root_fid_map);
 	rfment *rfm;
 	while ((rfm = next())) {
-	    if (!memcmp((const void *)rfm->GetFakeRootFid(), (const void *) repair_root_fid, (int)sizeof(ViceFid))) {
+	    if (!memcmp((const void *)rfm->GetFakeRootFid(), (const void *)repair_root_fid, (int)sizeof(ViceFid))) {
 		Recov_BeginTrans();
 		RVMLIB_REC_OBJECT(subtree_view);
 		subtree_view = rfm->GetView();
@@ -1252,6 +1252,30 @@ void lrdb::RemoveSubtree(ViceFid *FakeRootFid)
 	       RepairRootObj->Kill();
 	Recov_EndTrans(MAXFP);
     }
+}
+
+/* must be called from within a transaction */
+int lrdb::Cancel(cmlent *m) {
+    OBJ_ASSERT(this, m);    
+
+    if (repair_root_fid == NULL)
+	return(0);  /* Not in a local repair session */
+
+    mpt_iterator next(repair_cml_list);
+    mptent *mpt;
+    while ((mpt = next())) {
+	if (mpt->GetCml() == m)
+	  break;
+    }
+    
+    if (m == current_search_cml)
+	AdvanceCMLSearch();
+
+    if (mpt != NULL) {
+	repair_cml_list.remove(mpt);
+	return(1);
+    }
+    return(0);
 }
 /* ********** end of lrdb methods ********** */
 

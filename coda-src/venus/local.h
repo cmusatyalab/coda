@@ -149,7 +149,8 @@ public:
     void ReplaceRepairFid(ViceFid *, ViceFid *);				/*U*/
     void CheckLocalSubtree();							/*N*/
     void RemoveSubtree(ViceFid *);						/*U*/
-    int GetRepairSessionTid() { return repair_session_tid; }		
+    int GetRepairSessionTid() { return repair_session_tid; }		        /*N*/
+    int Cancel(cmlent *);                                                       /*T*/
 
     /* below are debugging methods */
     void print(FILE *);							      	/*N*/

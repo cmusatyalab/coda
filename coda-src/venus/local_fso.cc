@@ -817,7 +817,8 @@ int fsobj::ReplaceLocalFakeFid()
 	ViceFid LocalFid;
 	ViceFid GlobalFid;
 	Recov_BeginTrans();
-	LocalFid = LRDB->GenerateLocalFakeFid(stat.VnodeType);
+	/* LocalFid = LRDB->GenerateLocalFakeFid(stat.VnodeType);  stat.VnodeType is incorrect!  -Remi */
+	LocalFid = LRDB->GenerateLocalFakeFid((ISDIR(obj->fid) ? Directory : File));
 	memmove((void *)&GlobalFid, (const void *)&obj->fid, (int)sizeof(ViceFid));
 	/* insert the local-global fid mapping */
 	LRDB->LGM_Insert(&LocalFid, &GlobalFid);

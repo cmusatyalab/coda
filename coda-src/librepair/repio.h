@@ -43,9 +43,11 @@ listed in the file CREDITS.
 #ifndef MAXNAMELEN
 #define MAXNAMELEN 255 /* Max len of pathname component: should this be defined 
                           somewhere in /usr/include/sys? */
+#endif
 
-#define LOCAL_VID  0xffffffff  /* VolumeId of local fake repair volume */
-
+/* VolumeId of local fake repair volumes start with 0xff */
+#ifndef IS_LOCAL_VID
+#define IS_LOCAL_VID(vid) (((vid & 0xff000000) == 0xff000000))
 #endif
 
 struct repair {

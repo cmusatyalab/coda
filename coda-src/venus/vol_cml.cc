@@ -95,6 +95,7 @@ void ClientModifyLog::ResetTransient()
     entriesHighWater = entries;
     bytes = _bytes();
     bytesHighWater = bytes;
+    cancelFrozenEntries = 0;
 
     if (count() > 0) {
 	/* Schedule a transition (to Reintegrating or Emulating) if log is non-empty. */
@@ -1264,7 +1265,7 @@ int repvol::LogRemove(time_t Mtime, vuid_t vuid, ViceFid *PFid, char *Name,
 		if (m != 0 && (m->opcode == OLDCML_Create_OP || m->opcode ==
                                OLDCML_SymLink_OP)) {
 		    ObjectCreated = 1;
-		    if (m->IsFrozen())
+		    if (m->IsFrozen() && !(m->IsToBeRepaired()))
 			CreateReintegrating = 1;
                 }    
 /*
@@ -1293,15 +1294,15 @@ int repvol::LogRemove(time_t Mtime, vuid_t vuid, ViceFid *PFid, char *Name,
 			case OLDCML_Remove_OP:
 			case OLDCML_Link_OP:
 			case OLDCML_Rename_OP:
-			case OLDCML_SymLink_OP:
-			    if (ObjectCreated) {
-				if (CreateReintegrating) {
-				    RVMLIB_REC_OBJECT(m->flags);
-				    m->flags.cancellation_pending = 1;
-				} else 
-				    cancellation = m->cancel();
-			    }
-			    break;
+                        case OLDCML_SymLink_OP:
+                            if (ObjectCreated) {
+                                if (CreateReintegrating) {
+                                    RVMLIB_REC_OBJECT(m->flags);
+                                    m->flags.cancellation_pending = 1;
+                                } else
+                                    cancellation = m->cancel();
+                            }
+                            break;
 
 		        case OLDCML_Repair_OP:
 			    break;
@@ -1461,15 +1462,15 @@ int repvol::LogRmdir(time_t Mtime, vuid_t vuid, ViceFid *PFid, char *Name,
 		    case OLDCML_Rename_OP:
 		    case OLDCML_MakeDir_OP:
 		    case OLDCML_RemoveDir_OP:
-		    case OLDCML_SymLink_OP:
-			if (ObjectCreated && !DependentChildren) {
-			    if (CreateReintegrating) {
-				RVMLIB_REC_OBJECT(m->flags);
-				m->flags.cancellation_pending = 1;
-			    } else 
-				cancellation = m->cancel();
-			}
-			break;
+                    case OLDCML_SymLink_OP:
+                        if (ObjectCreated && !DependentChildren) {
+                            if (CreateReintegrating) {
+                                RVMLIB_REC_OBJECT(m->flags);
+                                m->flags.cancellation_pending = 1;
+                            } else
+                                cancellation = m->cancel();
+                        }
+                        break;
 
 		    case OLDCML_Repair_OP:
 			break;
@@ -1700,8 +1701,14 @@ int cmlent::cancel()
     time_t curTime = Vtime();
 
     if (flags.to_be_repaired) {
-	LOG(0, ("cmlent::cancel: to_be_repaired cmlent, skip\n"));
-	return 0;
+	if (log->cancelFrozenEntries && IsFrozen()) {
+	    LOG(0, ("cmlent::cancel: frozen cmlent with local fid, thawing and cancelling\n"));
+	    Thaw();
+	}
+	else {
+	    LOG(0, ("cmlent::cancel: to_be_repaired cmlent, skip\n"));
+	    return 0;
+	}
     }
 
     /* 
@@ -1709,14 +1716,16 @@ int cmlent::cancel()
      * cancellation and we'll get to it later.
      */
     if (IsFrozen()) {
-	LOG(0, ("cmlent::cancel: cmlent frozen, skip\n"));
-	RVMLIB_REC_OBJECT(flags);	/* called from within transaction */
-	flags.cancellation_pending = 1;
-	return 0;
+	    LOG(0, ("cmlent::cancel: cmlent frozen, skip\n"));
+	    RVMLIB_REC_OBJECT(flags);	/* called from within transaction */
+	    flags.cancellation_pending = 1;
+	    return 0;
     }
 
     LOG(10, ("cmlent::cancel: age = %d\n", curTime-time));
     if (LogLevel >= 10) print(logFile);
+
+    LRDB->Cancel(this); /* Remove this CML from current local-repair session if necessary */
 
     /* Parameters for possible utimes to be done AFTER cancelling this record. */
     int DoUtimes = 0;
