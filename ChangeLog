@@ -1,3 +1,10 @@
+2004-03-19	<jaharkes@cs.cmu.edu>
+	* ======== Release 6.0.5 =========
+	* An inverted test prevented resolving a realm by ip-address.
+	* There was a fatal bug when fetching a 0-length file. (Rajesh Balan)
+	* Forgot to bump the venus.version number to 6.0.4, it is .5 now.
+	* Piping a password to clog's stdin was broken.
+
 2004-03-16	<jaharkes@cs.cmu.edu>
 	* ======== Release 6.0.4 =========
 	* Make sure we initialize libresolv before doing hostname lookups.
