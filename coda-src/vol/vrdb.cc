@@ -238,20 +238,12 @@ int ReverseXlateVid(VolumeId *vidp, int *idx)
     return(1);
 }
 
-unsigned long XlateVidToVSG(VolumeId vid) {
-    vrent *vre = VRDB.find(vid);
-    if (!vre) return(0);
-
-    return(vre->addr);
-}
-
-
 vrent::vrent() {
     memset(key, 0, sizeof(key));
     volnum = 0;
     nServers = 0;
     memset(ServerVolnum, 0, sizeof(ServerVolnum));
-    addr = 0;
+    dontuse_vsgaddr = 0;
 }
 
 
@@ -260,7 +252,7 @@ vrent::vrent(vrent& vre) {
     volnum = vre.volnum;
     nServers = vre.nServers;
     memcpy(ServerVolnum, vre.ServerVolnum, sizeof(ServerVolnum));
-    addr = vre.addr;
+    dontuse_vsgaddr = vre.dontuse_vsgaddr;
 }
 
 
@@ -323,7 +315,7 @@ int vrent::GetVolumeInfo(VolumeInfo *Info) {
 	}
 	(&Info->Server0)[i] = hostaddr;
     }
-    Info->VSGAddr = addr;
+    Info->VSGAddr = dontuse_vsgaddr;
     for (i = 0; i < nServers; i++)
 	(&Info->RepVolMap.Volume0)[i] = ServerVolnum[i];
 
@@ -332,24 +324,24 @@ int vrent::GetVolumeInfo(VolumeInfo *Info) {
 
 void vrent::hton() {
     /* we won't translate the key on the hopes that strings take care of themselves */
-    this->volnum = htonl(this->volnum);
+    volnum = htonl(volnum);
     /* Don't need to translate nServers, it is a byte */
 
     for (int i = 0; i < VSG_MEMBERS; i++)
-      this->ServerVolnum[i] = htonl(this->ServerVolnum[i]);
+      ServerVolnum[i] = htonl(ServerVolnum[i]);
 
-    this->addr = htonl(this->addr);
+    dontuse_vsgaddr = htonl(dontuse_vsgaddr);
 }
 
 void vrent::ntoh() {
     /* we won't translate the key on the hopes that strings take care of themselves */
-    this->volnum = ntohl(this->volnum);
+    volnum = ntohl(volnum);
     /* Don't need to translate nServers, it is a byte */
 
     for (int i = 0; i < VSG_MEMBERS; i++)
-      this->ServerVolnum[i] = ntohl(this->ServerVolnum[i]);
+      ServerVolnum[i] = ntohl(ServerVolnum[i]);
 
-    this->addr = ntohl(this->addr);
+    dontuse_vsgaddr = ntohl(dontuse_vsgaddr);
 }
 
 void vrent::print() {
@@ -366,7 +358,7 @@ void vrent::print(FILE *fp) {
 void vrent::print(int afd) {
     char buf[512];
     sprintf(buf, "%p : %s : 0x%lx, %d, (x.x.x.x.x.x.x.x), 0x%lx\n",
-	    this, key, volnum, nServers, addr);
+	    this, key, volnum, nServers, dontuse_vsgaddr);
     write(afd, buf, strlen(buf));
 
 }
@@ -382,7 +374,7 @@ int vrent::dump(int afd)
 	n = sprintf(buf + len, "%lx ", ServerVolnum[i]);
 	len += n;
     }
-    n = sprintf(buf + len, "%lX\n", addr);
+    n = sprintf(buf + len, "%lX\n", dontuse_vsgaddr);
     len += n;
 
     n = write(afd, buf, len);

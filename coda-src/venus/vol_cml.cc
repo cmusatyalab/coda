@@ -3464,14 +3464,14 @@ int ClientModifyLog::CheckPoint(char *ckpdir)
     n = strlen(spoolname);
     volname = spoolname + n;
 
-    /* The last component of the name will be "<volname>@<realm>". */
-    n = snprintf(volname, MAXPATHLEN-n, "%s@%s", vol->name, vol->realm->Name());
+    /* The last component of the name will be "<realm>_<volname>". */
+    n = snprintf(volname, MAXPATHLEN-n, "%s_%s", vol->realm->Name(), vol->name);
     if (n < 0) return 0;
 
     /* remove characters with possibly unwanted side effects from the last
      * component */
     for (char *cp = volname; *cp; cp++)
-	if (*cp == ':' || *cp == '/' || *cp == '|')
+	if (*cp == ':' || *cp == '/' || *cp == '|' || *cp == '@')
 	    *cp = '_';
 
     char ckpname[MAXPATHLEN], lname[MAXPATHLEN];

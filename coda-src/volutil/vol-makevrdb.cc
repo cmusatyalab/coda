@@ -87,7 +87,7 @@ long S_VolMakeVRDB(RPC2_Handle rpcid, RPC2_String formal_infile) {
 		   &vre->ServerVolnum[2], &vre->ServerVolnum[3],
 		   &vre->ServerVolnum[4], &vre->ServerVolnum[5],
 		   &vre->ServerVolnum[6], &vre->ServerVolnum[7],
-		   &vre->addr) != 12 || strlen(vre->key) >= V_MAXVOLNAMELEN) {
+		   &vre->dontuse_vsgaddr) != 12 || strlen(vre->key) >= V_MAXVOLNAMELEN) {
 	    LogMsg(0, VolDebugLevel, stdout, "Bad input line(%d): %s", lineno, line);
 	    LogMsg(0, VolDebugLevel, stdout, "makevrdb aborted");
 	    err = VFAIL;

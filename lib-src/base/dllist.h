@@ -19,6 +19,8 @@ Coda are listed in the file CREDITS.
 #ifndef _DLIST_H_
 #define _DLIST_H_
 
+#include <stddef.h>
+
 /*
  * doubly linked list implementation -- based on linux 
  * kernel code lists.
@@ -33,7 +35,12 @@ struct dllist_head {
     struct dllist_head name = { &name, &name }
 
 #define list_entry(ptr, type, member) \
-	((type *)((char *)(ptr)-(unsigned long)(&((type *)0)->member)))
+	((type *)((char *)(ptr)-offsetof(type, member)))
+
+#ifdef __cplusplus
+#define list_entry_plusplus(ptr, type, member) \
+	((type *)((char *)(ptr)-(size_t)(&type::member)))
+#endif
 
 #define list_for_each(ptr, head) \
         for (ptr = (head).next; ptr != &(head); ptr = ptr->next)

@@ -24,4 +24,6 @@ listed in the file CREDITS.
 
 #define fldoff(str, fld)        ((unsigned long)&(((str *)0)->fld))
 #define fldsiz(str, fld)        (sizeof(((str *)0)->fld))
-#define strbase(str, ptr, fld)  ((str *)((char *)(ptr)-fldoff(str, fld)))
+//#define strbase(str, ptr, fld)  ((str *)((char *)(ptr)-fldoff(str, fld)))
+#define strbase(str, ptr, fld)  ((str *)((char *)(ptr)-(size_t)(&str::fld)))
+

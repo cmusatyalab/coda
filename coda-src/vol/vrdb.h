@@ -75,7 +75,7 @@ class vrent : public olink {
     olink	namehtblink;
     /*byte*/unsigned char nServers;
     VolumeId ServerVolnum[VSG_MEMBERS];
-    unsigned long addr;
+    unsigned long dontuse_vsgaddr;
 
     vrent();
     vrent(vrent&);
@@ -101,7 +101,6 @@ extern void CheckVRDB();
 extern int DumpVRDB(int outfd);
 extern int XlateVid(VolumeId *, int * = NULL, int * = NULL);
 extern int ReverseXlateVid(VolumeId *, int * = NULL);
-extern unsigned long XlateVidToVSG(VolumeId);
 
 #endif /* _VICE_VRDB_H_ */
 

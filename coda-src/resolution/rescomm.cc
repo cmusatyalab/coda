@@ -128,20 +128,14 @@ void RepResCommCtxt::print(int fd) {
 
 
 /* res_mgrpent implementation */
-res_mgrpent::res_mgrpent(unsigned long vsgaddr, RPC2_Handle mid)
+res_mgrpent::res_mgrpent(unsigned long hosts[VSG_MEMBERS], RPC2_Handle mid)
 {
-	int nhosts;
-	SLog(20,  "res_mgrpent::resmgrpent vsgaddr = %#08x, mid = %d",
-	     vsgaddr, mid);
-	VSGAddr = vsgaddr;
+	SLog(20,  "res_mgrpent::resmgrpent mid = %d", mid);
 	memset((void *)&McastInfo, 0, sizeof(RPC2_Multicast));
 	McastInfo.Mgroup = mid;
 	McastInfo.ExpandHandle = 0;
 	
-	/* get hosts from vsg table */
-	CODA_ASSERT(GetHosts(vsgaddr, Hosts, &nhosts) != 0);
-	for (; nhosts < VSG_MEMBERS; nhosts++)
-		Hosts[nhosts] = 0;
+	memcpy(Hosts, hosts, sizeof(unsigned long) * VSG_MEMBERS);
 	
 	inuse = 0;
 	dying = 0;
@@ -149,7 +143,7 @@ res_mgrpent::res_mgrpent(unsigned long vsgaddr, RPC2_Handle mid)
 
 res_mgrpent::~res_mgrpent() {
     /* kill the member connectins */
-    LogMsg(100, SrvDebugLevel, stdout,  "~res_mgrpent:: vsgaddr = #08x", VSGAddr);
+    LogMsg(100, SrvDebugLevel, stdout,  "~res_mgrpent::");
     for (int i = 0; i < VSG_MEMBERS; i++)
 	KillMember(rrcc.hosts[i], 1);
     /* Delete Mgroup */
@@ -293,15 +287,6 @@ int res_mgrpent::IncompleteVSG(){
     return(0);
 }
 
-int res_mgrpent::GetIndex(unsigned long h) {
-    int retindex = -1;
-    for (int i = 0; i < VSG_MEMBERS; i++) 
-	if (Hosts[i] == h) {
-	    retindex = i;
-	    break;
-	}
-    return(retindex);
-}
 void res_mgrpent::print(){
     print(stdout);
 }
@@ -311,22 +296,26 @@ void res_mgrpent::print(FILE *fp) {
 }
 void res_mgrpent::print(int fd) {
     char buf[80];
-    sprintf(buf, "%p : VSGAddr = 0x%lx\n",  this, VSGAddr);
+    sprintf(buf, "%p : VSGhosts = %lx %lx %lx %lx\n", this,
+	    Hosts[0], Hosts[1], Hosts[2], Hosts[3]);
     write(fd, buf, strlen(buf));
 }
 
 /* iterator implementation */
-resmgrp_iterator::resmgrp_iterator(unsigned long vsgaddr) : dlist_iterator ((dlist&)*res_mgrpent::ResMgrpTab) {
-    VSGaddr = vsgaddr;
+resmgrp_iterator::resmgrp_iterator(unsigned long hosts[VSG_MEMBERS]) : dlist_iterator ((dlist&)*res_mgrpent::ResMgrpTab)
+{
+    memcpy(Hosts, hosts, sizeof(unsigned long) * VSG_MEMBERS);
+    allhosts = 1;
+
+    for (int i = 0; i < VSG_MEMBERS; i++)
+	if (hosts[i]) allhosts = 0;
 }
 
 res_mgrpent *resmgrp_iterator::operator()() {
     dlink *d;
     while ((d = dlist_iterator::operator()())) {
 	res_mgrpent *m = strbase(res_mgrpent, d, tblhandle);
-	if ((VSGaddr == (unsigned long)0) ||
-	    (VSGaddr == ALL_VSGS) ||
-	    (VSGaddr == m->VSGAddr))
+	if (allhosts || memcmp(Hosts, m->Hosts, sizeof(unsigned long) * VSG_MEMBERS) == 0)
 	    return(m);
     }
     return 0;
@@ -559,15 +548,15 @@ srvent *srv_iterator::operator()() {
 }
 
 /* Procedures to interface with res_mgrp class */
-int GetResMgroup(res_mgrpent **mpp, unsigned long vsgaddr, 
-		  unsigned long *HostSet){
-    LogMsg(20, SrvDebugLevel, stdout,  "GetResMgroup(%x)", vsgaddr);
+int GetResMgroup(res_mgrpent **mpp, unsigned long hosts[VSG_MEMBERS])
+{
+    LogMsg(20, SrvDebugLevel, stdout,  "GetResMgroup()");
     *mpp = 0;
     int code = 0;
     res_mgrpent *m = 0;
 
     /* Grab an existing free mgroup if possible */
-    resmgrp_iterator	next(vsgaddr);
+    resmgrp_iterator next(hosts);
     while ((m = next()) )
 	if (!m->inuse) {
 	    LogMsg(20, SrvDebugLevel, stdout,  "GetResMgroup: Found existing mgroup");
@@ -578,7 +567,7 @@ int GetResMgroup(res_mgrpent **mpp, unsigned long vsgaddr,
 	/* didnt find an existing mgroup - create one */
 	LogMsg(20, SrvDebugLevel, stdout,  "GetResMgroup: Creating new mgroup");
 	RPC2_Handle MgrpHandle = 0;
-	m = new res_mgrpent(vsgaddr, MgrpHandle);
+	m = new res_mgrpent(hosts, MgrpHandle);
 	m->inuse = 1;
 	res_mgrpent::ResMgrpTab->insert(&m->tblhandle);
 	res_mgrpent::resmgrps++;
@@ -586,7 +575,7 @@ int GetResMgroup(res_mgrpent **mpp, unsigned long vsgaddr,
 
     /* Validate all the connections */
     LogMsg(20, SrvDebugLevel, stdout,  "GetResMgroup: Validating connections");
-    code = m->GetHostSet(HostSet);
+    code = m->GetHostSet(NULL);
     if (m->dying || code != 0) {
 	PutResMgroup(&m);
 	return(code);
@@ -599,7 +588,7 @@ int GetResMgroup(res_mgrpent **mpp, unsigned long vsgaddr,
 int PutResMgroup(res_mgrpent **mpp) {
     res_mgrpent *m = *mpp;
     *mpp = 0;
-    LogMsg(20, SrvDebugLevel, stdout,  "PutResMgroup(%x)", m->VSGAddr);
+    LogMsg(20, SrvDebugLevel, stdout,  "PutResMgroup()");
     if (m == 0) return(0);
     if (!m->inuse){
 	LogMsg(0, SrvDebugLevel, stdout,  "Putting a Mgroup not in use ");

@@ -84,7 +84,7 @@ try_again:
     int count = 0;
 
     list_for_each(p, mgrpents) {
-        *m = list_entry(p, mgrpent, vsghandle);
+        *m = list_entry_plusplus(p, mgrpent, vsghandle);
         if (uid != ALL_UIDS && uid != (*m)->uid)
             continue;
 
@@ -159,7 +159,7 @@ void vsgent::KillMgrps(void)
     LOG(10, ("vsgent::KillMgrps %p\n", this));
 
     while (!list_empty(&mgrpents)) {
-        mgrpent *m = list_entry(mgrpents.next, mgrpent, vsghandle);
+        mgrpent *m = list_entry_plusplus(mgrpents.next, mgrpent, vsghandle);
         m->Kill(1); /* takes `m' out of the mgrpents list */
     }
 }
@@ -171,7 +171,7 @@ void vsgent::KillUserMgrps(uid_t uid)
     struct dllist_head *p;
 again:
     list_for_each(p, mgrpents) {
-        mgrpent *m = list_entry(p, mgrpent, vsghandle);
+        mgrpent *m = list_entry_plusplus(p, mgrpent, vsghandle);
         if (m->uid != uid) continue;
 
         m->Kill(1);
@@ -186,7 +186,7 @@ void vsgent::KillMgrpMember(struct in_addr *addr)
 
     struct dllist_head *p;
     list_for_each(p, mgrpents) {
-        mgrpent *m = list_entry(p, mgrpent, vsghandle);
+        mgrpent *m = list_entry_plusplus(p, mgrpent, vsghandle);
         m->KillMember(addr, 0);
     }
 }
@@ -203,7 +203,7 @@ void vsgent::print(FILE *f)
     PrintRef(f);
 
     list_for_each(p, mgrpents) {
-        mgrpent *m = list_entry(p, mgrpent, vsghandle);
+        mgrpent *m = list_entry_plusplus(p, mgrpent, vsghandle);
         m->print(f);
     }
         
@@ -230,7 +230,7 @@ vsgent *vsgdb::GetVSG(struct in_addr hosts[VSG_MEMBERS], RealmId realmid)
 
     /* search for a matching VSG */
     list_for_each(p, vsgents) {
-        v = list_entry(p, vsgent, vsgs);
+        v = list_entry_plusplus(p, vsgent, vsgs);
         if (v->CmpHosts(hosts)) {
             v->GetRef();
             return v;
@@ -248,7 +248,7 @@ void vsgdb::KillUserMgrps(uid_t uid)
 {
     struct dllist_head *p;
     list_for_each(p, vsgents) {
-        vsgent *v = list_entry(p, vsgent, vsgs);
+        vsgent *v = list_entry_plusplus(p, vsgent, vsgs);
         v->KillUserMgrps(uid);
     }
 }
@@ -257,7 +257,7 @@ void vsgdb::print(FILE *f)
 {
     struct dllist_head *p;
     list_for_each(p, vsgents) {
-        vsgent *v = list_entry(p, vsgent, vsgs);
+        vsgent *v = list_entry_plusplus(p, vsgent, vsgs);
         v->print(f);
     }
 }

@@ -444,44 +444,38 @@ START_TIMING(ViceValidateAttrs_Total);
         }
 
 	/* Check semantics. */
-	{
-	    if ((iErrorCode = CheckGetAttrSemantics(client, &av->vptr, &v->vptr,
-						  &volptr, &rights, &anyrights))) {
-		strcpy(why_failed, "CheckGetAttrSemantics");
-		goto InvalidObj;
-	    }
+	if ((iErrorCode = CheckGetAttrSemantics(client, &av->vptr, &v->vptr,
+						&volptr, &rights, &anyrights))) {
+	    strcpy(why_failed, "CheckGetAttrSemantics");
+	    goto InvalidObj;
 	}
 
 	/* Do it. */
-	{
-	    if (VV_Cmp(&Piggies[i].VV, &v->vptr->disk.versionvector) == VV_EQ) {
-		    /* this is a writeable volume, o.w. we wouldn't be in this call */
-		    /* Until CVVV probes? -JJK */
-		    if (1/*!ReplicatedOp || PrimaryHost == ThisHostAddr*/) {
-			    /* 
-			     * we really should differentiate between 
-			     * valid with no callback and invalid. that
-			     * doesn't matter too much with this call, 
-			     * because getting a callback is refetching.
-			     */
-			    VFlagBS->SeqBody[i] = (RPC2_Byte)
-				    CodaAddCallBack(client->VenusId, 
-						    &Piggies[i].Fid, 
-						    VSGVolnum);
-		    }
-
-		    SLog(8, "ViceValidateAttrs: (%x.%x.%x) ok",
-			   Piggies[i].Fid.Volume, 
-			   Piggies[i].Fid.Vnode, 
-			   Piggies[i].Fid.Unique);
-		    continue;
+	if (VV_Cmp(&Piggies[i].VV, &v->vptr->disk.versionvector) == VV_EQ) {
+	    /* this is a writeable volume, o.w. we wouldn't be in this call */
+	    /* Until CVVV probes? -JJK */
+	    if (1/*!ReplicatedOp || PrimaryHost == ThisHostAddr*/) {
+		/* 
+		 * we really should differentiate between 
+		 * valid with no callback and invalid. that
+		 * doesn't matter too much with this call, 
+		 * because getting a callback is refetching.
+		 */
+		VFlagBS->SeqBody[i] = (RPC2_Byte)
+		    CodaAddCallBack(client->VenusId, &Piggies[i].Fid, VSGVolnum);
 	    }
 
-InvalidObj:
-	    SLog(0, "ViceValidateAttrs: (%x.%x.%x) failed (%s)!",
-		   Piggies[i].Fid.Volume, Piggies[i].Fid.Vnode, 
-		   Piggies[i].Fid.Unique, why_failed);
+	    SLog(8, "ViceValidateAttrs: (%x.%x.%x) ok",
+		 Piggies[i].Fid.Volume, 
+		 Piggies[i].Fid.Vnode, 
+		 Piggies[i].Fid.Unique);
+	    continue;
 	}
+
+InvalidObj:
+	SLog(0, "ViceValidateAttrs: (%x.%x.%x) failed (%s)!",
+	     Piggies[i].Fid.Volume, Piggies[i].Fid.Vnode, 
+	     Piggies[i].Fid.Unique, why_failed);
     }
     VFlagBS->SeqLen = NumPiggyFids;
 

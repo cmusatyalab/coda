@@ -425,7 +425,7 @@ static void DefaultCmdlineParms()
     CONF_INT(T1Interval,	"serverprobe",   12 * 60);
 
 #if defined(__CYGWIN32__)
-    CONF_STR(CachePrefix,	"cache_prefix",	 "/??/C:/cygwin");
+    CONF_STR(CachePrefix,	"cache_prefix",	 "/?" "?/C:/cygwin");
 #else
     CachePrefix = "";
 #endif

@@ -53,7 +53,7 @@ class pdlist;
 class VNResLog;
 class rlent;
 
-extern int GetResMgroup(res_mgrpent **, unsigned long, unsigned long *);
+extern int GetResMgroup(res_mgrpent **, unsigned long hosts[VSG_MEMBERS]);
 extern int PutResMgroup(res_mgrpent **);
 extern void ResCommInit();
 extern srvent *FindServer(unsigned long);
@@ -139,7 +139,6 @@ class res_mgrpent {
     dlink tblhandle;
     
     /* Static state; immutable after construction */
-    unsigned long VSGAddr;
     RPC2_Multicast McastInfo;
     unsigned long Hosts[VSG_MEMBERS];	/* All VSG hosts in canonical order */
     
@@ -149,7 +148,7 @@ class res_mgrpent {
     RepResCommCtxt  rrcc;
 
     /* Constructors, Destructors */
-    res_mgrpent(unsigned long, RPC2_Handle);
+    res_mgrpent(unsigned long hosts[VSG_MEMBERS], RPC2_Handle);
     ~res_mgrpent();
 
     int CreateMember(unsigned long);
@@ -158,19 +157,18 @@ class res_mgrpent {
     void PutHostSet();
     int CheckResult();
     int IncompleteVSG();
-    int GetIndex(unsigned long);
     void print();
     void print(FILE *);
     void print(int);
 };
 
-const unsigned long ALL_VSGS = (unsigned long)-1;
-
+static unsigned long ALL_VSGS[VSG_MEMBERS] = { 0, 0, 0, 0, 0, 0, 0, 0 };
 class resmgrp_iterator : public dlist_iterator {
-    unsigned long VSGaddr;
+    unsigned long Hosts[VSG_MEMBERS];
+    int allhosts;
 
   public:
-    resmgrp_iterator(unsigned long = ALL_VSGS);
+    resmgrp_iterator(unsigned long hosts[VSG_MEMBERS] = ALL_VSGS);
     res_mgrpent *operator()();
 };
 

@@ -311,22 +311,25 @@ long FS_ViceResolve(RPC2_Handle cid, ViceFid *Fid)
 	    PROBE(FileresTPinfo, COORDSTARTVICERESOLVE);
     }
 
-    /* get a mgroup */
-    unsigned long vsgaddr;
-    if (!(vsgaddr = XlateVidToVSG(VSGVolnum))){
+    /* get an mgroup */
+    vrent *vre = VRDB.find(VSGVolnum);
+    if (!vre) {
+	    SLog(0, "ViceResolve: Can't find replicated volume (%s)", FID_(Fid));
 	    errorCode = EINVAL;
 	    goto FreeGroups;
     }
+    vre->GetHosts(hosts);
+
     if (!XlateVid(&tmpvid)) {
 	    SLog(0,  "ViceResolve: Couldn't xlate vid %x", tmpvid);
 	    errorCode = EINVAL;
 	    goto FreeGroups;
     }
     reson = GetResFlag(tmpvid);
-    SLog(9,  "ViceResolve: Getting Mgroup for VSG %x", vsgaddr);
-    if (GetResMgroup(&mgrp, vsgaddr, 0)){
+    SLog(9,  "ViceResolve: Getting Mgroup for VSG %x", vre->dontuse_vsgaddr);
+    if (GetResMgroup(&mgrp, hosts)){
 	    /* error getting mgroup */
-	    SLog(0,  "ViceResolve: No mgroup for vsg %x", vsgaddr);
+	    SLog(0,  "ViceResolve: No mgroup for vsg %x", vre->dontuse_vsgaddr);
 	    errorCode = EINVAL;
 	    goto FreeGroups;
     }
@@ -380,6 +383,7 @@ long FS_ViceResolve(RPC2_Handle cid, ViceFid *Fid)
     
  UnlockExit:
     // reget the host set - want to unlock wherever we locked volume 
+    vre->GetHosts(hosts);
     mgrp->GetHostSet(hosts);
     MRPC_MakeMulti(UnlockVol_OP, UnlockVol_PTR, VSG_MEMBERS, 
 		   mgrp->rrcc.handles, mgrp->rrcc.retcodes,
