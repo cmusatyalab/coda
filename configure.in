@@ -112,7 +112,6 @@ coda-src/dir/Makefile
 coda-src/portmapper/Makefile 
 coda-src/util/Makefile 
 coda-src/al/Makefile 
-coda-src/blurb/Makefile 
 coda-src/vicedep/Makefile  
 coda-src/auth2/Makefile 
 coda-src/vv/Makefile 
