@@ -29,7 +29,7 @@
 /* dir inode-ops */
 static int coda_create(struct inode *dir, struct dentry *new, int mode);
 static int coda_mknod(struct inode *dir, struct dentry *new, int mode, int rdev);
-static int coda_lookup(struct inode *dir, struct dentry *target);
+static struct dentry *coda_lookup(struct inode *dir, struct dentry *target);
 static int coda_link(struct dentry *old_dentry, struct inode *dir_inode, 
 		     struct dentry *entry);
 static int coda_unlink(struct inode *dir_inode, struct dentry *entry);
@@ -107,7 +107,7 @@ struct file_operations coda_dir_operations = {
 
 /* inode operations for directories */
 /* acces routines: lookup, readlink, permission */
-static int coda_lookup(struct inode *dir, struct dentry *entry)
+static struct dentry *coda_lookup(struct inode *dir, struct dentry *entry)
 {
         struct coda_inode_info *dircnp;
 	struct inode *res_inode = NULL;
@@ -125,15 +125,8 @@ static int coda_lookup(struct inode *dir, struct dentry *entry)
 	if ( length > CODA_MAXNAMLEN ) {
 	        printk("name too long: lookup, %s (%*s)\n", 
 		       coda_f2s(&dircnp->c_fid), length, name);
-		return -ENAMETOOLONG;
+		return ERR_PTR(-ENAMETOOLONG);
 	}
-
-
-	if (!dir || !S_ISDIR(dir->i_mode)) {
-		printk("coda_lookup: inode is NULL or not a directory\n");
-		return -ENOTDIR;
-	}
-
 
         CDEBUG(D_INODE, "name %s, len %d in ino %ld, fid %s\n", 
 	       name, length, dir->i_ino, coda_f2s(&dircnp->c_fid));
@@ -160,11 +153,11 @@ static int coda_lookup(struct inode *dir, struct dentry *entry)
 		}
 	    	error = coda_cnode_make(&res_inode, &resfid, dir->i_sb);
 		if (error)
-			return error;
+			return ERR_PTR(error);
 	} else if (error != -ENOENT) {
 	        CDEBUG(D_INODE, "error for %s(%*s)%d\n",
 		       coda_f2s(&dircnp->c_fid), length, name, error);
-		return error;
+		return ERR_PTR(error);
 	}
 	CDEBUG(D_INODE, "lookup: %s is (%s), type %d result %d, dropme %d\n",
 	       name, coda_f2s(&resfid), type, error, dropme);
@@ -178,7 +171,7 @@ exit:
 		ITOC(res_inode)->c_flags |= C_VATTR;
 	}
         EXIT;
-        return 0;
+        return NULL;
 }
 
 
@@ -236,11 +229,6 @@ static int coda_create(struct inode *dir, struct dentry *de, int mode)
 
 	CDEBUG(D_INODE, "name: %s, length %d, mode %o\n",name, length, mode);
 
-        if (!dir || !S_ISDIR(dir->i_mode)) {
-                printk("coda_create: inode is null or not a directory\n");
-                return -ENOENT;
-        }
-
 	if (coda_isroot(dir) && coda_iscontrol(name, length))
 		return -EPERM;
 
@@ -286,11 +274,6 @@ static int coda_mknod(struct inode *dir, struct dentry *de, int mode, int rdev)
 
 	CDEBUG(D_INODE, "name: %s, length %d, mode %o, rdev %x\n",name, length, mode, rdev);
 
-        if (!dir || !S_ISDIR(dir->i_mode)) {
-                printk("coda_mknod: inode is null or not a directory\n");
-                return -ENOENT;
-        }
-
 	if (coda_isroot(dir) && coda_iscontrol(name, length))
 		return -EPERM;
 
@@ -331,11 +314,6 @@ static int coda_mkdir(struct inode *dir, struct dentry *de, int mode)
 
 	ENTRY;
 	coda_vfs_stat.mkdir++;
-
-	if (!dir || !S_ISDIR(dir->i_mode)) {
-		printk("coda_mkdir: inode is NULL or not a directory\n");
-		return -ENOENT;
-	}
 
 	if (coda_isroot(dir) && coda_iscontrol(name, len))
 		return -EPERM;
@@ -490,10 +468,6 @@ int coda_rmdir(struct inode *dir, struct dentry *de)
 	ENTRY;
 	coda_vfs_stat.rmdir++;
 
-	if (!dir || !S_ISDIR(dir->i_mode)) {
-		printk("coda_rmdir: inode is NULL or not a directory\n");
-		return -ENOENT;
-	}
         dircnp = ITOC(dir);
 
 	if (!list_empty(&de->d_hash))
@@ -571,11 +545,6 @@ int coda_readdir(struct file *file, void *dirent,  filldir_t filldir)
 
         ENTRY;
 	coda_vfs_stat.readdir++;
-
-        if (!inode || !inode->i_sb || !S_ISDIR(inode->i_mode)) {
-                printk("coda_readdir: inode is NULL or not a directory\n");
-                return -EBADF;
-        }
 
         cnp = ITOC(inode);
         if ( !cnp->c_ovp ) {
