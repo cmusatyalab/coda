@@ -636,7 +636,9 @@ int LWP_CreateProcess(ep, stacksize, priority, parm, name, pid)
 		assert(0);
 	}
 	sprintf(msg, "STACK: from %p to %p, for %s\n", lwp_stackbase, lwp_stackbase + stacksize, name);
+#if 0
 	write(2, msg, strlen(msg));
+#endif
 	lwp_stackbase += ((stacksize/pagesize) + 2) * pagesize;
 #else
 	stackptr = (char *) malloc(stacksize);

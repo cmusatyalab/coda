@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/vol_reintegrate.cc,v 4.10 98/06/19 17:58:14 jaharkes Exp $";
+static char *rcsid = "$Header: /coda/coda.cs.cmu.edu/project/coda/cvs/coda/coda-src/venus/vol_reintegrate.cc,v 4.9 1998/06/07 20:15:10 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -126,48 +126,35 @@ void volent::Reintegrate()
     /* step 1.  scan the log, cancelling stores for open-for-write files. */
     CML.CancelStores();
 
-    int nrecs, thisTid, code = 0;
-
-    /* We do the actual reintegrating steps in a loop, since we reintegrate in
-     * blocks of 100 cmlents. JH */
-    do {
-        /* reset invariants */
-        thisTid = -GetReintId();
-        nrecs = 0;
-
-        /*
-         * step 2.  scan the log, gathering records that are ready to 
-         * to reintegrate.
-         */
-        CML.GetReintegrateable(thisTid, &nrecs);
-
-        /* step 3.  if we've come up with anything, reintegrate it. */
-        if (CML.HaveElements(thisTid)) {		
-            int startedrecs = CML.count();
-
-            code = IncReintegrate(thisTid);
-
-            eprint("Reintegrate: %s, %d/%d records, result = %s", 
-                    name, nrecs, startedrecs, VenusRetStr(code));
-
-        } else if (CML.GetFatHead(thisTid)) {
-            /* 
-             * there a fat store blocking the head of the log.
-             * try to reintegrate a piece of it.
-             */
-            code = PartialReintegrate(thisTid);
-
-            eprint("Reintegrate: %s, partial record, result = %s", 
-                    name, VenusRetStr(code));
-        }
-
     /*
-     * Keep going as long as we managed to reintegrate records without errors,
-     * but we don't want to intefere with trickle reintegration so we test
-     * whether a full `block' has been sent (see also
-     * cmlent::GetReintegrateable)
+     * step 2.  scan the log, gathering records that are ready to 
+     * to reintegrate.
      */
-    } while(nrecs == 100 && !code);
+    int thisTid = -GetReintId();
+    int nrecs = 0;
+
+    CML.GetReintegrateable(thisTid, &nrecs);
+
+    /* step 3.  if we've come up with anything, reintegrate it. */
+    int code = 0;
+    if (CML.HaveElements(thisTid)) {		
+	int startedrecs = CML.count();
+    
+        code = IncReintegrate(thisTid);
+
+        eprint("Reintegrate: %s, %d/%d records, result = %s", 
+		name, nrecs, startedrecs, VenusRetStr(code));
+
+    } else if (CML.GetFatHead(thisTid)) {
+	/* 
+	 * there a fat store blocking the head of the log.
+	 * try to reintegrate a piece of it.
+	 */
+	code = PartialReintegrate(thisTid);
+
+	eprint("Reintegrate: %s, partial record, result = %s", 
+	       name, VenusRetStr(code));
+    }
 
     flags.reintegrating = 0;
 
