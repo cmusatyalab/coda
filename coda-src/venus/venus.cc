@@ -125,7 +125,8 @@ struct in_addr venus_relay_addr = { INADDR_LOOPBACK };
 /* *****  venus.c  ***** */
 
 /* local-repair modification */
-int main(int argc, char **argv) {
+int main(int argc, char **argv)
+{
     /* Print to the console -- important during reboot. */
 #if ! defined(__CYGWIN32__) && ! defined(DJGPP)
     freopen("/dev/console", "w", stderr);
@@ -207,7 +208,7 @@ int main(int argc, char **argv) {
     for (;;) {
 	/* Wait for a message or daemon expiry. */
 	fd_set rfds;
-	int maxfd = KernelFD+1;
+	int maxfd = KernelFD;
 
 	FD_ZERO(&rfds);
 	FD_SET(KernelFD, &rfds);
@@ -219,7 +220,7 @@ int main(int argc, char **argv) {
 	if (MarinerMaxFD > maxfd)
 	    maxfd = MarinerMaxFD;
 
-	if (VprocSelect(maxfd, &rfds, 0, 0, &DaemonExpiry) > 0) {
+	if (VprocSelect(maxfd+1, &rfds, 0, 0, &DaemonExpiry) > 0) {
 	    /* Handle mariner request(s). */
 	    MarinerMux(&rfds);
 

@@ -354,8 +354,10 @@ mariner::~mariner() {
 
     nmariners--;	/* Ought to be a lock protecting this! -JJK */
 
-    if (fd) ::close(fd);
-    FD_CLR(fd, &MarinerMask);
+    if (fd) {
+	::close(fd);
+	FD_CLR(fd, &MarinerMask);
+    }
 }
 
 
