@@ -405,7 +405,7 @@ static int SalvageFileSys(char *path, VolumeId singleVolumeNumber)
     return (0);
 }
 
-static int SalvageVolumeGroup(register struct VolumeSummary *vsp, int nVols)
+static int SalvageVolumeGroup(struct VolumeSummary *vsp, int nVols)
 {
     struct ViceInodeInfo *inodes=0;
     int	size;
@@ -477,9 +477,9 @@ static int SalvageVolumeGroup(register struct VolumeSummary *vsp, int nVols)
 
 
 /* Check to see if VolumeDiskData info looks ok */
-static int QuickCheck(register struct VolumeSummary *vsp, register int nVols)
+static int QuickCheck(struct VolumeSummary *vsp, int nVols)
 {
-    register int i;
+    int i;
     Error ec;
 
     VLog(9, "Entering QuickCheck()");
@@ -512,7 +512,7 @@ static int QuickCheck(register struct VolumeSummary *vsp, register int nVols)
     return 1;	// ok to skip detailed salvage
 }
 
-static int SalvageVolHead(register struct VolumeSummary *vsp)
+static int SalvageVolHead(struct VolumeSummary *vsp)
 {
     Error ec = 0;
     VLog(9, "Entering SalvageVolHead(rw = %#08x, vid = %#08x)",
@@ -593,20 +593,20 @@ static int VnodeInodeCheck(int RW, struct ViceInodeInfo *ip, int nInodes,
 	    nInodes--;
 	}
 	foundinode = 0;
-	register struct ViceInodeInfo *lip = ip;
-	register int lnInodes = nInodes;
+	struct ViceInodeInfo *lip = ip;
+	int lnInodes = nInodes;
 	/* skip over old inodes with same vnodeNumber */
 	while (lnInodes && (int)lip->VnodeNumber == vnodeNumber){
 	    if (vnode->inodeNumber == lip->InodeNumber){
 		foundinode = 1;
 		break;
 	    }
-	    else {
+	    else if (vnode->uniquifier == lip->VnodeUniquifier) {
 		VLog(0, "VICheck: Found old inode %d for vnode number %d", 
 		    lip->InodeNumber, vnodeNumber);	
-		lip++;
-		lnInodes--;
 	    }
+	    lip++;
+	    lnInodes--;
 	}
 
 	if (foundinode) {	/* lip points to matching inode summary*/
@@ -875,7 +875,7 @@ static void MarkLogEntries(rec_dlist *loglist, VolumeSummary *vsp)
 
 static void DistilVnodeEssence(VnodeClass vclass, VolumeId volid) {
 
-    register struct VnodeInfo *vip = &vnodeInfo[vclass];
+    struct VnodeInfo *vip = &vnodeInfo[vclass];
     struct VnodeClassInfo *vcp = &VnodeClassInfo_Array[vclass];
     char buf[SIZEOF_LARGEDISKVNODE];
     VnodeDiskObject *vnode = (VnodeDiskObject *) buf;
@@ -909,7 +909,7 @@ static void DistilVnodeEssence(VnodeClass vclass, VolumeId volid) {
     for (int v = 0, vnodeIndex = 0, nVnodes = vip->nVnodes;
       nVnodes && ((vnodeIndex = vnext(vnode)) != -1); nVnodes--,v++) {
 	if (vnode->type != vNull) {
-	    register struct VnodeEssence *vep = &vip->vnodes[v];
+	    struct VnodeEssence *vep = &vip->vnodes[v];
 	    vip->nAllocatedVnodes++;
 	    vep->count = vnode->linkCount;
 	    vep->blockCount = nBlocks(vnode->length);
@@ -954,7 +954,7 @@ void DirCompletenessCheck(struct VolumeSummary *vsp)
     int	i;
     int doassert = 0; 
     VolumeId vid;
-    register VnodeClass vclass;
+    VnodeClass vclass;
     VolumeDiskData volHeader;
     struct DirSummary dir;
     struct VnodeInfo *dirVnodeInfo;
@@ -1029,7 +1029,7 @@ void DirCompletenessCheck(struct VolumeSummary *vsp)
 	    BlocksInVolume += vnodeInfo[vclass].volumeBlockCount;
 	    
 	    for (i = 0; i<nVnodes; i++) {
-		    register struct VnodeEssence *vnp = &vnodes[i];
+		    struct VnodeEssence *vnp = &vnodes[i];
 		    VLog(29, "DCC: Check Link counts:");
 		    VLog(29, "\t linkcount = %d, index = %d, parent = 0x%x, unique = 0x%x",
 			 vnp->count, i, vnp->vparent, vnp->unique);
@@ -1056,7 +1056,7 @@ void DirCompletenessCheck(struct VolumeSummary *vsp)
     }
     /* clean up state */
     for (vclass = 0; vclass < nVNODECLASSES; vclass++) {
-	register struct VnodeInfo *vip = &vnodeInfo[vclass];
+	struct VnodeInfo *vip = &vnodeInfo[vclass];
 	if (vip->vnodes)
 		free((char *)vip->vnodes);
 	if (vip->inodes)
@@ -1162,7 +1162,7 @@ static int AskOnline(VolumeId volumeId)
 #ifndef NDEBUG
 /* Prints out a list of all inodes into the Log */
 static void PrintInodeList() {
-    register struct ViceInodeInfo *ip;
+    struct ViceInodeInfo *ip;
     struct ViceInodeInfo *buf;
     struct stat status;
     int nInodes;
@@ -1377,8 +1377,8 @@ static void zero_globals()
 /* routines that get inode and volume summaries */
 
 
-static void CountVolumeInodes(register struct ViceInodeInfo *ip,
-		int maxInodes, register struct InodeSummary *summary)
+static void CountVolumeInodes(struct ViceInodeInfo *ip,
+		int maxInodes, struct InodeSummary *summary)
 {
     int volume = ip->VolumeNo;
     int rwvolume = volume;
@@ -1561,8 +1561,8 @@ static int GetInodeSummary(char *fspath, char *path, VolumeId singleVolumeNumber
 /* Comparison routine for volume sort. This is setup so */
 /* that a read-write volume comes immediately before */
 /* any read-only clones of that volume */
-static int CompareVolumes(register struct VolumeSummary *p1,
-				register struct VolumeSummary *p2)
+static int CompareVolumes(struct VolumeSummary *p1,
+				struct VolumeSummary *p2)
 {
 
     VLog(9, "Entering CompareVolumes()");
