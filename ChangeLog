@@ -1,4 +1,27 @@
+2001-06-12   <jaharkes@cs.cmu.edu>
+        * ======== Release 5.3.15 =========
+	* Improved the db1 autoconf test some more.
+	* Fix wild iterator when killing off connection groups.
+	* Found server memory leak in the access validation path.
+	* Addressed possible race in server down handling.
+	* Not returning ENOENT when testing inconsistent files with
+	  access(F_OK).
+	* More effectively invalidate kernel caches for dangling symlinks as a
+	  result of conflicts.
+	* Remove some unused code.
+	* Allow server-server repair with only one existing replica, needed
+	  for repairing conflicts after running out of diskspace.
+	* Code cleanups for gcc-3.0 prerelease.
+	* Added "skip volumes" argument to norton-reinit -load.
+	* Reduce stack usage when printing name contexts.
+	* The 'change id' function of pdbtool would silently corrupt the pdb
+	  databases, group owner id's were not updated, users were missing
+	  as members from groups. Group could become a member of a user.
+	  Hueristics to fix these corruptions are added to the 'pdbtool cm'
+	  functionality.
+
 2001-03-27   <jaharkes@cs.cmu.edu>
+        * ======== Release 5.3.14 =========
         * Reintroduced VSGs in venus.
         * Fixed refcounting for hdb_bindings.
         * Added refcounting on srvent structures.
