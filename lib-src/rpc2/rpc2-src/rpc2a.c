@@ -144,30 +144,35 @@ static void rpc2_StampPacket(struct CEntry *ce, struct RPC2_PacketBuffer *pb)
 	ce->TimeStampEcho, delta, pb->Header.TimeStamp);
 }
 
-long RPC2_SendResponse(IN ConnHandle, IN Reply)
-    RPC2_Handle ConnHandle;
-    RPC2_PacketBuffer *Reply;
-    {
+long RPC2_SendResponse(IN RPC2_Handle ConnHandle, IN RPC2_PacketBuffer *Reply)
+{
     RPC2_PacketBuffer *preply, *pretry;
     struct CEntry *ceaddr;
     long rc;
 
     rpc2_Enter();
     say(0, RPC2_DebugLevel, "RPC2_SendResponse()\n");
-    assert(Reply->Prefix.MagicNumber == OBJ_PACKETBUFFER);
+    assert(!Reply || Reply->Prefix.MagicNumber == OBJ_PACKETBUFFER);
 
 #ifdef RPC2DEBUG
     TR_SENDRESPONSE();
 #endif RPC2DEBUG
 
-	    
     /* Perform sanity checks */
     ceaddr = rpc2_GetConn(ConnHandle);
     if (ceaddr == NULL) rpc2_Quit(RPC2_NOCONNECTION);
     if (!TestState(ceaddr, SERVER, S_PROCESS)) 	rpc2_Quit(RPC2_NOTWORKER);
 
-    preply = Reply;	/* side effect routine usually does not reallocate packet */
-			/* preply will be the packet actually sent over the wire */
+    /* set connection state */
+    SetState(ceaddr, S_AWAITREQUEST);
+    if (ceaddr->Mgrp != NULL) SetState(ceaddr->Mgrp, S_AWAITREQUEST);
+
+    /* return if we have no reply to send */
+    if (!Reply) rpc2_Quit(RPC2_FAIL);
+
+    preply = Reply;	/* side effect routine usually does not reallocate
+			 * packet. preply will be the packet actually sent
+			 * over the wire */
 
 
     
@@ -185,9 +190,11 @@ long RPC2_SendResponse(IN ConnHandle, IN Reply)
 	rc = (*ceaddr->SEProcs->SE_SendResponse)(ConnHandle, &preply);
 	}
 
+#if 0 /* moved up to handle error case without Reply packet buffer */
     /* set connection state */
     SetState(ceaddr, S_AWAITREQUEST);
     if (ceaddr->Mgrp != NULL) SetState(ceaddr->Mgrp, S_AWAITREQUEST);
+#endif
 
     /* Allocate retry packet before encrypting Bodylength */ 
     RPC2_AllocBuffer(preply->Header.BodyLength, &pretry); 
@@ -210,7 +217,7 @@ long RPC2_SendResponse(IN ConnHandle, IN Reply)
     
     if (preply != Reply) RPC2_FreeBuffer(&preply);  /* allocated by SE routine */
     rpc2_Quit(rc);
-    }
+}
 
 
 long RPC2_GetRequest(IN RPC2_RequestFilter *Filter,

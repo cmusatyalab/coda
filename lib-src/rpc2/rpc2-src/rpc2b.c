@@ -321,14 +321,15 @@ long rpc2_AllocBuffer(IN long MinBodySize, OUT RPC2_PacketBuffer **BuffPtr,
 
 
 
-long RPC2_FreeBuffer(INOUT BuffPtr)
-    RPC2_PacketBuffer **BuffPtr;
-    {
+long RPC2_FreeBuffer(INOUT RPC2_PacketBuffer **BuffPtr)
+{
     RPC2_PacketBuffer **tolist = NULL;
     long *tocount = NULL;
 
     rpc2_Enter();
-    assert(BuffPtr != NULL && *BuffPtr != NULL);
+    assert(BuffPtr);
+    if (!*BuffPtr) return(RPC2_SUCCESS);
+
     assert((*BuffPtr)->Prefix.MagicNumber == OBJ_PACKETBUFFER);
 
     switch((int) (*BuffPtr)->Prefix.BufferSize)
@@ -354,7 +355,7 @@ long RPC2_FreeBuffer(INOUT BuffPtr)
     rpc2_MoveEntry(&rpc2_PBList, tolist, *BuffPtr, &rpc2_PBCount, tocount);
     *BuffPtr = NULL;
     rpc2_Quit(RPC2_SUCCESS);
-    }
+}
 
 
 char *RPC2_ErrorMsg(rc)

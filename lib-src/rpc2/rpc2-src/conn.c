@@ -246,7 +246,7 @@ void rpc2_FreeConn(RPC2_Handle whichConn)
 		    say(9, RPC2_DebugLevel, "Purging request from hold queue\n");
 		    rpc2_UnholdPacket(pb);
 		    RPC2_FreeBuffer(&pb);
-		    break;  /* there can be at most one in hold queue (RPC) */	    
+		    break;  /* there can be at most one in hold queue (RPC) */
 	    }
     }
 

@@ -7,6 +7,7 @@ New in 1.9:
   of the libraries to coexist.
 * Allow for sending and receiving SFTP packets through the RPC2 socket when
   the user has not specified a specific SFTP port.
+* Fixed connection and packet leaks when unmarshalling a request fails.
 
 New in 1.8:
 

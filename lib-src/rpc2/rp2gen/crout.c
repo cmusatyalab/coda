@@ -399,6 +399,7 @@ static char length[] = "_length";
 static char reqbuffer[] = "_reqbuffer";
 static char rspbuffer[] = "_rspbuffer";
 static char rpc2val[] = "_rpc2val";
+static char rpc2tmpval[] = "_rpc2tmpval";
 static char bd[] = "_bd";
 static char cid[] = "_cid";
 static char timeoutval[] = "_timeoutval";
@@ -1565,7 +1566,7 @@ static execute(head, where)
     fprintf(where, "\nlong %s_ExecuteRequest(RPC2_Handle %s, RPC2_PacketBuffer *%s, SE_Descriptor *%s)\n", subsystem.subsystem_name, cid, reqbuffer, bd);
 
     /* Body of routine */
-    fprintf(where, "{\n    RPC2_PacketBuffer *%s;\n    long %s;\n", rspbuffer, rpc2val);
+    fprintf(where, "{\n    RPC2_PacketBuffer *%s;\n    long %s, %s;\n", rspbuffer, rpc2val, rpc2tmpval);
     fprintf(where, "\n    switch (%s->Header.Opcode) {\n", reqbuffer);
     sawnewconn = 0;
 
@@ -1603,15 +1604,13 @@ static execute(head, where)
     /* Close off case */
     fputs("    }\n", where);
 
-    /* Send response and throw away request and response buffers */
-    fprintf(where, "    if (%s == 0) {\n\tRPC2_FreeBuffer(&%s);\n\treturn RPC2_FAIL;\n", reqbuffer, rspbuffer);
+    /* Throw away request buffer, send response and discard response buffer */
+    fprintf(where, "    %s = RPC2_FreeBuffer(&%s);\n", rpc2tmpval, reqbuffer);
     fprintf(where, "    %s = RPC2_SendResponse(%s, %s);\n", rpc2val, cid, rspbuffer);
-    fprintf(where, "    if (%s != RPC2_SUCCESS) {\n\tRPC2_FreeBuffer(&%s);\n\tRPC2_FreeBuffer(&%s);\n\treturn %s;\n    }\n",
-		   rpc2val, reqbuffer, rspbuffer, rpc2val);
-    fprintf(where, "    %s = RPC2_FreeBuffer(&%s);\n", rpc2val, reqbuffer);
-    fprintf(where, "    if (%s != RPC2_SUCCESS) {\n\tRPC2_FreeBuffer(&%s);\n\treturn %s;\n    }\n",
-		   rpc2val, rspbuffer, rpc2val);
-    fprintf(where, "    return RPC2_FreeBuffer(&%s);\n", rspbuffer);
+    fprintf(where, "    if (%s == RPC2_SUCCESS)\n\t%s = %s;\n", rpc2val, rpc2val, rpc2tmpval);
+    fprintf(where, "    %s = RPC2_FreeBuffer(&%s);\n", rpc2tmpval, rspbuffer);
+    fprintf(where, "    if (%s == RPC2_SUCCESS)\n\t%s = %s;\n", rpc2val, rpc2val, rpc2tmpval);
+    fprintf(where, "    return %s;\n", rpc2val);
 
     /* Close off routine */
     fputs("}\n", where);
