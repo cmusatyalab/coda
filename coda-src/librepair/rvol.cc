@@ -47,10 +47,8 @@ int repair_newrep(char *pathname, struct repvol **repv, char *msg, int msgsize) 
 	return(-1);
     }
 
-    if (repair_isleftmost(pathname, reppath, MAXPATHLEN, msgbuf, sizeof(msgbuf)) < 0) {
-	strerr(msg, msgsize, "Not leftmost conflict: %s", msgbuf);
+    if (repair_isleftmost(pathname, reppath, MAXPATHLEN, msg, msgsize) < 0)
 	return(-1);
-    }
 
     if (repair_getmnt(reppath, prefix, suffix, &vid, msgbuf, sizeof(msgbuf)) < 0) {
 	strerr(msg, msgsize, "Could not get volume mount point: %s", msgbuf);

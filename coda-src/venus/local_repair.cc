@@ -291,6 +291,14 @@ void lrdb::ContinueRepairSession(char *msg)
 	    return;
 	}
     }
+    {   /* perform local mutation checks, produce repair tool message */
+        char opmsg[1024];
+        char checkmsg[1024];
+        int mcode, rcode;
+        current_search_cml->GetLocalOpMsg(opmsg);
+        current_search_cml->CheckRepair(checkmsg, &mcode, &rcode);
+        sprintf(msg, "local mutation: %s\n%s", opmsg, checkmsg);
+    }
 }
 
 /*

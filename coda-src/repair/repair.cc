@@ -442,7 +442,7 @@ void rep_Help(int largc, char **largv) {
 void rep_ListLocal(int largc, char **largv) {
     int fd;
     struct ViceIoctl vioc;
-    int rc;
+    int rc, n;
     char space[DEF_BUF];
     char buf[DEF_BUF];
     char filename[MAXPATHLEN];
@@ -465,8 +465,8 @@ void rep_ListLocal(int largc, char **largv) {
 	fd = open(filename, O_RDONLY, 0);
 	if (fd < 0) perror(filename);
 	else {
-	    while (read(fd, buf, DEF_BUF) > 0)
-		write(1, buf, strlen(buf));
+	    while ((n = read(fd, buf, DEF_BUF)) > 0)
+		write(1, buf, n);
 	    close(fd);
 	}
     }

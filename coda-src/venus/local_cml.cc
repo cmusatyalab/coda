@@ -151,8 +151,8 @@ void cmlent::CheckRepair(char *msg, int *mcode, int *rcode)
 {	
     /*
      * this method checks whether the mutation operation of this cmlent can be
-     * performed "in commit order" to the global state that is current visible to
-     * vnues. it has the following OUT parameters:
+     * performed "in commit order" to the global state that is current visible
+     * to venus. it has the following OUT parameters:
      * msg  : a string of diagnostic error messages to be used by the repair tool.
      * mcode: a mutation error code indicating the nature of local/global conflict.
      * rcode: a repair error code indicating nature of the needed repair operation.
