@@ -92,7 +92,7 @@ EXTRACT_SUFX=	.tar.gz
 MAINTAINER=	coda@cs.cmu.edu
 @NetBSD HOMEPAGE=	http://www.coda.cs.cmu.edu/
 @FreeBSD LIB_DEPENDS=	lwp.1:\${PORTSDIR}/devel/lwp
-@NetBSD LIB_DEPENDS=	lwp-1.4:../lwp
+@NetBSD DEPENDS=	lwp-1.4:../lwp
 
 @NetBSD ONLY_FOR_ARCHS=	arm32 i386 ns32k
 @NetBSD 

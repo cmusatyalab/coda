@@ -67,7 +67,7 @@ rds_free(addr, tid, err)
     RDS_LOG("rdstrace: Error!!! rds_free called\n");
 
     /* Make sure that the pointer is word aligned */
-    if ((bp == NULL) || (int)bp % 4) {
+    if ((bp == NULL) || (bp % sizeof(void *)) != 0) {
 	(*err) = EBAD_ARGS;
 	return -1;
     }
@@ -153,7 +153,7 @@ int rds_fake_free(addr, list)
     }
 
     /* Make sure that the pointer is word aligned */
-    if ((bp == NULL) || (int)bp % 4)
+    if ((bp == NULL) || (bp % sizeof(void *)) != 0)
 	return EBAD_ARGS;
     
     /* Verify that the guards are intact */

@@ -26,7 +26,7 @@ Coda are listed in the file CREDITS.
 extern rvm_return_t allocate_vm();
 extern rvm_return_t deallocate_vm();
 
-extern overlap();
+extern int overlap();
 
 /* Macro definitions for the segment header */
 

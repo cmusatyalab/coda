@@ -20,6 +20,9 @@ Coda are listed in the file CREDITS.
 #include <rvm/rvm_segment.h>
 #include "rvm_segment_private.h"
 
+/* from rvm_private.h */
+rvm_bool_t rvm_register_page(char *vmaddr, rvm_length_t length);
+
 /* Global variables */
 
 extern rvm_bool_t rvm_map_private;  /* Do we map private or not. */
@@ -94,7 +97,7 @@ rvm_load_segment(char *DevName, rvm_offset_t DevLength, rvm_options_t *options,
     /* HACK */ rds_startaddr = hdrp->regions[0].vmaddr; /* HACK */
 
     for (i = 0; i < hdrp->nregions; i++) 
-	if ((unsigned int)(hdrp->regions[i].vmaddr) >= 0) {
+	if ((unsigned long)(hdrp->regions[i].vmaddr) >= 0) {
 	    region->offset = (*regions)[i].offset = hdrp->regions[i].offset;
 	    region->length = (*regions)[i].length = hdrp->regions[i].length;
 	    region->vmaddr = (*regions)[i].vmaddr = hdrp->regions[i].vmaddr;

@@ -1437,7 +1437,7 @@ static rvm_bool_t open_peekpoke_dev()
             (void)scan_str(file_name,MAXPATHLEN);
 
             /* see if it's same as already in use */
-            if (peekpoke.dev.handle != 0)
+            if (peekpoke.dev.handle != 0) {
                 if (strcmp(peekpoke.dev.name,file_name))
                     close_peekpoke_dev();       /* no, must close old */
                 else
@@ -1445,6 +1445,7 @@ static rvm_bool_t open_peekpoke_dev()
                     free(file_name);    /* yes, scrap name */
                     init_peekpoke_buf(); /* force buffer refill */
                     }
+	    }
 
             /* recheck to see if must open new file */
             if (peekpoke.dev.handle == 0)
@@ -2330,9 +2331,9 @@ static rvm_bool_t reset_buffer(new_direction)
 
     if (!no_rec) return rvm_true;
 
-    if (cur_direction != new_direction)
-        if (cur_direction == REVERSE) cur_direction = FORWARD;
-        else cur_direction = REVERSE;
+    if (cur_direction != new_direction) {
+	cur_direction = (cur_direction == REVERSE) ? FORWARD : REVERSE;
+    }
 
     if (RVM_OFFSET_EQL_ZERO(cur_offset))
         {
@@ -4869,7 +4870,7 @@ static rvm_bool_t do_recover()
             cmd_cur = cmd_save;
             goto file_name;
             }
-        switch ((int)recover_key_vec[key].target)
+        switch ((unsigned long)recover_key_vec[key].target)
             {
           case CLEAR_KEY:
             clear_monitor(); break;

@@ -180,7 +180,7 @@ void rds_trace_dump_free_lists()
 	RDS_LOG("rdstrace: Error!!! Bad lowguard on block\n");
       
       if ((*BLOCK_END(fbp)) != END_GUARD)
-	RDS_LOG("rdstrace: Error!!! Bad highguard, %p=%x\n",
+	RDS_LOG("rdstrace: Error!!! Bad highguard, %p=%lx\n",
 			     BLOCK_END(fbp), *BLOCK_END(fbp));
       
       ptr = fbp->next;
@@ -218,7 +218,7 @@ void rds_trace_dump_blocks()
       RDS_LOG("rdstrace: Error!!! Bad lowguard on block\n");
     
     if ((*BLOCK_END(fbp)) != END_GUARD)
-      RDS_LOG("rdstrace: Error!!! Bad highguard, %p=%x\n",
+      RDS_LOG("rdstrace: Error!!! Bad highguard, %p=%lx\n",
 			   BLOCK_END(fbp), *BLOCK_END(fbp));
     
     next_fbp = NEXT_CONSECUTIVE_BLOCK(fbp);

@@ -107,7 +107,7 @@ end_critical:    mutex_unlock(&heap_lock);
 #define END_GUARD   0xfd10a32e
 
 #define RDS_BLOCK_HDR_SIZE (sizeof(block_size_t) + 2 * sizeof(guard_t))
-#define BLOCK_END(bp) ((int *)((char *)(bp) + ((bp)->size * RDS_CHUNK_SIZE)) - 1)
+#define BLOCK_END(bp) ((guard_t *)((char *)(bp) + ((bp)->size * RDS_CHUNK_SIZE)) - 1)
 
 #define USER_BLOCK(bp) ((char *)&((bp)->prev))
 #define BLOCK_HDR(bp)  ((free_block_t *)((char *)(bp) - \

@@ -151,7 +151,7 @@ print_heap()
 		if (fbp->type != FREE_GUARD)
 		    printf("Bad lowguard on block\n");
 		if ((*BLOCK_END(fbp)) != END_GUARD)
-		    printf("Bad highguard, %lx=%x\n",(long)BLOCK_END(fbp), 
+		    printf("Bad highguard, %p=%lx\n", BLOCK_END(fbp), 
 						      *BLOCK_END(fbp));
 		ptr = fbp->next;
 		if (ptr && (ptr->prev != fbp))

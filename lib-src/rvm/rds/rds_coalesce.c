@@ -85,7 +85,7 @@ coalesce(tid, err)
 	    /* See if the next consecutive object is free. */
 	    
 	    while ((nfbp->type == FREE_GUARD) && (nfbp < RDS_HIGH_ADDR)) {
-		int *block_end = BLOCK_END(fbp);/* Save a ptr to the endguard */ 
+		guard_t *block_end = BLOCK_END(fbp);/* Save a ptr to the endguard */ 
 		merged = 1;
 		RDS_STATS.merged++;		/* Update merged object stat */
 		fbp->size += nfbp->size;	/* Update the object's size */
