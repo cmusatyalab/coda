@@ -692,7 +692,11 @@ static int canonicalize(char *path, VolumeId *vp, char *vname, char *fullname,
 	}
 
     char tpath[MAXPATHLEN];
-    strcpy(tpath, path);
+#ifdef __CYGWIN32__
+    if (!memcmp(path, "/coda", 5))
+	path = path + 6;
+#endif   
+    strcpy(tpath, path);    
     char *p = tpath;
 
     /* In case of absolute pathname chdir to "/" and strip leading slashes. */
