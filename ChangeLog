@@ -1,3 +1,11 @@
+1999-01-21    <jaharkes@cs.cmu.edu>
+
+	* ======== Release 5.0.1 =========
+	* Applied an compilation/64bit patch. (Jason Duerstock)
+	* Cast a couple of NULL ptrs to correct types. (Peter Breuer)
+	* Switched #include <sys/errno.h> to <errno.h>. (Bob Baron)
+	* Added Alpha patches to mlwp. (Jim Doyle)
+
 1999-01-19    <jaharkes@cs.cmu.edu>
 
 	* Stop trying to make a Makefile in coda-src/al.

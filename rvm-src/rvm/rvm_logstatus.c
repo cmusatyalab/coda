@@ -23,7 +23,7 @@ Coda are listed in the file CREDITS.
 */
 #include <unistd.h>
 #include <sys/file.h>
-#include <sys/errno.h>
+#include <errno.h>
 #include "rvm_private.h"
 
 #ifdef RVM_LOG_TAIL_BUG

@@ -957,7 +957,8 @@ int cmlent::DoRepair(char *msg, int rcode)
 	    unsigned short NewMode = LObj->stat.Mode;		/* use local new mode */
 	    GObj->stat.Mode = NewMode;			        /* set mode for global-obj */
 	    code = GObj->RepairSetAttr((unsigned long)-1, (unsigned long)-1, 
-				       (unsigned short)-1, NewMode, NULL);
+				       (unsigned short)-1, NewMode,
+				       (RPC2_CountedBS *)NULL);
 	    GObj->GetPath(GlobalPath, 1);
 	    if (code == 0) {
 		sprintf(msg, "chmod %s succeeded", GlobalPath);
@@ -980,7 +981,8 @@ int cmlent::DoRepair(char *msg, int rcode)
 	    vuid_t NewOwner = LObj->stat.Owner; 		/* use local new owner */
 	    GObj->stat.Owner = NewOwner; 	    		/* set for global-obj */
 	    code = GObj->RepairSetAttr((unsigned long)-1, (unsigned long)-1, 
-				       NewOwner, (unsigned short)-1, NULL);
+				       NewOwner, (unsigned short)-1,
+				       (RPC2_CountedBS *)NULL);
 	    GObj->GetPath(GlobalPath, 1);
 	    if (code == 0) {
 		sprintf(msg, "chown %s succeeded", GlobalPath);
@@ -1237,8 +1239,9 @@ int cmlent::DoRepair(char *msg, int rcode)
 	    LOG(100, ("cmlent::DoRepair: do rename on source object 0x%x.%x.%x and 0x%x.%x.%x\n",
 		      GObj->fid.Volume, GObj->fid.Vnode, GObj->fid.Unique,
 		      LObj->fid.Volume, LObj->fid.Vnode, LObj->fid.Unique));
-	    code = GTPObj->RepairRename(GSPObj, (char *)u.u_rename.OldName, GObj, 
-					(char *)u.u_rename.NewName, NULL);
+	    code = GTPObj->RepairRename(GSPObj, (char *)u.u_rename.OldName,
+					GObj, (char *)u.u_rename.NewName,
+					(fsobj *)NULL);
 	    /* 
 	     * note that the target object is always NULL here because a disconnected rename
 	     * operation with target object is always split into a rename without a target

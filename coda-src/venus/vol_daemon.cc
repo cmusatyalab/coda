@@ -301,7 +301,7 @@ void vdb::CheckPoint(unsigned long curr_time) {
 	    if (CheckLock(&v->CML_lock)) {    
 		eprint("volume %s CML is busy, skip checkpoint!\n", v->name);
 	    } else if (v->Enter((VM_OBSERVING | VM_NDELAY), V_UID) == 0) {
-		 v->CheckPointMLEs(V_UID, NULL);
+		 v->CheckPointMLEs(V_UID, (char *)NULL);
 		 v->Exit(VM_OBSERVING, V_UID);
 	    }
 	}

@@ -37,7 +37,7 @@ Pittsburgh, PA.
 
 */
 
-#define RCSVERSION $Revision: 4.10 $
+#define RCSVERSION $Revision: 4.11 $
 
 /* vol-dump.c */
 
@@ -49,7 +49,7 @@ extern "C" {
 
 #include <ctype.h>
 #include <sys/param.h>
-#include <sys/errno.h>
+#include <errno.h>
 #include <sys/stat.h>
 #include <stdio.h>
 #include <sys/file.h>

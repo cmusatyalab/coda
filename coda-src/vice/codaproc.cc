@@ -1472,7 +1472,7 @@ static int PerformDirRepair(ClientEntry *client, vle *ov, Volume *volptr,
 			TreeRmBlk	pkdparm;
 			pkdparm.init(client, VSGVolnum, volptr,
 				     status, StoreId, vlist, 0, 
-				     NULL, 0, &tblocks);
+				     (olist *)NULL, 0, &tblocks);
 			DH_EnumerateDir(cdir, 
 					(int (*) (PDirEntry, void *))PerformTreeRemoval, 
 					(void *)&pkdparm);

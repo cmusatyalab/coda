@@ -141,7 +141,7 @@ const int OWNEREXEC = 0100;
 const unsigned long NO_HOST = (unsigned long)-1;
 const int V_MAXACLLEN = 1000;
 const int V_BLKSIZE = 8192;
-const TIMERINTERVAL = 5;
+const int TIMERINTERVAL = 5;
 const int GETDATA = 1;
 #define	ALL_FIDS    (&NullFid)
 typedef void (*PROC_V_UL)(unsigned long);

@@ -879,3 +879,122 @@ returnto:
       addi    r1,r1,FRAME_SIZE
       blr
 #endif        /* __powerpc__ */
+
+/* Code for DEC Alpha architecture */
+      
+#if defined(__alpha) && defined(__linux__)
+#include <alpha/regdef.h>
+
+
+      .extern PRE_Block       4
+      .globl  savecontext
+      .globl  returnto
+      
+#define FSIZE ((8+7+1)*8)    /* s0-s6, f0-f7, return */
+#define FOFFSET -FSIZE
+#define REGMASK 0x0400fe00   /* mask for s0-s6 */
+#define FREGMASK 0x000003fc  /* mask for f2-f9 */
+      
+/* offsets into the PRE_Block */
+
+#define SAVED_F2(ptr) 0(ptr)
+#define SAVED_F3(ptr) 8(ptr)
+#define SAVED_F4(ptr) 16(ptr)
+#define SAVED_F5(ptr) 24(ptr)
+#define SAVED_F6(ptr) 32(ptr)
+#define SAVED_F7(ptr) 40(ptr)
+#define SAVED_F8(ptr) 48(ptr)
+#define SAVED_F9(ptr) 56(ptr)
+#define SAVED_S0(ptr) 64(ptr)
+#define SAVED_S1(ptr) 72(ptr)
+#define SAVED_S2(ptr) 80(ptr)
+#define SAVED_S3(ptr) 88(ptr)
+#define SAVED_S4(ptr) 96(ptr)
+#define SAVED_S5(ptr) 104(ptr)
+#define SAVED_S6(ptr) 112(ptr)
+#define SAVED_RA(ptr) 120(ptr)
+
+
+      .text
+      .align  3
+      .ent    savecontext,0
+
+savecontext:
+
+      .frame  sp, FSIZE, ra
+
+      
+      ldgp    gp, 0(pv)
+      lda     t0, 1(zero)
+      stl     t0, PRE_Block
+      lda     sp, -FSIZE(sp)
+
+      stq     s0, SAVED_S0(sp)
+      stq     s1, SAVED_S1(sp)
+      stq     s2, SAVED_S2(sp)
+      stq     s3, SAVED_S3(sp)
+      stq     s4, SAVED_S4(sp)
+      stq     s5, SAVED_S5(sp)
+      stq     s6, SAVED_S6(sp)
+
+      stq     ra, SAVED_RA(sp)
+
+      .mask   REGMASK, -FSIZE
+/* Save floating point registers */
+
+      stt     $f2, SAVED_F2(sp)
+      stt     $f3, SAVED_F3(sp)
+      stt     $f4, SAVED_F4(sp)
+      stt     $f5, SAVED_F5(sp)
+      stt     $f6, SAVED_F6(sp)
+      stt     $f7, SAVED_F7(sp)
+      stt     $f8, SAVED_F8(sp)
+      stt     $f9, SAVED_F9(sp)
+
+      .prologue       1
+      stq     sp, 0(a1)
+      or      a0,zero,pv              /* call point in pv */
+      beq     a2, samestack
+      or      a2,zero,sp              /* switch stack */
+samestack:
+      jsr     ra,(pv),0               /* off we go */
+      
+      .end savecontext
+
+
+      .align  3
+      .text
+      .ent    returnto
+returnto:     
+      .frame  sp, 0, ra       
+
+      ldgp    gp,0(pv)
+      .prologue 1
+      ldq     sp, 0(a0)
+/* Restore callee-saved regs */
+      ldq     s0, SAVED_S0(sp)
+      ldq     s1, SAVED_S1(sp)
+      ldq     s2, SAVED_S2(sp)
+      ldq     s3, SAVED_S3(sp)
+      ldq     s4, SAVED_S4(sp)
+      ldq     s5, SAVED_S5(sp)
+      ldq     s6, SAVED_S6(sp)
+/* Return address */
+      ldq     ra, SAVED_RA(sp)
+/* Floating point registers */
+      ldt     $f2, SAVED_F2(sp)
+      ldt     $f3, SAVED_F3(sp)
+      ldt     $f4, SAVED_F4(sp)
+      ldt     $f5, SAVED_F5(sp)
+      ldt     $f6, SAVED_F6(sp)
+      ldt     $f7, SAVED_F7(sp)
+      ldt     $f8, SAVED_F8(sp)
+      ldt     $f8, SAVED_F9(sp)
+      lda     sp, FSIZE(sp)
+      stl     zero, PRE_Block
+      ret     zero,(ra),1
+
+      .end    returnto
+
+#endif /* DEC Alpha */
+

@@ -44,8 +44,11 @@ Pittsburgh, PA.
 #include "lwp.private.h"
 #include "preempt.h"
 
+#ifndef __alpha
 char PRE_Block = 0;		/* used in lwp.c and process.s */
-
+#else
+int  PRE_Block = 0;
+#endif
 
 /* run the scheduler unless we are in a critical region */
 static void AlarmHandler(int sig)

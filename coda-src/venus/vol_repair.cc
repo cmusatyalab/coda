@@ -556,7 +556,8 @@ int volent::DisconnectedRepair(ViceFid *RepairFid, char *RepairFile,
 	LOG(100, ("DisconnectedRepair: Going to create %x.%x.%x\n",
 		  RepairFid->Volume, RepairFid->Vnode, RepairFid->Unique)); 
 	/* need to get the priority from the vproc pointer */
-	f = FSDB->Create(RepairFid, WR, vp->u.u_priority, NULL); /* don't know the component name */
+	f = FSDB->Create(RepairFid, WR, vp->u.u_priority, (char *)NULL);
+			/* don't know the component name */
 	if (f == 0) {
 	    UpdateCacheStats(&FSDB->FileAttrStats, NOSPACE, NBLOCKS(sizeof(fsobj)));
 	    volent *v;

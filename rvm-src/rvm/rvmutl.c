@@ -23,7 +23,7 @@ listed in the file CREDITS.
 */
 
 #include <sys/file.h>                   /* for log, segment i/o */
-#include <sys/errno.h>
+#include <errno.h>
 #include <sys/param.h>
 #include <ctype.h>
 #include <stdio.h>                      /* not used for log, segment i/o */

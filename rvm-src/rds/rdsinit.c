@@ -29,7 +29,7 @@ listed in the file CREDITS.
 #include <sys/file.h>
 #include <sys/types.h>
 #include <sys/stat.h>
-#include <sys/errno.h>
+#include <errno.h>
 #include <stdio.h>
 #include <unistd.h>
 #include <stdlib.h>

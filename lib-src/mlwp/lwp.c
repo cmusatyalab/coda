@@ -39,6 +39,7 @@ Pittsburgh, PA.
 
 #include <stdlib.h>
 #include <unistd.h>
+#include <string.h>
 #include <stdio.h>
 #include "coda_assert.h"
 #include <sys/time.h>
@@ -109,7 +110,7 @@ typedef void *register_t;
 /*----------------------------------------*/
 
 FILE *lwp_logfile = NULL;
-signed char    lwp_debug;
+int     lwp_debug = 0;
 FILE   *lwp_logfile;
 int 	LWP_TraceProcesses = 0;
 PROCESS	lwp_cpptr;
@@ -549,7 +550,7 @@ int LWP_CreateProcess(PFIC ep, int stacksize, int priority, char *parm,
 #if defined(__linux__) || defined(__BSD44__)
 	pagesize = getpagesize();
 	stackptr = (char *) mmap(lwp_stackbase, stacksize, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANON, -1, 0);
-	if ( (int) stackptr == -1 ) {
+	if ( stackptr == MAP_FAILED ) {
 		perror("stack: ");
 		CODA_ASSERT(0);
 	}
@@ -596,6 +597,7 @@ int LWP_CreateProcess(PFIC ep, int stacksize, int priority, char *parm,
 int LWP_DestroyProcess(PROCESS pid)
 {
 	PROCESS temp;
+	char   *topstack;
 
 	lwpdebug(0, "Entered Destroy_Process");
 	if (lwp_init) {
@@ -605,9 +607,9 @@ int LWP_DestroyProcess(PROCESS pid)
 		} else {
 			pid -> status = DESTROYED;
 			lwpmove(pid, &runnable[pid->priority], &blocked);
+			topstack = &(LWPANCHOR.dsptchstack[(sizeof(LWPANCHOR.dsptchstack)-STACK_PAD) & ~0xf]); /* the '& ~0xf' should take care of alignment */
 			temp = lwp_cpptr;
-			savecontext(Dispatcher, &(temp -> context),
-				    &(LWPANCHOR.dsptchstack[(sizeof LWPANCHOR.dsptchstack)-STACK_PAD]));
+			savecontext(Dispatcher, &(temp -> context), topstack);
 		}
 
 		return LWP_SUCCESS;
@@ -770,11 +772,10 @@ static void Create_Process_Part2()
     LWP_DestroyProcess(temp);
 }
 
+#if defined(i386)
 /* set lwp_trace_depth to < 0 to trace the complete stack.
  * set it to > 0 to set the maximum trace depth. */
 static int lwp_trace_depth=-1;
-
-#if defined(i386)
 
 /* Stack crawling bits */
 
@@ -1114,7 +1115,7 @@ static void Overflow_Complain()
 
 /*  The following documents the Assembler interfaces used by old LWP: 
 
-savecontext(int (*ep)(), struct lwp_context *savearea, char *sp)
+savecontext(void (*ep)(), struct lwp_context *savearea, char *sp)
 
 
     Stub for Assembler routine that will

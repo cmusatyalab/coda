@@ -44,7 +44,7 @@ extern "C" {
 
 #include <ctype.h>
 #include <sys/param.h>
-#include <sys/errno.h>
+#include <errno.h>
 #include <sys/stat.h>
 #include <stdio.h>
 #include <sys/file.h>
