@@ -42,13 +42,11 @@ listed in the file CREDITS.
 /*
  * Recoverable Object Declarations
  */
-#ifndef sun
-typedef int boolean_t;
-#endif
+typedef int bool_t;
 
 struct camlib_recoverable_segment {
 	/* flag to determine whether or not initialization is required */
-	boolean_t	    already_initialized;
+	bool_t  already_initialized;
 
 	/* Array of headers for all volumes on this server */
 	struct VolHead VolumeList[MAXVOLS];
