@@ -349,7 +349,7 @@ static void Terminate()
     exit(0);
 }
 
-static long Update_GetKeys(RPC2_Integer authtype, RPC2_CountedBS *cident,
+static long Update_GetKeys(RPC2_Integer *authtype, RPC2_CountedBS *cident,
 			   RPC2_EncryptionKey sharedsecret,
 			   RPC2_EncryptionKey sessionkey)
 {
