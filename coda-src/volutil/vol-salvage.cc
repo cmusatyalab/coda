@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/ss/coda-src/volutil/RCS/vol-salvage.cc,v 4.5 1997/05/12 18:18:15 raiff Exp braam $";
+static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/ss/coda-src/volutil/RCS/vol-salvage.cc,v 4.6 1997/05/27 14:39:23 braam Exp braam $";
 #endif /*_BLURB_*/
 
 
@@ -803,11 +803,11 @@ PRIVATE int VnodeInodeCheck(int RW, struct ViceInodeInfo *ip, int nInodes,
     return 0;
 
 }
+
 /* inodes corresponding to a volume that has been blown away.
  * We need to idec them
  */
 PRIVATE void CleanInodes(struct InodeSummary *isp) {
-#ifdef	__MACH__
     int size;
     struct ViceInodeInfo *inodes = 0;
 
@@ -821,7 +821,7 @@ PRIVATE void CleanInodes(struct InodeSummary *isp) {
     for(int i = 0; i < isp->nInodes; i++) {
 	ViceInodeInfo *ip = &inodes[i];
 	assert(ip->linkCount > 0);
-	LogMsg(0, VolDebugLevel, stdout, "#####Scavanging inode %u, size %u, p=(%u,%u,%u,%u)",
+	LogMsg(0, VolDebugLevel, stdout, "#####Scavenging inode %u, size %u, p=(%u,%u,%u,%u)",
 	     ip->inodeNumber, ip->byteCount,
 	    ip->u.param[0], ip->u.param[1], ip->u.param[2], ip->u.param[3]);
 	while(ip->linkCount > 0) {
@@ -831,13 +831,7 @@ PRIVATE void CleanInodes(struct InodeSummary *isp) {
 	}
     }
     free(inodes);
-#endif /* __MACH__ */
 
-#if defined(__linux__) || defined(__BSD44__)
-    LogMsg(0, VolDebugLevel, stdout, "Arrrghh... CleanInodes() not yet implemented");
-    assert(0);
-#endif
-    
 }
 
 PRIVATE struct VnodeEssence *CheckVnodeNumber(VnodeId vnodeNumber, Unique_t unq)
