@@ -1,0 +1,5 @@
+Makefile
+*.d
+getvolinfo
+rpc2ping
+smon2

@@ -1,0 +1,9 @@
+Makefile
+*.d
+cfs
+cmon
+coda_replay
+codacon
+codaconfedit
+hoard
+spy

@@ -1,0 +1,5 @@
+Makefile
+chdrinstall
+*.d
+altest
+pdbtool

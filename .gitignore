@@ -1,3 +1,10 @@
 autom4te.cache
 config.h.in
 configure
+Makeconf.setup
+Makefile
+build-stamp
+coda_config.h
+config.h
+config.log
+config.status

@@ -1,0 +1,16 @@
+coda-backup 
+coda-backup.substvars
+coda-client
+coda-client.postinst.debhelper
+coda-client.postrm.debhelper
+coda-client.prerm.debhelper
+coda-client.substvars
+coda-server
+coda-server.substvars
+coda-update
+coda-update.postinst.debhelper
+coda-update.postrm.debhelper
+coda-update.prerm.debhelper
+coda-update.substvars
+files
+tmp

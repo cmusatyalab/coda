@@ -1,0 +1,8 @@
+Makefile
+rp2hdrinstall
+*.d
+updateclnt
+updatefetch
+updatesrv
+update.h
+update.*.c

@@ -1,0 +1,8 @@
+Makefile
+chdrinstall
+rp2hdrinstall
+*.d
+portmapper.h
+portmapper.*.c
+rpc2portmap
+simpleclient
