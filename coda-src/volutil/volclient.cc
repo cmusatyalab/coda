@@ -2000,7 +2000,7 @@ static int V_BindToServer(char *fileserver, char *realm, RPC2_Handle *RPCid)
     else if (realm && U_GetLocalTokens(&ctok, stok, realm) == 0)
     {
 	clientident.SeqLen = sizeof(SecretToken);
-	clientident.SeqBody = (RPC2_ByteSeq)&secret;
+	clientident.SeqBody = (RPC2_ByteSeq)&stok;
 
 	bparms.AuthenticationType = AUTH_METHOD_CODATOKENS;
 	bparms.ClientIdent = &clientident;
