@@ -1350,7 +1350,7 @@ void fsobj::DetachChild(fsobj *child) {
 
     DemoteHdbBindings();	    /* in case an expansion would no longer be satisfied! */
 
-    if (child->pfso != this || child->child_link.is_linked() ||
+    if (child->pfso != this || !child->child_link.is_linked() ||
 	 children == 0 || children->count() == 0)
 	{ print(logFile); child->print(logFile); CHOKE("fsobj::DetachChild: bad child"); }
     if (children->remove(&child->child_link) != &child->child_link)
