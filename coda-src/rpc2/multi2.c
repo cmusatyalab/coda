@@ -151,7 +151,7 @@ long MRPC_MakeMulti(int ServerOp, ARG ArgTypes[], RPC2_Integer HowMany,
 	    case RPC2_BYTE_TAG:	/* 2: begin of case RPC2_BYTE_TAG */
 		    switch(a_types->mode) {
 		    case IN_MODE:	
-			    va_array[i].byte = (RPC2_Byte)va_arg(ap, RPC2_Byte);
+			    va_array[i].byte = (RPC2_Byte)va_arg(ap, int);
 			    break;
 		    case OUT_MODE:
 		    case IN_OUT_MODE:
