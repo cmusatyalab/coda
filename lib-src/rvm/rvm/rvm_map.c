@@ -1053,7 +1053,7 @@ rvm_return_t rvm_map(rvm_region_t *rvm_region, rvm_options_t *rvm_options)
     
     /* Do the private map or get the data from the segment */
     if (rvm_map_private) {
-	fd = open(rvm_region->data_dev, O_RDONLY);
+	fd = open(rvm_region->data_dev, O_RDONLY | O_BINARY);
 	if ( fd < 0 ) {
 	    retval = RVM_EIO;
 	    goto err_exit;

@@ -181,11 +181,7 @@ long open_dev(dev,flags,mode)
     dev->handle = 0;
 
     /* attempt to open */
-#if defined(DJGPP) || defined(__CYGWIN32__)
     handle = (long)open(dev->name,flags | O_BINARY, mode);
-#else
-    handle = (long)open(dev->name,flags ,mode);
-#endif 
     if (handle < 0)
         {
         rvm_errdev = dev;
@@ -319,8 +315,8 @@ long write_dev(dev,offset,src,length,sync)
 	}
 
         /* fsync if doing file i/o */
-        if ( ((!dev->raw_io) && (sync==SYNCH)) ||
-	     ((dev->raw_io) && (dev->type=S_IFBLK))) {
+        if (((!dev->raw_io && sync==SYNCH) ||
+	     (dev->raw_io && dev->type == S_IFBLK))) {
             if ((retval=fsync((int)dev->handle))  < 0) {
                 rvm_errdev = dev;
 		rvm_ioerrno = errno;

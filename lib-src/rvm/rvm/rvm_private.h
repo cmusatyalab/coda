@@ -43,6 +43,11 @@ Coda are listed in the file CREDITS.
 #include <rvm/rvm.h>
 #include <rvm/rvm_statistics.h>
 
+#include <fcntl.h>
+#ifndef O_BINARY
+#define O_BINARY 0
+#endif
+
 /* note: Log Version must change if Statistics Version changed */
 #define RVM_LOG_VERSION     "RVM Log Version  1.4 Oct 17, 1997 "
 
@@ -731,7 +736,7 @@ typedef struct
     long            handle;             /* device handle */
     rvm_offset_t    num_bytes;          /* length of device */
     rvm_bool_t      raw_io;             /* true if using raw i/o */
-    unsigned long   type;                /* to store device type */
+    unsigned long   type;               /* to store device type */
     rvm_bool_t      read_only;          /* true if opened read-only */
 
     io_vec_t        *iov;               /* gather write io vector */
