@@ -382,7 +382,7 @@ void CLIENT_PrintClients()
     struct timeval tp;
     struct timezone tsp;
     TM_GetTimeOfDay(&tp, &tsp);
-    SLog(1, "List of active users at %s", ctime(&tp.tv_sec));
+    SLog(1, "List of active users at %s", ctime((const time_t *)&tp.tv_sec));
 
     for(int i = 0; i < maxHost; i++) {
 	for(ClientEntry *cp = hostTable[i].FirstClient; cp; cp=cp->NextClient) {
