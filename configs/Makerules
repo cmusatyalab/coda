@@ -215,7 +215,7 @@ srcinstall:
 ##################
 # testing variables
 ##################
-showvar:
+show showvar:
 	@echo  RP2GEN: $(RP2GEN)
 	@echo  SHADOWINCLS: $(SHADOWINCLS)
 	@echo  SHADOWRP2: $(SHADOWRP2)
