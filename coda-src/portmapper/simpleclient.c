@@ -1,5 +1,5 @@
 /*
- *      $Id: simpleclient.c,v 1.3 1998/09/29 22:52:36 rnw Exp $   
+ *      $Id: simpleclient.c,v 1.4 1998/11/02 16:44:59 rvb Exp $   
  */
 
 /* Simple client to excercise the RPC2 procedure calls */
@@ -7,7 +7,7 @@
 #include "coda_assert.h"
 
 #ifdef __BSD44__
-#include <machine/types.h>
+#include <sys/types.h>
 #endif
 #if !defined(CYGWIN32) & !defined(DJGPP)
 #include <arpa/nameser.h>

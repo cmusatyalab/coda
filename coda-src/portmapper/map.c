@@ -1,8 +1,9 @@
 
-/* $Id: map.c,v 1.2 1998/08/05 23:49:31 braam Exp $ */
+/* $Id: map.c,v 1.3 1998/11/02 16:44:58 rvb Exp $ */
 
 /* structure management for an RPC2 portmapper */
 
+#include <sys/types.h>
 #include <stdlib.h>
 #include <string.h>
 #include "coda_assert.h"

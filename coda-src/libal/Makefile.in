@@ -25,7 +25,7 @@
 # improvements or extensions that  they  make,  and  to  grant  Carnegie
 # Mellon the rights to redistribute these changes without encumbrance.
 # 
-# static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/libal/Makefile.in,v 4.10 1998/09/29 16:37:42 braam Exp $";
+# static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/libal/Makefile.in,v 4.11 1998/11/02 16:44:48 rvb Exp $";
 
 
 # 
@@ -89,8 +89,8 @@ y.tab.c: parsepdb.yacc
 	sed 's/extern char \*getenv();//g' < y.tab.tmp > y.tab.c
 	rm y.tab.tmp
 
-pcfgen:	pcfgen.o libal.a $(LIBUTIL)
-	$(CC) $(LIBFLAGS) pcfgen.o libal.a $(LIBUTIL) -o pcfgen
+pcfgen:	pcfgen.o libal.a $(LIBS)
+	$(CC) $(LIBFLAGS) pcfgen.o libal.a $(LIBS) -o pcfgen
 
 altest: altest.o libal.a $(LIBS)
 	$(CC) ${LIBFLAGS} altest.o libal.a $(LIBS) -o altest
