@@ -229,7 +229,7 @@ long RS_FetchLog(RPC2_Handle RPCid, ViceFid *Fid, RPC2_Integer *size,
     /* ship the log */
     {
 	SLog(9,  "RS_FetchLog: Shipping log ");
-	bzero((void *)&sid, (int)sizeof(SE_Descriptor));
+	memset(&sid, 0, sizeof(SE_Descriptor));
 	sid.Tag = SMARTFTP;
 	sid.Value.SmartFTPD.TransmissionDirection = SERVERTOCLIENT;
 	sid.Value.SmartFTPD.SeekOffset = 0;
@@ -306,7 +306,7 @@ long RS_DirResPhase1(RPC2_Handle RPCid, ViceFid *Fid, RPC2_Integer size,
 	logbuf = (char *)malloc(size);
 	CODA_ASSERT(logbuf);
 	SE_Descriptor	sid;
-	bzero((void *)&sid, (int)sizeof(SE_Descriptor));
+	memset(&sid, 0, sizeof(SE_Descriptor));
 	sid.Tag = SMARTFTP;
 	sid.Value.SmartFTPD.TransmissionDirection = CLIENTTOSERVER;
 	sid.Value.SmartFTPD.SeekOffset = 0;
@@ -674,7 +674,7 @@ long RS_DirResPhase3(RPC2_Handle RPCid, ViceFid *Fid, ViceVersionVector *VV,
 	dh = VN_SetDirHandle(ov->vptr);
 	SLog(9,  "RS_DirResPhase3: Shipping dir contents ");
 	SE_Descriptor sid;
-	bzero((void *)&sid, (int) sizeof(SE_Descriptor));
+	memset(&sid, 0, sizeof(SE_Descriptor));
 	sid.Tag = SMARTFTP;
 	sid.Value.SmartFTPD.TransmissionDirection = SERVERTOCLIENT;
 	sid.Value.SmartFTPD.SeekOffset = 0;

@@ -2120,8 +2120,8 @@ int ClientModifyLog::COP1(char *buf, int bufsize, ViceVersionVector *UpdateSet) 
     
     /* Set up the SE descriptor. */
     SE_Descriptor sed;
+    memset(&sed, 0, sizeof(SE_Descriptor));
     sed.Tag = SMARTFTP;
-    sed.XferCB = NULL;
     struct SFTP_Descriptor *sei = &sed.Value.SmartFTPD;
     sei->TransmissionDirection = CLIENTTOSERVER;
     sei->hashmark = 0;
@@ -3055,9 +3055,9 @@ int cmlent::WriteReintegrationHandle() {
 
 	/* Set up the SE descriptor. */
 	SE_Descriptor sed;
+        memset(&sed, 0, sizeof(SE_Descriptor));
 	{
 	    sed.Tag = SMARTFTP;
-	    sed.XferCB = NULL;
 	    struct SFTP_Descriptor *sei = &sed.Value.SmartFTPD;
 	    sei->TransmissionDirection = CLIENTTOSERVER;
 	    sei->hashmark = 0;
@@ -3171,8 +3171,8 @@ int cmlent::CloseReintegrationHandle(char *buf, int bufsize,
     
     /* Set up the SE descriptor. */
     SE_Descriptor sed;
+    memset(&sed, 0, sizeof(SE_Descriptor));
     sed.Tag = SMARTFTP;
-    sed.XferCB = NULL;
     struct SFTP_Descriptor *sei = &sed.Value.SmartFTPD;
     sei->TransmissionDirection = CLIENTTOSERVER;
     sei->hashmark = 0;

@@ -440,6 +440,7 @@ static int CheckFile(char *fileName, int mode)
     strcpy(oldname, fileName);
     strcat(oldname, ".BAK");
 
+    memset(&sed, 0, sizeof(SE_Descriptor));
     sed.Tag = SMARTFTP;
     sed.Value.SmartFTPD.SeekOffset = 0;
     sed.Value.SmartFTPD.Tag = FILEBYNAME;

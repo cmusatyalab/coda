@@ -117,6 +117,7 @@ int fsobj::Fetch(vuid_t vuid) {
 
     /* Set up the SE descriptor. */
     SE_Descriptor dummysed;
+    memset(&dummysed, 0, sizeof(SE_Descriptor));
     SE_Descriptor *sed = 0;
 
     /* C++ 3.0 whines if the following decls moved closer to use  -- Satya */
@@ -129,7 +130,6 @@ int fsobj::Fetch(vuid_t vuid) {
 
 	    sed = &dummysed;
 	    sed->Tag = SMARTFTP;
-	    sed->XferCB = NULL;
 	    struct SFTP_Descriptor *sei = &sed->Value.SmartFTPD;
 	    sei->TransmissionDirection = SERVERTOCLIENT;
 	    sei->hashmark = 0;
@@ -1008,12 +1008,12 @@ int fsobj::ConnectedStore(Date_t Mtime, vuid_t vuid, unsigned long NewLength) {
 
     /* Set up the SE descriptor. */
     SE_Descriptor dummysed;
+    memset(&dummysed, 0, sizeof(SE_Descriptor));
     SE_Descriptor *sed = 0;
     {
 	/* Must be a file! */
 	sed = &dummysed;
 	sed->Tag = SMARTFTP;
-	sed->XferCB = NULL;
 	struct SFTP_Descriptor *sei = &sed->Value.SmartFTPD;
 	sei->TransmissionDirection = CLIENTTOSERVER;
 	sei->hashmark = 0;

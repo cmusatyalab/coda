@@ -168,7 +168,7 @@ char *arglist;
 	p = arglist;
 	name = strarg(&p, " ", "local file name?", "/dev/mem", nameBuffer);
 
-	bzero(&sed, sizeof(sed));
+	memset(&sed, 0, sizeof(SE_Descriptor));
 	sed.Tag = SMARTFTP;
 	sed.Value.SmartFTPD.TransmissionDirection = SERVERTOCLIENT;
 	sed.Value.SmartFTPD.ByteQuota = -1;
@@ -217,7 +217,7 @@ char *arglist;
 	p = arglist;
 	name = strarg(&p, " ", "local file name?", "/dev/mem", nameBuffer);
 
-	bzero(&sed, sizeof(sed));
+	memset(&sed, 0, sizeof(SE_Descriptor));
 	sed.Tag = SMARTFTP;
 	sed.Value.SmartFTPD.TransmissionDirection = CLIENTTOSERVER;
 	sed.Value.SmartFTPD.ByteQuota = -1;

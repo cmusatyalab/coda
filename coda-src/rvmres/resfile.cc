@@ -121,7 +121,7 @@ long FileResolve(res_mgrpent *mgrp, ViceFid *Fid,
 	PROBE(FileresTPinfo, COORDSTARTFILEFETCH);
 	/* fetch dominant file */
 	{
-	    bzero((void *)&sid, sizeof(SE_Descriptor));
+	    memset(&sid, 0, sizeof(SE_Descriptor));
 	    sid.Tag = SMARTFTP;
 	    sid.Value.SmartFTPD.Tag = FILEBYNAME;
 	    sid.Value.SmartFTPD.FileInfo.ByName.ProtectionBits = 0644;
@@ -259,7 +259,7 @@ long RS_FetchFile(RPC2_Handle RPCid, ViceFid *Fid,
     }
 
     /* Do the file Transfer */
-    bzero((void *)&sid, sizeof(SE_Descriptor));
+    memset(&sid, 0, sizeof(SE_Descriptor));
     sid.Tag = SMARTFTP;
     sid.Value.SmartFTPD.TransmissionDirection = SERVERTOCLIENT;
     sid.Value.SmartFTPD.Tag = FILEBYINODE;
@@ -387,7 +387,7 @@ long RS_ForceFile(RPC2_Handle RPCid, ViceFid *Fid,
 	/* fetch the file to be forced */
 	{	
 	    /* set up the SFTP structure */
-	    bzero((void *)&sid, sizeof(SE_Descriptor));
+	    memset(&sid, 0, sizeof(SE_Descriptor));
 	    sid.Tag = SMARTFTP;
 	    sid.Value.SmartFTPD.TransmissionDirection = CLIENTTOSERVER;
 	    sid.Value.SmartFTPD.SeekOffset = 0;

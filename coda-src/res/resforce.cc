@@ -104,7 +104,7 @@ void UpdateRunts(res_mgrpent *mgrp, ViceVersionVector **VV,
 	
 	al.SeqLen = (SIZEOF_LARGEDISKVNODE - SIZEOF_SMALLDISKVNODE);
 	al.SeqBody = (RPC2_ByteSeq)buf;
-	bzero((void *)&sid, (int) sizeof(SE_Descriptor));
+	memset(&sid, 0, sizeof(SE_Descriptor));
 	sid.Tag = SMARTFTP;
 	sid.Value.SmartFTPD.Tag = FILEBYNAME;
 	sid.Value.SmartFTPD.FileInfo.ByName.ProtectionBits = 0644;
@@ -127,7 +127,7 @@ void UpdateRunts(res_mgrpent *mgrp, ViceVersionVector **VV,
 	int forceError;
 	SE_Descriptor	sid;
 
-	bzero((void *)&sid, (int) sizeof(SE_Descriptor));
+	memset(&sid, 0, sizeof(SE_Descriptor));
 	sid.Tag = SMARTFTP;
 	sid.Value.SmartFTPD.Tag = FILEBYNAME;
 	sid.Value.SmartFTPD.FileInfo.ByName.ProtectionBits = 0644;
@@ -398,7 +398,7 @@ long RS_GetForceDirOps(RPC2_Handle RPCid, ViceFid *Fid,
     AL_htonAlist((AL_AccessList *)(AccessList->SeqBody));
 
     /* transfer back the file */
-    bzero((void *)&sid, (int)sizeof(SE_Descriptor));
+    memset(&sid, 0, sizeof(SE_Descriptor));
     sid.Tag = SMARTFTP;
     sid.Value.SmartFTPD.TransmissionDirection = SERVERTOCLIENT;
     sid.Value.SmartFTPD.Tag = FILEBYNAME;

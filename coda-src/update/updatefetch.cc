@@ -156,6 +156,7 @@ static int FetchFile(char *RemoteFileName, char *LocalFileName, int mode)
 
     time = 0; /* tell server to just ship the file, without checking on times */
     
+    memset(&sed, 0, sizeof(SE_Descriptor));
     sed.Tag = SMARTFTP;
     sed.Value.SmartFTPD.SeekOffset = 0;
     sed.Value.SmartFTPD.Tag = FILEBYNAME;

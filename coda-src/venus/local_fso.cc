@@ -97,12 +97,12 @@ int fsobj::RepairStore()
 
     /* Set up the SE descriptor. */
     SE_Descriptor dummysed;
+    memset(&dummysed, 0, sizeof(SE_Descriptor));
     SE_Descriptor *sed = 0;
     {
 	/* Must be a file! */
 	sed = &dummysed;
 	sed->Tag = SMARTFTP;
-	sed->XferCB = NULL;
 	struct SFTP_Descriptor *sei = &sed->Value.SmartFTPD;
 	sei->TransmissionDirection = CLIENTTOSERVER;
 	sei->hashmark = 0;

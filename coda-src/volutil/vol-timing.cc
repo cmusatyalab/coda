@@ -88,7 +88,7 @@ long S_VolTiming(RPC2_Handle rpcid, RPC2_Integer OnFlag, SE_Descriptor *formal_s
 	fclose(timingfile);
 
 	/* set up SE_Descriptor for transfer */
-	bzero((void *)&sed, sizeof(sed));
+	memset(&sed, 0, sizeof(SE_Descriptor));
 	sed.Tag = SMARTFTP;
 	sed.Value.SmartFTPD.Tag = FILEBYNAME;
 	sed.Value.SmartFTPD.TransmissionDirection = SERVERTOCLIENT;

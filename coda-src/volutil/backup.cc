@@ -1279,7 +1279,7 @@ long WriteDump(RPC2_Handle rpcid, unsigned long offset, unsigned long *nbytes, V
     }
     
     /* fetch the file with volume data */
-    bzero((char *)&sed, sizeof(sed));
+    memset(&sed, 0, sizeof(sed));
     sed.Tag = SMARTFTP;
     sed.Value.SmartFTPD.TransmissionDirection = CLIENTTOSERVER;
     sed.Value.SmartFTPD.ByteQuota = -1;

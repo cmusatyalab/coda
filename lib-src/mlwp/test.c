@@ -94,7 +94,7 @@ int main(int argc, char **argv)
     if (count)
     {
 	x = (t2.tv_sec -t1.tv_sec)*1000000 + (t2.tv_usec - t1.tv_usec);
-	printf("%d milliseconds for %d MWaits (%f usec per Mwait and Signal)\n", x/1000, count, (float)(x/count));
+	printf("%ld milliseconds for %ld MWaits (%f usec per Mwait and Signal)\n", x/1000, count, (float)(x/count));
     }
 
     return 0;

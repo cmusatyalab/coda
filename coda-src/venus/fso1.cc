@@ -1240,6 +1240,7 @@ int fsobj::TryToCover(ViceFid *inc_fid, vuid_t vuid) {
     Recov_BeginTrans();
     if (IsFake() && rf->mvstat != ROOT) {
 	    RVMLIB_REC_OBJECT(rf->mvstat);
+	    RVMLIB_REC_OBJECT(rf->u.mtpoint);
 	    rf->mvstat = ROOT;
 	    rf->u.mtpoint = 0;
     }

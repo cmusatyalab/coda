@@ -64,7 +64,7 @@ long S_PrintStats(RPC2_Handle rpcid, SE_Descriptor *formal_sed) {
     fclose(statsfile);
 
     // ship the file back 
-    bzero((void *)&sed, sizeof(sed));
+    memset(&sed, 0, sizeof(SE_Descriptor));
     sed.Tag = SMARTFTP;
     sed.Value.SmartFTPD.Tag = FILEBYNAME;
     sed.Value.SmartFTPD.TransmissionDirection = SERVERTOCLIENT;
