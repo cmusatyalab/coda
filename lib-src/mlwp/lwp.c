@@ -103,7 +103,7 @@ static void Initialize_Stack (char *stackptr, int stacksize);
 static int  Stack_Used (register char *stackptr, int stacksize);
 static int  InitializeProcessSupport();
 
-#if defined(DJGPP) || defined(__CYGWIN32__)
+#ifdef DJGPP
 typedef void *register_t;
 #endif
 
