@@ -802,7 +802,7 @@ static void CheckWorried(struct SFTP_Entry *sEntry)
 	sEntry->SendWorriedLimit = sEntry->SendLastContig;
     
     TVTOTS(&sEntry->RInterval, rexmit);
-    rexmit <<= 1;
+    //rexmit <<= 1;
     now = rpc2_TVTOTS(&sEntry->LastSS);
     for (i = sEntry->SendAckLimit; i > sEntry->SendWorriedLimit; i--) {
 	if (TESTBIT(sEntry->SendTheseBits, i - sEntry->SendLastContig))
