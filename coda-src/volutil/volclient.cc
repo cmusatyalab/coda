@@ -1814,7 +1814,7 @@ static void peekpokeerr()
 		/*4*/ "Memory protection error",
 		/*5*/ "Unaligned integer/pointer reference"};
 	printf("Couldn't %s at %s: %s\n", this_argp[1], this_argp[2],
-	       (int)rc >= -10040L && rc < sizeof(msgs)/sizeof(*msgs)-10040L ?
+	       (int)rc >= -10040L && rc < (int)(sizeof(msgs)/sizeof(*msgs)-10040L) ?
 	       msgs[10040 + (int) rc] : RPC2_ErrorMsg((int) rc));
 	exit (-1);
 }

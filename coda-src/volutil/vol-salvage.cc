@@ -1032,7 +1032,7 @@ void DirCompletenessCheck(struct VolumeSummary *vsp)
 			    doassert = 1;
 			    /* You can bring up the server by forcing
 			     * this volume off-line edit
-			     * /vice/vol/skipsalvage.  The format of
+			     * /"vicedir"/vol/skipsalvage.  The format of
 			     * this file is the fist line has the
 			     * number of volumes to skip, and each
 			     * subsequent line has a volume number.
@@ -1180,7 +1180,7 @@ static void release_locks(int volUtil) {
     if (volUtil) {  /* not running full salvage */
 	return;
     }
-    fslock = open("/vice/vol/fs.lock", O_CREAT|O_RDWR, 0666);
+    fslock = open(Vol_vicefile("vol/fs.lock"), O_CREAT|O_RDWR, 0666);
     CODA_ASSERT(fslock >= 0);
     if (flock(fslock, LOCK_UN) != 0) {
 	VLog(0, "release_locks: unable to release file server lock");
@@ -1190,7 +1190,7 @@ static void release_locks(int volUtil) {
     }
     close(fslock);
 
-    fslock = open ("/vice/vol/volutil.lock", O_CREAT|O_RDWR, 0666);
+    fslock = open (Vol_vicefile("vol/volutil.lock"), O_CREAT|O_RDWR, 0666);
     CODA_ASSERT(fslock >= 0);
     if (flock(fslock, LOCK_UN) != 0) {
 	VLog(0, "release_locks: unable to release volume utility lock");
@@ -1202,7 +1202,7 @@ static void release_locks(int volUtil) {
 }
 
 /* if some volumes shouldnt be salvaged their number is 
-   placed in a file DONTSALVVOLS.  Check if file exists
+   placed in a file /"vicedir"/vol/skipsalvage  Check if file exists
    and read in the volume numbers.  The format of the 
    file is "<number of volumes> \n <volume numbers in hex>"
 */
@@ -1210,9 +1210,9 @@ static void GetSkipVolumeNumbers() {
     struct stat s1;
     FILE *skipsalv;
 
-    if (stat(DONTSALVVOLS, &s1) == 0){
+    if (stat(Vol_vicefile("vol/skipsalvage"), &s1) == 0){
 	/* file exists */
-	skipsalv = fopen(DONTSALVVOLS, "r");
+	skipsalv = fopen(Vol_vicefile("vol/skipsalvage"), "r");
 	CODA_ASSERT(skipsalv != NULL);
 	fscanf(skipsalv, "%d\n", &nskipvols);
 	skipvolnums = (VolumeId *)malloc(nskipvols * sizeof(VolumeId));

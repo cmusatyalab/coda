@@ -60,6 +60,7 @@ Pittsburgh, PA.
 #include "cbuf.h"
 
 extern int errno;
+int rpc2_bindaddr = INADDR_ANY;
 
 long RPC2_Init(char *VId,		/* magic version string */
 	       RPC2_Options *Options,
@@ -152,7 +153,21 @@ long RPC2_Init(char *VId,		/* magic version string */
     rpc2_Quit(rc);
 }
 
+/* set the IP Addr to bind to */
+int RPC2_setip(char *host)
+{
+	struct hostent *he = NULL;
 
+	if (! host ) 
+		return htonl(INADDR_ANY);
+	he = gethostbyname(host);
+	if ( !he ) 
+		return 0;
+	else {
+		rpc2_bindaddr = *(int *)he->h_addr_list[0];
+		return he->h_addr;
+	}
+}
 
 long RPC2_Export(IN Subsys)
     RPC2_SubsysIdent *Subsys;
@@ -837,7 +852,7 @@ long rpc2_CreateIPSocket(long *svar, RPC2_PortIdent *pvar)
 	/* set host address for bind() */
 	bzero(&bindaddr, sizeof(bindaddr));
 	bindaddr.sin_family = AF_INET;
-	bindaddr.sin_addr.s_addr = htonl(INADDR_ANY);
+	bindaddr.sin_addr.s_addr = rpc2_bindaddr;
 					
 	/* set port address for bind() */
 	switch (pvar->Tag) {

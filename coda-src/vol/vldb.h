@@ -73,7 +73,7 @@ struct vldbHeader {
 
 #define VLDB_PATH "/vice/db/VLDB"
 #define VLDB_TEMP "/vice/db/VLDB.new"
-#define BACKUPLIST_PATH "/vice/vol/BackupList"
+#define BACKUPLIST_PATH Vol_vicefile("vol/BackupList")
 
 extern struct vldb *VLDBLookup(char *key);
 extern int VLDBPrint();

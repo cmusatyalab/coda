@@ -46,6 +46,8 @@ SEOFILES  = sftp1.o sftp2.o sftp3.o sftp4.o sftp5.o sftp6.o
 ASMOFILES = fxor.o
 TESTHFILES = test.h
 
+include $(TOPDIR)/configs/Makerules
+
 # Special case of errors:
 errors.o: errordb.txt
 	perl ${srcdir}/makeinc.pl < ${srcdir}/errordb.txt
@@ -66,4 +68,3 @@ stest: stest.o
 rpc2test: rpc2test.o
 
 
-include $(TOPDIR)/configs/Makerules

@@ -723,6 +723,10 @@ extern long rpc2_NextRandom (char *StatePtr);
 /* hack until we can do something more sophisticated. */
 extern long rpc2_Bandwidth;
 
+/* for multihomed servers */
+int RPC2_setip(char *host);
+
+
 /*------- Transmission Statistics -------------*/
 struct SStats
     {

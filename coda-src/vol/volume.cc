@@ -146,7 +146,7 @@ static void ReleaseVolumeHeader(struct volHeader *hd);
 void FreeVolumeHeader(Volume *vp);
 static void AddVolumeToHashTable(Volume *vp, int hashid);
 void DeleteVolumeFromHashTable(Volume *vp);
-
+static char *vicedir;
 
 
 /* InitVolUtil has a problem right now - 
@@ -157,6 +157,29 @@ void DeleteVolumeFromHashTable(Volume *vp);
    close() calls right now.
 */
 
+void Vol_Init_vicedir(char *viced)
+{
+	if (!vicedir) 
+		vicedir = (char *)malloc(MAXPATHLEN);
+	CODA_ASSERT(vicedir);
+	strncpy(vicedir, viced, MAXPATHLEN);
+}
+
+/* not thread safe! */
+char *Vol_vicefile(char *file)
+{
+	static char *volpath = NULL;
+	if (!volpath) 
+		volpath = (char *)malloc(MAXPATHLEN);
+	CODA_ASSERT(volpath);
+	if (!vicedir)
+		CODA_ASSERT(0);
+	if (!file)
+		CODA_ASSERT(0);
+	snprintf(volpath, MAXPATHLEN, "%s/%s",  vicedir, file);
+	return volpath;
+}
+
 /* invoked by all volume utilities except full salvager */
 int VInitVolUtil(ProgramType pt) 
 {
@@ -166,9 +189,9 @@ int VInitVolUtil(ProgramType pt)
 	fvlock = -1;
 
 	VLog(9, "Entering VInitVolUtil");
-	fslock = open("/vice/vol/fs.lock", O_CREAT|O_RDWR, 0666);
+	fslock = open(Vol_vicefile("vol/fs.lock"), O_CREAT|O_RDWR, 0666);
 	CODA_ASSERT(fslock >= 0);
-	fvlock = open ("/vice/vol/volutil.lock", O_CREAT|O_RDWR, 0666);
+	fvlock = open (Vol_vicefile("vol/volutil.lock"), O_CREAT|O_RDWR, 0666);
 	CODA_ASSERT(fvlock >= 0);
 
 	if (pt != salvager) {
@@ -298,11 +321,12 @@ void VInitVolumePackage(int nLargeVnodes, int nSmallVnodes, int DoSalvage)
 	    vp = VAttachVolumeById(&error, thispartition, header.id, V_UPDATE);
 	    (*(vp?&nAttached:&nUnattached))++;
 	    if (error == VOFFLINE)
-		VLog(0, "Volume %x stays offline (/vice/offline/%s exists)", 
-			    header.id, VolumeExternalName(header.id));
+		VLog(0, "Volume %x stays offline (%s/%s exists)", 
+		     header.id, Vol_vicefile("offline"), 
+		     VolumeExternalName(header.id));
 	    /* if volume was not salvaged force it offline. */
 	    /* a volume is not salvaged if it exists in the 
-		/vice/vol/skipsalvage file 
+		/"vicedir"/vol/skipsalvage file 
 		*/
 	    if (vp && skipvolnums != NULL && 
 		InSkipVolumeList(header.parent, skipvolnums, nskipvols)){
@@ -321,7 +345,7 @@ void VInitVolumePackage(int nLargeVnodes, int nSmallVnodes, int DoSalvage)
 	}
 	VLog(0, "Attached %d volumes; %d volumes not attached",
 	     nAttached, nUnattached);
-	VListVolumes(); 	/* Update list in /vice/vol/VolumeList */
+	VListVolumes(); 	/* Update list in /"vicedir"/vol/VolumeList */
 	rvmlib_end_transaction(flush, &(camstatus));
     }
 
@@ -352,25 +376,30 @@ void VDisconnectFS() {
     FSYNC_clientFinis();
 }
 
-void VInitThisHost()
+void VInitThisHost(char *host)
 {
-        char hostname[MAXHOSTNAMELEN];
 	struct hostent *hostent;
 
-	gethostname(hostname, sizeof(hostname)-1);
+	ThisHost = (char *)malloc(MAXHOSTNAMELEN);
+	CODA_ASSERT(ThisHost);
+
+	if ( !host ) {
+		gethostname(ThisHost, MAXHOSTNAMELEN);
+	} else {
+		strncpy(ThisHost, host, MAXHOSTNAMELEN);
+	}
 	ThisServerId = -1;
-	ThisHost = (char *) malloc((int)strlen(hostname)+1);
-	strcpy(ThisHost, hostname);
 	hostent = gethostbyname(ThisHost);
+
 	if (hostent == NULL) {
-		VLog(0, "Host %s cannot be resolved. Exiting.", ThisHost);
+		VLog(0, "Host %s cannot be resolved. Exit.", ThisHost);
 		exit(1);
 	}
 }
 
 /* must be called before calling VInitVolumePackage!! */
 /* Find the server id */
-void VInitServerList() 
+void VInitServerList(char *host) 
 {
 
     char hostname[100];
@@ -378,7 +407,7 @@ void VInitServerList()
     char *serverList = SERVERLISTPATH;
     FILE *file;
 
-    VInitThisHost();
+    VInitThisHost(host);
 
     VLog(9, "Entering VInitServerList");
     file = fopen(serverList, "r");
@@ -398,8 +427,6 @@ void VInitServerList()
 	}
     }
 #endif
-    ThisHost = (char *) malloc((int)strlen(hostname)+1);
-    strcpy(ThisHost, hostname);
 
     while (fgets(line, sizeof(line), file) != NULL) {
         char sname[50];
@@ -525,7 +552,7 @@ void VListVolumes()
 
     VLog(9, "Entering VListVolumes()");
 
-    file = fopen("/vice/vol/VolumeList.temp", "w");
+    file = fopen(Vol_vicefile("vol/VolumeList.temp"), "w");
     CODA_ASSERT(file != NULL);
 
     tmp = &DiskPartitionList;
@@ -548,7 +575,8 @@ void VListVolumes()
 	}
     }
     fclose(file);
-    rename("/vice/vol/VolumeList.temp","/vice/vol/VolumeList");
+    rename(Vol_vicefile("vol/VolumeList.temp"),
+	   Vol_vicefile("vol/VolumeList"));
 }
 
 static void VAppendVolume(Volume *vp)
@@ -556,7 +584,7 @@ static void VAppendVolume(Volume *vp)
     FILE *file;
 
     VLog(9, "Entering VAppendVolume for volume %x", V_id(vp));
-    file = fopen("/vice/vol/VolumeList", "a");
+    file = fopen(Vol_vicefile("vol/VolumeList"), "a");
     if (file == NULL)
         return;
     VListVolume(file, vp);
@@ -692,11 +720,20 @@ VAttachVolumeById(Error *ec, char *partition, VolumeId volid, int mode)
 	int rc,listVolume;
 	struct stat status;
 	struct VolumeHeader header;
+	struct DiskPartition *dp;
 	char name[32];
 	ProgramType *pt;
 
+
 	VLog(9, "Entering VAttachVolumeById() for volume %x", volid);
 	CODA_ASSERT(LWP_GetRock(FSTAG, (char **)&pt) == LWP_SUCCESS);
+
+	dp = DP_Get(partition);
+	if (!dp) {
+		*ec = VNOVOL;
+		return NULL;
+	}
+
 	*ec = 0;
 	if (*pt == volumeUtility) {
 		VLog(19, "running as volume utility");
@@ -749,7 +786,6 @@ VAttachVolumeById(Error *ec, char *partition, VolumeId volid, int mode)
 			return NULL;
 		}
 	}
-	CODA_ASSERT(stat(partition, &status) == 0);
 	vp = attach2(ec, name, &header, status.st_dev, partition);
 	if (vp == NULL)
 		VLog(9, "VAttachVolumeById: attach2 returns vp == NULL");

@@ -392,7 +392,7 @@ extern char *VSalvageMessage;	/* Canonical message when a volume is forced
 extern int AllowResolution;	/* global flag to turn on dir. resolution */
 extern void VInitVolumePackage(int nLargeVnodes, int nSmallVnodes, int DoSalvage);
 extern int VInitVolUtil(ProgramType pt);
-extern void VInitServerList();
+extern void VInitServerList(char *host);
 extern int VConnectFS();
 extern void VDisconnectFS();
 extern void VCheckVolumes();
@@ -427,10 +427,6 @@ extern void InitLRU(int howmany);
    an inifite number of them; for most files, we give him the inode, vnode,
    and indirect block overhead, for FREE! */
 #define nBlocks(bytes) ((bytes) == 0? 1: ((bytes)+1023)/1024)
-
-/* Client process id -- file server sends a Check volumes signal back
-   to the client at this pid */
-#define CLIENTPID	"/vice/vol/clientpid"
 
 /* Modes of attachment, for VAttachVolume[ByName] to convey to the
    file server */
@@ -468,6 +464,8 @@ void PutVolObj(Volume **volptr, int LockLevel, int Dequeue);
 int GetVolObj(VolumeId Vid, Volume **volptr, 
 	      int LockLevel, int Enque, int LockerAddress);
 
+void Vol_Init_vicedir(char *viced);
+char *Vol_vicefile(char *file);
 
 
 

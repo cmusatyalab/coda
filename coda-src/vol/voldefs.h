@@ -43,10 +43,10 @@ Pittsburgh, PA.
 /* If you add volume types here, be sure to check the definition of
    volumeWriteable in volume.h */
 
-#define readwriteVolume		RWVOL
-#define readonlyVolume		ROVOL
-#define backupVolume		BACKVOL
-#define	replicatedVolume	REPVOL
+#define readwriteVolume RWVOL
+#define readonlyVolume  ROVOL
+#define backupVolume	   BACKVOL
+#define replicatedVolume	REPVOL
 
 #define RWVOL			0
 #define ROVOL			1
@@ -56,11 +56,11 @@ Pittsburgh, PA.
 /* All volumes will have a volume header name in this format */
 /*#define VFORMAT "V%010lu.vol"*/
 #define VFORMAT "V%010lu"
-#define VMAXPATHLEN 64		/* Maximum length (including null) of a volume
-				   external path name */
+#define VMAXPATHLEN 64  /* Maximum length (including null) of a volume
+			   external path name */
 
 /* Pathname for the maximum volume id ever created by this server */
-#define MAXVOLIDPATH	"/vice/vol/maxvolid"
+#define MAXVOLIDPATH	Vol_vicefile("vol/maxvolid")
 
 /* Pathname for server id definitions--the server id is used to allocate volume numbers */
 #define SERVERLISTPATH	"/vice/db/servers"

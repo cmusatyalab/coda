@@ -44,9 +44,6 @@ listed in the file CREDITS.
 
 /* supported types of server partitions */
 #define PTYPE_SIMPLE     "simple"
-#define PTYPE_MACHUFS    "machufs"
-#define PTYPE_LINUXEXT2  "linuxext2"
-#define PTYPE_NBSDUFS    "nbsdufs"
 #define PTYPE_FTREE      "ftree"
 
 

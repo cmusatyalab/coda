@@ -99,12 +99,12 @@ static int MaxStride;
 
 #define vldbindex(p)	((p) - &vldb_array[0])
 
-#define RWLIST_PATH	"/vice/vol/RWlist"
-#define PART_PATH	"/vice/vol/partitions"
-#define PART_TEMP	"/vice/vol/partitions.new"
-#define ALL_COMMAND	"sort >/vice/vol/AllVolumes.new"
-#define ALL_TEMP	"/vice/vol/AllVolumes.new"
-#define ALL_PATH	"/vice/vol/AllVolumes"
+#define RWLIST_PATH	Vol_vicefile("vol/RWlist")
+#define PART_TEMP     Vol_vicefile("vol/partitions.new")
+#define PART_PATH     Vol_vicefile("vol/partitions")
+
+#define ALL_TEMP	Vol_vicefile("vol/AllVolumes.new")
+#define ALL_PATH	Vol_vicefile("vol/AllVolumes")
 
 static FILE *BackupList, *RWList, *PartList, *AllList, *volumelist;
 
@@ -141,17 +141,17 @@ char rootname[32];
 
 
 /*
-  BEGIN_HTML
-  <a name="S_VolMakeVLDB"><strong>Rebuild the VLDB from the file listed as parameter</strong></a> 
-  END_HTML
+S_VolMakeVLDB: Rebuild the VLDB from the file listed as parameter
 */
-long S_VolMakeVLDB(RPC2_Handle rpcid, RPC2_String formal_infile) {
+long S_VolMakeVLDB(RPC2_Handle rpcid, RPC2_String formal_infile) 
+{
     int nentries;
     struct vldbHeader *head;
     int fd;
     int MaxRO, MaxBK, MaxRW;
     int err = 0;
     ProgramType *pt;
+    char cmd[1024];
 
     /* To keep C++ 2.0 happy */
     char *infile = (char *)formal_infile;
@@ -198,9 +198,10 @@ long S_VolMakeVLDB(RPC2_Handle rpcid, RPC2_String formal_infile) {
   	return(VFAIL);
     }
 #else
-    AllList = (FILE *) popen(ALL_COMMAND, "w");
+    snprintf(cmd, sizeof(cmd), "sort > %s", Vol_vicefile("vol/AllVolumes.new"));
+    AllList = (FILE *) popen(cmd, "w");
     if (AllList == NULL) {
-	printf("makevldb:  Unable to \"run %s\"; aborted\n", ALL_COMMAND);
+	printf("makevldb:  Unable to \"run %s\"; aborted\n", cmd);
   	return(VFAIL);
     }
 #endif

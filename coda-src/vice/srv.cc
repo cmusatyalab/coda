@@ -105,9 +105,6 @@ extern "C" {
 }
 #endif __cplusplus
 
-
-
-
 #include <srv.h>
 #include <vice.private.h>
 #include <recov.h>
@@ -144,8 +141,11 @@ int OptimizeStore = 0;
 int MaxVols = MAXVOLS;          /* so we can use it in vicecb.c. yuck. */
 
 extern rvm_length_t rvm_test;
-extern int canonicalize;	/* controls if vrdb - Getvolumeinfo should return 
-				   hosts in canonical order - this is only temporary */
+extern int canonicalize;	/* controls if vrdb - Getvolumeinfo
+				   should return hosts in canonical
+				   order - this is only temporary */
+static char *vicedir = "/vice"; /* for /vice  */
+static char *srvhost = NULL;
 
 #ifdef _TIMECALLS_
 int clockFD = 0;		/* for timing with the NSC clock board */
@@ -208,7 +208,7 @@ int prottrunc = FALSE;
 /* static */void rds_printer(char *fmt ...);
 
 /* vicetab */
-#define VCT "/vice/db/vicetab"
+char *vicetab = "/vice/db/vicetab";
 
 /* PDB stuff. */
 static int pdbtime = 0;
@@ -336,7 +336,6 @@ main(int argc, char *argv[])
     SFTP_Initializer sei;
     ProgramType *pt;
 
-
     if(ParseArgs(argc,argv)) {
 	SLog(0, "usage: srv [-d (debug level)] [-p (number of processes)] ");
 	SLog(0, "[-b (buffers)] [-l (large vnodes)] [-s (small vnodes)]");
@@ -347,20 +346,21 @@ main(int argc, char *argv[])
 	SLog(0, "[-cp (connections in process)] [-cm (connections max)");
 	SLog(0, "[-cam] [-nc] [-rvm logdevice datadevice length] [-nores] [-trunc percent]");
 	SLog(0, " [-nocmp] [-nopy] [-nodumpvm] [-nosalvageonshutdown] [-mondhost hostname] [-mondport portnumber]");
-	SLog(0, "[-debarrenize] [-optstore]");
+	SLog(0, "[-debarrenize] [-optstore] [-dir workdir] [-srvhost host]");
 	SLog(0, " [-rvmopt] [-newchecklevel checklevel] [-canonicalize] [-usenscclock");
 
 	exit(-1);
     }
 
 
-    if(chdir("/vice/srv")) {
-	SLog(0, "could not cd to /vice/srv - exiting");
+    Vol_Init_vicedir(vicedir);
+    if(chdir(Vol_vicefile("srv"))) {
+	SLog(0, "could not cd to %s - exiting", Vol_vicefile("srv"));
 	exit(-1);
     }
 
     NewParms(1);
-    unlink("/vice/srv/NEWSRV");
+    unlink("NEWSRV");
 
     freopen("SrvLog","a+",stdout);
     freopen("SrvErr","a+",stderr);
@@ -389,7 +389,7 @@ main(int argc, char *argv[])
 	camlog_fd = open(cam_log_file, O_RDWR | O_TRUNC | O_CREAT, 0777);
 	if (camlog_fd < 0) perror("Error opening cam_log_file\n");
     }
-    VInitServerList();	/* initialize server info for volume pkg */
+    VInitServerList(srvhost);	/* initialize server info for volume pkg */
 
     /* Notify log of sizes of text and data regions. */
 #ifndef __CYGWIN32__
@@ -448,6 +448,7 @@ main(int argc, char *argv[])
 #endif
     portlist[0] = &port1;
 
+    RPC2_setip(srvhost);
     SFTP_SetDefaults(&sei);
     /* set optimal window size and send ahead parameters */
     sei.WindowSize = SrvWindowSize;
@@ -463,7 +464,7 @@ main(int argc, char *argv[])
     RPC2_InitTraceBuffer(trace);
     RPC2_Trace = trace;
 
-    DP_Init(VCT);
+    DP_Init(vicetab);
     DIR_Init(DIR_DATA_IN_VM);
     DC_HashInit();
 
@@ -833,7 +834,11 @@ static void ShutDown()
 
     if (SalvageOnShutdown) {
 	SLog(9, "Unlocking volutil lock...");
-	int fvlock = open("/vice/vol/volutil.lock", O_CREAT|O_RDWR, 0666);
+	if (chdir(Vol_vicefile("vol"))) {
+		SLog(0, "Cannot unlock volutil lock...");
+		return;
+	}
+	int fvlock = open("volutil.lock", O_CREAT|O_RDWR, 0666);
 	CODA_ASSERT(fvlock >= 0);
 	while (flock(fvlock, LOCK_UN) != 0);
 	SLog(9, "Done");
@@ -1182,15 +1187,16 @@ void rds_printer(char *fmt ...)
 }
 
 /*
-SwapLog: Move the current /vice/srv/SrvLog file out of the way. 
+SwapLog: Move the current /"vicedir"/srv/SrvLog file out of the way. 
 */
 void SwapLog()
 {
     struct timeval tp;
 
     /* Need to chdir() again, since salvage may have put me elsewhere */
-    if(chdir("/vice/srv")) {
-	SLog(0, "Could not cd to /vice/srv; not swapping logs");
+    if(chdir(Vol_vicefile("srv"))) {
+	SLog(0, "Could not cd to %s; not swapping logs", 
+	     Vol_vicefile("srv"));
 	return;
     }
 #ifndef __CYGWIN32__
@@ -1202,7 +1208,7 @@ void SwapLog()
 #endif
 
     SLog(0, "Starting new SrvLog file");
-    freopen("/vice/srv/SrvLog","a+",stdout);
+    freopen("SrvLog","a+",stdout);
     
     /* Print out time/date, since date info has "scrolled off" */
     TM_GetTimeOfDay(&tp, 0);
@@ -1318,6 +1324,15 @@ static int ParseArgs(int argc, char *argv[])
 	else 
 	    if (!strcmp(argv[i], "-rpcdebug"))
 		RPC2_DebugLevel = atoi(argv[++i]);
+	else
+	    if (!strcmp(argv[i], "-dir"))
+		vicedir = argv[++i];
+	else
+	    if (!strcmp(argv[i], "-srvhost"))
+		srvhost = argv[++i];
+	else
+	    if (!strcmp(argv[i], "-vicetab"))
+		vicetab = argv[++i];
 	else
 	    if (!strcmp(argv[i], "-p")) {
 		lwps = atoi(argv[++i]);

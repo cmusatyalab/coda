@@ -183,7 +183,7 @@ int getVolId(FILE *VolumeList, VolumeId *volId, int *flags, char *comment)
 	return(-1);
     }
 	
-    if (sscanf(string, "%x %40s %40s", volId, incstr, comment) != 3) {
+    if (sscanf(string, "%lx %40s %40s", volId, incstr, comment) != 3) {
 	if (!feof(VolumeList)) 
 	    LogMsg(3, Debug, stdout, "Bad input line, -%s-\n", string);
 	return(-1);
@@ -252,13 +252,13 @@ RPC2_Handle getrpcId(struct vldb *vldbp) {
  * VLDB.  Fill in the repinfo_t structure, returning the connectionid
  * of the server.  */
 
-getReplica(repinfo_t *rep) {
+int getReplica(repinfo_t *rep) {
     char volIdstr[11];		    /* The ascii (decimal) version of the VolId */
     struct vldb *vldbp;			/* Pointer to a vldb entry */
     VolumeId volId = rep->repvolId;
     rep->serverNum = 0;
     
-    sprintf(volIdstr, "%u", volId);
+    sprintf(volIdstr, "%lu", volId);
     vldbp = VLDBLookup(volIdstr);
     if (vldbp == NULL) {
 	LogMsg(0, 0, stdout, "Volume replica %x doesn't exist!\n", volId);
@@ -278,7 +278,6 @@ getReplica(repinfo_t *rep) {
 /* change the partition name entry to have the todayName appended */
 int PreparePartitionEntries(void)
 {
-    long t = time(0);
     char todayName[11];
     char today[10];
     struct DiskPartition *dp;
@@ -469,7 +468,6 @@ static void unlockReplicas(volinfo_t *vol)
  * replicas in the volinfo_t.  */
 static int backup(volinfo_t *vol) {
     VolumeId volId = vol->volId;
-    int Incremental = (vol->flags & INCREMENTAL);
     repinfo_t *reps = vol->replicas;
     long rc;
     int count = 0;
@@ -524,7 +522,7 @@ struct DiskPartition *findBestPartition(void)
 	tmp = &DiskPartitionList;
 	while( (tmp = tmp->next) != &DiskPartitionList) {
 		part = list_entry(tmp, struct DiskPartition, dp_chain);
-		if (!best || part->free > space) {
+		if (!best || part->free > (long)space) {
 			best = part;
 			space = part->free;
 		}
@@ -579,10 +577,10 @@ int dumpVolume(volinfo_t *vol)
 
 	part = findBestPartition();
 	if (vol->flags & REPLICATED) 
-		sprintf(buf, "%s/%s-%x.%x", part->name,
+		sprintf(buf, "%s/%s-%lx.%lx", part->name,
 			Hosts[reps[i].serverNum].name, volId, reps[i].repvolId);
 	    else 
-		sprintf(buf, "%s/%s-%x", part->name, Hosts[reps[i].serverNum].name, volId);
+		sprintf(buf, "%s/%s-%lx", part->name, Hosts[reps[i].serverNum].name, volId);
 	
 
 	/* Remove the file if it already exists. Since we made the
@@ -619,10 +617,10 @@ int dumpVolume(volinfo_t *vol)
 	
 	char link[66];
 	if (vol->flags & REPLICATED)
-		sprintf(link,"%s/%x.%x",Hosts[reps[i].serverNum].name,
+		sprintf(link,"%s/%lx.%lx",Hosts[reps[i].serverNum].name,
 			volId, reps[i].repvolId);
 	else
-		sprintf(link, "%s/%x", Hosts[reps[i].serverNum].name, volId);
+		sprintf(link, "%s/%lx", Hosts[reps[i].serverNum].name, volId);
 	    
 	/* Remove the link if it exists. See comment by previous
 	   unlink. */
@@ -656,7 +654,7 @@ int dumpVolume(volinfo_t *vol)
 /* At this point we're convinced that the Volume has been successfully
    * backed up.  Tell the server the backup was successful if the *
    backup * was a full.  */
-MarkAsAncient(volinfo_t *vol) {
+int MarkAsAncient(volinfo_t *vol) {
     long rc;
     repinfo_t *reps = vol->replicas;
     VolumeId volId;
@@ -934,9 +932,9 @@ int main(int argc, char **argv) {
 	    if (okay) {
 
 		if (vol->flags & INCREMENTAL)
-		    sprintf(buf, "0x%8x (incremental)\t(", vol->volId);
+		    sprintf(buf, "0x%8lx (incremental)\t(", vol->volId);
 		else  {
-		    sprintf(buf, "0x%8x \t(", vol->volId);
+		    sprintf(buf, "0x%8lx \t(", vol->volId);
 		    fullDump++;
 		}
 		
@@ -975,7 +973,7 @@ int main(int argc, char **argv) {
 
 	    if (!okay) {   /* Only print out those that failed. */
 	    
-		sprintf(buf, "%#08x\t(", vol->volId);
+		sprintf(buf, "%#08lx\t(", vol->volId);
 		ptr += strlen(buf);
 		
 		/* Use the letter for the last stage each replica passed. */
@@ -1000,7 +998,7 @@ int main(int argc, char **argv) {
     ohashtab_iterator vnext(VRDB, (void *)-1); 
     vrent *vre;
     
-    while (vre = (vrent *)vnext()) {
+    while ((vre = (vrent *)vnext())) {
 	for (vol = Volumes; vol && (vol->volId != vre->volnum); vol = vol->next) ;
 
 	if (vol == 0) 
@@ -1048,7 +1046,7 @@ static void VUInitServerList() {
         char sname[50];
 	struct hostent *hostent;
 	long sid;
-	if (sscanf(line, "%s%d", sname, &sid) == 2) {
+	if (sscanf(line, "%s%ld", sname, &sid) == 2) {
 	    if (sid > N_SERVERIDS) {
 		LogMsg(0, Debug, stdout, "Warning: host %s is assigned a bogus server number (%x) in %s; host ignored",
 		  sname, sid, serverList);
@@ -1258,7 +1256,6 @@ static void VolDumpLWP(struct rockInfo *rock)
 
 long WriteDump(RPC2_Handle rpcid, unsigned long offset, unsigned long *nbytes, VolumeId volid, SE_Descriptor *BD)
 {
-    int status = 0;
     long rc = 0;
     struct rockInfo *rock;
     SE_Descriptor sed;
@@ -1299,7 +1296,7 @@ long WriteDump(RPC2_Handle rpcid, unsigned long offset, unsigned long *nbytes, V
 
     gettimeofday(&after, 0);
     
-    if (sed.Value.SmartFTPD.BytesTransferred != *nbytes) {
+    if (sed.Value.SmartFTPD.BytesTransferred != (int)*nbytes) {
 	LogMsg(0, 0, stdout, "Transmitted bytes %d != requested bytes %d!\n",
 	    sed.Value.SmartFTPD.BytesTransferred, *nbytes);
 	*nbytes = sed.Value.SmartFTPD.BytesTransferred;
@@ -1318,5 +1315,6 @@ long ReadDump(RPC2_Handle rpcid, RPC2_Unsigned offset, RPC2_Integer *nbytes, Vol
 {
     LogMsg(0, 0, stdout, "GOT A READDUMP CALL!!!!\n");
     CODA_ASSERT(0);
+    return 0;
 }
 

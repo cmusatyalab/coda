@@ -82,7 +82,7 @@ int GetString(FILE *stream, register char *to, register int max)
     if (!GetLong(stream, &len))
 	return FALSE;
 
-    if (len + 1 > max) {	/* Ensure we only use max room */
+    if ((int)len + 1 > max) {	/* Ensure we only use max room */
 	len = max - 1;
 	LogMsg(0, VolDebugLevel, stdout, "GetString: String longer than max (%d>%d) truncating.",len,max);
     }
@@ -111,7 +111,7 @@ int GetByteString(FILE *stream, register byte *to, register int size)
 
 int GetVV(FILE *stream, register vv_t *vv)
 {
-    register tag;
+    int tag;
     while ((tag = fgetc(stream)) > D_MAX && tag) {
 	switch (tag) {
 	    case '0':
@@ -197,9 +197,9 @@ dumpstream::dumpstream(char *filename)
     IndexType = -1;
 }       
 
-dumpstream::getDumpHeader(struct DumpHeader *hp)
+int dumpstream::getDumpHeader(struct DumpHeader *hp)
 {
-    register tag;
+    int tag;
     unsigned long beginMagic;
     if (fgetc(stream) != D_DUMPHEADER
        || !GetLong(stream, &beginMagic)
@@ -242,9 +242,9 @@ dumpstream::getDumpHeader(struct DumpHeader *hp)
 }
 
     
-dumpstream::getVolDiskData(VolumeDiskData *vol)
+int dumpstream::getVolDiskData(VolumeDiskData *vol)
 {
-    register tag;
+    int  tag;
     bzero((char *)vol, (int) sizeof(*vol));
 
     if (fgetc(stream) != D_VOLUMEDISKDATA) {
@@ -341,9 +341,9 @@ dumpstream::getVolDiskData(VolumeDiskData *vol)
 		int i;
     		unsigned long data;
 	  	GetLong(stream, &length);
-		for (i = 0; i<length; i++) {
+		for (i = 0; i<(int)length; i++) {
 		    GetLong(stream, &data);
-		    if (i < sizeof(vol->weekUse)/sizeof(vol->weekUse[0]))
+		    if (i < (int)(sizeof(vol->weekUse)/sizeof(vol->weekUse[0])))
 			vol->weekUse[i] = data;
 		}
 		break;
@@ -440,7 +440,7 @@ int dumpstream::skip_vnode_garbage()
     char buf[4096];
     int size; 
     
-    register tag = fgetc(stream);
+    int tag = fgetc(stream);
 
     if (tag == D_DIRPAGES) {
 	long npages;
@@ -502,7 +502,7 @@ int dumpstream::getVnode(int vnum, long unique, long Offset, VnodeDiskObject *vd
     CODA_ASSERT(Offset == offset);
 
     CODA_ASSERT(vnum == vnodeNumber);	/* They'd better match! */
-    CODA_ASSERT(unique == vdo->uniquifier);
+    CODA_ASSERT(unique == (long)vdo->uniquifier);
     return 0;
 }
 
@@ -511,7 +511,7 @@ int dumpstream::getVnode(int vnum, long unique, long Offset, VnodeDiskObject *vd
  * Handle the file or directory data associated with Vnodes transparently.
  */
 
-dumpstream::getNextVnode(VnodeDiskObject *vdop, long *vnodeNumber, int *deleted, long *offset)
+int dumpstream::getNextVnode(VnodeDiskObject *vdop, long *vnodeNumber, int *deleted, long *offset)
 {
     *deleted = 0;
     /* Skip over whatever garbage exists on the stream (remains of last vnode) */
@@ -519,7 +519,7 @@ dumpstream::getNextVnode(VnodeDiskObject *vdop, long *vnodeNumber, int *deleted,
 
     *offset = ftell(stream);
     /* Now we'd better either be reading a valid or a null Vnode */
-    register tag = fgetc(stream); 
+    int tag = fgetc(stream); 
     if (tag == D_NULLVNODE){
 	vdop->type = vNull;
 	return 0;
@@ -600,9 +600,9 @@ extern byte *Reserve(DumpBuffer_t *, int);
 int
 dumpstream::copyVnodeData(DumpBuffer_t *dbuf)
 {
-    register tag = fgetc(stream);
+    int tag = fgetc(stream);
     char buf[PAGESIZE];
-    register nbytes;
+    int nbytes;
 
     LogMsg(10, VolDebugLevel, stdout, "Copy:%s type %x", (IndexType == vLarge?"Large":"Small"), tag);
     if (IndexType == vLarge) {

@@ -212,12 +212,6 @@ long GetVolId(char *volume)
   END_HTML
 */
 long  S_VolUpdateDB(RPC2_Handle cid) {
-   /*
-     BEGIN_HTML
-     <pre>
-     Lookup <a href="../vice/srv.c.html#ViceUpdateDB"><tt>ViceUpdateDB</tt>()</a></pre>
-     END_HTML
-     */
     ViceUpdateDB();
     return(0);
 }
@@ -228,12 +222,6 @@ long  S_VolUpdateDB(RPC2_Handle cid) {
   END_HTML
 */
 long S_VolShutdown(RPC2_Handle cid) {
-    /*
-      BEGIN_HTML
-      <pre>
-      Lookup <a href="../vice/srv.c.html#ViceTerminate"><tt>ViceTerminate()</tt></a> </pre>
-      END_HTML
-    */
     ViceTerminate();
     return(RPC2_SUCCESS);
 }
@@ -245,12 +233,6 @@ long S_VolShutdown(RPC2_Handle cid) {
   END_HTML
 */
 long S_VolSwaplog(RPC2_Handle cid) {
-    /*
-      BEGIN_HTML
-      <pre>
-      Lookup <a href="../vice/srv.c.html#SwapLog"><tt>SwapLog()</tt></a></pre>
-      END_HTML
-    */
     SwapLog();
     return(RPC2_SUCCESS);
 }
@@ -261,13 +243,6 @@ long S_VolSwaplog(RPC2_Handle cid) {
   END_HTML
 */
 long S_VolSwapmalloc(RPC2_Handle cid) {
-    /*
-      BEGIN_HTML
-      <pre>
-      Lookup <a href="../vice/srv.c.html#SwapMalloc"><tt>SwapMalloc()</tt></a></pre>
-      END_HTML
-    */
-
     SwapMalloc();
     return(RPC2_SUCCESS);
 }

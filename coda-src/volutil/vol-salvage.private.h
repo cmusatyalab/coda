@@ -20,7 +20,6 @@ listed in the file CREDITS.
 
 
 
-#define	DONTSALVVOLS	"/vice/vol/skipsalvage"
 #define readOnly(vsp)	((vsp)->header.type==ROVOL || (vsp)->header.type == BACKVOL)
 
 #include <rec_dlist.h>
