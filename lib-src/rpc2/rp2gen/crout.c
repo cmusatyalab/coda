@@ -1204,9 +1204,8 @@ static void unpack(WHO who, VAR *parm, char *prefix, char *ptr, FILE *where)
 	    else { /* who == RP2_SERVER */
 		    fprintf(where, "    if (%s%sMaxSeqLen != 0) {\n",
 			    name, select);
-		    fprintf(where, "        %s%sSeqBody = (RPC2_String) malloc(%s%s%sSeqLen);\n",
-			    name, select, name, select,
-			    mode == IN_MODE ? "" : "Max");
+		    fprintf(where, "        %s%sSeqBody = (RPC2_String) malloc(%s%sMaxSeqLen);\n",
+			    name, select, name, select);
 		    fprintf(where, "        if (%s%sSeqBody == 0) return 0;\n", name, select);
 		    if (mode != OUT_MODE) {
 			fprintf(where, "        memcpy((char *)%s%sSeqBody, (char *)%s, (long)%s%sSeqLen);\n",
