@@ -40,6 +40,10 @@ extern "C" {
 #include <stdlib.h>
 #include <sys/fcntl.h>
 
+#ifdef sun
+int utimes(const char *, const struct timeval *);
+#endif
+
 #ifdef __cplusplus
 }
 #endif __cplusplus
