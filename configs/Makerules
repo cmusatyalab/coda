@@ -96,8 +96,13 @@ ifeq ($(target),i386-pc-djgpp)
 TARGETCBINS := $(CBINS:%=%.exe)
 TARGETCSBINS := $(CSBINS:%=%.exe)
 else
+ifeq ($(SHORTSYS),cygwin)
+TARGETCBINS := $(CBINS:%=%.exe)
+TARGETCSBINS := $(CSBINS:%=%.exe)
+else
 TARGETCBINS := $(CBINS)
 TARGETCSBINS := $(CSBINS)
+endif
 endif
 
 c_bin_install: $(TARGETCBINS) 
@@ -119,15 +124,23 @@ ifdef CCONFFILES
 	fi
 endif
 
-installserver: s_bin_install s_sbin_install s_conf_install
+installserver: s_bin_install s_sbin_install s_conf_install s_script_install s_sscript_install
 
-s_bin_install: $(SBINS)
-ifdef SBINS
+ifeq ($(SHORTSYS),cygwin)
+TARGETSBINS := $(SBINS:%=%.exe)
+TARGETSSBINS := $(SSBINS:%=%.exe)
+else
+TARGETSBINS := $(SBINS)
+TARGETSSBINS := $(SSBINS)
+endif
+
+s_bin_install: $(TARGETSBINS)
+ifdef TARGETSBINS
 	$(TOPDIR)/tools/our-install 755 $(BINDIR) $?
 endif
 
-s_sbin_install: $(SSBINS)
-ifdef SSBINS
+s_sbin_install: $(TARGETSSBINS)
+ifdef TARGETSSBINS
 	$(TOPDIR)/tools/our-install 755 $(SBINDIR) $?
 endif
 
@@ -139,6 +152,17 @@ ifdef SCONFFILES
 	    $(TOPDIR)/tools/our-install 644 $(sysconfdir) $? ; \
 	fi
 endif
+
+s_script_install: $(SSCRIPTS)
+ifdef SSCRIPTS
+	$(TOPDIR)/tools/our-install 755 $(BINDIR) $?
+endif
+	
+s_sscript_install: $(SSSCRIPTS)
+ifdef SSSCRIPTS
+	$(TOPDIR)/tools/our-install 755 $(SBINDIR) $?
+endif
+
 
 
 #####################
