@@ -49,10 +49,10 @@ Pittsburgh, PA.
 #include <sys/types.h>
 #include <netinet/in.h>
 #include <sys/time.h>
+#include <sys/socket.h>
 #include <netdb.h>
 #include <assert.h>
 #include "rpc2.private.h"
-#include <sys/socket.h>
 #include <rpc2/se.h>
 #include "trace.h"
 #include "cbuf.h"

@@ -54,6 +54,7 @@ Pittsburgh, PA.
 #include <sys/time.h>
 #include <netinet/in.h>
 #include <sys/uio.h>
+#include <sys/socket.h>
 #include <errno.h>
 #include <assert.h>
 #include <string.h>

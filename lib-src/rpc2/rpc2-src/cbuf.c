@@ -41,6 +41,7 @@ Pittsburgh, PA.
 #include <stdlib.h>
 #include <unistd.h>
 #include <sys/time.h>
+#include <sys/socket.h>
 #include <string.h>
 #include "cbuf.h"
 #include "rpc2.private.h"

@@ -107,6 +107,7 @@ static struct RPC2_addrinfo *addrinfo_init(int family, const void *addr,
 	    addrlen = sizeof(*sin);
 	    break;
 	}
+#if !defined(__CYGWIN32__)
     case PF_INET6:
 	{
 	    struct sockaddr_in6 *sin6 = (struct sockaddr_in6 *)&ss;
@@ -116,6 +117,10 @@ static struct RPC2_addrinfo *addrinfo_init(int family, const void *addr,
 	    addrlen = sizeof(*sin6);
 	    break;
 	}
+#else
+    default:
+	return NULL;
+#endif
     }
     ai = RPC2_allocaddrinfo((struct sockaddr *)&ss, addrlen);
     if (ai) {
@@ -161,6 +166,7 @@ static int getaddrinfo_noresolve(const char *node, short port,
 	    }
 	    break;
 	}
+#if !defined(__CYGWIN32__)
     case PF_INET6:
 	{
 	    struct in6_addr *in6addr = (struct in6_addr *)&addr;
@@ -171,6 +177,11 @@ static int getaddrinfo_noresolve(const char *node, short port,
 	    }
 	    break;
 	}
+#else
+    default:
+	*res = NULL;
+	return RPC2_EAI_MEMORY; 
+#endif       
     }
     ai = addrinfo_init(family, &addr, port, hints);
     ai->ai_next = *res;
