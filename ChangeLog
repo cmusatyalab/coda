@@ -1,3 +1,16 @@
+1999-01-13    <jaharkes@cs.cmu.edu>
+
+	* ======== Release 5.0.0 =========
+	* New code licensing.
+	* Cleaned up LWP stackframes, now gdb doesn't get confused.
+	* Updates to the volume management code.
+	* Files with long names can now be successfully resolved.
+	* Some disconnected operation bugs fixed.
+	* Fixed hoard walk problems for ACL protected files.
+	* Added Win95/NT Wise packaging files (tbf. in the tools directory).
+	* Added FreeBSD ports and NetBSD pkgsrc stuff (see tools directory).
+	* Fixed other small annoyances and removed obsolete code/scripts.
+
 1998-12-16    <jaharkes@cs.cmu.edu>
 
         * Added the 4.6.x changelog entries to the development branch.
