@@ -63,6 +63,7 @@ Pittsburgh, PA.
 #include <netdb.h>
 #include <assert.h>
 #include <string.h>
+#include <limits.h>
 #include <unistd.h>
 #include "rpc2.private.h"
 #include <rpc2/se.h>
