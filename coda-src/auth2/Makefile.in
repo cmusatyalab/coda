@@ -93,7 +93,7 @@ libauth2.a: $(LIBAUTH2OBJS)
 libauser.a: $(LIBAUSEROBJS)
 
 $(AUTH2): auth2.o libauth2.a $(DEPLIBS)
-	$(CC) $(LDFLAGS) auth2.o libauth2.a $(LIBKRBS) $(LIBDB) $(LIBS) -o $(AUTH2)
+	$(CC) $(LDFLAGS) auth2.o libauth2.a $(LIBKRBS) $(LIBS) $(LIBDB) -o $(AUTH2)
 
 initpw: initpw.o $(DEPLIBS)
 	$(CC) $(LDFLAGS) initpw.o $(LIBS) $(LIBFIXUP) -o initpw
