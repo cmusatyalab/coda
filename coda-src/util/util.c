@@ -191,7 +191,7 @@ extern void LogMsg(int msglevel, int debuglevel, FILE *fout, char *fmt,  ...)
     va_start(ap, fmt);
     vfprintf(fout, fmt, ap);
     fprintf(fout, "\n");
-/*  fflush(fout); */
+    fflush(fout);
     va_end(ap);
 }
 
