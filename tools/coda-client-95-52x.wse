@@ -423,9 +423,12 @@ end
 item: Create Directory
   Pathname=%MAINDIR%\usr\coda\spool
 end
+item: Delete File
+  Pathname=%MAINDIR%\usr\coda\bin\mcstub.vxd
+end
 item: Install File
-  Source=c:\wise-coda\win95\mcstub.vxd
-  Destination=%MAINDIR%\usr\coda\bin\mcstub.vxd
+  Source=c:\wise-coda\win95\vdcache.vxd
+  Destination=%SYS%\vdcache.vxd
   Flags=0000000010000010
 end
 item: Install File
@@ -523,11 +526,17 @@ item: Insert Line into Text File
   New Text=%MOUNT%:/dev/cfs0:%IP%::150000:1
   Line Number=0
 end
-item: Add to SYSTEM.INI
-  Device=device=%MAINDIR%\usr\coda\bin\mcstub.vxd
+item: Insert Line into Text File
+  Pathname=SYSTEM.INI
+  Search Text=mcstub
+  Line Number=0
+  Flags=00101010
 end
-item: Add to SYSTEM.INI
-  Device=device=%MAINDIR%\usr\coda\bin\mmap.vxd
+item: Insert Line into Text File
+  Pathname=SYSTEM.INI
+  Search Text=mmap
+  Line Number=0
+  Flags=00101010
 end
 item: Add Directory to Path
   Directory=%MAINDIR%\usr\coda\bin
@@ -615,7 +624,7 @@ item: Edit Registry
   end
 end
 item: Edit Registry
-  Total Keys=5
+  Total Keys=10
   item: Key
     Key=System\CurrentControlSet
     Root=2
@@ -638,6 +647,34 @@ item: Edit Registry
     Value Name=Debuglevel
     Root=2
     Data Type=3
+  end
+  item: Key
+    Key=System\CurrentControlSet\Services\VxD\VDCACHE
+    Root=2
+  end
+  item: Key
+    Key=System\CurrentControlSet\Services\VxD\VDCACHE
+    New Value=0
+    New Value=
+    Value Name=Debuglevel
+    Root=2
+    Data Type=3
+  end
+  item: Key
+    Key=System\CurrentControlSet\Services\VxD\VDCACHE
+    New Value=vdcache.vxd
+    Value Name=StaticVxD
+    Root=2
+  end
+  item: Key
+    Key=System\CurrentControlSet\Services\VxD\mmap
+    Root=2
+  end
+  item: Key
+    Key=System\CurrentControlSet\Services\VxD\mmap
+    New Value=C:\usr\coda\bin\mmap.vxd
+    Value Name=StaticVxD
+    Root=2
   end
 end
 item: Read/Update Text File
