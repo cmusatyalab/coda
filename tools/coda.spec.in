@@ -148,14 +148,7 @@ tar zxf coda-@CVER@.tgz
 /usr/sbin/coda-resize
 /usr/sbin/coda-trace
 /usr/bin/advice_srv
-/usr/bin/ttyfcon
-/usr/bin/partition
-/usr/bin/join
-/usr/bin/isolate
-/usr/bin/list
-/usr/bin/clear
-/usr/bin/heal
-/usr/bin/slow
+/usr/bin/filcon
 /usr/bin/clog
 /usr/bin/cpasswd
 /usr/bin/ctokens
@@ -203,10 +196,7 @@ tar zxf coda-@CVER@.tgz
 /usr/lib/coda/Globals.tcl
 
 %files server-@LIBC@	
-/vice/bin/ttyfcon
-/vice/bin/partition
-/vice/bin/heal
-/vice/bin/slow
+/vice/bin/filcon
 /vice/bin/norton
 /vice/bin/norton-reinit
 /vice/bin/reinit
