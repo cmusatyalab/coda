@@ -696,9 +696,9 @@ static int GetUpdateSecret(char *tokenfile, RPC2_EncryptionKey key)
 	return -1;
     }
 
-    MD5Init(&md5ctxt);
-    MD5Update(&md5ctxt, buf, n);
-    MD5Final(digest, &md5ctxt);
+    MD5_Init(&md5ctxt);
+    MD5_Update(&md5ctxt, buf, n);
+    MD5_Final(digest, &md5ctxt);
 
     memcpy(key, digest, RPC2_KEYSIZE);
 
