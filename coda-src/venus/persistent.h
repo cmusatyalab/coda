@@ -10,10 +10,11 @@
 
 class PersistentObject : protected RefCountedObject {
 private:
-    struct dllist_head list;
     int rec_refcount;
 
 public:
+    struct dllist_head list;
+
     void *operator new(size_t size)
     {
 	void *p = rvmlib_rec_malloc(size);

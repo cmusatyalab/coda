@@ -1012,7 +1012,7 @@ int fsobj::ConnectedMkdir(Date_t Mtime, vuid_t vuid, fsobj **t_fso_addr,
 	    /* Make multiple copies of the IN/OUT and OUT parameters. */
  	    vp->PackVS(VSG_MEMBERS, &OldVS);
 	    ARG_MARSHALL(IN_OUT_MODE, ViceStatus, target_statusvar, target_status, VSG_MEMBERS);
-	    ARG_MARSHALL(IN_OUT_MODE, VenusFid, targetvar, target, VSG_MEMBERS);
+	    ARG_MARSHALL(IN_OUT_MODE, ViceFid, targetvar, target, VSG_MEMBERS);
 	    ARG_MARSHALL(IN_OUT_MODE, ViceStatus, parent_statusvar, parent_status, VSG_MEMBERS);
 	    ARG_MARSHALL(OUT_MODE, RPC2_Integer, VSvar, VS, VSG_MEMBERS);
 	    ARG_MARSHALL(OUT_MODE, CallBackStatus, VCBStatusvar, VCBStatus, VSG_MEMBERS);

@@ -284,7 +284,7 @@ int repvol::GetVolAttr(vuid_t vuid)
             
             volent *v;
 	    VolFid vfid;
-	    vfid.Realm = realm->id;
+	    vfid.Realm = realm->Id();
 
 	    /* now set status of volumes */
 	    for (i = 0; i < numVFlags; i++)  /* look up the object */

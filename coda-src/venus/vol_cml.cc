@@ -2124,7 +2124,7 @@ int ClientModifyLog::COP1(char *buf, int bufsize, ViceVersionVector *UpdateSet,
 	LOG(0, ("ClientModifyLog::COP1: %d stale dirs\n", NumStaleDirs));
 	for (int d = 0; d < NumStaleDirs; d++) {
 	    VenusFid StaleDir;
-	    MakeVenusFid(&StaleDir, vol->realm->id, &StaleDirs[d]);
+	    MakeVenusFid(&StaleDir, vol->GetRealmId(), &StaleDirs[d]);
 	    LOG(0, ("ClientModifyLog::COP1: stale dir %s\n",
 		    FID_(&StaleDir)));
 	    fsobj *f = FSDB->Find(&StaleDir);
@@ -2246,7 +2246,7 @@ int ClientModifyLog::COP1(char *buf, int bufsize, ViceVersionVector *UpdateSet,
 		/* purge them off.  fsobj::Kill is idempotent. */
 		for (int d = 0; d < NumStaleDirs; d++) {
 		    VenusFid StaleDir;
-		    MakeVenusFid(&StaleDir, vol->realm->id, &StaleDirs[d]);
+		    MakeVenusFid(&StaleDir, vol->GetRealmId(), &StaleDirs[d]);
 		    LOG(0, ("ClientModifyLog::COP1: stale dir %s\n", 
 			    FID_(&StaleDir)));
 		    fsobj *f = FSDB->Find(&StaleDir);
@@ -3284,7 +3284,7 @@ int repvol::PurgeMLEs(vuid_t vuid)
       return EACCES;
 
     if (LRDB->repair_root_fid &&
-	LRDB->repair_root_fid->Realm == realm->id &&
+	LRDB->repair_root_fid->Realm == realm->Id() &&
 	LRDB->repair_root_fid->Volume == vid)
       /* 
        * check if there is on-going local/global repair session that
@@ -3293,7 +3293,7 @@ int repvol::PurgeMLEs(vuid_t vuid)
        */
       return EACCES;
 
-    LOG(0, ("volent::PurgeMLEs:(%s) (%x.%x)\n", name, realm->id, vid));
+    LOG(0, ("volent::PurgeMLEs:(%s) (%x.%x)\n", name, realm->Id(), vid));
 
     {
 	/* 
@@ -3308,7 +3308,7 @@ int repvol::PurgeMLEs(vuid_t vuid)
 	    lgment *lgm;
 	    while ((lgm = next())) {
 		VenusFid *GlobalFid = lgm->GetGlobalFid();
-		if (GlobalFid->Realm == realm->id && GlobalFid->Volume == vid)
+		if (GlobalFid->Realm == realm->Id() && GlobalFid->Volume == vid)
 		    fid_map_entry_cnt++;
 	    }
 	    LOG(0, ("volent::PurgeMLEs: there are %d local-global-map entries to be cleaned\n",
@@ -3324,7 +3324,7 @@ int repvol::PurgeMLEs(vuid_t vuid)
 	    while ((rfm = next())) {
 		if (rfm->RootCovered()) continue;
 		VenusFid *RootFid = rfm->GetFakeRootFid();
-		if (!(RootFid->Realm == realm->id && RootFid->Volume == vid))
+		if (!(RootFid->Realm == realm->Id() && RootFid->Volume == vid))
 		    continue;
 		LOG(0, ("volent::PurgeMLEs: remove subtree rooted at %s\n", 
 			FID_(RootFid)));
@@ -3343,7 +3343,7 @@ int repvol::PurgeMLEs(vuid_t vuid)
 		lgment *lgm;
 		while ((lgm = next())) {
 		    VenusFid *GlobalFid = lgm->GetGlobalFid();
-		    if (!(GlobalFid->Realm == realm->id &&
+		    if (!(GlobalFid->Realm == realm->Id() &&
 			  GlobalFid->Volume == vid))
 			continue;
 		    LOG(0, ("volent::PurgeMLEs: found a left over entry\n"));
@@ -3401,7 +3401,7 @@ int repvol::PurgeMLEs(vuid_t vuid)
 		to_be_removed = NULL;
 	    }
 	    VenusFid *gfid = lgm->GetGlobalFid();
-	    if (!(gfid->Realm != realm->id && gfid->Volume == vid))
+	    if (!(gfid->Realm != realm->Id() && gfid->Volume == vid))
 		continue;
 	    VenusFid *lfid = lgm->GetLocalFid();	    
 	    fsobj *lobj;

@@ -21,7 +21,7 @@ void RealmDB::ResetTransient(void)
     PersistentObject::ResetTransient();
 
     list_for_each(p, realms) {
-	realm = list_entry(p, Realm, realms);
+	realm = (Realm *)list_entry(p, PersistentObject, list);
 	realm->ResetTransient();
     }
 }
@@ -32,7 +32,7 @@ Realm *RealmDB::GetRealm(const char *realmname)
     Realm *realm;
 
     list_for_each(p, realms) {
-	realm = list_entry(p, Realm, realms);
+	realm = (Realm *)list_entry(p, PersistentObject, list);
 	if (strcmp(realm->Name(), realmname) == 0) {
 	    realm->GetRef();
 	    return realm;
@@ -46,6 +46,21 @@ Realm *RealmDB::GetRealm(const char *realmname)
     return realm;
 }
 
+Realm *RealmDB::GetRealm(const RealmId realmid)
+{
+    struct dllist_head *p;
+    Realm *realm;
+
+    list_for_each(p, realms) {
+	realm = (Realm *)list_entry(p, PersistentObject, list);
+	if (realm->Id() == realmid) {
+	    realm->GetRef();
+	    return realm;
+	}
+    }
+    return NULL;
+}
+
 void RealmDB::print(FILE *f)
 {
     struct dllist_head *p;
@@ -54,7 +69,7 @@ void RealmDB::print(FILE *f)
     fprintf(f, "*** BEGIN RealmDB ***\n");
 
     list_for_each(p, realms) {
-	realm = list_entry(p, Realm, realms);
+	realm = (Realm *)list_entry(p, PersistentObject, list);
 	realm->print(f);
     }
 

@@ -487,7 +487,7 @@ class vdb {
     void operator delete(void *, size_t);
 
     /* Allocation/Deallocation routines. */
-    volent *Create(VolumeInfo *, const char *);
+    volent *Create(Realm *realm, VolumeInfo *, const char *);
 
     /* Daemon functions. */
     void GetDown();
@@ -499,9 +499,9 @@ class vdb {
 
   public:
     volent *Find(VolFid *);
-    volent *Find(const char *);
+    volent *Find(Realm *, const char *);
     int Get(volent **, VolFid *);
-    int Get(volent **, const char *);
+    int Get(volent **, Realm *, const char *);
     void Put(volent **);
 
     void DownEvent(struct in_addr *host);
@@ -673,7 +673,7 @@ class volent {
     void GetBandwidth(unsigned long *bw);
 
     /* local-repair addition */
-    RealmId GetRealmId()   { return realm->id; }     /*N*/
+    RealmId GetRealmId()   { return realm->Id(); }     /*N*/
     VolumeId GetVolumeId() { return vid; }           /*N*/
     const char *GetName() { return name; }      /*N*/
 

@@ -16,13 +16,14 @@ Realm::Realm(const char *rname, struct dllist_head *h) : PersistentObject(h)
 
     RVMLIB_REC_OBJECT(id);
 #warning "realm.id"
+    id = (RealmId)this;
     id = 0;
 
     /* better keep a reference until volumes/VDBs can hold a reference on this
      * realm... */
     Rec_GetRef();
-
     ResetTransient();
+    Rec_PutRef();
 }
 
 void Realm::ResetTransient(void)

@@ -70,7 +70,7 @@ void repvol::Resolve()
     vproc *v = VprocSelf();
 
     VolFid vfid;
-    vfid.Realm = realm->id;
+    vfid.Realm = realm->Id();
     vfid.Volume = vid;
 
     /* Grab control of the volume. */
@@ -165,7 +165,7 @@ Exit:
 /* Asynchronous resolve is indicated by NULL waitblk. */
 void repvol::ResSubmit(char **waitblkp, VenusFid *fid)
 {
-    VOL_ASSERT(this, fid->Realm == realm->id && fid->Volume == vid);
+    VOL_ASSERT(this, fid->Realm == realm->Id() && fid->Volume == vid);
 
     /* Create a new resolver entry for the fid, unless one already exists. */
     {

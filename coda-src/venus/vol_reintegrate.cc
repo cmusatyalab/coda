@@ -100,7 +100,7 @@ void repvol::Reintegrate()
     vproc *v = VprocSelf();
 
     VolFid vfid;
-    vfid.Realm = realm->id;
+    vfid.Realm = realm->Id();
     vfid.Volume = vid;
 
     v->Begin_VFS(&vfid, CODA_REINTEGRATE);

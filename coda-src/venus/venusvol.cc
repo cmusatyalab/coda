@@ -165,6 +165,7 @@ extern "C" {
 #include "venusrecov.h"
 #include "venusvol.h"
 #include "vproc.h"
+#include "codaconf.h"
 #include "realmdb.h"
 
 int MLEs = 0;
@@ -191,7 +192,13 @@ void VolInit()
 	memset(&LocalVol, 0, sizeof(VolumeInfo));
 	FID_MakeVolFake(&LocalVol.Vid);
         LocalVol.Type = BACKVOL; /* backup volume == read-only replica */
-	CODA_ASSERT(VDB->Create(&LocalVol, "Local"));
+	Realm *realm = REALMDB->GetRealm(venus_realm);
+	if (!realm) {
+	    eprint("Unable to find local realm \"%s\", exiting\n", venus_realm);
+	    exit(0);
+	}
+	CODA_ASSERT(VDB->Create(realm, &LocalVol, "Local"));
+	realm->PutRef();
     }
 
     /* Initialize transient members. */
@@ -251,11 +258,17 @@ void VolInit()
     VolumeId LocalVid;
     VolFid vfid;
 
+    Realm *realm = REALMDB->GetRealm(venus_realm);
+    if (!realm) {
+	eprint("Failed to start: Couldn't find local realm \"%s\"\n"
+	       "Please check your configuration", venus_realm);
+	exit(0);
+    }
+    vfid.Realm = realm->Id();
     FID_MakeVolFake(&LocalVid);
-#warning "defaultrealm == 0?"
-    vfid.Realm = 0;
     vfid.Volume = LocalVid;
     VDB->Find(&vfid)->hold();
+    realm->PutRef();
 
     /* Fire up the daemon. */
     VOLD_Init();
@@ -339,11 +352,20 @@ found_rootvolname:
 
     /* Retrieve the volume. */
     volent *v;
-    if (VDB->Get(&v, RootVolName) != 0) {
-	eprint("GetRootVolume: can't get volinfo for root volume (%s)!",
-	       RootVolName);
-	return(0);
+    Realm *realm = REALMDB->GetRealm(venus_realm);
+
+    if (!realm) {
+	eprint("GetRootVolume: can't get default realm %s", venus_realm);
+	return 0;
     }
+
+    if (VDB->Get(&v, realm, RootVolName) != 0) {
+	eprint("GetRootVolume: can't get volinfo for root volume (%s @ %s)!",
+	       RootVolName, venus_realm);
+	realm->PutRef();
+	return 0;
+    }
+    realm->PutRef();
 
     rootfid.Realm = v->GetRealmId();
     rootfid.Volume = v->GetVolumeId();
@@ -403,14 +425,15 @@ volent *vdb::Find(VolFid *vfid)
 }
 
 
-volent *vdb::Find(const char *volname)
+volent *vdb::Find(Realm *realm, const char *volname)
 {
     repvol_iterator rvnext;
     volrep_iterator vrnext;
     volent *v;
 
     while ((v = rvnext()) || (v = vrnext()))
-        if (STREQ(v->GetName(), volname)) return(v);
+        if (v->realm == realm && STREQ(v->GetName(), volname))
+	    return(v);
 
     return(0);
 }
@@ -454,18 +477,15 @@ void repvol::Reconfigure(void)
 }
 
 /* MUST NOT be called from within transaction! */
-volent *vdb::Create(VolumeInfo *volinfo, const char *volname)
+volent *vdb::Create(Realm *realm, VolumeInfo *volinfo, const char *volname)
 {
     volent *v = 0;
     repvol *vp;
     volrep *volreps[VSG_MEMBERS];
     int i, err;
 
-#warning "need to extract realm from volname here"
-    Realm *realm = REALMDB->GetRealm("DEFAULT");
-
     VolFid vfid;
-    vfid.Realm = realm->id;
+    vfid.Realm = realm->Id();
     vfid.Volume = volinfo->Vid;
 
     /* Check whether the key is already in the database. */
@@ -486,7 +506,7 @@ volent *vdb::Create(VolumeInfo *volinfo, const char *volname)
 	/* this might just do the trick for replicated volumes */
 	if (volinfo->Type == REPVOL) {
 	    vp = (repvol *)v;
-	    err = GetVolReps(vfid.Realm, volinfo, volreps);
+	    err = GetVolReps(realm->Id(), volinfo, volreps);
 	    if (!err) {
 		Recov_BeginTrans();
 
@@ -511,8 +531,6 @@ volent *vdb::Create(VolumeInfo *volinfo, const char *volname)
 	    for (i = 0; i < VSG_MEMBERS; i++)
 		VDB->Put((volent **)&volreps[i]);
 	}
-
-	realm->PutRef();
 	return(v);
     }
 
@@ -520,7 +538,7 @@ volent *vdb::Create(VolumeInfo *volinfo, const char *volname)
     switch(volinfo->Type) {
     case REPVOL:
         {
-        err = GetVolReps(vfid.Realm, volinfo, volreps);
+        err = GetVolReps(realm->Id(), volinfo, volreps);
         if (!err) {
             /* instantiate the new replicated volume */
             Recov_BeginTrans();
@@ -557,7 +575,7 @@ volent *vdb::Create(VolumeInfo *volinfo, const char *volname)
     }
 
     if (v == 0)
-	LOG(0, ("vdb::Create: (%x.%x, %s, %d) failed\n", vfid.Realm, volinfo->Vid, volname, 0/*AllocPriority*/));
+	LOG(0, ("vdb::Create: (%x.%x, %s, %d) failed\n", realm->Id(), volinfo->Vid, volname, 0/*AllocPriority*/));
     return(v);
 }
 
@@ -591,17 +609,45 @@ int vdb::Get(volent **vpp, VolFid *vfid)
     sprintf(volname, "%#08lx", vfid->Volume);
 #endif
 
-    return(Get(vpp, volname));
+    int err = ENOENT;
+    Realm *realm = REALMDB->GetRealm(vfid->Realm);
+    if (realm) {
+	err = Get(vpp, realm, volname);
+	realm->PutRef();
+    }
+    return err;
 }
 
 
 /* MUST NOT be called from within transaction! */
 /* This call ALWAYS goes through to servers! */
-int vdb::Get(volent **vpp, const char *volname)
+int vdb::Get(volent **vpp, Realm *realm, const char *volname)
 {
     int code = 0;
+    char *realm_name;
 
-    LOG(100, ("vdb::Get: volname = %s\n", volname));
+    realm->GetRef();
+
+    /* Here we do the following 'translation' */
+    /* "volume"     -> keep existing realm */
+    /* "volume@"    -> keep existing realm */
+    /* "volume@xxx" -> user realm 'xxx' */
+
+    realm_name = strrchr(volname, '@');
+    if (realm_name) {
+	*realm_name = '\0';
+	if (realm_name[1]) {
+	    realm->PutRef();
+	    realm = REALMDB->GetRealm(realm_name++);
+	}
+    }
+
+    if (!realm) {
+	eprint("Failed to find realm \"%s\"\n", realm_name);
+	return ENOENT;
+    }
+
+    LOG(100, ("vdb::Get: volname = %s @ %s\n", volname, realm->Name()));
 
     *vpp = 0;
 
@@ -631,7 +677,7 @@ int vdb::Get(volent **vpp, const char *volname)
     }
 
     /* Look for existing volent with the desired name. */
-    volent *v = Find(volname);
+    volent *v = Find(realm, volname);
     if (code == ETIMEDOUT) {
 	/* Completely disconnected case. */
 	if (v) goto Exit;
@@ -644,7 +690,7 @@ int vdb::Get(volent **vpp, const char *volname)
 	/* Put a (unique) fakename in the old volent. */
 	char fakename[V_MAXVOLNAMELEN];
 	sprintf(fakename, "%lu", v->GetVolumeId());
-	CODA_ASSERT(Find(fakename) == 0);
+	CODA_ASSERT(Find(realm, fakename) == 0);
 	Recov_BeginTrans();
 	rvmlib_set_range(v->name, V_MAXVOLNAMELEN);
 	strcpy(v->name, fakename);
@@ -657,22 +703,9 @@ int vdb::Get(volent **vpp, const char *volname)
 	/* Forget about the old volent for now, it should disappear
 	 * 'gracefully' once all it's FSO's have been recycled. */
     }
-#if 0
-    /* VDB->Create will do the right thing when the volume already exists and
-     * the VSG has changed */
-    if (v && v->GetVid() == volinfo.Vid) {
-	/* Mapping unchanged. */
-	/* Should we see whether any other info has changed (e.g., VSG)?. */
-
-	/* add code to support growing/shrinking VSG's for replicated
-	 * volumes and moving volume replicas between hosts */
-	goto Exit;
-    }
-#endif
-    //VDB->Put(&v);
 
     /* Attempt the create. */
-    v = Create(&volinfo, volname);
+    v = Create(realm, &volinfo, volname);
 
     if (!v) {
 	LOG(0, ("vdb::Get: Create (%x, %s) failed\n", volinfo.Vid, volname));
@@ -869,6 +902,8 @@ volent::volent(Realm *r, VolumeId volid, const char *volname)
     RVMLIB_REC_OBJECT(*this);
     MagicNumber = VOLENT_MagicNumber;
 
+    r->GetRef();
+    r->Rec_GetRef();
     realm = r;
     vid = volid;
     strcpy(name, volname);
@@ -931,6 +966,9 @@ volent::~volent()
 	    CHOKE("volent::~volent: fso_list not empty");
 	delete fso_list;
     }
+
+    realm->Rec_PutRef();
+    realm->PutRef();
 
     if (refcnt != 0)
 	{ print(logFile); CHOKE("volent::~volent: non-zero refcnt"); }
@@ -1378,7 +1416,7 @@ void volrep::DownMember(struct in_addr *host)
     if (IsReadWriteReplica()) {
 	VolFid vfid;
 	volent *v;
-	vfid.Realm = realm->id;
+	vfid.Realm = realm->Id();
 	vfid.Volume = ReplicatedVol();
         v = VDB->Find(&vfid);
         if (v) {
@@ -1418,7 +1456,7 @@ void volrep::UpMember(void)
     if (IsReadWriteReplica()) {
 	VolFid vfid;
 	volent *v;
-	vfid.Realm = realm->id;
+	vfid.Realm = realm->Id();
 	vfid.Volume = ReplicatedVol();
         v = VDB->Find(&vfid);
         if (v) {
@@ -1464,7 +1502,7 @@ void volrep::WeakMember()
     if (IsReadWriteReplica()) {
 	VolFid vfid;
 	volent *v;
-	vfid.Realm = realm->id;
+	vfid.Realm = realm->Id();
 	vfid.Volume = ReplicatedVol();
         v = VDB->Find(&vfid);
         if (v) {
@@ -1493,7 +1531,7 @@ void volrep::StrongMember()
     if (IsReadWriteReplica()) {
 	VolFid vfid;
 	volent *v;
-	vfid.Realm = realm->id;
+	vfid.Realm = realm->Id();
 	vfid.Volume = ReplicatedVol();
         v = VDB->Find(&vfid);
         if (v) {
@@ -1757,7 +1795,7 @@ volrep::volrep(Realm *r, VolumeId vid, const char *name,
 
     /* Insert into hash table. */
     VolFid vfid;
-    vfid.Realm = realm->id;
+    vfid.Realm = realm->Id();
     vfid.Volume = vid;
     VDB->volrep_hash.insert(&vfid, &handle);
 
@@ -1775,7 +1813,7 @@ volrep::~volrep()
     PutServer(&volserver);
     /* Remove from hash table. */
     VolFid vfid;
-    vfid.Realm = realm->id;
+    vfid.Realm = realm->Id();
     vfid.Volume = vid;
     if (VDB->volrep_hash.remove(&vfid, &handle) != &handle)
 	{ print(logFile); CHOKE("volrep::~volrep: htab remove"); }
@@ -1884,7 +1922,7 @@ repvol::repvol(Realm *r, VolumeId vid, const char *name, volrep *reps[VSG_MEMBER
 
     /* Insert into hash table. */
     VolFid vfid;
-    vfid.Realm = realm->id;
+    vfid.Realm = realm->Id();
     vfid.Volume = vid;
     VDB->repvol_hash.insert(&vfid, &handle);
 
@@ -1905,7 +1943,7 @@ repvol::~repvol()
 
     /* Remove from hash table. */
     VolFid vfid;
-    vfid.Realm = realm->id;
+    vfid.Realm = realm->Id();
     vfid.Volume = vid;
     if (VDB->repvol_hash.remove(&vfid, &handle) != &handle)
 	{ print(logFile); CHOKE("repvol::~repvol: htab remove"); }
@@ -2059,7 +2097,7 @@ int repvol::AllocFid(ViceDataType Type, VenusFid *target_fid,
 		CHOKE("repvol::AllocFid: bogus Type (%d)", Type);
 	}
 	if (Fids->Count > 0) {
-	    target_fid->Realm = realm->id;
+	    target_fid->Realm = realm->Id();
 	    target_fid->Volume = vid;
 	    target_fid->Vnode = Fids->Vnode;
 	    target_fid->Unique = Fids->Unique;
@@ -2176,7 +2214,7 @@ int repvol::AllocFid(ViceDataType Type, VenusFid *target_fid,
 		    Fids->Count = NewFids.Count;
 		    Fids->AllocHost = /*ph*/(unsigned long)-1;
 		       
-		    target_fid->Realm = realm->id;
+		    target_fid->Realm = realm->Id();
 		    target_fid->Volume = vid;
 		    target_fid->Vnode = Fids->Vnode;
 		    target_fid->Unique = Fids->Unique;
@@ -2314,7 +2352,9 @@ void repvol::SetStagingServer(struct in_addr *srvr)
 	(&StagingVol.Type0)[replicatedVolume] = vid;
 	StagingVol.Server0 = ntohl(srvr->s_addr);
 
-	ro_replica = (volrep *)VDB->Create(&StagingVol, stagingname);
+	Realm *realm = REALMDB->GetRealm(venus_realm);
+	ro_replica = (volrep *)VDB->Create(realm, &StagingVol, stagingname);
+	realm->PutRef();
 
 	if (ro_replica) {
 	    ro_replica->hold();
@@ -2712,7 +2752,7 @@ void volent::GetMountPath(char *buf, int ok_to_assert)
        because expected invariants may not always be true */
 
     VenusFid fid;
-    fid.Realm = realm->id;
+    fid.Realm = realm->Id();
     fid.Volume = vid;
     FID_MakeRoot(MakeViceFid(&fid));
     fsobj *f = FSDB->Find(&fid);

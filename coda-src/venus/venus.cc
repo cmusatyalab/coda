@@ -83,6 +83,7 @@ int SearchForNOreFind;  // Look for better detection method for iterrupted hoard
 char *consoleFile;
 char *venusRoot;
 char *kernDevice;
+char *venus_realm;
 char *fsname;
 char *CacheDir;
 char *CachePrefix;
@@ -428,6 +429,7 @@ static void DefaultCmdlineParms()
     CONF_INT(masquerade_port,	"masquerade_port", 0);
     CONF_STR(venusRoot,         "mountpoint",    DFLT_VR);
     CONF_INT(PrimaryUser,       "primaryuser",   UNSET_PRIMARYUSER);
+    CONF_STR(venus_realm,       "realm",	 "DEFAULT");
     CONF_STR(fsname,            "rootservers",   "");
     CONF_STR(RootVolName,       "rootvolume",    NULL);
     CONF_STR(VenusLogDevice,    "rvm_log",       "/usr/coda/LOG");

@@ -3,6 +3,11 @@
 # command-line flags.
 
 #
+# What is our default realm.
+#
+realm=coda.cs.cmu.edu
+
+#
 # Which are the root servers we should contact for volume location
 # information. When specifying multiple servers, uses ',' to separate,
 # no extra spaces! (f.i. server1,server2,server3)

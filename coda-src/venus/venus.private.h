@@ -326,6 +326,7 @@ extern long rootnodeid;
 extern int CleanShutDown;
 extern char *venusRoot;
 extern char *kernDevice;
+extern char *venus_realm;
 extern char *fsname;
 extern char *CacheDir;
 extern char *CachePrefix;

@@ -1135,7 +1135,7 @@ int fsobj::TryToCover(VenusFid *inc_fid, vuid_t vuid) {
     else {
 	/* Turn volume name into a proper string. */
 	data.symlink[len - 1] = 0;				/* punt transaction! */
-	code = VDB->Get(&tvol, &data.symlink[1]);
+	code = VDB->Get(&tvol, vol->realm, &data.symlink[1]);
     }
     if (code != 0) {
 /*

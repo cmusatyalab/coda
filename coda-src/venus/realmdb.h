@@ -15,6 +15,7 @@ public:
     void ResetTransient(void);
 
     Realm *GetRealm(const char *realm);
+    Realm *GetRealm(const RealmId realmid);
 
     void print(FILE *f);
     void print(void) { print(stdout); }

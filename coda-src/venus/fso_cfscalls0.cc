@@ -670,7 +670,7 @@ int fsobj::GetAttr(vuid_t vuid, RPC2_BoundedBS *acl)
 			 */
 			fsobj *pobj;
 			VenusFid vf;
-			MakeVenusFid(&vf, vol->realm->id, &FAVs[i].Fid);
+			MakeVenusFid(&vf, vol->GetRealmId(), &FAVs[i].Fid);
 
 			pobj = FSDB->Find(&vf);
 			if (pobj) {

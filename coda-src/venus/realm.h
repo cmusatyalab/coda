@@ -11,23 +11,28 @@ class Realm : protected PersistentObject {
 public:
 //    vdb   *VDB;
 ///*T*/vsgdb *VSGDB;
-    u_int32_t id;
 
     Realm(const char *realm, struct dllist_head *h);
     ~Realm(void);
 
     void ResetTransient(void);
+
+    void GetRef(void) { PersistentObject::GetRef(); }
     void PutRef(void) { PersistentObject::PutRef(); }
+
+    void Rec_GetRef(void) { PersistentObject::Rec_GetRef(); }
+    void Rec_PutRef(void) { PersistentObject::Rec_PutRef(); }
 
     Server *GetServer(struct in_addr *ipv4addr);
 //    volent *GetVolume(const char *volname);
 
     const char *Name(void) { return name; }
+    const RealmId Id(void) { return id; }
     void print(FILE *f);
 
 private:
+    RealmId id;
     char *name;
-    struct dllist_head realms;
 
 /*T*/struct dllist_head servers;
 };

@@ -47,7 +47,7 @@ void repvol::TranslateCMLFid(VenusFid *global, VenusFid *local)
     VOL_ASSERT(this, global && local);
     LOG(100, ("volent::TranslateCMLFid: global = %s local = %s\n",
 	      FID_(global), FID_(local)));
-    VOL_ASSERT(this, realm->id == global->Realm && vid == global->Volume);
+    VOL_ASSERT(this, realm->Id() == global->Realm && vid == global->Volume);
     cml_iterator next(CML, CommitOrder);
     cmlent *m;
     while ((m = next())) {
@@ -147,7 +147,7 @@ void repvol::CheckLocalSubtree()
     int contain_local_obj = 0;
     while ((lgm = next())) {
 	gfid = lgm->GetGlobalFid();
-	if (gfid->Realm == realm->id && gfid->Volume == vid) {
+	if (gfid->Realm == realm->Id() && gfid->Volume == vid) {
 	    contain_local_obj = 1;
 	    break;
 	}
