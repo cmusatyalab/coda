@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rpc2/host.c,v 4.5 98/11/02 16:45:17 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rpc2/host.c,v 4.6 98/11/24 15:34:34 jaharkes Exp $";
 #endif /*_BLURB_*/
 
 
@@ -265,8 +265,7 @@ int rpc2_AppendHostLog(struct HEntry *whichHost, RPC2_NetLogEntry *entry)
 
 	whichHost->Log[ix] = *entry;	/* structure assignment */
 	
-	/* stamp it. use the approximate version */
-	FT_AGetTimeOfDay(&(whichHost->Log[ix].TimeStamp),
+	FT_GetTimeOfDay(&(whichHost->Log[ix].TimeStamp),
 			 (struct timezone *)0);
 	whichHost->NumEntries++;
 
