@@ -87,6 +87,7 @@ void rvmlib_abort(int);
 
 void rvmlib_set_range(void *base, unsigned long size);
 void rvmlib_modify_bytes(void *dest, const void *newval, int len);
+char *rvmlib_strdup(const char *src);
 
 void *rvmlib_malloc(unsigned long size, char *file, int line);
 void rvmlib_free(void *p, char *file, int line);

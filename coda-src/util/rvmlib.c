@@ -189,6 +189,17 @@ void rvmlib_modify_bytes(void *dest, const void *newval, int len)
 	memmove(dest, newval, len);
 }
 
+char *rvmlib_strdup(const char *src)
+{
+    int len = strlen(src) + 1;
+    char *dst = (char *)rvmlib_rec_malloc(len); 
+
+    if (dst)
+	rvmlib_modify_bytes(dst, src, len);
+
+    return dst;
+}
+
 inline void *rvmlib_malloc(unsigned long size, char *file, int line)
 {
 	int err;
