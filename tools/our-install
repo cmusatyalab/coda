@@ -7,10 +7,10 @@ shift
 FILES=$@
 
 SYS=`uname -s`
-if [ $SYS = Linux -o $SYS = SunOS ] ; then
-OWNGRP=root.root
+if [ $SYS = NetBSD ] ; then
+OWNGRP=root.wheel
 else
-OWNGRP=bin.bin
+OWNGRP=root.root
 fi
 
 if [ ! -d $DIR ] ;  then mkdir -p $DIR; fi
