@@ -463,7 +463,7 @@ coda_file_write(struct inode *coda_inode, struct file *coda_file,
 
 	down(&cont_inode->i_sem);
         result = cont_file.f_op->write(cont_inode, &cont_file , buff, count);
-	up(&cont_indoe->i_sem);
+	up(&cont_inode->i_sem);
         coda_restore_codafile(coda_inode, coda_file, cont_inode, &cont_file);
 
         return result;
