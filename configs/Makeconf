@@ -114,10 +114,10 @@ ifneq	($(origin BLD),environment)
 # CASE 1: use binaries and libraries from tree
 ##############################
 
-# -- IFS --
+# -- INODEFS --
 # platform dependent: choice from user level and kernel level version
 # defined in configs/Makeconf.$(SYS)
-LIBIFS = $(TOPOBJ)/$(IFSDIR)/$(IFSNAME)
+LIBINODEFS = $(TOPOBJ)/$(INODEFSDIR)/$(INODEFSNAME)
 
 # -- CS --
 LIBCS =$(TOPOBJ)/lib-src/libcs/libcs.a
@@ -138,7 +138,7 @@ LIBSEG= $(TOPOBJ)/rvm-src/seg/libseg.a
 # -- CODA --
 LIBCODARVM = $(LIBRVMLWP)
 LIBCODARDS = $(LIBRDSLWP)
-LIBCODASYS =../sys/libcodasys.a   # --- (pioctl, setpag)
+LIBKERNDEP =../kerndep/libkerndep.a   # --- (pioctl, setpag)
 LIBAUTH2 =../auth2/libauth2.a
 LIBAL = ../libal/libal.a
 LIBVOL = ../vol/libvol.a
@@ -155,10 +155,6 @@ LIBFAIL =../fail/libfail.a
 LIBRVMRES =../rvmres/librvmres.a
 LIBDIRLIB= ../dir/libdir.a
 LIBVICEERROR  = ../vice/libviceerror.a
-# LIBSETPAG= ../sys/libsetpag.a
-# LIBMTCORE =../??/libmtcore.a
-# LIBCOMM =/libcomm.a
-# LIBGROUP =$(LIBDIR)/libgroup.a
 
 ##############################
 # RPC2 interface definitions in module vicedep
@@ -180,10 +176,10 @@ else
 # CASE 2: using shared SHOBJ
 ##############################
 
-# -- IFS --
+# -- INODEFS --
 # platform dependent: choice from user level and kernel level version
 # defined in configs/Makeconf.$(SYS)
-LIBIFS = $(LIBDIR)/$(IFSNAME)
+LIBINODEFS = $(LIBDIR)/$(INODEFSNAME)
 
 # -- CS --
 LIBCS = $(LIBSPECIAL)/libcs.a
@@ -204,7 +200,7 @@ LIBSEG = $(LIBSPECIAL)/libseg.a
 # -- CODA --
 LIBCODARVM = $(LIBRVMLWP)
 LIBCODARDS = $(LIBRDSLWP)
-LIBCODASYS = $(LIBDIR)/libcodasys.a   # --- (pioctl, setpag)
+LIBKERNDEP = $(LIBDIR)/libkerndep.a   # --- (pioctl, setpag)
 LIBAUTH2 = $(LIBDIR)/libauth2.a
 LIBAL = $(LIBDIR)/libal.a
 LIBVOL = ${LIBDIR}/libvol.a
