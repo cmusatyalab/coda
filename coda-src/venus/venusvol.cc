@@ -279,19 +279,19 @@ static int GetRootVolume(Realm *realm, char **buf)
     *buf = (char *)malloc(V_MAXVOLNAMELEN);
     if (!*buf) return ENOMEM;
 
-    memset(*buf, 0, V_MAXVOLNAMELEN);
-
-    RVN.MaxSeqLen = V_MAXVOLNAMELEN-1;
-    RVN.SeqLen = 0;
-    RVN.SeqBody = (RPC2_ByteSeq)*buf;
-
     /* Get the connection. */
     if (realm->GetAdmConn(&c) != 0) {
 	LOG(100, ("GetRootVolume: can't get admin connection for realm %s!\n",
 		  realm->Name()));
 	RPCOpStats.RPCOps[ViceGetRootVolume_OP].bad++;
-	return ENOENT;
+	code = ENOENT;
+	goto err_exit;
     }
+
+    memset(*buf, 0, V_MAXVOLNAMELEN);
+    RVN.MaxSeqLen = V_MAXVOLNAMELEN-1;
+    RVN.SeqLen = 0;
+    RVN.SeqBody = (RPC2_ByteSeq)*buf;
 
     /* Make the RPC call. */
     MarinerLog("store::GetRootVolume @%s\n", realm->Name());
@@ -307,6 +307,11 @@ static int GetRootVolume(Realm *realm, char **buf)
     LOG(10, ("GetRootVolume: (%s) received name: %s, code: %d\n",
 	     realm->Name(), *buf, code));
 
+err_exit:
+    if (code) {
+	free(*buf);
+	*buf = NULL;
+    }
     return code;
 }
 
@@ -571,7 +576,6 @@ int vdb::Get(volent **vpp, Realm *prealm, const char *name, fsobj *f)
     char *realm_name = NULL;
     Realm *realm;
     char *volname = strdup(name);
-    char *volinfoname = NULL;
     CODA_ASSERT(volname);
 
     SplitRealmFromName(volname, &realm_name);
@@ -595,10 +599,14 @@ int vdb::Get(volent **vpp, Realm *prealm, const char *name, fsobj *f)
 
     /* "special" case? not everybody wants to use the pathname based volume
      * name mapping and uses a rootvolume named "/" */
-    if (volname[0] == '\0' || (volname[0] == '/' && volname[1] == '\0'))
+    if (volname[0] == '\0' || (volname[0] == '/' && volname[1] == '\0')) {
+	char *volinfoname = NULL;
 	code = GetRootVolume(realm, &volinfoname);
-    if (code || !volinfoname)
-	volinfoname = strdup(volname);
+	if (!code) {
+	    free(volname);
+	    volname = volinfoname;
+	}
+    }
 
     LOG(100, ("vdb::Get: volname = %s@%s\n", volname, realm->Name()));
 
@@ -615,7 +623,7 @@ int vdb::Get(volent **vpp, Realm *prealm, const char *name, fsobj *f)
 	/* Make the RPC call. */
 	MarinerLog("store::GetVolumeInfo %s@%s\n", volname, realm->Name());
 	UNI_START_MESSAGE(ViceGetVolumeInfo_OP);
-	code = (int) ViceGetVolumeInfo(c->connid, (RPC2_String)volinfoname, &volinfo);
+	code = (int) ViceGetVolumeInfo(c->connid, (RPC2_String)volname, &volinfo);
 	UNI_END_MESSAGE(ViceGetVolumeInfo_OP);
 	MarinerLog("store::getvolumeinfo done\n");
 
@@ -681,8 +689,6 @@ Exit:
 
 error_exit:
     realm->PutRef();
-    if (volinfoname)
-	free(volinfoname);
     if (volname)
 	free(volname);
     return code;
