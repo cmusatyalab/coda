@@ -20,7 +20,7 @@
 
 #include <linux/coda.h>
 #include <linux/coda_linux.h>
-#include <linux/coda_cnode.h>
+#include <linux/coda_fs_i.h>
 #include <linux/coda_psdev.h>
 #include <linux/coda_cache.h>
 
@@ -79,7 +79,7 @@ static int coda_readpage(struct dentry *de, struct page * page)
 	struct inode *inode = de->d_inode;
 	struct dentry cont_dentry;
         struct inode *cont_inode;
-        struct cnode *cnp;
+        struct coda_inode_info *cnp;
 
         ENTRY;
         
@@ -103,7 +103,7 @@ static int coda_readpage(struct dentry *de, struct page * page)
 
 static int coda_file_mmap(struct file * file, struct vm_area_struct * vma)
 {
-        struct cnode *cnp;
+        struct coda_inode_info *cnp;
 	cnp = ITOC(file->f_dentry->d_inode);
 	cnp->c_mmcount++;
   
@@ -113,7 +113,7 @@ static int coda_file_mmap(struct file * file, struct vm_area_struct * vma)
 static ssize_t coda_file_read(struct file *coda_file, char *buff, 
 			   size_t count, loff_t *ppos)
 {
-        struct cnode *cnp;
+        struct coda_inode_info *cnp;
 	struct inode *coda_inode = coda_file->f_dentry->d_inode;
         struct inode *cont_inode = NULL;
         struct file  cont_file;
@@ -153,7 +153,7 @@ static ssize_t coda_file_read(struct file *coda_file, char *buff,
 static ssize_t coda_file_write(struct file *coda_file, const char *buff, 
 			    size_t count, loff_t *ppos)
 {
-        struct cnode *cnp;
+        struct coda_inode_info *cnp;
 	struct inode *coda_inode = coda_file->f_dentry->d_inode;
         struct inode *cont_inode = NULL;
         struct file  cont_file;
@@ -192,7 +192,7 @@ static ssize_t coda_file_write(struct file *coda_file, const char *buff,
 
 int coda_fsync(struct file *coda_file, struct dentry *coda_dentry)
 {
-        struct cnode *cnp;
+        struct coda_inode_info *cnp;
 	struct inode *coda_inode = coda_dentry->d_inode;
         struct inode *cont_inode = NULL;
         struct file  cont_file;
@@ -254,7 +254,7 @@ void coda_restore_codafile(struct inode *coda_inode, struct file *coda_file,
 {
         coda_file->f_pos = open_file->f_pos;
 	/* XXX what about setting the mtime here too? */
-	coda_inode->i_mtime = open_inode->i_mtime;
+	/* coda_inode->i_mtime = open_inode->i_mtime; */
 	coda_inode->i_size = open_inode->i_size;
         return;
 }

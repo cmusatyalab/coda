@@ -40,7 +40,7 @@
 
 #include <linux/coda.h>
 #include <linux/coda_linux.h>
-#include <linux/coda_cnode.h>
+#include <linux/coda_fs_i.h>
 #include <linux/coda_psdev.h>
 #include <linux/coda_cache.h>
 #include <linux/coda_sysctl.h>
@@ -346,7 +346,8 @@ coda_psdev_release(struct inode * inode, struct file * file)
 	   can profit from setting the C_DYING flag on the root 
 	   cnode of Coda filesystems */
         if (coda_super_info[minor].sbi_root) {
-                struct cnode *cnp = ITOC(coda_super_info[minor].sbi_root);
+                struct coda_inode_info *cnp = 
+			ITOC(coda_super_info[minor].sbi_root);
                 cnp->c_flags |= C_DYING;
         } else 
 		vcp->vc_inuse = 0;	

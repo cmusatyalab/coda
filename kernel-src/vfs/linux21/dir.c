@@ -21,7 +21,7 @@
 #include <linux/coda.h>
 #include <linux/coda_linux.h>
 #include <linux/coda_psdev.h>
-#include <linux/coda_cnode.h>
+#include <linux/coda_fs_i.h>
 #include <linux/coda_cache.h>
 
 /* dir inode-ops */
@@ -98,7 +98,7 @@ struct file_operations coda_dir_operations = {
 /* acces routines: lookup, readlink, permission */
 static int coda_lookup(struct inode *dir, struct dentry *entry)
 {
-        struct cnode *dircnp;
+        struct coda_inode_info *dircnp;
 	struct inode *res_inode = NULL;
 	struct ViceFid resfid;
 	int dropme = 0; /* to indicate entry should not be cached */
@@ -106,7 +106,6 @@ static int coda_lookup(struct inode *dir, struct dentry *entry)
 	int error = 0;
 	const char *name = entry->d_name.name;
 	size_t length = entry->d_name.len;
-	char str[50];
 	
         ENTRY;
         CDEBUG(D_INODE, "name %s, len %d in ino %ld\n", 
@@ -122,12 +121,12 @@ static int coda_lookup(struct inode *dir, struct dentry *entry)
 
 	if ( length > CFS_MAXNAMLEN ) {
 	        printk("name too long: lookup, %s (%*s)\n", 
-		       coda_f2s(&dircnp->c_fid, str), length, name);
+		       coda_f2s(&dircnp->c_fid), length, name);
 		return -ENAMETOOLONG;
 	}
 	
 	CDEBUG(D_INODE, "lookup: %*s in %s\n", length, name, 
-	       coda_f2s(&dircnp->c_fid, str));
+	       coda_f2s(&dircnp->c_fid));
 
         /* control object, create inode on the fly */
         if (coda_isroot(dir) && coda_iscontrol(name, length)) {
@@ -150,11 +149,11 @@ static int coda_lookup(struct inode *dir, struct dentry *entry)
 			return -error;
 	} else if (error != -ENOENT) {
 	        CDEBUG(D_INODE, "error for %s(%*s)%d\n",
-		       coda_f2s(&dircnp->c_fid, str), length, name, error);
+		       coda_f2s(&dircnp->c_fid), length, name, error);
 		return error;
 	}
 	CDEBUG(D_INODE, "lookup: %s is (%s) type %d result %d, dropme %d\n",
-	       name, coda_f2s(&resfid, str), type, error, dropme);
+	       name, coda_f2s(&resfid), type, error, dropme);
 
 exit:
 	entry->d_time = 0;
@@ -169,9 +168,8 @@ exit:
 
 int coda_permission(struct inode *inode, int mask)
 {
-        struct cnode *cp;
+        struct coda_inode_info *cp;
         int error;
-	char str[50];
  
         ENTRY;
 
@@ -193,7 +191,7 @@ int coda_permission(struct inode *inode, int mask)
         error = venus_access(inode->i_sb, &(cp->c_fid), mask);
     
         CDEBUG(D_INODE, "fid: %s, ino: %ld (mask: %o) error: %d\n", 
-	       coda_f2s(&(cp->c_fid), str), inode->i_ino, mask, error);
+	       coda_f2s(&(cp->c_fid)), inode->i_ino, mask, error);
 
 	if ( error == 0 ) {
 		coda_cache_enter(inode, mask);
@@ -209,7 +207,7 @@ int coda_permission(struct inode *inode, int mask)
 static int coda_create(struct inode *dir, struct dentry *de, int mode)
 {
         int error=0;
-        struct cnode *dircnp;
+        struct coda_inode_info *dircnp;
 	const char *name=de->d_name.name;
 	int length=de->d_name.len;
 	struct inode *result = NULL;
@@ -232,7 +230,7 @@ static int coda_create(struct inode *dir, struct dentry *de, int mode)
         if ( length > CFS_MAXNAMLEN ) {
 		char str[50];
 		printk("name too long: create, %s(%s)\n", 
-		       coda_f2s(&dircnp->c_fid, str), name);
+		       coda_f2s(&dircnp->c_fid), name);
 		return -ENAMETOOLONG;
         }
 
@@ -242,7 +240,7 @@ static int coda_create(struct inode *dir, struct dentry *de, int mode)
         if ( error ) {
 		char str[50];
 		CDEBUG(D_INODE, "create: %s, result %d\n",
-		       coda_f2s(&newfid, str), error); 
+		       coda_f2s(&newfid), error); 
 		d_drop(de);
 		return error;
 	}
@@ -262,14 +260,13 @@ static int coda_create(struct inode *dir, struct dentry *de, int mode)
 
 static int coda_mkdir(struct inode *dir, struct dentry *de, int mode)
 {
-        struct cnode *dircnp;
+        struct coda_inode_info *dircnp;
 	struct inode *inode;
 	struct coda_vattr attr;
 	const char *name = de->d_name.name;
 	int len = de->d_name.len;
 	int error;
 	struct ViceFid newfid;
-	char fidstr[50];
 
 
 	if (!dir || !S_ISDIR(dir->i_mode)) {
@@ -287,7 +284,7 @@ static int coda_mkdir(struct inode *dir, struct dentry *de, int mode)
         CHECK_CNODE(dircnp);
 
 	CDEBUG(D_INODE, "mkdir %s (len %d) in %s, mode %o.\n", 
-	       name, len, coda_f2s(&(dircnp->c_fid), fidstr), mode);
+	       name, len, coda_f2s(&(dircnp->c_fid)), mode);
 
 	attr.va_mode = mode;
 	error = venus_mkdir(dir->i_sb, &(dircnp->c_fid), 
@@ -295,13 +292,13 @@ static int coda_mkdir(struct inode *dir, struct dentry *de, int mode)
         
         if ( error ) {
 	        CDEBUG(D_INODE, "mkdir error: %s result %d\n", 
-		       coda_f2s(&newfid, fidstr), error); 
+		       coda_f2s(&newfid), error); 
 		d_drop(de);
                 return error;
         }
          
 	CDEBUG(D_INODE, "mkdir: new dir has fid %s.\n", 
-	       coda_f2s(&newfid, fidstr)); 
+	       coda_f2s(&newfid)); 
 
 	error = coda_cnode_make(&inode, &newfid, dir->i_sb);
 	if ( error ) {
@@ -323,7 +320,7 @@ static int coda_link(struct dentry *source_de, struct inode *dir_inode,
 	struct inode *inode = source_de->d_inode;
         const char * name = de->d_name.name;
 	int len = de->d_name.len;
-        struct cnode *dir_cnp, *cnp;
+        struct coda_inode_info *dir_cnp, *cnp;
 	char str[50];
 	int error;
 
@@ -337,8 +334,8 @@ static int coda_link(struct dentry *source_de, struct inode *dir_inode,
         cnp = ITOC(inode);
         CHECK_CNODE(cnp);
 
-	CDEBUG(D_INODE, "old: fid: %s\n", coda_f2s(&(cnp->c_fid), str));
-	CDEBUG(D_INODE, "directory: %s\n", coda_f2s(&(dir_cnp->c_fid), str));
+	CDEBUG(D_INODE, "old: fid: %s\n", coda_f2s(&(cnp->c_fid)));
+	CDEBUG(D_INODE, "directory: %s\n", coda_f2s(&(dir_cnp->c_fid)));
 
         if ( len > CFS_MAXNAMLEN ) {
                 printk("coda_link: name too long. \n");
@@ -367,7 +364,7 @@ static int coda_symlink(struct inode *dir_inode, struct dentry *de,
 {
         const char *name = de->d_name.name;
 	int len = de->d_name.len;
-        struct cnode *dir_cnp = ITOC(dir_inode);
+        struct coda_inode_info *dir_cnp = ITOC(dir_inode);
 	int symlen;
         int error=0;
         
@@ -407,7 +404,7 @@ static int coda_symlink(struct inode *dir_inode, struct dentry *de,
 
 int coda_unlink(struct inode *dir, struct dentry *de)
 {
-        struct cnode *dircnp;
+        struct coda_inode_info *dircnp;
         int error;
 	const char *name = de->d_name.name;
 	int len = de->d_name.len;
@@ -419,7 +416,7 @@ int coda_unlink(struct inode *dir, struct dentry *de)
         CHECK_CNODE(dircnp);
 
         CDEBUG(D_INODE, " %s in %s, ino %ld\n", name , 
-	       coda_f2s(&(dircnp->c_fid), fidstr), dir->i_ino);
+	       coda_f2s(&(dircnp->c_fid)), dir->i_ino);
 
         /* this file should no longer be in the namecache! */
 
@@ -441,7 +438,7 @@ int coda_unlink(struct inode *dir, struct dentry *de)
 
 int coda_rmdir(struct inode *dir, struct dentry *de)
 {
-        struct cnode *dircnp;
+        struct coda_inode_info *dircnp;
 	const char *name = de->d_name.name;
 	int len = de->d_name.len;
         int error, rehash = 0;
@@ -499,7 +496,7 @@ static int coda_rename(struct inode *old_dir, struct dentry *old_dentry,
 	int new_length = new_dentry->d_name.len;
 	struct inode *old_inode = old_dentry->d_inode;
 	struct inode *new_inode = new_dentry->d_inode;
-        struct cnode *new_cnp, *old_cnp;
+        struct coda_inode_info *new_cnp, *old_cnp;
         int error, rehash = 0, update = 1;
 ENTRY;
         old_cnp = ITOC(old_dir);
@@ -559,7 +556,7 @@ ENTRY;
 int coda_readdir(struct file *file, void *dirent,  filldir_t filldir)
 {
         int result = 0;
-        struct cnode *cnp;
+        struct coda_inode_info *cnp;
         struct file open_file;
 	struct dentry open_dentry;
 	struct inode *inode=file->f_dentry->d_inode;
@@ -599,7 +596,7 @@ int coda_open(struct inode *i, struct file *f)
 {
         ino_t ino;
 	dev_t dev;
-        struct cnode *cnp;
+        struct coda_inode_info *cnp;
         int error = 0;
         struct inode *cont_inode = NULL;
         unsigned short flags = f->f_flags;
@@ -653,7 +650,7 @@ int coda_open(struct inode *i, struct file *f)
 
 int coda_release(struct inode *i, struct file *f)
 {
-        struct cnode *cnp;
+        struct coda_inode_info *cnp;
         int error;
         unsigned short flags = f->f_flags;
 	unsigned short cflags = coda_flags_to_cflags(flags);

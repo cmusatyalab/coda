@@ -24,7 +24,7 @@
 
 #include <linux/coda.h>
 #include <linux/coda_linux.h>
-#include <linux/coda_cnode.h>
+#include <linux/coda_fs_i.h>
 #include <linux/coda_psdev.h>
 #include <linux/coda_cache.h>
 #include <linux/coda_sysctl.h>

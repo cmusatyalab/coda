@@ -21,7 +21,7 @@
 #include <linux/coda.h>
 #include <linux/coda_linux.h>
 #include <linux/coda_psdev.h>
-#include <linux/coda_cnode.h>
+#include <linux/coda_fs_i.h>
 #include <linux/coda_cache.h>
 
 /* Keep various stats */
@@ -42,7 +42,7 @@ ENTRY;
 	list_add(&el->cc_cclist, &sbi->sbi_cchead);
 }
 
-void coda_cninsert(struct coda_cache *el, struct cnode *cnp)
+void coda_cninsert(struct coda_cache *el, struct coda_inode_info *cnp)
 {
 ENTRY;
 	if ( !cnp ||  !el) {
@@ -54,23 +54,29 @@ ENTRY;
 
 void coda_ccremove(struct coda_cache *el)
 {
-ENTRY;
-	list_del(&el->cc_cclist);
+	ENTRY;
+        if (el->cc_cclist.next && el->cc_cclist.prev)
+	        list_del(&el->cc_cclist);
+	else
+		printk("coda_cnremove: trying to remove 0 entry!");
 }
 
 void coda_cnremove(struct coda_cache *el)
 {
-ENTRY;
-	list_del(&el->cc_cnlist);
+	ENTRY;
+	if (el->cc_cnlist.next && el->cc_cnlist.prev)
+		list_del(&el->cc_cnlist);
+	else
+		printk("coda_cnremove: trying to remove 0 entry!");
 }
 
 
 void coda_cache_create(struct inode *inode, int mask)
 {
-	struct cnode *cnp = ITOC(inode);
+	struct coda_inode_info *cnp = ITOC(inode);
 	struct super_block *sb = inode->i_sb;
 	struct coda_cache *cc = NULL;
-ENTRY;
+	ENTRY;
 	CODA_ALLOC(cc, struct coda_cache *, sizeof(*cc));
 
 	if ( !cc ) {
@@ -85,7 +91,7 @@ ENTRY;
 
 struct coda_cache * coda_cache_find(struct inode *inode)
 {
-	struct cnode *cnp = ITOC(inode);
+	struct coda_inode_info *cnp = ITOC(inode);
 	struct list_head *lh, *le;
 	struct coda_cache *cc = NULL;
 	
@@ -114,7 +120,7 @@ void coda_cache_enter(struct inode *inode, int mask)
 	}
 }
 
-void coda_cache_clear_cnp(struct cnode *cnp)
+void coda_cache_clear_cnp(struct coda_inode_info *cnp)
 {
 	struct list_head *lh, *le;
 	struct coda_cache *cc;
@@ -178,7 +184,7 @@ void coda_cache_clear_cred(struct super_block *sb, struct coda_cred *cred)
 
 int coda_cache_check(struct inode *inode, int mask)
 {
-	struct cnode *cnp = ITOC(inode);
+	struct coda_inode_info *cnp = ITOC(inode);
 	struct list_head *lh, *le;
 	struct coda_cache *cc = NULL;
 	
@@ -207,9 +213,8 @@ int coda_cache_check(struct inode *inode, int mask)
 static void coda_flag_children(struct dentry *parent)
 {
 	struct list_head *child;
-	struct cnode *cnp;
+	struct coda_inode_info *cnp;
 	struct dentry *de;
-	char str[50];
 
 	child = parent->d_subdirs.next;
 	while ( child != &parent->d_subdirs ) {
@@ -217,7 +222,7 @@ static void coda_flag_children(struct dentry *parent)
 		cnp = ITOC(de->d_inode);
 		if (cnp) 
 			cnp->c_flags |= C_ZAPFID;
-		CDEBUG(D_CACHE, "ZAPFID for %s\n", coda_f2s(&cnp->c_fid, str));
+		CDEBUG(D_CACHE, "ZAPFID for %s\n", coda_f2s(&cnp->c_fid));
 		
 		child = child->next;
 	}
@@ -228,7 +233,7 @@ static void coda_flag_children(struct dentry *parent)
 void  coda_dentry_delete(struct dentry *dentry)
 {
 	struct inode *inode = dentry->d_inode;
-	struct cnode *cnp = NULL;
+	struct coda_inode_info *cnp = NULL;
 	ENTRY;
 
 	if (inode) { 
@@ -254,7 +259,7 @@ void  coda_dentry_delete(struct dentry *dentry)
 	return;
 }
 
-static void coda_zap_cnode(struct cnode *cnp, int flags)
+static void coda_zap_cnode(struct coda_inode_info *cnp, int flags)
 {
 	cnp->c_flags |= flags;
 	coda_cache_clear_cnp(cnp);
@@ -267,7 +272,7 @@ static void coda_zap_cnode(struct cnode *cnp, int flags)
 void coda_zapfid(struct ViceFid *fid, struct super_block *sb, int flag)
 {
 	struct inode *inode = NULL;
-	struct cnode *cnp;
+	struct coda_inode_info *cnp;
 
 	ENTRY;
  
@@ -286,7 +291,7 @@ void coda_zapfid(struct ViceFid *fid, struct super_block *sb, int flag)
 		struct coda_sb_info *sbi = coda_sbp(sb);
 		le = lh = &sbi->sbi_volroothead;
 		while ( (le = le->next) != lh ) {
-			cnp = list_entry(le, struct cnode, c_volrootlist);
+			cnp = list_entry(le, struct coda_inode_info, c_volrootlist);
 			if ( cnp->c_fid.Volume == fid->Volume) 
 				coda_zap_cnode(cnp, flag);
 		}
@@ -300,11 +305,6 @@ void coda_zapfid(struct ViceFid *fid, struct super_block *sb, int flag)
 		return;
 	}
 	cnp = ITOC(inode);
-	CHECK_CNODE(cnp);
-	if ( !cnp ) {
-		printk("coda_zapfid: no cnode!\n");
-		return;
-	}
 	coda_zap_cnode(cnp, flag);
 }
 		

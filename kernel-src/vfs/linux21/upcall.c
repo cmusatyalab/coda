@@ -16,7 +16,8 @@
 
 #include <asm/system.h>
 #include <asm/segment.h>
-
+#include <asm/signal.h>
+#include <linux/signal.h>
 
 #include <linux/types.h>
 #include <linux/kernel.h>
@@ -34,7 +35,7 @@
 #include <linux/coda.h>
 #include <linux/coda_linux.h>
 #include <linux/coda_psdev.h>
-#include <linux/coda_cnode.h>
+#include <linux/coda_fs_i.h>
 #include <linux/coda_cache.h>
 
 #define UPARG(op)\
@@ -538,7 +539,7 @@ int venus_pioctl(struct super_block *sb, struct ViceFid *fid,
         
         if (error) {
 	        printk("coda_pioctl: Venus returns: %d for %s\n", 
-		       error, coda_f2s(fid, str));
+		       error, coda_f2s(fid));
 		goto exit; 
 	}
         
@@ -586,6 +587,7 @@ int venus_pioctl(struct super_block *sb, struct ViceFid *fid,
 static inline void coda_waitfor_upcall(struct vmsg *vmp)
 {
 	struct wait_queue	wait = { current, NULL };
+	old_sigset_t pending;
 
 	vmp->vm_posttime = jiffies;
 
@@ -596,12 +598,26 @@ static inline void coda_waitfor_upcall(struct vmsg *vmp)
 		else
 			current->state = TASK_UNINTERRUPTIBLE;
 
+		/* got a reply */
 		if ( vmp->vm_flags & VM_WRITE )
 			break;
-		if (signal_pending(current) &&
-		    (jiffies > vmp->vm_posttime + coda_timeout * HZ) )
+
+		if ( ! signal_pending(current) )
+			schedule();
+		/* signal is present: after timeout always return */
+		if ( jiffies > vmp->vm_posttime + coda_timeout * HZ )
+			break; 
+				
+		spin_lock_irq(&current->sigmask_lock);
+		pending = current->blocked.sig[0] & current->signal.sig[0];
+		spin_unlock_irq(&current->sigmask_lock);
+
+		/* if this process really wants to die, let it go */
+		if ( sigismember(&pending, SIGKILL) ||
+		     sigismember(&pending, SIGINT) )
 			break;
-		schedule();
+		else 
+			schedule();
 	}
 	remove_wait_queue(&vmp->vm_sleep, &wait);
 	current->state = TASK_RUNNING;
@@ -793,7 +809,7 @@ int coda_downcall(int opcode, union outputArgs * out, struct super_block *sb)
 		    printk("ZAPDIR: Null fid\n");
 		    return 0;
 	    }
-	    CDEBUG(D_DOWNCALL, "zapdir: fid = %s\n", coda_f2s(fid, str));
+	    CDEBUG(D_DOWNCALL, "zapdir: fid = %s\n", coda_f2s(fid));
 	    clstats(CFS_ZAPDIR);
 	    coda_zapfid(fid, sb, C_ZAPDIR);
 	    return(0);
@@ -806,7 +822,7 @@ int coda_downcall(int opcode, union outputArgs * out, struct super_block *sb)
 		    printk("ZAPVNODE: Null fid or cred\n");
 		    return 0;
 	    }
-	    CDEBUG(D_DOWNCALL, "zapvnode: fid = %s\n", coda_f2s(fid, str));
+	    CDEBUG(D_DOWNCALL, "zapvnode: fid = %s\n", coda_f2s(fid));
 	    coda_zapfid(fid, sb, C_ZAPFID);
 	    coda_cache_clear_cred(sb, cred);
 	    clstats(CFS_ZAPVNODE);
@@ -820,7 +836,7 @@ int coda_downcall(int opcode, union outputArgs * out, struct super_block *sb)
 		    printk("ZAPFILE: Null fid\n");
 		    return 0;
 	    }
-	    CDEBUG(D_DOWNCALL, "zapfile: fid = %s\n", coda_f2s(fid, str));
+	    CDEBUG(D_DOWNCALL, "zapfile: fid = %s\n", coda_f2s(fid));
 	    coda_zapfid(fid, sb, C_ZAPFID);
 	    return 0;
     }
@@ -831,7 +847,7 @@ int coda_downcall(int opcode, union outputArgs * out, struct super_block *sb)
 		    printk("PURGEFID: Null fid\n");
 		    return 0;
 	    }
-	    CDEBUG(D_DOWNCALL, "purgefid: fid = %s\n", coda_f2s(fid, str));
+	    CDEBUG(D_DOWNCALL, "purgefid: fid = %s\n", coda_f2s(fid));
 	    clstats(CFS_PURGEFID);
 	    coda_zapfid(fid, sb, C_ZAPDIR);
 	    return 0;

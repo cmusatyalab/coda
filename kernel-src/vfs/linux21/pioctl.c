@@ -20,7 +20,7 @@
 
 #include <linux/coda.h>
 #include <linux/coda_linux.h>
-#include <linux/coda_cnode.h>
+#include <linux/coda_fs_i.h>
 #include <linux/coda_cache.h>
 #include <linux/coda_psdev.h>
 
@@ -103,7 +103,7 @@ static int coda_pioctl(struct inode * inode, struct file * filp,
         int error;
 	struct PioctlData data;
         struct inode *target_inode = NULL;
-        struct cnode *cnp;
+        struct coda_inode_info *cnp;
 
         ENTRY;
         /* get the Pioctl data arguments from user space */

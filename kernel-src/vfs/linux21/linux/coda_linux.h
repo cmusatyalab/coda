@@ -43,7 +43,7 @@ extern int coda_print_entry;
 extern int coda_access_cache;
 
 /* this file:  heloers */
-char *coda_f2s(ViceFid *f, char *s);
+char *coda_f2s(ViceFid *f);
 int coda_isroot(struct inode *i);
 int coda_fid_is_volroot(struct ViceFid *);
 int coda_iscontrol(const char *name, size_t length);
@@ -93,22 +93,7 @@ int coda_inode_grab(dev_t dev, ino_t ino, struct inode **ind);
 #define EXIT    \
     if(coda_print_entry) printk("Process %d leaving %s\n",current->pid,__FUNCTION__)
 
-
-
-#define CHECK_CNODE(c)                                                \
-do {                                                                  \
-  if ( coda_debug ) {\
-    struct cnode *cnode = (c);                                          \
-  if (!cnode)                                                         \
-    printk ("%s(%d): cnode is null\n", __FUNCTION__, __LINE__);        \
-  if (cnode->c_magic != CODA_CNODE_MAGIC)                             \
-    printk ("%s(%d): cnode magic wrong\n", __FUNCTION__, __LINE__);    \
-  if (!cnode->c_vnode)                                                \
-    printk ("%s(%d): cnode has null inode\n", __FUNCTION__, __LINE__); \
-  if ( (struct cnode *)cnode->c_vnode->u.generic_ip != cnode )           \
-    printk("AAooh, %s(%d) cnode doesn't link right!\n", __FUNCTION__,__LINE__);\
-}} while (0);
-
+#define CHECK_CNODE(c) do {  } while (0);
 
 #define CODA_ALLOC(ptr, cast, size)                                       \
 do {                                                                      \

@@ -22,13 +22,13 @@ struct coda_cache {
 };
 
 void coda_ccinsert(struct coda_cache *el, struct super_block *sb);
-void coda_cninsert(struct coda_cache *el, struct cnode *cnp);
+void coda_cninsert(struct coda_cache *el, struct coda_inode_info *cnp);
 void coda_ccremove(struct coda_cache *el);
 void coda_cnremove(struct coda_cache *el);
 void coda_cache_create(struct inode *inode, int mask);
 struct coda_cache *coda_cache_find(struct inode *inode);
 void coda_cache_enter(struct inode *inode, int mask);
-void coda_cache_clear_cnp(struct cnode *cnp);
+void coda_cache_clear_cnp(struct coda_inode_info *cnp);
 void coda_cache_clear_all(struct super_block *sb);
 void coda_cache_clear_cred(struct super_block *sb, struct coda_cred *cred);
 int coda_cache_check(struct inode *inode, int mask);

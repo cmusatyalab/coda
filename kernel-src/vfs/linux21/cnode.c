@@ -1,5 +1,5 @@
 /* cnode related routines for the coda kernel code
-   Peter Braam, Sep 1996.
+   (C) 1996 Peter Braam
    */
 
 #include <linux/types.h>
@@ -7,37 +7,14 @@
 
 #include <linux/coda.h>
 #include <linux/coda_linux.h>
-#include <linux/coda_cnode.h>
+#include <linux/coda_fs_i.h>
 #include <linux/coda_psdev.h>
 
 extern int coda_debug;
 extern int coda_print_entry;
 
 /* cnode.c */
-static struct cnode *coda_cnode_alloc(void);
 
-/* return pointer to new empty cnode */
-static struct cnode *coda_cnode_alloc(void)
-{
-        struct cnode *result = NULL;
-
-        CODA_ALLOC(result, struct cnode *, sizeof(struct cnode));
-        if ( !result ) {
-                printk("coda_cnode_alloc: kmalloc returned NULL.\n");
-                return result;
-        }
-
-        memset(result, 0, (int) sizeof(struct cnode));
-        INIT_LIST_HEAD(&(result->c_cnhead));
-	INIT_LIST_HEAD(&(result->c_volrootlist));
-	return result;
-}
-
-/* release cnode memory */
-void coda_cnode_free(struct cnode *cinode)
-{
-        CODA_FREE(cinode, sizeof(struct cnode));
-}
 
               
 static void coda_fill_inode (struct inode *inode, struct coda_vattr *attr)
@@ -70,12 +47,11 @@ static void coda_fill_inode (struct inode *inode, struct coda_vattr *attr)
 */
 int coda_cnode_make(struct inode **inode, ViceFid *fid, struct super_block *sb)
 {
-        struct cnode *cnp;
+        struct coda_inode_info *cnp;
 	struct coda_sb_info *sbi= coda_sbp(sb);
         struct coda_vattr attr;
         int error;
 	ino_t ino;
-	char str[50];
         
         ENTRY;
 
@@ -86,7 +62,7 @@ int coda_cnode_make(struct inode **inode, ViceFid *fid, struct super_block *sb)
 	error = venus_getattr(sb, fid, &attr);
 	if ( error ) {
 	    printk("coda_cnode_make: coda_getvattr returned %d for %s.\n", 
-		   error, coda_f2s(fid, str));
+		   error, coda_f2s(fid));
 	    *inode = NULL;
 	    return error;
 	} 
@@ -98,27 +74,19 @@ int coda_cnode_make(struct inode **inode, ViceFid *fid, struct super_block *sb)
                 return -ENOMEM;
         }
 
-	/* link the cnode and the vfs inode 
-	   if this inode is not linked yet
-	*/
-	if ( !(*inode)->u.generic_ip ) {
-        	cnp = coda_cnode_alloc();
-        	if ( !cnp ) {
-               		printk("coda_cnode_make: coda_cnode_alloc failed.\n");
-			clear_inode(*inode);
-                	return -ENOMEM;
-        	}
-        	cnp->c_fid = *fid;
-        	cnp->c_magic = CODA_CNODE_MAGIC;
+	cnp = ITOC(*inode);
+	if  ( cnp->c_magic == 0 ) {
+		memset(cnp, 0, (int) sizeof(struct coda_inode_info));
+		cnp->c_fid = *fid;
+		cnp->c_magic = CODA_CNODE_MAGIC;
 		cnp->c_flags = C_VATTR;
-        	cnp->c_vnode = *inode;
-        	(*inode)->u.generic_ip = (void *) cnp;
-		CDEBUG(D_CNODE, "LINKING: ino %ld, count %d  at 0x%x with cnp 0x%x, cnp->c_vnode 0x%x, in->u.generic_ip 0x%x\n", (*inode)->i_ino, (*inode)->i_count, (int) (*inode), (int) cnp, (int)cnp->c_vnode, (int) (*inode)->u.generic_ip);
+		cnp->c_vnode = *inode;
+		INIT_LIST_HEAD(&(cnp->c_cnhead));
+		INIT_LIST_HEAD(&(cnp->c_volrootlist));
 	} else {
-	    cnp = (struct cnode *)(*inode)->u.generic_ip;
-	    CDEBUG(D_CNODE, "FOUND linked: ino %ld, count %d, at 0x%x with cnp 0x%x, cnp->c_vnode 0x%x\n", (*inode)->i_ino, (*inode)->i_count, (int) (*inode), (int) cnp, (int)cnp->c_vnode);
+		printk("coda_cnode make on initialized inode %ld, %s!\n",
+		       (*inode)->i_ino, coda_f2s(&cnp->c_fid));
 	}
-	CHECK_CNODE(cnp);
 
 	/* fill in the inode attributes */
 	if ( coda_fid_is_volroot(fid) ) 
@@ -145,14 +113,14 @@ inline int coda_fideq(ViceFid *fid1, ViceFid *fid2)
 
 /* convert a fid to an inode. Avoids having a hash table
    such as present in the Mach minicache */
-struct inode *coda_fid_to_inode(ViceFid *fid, struct super_block *sb) {
+struct inode *coda_fid_to_inode(ViceFid *fid, struct super_block *sb) 
+{
 	ino_t nr;
 	struct inode *inode;
-	struct cnode *cnp;
-	char str[50];
+	struct coda_inode_info *cnp;
 ENTRY;
 
-	CDEBUG(D_INODE, "%s\n", coda_f2s(fid, str));
+	CDEBUG(D_INODE, "%s\n", coda_f2s(fid));
 
 	nr = coda_f2i(fid);
 	inode = iget(sb, nr);
@@ -164,12 +132,13 @@ ENTRY;
 	}
 
 	/* check if this inode is linked to a cnode */
-	cnp = (struct cnode *) inode->u.generic_ip;
-	if ( cnp == NULL ) {
+	cnp = ITOC(inode);
+
+	if ( cnp->c_magic != CODA_CNODE_MAGIC ) {
 		iput(inode);
-		EXIT;
 		return NULL;
 	}
+
 	/* make sure fid is the one we want */
 	if ( !coda_fideq(fid, &(cnp->c_fid)) ) {
 		printk("coda_fid2inode: bad cnode! Tell Peter.\n");

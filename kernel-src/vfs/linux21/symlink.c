@@ -21,7 +21,7 @@
 #include <linux/coda.h>
 #include <linux/coda_linux.h>
 #include <linux/coda_psdev.h>
-#include <linux/coda_cnode.h>
+#include <linux/coda_fs_i.h>
 #include <linux/coda_cache.h>
 
 static int coda_readlink(struct dentry *de, char *buffer, int length);
@@ -56,7 +56,7 @@ static int coda_readlink(struct dentry *de, char *buffer, int length)
         int len;
 	int error;
         char *buf;
-	struct cnode *cp;
+	struct coda_inode_info *cp;
         ENTRY;
 
         cp = ITOC(inode);
@@ -89,7 +89,7 @@ static struct dentry *coda_follow_link(struct dentry *de,
 {
 	struct inode *inode = de->d_inode;
 	int error;
-	struct cnode *cnp;
+	struct coda_inode_info *cnp;
 	unsigned int len;
 	char mem[CFS_MAXPATHLEN];
 	char *path;

@@ -34,7 +34,7 @@
 #include <linux/coda.h>
 #include <linux/coda_linux.h>
 #include <linux/coda_psdev.h>
-#include <linux/coda_cnode.h>
+#include <linux/coda_fs_i.h>
 #include <linux/coda_cache.h>
 
 
@@ -120,7 +120,7 @@ static struct super_block * coda_read_super(struct super_block *sb,
 	        unlock_super(sb);
 		goto error;
 	}	  
-	printk("coda_read_super: rootfid is %s\n", coda_f2s(&fid, str));
+	printk("coda_read_super: rootfid is %s\n", coda_f2s(&fid));
 	
 	/* make root inode */
         error = coda_cnode_make(&root, &fid, sb);
@@ -152,7 +152,6 @@ EXIT;
 	}
         if (root) {
                 iput(root);
-                coda_cnode_free(ITOC(root));
         }
         sb->s_dev = 0;
         return NULL;
@@ -182,8 +181,10 @@ static void coda_put_super(struct super_block *sb)
 /* all filling in of inodes postponed until lookup */
 static void coda_read_inode(struct inode *inode)
 {
+	struct coda_inode_info *cnp;
 	ENTRY;
-	inode->u.generic_ip =  NULL;
+	cnp = ITOC(inode);
+	cnp->c_magic = 0;
 	return;
 }
 
@@ -191,24 +192,28 @@ static void coda_put_inode(struct inode *in)
 {
 	ENTRY;
 
-        CDEBUG(D_INODE,"ino: %ld, cnp: %p\n", in->i_ino, in->u.generic_ip);
+        CDEBUG(D_INODE,"ino: %ld, count %d\n", in->i_ino, in->i_count);
+
+	if ( in->i_count == 1 ) 
+		in->i_nlink = 0;
+		
 }
 
 static void coda_delete_inode(struct inode *inode)
 {
-        struct cnode *cnp;
+        struct coda_inode_info *cnp;
         struct inode *open_inode;
 
         ENTRY;
         CDEBUG(D_SUPER, " inode->ino: %ld, count: %d\n", 
 	       inode->i_ino, inode->i_count);        
 
-	if ( inode->i_ino == CTL_INO ) {
+        cnp = ITOC(inode);
+	if ( inode->i_ino == CTL_INO || cnp->c_magic != CODA_CNODE_MAGIC ) {
 	        clear_inode(inode);
 		return;
 	}
 
-        cnp = ITOC(inode);
 
 	if ( coda_fid_is_volroot(&cnp->c_fid) )
 		list_del(&cnp->c_volrootlist);
@@ -224,7 +229,6 @@ static void coda_delete_inode(struct inode *inode)
 	coda_cache_clear_cnp(cnp);
 
 	inode->u.generic_ip = NULL;
-        coda_cnode_free(cnp);
         clear_inode(inode);
 	EXIT;
 }
@@ -232,7 +236,7 @@ static void coda_delete_inode(struct inode *inode)
 static int  coda_notify_change(struct dentry *de, struct iattr *iattr)
 {
 	struct inode *inode = de->d_inode;
-        struct cnode *cnp;
+        struct coda_inode_info *cnp;
         struct coda_vattr vattr;
         int error;
 	

@@ -21,7 +21,7 @@
 #include <linux/coda.h>
 #include <linux/coda_linux.h>
 #include <linux/coda_psdev.h>
-#include <linux/coda_cnode.h>
+#include <linux/coda_fs_i.h>
 #include <linux/coda_cache.h>
 
 /* initialize the debugging variables */
@@ -30,10 +30,11 @@ int coda_print_entry = 0;
 int coda_access_cache = 1;
 
 /* caller must allocate 36 byte string ! */
-char * coda_f2s(ViceFid *f, char *s)
+char * coda_f2s(ViceFid *f)
 {
+	static char s[50];
 	if ( f ) {
-		sprintf(s, "(%-#10lx,%-#10lx,%-#10lx)", 
+		sprintf(s, "(%10lx,%10lx,%10lx)", 
 			 f->Volume, f->Vnode, f->Unique);
 	}
 	return s;
