@@ -54,7 +54,7 @@ dosubs(int *level, int width, int depth)
     char dir[256];
     (*level)++;
     mdirs(width);
-printf("Starting %d\n", *level);
+    /* printf("Starting %d\n", *level); */
     /* only decend if not at top level */
     if (*level < depth) {
 	for ( d = 0 ; d < width ; d++ ) {
@@ -64,7 +64,7 @@ printf("Starting %d\n", *level);
 	    chdir("..");
 	}
     }
-printf("Ending %d\n", *level);
+    /* printf("Ending %d\n", *level); */
 
     (*level)--;
 }
