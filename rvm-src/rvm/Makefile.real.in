@@ -31,7 +31,7 @@
 # changes  without  encumbrance.   Such improvements and extensions
 # should be returned to Software.Distribution@cs.cmu.edu.
 #
-# rcsid = $Header: /usr/rvb/XX/src/rvm-src/rvm/RCS/Makefile.real.in,v 4.1 1997/01/08 21:54:30 rvb Exp $
+# rcsid = $Header: /coda/coda.cs.cmu.edu/project/coda/cvs/coda/rvm-src/rvm/Attic/Makefile.real.in,v 4.2 1997/02/26 16:05:02 rvb Exp $
 #
 #endif _BLURB_
 
