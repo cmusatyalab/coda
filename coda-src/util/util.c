@@ -240,6 +240,10 @@ int UtilHostEq(char *name1, char *name2)
 
     if ( host->h_length != len ) 
 	return 0;
-    else
-	return  ~ strncmp(addr, host->h_addr_list[0], len);
+
+    if ( strncmp(addr, host->h_addr_list[0], len) == 0 ) 
+	return 1;
+    else 
+	return 0;
+
 }
