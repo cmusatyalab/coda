@@ -61,6 +61,24 @@ Pittsburgh, PA.
 
 extern int errno;
 
+/* this function must go as soon as we have no 4.6.7 servers anymore!!!! */
+void GetLocalIP(RPC2_HostIdent *localhost)
+{
+#ifdef DJGPP
+    localhost->Tag = RPC2_HOSTBYINETADDR;
+    localhost->Value.InetAddress = (struct in_addr)__djgpp_get_my_host();
+#else
+    char hostname[128];
+    struct hostent *h;
+
+    CODA_ASSERT(gethostname(hostname, sizeof(hostname)) == 0);
+    CODA_ASSERT((h = gethostbyname(hostname)));
+
+    localhost->Tag = RPC2_HOSTBYINETADDR;
+    localhost->Value.InetAddress = *(struct in_addr *)(h->h_addr_list[0]);
+#endif
+}
+
 long RPC2_Init(char *VId,		/* magic version string */
 	       RPC2_Options *Options,
 	       RPC2_PortIdent *Port,	/* array of portal ids */
@@ -100,8 +118,13 @@ long RPC2_Init(char *VId,		/* magic version string */
      * rpc2 Peer. So this should give no problems. Changing the AllocMgrp and
      * GetMgrp functions to accept a NULL pointer would be better, but
      * requires an enormous amount of modifications all over rpc2. --JH */
+    
+    /* However the old 4.6.7 omega servers are still using SenderHost, so ea
+     * actually still need to know our network IP-address, until we've
+     * upgraded them. Still, rpc2_LocalHost should go. */
     rpc2_LocalHost.Tag = RPC2_HOSTBYINETADDR;
     rpc2_LocalHost.Value.InetAddress.s_addr = 0x100007F;
+    GetLocalIP(&rpc2_LocalHost);
     
     rc = rpc2_CreateIPSocket(&rpc2_RequestSocket, &rpc2_LocalPort);
 
