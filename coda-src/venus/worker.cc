@@ -83,6 +83,11 @@ extern "C" {
 }
 #endif
 
+/* Darwin uses the same venus-kernel interface as BSD */
+#if defined(__APPLE__) && defined(__MACH__)
+#define __BSD44__
+#endif
+
 /* interfaces */
 /* from vicedep */
 #include <venusioctl.h>
