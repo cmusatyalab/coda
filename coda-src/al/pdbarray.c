@@ -97,11 +97,11 @@ void pdb_array_add(pdb_array *l, int32_t x)
 	while((i >= 0) && (l->data[i] > x))
 		i--;
 	if (i >= 0) {
-	   if (l->data[i] == x)
+	   if (l->data[i+1] == x)
 	       return;
-	    memmove(&(l->data[i+1]), &(l->data[i]),
-		    (l->size - i) * sizeof(int32_t));
 	}
+	memmove(&(l->data[i+2]), &(l->data[i+1]),
+		(l->size - (i+1)) * sizeof(int32_t));
 	l->data[i+1] = x;
 	l->size++;
 }

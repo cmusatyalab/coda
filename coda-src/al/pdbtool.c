@@ -653,9 +653,15 @@ void tool_import(int argc, char *argv[])
     
     /* recreate groups */
     while (1) {
-	rc = fscanf(groupfile, "%[^:]:%*[^:]:%d:%[^,\n]%*[^\n]\n",
+	int c;
+	rc = fscanf(groupfile, "%[^:]:%*[^:]:%d:%[^,\n]",
 		    group, &group_id, owner);
 	if (rc != 3) break;
+
+	/* skip to the next newline */
+	do {
+	  c = fgetc(groupfile);
+	} while (c != EOF && c != (int)'\n');
 
 	if (group_id == 0) {
 	    printf("Groupid 0 must be avoided, skipping entry for %s\n",
