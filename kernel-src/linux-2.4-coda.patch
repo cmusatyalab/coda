@@ -254,7 +254,7 @@ diff -urN --exclude-from=../dontdiff linux-2.4.20/fs/coda/dir.c linux-2.4.20-cod
  	coda_file->f_pos = host_file->f_pos;
 diff -urN --exclude-from=../dontdiff linux-2.4.20/fs/coda/file.c linux-2.4.20-coda/fs/coda/file.c
 --- linux-2.4.20/fs/coda/file.c	2003-01-08 12:59:05.000000000 -0500
-+++ linux-2.4.20-coda/fs/coda/file.c	2002-09-24 18:14:04.000000000 -0400
++++ linux-2.4.20-coda/fs/coda/file.c	2003-01-09 16:58:24.000000000 -0500
 @@ -117,10 +117,8 @@
  	coda_vfs_stat.open++;
  
@@ -280,7 +280,7 @@ diff -urN --exclude-from=../dontdiff linux-2.4.20/fs/coda/file.c linux-2.4.20-co
  
  	err = venus_store(coda_inode->i_sb, coda_i2f(coda_inode), coda_flags,
 -			  &cfi->cfi_cred);
-+			  cfi->cfi_container->f_uid);
++			  coda_file->f_uid);
  
  	if (err == -EOPNOTSUPP) {
  		use_coda_close = 1;
@@ -289,7 +289,7 @@ diff -urN --exclude-from=../dontdiff linux-2.4.20/fs/coda/file.c linux-2.4.20-co
  	if (use_coda_close)
  		err = venus_close(coda_inode->i_sb, coda_i2f(coda_inode),
 -				  coda_flags, &cfi->cfi_cred);
-+				  coda_flags, cfi->cfi_container->f_uid);
++				  coda_flags, coda_file->f_uid);
  
  	host_inode = cfi->cfi_container->f_dentry->d_inode;
  	cii = ITOC(coda_inode);
@@ -819,22 +819,16 @@ diff -urN --exclude-from=../dontdiff linux-2.4.20/fs/coda/upcall.c linux-2.4.20-
  		  inode = coda_fid_to_inode(oldfid, sb);
 diff -urN --exclude-from=../dontdiff linux-2.4.20/fs/namei.c linux-2.4.20-coda/fs/namei.c
 --- linux-2.4.20/fs/namei.c	2003-01-08 12:59:05.000000000 -0500
-+++ linux-2.4.20-coda/fs/namei.c	2003-01-08 12:48:05.000000000 -0500
-@@ -633,9 +633,12 @@
- 		 * Check the cached dentry for staleness.
- 		 */
- 		dentry = nd->dentry;
--		if (dentry && dentry->d_op && dentry->d_op->d_revalidate) {
-+		if (dentry) {
- 			err = -ESTALE;
--			if (!dentry->d_op->d_revalidate(dentry, 0)) {
-+			if (!dentry->d_inode || is_bad_inode(dentry->d_inode) ||
-+			    (dentry->d_inode->i_op && 
-+			     dentry->d_inode->i_op->revalidate &&
-+			    !dentry->d_inode->i_op->revalidate(dentry))) {
- 				d_invalidate(dentry);
- 				break;
- 			}
++++ linux-2.4.20-coda/fs/namei.c	2003-01-09 17:00:12.000000000 -0500
+@@ -627,6 +627,8 @@
+ 			nd->last_type = LAST_DOT;
+ 		else if (this.len == 2 && this.name[1] == '.')
+ 			nd->last_type = LAST_DOTDOT;
++		else
++			goto return_base;
+ return_reval:
+ 		/*
+ 		 * We bypassed the ordinary revalidation routines.
 diff -urN --exclude-from=../dontdiff linux-2.4.20/include/linux/coda.h linux-2.4.20-coda/include/linux/coda.h
 --- linux-2.4.20/include/linux/coda.h	2003-01-08 12:59:05.000000000 -0500
 +++ linux-2.4.20-coda/include/linux/coda.h	2003-01-08 12:55:23.000000000 -0500
