@@ -44,6 +44,7 @@ fi
 # defaults, will be overridden by settings in the server.conf file
 vicedir=/vice
 
+exec_prefix=@exec_prefix@
 conf="`@sbindir@/codaconfedit server.conf`"
 if [ "x${conf}" != x/dev/null ] ; then
   . ${conf}

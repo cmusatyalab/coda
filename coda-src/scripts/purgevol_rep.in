@@ -17,7 +17,10 @@
 # 
 #*/
 
-PATH=$PATH:@prefix@/sbin
+prefix=@prefix@
+exec_prefix=@exec_prefix@
+
+PATH=$PATH:${prefix}/sbin
 export PATH
 
 # load the server configuration file

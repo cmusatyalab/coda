@@ -17,6 +17,9 @@
 # 
 #*/
 
+prefix=@prefix@
+exec_prefix=@exec_prefix@
+
 echon() {
     if [ "`echo -n`" = "-n" ] ; then
         echo "$@"'\c'

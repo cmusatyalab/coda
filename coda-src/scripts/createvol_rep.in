@@ -17,6 +17,9 @@
 # 
 #*/
 
+prefix=@prefix@
+exec_prefix=@exec_prefix@
+
 echon() {
     if [ "`echo -n`" ] ; then
         echo "$@"\c
@@ -25,7 +28,7 @@ echon() {
     fi
 }
 
-PATH=$PATH:@prefix@/sbin
+PATH=$PATH:${prefix}/sbin
 export PATH
 
 # load the server configuration file

@@ -21,6 +21,7 @@
 # Configuration
 #
 prefix=@prefix@
+exec_prefix=@exec_prefix@
 conf="`@sbindir@/codaconfedit server.conf`"
 if [ -f ${conf} ] ; then
   . ${conf}
