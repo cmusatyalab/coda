@@ -348,7 +348,7 @@ long RPC2_GetRequest(IN RPC2_RequestFilter *Filter,
     {
 	char addr[RPC2_ADDRSTRLEN];
 	RPC2_formataddrinfo(ce->HostInfo->Addr, addr, RPC2_ADDRSTRLEN);
-	say(-1, RPC2_DebugLevel, "Request from %s: Old rpc2 version\n", addr);
+	say(-1, RPC2_DebugLevel, "Request from %s, Old rpc2 version\n", addr);
 
 	/* Get rid of allocated connection entry. */
 	DROPIT();

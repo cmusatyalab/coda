@@ -131,35 +131,48 @@ static int getaddrinfo_noresolve(const char *node, short port,
 				 const struct RPC2_addrinfo *hints,
 				 struct RPC2_addrinfo **res)
 {
-    int family = (hints && hints->ai_family == PF_INET) ? PF_INET : PF_INET6;
+    struct RPC2_addrinfo *ai;
+    int family = PF_UNSPEC;
     char addr[sizeof(struct in6_addr)];
+
+    if (hints->ai_family != PF_INET6 &&
+	node && inet_pton(PF_INET, node, &addr) > 0)
+	family = PF_INET;
+
+    if (hints->ai_family != PF_INET &&
+	node && inet_pton(PF_INET6, node, &addr) > 0)
+	family = PF_INET6;
+
+    /* unspecified family and we couldn't figure it out from the address */
+    if (family == PF_UNSPEC)
+	return RPC2_EAI_NONAME;
 
     switch(family) {
     case PF_INET:
 	{
 	    struct in_addr *inaddr = (struct in_addr *)&addr;
-	    if (node) {
-		if (inet_pton(PF_INET, node, inaddr) <= 0)
-		    return RPC2_EAI_BADFLAGS;
-	    } else if (hints && hints->ai_flags & RPC2_AI_PASSIVE)
-		 inaddr->s_addr = INADDR_ANY;
-	    else inaddr->s_addr = INADDR_LOOPBACK;
+	    if (!node) {
+		if (hints && hints->ai_flags & RPC2_AI_PASSIVE)
+		     inaddr->s_addr = INADDR_ANY;
+		else inaddr->s_addr = INADDR_LOOPBACK;
+	    }
 	    break;
 	}
     case PF_INET6:
 	{
 	    struct in6_addr *in6addr = (struct in6_addr *)&addr;
-	    if (node) {
-		if (inet_pton(PF_INET6, node, in6addr) <= 0)
-		    return RPC2_EAI_BADFLAGS;
-	    } else if (hints && hints->ai_flags & RPC2_AI_PASSIVE)
-		 *in6addr = in6addr_any;
-	    else *in6addr = in6addr_loopback;
+	    if (!node) {
+		if (hints && hints->ai_flags & RPC2_AI_PASSIVE)
+		     *in6addr = in6addr_any;
+		else *in6addr = in6addr_loopback;
+	    }
 	    break;
 	}
     }
-    *res = addrinfo_init(family, &addr, port, hints);
-    return *res ? 0 : RPC2_EAI_MEMORY;
+    ai = addrinfo_init(family, &addr, port, hints);
+    ai->ai_next = *res;
+    *res = ai;
+    return ai ? 0 : RPC2_EAI_MEMORY;
 }
 #endif /* !HAVE_GETADDRINFO */
 
@@ -292,7 +305,8 @@ int RPC2_getaddrinfo(const char *node, const char *service,
 #endif
 
 #ifdef HAVE_GETADDRINFO
-    struct addrinfo *ai, *head;
+    struct addrinfo *ai = NULL, *head;
+    struct RPC2_addrinfo **new, *list = NULL;
     int ret;
 
     ret = getaddrinfo(node, service, (const struct addrinfo *)hints, &ai);
@@ -300,21 +314,31 @@ int RPC2_getaddrinfo(const char *node, const char *service,
 	return ret;
 
     head = ai;
+    new = &list;
     while (ai) {
-	*res = RPC2_allocaddrinfo(ai->ai_addr, ai->ai_addrlen);
-	if (!*res) break;
+	*new = RPC2_allocaddrinfo(ai->ai_addr, ai->ai_addrlen);
+	if (!*new) {
+	    RPC2_freeaddrinfo(list);
+	    list = NULL;
+	    break;
+	}
 
-	(*res)->ai_flags = ai->ai_flags;
-	(*res)->ai_socktype = ai->ai_socktype;
-	(*res)->ai_protocol = ai->ai_protocol;
+	(*new)->ai_flags    = ai->ai_flags;
+	(*new)->ai_socktype = ai->ai_socktype;
+	(*new)->ai_protocol = ai->ai_protocol;
 	if (ai->ai_canonname)
-	    (*res)->ai_canonname = strdup(ai->ai_canonname);
+	    (*new)->ai_canonname = strdup(ai->ai_canonname);
 
-	res = &(*res)->ai_next;
+	new = &(*new)->ai_next;
 	ai = ai->ai_next;
     }
     freeaddrinfo(head);
 
+    if (!list)
+	return RPC2_EAI_MEMORY;
+
+    *new = *res;
+    *res = list;
     return 0;
 #else
     struct hostent *he;
@@ -413,14 +437,14 @@ const char *RPC2_gai_strerror(const int errcode)
 void rpc2_printaddrinfo(const struct RPC2_addrinfo *ai, FILE *f)
 {
     char buf[RPC2_ADDRSTRLEN];
-    RPC2_formataddrinfo(ai, buf, sizeof(buf));
+    RPC2_formataddrinfo(ai, buf, RPC2_ADDRSTRLEN);
     fputs("Addrinfo = ", f);
     fputs(buf, f);
 }
 
 struct RPC2_addrinfo *rpc2_resolve(RPC2_HostIdent *Host, RPC2_PortIdent *Port)
 {
-    struct RPC2_addrinfo hint, *result;
+    struct RPC2_addrinfo hint, *result = NULL;
     char buf[11];
     char *node = NULL, *service = NULL;
     int retval;

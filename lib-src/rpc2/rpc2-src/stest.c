@@ -244,13 +244,12 @@ static void PrintHostIdent(hPtr, tFile)
     RPC2_HostIdent *hPtr;
     FILE *tFile;
     {
-    char addr[RPC2_ADDRSTRLEN];
+    char addr[INET_ADDRSTRLEN];
     if (tFile == NULL) tFile = stdout;	/* it's ok, call-by-value */
     switch (hPtr->Tag)
 	{
 	case RPC2_HOSTBYADDRINFO:
-		RPC2_formataddrinfo(hPtr->Value.AddrInfo, addr, RPC2_ADDRSTRLEN);
-		fprintf(tFile, "Host.AddrInfo = %s", addr);
+		rpc2_printaddrinfo(hPtr->Value.AddrInfo, tFile);
 		break;
 
 	case RPC2_HOSTBYINETADDR:

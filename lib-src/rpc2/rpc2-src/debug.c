@@ -178,14 +178,13 @@ static void PrintNetLog(char *what, unsigned int NumEntries,
 
 void rpc2_PrintHEntry(struct HEntry *hPtr, FILE *tFile)
 {
-    char addr[RPC2_ADDRSTRLEN];
     if (tFile == NULL) tFile = rpc2_logfile;	/* it's ok, call-by-value */
 
     fprintf(tFile, "\nHost 0x%lx state is...\n\tNextEntry = 0x%lx  PrevEntry = 0x%lx  MagicNumber = %s\n",
 	(long)hPtr, (long)hPtr->Next, (long)hPtr->Prev, WhichMagic(hPtr->MagicNumber));
 
-    RPC2_formataddrinfo(hPtr->Addr, addr, RPC2_ADDRSTRLEN);
-    fprintf(tFile, "AddrInfo = %s", addr);
+    rpc2_printaddrinfo(hPtr->Addr, tFile);
+
     fprintf(tFile, "\tLastWord = %ld.%06ld\n", hPtr->LastWord.tv_sec, hPtr->LastWord.tv_usec);
     fprintf(tFile, "\tRTT = %ld.%03ld, RTTvar = %ld.%03ld\n",
 	    hPtr->RTT >> RPC2_RTT_SHIFT,
@@ -329,6 +328,7 @@ void rpc2_PrintMEntry(struct MEntry *mPtr, FILE *tFile)
 
 void rpc2_PrintHostIdent(RPC2_HostIdent *hPtr, FILE *tFile)
 {
+    char addr[INET_ADDRSTRLEN];
     if (tFile == NULL) tFile = rpc2_logfile;	/* it's ok, call-by-value */
 
     if (hPtr)
@@ -337,20 +337,13 @@ void rpc2_PrintHostIdent(RPC2_HostIdent *hPtr, FILE *tFile)
         {
         case RPC2_HOSTBYADDRINFO:
         case RPC2_MGRPBYADDRINFO:
-            {
-		char addr[RPC2_ADDRSTRLEN];
-		RPC2_formataddrinfo(hPtr->Value.AddrInfo, addr, RPC2_ADDRSTRLEN);
-		fprintf(tFile, "Host.AddrInfo = %s", addr);
-                break;	
-            }
+	    rpc2_printaddrinfo(hPtr->Value.AddrInfo, tFile);
+	    break;	
 
         case RPC2_HOSTBYINETADDR:
-            {
-		char addr[INET_ADDRSTRLEN];
-		inet_ntop(AF_INET, &hPtr->Value.InetAddress, addr, INET_ADDRSTRLEN);
-		fprintf(tFile, "Host.InetAddr = %s", addr);
-                break;	
-            }
+	    inet_ntop(AF_INET, &hPtr->Value.InetAddress, addr, INET_ADDRSTRLEN);
+	    fprintf(tFile, "Host.InetAddr = %s", addr);
+	    break;	
 
         case RPC2_MGRPBYNAME:
         case RPC2_HOSTBYNAME:
