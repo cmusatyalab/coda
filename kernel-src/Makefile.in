@@ -13,7 +13,7 @@ TOPOBJ = @TOPOBJ@
 include $(TOPDIR)/Makeconf
 
   I =  vfs
- II =  $(machine_inodefs)
+ II =  inodefs
 
 SUBDIRS = $(I) $(II)
 
