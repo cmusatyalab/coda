@@ -37,7 +37,7 @@ Pittsburgh, PA.
 
 */
 
-#define RCSVERSION $Revision: 4.25 $
+#define RCSVERSION $Revision: 4.26 $
 
 /* vol-dump.c */
 

@@ -53,8 +53,6 @@ int line;
 
 static rp2_bool included();
 static void include();
-static void ConsumeComment(void);
-static void IncludeVerbatim(void);
 int yywrap();
 
 extern int yydebug;
@@ -419,7 +417,7 @@ void yyerror(char *s)
 void yywarn(char *s)
 {
     printf("WARNING, line %d: %s\n", line, s);
-    return;
+    return(0);
 }
 
 void init_lex(void)

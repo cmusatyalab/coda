@@ -33,7 +33,10 @@ extern "C" {
 #include <assert.h>
 
 #include <readline/readline.h>
-#include <readline/history.h>
+
+extern void using_history();
+extern void stifle_history(int);
+extern void add_history(char *);
 
 #ifdef __cplusplus
 }
