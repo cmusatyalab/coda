@@ -13,5 +13,5 @@
 touch ChangeLog
 autoheader
 aclocal
-automake --add-missing --copy
+automake --copy --add-missing
 autoconf

@@ -4,19 +4,39 @@ dnl translate easy to remember target names into recognizable gnu variants and
 dnl test the cross compilation platform and adjust default settings
 
 AC_DEFUN(CODA_SETUP_BUILD,
+
 [AC_SUBST(LIBTOOL_LDFLAGS)
+
 case ${target} in
   djgpp | win95 | dos )  target=i386-pc-msdos ;;
   cygwin* | winnt | nt ) target=i386-pc-cygwin ;;
 esac
+
 AC_CANONICAL_SYSTEM
 host=${target}
 program_prefix=
-if test ${build} != ${target} ; then
-  case ${target} in
-   i386-pc-msdos )
-    dnl shared libraries don't work here
+
+dnl shared libs don't work on most platforms due to non-PIC code in process.s
+case ${host} in
+   *sun-solaris* )
+    echo "Setting special conditions for Solaris"
+    AFLAGS="-traditional"
+    LIBS="-lsocket -lposix4"
+    if [ ${host_cpu} = sparc ] ; then
+	AM_DISABLE_SHARED
+    fi
+    ;;
+   i*86-* )
+dnl Shared libs seem to work for i386-based platforms
+    ;;
+   * )
     AC_DISABLE_SHARED
+    ;;
+esac
+
+if test ${build} != ${host} ; then
+  case ${host} in
+   i*86-pc-msdos )
     CC="dos-gcc -bmmap"
     CXX="dos-gcc -bmmap"
     AR="dos-ar"
@@ -28,7 +48,7 @@ if test ${build} != ${target} ; then
     dnl get wrong as it tests the build platform feature
     ac_cv_func_mmap_fixed_mapped=yes
     ;;
-   i386-pc-cygwin )
+   i*86-pc-cygwin )
     dnl -D__CYGWIN32__ should be defined but sometimes isn't (wasn't?)
     CC="gnuwin32gcc -D__CYGWIN32__"
     CXX="gnuwin32g++"
@@ -41,23 +61,10 @@ if test ${build} != ${target} ; then
 
     LDFLAGS="-L/usr/gnuwin32/lib"
 
-    dnl We seem to need these to get a dll built
+    dnl We need these to get a dll built
     libtool_flags="--enable-win32-dll"
     LIBTOOL_LDFLAGS="-no-undefined"
     ;;
  esac
-fi
-case ${target} in
-   sparc-sun-solaris* )
-    echo "Setting special conditions for Solaris"
-    AFLAGS="-traditional"
-    LIBS="-lsocket -lposix4"
-    enable_shared=no
-    ;;
-  i386-pc-solaris2* )
-    echo "Setting special conditions for Solaris"
-    AFLAGS="-traditional"
-    LIBS="-lsocket -lposix4"
-    ;;
-esac])
+fi])
 
