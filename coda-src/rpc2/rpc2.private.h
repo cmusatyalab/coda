@@ -515,9 +515,9 @@ bool rpc2_FilterMatch();
 void rpc2_SocketListener(), rpc2_ClockTick();
 
 /* Packet timestamp creation */
-unsigned long rpc2_TVTOTS(const struct timeval *tv);
-void          rpc2_TSTOTV(const long ts, struct timeval *tv);
-unsigned long rpc2_MakeTimeStamp();
+unsigned int rpc2_TVTOTS(const struct timeval *tv);
+void         rpc2_TSTOTV(const unsigned int ts, struct timeval *tv);
+unsigned int rpc2_MakeTimeStamp();
 
 /* Debugging routines */
 void rpc2_PrintTMElem(), rpc2_PrintFilter(), rpc2_PrintSLEntry(),

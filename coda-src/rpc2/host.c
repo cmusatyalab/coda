@@ -207,6 +207,8 @@ void rpc2_GetHostLog(struct HEntry *whichHost, RPC2_NetLog *log,
 	/* figure out how many entries to send back */
 	if (left > RPC2_MAXLOGLENGTH) left = RPC2_MAXLOGLENGTH;
 	if (left > NumEntries)        left = NumEntries; /* we have less */
+
+	log->ValidEntries = 0;
 	if (left == 0) return; 	/* don't touch anything */
 	
 	tail = NumEntries - 1;	
@@ -341,7 +343,7 @@ void rpc2_UpdateEstimates(struct HEntry *host, struct timeval *elapsed,
 	/* HACK! to avoid small packets with unusually long RTT's to have a
 	 * negative effect on the BW estimate, we avoid using measurements
 	 * from small packets with a BW smaller than 1/2 the estimated BW */
-	if (eBW < (host->BW >> (RPC2_BW_SHIFT + 1)) && Bytes < 512) eBW = 0;
+	if (eBW > (host->BW >> (RPC2_BW_SHIFT - 1)) && Bytes < 512) eBW = 0;
 	else eBW -= (host->BW >> RPC2_BW_SHIFT);
 	/* HACK! */
 

@@ -326,17 +326,25 @@ int sftp_DataArrived(RPC2_PacketBuffer *pBuff, struct SFTP_Entry *sEntry)
 	sftp_UpdateRTT(pBuff, sEntry, pBuff->Prefix.LengthOfPacket +    /*data*/
 				      sizeof(struct RPC2_PacketHeader));/*ack?*/
 	    
+#if 0 /* this test is bogus and makes us return bad timestamps when
+	 packets are dropped. --JH */
     /* We are seeing this packet for the first time */
     if (pBuff->Header.SeqNumber == sEntry->RecvLastContig+1) 
 	/* This packet advances the left edge of the window. 
 	   Save the timestamp to echo in the next ack */
 	sEntry->TimeEcho = pBuff->Header.TimeStamp;
+#else
+    /* We are seeing this packet for the first time */
+    if (sEntry->TimeEcho < pBuff->Header.TimeStamp)
+	sEntry->TimeEcho = pBuff->Header.TimeStamp;
+#endif
     
     sEntry->XferState = XferInProgress; /* this is how it gets turned on in Client for fetch */
     SETBIT(sEntry->RecvTheseBits, moffset);
     pBuff->Header.SEFlags &= ~SFTP_COUNTED;	/* might have been set on the other side */
 
-    if (pBuff->Header.SeqNumber > sEntry->RecvMostRecent) sEntry->RecvMostRecent = pBuff->Header.SeqNumber;
+    if (pBuff->Header.SeqNumber > sEntry->RecvMostRecent)
+	sEntry->RecvMostRecent = pBuff->Header.SeqNumber;
     j = PBUFF(pBuff->Header.SeqNumber);
     sEntry->ThesePackets[j] = pBuff;
     if (pBuff->Header.Flags & SFTP_ACKME) {
@@ -531,7 +539,7 @@ int sftp_AckArrived(RPC2_PacketBuffer *pBuff, struct SFTP_Entry *sEntry)
 
     sftp_ackr++;
     sftp_Recvd.Acks++;
-    say(/*9*/4, SFTP_DebugLevel, "A-%lu [%lu] {%ld}\n", pBuff->Header.SeqNumber, 
+    say(/*9*/4, SFTP_DebugLevel, "A-%lu [%lu] {%lu}\n", pBuff->Header.SeqNumber, 
 				  pBuff->Header.TimeStamp, pBuff->Header.TimeEcho);
 
     /* calculate length of initial run of acked packets */

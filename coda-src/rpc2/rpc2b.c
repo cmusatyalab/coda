@@ -886,7 +886,7 @@ long rpc2_CreateIPSocket(long *svar, RPC2_PortIdent *pvar)
 	return RPC2_SUCCESS;
 }
 
-unsigned long rpc2_TVTOTS(const struct timeval *tv)
+unsigned int rpc2_TVTOTS(const struct timeval *tv)
     /* makes a longword time stamp in 1 msec units since rpc2_InitTime  */
 {
     struct timeval delta;
@@ -901,7 +901,7 @@ unsigned long rpc2_TVTOTS(const struct timeval *tv)
     return(diff);
 }
 
-void rpc2_TSTOTV(const long ts, struct timeval *tv)
+void rpc2_TSTOTV(const unsigned int ts, struct timeval *tv)
     /* converts a longword time stamp in 1 msec units since rpc2_InitTime back
      * to real-time */
 {
@@ -910,7 +910,7 @@ void rpc2_TSTOTV(const long ts, struct timeval *tv)
     return;
 }
 
-unsigned long rpc2_MakeTimeStamp()
+unsigned int rpc2_MakeTimeStamp()
     /* makes a longword time stamp in 1 msec units since rpc2_InitTime  */
 {
     struct timeval now;
