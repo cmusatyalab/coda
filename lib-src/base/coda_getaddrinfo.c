@@ -148,9 +148,6 @@ static int resolve_host(const char *name, int port, const struct summary *sum,
     }
 #endif
 
-    /* we want to append, so skip to the tail */
-    while(*res) res = &(*res)->ai_next;
-
     /* count number of distinct ip's for this server and adjust weight */
     for (i = 0; he->h_addr_list[i]; i++) /**/;
     if (i) weight /= i;
@@ -188,8 +185,8 @@ static int resolve_host(const char *name, int port, const struct summary *sum,
 	if (sum->flags & AI_CANONNAME)
 	    ai->ai_canonname = strdup(he->h_name);
 
+	ai->ai_next = *res;
 	*res = ai;
-	res = &ai->ai_next;
 	resolved++;
     }
 
@@ -283,7 +280,8 @@ int coda_getaddrinfo(const char *node, const char *service,
     struct coda_addrinfo *srvs = NULL;
     struct summary sum = { PF_UNSPEC, 0, 0, 0 };
     struct in_addr addr;
-    int err;
+    char *tmpnode, *end;
+    int err, len, port, is_ip = 0;
 
     if (hints) {
 	sum.family   = hints->ai_family;
@@ -303,8 +301,12 @@ int coda_getaddrinfo(const char *node, const char *service,
 	sum.socktype != SOCK_DGRAM)
 	return EAI_SOCKTYPE;
 
-    if (!node && !service)
+    if (!node || !service)
 	return EAI_NONAME;
+
+    tmpnode = strdup(node);
+    if (!tmpnode)
+	return EAI_MEMORY;
 
     /* force some defaults */
     if (sum.family == PF_UNSPEC)
@@ -320,19 +322,36 @@ int coda_getaddrinfo(const char *node, const char *service,
 	    sum.protocol = IPPROTO_UDP;
     }
 
-    if (node && !inet_aton(node, &addr) && service)
+    /* conditionally strip any terminating '.' if the name is an ip-address */
+    len = strlen(tmpnode);
+    if (tmpnode[len-1] == '.') {
+	tmpnode[len-1] = '\0';
+	is_ip = inet_aton(tmpnode, &addr);
+	if (!is_ip)
+	    tmpnode[len-1] = '.';
+    }
+    port = strtol(service, &end, 10);
+    if (*service == '\0' || *end != '\0')
+	port = 0;
+
+    if (!is_ip && port != 0)
 	/* try to find SRV records */
-	err = do_srv_lookup(node, service, &sum, &srvs);
+	err = do_srv_lookup(tmpnode, service, &sum, &srvs);
     else
 	err = EAI_NONAME;
 
     /* fall back to A records */
     if (err) {
 	char *proto = (sum.protocol == IPPROTO_TCP) ? "tcp" : "udp";
-	struct servent *se = getservbyname(service, proto);
-	if (!se) return EAI_SERVICE;
-
-	err = resolve_host(node, se->s_port, &sum, 0, 0, &srvs);
+	if (!port) {
+	    struct servent *se = getservbyname(service, proto);
+	    if (!se) {
+		free(tmpnode);
+		return EAI_SERVICE;
+	    }
+	    port = se->s_port;
+	}
+	err = resolve_host(tmpnode, port, &sum, 0, 0, &srvs);
     }
 
     coda_reorder_addrs(&srvs);
@@ -341,6 +360,7 @@ int coda_getaddrinfo(const char *node, const char *service,
     while (*res) res = &(*res)->ai_next;
     *res = srvs;
 
+    free(tmpnode);
     return err;
 }
 
