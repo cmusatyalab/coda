@@ -1699,6 +1699,14 @@ void repvol::ResetTransient(void)
     res_list = new olist;
     cop2_list = new dlist;
 
+    /* don't grab a refcount to the staging server volume, it will get
+     * purged by the VolDaemon automatically */
+    ro_replica = NULL;
+
+    /* do grab refcounts on the underlying replicas */
+    for (int i = 0; i < VSG_MEMBERS; i++)
+        if (volreps[i]) volreps[i]->hold();
+
     GetHosts(hosts);
     vsg = VSGDB->GetVSG(hosts);
 
@@ -1731,14 +1739,6 @@ void repvol::ResetTransient(void)
 	    SymlinkFids.Count = 0;
 	Recov_EndTrans(MAXFP);
     }
-
-    /* grab a refcount on the underlying replicas */
-    for (int i = 0; i < VSG_MEMBERS; i++)
-        if (volreps[i]) volreps[i]->hold();
-
-    /* don't grab a refcount to the staging server volume, it will get
-     * purged by the VolDaemon automatically */
-    ro_replica = NULL;
 
     ResetVolTransients();
 }
