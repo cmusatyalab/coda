@@ -30,7 +30,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /usr/rvb/XX/src/coda-src/libal/RCS/parsepdb.yacc,v 4.1 1997/01/08 21:49:46 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/libal/parsepdb.yacc,v 4.2 1997/02/26 16:02:42 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -88,7 +88,9 @@ extern "C" {
 int temp_Bound;
 int temp_Count;
 int *temp_List;
-
+extern int yydebug;
+extern int yylex(void);
+ 
 PRIVATE void yyerror(IN char *s);
 PRIVATE int BigEnough(INOUT int *b, IN int c, IN int s, INOUT char **a);
 PRIVATE void SwapAndClear(INOUT int **l, INOUT int *b, INOUT int *c);

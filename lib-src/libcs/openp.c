@@ -34,7 +34,7 @@
  * Export of Technical Data.
  */
 
-static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/src/coda-4.0.1/RCSLINK/./lib-src/libcs/openp.c,v 1.1 1996/11/22 19:19:10 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/lib-src/libcs/openp.c,v 4.1 1997/01/08 21:54:00 rvb Exp $";
 #endif /*_BLURB_*/
 
 /*  openp, fopenp  --  search pathlist and open file
@@ -58,6 +58,7 @@ static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/src/coda-4.0.1
  */
 
 #include <stdio.h>
+#include <unistd.h>
 
 #include "libcs.h"
 

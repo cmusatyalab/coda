@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/user.cc,v 4.2 97/09/23 17:55:23 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/user.cc,v 4.3 1997/12/16 16:08:33 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -188,14 +188,24 @@ int AuthorizedUser(vuid_t thisUser) {
   LOG(100, ("AuthorizedUser: User (%d) --> NOT authorized.\n", thisUser));
   return(0);
 }
-#ifndef UTMP_FILE
-#define	UTMP_FILE   "/etc/utmp"
-#endif
+
 #define	CONSOLE	    "console"
 vuid_t ConsoleUser() {
     vuid_t vuid = ALL_UIDS;
-
+#ifdef __linux__
+    setutent();
+    struct utmp w, *u;
+    strcpy(w.ut_line, CONSOLE);
+    if ((u = getutline(&w))) {
+        struct passwd *pw = getpwnam(u->ut_name);
+        if (pw) vuid = pw->pw_uid;
+    }
+    endutent();
+#else /* !__linux__ */
     /* Look up console user in utmp. */
+#ifndef UTMP_FILE
+#define	UTMP_FILE   "/etc/utmp"
+#endif
     FILE *fp = fopen(UTMP_FILE, "r");
     if (fp == NULL) return(vuid);
     struct utmp u;
@@ -208,7 +218,7 @@ vuid_t ConsoleUser() {
     }
     if (fclose(fp) == EOF)
 	Choke("ConsoleUser: fclose(%s) failed", UTMP_FILE);
-
+#endif
     return(vuid);
 }
 

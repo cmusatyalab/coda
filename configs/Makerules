@@ -211,6 +211,16 @@ realclean:
 	      c_bin_install c_sbin_install s_bin_install s_sbin_install 
 	$(RM) *.l.c *.pt.c *.l.o *.pt.o
 
+distclean: clean
+	rm -rf include
+	rm -f coda-src/rpc2/errorsdefs.h
+	rm -f coda-src/rpc2/switchc2s.h
+	rm -f coda-src/rpc2/switchs2c.h
+	rm -f config.cache config.log config.status
+	rm -f Makeconf.setup `find . -name "Makefile"`
+
+	
+
 #####################
 # dependency generation
 #####################

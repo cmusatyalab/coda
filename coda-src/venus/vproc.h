@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/vproc.h,v 4.8 1997/12/10 22:10:40 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/vproc.h,v 4.9 1997/12/16 20:15:56 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -85,8 +85,12 @@ struct uio {
         enum    uio_rw uio_rw;
 };
 
+#ifndef MAX
 #define MAX(a,b)   ( (a) > (b) ? (a) : (b))
+#endif
+#ifndef MIN
 #define MIN(a,b)   ( (a) < (b) ? (a) : (b))
+#endif
 
 #endif	/* __linux__ */
 

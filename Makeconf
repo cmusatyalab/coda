@@ -73,8 +73,8 @@ endif
 # Machine independent FLAGS
 ##############################
 
-CC = gcc
-CXX = g++
+CC = cc
+CXX = c++
 INSTALL = cp -p
 
 ifeq ($(INCLDIR),$(INCLSPECIAL))

@@ -16,7 +16,7 @@
 #endif 
 
 #ifdef __linux__
-#ifndef _UQUAD_T_
+#if !defined(_UQUAD_T_) && (!defined(__GLIBC__) || __GLIBC__ < 2)
 #define _UQUAD_T_ 1
 typedef unsigned long long u_quad_t;
 #endif 

@@ -29,7 +29,10 @@
  *	Added -S to mean flush /usr/include headers (and possibly
  *	/usr/cs/include).
  *
- * $Log:	md.c,v $
+ * $Log: md.c,v $
+ * Revision 4.1  1997/04/29 21:32:51  rvb
+ * Initial version for Coda
+ *
  * Revision 2.2  93/12/14  14:24:42  rvb
  * 	Resurrected and taught to deal with -I prefix's
  * 	[93/12/13            rvb]
@@ -184,6 +187,8 @@
 #include <sys/dir.h>
 #include <strings.h>
 #include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
 
 #define LINESIZE 16000
 #define OUTLINELEN 79
@@ -216,18 +221,28 @@ typedef struct dependency_t {
 #define quit1(ret, fmt, arg1) { fprintf(stderr, fmt, arg1); exit(ret);}
 #define quit2(ret, fmt, arg1, arg2) { fprintf(stderr, fmt, arg1, arg2); exit(ret);}
 
+void usage(void);
+void lexer_set_file(FILE *fp);
+int parse_dependency_line(void);
+void output_stuff(FILE *in, FILE *out);
+void output_dependency(FILE *out, dependency_t dep);
+void skip_white_and_comments(void);
+void skip_spaces(void);
+int get_character(void);
+int get_raw_character(void);
+int lookahead(void);
+
+int
 qsort_strcmp(a, b)
 	generic_pointer_t *a, *b;
 {
-	extern int strcmp();
-
 	return strcmp(*a, *b);
 }
 
+int
 qsort_dep_cmp(a, b)
 	generic_pointer_t *a, *b;
 {
-	extern int strcmp();
 	dependency_t d1, d2;
 
 	d1 = (dependency_t)*a;
@@ -273,13 +288,13 @@ int exclude = 0;		/* ignore /usr/include headers */
 char *program_name;
 #define HASH_SIZE 1000
 dependency_t hash_table[HASH_SIZE];
-char *malloc();
 
+int
 main(argc,argv)
 	int argc;
 	char **argv;
 {
-	int i, ac;
+	int ac;
 	char **av;
 
 	program_name = *argv;
@@ -296,7 +311,7 @@ main(argc,argv)
 		else { 
 			register int flag;
 			
-			for ( ; flag = *token++ ; ) {
+			for ( ; (flag = *token++) ; ) {
 				switch (flag) {
 				case 'd':
 					delete++;
@@ -339,7 +354,7 @@ main(argc,argv)
 					exclude++;
 					break;
        				case 'D':
-					for ( ; flag = *token++ ; )
+					for ( ; (flag = *token++) ; )
 						switch (flag) {
 						case 'c':
 							D_contents++;
@@ -403,7 +418,7 @@ newtoken: ;
 		} else if (D_open)
 			printf("%s: opened outfile \"%s\"\n", 
 			       program_name, outfile);
-	} else if (mak = find_mak(makefile)) {
+	} else if ((mak = find_mak(makefile))) {
 		out = temp_mak();
 	} else if (mak_eof   /* non existent file == mt file */
 		   && (out = temp_mak())) {
@@ -458,7 +473,8 @@ newtoken: ;
 	exit(0);
 }
 
-usage()
+void
+usage(void)
 {
 	fprintf(stderr, "usage: %s -m <makefile> | -o <outputfile> [ -f ] [ -Dcdfmot ] [ -v ] <file1> ... <filen>\n", program_name);
 	exit(1);
@@ -466,6 +482,7 @@ usage()
 
 #define LINELEN 78
 
+void
 output_stuff(in, out)
 	FILE *in, *out;
 {
@@ -541,6 +558,7 @@ btree_t btree_alloc(data)
 	return new;
 }
 
+int
 btree_insert(tree, data, cmp)
 	btree_t tree;
 	generic_pointer_t data;
@@ -572,6 +590,7 @@ btree_insert(tree, data, cmp)
 	/*NOTREACHED*/
 }
 
+void
 btree_walk(tree, fun, arg)
 	btree_t tree;
 	int (*fun)();
@@ -587,6 +606,7 @@ btree_walk(tree, fun, arg)
 int xxx_out_column;
 dependency_t xxx_out_dep;
 
+void
 do_output_dependency(s, out)
 	char *s;
 	FILE *out;
@@ -599,6 +619,7 @@ do_output_dependency(s, out)
 	fprintf(out, " %s", s);
 }
 
+void
 output_dependency(out, dep)
 	FILE *out;
 	dependency_t dep;
@@ -626,6 +647,7 @@ FILE *open_file(file)
 
 extern char *get_filename();
 
+void
 hash_init()
 {
 	int i;
@@ -689,7 +711,8 @@ dependency_t dep_lookup_or_alloc(dot_o)
 }
 
 /* return TRUE if a line was successfully parsed */
-parse_dependency_line()
+int
+parse_dependency_line(void)
 {
 	dependency_t	dot_o_list[N_TARGETS_PER_RULE];
 	dependency_t dep;
@@ -824,14 +847,16 @@ again:
 	return buf;
 }
 
-skip_spaces()
+void
+skip_spaces(void)
 {
 	while (strchr("\t ", lookahead()) != NULL)
 	    get_character();
 }
 
 
-skip_white_and_comments()
+void
+skip_white_and_comments(void)
 {
 	int c;
 
@@ -845,7 +870,7 @@ skip_white_and_comments()
 	}
 }
 
-int get_character()
+int get_character(void)
 {
 	register int c;
 	
@@ -864,6 +889,7 @@ int get_character()
 static int saved_lookahead = LOOKAHEAD_NONE;
 static FILE *lexer_fp = NULL;
 
+void
 lexer_set_file(fp)
 	FILE *fp;
 {
@@ -871,7 +897,7 @@ lexer_set_file(fp)
 	lexer_fp = fp;
 }
 
-int get_raw_character()
+int get_raw_character(void)
 {
 	register int c;
 
@@ -969,6 +995,8 @@ FILE *temp_mak()
 	return mak;
 }
 
+
+void
 expunge_mak(makin, makout)
 	register FILE *makin, *makout;
 {

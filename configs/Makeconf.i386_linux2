@@ -18,15 +18,14 @@ GFLAG         = -g -gstabs
 CPP           = gcc -E -x c-header
 LIBCURSES     = -lncurses
 LIBCOMPAT     =
-LIBREADLINE   = /usr/lib/libreadline.a
+LIBREADLINE   = -lreadline
 INCREADLINE   = -I/usr/include/readline
-LIBIBERTY     = /usr/lib/libiberty.a
-machine_inodefs   = 
 #for rvm
 LIBTHREADS    =
 LIBMACH       = 
 
 LEX           = flex
+YACC          = bison -y
 PERL          = perl
 
 
