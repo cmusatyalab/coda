@@ -319,14 +319,8 @@ esac
 #
 # ${vicedir}/hostname 
 # 
-hn=`hostname`
-bn=`echo $hn | cut -f 1 -d .`
-# to prevent killing the hostname if it wasn't fully qualified.
-if [ x$bn = x ]; then
-    bn=$hn
-fi
-
-echo $bn > ${vicedir}/hostname
+hn=`hostname -f`
+echo $hn > ${vicedir}/hostname
 
 #
 # server.conf standard 
@@ -416,11 +410,11 @@ echo "Then all servers need to be shut down and restarted, as they need to"
 echo "know about the new server and storage groups."
 echo "After all that it _should_ be ok to start the new server and create"
 echo "your first replicated volume."
-#echo " On the SCM ($scm) run: new_server $bn"
+#echo " On the SCM ($scm) run: new_server $hn"
 #echo
-#echon "Now you can " 
+#echon "Now you can "
 #echo
-#if [ $numservers = 1 ]; then    
+#if [ $numservers = 1 ]; then
 #    echo " start the fileserver: startserver &"
 #else
 #    echo " start your fileservers as:

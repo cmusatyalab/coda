@@ -32,11 +32,7 @@ vicedir=/vice
 numservers=1
 . "`codaconfedit server.conf`"
 
-hn=`hostname`
-bn=`echo $hn | cut -f 1 -d .`
-if [ x$bn = x ]; then
-    bn=$hn
-fi
+hn=`hostname -f`
 
 n=1
 while [ $n -le $numservers ]; do
@@ -45,7 +41,7 @@ while [ $n -le $numservers ]; do
     if [ $numservers -gt 1 ]; then
 	srvprefix=${vicedir}/server_$n
 	. "`codaconfedit server_$n.conf`"
-	bn=$hostname
+	hn=$hostname
     else
 	srvprefix=${vicedir}
     fi
@@ -66,7 +62,7 @@ while [ $n -le $numservers ]; do
     echo
     
     if [ $numservers -gt 1 ]; then
-	echon "Where shall we store your file data for server $n ($bn) [/vicepa]? "
+	echon "Where shall we store your file data for server $n ($hn) [/vicepa]? "
     else
 	echon 'Where shall we store your file data [/vicepa]? '
     fi
@@ -114,19 +110,19 @@ while [ $n -le $numservers ]; do
 	    read size
 	    case "$size" in
 		256[kK] )
-		    echo "$bn   $srvdir   ftree   width=64,depth=3" \
+		    echo "$hn   $srvdir   ftree   width=64,depth=3" \
 			 >> ${vicedir}/db/vicetab
 		    ;;
 		1[mM] )
-		    echo "$bn   $srvdir   ftree   width=32,depth=4" \
+		    echo "$hn   $srvdir   ftree   width=32,depth=4" \
 			 >> ${vicedir}/db/vicetab
 		    ;;
 		2[mM] )
-		    echo "$bn   $srvdir   ftree   width=128,depth=3" \
+		    echo "$hn   $srvdir   ftree   width=128,depth=3" \
 			>> ${vicedir}/db/vicetab
 		    ;;
 		16[mM] )
-		    echo "$bn   $srvdir   ftree   width=256,depth=3" \
+		    echo "$hn   $srvdir   ftree   width=256,depth=3" \
 			>> ${vicedir}/db/vicetab
 		    ;;
 		* )

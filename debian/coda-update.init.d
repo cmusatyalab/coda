@@ -16,8 +16,8 @@ test -f /etc/coda/server.conf && . /etc/coda/server.conf
 
 test -d $vicedir/db || exit 0
 test -f $vicedir/db/scm || exit 0
-SCM=`cat /vice/db/scm`
-HOST=`hostname`
+SCM=`cat $vicedir/db/scm`
+HOST=`hostname -f`
 
 test -f $UPDATECLNT || exit 0
 test $SCM != $HOST -o -f $RPC2PORTMAP || exit 0

@@ -53,23 +53,19 @@ echo Setting up servers file.
 # making hostname
 #
 
-hn=`hostname`
-bn=`echo $hn | cut -f 1 -d .`
-if [ x$bn = x ]; then
-    bn=$hn
-fi
+hn=`hostname -f`
 cd ${vicedir}/db
 
 if [ $numservers -eq 1 ]; then
     id=""
     until [ "x$id" != x ]; do
-	echo "Enter an id for the SCM server. (hostname $bn)"
+	echo "Enter an id for the SCM server. (hostname $hn)"
 	echo "The serverid is a unique number between 0 and 255."
 	echo "You should avoid 0, 127, and 255."
 	echon "serverid: "
 	read id
     done
-    echo "$bn		$id" >> servers
+    echo "$hn		$id" >> servers
 else 
     n=1;
     while [ $n -le $numservers ]; do
@@ -91,13 +87,13 @@ echo done!
 #
 #  this is the scm so put hostname in ${vicedir}/db/scm
 #
-echo $bn > ${vicedir}/db/scm
+echo $hn > ${vicedir}/db/scm
 
 #
 # set up the initial VSG on the SCM; this is the SCM itself only. 
 #
 echo "Initializing the VSGDB to contain the SCM as E0000100"
-echo E0000100 $bn > ${vicedir}/db/VSGDB
+echo E0000100 $hn > ${vicedir}/db/VSGDB
 echo ${vicedir}/db/VSGDB set up
 if [ $numservers -gt 1 ]; then
     echo "You will need to edit ${vicedir}/db/VSGDB to make more"
