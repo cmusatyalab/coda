@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /usr/rvb/XX/src/coda-src/asr/RCS/ruletypes.cc,v 4.2 1997/01/17 20:32:14 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/ss/coda-src/asr/RCS/ruletypes.cc,v 4.3 1997/02/26 16:02:29 rvb Exp braam $";
 #endif /*_BLURB_*/
 
 
@@ -209,7 +209,8 @@ void command_t::expandname(char *p, char *incdirname, char *incfname) {
 void command_t::expandreplicas(int n, char **repnames) {
     // first count the number of args finally after expanding the [all] case
     int countargs = argc;
-    for (int i = 0; i < argc; i++) 
+    int i;
+    for (i = 0; i < argc; i++) 
 	if (arglist[i]->expandall()) 
 	    countargs += (n - 1);
 
