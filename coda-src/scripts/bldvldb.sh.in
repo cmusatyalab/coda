@@ -51,7 +51,7 @@ else
     done
 fi
 
-echo "Fetching ${vicedir}/vol/Volumelist from servers:"
+echo "Fetching volume lists from servers:"
 
 for server in $SERVERS
 do 
