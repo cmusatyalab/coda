@@ -562,7 +562,9 @@ class fsobj {
     /* MLE Linkage. */
     void AttachMleBinding(binding *);
     void DetachMleBinding(binding *);
+#ifdef REMOVE_THIS
     void CancelStores();
+#endif
 
     /* Data contents. */
     void DiscardData();

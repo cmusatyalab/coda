@@ -287,9 +287,15 @@ FREE_ENTRY: /* release entry from namelist */
 	{
 	    fso_iterator next(NL);
 	    fsobj *f;
-	    while ((f = next()))
+	    while ((f = next())) {
+		/* we should never have dirty incomplete objects! */
+		FSO_ASSERT(f, (!DIRTY(f) || HAVEALLDATA(f)))
+#ifdef REMOVE_THIS
+		/* this is what we used to do, doesn't seem to safe. */
 		if (DIRTY(f) && !HAVEALLDATA(f))
 		    f->CancelStores();
+#endif
+	    }
 	}
     }
 

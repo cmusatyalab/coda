@@ -836,7 +836,9 @@ class repvol : public volent {
     void CheckTransition();                     /*N*/
     void IncAbort(int);                         /*U*/
 
+#ifdef REMOVE_THIS
     void CancelStores(ViceFid *);
+#endif
     void RestoreObj(ViceFid *);
     int	CheckPointMLEs(vuid_t, char *);
     int LastMLETime(unsigned long *);
@@ -1054,19 +1056,19 @@ extern int PathAltered(ViceFid *, char *, ClientModifyLog *, cmlent *);
 				 (mode) & VM_MUTATING ? "Mutating" :\
 				 (mode) & VM_RESOLVING ? "Resolving" :\
 				 "???")
-#define	PRINT_MLETYPE(op) ((op) == OLDCML_NewStore_OP ? "Store" :\
-			    (op) == OLDCML_Truncate_OP ? "Truncate" :\
-			    (op) == OLDCML_Utimes_OP ? "Utimes" :\
-			    (op) == OLDCML_Chown_OP ? "Chown" :\
-			    (op) == OLDCML_Chmod_OP ? "Chmod" :\
-			    (op) == OLDCML_Create_OP ? "Create" :\
-			    (op) == OLDCML_Remove_OP ? "Remove" :\
-			    (op) == OLDCML_Link_OP ? "Link" :\
-			    (op) == OLDCML_Rename_OP ? "Rename" :\
-			    (op) == OLDCML_MakeDir_OP ? "Mkdir" :\
-			    (op) == OLDCML_RemoveDir_OP ? "Rmdir" :\
-			    (op) == OLDCML_SymLink_OP ? "Symlink" :\
-			    (op) == OLDCML_Repair_OP ? "Repair" :\
+#define	PRINT_MLETYPE(op) ((op) == CML_Store_OP ? "Store" :\
+			    (op) == CML_Truncate_OP ? "Truncate" :\
+			    (op) == CML_Utimes_OP ? "Utimes" :\
+			    (op) == CML_Chown_OP ? "Chown" :\
+			    (op) == CML_Chmod_OP ? "Chmod" :\
+			    (op) == CML_Create_OP ? "Create" :\
+			    (op) == CML_Remove_OP ? "Remove" :\
+			    (op) == CML_Link_OP ? "Link" :\
+			    (op) == CML_Rename_OP ? "Rename" :\
+			    (op) == CML_MakeDir_OP ? "Mkdir" :\
+			    (op) == CML_RemoveDir_OP ? "Rmdir" :\
+			    (op) == CML_SymLink_OP ? "Symlink" :\
+			    (op) == CML_Repair_OP ? "Repair" :\
 			    "???")
 
 #define FAKEROOTFID(fid) ((fid).Vnode == 0xffffffff)/* && ((fid).Unique == 0x80000)) */
