@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-nbsd-port/coda-4.0.1/coda-src/venus/RCS/venus.private.h,v 4.1 1997/01/08 21:51:37 rvb Exp $";
+static char *rcsid = "$Header: /coda/usr/satya/STM/coda-4.0.1/coda-src/venus/RCS/venus.private.h,v 4.2 1997/01/17 15:22:52 satya Exp satya $";
 #endif /*_BLURB_*/
 
 
@@ -132,7 +132,7 @@ const vuid_t V_UID = (vuid_t)0;	    /* UID that the venus process runs under. */
    negative number (-2) means its unsigned long representation is huge
    (4294967294).  This causes the "ar" program to screw up because it
    blindly does a sprintf() of the gid into the ".a" file. (Satya, 1/11/97) */
-const vuid_t V_GID = (vuid_t)99999;    /* GID that the venus process runs under. */
+const vuid_t V_GID = (vuid_t)65534;    /* GID that the venus process runs under. */
 #else
 /* On Mach and other systems with 16-bit gids, the -2 value gives a gid of 65534 */
 const vuid_t V_GID = (vuid_t)-2;    /* GID that the venus process runs under. */
