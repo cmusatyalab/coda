@@ -118,6 +118,9 @@ int U_Authenticate(char *hostname, int AuthenticationType, char *uName,
 		   int passwdpipe, int interactive )
 {
 	RPC2_Handle	RPCid;
+#ifdef KERBEROS5
+	char    AuthHost[MAXHOSTNAMELEN];
+#endif
 	int		rc;
 	int             bound = 0;
 	char            passwd[128];
@@ -168,24 +171,38 @@ int U_Authenticate(char *hostname, int AuthenticationType, char *uName,
 	case AUTH_METHOD_KERBEROS5:
 #ifdef KERBEROS5
 
-		rc = Krb5Init(NULL);
+		rc = Krb5Init();
 
 		if ( rc != 0 ) {
 			fprintf(stderr, "Cannot initialize KRB5\n");
 			exit(1);
 		}
-			
-		rc = Krb5GetSecret(hostname, &identity, &identitylen,
-				   &secret, &secretlen);
-		if (rc == 0)
-			break;
-		if (interactive == 0) 
-			break;
 
-		rc = Krb5DoKinit();
-		if ( rc == 0 )
+
+		/* Try and get a hostname to use */
+		if ( !hostname ){
+			GetVSTAB(VSTAB);
+			if (SetHost(1, 0, AuthHost)){
+				fprintf(stderr, "Can't find a host for authentication, try using -host\n");
+				exit(1);
+			}
+			rc = Krb5GetSecret(AuthHost, &identity, &identitylen,
+					&secret, &secretlen);
+			if (rc != 0){
+				fprintf(stderr,
+					"Can't get KRB5 secret, try kinit or use -host option\n");
+				exit(1);
+			}
+		} else {
+		
 			rc = Krb5GetSecret(hostname, &identity, &identitylen,
-					   &secret, &secretlen);
+				   &secret, &secretlen);
+			if (rc != 0 && interactive != 0)
+				rc = Krb5DoKinit();
+				if ( rc == 0 ) {
+					rc = Krb5GetSecret(hostname, &identity, &identitylen, &secret, &secretlen);
+				}
+		}
 #else
 		fprintf(stderr, "Kerberos5 not supported\n");
 		exit(1);
@@ -296,6 +313,16 @@ int U_BindToServer(char *DefAuthHost, RPC2_Integer AuthenticationType,
 
 	/* try all valid entries until we are rejected or accepted */
 	while ((rc = SetHost(1, i, AuthHost)) == 0 ) {		
+#ifdef KERBEROS5	/* Get host secret for next host */
+			/* Either I did this right, or I broke multiple servers
+			 * badly --Troy
+			 */
+		if (i > 0 && AuthenticationType == AUTH_METHOD_KERBEROS5) {
+			/* should this be error checked ?*/
+			Krb5GetSecret(AuthHost, &uName, &uNamelen,
+				&uPasswd, &uPasswdlen);
+		}
+#endif KERBEROS5
 		bound = TryBinding(AuthenticationType, uName, uNamelen, 
 				   uPasswd, uPasswdlen, AuthHost, RPCid);
 		if (bound == 0 || bound == RPC2_NOTAUTHENTICATED)

@@ -29,7 +29,7 @@ struct UserInfo
 };
 
 #ifdef KERBEROS4
-void Krb4Init(char *);
+void Krb4Init(void);
 long Krb4GetSecret(char *hostname, char **identity, int *identitylen, 
 		   char **secret,   int *secretlen);
 long Krb4DoKinit();
@@ -37,7 +37,7 @@ long Krb4GetKeys(RPC2_CountedBS * cIdent, RPC2_EncryptionKey hKey, RPC2_Encrypti
 #endif
 
 #ifdef KERBEROS5
-long Krb5Init(char *);
+long Krb5Init(void);
 long Krb5DoKinit();
 long Krb5GetSecret(char *hostname, char **identity, int *identitylen, 
 		   char **secret,   int *secretlen);

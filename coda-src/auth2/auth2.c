@@ -105,7 +105,6 @@ int AuthTime = 0;	/* last modified time for PDB		*/
 /*char DefKey[RPC2_KEYSIZE] = {'\146','\154','\141','\155','\151','\156','\147','\157'}; */
 static char *TKFile = "/vice/db/auth2.tk";	/* name of token key file */
 static int AUTime = 0;			/* used to tell if binaries have changed */
-char *default_realm = NULL;
 
 #define PDB "/vice/db/vice.pdb"
 #define PCF "/vice/db/vice.pcf"
@@ -142,9 +141,7 @@ int main(int argc, char **argv)
 #endif
 
 #ifdef KERBEROS5
-    if ( !default_realm ) 
-	    LogMsg(-1, 0, stdout, "Warning: no default realm specified!\n");
-    Krb5Init(default_realm);
+    Krb5Init();
 #endif
     
     LogMsg(-1, 0, stdout, "Server successfully started\n");
@@ -206,14 +203,6 @@ static void InitGlobals(int argc, char **argv)
 	    continue;
 	    }
 
-#if defined(KERBEROS4) || defined(KERBEROS5)
-	if (strcmp(argv[i], "-realm") == 0 && i < argc - 1)
-	    {
-	    default_realm = argv[++i];
-	    continue;
-	    }
-#endif	/* default realm */
-
 #ifdef CODAAUTH
 	if (strcmp(argv[i], "-p") == 0 && i < argc - 1)
 	    {
@@ -249,10 +238,6 @@ static void InitGlobals(int argc, char **argv)
 #ifdef CODAAUTH
 	fprintf(stderr, "[-fk filekey] ");
 #endif	/* CODAAUTH */
-
-#if defined(KERBEROS4) || defined(KERBEROS5)
-	fprintf(stderr, "[-realm realm]");
-#endif 
 
 	fprintf(stderr, "\n");
 

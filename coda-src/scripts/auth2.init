@@ -28,7 +28,6 @@ if [ -f /usr/sbin/auth2 ]; then
     AUTH2=/usr/sbin/auth2
 elif [ -f /usr/sbin/kauth2 ]; then
     AUTH2=/usr/sbin/kauth2
-    FLAGS="-realm CS.CMU.EDU"
 else
     exit 0
 fi

@@ -32,5 +32,5 @@ LEX           = flex
 PERL          = perl
 
 GUIDIR        = /usr/lib/coda
-KRBINCLFLAGS  = -I/usr/athena/include -I/usr/athena/include/kerberosIV
-LIBKRBS       = /usr/athena/lib/libkrb5.a /usr/athena/lib/libcrypto.a /usr/athena/lib/libcom_err.a /usr/athena/lib/libkrb4.a
+KRBINCLFLAGS  = -I/usr/include/kerberosIV
+LIBKRBS       = -lkrb5 -lcrypto -lcom_err -lkrb4
