@@ -1338,6 +1338,7 @@ static int ReadConfigFile(void)
 {
     char confname[80];
     int  datalen = 0;
+    int  multconf;
 
     /* don't complain if config files are missing */
     codaconf_quiet = 1;
@@ -1348,7 +1349,7 @@ static int ReadConfigFile(void)
 
     /* Load server specific configuration file */
     sprintf (confname, "%s_%d.conf", serverconf, ServerNumber);
-    (void) conf_init(confname);
+    multconf = !conf_init(confname);
 
     /* srv.cc defined values ... */
     CONF_INT(Authenticate,	"authenticate",	   1); 
@@ -1383,7 +1384,7 @@ static int ReadConfigFile(void)
     CONF_INT(_Rvm_Truncate, 	"rvmtruncate",	   0);
 
     if (RvmType == UNSET) {
-	if (ServerNumber == 0) {
+	if (ServerNumber == 0 || multconf) {
 	    CONF_STR(_Rvm_Log_Device,	"rvm_log",         "");
 	    CONF_STR(_Rvm_Data_Device,	"rvm_data",        "");
 	    CONF_INT(datalen,		"rvm_data_length", 0);
