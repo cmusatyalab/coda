@@ -21,6 +21,8 @@ listed in the file CREDITS.
 
 #ifdef HAVE_NDBM
 #include <ndbm.h>
+#elif defined(HAVE_DB1_DB_H)
+#include <db1/db.h>
 #elif defined(HAVE_DB_185_H)
 #include <db_185.h>
 #else
