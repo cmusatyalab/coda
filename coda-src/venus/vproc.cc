@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /usr/rvb/XX/src/coda-src/venus/RCS/vproc.cc,v 4.2 1997/01/17 15:23:01 satya Exp $";
+static char *rcsid = "$Header: /coda/usr/lily/newbuild/src/coda-src/venus/RCS/vproc.cc,v 4.2 97/01/17 15:23:01 satya Exp $";
 #endif /*_BLURB_*/
 
 
@@ -818,6 +818,9 @@ void va_init(struct vattr *vap) {
     vap->va_mtime = vap->va_atime;
     vap->va_ctime = vap->va_atime;
     vap->va_rdev = VA_IGNORE_RDEV;
+#ifdef __BSD44__
+    vap->va_flags = 0; /* not the ignore value, must be clear */
+#endif /* __BSD44__ */
 }
 
 

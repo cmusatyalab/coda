@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/src/coda-4.0.1/coda-src/venus/RCS/local_vol.cc,v 1.1 1996/11/22 19:11:09 braam Exp $";
+static char *rcsid = "$Header: /coda/usr/lily/newbuild/src/coda-src/venus/RCS/local_vol.cc,v 4.1 97/01/08 21:51:32 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -114,7 +114,7 @@ void volent::CheckTransition()
       return;
     VOL_ASSERT(this, state == Logging);
     if (CML.count() == 0)
-      CML.owner = ALL_UIDS;
+      CML.owner = UNSET_UID;
     if ((CML.count() == 0 || (CML.count() > 0 && !ContainUnrepairedCML()))
 	&& flags.logv == 0)
       flags.transition_pending = 1;
@@ -125,7 +125,7 @@ void volent::IncAbort(int tid)
 {
     CML.IncAbort(tid);
     if (CML.count() == 0)
-      CML.owner = ALL_UIDS;
+      CML.owner = UNSET_UID;
 }
 
 /* need not be called from within a transaction */

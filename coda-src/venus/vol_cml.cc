@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /usr/rvb/XX/src/coda-src/venus/RCS/vol_cml.cc,v 4.1 1997/01/08 21:51:46 rvb Exp $";
+static char *rcsid = "$Header: /coda/usr/lily/newbuild/src/coda-src/venus/RCS/vol_cml.cc,v 4.1 97/01/08 21:51:46 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -53,7 +53,7 @@ extern "C" {
 #include <sys/types.h>
 #include <stdarg.h>
 #include <struct.h>
-#if    defined(__BSD44__)
+#ifdef __BSD44__
 #include <dirent.h> /* to get defn of MAXNAMLEN */
 #endif /* __BSD44__ */
 
@@ -114,7 +114,7 @@ int LogOpts = 1;	/* perform log optimizations? */
 
 void ClientModifyLog::ResetTransient() {
     int i;
-    owner = (vuid_t)-1;
+    owner = UNSET_UID;
     entries = count();
     entriesHighWater = entries;
     bytes = _bytes();
@@ -129,7 +129,7 @@ void ClientModifyLog::ResetTransient() {
 	cml_iterator next(*this, CommitOrder);
 	cmlent *m;
 	while (m = next()) {
-	    if (owner == (vuid_t)-1) {
+	    if (owner == UNSET_UID) {
 		owner = (vuid_t) m->uid;
 	    }
 	    else {
@@ -138,7 +138,7 @@ void ClientModifyLog::ResetTransient() {
 
 	    m->ResetTransient();
 	}
-	ASSERT(owner != (vuid_t)-1);
+	ASSERT(owner != UNSET_UID);
     }
 }
 

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /usr/rvb/XX/src/coda-src/venus/RCS/vol_reintegrate.cc,v 4.1 1997/01/08 21:51:48 rvb Exp $";
+static char *rcsid = "$Header: /coda/usr/lily/newbuild/src/coda-src/venus/RCS/vol_reintegrate.cc,v 4.1 97/01/08 21:51:48 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -158,7 +158,7 @@ void volent::Reintegrate()
      * mutator will clear the owner on volume exit.
      */
     if (CML.count() == 0  &&  mutator_count == 0)
-        CML.owner = ALL_UIDS;
+        CML.owner = UNSET_UID;
 
     /* trigger a transition if necessary */
     if ((CML.count() == 0 || (CML.count() > 0 && !ContainUnrepairedCML()))
