@@ -30,7 +30,7 @@
 # Mellon the rights to redistribute these changes without encumbrance.
 # */
 # 
-# static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/configs/Makeconf.pmax_mach,v 4.9 97/05/05 14:38:56 rvb Exp $";
+# static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/configs/Makeconf.pmax_mach,v 4.10 1997/07/16 15:09:08 rvb Exp $";
 
 SHELL	      = /usr/local/bin/bash
 MACHINE_FLAGS =
@@ -41,8 +41,6 @@ CPP           = /usr/cs/lib/cpp
 LIBSYS        = /usr/cs/lib/libsys.a
 LIBCURSES     = -lcurses
 LIBCOMPAT     =
-INODEFSNAME   = libinodefs.a
-INODEFSDIR    = kernel-src/inodefs/mach
 LIBREADLINE   = /usr/local/lib/libreadline.a
 INCREADLINE   = -I/usr/local/include/readline
 machine_inodefs   = mach

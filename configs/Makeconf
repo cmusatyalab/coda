@@ -110,7 +110,7 @@ ifeq	($(SHOB),)
 # -- INODEFS --
 # platform dependent: choice from user level and kernel level version
 # defined in configs/Makeconf.$(SYS)
-LIBINODEFS = $(TOPOBJ)/$(INODEFSDIR)/$(INODEFSNAME)
+# LIBINODEFS = $(TOPOBJ)/$(INODEFSDIR)/$(INODEFSNAME)
 
 # -- CS --
 LIBCS =$(TOPOBJ)/lib-src/libcs/libcs.a
@@ -172,7 +172,7 @@ else
 # -- INODEFS --
 # platform dependent: choice from user level and kernel level version
 # defined in configs/Makeconf.$(SYS)
-LIBINODEFS = $(SHOB_LIB_DIR)/$(INODEFSNAME)
+# LIBINODEFS = $(SHOB_LIB_DIR)/$(INODEFSNAME)
 
 # -- CS --
 LIBCS = $(SHOB_LIB_SPECIAL)/libcs.a

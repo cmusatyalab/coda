@@ -12,10 +12,10 @@
 PERL=/usr/bin/perl
 SBINDIR = $(prefix)/sbin
 
-MACHINE_FLAGS = -DLINUX
-SHORTSYS      = linux
+MACHINE_FLAGS =
+SHORTSYS      = linux2.1
 INCLFLAGS     = -I/usr/include
-GFLAG         = -g -gstabs
+GFLAG         = -gstabs
 CPP           = gcc -E -x c-header
 LIBCURSES     = -lncurses
 LIBCOMPAT     =

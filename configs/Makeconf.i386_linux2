@@ -10,7 +10,7 @@
 
 # the following may need editing depending on your preferences
 PERL=/usr/bin/perl
-SBINDIR = $(prefix)/sbin
+SBINDIR = ${sbindir}
 
 MACHINE_FLAGS = -DLINUX
 SHORTSYS      = linux
@@ -19,8 +19,6 @@ GFLAG         = -g -gstabs
 CPP           = gcc -E -x c-header
 LIBCURSES     = -lncurses
 LIBCOMPAT     =
-INODEFSNAME   = libuinodefs.a
-INODEFSDIR    = kernel-src/inodefs/common
 LIBREADLINE   = /usr/lib/libreadline.a
 INCREADLINE   = -I/usr/include/readline
 LIBIBERTY     = /usr/lib/libiberty.a

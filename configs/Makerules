@@ -74,6 +74,16 @@ ifdef SUBDIRS
 	done
 endif
 
+qserver-install: installserver
+ifdef SUBDIRS
+	@for d in $(SUBDIRS) ; do \
+	    echo "----> Entering $$d"; \
+	    ${MAKE} -C $$d server-install; \
+	    if [ $$? != 0 ] ; then echo "----> Error in $$d"; exit 1; \
+	    else echo "----> Leaving $$d."; fi; \
+	done
+endif
+
 ###############################################################
 #  install the man pages
 ###############################################################
@@ -225,7 +235,6 @@ show showvar:
 	@echo  SECSRC: $(SECSRC) 
 	@echo  CFLAGS: $(CFLAGS)
 	@echo  TOPDIR: $(TOPDIR) 
-	@echo  LIBINODEFS: $(LIBINODEFS) 
 	@echo  BINDIR: $(BINDIR)
 	@echo  SBINDIR: $(SBINDIR)
 	@echo  MANDIR:  $(MANDIR)
