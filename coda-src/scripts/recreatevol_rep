@@ -16,7 +16,7 @@
 #*/
 #
 #
-#static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/scripts/recreatevol_rep,v 4.3 1998/01/15 20:43:50 braam Exp $";
+#static char *rcsid = "$Header: /coda/coda.cs.cmu.edu/project/coda/cvs/coda/coda-src/scripts/Attic/recreatevol_rep,v 4.4 1998/01/20 20:53:14 braam Exp $";
 #endif _BLURB_
 
 # Parge arguments
