@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/src/coda-4.0.1/RCSLINK/./coda-src/util/olist.h,v 1.1 1996/11/22 19:08:14 braam Exp $";
+static char *rcsid = "$Header: /home/clement/ah/ss/coda-src/util/RCS/olist.h,v 4.1 1997/01/08 21:51:06 rvb Exp clement $";
 #endif /*_BLURB_*/
 
 
@@ -92,7 +92,8 @@ class olist {
 
 class olist_iterator {
     olist *clist;	    // current olist
-    olink *clink;	    // current olink
+    olink *clink;	    // current olink; may be deleted before next iter.
+    olink *nlink;	    // nlink save ahead the ptr to next olink in list
   public:
     olist_iterator(olist&);
     olink *operator()();    // return next object or 0

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /usr/rvb/XX/src/coda-src/util/RCS/olist.cc,v 4.1 1997/01/08 21:51:06 rvb Exp $";
+static char *rcsid = "$Header: /home/clement/ah/ss/coda-src/util/RCS/olist.cc,v 4.2 1997/02/26 16:03:04 rvb Exp clement $";
 #endif /*_BLURB_*/
 
 
@@ -50,6 +50,7 @@ static char *rcsid = "$Header: /usr/rvb/XX/src/coda-src/util/RCS/olist.cc,v 4.1 
 extern "C" {
 #endif __cplusplus
 
+#include <assert.h>
 #include <stdio.h>
 #ifdef __MACH__
 #include <sysent.h>
@@ -69,9 +70,9 @@ extern "C" {
 
 /* DEBUGGING! -JJK */
 /*
-extern FILE *logFile;
-extern void Die(char * ...);
-*/
+  extern FILE *logFile;
+  extern void Die(char * ...);
+  */
 
 
 olist::olist() {
@@ -94,21 +95,22 @@ olist::operator=(olist& ol) {
 olist::~olist() {
     /* This is dangerous! */
     /* Perhaps we should abort() if count() != 0?  -JJK */
+    
     clear();
 }
 
 
 void olist::insert(olink *p) {
     if (p->next != 0) abort();
-/*	{ print(logFile); p->print(logFile); Die("olist::insert: p->next != 0"); }*/
+    /*	{ print(logFile); p->print(logFile); Die("olist::insert: p->next != 0"); }*/
 
     if (tail !=	0) {	// at least one entry exists
-	p->next = tail->next;
-	tail->next = p;
+        p->next = tail->next;
+        tail->next = p;
     }
     else {		// no existing entries
 	p->next = p;
-	tail = p;
+        tail = p;
     }
 
     cnt++;
@@ -117,16 +119,16 @@ void olist::insert(olink *p) {
 
 void olist::append(olink *p) {
     if (p->next != 0) abort();
-/*	{ print(logFile); p->print(logFile); Die("olist::append: p->next != 0"); }*/
+    /*	{ print(logFile); p->print(logFile); Die("olist::append: p->next != 0"); }*/
 
     if (tail !=	0) {	// at least one entry exists
 	p->next = tail->next;
-	tail->next = p;
-	tail = p;
+        tail->next = p;
+        tail = p;
     }
     else {		// no existing entries
 	p->next = p;
-	tail = p;
+        tail = p;
     }
 
     cnt++;
@@ -134,28 +136,43 @@ void olist::append(olink *p) {
 
 
 olink *olist::remove(olink *p) {
-    if (tail ==	0) return(0);	    // empty list
+    olink *q, *prev;
+    
+    if (tail ==	0) 
+	return(0);	    // empty list
 
-    olink *q = tail;
-    while(q->next != tail && q->next != p)
+    prev = tail;
+    q = tail->next;
+    while ( q != tail && q != p) {
+	prev = q;
 	q = q->next;
-    if (q->next	== p) {		    // q == prev(p)
-	q->next = p->next;	    // remove p from list
-	p->next	= 0;		    // reset p
-	if (tail == p)		    // we removed entry at end of list
-	    tail = (q == p) ? 0 : q;    // was it the only entry?
-	cnt--;
-	return(p);
     }
 
-    return(0);			    // not found
+    // 3 cases: p found and p is not the only element in olist
+    //          p found and p is the only element in the olist
+    //          p not found
+	
+    if ( q == p ) {
+	prev->next = p->next;
+	p->next = 0;
+	cnt--;
+	if (tail == p) { // we have removed tail, reassign or 
+			 // set tail = 0 if olist is now empty
+	    tail = ( prev == tail ) ? 0 : prev; 
+	}
+	return p;
+    } else {
+	return(0);      // not found 
+    }
+    // not reached
 }
+
 
 
 olink *olist::first() {
     if (tail ==	0) return(0);	    // empty list
 
-    return(tail->next);
+					   return(tail->next);
 }
 
 
@@ -166,7 +183,6 @@ olink *olist::last() {
 
 olink *olist::get() {
     if (tail ==	0) return(0);	    // empty list
-
     return(remove(tail->next));
 }
 
@@ -175,7 +191,7 @@ void olist::clear() {
     olink *p;
     while(p = get()) ;
     if (cnt != 0) abort();
-/*	{ print(logFile); Die("olist::clear: cnt != 0 after gets"); }*/
+    /*	{ print(logFile); Die("olist::clear: cnt != 0 after gets"); }*/
 }
 
 
@@ -206,9 +222,9 @@ void olist::print(FILE *fp) {
 
 void olist::print(int fd) {
     /* first print out the olist header */
-    char buf[40];
-    sprintf(buf, "%#08x : Default Olist : count = %d\n",
-	     (long)this, cnt);
+    char buf[1000];
+    sprintf(buf, "this: %#08x, tail: %#08x : Default Olist : count = %d\n",
+	    (long)this, (long)this->tail, cnt);
     write(fd, buf, strlen(buf));
 
     /* then print out all of the olinks */
@@ -221,26 +237,45 @@ void olist::print(int fd) {
 olist_iterator::olist_iterator(olist& l) {
     clist = &l;
     clink = (olink *)-1;
+    nlink = (olink *)-1;
 }
 
 
 olink *olist_iterator::operator()() {
+    if ( clist->last() == 0 )	{/* empty list */
+	clink = (olink *)-1;
+	nlink = (olink *)-1;
+	return 0;
+    }
+    
     switch((unsigned int)clink) {
-	case -1:		/* state == NOTSTARTED */
-	    clink = clist->first();
-	    break;
+    case -1:		/* state == NOTSTARTED */
+	clink = clist->first();
+	if ( clink != 0 ) { 
+	    nlink = clink->next; /* clink may be deleted before next iter.,
+				    keep ptr to next olink now */
+	    return clink;
+	} else {
+	    nlink = (olink *)-1;
+	    return 0;
+	}
 
-	default:		/* state == INPROGRESS */
-	    clink = clink->next;
-	    if (clink == clist->first())
-		clink = 0;
-	    break;
+    case 0:		/* not reached */
+	return 0;
 
-	case 0:			/* state == FINISHED */
-	    break;
+    default:		/* state == INPROGRESS */
+	if (clink == clist->last()) {	/* last already done */
+	    clink = (olink *)0;
+	    nlink = (olink *)-1;
+	    return 0;
+	}
+	assert(nlink != (olink *)-1);
+	clink = nlink;		/* we saved nlink in last iteration */
+	nlink = clink->next;	/* clink may be del. before next iter.,
+				   keep ptr to next olink now */
+	return clink;
     }
 
-    return(clink);
 }
 
 
@@ -276,7 +311,8 @@ void olink::print(FILE *fp) {
 
 
 void olink::print(int fd) {
-    char buf[40];
-    sprintf(buf, "%#08x : Default Olink\n", (long)this);
+    char buf[80];
+    sprintf(buf, "this: %#08x , next: %#08x: Default Olink\n",
+	    (long)this,(long)this->next);
     write(fd, buf, strlen(buf));
 }
