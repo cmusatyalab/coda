@@ -1,15 +1,8 @@
 Files
 sys/i386/conf/CODA
+sys/i386/conf/GENERIC
 sys/conf/files
-sys/kern/init_sysent.c
 sys/kern/kern_exec.c
-sys/kern/syscalls.c
-sys/kern/syscalls.master
 sys/sys/malloc.h
 sys/sys/mount.h
-sys/sys/syscall-hide.h
-sys/sys/syscall.h
-sys/sys/sysproto.h
 sys/sys/vnode.h
-sys/ufs/ufs/dinode.h
-sys/ufs/ufs/inode.h
