@@ -37,7 +37,7 @@ Pittsburgh, PA.
 
 */
 
-#define RCSVERSION $Revision: 4.19 $
+#define RCSVERSION $Revision: 4.20 $
 
 /* vol-dump.c */
 
@@ -99,13 +99,16 @@ static int VnodePollPeriod = 32;     /* How many vnodes to dump before polling *
 #error "LISTLINESIZE >= SIZEOF_LARGEDISKVNODE)!"
 #endif
 
+/* Some sizes of dumped structures for the dump estimates */
+#define ESTNAMESIZE 32 /* just a guess */
+#define DUMPDUMPHEADERSIZE (44+ESTNAMESIZE)
+#define DUMPVOLUMEDISKDATASIZE (229+4*ESTNAMESIZE)
+#define DUMPENDSIZE 5
+
 #define DUMPBUFSIZE 512000
 
 /* We start off with the guts of the dump code */
 
-#define ESTNAMESIZE 32 /* just a guess */
-/* adjust this when DumpDumpHeader changes to improve dump estimates */
-#define DUMPDUMPHEADERSIZE (44+ESTNAMESIZE)
 static int DumpDumpHeader(DumpBuffer_t *dbuf, Volume *vp,
 			  RPC2_Unsigned Incremental, long unique,
 			  FILE *Ancient)
@@ -133,8 +136,6 @@ static int DumpDumpHeader(DumpBuffer_t *dbuf, Volume *vp,
     return DumpDouble(dbuf, (byte) 'I', oldUnique, unique);
 }
 
-/* Adjust this when DumpVolumeDiskData changes to improve dump estimates */
-#define DUMPVOLUMEDISKDATASIZE (229+4*ESTNAMESIZE)
 static int DumpVolumeDiskData(DumpBuffer_t *dbuf, VolumeDiskData *vol)
 {
     DumpTag(dbuf, (byte) D_VOLUMEDISKDATA);
@@ -786,7 +787,7 @@ long S_VolDumpEstimate(RPC2_Handle rpcid, RPC2_Unsigned formal_volumeNumber,
 	retcode = VFAIL;
 	goto failure;
     }
-    estimates[9] += 5; /* DUMPENDSIZE */
+    estimates[9] += DUMPENDSIZE;
 
     /* propagate estimated size of higher incremental backups to the lower
      * orders. */

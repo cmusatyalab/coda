@@ -254,6 +254,6 @@ void PrintVnode(FILE *outfile, VnodeDiskObject *vnode, VnodeId vnodeNumber)
 static void date(unsigned long date, char *result)
 {
     struct tm *tm = localtime((long *)&date);
-    sprintf(result, "%lu (%02d/%02d/%02d.%02d:%02d:%02d)", date,
-	tm->tm_year, tm->tm_mon+1, tm->tm_mday, tm->tm_hour, tm->tm_min, tm->tm_sec);
+    sprintf(result, "%lu (%04d/%02d/%02d.%02d:%02d:%02d)", date,
+	1900 + tm->tm_year, tm->tm_mon+1, tm->tm_mday, tm->tm_hour, tm->tm_min, tm->tm_sec);
 }

@@ -78,8 +78,6 @@ static RPC2_EncryptionKey vkey;	/* Encryption key for bind authentication */
 static char **this_argp;
 static int these_args;
 
-int VolumeChanged = 0;	/* needed by physio.c, not really used */
-
 static char s_hostname[100];
 static int timeout = 0;
 static RPC2_Handle rpcid;

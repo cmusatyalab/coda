@@ -228,7 +228,8 @@ int getVolId(FILE *VolumeList, VolumeId *volId, int *flags, char *comment)
     char I = incstr[day];
 
 #ifdef ALWAYS_USE_WEEK_CYCLES
-    /* I think this handles leapyears, the question is do we want that? --JH */
+    /* This could be used to force 7 day cycles.
+     * The question is do we want that? --JH */
     time_t     now = time(NULL);
     struct tm *today = localtime(now);
     int        weekday = today->tm_wday;
