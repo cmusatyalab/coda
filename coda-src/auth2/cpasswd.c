@@ -201,7 +201,7 @@ tryagain:
 		printf("%s not authenticated to change passwd for %s\n", myuser, uname);
 		break;
 	    case AUTH_SUCCESS:
-		printf("Password changed, it will be in effect in about 1 hour\n");
+		printf("Password changed\n");
 		break;
 	    case AUTH_BADKEY:
 		printf("Bad new password. Try again\n");
