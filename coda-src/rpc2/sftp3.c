@@ -498,10 +498,17 @@ static int sftp_SendAck(struct SFTP_Entry *sEntry)
     pb->Header.Opcode = SFTP_ACK;
     pb->Header.GotEmAll = sEntry->RecvLastContig;
 
+#ifdef VERY_FAST_SERVERS
     now = rpc2_MakeTimeStamp();
     pb->Header.TimeStamp = now;
     pb->Header.TimeEcho = VALID_TIMEECHO(sEntry) ?
 	sEntry->TimeEcho + (now - sEntry->RequestTime) : 0;
+#else
+    /* The sftp protocol seems to like it better if we do not subtract
+     * processing time (only affects network BW estimate when clients are
+     * pushing more data than the servers can handle) */
+    pb->Header.TimeEcho = VALID_TIMEECHO(sEntry) ? sEntry->TimeEcho : 0;
+#endif
 
     sEntry->Retransmitting = FALSE;
 
@@ -854,11 +861,16 @@ static int ResendWorried(struct SFTP_Entry *sEntry, long ackLast)
 	    sftp_retries++;
 	    pb->Header.Flags = htonl(pb->Header.Flags);
 
+#ifdef VERY_FAST_SERVERS
 	    now = rpc2_MakeTimeStamp();
 	    pb->Header.TimeStamp = htonl(now);
 	    pb->Header.TimeEcho = VALID_TIMEECHO(sEntry) ?
 		htonl(sEntry->TimeEcho + (now - sEntry->RequestTime)) :
 		htonl(0);
+#else
+	    pb->Header.TimeEcho = VALID_TIMEECHO(sEntry) ?
+		htonl(sEntry->TimeEcho): htonl(0);
+#endif
 
 	    say(/*9*/4, SFTP_DebugLevel, "Worried S-%lu [%lu] {%lu}\n",
 		    (unsigned long)ntohl(pb->Header.SeqNumber), 
@@ -905,10 +917,15 @@ static int SendFirstUnacked(struct SFTP_Entry *sEntry, long ackMe)
     pb->Header.Flags = htonl(pb->Header.Flags);
     pb->Header.SEFlags = htonl(pb->Header.SEFlags);
 
+#ifdef VERY_FAST_SERVERS
     now = rpc2_MakeTimeStamp();
     pb->Header.TimeStamp = htonl(now);
     pb->Header.TimeEcho = VALID_TIMEECHO(sEntry) ?
 	htonl(sEntry->TimeEcho + (now - sEntry->RequestTime)) : htonl(0);
+#else
+    pb->Header.TimeEcho = VALID_TIMEECHO(sEntry) ?
+	htonl(sEntry->TimeEcho) : htonl(0);
+#endif
 
     say(/*9*/4, SFTP_DebugLevel, "First Unacked S-%lu [%lu] {%lu}\n",
 	    (unsigned long)ntohl(pb->Header.SeqNumber), 
@@ -964,10 +981,15 @@ static int SendSendAhead(struct SFTP_Entry *sEntry)
 	    sftp_Sent.Datas++;
 	sftp_datas++;
 
+#ifdef VERY_FAST_SERVERS
 	now = rpc2_MakeTimeStamp();
 	pb->Header.TimeStamp = htonl(now);
 	pb->Header.TimeEcho = VALID_TIMEECHO(sEntry) ?
 	    htonl(sEntry->TimeEcho + (now - sEntry->RequestTime)) : htonl(0);
+#else
+	pb->Header.TimeEcho = VALID_TIMEECHO(sEntry) ?
+	    htonl(sEntry->TimeEcho) : htonl(0);
+#endif
 
 	sftp_XmitPacket(sftp_Socket, pb, &sEntry->PInfo.RemoteHost, &sEntry->PeerPort);
 	say(/*9*/4, SFTP_DebugLevel, "S-%lu [%lu] {%lu}\n",
@@ -1161,10 +1183,14 @@ int sftp_SendStart(struct SFTP_Entry *sEntry)
     sftp_InitPacket(pb, sEntry, 0);
     pb->Header.SeqNumber = ++(sEntry->CtrlSeqNumber);
     pb->Header.Opcode = SFTP_START;
+#ifdef VERY_FAST_SERVERS
     now = rpc2_MakeTimeStamp();
     pb->Header.TimeStamp = now;
     pb->Header.TimeEcho = VALID_TIMEECHO(sEntry) ?
 	sEntry->TimeEcho + (now - sEntry->RequestTime) : 0;
+#else
+    pb->Header.TimeEcho = VALID_TIMEECHO(sEntry) ? sEntry->TimeEcho : 0;
+#endif
 
     /* JJK: Parameters are screwed up!  For now I will always send
        them! */
