@@ -35,7 +35,7 @@ HEADERS     = ${RP2FILES} fail.h
 RP2HEADERS  = fcon.h
 
 FLIBS = ${LIBRPC2} ${LIBSE} ${LIBOLDLWP} ${LIBUTIL} ${LIBCOMPAT} \
-       ${LIBBASE} ${LIBREADLINE} ${LIBTERMCAP}
+       ${LIBBASE}
 
 # No longer of interest: tvclient tvserver ftclient ftserver 
 OBJS = fcon.client.o fcon.server.o filtutil.o fcon.o fail.o delay.o clear.o isolate.o list.o join.o slow.o heal.o partition.o newpartition.o
@@ -43,6 +43,7 @@ OBJS = fcon.client.o fcon.server.o filtutil.o fcon.o fail.o delay.o clear.o isol
 libfail.a: ${OBJS}
 
 filcon: filcon.o libfail.a ${FLIBS}
-	${CC} ${LIBFLAGS} filcon.o libfail.a ${FLIBS} -o filcon
+	${CC} ${LIBFLAGS} filcon.o libfail.a ${FLIBS} \
+	    ${LIBREADLINE} ${LIBTERMCAP} -o filcon
 
 include $(TOPDIR)/configs/Makerules

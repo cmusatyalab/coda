@@ -151,7 +151,7 @@ void CLIENT_Delete(ClientEntry *clientPtr)
 
     SLog(1, "Deleting client entry for user %s at %s.%d",
 	 clientPtr->UserName, clientPtr->VenusId->HostName, 
-	 clientPtr->VenusId->port);
+	 ntohs(clientPtr->VenusId->port));
 
     if(clientPtr->DoUnbind) {
 	    SLog(0, "DoUnbind is TRUE in CLIENT_Delete");
@@ -285,14 +285,14 @@ int CLIENT_MakeCallBackConn(ClientEntry *Client)
 
     if (errorCode <= RPC2_ELIMIT) {
 	SLog(0, "RPC2_Bind to %s port %d for callback failed %s",
-	     HostEntry->HostName, HostEntry->port, 
+	     HostEntry->HostName, ntohs(HostEntry->port), 
 	     ViceErrorMsg((int) errorCode));
 	goto exit_makecallbackconn;
     }
 
     if (errorCode != 0) {
 	SLog(0, "RPC2_Bind to %s port %d for callback got %s",
-	     HostEntry->HostName, HostEntry->port, 
+	     HostEntry->HostName, ntohs(HostEntry->port), 
 	     ViceErrorMsg((int) errorCode));
     }
 
@@ -300,7 +300,7 @@ int CLIENT_MakeCallBackConn(ClientEntry *Client)
     errorCode = CallBack(HostEntry->id, &NullFid);
     if (errorCode != 0) {
 	SLog(0, "Callback message to %s port %d failed %s",
-	     HostEntry->HostName, HostEntry->port, 
+	     HostEntry->HostName, ntohs(HostEntry->port), 
 	     ViceErrorMsg((int) errorCode));
     }
 
@@ -331,7 +331,7 @@ void CLIENT_CallBackCheck()
 	    if (rc <= RPC2_ELIMIT) {
 		SLog(0, "Callback failed %s for ws %s, port %d",
 		     ViceErrorMsg((int) rc), hostTable[i].HostName, 
-		     hostTable[i].port);
+		     ntohs(hostTable[i].port));
 		CLIENT_CleanUpHost(&hostTable[i]);
 	    }
 	    ReleaseWriteLock(&hostTable[i].lock);
@@ -342,7 +342,7 @@ void CLIENT_CallBackCheck()
 
 void CLIENT_CleanUpHost(HostTable *ht) 
 {
-    SLog(1, "Cleaning up a HostTable for %s.%d", ht->HostName, ht->port);
+    SLog(1, "Cleaning up a HostTable for %s.%d", ht->HostName, ntohs(ht->port));
 
     client_RemoveClients(ht);	/* remove any connections for this Venus */
     DeleteVenus(ht);		/* remove all callback entries	*/
@@ -387,8 +387,8 @@ void CLIENT_PrintClients()
     for(int i = 0; i < maxHost; i++) {
 	for(ClientEntry *cp = hostTable[i].FirstClient; cp; cp=cp->NextClient) {
 	    SLog(1, "user = %s at %s.%d cid %d security level %s",
-		   cp->UserName, hostTable[i].HostName, hostTable[i].port, 
-		   cp->RPCid, client_SLDecode(cp->SecurityLevel));
+		 cp->UserName, hostTable[i].HostName, ntohs(hostTable[i].port), 
+		 cp->RPCid, client_SLDecode(cp->SecurityLevel));
 	}
     }
 }
