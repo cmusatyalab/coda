@@ -179,8 +179,7 @@ long RevokeWBPermit(RPC2_Handle RPCid, VolumeId Vid)
 
 long WriteBackFetch(RPC2_Handle RPCid, VolumeId Vid, ViceFid *Fid)
 {
-
-
+    return 0;
 }
 
 /* WriteBackNEWCONNECTION() */
