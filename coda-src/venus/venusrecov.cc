@@ -384,30 +384,19 @@ static void Recov_InitRVM() {
             /* as far as the log is concerned RVM_INIT will now handle the
              * rest of the creation. */
 
-	    int fd = 0;
-	    if ((fd = open(VenusDataDevice,
-			   O_WRONLY | O_CREAT | O_TRUNC | O_BINARY, 0600)) < 0)
-		CHOKE("Recov_InitRVM: create of (%s) failed (%d)",
+	    int fd = open(VenusDataDevice,
+			  O_WRONLY | O_CREAT | O_TRUNC | O_BINARY,
+			  0600);
+	    if (fd < 0)
+		CHOKE("Recov_InitRVM: create of %s failed (%d)",
 		    VenusDataDevice, errno);
-	    {
-		const int ID_BLKSIZE = 4096;
-		char buf[ID_BLKSIZE];
-		memset((void *)buf, 0, ID_BLKSIZE);
 
-		int nblocks = (int) VenusDataDeviceSize / ID_BLKSIZE;
-		for (int i = 0; i < nblocks; i++)
-		    if (write(fd, buf, ID_BLKSIZE) != ID_BLKSIZE)
-			CHOKE("Recov_InitRVM: write on (%s) failed (%d)",
-			    VenusDataDevice, errno);
+	    if (ftruncate(fd, VenusDataDeviceSize) < 0)
+		CHOKE("Recov_InitRVM: growing %s failed (%d)",
+		      VenusDataDevice, errno);
 
-		int remainder = (int) VenusDataDeviceSize % ID_BLKSIZE;
-		if (remainder != 0)
-		    if (write(fd, buf, remainder) != remainder)
-			CHOKE("Recov_InitRVM: write on (%s) failed (%d)",
-			    VenusDataDevice, errno);
-	    }
 	    if (close(fd) < 0)
-		CHOKE("Recov_InitRVM: close of (%s) failed (%d)",
+		CHOKE("Recov_InitRVM: close of %s failed (%d)",
 		    VenusDataDevice, errno);
 	    eprint("%s initialized at size %#x",
 		   VenusDataDevice, VenusDataDeviceSize);

@@ -44,8 +44,8 @@ extern "C" {
 
 /* interfaces */
 #include <vice.h>
-
 #include <mkpath.h>
+#include <copyfile.h>
 
 /* from venus */
 #include "fso.h"
@@ -55,7 +55,8 @@ extern "C" {
 
 /* Pre-allocation routine. */
 /* MUST be called from within transaction! */
-CacheFile::CacheFile(int i) {
+CacheFile::CacheFile(int i)
+{
     /* Assume caller has done RVMLIB_REC_OBJECT! */
     /* RVMLIB_REC_OBJECT(*this); */
     sprintf(name, "%02X/%02X/%02X/%02X",
@@ -69,28 +70,32 @@ CacheFile::CacheFile(int i) {
 }
 
 
-CacheFile::CacheFile() {
+CacheFile::CacheFile()
+{
     CODA_ASSERT(inode == (ino_t)-1 || length == 0);
     refcnt = 1;
     numopens = 0;
 }
 
 
-CacheFile::~CacheFile() {
+CacheFile::~CacheFile()
+{
     LOG(10, ("CacheFile::~CacheFile: %s (this=0x%x)\n", name, this));
     CODA_ASSERT(inode == (ino_t)-1 || length == 0);
 }
 
 
 /* MUST NOT be called from within transaction! */
-void CacheFile::Validate() {
+void CacheFile::Validate()
+{
     if (!ValidContainer())
 	Reset();
 }
 
 
 /* MUST NOT be called from within transaction! */
-void CacheFile::Reset() {
+void CacheFile::Reset()
+{
     if (inode != (ino_t)-1 && length != 0) {
         Recov_BeginTrans();
 	Truncate(0);
@@ -98,8 +103,8 @@ void CacheFile::Reset() {
     }
 }
 
-
-int CacheFile::ValidContainer() {
+int CacheFile::ValidContainer()
+{
     int code = 0;
     struct stat tstat;
     
@@ -131,7 +136,8 @@ int CacheFile::ValidContainer() {
 /* Must be called from within a transaction!  Assume caller has done
    RVMLIB_REC_OBJECT() */
 
-void CacheFile::Create(int newlength = 0) {
+void CacheFile::Create(int newlength = 0)
+{
     LOG(10, ("CacheFile::Create: %s, %d\n", name, newlength));
 
     int tfd;
@@ -188,7 +194,6 @@ int CacheFile::Copy(char *destname, ino_t *ino, int recovering = 0)
 
     int tfd, ffd, n;
     struct stat tstat;
-    char buf[DIR_PAGESIZE];
 
     if (mkpath(destname, V_MODE | 0100) < 0) {
         LOG(0, ("CacheFile::Copy: could not make path for %s\n", name));
@@ -212,18 +217,13 @@ int CacheFile::Copy(char *destname, ino_t *ino, int recovering = 0)
     if ((ffd = ::open(name, O_RDONLY| O_BINARY, V_MODE)) < 0)
 	CHOKE("CacheFile::Copy: source open failed (%d)\n", errno);
 
-    for (;;) {
-        n = ::read(ffd, buf, (int) sizeof(buf));
-	LOG(100,("CacheFile::Copy: copying %d bytes\n", n));
-        if (n == 0)
-	    break;
-        if (n < 0)
-	    CHOKE("CacheFile::Copy: read failed! (%d)\n", errno);
-	if (::write(tfd, buf, n) != n) {
-	    LOG(0, ("CacheFile::Copy: write failed! (%d)\n", errno));
-	    return -1;
-	}
+    if (copyfile(ffd, tfd) < 0) {
+	LOG(0, ("CacheFile::Copy failed! (%d)\n", errno));
+	::close(ffd);
+	::close(tfd);
+	return -1;
     }
+
     if (::fstat(tfd, &tstat) < 0)
 	CHOKE("CacheFile::Copy: fstat failed (%d)\n", errno);
     if (::close(tfd) < 0)
@@ -252,7 +252,8 @@ int CacheFile::DecRef()
 
 
 /* N.B. length member is NOT updated as side-effect! */
-void CacheFile::Stat(struct stat *tstat) {
+void CacheFile::Stat(struct stat *tstat)
+{
     CODA_ASSERT(inode != (ino_t)-1);
 
     CODA_ASSERT(::stat(name, tstat) == 0);
@@ -263,7 +264,8 @@ void CacheFile::Stat(struct stat *tstat) {
 
 
 /* MUST be called from within transaction! */
-void CacheFile::Truncate(long newlen) {
+void CacheFile::Truncate(long newlen)
+{
     CODA_ASSERT(inode != (ino_t)-1);
 
     if (length != newlen) {
@@ -284,7 +286,8 @@ void CacheFile::Truncate(long newlen) {
 
 
 /* MUST be called from within transaction! */
-void CacheFile::SetLength(long newlen) {
+void CacheFile::SetLength(long newlen)
+{
     CODA_ASSERT(inode != (ino_t)-1);
 
     LOG(0, ("Cachefile::SetLength %d\n", newlen));
@@ -296,7 +299,8 @@ void CacheFile::SetLength(long newlen) {
 }
 
 /* MUST be called from within transaction! */
-void CacheFile::SetValidData(long newoffset) {
+void CacheFile::SetValidData(long newoffset)
+{
     CODA_ASSERT(inode != (ino_t)-1);
 
     LOG(0, ("Cachefile::SetValidData %d\n", newoffset));
@@ -307,7 +311,8 @@ void CacheFile::SetValidData(long newoffset) {
     }
 }
 
-void CacheFile::print(int fdes) {
+void CacheFile::print(int fdes)
+{
     fdprint(fdes, "[ %s, %d, %d/%d ]\n", name, inode, validdata, length);
 }
 

@@ -35,8 +35,9 @@ Coda are listed in the file CREDITS.
 extern "C" {
 #endif __cplusplus
 
-int copyfile(int, int);
-int copyfile_byname(const char *, const char *);
+/* these functions are used to copy files, they return -1 on errors */
+int copyfile(int fromfd, int tofd);
+int copyfile_byname(const char *fromname, const char *toname);
 
 #ifdef __cplusplus
 }

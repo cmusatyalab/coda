@@ -51,6 +51,7 @@ extern "C" {
 
 /* interfaces */
 #include <inconsist.h>
+#include <copyfile.h>
 
 /* from libal */
 #include <prs.h>
@@ -654,21 +655,27 @@ int volent::LocalRepair(fsobj *f, ViceStatus *status, char *fname, ViceFid *pfid
 	int tgtfd = open(f->data.file->Name(),
 			 O_WRONLY | O_TRUNC | O_BINARY, V_MODE);
 	CODA_ASSERT(tgtfd>0);
-	char buf[512];
 	int rc;
-	int tlength = 0;
-	while ((rc = read(srcfd, buf, 512)) > 0) {
-	    write(tgtfd, buf, rc);
-	    tlength += rc;
-	}
-	close(srcfd);
-	close(tgtfd);
-	if (tlength != status->Length) {
+	struct stat stbuf;
+
+	rc = copyfile(srcfd, tgtfd);
+	CODA_ASSERT(rc == 0);
+
+	rc = fstat(tgtfd, &stbuf);
+	CODA_ASSERT(rc == 0);
+
+	rc = close(srcfd);
+	CODA_ASSERT(rc == 0);
+
+	rc = close(tgtfd);
+	CODA_ASSERT(rc == 0);
+
+	if (stbuf.st_size != status->Length) {
 	    LOG(10, ("LocalRepair: Length mismatch - actual stored %u bytes, expected %u bytes\n",
-		     tlength, status->Length));
+		     stbuf.st_size, status->Length));
 	    return(EIO); 	/* XXX - what else can we return? */
 	}
-	f->data.file->SetLength((unsigned int) tlength);
+	f->data.file->SetLength((unsigned int) stbuf.st_size);
     }
 
     /* set the flags of the object before returning */
