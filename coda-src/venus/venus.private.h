@@ -333,7 +333,6 @@ extern long rootnodeid;
 extern int CleanShutDown;
 extern char *venusRoot;
 extern char *kernDevice;
-extern char *default_realm;
 extern char *realmtab;
 extern char *CacheDir;
 extern char *CachePrefix;

@@ -128,7 +128,7 @@ int main(int argc, char **argv)
 
 	codaconf_init("venus.conf");
 	codaconf_init("auth2.conf");
-	CONF_STR(realm, "realm", NULL);
+	CODACONF_STR(realm, "realm", NULL);
 
 	printf("Changing password for %s@%s\n", uname, realm);
 /*

@@ -89,8 +89,8 @@ ReadConfigFile()
     /* Load configuration file to get vice dir. */
     codaconf_init("server.conf");
 
-    CONF_STR(vicedir, "vicedir", "/vice");
-    CONF_INT(nservers, "numservers", 1); 
+    CODACONF_STR(vicedir, "vicedir", "/vice");
+    CODACONF_INT(nservers, "numservers", 1); 
 
     vice_dir_init(vicedir, 0);
 }

@@ -188,6 +188,6 @@ int U_DeleteLocalTokens(char *realm)
 static void GetPathName()
 {
     codaconf_init("venus.conf");
-    CONF_STR(pName, "mountpoint", DFLT_MNT);
+    CODACONF_STR(pName, "mountpoint", DFLT_MNT);
 }
 

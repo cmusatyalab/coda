@@ -120,7 +120,7 @@ int main(int argc, char **argv)
     SplitRealmFromName(MyViceName, &realm);
     codaconf_init("venus.conf");
     codaconf_init("auth2.conf");
-    CONF_STR(realm, "realm", NULL);
+    CODACONF_STR(realm, "realm", NULL);
 
     srvs = U_GetAuthServers(realm, host);
     rc = U_BindToServer(srvs, AUTH_METHOD_CODAUSERNAME, MyViceName, strlen(MyViceName)+1, MyPassword, strlen(MyPassword), &AuthCid, 1);

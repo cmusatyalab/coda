@@ -1260,63 +1260,63 @@ static int ReadConfigFile(void)
     multconf = codaconf_init(confname);
 
     /* srv.cc defined values ... */
-    CONF_INT(Authenticate,	"authenticate",	   1); 
-    CONF_INT(AllowResolution,	"resolution",	   1); 
-    CONF_INT(AllowSHA,		"allow_sha",	   0); 
-    CONF_INT(comparedirreps,	"comparedirreps",  1); 
-    CONF_INT(pollandyield,	"pollandyield",    1); 
-    CONF_INT(pathtiming,	"pathtiming",	   1);
-    CONF_INT(MapPrivate,	"mapprivate",	   0);
-    CONF_STR(CodaSrvIp,		"ipaddress",	   NULL);
+    CODACONF_INT(Authenticate,	  "authenticate", 1); 
+    CODACONF_INT(AllowResolution, "resolution",	1); 
+    CODACONF_INT(AllowSHA,	  "allow_sha", 0); 
+    CODACONF_INT(comparedirreps,  "comparedirreps", 1); 
+    CODACONF_INT(pollandyield,	  "pollandyield", 1); 
+    CODACONF_INT(pathtiming,	  "pathtiming",	1);
+    CODACONF_INT(MapPrivate,	  "mapprivate",	0);
+    CODACONF_STR(CodaSrvIp,	  "ipaddress", NULL);
 
-    CONF_INT(large,		"large",	   500);
-    CONF_INT(small,		"small",	   500);
+    CODACONF_INT(large, "large", 500);
+    CODACONF_INT(small, "small", 500);
 
-    CONF_STR(vicedir,		"vicedir",	   "/vice");
+    CODACONF_STR(vicedir, "vicedir", "/vice");
     vice_dir_init(vicedir, ServerNumber);
 
-    CONF_INT(trace,		"trace",	   0);
-    CONF_INT(SrvWindowSize,	"windowsize",	   32);
-    CONF_INT(SrvSendAhead,	"sendahead",	   8);
-    CONF_INT(timeout,		"timeout",	   15);
-    CONF_INT(retrycnt,		"retrycnt",	   4);
-    CONF_INT(lwps,		"lwps",		   6);
+    CODACONF_INT(trace,		"trace",	0);
+    CODACONF_INT(SrvWindowSize,	"windowsize",	32);
+    CODACONF_INT(SrvSendAhead,	"sendahead",	8);
+    CODACONF_INT(timeout,	"timeout",	15);
+    CODACONF_INT(retrycnt,	"retrycnt",	4);
+    CODACONF_INT(lwps,		"lwps",		6);
     if (lwps > MAXLWP) lwps = MAXLWP;
 
-    CONF_INT(buffs,		"buffs",	   100);
-    CONF_INT(stack,		"stack",	   96);
-    CONF_INT(cbwait,		"cbwait",	   240);
-    CONF_INT(chk,		"chk",		   30);
-    CONF_INT(ForceSalvage,	"forcesalvage",	   1);
-    CONF_INT(SalvageOnShutdown,	"salvageonshutdown", 0);
-    CONF_INT(DumpVM,		"dumpvm",	   0);
+    CODACONF_INT(buffs,		    "buffs",	    100);
+    CODACONF_INT(stack,		    "stack",	    96);
+    CODACONF_INT(cbwait,	    "cbwait",	    240);
+    CODACONF_INT(chk,		    "chk",	    30);
+    CODACONF_INT(ForceSalvage,	    "forcesalvage", 1);
+    CODACONF_INT(SalvageOnShutdown, "salvageonshutdown", 0);
+    CODACONF_INT(DumpVM,	    "dumpvm",	    0);
 
     /* Server numbers and  Rvm parameters */
-    CONF_INT(numservers,      "numservers",	   1);
+    CODACONF_INT(numservers, "numservers", 1);
     if (numservers > 1 && ServerNumber == 0) {
         SLog(0, "Configuration error, server number 0 with multiple servers");
 	exit(-1);
     }
-    CONF_INT(_Rvm_Truncate, 	"rvmtruncate",	   0);
+    CODACONF_INT(_Rvm_Truncate, "rvmtruncate", 0);
 
     if (RvmType == UNSET) {
 	if (ServerNumber == 0 || multconf == 0) {
-	    CONF_STR(_Rvm_Log_Device,	"rvm_log",         "");
-	    CONF_STR(_Rvm_Data_Device,	"rvm_data",        "");
-	    CONF_INT(datalen,		"rvm_data_length", 0);
-	    CONF_STR(srvhost,		"hostname",	   NULL);
+	    CODACONF_STR(_Rvm_Log_Device,  "rvm_log", "");
+	    CODACONF_STR(_Rvm_Data_Device, "rvm_data", "");
+	    CODACONF_INT(datalen,	   "rvm_data_length", 0);
+	    CODACONF_STR(srvhost,	   "hostname", NULL);
 	} else {
 	    sprintf(confname, "rvm_log_%d", ServerNumber);
-	    CONF_STR(_Rvm_Log_Device,  confname, "");
+	    CODACONF_STR(_Rvm_Log_Device, confname, "");
 
 	    sprintf(confname, "rvm_data_%d", ServerNumber);
-	    CONF_STR(_Rvm_Data_Device, confname, "");
+	    CODACONF_STR(_Rvm_Data_Device, confname, "");
 
 	    sprintf(confname, "rvm_data_length_%d", ServerNumber);
-	    CONF_INT(datalen, confname, 0);
+	    CODACONF_INT(datalen, confname, 0);
 
 	    sprintf(confname, "hostname_%d", ServerNumber);
-	    CONF_STR(srvhost, confname,	NULL);
+	    CODACONF_STR(srvhost, confname, NULL);
 	}
     }
     if (ServerNumber && (srvhost == NULL || *srvhost == 0)) {
@@ -1341,16 +1341,15 @@ static int ReadConfigFile(void)
     /* Other command line parameters ... */
     extern int nodebarrenize;
 
-    CONF_INT(nodebarrenize,   "nodebarrenize",	   0);
-    CONF_INT(NoWritebackConn, "nowriteback",	   0);
-    CONF_INT(zombify,	      "zombify",	   0);
+    CODACONF_INT(nodebarrenize, "nodebarrenize", 0);
+    CODACONF_INT(NoWritebackConn, "nowriteback", 0);
+    CODACONF_INT(zombify, "zombify", 0);
     if (zombify)
         coda_assert_action = CODA_ASSERT_SLEEP;
-    CONF_STR(vicetab,	      "vicetab",	   NULL);
+    CODACONF_STR(vicetab, "vicetab", NULL);
     if (!vicetab) {
         vicetab = strdup(vice_sharedfile("db/vicetab"));
     }
-    
 
     return 0;
 }

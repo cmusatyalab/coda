@@ -436,7 +436,7 @@ int pioctl(const char *path, unsigned long com,
     if (!ctlfile) {
 	char *mtpt = NULL;
 	codaconf_init("venus.conf");
-	CONF_STR(mtpt, "mountpoint", "/coda");
+	CODACONF_STR(mtpt, "mountpoint", "/coda");
 	ctlfile = malloc(strlen(mtpt) + strlen(CODA_CONTROL) + 2);
 	sprintf(ctlfile, "%s/%s", mtpt, CODA_CONTROL);
     }

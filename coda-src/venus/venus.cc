@@ -84,7 +84,6 @@ int SearchForNOreFind;  // Look for better detection method for iterrupted hoard
 char *consoleFile;
 char *venusRoot;
 char *kernDevice;
-char *default_realm;
 char *realmtab;
 char *CacheDir;
 char *CachePrefix;
@@ -415,36 +414,35 @@ static void DefaultCmdlineParms()
     /* Load the "venus.conf" configuration file */
     codaconf_init("venus.conf");
 
-    CONF_INT(CacheBlocks,       "cacheblocks",   40000);
-    CONF_STR(CacheDir,          "cachedir",      DFLT_CD);
-    CONF_STR(SpoolDir,          "checkpointdir", "/usr/coda/spool");
-    CONF_STR(VenusLogFile,	"logfile",	 "/usr/coda/etc/venus.log");
-    CONF_STR(consoleFile,       "errorlog",      "/usr/coda/etc/console");
-    CONF_STR(kernDevice,        "kerneldevice",  "/dev/cfs0,/dev/coda/0");
-    CONF_INT(MapPrivate,	"mapprivate",	 0);
-    CONF_STR(MarinerSocketPath, "marinersocket", "/usr/coda/spool/mariner");
-    CONF_INT(masquerade_port,	"masquerade_port", 0);
-    CONF_STR(venusRoot,         "mountpoint",    DFLT_VR);
-    CONF_INT(PrimaryUser,       "primaryuser",   UNSET_PRIMARYUSER);
-    CONF_STR(default_realm,     "realm",	 "testserver.coda.cs.cmu.edu");
-    CONF_STR(realmtab,          "realmtab",	 "/etc/coda/realms");
-    CONF_STR(VenusLogDevice,    "rvm_log",       "/usr/coda/LOG");
-    CONF_STR(VenusDataDevice,   "rvm_data",      "/usr/coda/DATA");
-    CONF_INT(T1Interval,	"serverprobe",   12 * 60);
+    CODACONF_INT(CacheBlocks,	    "cacheblocks",   40000);
+    CODACONF_STR(CacheDir,	    "cachedir",      DFLT_CD);
+    CODACONF_STR(SpoolDir,	    "checkpointdir", "/usr/coda/spool");
+    CODACONF_STR(VenusLogFile,	    "logfile",	     "/usr/coda/etc/venus.log");
+    CODACONF_STR(consoleFile,	    "errorlog",      "/usr/coda/etc/console");
+    CODACONF_STR(kernDevice,	    "kerneldevice",  "/dev/cfs0,/dev/coda/0");
+    CODACONF_INT(MapPrivate,	    "mapprivate",     0);
+    CODACONF_STR(MarinerSocketPath, "marinersocket", "/usr/coda/spool/mariner");
+    CODACONF_INT(masquerade_port,   "masquerade_port", 0);
+    CODACONF_STR(venusRoot,	    "mountpoint",     DFLT_VR);
+    CODACONF_INT(PrimaryUser,	    "primaryuser",    UNSET_PRIMARYUSER);
+    CODACONF_STR(realmtab,	    "realmtab",	      "/etc/coda/realms");
+    CODACONF_STR(VenusLogDevice,    "rvm_log",        "/usr/coda/LOG");
+    CODACONF_STR(VenusDataDevice,   "rvm_data",       "/usr/coda/DATA");
+    CODACONF_INT(T1Interval,	    "serverprobe",    12 * 60);
 
 #if defined(__CYGWIN32__)
-    CONF_STR(CachePrefix,	"cache_prefix",	 "/?" "?/C:/cygwin");
+    CODACONF_STR(CachePrefix, "cache_prefix", "/?" "?/C:/cygwin");
 #else
     CachePrefix = "";
 #endif
 
-    CONF_INT(DontUseRVM,	"dontuservm",	 0);
+    CODACONF_INT(DontUseRVM, "dontuservm", 0);
     {
 	if (DontUseRVM)
 	    RvmType = VM;
     }
 
-    CONF_INT(CacheFiles,	"cachefiles",	 0);
+    CODACONF_INT(CacheFiles, "cachefiles", 0);
     {
 	if (!CacheFiles) CacheFiles = CacheBlocks / BLOCKS_PER_FILE;
 
@@ -458,7 +456,7 @@ static void DefaultCmdlineParms()
 	}
     }
 
-    CONF_INT(MLEs,		"cml_entries",	 0);
+    CODACONF_INT(MLEs, "cml_entries", 0);
     {
 	if (!MLEs) MLEs = CacheBlocks / BLOCKS_PER_MLE;
 
@@ -468,7 +466,7 @@ static void DefaultCmdlineParms()
 	}
     }
 
-    CONF_INT(HDBEs,		"hoard_entries", 0);
+    CODACONF_INT(HDBEs, "hoard_entries", 0);
     {
 	if (!HDBEs) HDBEs = CacheBlocks / BLOCKS_PER_HDBE;
 
@@ -479,7 +477,7 @@ static void DefaultCmdlineParms()
 	}
     }
 
-    CONF_STR(VenusPidFile,	"pid_file",	 NULL);
+    CODACONF_STR(VenusPidFile, "pid_file", NULL);
     {
 #define PIDFILE "/pid"
 	if (!VenusPidFile) {
@@ -489,7 +487,7 @@ static void DefaultCmdlineParms()
 	}
     }
 
-    CONF_STR(VenusControlFile,	"run_control_file",  NULL);
+    CODACONF_STR(VenusControlFile, "run_control_file", NULL);
     {
 #define CTRLFILE "/VENUS_CTRL"
 	if (!VenusControlFile) {
@@ -499,7 +497,7 @@ static void DefaultCmdlineParms()
 	}
     }
 
-    CONF_INT(PiggyValidations,  "validateattrs", MAX_PIGGY_VALIDATIONS);
+    CODACONF_INT(PiggyValidations, "validateattrs", MAX_PIGGY_VALIDATIONS);
     {
 	if (PiggyValidations > MAX_PIGGY_VALIDATIONS)
 	    PiggyValidations = MAX_PIGGY_VALIDATIONS;
@@ -507,7 +505,7 @@ static void DefaultCmdlineParms()
 
 #ifdef moremoremore
     char *x = NULL;
-    CONF_STR(x, "relay", NULL, "127.0.0.1");
+    CODACONF_STR(x, "relay", NULL, "127.0.0.1");
     inet_aton(x, &venus_relay_addr);
 #endif
 }

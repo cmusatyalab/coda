@@ -118,8 +118,8 @@ int Bind(const char *service, const char *host) {
         char *MarinerSocketPath;
         
         codaconf_init("venus.conf");
-        MarinerSocketPath = conf_lookup("marinersocket",
-                                        "/usr/coda/spool/mariner"); 
+        MarinerSocketPath = codaconf_lookup("marinersocket",
+					    "/usr/coda/spool/mariner"); 
         memset(&s_un, 0, sizeof(s_un));
         s_un.sun_family = AF_UNIX;
         strcpy(s_un.sun_path, MarinerSocketPath);

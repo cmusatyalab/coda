@@ -105,12 +105,12 @@ void GetRealmServers(const char *name, const char *service,
     int namelen, found = 0;
 
     if (!name || name[0] == '\0')
-	CONF_STR(name, "realm", "DEFAULT");
+	CODACONF_STR(name, "realm", "DEFAULT");
 
     if (strcmp(name, "localhost") == 0)
 	return;
 
-    CONF_STR(realmtab, "realmtab", SYSCONFDIR "/realms");
+    CODACONF_STR(realmtab, "realmtab", SYSCONFDIR "/realms");
 
     f = fopen(realmtab, "r");
     if (f) {

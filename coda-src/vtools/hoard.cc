@@ -228,7 +228,7 @@ int main(int argc, char *argv[])
     ParseHoardCommands(fp, Clear, Add, Delete, List, Walk, Verify, Enable, Disable);
 
     codaconf_init("venus.conf");
-    CONF_STR(mountpoint, "mountpoint", "/coda");
+    CODACONF_STR(mountpoint, "mountpoint", "/coda");
 
     /* Execute each list.  N.B. The execution order is significant. */
     DoClears(Clear);

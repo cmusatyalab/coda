@@ -215,7 +215,7 @@ int main(int argc, char **argv)
     codaconf_init("venus.conf");
     codaconf_init("auth2.conf");
 
-    CONF_STR(realm, "realm", NULL);
+    CODACONF_STR(realm, "realm", NULL);
 
     if (!username || !realm) {
 	    fprintf (stderr, "Can't figure out your username or realm.\n");

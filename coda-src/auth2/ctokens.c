@@ -120,9 +120,9 @@ int main(int argc, char *argv[])
 	codaconf_init("venus.conf");
 
 #ifdef __CYGWIN__
-	CONF_STR(mountpoint, "mountpoint", "N:");
+	CODACONF_STR(mountpoint, "mountpoint", "N:");
 #else
-	CONF_STR(mountpoint, "mountpoint", "/coda");
+	CODACONF_STR(mountpoint, "mountpoint", "/coda");
 #endif
 	
 	dir = opendir(mountpoint);

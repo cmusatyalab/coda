@@ -31,13 +31,13 @@ extern int codaconf_quiet;
 /* conf_init reads (or merges) the name=value tuples from the conffile. If a
  * name is seen multiple times, only the last value is remembered. Empty lines
  * and lines starting with '#' are ignored. */
-int conf_init(char *conffile);
+int codaconf_init_one(char *conffile);
 
 /* conf_lookup returns the value associated with name, or NULL on error. */
-char *conf_lookup(char *name, char *defaultvalue);
+char *codaconf_lookup(char *name, char *defaultvalue);
 
 /* conf_free releases all resources allocated for the configuration data */
-void conf_free(void);
+void codaconf_free(void);
 
 /* helpers */
 
@@ -54,11 +54,11 @@ char *codaconf_file(const char *confname);
 
 #include "coda_string.h"
 
-#define CONF_STR(var, key, defval) \
-    if (var == NULL || *var == '\0') { var = conf_lookup(key, defval); }
-#define CONF_INT(var, key, defval) \
+#define CODACONF_STR(var, key, defval) \
+    if (var == NULL || *var == '\0') { var = codaconf_lookup(key, defval); }
+#define CODACONF_INT(var, key, defval) \
     { char t[256]; snprintf(t, 255, "%d", defval); t[255] = '\0'; \
-    if (var == 0) { var = atoi(conf_lookup(key, t)); } }
+    if (var == 0) { var = atoi(codaconf_lookup(key, t)); } }
 
 #ifdef __cplusplus
 }

@@ -39,7 +39,7 @@ static const char *default_codaconfpath =
 static char line[MAXLINELEN];
 static char conffile[MAXPATHLEN+1];
 
-/* this global is exported to surpress conf_init verbosity */
+/* this global is exported to surpress codaconf_init_one verbosity */
 int codaconf_quiet = 0;
 
 /* nobody outside of this file needs to be exposed to these structures. */
@@ -50,11 +50,11 @@ typedef struct _item {
     string_t value;
 } *item_t;
 
-static item_t conf_table = NULL;
+static item_t codaconf_table = NULL;
 
-/* Add a name=value pair to the conf_table. */
+/* Add a name=value pair to the codaconf_table. */
 /* The passed name and value strings are copied. */
-static item_t conf_add(string_t name, string_t value)
+static item_t codaconf_add(string_t name, string_t value)
 {
     item_t n;
 
@@ -67,8 +67,8 @@ static item_t conf_add(string_t name, string_t value)
     n->value = strdup(value);
     assert(n->value != NULL);
 
-    n->next  = conf_table;
-    conf_table = n;
+    n->next  = codaconf_table;
+    codaconf_table = n;
 
     return(n);
 }
@@ -78,14 +78,14 @@ static item_t conf_add(string_t name, string_t value)
  * replaced with the new value. If a value is given, the entry is not
  * found, and CONFWRITE is defined, the name=value pair is appended
  * to the last read configuration file. */
-static item_t conf_find(string_t name, string_t value, int replace)
+static item_t codaconf_find(string_t name, string_t value, int replace)
 {
     item_t cp;
 #ifdef CONFWRITE
     FILE  *conf;
 #endif
 
-    for(cp = conf_table; cp; cp = cp->next) {
+    for(cp = codaconf_table; cp; cp = cp->next) {
         if (strcmp(name, cp->name) == 0) {
             if (replace && value) {
                 free(cp->value);
@@ -100,7 +100,7 @@ static item_t conf_find(string_t name, string_t value, int replace)
 
 #ifdef CONFWRITE
     /* append the new value to the last read configuration file, but only if
-     * we are being called from conf_lookup (i.e. replace is false) and a
+     * we are being called from codaconf_lookup (i.e. replace is false) and a
      * default value was given */
     if (!replace) {
         conf = fopen(conffile, "a");
@@ -114,12 +114,12 @@ static item_t conf_find(string_t name, string_t value, int replace)
     }
 #endif
 
-    return(conf_add(name, value));
+    return(codaconf_add(name, value));
 }
 
 /* parse a configuration line */
-static void conf_parse_line(char *line, int lineno,
-                          string_t *name, string_t *value)
+static void codaconf_parse_line(char *line, int lineno,
+				string_t *name, string_t *value)
 {
     char *eon, *eov, *val;
 
@@ -171,10 +171,10 @@ static void conf_parse_line(char *line, int lineno,
     assert(*value != NULL);
 }
 
-/* conf_init reads (or merges) the name=value tuples from the conffile. If a
- * name is seen multiple times, only the last value is remembered. Empty lines
- * and lines starting with '#' are ignored. */
-int conf_init(char *cf)
+/* codaconf_init_one reads (or merges) the name=value tuples from the conffile.
+ * If a name is seen multiple times, only the last value is remembered. Empty
+ * lines and lines starting with '#' are ignored. */
+int codaconf_init_one(char *cf)
 {
     FILE *conf;
     int lineno = 0;
@@ -195,10 +195,10 @@ int conf_init(char *cf)
     
     while(fgets(line, MAXLINELEN, conf)) {
         lineno++;
-        conf_parse_line(line, lineno, &name, &value);
+        codaconf_parse_line(line, lineno, &name, &value);
         if (name == NULL) continue; /* skip comments and blank lines */
         
-        item = conf_find(name, value, 1);
+        item = codaconf_find(name, value, 1);
 
 #ifdef CONFDEBUG
         printf("line: %d, name: '%s', value: '%s'", lineno, name, value);
@@ -261,29 +261,29 @@ int codaconf_init(const char *confname)
 {
     char *cf = codaconf_file(confname);
 
-    if (!cf || conf_init(cf) != 0)
+    if (!cf || codaconf_init_one(cf) != 0)
 	return -1;
 
     return 0;
 }
 
-/* conf_lookup returns the value associated with name, or NULL on error. */
-char *conf_lookup(char *name, char *defaultvalue)
+/* codaconf_lookup returns the value associated with name, or NULL on error. */
+char *codaconf_lookup(char *name, char *defaultvalue)
 {
     item_t cp;
     
-    cp = conf_find(name, defaultvalue, 0);
+    cp = codaconf_find(name, defaultvalue, 0);
 
     return cp ? cp->value : NULL;
 }
 
 /* release all allocated resources */
-void conf_free(void)
+void codaconf_free(void)
 {
     item_t cp;
 
-    while((cp = conf_table) != NULL) {
-        conf_table = cp->next;
+    while((cp = codaconf_table) != NULL) {
+        codaconf_table = cp->next;
         free(cp->name);
         free(cp->value);
         free(cp);
@@ -316,11 +316,11 @@ int main(int argc, char *argv[])
     strcat(configpath, argv[1]);
     strcat(configpath, ".conf");
 
-    conf_init(configpath);
+    codaconf_init(configpath);
 
-    val = conf_lookup(var, val);
+    val = codaconf_lookup(var, val);
     
-    conf_free();
+    codaconf_free();
 
     if (!val) {
         fprintf(stderr, "Couldn't find a value for '%s'\n", var);

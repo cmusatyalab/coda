@@ -175,8 +175,8 @@ int main(int argc, char **argv)
     }
 
     if (argc < 4) {
-	conf_init(conffile);
-	val = conf_lookup(argv[2], NULL);
+	codaconf_init_one(conffile);
+	val = codaconf_lookup(argv[2], NULL);
 	FAILIF(!val, "Variable '%s' not found in '%s'\n", argv[2], conffile);
 
 	fprintf(stdout, "%s\n", val);

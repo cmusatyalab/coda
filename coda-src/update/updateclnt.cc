@@ -335,8 +335,8 @@ ReadConfigFile()
     /* Load configuration file to get vice dir. */
     codaconf_init("server.conf");
 
-    CONF_STR(vicedir, "vicedir", "/vice");
-    CONF_INT(nservers, "numservers", 1); 
+    CODACONF_STR(vicedir, "vicedir", "/vice");
+    CODACONF_INT(nservers, "numservers", 1); 
 
     vice_dir_init(vicedir, 0);
 
@@ -353,7 +353,7 @@ ReadConfigFile()
 	    hostlist[i][0] = '\0';
 	    sprintf (confname, "server_%d.conf", i+1);
 	    codaconf_init(confname);
-	    CONF_STR(hostlist[i],  "hostname",  "");
+	    CODACONF_STR(hostlist[i],  "hostname",  "");
 	    if (hostlist[i][0] == '\0') {
 	        LogMsg(0, SrvDebugLevel, stdout,
 		       "No host name for server %d.\n",

@@ -479,7 +479,7 @@ int main(int argc, char *argv[])
     }
 
     codaconf_init("venus.conf");
-    CONF_STR(mountpoint, "mountpoint", "/coda");
+    CODACONF_STR(mountpoint, "mountpoint", "/coda");
 
     /* invoke the handler */
     ((PFV3)cmdarray[slot].handler)(argc, argv, slot);
@@ -914,7 +914,7 @@ static int findclosures(char ***clist)
     DIR *dirp;
     struct dirent *td;
 
-    CONF_STR(checkpointdir, "checkpointdir", "/usr/coda/spool");
+    CODACONF_STR(checkpointdir, "checkpointdir", "/usr/coda/spool");
     sprintf(spooldir, "%s/%d", checkpointdir, getuid());
 
     dirp = opendir(spooldir);
