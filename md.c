@@ -30,6 +30,12 @@
  *	/usr/cs/include).
  *
  * $Log: md.c,v $
+ * Revision 4.2  1997/12/20 23:34:10  braam
+ * A load of patches for glibc, from Elliot Lee.  They work fine under libc --
+ * ironically we need to look into some details for the glibc situation.
+ *
+ * Also patches from Jan Harkes to aid compilation under Debian Linux.
+ *
  * Revision 4.1  1997/04/29 21:32:51  rvb
  * Initial version for Coda
  *
