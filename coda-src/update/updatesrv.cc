@@ -382,6 +382,7 @@ static void ServerLWP(int *Ident)
     RPC2_RequestFilter myfilter;
     RPC2_PacketBuffer * myrequest;
     RPC2_Handle mycid;
+    RPC2_PeerInfo peer;
     long     rc;
     int     lwpid;
 
@@ -396,23 +397,33 @@ static void ServerLWP(int *Ident)
 				  (long (*)(...))Update_GetKeys, RPC2_XOR,
 				  (long (*)(...))Update_AuthFail))
 		== RPC2_SUCCESS) {
-	    LogMsg(1, SrvDebugLevel, stdout,
-		   "Worker %d received request %d", 
-		   lwpid, myrequest->Header.Opcode);
 
-	    rc = update_ExecuteRequest(mycid, myrequest, 0);
-	    if (rc) {
-		LogMsg(0, SrvDebugLevel, stdout,
-		       "file.c request %d failed: %s",
-		       myrequest->Header.Opcode, ViceErrorMsg((int)rc));
-		if(rc <= RPC2_ELIMIT) {
-		    RPC2_Unbind(mycid);
-		}
+	    RPC2_GetPeerInfo(mycid, &peer);
+
+	    if (peer.SecurityLevel != RPC2_OPENKIMONO)
+	    {
+		LogMsg(1, SrvDebugLevel, stdout,"Worker %d received request %d",
+		       lwpid, myrequest->Header.Opcode);
+		rc = update_ExecuteRequest(mycid, myrequest, 0);
 	    }
-	} else {
+	    else
+		rc = RPC2_NOTAUTHENTICATED;
+
+	    if (rc)
+	    {
+		LogMsg(0, SrvDebugLevel, stdout,
+		       "Request %d from %s:%d failed: %s",
+		       myrequest->Header.Opcode,
+		       inet_ntoa(peer.RemoteHost.Value.InetAddress),
+		       ntohs(peer.RemotePort.Value.InetPortNumber),
+		       ViceErrorMsg((int)rc));
+
+		if(rc <= RPC2_ELIMIT)
+		    RPC2_Unbind(mycid);
+	    }
+	} else
 	    LogMsg(0, SrvDebugLevel, stdout,
 		   "RPC2_GetRequest failed with %s",ViceErrorMsg((int)rc));
-	}
     }
 }
 
@@ -521,8 +532,12 @@ long UpdateNewConnection(RPC2_Handle cid, RPC2_Integer SideEffectType,
 			 RPC2_Integer AuthType, 
 			 RPC2_CountedBS *ClientIdent)
 {
-    LogMsg(0, SrvDebugLevel, stdout,
-	   "New connection received %d, %d, %d", 0, 0, 0);
-    /* at some point we should validate this connection as to its origin */
-    return(0);
+    RPC2_PeerInfo peer;
+    RPC2_GetPeerInfo(cid, &peer);
+
+    LogMsg(0, SrvDebugLevel, stdout, "Connection from %s:%d.",
+	   inet_ntoa(peer.RemoteHost.Value.InetAddress),
+	   ntohs(peer.RemotePort.Value.InetPortNumber));
+
+    return 0;
 }
