@@ -254,6 +254,7 @@ int CLIENT_MakeCallBackConn(ClientEntry *Client)
     RPC2_CountedBS cbs;
     RPC2_BindParms bp;
     HostTable *HostEntry;
+    RPC2_Handle callback_id;
 
     /* Look up the Peer info corresponding to the given RPC handle. */
     CODA_ASSERT(RPC2_GetPeerInfo(Client->RPCid, &peer) == 0);
@@ -281,7 +282,16 @@ int CLIENT_MakeCallBackConn(ClientEntry *Client)
     /* Attempt the bind. */
     long errorCode = RPC2_NewBinding(&peer.RemoteHost, 
 				     &peer.RemotePort, &sid, &bp, 
-				     &HostEntry->id);
+				     &callback_id);
+
+    /* another thread may already have set up a callback connection (or is
+     * that impossible with the HostEntry->lock?) */
+    if (HostEntry->id != 0) {
+	RPC2_Unbind(callback_id);
+	goto exit_makecallbackconn;
+    }
+
+    HostEntry->id = callback_id;
 
     if (errorCode <= RPC2_ELIMIT) {
 	SLog(0, "RPC2_Bind to %s port %d for callback failed %s",
