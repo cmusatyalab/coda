@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: blurb.doc,v 1.1 96/11/22 13:29:31 raiff Exp $";
+static char *rcsid = "$Header: /home/braam/src/coda-src/vice/RCS/srv.cc,v 1.1 1996/11/22 19:14:39 braam Exp braam $";
 #endif /*_BLURB_*/
 
 
@@ -78,7 +78,9 @@ extern "C" {
 #include <sys/stat.h>
 #include <netinet/in.h>
 #include <netdb.h>
+#ifdef __MACH__
 #include <mach.h> 
+#endif
 #include <sysent.h>
 #include <stdarg.h>
 #include <stdlib.h>
@@ -270,7 +272,11 @@ PRIVATE void InitServerKeys(char *, char *);
 #include <rvmtesting.h>
 #endif RVMTESTING
 
+#ifdef LINUX
+struct sigaction OldContext; /* zombie() saves original context here */
+#else
 struct sigcontext OldContext; /* zombie() saves original context here */
+#endif
 extern void dumpvm();
 
   /* We need to have this zombie because of Camelot and the IBM-RT stack bogosity.
@@ -278,8 +284,14 @@ extern void dumpvm();
        Backtraces will then make sense.
        Otherwise the gap in the RT stack causes the backtrace to end prematurely.
     */
+#ifdef LINUX
+void zombie(int sig, int code, struct sigaction *scp) {
+    bcopy(scp, &OldContext, sizeof(struct sigaction));
+#else
 void zombie(int sig, int code, struct sigcontext *scp) {
     bcopy(scp, &OldContext, sizeof(struct sigcontext));
+#endif
+
     LogMsg(0, 0, stdout,  "****** FILE SERVER INTERRUPTED BY SIGNAL %d CODE %d ******", sig, code);
     LogMsg(0, 0, stdout,  "****** Aborting outstanding transactions, stand by...");
     
@@ -314,9 +326,11 @@ void zombie(int sig, int code, struct sigcontext *scp) {
 	    dumpvm(); /* sanity check rvm recovery. */
     }
     
+#ifdef MACH
     LogMsg(0, 0, stdout, "To debug via gdb: attach %d, setcontext OldContext", getpid());
     LogMsg(0, 0, stdout, "Becoming a zombie now ........");
     task_suspend(task_self());
+#endif
     }
 
 
@@ -601,7 +615,11 @@ main(int argc, char *argv[])
     struct timeval tp;
     struct timezone tsp;
     TM_GetTimeOfDay(&tp, &tsp);
+#ifdef LINUX
+    LogMsg(0, 0, stdout,"File Server started %s", ctime((const long int *)&tp.tv_sec));
+#else
     LogMsg(0, 0, stdout,"File Server started %s", ctime(&tp.tv_sec));
+#endif
     StartTime = (unsigned int)tp.tv_sec;
     assert(LWP_WaitProcess((char *)&parentPid) == LWP_SUCCESS);
 
@@ -872,7 +890,11 @@ PRIVATE void CheckLWP()
 		ProgramType *pt, tmp_pt;
 
 		TM_GetTimeOfDay(&tpl, &tspl);
+#ifdef LINUX
+		LogMsg(0, 0, stdout, "Shutting down the File Server %s", ctime((const long int *)&tpl.tv_sec));
+#else
 		LogMsg(0, 0, stdout, "Shutting down the File Server %s", ctime(&tpl.tv_sec));
+#endif
 		assert(LWP_GetRock(FSTAG, (char **)&pt) == LWP_SUCCESS);
 		/* masquerade as fileServer lwp */
 		tmp_pt = *pt;
@@ -1277,7 +1299,11 @@ void SwapLog()
     
     /* Print out time/date, since date info has "scrolled off" */
     TM_GetTimeOfDay(&tp, 0);
+#ifdef LINUX
+    LogMsg(0, 0, stdout, "New SrvLog started at %s", ctime((const long int *)&tp.tv_sec));
+#else
     LogMsg(0, 0, stdout, "New SrvLog started at %s", ctime(&tp.tv_sec));
+#endif
 }
 
 
@@ -1321,7 +1347,7 @@ PRIVATE pushlog()
     struct direct **namelist;
 
 
-   count = scandir(".", (struct direct ***)&namelist, (int (*)())xselect, (int (*)())compar);
+   count = scandir(".", (struct direct ***)&namelist, (int (*)(const dirent *)) xselect, (int (*)(const dirent *const *, const dirent *const *))compar);
     
     /* Sanity check all names for safety */
     for (i = 0; i < count; i++)
