@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vice/srv.cc,v 4.2 1997/07/22 20:13:22 clement Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vice/srv.cc,v 4.3 1997/10/09 18:25:22 clement Exp $";
 #endif /*_BLURB_*/
 
 
@@ -275,9 +275,8 @@ PRIVATE void SetRlimits(void);
 #include <rvmtesting.h>
 #endif RVMTESTING
 
-#ifdef	__linux__
-struct sigaction OldContext; /* zombie() saves original context here */
-#else
+/* Signal handlers in Linux will not be passed the arguments code and scp */
+#ifndef __linux
 struct sigcontext OldContext; /* zombie() saves original context here */
 #endif
 extern void dumpvm();
@@ -287,15 +286,20 @@ extern void dumpvm();
        Backtraces will then make sense.
        Otherwise the gap in the RT stack causes the backtrace to end prematurely.
     */
+
+/* Signal handlers in Linux will not be passed the arguments code and scp */
 #ifdef	__linux__
-void zombie(int sig, int code, struct sigaction *scp) {
-    bcopy(scp, &OldContext, sizeof(struct sigaction));
+void zombie(int sig) {
 #else
 void zombie(int sig, int code, struct sigcontext *scp) {
     bcopy(scp, &OldContext, sizeof(struct sigcontext));
 #endif
 
+#ifdef  __linux__
+    LogMsg(0, 0, stdout,  "****** FILE SERVER INTERRUPTED BY SIGNAL %d ******", sig);
+#else
     LogMsg(0, 0, stdout,  "****** FILE SERVER INTERRUPTED BY SIGNAL %d CODE %d ******", sig, code);
+#endif    
     LogMsg(0, 0, stdout,  "****** Aborting outstanding transactions, stand by...");
     
     /* Abort all transactions before suspending... */
@@ -337,13 +341,16 @@ void zombie(int sig, int code, struct sigcontext *scp) {
     LogMsg(0, 0, stdout, "Becoming a zombie now ........");
     LogMsg(0, 0, stdout, "You may use gdb to attach to %d", getpid());
     {
-	int living_dead = 1;
+	int      living_dead = 1;
+	sigset_t mask;
+
+	sigemptyset(&mask);
 	while (living_dead) {
-	    sleep(1000000);	/* forever sleep, pending gdb attach */
+	    sigsuspend(&mask); /* pending gdb attach */
 	}
     }
 #endif
-    }
+}
 
 
 
