@@ -110,7 +110,14 @@ void GetRealmServers(const char *name, const char *service,
 	fclose(f);
     }
 
-    if (!found)
-	simpleaddrinfo(name, service, res);
+    if (!found) {
+	char *fullname = malloc(strlen(name) + 2);
+	if (fullname) {
+	    strcpy(fullname, name);
+	    strcat(fullname, ".");
+	    simpleaddrinfo(fullname, service, res);
+	    free(fullname);
+	}
+    }
 }
 
