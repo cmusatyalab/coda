@@ -67,9 +67,7 @@ fi
 
 echo
 echo Rdsinit will initialize data and log.
-rdsinit LOG DATA 0x20000000 0x1000000 0x100000 80 32 <<EOF
-y
-EOF
+rdsinit -f LOG DATA 20480000 0x20000000 0x1000000 0x100000 80 32
 
 if [ $? != 0 ]; then
     echo Error in rdsinit. Exiting.

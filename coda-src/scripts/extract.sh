@@ -30,7 +30,6 @@
 #Mellon the rights to redistribute these changes without encumbrance.
 #*/
 #
-#static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/scripts/extract.sh,v 4.1 1997/01/08 21:50:48 rvb Exp $";
 #endif /*_BLURB_*/
 
 
