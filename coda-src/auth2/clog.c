@@ -155,16 +155,16 @@ void export(ClearToken *cToken)
 {
     cToken->AuthHandle     = htonl(cToken->AuthHandle);
     cToken->ViceId         = htonl(cToken->ViceId);
-    cToken->BeginTimeStamp = htonl(cToken->BeginTimeStamp);
-    cToken->EndTimeStamp   = htonl(cToken->EndTimeStamp);
+    cToken->BeginTimestamp = htonl(cToken->BeginTimestamp);
+    cToken->EndTimestamp   = htonl(cToken->EndTimestamp);
 }
 
 void import(ClearToken *cToken)
 {
     cToken->AuthHandle     = ntohl(cToken->AuthHandle);
     cToken->ViceId         = ntohl(cToken->ViceId);
-    cToken->BeginTimeStamp = ntohl(cToken->BeginTimeStamp);
-    cToken->EndTimeStamp   = ntohl(cToken->EndTimeStamp);
+    cToken->BeginTimestamp = ntohl(cToken->BeginTimestamp);
+    cToken->EndTimestamp   = ntohl(cToken->EndTimestamp);
 }
 
 void WriteTokenToFile(char *filename, ClearToken *cToken,
