@@ -357,8 +357,8 @@ int sftp_DataArrived(RPC2_PacketBuffer *pBuff, struct SFTP_Entry *sEntry)
 		 sEntry->RecvLastContig + i <= sEntry->RecvMostRecent; i++) 
 		if (TESTBIT(sEntry->RecvTheseBits, i)) {
 		    pb = sEntry->ThesePackets[PBUFF((sEntry->RecvLastContig + i))];
-		    if (pb->Header.TimeEcho >= pBuff->Header.TimeEcho) {
-			//&& !(pb->Header.SEFlags & SFTP_COUNTED))
+		    if (pb->Header.TimeEcho >= pBuff->Header.TimeEcho &&
+			!(pb->Header.SEFlags & SFTP_COUNTED)) {
 			dataThisRound += pb->Prefix.LengthOfPacket;
 			pb->Header.SEFlags |= SFTP_COUNTED;
 		    }
@@ -607,11 +607,8 @@ int sftp_AckArrived(RPC2_PacketBuffer *pBuff, struct SFTP_Entry *sEntry)
 	for (i = sEntry->SendLastContig+1; i <= pBuff->Header.GotEmAll; i++) 
 	    {
 	    pb = sEntry->ThesePackets[PBUFF(i)];
-	    /* I had added the following test, but it makes us underestimate
-	     * by a large amount the actual transferred data size (as reported
-	     * to sftp_UpdateBW) -JH */
-	    /* if (!(ntohl(pb->Header.SEFlags) & SFTP_COUNTED)) */
-	    dataThisRound += ntohl(pb->Prefix.LengthOfPacket);
+	    if (!(ntohl(pb->Header.SEFlags) & SFTP_COUNTED))
+		dataThisRound += pb->Prefix.LengthOfPacket;
 	    }
 
 	for (i = 1; i <= sizeof(int)*BITMASKWIDTH; i++)
@@ -621,7 +618,7 @@ int sftp_AckArrived(RPC2_PacketBuffer *pBuff, struct SFTP_Entry *sEntry)
 		if (!(ntohl(pb->Header.SEFlags) & SFTP_COUNTED) &&
 		    (pBuff->Header.TimeEcho <= ntohl(pb->Header.TimeStamp)))
 		    {
-		    dataThisRound += ntohl(pb->Header.BodyLength);
+		    dataThisRound += pb->Header.LengthOfPacket;
 		    pb->Header.SEFlags = htonl(ntohl(pb->Header.SEFlags | SFTP_COUNTED));
 		    }
 	        }
