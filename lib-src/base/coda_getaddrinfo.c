@@ -21,14 +21,29 @@ Coda are listed in the file CREDITS.
  * would do all of this for us ;)
  */
 
+
 #include <netinet/in.h>
 #include <arpa/inet.h>
+#ifndef __CYGWIN__
 #include <arpa/nameser.h>
+#endif
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#ifndef __CYGWIN__
 #include <resolv.h>
+#endif
 #include <netdb.h>
+
+#ifdef __CYGWIN__
+/* Does not have everything we want ... need to add some stuff. */
+#define AI_CANONNAME	1
+#define uint16_t __uint16_t
+#define NS_INT16SZ sizeof(uint16_t)
+#define uint32_t __uint32_t
+#define NS_INT32SZ sizeof(uint32_t)
+
+#endif
 
 #include "coda_getaddrinfo.h"
 
@@ -72,6 +87,7 @@ struct summary {
     int flags;
 };
 
+#ifndef __CYGWIN__
 static char *srvdomainname(const char *realm, const char *service,
 			   const struct summary *sum)
 {
@@ -113,6 +129,7 @@ static int DN_INT(char *msg, int mlen, char **ptr, int *dest)
     *ptr += NS_INT32SZ;
     return 0;
 }
+#endif
 
 static int resolve_host(const char *name, int port, const struct summary *sum,
 			int priority, int weight, struct coda_addrinfo **res)
@@ -193,6 +210,7 @@ static int resolve_host(const char *name, int port, const struct summary *sum,
     return resolved ? 0 : (i ? EAI_MEMORY : EAI_NODATA);
 }
 
+#ifndef __CYGWIN__
 static int parse_res_reply(char *answer, int alen, const struct summary *sum,
 			   struct coda_addrinfo **res)
 {
@@ -269,6 +287,8 @@ static int do_srv_lookup(const char *realm, const char *service,
 
     return parse_res_reply(answer, len, sum, res);
 }
+#endif
+
 
 int coda_getaddrinfo(const char *node, const char *service,
 		     const struct coda_addrinfo *hints,
@@ -331,10 +351,12 @@ int coda_getaddrinfo(const char *node, const char *service,
     if (*service == '\0' || *end != '\0')
 	port = 0;
 
+#ifndef __CYGWIN__
     if (!is_ip && !port)
 	/* try to find SRV records */
 	err = do_srv_lookup(tmpnode, service, &sum, &srvs);
     else
+#endif
 	err = EAI_NONAME;
 
     /* fall back to A records */

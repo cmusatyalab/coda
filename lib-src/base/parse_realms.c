@@ -27,6 +27,10 @@ listed in the file CREDITS.
 #include "codaconf.h"
 #include "parse_realms.h"
 
+#ifdef __CYGWIN__
+#define AI_CANONNAME 1
+#endif
+
 #define MAXLINELEN 256
 static char line[MAXLINELEN];
 
