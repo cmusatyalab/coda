@@ -25,32 +25,15 @@ extern "C" {
 #include <config.h>
 #endif
 
-#ifdef __cplusplus
-}
-#endif
-
-#ifdef HAVE_KRB4
-
-#ifdef __cplusplus
-extern "C" {
-#endif __cplusplus
-
-#include <netdb.h>
-#include <sys/param.h>
-#include <sys/types.h>
-#include <sys/wait.h>
-#include <string.h>
+#include <stdlib.h>
 #include <assert.h>
 
 #include <des.h>
 #include <krb.h>
 
-#include <util.h>
-#include <prs.h>
-#include <al.h>
 #include <codaconf.h>
 #include <getsecret.h>
-#include "auth2.h"
+#include "krbcommon.h"
 
 #ifdef __cplusplus
 }
@@ -61,54 +44,9 @@ static char *kerberos4kinit;   /* defaults to "kinit" */
 static char *kerberos4service; /* defaults to "rcmd" */
 static char *kerberos4realm;
 
-static char *canonicalize_host(char *host)
-{
-    char thishost[MAXHOSTNAMELEN];
-    struct hostent *hent;
-    int rc;
-
-    if (!host) {
-	rc = gethostname(thishost, MAXHOSTNAMELEN);
-	if (rc) {
-	    fprintf(stderr, "canonicalize_host: gethostname failed\n");
-	    return NULL;
-	}
-	host = thishost;
-    }
-    hent = gethostbyname(host);
-    if (!hent) {
-	herror("canonicalize_host: gethostbyname failed");
-	return NULL;
-    }
-
-    return strdup(hent->h_name);
-}
-
-static void do_Kinit(char *kinit)
-{
-    char *childargv[] = { "kinit", NULL };
-    pid_t child;
-    int rc;
-
-    child = fork();
-    if ( child == -1 ) {
-	perror("fork: ");
-	return;
-    }
-
-    if ( child == 0 ) /*  in child */
-	execvp(kinit, childargv);
-    else
-	waitpid(child, &rc, 0);
-
-    return;
-}
-
 static int Krb4CommonInit(void)
 {
     char default_realm[REALM_SZ];
-
-    LogMsg(0, AuthDebugLevel, stdout, "In Krb4CommonInit()");
 
     conf_init("/etc/coda/auth.conf");
     CONF_STR(kerberos4service, "kerberos4service", "host");
@@ -146,7 +84,7 @@ int do_GetSecret(char *hostname, char **identity, int *ilen,
     char *host = NULL;
     int rc = -1;
 
-    host = canonicalize_host(hostname);
+    host = krb_canonicalize_host(hostname);
     if (!host) return -1;
 
     cred = malloc(sizeof(struct credentials));
@@ -210,7 +148,7 @@ int Krb4GetSecret(char *hostname, char **identity, int *ilen,
     rc = do_GetSecret(hostname, identity, ilen, secret, slen);
     if (!interactive) return rc;
 
-    do_Kinit(kerberos4kinit);
+    krb_fork_kinit(kerberos4kinit);
     return do_GetSecret(hostname, identity, ilen, secret, slen);
 }
 
@@ -226,7 +164,7 @@ int Krb4Validate(RPC2_CountedBS * cIdent, RPC2_EncryptionKey hKey, RPC2_Encrypti
 	return -1;
     }
 
-    host = canonicalize_host(NULL);
+    host = krb_canonicalize_host(NULL);
     if (!host) return -1;
 
     authenticator = (struct ktext *)cIdent->SeqBody;
@@ -272,4 +210,3 @@ int Krb4Validate(RPC2_CountedBS * cIdent, RPC2_EncryptionKey hKey, RPC2_Encrypti
 
     return 0;
 }
-#endif

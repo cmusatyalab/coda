@@ -25,33 +25,12 @@ extern "C" {
 #include <config.h>
 #endif
 
-#ifdef __cplusplus
-}
-#endif
-
-#ifdef HAVE_KRB5
-
-#ifdef __cplusplus
-extern "C" {
-#endif __cplusplus
-
-#include <netdb.h>
-
-#include <sys/param.h>
-#include <sys/types.h>
-#include <sys/wait.h>
-#include <string.h>
-#include <unistd.h>
-
-#include <com_err.h>
 #include <krb5.h>
+#include <com_err.h>
 
-#include <util.h>
-#include <prs.h>
-#include <al.h>
 #include <codaconf.h>
 #include <getsecret.h>
-#include "auth2.h"
+#include "krbcommon.h"
 
 #ifdef __cplusplus
 }
@@ -66,32 +45,6 @@ static char *kerberos5keytab;  /* server only */
 static krb5_context krb5context;
 static krb5_principal krb5principal;
 static krb5_keytab coda_keytab = NULL;
-
-static char *canonicalize_host(char *host)
-{
-    char thishost[MAXHOSTNAMELEN];
-    struct hostent *hent;
-    int ret;
-
-    if (!host) {
-	ret = gethostname(thishost, MAXHOSTNAMELEN);
-	if (ret) {
-	    fprintf(stderr, "canonicalize_host failed\n");
-	    return NULL;
-	}
-	host = thishost;
-    }
-
-    hent = gethostbyname(host);
-    if (!hent) {
-	herror("canonicalize_host: gethostbyname failed");
-	return NULL;
-    }
-
-    /* We need to copy the hostname because krb5 sometimes uses the
-     * resolver as well and we would lose this name */
-    return strdup(hent->h_name);
-}
 
 static int Krb5CommonInit(void)
 {
@@ -130,9 +83,9 @@ static void get_principal(char *hostname, krb5_principal *principal)
     char *host = NULL;
     char *principalname = NULL;
 
-    host = canonicalize_host(hostname);
+    host = krb_canonicalize_host(hostname);
     if (!host) {
-	fprintf(stderr, "krb5.c: canonicalize_host failed\n");
+	fprintf(stderr, "krb5.c: krb_canonicalize_host failed\n");
 	exit(-1);
     }
 
@@ -269,26 +222,6 @@ out:
     return rc;
 }
 
-static void do_Kinit(char *kinit)
-{
-    char *childargv[] = { "kinit", NULL };
-    pid_t child;
-    int rc;
-
-    child = fork();
-    if ( child == -1 ) {
-	perror("fork: ");
-	return;
-    }
-
-    if ( child == 0 ) /*  in child */
-	execvp(kinit, childargv);
-    else
-	waitpid(child, &rc, 0);
-
-    return;
-}
-
 int Krb5GetSecret(char *hostname, char **identity, int *ilen, 
                   char **secret, int *slen, int interactive)
 {
@@ -296,7 +229,7 @@ int Krb5GetSecret(char *hostname, char **identity, int *ilen,
     rc = do_GetSecret(hostname, identity, ilen, secret, slen);
     if (!interactive) return rc;
 
-    do_Kinit(kerberos5kinit);
+    krb_fork_kinit(kerberos5kinit);
     return do_GetSecret(hostname, identity, ilen, secret, slen);
 }
 
@@ -375,4 +308,3 @@ out:
 
     return rc;
 }
-#endif

@@ -32,7 +32,7 @@ LIBKRBS=
 
 ifneq ($(LIBKRB4),)
 AUTHCOMMON += krb4.o
-LIBKRBS += $(LIBKRB5)
+LIBKRBS += $(LIBKRB4)
 endif
 
 ifneq ($(LIBKRB5),)
@@ -40,7 +40,10 @@ AUTHCOMMON += krb5.o
 LIBKRBS += $(LIBKRB5)
 endif
 
+ifneq ($(LIBKRB4)$(LIBKRB5),)
+AUTHCOMMON += krbcommon.o
 LIBKRBS += $(LIBMD5)
+endif
 
 LIBAUTH2OBJS=auth2.server.o avice.o pwsupport.o $(AUTHCOMMON)
 LIBAUSEROBJS=auth2.client.o auser.o avenus.o $(AUTHCOMMON)
