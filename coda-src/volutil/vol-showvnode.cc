@@ -69,6 +69,7 @@ extern "C" {
 #include <viceinode.h>
 #include <vutil.h>
 #include <vrdb.h>
+#include <codadir.h>
 
 #include <ops.h>
 #include <rsle.h>
@@ -139,6 +140,15 @@ long S_VolShowVnode(RPC2_Handle rpcid, RPC2_Unsigned formal_volid,
         vnp->disk.author, vnp->disk.owner, ctime((long *)&vnp->disk.unixModifyTime),
 	vnp->disk.vol_index);
     PrintVV(infofile, &(vnp->disk.versionvector));
+
+    if (vnp->disk.type == vDirectory) {
+	PDCEntry pdce;
+	pdce = DC_Get((PDirInode)vnp->disk.inodeNumber);
+	if (pdce) {
+	    DH_Print(DC_DC2DH(pdce), infofile);
+	    DC_Put(pdce);
+	}
+    }
     
     if (AllowResolution && V_RVMResOn(vp) && vnp->disk.type == vDirectory) 
 	PrintLog(vnp, infofile);

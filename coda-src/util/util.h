@@ -85,8 +85,8 @@ extern void LogMsg(int msglevel, int debuglevel, FILE *fout, char *fmt,  ...);
 extern void PrintTimeStamp(FILE *fout);
 
 /* Hostname related utilities */
-int UtilHostEq(char *name1, char *name2);
-char *hostname(char *);
+int UtilHostEq(const char *name1, const char *name2);
+char *hostname(char *name);
 
   /* Process releted utilities */
 void UtilDetach();

@@ -256,7 +256,7 @@ char *hostname(char *name)
 }
 
 /* return 1 if hosts have same first address in h_addr_list */
-int UtilHostEq(char *name1, char *name2)
+int UtilHostEq(const char *name1, const char *name2)
 {
     char *addr;
     int len;

@@ -69,7 +69,7 @@ void fsobj::dir_Rebuild()
 
 	if ( ! DH_DirOK(&data.dir->dh)) {
 		LOG(0, ("WARNING: Corrupt directory for %s\n", FID_(&fid)));
-		DH_Print(&data.dir->dh);
+		DH_Print(&data.dir->dh, stdout);
 	}
 
 	DH_Convert(&data.dir->dh, data.dir->udcf->Name(), fid.Volume);
@@ -268,7 +268,7 @@ void fsobj::dir_Print()
 			   data.dir->udcf->Name(), data.dir->udcf->Length(), 
 			   data.dir->udcfvalid));
 
-		DH_Print(&data.dir->dh);
+		DH_Print(&data.dir->dh, stdout);
 	}
 }
 

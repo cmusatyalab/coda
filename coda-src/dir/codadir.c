@@ -237,11 +237,11 @@ PDirHeader DH_Data(PDirHandle dh)
 	return dh->dh_data;
 }
 
-void DH_Print(PDirHandle dh)
+void DH_Print(PDirHandle dh, FILE *f)
 {
 
 	DH_LockR(dh);
-	DIR_Print(dh->dh_data);
+	DIR_Print(dh->dh_data, f);
 	DH_UnLockR(dh);
 	return;
 }

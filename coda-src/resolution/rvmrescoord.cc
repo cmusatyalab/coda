@@ -809,8 +809,8 @@ static int CompareDirContents(SE_Descriptor *sid_bufs, ViceFid *fid) {
 		if (DIR_Compare(firstreplica, buf)) {
 		    SLog(0, "CompareDirContents: DirContents ARE DIFFERENT");
 		    if (SrvDebugLevel > 9) {
-			DIR_Print(firstreplica);
-			DIR_Print(buf);
+			DIR_Print(firstreplica, stdout);
+			DIR_Print(buf, stdout);
 		    }
 		    return(-1);
 		}

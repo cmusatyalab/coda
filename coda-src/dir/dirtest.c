@@ -424,7 +424,7 @@ void dt_printchain(int argc, char **argv)
 		return ;
 	}
 
-	DIR_PrintChain(dh->dh_data, atoi(argv[2]));
+	DIR_PrintChain(dh->dh_data, atoi(argv[2]), stdout);
 
 	return;
 }
@@ -594,7 +594,7 @@ void dt_list(int argc, char **argv)
 	}
 
 
-	DH_Print(dh);
+	DH_Print(dh, stdout);
 
 	return;
 }

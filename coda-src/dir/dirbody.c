@@ -60,7 +60,7 @@ int dir_data_in_rvm;
 
 
 /* definitions for static functions */
-void DIR_Print(PDirHeader);
+void DIR_Print(PDirHeader, FILE *f);
 static int dir_FindBlobs (struct DirHeader **dh, int nblobs);
 static int dir_AddPage (struct DirHeader **dir);
 static int dir_NameBlobs(char *);
@@ -539,7 +539,7 @@ int DIR_Create (struct DirHeader **dh, char *entry, struct DirFid *fid)
 
 	if ( !DIR_DirOK(dir)) {
 		fprintf(stderr, "Corrupt directory at %p\n", dir);
-		DIR_Print(dir);
+		DIR_Print(dir, stdout);
 	}
 
 	return 0;
@@ -580,7 +580,7 @@ int DIR_Delete(struct DirHeader *dir, char *entry)
 
 	if ( !DIR_DirOK(dir)) {
 		fprintf(stderr, "Corrupt directory at %p\n", dir);
-		DIR_Print(dir);
+		DIR_Print(dir, stdout);
 	}
 
 	return 0;
@@ -637,7 +637,7 @@ int DIR_MakeDir (struct DirHeader **dir,struct DirFid *me,
 
 	if ( !DIR_DirOK(*dir)) {
 		fprintf(stderr, "Corrupt directory at %p\n", dir);
-		DIR_Print(*dir);
+		DIR_Print(*dir, stdout);
 	}
 
 	return 0;
@@ -668,13 +668,13 @@ void DIR_Free(struct DirHeader *dir, int in_rvm)
 
 
 /* print one entry */
-int DIR_PrintEntry(PDirEntry entry)
+int DIR_PrintEntry(PDirEntry entry, FILE *f)
 {
 	struct DirFid fid;
 
 	fid_NFid2Fid(&(entry->fid), &fid);
 
-	fprintf(stdout, "next: %hu, flag %d fid: (%lx.%lx) %s\n",
+	fprintf(f, "next: %hu, flag %d fid: (%lx.%lx) %s\n",
 		ntohs(entry->next), entry->flag,
 		fid.df_vnode, fid.df_unique, entry->name);
 
@@ -682,7 +682,7 @@ int DIR_PrintEntry(PDirEntry entry)
 	return 0;
 }
 
-void DIR_PrintChain(PDirHeader dir, int chain)
+void DIR_PrintChain(PDirHeader dir, int chain, FILE *f)
 {
 	short blob;
 	struct DirEntry *de;
@@ -696,15 +696,15 @@ void DIR_PrintChain(PDirHeader dir, int chain)
 		
 	while ( blob ) {
 		de = dir_GetBlob(dir, blob);
-		fprintf(stdout, "thisblob: %hu ", blob);
-		DIR_PrintEntry(de);
+		fprintf(f, "thisblob: %hu ", blob);
+		DIR_PrintEntry(de, f);
 		blob = ntohs(de->next);
 	}
 	return ;
 }
 
 /* print the header and then the entries */
-void DIR_Print(PDirHeader dir)
+void DIR_Print(PDirHeader dir, FILE *f)
 {
 	int i, num;
 	int setbits;
@@ -713,45 +713,43 @@ void DIR_Print(PDirHeader dir)
 	struct PageHeader *ph;
 	char bitmap[EPP+1];
 
-	fprintf(stdout, "DIR: %p,  LENGTH: %d\n", dir, DIR_Length(dir));
+	fprintf(f, "DIR: %p,  LENGTH: %d\n", dir, DIR_Length(dir));
 
-	fprintf(stdout, "\nHASH TABLE:\n");
+	fprintf(f, "\nHASH TABLE:\n");
 	for ( i = 0; i < NHASH ; i++ ) {
 		num = ntohs(dir->dirh_hashTable[i]);
 		if ( num ) 
-			fprintf(stdout, "(%d %hd) ", i, num);
+			fprintf(f, "(%d %hd) ", i, num);
 	}
 
-	fprintf(stdout, "\n\nALLOMAP:\n");
+	fprintf(f, "\n\nALLOMAP:\n");
 	for ( i = 0; i < DIR_MAXPAGES ; i++ ) {
 		allo = dir->dirh_allomap[i];
 		if ( allo != EPP )
-			fprintf(stdout, "(%d %i) ", i, allo);
+			fprintf(f, "(%d %i) ", i, allo);
 	}
 
-	fprintf(stdout, "\n\nPAGEHEADERS:\n");
+	fprintf(f, "\n\nPAGEHEADERS:\n");
 	for ( i = 0; i < DIR_MAXPAGES ; i++ ) {
 		if ( dir->dirh_allomap[i] != EPP ) {
 			ph = DIR_Page(dir, i);
 			setbits = dir_PrintChar(ph->freebitmap, EPP, bitmap);
 			bitmap[EPP] = '\0';
 			freecount = ph->freecount;
-			fprintf(stdout, 
-				"page %d, tag %d, freecount %d, set %d, bitmap: \n",
+			fprintf(f, "page %d, tag %d, freecount %d, set %d, bitmap: \n",
 				i, (int)ntohl(ph->tag), freecount, setbits);
-			fprintf(stdout, "%s\n\n", bitmap);
+			fprintf(f, "%s\n\n", bitmap);
 		}
 	}
 			
-	fprintf(stdout, "\nCHAINS:\n");
+	fprintf(f, "\nCHAINS:\n");
 	for ( i = 0; i < NHASH ; i++ ) {
 		num = ntohs(dir->dirh_hashTable[i]);
 		if ( num ) {
 			printf("Chain: %d\n", i);
-			DIR_PrintChain(dir, i);
+			DIR_PrintChain(dir, i, f);
 		}
 	}
-
 }
 
 

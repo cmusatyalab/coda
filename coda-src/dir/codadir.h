@@ -90,7 +90,7 @@ int DH_LookupByFid(PDirHandle dh, char *entry, struct ViceFid *vfid);
 int DH_Delete(PDirHandle dh, char *entry);
 int DH_DirOK(PDirHandle dh);
 void DH_Free(PDirHandle dh, int in_rvm);
-void DH_Print(PDirHandle dh);
+void DH_Print(PDirHandle dh, FILE *f);
 void DH_PrintStats(FILE *fp);
 int DH_MakeDir(PDirHandle dh, struct ViceFid *vme, struct ViceFid *vparent);
 int DH_EnumerateDir(PDirHandle dh, int (*hookproc)(struct DirEntry *de, void *hook), void *hook);
@@ -166,7 +166,7 @@ char *FID_2(struct ViceFid *);
 int DIR_init(int);
 int DIR_Compare (PDirHeader, PDirHeader);
 int DIR_Length(PDirHeader);
-void DIR_Print(PDirHeader);
+void DIR_Print(PDirHeader, FILE *f);
 #define DIR_intrans()  DIR_check_trans(__FUNCTION__, __FILE__)
 inline void DIR_check_trans(char *where, char *file);
 struct PageHeader *DIR_Page(struct DirHeader *dirh, int page);

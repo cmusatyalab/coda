@@ -91,7 +91,7 @@ int DIR_EnumerateDir(struct DirHeader *dhp,
 int DIR_Create(struct DirHeader **dh, char *entry, struct DirFid *fid);
 int DIR_Length(struct DirHeader *dir);
 int DIR_Delete(struct DirHeader *dir, char *entry);
-void DIR_PrintChain(PDirHeader dir, int chain);
+void DIR_PrintChain(PDirHeader dir, int chain, FILE *f);
 int DIR_Hash (char *string);
 int DIR_DirOK (PDirHeader pdh);
 int DIR_Convert (PDirHeader dir, char *file, VolumeId vol);
