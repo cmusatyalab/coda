@@ -30,10 +30,10 @@
 #Mellon the rights to redistribute these changes without encumbrance.
 #*/
 #
-#static char *rcsid = "$Header: /usr2/raiff/coda/coda-src/scripts/RCS/bldvldb.sh,v 4.1 97/01/08 21:50:46 rvb Exp Locker: raiff $";
+#static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/scripts/bldvldb.sh,v 4.2 1997/06/18 12:24:18 raiff Exp $";
 #endif /*_BLURB_*/
 
-
+set path = ( $path /vice/bin )
 cd /vice/vol/remote
 
 # Get the volume lists from the servers
