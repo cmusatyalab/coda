@@ -90,6 +90,7 @@ int main(int argc, char **argv)
 	int ok, rc;
 	char *realm = NULL;
 	char *host = NULL;
+	struct RPC2_addrinfo *srvs;
 
 	memset(newpw, 0, sizeof(newpw));
 	memset(buf, 0, sizeof(buf));
@@ -188,7 +189,7 @@ tryagain:
 		printf("Mismatch - password unchanged.\n");
 		exit(1);
 	}
-	struct RPC2_addrinfo *srvs = U_GetAuthServers(realm, host);
+	srvs = U_GetAuthServers(realm, host);
 	rc = U_ChangePassword (srvs, uname, newpw, AUTH_METHOD_CODAUSERNAME, myuser, strlen(myuser)+1, mypasswd, strlen(mypasswd));
 	RPC2_freeaddrinfo(srvs);
 
