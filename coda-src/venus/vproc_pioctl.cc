@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/vproc_pioctl.cc,v 4.14 98/11/11 15:59:01 smarc Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/vproc_pioctl.cc,v 4.15 1998/11/24 15:34:53 jaharkes Exp $";
 #endif /*_BLURB_*/
 
 
@@ -924,11 +924,11 @@ V_FreeLocks:
 #define secretp ((SecretToken *)(secretlen + 1))
 #define clearlen ((long *)(secretp + 1))
 #define clearp ((ClearToken *)(clearlen + 1))
-#define endp ((char *)(clearp + 1))
+#define endp ((char *)(clearp + 1)) 
 		    userent *ue;
-		    GetUser(&ue, CRTORUID(u.u_cred));
+		    GetUser(&ue, CRTORUID(u.u_cred));	   
 		    u.u_error = (int) ue->GetTokens(secretp, clearp);
-		    PutUser(&ue);
+		    PutUser(&ue);		   	
 		    if (u.u_error) break;
 
 		    *secretlen = (int)sizeof(SecretToken);

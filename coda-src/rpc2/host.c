@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rpc2/host.c,v 4.7 98/12/07 11:00:26 jaharkes Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rpc2/host.c,v 4.8 1998/12/14 15:51:51 jaharkes Exp $";
 #endif /*_BLURB_*/
 
 
@@ -61,7 +61,6 @@ supported by Transarc Corporation, Pittsburgh, PA.
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
-#include <arpa/inet.h>
 #include <sys/time.h>
 #include <unistd.h>
 #include <string.h>
@@ -436,3 +435,48 @@ unsigned long RPC2_GetBandwidth(struct HEntry *host, unsigned long *BWvar)
     return (host->BW >> RPC2_BW_SHIFT);
 }
 
+#if defined(DJGPP) || defined(__CYGWIN32__) 
+
+int inet_aton(const char *str, struct in_addr *out)
+{
+        unsigned long l;
+        unsigned int val;
+        int i;
+
+        l = 0;
+        for (i = 0; i < 4; i++) 
+        {
+                l <<= 8;
+                if (*str != '\0') 
+                {
+                        val = 0;
+                        while (*str != '\0' && *str != '.') 
+                        {
+                                val *= 10;
+                                val += *str - '0';
+                                str++;
+                        }
+                        l |= val;
+                        if (*str != '\0') 
+                                str++;
+                }
+        }
+        out->s_addr = htonl(l);
+        return(0);
+}
+
+#endif
+
+#ifdef DJGPP
+char *inet_ntoa(struct in_addr in)
+{
+        static char buff[18];
+        char *p;
+
+        p = (char *) &in.s_addr;
+        sprintf(buff, "%d.%d.%d.%d",
+                (p[0] & 255), (p[1] & 255), (p[2] & 255), (p[3] & 255));
+        return(buff);
+}
+
+#endif

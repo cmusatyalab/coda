@@ -80,7 +80,8 @@ RPC2_EncryptionKey DeleteKey;   /* always full of ones: set in InitAl()
 
 int AdminID;    /* group Id of system administrators */
 
-char *PWFile = "/vice/db/auth2.pw";     /* name of password file */
+char *PWFile   = "/vice/db/auth2.pw";     /* name of password file */
+char *LockFile = "/auth2.lock";         /* lock file */
 RPC2_EncryptionKey *PWArray = NULL;     /* pointer to array of passwords indexed by ViceId */
 int PWTime = 0;                 /* used to tell if pw file has changed */
 int PWLen = 0;  /* no of entries in PWArray */
@@ -155,6 +156,7 @@ int LockParent(char *fName, int lockType)
 	*rindex(parent, '/') = 0;
 		/* parent surely has at least one '/' by now */
 
+	strcat(parent, LockFile);
 	if ((pfd = open(parent, O_RDONLY, 0)) < 0
 		|| flock(pfd, lockType) < 0)
 	{

@@ -33,7 +33,7 @@ should be returned to Software.Distribution@cs.cmu.edu.
 
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/rvm-src/tests/rvm_basher.c,v 4.8 1998/09/29 16:39:13 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/rvm-src/tests/rvm_basher.c,v 4.9 1998/11/02 16:47:57 rvb Exp $";
 #endif _BLURB_
 
 /*
@@ -896,7 +896,7 @@ rvm_bool_t chk_vm()
 #endif VERSION_TEST
 
     /* open segment file read-only */
-#ifdef O_BINARY
+#ifdef DJGPP
     if ((seg_file = fopen(DataFileName,"rb")) == NULL)
 #else
     if ((seg_file = fopen(DataFileName,"r")) == NULL)
@@ -935,7 +935,7 @@ rvm_bool_t chk_vm()
 #endif VERSION_TEST
     return rvm_true;
     }
-rvm_bool_t chk_time()
+rvm_bool_t chk_time()
     {
     struct timeval  time;
 
@@ -961,7 +961,7 @@ rvm_bool_t chk_vm()
     init_time = time;                   /* update loop start time */
     return rvm_true;
     }
-/* moby range test */
+/* moby range test */
 rvm_bool_t chk_moby()
     {
     rvm_length_t    length;             /* range length */
@@ -1681,7 +1681,7 @@ static str_name_entry_t cmd_vec[MAX_CMDS] = /* command codes vector */
 #endif VERSION_TEST
                     {"",(key_id_t)NULL} /* end mark, do not delete */
                     };
-main(argc, argv)
+main(argc, argv)
     int argc;
     char **argv;
     {

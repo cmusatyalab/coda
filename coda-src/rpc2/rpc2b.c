@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rpc2/rpc2b.c,v 4.12 98/12/07 11:00:27 jaharkes Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rpc2/rpc2b.c,v 4.13 1998/12/14 15:51:51 jaharkes Exp $";
 #endif /*_BLURB_*/
 
 
@@ -982,7 +982,8 @@ long rpc2_GetLocalHost(localhost, remotehost)
     }
 
     localhost->Tag = RPC2_HOSTBYINETADDR;
-    localhost->Value.InetAddress.s_addr = h->h_addr.s_addr;
+    memcpy(&localhost->Value.InetAddress, h->h_addr , sizeof(struct in_addr));
+    /*	     localhost->Value.InetAddress.s_addr = h->h_addr.s_addr;   */
     fprintf (stderr, "rpc2_GetLocalHost: name %s len %d ip %s\n",
 	     hostname, h->h_length, inet_ntoa(localhost->Value.InetAddress));
     return 0;

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/user.h,v 4.2 97/12/16 16:08:34 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/user.h,v 4.3 1998/01/26 21:31:51 mre Exp $";
 #endif /*_BLURB_*/
 
 
@@ -119,7 +119,7 @@ class userent {
     void Reset();
     int Connect(RPC2_Handle *, int *, unsigned long);
     int GetWaitForever();
-    void SetWaitForever(int);
+    void SetWaitForever(int);   
 
     int GetUid() 
         { return(uid); }

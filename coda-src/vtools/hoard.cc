@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vtools/hoard.cc,v 4.10 98/10/07 20:30:06 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vtools/hoard.cc,v 4.11 1998/11/30 11:39:50 jaharkes Exp $";
 #endif /*_BLURB_*/
 
 
@@ -79,6 +79,9 @@ extern FILE *_findiop();
 #include <vice.h>
 #include <hdb.h>
 
+#ifndef O_BINARY
+#define O_BINARY 0
+#endif
 
 /* Manifest Constants. */
 #define	CODA_MOUNTPOINT   "/coda"
@@ -1231,7 +1234,7 @@ static int CreateOutFile(char *in, char *out) {
 #ifndef __CYGWIN32__
 	if (setreuid(ruid, ruid) < 0) exit(errno);
 #endif
-	int fd = open(in, (O_TRUNC | O_CREAT), 0666);
+	int fd = open(in, (O_TRUNC | O_CREAT | O_BINARY), 0666);
 	if (fd < 0) exit(errno);
 	exit(close(fd) < 0 ? errno : 0);
     }
@@ -1288,7 +1291,7 @@ static void RenameOutFile(char *from, char *to) {
 
     if (child == 0) {
 	/* Open the source file. */
-	int infd = open(from, O_RDONLY, 0);
+	int infd = open(from, O_RDONLY | O_BINARY, 0);
 	if (infd < 0) {
 	    error(!FATAL, "RenameOutFile: open(%s) failed(%s)", from, sys_errlist[errno]);
 	    exit(errno);
@@ -1301,7 +1304,7 @@ static void RenameOutFile(char *from, char *to) {
 	    exit(errno);
 	}
 #endif
-	int outfd = open(to, (O_TRUNC | O_CREAT | O_WRONLY), 0666);
+	int outfd = open(to, (O_TRUNC | O_CREAT | O_WRONLY | O_BINARY), 0666);
 	if (outfd < 0) {
 	    error(!FATAL, "RenameOutFile: open(%s) failed(%s)", to, sys_errlist[errno]);
 	    exit(errno);

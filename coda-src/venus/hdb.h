@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/hdb.h,v 4.5 1998/08/26 21:24:32 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/hdb.h,v 4.6 1998/11/02 16:46:11 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -58,6 +58,7 @@ extern "C" {
 
 /* interfaces */
 #include <vice.h>
+#include <cfs/coda.h>
 
 #define HDB_ASSERT(ex) \
 {\
@@ -83,7 +84,6 @@ extern "C" {
 
 /* Should be in venusioctl.h! -JJK */
 
-
 struct hdb_clear_msg {
     vuid_t  cuid;
     vuid_t  ruid;
@@ -91,7 +91,7 @@ struct hdb_clear_msg {
 
 struct hdb_add_msg {
     VolumeId volno;
-    char name[MAXPATHLEN];
+    char name[CODA_MAXPATHLEN];
     int priority;
     int attributes;
     vuid_t ruid;
@@ -99,12 +99,12 @@ struct hdb_add_msg {
 
 struct hdb_delete_msg {
     VolumeId volno;
-    char name[MAXPATHLEN];
+    char name[CODA_MAXPATHLEN];
     vuid_t ruid;
 };
 
 struct hdb_list_msg {
-    char outfile[MAXPATHLEN];
+    char outfile[CODA_MAXPATHLEN];
     vuid_t luid;
     vuid_t ruid;
 };
@@ -114,7 +114,7 @@ struct hdb_walk_msg {
 };
 
 struct hdb_verify_msg {
-    char outfile[MAXPATHLEN];
+    char outfile[CODA_MAXPATHLEN];
     vuid_t luid;
     vuid_t ruid;
     int   verbosity;

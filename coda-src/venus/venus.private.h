@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/venus.private.h,v 4.20 1998/10/06 21:56:30 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/venus.private.h,v 4.21 1998/11/02 16:46:20 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -133,8 +133,11 @@ const int FREE_FACTOR = 16;
 const int MAXHOSTS = 8;	/* The number of hosts we generally try to parse in a host list.  S/B in vice.h! */
 const int NFDS = 32;	/* IOMGR-enforced limit!  Kernel may allocate fds numbered higher than this! */
 /* definition of vuid_t that used to be here has been moved to vicedep/vcrcommon.rpc2  (Satya 3/23/92) */
+#ifdef DJGPP
+const vuid_t V_UID = (vuid_t)500;    /* UID that the venus process runs under. */
+#else
 const vuid_t V_UID = (vuid_t)0;	    /* UID that the venus process runs under. */
-
+#endif
 /* Group id fields are 32 bits in BSD44 (not 16 bits); the use of a small 
    negative number (-2) means its unsigned long representation is huge
    (4294967294).  This causes the "ar" program to screw up because it

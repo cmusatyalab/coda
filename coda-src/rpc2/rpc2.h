@@ -61,6 +61,15 @@ supported by Transarc Corporation, Pittsburgh, PA.
 #include <sys/time.h>  
 #include <netinet/in.h>
 
+#if !defined(DJGPP) && !defined(__CYGWIN32__)
+#include <arpa/inet.h>
+#else
+ int    inet_aton(const char *str, struct in_addr *out);
+#ifdef DJGPP
+ char * inet_ntoa(struct in_addr ip);
+#endif
+#endif
+
 
 /* This string is used in RPC initialization calls to ensure that the
 runtime system and the header files are mutually consistent.  Also

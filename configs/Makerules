@@ -92,7 +92,7 @@ endif
 #####################
 installclient: c_bin_install c_sbin_install
 
-ifeq ($(host_alias),windows95)
+ifeq ($(host_alias),windows95) 
 TARGETCBINS := $(CBINS:%=%.exe)
 TARGETCSBINS := $(CSBINS:%=%.exe)
 else

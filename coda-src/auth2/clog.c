@@ -101,15 +101,19 @@ int main(int argc, char **argv)
     ClearToken		    testCTok;
     struct passwd	    *pw;
     char *hostname=NULL;
-    char *username=0;
+    char *username=NULL;
     long		    rc;
     int i;
     int testing = 0;
 
+#ifdef __CYGWIN32__
+    username = getlogin();	 
+#else
     pw = getpwuid (getuid ());
     if (pw) {
         username=pw->pw_name;
     }
+#endif
 
     i = 1;
     while (i < argc) {
@@ -156,6 +160,7 @@ int main(int argc, char **argv)
 	    exit (1);
     }
 
+    printf("username: %s\n", username);
 
     U_InitRPC();
 

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/venusrecov.cc,v 4.16 1998/10/13 16:49:29 jaharkes Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/venusrecov.cc,v 4.17 1998/11/02 16:46:21 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -193,7 +193,7 @@ void RecovVenusGlobals::print(FILE *fp) {
 
 /* local-repair modification */
 void RecovVenusGlobals::print(int fd) {
-    fdprint(fd, "RVG values: what they are (what they should be)\n");
+    fdprint(fd, "RVG values: what they are (what they should be)\n");    
     fdprint(fd, "Magic = %x(%x), Version = %d(%d), CleanShutDown= %d(0 or 1), RootVolName = %s\n",
 	    recov_MagicNumber, RecovMagicNumber,
 	    recov_VersionNumber, RecovVersionNumber,
@@ -562,9 +562,11 @@ static void Recov_CreateSeg() {
 
 
 static void Recov_LoadSeg() {
-    rvm_offset_t dummy;
+    rvm_offset_t dummy = {0,0};
     unsigned long nregions = 0;
     rvm_region_def_t *regions = 0;
+
+    memset((void*)&dummy, 0, sizeof(dummy));
     rvm_return_t ret = rvm_load_segment(VenusDataDevice, dummy,
 					 &Recov_Options, &nregions, &regions);
     if (ret != RVM_SUCCESS)
@@ -838,9 +840,9 @@ static void Recov_AllocateVM(char **addr, unsigned long length)
  
     if (*addr == (char *)-1) {
 	if (errno == ENOMEM)
-	    CHOKE("Recov_AllocateVM: mmap(%x, %x, ...) out of memory", *addr, length);
+	    CHOKE("Recov_AllocateVM: mmap(%x, %x, ...) out of memory", requested_addr, length);
 	else
-	    CHOKE("Recov_AllocateVM: mmap(%x, %x, ...) failed with errno == %d", *addr, length, errno);
+	    CHOKE("Recov_AllocateVM: mmap(%x, %x, ...) failed with errno == %d", requested_addr, length, errno);
     }
 
     if ((requested_addr != 0) && (*addr != requested_addr)) {
@@ -854,7 +856,7 @@ static void Recov_AllocateVM(char **addr, unsigned long length)
 static void Recov_DeallocateVM(char *addr, unsigned long length) {
 #if	__CYGWIN32__
     int ret = UnmapViewOfFile(addr);
-    if (ret != 1)
+    if (ret == 0)
   	CHOKE("Recov_DeallocateVM: deallocate(%x, %x) failed (%d)", addr, length, ret);
       LOG(0, ("Recov_DeallocateVM: deallocated %x bytes at %x\n", length, addr));
 #else

@@ -33,7 +33,7 @@ should be returned to Software.Distribution@cs.cmu.edu.
 
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/rvm-src/rvm/rvm_io.c,v 4.9 1998/09/29 21:04:55 jaharkes Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/rvm-src/rvm/rvm_io.c,v 4.10 1998/11/02 16:47:43 rvb Exp $";
 #endif _BLURB_
 
 /*
@@ -198,8 +198,8 @@ long open_dev(dev,flags,mode)
     dev->handle = 0;
 
     /* attempt to open */
-#ifdef DJGPP
-    handle = (long)open(dev->name,flags | O_BINARY ,mode);
+#if defined(DJGPP) || defined(__CYGWIN32__)
+    handle = (long)open(dev->name,flags | O_BINARY, mode);
 #else
     handle = (long)open(dev->name,flags ,mode);
 #endif 

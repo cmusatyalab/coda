@@ -9,6 +9,8 @@
 #include "coda_assert.h"
 #include <cfs/coda.h>
 #include "codadir.h"
+#include "util.h"
+
 /*
  * Public FID routines: to be taken elsewhere.
  */

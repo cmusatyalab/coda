@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rpc2/stest.c,v 4.9 98/11/02 16:45:28 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rpc2/stest.c,v 4.10 1998/11/24 15:34:45 jaharkes Exp $";
 #endif /*_BLURB_*/
 
 
@@ -63,7 +63,6 @@ supported by Transarc Corporation, Pittsburgh, PA.
 #include <sys/stat.h>
 #include <sys/signal.h>
 #include <netinet/in.h>
-#include <arpa/inet.h>
 #include <math.h>
 #include "lwp.h"
 #include "timer.h"

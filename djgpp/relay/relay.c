@@ -8,7 +8,15 @@
 
 #include <cfs/coda.h>
 
-#define BUFSIZE 2000
+/*#include <auth2.h>
+
+typedef struct {
+    int			    sTokenSize;
+    EncryptedSecretToken    stoken;
+    int			    cTokenSize;
+    ClearToken		    ctoken;
+    } venusbuff;*/
+#define BUFSIZE 4096
 
 FILE *file;
 
@@ -77,10 +85,12 @@ printattr(struct coda_vattr *p)
 	  p->va_size);
 }
 
+
 void
 printrequest (char *buffer)
 {
   union inputArgs *in = (union inputArgs *) buffer;
+  /*  venusbuff *vb ; */
 
   fprintf (file, "req: %s uniq %d ", opcode(in->ih.opcode), in->ih.unique);
   switch (in->ih.opcode) {
@@ -113,6 +123,11 @@ printrequest (char *buffer)
     printvfid (&in->coda_remove.VFid);
     fprintf (file, "\"%s\" ", buffer + (int) in->coda_remove.name);
     break;
+  case CODA_IOCTL:
+    printvfid(&in->coda_ioctl.VFid);
+    /*    vb = (venusbuff *)(buffer + (int )in->coda_ioctl.data);
+	  fprintf (file, "\"%i\" ", vb->ctoken.EndTimestamp); */
+    break;
   }
   fprintf (file, "\n");
 }
@@ -138,7 +153,7 @@ printreply (char *buffer, int n, struct sockaddr_in *addr)
     else {
       fprintf (file, " (success) ");
 
-      //These can only be printed if no error was returned by vice
+      /* These can only be printed if no error was returned by vice */
       switch (out->oh.opcode) {
       case CODA_ROOT:
         printvfid(&out->coda_root.VFid);
@@ -162,10 +177,10 @@ printreply (char *buffer, int n, struct sockaddr_in *addr)
 	printattr(&out->coda_mkdir.attr);
 	break;
     
-    }//switch
-    }//else
+      }/*switch*/
+    }/*else*/
 
-    //These can even be printed when vice returned an error
+    /*These can even be printed when vice returned an error*/
     switch (out->oh.opcode) {
    
     case CODA_GETATTR:
@@ -177,9 +192,9 @@ printreply (char *buffer, int n, struct sockaddr_in *addr)
       fprintf (file, "size %d buf %s", out->coda_readdir.size, 
       	buffer + (int) out->coda_readdir.data);
       break;
-    }//switch
+    }/*switch*/
 
-  }//if (n)
+  }/*if (n)*/
 
   fprintf (file, "\n");
 }

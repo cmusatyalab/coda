@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rpc2/lists.c,v 4.7 98/11/02 16:45:17 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rpc2/lists.c,v 4.8 1998/11/24 15:34:35 jaharkes Exp $";
 #endif /*_BLURB_*/
 
 
@@ -73,7 +73,6 @@ supported by Transarc Corporation, Pittsburgh, PA.
 #include "rpc2.private.h"
 
 
-
 /* Routines to allocate and manipulate the doubly-linked circular lists 
 	used elsewhere in rpc2 */
 
@@ -88,9 +87,8 @@ void rpc2_Replenish(whichList, whichCount, elemSize, creationCount, magicNumber)
 	Sets *whichCount to 1.
 	Bumps creationCount by 1.
     */
-    {
-    
-
+    {    
+	   
     *whichList = (struct LinkEntry *)malloc(elemSize);
     CODA_ASSERT(*whichList != NULL);
     bzero(*whichList, elemSize);

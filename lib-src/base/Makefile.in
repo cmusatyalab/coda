@@ -38,7 +38,7 @@ CFLAGS += -Wall
 
 LIBRARIES = libbase.a 
 HEADERS   = coda_assert.h configfiles.h dllist.h
-OBJECTS = coda_assert.o dllist.o # configfiles.o
+OBJECTS = coda_assert.o dllist.o coda_malloc.c # configfiles.o
 
 HEADERS += parser.h
 ifneq ($(SHORTSYS),djgpp)

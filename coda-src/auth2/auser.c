@@ -92,8 +92,15 @@ extern "C" {
 }
 #endif __cplusplus
 
-
+#ifdef __CYGWIN32__
+#define VSTAB "c:\\usr\\coda\\etc\\vstab"
+#else
 #define VSTAB "/usr/coda/etc/vstab"
+#endif
+
+#ifndef O_BINARY
+#define O_BINARY 0
+#endif
 
 static int SetHost(int write, int index, char *AuthHost);
 static void GetVSTAB(char *);
@@ -304,7 +311,7 @@ int U_BindToServer(char *DefAuthHost, RPC2_Integer AuthenticationType,
 	GetVSTAB(VSTAB);
 
 	/* try all valid entries until we are rejected or accepted */
-	while ((rc = SetHost(1, i, AuthHost)) == 0 ) {
+	while ((rc = SetHost(1, i, AuthHost)) == 0 ) {		
 		bound = TryBinding(AuthenticationType, uName, uNamelen, 
 				   uPasswd, uPasswdlen, AuthHost, RPCid);
 		if (bound == 0 || bound == RPC2_NOTAUTHENTICATED)
@@ -331,10 +338,19 @@ static int TryBinding(RPC2_Integer AuthenticationType, char *viceName,
     long rc;
     int len;
 
-
-    hident.Tag = RPC2_HOSTBYNAME;
-    strcpy(hident.Value.Name, AuthHost);
+    if (index(AuthHost, '.')){
+	int a, b, c, d;    
+	hident.Tag = RPC2_HOSTBYINETADDR;
+	sscanf(AuthHost, "%d.%d.%d.%d", &a, &b, &c, &d);
+	d &= 0x000000ff;
+	d |= (((a << 24) & 0xff000000) | (b << 16 & 0x00ff0000) | ((c << 8) & 0x0000ff00));
+	hident.Value.InetAddress.s_addr = htonl(d);
+    }else {
+	hident.Tag = RPC2_HOSTBYNAME;
+	strcpy(hident.Value.Name, AuthHost);
+    }
     pident.Tag = RPC2_PORTBYNAME;
+
     strcpy(pident.Value.Name, AUTH_SERVICE);
     sident.Tag = RPC2_SUBSYSBYID;
     sident.Value.SubsysId = htonl(AUTH_SUBSYSID);
@@ -398,7 +414,7 @@ static void GetVSTAB(char *vstab)
 
     fd = open(vstab, O_RDONLY | O_BINARY, 0); 
     if ( fd < 0 ) {
-	perror("Error opening VSTAB");
+	    perror("Error opening VSTAB");
 	return;
     }
 

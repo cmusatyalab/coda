@@ -33,7 +33,7 @@ should be returned to Software.Distribution@cs.cmu.edu.
 
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/rvm-src/rds/rdsinit.c,v 4.9 1998/09/29 21:04:54 jaharkes Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/rvm-src/rds/rdsinit.c,v 4.10 1998/11/02 16:47:41 rvb Exp $";
 #endif _BLURB_
 
 
@@ -312,7 +312,7 @@ static int get_valid_parm(argc, argv, pdatalen,
 	    *pstatic_addr = (char *)strtoul(string, NULL, 0);
         } while (!confirm_rounded_value((unsigned long *)pstatic_addr, 
 					base, RVM_PAGE_SIZE,UP,
-					0x4000000)); 
+					0x2000000)); 
 				/* note 0x4000000 is just a very loose lower
 				*  bound.  Actual number should be much
 				*  larger (and system-dependent)
