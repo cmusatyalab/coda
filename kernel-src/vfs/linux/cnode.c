@@ -14,8 +14,9 @@
 #include "linux/coda.h"
 #include "cfs_linux.h"
 #include "psdev.h"
-#include "cnode.h"
 #include "super.h" 
+#include "upcall.h"
+#include "cnode.h"
 
 extern int coda_debug;
 extern int coda_print_entry;
@@ -63,6 +64,7 @@ coda_cnode_make(struct inode **inode, ViceFid *fid, struct super_block *sb)
         struct coda_vattr attr;
         int error;
 	ino_t ino;
+	char str[50];
         
         ENTRY;
 
@@ -70,17 +72,16 @@ coda_cnode_make(struct inode **inode, ViceFid *fid, struct super_block *sb)
          * We get inode numbers from Venus -- see venus source
          */
 
-	error = coda_getvattr(fid, &attr, coda_sbp(sb));
-	ino = attr.va_fileid;
+	error = venus_getattr(sb, fid, &attr);
 	if ( error ) {
-	    printk("coda_cnode_make: coda_getvattr returned %d\n", 
-		   error);
-	    inode = NULL;
+	    printk("coda_cnode_make: coda_getvattr returned %d for %s.\n", 
+		   error, coda_f2s(fid, str));
+	    *inode = NULL;
 	    return error;
 	} 
+	ino = attr.va_fileid;
 	
         *inode = iget(sb, ino);
-
         if ( !*inode ) {
                 printk("coda_cnode_make: iget failed\n");
                 return -ENOMEM;

@@ -76,20 +76,11 @@
 /* defintion of cnode, which combines ViceFid with inode information */
 
 struct cnode {
-#ifdef KERNEL
         struct inode    *c_vnode;    /* coda_fs inode associated with cnode */
-#else
-        struct vnode    *c_vnode;    /* for use in Venus */
-#endif
         u_short	         c_flags;     /* flags (see below) */
         ViceFid	         c_fid;	     /* file handle */
-#ifdef	KERNEL
         int             c_magic;     /* to verify the data structure */
-#ifdef	__linux__
         struct inode    *c_ovp;	     /* open vnode pointer */
-#else
-        struct vnode    *c_ovp;	     /* open vnode pointer */
-#endif	/* __linux__ */
         struct inode    *c_psdev;    /*psdev associated with this filesystem*/
         u_short	        c_ocount;    /* count of openers */
         u_short         c_owrite;    /* count of open for write */
@@ -97,7 +88,6 @@ struct cnode {
         char            *c_symlink;  /* pointer to symbolic link */
         u_short         c_symlen;    /* length of symbolic link */
         struct cnode    *c_next;     /* next cnode in the cache */
-#endif	KERNEL
         dev_t	        c_device;    /* associated vnode device */
         ino_t	        c_inode;     /* associated vnode inode "number?"?? */
         /*    LINKS;                     links if on BSD44 machine */ 
@@ -110,9 +100,9 @@ struct cnode {
 #define VALID_SYMLINK(cp)        ((cp->c_flags) & C_SYMLINK)
 
 
-#ifdef KERNEL
 #define C_DYING	      0x4	  /* Set for outstanding cnodes from last venus (which died) */
 #define IS_DYING(cp)		 ((cp->c_flags) & C_DYING)
+#ifdef KERNEL
 
 #define CN_WANTED     0x8        /* Set if lock wanted */
 #define CN_LOCKED     0x10       /* Set if lock held */

@@ -82,16 +82,13 @@
 /*
  *      Debugging aids
  */
-int coda_debug =0;
-int coda_print_entry = 0; 
-int coda_access_cache = 1;
 
 
 /* 
  * Coda stuff
  */
 extern struct file_system_type coda_fs_type;
-extern int coda_downcall(int opcode, struct outputArgs *out);
+extern int coda_downcall(int opcode, union outputArgs *out);
 extern int init_coda_fs(void);
 extern int cfsnc_get_info(char *buffer, char **start, off_t offset, int length, int dummy);
 extern int cfsnc_nc_info(char *buffer, char **start, off_t offset, int length, int dummy);
@@ -112,6 +109,7 @@ inline struct vcomm *coda_psdev_vcomm(struct inode *inode)
 	
 	return &(coda_super_info.mi_vcomm);
 }
+
 
 /*
  * Device operations
@@ -145,7 +143,7 @@ static int coda_psdev_write(struct inode *inode, struct file *file, const char *
 {
         struct vcomm *vcp = coda_psdev_vcomm(inode);
         struct vmsg *vmp;
-        struct outputArgs *out;
+        union outputArgs *out;
 	int error = 0;
         u_long seq;
         u_long opcode;
@@ -164,12 +162,12 @@ static int coda_psdev_write(struct inode *inode, struct file *file, const char *
 	DEBUG("(process,opc,seq)=(%d,%ld.%ld)\n", current->pid, opcode, seq);
 #endif   
         if (DOWNCALL(opcode)) {
-              struct outputArgs pbuf;
+              union outputArgs pbuf;
 
 	      DEBUG("handling downcall\n");
 
               /* get the rest of the data. */
-              memcpy_fromfs(&pbuf.result, buf, sizeof(pbuf) - (2 * sizeof(int)));
+              memcpy_fromfs(&pbuf.oh.result, buf, sizeof(pbuf) - (2 * sizeof(int)));
 
 	      /* should coda_downcall ever return an error ? 
 	          NetBSD returns all kinds of errors; all but
@@ -203,7 +201,7 @@ static int coda_psdev_write(struct inode *inode, struct file *file, const char *
 
         /* move data into response buffer. */
         /* Don't need to copy opcode and uniquifier. */
-        out = (struct outputArgs *)vmp->vm_data;
+        out = (union outputArgs *)vmp->vm_data;
         /* get the rest of the data. */
 #if 0
         if (vmp->vm_outSize < (count - 2 * sizeof(u_long))) {
@@ -219,12 +217,12 @@ static int coda_psdev_write(struct inode *inode, struct file *file, const char *
 #if 0
 DEBUG("memcpy_fromfs: previously attemted %d, now %d ", vmp->vm_outSize - (sizeof(u_long) * 2), count - 2 *sizeof(u_long) );
 #endif
-        memcpy_fromfs(&out->result, buf, count - 2 *sizeof(u_long) );
+        memcpy_fromfs(&out->oh.result, buf, count - 2 *sizeof(u_long) );
 
         /* I don't think these are used, but just in case. */
         /* XXX - aren't these two already correct? -bnoble */
-        out->opcode = opcode;
-        out->unique = seq;
+        out->oh.opcode = opcode;
+        out->oh.unique = seq;
         vmp->vm_outSize = count;	
         vmp->vm_flags |= VM_WRITE;
         WAKEUP(&vmp->vm_sleep);
@@ -275,7 +273,7 @@ static int coda_psdev_read(struct inode * inode, struct file * file, char * buf,
         if (vmp->vm_opcode == CFS_SIGNAL) {
                     CDEBUG(D_PSDEV, "vcread: signal msg (%d, %d)\n", 
                               vmp->vm_opcode, vmp->vm_unique);
-              CODA_FREE((caddr_t)vmp->vm_data, (u_int)VC_IN_NO_DATA);
+              CODA_FREE((caddr_t)vmp->vm_data, sizeof(struct cfs_in_hdr));
               CODA_FREE((caddr_t)vmp, (u_int)sizeof(struct vmsg));
               return count;
         }
@@ -359,7 +357,7 @@ static void coda_psdev_release(struct inode * inode, struct file * file)
               /* Free signal request messages and don't wakeup cause
                  no one is waiting. */
               if (vmp->vm_opcode == CFS_SIGNAL) {
-                    CODA_FREE((caddr_t)vmp->vm_data, (u_int)VC_IN_NO_DATA);
+                    CODA_FREE((caddr_t)vmp->vm_data, sizeof(struct cfs_in_hdr));
                     CODA_FREE((caddr_t)vmp, (u_int)sizeof(struct vmsg));
                     continue;
               }

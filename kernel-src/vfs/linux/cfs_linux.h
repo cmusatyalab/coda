@@ -76,7 +76,10 @@ do {                                                           \
 #define EXIT    \
     if(coda_print_entry) printk("Process %d leaving %s\n",current->pid,__FUNCTION__)
 
-
+extern int coda_print_entry;
+extern int coda_debug;
+void coda_load_creds(struct coda_cred *cred);
+char *coda_f2s(struct ViceFid *, char *);
 /* 
  * process and credentials stuff 
  */
@@ -250,7 +253,7 @@ do {                                                                      \
 /* Linux in-lines protection stuff, no struct identity */
 /* Should this be os specific? */
 #define NGROUPS 32
-/* #define ucred CodaCred */
+/* #define ucred coda_cred */
 
 
 

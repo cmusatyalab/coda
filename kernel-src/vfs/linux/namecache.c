@@ -9,6 +9,7 @@
 /*
  * This code was written for the Coda file system at Carnegie Mellon University.
  * Contributers include David Steere, James Kistler, and M. Satyanarayanan.
+ * Modifications for Linux: Peter J. Braam
  */
 
 /*
@@ -192,7 +193,7 @@ static inline int ncmatch(struct cfscache *cp, const char *name, int namelen,
                           struct cnode *dcp)
 {
     if ( !dcp || !cp || !cp->dcp ) {
-	    printk("**ncmath NULL: dcp 0x%x, cp 0x%x, cp->dcp 0x%x\n", 
+	    printk("**ncmath NULL: dcp %p, cp %p, cp->dcp %p\n", 
 		   dcp, cp, cp->dcp);
 	    return 0;
     }
@@ -604,7 +605,7 @@ cfsnc_zapfile(struct cnode *dcp, register const char *name, int length)
  */
 
 void
-cfsnc_purge_user(struct CodaCred *cred)
+cfsnc_purge_user(struct coda_cred *cred)
 {
 	/* I think the best approach is to go through the entire cache
 	   via HASH or whatever and zap all entries which match the
@@ -619,7 +620,7 @@ cfsnc_purge_user(struct CodaCred *cred)
 	if (cfsnc_use == 0)			/* Cache is off */
 		return;
 
-	CDEBUG(D_CACHE,"ZapDude: uid 0x%x\n",cred->cr_uid);
+	CDEBUG(D_CACHE,"ZapDude: uid %ld\n",cred->cr_uid);
 	cfsnc_stat.zapUsers++;
 
 	for (cncp = cfsnc_lru.lru_next;
@@ -793,7 +794,6 @@ int
 cfsnc_nc_info(char *buffer, char **start, off_t offset, int length, int dummy)
 {
         int len=0;
-        off_t pos=0;
         off_t begin;
 	
 	cfsnc_gather_stats();

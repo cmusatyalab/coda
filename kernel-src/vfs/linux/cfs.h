@@ -278,7 +278,7 @@ struct inputArgs {
     unsigned long unique;	 /* Keep multiple outstanding msgs distinct */
     u_short pid;		 /* Common to all */
     u_short pgid;		 /* Common to all */
-    struct CodaCred cred;	 /* Common to all */
+    struct coda_cred cred;	 /* Common to all */
     
     union {
 	/* Nothing needed for cfs_root */
@@ -476,7 +476,7 @@ struct outputArgs {
 	/* CFS_INVALIDATE is a venus->kernel call */
 	/* CFS_FLUSH is a venus->kernel call */
 	struct cfs_purgeuser_out {/* CFS_PURGEUSER is a venus->kernel call */
-	    struct CodaCred cred;
+	    struct coda_cred cred;
 	} cfs_purgeuser;
 	struct cfs_zapfile_out {  /* CFS_ZAPFILE is a venus->kernel call */
 	    ViceFid CodaFid;
@@ -485,7 +485,7 @@ struct outputArgs {
 	    ViceFid CodaFid;
 	} cfs_zapdir;
 	struct cfs_zapvnode_out { /* CFS_ZAPVNODE is a venus->kernel call */
-	    struct CodaCred cred;
+	    struct coda_cred cred;
 	    ViceFid VFid;
 	} cfs_zapvnode;
 	struct cfs_purgefid_out { /* CFS_PURGEFID is a venus->kernel call */
@@ -523,7 +523,7 @@ struct outputArgs {
  */
 #define	VC_IN_NO_DATA	    (2 * (int)sizeof(u_long)    \
                              + 2 * (int)sizeof(u_short) \
-			     + (int)sizeof(struct CodaCred))
+			     + (int)sizeof(struct coda_cred))
 #define	VC_OUT_NO_DATA	    (3 * (int)sizeof(u_long))
 
 #define VC_INSIZE(member)   (VC_IN_NO_DATA + (int)sizeof(struct member))

@@ -30,11 +30,6 @@ struct vmsg {
 };
 
 
-#define INIT_IN(in, op) \
-	  (in)->opcode = (op); \
-	  (in)->pid = Process_pid; \
-          (in)->pgid = Process_pgid; 
-
 
 extern void coda_psdev_detach(int unit);
 extern int  init_coda_psdev(void);

@@ -29,6 +29,7 @@
 #include <psdev.h>
 #include <super.h>
 #include <cnode.h>
+#include <upcall.h>
 #include <namecache.h>
 
 /* exported variables */
@@ -48,13 +49,11 @@ static void coda_statfs(struct super_block *sb, struct statfs *buf,
 
 
 /* helper functions */
-void coda_load_creds(struct CodaCred *cred);
+void coda_load_creds(struct coda_cred *cred);
 extern inline struct vcomm *coda_psdev_vcomm(struct inode *inode);
-extern int coda_upcall(struct coda_sb_info *csbp, int inSize, int *outSize, caddr_t *buffer );
 extern int coda_cnode_make(struct inode **inode, ViceFid *fid, struct super_block *sb);
 extern struct cnode *coda_cnode_alloc(void);
 extern void coda_cnode_free(struct cnode *);
-static int coda_get_rootfid(struct super_block *sb, ViceFid *fidp);
 static int coda_get_psdev(void *, struct inode **);
 static void coda_vattr_to_iattr(struct inode *, struct coda_vattr *);
 static void coda_iattr_to_vattr(struct iattr *, struct coda_vattr *);
@@ -154,7 +153,7 @@ ENTRY;
         sb->s_op = &coda_super_operations;
 
 	/* get root fid from Venus: this needs the root inode */
-	error = coda_get_rootfid(sb, &fid);
+	error = venus_rootfid(sb, &fid);
 	if ( error ) {
 	    printk("coda_read_super: coda_get_rootfid failed with %d\n",
 		   error);
@@ -265,94 +264,6 @@ ENTRY;
         return error;
 }
 
-static int coda_get_rootfid(struct super_block *sb, ViceFid *fidp)
-{
-        struct inputArgs *inp;
-	struct outputArgs *outp;
-	int error=0;
-	int size;
-ENTRY;
-	/* XXX Is dying?? */
-
-	CODA_ALLOC(inp, struct inputArgs *, sizeof(struct inputArgs));
-	outp = (struct outputArgs *) inp;
-	INIT_IN(inp, CFS_ROOT)
-
-	size = VC_OUTSIZE(cfs_root_out);
-	CDEBUG(D_SUPER, "about to make upcall.\n");
-
-	error = coda_upcall(coda_sbp(sb), VC_IN_NO_DATA, &size, (caddr_t *) inp);
-
-	if ( ! error ) {
-	        error = outp->result;
-		if ( error ) 
-                        printk("coda_get_rootfid: GETROOT result = %d\n", 
-                               error);
-        }
-	
-	if (error) {
-	        printk("coda_get_rootfid: error %d\n", error);
-	}
-	
-	if ( !error ) {
-	        *fidp = (ViceFid) outp->d.cfs_root.VFid;
-		CDEBUG(D_SUPER, "VolumeId: %ld, VnodeId: %ld.\n",fidp->Volume, fidp->Vnode);
-	}
-
-
-	if (inp)  CODA_FREE(inp, sizeof(struct inputArgs));
-        EXIT;
-	return error;
-}
-
-int
-coda_getvattr(struct ViceFid *fid, struct coda_vattr *attr, struct coda_sb_info *coda_sbp)
-{
-        struct inputArgs *inp;
-        struct outputArgs *outp;
-        int size, error;
-        struct ViceFid  vfid;
-ENTRY;
-        vfid = *fid;
-
-        if ( IS_CTL_FID(fid) ) return 0;
-
-        /* XXX: IS_DYING? */
-        /* XX in this case rescue _may_ be possible */
-
-        CODA_ALLOC(inp, struct inputArgs *, sizeof(struct inputArgs));
-        outp = (struct outputArgs *) inp;
-
-        INIT_IN(inp, CFS_GETATTR);
-        coda_load_creds(&(inp->cred));
-        inp->d.cfs_getattr.VFid = vfid;
-        size = VC_OUTSIZE(cfs_getattr_out);
-        error = coda_upcall(coda_sbp, VC_INSIZE(cfs_getattr_in), 
-                            &size, (caddr_t *)inp);
-     
-	if ( error ) {
-	        printk("coda_getvattr: upcall returns %d\n", error);
-		goto exit;
-	} else {
-	        error = outp->result;
-                if (error) {
-		        CDEBUG(D_SUPER, "result: %ld\n", outp->result); 
-		        goto exit;
-		}
-        }
-
-	*attr = (struct coda_vattr) outp->d.cfs_getattr.attr;
-
-exit:
-        if (inp) CODA_FREE(inp, sizeof(struct inputArgs));
-        EXIT;
-        return -error;
-}
-
-
-        
-
-
 static void coda_put_super(struct super_block *sb)
 {
         struct coda_sb_info *sb_info;
@@ -409,94 +320,77 @@ coda_notify_change(struct inode *inode, struct iattr *iattr)
 {
         struct cnode *cnp;
         struct coda_vattr vattr;
-        struct inputArgs *inp;
-        struct outputArgs *out;
-        int error, size, buffer_size;
+        int error;
 ENTRY;
         cnp = ITOC(inode);
         CHECK_CNODE(cnp);
+	memset(&vattr, 0, sizeof(vattr)); 
+	coda_iattr_to_vattr(iattr, &vattr);
 
-        if ( IS_DYING(cnp) ) {
-                COMPLAIN_BITTERLY(notify_change, cnp->c_fid);
-                iput(inode);
-                return -ENODEV;
-        }
 DEBUG("XX mtime: %ld\n", inode->i_mtime);
-        buffer_size = sizeof(struct inputArgs);
-        CODA_ALLOC(inp, struct inputArgs *, buffer_size);
-        out = (struct outputArgs *) inp;
-        INIT_IN(inp, CFS_SETATTR);
-        coda_load_creds(&(inp->cred));
-
-        inp->d.cfs_setattr.VFid = cnp->c_fid;
-        coda_iattr_to_vattr(iattr, &vattr);
-        vattr.va_type = VNON; /* cannot set type */
-	CDEBUG(D_SUPER, "vattr.va_mode %o\n", vattr.va_mode);
-	inp->d.cfs_setattr.attr = vattr;
-        size = VC_INSIZE(cfs_setattr_in);
-
-        error = coda_upcall(coda_sbp(inode->i_sb), size, &size, 
-                            (caddr_t *) inp);
+        error = -venus_setattr(inode->i_sb, &(cnp->c_fid), &vattr);
         
-        if ( error ) {
-	        printk("coda_notify_change: upcall returns: %d\n", error);
+	if ( error ) {
+		CDEBUG(D_SUPER, "venus returned  %d\n", error);
 		goto exit;
 	} else {
-	        error = out->result;
-		if ( error ) {
-		        CDEBUG(D_SUPER, "venus returned  %d\n", error);
-			goto exit;
-		}
+		coda_vattr_to_iattr(inode, &vattr);
+		DEBUG("XX mtime: %ld\n", inode->i_mtime);
+		cfsnc_zapfid(&(cnp->c_fid));
+		DEBUG("XX mtime: %ld\n", inode->i_mtime);
         }
-	coda_vattr_to_iattr(inode, &vattr);
-DEBUG("XX mtime: %ld\n", inode->i_mtime);
-	cfsnc_zapfid(&(cnp->c_fid));
-DEBUG("XX mtime: %ld\n", inode->i_mtime);
-        
 exit: 
-        CDEBUG(D_SUPER, " result %ld\n", out->result); 
+        CDEBUG(D_SUPER, " result %d\n", error); 
 	EXIT;
-        if ( inp ) CODA_FREE(inp, buffer_size);
         return -error;
 
 }
-
 static void coda_vattr_to_iattr(struct inode *inode, struct coda_vattr *attr)
 {
+        int inode_type;
         /* inode's i_dev, i_flags, i_ino are set by iget 
            XXX: is this all we need ??
            */
         switch (attr->va_type) {
-        case VNON:
-                inode->i_mode |= 0;
+        case VCNON:
+                inode_type  = 0;
                 break;
-        case VREG:
-                inode->i_mode |= S_IFREG;
+        case VCREG:
+                inode_type = S_IFREG;
                 break;
-        case VDIR:
-                inode->i_mode |= S_IFDIR;
+        case VCDIR:
+                inode_type = S_IFDIR;
                 break;
-        case VLNK:
-                inode->i_mode |= S_IFLNK;
+        case VCLNK:
+                inode_type = S_IFLNK;
                 break;
         default:
-                inode->i_mode |= 0;
+                inode_type = 0;
         }
+	inode->i_mode |= inode_type;
 
-        inode->i_mode |= attr->va_mode & ~S_IFMT;
-        inode->i_uid = (uid_t) attr->va_uid;
-        inode->i_gid = (gid_t) attr->va_gid;
-        inode->i_nlink = attr->va_nlink;
-        inode->i_size = attr->va_size;
+	if (attr->va_mode != (u_short) -1)
+	        inode->i_mode = attr->va_mode | inode_type;
+        if (attr->va_uid != -1) 
+	        inode->i_uid = (uid_t) attr->va_uid;
+        if (attr->va_gid != -1)
+	        inode->i_gid = (gid_t) attr->va_gid;
+	if (attr->va_nlink != -1)
+	        inode->i_nlink = attr->va_nlink;
+	if (attr->va_size != -1)
+	        inode->i_size = attr->va_size;
 	/*  XXX This needs further study */
 	/*
         inode->i_blksize = attr->va_blocksize;
 	inode->i_blocks = attr->va_size/attr->va_blocksize 
 	  + (attr->va_size % attr->va_blocksize ? 1 : 0); 
 	  */
-        inode->i_atime = attr->va_atime.tv_sec;
-        inode->i_mtime = attr->va_mtime.tv_sec;
-        inode->i_ctime = attr->va_ctime.tv_sec;
+	if (attr->va_atime.tv_sec != -1) 
+	        inode->i_atime = attr->va_atime.tv_sec;
+	if (attr->va_mtime.tv_sec != -1)
+	        inode->i_mtime = attr->va_mtime.tv_sec;
+        if (attr->va_ctime.tv_sec != -1)
+	        inode->i_ctime = attr->va_ctime.tv_sec;
 }
 
 /* 
@@ -507,8 +401,7 @@ static void coda_vattr_to_iattr(struct inode *inode, struct coda_vattr *attr)
  * So we have to do some translations here.
  */
 
-void
-coda_iattr_to_vattr(struct iattr *iattr, struct coda_vattr *vattr)
+void coda_iattr_to_vattr(struct iattr *iattr, struct coda_vattr *vattr)
 {
         umode_t mode;
         unsigned int valid;
@@ -524,11 +417,10 @@ coda_iattr_to_vattr(struct iattr *iattr, struct coda_vattr *vattr)
 	vattr->va_atime.tv_nsec =  (time_t) -1;
         vattr->va_mtime.tv_nsec = (time_t) -1;
 	vattr->va_ctime.tv_nsec = (time_t) -1;
-        vattr->va_type = VNON;
+        vattr->va_type = VCNON;
 	vattr->va_fileid = (long)-1;
 	vattr->va_gen = (long)-1;
 	vattr->va_bytes = (long)-1;
-	vattr->va_fsid = (long)-1;
 	vattr->va_nlink = (short)-1;
 	vattr->va_blocksize = (long)-1;
 	vattr->va_rdev = (dev_t)-1;
@@ -537,14 +429,14 @@ coda_iattr_to_vattr(struct iattr *iattr, struct coda_vattr *vattr)
         /* determine the type */
         mode = iattr->ia_mode;
                 if ( S_ISDIR(mode) ) {
-                vattr->va_type = VDIR; 
+                vattr->va_type = VCDIR; 
         } else if ( S_ISREG(mode) ) {
-                vattr->va_type = VREG;
+                vattr->va_type = VCREG;
         } else if ( S_ISLNK(mode) ) {
-                vattr->va_type = VLNK;
+                vattr->va_type = VCLNK;
         } else {
                 /* don't do others */
-                vattr->va_type = VNON;
+                vattr->va_type = VCNON;
         }
 
         /* set those vattrs that need change */
@@ -561,12 +453,18 @@ coda_iattr_to_vattr(struct iattr *iattr, struct coda_vattr *vattr)
         if ( valid & ATTR_SIZE ) {
                 vattr->va_size = iattr->ia_size;
 	}
-        if ( valid & ATTR_ATIME )
+        if ( valid & ATTR_ATIME ) {
                 vattr->va_atime.tv_sec = iattr->ia_atime;
-        if ( valid & ATTR_MTIME )
+                vattr->va_atime.tv_nsec = 0;
+	}
+        if ( valid & ATTR_MTIME ) {
                 vattr->va_mtime.tv_sec = iattr->ia_mtime;
-        if ( valid & ATTR_CTIME )
+                vattr->va_mtime.tv_nsec = 0;
+	}
+        if ( valid & ATTR_CTIME ) {
                 vattr->va_ctime.tv_sec = iattr->ia_ctime;
+                vattr->va_ctime.tv_nsec = 0;
+	}
         
 }
   
@@ -578,32 +476,32 @@ print_vattr( attr )
     char *typestr;
 
     switch (attr->va_type) {
-    case VNON:
-	typestr = "VNON";
+    case VCNON:
+	typestr = "VCNON";
 	break;
-    case VREG:
-	typestr = "VREG";
+    case VCREG:
+	typestr = "VCREG";
 	break;
-    case VDIR:
-	typestr = "VDIR";
+    case VCDIR:
+	typestr = "VCDIR";
 	break;
-    case VBLK:
-	typestr = "VBLK";
+    case VCBLK:
+	typestr = "VCBLK";
 	break;
-    case VCHR:
-	typestr = "VCHR";
+    case VCCHR:
+	typestr = "VCCHR";
 	break;
-    case VLNK:
-	typestr = "VLNK";
+    case VCLNK:
+	typestr = "VCLNK";
 	break;
-    case VSOCK:
-	typestr = "VSCK";
+    case VCSOCK:
+	typestr = "VCSCK";
 	break;
-    case VFIFO:
-	typestr = "VFFO";
+    case VCFIFO:
+	typestr = "VCFFO";
 	break;
-    case VBAD:
-	typestr = "VBAD";
+    case VCBAD:
+	typestr = "VCBAD";
 	break;
     default:
 	typestr = "????";
@@ -611,16 +509,16 @@ print_vattr( attr )
     }
 
 
-    printk("attr: type %s (%o)  mode %o uid %d gid %d fsid %d rdev %d\n",
+    printk("attr: type %s (%o)  mode %o uid %d gid %d rdev %d\n",
 	      typestr, (int)attr->va_type, (int)attr->va_mode, (int)attr->va_uid, 
-	      (int)attr->va_gid, (int)attr->va_fsid, (int)attr->va_rdev);
+	      (int)attr->va_gid, (int)attr->va_rdev);
     
     printk("      fileid %d nlink %d size %d blocksize %d bytes %d\n",
 	      (int)attr->va_fileid, (int)attr->va_nlink, 
 	      (int)attr->va_size,
 	      (int)attr->va_blocksize,(int)attr->va_bytes);
-    printk("      gen %ld flags %ld vaflags %d\n",
-	      attr->va_gen, attr->va_flags, attr->va_vaflags);
+    printk("      gen %ld flags %ld \n",
+	      attr->va_gen, attr->va_flags);
     printk("      atime sec %d nsec %d\n",
 	      (int)attr->va_atime.tv_sec, (int)attr->va_atime.tv_nsec);
     printk("      mtime sec %d nsec %d\n",

@@ -110,7 +110,7 @@
 
 
 struct vcomm *coda_psdev_vcomm(struct inode *psdev);
-int coda_downcall(int opcode, struct outputArgs *out);
+int coda_downcall(int opcode, union outputArgs *out);
 int coda_upcall(struct coda_sb_info *mntinfo, int inSize,int *outSize, caddr_t buffer);
 
 extern int coda_debug;
@@ -139,6 +139,7 @@ int coda_upcall(mntinfo, inSize, outSize, buffer)
      int *outSize; 
      caddr_t buffer;
 {
+	union outputArgs *out;
 	struct vcomm *vcommp;
 	struct vmsg *vmp;
 	int error = 0;
@@ -164,12 +165,12 @@ int coda_upcall(mntinfo, inSize, outSize, buffer)
 	vmp->vm_inSize = inSize;
 	vmp->vm_outSize 
 	    = *outSize ? *outSize : inSize; /* |buffer| >= inSize */
-	vmp->vm_opcode = ((struct inputArgs *)buffer)->opcode;
+	vmp->vm_opcode = ((union inputArgs *)buffer)->ih.opcode;
 	vmp->vm_unique = ++vcommp->vc_seq;
         vmp->vm_sleep = NULL;
 	
 	/* Fill in the common input args. */
-	((struct inputArgs *)buffer)->unique = vmp->vm_unique;
+	((union inputArgs *)buffer)->ih.unique = vmp->vm_unique;
 
 	/* Append msg to request queue and poke Venus. */
 
@@ -196,6 +197,11 @@ CDEBUG(D_UPCALL, "process %d woken up by Venus.\n", current->pid);
 	    if (vmp->vm_flags & VM_WRITE) {
 		error = 0;
 		*outSize = vmp->vm_outSize;
+		out = (union outputArgs *)vmp->vm_data;
+		error = out->oh.result;
+		CDEBUG(D_UPCALL, 
+		       "upcall: (u,o,r) (%ld, %ld, %ld) out at %x\n", 
+		       out->oh.unique, out->oh.opcode, out->oh.result, (int)out);
 	    } else if (!(vmp->vm_flags & VM_READ)) { 
 		/* Interrupted before venus read it. */
 		printk("coda_upcall: interrupted before read: (op,un)  (%d.%d), flags = %x\n",
@@ -206,7 +212,7 @@ CDEBUG(D_UPCALL, "process %d woken up by Venus.\n", current->pid);
 		/* (!(vmp->vm_flags & VM_WRITE)) means interrupted after
                    upcall started */
 		/* Interrupted after start of upcall, send venus a signal */
-		struct inputArgs *dog;
+		union inputArgs *dog;
 		struct vmsg *svmp;
 		
 		CDEBUG(D_UPCALL, "Sending Venus a signal:  op = %d.%d, flags = %x\n",
@@ -217,14 +223,14 @@ CDEBUG(D_UPCALL, "process %d woken up by Venus.\n", current->pid);
 		
 		CODA_ALLOC(svmp, struct vmsg *, sizeof (struct vmsg));
 
-		CODA_ALLOC((svmp->vm_data), char *, VC_IN_NO_DATA);
-		dog = (struct inputArgs *)svmp->vm_data;
+		CODA_ALLOC((svmp->vm_data), char *, sizeof(struct cfs_in_hdr));
+		dog = (union inputArgs *)svmp->vm_data;
 		
 		svmp->vm_flags = 0;
-		dog->opcode = svmp->vm_opcode = CFS_SIGNAL;
-		dog->unique = svmp->vm_unique = vmp->vm_unique;
-		svmp->vm_inSize = VC_IN_NO_DATA;
-		svmp->vm_outSize = VC_IN_NO_DATA;
+		dog->ih.opcode = svmp->vm_opcode = CFS_SIGNAL;
+		dog->ih.unique = svmp->vm_unique = vmp->vm_unique;
+		svmp->vm_inSize = sizeof(struct cfs_in_hdr);
+		svmp->vm_outSize = sizeof(struct cfs_in_hdr);
 		
 		CDEBUG(D_UPCALL, "coda_upcall: enqueing signal msg (%d, %d)\n",
 			   svmp->vm_opcode, svmp->vm_unique);
@@ -274,8 +280,7 @@ CDEBUG(D_UPCALL, "process %d woken up by Venus.\n", current->pid);
  * CFS_REPLACE -- replace one ViceFid with another throughout the name cache 
  */
 
-int coda_downcall(opcode, out)
-     int opcode; struct outputArgs *out;
+int coda_downcall(int opcode, union outputArgs *out)
 {
 
     /* Handle invalidate requests. */
@@ -289,7 +294,7 @@ int coda_downcall(opcode, out)
 	return(0);
       }
       case CFS_ZAPDIR : {
-	      ViceFid *fid = &out->d.cfs_zapdir.CodaFid;
+	      ViceFid *fid = &out->cfs_zapdir.CodaFid;
 	      cfsnc_zapfid(fid);
 	      cfsnc_zapParentfid(fid);     
 	      CDEBUG(D_UPCALL, "zapdir: fid = (%lx.%lx.%lx), \n",fid->Volume, 
@@ -302,15 +307,15 @@ int coda_downcall(opcode, out)
 	  cfs_clstat.ncalls++;
 	  cfs_clstat.reqs[CFS_ZAPVNODE]++;
 	  */
-	  cfsnc_zapfid(&out->d.cfs_zapvnode.VFid);
+	  cfsnc_zapfid(&out->cfs_zapvnode.VFid);
 	  return(0);
       }	
       case CFS_ZAPFILE : {
-	  cfsnc_zapfid(&out->d.cfs_zapfile.CodaFid);
+	  cfsnc_zapfid(&out->cfs_zapfile.CodaFid);
 	  return 0;
       }
       case CFS_PURGEFID : {
-	      ViceFid *fid = &out->d.cfs_purgefid.CodaFid;
+	      ViceFid *fid = &out->cfs_purgefid.CodaFid;
 	  /*
 	  cfs_clstat.ncalls++;
 	  cfs_clstat.reqs[CFS_PURGEFID]++;
@@ -327,8 +332,8 @@ int coda_downcall(opcode, out)
 	  cfs_clstat.ncalls++;
 	  cfs_clstat.reqs[CFS_REPLACE]++;
 	  */
-	  cfsnc_replace(&out->d.cfs_replace.OldFid, 
-			&out->d.cfs_replace.NewFid);
+	  cfsnc_replace(&out->cfs_replace.OldFid, 
+			&out->cfs_replace.NewFid);
 	  return (0);
       }			   
     }

@@ -19,9 +19,9 @@
 #include "linux/coda.h"
 #include <cfs_linux.h>
 #include <psdev.h>
-#include "upcalls.h"
-#include "cnode.h"
 #include "super.h"
+#include "upcall.h"
+#include "cnode.h"
 
 /* prototypes */
 /* dir ops */
@@ -49,13 +49,10 @@ static void coda_restore_codafile(struct inode *coda_inode, struct file *coda_fi
                            struct inode *open_inode, struct file *open_file);
 static int coda_inode_grab(dev_t dev, ino_t ino, struct inode **ind);
 static struct super_block *coda_find_super(kdev_t device);
-static int venus_fsync(struct super_block *sb, struct ViceFid *fid);
+int venus_fsync(struct super_block *sb, struct ViceFid *fid);
 
 /* external to this file */
-void coda_load_creds(struct CodaCred *cred);
-
-/* extern struct vfsmount **vfsmntlist, *mru_vfsmnt; */
-extern int coda_upcall(struct coda_sb_info *, int insize, int *outsize, caddr_t buffer);
+void coda_load_creds(struct coda_cred *cred);
 
 extern int coda_debug;
 extern int coda_print_entry;
@@ -200,7 +197,7 @@ coda_venus_readdir(struct inode *inode, struct file *filp, void *getdent,
                         }
 
                       errfill = filldir(dents_callback,  name, namlen, offs, ino); 
-CDEBUG(D_FILE, "ino %d, namlen %d, reclen %d, type %d, pos %d, string_offs %d, name %s, offset %d, count %d.\n", vdirent->d_fileno, vdirent->d_namlen, vdirent->d_reclen, vdirent->d_type, pos,  string_offset, debug, (u_int) offs, dents_callback->count);
+CDEBUG(D_FILE, "ino %ld, namlen %d, reclen %d, type %d, pos %d, string_offs %d, name %s, offset %d, count %d.\n", vdirent->d_fileno, vdirent->d_namlen, vdirent->d_reclen, vdirent->d_type, pos,  string_offset, debug, (u_int) offs, dents_callback->count);
 
 		      /* errfill means no space for filling in this round */
                       if ( errfill < 0 ) break;
@@ -217,6 +214,30 @@ exit:
                 
 }
 
+
+void coda_flags_to_cflags(short flags, short *coda_flags)
+{
+	*coda_flags = 0;
+        /*flags & 
+		(~(O_RDONLY|O_RDWR|O_WRONLY|O_EXCL|O_TRUNC|O_CREAT));  */
+	if ( flags & (O_RDONLY | O_RDWR) ) { 
+		CDEBUG(D_FILE, "--> C_READ added\n");
+		*coda_flags |= C_READ;
+	}
+	if ( flags & (O_WRONLY | O_RDWR) ) { 
+		CDEBUG(D_FILE, "--> C_READ added\n");
+		*coda_flags |= C_WRITE;
+	}
+	if ( flags & O_TRUNC )  { 
+		CDEBUG(D_FILE, "--> C_READ added\n");
+		*coda_flags |= C_TRUNC;
+	}
+
+	CDEBUG(D_FILE, "--> coda_flags: %o\n", *coda_flags);
+	if ( flags & O_EXCL ) 
+		*coda_flags |= C_EXCL;
+}
+
 /* ask venus to cache the file and return the inode of the container file,
    put this inode pointer in the cnode for future reference */
 int
@@ -227,20 +248,22 @@ coda_open(struct inode *i, struct file *f)
         struct cnode *cnp;
         int error = 0;
         struct inode *cont_inode = NULL;
-        unsigned short flags = f->f_flags;
+        unsigned short flags = f->f_flags, coda_flags;
 
         ENTRY;
         
-        CDEBUG(D_SPECIAL, "OPEN inode number: %ld, flags %o.\n", f->f_inode->i_ino, flags);
+        CDEBUG(D_FILE, "OPEN inode number: %ld, flags %o.\n", f->f_inode->i_ino, flags);
 
         if ( flags & O_CREAT ) {
                 flags &= ~O_EXCL; /* taken care of by coda_create ?? */
         }
 
+        coda_flags_to_cflags(flags, &coda_flags);
+
         cnp = ITOC(i);
         CHECK_CNODE(cnp);
 
-	error = -venus_open(i->i_sb, &(cnp->c_fid), flags, &ino, &dev);
+	error = -venus_open(i->i_sb, &(cnp->c_fid), coda_flags, &ino, &dev);
 
         if (error) {
                 printk("coda_open: coda_upcall returned %d\n", error);
@@ -248,12 +271,10 @@ coda_open(struct inode *i, struct file *f)
         }
 
         /* coda_upcall returns ino number of cached object, get inode */
-        CDEBUG(D_FILE, "cache file dev %d, ino %ld\n", out->d.cfs_open.dev, 
-              out->d.cfs_open.inode);
+        CDEBUG(D_FILE, "cache file dev %d, ino %ld\n", dev, ino);
 
         if ( ! cnp->c_ovp ) {
-                error = coda_inode_grab(out->d.cfs_open.dev, 
-                                        out->d.cfs_open.inode, &cont_inode);
+                error = coda_inode_grab(dev, ino, &cont_inode);
                 
                 if ( error ){
                         printk("coda_open: coda_inode_grab error %d.", error);
@@ -269,6 +290,9 @@ coda_open(struct inode *i, struct file *f)
         /* if opened for writing flush cache entry.  */
         if ( flags & FWRITE ) {
 	    cfsnc_zapfid(&(cnp->c_fid));
+	    CDEBUG(D_FILE, "increasing owrite for ino %ld\n", i->i_ino);
+	    cnp->c_owrite++;
+
 	} 
 
         cnp->c_device = dev;
@@ -288,26 +312,20 @@ exit:
 void
 coda_release(struct inode *i, struct file *f)
 {
-        struct inputArgs *inp=NULL;
-        struct outputArgs *out;
-        int outsize = sizeof(struct outputArgs);
         struct cnode *cnp;
         int error;
         unsigned short flags = f->f_flags;
-
+	unsigned short coda_flags;
         ENTRY;
 
         cnp =ITOC(i);
         CHECK_CNODE(cnp);
-        CDEBUG(D_FILE,  "RELEASE coda (ino %ld, ct %d) cache (ino %ld, ct %d)",
+	coda_flags_to_cflags(flags, &coda_flags);
+	
+        CDEBUG(D_FILE,  
+	       "RELEASE coda (ino %ld, ct %d) cache (ino %ld, ct %d) flags %o\n",
                i->i_ino, i->i_count, (cnp->c_ovp ? cnp->c_ovp->i_ino : 0),
-               (cnp->c_ovp ? cnp->c_ovp->i_count : -99));
-
-
-        if (IS_DYING(cnp)) {
-                COMPLAIN_BITTERLY(close, cnp->c_fid);
-                return ;
-        }
+               (cnp->c_ovp ? cnp->c_ovp->i_count : -99), flags);
 
 
         /* even when c_ocount=0 we cannot put c_ovp to
@@ -319,23 +337,17 @@ coda_release(struct inode *i, struct file *f)
         --cnp->c_ocount;
 
         if (flags & FWRITE) {
+		CDEBUG(D_FILE, "reducing owrite for ino %ld\n", i->i_ino);
                 --cnp->c_owrite;
         }
 
-        CODA_ALLOC(inp, struct inputArgs *, sizeof(struct inputArgs));
-        out = (struct outputArgs *)inp;
-        INIT_IN(inp, CFS_CLOSE);
-        inp->d.cfs_close.VFid = cnp->c_fid;
-        inp->d.cfs_close.flags = flags;
 
-        coda_load_creds(&(inp->cred));
-        error = coda_upcall(coda_sbp(i->i_sb), sizeof(struct inputArgs), 
-                            &outsize, (char *)inp);
+	error = -venus_release(i->i_sb, &(cnp->c_fid), coda_flags);
+	if ( error ) {
+		printk("venus_release returns error %d for ino %ld\n",
+		       error, i->i_ino);
+	}
 
-        if (!error) 
-                error = out->result;
-
-        if (inp) CODA_FREE(inp, sizeof(struct inputArgs));
         CDEBUG(D_FILE, "result: %d\n", error);
         return ;
 }
@@ -512,30 +524,6 @@ coda_file_fsync(struct inode *coda_inode, struct file *coda_file)
 	return result;
 }
                 
-static int venus_fsync(struct super_block *sb, struct ViceFid *fid)
-{
-	struct inputArgs *inp;
-	struct outputArgs *outp;
-	int size, error;
-	
-	CODA_ALLOC(inp, struct inputArgs *, sizeof(struct inputArgs));
-        outp = (struct outputArgs *)inp;
-        INIT_IN(inp, CFS_FSYNC);
-        inp->d.cfs_fsync.VFid = *fid;
-	size=VC_INSIZE(cfs_fsync_in);
-
-        coda_load_creds(&(inp->cred));
-        error = coda_upcall(coda_sbp(sb), sizeof(struct inputArgs), 
-                            &size, (char *)inp);
-
-        if (!error) 
-                error = outp->result;
-
-	if ( inp ) 
-		CODA_FREE(inp, sizeof(struct inputArgs));
-	return -error;
-}
-
 
 void 
 coda_prepare_openfile(struct inode *i, struct file *coda_file, 
@@ -641,11 +629,8 @@ static int
 coda_pioctl(struct inode * inode, struct file * filp, unsigned int cmd,
             unsigned long arg)
 {
-        struct inputArgs *in = NULL;
-        struct outputArgs *out;
-        int error, size;
+        int error;
 	struct PioctlData iap;
-        char *buf = NULL;
         struct inode *target_inode = NULL;
         struct cnode *cnp;
 
@@ -692,81 +677,17 @@ coda_pioctl(struct inode * inode, struct file * filp, unsigned int cmd,
 
         CDEBUG(D_PIOCTL, "operating on inode %ld\n", target_inode->i_ino);
 
-        /* build packet for Venus */
-        if (iap.vi.in_size > VC_DATASIZE) {
-	        error =  -EINVAL;
-		goto exit;
-        }
-    
-        CODA_ALLOC(buf, char *, VC_MAXMSGSIZE);
+	error = -venus_pioctl(inode->i_sb, &(cnp->c_fid), cmd, &iap); 
         
-        in = (struct inputArgs *)buf;
-        out = (struct outputArgs *)buf;	
-        INIT_IN(in, CFS_IOCTL);
-        coda_load_creds(&(in->cred));
-
-        in->d.cfs_ioctl.VFid = cnp->c_fid;
-    
-        /* the cmd field was mutated by increasing its size field to reflect the  
-         * path and follow args. We need to subtract that out before sending
-         * the command to Venus.
-         */
-        in->d.cfs_ioctl.cmd = (cmd & ~(IOCPARM_MASK << 16));	
-        size = ((cmd >> 16) & IOCPARM_MASK) - sizeof(char *) - sizeof(int);
-        in->d.cfs_ioctl.cmd |= (size & IOCPARM_MASK) <<	16;	
-    
-        /* in->d.cfs_ioctl.rwflag = flag; */
-        in->d.cfs_ioctl.len = iap.vi.in_size;
-        in->d.cfs_ioctl.data = (char *)(VC_INSIZE(cfs_ioctl_in));
-     
-        /* get the data out of user space */
-        error = verify_area(VERIFY_READ, iap.vi.in, iap.vi.in_size);
-        if ( error ) {
-                printk("coda_pioctl: cannot copy from user space.\n");
-                iput(target_inode);
-                if (buf) CODA_FREE(buf, VC_MAXMSGSIZE);
-                return error;
-        }
-        memcpy_fromfs((char*)in + (int)in->d.cfs_ioctl.data,
-                      iap.vi.in, iap.vi.in_size);
-        
-        size = VC_MAXMSGSIZE;
-        error = coda_upcall(coda_sbp(inode->i_sb),
-                            VC_INSIZE(cfs_ioctl_in) + iap.vi.in_size, 
-                            &size, buf);
-        
-        if (!error) {
-                error = -out->result;
-                if ( error ) {
-                        printk("coda_pioctl: Venus returns: %d\n", error);
-                        goto exit; 
-                }
-                
-        } else {
-                printk("coda_pioctl: upcall returns: %d\n", error);
+        if (error) {
+		printk("coda_pioctl: upcall returns: %d\n", error);
                 goto exit;
         }
 
         
-	/* Copy out the OUT buffer. */
-        if (out->d.cfs_ioctl.len > iap.vi.out_size) {
-                CDEBUG(D_FILE, "return len %d <= request len %d\n",
-                      out->d.cfs_ioctl.len, 
-                      iap.vi.out_size);
-                error = -EINVAL;
-        } else {
-                error = verify_area(VERIFY_WRITE, iap.vi.out, 
-                                    iap.vi.out_size);
-                memcpy_tofs(iap.vi.out, 
-                            (char *)out + (int)out->d.cfs_ioctl.data, 
-                            iap.vi.out_size);
-        }
-
 exit:
         if ( target_inode ) 
 	        iput(target_inode);
-        if (buf) 
-	        CODA_FREE(buf, VC_MAXMSGSIZE);
         return(error);
 }
 
