@@ -526,6 +526,9 @@ retry:
 		 V_parentId(vp), V_creationDate(vp), V_copyDate(vp),
 		 V_backupDate(vp), volumeusage);
 
+    /* hack, snprintf sometimes fucks up and doesn't return -1 */
+    if (n >= (*buflen - *offset)) n = -1;
+
     if (n == -1) {
 	*buflen += 1024;
 	*buf = (char *)realloc(*buf, *buflen);
@@ -553,6 +556,10 @@ void VListVolumes(char **buf, unsigned int *offset)
 retry:
 	n = snprintf(*buf + *offset, buflen - *offset, "P%s H%s T%x F%x\n",
 		     part->name, ThisHost, part->totalUsable, part->free);
+
+	/* hack, snprintf sometimes fucks up and doesn't return -1 */
+	if (n >= (*buflen - *offset)) n = -1;
+
 	if (n == -1) {
 	    buflen += 1024;
 	    *buf = (char *)realloc(*buf, buflen);
