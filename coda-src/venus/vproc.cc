@@ -552,20 +552,24 @@ void vproc::Begin_VFS(Volid *volid, int vfsop, int volmode)
 	!u.u_vol->IsHoarding())
     {
 	struct timeval delay = { 1, 0 };
-	int free_mles, free_blocks;
+	int free_fsos, free_mles, free_blocks;
 	int yellowz, redzone;
 
 wait_for_reintegration:
+	free_fsos   = FSDB->FreeFsoCount();
 	free_mles   = VDB->FreeMLECount();
 	free_blocks = CacheBlocks - FSDB->DirtyBlockCount();
 
 	/* the redzone and yellow zone thresholds are pretty arbitrary at the
 	 * moment. I am guessing that the number of worker threads might be a
 	 * useful metric for redzoning on CML entries. */
-	redzone = free_mles <= MaxWorkers ||
+	redzone = !free_fsos ||
+		  free_mles <= MaxWorkers ||
 		  free_blocks <= (CacheBlocks >> 4); /* ~94% cache dirty */
-	yellowz = !redzone && (free_mles <= (MLEs>>3) || /* ~88% CMLs used */
-		  free_blocks <= (CacheBlocks >> 2)); /* ~75% cache dirty */
+	yellowz = !redzone &&
+		  (free_fsos <= MaxWorkers ||
+		   free_mles <= (MLEs>>3) || /* ~88% CMLs used */
+		   free_blocks <= (CacheBlocks >> 2)); /* ~75% cache dirty */
 	
 	if (yellowz) MarinerLog("progress::Yellow zone, slowing down writer\n");
 	else if (redzone) MarinerLog("progress::Red zone, stalling writer\n");

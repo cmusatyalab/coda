@@ -171,7 +171,7 @@ void vdb::GetDown()
         repvol *v, *n = next();
         while ((v = n) != NULL) {
             n = next();
-            if (v->refcnt == 0) {
+            if (v->refcnt == 0 && v->CML.count() == 0) {
                 LOG(10, ("vdb::GetDown destroying %x\n", v->GetVolumeId()));
                 delete v;
             }
