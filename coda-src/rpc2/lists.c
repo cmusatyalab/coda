@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rpc2/lists.c,v 4.4 1998/05/27 20:29:08 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rpc2/lists.c,v 4.5 98/06/07 20:14:57 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -205,6 +205,7 @@ void rpc2_FreeSle(INOUT sl)
     if (tsl->Conn != 0)
 	{
 	ce = rpc2_FindCEAddr(tsl->Conn);
+        assert(ce != NULL);
 	ce->MySl = NULL;
 	}
 

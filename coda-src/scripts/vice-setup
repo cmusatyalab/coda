@@ -146,7 +146,7 @@ until [ x$yesno != x ]; do
       isscm=Y
       echo  "Now installing files specific to the SCM..."
    else
-      echo  "Now installing things specific to non-SCM mahines..."
+      echo  "Now installing things specific to non-SCM machines..."
    fi
 done
 

@@ -28,7 +28,7 @@ struct DCEntry {
 #define DCSIZE 256
 #define DHLOGCACHESIZE 8
 
-Lock              dlock;
+static Lock               dlock;
 static struct dllist_head dcache[DCSIZE];
 static struct dllist_head dfreelist; 
 static struct dllist_head dnewlist; 
@@ -36,7 +36,7 @@ static struct dllist_head dnewlist;
 
 static inline int  DC_Hash(PDirInode pdi) 
 {
-	return ((int) ((unsigned long)pdi >> 13) % DCSIZE);
+	return ((int) ((unsigned long)pdi >> 5) % DCSIZE);
 }
 
 
@@ -107,25 +107,34 @@ PDCEntry DC_Get(PDirInode pdi)
 			/* remove from freelist if first user */
 			if ( pdce->dc_count == 1 ) 
 				list_del(&pdce->dc_list);
+
 			/* if data was flushed, refresh it */
 			if ( !pdce->dc_dh.dh_vmdata) {
 				pdce->dc_dh.dh_vmdata = DI_DiToDh(pdi);
 				pdce->dc_dh.dh_refcount = pdi->di_refcount;
 			}
+
 			ReleaseWriteLock(&dlock);
 			return pdce;
 		}
 	}
 
+	/* release the lock since we are out of the hash table */
+	ReleaseWriteLock(&dlock);
+
 	/* not found use a new one */
 	pdce = dc_GetFree();
 	pdce->dc_count = 1;
 	pdce->dc_pdi = pdi;
+
+	/* re-lock since we want to mess with the lists again */
+	ObtainWriteLock(&dlock); 
 	list_add(&pdce->dc_hash, &dcache[hash]);
 
 	/* copy in the directory handle, init lock, and copy data */
 	pdce->dc_dh.dh_vmdata = DI_DiToDh(pdi);
 	pdce->dc_refcount = pdi->di_refcount;
+
 	ReleaseWriteLock(&dlock);
 	return pdce;
 }

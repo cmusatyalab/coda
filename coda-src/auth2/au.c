@@ -113,10 +113,6 @@ int main(int argc, char **argv)
     char cname[PRS_MAXNAMELEN];
     RPC2_EncryptionKey ek;
 
-    PROCESS mylpid;
-    RPC2_PortalIdent portalid;
-    RPC2_SubsysIdent subsysid;
-    
     bzero(ek, sizeof(ek));
     bzero(cname, sizeof(cname));
     bzero(MyViceName, sizeof(MyViceName));
@@ -124,21 +120,8 @@ int main(int argc, char **argv)
     
     SetGlobals(argc, argv);
 
-
- #if 1
-    assert(LWP_Init(LWP_VERSION, LWP_MAX_PRIORITY-1, &mylpid) == LWP_SUCCESS);
-
-    portalid.Tag = RPC2_PORTALBYINETNUMBER;
-    portalid.Value.InetPortNumber = htons(54321);
-
-    if ((rc = RPC2_Init(RPC2_VERSION, 0, &portalid, -1, NULL)) != RPC2_SUCCESS) {
-	printf("RPC2_Init failed with %s\n", RPC2_ErrorMsg(rc));
-	exit(-1);
-    }
-#else
-
     U_InitRPC();
-#endif
+
     printf("Your Vice name: ");
     fgets(MyViceName, sizeof(MyViceName), stdin);
     if ( MyViceName[strlen(MyViceName)-1] == '\n' ){
