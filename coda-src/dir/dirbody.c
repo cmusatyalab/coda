@@ -344,14 +344,20 @@ int dir_PrintChar(char *addr, int nbits, char *buff)
 
 static int dir_DirEntry2VDirent(PDirEntry ep, struct venus_dirent *vd, VolumeId vol, RealmId realm)
 {
-	CodaFid fid;
+	ViceFid vfid;
+	CodaFid kfid;
 	
 	CODA_ASSERT(ep && vd);
 
-	fid.opaque[0] = realm;
-        fid_NFidV2Fid(&ep->fid, vol, (ViceFid *)&fid.opaque[1]);
+        fid_NFidV2Fid(&ep->fid, vol, &vfid);
+#warning "convert to the correct kernel fid"
+	// kfid.opaque[0] = realm;
+	// kfid.opaque[1] = vfid->Volume;
+	// kfid.opaque[2] = vfid->Vnode;
+	// kfid.opaque[3] = vfid->Unique;
+	memcpy(&kfid, &vfid, sizeof(CodaFid));
 	
-	vd->d_fileno = coda_f2i(&fid);
+	vd->d_fileno = coda_f2i(&kfid);
 #ifdef CDT_UNKNOWN
 	vd->d_type = 0;
 #endif

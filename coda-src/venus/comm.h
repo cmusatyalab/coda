@@ -246,7 +246,7 @@ class srvent : private RefCountedObject {
     struct timeval lastobs;	/* time of most recent estimate */
   
     /* Constructors, destructors, and private utility routines. */
-    srvent(struct in_addr *host);
+    srvent(struct in_addr *host, RealmId realm);
     srvent(srvent&) { abort(); }	/* not supported! */
     int operator=(srvent&) { abort(); return(0); }	/* not supported! */
     ~srvent();
@@ -257,7 +257,7 @@ class srvent : private RefCountedObject {
     static int allocs;
     static int deallocs;
 #endif
-    Realm *realm;
+    RealmId realmid;
 
     int GetConn(connent **c, vuid_t vuid, int force =0);
 

@@ -15,6 +15,17 @@ typedef struct {
     VolumeId Volume;
 } VolFid;
 
+inline CodaFid *VenusToKernelFid(VenusFid *fid)
+{
+    return (CodaFid *)(&fid->Volume);
+}
+
+inline void KernelToVenusFid(VenusFid *fid, CodaFid *kfid)
+{
+    fid->Realm = 0;
+    memcpy(&fid->Volume, kfid, sizeof(CodaFid));
+}
+
 inline ViceFid *MakeViceFid(VenusFid *fid)
 {
     return (ViceFid *)(&fid->Volume);

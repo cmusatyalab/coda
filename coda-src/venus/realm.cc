@@ -14,6 +14,10 @@ Realm::Realm(const char *rname, struct dllist_head *h) : PersistentObject(h)
     CODA_ASSERT(name);
     strcpy(name, rname);
 
+    RVMLIB_REC_OBJECT(id);
+#warning "realm.id"
+    id = 0;
+
     /* better keep a reference until volumes/VDBs can hold a reference on this
      * realm... */
     Rec_GetRef();
@@ -98,7 +102,7 @@ volent *Realm::GetVolume(const char *volname)
 
 void Realm::print(FILE *f)
 {
-    fprintf(f, " realm '%s'\n", name);
+    fprintf(f, "%08x realm '%s'\n", id, name);
 }
 
 

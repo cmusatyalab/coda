@@ -59,6 +59,7 @@ extern "C" {
 #include "worker.h"
 #include "coda_assert.h"
 #include "codaconf.h"
+#include "realmdb.h"
 
 #include "nt_util.h"
 #ifdef __CYGWIN32__
@@ -179,6 +180,7 @@ int main(int argc, char **argv) {
     CommInit();     /* set up RPC2, {connection,server,mgroup} lists, probe daemon */
     UserInit();     /* fire up user daemon */
     VSGDBInit();    /* init VSGDB */
+    RealmDBInit();
     VolInit();      /* init VDB, daemon */
     FSOInit();      /* allocate FSDB if necessary, recover FSOs, start FSO daemon */
     HDB_Init();     /* allocate HDB if necessary, scan entries, start the HDB daemon */

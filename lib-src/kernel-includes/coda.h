@@ -211,7 +211,7 @@ struct venus_dirent {
 #endif
 
 typedef struct {
-    u_int32_t opaque[4];
+    u_int32_t opaque[3];
 } CodaFid;
 
 

@@ -691,7 +691,8 @@ void GetServer(srvent **spp, struct in_addr *host)
 	return;
     }
 
-    s = new srvent(host);
+#warning "need srvent realm"
+    s = new srvent(host, 0);
 
     srvent::srvtab->insert(&s->tblhandle);
 
@@ -1062,8 +1063,7 @@ void ServerPrint(FILE *f)
 }
 
 
-#warning "init srvent.realm"
-srvent::srvent(struct in_addr *Host)
+srvent::srvent(struct in_addr *Host, RealmId realm)
 {
     LOG(1, ("srvent::srvent: host = %s\n", inet_ntoa(*Host)));
 
@@ -1079,6 +1079,7 @@ srvent::srvent(struct in_addr *Host)
     }
 
     host = *Host;
+    realmid = realm;
     connid = -1;
     Xbinding = 0;
     probeme = 0;

@@ -104,7 +104,7 @@ void vproc::root(struct venus_cnode *vpp) {
     LOG(1, ("vproc::root\n"));
 
     /* Set OUT parameter. */
-    MAKE_CNODE(*vpp, rootfid, C_VDIR);
+    MAKE_CNODE2(*vpp, rootfid, C_VDIR);
 }
 
 
@@ -139,7 +139,7 @@ void vproc::vget(struct venus_cnode *vpp, struct cfid *cfidp) {
 		u.u_error = 0;
 
 		/* Set OUT parameter according to "fake" vnode. */
-		MAKE_CNODE(*vpp, cfidp->cfid_fid, C_VLNK);
+		MAKE_CNODE2(*vpp, cfidp->cfid_fid, C_VLNK);
 		vpp->c_flags |= C_INCON;
 	    }
 
@@ -147,7 +147,7 @@ void vproc::vget(struct venus_cnode *vpp, struct cfid *cfidp) {
 	}
 
 	/* Set OUT parameter. */
-	MAKE_CNODE(*vpp, f->fid, FTTOVT(f->stat.VnodeType));
+	MAKE_CNODE2(*vpp, f->fid, FTTOVT(f->stat.VnodeType));
 	if (f->IsFake() || f->IsMTLink())
 		vpp->c_flags |= C_INCON;
 
@@ -602,7 +602,7 @@ void vproc::lookup(struct venus_cnode *dcp, char *name,
 		    u.u_error = 0;
 
 		    /* Set OUT parameter according to "fake" vnode. */
-		    MAKE_CNODE(*cp, inc_fid, C_VLNK);
+		    MAKE_CNODE2(*cp, inc_fid, C_VLNK);
 		    cp->c_flags |= C_INCON;
 		}
 
@@ -611,7 +611,7 @@ void vproc::lookup(struct venus_cnode *dcp, char *name,
 	}
 
 	/* Set OUT parameter. */
-	MAKE_CNODE(*cp, target_fso->fid, FTTOVT(target_fso->stat.VnodeType));
+	MAKE_CNODE2(*cp, target_fso->fid, FTTOVT(target_fso->stat.VnodeType));
 	if (target_fso->IsFake() || target_fso->IsMTLink())
 	    cp->c_flags |= C_INCON;
 
@@ -728,7 +728,7 @@ void vproc::create(struct venus_cnode *dcp, char *name, struct coda_vattr *vap,
 
 	/* Set OUT parameters. */
 	target_fso->GetVattr(vap);
-	MAKE_CNODE(*cp, target_fso->fid, C_VREG);
+	MAKE_CNODE2(*cp, target_fso->fid, C_VREG);
 	cp->c_device = FSDB->device;
 	cp->c_inode = target_fso->data.file->Inode();
 
@@ -1162,7 +1162,7 @@ void vproc::mkdir(struct venus_cnode *dcp, char *name,
 	/* Set OUT parameter. */
 	target_fso->GetVattr(vap);
 	if (u.u_error) goto FreeLocks;
-	MAKE_CNODE(*cp, target_fso->fid, C_VDIR);
+	MAKE_CNODE2(*cp, target_fso->fid, C_VDIR);
 
 FreeLocks:
 	FSDB->Put(&parent_fso);

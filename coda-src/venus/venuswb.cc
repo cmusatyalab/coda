@@ -169,10 +169,15 @@ long VENUS_RevokeWBPermit(RPC2_Handle RPCid, VolumeId Vid)
 
     LOG(1, ("RevokeWBPermit(): Vid = %d\n", Vid));
 
+    srvent *s = FindServerByCBCid(RPCid);
+    if (!s) {
+	LOG(0, ("Callback from unknown host?\n"));
+	return 0;
+    }
+
     if (!Vid) return 0;
 
-#warning "need realm here"
-    vfid.Realm = 0;
+    vfid.Realm = s->realmid;
     vfid.Volume = Vid;
 
     v = VDB->Find(&vfid);

@@ -322,7 +322,8 @@ FREE_ENTRY: /* release entry from namelist */
 
 
 static int FSO_HashFN(const void *key) {
-    return(((VenusFid *)key)->Volume + ((VenusFid *)key)->Vnode);
+    VenusFid *fid = (VenusFid *)key;
+    return(fid->Realm + fid->Volume + fid->Vnode);
 }
 
 

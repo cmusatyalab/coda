@@ -610,17 +610,17 @@ int k_Purge(VenusFid *fid, int severely) {
     if (severely) {
 	msg.coda_purgefid.oh.opcode = CODA_PURGEFID;
 	msg.coda_purgefid.oh.unique = 0;
-	msg.coda_purgefid.Fid = *(CodaFid *)fid;
+	msg.coda_purgefid.Fid = *VenusToKernelFid(fid);
 	size = sizeof(msg.coda_purgefid);
     } else if (ISDIR(*fid)) {
 	msg.coda_zapdir.oh.opcode = CODA_ZAPDIR;
 	msg.coda_zapdir.oh.unique = 0;
-	msg.coda_zapdir.Fid = *(CodaFid *)fid;
+	msg.coda_zapdir.Fid = *VenusToKernelFid(fid);
 	size = sizeof(msg.coda_zapdir);
     } else {
 	msg.coda_zapfile.oh.opcode = CODA_ZAPFILE;
 	msg.coda_zapfile.oh.unique = 0;
-	msg.coda_zapfile.Fid = *(CodaFid *)fid;
+	msg.coda_zapfile.Fid = *VenusToKernelFid(fid);
 	size = sizeof(msg.coda_zapfile);
     }	
 
@@ -688,8 +688,8 @@ int k_Replace(VenusFid *fid_1, VenusFid *fid_2) {
     msg.oh.unique = 0;
     msg.oh.opcode = CODA_REPLACE;
 
-    msg.OldFid = *(CodaFid *)fid_1;
-    msg.NewFid = *(CodaFid *)fid_2;
+    msg.OldFid = *VenusToKernelFid(fid_1);
+    msg.NewFid = *VenusToKernelFid(fid_2);
 	
     /* Send the message. */
     if (MsgWrite((char *)&msg, sizeof (struct coda_replace_out)) != sizeof (struct coda_replace_out))
@@ -1153,7 +1153,7 @@ void worker::main(void)
 		       in->coda_create.mode, &vtarget);
 
 		if (u.u_error == 0) {
-		    out->coda_create.Fid = *(CodaFid *)&vtarget.c_fid;
+		    out->coda_create.Fid = *VenusToKernelFid(&vtarget.c_fid);
 		    out->coda_create.attr = in->coda_create.attr;
 		    size = (int)sizeof (struct coda_create_out);
 		}
@@ -1243,7 +1243,7 @@ void worker::main(void)
 		lookup(&vparent, (char *)in + (int)in->coda_lookup.name, &vtarget, (int)in->coda_lookup.flags);
 
 		if (u.u_error == 0) {
-		    out->coda_lookup.Fid = *(CodaFid *)&vtarget.c_fid;
+		    out->coda_lookup.Fid = *VenusToKernelFid(&vtarget.c_fid);
 		    out->coda_lookup.vtype = vtarget.c_type;
 		    if (vtarget.c_type == C_VLNK && vtarget.c_flags & C_INCON)
 			    out->coda_lookup.vtype |= CODA_NOCACHE;
@@ -1260,7 +1260,7 @@ void worker::main(void)
                       &in->coda_mkdir.attr, &vtarget);
 
 		if (u.u_error == 0) {
-		    out->coda_mkdir.Fid = *(CodaFid *)&vtarget.c_fid;
+		    out->coda_mkdir.Fid = *VenusToKernelFid(&vtarget.c_fid);
 		    out->coda_mkdir.attr = in->coda_mkdir.attr;
 		    size = sizeof (struct coda_mkdir_out);
 		}
@@ -1399,7 +1399,7 @@ void worker::main(void)
 		root(&vtarget);
 
 		if (u.u_error == 0) {
-		    out->coda_root.Fid = *(CodaFid *)&vtarget.c_fid;
+		    out->coda_root.Fid = *VenusToKernelFid(&vtarget.c_fid);
 		    size = sizeof (struct coda_root_out);
 		}
 		break;
@@ -1427,11 +1427,11 @@ void worker::main(void)
 		LOG(100, ("CODA_VGET: u.u_pid = %d u.u_pgid = %d\n", u.u_pid, u.u_pgid));
 		struct cfid fid;
 		fid.cfid_len = (unsigned short)sizeof(VenusFid);
-		fid.cfid_fid = *(VenusFid *)&in->coda_vget.Fid;
+		KernelToVenusFid(&fid.cfid_fid, &in->coda_vget.Fid);
 		vget(&vtarget, &fid);
 
 		if (u.u_error == 0) {
-		    out->coda_vget.Fid = *(CodaFid *)&vtarget.c_fid;
+		    out->coda_vget.Fid = *VenusToKernelFid(&vtarget.c_fid);
 		    out->coda_vget.vtype = vtarget.c_type;
 		    if (vtarget.c_type == C_VLNK && vtarget.c_flags & C_INCON)
                         out->coda_vget.vtype |= CODA_NOCACHE;
@@ -1471,9 +1471,9 @@ void worker::main(void)
             /* If open was aborted by user we must abort our OPEN too
              *  (if it was successful). */
             if (interrupted && u.u_error == 0) {
-
-                eprint("worker::main: aborting open (%s)",
-                       FID_((VenusFid *)&saveFid));
+		VenusFid fid;
+		KernelToVenusFid(&fid, &saveFid);
+                eprint("worker::main: aborting open (%s)", &fid);
 
                 /* NOTE: This may be bogus. It will definately cause a
                  * "message write error" since the uniquifier is bogus. No

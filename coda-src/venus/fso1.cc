@@ -2258,7 +2258,7 @@ void fsobj::ReturnEarly() {
 
 	    out = (union outputArgs *)w->msg->msg_buf;
 	    out->coda_create.oh.result = 0;
-	    out->coda_create.Fid = *(CodaFid *)&fid;
+	    out->coda_create.Fid = *VenusToKernelFid(&fid);
 	    DemoteLock();
 	    GetVattr(&out->coda_create.attr);
 	    PromoteLock();

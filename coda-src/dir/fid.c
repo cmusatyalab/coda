@@ -80,14 +80,6 @@ void FID_DFid2VFid(const struct DirFid *df, struct ViceFid *vf)
 	vf->Unique = df->df_unique;
 }
 
-void FID_MakeCodaFid(CodaFid *cf, const RealmId realm, const ViceFid *vf)
-{
-    cf->opaque[0] = realm;
-    cf->opaque[1] = vf->Volume;
-    cf->opaque[2] = vf->Vnode;
-    cf->opaque[3] = vf->Unique;
-}
-
 char *FID_(const struct ViceFid *vf)
 {
 	static char str1[50];

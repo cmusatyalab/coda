@@ -1317,7 +1317,7 @@ void *hdbent::operator new(size_t len){
 
 /* MUST be called from within transaction! */
 hdbent::hdbent(VolumeId Vid, char *Name, vuid_t Vuid,
-		int Priority, int Children, int Descendents) {
+	       int Priority, int Children, int Descendents) {
 
     RVMLIB_REC_OBJECT(*this);
     MagicNumber = HDBENT_MagicNumber;

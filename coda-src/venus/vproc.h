@@ -358,7 +358,14 @@ struct venus_cnode {
 
 #define	MAKE_CNODE(vp, fid, type)\
 {\
-    (vp).c_fid = *((VenusFid *)&(fid));\
+    KernelToVenusFid(&(vp).c_fid, &fid);\
+    (vp).c_type = type;\
+    (vp).c_flags = 0;\
+}
+
+#define	MAKE_CNODE2(vp, fid, type)\
+{\
+    (vp).c_fid = fid;\
     (vp).c_type = type;\
     (vp).c_flags = 0;\
 }

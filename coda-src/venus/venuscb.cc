@@ -197,7 +197,7 @@ long VENUS_CallBack(RPC2_Handle RPCid, ViceFid *fid)
 	return 0;
     }
 
-    MakeVenusFid(&vf, s->realm->id, fid);
+    MakeVenusFid(&vf, s->realmid, fid);
     LOG(1, ("CallBack: host = %s, fid = (%s)\n", s->name, FID_(&vf)));
 
     /* Notify Codacon. */
@@ -226,7 +226,7 @@ long VENUS_CallBackFetch(RPC2_Handle RPCid, ViceFid *Fid, SE_Descriptor *BD)
     VenusFid vf;
     srvent *s = FindServerByCBCid(RPCid);
 
-    MakeVenusFid(&vf, s->realm->id, Fid);
+    MakeVenusFid(&vf, s->realmid, Fid);
 
     LOG(1, ("CallBackFetch: host = %s, fid = (%s)\n", s->name, FID_(&vf)));
 

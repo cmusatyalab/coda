@@ -165,6 +165,7 @@ extern "C" {
 #include "venusrecov.h"
 #include "venusvol.h"
 #include "vproc.h"
+#include "realmdb.h"
 
 int MLEs = 0;
 
@@ -263,7 +264,8 @@ void VolInit()
 
 int VOL_HashFN(const void *key)
 {
-    return(*((VolumeId *)key));
+    VolFid *vfid = (VolFid *)key;
+    return vfid->Volume;
 }
 
 
@@ -414,13 +416,12 @@ volent *vdb::Find(const char *volname)
 }
 
 /* must NOT be called from within a transaction */
-static int GetVolReps(VolumeInfo *volinfo, volrep *volreps[VSG_MEMBERS])
+static int GetVolReps(RealmId realm, VolumeInfo *volinfo, volrep *volreps[VSG_MEMBERS])
 {
     int i, err = 0;
     VolFid vfid;
 
-#warning "need realm here"
-    vfid.Realm = 0;
+    vfid.Realm = realm;
 
     memset(volreps, 0, VSG_MEMBERS * sizeof(volrep *));
     for (i = 0; i < VSG_MEMBERS && !err; i++) {
@@ -460,9 +461,11 @@ volent *vdb::Create(VolumeInfo *volinfo, const char *volname)
     volrep *volreps[VSG_MEMBERS];
     int i, err;
 
+#warning "need to extract realm from volname here"
+    Realm *realm = REALMDB->GetRealm("DEFAULT");
+
     VolFid vfid;
-#warning "need realm here"
-    vfid.Realm = 0;
+    vfid.Realm = realm->id;
     vfid.Volume = volinfo->Vid;
 
     /* Check whether the key is already in the database. */
@@ -483,7 +486,7 @@ volent *vdb::Create(VolumeInfo *volinfo, const char *volname)
 	/* this might just do the trick for replicated volumes */
 	if (volinfo->Type == REPVOL) {
 	    vp = (repvol *)v;
-	    err = GetVolReps(volinfo, volreps);
+	    err = GetVolReps(vfid.Realm, volinfo, volreps);
 	    if (!err) {
 		Recov_BeginTrans();
 
@@ -509,6 +512,7 @@ volent *vdb::Create(VolumeInfo *volinfo, const char *volname)
 		VDB->Put((volent **)&volreps[i]);
 	}
 
+	realm->PutRef();
 	return(v);
     }
 
@@ -516,11 +520,11 @@ volent *vdb::Create(VolumeInfo *volinfo, const char *volname)
     switch(volinfo->Type) {
     case REPVOL:
         {
-        err = GetVolReps(volinfo, volreps);
+        err = GetVolReps(vfid.Realm, volinfo, volreps);
         if (!err) {
             /* instantiate the new replicated volume */
             Recov_BeginTrans();
-            vp = new repvol(volinfo->Vid, volname, volreps);
+            vp = new repvol(realm, volinfo->Vid, volname, volreps);
             v = vp;
             Recov_EndTrans(MAXFP);
         }
@@ -543,7 +547,7 @@ volent *vdb::Create(VolumeInfo *volinfo, const char *volname)
         
         /* instantiate the new volume replica */
         Recov_BeginTrans();
-        vp = new volrep(volinfo->Vid, volname, &srvaddr,
+        vp = new volrep(realm, volinfo->Vid, volname, &srvaddr,
                         volinfo->Type == BACKVOL,
                         (&volinfo->Type0)[replicatedVolume]);
         v = vp;
@@ -553,7 +557,7 @@ volent *vdb::Create(VolumeInfo *volinfo, const char *volname)
     }
 
     if (v == 0)
-	LOG(0, ("vdb::Create: (%x, %s, %d) failed\n", volinfo->Vid, volname, 0/*AllocPriority*/));
+	LOG(0, ("vdb::Create: (%x.%x, %s, %d) failed\n", vfid.Realm, volinfo->Vid, volname, 0/*AllocPriority*/));
     return(v);
 }
 
@@ -856,7 +860,7 @@ void *volent::operator new(size_t len)
 }
 
 /* MUST be called from within transaction! */
-volent::volent(VolumeId volid, const char *volname)
+volent::volent(Realm *r, VolumeId volid, const char *volname)
 {
     LOG(10, ("volent::volent: (%x, %s)\n", volid, volname));
 
@@ -864,6 +868,8 @@ volent::volent(VolumeId volid, const char *volname)
 
     RVMLIB_REC_OBJECT(*this);
     MagicNumber = VOLENT_MagicNumber;
+
+    realm = r;
     vid = volid;
     strcpy(name, volname);
 
@@ -1734,8 +1740,9 @@ void volent::UnLock(VolLockType l)
     Signal();
 }
 
-volrep::volrep(VolumeId vid, const char *name, struct in_addr *addr,
-	       int readonly, VolumeId parent) : volent(vid, name)
+volrep::volrep(Realm *r, VolumeId vid, const char *name,
+	       struct in_addr *addr, int readonly, VolumeId parent) :
+	volent(r, vid, name)
 {
     LOG(10, ("volrep::volrep: host: %s readonly: %d parent: %#08x)\n",
              inet_ntoa(*addr), readonly, parent));
@@ -1749,7 +1756,10 @@ volrep::volrep(VolumeId vid, const char *name, struct in_addr *addr,
     ResetTransient();
 
     /* Insert into hash table. */
-    VDB->volrep_hash.insert(&vid, &handle);
+    VolFid vfid;
+    vfid.Realm = realm->id;
+    vfid.Volume = vid;
+    VDB->volrep_hash.insert(&vfid, &handle);
 
 #ifdef VENUSDEBUG
     allocs++;
@@ -1764,7 +1774,10 @@ volrep::~volrep()
 
     PutServer(&volserver);
     /* Remove from hash table. */
-    if (VDB->volrep_hash.remove(&vid, &handle) != &handle)
+    VolFid vfid;
+    vfid.Realm = realm->id;
+    vfid.Volume = vid;
+    if (VDB->volrep_hash.remove(&vfid, &handle) != &handle)
 	{ print(logFile); CHOKE("volrep::~volrep: htab remove"); }
 }
 
@@ -1844,8 +1857,7 @@ int volent::Collate(connent *c, int code, int TranslateEINCOMP)
     return(code);
 }
 
-repvol::repvol(VolumeId vid, const char *name, volrep *reps[VSG_MEMBERS]) :
-    volent(vid, name)
+repvol::repvol(Realm *r, VolumeId vid, const char *name, volrep *reps[VSG_MEMBERS]) : volent(r, vid, name)
 {
     LOG(10, ("repvol::repvol %08x %08x %08x %08x %08x %08x %08x %08x\n",
              reps[0], reps[1], reps[2], reps[3],
@@ -1871,7 +1883,10 @@ repvol::repvol(VolumeId vid, const char *name, volrep *reps[VSG_MEMBERS]) :
     ResetTransient();
 
     /* Insert into hash table. */
-    VDB->repvol_hash.insert(&vid, &handle);
+    VolFid vfid;
+    vfid.Realm = realm->id;
+    vfid.Volume = vid;
+    VDB->repvol_hash.insert(&vfid, &handle);
 
 #ifdef VENUSDEBUG
     allocs++;
@@ -1889,7 +1904,10 @@ repvol::~repvol()
 #endif
 
     /* Remove from hash table. */
-    if (VDB->repvol_hash.remove(&vid, &handle) != &handle)
+    VolFid vfid;
+    vfid.Realm = realm->id;
+    vfid.Volume = vid;
+    if (VDB->repvol_hash.remove(&vfid, &handle) != &handle)
 	{ print(logFile); CHOKE("repvol::~repvol: htab remove"); }
 
     /* Unlink from VSG (if applicable). */
@@ -2795,9 +2813,9 @@ void volent::ListCache(FILE* fp, int long_format, unsigned int valid)
 
 /*  *****  Volume Iterator  *****  */
 
-repvol_iterator::repvol_iterator(void *key) : rec_ohashtab_iterator(VDB->repvol_hash, key) { }
+repvol_iterator::repvol_iterator(VolFid *key) : rec_ohashtab_iterator(VDB->repvol_hash, (void *)key) { }
 
-volrep_iterator::volrep_iterator(void *key) : rec_ohashtab_iterator(VDB->volrep_hash, key) { }
+volrep_iterator::volrep_iterator(VolFid *key) : rec_ohashtab_iterator(VDB->volrep_hash, (void *)key) { }
 
 repvol *repvol_iterator::operator()()
 {

@@ -631,7 +631,7 @@ class volent {
     /*T*/int lc_asr;            /* last/current ASR run for this volume */
 
     void operator delete(void *, size_t);
-    volent(VolumeId vid, const char *name);
+    volent(Realm *r, VolumeId vid, const char *name);
     ~volent();
     void ResetVolTransients();
     ViceVolumeType VolStatType(void);
@@ -698,8 +698,8 @@ class volrep : public volent {
 /*T*/srvent *volserver;          /* srvent of the server hosting this volume */
 /*T*/struct dllist_head vollist; /* links volumes to a srvent */
 
-    volrep(VolumeId vid, const char *name, struct in_addr *addr, int readonly,
-           VolumeId parent=0);
+    volrep(Realm *r, VolumeId vid, const char *name,
+	   struct in_addr *addr, int readonly, VolumeId parent=0);
     ~volrep();
     void ResetTransient();
 
@@ -780,7 +780,8 @@ class repvol : public volent {
 
     /*T*/PermitStatus VPStatus;   /* do we have a volume permit? */
 
-    repvol(VolumeId vid, const char *name, volrep *reps[VSG_MEMBERS]);
+    repvol(Realm *r, VolumeId vid, const char *name,
+	   volrep *reps[VSG_MEMBERS]);
     ~repvol();
     void ResetTransient();
 
@@ -941,13 +942,13 @@ class repvol : public volent {
 
 class repvol_iterator : public rec_ohashtab_iterator {
   public:
-    repvol_iterator(void * =(void *)-1);
+    repvol_iterator(VolFid * =(VolFid *)-1);
     repvol *operator()();
 };
 
 class volrep_iterator : public rec_ohashtab_iterator {
   public:
-    volrep_iterator(void * =(void *)-1);
+    volrep_iterator(VolFid * =(VolFid *)-1);
     volrep *operator()();
 };
 

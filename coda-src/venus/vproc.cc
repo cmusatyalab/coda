@@ -827,5 +827,5 @@ long FidToNodeid(VenusFid *fid)
 	}
 
 	/* Non volume root. */
-	return coda_f2i((CodaFid *)fid);
+	return coda_f2i(VenusToKernelFid(fid));
 }

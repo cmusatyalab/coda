@@ -154,7 +154,6 @@ int FID_Cmp(const struct ViceFid *, const struct ViceFid *);
 void FID_CpyVol(struct ViceFid *target, const struct ViceFid *source);
 void FID_VFid2DFid(const struct ViceFid *vf, struct DirFid *df);
 void FID_DFid2VFid(const struct DirFid *df, struct ViceFid *vf);
-void FID_MakeCodaFid(CodaFid *cf, const RealmId realm, const ViceFid *vf);
 void FID_PrintFid(const struct DirFid *fid);
 void FID_Int2DFid(struct DirFid *fid, const int vnode, const int unique);
 void FID_NFid2Int(const struct DirNFid *fid, VnodeId *vnode, Unique_t *unique);
