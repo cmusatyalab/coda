@@ -1,9 +1,9 @@
-/* $Id: server.c,v 1.1 1998/04/14 20:54:07 braam Exp $ */
+/* $Id: server.c,v 1.2 1998/10/09 21:57:38 braam Exp $ */
 
 /* server.c -- receive incoming RPCs and perform appropriate activities */
 
-#include <netinet/in.h>
 #include <sys/param.h>
+#include <netinet/in.h>
 #include <rpc2.h>
 #include "portmapper.h"
 #include "map.h"
