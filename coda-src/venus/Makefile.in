@@ -25,7 +25,7 @@
 # improvements or extensions that  they  make,  and  to  grant  Carnegie
 # Mellon the rights to redistribute these changes without encumbrance.
 # 
-# static char *rcsid = "$Header: /coda/usr/lily/newbuild/src/coda-src/venus/RCS/Makefile.in,v 4.2 1997/01/28 11:53:17 satya Exp lily $";
+# static char *rcsid = "$Header: /coda/usr/lily/newbuild/MasterSource/coda-src/venus/RCS/Makefile.in,v 4.3 1997/02/05 16:39:20 lily Exp $";
 
 
 # 
@@ -80,11 +80,9 @@ LIBS=	$(LIBUTIL)\
 	$(LIBKERNDEP) \
 	$(LIBVV)\
 	$(LIBDIRLIB)\
-	$(LIBTRACE)\
 	$(LIBSYS)\
 	$(LIBCS)\
 	$(LIBINODEFS)\
-	$(LIBTRACE)\
 	$(LIBMACH)\
 	$(LIBCOMPAT)\
 	$(LIBVICEDEP)
@@ -98,12 +96,12 @@ HFILES= advice.h adviceconn.h advice_daemon.h binding.h comm.h fso.h hdb.h local
 VOBJS = advice.o advice_daemon.o  binding.o  comm.o comm_daemon.o daemon.o fso0.o fso1.o fso_cachefile.o fso_cfscalls0.o fso_cfscalls1.o fso_cfscalls2.o fso_daemon.o fso_dir.o hdb.o hdb_daemon.o local_cml.o local_daemon.o local_fso.o local_subtree.o local_repair.o local_vol.o mariner.o venusrecov.o sighand.o simulate.o user.o venusutil.o venus.o venuscb.o venusvm.o  venusvol.o vol_daemon.o vol_cml.o vol_reintegrate.o vol_repair.o vol_resolve.o vol_vcb.o vol_vsr.o vol_COP2.o vproc.o vproc_pathname.o vproc_pioctl.o vproc_vfscalls.o worker.o faketrace.o
 
 
-venus:  ${VOBJS} dummy.o $(LIBS)
-	$(CXX) $(LIBFLAGS) ${VOBJS} dummy.o $(LIBS) -lm -o venus
+venus:  ${VOBJS} dummy.o $(LIBS) libfaketrace.a
+	$(CXX) $(LIBFLAGS) ${VOBJS} dummy.o $(LIBS) libfaketrace.a -lm -o venus
 
 # When the new plumber works it should be linked in here too.
-venus.plumber:  ${VOBJS} $(LIBPLUMBER) $(LIBS)
-	$(CXX) $(LIBFLAGS) ${VOBJS} $(LIBPLUMBER) $(LIBS) -lm -lsys -o venus.plumber
+venus.plumber:  ${VOBJS} $(LIBPLUMBER) $(LIBS) libfaketrace.a
+	$(CXX) $(LIBFLAGS) ${VOBJS} $(LIBPLUMBER) $(LIBS) libfaketrace.a -lm -lsys -o venus.plumber
 
 
 advice.o: advice.cc advice.h adviceconn.h $(RP2FILES)

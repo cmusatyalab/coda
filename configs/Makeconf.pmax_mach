@@ -30,7 +30,7 @@
 # Mellon the rights to redistribute these changes without encumbrance.
 # */
 # 
-# static char *rcsid = "$Header: Makeconf.pmax_mach,v 4.4 97/01/28 16:10:38 satya Exp $";
+# static char *rcsid = "$Header: Makeconf.pmax_mach,v 4.5 97/02/04 12:11:50 lily Exp $";
 
 MACHINE_FLAGS =
 SHORTSYS      = mach
@@ -42,7 +42,6 @@ LIBCURSES     = -lcurses
 LIBCOMPAT     =
 INODEFSNAME   = libinodefs.a
 INODEFSDIR    = kernel-src/inodefs/mach
-LIBTRACE      = ../venus/libfaketrace.a
 LIBREADLINE   = /usr/new/lib/libreadline.a
 INCREADLINE   = -I/usr/new/include/readline
 machine_inodefs   = mach
