@@ -246,12 +246,6 @@ static int coda_create(struct inode *dir, struct dentry *de, int mode)
 
 	dircnp = ITOC(dir);
 
-        if ( length > CODA_MAXNAMLEN ) {
-		printk("name too long: create, %s(%s)\n", 
-		       coda_f2s(&dircnp->c_fid), name);
-		return -ENAMETOOLONG;
-        }
-
 	error = venus_create(dir->i_sb, &(dircnp->c_fid), name, length, 
 				0, mode, 0, &newfid, &attrs);
 
@@ -302,12 +296,6 @@ static int coda_mknod(struct inode *dir, struct dentry *de, int mode, int rdev)
 
 	dircnp = ITOC(dir);
 
-        if ( length > CODA_MAXNAMLEN ) {
-		printk("name too long: mknod, %s(%s)\n", 
-		       coda_f2s(&dircnp->c_fid), name);
-		return -ENAMETOOLONG;
-        }
-
 	error = venus_create(dir->i_sb, &(dircnp->c_fid), name, length, 
 				0, mode, rdev, &newfid, &attrs);
 
@@ -348,9 +336,6 @@ static int coda_mkdir(struct inode *dir, struct dentry *de, int mode)
 		printk("coda_mkdir: inode is NULL or not a directory\n");
 		return -ENOENT;
 	}
-
-        if ( len > CODA_MAXNAMLEN )
-                return -ENAMETOOLONG;
 
 	if (coda_isroot(dir) && coda_iscontrol(name, len))
 		return -EPERM;
@@ -409,11 +394,6 @@ static int coda_link(struct dentry *source_de, struct inode *dir_inode,
 	CDEBUG(D_INODE, "old: fid: %s\n", coda_f2s(&(cnp->c_fid)));
 	CDEBUG(D_INODE, "directory: %s\n", coda_f2s(&(dir_cnp->c_fid)));
 
-        if ( len > CODA_MAXNAMLEN ) {
-                printk("coda_link: name too long. \n");
-                return -ENAMETOOLONG;
-        }
-
         error = venus_link(dir_inode->i_sb,&(cnp->c_fid), &(dir_cnp->c_fid), 
 			   (const char *)name, len);
 
@@ -447,9 +427,6 @@ static int coda_symlink(struct inode *dir_inode, struct dentry *de,
 
 	if (coda_isroot(dir_inode) && coda_iscontrol(name, len))
 		return -EPERM;
-
-	if ( len > CODA_MAXNAMLEN )
-                return -ENAMETOOLONG;
 
 	symlen = strlen(symname);
 	if ( symlen > CODA_MAXPATHLEN )
@@ -519,9 +496,6 @@ int coda_rmdir(struct inode *dir, struct dentry *de)
 	}
         dircnp = ITOC(dir);
 
-	if (len > CODA_MAXNAMLEN)
-		return -ENAMETOOLONG;
-
 	if (!list_empty(&de->d_hash))
 		return -EBUSY;
 	error = venus_rmdir(dir->i_sb, &(dircnp->c_fid), name, len);
@@ -545,17 +519,12 @@ static int coda_rename(struct inode *old_dir, struct dentry *old_dentry,
         const char *new_name = new_dentry->d_name.name;
 	int old_length = old_dentry->d_name.len;
 	int new_length = new_dentry->d_name.len;
-	struct inode *old_inode = old_dentry->d_inode;
 	struct inode *new_inode = new_dentry->d_inode;
         struct coda_inode_info *new_cnp, *old_cnp;
         int error;
 
 	ENTRY;
 	coda_vfs_stat.rename++;
-
-        if ( (old_length > CODA_MAXNAMLEN) || new_length > CODA_MAXNAMLEN ) {
-                return -ENAMETOOLONG;
-        }
 
         old_cnp = ITOC(old_dir);
         new_cnp = ITOC(new_dir);
@@ -564,21 +533,6 @@ static int coda_rename(struct inode *old_dir, struct dentry *old_dentry,
 	       "(%d length, %d strlen).old:d_count: %d, new:d_count: %d\n", 
 	       old_name, old_length, strlen(old_name), new_name, new_length, 
 	       strlen(new_name),old_dentry->d_count, new_dentry->d_count);
-
-	if (new_inode == old_inode)
-		return 0;
-
-	/* make sure target is not in use */
-	if (new_inode && S_ISDIR(new_inode->i_mode)) { 
-		/*
-                 * Prune any children before testing for busy.
-                 */
-                if (new_dentry->d_count > 1)
-                        shrink_dcache_parent(new_dentry);
-
-                if (new_dentry->d_count > 1)
-                        return -EBUSY;
-        }
 
 	/* the C library will do unlink/create etc */
 	if ( coda_crossvol_rename == 0 && 
@@ -599,7 +553,6 @@ static int coda_rename(struct inode *old_dir, struct dentry *old_dentry,
 	coda_flag_inode(new_dir, C_VATTR);
 
 	CDEBUG(D_INODE, "result %d\n", error); 
-	d_move(old_dentry, new_dentry);
 
 	EXIT;
 	return 0;

@@ -78,7 +78,10 @@ static struct super_block * coda_read_super(struct super_block *sb,
 
         if ( sbi->sbi_sb ) {
 		printk("Already mounted\n");
-		goto error;
+		unlock_super(sb);
+		EXIT;  
+		MOD_DEC_USE_COUNT;
+		return NULL;
 	}
 
 	sbi->sbi_sb = sb;
@@ -147,7 +150,6 @@ static void coda_put_super(struct super_block *sb)
         sb->s_dev = 0;
 	coda_cache_clear_all(sb);
 	sb_info = coda_sbp(sb);
-	/* sb_info->sbi_vcomm->vc_inuse = 0; */
 	coda_super_info.sbi_sb = NULL;
 	printk("Coda: Bye bye.\n");
 	memset(sb_info, 0, sizeof(* sb_info));
@@ -244,26 +246,22 @@ static int coda_statfs(struct super_block *sb, struct statfs *buf,
 		       int bufsiz)
 {
 	struct statfs tmp;
-	struct coda_statfs sfs;
 	int error;
 
-	error = venus_statfs(sb, &sfs);
+	memset(&tmp, 0, sizeof(struct statfs));
 
-	if (!error) {
-	    tmp.f_blocks = sfs.f_blocks;
-	    tmp.f_bfree = sfs.f_bfree;
-	    tmp.f_bavail = sfs.f_bavail;
-	    tmp.f_files = sfs.f_files;
-	    tmp.f_ffree = sfs.f_ffree;
-	} else {
-	    /* fake something like AFS does */
-	    tmp.f_blocks = 9000000;
-	    tmp.f_bfree = 9000000;
-	    tmp.f_bavail = 9000000 ;
-	    tmp.f_files = 9000000;
-	    tmp.f_ffree = 9000000;
+	error = venus_statfs(sb, &tmp);
+
+	if (error) {
+		/* fake something like AFS does */
+		tmp.f_blocks = 9000000;
+		tmp.f_bfree = 9000000;
+		tmp.f_bavail = 9000000 ;
+		tmp.f_files = 9000000;
+		tmp.f_ffree = 9000000;
 	}
 
+	/* and fill in the rest */
 	tmp.f_type = CODA_SUPER_MAGIC;
 	tmp.f_bsize = 1024;
 	tmp.f_namelen = CODA_MAXNAMLEN;

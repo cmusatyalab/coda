@@ -581,7 +581,7 @@ int venus_pioctl(struct super_block *sb, struct ViceFid *fid,
 	return error;
 }
 
-int venus_statfs(struct super_block *sb, struct coda_statfs *sfs) 
+int venus_statfs(struct super_block *sb, struct statfs *sfs) 
 { 
         union inputArgs *inp;
         union outputArgs *outp;
@@ -592,15 +592,14 @@ int venus_statfs(struct super_block *sb, struct coda_statfs *sfs)
 
         error =  coda_upcall(coda_sbp(sb), insize, &outsize, inp);
 	
-        if (error) {
-	        printk("coda_statfs: Venus returns: %d\n", error);
-		memset(sfs, 0, sizeof(struct coda_statfs));
+        if (!error) {
+		sfs->f_blocks = outp->coda_statfs.stat.f_blocks;
+		sfs->f_bfree  = outp->coda_statfs.stat.f_bfree;
+		sfs->f_bavail = outp->coda_statfs.stat.f_bavail;
+		sfs->f_files  = outp->coda_statfs.stat.f_files;
+		sfs->f_ffree  = outp->coda_statfs.stat.f_ffree;
 	} else {
-	    sfs->f_blocks = outp->coda_statfs.stat.f_blocks;
-	    sfs->f_bfree  = outp->coda_statfs.stat.f_bfree;
-	    sfs->f_bavail = outp->coda_statfs.stat.f_bavail;
-	    sfs->f_files  = outp->coda_statfs.stat.f_files;
-	    sfs->f_ffree  = outp->coda_statfs.stat.f_ffree;
+		printk("coda_statfs: Venus returns: %d\n", error);
 	}
 
         if (inp) CODA_FREE(inp, insize);
@@ -608,9 +607,6 @@ int venus_statfs(struct super_block *sb, struct coda_statfs *sfs)
         EXIT;
         return error;
 }
-
-
-
 
 /*
  * coda_upcall and coda_downcall routines.
