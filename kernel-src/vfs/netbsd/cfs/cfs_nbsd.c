@@ -15,6 +15,9 @@
 /* 
  * HISTORY
  * $Log: cfs_nbsd.c,v $
+ * Revision 1.15  1997/02/19 18:41:39  bnoble
+ * Didn't sufficiently unswap the now-unswapped dvp and vp in cfs_nb_link
+ *
  * Revision 1.13  1997/02/18 23:46:25  bnoble
  * NetBSD swapped the order of arguments to VOP_LINK between 1.1 and 1.2.
  * This tracks that change.
@@ -209,12 +212,14 @@ cfs_nb_statfs(vfsp, sbp, p)
 {
     bzero(sbp, sizeof(struct statfs));
     /* XXX - what to do about f_flags, others? --bnoble */
-    /* Below This is what AFS does */
+    /* Below This is what AFS does
+    	#define NB_SFS_SIZ 0x895440
+     */
     /* Note: Normal fs's have a bsize of 0x400 == 1024 */
     sbp->f_type = 0;
     sbp->f_bsize = 8192; /* XXX */
     sbp->f_iosize = 8192; /* XXX */
-#define NB_SFS_SIZ 0x895440
+#define NB_SFS_SIZ 0x8AB75D
     sbp->f_blocks = NB_SFS_SIZ;
     sbp->f_bfree = NB_SFS_SIZ;
     sbp->f_bavail = NB_SFS_SIZ;
