@@ -57,6 +57,7 @@ extern "C" {
 #include <util.h>
 #include "update.h"
 #include <volutil.h>
+#include <codaconf.h>
 #include <vice_file.h>
 
 extern char *ViceErrorMsg(int errorCode);   /* should be in libutil */
@@ -79,12 +80,36 @@ static struct timezone tsp; */
 static char s_hostname[100];
 static RPC2_EncryptionKey vkey;	/* Encryption key for bind authentication */
 
+static char *serverconf = SYSCONFDIR "/server"; /* ".conf" */
+static char *vicedir = NULL;
+static int   nservers = 0;
+
+static void
+ReadConfigFile()
+{
+    char    confname[MAXPATHLEN];
+
+    /* don't complain if config files are missing */
+    codaconf_quiet = 1;
+
+    /* Load configuration file to get vice dir. */
+    sprintf (confname, "%s.conf", serverconf);
+    (void) conf_init(confname);
+
+    CONF_STR(vicedir,		"vicedir",	   "/vice");
+    CONF_INT(nservers,		"numservers", 	   1); 
+
+    vice_dir_init(vicedir, 0);
+}
+
 int main(int argc, char **argv)
 {
     FILE * file = NULL;
     int rc;
 
     host[0] = '\0';
+
+    ReadConfigFile();
 
     ProcessArgs(argc, argv);
 

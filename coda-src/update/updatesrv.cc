@@ -112,7 +112,77 @@ static struct timezone tsp;
 
 static char *serverconf = SYSCONFDIR "/server"; /* ".conf" */
 static char *vicedir = NULL;
+static char vicedirlen;
 
+void
+ReadConfigFile()
+{
+    char    confname[MAXPATHLEN];
+
+    /* don't complain if config files are missing */
+    codaconf_quiet = 1;
+
+    /* Load configuration file to get vice dir. */
+    sprintf (confname, "%s.conf", serverconf);
+    (void) conf_init(confname);
+
+    CONF_STR(vicedir,		"vicedir",	   "/vice");
+
+    vice_dir_init(vicedir, 0);
+    vicedirlen = strlen(vicedir);
+}
+
+struct flist {
+    char  *name;
+    flist *next;
+};
+flist * namelist = NULL;
+int checknames = 1;
+
+void
+ReadExportList()
+{
+    FILE * exportf;
+    char   errmsg[MAXPATHLEN];
+    char   rdline[MAXPATHLEN];
+    flist *entry;
+
+    exportf = fopen (vice_sharedfile("db/files.export"), "r");
+    if (!exportf) {
+        /* Can not read export list.  DIE! */
+        snprintf (errmsg, MAXPATHLEN, "Cannot open %s",
+		  vice_sharedfile("db/files.export"));
+	perror(errmsg);
+	fprintf(stderr, "updatesrv will fetch ANY file on the system.\n"); 
+	checknames = 0;
+	return;
+    }
+    while (fgets(rdline, MAXPATHLEN, exportf)) {
+       if (rdline[strlen(rdline)-1] == '\n')
+	 rdline[strlen(rdline)-1] = 0;
+       LogMsg(3, SrvDebugLevel, stdout, "Export file: '%s'", rdline);
+       entry = new flist;
+       entry->name = strdup(rdline);
+       entry->next = namelist;
+       namelist = entry;
+    }
+    fclose (exportf);
+}
+
+int
+InList (char *name)
+{   flist *entry = namelist;
+
+    LogMsg(3, SrvDebugLevel, stdout, "InList Lookup: '%s'", name);
+    while (entry) {
+         LogMsg(3, SrvDebugLevel, stdout, "InList strcmp: '%s'", entry->name);
+        if (strcmp(entry->name,name) == 0)
+	    return 1;
+	entry = entry->next;
+    }
+    return 0;
+}
+    
 int main(int argc, char **argv)
 {
     char    sname[20];
@@ -152,10 +222,11 @@ int main(int argc, char **argv)
     }
 
     ReadConfigFile();
+    ReadExportList();
 
     rc = chdir(vice_sharedfile("misc"));
     if ( rc ) {
-        snprintf (errmsg, MAXPATHLEN, "Cannot cd to %s",
+        snprintf (errmsg, MAXPATHLEN, "Could not chdir to %s",
 		  vice_sharedfile("misc"));
 	perror(errmsg);
 	exit(1);
@@ -175,8 +246,7 @@ int main(int argc, char **argv)
       prefix = strdup(vice_sharedfile("db"));
 
     if (chdir(prefix)) {
-	snprintf (errmsg, MAXPATHLEN, "could not chdir to directory %s",
-		  prefix);
+	snprintf (errmsg, MAXPATHLEN, "Could not chdir to %s", prefix);
 	perror (errmsg);
 	exit(-1);
     }
@@ -243,23 +313,6 @@ int main(int argc, char **argv)
 
     CODA_ASSERT(LWP_WaitProcess((char *)&parentPid) == LWP_SUCCESS);
 
-}
-
-static void
-ReadConfigFile()
-{
-    char    confname[MAXPATHLEN];
-
-    /* don't complain if config files are missing */
-    codaconf_quiet = 1;
-
-    /* Load configuration file to get vice dir. */
-    sprintf (confname, "%s.conf", serverconf);
-    (void) conf_init(confname);
-
-    CONF_STR(vicedir,		"vicedir",	   "/vice");
-
-    vice_dir_init(vicedir, 0);
 }
 
 
@@ -346,6 +399,13 @@ long UpdateFetch(RPC2_Handle RPCid, RPC2_String FileName,
 
     LogMsg(1, SrvDebugLevel, stdout, "UpdateFetch file = %s, Time = %d",
 	    FileName, Time);
+
+    if (checknames && !InList((char *)FileName)) {
+        LogMsg(0, SrvDebugLevel, stdout, "Access denied to file %s.",
+	       (char *)FileName);
+	rc = CEACCES;
+	goto Final;
+    }
 
     strcpy(name, (char *)FileName);
     if (stat(name, &buff)) {
