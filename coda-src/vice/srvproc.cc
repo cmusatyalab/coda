@@ -1993,7 +1993,7 @@ int GetRights(PRS_InternalCPS *CPS, AL_AccessList *ACL, int ACLSize,
 {
     static PRS_InternalCPS * anyCPS = 0;
 
-    if (AL_GetInternalCPS(AnyUserId, &anyCPS) != 0) {
+    if (!anyCPS && AL_GetInternalCPS(AnyUserId, &anyCPS) != 0) {
 	SLog(0, "'" PRS_ANYUSERGROUP "' no CPS");
     }
 
