@@ -76,7 +76,7 @@ typedef int cthread;
  * Here, I leave it untouch as type (int) but we may need to modify this
  * in future.  -- 3/18/97 Clement
  */
-typedef int cthread_t;
+typedef long cthread_t;
 
 #define cthread_fork(func, arg)		(cthread_t)NULL
 

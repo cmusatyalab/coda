@@ -41,6 +41,7 @@ listed in the file CREDITS.
 #include <rvm/rvm.h>
 #include <rvm/rvm_segment.h>
 #include <rvm/rds.h>
+#include "rds_private.h"
 
 #ifdef __STDC__
 #include <string.h>
@@ -444,6 +445,15 @@ int main(argc, argv)
 	printf("? invalid rdsinit parameters\n");
         printf("rdsinit quit.  No permanent change is made\n");
 	exit(-1);
+    }
+
+    {
+        int minchunksize = sizeof(free_block_t) + sizeof(guard_t);
+    	if (chunksize < minchunksize) {
+	    printf("? chucksize should be at least %d bytes\n", minchunksize);
+	    printf("rdsinit quit.  No permanent change is made\n");
+	    exit(-1);
+	}
     }
 
     fd = open(dataName, O_WRONLY | O_CREAT | O_TRUNC | O_BINARY, 00644);

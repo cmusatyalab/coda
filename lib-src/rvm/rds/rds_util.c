@@ -209,11 +209,9 @@ get_block(size, tid, err)
 	RDS_STATS.large_hits++;	
 	
 
-    fbp = dequeue(&RDS_FREE_LIST[list], tid, err);
     /* Fbp could be null indicating an error occured in dequeue. Let
        the calling routine handle this error. */
-    
-    return fbp;
+    return dequeue(&RDS_FREE_LIST[list], tid, err);
 }
 
 int
@@ -226,7 +224,7 @@ put_block(bp, tid, err)
     int size = (((bp->size) >= RDS_MAXLIST)?RDS_MAXLIST:(bp->size));
     free_list_t *list = &RDS_FREE_LIST[size];
     free_block_t *ptr;
-    
+
     /* Check the guard on the list. */
     if (list->guard != FREE_LIST_GUARD) {
 	*err = ECORRUPT;

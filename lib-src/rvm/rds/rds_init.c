@@ -58,6 +58,8 @@ rds_init_heap(base, length, chunk_size, nlists, tid, err)
 	return -1;
     }
 
+    assert(chunk_size >= sizeof(free_block_t) + sizeof(guard_t));
+
     strcpy(hdrp->version, RDS_HEAP_VERSION);
     hdrp->heaplength = length;
     hdrp->chunk_size = chunk_size;
