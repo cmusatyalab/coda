@@ -233,6 +233,23 @@ AC_DEFUN(CODA_OPTION_CRYPTO,
     [  --with-crypto		Use openssl and/or kerberos libraries],
     [CRYPTO=${withval}], [CRYPTO=no])])
 
+AC_DEFUN(CODA_OPTION_LWP_PT,
+  [AC_ARG_WITH(lwp-pt,
+    [  --with-lwp-pt		Link against *experimental* lwp_pt library],
+    [with_LWP_PT=${withval}], [with_LWP_PT=no])])
+
+AC_SUBST(LIBLWP)
+AC_SUBST(LIBPTHREAD)
+AC_DEFUN(CODA_CHECK_LWP_PT,
+   [if test ${with_LWP_PT}p = nop ; then
+     AC_CHECK_LIB(lwp, LWP_Init, [LIBLWP="-llwp"])
+    else
+     AC_CHECK_LIB(pthread, pthread_create, [LIBPTHREAD="-lpthread"])
+     AC_CHECK_LIB(lwp_pt, LWP_Init, [LIBLWP="-llwp_pt"],
+	 [AC_MSG_ERROR("Failed to locate liblwp_pt")], [${LIBPTHREAD}])
+     CPPFLAGS="-D_REENTRANT ${CPPFLAGS}"
+   fi])
+
 dnl ---------------------------------------------
 dnl Search for an installed library in:
 dnl	 /usr/lib /usr/local/lib /usr/pkg/lib ${prefix}/lib

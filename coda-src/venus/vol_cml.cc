@@ -539,7 +539,7 @@ cmlent::cmlent(ClientModifyLog *Log, time_t Mtime, uid_t Uid, int op, int Tid ..
 {
     LOG(1, ("cmlent::cmlent(...)\n"));
     RVMLIB_REC_OBJECT(*this);
-    RPC2_String name;
+    RPC2_String name, newname;
 
     log = Log;
     this->tid = Tid;
@@ -555,6 +555,7 @@ cmlent::cmlent(ClientModifyLog *Log, time_t Mtime, uid_t Uid, int op, int Tid ..
     uid = Uid;
 
     opcode = op;
+    name = newname = NULL;
     Name = NewName = NULL;
     va_list ap;
     va_start(ap, Tid);
@@ -586,59 +587,59 @@ cmlent::cmlent(ClientModifyLog *Log, time_t Mtime, uid_t Uid, int op, int Tid ..
 	case CML_Create_OP:
 	    u.u_create.PFid = *va_arg(ap, VenusFid *);
 	    name = va_arg(ap, RPC2_String);
-	    Name = Copy_RPC2_String(name);
 	    u.u_create.CFid = *va_arg(ap, VenusFid *);
 	    u.u_create.Mode = va_arg(ap, RPC2_Unsigned);
+	    Name = Copy_RPC2_String(name);
 	    break;
 
 	case CML_Remove_OP:
 	    u.u_remove.PFid = *va_arg(ap, VenusFid *);
 	    name = va_arg(ap, RPC2_String);
-	    Name = Copy_RPC2_String(name);
 	    u.u_remove.CFid = *va_arg(ap, VenusFid *);
 	    u.u_remove.LinkCount = va_arg(ap, int);
+	    Name = Copy_RPC2_String(name);
 	    break;
 
 	case CML_Link_OP:
 	    u.u_link.PFid = *va_arg(ap, VenusFid *);
 	    name = va_arg(ap, RPC2_String);
-	    Name = Copy_RPC2_String(name);
 	    u.u_link.CFid = *va_arg(ap, VenusFid *);
+	    Name = Copy_RPC2_String(name);
 	    break;
 
 	case CML_Rename_OP:
 	    u.u_rename.SPFid = *va_arg(ap, VenusFid *);
 	    name = va_arg(ap, RPC2_String);
-	    Name = Copy_RPC2_String(name);
 	    u.u_rename.TPFid = *va_arg(ap, VenusFid *);
-	    name = va_arg(ap, RPC2_String);
-	    NewName = Copy_RPC2_String(name);
+	    newname = va_arg(ap, RPC2_String);
 	    u.u_rename.SFid = *va_arg(ap, VenusFid *);
+	    Name = Copy_RPC2_String(name);
+	    NewName = Copy_RPC2_String(newname);
 	    break;
 
 	case CML_MakeDir_OP:
 	    u.u_mkdir.PFid = *va_arg(ap, VenusFid *);
 	    name = va_arg(ap, RPC2_String);
-	    Name = Copy_RPC2_String(name);
 	    u.u_mkdir.CFid = *va_arg(ap, VenusFid *);
 	    u.u_mkdir.Mode = va_arg(ap, RPC2_Unsigned);
+	    Name = Copy_RPC2_String(name);
 	    break;
 
 	case CML_RemoveDir_OP:
 	    u.u_rmdir.PFid = *va_arg(ap, VenusFid *);
 	    name = va_arg(ap, RPC2_String);
-	    Name = Copy_RPC2_String(name);
 	    u.u_rmdir.CFid = *va_arg(ap, VenusFid *);
+	    Name = Copy_RPC2_String(name);
 	    break;
 
 	case CML_SymLink_OP:
 	    u.u_symlink.PFid = *va_arg(ap, VenusFid *);
+	    newname = va_arg(ap, RPC2_String);
 	    name = va_arg(ap, RPC2_String);
-	    NewName = Copy_RPC2_String(name);
-	    name = va_arg(ap, RPC2_String);
-	    Name = Copy_RPC2_String(name); // content
 	    u.u_symlink.CFid = *va_arg(ap, VenusFid *);
 	    u.u_symlink.Mode = va_arg(ap, RPC2_Unsigned);
+	    NewName = Copy_RPC2_String(newname);
+	    Name = Copy_RPC2_String(name); // content
 	    break;
 
 	case CML_Repair_OP:

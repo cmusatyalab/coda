@@ -23,7 +23,9 @@ sinclude(configs/coda_macros.m4)
 CODA_OPTION_SUBSYS(lwp)
 CODA_OPTION_SUBSYS(rvm)
 CODA_OPTION_SUBSYS(rpc2)
+CODA_OPTION_LWP_PT
 
+CODA_OPTION_LIBRARY(openssl)
 CODA_OPTION_CRYPTO
 CODA_OPTION_LIBRARY(krb4)
 CODA_OPTION_LIBRARY(krb5)
@@ -65,6 +67,7 @@ dnl Checks for libraries.
 CODA_FIND_LIB(lwp, [#include <lwp/lwp.h>], [LWP_Init(0,0,0)])
 CODA_FIND_LIB(rvm, [#include <rvm/rvm.h>], [rvm_initialize(0,0)])
 CODA_FIND_LIB(rpc2, [#include <rpc2/rpc2.h>], [RPC2_Init(0,0,0,0,0)], -llwp)
+CODA_CHECK_LWP_PT
 
 CODA_CHECK_LIBTERMCAP
 CODA_CHECK_LIBCURSES

@@ -28,11 +28,6 @@ include $(TOPDIR)/Makeconf
 LIBRARIES = libkerndep.a 
 HEADERS   = pioctl.h
 
-CXXFLAGS := $(CFLAGS)
-
 libkerndep.a:  pioctl.o
-
-pioctl.o: pioctl.c
-	$(CC) $(CFLAGS) -c $<
 
 include $(TOPDIR)/configs/Makerules
