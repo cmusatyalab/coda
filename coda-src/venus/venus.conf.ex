@@ -3,10 +3,18 @@
 # command-line flags, or /usr/coda/etc/vstab (if that file exists)
 
 #
-# Which are the root servers we should contact for user authentication,
-# and volume location information.
+# Which are the root servers we should contact for volume location
+# information. When specifying multiple servers, uses ',' to separate,
+# no extra spaces! (f.i. server1,server2,server3)
 #
 rootservers=testserver.coda.cs.cmu.edu
+
+#
+# Which are the root servers we should contact for user authentication.
+# When not specified, the rootservers are contacted.
+#
+#authservers=testserver.coda.cs.cmu.edu
+
 
 #
 # What should the size of the local cache be in 1k blocks. If this is
@@ -129,7 +137,7 @@ cacheblocks=100000
 # Kernel device,
 # The character device used by venus to communicate with the kernel module.
 # Standard name is /dev/cfs0, ignored by the Win95/98 port. Maybe we will
-# switch # to using /dev/coda0 at some point to avoid name conflicts.
+# switch to using /dev/coda0 at some point to avoid name conflicts.
 #
 #kerneldevice=/dev/cfs0
 

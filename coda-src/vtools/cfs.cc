@@ -58,6 +58,7 @@ extern "C" {
 #include <venusioctl.h>
 #include <prs.h>
 #include <writeback.h>
+#include <codaconf.h>
 
 /* get the platform dependent @sys/@cpu expansions */
 #include <coda_expansion.h>
@@ -85,6 +86,8 @@ NOTE: This is a brand new cfs; it has been written from scratch
 #define PIOBUFSIZE 2048  /* max size of pioctl buffer */
 
 char piobuf[PIOBUFSIZE];
+
+char *mountpoint = NULL;
 
 typedef void (*PFV3)(int, char **, int);
 
@@ -446,29 +449,38 @@ static int findclosures(char ***clist);
 static int validateclosurespec(char *name, char *volname, char *volrootpath);
 
 
-main(int argc, char *argv[])
-    {
+int main(int argc, char *argv[])
+{
     int slot;
-    
+
+    if (argc < 2) goto fail;
+
     /* First make stderr & stdout the same, to get perror() to print right */
     dup2(fileno(stdin), fileno(stderr));
 
     /* Next find and dispatch the opcode */
-    if (argc >= 2)
-        {
-        slot = findslot(argv[1]);
-        if (slot >=0)
-            {/* found it! */
-            if (cmdarray[slot].danger && !brave(slot)) exit(0);
-            ((PFV3)cmdarray[slot].handler)(argc, argv, slot); /* invoke the handler */
-            exit(0); /* and quit */
-            }
-        }
+    slot = findslot(argv[1]);
+    if (slot < 0) goto fail;
     
+    /* found it! */
+    if (cmdarray[slot].danger) {
+    	if (!brave(slot))
+	    exit(0);
+    }
+
+    conf_init(SYSCONFDIR "/venus.conf");
+    CONF_STR(mountpoint, "mountpoint", "/coda");
+
+    /* invoke the handler */
+    ((PFV3)cmdarray[slot].handler)(argc, argv, slot);
+
+    exit(0);
+fail:
     /* Opcode bogus or nonexistent */
     printf("Bogus or missing opcode: type \"cfs help\" for list\n");
     exit(-1);
-    }
+}
+    
 
 static int brave(int slot)
     /* Warns user that an operation is dangerous and asks for confirmation.
@@ -534,7 +546,7 @@ static void CheckServers(int argc, char *argv[], int opslot)
     }
 
     printf("Contacting servers .....\n"); /* say something so Puneet knows something is going on */
-    rc = pioctl("/coda", VIOCCKSERV, &vio, 1);
+    rc = pioctl(mountpoint, VIOCCKSERV, &vio, 1);
     if (rc < 0){fflush(stdout); perror("  VIOCCKSERV"); exit(-1);}
 
     /* See if there are any dead servers */
@@ -645,7 +657,7 @@ static void CheckVolumes(int argc, char *argv[], int opslot)
     vio.in_size = 0;
     vio.out = 0;
     vio.out_size = 0;
-    rc = pioctl("/coda", VIOCCKBACK, &vio, 1);
+    rc = pioctl(mountpoint, VIOCCKBACK, &vio, 1);
     if (rc < 0){fflush(stdout); perror("  VIOC_VIOCCKBACK"); exit(-1);}
     }
 
@@ -664,7 +676,7 @@ static void ClearPriorities(int argc, char *argv[], int opslot)
     vio.in_size = 0;
     vio.out = 0;
     vio.out_size = 0;
-    rc = pioctl("/coda", VIOC_CLEARPRIORITIES, &vio, 0);
+    rc = pioctl(mountpoint, VIOC_CLEARPRIORITIES, &vio, 0);
     if (rc < 0){fflush(stdout); perror("  VIOC_CLEARPRIORITIES"); exit(-1);}
     }
 
@@ -729,7 +741,7 @@ static void Disconnect(int argc, char *argv[], int opslot)
         vio.in_size = (int) (hcount * sizeof(unsigned long) + sizeof(int));
     }
 
-    rc = pioctl("/coda", VIOC_DISCONNECT, &vio, 1);
+    rc = pioctl(mountpoint, VIOC_DISCONNECT, &vio, 1);
     if (rc < 0){fflush(stdout); perror("  VIOC_DISCONNECT"); exit(-1);}    
 
     if (insrv)
@@ -855,10 +867,12 @@ static int findclosures(char ***clist)
     char spooldir[MAXPATHLEN];
     DIR *dirp;
     struct dirent *td;
+    char uid[15];
 
-    /*  XXXX  another hardwired path..... **  */
+    CONF_STR(spooldir, "checkpointdir", "/usr/coda/spool");
+    sprintf(uid, "/%d", getuid());
+    strcat(spooldir, uid);
 
-    sprintf(spooldir, "/usr/coda/spool/%d", getuid());
     dirp = opendir(spooldir);
     if (dirp == NULL){fflush(stdout); perror(spooldir); exit(-1);}
 
@@ -978,7 +992,7 @@ static void FlushCache(int argc, char *argv[], int opslot)
     vio.in_size = 0;
     vio.out = 0;
     vio.out_size = 0;
-    rc = pioctl("/coda", VIOC_FLUSHCACHE, &vio, 1);
+    rc = pioctl(mountpoint, VIOC_FLUSHCACHE, &vio, 1);
     if (rc < 0){fflush(stdout); perror("  VIOC_FLUSHCACHE"); exit(-1);}    
     }
 
@@ -1266,7 +1280,7 @@ static void GetPath(int argc, char *argv[], int opslot)
         vio.in_size = (int) sizeof(ViceFid);
         vio.out = piobuf;
         vio.out_size = PIOBUFSIZE;
-        rc = pioctl("/coda", VIOC_GETPATH, &vio, 0);
+        rc = pioctl(mountpoint, VIOC_GETPATH, &vio, 0);
         if (rc < 0){fflush(stdout); perror("VIOC_GETPATH"); continue;}
         printf("\t%s\n", vio.out);
         }
@@ -1488,7 +1502,7 @@ static void GetMountPoint(int argc, char *argv[], int opslot)
     vio.out_size = PIOBUFSIZE;
 
     /* Do the pioctl */
-    rc = pioctl("/coda", VIOC_GET_MT_PT, &vio, 1);
+    rc = pioctl(mountpoint, VIOC_GET_MT_PT, &vio, 1);
     if (rc < 0) {
       fflush(stdout); perror("Failed in GetMountPoint."); exit(-1);
     }
@@ -1584,7 +1598,7 @@ static void ListCache(int argc, char *argv[], int opslot)
         bzero(piobuf, PIOBUFSIZE);      
 
         /* Do the pioctl getting mount point pathname */
-        rc = pioctl("/coda", VIOC_GET_MT_PT, &vio, 1);
+        rc = pioctl(mountpoint, VIOC_GET_MT_PT, &vio, 1);
         if (rc < 0) {
           fflush(stdout); perror("Failed in GetMountPoint."); exit(-1);
         }
@@ -1622,7 +1636,7 @@ static void ListCache(int argc, char *argv[], int opslot)
       vio.out = piobuf;
       bzero(piobuf, PIOBUFSIZE);
       /* Do the pioctl */
-      rc = pioctl("/coda", VIOC_LISTCACHE, &vio, 1);
+      rc = pioctl(mountpoint, VIOC_LISTCACHE, &vio, 1);
       if (rc < 0) {
         fflush(stdout); perror("Failed in ListCache."); exit(-1);
       }
@@ -1912,7 +1926,7 @@ static void Reconnect(int argc, char *argv[], int opslot)
         vio.in_size = (int) (hcount * sizeof(unsigned long) + sizeof(int));
     }
 
-    rc = pioctl("/coda", VIOC_RECONNECT, &vio, 1);
+    rc = pioctl(mountpoint, VIOC_RECONNECT, &vio, 1);
     if (rc < 0){fflush(stdout); perror("  VIOC_RECONNECT"); exit(-1);}    
 
     if (insrv)
@@ -2194,7 +2208,7 @@ static void Slow(int argc, char *argv[], int opslot)
     vio.in_size = (int) sizeof(speed);
     vio.out = 0;
     vio.out_size = 0;
-    rc = pioctl("/coda", VIOC_SLOW, &vio, 1);
+    rc = pioctl(mountpoint, VIOC_SLOW, &vio, 1);
     if (rc < 0){fflush(stdout); perror("  VIOC_SLOW"); exit(-1);}    
     }
 
@@ -2213,7 +2227,7 @@ static void Strong(int argc, char *argv[], int opslot)
     vio.in_size = 0;
     vio.out = 0;
     vio.out_size = 0;
-    rc = pioctl("/coda", VIOC_STRONG, &vio, 1);
+    rc = pioctl(mountpoint, VIOC_STRONG, &vio, 1);
     if (rc < 0){fflush(stdout); perror("  VIOC_STRONG"); exit(-1);}    
     }
 
@@ -2232,7 +2246,7 @@ static void Adaptive(int argc, char *argv[], int opslot)
     vio.in_size = 0;
     vio.out = 0;
     vio.out_size = 0;
-    rc = pioctl("/coda", VIOC_ADAPTIVE, &vio, 1);
+    rc = pioctl(mountpoint, VIOC_ADAPTIVE, &vio, 1);
     if (rc < 0){fflush(stdout); perror("  VIOC_ADAPTIVE"); exit(-1);}    
     }
 
@@ -2251,7 +2265,7 @@ static void TruncateLog(int argc, char *argv[], int opslot)
     vio.in_size = 0;
     vio.out = 0;
     vio.out_size = 0;
-    rc = pioctl("/coda", VIOC_TRUNCATELOG, &vio, 1);
+    rc = pioctl(mountpoint, VIOC_TRUNCATELOG, &vio, 1);
     if (rc < 0){fflush(stdout); perror("  VIOC_TRUNCATELOG"); exit(-1);}    
     }
 
@@ -2289,7 +2303,7 @@ static void UnloadKernel(int argc, char *argv[], int opslot)
     vio.in = 0;
     vio.out_size = 0;
     vio.out = 0;
-    rc = pioctl("/coda", VIOC_UNLOADKERNEL, &vio, 0);
+    rc = pioctl(mountpoint, VIOC_UNLOADKERNEL, &vio, 0);
     if (rc < 0) {fflush(stdout); perror("  VIOC_UNLOADKERNEL"); exit(-1);}
     }
 
@@ -2366,7 +2380,7 @@ static void WaitForever (int argc, char *argv[], int opslot)
     vio.in_size = (short) sizeof(value);
     vio.out = 0;
     vio.out_size = 0;
-    rc = pioctl("/coda", VIOC_WAITFOREVER, &vio, 0);
+    rc = pioctl(mountpoint, VIOC_WAITFOREVER, &vio, 0);
     if (rc < 0){fflush(stdout); perror("  VIOC_WAITFOREVER"); exit(-1);}
     }
 
@@ -2389,7 +2403,7 @@ static void WriteDisconnect(int argc, char *argv[], int opslot)
 
     if (argc == i)      /* no more args -- do them all */
         {
-        rc = pioctl("/coda", VIOC_WD_ALL, &vio, 1);     
+        rc = pioctl(mountpoint, VIOC_WD_ALL, &vio, 1);     
         if (rc) {fflush(stdout); perror("VIOC_WD_ALL"); exit(-1);}
         }
     else 
@@ -2543,7 +2557,7 @@ static void WriteReconnect(int argc, char *argv[], int opslot)
 
     if (argc == 2)      /* do them all */
         {
-        rc = pioctl("/coda", VIOC_WR_ALL, &vio, 1);     
+        rc = pioctl(mountpoint, VIOC_WR_ALL, &vio, 1);     
         if (rc) {fflush(stdout); perror("VIOC_WR_ALL"); exit(-1);}
         }    
     else 

@@ -70,6 +70,7 @@ extern "C" {
 #include <rpc2.h>
 #include <util.h>
 #include <prs.h>
+#include <codaconf.h>
 #include "auth2.h"
 #include "auth2.common.h"
 #include "auser.h"
@@ -83,7 +84,7 @@ extern "C" {
 #endif
 
 static int SetHost(int write, int index, char *AuthHost);
-static void GetVSTAB(char *);
+static void GetAuthServers(void);
 static int TryBinding(RPC2_Integer AuthenticationType, char *viceName, int viceNamelen, char *vicePasswd, int vicePasswdlen, char *AuthHost, RPC2_Handle *RPCid);
 
  /* areas to keep interesting information about what hosts to use */
@@ -181,7 +182,7 @@ int U_Authenticate(char *hostname, int AuthenticationType, char *uName,
 
 		/* Try and get a hostname to use */
 		if ( !hostname ){
-			GetVSTAB(VSTAB);
+			GetAuthServers();
 			if (SetHost(1, 0, AuthHost)){
 				fprintf(stderr, "Can't find a host for authentication, try using -host\n");
 				exit(1);
@@ -310,7 +311,7 @@ int U_BindToServer(char *DefAuthHost, RPC2_Integer AuthenticationType,
 	
 
 	/* fill in the host array */
-	GetVSTAB(VSTAB);
+	GetAuthServers();
 
 	/* try all valid entries until we are rejected or accepted */
 	while ((rc = SetHost(1, i, AuthHost)) == 0 ) {		
@@ -404,14 +405,14 @@ static int SetHost(int write, int index, char *AuthHost)
 #define O_BINARY 0
 #endif
 
-static void GetVSTAB(char *vstab)
+static void GetAuthServers(void)
 {
     int		fd;
     int		len;
     char	* end;
-    char	* area;
-    char	* host;
-    char	* endHost;
+    char	* area = NULL;
+    char	* host = NULL;
+    char	* endHost = NULL;
     char	* start;
     struct	stat	buff;
 
@@ -419,36 +420,40 @@ static void GetVSTAB(char *vstab)
     bzero((char *)lHosts,sizeof(lHosts));
     numHosts = 0;
 
-    fd = open(vstab, O_RDONLY | O_BINARY, 0); 
-    if ( fd < 0 ) {
-	    perror("Error opening VSTAB");
-	return;
-    }
+    fd = open(VSTAB, O_RDONLY | O_BINARY, 0); 
+    if ( fd >= 0  && fstat(fd, &buff) != -1 ) {
+	area = (char *) malloc(buff.st_size+1);
+	if(!area) {
+	    perror("No memory!");
+	    close(fd);
+	    return;
+	}
 
-    if(fstat(fd, &buff) == -1 ) {
-	perror("Error statting VSTAB");
-	return;
-    }
-    
-    area = (char *) malloc(buff.st_size+1);
-    if(!area) {
-	perror("No memory!");
-	close(fd);
-	return;
-    }
-
-    len = read(fd, area, buff.st_size);
-    if ( len != buff.st_size ) {
-	perror("Error reading VSTAB");
+	len = read(fd, area, buff.st_size);
+	if ( len == buff.st_size ) {
+	    area[buff.st_size] = '\0'; 
+	    strncpy(pName,area,index(area,':')-area);
+	    host = index(area,':') + 1;
+	    host = index(host,':') + 1;
+	    endHost = index(host,':');
+	}
 	free(area);
-	return;
+	close(fd);
     }
-    area[buff.st_size] = '\0';
-	
-    strncpy(pName,area,index(area,':')-area);
-    host = index(area,':') + 1;
-    host = index(host,':') + 1;
-    endHost = index(host,':');
+
+    if (!host) {
+	conf_init(SYSCONFDIR "/venus.conf");
+	CONF_STR(host, "authservers", NULL);
+	CONF_STR(host, "rootservers", NULL);
+
+	if (host) endHost = &host[strlen(host)+1];
+	else {
+	    fprintf(stderr,
+"Failed to find either root- or authservers in vstab and venus.conf files\n");
+	    return;
+	}
+    }
+
     for(start = host; start < endHost;) {
 	end = index(start,',');
 	if(!end || end>endHost) {
@@ -458,8 +463,6 @@ static void GetVSTAB(char *vstab)
 	strncpy(lHosts[numHosts++],start,len);
 	start += len + 1;
     }
-    free(area);
-    close(fd);
     return;
 }
 

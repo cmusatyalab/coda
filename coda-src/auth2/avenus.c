@@ -46,11 +46,7 @@ Pittsburgh, PA.
 #define VIRTUE 1
 #define VICE 1
 
-#ifdef __CYGWIN32__
-#define VSTAB "c:\\usr\\coda\\etc\\vstab"
-#else
 #define VSTAB "/usr/coda/etc/vstab"
-#endif
 
 #ifdef __cplusplus
 extern "C" {
@@ -79,6 +75,7 @@ extern "C" {
 #endif __cplusplus
 
 #include <util.h>
+#include <codaconf.h>
 #include "auth2.h"
 #undef VIRTUE
 #undef VICE
@@ -89,7 +86,7 @@ extern "C" {
 
 static void GetPathName();
 
-static char pName[64];		/* name to use on PIOCTLS */
+static char *pName;		/* name to use on PIOCTLS */
 
 typedef struct {
     int			    sTokenSize;
@@ -178,6 +175,11 @@ int U_DeleteLocalTokens()
     return(0);    
 }
 
+#if defined(DJGPP) || defined(__CYGWIN32__)
+#define DFLT_MNT "N:"
+#else
+#define DFLT_MNT "/coda"
+#endif
 
 static void GetPathName()
 {
@@ -186,38 +188,28 @@ static void GetPathName()
     char	* area;
     struct	stat	buff;
 
-    bzero(pName,sizeof(pName));
-    
 #if defined(DJGPP) || defined(__CYGWIN32__) /* hack for now until better solution for all pioctl using programs */
-    strcpy(pName, "/coda");
+    pName = "/coda";
     return;
 #endif
     
     if((fd = open(VSTAB,O_RDONLY | O_BINARY,0)) >= 0) {
 	if(!(fstat(fd, &buff))) {
 	    area = (char *)malloc(buff.st_size);
-	    if(!area) {
-		close(fd);
-		goto fini;
+	    if(area) {
+		len = read(fd, area, buff.st_size);
+		if(len == buff.st_size) {
+		    pName = malloc(index(area, ':') - area);
+		    strncpy(pName,area,index(area,':')-area);
+		}
+		free(area);
 	    }
-	    len = read(fd, area, buff.st_size);
-	    if(len == buff.st_size) {
-		strncpy(pName,area,index(area,':')-area);
-	    }
-	    else {
-		perror("Read of VSTAB failed\n");
-	    }
-	    free(area);
-	}
-	else {
-	    perror("fstat for VSTAB failed");
 	}
 	close(fd);
     }
-    else {
-	perror("open for VSTAB failed");
+
+    if (!pName) {
+	conf_init(SYSCONFDIR "/venus.conf");
+	CONF_STR(pName, "mountpoint", DFLT_MNT);
     }
- fini:
-    if(strlen(pName) == 0)
-	strcpy(pName, "/cmu");
 }

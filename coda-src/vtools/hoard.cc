@@ -61,13 +61,13 @@ extern FILE *_findiop();
 #include <venusioctl.h>
 #include <vice.h>
 #include <hdb.h>
+#include <codaconf.h>
 
 #ifndef O_BINARY
 #define O_BINARY 0
 #endif
 
 /* Manifest Constants. */
-#define	CODA_MOUNTPOINT   "/coda"
 #define	STREQ(a, b) (strcmp(a, b) == 0)
 #define	FATAL	1
 #define	MAXCMDLEN   (MAXPATHLEN + 1024)
@@ -80,6 +80,7 @@ vuid_t ruid;
 vuid_t euid;
 int Debug = 0;
 int Verbose = 0;
+char *mountpoint = NULL;
 
 
 #define	DEBUG(stmt) { if (Debug) { stmt ; fflush(stdout); } }
@@ -222,6 +223,9 @@ main(int argc, char *argv[]) {
     olist Enable;
     olist Disable;
     ParseHoardCommands(fp, Clear, Add, Delete, List, Walk, Verify, Enable, Disable);
+
+    conf_init(SYSCONFDIR "/venus.conf");
+    CONF_STR(mountpoint, "mountpoint", "/coda");
 
     /* Execute each list.  N.B. The execution order is significant. */
     DoClears(Clear);
@@ -704,7 +708,7 @@ static int canonicalize(char *path, VolumeId *vp, char *vname, char *fullname,
 
     char tpath[MAXPATHLEN];
 #ifdef __CYGWIN32__
-    if (!memcmp(path, "/coda", 5))
+    if (!memcmp(path, mountpoint, 5))
 	path = path + 6;
 #endif   
     strcpy(tpath, path);    
@@ -965,7 +969,7 @@ static void DoClears(olist& Clear) {
 	vi.out = 0;
 	vi.out_size = 0;
 
-	if (pioctl(CODA_MOUNTPOINT, VIOC_HDB_CLEAR, &vi, 0) != 0) {
+	if (pioctl(mountpoint, VIOC_HDB_CLEAR, &vi, 0) != 0) {
 	    error(!FATAL, "pioctl:Clear(%d, %d): %s",
 		  c->msg.cuid, ruid, strerror(errno));
 	}
@@ -983,7 +987,7 @@ static void DoAdds(olist& Add) {
 	vi.out = 0;
 	vi.out_size = 0;
 
-	if (pioctl(CODA_MOUNTPOINT, VIOC_HDB_ADD, &vi, 0) != 0) {
+	if (pioctl(mountpoint, VIOC_HDB_ADD, &vi, 0) != 0) {
 	    error(!FATAL, "pioctl:Add(%x, %s, %d, %d, %d): %s",
 		  a->msg.volno, a->msg.name, a->msg.priority, a->msg.attributes, ruid, strerror(errno));
 	}
@@ -1001,7 +1005,7 @@ static void DoDeletes(olist& Delete) {
 	vi.out = 0;
 	vi.out_size = 0;
 
-	if (pioctl(CODA_MOUNTPOINT, VIOC_HDB_DELETE, &vi, 0) != 0) {
+	if (pioctl(mountpoint, VIOC_HDB_DELETE, &vi, 0) != 0) {
 	    error(!FATAL, "pioctl:Delete(%x, %s, %d): %s",
 		  d->msg.volno, d->msg.name, ruid, strerror(errno));
 	}
@@ -1019,7 +1023,7 @@ static void DoLists(olist& List) {
 	vi.out = 0;
 	vi.out_size = 0;
 
-	if (pioctl(CODA_MOUNTPOINT, VIOC_HDB_LIST, &vi, 0) == 0) {
+	if (pioctl(mountpoint, VIOC_HDB_LIST, &vi, 0) == 0) {
 	    RenameOutFile(l->msg.outfile, l->tname);
 	}
 	else {
@@ -1041,7 +1045,7 @@ static void DoWalks(olist& Walk) {
 	vi.out = 0;
 	vi.out_size = 0;
 
-	if (pioctl(CODA_MOUNTPOINT, VIOC_HDB_WALK, &vi, 0) != 0) {
+	if (pioctl(mountpoint, VIOC_HDB_WALK, &vi, 0) != 0) {
 	    error(!FATAL, "pioctl:Walk(%d): %s",
 		  ruid, strerror(errno));
 	}
@@ -1062,7 +1066,7 @@ static void DoVerifies(olist& Verify) {
 	vi.out = 0;
 	vi.out_size = 0;
 
-	if (pioctl(CODA_MOUNTPOINT, VIOC_HDB_VERIFY, &vi, 0) == 0) {
+	if (pioctl(mountpoint, VIOC_HDB_VERIFY, &vi, 0) == 0) {
 	    RenameOutFile(v->msg.outfile, v->tname);
 	}
 	else {
@@ -1085,7 +1089,7 @@ static void DoEnables(olist& Enable) {
 	vi.out = 0;
 	vi.out_size = 0;
 
-	if (pioctl(CODA_MOUNTPOINT, VIOC_HDB_ENABLE, &vi, 0) != 0) {
+	if (pioctl(mountpoint, VIOC_HDB_ENABLE, &vi, 0) != 0) {
 	    error(!FATAL, "pioctl:Enable(%d): %s",
 		  ruid, strerror(errno));
 	}
@@ -1104,7 +1108,7 @@ static void DoDisables(olist& Disable) {
 	vi.out = 0;
 	vi.out_size = 0;
 
-	if (pioctl(CODA_MOUNTPOINT, VIOC_HDB_DISABLE, &vi, 0) != 0) {
+	if (pioctl(mountpoint, VIOC_HDB_DISABLE, &vi, 0) != 0) {
 	    error(!FATAL, "pioctl:Disable(%d): %s",
 		  ruid, strerror(errno));
 	}
@@ -1137,7 +1141,7 @@ static void MetaExpand(olist& Add, char *FullName, int priority, int attributes)
 	      strerror(errno));
     char mtpt[MAXPATHLEN];
     char *cp;
-    if ((cp = rindex(VRPath, '/')) == NULL) cp = CODA_MOUNTPOINT;
+    if ((cp = rindex(VRPath, '/')) == NULL) cp = mountpoint;
     strcpy(mtpt, cp + 1);
     ExpandNode(mtpt, vid, NodeName, Add, priority, attributes);
 
