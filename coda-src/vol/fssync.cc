@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vol/fssync.cc,v 4.3 1997/09/05 12:45:10 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vol/fssync.cc,v 4.4 1997/10/23 19:25:36 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -109,15 +109,15 @@ extern "C" {
 #define MAXRELOCATIONS	20	/* Maximum number of volume relocations that may be
 				   extant at any time */
 #define REDIRECT_TIME	60	/* Volumes are redirected for 60 minutes */
-PRIVATE int nRelocations = 0;	/* Actual number of volume relocations */
+static int nRelocations = 0;	/* Actual number of volume relocations */
 
-PRIVATE struct relocation {
+static struct relocation {
     VolumeId	vid;		/* volume to be relocated */
     long	server;		/* Internet address of server it has moved to */
     long	time;		/* Time of relocation--used to age the entry */
 } Relocations[MAXRELOCATIONS];
 
-PRIVATE VolumeId OfflineVolumes[MAXUTILITIES][MAXOFFLINEVOLUMES];
+static VolumeId OfflineVolumes[MAXUTILITIES][MAXOFFLINEVOLUMES];
 
 int FSYNC_clientInit();
 void FSYNC_clientFinis();
@@ -125,13 +125,13 @@ int FSYNC_askfs(VolumeId volume, int com, int reason);
 void FSYNC_fsInit();
 unsigned int FSYNC_CheckRelocationSite(VolumeId volumeId);
 
-PRIVATE void FSYNC_sync();
-PRIVATE void FSYNC_SetRelocationSite(VolumeId volumeId, int server);
-PRIVATE void FSYNC_DeleteRelocations(int nMinutes);
-PRIVATE void InitUtilities();
-PRIVATE int AddUtility (int myid);
-PRIVATE int FindUtility (int myid);
-PRIVATE int RemoveUtility (int myid);
+static void FSYNC_sync();
+static void FSYNC_SetRelocationSite(VolumeId volumeId, int server);
+static void FSYNC_DeleteRelocations(int nMinutes);
+static void InitUtilities();
+static int AddUtility (int myid);
+static int FindUtility (int myid);
+static int RemoveUtility (int myid);
 
 /* File server synchronization initialization. Starts up an lwp to
    watch over the synchronization. This is bogus, since now that it
@@ -148,7 +148,7 @@ void FSYNC_fsInit() {
 }
 
 /* Wake up periodically to delete outdated relocation information */
-PRIVATE void FSYNC_sync() {
+static void FSYNC_sync() {
 
     LogMsg(9, VolDebugLevel, stdout,  "Entering FSYNC_sync()");
     while (!VInit)	// Wait for fileserver initialization to complete
@@ -296,7 +296,7 @@ unsigned int FSYNC_CheckRelocationSite(VolumeId volumeId)
     return 0;
 }
 
-PRIVATE void FSYNC_SetRelocationSite(VolumeId volumeId, int server)
+static void FSYNC_SetRelocationSite(VolumeId volumeId, int server)
 {
     register int nMinutes = REDIRECT_TIME;
     register struct relocation *rp;
@@ -315,7 +315,7 @@ PRIVATE void FSYNC_SetRelocationSite(VolumeId volumeId, int server)
 	LogMsg(0, VolDebugLevel, stdout,  "Volume %x is now relocated to server %x", volumeId, server);
 }
 
-PRIVATE void FSYNC_DeleteRelocations(int nMinutes)
+static void FSYNC_DeleteRelocations(int nMinutes)
 {
     long cutoff = FT_ApproxTime() - nMinutes*60;
     register int i, spread;
@@ -337,16 +337,16 @@ PRIVATE void FSYNC_DeleteRelocations(int nMinutes)
 
 /* Routines for managing per utility data */
 
-PRIVATE int UtilityId[MAXUTILITIES];
+static int UtilityId[MAXUTILITIES];
 
-PRIVATE void InitUtilities ()
+static void InitUtilities ()
 {
     register int i;
     for(i=0;i<MAXUTILITIES;i++)
 	UtilityId[i] = -1;
 }
 	
-PRIVATE int AddUtility (int myid)
+static int AddUtility (int myid)
 {
     register int i;
     for(i=0;i<MAXUTILITIES;i++)
@@ -356,7 +356,7 @@ PRIVATE int AddUtility (int myid)
     return 1;
 }
 
-PRIVATE int FindUtility (register int myid)
+static int FindUtility (register int myid)
 {
     register int i;
     for(i=0;i<MAXUTILITIES;i++)
@@ -365,7 +365,7 @@ PRIVATE int FindUtility (register int myid)
     return -1;
 }
 
-PRIVATE int RemoveUtility (register int myid)
+static int RemoveUtility (register int myid)
 {
     UtilityId[FindUtility(myid)] = -1;
     return 1;

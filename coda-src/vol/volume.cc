@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vol/volume.cc,v 4.10 1998/04/14 21:01:40 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vol/volume.cc,v 4.11 1998/05/27 20:29:42 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -84,13 +84,13 @@ extern "C" {
 #include <lock.h>
 #include <util.h>
 #include <partition.h>
+#include <rvmlib.h>
 
 #include <vice.h>
 #ifdef __cplusplus
 }
 #endif __cplusplus
 
-#include <rvmlib.h>
 
 #include "cvnode.h"
 #include "volume.h"
@@ -131,7 +131,7 @@ char *VSalvageMessage =	  /* Common message used when the volume goes off line *
 					/* Must be a multiple of 4 (1 word) !!*/
 #define VOLUME_HASH_TABLE_SIZE 128	/* Must be a power of 2!! */
 #define VOLUME_HASH(volumeId) (volumeId&(VOLUME_HASH_TABLE_SIZE-1))
-PRIVATE Volume *VolumeHashTable[VOLUME_HASH_TABLE_SIZE];
+static Volume *VolumeHashTable[VOLUME_HASH_TABLE_SIZE];
 
 extern void dump_storage(int level, char *s);
 extern void VBumpVolumeUsage(Volume *vp);
@@ -145,31 +145,31 @@ void VAddToVolumeUpdateList(Error *ec, Volume *vp);
 extern int nskipvols;
 extern VolumeId *skipvolnums;
 
-PRIVATE int TimeZoneCorrection; /* Number of seconds west of GMT */
-PRIVATE int VolumeCacheCheck = 0;	/* Incremented everytime a volume goes on line--used to stamp
+static int TimeZoneCorrection; /* Number of seconds west of GMT */
+static int VolumeCacheCheck = 0;	/* Incremented everytime a volume goes on line--used to stamp
 			   volume headers and in-core vnodes.  When the volume goes on-line
 			   the vnode will be invalidated */
 
-PRIVATE int VolumeCacheSize = 50, VolumeGets = 0, VolumeReplacements = 0;
+static int VolumeCacheSize = 50, VolumeGets = 0, VolumeReplacements = 0;
 
-PRIVATE void VListVolume(FILE *file, Volume *vp);
-PRIVATE void VAppendVolume(Volume *vp);
-PRIVATE void WriteVolumeHeader(Error *ec, Volume *vp);
-PRIVATE Volume *attach2(Error *ec, char *path, struct VolumeHeader *header,
+static void VListVolume(FILE *file, Volume *vp);
+static void VAppendVolume(Volume *vp);
+static void WriteVolumeHeader(Error *ec, Volume *vp);
+static Volume *attach2(Error *ec, char *path, struct VolumeHeader *header,
 			Device device, char *partition);
-PRIVATE void VSyncVolume(Error *ec, Volume *vp);
-PRIVATE void GetBitmap(Error *ec, Volume *vp, VnodeClass vclass);
-PRIVATE void VAdjustVolumeStatistics(Volume *vp);
-PRIVATE void VScanUpdateList();
-//PRIVATE void InitLRU(int howMany); -- Make it public for norton.
-PRIVATE int GetVolumeHeader(Volume *vp);
-PRIVATE int AvailVolumeHeader(register Volume *vp);
-PRIVATE void ReleaseVolumeHeader(struct volHeader *hd);
+static void VSyncVolume(Error *ec, Volume *vp);
+static void GetBitmap(Error *ec, Volume *vp, VnodeClass vclass);
+static void VAdjustVolumeStatistics(Volume *vp);
+static void VScanUpdateList();
+//static void InitLRU(int howMany); -- Make it public for norton.
+static int GetVolumeHeader(Volume *vp);
+static int AvailVolumeHeader(register Volume *vp);
+static void ReleaseVolumeHeader(struct volHeader *hd);
 void FreeVolumeHeader(Volume *vp);
-PRIVATE void AddVolumeToHashTable(Volume *vp, int hashid);
+static void AddVolumeToHashTable(Volume *vp, int hashid);
 void DeleteVolumeFromHashTable(Volume *vp);
 
-PRIVATE int MountedAtRoot(char *path);
+static int MountedAtRoot(char *path);
 
 
 /* InitVolUtil has a problem right now - 
@@ -306,9 +306,9 @@ void VInitVolumePackage(int nLargeVnodes, int nSmallVnodes, int DoSalvage) {
 	int nAttached = 0, nUnattached = 0;
 	int i = 0;
 	int camstatus = 0;
-	int maxid = (int)(CAMLIB_REC(MaxVolId) & 0x00FFFFFF);
+	int maxid = (int)(SRV_RVM(MaxVolId) & 0x00FFFFFF);
 
-	CAMLIB_BEGIN_TOP_LEVEL_TRANSACTION_2(CAM_TRAN_NV_SERVER_BASED)
+	RVMLIB_BEGIN_TRANSACTION(restore)
 	for (i = 0; (i < maxid) && (i < MAXVOLS); i++) {
 	    if (VolHeaderByIndex(i, &header) == -1) {
 		LogMsg(0, VolDebugLevel, stdout, "Bogus volume index %d (shouldn't happen)", i);
@@ -358,7 +358,7 @@ void VInitVolumePackage(int nLargeVnodes, int nSmallVnodes, int DoSalvage) {
 	LogMsg(0, VolDebugLevel, stdout, "Attached %d volumes; %d volumes not attached",
 				nAttached, nUnattached);
 	VListVolumes();			/* Update list in /vice/vol/VolumeList */
-    CAMLIB_END_TOP_LEVEL_TRANSACTION_2(CAM_PROT_TWO_PHASED, camstatus)
+    RVMLIB_END_TRANSACTION(flush, &(camstatus));
     }
 
     VInit = 1;
@@ -434,6 +434,20 @@ void VInitServerList()
 	LogMsg(0, VolDebugLevel, stdout, "VInitServerList: unable to read file %s; aborted", serverList);
 	exit(1);
     }
+    gethostname(hostname, sizeof(hostname)-1);
+#ifdef __CYGWIN32__
+    /* HACK --JJK */
+    /* There should be a get_canonical_hostname routine! */
+    {
+	char *cp = hostname;
+	while (*cp) {
+	    *cp = tolower(*cp);
+	    cp++;
+	}
+    }
+#endif
+    ThisHost = (char *) malloc((int)strlen(hostname)+1);
+    strcpy(ThisHost, hostname);
 
     while (fgets(line, sizeof(line), file) != NULL) {
         char sname[50];
@@ -531,7 +545,7 @@ void VGetVolumeInfo(Error *ec, char *key, register VolumeInfo *info)
     return;
 }
 
-PRIVATE void VListVolume(register FILE *file, register Volume *vp)
+static void VListVolume(register FILE *file, register Volume *vp)
 {
     register int volumeusage, i;
 
@@ -580,7 +594,7 @@ void VListVolumes() {
     rename("/vice/vol/VolumeList.temp","/vice/vol/VolumeList");
 }
 
-PRIVATE void VAppendVolume(Volume *vp)
+static void VAppendVolume(Volume *vp)
 {
     FILE *file;
 
@@ -635,18 +649,18 @@ void VShutdown() {
 	p = VolumeHashTable[i];
 	while (p) {
 	    Error error;
-	    CAMLIB_BEGIN_TOP_LEVEL_TRANSACTION_2(CAM_TRAN_NV_SERVER_BASED)
+	    RVMLIB_BEGIN_TRANSACTION(restore)
 	    vp = VGetVolume(&error, p->hashid);
 	    if ((error != 0) || (!vp)) {
 		LogMsg(0, VolDebugLevel, stdout, "VShutdown: Error %d getting volume %x!",error,p->hashid);
-		CAMLIB_ABORT(-1);
+		rvmlib_abort(-1);
 	    }
 	    LogMsg(0, VolDebugLevel, stdout, "VShutdown: Taking volume %s(0x%x) offline...",
 		V_name(vp), V_id(vp));
 	    if (vp)
 	        VOffline(vp, "File server was shut down");
 	    LogMsg(0, VolDebugLevel, stdout, "... Done");
-	    CAMLIB_END_TOP_LEVEL_TRANSACTION_2(CAM_PROT_TWO_PHASED, camstatus)
+	    RVMLIB_END_TRANSACTION(flush, &(camstatus));
 	    p = p->hashNext;
 	}
     }
@@ -818,7 +832,7 @@ VAttachVolumeById(Error *ec, char *partition, VolumeId volid, int mode)
     return vp;
 }
 
-PRIVATE Volume *attach2(Error *ec, char *path, register struct VolumeHeader *header,
+static Volume *attach2(Error *ec, char *path, register struct VolumeHeader *header,
 			    Device device, char *partition)
 {
     register Volume *vp;
@@ -976,12 +990,12 @@ Volume *VGetVolume(Error *ec, register VolumeId volumeId)
 		/* must wrap transaction around volume replacement */
 		int cstat = 0;
 		LogMsg(29, VolDebugLevel, stdout, "VGetVolume: Calling GetVolumeHeader()");
-		if (CAMLIB_IN_RVM_TRANSACTION) 
+		if (rvmlib_in_transaction()) 
 		    headerExists = GetVolumeHeader(vp);
 		else {
-		    CAMLIB_BEGIN_TOP_LEVEL_TRANSACTION_2(CAM_TRAN_NV_SERVER_BASED)
+		    RVMLIB_BEGIN_TRANSACTION(restore)
 		    headerExists = GetVolumeHeader(vp);
-		    CAMLIB_END_TOP_LEVEL_TRANSACTION_2(CAM_PROT_TWO_PHASED, cstat)
+		    RVMLIB_END_TRANSACTION(flush, &(cstat));
 		}
 		LogMsg(29, VolDebugLevel, stdout, "VGetVolume: Finished GetVolumeHeader()");
 		if (cstat){
@@ -1411,7 +1425,7 @@ extern int bitmap_flag;
 /* Create a bitmap of the appropriate size for the specified vnode index */
 /* Create a new bitmap patterned on the specified  vnode array */
 /* in recoverable storage */
-PRIVATE void GetBitmap(Error *ec, Volume *vp, VnodeClass vclass)
+static void GetBitmap(Error *ec, Volume *vp, VnodeClass vclass)
 {
     register struct VnodeClassInfo *vcp = &VnodeClassInfo_Array[vclass];
     register struct vnodeIndex *vip = &vp->vnIndex[vclass];
@@ -1500,7 +1514,7 @@ char *VolumeExternalName(VolumeId volumeId)
 #define OneDay	(24*60*60)		/* 24 hours */
 #define Midnight(date) ((date-TimeZoneCorrection)/OneDay*OneDay+TimeZoneCorrection)
 
-PRIVATE void VAdjustVolumeStatistics(register Volume *vp)
+static void VAdjustVolumeStatistics(register Volume *vp)
 {
     unsigned int now = FT_ApproxTime();
 
@@ -1531,9 +1545,9 @@ void VBumpVolumeUsage(register Volume *vp)
 	Error error;
 	LogMsg(1, VolDebugLevel, stdout, "VBumpVolumeUsage: writing out VolDiskInfo (vol %x)",
 			V_id(vp));
-	CAMLIB_BEGIN_TOP_LEVEL_TRANSACTION_2(CAM_TRAN_NV_SERVER_BASED)
+	RVMLIB_BEGIN_TRANSACTION(restore)
 	VUpdateVolume(&error, vp);
-	CAMLIB_END_TOP_LEVEL_TRANSACTION_2(CAM_PROT_TWO_PHASED, status)
+	RVMLIB_END_TRANSACTION(flush, &(status));
     }
 }
 
@@ -1553,9 +1567,9 @@ void VSetDiskUsage() {
 
 #define SALVAGE_INTERVAL	(10*60)
 
-PRIVATE VolumeId *UpdateList;	/* Pointer to array of Volume ID's */
-PRIVATE int nUpdatedVolumes;	/* Updated with entry in UpdateList, salvage after crash flag on */
-PRIVATE int updateSize;		/* number of entries possible */
+static VolumeId *UpdateList;	/* Pointer to array of Volume ID's */
+static int nUpdatedVolumes;	/* Updated with entry in UpdateList, salvage after crash flag on */
+static int updateSize;		/* number of entries possible */
 #define UPDATE_LIST_SIZE 100	/* size increment */
 
 void VAddToVolumeUpdateList(Error *ec, register Volume *vp)
@@ -1593,7 +1607,7 @@ void VAddToVolumeUpdateList(Error *ec, register Volume *vp)
     LogMsg(29, VolDebugLevel, stdout, "Leaving VAddToVolumeUpdateList()");
 }
 
-PRIVATE void VScanUpdateList() {
+static void VScanUpdateList() {
     register int i, gap;
     register Volume *vp;
     Error error;
@@ -1613,9 +1627,9 @@ PRIVATE void VScanUpdateList() {
 	    LogMsg(29, VolDebugLevel, stdout, "ScanUpdateList: Going to set salvage flag for volume %x", V_id(vp));
 	    int cstat = 0;
 	    V_dontSalvage(vp) = DONT_SALVAGE;
-	    CAMLIB_BEGIN_TOP_LEVEL_TRANSACTION_2(CAM_TRAN_NV_SERVER_BASED)
+	    RVMLIB_BEGIN_TRANSACTION(restore)
 	    VUpdateVolume(&error, vp); /* No need to fsync--not critical */
-	    CAMLIB_END_TOP_LEVEL_TRANSACTION_2(CAM_PROT_TWO_PHASED, cstat)
+	    RVMLIB_END_TRANSACTION(flush, &(cstat));
 	      LogMsg(29, VolDebugLevel, stdout, "ScanUpdateList: Finished UPdating Volume %x",
 		  V_id(vp));
 	    gap++;
@@ -1637,7 +1651,7 @@ PRIVATE void VScanUpdateList() {
 /* Add on routines to manage a volume header cache */
 /***************************************************/
 
-PRIVATE struct volHeader *volumeLRU;
+static struct volHeader *volumeLRU;
 
 /* Allocate a bunch of headers; string them together */
 /* should be called ONLY by fileserver */
@@ -1651,7 +1665,7 @@ void InitLRU(int howMany)
 
 /* Get a volume header from the LRU list; update the old one if necessary */
 /* Returns 1 if there was already a header, which is removed from the LRU list */
-PRIVATE int GetVolumeHeader(register Volume *vp)
+static int GetVolumeHeader(register Volume *vp)
 {
     Error error;
     register struct volHeader *hd;
@@ -1693,7 +1707,7 @@ PRIVATE int GetVolumeHeader(register Volume *vp)
     return old;
 }
 
-PRIVATE int AvailVolumeHeader(register Volume *vp)
+static int AvailVolumeHeader(register Volume *vp)
 {
     register struct volHeader *hd;
 
@@ -1714,7 +1728,7 @@ PRIVATE int AvailVolumeHeader(register Volume *vp)
 }
 
 /* Put it at the top of the LRU chain */
-PRIVATE void ReleaseVolumeHeader(register struct volHeader *hd)
+static void ReleaseVolumeHeader(register struct volHeader *hd)
 {
     LogMsg(61, VolDebugLevel, stdout, "Entering ReleaseVolumeHeader");
     if (!hd || hd->next) /* no header, or header already released */
@@ -1756,7 +1770,7 @@ void FreeVolumeHeader(register Volume *vp)
   END_HTML 
  */
 /* As used, hashid is always the id of the volume.  */
-PRIVATE void AddVolumeToHashTable(register Volume *vp, int hashid)
+static void AddVolumeToHashTable(register Volume *vp, int hashid)
 {
     int hash = VOLUME_HASH(hashid);
     Volume *vptr;
@@ -1837,7 +1851,7 @@ void SetVolDebugLevel(int level) {
     VolDebugLevel = level;
 }
 
-PRIVATE int MountedAtRoot(char *path) {
+static int MountedAtRoot(char *path) {
     /* Returns 1 if path is a subdirectory of  "/"-directory, 0 otherwise */
 
     struct stat rootbuf, pathbuf;

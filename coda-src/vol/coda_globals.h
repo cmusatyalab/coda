@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /usr/rvb/XX/src/coda-src/vol/RCS/coda_globals.h,v 4.1 1997/01/08 21:52:08 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vol/coda_globals.h,v 4.2 1997/02/26 16:03:48 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -52,7 +52,7 @@ static char *rcsid = "$Header: /usr/rvb/XX/src/coda-src/vol/RCS/coda_globals.h,v
 
 /* Maximum number of volumes in recoverable storage (in any partitions) */
 #define MAXVOLS		1024	    /* make this a power of 2 */
-#define CLS  CAMLIB_LOCK_SPACE_PRIMARY	    /* lock name space for coda filesystem */
+#define CLS  RVMLIB_LOCK_SPACE_PRIMARY	    /* lock name space for coda filesystem */
 				  /* LOCK_SPACE_PRIMARY defined in camelot library */
 
 /* size of large and small vnode free lists */
@@ -68,7 +68,7 @@ static char *rcsid = "$Header: /usr/rvb/XX/src/coda-src/vol/RCS/coda_globals.h,v
  */
 typedef int boolean_t; /* defined in /usr/include/mach/machine/boolean.h on Mach machines */
 
-CAMLIB_BEGIN_RECOVERABLE_DECLARATIONS
+struct camlib_recoverable_segment {
 
     /* flag to determine whether or not initialization is required */
     boolean_t	    already_initialized;
@@ -86,17 +86,12 @@ CAMLIB_BEGIN_RECOVERABLE_DECLARATIONS
     short    SmallVnodeIndex;
     short    LargeVnodeIndex;
 
-    /*
-      BEGIN_HTML
-      <pre>
-      <a name="MaxVolId"><strong>Maximum volume id allocated on this server</strong></a></pre>
-      END_HTML
-    */ 
+	/* MaxVolId: Maximum volume id allocated on this server */
     VolumeId    MaxVolId;
 
     long    Reserved[MAXVOLS];
+    int	camlibDummy;		
+};
 
-CAMLIB_END_RECOVERABLE_DECLARATIONS
-
-
+extern struct camlib_recoverable_segment *camlibRecoverableSegment;
 #endif _CODA_GLOBALS_H_

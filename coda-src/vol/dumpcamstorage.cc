@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vol/dumpcamstorage.cc,v 4.2 1997/02/26 16:03:50 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vol/dumpcamstorage.cc,v 4.3 1998/01/10 18:39:39 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -80,13 +80,13 @@ extern "C" {
 
 #include <lwp.h>
 #include <lock.h>
+#include <util.h>
+#include <rvmlib.h>
 
 #ifdef __cplusplus
 }
 #endif __cplusplus
 
-#include <util.h>
-#include <rvmlib.h>
 #include <vice.h>
 #include "cvnode.h"
 #include "volume.h"
@@ -101,7 +101,7 @@ extern "C" {
 #include "coda_globals.h"
 
 void print_VolumeDiskData(VolumeDiskData *ddata);
-PRIVATE void PrintVersionVector(vv_t vv, char *indent);
+static void PrintVersionVector(vv_t vv, char *indent);
 void print_VnodeDiskObject(VnodeDiskObject *vnode);
 void print_VolData(struct VolumeData *data);
 void print_VolHead(struct VolHead *VolHead, int volindex);
@@ -117,29 +117,29 @@ void dump_storage(int level, char *s)
 
     printf("dump_storage at %s\n", s);
     printf("{\n    already_initialized = %d;\n\n    VolumeList = {\n",
-	   CAMLIB_REC(already_initialized));
+	   SRV_RVM(already_initialized));
     for (i = 0; i < 14; i++) {
-	print_VolHead(&CAMLIB_REC(VolumeList[i]), i);
-	print_VolData(&(CAMLIB_REC(VolumeList[i]).data));
+	print_VolHead(&SRV_RVM(VolumeList[i]), i);
+	print_VolData(&(SRV_RVM(VolumeList[i]).data));
     }
 
     printf("    }\n\tSmallVnodeFreeList = {\n");
     for (i = 0; i < 3; i++) {
-	if (CAMLIB_REC(SmallVnodeFreeList[i]) != NULL) {
+	if (SRV_RVM(SmallVnodeFreeList[i]) != NULL) {
 	    printf("SmallVnodeFreeList[%d]\n", i);
-	    print_VnodeDiskObject(CAMLIB_REC(SmallVnodeFreeList[i]));
+	    print_VnodeDiskObject(SRV_RVM(SmallVnodeFreeList[i]));
 	}
     }
     printf("    }\n\tLargeVnodeFreeList = {\n");
     for (i = 0; i < 2; i++) {
-	if (CAMLIB_REC(LargeVnodeFreeList[i]) != NULL) {
+	if (SRV_RVM(LargeVnodeFreeList[i]) != NULL) {
 	    printf("LargeVnodeFreeList[%d]\n", i);
-	    print_VnodeDiskObject(CAMLIB_REC(LargeVnodeFreeList[i]));
+	    print_VnodeDiskObject(SRV_RVM(LargeVnodeFreeList[i]));
 	}
     }
-    printf("    }\n    SmallVnodeIndex = %d;\n", CAMLIB_REC(SmallVnodeIndex));
-    printf("    LargeVnodeIndex = %d;\n", CAMLIB_REC(LargeVnodeIndex));
-    printf("    MaxVolId = %x;\n}\n", CAMLIB_REC(MaxVolId));
+    printf("    }\n    SmallVnodeIndex = %d;\n", SRV_RVM(SmallVnodeIndex));
+    printf("    LargeVnodeIndex = %d;\n", SRV_RVM(LargeVnodeIndex));
+    printf("    MaxVolId = %x;\n}\n", SRV_RVM(MaxVolId));
 
 }
 
@@ -223,7 +223,7 @@ void print_VnodeDiskObject(VnodeDiskObject *vnode)
 	vnode->vnodeMagic, vnode->serverModifyTime);
 }
 
-PRIVATE void PrintVersionVector(vv_t vv, char *indent) {
+static void PrintVersionVector(vv_t vv, char *indent) {
     int i = 0;
 
     fprintf(stdout, "%s", indent);
@@ -361,6 +361,6 @@ void PrintCamVolume(int level, int volindex) {
 
     if (level > VolDebugLevel) return;
     printf("Printing volume at index %d:\n", volindex);
-    print_VolHead(&(CAMLIB_REC(VolumeList[volindex])), volindex);
-    print_VolData(&(CAMLIB_REC(VolumeList[volindex].data)));
+    print_VolHead(&(SRV_RVM(VolumeList[volindex])), volindex);
+    print_VolData(&(SRV_RVM(VolumeList[volindex].data)));
 }

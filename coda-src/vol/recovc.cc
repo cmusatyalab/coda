@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vol/recovc.cc,v 4.3 1997/07/28 11:03:00 lily Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vol/recovc.cc,v 4.4 1998/01/10 18:39:42 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -63,15 +63,11 @@ extern "C" {
 
 #include <lwp.h>
 #include <lock.h>
-
-#ifdef __MACH__
-#include <mach.h>
-#endif /* __MACH__ */
+#include <rvmlib.h>
 #ifdef __cplusplus
 }
 #endif __cplusplus
 
-#include <rvmlib.h>
 
 #include <vice.h>
 #include <util.h>
@@ -87,8 +83,8 @@ extern "C" {
 extern olist *VolLogPtrs[MAXVOLS];
 extern void dump_storage(int, char*);
 
-PRIVATE void DeleteVolHeader(int);
-PRIVATE void DeleteVolData(int);
+static void DeleteVolHeader(int);
+static void DeleteVolData(int);
 
 unsigned long VMCounter = 0;
 unsigned long startuptime = 0;
@@ -179,56 +175,50 @@ int coda_init() {
     }
 
 #ifdef NOTDEF
-    if (CAMLIB_REC(already_initialized) == TRUE) {
+    if (SRV_RVM(already_initialized) == TRUE) {
 	if (!nodumpvm)
 	checkvm(); 
 	unlink("/vicepa/dumpvm");
     }
 #endif NOTDEF
 
-    CAMLIB_BEGIN_TOP_LEVEL_TRANSACTION_2(CAM_TRAN_OVNV_STANDARD)
+    RVMLIB_BEGIN_TRANSACTION(restore);
 
-    CAMLIB_LOCK(CAMLIB_LOCK_NAME(CAMLIB_REC(already_initialized)), CLS, CAMLIB_LOCK_MODE_WRITE);
 
-    if (CAMLIB_REC(already_initialized) == FALSE) {
-	CAMLIB_MODIFY(CAMLIB_REC(already_initialized), TRUE);
+    if (SRV_RVM(already_initialized) == FALSE) {
+	RVMLIB_MODIFY(SRV_RVM(already_initialized), TRUE);
 
-	CAMLIB_LOCK(CAMLIB_LOCK_NAME(CAMLIB_REC(SmallVnodeFreeList)), CLS, CAMLIB_LOCK_MODE_WRITE);
-	CAMLIB_LOCK(CAMLIB_LOCK_NAME(CAMLIB_REC(LargeVnodeFreeList)), CLS, CAMLIB_LOCK_MODE_WRITE);
-	CAMLIB_LOCK(CAMLIB_LOCK_NAME(CAMLIB_REC(SmallVnodeIndex)), CLS, CAMLIB_LOCK_MODE_WRITE);
-	CAMLIB_LOCK(CAMLIB_LOCK_NAME(CAMLIB_REC(LargeVnodeIndex)), CLS, CAMLIB_LOCK_MODE_WRITE);
-	CAMLIB_LOCK(CAMLIB_LOCK_NAME(CAMLIB_REC(MaxVolId)), CLS, CAMLIB_LOCK_MODE_WRITE);
 
 	/* Initialize MaxVolId to zero but with the serverid  */
 	/* in the high byte */
-	CAMLIB_MODIFY(CAMLIB_REC(MaxVolId), (VolumeId)(ThisServerId << 24));
-	LogMsg(29, VolDebugLevel, stdout,  "coda_init: MaxVolId = %x", CAMLIB_REC(MaxVolId));
+	RVMLIB_MODIFY(SRV_RVM(MaxVolId), (VolumeId)(ThisServerId << 24));
+	LogMsg(29, VolDebugLevel, stdout,  "coda_init: MaxVolId = %x", SRV_RVM(MaxVolId));
 
 	/* allocate vnodediskobject structures to fill the large and small */
 	/* vnode free lists, and set freelist pointers */
 	zerovnode = (VnodeDiskObject *)buf1;
 	bzero((void *)zerovnode, sizeof(buf1));
 	for(i = 0; i < SMALLFREESIZE; i++) {
-	    svnodes[i] = (VnodeDiskObject *)CAMLIB_REC_MALLOC(SIZEOF_SMALLDISKVNODE);
-	    CAMLIB_MODIFY_BYTES(svnodes[i], zerovnode, sizeof(buf1));
+	    svnodes[i] = (VnodeDiskObject *)rvmlib_rec_malloc(SIZEOF_SMALLDISKVNODE);
+	    rvmlib_modify_bytes(svnodes[i], zerovnode, sizeof(buf1));
 	}
-	CAMLIB_MODIFY_BYTES(CAMLIB_REC(SmallVnodeFreeList), svnodes, sizeof(svnodes));
-	CAMLIB_MODIFY(CAMLIB_REC(SmallVnodeIndex), SMALLFREESIZE - 1);
-	LogMsg(29, VolDebugLevel, stdout,  "Storing SmallVnodeIndex = %d", CAMLIB_REC(SmallVnodeIndex));
+	rvmlib_modify_bytes(SRV_RVM(SmallVnodeFreeList), svnodes, sizeof(svnodes));
+	RVMLIB_MODIFY(SRV_RVM(SmallVnodeIndex), SMALLFREESIZE - 1);
+	LogMsg(29, VolDebugLevel, stdout,  "Storing SmallVnodeIndex = %d", SRV_RVM(SmallVnodeIndex));
 
 	zerovnode = (VnodeDiskObject *)buf2;
 	bzero((void *)zerovnode, sizeof(buf2));
 	for(i = 0; i < LARGEFREESIZE; i++) {
-	    lvnodes[i] = (VnodeDiskObject *)CAMLIB_REC_MALLOC(SIZEOF_LARGEDISKVNODE);
-	    CAMLIB_MODIFY_BYTES(lvnodes[i], zerovnode, sizeof(buf2));
+	    lvnodes[i] = (VnodeDiskObject *)rvmlib_rec_malloc(SIZEOF_LARGEDISKVNODE);
+	    rvmlib_modify_bytes(lvnodes[i], zerovnode, sizeof(buf2));
 	}
-	CAMLIB_MODIFY_BYTES(CAMLIB_REC(LargeVnodeFreeList), lvnodes, sizeof(lvnodes));
-	CAMLIB_MODIFY(CAMLIB_REC(LargeVnodeIndex), LARGEFREESIZE - 1);
-	LogMsg(29, VolDebugLevel, stdout,  "Storing LargeVnodeIndex = %d", CAMLIB_REC(LargeVnodeIndex));
+	rvmlib_modify_bytes(SRV_RVM(LargeVnodeFreeList), lvnodes, sizeof(lvnodes));
+	RVMLIB_MODIFY(SRV_RVM(LargeVnodeIndex), LARGEFREESIZE - 1);
+	LogMsg(29, VolDebugLevel, stdout,  "Storing LargeVnodeIndex = %d", SRV_RVM(LargeVnodeIndex));
     }
 
     dump_storage(49, "Finished coda initialization\n");
-    CAMLIB_END_TOP_LEVEL_TRANSACTION_2(CAM_PROT_TWO_PHASED, status);
+    RVMLIB_END_TRANSACTION(flush, &(status));
     assert(status == 0);	/* Should never abort. */
     if (!VMCounter) {
         struct timeval tv;
@@ -250,17 +240,17 @@ void CheckVolData(Error *ec, int volindex) {
 
     LogMsg(9, VolDebugLevel, stdout,  "Entering CheckVolData for volindex %d", volindex);
 
-    maxid = (CAMLIB_REC(MaxVolId) & 0x00FFFFFF);
+    maxid = (SRV_RVM(MaxVolId) & 0x00FFFFFF);
     if (volindex < 0 || volindex > maxid || volindex > MAXVOLS) {
 	LogMsg(0, VolDebugLevel, stdout,  "CheckVolData: bogus volume index %d", volindex);
 	*ec = VNOVOL;	// invalid volume index
 	return;
     }
 
-    data = &CAMLIB_REC(VolumeList[volindex]).data;
+    data = &SRV_RVM(VolumeList[volindex]).data;
     if (data->volumeInfo->stamp.magic != VOLUMEINFOMAGIC)
 	LogMsg(0, VolDebugLevel, stdout,  "CheckVolumeData: bogus VolumeDiskData for volume %d, index %d!",
-	    CAMLIB_REC(VolumeList[volindex]).header.id, volindex);
+	    SRV_RVM(VolumeList[volindex]).header.id, volindex);
     assert(data->smallVnodeLists != NULL);
     assert(data->largeVnodeLists!= NULL);
 }    
@@ -274,7 +264,7 @@ int ActiveVnodes(int volindex, int vclass) {
 
     LogMsg(9, VolDebugLevel, stdout,  "Entering ActiveVnodes for index %d, vclass = %d",
 						volindex, vclass);
-    maxid = (CAMLIB_REC(MaxVolId) & 0x00FFFFFF);
+    maxid = (SRV_RVM(MaxVolId) & 0x00FFFFFF);
     if (volindex < 0 || volindex > maxid || volindex > MAXVOLS) {
 	LogMsg(0, VolDebugLevel, stdout,  "ActiveVnodes: bogus volume index %d", volindex);
 	return(-1);	// invalid volume index
@@ -282,10 +272,10 @@ int ActiveVnodes(int volindex, int vclass) {
 
     switch(vclass) {
 	case vSmall:
-		    vnodes = CAMLIB_REC(VolumeList[volindex]).data.nsmallLists;
+		    vnodes = SRV_RVM(VolumeList[volindex]).data.nsmallLists;
 		    break;
 	case vLarge:
-		    vnodes = CAMLIB_REC(VolumeList[volindex]).data.nlargeLists;
+		    vnodes = SRV_RVM(VolumeList[volindex]).data.nlargeLists;
 		    break;
 	default:
 		    LogMsg(0, VolDebugLevel, stdout,  "ActiveVnodes: bogus vnode type %d", vclass);
@@ -303,7 +293,7 @@ int AllocatedVnodes(int volindex, int vclass) {
 
     LogMsg(9, VolDebugLevel, stdout,  "Entering AllocatedVnodes for index %d, vclass %d", 
 					    volindex, vclass);
-    maxid = (CAMLIB_REC(MaxVolId) & 0x00FFFFFF);
+    maxid = (SRV_RVM(MaxVolId) & 0x00FFFFFF);
     if (volindex < 0 || volindex > maxid || volindex > MAXVOLS) {
 	LogMsg(0, VolDebugLevel, stdout,  "AllocatedVnodes: bogus volume index %d", volindex);
 	return(-1);	// invalid volume index
@@ -311,10 +301,10 @@ int AllocatedVnodes(int volindex, int vclass) {
 
     switch(vclass) {
 	case vSmall:
-		    vnodes = CAMLIB_REC(VolumeList[volindex]).data.nsmallvnodes;
+		    vnodes = SRV_RVM(VolumeList[volindex]).data.nsmallvnodes;
 		    break;
 	case vLarge:
-		    vnodes = CAMLIB_REC(VolumeList[volindex]).data.nlargevnodes;
+		    vnodes = SRV_RVM(VolumeList[volindex]).data.nlargevnodes;
 		    break;
 	default:
 		    LogMsg(0, VolDebugLevel, stdout,  "AllocatedVnodes: bogus vnode type %d", vclass);
@@ -334,13 +324,13 @@ void GetVolPartition(Error *ec, VolumeId volid, int myind, char partition[]) {
 
     LogMsg(9, VolDebugLevel, stdout,  "Entering GetVolPartition for volid %x", volid);
     if ((myind < 0) || (myind > MAXVOLS) ||
-	(CAMLIB_REC(VolumeList[myind]).header.id != volid)) {
+	(SRV_RVM(VolumeList[myind]).header.id != volid)) {
 	LogMsg(0, VolDebugLevel, stdout,  "GetVolPartition: bad index %d for volume %x", myind, volid);
 	*ec = VNOVOL;
 	return;
     }
 
-    voldata = CAMLIB_REC(VolumeList[myind]).data.volumeInfo;
+    voldata = SRV_RVM(VolumeList[myind]).data.volumeInfo;
     strncpy(partition, voldata->partition, strlen(voldata->partition) + 1);
 }
 
@@ -353,19 +343,17 @@ VolumeId VAllocateVolumeId(Error *ec) {
     
     LogMsg(9, VolDebugLevel, stdout,  "Entering VAllocateVolumeId()");
     *ec = 0;
-    CAMLIB_LOCK(CAMLIB_LOCK_NAME(CAMLIB_REC(MaxVolId)), CLS,
-						CAMLIB_LOCK_MODE_WRITE);
 
-    if ((CAMLIB_REC(MaxVolId) & 0xFFFFFF) == 0xFFFFFF) {
+    if ((SRV_RVM(MaxVolId) & 0xFFFFFF) == 0xFFFFFF) {
 	LogMsg(0, VolDebugLevel, stdout,  "VAllocateVolumeId: Out of volume numbers for this server; create aborted");
 	*ec = VNOVOL;
-	CAMLIB_ABORT(VFAIL);
+	rvmlib_abort(VFAIL);
     }
     else {
-	unsigned long temp = CAMLIB_REC(MaxVolId) + 1;
-	CAMLIB_MODIFY(CAMLIB_REC(MaxVolId), temp);
+	unsigned long temp = SRV_RVM(MaxVolId) + 1;
+	RVMLIB_MODIFY(SRV_RVM(MaxVolId), temp);
     }
-    return(status?-1:CAMLIB_REC(MaxVolId));
+    return(status?(long unsigned int)-1:SRV_RVM(MaxVolId));
 }
 
 
@@ -374,7 +362,7 @@ VolumeId VAllocateVolumeId(Error *ec) {
  */
 VolumeId VGetMaxVolumeId()
 {
-    return (CAMLIB_REC(MaxVolId));
+    return (SRV_RVM(MaxVolId));
 }
 
 
@@ -384,10 +372,8 @@ VolumeId VGetMaxVolumeId()
  */
 void VSetMaxVolumeId(VolumeId newid) {
     LogMsg(9, VolDebugLevel, stdout,  "Entering VSetMaxVolumeId ()");
-    CAMLIB_LOCK(CAMLIB_LOCK_NAME(CAMLIB_REC(MaxVolId)), CLS,
-						CAMLIB_LOCK_MODE_WRITE);
 
-    CAMLIB_MODIFY(CAMLIB_REC(MaxVolId), newid);
+    RVMLIB_MODIFY(SRV_RVM(MaxVolId), newid);
 }
 
 
@@ -410,11 +396,9 @@ void GrowVnodes(VolumeId volid, int vclass, short newBMsize) {
 
     newvnodes = newBMsize << 3;   // multiply by 8 since newBMsize is in bytes
 
-    CAMLIB_LOCK(CAMLIB_LOCK_NAME(CAMLIB_REC(VolumeList[myind]).data),
-					    CLS, CAMLIB_LOCK_MODE_WRITE);
 
     if (vclass == vSmall) {
-	cursize = CAMLIB_REC(VolumeList[myind]).data.nsmallLists;
+	cursize = SRV_RVM(VolumeList[myind]).data.nsmallLists;
 	newsize = cursize + SMALLGROWSIZE;
 	if (newvnodes % SMALLGROWSIZE)
 	    newvnodes += SMALLGROWSIZE - (newvnodes % SMALLGROWSIZE);
@@ -422,30 +406,30 @@ void GrowVnodes(VolumeId volid, int vclass, short newBMsize) {
 	LogMsg(0, VolDebugLevel, stdout,  "GrowVnodes: growing Small list from %d to %d for volume 0x%x",
 					    cursize, newsize, volid);
 	/* create a new larger list and zero out its tail */
-	newvlist = (rec_smolist *) CAMLIB_REC_MALLOC(sizeof(rec_smolist) * newsize);
+	newvlist = (rec_smolist *) rvmlib_rec_malloc(sizeof(rec_smolist) * newsize);
 
 	char *tmpslist = (char *)malloc(sizeof(rec_smolist) * (int)(newsize - cursize));
 	assert(tmpslist);
 	bzero(tmpslist, sizeof(rec_smolist) * (int)(newsize - cursize));
-	CAMLIB_MODIFY_BYTES(&(newvlist[cursize]), tmpslist,
+	rvmlib_modify_bytes(&(newvlist[cursize]), tmpslist,
 			    sizeof(rec_smolist) * (newsize-cursize));
 	free(tmpslist);
 	
 	/* copy the existing vnode pointers into the new list */
-	CAMLIB_MODIFY_BYTES(newvlist,
-		    CAMLIB_REC(VolumeList[myind]).data.smallVnodeLists,
+	rvmlib_modify_bytes(newvlist,
+		    SRV_RVM(VolumeList[myind]).data.smallVnodeLists,
 		    cursize * sizeof(rec_smolist));
-	CAMLIB_REC_FREE((char *)CAMLIB_REC(VolumeList[myind]).data.smallVnodeLists);
+	rvmlib_rec_free((char *)SRV_RVM(VolumeList[myind]).data.smallVnodeLists);
 	/* copy the list pointer into the VolumeData structure */
-	CAMLIB_MODIFY(CAMLIB_REC(VolumeList[myind]).data.smallVnodeLists,
+	RVMLIB_MODIFY(SRV_RVM(VolumeList[myind]).data.smallVnodeLists,
 								newvlist);
 	/* update the list size in recoverable storage and cache */
-	CAMLIB_MODIFY(CAMLIB_REC(VolumeList[myind]).data.nsmallLists,
+	RVMLIB_MODIFY(SRV_RVM(VolumeList[myind]).data.nsmallLists,
 								newsize);
     }
 
     else {	/* vclass == vLarge */
-	cursize = CAMLIB_REC(VolumeList[myind]).data.nlargeLists;
+	cursize = SRV_RVM(VolumeList[myind]).data.nlargeLists;
 	newsize = cursize + LARGEGROWSIZE;
 	if (newvnodes % LARGEGROWSIZE)
 	    newvnodes += LARGEGROWSIZE - (newvnodes % LARGEGROWSIZE);
@@ -453,25 +437,25 @@ void GrowVnodes(VolumeId volid, int vclass, short newBMsize) {
 	LogMsg(0, VolDebugLevel, stdout,  "GrowVnodes: growing Large list from %d to %d for volume 0x%x",
 		cursize, newsize, volid);
 	/* create a new larger list and zero out its tail */
-	newvlist = (rec_smolist *)CAMLIB_REC_MALLOC(sizeof(rec_smolist) * newsize);
+	newvlist = (rec_smolist *)rvmlib_rec_malloc(sizeof(rec_smolist) * newsize);
 
 	char *tmpllist = (char *)malloc(sizeof(rec_smolist) * (int)(newsize - cursize));
 	assert(tmpllist);
 	bzero(tmpllist, sizeof(rec_smolist) * (int)(newsize - cursize));
-	CAMLIB_MODIFY_BYTES(&(newvlist[cursize]), tmpllist, 
+	rvmlib_modify_bytes(&(newvlist[cursize]), tmpllist, 
 			    sizeof(rec_smolist) * (newsize - cursize));
 	free(tmpllist);
 	
 	/* copy the existing vnode pointers into the new list */
-	CAMLIB_MODIFY_BYTES(newvlist, 
-			    CAMLIB_REC(VolumeList[myind]).data.largeVnodeLists,
+	rvmlib_modify_bytes(newvlist, 
+			    SRV_RVM(VolumeList[myind]).data.largeVnodeLists,
 			    cursize * sizeof(rec_smolist));
-	CAMLIB_REC_FREE((char *)CAMLIB_REC(VolumeList[myind]).data.largeVnodeLists);
+	rvmlib_rec_free((char *)SRV_RVM(VolumeList[myind]).data.largeVnodeLists);
 	/* copy the list pointer into the VolumeData structure */
-	CAMLIB_MODIFY(CAMLIB_REC(VolumeList[myind]).data.largeVnodeLists,
+	RVMLIB_MODIFY(SRV_RVM(VolumeList[myind]).data.largeVnodeLists,
 		      newvlist);
 	/* update the list size in recoverable storage and in cache */
-	CAMLIB_MODIFY(CAMLIB_REC(VolumeList[myind]).data.nlargeLists,
+	RVMLIB_MODIFY(SRV_RVM(VolumeList[myind]).data.nlargeLists,
 		      newsize);
 
 	/* grow the res log vm headers too */
@@ -498,7 +482,7 @@ void ExtractVolDiskInfo(Error *ec, int volindex, VolumeDiskData *vol) {
 
     LogMsg(9, VolDebugLevel, stdout,  "Entering ExtractVolDiskInfo for volindex %u", volindex);
 
-    maxid = (CAMLIB_REC(MaxVolId) & 0x00FFFFFF);
+    maxid = (SRV_RVM(MaxVolId) & 0x00FFFFFF);
     if (volindex < 0 || volindex > maxid || volindex > MAXVOLS) {
 	LogMsg(0, VolDebugLevel, stdout,  "ExtractVolDiskInfo: bogus volume index %d", volindex);
 	*ec = VNOVOL;	// invalid volume index
@@ -506,15 +490,15 @@ void ExtractVolDiskInfo(Error *ec, int volindex, VolumeDiskData *vol) {
     }
 
 
-    bcopy((char *)CAMLIB_REC(VolumeList[volindex]).data.volumeInfo, (char *)vol,
+    bcopy((char *)SRV_RVM(VolumeList[volindex]).data.volumeInfo, (char *)vol,
 						    sizeof(VolumeDiskData));
     if (vol->stamp.magic != VOLUMEINFOMAGIC ||
 		    vol->stamp.version != VOLUMEINFOVERSION) {
 	LogMsg(0, VolDebugLevel, stdout,  "ExtractVolDiskInfo: bogus version stamp!");
 	*ec = VSALVAGE;
 	LogMsg(0, VolDebugLevel, stdout,  "recoverable version stamp for volindex %x = %u, %u", volindex,
-	    CAMLIB_REC(VolumeList[volindex]).data.volumeInfo->stamp.magic,
-	    CAMLIB_REC(VolumeList[volindex]).data.volumeInfo->stamp.version);
+	    SRV_RVM(VolumeList[volindex]).data.volumeInfo->stamp.magic,
+	    SRV_RVM(VolumeList[volindex]).data.volumeInfo->stamp.version);
     }
 }
 
@@ -525,24 +509,24 @@ int AvailVnode(int volindex, int vclass, VnodeId vnodeindex, Unique_t u)
     VolumeId maxid = 0;
     rec_smolist *vlist;
 
-    maxid = (CAMLIB_REC(MaxVolId) & 0x00FFFFFF);
+    maxid = (SRV_RVM(MaxVolId) & 0x00FFFFFF);
     if (volindex < 0 || volindex > maxid || volindex > MAXVOLS) {
 	LogMsg(0, VolDebugLevel, stdout,  "ExtractVnode: bogus volume index %d", volindex);
 	return(0);
     }
     if (vclass == vSmall) {
-	if (vnodeindex >= CAMLIB_REC(VolumeList[volindex]).data.nsmallLists) {
+	if (vnodeindex >= SRV_RVM(VolumeList[volindex]).data.nsmallLists) {
 	    LogMsg(0, VolDebugLevel, stdout,  "ExtractVnode: bogus small vnode index %d", vnodeindex);
 	    return(0);
 	}
-	vlist = &(CAMLIB_REC(VolumeList[volindex]).data.smallVnodeLists[vnodeindex]);
+	vlist = &(SRV_RVM(VolumeList[volindex]).data.smallVnodeLists[vnodeindex]);
     }
     else if (vclass == vLarge) {
-	if (vnodeindex >= CAMLIB_REC(VolumeList[volindex]).data.nlargeLists) {
+	if (vnodeindex >= SRV_RVM(VolumeList[volindex]).data.nlargeLists) {
 	    LogMsg(0, VolDebugLevel, stdout,  "ExtractVnode: bogus large vnode index %d", vnodeindex);
 	    return(0);
 	}
-	vlist = &(CAMLIB_REC(VolumeList[volindex]).data.largeVnodeLists[vnodeindex]);
+	vlist = &(SRV_RVM(VolumeList[volindex]).data.largeVnodeLists[vnodeindex]);
     }
     else {
 	return(0);

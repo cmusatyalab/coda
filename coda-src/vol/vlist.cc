@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/src/coda-4.0.1/coda-src/vol/RCS/vlist.cc,v 1.1 1996/11/22 19:10:33 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vol/vlist.cc,v 4.1 1997/01/08 21:52:19 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -40,21 +40,24 @@ static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/src/coda-4.0.1
 #ifdef __cplusplus
 extern "C" {
 #endif __cplusplus
-
+#include <sys/types.h>
 #include <stdio.h>
+#include <codadir.h>
+#include <util.h>
 
 #ifdef __cplusplus
 }
 #endif __cplusplus
 
-#include <util.h>
 #include <srv.h>
 #include "vlist.h"
 
-int VLECmp(vle *a, vle *b) {
+int VLECmp(vle *a, vle *b) 
+{
     assert(a->fid.Volume == b->fid.Volume);
 
-    if (a->fid.Vnode == b->fid.Vnode && a->fid.Unique == b->fid.Unique) return(0);
+    if (a->fid.Vnode == b->fid.Vnode && a->fid.Unique == b->fid.Unique) 
+	    return(0);
     if (((unsigned long)a->fid.Vnode) < ((unsigned long)b->fid.Vnode) ||
 	 (a->fid.Vnode == b->fid.Vnode && 
 	    ((unsigned long)a->fid.Unique) < ((unsigned long)b->fid.Unique))) 
@@ -63,16 +66,18 @@ int VLECmp(vle *a, vle *b) {
 }
 
 
-vle *FindVLE(dlist& dl, ViceFid *fid) {
+vle *FindVLE(dlist& dl, ViceFid *fid) 
+{
     dlist_iterator next(dl);
     vle *v;
     while (v = (vle *)next())
-	if (FID_EQ(v->fid, *fid)) return(v);
+	if (FID_EQ(&v->fid, fid)) return(v);
     return(0);
 }
 
 
-vle *AddVLE(dlist& dl, ViceFid *fid) {
+vle *AddVLE(dlist& dl, ViceFid *fid) 
+{
     vle *v = FindVLE(dl, fid);
     if (v == 0)
 	dl.insert((v = new vle(fid)));

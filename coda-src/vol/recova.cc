@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vol/recova.cc,v 4.6 1997/10/23 19:25:40 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vol/recova.cc,v 4.7 1998/01/10 18:39:40 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -54,35 +54,26 @@ extern "C" {
 #include <stdio.h>
 #include <setjmp.h>
 #include <inodeops.h>
-#ifdef __MACH__
-#include <sysent.h>
-#include <libc.h>
-#else	/* __linux__ || __BSD44__ */
 #include <unistd.h>
 #include <stdlib.h>
-#endif
 #include <struct.h>
 #include <lwp.h>
 #include <lock.h>
+#include <util.h>
+#include <rvmlib.h>
+#include <vice.h>
+#include <util.h>
+#include <codadir.h>
 
-#ifdef __MACH__
-#include <mach.h>
-#endif /* __MACH__ */
 #ifdef __cplusplus
 }
 #endif __cplusplus
 
-#include <util.h>
-
-#include <rvmlib.h>
-#include <vice.h>
-#include <util.h>
 #include <rec_smolist.h>
 #include "cvnode.h"
 #include "volume.h"
 #include "vutil.h"
 #include "recov.h"
-#include "rvmdir.h"
 #include "camprivate.h"
 #include "coda_globals.h"
 #include "volhash.h"
@@ -91,12 +82,12 @@ extern void PrintCamVolume(int, int);
 extern void DeleteVolumeFromHashTable(Volume *);
 extern void PollAndYield();
 
-PRIVATE int DeleteVolHeader(int);
-PRIVATE int DeleteVolData(int);
-PRIVATE int DeleteVnodes(unsigned int, Device, VnodeClass);
+static int DeleteVolHeader(int);
+static int DeleteVolData(int);
+static int DeleteVnodes(unsigned int, Device, VnodeClass);
 
 /* Number of vnodes to delete per transaction. */
-PRIVATE int MaxVnodesPerTransaction = 8;
+static int MaxVnodesPerTransaction = 8;
 
 /* Find an empty slot to store a new volume header. Returns the index */
 /* for the new volume, or -1 if all volume header slots are taken */
@@ -118,23 +109,21 @@ int NewVolHeader(struct VolumeHeader *header, Error *err)
 
     while(1) {
 	for(i = 0; i < MAXVOLS; i++) {
-	    if (CAMLIB_REC(VolumeList[i]).header.stamp.magic != VOLUMEHEADERMAGIC) {
+	    if (SRV_RVM(VolumeList[i]).header.stamp.magic != VOLUMEHEADERMAGIC) {
 		break;
 	    }
 	}
 	if (i >= MAXVOLS) {
 	    *err = VNOVOL;
 	    LogMsg(0, VolDebugLevel, stdout,  "NewVolHeader: No free volume slots in recoverable storage!!");
-	    CAMLIB_ABORT (VFAIL);
+	    rvmlib_abort (VFAIL);
 	}
 
     LogMsg(29, VolDebugLevel, stdout,  "NewVolHeader: found empty slot %d", i);
-	CAMLIB_LOCK(CAMLIB_LOCK_NAME(CAMLIB_REC(VolumeList[i])), CLS, CAMLIB_LOCK_MODE_WRITE);
 
 	/* if someone else already grabbed the slot, release the lock and try again */
-	if (CAMLIB_REC(VolumeList[i]).header.stamp.magic == VOLUMEHEADERMAGIC) {
+	if (SRV_RVM(VolumeList[i]).header.stamp.magic == VOLUMEHEADERMAGIC) {
 	    LogMsg(0, VolDebugLevel, stdout,  "NewVolHeader: releasing locks on slot %d", i);
-	    CAMLIB_UNLOCK(CAMLIB_LOCK_NAME(CAMLIB_REC(VolumeList[i])), CLS);
 	    continue;
 	}
 	else {
@@ -149,37 +138,37 @@ int NewVolHeader(struct VolumeHeader *header, Error *err)
     /* Dynamically allocate the volumeDiskData */
     LogMsg(9, VolDebugLevel, stdout,  "NewVolHeader: Going to Allocate VolumeDiskData ");
     bzero((void *)&data, sizeof(data));
-    data.volumeInfo = (VolumeDiskData *)CAMLIB_REC_MALLOC(sizeof(VolumeDiskData));
+    data.volumeInfo = (VolumeDiskData *)rvmlib_rec_malloc(sizeof(VolumeDiskData));
     /* zero out the allocated memory */
     bzero((char *)&tmpinfo, sizeof(tmpinfo));
-    CAMLIB_MODIFY_BYTES(data.volumeInfo, &tmpinfo, sizeof(tmpinfo));
+    rvmlib_modify_bytes(data.volumeInfo, &tmpinfo, sizeof(tmpinfo));
 
     LogMsg(9, VolDebugLevel, stdout,  "NewVolHeader: Going to allocate vnode arrays");
     /* Dynamically allocate the small vnode array and zero it out */
     data.smallVnodeLists = (rec_smolist *)
-            CAMLIB_REC_MALLOC(sizeof(rec_smolist) * SMALLGROWSIZE);
+            rvmlib_rec_malloc(sizeof(rec_smolist) * SMALLGROWSIZE);
     bzero(tmp_svnodes, sizeof(tmp_svnodes));
     LogMsg(9, VolDebugLevel, stdout,  "NewVolHeader: Zeroing out small vnode array of size %d", 
 	 sizeof(tmp_svnodes));
-    CAMLIB_MODIFY_BYTES(data.smallVnodeLists, tmp_svnodes, sizeof(tmp_svnodes));
+    rvmlib_modify_bytes(data.smallVnodeLists, tmp_svnodes, sizeof(tmp_svnodes));
     data.nsmallvnodes = 0;
     data.nsmallLists = SMALLGROWSIZE;
 
     /* Dynamically allocate the large vnode array */
     data.largeVnodeLists = (rec_smolist *)
-            CAMLIB_REC_MALLOC(sizeof(rec_smolist) * LARGEGROWSIZE);
+            rvmlib_rec_malloc(sizeof(rec_smolist) * LARGEGROWSIZE);
     bzero(tmp_lvnodes, sizeof(tmp_lvnodes));
     LogMsg(9, VolDebugLevel, stdout,  "NewVolHeader: Zeroing out large vnode array of size %d",
 	 sizeof(tmp_lvnodes));
-    CAMLIB_MODIFY_BYTES(data.largeVnodeLists, tmp_lvnodes, sizeof(tmp_lvnodes));
+    rvmlib_modify_bytes(data.largeVnodeLists, tmp_lvnodes, sizeof(tmp_lvnodes));
     data.nlargevnodes = 0;
     data.nlargeLists = LARGEGROWSIZE;
 
     /* write out new header and data in recoverable storage */
     LogMsg(9, VolDebugLevel, stdout,  "NewVolHeader: Going to write header in recoverable storage ");
-    CAMLIB_MODIFY_BYTES(&(CAMLIB_REC(VolumeList[i]).header), header,
+    rvmlib_modify_bytes(&(SRV_RVM(VolumeList[i]).header), header,
 				    sizeof(struct VolumeHeader));
-    CAMLIB_MODIFY_BYTES(&(CAMLIB_REC(VolumeList[i]).data), &data,
+    rvmlib_modify_bytes(&(SRV_RVM(VolumeList[i]).data), &data,
 				sizeof(struct VolumeData));
 
     LogMsg(29, VolDebugLevel, stdout,  "NewVolHeader: adding new entry %x to slot %d", header->id, i);
@@ -209,12 +198,12 @@ int VolHeaderByIndex(int myind, struct VolumeHeader *header) {
 
     LogMsg(9, VolDebugLevel, stdout,  "Entering VolHeaderByIndex for index %d", myind);
 
-    maxid = (CAMLIB_REC(MaxVolId) & 0x00FFFFFF);
+    maxid = (SRV_RVM(MaxVolId) & 0x00FFFFFF);
     if ((myind < 0) || (myind >= maxid) || (myind >= MAXVOLS)) {
 	LogMsg(1, VolDebugLevel, stdout,  "VolHeaderByIndex: bogus volume index %d - maxid %d (ok if volume was purged or deleted)", myind, maxid);
 	return(-1);
     }
-    bcopy((const void *)&(CAMLIB_REC(VolumeList[myind]).header), (void *) header,
+    bcopy((const void *)&(SRV_RVM(VolumeList[myind]).header), (void *) header,
 					    sizeof(struct VolumeHeader));
     if (header->stamp.magic != VOLUMEHEADERMAGIC) {
 	LogMsg(19, VolDebugLevel, stdout,  "VolHeaderByIndex: stamp.magic = %u, VHMAGIC = %u",
@@ -242,12 +231,12 @@ int DeleteVolume(Volume *vp) {
     FreeVolume(vp);			/* Clear up all vm traces. */
     
     /* Mark the volume for destruction. */
-    CAMLIB_BEGIN_TOP_LEVEL_TRANSACTION_2(CAM_TRAN_NV_SERVER_BASED)
-    CAMLIB_MODIFY(CAMLIB_REC(VolumeList[myind]).data.volumeInfo->destroyMe,
+    RVMLIB_BEGIN_TRANSACTION(restore)
+    RVMLIB_MODIFY(SRV_RVM(VolumeList[myind]).data.volumeInfo->destroyMe,
 		  DESTROY_ME);
-    CAMLIB_MODIFY(CAMLIB_REC(VolumeList[myind]).data.volumeInfo->blessed,
+    RVMLIB_MODIFY(SRV_RVM(VolumeList[myind]).data.volumeInfo->blessed,
 		  0);
-    CAMLIB_END_TOP_LEVEL_TRANSACTION_2(CAM_PROT_TWO_PHASED, status)
+    RVMLIB_END_TRANSACTION(flush, &(status));
     if (status) return status;
     
     if ((status = DeleteVnodes(myind, dev, vSmall)) != 0) return status;
@@ -264,7 +253,7 @@ int DeleteVolume(Volume *vp) {
 int DeleteRvmVolume(unsigned int myind, Device dev) {
     int status = 0;
 
-    LogMsg(9, VolDebugLevel, stdout,  "Entering DeleteRvmVolume for volume %x", CAMLIB_REC(VolumeList[myind].header.id));
+    LogMsg(9, VolDebugLevel, stdout,  "Entering DeleteRvmVolume for volume %x", SRV_RVM(VolumeList[myind].header.id));
 
     if ((status = DeleteVnodes(myind, dev, vSmall)) != 0) return status;
     if ((status = DeleteVnodes(myind, dev, vLarge)) != 0) return status;
@@ -282,7 +271,8 @@ int DeleteRvmVolume(unsigned int myind, Device dev) {
  * In addition, it is assumed that this volume is marked for salvaging
  * so on startup it would be deleted anyway.
  */
-PRIVATE int DeleteVnodes(unsigned int myind, Device dev, VnodeClass vclass) {
+static int DeleteVnodes(unsigned int myind, Device dev, VnodeClass vclass) 
+{
     struct VnodeClassInfo *vcp = &VnodeClassInfo_Array[vclass];
     char zerobuf[SIZEOF_LARGEDISKVNODE];
     struct VnodeDiskObject *zerovn = (struct VnodeDiskObject *) zerobuf;
@@ -291,7 +281,10 @@ PRIVATE int DeleteVnodes(unsigned int myind, Device dev, VnodeClass vclass) {
     int status = 0;
     bit32 nLists;
 
-    vdata = &(CAMLIB_REC(VolumeList[myind]).data);    
+
+    assert( (myind >= 0) && (myind < MAXVOLS) );
+    vdata = &(SRV_RVM(VolumeList[myind]).data);    
+
     if (vclass == vSmall) {
 	vnlist = vdata->smallVnodeLists;
 	nLists = vdata->nsmallLists;
@@ -315,13 +308,13 @@ PRIVATE int DeleteVnodes(unsigned int myind, Device dev, VnodeClass vclass) {
     VnodeDiskObject *vdo;
     int moreVnodes = TRUE;
 
-    /* Only idec inodes after the transaction has commited in case of abort */
+    /* Only idec inodes after the transaction has committed in case of abort */
     /* I assume an Inode is the same basic type as an int (e.g. a pointer) */
     int *DeadInodes = (int*)malloc((MaxVnodesPerTransaction + 1) * sizeof(Inode));
 
     while (moreVnodes) {
 	int count = 0;
-	CAMLIB_BEGIN_TOP_LEVEL_TRANSACTION_2(CAM_TRAN_NV_SERVER_BASED)
+	RVMLIB_BEGIN_TRANSACTION(restore)
 
 	bzero((void *)DeadInodes, sizeof(Inode) * (MaxVnodesPerTransaction + 1));
 
@@ -349,32 +342,31 @@ PRIVATE int DeleteVnodes(unsigned int myind, Device dev, VnodeClass vclass) {
 		    assert(vclass == vSmall);
 		    DeadInodes[count] = (int)vdo->inodeNumber; // Delay the idec.
 		} else 
-		    DDec((DirInode *)vdo->inodeNumber);
+		    DI_Dec((DirInode *)vdo->inodeNumber);
 	    }	
 
 	    /* Delete the vnode */
 	    if ((vclass == vSmall) &&
-	        (CAMLIB_REC(SmallVnodeIndex) < SMALLFREESIZE - 1)) {
+	        (SRV_RVM(SmallVnodeIndex) < SMALLFREESIZE - 1)) {
 		LogMsg(29, VolDebugLevel, stdout, "DeleteVnodes: Adding small vnode index %d to free list", i);
-		CAMLIB_MODIFY_BYTES(vdo, zerovn, SIZEOF_SMALLDISKVNODE);
-		CAMLIB_MODIFY(CAMLIB_REC(SmallVnodeIndex),
-			      CAMLIB_REC(SmallVnodeIndex) + 1);
-		CAMLIB_MODIFY(CAMLIB_REC(SmallVnodeFreeList[CAMLIB_REC(SmallVnodeIndex)]), vdo);
-	    }
-	    else if ((vclass == vLarge) &&
-		     (CAMLIB_REC(LargeVnodeIndex) < LARGEFREESIZE - 1)) {
+		rvmlib_modify_bytes(vdo, zerovn, SIZEOF_SMALLDISKVNODE);
+		RVMLIB_MODIFY(SRV_RVM(SmallVnodeIndex),
+			      SRV_RVM(SmallVnodeIndex) + 1);
+		RVMLIB_MODIFY(SRV_RVM(SmallVnodeFreeList[SRV_RVM(SmallVnodeIndex)]), vdo);
+	    }  else if ((vclass == vLarge) &&
+			(SRV_RVM(LargeVnodeIndex) < LARGEFREESIZE - 1)) {
 		LogMsg(29, VolDebugLevel, stdout, 	"DeleteVnodes:	Adding large vnode index %d to free list",i);
-		CAMLIB_MODIFY_BYTES(vdo, zerovn, SIZEOF_LARGEDISKVNODE);
-		CAMLIB_MODIFY(CAMLIB_REC(LargeVnodeIndex),
-			      CAMLIB_REC(LargeVnodeIndex) + 1);
-		CAMLIB_MODIFY(CAMLIB_REC(LargeVnodeFreeList[CAMLIB_REC(LargeVnodeIndex)]), vdo);
+		rvmlib_modify_bytes(vdo, zerovn, SIZEOF_LARGEDISKVNODE);
+		RVMLIB_MODIFY(SRV_RVM(LargeVnodeIndex),
+			      SRV_RVM(LargeVnodeIndex) + 1);
+		RVMLIB_MODIFY(SRV_RVM(LargeVnodeFreeList[SRV_RVM(LargeVnodeIndex)]), vdo);
 	    } else {
-		CAMLIB_REC_FREE((char *)vdo);
+		rvmlib_rec_free((char *)vdo);
 		LogMsg(29, VolDebugLevel, stdout,  "DeleteVnodes: Freeing small vnode index %d", i);
 	    }
 	}	    
 
-	CAMLIB_END_TOP_LEVEL_TRANSACTION_2(CAM_PROT_TWO_PHASED, status)
+	RVMLIB_END_TRANSACTION(flush, &(status));
 	assert(status == 0);		/* Should never abort... */
 
 	/* Now delete the inodes for the vnodes we already purged. */
@@ -401,17 +393,17 @@ PRIVATE int DeleteVnodes(unsigned int myind, Device dev, VnodeClass vclass) {
 	(vclass==vLarge?"Large":"Small"));
 
     /* free the empty array (of pointers) for the vnodes */
-    CAMLIB_BEGIN_TOP_LEVEL_TRANSACTION_2(CAM_TRAN_NV_SERVER_BASED)
+    RVMLIB_BEGIN_TRANSACTION(restore)
     if (vclass == vSmall) {
-       CAMLIB_REC_FREE((char *)CAMLIB_REC(VolumeList[myind]).data.smallVnodeLists);
-       CAMLIB_MODIFY(CAMLIB_REC(VolumeList[myind]).data.smallVnodeLists, NULL);
+       rvmlib_rec_free((char *)SRV_RVM(VolumeList[myind]).data.smallVnodeLists);
+       RVMLIB_MODIFY(SRV_RVM(VolumeList[myind]).data.smallVnodeLists, NULL);
 
     } else {
-       CAMLIB_REC_FREE((char *)CAMLIB_REC(VolumeList[myind]).data.largeVnodeLists);
-       CAMLIB_MODIFY(CAMLIB_REC(VolumeList[myind]).data.largeVnodeLists, NULL);
+       rvmlib_rec_free((char *)SRV_RVM(VolumeList[myind]).data.largeVnodeLists);
+       RVMLIB_MODIFY(SRV_RVM(VolumeList[myind]).data.largeVnodeLists, NULL);
     }
 
-    CAMLIB_END_TOP_LEVEL_TRANSACTION_2(CAM_PROT_TWO_PHASED, status)
+    RVMLIB_END_TRANSACTION(flush, &(status));
     assert(status == 0);		/* Should never abort... */
     
     return 0;
@@ -420,28 +412,28 @@ PRIVATE int DeleteVnodes(unsigned int myind, Device dev, VnodeClass vclass) {
 /* zero out the VolumeData structure at the given index in recoverable storage */
 /* We assume the vnodes for the volume have already been freed. */
 /* Note: this is a heavyweight operation with lots of modifies to rvm */
-PRIVATE int DeleteVolData(int myind) {
+static int DeleteVolData(int myind) {
     struct VolumeData *vdata, tmpdata;
     int status = 0;
     LogMsg(9, VolDebugLevel, stdout,  "Entering DeleteVolData for index %d", myind);
 
-    CAMLIB_BEGIN_TOP_LEVEL_TRANSACTION_2(CAM_TRAN_NV_SERVER_BASED)
+    RVMLIB_BEGIN_TRANSACTION(restore)
     
     /* make some abbreviations */
-    vdata = &(CAMLIB_REC(VolumeList[myind]).data);
+    vdata = &(SRV_RVM(VolumeList[myind]).data);
 
     /* dynamically free the volume disk data structure */
     LogMsg(9, VolDebugLevel, stdout,  "DeleteVolData: Freeing VolumeDiskObject for volume 0x%x",
 	 vdata->volumeInfo->id);
-    CAMLIB_REC_FREE((char *)vdata->volumeInfo);
+    rvmlib_rec_free((char *)vdata->volumeInfo);
 
     /* zero out VolumeData structure */
     LogMsg(9, VolDebugLevel, stdout,  "DeleteVolData: Zeroing out VolumeData at index %d", myind);
     bzero((void *)&tmpdata, sizeof(struct VolumeData));
-    CAMLIB_MODIFY_BYTES(&(CAMLIB_REC(VolumeList[myind]).data), &tmpdata,
+    rvmlib_modify_bytes(&(SRV_RVM(VolumeList[myind]).data), &tmpdata,
 				sizeof(struct VolumeData));
 
-    CAMLIB_END_TOP_LEVEL_TRANSACTION_2(CAM_PROT_TWO_PHASED, status)
+    RVMLIB_END_TRANSACTION(flush, &(status));
     
     LogMsg(9, VolDebugLevel, stdout,  "Leaving DeleteVolData()");
     return status;
@@ -450,19 +442,19 @@ PRIVATE int DeleteVolData(int myind) {
 /* zero out the Volume Header at the specified index in recoverable storage */
 /* since this is PRIVATE, we assume the index has already been checked for validity */
 /* and that the routine is wrapped in a transaction by the caller */
-PRIVATE int DeleteVolHeader(int myind) {
+static int DeleteVolHeader(int myind) {
     VolumeHeader tmpheader;
     int status = 0;
     
     LogMsg(9, VolDebugLevel, stdout,  "Entering DeleteVolHeader for index %d", myind);
 
-    CAMLIB_BEGIN_TOP_LEVEL_TRANSACTION_2(CAM_TRAN_NV_SERVER_BASED)
+    RVMLIB_BEGIN_TRANSACTION(restore)
 	/* Sanity check */
-	assert(CAMLIB_REC(VolumeList[myind]).header.stamp.magic
+	assert(SRV_RVM(VolumeList[myind]).header.stamp.magic
 	       == VOLUMEHEADERMAGIC);
 	bzero((void *)&tmpheader, sizeof(struct VolumeHeader));
-        CAMLIB_MODIFY(CAMLIB_REC(VolumeList[myind]).header, tmpheader);
-    CAMLIB_END_TOP_LEVEL_TRANSACTION_2(CAM_PROT_TWO_PHASED, status)
+        RVMLIB_MODIFY(SRV_RVM(VolumeList[myind]).header, tmpheader);
+    RVMLIB_END_TRANSACTION(flush, &(status));
     return status;
 }
     

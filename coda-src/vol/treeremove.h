@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/src/coda-4.0.1/RCSLINK/./coda-src/vol/treeremove.h,v 1.1 1996/11/22 19:10:14 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vol/treeremove.h,v 4.1 1997/01/08 21:52:17 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -82,6 +82,6 @@ class TreeRmBlk {
   }
 };
 
-extern int PerformTreeRemoval(TreeRmBlk *, char *, long, long);
+extern int PerformTreeRemoval(PDirEntry, void *);
 
 #endif _VOL_TREEREMOVE_H_

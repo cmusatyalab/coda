@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vol/purge.cc,v 4.2 1997/02/26 16:03:53 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vol/purge.cc,v 4.3 1997/10/23 19:25:39 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -65,24 +65,20 @@ extern "C" {
 #include <sys/stat.h>
 #include <sys/time.h>
 #include <string.h>
-#ifdef __MACH__
-#include <sysent.h>
-#include <libc.h>
-#else	/* __linux__ || __BSD44__ */
 #include <unistd.h>
 #include <stdlib.h>
-#endif
 #include <assert.h>
 
 #include <lwp.h>
 #include <lock.h>
+#include <util.h>
+#include <vice.h>
+#include "codadir.h"
 
 #ifdef __cplusplus
 }
 #endif __cplusplus
 
-#include <util.h>
-#include <vice.h>
 #include <rec_smolist.h>
 #include "voltypes.h"
 #include "cvnode.h"
@@ -92,17 +88,19 @@ extern "C" {
 #include "vutil.h"
 #include "recov.h"
 #include "index.h"
-#include "rvmdir.h"
 
 
 void PurgeIndex(Volume *vp, VnodeClass vclass);
 
 /* Purge a volume and all its from the fileserver and recoverable storage */
+
+/* N.B.  it's important here to use the partition pointed to by the
+   volume header.  This routine can, under some circumstances, be
+   called when two volumes with the same id exist on different
+   partitions */
+
 void VPurgeVolume(Volume *vp)
 {
-    /* N.B.  it's important here to use the partition pointed to by the volume header.
-       This routine can, under some circumstances, be called when two volumes with
-       the same id exist on different partitions */
     Error ec;
     PurgeIndex(vp, vLarge);
     PurgeIndex(vp, vSmall);
@@ -121,11 +119,12 @@ void VPurgeVolume(Volume *vp)
 }
 
 /* Decrement the reference count for all files in this volume */
-void PurgeIndex(Volume *vp, VnodeClass vclass) {
+void PurgeIndex(Volume *vp, VnodeClass vclass) 
+{
     struct VnodeClassInfo *vcp = &VnodeClassInfo_Array[vclass];
     char zerobuf[SIZEOF_LARGEDISKVNODE];
     struct VnodeDiskObject *zerovn = (struct VnodeDiskObject *) zerobuf;
-    struct VolumeData *vdata = &(CAMLIB_REC(VolumeList[V_volumeindex(vp)]).data);
+    struct VolumeData *vdata = &(SRV_RVM(VolumeList[V_volumeindex(vp)]).data);
     rec_smolist *vnlist;
     int nLists;
     
@@ -155,26 +154,26 @@ void PurgeIndex(Volume *vp, VnodeClass vclass) {
 		if (vdo->type != vDirectory){
 		    idec(vp->device, vdo->inodeNumber, V_parentId(vp));
 		} else
-		    DDec((DirInode *)vdo->inodeNumber);
+		    DI_Dec((DirInode *)vdo->inodeNumber);
 	    }	
 	    /* Delete the vnode */
 	    if ((vclass == vSmall) &&
-	        (CAMLIB_REC(SmallVnodeIndex) < SMALLFREESIZE - 1)) {
+	        (SRV_RVM(SmallVnodeIndex) < SMALLFREESIZE - 1)) {
 		LogMsg(29, VolDebugLevel, stdout, 	"DeleteVolData:	Adding small vnode index %d to free list",i);
-		CAMLIB_MODIFY_BYTES(vdo, zerovn, SIZEOF_SMALLDISKVNODE);
-		CAMLIB_MODIFY(CAMLIB_REC(SmallVnodeIndex),
-			      CAMLIB_REC(SmallVnodeIndex) + 1);
-		CAMLIB_MODIFY(CAMLIB_REC(SmallVnodeFreeList[CAMLIB_REC(SmallVnodeIndex)]), vdo);
+		rvmlib_modify_bytes(vdo, zerovn, SIZEOF_SMALLDISKVNODE);
+		RVMLIB_MODIFY(SRV_RVM(SmallVnodeIndex),
+			      SRV_RVM(SmallVnodeIndex) + 1);
+		RVMLIB_MODIFY(SRV_RVM(SmallVnodeFreeList[SRV_RVM(SmallVnodeIndex)]), vdo);
 	    }
 	    else if ((vclass == vLarge) &&
-		     (CAMLIB_REC(LargeVnodeIndex) < LARGEFREESIZE - 1)) {
+		     (SRV_RVM(LargeVnodeIndex) < LARGEFREESIZE - 1)) {
 		LogMsg(29, VolDebugLevel, stdout, 	"DeleteVolData:	Adding large vnode index %d to free list",i);
-		CAMLIB_MODIFY_BYTES(vdo, zerovn, SIZEOF_LARGEDISKVNODE);
-		CAMLIB_MODIFY(CAMLIB_REC(LargeVnodeIndex),
-			      CAMLIB_REC(LargeVnodeIndex) + 1);
-		CAMLIB_MODIFY(CAMLIB_REC(LargeVnodeFreeList[CAMLIB_REC(LargeVnodeIndex)]), vdo);
+		rvmlib_modify_bytes(vdo, zerovn, SIZEOF_LARGEDISKVNODE);
+		RVMLIB_MODIFY(SRV_RVM(LargeVnodeIndex),
+			      SRV_RVM(LargeVnodeIndex) + 1);
+		RVMLIB_MODIFY(SRV_RVM(LargeVnodeFreeList[SRV_RVM(LargeVnodeIndex)]), vdo);
 	    } else {
-		CAMLIB_REC_FREE((char *)vdo);
+		rvmlib_rec_free((char *)vdo);
 		LogMsg(29, VolDebugLevel, stdout,  "DeleteVolData: Freeing small vnode index %d", i);
 	    }
 	}

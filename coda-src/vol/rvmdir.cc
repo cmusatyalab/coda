@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vol/rvmdir.cc,v 4.2 1997/02/26 16:03:55 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vol/rvmdir.cc,v 4.3 1998/01/10 18:39:42 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -45,123 +45,29 @@ extern "C" {
 #include <stdarg.h>
 #include <stdio.h>
 #include <string.h>
-#ifdef __MACH__
-#include <sysent.h>
-#include <libc.h>
-#else	/* __linux__ || __BSD44__ */
 #include <unistd.h>
 #include <stdlib.h>
-#endif
 #include <lwp.h>
 #include <lock.h>
+#include <util.h>
+#include <rvmlib.h>
 
 #ifdef __cplusplus
 }
 #endif __cplusplus
 
-#include <util.h>
-#include <rvmlib.h>
 
 #include <dhash.h>
 #include <vice.h>
 #include "cvnode.h"
 #include "volume.h"
-#include "rvmdir.h"
+#include "codadir.h"
 
-dhashtab	*DirHtb = 0;  /* initialized by DirHtbInit() */
-
-
-
-shadowDirPage::shadowDirPage(struct VFid vfid, int pagenum, char *data)
-{
-    Fid = vfid;
-    PageNum = pagenum;
-    bcopy((void *)data, (void *)&Data, PAGESIZE);
-}
-
-shadowDirPage::~shadowDirPage()
-{
-}
-
-void shadowDirPage::print()
-{
-    print(stdout);
-}
-void shadowDirPage::print(FILE *fp)
-{
-    fflush(fp);
-    print(fileno(fp));
-}
-
-void shadowDirPage::print(int fd)
-{
-    char buf[80];
-    sprintf(buf, "Address of Dirpage:%#08x\n", (long)this);
-    write(fd, buf, strlen(buf));
-
-    sprintf(buf, "Fid = %#08x.%#08x.%#08x Page = %d\n", Fid.volume, Fid.vnode, Fid.vunique, PageNum);
-    write(fd, buf, strlen(buf));
-}
-
-
-int DirHtbHash(void *key)
-{
-    VFid    *fid = (VFid *)key;
-    return(fid->volume + fid->vnode + fid->vunique);
-}
-
-int FidCmp(shadowDirPage *a, shadowDirPage *b)
-{
-    if (a->Fid.volume < b->Fid.volume) return -1;
-    if (a->Fid.volume > b->Fid.volume) return 1;
-    if (a->Fid.vnode < b->Fid.vnode) return -1;
-    if (a->Fid.vnode > b->Fid.vnode) return 1;
-    if (a->Fid.vunique < b->Fid.vunique) return -1;
-    if (a->Fid.vunique > b->Fid.vunique) return 1;
-    if (a->PageNum < b->PageNum) return -1;
-    if (a->PageNum > b->PageNum) return 1;
-    return 0;
-}
-
-int DirHtbInit()
-{
-    /* fill in the global hashtable for dir in rvm */
-    if (!DirHtb)
-	DirHtb = new dhashtab(HTBSIZE, DirHtbHash, (CFN)FidCmp);
-    return (0);
-    
-}
-
-dlist *GetDirShadowPages(struct VFid *fid, dhashtab *htb)
-{
-    shadowDirPage   *sdp;
-
-
-    dlist   *dirlist = new dlist((CFN)FidCmp);
-    dhashtab_iterator	next(*htb, fid);
-
-    int readahead = 0;
-    while (readahead || (sdp = (shadowDirPage *)next())){
-	readahead = 0;
-	if (fid->volume == sdp->Fid.volume && 
-	    fid->vnode == sdp->Fid.vnode && 
-	    fid->vunique == sdp->Fid.vunique) {
-	    /* found a page - remove from hash tbl and add to the list */
-	    LogMsg(29, DirDebugLevel, stdout, "GetDirShadowPages:  Found page %d of fid(%u.%d.%d)", 
-		   sdp->PageNum, fid->volume, fid->vnode, fid->vunique);
-	    shadowDirPage *tmpsdp = sdp;
-	    readahead = ((sdp = (shadowDirPage *)next()) != 0);
-	    htb->remove((void *)fid, tmpsdp);
-	    dirlist->insert(tmpsdp);
-	}
-    }
-    return(dirlist);
-}
 
 /* copies all the pages of a directory from the commit hash table */
 /* into recoverable storage */
 /* Called from within a transaction */
-int DCommit(Vnode *vnp)
+int VN_DCommit(Vnode *vnp)
 {   
     struct VFid fid;
     DirInode	shadowInArr;
@@ -176,22 +82,20 @@ int DCommit(Vnode *vnp)
 
     if (vnp->delete_me){
 	/* directory was deleted */
-	LogMsg(29, DirDebugLevel, stdout, "DCommit: deleted directory, vnode = %d", 
-	       vnp->vnodeNumber);
-	DDec((DirInode *)(vnp->disk.inodeNumber));
+	DLog(29, "DCommit: deleted directory, vnode = %d", vnp->vnodeNumber);
+	DI_Dec((DirInode *)(vnp->disk.inodeNumber));
 	vnp->disk.inodeNumber = 0;
 	return 0;
     }
     
     else if (!vnp->delete_me && vnp->changed){
 	/* directory was modified - commit the pages */
-	LogMsg(29, DirDebugLevel, stdout, "DCommit: Commiting pages for dir vnode = %d", 
-	       vnp->vnodeNumber);
+	DLog(29, "DCommit: Commiting pages for dir vnode = %d", vnp->vnodeNumber);
 	if (!vnp->disk.inodeNumber){
 	    /* recoverable inode array not allocated - make one */
 	    LogMsg(29, DirDebugLevel, stdout, "DCommit: Allocating inode for dir vnode = %d", 
 		   vnp->vnodeNumber);
-	    vnp->disk.inodeNumber = (Inode)CAMLIB_REC_MALLOC(sizeof(DirInode));
+	    vnp->disk.inodeNumber = (Inode)rvmlib_rec_malloc(sizeof(DirInode));
 	    bzero((void *)&shadowInArr, sizeof(DirInode));
 	    shadowInArr.refcount = 1;
 	    InArrModified = 1;
@@ -220,7 +124,7 @@ int DCommit(Vnode *vnp)
 		/* this directory page never allocated before */
 		LogMsg(29, DirDebugLevel, stdout, "DCommit: Allocating page %d for dir vnode = %d",
 		       sdp->PageNum, vnp->vnodeNumber);
-		shadowInArr.Pages[sdp->PageNum] = (long *) CAMLIB_REC_MALLOC(PAGESIZE);
+		shadowInArr.Pages[sdp->PageNum] = (long *) rvmlib_rec_malloc(PAGESIZE);
 		InArrModified = 1;
 	    }
 	    LogMsg(29, DirDebugLevel, stdout, "DCommit: Modifying page %d for dir vnode %d",
@@ -230,7 +134,7 @@ int DCommit(Vnode *vnp)
 		       sdp->PageNum, vnp->vnodeNumber, vnp->disk.uniquifier);
 		assert(0);
 	    }
-	    CAMLIB_MODIFY_BYTES(shadowInArr.Pages[sdp->PageNum], sdp->Data, PAGESIZE);
+	    rvmlib_modify_bytes(shadowInArr.Pages[sdp->PageNum], sdp->Data, PAGESIZE);
 	    Committed[sdp->PageNum] = 1;
 	    delete sdp;
 	}
@@ -239,7 +143,7 @@ int DCommit(Vnode *vnp)
 	    /* modify the recoverable copy  of the inode array */
 	    LogMsg(29, DirDebugLevel, stdout, "DCommit: Modifying Inode for dir vnode %d",
 		   vnp->vnodeNumber);
-	    CAMLIB_MODIFY_BYTES(vnp->disk.inodeNumber, &shadowInArr, sizeof(DirInode));
+	    rvmlib_modify_bytes(vnp->disk.inodeNumber, &shadowInArr, sizeof(DirInode));
 	}
     }
     return 0;
@@ -247,7 +151,7 @@ int DCommit(Vnode *vnp)
 
 /* Remove all pages for this vnode from the hash table */
 /* Do not write to recoverable storage - simulate a transaction ABORT */
-int DAbort(Vnode *vnp) {
+int VN_DAbort(Vnode *vnp) {
     struct VFid fid;
     shadowDirPage *sdp;
     Volume *volume;
@@ -290,18 +194,19 @@ void ICommit(struct VFid *fid, long *inode)
       /* this directory page never allocated before */
       LogMsg(29, DirDebugLevel, stdout, "ICommit: Allocating page %d for dir vnode %d", 
 	     sdp->PageNum, fid->vnode);
-      shadowInode.Pages[sdp->PageNum] = (long *)CAMLIB_REC_MALLOC(PAGESIZE);
+      shadowInode.Pages[sdp->PageNum] = (long *)rvmlib_rec_malloc(PAGESIZE);
       shadowInodeMod = 1;
     }
     LogMsg(29, DirDebugLevel, stdout, "ICommit: Modifying page %d for vnode %d",
 	   sdp->PageNum, fid->vnode);
-    CAMLIB_MODIFY_BYTES(shadowInode.Pages[sdp->PageNum], sdp->Data, PAGESIZE);
+    rvmlib_modify_bytes(shadowInode.Pages[sdp->PageNum], sdp->Data, PAGESIZE);
     delete sdp;
   }
   if (shadowInodeMod)
-    CAMLIB_MODIFY_BYTES(inode, &shadowInode, sizeof(DirInode));
+    rvmlib_modify_bytes(inode, &shadowInode, sizeof(DirInode));
   
 }
+
 void DDec(DirInode *inode)
 {
     int lcount;
@@ -312,33 +217,16 @@ void DDec(DirInode *inode)
 	    for (int i = 0; i < MAXPAGES; i++)
 		if (inode->Pages[i]){
 		    LogMsg(29, DirDebugLevel, stdout, "Deleting page %d for directory", i);
-		    CAMLIB_REC_FREE((char *)(inode->Pages[i]));
+		    rvmlib_rec_free((char *)(inode->Pages[i]));
 		}
 	    LogMsg(29, DirDebugLevel, stdout, "Deleting inode ");
-	    CAMLIB_REC_FREE((char *)inode);
+	    rvmlib_rec_free((char *)inode);
 	}
 	else 
-	    CAMLIB_MODIFY(inode->refcount, --lcount);
+	    RVMLIB_MODIFY(inode->refcount, --lcount);
     }
     else 
 	LogMsg(29, DirDebugLevel, stdout, "Trying to delete a null inode!!!!!");
-}
-
-void DInc(DirInode *inode)
-{
-    int linkcount = inode->refcount;
-    CAMLIB_MODIFY(inode->refcount, ++linkcount);
-}
-
-void VMDDec(DirInode *inode)
-{
-    if (inode)
-	(inode->refcount)--;
-}
-void VMDInc(DirInode *inode)
-{
-    if (inode)
-	(inode->refcount)++;
 }
 
 /* copies oldinode to newinode (first allocating space in
@@ -353,16 +241,16 @@ int CopyDirInode(DirInode *oldinode, DirInode **newinode)
        LogMsg(29, DirDebugLevel, stdout, "CopyDirInode: Null oldinode");
        return -1;
     }
-    *newinode = (DirInode *)CAMLIB_REC_MALLOC(sizeof(DirInode));
+    *newinode = (DirInode *)rvmlib_rec_malloc(sizeof(DirInode));
     bzero((void *)&shadowInode, sizeof(DirInode));
     for(int i = 0; i < MAXPAGES; i++)
 	if (oldinode->Pages[i]){
 	    LogMsg(29, DirDebugLevel, stdout, "CopyDirInode: Copying page %d", i);
-	    shadowInode.Pages[i] = (long *)CAMLIB_REC_MALLOC(PAGESIZE);
-	    CAMLIB_MODIFY_BYTES(shadowInode.Pages[i], oldinode->Pages[i], PAGESIZE);
+	    shadowInode.Pages[i] = (long *)rvmlib_rec_malloc(PAGESIZE);
+	    rvmlib_modify_bytes(shadowInode.Pages[i], oldinode->Pages[i], PAGESIZE);
 	}
     shadowInode.refcount = oldinode->refcount;
-    CAMLIB_MODIFY_BYTES(*newinode, &shadowInode, sizeof(DirInode));
+    rvmlib_modify_bytes(*newinode, &shadowInode, sizeof(DirInode));
     return 0;
 }
 

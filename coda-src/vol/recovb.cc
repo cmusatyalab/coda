@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vol/recovb.cc,v 4.4 1997/10/15 15:55:03 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vol/recovb.cc,v 4.5 1998/01/10 18:39:41 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -61,17 +61,13 @@ extern "C" {
 #include <lwp.h>
 #include <lock.h>
 #include <rpc2.h>
+#include <util.h>
 
-#ifdef __MACH__
-#include <mach.h>
-#endif /* __MACH__ */
+#include <rvmlib.h>
 #ifdef __cplusplus
 }
 #endif __cplusplus
 
-#include <util.h>
-
-#include <rvmlib.h>
 #include <vice.h>
 #include <rec_smolist.h>
 #include "cvnode.h"
@@ -90,7 +86,7 @@ extern void PrintCamDiskData(int,int,VolumeDiskData*);
 
 int bitmap_flag = 0;
 
-PRIVATE int DeleteVnode(int, int, VnodeId, Unique_t, VnodeDiskObject *);
+static int DeleteVnode(int, int, VnodeId, Unique_t, VnodeDiskObject *);
 
 /* Copy the specified vnode into the structure provided. Returns 0 if */
 /* successful, -1 if an error occurs. */
@@ -98,73 +94,73 @@ int ExtractVnode(Error *ec, int volindex, int vclass,
 		  VnodeId vnodeindex, Unique_t uniquifier,
 		  VnodeDiskObject *vnode)
 {
-    rec_smolist *vlist;
-    VnodeDiskObject *vind;
-    int status = 0;	// transaction status variable
-    VolumeId maxid = 0;
+	rec_smolist *vlist;
+	VnodeDiskObject *vind;
+	int status = 0;	// transaction status variable
+	VolumeId maxid = 0;
 
-    LogMsg(9, VolDebugLevel, stdout,  "Entering ExtractVnode(volindex = %d, vclass = %d, vnodeindex = %x, Unique = %x vnode = 0x%x)",
-	 volindex, vclass, vnodeindex, uniquifier, vnode);
+	LogMsg(9, VolDebugLevel, stdout,  "Entering ExtractVnode(volindex = %d, vclass = %d, vnodeindex = %x, Unique = %x vnode = 0x%x)",
+	       volindex, vclass, vnodeindex, uniquifier, vnode);
 
-    *ec = 0;
-
-    maxid = (CAMLIB_REC(MaxVolId) & 0x00FFFFFF);
-    if (volindex < 0 || volindex > maxid || volindex > MAXVOLS) {
-	LogMsg(0, VolDebugLevel, stdout,  "ExtractVnode: bogus volume index %d", volindex);
-	return(-1);
-    }
-
-
-    if (vclass == vSmall) {
-	if (vnodeindex >= CAMLIB_REC(VolumeList[volindex]).data.nsmallLists) {
-	    LogMsg(0, VolDebugLevel, stdout,  "ExtractVnode: bogus small vnode index %d", vnodeindex);
-	    return(-1);
-	}
-	vlist = &(CAMLIB_REC(VolumeList[volindex]).data.smallVnodeLists[vnodeindex]);
-	/* set up iterator and return correct vnode */
-	rec_smolist_iterator next(*vlist);
-	rec_smolink *p;
-	while(p = next()){
-	    vind = strbase(VnodeDiskObject, p, nextvn);
-	    if (vind->uniquifier == uniquifier){
-		bcopy((const void *)vind, (void *)vnode, SIZEOF_SMALLDISKVNODE);
-		break;
-	    }
-	}
-	if (!p) {
-	    LogMsg(9, VolDebugLevel, stdout,  "No Vnode with uniq %x at index %x",
-		uniquifier, vnodeindex);
-	    return(-1);
-	}
-    }
-    else {
-	if (vclass == vLarge) {
-	    if (vnodeindex >= CAMLIB_REC(VolumeList[volindex]).data.nlargeLists) {
-		LogMsg(0, VolDebugLevel, stdout,  "ExtractVnode: bogus large vnode index %d", vnodeindex);
+	*ec = 0;
+	
+	maxid = (SRV_RVM(MaxVolId) & 0x00FFFFFF);
+	if (volindex < 0 || volindex > maxid || volindex > MAXVOLS) {
+		LogMsg(0, VolDebugLevel, stdout,  "ExtractVnode: bogus volume index %d", volindex);
 		return(-1);
-	    }
-	    vlist = &(CAMLIB_REC(VolumeList[volindex]).data.largeVnodeLists[vnodeindex]);
-	    rec_smolist_iterator next(*vlist);
-	    rec_smolink *p;
-	    while(p = next()) {
-		vind = strbase(VnodeDiskObject, p, nextvn);
-		if (vind->uniquifier == uniquifier) {
-		    bcopy((const void *)vind, (void *)vnode, SIZEOF_LARGEDISKVNODE);
-		    break;
+	}
+
+
+	if (vclass == vSmall) {
+		if (vnodeindex >= SRV_RVM(VolumeList[volindex]).data.nsmallLists) {
+			LogMsg(0, VolDebugLevel, stdout,  "ExtractVnode: bogus small vnode index %d", vnodeindex);
+			return(-1);
 		}
-	    }
-	    if (!p) {
-		LogMsg(9, VolDebugLevel, stdout,  "No Vnode with uniq %x at index %x",
-		    uniquifier, vnodeindex);
-		return(-1);
-	    }
+		vlist = &(SRV_RVM(VolumeList[volindex]).data.smallVnodeLists[vnodeindex]);
+	/* set up iterator and return correct vnode */
+		rec_smolist_iterator next(*vlist);
+		rec_smolink *p;
+		while(p = next()){
+			vind = strbase(VnodeDiskObject, p, nextvn);
+			if (vind->uniquifier == uniquifier){
+				bcopy((const void *)vind, (void *)vnode, SIZEOF_SMALLDISKVNODE);
+				break;
+			}
+		}
+		if (!p) {
+			LogMsg(9, VolDebugLevel, stdout,  "No Vnode with uniq %x at index %x",
+			       uniquifier, vnodeindex);
+			return(-1);
+		}
 	}
-    }
+	else {
+		if (vclass == vLarge) {
+			if (vnodeindex >= SRV_RVM(VolumeList[volindex]).data.nlargeLists) {
+				LogMsg(0, VolDebugLevel, stdout,  "ExtractVnode: bogus large vnode index %d", vnodeindex);
+				return(-1);
+			}
+			vlist = &(SRV_RVM(VolumeList[volindex]).data.largeVnodeLists[vnodeindex]);
+			rec_smolist_iterator next(*vlist);
+			rec_smolink *p;
+			while(p = next()) {
+				vind = strbase(VnodeDiskObject, p, nextvn);
+				if (vind->uniquifier == uniquifier) {
+					bcopy((const void *)vind, (void *)vnode, SIZEOF_LARGEDISKVNODE);
+					break;
+				}
+			}
+			if (!p) {
+				LogMsg(9, VolDebugLevel, stdout,  "No Vnode with uniq %x at index %x",
+				       uniquifier, vnodeindex);
+				return(-1);
+			}
+		}
+	}
 
-    
-    if (vnode->type != vNull)
-	LogMsg(59, VolDebugLevel, stdout,  "ExtractVnode: vnode->type = %u", vnode->type);
-    return(0);
+	
+	if (vnode->type != vNull)
+		LogMsg(59, VolDebugLevel, stdout,  "ExtractVnode: vnode->type = %u", vnode->type);
+	return(0);
 }
 /*
  * ObjectExists:
@@ -182,7 +178,7 @@ int ObjectExists(int volindex, int vclass, VnodeId vnodeindex, Unique_t u,
 
     /* check volume index */
     {    
-	maxid = (CAMLIB_REC(MaxVolId) & 0x00FFFFFF);
+	maxid = (SRV_RVM(MaxVolId) & 0x00FFFFFF);
 	if (volindex < 0 || volindex > maxid || volindex > MAXVOLS) {
 	    LogMsg(0, VolDebugLevel, stdout,  "ObjectExists: bogus volume index %d", volindex);
 	    return(0);
@@ -191,11 +187,11 @@ int ObjectExists(int volindex, int vclass, VnodeId vnodeindex, Unique_t u,
 
 
     if (vclass == vSmall) {
-	if (vnodeindex >= CAMLIB_REC(VolumeList[volindex]).data.nsmallLists) {
+	if (vnodeindex >= SRV_RVM(VolumeList[volindex]).data.nsmallLists) {
 	    LogMsg(0, VolDebugLevel, stdout,  "ObjectExists: bogus small vnode index %d", vnodeindex);
 	    return(0);
 	}
-	vlist = &(CAMLIB_REC(VolumeList[volindex]).data.smallVnodeLists[vnodeindex]);
+	vlist = &(SRV_RVM(VolumeList[volindex]).data.smallVnodeLists[vnodeindex]);
 	/* set up iterator and return correct vnode */
 	rec_smolist_iterator next(*vlist);
 	rec_smolink *p;
@@ -215,11 +211,11 @@ int ObjectExists(int volindex, int vclass, VnodeId vnodeindex, Unique_t u,
 	return(0);
     }
     else if (vclass == vLarge) {
-	if (vnodeindex >= CAMLIB_REC(VolumeList[volindex]).data.nlargeLists) {
+	if (vnodeindex >= SRV_RVM(VolumeList[volindex]).data.nlargeLists) {
 	    LogMsg(0, VolDebugLevel, stdout,  "ObjectExists: bogus large vnode index %d", vnodeindex);
 	    return(0);
 	}
-	vlist = &(CAMLIB_REC(VolumeList[volindex]).data.largeVnodeLists[vnodeindex]);
+	vlist = &(SRV_RVM(VolumeList[volindex]).data.largeVnodeLists[vnodeindex]);
 	rec_smolist_iterator next(*vlist);
 	rec_smolink *p;
 	while(p = next()) {
@@ -264,7 +260,7 @@ int GetParentFid(Volume *vp, ViceFid *cFid, ViceFid *pFid) {
     int volindex = V_volumeindex(vp);
     /* check volume index */
     {    
-	maxid = (CAMLIB_REC(MaxVolId) & 0x00FFFFFF);
+	maxid = (SRV_RVM(MaxVolId) & 0x00FFFFFF);
 	if (volindex < 0 || volindex > maxid || volindex > MAXVOLS) {
 	    LogMsg(0, VolDebugLevel, stdout,  "GetParentFid: bogus volume index %d", volindex);
 	    return(0);
@@ -274,11 +270,11 @@ int GetParentFid(Volume *vp, ViceFid *cFid, ViceFid *pFid) {
     unsigned long vclass = vnodeIdToClass(cFid->Vnode);
     unsigned long vnodeindex = vnodeIdToBitNumber(cFid->Vnode);
     if (vclass == vSmall) {
-	if (vnodeindex >= CAMLIB_REC(VolumeList[volindex]).data.nsmallLists) {
+	if (vnodeindex >= SRV_RVM(VolumeList[volindex]).data.nsmallLists) {
 	    LogMsg(0, VolDebugLevel, stdout,  "GetParentFid: bogus small vnode index %x", vnodeindex);
 	    return(0);
 	}
-	vlist = &(CAMLIB_REC(VolumeList[volindex]).data.smallVnodeLists[vnodeindex]);
+	vlist = &(SRV_RVM(VolumeList[volindex]).data.smallVnodeLists[vnodeindex]);
 	/* set up iterator and return correct vnode */
 	rec_smolist_iterator next(*vlist);
 	rec_smolink *p;
@@ -296,11 +292,11 @@ int GetParentFid(Volume *vp, ViceFid *cFid, ViceFid *pFid) {
 	return(0);
     }
     else if (vclass == vLarge) {
-	if (vnodeindex >= CAMLIB_REC(VolumeList[volindex]).data.nlargeLists) {
+	if (vnodeindex >= SRV_RVM(VolumeList[volindex]).data.nlargeLists) {
 	    LogMsg(0, VolDebugLevel, stdout,  "GetParentFid: bogus large vnode index %x", vnodeindex);
 	    return(0);
 	}
-	vlist = &(CAMLIB_REC(VolumeList[volindex]).data.largeVnodeLists[vnodeindex]);
+	vlist = &(SRV_RVM(VolumeList[volindex]).data.largeVnodeLists[vnodeindex]);
 	rec_smolist_iterator next(*vlist);
 	rec_smolink *p;
 	while(p = next()) {
@@ -337,106 +333,94 @@ int ReplaceVnode(int volindex, int vclass, VnodeId vnodeindex,
     }
 
 
-    maxid = (CAMLIB_REC(MaxVolId) & 0x00FFFFFF);
+    maxid = (SRV_RVM(MaxVolId) & 0x00FFFFFF);
     if (volindex < 0 || volindex > maxid || volindex > MAXVOLS) {
 	LogMsg(0, VolDebugLevel, stdout,  "ReplaceVnode: bogus volume index %d", volindex);
-	CAMLIB_ABORT(VFAIL);	// invalid volume index
+	rvmlib_abort(VFAIL);	// invalid volume index
 	return VNOVOL;
     }
-
-    CAMLIB_LOCK(CAMLIB_LOCK_NAME(CAMLIB_REC(VolumeList[volindex])),
-					CLS, CAMLIB_LOCK_MODE_WRITE);
-
 
     /* if vnodeindex is larger than array, need to alloc a new one and */
     /* copy over the data (must grow by same amount as bitvector!) */
 
     if (vclass == vSmall) {
-	if (vnodeindex >= CAMLIB_REC(VolumeList[volindex]).data.nsmallLists) {
+	if (vnodeindex >= SRV_RVM(VolumeList[volindex]).data.nsmallLists) {
 	    LogMsg(0, VolDebugLevel, stdout,  "ReplaceVnode: bogus small vnode index %d", vnodeindex);
-	    CAMLIB_ABORT(VFAIL);	// invalid vnode index
+	    rvmlib_abort(VFAIL);	// invalid vnode index
 	}
-	rec_smolist *vnlist = &(CAMLIB_REC(VolumeList[volindex]).data.smallVnodeLists[vnodeindex]);
+	rec_smolist *vnlist = &(SRV_RVM(VolumeList[volindex]).data.smallVnodeLists[vnodeindex]);
 	/* check if vnode already exists */
 	VnodeDiskObject *vdo = FindVnode(vnlist, u);
 	if (vdo == NULL) {
 	    LogMsg(39, VolDebugLevel, stdout,  "ReplaceVnode: no small vnode at index %d; allocating",
 				    vnodeindex);
 	    /* take a vnode off the free list if one exists */
-	    if (CAMLIB_REC(SmallVnodeIndex) >= 0) {
+	    if (SRV_RVM(SmallVnodeIndex) >= 0) {
 		LogMsg(9, VolDebugLevel, stdout,  "ReplaceVnode: taking small vnode from FreeList");
-		CAMLIB_LOCK(CAMLIB_LOCK_NAME(CAMLIB_REC(SmallVnodeIndex)), CLS,
-						CAMLIB_LOCK_MODE_WRITE);
-		CAMLIB_LOCK(CAMLIB_LOCK_NAME(CAMLIB_REC(SmallVnodeFreeList[CAMLIB_REC(SmallVnodeIndex)])),
-						CLS, CAMLIB_LOCK_MODE_WRITE);
-		vdo = CAMLIB_REC(SmallVnodeFreeList[CAMLIB_REC(SmallVnodeIndex)]);
-		CAMLIB_MODIFY(CAMLIB_REC(SmallVnodeFreeList[CAMLIB_REC(SmallVnodeIndex)]),
+		vdo = SRV_RVM(SmallVnodeFreeList[SRV_RVM(SmallVnodeIndex)]);
+		RVMLIB_MODIFY(SRV_RVM(SmallVnodeFreeList[SRV_RVM(SmallVnodeIndex)]),
 									NULL);
-		CAMLIB_MODIFY(CAMLIB_REC(SmallVnodeIndex),
-			      CAMLIB_REC(SmallVnodeIndex) - 1);
+		RVMLIB_MODIFY(SRV_RVM(SmallVnodeIndex),
+			      SRV_RVM(SmallVnodeIndex) - 1);
 	    }
 	    else { /* otherwise, malloc a new one and zero it out */
 		LogMsg(9, VolDebugLevel, stdout,  "ReplaceVnode: malloc'ing small vnode");
-		vdo = (VnodeDiskObject *)CAMLIB_REC_MALLOC(SIZEOF_SMALLDISKVNODE);
+		vdo = (VnodeDiskObject *)rvmlib_rec_malloc(SIZEOF_SMALLDISKVNODE);
 		zerovnode = (VnodeDiskObject *)buf1;
 		bzero((void *)zerovnode, sizeof(buf1));
-		CAMLIB_MODIFY_BYTES(vdo, zerovnode, sizeof(buf1));
+		rvmlib_modify_bytes(vdo, zerovnode, sizeof(buf1));
 	    }
 	    /* increment vnode count */
-	    CAMLIB_MODIFY(CAMLIB_REC(VolumeList[volindex]).data.nsmallvnodes,
-			(CAMLIB_REC(VolumeList[volindex]).data.nsmallvnodes) + 1);
+	    RVMLIB_MODIFY(SRV_RVM(VolumeList[volindex]).data.nsmallvnodes,
+			(SRV_RVM(VolumeList[volindex]).data.nsmallvnodes) + 1);
     	    /* append vnode into the appropriate rec_smolist */
 	    char buf[sizeof(rec_smolink)];
 	    bzero(buf, sizeof(rec_smolink));
 	    if (bcmp((const void *)&(vdo->nextvn), (const void *) buf, sizeof(rec_smolink))){
 		LogMsg(0, VolDebugLevel, stdout,  "ERROR: REC_SMOLINK ON VNODE DURING ALLOCATION WAS NOT ZERO");
-		CAMLIB_MODIFY_BYTES(&(vdo->nextvn), buf, sizeof(rec_smolink));
+		rvmlib_modify_bytes(&(vdo->nextvn), buf, sizeof(rec_smolink));
 	    }
 	    vnlist->append(&(vdo->nextvn));
 	}
 	bcopy( (const void *)&(vdo->nextvn), (void *)&(vnode->nextvn), sizeof(rec_smolink));
-	CAMLIB_MODIFY_BYTES(vdo, vnode, SIZEOF_SMALLDISKVNODE);
+	rvmlib_modify_bytes(vdo, vnode, SIZEOF_SMALLDISKVNODE);
     }
     else if (vclass == vLarge) {
-	if (vnodeindex >= CAMLIB_REC(VolumeList[volindex]).data.nlargeLists) {
+	if (vnodeindex >= SRV_RVM(VolumeList[volindex]).data.nlargeLists) {
 	    LogMsg(0, VolDebugLevel, stdout,  "ReplaceVnode: bogus large vnode index %d", vnodeindex);
-	    CAMLIB_ABORT(VFAIL);	// invalid vnode index
+	    rvmlib_abort(VFAIL);	// invalid vnode index
 	}
-	rec_smolist *vnlist = &(CAMLIB_REC(VolumeList[volindex]).data.largeVnodeLists[vnodeindex]);
+	rec_smolist *vnlist = &(SRV_RVM(VolumeList[volindex]).data.largeVnodeLists[vnodeindex]);
 	/* check if vnode already exists */
 	VnodeDiskObject *vdo = FindVnode(vnlist, u);
 	if (vdo == NULL){
 	    LogMsg(39, VolDebugLevel, stdout,  "ReplaceVnode: no large vnode at index %d; allocating",
 				    vnodeindex);
 	    /* take a vnode off the free list if one exists */
-	    if (CAMLIB_REC(LargeVnodeIndex) >= 0) {
+	    if (SRV_RVM(LargeVnodeIndex) >= 0) {
 		LogMsg(9, VolDebugLevel, stdout,  "ReplaceVnode: taking large vnode from freelist");
-		CAMLIB_LOCK(CAMLIB_LOCK_NAME(CAMLIB_REC(LargeVnodeIndex)),
-						CLS, CAMLIB_LOCK_MODE_WRITE);
-		CAMLIB_LOCK(CAMLIB_LOCK_NAME(CAMLIB_REC(LargeVnodeFreeList[CAMLIB_REC(LargeVnodeIndex)])),
-					    CLS, CAMLIB_LOCK_MODE_WRITE);
 		LogMsg(19, VolDebugLevel, stdout,  "Taking vnode off of largefreelist[%d] for index %d",
-				    CAMLIB_REC(LargeVnodeIndex), vnodeindex);
-		vdo = CAMLIB_REC(LargeVnodeFreeList[CAMLIB_REC(LargeVnodeIndex)]);
-		CAMLIB_MODIFY(CAMLIB_REC(LargeVnodeFreeList[CAMLIB_REC(LargeVnodeIndex)]), NULL);
-		CAMLIB_MODIFY(CAMLIB_REC(LargeVnodeIndex),
-			      CAMLIB_REC(LargeVnodeIndex) - 1);
+				    SRV_RVM(LargeVnodeIndex), vnodeindex);
+		vdo = SRV_RVM(LargeVnodeFreeList[SRV_RVM(LargeVnodeIndex)]);
+		RVMLIB_MODIFY(SRV_RVM(LargeVnodeFreeList[SRV_RVM(LargeVnodeIndex)]), NULL);
+		RVMLIB_MODIFY(SRV_RVM(LargeVnodeIndex),
+			      SRV_RVM(LargeVnodeIndex) - 1);
 	    }
 	    else { /* otherwise, malloc a new one */
 		LogMsg(9, VolDebugLevel, stdout,  "ReplaceVnode: malloc'ing large vnode");
-		vdo = (VnodeDiskObject *)CAMLIB_REC_MALLOC(SIZEOF_LARGEDISKVNODE);
+		vdo = (VnodeDiskObject *)rvmlib_rec_malloc(SIZEOF_LARGEDISKVNODE);
 		zerovnode = (VnodeDiskObject *)buf2;
 		bzero((void *)zerovnode, sizeof(buf2));
-		CAMLIB_MODIFY_BYTES(vdo, zerovnode, sizeof(buf2));
+		rvmlib_modify_bytes(vdo, zerovnode, sizeof(buf2));
 	    }
 	    /* increment vnode count */
-	    CAMLIB_MODIFY(CAMLIB_REC(VolumeList[volindex]).data.nlargevnodes,
-		  (CAMLIB_REC(VolumeList[volindex]).data.nlargevnodes) + 1);
+	    RVMLIB_MODIFY(SRV_RVM(VolumeList[volindex]).data.nlargevnodes,
+		  (SRV_RVM(VolumeList[volindex]).data.nlargevnodes) + 1);
 	    char buf[sizeof(rec_smolink)];
 	    bzero(buf, sizeof(rec_smolink));
 	    if (bcmp((const void *)&(vdo->nextvn),(const void *) buf, sizeof(rec_smolink))){
 		LogMsg(0, VolDebugLevel, stdout,  "ERROR: REC_SMOLINK ON VNODE DURING ALLOCATION WAS NOT ZERO");
-		CAMLIB_MODIFY_BYTES(&(vdo->nextvn), buf, sizeof(rec_smolink));
+		rvmlib_modify_bytes(&(vdo->nextvn), buf, sizeof(rec_smolink));
 	    }
 	    vnlist->append(&(vdo->nextvn));
 	    if (AllowResolution) {
@@ -447,7 +431,7 @@ int ReplaceVnode(int volindex, int vclass, VnodeId vnodeindex,
 	}
 	bcopy((char *)&(vdo->nextvn), (char *)&(vnode->nextvn), sizeof(rec_smolink));
 	/* store the data into recoverable storage */
-	CAMLIB_MODIFY_BYTES(vdo, vnode, SIZEOF_LARGEDISKVNODE);
+	rvmlib_modify_bytes(vdo, vnode, SIZEOF_LARGEDISKVNODE);
     }
     else assert(0);	/* vclass is neither vSmall nor vLarge */
     LogMsg(19, VolDebugLevel, stdout, "Replace vnode - VnodeDiskObject passed to rtn:");
@@ -457,7 +441,7 @@ int ReplaceVnode(int volindex, int vclass, VnodeId vnodeindex,
     return(0);
 }
 
-PRIVATE int DeleteVnode(int volindex, int vclass, VnodeId vnodeindex, 
+static int DeleteVnode(int volindex, int vclass, VnodeId vnodeindex, 
 			 Unique_t u, VnodeDiskObject *vnode)
 {
     VolumeId maxid = 0;
@@ -465,78 +449,68 @@ PRIVATE int DeleteVnode(int volindex, int vclass, VnodeId vnodeindex,
     LogMsg(9, VolDebugLevel, stdout,  
 	   "Entering DeleteVnode(%d, %d, %d, <struct>)", 
 	   volindex, vclass, vnodeindex);
-    maxid = (CAMLIB_REC(MaxVolId) & 0x00FFFFFF);
+    maxid = (SRV_RVM(MaxVolId) & 0x00FFFFFF);
     if (volindex < 0 || volindex > maxid || volindex > MAXVOLS) {
 	LogMsg(0, VolDebugLevel, stdout,  "DeleteVnode: bogus volume index %d", volindex);
-	CAMLIB_ABORT(VFAIL);	// invalid volume index
+	rvmlib_abort(VFAIL);	// invalid volume index
     }
 
-    CAMLIB_LOCK(CAMLIB_LOCK_NAME(CAMLIB_REC(VolumeList[volindex])),
-					CLS, CAMLIB_LOCK_MODE_WRITE);
     if (vclass == vSmall) {
-	if (vnodeindex >= CAMLIB_REC(VolumeList[volindex]).data.nsmallLists) {
+	if (vnodeindex >= SRV_RVM(VolumeList[volindex]).data.nsmallLists) {
 	    LogMsg(0, VolDebugLevel, stdout,  "DeleteVnode: deleting nonexistent vnode (index %d)", vnodeindex);
-	    CAMLIB_ABORT(VFAIL);
+	    rvmlib_abort(VFAIL);
 	}
 
-	rec_smolist *vnlist = &(CAMLIB_REC(VolumeList[volindex]).data.smallVnodeLists[vnodeindex]);
+	rec_smolist *vnlist = &(SRV_RVM(VolumeList[volindex]).data.smallVnodeLists[vnodeindex]);
 	VnodeDiskObject *vdo = FindVnode(vnlist, u);
 	if (vdo != NULL) {
 	    /* remove vnode from index */
 	    vnlist->remove(&(vdo->nextvn));
 	    /* put the freed vnode on the free list if there's room */
-	    if (CAMLIB_REC(SmallVnodeIndex) < SMALLFREESIZE - 1) {
+	    if (SRV_RVM(SmallVnodeIndex) < SMALLFREESIZE - 1) {
 		LogMsg(9, VolDebugLevel, stdout,  "DeleteVnode: putting small vnode on freelist");
-		CAMLIB_LOCK(CAMLIB_LOCK_NAME(CAMLIB_REC(SmallVnodeFreeList)),
-					    CLS, CAMLIB_LOCK_MODE_WRITE);
-		CAMLIB_LOCK(CAMLIB_LOCK_NAME(CAMLIB_REC(SmallVnodeIndex)),
-					    CLS, CAMLIB_LOCK_MODE_WRITE);
 		bzero((void *)vnode, SIZEOF_SMALLDISKVNODE); /* just to be sure */
-		CAMLIB_MODIFY_BYTES(vdo, vnode, SIZEOF_SMALLDISKVNODE);
-		CAMLIB_MODIFY(CAMLIB_REC(SmallVnodeIndex),
-			      CAMLIB_REC(SmallVnodeIndex) + 1);
-		CAMLIB_MODIFY(CAMLIB_REC(SmallVnodeFreeList[CAMLIB_REC(SmallVnodeIndex)]), vdo);
+		rvmlib_modify_bytes(vdo, vnode, SIZEOF_SMALLDISKVNODE);
+		RVMLIB_MODIFY(SRV_RVM(SmallVnodeIndex),
+			      SRV_RVM(SmallVnodeIndex) + 1);
+		RVMLIB_MODIFY(SRV_RVM(SmallVnodeFreeList[SRV_RVM(SmallVnodeIndex)]), vdo);
 	    }
 	    else {
 		LogMsg(9, VolDebugLevel, stdout,  "DeleteVnode: freeing small vnode structure");
-		CAMLIB_REC_FREE((char *)vdo);
+		rvmlib_rec_free((char *)vdo);
 	    }
 	
 	    /* decrement small vnode count */
-	    CAMLIB_MODIFY(CAMLIB_REC(VolumeList[volindex]).data.nsmallvnodes,
-		    (CAMLIB_REC(VolumeList[volindex]).data.nsmallvnodes) - 1);
+	    RVMLIB_MODIFY(SRV_RVM(VolumeList[volindex]).data.nsmallvnodes,
+		    (SRV_RVM(VolumeList[volindex]).data.nsmallvnodes) - 1);
 	}
     }
 
     if (vclass == vLarge) {
-	if (vnodeindex >= CAMLIB_REC(VolumeList[volindex]).data.nlargeLists) {
+	if (vnodeindex >= SRV_RVM(VolumeList[volindex]).data.nlargeLists) {
 	    LogMsg(0, VolDebugLevel, stdout,  "DeleteVnode: deleting nonexistent vnode (index %d)", vnodeindex);
-	    CAMLIB_ABORT(VFAIL);
+	    rvmlib_abort(VFAIL);
 	}
-	rec_smolist *vnlist = &(CAMLIB_REC(VolumeList[volindex]).data.largeVnodeLists[vnodeindex]);
+	rec_smolist *vnlist = &(SRV_RVM(VolumeList[volindex]).data.largeVnodeLists[vnodeindex]);
 	VnodeDiskObject *vdo = FindVnode(vnlist, u);
 	if (vdo != NULL) {
 	    vnlist->remove(&(vdo->nextvn));
 	    /* put the removed vnode on the free list if there's room */
-	    if (CAMLIB_REC(LargeVnodeIndex) < LARGEFREESIZE - 1) {
+	    if (SRV_RVM(LargeVnodeIndex) < LARGEFREESIZE - 1) {
 		LogMsg(9, VolDebugLevel, stdout,  "DeleteVnode: putting large vnode on free list");
-		CAMLIB_LOCK(CAMLIB_LOCK_NAME(CAMLIB_REC(LargeVnodeFreeList)),
-			    CLS, CAMLIB_LOCK_MODE_WRITE);
-		CAMLIB_LOCK(CAMLIB_LOCK_NAME(CAMLIB_REC(LargeVnodeIndex)),
-			    CLS, CAMLIB_LOCK_MODE_WRITE);
 		bzero((void *)vnode, SIZEOF_LARGEDISKVNODE);    /* just to be sure */
-		CAMLIB_MODIFY_BYTES(vdo, vnode,	SIZEOF_LARGEDISKVNODE);
-		CAMLIB_MODIFY(CAMLIB_REC(LargeVnodeIndex),
-			      CAMLIB_REC(LargeVnodeIndex) + 1);
-		CAMLIB_MODIFY(CAMLIB_REC(LargeVnodeFreeList[CAMLIB_REC(LargeVnodeIndex)]), vdo);
+		rvmlib_modify_bytes(vdo, vnode,	SIZEOF_LARGEDISKVNODE);
+		RVMLIB_MODIFY(SRV_RVM(LargeVnodeIndex),
+			      SRV_RVM(LargeVnodeIndex) + 1);
+		RVMLIB_MODIFY(SRV_RVM(LargeVnodeFreeList[SRV_RVM(LargeVnodeIndex)]), vdo);
 	    }
 	    else {
 		LogMsg(9, VolDebugLevel, stdout,  "DeleteVnode: freeing large vnode");
-		CAMLIB_REC_FREE((char *)vdo);
+		rvmlib_rec_free((char *)vdo);
 	    }
 	    /* decrement large vnode count */
-	    CAMLIB_MODIFY(CAMLIB_REC(VolumeList[volindex]).data.nlargevnodes,
-		  (CAMLIB_REC(VolumeList[volindex]).data.nlargevnodes) - 1);
+	    RVMLIB_MODIFY(SRV_RVM(VolumeList[volindex]).data.nlargevnodes,
+		  (SRV_RVM(VolumeList[volindex]).data.nlargevnodes) - 1);
 	    if (AllowResolution) 
 		/* delete the resolution log list header */
 		DeAllocateVMResLogListHeader(volindex, 
@@ -597,28 +571,26 @@ void ReplaceVolDiskInfo(Error *ec, int volindex, VolumeDiskData *vol)
     assert(vol->stamp.magic == VOLUMEINFOMAGIC);
     assert(vol->stamp.version == VOLUMEINFOVERSION);
 
-    maxid = (CAMLIB_REC(MaxVolId) & 0x00FFFFFF);
+    maxid = (SRV_RVM(MaxVolId) & 0x00FFFFFF);
     if ((volindex < 0) || (volindex > maxid) || (volindex > MAXVOLS)) {
 	char volname[32];
 	sprintf(volname, VFORMAT, vol->id);
 	LogMsg(0, VolDebugLevel, stdout,  "ReplaceVolDiskInfo: bogus volume index %d for volume %s",
 			    volindex, volname);
 	*ec = VNOVOL;	// invalid volume index
-	CAMLIB_ABORT(VFAIL);
+	rvmlib_abort(VFAIL);
     }
 
     LogMsg(1, VolDebugLevel, stdout,  "ReplaceVolDiskInfo: about to acquire locks");
-    CAMLIB_LOCK(CAMLIB_LOCK_NAME(CAMLIB_REC(VolumeList[volindex]).data.volumeInfo),
-					CLS, CAMLIB_LOCK_MODE_WRITE);
     LogMsg(1, VolDebugLevel, stdout,  "ReplacevolDiskInfo: got locks!");
-    CAMLIB_MODIFY_BYTES(CAMLIB_REC(VolumeList[volindex]).data.volumeInfo,
+    rvmlib_modify_bytes(SRV_RVM(VolumeList[volindex]).data.volumeInfo,
 				    vol, sizeof(VolumeDiskData));
     LogMsg(29, VolDebugLevel, stdout,  "ReplaceVolDiskInfo: recoverable stamp = %u, %u",
-	    CAMLIB_REC(VolumeList[volindex]).data.volumeInfo->stamp.magic,
-	    CAMLIB_REC(VolumeList[volindex]).data.volumeInfo->stamp.version);
+	    SRV_RVM(VolumeList[volindex]).data.volumeInfo->stamp.magic,
+	    SRV_RVM(VolumeList[volindex]).data.volumeInfo->stamp.version);
 
     PrintCamDiskData(29, volindex,
-			CAMLIB_REC(VolumeList[volindex].data.volumeInfo));
+			SRV_RVM(VolumeList[volindex].data.volumeInfo));
 }
 
 

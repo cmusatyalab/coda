@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vol/vldb.cc,v 4.3 1998/01/10 18:39:43 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vol/vldb.cc,v 4.4 1998/01/15 20:30:36 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -61,9 +61,6 @@ extern "C" {
 
 #include <ctype.h>
 #include <sys/param.h>
-#ifdef __DELETEME__
-#include <sys/fs.h>
-#endif __DELETEME__
 #include <sys/errno.h>
 #include <sys/stat.h>
 #include <stdio.h>
@@ -74,13 +71,8 @@ extern "C" {
 #endif
 #include <netdb.h>
 #include <netinet/in.h>
-#ifdef __MACH__
-#include <sysent.h>
-#include <libc.h>
-#else	/* __linux__ || __BSD44__ */
 #include <unistd.h>
 #include <stdlib.h>
-#endif
 
 #include <lock.h>
 #include <lwp.h>
@@ -91,7 +83,6 @@ extern "C" {
 
 #include <util.h>
 #include <vice.h>
-#include <srv.h>
 #include "cvnode.h"
 #include "volume.h"
 #include "partition.h"
@@ -99,8 +90,8 @@ extern "C" {
 #include "vldb.h"
 
 
-PRIVATE int VLDB_fd = -1;
-PRIVATE int VLDB_size = 0;
+static int VLDB_fd = -1;
+static int VLDB_size = 0;
 
 struct vldb *VLDBLookup(char *key);
 

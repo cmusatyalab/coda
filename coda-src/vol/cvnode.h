@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vol/cvnode.h,v 4.2 1997/09/05 12:45:08 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vol/cvnode.h,v 4.3 1997/10/23 19:25:35 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -52,20 +52,21 @@ extern "C" {
 
 #include <lwp.h>
 #include <lock.h>
+#include <errors.h>
+#include <util.h>
+#include <codadir.h>
+#include <prs.h>
+#include <al.h>
 
 #ifdef __cplusplus
 }
 #endif __cplusplus
 
-#include <prs.h>
-#include <al.h>
 #include <voltypes.h>
-#include <errors.h>
 #include <inconsist.h>
 #include <rec_smolist.h>
 #include <rec_dlist.h>
 #include "vicelock.h"
-
 #define ROOTVNODE 1
 
 typedef int VnodeType;
@@ -92,7 +93,6 @@ typedef int VnodeClass;
 struct VnodeClassInfo {
     struct Vnode *lruHead;	/* Head of list of vnodes of this class */
     int diskSize;		/* size of vnode disk object, power of 2 */
-    int logSize;		/* log 2 diskSize */
     int residentSize;		/* resident size of vnode */
     int cacheSize;		/* Vnode cache size */
     bit32 magic;		/* Magic number for this type of vnode,
@@ -111,12 +111,6 @@ extern struct VnodeClassInfo VnodeClassInfo_Array[nVNODECLASSES];
 #define vnodeTypeToClass(type)  ((type) == vDirectory? vLarge: vSmall)
 #define vnodeIdToClass(vnodeId) ((vnodeId-1)&VNODECLASSMASK)
 #define vnodeIdToBitNumber(v) (((v)-1)>>VNODECLASSWIDTH)
-/* The following calculation allows for a header record at the beginning
-   of the index.  The header record is the same size as a vnode */
-/*
- * #define vnodeIndexOffset(vcp,vnodeNumber) \
- *    ((vnodeIdToBitNumber(vnodeNumber)+1)<<(vcp)->logSize)
- */
 #define bitNumberToVnodeNumber(b,vclass) (((b)<<VNODECLASSWIDTH)+(vclass)+1)
 #define vnodeIsDirectory(vnodeNumber) (vnodeIdToClass(vnodeNumber) == vLarge)
 
@@ -185,6 +179,7 @@ typedef struct Vnode {
     VnodeId	vnodeNumber;
     struct Volume
 		*volumePtr;	/* Pointer to the volume containing this file*/
+    PDCEntry    dh;             /* Directory cache handle (used for dirs) */
     byte	nUsers;		/* Number of lwp's who have done a VGetVnode */
     bit16	cacheCheck;	/* Must equal the value in the volume Header
     				   for the cache entry to be valid */
@@ -202,15 +197,17 @@ typedef struct Vnode {
 #define VVnodeDiskACL(v)     /* Only call this with large (dir) vnode!! */ \
 	((AL_AccessList *) (((byte *)(v))+SIZEOF_SMALLDISKVNODE))
 #define  VVnodeACL(vnp) (VVnodeDiskACL(&(vnp)->disk))
-/* VAclSize is defined this way to allow information in the vnode header
-   to grow, in a POSSIBLY upward compatible manner.  SIZEOF_SMALLDISKVNODE
-   is the maximum size of the basic vnode.  The vnode header of either type
-   can actually grow to this size without conflicting with the ACL on larger
-   vnodes */
+
+/* note that there is currently room between the end of the 
+small vnode and the ACL because 
+SIZOEOF_SMALLDISKVNODE > sizeof(VnodeDiskData)
+*/
+
 #define VAclSize(vnp)		(SIZEOF_LARGEDISKVNODE - SIZEOF_SMALLDISKVNODE)
-#define VAclDiskSize(v)		(SIZEOF_LARGEDISKVNODE - SIZEOF_SMALLDISKVNODE)
+#define VAclDiskSize(v)	(SIZEOF_LARGEDISKVNODE - SIZEOF_SMALLDISKVNODE)
 #define VnLog(vnp)		((vnp)->disk.log)
 
+PDirHandle SetDirHandle(struct Vnode *);
 extern int VolumeHashOffset();
 extern void VInitVnodes(VnodeClass, int);
 extern Vnode *VGetVnode(Error *, Volume *, VnodeId, Unique_t, int, int, int =0);
@@ -224,5 +221,13 @@ extern Vnode *VAllocVnode(Error *ec, Volume *vp, VnodeType type,
 extern Vnode *VAllocVnode(Error *ec, Volume *vp, VnodeType type,
 			   VnodeId vnode, Unique_t unique);
 extern int ObjectExists(int, int, VnodeId, Unique_t, ViceFid * =NULL);
+
+int VN_DCommit(Vnode *vnp);
+int VN_DAbort(Vnode *vnp);
+PDirHandle VN_SetDirHandle(struct Vnode *vn);
+void VN_PutDirHandle(struct Vnode *vn);
+void VN_VN2Fid(struct Vnode *, struct Volume *, struct ViceFid *);
+void VN_VN2PFid(struct Vnode *, struct Volume *, struct ViceFid *);
+
 #endif _CVNODE_H_
 

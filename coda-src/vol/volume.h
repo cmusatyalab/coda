@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vol/volume.h,v 4.3 1997/10/23 19:25:44 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vol/volume.h,v 4.4 1997/11/14 13:19:29 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -472,22 +472,6 @@ extern void InitLRU(int howmany);
 			   never knows about more than one copy of the
 			   same volume--when a volume is moved from
 			   one partition to another on a single server */
-
-/* moved from vice/file.h to remove circular dependency */
-typedef struct DirHandle {
-    /* device+inode+vid are low level disk addressing + validity check */
-    /* vid+vnode+unique+cacheCheck are to guarantee validity of cached copy */
-    /* ***NOTE*** size of this stucture must not exceed size in buffer
-       package (dir/buffer.cc) */
-    bit16	device;
-    bit16 	cacheCheck;
-    Inode	inode;
-    VolumeId 	volume;
-    Unique_t 	unique;
-    VnodeId	vnode;	/* Not really needed; conservative AND
-			   protects us against non-unique uniquifiers
-			   that were generated in days of old */
-} DirHandle;
 
 
 /* partition disk usage related routines */
