@@ -71,7 +71,7 @@ int coda_inode_grab(dev_t dev, ino_t ino, struct inode **ind);
 #define NB_SFS_SIZ 0x895440
 
 /* cache.c */
-void coda_purge_children(struct inode *);
+void coda_purge_children(struct inode *, int);
 void coda_purge_dentries(struct inode *);
 
 /* sysctl.h */

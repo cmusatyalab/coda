@@ -845,7 +845,7 @@ int coda_downcall(int opcode, union outputArgs * out, struct super_block *sb)
 		  if (inode) {
 			  CDEBUG(D_DOWNCALL, "zapdir: inode = %ld children flagged\n", 
 				 inode->i_ino);
-			  coda_purge_children(inode);
+			  coda_flag_inode_children(inode, C_PURGE);
 			  CDEBUG(D_DOWNCALL, "zapdir: inode = %ld cache cleared\n", inode->i_ino);
 	                  coda_flag_inode(inode, C_VATTR);
 		  } else 
@@ -876,7 +876,7 @@ int coda_downcall(int opcode, union outputArgs * out, struct super_block *sb)
 		  inode = coda_fid_to_inode(fid, sb);
 		  if ( inode ) { 
 			  CDEBUG(D_DOWNCALL, "purgefid: inode = %ld\n", inode->i_ino);
-			  coda_purge_children(inode);
+			  coda_flag_inode_children(inode, C_PURGE);
 			  coda_purge_dentries(inode);
 		  }else 
 			  CDEBUG(D_DOWNCALL, "purgefid: no inode\n");
