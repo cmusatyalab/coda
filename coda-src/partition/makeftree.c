@@ -94,10 +94,13 @@ int mdirs(int width)
     
     
     for ( d = 0; d < width; d++) {
+/* Solaris sprintf returns dir, not number of chars.
 	if ( sprintf(dir, "%x", d) <= 0 ) {
 	    perror("");
 	    exit(3);
 	}
+*/
+	sprintf(dir, "%x", d);
 	rc = mkdir(dir, MODE);
 	
 	if (rc) {
