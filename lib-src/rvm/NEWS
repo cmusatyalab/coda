@@ -1,3 +1,14 @@
+New in 1.10:
+
+* reduce fragmentation of large blocks by trying to split blocks that are a
+  multiple of the allocation size. Also use a best-fit instead of first fit
+  strategy when allocating from MAXLIST. (J. Michael German)
+* Add rds_maxblock(), which checks if an allocation of the requested size has
+  a chance on succeeding.
+* switched rds_free code from doing a full coalesce scan to a short test
+  whether we can merge with the next block. The full coalesce was a hack
+  introduced in v1.7 to work around RDS fragmentation issues.
+
 New in 1.9:
 
 * Fixed building with newer autotools.
