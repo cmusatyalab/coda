@@ -260,9 +260,39 @@ int RPC2_cmpaddrinfo(const struct RPC2_addrinfo *node,
             continue;
         if (node->ai_addrlen != host->ai_addrlen)
             continue;
-        if (memcmp(node->ai_addr, host->ai_addr, host->ai_addrlen) != 0)
-            continue;
-        return 1;
+
+	switch (node->ai_family) {
+	case PF_INET:
+	    {
+		struct sockaddr_in *sinN, *sinH;
+		sinN = (struct sockaddr_in *)node->ai_addr;
+		sinH = (struct sockaddr_in *)host->ai_addr;
+
+		if (host->ai_addrlen == sizeof(struct sockaddr_in) &&
+		    sinN->sin_port == sinH->sin_port		   &&
+		    memcmp(&sinN->sin_addr, &sinH->sin_addr,
+			   sizeof(sinN->sin_addr)) == 0)
+		    return 1;
+		break;
+	    }
+#if !defined(__CYGWIN32__)
+	case PF_INET6:
+	    {
+		struct sockaddr_in6 *sin6N, *sin6H;
+		sin6N = (struct sockaddr_in6 *)node->ai_addr;
+		sin6H = (struct sockaddr_in6 *)host->ai_addr;
+
+		if (host->ai_addrlen == sizeof(struct sockaddr_in6) &&
+		    sin6N->sin6_port == sin6H->sin6_port	    &&
+		    memcmp(&sin6N->sin6_addr, &sin6H->sin6_addr,
+			   sizeof(sin6N->sin6_addr)) == 0)
+		    return 1;
+		break;
+	    }
+#endif
+	default:
+	    break;
+	}
     }
     return 0;
 }
@@ -272,33 +302,41 @@ void RPC2_formataddrinfo(const struct RPC2_addrinfo *ai,
 {
     int n, port = 0;
     void *addr = NULL;
+    int prefix = 1;
 
     if (!ai) {
-        strncpy(buf, "(no addrinfo)", buflen-1);
-        buf[buflen-1] = '\0';
-        return;
+	strncpy(buf, "(no addrinfo)", buflen-1);
+	buf[buflen-1] = '\0';
+	return;
     }
 
     switch (ai->ai_family) {
     case PF_INET:
-        addr = &((struct sockaddr_in *)ai->ai_addr)->sin_addr;
-        port = ((struct sockaddr_in *)ai->ai_addr)->sin_port;
-        break;
+	addr = &((struct sockaddr_in *)ai->ai_addr)->sin_addr;
+	port = ((struct sockaddr_in *)ai->ai_addr)->sin_port;
+	prefix = 0;
+	break;
     case PF_INET6:
-        addr = &((struct sockaddr_in6 *)ai->ai_addr)->sin6_addr;
-        port = ((struct sockaddr_in6 *)ai->ai_addr)->sin6_port;
+	addr = &((struct sockaddr_in6 *)ai->ai_addr)->sin6_addr;
+	port = ((struct sockaddr_in6 *)ai->ai_addr)->sin6_port;
 	break;
     }
 
-    if (ai->ai_canonname)
-       strncpy(buf, ai->ai_canonname, buflen-1);
-
-    else if (!addr || !inet_ntop(ai->ai_family, addr, buf, buflen))
-        strncpy(buf, "(untranslatable)", buflen-1);
+    if (ai->ai_canonname) {
+	strncpy(buf, ai->ai_canonname, buflen-1);
+	prefix = 0;
+    } 
+    else if (!addr || !inet_ntop(ai->ai_family, addr,
+				 prefix ? &buf[1] : buf, buflen-1)) {
+	strncpy(buf, "(untranslatable)", buflen-1);
+	prefix = 0;
+    }
+    if (prefix)
+	buf[0] = '[';
 
     n = strlen(buf);
     if (port && n < buflen - 3)
-        snprintf(&buf[n], buflen - n,":%u", ntohs(port));
+	snprintf(&buf[n], buflen - n,"%s:%u", prefix ? "]" : "", ntohs(port));
 
     buf[buflen-1] = '\0';
 }
