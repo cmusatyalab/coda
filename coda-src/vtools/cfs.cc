@@ -1954,12 +1954,13 @@ static void MkMount (int argc, char *argv[], int opslot)
 {
     int rc;
     struct ViceIoctl vio;
-    char *dir, *entry, *vol;
+    char *dir, *entry, *vol = "";
     char buf[MAXPATHLEN+2];
 
     switch (argc)
         {
-        case 4:   dir = argv[2]; vol = argv[3]; break;
+        case 4:   vol = argv[3];
+        case 3:   dir = argv[2]; break;
         
         default: printf("Usage: %s\n", cmdarray[opslot].usetxt); exit(-1);
         }
