@@ -21,9 +21,9 @@ SUBDIRS = include rvm seg rds tests pkgs
 
 EXTRA_DIST = bootstrap.sh configure
 
-MAINTAINERCLEANFILES = AUTHORS ChangeLog INSTALL Makefile.in \
-    README aclocal.m4 config.guess config.h.in config.sub configure \
-    install-sh libtool ltconfig ltmain.sh missing mkinstalldirs stamp-h.in
+MAINTAINERCLEANFILES = AUTHORS ChangeLog Makefile.in README aclocal.m4 \
+    config.guess config.h.in config.sub configure install-sh libtool \
+    ltconfig ltmain.sh missing mkinstalldirs stamp-h.in
 
 dist-hook:
 	if [ -x /afs/cs ] ; then cp /afs/cs/project/coda-src/cvs/CVSROOT/ChangeLog.rvm ChangeLog ; fi
