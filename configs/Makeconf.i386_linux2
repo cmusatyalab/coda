@@ -9,7 +9,7 @@
 # Josh Raiff, modified for configure
 
 # the following may need editing depending on your preferences
-PERL=/usr/bin/perl
+
 SBINDIR = ${sbindir}
 
 MACHINE_FLAGS = -DLINUX
@@ -28,3 +28,18 @@ LIBTHREADS    =
 LIBMACH       = 
 
 LEX           = flex
+PERL          = perl
+
+
+#for advice_srv
+LIBKVM        = 
+LIBGDBM       = /usr/lib/libgdbm.a
+LIBTIX        = /usr/lib/libtix4.0.a
+INCTIX	      = /usr/include/tcl
+LIBTK         = /usr/lib/libtk4.0.a
+INCTK	      = /usr/include/tcl
+LIBTCL        = /usr/lib/libtcl7.4.a
+INCTCL	      = /usr/include/tcl
+LIBMATH       = -lm
+LIBX11        = /usr/X11R6/lib/libX11.a /usr/X11R6/lib/libXpm.so.4.9
+INCX11	      = /usr/X11R6/include

@@ -30,10 +30,11 @@
 # Mellon the rights to redistribute these changes without encumbrance.
 # */
 # 
-# static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/configs/Makeconf.i386_nbsd1,v 4.13 1997/07/16 15:09:07 rvb Exp $";
+# static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/configs/Makeconf.i386_nbsd1,v 4.14 97/10/23 18:53:23 braam Exp $";
 # 
 
 # the following may need editing depending on your preferences
+exec_prefix = /usr/local
 SBINDIR = $(prefix)/etc
 
 MACHINE_FLAGS = -D__BSD44__
@@ -48,5 +49,19 @@ INCREADLINE   = -I/usr/local/include/readline
 #for rvm
 LIBTHREADS    =
 LIBMACH       = 
+
+#for advice_srv
+LIBKVM        = /usr/lib/libkvm.a
+LIBGDBM       = /usr/local/lib/libgdbm.a
+LIBTIX        = /coda/misc/tcl/@sys/beta/lib/libtix4.0.a
+INCTIX	      = /coda/misc/tcl/@sys/beta/include
+LIBTK         = /coda/misc/tcl/@sys/beta/lib/libtk4.0.a
+INCTK	      = /coda/misc/tcl/@sys/beta/include
+LIBTCL        = /coda/misc/tcl/@sys/beta/lib/libtcl7.4.a
+INCTCL	      = /coda/misc/tcl/@sys/beta/include
+LIBMATH       = -lm
+LIBX11        = /usr/X11R6/lib/libX11.a
+INCX11	      = /usr/X11R6/include
+
 
 #ALPHACI = $(SCRIPTDIR)/alphaci
