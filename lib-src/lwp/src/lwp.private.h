@@ -45,8 +45,16 @@ Pittsburgh, PA.
    Cthreads are gone ; removed the newlwp stuff.
 */
 
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
+
 #include <sys/time.h>
 #include <stdio.h>
+
+#if !HAVE_REGISTER_T
+typedef register_t int;
+#endif
 
 /* Initial size of eventlist in a PCB; grows dynamically  */ 
 #define EVINITSIZE  5

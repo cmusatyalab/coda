@@ -172,6 +172,7 @@ static void SCHEDULE(PROCESS pid)
      * cleanup handler if we get cancelled while waiting on the condition
      * variable. (cleanup needs to call lwp_JOIN before removing us from the
      * list of threads, but we are already joined) */
+    pthread_testcancel();
     pthread_setcancelstate(PTHREAD_CANCEL_DISABLE, &oldstate);
     list_add(&pid->runq, lwp_runq[pid->priority].prev);
 
@@ -212,6 +213,7 @@ static void SCHEDULE(PROCESS pid)
     /* if we get cancelled here, our cleanup function will correctly release
      * the run_mutex */
     pthread_setcancelstate(oldstate, NULL);
+    pthread_testcancel();
 }
 
 /* PRE:  not holding the run_mutex */
@@ -453,6 +455,10 @@ int LWP_CreateProcess (PFIC ep, int stacksize, int priority, char *parm,
 int LWP_DestroyProcess (PROCESS pid)
 {
     pthread_cancel(pid->thread);
+    if (pid->waitcnt) {
+	pid->waitcnt = 0;
+	pthread_cond_signal(&pid->event);
+    }
     return LWP_SUCCESS;
 }
 
@@ -470,7 +476,7 @@ int LWP_TerminateProcessSupport()
         pid = list_entry(ptr, struct lwp_pcb, list);
 
         /* venus flytrap? */
-        pid->concurrent = 0;
+        //pid->concurrent = 0;
 
         /* I should not kill myself. */
         if (!pthread_equal(me->thread, pid->thread))
@@ -487,6 +493,7 @@ int LWP_TerminateProcessSupport()
     lwp_LEAVE(me);
 
     /* We can start cleaning. */
+    lwp_cleanup_process(me);
     pthread_mutex_destroy(&run_mutex);
     pthread_key_delete(lwp_private);
 
@@ -590,6 +597,7 @@ int LWP_MwaitProcess (int wcount, char *evlist[])
     /* from here on everything has to occur non-concurrent, and we want to
      * avoid cancellations */
     if (!pid->havelock) lwp_JOIN(pid);
+    else		pthread_testcancel();
     pthread_setcancelstate(PTHREAD_CANCEL_DISABLE, &oldstate);
 
     /* this will enable other threads to start sending us signals */
@@ -613,6 +621,7 @@ int LWP_MwaitProcess (int wcount, char *evlist[])
     /* now we can safely get cancelled again, our cleanup function will
      * release the run_mutex if necessary */
     pthread_setcancelstate(oldstate, NULL);
+    pthread_testcancel();
 
     return LWP_SUCCESS;
 }

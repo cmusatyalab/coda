@@ -1,6 +1,7 @@
 dnl Process this file with autoconf to produce a configure script
 
 dnl Initialization
+AC_PREREQ(2.50)
 AC_INIT(src/lwp.c)
 CODA_SETUP_BUILD
 AM_INIT_AUTOMAKE(lwp, 1.9)
@@ -37,7 +38,7 @@ AM_CONDITIONAL(build_pthread, test "$includepthread" != "no" -a "x$LIBPTHREAD" !
 dnl Checks for header files.
 
 dnl Checks for typedefs.
-AC_CHECK_TYPE(register_t, int)
+AC_CHECK_TYPES(register_t)
 
 dnl Checks for compiler characteristics.
 CODA_DARWIN_BROKEN_CPP_WORKAROUND

@@ -677,6 +677,10 @@ static int InitializeProcessSupport(int priority, PROCESS *pid)
 	if (lwp_init != NULL) 
 		return LWP_SUCCESS;
 
+	last_context_switch.tv_sec = 0;
+	last_context_switch.tv_usec = 0;
+	cont_sw_id = NULL;
+
 	/* Set up offset for stack checking -- do this as soon as possible */
 	stack_offset = (char *) &dummy.stack - (char *) &dummy;
 

@@ -46,6 +46,7 @@ Pittsburgh, PA.
 #include <sys/time.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <assert.h>
 
 #include <lwp/lwp.h>
 #include <lwp/lock.h>
@@ -114,25 +115,28 @@ static char *messages[] =
 	0
     };
 
-static queue *init(){
-
+static queue *init()
+{
     queue *q;
 
     q = (queue *) malloc(sizeof(queue));
     q -> prev = q -> next = q;
+    q -> data = NULL;
     return(q);
 }
 
-static char empty(q)
-    queue *q;
+static char empty(queue *q)
 {
-
     return (q->prev == q && q->next == q);
 }
 
-static void insert(q, s)
-    queue *q;
-    char *s;
+static void cleanup(queue *q)
+{
+    assert(empty(q));
+    free(q);
+}
+
+static void insert(queue *q, char *s)
 {
     queue *n;
 
@@ -144,10 +148,8 @@ static void insert(q, s)
     n -> next = q;
 }
 
-static char *myremove(q)
-    queue *q;
+static char *myremove(queue *q)
 {
-
     queue *old;
     char *s;
 
@@ -160,7 +162,7 @@ static char *myremove(q)
     q -> next = old -> next;
     q -> next -> prev = q;
     s = old -> data;
-    free((char *)old);
+    free(old);
     return(s);
 }
 
@@ -272,5 +274,8 @@ int main(int argc, char **argv)
     /* Destroy the readers */
     for (i=nreaders-1; i>=0; i--) LWP_DestroyProcess(readers[i]);
     printf("\n*Exiting*\n");
+    LWP_TerminateProcessSupport();
+    free(readers);
+    cleanup(q);
     return 0;
 }
