@@ -29,7 +29,6 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/auth2/avice.c,v 4.3 1998/08/27 19:40:46 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -95,7 +94,6 @@ long GetKeysFromToken(IN RPC2_Integer AuthenticationType,
 		      INOUT RPC2_CountedBS *cIdent,
                       OUT RPC2_EncryptionKey hKey,
                       OUT RPC2_EncryptionKey sKey);
-
 
 /*  Wrapper function when multiple authentication type support was added;
     fits new calling parameters.  We only allow by-token authentication to

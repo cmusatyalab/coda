@@ -22,7 +22,15 @@ else	# Assume FreeBSD...
 fi
 export PATH
 
-[ -x ${CODABASE}/sbin/auth2 ] || exit 1
+AUTH2=${CODABASE}/sbin/auth2
+
+if [ -x ${CODABASE}/sbin/kauth2 ] ; then
+    AUTH2=${CODABASE}/sbin/kauth2
+    FLAGS="-realm CS.CMU.EDU"
+fi
+
+[ -x ${AUTH2} ] || exit 1
+[ -x ${CODABASE}/sbin/rpc2portmap ] || exit 1
 [ -x ${CODABASE}/sbin/updatesrv ] || exit 1
 [ -x ${CODABASE}/sbin/updateclnt ] || exit 1
 [ -x ${CODABASE}/sbin/codasrv ] || exit 1
@@ -35,19 +43,23 @@ case "$1" in
 	# start auth2 & update stuff: first the scm case
     	echo -n "Starting Coda Services: "
 	if [ "`cat ${VICE}/hostname`" = "`cat ${VICE}/db/scm`" ]; then
- 		auth2 &
+ 		${AUTH2} ${FLAGS} &
 		echo -n " auth2"
 		
 	else 	# for non-scm machines.
-		auth2 -chk &
+		${AUTH2} ${FLAGS} -chk &
 		echo -n " auth2(ro)"
 	fi
 
 	# update srv and updatemon run on all servers
-		updateclnt -h `cat /vice/db/scm`  -q coda_udpsrv &
-		echo -n " updateclnt"
-		updatesrv -p /vice/db &
-		echo -n " updatesrv"
+	rpc2portmap &
+        echo -n " rpc2portmap"
+
+	updateclnt -h `cat /vice/db/scm`  -q coda_udpsrv &
+	echo -n " updateclnt"
+
+	updatesrv -p /vice/db &
+	echo -n " updatesrv"
         echo '.'	# Done With Coda Serivces
 
 	# now the server
