@@ -77,6 +77,13 @@ void repvol::Resolve()
     v->Begin_VFS(&volid, CODA_RESOLVE);
     VOL_ASSERT(this, v->u.u_error == 0);
 
+    /* check if someone else already resolved the volume while we were
+     * waiting to enter the volume */
+    if (state != Resolving) {
+	code = EALREADY;
+	goto Exit;
+    }
+
     /* Flush all COP2 entries. */
     /* This would NOT be necessary if ViceResolve took a "PiggyCOP2" parameter! -JJK */
     code = FlushCOP2();

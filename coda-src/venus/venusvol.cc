@@ -1022,7 +1022,7 @@ int volent::IsReadWriteReplica()
 */
 
 #define	VOLBUSY(vol)\
-    ((vol)->resolver_count > 0 || (vol)->mutator_count > 0 || (vol)->observer_count > 0)
+    ((vol)->resolver_count || (vol)->mutator_count || (vol)->observer_count)
 /* MUST NOT be called from within transaction! */
 int volent::Enter(int mode, uid_t uid)
 {
@@ -1191,14 +1191,11 @@ int volent::Enter(int mode, uid_t uid)
 	case VM_RESOLVING:
 	    {
 	    CODA_ASSERT(IsReplicated());
-	    if (state != Resolving || resolver_count != 0 || 
-		mutator_count != 0 || observer_count != 0 ||
-		flags.transition_pending)
-		{ print(logFile); CHOKE("volent::Enter: resolving"); }
-
 	    /* acquire exclusive volume-pgid-lock for RESOLVING */
 	    int proc_key = vp->u.u_pgid;
-	    while (shrd_count > 0 || (excl_count > 0 && proc_key != excl_pgid)) {
+	    while (VOLBUSY(this) || flags.transition_pending ||
+		   shrd_count > 0 || (excl_count > 0 && proc_key != excl_pgid))
+	    {
 		/* 
 		 * must wait until all the volume-pgid-locks are released.
 		 * no need to check for VM_NDELAY and excl_pgid here.
@@ -1288,7 +1285,7 @@ void volent::Exit(int mode, uid_t uid)
 	case VM_RESOLVING:
 	    {
 	    CODA_ASSERT(IsReplicated());
-	    if (state != Resolving || resolver_count != 1 || !flags.transition_pending)
+	    if (state != Resolving || resolver_count == 0 || !flags.transition_pending)
 		{ print(logFile); CHOKE("volent::Exit: resolving"); }
 
 	    resolver_count--;
