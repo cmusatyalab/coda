@@ -43,14 +43,12 @@ extern "C" {
 #include <prs.h>
 #include <rpc2/rpc2.h>
 #include <rpc2/fail.h>
+#include <lka.h>
+#include <vice.h>
 
 #ifdef __cplusplus
 }
 #endif
-
-/* interfaces */
-#include <vice.h>
-#include <lka.h>
 
 /* from vicedep */
 #include <venusioctl.h>

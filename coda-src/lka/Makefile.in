@@ -25,10 +25,11 @@ TOPOBJ = @TOPOBJ@
 
 include $(TOPDIR)/Makeconf
 
-EXECUTABLES = mklka testlka
+EXECUTABLES := mklka testlka
+CBINS := mklka
 HEADERS = lka.h
-LIBRARIES = liblka.a
-OBJS = lka.o shaprocs.o
+LIBRARIES := liblka.a
+OBJS := lka.o shaprocs.o
 
 LIBS := $(LIBUTIL) $(LIBBASE) $(LIBCRYPTO) $(LIBDB)
 
@@ -42,3 +43,4 @@ mklka:  mklka.o liblka.a $(LIBS)
 
 testlka: testlka.o liblka.a $(LIBS)
 	$(CXX) $(LDFLAGS) testlka.o liblka.a $(LIBS) -o testlka
+

@@ -48,7 +48,6 @@ extern "C" {
 }
 #endif
 
-
 /* from venus */
 #include "comm.h"
 #include "fso.h"

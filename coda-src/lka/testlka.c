@@ -16,32 +16,26 @@ listed in the file CREDITS.
 
 #*/
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 #ifdef HAVE_CONFIG_H
 #include <config.h>
 #endif
 
+#include <sys/param.h>
 #include <stdio.h>
+#include <fcntl.h>
 #include <ctype.h>
 #include <errno.h>
 #include "coda_string.h"
 #include <unistd.h>
 #include <stdlib.h>
 
-#ifdef __cplusplus
-}
-#endif
-
-#include "lka.h"
+#include "lka_private.h"
 
 char em[4096];
 int emlen = sizeof(em);
 
-main(int argc, char **argv) {
-
+int main(int argc, char **argv)
+{
   int rc;
   char testfile[MAXPATHLEN];
   unsigned char testsha[SHA_DIGEST_LENGTH];
@@ -74,12 +68,8 @@ main(int argc, char **argv) {
       printf("%s: %s\n", testfile, strerror(errno));
       continue;
     }
-    if (!ComputeViceSHA(fd, testsha)) {
-      printf("%s: can't compute SHA", testfile);
-      close(fd);
-      continue;    
-    }
 
+    ComputeViceSHA(fd, testsha);
     close(fd);
 
     ViceSHAtoHex(testsha, shaprintbuf, sizeof(shaprintbuf));
@@ -87,7 +77,7 @@ main(int argc, char **argv) {
 
     /* see if we can find this SHA in lookaside databases */
 
-    int cfd = open(container, O_CREAT|O_TRUNC|O_WRONLY, 0644); /* create file */
+	int cfd = open(container, O_CREAT|O_TRUNC|O_WRONLY, 0644); /* create file */
     if (cfd < 0) {
 	printf("Can't create %s: %s\n", container, strerror(errno));
 	exit(-1);

@@ -10,6 +10,7 @@ usr/bin/ctokens
 usr/bin/cunlog
 usr/bin/filerepair
 usr/bin/hoard
+usr/bin/mklka
 usr/bin/parser
 usr/bin/removeinc
 usr/bin/repair

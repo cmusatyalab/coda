@@ -16,10 +16,6 @@ listed in the file CREDITS.
 
 #*/
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 #ifdef HAVE_CONFIG_H
 #include <config.h>
 #endif
@@ -33,12 +29,9 @@ extern "C" {
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fts.h>
+#include <fcntl.h>
 
-#ifdef __cplusplus
-}
-#endif
-
-#include "lka.h"
+#include "lka_private.h"
 
 
 
@@ -50,12 +43,13 @@ char *NewLKDB = 0; /* pathname of lookaside db to be created */
 char *TreeRoot = 0; /* pathname of root of tree to be walked and hashed */
 
 /* Forward refs */
-int SetDescriptor(DB *, int); 
-int WalkTree(char *, DB *); 
+int SetDescriptor(db_type *, int); 
+int WalkTree(char *, db_type *); 
 
-main(int argc, char **argv) {
+int main(int argc, char **argv)
+{
   int i;
-  DB *dbh; /* database handle */
+  db_type *dbh; /* database handle */
 
   /* Parse args */
   for (i = 1; i < argc; i++) {
@@ -69,7 +63,7 @@ main(int argc, char **argv) {
   if (!NewLKDB || !TreeRoot) goto ParseError;
 
   /* Create lookaside database */
-  dbh = dbopen(NewLKDB, O_RDWR|O_TRUNC|O_CREAT, 0755, DB_HASH, 0);
+  dbh = db_open(NewLKDB, O_RDWR|O_TRUNC|O_CREAT, 0755, DB_HASH, 0);
   if (!dbh) {
     printf("%s: %s\n", NewLKDB, strerror(errno));
     return(-1);
@@ -77,18 +71,18 @@ main(int argc, char **argv) {
 
   /* Walk the tree at TreeRoot, inserting records for each file */
   if (WalkTree(TreeRoot, dbh) < 0) { /* error */
-    dbh->close(dbh);
+    db_close(dbh);
     return(-1);
   }
 
   /* Insert the descriptor record */
   if (SetDescriptor(dbh, NumEntries)) {/* error */
-    dbh->close(dbh);
+    db_close(dbh);
     return(-1);
   }
 
- DBFillComplete:
-  dbh->close(dbh);
+ /* DBFillComplete */
+  db_close(dbh);
   return(0);
 
  ParseError:
@@ -96,7 +90,8 @@ main(int argc, char **argv) {
   return(-1);
 }
 
-int SetDescriptor(DB *dbhandle, int entrycount) {
+int SetDescriptor(db_type *dbhandle, int entrycount)
+{
   /* Inserts (or replaces) a descriptor record (i.e. key value of 0) into
      open lookaside database specified by dbhandle;
      Called after database creation with an entrycount of 0, and
@@ -105,34 +100,25 @@ int SetDescriptor(DB *dbhandle, int entrycount) {
   */
   int dbrc;
   char zerosha[SHA_DIGEST_LENGTH];
-  DBT dbkey, dbdata;
+  db_data dbkey, dbdata;
 
   /* Construct zero key */
   memset(zerosha, 0, SHA_DIGEST_LENGTH);
-  dbkey.data = zerosha;
-  dbkey.size = SHA_DIGEST_LENGTH;
+  dbkey.db_dataptr  = zerosha;
+  dbkey.db_datasize = SHA_DIGEST_LENGTH;
 
   /* Construct descriptor */
-  dbdata.size = strlen(LKA_VERSION_STRING) ;
-  if (RelativePathFlag) dbdata.size += strlen(LKA_RELPATH_STRING);
-  else dbdata.size += strlen(LKA_ABSPATH_STRING);
-  dbdata.size += strlen(LKA_NUMENTRIES_STRING);
-  dbdata.size += LKA_NUMENTRIES_FIELD_WIDTH;
-  dbdata.size += strlen(LKA_END_STRING);
-  dbdata.size++; /* for null terminating string */
-  dbdata.data = malloc(dbdata.size);
-  if (!dbdata.data) {
-    printf("Arrgh ... malloc(%d) failed\n");
+  dbdata.db_datasize = strlen(LKA_VERSION_STRING) + 1;
+  dbdata.db_dataptr  = malloc(dbdata.db_datasize);
+  if (!dbdata.db_dataptr) {
+    printf("Arrgh ... malloc(%d) failed\n", dbdata.db_datasize);
     return(-1);
   }
-  sprintf((char *)dbdata.data, "%s%s%s%0*d%s", LKA_VERSION_STRING,
-	  (RelativePathFlag ? LKA_RELPATH_STRING : LKA_ABSPATH_STRING),
-	  LKA_NUMENTRIES_STRING, LKA_NUMENTRIES_FIELD_WIDTH, entrycount,
-	  LKA_END_STRING);
+  sprintf((char *)dbdata.db_dataptr, "%s", LKA_VERSION_STRING);
 
   /* Now do the insert */
-  dbrc = (dbhandle->put)(dbhandle, &dbkey, &dbdata, 0);
-  free(dbdata.data); /* no reason to hang on to it */
+  dbrc = db_put(dbhandle, &dbkey, &dbdata, 0);
+  free(dbdata.db_dataptr); /* no reason to hang on to it */
   if (dbrc) {
     printf("SetDescriptor() failed: %s\n", strerror(errno));
     return(-1);
@@ -142,11 +128,11 @@ int SetDescriptor(DB *dbhandle, int entrycount) {
   printf("Created lkdb %s with %d %s entries\n", 
 	 NewLKDB, entrycount, (RelativePathFlag ? "relative" : "absolute"));
   return(0);
-
 }
 
 
-int WalkTree(char *troot, DB *dbhandle) {
+int WalkTree(char *troot, db_type *dbhandle)
+{
   /* Traverse tree at troot and insert a record into database
      dbhandle for each (plain) file.  The key of the record is the
      SHA value of the file; the data part of the record is
@@ -173,7 +159,7 @@ int WalkTree(char *troot, DB *dbhandle) {
     return(-1);
   }
 
-  while (nextf = fts_read(fth)) {
+  while ((nextf = fts_read(fth)) != NULL) {
     if (nextf->fts_info != FTS_F) continue; /* skip all but plain files */
 
     /* compute the SHA of this file */
@@ -183,17 +169,15 @@ int WalkTree(char *troot, DB *dbhandle) {
       continue;
     }
 
-    if (!ComputeViceSHA(myfd, shabuf)) {
-      printf("%s: can't compute SHA\n", nextf->fts_name);
-      close(myfd); rc = -1; goto WalkDone;
-    }
-    else close(myfd);
+    ComputeViceSHA(myfd, shabuf);
+    close(myfd);
 
     /* Construct record to be inserted */
-    DBT dk, dd;
-    dk.size = SHA_DIGEST_LENGTH; dk.data = shabuf;
-    dd.size = (nextf->fts_pathlen + 1); /* assuming absolute path */
-    dd.data = nextf->fts_path; /* assuming absolute path */
+    db_data dk, dd;
+    dk.db_datasize = SHA_DIGEST_LENGTH;
+    dk.db_dataptr  = shabuf;
+    dd.db_datasize = (nextf->fts_pathlen + 1); /* assuming absolute path */
+    dd.db_dataptr  = nextf->fts_path; /* assuming absolute path */
 
     if (RelativePathFlag){/* troot should be prefix of fts_path */
       if (strncmp(nextf->fts_path, troot, troot_strlen)) {
@@ -203,13 +187,13 @@ int WalkTree(char *troot, DB *dbhandle) {
       }
       else {
 	/* skip over troot and the slash that follows it */
-	dd.size -= (troot_strlen + 1);
-	dd.data = ((char *)dd.data) + (troot_strlen + 1);
+	dd.db_datasize -= (troot_strlen + 1);
+	dd.db_dataptr = ((char *)dd.db_dataptr) + (troot_strlen + 1);
       }
     }
 
     /* Insert record into db */
-    if ((dbhandle->put)(dbhandle, &dk, &dd, 0) < 0) {
+    if (db_put(dbhandle, &dk, &dd, 0) < 0) {
       printf("%s: insert into database failed\n", nextf->fts_path);
       rc = -1; goto WalkDone;
     }
@@ -219,7 +203,7 @@ int WalkTree(char *troot, DB *dbhandle) {
     if (VerboseFlag) {
       char temp[3*SHA_DIGEST_LENGTH];
       ViceSHAtoHex(shabuf, temp, sizeof(temp));
-      printf("Entry %05d:  %s  %s\n", NumEntries, temp, dd.data);
+      printf("Entry %05d:  %s  %s\n", NumEntries, temp, (char *)dd.db_dataptr);
     }
     else {
       if ((NumEntries > 99) && (!(NumEntries % 100))) 

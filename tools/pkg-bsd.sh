@@ -185,6 +185,7 @@ bin/ctokens
 bin/cunlog
 bin/filerepair
 bin/hoard
+bin/mklka
 bin/parser
 bin/removeinc
 bin/repair

@@ -17,42 +17,33 @@ listed in the file CREDITS.
 
 #*/
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 #ifdef HAVE_CONFIG_H
 #include <config.h>
 #endif
 
+#include <sys/param.h>
 #include <stdio.h>
 #include <ctype.h>
 #include <errno.h>
-#include "coda_string.h"
 #include <unistd.h>
 #include <stdlib.h>
 #include <assert.h>
 
-#ifdef __cplusplus
-}
-#endif
-
+#include "coda_string.h"
 #include <copyfile.h>
-#include "lka.h"
+#include "lka_private.h"
 
 #ifndef O_BINARY
 #define O_BINARY 0
 #endif
 
 
-static dlist lkdbchain; /* doubly-linked list of lookaside databases;
-			  each item in list is of class lkdb */
+/* doubly-linked list of lookaside databases; each item in list is an lkdb */
+static INIT_LIST_HEAD(lkdbchain);
 
-
-static lkdb *GetlkdbByName(char *); /* forward ref */
+static struct lkdb *GetlkdbByName(char *); /* forward ref */
 static void RemoveAll(); /* forward ref */
 static void ListAll(char *, int); /* forward ref */
-
 
 int LookAsideAndFillContainer (unsigned char sha[SHA_DIGEST_LENGTH], int cfd, 
        int expectedlength, char *codaprefix, char *emsgbuf, int emsgbuflen)
@@ -84,39 +75,26 @@ int LookAsideAndFillContainer (unsigned char sha[SHA_DIGEST_LENGTH], int cfd,
 
   emsgbuf[0] = '\0'; /* null message, anticipating success */
 
-  if (lkdbchain.count() == 0) return(0); /* no lookaside dbs */
+  char hitpathname[MAXPATHLEN];
+  struct lkdb *dbp;
+  struct dllist_head *p;
 
-  /* We have at least one lookaside db, perhaps more; search them
-     until first hit */
+  list_for_each(p, lkdbchain) {
+      dbp = list_entry(p, struct lkdb, chain);
 
-  dlist_iterator nextdb(lkdbchain);
-  lkdb *dbp;
-  char hitpathname[MAXPATHLEN+1];
-
-  while ((dbp = (lkdb *)nextdb())) {
-    /* check next lkdb for sha value */
-    dbp->attempts++;
-    if (dbp->GetFilenameFromSHA(sha, hitpathname, sizeof(hitpathname),
-				emsgbuf, emsgbuflen))
-      goto FoundSHA; /* success! */
-    if (*emsgbuf) return(0); /* error in GetFilenameFromSHA() */
+      /* check next lkdb for sha value */
+      dbp->attempts++;
+      if (lkdb_GetFilenameFromSHA(dbp, sha, hitpathname, sizeof(hitpathname),
+				 emsgbuf, emsgbuflen))
+      {
+	  dbp->hits++;
+	  goto FoundSHA; /* success! */
+      }
+      if (*emsgbuf) return(0); /* fatal error in GetFilenameFromSHA() */
   }
   return(0); /* sha not in any of the lkdb's */
 
  FoundSHA: ;/* found the sha in the lkdb pointed to by dbp */
-  dbp->hits++;
-
-  /* Add absolute prefix to hitpathname, if necessary */
-  if (dbp->pathnames_are_relative) {
-    char *temp = (char *)malloc(MAXPATHLEN+1);
-    strncpy(temp, hitpathname, MAXPATHLEN); /* save relative part */
-    strncpy(hitpathname, dbp->dblocation, MAXPATHLEN); /* copy prefix */
-    int lh = strlen(hitpathname);
-    if (lh < MAXPATHLEN) {strcat(hitpathname, "/"); lh++;}
-    strncat(hitpathname, temp, MAXPATHLEN - lh);
-    free(temp);
-  }
-
   /* Save pathname of hit as info on success return; overwritten by error msgs below */
   snprintf(emsgbuf, emsgbuflen, "hitpathname: %s\n", hitpathname);
 
@@ -128,15 +106,23 @@ int LookAsideAndFillContainer (unsigned char sha[SHA_DIGEST_LENGTH], int cfd,
     return(0);
   }
 
+  unsigned char cshabuf[SHA_DIGEST_LENGTH];
   int err, hfd = open(hitpathname, O_RDONLY | O_BINARY);
   /* Copy to container file and validate SHA (just to be safe) */
-  err = copyfile(hfd, cfd);
+  lseek(cfd, 0, SEEK_SET);
+  err = CopyAndComputeViceSHA(hfd, cfd, cshabuf);
   close(hfd);
 
   if (err < 0) {
-    snprintf(emsgbuf, emsgbuflen, "copyfile(%s): %s", 
+    snprintf(emsgbuf, emsgbuflen, "CopyAndComputeViceSHA(%s): %s", 
 	     hitpathname, strerror(errno));
     return(0); /* weird failure during copy */
+  }
+
+  if (memcmp(cshabuf, sha, SHA_DIGEST_LENGTH)) {
+    snprintf(emsgbuf, emsgbuflen, "%s: mismatch on SHA verification", hitpathname);
+    dbp->shafails++;
+    return(0);    
   }
 
   if (expectedlength >= 0) { /* verify length if specified */
@@ -146,31 +132,17 @@ int LookAsideAndFillContainer (unsigned char sha[SHA_DIGEST_LENGTH], int cfd,
       return(0);
     }
     if (cfstat.st_size != expectedlength) {
-      snprintf(emsgbuf, emsgbuflen, "lookaside: length mismatch (%d instead of %d)", 
+      snprintf(emsgbuf, emsgbuflen, "lookaside: length mismatch (%ld instead of %d)", 
 	       cfstat.st_size, expectedlength);
       return(0);
     }
   }
 
-  unsigned char cshabuf[SHA_DIGEST_LENGTH];
-
-  lseek(cfd, 0, SEEK_SET);
-  if (!ComputeViceSHA(cfd, cshabuf)) {
-    snprintf(emsgbuf, emsgbuflen, "lookaside: can't compute SHA");
-    return(0);    
-  }
-
-  if (memcmp(cshabuf, sha, SHA_DIGEST_LENGTH)) {
-    snprintf(emsgbuf, emsgbuflen, "%s: mismatch on SHA verification", hitpathname);
-    dbp->shafails++;
-    return(0);    
-  }
-
   return(1); /* Success! */
 }
 
-int lkdb::BindDB(char *dbpathname, char *emsgbuf, int emsgbuflen) {
-
+int lkdb_BindDB(struct lkdb *dbp, char *dbpathname, char *emsgbuf, int emsgbuflen)
+{
   /* Associates the db at dbpathname with this lkdb structure; typically
      called only once per lkdb, immediately after creation.
      Returns 1 on success, 0 on failure.
@@ -179,44 +151,48 @@ int lkdb::BindDB(char *dbpathname, char *emsgbuf, int emsgbuflen) {
   */
 
   if (emsgbuflen > 0) *emsgbuf = 0; /* null msg for success case */
-  dbname = (char *) malloc(1+strlen(dbpathname));
-  dblocation = (char *)malloc(MAXPATHLEN); 
-  if (!dbname || !dblocation) {
-    snprintf(emsgbuf, emsgbuflen, "malloc() failed");
-    return(0);
-  }
-  strcpy(dbname, dbpathname);
 
-  /* Get cwd of database; will use as relative pathname prefix */
-  if (!realpath(dbname, dblocation)){
-    snprintf(emsgbuf, emsgbuflen, "realpath(%s) --> %s", dbname, strerror(errno));
-    return(0);
+  if (dbpathname[0] != '/') {
+    snprintf(emsgbuf, emsgbuflen, "dbpathname not an absolute path");
+    goto err;
   }
-  char *c = rindex(dblocation, '/');
-  if (!c) {
-    snprintf(emsgbuf, emsgbuflen, "Can't find / in absolute path %s", dblocation);
-    return(0);
+
+  dbp->dbname = strdup(dbpathname);
+  if (!dbp->dbname) {
+    snprintf(emsgbuf, emsgbuflen, "strdup(dbname) failed");
+    goto err;
   }
-  else *c = 0; /* location of db is string before last slash in abs path */
+  
+  char *c = strrchr(dbpathname, '/');
+  assert(c != NULL); /* should never fail because dbpathname[0] == '/' */
+  int dlen = c - dbpathname;
+
+  dbp->dblocation = malloc(dlen + 2);
+  if (!dbp->dblocation) {
+    snprintf(emsgbuf, emsgbuflen, "malloc(dblocation) failed");
+    goto err;
+  }
+
+  strncpy(dbp->dblocation, dbpathname, dlen+1);
+  dbp->dblocation[dlen+1] = '\0';
 
   /* now obtain database handle */
 
-  dbh = dbopen(dbname, O_RDONLY, 0, DB_HASH, 0);
-  if (!dbh) {
-    snprintf(emsgbuf, emsgbuflen, "dbopen(%s) --> %s", dbname, strerror(errno));
-    return(0);
+  dbp->dbh = db_open(dbp->dbname, O_RDONLY, 0, DB_HASH, 0);
+  if (!dbp->dbh) {
+    snprintf(emsgbuf, emsgbuflen, "dbopen(%s) --> %s", dbp->dbname, strerror(errno));
+    goto err;
   }
 
   /* now obtain the descriptor record */
-
   int dbrc;
   char zerosha[SHA_DIGEST_LENGTH];
   memset(zerosha, 0, SHA_DIGEST_LENGTH);
-  DBT dbkey, dbdata;
-  dbkey.data = zerosha;
-  dbkey.size = SHA_DIGEST_LENGTH;
+  db_data dbkey, dbdata;
+  dbkey.db_dataptr = zerosha;
+  dbkey.db_datasize = SHA_DIGEST_LENGTH;
 
-  dbrc = (dbh->get)(dbh, &dbkey, &dbdata, 0);
+  db_get(dbp->dbh, &dbkey, &dbdata, 0, dbrc);
 
   switch (dbrc){
 
@@ -226,25 +202,24 @@ int lkdb::BindDB(char *dbpathname, char *emsgbuf, int emsgbuflen) {
   case 1: /* no key found */
     snprintf(emsgbuf, emsgbuflen,
 	     "%s: malformed lookaside database; can't find descriptor record",
-	     dbname);
-    return(0);
+	     dbp->dbname);
+    goto err;
 
   case -1: /* some other error */
-    snprintf(emsgbuf, emsgbuflen, "%s descriptor record: %s", dbname,
+    snprintf(emsgbuf, emsgbuflen, "%s descriptor record: %s", dbp->dbname,
 	     strerror(errno));
-    return(0);
-
+    goto err;
 
   default: /* should never get here! */
     snprintf(emsgbuf, emsgbuflen, "%s: bogus return code %d from get()", 
-	     dbname, dbrc);
-    return(0);
+	     dbp->dbname, dbrc);
+    goto err;
   }
 
   /* Parse descriptor record */
 
-  c = (char *)dbdata.data; /* start at the very beginning */
-  char *d = c + dbdata.size; /* end of record pointer */
+  c = (char *)dbdata.db_dataptr; /* start at the very beginning */
+  char *d = c + dbdata.db_datasize; /* end of record pointer */
 
   if (!(c < d)) goto BadDescriptorRecord;
   if (strncmp(c, LKA_VERSION_STRING, strlen(LKA_VERSION_STRING)))
@@ -253,48 +228,32 @@ int lkdb::BindDB(char *dbpathname, char *emsgbuf, int emsgbuflen) {
   c += strlen(LKA_VERSION_STRING); /* step over version string */
   if (!(c < d)) goto BadDescriptorRecord;
 
-  if (!strncmp(c, LKA_ABSPATH_STRING, strlen(LKA_ABSPATH_STRING))) {
-    pathnames_are_relative = 0;
-    c += strlen(LKA_ABSPATH_STRING);
-  }
-  else {
-    if (!strncmp(c, LKA_RELPATH_STRING, strlen(LKA_RELPATH_STRING))) {
-      pathnames_are_relative = 1;
-    c += strlen(LKA_RELPATH_STRING);
-    }
-    else goto BadDescriptorRecord;
-  }
-
   /* get number of entries */
-  if (!(c < d)) goto BadDescriptorRecord;
-  if (strncmp(c, LKA_NUMENTRIES_STRING, strlen(LKA_NUMENTRIES_STRING)))
-    goto BadDescriptorRecord;
-  c += strlen(LKA_NUMENTRIES_STRING);
-  if (!(c < d)) goto BadDescriptorRecord;
-  if (sscanf(c, "%d", &entrycount) != 1) goto BadDescriptorRecord;
-  while ((c < d) && isdigit(*c)) c++; /* skip over entry count */
+  db_data dummy;
+  int ret;
 
-  /* verify presence of trailer */
-  if (!(c < d)) goto BadDescriptorRecord;
-  if (strncmp(c, LKA_END_STRING, strlen(LKA_END_STRING)))
-    goto BadDescriptorRecord;
+  db_first(dbp->dbh, &dbkey, &dummy, ret);
+  for (dbp->entrycount = 0; ret == RET_SUCCESS; dbp->entrycount++)
+      db_next(dbp->dbh, &dbkey, &dummy, ret);
 
-  /* nothing more to parse in Version 1.0 */
-  c += strlen(LKA_END_STRING);
-  if ((c != (d-1)) || *c)
-    goto BadDescriptorRecord; /* should be at null at the end */
+  /* subtract one because we also counted the version header */
+  dbp->entrycount--;
+
+  /* nothing more to parse in Version 1.1 */
   return(1); /* all is well */
 
 
 BadDescriptorRecord:
   snprintf(emsgbuf, emsgbuflen, "%s: bad descriptor record '%s'",
-	     dbname, dbdata.data);
+	   dbp->dbname, dbdata.db_dataptr);
+err:
     return(0);
 }
 
-int lkdb::GetFilenameFromSHA(unsigned char xsha[SHA_DIGEST_LENGTH],
-			     char *hitpath, int hitpathlen,
-			     char *emsgbuf, int emsgbuflen)
+int lkdb_GetFilenameFromSHA(struct lkdb *dbp,
+			   unsigned char xsha[SHA_DIGEST_LENGTH],
+			   char *hitpath, int hitpathlen,
+			   char *emsgbuf, int emsgbuflen)
 {
 /* GetFilenameFromSHA() probes this db for key xsha;  if successful,
    copies the value corresponding  to this key into the buffer hitpath.
@@ -304,12 +263,13 @@ int lkdb::GetFilenameFromSHA(unsigned char xsha[SHA_DIGEST_LENGTH],
    non-null on return, it has a useful error message.
 */
 
-  DBT key, value;
+  db_data key, value;
+  int dbrc;
 
-  key.data = xsha;
-  key.size = SHA_DIGEST_LENGTH;
+  key.db_dataptr = xsha;
+  key.db_datasize = SHA_DIGEST_LENGTH;
 
-  int dbrc = (dbh->get)(dbh, &key, &value, 0);
+  db_get(dbp->dbh, &key, &value, 0, dbrc);
 
   switch (dbrc){
 
@@ -320,46 +280,74 @@ int lkdb::GetFilenameFromSHA(unsigned char xsha[SHA_DIGEST_LENGTH],
     return(0);
 
   case -1: /* some other error */
-    snprintf(emsgbuf, emsgbuflen, "%s get(): %s", dbname, strerror(errno));
+    snprintf(emsgbuf, emsgbuflen, "%s get(): %s", dbp->dbname, strerror(errno));
     return(0);
 
   default: /* should never get here! */
     snprintf(emsgbuf, emsgbuflen, "%s: bogus return code %d from get()", 
-	     dbname, dbrc);
+	     dbp->dbname, dbrc);
     return(0);
   }
 
   /* Found it!  Copy out the result */
-  if (value.size <= hitpathlen) {
-    memcpy(hitpath, value.data, value.size);
-    return(1);
-  }
-  else {
+
+  /* Add absolute prefix to hitpathname, if necessary */
+  if (((char *)value.db_dataptr)[0] != '/') {
+      strncpy(hitpath, dbp->dblocation, hitpathlen-1); /* copy prefix */
+      hitpath[hitpathlen-1] = '\0';
+  } else
+      hitpath[0] = '\0';
+
+  if (strlen(hitpath) + value.db_datasize >= hitpathlen) {
     snprintf(emsgbuf, emsgbuflen, "%s get(): result too big (%d, %d)",
-	     dbname, value.size, hitpathlen);
+	     dbp->dbname, value.db_datasize, hitpathlen);
     return(0);
   }
+
+  strncat(hitpath, value.db_dataptr, value.db_datasize);
+
+  return(1);
 }
 
 
+struct lkdb *new_lkdb(void)
+{
+    struct lkdb *dbp;
+    dbp = malloc(sizeof(*dbp)); 
+    if (!dbp) return NULL;
 
-lkdb::lkdb() {
-  dbname = 0; /* set to NULL */
-  dblocation = 0;
-  dbh = 0; /* no handle until BindDB is called */
-  pathnames_are_relative = 0; /* default is absolute pathnames */
-  attempts = hits = 0;
+    memset(dbp, 0, sizeof(*dbp));
+    list_head_init(&dbp->chain);
+
+    return dbp;
 }
 
-lkdb::~lkdb() {
-  if (dbname) free(dbname);  /* release malloc'ed name */
-  if (dblocation) free(dblocation);
-  if (dbh) {(dbh->close)(dbh); /* unbind database */}
+void delete_lkdb(struct lkdb *dbp)
+{
+    if (!dbp) return;
+
+    list_del(&dbp->chain);
+
+    if (dbp->dbname) {
+	free(dbp->dbname);
+	dbp->dbname = NULL;
+    }
+
+    if (dbp->dblocation) {
+	free(dbp->dblocation);
+	dbp->dblocation = NULL;
+    }
+
+    if (dbp->dbh) {
+	db_close(dbp->dbh);
+	dbp->dbh = NULL;
+    }
+    free(dbp);
 }
 
 
-int LKParseAndExecute(char *command, char *emsgbuf, int emsgbuflen) {
-
+int LKParseAndExecute(char *command, char *emsgbuf, int emsgbuflen)
+{
   /* Parses and executes specified cfs command;
      Returns 1 on success, 0 upon any kind of failure;
      On failure or success, emsgbuf is filled with a useful message.
@@ -445,7 +433,7 @@ int LKParseAndExecute(char *command, char *emsgbuf, int emsgbuflen) {
 
   /* Parsing done; now execute commands in cmdarray */
 
- ExecuteCommands:
+ /* ExecuteCommands: */
 
   /* each command might add to emsgbuf; define local pointer and len */
   emptr = emsgbuf; /* pointer for next msg into emsgbuf */
@@ -465,20 +453,21 @@ int LKParseAndExecute(char *command, char *emsgbuf, int emsgbuflen) {
      Diagnostic messages accumulate in emsgbuf until loop is done;
   */
   for (i = 0; i < cmdcount; i++) {
-    lkdb *mylk;
+    struct lkdb *mylk;
 
     switch (cmdarray[i].op) {
 
     case '+':
-      mylk = new lkdb; 
-      if (mylk->BindDB(cmdarray[i].dbname, emptr, eleft)){
-      lkdbchain.append(mylk);
-      snprintf(emptr, eleft, "%s added (%d entries)\n", cmdarray[i].dbname,
-	       mylk->entrycount);
-      RESIZEBUF();
+      mylk = new_lkdb(); 
+      if (mylk && lkdb_BindDB(mylk, cmdarray[i].dbname, emptr, eleft)) {
+	  list_add(&mylk->chain, &lkdbchain);
+	  snprintf(emptr, eleft, "%s added (%d entries)\n", cmdarray[i].dbname,
+		   mylk->entrycount);
+	  RESIZEBUF();
       }
       else {
-	RESIZEBUF(); /* BindDB() might have aded text to emsgbuf */
+	  delete_lkdb(mylk);
+	  RESIZEBUF(); /* BindDB() might have added text to emsgbuf */
       }
       break; 
 
@@ -489,8 +478,7 @@ int LKParseAndExecute(char *command, char *emsgbuf, int emsgbuflen) {
 	snprintf(emptr, eleft, "%s not in lookaside list\n", cmdarray[i].dbname);
       }
       else {
-	lkdbchain.remove(mylk);
-	delete mylk;
+	delete_lkdb(mylk);
 	snprintf(emptr, eleft, "%s removed\n", cmdarray[i].dbname);
       }
       RESIZEBUF();
@@ -515,50 +503,54 @@ int LKParseAndExecute(char *command, char *emsgbuf, int emsgbuflen) {
 }
 
 
-static lkdb *GetlkdbByName(char *name) {
+static struct lkdb *GetlkdbByName(char *name)
+{
   /* Walks lkdbchain, looking for entry with matching dbname;
      Returns pointer to it, if found; NULL otherwise */
 
-  dlist_iterator nextdb(lkdbchain);
-  lkdb *dbp;
+    struct lkdb *dbp;
+    struct dllist_head *p;
 
-  while ((dbp = (lkdb *)nextdb())) {
-    if (!strcmp(dbp->dbname, name)) return(dbp);
-  }
-  return(0);
+    list_for_each(p, lkdbchain) {
+	dbp = list_entry(p, struct lkdb, chain);
+
+	if (strcmp(dbp->dbname, name) == 0)
+	    return(dbp);
+    }
+    return(NULL);
 }
 
-static void RemoveAll() {
-  lkdb *dbp;
-  int i, dbcount;
+static void RemoveAll()
+{
+    struct dllist_head *p, *next;
 
-  dbcount = lkdbchain.count();
-  
-  for (i = 0; i < dbcount; i++) {
-    assert(dbp = (lkdb *)lkdbchain.first()); /* better not be null! */
-    lkdbchain.remove(dbp);
-    delete dbp;
-  }
+    for (p = lkdbchain.next; p != &lkdbchain; p = next) {
+	struct lkdb *dbp = list_entry(p, struct lkdb, chain);
+	next = p->next;
+
+	delete_lkdb(dbp);
+    }
 }
 
-static void ListAll(char *mptr, int mlen) {
-  dlist_iterator nextdb(lkdbchain);
-  lkdb *dbp;
-  char *where;
-  int bytesleft, thislinelen;
+static void ListAll(char *mptr, int mlen)
+{
+    char *where;
+    int bytesleft, thislinelen;
+    struct dllist_head *p;
 
-  where = mptr;
-  bytesleft = mlen;
-  while ((dbp = (lkdb *)nextdb())) {
-    if (bytesleft <= 0) break;
-    snprintf(where, bytesleft, "%s (%d %s entries) [attempts = %d  hits = %d  shafails = %d]\n", 
-	     dbp->dbname, dbp->entrycount,
-	     (dbp->pathnames_are_relative? "relative" : "absolute"),
-	     dbp->attempts, dbp->hits, dbp->shafails);
+    where = mptr;
+    bytesleft = mlen;
 
-    thislinelen = strlen(where);
-    bytesleft -= thislinelen;
-    where += thislinelen;
-  }
+    list_for_each(p, lkdbchain) {
+	struct lkdb *dbp = list_entry(p, struct lkdb, chain);
+	if (bytesleft <= 0) break;
+	snprintf(where, bytesleft, "%s (%d entries) [attempts = %d  hits = %d  shafails = %d]\n", 
+		 dbp->dbname, dbp->entrycount,
+		 dbp->attempts, dbp->hits, dbp->shafails);
+
+	thislinelen = strlen(where);
+	bytesleft -= thislinelen;
+	where += thislinelen;
+    }
 }
 

@@ -79,12 +79,12 @@ extern "C" {
 #include <callback.h>
 #include <vice.h>
 #include <cml.h>
+#include <lka.h>
 
 #ifdef __cplusplus
 }
 #endif
 
-#include <lka.h>
 #include <volume.h>
 #include <srv.h>
 
