@@ -357,8 +357,8 @@ static void ClientPacket(RPC2_PacketBuffer *whichPacket,
 	     * the right thing */
 
 	    /* estimated size of an sftp data transfer */
-	    bytes = ((sEntry->PacketSize +sizeof(struct RPC2_PacketHeader)) *
-		     sEntry->SendAhead * 2) + sizeof(struct RPC2_PacketHeader);
+	    bytes = ((sEntry->PacketSize + sizeof(struct RPC2_PacketHeader)) *
+		     sEntry->SendAhead) + sizeof(struct RPC2_PacketHeader);
 
 	    retry = 1;
 	    rpc2_RetryInterval(sEntry->LocalHandle, bytes, &retry,

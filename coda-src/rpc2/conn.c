@@ -252,7 +252,10 @@ static void PrintHashTable()
             ce = list_entry(ptr, struct CEntry, Chain);
             CODA_ASSERT(ce->MagicNumber == OBJ_CENTRY);
 
-            printf(" %p", ce);
+            printf(" %s:%d:%d",
+		   inet_ntoa(ce->PeerHost.Value.InetAddress),
+		   ntohl(ce->PeerPort.Value.InetPortNumber),
+		   ntohl(ce->PeerUnique));
         }
 
         printf("\n");
@@ -407,6 +410,7 @@ rpc2_ConnFromBindInfo(RPC2_HostIdent *whichHost, RPC2_PortIdent *whichPort,
                 && rpc2_PortIdentEqual(&ce->PeerPort, whichPort))
             {
                 say(0, RPC2_DebugLevel, "Match after searching %d connection entries\n", j);
+		list_del(ptr); list_add(ptr, &HashTable[i]);
                 return(ce);
             }
         }
