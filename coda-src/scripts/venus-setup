@@ -1,8 +1,15 @@
+#!/bin/sh
 #
 # Coda client installation script
 # Made for Linux coda-client rpm distribution 
 # Peter J. Braam, Dec 1996
 #
+# Usage: venus-setup comma,separated,list,of,servers [cachesize in kb]
+#
+# the script will verify that the necessary directories and /etc/services
+# are present.
+#
+
 
 CODAETC=/usr/coda/etc
 CACHEDIR=/usr/coda/venus.cache

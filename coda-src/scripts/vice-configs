@@ -153,7 +153,7 @@ echo /vice/db/VSGDB set up
 #
 
 echo 
-if grep coda_filesrv /etc/services &> /dev/null ; then 
+if grep coda_filesrv /etc/services 1> /dev/null 2> /dev/null ; then 
     echo Services already present. Good.
 else
     echo Adding services to /etc/services.
