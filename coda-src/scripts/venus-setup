@@ -118,7 +118,7 @@ makedir 700 $cachedir
 makedir 700 $errorlogdir
 makedir 700 $logfiledir
 makedir 700 $pid_filedir
-makedir 700 $run_crontrol_file_dir
+makedir 700 $run_control_file_dir
 makedir 700 $rvm_logdir
 makedir 700 $rvm_datadir
 
