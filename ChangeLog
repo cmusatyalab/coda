@@ -1,3 +1,26 @@
+1999-12-31    <jaharkes@cs.cmu.edu>
+	* Recursive (blocked) RPC2 calls were never woken, was a cause for
+	  a deadlock in the server to client callbacks.
+	* Moved the mariner port to a unix domain socket.
+	* Fixed a crash on 'cfs rmm dir/'
+	* Skipping non-cacheable objects during the hoard walk.
+	* Got rid of a double free (and crash) in the sftp code.
+	* Added optional private rvm mappings. Huge performance wins when
+	  enabled, but only works for rvm-files. (Phil Nelson)
+	* Fixed the year being printed as 100 in the logfiles in 2000.
+	* Build cleanups, moved kernel-src and lwp to separate packages.
+	* Switched codaservers to exit by default, added a -zombify flag and
+	  test for /vice/srv/ZOMBIFY to switch back to the endless sleep.
+	* Cleanups in backup and setup scripts. (Kurt Huwig and David J. Graff)
+	* Added more options for venus.conf.
+	* Added support for multi-level incremental backups.
+	* Fixed resolving the parent directory when GetAttr fails.
+	* Fixed SetACL problem where an invalid username would result in the
+	  acl for user `0' to be added.
+	* Fixed losing files (and possible crash) during venus startup after a
+	  file was opened for writing during reintegration (shadowing).
+	* Fixed losing filedata when a file gets shadowed twice. 
+
 1999-10-21    <jaharkes@cs.cmu.edu>
 	* ======== Release 5.3.3 =========
 	* Dumpdir argument of the backup program was not considered optional.
