@@ -13,15 +13,15 @@
 
 #ifneq (build, host)
 
-CC = dos-gcc -bmmap 
-CXX = dos-gcc -bmmap 
-AR = dos-ar
-RANLIB = true
-AS = dos-as
+#CC = dos-gcc -bmmap 
+#CXX = dos-gcc -bmmap 
+#AR = dos-ar
+#RANLIB = true
+#AS = dos-as
 
 # endif
 
-NATIVECC= cc
+#NATIVECC= cc
 EXTRAS = djgpp
 
 
@@ -30,7 +30,7 @@ SHORTSYS      = djgpp
 INCLFLAGS     =
 OPTFLAG	      = -O2
 GFLAG         = -g 
-CPP           = dos-gcc -E -x c-header
+#CPP           = dos-gcc -E -x c-header
 OPTLFLAG      =
 LIBRELAY      = $(TOPOBJ)/djgpp/relay/librelay.a
 LIBCURSES     = -lncurses

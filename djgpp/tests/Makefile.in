@@ -12,16 +12,16 @@ EXECUTABLES = hello testudp selectme theabort
 CSBINS = hello testudp selectme
 
 hello: hello.o
-	$(CC) -o hello hello.o
+	$(CC) $(LDFLAGS) -o hello hello.o
 
 theabort: theabort.o
-	$(CC) -o theabort theabort.o
+	$(CC) $(LDFLAGS) -o theabort theabort.o
 
 testudp: testudp.o
-	$(CC) -o testudp testudp.o
+	$(CC) $(LDFLAGS) -o testudp testudp.o
 
 selectme: selectme.o
-	$(CC) -o selectme selectme.o
+	$(CC) $(LDFLAGS) -o selectme selectme.o
 
 include $(TOPDIR)/configs/Makerules
 

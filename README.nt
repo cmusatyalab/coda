@@ -33,7 +33,7 @@ ftp://ftp.coda.cs.cmu.edu/pub/coda/src
 
 3. Unpack & build
 
-./configure --host=nt
+./configure --target=winnt
 make coda
 
 (drink coffee, ignore or better even fix the compiler warnings)

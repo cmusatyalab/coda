@@ -87,8 +87,11 @@
 /* Define if you have ndbm */
 #undef HAVE_NDBM
 
-/* Define if you have flock */
-#undef HAVE_FLOCK
+/* Define if you have fcntl file locking */
+#undef HAVE_FCNTL_LOCKING
+
+/* Define if you have flock file locking */
+#undef HAVE_FLOCK_LOCKING
 
 /* Define if bcopy et al are defined in the <strings.h> header file */
 #undef HAVE_BCOPY_IN_STRINGS_H

@@ -86,7 +86,9 @@ AC_DEFUN(CODA_CHECK_LIBDB185,
   AC_CHECK_LIB(db, dbopen, [LIBDB="-ldb"],
     [AC_CHECK_LIB(c, dbopen, [LIBDB=""],
        [AC_CHECK_LIB(c, dbm_open, [],
-          [AC_MSG_ERROR("failed to find libdb")])])])
+          [if test $target != i386-pc-djgpp ; then
+	     AC_MSG_ERROR("failed to find libdb")
+	   fi])])])
 
   if test "$ac_cv_lib_c_dbm_open" = yes; then
     [AC_MSG_WARN([Found ndbm instead of libdb 1.85. This uses])
@@ -123,7 +125,17 @@ AC_DEFUN(CODA_FUNC_SETPGRP,
   fi)
 
 dnl check wether we have flock or fcntl
-AC_DEFUN(CODA_CHECK_FLOCK,
+AC_DEFUN(CODA_CHECK_FILE_LOCKING,
+  AC_CACHE_CHECK(for file locking by fcntl,
+    fu_cv_lib_c_fcntl,
+    [AC_TRY_COMPILE([#include <fcntl.h>
+#include <stdio.h>], [ int fd; struct flock lk; fcntl(fd, F_SETLK, &lk);],
+      fu_cv_lib_c_fcntl=yes,
+      fu_cv_lib_c_fcntl=no)])
+  if test $fu_cv_lib_c_fcntl = yes; then
+    AC_DEFINE(HAVE_FCNTL_LOCKING)
+  fi
+
   AC_CACHE_CHECK(for file locking by flock,
     fu_cv_lib_c_flock,
     [AC_TRY_COMPILE([#include <sys/file.h>
@@ -131,16 +143,10 @@ AC_DEFUN(CODA_CHECK_FLOCK,
       fu_cv_lib_c_flock=yes,
       fu_cv_lib_c_flock=no)])
   if test $fu_cv_lib_c_flock = yes; then
-    AC_DEFINE(HAVE_FLOCK)
-  else
-    AC_CACHE_CHECK(for file locking by fcntl,
-      fu_cv_lib_c_fcntl,
-      [AC_TRY_COMPILE([#include <fcntl.h>
-#include <stdio.h>], [ int fd; struct flock lk; fcntl(fd, F_SETLK, &lk);],
-        fu_cv_lib_c_fcntl=yes,
-        fu_cv_lib_c_fcntl=no)])
+    AC_DEFINE(HAVE_FLOCK_LOCKING)
   fi
-  if test $fu_cv_lib_c_flock = no -a "$fu_cv_lib_c_fcntl" = no; then
+
+  if test $fu_cv_lib_c_flock = no -a $fu_cv_lib_c_fcntl = no; then
          AC_MSG_ERROR("failed to find flock or fcntl")
   fi)
 

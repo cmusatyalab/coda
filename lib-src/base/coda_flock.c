@@ -22,11 +22,11 @@ extern "C" {
 #include <unistd.h>
 #include <errno.h>
 
-#ifdef HAVE_FLOCK
-#include <sys/file.h>
-#else /* HAVE_FCNTL */
+#ifdef HAVE_FCNTL_LOCKING
 #include <fcntl.h>
 #include <string.h>
+#else /* HAVE_FLOCK_LOCKING */
+#include <sys/file.h>
 #endif
 
 #ifdef __cplusplus
@@ -34,9 +34,7 @@ extern "C" {
 #endif __cplusplus
 
 int myflock(int fd, int type, int block) {
-#ifdef HAVE_FLOCK
-    return flock(fd, lk | block);
-#else /* HAVE_FCNTL */
+#ifdef HAVE_FCNTL_LOCKING
     struct flock lock;
     int rc;
     
@@ -47,5 +45,8 @@ int myflock(int fd, int type, int block) {
     	   && errno == EINTR)		/* interrupted */
     	sleep(1);
     return rc;
+
+#else /* HAVE_FLOCK_LOCKING */
+    return flock(fd, type | block);
 #endif
 }

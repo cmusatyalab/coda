@@ -7,7 +7,7 @@
 
 #include <unistd.h>
 #include <stdio.h>
-#include "coda_string.h"
+#include <string.h>
 #include <ctype.h>
 
 #include "vxd.h"

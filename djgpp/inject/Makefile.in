@@ -12,10 +12,10 @@ EXECUTABLES = inject shreply
 CSBINS = inject shreply
 
 hello: inject.o
-	$(CC) -o inject inject.o
+	$(CC) $(LDFLAGS) -o inject inject.o
 
 testudp: shreply.o
-	$(CC) -o shreply shreply.o
+	$(CC) $(LDFLAGS) -o shreply shreply.o
 
 include $(TOPDIR)/configs/Makerules
 

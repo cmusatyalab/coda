@@ -138,11 +138,10 @@ Also get:
 
 ftp://ftp.coda.cs.cmu.edu/pub/coda/src/vc95.zip
 
-You can rebuild Venus with ./configure --host=windows95 ; make coda
+You can rebuild Venus with ./configure --target=win95; make coda
 
 and the client utilities and server with
-./configure --host=nt (the Venus built here is unusable on Win95).
-
+./configure --target=winnt (the Venus built here is unusable on Win95).
 
 
 ====================
@@ -167,10 +166,6 @@ c)
 Make sure you have a directory tree:
 
 c:\usr\coda\{etc,venus.cache,spool}
-
-You will need to edit the files:
-c:\usr\coda\venus.cache\myhost
-and put the ip of your host in it. 
 
 Also edit: 
 c:\usr\coda\etc\vstab

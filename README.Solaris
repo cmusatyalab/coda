@@ -9,7 +9,7 @@ on your machine. Beware! Solaris make wont' work!
 Solaris packages of gcc, perl and GNU make, which can simply be installed
 by pkgadd or admintool, can be downloaded from http://sunfreeware.com/.
 
-To intall readline:
+To install readline:
 	get the readline tar.gz
 		ftp to ftp.gnu.org
 		cd /pub/gnu/readline

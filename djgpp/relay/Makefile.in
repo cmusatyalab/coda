@@ -15,16 +15,16 @@ CSBINS = mount unmount
 
 OBJS= relay.o vxd.o
 
-librelay.a:	$(OBJS)
+librelay.a: $(OBJS)
 
 mount: mount.o vxd.o 
-	$(CC) -o mount mount.o vxd.o
+	$(CC) $(LDFLAGS) -o mount mount.o vxd.o
 
 unmount: unmount.o vxd.o
-	$(CC) -o unmount unmount.o vxd.o 
+	$(CC) $(LDFLAGS) -o unmount unmount.o vxd.o 
 
 relay: relay.o vxd.o
-	$(CC) -o relay relay.o vxd.o
+	$(CC) $(LDFLAGS) -o relay relay.o vxd.o
 
 
 include $(TOPDIR)/configs/Makerules
