@@ -97,18 +97,23 @@ unsigned long MAXTS = UNSET_MAXTS;
 
 /*  *****  Private Constants  *****  */
 
-#if defined(NetBSD1_3) || defined(__NetBSD_Version__) || defined(__OpenBSD__)
+#if defined(NetBSD1_3) || defined(__NetBSD_Version__) || defined(__OpenBSD__) \
+ || defined(__linux__) || defined(__CYGWIN32__) || defined(__FreeBSD_version)  \
+ || (defined(__APPLE__) && defined(__MACH__))
 static const char *VM_RVMADDR = (char *)0x50000000;
-#elif  defined(__linux__) && defined(sparc)
+
+/* Pretty much every platform seems to be able to handle 0x50000000 as the RVM
+ * start address without a problem. In fact the server _always_ uses that as
+ * the RVM start address. Sun/solaris could probably use it as well. I do
+ * wonder why sparc-linux is using such an unusual RVM start address. djgpp
+ * (win95) is the most likely exception to the rule because we are running in
+ * a strange DOS environment */
+#elif defined(__linux__) && defined(sparc)
 static const char *VM_RVMADDR = (char *)0xbebd000;
-#elif	defined(__linux__) || defined(__CYGWIN32__) || defined(__FreeBSD_version) 
-static const char *VM_RVMADDR = (char *)0x20000000;
-#elif	defined(DJGPP)
+#elif defined(DJGPP)
 static const char *VM_RVMADDR = (char *)0x03000000;
 #elif defined(sun)
 static const char *VM_RVMADDR = (char *)0x40000000;
-#elif defined(__APPLE__) && defined(__MACH__)
-static const char *VM_RVMADDR = (char *)0x50000000;
 #else
 #error "Please define RVM address for this platform."
 #endif
