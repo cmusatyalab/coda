@@ -17,7 +17,7 @@
 exec_prefix = @prefix@
 BINDIR = $(exec_prefix)/bin
 SBINDIR = $(exec_prefix)/sbin
-
+MANDIR = $(exec_prefix)/man
 
 #
 # Platform, uncomment your choice; 
