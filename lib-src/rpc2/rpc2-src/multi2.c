@@ -869,7 +869,6 @@ void unpack(ARG *a_types, PARM *args, PARM **_ptr, long offset)
 				  _length = ntohl((*_ptr)->integer);
 				  (*_ptr)++;
 				  args->bbsp[offset]->SeqLen = _length;
-				  (*_ptr)++;
 				  if (_length <= args->bbsp[offset]->MaxSeqLen)
 				    memcpy(args->bbsp[offset]->SeqBody, *_ptr, _length);
 				  (*_ptr) += (_PAD(_length)) / SIZE;
