@@ -4520,8 +4520,10 @@ cml_iterator::cml_iterator(ClientModifyLog& Log, CmlIterOrder Order,
     log = &Log;
     order = Order;
     fidp = Fid;
+    next = 0;
+    rec_next = 0;
     if (fidp == 0) {
-	next = new dlist_iterator(*((dlist *)&log->list), order);
+	rec_next = new rec_dlist_iterator(log->list, order);
     }
     else {
 	fid = *Fid;
@@ -4530,9 +4532,7 @@ cml_iterator::cml_iterator(ClientModifyLog& Log, CmlIterOrder Order,
 	    CHOKE("cml_iterator::cml_iterator: can't find (%x.%x.%x)",
 		fid.Volume, fid.Vnode, fid.Unique);
 	}
-	if (f->mle_bindings == 0)
-	    next = 0;
-	else
+	if (f->mle_bindings)
 	    next = new dlist_iterator(*f->mle_bindings, order);
     }
 
@@ -4550,13 +4550,15 @@ cml_iterator::cml_iterator(ClientModifyLog& Log, CmlIterOrder Order,
 cml_iterator::~cml_iterator() {
     if (next != 0)
 	delete next;
+    if (rec_next != 0)
+	delete rec_next;
 }
 
 
 cmlent *cml_iterator::operator()() {
     for (;;) {
-	if (fidp == 0) {
-	    dlink *d = (*next)();
+	if (rec_next) {
+	    rec_dlink *d = (*rec_next)();
 	    if (d == 0) return(0);
 	    cmlent *m = strbase(cmlent, d, handle);
 	    return(m);

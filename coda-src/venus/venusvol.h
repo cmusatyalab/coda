@@ -445,6 +445,7 @@ class cml_iterator {
     ViceFid fid;
     cmlent *prelude;	/* start iteration after this element */
     dlist_iterator *next;
+    rec_dlist_iterator *rec_next;
 
   public:
     cml_iterator(ClientModifyLog&, CmlIterOrder =CommitOrder, const ViceFid * =NULL, cmlent * =0);
