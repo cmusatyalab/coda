@@ -38,6 +38,8 @@ listed in the file CREDITS.
 extern struct repvol *RepairVol; /* volume under repair */
 extern int allowclear, interactive, repair_DebugFlag, session;
 
+int checklocal(char *arg);
+int checkserver(char *arg);
 void GetArgs(int argc, char *argv[]);
 int  getcompareargs(int, char **, char **, char **, char **, char **, char **);
 int  getrepairargs(int, char **, char *);

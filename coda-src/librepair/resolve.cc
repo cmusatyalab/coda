@@ -84,7 +84,7 @@ static int getfid (char *path, ViceFid *Fid, ViceVersionVector *VV, struct ViceI
     char buf[2048];
     vi->out = buf;
     vi->out_size = sizeof(buf);
-
+                      
     if (pioctl(path, VIOC_GETFID, vi, 0)) {
 	char symval[MAXPATHLEN];
 	symval[0] = 0;
@@ -189,12 +189,11 @@ struct Acl *res_getacl (char *path)
 
 int getunixdirreps (int nreplicas, char *names[], resreplica **reps)
 {
-
   DIR *dirp;
   struct dirent *dp;
   struct stat buf;
   resreplica *dirs;
-  int	i,j;
+  int i,j;
   
   /* allocate space for making replica headers */
   *reps = dirs = (resreplica *)malloc(nreplicas * sizeof(resreplica));
@@ -220,19 +219,22 @@ int getunixdirreps (int nreplicas, char *names[], resreplica **reps)
       if (dirp == NULL) {
 	  perror("opendir");
 	  return -1;
-      } 
+      }
 
+      /* fill in the all the resdir_entry structs for this replica */
       for (count = 0, dp = readdir(dirp); dp != NULL; dp = readdir(dirp))
       {
           char *path;
 
           if (!strcmp(".", dp->d_name) || !strcmp("..", dp->d_name))
               continue;
-          path = (char *)malloc(strlen(names[j]) + strlen(dp->d_name) + 5);
+          path = (char *)malloc(strlen(names[j]) + strlen(dp->d_name) + 1);
           strcpy(path, names[j]);
           strcat(path, dp->d_name);
-          if (res_getfid(path, &Fid, &VV))
+          if (res_getfid(path, &Fid, &VV)) {
+	      free(path);
               continue;
+	  }
     
 	  /* get index of direntry */
 	  i = nextindex();
@@ -256,7 +258,7 @@ int getunixdirreps (int nreplicas, char *names[], resreplica **reps)
       }
       closedir(dirp);
 
-      /* fill in the resdir_entry */
+      /* fill in the resreplica */
       if (res_getfid(names[j], &Fid,  &VV)) return -1;
       dirs[j].nentries = count;
       dirs[j].replicaid = Fid.Volume;
@@ -270,7 +272,8 @@ int getunixdirreps (int nreplicas, char *names[], resreplica **reps)
 	  return(-1);
       }
       dirs[j].modebits = buf.st_mode;
-      if (!(dirs[j].al = res_getacl(names[j]))) return -1;
+      if (!(dirs[j].al = res_getacl(names[j]))) /* return -1; */
+	  fprintf(stderr, "\t--> getacl on \"%s\" FAILED!!!\n", names[j]);
       dirs[j].owner = buf.st_uid;
   }
   return(0);

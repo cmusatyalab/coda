@@ -64,7 +64,7 @@ typedef struct {
     char    name[MAXNAMELEN + 1];   /* name of the entry */
     long    vno;		    /* vnode number */
     long    uniqfier;		    /* for vice dirs; 0 for unix */
-    ViceVersionVector	VV;	    
+    ViceVersionVector	VV;
     int	    MtPt;		    /* Is this child a mount point? */
     int	    replicaid;
     int	    lookedAt;
@@ -78,7 +78,7 @@ typedef struct {
     long    vnode;		    /* fid of the parent directory */
     long    uniqfier;
     char    *path;		    /* path name of the RO mounted copy */
-    u_short modebits;		    
+    u_short modebits;
     struct  Acl *al;
     short   owner;
 } resreplica;

@@ -100,6 +100,34 @@ main(int argc, char **argv) {
     }
 }
 
+int checklocal(char *arg) {
+    switch (session) {
+    case SERVER_SERVER:
+	printf("\"%s\" can only be used to repair a local/global conflict\n", arg);
+	return(1);
+	break;
+    case NOT_IN_SESSION:
+	printf("You must do \"beginrepair\" first\n");
+	return(1);
+	break;
+    }
+    return(0);
+}
+
+int checkserver(char *arg) {
+    switch (session) {
+    case LOCAL_GLOBAL:
+	printf("\"%s\" can only be used to repair a server/server conflict\n", arg);
+	return(1);
+	break;
+    case NOT_IN_SESSION:
+	printf("You must do \"beginrepair\" first\n");
+	return(1);
+	break;
+    }
+    return(0);
+}
+
 void GetArgs(int argc, char *argv[]) {
     int i;
 
@@ -247,16 +275,7 @@ void rep_CheckLocal(int largc, char **largv) {
     char space[DEF_BUF];
     char buf[DEF_BUF];
 
-    switch (session) {
-    case SERVER_SERVER:
-	printf("\"checkLocal\" can only be used to repair a local/global conflict\n");
-	return;
-	break;
-    case NOT_IN_SESSION:
-	printf("You must do \"beginrepair\" first\n");
-	return;
-	break;
-    }
+    if (checklocal("checklocal")) return;
 
     sprintf(buf, "%d", REP_CMD_CHECK);
     vioc.in = buf;
@@ -274,13 +293,11 @@ void rep_ClearInc(int largc, char **largv) {
     char msgbuf[DEF_BUF];
     struct repvol *repv;
 
-    switch (session) {
-    case NOT_IN_SESSION:
+    if (session == NOT_IN_SESSION) {
 	printf("You must do \"beginrepair\" first\n");
 	return;
-	break;
     }
-  
+
     if (!allowclear) {
 	printf("Clear Inconsistency: This command is obsolete.");
 	printf("You don't need to use this anymore\n");
@@ -298,15 +315,9 @@ void rep_CompareDirs(int largc, char **largv) {
     memset(&inf, 0, sizeof(inf));
     inf.interactive = 1;
 
-    switch (session) {
-    case LOCAL_GLOBAL:
-	printf("\"compardirs\" can only be used to repair a server/server conflict\n");
-	return;
-	break;
-    case NOT_IN_SESSION:
+    if (session == NOT_IN_SESSION) {
 	printf("You must do \"beginrepair\" first\n");
 	return;
-	break;
     }
 
     /* Obtain parameters from user */
@@ -325,16 +336,8 @@ void rep_CompareDirs(int largc, char **largv) {
 void rep_DiscardAllLocal(int largc, char **largv) {
     char msgbuf[DEF_BUF];
 
-    switch (session) {
-    case SERVER_SERVER:
-	printf("\"discardalllocal\" can only be used to repair a local/global conflict\n");
-	return;
-	break;
-    case NOT_IN_SESSION:
-	printf("You must do \"beginrepair\" first\n");
-	return;
-	break;
-    }
+    if (checklocal("discardalllocal")) return;
+
     if (DiscardAllLocal(RepairVol, msgbuf, sizeof(msgbuf)) < 0)
 	fprintf(stderr, "%s\ndiscardalllocal failed\n", msgbuf);
 }
@@ -345,16 +348,7 @@ void rep_DiscardLocal(int largc, char **largv) {
     char space[DEF_BUF];
     char buf[BUFSIZ];
     
-    switch (session) {
-    case SERVER_SERVER:
-	printf("\"discardlocal\" can only be used to repair a local/global conflict\n");
-	return;
-	break;
-    case NOT_IN_SESSION:
-	printf("You must do \"beginrepair\" first\n");
-	return;
-	break;
-    }
+    if (checklocal("discardlocal")) return;
 
     vioc.out = space;
     vioc.out_size = DEF_BUF;
@@ -375,15 +369,9 @@ void rep_DoRepair(int largc, char **largv) {
     long *rcodes;
     int i, rc;
 
-    switch (session) {
-    case LOCAL_GLOBAL:
-	printf("\"dorepair\" can only be used to repair a server/server conflict\n");
-	return;
-	break;
-    case NOT_IN_SESSION:
+    if (session == NOT_IN_SESSION) {
 	printf("You must do \"beginrepair\" first\n");
 	return;
-	break;
     }
 
     /* Obtain parameters and confirmation from user */
@@ -434,7 +422,7 @@ void rep_Exit(int largc, char **largv) {
 }
 
 void rep_Help(int largc, char **largv) {
-    printf("See the Coda manual or repair.1 for help.\nPerhaps try doing a \"beginrepair\".");
+    printf("See the Coda manual or repair.1 for help.\nPerhaps try doing a \"beginrepair\".\n");
     fflush(stdout);
 }
 
@@ -446,16 +434,7 @@ void rep_ListLocal(int largc, char **largv) {
     char buf[DEF_BUF];
     char filename[MAXPATHLEN];
 
-    switch (session) {
-    case SERVER_SERVER:
-	printf("\"listLocal\" can only be used to repair a local/global conflict\n");
-	return;
-	break;
-    case NOT_IN_SESSION:
-	printf("You must do \"beginrepair\" first\n");
-	return;
-	break;
-    }
+    if (checklocal("listlocal")) return;
 
     vioc.out = space;
     vioc.out_size = DEF_BUF;
@@ -487,16 +466,7 @@ void rep_PreserveAllLocal(int largc, char **largv) {
     char space[DEF_BUF];
     char buf[BUFSIZ];
 
-    switch (session) {
-    case SERVER_SERVER:
-	printf("\"preservealllocal\" can only be used to repair a local/global conflict\n");
-	return;
-	break;
-    case NOT_IN_SESSION:
-	printf("You must do \"beginrepair\" first\n");
-	return;
-	break;
-    }
+    if (checklocal("preservealllocal")) return;
 
     /* Release volume-level locks */
     vioc.out = space;
@@ -518,16 +488,7 @@ void rep_PreserveLocal(int largc, char **largv) {
     char space[DEF_BUF];
     char buf[BUFSIZ];
 
-    switch (session) {
-    case SERVER_SERVER:
-	printf("\"preservelocal\" can only be used to repair a local/global conflict\n");
-	return;
-	break;
-    case NOT_IN_SESSION:
-	printf("You must do \"beginrepair\" first\n");
-	return;
-	break;
-    }
+    if (checklocal("preservelocal")) return;
 
     vioc.out = space;
     vioc.out_size = DEF_BUF;
@@ -545,19 +506,8 @@ void rep_RemoveInc(int largc, char **largv) {
     int rc, dirconf;
     char msgbuf[DEF_BUF];
 
-    switch (session) {
-    case NOT_IN_SESSION:
-	printf("please use \"beginrepair\" first to determine the nature of the conflict\n");
-	return;
-	break;
-    case LOCAL_GLOBAL:
-	printf("\"removeinc\" can only be used to repair a server/server conflict\n");
-	return;
-	break;
-    case SERVER_SERVER:
-	printf("\"removeinc\" will terminate the current repair session\n");
-	break;
-    }
+    if (checkserver("removeinc")) return;
+    printf("\"removeinc\" will terminate the current repair session\n");
 
     dirconf = RepairVol->dirconf; /* remember conflict type (since Endrepair will free it) */
 
@@ -589,23 +539,12 @@ void rep_ReplaceInc(int largc, char **largv) {
     vv_t fixvv;
     struct stat sbuf;
 
-    switch (session) {
-    case NOT_IN_SESSION:
-	printf("please use \"beginrepair\" first to determine the nature of the conflict\n");
+    if (checkserver("replaceinc")) return;
+    if (RepairVol->dirconf) {
+	printf("\"replaceinc\" can only be used to repair file conflicts\n");
 	return;
-	break;
-    case LOCAL_GLOBAL:
-	printf("\"replaceinc\" can only be used to repair a server/server conflict\n");
-	return;
-	break;
-    case SERVER_SERVER:
-	if (RepairVol->dirconf) {
-	    printf("\"replaceinc\" can only be used to repair file conflicts\n");
-	    return;
-	}
-	printf("\"replaceinc\" will terminate the current repair session\n");
-	break;
     }
+    printf("\"replaceinc\" will terminate the current repair session\n");
 
     if (largc == 1) {
 	printf("Pathname of object to replace %s ", RepairVol->rodir);
@@ -652,16 +591,7 @@ void rep_SetGlobalView(int largc, char **largv) {
     char space[DEF_BUF];
     char buf[BUFSIZ];
 
-    switch (session) {
-    case SERVER_SERVER:
-	printf("\"setglobalview\" can only be used to repair a local/global conflict\n");
-	return;
-	break;
-    case NOT_IN_SESSION:
-	printf("You must do \"beginrepair\" first\n");
-	return;
-	break;
-    }
+    if (checklocal("setglobalview")) return;
     
     vioc.out = space;
     vioc.out_size = DEF_BUF;
@@ -681,16 +611,7 @@ void rep_SetLocalView(int largc, char **largv) {
     char space[DEF_BUF];
     char buf[BUFSIZ];
 
-    switch (session) {
-    case SERVER_SERVER:
-	printf("\"setlocalview\" can only be used to repair a local/global conflict\n");
-	return;
-	break;
-    case NOT_IN_SESSION:
-	printf("You must do \"beginrepair\" first\n");
-	return;
-	break;
-    }
+    if (checklocal("setlocalview")) return;
 
     vioc.out = space;
     vioc.out_size = DEF_BUF;
@@ -710,16 +631,7 @@ void rep_SetMixedView(int largc, char **largv) {
     char space[DEF_BUF];
     char buf[BUFSIZ];
 
-    switch (session) {
-    case SERVER_SERVER:
-	printf("\"setmixedview\" can only be used to repair a local/global conflict\n");
-	return;
-	break;
-    case NOT_IN_SESSION:
-	printf("You must do \"beginrepair\" first\n");
-	return;
-	break;
-    }
+    if (checklocal("setmixedview")) return;
 
     vioc.out = space;
     vioc.out_size = DEF_BUF;

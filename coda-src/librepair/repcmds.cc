@@ -26,6 +26,7 @@ int  compareVV(int, char **, struct repvol *);
 int  findtype(struct repvol *);
 void getremovelists(int, resreplica *, struct listhdr **);
 int  getVolrepNames(struct repvol *repv, char ***names, char *msg, int msgsize);
+int  isLocal(resreplica *dir);
 void printAcl(struct Acl *);
 
 /* Assumes pathname is the path of a conflict
@@ -61,7 +62,7 @@ int BeginRepair(char *pathname, struct repvol **repv, char *msg, int msgsize) {
 
     /* Mount the rw replicas, i.e. just insert into list in repv */
     if ((rc = repair_mountrw(*repv, (VolumeId *)space, MAXHOSTS, msgbuf, sizeof(msgbuf))) < 0) {
-	strerr(msg, msgsize, "Could not allocate replica list");    
+	strerr(msg, msgsize, "%s\nCould not allocate replica list", msgbuf);    
 	repair_finish(*repv);
 	return(-1);
     }
@@ -364,15 +365,12 @@ int DoRepair(struct repvol *repv, char *ufixpath, FILE *res, char *msg, int msgs
     VolumeId *vids;
     struct volrep *rwv;
     long *rcodes;
-    int i, rc;
+    int i, rc, llen, glen;
+    struct listhdr *localhd;
+    struct listhdr *serverhd;
 
     if (repv == NULL) {
       strerr(msg, msgsize, "NULL repv");
-      return(-1);
-    }
-
-    if (repv->local) {
-      strerr(msg, msgsize, "Not a server/server conflict");
       return(-1);
     }
 
@@ -544,22 +542,45 @@ int RemoveInc(struct repvol *repv, char *msg, int msgsize) {
     return(rc);
 }
 
-int compareAcl(int nreplicas, resreplica *dirs) {
-    int i, j;
-    struct Acl *al0, *ali;
-    al0 = dirs[0].al;
+int isLocal(resreplica *dir) {
+    int i;
 
-    for (i = 1; i < nreplicas; i++){
+    /* local dirs get entry vnodes and storeID's of 0xffff */
+    for (i = dir->entry1; i < (dir->entry1 + dir->nentries); i++) {
+	if (~(direntriesarr[i].vno) || ~(direntriesarr[i].VV.StoreId.Host))
+	    return(0);
+    }
+    if (~(dir->vnode)) return(0);   /* and vnode is 0xffff */
+    if (dir->al != NULL) return(0); /* and NULL acl's */
+    return(1);
+}
+
+int compareAcl(int nreplicas, resreplica *dirs) {
+    int init, i, j;
+    struct Acl *al0, *ali;
+
+    for (init = 0; init < nreplicas; init++) {
+	if (!(isLocal(&(dirs[init]))))
+	    al0 = dirs[init].al;
+    }
+
+    for (i = init + 1; i < nreplicas; i++){
+
+	if (isLocal(&(dirs[i])))
+	    continue;
+
 	ali = dirs[i].al;
 
 	if (ali->nplus != al0->nplus || ali->nminus != al0->nminus)
 	    return -1;
+
 	for (j = 0; j < al0->nplus; j++){
 	    if (strcmp((al0->pluslist)[j].name, (ali->pluslist)[j].name))
 		return -1;
 	    if ((al0->pluslist)[j].rights != (ali->pluslist)[j].rights)
 		return -1;
 	}
+
 	for (j = 0; j < al0->nminus; j++){
 	    if (strcmp((al0->minuslist)[j].name, (ali->minuslist)[j].name))
 		return -1;
@@ -756,10 +777,10 @@ int getVolrepNames(struct repvol *repv, char ***names, char *msg, int msgsize) {
     return (nreps);
 }
 
-/* extfile: external (ASCII) rep
- * intfile: internal (binary) rep
- * Returns 0 on success, -1 on error */
-int makedff(char *extfile, char *intfile /* OUT */) {
+/*  extfile: external (ASCII) rep
+ *  intfile: internal (binary) rep
+ *  Returns 0 on success, -1 on failure */
+int makedff(char *extfile, char *intfile) {
     struct listhdr *hl;
     int hlc, rc;
 
@@ -774,8 +795,9 @@ int makedff(char *extfile, char *intfile /* OUT */) {
     /* write out internal rep */
     rc = repair_putdfile(intfile, hlc, hl);
     if (rc) return (-1);
-    // repair_printfile(intfile);
-  
+    /* repair_printfile(intfile); */
+
+    free(hl);
     return(0);
 }
 

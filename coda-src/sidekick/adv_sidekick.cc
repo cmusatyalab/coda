@@ -149,6 +149,8 @@ int executor(char *pathname, int vuid, int req_no) {
     char asr[MAXPATHLEN], asrlog[MAXPATHLEN], conf[MAXPATHLEN];
     char fixfile[MAXPATHLEN], fixed[MAXPATHLEN], parent[MAXPATHLEN], hd[MAXPATHLEN];
     VolumeId vid;
+    ViceFid fixfid;
+    vv_t fixvv;
     struct stat sbuf;
     struct repinfo inf;
     char svuid[32];
@@ -275,33 +277,44 @@ int executor(char *pathname, int vuid, int req_no) {
 	    lprintf("EndRepair finished\n");
 
 	}
-	else { /* file conflict -- "repair" it by removing the file or discarding 
-		  all local mutations, then move the fixed file into place */
+	else { /* file conflict */ 
 	    if (repv->local) { /* local/global conflict */
+		/* "repair" it by discarding all local mutations, 
+		   then move the fixed file into place */
 		if (DiscardAllLocal(repv, space, sizeof(space)) < 0) {
 		    lprintf("Error discarding local mutations: %s\n", space);
 		    if (EndRepair(repv, 1, space, sizeof(space)) < 0)
 			lprintf("Error ending repair: %s\n", space);
 		    quit("Could not repair local-global conflict");
 		}
+
+		if (EndRepair(repv, 1, space, sizeof(space)) < 0)
+		  quit("Error ending repair: %s", space);
+
+		/* move the fixed file in */
+		if (copyfile_byname(fixed, repv->rodir) < 0)
+		  quit("Error moving fixed file: %s", strerror(errno));
+		if (unlink(fixed) < 0)
+		  quit("Could not remove fixed file: %s", strerror(errno));
 	    }
 	    else { /* server/server conflict */
-		if (RemoveInc(repv, space, sizeof(space)) < 0) {
-		    lprintf("Error discarding removing inconsistency: %s\n", space);
-		    if (EndRepair(repv, 1, space, sizeof(space)) < 0)
-			lprintf("Error ending repair: %s\n", space);
-		    quit("Could not repair server-server conflict");
-		}
+
+		if (stat(fixed, &sbuf) != 0)
+		    quit("Couldn't find fixed file %s: %s", fixed, strerror(errno));
+
+		if (!(sbuf.st_mode & S_IFREG))
+		    quit("File %s is not a regular file (and hence cannot be used for repair)", fixed);
+
+		if (!repair_getfid(fixed, &fixfid, &fixvv, space, sizeof(space)) && (fixvv.StoreId.Host != -1))
+		    sprintf(fixfile, "@%x.%x.%x", fixfid.Volume, fixfid.Vnode, fixfid.Unique);
+		else strcpy(fixfile, fixed);
+
+		if (EndRepair(repv, 1, space, sizeof(space)) < 0)
+		    quit("Error ending repair: %s", space);
+
+		if ((dorep(repv, fixfile, NULL, 0) < 0) && (errno != ETOOMANYREFS))
+		    quit("Error repairing conflict: %s", strerror(errno));
 	    }
-
-	    if (EndRepair(repv, 1, space, sizeof(space)) < 0)
-		quit("Error ending repair: %s", space);
-
-	    /* move the fixed file */
-	    if (copyfile_byname(fixed, repv->rodir) < 0)
-		quit("Error moving fixed file: %s", strerror(errno));
-	    if (unlink(fixed) < 0)
-		quit("Could not remove fixed file: %s", strerror(errno));
 	}
 	return(0);
     }

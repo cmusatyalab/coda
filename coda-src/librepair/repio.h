@@ -116,9 +116,9 @@ struct listhdr
     };
 
 /* I/O routines */
-int repair_putdfile (char *fname, int replicaCount, struct listhdr *replicaList);
-int repair_getdfile (char *fname, int *replicaCount, struct listhdr **replicaList);
-int repair_parseline (char *line, struct repair *rs);
-int repair_parsefile (char *fname, int *hdcount, struct listhdr **hdarrray);
-void repair_printline (struct repair *rs, FILE *ff);
-void repair_printfile (char *fname);
+int repair_putdfile(char *fname, int replicaCount, struct listhdr *replicaList);
+int repair_getdfile(char *fname, int *replicaCount, struct listhdr **replicaList);
+int repair_parseline(char *line, struct repair *rs);
+int repair_parsefile(char *fname, int *hdcount,  struct listhdr **hdarray);
+void repair_printline(struct repair *rs, FILE *ff);
+void repair_printfile(char *fname);
