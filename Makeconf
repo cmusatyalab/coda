@@ -74,10 +74,10 @@ DEPFLAG   := -MD
 #GFLAG    := -g
 LIBFLAGS  := $(OPTLFLAG)
 AFLAGS	  := $(GFLAG) $(DEPFLAG) $(MACHINE_FLAGS) $(MYFLAGS) $(INCLFLAGS)
-CFLAGS	  := $(OPTFLAG) $(AFLAGS) -O2
+CFLAGS	  := $(OPTFLAG) $(AFLAGS) 
 CXXFLAGS  := $(CFLAGS)
 
-RP2FLAGS  = -e  -I . -I $(srcdir) -I $(INCLDIR)
+RP2FLAGS  = -e  -I . -I $(srcdir) 
 
 
 # uncomment some of the next lines if you have kerberos
