@@ -1,3 +1,9 @@
+New in 1.24:
+
+* Set the UDP sockets to non-blocking. A bad UDP checksum could cause
+  recvfrom/recvmsg to block.
+* Try to bind listen sockets to the same portnumber.
+
 New in 1.23:
 
 * Don't assume RPC2_EAI_ errorcodes are identical to the EAI_ errors.

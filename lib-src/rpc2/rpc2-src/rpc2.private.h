@@ -480,7 +480,7 @@ void FreeHeld(struct SL_Entry *sle);
 
 /* Socket creation */
 
-long rpc2_CreateIPSocket(int af, int *svar, struct RPC2_addrinfo *addr, RPC2_PortIdent *Port);
+long rpc2_CreateIPSocket(int af, int *svar, struct RPC2_addrinfo *addr, short *Port);
 
 /* Packet  routines */
 long rpc2_SendReliably(), rpc2_MSendPacketsReliably();

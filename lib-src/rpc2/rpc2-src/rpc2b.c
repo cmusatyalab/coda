@@ -77,8 +77,9 @@ long RPC2_Init(char *VId,		/* magic version string */
 {
     char *c;
     long i, ctpid;
-    struct RPC2_addrinfo *rpc2_localaddr;
+    struct RPC2_addrinfo *rpc2_localaddrs;
     long rc1 = RPC2_NOCONNECTION, rc2, rc;
+    short port = 0;
 
     rpc2_logfile = stderr;
     rpc2_tracefile = stderr;
@@ -102,20 +103,21 @@ long RPC2_Init(char *VId,		/* magic version string */
     rpc2_InitMgrp();
     rpc2_InitHost();
 
-    rpc2_localaddr = rpc2_resolve(&rpc2_bindhost, Port);
+    rpc2_localaddrs = rpc2_resolve(&rpc2_bindhost, Port);
 
-    if (!rpc2_localaddr) {
+    if (!rpc2_localaddrs) {
 	say(-1, RPC2_DebugLevel, "RPC2_Init(): Couldn't get addrinfo for localhost!\n");
 	rpc2_Quit(RPC2_FAIL);
     }
     
 #ifdef PF_INET6
-    rc1 = rpc2_CreateIPSocket(PF_INET6, &rpc2_v6RequestSocket, rpc2_localaddr,
-			     &rpc2_LocalPort);
+    rc1 = rpc2_CreateIPSocket(PF_INET6, &rpc2_v6RequestSocket,
+			      rpc2_localaddrs, &port);
 #endif
-    rc2 = rpc2_CreateIPSocket(PF_INET, &rpc2_v4RequestSocket, rpc2_localaddr,
-			     &rpc2_LocalPort);
-    RPC2_freeaddrinfo(rpc2_localaddr);
+    rc2 = rpc2_CreateIPSocket(PF_INET, &rpc2_v4RequestSocket,
+			      rpc2_localaddrs, &port);
+
+    RPC2_freeaddrinfo(rpc2_localaddrs);
 
     /* rc should probably be the most 'positive' result of the two */
     rc = (rc1 > rc2) ? rc1 : rc2;
@@ -123,6 +125,9 @@ long RPC2_Init(char *VId,		/* magic version string */
 	say(-1, RPC2_DebugLevel, "RPC2_Init(): Couldn't create socket\n");
 	rpc2_Quit(rc);
     }
+
+    rpc2_LocalPort.Tag = RPC2_PORTBYINETNUMBER;
+    rpc2_LocalPort.Value.InetPortNumber = port;
 
     if (Port)
 	*Port = rpc2_LocalPort;
@@ -834,14 +839,41 @@ long RPC2_ClearNetInfo(IN Conn)
 /* adding this arg in theory allows me to specify whether to
    create a v4 or v6 socket.  Simpler way to do this? */
 long rpc2_CreateIPSocket(int af, int *svar, struct RPC2_addrinfo *addr,
-			 RPC2_PortIdent *Port)
+			 short *Port)
 {
+    struct sockaddr_storage bindaddr;
+    socklen_t blen;
     int err = RPC2_FAIL;
-    int flags;
+    int flags, rc;
+    short port = 0, *sa_port;
+
+    if (Port && *Port != 0)
+	port = *Port;
 
     for (; addr; addr = addr->ai_next) {
 	if (af != PF_UNSPEC && af != addr->ai_family)
 	    continue;
+
+        switch (addr->ai_family) {
+	case PF_INET:
+	    sa_port = &((struct sockaddr_in *)addr->ai_addr)->sin_port;
+	    break;
+#if defined(PF_INET6)
+        case PF_INET6:
+	    sa_port = &((struct sockaddr_in6 *)addr->ai_addr)->sin6_port;
+            break;
+#endif
+        default:
+            sa_port = NULL;
+        }
+	/* if the sockaddr doesn't have a port set, but we previously bound
+	 * successfully to a specific port (most likely with another protocol
+	 * or on another interface), then try to bind to the same port for this
+	 * address. If the bind fails then the OS probably maps 6to4. Or we are
+	 * colliding with some other application, but there is no way to tell
+	 * the difference. */
+	if (sa_port && *sa_port == 0 && port != 0)
+	    *sa_port = port;
 
 	/* Allocate socket */
 	*svar = socket(addr->ai_family, addr->ai_socktype, addr->ai_protocol);
@@ -876,32 +908,32 @@ long rpc2_CreateIPSocket(int af, int *svar, struct RPC2_addrinfo *addr,
 	    continue;
 	}
 
-	/* Retrieve fully resolved socket address */
-	if (Port) {
-	    struct RPC2_addrinfo *ai;
-	    struct sockaddr_storage bindaddr;
-	    socklen_t blen = sizeof(bindaddr);
-	    int rc = getsockname(*svar, (struct sockaddr *)&bindaddr, &blen);
-	    if (rc < 0) {
-		err = RPC2_FAIL;
-		close(*svar);
-		*svar = -1;
-		continue;
-	    }
-
-	    ai = RPC2_allocaddrinfo((struct sockaddr *)&bindaddr, blen,
-				    addr->ai_socktype, addr->ai_protocol);
-	    assert(ai != NULL);
-	    rpc2_splitaddrinfo(NULL, Port, ai);
-	    RPC2_freeaddrinfo(ai);
-
-#ifdef RPC2DEBUG
-	    if (RPC2_DebugLevel > 9) {
-		rpc2_PrintPortIdent(Port, rpc2_tracefile);
-		fprintf(rpc2_tracefile, "\n");
-	    }
-#endif
+	/* Retrieve fully resolved socket address so we can check which port we
+	 * actually got bound to */
+	blen = sizeof(bindaddr);
+	rc = getsockname(*svar, (struct sockaddr *)&bindaddr, &blen);
+	if (rc < 0) {
+	    err = RPC2_FAIL;
+	    close(*svar);
+	    *svar = -1;
+	    continue;
 	}
+
+        switch (addr->ai_family) {
+	case PF_INET:
+	    port = ((struct sockaddr_in *)&bindaddr)->sin_port;
+	    break;
+#if defined(PF_INET6)
+        case PF_INET6:
+	    port = ((struct sockaddr_in6 *)&bindaddr)->sin6_port;
+            break;
+#endif
+        default:
+	    break;
+        }
+	if (Port)
+	    *Port = port;
+
 	err = RPC2_SUCCESS;
 	break;
     }
