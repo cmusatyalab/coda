@@ -19,6 +19,7 @@ Coda are listed in the file CREDITS.
 #include <config.h>
 #endif
 
+#include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <stdio.h>

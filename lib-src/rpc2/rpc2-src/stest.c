@@ -43,6 +43,7 @@ Pittsburgh, PA.
 #include <sys/time.h>
 #include <sys/stat.h>
 #include <sys/signal.h>
+#include <sys/socket.h>
 #include <netinet/in.h>
 #include <math.h>
 #include <assert.h>
