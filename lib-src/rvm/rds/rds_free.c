@@ -149,16 +149,20 @@ int rds_fake_free(addr, list)
      intentionList_t *list;
 {
     char **temp;
-    
     free_block_t *bp = BLOCK_HDR(addr);  /* find pointer to block header */
+
     
     /* Make sure the heap has been initialized */
     if (!HEAP_INIT) {
 	return EHEAP_INIT;
     }
 
+    /* Freeing a NULL ptr? */
+    if (!addr)
+	return SUCCESS;
+
     /* Make sure that the pointer is word aligned */
-    if ((bp == NULL) || ((unsigned long)bp % sizeof(void *)) != 0)
+    if (((unsigned long)bp % sizeof(void *)) != 0)
 	return EBAD_ARGS;
     
     /* Verify that the guards are intact */

@@ -30,7 +30,7 @@ rvm_release_segment (
     rvm_region_def_t    **regions)    /* array of region descriptors */
 {
     rvm_region_t *region = rvm_malloc_region();
-    rvm_return_t err;
+    rvm_return_t err = RVM_SUCCESS;
     int i;
 
     for (i = 0; i < nregions; i++) {

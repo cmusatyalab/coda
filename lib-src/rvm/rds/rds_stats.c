@@ -201,59 +201,6 @@ void rds_trace_dump_free_lists()
   RDS_LOG("rdstrace: stop dump_free_lists\n");
 }
 
-void rds_trace_dump_blocks()
-{
-  int same;
-  free_block_t *fbp, *next_fbp;
-  
-  RDS_LOG("rdstrace: start dump_blocks\n");
-  
-  fbp = (free_block_t *)((char *)&(((free_list_t *)RDS_FREE_LIST)[RDS_NLISTS])
-			 + sizeof(free_list_t));
-  same = 1;
-  
-  while ((char *)fbp < (char *)RDS_HIGH_ADDR) {
-    
-    if ((fbp->type != FREE_GUARD) && (fbp->type != ALLOC_GUARD))
-      RDS_LOG("rdstrace: Error!!! Bad lowguard on block\n");
-    
-    if ((*BLOCK_END(fbp)) != END_GUARD)
-      RDS_LOG("rdstrace: Error!!! Bad highguard, %p=%lx\n",
-			   BLOCK_END(fbp), *BLOCK_END(fbp));
-    
-    next_fbp = NEXT_CONSECUTIVE_BLOCK(fbp);
-    
-    RDS_LOG("rdstrace: addr %p size %ld %s\n",
-			 fbp,
-			 fbp->size * RDS_CHUNK_SIZE,
-			 (fbp->type == FREE_GUARD ? "free":"alloc"));
-
-
-    /* This code let's common sizes be printed together.  For now need individual
-       addresses so can't use this.
-       
-    if ((char *)next_fbp < (char *)RDS_HIGH_ADDR) {
-      if ((fbp->type == next_fbp->type) && (fbp->size == next_fbp->size)) {
-	same++;
-      } else {
-	RDS_LOG("rdstrace: %s size %d count %d\n",
-			     (fbp->type == FREE_GUARD ? "free":"alloc"),
-			     fbp->size, same);
-	same = 1;
-      }
-    } else {
-      RDS_LOG("rdstrace: %s size %d count %d\n",
-			   (fbp->type == FREE_GUARD ? "free":"alloc"),
-			   fbp->size, same);
-    }
-    */
-    
-    fbp = next_fbp;
-  }
-  
-  RDS_LOG("rdstrace: stop dump_blocks\n");
-}
-
 int
 rds_trace_dump_heap ()
 {
@@ -267,7 +214,6 @@ rds_trace_dump_heap ()
       rds_trace_dump_stats();
       RDS_LOG("rdstrace: maxlist %ld\n", RDS_MAXLIST);
       rds_trace_dump_free_lists();
-      rds_trace_dump_blocks();
       RDS_LOG("rdstrace: stop heap_dump\n");
     });
   return 0;
