@@ -495,7 +495,7 @@ int DIR_Create (struct DirHeader **dh, char *entry, struct DirFid *fid)
 
 	dir = *dh;
 
-	if ( strlen(entry) > CFS_MAXNAMLEN )
+	if ( strlen(entry) > CODA_MAXNAMLEN )
 		return ENAMETOOLONG;
     
 	/* First check if file already exists. */
@@ -1224,7 +1224,7 @@ int DIR_DirOK(PDirHeader pdh)
 				return 0;
 			}
 			j = strlen(ep->name);
-			if ( j > CFS_MAXNAMLEN ) {
+			if ( j > CODA_MAXNAMLEN ) {
 				printf("Dir entry %p in chain %d has too long name: %s\n",
 				       ep, j, ep->name);
 				return 0;
