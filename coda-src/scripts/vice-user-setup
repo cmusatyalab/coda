@@ -7,10 +7,12 @@ cd /vice/db
 echo "Setting up users and groups for Coda"
 
 echo "System:Administrators   -204    admin" > group.coda
-echo admin::500::Administrator:: > passwd.coda
+echo admin::500::Administrator:: > user.coda
 
-pwd2pdb -p passwd.coda -g group.coda > vice.pdb
+pwd2pdb -u user.coda -g group.coda > vice.pdb
 pcfgen vice.pdb
 
-#echo "500	changeme	admin user" > users.file
-#initpw -k "drseussw " < users.file > auth2.pw
+echo "500	changeme	admin user" > passwd.coda
+initpw -k "drseussw " < passwd.coda > auth2.pw
+
+echo "An initial administrative user "admin" with passwod "changeme" now exists."
