@@ -1,3 +1,7 @@
+New in 1.5:
+
+* Fixed shared library build breakage.
+
 New in 1.4:
 
 * Fixed <sys/time.h> vs. <time.h> confusion.

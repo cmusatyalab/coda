@@ -1,4 +1,4 @@
-rvm (1.4) unstable; urgency=low
+rvm (1.5) unstable; urgency=low
 
   * Merged debian packaging with rvm distribution
 
