@@ -209,7 +209,6 @@ void rpc2_ActivateSle (selem, exptime)
     struct timeval *exptime;
     {
     struct TM_Elem *t, *oldt;
-    long delta;
 
     assert(selem->MagicNumber == OBJ_SLENTRY);
     selem->TElem.BackPointer = (char *)selem;

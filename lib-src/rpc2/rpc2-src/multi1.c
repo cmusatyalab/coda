@@ -568,7 +568,7 @@ static long mrpc_SendPacketsReliably(
     struct timeval *TimeOut)		/* client specified timeout */
 {
     struct SL_Entry *slp;
-    RPC2_PacketBuffer *preply, **Reply;  /* RPC2 Response buffers */
+    RPC2_PacketBuffer *preply;  /* RPC2 Response buffers */
     struct CEntry *c_entry;
     long finalrc, secode = 0;
     long thispacket, hopeleft, i;
@@ -662,7 +662,8 @@ static long mrpc_SendPacketsReliably(
     /* send multicast packet here. */
     if (MCast)
 	{
-	say(9, RPC2_DebugLevel, "Sending multicast packet at time %d\n", rpc2_time());
+	say(9, RPC2_DebugLevel, "Sending multicast packet at time %ld\n",
+	    rpc2_time());
 	me->CurrentPacket->Header.TimeStamp = htonl(rpc2_MakeTimeStamp());
 	rpc2_XmitPacket(me->CurrentPacket, me->IPMAddr, 0);
 	me->NextSeqNumber += 2;	/* blindly increment the multicast sequence number??? */
@@ -800,7 +801,7 @@ static long mrpc_SendPacketsReliably(
 		    slp->RetryIndex += 1;
 		    tout = &c_entry->Retry_Beta[slp->RetryIndex];
 		    rpc2_ActivateSle(slp, tout);
-		    say(9, RPC2_DebugLevel, "Sending retry %ld at %d on 0x%lx (timeout %ld.%06ld)\n", slp->RetryIndex, rpc2_time(), c_entry->UniqueCID, tout->tv_sec, tout->tv_usec);
+		    say(9, RPC2_DebugLevel, "Sending retry %ld at %ld on 0x%lx (timeout %ld.%06ld)\n", slp->RetryIndex, rpc2_time(), c_entry->UniqueCID, tout->tv_sec, tout->tv_usec);
 		    mcon[thispacket].req->Header.Flags = htonl((ntohl(mcon[thispacket].req->Header.Flags) | RPC2_RETRY));
 		    mcon[thispacket].req->Header.TimeStamp = htonl(rpc2_MakeTimeStamp());
 		    rpc2_Sent.Retries += 1;	/* RPC retries are currently NOT multicasted! -JJK */

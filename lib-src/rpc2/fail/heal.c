@@ -20,6 +20,7 @@ listed in the file CREDITS.
 #include <stdio.h>
 #include <sys/types.h>
 #include <string.h>
+#include <stdlib.h>
 #include <ctype.h>
 #include <netdb.h>
 #include <sys/socket.h>
@@ -28,6 +29,8 @@ listed in the file CREDITS.
 extern void ntohFF(FailFilter *);
 extern void htonFF(FailFilter *);
 void PrintError();
+int NewConn(char *host, short port, unsigned long *cid);
+void InitRPC(void);
 
 static int HealParseArgs(int argc, char ** argv) ;
 static char *host1 = NULL;
@@ -40,6 +43,7 @@ static short port2 = 0;
      ((((unsigned char *)(he)->h_addr)[1]) == (ip2)) &&	\
      ((((unsigned char *)(he)->h_addr)[2]) == (ip3)) &&	\
      ((((unsigned char *)(he)->h_addr)[3]) == (ip4)))
+
 int heal(int argc, char ** argv)
 {
     int i;

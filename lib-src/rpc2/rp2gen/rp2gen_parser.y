@@ -163,7 +163,7 @@ static char *createsize(name)
 static char *createmaxsize(name)
     char *name;
 {
-    return concat(name, "_max_size_");
+    return concat(name, "_size_max_");
 }
 
 int next_opnum = 1;

@@ -76,12 +76,6 @@ static int *theQueues[2];
 static int FilterID = 1;
 
 #ifdef DEBUG_FAIL
-#define TEMPDEBUG(msg) \
-{ printf(msg); PrintFilters(); }
-#else
-#define TEMPDEBUG(msg)
-#endif
-
 static int PrintFilter(FailFilter *f)
 {
     printf("\tip %d.%d.%d.%d color %d len %d-%d factor %d speed %d, latency %d\n",
@@ -90,7 +84,7 @@ static int PrintFilter(FailFilter *f)
     return 0;
 }
 
-static  int PrintFilters()
+static int PrintFilters()
 {
     int side, which;
 
@@ -103,6 +97,11 @@ static  int PrintFilters()
     }
     return 0;
 }
+#define TEMPDEBUG(msg) do { printf(msg); PrintFilters(); } while(0)
+#else
+#define TEMPDEBUG(msg) do { } while(0)
+#endif
+
 
 
 /* Exported routines */
@@ -160,8 +159,8 @@ FailFilter *filter;
 
     /* Currently, nothing is done to slow filters on the receive side. */
     if (side == recvSide &&
-        ((filter->speed > 0) && (filter->speed < MAXNETSPEED) ||
-         filter->latency))
+	((filter->speed > 0 && filter->speed < MAXNETSPEED) ||
+	 filter->latency))
 	return -2;	/* -2 is a HACK */
     
     filter->id = FilterID++;
@@ -189,7 +188,7 @@ FailFilter *filter;
 
 	theQueues[(int)side][which] = myq;	
     }
-TEMPDEBUG("InsertFilter!\n")
+TEMPDEBUG("InsertFilter!\n");
 	/* return (filter->id); */
 	return 0;
 }
@@ -230,7 +229,7 @@ int id;
 	DecQueue(theQueues[(int)side][which], filter->ip1, filter->ip2, filter->ip3, filter->ip4);
 	theQueues[(int)side][which] = 0;
 #endif
-TEMPDEBUG("RemoveFilter!\n")
+TEMPDEBUG("RemoveFilter!\n");
     return 0;
 }
 
@@ -333,7 +332,7 @@ FailFilter *filter;
 	theQueues[(int)side][which] = myq;	
     }
 	
-TEMPDEBUG("ReplaceFilter!\n")
+TEMPDEBUG("ReplaceFilter!\n");
     return 0;
 }
 

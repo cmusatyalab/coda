@@ -99,8 +99,6 @@ static long MakeBigEnough();
 
 long SFTP_Init()
 {
-    char *sname;
-    
     say(0, SFTP_DebugLevel, "SFTP_Init()\n");
 
     sftp_InitTrace();
@@ -949,7 +947,7 @@ static long MakeBigEnough(RPC2_PacketBuffer **whichP, off_t extraBytes,
 
 
 int sftp_AddPiggy(RPC2_PacketBuffer **whichP, char *dPtr, off_t dSize,
-		  long maxSize)
+		  unsigned int maxSize)
 /* whichP	- packet to be enlarged
  * dPtr		- data to be piggybacked
  * dSize	- length of data at dPtr
@@ -961,7 +959,7 @@ int sftp_AddPiggy(RPC2_PacketBuffer **whichP, char *dPtr, off_t dSize,
     */
 {
     assert(dSize <= INT_MAX); /* LFS */
-    say(9, SFTP_DebugLevel, "sftp_AddPiggy: %ld\n", (int)dSize);
+    say(9, SFTP_DebugLevel, "sftp_AddPiggy: %d\n", (int)dSize);
     
     if (MakeBigEnough(whichP, dSize, maxSize) < 0) return (-1);
 

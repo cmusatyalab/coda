@@ -19,6 +19,7 @@ listed in the file CREDITS.
 #include <stdio.h>
 #include <sys/types.h>
 #include <string.h>
+#include <stdlib.h>
 #include <ctype.h>
 #include <netdb.h>
 #include <sys/socket.h>
@@ -30,6 +31,8 @@ extern void htonFF(FailFilter *);
 void PrintError();
 void PrintUsage();
 static void ParseArgs(int argc, char **argv);
+int NewConn(char *host, short port, unsigned long *cid);
+void InitRPC(void);
 
 char *host1 = NULL;
 char *host2 = NULL;

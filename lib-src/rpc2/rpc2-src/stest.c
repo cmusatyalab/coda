@@ -135,7 +135,6 @@ int main(argc, argv)
  */
 void HandleRequests(void *arg)
 {
-    int lwp = (int)arg;
     RPC2_PacketBuffer *InBuff, *OutBuff;
 #if REQFILTER
     RPC2_RequestFilter reqfilter;
@@ -244,16 +243,17 @@ static void PrintHostIdent(hPtr, tFile)
     RPC2_HostIdent *hPtr;
     FILE *tFile;
     {
-    char addr[INET_ADDRSTRLEN];
+    char addr[RPC2_ADDRSTRLEN];
     if (tFile == NULL) tFile = stdout;	/* it's ok, call-by-value */
     switch (hPtr->Tag)
 	{
 	case RPC2_HOSTBYADDRINFO:
-		rpc2_printaddrinfo(hPtr->Value.AddrInfo, tFile);
+		RPC2_formataddrinfo(hPtr->Value.AddrInfo, addr, sizeof(addr));
+		fprintf(tFile, "Host.Addrinfo = %s", addr);
 		break;
 
 	case RPC2_HOSTBYINETADDR:
-		inet_ntop(AF_INET, &hPtr->Value.InetAddress, addr, INET_ADDRSTRLEN);
+		inet_ntop(AF_INET, &hPtr->Value.InetAddress, addr,sizeof(addr));
 		fprintf(tFile, "Host.InetAddress = %s", addr);
 		break;	
 	

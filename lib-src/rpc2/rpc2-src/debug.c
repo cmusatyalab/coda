@@ -89,8 +89,8 @@ static char *WhichMagic(int x)
 void rpc2_PrintTMElem(struct TM_Elem *tPtr, FILE *tFile)
 {
     if (tFile == NULL) tFile = rpc2_logfile;	/* it's ok, call-by-value */
-    fprintf(tFile, "MyAddr = 0x%lx Next = 0x%lx  Prev = 0x%lx  TotalTime = %ld:%ld  TimeLeft = %ld:%ld  BackPointer = %p\n",
-    	(long)tPtr, (long)tPtr->Next, (long)tPtr->Prev, tPtr->TotalTime.tv_sec, tPtr->TotalTime.tv_usec,
+    fprintf(tFile, "MyAddr = %p Next = %p Prev = %p TotalTime = %ld:%ld  TimeLeft = %ld:%ld  BackPointer = %p\n",
+    	tPtr, tPtr->Next, tPtr->Prev, tPtr->TotalTime.tv_sec, tPtr->TotalTime.tv_usec,
 	tPtr->TimeLeft.tv_sec, tPtr->TimeLeft.tv_usec, tPtr->BackPointer);
     (void) fflush(tFile);
 }

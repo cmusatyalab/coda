@@ -26,6 +26,7 @@ listed in the file CREDITS.
  */
 #include <sys/types.h>
 #include <stdio.h>
+#include <string.h>
 #include <assert.h>
 #include <lwp/lwp.h>
 #include <rpc2/rpc2.h>

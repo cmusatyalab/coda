@@ -18,6 +18,7 @@ listed in the file CREDITS.
 
 #include <stdio.h>
 #include <sys/types.h>
+#include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
 #include <netdb.h>
@@ -29,6 +30,8 @@ extern void ntohFF(FailFilter *);
 extern void htonFF(FailFilter *);
 void PrintError();
 static int PartParseArgs(int argc, char ** argv) ;
+int NewConn(char *host, short port, unsigned long *cid);
+void InitRPC(void);
 
 static char *host1 = NULL;
 static char *host2 = NULL;

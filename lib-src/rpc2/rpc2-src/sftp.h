@@ -404,7 +404,7 @@ int sftp_AppendParmsToPacket(struct SFTP_Entry *sEntry, RPC2_PacketBuffer **whic
 int sftp_ExtractParmsFromPacket(struct SFTP_Entry *sEntry, RPC2_PacketBuffer *whichP);
 off_t sftp_AppendFileToPacket(struct SFTP_Entry *sEntry, RPC2_PacketBuffer **whichP);
 off_t sftp_ExtractFileFromPacket(struct SFTP_Entry *sEntry, RPC2_PacketBuffer *whichP);
-int sftp_AddPiggy(RPC2_PacketBuffer **whichP, char *dPtr, off_t dSize, long maxSize);
+int sftp_AddPiggy(RPC2_PacketBuffer **whichP, char *dPtr, off_t dSize, unsigned int maxSize);
 void sftp_SetError(struct SFTP_Entry *s, enum SFState e);
 int sftp_MorePackets(void);
 
