@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vice/srvproc.cc,v 4.25 1998/12/08 15:07:22 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vice/srvproc.cc,v 4.26 1998/12/09 14:57:03 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -118,6 +118,7 @@ extern "C" {
 #ifdef _TIMECALLS_
 #include "timecalls.h"
 #endif _TIMECALLS_
+
 
 /* From Vol package. */
 extern void VCheckDiskUsage(Error *, Volume *, int );
