@@ -30,9 +30,9 @@ export PATH
 
 prefix=@prefix@
 vicedir=
-if [ -f @sysconfdir@/server.conf ] ; then
-  . @sysconfdir@/server.conf
-fi
+
+# load the server configuration file
+. codaconfedit server.conf
 
 if [ x${vicedir} = x ]; then
   vicedir=/vice

@@ -8,6 +8,7 @@ usr/bin/reinit
 usr/bin/rpc2ping
 usr/bin/smon2
 usr/sbin/startserver
+usr/sbin/codaconfedit
 usr/sbin/codastart
 usr/sbin/partial-reinit.sh
 usr/sbin/createvol_rep
@@ -21,7 +22,6 @@ usr/sbin/vice-setup-srvdir
 usr/sbin/vice-setup-user
 usr/sbin/vice-killvolumes
 usr/sbin/coda-setup-ports
-usr/sbin/codaconfedit
 usr/sbin/pwdtopdbtool.py
 usr/sbin/pdbtool
 usr/sbin/inoder

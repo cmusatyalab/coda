@@ -34,7 +34,6 @@ endif
 CBINS  = $(EXECUTABLES)
 CSBINS = codaconfedit
 SSBINS = codaconfedit
-
 EXECUTABLES += codaconfedit
 
 CMON_LIBS   = $(LIBVICEDEP) $(LIBBASE)

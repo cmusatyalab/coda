@@ -36,7 +36,7 @@ if [ $# = 2 ] ; then
     numservers=$2
 else
     if [ $# != 0 ] ; then
-        echo "Usage: $0 [-n numer-of-server-processes]"
+        echo "Usage: $0 [-n number-of-server-processes]"
         exit 1
     else
         numservers=1
