@@ -63,7 +63,7 @@ Realm *RealmDB::GetRealm(const char *realmname)
     Realm *realm;
 
     if (!realmname || realmname[0] == '\0')
-	realmname = "UNKNOWN";
+	return NULL;
 
     CODA_ASSERT(strlen(realmname) <= MAXHOSTNAMELEN);
 
@@ -110,8 +110,8 @@ void RealmDB::GetDown(void)
 
 	if (!realm->refcount && !realm->rec_refcount) {
 	    Recov_BeginTrans();
-	    realm->GetRef();
-	    realm->PutRef();
+	    realm->Rec_GetRef();
+	    realm->Rec_PutRef();
 	    Recov_EndTrans(MAXFP);
 	}
     }

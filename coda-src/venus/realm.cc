@@ -126,6 +126,11 @@ void Realm::PutRef(void)
     CODA_ASSERT(refcount);
     refcount--;
 
+    return;
+
+/* The following code is too agressive at the moment. We end up killing a newly
+ * created realm mount between the lookup and the getattr. -JH */
+#if 0
     if (refcount || rec_refcount)
 	return;
 
@@ -137,6 +142,7 @@ void Realm::PutRef(void)
 
     if (!intrans)
 	Recov_EndTrans(MAXFP);
+#endif
 }
 
 /* Get a connection to any server (as root). */
