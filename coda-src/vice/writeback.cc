@@ -170,8 +170,8 @@ long FS_ViceGetWBPermit(RPC2_Handle cid, VolumeId Vid,
     volptr = VGetVolume((Error *) &errorCode, rwVid);
     SLog(1, "GetWBPermit: Got volume %x: error = %d", rwVid, errorCode);
     if (errorCode) {
-	SLog(0,  "ViceGetWBPermit, VgetVolume error %s", ViceErrorMsg((int)errorCode));
-	/* should we check to see if we must do a putvolume here */
+	SLog(0,  "ViceGetWBPermit, VGetVolume error %s",
+	     ViceErrorMsg((int)errorCode));
 	goto Exit;
     }
 
@@ -194,18 +194,20 @@ long FS_ViceGetWBPermit(RPC2_Handle cid, VolumeId Vid,
 	    }
 	    else {
 		*Permit =  WB_PERMIT_GRANTED;
-		SLog(1, "GetWBPermit: Granting WB Permit to WBid %x",client->VenusId);
+		SLog(1, "GetWBPermit: Granting WB Permit to WBid %x",
+		     client->VenusId);
 	    }
 	}
     }
     else {
-	*Permit =  WB_DISABLED;
+	*Permit = WB_DISABLED;
 	SLog(1, "GetWBPermit: WriteBack disabled on Volume %x",Vid);
     }
 
+    VPutVolume(volptr);
+
  Exit:
-    SLog(2, "ViceGetWBPermit returns %s\n",
-	   ViceErrorMsg((int)errorCode));
+    SLog(2, "ViceGetWBPermit returns %s\n", ViceErrorMsg((int)errorCode));
 
     return(errorCode);
 }
@@ -307,9 +309,11 @@ long ReturnWBPermit(RPC2_Handle cid, VolumeId Vid, int revoke)
 	SLog(1, "ReturnWBPermit: VenusId %x tried to destroy a permit not its.",client->VenusId);
 	
     }
+
+    VPutVolume(volptr);
+
  Exit:
-    SLog(2, "ReturnWBPermit returns %s\n",
-	   ViceErrorMsg((int)errorCode));
+    SLog(2, "ReturnWBPermit returns %s\n", ViceErrorMsg((int)errorCode));
 
     return(errorCode);
 }
@@ -318,7 +322,7 @@ long ReturnWBPermit(RPC2_Handle cid, VolumeId Vid, int revoke)
 int CheckWriteBack(ViceFid * Fid,ClientEntry * client) {
     VolumeId Vid,VenusVid,myVid;
     WBHolderEntry * WBHolder;
-    RPC2_Integer rc;
+    RPC2_Integer rc = 0;
     VolumeId rwVid;
     long errorCode = 0;
     Volume *volptr;
@@ -354,7 +358,7 @@ int CheckWriteBack(ViceFid * Fid,ClientEntry * client) {
     
     if (list_empty(&volptr->WriteBackHolders)) {  /* noone has a permit */
 	SLog(1, "CheckWriteBack: Nobody has permit on %x",myVid);
-	return 0;
+	goto FreeLocks;
     }
 
     /* Someone(s) has a writeback permit out on the volume */
@@ -374,24 +378,27 @@ int CheckWriteBack(ViceFid * Fid,ClientEntry * client) {
 	  if they don't have a permit, let it go. -- ordinary case */
 
     if (matchWBHolder(volptr,client->VenusId)) {  /* I already have it*/
-	SLog(1, "CheckWriteBack: %x is writeback holder for volume %x",client->VenusId,myVid);
-	return 0;
+	SLog(1, "CheckWriteBack: %x is writeback holder for volume %x",
+	     client->VenusId, myVid);
+	goto FreeLocks;
     }
-    else {                                 /* someone else has permit    */
-	WBHolder = (WBHolderEntry*)volptr->WriteBackHolders.next;
-	SLog(1, "CheckWriteBack: Revoking %x's permit for volume %x",
-	     WBHolder->VenusId,VenusVid);
-	rc = RevokeWBPermitSafely(WBHolder->VenusId,VenusVid,volptr);
-	list_del(&WBHolder->others);
+    /* someone else has permit    */
+    WBHolder = (WBHolderEntry*)volptr->WriteBackHolders.next;
+    SLog(1, "CheckWriteBack: Revoking %x's permit for volume %x",
+	 WBHolder->VenusId,VenusVid);
+    rc = RevokeWBPermitSafely(WBHolder->VenusId,VenusVid,volptr);
+    list_del(&WBHolder->others);
 
-	if (rc == RPC2_SUCCESS) {
-	    SLog(1, "CheckWriteBack: Modifications reintegrated to %x",myVid);
-	    return 0;
-	}
-	else {
-	    SLog(1, "CheckWriteBack: Permit revocation failed on %x with error %d",myVid,rc);
-	    return rc;
-	}
+    if (rc == RPC2_SUCCESS) {
+	SLog(1, "CheckWriteBack: Modifications reintegrated to %x",myVid);
+    } else {
+	SLog(1, "CheckWriteBack: Permit revocation failed on %x with error
+	     %d",myVid,rc);
     }
+
+FreeLocks:
+    VPutVolume(volptr);
+
+    return(rc);
 }
   

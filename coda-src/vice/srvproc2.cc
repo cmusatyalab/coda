@@ -260,8 +260,6 @@ long FS_ViceGetVolumeInfo(RPC2_Handle RPCid, RPC2_String VolName, VolumeInfo *In
 
     int	errorCode = 0;	    /* error code */
     vrent *vre;
-    ViceFid Fid;
-
     
     vre = VRDB.find((char *)VolName);
     if (!vre) {
@@ -1057,7 +1055,6 @@ long FS_ViceNewConnectFS(RPC2_Handle RPCid, RPC2_Unsigned ViceVersion,
 			 ViceClient *ClientId)
 {
     long errorCode;
-    RPC2_PeerInfo peer;
     WBConnEntry *WBconn = NULL;
     ClientEntry *client = NULL;
 
@@ -1079,7 +1076,7 @@ long FS_ViceNewConnectFS(RPC2_Handle RPCid, RPC2_Unsigned ViceVersion,
     /* attempt to send a callback message to this host */
     if (client->VenusId->id != 0) {
 	errorCode = CallBack(client->VenusId->id, &NullFid);
-	if ( errorCode != RPC2_SUCCESS ) {
+	if (errorCode) {
 	    /* tear down nak'd connection */
 	    RPC2_Unbind(client->VenusId->id);
 	    client->VenusId->id = 0;
@@ -1097,42 +1094,35 @@ long FS_ViceNewConnectFS(RPC2_Handle RPCid, RPC2_Unsigned ViceVersion,
     }
 
    /* set up a writeback channel if there isn't one for this host */
-    if ((errorCode == 0) && (OpenWritebackConn)) {
-	WBconn = findIdleWBConn(client->VenusId);
+    if (OpenWritebackConn && errorCode == RPC2_SUCCESS) {
+	/* try all free connections */
+	while ((WBconn = findIdleWBConn(client->VenusId)) != NULL) {
+	    WBconn->inuse = 1;
+	    SLog(10, "Probing existing WriteBack conn %x",WBconn->id);
+	    errorCode = RevokeWBPermit(WBconn->id, 0);
+	    SLog(0, "RevokeWBPermit on conn %x returned %d",
+		 WBconn->id,errorCode);
+	    WBconn->inuse = 0;
+
+	    /* found a working connection, we're done */
+	    if (errorCode == RPC2_SUCCESS) break;
+
+	    /* destroy this dead conn */
+	    RPC2_Unbind(WBconn->id);
+	    list_del(&WBconn->others);
+	    free(WBconn);
+	}
+
 	if (WBconn == NULL) {
 	    SLog(0, "No idle WriteBack conns, building new one");
-	    CODA_ASSERT(RPC2_GetPeerInfo(client->RPCid, &peer) == 0);
 	    errorCode = CLIENT_MakeWriteBackConn(client->VenusId);
 	} 
-	else {                            /* try all free conns  */
-	    errorCode = EPIPE;
-	    while((WBconn) && errorCode) {
-		WBconn->inuse = 1;
-		SLog(10, "Probing existing WriteBack conn %x",WBconn->id);
-		errorCode = RevokeWBPermit(WBconn->id,NULL);
-		SLog(0, "RevokeWBPermit on conn %x returned %d",
-		     WBconn->id,errorCode);
-		WBconn->inuse = 0;
-
-		if ( errorCode ) {        /* destroy this conn   */
-		    RPC2_Unbind(WBconn->id);
-		    list_del(&WBconn->others);
-		    free(WBconn);
-		    WBconn = findIdleWBConn(client->VenusId);
-		}
-	    }
-	    if (errorCode) {
-		SLog(0, "Existing conns dead, building new writeback conn.");
-		CODA_ASSERT(RPC2_GetPeerInfo(client->RPCid, &peer) == 0);
-		errorCode = CLIENT_MakeWriteBackConn(client->VenusId);
-	    }
-	}
     }
 
     if (errorCode)
 	CLIENT_CleanUpHost(client->VenusId);
-    SLog(2, "FS_ViceNewConnectFS returns %s", 
-	 ViceErrorMsg((int) errorCode));
+
+    SLog(2, "FS_ViceNewConnectFS returns %s", ViceErrorMsg((int) errorCode));
     
     return(errorCode);
 }
