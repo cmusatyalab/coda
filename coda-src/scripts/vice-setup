@@ -120,7 +120,7 @@ until [ x$yesno != x ]; do
        if [ `uname` = NetBSD ]; then
 	    mv /etc/vice.init /etc/rc.vice
 	    grep '/etc/rc.vice' /etc/rc.local > /dev/null 2>1
-	    if [ $? != 0]; then 
+	    if [ $? != 0 ]; then 
 	         echo 'if [ -e /etc/rc.vice ]; then /etc/rc.vice start ; fi' >> /etc/rc.local 
 	    fi
        fi
