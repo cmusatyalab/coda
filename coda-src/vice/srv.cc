@@ -961,6 +961,9 @@ void PrintCounters(FILE *fp)
     SLog(0, "TossWBPermit %d", Counters[ViceTossWBPermit_OP]); 
     SLog(0, "RejectWBPermit %d", Counters[ViceRejectWBPermit_OP]); 
 
+    SLog(0, "GetAttrPlusSHA %d", Counters[GETATTRPLUSSHA]); 
+    SLog(0, "ValidateAttrsPlusSHA %d", Counters[VALIDATEATTRSPLUSSHA]); 
+
     seconds = Counters[FETCHTIME]/1000;
     if(seconds <= 0) 
 	seconds = 1;

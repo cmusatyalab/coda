@@ -420,7 +420,8 @@ static Vnode *VAllocVnodeCommon(Error *ec, Volume *vp, VnodeType type,
 	moveHash(vnp, newHash);
 	
 	/* Initialize the VM copy of the vnode. */
-	memset((char *)&vnp->disk, 0, sizeof(vnp->disk));
+	memset(&vnp->disk, 0, sizeof(vnp->disk));
+	memset(&vnp->SHA, 0, sizeof(vnp->SHA));
 	vnp->changed = 1;	/* Eventually write this thing out */
 	vnp->delete_me = 0;
 	vnp->vnodeNumber = vnode;
@@ -561,6 +562,7 @@ Vnode *VGetVnode(Error *ec, Volume *vp, VnodeId vnodeNumber,
 		/* Remove it from the old hash chain */
 		moveHash(vnp, newHash);
 		/* Initialize */
+		memset(&vnp->SHA, 0, sizeof(vnp->SHA));
 		vnp->changed = (byte)0;
 		vnp->delete_me = (byte)0;
 		vnp->nUsers = 0;

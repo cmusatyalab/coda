@@ -376,21 +376,30 @@ START_TIMING(GetAttr_Total);
     if (MySHA)
 	MySHA->SeqLen = 0;
 
-    if (MySHA && MySHA->MaxSeqLen >= SHA_DIGEST_LENGTH &&
-	v->vptr->disk.type == vFile)
+    /* Only files use SHA checksums */
+    if (!MySHA || v->vptr->disk.type != vFile)
+	goto FreeLocks;
+
+    if (IsZeroSHA(VnSHA(v->vptr)))
     {
 	int fd = iopen(V_device(volptr), v->vptr->disk.inodeNumber, O_RDONLY);
-	SLog(-1, "ViceGetAttrPlusSHA: Fid = 0x%x.%x.%x   f_inode=0x%x  fd=%d ", 
-	      Fid->Volume, Fid->Vnode, Fid->Unique, v->vptr->disk.inodeNumber, fd);
+	SLog(0, "GetAttrPlusSHA: Computing SHA %s, disk.inode=%x", 
+	      FID_(Fid), v->vptr->disk.inodeNumber);
 	if (fd == -1) goto FreeLocks;
 
-	ComputeViceSHA(fd, MySHA->SeqBody);
-	MySHA->SeqLen = SHA_DIGEST_LENGTH;
-
-	char printbuf[3*SHA_DIGEST_LENGTH+1]; 
-	ViceSHAtoHex(MySHA->SeqBody, printbuf, sizeof(printbuf));
-	SLog(1, "MySHA = %s\n.",printbuf);
+	ComputeViceSHA(fd, VnSHA(v->vptr));
 	close(fd);
+    }
+
+    if (MySHA->MaxSeqLen >= SHA_DIGEST_LENGTH) {
+	MySHA->SeqLen = SHA_DIGEST_LENGTH;
+	memcpy(MySHA->SeqBody, VnSHA(v->vptr), SHA_DIGEST_LENGTH);
+
+	if (SrvDebugLevel > 1) {
+	    char printbuf[3*SHA_DIGEST_LENGTH]; 
+	    ViceSHAtoHex(MySHA->SeqBody, printbuf, sizeof(printbuf));
+	    fprintf(stdout, "ViceGetAttrPlusSHA: SHA = %s\n", printbuf);
+	}
     }
 
 FreeLocks:
@@ -402,7 +411,6 @@ FreeLocks:
     SLog(2, "ViceGetAttrPlusSHA returns %s", ViceErrorMsg(errorCode));
 END_TIMING(GetAttr_Total);
     return(errorCode);
-
 }
 
 
