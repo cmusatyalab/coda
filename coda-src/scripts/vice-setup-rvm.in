@@ -25,6 +25,10 @@ echon() {
     fi
 }
 
+fullname() {
+    ( cd `dirname $1` ; echo `pwd`/`basename $1` )
+}
+
 # exit if errors
 set -e
 
@@ -184,6 +188,9 @@ while [ $n -le $numservers ]; do
 		;; 
 	esac
     done
+
+    log=`fullname $log`
+    data=`fullname $data`
 
     echo 
     echo --------------------------------------------------------

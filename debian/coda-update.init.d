@@ -10,6 +10,9 @@ UPDATECLNT=/usr/sbin/updateclnt
 UPDATESRV=/usr/sbin/updatesrv
 
 FLAGS="defaults 40"
+ 
+vicedir=/vice
+test -f /etc/coda/server.conf && . /etc/coda/server.conf
 
 test -d $vicedir/db || exit 0
 test -f $vicedir/db/scm || exit 0

@@ -40,11 +40,11 @@ fi
 
 if [ `uname` = 'SunOS' ] ; then
     LOCKFILE=$PIDDIR/auth2.init.lock
+elif [ -d /var/lock/subsys ] ; then # RedHat
+    LOCKFILE=/var/lock/subsys/auth2.init
 else
-    # redhat and debian?
-    LOCKDIR=/var/lock/subsys
-    [ -d $LOCKDIR ] || exit 0
-    LOCKFILE=$LOCKDIR/auth2.init
+    # Debian?
+    LOCKFILE=/var/run/auth2.lock
 fi
 
 echon() {

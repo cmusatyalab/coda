@@ -39,7 +39,6 @@ case "$1" in
 	echon "Starting venus: "
 	if [ -f $pid_file ]; then
 		echo "$pid_file exists, venus already running?."
-		exit 1
 	fi
 	[ -d /var/lock/subsys ] && touch /var/lock/subsys/venus.init
 	@sbindir@/venus &
