@@ -16,7 +16,11 @@ case ${prefix} in
     * )
 	# Otherwise append '/coda' so that we don't throw our configuration
 	# files all over the place.
-	sysconfdir=${sysconfdir}/coda
+	if test "x${prefix}" != xNONE ; then
+		sysconfdir=${prefix}/etc/coda
+	else
+		sysconfdir=${ac_default_prefix}/etc/coda
+	fi
 	initsuffix='etc'
 	;;
 esac
