@@ -215,13 +215,14 @@ void testKernDevice()
 	return;
 #endif
 	int fd = -1;
-	char *str, *p;
+	char *str, *p, *q;
 	CODA_ASSERT((str = p = strdup(kernDevice)) != NULL);
 
-#if 0
-	for(p = strtok(p, ","); fd == -1 && (p = strtok(NULL, ",")) != NULL;)
-#endif
+	for(p = strtok(p, ","); p && fd == -1; p = strtok(NULL, ",")) {
 	    fd = ::open(p, O_RDWR, 0);
+	    if (fd >= 0) 
+		q = p;
+	}
 
 	/* If the open of the kernel device succeeds we know that there is
 	   no other living venus. */
@@ -231,7 +232,7 @@ void testKernDevice()
 	    free(str);
 	    exit(-1);
 	} else
-	    kernDevice = strdup(p);
+	    kernDevice = strdup(q);
 	free(str);
 
 	/* Construct a purge message */

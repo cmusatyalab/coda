@@ -62,9 +62,9 @@ AC_SEARCH_LIBS(bind, socket)
 AC_SEARCH_LIBS(inet_ntoa, nsl)
 
 dnl check for library providing md5 checksumming
-AC_SEARCH_LIBS(MD5Init, ssl crypt,
-  [test "$ac_cv_search_MD5Init" = "none required" || \
-  LIBMD5="$ac_cv_search_MD5Init"
+AC_SEARCH_LIBS(MD5_Init, crypto,
+  [test "$ac_cv_search_MD5_Init" = "none required" || \
+  LIBMD5="$ac_cv_search_MD5_Init"
   LIBS="$ac_func_search_save_LIBS"],
   [MD5C="md5c.o"])
 AC_SUBST(LIBMD5)
@@ -75,7 +75,7 @@ AC_CHECK_HEADERS(search.h sys/resource.h sys/stream.h)
 AC_CHECK_HEADERS(sys/statvfs.h sys/statfs.h sys/mount.h sys/vfs.h)
 AC_CHECK_HEADERS(sys/types.h sys/time.h sys/select.h sys/socket.h sys/ioccom.h)
 AC_CHECK_HEADERS(arpa/inet.h arpa/nameser.h netinet/in.h sys/un.h)
-AC_CHECK_HEADERS(openssl/md5.h md5.h)
+AC_CHECK_HEADERS(openssl/md5.h)
 
 dnl Checks for typedefs.
 CODA_CHECK_TYPE(socklen_t, int, sys/socket.h)

@@ -78,7 +78,7 @@ case ${target} in
 		esac
 		vfsdir=bsd44
  ;;
-	*-*-freebsd4* )
+	*-*-freebsd* )
 		sys=i386_fbsd2
 		vfsdir=bsd44
  ;;
