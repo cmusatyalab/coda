@@ -1,4 +1,4 @@
-2002-01-1?	<jaharkes@cs.cmu.edu>
+2002-02-01	<jaharkes@cs.cmu.edu>
         * ======== Release 5.3.18 =========
 	* Coda servers were doing strncmp instead of memcmp on ip-addresses.
 	  This fixes 'identity-crisis' problems for replicated servers, where
@@ -18,6 +18,19 @@
 	  venus.conf and server.conf configuration files.
 	* Added some more paranoia checks while parsing the /vice/db/servers
 	  file.
+	* No longer ordering VRDB entries entries by ip-address. This allows
+	  us to resize a VSG without affecting version-vectors.
+	* Replaced the codaconfedit script with a C implementation that
+	  searches CODACONFPATH and can be used to query entries as well.
+	* Venus now gracefully handles the situation where getvolinfo returns
+	  different replicas compared to the cached replication information.
+	  Now we only need add server support for VSG changes and a trigger
+	  that forces venus to make a getvolinfo call and we can start moving
+	  volumes around in the system.
+	* Added rds_print_stats to the server's printstats output to aid in
+	  finding whether an RVM allocation failure is due to running out of
+	  RVM space, or due to a large defragmentation that cannot be logged
+	  in the RVM log.
 
 2001-11-06   <jaharkes@cs.cmu.edu>
         * ======== Release 5.3.17 =========
