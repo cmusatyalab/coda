@@ -1,2 +1,0 @@
-KRBINCLFLAGS  = -I/usr/include/kerberosIV
-LIBKRBS       = -lkrb5 -lcrypto -lcom_err -lkrb4

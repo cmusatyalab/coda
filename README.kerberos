@@ -3,23 +3,37 @@ Compiling with Kerberos.
 Before you can compile with kerberos support you must do the
 following:
 
-1. Edit Makeconf.  Set KERBEROS to yes, and select one or both of
-KERBEROS{4,5} to be yes as well. (If you don't want it comment the
-line, don't put it to "no".)
+1. Run configure with the --with-crypto flag.
 
-2. Edit configs/Makeconf.your_platform to indicate the location of
-your kerberos include and library files.
+2. If, according to the configure output the kerberos headers or libraries
+   are not found you can explicitly specify the paths with the following
+   flags for configure,
+     --with-krb4-includes=DIR      krb4 include files are in DIR
+     --with-krb4-libraries=DIR     krb4 library files are in DIR
+     --with-krb5-includes=DIR      krb5 include files are in DIR
+     --with-krb5-libraries=DIR     krb5 library files are in DIR
 
-3. Optional: edit krbsupport.c to give the correct paths for
-kinit. You can also undefine CODAAUTH in the Makefile for auth2.
-
-Now type make coda. 
+Once configure located the appropriate includes and library you can build as
+usual.
 
 Usage changes:
 
-kclog can be given a flags -kerberos4 -kerberos5
-kauth2 should be started up with a -realm "YOUR.KRB.REALM" flag.
+clog will default to what it believes to be the 'best' authentication method,
+but can also be can be forces to use others by giving the flags -codaauth,
+-kerberos4, or -kerberos5
 
-pjb
-07/20/98
+The default realm and location of kinit can be overriden by adding the
+following flags to either /etc/coda/venus.conf or vice.conf or auth2.conf.
+
+    kerberos4service="host"
+    kerberos4realm=(null)
+    kerberos4kinit="kinit"
+
+    kerberos5service="host"
+    kerberos5realm=(null)
+    kerberos5kinit="kinit"
+    kerberos5keytab=(null)
+
+JH
+12/31/02
 

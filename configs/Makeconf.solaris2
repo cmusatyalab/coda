@@ -11,9 +11,6 @@ NATIVECC      = gcc
 SHORTSYS      = solaris2
 LIBDL	      = -ldl
 
-#KRBINCLFLAGS  = -I/usr/athena/include -I/usr/include/kerberosIV
-#LIBKRBS       =    /usr/athena/lib/libkrb4.a /usr/athena/lib/libkrb5.a /usr/athena/lib/libcrypto.a /usr/athena/lib/libcom_err.a  /usr/athena/lib/libdes425.a /usr/athena/lib/libkrb524.a
-
 LIBMATH       = -lm
 GUIDIR        = /usr/lib/coda
 INITDIR       = /etc/init.d

@@ -19,6 +19,3 @@ LIBDB         =
 LIBMATH       = -lm
 GUIDIR        = /usr/local/lib/coda
 
-KRBINCLFLAGS  =
-LIBKRBS = /usr/lib/aout/libkrb.a /usr/lib/aout/libdes.a
-

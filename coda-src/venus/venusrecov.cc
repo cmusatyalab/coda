@@ -77,7 +77,7 @@ int TransCount = 0;
 float TransElapsed = 0.0;
 int MapPrivate = 0;
 
-int InitMetaData = UNSET_IMD;
+int InitMetaData = UNSET_IMD, InitNewInstance = UNSET_IMD;
 char *VenusLogDevice = NULL;
 unsigned long VenusLogDeviceSize = UNSET_VLDS;
 char *VenusDataDevice = NULL;
@@ -195,8 +195,15 @@ void RecovVenusGlobals::print(int fd) {
 	    recov_UUID[12], recov_UUID[13], recov_UUID[14], recov_UUID[15]);
 }
 
+static void RecovNewInstance(void)
+{
+    /* We need to initialize the random number generator before first use */
+    rpc2_InitRandom();
+    VenusGenID = rpc2_NextRandom(NULL);
+}
 
-void RecovInit() {
+void RecovInit(void)
+{
     /* Set unset parameters to defaults (as appropriate). */
     Recov_CheckParms();
 
@@ -208,9 +215,7 @@ void RecovInit() {
 	rvg->recov_VersionNumber = RecovVersionNumber;
 	rvg->recov_LastInit      = Vtime();
 
-	/* We need to initialize the random number generator before first use */
-	rpc2_InitRandom();
-	VenusGenID = rpc2_NextRandom(NULL);
+	RecovNewInstance();
 
 	RecovInited = 1;
 	return;
@@ -464,10 +469,6 @@ static void Recov_LoadRDS()
         rvg->recov_LastInit = Vtime();
         rvg->recov_HeapAddr = Recov_RdsAddr;
         rvg->recov_HeapLength = (unsigned int)Recov_RdsLength;
-
-        /* We need to initialize the random number generator before first use */
-        rpc2_InitRandom();
-        VenusGenID = rpc2_NextRandom(NULL);
         Recov_EndTrans(0);
     } else {
         /* Sanity check RVG fields. */
@@ -489,6 +490,13 @@ static void Recov_LoadRDS()
         Recov_BeginTrans();
         RVMLIB_REC_OBJECT(rvg->recov_CleanShutDown);
         rvg->recov_CleanShutDown = 0;
+        Recov_EndTrans(0);
+    }
+
+    if (InitMetaData || InitNewInstance) {
+        Recov_BeginTrans();
+	RVMLIB_REC_OBJECT(VenusGenID);
+	RecovNewInstance();
         Recov_EndTrans(0);
     }
 

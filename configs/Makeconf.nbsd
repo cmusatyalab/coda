@@ -11,6 +11,3 @@ SHORTSYS      = bsd44
 LIBKVM        = /usr/lib/libkvm.a
 GUIDIR        = /usr/lib/coda
 
-KRBINCLFLAGS  = -I/usr/athena/include -I/usr/include/kerberosIV
-LIBKRBS       =    /usr/athena/lib/libkrb4.a /usr/athena/lib/libkrb5.a /usr/athena/lib/libcrypto.a /usr/athena/lib/libcom_err.a  /usr/athena/lib/libdes425.a /usr/athena/lib/libkrb524.a
-

@@ -325,6 +325,8 @@ static void ParseCmdline(int argc, char **argv) {
 		i++, sftp_packetsize = atoi(argv[i]);
 	    else if (STREQ(argv[i], "-init"))        /* brain wipe rvm */
 		InitMetaData = 1;
+	    else if (STREQ(argv[i], "-newinstance")) /* fake a 'reinit' */
+		InitNewInstance = 1;
 	    else if (STREQ(argv[i], "-rvmt"))
 		i++, RvmType = (rvm_type_t)(atoi(argv[i]));
 	    else if (STREQ(argv[i], "-vld"))          /* location of log device */

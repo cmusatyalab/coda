@@ -55,11 +55,6 @@ RP2FLAGS  = -e  -I . -I $(srcdir)
 
 LIBS	  := $(LIBS) $(LIBFIXUP)
 
-# uncomment some of the next lines if you have kerberos
-# KERBEROS=yes
-# KERBEROS4=yes
-# KERBEROS5=yes
-
 ##############################
 # Library definitions
 ##############################

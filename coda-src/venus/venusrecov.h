@@ -132,7 +132,7 @@ extern float TransElapsed;
 extern int RecovTimeToFlush;
 extern int MapPrivate;
 
-extern int InitMetaData;
+extern int InitMetaData, InitNewInstance;
 extern rvm_type_t RvmType;
 extern char *VenusLogDevice;
 extern unsigned long VenusLogDeviceSize;
