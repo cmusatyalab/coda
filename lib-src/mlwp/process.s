@@ -30,7 +30,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/src/coda-4.0.1/lib-src/mlwp/RCS/process.s,v 1.2 1996/12/09 20:14:17 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/lib-src/mlwp/process.s,v 4.1 1997/01/08 21:54:16 rvb Exp $";
 #endif undef
 #endif /*_BLURB_*/
 
@@ -142,8 +142,20 @@ _returnto:
 #endif sun3
 
 #if defined(sun4) || defined(sparc)
+#ifdef __linux__
+/* This info from Miguel de Icaza (and SunOS header files/libc) */
+#define STACK_ALIGN 8
+#define WINDOWSIZE (4*16)
+#define ARGPUSHSIZE (6*4)
+#define MINFRAME  (WINDOWSIZE+ARGPUSHSIZE+4) /* min frame */
+#define SA(X)     (((X)+(STACK_ALIGN-1)) & ~(STACK_ALIGN-1))
+#define NAME(x) x
+#define ENTRY(x) .type x,@function; .global x; x:
+#include <asm/traps.h>
+#else
 #include <sun4/asm_linkage.h>
 #include <sun4/trap.h>
+#endif
 
 SAVED_PC	= (0*4)
 SAVED_FP	= (1*4)
@@ -156,6 +168,7 @@ SAVESIZE	= (2*4)
 
 ENTRY(savecontext)
 	save	%sp, -SA(MINFRAME + SAVESIZE), %sp
+	t	ST_FLUSH_WINDOWS
 	mov	0x1, %o0
 	sethi	%hi(NAME(PRE_Block)), %o1
 	stb	%o0, [%o1 + %lo(NAME(PRE_Block))]
@@ -170,7 +183,7 @@ ENTRY(savecontext)
 	call	.ptr_call, 0
 	mov	%i0, %g1
 	unimp	0
-
+	
 ENTRY(returnto)
 	t	ST_FLUSH_WINDOWS
 	ld	[%o0], %sp
@@ -180,6 +193,12 @@ ENTRY(returnto)
 	stb	%g0, [%o0 + %lo(NAME(PRE_Block))]
 	retl
 	restore
+
+#ifdef __linux__
+ENTRY(.ptr_call)
+	jmp %g1
+	nop
+#endif
 #endif
 
 #ifdef ibm032
