@@ -302,9 +302,18 @@ long RPC2_GetRequest(IN RPC2_RequestFilter *Filter,
 
     /* Do rest of bind protocol */
     if (ce->SecurityLevel == RPC2_OPENKIMONO)
+    {
+        RPC2_EncryptionKey SharedSecret;
+        /* Abort if we cannot get `keys' for a NULL client */
+        if (GetKeys && (*GetKeys)(&AuthenticationType, NULL, SharedSecret,
+                                  ce->SessionKey) != 0)
 	{
-	SendOKInit2(ce);
+            RejectBind(ce, (long) sizeof(struct Init2Body), (long) RPC2_INIT2);
+            rc = RPC2_NOTAUTHENTICATED;
+	    DROPIT();
 	}
+	SendOKInit2(ce);
+    }
     else
 	{
 	rc = ServerHandShake(ce, &AuthenticationType, &cident, saveXRandom, GetKeys, EncryptionTypeMask);
