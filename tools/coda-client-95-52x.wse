@@ -27,7 +27,7 @@ item: Global
   Version Description=Coda Client
   Version Copyright=1997-1999
   Version Company=Carnegie Mellon University
-  Step View=All
+  Step View=Properties
   Variable Name1=_SYS_
   Variable Default1=C:\WINNT\System32
   Variable Flags1=00001000
@@ -220,7 +220,7 @@ item: Custom Dialog Set
   Name=Display ReadMe
   Display Variable=DISPLAY
   item: Dialog
-    Title=Licence Agreement for Coda 5.0
+    Title=Licence Agreement for Coda
     Title French=Fichier Lisez-moi
     Title German=Liesmich-Datei
     Title Portuguese=Ficheiro Leia-me
@@ -356,11 +356,6 @@ item: Install File
   Flags=0000000010000010
 end
 item: Install File
-  Source=c:\wise-coda\win95\relay.PIF
-  Destination=%MAINDIR%\usr\coda\bin\relay.PIF
-  Flags=0000000010000010
-end
-item: Install File
   Source=c:\wise-coda\win95\cat.exe
   Destination=%MAINDIR%\usr\coda\bin\cat.exe
   Flags=0000000010000010
@@ -381,11 +376,6 @@ item: Install File
   Flags=0000000010000010
 end
 item: Install File
-  Source=c:\wise-coda\win95\cygwin1.dll
-  Destination=%MAINDIR%\usr\coda\bin\cygwin1.dll
-  Flags=0000000010000010
-end
-item: Install File
   Source=c:\wise-coda\win95\cunlog.exe
   Destination=%MAINDIR%\usr\coda\bin\cunlog.exe
   Flags=0000000010000010
@@ -398,6 +388,11 @@ end
 item: Install File
   Source=c:\wise-coda\win95\codadev.vxd
   Destination=%MAINDIR%\usr\coda\bin\codadev.vxd
+  Flags=0000000010000010
+end
+item: Install File
+  Source=c:\wise-coda\win95\cygwin1.dll
+  Destination=%MAINDIR%\usr\coda\bin\cygwin1.dll
   Flags=0000000010000010
 end
 item: Install File
@@ -418,11 +413,6 @@ end
 item: Install File
   Source=c:\wise-coda\win95\logo.sys
   Destination=%MAINDIR%\usr\coda\logo.sys
-  Flags=0000000010000010
-end
-item: Install File
-  Source=c:\wise-coda\win95\myhost
-  Destination=%MAINDIR%\usr\coda\venus.cache\myhost
   Flags=0000000010000010
 end
 item: Install File
@@ -449,11 +439,6 @@ item: Install File
   Flags=0000000010000010
 end
 item: Install File
-  Source=c:\wise-coda\win95\relay.exe
-  Destination=%MAINDIR%\usr\coda\bin\relay.exe
-  Flags=0000000010000010
-end
-item: Install File
   Source=c:\wise-coda\win95\sock.vxd
   Destination=%MAINDIR%\usr\coda\bin\sock.vxd
   Flags=0000000010000010
@@ -474,14 +459,14 @@ item: Install File
   Flags=0000000010000010
 end
 item: Install File
+  Source=c:\wise-coda\win95\coda-repair.ico
+  Destination=%MAINDIR%\usr\coda\bin\coda-repair.ico
+  Flags=0000000010000010
+end
+item: Install File
   Source=c:\wise-coda\win95\coda-howto.html
   Destination=%MAINDIR%\usr\coda\bin\coda-howto.html
   Flags=0000000010000010
-end
-item: Copy Local File
-  Source=%MAINDIR%\usr\coda\venus.cache\myhost
-  Destination=%MAINDIR%\usr\coda\bin
-  Flags=0000000011000010
 end
 item: Create Directory
   Pathname=%STARTUPDIR%\tmp
@@ -516,9 +501,26 @@ item: Set Variable
 end
 item: End Block
 end
+item: Prompt for Text
+  Window Title=Drive Letter
+  Text=Please specify the drive letter you want to use for Coda. Example: N
+  Prompt Title=Drive Letter
+  Default=N
+  Variable=MOUNT
+end
+item: If/While Statement
+  Variable=IP
+  Value=""
+end
+item: Set Variable
+  Variable=MOUNT
+  Value=N
+end
+item: End Block
+end
 item: Insert Line into Text File
   Pathname=%MAINDIR%\usr\coda\etc\vstab
-  New Text=/coda:/dev/cfs0:%IP%::100000:1
+  New Text=%MOUNT%:/dev/cfs0:%IP%::150000:1
   Line Number=0
 end
 item: Add to SYSTEM.INI
@@ -530,20 +532,113 @@ end
 item: Add Directory to Path
   Directory=%MAINDIR%\usr\coda\bin
 end
-item: Prompt for Text
-  Window Title=Coda Client
-  Text=Please insert the IP adress of the your machine. Example:128.2.209.213
-  Prompt Title=Your IP
-  Variable=CIP
-end
-item: Insert Line into Text File
-  Pathname=%MAINDIR%\usr\coda\venus.cache\myhost
-  New Text=%CIP%
-  Line Number=0
-end
 item: Set Variable
   Variable=OK
   Value=YES
+end
+item: Get Registry Key Value
+  Variable=CF
+  Default=0
+  Value Name=.$cf
+end
+item: Edit Registry
+  Total Keys=14
+  item: Key
+    Key=$cffile
+    New Value=Coda Conflict
+  end
+  item: Key
+    Key=$cffile
+    Value Name=AlwaysShowExt
+  end
+  item: Key
+    Key=$cffile
+    New Value=0
+    New Value=
+    Value Name=EditFlags
+    Data Type=4
+  end
+  item: Key
+    Key=$cffile\DefaultIcon
+    New Value=C:\usr\coda\bin\coda-repair.ico,0
+    New Value=
+  end
+  item: Key
+    Key=$cffile\Shell
+  end
+  item: Key
+    Key=.$cf
+    New Value=$cffile
+  end
+  item: Key
+    Key=SOFTWARE
+    Root=66
+  end
+  item: Key
+    Key=SOFTWARE\Classes
+    Root=2
+  end
+  item: Key
+    Key=SOFTWARE\Classes\.$cf
+    New Value=$cffile
+    New Value=
+    Root=2
+  end
+  item: Key
+    Key=SOFTWARE\Classes\$cffile
+    New Value=Coda Conflict
+    New Value=
+    Root=2
+  end
+  item: Key
+    Key=SOFTWARE\Classes\$cffile
+    Value Name=AlwaysShowExt
+    Root=2
+  end
+  item: Key
+    Key=SOFTWARE\Classes\$cffile
+    New Value=0
+    New Value=
+    Value Name=EditFlags
+    Root=2
+    Data Type=4
+  end
+  item: Key
+    Key=SOFTWARE\Classes\$cffile\DefaultIcon
+    New Value=C:\usr\coda\bin\coda-repair.ico,0
+    New Value=
+    Root=2
+  end
+  item: Key
+    Key=SOFTWARE\Classes\$cffile\Shell
+    Root=2
+  end
+end
+item: Edit Registry
+  Total Keys=5
+  item: Key
+    Key=System\CurrentControlSet
+    Root=2
+  end
+  item: Key
+    Key=System\CurrentControlSet\Services
+    Root=2
+  end
+  item: Key
+    Key=System\CurrentControlSet\Services\VxD
+    Root=2
+  end
+  item: Key
+    Key=System\CurrentControlSet\Services\VxD\Codadev
+    Root=2
+  end
+  item: Key
+    Key=System\CurrentControlSet\Services\VxD\Codadev
+    New Value=0
+    Value Name=Debuglevel
+    Root=2
+    Data Type=3
+  end
 end
 item: Read/Update Text File
   Variable=SERVICES
