@@ -16,10 +16,6 @@ listed in the file CREDITS.
 
 #*/
 
-
-
-
-
 #ifdef __cplusplus
 extern "C" {
 #endif __cplusplus
@@ -29,6 +25,7 @@ extern "C" {
 #include <sys/socket.h>
 #include <sys/time.h>
 #include <netinet/in.h>
+#include <arpa/inet.h>
 #include <netdb.h>
 #include <ctype.h>
 #include <errno.h>
@@ -92,22 +89,22 @@ int Bind(const char *service, const char *host) {
     struct servent *sp;
     struct hostent *hp;
 
-    if (host == NULL) {
-        gethostname(buf, sizeof(buf));
-        host = buf;
+    memset(&server, 0, sizeof(server));
+
+    if (host) {
+	hp = gethostbyname(host);
+	if (hp == NULL) return(-1);
+        memcpy(hp->h_addr, (char *)&server.sin_addr, hp->h_length);
+	server.sin_family = hp->h_addrtype;
+    } else {
+	inet_aton("127.0.0.1", &server.sin_addr);
+	server.sin_family = AF_INET;
     }
+
     sp = getservbyname(service, "tcp");
-    if (sp == NULL){
-	return(-1);
-    }
-    hp = gethostbyname(host);
-    if (hp == NULL){
-	return(-1);
-    }
-    bzero((char *)&server, sizeof(server));
-    bcopy(hp->h_addr, (char *)&server.sin_addr, hp->h_length);
-    server.sin_family = hp->h_addrtype;
+    if (sp == NULL) return(-1);
     server.sin_port = sp->s_port;
+
     if ((s = socket(AF_INET, SOCK_STREAM, 0)) < 0){
 	return(-1);
     }
