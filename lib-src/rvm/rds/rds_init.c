@@ -46,6 +46,7 @@ rds_init_heap(base, length, chunk_size, nlists, tid, err)
     
     /* heap consists of a heap_header_t followed by nlist list headers */
     heap_hdr_len = sizeof(heap_header_t) + nlists * sizeof(free_list_t);
+    heap_hdr_len = heap_hdr_len 
     if (heap_hdr_len > length) {
 	printf("Heap not long enough to hold heap header\n");
 	(*err) = ENO_ROOM;
@@ -82,8 +83,10 @@ rds_init_heap(base, length, chunk_size, nlists, tid, err)
     remaining_space = length - heap_hdr_len;
 
     /* determine where the first block will start */
-    /* Should we round this up to page size? */
     fbp = (free_block_t *)((char *)&(hdrp->lists[nlists]) + sizeof(free_list_t)); 
+    /* Round this up to the chunk size */
+    fbp = (free_block_t *)((((char *)fbp + chunk_size - 1) /
+                            chunk_size) * chunk_size);
 
     rvmret = rvm_set_range(tid, fbp, sizeof(free_block_t));
     if (rvmret != RVM_SUCCESS) {
