@@ -1,0 +1,4 @@
+usr/sbin/rpc2portmap
+usr/sbin/updatesrv
+usr/sbin/updateclnt
+usr/sbin/updatefetch

@@ -1,0 +1,65 @@
+This package was debianized by Jan Harkes <jaharkes@motet.coda.cs.cmu.edu> on
+Thu, 23 Mar 2000 04:32:59 -0500.
+
+It was downloaded from ftp://ftp.coda.cs.cmu.edu/pub/coda/src
+
+Upstream Author(s): Coda development group
+
+Copyright:
+
+Coda is released under the GPL license, see /usr/share/common-licenses/GPL.
+Some parts are released under the LGPL, see /usr/share/common-licenses/LGPL-2.
+For more detail see /usr/share/doc/coda-client/LICENSE.
+
+Coda is distributed under the terms of the GNU General Public License,
+/usr/share/common-licenses/GPL.  Certain modules of Coda that may be useful
+independently as libraries are distributed under the terms of the less
+restrictive GNU Library General Public License version 2,
+/usr/share/common-licenses/LGPL-2. The copyright notice at the beginning of
+each source file indicates the applicable license.
+
+Note that GPL and LGPL shown below are copyrighted by the Free
+Software Foundation, but the instances of the code they refer to in
+Coda is copyrighted by Carnegie Mellon University and/or other technical
+contributors.
+
+                        M. Satyanarayanan
+                        School of Computer Science
+                        Carnegie Mellon University
+			December 1998
+
+
+Notes:
+
+Our intent is that code which is a derivative work of this
+distribution be covered by the GPL.  At the same time, we wish to
+allow creation of proprietary system components that are written to
+external interfaces in Coda so long as such proprietary code is
+written independent of this distribution.  As explained below,
+examples of such interfaces include the client-server RPC interface,
+the kernel-Venus interface, and the ioctl interface used to Venus.
+
+1. Each file will say what its license is. The libbase, LWP, RPC2 and
+RVM subsystems come under the LGPL.  All files defining RPC
+interfaces, such as those used by cache manager, volume utilities and
+other utilities are LGPL'd.  This allows you, for example, to build a
+proprietary cache manager using this interface. Most of these
+interfaces are defined in the coda-src/vicedep directory.
+
+2. The use of the kernel interfaces is considered ordinary use of the
+system, so, for example, the ioctl's used in repair can be used by any
+software not withstanding its license.  Similarly using the network
+and kernel interfaces in the cache manager and file servers is
+considered ordinary use of the system.  So, for example, it is
+possible to write proprietary kernel code which uses those interfaces
+when you port Coda to a new operating system.
+
+3. A very limited number of files describe the interface between the
+kernel and the cache manager, e.g. kernel-src/vfs/includes/coda.h.
+This file is shared by the kernel code and the user level components
+and you may distribute this file under the under the BSD-style license
+included in that file in this distribution or the LGPL at your
+discretion.
+
+If you have questions, please contact us at coda@cs.cmu.edu.
+

@@ -1,0 +1,55 @@
+Source: coda
+Section: net
+Priority: optional
+Maintainer: Jan Harkes <jaharkes@motet.coda.cs.cmu.edu>
+Standards-Version: 3.0.1
+Build-Depends: debhelper, dpkg-dev, gcc, g++, liblwp-dev, librpc2-dev, librvm-dev, libssl095a-dev, libreadline4-dev, libdb2-dev, libncurses5-dev
+
+Package: coda-client
+Architecture: arm i386 m68k powerpc sparc
+Depends: ${shlibs:Depends}
+Pre-Depends: debconf (>= 0.2.17)
+Description: Client for the Coda distributed file system
+ Coda is an advanced distributed filesystem. It has been developed at CMU
+ by the systems group of M. Satyanarayanan in the SCS department.
+ .
+ This package provides the userspace binaries to run a Coda client. You might
+ also need to recompile a linux kernel to include a kernel module for Coda.
+ .
+ For more information go to http://www.coda.cs.cmu.edu/
+
+Package: coda-server
+Architecture: arm i386 m68k powerpc sparc
+Depends: coda-update, rvm-tools, ${shlibs:Depends}
+Description: Server for the Coda distributed file system
+ Coda is an advanced distributed filesystem. It has been developed at CMU
+ by the systems group of M. Satyanarayanan in the SCS department.
+ .
+ This package provides the binaries to set up a Coda server.
+ .
+ For more information see http://www.coda.cs.cmu.edu/
+
+Package: coda-update
+Architecture: arm i386 m68k powerpc sparc
+Depends: ${shlibs:Depends}
+Description: Server for the Coda distributed file system
+ Coda is an advanced distributed filesystem. It has been developed at CMU
+ by the systems group of M. Satyanarayanan in the SCS department.
+ .
+ This package provides the update daemons needed on both the Coda servers and
+ the Coda backup client.
+ .
+ For more information see http://www.coda.cs.cmu.edu/
+
+Package: coda-backup
+Architecture: arm i386 m68k powerpc sparc
+Depends: coda-update, ${shlibs:Depends}
+Description: Backup client for the Coda distributed filesystem
+ Coda is an advanced distributed filesystem. It has been developed at CMU
+ by the systems group of M. Satyanarayanan in the SCS department.
+ .
+ This package provides the binaries to set up a backup client to back up Coda
+ servers.
+ .
+ For more information see http://www.coda.cs.cmu.edu/
+

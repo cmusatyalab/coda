@@ -1,0 +1,9 @@
+etc/coda
+usr/bin
+usr/sbin
+vice
+vice/backup
+vice/db
+vice/misc
+vice/vol
+vice/srv
