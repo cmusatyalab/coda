@@ -45,7 +45,6 @@ extern "C" {
 #include "vrdb.h"
 
 vrtab VRDB("VRDB");
-int canonicalize = 0;
 
 /* hash function for the vrdb hash table - just return the id */
 int vrtabHashfn(void *id) {
@@ -116,16 +115,21 @@ vrent *vrtab::find(char *grpname) {
 }
 
 
-vrent *vrtab::ReverseFind(VolumeId rwvolnum)
+vrent *vrtab::ReverseFind(VolumeId rwvolnum, int *idx)
 {
     if (rwvolnum == 0) return(0);
 
     ohashtab_iterator next(*this, (void *) -1);
     vrent *vre;
 
-    while ((vre = (vrent *)next()))
-	for (int i = 0; i < vre->nServers; i++)
-	    if (vre->ServerVolnum[i] == rwvolnum) return(vre);
+    while ((vre = (vrent *)next())) {
+	for (int i = 0; i < vre->nServers; i++) {
+	    if (vre->ServerVolnum[i] == rwvolnum) {
+		if (idx) *idx = i;
+		return(vre);
+	    }
+	}
+    }
 
     return(0);
 }
@@ -225,8 +229,9 @@ int XlateVid(VolumeId *vidp, int *count, int *pos)
 }
 
 
-int ReverseXlateVid(VolumeId *vidp) {
-    vrent *vre = VRDB.ReverseFind(*vidp);
+int ReverseXlateVid(VolumeId *vidp, int *idx)
+{
+    vrent *vre = VRDB.ReverseFind(*vidp, idx);
     if (!vre) return(0);
 
     *vidp = vre->volnum;
@@ -318,10 +323,6 @@ int vrent::GetVolumeInfo(VolumeInfo *Info) {
 	}
 	(&Info->Server0)[i] = hostaddr;
     }
-    if (canonicalize) {
-	long tmpvsgaddr = GetVSGAddress(&(Info->Server0), Info->ServerCount);
-	CODA_ASSERT(tmpvsgaddr == (long)addr);
-    }
     Info->VSGAddr = addr;
     for (i = 0; i < nServers; i++)
 	(&Info->RepVolMap.Volume0)[i] = ServerVolnum[i];
@@ -329,55 +330,6 @@ int vrent::GetVolumeInfo(VolumeInfo *Info) {
     return(0);
 }
 
-// keep the volume ids in an order that corresponds to the 
-// canonical (sorted) order of the hosts where they belong
-void vrent::Canonicalize() {
-
-    /* canonicalizing the volume-ids is bad in case servers ever change
-     * ip-address, or when VSGs are shrunk/expanded because we get random
-     * permutations in the VersionVectors. */
-    CODA_ASSERT(0);
-
-    VolumeId CopySrvVolNum[VSG_MEMBERS];
-    unsigned long VolHostAddr[VSG_MEMBERS];
-    unsigned long CopyVolHostAddr[VSG_MEMBERS];
-    int i, j;
-    for (i = 0; i < VSG_MEMBERS; i++) {
-	VolHostAddr[i] = 0;
-	CopyVolHostAddr[i] = 0;
-	CopySrvVolNum[i] = ServerVolnum[i];
-    }
-    // get the host addresses for each volume id
-    for (i = 0; i < nServers; i++) {
-	VolHostAddr[i] = VolToHostAddr(ServerVolnum[i]);
-	CopyVolHostAddr[i] = VolToHostAddr(ServerVolnum[i]);
-    }
-    extern int cmpHost(long *, long *);
-    qsort((char *)VolHostAddr, nServers, sizeof(long), 
-	(int (*)(const void *, const void *))cmpHost);
-    
-    // now compute the volume id array corresponding to this sorted
-    // order using the copy of the VolHostAddr array
-    for (i = 0; i < nServers; i++) {
-	// find the hosts real position in the sorted array
-	for (j = 0; j < nServers; j++) 
-	    if (CopyVolHostAddr[i] == VolHostAddr[j]) break;
-	CODA_ASSERT(j < nServers);
-	ServerVolnum[j] = CopySrvVolNum[i];
-    }
-
-    /* When debug is turned up, print the canonicalized list of volumes */
-    if (VolDebugLevel >= 10) {
-        char buf[512], *c;
-        c = buf;
-        for (i = 0; i < VSG_MEMBERS; i++) {
-            sprintf(c, "0x%lx ", ServerVolnum[i]);
-            c += strlen(c);
-        }
-        LogMsg(10, VolDebugLevel, stdout, 
-               "vrent:: canonicalize volumeids are : %s\n", buf);
-    }
-}
 void vrent::hton() {
     /* we won't translate the key on the hopes that strings take care of themselves */
     this->volnum = htonl(this->volnum);

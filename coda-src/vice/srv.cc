@@ -142,9 +142,6 @@ static int MapPrivate;		// default 0
 
 /* imported */
 extern rvm_length_t rvm_test;
-extern int canonicalize;	/* controls if vrdb - Getvolumeinfo
-				   should return hosts in canonical
-				   order - this is only temporary */
 
 #ifdef _TIMECALLS_
 int clockFD = 0;		/* for timing with the NSC clock board */
@@ -356,7 +353,7 @@ int main(int argc, char *argv[])
 	SLog(0, "[-cam] [-nc] [-rvm logdevice datadevice length] [-nores] [-trunc percent]");
 	SLog(0, " [-nocmp] [-nopy] [-dumpvm] [-nosalvageonshutdown] [-mondhost hostname] [-mondport portnumber]");
 	SLog(0, "[-nodebarrenize] [-dir workdir] [-srvhost host]");
-	SLog(0, " [-rvmopt] [-canonicalize] [-usenscclock]");
+	SLog(0, " [-rvmopt] [-usenscclock]");
 	SLog(0, " [-nowriteback] [-mapprivate] [-zombify]");
 
 	exit(-1);
@@ -1541,10 +1538,6 @@ static int ParseArgs(int argc, char *argv[])
 	    if (!strcmp(argv[i], "-maxworktime")){
 		extern struct timeval cont_sw_threshold;
 		cont_sw_threshold.tv_sec = (atoi(argv[++i]));
-	    }
-	else 
-	    if (!strcmp(argv[i], "-canonicalize")){
-		canonicalize = 1;
 	    }
 #ifdef _TIMECALLS_	
     	else

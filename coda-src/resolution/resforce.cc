@@ -270,7 +270,7 @@ long RS_DoForceDirOps(RPC2_Handle RPCid, ViceFid *Fid,
     {
 	CODA_ASSERT(AccessList->SeqLen == VAclSize(dirvptr));
 	AL_ntohAlist((AL_AccessList *)(AccessList->SeqBody));
-	memmove((void *)VVnodeACL(dirvptr), (const void *)AccessList->SeqBody, VAclSize(dirvptr));
+	memmove(VVnodeACL(dirvptr), AccessList->SeqBody, VAclSize(dirvptr));
 	dirvptr->disk.author = status->Author;
 	dirvptr->disk.owner = status->Owner;
 	dirvptr->disk.modeBits = status->Mode;
@@ -350,7 +350,7 @@ long RS_GetForceDirOps(RPC2_Handle RPCid, ViceFid *Fid, ViceStatus *status,
 	goto FreeLocks;
     }
 
-    if (VAclSize(vptr) > AccessList->MaxSeqLen) {
+    if (VAclSize(vptr) > (unsigned int)AccessList->MaxSeqLen) {
 	SLog(0,  "RS_GetForceDirOps: VAclSize %d too big for the Accesslist %d",
 	     VAclSize(vptr), AccessList->MaxSeqLen);
 	errorcode = EINVAL;

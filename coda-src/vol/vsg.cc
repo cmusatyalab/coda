@@ -147,24 +147,14 @@ int AddMember(vsgent *v) {
     return 1;
 }
 
-unsigned long GetVSGAddress(unsigned long *hosts, int nh) {
-    
-    /* first make the host list canonical */
-    qsort((char *)hosts, nh, sizeof(long), 
-	(int (*)(const void *, const void *))cmpHost);
-    
-    long CanHosts[VSG_MEMBERS];
-    for (int i = 0; i < VSG_MEMBERS; i++) {
-	if (i < nh) CanHosts[i] = hosts[i];
-	else CanHosts[i] = 0;
-    }
-    ohashtab_iterator next(*vsgent::hosttab, CanHosts);
+unsigned long GetVSGAddress(unsigned long *hosts, int nh)
+{
+    ohashtab_iterator next(*vsgent::hosttab, hosts);
     olink *l;
     while ((l = next())) {
 	vsgent *v = strbase(vsgent, l, htabhandle);
 	LogMsg(10, VolDebugLevel, stdout, "GetVSGAddress: Comparing one more entry");
-	if (!memcmp((const void *)CanHosts,  (const void *)v->Hosts, sizeof(long) * VSG_MEMBERS) &&
-	    nh == v->nhosts)
+	if (nh == v->nhosts && !memcmp(hosts, v->Hosts, sizeof(long) * VSG_MEMBERS))
 	    return(v->VSGaddr);
     }
     
@@ -173,7 +163,8 @@ unsigned long GetVSGAddress(unsigned long *hosts, int nh) {
 }
 
 
-void ClearVSGDB() {
+void ClearVSGDB()
+{
     ohashtab_iterator next(*vsgent::vsgaddrtab, (void *)-1);
     
     vsgent *v;

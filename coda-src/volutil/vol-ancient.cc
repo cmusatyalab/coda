@@ -61,7 +61,7 @@ long S_NewVolMarkAsAncient(RPC2_Handle rpcid, VolumeId backupId)
     }
 
     /* Find the vrdb entry for the parent volume */
-    vre = VRDB.ReverseFind(V_parentId(vp));
+    vre = VRDB.ReverseFind(V_parentId(vp), NULL);
     if (vre) volnum = vre->volnum;
 
     retcode = S_VolMarkAsAncient(rpcid, volnum, V_parentId(vp));

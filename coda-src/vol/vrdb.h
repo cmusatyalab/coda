@@ -57,7 +57,7 @@ class vrtab : public ohashtab {
     void remove(vrent *);
     vrent *find(VolumeId);
     vrent *find(char *);
-    vrent *ReverseFind(VolumeId);
+    vrent *ReverseFind(VolumeId, int *);
     void clear();
     void print();
     void print(FILE *);
@@ -87,8 +87,6 @@ class vrent : public olink {
     int index(unsigned long);
     void HostListToVV(unsigned long *, vv_t *);
     int GetVolumeInfo(VolumeInfo *);
-    void Canonicalize();	// note that the function should not
-				// be confused with the global var.
     void hton();
     void ntoh();
     void print();
@@ -102,7 +100,7 @@ extern vrtab VRDB;
 extern void CheckVRDB();
 extern int DumpVRDB(int outfd);
 extern int XlateVid(VolumeId *, int * = NULL, int * = NULL);
-extern int ReverseXlateVid(VolumeId *);
+extern int ReverseXlateVid(VolumeId *, int * = NULL);
 extern unsigned long XlateVidToVSG(VolumeId);
 
 #endif /* _VICE_VRDB_H_ */

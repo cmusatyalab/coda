@@ -13,12 +13,7 @@ listed in the file CREDITS.
 
                         Additional copyrights
                            none currently
-
 #*/
-
-
-
-
 
 #ifndef _VOL_VSG_H_
 #define _VOL_VSG_H_	1
@@ -29,7 +24,7 @@ listed in the file CREDITS.
 class vsgent {
     friend int GetHosts(unsigned long, unsigned long *, int *);
     friend int AddMember(vsgent *);
-    friend unsigned long GetVSGAddress(unsigned long *, int );
+    friend unsigned long GetVSGAddress(unsigned long *, int);
     friend void ClearVSGDB();
     friend void InitVSGDB();
     friend void PrintVSGDB();

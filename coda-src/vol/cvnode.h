@@ -181,8 +181,8 @@ small vnode and the ACL because
 SIZOEOF_SMALLDISKVNODE > sizeof(VnodeDiskData)
 */
 
-#define VAclSize(vnp)		(SIZEOF_LARGEDISKVNODE - SIZEOF_SMALLDISKVNODE)
-#define VAclDiskSize(v)	(SIZEOF_LARGEDISKVNODE - SIZEOF_SMALLDISKVNODE)
+#define VAclSize(vnp)		(SIZEOF_LARGEVNODE - SIZEOF_SMALLVNODE)
+#define VAclDiskSize(v)		(SIZEOF_LARGEDISKVNODE - SIZEOF_SMALLDISKVNODE)
 #define VnLog(vnp)		((vnp)->disk.log)
 
 PDirHandle SetDirHandle(struct Vnode *);

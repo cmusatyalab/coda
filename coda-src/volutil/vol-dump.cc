@@ -37,7 +37,7 @@ Pittsburgh, PA.
 
 */
 
-#define RCSVERSION $Revision: 4.25 $
+#define RCSVERSION $Revision: 4.26 $
 
 /* vol-dump.c */
 
@@ -580,9 +580,6 @@ long S_VolNewDump(RPC2_Handle rpcid, RPC2_Unsigned formal_volumeNumber,
 	return (int)error;
     }
 
-    /* Find the vrdb entry for the parent volume */
-    vrent *vre = VRDB.ReverseFind(V_parentId(vp));
-
     if (V_type(vp) == RWVOL) {
 	SLog(0, "Volume is read-write.  Dump not allowed");
 	retcode = VFAIL;
@@ -596,20 +593,14 @@ long S_VolNewDump(RPC2_Handle rpcid, RPC2_Unsigned formal_volumeNumber,
 	goto failure;
     }
     
-    long volnum, unique;
-    if (vre != NULL) {	/* The volume is replicated */
-	/* Look up the index of this host. */
-	int ix = vre->index(ThisHostAddr);
-	if (ix < 0) {
-	    SLog(0, "S_VolDumpHeader: this host not found!");
-	    retcode = VFAIL;
-	    goto failure;
-	}
+    VolumeId volnum;
+    long unique;
+    int ix;
 
-	/* Uniquely identify incremental via primary slot of VVV */
+    volnum = V_parentId(vp);
+    if (ReverseXlateVid(&volnum, &ix)) {
 	unique = (&V_versionvector(vp).Versions.Site0)[ix]; 
-	volnum = vre->volnum;
-    } else {		/* The volume is non-replicated (I hope) */
+    } else {
 	volnum = 0; /* parent volume, nonexistent in the case... */
 	/* Uniquely identify incrementals of non-rep volumes by updateDate */
 	unique = V_updateDate(vp);
@@ -721,7 +712,7 @@ long S_VolDumpEstimate(RPC2_Handle rpcid, RPC2_Unsigned formal_volumeNumber,
     long rc = 0, retcode = 0;
     Error error;
     FILE *Ancient = NULL;
-    long volnum = 0;
+    VolumeId volnum;
     unsigned long estimates[10] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
 
     /* To keep C++ 2.0 happy */
@@ -738,25 +729,16 @@ long S_VolDumpEstimate(RPC2_Handle rpcid, RPC2_Unsigned formal_volumeNumber,
 	return (int)error;
     }
 
-    /* Find the vrdb entry for the parent volume */
-    vrent *vre = VRDB.ReverseFind(V_parentId(vp));
-
     if (V_type(vp) == RWVOL) {
 	SLog(0, "Volume is read-write.  Dump not allowed");
 	retcode = VFAIL;
 	goto failure;
     }
 
-    if (vre != NULL) {	/* The volume is replicated */
-	/* Look up the index of this host. */
-	int ix = vre->index(ThisHostAddr);
-	if (ix < 0) {
-	    SLog(0, "S_VolDumpEstimate: this host not found!");
-	    retcode = VFAIL;
-	    goto failure;
-	}
-	volnum = vre->volnum;
-    }
+    /* Find the replicated id and index for the parent volume */
+    volnum = V_parentId(vp);
+    if (!ReverseXlateVid(&volnum))
+	volnum = 0; /* non-replicated volume */
 
     char listfile[MAXLISTNAME];
     int oldUnique;
