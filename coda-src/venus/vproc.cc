@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/vproc.cc,v 4.12 1997/12/30 18:11:04 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/vproc.cc,v 4.13 1998/01/10 18:39:13 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -484,7 +484,9 @@ void vproc::GetStamp(char *buf) {
 	case VPT_Simulator:	t = 'S'; break;
 	case VPT_AdviceDaemon:  t = 'A'; break;
 	case VPT_LRDaemon:  	t = 'L'; break;
-	default:	Choke("vproc::GetStamp: bogus type (%d)!", type);
+	default:
+		t = '?'; 
+		eprint("???vproc::GetStamp: bogus type (%d)!", type);
     }
     time_t curr_time = Vtime();
     struct tm *lt = localtime(&curr_time);
