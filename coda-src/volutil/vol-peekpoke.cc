@@ -46,8 +46,8 @@ extern "C" {
 #include <ctype.h>
     
 #include <sys/param.h>
-#include <lwp.h>
-#include <lock.h>
+#include <lwp/lwp.h>
+#include <lwp/lock.h>
 #include <rpc2.h>
 #include <volutil.h>
 

@@ -26,7 +26,7 @@ extern "C" {
 #endif __cplusplus
 
 #include <stdio.h>
-#include <lwp.h>
+#include <lwp/lwp.h>
 #include <rpc2.h>
 
 #ifdef __cplusplus

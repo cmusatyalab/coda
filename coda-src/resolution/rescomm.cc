@@ -46,7 +46,7 @@ extern "C" {
 #include <arpa/inet.h>
 #include "coda_string.h"
 
-#include <lwp.h>
+#include <lwp/lwp.h>
 #include <rpc2.h>
 
 #ifdef __cplusplus

@@ -77,7 +77,6 @@ AC_PROG_MAKE_SET
 AC_OUTPUT(Makefile Makeconf.setup  
 configs/Makefile 
 lib-src/Makefile 
-lib-src/mlwp/Makefile 
 lib-src/base/Makefile
 lib-src/kernel-includes/Makefile 
 lib-src/special-includes/Makefile 

@@ -28,7 +28,7 @@ listed in the file CREDITS.
 #include "coda_assert.h"
 #include <netinet/in.h>
 
-#include <lwp.h>
+#include <lwp/lwp.h>
 #include <ports.h>
 #include <rpc2.h>
 #include "portmapper.h"

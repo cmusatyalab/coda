@@ -40,8 +40,8 @@ extern "C" {
 #else
 #define DIRBLKSIZ	0x200
 #endif
-#include <lwp.h>
-#include <lock.h>
+#include <lwp/lwp.h>
+#include <lwp/lock.h>
 #include <rvmlib.h>
 #include <ctype.h>
 #include "codadir.h"
@@ -735,8 +735,8 @@ void DIR_Print(PDirHeader dir)
 			bitmap[EPP] = '\0';
 			freecount = ph->freecount;
 			fprintf(stdout, 
-				"page %d, tag %ld, freecount %d, set %d, bitmap: \n",
-				i, ntohl(ph->tag), freecount, setbits);
+				"page %d, tag %d, freecount %d, set %d, bitmap: \n",
+				i, (int)ntohl(ph->tag), freecount, setbits);
 			fprintf(stdout, "%s\n\n", bitmap);
 		}
 	}

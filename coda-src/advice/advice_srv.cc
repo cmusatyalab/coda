@@ -45,8 +45,8 @@ extern "C" {
 #include <sys/file.h>
 #include <pwd.h>
 #include <errno.h>
-#include <lock.h>
-#include <lwp.h>
+#include <lwp/lwp.h>
+#include <lwp/lock.h>
 #include <rpc2.h>
 
 

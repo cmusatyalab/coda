@@ -18,8 +18,8 @@ Coda are listed in the file CREDITS.
 
 /* LWP compatability for RVM */
 
-#include <lwp.h>
-#include <lock.h>
+#include <lwp/lwp.h>
+#include <lwp/lock.h>
 
 #ifdef RVM_LWPPID
 extern PROCESS rvm_lwppid;

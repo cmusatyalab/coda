@@ -26,7 +26,7 @@ extern "C" {
 #include <stdlib.h>
 
 #include <ports.h>
-#include <lwp.h>
+#include <lwp/lwp.h>
 #include <rpc2.h>
 
 #include "admon.h"

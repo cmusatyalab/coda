@@ -61,8 +61,8 @@ extern "C" {
 #include "coda_string.h"
 
 #include <struct.h>
-#include <lwp.h>
-#include <lock.h>
+#include <lwp/lwp.h>
+#include <lwp/lock.h>
 #include <rpc2.h>
 #include <inodeops.h>
 #include <util.h>

@@ -46,10 +46,10 @@ Pittsburgh, PA.
 #include <stdlib.h>
 #include <unistd.h>
 #include <sys/time.h>
+#include <lwp/lwp.h>
+#include <lwp/timer.h>
 #include "coda_string.h"
 #include "cbuf.h"
-#include <lwp.h>
-#include <timer.h>
 #include "rpc2.h"
 #include "rpc2.private.h"
 

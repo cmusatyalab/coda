@@ -75,8 +75,8 @@ extern "C" {
 #include "coda_string.h"
 #include "coda_flock.h"
 
-#include <lwp.h>
-#include <lock.h>
+#include <lwp/lwp.h>
+#include <lwp/lock.h>
 #include <rpc2.h>
 #include <map.h>
 #include <portmapper.h>

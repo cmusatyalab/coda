@@ -64,7 +64,7 @@ extern "C" {
 #include <stdlib.h>
 #include <errno.h>
 
-#include <lwp.h>
+#include <lwp/lwp.h>
 #include <pioctl.h> 
 #include <rpc2.h>
 #include <util.h>

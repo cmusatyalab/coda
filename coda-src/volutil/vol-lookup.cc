@@ -46,9 +46,9 @@ extern "C" {
 #include <stdlib.h>
 
 #include <netinet/in.h>
-#include <lwp.h>
-#include <lock.h>
-#include <timer.h>
+#include <lwp/lwp.h>
+#include <lwp/lock.h>
+#include <lwp/timer.h>
 #include <rpc2.h>
 #include <se.h>
 #include <util.h>

@@ -25,8 +25,8 @@ listed in the file CREDITS.
 #include <unistd.h>
 #include "coda_string.h"
 
-#include <lwp.h>
-#include <lock.h>
+#include <lwp/lwp.h>
+#include <lwp/lock.h>
 #include <dllist.h>
 #include <util.h>
 #include "codadir.h"

@@ -27,8 +27,8 @@ extern "C" {
 
 #include <stdio.h>
 
-#include <lwp.h>
-#include <lock.h>
+#include <lwp/lwp.h>
+#include <lwp/lock.h>
 #include <util.h>
 #include "coda_string.h"
 #ifdef __cplusplus

@@ -33,8 +33,8 @@ extern "C" {
 #include <errno.h>
 #include "coda_db.h"
 
-#include <lock.h>
-#include <lwp.h>
+#include <lwp/lwp.h>
+#include <lwp/lock.h>
 #include <util.h>
 
 #ifdef __cplusplus

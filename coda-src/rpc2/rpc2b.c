@@ -58,8 +58,8 @@ Pittsburgh, PA.
 #include <sys/time.h>
 #include <errno.h>
 #include <sys/file.h>
-#include "lwp.h"
-#include "timer.h"
+#include <lwp/lwp.h>
+#include <lwp/timer.h>
 #include "rpc2.h"
 #include "rpc2.private.h"
 #include "se.h"

@@ -28,8 +28,8 @@ listed in the file CREDITS.
 #include <dllist.h>
 #include <vcrcommon.h>
 #include <voltypes.h>
-#include <lwp.h>
-#include <lock.h>
+#include <lwp/lwp.h>
+#include <lwp/lock.h>
 #include <vicetab.h>
 #include <viceinode.h>
 

@@ -166,7 +166,6 @@ cd /usr/lib/coda
 /usr/bin/cpasswd
 /usr/bin/ctokens
 /usr/bin/cunlog
-/usr/bin/filcon
 /usr/bin/filerepair
 /usr/bin/hoard
 /usr/bin/logbandwidth

@@ -44,8 +44,8 @@ extern "C" {
 #endif __cplusplus
 
 #include <util.h>
-#include <lwp.h>
-#include <lock.h>
+#include <lwp/lwp.h>
+#include <lwp/lock.h>
 #include <util.h>
 #include "partition.h"
 

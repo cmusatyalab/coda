@@ -42,11 +42,11 @@ extern "C" {
 
 #include <portmapper.h>
 #include <map.h>
-#include <lock.h>
-#include <lwp.h>
+#include <lwp/lwp.h>
+#include <lwp/lock.h>
+#include <lwp/timer.h>
 #include <rpc2.h>
 #include <se.h>
-#include "timer.h"
 #include "sftp.h"
 #include <vice.h>
 #ifdef __cplusplus

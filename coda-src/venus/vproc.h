@@ -49,8 +49,8 @@ extern "C" {
 
 #include <cfs/coda.h>
 
-#include <lwp.h>
-#include <lock.h>
+#include <lwp/lwp.h>
+#include <lwp/lock.h>
 /* interfaces */
 #include <vice.h>
 

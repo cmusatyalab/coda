@@ -1495,7 +1495,7 @@ static one_server_proc(proc, where)
     }
 
     fprintf(where, "    return %s;\n", rspbuffer);
-
+    
     /* Close routine */
     fputs("}\n", where);
 }

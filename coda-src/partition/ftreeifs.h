@@ -16,7 +16,7 @@ listed in the file CREDITS.
 
 #*/
 
-#include <lock.h>
+#include <lwp/lock.h>
 #include <bitvect.h>
 
 #define RESOURCEDB "FTREEDB"

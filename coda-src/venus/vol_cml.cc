@@ -46,7 +46,7 @@ extern "C" {
 #include <machine/endian.h>
 #endif
 
-#include <lock.h>
+#include <lwp/lock.h>
 #include <rpc2.h>
 #include <se.h>
 #include <multi.h>

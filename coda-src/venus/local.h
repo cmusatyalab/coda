@@ -28,7 +28,7 @@ listed in the file CREDITS.
 /* from venus */
 #include "fso.h"
 #include "venusvol.h"
-#include "lock.h"
+#include <lwp/lock.h>
 
 /* forward decl. */
 class rfment;

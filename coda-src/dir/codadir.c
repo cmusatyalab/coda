@@ -37,8 +37,8 @@ extern "C" {
 #include "coda_string.h"
 #include <stdlib.h>
 
-#include <lwp.h>
-#include <lock.h>
+#include <lwp/lwp.h>
+#include <lwp/lock.h>
 #include <rvmlib.h>
 #include "codadir.h"
 #include "dirbody.h"

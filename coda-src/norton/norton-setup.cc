@@ -28,7 +28,7 @@ extern "C" {
 #include <sys/types.h>
 #include <sys/stat.h>
 
-#include <lwp.h>
+#include <lwp/lwp.h>
 #include <rvm.h>
 #include <rds.h>
 #include <rvmlib.h>

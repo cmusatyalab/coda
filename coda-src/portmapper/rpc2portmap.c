@@ -25,7 +25,7 @@ listed in the file CREDITS.
 
 
 #include <ports.h>
-#include <lwp.h>
+#include <lwp/lwp.h>
 #include <rpc2.h>
 #include <se.h>
 

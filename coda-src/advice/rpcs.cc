@@ -40,7 +40,7 @@ extern "C" {
 #include <stdio.h>
 #include "coda_string.h"
 
-#include <lwp.h>
+#include <lwp/lwp.h>
 #include <rpc2.h>
 
 /* from vicedep */

@@ -56,8 +56,8 @@ extern "C" {
 #include <stdlib.h>
 #include "coda_string.h"
 
-#include <lock.h>
-#include <lwp.h>
+#include <lwp/lwp.h>
+#include <lwp/lock.h>
 
 #ifdef __cplusplus
 }

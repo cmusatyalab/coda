@@ -50,8 +50,8 @@ Pittsburgh, PA.
 #include <sys/signal.h>
 #include <netinet/in.h>
 #include <math.h>
-#include "lwp.h"
-#include "timer.h"
+#include <lwp/lwp.h>
+#include <lwp/timer.h>
 #include "rpc2.h"
 #include "se.h"
 #include "sftp.h"

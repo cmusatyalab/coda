@@ -43,7 +43,7 @@ extern "C" {
 #include "venus.private.h"
 #include "vproc.h" 
 #include "fso.h"
-#include "lock.h"
+#include <lwp/lock.h>
 #include "advice.h"
 #include "adsrv.h"
 #include "admon.h"

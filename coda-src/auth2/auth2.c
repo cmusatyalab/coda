@@ -63,7 +63,7 @@ extern "C" {
 #include <unistd.h>
 #include <stdlib.h>
 #include <ctype.h>
-#include <lwp.h>
+#include <lwp/lwp.h>
 #include <rpc2.h>
 
 #ifdef __cplusplus

@@ -325,14 +325,17 @@ int CacheFile::Open(ViceFid *fid, int flags)
     if (fd == -1) return -1;
     
     if (HAVE.coda_openfid) {
-        msg.oh.opcode = CODA_OPENFID;
+        msg.oh.opcode = CODA_MAKE_CINODE;
         msg.oh.unique = 0;
         msg.coda_openfid.CodaFid = *fid;
         msg.coda_openfid.fd = fd;
         
         /* Send the message. */
         if (write(global_kernfd, (char *)&msg, sizeof(msg)) != sizeof(msg)) {
-            CHOKE("coda_openfid: message write fails: errno %d", errno);
+            LOG(0, ("coda_openfid: message write fails: errno %d", errno));
+            /* Possibly an inode collision happened, which means that we
+             * cannot wrap this file. But, userspace cannot get this inode at
+             * the moment either. So we optimistically ignore the error. */
         }
     }
 
@@ -341,23 +344,10 @@ int CacheFile::Open(ViceFid *fid, int flags)
 
 int CacheFile::Close()
 {
-    union outputArgs msg;
     int ret;
 
-    if (fd == -1) return 0;
-
-#if 0
-    if (HAVE.coda_openfid) {
-        msg.oh.opcode = CODA_CLOSEFID;
-        msg.oh.unique = 0;
-        msg.coda_closefid.fd = fd;
-
-        /* Send the message. */
-        if (write(global_kernfd, (char *)&msg, sizeof(msg)) != sizeof(msg)) {
-            CHOKE("coda_closefid: message write fails: errno %d", errno);
-        }
-    }
-#endif
+    if (fd == -1)
+        return 0;
 
     ret = ::close(fd);
     fd = -1;

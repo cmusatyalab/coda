@@ -33,8 +33,8 @@ extern "C" {
 #include <unistd.h>
 #include <stdlib.h>
 
-#include <lwp.h>
-#include <lock.h>
+#include <lwp/lwp.h>
+#include <lwp/lock.h>
 #include <volutil.h>
 
 #ifdef __cplusplus

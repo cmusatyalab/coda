@@ -45,8 +45,8 @@ Pittsburgh, PA.
 #include <netdb.h>
 #include <sys/time.h>
 #include <errno.h>
-#include "lwp.h"
-#include "timer.h"
+#include <lwp/lwp.h>
+#include <lwp/timer.h>
 #include "rpc2.h"
 #include "rpc2.private.h"
 #include "se.h"
@@ -113,7 +113,7 @@ long rpc2_AllocMgrps, rpc2_FreeMgrps;
 
 long rpc2_HoldHWMark, rpc2_FreezeHWMark;
 
-char *rpc2_LastEdit = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rpc2/globals.c,v 4.5 1999/05/31 20:01:54 jaharkes Exp $";
+char *rpc2_LastEdit = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rpc2/globals.c,v 4.6 1999/08/26 22:06:05 jaharkes Exp $";
 
 long rpc2_errno;
 

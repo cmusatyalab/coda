@@ -701,8 +701,10 @@ void WorkerInit() {
             exit(-1);
         }
     } else {
-        eprint("Kernel version ioctl failed (%s)!\n"
-               "\tYou might need a newer kernel module.", strerror(errno));
+        eprint("Kernel version ioctl failed (%s)!", strerror(errno));
+#ifdef __linux__
+        eprint("2.3 or later kernels require an updated kernel module!");
+#endif
     }
 #endif
 

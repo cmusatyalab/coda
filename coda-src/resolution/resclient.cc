@@ -39,7 +39,7 @@ extern "C" {
 #include <dirent.h>
 #endif
 
-#include <lwp.h>
+#include <lwp/lwp.h>
 #include <rpc2.h>
 #include <inodeops.h>
 #include <util.h>

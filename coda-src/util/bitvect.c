@@ -23,7 +23,7 @@ listed in the file CREDITS.
 #include "coda_assert.h"
 #include <stdlib.h>
 #include "coda_string.h"
-#include <lock.h>
+#include <lwp/lock.h>
 #include <util.h>
 #include "bitvect.h"
 

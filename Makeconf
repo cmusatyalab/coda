@@ -90,7 +90,7 @@ RP2FLAGS  = -e  -I . -I $(srcdir)
 LIBBASE =$(TOPOBJ)/lib-src/base/libbase.a
 
 # -- LWP --
-LIBOLDLWP =$(TOPOBJ)/lib-src/mlwp/liboldlwp.a			
+LIBOLDLWP = -llwp
 
 # -- RVM --
 LIBRVM= $(TOPOBJ)/rvm-src/rvm/librvm.a

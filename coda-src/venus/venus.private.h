@@ -38,7 +38,7 @@ extern "C" {
 #include <ctype.h>
 #include <errno.h>
 
-#include <lock.h>
+#include <lwp/lock.h>
 #include <rpc2.h>
 #include <util.h>
 #ifdef __cplusplus

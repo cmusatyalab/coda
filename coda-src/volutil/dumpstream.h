@@ -27,9 +27,9 @@ listed in the file CREDITS.
 extern "C" {
 #endif __cplusplus
 
-#include <lwp.h>		/* Include all files referenced herein */
+#include <lwp/lwp.h>		/* Include all files referenced herein */
+#include <lwp/lock.h>
 #include <voltypes.h>
-#include <lock.h>
 
 #ifdef __cplusplus
 }

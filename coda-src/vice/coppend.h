@@ -35,7 +35,7 @@ extern "C" {
 #endif __cplusplus
 
 #include <stdio.h>
-#include <lock.h>
+#include <lwp/lock.h>
 #include <vice.h>
 #include <rpc2.h>
 

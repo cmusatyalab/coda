@@ -65,8 +65,8 @@ Pittsburgh, PA.
 #include <errno.h>
 #include "coda_assert.h"
 #include "coda_string.h"
-#include "lwp.h"
-#include "timer.h"
+#include <lwp/lwp.h>
+#include <lwp/timer.h>
 #include "rpc2.h"
 #include "rpc2.private.h"
 #include "se.h"

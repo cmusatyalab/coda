@@ -100,10 +100,14 @@ typedef unsigned long long u_quad_t;
 
 #if defined(__linux__)
 #define cdev_t u_quad_t
+#ifndef __KERNEL__
 #if !defined(_UQUAD_T_) && (!defined(__GLIBC__) || __GLIBC__ < 2)
 #define _UQUAD_T_ 1
 typedef unsigned long long u_quad_t;
 #endif
+#else /*__KERNEL__ */
+typedef unsigned long long u_quad_t;
+#endif /* __KERNEL__ */
 #else
 #define cdev_t dev_t
 #endif
@@ -322,13 +326,12 @@ struct coda_statfs {
 #define CODA_RESOLVE     32
 #define CODA_REINTEGRATE 33
 #define CODA_STATFS	 34
-#define CODA_OPENFID     35 /* DOWNCALL */
-#define CODA_CLOSEFID	 36 /* DOWNCALL */
-#define CODA_NCALLS 35
+#define CODA_MAKE_CINODE 35 /* DOWNCALL */
+#define CODA_NCALLS 36
 
 #define DOWNCALL(opcode) \
 	((opcode >= CODA_REPLACE && opcode <= CODA_PURGEFID) || \
-	 (opcode >= CODA_OPENFID && opcode <= CODA_CLOSEFID))
+	 opcode == CODA_MAKE_CINODE)
 
 #define VC_MAXDATASIZE	    8192
 #define VC_MAXMSGSIZE      sizeof(union inputArgs)+sizeof(union outputArgs) +\
@@ -339,9 +342,14 @@ struct coda_statfs {
 #if 0
 #define CODA_KERNEL_VERSION 0 /* don't care about kernel version number */
 #define CODA_KERNEL_VERSION 1 /* The old venus 4.6 compatible interface */
+#endif
+
+/* using ifdef to avoid breaking solaris/bsd kernel modules */
+#ifdef __linux__
+#define CODA_KERNEL_VERSION 3 /* added CODA_MAKE_CINODE downcall */
+#else
 #define CODA_KERNEL_VERSION 2 /* venus_lookup gets an extra parameter */
 #endif
-#define CODA_KERNEL_VERSION 3 /* added CODA_OPENFID/CLOSEFID downcalls */
 
 /*
  *        Venus <-> Coda  RPC arguments

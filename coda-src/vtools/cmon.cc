@@ -51,10 +51,10 @@ extern "C" {
 #endif
 
 #include <ports.h>
-#include <lwp.h>
+#include <lwp/lwp.h>
+#include <lwp/timer.h>
 #include <rpc2.h>
 #include <se.h>
-#include <timer.h>
 #include <sftp.h>
 #include <signal.h>
 

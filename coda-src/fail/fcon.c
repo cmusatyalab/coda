@@ -27,7 +27,7 @@ listed in the file CREDITS.
 #include <sys/types.h>
 #include <stdio.h>
 #include "coda_assert.h"
-#include <lwp.h>
+#include <lwp/lwp.h>
 #include <rpc2.h>
 #include "fail.h"
 

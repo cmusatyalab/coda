@@ -34,8 +34,8 @@ listed in the file CREDITS.
 extern "C" {
 #endif __cplusplus
 
-#include <lwp.h>
-#include <lock.h>
+#include <lwp/lwp.h>
+#include <lwp/lock.h>
 #include <errors.h>
 #include <util.h>
 #include <codadir.h>

@@ -49,8 +49,8 @@ extern "C" {
 #include <stdio.h>
 #include <errno.h>
 
-#include <lwp.h>
-#include <lock.h>
+#include <lwp/lwp.h>
+#include <lwp/lock.h>
 #include <rpc2.h>
 #ifdef __cplusplus
 }

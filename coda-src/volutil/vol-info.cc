@@ -54,9 +54,9 @@ extern "C" {
 #include <unistd.h>
 #include <stdlib.h>
 
-#include <lwp.h>
-#include <lock.h>
-#include <timer.h>
+#include <lwp/lwp.h>
+#include <lwp/lock.h>
+#include <lwp/timer.h>
 #include <rpc2.h>
 #include <se.h>
 #include <util.h>

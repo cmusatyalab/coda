@@ -68,13 +68,13 @@ int main(int argc, char *argv[]) {
 
     struct vrent vre;
     while (read(fd, &vre, sizeof(struct vrent)) == sizeof(struct vrent)) {
-	printf("%32s %lu %d %lx %lx %lx %lx %lx %lx %lx %lx %lx\n",
-	       vre.key, ntohl(vre.volnum), vre.nServers,
-	       ntohl(vre.ServerVolnum[0]), ntohl(vre.ServerVolnum[1]),
-	       ntohl(vre.ServerVolnum[2]), ntohl(vre.ServerVolnum[3]),
-	       ntohl(vre.ServerVolnum[4]), ntohl(vre.ServerVolnum[5]),
-	       ntohl(vre.ServerVolnum[6]), ntohl(vre.ServerVolnum[7]),
-	       ntohl(vre.addr));
+	printf("%32s %u %d %x %x %x %x %x %x %x %x %x\n",
+	       vre.key, (int)ntohl(vre.volnum), vre.nServers,
+	       (int)ntohl(vre.ServerVolnum[0]), (int)ntohl(vre.ServerVolnum[1]),
+	       (int)ntohl(vre.ServerVolnum[2]), (int)ntohl(vre.ServerVolnum[3]),
+	       (int)ntohl(vre.ServerVolnum[4]), (int)ntohl(vre.ServerVolnum[5]),
+	       (int)ntohl(vre.ServerVolnum[6]), (int)ntohl(vre.ServerVolnum[7]),
+	       (int)ntohl(vre.addr));
     }
 
     close(fd);

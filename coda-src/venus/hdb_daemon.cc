@@ -35,7 +35,7 @@ extern "C" {
 #include <fcntl.h>
 #include <netdb.h>
 
-#include <lwp.h>
+#include <lwp/lwp.h>
 
 #ifdef __cplusplus
 }

@@ -28,9 +28,9 @@ listed in the file CREDITS.
 #include <netinet/in.h>
 
 #include "coda_assert.h"
-#include <lwp.h>
+#include <lwp/lwp.h>
 #include <rpc2.h>
-#include <timer.h>
+#include <lwp/timer.h>
 #include "fail.h"
 #include "delay.h"
 

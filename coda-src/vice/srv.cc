@@ -70,8 +70,8 @@ extern "C" {
 #include "scandir.h"
 
 #include <ports.h>
-#include <lwp.h>
-#include <timer.h>
+#include <lwp/lwp.h>
+#include <lwp/timer.h>
 #include <rpc2.h>
 #include <sftp.h>
 #include <rpc2.private.h>

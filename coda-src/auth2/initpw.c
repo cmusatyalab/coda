@@ -59,7 +59,7 @@ extern "C" {
 #include <unistd.h>
 #include <stdlib.h>
 
-#include <lwp.h>
+#include <lwp/lwp.h>
 #include <rpc2.h>
 #include <util.h>
 

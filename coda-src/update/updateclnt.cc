@@ -72,11 +72,11 @@ extern "C" {
 #include "coda_string.h"
 #include "coda_flock.h"
 
-#include <lock.h>
-#include <lwp.h>
+#include <lwp/lwp.h>
+#include <lwp/lock.h>
+#include <lwp/timer.h>
 #include <rpc2.h>
 #include <se.h>
-#include "timer.h"
 #include "sftp.h"
 #include <map.h>
 #include <portmapper.h>

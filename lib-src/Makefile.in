@@ -29,6 +29,6 @@ TOPOBJ = @TOPOBJ@
 
 include $(TOPDIR)/Makeconf
 
-SUBDIRS = kernel-includes special-includes base mlwp 
+SUBDIRS = kernel-includes special-includes base
 
 include $(TOPDIR)/configs/Makerules

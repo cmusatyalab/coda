@@ -37,8 +37,8 @@ extern "C" {
 #include <unistd.h>
 
 
-#include <lock.h>
-#include <lwp.h>
+#include <lwp/lock.h>
+#include <lwp/lwp.h>
 #include <rpc2.h>
 #include <adsrv.h>
 #include <admon.h>

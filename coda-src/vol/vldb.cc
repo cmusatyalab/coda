@@ -55,8 +55,8 @@ extern "C" {
 #include <unistd.h>
 #include <stdlib.h>
 
-#include <lock.h>
-#include <lwp.h>
+#include <lwp/lock.h>
+#include <lwp/lwp.h>
 #include <util.h>
 
 #ifdef __cplusplus

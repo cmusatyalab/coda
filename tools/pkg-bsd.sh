@@ -201,7 +201,6 @@ bin/codacon
 bin/cpasswd
 bin/ctokens
 bin/cunlog
-bin/filcon
 bin/filerepair
 bin/hoard
 bin/logbandwidth

@@ -34,7 +34,7 @@ extern "C" {
 #include "coda_string.h"
 #include <stdio.h>
 #include <struct.h>
-#include <lwp.h>
+#include <lwp/lwp.h>
 #include <rpc2.h>
 #include <util.h>
 #include <codadir.h>

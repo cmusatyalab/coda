@@ -37,7 +37,7 @@ extern "C" {
 #include <sys/time.h>
 #include <unistd.h>
 #include <stdlib.h>
-#include <timer.h>
+#include <lwp/timer.h>
 
 #ifdef __cplusplus
 }

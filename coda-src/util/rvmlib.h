@@ -34,7 +34,7 @@ extern "C" {
 #include <stdlib.h>
 
 #include <setjmp.h>
-#include <lwp.h>
+#include <lwp/lwp.h>
 
 #include <rds.h>
 #include <util.h>

@@ -66,8 +66,8 @@ extern "C" {
 #include <stdlib.h>
 #include <fcntl.h>
 
-#include <lwp.h>
-#include <lock.h>
+#include <lwp/lwp.h>
+#include <lwp/lock.h>
 #include <util.h>
 #include <partition.h>
 #include <rvmlib.h>

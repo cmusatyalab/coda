@@ -32,8 +32,8 @@ extern "C" {
 #include <sys/types.h>
 #include "coda_assert.h" 
 
-#include <lwp.h>
-#include <timer.h>
+#include <lwp/lwp.h>
+#include <lwp/timer.h>
 
 #ifdef __cplusplus
 }

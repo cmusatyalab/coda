@@ -53,8 +53,8 @@ Pittsburgh, PA.
 #include <sys/ioctl.h>
 #include <netinet/in.h>
 #include <errno.h>
-#include "lwp.h"
-#include "timer.h"
+#include <lwp/lwp.h>
+#include <lwp/timer.h>
 #include "rpc2.h"
 #include "rpc2.private.h"
 #include "se.h"

@@ -29,7 +29,7 @@ listed in the file CREDITS.
  */
 
 #include <netinet/in.h>
-#include <lwp.h>
+#include <lwp/lwp.h>
 #include <rpc2.h>
 #include <netdb.h>
 #include "fcon.h"

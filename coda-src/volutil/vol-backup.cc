@@ -60,9 +60,9 @@ extern "C" {
 #include <stdlib.h>
 #include "coda_string.h"
 
-#include <lwp.h>
+#include <lwp/lwp.h>
+#include <lwp/lock.h>
 #include <struct.h>
-#include <lock.h>
 #include <inodeops.h>
 #include <util.h>
 #include <rvmlib.h>

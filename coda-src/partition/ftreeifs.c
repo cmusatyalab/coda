@@ -44,8 +44,8 @@ listed in the file CREDITS.
 #include <errno.h>
 #include <math.h>
 
-#include <lwp.h>
-#include <lock.h>
+#include <lwp/lwp.h>
+#include <lwp/lock.h>
 #include <util.h>
 #include "vicetab.h"
 #include "inodeops.h"

@@ -30,7 +30,7 @@ extern "C" {
 #include "coda_string.h"
 #include <struct.h>
 
-#include <lwp.h>
+#include <lwp/lwp.h>
 
 #ifdef __cplusplus
 }

@@ -35,8 +35,8 @@ listed in the file CREDITS.
 #include <sys/types.h>
 #include <fcntl.h>
 
-#include <lwp.h>
-#include <lock.h>
+#include <lwp/lwp.h>
+#include <lwp/lock.h>
 #include <rvm.h>
 #include <rvmlib.h>
 #include <util.h>

@@ -51,7 +51,7 @@ extern "C" {
 #include <stdlib.h>
 #include <fcntl.h>
 
-#include <lock.h>
+#include <lwp/lock.h>
 #include <rpc2.h>
 /* interfaces */
 #include <vice.h>
