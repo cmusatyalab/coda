@@ -802,7 +802,7 @@ static void Trace_Swapped_Stack(top, fp, depth, name)
     char    *name;
 {
     register_t      ip;
-    register_t      ebp;
+    register_t      ebp, prev_ebp;
     char           *esp;
     
     /* Set current stack pointer to top */
@@ -822,21 +822,21 @@ static void Trace_Swapped_Stack(top, fp, depth, name)
      * ebp = beginning of frame.
      * ip = caller of savecontext 
      */
+    prev_ebp = (register_t)NULL;
     while (depth--) {
 	fprintf(fp,"\tStack: %s - 0x%x\n", name, ip);
 
         /* make sure we don't segfault while going to the next frame --JH */
-        if (ebp == 0) break;
+        if (ebp <= prev_ebp) break;
 
-	if (depth) {
-	    /* LEAVE */
-	    esp = (char *)ebp;
-	    ebp = *(register_t *)esp;
-	    esp += sizeof(register_t);
-	    /* RET */
-	    ip = *(register_t *)esp;
-	    esp += sizeof(register_t);
-	}
+	/* LEAVE */
+	esp = (char *)ebp;
+	prev_ebp = ebp;
+	ebp = *(register_t *)esp;
+	esp += sizeof(register_t);
+	/* RET */
+	ip = *(register_t *)esp;
+	esp += sizeof(register_t);
     }
 }
 #endif
