@@ -30,7 +30,7 @@
 #Mellon the rights to redistribute these changes without encumbrance.
 #*/
 #
-#static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/src/coda-4.0.1/tools/RCS/alphaci,v 1.6 1996/12/09 19:20:36 braam Exp $";
+#static char *rcsid = "$Header: alphaci,v 4.1 97/01/08 21:54:49 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -66,7 +66,7 @@
 #Mellon the rights to redistribute these changes without encumbrance.
 #*/
 #
-#static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/src/coda-4.0.1/tools/RCS/alphaci,v 1.6 1996/12/09 19:20:36 braam Exp $";
+#static char *rcsid = "$Header: alphaci,v 4.1 97/01/08 21:54:49 rvb Exp $";
 #endif /*_BLURB_*/
 
 #############################################################################
@@ -263,7 +263,9 @@ endif
 
 
 # Move RCSMSG out of the way, so it doesn't get reused accidentally
-if (-e RCSMSG) mv RCSMSG RCSMSG.old
+if (-e RCSMSG.old) mv RCSMSG.old RCSMSG.old.$$
+
+if (-e RCSMSG) mv  RCSMSG RCSMSG.old
 
 # Post notice on changelog bboard
 # This part is pretty CMU-SCS-specific and non-portable
@@ -311,4 +313,4 @@ endif
 
 ${INEWS} -h /tmp/$$
 
-rm /tmp/$$
+# rm /tmp/$$

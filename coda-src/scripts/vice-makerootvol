@@ -3,6 +3,6 @@
 # createvol and createvol_rep will automatically 
 # generate a unique number like that.
 
-createvol_rep codaroot E0000100 /vicepa
+createvol_rep_ss codaroot E0000100 /vicepa
 
 echo codaroot > /ROOTVOLUME

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /usr2/raiff/coda/coda-src/volutil/RCS/vol-salvage.cc,v 4.4 97/04/30 19:51:13 braam Exp Locker: raiff $";
+static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/ss/coda-src/volutil/RCS/vol-salvage.cc,v 4.5 1997/05/12 18:18:15 raiff Exp braam $";
 #endif /*_BLURB_*/
 
 
@@ -1596,11 +1596,13 @@ PRIVATE int GetInodeSummary(char *path, VolumeId singleVolumeNumber)
     summaryFile = fdopen(summaryFd,"w");
     assert(summaryFile != NULL);
     nInodes = status.st_size / sizeof(ViceInodeInfo);
+#if 0
     if (nInodes == 0) {
 	LogMsg(0, VolDebugLevel, stdout, "%s vice inodes on %s; not salvaged", singleVolumeNumber? "No applicable": "No", dev);
 	close(summaryFd);
 	return(VNOVOL);
     }
+#endif
     ip = tmp_ip = (struct ViceInodeInfo *) malloc(status.st_size);
     if (ip == NULL) {
 	LogMsg(0, VolDebugLevel, stdout, "Unable to allocate enough space to read inode table; %s not salvaged", dev);
