@@ -835,7 +835,7 @@ CDEBUG(D_FILE, "entry %d: ino %ld, namlen %d, reclen %d, type %d, pos %d, string
 		if ( !vdirent->d_reclen ) {
 			printk("CODA: Invalid directory, cfino: %ld\n", 
 			       filp->f_dentry->d_inode->i_ino);
-			result -EINVAL;
+			result = -EINVAL;
 			break;
 		}
                 pos += (unsigned int) vdirent->d_reclen;
@@ -873,7 +873,7 @@ static int coda_dentry_revalidate(struct dentry *de)
 	if (! (cii->c_flags & (C_PURGE | C_FLUSH)) )
 		return valid;
 
-	dcache_shrink_parent(de);
+	shrink_dcache_parent(de);
 
 	if (de->d_count > 1) {
 		/* pretend it's valid, but don't change the flags */
