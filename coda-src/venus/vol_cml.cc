@@ -2239,14 +2239,13 @@ int ClientModifyLog::COP1(char *buf, int bufsize, ViceVersionVector *UpdateSet,
 
 	UNI_START_MESSAGE(ViceReintegrate_OP);
 	code = (int) ViceReintegrate(c->connid, vol->vid, bufsize, &Index,
-				     outoforder,
-				     MaxStaleDirs, &NumStaleDirs,
+				     outoforder, MaxStaleDirs, &NumStaleDirs,
 				     StaleDirs, &OldVS, &VS,
 				     &VCBStatus, &PiggyBS, &sed);
 	UNI_END_MESSAGE(ViceReintegrate_OP);
 	MarinerLog("store::reintegrate done\n");
 
-	code = vol->Collate(c, code);
+	code = vol->Collate(c, code, 0);
 	UNI_RECORD_STATS(ViceReintegrate_OP);
 	
 	/* 

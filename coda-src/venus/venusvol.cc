@@ -1970,8 +1970,8 @@ int volent::GetConn(connent **c, vuid_t vuid) {
 }
 
 
-int volent::Collate(connent *c, int code) {
-    code = c->CheckResult(code, vid);
+int volent::Collate(connent *c, int code, int TranslateEINCOMP) {
+    code = c->CheckResult(code, vid, TranslateEINCOMP);
 
     /* when the operation has failed miserably, but we have a pending volume
      * transition, just retry the operation */

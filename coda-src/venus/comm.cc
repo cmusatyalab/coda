@@ -529,7 +529,7 @@ int connent::Suicide(int disconnect) {
 	ERETRY		Retryable error,
 	Other (> 0)	Non-retryable error (valid kernel return code).
 */
-int connent::CheckResult(int code, VolumeId vid) {
+int connent::CheckResult(int code, VolumeId vid, int TranslateEINCOMP) {
     LOG(100, ("connent::CheckResult: code = %d, vid = %x\n",
 	     code, vid));
 
@@ -580,7 +580,8 @@ int connent::CheckResult(int code, VolumeId vid) {
     }
 
     /* Coerce EINCOMPATIBLE to ERETRY. */
-    if (code == EINCOMPATIBLE) code = ERETRY;
+    if (TranslateEINCOMP && code == EINCOMPATIBLE)
+        code = ERETRY;
 
     if (code == ETIMEDOUT && VprocInterrupted()) return(EINTR);
     return(code);

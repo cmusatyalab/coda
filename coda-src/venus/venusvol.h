@@ -849,7 +849,7 @@ class volent {
     void Lock(VolLockType, int = 0);		
     void UnLock(VolLockType);		  
     int GetConn(connent **, vuid_t);
-    int Collate(connent *, int);
+    int Collate(connent *, int code, int TranslateEINCOMP = 1);
     int GetMgrp(mgrpent **, vuid_t, RPC2_CountedBS * =0);
     int Collate_NonMutating(mgrpent *, int);
     int Collate_COP1(mgrpent *, int, ViceVersionVector *);

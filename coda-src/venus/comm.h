@@ -186,7 +186,7 @@ class connent {
 #endif	VENUSDEBUG
 
     int	Suicide(int);		/* 1 --> dead, 0 --> dying */
-    int CheckResult(int, VolumeId);
+    int CheckResult(int, VolumeId, int TranslateEINCOMP = 1);
 
     void print() { print(stdout); }
     void print(FILE *fp) { fflush(fp); print(fileno(fp)); }

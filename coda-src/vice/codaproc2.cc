@@ -1261,7 +1261,7 @@ START_TIMING(Reintegrate_CheckSemanticsAndPerform);
 
     int errorCode = 0;
     Volume *volptr = 0;
-    VCP NormalVCmp = (VCP)0;
+    VCP VCmp = (VCP)0;
     int index;
 
     /* Get a no-lock reference to the volume for use in this routine (only). */
@@ -1270,11 +1270,11 @@ START_TIMING(Reintegrate_CheckSemanticsAndPerform);
 	goto Exit;
     }
 
-    /* NormalVCmp routine depends on resolution! */
+    /* VCmp routine depends on resolution! */
     if (AllowResolution && V_RVMResOn(volptr))
-	NormalVCmp = ReintNormalVCmp;
+	VCmp = ReintNormalVCmp;
     else
-	NormalVCmp = ReintNormalVCmpNoRes;
+	VCmp = ReintNormalVCmpNoRes;
 
     /* Check each operation and perform it. */
     /* Note: the data transfer part of stores is delayed until all other operations have completed. */
@@ -1308,7 +1308,7 @@ START_TIMING(Reintegrate_CheckSemanticsAndPerform);
 			    /* Check. */
 			    if ((errorCode = CheckStoreSemantics(client, &a_v->vptr,
 								&v->vptr, &volptr, 1,
-								NormalVCmp,
+								VCmp,
 								&r->u.u_store.Status.VV,
 								r->u.u_store.Status.DataVersion,
 								0, 0))) {
@@ -1367,7 +1367,7 @@ START_TIMING(Reintegrate_CheckSemanticsAndPerform);
 			    /* Check. */
 			    if ((errorCode = CheckSetAttrSemantics(client,
 				    &a_v->vptr, &v->vptr, &volptr, 1,
-				    NormalVCmp, r->u.u_store.Status.Length,
+				    VCmp, r->u.u_store.Status.Length,
 				    r->u.u_store.Status.Date,
 				    r->u.u_store.Status.Owner,
 				    r->u.u_store.Status.Mode,
@@ -1456,7 +1456,7 @@ START_TIMING(Reintegrate_CheckSemanticsAndPerform);
 							 &parent_v->vptr,
 							 &child_v->vptr,
 							 (char *)r->u.u_create.Name,
-							 &volptr, 1, NormalVCmp, 
+							 &volptr, 1, VCmp, 
 							 &r->u.u_create.DirStatus,
 							 &r->u.u_create.Status,
 							 0, 0);
@@ -1524,7 +1524,7 @@ START_TIMING(Reintegrate_CheckSemanticsAndPerform);
 		    if ((errorCode = CheckRemoveSemantics(client, &parent_v->vptr,
 							  &child_v->vptr,
 							  (char *)r->u.u_remove.Name,
-							  &volptr, 1, NormalVCmp,
+							  &volptr, 1, VCmp,
 							  &r->u.u_remove.DirStatus,
 							  &r->u.u_remove.Status,
 							  0, 0)))
@@ -1594,7 +1594,7 @@ START_TIMING(Reintegrate_CheckSemanticsAndPerform);
 		    if ((errorCode = CheckLinkSemantics(client, &parent_v->vptr,
 							&child_v->vptr,
 							(char *)r->u.u_link.Name,
-							&volptr, 1, NormalVCmp,
+							&volptr, 1, VCmp,
 							&r->u.u_link.DirStatus,
 							&r->u.u_link.Status,
 							0, 0)))
@@ -1675,7 +1675,7 @@ START_TIMING(Reintegrate_CheckSemanticsAndPerform);
 							  (char *)r->u.u_rename.OldName,
 							  (TargetExists ? &t_v->vptr : 0),
 							  (char *)r->u.u_rename.NewName,
-							  &volptr, 1, NormalVCmp,
+							  &volptr, 1, VCmp,
 							  &r->u.u_rename.OldDirStatus,
 							  &r->u.u_rename.NewDirStatus,
 							  &r->u.u_rename.SrcStatus,
@@ -1765,7 +1765,7 @@ START_TIMING(Reintegrate_CheckSemanticsAndPerform);
 		    if ((errorCode = CheckMkdirSemantics(client, &parent_v->vptr,
 							 &child_v->vptr,
 							 (char *)r->u.u_mkdir.Name,
-							 &volptr, 1, NormalVCmp,
+							 &volptr, 1, VCmp,
 							 &r->u.u_mkdir.DirStatus,
 							 &r->u.u_mkdir.Status,
 							 0, 0)))
@@ -1834,7 +1834,7 @@ START_TIMING(Reintegrate_CheckSemanticsAndPerform);
 		    if ((errorCode = CheckRmdirSemantics(client, &parent_v->vptr,
 							 &child_v->vptr,
 							 (char *)r->u.u_rmdir.Name,
-							 &volptr, 1, NormalVCmp,
+							 &volptr, 1, VCmp,
 							 &r->u.u_rmdir.Status,
 							 &r->u.u_rmdir.TgtStatus,
 							 0, 0)))
@@ -1895,7 +1895,7 @@ START_TIMING(Reintegrate_CheckSemanticsAndPerform);
 		    if ((errorCode = CheckSymlinkSemantics(client, &parent_v->vptr,
 							   &child_v->vptr,
 							   (char *)r->u.u_symlink.NewName,
-							   &volptr, 1, NormalVCmp,
+							   &volptr, 1, VCmp,
 							   &r->u.u_symlink.DirStatus,
 							   &r->u.u_symlink.Status,
 							   0, 0)))
