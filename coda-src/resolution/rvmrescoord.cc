@@ -860,7 +860,7 @@ static int CompareDirStatus(ViceStatus *status, res_mgrpent *mgrp, ViceVersionVe
 	    else {
 		// compare the status blocks
 		if ((status[i].LinkCount != status[dirfound].LinkCount) ||
-		    (status[i].Length != status[dirfound].Length) ||
+//		    (status[i].Length != status[dirfound].Length) ||
 		    (status[i].Author != status[dirfound].Author) ||
 		    (status[i].Owner != status[dirfound].Owner) ||
 		    (status[i].Mode != status[dirfound].Mode) ||
