@@ -14,6 +14,7 @@
 
 CODAETC=/usr/coda/etc
 CACHEDIR=/usr/coda/venus.cache
+TMPDIR=/usr/coda/tmp
 CACHESIZE=40000
 # SERVERS=testserver.coda.cs.cmu.edu
 
@@ -59,6 +60,7 @@ fi
 
 # set up a cache directory
 if [ ! -d $CACHEDIR ]; then mkdir -p $CACHEDIR; chmod 700 $CACHEDIR; fi
+if [ ! -d $TMPDIR ]; then mkdir -p $TMPDIR; chmod 700 $TMPDIR; fi
 
 # next run will always initialize
 touch $CACHEDIR/INIT
