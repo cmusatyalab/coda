@@ -60,11 +60,11 @@ int lwp_nextindex;
 #include <netinet/in.h>
 #include <netdb.h>
 #include <errno.h>
+#include <assert.h>
 #include "coda_string.h"
 #include <lwp/lwp.h>
 #include <lwp/timer.h>
 #include <rpc2/rpc2.h>
-#include "rpc2.private.h"
 #include <rpc2/se.h>
 #include "sftp.h"
 
@@ -218,7 +218,7 @@ static long WorkerBody(char *workerName)
 
     reqfilter.FromWhom = ONESUBSYS;
     reqfilter.ConnOrSubsys.SubsysId = SUBSYS_SRV;
-    CODA_ASSERT(reqfilter.ConnOrSubsys.SubsysId != -1);
+    assert(reqfilter.ConnOrSubsys.SubsysId != -1);
     reqfilter.OldOrNew = OLD;
 
     RPC2_AllocBuffer(1000, &OutBuff);
@@ -286,17 +286,19 @@ static long WorkerBody(char *workerName)
 		if ((rc = RPC2_InitSideEffect(workercid, &sed)) != RPC2_SUCCESS)
 		    {
 		    BulkErr(workercid, &sed, rc, InBuff->Header.Opcode);
-		    CODA_ASSERT(RPC2_Unbind(workercid) == RPC2_SUCCESS);
+		    assert(RPC2_Unbind(workercid) == RPC2_SUCCESS);
 		    continue;
 		    }
 		if ((rc = RPC2_CheckSideEffect(workercid, &sed, SE_AWAITLOCALSTATUS)) != RPC2_SUCCESS)
 			{
 			BulkErr(workercid, &sed, rc, InBuff->Header.Opcode);
-			CODA_ASSERT(RPC2_Unbind(workercid) == RPC2_SUCCESS);
+			assert(RPC2_Unbind(workercid) == RPC2_SUCCESS);
 			continue;
 			}
 		else
-		    say(0, VerboseFlag, "%ld bytes transferred\n", sed.Value.SmartFTPD.BytesTransferred);
+		    if (VerboseFlag)
+			fprintf(stderr, "%ld bytes transferred\n",
+				sed.Value.SmartFTPD.BytesTransferred);
 		OutBuff->Header.ReturnCode = (long)sed.LocalStatus;
 		OutBuff->Header.BodyLength = 0;
 		break;
@@ -321,7 +323,9 @@ static long WorkerBody(char *workerName)
 			BulkErr(workercid, &sed, rc, InBuff->Header.Opcode);
 			}
 		else
-		    say(0, VerboseFlag, "%ld bytes transferred\n", sed.Value.SmartFTPD.BytesTransferred);
+		    if (VerboseFlag)
+			fprintf(stderr, "%ld bytes transferred\n",
+				sed.Value.SmartFTPD.BytesTransferred);
 		OutBuff->Header.ReturnCode = (long)sed.LocalStatus;
 		OutBuff->Header.BodyLength = 0;
 		break;
@@ -358,7 +362,7 @@ static long WorkerBody(char *workerName)
 	    DumpAndQuit(InBuff->Header.Opcode);
 	    }
 	if (InBuff->Header.Opcode == 7)
-	    CODA_ASSERT(RPC2_Unbind(workercid) == RPC2_SUCCESS);
+	    assert(RPC2_Unbind(workercid) == RPC2_SUCCESS);
 	}
 }
 	
@@ -391,7 +395,7 @@ static long ListenerBody(char *listenerName)
     LWP_DispatchProcess();	/* initial courtesy to parent */
     reqfilter.FromWhom = ONESUBSYS;
     reqfilter.ConnOrSubsys.SubsysId = SUBSYS_SRV;
-    CODA_ASSERT(reqfilter.ConnOrSubsys.SubsysId != -1);
+    assert(reqfilter.ConnOrSubsys.SubsysId != -1);
     reqfilter.OldOrNew = NEW;
 
     InBuff = NULL;
@@ -414,7 +418,8 @@ static long ListenerBody(char *listenerName)
 		{
 		newconnbody = (RPC2_NewConnectionBody *)InBuff->Body;
 
-		say(0, VerboseFlag, "Newconn: 0x%lx  \"%s\"  at  %s",
+		if (VerboseFlag)
+		    fprintf(stderr, "Newconn: 0x%lx  \"%s\"  at  %s",
 			newcid, (char*)&newconnbody->ClientIdent.SeqBody,
 			TimeNow());
 
@@ -423,7 +428,7 @@ static long ListenerBody(char *listenerName)
 		}
 		
 	    default: /* unknown opcode */
-		CODA_ASSERT(InBuff->Header.Opcode == RPC2_NEWCONNECTION);
+		assert(InBuff->Header.Opcode == RPC2_NEWCONNECTION);
 	    break;
 	    }
 
@@ -474,7 +479,8 @@ static long ClientBody(char *clientName)
 	ConnVector[thisconn].Status = BUSY;
 	request->Header.Opcode = thisopcode;
 	
-	say(0, VerboseFlag, "Making request %ld to %s for %s\n", thisopcode,
+	if (VerboseFlag)
+	    fprintf(stderr, "Making request %ld to %s for %s\n", thisopcode,
 		ConnVector[thisconn].RemoteHost.Value.Name,
 		ConnVector[thisconn].NameBuf);
 
@@ -486,8 +492,10 @@ static long ClientBody(char *clientName)
 		MakeTimedCall(NULL);
 		if (retcode == RPC2_SUCCESS)
 		    {
-		    say(0, VerboseFlag, "Time on %s is %s (%ld msecs)\n",
-		    	ConnVector[thisconn].RemoteHost.Value.Name, reply->Body, rpctime);
+		    if (VerboseFlag)
+			fprintf(stderr, "Time on %s is %s (%ld msecs)\n",
+				ConnVector[thisconn].RemoteHost.Value.Name,
+				reply->Body, rpctime);
 		    break;
 		    }
 		else HandleRPCFailure(thisconn, retcode, ntohl(request->Header.Opcode));
@@ -502,9 +510,11 @@ static long ClientBody(char *clientName)
 		MakeTimedCall(NULL);
 		if (retcode == RPC2_SUCCESS)
 		    {
-		    say(0, VerboseFlag, " %s says square of %ld is %lu (%ld msecs)\n",
-			ConnVector[thisconn].RemoteHost.Value.Name, x,
-			(unsigned long)ntohl(*(long *)reply->Body), rpctime);
+		    if (VerboseFlag)
+			fprintf(stderr, " %s says square of %ld is %lu (%ld msecs)\n",
+				ConnVector[thisconn].RemoteHost.Value.Name, x,
+				(unsigned long)ntohl(*(long *)reply->Body),
+				rpctime);
 		    break;
 		    }
 		else HandleRPCFailure(thisconn, retcode, ntohl(request->Header.Opcode));
@@ -520,9 +530,11 @@ static long ClientBody(char *clientName)
 		MakeTimedCall(NULL);
 		if (retcode == RPC2_SUCCESS)
 		    {
-		    say(0, VerboseFlag, "%s says cube of %ld is %lu (%ld msecs)\n",
-			ConnVector[thisconn].RemoteHost.Value.Name, x,
-			(unsigned long)ntohl(*(long *)reply->Body), rpctime);
+		    if (VerboseFlag)
+			fprintf(stderr, "%s says cube of %ld is %lu (%ld msecs)\n",
+				ConnVector[thisconn].RemoteHost.Value.Name, x,
+				(unsigned long)ntohl(*(long *)reply->Body),
+				rpctime);
 		    break;
 		    }
 		else HandleRPCFailure(thisconn, retcode, ntohl(request->Header.Opcode));
@@ -535,8 +547,10 @@ static long ClientBody(char *clientName)
 		MakeTimedCall(NULL);
 		if (retcode == RPC2_SUCCESS)
 		    {
-		    say(0, VerboseFlag, "%s says its name is \"%s\" (%ld msecs)\n",
-		    	ConnVector[thisconn].RemoteHost.Value.Name, reply->Body, rpctime);
+		    if (VerboseFlag)
+			fprintf(stderr, "%s says its name is \"%s\" (%ld msecs)\n",
+				ConnVector[thisconn].RemoteHost.Value.Name,
+				reply->Body, rpctime);
 		    break;
 		    }
 		else HandleRPCFailure(thisconn, retcode, ntohl(request->Header.Opcode));
@@ -566,7 +580,9 @@ static long ClientBody(char *clientName)
 		    break;		    
 		    }
 		else
-		    say(0, VerboseFlag, "%ld bytes transferred\n", sed.Value.SmartFTPD.BytesTransferred);
+		    if (VerboseFlag)
+			fprintf(stderr, "%ld bytes transferred\n",
+				sed.Value.SmartFTPD.BytesTransferred);
 
 		break;
 		}
@@ -593,7 +609,9 @@ static long ClientBody(char *clientName)
 		    break;		    
 		    }
 		else
-		    say(0, VerboseFlag,"%ld bytes transferred\n", sed.Value.SmartFTPD.BytesTransferred);		
+		    if (VerboseFlag)
+			fprintf(stderr, "%ld bytes transferred\n",
+				sed.Value.SmartFTPD.BytesTransferred);		
 		break;
 		}
 
@@ -604,11 +622,12 @@ static long ClientBody(char *clientName)
 		MakeTimedCall(NULL);
 		if (retcode == RPC2_SUCCESS)
 		    {
-		    say(0, VerboseFlag, "Unbound connection to %s for %s after %ld calls\n",
-			ConnVector[thisconn].RemoteHost.Value.Name,
-			ConnVector[thisconn].Identity.SeqBody,
-			ConnVector[thisconn].CallsMade);
-		    CODA_ASSERT(RPC2_Unbind(ConnVector[thisconn].ConnHandle) == RPC2_SUCCESS);
+		    if (VerboseFlag)
+			fprintf(stderr, "Unbound connection to %s for %s after %ld calls\n",
+				ConnVector[thisconn].RemoteHost.Value.Name,
+				ConnVector[thisconn].Identity.SeqBody,
+				ConnVector[thisconn].CallsMade);
+		    assert(RPC2_Unbind(ConnVector[thisconn].ConnHandle) == RPC2_SUCCESS);
 		    }
 		else
 		    {HandleRPCFailure(thisconn, retcode, ntohl(request->Header.Opcode));}
@@ -633,9 +652,10 @@ static long ClientBody(char *clientName)
 		    }
 		else
 		    {
-		    say(0, VerboseFlag, "Rebound connection to %s for %s\n",
-			ConnVector[thisconn].RemoteHost.Value.Name,
-			ConnVector[thisconn].Identity.SeqBody);
+		    if (VerboseFlag)
+			fprintf(stderr, "Rebound connection to %s for %s\n",
+				ConnVector[thisconn].RemoteHost.Value.Name,
+				ConnVector[thisconn].Identity.SeqBody);
 		    }
 		break;
 		}
@@ -679,7 +699,7 @@ static long ClientBody(char *clientName)
 
 void iopen(void )
 {
-    CODA_ASSERT(1 == 0);
+    assert(1 == 0);
 }
 
 static struct Password {
@@ -749,7 +769,7 @@ static void GetConns(void)
     char myname[30];
 
     GetVar(&CVCount, "How many client connections: ");
-    CODA_ASSERT(CVCount < MAXCON);
+    assert(CVCount < MAXCON);
 
     gethostname(myname, sizeof(myname));
     for (i = 0; i < CVCount; i++)
@@ -884,10 +904,11 @@ static void RanDelay(int t) /* milliseconds */
 	tx = rpc2_NextRandom(0) % t;
 	tval.tv_sec = tx / 1000;
 	tval.tv_usec = 1000*(tx % 1000);
-	say(0, VerboseFlag, "delaying for %ld:%ld seconds ....\n", 
+	if (VerboseFlag)
+	    fprintf(stderr, "delaying for %ld:%ld seconds ....\n", 
 		    tval.tv_sec, tval.tv_usec);
 	FLUSH();
-	CODA_ASSERT(IOMGR_Select(32, 0,0,0, &tval) == 0);
+	assert(IOMGR_Select(32, 0,0,0, &tval) == 0);
 	}
 }
 
@@ -923,7 +944,7 @@ static void HandleRPCFailure(long cid, long rcode, long op)
     if (op == 7 && rcode == RPC2_NAKED)
 	{
 	lostunbinds++;
-	CODA_ASSERT(RPC2_Unbind(ConnVector[cid].ConnHandle) == RPC2_SUCCESS);
+	assert(RPC2_Unbind(ConnVector[cid].ConnHandle) == RPC2_SUCCESS);
         FLUSH();
 	return;
 	}

@@ -573,7 +573,6 @@ extern struct in_addr rpc2_bindaddr;
 /* Packets sent  */
 extern unsigned long rpc2_NoNaks;
 extern long rpc2_BindLimit, rpc2_BindsInQueue;
-extern long rpc2_Unbinds, rpc2_FreeConns, rpc2_AllocConns, rpc2_GCConns;
 extern long rpc2_FreeMgrps, rpc2_AllocMgrps;
 extern long rpc2_FreezeHWMark, rpc2_HoldHWMark;
 

@@ -792,5 +792,6 @@ extern long rpc2_PBMediumCreationCount, rpc2_PBMediumFreeCount;
 extern long rpc2_PBLargeCreationCount,  rpc2_PBLargeFreeCount;
 extern long rpc2_SLCreationCount,       rpc2_SLFreeCount;
 extern long rpc2_ConnCreationCount,     rpc2_ConnFreeCount;
+extern long rpc2_Unbinds, rpc2_FreeConns, rpc2_AllocConns, rpc2_GCConns;
 
 #endif /* _RPC2_ */
