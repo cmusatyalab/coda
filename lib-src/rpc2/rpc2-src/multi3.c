@@ -60,7 +60,6 @@ Pittsburgh, PA.
 void rpc2_RemoveFromMgrp();
 void rpc2_DeleteMgrp();
 
-extern void FreeHeld();  /* sl.c */
 extern void SavePacketForRetry();  /* rpc2a.c */
 
 /* this definition was taken from sl.c */
@@ -745,10 +744,8 @@ long SetupMulticast(MCast, meaddr, HowMany, ConnHandleList)
     }
 
 
-void HandleInitMulticast(pb, ce)
-    RPC2_PacketBuffer	*pb;
-    struct CEntry	*ce;
-    {
+void HandleInitMulticast(RPC2_PacketBuffer *pb, struct CEntry *ce)
+{
     struct SL_Entry		*sl;
     struct MEntry		*me;
     long			rc;
@@ -762,10 +759,10 @@ void HandleInitMulticast(pb, ce)
     sl = ce->MySl;
     /* Free held packet and SL entry */
     if (sl != NULL)
-    	{
+    {
 	rpc2_DeactivateSle(sl, 0);
 	FreeHeld(sl);
-	}
+    }
 
     rpc2_IncrementSeqNumber(ce);
 
@@ -813,7 +810,7 @@ void HandleInitMulticast(pb, ce)
 
     /* Save reply for retransmission. */
     SavePacketForRetry(pb, ce);        
-    }
+}
 
 
 bool XlateMcastPacket(RPC2_PacketBuffer *pb)

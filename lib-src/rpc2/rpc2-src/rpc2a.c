@@ -169,12 +169,18 @@ long RPC2_SendResponse(IN RPC2_Handle ConnHandle, IN RPC2_PacketBuffer *Reply)
 
     TR_SENDRESPONSE();
 
+    { /* Cancel possibly pending delayed ack response, the error code is
+       * ignored, but RPC2_ABANDONED just looked nice :) */
+	if (ce->MySl) {
+	    rpc2_DeactivateSle(ce->MySl, RPC2_ABANDONED);
+	    rpc2_FreeSle(&ce->MySl);
+	}
+    }
+    
     preply = Reply;	/* side effect routine usually does not reallocate
 			 * packet. preply will be the packet actually sent
 			 * over the wire */
 
-
-    
     rc = preply->Header.ReturnCode; /* InitPacket clobbers it */
     rpc2_InitPacket(preply, ce, preply->Header.BodyLength);
     preply->Header.ReturnCode = rc;
@@ -938,19 +944,19 @@ int rpc2_time()
 }
 
 
-void SavePacketForRetry(pb, ce)
-    RPC2_PacketBuffer *pb;
-    struct CEntry *ce;
-    {
+void SavePacketForRetry(RPC2_PacketBuffer *pb, struct CEntry *ce)
+{
     struct SL_Entry *sl;
 
     pb->Header.Flags = htonl((ntohl(pb->Header.Flags) | RPC2_RETRY));
     ce->HeldPacket = pb;
 
+    if (ce->MySl) 
+	say(-1, RPC2_DebugLevel, "BUG: Pending DELAYED ACK response still queued!?");
+
     sl = rpc2_AllocSle(REPLY, ce);
     rpc2_ActivateSle(sl, &ce->SaveResponse);
-    }
-
+}
 
 
 static int ResolveBindParms(IN whichConn, IN whichHost, IN whichPort, IN whichSubsys)

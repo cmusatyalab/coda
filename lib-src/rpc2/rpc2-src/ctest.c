@@ -413,9 +413,9 @@ int main(int arg, char **argv)
 		Buff1->Header.BodyLength = 0;
 		tt = WhatHappened(RPC2_MakeRPC(cid, Buff1, (SE_Descriptor *)NULL, &Buff2, 
 					       (struct timeval *)NULL, (long)0), "MakeRPC");
+		FT_GetTimeOfDay(&t2, NULL);
 		if (tt != RPC2_SUCCESS)
 		    continue;
-		FT_GetTimeOfDay(&t2, NULL);
 	    break;
 
 	    case MANYPINGS:
@@ -458,6 +458,17 @@ int main(int arg, char **argv)
 		memcpy(Buff1->Body+sizeof(long), LongText, tt);
 		ClearStats();
 		FT_GetTimeOfDay(&t1, NULL);
+		tt = WhatHappened(RPC2_MakeRPC(cid, Buff1, (SE_Descriptor *)NULL,  
+					       &Buff2, (struct timeval *)NULL, 
+					       (long) 0), "MakeRPC");
+		FT_GetTimeOfDay(&t2, NULL);
+		if (tt != RPC2_SUCCESS)continue;
+	    break;
+
+	    case DELACKTEST:
+		ClearStats();
+		FT_GetTimeOfDay(&t1, NULL);
+		Buff1->Header.BodyLength = 0;
 		tt = WhatHappened(RPC2_MakeRPC(cid, Buff1, (SE_Descriptor *)NULL,  
 					       &Buff2, (struct timeval *)NULL, 
 					       (long) 0), "MakeRPC");

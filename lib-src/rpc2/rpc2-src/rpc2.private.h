@@ -247,6 +247,11 @@ struct MEntry			/* describes an RPC multicast connection */
 	  REQ          not associated with a specific connection
                        created and destroyed by user LWP in GetRequest
 
+          DELACK       delayed ack response to receiving a request
+	               created by SocketListener in HandleRequest
+		       destroyed by SocketListener on timeout
+	               destroyed by user LWP when reply is sent.
+
           OTHER        associated with a specific connection
 	               created and destroyed by user LWP
 
@@ -257,7 +262,7 @@ connection they are associated with.
 */
 
 /* NOTE:  enum definitions  have to be non-anonymous: else a dbx bug is triggered */
-enum SL_Type {REPLY=1421, REQ=1422, OTHER=1423};
+enum SL_Type {REPLY=1421, REQ=1422, OTHER=1423, DELACK=20010911};
 enum RetVal {WAITING=38358230, ARRIVED=38358231, TIMEOUT=38358232,
 	KEPTALIVE=38358233, KILLED=38358234, NAKED=38358235};
 
@@ -443,6 +448,8 @@ void rpc2_FreeSle(struct SL_Entry **sl);
 void rpc2_ActivateSle(), rpc2_DeactivateSle();
 struct SubsysEntry *rpc2_AllocSubsys();
 void rpc2_FreeSubsys();
+
+void FreeHeld(struct SL_Entry *sle);
 
 /* Socket creation */
 long rpc2_CreateIPSocket(long *svar, RPC2_PortIdent *pvar);

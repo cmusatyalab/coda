@@ -23,7 +23,8 @@ enum Opcodes   {
 		FETCHFILE, STOREFILE,
 		DUMPTRACE, STATS, REMOTESTATS,
 		BEGINREMOTEPROFILING, ENDREMOTEPROFILING,
-		SETVMFILESIZE, SETREMOTEVMFILESIZE
+		SETVMFILESIZE, SETREMOTEVMFILESIZE,
+		DELACKTEST
 		};
 		
 char *Opnames[]= {
@@ -33,7 +34,8 @@ char *Opnames[]= {
 		"FetchFile", "StoreFile",
 		"Dumptrace", "Stats", "RemoteStats",
 		"BeginRemoteProfiling", "EndRemoteProfiling",
-		"SetVMFileBuffer", "SetRemoteVMFileBuffer"
+		"SetVMFileBuffer", "SetRemoteVMFileBuffer",
+		"Delayed ACK test"
 		};
 		
 		

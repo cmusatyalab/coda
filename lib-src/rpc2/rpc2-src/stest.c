@@ -194,8 +194,9 @@ long FindKey(authenticationtype, ClientIdent, IdentKey, SessionKey)
     {
     long x;
     fprintf(stderr, "*** In FindKey('%s', 0x%lx, 0x%lx) ***\n",
-	    ClientIdent->SeqBody, *(long *)IdentKey, *(long *)SessionKey);
+	    ClientIdent ? (char *)ClientIdent->SeqBody : "", *(long *)IdentKey, *(long *)SessionKey);
     x = -1;
+    if (!ClientIdent) return 0;
     if (strcmp((char *)ClientIdent->SeqBody, "satya") == 0) x =1;
     if (strcmp((char *)ClientIdent->SeqBody, "bovik") == 0) x = 2;
     if (strcmp((char *)ClientIdent->SeqBody, "guest") == 0) x = 3;    
@@ -445,6 +446,19 @@ long ProcessPacket(RPC2_Handle cIn, RPC2_PacketBuffer *pIn, RPC2_PacketBuffer *p
 	    i = WhatHappened(RPC2_SendResponse(cIn, pOut), "SendResponse");
 	break;
 
+	case DELACKTEST:
+	{
+	    /* non lwp-blocking sleep for one second */
+	    struct timeval tv;
+	    tv.tv_sec = 1;
+	    tv.tv_usec = 0;
+	    IOMGR_Select(0, NULL, NULL, NULL, &tv);
+
+	    pOut->Header.ReturnCode = RPC2_SUCCESS;
+	    pOut->Header.BodyLength = pIn->Header.BodyLength;
+	    i = WhatHappened(RPC2_SendResponse(cIn, pOut), "SendResponse");
+	}
+	break;
 
 	case SETREMOTEVMFILESIZE:
 	    {

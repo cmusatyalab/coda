@@ -9,6 +9,9 @@ New in 1.13:
 * A non-masqueraded rpc2 client wouldn't send out it's SFTP packets through
   the rpc2 socket when talkin to a masqueraded rpc2-server. This broke
   backfetches through a firewall.
+* Added delayed acks, when an RPC2 operation on the server is taking more than
+  200ms, an unsolicited RPC2_BUSY is sent back to the client to avoid
+  unnecessary retransmissions of the request.
 
 New in 1.12:
 

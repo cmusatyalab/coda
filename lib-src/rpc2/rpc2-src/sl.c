@@ -69,7 +69,7 @@ Pittsburgh, PA.
 
  
 void rpc2_IncrementSeqNumber();
-void FreeHeld();
+static void DelayedAck(struct SL_Entry *sle);
 bool XlateMcastPacket(RPC2_PacketBuffer *pb);
 void HandleInitMulticast();
 void rpc2_ProcessPackets();
@@ -254,10 +254,14 @@ void rpc2_ExpireEvents()
 		t = TM_GetExpired(rpc2_TimerQueue);
 		sl = (struct SL_Entry *)t->BackPointer;
 		rpc2_DeactivateSle(sl, TIMEOUT);
-		if (sl->Type == REPLY) 
-			FreeHeld(sl);
-		else  
-			LWP_NoYieldSignal((char *)sl);
+
+		if (sl->Type == REPLY) {
+		    FreeHeld(sl);
+		} else if (sl->Type == DELACK) {
+		    DelayedAck(sl);
+		} else {
+		    LWP_NoYieldSignal((char *)sl);
+		}
 	}
 }
 
@@ -679,17 +683,18 @@ bool rpc2_FilterMatch(whichF, whichP)
 
 
 
-static void SendBusy(ce, doEncrypt)
-    struct CEntry *ce;
-    int doEncrypt;	/* == 1 ==> encrypt this packet */
-    {
+static void SendBusy(struct CEntry *ce, int doEncrypt)
+{
     RPC2_PacketBuffer *pb;
+    unsigned int delta;
 
     rpc2_Sent.Busies++;
 
     RPC2_AllocBuffer(0, &pb);
     rpc2_InitPacket(pb, ce, 0);
-    pb->Header.TimeStamp    = ce->TimeStampEcho;
+
+    delta = TSDELTA(rpc2_MakeTimeStamp(), ce->RequestTime);
+    pb->Header.TimeStamp = (unsigned int)ce->TimeStampEcho + delta;
     pb->Header.SeqNumber    = ce->NextSeqNumber-1;
     pb->Header.Opcode	    = RPC2_BUSY;
 
@@ -698,7 +703,7 @@ static void SendBusy(ce, doEncrypt)
 
     rpc2_XmitPacket(rpc2_RequestSocket, pb, &ce->PeerHost, &ce->PeerPort);
     RPC2_FreeBuffer(&pb);
-    }
+}
 
 /* Keep alive for current request */
 static void HandleBusy(RPC2_PacketBuffer *pb,  struct CEntry *ce)
@@ -787,6 +792,15 @@ static void HandleNewRequest(RPC2_PacketBuffer *pb, struct CEntry *ce)
 	rpc2_IncrementSeqNumber(ce);
 	if (IsMulticast(pb))
 		ce->Mgrp->NextSeqNumber += 2;
+
+	{ /* set up a timer to send a unsolicited ack response (actually an
+	     RCP2_BUSY) within 200ms. */
+	    struct timeval tv;
+	    tv.tv_sec = 0;
+	    tv.tv_usec = 200000;
+	    sl = rpc2_AllocSle(DELACK, ce);
+	    rpc2_ActivateSle(sl, &tv);
+	}
 
 	/* Look for a waiting recipient */
 	sl = FindRecipient(pb);
@@ -1167,6 +1181,15 @@ static void HandleOldRequest(   RPC2_PacketBuffer *pb, struct CEntry *ce)
 	RPC2_FreeBuffer(&pb);
 }
 
+void DelayedAck(struct SL_Entry *sle)
+{
+	struct CEntry *ce;
+    
+	ce = rpc2_GetConn(sle->Conn);
+	SendBusy(ce, TRUE);
+	rpc2_FreeSle(&ce->MySl);
+}
+
 void FreeHeld(struct SL_Entry *sle)
 {
 	struct CEntry *ce;
@@ -1175,7 +1198,6 @@ void FreeHeld(struct SL_Entry *sle)
 	RPC2_FreeBuffer(&ce->HeldPacket);
 	rpc2_FreeSle(&ce->MySl);
 }
-
 
 static bool BogusSl(struct CEntry *ce, RPC2_PacketBuffer *pb)
 {
