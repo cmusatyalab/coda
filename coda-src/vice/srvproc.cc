@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: blurb.doc,v 1.1 96/11/22 13:29:31 raiff Exp $";
+static char *rcsid = "$Header: /home/braam/src/coda-src/vice/RCS/srvproc.cc,v 1.1 1996/11/22 19:14:41 braam Exp braam $";
 #endif /*_BLURB_*/
 
 
@@ -75,6 +75,12 @@ extern "C" {
 #include <sysent.h>
 #include <strings.h>
 
+#ifdef LINUX
+#include <ifs.h>
+#include <stdlib.h>
+#include <unistd.h>
+#endif
+
 #ifdef _TIMECALLS_
 #include "histo.h"
 #endif _TIMECALLS_
@@ -87,7 +93,7 @@ extern "C" {
 #include <util.h>
 #include <rvmlib.h>
 #include <vmindex.h>
-#include <dir.h>
+#include <coda_dir.h>
 #include <nfs.h>
 #include <partition.h>
 #include <vicelock.h>
@@ -1780,11 +1786,13 @@ START_TIMING(Rename_Total);
 #ifdef _TIMECALLS_
     START_NSC_TIMING(SpoolVMLogRecord);
 #endif _TIMECALLS_    
-    if (AllowResolution && V_RVMResOn(volptr) && 
-	ReplicatedOp && !errorCode) 
-	errorCode = SpoolRenameLogRecord(ViceRename_OP, vlist, sv->vptr, 
-					 tv ? tv->vptr : NULL, spv->vptr, tpv->vptr, 
-					 volptr, (char *)OldName, (char *)NewName, StoreId);
+    if (AllowResolution && V_RVMResOn(volptr) && ReplicatedOp && !errorCode) 
+	errorCode = SpoolRenameLogRecord((int) ViceRename_OP,(dlist *)  vlist, sv->vptr, 
+					 (Vnode *)(tv ? tv->vptr : NULL), spv->vptr, 
+					 tpv->vptr, 
+					 volptr, (char *)OldName, 
+					 (char *)NewName, StoreId);
+
 
 #ifdef _TIMECALLS_
     END_NSC_TIMING(SpoolVMLogRecord);
