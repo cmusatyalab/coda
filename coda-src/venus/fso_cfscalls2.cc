@@ -84,10 +84,8 @@ int fsobj::Open(int writep, int execp, int truncp, venus_cnode *cp, uid_t uid)
     }
     int code = 0;
 
-    if (IsSymLink()) {
-	code = ELOOP;
-	goto Exit;
-    }
+    if (IsSymLink())
+	return ELOOP;
 
     /*  write lock the object if we might diddle it below.  Disabling
      * replacement and bumping reference counts are performed
