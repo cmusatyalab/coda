@@ -49,6 +49,7 @@ pid_file=/usr/coda/venus.cache/pid
 run_control_file=/usr/coda/venus.cache/VENUS_CTRL
 rvm_log=/usr/coda/LOG
 rvm_data=/usr/coda/DATA
+mountpoint=/coda
 
 # override with user defined paths
 if [ -f /etc/coda/venus.conf ] ; then
