@@ -132,17 +132,6 @@ proc OutputBehaviorConfiguration { outFile } {
     }
 }
 
-proc InitVenusLog { } {
-    global Pathnames
-    global VENUSLOG
-
-#    exec $Pathnames(vutil) -swap
-#    exec $Pathnames(vutil) -stats
-#    set VENUSLOG $Pathnames(venus.log)
-    set VENUSLOG $Pathnames(myvenus.log)
-
-}
-
 proc SetStatistics { fa fo ba bo ra ro } {
     global Statistics
 
@@ -182,7 +171,6 @@ proc CalculateDerivedStatistics { } {
 
 proc InitStatistics { } {
     global Statistics
-    global VENUSLOG
 
     set Statistics(LastUpdateTime) 0
 
@@ -229,10 +217,21 @@ proc CheckStatisticsCurrency { currency } {
     }
 }
 
+proc GetListOfServerNames { } {
+    puts stderr "Implement GetListOfServerNames"
+    flush stderr
+
+#    set VENUSLOG /usr/coda/venus.cache/venus.log
+#    set first {{ print $1 " " $6}}
+#    set third {{ print $3 "." $16 }}
+#    set servers [exec grep ", binding = " $VENUSLOG | grep ", host = " | grep " : cid = " | awk $third | sort -u | awk -F. $first]
+
+    return "stravinsky 172696 tchaikovsky 155944 mussorgsky 132686 rameau 243764 poulenc 183567 massenet 137479"
+}
+
 proc InitServers { } {
     global Servers
     global Bandwidth
-    global VENUSLOG
 
     # Ethernet bandwidth = 10 mb/sec == 1310720 B/sec
     set Bandwidth(Ethernet) 1310720
@@ -240,12 +239,7 @@ proc InitServers { } {
     # Weak threshold = 1/10th of maximum ethernet speed
     set Bandwidth(WeakThreshold) [expr $Bandwidth(Ethernet) / 10]
 
-    set first {{ print $1 " " $6}}
-    set third {{ print $3 "." $16 }}
-
-    set servers [exec grep ", binding = " $VENUSLOG | \
-		      grep ", host = " | grep " : cid = " | awk $third | \
-		      sort -u | awk -F. $first]
+    set servers [GetListOfServerNames]
     set Max [expr [llength $servers] / 2]
 
     # Get output lock
@@ -338,7 +332,6 @@ proc InitProgramData { } {
 
     set state lookingForProgramname
     set programname ""
-    set first true
     foreach line [split [read $ProgramFILE] \n] {
 	if { $line == "" } then {
 	    set programname ""

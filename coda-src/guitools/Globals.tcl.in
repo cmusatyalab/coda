@@ -3,15 +3,14 @@ proc InitSystemAdministrator { } {
 
     set SysAdmin(Coda) "Henry Pierce at hmpierce@cs.cmu.edu or x8-7557"
 }
+
 proc InitPathnamesArray { } {
     global Pathnames
     global user
 
-    set Pathnames(srcarea) /coda/usr/mre/newbuild/src/coda-src/console
-
     set Pathnames(venus.cache) /usr/coda/venus.cache
-    set Pathnames(venus.log) /usr/coda/venus.cache/venus.log
-    set Pathnames(myvenus.log) $Pathnames(srcarea)/venus.log
+
+    # Password file
     set Pathnames(passwd) /etc/passwd
 
     set Pathnames(home) /coda/usr/$user

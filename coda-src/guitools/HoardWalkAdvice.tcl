@@ -1630,33 +1630,3 @@ proc updateFetchTime { } {
 }
 
 
-# For Testing
-#lappend auto_path /usr/mre/russianSave/coda-src/guitools
-
-#set Window ""
-#set user [exec whoami]
-#set password ""
-
-#wm withdraw .
-
-#InitLocks
-#InitSystemAdministrator
-#InitPathnamesArray
-#InitDimensionsArray
-#InitColorArray
-#InitDisplayStyleArray
-#InitVenusLog
-#InitStatistics
-#InitServers 
-#InitEventsArray
-#InitData
-#InitLog
-
-#HoardWalkAdviceInit
-
-#Hoard
-
-#HoardWalkAdvice /usr/mre/russianSave/coda-src/guitools/hoardlist.samplein /tmp/foo
-
-
-

@@ -63,18 +63,6 @@ proc GetPartitionUsage { partition } {
     return [string trimright [lindex [exec df $partition | awk $five] 1] %]
 }
 
-#proc GetRVMUsage { } {
-#    global Statistics
-#    global VENUSLOG
-
-#    CheckStatisticsCurrency $Statistics(Currency)
-
-#    set Statistics(RVMBytesAllocated) \
-#	[expr $Statistics(RVMfreebytes) + $Statistics(RVMmallocdbytes)]
-#    set usage \
-#	[expr $Statistics(RVMmallocdbytes) * 100 / $Statistics(RVMBytesAllocated)]
-#    return $usage
-#}
 
 # GetBandwidthEstimate returns the bandwidth estimate of a server as a percentage of
 proc GetBandwidthEstimate { server } {

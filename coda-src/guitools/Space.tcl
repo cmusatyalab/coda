@@ -1,7 +1,3 @@
-#!/bin/sh
-# The next line restarts using wish\
-exec /coda/misc/tcl/@sys/beta/bin/tixwish  "$0" "$@"
-
 #
 # An interface that alerts users to potential problems and opportunities
 #

@@ -60,7 +60,6 @@ InitPathnamesArray
 InitDimensionsArray
 InitColorArray
 InitDisplayStyleArray
-InitVenusLog
 InitStatistics
 InitServers 
 InitEventsArray
