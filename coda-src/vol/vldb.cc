@@ -144,7 +144,7 @@ struct vldb *VLDBLookup(char *key)
 			vldp->key, key);
 	    }
 	    if (!vldp->hashNext) {
-		VLog(0, "VLDB_Lookup: no more records in VLDB");
+		VLog(0, "VLDB_Lookup: cannot find \"%s\"", key);
 		return 0;
 	    }
 	    i += vldp->hashNext;
