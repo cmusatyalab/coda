@@ -29,10 +29,8 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: blurb.doc,v 1.1 96/11/22 13:29:31 raiff Exp $";
+static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/src/coda-4.0.1/coda-src/venus/RCS/venusrecov.cc,v 1.1 1996/11/22 19:11:17 braam Exp braam $";
 #endif /*_BLURB_*/
-
-
 
 
 
@@ -80,6 +78,10 @@ extern "C" {
 #include <mach.h>
 #endif	MACH
 
+#if __NetBSD__ || LINUX
+#include <sys/mman.h>
+#endif __NetBSD__
+
 #ifdef __cplusplus
 }
 #endif __cplusplus
@@ -119,8 +121,16 @@ int MAXTS = UNSET_MAXTS;
 
 /*  *****  Private Constants  *****  */
 
+#if MACH
 PRIVATE const char *VM_RVGADDR = (char *)0x00c00000;
 PRIVATE const char *VM_RDSADDR = (char *)0x01c00000;
+#elif defined(__NetBSD__) 
+PRIVATE const char *VM_RVGADDR = (char *)0x40000000;
+PRIVATE const char *VM_RDSADDR = (char *)0x41000000;
+#elif LINUX
+PRIVATE const char *VM_RVGADDR = (char *)0x20000000;
+PRIVATE const char *VM_RDSADDR = (char *)0x21000000;
+#endif /* MACH and __NetBSD__ */
 
 
 /*  *****  Private Variables  *****  */
@@ -605,6 +615,7 @@ PRIVATE void Recov_InitSeg() {
 #else
         eprint("Last init was %s", strtok(ctime((long *)&rvg->recov_LastInit), "\n"));
 #endif
+
 	/* Copy CleanShutDown to VM global, then set it FALSE. */
 	CleanShutDown = rvg->recov_CleanShutDown;
 	eprint("Last shutdown was %s", (CleanShutDown ? "clean" : "dirty"));
@@ -790,27 +801,51 @@ void RecovPrint(int fd) {
 /*  *****  VM Allocation/Deallocation  *****  */
 
 PRIVATE void Recov_AllocateVM(char **addr, unsigned long length) {
-#ifdef	MACH
+#if	MACH
     kern_return_t ret = vm_allocate(task_self(), (vm_address_t *)addr,
 				    (unsigned int)length, (*addr == 0));
     if (ret != KERN_SUCCESS)
 	Choke("Recov_AllocateVM: allocate(%x, %x) failed (%d)", *addr, length, ret);
     LOG(0, ("Recov_AllocateVM: allocated %x bytes at %x\n", length, *addr));
-#else	MACH
-    Choke("Recov_AllocateVM: Unix allocation not yet implemented!");
-#endif	MACH
+
+#elif defined(__NetBSD__) || LINUX 
+    char *requested_addr = *addr;
+    *addr = mmap(*addr, length, (PROT_READ | PROT_WRITE),
+		 (MAP_PRIVATE | MAP_ANON), -1, 0);
+
+    if (*addr == (char *)-1) {
+	if (errno == ENOMEM)
+	    Choke("Recov_AllocateVM: mmap(%x, %x, ...) out of memory", *addr, length);
+	else
+	    Choke("Recov_AllocateVM: mmap(%x, %x, ...) failed with errno == %d", *addr, length, errno);
+    }
+
+    if ((requested_addr != 0) && (*addr != requested_addr)) {
+    	Choke("Recov_AllocateVM: mmap address mismatch; requested %x, returned %x", requested_addr, *addr);
+    }
+
+    LOG(0, ("Recov_AllocateVM: allocated %x bytes at %x\n", length, *addr));
+
+#else /* DEFAULT */
+    Choke("Recov_AllocateVM: not yet implemented for this platform!");
+#endif /* MACH and __NetBSD__ */
 }
 
 
 PRIVATE void Recov_DeallocateVM(char *addr, unsigned long length) {
-#ifdef	MACH
+#if	MACH
     kern_return_t ret = vm_deallocate(task_self(), (vm_address_t)addr, (unsigned int)length);
     if (ret != KERN_SUCCESS)
 	Choke("Recov_DeallocateVM: deallocate(%x, %x) failed (%d)", addr, length, ret);
     LOG(0, ("Recov_DeallocateVM: deallocated %x bytes at %x\n", length, addr));
-#else	MACH
-    Choke("Recov_DeallocateVM: Unix deallocation not yet implemented!");
-#endif	MACH
+#elif defined(__NetBSD__) || LINUX 
+    if (munmap(addr, length)) {
+	Choke("Recov_DeallocateVM: munmap(%x, %x) failed with errno == %d", addr, length, errno);
+    }
+    LOG(0, ("Recov_DeallocateVM: deallocated %x bytes at %x\n", length, addr));
+#else	/* MACH and __NetBSD__ */
+    Choke("Recov_DeallocateVM: not yet implemented for this platform");
+#endif	/* MACH and __NetBSD__ */
 }
 
 
