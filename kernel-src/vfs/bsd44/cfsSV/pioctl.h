@@ -8,7 +8,10 @@
  */
 /*
  * HISTORY
- * $Log:	pioctl.h,v $
+ * $Log: pioctl.h,v $
+ * Revision 1.4  1998/01/23 11:53:54  rvb
+ * Bring RVB_CFS1_1 to HEAD
+ *
  * Revision 1.3.2.1  97/12/06  17:41:29  rvb
  * Sync with peters coda.h
  * 
