@@ -245,7 +245,7 @@ void vproc::do_ioctl(VenusFid *fid, unsigned int com, struct ViceIoctl *data) {
 
 			/*
 			 * Regular mount-links start with a '#', optionally
-			 * followed by a volume name (GetRootVolume is used in
+			 * followed by a volume name (current path is used in
 			 * case the volume name is not specified), optionally
 			 * followed by '@' and a realm/domain name (the realm
 			 * of the parent volume is used if this is not
