@@ -31,10 +31,9 @@ listed in the file CREDITS.
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <malloc.h>
 #include <string.h>
-#include <netinet/in.h>
 #include <sys/types.h>
+#include <netinet/in.h>
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <coda_assert.h>

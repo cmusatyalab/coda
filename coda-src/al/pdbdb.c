@@ -33,7 +33,6 @@ listed in the file CREDITS.
 #include <sys/types.h>
 #include <unistd.h>
 #include <stdlib.h>
-#include <malloc.h>
 #include <string.h>
 #include <netinet/in.h>
 #include <fcntl.h>

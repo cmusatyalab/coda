@@ -28,9 +28,9 @@ listed in the file CREDITS.
 */
 
 
-#include <malloc.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/types.h>
 #include <netinet/in.h>
 #include <coda_assert.h>
 #include "pdbarray.h"
