@@ -690,7 +690,7 @@ class fsobj {
     int IsRoot() { return(mvstat == ROOT); }
     int IsVenusRoot() { return(FID_EQ(&fid, &rootfid)); }
     int	IsMtPt() { return(mvstat == MOUNTPOINT); }      /* covered mount point */
-    int	IsMTLink() { return(stat.VnodeType == (int)SymbolicLink && stat.Mode == 0644); }
+    int	IsMTLink() { return(IsSymLink() && stat.Mode == 0644 && IsNormal()); }
                                                         /* uncovered mount point */
     int IsBackFetching();			/* fso involved in an ongoing reintegration */
     int SetLastResolved(long t) { lastresolved = t; return(0); }

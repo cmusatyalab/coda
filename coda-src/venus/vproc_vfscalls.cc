@@ -583,15 +583,17 @@ void vproc::lookup(struct venus_cnode *dcp, char *name,
 	else if (STREQ(name, "..")) {
 	    if (parent_fso->IsRoot() && parent_fso->u.mtpoint &&
 		!parent_fso->IsVenusRoot())
-		target_fso = parent_fso->u.mtpoint;
-	    else
+		u.u_error = FSDB->Get(&target_fso, &parent_fso->u.mtpoint->pfid, u.u_uid, RC_DATA);
+	    else {
 		target_fso = parent_fso->pfso;
+		if (target_fso)
+		    target_fso->Lock(RD);
+	    }
 
 	    if (!target_fso) {
 		u.u_error = ENOENT;
 		goto FreeLocks;
 	    }
-	    target_fso->Lock(RD);
 	}
 	else {
 	    VenusFid inc_fid;

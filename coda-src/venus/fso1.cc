@@ -194,7 +194,7 @@ void fsobj::ResetTransient()
     memset((void *)&del_handle, 0, (int)sizeof(del_handle));
     memset((void *)&owrite_handle, 0, (int)sizeof(owrite_handle));
 
-    if (HAVEDATA(this) && stat.VnodeType == Directory && mvstat != MOUNTPOINT) {
+    if (HAVEDATA(this) && IsDir()) {
 	data.dir->udcfvalid = 0;
 	data.dir->udcf = 0;
     }
@@ -410,10 +410,14 @@ void fsobj::Recover()
     }
 
     /* Uncover mount points. */
-    if (mvstat == MOUNTPOINT) {
+    if (IsMtPt()) {
 	Recov_BeginTrans();
+
+	/* XXX this can probably be removed */
 	RVMLIB_REC_OBJECT(stat.VnodeType);
 	stat.VnodeType = SymbolicLink;
+	/* XXX */
+
 	RVMLIB_REC_OBJECT(mvstat);
 	mvstat = NORMAL;
 	Recov_EndTrans(MAXFP);
@@ -477,7 +481,7 @@ void fsobj::Recover()
 
     /* Get rid of a former mount-root whose fid is not a volume root and whose
      * pfid is NullFid */
-    if ((mvstat == NORMAL) && !FID_IsVolRoot(&fid) && 
+    if (IsNormal() && !FID_IsVolRoot(&fid) && 
 	FID_EQ(&pfid, &NullFid) && !IsLocalObj()) {
 	LOG(0, ("fsobj::Recover: (%s) is a non-volume root whose pfid is NullFid\n",
 		FID_(&fid)));
@@ -829,7 +833,8 @@ void fsobj::ReplaceStatusAndSHA(ViceStatus *vstat, vv_t *UpdateSet, RPC2_Bounded
     stat.Owner = (uid_t) vstat->Owner;
     stat.Mode = (short) vstat->Mode;
     stat.LinkCount = (unsigned char) vstat->LinkCount;
-    stat.VnodeType = vstat->VnodeType;
+    if (vstat->VnodeType)
+	stat.VnodeType = vstat->VnodeType;
 }
 
 
@@ -1174,9 +1179,6 @@ int fsobj::TryToCover(VenusFid *inc_fid, uid_t uid)
 	code = VDB->Get(&tvol, vol->realm, &data.symlink[1], this);
 
     if (code != 0) {
-/*
-	 eprint("TryToCover(%s) failed (%d)", data.symlink, code);
-*/
 	LOG(100, ("fsobj::TryToCover: vdb::Get(%s) failed (%d)\n", data.symlink, code));
 	return(code);
     }
@@ -1240,7 +1242,7 @@ int fsobj::TryToCover(VenusFid *inc_fid, uid_t uid)
 
     /* Do the mount magic. */
     Recov_BeginTrans();
-    if (IsFake() && rf->mvstat != ROOT) {
+    if (IsFake() && !rf->IsRoot()) {
 	    RVMLIB_REC_OBJECT(rf->mvstat);
 	    RVMLIB_REC_OBJECT(rf->u.mtpoint);
 	    rf->mvstat = ROOT;
@@ -1259,7 +1261,7 @@ int fsobj::TryToCover(VenusFid *inc_fid, uid_t uid)
 /* MUST be called from within transaction! */
 /* Call with object write-locked. */
 void fsobj::CoverMtPt(fsobj *root_fso) {
-    if (mvstat != NORMAL)
+    if (!IsNormal())
 	{ print(logFile); CHOKE("fsobj::CoverMtPt: mvstat != NORMAL"); }
     if (!data.symlink)
 	{ print(logFile); CHOKE("fsobj::CoverMtPt: no data.symlink!"); }
@@ -1273,7 +1275,6 @@ void fsobj::CoverMtPt(fsobj *root_fso) {
     k_Purge(&fid, 1);
 
     /* Enter new state (MOUNTPOINT). */
-    stat.VnodeType = Directory;
     mvstat = MOUNTPOINT;
     u.root = root_fso;
     DisableReplacement();
@@ -1283,7 +1284,7 @@ void fsobj::CoverMtPt(fsobj *root_fso) {
 /* MUST be called from within transaction! */
 /* Call with object write-locked. */
 void fsobj::UncoverMtPt() {
-    if (mvstat != MOUNTPOINT) 
+    if (!IsMtPt()) 
 	{ print(logFile); CHOKE("fsobj::UncoverMtPt: mvstat != MOUNTPOINT"); }
     if (!u.root)
 	{ print(logFile); CHOKE("fsobj::UncoverMtPt: no u.root!"); }
@@ -1299,7 +1300,6 @@ void fsobj::UncoverMtPt() {
     k_Purge(&pfid, 1);			/* This IS necessary. */
 
     /* Enter new state (NORMAL). */
-    stat.VnodeType = SymbolicLink;
     mvstat = NORMAL;
     EnableReplacement();
 }
@@ -1308,7 +1308,7 @@ void fsobj::UncoverMtPt() {
 /* MUST be called from within transaction! */
 /* Call with object write-locked. */
 void fsobj::MountRoot(fsobj *mtpt_fso) {
-    if (mvstat != ROOT)
+    if (!IsRoot())
 	{ print(logFile); CHOKE("fsobj::MountRoot: mvstat != ROOT"); }
     if (u.mtpoint)
 	{ print(logFile); CHOKE("fsobj::MountRoot: u.mtpoint exists!"); }
@@ -1329,7 +1329,7 @@ void fsobj::MountRoot(fsobj *mtpt_fso) {
 /* MUST be called from within transaction! */
 /* Call with object write-locked. */
 void fsobj::UnmountRoot() {
-    if (mvstat != ROOT) 
+    if (!IsRoot()) 
 	{ print(logFile); CHOKE("fsobj::UnmountRoot: mvstat != ROOT"); }
     if (!u.mtpoint)
 	{ print(logFile); CHOKE("fsobj::UnmountRoot: no u.mtpoint!"); }
@@ -2544,7 +2544,7 @@ void fsobj::CacheReport(int fd, int level) {
 
     /* Indirect over mount points. */
     if (IsMtPt()) {
-	u.mtpoint->CacheReport(fd, level);
+	u.root->CacheReport(fd, level);
 	return;
     }
 
@@ -2834,7 +2834,7 @@ void fsobj::GetOperationState(int *conn, int *tid)
 	    if (cfo->IsLocalObj())
 	      break;
 	    if (cfo->IsRoot())
-	      cfo = cfo->u.mtpoint;
+	      cfo = cfo->u.mtpoint->pfso;
 	    else
 	      cfo = cfo->pfso;
 	}

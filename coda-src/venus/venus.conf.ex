@@ -122,7 +122,7 @@ cacheblocks=100000
 # Dont use RVM,
 # Avoid using persistent storage for metadata. Only useful on diskless
 # clients or small handhelds when the venus.cache is stored in a ramdisk
-# or ram filesystem. Beware, if you enable this option, venus will loose
+# or ram filesystem. Beware, if you enable this option, venus will lose
 # all not reintegrated modifications when it dies.
 #
 #dontuservm=0
@@ -134,9 +134,12 @@ cacheblocks=100000
 # missing pages are paged in when they are accesses. Also swap usage is
 # reduced as any unmodified pages do not have to be backed up by swap
 # memory when memory gets tight. Private mappings do not work when rvm
-# data is stored on a raw partition. Set to 1 to use private mappings,
-# 0 to use anonymous mappings.
+# data is stored on a raw partition on Linux. Set to 1 to use private
+# mappings, 0 to use anonymous mappings.
 # 
+# We enabled this setting because venus uses files for RVM and the
+# faster startup times and reduced memory pressure are very noticable.
+#
 #mapprivate=0
 mapprivate=1
 
