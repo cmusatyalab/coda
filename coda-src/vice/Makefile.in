@@ -52,8 +52,8 @@ CLIBS =	$(LIBVOLSERV)  \
 	$(LIBAUTH2)	\
 	$(LIBAL)	\
 	$(LIBVOLUTIL)	\
-	$(LIBRESLIB)	\
 	$(LIBRVMRES)	\
+	$(LIBRESLIB)	\
 	$(LIBRESOLVE) 	\
 	$(LIBVOL)	\
 	$(LIBVV)	\
