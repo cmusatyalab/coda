@@ -630,7 +630,6 @@ int coda_open(struct inode *i, struct file *f)
 	       f->f_dentry->d_inode->i_ino, flags);
 
         cnp = ITOC(i);
-        CHECK_CNODE(cnp);
 
 	error = venus_open(i->i_sb, &(cnp->c_fid), coda_flags, &ino, &dev); 
 	if (error) {
@@ -642,18 +641,20 @@ int coda_open(struct inode *i, struct file *f)
         /* coda_upcall returns ino number of cached object, get inode */
         CDEBUG(D_FILE, "cache file dev %d, ino %ld\n", dev, ino);
 
-        if ( ! cnp->c_ovp ) {
-                error = coda_inode_grab(dev, ino, &cont_inode);
-                
-                if ( error ){
-                        printk("coda_open: coda_inode_grab error %d.", error);
-                        if (cont_inode) iput(cont_inode);
-			return error;
-                }
-                CDEBUG(D_FILE, "GRAB: coda_inode_grab: ino %ld, ops at %x\n", 
-		       cont_inode->i_ino, (int)cont_inode->i_op);
-                cnp->c_ovp = cont_inode; 
-        } 
+        if (  cnp->c_ovp ) {
+		iput(cnp->c_ovp);
+	}
+
+	error = coda_inode_grab(dev, ino, &cont_inode);
+	
+	if ( error ){
+		printk("coda_open: coda_inode_grab error %d.", error);
+		if (cont_inode) iput(cont_inode);
+		return error;
+	}
+	CDEBUG(D_FILE, "GRAB: coda_inode_grab: ino %ld, ops at %x\n", 
+	       cont_inode->i_ino, (int)cont_inode->i_op);
+	cnp->c_ovp = cont_inode; 
         cnp->c_ocount++;
 
         /* if opened for writing flush cache entry.  */
