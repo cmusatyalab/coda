@@ -235,8 +235,8 @@ class hdb {
     int GetSuspectPriority(int, char *, int);
     void WalkPriorityQueue(vproc *, int *, int *);
     int CalculateTotalBytesToFetch();
-    void StatusWalk(vproc *, int *);
-    void DataWalk(vproc *, int);
+    void StatusWalk(vproc *, int *, int *);
+    void DataWalk(vproc *, int, int);
     void PostWalkStatus();
 
     /* Advice Related*/

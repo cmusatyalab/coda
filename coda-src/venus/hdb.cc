@@ -133,7 +133,8 @@ static int HDB_HashFN(void *);
 
 /*  *****  HDB Maintenance  ******  */
 
-void HDB_Init() {
+void HDB_Init()
+{
     /* Allocate the database if requested. */
     if (InitMetaData) {					/* <==> HDB == 0 */
 	Recov_BeginTrans();
@@ -176,7 +177,8 @@ void HDB_Init() {
 }
 
 
-static int HDB_HashFN(void *key) {
+static int HDB_HashFN(void *key)
+{
     int value = ((hdb_key *)key)->vid;
 
     /*    return(((hdb_key *)key)->vid + ((int *)(((hdb_key *)key)->name))[0]); */
@@ -187,6 +189,22 @@ static int HDB_HashFN(void *key) {
     return(value);
 }
 
+static void HoardWalkProgress(int fetched, int total)
+{
+    static int lastPercentage = 0;
+    int thisPercentage;
+
+    if (total != 0)
+	thisPercentage = (int) ((double)fetched*(double)100/(double)total);
+    else
+	thisPercentage = 100;
+
+    if (thisPercentage == lastPercentage) return;
+    lastPercentage = thisPercentage;
+
+    LOG(0, ("HoardWalkProgress(%d)\n", thisPercentage));
+    MarinerLog("progress::hoarding %dx\n", thisPercentage);
+}
 
 /* Allocate database from recoverable store. */
 void *hdb::operator new(size_t len){
@@ -832,7 +850,7 @@ int hdb::CalculateTotalBytesToFetch() {
 }
 
 
-void hdb::StatusWalk(vproc *vp, int *TotalBytesToFetch) {
+void hdb::StatusWalk(vproc *vp, int *TotalBytesToFetch, int *BytesFetched) {
     MarinerLog("cache::BeginStatusWalk [%d]\n   [%d, %d, %d, %d] [%d]\n",
 	       FSDB->htab.count(),
 	       ValidCount, SuspectCount, IndigentCount, InconsistentCount,
@@ -845,8 +863,6 @@ void hdb::StatusWalk(vproc *vp, int *TotalBytesToFetch) {
     int enospc_failure;
     int interrupt_failures = 0;  /* Count times object disappears during Yield */
 
-    int statusBytesFetched = 0;  /* Count of bytes of status blocks we fetched */
-    
     /* An iteration of this outer loop brings the cache into status equilibrium */
     /* PROVIDED that no new suspect transitions occurred in the process. */
 #define	MAX_SW_ITERATIONS   5	/* XXX - JJK */
@@ -855,15 +871,15 @@ void hdb::StatusWalk(vproc *vp, int *TotalBytesToFetch) {
 	enospc_failure = 0;
 
 	/* Ensure status is valid for all cached objects. */
-	ValidateCacheStatus(vp, &interrupt_failures, &statusBytesFetched);
+	ValidateCacheStatus(vp, &interrupt_failures, BytesFetched);
 
 	/* Walk the priority queue.  Enter clean-up mode upon ENOSPC failure. */
 	WalkPriorityQueue(vp, &expansions, &enospc_failure);
 
     } while (SuspectCount > 0 && iterations < MAX_SW_ITERATIONS);
 
-    *TotalBytesToFetch = CalculateTotalBytesToFetch() + statusBytesFetched;
-    /* NotifyUsersOfHoardWalkProgress(statusBytesFetched, *TotalBytesToFetch);  */
+    *TotalBytesToFetch = CalculateTotalBytesToFetch() + *BytesFetched;
+    HoardWalkProgress(*BytesFetched, *TotalBytesToFetch);
 
     END_TIMING();
     LOG(100, ("hdb::StatusWalk: iters= %d, exps= %d, elapsed= %3.1f, intrpts= %d\n",
@@ -919,7 +935,7 @@ void TallyAllHDBentries(dlist *hdb_bindings, int blocks, TallyStatus status) {
   }
 }
 
-void hdb::DataWalk(vproc *vp, int TotalBytesToFetch) {
+void hdb::DataWalk(vproc *vp, int TotalBytesToFetch, int BytesFetched) {
     MarinerLog("cache::BeginDataWalk [%d]\n",
 	       FSDB->blocks);
     START_TIMING();
@@ -1023,7 +1039,8 @@ void hdb::DataWalk(vproc *vp, int TotalBytesToFetch) {
 	      LOG(100, ("AVAILABLE (fetched):  fid=<%x.%x.%x> comp=%s priority=%d blocks=%d\n", 
 		      f->fid.Volume, f->fid.Vnode, f->fid.Unique, f->comp, f->priority, blocks));
 	      TallyAllHDBentries(f->hdb_bindings, blocks, TSavailable);
-	      /* NotifyUsersOfHoardWalkProgress(f->stat.Length, TotalBytesToFetch);  */
+	      BytesFetched += f->stat.Length;
+	      HoardWalkProgress(BytesFetched, TotalBytesToFetch);
 	    } else {
 	      LOG(100, ("UNAVAILABLE (fetch failed):  fid=<%x.%x.%x> comp=%s priority=%d blocks=%d\n",
 		      f->fid.Volume, f->fid.Vnode, f->fid.Unique, f->comp, f->priority, blocks));
@@ -1130,7 +1147,7 @@ void hdb::PostWalkStatus() {
 int hdb::Walk(hdb_walk_msg *m, vuid_t local_id) {
     LOG(10, ("hdb::Walk: <%d>\n", local_id));
 
-    int TotalBytesToFetch = 0;
+    int TotalBytesToFetch = 0, BytesFetched = 0;
 
     /* NotifyUsersOfHoardWalkBegin(); */
 
@@ -1145,14 +1162,14 @@ int hdb::Walk(hdb_walk_msg *m, vuid_t local_id) {
 
     /* 2. Bring the cache into STATUS equilibrium. */
     /*    (i.e., validate/expand hoard entries s.t. priority and resource constraints) */
-    StatusWalk(vp, &TotalBytesToFetch);
+    StatusWalk(vp, &TotalBytesToFetch, &BytesFetched);
 
     /* 2b.  Request advice regarding what to fetch
      *  RequestHoardWalkAdvice(); */
 
     /* 3. Bring the cache into DATA equilibrium. */
     /*    (i.e., fetch data for hoardable, cached, dataless objects, s.t. priority and resource constraints) */
-    DataWalk(vp, TotalBytesToFetch);
+    DataWalk(vp, TotalBytesToFetch, BytesFetched);
 
     /* make sure files are really here. */
     RecovFlush(1);
