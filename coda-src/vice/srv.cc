@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vice/srv.cc,v 4.5 1997/10/23 19:25:18 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vice/srv.cc,v 4.6.2.1 1997/11/26 18:05:38 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -241,8 +241,6 @@ PRIVATE int pdbtime = 0;
 PRIVATE int keytime = 0;
 #define KEY1 "/vice/db/auth2.tk"
 #define KEY2 "/vice/db/auth2.tk.BAK"
-PRIVATE RPC2_EncryptionKey key1;
-PRIVATE RPC2_EncryptionKey key2;
 
 /* (Worker) LWP statistics.  Currently unused. */
 #define MAXLWP 16
@@ -269,6 +267,7 @@ PRIVATE int ParseArgs(int, char **);
 PRIVATE void NewParms(int);
 PRIVATE void InitServerKeys(char *, char *);
 PRIVATE void DaemonizeSrv(void);
+static void InitializeServerRVM(void *initProc,char *name);
 
 #ifdef RVMTESTING
 #include <rvmtesting.h>
@@ -333,11 +332,6 @@ void zombie(int sig, int code, struct sigcontext *scp) {
 	    dumpvm(); /* sanity check rvm recovery. */
     }
     
-#ifdef	__MACH__
-    LogMsg(0, 0, stdout, "To debug via gdb: attach %d, setcontext OldContext", getpid());
-    LogMsg(0, 0, stdout, "Becoming a zombie now ........");
-    task_suspend(task_self());
-#else
     LogMsg(0, 0, stdout, "Becoming a zombie now ........");
     LogMsg(0, 0, stdout, "You may use gdb to attach to %d", getpid());
     {
@@ -349,7 +343,6 @@ void zombie(int sig, int code, struct sigcontext *scp) {
 	    sigsuspend(&mask); /* pending gdb attach */
 	}
     }
-#endif
 }
 
 
@@ -390,7 +383,7 @@ main(int argc, char *argv[])
 
     setmyname(argv[0]);
 
-    DaemonizeSrv();
+    
 
     len = (int) strlen(argv[0]);
     for(i = 0;i < len;i++) {
@@ -408,8 +401,8 @@ main(int argc, char *argv[])
 
     freopen("SrvLog","a+",stdout);
     freopen("SrvErr","a+",stderr);
-
     SwapLog();
+    DaemonizeSrv();
 
     /* CamHistoInit(); */	
     /* Initialize CamHisto package */
@@ -491,7 +484,7 @@ main(int argc, char *argv[])
     RPC2_Trace = trace;
 
     InitPartitions(VCT);
-    CAMLIB_INITIALIZE_SERVER(NULL, TRUE, "codaserver"); 
+    InitializeServerRVM(NULL, "codaserver"); 
 
     /* Trace mallocs and frees in the persistent heap if requested. */
     if (MallocTrace) {	
@@ -1634,54 +1627,62 @@ PRIVATE void NewParms(int initializing)
 	    LogMsg(0, 0, stdout, "Received request to change parms but no parms file exists");
 }
 
-
+/*char	* fkey1;		 name of file that contains key1 (normally KEY1) */
+/*char	* fkey2;		 name of file that contains key2 (normally KEY2  */
 PRIVATE void InitServerKeys(char *fkey1, char *fkey2)
-/*char	* fkey1;		 name of file that contains key1 */
-/*char	* fkey2;		 name of file that contains key2 */
 {
-    FILE    * tf;
+    FILE                * tf;
+    char                  inkey[RPC2_KEYSIZE+1];
     RPC2_EncryptionKey    ptrkey1;
     RPC2_EncryptionKey    ptrkey2;
-    int     NoKeys = 0;
-    char    inkey[RPC2_KEYSIZE+1];
+    int                   NoKey1 = 1;
+    int                   NoKey2 = 1;
 
-    bzero(key1, RPC2_KEYSIZE);
-    if((tf = fopen(fkey1,"r")) == 0) {
+    /* paranoia: no trash in the keys */
+    bzero((char *)ptrkey1, RPC2_KEYSIZE);
+    bzero((char *)ptrkey2, RPC2_KEYSIZE);
+
+    tf = fopen(fkey1, "r");
+    if( tf == NULL ) {
 	perror("could not open key 1 file");
-	bzero((char *)ptrkey1, RPC2_KEYSIZE);
-    }
-    else {
+    } else {
+	NoKey1 = 0;
+	bzero(inkey, sizeof(inkey));
 	fgets(inkey, RPC2_KEYSIZE+1, tf);
-	bcopy(inkey, key1, RPC2_KEYSIZE);
-	bcopy(key1, (char *)ptrkey1, RPC2_KEYSIZE);
+	bcopy(inkey, (char *)ptrkey1, RPC2_KEYSIZE);
 	fclose(tf);
     }
 
-    bzero(key2, RPC2_KEYSIZE);
-    if((tf = fopen(fkey2,"r")) == 0) {
+    tf = fopen(fkey2, "r");
+    if( tf == NULL ) {
 	perror("could not open key 2 file");
-	bzero((char *)ptrkey2, RPC2_KEYSIZE);
-    }
-    else {
+    } else {
+        NoKey2 = 0;
+	bzero(inkey, sizeof(inkey));
 	fgets(inkey, RPC2_KEYSIZE+1, tf);
-	bcopy(inkey, key2, RPC2_KEYSIZE);
-	bcopy(key2, (char *)ptrkey2, RPC2_KEYSIZE);
+	bcopy(inkey, (char *)ptrkey2, RPC2_KEYSIZE);
 	fclose(tf);
     }
 
-    if((ptrkey1 != NULL) && (ptrkey2 != NULL)) {
-	if(strcmp((char *)ptrkey1, (char *)ptrkey2) == 0) {
-	    bzero((char *)ptrkey2, RPC2_KEYSIZE);
-	}
-    }
-    else {
-	if((ptrkey1 == NULL) && (ptrkey2 == NULL)) {
-	    NoKeys = 1;
-	    assert(NoKeys == 0);
-	}
+    /* no keys */
+    if ( NoKey1 && NoKey2 ) {
+	LogMsg(0, 0, stderr, "No Keys found. Zombifying..");
+	assert(0);
     }
 
-    SetServerKeys(ptrkey1, ptrkey2);
+    /* two keys: don't do a double key if they are equal */
+    if( NoKey1 == 0  && NoKey2 == 0 ) {
+	if ( bcmp(ptrkey1, ptrkey2, sizeof(ptrkey1)) == 0 ) 
+	    SetServerKeys(ptrkey1, NULL);
+	else
+	    SetServerKeys(ptrkey1, ptrkey2);
+    }
+
+    /* one key */
+    if ( NoKey1 == 0 && NoKey2 != 0 )
+	SetServerKeys(ptrkey1, NULL);
+    else 
+	SetServerKeys(NULL, ptrkey2);
 }
 
 
@@ -1741,4 +1742,64 @@ PRIVATE void DaemonizeSrv() {
     signal(SIGBUS,  (void (*)(int))zombie);
 #endif	RVMTESTING
     signal(SIGSEGV, (void (*)(int))zombie);
+}
+
+static void InitializeServerRVM(void *initProc,char *name)
+{		    
+    void (*dummyprocptr)() = initProc; /* to pacify g++ if initProc is NULL */ 
+    switch (RvmType) {							    
+    case VM :					       	    
+	if (dummyprocptr != NULL)						    
+	    (*dummyprocptr)();						    
+	camlibRecoverableSegment = (camlib_recoverable_segment *)
+	    malloc(sizeof(struct camlib_recoverable_segment));
+       break;                                                               
+	                                                                    
+    case RAWIO :                                                            
+    case UFS : {                                                            
+	rvm_return_t err;						    
+	rvm_options_t *options = rvm_malloc_options();			    
+	struct rlimit stackLimit;					    
+	options->log_dev = _Rvm_Log_Device;				    
+	options->flags = optimizationson; 				    
+	if (prottrunc)							    
+	   options->truncate = 0;					    
+	else if (_Rvm_Truncate > 0 && _Rvm_Truncate < 100) {		    
+	    LogMsg(0, 0, stdout, 
+		   "Setting Rvm Truncate threshhold to %d.\n", _Rvm_Truncate); 
+	    options->truncate = _Rvm_Truncate;				    
+	} 								    
+	sbrk((void *)(0x20000000 - (int)sbrk(0))); /* for garbage reasons. */		    
+	stackLimit.rlim_cur = CODA_STACK_LENGTH;			    
+/*	setrlimit(RLIMIT_STACK, &stackLimit);*/	/* Set stack growth limit */ 
+        err = RVM_INIT(options);                   /* Start rvm */           
+        if ( err == RVM_ELOG_VERSION_SKEW ) {                                
+            LogMsg(0, 0, stdout, 
+		   "rvm_init failed because of skew RVM-log version."); 
+            LogMsg(0, 0, stdout, "Coda server not started.");                  
+            exit(-1);                                                          
+	} else if (err != RVM_SUCCESS) {                                     
+	    LogMsg(0, 0, stdout, "rvm_init failed %s",rvm_return(err));	    
+            assert(0);                                                       
+	}                                                                    
+	assert(_Rvm_Data_Device != NULL);	   /* Load in recoverable mem */ 
+        rds_load_heap(_Rvm_Data_Device, 
+		      _Rvm_DataLength,(char **)&camlibRecoverableSegment, 
+		      (int *)&err);  
+	if (err != RVM_SUCCESS)						    
+	    LogMsg(0, SrvDebugLevel, stdout, 
+		   "rds_load_heap error %s",rvm_return(err));	    
+	assert(err == RVM_SUCCESS);                                         
+        /* Possibly do recovery on data structures, coalesce, etc */	    
+	rvm_free_options(options);					    
+	if (dummyprocptr != NULL) /* Call user specified init procedure */   
+	    (*dummyprocptr)();						    
+        break;                                                              
+    }                                                                       
+	                                                                    
+    case UNSET:							    
+    default:	                                                            
+	printf("No persistence method selected!n");			    
+	exit(-1); /* No persistence method selected, so die */		    
+    }
 }
