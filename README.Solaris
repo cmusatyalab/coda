@@ -1,6 +1,13 @@
 This file is Readme.Solaris.
 
-The build and install was tested on Solaris 7 (SunOS 5.7) only!
+WARNING: All Solaris coda is still ALPHA code.
+
+At this point, both servers and clients have been tested.  Most recent
+work has been directed at the clients.
+
+The build and install have been tested on Solaris 2.6 (sparc) and
+Solaris 7 (i386).  The sparc version was tested on both a sparc 5 and
+a sparc Ultra 10.
 
 To build Coda on a Solaris system, you must first make sure
 that C/C++ compiler, perl, GNU make and readline are installed 
@@ -8,8 +15,11 @@ on your machine. Beware! Solaris make wont' work!
 
 Solaris packages of gcc, perl and GNU make, which can simply be installed
 by pkgadd or admintool, can be downloaded from http://sunfreeware.com/.
+You may also need gzip if it is not installed.
 
-To install readline:
+Also, the Solaris package of gdb includes readline.  
+
+To install readline and not install gdb:
 	get the readline tar.gz
 		ftp to ftp.gnu.org
 		cd /pub/gnu/readline
@@ -22,12 +32,38 @@ To install readline:
 
 Building Coda:
 
-1. tar xzf coda-5.?.?.tar.gz
-2. cd coda-5.?.?
-3. ./configure
-4. make
-5. make server-install
-6. make clean
+1.  Build and install liblwp.  Get the current lwp release from
+    ftp.coda.cs.cmu.edu in the directory /pub/coda/src.
 
-Phew...
+	a) gunzip lwp-1.?.tar
+	b) tar xf lwp.1.?.tar
+	c) cd lwp.1.?
+	d) mkdir obj
+	e) cd obj
+	f) ../configure
+	g) make
+	h) make install (as root if needed)
+
+2.  If you plan to run a client, build and install the Solaris kernel
+    module.  It is called solaris-coda.  It is also at ftp.coda.cs.cmu.edu.
+
+	Similar to liblwp build except make install will su to root
+	if you do a "make install" as a non-root user.  You will need
+	the root password to install solaris-coda.
+
+3.  Build Coda.
+	
+	Similar to liblwp except the installs.
+
+4.  Installing a Server
+	
+	In the obj directory of coda, say "make server-install".
+	Follow the documentation on how to set up your server.
+
+5.  Installing a client
+
+	In the obj directory of coda, say "make client-install".
+	Follow the documentation on how to set up your client.
+	You should set up the venus.conf file, usually found in
+	the directory /usr/local/etc/coda.
 
