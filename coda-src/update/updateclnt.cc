@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/src/coda-4.0.1/RCSLINK/./coda-src/update/updateclnt.cc,v 1.1 1996/11/22 19:14:53 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/update/updateclnt.cc,v 4.1 1997/01/08 21:51:00 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -65,7 +65,7 @@ supported by Transarc Corporation, Pittsburgh, PA.
 /*		  It checks every waitinterval (default 5 minutes)	*/
 /*		  to see if any of the directories have changed.	*/
 /*		  There is also a class of directories that are 	*/
-/*		  only checked every six waitintervals.	If the direct-	*/
+/*		  only checked every six waitintervals.If the direct-	*/
 /*		  ory has changed it will open a file called "files"	*/
 /*		  in that directory and check that each of the files	*/
 /*		  named in "files" is up to date.  The format of	*/
@@ -119,6 +119,7 @@ extern char *ViceErrorMsg(int errorCode);   /* should be in libutil */
 PRIVATE void CheckLibStructure();
 PRIVATE int CheckDir(char *prefix, int mode);
 PRIVATE int CheckFile(char *fileName, int mode);
+PRIVATE void ProcessArgs(int argc, char ** argv);
 PRIVATE void ReConnect();
 PRIVATE void SetDebug();
 PRIVATE void ResetDebug();
@@ -139,6 +140,7 @@ PRIVATE RPC2_Integer operatorUsecs = 0;
 PRIVATE RPC2_Handle con;
 PRIVATE char host[256];
 PRIVATE int waitinterval = 5*60;	/* 5 min */
+PRIVATE int reps = 6;
 PRIVATE char pname[20];
 
 PRIVATE struct timeval  tp;
@@ -154,34 +156,13 @@ int main(int argc, char **argv)
     int     i,
 	    dirfd,
             len,
-            reps = 6;
 
-    strcpy(host, "mahler");	/* was cluster1 */
+    host = '\0';
     strcpy(pname, "coda_udpsrv");
-    for (i = 1; i < argc; i++) {
-	if (!strcmp(argv[i], "-d"))
-	    SrvDebugLevel = atoi(argv[++i]);
-	else
-	    if (!strcmp(argv[i], "-h"))
-		strcpy(host, argv[++i]);
-	else
-	    if (!strcmp(argv[i], "-q"))
-		strcpy(pname, argv[++i]);
-	else
-	    if (!strcmp(argv[i], "-w"))
-		waitinterval = atoi(argv[++i]);
-	else
-	    if (!strcmp(argv[i], "-r"))
-		reps = atoi(argv[++i]);
-	else {
-	    LogMsg(0, SrvDebugLevel, stdout, "usage: update [-d (debug level)] ");
-	    LogMsg(0, SrvDebugLevel, stdout, "[-h (operator console hostname)] [-q (portal name)]");
-	    LogMsg(0, SrvDebugLevel, stdout, "[-r (reps of w for long wait time)] [-w (short wait time)]\n");
-	    exit(-1);
-	}
-    }
 
+    ProcessArgs(argc, argv);
     CheckLibStructure();
+
     gethostname(s_hostname, sizeof(s_hostname) -1);
     assert(s_hostname != NULL);
 
@@ -275,23 +256,6 @@ int main(int argc, char **argv)
 	    }
 	}
 
-
-#ifdef OLDMON
-    /* every reps times we check some less often changing files */
-	if ((i++ == reps) || (CheckAll)) {
-	    struct stat buff;
-	    
-	    if(!(stat("/vice/READONLY",&buff))) ReadOnlyAllowed = 1;
-	    i = 1;
-	    CheckDir("/vice/bin", 0755);
-	    CheckDir("/vice/srv", 0755);
-	    CheckDir("/etc", 0755);
-	    CheckDir("/usr/lib", 0755);
-	    CheckDir("/", 0755);
-	    ReadOnlyAllowed = 0;
-	}
-#endif OLDMON
-
 	if(dirfd) {
 	    close(dirfd);
 	    dirfd = 0;
@@ -306,6 +270,40 @@ int main(int argc, char **argv)
 	CheckAll = 0;
 
 	IOMGR_Select(0, 0, 0, 0, &time);
+    }
+}
+
+PRIVATE void ProcessArgs(int argc, char **argv)
+{
+    int i;
+    for (i = 1; i < argc; i++) {
+	if (!strcmp(argv[i], "-d"))
+	    SrvDebugLevel = atoi(argv[++i]);
+	else
+	    if (!strcmp(argv[i], "-h"))
+		strcpy(host, argv[++i]);
+	else
+	    if (!strcmp(argv[i], "-q"))
+		strcpy(pname, argv[++i]);
+	else
+	    if (!strcmp(argv[i], "-w"))
+		waitinterval = atoi(argv[++i]);
+	else
+	    if (!strcmp(argv[i], "-r"))
+		reps = atoi(argv[++i]);
+	else {
+	    LogMsg(0, SrvDebugLevel, stdout, 
+		   "usage: update [-d (debug level)] ");
+	    LogMsg(0, SrvDebugLevel, stdout, 
+		   "[-h (operator console hostname)] [-q (portal name)]");
+	    LogMsg(0, SrvDebugLevel, stdout, 
+		   "[-r (reps of w for long wait time)] [-w (short wait time)]\n");
+	    exit(-1);
+	}
+	if ( host[0] == '\0' ) {
+	    LogMsg(0, SrvDebugLevel, stdout, "No host given!\n");
+	    exit(-1);
+	}
     }
 }
 
