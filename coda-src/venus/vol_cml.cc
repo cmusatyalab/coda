@@ -3490,7 +3490,7 @@ void RecoverPathName(char *path, ViceFid *fid, ClientModifyLog *CML, cmlent *sta
 	    strcpy(suffix, buf);
 
 	    /* going up to its parent */
-	    if (f->IsRoot()) {
+	    if (f->IsRoot() && f->u.mtpoint) {
 		/* this must be the global-root-node of a local-repair subtree */
 		bcopy((const void *)&((f->u.mtpoint)->pfid), (void *) &cfid, (int)sizeof(ViceFid));
 	    } else {
