@@ -587,12 +587,6 @@ int venus_pioctl(struct super_block *sb, struct ViceFid *fid,
  * 
  */
 
-/* 
- * coda_upcall will return a POSITIVE error in the case of 
- * failed communication with Venus _or_ will peek at Venus
- * reply and return Venus' error, also POSITIVE. 
- * 
- */
 static inline unsigned long coda_waitfor_upcall(struct vmsg *vmp)
 {
 	struct wait_queue	wait = { current, NULL };
@@ -635,6 +629,16 @@ static inline unsigned long coda_waitfor_upcall(struct vmsg *vmp)
 }
 
 
+/* 
+ * coda_upcall will return an error in the case of 
+ * failed communication with Venus _or_ will peek at Venus
+ * reply and return Venus' error.
+ *
+ * As venus has 2 types of errors, normal errors (positive) and internal
+ * errors (negative), normal errors are negated, while internal errors
+ * are all mapped to -EINTR, while showing a nice warning message. (jh)
+ * 
+ */
 static int coda_upcall(struct coda_sb_info *sbi, 
 		int inSize, int *outSize, 
 		union inputArgs *buffer) 
