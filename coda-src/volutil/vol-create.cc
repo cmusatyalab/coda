@@ -258,10 +258,14 @@ static int ViceCreateRoot(Volume *vp)
     ACL->PlusEntriesInUse = 2;
     ACL->MinusEntriesInUse = 0;
 
-    ACL->ActualEntries[0].Id = adminid;
-    ACL->ActualEntries[0].Rights = PRSFS_ALL;
-    ACL->ActualEntries[1].Id = anyuserid;
-    ACL->ActualEntries[1].Rights = PRSFS_READ | PRSFS_LOOKUP;
+    /* ACL's are assumed to be going from lower to higher id number. This
+     * makes the AL_CheckRights function more efficient. However, we now have
+     * to insert the admin and anyuser ACL's in the correct order. */
+    adminindex = adminid < anyuserid ? 0 : 1;
+    ACL->ActualEntries[adminindex].Id = adminid;
+    ACL->ActualEntries[adminindex].Rights = PRSFS_ALL;
+    ACL->ActualEntries[1 - adminindex].Id = anyuserid;
+    ACL->ActualEntries[1 - adminindex].Rights = PRSFS_READ | PRSFS_LOOKUP;
 
     /* set up vnode info */
     vnode->type = vDirectory;
