@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vol/vrdb.cc,v 4.5 98/11/02 16:46:57 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vol/vrdb.cc,v 4.6 1998/11/30 11:39:43 jaharkes Exp $";
 #endif /*_BLURB_*/
 
 
@@ -60,7 +60,6 @@ extern "C" {
 #include <util.h>
 #include "vsg.h"
 #include "vrdb.h"
-
 
 const char *VRDB_PATH = "/vice/db/VRDB";
 const char *VRDB_TEMP = "/vice/db/VRDB.new";
@@ -247,16 +246,6 @@ unsigned long XlateVidToVSG(VolumeId vid) {
     if (!vre) return(0);
 
     return(vre->addr);
-}
-/* H1 -= H2 */
-void SubHosts(unsigned long *H1, unsigned long *H2) {
-    for (int i = 0; i < VSG_MEMBERS; i++)
-	if (H1[i])
-	    for (int j = 0; j < VSG_MEMBERS; j++)
-		if (H1[i] == H2[j]) {
-		    H1[i] = 0;
-		    break;
-		}
 }
 
 

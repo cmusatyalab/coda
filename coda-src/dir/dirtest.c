@@ -89,7 +89,7 @@ void printtime(void)
 {
 	struct timeval tv;
 	gettimeofday(&tv, NULL);
-	printf("TIME: %d.%d", tv.tv_sec, tv.tv_usec);
+	printf("TIME: %ld.%ld", tv.tv_sec, tv.tv_usec);
 }
 
 

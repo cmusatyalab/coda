@@ -95,7 +95,10 @@ int VN_DCommit(Vnode *vnp)
 		DLog(29, "VN_DCommit: deleted directory, vnode = %d",  
 		     vnp->vnodeNumber);
 		vnp->disk.inodeNumber = 0;
-		DI_Dec(pdi);
+		/* if this vnode was just cloned, there won't be a pdi upon 
+		   removal */
+		if (pdi)
+			DI_Dec(pdi);
 	} else if (vnp->changed) {
 		/* directory was modified - commit the pages */
 		DLog(29, "VN_DCommit: Commiting pages for dir vnode = %d", 
@@ -211,6 +214,8 @@ void VN_CopyOnWrite(struct Vnode *vptr)
 	CODA_ASSERT(vptr->disk.inodeNumber != 0);
 	pdh = VN_SetDirHandle(vptr);
 	pdirh = DH_Data(pdh);
+	oldpdce = DC_DH2DC(pdh);
+	DC_SetDirh(oldpdce, NULL);
 	CODA_ASSERT(pdh);
 
 	DC_SetDirh(pdce, pdirh);

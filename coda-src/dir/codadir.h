@@ -222,6 +222,7 @@ void DC_SetDirty(PDCEntry, int);
 PDCEntry DC_Get(PDirInode);
 PDCEntry DC_New();
 PDirHandle DC_DC2DH(PDCEntry);
+PDCEntry DC_DH2DC(PDirHandle pdh);
 void DC_Rehash(PDCEntry);
 void DC_HashInit();
 

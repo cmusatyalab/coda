@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/egasr/removeinc.cc,v 4.8 1998/11/02 16:44:42 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/egasr/removeinc.cc,v 4.9 1998/11/25 19:23:27 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -51,6 +51,8 @@ extern "C" {
 #include <errno.h>
 #include <venusioctl.h>
 #include <vcrcommon.h>
+#include <coda_assert.h>
+#include <codadir.h>
 
 extern int path(char *, char *, char *);
 extern int wildmat(char *text, char *pattern);
@@ -59,9 +61,9 @@ extern int wildmat(char *text, char *pattern);
 }
 #endif __cplusplus
 
-#define       ISDIR(vnode) ((vnode) & 1)  /* directory vnodesare odd */
 
-int IsObjInc(char *name, ViceFid *fid) {
+int IsObjInc(char *name, ViceFid *fid) 
+{
     int rc;
     char symval[MAXPATHLEN];
     struct stat statbuf;
@@ -79,14 +81,14 @@ int IsObjInc(char *name, ViceFid *fid) {
 	vioc.out_size = (short) sizeof(space);
 	vioc.out = space;
 	bzero(space, (int) sizeof(space));
-	int rc = pioctl(name, VIOC_GETFID, &vioc, 0);
+	rc = pioctl(name, VIOC_GETFID, &vioc, 0);
 	if (rc < 0 && errno != ETOOMANYREFS) {
 	    /* fprintf(stderr, "Error %d for Getfid\n", errno); */
 	    return(0);
 	}
 	bcopy((const void *)space, (void *)fid, (int) sizeof(ViceFid));
 	bcopy((const void *)space+sizeof(ViceFid), (void *)&vv, (int) sizeof(ViceVersionVector));
-	if (!ISDIR(fid->Vnode) && (statbuf.st_mode & S_IFDIR))
+	if (!ISDIR(*fid) && (statbuf.st_mode & S_IFDIR))
 	    return(1);
 	else if (vv.StoreId.Host == -1) 
 	    return(1);
@@ -107,19 +109,25 @@ int IsObjInc(char *name, ViceFid *fid) {
 
 void main(int argc, char **argv) 
 {
+	ViceFid fid;
+	char tmpfname[80];
+	int fd;
+	struct ViceIoctl vioc;
+	char space[2048];
+	int rc;
+
 	if (argc != 2) {
 		fprintf(stderr, "Usage: %s <inc-file-name>\n", argv[0]);
 		exit(-1);
 	}
     
 	//make sure object is inconsistent
-	ViceFid fid;
 	if (!IsObjInc(argv[1], &fid)) {
 		/* fprintf(stderr, "%s isn't inconsistent\n", argv[1]); */
 	}
     
 	// get fid and make sure it is a file
-	if (ISDIR(fid.Vnode)) {
+	if (ISDIR(fid) && !FID_IsLocalDir(&fid)) {
 		fprintf(stderr, 
 			"%s is a directory - must be removed manually\n", 
 			argv[1]);
@@ -127,8 +135,6 @@ void main(int argc, char **argv)
 	}
 	
 	// create an empty file /tmp/REPAIR.XXXXXX
-	char tmpfname[80];
-	int fd;
 	strcpy(tmpfname, "/tmp/RMINC.XXXXXX");
 	if ((fd = mkstemp(tmpfname)) < 0) {
 		fprintf(stderr, "Couldn't create /tmp file\n");
@@ -137,16 +143,15 @@ void main(int argc, char **argv)
 	close(fd);
 
 	// dorepair on the fid with an empty file
-	struct ViceIoctl vioc;
-	char space[2048];
 	vioc.in_size = (short)(1+strlen(tmpfname)); 
 	vioc.in = tmpfname;
 	vioc.out_size = (short) sizeof(space);
 	vioc.out = space;
 	bzero(space, (int) sizeof(space));
-	int rc = pioctl(argv[1], VIOC_REPAIR, &vioc, 0);
+	rc = pioctl(argv[1], VIOC_REPAIR, &vioc, 0);
 	if (rc < 0 && errno != ETOOMANYREFS) {
 		fprintf(stderr, "Error %d for repair\n", errno);
+		unlink(tmpfname);
 		exit(-1);
 	}
 	unlink(tmpfname);

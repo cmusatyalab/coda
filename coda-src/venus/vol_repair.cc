@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/vol_repair.cc,v 4.8 1998/10/13 16:49:29 jaharkes Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/vol_repair.cc,v 4.9 1998/11/02 16:46:29 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -84,21 +84,25 @@ extern "C" {
 /*
  *    New Repair Strategy
  *
- *    The basic idea of the new strategy is to represent an inconsistent object as a
- *    (read-only) directory with children that map to the rw-replicas of the object.
- *    The view a user has of the inconsistent object depends upon which mode the
- *    volume containing the object is in (with respect to this user?).  In normal mode,
- *    the view is the same that we have been providing all along, i.e., a dangling,
- *    read-only symbolic link whose contents encode the fid of the object.  In repair
- *    mode, the view is of a read-only subtree headed by the inconsistent object.
+ *    The basic idea of the new strategy is to represent an
+ *    inconsistent object as a (read-only) directory with children
+ *    that map to the rw-replicas of the object.  The view a user has
+ *    of the inconsistent object depends upon which mode the volume
+ *    containing the object is in (with respect to this user?).  In
+ *    normal mode, the view is the same that we have been providing
+ *    all along, i.e., a dangling, read-only symbolic link whose
+ *    contents encode the fid of the object.  In repair mode, the view
+ *    is of a read-only subtree headed by the inconsistent object.
  *
- *    The internal implications of this change are the following:
- *       1. Each volume must keep state as to what mode it is in (per-user?)
- *          (this state will not persist across restarts; initial mode will be normal)
- *       2. We must cope with "fake" fsobjs, representing both the inconsistent
- *          object and the mountpoints which map to the rw-replicas
- *
- */
+ * The internal implications of this change are the following: *
+ *          1. Each volume must keep state as to what mode it is in
+ *          (per-user?)  (this state will not persist across restarts;
+ *          initial mode will be normal)
+
+ *          2. We must cope with "fake" fsobjs, representing both the
+ *          * inconsistent object and the mountpoints which map to the
+ *          * rw-replicas
+ * */
 
 
 /*

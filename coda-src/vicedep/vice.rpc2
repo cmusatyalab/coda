@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vicedep/vice.rpc2,v 4.5 1998/08/26 21:16:56 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vicedep/vice.rpc2,v 4.6 1998/11/25 19:23:36 braam Exp $";
 #endif /*_BLURB_*/
 
 /*
@@ -67,6 +67,7 @@ extern char *ViceErrorMsg(int errorCode);
 
 /* please increment this number if you make an incompatible change! */
 #define VICE_VERSION 1
+
 
 #include "vcrcommon.rpc2"
 
@@ -276,8 +277,7 @@ typedef RPC2_Struct
 		 IN RPC2_CountedBS PiggyCOP2,
 		 IN OUT SE_Descriptor BD);
 
-3: ViceUnused1	();
-
+/* unused */
 4: ViceRemove	(IN ViceFid Did,
 		 IN RPC2_String Name,
 		 IN OUT ViceStatus DirStatus,
@@ -346,11 +346,7 @@ typedef RPC2_Struct
 
 11: ViceRemoveCallBack (IN RPC2_CountedBS RCBBS);
 
-12: ViceUnused2	();
-
-13: ViceUnused3	();
-
-14: ViceUnused4	();
+/* unused */
 
 15: ViceGetRootVolume (IN OUT RPC2_BoundedBS Volume);
 
@@ -383,12 +379,12 @@ ViceNewConnection (IN RPC2_Integer SideEffectType,
 
 20: ViceGetTime	(OUT RPC2_Unsigned Seconds,
 		 OUT RPC2_Integer USeconds);
+/* unused */
 
-21: ViceUnused5	();
 
 22: ViceGetStatistics (IN OUT ViceStatistics Statistics);
 
-23: ViceUnused6	();
+/* unused */
 
 24: ViceGetVolumeInfo (IN RPC2_String Vid,
 		   OUT VolumeInfo Info);
@@ -400,15 +396,13 @@ ViceNewConnection (IN RPC2_Integer SideEffectType,
 27: ViceProbe	(IN RPC2_CountedBS Volumes,
 		 OUT RPC2_CountedBS VVs);
 
-28: ViceUnused7	();
+/* unused */
 
 29: ViceCOP2	(IN RPC2_CountedBS COP2BS);
 
 30: ViceResolve	(IN ViceFid Fid);
 
-31: ViceUnused8	();
-
-32: ViceUnused9	();
+/* unused */
 
 33: ViceRepair	(IN ViceFid Fid,
 		 IN OUT ViceStatus status, 
@@ -419,9 +413,7 @@ ViceNewConnection (IN RPC2_Integer SideEffectType,
 		 IN ViceVersionVector VV,
 		 IN RPC2_CountedBS PiggyCOP2);
 
-35: ViceUnused10	();
-
-36: ViceUnused11	();
+/* unused */
 
 37: ViceAllocFids	(IN VolumeId Vid,
 		 IN ViceDataType Type,
@@ -436,7 +428,7 @@ ViceNewConnection (IN RPC2_Integer SideEffectType,
 		  IN OUT RPC2_CountedBS VFlagBS,
 		  IN RPC2_CountedBS PiggyCOP2);
 
-39: ViceUnused12	();
+/* unused */
 
 40: ViceNewConnectFS (IN RPC2_Unsigned ViceVersion,
 		  IN ViceClient ClientId);
@@ -449,10 +441,7 @@ ViceNewConnection (IN RPC2_Integer SideEffectType,
 		 IN RPC2_CountedBS VS,
 		 OUT RPC2_CountedBS VFlagBS);
 
-/* new update calls */
-43: ViceUnused14	();
-
-44: ViceUnused13	();
+/* unused */
 
 45: ViceVRemove	(IN ViceFid Did,
 		 IN RPC2_String Name,

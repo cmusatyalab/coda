@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vice/srvproc.cc,v 4.22 1998/11/11 15:59:06 smarc Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vice/srvproc.cc,v 4.23 1998/11/25 19:23:34 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -986,7 +986,6 @@ END_TIMING(SetACL_Total);
     return(errorCode);
 }
 
-
 /*
   ViceVCreate: Create an object with given name in its parent's directory
 */
@@ -1139,7 +1138,6 @@ END_TIMING(Create_Total);
 }
 
 
-
 /*
   ViceVRemove: Delete an object and its name
 */
@@ -1272,7 +1270,6 @@ END_TIMING(Remove_Total);
 }
 
 
-
 /*
 ViceVLink: Create a new name for an already existing file
 */
@@ -1396,7 +1393,6 @@ END_TIMING(Link_Total);
     
     return(errorCode);
 }
-
 
 /*
   ViceVRename: rename a file or directory
@@ -1910,7 +1906,6 @@ END_TIMING(RemoveDir_Total);
     
     return(errorCode);
 }
-
 
 /*
   ViceVSymLink: Create a symbolic link
@@ -4091,20 +4086,16 @@ void PerformRename(ClientEntry *client, VolumeId VSGVolnum, Volume *volptr,
     if (sd_vptr->disk.cloned) {
 	    *sd_CowInode = (DirInode *)sd_vptr->disk.inodeNumber;
 	    CopyOnWrite(sd_vptr, volptr);
-	    sd_dh = DC_DC2DH(sd_vptr->dh);
-    }  else {
-	    sd_dh = VN_SetDirHandle(sd_vptr);
     }
+    sd_dh = VN_SetDirHandle(sd_vptr);
 
     PDirHandle td_dh;
     if (!SameParent ) {
 	    if (td_vptr->disk.cloned) {
 		    *td_CowInode = (DirInode *)td_vptr->disk.inodeNumber;
 		    CopyOnWrite(td_vptr, volptr);
-		    td_dh = DC_DC2DH(td_vptr->dh);
-	    } else {
-		    td_dh = VN_SetDirHandle(td_vptr);
-	    }
+	    } 
+	    td_dh = VN_SetDirHandle(td_vptr);
     } else {
 	    td_dh = sd_dh;
     }
@@ -4114,10 +4105,8 @@ void PerformRename(ClientEntry *client, VolumeId VSGVolnum, Volume *volptr,
 	    if ( s_vptr->disk.cloned) {
 		    *s_CowInode = (DirInode *)s_vptr->disk.inodeNumber;
 		    CopyOnWrite(s_vptr, volptr);
-		    s_dh = DC_DC2DH(sd_vptr->dh);
-	    } else {
-		    s_dh = VN_SetDirHandle(s_vptr);
 	    }
+	    s_dh = VN_SetDirHandle(s_vptr);
     }
 
     /* Remove the source name from its parent. */
@@ -4301,10 +4290,8 @@ static void Perform_CLMS(ClientEntry *client, VolumeId VSGVolnum,
     if (dirvptr->disk.cloned) {
 	    *CowInode = (DirInode *)dirvptr->disk.inodeNumber;
 	    CopyOnWrite(dirvptr, volptr);
-	    dh = DC_DC2DH(dirvptr->dh);
-    } else {
-	    dh = VN_SetDirHandle(dirvptr);
     }
+    dh = VN_SetDirHandle(dirvptr);
 
     /* Add the name to the parent. */
     error = DH_Create(dh, Name, &Fid);
@@ -4444,10 +4431,8 @@ static void Perform_RR(ClientEntry *client, VolumeId VSGVolnum, Volume *volptr,
     if (dirvptr->disk.cloned) {
 	    *CowInode = (DirInode *)dirvptr->disk.inodeNumber;
 	    CopyOnWrite(dirvptr, volptr);
-	    pDir = DC_DC2DH(dirvptr->dh);
-    } else {
-	    pDir = VN_SetDirHandle(dirvptr);
     }
+    pDir = VN_SetDirHandle(dirvptr);
 
     /* Remove the name from the directory. */
     CODA_ASSERT(DH_Delete(pDir, Name) == 0);

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vol/vrdb.h,v 4.1 1997/01/08 21:52:21 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vol/vrdb.h,v 4.2 1997/10/23 19:25:45 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -47,14 +47,14 @@ extern "C" {
 
 #include <stdio.h>
 
+#include <vcrcommon.h>
+#include <vice.h>
 #ifdef __cplusplus
 }
 #endif __cplusplus
 
 #include <ohash.h>
 #include <inconsist.h>
-#include <vcrcommon.h>
-#include <vice.h>
 
 
 #define VRTABHASHSIZE	128
@@ -120,7 +120,6 @@ extern void CheckVRDB();
 extern int XlateVid(VolumeId *);
 extern int XlateVid(VolumeId *, int *, int *);
 extern int ReverseXlateVid(VolumeId *);
-extern void SubHosts(unsigned long *, unsigned long *);
 extern unsigned long XlateVidToVSG(VolumeId);
 
 #endif	not _VICE_VRDB_H_

@@ -250,6 +250,12 @@ PDirHandle DC_DC2DH(PDCEntry pdce)
 	return &pdce->dc_dh;
 }
 
+PDCEntry DC_DH2DC(PDirHandle pdh)
+{
+	CODA_ASSERT(pdh);
+	return list_entry(pdh, struct DCEntry, dc_dh);
+}
+
 
 PDirInode DC_DC2DI(PDCEntry pdce)
 {
