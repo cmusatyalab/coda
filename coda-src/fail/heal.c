@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/src/coda-4.0.1/RCSLINK/./coda-src/fail/heal.c,v 1.1 1996/11/22 19:09:22 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/fail/heal.c,v 4.1 1997/01/08 21:49:38 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -115,6 +115,7 @@ char **argv;
 	int j;
 
 	filtersBS.MaxSeqLen = sizeof(filters);
+	filtersBS.SeqLen = sizeof(filters);
 	filtersBS.SeqBody = (RPC2_ByteSeq) filters;
 	
 	for (i = 0; i < 2; i++) {
