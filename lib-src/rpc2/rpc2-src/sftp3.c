@@ -618,7 +618,7 @@ int sftp_AckArrived(RPC2_PacketBuffer *pBuff, struct SFTP_Entry *sEntry)
 		if (!(ntohl(pb->Header.SEFlags) & SFTP_COUNTED) &&
 		    (pBuff->Header.TimeEcho <= ntohl(pb->Header.TimeStamp)))
 		    {
-		    dataThisRound += pb->Header.LengthOfPacket;
+		    dataThisRound += pb->Prefix.LengthOfPacket;
 		    pb->Header.SEFlags = htonl(ntohl(pb->Header.SEFlags | SFTP_COUNTED));
 		    }
 	        }
