@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/resolve/cure.cc,v 4.4 1998/01/04 14:57:33 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/resolve/cure.cc,v 4.5 1998/03/06 20:20:23 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -48,19 +48,14 @@ static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/resolv
 extern "C" {
 #endif __cplusplus
 
-#ifdef __MACH__
-#include <sysent.h>
-#include <libc.h>
-#else	/* __linux__ || __BSD44__ */
 #include <unistd.h>
 #include <stdlib.h>
-#endif
 #include <strings.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <sys/param.h>
 
-
+#include <parser.h>
 #ifdef __cplusplus
 }
 #endif __cplusplus
@@ -69,13 +64,13 @@ extern "C" {
 
 #include "repio.h"
 #include "resolve.h"
-extern int IsCreatedEarlier C_ARGS((struct listhdr **, int, long, long));
+extern int IsCreatedEarlier(struct listhdr **, int, long, long);
 
 #define FidEq(a, b) \
 (((a).Vnode == (b).Vnode) && \
  ((a).Unique == (b).Unique))
 
-int ObjExists C_ARGS((resreplica *dir, long vnode, long unique))
+int ObjExists(resreplica *dir, long vnode, long unique)
 {
     for (int i = dir->entry1; i < (dir->entry1 + dir->nentries); i++)
 	if ((*(direntriesarr + i)).vno == vnode && (*(direntriesarr + i)).uniqfier == unique)

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/resolve/predicate.cc,v 4.4 1998/01/10 18:37:57 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/resolve/predicate.cc,v 4.5 1998/03/06 20:20:23 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -45,16 +45,12 @@ extern "C" {
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <string.h>
-#ifdef __MACH__
-#include <sysent.h>
-#include <libc.h>
-#else	/* __linux__ || __BSD44__ */
 #include <unistd.h>
 #include <stdlib.h>
-#endif
 #include <errno.h>
 #include <sys/param.h>
 
+#include <parser.h>
 #ifdef __cplusplus
 }
 #endif __cplusplus
@@ -89,7 +85,7 @@ int Equal C_ARGS((resdir_entry **deGroup, int nDirEntries))
     return 1;
 }
 
-PRIVATE void PrintArgs C_ARGS((char *name, resdir_entry **deGroup, int nDirEntries))
+static void PrintArgs C_ARGS((char *name, resdir_entry **deGroup, int nDirEntries))
 {
     printf("Predicate %s : %d entries \n", name, nDirEntries);
     for (int i = 0; i < nDirEntries; i++)

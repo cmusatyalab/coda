@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/resolve/resolve.cc,v 4.7 1998/01/10 18:37:58 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/resolve/resolve.cc,v 4.8 1998/03/06 20:20:24 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -69,6 +69,7 @@ extern "C" {
 #include <assert.h> 
 #include <inodeops.h>
 
+#include <parser.h>
 #ifdef __cplusplus
 }
 #endif __cplusplus
@@ -82,7 +83,7 @@ extern "C" {
 
 int	resdirCompareByFidName C_ARGS((resdir_entry **, resdir_entry **));
 int	resdirCompareByName C_ARGS((resdir_entry **, resdir_entry **));
-PRIVATE	int nextindex();
+static int nextindex();
 
 
 /* globals */
@@ -96,7 +97,7 @@ VolumeId RepVolume;
 int nConflicts;
 static char AclBuf[2048];
 
-PRIVATE int getfid C_ARGS((char *path, ViceFid *Fid, ViceVersionVector *VV, struct ViceIoctl *vi)) 
+static int getfid C_ARGS((char *path, ViceFid *Fid, ViceVersionVector *VV, struct ViceIoctl *vi)) 
 {
     char buf[2048];
     vi->out = buf;
@@ -118,8 +119,8 @@ PRIVATE int getfid C_ARGS((char *path, ViceFid *Fid, ViceVersionVector *VV, stru
 	/* return garbage in VV */
 	return 0;
     }
-    bcopy((void *)buf, (const void *) Fid, sizeof(ViceFid));
-    bcopy((void *)buf+sizeof(ViceFid), (const void *)VV, sizeof(ViceVersionVector));
+    bcopy((void *)buf, (void *) Fid, sizeof(ViceFid));
+    bcopy((char *)buf+sizeof(ViceFid), (void *)VV, sizeof(ViceVersionVector));
     return 0;
 }
 
@@ -292,7 +293,7 @@ int getunixdirreps C_ARGS((int nreplicas, char *names[], resreplica **reps))
 }
 
 /* gives the index of the next entry free in the global direntries table */
-PRIVATE int nextindex()
+static int nextindex()
 {   
     totaldirentries++;
     if (totaldirentries  >= direntriesarrsize){
@@ -455,7 +456,7 @@ int NameNameResolve(int first, int last, int nreplicas, resreplica *dirs, struct
 	resdir_entry *rde;
 	char *path, *replicaname;
 	char cwdpath[MAXPATHLEN];
-	char *cwd = getwd(cwdpath);
+	char *cwd = getcwd(cwdpath, MAXPATHLEN);
 	chdir(replicatedname);
 	for (i = first; i < last; i++) {
 	    rde = sortedArrByName[i];

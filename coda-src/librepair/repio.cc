@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/resolve/repio.cc,v 4.3 1997/12/23 17:19:54 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/resolve/repio.cc,v 4.4 1998/01/10 18:37:58 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -90,13 +90,8 @@ extern "C" {
 #include <strings.h>
 #include <sys/stat.h>
 #include <sys/file.h>
-#ifdef __MACH__
-#include <sysent.h>
-#include <libc.h>
-#else	/* __linux__ || __BSD44__ */
 #include <unistd.h>
 #include <stdlib.h>
-#endif
 #include <prs_fs.h>
 #include <rpc2.h>
 
@@ -107,9 +102,9 @@ extern "C" {
 #include <vice.h>
 #include "repio.h"
 
-PRIVATE char *eatwhite(char *), *eatnonwhite(char *);
-PRIVATE int acldecode(char *, unsigned int *);
-PRIVATE int growarray(char **arrayaddr, int *arraysize, int elemsize);
+static char *eatwhite(char *), *eatnonwhite(char *);
+static int acldecode(char *, unsigned int *);
+static int growarray(char **arrayaddr, int *arraysize, int elemsize);
 
 
 int repair_putdfile(char *fname, int replicaCount, struct listhdr *replicaList)
@@ -132,7 +127,7 @@ int repair_putdfile(char *fname, int replicaCount, struct listhdr *replicaList)
     
     /* Write out number of replicas */
     x = htonl(replicaCount);
-    putw(x, ff);
+    putw((int)x, ff);
     
     /* Write out header for each replica */
     for (i = 0; i < replicaCount; i++)
@@ -474,7 +469,7 @@ int repair_parsefile(char *fname, int *hdcount, struct listhdr **hdarray)
 
 
 
-PRIVATE int growarray(char **arrayaddr /* INOUT */, int *arraysize /* INOUT */, int elemsize)
+static int growarray(char **arrayaddr /* INOUT */, int *arraysize /* INOUT */, int elemsize)
     {
     *arraysize += 1; /* grow by one elem */
     if (*arraysize > 1)
@@ -488,7 +483,7 @@ PRIVATE int growarray(char **arrayaddr /* INOUT */, int *arraysize /* INOUT */, 
 
 
 
-PRIVATE char *eatwhite(char *s)
+static char *eatwhite(char *s)
     /* Returns pointer to first non-white char, starting at s.
        Terminating null treated as non-white char.
     */
@@ -497,7 +492,7 @@ PRIVATE char *eatwhite(char *s)
     return(s);
     }
 
-PRIVATE char *eatnonwhite(char *s)
+static char *eatnonwhite(char *s)
     /*  Returns pointer to first white char, starting at s.
         Terminating null treated as white char
     */
@@ -507,7 +502,7 @@ PRIVATE char *eatnonwhite(char *s)
     }
 
 
-PRIVATE int acldecode(char *s, unsigned int *r)
+static int acldecode(char *s, unsigned int *r)
     /*
 	s	input string
 	r	output rights mask
