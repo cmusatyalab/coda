@@ -130,15 +130,17 @@ static void Uniquefy(IN struct CEntry *ceaddr)
      * with a `full' table (within the constraint above), we should, on
      * average, find a free handle after walking two chains. Advice for those
      * who are afraid of long bucket chain lookups: increase HASHLENGTH */
-    do
+    while(1)
     {
         handle = rpc2_NextRandom(NULL);
 
 	/* skip the handles which have special meaning */
 	if (handle <= 0)
 	    continue;
+
+	if (rpc2_GetConn(handle) == NULL)
+	    break;
     }
-    while(rpc2_GetConn(handle) != NULL);
 
     /* set the handle */
     ceaddr->UniqueCID = handle;
