@@ -84,8 +84,6 @@ long RPC2_Init(char *VId,		/* magic version string */
     rpc2_logfile = stderr;
     rpc2_tracefile = stderr;
 
-    rpc2_bindaddr.s_addr = INADDR_ANY;
-
     rpc2_Enter();
     say(0, RPC2_DebugLevel, "RPC2_Init()\n");
     say(999, RPC2_DebugLevel, "Runtime system version: \"%s\"\n", RPC2_VERSION);
@@ -96,7 +94,10 @@ long RPC2_Init(char *VId,		/* magic version string */
 	rpc2_Quit (RPC2_WRONGVERSION);
     }
 
-    rpc2_InitConn();
+    /* rpc2_InitConn returns 0 if we're already initialized */
+    if (rpc2_InitConn() == 0) return;;
+
+    rpc2_bindaddr.s_addr = INADDR_ANY;
     rpc2_InitMgrp();
     rpc2_InitHost();
 

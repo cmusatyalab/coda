@@ -57,12 +57,12 @@ static struct dllist_head HashTable[HASHLENGTH];
 
 static long EntriesInUse = -1;
 
-void rpc2_InitConn()
+int rpc2_InitConn(void)
 {
     int i;
     
     /* safety check, never initialize twice */
-    if (EntriesInUse != -1) return;
+    if (EntriesInUse != -1) return 0;
 
     for (i = 0; i < HASHLENGTH; i++)
     {
@@ -70,6 +70,8 @@ void rpc2_InitConn()
     }
 
     EntriesInUse = 0;
+
+    return 1;
 }
 
 /* Returns pointer to the connection data structure corresponding to

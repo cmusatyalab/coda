@@ -467,7 +467,8 @@ void rpc2_ResetObs();
 void rpc2_ProcessPackets(), rpc2_ExpireEvents();
 
 /* Connection manipulation routines  */
-void rpc2_InitConn(), rpc2_FreeConn(), rpc2_SetConnError();
+int rpc2_InitConn(void);
+void rpc2_FreeConn(), rpc2_SetConnError();
 struct CEntry *rpc2_AllocConn();
 struct CEntry *rpc2_ConnFromBindInfo(RPC2_HostIdent *whichHost, RPC2_PortIdent *whichPort, RPC2_Integer whichUnique);
 struct CEntry *rpc2_GetConn(RPC2_Handle handle);
