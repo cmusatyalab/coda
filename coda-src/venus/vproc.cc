@@ -797,14 +797,13 @@ void va_init(struct coda_vattr *vap) {
     vap->va_uid = VA_IGNORE_UID;
     vap->va_gid = VA_IGNORE_GID;
     vap->va_fileid = VA_IGNORE_ID;
-    vap->va_atime.tv_sec = VA_IGNORE_TIME1;
-    vap->va_atime.tv_nsec = VA_IGNORE_TIME2;
+    vap->va_mtime.tv_sec = VA_IGNORE_TIME1;
+    vap->va_mtime.tv_nsec = VA_IGNORE_TIME2;
     vap->va_bytes = VA_IGNORE_STORAGE;
     vap->va_nlink = VA_IGNORE_NLINK;
     vap->va_size = VA_IGNORE_SIZE;
     vap->va_blocksize = VA_IGNORE_BLOCKSIZE;
-    vap->va_mtime = vap->va_atime;
-    vap->va_ctime = vap->va_atime;
+    vap->va_atime = vap->va_ctime = vap->va_mtime;
     vap->va_rdev = (long long unsigned int)VA_IGNORE_RDEV;
     vap->va_flags = 0; /* must be 0, not IGNORE_FLAGS for BSD */
 }
