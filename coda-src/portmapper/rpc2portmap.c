@@ -1,9 +1,9 @@
-/* $Id: rpc2portmap.c,v 1.2 1998/08/05 23:49:33 braam Exp $ */
+/* $Id: rpc2portmap.c,v 1.3 1998/09/15 22:56:59 braam Exp $ */
 
 /* main for rpc2portmap daemon */
 
 #include <unistd.h>
-#include <assert.h>
+#include "coda_assert.h"
 #include <netinet/in.h>
 #include <stdlib.h>
 
@@ -30,7 +30,7 @@ void InitRPC2(void)
 	RPC2_PortalIdent portalid;
 	RPC2_SubsysIdent subsysid;
 
-	assert(LWP_Init(LWP_VERSION, LWP_MAX_PRIORITY-1, &mylpid) == LWP_SUCCESS);
+	CODA_ASSERT(LWP_Init(LWP_VERSION, LWP_MAX_PRIORITY-1, &mylpid) == LWP_SUCCESS);
 	portalid.Tag = RPC2_PORTALBYINETNUMBER;
 	portalid.Value.InetPortNumber = ntohs(PORT_rpc2portmap);
 
@@ -42,7 +42,7 @@ void InitRPC2(void)
 
 	subsysid.Tag = RPC2_SUBSYSBYID;
 	subsysid.Value.SubsysId = ntohl(PORTMAPPER_SUBSYSID);
-	assert(RPC2_Export(&subsysid) == RPC2_SUCCESS);
+	CODA_ASSERT(RPC2_Export(&subsysid) == RPC2_SUCCESS);
 }
 
 

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rvmres/subresphase34.cc,v 4.3 1998/08/31 12:23:28 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rvmres/subresphase34.cc,v 4.4 1998/10/05 17:15:12 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -120,7 +120,7 @@ long RS_ResPhase34(RPC2_Handle RPCid, ViceFid *Fid, ViceStoreId *logid,
     // spool a resolution record and set status
     {
 	vle *ov = FindVLE(*vlist, Fid);
-	assert(ov && ov->vptr);
+	CODA_ASSERT(ov && ov->vptr);
 	if (errorCode = SpoolVMLogRecord(vlist, ov->vptr, volptr, 
 					 logid, ResolveNULL_OP, 0)) {
 	    if (errorCode == ENOSPC) {

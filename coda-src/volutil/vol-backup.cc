@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/volutil/vol-backup.cc,v 4.8 1998/08/31 12:23:45 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/volutil/vol-backup.cc,v 4.9 1998/09/29 16:38:38 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -112,7 +112,7 @@ void checklists(int vol_index)
     for (i = 0; i < nlists; i++) {
 	/* Make sure any lists that are single elements are circular */
 	if (lists[i])
-	    assert(*((int *)lists[i]));
+	    CODA_ASSERT(*((int *)lists[i]));
     }
 }
 
@@ -131,7 +131,7 @@ static void updateBackupVnodes(Volume *rwvp, Volume *backupvp,
 	RVMLIB_BEGIN_TRANSACTION(restore) \
 	VPutVolume(originalvp); \
 	RVMLIB_END_TRANSACTION(flush, &(status)); \
-	assert(status == 0); \
+	CODA_ASSERT(status == 0); \
     } \
     VDisconnectFS();
 /*
@@ -219,8 +219,8 @@ long S_VolMakeBackups(RPC2_Handle rpcid, VolumeId originalId, VolumeId *backupId
 	 */
 	 
 	/* First do some sanity checking */
-	assert(V_id(backupvp) == V_backupId(originalvp));
-	assert(V_parentId(backupvp) == V_id(originalvp));
+	CODA_ASSERT(V_id(backupvp) == V_backupId(originalvp));
+	CODA_ASSERT(V_parentId(backupvp) == V_id(originalvp));
 
 	/* force the backup volume offline, and delete it if we crash. */
 	/* Alternative could be to compute bitmap for changed backupvp ourself */
@@ -256,7 +256,7 @@ long S_VolMakeBackups(RPC2_Handle rpcid, VolumeId originalId, VolumeId *backupId
     VUpdateVolume(&error, backupvp);		/* Write new info to RVM */
     VDetachVolume(&error, backupvp);    	/* causes vol to be attached(?) */
     VUpdateVolume(&error, originalvp);		/* Update R/W vol data */
-    assert(error == 0);
+    CODA_ASSERT(error == 0);
     VPutVolume(originalvp);
     RVMLIB_END_TRANSACTION(flush, &(status));
 #ifndef __linux__
@@ -361,7 +361,7 @@ static int MakeNewClone(Volume *rwvp, VolumeId *backupId, Volume **backupvp)
 	checklists(V_volumeindex(newvp));
 	checklists(V_volumeindex(oldbackupvp));
 	
-	assert(DeleteVolume(oldbackupvp) == 0);	/* Delete the volume */
+	CODA_ASSERT(DeleteVolume(oldbackupvp) == 0);	/* Delete the volume */
 
 	checklists(V_volumeindex(rwvp));
 	checklists(V_volumeindex(newvp));
@@ -378,7 +378,7 @@ static int MakeNewClone(Volume *rwvp, VolumeId *backupId, Volume **backupvp)
 	RVMLIB_MODIFY(SRV_RVM(VolumeList[V_volumeindex(newvp)]).header.id, 
 		      oldId);
 	RVMLIB_END_TRANSACTION(flush, &(status));
-	assert(status == 0);
+	CODA_ASSERT(status == 0);
 
 	HashInsert(oldId, V_volumeindex(newvp));
 	
@@ -420,11 +420,11 @@ static void ModifyIndex(Volume *rwvp, Volume *backupvp, VnodeClass vclass)
 	    RVMLIB_BEGIN_TRANSACTION(restore)
 	    GrowVnodes(V_id(backupvp), vclass, rwvp->vnIndex[vclass].bitmapSize);
 	    RVMLIB_END_TRANSACTION(flush, &(status));
-	    assert(status == 0);
+	    CODA_ASSERT(status == 0);
 	}
 
 	/* Since lists never shrink, how could there be more backup lists? */
-	assert(SRV_RVM(VolumeList[rwIndex]).data.nsmallLists ==
+	CODA_ASSERT(SRV_RVM(VolumeList[rwIndex]).data.nsmallLists ==
 	       SRV_RVM(VolumeList[backupIndex]).data.nsmallLists);
 
 	nBackupVnodes = SRV_RVM(VolumeList[backupIndex]).data.nsmallvnodes;	
@@ -441,11 +441,11 @@ static void ModifyIndex(Volume *rwvp, Volume *backupvp, VnodeClass vclass)
 	    RVMLIB_BEGIN_TRANSACTION(restore)
 	    GrowVnodes(V_id(backupvp), vclass, rwvp->vnIndex[vclass].bitmapSize);
 	    RVMLIB_END_TRANSACTION(flush, &(status));
-	    assert(status == 0);
+	    CODA_ASSERT(status == 0);
 	}
 
 	/* Since lists never shrink, how could there be more backup lists? */
-	assert(SRV_RVM(VolumeList[rwIndex]).data.nlargeLists ==
+	CODA_ASSERT(SRV_RVM(VolumeList[rwIndex]).data.nlargeLists ==
 	       SRV_RVM(VolumeList[backupIndex]).data.nlargeLists);
 
 	nBackupVnodes = SRV_RVM(VolumeList[backupIndex]).data.nlargevnodes;	
@@ -466,7 +466,7 @@ static void ModifyIndex(Volume *rwvp, Volume *backupvp, VnodeClass vclass)
     updateBackupVnodes(rwvp, backupvp, backupVnodes, vclass, &nBackupVnodes);
 
     /* At this point the volumes should be the same. */
-    assert(nBackupVnodes == nRWVnodes);
+    CODA_ASSERT(nBackupVnodes == nRWVnodes);
 
     /* Update the number of vnodes in the backup volume header */
     RVMLIB_BEGIN_TRANSACTION(restore)
@@ -476,7 +476,7 @@ static void ModifyIndex(Volume *rwvp, Volume *backupvp, VnodeClass vclass)
 	RVMLIB_MODIFY(SRV_RVM(VolumeList[backupIndex]).data.nlargevnodes, nBackupVnodes);
 	
     RVMLIB_END_TRANSACTION(flush, &(status));
-    assert(status == 0);
+    CODA_ASSERT(status == 0);
 }
 
 /*
@@ -491,7 +491,7 @@ static void deleteDeadVnode(rec_smolist *list,
 			     bit32 *nBackupVnodes)
 {
     /* Make sure remove doesn't return null */
-    assert(list->remove(&(vdop->nextvn)));
+    CODA_ASSERT(list->remove(&(vdop->nextvn)));
 
     /* decrement the reference count by one */
     if (vdop->inodeNumber) {
@@ -551,7 +551,7 @@ static void purgeDeadVnodes(Volume *backupvp, rec_smolist *BackupLists,
 		/* Get a pointer to the backupVnode in rvm. */
 		VnodeDiskObject *bvdop;
 		bvdop = FindVnode(&BackupLists[vnodeIndex], bVnode->uniquifier);
-		assert(bvdop);
+		CODA_ASSERT(bvdop);
 
 		/* Delete the backup vnode. */
 		LogMsg(9,VolDebugLevel,stdout,"purgeDeadVnodes: purging %x.%x.%x",
@@ -569,7 +569,7 @@ static void purgeDeadVnodes(Volume *backupvp, rec_smolist *BackupLists,
 	    }
 	}
 	RVMLIB_END_TRANSACTION(flush, &(status));
-	assert(status == 0);		/* Should never abort... */
+	CODA_ASSERT(status == 0);		/* Should never abort... */
 
 	/* Now delete the inodes for the vnodes we already purged. */
 	if (vclass == vSmall) 
@@ -675,12 +675,12 @@ static void updateBackupVnodes(Volume *rwvp, Volume *backupvp,
 		
 		if (rwVnode->inodeNumber != bvdop->inodeNumber) {
 		    /* This can't change without a COW!!! */
-		    assert(IsBarren(rwVnode->versionvector));
-		    assert(bvdop->inodeNumber);	/* RO vnode Can't be barren */
+		    CODA_ASSERT(IsBarren(rwVnode->versionvector));
+		    CODA_ASSERT(bvdop->inodeNumber);	/* RO vnode Can't be barren */
 		}		    
 
 
-		assert(bvdop->vol_index != rwVnode->vol_index);
+		CODA_ASSERT(bvdop->vol_index != rwVnode->vol_index);
 		
 		if (rwVnode->vnodeMagic != bvdop->vnodeMagic)
 		    LogMsg(0,0,stdout, "VolBackup: RW and RO vnodeMagics don't match (%x.%x.%x) %d != %d\n",
@@ -728,7 +728,7 @@ static void updateBackupVnodes(Volume *rwvp, Volume *backupvp,
 		/* This test only works on replicated volumes. Should I make it
 		 * at all or should I test for replicated first? -dcs 2/22/92
 		 */
-/*	assert(VV_Cmp(&rwVnode->versionvector, &bvdop->versionvector)!= VV_EQ); */
+/*	CODA_ASSERT(VV_Cmp(&rwVnode->versionvector, &bvdop->versionvector)!= VV_EQ); */
 
 		/* Delete the backup vnode rather than modify it. */
 		LogMsg(9, VolDebugLevel, stdout,
@@ -753,7 +753,7 @@ static void updateBackupVnodes(Volume *rwvp, Volume *backupvp,
 	    
 	} /* Inner loop -> less than MaxVnodesPerTransaction times around */
 	RVMLIB_END_TRANSACTION(flush, &(status));
-	assert(status == 0);  /* Do we ever abort? */
+	CODA_ASSERT(status == 0);  /* Do we ever abort? */
 
 	/* Now delete the inodes for the vnodes we already purged. */
 	if (vclass == vSmall) 

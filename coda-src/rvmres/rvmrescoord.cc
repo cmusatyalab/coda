@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rvmres/rvmrescoord.cc,v 4.4 1998/08/31 12:23:26 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rvmres/rvmrescoord.cc,v 4.5 1998/10/05 17:15:11 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -42,7 +42,7 @@ extern "C" {
 #endif __cplusplus
 
 #include <sys/types.h>
-#include <assert.h>
+#include "coda_assert.h"
 #include <stdio.h>
 #include <struct.h>
 #include <lwp.h>
@@ -603,7 +603,7 @@ static int CoordPhase4(res_mgrpent *mgrp, ViceFid *Fid,
 	    if (succflags[i]) {
 		// find the index in the update set 
 		vrent *vre = VRDB.find(Fid->Volume);
-		assert(vre);
+		CODA_ASSERT(vre);
 		(&(UpdateSet.Versions.Site0))[vre->index(succflags[i])] = 1;
 	    }
     } /* drop scope for int i above; to avoid identifier clash */
@@ -619,7 +619,7 @@ static int CoordPhase4(res_mgrpent *mgrp, ViceFid *Fid,
     for (int i = 0; i < VSG_MEMBERS; i++)  {
 	if (dirlengths[i]) {
 	    dirbufs[i] = (char *)malloc(dirlengths[i]);
-	    assert(dirbufs[i]);
+	    CODA_ASSERT(dirbufs[i]);
 	    sidvar_bufs[i].Value.SmartFTPD.FileInfo.ByAddr.vmfile.SeqLen = 
 		dirlengths[i];
 	    sidvar_bufs[i].Value.SmartFTPD.FileInfo.ByAddr.vmfile.MaxSeqLen = 
@@ -747,7 +747,7 @@ static int ResolveInc(res_mgrpent *mgrp, ViceFid *Fid, ViceVersionVector **VVGro
     for (int i = 0; i < VSG_MEMBERS; i++)  {
 	if (mgrp->rrcc.handles[i]) {
 	    dirbufs[i] = (char *)malloc(dirlength);
-	    assert(dirbufs[i]);
+	    CODA_ASSERT(dirbufs[i]);
 	    sidvar_bufs[i].Value.SmartFTPD.FileInfo.ByAddr.vmfile.SeqLen = 
 		dirlength;
 	    sidvar_bufs[i].Value.SmartFTPD.FileInfo.ByAddr.vmfile.MaxSeqLen = 
@@ -872,7 +872,7 @@ static DumpDirContents(SE_Descriptor *sid_bufs, ViceFid *fid) {
 	    char fname[256];
 	    sprintf(fname, "/tmp/dir.0x%x.0x%x.%d", fid->Vnode, fid->Unique, j);
 	    int fd = open(fname, O_CREAT | O_TRUNC | O_RDWR, 0777);
-	    assert(fd > 0);
+	    CODA_ASSERT(fd > 0);
 	    write(fd, sid_bufs[j].Value.SmartFTPD.FileInfo.ByAddr.vmfile.SeqBody, 
 		  length);
 	    close(fd);

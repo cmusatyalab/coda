@@ -1,4 +1,4 @@
-#include <assert.h>
+#include "coda_assert.h"
 #include <stdlib.h>
 #include <sys/param.h>
 #include <unistd.h>
@@ -83,7 +83,7 @@ struct dirdata *dd;
 
 PDirHandle dt_dh(int i)
 {
-	assert( i >= 0 && i <= NDIRS);
+	CODA_ASSERT( i >= 0 && i <= NDIRS);
 	return &dd->dd_dh[i];
 }
 
@@ -131,7 +131,7 @@ void dt_vdir(int argc, char **argv)
 	     
 	len = statb.st_size;
 	buf = mmap(NULL, len, PROT_READ, MAP_PRIVATE, fd, 0);
-	assert( (int )buf != -1 );
+	CODA_ASSERT( (int )buf != -1 );
 
 	offset = 0;
 	while( 1 ) {
@@ -356,7 +356,7 @@ void dt_convert(int argc, char **argv)
 	}
 
 	fd = open(argv[3], O_CREAT | O_RDWR, 0644);
-	assert( fd >= 0);
+	CODA_ASSERT( fd >= 0);
 	close(fd);
 
 	DH_Convert(dh, argv[2], vol);

@@ -25,7 +25,7 @@
 # improvements or extensions that  they  make,  and  to  grant  Carnegie
 # Mellon the rights to redistribute these changes without encumbrance.
 # 
-# static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/asr/Makefile.in,v 4.8 1998/05/27 17:08:02 braam Exp $";
+# static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/asr/Makefile.in,v 4.9 1998/09/29 16:37:25 braam Exp $";
 
 
 TOPDIR = @top_srcdir@
@@ -45,7 +45,7 @@ HEADERS     = asr.h ruletypes.h
 
 YFLAGS += -d
 
-LIBS=	$(LIBKERNDEP) $(LIBUTIL)
+LIBS=	$(LIBKERNDEP) $(LIBUTIL) $(LIBBASE)
 
 #uncomment if you want to turn on timing of the ASR 
 #PERSONAL_FLAGS= -DTIMING

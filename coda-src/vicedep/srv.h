@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vicedep/srv.h,v 4.5 1998/10/09 21:57:43 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vicedep/srv.h,v 4.6 1998/10/21 22:06:00 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -123,7 +123,7 @@ extern void ViceTerminate();
 
 #define	SetAccessList(vptr, ACL, ACLSize)\
 {\
-    assert((vptr)->disk.type == vDirectory);\
+    CODA_ASSERT((vptr)->disk.type == vDirectory);\
     (ACL) = VVnodeACL((vptr));\
     (ACLSize) = VAclSize((vptr));\
 }

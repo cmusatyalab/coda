@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/lib-src/mlwp/iomgr.c,v 4.13 1998/06/24 18:47:52 jaharkes Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/lib-src/mlwp/iomgr.c,v 4.14 1998/08/26 15:39:06 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -63,7 +63,7 @@ supported by Transarc Corporation, Pittsburgh, PA.
 #include <errno.h>
 #include <sys/file.h>
 #include <sys/time.h>
-#include <assert.h>
+#include "coda_assert.h"
 #include "lwp.h"
 #include "lwp.private.h"
 #include "timer.h"
@@ -303,7 +303,7 @@ static int IOMGR_CheckDescriptors(int PollingCheck)
 		    } 
 
 	    }
-	    assert(0);
+	    CODA_ASSERT(0);
     }
 
     /* Force a new gettimeofday call so FT_AGetTimeOfDay calls work. */

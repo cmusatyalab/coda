@@ -32,7 +32,7 @@ ds_safeq_create()
     result->sq_magic = ds_safeq_magic;
     Lock_Init(&result->sq_lock);
     result->sq_list = ds_list_create(NULL, FALSE, TRUE);
-    ASSERT(result->sq_list);
+    CODA_ASSERT(result->sq_list);
     
     return result;
 }
@@ -41,7 +41,7 @@ void
 ds_safeq_destroy(q)
     ds_safeq_t *q;
 {
-    ASSERT(DS_SAFEQ_VALID(q));
+    CODA_ASSERT(DS_SAFEQ_VALID(q));
 
     ObtainWriteLock(&q->sq_lock);
     /* Make sure we do not yeild... */
@@ -57,9 +57,9 @@ ds_safeq_enq(q, i)
     ds_safeq_t *q;
     void       *i;
 {
-    ASSERT(DS_SAFEQ_VALID(q));
+    CODA_ASSERT(DS_SAFEQ_VALID(q));
     ObtainWriteLock(&q->sq_lock);
-    ASSERT(ds_list_insert(q->sq_list,i) == i);
+    CODA_ASSERT(ds_list_insert(q->sq_list,i) == i);
     LWP_NoYieldSignal(&q->sq_signal);
     ReleaseWriteLock(&q->sq_lock);
 }
@@ -71,7 +71,7 @@ ds_safeq_deq(q)
     void *result;
 
     while (1) {
-	ASSERT(DS_SAFEQ_VALID(q));
+	CODA_ASSERT(DS_SAFEQ_VALID(q));
 	ObtainWriteLock(&q->sq_lock);
 	result = ds_list_get_first(q->sq_list);
 	ReleaseWriteLock(&q->sq_lock);

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vice/codaproc.cc,v 4.16 1998/10/28 19:58:07 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vice/codaproc.cc,v 4.17 1998/10/30 18:29:57 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -336,7 +336,7 @@ long ViceResolve(RPC2_Handle cid, ViceFid *Fid) {
 	    VSGVolnum = Fid->Volume;
     } else { 
 	SLog(0, "ViceResolve: I was handed NULL Fid");
-	assert(0);
+	CODA_ASSERT(0);
     }
 
        
@@ -510,7 +510,7 @@ FreeLocks:
        int fileCode = 0;
        if (vptr){
 	   VPutVnode((Error *)&fileCode, vptr);
-	   assert(fileCode == 0);
+	   CODA_ASSERT(fileCode == 0);
        }
        if (volptr)
 	   PutVolObj(&volptr, NO_LOCK);
@@ -594,7 +594,7 @@ long ViceRepair(RPC2_Handle cid, ViceFid *Fid, ViceStatus *status,
 	    ov->f_finode  = icreate((int)V_device(volptr), 0, (int) V_id(volptr), 
 			       (int) ov->vptr->vnodeNumber, (int)ov->vptr->disk.uniquifier, 
 			       (int) ov->vptr->disk.dataVersion + 1);
-	    assert(ov->f_finode > 0);
+	    CODA_ASSERT(ov->f_finode > 0);
 	    int tblocks = (int) (nBlocks(Length) - nBlocks(ov->vptr->disk.length));
 	    if (errorCode = AdjustDiskUsage(volptr, tblocks))
 		goto FreeLocks;
@@ -734,7 +734,7 @@ FreeLocks:
 
     /* truncate log of object being repaired - only leave repair record */
     if (!errorCode && !FRep && AllowResolution && vmresolutionOn) {
-	assert(volindex != -1);
+	CODA_ASSERT(volindex != -1);
 	TruncResLog(volindex, Fid->Vnode, Fid->Unique);
     }
     return(errorCode);
@@ -853,7 +853,7 @@ int CheckRepairSemantics(vle *ov, Volume *volptr, dlist *vlist,
 	parentFid.Vnode = ov->vptr->disk.vparent;
 	parentFid.Unique = ov->vptr->disk.uparent;
 	vle *pv = FindVLE(*vlist, &parentFid);
-	assert(pv != 0);
+	CODA_ASSERT(pv != 0);
 	return(CheckFileRepairSemantics(ov, pv, volptr, status, 
 					client, rights, anyrights));
     }
@@ -878,7 +878,7 @@ int CheckFileRepairSemantics(vle *ov, vle *pv, Volume *volptr,
 
     SetAccessList(pv->vptr, aCL, aCLSize);
 
-    assert(GetRights(client->CPS, aCL, aCLSize, rights, anyrights) == 0);
+    CODA_ASSERT(GetRights(client->CPS, aCL, aCLSize, rights, anyrights) == 0);
     
     /* Perform the following check:
 	  Client must have write access in the parent directory.
@@ -915,7 +915,7 @@ int CheckRepairACLSemantics(ClientEntry *client, Vnode *vptr, Volume *volptr,
 
     SetAccessList(vptr, *aCL, *aCLSize);
 
-    assert(GetRights(client->CPS, *aCL, *aCLSize, &rights, &anyrights) == 0);
+    CODA_ASSERT(GetRights(client->CPS, *aCL, *aCLSize, &rights, &anyrights) == 0);
     if (!(rights & PRSFS_ADMINISTER) &&
 	 (client->Id != vptr->disk.owner) &&
 	 (SystemUser(client))){
@@ -1153,7 +1153,7 @@ int CheckDirRepairSemantics(vle *ov, dlist *vlist, Volume *volptr,
 
     SetAccessList(ov->vptr, aCL, aCLSize);
 
-    assert(GetRights(client->CPS, aCL, aCLSize, rights, anyrights) == 0);
+    CODA_ASSERT(GetRights(client->CPS, aCL, aCLSize, rights, anyrights) == 0);
 
     for (int i = 0; i < repCount; i++) {
 	struct repair repairent = repList[i];
@@ -1223,7 +1223,7 @@ int CheckDirRepairSemantics(vle *ov, dlist *vlist, Volume *volptr,
 	    {
 		/* get the object first */
 		vle *cv = FindVLE(*vlist, (ViceFid *)&repairent.parms[0]);
-		assert(cv != 0);
+		CODA_ASSERT(cv != 0);
 		if (errorCode = CheckRemoveSemantics(client, &(ov->vptr), &cv->vptr,
 						      repairent.name, &volptr, 
 						      0, NULL, NULL, NULL, 0, 0))
@@ -1235,7 +1235,7 @@ int CheckDirRepairSemantics(vle *ov, dlist *vlist, Volume *volptr,
 	    {
 		/* get the object first */
 		vle *cv = FindVLE(*vlist, (ViceFid *)&repairent.parms[0]);
-		assert(cv != 0);
+		CODA_ASSERT(cv != 0);
 		if (errorCode = CheckRmdirSemantics(client, &(ov->vptr), &(cv->vptr), 
 						     repairent.name, &volptr,
 						     0, NULL, NULL, NULL, NULL, NULL))
@@ -1264,16 +1264,16 @@ int CheckDirRepairSemantics(vle *ov, dlist *vlist, Volume *volptr,
 			
 		vle *sdv = FindVLE(*vlist, &sdfid);
 		vle *tdv = FindVLE(*vlist, &tdfid);
-		assert(sdv->vptr);
-		assert(tdv->vptr);
+		CODA_ASSERT(sdv->vptr);
+		CODA_ASSERT(tdv->vptr);
 
 		// get source vnode ptr
 		PDirHandle sdh;
 		sdh = VN_SetDirHandle(sdv->vptr);
-		assert(DH_Lookup(sdh, repairent.name, &sfid) == 0);
+		CODA_ASSERT(DH_Lookup(sdh, repairent.name, &sfid) == 0);
 		sfid.Volume = repairent.parms[0];
 		vle *sv = FindVLE(*vlist, &sfid);
-		assert(sv); assert(sv->vptr);
+		CODA_ASSERT(sv); CODA_ASSERT(sv->vptr);
 
 		// get target vnode 
 		PDirHandle tdh;
@@ -1282,7 +1282,7 @@ int CheckDirRepairSemantics(vle *ov, dlist *vlist, Volume *volptr,
 		if (DH_Lookup(tdh, repairent.newname, &tfid) == 0) {
 		    tfid.Volume = repairent.parms[0];
 		    tv = FindVLE(*vlist, &tfid);
-		    assert(tv); assert(tv->vptr);
+		    CODA_ASSERT(tv); CODA_ASSERT(tv->vptr);
 		}
 		if (errorCode = CheckRepairRenameSemantics(client, volptr, sdv, tdv, 
 							   sv, tv, repairent.name, repairent.newname))
@@ -1391,7 +1391,7 @@ static int PerformDirRepair(ClientEntry *client, vle *ov, Volume *volptr,
 				       (int)cv->vptr->vnodeNumber, 
 				       (int)cv->vptr->disk.uniquifier,
 				       (int)cv->vptr->disk.dataVersion);
-		assert(cv->f_finode > 0);
+		CODA_ASSERT(cv->f_finode > 0);
 		cv->vptr->disk.inodeNumber = cv->f_finode;
 
 		/* set the delete flag to true - for abort case */
@@ -1448,7 +1448,7 @@ static int PerformDirRepair(ClientEntry *client, vle *ov, Volume *volptr,
 				       (int)cv->vptr->vnodeNumber, 
 				       (int)cv->vptr->disk.uniquifier,
 				       (int)cv->vptr->disk.dataVersion);
-		assert(cv->f_finode > 0);
+		CODA_ASSERT(cv->f_finode > 0);
 		cv->vptr->disk.inodeNumber = cv->f_finode;
 
 		/* set the delete flag to true - for abort case */
@@ -1460,8 +1460,8 @@ static int PerformDirRepair(ClientEntry *client, vle *ov, Volume *volptr,
 		int tblocks = 0;
 		ViceFid cFid = *((ViceFid *)&(repairent.parms[0]));
 		vle *cv = FindVLE(*vlist, &cFid);
-		assert(cv != 0);
-		assert(cv->vptr != 0);
+		CODA_ASSERT(cv != 0);
+		CODA_ASSERT(cv->vptr != 0);
 
 		/* make sure vnode hasnt been deleted */
 		if (cv->vptr->disk.linkCount <= 0) {
@@ -1480,7 +1480,7 @@ static int PerformDirRepair(ClientEntry *client, vle *ov, Volume *volptr,
 	    {
 		ViceFid cFid = *((ViceFid *)&(repairent.parms[0]));
 		vle *cv = FindVLE(*vlist, &cFid);
-		assert(cv != 0);
+		CODA_ASSERT(cv != 0);
 		int tblocks = 0;
 		PerformRemove(client, VSGVolnum, volptr, ov->vptr, 
 			      cv->vptr, repairent.name, status->Date,
@@ -1488,7 +1488,7 @@ static int PerformDirRepair(ClientEntry *client, vle *ov, Volume *volptr,
 		*deltablocks += tblocks;
 		if (cv->vptr->delete_me) {
 		    int tblocks = (int) -nBlocks(cv->vptr->disk.length);
-		    assert(AdjustDiskUsage(volptr, tblocks) == 0);
+		    CODA_ASSERT(AdjustDiskUsage(volptr, tblocks) == 0);
 		    *deltablocks += tblocks;
 		    cv->f_sinode = cv->vptr->disk.inodeNumber;
 		    cv->vptr->disk.inodeNumber = 0;
@@ -1499,7 +1499,7 @@ static int PerformDirRepair(ClientEntry *client, vle *ov, Volume *volptr,
 	    {
 		ViceFid cFid = *((ViceFid *)&(repairent.parms[0]));
 		vle *cv = FindVLE(*vlist, &cFid);
-		assert(cv != 0);
+		CODA_ASSERT(cv != 0);
 		
 		PDirHandle cdir;
 		cdir = VN_SetDirHandle(cv->vptr);
@@ -1521,15 +1521,15 @@ static int PerformDirRepair(ClientEntry *client, vle *ov, Volume *volptr,
 		
 		/* remove the empty directory */
 		{
-		    assert(DH_IsEmpty(cdir));
+		    CODA_ASSERT(DH_IsEmpty(cdir));
 		    tblocks = 0;
 		    PerformRmdir(client, VSGVolnum, volptr, 
 				 ov->vptr, cv->vptr, repairent.name, status->Date,
 				 0, StoreId, &ov->d_cinode, &tblocks);
 		    *deltablocks += tblocks;
-		    assert(cv->vptr->delete_me);
+		    CODA_ASSERT(cv->vptr->delete_me);
 		    tblocks = (int)-nBlocks(cv->vptr->disk.length);
-		    assert(AdjustDiskUsage(volptr, tblocks) == 0);
+		    CODA_ASSERT(AdjustDiskUsage(volptr, tblocks) == 0);
 		    *deltablocks += tblocks;
 		}
 	    }
@@ -1546,16 +1546,16 @@ static int PerformDirRepair(ClientEntry *client, vle *ov, Volume *volptr,
 			
 		vle *sdv = FindVLE(*vlist, &sdfid);
 		vle *tdv = FindVLE(*vlist, &tdfid);
-		assert(sdv->vptr);
-		assert(tdv->vptr);
+		CODA_ASSERT(sdv->vptr);
+		CODA_ASSERT(tdv->vptr);
 
 		// get source vnode ptr
 		PDirHandle sdh;
 		sdh = VN_SetDirHandle(sdv->vptr);
-		assert(DH_Lookup(sdh, repairent.name, &sfid) == 0);
+		CODA_ASSERT(DH_Lookup(sdh, repairent.name, &sfid) == 0);
 		sfid.Volume = repairent.parms[0];
 		vle *sv = FindVLE(*vlist, &sfid);
-		assert(sv); assert(sv->vptr);
+		CODA_ASSERT(sv); CODA_ASSERT(sv->vptr);
 
 		// get target vnode 
 		PDirHandle tdh;
@@ -1564,7 +1564,7 @@ static int PerformDirRepair(ClientEntry *client, vle *ov, Volume *volptr,
 		if (DH_Lookup(tdh, repairent.newname, &tfid) == 0) {
 		    tfid.Volume = repairent.parms[0];
 		    tv = FindVLE(*vlist, &tfid);
-		    assert(tv); assert(tv->vptr);
+		    CODA_ASSERT(tv); CODA_ASSERT(tv->vptr);
 		}
 		
 		int tblocks = 0;
@@ -1636,10 +1636,10 @@ static int PerformDirRepair(ClientEntry *client, vle *ov, Volume *volptr,
 	    }
 	    break;
 	  case REPAIR_SETACL:
-	    assert(SetRights(ov->vptr, repairent.name, repairent.parms[0]) == 0);
+	    CODA_ASSERT(SetRights(ov->vptr, repairent.name, repairent.parms[0]) == 0);
 	    break;
 	  case REPAIR_SETNACL:
-	    assert(SetNRights(ov->vptr, repairent.name, repairent.parms[0]) == 0);
+	    CODA_ASSERT(SetNRights(ov->vptr, repairent.name, repairent.parms[0]) == 0);
 	    break;
 	  case REPAIR_SETOWNER:
 	    ov->vptr->disk.owner = repairent.parms[0];
@@ -1666,8 +1666,8 @@ static int PerformDirRepair(ClientEntry *client, vle *ov, Volume *volptr,
 	  case REPAIR_CREATES:
 	    cFid = *((ViceFid *)&(repairent.parms[0]));
 	    cv = FindVLE(*vlist, &cFid);
-	    assert(cv != 0);
-	    assert(cv->vptr->delete_me == 1);
+	    CODA_ASSERT(cv != 0);
+	    CODA_ASSERT(cv->vptr->delete_me == 1);
 	    cv->vptr->delete_me = 0;
 	    break;
 	  default: 
@@ -1823,7 +1823,7 @@ static int GetRepairObjects(Volume *volptr, vle *ov, dlist *vlist,
     {
 	Error fileCode = 0;
 	VPutVnode(&fileCode, ov->vptr);
-	assert(fileCode == 0);
+	CODA_ASSERT(fileCode == 0);
 	ov->vptr = 0;
     }
     
@@ -1853,7 +1853,7 @@ int GetSubTree(ViceFid *fid, Volume *volptr, dlist *vlist) {
     dlist *tmplist = new dlist((CFN)VLECmp);
     int errorCode = 0;
 
-    assert(volptr != 0);
+    CODA_ASSERT(volptr != 0);
 
     /* get root vnode */
     {
@@ -1861,7 +1861,7 @@ int GetSubTree(ViceFid *fid, Volume *volptr, dlist *vlist) {
 				 READ_LOCK, NO_LOCK, 1, 0, 0)) 
 	    goto Exit;
 	
-	assert(vptr->disk.type == vDirectory);
+	CODA_ASSERT(vptr->disk.type == vDirectory);
     }
 	
     /* obtain fids of immediate children */
@@ -1879,7 +1879,7 @@ int GetSubTree(ViceFid *fid, Volume *volptr, dlist *vlist) {
     {
 	Error error = 0;
 	VPutVnode(&error, vptr);
-	assert(error == 0);
+	CODA_ASSERT(error == 0);
 	vptr = 0;
     }
 
@@ -1911,7 +1911,7 @@ int GetSubTree(ViceFid *fid, Volume *volptr, dlist *vlist) {
     if (vptr) {
 	Error error = 0;
 	VPutVnode(&error, vptr);
-	assert(error = 0);
+	CODA_ASSERT(error = 0);
     }
     return(errorCode);
 }
@@ -1975,7 +1975,7 @@ static int RecursiveCheckRemoveSemantics(PDirEntry de, void * data)
 	/* get the object and its parent */
 	{
 		ov = FindVLE(*(rb->vlist), &fid);
-		assert(ov != NULL);
+		CODA_ASSERT(ov != NULL);
 	
 		ViceFid pfid;
 		pfid.Volume = fid.Volume;
@@ -1983,7 +1983,7 @@ static int RecursiveCheckRemoveSemantics(PDirEntry de, void * data)
 		pfid.Unique = ov->vptr->disk.uparent;
 	
 		pv = FindVLE(*(rb->vlist), &pfid);
-		assert(pv != NULL);
+		CODA_ASSERT(pv != NULL);
 	}
 	/* Check Semantics for the object's removal */
 	{
@@ -2030,7 +2030,7 @@ static int CheckTreeRemoveSemantics(ClientEntry *client, Volume *volptr,
 	/* get the root's vnode */
 	{
 		tv = FindVLE(*vlist, tFid);
-		assert(tv != 0);
+		CODA_ASSERT(tv != 0);
 	}
 
 	/* recursively check semantics */
@@ -2071,7 +2071,7 @@ int PerformTreeRemoval(PDirEntry de, void *data)
 		cFid.Unique = unique;
 		
 		cv = FindVLE(*(pkdparm->vlist), &cFid);
-		assert(cv != 0);
+		CODA_ASSERT(cv != 0);
 	}
 	/* get vnode of parent */
 	{
@@ -2080,7 +2080,7 @@ int PerformTreeRemoval(PDirEntry de, void *data)
 		pFid.Unique = cv->vptr->disk.uparent;
 		
 		pv = FindVLE(*(pkdparm->vlist), &pFid);
-		assert(pv != 0);
+		CODA_ASSERT(pv != 0);
 	}
 
 	/* delete children first */
@@ -2106,9 +2106,9 @@ int PerformTreeRemoval(PDirEntry de, void *data)
 				     0, pkdparm->storeid, 
 				     &pv->d_cinode, &nblocks);
 			*(pkdparm->blocks) += nblocks;
-			assert(cv->vptr->delete_me);
+			CODA_ASSERT(cv->vptr->delete_me);
 			nblocks = (int)-nBlocks(cv->vptr->disk.length);
-			assert(AdjustDiskUsage(pkdparm->volptr, nblocks) == 0);
+			CODA_ASSERT(AdjustDiskUsage(pkdparm->volptr, nblocks) == 0);
 			*(pkdparm->blocks) += nblocks;
 			if (AllowResolution && V_VMResOn(pkdparm->volptr)) {
 				//spool log record for resolution 
@@ -2117,12 +2117,12 @@ int PerformTreeRemoval(PDirEntry de, void *data)
 					ViceStoreId stid;
 					GetRemoteRemoveStoreId(&stid, pkdparm->hvlog, pkdparm->srvrid,
 							       &pFid, &cFid, name);
-					assert(stid.Host != 0);
+					CODA_ASSERT(stid.Host != 0);
 		    
 					VNResLog *vnlog;
 					pdlist *pl = GetResLogList(cv->vptr->disk.vol_index, vnode, 
 								   unique, &vnlog);
-					assert(pl != NULL);
+					CODA_ASSERT(pl != NULL);
 					int ind;
 					ind = InitVMLogRecord(V_volumeindex(pkdparm->volptr),
 							      &pv->fid, &stid, ResolveViceRemoveDir_OP, 
@@ -2175,7 +2175,7 @@ int PerformTreeRemoval(PDirEntry de, void *data)
 	    *(pkdparm->blocks) += nblocks;
 	    if (cv->vptr->delete_me){
 		nblocks = (int)-nBlocks(cv->vptr->disk.length);
-		assert(AdjustDiskUsage(pkdparm->volptr, nblocks) == 0);
+		CODA_ASSERT(AdjustDiskUsage(pkdparm->volptr, nblocks) == 0);
 		*(pkdparm->blocks) += nblocks;
 		cv->f_sinode = cv->vptr->disk.inodeNumber;
 		cv->vptr->disk.inodeNumber = 0;
@@ -2186,7 +2186,7 @@ int PerformTreeRemoval(PDirEntry de, void *data)
 		    ViceStoreId stid;
 		    GetRemoteRemoveStoreId(&stid, pkdparm->hvlog, pkdparm->srvrid,
 					   &pFid, &cFid, name);
-		    assert(stid.Host != 0);
+		    CODA_ASSERT(stid.Host != 0);
 		    int ind;
 		    ind = InitVMLogRecord(V_volumeindex(pkdparm->volptr),
 					  &pv->fid, &stid, 
@@ -2293,7 +2293,7 @@ START_TIMING(COP2_Transaction);
 	if (vptrs[i]) {
 	    Error fileCode;
 	    VPutVnode(&fileCode, vptrs[i]);
-	    assert(fileCode == 0);
+	    CODA_ASSERT(fileCode == 0);
 	}
 
     /* Put the volume. */

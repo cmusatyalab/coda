@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/res/lockqueue.cc,v 4.2 1997/12/20 23:34:32 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/res/lockqueue.cc,v 4.3 1998/10/05 17:15:05 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -93,7 +93,7 @@ void lqman::func(int parm) {
     /* tag this lwp as a volume utility */
     pt = (ProgramType *) malloc(sizeof(ProgramType));
     *pt = volumeUtility;
-    assert(LWP_NewRock(FSTAG, (char *)pt) == LWP_SUCCESS);
+    CODA_ASSERT(LWP_NewRock(FSTAG, (char *)pt) == LWP_SUCCESS);
 
     for (;;) {
 	LogMsg(1, SrvDebugLevel, stdout,  "LockQueue Manager woken up");

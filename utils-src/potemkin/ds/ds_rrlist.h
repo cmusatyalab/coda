@@ -67,7 +67,7 @@ do {                                   \
 
 #define DS_REQUEST_DESTROY(X)                \
 do {                                         \
-    ASSERT(DS_REQUEST_VALID((X)));           \
+    CODA_ASSERT(DS_REQUEST_VALID((X)));           \
     (X)->magic = 0;                          \
     (X)->low = (X)->high = (X)->reqid = 0L;  \
     (X)->pid = 0;                            \

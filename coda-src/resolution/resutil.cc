@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/res/resutil.cc,v 4.7 1998/10/21 22:05:48 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/res/resutil.cc,v 4.8 1998/10/30 18:29:50 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -47,7 +47,7 @@ extern "C" {
 #include <sys/stat.h>
 
 #include <netinet/in.h>
-#include <assert.h>
+#include "coda_assert.h"
 #include <stdio.h>
 #include <rpc2.h>
 #include <util.h>
@@ -115,7 +115,7 @@ FreeLocks:
     if (vptr){
 	Error fileCode = 0;
 	VPutVnode(&fileCode, vptr);
-	assert(fileCode == 0);
+	CODA_ASSERT(fileCode == 0);
     }
     PutVolObj(&volptr, NO_LOCK);
     RVMLIB_END_TRANSACTION(flush, &(status));
@@ -292,7 +292,7 @@ void AllocIncBSEntry(RPC2_BoundedBS *bbs, char *name, ViceFid *Fid,
 	namelength += sizeof(long) - modlength;
     if ((bbs->SeqLen + namelength + SIZEOF_INCFID) > bbs->MaxSeqLen) {
 	SLog(0,  "AllocIncPBEntry: NO MORE SPACE IN BUFFER");
-	assert(0);
+	CODA_ASSERT(0);
     }
     long *l = (long *)c;
     *l = htonl(Fid->Vnode);
@@ -333,7 +333,7 @@ long GetPath(ViceFid *fid, int maxcomponents,
     Vnode *vptr = 0;
     
     /* assume that volume is already locked exclusively */
-    assert(GetVolObj(fid->Volume, &volptr, VOL_NO_LOCK, 0, 0) == 0);
+    CODA_ASSERT(GetVolObj(fid->Volume, &volptr, VOL_NO_LOCK, 0, 0) == 0);
     
     ViceFid tmpfid;
     tmpfid.Volume = fid->Volume;
@@ -358,7 +358,7 @@ long GetPath(ViceFid *fid, int maxcomponents,
 	if (vptr) {
 	    Error fileCode = 0;
 	    VPutVnode(&fileCode, vptr);
-	    assert(fileCode == 0);
+	    CODA_ASSERT(fileCode == 0);
 	    vptr = 0;
 	}
     }
@@ -378,7 +378,7 @@ long GetPath(ViceFid *fid, int maxcomponents,
 	bzero((void *)components, sizeof(ResPathElem) * *ncomponents);
 	for (int i = 0; i < *ncomponents; i++) {
 	    respath *r = (respath *)plist.get();
-	    assert(r);
+	    CODA_ASSERT(r);
 	    components[i].vn = r->vnode;
 	    components[i].un = r->unique;
 	    components[i].vv = r->vv;
@@ -390,13 +390,13 @@ long GetPath(ViceFid *fid, int maxcomponents,
 		   components[i].vv.StoreId.Uniquifier);
 	    delete r;
 	}
-	assert(plist.count() == 0);
+	CODA_ASSERT(plist.count() == 0);
     }
     
     if (vptr) {
 	Error fileCode = 0;
 	VPutVnode(&fileCode, vptr);
-	assert(fileCode == 0);
+	CODA_ASSERT(fileCode == 0);
     }
     if (volptr) 
 	PutVolObj(&volptr, VOL_NO_LOCK);
@@ -423,7 +423,7 @@ static int GetUnEqFid(int nreplicas, int *nentries,
     UnEqFid->Unique = 0;
     for (int i = 0; i < nentries[0]; i++) {
 	for (int j = 1; j < nreplicas; j++) {
-	    assert(nentries[j] > i);		// culprit must be found before end
+	    CODA_ASSERT(nentries[j] > i);		// culprit must be found before end
 	    if (CmpComponent(&paths[j][i], &paths[0][i])) {
 		BadIndex = i;
 		if ((paths[j][i].vn != paths[0][i].vn) || 

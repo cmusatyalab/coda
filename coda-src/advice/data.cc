@@ -7,7 +7,7 @@ extern "C" {
 #include <sys/stat.h>
 #include <dirent.h>
 #include <sys/time.h>
-#include <assert.h>
+#include "coda_assert.h"
 #include <errno.h>
 #include <fcntl.h>
 #include <pwd.h>
@@ -48,8 +48,8 @@ void InitUserData() {
 
   /* Get the user's name */
   pwent = getpwuid(uid);
-  assert(pwent != NULL);
-  assert(strlen(pwent->pw_name) < 16);
+  CODA_ASSERT(pwent != NULL);
+  CODA_ASSERT(strlen(pwent->pw_name) < 16);
   strcpy(UserName, pwent->pw_name);
 
   snprintf(BaseDir, MAXPATHLEN, "/coda/usr/%s/.questionnaires", UserName);
@@ -261,8 +261,8 @@ int MoveFile(char *filename, char *hereDir, char* thereDir) {
     
     // Copy the file
     LogMsg(1000,LogLevel,LogFile, "Moving %s to %s", hereFileName, thereFileName);
-    assert(hereFile >= 0);
-    assert(thereFile >= 0);
+    CODA_ASSERT(hereFile >= 0);
+    CODA_ASSERT(thereFile >= 0);
 
     code = myfilecopy(hereFile, thereFile);
     close(hereFile);
@@ -291,7 +291,7 @@ char *GetDataFile(char *here) {
 	fflush(stdout);
 	return(NULL);
     }
-    assert(hereDIR != NULL);
+    CODA_ASSERT(hereDIR != NULL);
     for (dirent = readdir(hereDIR); dirent != NULL; dirent = readdir(hereDIR))
 	if ((dirent->d_name[0] != '#') &&
 	    (dirent->d_name[0] != '.')) {

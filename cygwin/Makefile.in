@@ -1,6 +1,6 @@
 # TARGETS:
 #	install:
-#		assert.h -> $(INCLSPECIAL)
+#		CODA_ASSERT.h -> $(INCLSPECIAL)
 #	 all:
 #		no op
 

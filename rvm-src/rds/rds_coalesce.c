@@ -32,7 +32,7 @@ changes  without  encumbrance.   Such improvements and extensions
 should be returned to Software.Distribution@cs.cmu.edu.
 */
 
-static char *rcsid = "$Header: rds_coalesce.c,v 1.1 96/11/22 13:39:49 raiff Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/rvm-src/rds/rds_coalesce.c,v 4.1 1997/01/08 21:54:27 rvb Exp $";
 
 #endif _BLURB_
 
@@ -91,7 +91,7 @@ coalesce(tid, err)
 	fbp = RDS_FREE_LIST[i].head;
 
 	while (fbp != NULL) {
-	    ASSERT(fbp->type == FREE_GUARD);	/* Ensure fbp is a free block */
+	    CODA_ASSERT(fbp->type == FREE_GUARD);	/* Ensure fbp is a free block */
 	    
 	    nfbp = NEXT_CONSECUTIVE_BLOCK(fbp);
 	    merged = 0;
@@ -115,7 +115,7 @@ coalesce(tid, err)
 
 		/* remove the second object from it's list */
 		list = (nfbp->size >= RDS_MAXLIST)?RDS_MAXLIST:nfbp->size;
-		ASSERT(RDS_FREE_LIST[list].head != NULL);
+		CODA_ASSERT(RDS_FREE_LIST[list].head != NULL);
 		
 		rm_from_list(&RDS_FREE_LIST[list], nfbp, tid, err);
 		if (*err != SUCCESS) {

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/fso_dir.cc,v 4.11 1998/09/29 16:38:16 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/fso_dir.cc,v 4.12 1998/10/02 13:27:42 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -81,7 +81,7 @@ void fsobj::dir_Rebuild()
 
 	if (!HAVEDATA(this)) { 
 		print(logFile); 
-		Choke("fsobj::dir_Rebuild: no data"); 
+		CHOKE("fsobj::dir_Rebuild: no data"); 
 	}
 
 	if ( ! DH_DirOK(&data.dir->dh)) {
@@ -100,14 +100,14 @@ void fsobj::dir_Create(char *Name, ViceFid *Fid)
 {
 	if (!HAVEDATA(this)) { 
 		print(logFile); 
-		Choke("fsobj::dir_Create: (%s, %x.%x.%x) no data", 
+		CHOKE("fsobj::dir_Create: (%s, %x.%x.%x) no data", 
 		      Name, Fid->Volume, Fid->Vnode, Fid->Unique); 
 	}
 
 	int oldlength = dir_Length();
 
 	if (DH_Create(&data.dir->dh, Name, Fid) != 0) { 
-		print(logFile); Choke("fsobj::dir_Create: (%s, %x.%x.%x) Create failed!", 
+		print(logFile); CHOKE("fsobj::dir_Create: (%s, %x.%x.%x) Create failed!", 
 				      Name, Fid->Volume, Fid->Vnode, Fid->Unique); 
 	}
 
@@ -123,7 +123,7 @@ int fsobj::dir_Length()
 {
 	if (!HAVEDATA(this)) { 
 		print(logFile); 
-		Choke("fsobj::dir_Length: no data"); 
+		CHOKE("fsobj::dir_Length: no data"); 
 	}
 
 	return(DH_Length(&data.dir->dh));
@@ -135,14 +135,14 @@ void fsobj::dir_Delete(char *Name)
 {
 	if (!HAVEDATA(this)) { 
 		print(logFile); 
-		Choke("fsobj::dir_Delete: (%s) no data", Name); 
+		CHOKE("fsobj::dir_Delete: (%s) no data", Name); 
 	}
 
 	int oldlength = dir_Length();
 
 	if (DH_Delete(&data.dir->dh, Name) != 0) { 
 		print(logFile); 
-		Choke("fsobj::dir_Delete: (%s) Delete failed!", Name); 
+		CHOKE("fsobj::dir_Delete: (%s) Delete failed!", Name); 
 	}
 
 	data.dir->udcfvalid = 0;
@@ -167,7 +167,7 @@ void fsobj::dir_MakeDir()
 
 	if (DH_MakeDir(&data.dir->dh, &fid, &pfid) != 0) {
 		print(logFile); 
-		Choke("fsobj::dir_MakeDir: MakeDir failed!"); 
+		CHOKE("fsobj::dir_MakeDir: MakeDir failed!"); 
 	}
 
 	data.dir->udcfvalid = 0;
@@ -179,7 +179,7 @@ int fsobj::dir_Lookup(char *Name, ViceFid *Fid)
 	
 	if (!HAVEDATA(this)) { 
 		print(logFile); 
-		Choke("fsobj::dir_Lookup: (%s) no data", Name); 
+		CHOKE("fsobj::dir_Lookup: (%s) no data", Name); 
 	}
 
 	int code = DH_Lookup(&data.dir->dh, Name, Fid);
@@ -196,7 +196,7 @@ int fsobj::dir_LookupByFid(char *Name, ViceFid *Fid)
 {
 	if (!HAVEDATA(this)) { 
 		print(logFile); 
-		Choke("fsobj::dir_LookupByFid: %s no data", FID_(Fid));
+		CHOKE("fsobj::dir_LookupByFid: %s no data", FID_(Fid));
 	}
 
 	return DH_LookupByFid(&data.dir->dh, Name, Fid);
@@ -208,7 +208,7 @@ int fsobj::dir_IsEmpty()
 {
 	if (!HAVEDATA(this)) { 
 		print(logFile); 
-		Choke("fsobj::dir_IsEmpty: no data"); 
+		CHOKE("fsobj::dir_IsEmpty: no data"); 
 	}
 
 	return(DH_IsEmpty(&data.dir->dh));
@@ -221,7 +221,7 @@ int fsobj::dir_IsParent(ViceFid *target_fid)
 
 	if (!HAVEDATA(this)) { 
 		print(logFile); 
-		Choke("fsobj::dir_IsParent: (%x.%x.%x) no data", 
+		CHOKE("fsobj::dir_IsParent: (%x.%x.%x) no data", 
 		      target_fid->Volume, target_fid->Vnode, target_fid->Unique); 
 	}
 
@@ -247,7 +247,7 @@ void fsobj::dir_TranslateFid(ViceFid *OldFid, ViceFid *NewFid)
 
 	if (!HAVEDATA(this)) { 
 		print(logFile); 
-		Choke("fsobj::dir_TranslateFid: %s -> %s no data", 
+		CHOKE("fsobj::dir_TranslateFid: %s -> %s no data", 
 		      FID_(OldFid), FID_2(NewFid));
 	}
 
@@ -256,7 +256,7 @@ void fsobj::dir_TranslateFid(ViceFid *OldFid, ViceFid *NewFid)
 	    (!FID_VolEQ(&fid, NewFid) 
 	     && !FID_VolIsLocal(NewFid) && !FID_VolIsLocal(&fid))) {
 		print(logFile); 
-		Choke("fsobj::dir_TranslateFid: %s -> %s cross-volume", 
+		CHOKE("fsobj::dir_TranslateFid: %s -> %s cross-volume", 
 		      FID_(OldFid), FID_2(NewFid)); 
 	}
 
@@ -264,7 +264,7 @@ void fsobj::dir_TranslateFid(ViceFid *OldFid, ViceFid *NewFid)
 		return;
 
 	Name = (char *)malloc(CODA_MAXNAMLEN);
-	assert(Name);
+	CODA_ASSERT(Name);
 
 	while ( !dir_LookupByFid(Name, OldFid) ) {
 		dir_Delete(Name);
@@ -279,7 +279,7 @@ void fsobj::dir_Print()
 {
 	if (!HAVEDATA(this)) { 
 		print(logFile); 
-		Choke("fsobj::dir_Print: no data"); 
+		CHOKE("fsobj::dir_Print: no data"); 
 	}
 
 	if (LogLevel >= 1000) {

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/volutil/vol-dumpmem.cc,v 4.3 1997/10/23 19:26:07 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/volutil/vol-dumpmem.cc,v 4.4 1998/04/14 21:00:37 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -90,7 +90,7 @@ long S_VolDumpMem(RPC2_Handle rpcid, RPC2_String formal_dumpfile, RPC2_Unsigned 
     /* To keep C++ 2.0 happy */
     char *dumpfile = (char *)formal_dumpfile;
 
-    assert(LWP_GetRock(FSTAG, (char **)&pt) == LWP_SUCCESS);
+    CODA_ASSERT(LWP_GetRock(FSTAG, (char **)&pt) == LWP_SUCCESS);
 
     LogMsg(9, VolDebugLevel, stdout, "Entering S_DumpMem: rpcid = %d, addr = 0x%x, size = %d", rpcid, addr, size);
 

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/venusvol.cc,v 4.16 1998/10/07 19:53:39 jaharkes Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/venusvol.cc,v 4.17 1998/10/21 22:23:46 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -208,7 +208,7 @@ void VolInit() {
 	bzero((void *)&LocalVol, (int)sizeof(VolumeInfo));
 	FID_MakeVolFake(&LocalVol.Vid);
         LocalVol.Type = ROVOL;
-	ASSERT(VDB->Create(&LocalVol, "Local"));
+	CODA_ASSERT(VDB->Create(&LocalVol, "Local"));
 	
 	/* allocate database for VCB usage. */
 	Recov_BeginTrans();
@@ -243,7 +243,7 @@ void VolInit() {
 	    eprint("\t%d vol entries in table (%d MLEs)",
 		   VDB->htab.count(), VDB->AllocatedMLEs);
 	    if (FoundMLEs != VDB->AllocatedMLEs)
-		Choke("VolInit: MLE mismatch (%d != %d)",
+		CHOKE("VolInit: MLE mismatch (%d != %d)",
 		       FoundMLEs, VDB->AllocatedMLEs);
 	}
 
@@ -256,10 +256,10 @@ void VolInit() {
 	}
 
 	if (VDB->htab.count() + VDB->freelist.count() > CacheFiles)
-	    Choke("VolInit: too many vol entries (%d + %d > %d)",
+	    CHOKE("VolInit: too many vol entries (%d + %d > %d)",
 		VDB->htab.count(), VDB->freelist.count(), CacheFiles);
 	if (VDB->AllocatedMLEs + VDB->mlefreelist.count() > VDB->MaxMLEs)
-	    Choke("VolInit: too many MLEs (%d + %d > %d)",
+	    CHOKE("VolInit: too many MLEs (%d + %d > %d)",
 		VDB->AllocatedMLEs, VDB->mlefreelist.count(), VDB->MaxMLEs);
     }
 
@@ -351,7 +351,7 @@ void *vdb::operator new(size_t len) {
     vdb *v = 0;
 
     v = (vdb *)rvmlib_rec_malloc((int)len);
-    assert(v);
+    CODA_ASSERT(v);
     return(v);
 }
 
@@ -367,7 +367,7 @@ vdb::vdb() : htab(VDB_NBUCKETS, VOL_HashFN) {
 void vdb::ResetTransient() {
     /* Sanity checks. */
     if (MagicNumber != VDB_MagicNumber)
-	Choke("vdb::ResetTransient: bad magic number (%d)", MagicNumber);
+	CHOKE("vdb::ResetTransient: bad magic number (%d)", MagicNumber);
 
     htab.SetHFn(VOL_HashFN);
 }
@@ -402,7 +402,7 @@ volent *vdb::Create(VolumeInfo *volinfo, char *volname) {
 
     /* Check whether the key is already in the database. */
     if ((v = Find(volinfo->Vid)) != 0) {
-/*	{ v->print(logFile); Choke("vdb::Create: key exists"); }*/
+/*	{ v->print(logFile); CHOKE("vdb::Create: key exists"); }*/
 	eprint("reinstalling volume %s (%s)", v->name, volname);
 
 	Recov_BeginTrans();
@@ -505,7 +505,7 @@ int vdb::Get(volent **vpp, char *volname) {
 	    /* Put a (unique) fakename in the old volent. */
 	    char fakename[V_MAXVOLNAMELEN];
 	    sprintf(fakename, "%u", v->vid);
-	    ASSERT(Find(fakename) == 0);
+	    CODA_ASSERT(Find(fakename) == 0);
 	    Recov_BeginTrans();
 		rvmlib_set_range(v->name, V_MAXVOLNAMELEN);
 		strcpy(v->name, fakename);
@@ -525,17 +525,17 @@ int vdb::Get(volent **vpp, char *volname) {
     if (volinfo.Type == ROVOL || volinfo.Type == REPVOL) {
 	/* HACK! VolumeInfo doesn't yet contain vsg info for ROVOLs; fake it! */
 	if (volinfo.Type == ROVOL && volinfo.VSGAddr == 0)
-		Choke("Fix GetVolInfo to return a VSGAddr for ROVOLS\n");
+		CHOKE("Fix GetVolInfo to return a VSGAddr for ROVOLS\n");
 
 	/* Pin the vsg entry. */
 	if (VSGDB->Get(&vsg, volinfo.VSGAddr, (unsigned long *)&(volinfo.Server0)) != 0)
-	    Choke("vdb::Get: couldn't get vsg (%x)", volinfo.VSGAddr);
+	    CHOKE("vdb::Get: couldn't get vsg (%x)", volinfo.VSGAddr);
     }
 
     /* Attempt the create. */
     v = Create(&volinfo, volname);
     if (v == 0)
-	Choke("vdb::Get: Create (%x, %s) failed", volinfo.Vid, volname);
+	CHOKE("vdb::Get: Create (%x, %s) failed", volinfo.Vid, volname);
 
     /* Unpin the vsg entry. */
     if (vsg != 0)
@@ -668,7 +668,7 @@ void *volent::operator new(size_t len) {
 	v = strbase(volent, VDB->freelist.get(), handle);
     else 
         v = (volent *)rvmlib_rec_malloc((int)len);
-    assert(v);
+    CODA_ASSERT(v);
     return(v);
 }
 
@@ -719,7 +719,7 @@ volent::volent(VolumeInfo *volinfo, char *volname) {
 		}
 
 	    default:
-		Choke("volent::volent: (%x, %s), bogus type (%d)", vid, name, type);
+		CHOKE("volent::volent: (%x, %s), bogus type (%d)", vid, name, type);
 	}
     }
     flags.reserved = 0;
@@ -757,7 +757,7 @@ void volent::ResetTransient() {
     if ((type == ROVOL || type == REPVOL) && !FID_VolIsFake(vid) ) {
 	/* don't need to set VSG for non-replicated volumes */
 	if ((vsg = VSGDB->Find(host)) == 0)
-	    { print(logFile); Choke("volent::ResetTransient: couldn't find vsg"); }
+	    { print(logFile); CHOKE("volent::ResetTransient: couldn't find vsg"); }
 	vsg->hold();
     }
 
@@ -829,17 +829,17 @@ volent::~volent() {
     /* Drain and delete transient lists. */
     {
 	if (fso_list->count() != 0)
-	    Choke("volent::~volent: fso_list not empty");
+	    CHOKE("volent::~volent: fso_list not empty");
 	delete fso_list;
     }
     {
 	if (cop2_list->count() != 0)
-	    Choke("volent::~volent: cop2_list not empty");
+	    CHOKE("volent::~volent: cop2_list not empty");
 	delete cop2_list;
     }
     {
 	if (res_list->count() != 0)
-	    Choke("volent::~volent: res_list not empty");
+	    CHOKE("volent::~volent: res_list not empty");
 	delete res_list;
     }
     {
@@ -850,14 +850,14 @@ volent::~volent() {
     }
 
     if (CML.count() != 0)
-	{ print(logFile); Choke("volent::~volent: CML not empty"); }
+	{ print(logFile); CHOKE("volent::~volent: CML not empty"); }
 
     if (refcnt != 0)
-	{ print(logFile); Choke("volent::~volent: non-zero refcnt"); }
+	{ print(logFile); CHOKE("volent::~volent: non-zero refcnt"); }
 
     /* Remove from hash table. */
     if (VDB->htab.remove(&vid, &handle) != &handle)
-	{ print(logFile); Choke("volent::~volent: htab remove"); }
+	{ print(logFile); CHOKE("volent::~volent: htab remove"); }
 
 }
 
@@ -902,7 +902,7 @@ void volent::release() {
     refcnt--;
 
     if (refcnt < 0)
-	{ print(logFile); Choke("volent::release: refcnt < 0"); }
+	{ print(logFile); CHOKE("volent::release: refcnt < 0"); }
 }
 
 
@@ -1025,7 +1025,7 @@ int volent::Enter(int mode, vuid_t vuid) {
 		     */
 		    if (CML.owner == UNSET_UID) {
 			if (mutator_count != 0 || CML.count() != 0 || IsReintegrating())
-			    { print(logFile); Choke("volent::Enter: mutating, CML owner == %d\n", CML.owner); }
+			    { print(logFile); CHOKE("volent::Enter: mutating, CML owner == %d\n", CML.owner); }
 
 			mutator_count++;
 			CML.owner = vuid;
@@ -1038,7 +1038,7 @@ int volent::Enter(int mode, vuid_t vuid) {
 		    /* We might need to do something about fairness here eventually! -JJK */
 		    if (CML.owner == vuid) {
 			if (mutator_count == 0 && CML.count() == 0 && !IsReintegrating())
-			    { print(logFile); Choke("volent::Enter: mutating, CML owner == %d\n", CML.owner); }
+			    { print(logFile); CHOKE("volent::Enter: mutating, CML owner == %d\n", CML.owner); }
 
 			mutator_count++;
 			shrd_count++;
@@ -1089,11 +1089,11 @@ int volent::Enter(int mode, vuid_t vuid) {
 
 	case VM_RESOLVING:
 	    {
-	    ASSERT(type == REPVOL);
+	    CODA_ASSERT(type == REPVOL);
 	    if (state != Resolving || resolver_count != 0 || 
 		mutator_count != 0 || observer_count != 0 ||
 		flags.transition_pending)
-		{ print(logFile); Choke("volent::Enter: resolving"); }
+		{ print(logFile); CHOKE("volent::Enter: resolving"); }
 
 	    /* acquire exclusive volume-pgid-lock for RESOLVING */
 	    vproc *vp = VprocSelf();
@@ -1114,7 +1114,7 @@ int volent::Enter(int mode, vuid_t vuid) {
 	    }
 
 	default:
-	    print(logFile); Choke("volent::Enter: bogus mode %d", mode);
+	    print(logFile); CHOKE("volent::Enter: bogus mode %d", mode);
     }
 
     return -1;
@@ -1151,7 +1151,7 @@ void volent::Exit(int mode, vuid_t vuid) {
 	case VM_MUTATING:
 	    {
  	    if (state == Resolving || mutator_count <= 0)
-		{ print(logFile); Choke("volent::Exit: mutating"); }
+		{ print(logFile); CHOKE("volent::Exit: mutating"); }
 
 	    mutator_count--;
 	    shrd_count--;
@@ -1171,7 +1171,7 @@ void volent::Exit(int mode, vuid_t vuid) {
 	case VM_OBSERVING:
 	    {
  	    if (state == Resolving || observer_count <= 0)
-		{ print(logFile); Choke("volent::Exit: observing"); }
+		{ print(logFile); CHOKE("volent::Exit: observing"); }
 
 	    observer_count--;
 	    shrd_count--;
@@ -1180,9 +1180,9 @@ void volent::Exit(int mode, vuid_t vuid) {
 
 	case VM_RESOLVING:
 	    {
-	    ASSERT(type == REPVOL);
+	    CODA_ASSERT(type == REPVOL);
 	    if (state != Resolving || resolver_count != 1 || !flags.transition_pending)
-		{ print(logFile); Choke("volent::Exit: resolving"); }
+		{ print(logFile); CHOKE("volent::Exit: resolving"); }
 
 	    resolver_count--;
 	    excl_count--;
@@ -1193,7 +1193,7 @@ void volent::Exit(int mode, vuid_t vuid) {
 	    }
 
 	default:
-	    print(logFile); Choke("volent::Exit: bogus mode %d", mode);
+	    print(logFile); CHOKE("volent::Exit: bogus mode %d", mode);
     }
 
     /* Step 3 is to take pending transition IF there is (now) no thread in it, */
@@ -1291,7 +1291,7 @@ void volent::DisconnectedCacheMiss(vproc *vp, vuid_t vuid, ViceFid *fid, char *c
     char pathname[MAXPATHLEN];
 
     GetUser(&u, vuid);
-    assert(u != NULL);
+    CODA_ASSERT(u != NULL);
 
     /* If advice not enabled, simply return */
     if (!AdviceEnabled) {
@@ -1304,7 +1304,7 @@ void volent::DisconnectedCacheMiss(vproc *vp, vuid_t vuid, ViceFid *fid, char *c
      *     (a) the request did NOT originate from the Hoard Daemon     *
      *     (b) the request did NOT originate from that AdviceMonitor,  *
      * and (c) the user is running an AdviceMonitor,                   */
-    assert(vp != NULL);
+    CODA_ASSERT(vp != NULL);
     if (vp->type == VPT_HDBDaemon) {
         LOG(100, ("ADMON STATS:  DMQ Advice inappropriate.\n"));
         return;
@@ -1320,7 +1320,7 @@ void volent::DisconnectedCacheMiss(vproc *vp, vuid_t vuid, ViceFid *fid, char *c
 
     /* Get the pathname */
     GetMountPath(pathname, 0);
-    assert(fid != NULL);
+    CODA_ASSERT(fid != NULL);
     if (!FID_IsVolRoot(fid)) 
         strcat(pathname, "/???");
     if (comp) {
@@ -1426,7 +1426,7 @@ void volent::NotifyStateChange() {
 
 /* local-repair modification */
 void volent::TakeTransition() {
-    ASSERT(flags.transition_pending && !VOLBUSY(this));
+    CODA_ASSERT(flags.transition_pending && !VOLBUSY(this));
 
     int size = AvsgSize();
     LOG(1, ("volent::TakeTransition: %s, state = %s, |AVSG| = %d, CML = %d, Res = %d, logv = %d\n",
@@ -1447,12 +1447,12 @@ void volent::TakeTransition() {
 	     break;
 
 	case Resolving:
-	    ASSERT(res_list->count() == 0);
+	    CODA_ASSERT(res_list->count() == 0);
 	    nextstate = (size == 0) ? Emulating : ((flags.logv || CML.count() > 0) ?
 		    Logging : Hoarding);
 	    break;
 	default:
-	    ASSERT(0);
+	    CODA_ASSERT(0);
     }
 
     /* Special cases here. */
@@ -1581,7 +1581,7 @@ void volent::TakeTransition() {
 	    break;
 
 	default:
-	    ASSERT(0);
+	    CODA_ASSERT(0);
     }
 
     /* Bound RVM persistence out of paranoia. */
@@ -1753,7 +1753,7 @@ void volent::ClearReintegratePending() {
     if (AdviceEnabled) {
         userent *u;
         GetUser(&u, CML.owner);
-        assert(u != NULL);
+        CODA_ASSERT(u != NULL);
         u->NotifyReintegrationEnabled(name);
     }
 }
@@ -1765,7 +1765,7 @@ void volent::CheckReintegratePending() {
         if (AdviceEnabled) {
             userent *u;
             GetUser(&u, CML.owner);
-            assert(u != NULL);
+            CODA_ASSERT(u != NULL);
             u->NotifyReintegrationPending(name);
         }
     }
@@ -1797,7 +1797,7 @@ void volent::Lock(VolLockType l, int pgid)
     /* Sanity Check */
     if (l != EXCLUSIVE && l != SHARED) {
 	print(logFile); 
-	Choke("volent::Lock: bogus lock type");
+	CHOKE("volent::Lock: bogus lock type");
     }
 
     /* the default pgid(when the argument pgid == 0) is the vproc's */
@@ -1824,12 +1824,12 @@ void volent::UnLock(VolLockType l)
     /* Sanity Check */
     if (l != EXCLUSIVE && l != SHARED) {
 	print(logFile); 
-	Choke("volent::UnLock bogus lock type");
+	CHOKE("volent::UnLock bogus lock type");
     }
 
     if (excl_count < 0 || shrd_count < 0) {
 	print(logFile); 
-	Choke("volent::UnLock pgid = %d excl_count = %d shrd_count = %d",
+	CHOKE("volent::UnLock pgid = %d excl_count = %d shrd_count = %d",
 	      excl_pgid, excl_count, shrd_count);
     }
     l == EXCLUSIVE ? (excl_count--) : (shrd_count--);
@@ -1840,7 +1840,7 @@ void volent::UnLock(VolLockType l)
 
 int volent::GetConn(connent **c, vuid_t vuid) {
     if (IsReplicated())
-	{ print(logFile); Choke("volent::GetConn: IsReplicated"); }
+	{ print(logFile); CHOKE("volent::GetConn: IsReplicated"); }
 
     int code = ETIMEDOUT;
     *c = 0;
@@ -1853,7 +1853,7 @@ int volent::GetConn(connent **c, vuid_t vuid) {
 	    do {
 		code = ::GetConn(c, Hosts[i], vuid, 0);
 		if (code < 0)
-		    Choke("volent::GetConn: bogus code (%d)", code);
+		    CHOKE("volent::GetConn: bogus code (%d)", code);
 	    } while (code == ERETRY && !flags.transition_pending);
 
 	    if (code != ETIMEDOUT)
@@ -1877,7 +1877,7 @@ int volent::Collate(connent *c, int code) {
 
 int volent::GetMgrp(mgrpent **m, vuid_t vuid, RPC2_CountedBS *PiggyBS) {
     if (!IsReplicated())
-	{ print(logFile); Choke("volent::GetMgrp: !IsReplicated"); }
+	{ print(logFile); CHOKE("volent::GetMgrp: !IsReplicated"); }
 
     *m = 0;
     int code = 0;
@@ -1886,7 +1886,7 @@ int volent::GetMgrp(mgrpent **m, vuid_t vuid, RPC2_CountedBS *PiggyBS) {
 	/* Get an mgrp for this VSG and user. */
 	code = ::GetMgrp(m, host, vuid);
 	if (code < 0)
-	    Choke("volent::GetMgrp: bogus code (%d)", code);
+	    CHOKE("volent::GetMgrp: bogus code (%d)", code);
 
 	/* Get PiggyCOP2 buffer if requested. */
 	if (code == 0 && PiggyBS != 0 && !FID_VolIsFake(vid))
@@ -1959,7 +1959,7 @@ int volent::AllocFid(ViceDataType Type, ViceFid *target_fid,
 	    case Invalid:
 	    default:
 		print(logFile);
-		Choke("volent::AllocFid: bogus Type (%d)", Type);
+		CHOKE("volent::AllocFid: bogus Type (%d)", Type);
 	}
 	if (Fids->Count > 0) {
 	    target_fid->Volume = vid;
@@ -2067,7 +2067,7 @@ int volent::AllocFid(ViceDataType Type, ViceFid *target_fid,
 			case Invalid:
 			default:
 			    print(logFile);
-			    Choke("volent::AllocFid: bogus Type (%d)", Type);
+			    CHOKE("volent::AllocFid: bogus Type (%d)", Type);
 		    }
 
 		    RVMLIB_REC_OBJECT(*Fids);
@@ -2185,7 +2185,7 @@ int volent::GetVolStat(VolumeStatus *volstat, RPC2_BoundedBS *Name,
 		if (Name->MaxSeqLen > VENUS_MAXBSLEN ||
 		    msg->MaxSeqLen > VENUS_MAXBSLEN ||
 		    motd->MaxSeqLen > VENUS_MAXBSLEN)
-		    Choke("volent::GetVolStat: BS len too large");
+		    CHOKE("volent::GetVolStat: BS len too large");
 		ARG_MARSHALL(IN_OUT_MODE, VolumeStatus, volstatvar, *volstat, VSG_MEMBERS);
 		ARG_MARSHALL_BS(IN_OUT_MODE, RPC2_BoundedBS, Namevar, *Name, VSG_MEMBERS, VENUS_MAXBSLEN);
 		ARG_MARSHALL_BS(IN_OUT_MODE, RPC2_BoundedBS, msgvar, *msg, VSG_MEMBERS, VENUS_MAXBSLEN);
@@ -2211,7 +2211,7 @@ int volent::GetVolStat(VolumeStatus *volstat, RPC2_BoundedBS *Name,
 		/* Copy out OUT parameters. */
 		int dh_ix; dh_ix = -1;
 		code = m->DHCheck(0, ph_ix, &dh_ix);
-		if (code != 0) Choke("volent::GetVolStat: no dh");
+		if (code != 0) CHOKE("volent::GetVolStat: no dh");
 		ARG_UNMARSHALL(volstatvar, *volstat, dh_ix);
 		ARG_UNMARSHALL_BS(Namevar, *Name, dh_ix);
 		ARG_UNMARSHALL_BS(msgvar, *msg, dh_ix);
@@ -2290,7 +2290,7 @@ int volent::SetVolStat(VolumeStatus *volstat, RPC2_BoundedBS *Name,
 		if (Name->MaxSeqLen > VENUS_MAXBSLEN ||
 		    msg->MaxSeqLen > VENUS_MAXBSLEN ||
 		    motd->MaxSeqLen > VENUS_MAXBSLEN)
-		    Choke("volent::SetVolStat: BS len too large");
+		    CHOKE("volent::SetVolStat: BS len too large");
 		ARG_MARSHALL(IN_OUT_MODE, VolumeStatus, volstatvar, *volstat, VSG_MEMBERS);
 		ARG_MARSHALL_BS(IN_OUT_MODE, RPC2_BoundedBS, Namevar, *Name, VSG_MEMBERS, VENUS_MAXBSLEN);
 		ARG_MARSHALL_BS(IN_OUT_MODE, RPC2_BoundedBS, msgvar, *msg, VSG_MEMBERS, VENUS_MAXBSLEN);
@@ -2320,7 +2320,7 @@ int volent::SetVolStat(VolumeStatus *volstat, RPC2_BoundedBS *Name,
 		/* Copy out OUT parameters. */
 		int dh_ix; dh_ix = -1;
 		code = m->DHCheck(0, ph_ix, &dh_ix);
-		if (code != 0) Choke("volent::SetVolStat: no dh");
+		if (code != 0) CHOKE("volent::SetVolStat: no dh");
 		ARG_UNMARSHALL(volstatvar, *volstat, dh_ix);
 		ARG_UNMARSHALL_BS(Namevar, *Name, dh_ix);
 		ARG_UNMARSHALL_BS(msgvar, *msg, dh_ix);
@@ -2386,13 +2386,13 @@ void volent::GetHosts(unsigned long *hosts) {
 	    return;
 
 	default:
-	    Choke("volent::GetHosts: %x, bogus type (%d)", vid, type);
+	    CHOKE("volent::GetHosts: %x, bogus type (%d)", vid, type);
     }
 }
 
 
 unsigned long volent::GetAVSG(unsigned long *hosts) {
-    ASSERT( !FID_VolIsFake(vid));
+    CODA_ASSERT( !FID_VolIsFake(vid));
     unsigned long AvsgId = 0;
 
     /* Always return AVSG identifier. */
@@ -2414,7 +2414,7 @@ unsigned long volent::GetAVSG(unsigned long *hosts) {
 	    break;
 
 	default:
-	    Choke("volent::GetAVSG: %x, bogus type (%d)", vid, type);
+	    CHOKE("volent::GetAVSG: %x, bogus type (%d)", vid, type);
     }
 
     /* Optionally return contents of AVSG. */
@@ -2480,7 +2480,7 @@ int volent::IsHostedBy(unsigned long Host) {
 	    return(vsg->IsMember(Host));
 
 	default:
-	    Choke("volent::IsHostedBy: %x, bogus type (%d)", vid, type);
+	    CHOKE("volent::IsHostedBy: %x, bogus type (%d)", vid, type);
 	    return(0); /* dummy for g++ */
     }
 }
@@ -2534,7 +2534,7 @@ void volent::print(int afd) {
 	    }
 
 	default:
-	    Choke("volent::print: %x, bogus type (%d)", vid, type);
+	    CHOKE("volent::print: %x, bogus type (%d)", vid, type);
     }
     fdprint(afd, "\trefcnt = %d, fsos = %d, valid = %d, online = %d, logv = %d, weak = %d\n",
 	    refcnt, fso_list->count(), flags.valid, flags.online, flags.logv,
@@ -2573,7 +2573,7 @@ void volent::print(int afd) {
     if ( !FID_VolIsFake(vid) && (LogLevel >= 100)) {
         vsr *record;
         record = GetVSR(2660);
-        assert(record->cetime == 0);
+        CODA_ASSERT(record->cetime == 0);
         fdprint(afd, "\tVSR[2660]:\n");
         fdprint(afd, "\t\tHoard: DATA: Hit=%d, Miss=%d, NoSpace=%d;  ATTR: Hit=%d, Miss=%d, NoSpace=%d. \n", record->cachestats.HoardDataHit.Count, record->cachestats.HoardDataMiss.Count, record->cachestats.HoardDataNoSpace.Count, record->cachestats.HoardAttrHit.Count, record->cachestats.HoardAttrMiss.Count, record->cachestats.HoardAttrNoSpace.Count);
         fdprint(afd, "\t\tNonHoard: DATA: Hit=%d, Miss=%d, NoSpace=%d;  ATTR: Hit=%d, Miss=%d, NoSpace=%d. \n", record->cachestats.NonHoardDataHit.Count, record->cachestats.NonHoardDataMiss.Count, record->cachestats.NonHoardDataNoSpace.Count, record->cachestats.NonHoardAttrHit.Count, record->cachestats.NonHoardAttrMiss.Count, record->cachestats.NonHoardAttrNoSpace.Count);
@@ -2640,7 +2640,7 @@ void *rwsent::operator new(size_t len) {
     rwsent *rws = 0;
 
     rws = (rwsent *)rvmlib_rec_malloc((int)sizeof(rwsent));
-    assert(rws);
+    CODA_ASSERT(rws);
     return(rws);
 }
 

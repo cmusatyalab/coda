@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vol/cvnode.cc,v 4.6 1998/08/26 21:22:24 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vol/cvnode.cc,v 4.7 1998/10/21 22:06:01 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -187,7 +187,7 @@ void VInitVnodes(VnodeClass vclass, int nVnodes)
 	}
 
 	va = (byte *) calloc(nVnodes,vcp->residentSize);
-	assert (va != NULL);
+	CODA_ASSERT (va != NULL);
 	while (nVnodes--) {
 		Vnode *vnp = (Vnode *) va;
 		vnp->nUsers = 1;
@@ -216,7 +216,7 @@ static void GrowVnLRUCache(VnodeClass vclass, int nVnodes)
 	
 	SLog(9, "Entering GrowVnLRUCache(vclass = %d, vnodes = %d)", vclass, nVnodes);
 	va = (byte *) calloc(nVnodes,vcp->residentSize);
-	assert (va != NULL);
+	CODA_ASSERT (va != NULL);
 	vcp->cacheSize += nVnodes;
 	while (nVnodes--) {
 		Vnode *vnp = (Vnode *) va;
@@ -226,7 +226,7 @@ static void GrowVnLRUCache(VnodeClass vclass, int nVnodes)
 		vnp->volumePtr = NULL;
 		vnp->cacheCheck = 0;
 		vnp->hashIndex = 0;
-		assert(vcp->lruHead != NULL);
+		CODA_ASSERT(vcp->lruHead != NULL);
 		vnp->lruNext = vcp->lruHead;
 		vnp->lruPrev = vcp->lruHead->lruPrev;
 		vcp->lruHead->lruPrev = vnp;
@@ -254,7 +254,7 @@ int VAllocFid(Volume *vp, VnodeType type, ViceFidRange *range, int stride, int i
 	/* Sanity checks. */
 	{
 		ProgramType *pt;
-		assert(LWP_GetRock(FSTAG, (char **)&pt) == LWP_SUCCESS);
+		CODA_ASSERT(LWP_GetRock(FSTAG, (char **)&pt) == LWP_SUCCESS);
 		if (*pt == fileServer && !V_inUse(vp))
 			return(VOFFLINE);
 		
@@ -307,7 +307,7 @@ int VAllocFid(Volume *vp, VnodeType type, VnodeId vnode, Unique_t unique)
 	/* Sanity checks. */
 	{
 		ProgramType *pt;
-		assert(LWP_GetRock(FSTAG, (char **)&pt) == LWP_SUCCESS);
+		CODA_ASSERT(LWP_GetRock(FSTAG, (char **)&pt) == LWP_SUCCESS);
 		if (*pt == fileServer && !V_inUse(vp))
 			return(VOFFLINE);
 		
@@ -444,7 +444,7 @@ static Vnode *VAllocVnodeCommon(Error *ec, Volume *vp, VnodeType type,
 	vnp->lruNext->lruPrev = vnp->lruPrev;
 	if (vnp == vcp->lruHead || vcp->lruHead == NULL) {
 		LogMsg(-1, 0, stdout, "VAllocVnode: lru chain addled!");
-		assert(0);
+		CODA_ASSERT(0);
 	}
 	vnp->disk.vnodeMagic = vcp->magic;
 	vnp->disk.type = type;
@@ -492,7 +492,7 @@ Vnode *VGetVnode(Error *ec, Volume *vp, VnodeId vnodeNumber,
 		return NULL;
 	}
 
-	assert(LWP_GetRock(FSTAG, (char **)&pt) == LWP_SUCCESS);
+	CODA_ASSERT(LWP_GetRock(FSTAG, (char **)&pt) == LWP_SUCCESS);
 	if (*pt == fileServer && !V_inUse(vp)) {
 		*ec = VOFFLINE;
 		SLog(9, "VGetVnode: volume 0x%x is offline", V_id(vp));
@@ -601,7 +601,7 @@ Vnode *VGetVnode(Error *ec, Volume *vp, VnodeId vnodeNumber,
 		   if ( (vnp == vcp->lruHead) || (vcp->lruHead == NULL) ) */
 		if ( cdn3 ) {
 			LogMsg(-1, 0, stdout, "VGetVnode: lru chain addled!");
-			assert(0);
+			CODA_ASSERT(0);
 		}
 		vnp->lruPrev->lruNext = vnp->lruNext;
 		vnp->lruNext->lruPrev = vnp->lruPrev;
@@ -661,24 +661,24 @@ void VPutVnode(Error *ec,register Vnode *vnp)
 
 	SLog(9, "Entering VPutVnode for vnode %u", vnp->vnodeNumber);
 	*ec = 0;
-	assert (vnp->nUsers != 0);
+	CODA_ASSERT (vnp->nUsers != 0);
 	vclass = vnodeIdToClass(vnp->vnodeNumber);
 	vcp = &VnodeClassInfo_Array[vclass];
-	assert(vnp->disk.vnodeMagic == vcp->magic);
+	CODA_ASSERT(vnp->disk.vnodeMagic == vcp->magic);
 	writeLocked = WriteLocked(&vnp->lock);
 	if (writeLocked) {
 		PROCESS thisProcess;
 		LWP_CurrentProcess(&thisProcess);
 		if (thisProcess != vnp->writer){
 			SLog(-1, "VPutVnode: Vnode at 0x%x locked by another process!",vnp);
-			assert(0);
+			CODA_ASSERT(0);
 		}
 		
 		if (vnp->changed || vnp->delete_me) {
 			Volume *vp = vnp->volumePtr;
 			vindex v_index(V_id(vp), vclass, vp->device, vcp->diskSize);
 			long now = FT_ApproxTime();
-			assert(vnp->cacheCheck == vnp->cacheCheck);
+			CODA_ASSERT(vnp->cacheCheck == vnp->cacheCheck);
 			if (vnp->delete_me) 
 				vnp->disk.type = vNull;	    /*  mark it for deletion */
 			else {
@@ -687,7 +687,7 @@ void VPutVnode(Error *ec,register Vnode *vnp)
 			V_updateDate(vp) = (Date_t) now;
 			/* The inode has been changed.  Write it out to disk */
 			if (!V_inUse(vp)) {
-				assert(V_needsSalvaged(vp));
+				CODA_ASSERT(V_needsSalvaged(vp));
 				*ec = VSALVAGE;
 			} else {
 				SLog(9, "VPutVnode: about to write vnode %d, type %d",
@@ -722,7 +722,7 @@ void VPutVnode(Error *ec,register Vnode *vnp)
 	} else { /* Not write locked */
 		if (vnp->changed || vnp->delete_me){
 			SLog(-1, "VPutVnode: Change or delete flag for vnode 0x%x is set but vnode is not write locked!", vnp);
-			assert(0);
+			CODA_ASSERT(0);
 		}
 	}
 
@@ -748,38 +748,38 @@ void VFlushVnode(Error *ec, Vnode *vnp) {
     *ec = 0;
 
     /* Sanity checks. */
-    assert (vnp->nUsers != 0);
+    CODA_ASSERT (vnp->nUsers != 0);
 
     /* if not write locked  same as VPutVnode */
     if (!WriteLocked(&vnp->lock)) {
-	assert(!vnp->changed);
+	CODA_ASSERT(!vnp->changed);
 	VPutVnode(ec, vnp);
 	return;
     }
 
-    assert(vnp->changed);
+    CODA_ASSERT(vnp->changed);
     PROCESS thisProcess;
     LWP_CurrentProcess(&thisProcess);
     if (thisProcess != vnp->writer){
 	LogMsg(-1, 0, stdout, "VFlushVnode: Vnode at %x locked by another process!", vnp);
-	assert(0);
+	CODA_ASSERT(0);
     }
 
     /* Get the vnode class info. */
     VnodeClass vclass = vnodeIdToClass(vnp->vnodeNumber);
     struct VnodeClassInfo *vcp = &VnodeClassInfo_Array[vclass];
-    assert(vnp->disk.vnodeMagic == vcp->magic);
+    CODA_ASSERT(vnp->disk.vnodeMagic == vcp->magic);
 
     /* refresh the vm copy of vnode */
     Volume *vp = vnp->volumePtr;
-    assert(V_inUse(vp));
-    assert(vp->cacheCheck == vnp->cacheCheck);
+    CODA_ASSERT(V_inUse(vp));
+    CODA_ASSERT(vp->cacheCheck == vnp->cacheCheck);
     vindex v_index(V_id(vp), vclass, vp->device, vcp->diskSize);
     /* Re-read the disk part of the vnode if it exists in rvm */
     if (ObjectExists(V_volumeindex(vp), vclass, 
 		     vnodeIdToBitNumber(vnp->vnodeNumber),
 		     vnp->disk.uniquifier)) {
-	assert(v_index.get(vnp->vnodeNumber, vnp->disk.uniquifier, &vnp->disk) == 0);
+	CODA_ASSERT(v_index.get(vnp->vnodeNumber, vnp->disk.uniquifier, &vnp->disk) == 0);
     }
     else {
 	/* Ensure that lock waiters (in VGetVnode) abandon this object. */
@@ -836,7 +836,7 @@ static void StickOnLruChain(register Vnode *vnp, register struct VnodeClassInfo 
 	SLog(9, "Entering StickOnLruChain for vnode %u", vnp->vnodeNumber);
 	if (vcp->lruHead == NULL){
 		SLog(-1, "StickOnLruChain: vcp->lruHead==NULL");
-		assert(0);
+		CODA_ASSERT(0);
 	} else {
 		vnp->lruNext = vcp->lruHead;
 		vnp->lruPrev = vcp->lruHead->lruPrev;

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/resolve/repio.cc,v 4.4 1998/01/10 18:37:58 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/resolve/repio.cc,v 4.5 1998/08/26 21:23:58 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -83,7 +83,7 @@ extern "C" {
 
 #include <stdio.h>
 #include <errno.h>
-#include <assert.h>
+#include "coda_assert.h"
 #include <sys/types.h>
 #include <sys/param.h>
 #include <netinet/in.h>
@@ -364,7 +364,7 @@ Opfound:
 		if (i >= REPAIR_MAX) goto DoneParse;
 		else break;
 		
-	    default: assert(0); /* better not be anything else! */
+	    default: CODA_ASSERT(0); /* better not be anything else! */
 	    }
 	    
 	/* Find the parameter */
@@ -476,7 +476,7 @@ static int growarray(char **arrayaddr /* INOUT */, int *arraysize /* INOUT */, i
     	*arrayaddr = (char *)realloc(*arrayaddr, (*arraysize)*elemsize);
     else
     	*arrayaddr = (char *)malloc(elemsize);    
-    assert(*arrayaddr); /* better not run out of memory */
+    CODA_ASSERT(*arrayaddr); /* better not run out of memory */
     return(0);
     }
 

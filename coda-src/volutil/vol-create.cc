@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/volutil/vol-create.cc,v 4.9 1998/10/21 22:06:02 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/volutil/vol-create.cc,v 4.10 1998/10/30 18:30:02 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -131,7 +131,7 @@ long S_VolCreate(RPC2_Handle rpcid, RPC2_String formal_partition,
 
     error = 0;
 
-    assert(LWP_GetRock(FSTAG, (char **)&pt) == LWP_SUCCESS);
+    CODA_ASSERT(LWP_GetRock(FSTAG, (char **)&pt) == LWP_SUCCESS);
 
     LogMsg(9, VolDebugLevel, stdout,
 	   "Entering S_VolCreate: rpcid = %d, partition = %s, volname = %s,"
@@ -198,12 +198,12 @@ long S_VolCreate(RPC2_Handle rpcid, RPC2_String formal_partition,
     volidx = V_volumeindex(vp);
     VUpdateVolume(&error, vp);
     VDetachVolume(&error, vp);	/* Allow file server to grab it */
-    assert(error == 0);
+    CODA_ASSERT(error == 0);
     RVMLIB_END_TRANSACTION(flush, &(status));
  exit: 
 
     /* to make sure that rvm records are getting flushed - to find this bug */
-    assert(rvm_flush() == RVM_SUCCESS);
+    CODA_ASSERT(rvm_flush() == RVM_SUCCESS);
     VDisconnectFS();
     if (status == 0) {
 	LogMsg(0, VolDebugLevel, stdout, "create: volume %x (%s) created", volumeId, volname);
@@ -215,7 +215,7 @@ long S_VolCreate(RPC2_Handle rpcid, RPC2_String formal_partition,
 	    else
 	        LogStore[volidx] = new PMemMgr(sizeof(rlent), 0, volidx, MAXLOGSIZE);
 	else
-	    assert(0);
+	    CODA_ASSERT(0);
     }
     else {
 	LogMsg(0, VolDebugLevel, stdout, "create: volume creation failed for volume %x", volumeId);
@@ -251,7 +251,7 @@ static int ViceCreateRoot(Volume *vp)
     did.Unique = 1;
 
     /* set up the physical directory */
-    assert(!(DH_MakeDir(dir, &did, &did)));
+    CODA_ASSERT(!(DH_MakeDir(dir, &did, &did)));
 
     /* build a single entry ACL that gives all rights to everyone */
     ACL = VVnodeDiskACL(vnode);
@@ -297,8 +297,8 @@ static int ViceCreateRoot(Volume *vp)
     VN_PutDirHandle(vn);
 
     bcopy((const void *)&(vn->disk), (void *) vnode, sizeof(VnodeDiskObject));
-    assert(vnode->inodeNumber != 0);
-    assert(vnode->uniquifier == 1);
+    CODA_ASSERT(vnode->inodeNumber != 0);
+    CODA_ASSERT(vnode->uniquifier == 1);
 
     /* create the resolution log for this vnode if rvm resolution is
        turned on */
@@ -311,7 +311,7 @@ static int ViceCreateRoot(Volume *vp)
     if (VolDebugLevel >= 9) {
 	PrintVnode(stdout, vnode, bitNumberToVnodeNumber(0, vLarge));
     }
-    assert(v_index.oput((bit32) 0, 1, vnode) == 0);
+    CODA_ASSERT(v_index.oput((bit32) 0, 1, vnode) == 0);
 
     V_diskused(vp) = nBlocks(vnode->length);
     

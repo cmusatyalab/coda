@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rpc2/rpc2a.c,v 4.10 1998/08/26 17:08:11 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rpc2/rpc2a.c,v 4.11 1998/10/30 18:29:51 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -159,7 +159,7 @@ long RPC2_SendResponse(IN ConnHandle, IN Reply)
 
     rpc2_Enter();
     say(0, RPC2_DebugLevel, "RPC2_SendResponse()\n");
-    assert(Reply->Prefix.MagicNumber == OBJ_PACKETBUFFER);
+    CODA_ASSERT(Reply->Prefix.MagicNumber == OBJ_PACKETBUFFER);
 
 #ifdef RPC2DEBUG
     TR_SENDRESPONSE();
@@ -198,7 +198,7 @@ long RPC2_SendResponse(IN ConnHandle, IN Reply)
     RPC2_AllocBuffer(preply->Header.BodyLength, &pretry); 
 
     if (ceaddr->TimeStampEcho) {     /* service time is now-requesttime */
-	assert(ceaddr->RequestTime);
+	CODA_ASSERT(ceaddr->RequestTime);
         preply->Header.TimeStamp = ceaddr->TimeStampEcho + rpc2_MakeTimeStamp() -
 	                           ceaddr->RequestTime;
     }
@@ -267,7 +267,7 @@ long RPC2_GetRequest(
 	if (!TestState(ce, SERVER, S_STARTBIND)) {
 		SetState(ce, S_PROCESS);
 		if (IsMulticast(pb)) {
-			assert(ce->Mgrp != NULL);
+			CODA_ASSERT(ce->Mgrp != NULL);
 			SetState(ce->Mgrp, S_PROCESS);
 		}
 	}
@@ -372,7 +372,7 @@ long RPC2_MakeRPC(IN ConnHandle, IN Request, IN SDesc, OUT Reply,
 #endif RPC2DEBUG
 
     /* Perform sanity checks */
-    assert(Request->Prefix.MagicNumber == OBJ_PACKETBUFFER);
+    CODA_ASSERT(Request->Prefix.MagicNumber == OBJ_PACKETBUFFER);
     
     /* Zero out reply pointer */
     *Reply = NULL;
@@ -446,7 +446,7 @@ long RPC2_MakeRPC(IN ConnHandle, IN Request, IN SDesc, OUT Reply,
 				finalrc = RPC2_TIMEOUT;
 				goto QuitMRPC;
 
-	default:		assert(FALSE);
+	default:		CODA_ASSERT(FALSE);
 	}
 
     
@@ -481,7 +481,7 @@ long RPC2_MakeRPC(IN ConnHandle, IN Request, IN SDesc, OUT Reply,
 		rc = RPC2_NAKED;
 		break;
 
-	default: assert(FALSE);
+	default: CODA_ASSERT(FALSE);
 	}
 
     /* At this point, if rc == RPC2_SUCCESS, the final reply has been received.
@@ -678,7 +678,7 @@ long RPC2_NewBinding(IN Host, IN Portal, IN Subsys, IN Bparms, OUT ConnHandle)
 	ib->FakeBody.ClientIdent.SeqBody = ib->Text;    /* not really meaningful: this is pointer has to be reset on other side */
 	bcopy(Bparms->ClientIdent->SeqBody, ib->Text, Bparms->ClientIdent->SeqLen);
 	}
-    assert(sizeof(RPC2_VERSION) < sizeof(ib->Version));
+    CODA_ASSERT(sizeof(RPC2_VERSION) < sizeof(ib->Version));
     (void) strcpy(ib->Version, RPC2_VERSION);
 
     rpc2_htonp(pb);	/* convert header to network order */
@@ -721,7 +721,7 @@ long RPC2_NewBinding(IN Host, IN Portal, IN Subsys, IN Bparms, OUT ConnHandle)
 		DROPCONN();
 		rpc2_Quit(rc);
 		
-	default:	assert(FALSE);
+	default:	CODA_ASSERT(FALSE);
 	}
 
     /* At this point, pb points to the Init2 packet */
@@ -802,7 +802,7 @@ long RPC2_NewBinding(IN Host, IN Portal, IN Subsys, IN Bparms, OUT ConnHandle)
 		DROPCONN();
 		rpc2_Quit(RPC2_NOBINDING);
 		
-	default: assert(FALSE);
+	default: CODA_ASSERT(FALSE);
 	}
 
     /* Step5: Verify Init4 packet; pb points to it. */
@@ -998,7 +998,7 @@ static int ResolveBindParms(IN whichConn, IN whichHost, IN whichPortal, IN which
 	    								/* Already in network byte order */
 	    break;
 
-	default:  assert(FALSE);
+	default:  CODA_ASSERT(FALSE);
 	}
     
     /* Resolve portal */
@@ -1025,7 +1025,7 @@ static int ResolveBindParms(IN whichConn, IN whichHost, IN whichPortal, IN which
 	    whichConn->PeerPortal.Tag = RPC2_PORTALBYINETNUMBER;
 	    break;
 
-	default:  assert(FALSE);
+	default:  CODA_ASSERT(FALSE);
 	}
 
     /* Obtain subsys id if necessary */
@@ -1037,7 +1037,7 @@ static int ResolveBindParms(IN whichConn, IN whichHost, IN whichPortal, IN which
 
 	case RPC2_SUBSYSBYNAME:
 		say(-1, RPC2_DebugLevel, "SubSysByName no longer supported.\n");
-	default:  assert(FALSE);
+	default:  CODA_ASSERT(FALSE);
 	}
     return(RPC2_SUCCESS);
     }
@@ -1147,7 +1147,7 @@ TryAnother:
 			}
 		    return(RPC2_SUCCESS);
 
-	default:  assert(FALSE);
+	default:  CODA_ASSERT(FALSE);
 	}
     return RPC2_FAIL;
     /*NOTREACHED*/
@@ -1215,7 +1215,7 @@ static void SendOKInit2(IN ce)
     if (ce->Flags & CE_OLDV) pb->Header.ReturnCode = RPC2_OLDVERSION;
     else pb->Header.ReturnCode = RPC2_SUCCESS;
     if (ce->TimeStampEcho) {
-	assert(ce->RequestTime);
+	CODA_ASSERT(ce->RequestTime);
 	pb->Header.TimeStamp = ce->TimeStampEcho + rpc2_MakeTimeStamp() -
 	                       ce->RequestTime;
     }
@@ -1312,7 +1312,7 @@ static RPC2_PacketBuffer *Send2Get3(IN ce, IN key, IN xrand, OUT yrand)
     say(9, RPC2_DebugLevel, "YRandom = %ld\n", *yrand);
     rpc2_Encrypt((char *)ib2, (char *)ib2, sizeof(struct Init2Body), key, ce->EncryptionType);
     if (ce->TimeStampEcho) {     /* service time is now-requesttime */
-	assert(ce->RequestTime);
+	CODA_ASSERT(ce->RequestTime);
         pb2->Header.TimeStamp = ce->TimeStampEcho + rpc2_MakeTimeStamp() -
 	                        ce->RequestTime;
     }
@@ -1341,7 +1341,7 @@ static RPC2_PacketBuffer *Send2Get3(IN ce, IN key, IN xrand, OUT yrand)
 		pb3 = NULL;
 		break;
 		
-	default:    assert(FALSE);
+	default:    CODA_ASSERT(FALSE);
 	}
 
     /* Clean up and quit */
@@ -1383,7 +1383,7 @@ static void Send4AndSave(ce, xrand, ekey)
     ib4->XRandomPlusTwo = htonl(xrand + 2);
     rpc2_Encrypt((char *)ib4, (char *)ib4, sizeof(struct Init4Body), ekey, ce->EncryptionType);
     if (ce->TimeStampEcho) {     /* service time is now-requesttime */
-	assert(ce->RequestTime);
+	CODA_ASSERT(ce->RequestTime);
         pb->Header.TimeStamp = ce->TimeStampEcho + rpc2_MakeTimeStamp() -
 	                       ce->RequestTime;
     }

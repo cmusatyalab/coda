@@ -25,7 +25,7 @@
 # improvements or extensions that  they  make,  and  to  grant  Carnegie
 # Mellon the rights to redistribute these changes without encumbrance.
 # 
-# static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/Makefile.in,v 4.20 1998/09/23 20:26:24 jaharkes Exp $";
+# static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/Makefile.in,v 4.21 1998/09/29 16:38:13 braam Exp $";
 
 
 TOPDIR = @top_srcdir@
@@ -62,7 +62,8 @@ LIBS=	$(LIBUTIL)\
 	$(LIBVICEDEP)\
 	$(LIBRPC2)\
 	$(LIBSE)\
-	$(LIBKVM)
+	$(LIBKVM)\
+	$(LIBBASE)
 
 HFILES= advice.h adviceconn.h advice_daemon.h binding.h comm.h fso.h hdb.h local.h mariner.h venusrecov.h sighand.h tallyent.h user.h venuscb.h venusstats.h venusvm.h venus.private.h venusvol.h vproc.h worker.h
 

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/volutil/vol-elapse.cc,v 4.3 1998/04/14 21:00:37 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/volutil/vol-elapse.cc,v 4.4 1998/08/31 12:23:47 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -62,11 +62,11 @@ static void Elapse_resolution(RPC2_Integer on, RPC2_Integer multi)
 {
     if (multi == 1) {
         if (on == 1 || on == 0) resolution_MultiStubWork[0].opengate = on;
-	else assert(0);
+	else CODA_ASSERT(0);
     } else if (multi == 0) {
         if (on == 1 || on == 0) resolution_ElapseSwitch = (int)on;
-	else assert(0);
-    } else assert(0);
+	else CODA_ASSERT(0);
+    } else CODA_ASSERT(0);
         LogMsg(0, VolDebugLevel, stdout, "VolElapse: resolution %s %s", (on == 1) ? "ON" : "OFF", (multi == 1) ? "for MultiRPC" : "");
 }    
 
@@ -77,8 +77,8 @@ static void Elapse_cb(RPC2_Integer on, RPC2_Integer multi)
 	return;
     } else if (multi == 0) {
         if (on == 1 || on == 0) cb_ElapseSwitch = (int)on;
-	else assert(0);
-    } else assert(0);
+	else CODA_ASSERT(0);
+    } else CODA_ASSERT(0);
         LogMsg(0, VolDebugLevel, stdout, "VolElapse: cb %s %s", (on == 1) ? "ON" : "OFF", (multi == 1) ? "for MultiRPC" : "");
 }    
 
@@ -89,8 +89,8 @@ static void Elapse_mond(RPC2_Integer on, RPC2_Integer multi)
 	return;
     } else if (multi == 0) {
         if (on == 1 || on == 0) mond_ElapseSwitch = (int)on;
-	else assert(0);
-    } else assert(0);
+	else CODA_ASSERT(0);
+    } else CODA_ASSERT(0);
         LogMsg(0, VolDebugLevel, stdout, "VolElapse: mond %s %s", (on == 1) ? "ON" : "OFF", (multi == 1) ? "for MultiRPC" : "");
 }    
 
@@ -101,8 +101,8 @@ static void Elapse_volDump(RPC2_Integer on, RPC2_Integer multi)
 	return;
     } else if (multi == 0) {
         if (on == 1 || on == 0) volDump_ElapseSwitch = (int)on;
-	else assert(0);
-    } else assert(0);
+	else CODA_ASSERT(0);
+    } else CODA_ASSERT(0);
         LogMsg(0, VolDebugLevel, stdout, "VolElapse: volDump %s %s", (on == 1) ? "ON" : "OFF", (multi == 1) ? "for MultiRPC" : "");
 }    
 

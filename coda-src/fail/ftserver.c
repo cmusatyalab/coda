@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/src/coda-4.0.1/RCSLINK/./coda-src/fail/ftserver.c,v 1.1 1996/11/22 19:09:21 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/fail/ftserver.c,v 4.1 1997/01/08 21:49:38 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -43,7 +43,7 @@ static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/src/coda-4.0.1
  */
 #include <stdio.h>
 #include <strings.h>
-#include <assert.h>
+#include "coda_assert.h"
 #include <signal.h>
 #include <sys/time.h>
 #include <sys/types.h>
@@ -225,7 +225,7 @@ InitRPC()
 	RPC2_PortalIdent portalid, *portallist[1];
 	RPC2_SubsysIdent subsysid;
 
-	assert(LWP_Init(LWP_VERSION, LWP_NORMAL_PRIORITY, &mylpid) == LWP_SUCCESS);
+	CODA_ASSERT(LWP_Init(LWP_VERSION, LWP_NORMAL_PRIORITY, &mylpid) == LWP_SUCCESS);
 
 	portalid.Tag = RPC2_PORTALBYINETNUMBER;
 	portalid.Value.InetPortNumber = htons(FTPORTAL);
@@ -240,7 +240,7 @@ InitRPC()
 	}
 	subsysid.Tag = RPC2_SUBSYSBYID;
 	subsysid.Value.SubsysId = FTSUBSYSID;
-	assert(RPC2_Export(&subsysid) == RPC2_SUCCESS);
+	CODA_ASSERT(RPC2_Export(&subsysid) == RPC2_SUCCESS);
 }
 
 iopen(int dummy1, int dummy2, int dummy3){}

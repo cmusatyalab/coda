@@ -33,7 +33,7 @@ should be returned to Software.Distribution@cs.cmu.edu.
 
 */
 
-static char *rcsid = "$Header: rvm_logflush.c,v 1.1 96/11/22 13:40:15 raiff Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/rvm-src/rvm/rvm_logflush.c,v 4.1 1997/01/08 21:54:33 rvb Exp $";
 #endif _BLURB_
 
 /*
@@ -109,13 +109,13 @@ static void make_pad_buf(dev,length)
     long            length;             /* entries needed */
     {
 
-    ASSERT((length >= 0) && (length < SECTOR_SIZE));
+    CODA_ASSERT((length >= 0) && (length < SECTOR_SIZE));
 
     /* see if must reallocate */
     if (length > dev->pad_buf_len)
         {
         dev->pad_buf = REALLOC(dev->pad_buf,length);
-        ASSERT(dev->pad_buf != NULL);
+        CODA_ASSERT(dev->pad_buf != NULL);
         (void)memset(&dev->pad_buf[dev->pad_buf_len],-1,
                      length-dev->pad_buf_len);
         dev->pad_buf_len = length;
@@ -148,7 +148,7 @@ static rvm_return_t write_log_wrap(log)
     dev->iov[dev->iov_cnt++].length = RVM_OFFSET_TO_LENGTH(pad_len);
     dev->io_length += RVM_OFFSET_TO_LENGTH(pad_len);
 
-    ASSERT(dev->iov_cnt <= dev->iov_len);
+    CODA_ASSERT(dev->iov_cnt <= dev->iov_len);
 
     if (gather_write_dev(&log->dev,&log->status.log_tail) < 0)
         return RVM_EIO;
@@ -221,7 +221,7 @@ static void build_rec_end(log,timestamp,rec_num,rec_type,back_link)
     dev->iov[dev->iov_cnt].vmaddr = (char *)rec_end;
     dev->iov[dev->iov_cnt++].length = sizeof(rec_end_t);
 
-    ASSERT(dev->iov_cnt <= dev->iov_len);
+    CODA_ASSERT(dev->iov_cnt <= dev->iov_len);
     }
 /* setup nv_range record */
 static void build_nv_range(log,tid,range)
@@ -249,14 +249,14 @@ static void build_nv_range(log,tid,range)
     /* setup header i/o */
     dev->iov[dev->iov_cnt].vmaddr = (char *)nv_range;
     dev->iov[dev->iov_cnt++].length = sizeof(nv_range_t);
-    ASSERT(dev->iov_cnt <= dev->iov_len);
+    CODA_ASSERT(dev->iov_cnt <= dev->iov_len);
     
     /* setup io for new values */
     dev->iov[dev->iov_cnt].vmaddr =
         (char *)CHOP_TO_LENGTH(range->nvaddr);
     dev->iov[dev->iov_cnt++].length = RANGE_LEN(range);
 
-    ASSERT(dev->iov_cnt <= dev->iov_len);
+    CODA_ASSERT(dev->iov_cnt <= dev->iov_len);
     enter_histogram(nv_range->length,log->status.range_lengths,
                     range_lengths_vec,range_lengths_len);
     }
@@ -277,7 +277,7 @@ static void build_nv_range(log,tid,range)
     new_range->data_len = 0;
 
     /* set length of split */
-    ASSERT(BYTE_SKEW(avail) == 0);
+    CODA_ASSERT(BYTE_SKEW(avail) == 0);
     new_range->nv.length =
         avail - BYTE_SKEW(RVM_OFFSET_TO_LENGTH(range->nv.offset));
 
@@ -290,9 +290,9 @@ static void build_nv_range(log,tid,range)
                                                 new_range->nv.length);
     range->nv.is_split = rvm_true;
 
-    ASSERT(BYTE_SKEW(range->nv.vmaddr) == 0);
-    ASSERT(BYTE_SKEW(range->nvaddr) == 0);
-    ASSERT(BYTE_SKEW(RVM_OFFSET_TO_LENGTH(range->nv.offset)) == 0);
+    CODA_ASSERT(BYTE_SKEW(range->nv.vmaddr) == 0);
+    CODA_ASSERT(BYTE_SKEW(range->nvaddr) == 0);
+    CODA_ASSERT(BYTE_SKEW(RVM_OFFSET_TO_LENGTH(range->nv.offset)) == 0);
     }
 static rvm_bool_t write_range(tid,range,log_free)
     int_tid_t       *tid;               /* transaction descriptor */
@@ -309,7 +309,7 @@ static void build_nv_range(log,tid,range)
     /* see if range will fit in log */
     avail = RVM_SUB_LENGTH_FROM_OFFSET(*log_free,
                     ((long)log->dev.io_length+sizeof(log_wrap_t)));
-    ASSERT(RVM_OFFSET_GTR(*log_free,avail)); /* underflow!! */
+    CODA_ASSERT(RVM_OFFSET_GTR(*log_free,avail)); /* underflow!! */
     if (RANGE_SIZE(range) > RVM_OFFSET_TO_LENGTH(avail))
         {
         /* no, see if there's enough useful */
@@ -343,7 +343,7 @@ static void build_nv_range(log,tid,range)
     rvm_return_t    retval;
 
     /* check that transactions are logged in commit order */
-    ASSERT(TIME_GTR(tid->commit_stamp,log->status.last_commit));
+    CODA_ASSERT(TIME_GTR(tid->commit_stamp,log->status.last_commit));
 
     /* initialize counters & allocate i/o vector for 2*(#ranges+1) plus
        2 headers, 2 end marks, wrap marker, and padding (6) */
@@ -384,7 +384,7 @@ static void build_nv_range(log,tid,range)
 
             /* process remainder of range */
             if (write_range(tid,range,&log_free))
-                ASSERT(rvm_false);
+                CODA_ASSERT(rvm_false);
             }
         }
     /* insert end marker */
@@ -500,7 +500,7 @@ static void build_log_special(log,special)
     make_uname(&special->timestamp);
 
     /* check that records are logged in strict FIFO order */
-    ASSERT(TIME_GTR(special->timestamp,log->status.last_write));
+    CODA_ASSERT(TIME_GTR(special->timestamp,log->status.last_write));
 
     /* prepare i/o */
     special->rec_num = make_rec_num(log);
@@ -519,10 +519,10 @@ static void build_log_special(log,special)
             dev->iov[dev->iov_cnt++].length = length;
             break;
             }
-       default:         ASSERT(rvm_false); /* unknown record type */
+       default:         CODA_ASSERT(rvm_false); /* unknown record type */
          }
 
-    ASSERT(dev->iov_cnt <= dev->iov_len);
+    CODA_ASSERT(dev->iov_cnt <= dev->iov_len);
     }
 /* insure space available in log; truncate if necessary, and initiate
    i/o for special log entries; */

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vol/volhash.cc,v 4.3 1997/07/28 11:03:02 lily Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vol/volhash.cc,v 4.4 1998/08/26 21:22:28 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -100,7 +100,7 @@ void InitVolTable(int size)
 vhashtab::vhashtab(int size, int (*hashfn)(void *), char *n)
 : ohashtab(size, hashfn)
 {
-    assert(size > 0);
+    CODA_ASSERT(size > 0);
     name = new char [strlen(n) + 1];
     strcpy(name, n);
     vols = 0;

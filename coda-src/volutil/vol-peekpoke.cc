@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/volutil/vol-peekpoke.cc,v 4.5 1998/04/14 21:00:39 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/volutil/vol-peekpoke.cc,v 4.6 1998/08/23 16:46:31 jaharkes Exp $";
 #endif /*_BLURB_*/
 
 
@@ -183,14 +183,14 @@ static
 long checkaddress(vm_address_t addr, vm_size_t sz, vm_prot_t perm)
 {
   LogMsg(0, VolDebugLevel, stdout, "Arrrghhh....checkaddress() not ported yet\n");
-  assert(0);
+  CODA_ASSERT(0);
 }
 
 static
 long okaddr(vm_address_t *pm, RPC2_String s, vm_size_t sz, vm_prot_t perm)
 {
   LogMsg(0, VolDebugLevel, stdout, "Arrrghhh....okaddress() not ported yet\n");
-  assert(0);
+  CODA_ASSERT(0);
 }
 #endif /* __MACH__ */
 

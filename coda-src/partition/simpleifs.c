@@ -142,7 +142,7 @@ s_init (union PartitionData **data, Partent partent, Device *dev)
     options = (struct part_simple_opts *)malloc(sizeof(union PartitionData));
     if ( options == NULL ) {
 	eprint("Out of memory\n");
-	assert(0);
+	CODA_ASSERT(0);
     } else {
 	*data = (union PartitionData *)options;
     }
@@ -154,7 +154,7 @@ s_init (union PartitionData **data, Partent partent, Device *dev)
 	eprint("Error in init of partition %s:%s", 
 	       Partent_host(partent), Partent_dir(partent));
 	perror("");
-	assert(0);
+	CODA_ASSERT(0);
     }
     
     options->next = 0;
@@ -518,7 +518,7 @@ static Inode maxino(struct DiskPartition *dp)
 #ifndef __CYGWIN32__    
     n = scandir(dp->name, &namelist, 0, &inosort);
 #else
-    assert(0);
+    CODA_ASSERT(0);
 #endif
     if (n < 0)
         perror("scandir");

@@ -33,7 +33,7 @@ should be returned to Software.Distribution@cs.cmu.edu.
 
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/rvm-src/rvm/rvm_logstatus.c,v 4.4 1998/03/06 20:21:46 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/rvm-src/rvm/rvm_logstatus.c,v 4.5 1998/04/14 20:45:24 braam Exp $";
 #endif _BLURB_
 
 /*
@@ -115,7 +115,7 @@ void init_log_list()
 /* 
   if we are looking for the RVM_LOG_TAIL_BUG, there can only ever
   be one log.  I *believe* that it is possibly to only have one log
-  open at a time.  But, I'm not going to assert that in the general 
+  open at a time.  But, I'm not going to coda_assert that in the general 
   case -bnoble 7/30/94
 */
 
@@ -123,9 +123,9 @@ void enter_log(log)
     log_t           *log;               /* log descriptor */
     {
 
-    ASSERT(log != NULL);
+    CODA_ASSERT(log != NULL);
 #ifdef RVM_LOG_TAIL_BUG
-    ASSERT(default_log == NULL);
+    CODA_ASSERT(default_log == NULL);
 #endif RVM_LOG_TAIL_BUG
     CRITICAL(log_root_lock,
         {
@@ -137,14 +137,14 @@ void enter_log(log)
 
 #ifdef RVM_LOG_TAIL_BUG
     /* 
-      this is massively unportable: for the moment, assert we are
+      this is massively unportable: for the moment, coda_assert we are
       on pmax_mach. 
     */
 #ifndef	__MACH__
-    ASSERT(0);
+    CODA_ASSERT(0);
 #endif	/* __MACH__ */
 #ifndef mips
-    ASSERT(0);
+    CODA_ASSERT(0);
 #endif mips
     ClobberAddress = &(default_log->status.log_tail.low);
     protect_page__Fi(ClobberAddress);
@@ -165,12 +165,12 @@ log_t *find_log(log_dev)
 #ifdef DJGPP
     rvm_return_t    retval;
     char            *log_dev_fullname = make_full_name(log_dev, 0, &retval);
-    ASSERT(log_dev_fullname && retval == RVM_SUCCESS);
+    CODA_ASSERT(log_dev_fullname && retval == RVM_SUCCESS);
 #else
     char            *log_dev_fullname = log_dev;
 #endif
 
-    ASSERT(log_dev != NULL);
+    CODA_ASSERT(log_dev != NULL);
     CRITICAL(log_root_lock,
         {
         FOR_ENTRIES_OF(log_root,log_t,log)
@@ -508,7 +508,7 @@ void copy_log_stats(log)
     rvm_length_t    i;
     rvm_offset_t    temp;
 
-    ASSERT(((&log->dev == &default_log->dev) && (!rvm_utlsw)) ?
+    CODA_ASSERT(((&log->dev == &default_log->dev) && (!rvm_utlsw)) ?
            (!LOCK_FREE(default_log->dev_lock)) : 1);
 
     /* sum epoch counts */
@@ -582,7 +582,7 @@ void clear_log_status(log)
     {
     log_status_t    *status = &log->status; /* status area descriptor */
  
-    ASSERT(((&log->dev == &default_log->dev) && (!rvm_utlsw)) ?
+    CODA_ASSERT(((&log->dev == &default_log->dev) && (!rvm_utlsw)) ?
            (!LOCK_FREE(default_log->dev_lock)) : 1);
 
     status->valid = rvm_true;
@@ -623,7 +623,7 @@ rvm_return_t init_log_status(log)
     unprotect_page__Fi(ClobberAddress);
 #endif RVM_LOG_TAIL_BUG
 #ifdef RVM_LOG_TAIL_SHADOW
-    ASSERT(RVM_OFFSET_EQL(log_tail_shadow,status->log_tail));
+    CODA_ASSERT(RVM_OFFSET_EQL(log_tail_shadow,status->log_tail));
 #endif RVM_LOG_TAIL_SHADOW
     status->log_tail = status->log_start;
 #ifdef RVM_LOG_TAIL_SHADOW
@@ -757,18 +757,18 @@ rvm_return_t write_log_status(log,dev)
 
     /* initializations */
 #ifdef RVM_LOG_TAIL_SHADOW
-    ASSERT(RVM_OFFSET_EQL(log_tail_shadow,log->status.log_tail));
+    CODA_ASSERT(RVM_OFFSET_EQL(log_tail_shadow,log->status.log_tail));
     /* we'll check to see whether this log offest is before the
        previous one.  If so, assert.  Some false assertions, but hey. */
     if (last_log_valid == rvm_true) {
 	if (has_wrapped == rvm_true) {
 	    /* this log value should be LESS than the previous one */
-	    ASSERT(RVM_OFFSET_GEQ(last_log_tail,log->status.log_tail));
+	    CODA_ASSERT(RVM_OFFSET_GEQ(last_log_tail,log->status.log_tail));
 	    /* We've accounted for the log_wrap; reset it. */
 	    has_wrapped = rvm_false;
 	} else {
 	    /* this log value should be GREATER than the previous one */
-	    ASSERT(RVM_OFFSET_LEQ(last_log_tail,log->status.log_tail));
+	    CODA_ASSERT(RVM_OFFSET_LEQ(last_log_tail,log->status.log_tail));
 	}
     } else {
 	last_log_valid = rvm_true;
@@ -811,38 +811,38 @@ static rvm_bool_t chk_tail(log)
     log_status_t    *status = &log->status; /* status area descriptor */
 
     /* basic range checks -- current epoch */
-    ASSERT(RVM_OFFSET_GEQ(status->log_tail,status->log_start));
-    ASSERT(RVM_OFFSET_LEQ(status->log_tail,log->dev.num_bytes));
-    ASSERT(RVM_OFFSET_GEQ(status->log_head,status->log_start));
-    ASSERT(RVM_OFFSET_LEQ(status->log_head,log->dev.num_bytes));
+    CODA_ASSERT(RVM_OFFSET_GEQ(status->log_tail,status->log_start));
+    CODA_ASSERT(RVM_OFFSET_LEQ(status->log_tail,log->dev.num_bytes));
+    CODA_ASSERT(RVM_OFFSET_GEQ(status->log_head,status->log_start));
+    CODA_ASSERT(RVM_OFFSET_LEQ(status->log_head,log->dev.num_bytes));
 
     /* basic range checks -- previous epoch */
     if (!RVM_OFFSET_EQL_ZERO(status->prev_log_head))
         {
-        ASSERT(RVM_OFFSET_EQL(status->log_head,
+        CODA_ASSERT(RVM_OFFSET_EQL(status->log_head,
                               status->prev_log_tail));
-        ASSERT(RVM_OFFSET_GEQ(status->prev_log_tail,
+        CODA_ASSERT(RVM_OFFSET_GEQ(status->prev_log_tail,
                               status->log_start));
-        ASSERT(RVM_OFFSET_LEQ(status->prev_log_tail,
+        CODA_ASSERT(RVM_OFFSET_LEQ(status->prev_log_tail,
                               log->dev.num_bytes));
-        ASSERT(RVM_OFFSET_GEQ(status->prev_log_head,
+        CODA_ASSERT(RVM_OFFSET_GEQ(status->prev_log_head,
                               status->log_start));
-        ASSERT(RVM_OFFSET_LEQ(status->prev_log_head,
+        CODA_ASSERT(RVM_OFFSET_LEQ(status->prev_log_head,
                               log->dev.num_bytes));
-        ASSERT(RVM_OFFSET_EQL(status->prev_log_tail,
+        CODA_ASSERT(RVM_OFFSET_EQL(status->prev_log_tail,
                               status->log_head));
         }
     /* current <==> previous epoch consistency checks */
     if (RVM_OFFSET_GTR(status->log_head,status->log_tail))
         {                               /* current epoch wrapped */
-        ASSERT(RVM_OFFSET_GEQ(status->log_head,status->log_tail));
+        CODA_ASSERT(RVM_OFFSET_GEQ(status->log_head,status->log_tail));
         if (!RVM_OFFSET_EQL_ZERO(status->prev_log_head))
             {                           /* check previous epoch */
-            ASSERT(RVM_OFFSET_LEQ(status->prev_log_head,
+            CODA_ASSERT(RVM_OFFSET_LEQ(status->prev_log_head,
                                   status->prev_log_tail));
-            ASSERT(RVM_OFFSET_GEQ(status->prev_log_head,
+            CODA_ASSERT(RVM_OFFSET_GEQ(status->prev_log_head,
                                   status->log_tail));
-            ASSERT(RVM_OFFSET_GEQ(status->prev_log_head,
+            CODA_ASSERT(RVM_OFFSET_GEQ(status->prev_log_head,
                                   status->log_tail));
             }
         }
@@ -853,14 +853,14 @@ static rvm_bool_t chk_tail(log)
             if (RVM_OFFSET_GTR(status->prev_log_head,
                                status->prev_log_tail))
                 {                       /* previous epoch wrapped */
-                ASSERT(RVM_OFFSET_GTR(status->prev_log_head,
+                CODA_ASSERT(RVM_OFFSET_GTR(status->prev_log_head,
                                       status->log_tail));
-                ASSERT(RVM_OFFSET_GEQ(status->prev_log_head,
+                CODA_ASSERT(RVM_OFFSET_GEQ(status->prev_log_head,
                                       status->log_tail));
                 }
             else
                 {                       /* previous epoch not wrapped */
-                ASSERT(RVM_OFFSET_GTR(status->log_head,
+                CODA_ASSERT(RVM_OFFSET_GTR(status->log_head,
                                       status->prev_log_head));
                 }
             }
@@ -869,7 +869,7 @@ static rvm_bool_t chk_tail(log)
     /* raw i/o buffer checks */
     if (log->dev.raw_io)
         {
-        ASSERT((SECTOR_INDEX((long)log->dev.ptr)) ==
+        CODA_ASSERT((SECTOR_INDEX((long)log->dev.ptr)) ==
                (OFFSET_TO_SECTOR_INDEX(status->log_tail)));
         }
 
@@ -882,7 +882,7 @@ static rvm_bool_t chk_tail(log)
     log_status_t    *status = &log->status; /* status area descriptor */
     rvm_length_t    temp;
 
-    ASSERT(((&log->dev == &default_log->dev) && (!rvm_utlsw)) ?
+    CODA_ASSERT(((&log->dev == &default_log->dev) && (!rvm_utlsw)) ?
            (!LOCK_FREE(default_log->dev_lock)) : 1);
 
     /* update unique name timestamps */
@@ -895,12 +895,12 @@ static rvm_bool_t chk_tail(log)
         {
         /* update and check tail length */
         temp = rec_hdr->rec_length+sizeof(rec_end_t);
-        ASSERT(temp == log->dev.io_length);
+        CODA_ASSERT(temp == log->dev.io_length);
 #ifdef RVM_LOG_TAIL_BUG
 	unprotect_page__Fi(ClobberAddress);
 #endif RVM_LOG_TAIL_BUG
 #ifdef RVM_LOG_TAIL_SHADOW
-    ASSERT(RVM_OFFSET_EQL(log_tail_shadow,status->log_tail));
+    CODA_ASSERT(RVM_OFFSET_EQL(log_tail_shadow,status->log_tail));
 #endif RVM_LOG_TAIL_SHADOW
         status->log_tail = RVM_ADD_LENGTH_TO_OFFSET(status->log_tail,
                                                     temp);
@@ -910,7 +910,7 @@ static rvm_bool_t chk_tail(log)
 #ifdef RVM_LOG_TAIL_BUG
 	protect_page__Fi(ClobberAddress);
 #endif RVM_LOG_TAIL_BUG
-        ASSERT(chk_tail(log));
+        CODA_ASSERT(chk_tail(log));
 
         /* update unames if transaction */
         if (rec_hdr->struct_id == trans_hdr_id)
@@ -935,7 +935,7 @@ static rvm_bool_t chk_tail(log)
         unprotect_page__Fi(ClobberAddress);
 #endif RVM_LOG_TAIL_BUG
 #ifdef RVM_LOG_TAIL_SHADOW
-    ASSERT(RVM_OFFSET_EQL(log_tail_shadow,status->log_tail));
+    CODA_ASSERT(RVM_OFFSET_EQL(log_tail_shadow,status->log_tail));
 #endif RVM_LOG_TAIL_SHADOW
         status->log_tail = status->log_start;
 #ifdef RVM_LOG_TAIL_SHADOW
@@ -945,7 +945,7 @@ static rvm_bool_t chk_tail(log)
         protect_page__Fi(ClobberAddress);
 #endif RVM_LOG_TAIL_BUG
         log->dev.sync_offset = status->log_start;
-        ASSERT(chk_tail(log));
+        CODA_ASSERT(chk_tail(log));
         }
 
     return write_log_status(log,NULL);  /* update disk status block */
@@ -1002,7 +1002,7 @@ void log_tail_sngl_w(log,tail_length)
 
     /* subtract current current tail & verify log ptrs */
     *tail_length = RVM_SUB_OFFSETS(*tail_length,status->log_tail);
-    ASSERT(chk_tail(log));
+    CODA_ASSERT(chk_tail(log));
     }
 /* determine length of log currently in use */
 void cur_log_length(log,length)
@@ -1039,7 +1039,7 @@ long cur_log_percent(log,space_needed)
         cur_size = OFFSET_TO_FLOAT(temp);
         cur_percent = (long)(100.0*(cur_size/
                                     OFFSET_TO_FLOAT(status->log_size)));
-        ASSERT((cur_percent >= 0) && (cur_percent <= 100));
+        CODA_ASSERT((cur_percent >= 0) && (cur_percent <= 100));
         if (cur_percent > status->log_dev_max)
             status->log_dev_max = cur_percent;
 

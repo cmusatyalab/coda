@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/volutil/vol-setlogparms.cc,v 4.7 1998/08/31 12:23:51 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/volutil/vol-setlogparms.cc,v 4.8 1998/10/29 15:29:06 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -83,7 +83,7 @@ long S_VolSetLogParms(RPC2_Handle rpcid, VolumeId Vid, RPC2_Integer OnFlag,
     VLog(9, "Entering S_VolSetLogParms: rpcid = %d, Volume = %x", 
 	 rpcid, Vid);
     
-    assert(LWP_GetRock(FSTAG, (char **)&pt) == LWP_SUCCESS);
+    CODA_ASSERT(LWP_GetRock(FSTAG, (char **)&pt) == LWP_SUCCESS);
 
     rc = VInitVolUtil(volumeUtility);
     if (rc != 0){

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/res/resforce.cc,v 4.9 1998/10/21 22:05:47 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/res/resforce.cc,v 4.10 1998/10/30 18:29:49 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -44,7 +44,7 @@ extern "C" {
 #include <sys/types.h>
 #include <sys/time.h>
 #include <netinet/in.h>
-#include <assert.h>
+#include "coda_assert.h"
 #include <stdio.h>
 #include <unistd.h>
 #include <stdlib.h>
@@ -285,7 +285,7 @@ long RS_DoForceDirOps(RPC2_Handle RPCid, ViceFid *Fid,
 
     /* set access list and status first; needed for creating runt child dirs */
     {
-	assert(AccessList->SeqLen == VAclSize(dirvptr));
+	CODA_ASSERT(AccessList->SeqLen == VAclSize(dirvptr));
 	AL_ntohAlist((AL_AccessList *)(AccessList->SeqBody));
 	bcopy((const void *)AccessList->SeqBody, (void *) VVnodeACL(dirvptr), VAclSize(dirvptr));
 	dirvptr->disk.author = status->Author;
@@ -319,7 +319,7 @@ long RS_DoForceDirOps(RPC2_Handle RPCid, ViceFid *Fid,
 	int ind;
 	ind = InitVMLogRecord(V_volumeindex(volptr), &pv->fid, 
 			      &status->VV.StoreId, ResolveAfterCrash_OP, 0);
-	assert(ind != -1);
+	CODA_ASSERT(ind != -1);
 	sle *SLE = new sle(ind);
 	pv->sl.append(SLE);
     }
@@ -399,7 +399,7 @@ long RS_GetForceDirOps(RPC2_Handle RPCid, ViceFid *Fid,
     }
     while(dop = (diroplink *) gdop.oplist->get()){
 	dop->hton();
-	assert(dop->write(fd) == 0);
+	CODA_ASSERT(dop->write(fd) == 0);
 	delete dop;
     }
     delete gdop.oplist;
@@ -441,7 +441,7 @@ long RS_GetForceDirOps(RPC2_Handle RPCid, ViceFid *Fid,
     Error filecode = 0;
     if (vptr) {
 	VPutVnode(&filecode, vptr);
-	assert(filecode == 0);
+	CODA_ASSERT(filecode == 0);
     }
     PutVolObj(&volptr, NO_LOCK);
     if (filename && unlink(filename) == -1) 
@@ -473,7 +473,7 @@ int ObtainDirOps(PDirEntry de, void *data)
     Fid.Volume = V_id(gdop->volptr);
     Fid.Vnode = vnode;
     Fid.Unique = unique;
-    assert(GetFsObj(&Fid, &(gdop->volptr), &vptr, READ_LOCK, NO_LOCK, 1, 1, 0) == 0);
+    CODA_ASSERT(GetFsObj(&Fid, &(gdop->volptr), &vptr, READ_LOCK, NO_LOCK, 1, 1, 0) == 0);
     
     if (vptr->disk.type == vDirectory)
 	op = CreateD;
@@ -485,7 +485,7 @@ int ObtainDirOps(PDirEntry de, void *data)
 	diroplink	*dopl;
 	while(dopl = (diroplink *)next()) {
 	    if (vnode == dopl->vnode && unique == dopl->unique){
-		assert(dopl->op == CreateF || dopl->op == CreateL);
+		CODA_ASSERT(dopl->op == CreateF || dopl->op == CreateL);
 		break;
 	    }
 	}
@@ -498,9 +498,9 @@ int ObtainDirOps(PDirEntry de, void *data)
     /* put the vnode back */
     int error = 0;
     VPutVnode((Error *)&error, vptr);
-    assert(error == 0);
+    CODA_ASSERT(error == 0);
 
-    assert(strlen(name) < (DIROPNAMESIZE));
+    CODA_ASSERT(strlen(name) < (DIROPNAMESIZE));
     diroplink	*direntry = new diroplink(op, vnode, unique, name);
 
     /* now insert the entry into the list */
@@ -649,7 +649,7 @@ int ForceDir(vle *pv, Volume *volptr, VolumeId repvolid,
 				       (int) cv->vptr->vnodeNumber, 
 				       (int) cv->vptr->disk.uniquifier,
 				       (int) cv->vptr->disk.dataVersion);
-		assert(cv->f_finode > 0);
+		CODA_ASSERT(cv->f_finode > 0);
 		cv->vptr->disk.inodeNumber = cv->f_finode;
 
 		cv->vptr->delete_me = 1;
@@ -661,10 +661,10 @@ int ForceDir(vle *pv, Volume *volptr, VolumeId repvolid,
 			cFid.Volume, cFid.Vnode, cFid.Unique, p->name);    
 		int tblocks = 0;
 		vle *cv = FindVLE(*vlist, &cFid);
-		assert(cv != 0);
-		assert(cv->vptr != 0);
+		CODA_ASSERT(cv != 0);
+		CODA_ASSERT(cv->vptr != 0);
 		
-		assert(cv->vptr->disk.linkCount > 0);
+		CODA_ASSERT(cv->vptr->disk.linkCount > 0);
 		PerformLink(0, repvolid, volptr, pv->vptr, cv->vptr, p->name, 
 			    time(0), 0, NULL, &pv->d_cinode, &tblocks);
 		*deltablocks += tblocks;
@@ -693,7 +693,7 @@ int ForceDir(vle *pv, Volume *volptr, VolumeId repvolid,
 				       (int) cv->vptr->vnodeNumber, 
 				       (int) cv->vptr->disk.uniquifier,
 				       (int) cv->vptr->disk.dataVersion);
-		assert(cv->f_finode > 0);
+		CODA_ASSERT(cv->f_finode > 0);
 		cv->vptr->disk.inodeNumber = cv->f_finode;
 
 		cv->vptr->delete_me = 1;

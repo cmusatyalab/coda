@@ -25,7 +25,7 @@
 # improvements or extensions that  they  make,  and  to  grant  Carnegie
 # Mellon the rights to redistribute these changes without encumbrance.
 # 
-# static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/libal/Makefile.in,v 4.9 1998/08/26 21:15:24 braam Exp $";
+# static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/libal/Makefile.in,v 4.10 1998/09/29 16:37:42 braam Exp $";
 
 
 # 
@@ -71,6 +71,8 @@ NO_LEX = yes
 
 HFILES = al.h parsepdb.h pcf.h prs.h prs_fs.h
 
+LIBS = $(LIBUTIL) $(LIBBASE)
+
 libal.a:  alprocs.o pcfprocs.o parsepdb.o
 
 parsepdb.o: y.tab.c lex.yy.c $(HFILES)
@@ -90,7 +92,7 @@ y.tab.c: parsepdb.yacc
 pcfgen:	pcfgen.o libal.a $(LIBUTIL)
 	$(CC) $(LIBFLAGS) pcfgen.o libal.a $(LIBUTIL) -o pcfgen
 
-altest: altest.o libal.a $(LIBUTIL)
-	$(CC) ${LIBFLAGS} altest.o libal.a $(LIBUTIL) -o altest
+altest: altest.o libal.a $(LIBS)
+	$(CC) ${LIBFLAGS} altest.o libal.a $(LIBS) -o altest
 
 include $(TOPDIR)/configs/Makerules

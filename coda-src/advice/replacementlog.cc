@@ -2,7 +2,7 @@
 extern "C" {
 #endif __cplusplus
 
-#include <assert.h>
+#include "coda_assert.h"
 #include <sys/param.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -60,7 +60,7 @@ GetDatum(GDBM_FILE db, datum *key, int *status, int *data) {
   content = gdbm_fetch(db, *key);
   if (content.dptr != NULL) {
       int rc = sscanf(content.dptr, "%d %d", status, data);
-      assert(rc == 2);
+      CODA_ASSERT(rc == 2);
       free(content.dptr);
   }
 }

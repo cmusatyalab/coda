@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/local_subtree.cc,v 4.3 1998/08/26 21:24:34 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/local_subtree.cc,v 4.4 1998/09/29 16:38:18 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -651,7 +651,7 @@ void *lrdb::operator new(size_t len)
     lrdb *l = 0;
 
     l = (lrdb *)rvmlib_rec_malloc((int) len);
-    assert(l);
+    CODA_ASSERT(l);
     return(l);
 }
 
@@ -828,7 +828,7 @@ void *lgment::operator new(size_t len)
     lgment *l = 0;
     
     l = (lgment *)rvmlib_rec_malloc((int)len);
-    assert(l);
+    CODA_ASSERT(l);
     return(l);
 }
 
@@ -914,7 +914,7 @@ void *rfment::operator new(size_t len)
 {
     rfment *r = 0;
     r = (rfment *)rvmlib_rec_malloc((int)sizeof(rfment));
-    assert(r);
+    CODA_ASSERT(r);
     return(r);
 }
 
@@ -946,7 +946,7 @@ rfment::rfment(ViceFid *Fake, ViceFid *Global, ViceFid *Local, ViceFid *Parent,
     bcopy((const void *)GlobalChild, (void *) &global_child_fid, (int)sizeof(ViceFid));
     bcopy((const void *)LocalChild, (void *) &local_child_fid, (int)sizeof(ViceFid));
     name = (char *)rvmlib_rec_malloc((int)(strlen(CompName) + 1));
-    assert(name);
+    CODA_ASSERT(name);
     strcpy(name, CompName);
     view = SUBTREE_MIXED_VIEW;
     covered = 0;
@@ -1264,7 +1264,7 @@ void LRInit()
 		ViceFid *FakeRootFid = rfm->GetFakeRootFid();
 		ViceFid *RootParentFid = rfm->GetRootParentFid();
 		fsobj *RootParentObj = FSDB->Find(RootParentFid);
-		ASSERT(RootParentObj && RootParentObj->IsLocalObj());
+		CODA_ASSERT(RootParentObj && RootParentObj->IsLocalObj());
 		char *Name = rfm->GetName();
 		RootParentObj->RecoverRootParent(FakeRootFid, Name);
 		Recov_BeginTrans();

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/update/updateclnt.cc,v 4.14 1998/08/05 23:50:05 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/update/updateclnt.cc,v 4.15 1998/08/31 12:23:29 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -77,7 +77,7 @@ extern "C" {
 #include <sys/wait.h>
 #include <sys/file.h>
 #include <netinet/in.h>
-#include <assert.h>
+#include "coda_assert.h"
 #include <errno.h>
 #include <signal.h>
 #include <stdio.h>
@@ -166,7 +166,7 @@ int main(int argc, char **argv)
     CheckLibStructure();
 
     gethostname(s_hostname, sizeof(s_hostname) -1);
-    assert(s_hostname != NULL);
+    CODA_ASSERT(s_hostname != NULL);
 
     (void) signal(SIGQUIT, (void (*)(int))Terminate);
     (void) signal(SIGHUP, (void (*)(int))ResetDebug);
@@ -187,7 +187,7 @@ int main(int argc, char **argv)
     freopen("/vice/srv/UpdateClntLog", "a+", stdout);
     freopen("/vice/srv/UpdateClntLog", "a+", stderr);
 
-    assert(file = fopen("/vice/srv/updateclnt.pid", "w"));
+    CODA_ASSERT(file = fopen("/vice/srv/updateclnt.pid", "w"));
     fprintf(file, "%d", getpid());
     fclose(file);
     RPC2_DebugLevel = SrvDebugLevel / 10;
@@ -644,7 +644,7 @@ static void U_InitRPC()
     fscanf(tokfile, "%s", vkey);
     fclose(tokfile);
 
-    assert(LWP_Init(LWP_VERSION, LWP_MAX_PRIORITY-1, &mylpid) == LWP_SUCCESS);
+    CODA_ASSERT(LWP_Init(LWP_VERSION, LWP_MAX_PRIORITY-1, &mylpid) == LWP_SUCCESS);
 
     SFTP_SetDefaults(&sftpi);
     sftpi.PacketSize = 1024;

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/local.h,v 4.3 1997/12/16 16:08:31 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/local.h,v 4.4 1998/08/26 21:24:32 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -411,7 +411,7 @@ public:
 {\
     if (!(ex)) {\
        (o)->print(logFile);\
-       Choke("Assertion failed: file \"%s\", line %d\n", __FILE__, __LINE__);\
+       CHOKE("Assertion failed: file \"%s\", line %d\n", __FILE__, __LINE__);\
     }\
 }
 

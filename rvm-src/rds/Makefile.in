@@ -29,7 +29,7 @@
 # changes  without  encumbrance.   Such improvements and extensions
 # should be returned to Software.Distribution@cs.cmu.edu.
 #
-# rcsid = $Header: /afs/cs/project/coda-src/cvs/coda/rvm-src/rds/Makefile.in,v 4.11 1998/09/29 21:04:54 jaharkes Exp $
+# rcsid = $Header: /afs/cs/project/coda-src/cvs/coda/rvm-src/rds/Makefile.in,v 4.12 1998/10/01 22:31:24 braam Exp $
 #
 
 
@@ -45,7 +45,7 @@ LIBOBJ = rds_coalesce.o rds_free.o rds_init.o rds_malloc.o rds_prealloc.o \
        rds_split.o rds_stats.o rds_start.o rds_util.o rds_zap.o 
 
 OBJ = rdsinit.o
-RDSINIT_LIBS = $(LIBSEG) $(LIBRVM) $(LIBOLDLWP) $(LIBCOMPAT) $(LIBTHREADS)
+RDSINIT_LIBS = $(LIBSEG) $(LIBRVM) $(LIBOLDLWP) $(LIBCOMPAT) $(LIBTHREADS) $(LIBBASE)
 
 
 HERE := $(shell basename `pwd`)

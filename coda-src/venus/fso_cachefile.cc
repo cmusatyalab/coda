@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/fso_cachefile.cc,v 4.8 98/09/23 20:26:29 jaharkes Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/fso_cachefile.cc,v 4.9 1998/09/29 21:04:42 jaharkes Exp $";
 #endif /*_BLURB_*/
 
 
@@ -70,7 +70,7 @@ extern "C" {
 /* Pre-allocation routine. */
 /* MUST be called from within transaction! */
 CacheFile::CacheFile(int i) {
-    ASSERT(this	!= 0);
+    CODA_ASSERT(this	!= 0);
 
     /* Assume caller has done RVMLIB_REC_OBJECT! */
 /*    RVMLIB_REC_OBJECT(*this);*/
@@ -82,12 +82,12 @@ CacheFile::CacheFile(int i) {
 
 
 CacheFile::CacheFile() {
-    ASSERT(inode != (ino_t)-1 && length == 0);
+    CODA_ASSERT(inode != (ino_t)-1 && length == 0);
 }
 
 
 CacheFile::~CacheFile() {
-    ASSERT(inode != (ino_t)-1 && length == 0);
+    CODA_ASSERT(inode != (ino_t)-1 && length == 0);
 }
 
 
@@ -138,23 +138,23 @@ void CacheFile::ResetContainer() {
     int tfd;
     struct stat tstat;
     if ((tfd = ::open(name, O_RDWR | O_CREAT | O_TRUNC | O_BINARY, V_MODE)) < 0)
-	Choke("CacheFile::ResetContainer: open failed (%d)", errno);
+	CHOKE("CacheFile::ResetContainer: open failed (%d)", errno);
 #ifndef DJGPP
     if (::fchmod(tfd, V_MODE) < 0)
-	Choke("CacheFile::ResetContainer: fchmod failed (%d)", errno);
+	CHOKE("CacheFile::ResetContainer: fchmod failed (%d)", errno);
 
 #ifndef __CYGWIN32__
     if (::fchown(tfd, (uid_t)V_UID, (gid_t)V_GID) < 0)
-	Choke("CacheFile::ResetContainer: fchown failed (%d)", errno);
+	CHOKE("CacheFile::ResetContainer: fchown failed (%d)", errno);
 #else
     if (::chown(name, (uid_t)V_UID, (gid_t)V_GID) < 0)
-	Choke("CacheFile::ResetContainer: fchown failed (%d)", errno);
+	CHOKE("CacheFile::ResetContainer: fchown failed (%d)", errno);
 #endif
 #endif
     if (::fstat(tfd, &tstat) < 0)
-	Choke("CacheFile::ResetContainer: fstat failed (%d)", errno);
+	CHOKE("CacheFile::ResetContainer: fstat failed (%d)", errno);
     if (::close(tfd) < 0)
-	Choke("CacheFile::ResetContainer: close failed (%d)", errno);
+	CHOKE("CacheFile::ResetContainer: close failed (%d)", errno);
 
     Recov_BeginTrans();
     RVMLIB_REC_OBJECT(*this);
@@ -175,7 +175,7 @@ void CacheFile::Move(CacheFile *destination) {
     destination->inode = inode;
     destination->length = length;
     if (::rename(name, destination->name) != 0)
-        Choke("CacheFile::RenameContainer: rename failed (%d)", errno);
+        CHOKE("CacheFile::RenameContainer: rename failed (%d)", errno);
 }
 
 
@@ -191,38 +191,38 @@ void CacheFile::Copy(CacheFile *source) {
     char buf[DIR_PAGESIZE];
 
     if ((tfd = ::open(name, O_RDWR | O_CREAT | O_TRUNC| O_BINARY, V_MODE)) < 0)
-	Choke("CacheFile::Copy: open failed (%d)", errno);
+	CHOKE("CacheFile::Copy: open failed (%d)", errno);
 #ifndef DJGPP
     if (::fchmod(tfd, V_MODE) < 0)
-	Choke("CacheFile::Copy: fchmod failed (%d)", errno);
+	CHOKE("CacheFile::Copy: fchmod failed (%d)", errno);
 #ifndef __CYGWIN32__
     if (::fchown(tfd, (uid_t)V_UID, (gid_t)V_GID) < 0)
-	Choke("CacheFile::Copy: fchown failed (%d)", errno);
+	CHOKE("CacheFile::Copy: fchown failed (%d)", errno);
 #else
     if (::chown(name, (uid_t)V_UID, (gid_t)V_GID) < 0)
-	Choke("CacheFile::ResetCopy: fchown failed (%d)", errno);
+	CHOKE("CacheFile::ResetCopy: fchown failed (%d)", errno);
 #endif
 #endif
     if ((ffd = ::open(source->name, O_RDONLY| O_BINARY, V_MODE)) < 0)
-	Choke("CacheFile::Copy: source open failed (%d)", errno);
+	CHOKE("CacheFile::Copy: source open failed (%d)", errno);
 
     for (;;) {
         n = ::read(ffd, buf, (int) sizeof(buf));
         if (n == 0)
 	    break;
         if (n < 0)
-	    Choke("CacheFile::Copy: read failed! (%d)", errno);
+	    CHOKE("CacheFile::Copy: read failed! (%d)", errno);
 	if (::write(tfd, buf, n) != n)
-	    Choke("CacheFile::Copy: write failed! (%d)", errno);
+	    CHOKE("CacheFile::Copy: write failed! (%d)", errno);
     }
     if (::fstat(tfd, &tstat) < 0)
-	Choke("CacheFile::Copy: fstat failed (%d)", errno);
+	CHOKE("CacheFile::Copy: fstat failed (%d)", errno);
     if (::close(tfd) < 0)
-	Choke("CacheFile::Copy: close failed (%d)", errno);
+	CHOKE("CacheFile::Copy: close failed (%d)", errno);
     if (::close(ffd) < 0)
-	Choke("CacheFile::Copy: source close failed (%d)", errno);
+	CHOKE("CacheFile::Copy: source close failed (%d)", errno);
     
-    ASSERT(source->length == tstat.st_size);
+    CODA_ASSERT(source->length == tstat.st_size);
 
     inode = tstat.st_ino;
     length = source->length;
@@ -232,17 +232,17 @@ void CacheFile::Copy(CacheFile *source) {
 void CacheFile::Remove() {
     length = 0;
     if (::unlink(name) < 0)
-        Choke("CacheFile::Remove: unlink failed (%d)", errno);
+        CHOKE("CacheFile::Remove: unlink failed (%d)", errno);
 }
 
 
 /* N.B. length member is NOT updated as side-effect! */
 void CacheFile::Stat(struct stat *tstat) {
-    ASSERT(inode != (ino_t)-1);
+    CODA_ASSERT(inode != (ino_t)-1);
 
-    ASSERT(::stat(name, tstat) == 0);
+    CODA_ASSERT(::stat(name, tstat) == 0);
 #if ! defined(DJGPP) && ! defined(__CYGWIN32__)
-    ASSERT(tstat->st_ino == inode);
+    CODA_ASSERT(tstat->st_ino == inode);
 #endif
 }
 
@@ -251,7 +251,7 @@ void CacheFile::Stat(struct stat *tstat) {
 void CacheFile::Truncate(unsigned newlen) {
     int fd;
 
-    ASSERT(inode != (ino_t)-1);
+    CODA_ASSERT(inode != (ino_t)-1);
 
     /*
     if (length < newlen) {
@@ -264,12 +264,12 @@ void CacheFile::Truncate(unsigned newlen) {
 	length = newlen;
     }
 #ifndef __CYGWIN32__
-    ASSERT(::truncate(name, length) == 0);
+    CODA_ASSERT(::truncate(name, length) == 0);
 #else 
     fd = open(name, O_RDWR);
     if ( fd < 0 )
-	    ASSERT(0);
-    ASSERT(::ftruncate(fd, length) == 0);
+	    CODA_ASSERT(0);
+    CODA_ASSERT(::ftruncate(fd, length) == 0);
     close(fd);
 #endif
 }
@@ -277,7 +277,7 @@ void CacheFile::Truncate(unsigned newlen) {
 
 /* MUST be called from within transaction! */
 void CacheFile::SetLength(unsigned newlen) {
-    ASSERT(inode != (ino_t)-1);
+    CODA_ASSERT(inode != (ino_t)-1);
 
     if (length != newlen) {
 	 RVMLIB_REC_OBJECT(*this);

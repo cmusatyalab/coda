@@ -1,11 +1,11 @@
 
-/* $Id: map.c,v 1.1 1998/04/14 20:54:06 braam Exp $ */
+/* $Id: map.c,v 1.2 1998/08/05 23:49:31 braam Exp $ */
 
 /* structure management for an RPC2 portmapper */
 
 #include <stdlib.h>
 #include <string.h>
-#include <assert.h>
+#include "coda_assert.h"
 #include <netinet/in.h>
 
 #include <lwp.h>
@@ -22,7 +22,7 @@ int namehash(char *name)
 	/* Elfhash from UNIX SVR4 */
 	int h=0, g;
 
-	assert(name);
+	CODA_ASSERT(name);
 
 	while (*name)
 	{
@@ -64,7 +64,7 @@ struct protoentry *find_mapping(char *name, int version, int protocol, int port)
 	struct protoentry *temp;
 	int bucket;
 
-	assert(name);
+	CODA_ASSERT(name);
 
 	bucket = namehash(name);
 
@@ -91,11 +91,11 @@ void register_mapping(char *name, int version, int protocol, int port)
 	struct protoentry *temp;
 	int bucket;
 
-	assert(name);
+	CODA_ASSERT(name);
 
 	bucket = namehash(name);
 
-	assert(temp = (struct protoentry *) malloc(sizeof(struct protoentry)));
+	CODA_ASSERT(temp = (struct protoentry *) malloc(sizeof(struct protoentry)));
 
 	temp->next = namehashtable[bucket];
 	namehashtable[bucket] = temp;
@@ -113,8 +113,8 @@ void register_mapping(char *name, int version, int protocol, int port)
 void delete_mapping(struct protoentry *pe)
 {
 	int bucket;
-	assert(pe);
-	assert(pe->name);
+	CODA_ASSERT(pe);
+	CODA_ASSERT(pe->name);
 
 	bucket = namehash(pe->name);
 	

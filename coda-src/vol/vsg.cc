@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vol/vsg.cc,v 4.3 1998/01/10 18:39:47 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vol/vsg.cc,v 4.4 1998/08/26 21:22:30 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -45,7 +45,7 @@ extern "C" {
 #include <string.h>
 #include <unistd.h>
 #include <stdlib.h>
-#include <assert.h>
+#include "coda_assert.h"
 #include <netdb.h>
 #include <sys/types.h>
 #include <netinet/in.h>
@@ -212,7 +212,7 @@ typedef int (*XXX)(void *);
     vsgent::hosttab = new ohashtab(VSGHASHTBLSIZE, (XXX)HostTabHashfn);
 
     FILE *fp = fopen(VSGPATH, "r");
-    assert(fp != NULL);
+    CODA_ASSERT(fp != NULL);
 
     while(1){
 	if (fgets(string, 1024, fp) == NULL) break;
@@ -230,7 +230,7 @@ typedef int (*XXX)(void *);
 	if (!AddMember(newve)){
 	    newve->print();
 	    delete newve;
-	    assert(0);
+	    CODA_ASSERT(0);
 	}
     }
     fclose(fp);

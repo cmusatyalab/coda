@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rpc2/lists.c,v 4.5 98/06/07 20:14:57 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rpc2/lists.c,v 4.6 1998/10/05 20:32:58 jaharkes Exp $";
 #endif /*_BLURB_*/
 
 
@@ -92,7 +92,7 @@ void rpc2_Replenish(whichList, whichCount, elemSize, creationCount, magicNumber)
     
 
     *whichList = (struct LinkEntry *)malloc(elemSize);
-    assert(*whichList != NULL);
+    CODA_ASSERT(*whichList != NULL);
     bzero(*whichList, elemSize);
     (*whichList)->NextEntry = (*whichList)->PrevEntry = *whichList; /* 1-element circular list */
     (*whichList)->MagicNumber = magicNumber;
@@ -128,7 +128,7 @@ struct LinkEntry *rpc2_MoveEntry(fromPtr, toPtr, p, fromCount, toCount)
 	    victim = *fromPtr;	
     else 
 	    victim = p;
-    assert(victim->Qname == fromPtr);    /* sanity check for list corruption */
+    CODA_ASSERT(victim->Qname == fromPtr);    /* sanity check for list corruption */
 
     /* first remove element from the first list */
     if (victim == *fromPtr) 
@@ -178,7 +178,7 @@ struct SL_Entry *rpc2_AllocSle(enum SL_Type slType, struct CEntry *slConn)
     sl = (struct SL_Entry *)rpc2_MoveEntry((struct LinkEntry **)&rpc2_SLFreeList,
 	    (struct LinkEntry **)tolist, NULL, &rpc2_SLFreeCount, tocount);
 
-    assert(sl->MagicNumber == OBJ_SLENTRY);
+    CODA_ASSERT(sl->MagicNumber == OBJ_SLENTRY);
     sl->Type = slType;
     if (slType != REQ && slConn != NULL) {
 	    slConn->MySl = sl;
@@ -200,12 +200,12 @@ void rpc2_FreeSle(INOUT sl)
     struct CEntry *ce;
     
     tsl = *sl;
-    assert(tsl->MagicNumber == OBJ_SLENTRY);
+    CODA_ASSERT(tsl->MagicNumber == OBJ_SLENTRY);
 
     if (tsl->Conn != 0)
 	{
 	ce = rpc2_FindCEAddr(tsl->Conn);
-        assert(ce != NULL);
+        CODA_ASSERT(ce != NULL);
 	ce->MySl = NULL;
 	}
 
@@ -233,7 +233,7 @@ void rpc2_ActivateSle (selem, exptime)
     register struct TM_Elem *t, *oldt;
     register long delta;
 
-    assert(selem->MagicNumber == OBJ_SLENTRY);
+    CODA_ASSERT(selem->MagicNumber == OBJ_SLENTRY);
     selem->TElem.BackPointer = (char *)selem;
     selem->ReturnCode = WAITING;
 
@@ -267,7 +267,7 @@ void rpc2_DeactivateSle(sl, rc)
     {
     struct timeval *t;
 
-    assert(sl->MagicNumber == OBJ_SLENTRY);
+    CODA_ASSERT(sl->MagicNumber == OBJ_SLENTRY);
 
     sl->ReturnCode = rc;
     t = &sl->TElem.TotalTime;
@@ -291,7 +291,7 @@ struct SubsysEntry *rpc2_AllocSubsys()
 		&rpc2_SSCreationCount, OBJ_SSENTRY);
     ss = (struct SubsysEntry *)rpc2_MoveEntry((struct LinkEntry **)&rpc2_SSFreeList,
 	 (struct LinkEntry **)&rpc2_SSList, NULL, &rpc2_SSFreeCount, &rpc2_SSCount);
-    assert(ss->MagicNumber == OBJ_SSENTRY);
+    CODA_ASSERT(ss->MagicNumber == OBJ_SSENTRY);
     return(ss);
     }
 
@@ -300,7 +300,7 @@ void rpc2_FreeSubsys(whichSubsys)
     /* Releases the subsystem  entry pointed to by whichSubsys.
 	Sets whichSubsys to NULL;  */
 	{
-	assert((*whichSubsys)->MagicNumber == OBJ_SSENTRY);
+	CODA_ASSERT((*whichSubsys)->MagicNumber == OBJ_SSENTRY);
 	rpc2_MoveEntry((struct LinkEntry **)&rpc2_SSList,
 		    (struct LinkEntry **)&rpc2_SSFreeList,
 		    (struct LinkEntry *)*whichSubsys,
@@ -313,7 +313,7 @@ void rpc2_FreeSubsys(whichSubsys)
 /* Moves packet whichPB to hold list from inuse list */
 void rpc2_HoldPacket(RPC2_PacketBuffer *whichPB)
 {
-	assert(whichPB->Prefix.MagicNumber == OBJ_PACKETBUFFER);
+	CODA_ASSERT(whichPB->Prefix.MagicNumber == OBJ_PACKETBUFFER);
 	rpc2_MoveEntry((struct LinkEntry **)&rpc2_PBList,
 		       (struct LinkEntry **)&rpc2_PBHoldList,
 		       (struct LinkEntry *)whichPB,
@@ -325,7 +325,7 @@ void rpc2_HoldPacket(RPC2_PacketBuffer *whichPB)
 /* Moves packet whichPB to inuse list from hold list */
 void rpc2_UnholdPacket(RPC2_PacketBuffer *whichPB)
 {
-	assert(whichPB->Prefix.MagicNumber == OBJ_PACKETBUFFER);
+	CODA_ASSERT(whichPB->Prefix.MagicNumber == OBJ_PACKETBUFFER);
 	rpc2_MoveEntry((struct LinkEntry **)&rpc2_PBHoldList,
 		       (struct LinkEntry **)&rpc2_PBList,
 		       (struct LinkEntry *)whichPB,

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/update/updfetch.cc,v 4.5 1998/01/20 20:56:51 braam dead $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/update/updfetch.cc,v 4.6 1998/08/31 12:23:30 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -45,7 +45,7 @@ extern "C" {
 #include <sys/wait.h>
 #include <sys/file.h>
 #include <netinet/in.h>
-#include <assert.h>
+#include "coda_assert.h"
 #include <errno.h>
 #include <signal.h>
 #include <stdio.h>
@@ -97,7 +97,7 @@ int main(int argc, char **argv)
     ProcessArgs(argc, argv);
 
     gethostname(s_hostname, sizeof(s_hostname) -1);
-    assert(s_hostname != NULL);
+    CODA_ASSERT(s_hostname != NULL);
 
     RPC2_DebugLevel = SrvDebugLevel;
 
@@ -109,7 +109,7 @@ int main(int argc, char **argv)
 
     /* make sure we can open LocalFileName for writing */
     file = fopen(LocalFileName, "w");
-    assert(file);
+    CODA_ASSERT(file);
     fclose(file);
 
     /* off we go */
@@ -233,7 +233,7 @@ static void U_InitRPC()
     fscanf(tokfile, "%s", vkey);
     fclose(tokfile);
 
-    assert(LWP_Init(LWP_VERSION, LWP_MAX_PRIORITY-1, &mylpid) == LWP_SUCCESS);
+    CODA_ASSERT(LWP_Init(LWP_VERSION, LWP_MAX_PRIORITY-1, &mylpid) == LWP_SUCCESS);
 
     SFTP_SetDefaults(&sftpi);
     sftpi.PacketSize = 1024;

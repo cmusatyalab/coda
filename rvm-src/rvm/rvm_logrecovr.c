@@ -33,7 +33,7 @@ should be returned to Software.Distribution@cs.cmu.edu.
 
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/rvm-src/rvm/rvm_logrecovr.c,v 4.12 98/10/28 19:58:11 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/rvm-src/rvm/rvm_logrecovr.c,v 4.13 1998/10/29 09:28:26 jaharkes Exp $";
 #endif _BLURB_
 
 /*
@@ -45,7 +45,7 @@ static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/rvm-src/rvm/rvm
 #include <sys/file.h>
 #include <sys/time.h>
 #include "rvm_private.h"
-#include <assert.h>
+#include "coda_assert.h"
 
 #ifdef RVM_LOG_TAIL_BUG
 #include <rvmtesting.h>
@@ -205,9 +205,9 @@ rvm_return_t init_buffer(log,offset,direction,synch)
     rvm_offset_t    read_len;           /* read length calculation temp */
     rvm_return_t    retval = RVM_SUCCESS; /* return value */
 
-    ASSERT(RVM_OFFSET_GEQ(*offset,log->status.log_start));
-    ASSERT(RVM_OFFSET_LEQ(*offset,log->dev.num_bytes));
-    ASSERT(log->trunc_thread == cthread_self());
+    CODA_ASSERT(RVM_OFFSET_GEQ(*offset,log->status.log_start));
+    CODA_ASSERT(RVM_OFFSET_LEQ(*offset,log->dev.num_bytes));
+    CODA_ASSERT(log->trunc_thread == cthread_self());
 
     /* calculate buffer read length and ptr */
     log_buf->ptr = OFFSET_TO_SECTOR_INDEX(*offset);
@@ -252,9 +252,9 @@ rvm_return_t init_buffer(log,offset,direction,synch)
     if (synch)
         {
         if (!rvm_no_yield) cthread_yield();
-        ASSERT(log->trunc_thread == cthread_self());
+        CODA_ASSERT(log->trunc_thread == cthread_self());
         mutex_lock(&log->dev_lock); /* begin dev_lock crit sec */
-        ASSERT(log->trunc_thread == cthread_self());
+        CODA_ASSERT(log->trunc_thread == cthread_self());
         }
 
     /* allow write to buffer */
@@ -271,7 +271,7 @@ rvm_return_t init_buffer(log,offset,direction,synch)
         retval = RVM_EIO;               /* i/o error */
         log_buf->r_length = 0;          /* buffer invalid */
         }
-    ASSERT(log->trunc_thread == cthread_self());
+    CODA_ASSERT(log->trunc_thread == cthread_self());
 
     /* write protect buffer & unlock */
 /* MACH_RVM_PROTECT
@@ -285,26 +285,26 @@ rvm_return_t init_buffer(log,offset,direction,synch)
  *     ret = vm_protect(task_self_,(vm_address_t)(log_buf->shadow_buf),
  *                      (vm_size_t)(log_buf->length),FALSE,
  *                      VM_PROT_WRITE | VM_PROT_READ);
- *     ASSERT(ret == KERN_SUCCESS);
+ *     CODA_ASSERT(ret == KERN_SUCCESS);
  *     if ((r_length=read_dev(&log->dev,&log_buf->offset,
  *                            log_buf->shadow_buf,length)) < 0)
  *     {
  *         retval = RVM_EIO;               / * i/o error * /
- *         ASSERT(rvm_false);
+ *         CODA_ASSERT(rvm_false);
  *     }
- *     ASSERT(r_length == length);
- *     ASSERT(r_length == log_buf->r_length);
+ *     CODA_ASSERT(r_length == length);
+ *     CODA_ASSERT(r_length == log_buf->r_length);
  *     ret = vm_protect(task_self_,(vm_address_t)(log_buf->shadow_buf),
  *                      (vm_size_t)(log_buf->length),FALSE,VM_PROT_READ);
- *     ASSERT(ret == KERN_SUCCESS);
- *     ASSERT(memcmp(log_buf->buf,log_buf->shadow_buf,length) == 0);
+ *     CODA_ASSERT(ret == KERN_SUCCESS);
+ *     CODA_ASSERT(memcmp(log_buf->buf,log_buf->shadow_buf,length) == 0);
  * }
  * #endif SPECIAL_DEBUG
  */
 
     if (synch)
         mutex_unlock(&log->dev_lock);   /* end dev_lock crit sec */
-    ASSERT(log->trunc_thread == cthread_self());
+    CODA_ASSERT(log->trunc_thread == cthread_self());
 
     return retval;
     }
@@ -357,8 +357,8 @@ int disk_buf_cmp(buf,disp)
     /* read buffer from log */
     if ((r_length=read_dev(&default_log->dev,&log_buf->offset,
                            tst_buf,log_buf->r_length)) < 0)
-        ASSERT(rvm_false);          /* i/o error */
-    ASSERT(r_length == log_buf->r_length);
+        CODA_ASSERT(rvm_false);          /* i/o error */
+    CODA_ASSERT(r_length == log_buf->r_length);
 
     /* re-protect buffer */
 /* MACH_RVM_PROTECT
@@ -434,7 +434,7 @@ rvm_return_t load_aux_buf(log,log_offset,length,aux_ptr,
     rvm_length_t    read_len;           /* buffer read length */
     rvm_return_t    retval = RVM_SUCCESS;
 
-    ASSERT(log->trunc_thread == cthread_self());
+    CODA_ASSERT(log->trunc_thread == cthread_self());
 
     /* check offset */
     if (RVM_OFFSET_GTR(*log_offset,log->dev.num_bytes))
@@ -493,9 +493,9 @@ rvm_return_t load_aux_buf(log,log_offset,length,aux_ptr,
     if (synch) 
         {
         if (!rvm_no_yield) cthread_yield(); /* allow swap now */
-        ASSERT(log->trunc_thread == cthread_self());
+        CODA_ASSERT(log->trunc_thread == cthread_self());
         mutex_lock(&log->dev_lock); /* begin dev_lock crit sec */
-        ASSERT(log->trunc_thread == cthread_self());
+        CODA_ASSERT(log->trunc_thread == cthread_self());
         }
 
     /* allow write to buffer */
@@ -512,7 +512,7 @@ rvm_return_t load_aux_buf(log,log_offset,length,aux_ptr,
         retval = RVM_EIO;
         log_buf->aux_rlength = 0;
         }
-    ASSERT(log->trunc_thread == cthread_self());
+    CODA_ASSERT(log->trunc_thread == cthread_self());
 
     /* write protect buffer & unlock */
 /* MACH_RVM_PROTECT
@@ -522,7 +522,7 @@ rvm_return_t load_aux_buf(log,log_offset,length,aux_ptr,
 
     if (synch)
         mutex_unlock(&log->dev_lock);   /* end dev_lock crit sec */
-    ASSERT(log->trunc_thread == cthread_self());
+    CODA_ASSERT(log->trunc_thread == cthread_self());
 
     return retval;
     }
@@ -751,7 +751,7 @@ rvm_return_t scan_nv_reverse(log,synch)
 
       default:
 	len = 0;
-        ASSERT(rvm_false);               /* trouble -- log damage? */
+        CODA_ASSERT(rvm_false);               /* trouble -- log damage? */
         }
 
     /* see if new header is entirely within buffer */
@@ -779,7 +779,7 @@ rvm_return_t scan_nv_reverse(log,synch)
     rec_hdr = (rec_hdr_t *)&log_buf->buf[log_buf->ptr];
     if (rec_hdr->struct_id == trans_hdr_id)
         return RVM_SUCCESS;
-    ASSERT(rec_hdr->struct_id == nv_range_id);
+    CODA_ASSERT(rec_hdr->struct_id == nv_range_id);
  
     return RVM_SUCCESS;
     }
@@ -867,7 +867,7 @@ rvm_return_t scan_forward(log,synch)
     rec_hdr_t       *rec_hdr;           /* cast for next record hdr */
     rvm_return_t    retval;
 
-    ASSERT(log_buf->ptr != -1);         /* invalid position */
+    CODA_ASSERT(log_buf->ptr != -1);         /* invalid position */
     rec_hdr = (rec_hdr_t *)&log_buf->buf[log_buf->ptr];
     switch (rec_hdr->struct_id)
         {
@@ -908,7 +908,7 @@ trans_done:
             log_buf->ptr = -1;          /* utility can handle unknown records */
             return RVM_SUCCESS;
             }
-        ASSERT(rvm_false);                  /* unknown record type */
+        CODA_ASSERT(rvm_false);                  /* unknown record type */
         }
 
     /* validate next record */
@@ -942,12 +942,12 @@ rvm_return_t scan_wrap_reverse(log,synch)
         log_wrap = (log_wrap_t *)&log_buf->buf[tmp_ptr];
         if (log_wrap->struct_id2 == log_wrap_id) 
             {
-		ASSERT( (log_wrap->struct_id==log_wrap_id) || rvm_utlsw );
+		CODA_ASSERT( (log_wrap->struct_id==log_wrap_id) || rvm_utlsw );
 		/* XXXX fix this */ 
 #if 0
 		if (!((log_wrap->struct_id == log_wrap_id) || rvm_utlsw)) {
 		    printf("not true!\n");
-		    ASSERT(0);
+		    CODA_ASSERT(0);
 		}
 #endif
 	    break;
@@ -966,7 +966,7 @@ rvm_return_t scan_wrap_reverse(log,synch)
         /* no wrap marker found */
         if (rvm_utlsw)
             log_buf->ptr = -1;          /* utility can deal with it */
-        else ASSERT(rvm_false);
+        else CODA_ASSERT(rvm_false);
 
     return RVM_SUCCESS;
     }
@@ -1061,7 +1061,7 @@ rvm_return_t scan_reverse(log,synch)
     rvm_offset_t    offset;             /* temp for offset calculations */
     rvm_return_t    retval;
 
-    ASSERT(log_buf->ptr != -1);         /* can't reposition from this! */
+    CODA_ASSERT(log_buf->ptr != -1);         /* can't reposition from this! */
 
     /* test if scan starting from tail */
     offset = RVM_ADD_LENGTH_TO_OFFSET(log_buf->offset,log_buf->ptr);
@@ -1108,7 +1108,7 @@ rvm_return_t scan_reverse(log,synch)
                 log_buf->ptr = -1;      /* utl can recover */
                 return RVM_SUCCESS;
                 }
-            ASSERT(rvm_false);          /* not at recognizable point in log */
+            CODA_ASSERT(rvm_false);          /* not at recognizable point in log */
             }
         }
 
@@ -1243,8 +1243,8 @@ rvm_return_t locate_tail(log)
     rvm_bool_t      save_rvm_utlsw = rvm_utlsw;
     rvm_return_t    retval = RVM_SUCCESS; /* return value */
 
-    ASSERT(log->trunc_thread == cthread_self());
-    ASSERT((status->trunc_state & RVM_TRUNC_PHASES) == ZERO);
+    CODA_ASSERT(log->trunc_thread == cthread_self());
+    CODA_ASSERT((status->trunc_state & RVM_TRUNC_PHASES) == ZERO);
     status->trunc_state |= RVM_TRUNC_FIND_TAIL;
 
     /* initialize scanner sequence checking state and buffers */
@@ -1273,8 +1273,8 @@ rvm_return_t locate_tail(log)
     if ((retval=init_buffer(log,&status->log_head,
                             FORWARD,NO_SYNCH))
         != RVM_SUCCESS) goto err_exit;
-    ASSERT(log->trunc_thread == cthread_self());
-    ASSERT((status->trunc_state & RVM_TRUNC_PHASES) == RVM_TRUNC_FIND_TAIL);
+    CODA_ASSERT(log->trunc_thread == cthread_self());
+    CODA_ASSERT((status->trunc_state & RVM_TRUNC_PHASES) == RVM_TRUNC_FIND_TAIL);
 
     /* validate 1st record, none ==> log empty */
     rec_hdr = (rec_hdr_t *)&(log_buf->buf[log_buf->ptr]);
@@ -1284,7 +1284,7 @@ rvm_return_t locate_tail(log)
         unprotect_page__Fi(ClobberAddress);
 #endif RVM_LOG_TAIL_BUG
 #ifdef RVM_LOG_TAIL_SHADOW
-	ASSERT(RVM_OFFSET_EQL(log_tail_shadow,status->log_tail));
+	CODA_ASSERT(RVM_OFFSET_EQL(log_tail_shadow,status->log_tail));
 #endif RVM_LOG_TAIL_SHADOW
         status->log_tail = status->log_head;
 #ifdef RVM_LOG_TAIL_SHADOW
@@ -1328,8 +1328,8 @@ rvm_return_t locate_tail(log)
             old_ptr = log_buf->ptr;
             if ((retval=scan_forward(log,NO_SYNCH)) != RVM_SUCCESS)
                 goto err_exit;
-            ASSERT(log->trunc_thread == cthread_self());
-            ASSERT((status->trunc_state & RVM_TRUNC_PHASES)
+            CODA_ASSERT(log->trunc_thread == cthread_self());
+            CODA_ASSERT((status->trunc_state & RVM_TRUNC_PHASES)
                    == RVM_TRUNC_FIND_TAIL);
             if (rvm_chk_sigint != NULL) /* test for interrupt */
                 if ((*rvm_chk_sigint)(NULL)) goto err_exit;
@@ -1343,8 +1343,8 @@ rvm_return_t locate_tail(log)
     reset_hdr_chks(log);
     if ((retval=init_buffer(log,&tail,FORWARD,NO_SYNCH))
         != RVM_SUCCESS) goto err_exit;
-    ASSERT(log->trunc_thread == cthread_self());
-    ASSERT((status->trunc_state & RVM_TRUNC_PHASES) == RVM_TRUNC_FIND_TAIL);
+    CODA_ASSERT(log->trunc_thread == cthread_self());
+    CODA_ASSERT((status->trunc_state & RVM_TRUNC_PHASES) == RVM_TRUNC_FIND_TAIL);
     /* see if record at tail is valid, scan until bad record found */
     if ((retval=validate_rec_forward(log,NO_SYNCH)) != RVM_SUCCESS)
         goto err_exit;
@@ -1371,8 +1371,8 @@ rvm_return_t locate_tail(log)
           case trans_hdr_id:
             if ((retval=set_trans_status(log,rec_hdr)) != RVM_SUCCESS)
                 goto err_exit;
-            ASSERT(log->trunc_thread == cthread_self());
-            ASSERT((status->trunc_state & RVM_TRUNC_PHASES)
+            CODA_ASSERT(log->trunc_thread == cthread_self());
+            CODA_ASSERT((status->trunc_state & RVM_TRUNC_PHASES)
                    == RVM_TRUNC_FIND_TAIL);
             if (log_buf->ptr != -1)
                 tail = temp_tail;       /* update if trans OK */
@@ -1383,15 +1383,15 @@ rvm_return_t locate_tail(log)
             tail = temp_tail;
             break;
 
-          default:  ASSERT(rvm_false);  /* error - should have header */
+          default:  CODA_ASSERT(rvm_false);  /* error - should have header */
             }
 
         /* scan to next record */
         if (log_buf->ptr == -1) break; /* tail located */
         if ((retval=scan_forward(log,NO_SYNCH)) != RVM_SUCCESS)
             goto err_exit;
-        ASSERT(log->trunc_thread == cthread_self());
-        ASSERT((status->trunc_state & RVM_TRUNC_PHASES) == RVM_TRUNC_FIND_TAIL);
+        CODA_ASSERT(log->trunc_thread == cthread_self());
+        CODA_ASSERT((status->trunc_state & RVM_TRUNC_PHASES) == RVM_TRUNC_FIND_TAIL);
         if (rvm_chk_sigint != NULL)     /* test for interrupt */
             if ((*rvm_chk_sigint)(NULL)) goto err_exit;
         }
@@ -1400,7 +1400,7 @@ rvm_return_t locate_tail(log)
     unprotect_page__Fi(ClobberAddress);
 #endif RVM_LOG_TAIL_BUG
 #ifdef RVM_LOG_TAIL_SHADOW
-    ASSERT(RVM_OFFSET_EQL(log_tail_shadow,status->log_tail));
+    CODA_ASSERT(RVM_OFFSET_EQL(log_tail_shadow,status->log_tail));
 #endif RVM_LOG_TAIL_SHADOW
     status->log_tail = tail;
 #ifdef RVM_LOG_TAIL_SHADOW
@@ -1427,8 +1427,8 @@ exit:
 err_exit:
     rvm_utlsw = save_rvm_utlsw;
     status->last_trunc = save_last_trunc;
-    ASSERT(log->trunc_thread == cthread_self());
-    ASSERT((status->trunc_state & RVM_TRUNC_PHASES) == RVM_TRUNC_FIND_TAIL);
+    CODA_ASSERT(log->trunc_thread == cthread_self());
+    CODA_ASSERT((status->trunc_state & RVM_TRUNC_PHASES) == RVM_TRUNC_FIND_TAIL);
     return retval;
     }
 /* add segment short id to dictionary */
@@ -1477,7 +1477,7 @@ rvm_return_t def_seg_dict(log,rec_hdr)
     device_t        *dev;               /* device descriptor */
     rvm_return_t    retval;
 
-    ASSERT(rec_hdr->struct_id == log_seg_id);
+    CODA_ASSERT(rec_hdr->struct_id == log_seg_id);
     log_seg = (log_seg_t *)RVM_ADD_LENGTH_TO_ADDR(rec_hdr,
                                                   sizeof(rec_hdr_t));
 
@@ -1491,7 +1491,7 @@ rvm_return_t def_seg_dict(log,rec_hdr)
     seg_dict->seg = seg_lookup(seg_name,&retval);
     if (seg_dict->seg == NULL)
         {
-        ASSERT(log->in_recovery || rvm_utlsw);
+        CODA_ASSERT(log->in_recovery || rvm_utlsw);
         dev = &seg_dict->dev;
         dev->name = malloc(log_seg->name_len+1);
         if (dev->name == NULL)
@@ -1518,7 +1518,7 @@ static void set_node_length(node)
     rvm_offset_t    offset_temp;        /* offset arithmetic temp */
 
     offset_temp = RVM_SUB_OFFSETS(node->end_offset,node->offset);
-    ASSERT(RVM_OFFSET_LEQ(offset_temp,node->end_offset)); /* overflow! */
+    CODA_ASSERT(RVM_OFFSET_LEQ(offset_temp,node->end_offset)); /* overflow! */
     node->length = RVM_OFFSET_TO_LENGTH(offset_temp);
 
     }
@@ -1548,8 +1548,8 @@ static void set_node_length(node)
             if (!rvm_no_yield) cthread_yield(); /* allow reschedule */
             }
         }
-    ASSERT(default_log->trunc_thread == cthread_self());
-    ASSERT((default_log->status.trunc_state & RVM_TRUNC_PHASES)
+    CODA_ASSERT(default_log->trunc_thread == cthread_self());
+    CODA_ASSERT((default_log->status.trunc_state & RVM_TRUNC_PHASES)
            == RVM_TRUNC_BUILD_TREE);
 
     if (tree_insert(&seg_dict->mod_tree,node,cmp_partial_include))
@@ -1581,14 +1581,14 @@ static void set_node_length(node)
                 return RVM_ENO_MEMORY;
             if (node->nv_buf != NULL)
                 {
-                ASSERT(RVM_OFFSET_EQL_ZERO(node->log_offset));
-                ASSERT(node->nv_buf->struct_id == nv_buf_id);
+                CODA_ASSERT(RVM_OFFSET_EQL_ZERO(node->log_offset));
+                CODA_ASSERT(node->nv_buf->struct_id == nv_buf_id);
                 split_node->nv_buf = node->nv_buf;
                 node->nv_buf->ref_cnt++;
                 split_node->nv_ptr = node->nv_ptr;
                 }
             else
-                ASSERT(node->nv_ptr == NULL);
+                CODA_ASSERT(node->nv_ptr == NULL);
 
             /* complete the new node */
             split_node->offset = node->offset;
@@ -1689,11 +1689,11 @@ static rvm_return_t do_nv(log,nv)
     rvm_bool_t      chk_val;            /* checksum result */
     rvm_return_t    retval;             /* return value */
 
-    ASSERT(log->trunc_thread == cthread_self());
-    ASSERT((status->trunc_state & RVM_TRUNC_PHASES)
+    CODA_ASSERT(log->trunc_thread == cthread_self());
+    CODA_ASSERT((status->trunc_state & RVM_TRUNC_PHASES)
            == RVM_TRUNC_BUILD_TREE);
-    ASSERT(nv->struct_id == nv_range_id);  /* not a nv range header */
-    ASSERT(TIME_EQL(log_buf->timestamp,nv->timestamp));
+    CODA_ASSERT(nv->struct_id == nv_range_id);  /* not a nv range header */
+    CODA_ASSERT(TIME_EQL(log_buf->timestamp,nv->timestamp));
 
     if (rvm_chk_len != 0)               /* do monitoring */
         {
@@ -1729,9 +1729,9 @@ static rvm_return_t do_nv(log,nv)
         node->nv_buf->chk_sum = nv->chk_sum;
         node->nv_buf->data_len = nv->length;
         node->nv_ptr = (char *)&node->nv_buf->buf;
-        ASSERT(((rvm_length_t)nv+sizeof(nv_range_t))
+        CODA_ASSERT(((rvm_length_t)nv+sizeof(nv_range_t))
                >= (rvm_length_t)default_log->log_buf.buf);
-        ASSERT(((rvm_length_t)nv+sizeof(nv_range_t))
+        CODA_ASSERT(((rvm_length_t)nv+sizeof(nv_range_t))
                < ((rvm_length_t)default_log->log_buf.buf
                   +default_log->log_buf.r_length));
 
@@ -1754,11 +1754,11 @@ static rvm_return_t do_nv(log,nv)
         {
         if ((retval=range_chk_sum(log,nv,&chk_val,SYNCH))
             != RVM_SUCCESS) return retval;
-        ASSERT(chk_val == rvm_true);        /* check sum failure */
+        CODA_ASSERT(chk_val == rvm_true);        /* check sum failure */
         if ((retval=scan_nv_reverse(log,SYNCH)) != RVM_SUCCESS)
             return retval;
-        ASSERT(log->trunc_thread == cthread_self());
-        ASSERT((status->trunc_state & RVM_TRUNC_PHASES)
+        CODA_ASSERT(log->trunc_thread == cthread_self());
+        CODA_ASSERT((status->trunc_state & RVM_TRUNC_PHASES)
            == RVM_TRUNC_BUILD_TREE);
         }
 
@@ -1779,20 +1779,20 @@ static rvm_return_t do_trans(log,skip_trans)
     long            prev_range = 0;     /* previous range number */
     rvm_return_t    retval;             /* return value */
 
-    ASSERT(log->trunc_thread == cthread_self());
-    ASSERT((status->trunc_state & RVM_TRUNC_PHASES)
+    CODA_ASSERT(log->trunc_thread == cthread_self());
+    CODA_ASSERT((status->trunc_state & RVM_TRUNC_PHASES)
            == RVM_TRUNC_BUILD_TREE);
 
     /* remember the transaction's timestamp and scan ranges */
     rec_end = (rec_end_t *)&log_buf->buf[log_buf->ptr];
-    ASSERT(rec_end->struct_id == rec_end_id);
+    CODA_ASSERT(rec_end->struct_id == rec_end_id);
     log_buf->timestamp = rec_end->timestamp;
     DO_FOREVER
         {
         if ((retval=scan_nv_reverse(log,SYNCH)) != RVM_SUCCESS)
             return retval;
-        ASSERT(log->trunc_thread == cthread_self());
-        ASSERT((status->trunc_state & RVM_TRUNC_PHASES)
+        CODA_ASSERT(log->trunc_thread == cthread_self());
+        CODA_ASSERT((status->trunc_state & RVM_TRUNC_PHASES)
            == RVM_TRUNC_BUILD_TREE);
         rec_hdr = (rec_hdr_t *)&log_buf->buf[log_buf->ptr];
 
@@ -1801,9 +1801,9 @@ static rvm_return_t do_trans(log,skip_trans)
             break;                      /* done */
 
         /* check order and process the range */
-        ASSERT(rec_hdr->struct_id == nv_range_id);
+        CODA_ASSERT(rec_hdr->struct_id == nv_range_id);
         if (prev_range !=0)
-            ASSERT(((nv_range_t *)rec_hdr)->range_num
+            CODA_ASSERT(((nv_range_t *)rec_hdr)->range_num
                    == (prev_range-1));
         if (!skip_trans)
             if ((retval=do_nv(log,(nv_range_t *)rec_hdr))
@@ -1816,10 +1816,10 @@ static rvm_return_t do_trans(log,skip_trans)
 
     /* sanity checks at the end... */
     trans_hdr = (trans_hdr_t *)rec_hdr;
-    ASSERT(trans_hdr->struct_id == trans_hdr_id);
-    ASSERT(TIME_EQL(trans_hdr->timestamp,log_buf->timestamp));
-    ASSERT(trans_hdr->num_ranges == num_ranges);
-    if (num_ranges != 0) ASSERT(prev_range == 1);
+    CODA_ASSERT(trans_hdr->struct_id == trans_hdr_id);
+    CODA_ASSERT(TIME_EQL(trans_hdr->timestamp,log_buf->timestamp));
+    CODA_ASSERT(trans_hdr->num_ranges == num_ranges);
+    if (num_ranges != 0) CODA_ASSERT(prev_range == 1);
 
     return RVM_SUCCESS;
     }
@@ -1859,10 +1859,10 @@ static rvm_return_t chk_wrap(log,force_wrap_chk,skip_trans)
             retval = load_aux_buf(log,&offset,sizeof(trans_hdr_t),
                                   &tmp_ptr,&data_len,SYNCH,rvm_false);
             if (retval != RVM_SUCCESS) return retval;
-            ASSERT(log->trunc_thread == cthread_self());
-            ASSERT((status->trunc_state & RVM_TRUNC_PHASES)
+            CODA_ASSERT(log->trunc_thread == cthread_self());
+            CODA_ASSERT((status->trunc_state & RVM_TRUNC_PHASES)
                    == RVM_TRUNC_BUILD_TREE);
-            ASSERT(data_len >= sizeof(trans_hdr_t));
+            CODA_ASSERT(data_len >= sizeof(trans_hdr_t));
             trans_hdr = (trans_hdr_t *)&log_buf->aux_buf[tmp_ptr];
             }
         else
@@ -1877,13 +1877,13 @@ static rvm_return_t chk_wrap(log,force_wrap_chk,skip_trans)
             trans_hdr = (trans_hdr_t *)log_buf->buf;
 
     /* check for split transaction */
-    ASSERT(trans_hdr->struct_id == trans_hdr_id);
+    CODA_ASSERT(trans_hdr->struct_id == trans_hdr_id);
     if (TRANS_HDR(FIRST_ENTRY_FLAG)
         && TRANS_HDR(LAST_ENTRY_FLAG))
         return RVM_SUCCESS;             /* not split, nothing more needed */
 
     /* split, see if must check further or skip record */
-    ASSERT(TRANS_HDR(FIRST_ENTRY_FLAG) || TRANS_HDR(LAST_ENTRY_FLAG));
+    CODA_ASSERT(TRANS_HDR(FIRST_ENTRY_FLAG) || TRANS_HDR(LAST_ENTRY_FLAG));
     if (!TRANS_HDR(LAST_ENTRY_FLAG))
         {
         if (log_buf->split_ok)
@@ -1904,25 +1904,25 @@ static rvm_return_t chk_wrap(log,force_wrap_chk,skip_trans)
     (void)BCOPY(trans_hdr,&last_trans_hdr,sizeof(trans_hdr_t));
     if ((retval=scan_reverse(log,SYNCH)) != RVM_SUCCESS)
         return retval;
-    ASSERT(log->trunc_thread == cthread_self());
-    ASSERT((status->trunc_state & RVM_TRUNC_PHASES)
+    CODA_ASSERT(log->trunc_thread == cthread_self());
+    CODA_ASSERT((status->trunc_state & RVM_TRUNC_PHASES)
            == RVM_TRUNC_BUILD_TREE);
 
     /* wrap-around had better be next... */
-    ASSERT((long)log_buf->ptr >= 0);
+    CODA_ASSERT((long)log_buf->ptr >= 0);
     log_wrap = (log_wrap_t *)&log_buf->buf[log_buf->ptr];
-    ASSERT(log_wrap->struct_id == log_wrap_id);
-    ASSERT(log_wrap->rec_num == (last_trans_hdr.rec_num-1));
+    CODA_ASSERT(log_wrap->struct_id == log_wrap_id);
+    CODA_ASSERT(log_wrap->rec_num == (last_trans_hdr.rec_num-1));
 
     /* now scan for first record of transaction */
     if ((retval=scan_reverse(log,SYNCH)) != RVM_SUCCESS)
         return retval;
-    ASSERT(log->trunc_thread == cthread_self());
-    ASSERT((status->trunc_state & RVM_TRUNC_PHASES)
+    CODA_ASSERT(log->trunc_thread == cthread_self());
+    CODA_ASSERT((status->trunc_state & RVM_TRUNC_PHASES)
            == RVM_TRUNC_BUILD_TREE);
-    ASSERT((long)log_buf->ptr >= 0);
+    CODA_ASSERT((long)log_buf->ptr >= 0);
     rec_end = (rec_end_t *)&log_buf->buf[log_buf->ptr];
-    ASSERT(rec_end->struct_id == rec_end_id);
+    CODA_ASSERT(rec_end->struct_id == rec_end_id);
     /* check if the header is the first record of last transaction */
     offset = RVM_ADD_LENGTH_TO_OFFSET(log_buf->offset,log_buf->ptr);
     offset = RVM_SUB_LENGTH_FROM_OFFSET(offset,rec_end->rec_length);
@@ -1937,23 +1937,23 @@ static rvm_return_t chk_wrap(log,force_wrap_chk,skip_trans)
         /* header is in recovery buffer */
         tmp_ptr = RVM_OFFSET_TO_LENGTH(RVM_SUB_OFFSETS(offset,
                                            log_buf->offset));
-        ASSERT(tmp_ptr >= 0);
+        CODA_ASSERT(tmp_ptr >= 0);
         trans_hdr = (trans_hdr_t *)&log_buf->buf[tmp_ptr];
         }
 
     /* sanity checks... */
-    ASSERT(trans_hdr->struct_id == trans_hdr_id);
-    ASSERT(TRANS_HDR(FIRST_ENTRY_FLAG));
-    ASSERT(TIME_EQL(trans_hdr->uname,last_trans_hdr.uname));
-    ASSERT(trans_hdr->rec_num == (last_trans_hdr.rec_num-2));
+    CODA_ASSERT(trans_hdr->struct_id == trans_hdr_id);
+    CODA_ASSERT(TRANS_HDR(FIRST_ENTRY_FLAG));
+    CODA_ASSERT(TIME_EQL(trans_hdr->uname,last_trans_hdr.uname));
+    CODA_ASSERT(trans_hdr->rec_num == (last_trans_hdr.rec_num-2));
 
     /* all is well, restore last transaction record */
     log_buf->prev_rec_num = 0;
     ZERO_TIME(log_buf->prev_timestamp);
     if ((retval=init_buffer(log,&end_offset,REVERSE,SYNCH))
         != RVM_SUCCESS) return retval;
-    ASSERT(log->trunc_thread == cthread_self());
-    ASSERT((status->trunc_state & RVM_TRUNC_PHASES)
+    CODA_ASSERT(log->trunc_thread == cthread_self());
+    CODA_ASSERT((status->trunc_state & RVM_TRUNC_PHASES)
            == RVM_TRUNC_BUILD_TREE);
     log_buf->ptr -= sizeof(rec_end_t);
     log_buf->split_ok = rvm_true;
@@ -1978,8 +1978,8 @@ static rvm_return_t build_tree(log)
     rvm_offset_t    last_buf;           /* debug only... */
     long            last_ptr;           /* debug only... */
 
-    ASSERT(log->trunc_thread == cthread_self());
-    ASSERT(((status->trunc_state & RVM_TRUNC_PHASES) == RVM_TRUNC_FIND_TAIL)
+    CODA_ASSERT(log->trunc_thread == cthread_self());
+    CODA_ASSERT(((status->trunc_state & RVM_TRUNC_PHASES) == RVM_TRUNC_FIND_TAIL)
             || ((status->trunc_state & RVM_TRUNC_PHASES) == ZERO));
     status->trunc_state = (status->trunc_state & (~RVM_TRUNC_FIND_TAIL))
                            | RVM_TRUNC_BUILD_TREE;
@@ -1997,7 +1997,7 @@ X(init_buf)
     else
         retval = init_buffer(log,&status->prev_log_tail,
                              REVERSE,SYNCH);
-    ASSERT(log->trunc_thread == cthread_self());
+    CODA_ASSERT(log->trunc_thread == cthread_self());
 X(done_init_buf)
     /* scan in reverse from tail to find records for uncommitted changes */
     num_nodes = NODES_PER_YIELD;
@@ -2011,12 +2011,12 @@ X(start loop)
         if ((retval=scan_reverse(log,SYNCH)) != RVM_SUCCESS)
             return retval;
 X(done scan_reverse)
-        ASSERT(log->trunc_thread == cthread_self());
-        ASSERT((status->trunc_state & RVM_TRUNC_PHASES)
+        CODA_ASSERT(log->trunc_thread == cthread_self());
+        CODA_ASSERT((status->trunc_state & RVM_TRUNC_PHASES)
                == RVM_TRUNC_BUILD_TREE);
         if (rvm_chk_sigint != NULL)     /* test for interrupt */
             if ((*rvm_chk_sigint)(NULL)) return RVM_SUCCESS;
-        ASSERT((long)log_buf->ptr >= 0); /* log damage, invalid record */
+        CODA_ASSERT((long)log_buf->ptr >= 0); /* log damage, invalid record */
 
         /* check type of end marker, do type-dependent processing */
         rec_end = (rec_end_t *)&log_buf->buf[log_buf->ptr];
@@ -2029,7 +2029,7 @@ X(log_wrap)
         else
             {
 X(else)
-            ASSERT(rec_end->struct_id == rec_end_id);
+            CODA_ASSERT(rec_end->struct_id == rec_end_id);
             switch (rec_end->rec_type)
                 {
               case trans_hdr_id:        /* process transaction */
@@ -2052,7 +2052,7 @@ X( log_seg_id: def_seg_dict)
 X( log_seg_id: done)
                 log_buf->ptr -= rec_end->rec_length;
                 break;
-              default:  ASSERT(rvm_false); /* trouble, log damage? */
+              default:  CODA_ASSERT(rvm_false); /* trouble, log damage? */
                 }
             }
 
@@ -2082,10 +2082,10 @@ static dev_region_t *pre_scan(log,tree)
     node = (dev_region_t *)tree->root;
     /* XXX - Can node ever be NULL?  If so, last_node can be random */
     /* I currently believe it must be NON-null */
-    ASSERT(node != NULL);
+    CODA_ASSERT(node != NULL);
     while (node != NULL)
         {
-        ASSERT(node->links.node.struct_id == dev_region_id);
+        CODA_ASSERT(node->links.node.struct_id == dev_region_id);
         last_node = node;
         node = (dev_region_t *)node->links.node.lss;
         }
@@ -2095,7 +2095,7 @@ static dev_region_t *pre_scan(log,tree)
     node = (dev_region_t *)tree->root;
     while (node != NULL)
         {
-        ASSERT(node->links.node.struct_id == dev_region_id);
+        CODA_ASSERT(node->links.node.struct_id == dev_region_id);
 
         /* compute buffer extension for this node */
         temp = RVM_SUB_OFFSETS(node->end_offset,log_buf->offset);
@@ -2132,10 +2132,10 @@ static rvm_return_t disk_merge(log,node,preload)
     rvm_return_t    retval;             /* return value */
     rvm_bool_t      was_preloaded = preload; /* save preload state */
 
-    ASSERT(log->trunc_thread == cthread_self());
-    ASSERT((status->trunc_state & RVM_TRUNC_PHASES) 
+    CODA_ASSERT(log->trunc_thread == cthread_self());
+    CODA_ASSERT((status->trunc_state & RVM_TRUNC_PHASES) 
            == RVM_TRUNC_APPLY);
-    ASSERT(node->links.node.struct_id == dev_region_id);
+    CODA_ASSERT(node->links.node.struct_id == dev_region_id);
 
     /* set log buffer pointer and end offset */
     end_offset = CHOP_OFFSET_TO_SECTOR_SIZE(node->end_offset);
@@ -2157,10 +2157,10 @@ static rvm_return_t disk_merge(log,node,preload)
                                      &aux_ptr,&data_len,SYNCH,rvm_true))
                 != RVM_SUCCESS) return retval;
             /* sanity checks and monitoring */
-            ASSERT((aux_ptr+data_len) <= log_buf->aux_rlength);
-            ASSERT((buf_ptr+data_len) <= log_buf->length);
-            ASSERT(BYTE_SKEW(aux_ptr) == BYTE_SKEW(node->vmaddr));
-            ASSERT((long)(node->length-data_len) >= 0);
+            CODA_ASSERT((aux_ptr+data_len) <= log_buf->aux_rlength);
+            CODA_ASSERT((buf_ptr+data_len) <= log_buf->length);
+            CODA_ASSERT(BYTE_SKEW(aux_ptr) == BYTE_SKEW(node->vmaddr));
+            CODA_ASSERT((long)(node->length-data_len) >= 0);
             if (rvm_chk_len != 0)
                 monitor_vmaddr(node->vmaddr,data_len,
                                &log_buf->aux_buf[aux_ptr],NULL,NULL,
@@ -2176,15 +2176,15 @@ static rvm_return_t disk_merge(log,node,preload)
                 if (!(log->in_recovery || rvm_utlsw || rvm_no_yield))
                     {
                     cthread_yield();    /* allow reschedule */
-                    ASSERT(log->trunc_thread == cthread_self());
+                    CODA_ASSERT(log->trunc_thread == cthread_self());
                     }
                 if ((rw_length=read_dev(log->cur_seg_dev,&end_offset,
                              &log_buf->buf[tmp_ptr],SECTOR_SIZE)) < 0)
                     return RVM_EIO;
-                ASSERT(log->trunc_thread == cthread_self());
-                ASSERT((status->trunc_state & RVM_TRUNC_PHASES) 
+                CODA_ASSERT(log->trunc_thread == cthread_self());
+                CODA_ASSERT((status->trunc_state & RVM_TRUNC_PHASES) 
                        == RVM_TRUNC_APPLY);
-                ASSERT(rw_length == SECTOR_SIZE);
+                CODA_ASSERT(rw_length == SECTOR_SIZE);
                 preload = rvm_true;
 
                 /* monitor data from last sector */
@@ -2215,11 +2215,11 @@ static rvm_return_t disk_merge(log,node,preload)
             /* if done, set final write length */
             if (node->length == 0)
                 {
-                ASSERT(RVM_OFFSET_EQL(node->offset,
+                CODA_ASSERT(RVM_OFFSET_EQL(node->offset,
                                       node->end_offset));
                 end_offset =
                     RVM_ADD_LENGTH_TO_OFFSET(log_buf->offset,buf_ptr);
-                ASSERT(RVM_OFFSET_EQL(end_offset,node->end_offset));
+                CODA_ASSERT(RVM_OFFSET_EQL(end_offset,node->end_offset));
                 if (!was_preloaded)
                     log_buf->r_length = ROUND_TO_SECTOR_SIZE(buf_ptr);
                 return RVM_SUCCESS;
@@ -2227,15 +2227,15 @@ static rvm_return_t disk_merge(log,node,preload)
             }
 
         /* write buffer to segment & monitor */
-        ASSERT(buf_ptr == log_buf->length);
+        CODA_ASSERT(buf_ptr == log_buf->length);
         if ((rw_length=write_dev(log->cur_seg_dev,&log_buf->offset,
                                  log_buf->buf,log_buf->length,
                                  SYNCH))
             < 0) return RVM_EIO;
-        ASSERT(log->trunc_thread == cthread_self());
-        ASSERT((status->trunc_state & RVM_TRUNC_PHASES) 
+        CODA_ASSERT(log->trunc_thread == cthread_self());
+        CODA_ASSERT((status->trunc_state & RVM_TRUNC_PHASES) 
                == RVM_TRUNC_APPLY);
-        ASSERT(rw_length == log_buf->length);
+        CODA_ASSERT(rw_length == log_buf->length);
         if (rvm_chk_len != 0)
             monitor_vmaddr(node->vmaddr-data_len,data_len,
                            &log_buf->buf[buf_ptr-data_len],NULL,NULL,
@@ -2243,14 +2243,14 @@ static rvm_return_t disk_merge(log,node,preload)
         if (!(log->in_recovery || rvm_utlsw || rvm_no_yield))
             {
             cthread_yield();            /* allow reschedule */
-            ASSERT(log->trunc_thread == cthread_self());
-            ASSERT((status->trunc_state & RVM_TRUNC_PHASES) 
+            CODA_ASSERT(log->trunc_thread == cthread_self());
+            CODA_ASSERT((status->trunc_state & RVM_TRUNC_PHASES) 
                    == RVM_TRUNC_APPLY);
             }
         log_buf->offset =
             RVM_ADD_LENGTH_TO_OFFSET(log_buf->offset,buf_ptr);
         buf_ptr = 0;
-        ASSERT(OFFSET_TO_SECTOR_INDEX(log_buf->offset) == 0);
+        CODA_ASSERT(OFFSET_TO_SECTOR_INDEX(log_buf->offset) == 0);
         }
     }
 /* merge node's new values with segment data in buffer */
@@ -2272,7 +2272,7 @@ static rvm_return_t merge_node(log,node,preload)
                            "merge_node: data copied from node:");
         temp = RVM_OFFSET_TO_LENGTH(RVM_SUB_OFFSETS(node->offset,
                                                     log_buf->offset));
-        ASSERT((temp+node->length) <= log_buf->r_length);
+        CODA_ASSERT((temp+node->length) <= log_buf->r_length);
         dest_aligned_bcopy(node->nv_ptr,&log_buf->buf[temp],
                            node->length);
         }
@@ -2288,7 +2288,7 @@ static rvm_return_t merge_node(log,node,preload)
         if (!(log->in_recovery || rvm_utlsw || rvm_no_yield))
             {
             cthread_yield();            /* allow reschedule */
-            ASSERT(log->trunc_thread == cthread_self());
+            CODA_ASSERT(log->trunc_thread == cthread_self());
             }
         }
 
@@ -2312,9 +2312,9 @@ static rvm_return_t update_seg(log,seg_dict,seg_dev)
     long            nodes_done = 0;
 
     /* sanity checks and initializations */
-    ASSERT(&log->dev != seg_dev);
-    ASSERT(log->trunc_thread == cthread_self());
-    ASSERT((status->trunc_state & RVM_TRUNC_PHASES) 
+    CODA_ASSERT(&log->dev != seg_dev);
+    CODA_ASSERT(log->trunc_thread == cthread_self());
+    CODA_ASSERT((status->trunc_state & RVM_TRUNC_PHASES) 
            == RVM_TRUNC_APPLY);
     rvm_num_nodes = seg_dict->mod_tree.n_nodes;
     rvm_max_depth = seg_dict->mod_tree.max_depth;
@@ -2325,8 +2325,8 @@ static rvm_return_t update_seg(log,seg_dict,seg_dev)
                                              */
         {
         mutex_lock(&seg_dict->seg->dev_lock);
-        ASSERT(log->trunc_thread == cthread_self());
-        ASSERT((status->trunc_state & RVM_TRUNC_PHASES) 
+        CODA_ASSERT(log->trunc_thread == cthread_self());
+        CODA_ASSERT((status->trunc_state & RVM_TRUNC_PHASES) 
                == RVM_TRUNC_APPLY);
         }
     while (seg_dict->mod_tree.root != NULL)
@@ -2346,7 +2346,7 @@ static rvm_return_t update_seg(log,seg_dict,seg_dev)
                                     log_buf->offset));
             log_buf->r_length =
                 ROUND_TO_SECTOR_SIZE(log_buf->r_length);
-            ASSERT(log_buf->r_length <= log_buf->length);
+            CODA_ASSERT(log_buf->r_length <= log_buf->length);
             preload = rvm_true;
             }
         else
@@ -2358,8 +2358,8 @@ static rvm_return_t update_seg(log,seg_dict,seg_dev)
         if (!(log->in_recovery || rvm_utlsw || rvm_no_yield))
             {
             cthread_yield();
-            ASSERT(log->trunc_thread == cthread_self());
-            ASSERT((status->trunc_state & RVM_TRUNC_PHASES) 
+            CODA_ASSERT(log->trunc_thread == cthread_self());
+            CODA_ASSERT((status->trunc_state & RVM_TRUNC_PHASES) 
                    == RVM_TRUNC_APPLY);
             }
         if ((r_length=read_dev(seg_dev,&log_buf->offset,
@@ -2368,16 +2368,16 @@ static rvm_return_t update_seg(log,seg_dict,seg_dev)
             retval = RVM_EIO;
             goto err_exit;
             }
-        ASSERT(log->trunc_thread == cthread_self());
-        ASSERT((status->trunc_state & RVM_TRUNC_PHASES) 
+        CODA_ASSERT(log->trunc_thread == cthread_self());
+        CODA_ASSERT((status->trunc_state & RVM_TRUNC_PHASES) 
                == RVM_TRUNC_APPLY);
-        ASSERT(r_length == log_buf->r_length);
+        CODA_ASSERT(r_length == log_buf->r_length);
 
         /* merge selected nodes into buffer */
         num_nodes = NODES_PER_YIELD;
         UNLINK_NODES_OF(seg_dict->mod_tree,dev_region_t,node)
             {
-            ASSERT(node->links.node.struct_id == dev_region_id);
+            CODA_ASSERT(node->links.node.struct_id == dev_region_id);
             nodes_done++;
 
             /* do monitoring */
@@ -2405,10 +2405,10 @@ static rvm_return_t update_seg(log,seg_dict,seg_dev)
             retval = RVM_EIO;
             goto err_exit;
             }
-        ASSERT(log->trunc_thread == cthread_self());
-        ASSERT((status->trunc_state & RVM_TRUNC_PHASES) 
+        CODA_ASSERT(log->trunc_thread == cthread_self());
+        CODA_ASSERT((status->trunc_state & RVM_TRUNC_PHASES) 
                == RVM_TRUNC_APPLY);
-        ASSERT(r_length == log_buf->r_length);
+        CODA_ASSERT(r_length == log_buf->r_length);
         /* do monitoring */
         if (rvm_chk_len != 0)
             {
@@ -2422,15 +2422,15 @@ static rvm_return_t update_seg(log,seg_dict,seg_dev)
         }
 
     /* tree checks and cleanup after unlinking */
-    ASSERT(nodes_done == rvm_num_nodes);
-    ASSERT(seg_dict->mod_tree.n_nodes == 0);
+    CODA_ASSERT(nodes_done == rvm_num_nodes);
+    CODA_ASSERT(seg_dict->mod_tree.n_nodes == 0);
 
 err_exit:
     if (!(log->in_recovery || rvm_utlsw)) /* end segment dev_lock crit sec */
         {
         mutex_unlock(&seg_dict->seg->dev_lock);
-        ASSERT(log->trunc_thread == cthread_self());
-        ASSERT((status->trunc_state & RVM_TRUNC_PHASES) 
+        CODA_ASSERT(log->trunc_thread == cthread_self());
+        CODA_ASSERT((status->trunc_state & RVM_TRUNC_PHASES) 
                == RVM_TRUNC_APPLY);
         }
     return retval;
@@ -2446,8 +2446,8 @@ rvm_return_t apply_mods(log)
     long            i;                  /* loop counter */
     rvm_length_t    flags = O_RDWR;
 
-    ASSERT(log->trunc_thread == cthread_self());
-    ASSERT((status->trunc_state & RVM_TRUNC_PHASES) 
+    CODA_ASSERT(log->trunc_thread == cthread_self());
+    CODA_ASSERT((status->trunc_state & RVM_TRUNC_PHASES) 
            == RVM_TRUNC_BUILD_TREE);
     status->trunc_state = (status->trunc_state & ~RVM_TRUNC_BUILD_TREE)
                            | RVM_TRUNC_APPLY;
@@ -2456,7 +2456,7 @@ rvm_return_t apply_mods(log)
     for (i=0;i<log->seg_dict_len;i++)
         {
         seg_dict = &log->seg_dict_vec[i];
-        ASSERT(seg_dict->struct_id == seg_dict_id);
+        CODA_ASSERT(seg_dict->struct_id == seg_dict_id);
 
         if (seg_dict->mod_tree.root == NULL)
             continue;                   /* no changes to this seg */
@@ -2468,19 +2468,19 @@ rvm_return_t apply_mods(log)
             if (rvm_no_update) flags = O_RDONLY;
             if (open_dev(seg_dev,flags,0) < 0)
                 return RVM_EIO;
-            ASSERT(log->trunc_thread == cthread_self());
+            CODA_ASSERT(log->trunc_thread == cthread_self());
             if (set_dev_char(seg_dev,&seg_dev->num_bytes) < 0)
                 {
                 close_dev(seg_dev);
                 return RVM_EIO;
                 }
-            ASSERT(log->trunc_thread == cthread_self());
-            ASSERT((status->trunc_state & RVM_TRUNC_PHASES) 
+            CODA_ASSERT(log->trunc_thread == cthread_self());
+            CODA_ASSERT((status->trunc_state & RVM_TRUNC_PHASES) 
                    == RVM_TRUNC_APPLY);
             }
         else
             {
-            ASSERT(seg_dict->seg->links.struct_id == seg_id);
+            CODA_ASSERT(seg_dict->seg->links.struct_id == seg_id);
             seg_dev = &(seg_dict->seg->dev); /* already open */
             }
         log->cur_seg_dev = seg_dev;
@@ -2488,8 +2488,8 @@ rvm_return_t apply_mods(log)
         /* read segment data and merge new values */
         if ((retval=update_seg(log,seg_dict,seg_dev))
             != RVM_SUCCESS) return retval;
-        ASSERT(log->trunc_thread == cthread_self());
-        ASSERT((status->trunc_state & RVM_TRUNC_PHASES) 
+        CODA_ASSERT(log->trunc_thread == cthread_self());
+        CODA_ASSERT((status->trunc_state & RVM_TRUNC_PHASES) 
                == RVM_TRUNC_APPLY);
 
         /* close segment device if in recovery */
@@ -2516,8 +2516,8 @@ static rvm_return_t status_update(log, new_1st_rec_num)
     int             kretval;
     rvm_return_t    retval = RVM_SUCCESS; /* return value */
 
-    ASSERT(log->trunc_thread == cthread_self());
-    ASSERT((status->trunc_state & RVM_TRUNC_PHASES) 
+    CODA_ASSERT(log->trunc_thread == cthread_self());
+    CODA_ASSERT((status->trunc_state & RVM_TRUNC_PHASES) 
            == RVM_TRUNC_APPLY);
     status->trunc_state = (status->trunc_state & ~RVM_TRUNC_APPLY)
                            | RVM_TRUNC_UPDATE;
@@ -2525,8 +2525,8 @@ static rvm_return_t status_update(log, new_1st_rec_num)
     /* update the status block on disk */
     CRITICAL(log->dev_lock,             /* begin log device lock crit sec */
         {
-        ASSERT(log->trunc_thread == cthread_self());
-        ASSERT((status->trunc_state & RVM_TRUNC_PHASES) 
+        CODA_ASSERT(log->trunc_thread == cthread_self());
+        CODA_ASSERT((status->trunc_state & RVM_TRUNC_PHASES) 
            == RVM_TRUNC_UPDATE);
         status->prev_trunc = status->last_trunc;
 
@@ -2560,8 +2560,8 @@ static rvm_return_t status_update(log, new_1st_rec_num)
 
         retval = write_log_status(log,NULL);
 err_exit:;
-        ASSERT(log->trunc_thread == cthread_self());
-        ASSERT((status->trunc_state & RVM_TRUNC_PHASES) 
+        CODA_ASSERT(log->trunc_thread == cthread_self());
+        CODA_ASSERT((status->trunc_state & RVM_TRUNC_PHASES) 
            == RVM_TRUNC_UPDATE);
         });                             /* end log device lock crit sec */
     if (kretval != 0) return RVM_EIO;
@@ -2586,10 +2586,10 @@ static rvm_return_t new_epoch(log,count)
     rvm_return_t    retval = RVM_SUCCESS;
 
     /* be sure last records in truncation are in log */
-    ASSERT(log->trunc_thread == cthread_self());
+    CODA_ASSERT(log->trunc_thread == cthread_self());
     if (sync_dev(&log->dev) < 0)
         return RVM_EIO;
-    ASSERT(log->trunc_thread == cthread_self());
+    CODA_ASSERT(log->trunc_thread == cthread_self());
 
     /* count truncations & accumulate statistics */
     (*count)++;
@@ -2605,11 +2605,11 @@ static rvm_return_t new_epoch(log,count)
     make_uname(&status->last_trunc);
     if ((retval=write_log_status(log,NULL)) != RVM_SUCCESS)
         return retval;
-    ASSERT(log->trunc_thread == cthread_self());
+    CODA_ASSERT(log->trunc_thread == cthread_self());
 
     /* restore log segment definitions */
     retval = define_all_segs(log);
-    ASSERT(log->trunc_thread == cthread_self());
+    CODA_ASSERT(log->trunc_thread == cthread_self());
     return retval;
     }
 
@@ -2632,15 +2632,15 @@ X(start)
     CRITICAL(log->truncation_lock,      /* begin truncation lock crit sec */
         {
         /* capture truncation thread & flag for checking */
-        ASSERT(log->trunc_thread == (cthread_t)NULL);
-        ASSERT(status->trunc_state == ZERO);
+        CODA_ASSERT(log->trunc_thread == (cthread_t)NULL);
+        CODA_ASSERT(status->trunc_state == ZERO);
         log->trunc_thread = cthread_self();
         status->trunc_state = flag;
 X(dev_lock)
         CRITICAL(log->dev_lock,         /* begin dev_lock crit sec */
             {
             /* process statistics */
-            ASSERT(log->trunc_thread == cthread_self());
+            CODA_ASSERT(log->trunc_thread == cthread_self());
             kretval= gettimeofday(&trunc_start_time,
                                   (struct timezone *)NULL);
             if (kretval != 0)
@@ -2656,10 +2656,10 @@ X(in_recovery)
                 {
                 if ((retval=locate_tail(log)) != RVM_SUCCESS)
                     goto err_exit1;
-                ASSERT((status->trunc_state & RVM_TRUNC_PHASES)
+                CODA_ASSERT((status->trunc_state & RVM_TRUNC_PHASES)
                        == RVM_TRUNC_FIND_TAIL);
                 }
-            ASSERT(log->trunc_thread == cthread_self());
+            CODA_ASSERT(log->trunc_thread == cthread_self());
             if (rvm_chk_sigint != NULL) /* test for interrupt */
                 if ((*rvm_chk_sigint)(NULL)) goto err_exit1;
             /* see if truncation actually needed */
@@ -2674,7 +2674,7 @@ X(in_recovery)
                 /* switch epochs */
                 if ((retval=new_epoch(log,count)) != RVM_SUCCESS)
                     goto err_exit1;
-                ASSERT(log->trunc_thread == cthread_self());
+                CODA_ASSERT(log->trunc_thread == cthread_self());
                 }
 
 X(err_exit1)
@@ -2682,12 +2682,12 @@ err_exit1:;
 	    /* signal `initiate_truncation' that the first part is done */
 	    if (is_daemon)
 		{
-		ASSERT(log->daemon.thread == cthread_self());
-		ASSERT(daemon->state == truncating);
-		ASSERT((status->trunc_state & RVM_ASYNC_TRUNCATE) != 0);
+		CODA_ASSERT(log->daemon.thread == cthread_self());
+		CODA_ASSERT(daemon->state == truncating);
+		CODA_ASSERT((status->trunc_state & RVM_ASYNC_TRUNCATE) != 0);
 		condition_signal(&daemon->flush_flag);
-		ASSERT(log->daemon.thread == cthread_self());
-		ASSERT(daemon->state == truncating);
+		CODA_ASSERT(log->daemon.thread == cthread_self());
+		CODA_ASSERT(daemon->state == truncating);
 		}
             });                         /* end dev_lock crit sec */
 
@@ -2700,17 +2700,17 @@ err_exit1:;
 X(do_trunc)
             /* build tree and time */
             kretval= gettimeofday(&tmp_time,(struct timezone *)NULL);
-            if (kretval != 0) assert(0); /* return RVM_EIO; */
+            if (kretval != 0) CODA_ASSERT(0); /* return RVM_EIO; */
 X(build_tree)
             if ((retval=build_tree(log)) != RVM_SUCCESS) /* phase 2 */
-                assert(0); /* return retval; */
+                CODA_ASSERT(0); /* return retval; */
 X(build_tree done)
-            ASSERT(log->trunc_thread == cthread_self());
-            ASSERT((status->trunc_state & RVM_TRUNC_PHASES)
+            CODA_ASSERT(log->trunc_thread == cthread_self());
+            CODA_ASSERT((status->trunc_state & RVM_TRUNC_PHASES)
                    == RVM_TRUNC_BUILD_TREE);
 	    
             kretval= gettimeofday(&end_time,(struct timezone *)NULL);
-            if (kretval != 0) assert(0); /* return RVM_EIO; */
+            if (kretval != 0) CODA_ASSERT(0); /* return RVM_EIO; */
             end_time = sub_times(&end_time,&tmp_time);
             last_tree_build_time = round_time(&end_time);
             if (rvm_chk_sigint != NULL) /* test for interrupt */
@@ -2718,16 +2718,16 @@ X(build_tree done)
 
             /* apply tree and time */
             kretval= gettimeofday(&tmp_time,(struct timezone *)NULL);
-            if (kretval != 0) assert(0); /* return RVM_EIO; */
+            if (kretval != 0) CODA_ASSERT(0); /* return RVM_EIO; */
 X(apply_mods)
             if ((retval=apply_mods(log)) != RVM_SUCCESS) /* phase 3 */
                 goto err_exit;
 X(apply_mods end)
-            ASSERT(log->trunc_thread == cthread_self());
-            ASSERT((status->trunc_state & RVM_TRUNC_PHASES)
+            CODA_ASSERT(log->trunc_thread == cthread_self());
+            CODA_ASSERT((status->trunc_state & RVM_TRUNC_PHASES)
                    == RVM_TRUNC_APPLY);
             kretval= gettimeofday(&end_time,(struct timezone *)NULL);
-            if (kretval != 0) assert(0); /* return RVM_EIO; */
+            if (kretval != 0) CODA_ASSERT(0); /* return RVM_EIO; */
             end_time = sub_times(&end_time,&tmp_time);
             last_tree_apply_time = round_time(&end_time);
             if (rvm_chk_sigint != NULL) /* test for interrupt */
@@ -2740,20 +2740,20 @@ X(apply_mods end)
 X(status_upd)
         /* always update the status */
         retval = status_update(log, new_1st_rec_num);    /* phase 4 */
-        ASSERT(log->trunc_thread == cthread_self());
-        ASSERT((status->trunc_state & RVM_TRUNC_PHASES)
+        CODA_ASSERT(log->trunc_thread == cthread_self());
+        CODA_ASSERT((status->trunc_state & RVM_TRUNC_PHASES)
                == RVM_TRUNC_UPDATE);
         /* wake up any threads waiting on a truncation */
 err_exit:
-        ASSERT(log->trunc_thread == cthread_self());
+        CODA_ASSERT(log->trunc_thread == cthread_self());
         CRITICAL(daemon->lock,          /* begin daemon->lock crit sec */
             {
-            ASSERT(log->trunc_thread == cthread_self());
+            CODA_ASSERT(log->trunc_thread == cthread_self());
             if (is_daemon)
                 {
-                ASSERT(log->daemon.thread == cthread_self());
-                ASSERT((status->trunc_state & RVM_ASYNC_TRUNCATE) != 0);
-                ASSERT(daemon->state == truncating);
+                CODA_ASSERT(log->daemon.thread == cthread_self());
+                CODA_ASSERT((status->trunc_state & RVM_ASYNC_TRUNCATE) != 0);
+                CODA_ASSERT(daemon->state == truncating);
                 if (retval != RVM_SUCCESS)
                     daemon->state = error;
                 else if (daemon->state == truncating)
@@ -2762,7 +2762,7 @@ err_exit:
             if (retval == RVM_SUCCESS) {
                 condition_broadcast(&daemon->wake_up);
 	    }
-            ASSERT(log->trunc_thread == cthread_self());
+            CODA_ASSERT(log->trunc_thread == cthread_self());
             });                         /* end daemon->lock crit sec */
 
         log->trunc_thread = (cthread_t)NULL;
@@ -2901,14 +2901,14 @@ void log_daemon(log)
 
     DO_FOREVER
         {
-        ASSERT(daemon->thread == cthread_self());
+        CODA_ASSERT(daemon->thread == cthread_self());
         /* wait to be awakened by request */
         CRITICAL(daemon->lock,          /* begin daemon lock crit sec */
             {
 		    while (daemon->state == rvm_idle) {
 			    condition_wait(&daemon->code,&daemon->lock);
 		    }
-            ASSERT(daemon->thread == cthread_self());
+            CODA_ASSERT(daemon->thread == cthread_self());
             state = daemon->state;      /* end daemon lock crit sec */
             });
 
@@ -2918,7 +2918,7 @@ void log_daemon(log)
           case truncating:                /* do a truncation */
             retval = log_recover(log,&log->status.tot_async_truncation,
                                  rvm_true,RVM_ASYNC_TRUNCATE);
-            ASSERT(daemon->thread == cthread_self());
+            CODA_ASSERT(daemon->thread == cthread_self());
 
             CRITICAL(daemon->lock,state = daemon->state);
             if (state == error)
@@ -2928,7 +2928,7 @@ void log_daemon(log)
           case terminate:
             cthread_exit(RVM_SUCCESS);  /* normal exit */
 
-          default:    ASSERT(rvm_false);    /* error */
+          default:    CODA_ASSERT(rvm_false);    /* error */
             }
         }
     }

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/venusvm.cc,v 4.14 98/10/02 13:12:03 jaharkes Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/venusvm.cc,v 4.15 1998/10/03 16:59:25 jaharkes Exp $";
 #endif /*_BLURB_*/
 
 
@@ -319,7 +319,7 @@ void VmonInit() {
 
     kmem = open("/dev/kmem",0,0);
     if (kmem <= 0) {
-	Choke("Could not open /dev/kmem for reading");
+	CHOKE("Could not open /dev/kmem for reading");
     }
 #ifdef __BSD44__
 
@@ -331,7 +331,7 @@ void VmonInit() {
 	fflush(stderr);
 	LOG(0, ("ERROR: running a pre-vfs-statistics kernel\n"));
 	/* make the penalty a bit harsh */
-	ASSERT(0);
+	CODA_ASSERT(0);
     }
 
     kmem = open("/dev/kmem",0,0);
@@ -339,7 +339,7 @@ void VmonInit() {
 	fprintf(stderr, "ERROR: could not open /dev/kmem for reading\n");
 	fflush(stderr);
 	LOG(0, ("ERROR: could not open /dev/kmem for reading\n"));
-	ASSERT(0);
+	CODA_ASSERT(0);
     }
 
     lseek(kmem, (long)RawStats[0].n_value, 0);
@@ -404,7 +404,7 @@ void VmonEnqueueSession(VmonSessionId Session, VolumeId Volume, UserId User,
 	rvm_return_t rvmret;
 
 	rvmret = rvm_begin_transaction(&tid, no_restore);
-	ASSERT(rvmret == RVM_SUCCESS);
+	CODA_ASSERT(rvmret == RVM_SUCCESS);
 
 	se = (vmse *)rds_malloc(sizeof(vmse), &tid, &err);
 	if (err != 0) {
@@ -423,17 +423,17 @@ void VmonEnqueueSession(VmonSessionId Session, VolumeId Volume, UserId User,
 	    }
 	} else packed = NULL;
 	rvmret = rvm_set_range(&tid, (char *)se, sizeof(*se));
-	ASSERT(rvmret == RVM_SUCCESS);
+	CODA_ASSERT(rvmret == RVM_SUCCESS);
 	if (packedsize != 0) {
 	    rvmret = rvm_set_range(&tid, (char *)packed, packedsize);
-	    ASSERT(rvmret == RVM_SUCCESS);
+	    CODA_ASSERT(rvmret == RVM_SUCCESS);
 	}
 	rvmret = rvm_set_range(&tid, (char *)&VMSE, sizeof(VMSE));
-	ASSERT(rvmret == RVM_SUCCESS);
+	CODA_ASSERT(rvmret == RVM_SUCCESS);
 
 	if ((shadowp = SEActiveList.last()) != 0) {
 	    rvmret = rvm_set_range(&tid, (char *)shadowp, sizeof(*shadowp));
-	    ASSERT(rvmret == RVM_SUCCESS);
+	    CODA_ASSERT(rvmret == RVM_SUCCESS);
 	}
 
 	for (i = 0; i < (VmonSessionEventArraySize/sizeof(VmonSessionEvent)); i++) {
@@ -441,7 +441,7 @@ void VmonEnqueueSession(VmonSessionId Session, VolumeId Volume, UserId User,
 	    if (elem->SuccessCount != 0 || elem->FailureCount != 0)
 	        packed[checks++] = *elem;
 	}
-	ASSERT(entries == checks);
+	CODA_ASSERT(entries == checks);
 
 	se->Init(Session, Volume, User, AVSG, StartTime, EndTime, 
 		 CETime, entries, packed, Stats, CacheStats);
@@ -449,7 +449,7 @@ void VmonEnqueueSession(VmonSessionId Session, VolumeId Volume, UserId User,
 	VMSE.count += packedsize;
 	
 	rvmret = rvm_end_transaction(&tid, flush);
-	ASSERT(rvmret == RVM_SUCCESS);
+	CODA_ASSERT(rvmret == RVM_SUCCESS);
     }
     
 }
@@ -520,7 +520,7 @@ static void VmonNoteOverflow(enum OverFlow vm) {
 		    OE.RVMStartTime = Vtime();
 		break;
 	default:
-		ASSERT(0);    /* never reached */
+		CODA_ASSERT(0);    /* never reached */
 		break;
     }
 }
@@ -570,7 +570,7 @@ static void CheckSE() {
 		    //		    RVMLIB_REC_OBJECT(*se);    /* not needed */
 		    RVMLIB_REC_OBJECT(VMSE);
 		    if (SEActiveList.remove(se) != se)
-			    Choke("CheckSE: remove(se)");
+			    CHOKE("CheckSE: remove(se)");
 		    struct olink *shadowp = SEActiveList.first();
 		    if (shadowp != NULL) RVMLIB_REC_OBJECT(*shadowp);
 		    VMSE.count -= (sizeof(VmonSessionEvent) * (se->Size));
@@ -600,7 +600,7 @@ static void CheckCE() {
 	if (code != 0) return;
 
 	if (CEActiveList->remove(ce) != ce)
-	    Choke("CheckCE: remove(ce)");
+	    CHOKE("CheckCE: remove(ce)");
 	if (CEFreeList->count() < VmonMaxFreeCEs)
 	    CEFreeList->insert(ce);
 	else
@@ -704,7 +704,7 @@ void ReportAdviceStatistics(vuid_t vuid)
 
     /* Get all the data we need */
     GetUser(&u, vuid);
-    assert(u != NULL);
+    CODA_ASSERT(u != NULL);
     u->GetStatistics(calls, results, &stats);
 
     if (LogLevel >= 100) 
@@ -799,7 +799,7 @@ void CheckRW()
 	while (d = next()) {
 	    if (to_be_deleted) {
 		Recov_BeginTrans();
-		       ASSERT(RWSQ->remove(to_be_deleted) == to_be_deleted);
+		       CODA_ASSERT(RWSQ->remove(to_be_deleted) == to_be_deleted);
 		       delete to_be_deleted;
 		       to_be_deleted = NULL;
 		Recov_EndTrans(MAXFP);
@@ -824,7 +824,7 @@ void CheckRW()
 	}
 	if (to_be_deleted) {
 	    Recov_BeginTrans();
-		   ASSERT(RWSQ->remove(to_be_deleted) == to_be_deleted);
+		   CODA_ASSERT(RWSQ->remove(to_be_deleted) == to_be_deleted);
 		   delete to_be_deleted;
 	    Recov_EndTrans(MAXFP);
 	}

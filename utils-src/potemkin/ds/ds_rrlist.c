@@ -24,7 +24,7 @@ static ds_hash_t *reqtab=NULL;      /* request=>rrlist mapping */
 static long
 hash_reqtab_elt(void *anon) {
     ds_rrlist_reqtab_elt_t *elt = anon;
-    ASSERT(DS_RRLIST_REQTAB_ELT_VALID(elt));
+    CODA_ASSERT(DS_RRLIST_REQTAB_ELT_VALID(elt));
     return elt->reqid;
 }
 
@@ -32,8 +32,8 @@ static long
 comp_reqtab_elt(void *a1, void *a2) {
     ds_rrlist_reqtab_elt_t *e1 = a1;
     ds_rrlist_reqtab_elt_t *e2 = a2;
-    ASSERT(DS_RRLIST_REQTAB_ELT_VALID(e1));
-    ASSERT(DS_RRLIST_REQTAB_ELT_VALID(e2));
+    CODA_ASSERT(DS_RRLIST_REQTAB_ELT_VALID(e1));
+    CODA_ASSERT(DS_RRLIST_REQTAB_ELT_VALID(e2));
     return (e1->reqid - e2->reqid);
 }
 
@@ -45,14 +45,14 @@ comp_reqtab_elt(void *a1, void *a2) {
 static long
 hashpid(void *anon) {
     ds_request_t *request = anon;
-    ASSERT(DS_REQUEST_VALID(request));
+    CODA_ASSERT(DS_REQUEST_VALID(request));
     return request->pid;
 }
 
 static long
 hashreq(void *anon) {
     ds_request_t *request = anon;
-    ASSERT(DS_REQUEST_VALID(request));
+    CODA_ASSERT(DS_REQUEST_VALID(request));
     return request->reqid;
 }
 
@@ -61,8 +61,8 @@ comppid(void *a1, void *a2) {
     ds_request_t *r1 = a1;
     ds_request_t *r2 = a2;
 
-    ASSERT(DS_REQUEST_VALID(r1));
-    ASSERT(DS_REQUEST_VALID(r2));
+    CODA_ASSERT(DS_REQUEST_VALID(r1));
+    CODA_ASSERT(DS_REQUEST_VALID(r2));
 
     return (r1->pid - r2->pid);
 }
@@ -72,8 +72,8 @@ compreq(void *a1, void *a2) {
     ds_request_t *r1 = a1;
     ds_request_t *r2 = a2;
 
-    ASSERT(DS_REQUEST_VALID(r1));
-    ASSERT(DS_REQUEST_VALID(r2));
+    CODA_ASSERT(DS_REQUEST_VALID(r1));
+    CODA_ASSERT(DS_REQUEST_VALID(r2));
 
     return (r1->reqid - r2->reqid);
 }
@@ -92,8 +92,8 @@ complow(void *a1, void *a2) {
     ds_request_t *r2 = a2;
     long result;
 
-    ASSERT(DS_REQUEST_VALID(r1));
-    ASSERT(DS_REQUEST_VALID(r2));
+    CODA_ASSERT(DS_REQUEST_VALID(r1));
+    CODA_ASSERT(DS_REQUEST_VALID(r2));
 
     result = r1->low - r2->low;
     if (!result)
@@ -107,8 +107,8 @@ comphigh(void *a1, void *a2) {
     ds_request_t *r2 = a2;
     long result;
 
-    ASSERT(DS_REQUEST_VALID(r1));
-    ASSERT(DS_REQUEST_VALID(r2));
+    CODA_ASSERT(DS_REQUEST_VALID(r1));
+    CODA_ASSERT(DS_REQUEST_VALID(r2));
 
     result = r1->high - r2->high;
     if (!result)
@@ -128,7 +128,7 @@ ds_rrlist_valid(ds_rrlist_t *l) {
 
 long
 ds_rrlist_value(ds_rrlist_t *l) {
-    ASSERT(DS_RRLIST_VALID(l));
+    CODA_ASSERT(DS_RRLIST_VALID(l));
     return l->value;
 }
 
@@ -163,7 +163,7 @@ ds_rrlist_create(long value) {
 
 void
 ds_rrlist_destroy(ds_rrlist_t *l) {
-    ASSERT(DS_RRLIST_VALID(l));
+    CODA_ASSERT(DS_RRLIST_VALID(l));
     l->magic = 0;
     l->value = 0;
     ds_hash_destroy(l->pidhash);
@@ -180,10 +180,10 @@ ds_rrlist_request(ds_rrlist_t *l, ds_request_t *r, long *value,
     ds_rrlist_reqtab_elt_t *rte;
     ds_rrlist_reqtab_elt_t  dummy;
 
-    ASSERT(DS_RRLIST_VALID(l));
-    ASSERT(DS_REQUEST_VALID(r));
-    ASSERT(value);
-    ASSERT(old_req);
+    CODA_ASSERT(DS_RRLIST_VALID(l));
+    CODA_ASSERT(DS_REQUEST_VALID(r));
+    CODA_ASSERT(value);
+    CODA_ASSERT(old_req);
 
     r->reqid = 0;
 
@@ -194,13 +194,13 @@ ds_rrlist_request(ds_rrlist_t *l, ds_request_t *r, long *value,
 	/* remove from reqtab */
 	dummy.magic = ds_rrlist_reqtab_elt_magic;
 	dummy.reqid = (*old_req)->reqid;
-	ASSERT((rte = ds_hash_remove(reqtab,&dummy)) != NULL);
+	CODA_ASSERT((rte = ds_hash_remove(reqtab,&dummy)) != NULL);
 	DS_RRLIST_REQTAB_ELT_DESTROY(rte);
 	/* remove from rrlist */
-	ASSERT(ds_hash_remove(l->pidhash,*old_req) != NULL);
-	ASSERT(ds_hash_remove(l->reqhash,*old_req) != NULL);
-	ASSERT(ds_list_remove(l->less,*old_req) != NULL);
-	ASSERT(ds_list_remove(l->greater,*old_req) != NULL);
+	CODA_ASSERT(ds_hash_remove(l->pidhash,*old_req) != NULL);
+	CODA_ASSERT(ds_hash_remove(l->reqhash,*old_req) != NULL);
+	CODA_ASSERT(ds_list_remove(l->less,*old_req) != NULL);
+	CODA_ASSERT(ds_list_remove(l->greater,*old_req) != NULL);
     }
     
     /* Is the request out-of-bounds already? */
@@ -211,12 +211,12 @@ ds_rrlist_request(ds_rrlist_t *l, ds_request_t *r, long *value,
 	lastreqid++;
 	r->reqid = lastreqid;
 	DS_RRLIST_REQTAB_ELT_CREATE(rte,lastreqid,l);
-	ASSERT(ds_hash_insert(reqtab,rte) != NULL);
+	CODA_ASSERT(ds_hash_insert(reqtab,rte) != NULL);
 	/* it is a valid request, insert it. */
-	ASSERT(ds_hash_insert(l->pidhash,r) != NULL);
-	ASSERT(ds_hash_insert(l->reqhash,r) != NULL);
-	ASSERT(ds_list_insert(l->less,r) != NULL);
-	ASSERT(ds_list_insert(l->greater,r) != NULL);
+	CODA_ASSERT(ds_hash_insert(l->pidhash,r) != NULL);
+	CODA_ASSERT(ds_hash_insert(l->reqhash,r) != NULL);
+	CODA_ASSERT(ds_list_insert(l->less,r) != NULL);
+	CODA_ASSERT(ds_list_insert(l->greater,r) != NULL);
 	
     }
     return result;
@@ -230,7 +230,7 @@ ds_rrlist_cancel(long reqid, ds_request_t **req) {
     ds_rrlist_reqtab_elt_t *rte;
     ds_rrlist_reqtab_elt_t  rte_dummy;
 
-    ASSERT(req);
+    CODA_ASSERT(req);
 
     /* First, we need to get the list this request is on */
     rte_dummy.magic = ds_rrlist_reqtab_elt_magic;
@@ -243,22 +243,22 @@ ds_rrlist_cancel(long reqid, ds_request_t **req) {
     } else {
 	/* we have the list, continue */
 	l = rte->list;
-	ASSERT(DS_RRLIST_VALID(l));
+	CODA_ASSERT(DS_RRLIST_VALID(l));
 	/* See if we can find the item to remove. */
 	req_dummy.magic = ds_request_magic;
 	req_dummy.reqid = reqid;
 	*req = ds_hash_member(l->reqhash,&req_dummy);
 	if (*req) {
 	    /* found it */
-	    ASSERT(DS_REQUEST_VALID(*req));
+	    CODA_ASSERT(DS_REQUEST_VALID(*req));
 	    /* Pull from the global hashtab */
-	    ASSERT(ds_hash_remove(reqtab,rte) == rte);
+	    CODA_ASSERT(ds_hash_remove(reqtab,rte) == rte);
 	    DS_RRLIST_REQTAB_ELT_DESTROY(rte);
 	    /* Pull from the resource request list in question */
-	    ASSERT(ds_hash_remove(l->pidhash,*req) != NULL);
-	    ASSERT(ds_hash_remove(l->reqhash,*req) != NULL);
-	    ASSERT(ds_list_remove(l->less,*req) != NULL);
-	    ASSERT(ds_list_remove(l->greater,*req) != NULL);
+	    CODA_ASSERT(ds_hash_remove(l->pidhash,*req) != NULL);
+	    CODA_ASSERT(ds_hash_remove(l->reqhash,*req) != NULL);
+	    CODA_ASSERT(ds_list_remove(l->less,*req) != NULL);
+	    CODA_ASSERT(ds_list_remove(l->greater,*req) != NULL);
 	} else {
 	    result |= DS_RRLIST_NOSUCHREQ;
 	}
@@ -273,8 +273,8 @@ ds_rrlist_purge(ds_rrlist_t *l, int pid, ds_request_t **req) {
     ds_rrlist_reqtab_elt_t  rte_dummy;
     ds_rrlist_reqtab_elt_t *rte;
 
-    ASSERT(DS_RRLIST_VALID(l));
-    ASSERT(req);
+    CODA_ASSERT(DS_RRLIST_VALID(l));
+    CODA_ASSERT(req);
     
     /* See if we can find the item to remove */
     req_dummy.magic = ds_request_magic;
@@ -282,17 +282,17 @@ ds_rrlist_purge(ds_rrlist_t *l, int pid, ds_request_t **req) {
     *req = ds_hash_member(l->pidhash,&req_dummy);
     if (*req) {
 	/* found it */
-	ASSERT(DS_REQUEST_VALID(*req));
+	CODA_ASSERT(DS_REQUEST_VALID(*req));
 	/* remove from reqtab */
 	rte_dummy.magic = ds_rrlist_reqtab_elt_magic;
 	rte_dummy.reqid = (*req)->reqid;
-	ASSERT((rte = ds_hash_remove(reqtab,&rte_dummy)) != NULL);
+	CODA_ASSERT((rte = ds_hash_remove(reqtab,&rte_dummy)) != NULL);
 	DS_RRLIST_REQTAB_ELT_DESTROY(rte);
 	/* remove from rrlist */
-	ASSERT(ds_hash_remove(l->pidhash,*req) == *req);
-	ASSERT(ds_hash_remove(l->reqhash,*req) == *req);
-	ASSERT(ds_list_remove(l->less,*req) == *req);
-	ASSERT(ds_list_remove(l->greater,*req) == *req);
+	CODA_ASSERT(ds_hash_remove(l->pidhash,*req) == *req);
+	CODA_ASSERT(ds_hash_remove(l->reqhash,*req) == *req);
+	CODA_ASSERT(ds_list_remove(l->less,*req) == *req);
+	CODA_ASSERT(ds_list_remove(l->greater,*req) == *req);
     } else {
 	result |= DS_RRLIST_NOSUCHPID;
     }
@@ -306,8 +306,8 @@ ds_rrlist_set_value(ds_rrlist_t *l, long newval, ds_list_t **to_notify) {
     ds_rrlist_reqtab_elt_t  dummy;
     ds_rrlist_reqtab_elt_t *rte;
 
-    ASSERT(DS_RRLIST_VALID(l));
-    ASSERT(to_notify);
+    CODA_ASSERT(DS_RRLIST_VALID(l));
+    CODA_ASSERT(to_notify);
 
     /* zero the list pointer */
     *to_notify = NULL;
@@ -341,22 +341,22 @@ ds_rrlist_set_value(ds_rrlist_t *l, long newval, ds_list_t **to_notify) {
     if (newval > l->value) {
 	/* check upper bounds */
 	while (req != NULL) {
-	    ASSERT(DS_REQUEST_VALID(req));
+	    CODA_ASSERT(DS_REQUEST_VALID(req));
 	    if (req->high >= newval) {
 		break;
 	    } else {
 		/* remove from reqtab */
 		dummy.magic = ds_rrlist_reqtab_elt_magic;
 		dummy.reqid = req->reqid;
-		ASSERT((rte = ds_hash_remove(reqtab,&dummy)) != NULL);
+		CODA_ASSERT((rte = ds_hash_remove(reqtab,&dummy)) != NULL);
 		DS_RRLIST_REQTAB_ELT_DESTROY(rte);
 		/* remove from the rrlist */
-		ASSERT(ds_list_get_first(l->greater) == req);
-		ASSERT(ds_list_remove(l->less,req) == req);
-		ASSERT(ds_hash_remove(l->pidhash,req) == req);
-		ASSERT(ds_hash_remove(l->reqhash,req) == req);
+		CODA_ASSERT(ds_list_get_first(l->greater) == req);
+		CODA_ASSERT(ds_list_remove(l->less,req) == req);
+		CODA_ASSERT(ds_hash_remove(l->pidhash,req) == req);
+		CODA_ASSERT(ds_hash_remove(l->reqhash,req) == req);
 		/* insert into result list */
-		ASSERT(ds_list_insert(*to_notify,req) == req);
+		CODA_ASSERT(ds_list_insert(*to_notify,req) == req);
 		/* step to next pointer in list. */
 		req = (ds_request_t *) ds_list_first(l->greater);
 	    }
@@ -364,22 +364,22 @@ ds_rrlist_set_value(ds_rrlist_t *l, long newval, ds_list_t **to_notify) {
     } else {
 	/* check lower bounds */
 	while (req != NULL) {
-	    ASSERT(DS_REQUEST_VALID(req));
+	    CODA_ASSERT(DS_REQUEST_VALID(req));
 	    if (req->low <= newval)  {
 		break;
 	    } else {
 		/* remove from reqtab */
 		dummy.magic = ds_rrlist_reqtab_elt_magic;
 		dummy.reqid = req->reqid;
-		ASSERT((rte = ds_hash_remove(reqtab,&dummy)) != NULL);
+		CODA_ASSERT((rte = ds_hash_remove(reqtab,&dummy)) != NULL);
 		DS_RRLIST_REQTAB_ELT_DESTROY(rte);
 		/* remove from the rrlist */
-		ASSERT(ds_list_get_last(l->less) == req);
-		ASSERT(ds_list_remove(l->greater,req) == req);
-		ASSERT(ds_hash_remove(l->pidhash,req) == req);
-		ASSERT(ds_hash_remove(l->reqhash,req) == req);
+		CODA_ASSERT(ds_list_get_last(l->less) == req);
+		CODA_ASSERT(ds_list_remove(l->greater,req) == req);
+		CODA_ASSERT(ds_hash_remove(l->pidhash,req) == req);
+		CODA_ASSERT(ds_hash_remove(l->reqhash,req) == req);
 		/* insert into result list */
-		ASSERT(ds_list_insert(*to_notify,req) == req);
+		CODA_ASSERT(ds_list_insert(*to_notify,req) == req);
 		/* step to next pointer in list. */
 		req = (ds_request_t *) ds_list_last(l->less);
 	    }
@@ -391,7 +391,7 @@ ds_rrlist_set_value(ds_rrlist_t *l, long newval, ds_list_t **to_notify) {
 
 static void
 ds_request_print(ds_request_t *req, FILE *f) {
-    ASSERT(DS_REQUEST_VALID(req));
+    CODA_ASSERT(DS_REQUEST_VALID(req));
     fprintf(f,"pid %ld\treqid %ld\tlow %ld\thigh %ld\n",
 	    req->pid, req->reqid, req->low, req->high);
 }
@@ -402,9 +402,9 @@ ds_rrlist_dump(ds_rrlist_t *l, FILE *f, char *name) {
     ds_list_iter_t *li;
     ds_request_t   *req;
 
-    ASSERT(DS_RRLIST_VALID(l));
-    ASSERT(f);
-    ASSERT(name);
+    CODA_ASSERT(DS_RRLIST_VALID(l));
+    CODA_ASSERT(f);
+    CODA_ASSERT(name);
     
     fprintf(f,"Printing resource request list %s\n",name);
     fprintf(f,"========================================================\n");

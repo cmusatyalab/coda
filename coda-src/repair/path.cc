@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/repair/path.cc,v 4.10 1998/10/07 20:29:45 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/repair/path.cc,v 4.11 1998/10/21 22:05:44 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -52,7 +52,7 @@ extern "C" {
 
 #include <stdio.h>
 #include <errno.h>
-#include <assert.h>
+#include "coda_assert.h"
 #include <setjmp.h>
 #include <sys/types.h>
 #include <sys/param.h>
@@ -101,7 +101,7 @@ int repair_isleftmost(char *path, char *realpath, int len)
 	printf("Couldn't stat current working directory\n");
 	exit(-1);
     }
-#define RETURN(x) {assert(!chdir(here)); return(x);}
+#define RETURN(x) {CODA_ASSERT(!chdir(here)); return(x);}
 
     /* simulate namei() */
     while (1)
@@ -109,7 +109,7 @@ int repair_isleftmost(char *path, char *realpath, int len)
 	/* start at beginning of buf */
 	if (*buf == '/')
 	    {
-	    assert(!chdir("/"));
+	    CODA_ASSERT(!chdir("/"));
 	    car = buf+1;
 	    }
 	else car = buf;
@@ -200,7 +200,7 @@ int repair_getmnt(char *realpath, char *prefix, char *suffix, VolumeId *vid)
     DEBUG(("repair_getmnt(%s...)\n", realpath));
 
     /* Find abs path */
-    assert(*realpath == '/');
+    CODA_ASSERT(*realpath == '/');
     strcpy(buf, realpath);
     
     /* obtain volume id of last component */
@@ -225,7 +225,7 @@ int repair_getmnt(char *realpath, char *prefix, char *suffix, VolumeId *vid)
 	    /* break the string and find nex right slash */
 	    slash = strrchr(buf, '/'); 
 	    /* abs path ==> '/' guaranteed */
-	    assert(slash);
+	    CODA_ASSERT(slash);
 
 	    /* possibility 1: ate whole path up */
 	    if (slash == buf) {
@@ -363,7 +363,7 @@ int repair_IsInCoda(char *name)
     char *tmpname = name;
     if (name[0] != '/') {
        	tmpname = getcwd(buf, MAXPATHLEN);
-	assert(tmpname);
+	CODA_ASSERT(tmpname);
     }
     /* test absolute path name */
     if (strncmp(tmpname, "/coda", 5) == 0 ) 
@@ -374,8 +374,8 @@ int repair_IsInCoda(char *name)
 
 static char *repair_abspath(char *result, unsigned int len, char *name)
 {
-    assert(getcwd(result, len));
-    assert( strlen(name) + 1 <= len );
+    CODA_ASSERT(getcwd(result, len));
+    CODA_ASSERT( strlen(name) + 1 <= len );
 
     strcat(result, "/");
     strcat(result, name);

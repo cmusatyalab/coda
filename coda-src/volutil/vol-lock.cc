@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/volutil/vol-lock.cc,v 4.4 1998/01/10 18:39:57 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/volutil/vol-lock.cc,v 4.5 1998/04/14 21:00:38 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -78,7 +78,7 @@ long S_VolLock(RPC2_Handle rpcid, VolumeId Vid, ViceVersionVector *VolVV) {
     Error error;
     int rc = 0;
     
-    assert(LWP_GetRock(FSTAG, (char **)&pt) == LWP_SUCCESS);
+    CODA_ASSERT(LWP_GetRock(FSTAG, (char **)&pt) == LWP_SUCCESS);
     LogMsg(2, VolDebugLevel, stdout, "Entering S_VolLock: rpcid = %d, Volume = %x", rpcid, Vid);
 
     rc = VInitVolUtil(volumeUtility);
@@ -140,7 +140,7 @@ long S_VolUnlock(RPC2_Handle rpcid, VolumeId Vid) {
     int rc = 0;
     Error error;
 
-    assert(LWP_GetRock(FSTAG, (char **)&pt) == LWP_SUCCESS);
+    CODA_ASSERT(LWP_GetRock(FSTAG, (char **)&pt) == LWP_SUCCESS);
     LogMsg(2, VolDebugLevel, stdout, "Entering S_VolUnlock: rpcid = %d, Volume = %x", rpcid, Vid);
 
     rc = VInitVolUtil(volumeUtility);

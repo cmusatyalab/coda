@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/volutil/vol-info.cc,v 4.6 1998/10/09 21:57:48 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/volutil/vol-info.cc,v 4.7 1998/10/29 15:29:03 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -126,7 +126,7 @@ long int S_VolInfo(RPC2_Handle rpcid, RPC2_String formal_volkey, RPC2_Integer du
     /* To keep C++ 2.0 happy */
     char *volkey = (char *)formal_volkey;
     
-    assert(LWP_GetRock(FSTAG, (char **)&pt) == LWP_SUCCESS);
+    CODA_ASSERT(LWP_GetRock(FSTAG, (char **)&pt) == LWP_SUCCESS);
     VLog(9, "Entering S_VolInfo(%u, %s, %d)", rpcid, volkey, dumpall);
 
     VInitVolUtil(volumeUtility);

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rpc2/sftp6.c,v 4.4 1998/09/15 14:28:01 jaharkes Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rpc2/sftp6.c,v 4.5 1998/09/29 16:38:05 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -136,7 +136,7 @@ long SFTP_MultiRPC1(IN HowMany, IN ConnHandleList, IN MCast, INOUT SDescList, IN
     {
     int	host;
     struct CEntry **ceaddr = (struct CEntry **)malloc(HowMany * sizeof(struct CEntry *));
-    assert(ceaddr != NULL);
+    CODA_ASSERT(ceaddr != NULL);
 
     say(0, SFTP_DebugLevel, "SFTP_MultiRPC1()\n");
 
@@ -164,10 +164,10 @@ long SFTP_MultiRPC1(IN HowMany, IN ConnHandleList, IN MCast, INOUT SDescList, IN
 	SE_Descriptor		*thisdesc;	/* singlescast SE descriptor */
 
 	/* reacquire MEntry pointer */
-	assert(MCast->Mgroup != 0);
-	assert((me = rpc2_GetMgrp(&rpc2_LocalHost, &rpc2_LocalPortal, MCast->Mgroup, CLIENT)) != NULL);
-	assert((mse = (struct SFTP_Entry *)me->SideEffectPtr) != NULL);
-	assert(mse->SDesc == NULL);
+	CODA_ASSERT(MCast->Mgroup != 0);
+	CODA_ASSERT((me = rpc2_GetMgrp(&rpc2_LocalHost, &rpc2_LocalPortal, MCast->Mgroup, CLIENT)) != NULL);
+	CODA_ASSERT((mse = (struct SFTP_Entry *)me->SideEffectPtr) != NULL);
+	CODA_ASSERT(mse->SDesc == NULL);
 	if (mse->WhoAmI != SFCLIENT) FAIL_MCRPC1(RPC2_SEFAIL1);
 
 	/* ALL descriptors (for valid connections) must be identical.  We FAIL if they are not. */
@@ -178,10 +178,10 @@ long SFTP_MultiRPC1(IN HowMany, IN ConnHandleList, IN MCast, INOUT SDescList, IN
 		enum WhichWay xdir;
 		thisdesc = &SDescList[host];
 		xdir = thisdesc->Value.SmartFTPD.TransmissionDirection;
-		assert(xdir == CLIENTTOSERVER || xdir == SERVERTOCLIENT);
+		CODA_ASSERT(xdir == CLIENTTOSERVER || xdir == SERVERTOCLIENT);
 		if (mdesc == NULL)	/* initialize multicast SE descriptor */
 		    {
-		    assert((mdesc = (SE_Descriptor *)malloc(sizeof(SE_Descriptor))) != NULL);
+		    CODA_ASSERT((mdesc = (SE_Descriptor *)malloc(sizeof(SE_Descriptor))) != NULL);
 		    bcopy(thisdesc, mdesc, sizeof(SE_Descriptor));
 		    }
 		else
@@ -198,7 +198,7 @@ long SFTP_MultiRPC1(IN HowMany, IN ConnHandleList, IN MCast, INOUT SDescList, IN
 	    if (HOSTSEOK(host))
 		{
 		INIT_SE_DESC(&SDescList[host]);
-		assert(RPC2_GetSEPointer(ConnHandleList[host], &thisse) == RPC2_SUCCESS);
+		CODA_ASSERT(RPC2_GetSEPointer(ConnHandleList[host], &thisse) == RPC2_SUCCESS);
 		INIT_SE_ENTRY(thisse, &(SDescList[host]), (req[host]));
 		mse->McastersStarted++;
 		}
@@ -231,7 +231,7 @@ long SFTP_MultiRPC1(IN HowMany, IN ConnHandleList, IN MCast, INOUT SDescList, IN
 				if (HOSTSEOK(host))
 				    {
 				    /* copy packet body in case retries are singlecasted */
-				    assert(sftp_AddPiggy(&req[host],(char *)me->CurrentPacket->Header.SEDataOffset, rc, SFTP_MAXPACKETSIZE) == 0);
+				    CODA_ASSERT(sftp_AddPiggy(&req[host],(char *)me->CurrentPacket->Header.SEDataOffset, rc, SFTP_MAXPACKETSIZE) == 0);
 				    SDescList[host].Value.SmartFTPD.BytesTransferred = rc;
 				    sftp_didpiggy++;
 				    }
@@ -245,7 +245,7 @@ long SFTP_MultiRPC1(IN HowMany, IN ConnHandleList, IN MCast, INOUT SDescList, IN
 		for (host = 0; host < HowMany; host++)
 		    if (HOSTSEOK(host))
 			{
-			assert(RPC2_GetSEPointer(ConnHandleList[host], &thisse) == RPC2_SUCCESS);
+			CODA_ASSERT(RPC2_GetSEPointer(ConnHandleList[host], &thisse) == RPC2_SUCCESS);
 			if (sftp_InitIO(thisse) < 0)
 				{
 				for (host = 0; host < HowMany; host++)
@@ -257,7 +257,7 @@ long SFTP_MultiRPC1(IN HowMany, IN ConnHandleList, IN MCast, INOUT SDescList, IN
 		break;
 
 	    default:
-		assert(FALSE);	    /* this was checked above */
+		CODA_ASSERT(FALSE);	    /* this was checked above */
 	    }
 	}
 
@@ -282,7 +282,7 @@ long SFTP_MultiRPC2(IN ConnHandle, INOUT SDesc, INOUT Reply)
     say(0, SFTP_DebugLevel, "SFTP_MultiRPC2()\n");
 
     rc = SFTP_MakeRPC2(ConnHandle, SDesc, Reply);
-    assert(RPC2_GetSEPointer(ConnHandle, &se) == RPC2_SUCCESS);
+    CODA_ASSERT(RPC2_GetSEPointer(ConnHandle, &se) == RPC2_SUCCESS);
     se->XferState = XferCompleted;
 
     /* if this was the last good connection in a multicast group, clean up the multicast state */
@@ -293,9 +293,9 @@ long SFTP_MultiRPC2(IN ConnHandle, INOUT SDesc, INOUT Reply)
 	struct SFTP_Entry   *mse;
 	int		    i;
 
-	assert((ce = rpc2_GetConn(se->LocalHandle)) != NULL);
-	assert((me = ce->Mgrp) != NULL);
-	assert((mse = (struct SFTP_Entry *)me->SideEffectPtr) != NULL);
+	CODA_ASSERT((ce = rpc2_GetConn(se->LocalHandle)) != NULL);
+	CODA_ASSERT((me = ce->Mgrp) != NULL);
+	CODA_ASSERT((mse = (struct SFTP_Entry *)me->SideEffectPtr) != NULL);
 
 	/* See if everyone has finished. */
 	mse->McastersFinished++;
@@ -326,7 +326,7 @@ long SFTP_CreateMgrp(IN MgroupHandle)
     RPC2_PeerInfo	*PeerInfo;
 
     say(0, SFTP_DebugLevel, "SFTP_CreateMgrp()\n");
-    assert((me = rpc2_GetMgrp(&rpc2_LocalHost, &rpc2_LocalPortal, MgroupHandle, CLIENT)) != NULL);
+    CODA_ASSERT((me = rpc2_GetMgrp(&rpc2_LocalHost, &rpc2_LocalPortal, MgroupHandle, CLIENT)) != NULL);
 
     /* allocate an SFTP_Entry for the multicast group */
     mse = sftp_AllocSEntry();
@@ -364,9 +364,9 @@ long SFTP_AddToMgrp(IN MgroupHandle, IN ConnHandle, INOUT Request)
     struct SFTP_Entry	*mse;			/* Multicast SFTP Entry */
     struct SFTP_Entry	*sse;			/* Singlecast SFTP_Entry */
 
-    assert((me = rpc2_GetMgrp(&rpc2_LocalHost, &rpc2_LocalPortal, MgroupHandle, CLIENT)) != NULL);
-    assert((mse = (struct SFTP_Entry *)me->SideEffectPtr) != NULL);
-    assert(RPC2_GetSEPointer(ConnHandle, &sse) == RPC2_SUCCESS);
+    CODA_ASSERT((me = rpc2_GetMgrp(&rpc2_LocalHost, &rpc2_LocalPortal, MgroupHandle, CLIENT)) != NULL);
+    CODA_ASSERT((mse = (struct SFTP_Entry *)me->SideEffectPtr) != NULL);
+    CODA_ASSERT(RPC2_GetSEPointer(ConnHandle, &sse) == RPC2_SUCCESS);
 
     MC_AppendParmsToPacket(mse, sse, Request);
     return(RPC2_SUCCESS);
@@ -385,9 +385,9 @@ long SFTP_InitMulticast(IN MgroupHandle, IN ConnHandle, IN Request)
     struct SFTP_Entry	*mse;			/* Multicast SFTP Entry */
 
     say(0, SFTP_DebugLevel, "SFTP_InitMulticast()\n");
-    assert((ce = rpc2_GetConn(ConnHandle)) != NULL);
-    assert((me = rpc2_GetMgrp(&ce->PeerHost, &ce->PeerPortal, MgroupHandle, SERVER)) != NULL);
-    assert(RPC2_GetSEPointer(ConnHandle, &sse) == RPC2_SUCCESS);
+    CODA_ASSERT((ce = rpc2_GetConn(ConnHandle)) != NULL);
+    CODA_ASSERT((me = rpc2_GetMgrp(&ce->PeerHost, &ce->PeerPortal, MgroupHandle, SERVER)) != NULL);
+    CODA_ASSERT(RPC2_GetSEPointer(ConnHandle, &sse) == RPC2_SUCCESS);
 
     /* Allocate and initialize the MULTICAST parameter block. */
     mse = sftp_AllocSEntry();
@@ -422,8 +422,8 @@ long SFTP_DeleteMgrp(IN MgroupHandle, IN ClientHost, IN ClientPortal, IN Role)
     int			i;
 
     say(0, SFTP_DebugLevel, "SFTP_DeleteMgrp()\n");
-    assert(ClientHost->Tag == RPC2_HOSTBYINETADDR && ClientPortal->Tag == RPC2_PORTALBYINETNUMBER);
-    assert((me = rpc2_GetMgrp(ClientHost, ClientPortal, MgroupHandle, Role)) != NULL);
+    CODA_ASSERT(ClientHost->Tag == RPC2_HOSTBYINETADDR && ClientPortal->Tag == RPC2_PORTALBYINETNUMBER);
+    CODA_ASSERT((me = rpc2_GetMgrp(ClientHost, ClientPortal, MgroupHandle, Role)) != NULL);
 
     /* ...below is taken from SFTP_Unbind()... */
     if ((mse = (struct SFTP_Entry *)me->SideEffectPtr) != NULL)
@@ -465,8 +465,8 @@ int SFXlateMcastPacket(pb, whichHost, whichPortal)
     say(9, SFTP_DebugLevel, "Host = 0x%lx\tPortal = 0x%x\tMgrp = 0x%lx\n", whichHost->Value.InetAddress, (unsigned) XlatePortal.Value.InetPortNumber -1, h_RemoteHandle);
 
     /* Find and validate the relevant data structures */
-    assert(h_RemoteHandle != 0 && h_LocalHandle == 0);
-    assert(XlatePortal.Tag == RPC2_PORTALBYINETNUMBER);
+    CODA_ASSERT(h_RemoteHandle != 0 && h_LocalHandle == 0);
+    CODA_ASSERT(XlatePortal.Tag == RPC2_PORTALBYINETNUMBER);
     XlatePortal.Value.InetPortNumber = htons(ntohs(XlatePortal.Value.InetPortNumber) - 1);
     me = rpc2_GetMgrp(whichHost, &XlatePortal, h_RemoteHandle, SERVER);
     if (me == NULL) {
@@ -474,7 +474,7 @@ int SFXlateMcastPacket(pb, whichHost, whichPortal)
 	return(FALSE);
     }
     ce = me->conn;
-    assert(ce != NULL && TestRole(ce, SERVER) && ce->Mgrp == me);
+    CODA_ASSERT(ce != NULL && TestRole(ce, SERVER) && ce->Mgrp == me);
     if ((sse = (struct SFTP_Entry *)ce->SideEffectPtr) == NULL) {
 	say(9, SFTP_DebugLevel, "sse == NULL\n"); return(FALSE);}
     if (sse->WhoAmI != SFSERVER) {
@@ -499,7 +499,7 @@ int SFXlateMcastPacket(pb, whichHost, whichPortal)
     pb->Header.RemoteHandle = htonl(ce->UniqueCID);
     pb->Header.LocalHandle = htonl(ce->PeerHandle);
     h_Opcode = ntohl(pb->Header.Opcode);
-    assert(h_Opcode == SFTP_DATA);
+    CODA_ASSERT(h_Opcode == SFTP_DATA);
     h_SeqNumber = ntohl(pb->Header.SeqNumber);
     pb->Header.SeqNumber = htonl(sse->RecvLastContig + (h_SeqNumber - mse->RecvLastContig));
     h_ThisRPCCall = ntohl(pb->Header.ThisRPCCall);
@@ -519,9 +519,9 @@ int MC_CheckAckorNak(whichEntry)
     struct SFTP_Entry	*mse;
 
     say(9, SFTP_DebugLevel, "MC_CheckAckorNak()\n");
-    assert((ce = rpc2_GetConn(whichEntry->LocalHandle)) != NULL);
-    assert((me = ce->Mgrp) != NULL);
-    assert((mse = (struct SFTP_Entry *)me->SideEffectPtr) != NULL);
+    CODA_ASSERT((ce = rpc2_GetConn(whichEntry->LocalHandle)) != NULL);
+    CODA_ASSERT((me = ce->Mgrp) != NULL);
+    CODA_ASSERT((mse = (struct SFTP_Entry *)me->SideEffectPtr) != NULL);
 
     whichEntry->RepliedSinceLastSS = TRUE;
 
@@ -538,9 +538,9 @@ int MC_CheckStart(whichEntry)
     int			host;
 
     say(9, SFTP_DebugLevel, "MC_CheckStart()\n");
-    assert((ce = rpc2_GetConn(whichEntry->LocalHandle)) != NULL);
-    assert((me = ce->Mgrp) != NULL);
-    assert((mse = (struct SFTP_Entry *)me->SideEffectPtr) != NULL);
+    CODA_ASSERT((ce = rpc2_GetConn(whichEntry->LocalHandle)) != NULL);
+    CODA_ASSERT((me = ce->Mgrp) != NULL);
+    CODA_ASSERT((mse = (struct SFTP_Entry *)me->SideEffectPtr) != NULL);
 
     whichEntry->RepliedSinceLastSS = TRUE;
 
@@ -551,8 +551,8 @@ int MC_CheckStart(whichEntry)
 	    SFTP_BUSY to keep the START sender from timing us out while we wait for his colleagues. */
 	for (host = 0; host < me->howmanylisteners; host++)
 	    {
-	    assert((thisce = me->listeners[host]) != NULL);
-	    assert((thisse = (struct SFTP_Entry *)thisce->SideEffectPtr) != NULL);
+	    CODA_ASSERT((thisce = me->listeners[host]) != NULL);
+	    CODA_ASSERT((thisse = (struct SFTP_Entry *)thisce->SideEffectPtr) != NULL);
 	    if (TestState(thisce, CLIENT, ~C_HARDERROR) &&
 		thisse->WhoAmI == SFCLIENT &&
 		thisse->XferState == XferNotStarted)
@@ -602,13 +602,13 @@ static int MC_SendStrategy(me, mse)
     /* normalize the per-connection values and form the Mgrp composites */
     for (host = 0; host < me->howmanylisteners; host++)
 	{
-	assert((thisce = me->listeners[host]) != NULL);
-	assert((thisse = (struct SFTP_Entry *)thisce->SideEffectPtr) != NULL);
+	CODA_ASSERT((thisce = me->listeners[host]) != NULL);
+	CODA_ASSERT((thisse = (struct SFTP_Entry *)thisce->SideEffectPtr) != NULL);
 	if (TestState(thisce, CLIENT, ~C_HARDERROR) && thisse->WhoAmI == SFCLIENT)
 	    {
 	    thisSendCount = (thisse->SendLastContig - thisse->SendFirst + 1);
 	    diffSendCount = (thisSendCount - mgrpSendCount);
-	    assert(diffSendCount >= 0 && diffSendCount <= MAXOPACKETS);
+	    CODA_ASSERT(diffSendCount >= 0 && diffSendCount <= MAXOPACKETS);
 
 	    /* (minSendCount - mgrpSendCount) is the amount we can increase mse->SendLastContig */
 	    if (minSendCount ==	-1)	    /* first good connection */
@@ -643,9 +643,9 @@ static int MC_SendStrategy(me, mse)
 
     /* finish the normalization and safety check it */
     diffSendCount = minSendCount - mgrpSendCount;
-    for (i = 1; i <= diffSendCount; i++) assert(TESTBIT(CompositeSTB, i));
+    for (i = 1; i <= diffSendCount; i++) CODA_ASSERT(TESTBIT(CompositeSTB, i));
     if (diffSendCount > 0) B_ShiftLeft(CompositeSTB, diffSendCount);
-    assert(!TESTBIT(CompositeSTB, 1));
+    CODA_ASSERT(!TESTBIT(CompositeSTB, 1));
 
     /* update the Mgrp parameters (finally) */
     say(9, SFTP_DebugLevel, "mse->SLC = %ld\n", mse->SendLastContig );
@@ -672,8 +672,8 @@ static int MC_SendStrategy(me, mse)
 	/* reset per-connection reply-received flags */
 	for (host = 0; host < me->howmanylisteners; host++)
 	    {
-	    assert((thisce = me->listeners[host]) != NULL);
-	    assert((thisse = (struct SFTP_Entry *)thisce->SideEffectPtr) != NULL);
+	    CODA_ASSERT((thisce = me->listeners[host]) != NULL);
+	    CODA_ASSERT((thisse = (struct SFTP_Entry *)thisce->SideEffectPtr) != NULL);
 	    if (TestState(thisce, CLIENT, ~C_HARDERROR) && thisse->WhoAmI == SFCLIENT)
 		thisse->RepliedSinceLastSS = FALSE;
 	    }
@@ -758,7 +758,7 @@ static void MC_AppendParmsToPacket(mse, sse, req)
     /* We also piggyback state information that is necessary to initialize the MULTICAST parameter
 	block; currently this is only PeerSendLastContig (PeerCtrlSeqNumber may be added later). */
     mcp.PeerSendLastContig = htonl(mse->SendLastContig);
-    assert(sftp_AddPiggy(req, &mcp, sizeof(struct SFTP_MCParms), RPC2_MAXPACKETSIZE) == 0);
+    CODA_ASSERT(sftp_AddPiggy(req, &mcp, sizeof(struct SFTP_MCParms), RPC2_MAXPACKETSIZE) == 0);
     }
 
 

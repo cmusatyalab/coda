@@ -1,4 +1,4 @@
-#include <assert.h>
+#include "coda_assert.h"
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
@@ -176,7 +176,7 @@ int config_set_string(char *key, char *value, struct config_table *table)
 		free(*valp);
 	
 	*valp = (char *)malloc(strlen(value) + 1);
-	assert(*valp);
+	CODA_ASSERT(*valp);
 
 	cpy = strcpy(*valp, value);
 	table->tbl_entries[j].ent_flag = CONFIG_SET || CONFIG_MALLOCED;
@@ -266,7 +266,7 @@ int config_next(char *line, char **key, char **val, char **rsr)
 		return -1;
 	
 	/* there must be a key if we make it here*/
-	assert(*key);
+	CODA_ASSERT(*key);
 
 	/* whitespace before equality sign: malformed */
 	if ( *key > eqsign )

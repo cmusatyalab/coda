@@ -172,7 +172,7 @@ void InitPW(int firsttime)
 	int fd, pfd, i;
 	struct stat stbuf;
 	char *fbuf;
-	char *admin = "system:administrators";	/* assert dies on literals */
+	char *admin = "system:administrators";	/* CODA_ASSERT dies on literals */
 
 	if (firsttime == PWFIRSTTIME)
 	{
@@ -182,7 +182,7 @@ void InitPW(int firsttime)
 		PWLen = 100;	/* length of PW array; this is an initial guess,
 				   may increase below */
 		PWArray = (RPC2_EncryptionKey *)malloc(PWLen*RPC2_KEYSIZE);
-		assert(PWArray != NULL);
+		CODA_ASSERT(PWArray != NULL);
 	}
 	/* now back to the old InitPW */
 
@@ -200,15 +200,15 @@ void InitPW(int firsttime)
 		abort();
 	}
 
-	assert((fbuf = (char *)malloc(1+stbuf.st_size)) != NULL);
-	assert(stbuf.st_size == read(fd, fbuf, stbuf.st_size));	/* entirefile */
+	CODA_ASSERT((fbuf = (char *)malloc(1+stbuf.st_size)) != NULL);
+	CODA_ASSERT(stbuf.st_size == read(fd, fbuf, stbuf.st_size));	/* entirefile */
 
 	PWTime = stbuf.st_mtime;	/* time on file to check for changes */
 	fbuf[stbuf.st_size] = 0;	/* sentinel to stop sscanf() later */
 	flock(fd, LOCK_UN);	close(fd);
 	flock(pfd, LOCK_UN);	close(pfd);
 
-	assert(AL_NameToId(admin, &AdminID) == 0);
+	CODA_ASSERT(AL_NameToId(admin, &AdminID) == 0);
 	for (i = 0; i < RPC2_KEYSIZE; i++)  
 		DeleteKey[i] = 0xff;
 
@@ -237,7 +237,7 @@ void BuildPWArray(char *fileBuf)
 		thisid = atoi(nextline);
 		if ( thisid < 0 ) 
 			goto nextline;
-		assert((kk = index(nextline, '\t')) != NULL);
+		CODA_ASSERT((kk = index(nextline, '\t')) != NULL);
 		kk++;
 		for (i = 0; i < RPC2_KEYSIZE; i++)
 		{
@@ -245,7 +245,7 @@ void BuildPWArray(char *fileBuf)
 			holder[0] = *(kk++);
 			holder[1] = *(kk++);
 			holder[2] = '\0';
-			assert( 1 == sscanf(holder, "%2x", &x));
+			CODA_ASSERT( 1 == sscanf(holder, "%2x", &x));
 			thiskey[i] = x;
 		}
 
@@ -264,7 +264,7 @@ void BuildPWArray(char *fileBuf)
 		memcpy(PWArray[thisid], thiskey, RPC2_KEYSIZE);
 		PWCount++;
 	nextline:
-		assert((nextline = index(nextline, '\n')) != NULL);
+		CODA_ASSERT((nextline = index(nextline, '\n')) != NULL);
 		nextline++;	/* safe, since fileBuf is NULL-terminated */
 	}
 }
@@ -277,7 +277,7 @@ void EnlargePW(int newSize)
 		newSize);
 	PWArray = (RPC2_EncryptionKey *)realloc((char *)PWArray,
 		newSize*RPC2_KEYSIZE);
-	assert(PWArray != NULL);
+	CODA_ASSERT(PWArray != NULL);
 	memset(PWArray[PWLen], 0, (newSize-PWLen)*RPC2_KEYSIZE);
 	PWLen = newSize;
 }

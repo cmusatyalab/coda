@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/src/coda-4.0.1/RCSLINK/./coda-src/util/vmindex.cc,v 1.1 1996/11/22 19:08:30 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/util/vmindex.cc,v 4.1 1997/01/08 21:51:16 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -54,7 +54,7 @@ extern "C" {
 vmindex::vmindex(int sz) {
     if (sz > 0) {
 	indices = new unsigned long[sz];
-	assert(indices);
+	CODA_ASSERT(indices);
 	size = sz;
 	count = 0;
     }
@@ -80,7 +80,7 @@ void vmindex::add(unsigned long a) {
 	if (size) newsize = size * 2;
 	else newsize = DEFAULTINDEXSIZE;
 	unsigned long *newindex = new unsigned long[newsize];
-	assert(newindex);
+	CODA_ASSERT(newindex);
 	for (int i = 0; i < size; i++) 
 	    newindex[i] = indices[i];
 	delete[] indices;

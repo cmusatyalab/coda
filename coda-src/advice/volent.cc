@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/src/coda-4.0.1/RCSLINK/./coda-src/advice/volent.cc,v 1.1 1996/11/22 19:12:19 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/advice/volent.cc,v 4.1 1997/01/08 21:49:20 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -74,17 +74,17 @@ volent::volent(char *Name, VolumeId id, VolumeStates theState) {
     strcpy(name, Name);
     vid = id;
 
-    assert(VDB != NULL);
+    CODA_ASSERT(VDB != NULL);
     existing_volume = VDB->get(&queue_handle);
     if (existing_volume != NULL) {
         volent *existing_vol = strbase(volent, existing_volume, queue_handle);
-	assert(existing_vol != NULL);
+	CODA_ASSERT(existing_vol != NULL);
         existing_vol->state = theState;
         delete this;
 	LogMsg(100,LogLevel,LogFile, "Updating %s", Name);
     } else {
         state = theState;
-	assert(VDB != NULL);
+	CODA_ASSERT(VDB != NULL);
         VDB->insert(&queue_handle);
 	LogMsg(100,LogLevel,LogFile, "Inserting %s", Name);
     }
@@ -101,7 +101,7 @@ volent::operator=(volent& i) {
 }
 
 volent::~volent() {
-    assert(VDB != NULL);
+    CODA_ASSERT(VDB != NULL);
     VDB->remove(&queue_handle);
     delete[] name;
 }
@@ -150,9 +150,9 @@ void PrintVDB(char *filename) {
     fprintf(outfile, "Printing VDB elements:\n");
     while (b = next()) {
         volent *vol;
-        assert(b != NULL);
+        CODA_ASSERT(b != NULL);
         vol = strbase(volent, b, queue_handle);
-	assert(vol != NULL);
+	CODA_ASSERT(vol != NULL);
         vol->print(outfile);
     }
 
@@ -171,14 +171,14 @@ int VolentPriorityFN(bsnode *b1, bsnode *b2) {
     volent *v1;
     volent *v2;
 
-    assert(b1 != NULL);
-    assert(b2 != NULL);
+    CODA_ASSERT(b1 != NULL);
+    CODA_ASSERT(b2 != NULL);
 
     v1 = strbase(volent, b1, queue_handle);
     v2 = strbase(volent, b2, queue_handle);
 
-    assert(v1 != NULL);
-    assert(v2 != NULL);
+    CODA_ASSERT(v1 != NULL);
+    CODA_ASSERT(v2 != NULL);
 
     if (v1->vid == v2->vid)
 	return(0);
@@ -206,10 +206,10 @@ StoplightStates StoplightState() {
     while (b = next()) {
         volent *vol;
 
-	assert(b != NULL);
+	CODA_ASSERT(b != NULL);
 	vol = strbase(volent, b, queue_handle);
 
-        assert(vol != NULL);
+        CODA_ASSERT(vol != NULL);
 
 	if (vol->state == VSemulating)
 	    at_least_one_disco++;

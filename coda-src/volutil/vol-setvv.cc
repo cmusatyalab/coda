@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/volutil/vol-setvv.cc,v 4.6 1998/04/14 21:00:41 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/volutil/vol-setvv.cc,v 4.7 1998/08/31 12:23:51 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -77,8 +77,10 @@ extern "C" {
 #include <vutil.h>
 #include <srv.h>
 
-#undef assert
+#if	0
+#undef CODA_ASSERT
 #undef _ASSERT_H_
+#endif
 #include <util.h>
 
 
@@ -101,7 +103,7 @@ long S_VolSetVV(RPC2_Handle rpcid, RPC2_Unsigned formal_volid, RPC2_Unsigned vno
     VolumeId volid = (VolumeId)formal_volid;
 
     LogMsg(9, VolDebugLevel, stdout, "Checking lwp rock in S_VolSetVV");
-    assert(LWP_GetRock(FSTAG, (char **)&pt) == LWP_SUCCESS);
+    CODA_ASSERT(LWP_GetRock(FSTAG, (char **)&pt) == LWP_SUCCESS);
 
     LogMsg(9, VolDebugLevel, stdout, "Entering VolSetVV(%d, %u, %u)", rpcid, volid, vnodeid);
     VolumeId tmpvolid = volid;
@@ -133,7 +135,7 @@ long S_VolSetVV(RPC2_Handle rpcid, RPC2_Unsigned formal_volid, RPC2_Unsigned vno
     if (error && error == EIO) {
 	/* barren object - debarrenize it - setvv is overloaded here */
 	vnp = VGetVnode(&error, vp, vnodeid, unique, WRITE_LOCK, 1, 1);
-	assert(IsBarren(vnp->disk.versionvector));
+	CODA_ASSERT(IsBarren(vnp->disk.versionvector));
 	
 	LogMsg(0, SrvDebugLevel, stdout, "%x.%x.%x is barren - Debarrenizing it", 
 		V_id(vp), vnp->vnodeNumber, vnp->disk.uniquifier);

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/utils-src/mond/advice_parser.c,v 3.2 1995/10/09 19:26:35 satya Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/utils-src/mond/advice_parser.c,v 3.3 1998/09/07 15:57:23 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -191,14 +191,14 @@ static void MoveFile(char *hereFileName, char *thereFileName)
     hereFile = fopen(hereFileName, "r");
     if (hereFile == NULL) {
 	LogMsg(0,LogLevel,LogFile, "ERROR: MoveFile(%s,%s) ==> Cannot open file %s", hereFileName, thereFileName, hereFileName);
-	assert(1 == 0);
+	CODA_ASSERT(1 == 0);
     }
 
     // Open the file we will copy TO
     thereFile = fopen(thereFileName, "w+");
     if (thereFile == NULL) {
 	LogMsg(0,LogLevel,LogFile, "ERROR: MoveFile(%s,%s) ==> Cannot open file %s", hereFileName, thereFileName, thereFileName);
-	assert(1 == 0);
+	CODA_ASSERT(1 == 0);
     }
     
     // Copy the file
@@ -206,7 +206,7 @@ static void MoveFile(char *hereFileName, char *thereFileName)
     code = ffilecopy(hereFile, thereFile);
     if (code != 0) {
 	LogMsg(0,LogLevel,LogFile, "ERROR: MoveFile(%s,%s) ==> Cannot ffilecopy", hereFileName, thereFileName);
-	assert(1 == 0);
+	CODA_ASSERT(1 == 0);
     }
 
     fclose(hereFile);
@@ -242,7 +242,7 @@ static char *DetermineCommentField(char *comment_id)
 	strcpy(field, "Other");
     else {
 	LogMsg(0, LogLevel,LogFile, "DetermineCommentField:  Unrecognized comment type (id=%s)\n", comment_id);
-	assert(1 == 0);
+	CODA_ASSERT(1 == 0);
     }  
 
     return(field);
@@ -276,7 +276,7 @@ static int DetermineUnique(char *questionnaire, char *commentField)
 
     if (error != 0) {
 	LogMsg(0,LogLevel,LogFile, "DetermineUnique(%s,%s):  File handling error\n", questionnaire, commentField);
-	assert(1 == 0);
+	CODA_ASSERT(1 == 0);
     }
 
     return(unique);
@@ -313,7 +313,7 @@ static int CopeWithCommentsField(FILE *fp, char *id, int *value)
 
     sprintf(CommentFileName, "/tmp/advice.comment.%d", getpid());
     CommentFile = fopen(CommentFileName, "w+");
-    assert(CommentFile != NULL);
+    CODA_ASSERT(CommentFile != NULL);
 
     while (fgets(line, LINE_LENGTH, fp) != NULL) { 
 	if (strncmp(line, "EndComment.", strlen("EndComment.")) == 0)

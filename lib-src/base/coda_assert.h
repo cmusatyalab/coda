@@ -5,7 +5,7 @@
             Coda: an Experimental Distributed File System
                              Release 4.0
 
-          Copyright (c) 1987-1996 Carnegie Mellon University
+          Copyright (c) 1998 Carnegie Mellon University
                          All Rights Reserved
 
 Permission  to  use, copy, modify and distribute this software and its
@@ -29,47 +29,26 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/binding.cc,v 4.2 1997/12/16 16:08:22 braam Exp $";
+static char *rcsid = "$Header: $";
 #endif /*_BLURB_*/
 
+#ifndef _CODA_ASSERT_H_
+#define _CODA_ASSERT_H_ 1
+
+#define CODA_ASSERT(pred) do { if (!(pred)) coda_assert(#pred, __FILE__, __LINE__) ; } while (0)
+#define CODA_NOTE(pred)   do { if (!(pred)) coda_note  (#pred, __FILE__, __LINE__) ; } while (0)
+
+#define CODA_ASSERT_SLEEP	1
+#define CODA_ASSERT_EXIT	2
+#define CODA_ASSERT_ABORT	3
+#define CODA_ASSERT_CORE	3
+
+extern int (*coda_assert_cleanup)(void);
+extern int   coda_assert_action;
+
+extern void coda_assert(char *pred, char *file, int line);
+extern void coda_note(char *pred, char *file, int line);
 
 
+#endif  /* CODA_ASSERT_H_ */
 
-
-
-/* from venus */
-#include "binding.h"
-#include "venus.private.h"
-
-
-#ifdef VENUSDEBUG
-int binding::allocs = 0;
-int binding::deallocs = 0;
-#endif VENUSDEBUG
-
-binding::binding() {
-
-    binder = 0;
-    bindee = 0;
-    referenceCount = 0;
-
-#ifdef	VENUSDEBUG
-    allocs++;
-#endif	VENUSDEBUG
-}
-
-binding::~binding() {
-#ifdef	VENUSDEBUG
-    deallocs++;
-#endif	VENUSDEBUG
-    if (referenceCount != 0)
-      LOG(0, ("binding::~binding:  somebody forgot to decrement before delete\n"));
-
-    if (binder != 0 || bindee != 0)
-	{ print(logFile); CHOKE("binding::~binding: something bogus");}
-}
-
-
-void binding::print(int fd) {
-    fdprint(fd, "binder = %x, bindee = %x, refCount = %d\n", binder, bindee, referenceCount);
-}

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/src/coda-4.0.1/RCSLINK/./coda-src/fail/tvserver.c,v 1.1 1996/11/22 19:09:25 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/fail/tvserver.c,v 4.1 1997/01/08 21:49:39 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -53,7 +53,7 @@ static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/src/coda-4.0.1
  */
 
 #include <stdio.h>
-#include <assert.h>
+#include "coda_assert.h"
 #include <strings.h>
 #include <sys/time.h>
 #include <sys/types.h>
@@ -139,7 +139,7 @@ unsigned char *mode;
 {
     ConnInfo *ci;
 
-    assert(RPC2_GetPrivatePointer(cid, &ci) == RPC2_SUCCESS);
+    CODA_ASSERT(RPC2_GetPrivatePointer(cid, &ci) == RPC2_SUCCESS);
     ci->curfp = fopen(fileName, mode);
     if (ci->curfp == NULL) return errno;
     else return TV_SUCCESS;
@@ -149,7 +149,7 @@ long TV_Close(cid)
 {
     ConnInfo *ci;
 
-    assert(RPC2_GetPrivatePointer(cid, &ci) == RPC2_SUCCESS);
+    CODA_ASSERT(RPC2_GetPrivatePointer(cid, &ci) == RPC2_SUCCESS);
     if (ci->curfp == NULL) return TV_FAILURE;
     if (fclose(ci->curfp) == EOF) return TV_FAILURE;
     return TV_SUCCESS;
@@ -160,7 +160,7 @@ RPC2_CountedBS *buffer;
 {
     ConnInfo *ci;
 
-    assert(RPC2_GetPrivatePointer(cid, &ci) == RPC2_SUCCESS);
+    CODA_ASSERT(RPC2_GetPrivatePointer(cid, &ci) == RPC2_SUCCESS);
     if (ci->curfp == NULL) return TV_FAILURE;
     if (fread(buffer->SeqBody, 1, buffer->SeqLen, ci->curfp) == 0)
 	return TV_FAILURE;
@@ -172,7 +172,7 @@ RPC2_CountedBS *buffer;
 {
     ConnInfo *ci;
 
-    assert(RPC2_GetPrivatePointer(cid, &ci) == RPC2_SUCCESS);
+    CODA_ASSERT(RPC2_GetPrivatePointer(cid, &ci) == RPC2_SUCCESS);
     if (ci->curfp == NULL) return TV_FAILURE;
     if (fwrite(buffer->SeqBody, buffer->SeqLen, 1, ci->curfp) == 0)
     { perror("fwrite failed");
@@ -185,7 +185,7 @@ unsigned long where;
 {
     ConnInfo *ci;
 
-    assert(RPC2_GetPrivatePointer(cid, &ci) == RPC2_SUCCESS);
+    CODA_ASSERT(RPC2_GetPrivatePointer(cid, &ci) == RPC2_SUCCESS);
     if (ci->curfp == NULL) return TV_FAILURE;
     if (fseek(ci->curfp, where, 0) == -1) return errno;
     return TV_SUCCESS;
@@ -202,7 +202,7 @@ InitRPC()
     RPC2_SubsysIdent subsysid;
     struct timeval tout;
 
-    assert(LWP_Init(LWP_VERSION, LWP_NORMAL_PRIORITY, &mylpid) == LWP_SUCCESS);
+    CODA_ASSERT(LWP_Init(LWP_VERSION, LWP_NORMAL_PRIORITY, &mylpid) == LWP_SUCCESS);
 
     portalid.Tag = RPC2_PORTALBYINETNUMBER;
     portalid.Value.InetPortNumber = htons(TVPORTAL);
@@ -214,7 +214,7 @@ InitRPC()
     }
     subsysid.Tag = RPC2_SUBSYSBYID;
     subsysid.Value.SubsysId = TVSUBSYSID;
-    assert(RPC2_Export(&subsysid) == RPC2_SUCCESS);
+    CODA_ASSERT(RPC2_Export(&subsysid) == RPC2_SUCCESS);
 }
 
 

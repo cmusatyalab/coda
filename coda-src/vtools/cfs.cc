@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vtools/cfs.cc,v 4.9 1998/09/29 16:38:43 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vtools/cfs.cc,v 4.10 1998/10/07 20:30:05 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -52,7 +52,7 @@ extern "C" {
 #include <stdlib.h>
 #endif
 #include <strings.h>
-#include <assert.h>
+#include "coda_assert.h"
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
@@ -1297,14 +1297,14 @@ static int parseacl(char *s, struct acl *a)
     if (a->pluscount > 0)
 	{
 	a->plusentries = (struct aclentry *) calloc(a->pluscount, sizeof(struct aclentry));
-	assert(a->plusentries);
+	CODA_ASSERT(a->plusentries);
 	}
     sscanf(c, "%d", &a->minuscount);
     c += strlen(c) + 1;
     if (a->minuscount > 0)
 	{
 	a->minusentries = (struct aclentry *) calloc(a->minuscount, sizeof(struct aclentry));
-	assert(a->minusentries);
+	CODA_ASSERT(a->minusentries);
 	}
     for (i = 0; i < a->pluscount; i++)
 	{

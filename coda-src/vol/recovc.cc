@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vol/recovc.cc,v 4.4 1998/01/10 18:39:42 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vol/recovc.cc,v 4.5 1998/08/26 21:22:27 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -152,7 +152,7 @@ void checkvm() {
     }
     if (errorsfound) {
 	LogMsg(0, VolDebugLevel, stdout,  "CheckVM: Number of errors = %d", errorsfound);
-	assert(0);
+	CODA_ASSERT(0);
     }
     close(fd);
 }
@@ -171,7 +171,7 @@ int coda_init() {
 
     if (ThisServerId == -1) {
 	LogMsg(0, VolDebugLevel, stdout,  "ThisServerId is uninitialized!!! Exiting.");
-	assert(0);
+	CODA_ASSERT(0);
     }
 
 #ifdef NOTDEF
@@ -219,7 +219,7 @@ int coda_init() {
 
     dump_storage(49, "Finished coda initialization\n");
     RVMLIB_END_TRANSACTION(flush, &(status));
-    assert(status == 0);	/* Should never abort. */
+    CODA_ASSERT(status == 0);	/* Should never abort. */
     if (!VMCounter) {
         struct timeval tv;
         struct timezone tz;
@@ -251,8 +251,8 @@ void CheckVolData(Error *ec, int volindex) {
     if (data->volumeInfo->stamp.magic != VOLUMEINFOMAGIC)
 	LogMsg(0, VolDebugLevel, stdout,  "CheckVolumeData: bogus VolumeDiskData for volume %d, index %d!",
 	    SRV_RVM(VolumeList[volindex]).header.id, volindex);
-    assert(data->smallVnodeLists != NULL);
-    assert(data->largeVnodeLists!= NULL);
+    CODA_ASSERT(data->smallVnodeLists != NULL);
+    CODA_ASSERT(data->largeVnodeLists!= NULL);
 }    
 
 
@@ -391,7 +391,7 @@ void GrowVnodes(VolumeId volid, int vclass, short newBMsize) {
 
     if ((myind = HashLookup(volid)) == -1) {
 	LogMsg(0, VolDebugLevel, stdout,  "GrowVnodes: bogus volume id %x (not in hash table)", volid);
-	assert(0);
+	CODA_ASSERT(0);
     }
 
     newvnodes = newBMsize << 3;   // multiply by 8 since newBMsize is in bytes
@@ -409,7 +409,7 @@ void GrowVnodes(VolumeId volid, int vclass, short newBMsize) {
 	newvlist = (rec_smolist *) rvmlib_rec_malloc(sizeof(rec_smolist) * newsize);
 
 	char *tmpslist = (char *)malloc(sizeof(rec_smolist) * (int)(newsize - cursize));
-	assert(tmpslist);
+	CODA_ASSERT(tmpslist);
 	bzero(tmpslist, sizeof(rec_smolist) * (int)(newsize - cursize));
 	rvmlib_modify_bytes(&(newvlist[cursize]), tmpslist,
 			    sizeof(rec_smolist) * (newsize-cursize));
@@ -440,7 +440,7 @@ void GrowVnodes(VolumeId volid, int vclass, short newBMsize) {
 	newvlist = (rec_smolist *)rvmlib_rec_malloc(sizeof(rec_smolist) * newsize);
 
 	char *tmpllist = (char *)malloc(sizeof(rec_smolist) * (int)(newsize - cursize));
-	assert(tmpllist);
+	CODA_ASSERT(tmpllist);
 	bzero(tmpllist, sizeof(rec_smolist) * (int)(newsize - cursize));
 	rvmlib_modify_bytes(&(newvlist[cursize]), tmpllist, 
 			    sizeof(rec_smolist) * (newsize - cursize));

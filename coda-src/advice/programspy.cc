@@ -271,12 +271,12 @@ progent::progent(char *Program) {
 
     strcpy(program, Program);
 
-    assert(PWDB != NULL);
+    CODA_ASSERT(PWDB != NULL);
     existing_program = PWDB->get(&queue_handle);
     if (existing_program != NULL) {
       delete this;
     } else {
-      assert(PWDB != NULL);
+      CODA_ASSERT(PWDB != NULL);
       PWDB->insert(&queue_handle);
     }
 }
@@ -291,7 +291,7 @@ progent::operator=(progent& i) {
 }
 
 progent::~progent() {
-    assert(PWDB != NULL);
+    CODA_ASSERT(PWDB != NULL);
     PWDB->remove(&queue_handle);
     delete[] program;
 }
@@ -315,9 +315,9 @@ void PrintPWDB(char *filename) {
     fprintf(outfile, "Printing PWDB elements:\n");
     while (b = next()) {
         progent *prog;
-	assert(b != NULL);
+	CODA_ASSERT(b != NULL);
 	prog = strbase(progent, b, queue_handle);
-	assert(prog != NULL);
+	CODA_ASSERT(prog != NULL);
 	prog->print(outfile);
     }
     fprintf(outfile, "Done.\n\n");
@@ -329,14 +329,14 @@ int ProgramPriorityFN(bsnode *b1, bsnode *b2) {
     progent *p1;
     progent *p2;
 
-    assert(b1 != NULL);
-    assert(b2 != NULL);
+    CODA_ASSERT(b1 != NULL);
+    CODA_ASSERT(b2 != NULL);
 
     p1 = strbase(progent, b1, queue_handle);
     p2 = strbase(progent, b2, queue_handle);
 
-    assert(p1 != NULL);
-    assert(p2 != NULL);
+    CODA_ASSERT(p1 != NULL);
+    CODA_ASSERT(p2 != NULL);
 
     return(strcmp(p1->program, p2->program));
 }
@@ -354,7 +354,7 @@ int IsProgramUnderWatch(char *program) {
 
   while (b = next()) {
       progent *p = strbase(progent, b, queue_handle);
-      assert(p != NULL);
+      CODA_ASSERT(p != NULL);
       if (strcmp(p->program, program) == 0) {
 	  return(1);
       }
@@ -389,7 +389,7 @@ void ParseProgramDefinitions(char *filename) {
 	}
 
 	if (lookingForProgramName) {
-	    assert(line[strlen(line)-2] == ':');
+	    CODA_ASSERT(line[strlen(line)-2] == ':');
 	    lookingForProgramName = 0;
 	    returnValue = fgets(line, MAXPATHLEN, programDefs);
 	    continue;
@@ -440,7 +440,7 @@ dataent::dataent(VolumeId vol) {
     bsnode *existing_dataarea;
     
     volume = vol;
-    assert(UADB != NULL);
+    CODA_ASSERT(UADB != NULL);
     if (!UADB->IsMember(&queue_handle)) {
         UADB->insert(&queue_handle);
     } else {
@@ -458,7 +458,7 @@ dataent::operator=(dataent& i) {
 }
 
 dataent::~dataent() {
-    assert(UADB != NULL);
+    CODA_ASSERT(UADB != NULL);
     UADB->remove(&queue_handle);
 }
 
@@ -480,9 +480,9 @@ void PrintUADB(char *filename) {
     fprintf(outfile, "Printing UADB elements:\n");
     while (b = next()) {
         dataent *dataarea;
-	assert(b != NULL);
+	CODA_ASSERT(b != NULL);
 	dataarea = strbase(dataent, b, queue_handle);
-	assert(dataarea != NULL);
+	CODA_ASSERT(dataarea != NULL);
 	dataarea->print(outfile);
     }
     fprintf(outfile, "Done.\n\n");
@@ -494,14 +494,14 @@ int DataAreaPriorityFN(bsnode *b1, bsnode *b2) {
     dataent *d1;
     dataent *d2;
 
-    assert(b1 != NULL);
-    assert(b2 != NULL);
+    CODA_ASSERT(b1 != NULL);
+    CODA_ASSERT(b2 != NULL);
 
     d1 = strbase(dataent, b1, queue_handle);
     d2 = strbase(dataent, b2, queue_handle);
 
-    assert(d1 != NULL);
-    assert(d2 != NULL);
+    CODA_ASSERT(d1 != NULL);
+    CODA_ASSERT(d2 != NULL);
 
     if (d1->volume == d2->volume)
       return(0);
@@ -524,7 +524,7 @@ int IsProgramAccessingUserArea(VolumeId vol) {
 
   while (b = next()) {
       dataent *d = strbase(dataent, b, queue_handle);
-      assert(d != NULL);
+      CODA_ASSERT(d != NULL);
       if (d->volume == vol)
           return(1);
   }
@@ -557,7 +557,7 @@ void ParseDataDefinitions(char *filename) {
 	}
 
 	if (lookingForDefinitionName) {
-	    assert(line[strlen(line)-2] == ':');
+	    CODA_ASSERT(line[strlen(line)-2] == ':');
 	    lookingForDefinitionName = 0;
 	    returnValue = fgets(line, MAXPATHLEN, dataDefs);
 	    continue;

@@ -45,7 +45,7 @@ Mellon the rights to redistribute these changes without encumbrance.
 
 int OBJ_Cmp(struct fsobj *a, struct fsobj *b) 
 {
-	assert(FID_VolEQ(&a->fid, &b->fid));
+	CODA_ASSERT(FID_VolEQ(&a->fid, &b->fid));
 	return FID_Cmp(&a->fid, &b-fid);
 }
 
@@ -53,7 +53,7 @@ struct objlist *OBJ_NewList()
 {
 	struct objlist *l;
 	l = (struct objlist *) malloc(sizeof(*l));
-	assert(l);
+	CODA_ASSERT(l);
 	INIT_LIST_HEAD(&l->objl_lh);
 
 	return l;
@@ -85,7 +85,7 @@ struct fsobj *OBJ_GetFree(ViceFid *fid)
 	struct fsobj *obj;
 	
 	obj = (struct fsobj *) malloc(sizeof(*obj));
-	assert(obj);
+	CODA_ASSERT(obj);
 
 	INIT_LIST_HEAD(obj->obj_chain);
 	obj->obj_fid = *Fid;
@@ -110,8 +110,8 @@ struct fsobj *OBJ_GetFree(ViceFid *fid)
 
 void OBJ_Free(struct fsobject *obj) 
 {
-	assert(list_empty(&obj->obj_chain));
-	assert(obj->obj_vptr == 0);
+	CODA_ASSERT(list_empty(&obj->obj_chain));
+	CODA_ASSERT(obj->obj_vptr == 0);
 	free(obj);
 };
 

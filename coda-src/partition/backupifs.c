@@ -85,7 +85,7 @@ b_init (union PartitionData **data, Partent partent, Device *dev)
 	eprint("Error in init of partition %s:%s", 
 	       Partent_host(partent), Partent_dir(partent));
 	perror("");
-	assert(0);
+	CODA_ASSERT(0);
     }
     
     return 0;

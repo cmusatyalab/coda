@@ -33,7 +33,7 @@ should be returned to Software.Distribution@cs.cmu.edu.
 
 */
 
-static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/src/coda-4.0.1/RCSLINK/./rvm-src/rvm/rvm_unmap.c,v 1.1 1996/11/22 19:16:58 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/rvm-src/rvm/rvm_unmap.c,v 4.1 1997/01/08 21:54:39 rvb Exp $";
 #endif _BLURB_
 
 /*
@@ -90,7 +90,7 @@ rvm_return_t rvm_unmap(rvm_region)
     /* remove from region tree and unlock tree */
     if (!tree_delete(&region_tree,(tree_node_t *)region->mem_region,
                       mem_total_include))
-        ASSERT(rvm_false);              /* couldn't find node */
+        CODA_ASSERT(rvm_false);              /* couldn't find node */
     rw_unlock(&region_tree_lock,w);     /* end region_tree_lock crit sect */
     rw_unlock(&region->region_lock,w);  /* end region_lock crit sect */
 

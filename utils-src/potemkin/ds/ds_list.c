@@ -32,7 +32,7 @@ ds_list_elt_create(void *contents) {
 static
 void
 ds_list_elt_destroy(ds_list_elt_t *e) {
-    ASSERT(DS_LIST_ELT_VALID(e));
+    CODA_ASSERT(DS_LIST_ELT_VALID(e));
     e->p = e->n = NULL;
     e->contents = NULL;
     e->magic = 0;
@@ -51,15 +51,15 @@ ds_list_valid(ds_list_t *l) {
 
 int
 ds_list_count(ds_list_t *l) {
-    ASSERT(DS_LIST_VALID(l));
+    CODA_ASSERT(DS_LIST_VALID(l));
     return l->count;
 }
 
 void *
 ds_list_first(ds_list_t *l) {
-    ASSERT(DS_LIST_VALID(l));
+    CODA_ASSERT(DS_LIST_VALID(l));
     if (l->head) {
-	ASSERT(DS_LIST_ELT_VALID(l->head));
+	CODA_ASSERT(DS_LIST_ELT_VALID(l->head));
 	return l->head->contents;
     } else {
 	return NULL;
@@ -68,9 +68,9 @@ ds_list_first(ds_list_t *l) {
 
 void *
 ds_list_last(ds_list_t *l) {
-    ASSERT(DS_LIST_VALID(l));
+    CODA_ASSERT(DS_LIST_VALID(l));
     if (l->tail) {
-	ASSERT(DS_LIST_ELT_VALID(l->tail));
+	CODA_ASSERT(DS_LIST_ELT_VALID(l->tail));
 	return l->tail->contents;
     } else {
 	return NULL;
@@ -86,7 +86,7 @@ ds_list_find_member(ds_list_t *l, void *e) {
     cur = l->head;
 
     while (!found && cur != NULL) {
-	ASSERT(DS_LIST_ELT_VALID(cur));
+	CODA_ASSERT(DS_LIST_ELT_VALID(cur));
 	/* test is different for sorted, unsorted lists */
 	if (l->cmpfn != NULL) {
 	    if (l->cmpfn(e,cur->contents) == 0) {
@@ -109,8 +109,8 @@ void *
 ds_list_member(ds_list_t *l, void *e) {
     ds_list_elt_t *elt;
 
-    ASSERT(DS_LIST_VALID(l));    
-    ASSERT(e != NULL);
+    CODA_ASSERT(DS_LIST_VALID(l));    
+    CODA_ASSERT(e != NULL);
     elt = ds_list_find_member(l,e);
     if (elt)
 	return elt->contents;
@@ -140,10 +140,10 @@ ds_list_create(COMPFN c,
 
 void
 ds_list_destroy(ds_list_t *l) {
-    ASSERT(DS_LIST_VALID(l));
+    CODA_ASSERT(DS_LIST_VALID(l));
 
     /* Either the list must be unsafe, or there must be nothing in it. */
-    ASSERT(!(l->is_safe) || (l->count == 0));
+    CODA_ASSERT(!(l->is_safe) || (l->count == 0));
 
     l->magic = 0;
     l->cmpfn = NULL;
@@ -157,8 +157,8 @@ void *
 ds_list_insert(ds_list_t *l, void *i) {
     ds_list_elt_t *result;
 
-    ASSERT(DS_LIST_VALID(l));
-    ASSERT(i != NULL);
+    CODA_ASSERT(DS_LIST_VALID(l));
+    CODA_ASSERT(i != NULL);
 
     /* test for duplicates */
     if (!l->has_dups) 
@@ -174,7 +174,7 @@ ds_list_insert(ds_list_t *l, void *i) {
     } else {
 	/* Is the list unsorted? */
 	if (l->cmpfn == NULL) {
-	    ASSERT(DS_LIST_ELT_VALID(l->head));
+	    CODA_ASSERT(DS_LIST_ELT_VALID(l->head));
 	    result->n = l->head;
 	    l->head->p = result;
 	    l->head = result;
@@ -192,7 +192,7 @@ ds_list_insert(ds_list_t *l, void *i) {
 		l->tail->n = result;
 		l->tail = result;
 	    } else {
-		ASSERT(DS_LIST_ELT_VALID(cur));
+		CODA_ASSERT(DS_LIST_ELT_VALID(cur));
 		result->n = cur;
 		result->p = cur->p;
 		result->n->p = result;
@@ -211,8 +211,8 @@ void *
 ds_list_append(ds_list_t *l, void *i) {
     ds_list_elt_t *result;
 
-    ASSERT(DS_LIST_VALID(l));
-    ASSERT(i != NULL);
+    CODA_ASSERT(DS_LIST_VALID(l));
+    CODA_ASSERT(i != NULL);
 
     /* test for duplicates */
     if (!l->has_dups) 
@@ -228,7 +228,7 @@ ds_list_append(ds_list_t *l, void *i) {
     } else {
 	/* Is the list unsorted? */
 	if (l->cmpfn == NULL) {
-	    ASSERT(DS_LIST_ELT_VALID(l->tail));
+	    CODA_ASSERT(DS_LIST_ELT_VALID(l->tail));
 	    result->p = l->tail;
 	    l->tail->n = result;
 	    l->tail = result;
@@ -246,7 +246,7 @@ ds_list_append(ds_list_t *l, void *i) {
 		l->head->p = result;
 		l->head = result;
 	    } else {
-		ASSERT(DS_LIST_ELT_VALID(cur));
+		CODA_ASSERT(DS_LIST_ELT_VALID(cur));
 		result->p = cur;
 		result->n = cur->n;
 		result->p->n = result;
@@ -271,7 +271,7 @@ ds_list_advance_iters(ds_list_elt_t *dropping,
 		      ds_list_iter_t *iter) {
     
     while (iter != NULL) {
-	ASSERT(DS_LIST_ITER_VALID(iter));
+	CODA_ASSERT(DS_LIST_ITER_VALID(iter));
 	if (iter->next_elt == dropping) 
 	    iter->next_elt = iter->next_elt->n;
 	iter = iter->next_iter;
@@ -283,17 +283,17 @@ ds_list_get_first(ds_list_t *l) {
     void *result = NULL;
     ds_list_elt_t *removed = NULL;
 
-    ASSERT(DS_LIST_VALID(l));
+    CODA_ASSERT(DS_LIST_VALID(l));
     if (l->head != NULL) {        /* if the list is not empty */
 	removed = l->head;
-	ASSERT(DS_LIST_ELT_VALID(removed));
+	CODA_ASSERT(DS_LIST_ELT_VALID(removed));
 	ds_list_advance_iters(removed,l->iter_list);
 	result = l->head->contents;
 	l->head = l->head->n;
 	if (l->head == NULL) {
 	    l->tail = NULL;      /* list is now empty */
 	} else {
-	    ASSERT(DS_LIST_ELT_VALID(l->head));
+	    CODA_ASSERT(DS_LIST_ELT_VALID(l->head));
 	    l->head->p = NULL;   /* unchain this element */
 	}
 	ds_list_elt_destroy(removed);
@@ -307,17 +307,17 @@ ds_list_get_last(ds_list_t *l) {
     void *result = NULL;
     ds_list_elt_t *removed = NULL;
 
-    ASSERT(DS_LIST_VALID(l));
+    CODA_ASSERT(DS_LIST_VALID(l));
     if (l->tail != NULL) {     /* if the list is not empty */
 	removed = l->tail;
-	ASSERT(DS_LIST_ELT_VALID(removed));
+	CODA_ASSERT(DS_LIST_ELT_VALID(removed));
 	ds_list_advance_iters(removed,l->iter_list);
 	result = l->tail->contents;
 	l->tail = l->tail->p;
 	if (l->tail == NULL) {
 	    l->head = NULL;   /* list is now empty */
 	} else {
-	    ASSERT(DS_LIST_ELT_VALID(l->tail));
+	    CODA_ASSERT(DS_LIST_ELT_VALID(l->tail));
 	    l->tail->n = NULL; /* unchain this element */
 	}
 	ds_list_elt_destroy(removed);
@@ -331,8 +331,8 @@ ds_list_remove(ds_list_t *l, void *e) {
     ds_list_elt_t *elt;
     void          *result;
 
-    ASSERT(DS_LIST_VALID(l));    
-    ASSERT(e != NULL);
+    CODA_ASSERT(DS_LIST_VALID(l));    
+    CODA_ASSERT(e != NULL);
     elt = ds_list_find_member(l,e);
 
     if (elt == NULL) return NULL;    /* not in list */
@@ -349,7 +349,7 @@ ds_list_remove(ds_list_t *l, void *e) {
 
     if (elt->p == NULL) {            /* first element */
 	l->head = elt->n;
-	ASSERT(DS_LIST_ELT_VALID(l->head));
+	CODA_ASSERT(DS_LIST_ELT_VALID(l->head));
 	l->head->p = NULL;
 	ds_list_elt_destroy(elt);
 	return result;
@@ -357,15 +357,15 @@ ds_list_remove(ds_list_t *l, void *e) {
 
     if (elt->n == NULL) {           /* last element */
 	l->tail = elt->p;
-	ASSERT(DS_LIST_ELT_VALID(l->tail));
+	CODA_ASSERT(DS_LIST_ELT_VALID(l->tail));
 	l->tail->n = NULL;
 	ds_list_elt_destroy(elt);
 	return result;
     }
 
     /* neither first nor last element */
-    ASSERT(DS_LIST_ELT_VALID(elt->n));
-    ASSERT(DS_LIST_ELT_VALID(elt->p));
+    CODA_ASSERT(DS_LIST_ELT_VALID(elt->n));
+    CODA_ASSERT(DS_LIST_ELT_VALID(elt->p));
     elt->p->n = elt->n;
     elt->n->p = elt->p;
     ds_list_elt_destroy(elt);
@@ -376,8 +376,8 @@ void
 ds_list_print(ds_list_t *l, bool forward, void (*printer)(void *)) {
     ds_list_elt_t *cur;
 
-    ASSERT(DS_LIST_VALID(l));
-    ASSERT(printer != NULL);
+    CODA_ASSERT(DS_LIST_VALID(l));
+    CODA_ASSERT(printer != NULL);
 
     if (forward) {
 	cur = l->head;
@@ -398,7 +398,7 @@ ds_list_iter_t *
 ds_list_iter_create(ds_list_t *l) {
     ds_list_iter_t *result;
 
-    ASSERT(DS_LIST_VALID(l));
+    CODA_ASSERT(DS_LIST_VALID(l));
     ALLOC(result,ds_list_iter_t);
 
     result->next_iter = l->iter_list;
@@ -417,9 +417,9 @@ ds_list_iter_destroy(ds_list_iter_t *i) {
     ds_list_iter_t *cur;
     ds_list_t      *l;
     
-    ASSERT(DS_LIST_ITER_VALID(i));
+    CODA_ASSERT(DS_LIST_ITER_VALID(i));
     l = i->list;
-    ASSERT(DS_LIST_VALID(l));
+    CODA_ASSERT(DS_LIST_VALID(l));
 
     trail = NULL;
     cur = l->iter_list;
@@ -430,7 +430,7 @@ ds_list_iter_destroy(ds_list_iter_t *i) {
 	cur = cur->next_iter;
     }
 
-    ASSERT(cur != NULL);
+    CODA_ASSERT(cur != NULL);
     if (trail == NULL) 
 	l->iter_list = cur->next_iter;
     else
@@ -448,12 +448,12 @@ ds_list_iter_next(ds_list_iter_t *i) {
     ds_list_t      *l;
     void           *result = NULL;
 
-    ASSERT(DS_LIST_ITER_VALID(i));
+    CODA_ASSERT(DS_LIST_ITER_VALID(i));
     l = i->list;
-    ASSERT(DS_LIST_VALID(l));
+    CODA_ASSERT(DS_LIST_VALID(l));
 
     if (i->next_elt) {
-	ASSERT(DS_LIST_ELT_VALID(i->next_elt));
+	CODA_ASSERT(DS_LIST_ELT_VALID(i->next_elt));
 	result = i->next_elt->contents;
 	i->next_elt = i->next_elt->n;
     }

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vol/recovb.cc,v 4.6 1998/08/26 21:22:26 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vol/recovb.cc,v 4.7 1998/10/30 18:30:00 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -194,7 +194,7 @@ int ObjectExists(int volindex, int vclass, VnodeId vnodeindex, Unique_t u,
 	    vind = strbase(VnodeDiskObject, p, nextvn);
 	    if (vind->uniquifier == u) {
 		if (ParentFid) {
-		    assert(vind->uparent != 0);
+		    CODA_ASSERT(vind->uparent != 0);
 		    ParentFid->Vnode = vind->vparent;
 		    ParentFid->Unique = vind->uparent;
 		}
@@ -276,7 +276,7 @@ int GetParentFid(Volume *vp, ViceFid *cFid, ViceFid *pFid) {
 	while(p = next()){
 	    vind = strbase(VnodeDiskObject, p, nextvn);
 	    if (vind->uniquifier == cFid->Unique) {
-		assert(vind->uparent != 0);
+		CODA_ASSERT(vind->uparent != 0);
 		pFid->Volume = cFid->Volume;
 		pFid->Vnode = vind->vparent;
 		pFid->Unique = vind->uparent;
@@ -420,7 +420,7 @@ int ReplaceVnode(int volindex, int vclass, VnodeId vnodeindex,
 	    vnlist->append(&(vdo->nextvn));
 	    if (AllowResolution) {
 		/* allocate res log header */
-		assert(AllocateResLog(volindex, 
+		CODA_ASSERT(AllocateResLog(volindex, 
 		    bitNumberToVnodeNumber(vnodeindex, vLarge), u));
 	    }
 	}
@@ -428,7 +428,7 @@ int ReplaceVnode(int volindex, int vclass, VnodeId vnodeindex,
 	/* store the data into recoverable storage */
 	rvmlib_modify_bytes(vdo, vnode, SIZEOF_LARGEDISKVNODE);
     }
-    else assert(0);	/* vclass is neither vSmall nor vLarge */
+    else CODA_ASSERT(0);	/* vclass is neither vSmall nor vLarge */
     VLog(19, "Replace vnode - VnodeDiskObject passed to rtn:");
     if (VolDebugLevel > 19)  
 	print_VnodeDiskObject(vnode);
@@ -563,8 +563,8 @@ void ReplaceVolDiskInfo(Error *ec, int volindex, VolumeDiskData *vol)
 
     VLog(9,  "Entering ReplaceVolDiskInfo for volume index %d", volindex);
     /* consistency check */
-    assert(vol->stamp.magic == VOLUMEINFOMAGIC);
-    assert(vol->stamp.version == VOLUMEINFOVERSION);
+    CODA_ASSERT(vol->stamp.magic == VOLUMEINFOMAGIC);
+    CODA_ASSERT(vol->stamp.version == VOLUMEINFOVERSION);
 
     maxid = (SRV_RVM(MaxVolId) & 0x00FFFFFF);
     if ((volindex < 0) || (volindex > maxid) || (volindex > MAXVOLS)) {

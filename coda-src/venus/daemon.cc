@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/daemon.cc,v 4.6 98/08/26 21:24:26 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/daemon.cc,v 4.7 1998/09/29 21:04:40 jaharkes Exp $";
 #endif /*_BLURB_*/
 
 
@@ -87,7 +87,7 @@ struct DaemonInfo {
 
 void DaemonInit() {
     if (TM_Init(&DaemonList))
-	Choke("Couldn't create DaemonList!");
+	CHOKE("Couldn't create DaemonList!");
 
     /* set timer for once-a-day log messages */
     InitOneADay(); 

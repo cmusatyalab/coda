@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rpc2/sftp5.c,v 4.1 97/01/08 21:50:32 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rpc2/sftp5.c,v 4.2 1998/09/15 14:28:01 jaharkes Exp $";
 #endif /*_BLURB_*/
 
 
@@ -165,7 +165,7 @@ void B_CopyToPacket(bMask, whichPacket)
     register unsigned int *bMask;
     register RPC2_PacketBuffer *whichPacket;
     {
-    assert(BITMASKWIDTH <= 2);	/* for now */
+    CODA_ASSERT(BITMASKWIDTH <= 2);	/* for now */
     whichPacket->Header.BitMask0 = (unsigned) bMask[0];
     whichPacket->Header.BitMask1 = (unsigned) bMask[1];
     }
@@ -174,7 +174,7 @@ void B_CopyFromPacket(whichPacket, bMask)
     register unsigned int *bMask;
     register RPC2_PacketBuffer *whichPacket;
     {
-    assert(BITMASKWIDTH <= 2);	/* for now */
+    CODA_ASSERT(BITMASKWIDTH <= 2);	/* for now */
     bMask[0] = (unsigned) whichPacket->Header.BitMask0;
     bMask[1] = (unsigned) whichPacket->Header.BitMask1;
     }

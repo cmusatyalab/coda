@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /usr/rvb/XX/src/coda-src/advice/RCS/mybstree.cc,v 4.1 1997/01/08 21:49:18 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/advice/mybstree.cc,v 4.2 1997/02/26 16:02:28 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -59,7 +59,7 @@ extern "C" {
 #include <unistd.h>
 #include <stdlib.h>
 #endif
-#include <assert.h>
+#include "coda_assert.h"
 
 #ifdef __cplusplus
 }
@@ -78,7 +78,7 @@ extern void Die(char * ...);
 
 #define	ZERONODE(n)\
 {\
-     assert(n != NULL);\
+     CODA_ASSERT(n != NULL);\
     (n)->mytree = 0;\
     (n)->parent = 0;\
     (n)->leftchild = 0;\
@@ -88,7 +88,7 @@ extern void Die(char * ...);
 #define	FIRST(r, n)\
 {\
     (n) = (r);\
-    assert(n != NULL);\
+    CODA_ASSERT(n != NULL);\
     while ((n)->leftchild != 0)\
 	(n) = (n)->leftchild;\
 }
@@ -96,14 +96,14 @@ extern void Die(char * ...);
 #define LAST(r, n)\
 {\
     (n) = (r);\
-    assert(n != NULL);\
+    CODA_ASSERT(n != NULL);\
     while ((n)->rightchild != 0)\
 	(n) = (n)->rightchild;\
 }
 
 #define	SPLICE(n1, n2)\
 {\
-    assert(n1 != NULL);\
+    CODA_ASSERT(n1 != NULL);\
     if ((n1)->parent == 0)\
 	root = (n2);\
     else {\
@@ -151,7 +151,7 @@ bstree::~bstree() {
 
 /* Does NOT require uniqueness of keys. */
 void bstree::insert(bsnode *b) {
-    assert(b != NULL);
+    CODA_ASSERT(b != NULL);
 /*
     if (!IsOrdered())
 	{ print(logFile); b->print(logFile); Die("bstree::insert: !ordered at entry"); }
@@ -175,31 +175,31 @@ void bstree::insert(bsnode *b) {
 	    }
 
 	    if (res < 0) {
-		assert(curr != NULL);
+		CODA_ASSERT(curr != NULL);
 		if (curr->leftchild == 0) {
-		    assert(b != NULL);
+		    CODA_ASSERT(b != NULL);
 		    b->parent = curr;
 		    curr->leftchild = b;
 		    break;
 		}
-		assert(curr != NULL);
+		CODA_ASSERT(curr != NULL);
 		curr = curr->leftchild;
 	    }
 	    else {	/* res > 0 */
-		assert(curr != NULL);
+		CODA_ASSERT(curr != NULL);
 		if (curr->rightchild == 0) {
-		    assert(b != NULL);
+		    CODA_ASSERT(b != NULL);
 		    b->parent = curr;
 		    curr->rightchild = b;
 		    break;
 		}
-		assert(curr != NULL);
+		CODA_ASSERT(curr != NULL);
 		curr = curr->rightchild;
 	    }
 	}
     }
 
-    assert(b != NULL);
+    CODA_ASSERT(b != NULL);
     b->mytree = this;
     cnt++;
 /*
@@ -220,11 +220,11 @@ bsnode *bstree::remove(bsnode *b) {
     if (!IsOrdered())
 	{ print(logFile); b->print(logFile); Die("bstree::remove: !ordered at entry"); }
 */
-    assert(b != NULL);
+    CODA_ASSERT(b != NULL);
     if (b->tree() != this) return(0);
     removes++;
 
-    assert(b != NULL);
+    CODA_ASSERT(b != NULL);
     if (b->leftchild == 0) {
 	SPLICE(b, b->rightchild);
     }
@@ -235,13 +235,13 @@ bsnode *bstree::remove(bsnode *b) {
 	/* Find and remove node to be promoted. */
 	bsnode *t;
 	FIRST(b->rightchild, t);
-	assert(t != NULL);
+	CODA_ASSERT(t != NULL);
 	SPLICE(t, t->rightchild);
 
 	/* Plug promoted node in for the one being removed. */
 	SPLICE(b, t);
-	assert(t != NULL);
-	assert(b != NULL);
+	CODA_ASSERT(t != NULL);
+	CODA_ASSERT(b != NULL);
 	t->leftchild = b->leftchild;
 	if (t->leftchild != 0)
 	    (t->leftchild)->parent = t;
@@ -289,12 +289,12 @@ bsnode *bstree::get(BstGetType type) {
     bsnode *b;
     if (type == BstGetMin) {
 	FIRST(root, b);
-	assert(b != NULL);
+	CODA_ASSERT(b != NULL);
 	SPLICE(b, b->rightchild);
     }
     else {
 	LAST(root, b);
-	assert(b != NULL);
+	CODA_ASSERT(b != NULL);
 	SPLICE(b, b->leftchild);
     }
 
@@ -313,7 +313,7 @@ bsnode *bstree::get(BstGetType type) {
  * Note that b need not be a member of the actual tree.
  */
 bsnode *bstree::get(bsnode *b) {
-    assert(b != NULL);
+    CODA_ASSERT(b != NULL);
     if ((b->mytree != this) && (b->mytree != 0)) return(0);
 
     for (bsnode *curr = root; curr != 0;) {
@@ -325,11 +325,11 @@ bsnode *bstree::get(bsnode *b) {
 	}
 
 	if (res < 0) {
-	    assert(curr != NULL);
+	    CODA_ASSERT(curr != NULL);
 	    curr = curr->leftchild;
         }
 	else {	/* res > 0 */
-	    assert(curr != NULL);
+	    CODA_ASSERT(curr != NULL);
 	    curr = curr->rightchild;
         }
     }
@@ -359,7 +359,7 @@ int bstree::count() {
  */
 /* TRUE if node OR it's value is member of the tree! */
 int bstree::IsMember(bsnode *b) {
-    assert(b != NULL);
+    CODA_ASSERT(b != NULL);
     if (b->mytree == this) return(1);
     if (b->mytree != 0) return(0);
 
@@ -372,11 +372,11 @@ int bstree::IsMember(bsnode *b) {
 	}
 
 	if (res < 0) {
-	    assert(curr != NULL);
+	    CODA_ASSERT(curr != NULL);
 	    curr = curr->leftchild;
         }
 	else {	/* res > 0 */
-	    assert(curr != NULL);
+	    CODA_ASSERT(curr != NULL);
 	    curr = curr->rightchild;
         }
     }
@@ -402,10 +402,10 @@ int bstree::IsOrdered() {
 		return(0);
 	    }
 	}
-	assert(curr != NULL);
+	CODA_ASSERT(curr != NULL);
 	if (curr->leftchild != 0) {
 	    int res = CmpFn(curr->leftchild, curr);
-	    assert(curr != NULL);
+	    CODA_ASSERT(curr != NULL);
 	    if (res > 0 || (res == 0 && (char *)curr->leftchild >= (char *)curr)) {
 /*
 		 (curr->leftchild)->print(logFile);
@@ -416,7 +416,7 @@ int bstree::IsOrdered() {
 	}
 	if (curr->rightchild != 0) {
 	    int res = CmpFn(curr, curr->rightchild);
-	    assert(curr != NULL);
+	    CODA_ASSERT(curr != NULL);
 	    if (res > 0 || (res == 0 && (char *)curr >= (char *)curr->rightchild)) {
 /*
 		 curr->print(logFile);
@@ -526,43 +526,43 @@ bsnode *bstree_iterator::operator()() {
     switch((unsigned int)cbsnode) {
 	case -1:		/* state == NOTSTARTED */
 	    if (order == BstAscending) {
-		assert(cbstree != NULL);
+		CODA_ASSERT(cbstree != NULL);
 		cbsnode = cbstree->first();
 	    }
 	    else {
-		assert(cbstree != NULL);
+		CODA_ASSERT(cbstree != NULL);
 		cbsnode = cbstree->last();
 	    }
 	    break;
 
 	default:		/* state == INPROGRESS */
 	    if (order == BstAscending) {
-		assert(cbsnode != NULL);
+		CODA_ASSERT(cbsnode != NULL);
 		if (cbsnode->rightchild == 0) {
 		    bsnode *t;
 		    do {
 			t = cbsnode;
-			assert(cbsnode != NULL);
+			CODA_ASSERT(cbsnode != NULL);
 			cbsnode = cbsnode->parent;
 		    } while (cbsnode != 0 && cbsnode->rightchild == t);
 		}
 		else {
-		    assert(cbsnode != NULL);
+		    CODA_ASSERT(cbsnode != NULL);
 		    FIRST(cbsnode->rightchild, cbsnode);
 		}
 	    }
 	    else {
-		assert(cbsnode != NULL);
+		CODA_ASSERT(cbsnode != NULL);
 		if (cbsnode->leftchild == 0) {
 		    bsnode *t;
 		    do {
 			t = cbsnode;
-			assert(cbsnode != NULL);
+			CODA_ASSERT(cbsnode != NULL);
 			cbsnode = cbsnode->parent;
 		    } while (cbsnode != 0 && cbsnode->leftchild == t);
 		}
 		else {
-		    assert(cbsnode != NULL);
+		    CODA_ASSERT(cbsnode != NULL);
 		    LAST(cbsnode->leftchild, cbsnode);
 		}
 	    }

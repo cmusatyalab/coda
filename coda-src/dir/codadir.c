@@ -37,7 +37,7 @@ Mellon the rights to redistribute these changes without encumbrance.
 extern "C" {
 #endif __cplusplus
 #include <stdio.h>
-#include <assert.h>
+#include "coda_assert.h"
 #include <sys/types.h>
 #include <netinet/in.h>
 #include <fcntl.h>
@@ -87,7 +87,7 @@ void DH_UnLockR(PDirHandle dh)
 
 void DH_Init(PDirHandle dh)
 {
-	assert(dh);
+	CODA_ASSERT(dh);
 	bzero(dh, sizeof(*dh));
 	Lock_Init(&dh->dh_lock);
 }
@@ -224,18 +224,18 @@ void DH_FreeData(PDirHandle dh)
 /* alloc a directory buffer for the DH */
 void DH_Alloc(PDirHandle dh, int size, int in_rvm)
 {
-	assert(dh);
+	CODA_ASSERT(dh);
 	DH_LockW(dh);
 	dh->dh_dirty = 1;
 	if ( in_rvm ) {
 		DIR_intrans();
 		RVMLIB_REC_OBJECT(*dh);
 		dh->dh_data = rvmlib_rec_malloc(size);
-		assert(dh->dh_data);
+		CODA_ASSERT(dh->dh_data);
 		bzero((void *)dh->dh_data, size);
 	} else {
 		dh->dh_data = malloc(size);
-		assert(dh->dh_data);
+		CODA_ASSERT(dh->dh_data);
 		bzero((void *)dh->dh_data, size);
 	}
 

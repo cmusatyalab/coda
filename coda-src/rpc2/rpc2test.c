@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rpc2/rpc2test.c,v 4.4 1998/08/26 17:08:12 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rpc2/rpc2test.c,v 4.5 1998/09/29 16:38:04 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -209,7 +209,7 @@ static long WorkerBody(workerName)
 
     reqfilter.FromWhom = ONESUBSYS;
     reqfilter.ConnOrSubsys.SubsysId = SUBSYS_SRV;
-    assert(reqfilter.ConnOrSubsys.SubsysId != -1);
+    CODA_ASSERT(reqfilter.ConnOrSubsys.SubsysId != -1);
     reqfilter.OldOrNew = OLD;
 
     RPC2_AllocBuffer(1000, &OutBuff);
@@ -277,13 +277,13 @@ static long WorkerBody(workerName)
 		if ((rc = RPC2_InitSideEffect(workercid, &sed)) != RPC2_SUCCESS)
 		    {
 		    BulkErr(workercid, &sed, rc, InBuff->Header.Opcode);
-		    assert(RPC2_Unbind(workercid) == RPC2_SUCCESS);
+		    CODA_ASSERT(RPC2_Unbind(workercid) == RPC2_SUCCESS);
 		    continue;
 		    }
 		if ((rc = RPC2_CheckSideEffect(workercid, &sed, SE_AWAITLOCALSTATUS)) != RPC2_SUCCESS)
 			{
 			BulkErr(workercid, &sed, rc, InBuff->Header.Opcode);
-			assert(RPC2_Unbind(workercid) == RPC2_SUCCESS);
+			CODA_ASSERT(RPC2_Unbind(workercid) == RPC2_SUCCESS);
 			continue;
 			}
 		else
@@ -348,7 +348,7 @@ static long WorkerBody(workerName)
 	    DumpAndQuit(InBuff->Header.Opcode);
 	    }
 	if (InBuff->Header.Opcode == 7)
-	    assert(RPC2_Unbind(workercid) == RPC2_SUCCESS);
+	    CODA_ASSERT(RPC2_Unbind(workercid) == RPC2_SUCCESS);
 	}
     }
 	
@@ -386,7 +386,7 @@ static long ListenerBody(listenerName)
     LWP_DispatchProcess();	/* initial courtesy to parent */
     reqfilter.FromWhom = ONESUBSYS;
     reqfilter.ConnOrSubsys.SubsysId = SUBSYS_SRV;
-    assert(reqfilter.ConnOrSubsys.SubsysId != -1);
+    CODA_ASSERT(reqfilter.ConnOrSubsys.SubsysId != -1);
     reqfilter.OldOrNew = NEW;
 
     InBuff = NULL;
@@ -417,7 +417,7 @@ static long ListenerBody(listenerName)
 		}
 		
 	    default: /* unknown opcode */
-		assert(InBuff->Header.Opcode == RPC2_NEWCONNECTION);
+		CODA_ASSERT(InBuff->Header.Opcode == RPC2_NEWCONNECTION);
 	    break;
 	    }
 
@@ -598,7 +598,7 @@ static long ClientBody(clientName)
 		    say(0, VerboseFlag, "Unbound connection to %s for %s after %d calls\n",
 			ConnVector[thisconn].RemoteHost.Value.Name, ConnVector[thisconn].Identity.SeqBody,
 			ConnVector[thisconn].CallsMade);
-		    assert(RPC2_Unbind(ConnVector[thisconn].ConnHandle) == RPC2_SUCCESS);
+		    CODA_ASSERT(RPC2_Unbind(ConnVector[thisconn].ConnHandle) == RPC2_SUCCESS);
 		    }
 		else
 		    {HandleRPCFailure(thisconn, retcode, ntohl(request->Header.Opcode));}
@@ -668,7 +668,7 @@ static long ClientBody(clientName)
 
 iopen()
     {
-    assert(1 == 0);
+    CODA_ASSERT(1 == 0);
     }
 
 static struct Password 
@@ -736,7 +736,7 @@ static GetConns()
     char myname[30];
 
     GetVar(&CVCount, "How many client connections: ");
-    assert(CVCount < MAXCON);
+    CODA_ASSERT(CVCount < MAXCON);
 
     gethostname(myname, sizeof(myname));
     for (i = 0; i < CVCount; i++)
@@ -878,7 +878,7 @@ static RanDelay(t)
 	say(0, VerboseFlag, "delaying for %ld:%ld seconds ....\n", 
 		    tval.tv_sec, tval.tv_usec);
 	FLUSH();
-	assert(IOMGR_Select(32, 0,0,0, &tval) == 0);
+	CODA_ASSERT(IOMGR_Select(32, 0,0,0, &tval) == 0);
 	}
     }
 
@@ -918,7 +918,7 @@ static HandleRPCFailure(cid, rcode, op)
     if (op == 7 && rcode == RPC2_NAKED)
 	{
 	lostunbinds++;
-	assert(RPC2_Unbind(ConnVector[cid].ConnHandle) == RPC2_SUCCESS);
+	CODA_ASSERT(RPC2_Unbind(ConnVector[cid].ConnHandle) == RPC2_SUCCESS);
         FLUSH();
 	return;
 	}

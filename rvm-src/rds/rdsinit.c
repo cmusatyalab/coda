@@ -33,7 +33,7 @@ should be returned to Software.Distribution@cs.cmu.edu.
 
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/rvm-src/rds/rdsinit.c,v 4.8 98/09/29 16:39:06 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/rvm-src/rds/rdsinit.c,v 4.9 1998/09/29 21:04:54 jaharkes Exp $";
 #endif _BLURB_
 
 
@@ -43,7 +43,7 @@ static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/rvm-src/rds/rds
  * the log.
  */
 
-#include <assert.h>
+#include "coda_assert.h"
 #include <setjmp.h>
 #include <stdlib.h>
 #include <sys/file.h>
@@ -199,7 +199,7 @@ static int confirm_rounded_value(pvalue, base, unit, round_dir, min)
     } else if (base == 8) {
 	sprintf(string, "0%o (in decimal %u)", *pvalue, *pvalue);
     } else {
-	assert(0);		/* illegal base value */
+	CODA_ASSERT(0);		/* illegal base value */
     }
 
     printf("   ====> You have entered %s. ", string);
@@ -223,7 +223,7 @@ static int confirm_rounded_value(pvalue, base, unit, round_dir, min)
     	} else if (base == 8) {
     	    sprintf(string, "0%o (in decimal %u)", t2, t2);
     	} else {
-    	    assert(0);		/* illegal base value */
+    	    CODA_ASSERT(0);		/* illegal base value */
     	}
 
 	printf("\n");

@@ -91,7 +91,6 @@ extern "C" {
 #endif __cplusplus
 
 int rvmlib_in_transaction(void);
-void rvmlib_assert(char *message);
 void rvmlib_abort(int);
 
 void rvmlib_set_range(void *base, unsigned long size);
@@ -119,6 +118,13 @@ void rvmlib_end_transaction(int flush_mode, rvm_return_t *statusp);
 /* pointer to rvm_perthread_t must be under this rock! */
 extern int optimizationson;
 
+#define RVMLIB_ASSERT(errmsg) \
+do { \
+    fprintf(stderr, "RVMLIB_ASSERT: %s\n", errmsg); \
+    fflush(stderr); \
+    coda_assert("0", __FILE__, __LINE__); \
+} while (0)
+
 
 #define rvmlib_rec_malloc(size) rvmlib_malloc(size, __FILE__, __LINE__)
 #define rvmlib_rec_free(addr) rvmlib_free(addr, __FILE__, __LINE__)
@@ -135,12 +141,12 @@ extern int optimizationson;
     if (RvmType == RAWIO || RvmType == UFS ) {\
 	/* Initialize the rvm_perthread_t object. */\
 	_rvm_data = rvmlib_thread_data();\
-	if (_rvm_data == 0) rvmlib_assert("BeginTransaction: _rvm_data = 0");\
+	if (_rvm_data == 0) RVMLIB_ASSERT("BeginTransaction: _rvm_data = 0");\
 	if (_rvm_data->tid != 0) { \
 	   if (_rvm_data->die) \
               (_rvm_data->die)("BeginTransaction: _rvm_data->tid = %x, nested trans file %s line %d",\
 						_rvm_data->tid, __FILE__, __LINE__);\
-	   else rvmlib_assert("_rvm_data->tid is non zero during begin transaction");\
+	   else RVMLIB_ASSERT("_rvm_data->tid is non zero during begin transaction");\
 	   }\
 	rvm_init_tid(&tid);\
 	_rvm_data->tid = &tid;\
@@ -159,7 +165,7 @@ extern int optimizationson;
 	_status = RVM_SUCCESS;\
     }\
     else {\
-        assert(0);\
+        CODA_ASSERT(0);\
     }\
 \
     if (_status == 0/*RVM_SUCCESS*/) {\
@@ -203,7 +209,7 @@ extern int optimizationson;
 	    *(statusp) = RVM_SUCCESS;\
     }\
     else {\
-       assert(0);\
+       CODA_ASSERT(0);\
     }\
 }
 
@@ -236,11 +242,11 @@ do {									    \
         rvm_return_t ret = rvm_set_range(_rvm_data->tid, (char *)&object, sizeof(object)); \
 	if (ret != RVM_SUCCESS)						    \
 	    printf("Modify Bytes error %s\n",rvm_return(ret));		    \
-        assert(ret == RVM_SUCCESS);					    \
+        CODA_ASSERT(ret == RVM_SUCCESS);					    \
         (object) = (newValue);						    \
     }									    \
     else {								    \
-       assert(0);							    \
+       CODA_ASSERT(0);							    \
     }								    	    \
 } while(0)
 
@@ -248,3 +254,4 @@ do {									    \
 
 
 #endif	_RVMLIB_H_
+

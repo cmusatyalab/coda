@@ -30,7 +30,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vice/srv.cc,v 4.24 1998/10/09 21:57:41 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vice/srv.cc,v 4.25 1998/10/30 18:29:58 braam Exp $";
 #endif /*_BLURB_*/
 
 /*
@@ -331,7 +331,7 @@ void zombie(int sig, int code, struct sigcontext *scp) {
 	sigset_t mask;
 
 	sigemptyset(&mask);
-	assert(0);
+	CODA_ASSERT(0);
 	while (living_dead) {
 	    sigsuspend(&mask); /* pending gdb attach */
 	}
@@ -424,7 +424,7 @@ main(int argc, char *argv[])
     }
 
     SLog(0, "Main process doing a LWP_Init()");
-    assert(LWP_Init(LWP_VERSION, LWP_NORMAL_PRIORITY,&parentPid)==LWP_SUCCESS);
+    CODA_ASSERT(LWP_Init(LWP_VERSION, LWP_NORMAL_PRIORITY,&parentPid)==LWP_SUCCESS);
 
     /* using rvm - so set the per thread data structure for executing
        transactions */
@@ -435,7 +435,7 @@ main(int argc, char *argv[])
 	rvmptt.list.count = 0;
 	rvmptt.list.size = 0;
 	rvmlib_init_threaddata(&rvmptt);
-	assert(rvmlib_thread_data() != 0);
+	CODA_ASSERT(rvmlib_thread_data() != 0);
 	SLog(0, 
 	       "Main thread just did a RVM_SET_THREAD_DATA\n");
     }
@@ -480,7 +480,7 @@ main(int argc, char *argv[])
     struct timeval to;
     to.tv_sec = timeout;
     to.tv_usec = 0;
-    assert(RPC2_Init(RPC2_VERSION, 0, &portal1, retrycnt, &to) == RPC2_SUCCESS);
+    CODA_ASSERT(RPC2_Init(RPC2_VERSION, 0, &portal1, retrycnt, &to) == RPC2_SUCCESS);
     RPC2_InitTraceBuffer(trace);
     RPC2_Trace = trace;
 
@@ -491,7 +491,7 @@ main(int argc, char *argv[])
     FileMsg();
 
 
-    assert(file = fopen("pid","w"));
+    CODA_ASSERT(file = fopen("pid","w"));
     fprintf(file,"%d",getpid());
     fclose(file);
     /* Init per LWP process functions */
@@ -505,9 +505,9 @@ main(int argc, char *argv[])
 
     stat(PDB, &buff);
     pdbtime = (int)buff.st_mtime;
-    assert(AL_Initialize(AL_VERSION, PDB, PCF) == 0);
+    CODA_ASSERT(AL_Initialize(AL_VERSION, PDB, PCF) == 0);
 
-    assert(AL_NameToId("Administrators", &SystemId) == 0);
+    CODA_ASSERT(AL_NameToId("Administrators", &SystemId) == 0);
 
  /* Initialize failure package */
     Fail_Initialize("file", 0);
@@ -516,7 +516,7 @@ main(int argc, char *argv[])
     /* tag main fileserver lwp for volume package */
     pt = (ProgramType *) malloc(sizeof(ProgramType));
     *pt = fileServer;
-    assert(LWP_NewRock(FSTAG, (char *)pt) == LWP_SUCCESS);
+    CODA_ASSERT(LWP_NewRock(FSTAG, (char *)pt) == LWP_SUCCESS);
 
     InitCallBack();
     VInitVolumePackage(large,small, ForceSalvage);
@@ -530,41 +530,41 @@ main(int argc, char *argv[])
     ResCommInit();
     server.Tag = RPC2_SUBSYSBYID;
     server.Value.SubsysId = RESOLUTIONSUBSYSID;
-    assert(RPC2_Export(&server) == RPC2_SUCCESS);
+    CODA_ASSERT(RPC2_Export(&server) == RPC2_SUCCESS);
 
     server.Tag = RPC2_SUBSYSBYID;
     server.Value.SubsysId = SUBSYS_SRV;
-    assert(RPC2_Export(&server) == RPC2_SUCCESS);
+    CODA_ASSERT(RPC2_Export(&server) == RPC2_SUCCESS);
     ClearCounters();
 
-    assert(LWP_CreateProcess((PFIC)CallBackCheckLWP, stack*1024, LWP_NORMAL_PRIORITY,
+    CODA_ASSERT(LWP_CreateProcess((PFIC)CallBackCheckLWP, stack*1024, LWP_NORMAL_PRIORITY,
 	    (char *)&cbwait, "CheckCallBack", &serverPid) == LWP_SUCCESS);
 	    
-    assert(LWP_CreateProcess((PFIC)CheckLWP, stack*1024, LWP_NORMAL_PRIORITY,
+    CODA_ASSERT(LWP_CreateProcess((PFIC)CheckLWP, stack*1024, LWP_NORMAL_PRIORITY,
 	    (char *)&chk, "Check", &serverPid) == LWP_SUCCESS);
 	    
     for (i=0; i < lwps; i++) {
 	sprintf(sname, "ServerLWP-%d",i);
-	assert(LWP_CreateProcess((PFIC)ServerLWP, stack*1024, LWP_NORMAL_PRIORITY,
+	CODA_ASSERT(LWP_CreateProcess((PFIC)ServerLWP, stack*1024, LWP_NORMAL_PRIORITY,
 		(char *)&i, sname, &serverPid) == LWP_SUCCESS);
     }
 
     /* set up resolution threads */
     for (i = 0; i < 2; i++){
 	sprintf(sname, "ResLWP-%d", i);
-	assert(LWP_CreateProcess((PFIC)ResLWP, stack*1024, 
+	CODA_ASSERT(LWP_CreateProcess((PFIC)ResLWP, stack*1024, 
 				 LWP_NORMAL_PRIORITY, (char *)&i, 
 				 sname, &resPid) == LWP_SUCCESS);
     }
     extern void ResCheckServerLWP();
     sprintf(sname, "ResCheckSrvrLWP");
-    assert(LWP_CreateProcess((PFIC)ResCheckServerLWP, stack*1024,
+    CODA_ASSERT(LWP_CreateProcess((PFIC)ResCheckServerLWP, stack*1024,
 			      LWP_NORMAL_PRIORITY, (char *)&i, 
 			      sname, &resPid) == LWP_SUCCESS);
 
     extern void ResCheckServerLWP_worker();
     sprintf(sname, "ResCheckSrvrLWP_worker");
-    assert(LWP_CreateProcess((PFIC)ResCheckServerLWP_worker, stack*1024,
+    CODA_ASSERT(LWP_CreateProcess((PFIC)ResCheckServerLWP_worker, stack*1024,
 			      LWP_NORMAL_PRIORITY, (char *)&i, 
 			      sname, &resworkerPid) == LWP_SUCCESS);
     /* Set up volume utility subsystem (spawns 2 lwps) */
@@ -576,7 +576,7 @@ main(int argc, char *argv[])
 
     extern void SmonDaemon();
     sprintf(sname, "SmonDaemon");
-    assert(LWP_CreateProcess((PFIC)SmonDaemon, stack*1024,
+    CODA_ASSERT(LWP_CreateProcess((PFIC)SmonDaemon, stack*1024,
 			     LWP_NORMAL_PRIORITY, (char *)&smonPid,
 			     sname, &smonPid) == LWP_SUCCESS);
 #ifdef PERFORMANCE
@@ -597,7 +597,7 @@ main(int argc, char *argv[])
     SLog(0,"File Server started %s", ctime(&tp.tv_sec));
 #endif
     StartTime = (unsigned int)tp.tv_sec;
-    assert(LWP_WaitProcess((char *)&parentPid) == LWP_SUCCESS);
+    CODA_ASSERT(LWP_WaitProcess((char *)&parentPid) == LWP_SUCCESS);
 
 }
 
@@ -630,7 +630,7 @@ static void ServerLWP(int *Ident)
     /* tag fileserver lwps with rock */
     pt = (ProgramType *) malloc(sizeof(ProgramType));
     *pt = fileServer;
-    assert(LWP_NewRock(FSTAG, (char *)pt) == LWP_SUCCESS);
+    CODA_ASSERT(LWP_NewRock(FSTAG, (char *)pt) == LWP_SUCCESS);
 
     while (1) {
 	LastOp[lwpid] = 0;
@@ -742,7 +742,7 @@ static void ResLWP(int *Ident){
     SLog(0, "ResLWP-%d just did a rvmlib_set_thread_data()\n", *Ident);
 
     pt = fileServer;
-    assert(LWP_NewRock(FSTAG, (char *)&pt) == LWP_SUCCESS);
+    CODA_ASSERT(LWP_NewRock(FSTAG, (char *)&pt) == LWP_SUCCESS);
 
     myfilter.FromWhom = ONESUBSYS;
     myfilter.OldOrNew = OLDORNEW;
@@ -777,7 +777,7 @@ static void CallBackCheckLWP()
     /* tag lwps as fsUtilities */
     pt = (ProgramType *) malloc(sizeof(ProgramType));
     *pt = fsUtility;
-    assert(LWP_NewRock(FSTAG, (char *)pt) == LWP_SUCCESS);
+    CODA_ASSERT(LWP_NewRock(FSTAG, (char *)pt) == LWP_SUCCESS);
 
     /* using rvm - so set the per thread data structure for executing
        transactions */
@@ -817,7 +817,7 @@ static void CheckLWP()
     /* tag lwps as fsUtilities */
     pt = (ProgramType *) malloc(sizeof(ProgramType));
     *pt = fsUtility;
-    assert(LWP_NewRock(FSTAG, (char *)pt) == LWP_SUCCESS);
+    CODA_ASSERT(LWP_NewRock(FSTAG, (char *)pt) == LWP_SUCCESS);
 
 
     SLog(1, "Starting Check process");
@@ -835,7 +835,7 @@ static void CheckLWP()
 #else
 		SLog(0, "Shutting down the File Server %s", ctime(&tpl.tv_sec));
 #endif
-		assert(LWP_GetRock(FSTAG, (char **)&pt) == LWP_SUCCESS);
+		CODA_ASSERT(LWP_GetRock(FSTAG, (char **)&pt) == LWP_SUCCESS);
 		/* masquerade as fileServer lwp */
 		tmp_pt = *pt;
 		*pt = fileServer;
@@ -858,16 +858,16 @@ static void ShutDown()
     if (SalvageOnShutdown) {
 	SLog(9, "Unlocking volutil lock...");
 	int fvlock = open("/vice/vol/volutil.lock", O_CREAT|O_RDWR, 0666);
-	assert(fvlock >= 0);
+	CODA_ASSERT(fvlock >= 0);
 	while (flock(fvlock, LOCK_UN) != 0);
 	SLog(9, "Done");
 	close(fvlock);
 	
 	ProgramType *pt, tmppt;
-	assert(LWP_GetRock(FSTAG, (char **)&pt) == LWP_SUCCESS);
+	CODA_ASSERT(LWP_GetRock(FSTAG, (char **)&pt) == LWP_SUCCESS);
 	tmppt = *pt;
 	*pt = salvager;	/* MUST set *pt to salvager before vol_salvage */
-	assert(S_VolSalvage(0, NULL, 0, 1, 1, 0) == 0);
+	CODA_ASSERT(S_VolSalvage(0, NULL, 0, 1, 1, 0) == 0);
 	*pt = tmppt;
     }
 
@@ -895,7 +895,7 @@ void ViceUpdateDB()
 
     if(pdbtime != vbuff.st_mtime) {
 	pdbtime = (int)vbuff.st_mtime;
-	assert(AL_Initialize(AL_VERSION, PDB, PCF) == 0);
+	CODA_ASSERT(AL_Initialize(AL_VERSION, PDB, PCF) == 0);
     }
     stat(KEY1, &vbuff);
     if(keytime != vbuff.st_mtime) {
@@ -1437,7 +1437,7 @@ static int ParseArgs(int argc, char *argv[])
     	else
 	    if (!strcmp(argv[i], "-usenscclock")) {
 		clockFD = open("/dev/cntr0", O_RDONLY, 0666);
-		assert(clockFD > 0);
+		CODA_ASSERT(clockFD > 0);
 	    }
 #endif _TIMECALLS_
 	else
@@ -1622,7 +1622,7 @@ static void InitServerKeys(char *fkey1, char *fkey2)
     /* no keys */
     if ( NoKey1 && NoKey2 ) {
 	SLog(0, 0, stderr, "No Keys found. Zombifying..");
-	assert(0);
+	CODA_ASSERT(0);
     }
 
     /* two keys: don't do a double key if they are equal */
@@ -1645,7 +1645,7 @@ static void InitServerKeys(char *fkey1, char *fkey2)
 void Die(char *msg)
 {
     SLog(0,"%s",msg);
-    assert(0);
+    CODA_ASSERT(0);
 }
 
 
@@ -1744,16 +1744,16 @@ static void InitializeServerRVM(char *name)
             exit(-1);                                                          
 	} else if (err != RVM_SUCCESS) {                                     
 	    SLog(0, "rvm_init failed %s",rvm_return(err));	    
-            assert(0);                                                       
+            CODA_ASSERT(0);                                                       
 	}                                                                    
-	assert(_Rvm_Data_Device != NULL);	   /* Load in recoverable mem */ 
+	CODA_ASSERT(_Rvm_Data_Device != NULL);	   /* Load in recoverable mem */ 
         rds_load_heap(_Rvm_Data_Device, 
 		      _Rvm_DataLength,(char **)&camlibRecoverableSegment, 
 		      (int *)&err);  
 	if (err != RVM_SUCCESS)						    
 	    SLog(0, 
 		   "rds_load_heap error %s",rvm_return(err));	    
-	assert(err == RVM_SUCCESS);                                         
+	CODA_ASSERT(err == RVM_SUCCESS);                                         
         /* Possibly do recovery on data structures, coalesce, etc */	    
 	rvm_free_options(options);					    
         break;                                                              

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/res/reslock.cc,v 4.5 1998/08/31 12:23:20 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/res/reslock.cc,v 4.6 1998/10/21 22:05:48 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -92,7 +92,7 @@ long RS_LockAndFetch(RPC2_Handle RPCid, ViceFid *Fid,
     int nentries  = 0;
 
     SLog(1, "Entering RS_LockAndFetch %s\n", FID_(Fid));
-    assert(Request == FetchStatus);
+    CODA_ASSERT(Request == FetchStatus);
 
     // first set out parameters
     InitVV(VV);
@@ -150,7 +150,7 @@ long RS_LockAndFetch(RPC2_Handle RPCid, ViceFid *Fid,
 	    // by using rename_rle we hope that all strings will fit 
 	    // in the buffer length being returned.
 	    nentries = V_VolLog(volptr)->size;
-	    assert(nentries > 0);
+	    CODA_ASSERT(nentries > 0);
 	
 	    // *logsize = nentries * (sizeof(recle) + sizeof(rename_rle));
 	    *logsize = nentries * 200;
@@ -174,7 +174,7 @@ long RS_LockAndFetch(RPC2_Handle RPCid, ViceFid *Fid,
     int filecode = 0;
     if (vptr){
 	    VPutVnode((Error *)&filecode, vptr);
-	    assert(filecode == 0);
+	    CODA_ASSERT(filecode == 0);
 	    vptr = 0;
     }
     if (errorcode && volptr && ObtainedLock)

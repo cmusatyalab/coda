@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vice/smon.cc,v 4.8 1998/08/23 16:46:30 jaharkes Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vice/smon.cc,v 4.9 1998/08/31 12:23:35 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -325,7 +325,7 @@ static void CheckRVMResStat()
 	    if (CheckSmonResult(re->Report()))
 		break;
 	    if (RVMResList->remove(re) != re)
-		assert(0);
+		CODA_ASSERT(0);
 	    delete re;
 	}
     /* we don't enqueue anything if there was already something on the list */

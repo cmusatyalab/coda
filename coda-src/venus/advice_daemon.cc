@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/advice_daemon.cc,v 4.6 98/05/15 01:23:31 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/advice_daemon.cc,v 4.7 1998/09/23 20:26:24 jaharkes Exp $";
 #endif /*_BLURB_*/
 
 
@@ -107,7 +107,7 @@ void AdviceInit() {
   sid.Tag = RPC2_SUBSYSBYID;
   sid.Value.SubsysId = ADSRVSUBSYSID;
   if (RPC2_Export(&sid) != RPC2_SUCCESS)
-    Choke("AdviceInit: RPC2_Export failed");
+    CHOKE("AdviceInit: RPC2_Export failed");
 
   /* Start up the AM servers. */
   for (int i = 0; i < MaxAMServers; i++) 
@@ -231,7 +231,7 @@ long S_NewAdviceService(RPC2_Handle _cid, RPC2_String hostname, RPC2_Integer use
  {
   PROCESS this_pid;
   int max, used;
-  assert( LWP_CurrentProcess(&this_pid) == LWP_SUCCESS);
+  CODA_ASSERT( LWP_CurrentProcess(&this_pid) == LWP_SUCCESS);
   LWP_StackUsed(this_pid, &max, &used);
   LOG(00, ("NewAdviceService: stack requested = %d, stack used to date = %d \n", max, used));
  }
@@ -562,7 +562,7 @@ void NotifyUsersOfHoardWalkProgress(int fetched, int total) {
     totalFetched += fetched;
     if (totalToFetch == 0)
       totalToFetch = total;
-    assert(total == totalToFetch);
+    CODA_ASSERT(total == totalToFetch);
 
     thisPercentage = (int) ((double)totalFetched*(double)100/(double)total);
     if (thisPercentage < lastPercentage) {
@@ -661,17 +661,17 @@ void NotifyUsersOfKillEvent(dlist *hdb_bindings, int blocks) {
   LOG(0, ("NotifyUsersOfKillEvent: hdb_bindings != NULL\n"));
 
   while ((d = next_hdbent())) {
-    assert(d != NULL);
+    CODA_ASSERT(d != NULL);
     binding *b = strbase(binding, d, bindee_handle);
     if (b == NULL)
       LOG(0, ("b is null\n"));
     fflush(logFile);
-    assert(b != NULL);
+    CODA_ASSERT(b != NULL);
     namectxt *nc = (namectxt *)b->binder;
     if (nc == NULL)
       LOG(0, ("nc is NULL\n"));
     fflush(logFile);
-    assert(nc != NULL);
+    CODA_ASSERT(nc != NULL);
     userent *u = FindUser(nc->vuid);
 
     if (u == NULL) {
@@ -679,7 +679,7 @@ void NotifyUsersOfKillEvent(dlist *hdb_bindings, int blocks) {
       continue;
     }
     fflush(logFile);
-    assert(u != NULL);
+    CODA_ASSERT(u != NULL);
 
     u->NotifyTaskUnavailable(nc->priority, blocks);
   }
@@ -690,7 +690,7 @@ void NotifyUserOfProgramAccess(vuid_t uid, int pid, int pgid, ViceFid *key) {
     userent *u;
 
     GetUser(&u, uid);
-    assert(u != NULL);
+    CODA_ASSERT(u != NULL);
 
     if (!u->IsAdvicePGID(pgid))
 	u->LogProgramAccess(pid, pgid, key);

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/util/bitmap.cc,v 4.3 1998/06/11 14:40:04 jaharkes Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/util/bitmap.cc,v 4.4 1998/08/26 21:12:58 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -68,11 +68,11 @@ void *bitmap::operator new(size_t size, int recable) {
 
     if (recable) {
 	x = (bitmap *)rvmlib_rec_malloc(sizeof(bitmap));
-	assert(x);
+	CODA_ASSERT(x);
     }
     else {
 	x = (bitmap *) malloc(sizeof(bitmap));
-	assert(x);
+	CODA_ASSERT(x);
     }
     
     /* GROSS HACK BELOW; if this object was born via new, we
@@ -98,7 +98,7 @@ void bitmap::operator delete(void *deadobj, size_t size){
 
 bitmap::bitmap(int inputmapsize, int recable) {
 
-    assert(malloced != BITMAP_NOTVIANEW); /* ensure malloced is undefined if via stack! */
+    CODA_ASSERT(malloced != BITMAP_NOTVIANEW); /* ensure malloced is undefined if via stack! */
     if (malloced != BITMAP_VIANEW) malloced = BITMAP_NOTVIANEW; /* infer I must be on the stack */
     /* From this point on, malloced is definitely defined */
 
@@ -112,7 +112,7 @@ bitmap::bitmap(int inputmapsize, int recable) {
 	mapsize = inputmapsize >> 3;
 	if (recoverable) {
 	    map = (char *)rvmlib_rec_malloc(mapsize);
-	    assert(map);
+	    CODA_ASSERT(map);
 	    rvmlib_set_range(map, mapsize);
 	}
 	else
@@ -127,7 +127,7 @@ bitmap::bitmap(int inputmapsize, int recable) {
 }
 
 bitmap::~bitmap() {
-    assert(malloced == BITMAP_VIANEW); /* Temporary, until we discover if 
+    CODA_ASSERT(malloced == BITMAP_VIANEW); /* Temporary, until we discover if 
     				bitmaps are ever allocated on the stack
 				Satya (6/5/95) */
 				
@@ -163,16 +163,16 @@ void bitmap::Grow(int newsize) {
     char *newmap;
     if (recoverable) {
 	newmap = (char *)rvmlib_rec_malloc(newmapsize);
-	assert(newmap);
+	CODA_ASSERT(newmap);
 	rvmlib_set_range(newmap, newmapsize);
     }
     else {
 	newmap = new char[newmapsize];
-	assert(newmap);
+	CODA_ASSERT(newmap);
     }
     bzero(newmap, newmapsize);
     if (map) {
-	assert(mapsize > 0);
+	CODA_ASSERT(mapsize > 0);
 	bcopy(map, newmap, mapsize);
 	if (recoverable)
 	    rvmlib_rec_free(map);
@@ -201,7 +201,7 @@ int bitmap::GetFreeIndex() {
 		    break;
 		}
 	    }
-	    assert(j < 8);
+	    CODA_ASSERT(j < 8);
 	    return((offset << 3) + j);
 	}
     }
@@ -212,7 +212,7 @@ int bitmap::GetFreeIndex() {
 void bitmap::SetIndex(int index) {
     int offset = index >> 3;	/* the byte offset into bitmap */
     int bitoffset = index & 7;
-    assert(offset < mapsize);
+    CODA_ASSERT(offset < mapsize);
 
     if (recoverable) rvmlib_set_range(&map[offset], sizeof(char));
 
@@ -224,7 +224,7 @@ void bitmap::SetIndex(int index) {
 void bitmap::FreeIndex(int index) {
     int offset = index >> 3;	/* the byte offset into bitmap */
     int bitoffset = index & 7;
-    assert(offset < mapsize);
+    CODA_ASSERT(offset < mapsize);
 
     if (recoverable) rvmlib_set_range(&map[offset], sizeof(char));
 
@@ -280,12 +280,12 @@ void bitmap::operator=(bitmap& b) {
 	if (recoverable) {
 	    RVMLIB_REC_OBJECT(*this);
 	    map = (char *)rvmlib_rec_malloc(b.mapsize);
-	    assert(map);
+	    CODA_ASSERT(map);
 	    rvmlib_set_range(map, mapsize);
 	}
 	else {
 	    map = new char[mapsize];
-	    assert(map);
+	    CODA_ASSERT(map);
 	}
     }
     else {

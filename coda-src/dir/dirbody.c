@@ -37,7 +37,7 @@ Mellon the rights to redistribute these changes without encumbrance.
 extern "C" {
 #endif __cplusplus
 #include <stdio.h>
-#include <assert.h>
+#include "coda_assert.h"
 #include <sys/types.h>
 #include <netinet/in.h>
 #include <fcntl.h>
@@ -142,7 +142,7 @@ static int dir_FindBlobs (struct DirHeader **dh, int nblobs)
 	struct PageHeader *pp;
 	
 	if ( !dh || !*dh || nblobs <= 0 ) 
-		assert(0);
+		CODA_ASSERT(0);
 
 
 	for(i=0; i<DIR_MAXPAGES; i++) {
@@ -177,7 +177,7 @@ static int dir_FindBlobs (struct DirHeader **dh, int nblobs)
 				pp->freecount -= nblobs;
 				for (k=0; k<nblobs; k++)
 					pp->freebitmap[(j+k)>>3] |= (1<<((j+k) % 8));
-				assert((j + i *EPP) > DHE);
+				CODA_ASSERT((j + i *EPP) > DHE);
 				return j+i*EPP;
 			}
 		}
@@ -196,7 +196,7 @@ static int dir_AddPage (struct DirHeader **dh)
 
 	if ( !dh ) {
 		fprintf(stderr, "bogus call to addpage\n");
-		assert(0);
+		CODA_ASSERT(0);
 	}
 
 
@@ -283,7 +283,7 @@ static struct DirHeader *dir_Extend(struct DirHeader *olddir, int in_rvm)
 
 struct PageHeader *DIR_Page(struct DirHeader *dirh, int page)
 {
-	assert(page >= 0);
+	CODA_ASSERT(page >= 0);
 	return (struct PageHeader *)((void *)dirh + page * DIR_PAGESIZE);
 
 }
@@ -299,7 +299,7 @@ static void dir_FreeBlobs(struct DirHeader *dhp, register int firstblob,
     firstblob -= EPP*page;	/* convert to page-relative entry */
 
     /* make sure not to go onto the next page */
-    assert( firstblob + nblobs <= EPP );
+    CODA_ASSERT( firstblob + nblobs <= EPP );
 
     if (!dhp) 
 	    return;
@@ -343,7 +343,7 @@ static int dir_DirEntry2VDirent(PDirEntry ep, struct venus_dirent *vd, VolumeId 
 {
 	struct ViceFid fid;
 	
-	assert(ep && vd);
+	CODA_ASSERT(ep && vd);
         fid_NFidV2Fid(&ep->fid, vol, &fid);
 	
 	vd->d_fileno = coda_f2i(&fid);
@@ -362,7 +362,7 @@ static int dir_DirEntry2VDirent(PDirEntry ep, struct venus_dirent *vd, VolumeId 
 static int fid_FidEqNFid(struct DirFid *fid, struct DirNFid *nfid) 
 {
 	if ( !fid || !nfid ) 
-		assert(0);
+		CODA_ASSERT(0);
 	
 	if ( (ntohl(nfid->dnf_vnode) == fid->df_vnode) &&
 	     (ntohl(nfid->dnf_unique) == fid->df_unique) )
@@ -375,7 +375,7 @@ static int fid_FidEqNFid(struct DirFid *fid, struct DirNFid *nfid)
 static void fid_Fid2NFid(struct DirFid *fid, struct DirNFid *nfid) 
 {
 	if ( !fid || !nfid ) 
-		assert(0);
+		CODA_ASSERT(0);
 	
 	nfid->dnf_vnode = htonl(fid->df_vnode);
 	nfid->dnf_unique = htonl(fid->df_unique);
@@ -385,7 +385,7 @@ static void fid_Fid2NFid(struct DirFid *fid, struct DirNFid *nfid)
 static void fid_NFid2Fid(struct DirNFid *nfid, struct DirFid *fid) 
 {
 	if ( !fid || !nfid ) 
-		assert(0);
+		CODA_ASSERT(0);
 	
 	fid->df_vnode = ntohl(nfid->dnf_vnode);
 	fid->df_unique = ntohl(nfid->dnf_unique);
@@ -551,7 +551,7 @@ int DIR_Delete(struct DirHeader *dir, char *entry)
 	register struct DirEntry *firstitem;
 	struct DirEntry *preventry;
     
-	assert( dir && entry );
+	CODA_ASSERT( dir && entry );
 
 	if ( DIR_rvm() ) {
 		DIR_intrans();
@@ -596,7 +596,7 @@ int DIR_MakeDir (struct DirHeader **dir,struct DirFid *me,
 
 	if ( !dir ) {
 		fprintf(stderr, "Bad call to DIR_MakeDir\n");
-		assert(0);
+		CODA_ASSERT(0);
 	}
 
 	
@@ -642,7 +642,7 @@ void DIR_Setpages(PDirHeader dirh, int pages)
 {
 	int i;
 
-	assert(pages >= 1);
+	CODA_ASSERT(pages >= 1);
 	for(i=pages; i<DIR_MAXPAGES; i++)
 		dirh->dirh_allomap[i] = EPP;
 }
@@ -810,17 +810,17 @@ int DIR_Convert (PDirHeader dir, char *file, VolumeId vol)
 		return ENOENT;
 	
 	fd = open(file, O_RDWR | O_TRUNC | O_BINARY, 0600);
-	assert( fd >= 0 );
+	CODA_ASSERT( fd >= 0 );
 
 	len = DIR_Length(dir);
 
 #ifndef DJGPP
-	assert( ftruncate(fd, len) == 0 );
+	CODA_ASSERT( ftruncate(fd, len) == 0 );
 	buf = mmap(0, len, PROT_WRITE | PROT_READ, MAP_SHARED, fd, 0);
-	assert( (int) buf != -1 );
+	CODA_ASSERT( (int) buf != -1 );
 #else
 	buf = malloc(len);
-	assert(buf);
+	CODA_ASSERT(buf);
 #endif
 
 	bzero(buf, len);
@@ -843,11 +843,11 @@ int DIR_Convert (PDirHeader dir, char *file, VolumeId vol)
 
 #if DJGPP
 	rc  = write(fd, buf, len);
-	assert(rc == len);
+	CODA_ASSERT(rc == len);
 #else 
-	assert(munmap(buf, len) == 0);
+	CODA_ASSERT(munmap(buf, len) == 0);
 #endif
-	assert(close(fd) == 0);
+	CODA_ASSERT(close(fd) == 0);
 	return 0;
 }
 
@@ -903,7 +903,7 @@ void dir_Copy(PDirHeader old, PDirHeader *new, int to_rvm)
 	
 	if ( to_rvm == TO_RVM ) {
 		*new = (PDirHeader)rvmlib_rec_malloc(size);
-		assert(*new);
+		CODA_ASSERT(*new);
 		rvmlib_set_range((void *) new, size);
 	} else
 		*new = (PDirHeader)malloc(size);

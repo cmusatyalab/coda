@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/res/timing.cc,v 4.3 1997/12/20 23:34:40 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/res/timing.cc,v 4.4 1998/10/05 17:15:07 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -60,7 +60,7 @@ extern "C" {
 #endif
 
 #include <sys/ioctl.h>
-#include <assert.h>
+#include "coda_assert.h"
 
 #ifdef __cplusplus
 }
@@ -97,7 +97,7 @@ timing_path::~timing_path() {
     nentries = 0;
 }
 void timing_path::grow_storage() {
-    assert(nentries == maxentries);
+    CODA_ASSERT(nentries == maxentries);
     tpe *tmparr = 0;
     if (maxentries){
 	tmparr = (tpe *)malloc(sizeof(tpe) * 2 * maxentries);
@@ -108,7 +108,7 @@ void timing_path::grow_storage() {
 	tmparr = (tpe *)malloc(sizeof(tpe) * TIMEGROWSIZE);
 	maxentries += TIMEGROWSIZE;
     }
-    assert(tmparr);
+    CODA_ASSERT(tmparr);
     free(arr);
     arr = tmparr;
 	    

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/fso_cfscalls0.cc,v 4.18 98/10/07 19:02:56 jaharkes Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/fso_cfscalls0.cc,v 4.19 1998/10/07 19:53:37 jaharkes Exp $";
 #endif /*_BLURB_*/
 
 
@@ -105,15 +105,15 @@ int fsobj::Fetch(vuid_t vuid) {
 
 	/* We never fetch data if we don't already have status. */
 	if (!HAVESTATUS(this))
-	    { print(logFile); Choke("fsobj::Fetch: !HAVESTATUS"); }
+	    { print(logFile); CHOKE("fsobj::Fetch: !HAVESTATUS"); }
 
 	/* We never fetch data if we already have some. */
 	if (HAVEDATA(this))
-	    { print(logFile); Choke("fsobj::Fetch: HAVEDATA"); }
+	    { print(logFile); CHOKE("fsobj::Fetch: HAVEDATA"); }
 
 	/* We never fetch data for fake objects. */
 	if (IsFake())
-	    { print(logFile); Choke("fsobj::Fetch: IsFake"); }
+	    { print(logFile); CHOKE("fsobj::Fetch: IsFake"); }
     }
 
     int code = 0;
@@ -172,7 +172,7 @@ int fsobj::Fetch(vuid_t vuid) {
 		case Directory:
 		    RVMLIB_REC_OBJECT(data.dir);
 		    data.dir = (VenusDirData *)rvmlib_rec_malloc(sizeof(VenusDirData));
-		    assert(data.dir);
+		    CODA_ASSERT(data.dir);
 		    bzero((void *)data.dir, sizeof(VenusDirData));
 		    FSO_ASSERT(this, (stat.Length & (DIR_PAGESIZE - 1)) == 0);
 		    RVMLIB_REC_OBJECT(*data.dir);
@@ -213,7 +213,7 @@ int fsobj::Fetch(vuid_t vuid) {
 	    int ph_ix;
 	    unsigned long ph; ph = m->GetPrimaryHost(&ph_ix);
 	    if (acl->MaxSeqLen > VENUS_MAXBSLEN)
-		Choke("fsobj::Fetch: BS len too large (%d)", acl->MaxSeqLen);
+		CHOKE("fsobj::Fetch: BS len too large (%d)", acl->MaxSeqLen);
 	    ARG_MARSHALL_BS(IN_OUT_MODE, RPC2_BoundedBS, aclvar, *acl, VSG_MEMBERS, VENUS_MAXBSLEN);
 	    ARG_MARSHALL(OUT_MODE, ViceStatus, statusvar, status, VSG_MEMBERS);
 	    ARG_MARSHALL(IN_OUT_MODE, SE_Descriptor, sedvar, *sed, VSG_MEMBERS);
@@ -266,7 +266,7 @@ int fsobj::Fetch(vuid_t vuid) {
 		LOG(10, ("(Multi)ViceFetch: fetched %d bytes\n", bytes));
 		if (bytes != status.Length) {
 		    print(logFile);
-		    Choke("fsobj::Fetch: bytes mismatch (%d, %d)",
+		    CHOKE("fsobj::Fetch: bytes mismatch (%d, %d)",
 			bytes, status.Length);
 		}
 
@@ -367,7 +367,7 @@ RepExit:
 	    LOG(10, ("ViceFetch: fetched %d bytes\n", bytes));
 	    if (bytes != status.Length) {
 		print(logFile);
-		Choke("fsobj::Fetch: bytes mismatch (%d, %d)",
+		CHOKE("fsobj::Fetch: bytes mismatch (%d, %d)",
 		    bytes, status.Length);
 	    }
 
@@ -483,11 +483,11 @@ int fsobj::GetAttr(vuid_t vuid, RPC2_BoundedBS *acl) {
 
 	    /* We never fetch fake directory without having status and data. */
 	    if (IsFakeDir() && !HAVEDATA(this))
-		{ print(logFile); Choke("fsobj::GetAttr: IsFakeDir && !HAVEDATA"); }
+		{ print(logFile); CHOKE("fsobj::GetAttr: IsFakeDir && !HAVEDATA"); }
 
 	    /* We never fetch fake mtpts (covered or uncovered). */
 	    if (IsFakeMtPt() || IsFakeMTLink())
-		{ print(logFile); Choke("fsobj::GetAttr: IsFakeMtPt || IsFakeMTLink"); }
+		{ print(logFile); CHOKE("fsobj::GetAttr: IsFakeMtPt || IsFakeMTLink"); }
 	}
     }
 
@@ -538,7 +538,7 @@ int fsobj::GetAttr(vuid_t vuid, RPC2_BoundedBS *acl) {
 
 	    /* unneccesary in validation case but it beats duplicating code. */
 	    if (acl->MaxSeqLen > VENUS_MAXBSLEN)
-		Choke("fsobj::Fetch: BS len too large (%d)", acl->MaxSeqLen);
+		CHOKE("fsobj::Fetch: BS len too large (%d)", acl->MaxSeqLen);
 	    ARG_MARSHALL_BS(IN_OUT_MODE, RPC2_BoundedBS, aclvar, *acl, VSG_MEMBERS, VENUS_MAXBSLEN);
 
 	    ARG_MARSHALL(OUT_MODE, ViceStatus, statusvar, status, VSG_MEMBERS);
@@ -1074,7 +1074,7 @@ int fsobj::ConnectedStore(Date_t Mtime, vuid_t vuid, unsigned long NewLength) {
 
 	    /* Shouldn't acl be IN rather than IN/OUT? -JJK */
 	    if (acl->SeqLen > VENUS_MAXBSLEN)
-		Choke("fsobj::Store: BS len too large (%d)", acl->SeqLen);
+		CHOKE("fsobj::Store: BS len too large (%d)", acl->SeqLen);
 	    ARG_MARSHALL_BS(IN_OUT_MODE, RPC2_CountedBS, aclvar, *acl, VSG_MEMBERS, VENUS_MAXBSLEN);
 	    ARG_MARSHALL(IN_OUT_MODE, ViceStatus, statusvar, status, VSG_MEMBERS);
 	    ARG_MARSHALL(IN_OUT_MODE, SE_Descriptor, sedvar, *sed, VSG_MEMBERS);
@@ -1118,7 +1118,7 @@ int fsobj::ConnectedStore(Date_t Mtime, vuid_t vuid, unsigned long NewLength) {
 		LOG(10, ("(Multi)ViceStore: stored %d bytes\n", bytes));
 		if (bytes != status.Length) {
 		    print(logFile);
-		    Choke("fsobj::Store: bytes mismatch (%d, %d)",
+		    CHOKE("fsobj::Store: bytes mismatch (%d, %d)",
 			bytes, status.Length);
 		}
 	    }
@@ -1185,7 +1185,7 @@ RepExit:
 	    LOG(10, ("ViceStore: stored %d bytes\n", bytes));
 	    if (bytes != status.Length) {
 		print(logFile);
-		Choke("fsobj::Store: bytes mismatch (%d, %d)",
+		CHOKE("fsobj::Store: bytes mismatch (%d, %d)",
 		    bytes, status.Length);
 	    }
 	}
@@ -1364,7 +1364,7 @@ int fsobj::ConnectedSetAttr(Date_t Mtime, vuid_t vuid, unsigned long NewLength,
 
 	    /* Shouldn't acl be IN rather than IN/OUT? -JJK */
 	    if (acl->SeqLen > VENUS_MAXBSLEN)
-		Choke("fsobj::Store: BS len too large (%d)", acl->SeqLen);
+		CHOKE("fsobj::Store: BS len too large (%d)", acl->SeqLen);
 	    ARG_MARSHALL_BS(IN_OUT_MODE, RPC2_CountedBS, aclvar, *acl, VSG_MEMBERS, VENUS_MAXBSLEN);
 	    ARG_MARSHALL(IN_OUT_MODE, ViceStatus, statusvar, status, VSG_MEMBERS);
 	    ARG_MARSHALL(OUT_MODE, RPC2_Integer, VSvar, VS, VSG_MEMBERS);

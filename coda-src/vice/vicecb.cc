@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vice/vicecb.cc,v 4.5 1998/03/06 20:21:03 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vice/vicecb.cc,v 4.6 1998/08/31 12:23:39 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -180,7 +180,7 @@ static void GetFEBlock()
 {
 	struct FEBlock *block = 
 		(struct FEBlock *)malloc(sizeof(struct FEBlock));
-	assert(block);
+	CODA_ASSERT(block);
 
 	for(int i = 0; i < (FESPERBLOCK - 1); i++) {
 		Lock_Init(&block->entry[i].cblock);
@@ -251,7 +251,7 @@ static void DeleteFileStruct(struct FileEntry *af)
 /* Get a new block of CBEs and chain it on CBEFree. */
 static void GetCBEBlock() {
     struct CBEBlock *block = (struct CBEBlock *)malloc(sizeof(struct CBEBlock));
-    assert(block);
+    CODA_ASSERT(block);
 
     for(int i = 0; i < (CBESPERBLOCK - 1); i++) 
 	block->entry[i].next = &(block->entry[i+1]);
@@ -735,7 +735,7 @@ void PrintCallBackState(FILE *fp)
 
 static void PrintCBE(struct CallBackEntry *tcbe, FILE *fp) 
 {
-    assert (tcbe);
+    CODA_ASSERT (tcbe);
     if (tcbe->conn) {
 	unsigned long host = htonl(tcbe->conn->host);
 	fprintf(fp, "\tHost %d.%d.%d.%d ",

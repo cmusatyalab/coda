@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rpc2/host.c,v 4.3 1998/08/26 17:08:08 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rpc2/host.c,v 4.4 1998/09/29 16:38:04 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -106,7 +106,7 @@ static struct HEntry **HostHashTable;	/* malloc'ed hash table static stize */
 void rpc2_InitHost()
 {
 	HostHashTable = (struct HEntry **)malloc(HOSTHASHBUCKETS*sizeof(struct HEntry *));
-	assert(HostHashTable != 0);
+	CODA_ASSERT(HostHashTable != 0);
 	bzero(HostHashTable, HOSTHASHBUCKETS*sizeof(struct HEntry *));	
 }
 
@@ -165,7 +165,7 @@ struct HEntry *rpc2_GetHost(RPC2_HostIdent *host, RPC2_PortalIdent *portal)
 	he = rpc2_FindHEAddr(host->Value.InetAddress, portal->Value.InetPortNumber);
 	if (he == NULL) 
 		return(NULL);
-	assert(he->MagicNumber == OBJ_HENTRY);
+	CODA_ASSERT(he->MagicNumber == OBJ_HENTRY);
 	return(he);
 }
 
@@ -176,7 +176,7 @@ struct HEntry *rpc2_GetHostByType(RPC2_HostIdent *host, HEType type)
 	he = rpc2_FindHEAddrByType(host->Value.InetAddress, type);
 	if (he == NULL) 
 		return(NULL);
-	assert(he->MagicNumber == OBJ_HENTRY);
+	CODA_ASSERT(he->MagicNumber == OBJ_HENTRY);
 	return(he);
 }
 
@@ -192,7 +192,7 @@ struct HEntry *rpc2_AllocHost(RPC2_HostIdent *host, RPC2_PortalIdent *portal, HE
 	
 	he = (struct HEntry *)rpc2_MoveEntry(&rpc2_HostFreeList, &rpc2_HostList,
 					     (struct HEntry *)NULL, &rpc2_HostFreeCount, &rpc2_HostCount);
-	assert (he->MagicNumber == OBJ_HENTRY);
+	CODA_ASSERT (he->MagicNumber == OBJ_HENTRY);
 
 	/* Initialize */
 	he->Host = host->Value.InetAddress;
@@ -217,7 +217,7 @@ void rpc2_FreeHost(register struct HEntry **whichHost)
 	register long bucket;
 	struct HEntry **link;
 	
-	assert((*whichHost)->MagicNumber == OBJ_HENTRY);
+	CODA_ASSERT((*whichHost)->MagicNumber == OBJ_HENTRY);
 	rpc2_MoveEntry((struct LinkEntry **)&rpc2_HostList,
 		       (struct LinkEntry **)&rpc2_HostFreeList,
 		       (struct LinkEntry *)*whichHost,
@@ -242,7 +242,7 @@ void rpc2_GetHostLog(register struct HEntry *whichHost, RPC2_NetLog *log)
 	unsigned wontexceed = RPC2_MAXLOGLENGTH;  /* as many as we can return */
 	int head, tail, ix;
 	
-	assert(whichHost->MagicNumber == OBJ_HENTRY);
+	CODA_ASSERT(whichHost->MagicNumber == OBJ_HENTRY);
 
 	/* figure out how many entries to send back */
 	if (wontexceed > log->NumEntries) 
@@ -289,7 +289,7 @@ int rpc2_AppendHostLog(struct HEntry *whichHost, RPC2_NetLogEntry *entry)
 {
 	unsigned long ix = whichHost->NumEntries & (RPC2_MAXLOGLENGTH-1);
 
-	assert(whichHost->MagicNumber == OBJ_HENTRY);
+	CODA_ASSERT(whichHost->MagicNumber == OBJ_HENTRY);
 	
 	if (!GOOD_NLE(entry)) 
 		return(0);
@@ -307,7 +307,7 @@ int rpc2_AppendHostLog(struct HEntry *whichHost, RPC2_NetLogEntry *entry)
 /* clear the log */
 void rpc2_ClearHostLog(register struct HEntry *whichHost)
 {
-	assert(whichHost->MagicNumber == OBJ_HENTRY);
+	CODA_ASSERT(whichHost->MagicNumber == OBJ_HENTRY);
 	whichHost->NumEntries = 0;
 	bzero(whichHost->Log, RPC2_MAXLOGLENGTH*sizeof(RPC2_NetLogEntry));
 }

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/volutil/dumpstream.cc,v 4.5 1998/09/29 16:38:38 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/volutil/dumpstream.cc,v 4.6 1998/10/30 18:30:01 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -195,7 +195,7 @@ int GetVV(FILE *stream, register vv_t *vv)
 long WriteDump(RPC2_Handle _cid, RPC2_Unsigned offset, RPC2_Unsigned *nbytes, RPC2_Unsigned volid, SE_Descriptor *sed)
 {
     printf("In WRITEDUMP. should NEVER get here!\n");
-    assert(0);
+    CODA_ASSERT(0);
     return(0); /* to keep C++ happy */
 }
 
@@ -450,7 +450,7 @@ int dumpstream::getVnodeIndex(VnodeClass Type, long *nVnodes, long *listsize)
 	    exit(-1);
 	}
     }
-    assert(*listsize > 0);
+    CODA_ASSERT(*listsize > 0);
     ungetc(tag, stream);
     return 0;
 }    
@@ -467,7 +467,7 @@ int dumpstream::skip_vnode_garbage()
 	long npages;
 	int size = PAGESIZE;
 
-	assert (IndexType == vLarge);
+	CODA_ASSERT (IndexType == vLarge);
 	LogMsg(10, VolDebugLevel, stdout, "SkipVnodeData: Skipping dirpages for %s", name);
 	if (!GetLong(stream, (unsigned long *)&npages))
 	    return -1;
@@ -484,7 +484,7 @@ int dumpstream::skip_vnode_garbage()
 	size = (int) sizeof(buf);
 	long nbytes, filesize;
 
-	assert (IndexType == vSmall);
+	CODA_ASSERT (IndexType == vSmall);
 	LogMsg(10, VolDebugLevel, stdout, "SkipVnodeData: Skipping file data for %s", name);
 
 	if (!GetLong(stream, (unsigned long *)&filesize))
@@ -520,10 +520,10 @@ int dumpstream::getVnode(int vnum, long unique, long Offset, VnodeDiskObject *vd
 	return result;
     
     LogMsg(10, VolDebugLevel, stdout, "getVnode after getNextVnode: (%d, %d, %x)", vnodeNumber, deleted, offset);
-    assert(Offset == offset);
+    CODA_ASSERT(Offset == offset);
 
-    assert(vnum == vnodeNumber);	/* They'd better match! */
-    assert(unique == vdo->uniquifier);
+    CODA_ASSERT(vnum == vnodeNumber);	/* They'd better match! */
+    CODA_ASSERT(unique == vdo->uniquifier);
     return 0;
 }
 
@@ -602,7 +602,7 @@ dumpstream::getNextVnode(VnodeDiskObject *vdop, long *vnodeNumber, int *deleted,
 	    GetLong(stream, &vdop->uparent);
 	    break;
 	  case 'A':
-	    assert(vdop->type == vDirectory);
+	    CODA_ASSERT(vdop->type == vDirectory);
 	    GetByteString(stream, (byte *)VVnodeDiskACL(vdop), VAclDiskSize(vdop));
 	    break;
 
@@ -627,7 +627,7 @@ dumpstream::copyVnodeData(DumpBuffer_t *dbuf)
 
     LogMsg(10, VolDebugLevel, stdout, "Copy:%s type %x", (IndexType == vLarge?"Large":"Small"), tag);
     if (IndexType == vLarge) {
-	assert(tag == D_DIRPAGES); /* Do something similar for dirpages. */
+	CODA_ASSERT(tag == D_DIRPAGES); /* Do something similar for dirpages. */
 
 	/* We get a number of pages, pages are PAGESIZE bytes long. */
 	long num_pages;
@@ -652,7 +652,7 @@ dumpstream::copyVnodeData(DumpBuffer_t *dbuf)
 	}
     } else if (IndexType == vSmall) {
 	/* May not have a file associated with this vnode? don't think so...*/
-	assert(tag == D_FILEDATA);
+	CODA_ASSERT(tag == D_FILEDATA);
 
 	/* First need to output the tag and the length */
 	long filesize, size = PAGESIZE;
@@ -676,6 +676,6 @@ dumpstream::copyVnodeData(DumpBuffer_t *dbuf)
 
 void dumpstream::setIndex(VnodeClass vclass)
 {
-    assert((vclass == vLarge) || (vclass == vSmall));
+    CODA_ASSERT((vclass == vLarge) || (vclass == vSmall));
     IndexType = vclass;
 }

@@ -49,8 +49,8 @@ ds_log_t *
 ds_log_create(int level, FILE *fp, int flushlevel, char *name) {
     ds_log_t *result;
 
-    ASSERT(fp);
-    ASSERT(name);
+    CODA_ASSERT(fp);
+    CODA_ASSERT(name);
 
     ALLOC(result,ds_log_t);
     result->magic = ds_log_magic;
@@ -68,7 +68,7 @@ FILE *
 ds_log_destroy(ds_log_t *pl) {
     FILE *result;
 
-    ASSERT(DS_LOG_VALID(pl));
+    CODA_ASSERT(DS_LOG_VALID(pl));
     result = pl->fp;
     
     pl->magic = 0;
@@ -82,7 +82,7 @@ ds_log_destroy(ds_log_t *pl) {
 
 void
 ds_log_setlevel(ds_log_t *pl, int level) {
-    ASSERT(DS_LOG_VALID(pl));
+    CODA_ASSERT(DS_LOG_VALID(pl));
     pl->log_level = level;
 }
 
@@ -90,7 +90,7 @@ void
 ds_log_printmsg(ds_log_t *pl, int level, char *fmt, ...) {
     va_list ap;
 
-    ASSERT(DS_LOG_VALID(pl));
+    CODA_ASSERT(DS_LOG_VALID(pl));
 
     if (level > pl->log_level) return;
     

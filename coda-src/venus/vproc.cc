@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/vproc.cc,v 4.19 1998/09/25 19:09:45 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/vproc.cc,v 4.20 1998/09/29 16:38:23 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -145,21 +145,21 @@ void VprocPreamble(struct Lock *init_lock) {
     PROCESS x;
     int lwprc = LWP_CurrentProcess(&x);
     if (lwprc != LWP_SUCCESS)
-	Choke("VprocPreamble: LWP_CurrentProcess failed (%d)", lwprc);
+	CHOKE("VprocPreamble: LWP_CurrentProcess failed (%d)", lwprc);
     vproc_iterator next;
     vproc *vp;
     while (vp = next())
 	if (vp->lwpid == (int)x) break;
     if (vp == 0)
-	Choke("VprocPreamble: lwp not found");
+	CHOKE("VprocPreamble: lwp not found");
     lwprc = LWP_NewRock(VPROC_ROCK_TAG, (char *)vp);
     if (lwprc != LWP_SUCCESS)
-	Choke("VprocPreamble: LWP_NewRock(VPROC) failed (%d)", lwprc);
+	CHOKE("VprocPreamble: LWP_NewRock(VPROC) failed (%d)", lwprc);
 
     /* RVM_THREAD_DATA rock allows rvmlib to derive tids, etc. */
     lwprc = LWP_NewRock(RVM_THREAD_DATA_ROCK_TAG, (char *)&vp->rvm_data);
     if (lwprc != LWP_SUCCESS)
-	Choke("VprocPreamble: LWP_NewRock(RVM_THREAD) failed (%d)", lwprc);
+	CHOKE("VprocPreamble: LWP_NewRock(RVM_THREAD) failed (%d)", lwprc);
 
     /* Invoke main procedure.  (func == NULL) --> we're running in the root LWP. */
     /* Passing vp as the first arg is a hacky way of setting the "this" pointer */
@@ -191,13 +191,13 @@ void VprocWait(char *addr) {
 	/* Sanity-check: vproc must not context-switch in mid-transaction! */
 	rvm_perthread_t *_rvm_data = rvmlib_thread_data();
 	if (_rvm_data && _rvm_data->tid != 0)
-	    Choke("VprocWait: in transaction (tid = %x)", _rvm_data->tid);
+	    CHOKE("VprocWait: in transaction (tid = %x)", _rvm_data->tid);
     }
 #endif	VENUSDEBUG
 
     int lwprc = LWP_WaitProcess(addr);
     if (lwprc != LWP_SUCCESS)
-	Choke("VprocWait(%x): LWP_WaitProcess failed (%d)",
+	CHOKE("VprocWait(%x): LWP_WaitProcess failed (%d)",
 	    addr, lwprc);
 }
 
@@ -208,13 +208,13 @@ void VprocMwait(int wcount, char **addrs) {
 	/* Sanity-check: vproc must not context-switch in mid-transaction! */
 	rvm_perthread_t *_rvm_data = rvmlib_thread_data();
 	if (_rvm_data && _rvm_data->tid != 0)
-	    Choke("VprocMwait: in transaction (tid = %x)", _rvm_data->tid);
+	    CHOKE("VprocMwait: in transaction (tid = %x)", _rvm_data->tid);
     }
 #endif	VENUSDEBUG
 
     int lwprc = LWP_MwaitProcess(wcount, addrs);
     if (lwprc != LWP_SUCCESS)
-	Choke("VprocMwait(%d, %x): LWP_MwaitProcess failed (%d)",
+	CHOKE("VprocMwait(%d, %x): LWP_MwaitProcess failed (%d)",
 	    wcount, addrs, lwprc);
 }
 
@@ -225,13 +225,13 @@ void VprocSignal(char *addr, int yield) {
 	/* Sanity-check: vproc must not context-switch in mid-transaction! */
 	rvm_perthread_t *_rvm_data = rvmlib_thread_data();
 	if (_rvm_data && _rvm_data->tid != 0)
-	    Choke("VprocSignal: in transaction (tid = %x)", _rvm_data->tid);
+	    CHOKE("VprocSignal: in transaction (tid = %x)", _rvm_data->tid);
     }
 #endif	VENUSDEBUG
 
     int lwprc = (yield ? LWP_SignalProcess(addr) : LWP_NoYieldSignal(addr));
     if (lwprc != LWP_SUCCESS && lwprc != LWP_ENOWAIT)
-	Choke("VprocSignal(%x): %s failed (%d)",
+	CHOKE("VprocSignal(%x): %s failed (%d)",
 	    addr, (yield ? "LWP_SignalProcess" : "LWP_NoYieldSignal"), lwprc);
 /*
     if (lwprc == LWP_ENOWAIT)
@@ -247,7 +247,7 @@ void VprocSleep(struct timeval *delay) {
 	/* Sanity-check: vproc must not context-switch in mid-transaction! */
 	rvm_perthread_t *_rvm_data = rvmlib_thread_data();
 	if (_rvm_data && _rvm_data->tid != 0)
-	    Choke("VprocSleep: in transaction (tid = %x)", _rvm_data->tid);
+	    CHOKE("VprocSleep: in transaction (tid = %x)", _rvm_data->tid);
     }
 #endif	VENUSDEBUG
 
@@ -261,7 +261,7 @@ void VprocYield() {
 	/* Sanity-check: vproc must not context-switch in mid-transaction! */
 	rvm_perthread_t *_rvm_data = rvmlib_thread_data();
 	if (_rvm_data && _rvm_data->tid != 0)
-	    Choke("VprocYield: in transaction (tid = %x)", _rvm_data->tid);
+	    CHOKE("VprocYield: in transaction (tid = %x)", _rvm_data->tid);
     }
 #endif	VENUSDEBUG
 
@@ -271,7 +271,7 @@ void VprocYield() {
     LOG(1000, ("VprocYield: pre-yield\n"));
     int lwprc = LWP_DispatchProcess();
     if (lwprc != LWP_SUCCESS)
-	Choke("VprocYield: LWP_DispatchProcess failed (%d)", lwprc);
+	CHOKE("VprocYield: LWP_DispatchProcess failed (%d)", lwprc);
     LOG(1000, ("VprocYield: post-yield\n"));
 }
 
@@ -282,7 +282,7 @@ int VprocSelect(int nfds, int *readfds, int *writefds, int *exceptfds, struct ti
 	/* Sanity-check: vproc must not context-switch in mid-transaction! */
 	rvm_perthread_t *_rvm_data = rvmlib_thread_data();
 	if (_rvm_data && _rvm_data->tid != 0)
-	    Choke("VprocSelect: in transaction (tid = %x)", _rvm_data->tid);
+	    CHOKE("VprocSelect: in transaction (tid = %x)", _rvm_data->tid);
     }
 #endif	VENUSDEBUG
 
@@ -307,7 +307,7 @@ void VprocSetRetry(int HowManyRetries, struct timeval *Beta0) {
     if (HowManyRetries < 0) HowManyRetries = DFLT_VprocRetryCount;
     if (Beta0 == 0) Beta0 = (struct timeval *)&DFLT_VprocRetryBeta0;
 
-    ASSERT(VprocRetryN == -1 && VprocRetryBeta == 0);
+    CODA_ASSERT(VprocRetryN == -1 && VprocRetryBeta == 0);
     VprocRetryN = HowManyRetries;
     VprocRetryBeta = (struct timeval *)malloc(sizeof(struct timeval)*(2+HowManyRetries));
     bzero((void *)VprocRetryBeta, (int)sizeof(struct timeval)*(2+HowManyRetries));
@@ -388,7 +388,7 @@ vproc::vproc(char *n, PROCBODY f, vproctype t, int stksize, int priority) {
     func = f;
     vpid = counter++;
     bzero((void *)&rvm_data, (int) sizeof(rvm_perthread_t));
-    /*    rvm_data.die = &Choke; */
+    /*    rvm_data.die = &CHOKE; */
     type = t;
     lwpri = priority;
     seq = 0;
@@ -412,7 +412,7 @@ vproc::vproc(char *n, PROCBODY f, vproctype t, int stksize, int priority) {
 	int lwprc = LWP_CreateProcess((PFIC)VprocPreamble, stksize, priority,
 				      (char *)&init_lock, name, (PROCESS *)&lwpid);
 	if (lwprc != LWP_SUCCESS)
-	    Choke("vproc::vproc: LWP_CreateProcess(%d, %s) failed (%d)", stksize, name, lwprc);
+	    CHOKE("vproc::vproc: LWP_CreateProcess(%d, %s) failed (%d)", stksize, name, lwprc);
 
 	/* Bogus handshaking so that new LWP continues after its (bogus) yield! */
 	ReleaseWriteLock(&init_lock);
@@ -422,11 +422,11 @@ vproc::vproc(char *n, PROCBODY f, vproctype t, int stksize, int priority) {
 	/* Initialize the LWP subsystem. */
 	int lwprc = LWP_Init(LWP_VERSION, LWP_NORMAL_PRIORITY, (PROCESS *)&lwpid);
 	if (lwprc != LWP_SUCCESS)
-	    Choke("VprocInit: LWP_Init failed (%d)", lwprc);
+	    CHOKE("VprocInit: LWP_Init failed (%d)", lwprc);
 
 	int iomgrrc = IOMGR_Initialize();
 	if (iomgrrc != LWP_SUCCESS)
-	    Choke("VprocInit: IOMGR_Initialize failed (%d)", iomgrrc);
+	    CHOKE("VprocInit: IOMGR_Initialize failed (%d)", iomgrrc);
 
 	VprocPreamble(&init_lock);
 
@@ -450,13 +450,13 @@ vproc::~vproc() {
     if (LogLevel >= 1)
 	print(logFile);
 
-    if (!idle) Choke("vproc::~vproc: not idle!");
+    if (!idle) CHOKE("vproc::~vproc: not idle!");
 
     /* Remove the entry from the table. */
     tbl.remove(this);
 
     if (LWP_DestroyProcess((PROCESS)lwpid) != LWP_SUCCESS)
-	Choke("vproc::~vproc: LWP_DestroyProcess failed");
+	CHOKE("vproc::~vproc: LWP_DestroyProcess failed");
 }
 
 /* local-repair modification */
@@ -705,7 +705,7 @@ void vproc::End_VFS(int *retryp) {
             break;
 
 	default:
-	    ASSERT(0);
+	    CODA_ASSERT(0);
     }
 
     /* Give this call another try. */
@@ -856,7 +856,7 @@ void VPROC_printvattr(struct coda_vattr *vap)
 long FidToNodeid(ViceFid *fid) 
 {
 	if (FID_EQ(fid, &NullFid))
-		Choke("FidToNodeid: null fid");
+		CHOKE("FidToNodeid: null fid");
 
 #ifdef __BSD44__
     /* Venus Root.  Use the mount point's nodeid. */

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vice/coppend.cc,v 4.7 1998/10/21 22:23:48 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vice/coppend.cc,v 4.8 1998/10/28 19:58:07 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -76,7 +76,7 @@ void AddPairToCopPendingTable(ViceStoreId *sid, ViceFid *fid) {
 	    }
 	}
 	if (!found) {
-	    assert(i < MAXFIDS);
+	    CODA_ASSERT(i < MAXFIDS);
 	    cpe->fids[i] = *fid;
 	}
     }
@@ -100,7 +100,7 @@ cpent::~cpent() {
 	LogMsg(0, SrvDebugLevel, stdout,
 	       "~cpent: id is not CPENTMAGIC but %d\n",
 	       id);
-	assert(0);
+	CODA_ASSERT(0);
     }
     id = 0;
 }

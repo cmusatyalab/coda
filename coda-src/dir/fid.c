@@ -6,7 +6,7 @@
 #include <fcntl.h>
 
 
-#include <assert.h>
+#include "coda_assert.h"
 #include <cfs/coda.h>
 #include "codadir.h"
 /*
@@ -21,14 +21,14 @@ void FID_PrintFid(struct DirFid *fid)
 
 void FID_CpyVol(struct ViceFid *target, struct ViceFid *source)
 {
-	assert(target && source);
+	CODA_ASSERT(target && source);
 	target->Volume = source->Volume;
 }
 
 
 void FID_Int2DFid(struct DirFid *fid, int vnode, int unique)
 {
-	assert(fid);
+	CODA_ASSERT(fid);
 
 	fid->df_vnode = vnode;
 	fid->df_unique = unique;
@@ -44,7 +44,7 @@ void FID_NFid2Int(struct DirNFid *fid, VnodeId *vnode, Unique_t *unique)
 
 void FID_VFid2DFid(struct ViceFid *vf, struct DirFid *df)
 {
-	assert( vf && df );
+	CODA_ASSERT( vf && df );
 	df->df_vnode = vf->Vnode;
 	df->df_unique = vf->Unique;
 
@@ -52,7 +52,7 @@ void FID_VFid2DFid(struct ViceFid *vf, struct DirFid *df)
 
 void FID_DFid2VFid(struct DirFid *df, struct ViceFid *vf)
 {
-	assert( vf && df );
+	CODA_ASSERT( vf && df );
 	vf->Vnode = df->df_vnode;
 	vf->Unique = df->df_unique;
 }

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/advice/rpcs.cc,v 4.5 1998/09/15 14:27:53 jaharkes Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/advice/rpcs.cc,v 4.6 1998/09/29 16:37:24 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -45,7 +45,7 @@ extern "C" {
 #include <sys/types.h>
 #include <sys/stat.h>
 
-#include <assert.h>
+#include "coda_assert.h"
 #include <dirent.h>
 
 #include <errno.h>
@@ -326,7 +326,7 @@ long S_NetworkQualityEstimate(RPC2_Handle _cid, long numEstimates, QualityEstima
         strcat(msg, tmpString);
     }
     strcat(msg, "\n");
-    assert(strlen(msg) <= MAXPATHLEN);
+    CODA_ASSERT(strlen(msg) <= MAXPATHLEN);
     SendToConsole(msg);
 
     // Log and print counters
@@ -401,7 +401,7 @@ long S_Reconnection(RPC2_Handle _cid, ReconnectionQuestionnaire *questionnaire, 
     char ReconnectionFileName[MAXPATHLEN];
     char msg[MAXPATHLEN];
 
-    assert(questionnaire != NULL);
+    CODA_ASSERT(questionnaire != NULL);
 
     CheckStack("Pre:Reconnection");
     LogMsg(EnterLeaveMsgs,LogLevel,LogFile, "E Reconnection(volume=%s)", questionnaire->VolumeName);
@@ -465,8 +465,8 @@ long S_ReadDisconnectedCacheMissEvent(RPC2_Handle _cid,
 
     CheckStack("Pre:ReadDisconnectedCacheMissEvent");
 
-    assert(objInfo != NULL);
-    assert(processInfo != NULL);
+    CODA_ASSERT(objInfo != NULL);
+    CODA_ASSERT(processInfo != NULL);
     pid = (int)processInfo->pid;
 
     LogMsg(EnterLeaveMsgs,LogLevel,LogFile,
@@ -526,8 +526,8 @@ long S_WeaklyConnectedCacheMissEvent(RPC2_Handle _cid, ObjectInformation *objInf
 
     CheckStack("Pre:WeaklyConnectedCacheMiss");
 
-    assert(objInfo != NULL);
-    assert(processInfo != NULL);
+    CODA_ASSERT(objInfo != NULL);
+    CODA_ASSERT(processInfo != NULL);
     pid = (int)processInfo->pid;
 
     LogMsg(EnterLeaveMsgs,LogLevel,LogFile,
@@ -588,8 +588,8 @@ long S_DisconnectedCacheMissEvent(RPC2_Handle _cid, ObjectInformation *objInfo, 
 
     CheckStack("Pre:DisconnectedCacheMissEvent");
 
-    assert(objInfo != NULL);
-    assert(processInfo != NULL);
+    CODA_ASSERT(objInfo != NULL);
+    CODA_ASSERT(processInfo != NULL);
     pid = (int)(processInfo->pid);
 
     LogMsg(EnterLeaveMsgs,LogLevel,LogFile,
@@ -1048,16 +1048,16 @@ void CheckStack(char *msg)
    char *rock;
 
    if (StackChecking) {
-        assert(LWP_GetRock(42, &rock) == LWP_SUCCESS);
-	assert(LWP_CurrentProcess(&processID) == LWP_SUCCESS);
-	assert(LWP_StackUsed(processID, &max, &used) == LWP_SUCCESS);
+        CODA_ASSERT(LWP_GetRock(42, &rock) == LWP_SUCCESS);
+	CODA_ASSERT(LWP_CurrentProcess(&processID) == LWP_SUCCESS);
+	CODA_ASSERT(LWP_StackUsed(processID, &max, &used) == LWP_SUCCESS);
 	LogMsg(0,LogLevel,LogFile, 
 	       "Thread=%c calls LWP_StackUsed in %s and finds that max=%d and used=%d\n", 
 	       *rock, msg, max, used);
 	if (*rock == 'W') {
-   	    assert(used < (DFTSTACKSIZE*2*1024));
+   	    CODA_ASSERT(used < (DFTSTACKSIZE*2*1024));
 	} else {
-	    assert(used < (DFTSTACKSIZE*1024));
+	    CODA_ASSERT(used < (DFTSTACKSIZE*1024));
 	}
    }
 }
@@ -1067,12 +1067,12 @@ void AwaitSynchronization(char *syncName, char *sync)
     char *rock;
     int pid = getpid();
 
-    assert(LWP_GetRock(42, &rock) == LWP_SUCCESS);
+    CODA_ASSERT(LWP_GetRock(42, &rock) == LWP_SUCCESS);
     LogMsg(RPCdebugging,LogLevel,LogFile,
 	   "Thread(rock=%c, pid=%d) waiting on %s\n",
 	   *rock, pid, syncName); 
 
-    assert(LWP_WaitProcess(sync) == LWP_SUCCESS);
+    CODA_ASSERT(LWP_WaitProcess(sync) == LWP_SUCCESS);
     LogMsg(RPCdebugging,LogLevel,LogFile,
 	   "Thread(rock=%c, pid=%d) woken from %s\n",
 	   *rock, pid, syncName); 
@@ -1102,7 +1102,7 @@ char *GetCacheAdviceString(CacheMissAdvice advice)
             break;
 
         default:
-            assert(1 == 0);
+            CODA_ASSERT(1 == 0);
     }
 
     return(AdviceString);
@@ -1137,11 +1137,11 @@ void InitDiscoFile(char *FileName, int venusmajor, int venusminor,
 
     // Ensure it does not exist
     stat(FileName, &buf);
-    assert(errno == ENOENT);
+    CODA_ASSERT(errno == ENOENT);
 
     // Create and initialize it
     DiscoFile = fopen(FileName, "w+");
-    assert(DiscoFile != NULL);
+    CODA_ASSERT(DiscoFile != NULL);
 
     fprintf(DiscoFile, "Disconnected Cache Miss Questionnaire\n");
     fprintf(DiscoFile, "hostid: 0x%o\n", gethostid());
@@ -1169,13 +1169,13 @@ void InitReconFile(char *FileName, int venusmajor, int venusminor,
 
     // Ensure it does not exist
     stat(FileName, &buf);
-    assert(errno == ENOENT);
+    CODA_ASSERT(errno == ENOENT);
 
     // Create and initialize it
     ReconFile = fopen(FileName, "w+");
-    assert(ReconFile != NULL);
+    CODA_ASSERT(ReconFile != NULL);
 
-    assert(questionnaire != NULL);
+    CODA_ASSERT(questionnaire != NULL);
     fprintf(ReconFile, "Reconnection Questionnaire\n");
     fprintf(ReconFile, "hostid: %d\n", gethostid());
     fprintf(ReconFile, "user: %d\n", uid);

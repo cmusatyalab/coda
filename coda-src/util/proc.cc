@@ -9,7 +9,7 @@ extern "C" {
 #endif __cplusplus
 
 #include <stdio.h>
-#include <assert.h>
+#include "coda_assert.h"
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>

@@ -1,4 +1,4 @@
-#include <assert.h>
+#include "coda_assert.h"
 #include <stdlib.h>
 #include <string.h>
 #include <lock.h>
@@ -62,7 +62,7 @@ void P_Free(PPool pool, void *addr)
 	}
 		
 	slot = ((char *)addr - pool->base)/pool->size;
-	assert( (((char *)addr-pool->base) % pool->size) == 0 );
+	CODA_ASSERT( (((char *)addr-pool->base) % pool->size) == 0 );
 	
 	Bitv_clear(pool->freemap, slot);
 	ReleaseWriteLock(&pool->lock);

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/user.cc,v 4.10 1998/08/26 21:24:36 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/user.cc,v 4.11 1998/10/02 15:11:32 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -220,7 +220,7 @@ vuid_t ConsoleUser() {
 	}
     }
     if (fclose(fp) == EOF)
-	Choke("ConsoleUser: fclose(%s) failed", UTMP_FILE);
+	CHOKE("ConsoleUser: fclose(%s) failed", UTMP_FILE);
 #endif
 #endif
     return(vuid);

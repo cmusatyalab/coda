@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/volutil/vol-printstats.cc,v 4.3 1998/01/10 18:40:01 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/volutil/vol-printstats.cc,v 4.4 1998/04/14 21:00:39 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -73,7 +73,7 @@ long S_PrintStats(RPC2_Handle rpcid, SE_Descriptor *formal_sed) {
     strcpy(filename, STATSFILE);
     mktemp(filename);
     statsfile = fopen(filename, "w");
-    assert(statsfile != NULL);
+    CODA_ASSERT(statsfile != NULL);
 
     PrintCounters(statsfile);
     PrintCallBackState(statsfile);

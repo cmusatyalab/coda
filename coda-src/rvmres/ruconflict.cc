@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rvmres/ruconflict.cc,v 4.2 1997/12/20 23:34:54 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rvmres/ruconflict.cc,v 4.3 1998/08/31 12:23:26 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -86,7 +86,7 @@ int RUConflict(rsle *r, dlist *vlist, olist *AllLogs, ViceFid *dFid) {
     vle *cv = 0;
     int rtype = -1;
     
-    assert((r->opcode == ViceRemove_OP) ||
+    CODA_ASSERT((r->opcode == ViceRemove_OP) ||
 	   (r->opcode == ResolveViceRemove_OP) ||
 	   (r->opcode == ViceRemoveDir_OP) ||
 	   (r->opcode == ResolveViceRemoveDir_OP));
@@ -100,7 +100,7 @@ int RUConflict(rsle *r, dlist *vlist, olist *AllLogs, ViceFid *dFid) {
 	cFid.Volume = dFid->Volume;
 	ExtractChildFidFromrsle(r, &cFid);
 	cv = FindVLE(*vlist, &cFid);
-	assert(cv);
+	CODA_ASSERT(cv);
     }
     
     /* handle file r/u conflicts */
@@ -172,12 +172,12 @@ int NewDirRUConf(RUParm *rup, char *name, long vnode, long unique) {
     {
 	FormFid(cFid, rup->vid, vnode, unique);
 	cv = FindVLE(*(rup->vlist), &cFid);
-	assert(cv);
+	CODA_ASSERT(cv);
 	
 	FormFid(pFid, rup->vid, cv->vptr->disk.vparent, 
 		cv->vptr->disk.uparent);
 	pv = FindVLE(*(rup->vlist), &pFid);
-	assert(pv);
+	CODA_ASSERT(pv);
     }
     
     // file ruconflict if child is a non-directory (file, symlink)
@@ -211,7 +211,7 @@ static ViceVersionVector *FindDeletedFileVV(olist *AllLogs, unsigned long hostid
     // find the remote parent's log 
     {
 	rmtloglist = FindRemoteLog(AllLogs, hostid, pFid);
-	assert(rmtloglist);
+	CODA_ASSERT(rmtloglist);
     }
     
     // search log for child's deletion entry
@@ -258,7 +258,7 @@ static int ChildDirRUConf(RUParm *rup, ViceFid *cFid, Vnode *cvptr) {
     recle *LastLocalle;
     {
 	LastLocalle = (recle *)(VnLog(cvptr)->last());
-	assert(LastLocalle);
+	CODA_ASSERT(LastLocalle);
     }
     
     // check if last entry is in remote log 

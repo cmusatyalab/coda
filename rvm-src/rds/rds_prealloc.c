@@ -33,7 +33,7 @@ should be returned to Software.Distribution@cs.cmu.edu.
 
 */
 
-static char *rcsid = "$Header: rds_prealloc.c,v 1.1 96/11/22 13:39:53 raiff Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/rvm-src/rds/rds_prealloc.c,v 4.1 1997/01/08 21:54:28 rvb Exp $";
 #endif _BLURB_
 
 
@@ -42,7 +42,7 @@ static char *rcsid = "$Header: rds_prealloc.c,v 1.1 96/11/22 13:39:53 raiff Exp 
 #include <rds.h>
 #include <rds_private.h>
 #include <rvm_segment.h>
-#include <assert.h>
+#include "coda_assert.h"
 
 	    /************** NOTE: ***************/
 /* we create our own transactions in the following routines, even

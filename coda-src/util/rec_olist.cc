@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/util/rec_olist.cc,v 4.4 1998/06/11 14:40:12 jaharkes Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/util/rec_olist.cc,v 4.5 1998/08/26 21:13:00 braam Exp $";
 #endif /*_BLURB_*/
 
 /*
@@ -57,7 +57,7 @@ void *rec_olist::operator new(size_t size) {
     rec_olist *r = 0;
 
     r = (rec_olist *)rvmlib_rec_malloc(size);
-    assert(r);
+    CODA_ASSERT(r);
     return(r);
 }
 
@@ -252,7 +252,7 @@ rec_olink *rec_olist_iterator::operator()() {
 		nlink = (rec_olink *)-1;
 		return 0;
 	    }
-	    assert(nlink != (rec_olink *)-1);
+	    CODA_ASSERT(nlink != (rec_olink *)-1);
 	    clink = nlink;	/* we saved nlink in last iteration */
 	    nlink = clink->next; /* clink may be del. before next iter.,
 				    keep ptr to next rec_olink now*/

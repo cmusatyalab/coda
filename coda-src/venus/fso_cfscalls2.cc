@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/fso_cfscalls2.cc,v 4.21 1998/10/21 22:23:45 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/fso_cfscalls2.cc,v 4.22 1998/10/30 18:29:54 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -164,16 +164,16 @@ int fsobj::Open(int writep, int execp, int truncp, venus_cnode *cp, vuid_t vuid)
 		/* Get a fresh inode, initialize it, and plug it into
                    the fsobj. */
 		int tfd = ::open(data.dir->udcf->name, O_BINARY | O_RDWR | O_CREAT, V_MODE);
-		if (tfd < 0) Choke("fsobj::Open: open");
+		if (tfd < 0) CHOKE("fsobj::Open: open");
 #if !defined(DJGPP) && !defined(__CYGWIN32__)
 		if (::fchmod(tfd, V_MODE) < 0)
-		    Choke("fsobj::Open: fchmod");
+		    CHOKE("fsobj::Open: fchmod");
 		if (::fchown(tfd, (uid_t)V_UID, (gid_t)V_GID) < 0)
-		    Choke("fsobj::Open: fchown");
+		    CHOKE("fsobj::Open: fchown");
 #endif
 		struct stat tstat;
-		if (::fstat(tfd, &tstat) < 0) Choke("fsobj::Open: fstat");
-		if (::close(tfd) < 0) Choke("fsobj::Open: close");
+		if (::fstat(tfd, &tstat) < 0) CHOKE("fsobj::Open: fstat");
+		if (::close(tfd) < 0) CHOKE("fsobj::Open: close");
 		data.dir->udcf->inode = tstat.st_ino;
 	    }
 #endif 0
@@ -209,7 +209,7 @@ Exit:
 	    if (!WRITING(this)) {
 		Recov_BeginTrans();
 		if (FSDB->owriteq->remove(&owrite_handle) != &owrite_handle)
-			{ print(logFile); Choke("fsobj::Open: owriteq remove"); }
+			{ print(logFile); CHOKE("fsobj::Open: owriteq remove"); }
 		RVMLIB_REC_OBJECT(flags);
 		flags.owrite = 0;
 		FSDB->ChangeDiskUsage((int) BLOCKS(this));
@@ -236,13 +236,13 @@ int fsobj::Close(int writep, int execp, vuid_t vuid)
 
     /* Update openers state; send object to server(s) if necessary. */
     if (openers < 1)
-	{ print(logFile); Choke("fsobj::Close: openers < 1"); }
+	{ print(logFile); CHOKE("fsobj::Close: openers < 1"); }
     openers--;
     if (writep) {
 	PromoteLock();    
 
 	if (!WRITING(this))
-	    { print(logFile); Choke("fsobj::Close: !WRITING"); }
+	    { print(logFile); CHOKE("fsobj::Close: !WRITING"); }
 	Writers--;
 
 	/* The object only gets sent to the server(s) if we are the
@@ -255,7 +255,7 @@ int fsobj::Close(int writep, int execp, vuid_t vuid)
 	Recov_BeginTrans();
 	/* Last writer: remove from owrite queue. */
 	if (FSDB->owriteq->remove(&owrite_handle) != &owrite_handle)
-		{ print(logFile); Choke("fsobj::Close: owriteq remove"); }
+		{ print(logFile); CHOKE("fsobj::Close: owriteq remove"); }
 	RVMLIB_REC_OBJECT(flags);
 	flags.owrite = 0;
 
@@ -316,14 +316,14 @@ int fsobj::Close(int writep, int execp, vuid_t vuid)
 		case ENOSPC: eprint("server partition full"); break;
 		case EDQUOT: eprint("over your disk quota"); break;
 		case EACCES: eprint("protection failure"); break;
-		case ERETRY: print(logFile); Choke("fsobj::Close: Store returns ERETRY");
+		case ERETRY: print(logFile); CHOKE("fsobj::Close: Store returns ERETRY");
 		default: eprint("unknown store error %d", code); break;
 	    }
 	}
     }
     if (execp) {
 	if (!EXECUTING(this))
-	    { print(logFile); Choke("fsobj::Close: !EXECUTING"); }
+	    { print(logFile); CHOKE("fsobj::Close: !EXECUTING"); }
 	Execers--;
     }
 
@@ -395,7 +395,7 @@ int fsobj::Access(long rights, int modes, vuid_t vuid)
 	/* Record the parent fid and release the object. */
 	ViceFid parent_fid = pfid;
 	if (FID_EQ(&NullFid, &parent_fid))
-	    { print(logFile); Choke("fsobj::Access: pfid == Null"); }
+	    { print(logFile); CHOKE("fsobj::Access: pfid == Null"); }
 	UnLock(level);
 	FSO_RELE(this);
 
@@ -526,7 +526,7 @@ int fsobj::Lookup(fsobj **target_fso_addr, ViceFid *inc_fid, char *name, vuid_t 
 
     /* We're screwed if (name == "."). -JJK */
     if (STREQ(name, "."))
-	{ print(logFile); Choke("fsobj::Lookup: name = ."); }
+	{ print(logFile); CHOKE("fsobj::Lookup: name = ."); }
 
     int code = 0;
     *target_fso_addr = 0;
@@ -572,7 +572,7 @@ int fsobj::Lookup(fsobj **target_fso_addr, ViceFid *inc_fid, char *name, vuid_t 
 			return EACCES;
 		    } else {
 			print(logFile); 
-			Choke("fsobj::Lookup: pfid = NULL");
+			CHOKE("fsobj::Lookup: pfid = NULL");
 		    }
 		}
 		target_fid = pfid;
@@ -651,7 +651,7 @@ int fsobj::Readlink(char *buf, int len, int *cc, vuid_t vuid) {
 	      comp, buf, len, cc, vuid));
 
     if (!HAVEDATA(this))
-	{ print(logFile); Choke("fsobj::Readlink: called without data"); }
+	{ print(logFile); CHOKE("fsobj::Readlink: called without data"); }
     if (!IsSymLink() && !IsMtPt())
 	return(EINVAL);
 

@@ -2,7 +2,7 @@
 extern "C" {
 #endif __cplusplus
 
-#include <assert.h>
+#include "coda_assert.h"
 #include <strings.h>
 
 #ifdef __cplusplus
@@ -17,7 +17,7 @@ extern "C" {
 InterestID GetInterestID(char *interestString) {
     InterestID interest;
 
-    assert(interestString != NULL);
+    CODA_ASSERT(interestString != NULL);
 
     if (strncmp(interestString, "TokensAcquired", strlen("TokensAcquired")) == 0)
       interest = TokensAcquiredID;
@@ -85,7 +85,7 @@ InterestID GetInterestID(char *interestString) {
       interest = InvokeASRID;
     else {
       printf("GetInterestID: Unrecognized interestString = %s\n", interestString);
-      assert(1 == 0);
+      CODA_ASSERT(1 == 0);
     }
 
     return(interest);
@@ -194,7 +194,7 @@ char *InterestToString(InterestID interest) {
       default:
 	fprintf(stderr, "Invalid InterestID = %d\n", interest);
 	fflush(stderr);
-        assert(1 == 0);
+        CODA_ASSERT(1 == 0);
   }
 
   return(returnString);
@@ -204,7 +204,7 @@ char *InterestToString(InterestID interest) {
 HoardCommandID GetHoardCommandID(char *commandString) {
     HoardCommandID command;
 
-    assert(commandString != NULL);
+    CODA_ASSERT(commandString != NULL);
 
     if (strncmp(commandString, "add", strlen("add")) == 0)
       command = AddCMD;
@@ -223,7 +223,7 @@ HoardCommandID GetHoardCommandID(char *commandString) {
     else if (strncmp(commandString, "verify", strlen("verify")) == 0)
       command = VerifyCMD;
     else
-      assert(1 == 0);
+      CODA_ASSERT(1 == 0);
 
     return(command);
 }
@@ -258,7 +258,7 @@ char *HoardCommandToString(HoardCommandID command) {
         strncpy(returnString, "verify", MAXCOMMANDLEN);
         break;
       default:
-	assert(1 == 0);
+	CODA_ASSERT(1 == 0);
   }
 
   return(returnString);
@@ -269,7 +269,7 @@ char *HoardCommandToString(HoardCommandID command) {
 MetaInfoID GetMetaInfoID(char *metaString) {
     MetaInfoID metaInfo;
 
-    assert(metaString != NULL);
+    CODA_ASSERT(metaString != NULL);
 
     if (strncmp(metaString, "n", strlen("n")) == 0)
       metaInfo = NoneMETA;
@@ -278,7 +278,7 @@ MetaInfoID GetMetaInfoID(char *metaString) {
     else if (strncmp(metaString, "d", strlen("d")) == 0)  // Matches either d or d+
       metaInfo = DescendantsPlusMETA;
     else
-      assert(1 == 0);
+      CODA_ASSERT(1 == 0);
 
     return(metaInfo);
 }
@@ -304,7 +304,7 @@ char *MetaInfoIDToString(MetaInfoID meta) {
         strncpy(returnString, "d+", MAXMETALEN);
         break;
       default:
-	assert(1 == 0);
+	CODA_ASSERT(1 == 0);
   }
 
   return(returnString);

@@ -70,7 +70,7 @@ do {                                               \
 
 #define DS_RRLIST_REQTAB_ELT_DESTROY(rre)     \
 do {                                          \
-    ASSERT(DS_RRLIST_REQTAB_ELT_VALID(rre));  \
+    CODA_ASSERT(DS_RRLIST_REQTAB_ELT_VALID(rre));  \
     (rre)->magic = 0;                         \
     (rre)->reqid = 0;                         \
     (rre)->list = NULL;                       \

@@ -24,7 +24,7 @@ Partent Partent_new()
 
 void Partent_free(Partent *T)
 {
-    assert(T && *T);
+    CODA_ASSERT(T && *T);
     free(*T);
 }
 
@@ -39,7 +39,7 @@ int Partent_end(FILE *f)
         return fclose(f);
     else {
 	eprint("NULL FILE * passed to Partent_end.\n");
-        assert(0);
+        CODA_ASSERT(0);
     }
     return 0;
 }
@@ -50,7 +50,7 @@ char *Partent_hasopt(Partent part, const char *opt)
         return strstr(part->part_opts, opt);
     else {
 	eprint("NULL passed to Partent_hasopt.\n");
-        assert(0);
+        CODA_ASSERT(0);
     }
     return 0;
 }
@@ -63,7 +63,7 @@ int Partent_intopt(Partent part, const char *opt, int *value)
     int rc = -1;
     
     if ( part == NULL )
-        assert(0);
+        CODA_ASSERT(0);
 
     optloc = Partent_hasopt(part, opt);
     if ( optloc ) {
@@ -81,7 +81,7 @@ int Partent_intopt(Partent part, const char *opt, int *value)
 Partent Partent_create(char *host, char *dir, char *type, char *opts)
 {
     Partent pa = Partent_new();
-    assert(pa && host && dir && type && opts);
+    CODA_ASSERT(pa && host && dir && type && opts);
     strncpy(pa->part_host, host, VICETAB_MAXSTR);
     strncpy(pa->part_dir, dir, VICETAB_MAXSTR);
     strncpy(pa->part_type, type, VICETAB_MAXSTR);
@@ -93,7 +93,7 @@ int Partent_add(FILE *filep, Partent part)
 {
   if ( part == NULL ) {
       eprint("NULL passed to Partent_add");
-      assert(0);
+      CODA_ASSERT(0);
   }
 
     if (fseek(filep, 0, SEEK_END) < 0)
@@ -115,7 +115,7 @@ Partent Partent_get(FILE *filep)
 
     if ( part == NULL ) {
         eprint("Could not create new Partent in Partent_get.\n");
-        assert(0);
+        CODA_ASSERT(0);
     }
 
     /* Continue reading lines from the file */
@@ -163,7 +163,7 @@ char *Partent_host(Partent p)
 {
     if ( p == NULL ) {
 	eprint("NULL passed!\n");
-	assert(0);
+	CODA_ASSERT(0);
     }
     return p->part_host;
 }
@@ -172,7 +172,7 @@ char *Partent_type(Partent p)
 {
     if ( p == NULL ) {
 	eprint("NULL passed!\n");
-	assert(0);
+	CODA_ASSERT(0);
     }
     return p->part_type;
 }
@@ -181,7 +181,7 @@ char *Partent_dir(Partent p)
 {
     if ( p == NULL ) {
 	eprint("NULL passed!\n");
-	assert(0);
+	CODA_ASSERT(0);
     }
     return p->part_dir;
 }

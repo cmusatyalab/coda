@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /usr/rvb/XX/src/coda-src/util/RCS/dict.h,v 4.1 1997/01/08 21:51:03 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/util/dict.h,v 4.2 1997/02/26 16:03:01 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -82,7 +82,7 @@ class assocrefs_iterator;
 extern "C" {
 #endif __cplusplus
 
-#include <assert.h>
+#include "coda_assert.h"
 #ifdef __MACH__
 #include <libc.h>
 #endif /* __MACH__ */
@@ -123,7 +123,7 @@ class assockey {
 
   public:
     virtual int	operator==(assockey& Key)   /* MUST be redefined by deriver! */
-	{ assert(0); return((char *)this == (char *)&Key); }
+	{ CODA_ASSERT(0); return((char *)this == (char *)&Key); }
 };
 
 

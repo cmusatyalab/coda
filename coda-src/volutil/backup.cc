@@ -28,7 +28,7 @@ Carnegie Mellon encourages users of this software to return any
 improvements or extensions that they make, and to grant Carnegie
 Mellon the rights to redistribute these changes without encumbrance.  */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/volutil/backup.cc,v 4.14 1998/09/29 16:38:37 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/volutil/backup.cc,v 4.15 1998/10/09 21:57:46 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -318,7 +318,7 @@ int PreparePartitionEntries(struct DiskPartition *part)
     sprintf(todayName, "/");
     strcat(todayName, today);
 
-    assert(part);
+    CODA_ASSERT(part);
 
     for (dp = part; dp ; dp = dp->next) {
 	name = dp->name;
@@ -524,7 +524,7 @@ static int backup(volinfo_t *vol) {
      */
     
     vol->nCloned = count;			/* Store # of successful clones */
-    assert(count <= vol->nReplicas);
+    CODA_ASSERT(count <= vol->nReplicas);
     return 0;
 }
 
@@ -533,7 +533,7 @@ struct DiskPartition *findBestPartition(struct DiskPartition *Parts)
     unsigned long space;
     struct DiskPartition *best, *part = 0;
 
-    assert(Parts);
+    CODA_ASSERT(Parts);
 
     best = Parts;
     space = Parts->free;
@@ -586,7 +586,7 @@ int dumpVolume(volinfo_t *vol, struct DiskPartition  *Parts)
 	    continue;
 	}
 	
-	assert(reps[i].backupId > 0);
+	CODA_ASSERT(reps[i].backupId > 0);
 	
 	/* get the name of the dumpfile. */
 	struct DiskPartition *part = NULL;
@@ -615,7 +615,7 @@ int dumpVolume(volinfo_t *vol, struct DiskPartition  *Parts)
 	unlink(buf);
 	
 	/* Setup the write thread to handle this operation. */
-	assert(strlen(buf) < sizeof(Rock.dumpfile));
+	CODA_ASSERT(strlen(buf) < sizeof(Rock.dumpfile));
 	strcpy(Rock.dumpfile, buf);
 	Rock.volid = reps[i].backupId;
 	Rock.numbytes = 0;
@@ -752,7 +752,7 @@ int main(int argc, char **argv) {
     while ( argc > 1) {			/* While args left to parse. */
 	if (!strcmp(argv[1], "-t")) {
 	    Timeout = atoi(argv[2]);
-	    assert(Timeout > 0);
+	    CODA_ASSERT(Timeout > 0);
 	    argc -= 2; argv += 2;
 	} else if (!strcmp(argv[1], "-p")) {
 	    Naptime = atoi(argv[2]);
@@ -1088,7 +1088,7 @@ static void VUInitServerList() {
 		LogMsg(0, Debug, stdout, "Warning: host %s (listed in %s) is not in /etc/hosts", sname, serverList);
 	    } else {
 		long netaddress;
-		assert(hostent->h_length == 4);
+		CODA_ASSERT(hostent->h_length == 4);
 		bcopy((char *)hostent->h_addr, (char *)&netaddress, 4);
 		HostAddress[sid] = Hosts[sid].address = ntohl(netaddress);
 		strncpy(Hosts[sid].name, hostent->h_name, 100);
@@ -1122,7 +1122,7 @@ static void V_InitRPC()
     fscanf(tokfile, "%s", vkey);
     fclose(tokfile);
 
-    assert(LWP_Init(LWP_VERSION, LWP_MAX_PRIORITY-1, &mylpid) == LWP_SUCCESS);
+    CODA_ASSERT(LWP_Init(LWP_VERSION, LWP_MAX_PRIORITY-1, &mylpid) == LWP_SUCCESS);
 
     SFTP_SetDefaults(&sftpi);
 /*    sftpi.PacketSize = 1024;
@@ -1217,7 +1217,7 @@ static void PollServers()
 	    LogMsg(3, Debug, stdout, "Polling to host %s %x.", 
 			   Hosts[i].name, Hosts[i].address);
 	    
-	    assert(Hosts[i].address != 0);  /* Shouldn't find new servers! */
+	    CODA_ASSERT(Hosts[i].address != 0);  /* Shouldn't find new servers! */
 	    
 	    /* Will set rpcid to -1 if it fails. */
 	    V_BindToServer(Hosts[i].name, &Hosts[i].rpcid);
@@ -1255,7 +1255,7 @@ static void VolDumpLWP(struct rockInfo *rock)
     FILE *tokfile;
 
     /* Hide the dumpfile name under a rock for later retrieval. */
-    assert(LWP_NewRock(ROCKTAG, (char *)rock) == LWP_SUCCESS);
+    CODA_ASSERT(LWP_NewRock(ROCKTAG, (char *)rock) == LWP_SUCCESS);
     
     /* get encryption key for authentication */
     tokfile = fopen(TKFile, "r");
@@ -1264,7 +1264,7 @@ static void VolDumpLWP(struct rockInfo *rock)
 
     subsysid.Tag = RPC2_SUBSYSBYID;
     subsysid.Value.SubsysId = VOLDUMP_SUBSYSTEMID;
-    assert(RPC2_Export(&subsysid) == RPC2_SUCCESS);
+    CODA_ASSERT(RPC2_Export(&subsysid) == RPC2_SUCCESS);
     
     myfilter.FromWhom = ONESUBSYS;
     myfilter.OldOrNew = OLDORNEW;
@@ -1291,7 +1291,7 @@ long WriteDump(RPC2_Handle rpcid, unsigned long offset, unsigned long *nbytes, V
     struct rockInfo *rock;
     SE_Descriptor sed;
     
-    assert(LWP_GetRock(ROCKTAG, (char **)&rock) == LWP_SUCCESS);
+    CODA_ASSERT(LWP_GetRock(ROCKTAG, (char **)&rock) == LWP_SUCCESS);
 
     if (volid != rock->volid) {
 	LogMsg(0, 0, stdout, "Got a WriteDump for %x, I'm dumping %x!\n", volid, rock->volid);
@@ -1311,7 +1311,7 @@ long WriteDump(RPC2_Handle rpcid, unsigned long offset, unsigned long *nbytes, V
     sed.Value.SmartFTPD.hashmark = 0;
     sed.Value.SmartFTPD.Tag = FILEBYNAME;
     sed.Value.SmartFTPD.FileInfo.ByName.ProtectionBits = 0755;
-    assert(strlen(rock->dumpfile) <
+    CODA_ASSERT(strlen(rock->dumpfile) <
 	   sizeof(sed.Value.SmartFTPD.FileInfo.ByName.LocalFileName));
     strcpy(sed.Value.SmartFTPD.FileInfo.ByName.LocalFileName, rock->dumpfile);
 
@@ -1345,6 +1345,6 @@ long WriteDump(RPC2_Handle rpcid, unsigned long offset, unsigned long *nbytes, V
 long ReadDump(RPC2_Handle rpcid, RPC2_Unsigned offset, RPC2_Integer *nbytes, VolumeId volid, SE_Descriptor *BD)
 {
     LogMsg(0, 0, stdout, "GOT A READDUMP CALL!!!!\n");
-    assert(0);
+    CODA_ASSERT(0);
 }
 

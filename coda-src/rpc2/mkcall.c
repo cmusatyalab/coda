@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rpc2/mkcall.c,v 4.1 97/01/08 21:50:23 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rpc2/mkcall.c,v 4.2 1998/09/15 14:27:57 jaharkes Exp $";
 #endif /*_BLURB_*/
 
 
@@ -60,7 +60,7 @@ supported by Transarc Corporation, Pittsburgh, PA.
    number of INOUT and OUT args in a call should not exceed max in case below.
 */
 
-#include <assert.h>
+#include "coda_assert.h"
 #include <stdio.h>
 #include "rpc2.h"
 
@@ -125,7 +125,7 @@ mkcall(ClientHandler, ArgCount, HowMany, ConnList, offset, rpcval, args)
 					args[4], args[5], args[6], args[7],
 					args[8], args[9], args[10], args[11]);
 	    default:
-		assert(ArgCount <= 12);
+		CODA_ASSERT(ArgCount <= 12);
 	}
 	/*NOTREACHED*/
         return -1;

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/repair/rvol.cc,v 4.8 1998/08/31 12:23:17 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/repair/rvol.cc,v 4.9 1998/10/07 20:29:46 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -57,7 +57,7 @@ extern "C" {
 #include <stdlib.h>
 #endif
 #include <errno.h>
-#include <assert.h>
+#include "coda_assert.h"
 #include <setjmp.h>
 #include <sys/types.h>
 #include <sys/param.h>
@@ -107,7 +107,7 @@ int repair_newrep(VolumeId vid, char *mnt, struct repvol **repv /* OUT */)
     {
 
     *repv = (struct repvol *) calloc(1, sizeof(struct repvol));  /* inits all fields to 0 */
-    assert(*repv); /* better not run out of memory! */
+    CODA_ASSERT(*repv); /* better not run out of memory! */
     (*repv)->vid = vid;
     strcpy((*repv)->mnt, mnt);  /* remember its mount point */
     
@@ -142,7 +142,7 @@ int repair_mountrw(struct repvol *repv, VolumeId *rwarray, int arraylen)
 
 	/* Create  element */
 	rwv = (struct rwvol *) calloc(1, sizeof(struct rwvol));
-	assert(rwv);
+	CODA_ASSERT(rwv);
 	rwv->vid = rwarray[i];
 
 	/* Link it in */

@@ -33,7 +33,7 @@ should be returned to Software.Distribution@cs.cmu.edu.
 
 */
 
-static char *rcsid = "$Header: rds_split.c,v 1.1 96/11/22 13:39:54 raiff Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/rvm-src/rds/rds_split.c,v 4.1 1997/01/08 21:54:28 rvb Exp $";
 #endif _BLURB_
 
 
@@ -42,7 +42,7 @@ static char *rcsid = "$Header: rds_split.c,v 1.1 96/11/22 13:39:54 raiff Exp $";
 #include <rds.h>
 #include <rds_private.h>
 #include <rvm_segment.h>
-#include <assert.h>
+#include "coda_assert.h"
 
 /* Split the first block larger than size chunks into two objects.
  * The object with the appropriate size is returned to the caller
@@ -115,7 +115,7 @@ split(size, tid, err)
 	}
     }
 
-    assert(bp && bp->size >= size); /* Assume we found an appropriate block */
+    CODA_ASSERT(bp && bp->size >= size); /* Assume we found an appropriate block */
     
     if (size == bp->size) { /* We have an exact fit */
 	rm_from_list(list, bp, tid, err);
@@ -126,7 +126,7 @@ split(size, tid, err)
     
     /* Calculate size of block remaining after desired block is split off. */
     remaining_size = bp->size - size;
-    assert(remaining_size > 0);
+    CODA_ASSERT(remaining_size > 0);
     
     newObject1 = bp;
     newObject2 = (free_block_t *)	/* Cast as char * to get byte addition */

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/venus.private.h,v 4.19 1998/09/29 16:38:19 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/venus.private.h,v 4.20 1998/10/06 21:56:30 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -52,7 +52,7 @@ extern "C" {
 #include <sys/time.h>
 #include <sys/resource.h>
 #include <sys/param.h>
-#include <assert.h>
+#include "coda_assert.h"
 #include <ctype.h>
 #include <errno.h>
 
@@ -176,8 +176,6 @@ typedef void (*PROC_V_UL)(unsigned long);
 #else	VENUSDEBUG
 #define	LOG(level, stmt)
 #endif	VENUSDEBUG
-#define	ASSERT(ex) assert(ex)
-
 
 /*  *****  Locking macros.  *****  */
 
@@ -200,7 +198,7 @@ enum LockLevel { NL, RD, SH, WR };
 \
 	case NL:\
 	default:\
-	    assert(0);\
+	    CODA_ASSERT(0);\
     }\
 }
 
@@ -221,7 +219,7 @@ enum LockLevel { NL, RD, SH, WR };
 \
 	case NL:\
 	default:\
-	    assert(0);\
+	    CODA_ASSERT(0);\
     }\
 }
 
@@ -302,10 +300,11 @@ struct CacheStats {
 	if (islower(*c)) *c = toupper(*c);\
 }
 
+#define CHOKE(me...) choke(__FILE__, __LINE__, ##me)
 
 /*  *****  Declarations for source files without their own headers.  ***** */
 extern void dprint(char * ...);
-extern void Choke(char* ...);  /* used to be Die() but clashes with vicedep/srv.h & dir/dir.private.h */
+extern void choke(char *file, int line, char* ...);
 extern void rds_printer(char * ...);
 extern void VenusPrint(int, char **);
 extern void VenusPrint(FILE *, int, char **);

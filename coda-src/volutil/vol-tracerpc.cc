@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/volutil/vol-tracerpc.cc,v 4.4 1998/04/14 21:00:42 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/volutil/vol-tracerpc.cc,v 4.5 1998/06/07 20:15:20 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -78,12 +78,12 @@ long S_TraceRpc(RPC2_Handle rpcid, SE_Descriptor *formal_sed) {
     strcpy(filename, TRACEFILE);
     mktemp(filename);
     tracefile = fopen(filename, "w");
-    assert(tracefile != NULL);
+    CODA_ASSERT(tracefile != NULL);
 
     if (!RPCTraceBufInited) {
 	RPC2_InitTraceBuffer(RPCTRACEBUFSIZE);
 	RPCTraceBufInited = 1;
-	assert(!RPC2_Trace);
+	CODA_ASSERT(!RPC2_Trace);
 	RPC2_Trace = 1;
 	fprintf(tracefile, "Inited trace buffer; tracing is now ON\n");
     }

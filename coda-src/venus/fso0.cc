@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/fso0.cc,v 4.13 98/09/29 16:38:14 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/fso0.cc,v 4.14 1998/09/29 21:04:41 jaharkes Exp $";
 #endif /*_BLURB_*/
 
 
@@ -158,7 +158,7 @@ void FSOInit() {
 	struct dirent **namelist;
 	int nentries;
 	nentries = scandir(".", &namelist, 0, 0) ;
-	if (nentries < 0) Choke("FSOInit: scandir");
+	if (nentries < 0) CHOKE("FSOInit: scandir");
 
 	/* Examine each entry and decide to keep or delete it */
 	for (i = 0; i < nentries; i++) {
@@ -249,7 +249,7 @@ FREE_ENTRY: /* release entry from namelist */
 	    }
 
 	    if ((FSDB->htab).count() + (FSDB->freelist).count() != FSDB->MaxFiles)
-		Choke("FSOInit: missing %d cache files",
+		CHOKE("FSOInit: missing %d cache files",
 		    FSDB->MaxFiles - ((FSDB->htab).count() + (FSDB->freelist).count()));
 	}
 
@@ -298,7 +298,7 @@ FREE_ENTRY: /* release entry from namelist */
 
     FILE *fp = fopen("CacheInfo", "w+");
     if (fp == NULL)
-	Choke("FSOInit: fopen(CacheInfo, WR)");
+	CHOKE("FSOInit: fopen(CacheInfo, WR)");
     fprintf(fp, "%d", DataVersion);
     fclose(fp);
 
@@ -323,7 +323,7 @@ static int FSO_HashFN(void *key) {
 int FSO_PriorityFN(bsnode *b1, bsnode *b2) {
     fsobj *f1 = strbase(fsobj, b1, prio_handle);
     fsobj *f2 = strbase(fsobj, b2, prio_handle);
-    ASSERT((char *)f1 != (char *)f2);
+    CODA_ASSERT((char *)f1 != (char *)f2);
 
     if (f1->priority > f2->priority) return(1);
     if (f1->priority < f2->priority) return(-1);
@@ -345,7 +345,7 @@ int FSO_PriorityFN(bsnode *b1, bsnode *b2) {
 
 void UpdateCacheStats(CacheStats *c, enum CacheEvent event, unsigned long blocks) {
     if (event < HIT || event > REPLACE)
-	Choke("UpdateCacheStats: bogus event (%d)", event);
+	CHOKE("UpdateCacheStats: bogus event (%d)", event);
 
     struct CacheEventRecord *r = &c->events[event];
     r->count++;
@@ -389,7 +389,7 @@ void *fsdb::operator new(size_t len){
 
     /* Allocate recoverable store for the object. */
     f = (fsdb *)rvmlib_rec_malloc((int) len);
-    assert(f);
+    CODA_ASSERT(f);
     return(f);
 }
 
@@ -412,7 +412,7 @@ fsdb::fsdb() : htab(FSDB_NBUCKETS, FSO_HashFN) {
 void fsdb::ResetTransient() {
     /* Sanity checks. */
     if (MagicNumber != FSDB_MagicNumber)
-	Choke("fsdb::ResetTransient: bad magic number (%d)", MagicNumber);
+	CHOKE("fsdb::ResetTransient: bad magic number (%d)", MagicNumber);
 
     /* MaxBlocks, FreeBlockMargin reset in FsoInit */
     blocks = 0;		    /* this will get updated in fsobj::Recover() */
@@ -441,7 +441,7 @@ void fsdb::ResetTransient() {
     matriculation_count = 0;
 
     struct stat tstat;
-    if (::stat(".", &tstat) < 0) Choke("fsdb::ResetTransient: cachedir stat");
+    if (::stat(".", &tstat) < 0) CHOKE("fsdb::ResetTransient: cachedir stat");
     device = tstat.st_dev;
 }
 
@@ -469,7 +469,7 @@ fsobj *fsdb::Create(ViceFid *key, LockLevel level, int priority, char *comp) {
 
     /* Check whether the key is already in the database. */
     if ((f = Find(key)) != 0)
-	{ f->print(logFile); Choke("fsdb::Create: key found"); }
+	{ f->print(logFile); CHOKE("fsdb::Create: key found"); }
 
     /* Fashion a new object.  This could be a long-running and wide-ranging transaction! */
     Recov_BeginTrans();
@@ -522,13 +522,13 @@ void VmonUpdateSession(vproc *vp, ViceFid *key, fsobj *f, volent *vol, vuid_t vu
         return;
 
     /* Return if this is the hoard thread */
-    assert(vp != NULL);
+    CODA_ASSERT(vp != NULL);
     if (vp->type == VPT_HDBDaemon)
         return;
 
     /* Return if this thread is associated with the advice monitor */
     GetUser(&u, vuid);
-    assert(u != NULL);
+    CODA_ASSERT(u != NULL);
     if (u->IsAdvicePGID(vp->u.u_pgid))
         return;
 
@@ -537,8 +537,8 @@ void VmonUpdateSession(vproc *vp, ViceFid *key, fsobj *f, volent *vol, vuid_t vu
         return;
 
     /* Validate params */
-    assert((datatype == ATTR) || (datatype == DATA));
-    assert((event >= HIT) && (event <= FAILURE));
+    CODA_ASSERT((datatype == ATTR) || (datatype == DATA));
+    CODA_ASSERT((event >= HIT) && (event <= FAILURE));
  
     /* Okay, let's get on with the *real* reason we're here... */
     LOG(100, ("VmonUpdateSession:  key=(%x.%x.%x), vp->type=%d, vuid=%d, datatype=%d, event=%d, blocks=%d)\n", key->Volume, key->Vnode, key->Unique, vp->type, vuid, datatype, event, blocks));
@@ -557,7 +557,7 @@ void VmonUpdateSession(vproc *vp, ViceFid *key, fsobj *f, volent *vol, vuid_t vu
      * we count these statistics against the fsdb rather than the individual volume */
     if (vol == NULL) {
 	LOG(100, ("VmonUpdateSession:  vol == NULL\n"));
-        assert((event == MISS) || (event == TIMEOUT) || (event == FAILURE));
+        CODA_ASSERT((event == MISS) || (event == TIMEOUT) || (event == FAILURE));
         Recov_BeginTrans();
 	RVMLIB_REC_OBJECT(FSDB->VolumeLevelMiss);
 	FSDB->VolumeLevelMiss++;
@@ -567,7 +567,7 @@ void VmonUpdateSession(vproc *vp, ViceFid *key, fsobj *f, volent *vol, vuid_t vu
 
     /* Get this user's session record */
     record = vol->GetVSR(vuid);
-    assert(record->cetime == 0);
+    CODA_ASSERT(record->cetime == 0);
     LOG(100, ("VmonUpdateSession:  starttime = %d\n",record->starttime));
 
     /* Determine hoardstatus:  1 if hoardable; 0 if not; -1 if unknown */
@@ -581,7 +581,7 @@ void VmonUpdateSession(vproc *vp, ViceFid *key, fsobj *f, volent *vol, vuid_t vu
     }
     else 
             hoardstatus = -1;
-    assert((hoardstatus >= -1) && (hoardstatus <= 1));
+    CODA_ASSERT((hoardstatus >= -1) && (hoardstatus <= 1));
 
     /* Update the the appropriate event */
     switch (hoardstatus) {
@@ -732,7 +732,7 @@ void VmonUpdateSession(vproc *vp, ViceFid *key, fsobj *f, volent *vol, vuid_t vu
  * poor user can do about it.
  */
 int fsdb::Get(fsobj **f_addr, ViceFid *key, vuid_t vuid, int rights, char *comp, int *rcode) {
-    ASSERT(rights != 0);
+    CODA_ASSERT(rights != 0);
     int getdata = (rights & RC_DATA);
 
     LOG(100, ("fsdb::Get-mre: key = (%x.%x.%x), uid = %d, rights = %d, comp = %s\n",
@@ -944,7 +944,7 @@ RestartFind:
 		    
 		    f->GetPath(path,1);
 		    GetUser(&u, vuid);
-		    assert(u != NULL);
+		    CODA_ASSERT(u != NULL);
 
 		    LOG(0, ("fsdb::Get: Object inconsistent. (key = <%x.%x.%x>)\n", 
 			    key->Volume, key->Vnode, key->Unique));
@@ -1238,7 +1238,7 @@ void fsdb::Put(fsobj **f_addr) {
 	     f->refcnt, f->readers, f->writers, f->openers));
 
     if (f->readers == 0 && f->writers == 0)
-	{ f->print(logFile); Choke("fsdb::Put: no locks!"); }
+	{ f->print(logFile); CHOKE("fsdb::Put: no locks!"); }
     LockLevel level = (f->readers > 0 ? RD : WR);
     f->UnLock(level);
 
@@ -1284,7 +1284,7 @@ void fsdb::Flush() {
 void fsdb::Flush(VolumeId vid) {
     volent *v;
     v = VDB->Find(vid);
-    ASSERT(v);
+    CODA_ASSERT(v);
     
     /* comment in fsdb::Flush applies here */
     int restart = 1;
@@ -1329,7 +1329,7 @@ int fsdb::TranslateFid(ViceFid *OldFid, ViceFid *NewFid)
 
 	/* cross volume replacements are for local fids */
 	if (OldFid->Volume != NewFid->Volume && !FID_VolIsLocal(NewFid))
-		Choke("fsdb::TranslateFid: X-VOLUME, %s --> %s",
+		CHOKE("fsdb::TranslateFid: X-VOLUME, %s --> %s",
 		      FID_(OldFid), FID_2(NewFid));
 
 
@@ -1345,7 +1345,7 @@ int fsdb::TranslateFid(ViceFid *OldFid, ViceFid *NewFid)
 	/* in old versions we would choke too  if (!DIRTY(f)) */
 	if (!HAVESTATUS(f)) {
 		f->print(logFile); 
-		Choke("fsdb::TranslateFid: !HAVESTATUS"); 
+		CHOKE("fsdb::TranslateFid: !HAVESTATUS"); 
 	}
 
 	/* Replace the fids in kernel name cache for this object */
@@ -1356,14 +1356,14 @@ int fsdb::TranslateFid(ViceFid *OldFid, ViceFid *NewFid)
 	if (Newf != 0) {
 		f->print(logFile); 
 		Newf->print(logFile); 
-		Choke("fsdb::TranslateFid: NewFid found"); 
+		CHOKE("fsdb::TranslateFid: NewFid found"); 
 	}
 	
 	/* Remove OldObject from table. */
 	if (htab.remove(&f->fid, &f->primary_handle) != 
 	    &f->primary_handle) {
 		f->print(logFile); 
-		Choke("fsdb::TranslateFid: old object remove"); 
+		CHOKE("fsdb::TranslateFid: old object remove"); 
 	}
 
 	/* Change Fid, update dir and reinsert into table. */
@@ -1538,7 +1538,7 @@ void fsdb::ReclaimFsos(int priority, int count) {
 	fsobj *f = strbase(fsobj, b, prio_handle);
 
 	if (!REPLACEABLE(f))
-	    { f->print(logFile); Choke("fsdb::ReclaimFsos: !REPLACEABLE"); }
+	    { f->print(logFile); CHOKE("fsdb::ReclaimFsos: !REPLACEABLE"); }
 
 	/* Remaining replaceable entries have equal or higher priority! */
 	if (vp->type == VPT_HDBDaemon) 
@@ -1587,7 +1587,7 @@ int fsdb::FreeBlockCount() {
 	    fsobj *f = strbase(fsobj, o, owrite_handle);
 
 	    if (f->flags.owrite == 0)
-	    { f->print(logFile); Choke("fsdb::FreeBlockCount: on owriteq && !owrite"); }
+	    { f->print(logFile); CHOKE("fsdb::FreeBlockCount: on owriteq && !owrite"); }
 
 	    struct stat tstat;
 	    f->cf.Stat(&tstat);
@@ -1656,7 +1656,7 @@ void fsdb::ReclaimBlocks(int priority, int nblocks) {
 	fsobj *f = strbase(fsobj, b, prio_handle);
 
 	if (!REPLACEABLE(f))
-	    { f->print(logFile); Choke("fsdb::ReclaimBlocks: !REPLACEABLE"); }
+	    { f->print(logFile); CHOKE("fsdb::ReclaimBlocks: !REPLACEABLE"); }
 
 	/* Remaining replaceable entries have higher priority! */
 	if (priority <= f->priority) break;
@@ -1724,7 +1724,7 @@ void fsdb::DisconnectedCacheMiss(vproc *vp, vuid_t vuid, ViceFid *fid, char *com
     char pathname[MAXPATHLEN];
 
     GetUser(&u, vuid);
-    assert(u != NULL);
+    CODA_ASSERT(u != NULL);
 
     /* If advice not enabled, simply return */
     if (!AdviceEnabled) {
@@ -1737,7 +1737,7 @@ void fsdb::DisconnectedCacheMiss(vproc *vp, vuid_t vuid, ViceFid *fid, char *com
      *     (a) the request did NOT originate from the Hoard Daemon     *
      *     (b) the request did NOT originate from that AdviceMonitor,  *
      * and (c) the user is running an AdviceMonitor,                   */
-    assert(vp != NULL);
+    CODA_ASSERT(vp != NULL);
     if (vp->type == VPT_HDBDaemon) {
 	LOG(100, ("ADMON STATS:  DMQ Advice inappropriate.\n"));
         return;
@@ -1762,14 +1762,14 @@ void fsdb::DisconnectedCacheMiss(vproc *vp, vuid_t vuid, ViceFid *fid, char *com
 
 void fsdb::UpdateDisconnectedUseStatistics(volent *v) {
 
-    assert(v);
+    CODA_ASSERT(v);
 
     // Verify that this disconnected session is eligible.  A disconnected
     // session is eligible if there have been references to any object
     // in any volume since this volume became disconnected.  If this
     // disconnected session is not eligible, we don't want to update the
     // statistics.  (Also sanity check the disconnected reference counter.)
-    assert(v->DiscoRefCounter <= RefCounter);
+    CODA_ASSERT(v->DiscoRefCounter <= RefCounter);
     if (v->DiscoRefCounter == RefCounter)
         return;
 
@@ -1787,8 +1787,8 @@ void fsdb::UpdateDisconnectedUseStatistics(volent *v) {
     fso_vol_iterator next(NL, v);
     fsobj *f;
     while (f = next()) {
-        assert(f);
-	assert(f->vol == v);
+        CODA_ASSERT(f);
+	CODA_ASSERT(f->vol == v);
 
 	// Promote f to write-lock here.
 
@@ -1817,7 +1817,7 @@ void fsdb::OutputDisconnectedUseStatistics(char *StatisticsFileName, int discosS
     double percentUse;
 
     StatsFILE = fopen(StatisticsFileName, "w");
-    assert(StatsFILE != NULL);
+    CODA_ASSERT(StatsFILE != NULL);
 
     LOG(3, ("Locking UPGRADE:  Please add read locks\n"));
 
@@ -1832,7 +1832,7 @@ void fsdb::OutputDisconnectedUseStatistics(char *StatisticsFileName, int discosS
     fprintf(StatsFILE, "<FID> priority discosSinceLastUse discosUsed discosUnused \n");
 
     while (f = next()) {
-      assert(f);
+      CODA_ASSERT(f);
 
       totalUse = f->DisconnectionsUsed + f->DisconnectionsUnused;
       LOG(0, ("%d + %d = %d\n", 
@@ -1898,12 +1898,12 @@ void fsdb::print(int fd, int SummaryOnly) {
 			break;
 
 		    case SymbolicLink:
-			ASSERT(NBLOCKS(f->cf.Length()) == 0);
+			CODA_ASSERT(NBLOCKS(f->cf.Length()) == 0);
 			break;
 
 		    case Invalid:
 			f->print(logFile);
-			Choke("fsdb::print: bogus vnode type");
+			CHOKE("fsdb::print: bogus vnode type");
 		}
 	    }
 	fdprint(fd, "Real Blocks: %d, %d, %d\n", normal_blocks, udir_blocks, ow_blocks);

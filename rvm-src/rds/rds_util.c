@@ -33,7 +33,7 @@ should be returned to Software.Distribution@cs.cmu.edu.
 
 */
 
-static char *rcsid = "$Header: /afs/cs.cmu.edu/user/clement/mysrcdir3/rvm-src/rds/RCS/rds_util.c,v 4.1 1997/01/08 21:54:29 rvb Exp clement $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/rvm-src/rds/rds_util.c,v 4.2 1997/04/01 01:57:17 clement Exp $";
 #endif _BLURB_
 
 
@@ -54,7 +54,7 @@ enqueue(list, block, tid, err)
      rvm_tid_t    *tid;
      int	  *err;
 {
-    ASSERT(0);
+    CODA_ASSERT(0);
     return -1;
 }
 
@@ -224,7 +224,7 @@ get_block(size, tid, err)
 	return split(size, tid, err);
     }
 
-    ASSERT(RDS_FREE_LIST[list].head->size == size); /* Sanity check */
+    CODA_ASSERT(RDS_FREE_LIST[list].head->size == size); /* Sanity check */
 
     if (list < RDS_MAXLIST)
 	RDS_STATS.hits++;	

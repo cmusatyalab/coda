@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/volutil/vol-purge.cc,v 4.4 1998/08/31 12:23:49 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/volutil/vol-purge.cc,v 4.5 1998/10/29 15:29:04 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -107,7 +107,7 @@ long int S_VolPurge(RPC2_Handle rpcid, RPC2_Unsigned formal_purgeId,
     VolumeId purgeId = (VolumeId)formal_purgeId;
 
     VLog(69, "Checking lwp rock in S_VolPurge");
-    assert(LWP_GetRock(FSTAG, (char **)&pt) == LWP_SUCCESS);
+    CODA_ASSERT(LWP_GetRock(FSTAG, (char **)&pt) == LWP_SUCCESS);
 
     VLog(9, "Entering S_VolPurge: purgeId = %x, purgeName = %s",
 					    purgeId, purgeName);
@@ -139,7 +139,7 @@ long int S_VolPurge(RPC2_Handle rpcid, RPC2_Unsigned formal_purgeId,
 	}
     }
 
-    assert(vp != NULL);
+    CODA_ASSERT(vp != NULL);
     if (strcmp(V_name(vp), purgeName) != 0) {
 	VLog(0, "The name you specified (%s) does not match the internal name (%s) for volume %x; not purged",
 	   (int) purgeName, (int) V_name(vp), purgeId);
@@ -155,7 +155,7 @@ long int S_VolPurge(RPC2_Handle rpcid, RPC2_Unsigned formal_purgeId,
 	VOffline(vp, "Volume being Purged");
 	*pt = volumeUtility;
 	vp = VGetVolume(&error, purgeId);
-	assert(error == VOFFLINE);
+	CODA_ASSERT(error == VOFFLINE);
     }
 
     if (status != 0) {
@@ -165,8 +165,8 @@ long int S_VolPurge(RPC2_Handle rpcid, RPC2_Unsigned formal_purgeId,
     }
 
     /* By this time the volume is attached and is offline */
-    assert(V_inUse(vp) == 0);
-    assert(DeleteVolume(vp) == 0);  /* Remove the volume from rvm and vm */
+    CODA_ASSERT(V_inUse(vp) == 0);
+    CODA_ASSERT(DeleteVolume(vp) == 0);  /* Remove the volume from rvm and vm */
     vp->shuttingDown = 1;
 
     /* Don't need to call VPutVolume since all vm traces have been removed. */

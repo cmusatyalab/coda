@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/local_fso.cc,v 4.5 98/09/27 13:01:20 rnw Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/local_fso.cc,v 4.6 1998/10/07 19:53:38 jaharkes Exp $";
 #endif /*_BLURB_*/
 
 
@@ -160,7 +160,7 @@ int fsobj::RepairStore()
 
 	    /* Shouldn't acl be IN rather than IN/OUT? -JJK */
 	    if (acl->SeqLen > VENUS_MAXBSLEN)
-		Choke("fsobj::Store: BS len too large (%d)", acl->SeqLen);
+		CHOKE("fsobj::Store: BS len too large (%d)", acl->SeqLen);
 	    ARG_MARSHALL_BS(IN_OUT_MODE, RPC2_CountedBS, aclvar, *acl, VSG_MEMBERS, VENUS_MAXBSLEN);
 	    ARG_MARSHALL(IN_OUT_MODE, ViceStatus, statusvar, status, VSG_MEMBERS);
 	    ARG_MARSHALL(IN_OUT_MODE, SE_Descriptor, sedvar, *sed, VSG_MEMBERS);
@@ -204,7 +204,7 @@ int fsobj::RepairStore()
 		LOG(10, ("(Multi)ViceStore: stored %d bytes\n", bytes));
 		if (bytes != status.Length) {
 		    print(logFile);
-		    Choke("fsobj::Store: bytes mismatch (%d, %d)",
+		    CHOKE("fsobj::Store: bytes mismatch (%d, %d)",
 			bytes, status.Length);
 		}
 	    }
@@ -262,7 +262,7 @@ RepExit:
 	    LOG(10, ("ViceStore: stored %d bytes\n", bytes));
 	    if (bytes != status.Length) {
 		print(logFile);
-		Choke("fsobj::Store: bytes mismatch (%d, %d)",
+		CHOKE("fsobj::Store: bytes mismatch (%d, %d)",
 		      bytes, status.Length);
 	    }
 	}
@@ -643,11 +643,11 @@ cmlent *fsobj::FinalCmlent(int tid)
     while (d = next()) {
 	binding *b = strbase(binding, d, bindee_handle);
 	cmlent *m = (cmlent *)b->binder;
-	ASSERT(m);
+	CODA_ASSERT(m);
 	if (m->GetTid() != tid) continue;
 	last = m;
     }
-    ASSERT(last && last->GetTid() == tid);
+    CODA_ASSERT(last && last->GetTid() == tid);
     return last;
 }
 
@@ -801,7 +801,7 @@ int fsobj::ReplaceLocalFakeFid()
 		    obj->DetachChild(cf);
 		    cf->pfso = 0;
 		}
-		ASSERT(obj->children->count() == 0);
+		CODA_ASSERT(obj->children->count() == 0);
 		delete obj->children;
 		obj->children = 0;
 	    } else {
@@ -928,7 +928,7 @@ int fsobj::LocalFakeify()
     bcopy((const void *)&fid, (void *)&GlobalRootFid, (int)sizeof(ViceFid));
 
     if ((code = ReplaceLocalFakeFid()) != 0) {
-	Choke("fsobj::LocalFakeify: replace local fake fid failed");
+	CHOKE("fsobj::LocalFakeify: replace local fake fid failed");
     }
     /* 
      * step 3. create a new object as FakeRoot with the newly generated 
@@ -1057,7 +1057,7 @@ int fsobj::LocalFakeifyRoot()
     bcopy((const void *)&fid, (void *)&GlobalRootFid, (int)sizeof(ViceFid));
 
     if ((code = ReplaceLocalFakeFid()) != 0) {
-	Choke("fsobj::LocalFakeifyRoot: replace local fake fid failed");
+	CHOKE("fsobj::LocalFakeifyRoot: replace local fake fid failed");
     }
 
     Recov_BeginTrans();

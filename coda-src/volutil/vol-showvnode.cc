@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/volutil/vol-showvnode.cc,v 4.5 1998/08/31 12:23:52 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/volutil/vol-showvnode.cc,v 4.6 1998/09/29 16:38:40 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -114,7 +114,7 @@ long S_VolShowVnode(RPC2_Handle rpcid, RPC2_Unsigned formal_volid, RPC2_Unsigned
     VolumeId volid = (VolumeId)formal_volid;
 
     LogMsg(9, VolDebugLevel, stdout, "Checking lwp rock in S_VolShowVnode");
-    assert(LWP_GetRock(FSTAG, (char **)&pt) == LWP_SUCCESS);
+    CODA_ASSERT(LWP_GetRock(FSTAG, (char **)&pt) == LWP_SUCCESS);
 
     LogMsg(9, VolDebugLevel, stdout, "Entering VolShowVnode(%d, 0x%x, 0x%x)", rpcid, volid, vnodeid);
 

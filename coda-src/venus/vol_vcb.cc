@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/vol_vcb.cc,v 4.4 98/08/26 21:24:43 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/vol_vcb.cc,v 4.5 1998/09/29 21:04:49 jaharkes Exp $";
 #endif /*_BLURB_*/
 
 
@@ -528,7 +528,7 @@ void *vcbdb::operator new(size_t len) {
 
     /* Allocate recoverable store for the object. */
     v = (vcbdb *)rvmlib_rec_malloc((int) len);
-    assert(v);
+    CODA_ASSERT(v);
     return(v);
 }
 
@@ -542,7 +542,7 @@ vcbdb::vcbdb() : htab(VCBDB_NBUCKETS, VOL_HashFN) {
 void vcbdb::ResetTransient() {
     /* Sanity checks. */
     if (MagicNumber != VCBDB_MagicNumber)
-	Choke("vcbdb::ResetTransient: bad magic number (%d)", MagicNumber);
+	CHOKE("vcbdb::ResetTransient: bad magic number (%d)", MagicNumber);
 
     htab.SetHFn(VOL_HashFN);
 }
@@ -554,7 +554,7 @@ vcbdent *vcbdb::Create(VolumeId vid, char *volname) {
 
     /* Check whether the key is already in the database. */
     if ((v = Find(vid)) != 0) {
-	{ v->print(logFile); Choke("vcbdb::Create: key exists"); }
+	{ v->print(logFile); CHOKE("vcbdb::Create: key exists"); }
     }
 
     /* Fashion a new object. */
@@ -593,7 +593,7 @@ void *vcbdent::operator new(size_t len){
     vcbdent *v = 0;
 
     v = (vcbdent *)rvmlib_rec_malloc((int) len);
-    assert(v);
+    CODA_ASSERT(v);
     return(v);
 }
 
@@ -652,7 +652,7 @@ void InitVCBData(VolumeId vid) {
     vproc *vp = VprocSelf();
 
     volent *vol = VDB->Find(vid);
-    if (!vol) Choke("InitVCBData: Can't find volume 0x%x!", vid);
+    if (!vol) CHOKE("InitVCBData: Can't find volume 0x%x!", vid);
 
     vp->ve = new vcbevent(vol->fso_list->count());
 }    
@@ -697,7 +697,7 @@ void ReportVCBEvent(VCBEventType event, VolumeId vid, vcbevent *ve) {
     /* find (or create) entry for this volume */
     vcbdent *v = VCBDB->Find(vid);
     if (!v) {
-	if (!vol) Choke("ReportVCBEvent: Can't find volume 0x%x!", vid);
+	if (!vol) CHOKE("ReportVCBEvent: Can't find volume 0x%x!", vid);
     
 	v = VCBDB->Create(vol->vid, vol->name);
     }
@@ -730,7 +730,7 @@ void ReportVCBEvent(VCBEventType event, VolumeId vid, vcbevent *ve) {
 	    v->data.Breaks++;
 	    v->data.BreakObjs += ve->nobjs;
 	    v->data.BreakVolOnly += ve->volonly;
-	    ASSERT(vol);
+	    CODA_ASSERT(vol);
 	    v->data.BreakRefs += vol->VCBHits;
 	    vol->VCBHits = 0;
 	    break;
@@ -738,7 +738,7 @@ void ReportVCBEvent(VCBEventType event, VolumeId vid, vcbevent *ve) {
 	case Clear:
 	    v->data.Clears++;
 	    v->data.ClearObjs += ve->nobjs;
-	    ASSERT(vol);
+	    CODA_ASSERT(vol);
 	    v->data.ClearRefs += vol->VCBHits;
 	    vol->VCBHits = 0;
 	    break;
@@ -749,7 +749,7 @@ void ReportVCBEvent(VCBEventType event, VolumeId vid, vcbevent *ve) {
 	    break;
 
 	default:
-	    Choke("ReportVCBEvent: Unknown event %d!", event);	
+	    CHOKE("ReportVCBEvent: Unknown event %d!", event);	
 	    break;
 	}
     Recov_EndTrans(MAXFP);

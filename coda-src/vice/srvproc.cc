@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vice/srvproc.cc,v 4.17 1998/10/28 19:58:08 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vice/srvproc.cc,v 4.18 1998/10/30 18:29:59 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -641,7 +641,7 @@ START_TIMING(Store_Total);
 	switch(Request) {
 	    case StoreStatus:
 	    case StoreNeither:
-		assert(FALSE);
+		CODA_ASSERT(FALSE);
 
 	    case StoreData:
 	    case StoreStatusData:
@@ -706,9 +706,9 @@ START_TIMING(Store_Total);
 			      (int) v->vptr->vnodeNumber, (int) v->vptr->disk.uniquifier, 
 			      (int) v->vptr->disk.dataVersion + 1);
 #if   defined(__linux__) 
-	assert(v->f_finode > (unsigned long) 0);
+	CODA_ASSERT(v->f_finode > (unsigned long) 0);
 #else
-	assert(v->f_finode > 0);
+	CODA_ASSERT(v->f_finode > 0);
 #endif /* __linux__ */
 	if (errorCode = StoreBulkTransfer(RPCid, client, volptr, v->vptr, v->f_finode, Length))
 	    goto FreeLocks;
@@ -994,7 +994,7 @@ START_TIMING(SetACL_Total);
 
     if (AllowResolution && V_RVMResOn(volptr)) 
 	if (ReplicatedOp && !errorCode) {
-	    assert(v->vptr->disk.type == vDirectory);
+	    CODA_ASSERT(v->vptr->disk.type == vDirectory);
 	    if (errorCode = SpoolVMLogRecord(vlist, v, volptr, StoreId, 
 					     ViceNewStore_OP, ACLSTORE, newACL)) 
 		SLog(0, 
@@ -1120,7 +1120,7 @@ START_TIMING(Create_Total);
 	if (errorCode = AllocVnode(&vptr, volptr, (ViceDataType)vFile, 
 				   Fid, Did,
 				   client->Id, PrimaryHost, &deltablocks)) {
-	    assert(vptr == 0);
+	    CODA_ASSERT(vptr == 0);
 	    goto FreeLocks;
 	}
 	cv = AddVLE(*vlist, Fid);
@@ -1510,7 +1510,7 @@ START_TIMING(Link_Total);
 	    ind = InitVMLogRecord(V_volumeindex(volptr), Did, 
 				 StoreId, ViceLink_OP, 
 				 Name, Fid->Vnode, Fid->Unique);
-	    assert(ind != -1);
+	    CODA_ASSERT(ind != -1);
 	    sle *SLE = new sle(ind);
 	    pv->sl.append(SLE);
 	}
@@ -1897,7 +1897,7 @@ START_TIMING(MakeDir_Total);
 				   NewDid,
 				   Did, client->Id, PrimaryHost, 
 				   &deltablocks)) {
-	    assert(vptr == 0);
+	    CODA_ASSERT(vptr == 0);
 	    goto FreeLocks;
 	}
 	cv = AddVLE(*vlist, NewDid);
@@ -1932,7 +1932,7 @@ START_TIMING(MakeDir_Total);
 	SetStatus(pv->vptr, DirStatus, rights, anyrights);
 	SetStatus(cv->vptr, Status, rights, anyrights);
 	if ( errorCode == 0 )
-		assert(DC_Dirty(cv->vptr->dh));
+		CODA_ASSERT(DC_Dirty(cv->vptr->dh));
 
 	/* Until CVVV probes? -JJK */
 	if (1/*!ReplicatedOp || PrimaryHost == ThisHostAddr*/) 
@@ -1941,7 +1941,7 @@ START_TIMING(MakeDir_Total);
 	    SetVSStatus(client, volptr, NewVS, VCBStatus);
     }
 	if ( errorCode == 0 )
-		assert(DC_Dirty(cv->vptr->dh));
+		CODA_ASSERT(DC_Dirty(cv->vptr->dh));
 
     if (AllowResolution && V_VMResOn(volptr)) {
 	/* Create Log Record */
@@ -1953,7 +1953,7 @@ START_TIMING(MakeDir_Total);
 	    sle *SLE = new sle(ind);
 	    pv->sl.append(SLE);
 	if ( errorCode == 0 )
-		assert(DC_Dirty(cv->vptr->dh));
+		CODA_ASSERT(DC_Dirty(cv->vptr->dh));
 
 	    /* spool a record for child too */
 	    ind = InitVMLogRecord(V_volumeindex(volptr),
@@ -1977,7 +1977,7 @@ START_TIMING(MakeDir_Total);
 		       errorCode);
 	    // spool child's log record 
 	    if ( errorCode == 0 )
-		    assert(DC_Dirty(cv->vptr->dh));
+		    CODA_ASSERT(DC_Dirty(cv->vptr->dh));
 	    if (!errorCode && (errorCode = SpoolVMLogRecord(vlist, cv, volptr, StoreId, 
 							    ViceMakeDir_OP, ".",
 							    NewDid->Vnode, 
@@ -2003,7 +2003,7 @@ FreeLocks:
 	    }
 	}
 	if ( errorCode == 0 )
-		assert(DC_Dirty(cv->vptr->dh));
+		CODA_ASSERT(DC_Dirty(cv->vptr->dh));
 	PutObjects(errorCode, volptr, SHARED_LOCK, vlist, deltablocks, 1);
     }
 
@@ -2131,7 +2131,7 @@ START_TIMING(RemoveDir_Total);
 		     DirStatus->Date, ReplicatedOp, StoreId, &pv->d_cinode, 
 		     &deltablocks, NewVS);
 	{
-	    assert(cv->vptr->delete_me);
+	    CODA_ASSERT(cv->vptr->delete_me);
 	    /* note that the directories are modified */
 	    int tblocks = (int) -nBlocks(cv->vptr->disk.length);
 	    if (errorCode = AdjustDiskUsage(volptr, tblocks))
@@ -2153,7 +2153,7 @@ START_TIMING(RemoveDir_Total);
 	    pdlist *pl = GetResLogList(cv->vptr->disk.vol_index, 
 				       ChildDid.Vnode, ChildDid.Unique, 
 				       &vnlog);
-	    assert(pl != NULL);
+	    CODA_ASSERT(pl != NULL);
 	    ghostsid = cv->vptr->disk.versionvector.StoreId;
 	    int ind;
 	    ind = InitVMLogRecord(V_volumeindex(volptr),
@@ -2308,7 +2308,7 @@ START_TIMING(SymLink_Total);
 	if (errorCode = AllocVnode(&vptr, volptr, (ViceDataType)vSymlink, 
 				   Fid, Did,
 				   client->Id, PrimaryHost, &deltablocks)) {
-	    assert(vptr == 0);
+	    CODA_ASSERT(vptr == 0);
 	    goto FreeLocks;
 	}
 	cv = AddVLE(*vlist, Fid);
@@ -2334,9 +2334,9 @@ START_TIMING(SymLink_Total);
 	cv->f_finode = icreate((int) V_device(volptr), 0, (int) V_id(volptr),
 			       (int) cv->vptr->vnodeNumber,
 			       (int) cv->vptr->disk.uniquifier, 1);
-	assert(cv->f_finode > 0);
+	CODA_ASSERT(cv->f_finode > 0);
 	int linklen = (int) strlen((char *)OldName);
-	assert(iwrite((int) V_device(volptr), (int) cv->f_finode, (int) V_parentId(volptr),
+	CODA_ASSERT(iwrite((int) V_device(volptr), (int) cv->f_finode, (int) V_parentId(volptr),
 		      0, (char *)OldName, linklen) == linklen);
 	if (ReplicatedOp)
 	    GetMyVS(volptr, OldVS, NewVS);
@@ -2598,7 +2598,7 @@ int GetVolObj(VolumeId Vid, Volume **volptr,
 	    break;
 
     case VOL_EXCL_LOCK:
-	    assert(LockerAddress);
+	    CODA_ASSERT(LockerAddress);
 	    if (V_VolLock(*volptr).IPAddress != 0) {
 		    SLog(0, "GetVolObj: Volume (%x) already write locked", Vid);
 		    VPutVolume(*volptr);
@@ -2608,14 +2608,14 @@ int GetVolObj(VolumeId Vid, Volume **volptr,
 	    }
 	    V_VolLock(*volptr).IPAddress = LockerAddress;
 	    ObtainWriteLock(&(V_VolLock(*volptr).VolumeLock));
-	    assert(V_VolLock(*volptr).IPAddress == LockerAddress);
+	    CODA_ASSERT(V_VolLock(*volptr).IPAddress == LockerAddress);
 	    if (Enque) {
 		    lqent *lqep = new lqent(Vid);
 		    LockQueueMan->add(lqep);
 	    }
 	    break;
     default:
-	    assert(0);
+	    CODA_ASSERT(0);
     }
     
  FreeLocks:
@@ -2654,7 +2654,7 @@ void PutVolObj(Volume **volptr, int LockLevel, int Dequeue)
 	}
 	break;
       default:
-	assert(0);
+	CODA_ASSERT(0);
     }
 
     VPutVolume(*volptr);
@@ -2689,7 +2689,7 @@ static int NormalVCmp(int ReplicatedOp, VnodeType type, void *arg1, void *arg2) 
 /* Permits Strong or Weak Equality (replicated case). */
 /* Permits anything (non-replicated case). */
 static int StoreVCmp(int ReplicatedOp, VnodeType type, void *arg1, void *arg2) {
-    assert(type == vFile);
+    CODA_ASSERT(type == vFile);
 
     int errorCode = 0;
 
@@ -2784,10 +2784,10 @@ static void CopyOnWrite(Vnode *vptr, Volume *volptr)
 			      (int) vptr->vnodeNumber, 
 			      (int) vptr->disk.uniquifier, 
 			      (int) vptr->disk.dataVersion);
-		assert(ino > 0);
+		CODA_ASSERT(ino > 0);
 		if (size > 0) {
 			buff = (char *)malloc(size);
-			assert(buff != 0);
+			CODA_ASSERT(buff != 0);
 			rdlen = iread((int) V_device(volptr), 
 				      (int) vptr->disk.inodeNumber, 
 				      (int) V_parentId(volptr), 0, buff, size);
@@ -2795,13 +2795,13 @@ static void CopyOnWrite(Vnode *vptr, Volume *volptr)
 			wrlen = iwrite((int) V_device(volptr), (int) ino, 
 				       (int) V_parentId(volptr), 0, buff, size);
 			END_TIMING(CopyOnWrite_iwrite);
-			assert(rdlen == wrlen);
+			CODA_ASSERT(rdlen == wrlen);
 			free(buff);
 		}
 
 		/*
 		  START_TIMING(CopyOnWrite_idec);
-		  assert(!(idec(V_device(volptr), 
+		  CODA_ASSERT(!(idec(V_device(volptr), 
 		  vptr->disk.inodeNumber, V_parentId(volptr))));
 		  END_TIMING(CopyOnWrite_idec);
 		*/
@@ -2924,9 +2924,9 @@ START_TIMING(AllocVnode_Total);
 
     /* Validate parameters. */
     if (ReplicatedOp)
-	assert(V_id(volptr) == Fid->Volume);
-    assert(V_id(volptr) == pFid->Volume);
-    assert(vtype == vFile || vtype == vDirectory || vtype == vSymlink);
+	CODA_ASSERT(V_id(volptr) == Fid->Volume);
+    CODA_ASSERT(V_id(volptr) == pFid->Volume);
+    CODA_ASSERT(vtype == vFile || vtype == vDirectory || vtype == vSymlink);
 
     /* Allocate/Retrieve the new vnode. */
     int tblocks = (vtype == vFile)
@@ -2994,7 +2994,7 @@ START_TIMING(AllocVnode_Transaction);
 	    int status = 0;
 	    RVMLIB_BEGIN_TRANSACTION(restore);
 	    VPutVnode(&fileCode, *vptr);
-	    assert(fileCode == 0);
+	    CODA_ASSERT(fileCode == 0);
 	    *vptr = 0;
 	    RVMLIB_END_TRANSACTION(flush, &(status));
 END_TIMING(AllocVnode_Transaction);
@@ -3037,7 +3037,7 @@ int CheckFetchSemantics(ClientEntry *client, Vnode **avptr, Vnode **vptr,
 	/* Get this client's rights. */
 	Rights t_rights; if (rights == 0) rights = &t_rights;
 	Rights t_anyrights; if (anyrights == 0) anyrights = &t_anyrights;
-	assert(GetRights(client->CPS, aCL, aCLSize, rights, anyrights) == 0);
+	CODA_ASSERT(GetRights(client->CPS, aCL, aCLSize, rights, anyrights) == 0);
 
 	/* LOOKUP or READ permission (normally) required. */
 	/* READ mode-bits also (normally) required for files. */
@@ -3092,7 +3092,7 @@ int CheckGetAttrSemantics(ClientEntry *client, Vnode **avptr, Vnode **vptr,
 	/* Get this client's rights. */
 	Rights t_rights; if (rights == 0) rights = &t_rights;
 	Rights t_anyrights; if (anyrights == 0) anyrights = &t_anyrights;
-	assert(GetRights(client->CPS, aCL, aCLSize, rights, anyrights) == 0);
+	CODA_ASSERT(GetRights(client->CPS, aCL, aCLSize, rights, anyrights) == 0);
     }
 
     return(0);
@@ -3137,9 +3137,9 @@ int CheckGetACLSemantics(ClientEntry *client, Vnode **vptr,
 	/* Get this client's rights. */
 	Rights t_rights; if (rights == 0) rights = &t_rights;
 	Rights t_anyrights; if (anyrights == 0) anyrights = &t_anyrights;
-	assert(GetRights(client->CPS, aCL, aCLSize, rights, anyrights) == 0);
+	CODA_ASSERT(GetRights(client->CPS, aCL, aCLSize, rights, anyrights) == 0);
 
-	assert(AL_Externalize(aCL, (AL_ExternalAccessList *)eACL) == 0);
+	CODA_ASSERT(AL_Externalize(aCL, (AL_ExternalAccessList *)eACL) == 0);
 	int eACLlen = (int)(strlen((char *)*eACL) + 1);
 	if (eACLlen > AccessList->MaxSeqLen) {
 	    SLog(0, "CheckGetACLSemantics: eACLlen (%d) > ACL->MaxSeqLen (%d) (%x.%x.%x)",
@@ -3196,7 +3196,7 @@ int CheckStoreSemantics(ClientEntry *client, Vnode **avptr, Vnode **vptr,
 	/* Get this client's rights. */
 	Rights t_rights; if (rights == 0) rights = &t_rights;
 	Rights t_anyrights; if (anyrights == 0) anyrights = &t_anyrights;
-	assert(GetRights(client->CPS, aCL, aCLSize, rights, anyrights) == 0);
+	CODA_ASSERT(GetRights(client->CPS, aCL, aCLSize, rights, anyrights) == 0);
 
 	/* WRITE permission (normally) required. */
 	if (!(*rights & PRSFS_WRITE) && !(IsOwner && Virginal)) {
@@ -3272,7 +3272,7 @@ int CheckNewSetAttrSemantics(ClientEntry *client, Vnode **avptr, Vnode **vptr,
 	/* Get this client's rights. */
 	Rights t_rights; if (rights == 0) rights = &t_rights;
 	Rights t_anyrights; if (anyrights == 0) anyrights = &t_anyrights;
-	assert(GetRights(client->CPS, aCL, aCLSize, rights, anyrights) == 0);
+	CODA_ASSERT(GetRights(client->CPS, aCL, aCLSize, rights, anyrights) == 0);
 
 	if (IsOwner && Virginal) {
 	    /* Bypass protection checks on first store after a create EXCEPT for chowns. */
@@ -3378,7 +3378,7 @@ int CheckSetACLSemantics(ClientEntry *client, Vnode **vptr, Volume **volptr,
 	/* Get this client's rights. */
 	Rights t_rights; if (rights == 0) rights = &t_rights;
 	Rights t_anyrights; if (anyrights == 0) anyrights = &t_anyrights;
-	assert(GetRights(client->CPS, aCL, aCLSize, rights, anyrights) == 0);
+	CODA_ASSERT(GetRights(client->CPS, aCL, aCLSize, rights, anyrights) == 0);
 
 	/* ADMINISTER permission (normally) required. */
 	if (!(*rights & PRSFS_ADMINISTER) && !IsOwner && SystemUser(client)) {
@@ -3645,9 +3645,9 @@ int CheckRenameSemantics(ClientEntry *client, Vnode **s_dirvptr, Vnode **t_dirvp
 			TestFid.Unique = testvptr->disk.uparent;
 			/* this should be unmodified */
 			VPutVnode((Error *)&errorCode, testvptr);
-			assert(errorCode == 0);
+			CODA_ASSERT(errorCode == 0);
 		    } else {
-			assert(errorCode == EWOULDBLOCK);
+			CODA_ASSERT(errorCode == EWOULDBLOCK);
 			/* 
 			 * Someone has the object locked.  If this is part of a
 			 * reintegration, check the supplied vlist for the vnode.
@@ -3685,7 +3685,7 @@ int CheckRenameSemantics(ClientEntry *client, Vnode **s_dirvptr, Vnode **t_dirvp
 
 	    Rights t_sd_rights; if (sd_rights == 0) sd_rights = &t_sd_rights;
 	    Rights t_sd_anyrights; if (sd_anyrights == 0) sd_anyrights = &t_sd_anyrights;
-	    assert(GetRights(client->CPS, aCL, aCLSize, sd_rights, sd_anyrights) == 0);
+	    CODA_ASSERT(GetRights(client->CPS, aCL, aCLSize, sd_rights, sd_anyrights) == 0);
 
 	    if (!(*sd_rights & PRSFS_DELETE)) {
 		SLog(0, "CheckRenameSemantics: sd rights violation (%x : %x) (%x.%x.%x)", 
@@ -3702,7 +3702,7 @@ int CheckRenameSemantics(ClientEntry *client, Vnode **s_dirvptr, Vnode **t_dirvp
 
 	    Rights t_td_rights; if (td_rights == 0) td_rights = &t_td_rights;
 	    Rights t_td_anyrights; if (td_anyrights == 0) td_anyrights = &t_td_anyrights;
-	    assert(GetRights(client->CPS, aCL, aCLSize, td_rights, td_anyrights) == 0);
+	    CODA_ASSERT(GetRights(client->CPS, aCL, aCLSize, td_rights, td_anyrights) == 0);
 
 	    if (!(*td_rights & PRSFS_INSERT) ||
 		(TargetExists && !(*td_rights & PRSFS_DELETE))) {
@@ -3721,7 +3721,7 @@ int CheckRenameSemantics(ClientEntry *client, Vnode **s_dirvptr, Vnode **t_dirvp
 
 		Rights t_s_rights; if (s_rights == 0) s_rights = &t_s_rights;
 		Rights t_s_anyrights; if (s_anyrights == 0) s_anyrights = &t_s_anyrights;
-		assert(GetRights(client->CPS, aCL, aCLSize, s_rights, s_anyrights) == 0);
+		CODA_ASSERT(GetRights(client->CPS, aCL, aCLSize, s_rights, s_anyrights) == 0);
 	    }
 	    else {
 		if (s_rights != 0) *s_rights = 0;
@@ -3863,7 +3863,7 @@ static int Check_CLMS_Semantics(ClientEntry *client, Vnode **dirvptr, Vnode **vp
 		    break;
 
 		default:
-		    assert(FALSE);
+		    CODA_ASSERT(FALSE);
 	    }
 
 	    if (((*vptr)->disk.vparent != Did.Vnode) || ((*vptr)->disk.uparent != Did.Unique)){
@@ -3889,7 +3889,7 @@ static int Check_CLMS_Semantics(ClientEntry *client, Vnode **dirvptr, Vnode **vp
 		ProcName, Did.Volume, Did.Vnode, Did.Unique);
 	Rights t_rights; if (rights == 0) rights = &t_rights;
 	Rights t_anyrights; if (anyrights == 0) anyrights = &t_anyrights;
-	assert(GetRights(client->CPS, aCL, aCLSize, rights, anyrights) == 0);
+	CODA_ASSERT(GetRights(client->CPS, aCL, aCLSize, rights, anyrights) == 0);
 
 	/* INSERT permission required. */
 	if (!(*rights & PRSFS_INSERT)) {
@@ -3993,7 +3993,7 @@ static int Check_RR_Semantics(ClientEntry *client, Vnode **dirvptr, Vnode **vptr
 	/* Get this client's rights. */
 	Rights t_rights; if (rights == 0) rights = &t_rights;
 	Rights t_anyrights; if (anyrights == 0) anyrights = &t_anyrights;
-	assert(GetRights(client->CPS, aCL, aCLSize, rights, anyrights) == 0);
+	CODA_ASSERT(GetRights(client->CPS, aCL, aCLSize, rights, anyrights) == 0);
 
 	/* DELETE permission required. */
 	if (!(*rights & PRSFS_DELETE)) {
@@ -4026,7 +4026,7 @@ START_TIMING(Fetch_Xfer);
 
     /* If fetching a directory first copy contents from rvm to a temp buffer. */
     if (vptr->disk.type == vDirectory){
-	assert(vptr->disk.inodeNumber != 0);
+	CODA_ASSERT(vptr->disk.inodeNumber != 0);
 	buf = DI_DiToDh((DirInode *)(vptr->disk.inodeNumber));
 	size = DIR_Length(buf);
 	SLog(9, "FetchBulkTransfer: wrote directory contents %s (size %d )into buf", 
@@ -4084,7 +4084,7 @@ START_TIMING(Fetch_Xfer);
 		break;
 	    default:
 		SLog(9, "BOGUS TAG");
-		assert(0);
+		CODA_ASSERT(0);
 		break;
 	}
 	if((errorCode = (int) RPC2_InitSideEffect(RPCid, &sid)) <= RPC2_ELIMIT) {
@@ -4458,7 +4458,7 @@ void PerformRename(ClientEntry *client, VolumeId VSGVolnum, Volume *volptr,
     }
 
     /* Remove the source name from its parent. */
-    assert(DH_Delete(sd_dh, OldName) == 0);
+    CODA_ASSERT(DH_Delete(sd_dh, OldName) == 0);
     int sd_newlength = DH_Length(sd_dh);
     int sd_newblocks = (int) (nBlocks(sd_newlength) - nBlocks(sd_vptr->disk.length));
     if(sd_newblocks != 0) {
@@ -4477,7 +4477,7 @@ void PerformRename(ClientEntry *client, VolumeId VSGVolnum, Volume *volptr,
 	if (t_vptr->disk.type == vDirectory) {
 		SLog(0, "WARNING: rename is overwriting a directory!");
 	}
-	assert(DH_Delete(td_dh, NewName) == 0);
+	CODA_ASSERT(DH_Delete(td_dh, NewName) == 0);
 
 	int td_newlength = DH_Length(td_dh);
 	int td_newblocks = (int) (nBlocks(td_newlength) - 
@@ -4497,7 +4497,7 @@ void PerformRename(ClientEntry *client, VolumeId VSGVolnum, Volume *volptr,
     }
 
     /* Create the target name in its parent. */
-    assert(DH_Create(td_dh, NewName, &SFid) == 0);
+    CODA_ASSERT(DH_Create(td_dh, NewName, &SFid) == 0);
 
     int td_newlength = DH_Length(td_dh);
     int td_newblocks = (int) (nBlocks(td_newlength) - nBlocks(td_vptr->disk.length));
@@ -4509,9 +4509,9 @@ void PerformRename(ClientEntry *client, VolumeId VSGVolnum, Volume *volptr,
 
     /* Alter ".." entry in source if necessary. */
     if (!SameParent && s_vptr->disk.type == vDirectory) {
-	assert(DH_Delete(s_dh, "..") == 0);
+	CODA_ASSERT(DH_Delete(s_dh, "..") == 0);
 	sd_vptr->disk.linkCount--;
-	assert(DH_Create(s_dh, "..", &TDid) == 0);
+	CODA_ASSERT(DH_Create(s_dh, "..", &TDid) == 0);
 	td_vptr->disk.linkCount++;
 
 	int s_newlength = DH_Length(s_dh);
@@ -4648,7 +4648,7 @@ static void Perform_CLMS(ClientEntry *client, VolumeId VSGVolnum,
     if ( error ) {
 	    eprint("Create returns %d on %s %s", error, Name, FID_(&Fid));
 	    VN_PutDirHandle(dirvptr);
-	    assert(0);
+	    CODA_ASSERT(0);
     }
     int newlength = DH_Length(dh);
     VN_PutDirHandle(dirvptr);
@@ -4694,13 +4694,13 @@ static void Perform_CLMS(ClientEntry *client, VolumeId VSGVolnum,
 		    PDirHandle cdh;
 		    vptr->disk.inodeNumber = 0;
 		    vptr->dh = 0;
-		    assert(vptr->changed);
+		    CODA_ASSERT(vptr->changed);
 
 		    /* Create the child directory. */
 		    cdh = VN_SetDirHandle(vptr);
-		    assert(cdh);
-		    assert(DH_MakeDir(cdh, &Fid, &Did) == 0);
-		    assert(DC_Dirty(vptr->dh));
+		    CODA_ASSERT(cdh);
+		    CODA_ASSERT(DH_MakeDir(cdh, &Fid, &Did) == 0);
+		    CODA_ASSERT(DC_Dirty(vptr->dh));
 
 		    vptr->disk.linkCount = 2;
 		    vptr->disk.length = DH_Length(cdh);
@@ -4743,7 +4743,7 @@ static void Perform_CLMS(ClientEntry *client, VolumeId VSGVolnum,
 	    break;
 
 	default:
-	    assert(FALSE);
+	    CODA_ASSERT(FALSE);
     }
     if (ReplicatedOp) 
 	NewCOP1Update(volptr, vptr, StoreId, vsptr);
@@ -4787,7 +4787,7 @@ static void Perform_RR(ClientEntry *client, VolumeId VSGVolnum, Volume *volptr,
     }
 
     /* Remove the name from the directory. */
-    assert(DH_Delete(pDir, Name) == 0);
+    CODA_ASSERT(DH_Delete(pDir, Name) == 0);
     int newlength = DH_Length(pDir);
     VN_PutDirHandle(dirvptr);
     int newblocks = (int) (nBlocks(newlength) - nBlocks(dirvptr->disk.length));
@@ -4879,7 +4879,7 @@ START_NSC_TIMING(PutObjects_TransactionEnd);\
 	    *(statusp) = RVM_SUCCESS;\
     }\
     else {\
-       assert(0);\
+       CODA_ASSERT(0);\
     }\
 END_NSC_TIMING(PutObjects_TransactionEnd);\
 }
@@ -4948,12 +4948,12 @@ START_TIMING(PutObjects_Transaction);
                     if (v->vptr->disk.type == vDirectory ) {
                        /* sanitry */
                        if ( v->d_inodemod ) {
-                            assert(v->vptr->dh);
+                            CODA_ASSERT(v->vptr->dh);
                             SLog(10, "--PO: %s dirty %d", 
 			      FID_(&v->fid), DC_Dirty(v->vptr->dh));
                        }
                        if ( v->vptr->dh && DC_Dirty(v->vptr->dh)) {
-                            assert(v->d_inodemod);
+                            CODA_ASSERT(v->d_inodemod);
 		       }
                        if (v->d_inodemod && DC_Dirty(v->vptr->dh)) {
                             if (errorCode == 0) {
@@ -4963,9 +4963,9 @@ START_TIMING(PutObjects_Transaction);
 					    DI_Dec(DC_Cowpdi(pdce));
 					    DC_SetCowpdi(pdce, NULL);
 				    }
-                                    assert(VN_DCommit(v->vptr) == 0);
+                                    CODA_ASSERT(VN_DCommit(v->vptr) == 0);
 			    } else {
-				    assert(VN_DAbort(v->vptr) == 0);
+				    CODA_ASSERT(VN_DAbort(v->vptr) == 0);
 			    }
 			    DC_SetDirty(v->vptr->dh, 0);
                             SLog(0, "--DC: %s ct: %d\n", 
@@ -5022,14 +5022,14 @@ START_TIMING(PutObjects_Transaction);
 			// truncate/purge log if necessary and no errors have occured 
 			if (!errorCode) {
 			    if (v->d_needslogpurge) {
-				assert(v->vptr->delete_me);
+				CODA_ASSERT(v->vptr->delete_me);
 				if (VnLog(v->vptr)) {
 				    PurgeLog(VnLog(v->vptr), volptr, &freed_indices);
 				    VnLog(v->vptr) = NULL;
 				}
 			    }
 			    else if (v->d_needslogtrunc) {
-				assert(!v->vptr->delete_me);
+				CODA_ASSERT(!v->vptr->delete_me);
 				TruncateLog(volptr, v->vptr, &freed_indices);
 			    }
 			}
@@ -5054,7 +5054,7 @@ START_TIMING(PutObjects_Transaction);
 			else
 			    VFlushVnode(&fileCode, v->vptr);
 
-			assert(fileCode == 0);
+			CODA_ASSERT(fileCode == 0);
 		    }
 
 		    v->vptr = 0;
@@ -5074,7 +5074,7 @@ START_TIMING(PutObjects_Transaction);
 	/* Volume. */
 	PutVolObj(&volptr, LockLevel);
 	RVMLIB_END_TRANSACTION(flush, &(status));
-	assert(status == 0);
+	CODA_ASSERT(status == 0);
     } else { 
 /*  NO transaction */
 	if (vlist) {
@@ -5084,7 +5084,7 @@ START_TIMING(PutObjects_Transaction);
 		if (v->vptr) {
 		    /* Directory pages.  Cloning cannot occur without mutation! */
 		    if (v->vptr->disk.type == vDirectory) {
-			assert(v->d_cinode == 0);
+			CODA_ASSERT(v->d_cinode == 0);
 		    }
 
 		    /* Vnode. */
@@ -5092,7 +5092,7 @@ START_TIMING(PutObjects_Transaction);
 			/* Put rather than Flush even on failure since vnode wasn't mutated! */
 			Error fileCode = 0;
 			VPutVnode(&fileCode, v->vptr);
-			assert(fileCode == 0);
+			CODA_ASSERT(fileCode == 0);
 		    }
 
 		    v->vptr = 0;
@@ -5122,7 +5122,7 @@ START_TIMING(PutObjects_Inodes);
 		    PollAndYield();
 		if (errorCode == 0) {
 		    if (v->f_sinode)
-			assert(idec((int) device, (int) v->f_sinode, parentId) == 0);
+			CODA_ASSERT(idec((int) device, (int) v->f_sinode, parentId) == 0);
 		    if (v->f_tinode) {
 			SLog(3, "PutObjects: truncating (%x.%x.%x, %d, %d)",
 				v->fid.Volume, v->fid.Vnode, v->fid.Unique,
@@ -5132,15 +5132,15 @@ START_TIMING(PutObjects_Inodes);
 			if ((fd = iopen((int) device, (int) v->f_tinode, O_RDWR)) < 0) {
 			    SLog(0, "PutObjects: iopen(%d, %d) failed (%d)",
 				    device, v->f_tinode, errno);
-			    assert(0);
+			    CODA_ASSERT(0);
 			}
-			assert(ftruncate(fd, v->f_tlength) == 0);
-			assert(close(fd) == 0);
+			CODA_ASSERT(ftruncate(fd, v->f_tlength) == 0);
+			CODA_ASSERT(close(fd) == 0);
 		    }
 		}
 		else {
 		    if (v->f_finode)
-			assert(idec((int) device, (int) v->f_finode, parentId) == 0);
+			CODA_ASSERT(idec((int) device, (int) v->f_finode, parentId) == 0);
 		}
 	    }
 	    if (AllowResolution) {

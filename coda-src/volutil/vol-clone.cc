@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/volutil/vol-clone.cc,v 4.9 1998/10/09 21:57:47 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/volutil/vol-clone.cc,v 4.10 1998/10/29 15:29:02 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -165,7 +165,7 @@ long S_VolClone(RPC2_Handle rpcid, RPC2_Unsigned formal_ovolid,
 	    RVMLIB_BEGIN_TRANSACTION(restore)
 		VPutVolume(originalvp);	/* Do these need transactions? */
 	    RVMLIB_END_TRANSACTION(flush, &(status));
-	    assert(status == 0);
+	    CODA_ASSERT(status == 0);
 	}
 	VDisconnectFS();
 	return error;
@@ -186,7 +186,7 @@ long S_VolClone(RPC2_Handle rpcid, RPC2_Unsigned formal_ovolid,
 	    RVMLIB_BEGIN_TRANSACTION(restore)
 	      VPutVolume(originalvp);	/* Do these need transactions? */
 	    RVMLIB_END_TRANSACTION(flush, &(status));
-	    assert(status == 0);
+	    CODA_ASSERT(status == 0);
 	    VDisconnectFS();
 	    return EWOULDBLOCK;
 	}
@@ -252,7 +252,7 @@ long S_VolClone(RPC2_Handle rpcid, RPC2_Unsigned formal_ovolid,
 	RVMLIB_BEGIN_TRANSACTION(restore)
 	    VPutVolume(originalvp);	/* Do these need transactions? */
 	RVMLIB_END_TRANSACTION(flush, &(status));
-	assert(status == 0);
+	CODA_ASSERT(status == 0);
 	VDisconnectFS();
 	return error;
     }
@@ -287,7 +287,7 @@ long S_VolClone(RPC2_Handle rpcid, RPC2_Unsigned formal_ovolid,
     VUpdateVolume(&error, newvp);
     VDetachVolume(&error, newvp);
     VUpdateVolume(&error, originalvp);
-    assert(error == 0);
+    CODA_ASSERT(error == 0);
     V_VolLock(originalvp).IPAddress = 0;
     ReleaseWriteLock(&(V_VolLock(originalvp).VolumeLock)); 
     VPutVolume(originalvp);
@@ -311,9 +311,9 @@ void VUCloneVolume(Error *error, Volume *rwVp, Volume *cloneVp)
 {
     *error = 0;
     VUCloneIndex(error, rwVp, cloneVp, vLarge);
-    assert(*error == 0);
+    CODA_ASSERT(*error == 0);
     VUCloneIndex(error, rwVp, cloneVp, vSmall);
-    assert(*error == 0);
+    CODA_ASSERT(*error == 0);
     CopyVolumeHeader(&V_disk(rwVp), &V_disk(cloneVp));	/* Doesn't use RVM */
 }
 
@@ -338,7 +338,7 @@ static void VUCloneIndex(Error *error, Volume *rwVp, Volume *cloneVp, VnodeClass
 	vnlistSize = SRV_RVM(VolumeList[ovolInd]).data.nlargeLists;
     }
     else 
-	assert(0);
+	CODA_ASSERT(0);
 
     RVMLIB_BEGIN_TRANSACTION(restore)
     
@@ -356,7 +356,7 @@ static void VUCloneIndex(Error *error, Volume *rwVp, Volume *cloneVp, VnodeClass
 	onLists = SRV_RVM(VolumeList[cvolInd]).data.nlargeLists;
     }
 
-    assert(ovList);	/* How can it not have a list? */
+    CODA_ASSERT(ovList);	/* How can it not have a list? */
     for (i = 0; (i < onLists && onVnodes > 0); i++){
 	rec_smolink *p;
 	while( (p = ovList[i].get()) ) {
@@ -371,7 +371,7 @@ static void VUCloneIndex(Error *error, Volume *rwVp, Volume *cloneVp, VnodeClass
     /* initialize a new list of vnodes */
     rvlist = (rec_smolist *)(rvmlib_rec_malloc(sizeof(rec_smolist) * vnlistSize));
     rec_smolist *tmpvlist = (rec_smolist *)malloc((int)(sizeof(rec_smolist) * vnlistSize));
-    assert(tmpvlist != 0);
+    CODA_ASSERT(tmpvlist != 0);
     bzero((void *)tmpvlist, (int)(sizeof(rec_smolist) * vnlistSize));
     rvmlib_modify_bytes(rvlist, tmpvlist, sizeof(rec_smolist)*vnlistSize);
     free(tmpvlist);
@@ -390,7 +390,7 @@ static void VUCloneIndex(Error *error, Volume *rwVp, Volume *cloneVp, VnodeClass
     }
 
     RVMLIB_END_TRANSACTION(flush, &(status));
-    assert(status == 0);				/* Never aborts... */
+    CODA_ASSERT(status == 0);				/* Never aborts... */
 	
     char buf[SIZEOF_LARGEDISKVNODE];
     VnodeDiskObject *vnode = (VnodeDiskObject *)buf;
@@ -476,13 +476,13 @@ int CloneVnode(Volume *rwVp, Volume *cloneVp, int vnodeIndex, rec_smolist *rvlis
 	
     if (vclass == vLarge) { /* Directory -- no way it can be BARREN */
 	int linkcount = DI_Count((PDirInode)(vnode->inodeNumber));
-	assert(linkcount > 0);
+	CODA_ASSERT(linkcount > 0);
 	DI_Inc((PDirInode)(vnode->inodeNumber));
     } else {	/* Small Vnode -- file or symlink. */
 
 	if (vnode->inodeNumber == 0) {
 	    LogMsg(0,0,stdout,"CloneVolume: VNODE %d HAD ZERO INODE.\n",vnodeNum);
-	    assert(vnode->type != vNull);
+	    CODA_ASSERT(vnode->type != vNull);
 	    docreate = TRUE;
 	} else
 	    docreate = (int)IsBarren(vnode->versionvector);
@@ -494,7 +494,7 @@ int CloneVnode(Volume *rwVp, Volume *cloneVp, int vnodeIndex, rec_smolist *rvlis
 	    vnode->length = 0;	/* Reset length since we have a new null inode. */
 	} else	
 	    /* Inodes should not disappear while the server is running. */
-	    assert(iinc((int)rwVp->device, (int)vnode->inodeNumber,
+	    CODA_ASSERT(iinc((int)rwVp->device, (int)vnode->inodeNumber,
 			(int)V_parentId(rwVp)) == 0);
     } 
     
@@ -511,7 +511,7 @@ int CloneVnode(Volume *rwVp, Volume *cloneVp, int vnodeIndex, rec_smolist *rvlis
 
 	tmp->disk.cloned = 1;
 	VPutVnode(&error, tmp);	/* Check error? */
-	assert(error == 0);
+	CODA_ASSERT(error == 0);
     }
     
     /* R/O vnodes should never be marked inconsistent. */

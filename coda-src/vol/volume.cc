@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vol/volume.cc,v 4.14 1998/10/09 21:57:45 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vol/volume.cc,v 4.15 1998/10/30 18:30:01 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -187,9 +187,9 @@ int VInitVolUtil(ProgramType pt) {
 
     VLog(9, "Entering VInitVolUtil");
     fslock = open("/vice/vol/fs.lock", O_CREAT|O_RDWR, 0666);
-    assert(fslock >= 0);
+    CODA_ASSERT(fslock >= 0);
     fvlock = open ("/vice/vol/volutil.lock", O_CREAT|O_RDWR, 0666);
-    assert(fvlock >= 0);
+    CODA_ASSERT(fvlock >= 0);
 
     if (pt != salvager) {
 	/* wait until file server is initialized */
@@ -245,7 +245,7 @@ void VInitVolumePackage(int nLargeVnodes, int nSmallVnodes, int DoSalvage) {
     VLog(9, "Entering VInitVolumePackage(%d, %d, %d)",
 	nLargeVnodes, nSmallVnodes, DoSalvage);
 
-    assert(LWP_GetRock(FSTAG, (char **)&pt) == LWP_SUCCESS);
+    CODA_ASSERT(LWP_GetRock(FSTAG, (char **)&pt) == LWP_SUCCESS);
 
     srandom((int)time(0));	/* For VGetVolumeInfo */
     gettimeofday(&tv, &tz);
@@ -283,16 +283,16 @@ void VInitVolumePackage(int nLargeVnodes, int nSmallVnodes, int DoSalvage) {
     /* invoke salvager for full salvage */
     *pt = salvager;	/* MUST set *pt to salvager before vol_salvage */
 
-    assert(S_VolSalvage(0, NULL, 0, DoSalvage, 1, 0) == 0);
+    CODA_ASSERT(S_VolSalvage(0, NULL, 0, DoSalvage, 1, 0) == 0);
 
     *pt = fileServer;
 
     /* grab exclusive lock */
 /* Punted for getting salvager to run during shutdown 
     int fslock = open("/vice/vol/fs.lock", O_CREAT|O_RDWR, 0666);
-    assert(fslock >= 0);
+    CODA_ASSERT(fslock >= 0);
     while (flock(fslock, LOCK_EX) != 0)
-	assert(errno == EINTR);
+	CODA_ASSERT(errno == EINTR);
 */
     FSYNC_fsInit();
 
@@ -372,8 +372,8 @@ int VConnectFS() {
     ProgramType *pt;
 
     VLog(9, "Entering VConnectFS");
-    assert(LWP_GetRock(FSTAG, (char **)&pt) == LWP_SUCCESS);
-    assert(VInit == 1 && *pt == volumeUtility);
+    CODA_ASSERT(LWP_GetRock(FSTAG, (char **)&pt) == LWP_SUCCESS);
+    CODA_ASSERT(VInit == 1 && *pt == volumeUtility);
     rc = FSYNC_clientInit();
     return rc;
 }
@@ -382,8 +382,8 @@ void VDisconnectFS() {
     ProgramType *pt;
 
     VLog(9, "Entering VDisconnectFS");
-    assert(LWP_GetRock(FSTAG, (char **)&pt) == LWP_SUCCESS);
-    assert(VInit == 1 && *pt == volumeUtility);
+    CODA_ASSERT(LWP_GetRock(FSTAG, (char **)&pt) == LWP_SUCCESS);
+    CODA_ASSERT(VInit == 1 && *pt == volumeUtility);
     FSYNC_clientFinis();
 }
 
@@ -466,7 +466,7 @@ void VInitServerList()
 		exit(1);
 	    } else {
 		long netaddress;
-		assert(hostent->h_length == 4);
+		CODA_ASSERT(hostent->h_length == 4);
 		bcopy((char *)hostent->h_addr, (char *)&netaddress, 4);
 		HostAddress[sid] = ntohl(netaddress);
 	    }
@@ -503,12 +503,12 @@ void VGetVolumeInfo(Error *ec, char *key, register VolumeInfo *info)
 	VLog(9, "VGetVolumeInfo: VLDBLookup failed");
 	return;
     }
-    assert(vldp->volumeType < MAXVOLTYPES);
+    CODA_ASSERT(vldp->volumeType < MAXVOLTYPES);
     info->Vid = ntohl(vldp->volumeId[vldp->volumeType]);
     info->Type = vldp->volumeType;
     for (i = 0, vidp = &info->Type0; i<MAXVOLTYPES; )
 	*vidp++ = ntohl((unsigned long) vldp->volumeId[i++]);
-    assert(vldp->nServers <= MAXVOLSERVERS);
+    CODA_ASSERT(vldp->nServers <= MAXVOLSERVERS);
     serverList = (bit32 *) &info->Server0;
     for (nReported = i = 0; i<vldp->nServers; i++) {
 	register unsigned long serverAddress;
@@ -571,7 +571,7 @@ void VListVolumes() {
     VLog(9, "Entering VListVolumes()");
 
     file = fopen("/vice/vol/VolumeList.temp", "w");
-    assert(file != NULL);
+    CODA_ASSERT(file != NULL);
     for (part = DiskPartitionList; part; part = part->next) {
 	fprintf(file, "P%s H%s T%x F%x\n",
 	  part->name, ThisHost, part->totalUsable, part->free);
@@ -737,11 +737,11 @@ VAttachVolumeById(Error *ec, char *partition, VolumeId volid, int mode)
     ProgramType *pt;
 
     VLog(9, "Entering VAttachVolumeById() for volume %x", volid);
-    assert(LWP_GetRock(FSTAG, (char **)&pt) == LWP_SUCCESS);
+    CODA_ASSERT(LWP_GetRock(FSTAG, (char **)&pt) == LWP_SUCCESS);
     *ec = 0;
     if (*pt == volumeUtility) {
 	VLog(19, "running as volume utility");
-	assert(VInit == 1);
+	CODA_ASSERT(VInit == 1);
 	DP_LockPartition(partition);
     }
     if (*pt == fileServer) {
@@ -793,7 +793,7 @@ VAttachVolumeById(Error *ec, char *partition, VolumeId volid, int mode)
 	    return NULL;
 	}
     }
-    assert(stat(partition, &status) == 0);
+    CODA_ASSERT(stat(partition, &status) == 0);
     vp = attach2(ec, path, &header, status.st_dev, partition);
     if (vp == NULL)
 	VLog(9, "VAttachVolumeById: attach2 returns vp == NULL");
@@ -844,14 +844,14 @@ static Volume *attach2(Error *ec, char *path, register struct VolumeHeader *head
     register Volume *vp;
     ProgramType *pt;
 
-    assert(LWP_GetRock(FSTAG, (char **)&pt) == LWP_SUCCESS);
+    CODA_ASSERT(LWP_GetRock(FSTAG, (char **)&pt) == LWP_SUCCESS);
     VLog(9, "Entering attach2(); %s running as fileServer",
 	    (*pt==fileServer)?"":"not");
 
 
 
     vp = (Volume *) calloc(1, sizeof(Volume));
-    assert(vp != NULL);
+    CODA_ASSERT(vp != NULL);
 
     vp->partition = DP_Get(partition);
     if (vp->partition == NULL) {
@@ -952,7 +952,7 @@ VAttachVolume(Error *ec, VolumeId volumeId, int mode)
 	Error error;
 	vp = VGetVolume(&error, volumeId);
 	if (vp) {
-	    assert(V_inUse(vp) == 0);
+	    CODA_ASSERT(V_inUse(vp) == 0);
 	    VDetachVolume(ec, vp);
 	}
         return NULL;
@@ -971,7 +971,7 @@ Volume *VGetVolume(Error *ec, register VolumeId volumeId)
     int headerExists = 0;
 
     VLog(9, "Entering VGetVolume for volume %x", volumeId);
-    assert(LWP_GetRock(FSTAG, (char **)&pt) == LWP_SUCCESS);
+    CODA_ASSERT(LWP_GetRock(FSTAG, (char **)&pt) == LWP_SUCCESS);
     for(;;) {
 	*ec = 0;
 	for (vp = VolumeHashTable[VOLUME_HASH(volumeId)];
@@ -1005,7 +1005,7 @@ Volume *VGetVolume(Error *ec, register VolumeId volumeId)
 		VLog(29, "VGetVolume: Finished GetVolumeHeader()");
 		if (cstat){
    		    VLog(0, "VGetVolume: WriteVolumeHeader failed!");
-		    assert(0);
+		    CODA_ASSERT(0);
 		}
 	    }
 	    if (!headerExists) {
@@ -1030,7 +1030,7 @@ Volume *VGetVolume(Error *ec, register VolumeId volumeId)
     /* temp debugging stuff */
 	VLog(39, "VGetVolume: partition name for volume %x is %s",
 				V_id(vp), V_partname(vp));
-	assert(stat(V_partname(vp), &status) == 0);
+	CODA_ASSERT(stat(V_partname(vp), &status) == 0);
 	VLog(39, "VGetVolume: vp->device = %u, disk.device = %u",
 				V_device(vp),  status.st_dev);
 
@@ -1083,14 +1083,14 @@ void VPutVolume(register Volume *vp)
     ProgramType *pt;
 
     VLog(9, "Entering VPutVolume for volume %x", V_id(vp));
-    assert(LWP_GetRock(FSTAG, (char **)&pt) == LWP_SUCCESS);
-    assert(--(vp->nUsers) >= 0);
+    CODA_ASSERT(LWP_GetRock(FSTAG, (char **)&pt) == LWP_SUCCESS);
+    CODA_ASSERT(--(vp->nUsers) >= 0);
     if (vp->nUsers == 0) {
         Error error;
 	/* this is bogus- we're freeing it then referencing it ***ehs***7/88*/
 	ReleaseVolumeHeader(vp->header);    /* return it to the lru queue */
         if (vp->goingOffline) {
-	    assert(*pt == fileServer);
+	    CODA_ASSERT(*pt == fileServer);
 	    vp->goingOffline = 0;
 	    V_inUse(vp) = 0;
 	    VLog(1, "VPutVolume: writing volume %x; going offline", V_id(vp));
@@ -1143,7 +1143,7 @@ void VOffline(Volume *vp, char *message)
     VolumeId vid = V_id(vp);
     ProgramType *pt;
 
-    assert(LWP_GetRock(FSTAG, (char **)&pt) == LWP_SUCCESS);
+    CODA_ASSERT(LWP_GetRock(FSTAG, (char **)&pt) == LWP_SUCCESS);
     VLog(9, "Entering VOffline for volume %x, running as %s",
 			V_id(vp), (*pt == fileServer)?"fileServer":((*pt == volumeUtility)?"volumeUtility":"fileUtility"));
 
@@ -1184,7 +1184,7 @@ void VDetachVolume(Error *ec, Volume *vp)
     ProgramType *pt;
 
     VLog(9, "Entering VDetachVolume() for volume %x", V_id(vp));
-    assert(LWP_GetRock(FSTAG, (char **)&pt) == LWP_SUCCESS);
+    CODA_ASSERT(LWP_GetRock(FSTAG, (char **)&pt) == LWP_SUCCESS);
     *ec = 0;	/* always "succeeds" */
     if (*pt == volumeUtility)
         notifyServer = (V_destroyMe(vp) != DESTROY_ME);
@@ -1217,7 +1217,7 @@ int VAllocBitmapEntry(Error *ec, Volume *vp, struct vnodeIndex *index,
 
     VLog(9, "VAllocBitmapEntry: volume = %x, count = %d, stride = %d, ix = %d",
 	 V_id(vp), count, stride, ix);
-    assert(count > 0 && stride > 0 && ix >= 0);
+    CODA_ASSERT(count > 0 && stride > 0 && ix >= 0);
 
     if (index->bitmap == NULL) {
 	VLog(0, "VAllocBitmapEntry: uninitialized bitmap");
@@ -1269,7 +1269,7 @@ int VAllocBitmapEntry(Error *ec, Volume *vp, struct vnodeIndex *index,
 	VLog(1, "VAllocBitmapEntry: realloc'ing from %x to %x",
 	    index->bitmapSize, newsize);
 	index->bitmap = (byte *)realloc(index->bitmap, newsize);
-	assert(index->bitmap != NULL);
+	CODA_ASSERT(index->bitmap != NULL);
 	bzero(index->bitmap + index->bitmapSize, growsize);
 	index->bitmapSize = newsize;
 
@@ -1282,7 +1282,7 @@ int VAllocBitmapEntry(Error *ec, Volume *vp, struct vnodeIndex *index,
     for (; count > 0; cbn += stride, count--) {
 	byte *cbp = (index->bitmap + (cbn / 8));
 	byte mask = (1 << (cbn % 8));
-	assert((*cbp & mask) == 0);
+	CODA_ASSERT((*cbp & mask) == 0);
 	*cbp |= mask;
     }
 
@@ -1317,7 +1317,7 @@ int VAllocBitmapEntry(Error *ec, Volume *vp, struct vnodeIndex *index, VnodeId v
     if (cbp >= ep) {
 	int newsize = ((cbn / 32 + 1) * 4);		/* in bytes */
 	int growsize = newsize - index->bitmapSize;	/* in bytes */
-	assert(growsize >= 4);
+	CODA_ASSERT(growsize >= 4);
 	if (growsize < VOLUME_BITMAP_GROWSIZE) {
 	    growsize = VOLUME_BITMAP_GROWSIZE;
 	    newsize = index->bitmapSize + growsize;
@@ -1326,7 +1326,7 @@ int VAllocBitmapEntry(Error *ec, Volume *vp, struct vnodeIndex *index, VnodeId v
 	VLog(1, "VAllocBitmapEntry: realloc'ing from %x to %x",
 	    index->bitmapSize, newsize);
 	index->bitmap = (byte *)realloc(index->bitmap, newsize);
-	assert(index->bitmap != NULL);
+	CODA_ASSERT(index->bitmap != NULL);
 	bzero(index->bitmap + index->bitmapSize, growsize);
 	index->bitmapSize = newsize;
 
@@ -1371,7 +1371,7 @@ void VUpdateVolume(Error *ec,Volume *vp)
     ProgramType *pt;
 
     VLog(9, "Entering VUpdateVolume() for volume %x", V_id(vp));
-    assert(LWP_GetRock(FSTAG, (char **)&pt) == LWP_SUCCESS);
+    CODA_ASSERT(LWP_GetRock(FSTAG, (char **)&pt) == LWP_SUCCESS);
     *ec = 0;
 
     WriteVolumeHeader(ec, vp);
@@ -1411,7 +1411,7 @@ void FreeVolume(Volume *vp)
     ProgramType *pt;
 
     VLog(9, "Entering FreeVolume for volume %x", V_id(vp));
-    assert(LWP_GetRock(FSTAG, (char **)&pt) == LWP_SUCCESS);
+    CODA_ASSERT(LWP_GetRock(FSTAG, (char **)&pt) == LWP_SUCCESS);
     if (!vp)
     	return;
     for (i = 0; i<nVNODECLASSES; i++)
@@ -1460,7 +1460,7 @@ static void GetBitmap(Error *ec, Volume *vp, VnodeClass vclass)
     vip->bitmap = (byte *) malloc(vip->bitmapSize);
     VLog(9, "GetBitmap: allocating bitmap of %d bytes; array size %d",
 					    vip->bitmapSize, slots);
-    assert(vip->bitmap != NULL);
+    CODA_ASSERT(vip->bitmap != NULL);
     bzero(vip->bitmap, vip->bitmapSize);
     vip->bitmapOffset = 0;
     if ((vip->bitmapSize << 3) > slots) {
@@ -1681,7 +1681,7 @@ static int GetVolumeHeader(register Volume *vp)
 		hd = vp->header;
 		if (volumeLRU == hd)
 			volumeLRU = hd->next;
-		assert(hd->back == vp);
+		CODA_ASSERT(hd->back == vp);
 	} else {
 		/* not currently in use and least recently used */
 		hd = volumeLRU->prev; 

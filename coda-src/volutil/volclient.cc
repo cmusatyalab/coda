@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/volutil/volclient.cc,v 4.11 1998/09/29 16:38:40 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/volutil/volclient.cc,v 4.12 1998/10/05 15:33:39 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -206,7 +206,7 @@ int main(int argc, char **argv) {
 	}
     }
     
-    assert(s_hostname != NULL);
+    CODA_ASSERT(s_hostname != NULL);
     V_InitRPC(timeout);
     V_BindToServer(s_hostname, &rpcid);
 
@@ -582,7 +582,7 @@ static void dump()
 
     /* Create lwp thread DumpLwp(argv[3]) */
     struct rockInfo *rock = (struct rockInfo *)malloc(sizeof(struct rockInfo));
-    assert(strlen(this_argp[3]) < sizeof(rock->dumpfile));
+    CODA_ASSERT(strlen(this_argp[3]) < sizeof(rock->dumpfile));
     strcpy(rock->dumpfile, this_argp[3]);
     rock->volid = volid;
     rock->numbytes = rock->fd = 0;
@@ -620,7 +620,7 @@ static void VolDumpLWP(struct rockInfo *rock)
     FILE *tokfile;
 
     /* Hide the dumpfile name under a rock for later retrieval. */
-    assert(LWP_NewRock(ROCKTAG, (char *)rock) == LWP_SUCCESS);
+    CODA_ASSERT(LWP_NewRock(ROCKTAG, (char *)rock) == LWP_SUCCESS);
     
     /* get encryption key for authentication */
     tokfile = fopen(TKFile, "r");
@@ -629,7 +629,7 @@ static void VolDumpLWP(struct rockInfo *rock)
 
     subsysid.Tag = RPC2_SUBSYSBYID;
     subsysid.Value.SubsysId = VOLDUMP_SUBSYSTEMID;
-    assert(RPC2_Export(&subsysid) == RPC2_SUCCESS);
+    CODA_ASSERT(RPC2_Export(&subsysid) == RPC2_SUCCESS);
     
     myfilter.FromWhom = ONESUBSYS;
     myfilter.OldOrNew = OLDORNEW;
@@ -656,7 +656,7 @@ long WriteDump(RPC2_Handle rpcid, unsigned long offset, unsigned long *nbytes, V
     struct rockInfo *rock;
     SE_Descriptor sed;
     
-    assert(LWP_GetRock(ROCKTAG, (char **)&rock) == LWP_SUCCESS);
+    CODA_ASSERT(LWP_GetRock(ROCKTAG, (char **)&rock) == LWP_SUCCESS);
 
     if (volid != rock->volid) {
 	printf("Got a WriteDump for %x, I'm dumping %x!\n", volid, rock->volid);
@@ -676,7 +676,7 @@ long WriteDump(RPC2_Handle rpcid, unsigned long offset, unsigned long *nbytes, V
     sed.Value.SmartFTPD.hashmark = 0;
     sed.Value.SmartFTPD.Tag = FILEBYNAME;
     sed.Value.SmartFTPD.FileInfo.ByName.ProtectionBits = 0755;
-    assert(strlen(rock->dumpfile) <
+    CODA_ASSERT(strlen(rock->dumpfile) <
 	   sizeof(sed.Value.SmartFTPD.FileInfo.ByName.LocalFileName));
     strcpy(sed.Value.SmartFTPD.FileInfo.ByName.LocalFileName, rock->dumpfile);
 
@@ -722,7 +722,7 @@ static void restorefromback()
 
     /* Create lwp thread DumpLwp */
     struct rockInfo *rock = (struct rockInfo *)malloc(sizeof(struct rockInfo));
-    assert(strlen(this_argp[2]) < sizeof(rock->dumpfile));
+    CODA_ASSERT(strlen(this_argp[2]) < sizeof(rock->dumpfile));
     strcpy(rock->dumpfile, this_argp[2]);
     rock->volid = volid;
     rock->numbytes = 0;
@@ -766,7 +766,7 @@ long ReadDump(RPC2_Handle rpcid, RPC2_Unsigned offset, RPC2_Integer *nbytes, Vol
     SE_Descriptor sed;
     char *buf;
     
-    assert(LWP_GetRock(ROCKTAG, (char **)&rock) == LWP_SUCCESS);
+    CODA_ASSERT(LWP_GetRock(ROCKTAG, (char **)&rock) == LWP_SUCCESS);
 
     if (volid == 0) { /* User didn't assign one, use volId fileserver gives us. */
 	rock->volid = volid;
@@ -784,7 +784,7 @@ long ReadDump(RPC2_Handle rpcid, RPC2_Unsigned offset, RPC2_Integer *nbytes, Vol
 	exit(-1);
     }
 
-    assert(rock->fd != 0);	/* Better have been opened by restore() */
+    CODA_ASSERT(rock->fd != 0);	/* Better have been opened by restore() */
 
     if (lseek(rock->fd, offset, L_SET) == -1) {
 	perror("ReadDump: lseek");
@@ -1105,7 +1105,7 @@ static void info() {
     sed.Tag = SMARTFTP;
     sed.Value.SmartFTPD.Tag = FILEBYNAME;
     sed.Value.SmartFTPD.TransmissionDirection = SERVERTOCLIENT;
-    assert(strlen(outfile) < sizeof(sed.Value.SmartFTPD.FileInfo.ByName.LocalFileName));
+    CODA_ASSERT(strlen(outfile) < sizeof(sed.Value.SmartFTPD.FileInfo.ByName.LocalFileName));
     strncpy(sed.Value.SmartFTPD.FileInfo.ByName.LocalFileName, outfile, strlen(outfile));
 
     /*
@@ -1155,7 +1155,7 @@ static void showvnode() {
     sed.Tag = SMARTFTP;
     sed.Value.SmartFTPD.Tag = FILEBYNAME;
     sed.Value.SmartFTPD.TransmissionDirection = SERVERTOCLIENT;
-    assert(strlen(outfile) < sizeof(sed.Value.SmartFTPD.FileInfo.ByName.LocalFileName));
+    CODA_ASSERT(strlen(outfile) < sizeof(sed.Value.SmartFTPD.FileInfo.ByName.LocalFileName));
     strncpy(sed.Value.SmartFTPD.FileInfo.ByName.LocalFileName, outfile, strlen(outfile));
 
     /*
@@ -1353,7 +1353,7 @@ static void lookup() {
     sed.Tag = SMARTFTP;
     sed.Value.SmartFTPD.Tag = FILEBYNAME;
     sed.Value.SmartFTPD.TransmissionDirection = SERVERTOCLIENT;
-    assert(strlen(outfile) < sizeof(sed.Value.SmartFTPD.FileInfo.ByName.LocalFileName));
+    CODA_ASSERT(strlen(outfile) < sizeof(sed.Value.SmartFTPD.FileInfo.ByName.LocalFileName));
     strncpy(sed.Value.SmartFTPD.FileInfo.ByName.LocalFileName, outfile, strlen(outfile));
 
     /*
@@ -1528,7 +1528,7 @@ void timing() {
     }
     else if (strcmp(this_argp[2], "off") == 0) {
 	on = 0;
-	assert(these_args == 4);
+	CODA_ASSERT(these_args == 4);
 	strcpy(filename, this_argp[3]);
     }
 
@@ -1541,7 +1541,7 @@ void timing() {
     sed.Tag = SMARTFTP;
     sed.Value.SmartFTPD.Tag = FILEBYNAME;
     sed.Value.SmartFTPD.TransmissionDirection = SERVERTOCLIENT;
-    assert(strlen(filename) < sizeof(sed.Value.SmartFTPD.FileInfo.ByName.LocalFileName));
+    CODA_ASSERT(strlen(filename) < sizeof(sed.Value.SmartFTPD.FileInfo.ByName.LocalFileName));
     strncpy(sed.Value.SmartFTPD.FileInfo.ByName.LocalFileName, filename, strlen(filename));
 
     /*
@@ -1646,7 +1646,7 @@ static void tracerpc() {
     sed.Tag = SMARTFTP;
     sed.Value.SmartFTPD.Tag = FILEBYNAME;
     sed.Value.SmartFTPD.TransmissionDirection = SERVERTOCLIENT;
-    assert(strlen(outfile) < sizeof(sed.Value.SmartFTPD.FileInfo.ByName.LocalFileName));
+    CODA_ASSERT(strlen(outfile) < sizeof(sed.Value.SmartFTPD.FileInfo.ByName.LocalFileName));
     strncpy(sed.Value.SmartFTPD.FileInfo.ByName.LocalFileName, outfile, strlen(outfile));
 
     /*
@@ -1686,7 +1686,7 @@ static void printstats() {
     sed.Tag = SMARTFTP;
     sed.Value.SmartFTPD.Tag = FILEBYNAME;
     sed.Value.SmartFTPD.TransmissionDirection = SERVERTOCLIENT;
-    assert(strlen(outfile) < sizeof(sed.Value.SmartFTPD.FileInfo.ByName.LocalFileName));
+    CODA_ASSERT(strlen(outfile) < sizeof(sed.Value.SmartFTPD.FileInfo.ByName.LocalFileName));
     strncpy(sed.Value.SmartFTPD.FileInfo.ByName.LocalFileName, outfile, strlen(outfile));
 
     /*
@@ -1731,7 +1731,7 @@ static void showcallbacks() {
     sed.Tag = SMARTFTP;
     sed.Value.SmartFTPD.Tag = FILEBYNAME;
     sed.Value.SmartFTPD.TransmissionDirection = SERVERTOCLIENT;
-    assert(strlen(outfile) < sizeof(sed.Value.SmartFTPD.FileInfo.ByName.LocalFileName));
+    CODA_ASSERT(strlen(outfile) < sizeof(sed.Value.SmartFTPD.FileInfo.ByName.LocalFileName));
     strncpy(sed.Value.SmartFTPD.FileInfo.ByName.LocalFileName, outfile, strlen(outfile));
 
     /*
@@ -2065,7 +2065,7 @@ static void V_InitRPC(int timeout)
     fscanf(tokfile, "%s", vkey);
     fclose(tokfile);
 
-    assert(LWP_Init(LWP_VERSION, LWP_MAX_PRIORITY-1, &mylpid) == LWP_SUCCESS);
+    CODA_ASSERT(LWP_Init(LWP_VERSION, LWP_MAX_PRIORITY-1, &mylpid) == LWP_SUCCESS);
 
     SFTP_SetDefaults(&sftpi);
     SFTP_Activate(&sftpi);
@@ -2123,6 +2123,6 @@ static int V_BindToServer(char *fileserver, RPC2_Handle *RPCid)
 static void Die (char *msg)
 {
     printf("%s\n", msg);
-    assert(0);
+    CODA_ASSERT(0);
 }
 

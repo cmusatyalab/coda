@@ -29,14 +29,14 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/fail/filtutil.c,v 4.3 1998/08/05 23:49:25 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/fail/filtutil.c,v 4.4 1998/09/29 16:37:37 braam Exp $";
 #endif /*_BLURB_*/
 
 #include <stdlib.h>
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netdb.h>
-#include <assert.h>
+#include "coda_assert.h"
 #include <ports.h>
 #include "filtutil.h"
 
@@ -385,7 +385,7 @@ void InitRPC()
   PROCESS mylpid;
   int rc;
 
-  assert(LWP_Init(LWP_VERSION, LWP_NORMAL_PRIORITY, &mylpid) == LWP_SUCCESS);
+  CODA_ASSERT(LWP_Init(LWP_VERSION, LWP_NORMAL_PRIORITY, &mylpid) == LWP_SUCCESS);
 
   rc = RPC2_Init(RPC2_VERSION, 0, NULL,  -1, NULL);
   if (rc == RPC2_SUCCESS) return;

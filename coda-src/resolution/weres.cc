@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/res/weres.cc,v 4.4 1998/08/31 12:23:23 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/res/weres.cc,v 4.5 1998/10/21 22:05:49 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -212,7 +212,7 @@ FreeLocks:
     Error filecode = 0;
     if (vptr) {
 	VPutVnode(&filecode, vptr);
-	assert(filecode == 0);
+	CODA_ASSERT(filecode == 0);
     }
     PutVolObj(&volptr, NO_LOCK);
     RVMLIB_END_TRANSACTION(flush, &(status));

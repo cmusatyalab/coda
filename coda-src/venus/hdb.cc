@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/hdb.cc,v 4.13 1998/09/23 20:26:31 jaharkes Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/hdb.cc,v 4.14 1998/09/29 16:38:16 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -210,7 +210,7 @@ void *hdb::operator new(size_t len){
 
    /* Allocate recoverable store for the object. */
     h = (hdb *)rvmlib_rec_malloc((int)len);
-    assert(h);
+    CODA_ASSERT(h);
     return(h);
 }
 
@@ -227,7 +227,7 @@ hdb::hdb() : htab(HDB_NBUCKETS, HDB_HashFN) {
 void hdb::ResetTransient() {
     /* Sanity checks. */
     if (MagicNumber != HDB_MagicNumber)
-	Choke("hdb::ResetTransient: bad magic number (%d)", MagicNumber);
+	CHOKE("hdb::ResetTransient: bad magic number (%d)", MagicNumber);
 
     htab.SetHFn(HDB_HashFN);
     prioq = new bstree(NC_PriorityFN);
@@ -261,7 +261,7 @@ hdbent *hdb::Create(VolumeId vid, char *name, vuid_t vuid,
 
     /* Check whether the key is already in the database. */
     if ((h = Find(vid, name)) != 0)
-	{ h->print(logFile); Choke("hdb::Create: key exists"); }
+	{ h->print(logFile); CHOKE("hdb::Create: key exists"); }
 
     /* Fashion a new object. */
     Recov_BeginTrans();
@@ -410,7 +410,7 @@ int hdb::List(hdb_list_msg *m) {
 
     /* Close the list file. */
     if (::close(outfd) < 0)
-	Choke("hdb::List: close(%s) failed (%d)\n", m->outfile, errno);
+	CHOKE("hdb::List: close(%s) failed (%d)\n", m->outfile, errno);
 
     return(0);
 }
@@ -486,7 +486,7 @@ int hdb::MakeAdviceRequestFile(char *HoardListFileName) {
       while (b = next()) {
 	numIterations++;
         fsobj *f = strbase(fsobj, b, prio_handle);
-	assert(f != NULL);
+	CODA_ASSERT(f != NULL);
 
         if (!HOARDABLE(f) || DATAVALID(f)) { invalid++; continue; }
 
@@ -525,7 +525,7 @@ int hdb::MakeAdviceRequestFile(char *HoardListFileName) {
 		    break;
  	        default:
 		    // PredetermineFetchState must be broken
-		    assert(1 == 0);
+		    CODA_ASSERT(1 == 0);
 		    break;
 	    }
 
@@ -573,7 +573,7 @@ void hdb::RequestHoardWalkAdvice() {
 
     /* Ensure that we can request advice and that the user is running an advice monitor */
     GetUser(&u, SolicitAdvice);
-    assert(u != NULL);
+    CODA_ASSERT(u != NULL);
     if (!AdviceEnabled) {
         LOG(200, ("ADMON STATS:  HW Advice NOT enabled.\n"));
         u->AdviceNotEnabled();
@@ -833,7 +833,7 @@ int hdb::CalculateTotalBytesToFetch() {
     fso_iterator next(NL);
     fsobj *f;
     while (f = next()) {
-        assert(f != NULL);
+        CODA_ASSERT(f != NULL);
         if (DATAVALID(f)) continue;
 	total += f->stat.Length;
     }
@@ -904,7 +904,7 @@ void hdb::StatusWalk(vproc *vp, int *TotalBytesToFetch) {
 	    }
 	}
 	if (indigentnc == 0)
-	    Choke("hdb::Walk: enospc_failure but no indigent namectxts on queue");
+	    CHOKE("hdb::Walk: enospc_failure but no indigent namectxts on queue");
 
 	sprintf(ibuf, "\n   ENOSPC:  [%x, %s], [%d, %d]\n",
 		indigentnc->cdir.Volume, indigentnc->path,
@@ -953,7 +953,7 @@ void hdb::DataWalk(vproc *vp, int TotalBytesToFetch) {
 	bsnode *b = 0;
 	while (b = next()) {
 	    fsobj *f = strbase(fsobj, b, prio_handle);
-	    assert(f != NULL);
+	    CODA_ASSERT(f != NULL);
 	    int blocks = BLOCKS(f);
 
 	    if (!HOARDABLE(f)) continue;
@@ -1027,7 +1027,7 @@ void hdb::DataWalk(vproc *vp, int TotalBytesToFetch) {
 	    }
 
 	    /* Record availability of this object. */
-	    assert(f != 0);
+	    CODA_ASSERT(f != 0);
 	    blocks = BLOCKS(f);
 	    if (DATAVALID(f)) {
 	      LOG(100, ("AVAILABLE (fetched):  fid=<%x.%x.%x> comp=%s priority=%d blocks=%d\n", 
@@ -1059,7 +1059,7 @@ void hdb::DataWalk(vproc *vp, int TotalBytesToFetch) {
 	InitTally();
 	while (b = next()) {
             fsobj *f = strbase(fsobj, b, prio_handle);
-	    assert(f != NULL);
+	    CODA_ASSERT(f != NULL);
 	    int blocks = (int)BLOCKS(f);
 
 	    if (!HOARDABLE(f)) continue;
@@ -1220,7 +1220,7 @@ int hdb::Verify(hdb_verify_msg *m) {
     }
     /* Close the list file. */
     if (::close(outfd) < 0)
-	Choke("hdb::Verify: close(%s) failed (%d)\n", m->outfile, errno);
+	CHOKE("hdb::Verify: close(%s) failed (%d)\n", m->outfile, errno);
 
     return(0);
 }
@@ -1254,9 +1254,9 @@ void hdb::ResetUser(vuid_t vuid) {
     hdbent *h;
     LOG(100, ("E hdb::ResetUser()\n"));
     while (h = next()) {
-      assert(h != NULL);
+      CODA_ASSERT(h != NULL);
       if (h->vuid == vuid) {
-	assert(h->nc != NULL);
+	CODA_ASSERT(h->nc != NULL);
 	h->nc->Demote(1);
       }
     }
@@ -1301,14 +1301,14 @@ void hdb::print(int fd, int SummaryOnly) {
 void *hdbent::operator new(size_t len){
     hdbent *h = 0;
 
-    assert(HDB->htab.count() < HDB->MaxHDBEs); /* fix this to be more graceful */
+    CODA_ASSERT(HDB->htab.count() < HDB->MaxHDBEs); /* fix this to be more graceful */
 
     if (HDB->freelist.count() > 0)
 	h  = strbase(hdbent, HDB->freelist.get(), tbl_handle); 
     else
 	h = (hdbent *)rvmlib_rec_malloc((int) len);
 	
-    assert(h);
+    CODA_ASSERT(h);
     return(h);
 }
 
@@ -1341,7 +1341,7 @@ hdbent::hdbent(VolumeId Vid, char *Name, vuid_t Vuid,
 void hdbent::ResetTransient() {
     /* Sanity checks. */
     if (MagicNumber != HDBENT_MagicNumber)
-	{ print(logFile); Choke("hdbent::ResetTransient: bogus MagicNumber"); }
+	{ print(logFile); CHOKE("hdbent::ResetTransient: bogus MagicNumber"); }
 
     ViceFid cdir;
     cdir.Volume = vid;
@@ -1361,7 +1361,7 @@ hdbent::~hdbent() {
     /* Remove from the hash table. */
     hdb_key key(vid, path);
     if (HDB->htab.remove(&key, &tbl_handle) != &tbl_handle)
-	{ print(logFile); Choke("hdbent::~hdbent: htab remove"); }
+	{ print(logFile); CHOKE("hdbent::~hdbent: htab remove"); }
 
 
     /* Release path. */
@@ -1514,7 +1514,7 @@ void *namectxt::operator new(size_t len) {
     else {
 	n = strbase(namectxt, d, fl_handle);
     }
-    assert(n);
+    CODA_ASSERT(n);
     return(n);
 }
 
@@ -1636,7 +1636,7 @@ namectxt::~namectxt() {
 
     /* Context must not be busy! */
     if (inuse)
-	{ print(logFile); Choke("namectxt::~namectxt: context inuse"); }
+	{ print(logFile); CHOKE("namectxt::~namectxt: context inuse"); }
 
     /* Path was allocated in ctor (and hence only requires free'ing here) if context was meta_expanded. */
     if (meta_expanded) {
@@ -1654,7 +1654,7 @@ namectxt::~namectxt() {
 	case PeIndigent:
 	case PeInconsistent:
 	    if (HDB->prioq->remove(&prio_handle) != &prio_handle)
-		{ print(logFile); Choke("namectxt::~namectxt: prioq remove"); }
+		{ print(logFile); CHOKE("namectxt::~namectxt: prioq remove"); }
 	    if (state == PeSuspect) SuspectCount--;
 	    else if (state == PeIndigent) IndigentCount--;
 	    else InconsistentCount--;
@@ -1662,7 +1662,7 @@ namectxt::~namectxt() {
 
 	default:
 	    print(logFile);
-	    Choke("namectxt::~namectxt: bogus state");
+	    CHOKE("namectxt::~namectxt: bogus state");
     }
 
     /* Discard expansion. */
@@ -1670,7 +1670,7 @@ namectxt::~namectxt() {
 	dlink *d = 0;
 	while (d = expansion.first()) {
 	    binding *b = strbase(binding, d, binder_handle);
-	    assert(b != NULL);
+	    CODA_ASSERT(b != NULL);
 
 	    /* Detach the bindee if necessary. */
 	    fsobj *f = (fsobj *)b->bindee;
@@ -1679,7 +1679,7 @@ namectxt::~namectxt() {
 
 	    /* Detach the binder. */
 	    if (expansion.remove(&b->binder_handle) != &b->binder_handle)
-		{ print(logFile); Choke("namectxt::~namectxt: remove failed"); }
+		{ print(logFile); CHOKE("namectxt::~namectxt: remove failed"); }
 
 	    if (children != NULL) {
 	      if (children->IsMember(d) == 1) {
@@ -1693,11 +1693,11 @@ namectxt::~namectxt() {
 	}
 
 	if (next != 0)
-	    { print(logFile); Choke("namectxt::~namectxt: next != 0"); }
+	    { print(logFile); CHOKE("namectxt::~namectxt: next != 0"); }
     }
 
     if (children != 0 || parent != 0)
-	{ print(logFile); Choke("namectxt::~namectxt: links still active"); }
+	{ print(logFile); CHOKE("namectxt::~namectxt: links still active"); }
 
 }
 
@@ -1716,7 +1716,7 @@ void namectxt::operator delete(void *deadobj, size_t len){
 
 void namectxt::hold() {
     if (inuse)
-	{ print(logFile); Choke("namectxt::hold: already inuse"); }
+	{ print(logFile); CHOKE("namectxt::hold: already inuse"); }
 
     inuse = 1;
 }
@@ -1724,7 +1724,7 @@ void namectxt::hold() {
 
 void namectxt::release() {
     if (!inuse)
-	{ print(logFile); Choke("namectxt::release: not inuse"); }
+	{ print(logFile); CHOKE("namectxt::release: not inuse"); }
 
     inuse = 0;
 
@@ -1764,7 +1764,7 @@ void namectxt::Transit(enum pestate new_state) {
 		SuspectCount--;
 		if (new_state == PeValid) {
 		    if (HDB->prioq->remove(&prio_handle) != &prio_handle)
-			{ print(logFile); Choke("namectxt::Transit: prioq remove"); }
+			{ print(logFile); CHOKE("namectxt::Transit: prioq remove"); }
 		    state = PeValid;
 		    ValidCount++;
 		}
@@ -1791,7 +1791,7 @@ void namectxt::Transit(enum pestate new_state) {
 		IndigentCount--;
 		if (new_state == PeValid) {
 		    if (HDB->prioq->remove(&prio_handle) != &prio_handle)
-			{ print(logFile); Choke("namectxt::Transit: prioq remove"); }
+			{ print(logFile); CHOKE("namectxt::Transit: prioq remove"); }
 		    state = PeValid;
 		    ValidCount++;
 		}
@@ -1818,7 +1818,7 @@ void namectxt::Transit(enum pestate new_state) {
 		InconsistentCount--;
 		if (new_state == PeValid) {
 		    if (HDB->prioq->remove(&prio_handle) != &prio_handle)
-			{ print(logFile); Choke("namectxt::Transit: prioq remove"); }
+			{ print(logFile); CHOKE("namectxt::Transit: prioq remove"); }
 		    state = PeValid;
 		    ValidCount++;
 		}
@@ -1838,11 +1838,11 @@ void namectxt::Transit(enum pestate new_state) {
 
 	default:
 	    print(logFile);
-	    Choke("namectxt::Transit: bogus state");
+	    CHOKE("namectxt::Transit: bogus state");
     }
 
     print(logFile);
-    Choke("namectxt::Transit: illegal transition %s --> %s",
+    CHOKE("namectxt::Transit: illegal transition %s --> %s",
 	   PRINT_PESTATE(state), PRINT_PESTATE(new_state));
 }
 
@@ -1864,12 +1864,12 @@ void namectxt::Kill() {
     /* Discard association between this context and its parent. */
     if (meta_expanded) {
 	if (parent == 0)
-	    { print(logFile); Choke("namectxt::Kill: parent == 0"); }
+	    { print(logFile); CHOKE("namectxt::Kill: parent == 0"); }
 
 	if (parent->children->remove(&child_link) != &child_link) {
 	    print(logFile);
 	    parent->print(logFile);
-	    Choke("namectxt::Kill: parent->children remove");
+	    CHOKE("namectxt::Kill: parent->children remove");
 	}
 	parent = 0;
     }
@@ -1883,12 +1883,12 @@ void namectxt::Kill() {
 
 void namectxt::KillChildren() {
     if (children == 0)
-	{ print(logFile); Choke("namectxt::KillChildren: children == 0"); }
+	{ print(logFile); CHOKE("namectxt::KillChildren: children == 0"); }
 
     dlink *d;
     while (d = children->first()) {
 	namectxt *child = strbase(namectxt, d, child_link);
-	assert(child != NULL);
+	CODA_ASSERT(child != NULL);
 	child->Kill();
     }
 
@@ -1905,7 +1905,7 @@ void namectxt::Demote(int recursive) {
     if (recursive) {
 	if (expand_children || expand_descendents) {
 	    if (children == 0)
-		{ print(logFile); Choke("namectxt::Demote: children == 0"); }
+		{ print(logFile); CHOKE("namectxt::Demote: children == 0"); }
 
 	    dlist_iterator cnext(*children);
 	    dlink *d;
@@ -2091,7 +2091,7 @@ pestate namectxt::CheckExpansion() {
             break;
             
         default:
-            Choke("namectxt::CheckExpansion: bogus return from vproc::namev (%d)",
+            CHOKE("namectxt::CheckExpansion: bogus return from vproc::namev (%d)",
                   vp->u.u_error);
     }
 
@@ -2160,7 +2160,7 @@ int MetaExpand(PDirEntry entry, void *hook)
 			    &child->child_link) {
 				parent->print(logFile);
 				child->print(logFile);
-				Choke("MetaExpand: children->remove failed");
+				CHOKE("MetaExpand: children->remove failed");
 			}
 			new_children->insert(&child->child_link);
 			return 0;
@@ -2195,11 +2195,11 @@ void namectxt::MetaExpand() {
     */
     dlink *d = expansion.last();
     if (d == 0)
-	{ print(logFile); Choke("namectxt::MetaExpand: no bindings"); }
+	{ print(logFile); CHOKE("namectxt::MetaExpand: no bindings"); }
     binding *b = strbase(binding, d, binder_handle);
-    assert(b != NULL);
+    CODA_ASSERT(b != NULL);
     fsobj *f = (fsobj *)b->bindee;
-    assert(f != NULL);
+    CODA_ASSERT(f != NULL);
 
     /* Clean-up non-directories and return. */
     if (!f->IsDir()) {
@@ -2266,7 +2266,7 @@ void namectxt::MetaExpand() {
         /* Reacquire reference to object. */
         f = FSDB->Find(&tfid);
         if (f == 0)
-          Choke("hdb.c: Reacquire reference to object failed!  Don't know what to do so we die in an obvious way...  Sorry for the inconvenience.\n");
+          CHOKE("hdb.c: Reacquire reference to object failed!  Don't know what to do so we die in an obvious way...  Sorry for the inconvenience.\n");
 
 	dlist *new_children = new dlist;
 	struct MetaExpandHook hook;
@@ -2295,7 +2295,7 @@ void namectxt::CheckComponent(fsobj *f) {
 	       path, PRINT_PESTATE(state), f));
 
     if (state != PeSuspect && state != PeIndigent && state != PeInconsistent)
-	{ print(logFile); Choke("namectxt::CheckComponent: bogus state"); }
+	{ print(logFile); CHOKE("namectxt::CheckComponent: bogus state"); }
 
     /* 
      * Note that next was setup before CheckExpansion called namev, which called
@@ -2327,7 +2327,7 @@ void namectxt::CheckComponent(fsobj *f) {
 
 	    /* Detach the binder. */
 	    if (expansion.remove(&old_b->binder_handle) != &old_b->binder_handle)
-		{ print(logFile); Choke("namectxt::CheckComponent: remove failed"); }
+		{ print(logFile); CHOKE("namectxt::CheckComponent: remove failed"); }
 	    old_b->binder = 0;
 
 	    delete old_b;
@@ -2387,10 +2387,10 @@ void namectxt::print(int fd) {
       dlink *c;
       fdprint(fd, "\n\tcount of children list = %d\n", (*children).count());
       while (c = cnext()) {
-	assert(c != NULL);
+	CODA_ASSERT(c != NULL);
 	binding *b = strbase(binding, c, binder_handle);
 	fdprint(fd, "\t\t");
-	assert(b != NULL);
+	CODA_ASSERT(b != NULL);
 	b->print(fd);
 	if (b->binder != 0) 
 	  fdprint(fd, "\t\t\tnamectxt.path = %s", ((namectxt *)(b->binder))->path);
@@ -2470,7 +2470,7 @@ int NC_PriorityFN(bsnode *b1, bsnode *b2) {
     namectxt *n2 = strbase(namectxt, b2, prio_handle);
 /*
     if ((char *)n1 == (char *)n2)
-	{ n1->print(logFile); Choke("NC_PriorityFN: n1 == n2\n"); }
+	{ n1->print(logFile); CHOKE("NC_PriorityFN: n1 == n2\n"); }
 */
 
     /* First determinant is explicit priority. */

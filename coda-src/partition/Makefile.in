@@ -27,7 +27,7 @@
 # improvements or extensions that  they  make,  and  to  grant  Carnegie
 # Mellon the rights to redistribute these changes without encumbrance.
 #
-# static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/partition/Makefile.in,v 1.6 1998/01/15 21:07:17 braam Exp $";
+# static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/partition/Makefile.in,v 1.7 1998/09/29 16:37:48 braam Exp $";
 
 TOPDIR = @top_srcdir@
 
@@ -46,7 +46,7 @@ EXECUTABLES = makeftree inoder
 SSBINS=makeftree inoder
 
 LIBRARIES = libpartition.a
-LIBS = $(LIBPARTITION) $(LIBUTIL) $(LIBRDS) $(LIBSEG) $(LIBRVM) $(LIBOLDLWP)
+LIBS = $(LIBPARTITION) $(LIBUTIL) $(LIBRDS) $(LIBSEG) $(LIBRVM) $(LIBOLDLWP) $(LIBBASE)
 
 
 libpartition.a: $(LIBOBS)

@@ -42,7 +42,7 @@ void InitPGID() {
 }
 
 void InitHostName() {
-//  assert(gethostname(HostName, MAXHOSTNAMELEN) == 0);
+//  CODA_ASSERT(gethostname(HostName, MAXHOSTNAMELEN) == 0);
 //  strcpy(ShortHostName, HostName);
 //  for (int i = 0; i < strlen(HostName); i++)
 //          if (ShortHostName[i] == '.')

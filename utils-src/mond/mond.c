@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/utils-src/mond/mond.c,v 3.3 1995/10/09 19:26:53 satya Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/utils-src/mond/mond.c,v 3.4 1998/09/07 15:57:24 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -52,7 +52,7 @@ extern "C" {
 #include <libc.h>
 #include <netdb.h>
 #include <stdio.h>
-#include <assert.h>
+#include "coda_assert.h"
 #include "lwp.h"
 #include "rpc2.h"
 #include "lock.h"
@@ -120,7 +120,7 @@ static void my_new_handler(void);
 static void my_new_handler(void) {
 	fprintf(stderr,"Ack!  new returned zero\n");
 	fflush(stderr);
-	assert(0);
+	CODA_ASSERT(0);
 }
 
 int main(int argc, char *argv[]) {
@@ -146,12 +146,12 @@ static void StartThreads()
     PROCESS pid;
 
     /* create the utility thread */
-    assert (LWP_CreateProcess((PFIC)UtilityLWP, STACKSIZE,
+    CODA_ASSERT (LWP_CreateProcess((PFIC)UtilityLWP, STACKSIZE,
 			      LWP_NORMAL_PRIORITY-1, NULL,
 			      NULL, &pid)
 	    == LWP_SUCCESS);
     /* create the talker */
-    assert (LWP_CreateProcess((PFIC)TalkerLWP, STACKSIZE,
+    CODA_ASSERT (LWP_CreateProcess((PFIC)TalkerLWP, STACKSIZE,
 			      LWP_NORMAL_PRIORITY, (char *) 0,
 			      NULL, &pid)
 	    == LWP_SUCCESS);
@@ -161,7 +161,7 @@ static void StartThreads()
     /* create the listeners */
     for (i=0; i<Listeners; i++)
     {
-	assert (LWP_CreateProcess((PFIC)ListenerLWP,STACKSIZE,
+	CODA_ASSERT (LWP_CreateProcess((PFIC)ListenerLWP,STACKSIZE,
 				  LWP_NORMAL_PRIORITY+1, (char *) i,
 				  NULL,&pid)
 		== LWP_SUCCESS);
@@ -294,7 +294,7 @@ void TalkerLWP(char *p)
     
     for (;;)
     {
-	assert(buffer->remove(&slot) == BBUFOK);
+	CODA_ASSERT(buffer->remove(&slot) == BBUFOK);
 	// Put in magic number as a guard...
 	PutMagicNumber();
 	slot->Report();
@@ -325,7 +325,7 @@ long VmonReportSession(RPC2_Handle cid, VmonVenusId *Venus,
 		   CETime,VSEA_size,
 		   Events,Stats,CacheStats);
 	LogEventArray(slot->theEvents());
-	assert(buffer->insert((vmon_data *)slot) == BBUFOK);
+	CODA_ASSERT(buffer->insert((vmon_data *)slot) == BBUFOK);
 	LogEventArray(slot->theEvents());
 #ifdef VERSION_CONTROL
     } else
@@ -347,7 +347,7 @@ long VmonReportCommEvent(RPC2_Handle cid, VmonVenusId *Venus,
 	comm_data *slot;
 	slot = (comm_data *) comm_pool.getSlot();
 	slot->init(Venus, ServerIPAddress, SN, Time, Type);
-	assert(buffer->insert((vmon_data *)slot) == BBUFOK);
+	CODA_ASSERT(buffer->insert((vmon_data *)slot) == BBUFOK);
 #ifdef VERSION_CONTROL
     } else
 	CheckCVResult(cid,code,"comm event",VICENM);
@@ -366,7 +366,7 @@ long VmonReportCallEvent(RPC2_Handle cid, VmonVenusId *Venus,
 	clientCall_data *slot;
 	slot = (clientCall_data *) clientCall_pool.getSlot();
 	slot->init(Venus,Time,sc_size,sc);
-	assert(buffer->insert((vmon_data *)slot) == BBUFOK);
+	CODA_ASSERT(buffer->insert((vmon_data *)slot) == BBUFOK);
 #ifdef VERSION_CONTROL
     } else
 	CheckCVResult(cid,code,"venus call record",VICENM);
@@ -385,7 +385,7 @@ long VmonReportMCallEvent(RPC2_Handle cid, VmonVenusId *Venus,
 	clientMCall_data *slot;
 	slot = (clientMCall_data *) clientMCall_pool.getSlot();
 	slot->init(Venus,Time,msc_size,msc);
-	assert(buffer->insert((vmon_data *)slot) == BBUFOK);
+	CODA_ASSERT(buffer->insert((vmon_data *)slot) == BBUFOK);
 #ifdef VERSION_CONTROL
     } else
 	CheckCVResult(cid,code,"venus mcall record",VICENM);
@@ -404,7 +404,7 @@ long VmonReportRVMStats(RPC2_Handle cid, VmonVenusId *Venus,
 	clientRVM_data *slot;
 	slot = (clientRVM_data *) clientRVM_pool.getSlot();
 	slot->init(Venus,Time,stats);
-	assert(buffer->insert((vmon_data *)slot) == BBUFOK);
+	CODA_ASSERT(buffer->insert((vmon_data *)slot) == BBUFOK);
 #ifdef VERSION_CONTROL
     } else
 	CheckCVResult(cid,code,"venus rvm record",VICENM);
@@ -427,7 +427,7 @@ long VmonReportVCBStats(RPC2_Handle cid, VmonVenusId *Venus,
 	       "VmonReportVCBStats: Venus 0x%x.%ld, VenusInit = %ld, Time = %ld, Volume = 0x%x",
 	       Venus->IPAddress, Venus->BirthTime, VenusInit, Time, Volume);
 	slot->init(Venus,VenusInit,Time,Volume,stats);
-	assert(buffer->insert((vmon_data *)slot) == BBUFOK);
+	CODA_ASSERT(buffer->insert((vmon_data *)slot) == BBUFOK);
 #ifdef VERSION_CONTROL
     } else
 	CheckCVResult(cid,code,"venus VCB record",VICENM);
@@ -453,7 +453,7 @@ long VmonReportAdviceStats(RPC2_Handle cid, VmonVenusId *Venus,
 	LogMsg(100, LogLevel, LogFile, "VmonReportAdviceStats: Call_Size = %d; Result_Size = %d\n", Call_Size, Result_Size);
 
 	slot->init(Venus,Time,User,Stats,Call_Size,Call_Stats,Result_Size,Result_Stats);
-	assert(buffer->insert((vmon_data *)slot) == BBUFOK);
+	CODA_ASSERT(buffer->insert((vmon_data *)slot) == BBUFOK);
 #ifdef VERSION_CONTROL
     } else
 	CheckCVResult(cid,code,"advice record",VICENM);
@@ -476,7 +476,7 @@ long VmonReportMiniCache(RPC2_Handle cid, VmonVenusId *Venus,
 	miniCache_data *slot;
 	slot = (miniCache_data *) miniCache_pool.getSlot();
 	slot->init(Venus,Time,vn_size,vn_stats,vfs_size,vfs_stats);
-	assert(buffer->insert((vmon_data *)slot) == BBUFOK);
+	CODA_ASSERT(buffer->insert((vmon_data *)slot) == BBUFOK);
 #ifdef VERSION_CONTROL
     } else
 	CheckCVResult(cid,code,"venus call record",VICENM);
@@ -500,7 +500,7 @@ long VmonReportOverflow(RPC2_Handle cid, VmonVenusId *Venus,
 	slot = (overflow_data *) overflow_pool.getSlot();
 	slot->init(Venus,VMStartTime,VMEndTime,VMCount,
 		   RVMStartTime,RVMEndTime,RVMCount);
-	assert(buffer->insert((vmon_data *)slot) == BBUFOK);
+	CODA_ASSERT(buffer->insert((vmon_data *)slot) == BBUFOK);
 #ifdef VERSION_CONTROL
     } else
 	CheckCVResult(cid,code,"venus overflow",VICENM);
@@ -527,7 +527,7 @@ long SmonReportCallEvent(RPC2_Handle cid, SmonViceId *Vice, RPC2_Unsigned Time,
 	slot->init(Vice,Time,CBCount_size_,CBCount,ResCount_size_,ResCount,
 		   SmonCount_size_,SmonCount,VolDCount_size_,VolDCount,
 		   MultiCount_size_,MultiCount,Stats);
-	assert(buffer->insert((vmon_data *)slot) == BBUFOK);
+	CODA_ASSERT(buffer->insert((vmon_data *)slot) == BBUFOK);
 #ifdef VERSION_CONTROL
     } else
 	CheckCVResult(cid,code,"server stats record",VENUSNM);
@@ -550,7 +550,7 @@ long SmonReportResEvent(RPC2_Handle cid, SmonViceId *Vice, RPC2_Unsigned Time,
 	slot = (resEvent_data *) resEvent_pool.getSlot();
 	slot->init(Vice,Time,Volid,HighWaterMark,AllocNumber,
 		   DeallocNumber,ResOp_size_,ResOp);
-	assert(buffer->insert((vmon_data *)slot) == BBUFOK);
+	CODA_ASSERT(buffer->insert((vmon_data *)slot) == BBUFOK);
 #ifdef VERSION_CONTROL
     } else
 	CheckCVResult(cid,code,"resolve event record",VENUSNM);
@@ -571,7 +571,7 @@ long SmonReportOverflow(RPC2_Handle cid, SmonViceId *Vice, RPC2_Unsigned Time,
 	srvOverflow_data *slot;
 	slot = (srvOverflow_data *) srvOverflow_pool.getSlot();
 	slot->init(Vice,Time,StartTime,EndTime,Count);
-	assert(buffer->insert((vmon_data *)slot) == BBUFOK);
+	CODA_ASSERT(buffer->insert((vmon_data *)slot) == BBUFOK);
 #ifdef VERSION_CONTROL
     } else
 	CheckCVResult(cid,code,"server overflow record",VENUSNM);
@@ -594,7 +594,7 @@ long VmonReportIotInfo(RPC2_Handle cid, VmonVenusId *Venus,
 	LogMsg(100, LogLevel, LogFile, "VmonReportIotInfo: Tid = %d, ResOpt = %d, ElapsedTime = %d, ReadSetSize = %d, WriteSetSize = %d ReadVolNum = %d WriteVolNum = %d Validation = %d InvalidSize = %d BackupObjNum = %d LifeCycle = %d PredNum = %d SuccNum = %d\n", Info->Tid, Info->ResOpt, Info->ElapsedTime, Info->ReadSetSize, Info->WriteSetSize, Info->Validation, Info->InvalidSize, Info->BackupObjNum, Info->LifeCycle, Info->PredNum, Info->SuccNum);
 	LogMsg(100, LogLevel, LogFile, "VmonReportIotInof: AppNameLen = %d AppName = %s\n", AppNameLen, AppName); 	       
 	slot->init(Venus, Info, AppNameLen, AppName);
-	assert(buffer->insert((vmon_data *)slot) == BBUFOK);
+	CODA_ASSERT(buffer->insert((vmon_data *)slot) == BBUFOK);
 #ifdef VERSION_CONTROL
     } else
       CheckCVResult(cid,code,"iotInfo record",VICENM);
@@ -616,7 +616,7 @@ long VmonReportIotStats(RPC2_Handle cid, VmonVenusId *Venus, RPC2_Integer Time,
 	slot = (iotStat_data *) iotStat_pool.getSlot();
 	LogMsg(100, LogLevel, LogFile, "VmonReportIotStats: MaxElapsedTime = %d AvgElapsedTime = %d MaxReadSetSize = %d AvgReadSetSize =%d MaxWriteSetSize = %d AvgWriteSetSize = %d MaxReadVolNum = %d AvgReadVolNum = %d MaxWriteVolNum = %d AvgWriteVolNum = %d Committed = %d Pending = %d Resolved = %d Repaired = %d OCCRerun = %d\n", Stats->MaxElapsedTime, Stats->AvgElapsedTime, Stats->MaxReadSetSize, Stats->AvgReadSetSize, Stats->MaxWriteSetSize, Stats->AvgWriteSetSize, Stats->MaxReadVolNum, Stats->AvgReadVolNum, Stats->MaxWriteVolNum, Stats->AvgWriteVolNum, Stats->Committed, Stats->Pending, Stats->Resolved, Stats->Repaired, Stats->OCCRerun);
 	slot->init(Venus, Time, Stats);
-	assert(buffer->insert((vmon_data *)slot) == BBUFOK);
+	CODA_ASSERT(buffer->insert((vmon_data *)slot) == BBUFOK);
 #ifdef VERSION_CONTROL
     } else
       CheckCVResult(cid,code,"iotStat record",VICENM);
@@ -637,7 +637,7 @@ long VmonReportSubtreeStats(RPC2_Handle cid, VmonVenusId *Venus, RPC2_Integer Ti
 	slot = (subtree_data *) subtree_pool.getSlot();
 	LogMsg(100, LogLevel, LogFile, "VmonReportSubtreeStats: SubtreeNum = %d, MaxSubtreeSize = %d, AvgSubtreeSize = %d, MaxSubtreeHgt = %d, AvgSubtreeHgt = %d, MaxMutationNum = %d, AvgMutationNum = %d\n", Stats->SubtreeNum, Stats->MaxSubtreeSize, Stats->AvgSubtreeSize, Stats->MaxSubtreeHgt, Stats->AvgSubtreeHgt, Stats->MaxMutationNum, Stats->AvgMutationNum);
 	slot->init(Venus, Time, Stats);
-	assert(buffer->insert((vmon_data *)slot) == BBUFOK);
+	CODA_ASSERT(buffer->insert((vmon_data *)slot) == BBUFOK);
 #ifdef VERSION_CONTROL
     } else
       CheckCVResult(cid,code,"subtree record",VICENM);
@@ -659,7 +659,7 @@ long VmonReportRepairStats(RPC2_Handle cid, VmonVenusId *Venus, RPC2_Integer Tim
 	LogMsg(100, LogLevel, LogFile, "VmonReportRepairStats: SessionNum = %d, CommitNum = %d, AbortNum = %d, CheckNum = %d, PreserveNum = %d, DiscardNum = %d, RemoveNum = %d GlobalViewNum = %d, LocalViewNum = %d KeepLocalNum = %d, ListLocalNum = %d, RepMutationNum = %d\n", Stats->SessionNum, Stats->CommitNum, Stats->AbortNum, Stats->CheckNum, Stats->PreserveNum, Stats->DiscardNum, Stats->RemoveNum, Stats->GlobalViewNum, Stats->LocalViewNum, Stats->KeepLocalNum, Stats->ListLocalNum, Stats->RepMutationNum);
 	LogMsg(100, LogLevel, LogFile, "NewCommand1Num = %d NewCommand2Num = %d NewCommand3Num = %d NewCommand4Num = %d NewCommand5Num = %d NewCommand6Num = %d NewCommand7Num = %d NewCommand8Num = %d MissTarget = %d MissParentNum = %d AclDenyNm = %d UpdateUpdateNum = %d NameNameNum = %d RemoveUpdateNum = %d\n", Stats->NewCommand1Num, Stats->NewCommand2Num, Stats->NewCommand3Num, Stats->NewCommand4Num, Stats->NewCommand5Num, Stats->NewCommand6Num, Stats->NewCommand7Num, Stats->NewCommand8Num, Stats->MissTargetNum, Stats->MissParentNum, Stats->AclDenyNum, Stats->UpdateUpdateNum, Stats->NameNameNum, Stats->RemoveUpdateNum);
 	slot->init(Venus, Time, Stats);
-	assert(buffer->insert((vmon_data *)slot) == BBUFOK);
+	CODA_ASSERT(buffer->insert((vmon_data *)slot) == BBUFOK);
 #ifdef VERSION_CONTROL
     } else
       CheckCVResult(cid,code,"subtree record",VICENM);
@@ -680,7 +680,7 @@ long VmonReportRwsStats(RPC2_Handle cid, VmonVenusId *Venus, RPC2_Integer Time,
 	slot = (rwsStat_data *) rwsStat_pool.getSlot();
 	LogMsg(100, LogLevel, LogFile, "VmonReportRwsStats: Vid = %x RwSharingCount = %d DiscReadCount = %d DiscDuration =%d\n", Stats->Vid, Stats->RwSharingCount, Stats->DiscReadCount);
 	slot->init(Venus, Time, Stats);
-	assert(buffer->insert((vmon_data *)slot) == BBUFOK);
+	CODA_ASSERT(buffer->insert((vmon_data *)slot) == BBUFOK);
 #ifdef VERSION_CONTROL
     } else
       CheckCVResult(cid,code,"rwsStat record",VICENM);
@@ -719,7 +719,7 @@ long SmonReportRVMResStats(RPC2_Handle cid, SmonViceId *Vice,
 		   LogSizeHisto, LMH_size, LogMaxHisto, *Conflicts,
 		   SHH_size, SuccHierHist, FHH_size, FailHierHist,
 		   *ResLog, VLH_size, VarLogHisto, LS_size, LogSize);
-	assert(buffer->insert((vmon_data *)slot) == BBUFOK);
+	CODA_ASSERT(buffer->insert((vmon_data *)slot) == BBUFOK);
 #ifdef VERSION_CONTROL
     } else {
 	CheckCVResult(cid,code,"rvm resolution record",VENUSNM);

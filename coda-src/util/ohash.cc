@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/util/ohash.cc,v 4.2 1997/02/26 16:03:03 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/util/ohash.cc,v 4.3 1998/06/11 14:40:08 jaharkes Exp $";
 #endif /*_BLURB_*/
 
 
@@ -75,9 +75,9 @@ extern void Die(char * ...);
 
 ohashtab::ohashtab(int size, int (*hashfn)(void *)) {
     /* Ensure that size is a power of 2 so that we can use "AND" for modulus division. */
-    /*assert(size > 0);*/ if (size <= 0) abort();
+    /*CODA_ASSERT(size > 0);*/ if (size <= 0) abort();
     for (sz = 1; sz < size; sz *= 2) ;
-    /*assert(sz == size);*/ if (sz != size) abort();
+    /*CODA_ASSERT(sz == size);*/ if (sz != size) abort();
 
     /* Allocate and initialize the array. */
     a = new olist[sz];

@@ -160,7 +160,7 @@ static int f_init (union PartitionData **data,
     options = (struct part_ftree_opts *)malloc(sizeof(union PartitionData));
     if ( options == NULL ) {
 	eprint("Out of memory\n");
-	assert(0);
+	CODA_ASSERT(0);
     } else {
 	*data = (union PartitionData *)options;
     }
@@ -172,20 +172,20 @@ static int f_init (union PartitionData **data,
 	eprint("Error in init of partition %s:%s", 
 	       Partent_host(partent), Partent_dir(partent));
 	SystemError("");
-	assert(0);
+	CODA_ASSERT(0);
     }
     
     if ( access(Partent_dir(partent), R_OK | W_OK) != 0 ) {
 	eprint("Cannot access %s\n", Partent_dir(partent));
 	SystemError("");
-	assert(0);
+	CODA_ASSERT(0);
     }
 
     rc = Partent_intopt(partent, "depth", &val);
     if (rc != 0) {
 	eprint("Invalid depth option in %s:%s\n",
 	       Partent_host(partent), Partent_dir(partent));
-	assert(0);
+	CODA_ASSERT(0);
     }
     options->depth = val;
 
@@ -193,7 +193,7 @@ static int f_init (union PartitionData **data,
     if (rc != 0) {
 	eprint("Invalid width option in %s:%s\n",
 	       Partent_host(partent), Partent_dir(partent));
-	assert(0);
+	CODA_ASSERT(0);
     }
     options->width = val;
 
@@ -206,7 +206,7 @@ static int f_init (union PartitionData **data,
 	options->logwidth = i;
     } else {
 	eprint("Width should be a power of 2 smaller than 2^20");
-	assert(0);
+	CODA_ASSERT(0);
     }
 
     options->next = 0;
@@ -221,7 +221,7 @@ static int f_init (union PartitionData **data,
 	eprint("Error in init of partition %s:%s: no resource database.", 
 	       Partent_host(partent), Partent_dir(partent));
 	SystemError("");
-	assert(0);
+	CODA_ASSERT(0);
     }
     
     /* open the resource data file */
@@ -230,7 +230,7 @@ static int f_init (union PartitionData **data,
 	dev = 0;
 	eprint("Error opening resource file!\n");
 	SystemError("");
-	assert(0);
+	CODA_ASSERT(0);
     }
 
     /* set up a bitmap */
@@ -240,7 +240,7 @@ static int f_init (union PartitionData **data,
     options->freebm = freemap;
     if ( !options->freebm ) {
 	eprint("Cannot setup free bitmap for %s.\n", Partent_dir(partent));
-	assert(0);
+	CODA_ASSERT(0);
     }
 
     /* mark bits with resource records */
@@ -312,7 +312,7 @@ f_icreate(struct DiskPartition *dp, Inode inode_number, u_long volume,
     if ( i == -1 ) {
 	eprint("No more free entries in freebitmap of %s\n",
 	       dp->name);
-	assert(0);
+	CODA_ASSERT(0);
     }
 	
     ino = i+1; /*inode numbers start at 1 */
@@ -322,11 +322,11 @@ f_icreate(struct DiskPartition *dp, Inode inode_number, u_long volume,
 	if ( errno == EEXIST ) {
 	    eprint("f_icreate: bitmap free at %d, inode %ld exists!\n", 
 		   i, ino);
-	    assert(0);
+	    CODA_ASSERT(0);
 	} else {  /* other error, just fail */
 	    eprint("f_icreate: error %d in creating inode %ld!\n", 
 		   errno, ino);
-	    assert(0);
+	    CODA_ASSERT(0);
 	}
     } else {
 	close(fd);
@@ -617,7 +617,7 @@ int f_list_coda_inodes(struct DiskPartition *dp, char *resultFile,
     Inode ino;
     FILE *inodeFile = NULL;
 
-    assert(dp && dp->ops && dp->d);
+    CODA_ASSERT(dp && dp->ops && dp->d);
     LogMsg(9, VolDebugLevel, stdout, 
 	   "Entering ListCodaInodes(%s, %s, 0x%x, %u)",
 	   dp->name, resultFile, judgeInode, judgeParam);

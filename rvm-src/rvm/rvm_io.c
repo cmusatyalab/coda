@@ -33,7 +33,7 @@ should be returned to Software.Distribution@cs.cmu.edu.
 
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/rvm-src/rvm/rvm_io.c,v 4.8 98/03/06 20:21:43 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/rvm-src/rvm/rvm_io.c,v 4.9 1998/09/29 21:04:55 jaharkes Exp $";
 #endif _BLURB_
 
 /*
@@ -102,13 +102,13 @@ static long chk_seek(device_t *dev, rvm_offset_t *offset)
     long            retval=0;
 
     /* raw i/o offset must be specified and sector aligned */
-    ASSERT((dev->raw_io) ? (offset != NULL) : 1);
-    ASSERT((dev->raw_io) ? (OFFSET_TO_SECTOR_INDEX(*offset) == 0) : 1);
-    ASSERT(RVM_OFFSET_LEQ(dev->last_position,dev->num_bytes));
+    CODA_ASSERT((dev->raw_io) ? (offset != NULL) : 1);
+    CODA_ASSERT((dev->raw_io) ? (OFFSET_TO_SECTOR_INDEX(*offset) == 0) : 1);
+    CODA_ASSERT(RVM_OFFSET_LEQ(dev->last_position,dev->num_bytes));
 
     /* seek if offset specified */
     if (offset != NULL) {
-        ASSERT(RVM_OFFSET_EQL_ZERO(*offset) ? 1
+        CODA_ASSERT(RVM_OFFSET_EQL_ZERO(*offset) ? 1
                : RVM_OFFSET_LSS(*offset,dev->num_bytes));
         if (!RVM_OFFSET_EQL(dev->last_position,*offset)) {
             retval = lseek((int)dev->handle,
@@ -223,7 +223,7 @@ long close_dev(dev)
     {
     long            retval;
 
-    ASSERT(((dev == &default_log->dev) && (!rvm_utlsw)) ?
+    CODA_ASSERT(((dev == &default_log->dev) && (!rvm_utlsw)) ?
            (!LOCK_FREE(default_log->dev_lock)) : 1);
 
     errno = 0;
@@ -252,10 +252,10 @@ long read_dev(dev,offset,dest,length)
     long            read_len;
     long            retval;
 
-    ASSERT(dev->handle != ZERO);
-    ASSERT(length != 0);
-    ASSERT((dev->raw_io) ? (SECTOR_INDEX(length) == 0) : 1);
-    ASSERT(((dev == &default_log->dev) && (!rvm_utlsw)) ?
+    CODA_ASSERT(dev->handle != ZERO);
+    CODA_ASSERT(length != 0);
+    CODA_ASSERT((dev->raw_io) ? (SECTOR_INDEX(length) == 0) : 1);
+    CODA_ASSERT(((dev == &default_log->dev) && (!rvm_utlsw)) ?
            (!LOCK_FREE(default_log->dev_lock)) : 1);
 
     /* seek if necessary */
@@ -264,7 +264,7 @@ long read_dev(dev,offset,dest,length)
         return retval;
     last_position = RVM_ADD_LENGTH_TO_OFFSET(dev->last_position,
                                              length);
-    ASSERT(RVM_OFFSET_EQL_ZERO(*offset) ? 1
+    CODA_ASSERT(RVM_OFFSET_EQL_ZERO(*offset) ? 1
            : RVM_OFFSET_LEQ(last_position,dev->num_bytes));
 
     /* do read in larg-ish blocks to avoid kernel buffer availability problems
@@ -290,7 +290,7 @@ long read_dev(dev,offset,dest,length)
                     BZERO(dest,length); /* zero the read region */
                     break;
                     }
-        ASSERT((dev->raw_io) ? (nbytes == read_len) : 1);
+        CODA_ASSERT((dev->raw_io) ? (nbytes == read_len) : 1);
         retval += nbytes;
         dest += nbytes;
         length -= nbytes;
@@ -313,10 +313,10 @@ long write_dev(dev,offset,src,length,sync)
     long            retval;
     long            wrt_len = length;   /* for no_update mode */
 
-    ASSERT(dev->handle != ZERO);
-    ASSERT(length != 0);
-    ASSERT((dev->raw_io) ? (SECTOR_INDEX(length) == 0) : 1);
-    ASSERT(((dev == &default_log->dev) && (!rvm_utlsw)) ?
+    CODA_ASSERT(dev->handle != ZERO);
+    CODA_ASSERT(length != 0);
+    CODA_ASSERT((dev->raw_io) ? (SECTOR_INDEX(length) == 0) : 1);
+    CODA_ASSERT(((dev == &default_log->dev) && (!rvm_utlsw)) ?
            (!LOCK_FREE(default_log->dev_lock)) : 1);
 
     /* seek if necessary */
@@ -325,7 +325,7 @@ long write_dev(dev,offset,src,length,sync)
 	return retval;
     last_position = RVM_ADD_LENGTH_TO_OFFSET(dev->last_position,
                                              length);
-    ASSERT(RVM_OFFSET_LEQ(last_position,dev->num_bytes));
+    CODA_ASSERT(RVM_OFFSET_LEQ(last_position,dev->num_bytes));
 
     /* do write if not in no update mode */
     if (!(rvm_utlsw && rvm_no_update)) {
@@ -347,7 +347,7 @@ long write_dev(dev,offset,src,length,sync)
     }
 
     /* update position (raw i/o must be exact) */
-    ASSERT((dev->raw_io) ? (wrt_len == length) : 1);
+    CODA_ASSERT((dev->raw_io) ? (wrt_len == length) : 1);
     dev->last_position = RVM_ADD_LENGTH_TO_OFFSET(dev->last_position,
                                                   wrt_len);
     return wrt_len;
@@ -362,7 +362,7 @@ static long gather_write_file(dev,offset,wrt_len)
     long            iov_index = 0;      /* index of current iov entry */
     int             count;              /* iov count for Unix i/o */
  
-    ASSERT(((dev == &default_log->dev) && (!rvm_utlsw)) ?
+    CODA_ASSERT(((dev == &default_log->dev) && (!rvm_utlsw)) ?
            (!LOCK_FREE(default_log->dev_lock)) : 1);
 
     /* seek if necessary */
@@ -398,8 +398,8 @@ static long gather_write_file(dev,offset,wrt_len)
     /* update position */
     dev->last_position = RVM_ADD_LENGTH_TO_OFFSET(dev->last_position,
                                                   *wrt_len);
-    ASSERT(RVM_OFFSET_LEQ(dev->last_position,dev->num_bytes));
-    ASSERT(*wrt_len == dev->io_length);
+    CODA_ASSERT(RVM_OFFSET_LEQ(dev->last_position,dev->num_bytes));
+    CODA_ASSERT(*wrt_len == dev->io_length);
 
     return 0;
     }
@@ -428,10 +428,10 @@ static long incr_write_partition(dev,offset,start_addr,end_addr)
     len = ROUND_TO_SECTOR_SIZE(len+length);
 
     /* write */
-    ASSERT(in_wrt_buf(wrt_addr,len));
+    CODA_ASSERT(in_wrt_buf(wrt_addr,len));
     retval = write_dev(dev,&tmp_offset,wrt_addr,len,NO_SYNCH);
     if (retval < 0) return retval;
-    ASSERT(len == retval);
+    CODA_ASSERT(len == retval);
 
     /* update position */
     *offset = RVM_ADD_LENGTH_TO_OFFSET(*offset,length);
@@ -453,18 +453,18 @@ static long gather_write_partition(dev,offset,wrt_len)
     rvm_offset_t    temp;
     rvm_length_t    len;
 
-    ASSERT((SECTOR_INDEX(dev->ptr-dev->wrt_buf)) ==
+    CODA_ASSERT((SECTOR_INDEX(dev->ptr-dev->wrt_buf)) ==
            (OFFSET_TO_SECTOR_INDEX(*offset)));
     len = (rvm_length_t)RVM_SUB_LENGTH_FROM_ADDR(dev->ptr,
                                                  dev->buf_start);
     temp = RVM_ADD_LENGTH_TO_OFFSET(dev->sync_offset,len);
-    ASSERT(RVM_OFFSET_EQL(*offset,temp)); /* must match tail */
+    CODA_ASSERT(RVM_OFFSET_EQL(*offset,temp)); /* must match tail */
 
     /* write io vector entries */
     bytes_left = (long)RVM_SUB_LENGTH_FROM_ADDR(dev->buf_end,dev->ptr);
     while (dev->iov_cnt > 0)
         {
-        ASSERT(bytes_left >= 0);
+        CODA_ASSERT(bytes_left >= 0);
         if (iov[iov_index].length <= bytes_left)
             {
             /* copy whole range into wrt_buf */
@@ -502,7 +502,7 @@ static long gather_write_partition(dev,offset,wrt_len)
             }
         }
 
-    ASSERT((retval >= 0) ? (*wrt_len == dev->io_length) : 1);
+    CODA_ASSERT((retval >= 0) ? (*wrt_len == dev->io_length) : 1);
     return retval;
     }
 /* gather write to device: accepts vector of any length
@@ -514,9 +514,9 @@ long gather_write_dev(dev,offset)
     long            retval;             /* kernel return value */
     rvm_length_t    wrt_len = 0;        /* #bytes actually written */
 
-    ASSERT(RVM_OFFSET_GEQ(*offset,default_log->status.log_start));
-    ASSERT(RVM_OFFSET_LSS(*offset,dev->num_bytes));
-    ASSERT(RVM_OFFSET_LEQ(dev->last_position,dev->num_bytes));
+    CODA_ASSERT(RVM_OFFSET_GEQ(*offset,default_log->status.log_start));
+    CODA_ASSERT(RVM_OFFSET_LSS(*offset,dev->num_bytes));
+    CODA_ASSERT(RVM_OFFSET_LEQ(dev->last_position,dev->num_bytes));
 
     errno = 0;
 
@@ -536,8 +536,8 @@ long sync_dev(dev)
     {
     long            retval;
 
-    ASSERT(dev->handle != 0);
-    ASSERT(((dev == &default_log->dev) && (!rvm_utlsw)) ?
+    CODA_ASSERT(dev->handle != 0);
+    CODA_ASSERT(((dev == &default_log->dev) && (!rvm_utlsw)) ?
            (!LOCK_FREE(default_log->dev_lock)) : 1);
     errno = 0;
 

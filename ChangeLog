@@ -152,7 +152,7 @@
 	* coda-src/rpc2, rp2gen: changes from Odyssey: change time 
 	measurement units to ms from 10ms; add float type to XDR.
 	* included shrink packet bug fix 
-	* assert: changed to while (1) { sleep(1); } to preserve more
+	* CODA_ASSERT: changed to while (1) { sleep(1); } to preserve more
 	stack. 
 	* C++/C: we upgraded libal and auth2 and vicedep to "C". All stub
 	will now appear with C linkage (rules for C++ stub code were

@@ -33,7 +33,7 @@ should be returned to Software.Distribution@cs.cmu.edu.
 
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/rvm-src/rvm/rvm_private.h,v 4.7 1998/09/29 21:04:58 jaharkes Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/rvm-src/rvm/rvm_private.h,v 4.8 1998/10/29 15:29:06 braam Exp $";
 #endif _BLURB_
 
 /*
@@ -55,7 +55,7 @@ static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/rvm-src/rvm/rvm
 #include <sys/types.h>
 #include <stdlib.h>
 #include <string.h>
-#include <assert.h>
+#include "coda_assert.h"
 #include "rvm.h"
 #include "rvm_statistics.h"
 
@@ -84,9 +84,6 @@ static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/rvm-src/rvm/rvm
 #define FORWARD     rvm_true            /* record scan forward */
 #define REVERSE     rvm_false           /* record scan reverse */
 
-
-
-#define ASSERT(ex) assert(ex)
 
 
 /* RVM Internal Error Messages */

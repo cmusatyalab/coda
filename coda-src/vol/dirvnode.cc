@@ -102,8 +102,8 @@ int VN_DCommit(Vnode *vnp)
 			vnp->vnodeNumber);
 		/* copy the VM pages into RVM */
 		DI_DhToDi(pdce);
-		/* assert the directory inode now exists... */
-		assert(DC_DC2DI(pdce));
+		/* CODA_ASSERT the directory inode now exists... */
+		CODA_ASSERT(DC_DC2DI(pdce));
 		/* rehash just in case it is new */
 		DC_Rehash(pdce);
 		vnp->disk.inodeNumber = (long unsigned int) DC_DC2DI(pdce);
@@ -170,13 +170,13 @@ PDirHandle VN_SetDirHandle(struct Vnode *vn)
 void VN_PutDirHandle(struct Vnode *vn)
 {
 
-	assert(vn->dh);
+	CODA_ASSERT(vn->dh);
 
 	if (vn->dh) {
 		SLog(0, "VN_PutDirHandle for Vnode %x Unique %x: count %d\n",
 		     vn->vnodeNumber, vn->disk.uniquifier, DC_Count(vn->dh)-1);
 		DC_Put(vn->dh);
-		assert(DC_Count(vn->dh) >= 0);
+		CODA_ASSERT(DC_Count(vn->dh) >= 0);
 		if ( DC_Count(vn->dh) == 0 )
 			vn->dh = 0;
 	}
@@ -207,11 +207,11 @@ void VN_CopyOnWrite(struct Vnode *vptr)
 	PDirHeader pdirh;
 	PDirHandle pdh;
 	
-	assert(pdce);
-	assert(vptr->disk.inodeNumber != 0);
+	CODA_ASSERT(pdce);
+	CODA_ASSERT(vptr->disk.inodeNumber != 0);
 	pdh = VN_SetDirHandle(vptr);
 	pdirh = DH_Data(pdh);
-	assert(pdh);
+	CODA_ASSERT(pdh);
 
 	DC_SetDirh(pdce, pdirh);
 	DC_SetCowpdi(pdce, (PDirInode)vptr->disk.inodeNumber);

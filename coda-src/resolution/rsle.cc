@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rvmres/rsle.cc,v 4.3 1998/08/31 12:23:25 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rvmres/rsle.cc,v 4.4 1998/10/05 17:15:11 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -128,7 +128,7 @@ void rsle::init(int op, va_list ap) {
 	    u.newst.init(owner, mode, author, d, mask, vv);
 	}
 	else {
-	    assert(newsttype == ACLSTORE);
+	    CODA_ASSERT(newsttype == ACLSTORE);
 	    u.acl.init(va_arg(ap, char *));
 	}
 	break;
@@ -139,7 +139,7 @@ void rsle::init(int op, va_list ap) {
 	    char *c = va_arg(ap, char *);
 	    namesalloced = 1;
 	    name1 = new char[strlen(c) + 1];
-	    assert(name1);
+	    CODA_ASSERT(name1);
 	    strcpy(name1, c);
 	    u.create.cvnode = va_arg(ap, VnodeId);
 	    u.create.cunique = va_arg(ap, Unique_t);
@@ -152,7 +152,7 @@ void rsle::init(int op, va_list ap) {
 	    char *c = va_arg(ap, char *);
 	    namesalloced = 1;
 	    name1 = new char[strlen(c) + 1];
-	    assert(name1);
+	    CODA_ASSERT(name1);
 	    strcpy(name1, c);
 	    u.slink.cvnode = va_arg(ap, VnodeId);
 	    u.slink.cunique = va_arg(ap, Unique_t);
@@ -165,7 +165,7 @@ void rsle::init(int op, va_list ap) {
 	    char *c = va_arg(ap, char *);
 	    namesalloced = 1;
 	    name1 = new char[strlen(c) + 1];
-	    assert(name1);
+	    CODA_ASSERT(name1);
 	    strcpy(name1, c);
 	    u.link.cvnode = va_arg(ap, VnodeId);
 	    u.link.cunique = va_arg(ap, Unique_t);
@@ -178,7 +178,7 @@ void rsle::init(int op, va_list ap) {
 	    char *c = va_arg(ap, char *);
 	    namesalloced = 1;
 	    name1 = new char[strlen(c) + 1];
-	    assert(name1);
+	    CODA_ASSERT(name1);
 	    strcpy(name1, c);
 	    u.mkdir.cvnode = va_arg(ap, VnodeId);
 	    u.mkdir.cunique = va_arg(ap, Unique_t);
@@ -191,7 +191,7 @@ void rsle::init(int op, va_list ap) {
 	    char *c = va_arg(ap, char *);
 	    namesalloced = 1;
 	    name1 = new char[strlen(c) + 1];
-	    assert(name1);
+	    CODA_ASSERT(name1);
 	    strcpy(name1, c);
 	    u.rm.cvnode = va_arg(ap, VnodeId);
 	    u.rm.cunique = va_arg(ap, Unique_t);
@@ -204,7 +204,7 @@ void rsle::init(int op, va_list ap) {
 	    char *c = va_arg(ap, char *);
 	    namesalloced = 1;
 	    name1 = new char[strlen(c) + 1];
-	    assert(name1);
+	    CODA_ASSERT(name1);
 	    strcpy(name1, c);
 
 	    u.rmdir.cvnode = va_arg(ap, VnodeId);
@@ -223,14 +223,14 @@ void rsle::init(int op, va_list ap) {
 	    char *c = va_arg(ap, char *);
 	    namesalloced = 1;
 	    name1 = new char[strlen(c) + 1];
-	    assert(name1);
+	    CODA_ASSERT(name1);
 	    /* oldname is in name 1 */
 	    strcpy(name1, c);
 	    LogMsg(39, SrvDebugLevel, stdout, 
 		   "rsle:init(Rename) got  name1 %s\n", name1);
 	    c = va_arg(ap, char *);
 	    name2 = new char[strlen(c) + 1];
-	    assert(name2);
+	    CODA_ASSERT(name2);
 	    /* newname is in name2 */
 	    strcpy(name2, c);
 	    LogMsg(39, SrvDebugLevel, stdout, 
@@ -287,9 +287,9 @@ void rsle::init(int op, va_list ap) {
 
 /* called from within a transaction */
 void rsle::CommitInRVM(Volume *vol, Vnode *vptr) {
-    assert(index >= 0);
+    CODA_ASSERT(index >= 0);
     recle *rle = V_VolLog(vol)->RecovPutRecord(index); // commit promise log in rvm 
-    assert(rle);
+    CODA_ASSERT(rle);
     rle->InitFromsle(this);		// copy into rvm - allocate var length part
     VnLog(vptr)->append(rle);		// insert record into vnode's log 
     
@@ -638,7 +638,7 @@ void ExtractChildFidFromrsle(rsle *a, ViceFid *fa) {
 	LogMsg(0, SrvDebugLevel, stdout,  
 	       "ExtractChildFidFromrsle: Illegal opcode %d",
 		a->opcode);
-	assert(0);
+	CODA_ASSERT(0);
 	break;
     }
 }
@@ -675,7 +675,7 @@ int ExtractVNTypeFromrsle(rsle *a) {
       case ViceSetVolumeStatus_OP:
 	return(vDirectory);
       default:
-	assert(0);
+	CODA_ASSERT(0);
 	break;
     }
 	

@@ -33,7 +33,7 @@ should be returned to Software.Distribution@cs.cmu.edu.
 
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/rvm-src/rvm/rvm_utils.c,v 4.10 98/09/29 16:39:09 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/rvm-src/rvm/rvm_utils.c,v 4.11 1998/09/29 21:04:59 jaharkes Exp $";
 #endif _BLURB_
 
 /*
@@ -130,7 +130,7 @@ static list_entry_t *malloc_list_entry(id)
     /* allocate the element */
     cell = (list_entry_t *)
         malloc((unsigned)cache_type_sizes[ID_INDEX(id)]);
-    ASSERT(cell != NULL);
+    CODA_ASSERT(cell != NULL);
     type_counts[ID_INDEX(id)] ++;       /* count allocations */
 
     cell->struct_id = id;               /* cell type */
@@ -154,30 +154,30 @@ list_entry_t *move_list_entry(fromptr, toptr, victim)
 
     if (fromptr != NULL)
         {
-        ASSERT(fromptr->is_hdr);
+        CODA_ASSERT(fromptr->is_hdr);
         if ((victim == NULL) && LIST_EMPTY((*fromptr)))
             victim = malloc_list_entry(fromptr->struct_id);
         else
             {
             if (victim == NULL)         /* choose 1st if no victim */
                 victim = fromptr->nextentry;
-            ASSERT(!victim->is_hdr);
-            ASSERT(victim->list.name == fromptr);
+            CODA_ASSERT(!victim->is_hdr);
+            CODA_ASSERT(victim->list.name == fromptr);
             remque((void *)victim);             /* unlink from first list */
             fromptr->list.length --;
             }
         }
     else
         {
-        ASSERT(victim != NULL);
-        ASSERT(!victim->is_hdr);
-        ASSERT(toptr != NULL);
+        CODA_ASSERT(victim != NULL);
+        CODA_ASSERT(!victim->is_hdr);
+        CODA_ASSERT(toptr != NULL);
         }
 
     if (toptr != NULL)
         {
-        ASSERT(toptr->is_hdr);
-        ASSERT(victim->struct_id == toptr->struct_id);
+        CODA_ASSERT(toptr->is_hdr);
+        CODA_ASSERT(victim->struct_id == toptr->struct_id);
         victim->list.name = toptr;
         insque((void *)victim,(void *)toptr->preventry); /* insert at tail of second list */
         toptr->list.length ++;
@@ -194,8 +194,8 @@ void insert_list_entry(entry,new_entry)
     list_entry_t        *list_hdr;      /* header of target list */
 
     /* basic sanity checks */
-    ASSERT(!new_entry->is_hdr);
-    ASSERT(new_entry->struct_id == entry->struct_id);
+    CODA_ASSERT(!new_entry->is_hdr);
+    CODA_ASSERT(new_entry->struct_id == entry->struct_id);
 
     /* discover header of target list */
     if (entry->is_hdr)
@@ -204,9 +204,9 @@ void insert_list_entry(entry,new_entry)
         list_hdr = entry->list.name;
 
     /* further sanity checks */
-    ASSERT(list_hdr != NULL);
-    ASSERT(list_hdr->is_hdr);
-    ASSERT(new_entry->struct_id == list_hdr->struct_id);
+    CODA_ASSERT(list_hdr != NULL);
+    CODA_ASSERT(list_hdr->is_hdr);
+    CODA_ASSERT(new_entry->struct_id == list_hdr->struct_id);
 
     /* remove list_entry from any list it might be on */
     if (new_entry->list.name != NULL)
@@ -232,7 +232,7 @@ static void init_free_lists()
     list_entry_t    *cell;
     int             i,j;
 
-    ASSERT(!free_lists_inited);
+    CODA_ASSERT(!free_lists_inited);
     for (i = 0; i < ID_INDEX(struct_last_cache_id); i++)
         {
         init_list_header(&free_lists[i],INDEX_ID(i));
@@ -240,7 +240,7 @@ static void init_free_lists()
         for (j = 0; j < pre_alloc[i]; j++)
             {
             cell = malloc_list_entry(INDEX_ID(i));
-            ASSERT(cell != NULL);
+            CODA_ASSERT(cell != NULL);
             (void)move_list_entry(NULL,&free_lists[i],cell);
             }
         }
@@ -252,7 +252,7 @@ list_entry_t *alloc_list_entry(id)
     {
     list_entry_t    *cell;
 
-    ASSERT((((long)id > (long)struct_first_id) && 
+    CODA_ASSERT((((long)id > (long)struct_first_id) && 
            ((long)id < (long)struct_last_cache_id)));
 
     CRITICAL(free_lists_locks[ID_INDEX(id)],
@@ -267,7 +267,7 @@ list_entry_t *alloc_list_entry(id)
 static void kill_list_entry(cell)
     list_entry_t    *cell;
     {
-    ASSERT(cell != NULL);
+    CODA_ASSERT(cell != NULL);
 
     /* unlink from present list */
     if (cell->list.name != NULL)
@@ -285,8 +285,8 @@ static void free_list_entry(cell)
     register list_entry_t    *cell;
     {
     int id_index;
-    ASSERT(cell != NULL);
-    ASSERT((((long)cell->struct_id>(long)struct_first_id) && 
+    CODA_ASSERT(cell != NULL);
+    CODA_ASSERT((((long)cell->struct_id>(long)struct_first_id) && 
            ((long)cell->struct_id<(long)struct_last_cache_id)));
 
 
@@ -455,8 +455,8 @@ region_t *make_region()
 void free_region(region)
     region_t    *region;
     {
-    ASSERT(region->links.struct_id == region_id);
-    ASSERT(LOCK_FREE(region->count_lock));
+    CODA_ASSERT(region->links.struct_id == region_id);
+    CODA_ASSERT(LOCK_FREE(region->count_lock));
 
     rw_lock_clear(&region->region_lock);
     mutex_clear(&region->count_lock);
@@ -483,7 +483,7 @@ char *make_full_name(dev_str,dev_name,retval)
 #endif
         {
         if (getcwd(wd_name, sizeof(wd_name)) == 0)
-            ASSERT(rvm_false);
+            CODA_ASSERT(rvm_false);
         wd_len = strlen(wd_name);
         len += (wd_len+1);              /* one extra for '/' */
         }
@@ -576,13 +576,13 @@ seg_t *make_seg(seg_dev_name,retval)
 void free_seg(seg)
     seg_t       *seg;
     {
-    ASSERT(seg->links.struct_id == seg_id);
+    CODA_ASSERT(seg->links.struct_id == seg_id);
 
     /* all lists should be empty and locks free */
-    ASSERT(LIST_EMPTY(seg->map_list));
-    ASSERT(LIST_EMPTY(seg->unmap_list));
-    ASSERT(LOCK_FREE(seg->seg_lock));
-    ASSERT(LOCK_FREE(seg->dev_lock));
+    CODA_ASSERT(LIST_EMPTY(seg->map_list));
+    CODA_ASSERT(LIST_EMPTY(seg->unmap_list));
+    CODA_ASSERT(LOCK_FREE(seg->seg_lock));
+    CODA_ASSERT(LOCK_FREE(seg->dev_lock));
 
     mutex_clear(&seg->seg_lock);
     mutex_clear(&seg->dev_lock);
@@ -614,21 +614,21 @@ void free_seg_dict_vec(log)
 void free_log(log)
     log_t           *log;
     {
-    ASSERT(log->links.struct_id == log_id);
-    ASSERT(LIST_EMPTY(log->tid_list));     /* should not be any transactions
+    CODA_ASSERT(log->links.struct_id == log_id);
+    CODA_ASSERT(LIST_EMPTY(log->tid_list));     /* should not be any transactions
                                               now */
-    ASSERT(LIST_EMPTY(log->flush_list));   /* should not be any queued no_flush
+    CODA_ASSERT(LIST_EMPTY(log->flush_list));   /* should not be any queued no_flush
                                               transactions either */
-    ASSERT(LIST_EMPTY(log->special_list)); /* no special log records should
+    CODA_ASSERT(LIST_EMPTY(log->special_list)); /* no special log records should
                                               be left */
-    ASSERT(LOCK_FREE(log->dev_lock));      /* all locks should be free */
-    ASSERT(LOCK_FREE(log->tid_list_lock));
-    ASSERT(LOCK_FREE(log->flush_list_lock));
-    ASSERT(LOCK_FREE(log->special_list_lock));
-    ASSERT(RW_LOCK_FREE(log->flush_lock));
-    ASSERT(LOCK_FREE(log->truncation_lock));
-    ASSERT(LOCK_FREE(log->daemon.lock));
-    ASSERT((log->daemon.thread != ZERO)
+    CODA_ASSERT(LOCK_FREE(log->dev_lock));      /* all locks should be free */
+    CODA_ASSERT(LOCK_FREE(log->tid_list_lock));
+    CODA_ASSERT(LOCK_FREE(log->flush_list_lock));
+    CODA_ASSERT(LOCK_FREE(log->special_list_lock));
+    CODA_ASSERT(RW_LOCK_FREE(log->flush_lock));
+    CODA_ASSERT(LOCK_FREE(log->truncation_lock));
+    CODA_ASSERT(LOCK_FREE(log->daemon.lock));
+    CODA_ASSERT((log->daemon.thread != ZERO)
            ? log->daemon.state == terminate : 1);
 
     /* finalizer control structures */
@@ -754,7 +754,7 @@ log_special_t *make_log_special(special_id,length)
           case log_seg_id:
             special->special.log_seg.name=buf;
             break;
-          default: ASSERT(rvm_false);       /* should never happen */
+          default: CODA_ASSERT(rvm_false);       /* should never happen */
             }
         }
 
@@ -763,7 +763,7 @@ log_special_t *make_log_special(special_id,length)
 void free_log_special(special)
     log_special_t   *special;           /* ptr to descriptor allocated */
     {
-    ASSERT(special->links.struct_id == log_special_id);
+    CODA_ASSERT(special->links.struct_id == log_special_id);
 
     /* type specific finalization */
     switch (special->struct_id)
@@ -775,7 +775,7 @@ log_special_t *make_log_special(special_id,length)
             special->special.log_seg.name = NULL;
             }
         break;
-      default: ASSERT(rvm_false);       /* should not happen */
+      default: CODA_ASSERT(rvm_false);       /* should not happen */
         }
 
     free_list_entry((list_entry_t *)special);
@@ -804,7 +804,7 @@ range_t *make_range()
 void free_range(range)
     register range_t    *range;
     {
-    ASSERT(range->links.node.struct_id == range_id);
+    CODA_ASSERT(range->links.node.struct_id == range_id);
 
     if (range->data != NULL)
         {
@@ -854,7 +854,7 @@ void free_tid(tid)
     {
     range_t           *range;
 
-    ASSERT(tid->links.struct_id == int_tid_id);
+    CODA_ASSERT(tid->links.struct_id == int_tid_id);
     rw_lock_clear(&tid->tid_lock);
 
     /* free range list */
@@ -889,7 +889,7 @@ mem_region_t *make_mem_region()
 void free_mem_region(node)
     register mem_region_t    *node;
     {
-    ASSERT(node->links.node.struct_id == mem_region_id);
+    CODA_ASSERT(node->links.node.struct_id == mem_region_id);
 
     /* free node */
     node->links.entry.list.name = NULL; /* not really on any list */
@@ -914,7 +914,7 @@ dev_region_t *make_dev_region()
 void free_dev_region(node)
     register dev_region_t    *node;
     {
-    ASSERT(node->links.node.struct_id == dev_region_id);
+    CODA_ASSERT(node->links.node.struct_id == dev_region_id);
 
     /* free node */
     node->links.entry.list.name = NULL; /* not really on any list */
@@ -922,7 +922,7 @@ void free_dev_region(node)
 
     if (node->nv_buf != NULL)
         {
-        ASSERT(node->nv_buf->struct_id == nv_buf_id);
+        CODA_ASSERT(node->nv_buf->struct_id == nv_buf_id);
         if ((--(node->nv_buf->ref_cnt)) == 0)
             {
             free(node->nv_buf);
@@ -1314,11 +1314,11 @@ void rw_lock_clear(rwl)
     rw_lock_t   *rwl;
     {
 
-    ASSERT(LOCK_FREE(rwl->mutex));
-    ASSERT(LIST_EMPTY(rwl->queue));
-    ASSERT(rwl->read_cnt == 0);
-    ASSERT(rwl->write_cnt == 0);
-    ASSERT(rwl->lock_mode == f);
+    CODA_ASSERT(LOCK_FREE(rwl->mutex));
+    CODA_ASSERT(LIST_EMPTY(rwl->queue));
+    CODA_ASSERT(rwl->read_cnt == 0);
+    CODA_ASSERT(rwl->write_cnt == 0);
+    CODA_ASSERT(rwl->lock_mode == f);
 
     mutex_clear(&rwl->mutex);
     }
@@ -1330,11 +1330,11 @@ void rw_lock_clear(rwl)
 
     CRITICAL(rwl->mutex,                /* begin rw_lock mutex crit sec */
         {
-        ASSERT((mode == r) || (mode == w));
-        ASSERT(rwl->read_cnt >= 0);
-        ASSERT((rwl->write_cnt >= 0) && (rwl->write_cnt <= 1));
-        ASSERT((rwl->write_cnt > 0) ? (rwl->read_cnt == 0) : 1);
-        ASSERT((rwl->read_cnt > 0) ? (rwl->write_cnt == 0) : 1);
+        CODA_ASSERT((mode == r) || (mode == w));
+        CODA_ASSERT(rwl->read_cnt >= 0);
+        CODA_ASSERT((rwl->write_cnt >= 0) && (rwl->write_cnt <= 1));
+        CODA_ASSERT((rwl->write_cnt > 0) ? (rwl->read_cnt == 0) : 1);
+        CODA_ASSERT((rwl->read_cnt > 0) ? (rwl->write_cnt == 0) : 1);
 
         /* see if must block */
         if (((mode == w) && ((rwl->read_cnt+rwl->write_cnt) != 0))
@@ -1352,15 +1352,15 @@ void rw_lock_clear(rwl)
 
             /* wait to be signaled when access ready */
             condition_wait(&q.wait,&rwl->mutex);
-            ASSERT(rwl->lock_mode == mode);
-            ASSERT((mode == w) ?
+            CODA_ASSERT(rwl->lock_mode == mode);
+            CODA_ASSERT((mode == w) ?
                    ((rwl->write_cnt==1) && (rwl->read_cnt==0)) : 1);
-            ASSERT((mode == r) ?
+            CODA_ASSERT((mode == r) ?
                    ((rwl->write_cnt==0) && (rwl->read_cnt>=1)) : 1);
             }
         else
             {                           /* immediate access: set the lock */
-            ASSERT((rwl->lock_mode == r) || (rwl->lock_mode == f));
+            CODA_ASSERT((rwl->lock_mode == r) || (rwl->lock_mode == f));
             if (mode == r) rwl->read_cnt++;
             else rwl->write_cnt++;
             rwl->lock_mode = mode;
@@ -1375,12 +1375,12 @@ void rw_lock_clear(rwl)
 
     CRITICAL(rwl->mutex,                /* begin rw_lock mutex crit sec */
         {
-        ASSERT((mode == r) || (mode == w));
-        ASSERT(rwl->lock_mode == mode);
-        ASSERT(rwl->read_cnt >= 0);
-        ASSERT((rwl->write_cnt >= 0) && (rwl->write_cnt <= 1));
-        ASSERT((rwl->write_cnt > 0) ? (rwl->read_cnt == 0) : 1);
-        ASSERT((rwl->read_cnt > 0) ? (rwl->write_cnt == 0) : 1);
+        CODA_ASSERT((mode == r) || (mode == w));
+        CODA_ASSERT(rwl->lock_mode == mode);
+        CODA_ASSERT(rwl->read_cnt >= 0);
+        CODA_ASSERT((rwl->write_cnt >= 0) && (rwl->write_cnt <= 1));
+        CODA_ASSERT((rwl->write_cnt > 0) ? (rwl->read_cnt == 0) : 1);
+        CODA_ASSERT((rwl->read_cnt > 0) ? (rwl->write_cnt == 0) : 1);
 
         /* update lock counts */
         if (rwl->lock_mode == r)
@@ -1407,7 +1407,7 @@ void rw_lock_clear(rwl)
                     condition_signal(&q->wait);
                     }
                 else
-                    ASSERT((rwl->lock_mode==r) && (rwl->write_cnt==0));
+                    CODA_ASSERT((rwl->lock_mode==r) && (rwl->write_cnt==0));
                 }
             else
                 do  /* wake up all readers before next writer */
@@ -1418,7 +1418,7 @@ void rw_lock_clear(rwl)
                     old_q = (rw_qentry_t *)
                             move_list_entry(&rwl->queue,NULL,NULL);
                     rwl->read_cnt++;
-                    ASSERT(rwl->lock_mode != w);
+                    CODA_ASSERT(rwl->lock_mode != w);
                     rwl->lock_mode = r;
                     condition_signal(&old_q->wait);
                     }
@@ -1449,7 +1449,7 @@ static void chk_traverse(tree)
         tree->traverse=(tree_pos_t *)
             malloc(tree->traverse_len*sizeof(tree_pos_t));
         if (tree->traverse == NULL)
-            ASSERT(rvm_false);
+            CODA_ASSERT(rvm_false);
         }
     }
 
@@ -1475,7 +1475,7 @@ void clear_tree_root(root)
     tree_root_t     *root;
     {
 
-    ASSERT(root->struct_id == tree_root_id);
+    CODA_ASSERT(root->struct_id == tree_root_id);
     if (root->traverse != NULL)
         {
         free(root->traverse);
@@ -1492,14 +1492,14 @@ static int get_depth(node,n_nodes)
     int             gtr_depth = 1;
 
     if (node == NULL) return 0;
-    ASSERT((node->bf >= -1) && (node->bf <= 1));
+    CODA_ASSERT((node->bf >= -1) && (node->bf <= 1));
 
     if (n_nodes != NULL) (*n_nodes)++;
     lss_depth += get_depth(node->lss,n_nodes);
     gtr_depth += get_depth(node->gtr,n_nodes);
 
-    ASSERT(node->bf == (gtr_depth - lss_depth)); /* check balance factor */
-    ASSERT((node->bf >= -1) && (node->bf <= 1));
+    CODA_ASSERT(node->bf == (gtr_depth - lss_depth)); /* check balance factor */
+    CODA_ASSERT((node->bf >= -1) && (node->bf <= 1));
 
     if (gtr_depth > lss_depth)          /* return depth of deeper side */
         return gtr_depth;
@@ -1514,7 +1514,7 @@ static int chk_balance(tree)
     long            n_nodes = 0;
     get_depth(tree->root,&n_nodes);
 
-    ASSERT(n_nodes == tree->n_nodes);
+    CODA_ASSERT(n_nodes == tree->n_nodes);
     return 0;
     }
 /* binary tree lookup -- returns ptr to node found (or NULL) */
@@ -1526,11 +1526,11 @@ tree_node_t *tree_lookup(tree,node,cmp)
     tree_node_t     *cur;               /* current search node */
     tree_node_t     *par = NULL;        /* parent of cur */
 
-    ASSERT(tree->struct_id == tree_root_id);
+    CODA_ASSERT(tree->struct_id == tree_root_id);
     cur = tree->root;
     while (cur != NULL)                 /* search */
         {
-        ASSERT(cur != par);             /* loop detector */
+        CODA_ASSERT(cur != par);             /* loop detector */
         par = cur;
         switch ((*cmp)(node,cur))
             {
@@ -1542,7 +1542,7 @@ tree_node_t *tree_lookup(tree,node,cmp)
           case 1:                       /* gtr */
             cur = cur->gtr;
             break;
-          default:  ASSERT(rvm_false);
+          default:  CODA_ASSERT(rvm_false);
             }
         }
 
@@ -1558,7 +1558,7 @@ static void insert_rotate(tree,bal_pnt,bal_pnt_par,sub_root,new_bf)
     {
     tree_node_t     *new_bal_pnt = sub_root; /* new balance node */
 
-    ASSERT(tree->struct_id == tree_root_id);
+    CODA_ASSERT(tree->struct_id == tree_root_id);
     if (new_bf == 1)
         {
         /* right heavy */
@@ -1587,7 +1587,7 @@ static void insert_rotate(tree,bal_pnt,bal_pnt_par,sub_root,new_bf)
                         break;
               case -1:  bal_pnt->bf = 0; sub_root->bf = 1;
                         break;
-              default:  ASSERT(rvm_false);
+              default:  CODA_ASSERT(rvm_false);
                 }
             new_bal_pnt->bf = 0;
             }
@@ -1620,7 +1620,7 @@ static void insert_rotate(tree,bal_pnt,bal_pnt_par,sub_root,new_bf)
                         break;
               case -1:  bal_pnt->bf = 1; sub_root->bf = 0;
                         break;
-              default:  ASSERT(rvm_false);
+              default:  CODA_ASSERT(rvm_false);
                 }
             new_bal_pnt->bf = 0;
             }
@@ -1651,7 +1651,7 @@ rvm_bool_t tree_insert(tree,node,cmp)
     int             val=0;              /* last comparison value */
     long            new_bf;             /* new balance factor */
 
-    ASSERT(tree->struct_id == tree_root_id);
+    CODA_ASSERT(tree->struct_id == tree_root_id);
     chk_traverse(tree);
     node->gtr = node->lss = NULL;
     node->bf = 0;
@@ -1666,7 +1666,7 @@ rvm_bool_t tree_insert(tree,node,cmp)
     tree->level = -1;
     /* tree->root cannot be null */
     cur = last_unbal = tree->root;
-    ASSERT(cur != NULL);
+    CODA_ASSERT(cur != NULL);
     while (cur != NULL)
         {
         /* retain most recent unbalanced node and parent */
@@ -1677,7 +1677,7 @@ rvm_bool_t tree_insert(tree,node,cmp)
             }
 
         /* compare for insertion point */
-        ASSERT((cur->bf >= -1) && (cur->bf <= 1));
+        CODA_ASSERT((cur->bf >= -1) && (cur->bf <= 1));
         par = cur;
         switch (val=(*cmp)(node,cur))
             {
@@ -1687,7 +1687,7 @@ rvm_bool_t tree_insert(tree,node,cmp)
                     return rvm_false;
           case 1:   SET_TRAVERSE(tree,NULL,gtr); /* gtr */
                     cur = cur->gtr; break;
-          default:  ASSERT(rvm_false);
+          default:  CODA_ASSERT(rvm_false);
             }
         }
     /* insert node */
@@ -1707,7 +1707,7 @@ rvm_bool_t tree_insert(tree,node,cmp)
     cur = sub_root;
     while (cur != node)
         {
-        ASSERT(cur->bf == 0);
+        CODA_ASSERT(cur->bf == 0);
         if ((cur->bf=(*cmp)(node,cur)) == 1)
             cur = cur->gtr;
         else
@@ -1744,7 +1744,7 @@ static rvm_bool_t delete_rotate(tree,bal_pnt,bal_pnt_par,sub_root,new_bf)
     tree_node_t     *new_bal_pnt = sub_root; /* new balance point */
     long            old_sub_root_bf = sub_root->bf;
 
-    ASSERT(tree->struct_id == tree_root_id);
+    CODA_ASSERT(tree->struct_id == tree_root_id);
     if (new_bf == 1)
         {                               /* right heavy */
         if ((sub_root->bf == 1)
@@ -1777,7 +1777,7 @@ static rvm_bool_t delete_rotate(tree,bal_pnt,bal_pnt_par,sub_root,new_bf)
                         break;
               case -1:  bal_pnt->bf = 0; sub_root->bf = 1;
                         break;
-              default:  ASSERT(rvm_false);
+              default:  CODA_ASSERT(rvm_false);
                 }
             if (old_sub_root_bf == 0) new_bal_pnt->bf = 1;
             else new_bal_pnt->bf = 0;
@@ -1815,7 +1815,7 @@ static rvm_bool_t delete_rotate(tree,bal_pnt,bal_pnt_par,sub_root,new_bf)
                         break;
               case -1:  bal_pnt->bf = 1; sub_root->bf--;
                         break;
-              default:  ASSERT(rvm_false);
+              default:  CODA_ASSERT(rvm_false);
                 }
             if (old_sub_root_bf == 0) new_bal_pnt->bf = -1;
             else new_bal_pnt->bf = 0;
@@ -1852,14 +1852,14 @@ rvm_bool_t tree_delete(tree,node,cmp)
     long            new_bf=0;           /* new balance factor */
 
     /* search for target node */
-    ASSERT(tree->struct_id == tree_root_id);
+    CODA_ASSERT(tree->struct_id == tree_root_id);
     chk_traverse(tree);
     tree->level = -1;
     cur = tree->root;
     while (cur != NULL)
         {
         /* determine branch to follow */
-        ASSERT((cur->bf >= -1) && (cur->bf <= 1));
+        CODA_ASSERT((cur->bf >= -1) && (cur->bf <= 1));
         switch ((*cmp)(node,cur))
             {
           case -1:                      /* lss */
@@ -1869,12 +1869,12 @@ rvm_bool_t tree_delete(tree,node,cmp)
           case 0:
             SET_TRAVERSE(tree,cur,self);
             if (cur == node) goto delete; /* located */
-            ASSERT(rvm_false);          /* multiple entries ?!?! */
+            CODA_ASSERT(rvm_false);          /* multiple entries ?!?! */
           case 1:                       /* gtr */
             SET_TRAVERSE(tree,cur,gtr);
             cur = cur->gtr;
             break;
-          default:  ASSERT(rvm_false);
+          default:  CODA_ASSERT(rvm_false);
             }
         }
 
@@ -1914,7 +1914,7 @@ rvm_bool_t tree_delete(tree,node,cmp)
             }
         while (cur != NULL)
             {
-            ASSERT((cur->bf >= -1) && (cur->bf <= 1));
+            CODA_ASSERT((cur->bf >= -1) && (cur->bf <= 1));
             if (new_bf == 1)
                 {
                 SET_TRAVERSE(tree,cur,lss);
@@ -1977,7 +1977,7 @@ rvm_bool_t tree_delete(tree,node,cmp)
             sub_root = tree->traverse[tree->level].ptr->lss;
             break;
           case self:
-          default:      ASSERT(rvm_false);
+          default:      CODA_ASSERT(rvm_false);
             }
 
         /* if tree balanced at this point, set new factor and quit */
@@ -2018,13 +2018,13 @@ tree_node_t *tree_successor(tree)
     tree_node_t     *cur;               /* current search node */
 
     /* determine how to continue */
-    ASSERT(tree->struct_id == tree_root_id);
+    CODA_ASSERT(tree->struct_id == tree_root_id);
 
     DO_FOREVER
         {
         cur = tree->traverse[tree->level].ptr;
         if (cur != NULL)
-            ASSERT((cur->bf >= -1) && (cur->bf <= 1));
+            CODA_ASSERT((cur->bf >= -1) && (cur->bf <= 1));
         switch (tree->traverse[tree->level].state)
             {
           case gtr:
@@ -2045,22 +2045,22 @@ tree_node_t *tree_successor(tree)
             tree->traverse[tree->level].ptr = cur->gtr;
             goto unlink;
           case init:
-            ASSERT(tree->level == 0);
+            CODA_ASSERT(tree->level == 0);
             tree->traverse[0].state = lss;
             break;
-          default:  ASSERT(rvm_false);
+          default:  CODA_ASSERT(rvm_false);
             }
 
         /* locate successor */
         while ((cur=cur->lss) != NULL)
             {
-            ASSERT((cur->bf >= -1) && (cur->bf <= 1));
+            CODA_ASSERT((cur->bf >= -1) && (cur->bf <= 1));
             SET_TRAVERSE(tree,cur,lss);
             }
         }
     /* set next traverse node ptr */
   unlink:
-    ASSERT(cur != NULL);
+    CODA_ASSERT(cur != NULL);
     if (tree->unlink)
         {
         tree->n_nodes--;
@@ -2068,10 +2068,10 @@ tree_node_t *tree_successor(tree)
             tree->root = cur->gtr;
         else
             tree->traverse[tree->level-1].ptr->lss = cur->gtr;
-        ASSERT(cur->lss == NULL);
+        CODA_ASSERT(cur->lss == NULL);
         }
 
-    ASSERT((cur->bf >= -1) && (cur->bf <= 1));
+    CODA_ASSERT((cur->bf >= -1) && (cur->bf <= 1));
     return cur;
     }
 /* reverse order iterator generator: balance not maintained if nodes unlinked */
@@ -2081,13 +2081,13 @@ tree_node_t *tree_predecessor(tree)
     tree_node_t     *cur;               /* current search node */
 
     /* determine how to continue */
-    ASSERT(tree->struct_id == tree_root_id);
+    CODA_ASSERT(tree->struct_id == tree_root_id);
 
     DO_FOREVER
         {
         cur = tree->traverse[tree->level].ptr;
         if (cur != NULL)
-            ASSERT((cur->bf >= -1) && (cur->bf <= 1));
+            CODA_ASSERT((cur->bf >= -1) && (cur->bf <= 1));
         switch (tree->traverse[tree->level].state)
             {
           case lss:
@@ -2108,22 +2108,22 @@ tree_node_t *tree_predecessor(tree)
             tree->traverse[tree->level].ptr = cur->lss;
             goto unlink;
           case init:
-            ASSERT(tree->level == 0);
+            CODA_ASSERT(tree->level == 0);
             tree->traverse[0].state = gtr;
             break;
-          default:  ASSERT(rvm_false);
+          default:  CODA_ASSERT(rvm_false);
             }
 
         /* locate predecessor */
         while ((cur=cur->gtr) != NULL)
             {
-            ASSERT((cur->bf >= -1) && (cur->bf <= 1));
+            CODA_ASSERT((cur->bf >= -1) && (cur->bf <= 1));
             SET_TRAVERSE(tree,cur,gtr);
             }
         }
     /* set next traverse node ptr */
   unlink:
-    ASSERT(cur != NULL);
+    CODA_ASSERT(cur != NULL);
     if (tree->unlink)
         {
         tree->n_nodes--;
@@ -2131,10 +2131,10 @@ tree_node_t *tree_predecessor(tree)
             tree->root = cur->lss;
         else
             tree->traverse[tree->level-1].ptr->gtr = cur->lss;
-        ASSERT(cur->gtr == NULL);
+        CODA_ASSERT(cur->gtr == NULL);
         }
 
-    ASSERT((cur->bf >= -1) && (cur->bf <= 1));
+    CODA_ASSERT((cur->bf >= -1) && (cur->bf <= 1));
     return cur;
     }
 /* tree iteration initializers */
@@ -2144,7 +2144,7 @@ tree_node_t *init_tree_generator(tree,direction,unlink)
     rvm_bool_t      unlink;             /* unlink nodes from tree if true */
     {
 
-    ASSERT(tree->struct_id == tree_root_id);
+    CODA_ASSERT(tree->struct_id == tree_root_id);
     tree->unlink = unlink;
     tree->level = -1;
     if (tree->root == NULL) return NULL;
@@ -2166,7 +2166,7 @@ tree_node_t *tree_iterate_insert(tree,node,cmp)
     int             first_level;        /* level of smallest node */
 
     /* try to insert node */
-    ASSERT(tree->struct_id == tree_root_id);
+    CODA_ASSERT(tree->struct_id == tree_root_id);
     tree->unlink = rvm_false;
     if (tree_insert(tree,node,cmp))
         return NULL;                    /* done, no iteration required */
@@ -2186,7 +2186,7 @@ tree_node_t *tree_iterate_insert(tree,node,cmp)
                     cur = cur->lss;
                     break;
           case 1:                       /* shouldn't happen */
-          default:  ASSERT(rvm_false); 
+          default:  CODA_ASSERT(rvm_false); 
             }
 
     /* return smallest conflicting node */

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/advice/advice_srv.cc,v 4.10 1998/05/15 01:22:47 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/advice/advice_srv.cc,v 4.11 1998/10/07 20:29:38 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -55,7 +55,7 @@ extern "C" {
 #include <stdio.h>
 #include <sys/param.h>
 #include <sys/time.h>
-#include <assert.h> 
+#include "coda_assert.h" 
 #include <struct.h>
 #include <sys/wait.h> 
 #include <sys/stat.h>
@@ -181,7 +181,7 @@ main(int argc, char *argv[])
   InitVDB();
 
   Init_RPC(&mainpid);                          // Initialize RPC...
-  assert(IOMGR_Initialize() == LWP_SUCCESS);  // and IOMGR
+  CODA_ASSERT(IOMGR_Initialize() == LWP_SUCCESS);  // and IOMGR
   DaemonInit();		                      // and the daemon package
 
   Lock_Init(&VenusLock);            // This lock controls access to Venus
@@ -191,7 +191,7 @@ main(int argc, char *argv[])
   // Inform Venus of the availability of an AdviceMonitor for this user
   InformVenusOfOurExistance(HostName, uid, thisPGID);
 
-  assert(LWP_NoYieldSignal(&initialUserSync) == LWP_SUCCESS);
+  CODA_ASSERT(LWP_NoYieldSignal(&initialUserSync) == LWP_SUCCESS);
 
   // Set up the request filter:  we only service ADMON subsystem requests.
   reqfilter.FromWhom = ANY;
@@ -214,7 +214,7 @@ main(int argc, char *argv[])
 
       // Check for input on the Console pipe
       sig = LWP_SignalProcess(&userSync);
-      assert((sig == LWP_SUCCESS) || (sig == LWP_ENOWAIT));
+      CODA_ASSERT((sig == LWP_SUCCESS) || (sig == LWP_ENOWAIT));
       continue;
     }
     else if (rc != RPC2_SUCCESS) {
@@ -222,7 +222,7 @@ main(int argc, char *argv[])
       LogMsg(0,LogLevel,EventFile, "GetRequest: %s", RPC2_ErrorMsg((int)rc));
     }
 
-    assert(LWP_SignalProcess(&workerSync) == LWP_SUCCESS);
+    CODA_ASSERT(LWP_SignalProcess(&workerSync) == LWP_SUCCESS);
   }
 }
 
@@ -240,21 +240,21 @@ void CreateLWPs() {
    ****************************************************/
 
   // SIGCHLD signals the completion of an ASR.
-  assert((LWP_CreateProcess((PFIC)EndASREventHandler,
+  CODA_ASSERT((LWP_CreateProcess((PFIC)EndASREventHandler,
 			   DFTSTACKSIZE*1024, LWP_NORMAL_PRIORITY,
 			   (char *)&c, "ASR End Signal Handler",
 			   (PROCESS *)&asrendpid)) == (LWP_SUCCESS));
 
   // SIGTERM signals the AdviceMonitor to shut down
   //This one was normal+1
-  assert(LWP_CreateProcess((PFIC)ShutdownHandler,
+  CODA_ASSERT(LWP_CreateProcess((PFIC)ShutdownHandler,
 			   DFTSTACKSIZE*1024, LWP_NORMAL_PRIORITY,
 			   (char *)&s, "Shutdown Handler",
 			   (PROCESS *)&shutdownpid) == LWP_SUCCESS);
 
   // Initialize signal handlers
   signal(SIGTERM, Shutdown);
-  assert(!signal(SIGCHLD, Child));
+  CODA_ASSERT(!signal(SIGCHLD, Child));
 
 
   /*******************************************************
@@ -263,17 +263,17 @@ void CreateLWPs() {
 
   // These three were all NORMAL-1
 
-  assert((LWP_CreateProcess((PFIC)DataHandler,
+  CODA_ASSERT((LWP_CreateProcess((PFIC)DataHandler,
 			    DFTSTACKSIZE*1024, LWP_NORMAL_PRIORITY,
 			   (char *)&c, "Data Handler",
 			   (PROCESS *)&datapid)) == (LWP_SUCCESS));
 
-  assert((LWP_CreateProcess((PFIC)ProgramLogHandler,
+  CODA_ASSERT((LWP_CreateProcess((PFIC)ProgramLogHandler,
 			    DFTSTACKSIZE*1024*4, LWP_NORMAL_PRIORITY,
 			    (char *)&c, "Program Log Handler",
 			    (PROCESS *)&programlogpid)) == (LWP_SUCCESS));
 
-  assert((LWP_CreateProcess((PFIC)ReplacementLogHandler,
+  CODA_ASSERT((LWP_CreateProcess((PFIC)ReplacementLogHandler,
 			    DFTSTACKSIZE*1024*4, LWP_NORMAL_PRIORITY,
 			    (char *)&c, "Replacement Log Handler",
 			    (PROCESS *)&replacementlogpid)) == (LWP_SUCCESS));
@@ -283,7 +283,7 @@ void CreateLWPs() {
    ****    Create LWP to handle interface events   ****
    ****************************************************/
 
-  assert((LWP_CreateProcess((PFIC)CodaConsoleHandler,
+  CODA_ASSERT((LWP_CreateProcess((PFIC)CodaConsoleHandler,
 			    DFTSTACKSIZE* 2 *1024, LWP_NORMAL_PRIORITY,
 			   (char *)&c, "CodaConsole Interface Handler",
 			   (PROCESS *)&consolepid)) == (LWP_SUCCESS));
@@ -292,7 +292,7 @@ void CreateLWPs() {
    ******    Create LWP to handle venus events   ******
    ****************************************************/
 
-  assert((LWP_CreateProcess((PFIC)WorkerHandler,
+  CODA_ASSERT((LWP_CreateProcess((PFIC)WorkerHandler,
 			    DFTSTACKSIZE*2*1024, LWP_NORMAL_PRIORITY,
 			   (char *)&c, "Worker Handler",
 			   (PROCESS *)&workerpid)) == (LWP_SUCCESS));
@@ -305,17 +305,17 @@ void WorkerHandler() {
     char *rock;
 
     LogMsg(100,LogLevel,LogFile, "WorkerHandler: Initializing...");
-    assert((LWP_NewRock(42, &initialRock)) == LWP_SUCCESS);
+    CODA_ASSERT((LWP_NewRock(42, &initialRock)) == LWP_SUCCESS);
 
     // Wait for and handle user events 
     while (1) {
-        assert(LWP_WaitProcess(&workerSync) == LWP_SUCCESS);
+        CODA_ASSERT(LWP_WaitProcess(&workerSync) == LWP_SUCCESS);
 
 	if (StackChecking) {
 	    LWP_StackUsed((PROCESS)workerpid, &max, &before);
 	    LogMsg(100,LogLevel,LogFile, "Worker:  Before call StackUsed returned max=%d used=%d\n",
 		   max,before);
-	    assert(before < 12*1024);
+	    CODA_ASSERT(before < 12*1024);
         }
 
 	// Venus has asked us for advice -- do something about it!
@@ -333,7 +333,7 @@ void WorkerHandler() {
 		LogMsg(0,LogLevel,LogFile, 
 		   "Worker:  OP call (=%d -- see admon.h) increased stack usage\n",
 		   reqbuffer->Header.Opcode);
-	    assert(after < 12*1024);
+	    CODA_ASSERT(after < 12*1024);
         }
     }
 }
@@ -426,7 +426,7 @@ void DataHandler() {
     while (1) {
         char *component = NULL;
 
-        assert(LWP_WaitProcess(&dataSync) == LWP_SUCCESS);
+        CODA_ASSERT(LWP_WaitProcess(&dataSync) == LWP_SUCCESS);
 
         LogMsg(100,LogLevel,LogFile, "DataHandler: Checking for data...");
 
@@ -459,7 +459,7 @@ void ProgramLogHandler() {
 
     while (1) {
         rc = LWP_WaitProcess(&programlogSync);
-	assert(rc == LWP_SUCCESS);
+	CODA_ASSERT(rc == LWP_SUCCESS);
 
 	ParseDataDefinitions(DataFilename);
 	ParseProgramDefinitions(ProgramFilename);
@@ -480,7 +480,7 @@ void ReplacementLogHandler() {
 
     while (1) {
         rc = LWP_WaitProcess(&replacementlogSync);
-	assert(rc == LWP_SUCCESS);
+	CODA_ASSERT(rc == LWP_SUCCESS);
 
 	LogMsg(100, LogLevel, LogFile, "ReplacementLogHandler: woke up\n");
 	ParseReplacementLog(ReplacementLog);
@@ -499,9 +499,9 @@ void CodaConsoleHandler(char *c) {
   char msg[128];
 
   LogMsg(100,LogLevel,LogFile, "UserEventHandler: Initializing...");
-  assert((LWP_NewRock(42, &initialRock)) == LWP_SUCCESS);
+  CODA_ASSERT((LWP_NewRock(42, &initialRock)) == LWP_SUCCESS);
 
-  assert(LWP_WaitProcess(&initialUserSync) == LWP_SUCCESS);
+  CODA_ASSERT(LWP_WaitProcess(&initialUserSync) == LWP_SUCCESS);
 
   sprintf(msg, "\tsource %s\n", CODACONSOLE);
   SendToConsole(msg);
@@ -512,9 +512,9 @@ void CodaConsoleHandler(char *c) {
 
   while (1) {
     // Wait for and handle user events 
-    assert(LWP_GetRock(42, &rock) == LWP_SUCCESS);
+    CODA_ASSERT(LWP_GetRock(42, &rock) == LWP_SUCCESS);
     fprintf(stderr, "\tCodaConsole: Waiting for userSync\n");
-    assert(LWP_WaitProcess(&userSync) == LWP_SUCCESS);
+    CODA_ASSERT(LWP_WaitProcess(&userSync) == LWP_SUCCESS);
     fprintf(stderr, "\tCodaConsole: Received userSync\n");
 
     // Handle user event
@@ -533,7 +533,7 @@ void ShutdownHandler(char *c) {
 
   LogMsg(100,LogLevel,LogFile, "ShutdownHandler: Waiting...");
 
-  assert(LWP_WaitProcess(&shutdownSync) == LWP_SUCCESS);
+  CODA_ASSERT(LWP_WaitProcess(&shutdownSync) == LWP_SUCCESS);
 
   LogMsg(100,LogLevel,LogFile, "ShutdownHandler: Shutdown imminent...");
 
@@ -577,7 +577,7 @@ void EndASREventHandler(char *c) {
 	LogMsg(100,LogLevel,LogFile, "EndASREventHandler:  Venus knows the result of the ASR.");
     }
     else {
-	assert(LWP_WaitProcess((char *)&childPID) == LWP_SUCCESS);
+	CODA_ASSERT(LWP_WaitProcess((char *)&childPID) == LWP_SUCCESS);
     }
   }
 }

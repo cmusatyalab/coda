@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rvmres/subresphase3.cc,v 4.8 1998/10/21 22:05:51 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rvmres/subresphase3.cc,v 4.9 1998/10/30 18:29:52 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -150,12 +150,12 @@ long RS_ResPhase3(RPC2_Handle RPCid, ViceFid *Fid, RPC2_Integer size,
     {
 	if (errorCode = FetchLog(RPCid, &buf, (int) size)) 
 	    goto Exit;
-	assert(buf);
+	CODA_ASSERT(buf);
     }
     // parse log 
     {
 	ParseRemoteLogs(buf, (int) size, (int) nentries, &AllLogs, &AllLogEntries);
-	assert(AllLogs && AllLogEntries);
+	CODA_ASSERT(AllLogs && AllLogEntries);
 	PollAndYield();
     }
     // Compute Compensating Operations 
@@ -248,7 +248,7 @@ long RS_ResPhase3(RPC2_Handle RPCid, ViceFid *Fid, RPC2_Integer size,
 static int FetchLog(RPC2_Handle RPCid, char **buf, int size) {
     int errorCode = 0;
     *buf = (char *)malloc(size);
-    assert(*buf);
+    CODA_ASSERT(*buf);
     
     SE_Descriptor	sid;
     bzero((void *)&sid, (int) sizeof(SE_Descriptor));
@@ -322,7 +322,7 @@ static int GetResObjs(arrlist *ops, ViceFid *Fid, Volume **volptr, dlist *vlist)
 	if (pvptr) {
 	    Error error = 0;
 	    VPutVnode(&error, pvptr);
-	    assert(error == 0);
+	    CODA_ASSERT(error == 0);
 	    pvptr = 0;
 	}
     }
@@ -348,7 +348,7 @@ static int GetResObjs(arrlist *ops, ViceFid *Fid, Volume **volptr, dlist *vlist)
 	SLog(9,  "GetResObjs: ERROR condition - Putting back parent");
 	Error error = 0;
 	VPutVnode(&error, pvptr);
-	assert(error == 0);
+	CODA_ASSERT(error == 0);
 	pvptr = 0;
     }
     
@@ -482,8 +482,8 @@ static int GatherFids(dlist *vlist, Vnode *pvptr,
 	if ((count & Yield_rp3CollectFidMask) == 0)
 	    PollAndYield();
 
-	assert(r->dvn == pvptr->vnodeNumber);
-	assert(r->du == pvptr->disk.uniquifier);
+	CODA_ASSERT(r->dvn == pvptr->vnodeNumber);
+	CODA_ASSERT(r->du == pvptr->disk.uniquifier);
 	switch(r->opcode) {
 	  case ResolveViceNewStore_OP:
 	  case ViceNewStore_OP:
@@ -566,7 +566,7 @@ static int CheckSemPerformRes(arrlist *ops, Volume *volptr,
 	}
 
 	pv = FindVLE(*vlist, dFid);
-	assert(pv && pv->vptr);
+	CODA_ASSERT(pv && pv->vptr);
     }
     
     // check semantics and perform operations 
@@ -705,7 +705,7 @@ static int CheckValidityResOp(rsle *r, int NE,
       case ResolveViceNewStore_OP:
       case ViceNewStore_OP:
 	if (r->u.newst.type != STSTORE) {
-	    assert(r->u.newst.type == ACLSTORE);
+	    CODA_ASSERT(r->u.newst.type == ACLSTORE);
 	    SLog(0,  
 		   "CheckValidityResOp: Got an acl store operation in comp op");
 	    SLog(0,
@@ -716,7 +716,7 @@ static int CheckValidityResOp(rsle *r, int NE,
 	else {
 	    SLog(0,
 		   "CheckValidityResOp: Got a newstore operation - performing it but algo must be worked on\n");
-	    assert(r->u.newst.type == STSTORE);
+	    CODA_ASSERT(r->u.newst.type == STSTORE);
 	    return(PERFORMOP);
 	}
 
@@ -782,14 +782,14 @@ static int CheckValidityResOp(rsle *r, int NE,
       case ViceCreate_OP:
 	if (!NE) {
 	    if (OE) {
-		assert(0);	/* site participated in create cant get create again */
+		CODA_ASSERT(0);	/* site participated in create cant get create again */
 	    }
 	    else  // !OE 
 		return(PERFORMOP);
 	}
 	else {	// name exists 
 	    if (OE) {
-		assert(0);
+		CODA_ASSERT(0);
 	    }
 	    else {
 		SLog(0,
@@ -802,20 +802,20 @@ static int CheckValidityResOp(rsle *r, int NE,
 	break;
       case ResolveViceRename_OP:
       case ViceRename_OP:
-	assert(0);
+	CODA_ASSERT(0);
 	break;
       case ResolveViceSymLink_OP:
       case ViceSymLink_OP:
 	if (!NE) {
 	    if (OE) {
-		assert(0); 	
+		CODA_ASSERT(0); 	
 	    }
 	    else
 		return(PERFORMOP);
 	}
 	else {	// name exists
 	    if (OE) {
-		assert(0);
+		CODA_ASSERT(0);
 	    }
 	    else {
 		SLog(0,
@@ -854,7 +854,7 @@ static int CheckValidityResOp(rsle *r, int NE,
 	}
 	else {	// name exists 
 	    if (NameFidBindingOk) {  // link already exists
-		assert(OE);
+		CODA_ASSERT(OE);
 	    }
 	    else { // name points at some other object.... name/name conflict?
 		SLog(0, 
@@ -892,7 +892,7 @@ static int CheckValidityResOp(rsle *r, int NE,
       case ViceMakeDir_OP:
 	if (!NE) {
 	    if (OE) {
-		assert(0);	
+		CODA_ASSERT(0);	
 	    }
 	    else 
 		/* object doesnt exist */
@@ -900,7 +900,7 @@ static int CheckValidityResOp(rsle *r, int NE,
 	}
 	else {	/* name exists */
 	    if (OE) {
-		assert(0);
+		CODA_ASSERT(0);
 	    }
 	    else {
 		SLog(0,
@@ -992,7 +992,7 @@ static int CheckValidityResOp(rsle *r, int NE,
 	  return(MARKPARENTINC);
 	}
       default:
-	assert(0);
+	CODA_ASSERT(0);
     }
 }
 
@@ -1054,8 +1054,8 @@ static int PerformRegularCompOp(int result, rsle *rp, dlist *vlist, dlist *incli
 				       vntype, vlist, &tblocks);
 	if (errorCode == 0) {
 	    cv = FindVLE(*vlist, &cFid);
-	    assert(cv);
-	    assert(cv->vptr);
+	    CODA_ASSERT(cv);
+	    CODA_ASSERT(cv->vptr);
 	    MarkObjInc(&cFid, cv->vptr);
 	    AddILE(*inclist, name, cFid.Vnode, cFid.Unique, 
 		   cv->vptr->disk.vparent, 
@@ -1066,7 +1066,7 @@ static int PerformRegularCompOp(int result, rsle *rp, dlist *vlist, dlist *incli
       default:
 	SLog(0,  
 	       "Illegal opcode for PerformCompOp\n");
-	assert(0);
+	CODA_ASSERT(0);
     }
 
     *nblocks += tblocks;
@@ -1093,7 +1093,7 @@ static int PerformResOp(rsle *r, dlist *vlist, olist *AllLogs,
     switch (r->opcode) {
       case ResolveViceNewStore_OP:
       case ViceNewStore_OP:
-	if (r->u.newst.type != STSTORE) assert(0);
+	if (r->u.newst.type != STSTORE) CODA_ASSERT(0);
 
 	// perform the store 
 	Mask = r->u.newst.mask;
@@ -1129,8 +1129,8 @@ static int PerformResOp(rsle *r, dlist *vlist, olist *AllLogs,
 	    SLog(9,  "PerformResOP: Removing child %s(%x.%x)",
 		    name, cFid.Vnode, cFid.Unique);
 	    vle *cv = FindVLE(*vlist, &cFid);
-	    assert(cv);
-	    assert(cv->vptr);
+	    CODA_ASSERT(cv);
+	    CODA_ASSERT(cv->vptr);
 	    
 	    /* perform remove */
 	    {
@@ -1141,7 +1141,7 @@ static int PerformResOp(rsle *r, dlist *vlist, olist *AllLogs,
 			      blocks);
 		if (cv->vptr->delete_me) {
 		    int tblocks = (int) (-nBlocks(cv->vptr->disk.length));
-		    assert(AdjustDiskUsage(volptr, tblocks) == 0);
+		    CODA_ASSERT(AdjustDiskUsage(volptr, tblocks) == 0);
 		    *blocks += tblocks;
 		    cv->f_sinode = cv->vptr->disk.inodeNumber;
 		    cv->vptr->disk.inodeNumber = 0;
@@ -1169,7 +1169,7 @@ static int PerformResOp(rsle *r, dlist *vlist, olist *AllLogs,
 		    name, cFid.Vnode, cFid.Unique);
 	    /* create the vnode */
 	    vle *cv = AddVLE(*vlist, &cFid);
-	    assert(cv->vptr == 0);
+	    CODA_ASSERT(cv->vptr == 0);
 	    if (errorCode = AllocVnode(&cv->vptr, volptr, (ViceDataType)vFile, &cFid,
 				       &pv->fid, r->u.create.owner,
 				       1, blocks)) {
@@ -1204,7 +1204,7 @@ static int PerformResOp(rsle *r, dlist *vlist, olist *AllLogs,
 	break;
       case ResolveViceRename_OP:
       case ViceRename_OP:
-	assert(0);
+	CODA_ASSERT(0);
 	break;
       case ResolveViceSymLink_OP:
       case ViceSymLink_OP:
@@ -1213,7 +1213,7 @@ static int PerformResOp(rsle *r, dlist *vlist, olist *AllLogs,
 		    name, cFid.Vnode, cFid.Unique);
 	    /* create the vnode */
 	    vle *cv = AddVLE(*vlist, &cFid);
-	    assert(cv->vptr == 0);
+	    CODA_ASSERT(cv->vptr == 0);
 	    if (errorCode = AllocVnode(&cv->vptr, volptr, (ViceDataType)vSymlink, &cFid,
 				       &pv->fid, r->u.slink.owner,
 				       1, blocks)) {
@@ -1235,7 +1235,7 @@ static int PerformResOp(rsle *r, dlist *vlist, olist *AllLogs,
 	    cv->f_finode = icreate((int)V_device(volptr), 0, (int)V_id(volptr),
 				   (int) cv->vptr->vnodeNumber,
 				   (int) cv->vptr->disk.uniquifier, 1);
-	    assert(cv->f_finode > 0);
+	    CODA_ASSERT(cv->f_finode > 0);
 	    cv->vptr->disk.inodeNumber = cv->f_finode;
 	    
 	    /* append log record */
@@ -1292,7 +1292,7 @@ static int PerformResOp(rsle *r, dlist *vlist, olist *AllLogs,
 	    SLog(9,  "PerformResOP: MakeDir %s(%x.%x)",
 		    name, cFid.Vnode, cFid.Unique);
 	    vle *cv = AddVLE(*vlist, &cFid);
-	    assert(!cv->vptr);
+	    CODA_ASSERT(!cv->vptr);
 	    /* allocate the vnode */
 	    if (errorCode = AllocVnode(&cv->vptr, volptr, (ViceDataType)vDirectory,
 				       &cFid, &pv->fid, 
@@ -1348,8 +1348,8 @@ static int PerformResOp(rsle *r, dlist *vlist, olist *AllLogs,
 	    SLog(9,  "PerformResOP: Removing child dir %s(%x.%x)",
 		   name, cFid.Vnode, cFid.Unique);
 	    vle *cv = FindVLE(*vlist, &cFid);
-	    assert(cv);
-    	    assert(cv->vptr);
+	    CODA_ASSERT(cv);
+    	    CODA_ASSERT(cv->vptr);
 	    
 	    PDirHandle cdir;
 	    cdir = VN_SetDirHandle(cv->vptr);
@@ -1367,16 +1367,16 @@ static int PerformResOp(rsle *r, dlist *vlist, olist *AllLogs,
 	    // remove the empty directory 
 	    {
 		cdir = VN_SetDirHandle(cv->vptr);
-		assert(DH_IsEmpty(cdir));
+		CODA_ASSERT(DH_IsEmpty(cdir));
 		tblocks = 0;
 		PerformRmdir(0, VSGVolnum, volptr, 
 			     pv->vptr, cv->vptr, name, 
 			     pv->vptr->disk.unixModifyTime,
 			     0, &r->storeid, &pv->d_cinode, &tblocks);
 		*blocks += tblocks;
-		assert(cv->vptr->delete_me);
+		CODA_ASSERT(cv->vptr->delete_me);
 		tblocks = (int) (-nBlocks(cv->vptr->disk.length));
-		assert(AdjustDiskUsage(volptr, tblocks) == 0);
+		CODA_ASSERT(AdjustDiskUsage(volptr, tblocks) == 0);
 		*blocks += tblocks;
 	    }
 
@@ -1405,8 +1405,8 @@ static int PerformResOp(rsle *r, dlist *vlist, olist *AllLogs,
 		 V_id(volptr));
 
 	  vle *cv = FindVLE(*vlist, &cFid);
-	  assert(cv);
-	  assert(cv->vptr);
+	  CODA_ASSERT(cv);
+	  CODA_ASSERT(cv->vptr);
 
 	  PerformSetQuota(0, VSGVolnum, volptr, cv->vptr, &cFid, 
 			  r->u.sq.newquota, 0, &r->storeid);
@@ -1422,7 +1422,7 @@ static int PerformResOp(rsle *r, dlist *vlist, olist *AllLogs,
       default:
 	SLog(0,  
 	       "Illegal Opcode for performresop %d", r->opcode);
-	assert(0);
+	CODA_ASSERT(0);
 	break;
     }
 
@@ -1480,7 +1480,7 @@ static int SetPhase3DirStatus(ViceStatus *status, ViceFid *Fid,
     ViceVersionVector DiffVV;
     DiffVV = status->VV;
     vle *ov = FindVLE(*vlist, Fid);
-    assert(ov && ov->vptr);
+    CODA_ASSERT(ov && ov->vptr);
     
     // check if new vv is legal 
     int res = VV_Cmp_IgnoreInc(&Vnode_vv(ov->vptr), &DiffVV);
@@ -1488,7 +1488,7 @@ static int SetPhase3DirStatus(ViceStatus *status, ViceFid *Fid,
 	SLog(0,  
 	       "SetPhase3DirStatus: 0x%x.%x VV's are in conflict",
 	       ov->vptr->vnodeNumber, ov->vptr->disk.uniquifier);
-	assert(0);
+	CODA_ASSERT(0);
     }
     else {
 	SubVVs(&DiffVV, &Vnode_vv(ov->vptr));

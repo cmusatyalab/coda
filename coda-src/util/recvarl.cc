@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/util/recvarl.cc,v 4.2 1997/02/26 16:03:07 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/util/recvarl.cc,v 4.3 1998/08/26 21:13:01 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -67,17 +67,17 @@ extern "C" {
 void *recvarl::operator new(size_t size, int recvsize) {
     recvarl *r = 0;
     r = (recvarl *)rvmlib_rec_malloc(recvsize + sizeof(recvarl_length_t));
-    assert(r);
+    CODA_ASSERT(r);
     return(r);
 }
 
 void *recvarl::operator new(size_t size) {
-    assert(0); /* dummy definition of new() to pacify g++; should never get here*/
+    CODA_ASSERT(0); /* dummy definition of new() to pacify g++; should never get here*/
     return(0);
 }
 
 void recvarl::operator delete(void *deadobj, size_t size) {
-    assert(0); /* destructor should never let control get here */
+    CODA_ASSERT(0); /* destructor should never let control get here */
 }
 
 
@@ -92,7 +92,7 @@ recvarl::recvarl(int recvarlsize) {
    because it is possible to call destructor only
    with delete - which calls the c++ delete first */
 recvarl::~recvarl() {
-    assert(0);
+    CODA_ASSERT(0);
 }
 
 int recvarl::size() {		/* return size of particular instance of varl class */
@@ -106,7 +106,7 @@ void *recvarl::end() {
 
 /* not sure if this will work */
 void recvarl::destroy() {
-    assert(this);
+    CODA_ASSERT(this);
     rvmlib_rec_free(this);
 //  this = 0;   Assignment to this no longer allowed; we lose some safety..
 }

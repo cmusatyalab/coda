@@ -105,7 +105,7 @@ fid_create(char *name, fid_ent_t *parent)
     result->type = C_VNON;
     result->kids = ds_list_create(fid_comp, TRUE, FALSE);
     result->parent = parent;
-    assert(strlen(name) <= MAXNAMLEN);
+    CODA_ASSERT(strlen(name) <= MAXNAMLEN);
     strncpy(result->name,name,MAXNAMLEN);
     /* Ensure that there is a null */
     result->name[MAXNAMLEN] = '\0';
@@ -140,7 +140,7 @@ fid_fullname(fid_ent_t *fep)
     do {
 	fidlist[depth++] = fep;
 	fep = fep->parent;
-	assert(depth <= MAXNAMLEN);
+	CODA_ASSERT(depth <= MAXNAMLEN);
     } while (fep != NULL);
 
     for (i=depth-1; i>=0; --i) {
@@ -148,7 +148,7 @@ fid_fullname(fid_ent_t *fep)
 		 strlen(fidlist[i]->name)  == 1)
 		    continue;
 	length += strlen(fidlist[i]->name)+1;  /* component + '/' or '\0' */
-	assert(length < (MAXNAMLEN-1));
+	CODA_ASSERT(length < (MAXNAMLEN-1));
 	src = fidlist[i]->name;
 	while (*src) {
 	    *dest++ = *src++;   /* component */
@@ -193,7 +193,7 @@ fid_assign_type(fid_ent_t *fep, struct stat *sbuf) {
 	break;
 #endif
     default:
-	assert(0);
+	CODA_ASSERT(0);
 	break;
     }
     return 0;
@@ -357,7 +357,7 @@ Setup() {
     int rc;
 
     /* Step 1: change to root directory */
-    assert(!(chdir(RootDir)));
+    CODA_ASSERT(!(chdir(RootDir)));
 
     /* Step 2: set up the fid<->file table */
     fid_init();
@@ -383,10 +383,10 @@ Setup() {
     KernFD = open(KernDevice, O_RDWR, 0);
 #endif
 
-    assert(KernFD >= 0);
+    CODA_ASSERT(KernFD >= 0);
     msg.oh.opcode = CODA_FLUSH;
     msg.oh.unique = 0;
-    assert (MsgWrite((char*)&msg, sizeof(struct coda_out_hdr))
+    CODA_ASSERT (MsgWrite((char*)&msg, sizeof(struct coda_out_hdr))
 	    == sizeof(struct coda_out_hdr));
 
 #ifdef __linux__
@@ -418,7 +418,7 @@ Setup() {
     }
 #endif
 #ifdef __BSD44__
-    assert (!mount(MOUNT_CFS, MountPt, 0, KernDevice));
+    CODA_ASSERT (!mount(MOUNT_CFS, MountPt, 0, KernDevice));
 #endif
 
     /* Set up a signal handler to dump the contents of the FidTab */
@@ -427,7 +427,7 @@ Setup() {
     sa.sa_flags = SA_RESTART;
 #endif
     sigemptyset(&sa.sa_mask);  /* or -1, who knows? */
-    assert (!sigaction(SIGUSR1, &sa, NULL));
+    CODA_ASSERT (!sigaction(SIGUSR1, &sa, NULL));
 
     /* Set umask to zero */
     umask(0);
@@ -448,7 +448,7 @@ child_exists(char *path, char *name) {
     int                length;
 
     dirp = opendir(path);
-    assert(dirp);
+    CODA_ASSERT(dirp);
     length = strlen(name);
     do {
 	dep = readdir(dirp);
@@ -529,7 +529,7 @@ DoRoot(union inputArgs *in, union outputArgs *out, int *reply)
     fid_ent_t       *root;
     if (!RootFid) {
 	root = fid_create(".", NULL);
-	assert(ds_hash_insert(FidTab, root));
+	CODA_ASSERT(ds_hash_insert(FidTab, root));
 	root->type = C_VDIR;
 	RootFep = root;
 	RootFid = &(root->fid);
@@ -561,7 +561,7 @@ DoOpen(union inputArgs *in, union outputArgs *out, int *reply)
     flags = &(in->coda_open.flags);
 
     dummy.fid = *fp;
-    assert((fep = ds_hash_member(FidTab, &dummy)) != NULL);
+    CODA_ASSERT((fep = ds_hash_member(FidTab, &dummy)) != NULL);
     
     path = fid_fullname(fep);
     if (verbose) {
@@ -603,7 +603,7 @@ DoOpenByPath(union inputArgs *in, union outputArgs *out, int *reply)
     flags = &(in->coda_open_by_path.flags);
 
     dummy.fid = *fp;
-    assert((fep = ds_hash_member(FidTab, &dummy)) != NULL);
+    CODA_ASSERT((fep = ds_hash_member(FidTab, &dummy)) != NULL);
     
     path = fid_fullname(fep);
     if (verbose) {
@@ -689,7 +689,7 @@ DoLookup(union inputArgs *in, union outputArgs *out, int *reply)
     struct stat        sbuf;
     
     fp = &(in->coda_lookup.VFid);
-    assert((int)in->coda_lookup.name == VC_INSIZE(coda_lookup_in));
+    CODA_ASSERT((int)in->coda_lookup.name == VC_INSIZE(coda_lookup_in));
     name = (char*)in + (int)in->coda_lookup.name;
 
     if (verbose) {
@@ -700,7 +700,7 @@ DoLookup(union inputArgs *in, union outputArgs *out, int *reply)
     
     /* We'd better be looking up in a directory */
     dummy.fid = *fp;
-    assert((fep = (fid_ent_t *) ds_hash_member (FidTab, &dummy)) != NULL);
+    CODA_ASSERT((fep = (fid_ent_t *) ds_hash_member (FidTab, &dummy)) != NULL);
     if (fep->type != C_VDIR) {
 	out->oh.result = ENOTDIR;
 	goto exit;
@@ -762,8 +762,8 @@ DoLookup(union inputArgs *in, union outputArgs *out, int *reply)
 	}
 
 	/* Remember that we have this vnode */
-	assert(ds_hash_insert(FidTab, childp));
-	assert(ds_list_insert(fep->kids, childp));
+	CODA_ASSERT(ds_hash_insert(FidTab, childp));
+	CODA_ASSERT(ds_list_insert(fep->kids, childp));
     }
 
  found:
@@ -807,7 +807,7 @@ DoGetattr(union inputArgs *in, union outputArgs *out, int *reply)
     }
     
     dummy.fid = *fp;
-    assert((fep = (fid_ent_t *) ds_hash_member (FidTab, &dummy)) != NULL);
+    CODA_ASSERT((fep = (fid_ent_t *) ds_hash_member (FidTab, &dummy)) != NULL);
 
     path = fid_fullname(fep);
     if (lstat(path,&st)) {
@@ -881,7 +881,7 @@ DoCreate(union inputArgs *in, union outputArgs *out, int *reply)
     readp = mode & C_M_READ;
     writep = mode & C_M_WRITE;
     truncp = (attr->va_size == 0);
-    assert((int)in->coda_create.name == VC_INSIZE(coda_create_in));
+    CODA_ASSERT((int)in->coda_create.name == VC_INSIZE(coda_create_in));
     name = (char*)in + (int)in->coda_create.name;
     newFp = &(out->coda_create.VFid);
     newAttr = &(out->coda_create.attr);
@@ -894,7 +894,7 @@ DoCreate(union inputArgs *in, union outputArgs *out, int *reply)
     
     /* Where are we creating this? */
     dummy.fid = *fp;
-    assert((fep = (fid_ent_t *) ds_hash_member(FidTab, &dummy)) != NULL);
+    CODA_ASSERT((fep = (fid_ent_t *) ds_hash_member(FidTab, &dummy)) != NULL);
     if (fep->type != C_VDIR) {
 	printf("Ack!  Trying to create in a non-directory!\n");
 	out->oh.result = ENOTDIR;
@@ -995,22 +995,22 @@ DoCreate(union inputArgs *in, union outputArgs *out, int *reply)
     /* Set the creator for this file */
     suid = getuid();
     sgid = getgid();
-    assert(!setgid(cred->cr_groupid));
-    assert(!seteuid(cred->cr_uid));
+    CODA_ASSERT(!setgid(cred->cr_groupid));
+    CODA_ASSERT(!seteuid(cred->cr_uid));
 
     /* Do the open */
     if ((fd = open(path, oflags, omode)) < 0) {
 	out->oh.result = errno;
-	assert(!seteuid(suid));
-	assert(!setgid(sgid));
+	CODA_ASSERT(!seteuid(suid));
+	CODA_ASSERT(!setgid(sgid));
 	goto exit;
     } else {
 	close(fd);
     }
 
     /* Reset our effective uid/gid */
-    assert(!seteuid(suid));
-    assert(!setgid(sgid));
+    CODA_ASSERT(!seteuid(suid));
+    CODA_ASSERT(!setgid(sgid));
 
     /* Stat the thing so that we can set it's type correctly. */
     /* Complain miserably if it isn't a plain file! */
@@ -1029,8 +1029,8 @@ DoCreate(union inputArgs *in, union outputArgs *out, int *reply)
     /* We are now doomed to succeed :-) */
     /* Record this fid, and finish off */
     out->oh.result = 0;
-    assert(ds_hash_insert(FidTab, newFep));
-    assert(ds_list_insert(fep->kids, newFep));
+    CODA_ASSERT(ds_hash_insert(FidTab, newFep));
+    CODA_ASSERT(ds_list_insert(fep->kids, newFep));
 
     /* Set the return values for the create call */
     *newFp = newFep->fid;
@@ -1064,7 +1064,7 @@ DoRemove(union inputArgs *in, union outputArgs *out, int *reply)
 
     fp = &(in->coda_remove.VFid);
     cred = &(in->ih.cred);
-    assert((int)in->coda_remove.name == VC_INSIZE(coda_remove_in));
+    CODA_ASSERT((int)in->coda_remove.name == VC_INSIZE(coda_remove_in));
     name = (char*)in + (int)in->coda_remove.name;
     
     if (verbose) {
@@ -1074,7 +1074,7 @@ DoRemove(union inputArgs *in, union outputArgs *out, int *reply)
     
     /* Get the directory from which we are removing */
     dummy.fid = *fp;
-    assert((fep = (fid_ent_t *) ds_hash_member(FidTab, &dummy)) != NULL);
+    CODA_ASSERT((fep = (fid_ent_t *) ds_hash_member(FidTab, &dummy)) != NULL);
     if (fep->type != C_VDIR) {
 	printf("REMOVE: parent not directory!\n");
 	out->oh.result = ENOTDIR;
@@ -1157,7 +1157,7 @@ DoRemove(union inputArgs *in, union outputArgs *out, int *reply)
 	    break;
 #endif
     default:
-	assert(0);
+	CODA_ASSERT(0);
 	break;
     }
     
@@ -1165,19 +1165,19 @@ DoRemove(union inputArgs *in, union outputArgs *out, int *reply)
     /* Do the unlink.  Need to try it as the user calling us */
     suid = getuid();
     sgid = getgid();
-    assert(!setgid(cred->cr_groupid));
-    assert(!seteuid(cred->cr_uid));
+    CODA_ASSERT(!setgid(cred->cr_groupid));
+    CODA_ASSERT(!seteuid(cred->cr_uid));
 
     if (unlink(path)) {
 	out->oh.result = errno;
-	assert(!seteuid(suid));
-	assert(!setgid(sgid));
+	CODA_ASSERT(!seteuid(suid));
+	CODA_ASSERT(!setgid(sgid));
 	goto exit;
     }
     
     /* reset our effictive credentials */
-    assert(!seteuid(suid));
-    assert(!setgid(sgid));
+    CODA_ASSERT(!seteuid(suid));
+    CODA_ASSERT(!setgid(sgid));
 
     /* We are now doomed to succeed */
     /* If the victimFep was already known, remove & destroy it */
@@ -1283,7 +1283,7 @@ DoSetattr(union inputArgs *in, union outputArgs *out, int *reply)
 
     /* Get the object to setattr */
     dummy.fid = *fp;
-    assert((fep = (fid_ent_t *) ds_hash_member(FidTab, &dummy)) != NULL);
+    CODA_ASSERT((fep = (fid_ent_t *) ds_hash_member(FidTab, &dummy)) != NULL);
     path = fid_fullname(fep);
 
     /* 
@@ -1296,8 +1296,8 @@ DoSetattr(union inputArgs *in, union outputArgs *out, int *reply)
      */
     suid = getuid();
     sgid = getgid();
-    assert(!setgid(cred->cr_groupid));
-    assert(!seteuid(cred->cr_uid));
+    CODA_ASSERT(!setgid(cred->cr_groupid));
+    CODA_ASSERT(!seteuid(cred->cr_uid));
 
     /* Are we truncating the file? */
     if ((u_long)vap->va_size != (u_long)-1) {
@@ -1356,8 +1356,8 @@ DoSetattr(union inputArgs *in, union outputArgs *out, int *reply)
     out->oh.result = 0;
     
  exit:
-    assert(!seteuid(suid));
-    assert(!setgid(sgid));
+    CODA_ASSERT(!seteuid(suid));
+    CODA_ASSERT(!setgid(sgid));
  earlyexit:
     if (path) free(path);
     *reply = VC_OUT_NO_DATA;
@@ -1401,7 +1401,7 @@ DoRename(union inputArgs *in, union outputArgs *out, int *reply)
 
     /* Grab source directory, make sure it's a directory. */
     dummy.fid = *sdfp;
-    assert((sdfep = (fid_ent_t *) ds_hash_member(FidTab, &dummy)) != NULL);
+    CODA_ASSERT((sdfep = (fid_ent_t *) ds_hash_member(FidTab, &dummy)) != NULL);
     if (sdfep->type != C_VDIR) {
 	printf("Ack!  Trying to rename something from a non-directory!\n");
 	out->oh.result = ENOTDIR;
@@ -1410,7 +1410,7 @@ DoRename(union inputArgs *in, union outputArgs *out, int *reply)
 
     /* Grab target directory, make sure it's a directory. */
     dummy.fid = *tdfp;
-    assert((tdfep = (fid_ent_t *) ds_hash_member(FidTab, &dummy)) != NULL);
+    CODA_ASSERT((tdfep = (fid_ent_t *) ds_hash_member(FidTab, &dummy)) != NULL);
     if (tdfep->type != C_VDIR) {
 	printf("Ack!  Trying to rename something from a non-directory!\n");
 	out->oh.result = ENOTDIR;
@@ -1484,18 +1484,18 @@ DoRename(union inputArgs *in, union outputArgs *out, int *reply)
     /* Step 3: try to do the rename. */
     suid = getuid();
     sgid = getgid();
-    assert(!setgid(cred->cr_groupid));
-    assert(!seteuid(cred->cr_uid));
+    CODA_ASSERT(!setgid(cred->cr_groupid));
+    CODA_ASSERT(!seteuid(cred->cr_uid));
 
     if (rename(spath,tpath)) {
-	assert(!seteuid(suid));
-	assert(!setgid(sgid));
+	CODA_ASSERT(!seteuid(suid));
+	CODA_ASSERT(!setgid(sgid));
 	out->oh.result = errno;
 	printf("RENAME: rename failed %s\n",strerror(errno));
 	goto exit;
     }
-    assert(!seteuid(suid));
-    assert(!setgid(sgid));
+    CODA_ASSERT(!seteuid(suid));
+    CODA_ASSERT(!setgid(sgid));
 
     /* We will now succeed */
     out->oh.result = 0;
@@ -1559,7 +1559,7 @@ DoMkdir(union inputArgs *in, union outputArgs *out, int *reply)
     fp = &(in->coda_mkdir.VFid);
     attr = &(in->coda_mkdir.attr);
     cred = &(in->ih.cred);
-    assert((int)in->coda_mkdir.name == VC_INSIZE(coda_mkdir_in));
+    CODA_ASSERT((int)in->coda_mkdir.name == VC_INSIZE(coda_mkdir_in));
     name = (char*)in + (int)in->coda_mkdir.name;
     newFp = &(out->coda_mkdir.VFid);
     newAttr = &(out->coda_mkdir.attr);
@@ -1572,7 +1572,7 @@ DoMkdir(union inputArgs *in, union outputArgs *out, int *reply)
 
     /* Where are we creating this? */
     dummy.fid = *fp;
-    assert((fep = (fid_ent_t *) ds_hash_member(FidTab, &dummy)) != NULL);
+    CODA_ASSERT((fep = (fid_ent_t *) ds_hash_member(FidTab, &dummy)) != NULL);
     if (fep->type != C_VDIR) {
 	printf("Ack!  Trying to mkdir in a non-directory!\n");
 	out->oh.result = ENOTDIR;
@@ -1620,21 +1620,21 @@ DoMkdir(union inputArgs *in, union outputArgs *out, int *reply)
     /* Set the creator for this file */
     suid = getuid();
     sgid = getgid();
-    assert(!setgid(cred->cr_groupid));
-    assert(!seteuid(cred->cr_uid));
+    CODA_ASSERT(!setgid(cred->cr_groupid));
+    CODA_ASSERT(!seteuid(cred->cr_uid));
 
     /* Do the mkdir */
     if (mkdir(path,mode)) {
 	printf("MKDIR: mkdir failed (%s)\n",strerror(errno));
 	out->oh.result = errno;
-	assert(!seteuid(suid));
-	assert(!setgid(sgid));
+	CODA_ASSERT(!seteuid(suid));
+	CODA_ASSERT(!setgid(sgid));
 	goto exit;
     }
 
     /* Reset our effective uid/gid */
-    assert(!seteuid(suid));
-    assert(!setgid(sgid));
+    CODA_ASSERT(!seteuid(suid));
+    CODA_ASSERT(!setgid(sgid));
 
     /* Stat it so we can set type, return coda_vattr correctly */
     if (lstat(path,&sbuf)) {
@@ -1651,8 +1651,8 @@ DoMkdir(union inputArgs *in, union outputArgs *out, int *reply)
     /* We are now doomed to succeed :-) */
     /* Record this fid, and finish off */
     out->oh.result = 0;
-    assert(ds_hash_insert(FidTab, newFep));
-    assert(ds_list_insert(fep->kids, newFep));
+    CODA_ASSERT(ds_hash_insert(FidTab, newFep));
+    CODA_ASSERT(ds_list_insert(fep->kids, newFep));
 
     /* Set the return values for the create call */
     *newFp = newFep->fid;
@@ -1683,7 +1683,7 @@ DoRmdir(union inputArgs *in, union outputArgs *out, int *reply)
 
     fp = &(in->coda_rmdir.VFid);
     cred = &(in->ih.cred);
-    assert((int)in->coda_rmdir.name == VC_INSIZE(coda_rmdir_in));
+    CODA_ASSERT((int)in->coda_rmdir.name == VC_INSIZE(coda_rmdir_in));
     name = (char*)in + (int)in->coda_rmdir.name;
 
     if (verbose) {
@@ -1693,7 +1693,7 @@ DoRmdir(union inputArgs *in, union outputArgs *out, int *reply)
 
     /* Get the directory from which we are removing */
     dummy.fid = *fp;
-    assert((fep = (fid_ent_t *) ds_hash_member(FidTab, &dummy)) != NULL);
+    CODA_ASSERT((fep = (fid_ent_t *) ds_hash_member(FidTab, &dummy)) != NULL);
     if (fep->type != C_VDIR) {
 	printf("RMDIR: parent not directory!\n");
 	out->oh.result = ENOTDIR;
@@ -1781,7 +1781,7 @@ DoRmdir(union inputArgs *in, union outputArgs *out, int *reply)
 	break;
 #endif
     default:
-	assert(0);
+	CODA_ASSERT(0);
 	break;
     }
 
@@ -1789,19 +1789,19 @@ DoRmdir(union inputArgs *in, union outputArgs *out, int *reply)
     /* Do the rmdir. */
     suid = getuid();
     sgid = getgid();
-    assert(!setgid(cred->cr_groupid));
-    assert(!seteuid(cred->cr_uid));
+    CODA_ASSERT(!setgid(cred->cr_groupid));
+    CODA_ASSERT(!seteuid(cred->cr_uid));
 
     if (rmdir(path)) {
 	out->oh.result = errno;
-	assert(!seteuid(suid));
-	assert(!setgid(sgid));
+	CODA_ASSERT(!seteuid(suid));
+	CODA_ASSERT(!setgid(sgid));
 	goto exit;
     }
     
     /* reset our effictive credentials */
-    assert(!seteuid(suid));
-    assert(!setgid(sgid));
+    CODA_ASSERT(!seteuid(suid));
+    CODA_ASSERT(!setgid(sgid));
 
     /* We are now doomed to succeed */
     /* If the victimFep was already known, remove it */
@@ -1846,7 +1846,7 @@ DoReadlink(union inputArgs *in, union outputArgs *out, int *reply)
     
     /* Grab the fid to readlink */
     dummy.fid = *fp;
-    assert((fep = (fid_ent_t *) ds_hash_member(FidTab, &dummy)) != NULL);
+    CODA_ASSERT((fep = (fid_ent_t *) ds_hash_member(FidTab, &dummy)) != NULL);
     if (fep->type != C_VLNK) {
 	printf("Ack!  Trying to readlink something not a symlink!\n");
 	out->oh.result = ENOTDIR;
@@ -1858,8 +1858,8 @@ DoReadlink(union inputArgs *in, union outputArgs *out, int *reply)
 
     suid = getuid();
     sgid = getgid();
-    assert(!setgid(cred->cr_groupid));
-    assert(!seteuid(cred->cr_uid));
+    CODA_ASSERT(!setgid(cred->cr_groupid));
+    CODA_ASSERT(!seteuid(cred->cr_uid));
 
     out->coda_readlink.data = (char*)VC_OUTSIZE(coda_readlink_out);
 #ifndef DJGPP
@@ -1867,8 +1867,8 @@ DoReadlink(union inputArgs *in, union outputArgs *out, int *reply)
 		      (char*)out+(int)out->coda_readlink.data,
 		      VC_MAXDATASIZE-1);
 #endif
-    assert(!seteuid(suid));
-    assert(!setgid(sgid));
+    CODA_ASSERT(!seteuid(suid));
+    CODA_ASSERT(!setgid(sgid));
 
     if (*count < 0) {
 	printf("READLINK: readlink of %s failed (%s)\n",
@@ -1912,7 +1912,7 @@ DoLink(union inputArgs *in, union outputArgs *out, int *reply)
     dfp = &(in->coda_link.destFid);
     tfp = &(in->coda_link.sourceFid);
     cred = &(in->ih.cred);
-    assert((int)in->coda_link.tname == VC_INSIZE(coda_link_in));
+    CODA_ASSERT((int)in->coda_link.tname == VC_INSIZE(coda_link_in));
     name = (char*)in + (int)in->coda_link.tname;
     
     if (verbose) {
@@ -1935,9 +1935,9 @@ DoLink(union inputArgs *in, union outputArgs *out, int *reply)
 
     /* Get the two fep's */
     dummy.fid = *tfp;
-    assert((tfep = (fid_ent_t *) ds_hash_member(FidTab, &dummy)) != NULL);
+    CODA_ASSERT((tfep = (fid_ent_t *) ds_hash_member(FidTab, &dummy)) != NULL);
     dummy.fid = *dfp;
-    assert((dfep = (fid_ent_t *) ds_hash_member(FidTab, &dummy)) != NULL);
+    CODA_ASSERT((dfep = (fid_ent_t *) ds_hash_member(FidTab, &dummy)) != NULL);
 
     /* Is dfp a directory? */
     if (dfep->type != C_VDIR) {
@@ -1989,18 +1989,18 @@ DoLink(union inputArgs *in, union outputArgs *out, int *reply)
     /* Do the link */
     suid = getuid();
     sgid = getgid();
-    assert(!setgid(cred->cr_groupid));
-    assert(!seteuid(cred->cr_uid));
+    CODA_ASSERT(!setgid(cred->cr_groupid));
+    CODA_ASSERT(!seteuid(cred->cr_uid));
 
     if (link(tpath,lpath)) {
 	out->oh.result = errno;
-	assert(!seteuid(suid));
-	assert(!setgid(sgid));
+	CODA_ASSERT(!seteuid(suid));
+	CODA_ASSERT(!setgid(sgid));
 	goto exit;
     }
 
-    assert(!seteuid(suid));
-    assert(!setgid(sgid));
+    CODA_ASSERT(!seteuid(suid));
+    CODA_ASSERT(!setgid(sgid));
 
     /* Link created.  We're in good shape */
     /* Touch the file.  Ignore failure */
@@ -2013,8 +2013,8 @@ DoLink(union inputArgs *in, union outputArgs *out, int *reply)
      */
     out->oh.result = 0;
     lfep->type = tfep->type;  /* Whatever we linked to. */
-    assert(ds_hash_insert(FidTab, lfep));
-    assert(ds_list_insert(dfep->kids, lfep));
+    CODA_ASSERT(ds_hash_insert(FidTab, lfep));
+    CODA_ASSERT(ds_list_insert(dfep->kids, lfep));
     
  exit:
     /* If the link failed, and we created a fid entry for the link */
@@ -2054,7 +2054,7 @@ DoSymlink(union inputArgs *in, union outputArgs *out, int *reply)
     }
 	
     dummy.fid = *fp;
-    assert((fep = (fid_ent_t *) ds_hash_member(FidTab, &dummy)) != NULL);
+    CODA_ASSERT((fep = (fid_ent_t *) ds_hash_member(FidTab, &dummy)) != NULL);
     if (fep->type != C_VDIR) {
 	printf("Ack!  Trying to symlink in a non-directory!\n");
 	out->oh.result = ENOTDIR;
@@ -2092,26 +2092,26 @@ DoSymlink(union inputArgs *in, union outputArgs *out, int *reply)
     /* Set up credentials */
     suid = getuid();
     sgid = getgid();
-    assert(!setgid(cred->cr_groupid));
-    assert(!seteuid(cred->cr_uid));
+    CODA_ASSERT(!setgid(cred->cr_groupid));
+    CODA_ASSERT(!seteuid(cred->cr_uid));
 
     if (symlink(contents, path)) {
 	out->oh.result = errno;
-	assert(!seteuid(suid));
-	assert(!setgid(sgid));
+	CODA_ASSERT(!seteuid(suid));
+	CODA_ASSERT(!setgid(sgid));
 	goto exit;
     }	
     
-    assert(!seteuid(suid));
-    assert(!setgid(sgid));
+    CODA_ASSERT(!seteuid(suid));
+    CODA_ASSERT(!setgid(sgid));
 
     /* We know it's a symlink */
     newFep->type = C_VLNK;
 
     /* We're going to succeed.  Enter the fid, and set return value */
     out->oh.result = 0;
-    assert(ds_hash_insert(FidTab, newFep));
-    assert(ds_list_insert(fep->kids, newFep));
+    CODA_ASSERT(ds_hash_insert(FidTab, newFep));
+    CODA_ASSERT(ds_list_insert(fep->kids, newFep));
 
  exit:
     /* Toast the new vnode if we have an error */
@@ -2273,7 +2273,7 @@ Service()
 	}
 
 	/* Read what we can... */
-	assert((rc = MsgRead(inbuf)) >= 0);
+	CODA_ASSERT((rc = MsgRead(inbuf)) >= 0);
 	if (rc < VC_IN_NO_DATA) {
 	    fprintf(stderr,"Message fragment: size %d --",rc);
 	    perror(NULL);
@@ -2291,7 +2291,7 @@ Service()
 	}
 
 	/* Write out the result */
-	assert((rc = MsgWrite(outbuf, reply_size)) >= 0);
+	CODA_ASSERT((rc = MsgWrite(outbuf, reply_size)) >= 0);
 	if (rc < reply_size) {
 	    fprintf(stderr,"Wrote fragment %d/%d --", rc, reply_size);
 	    perror(NULL);

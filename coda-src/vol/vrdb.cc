@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vol/vrdb.cc,v 4.3 1998/01/10 18:39:46 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vol/vrdb.cc,v 4.4 1998/08/26 21:22:30 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -315,7 +315,7 @@ void vrent::HostListToVV(unsigned long *Hosts, vv_t *VV) {
     for (int i = 0; i < VSG_MEMBERS; i++)
 	if (Hosts[i]) {
 	    int ix = index(Hosts[i]);
-	    assert(ix != -1);
+	    CODA_ASSERT(ix != -1);
 	    (&(VV->Versions.Site0))[ix] = 1;
 	}
 }
@@ -345,7 +345,7 @@ int vrent::GetVolumeInfo(VolumeInfo *Info) {
     }
     if (canonicalize) {
 	long tmpvsgaddr = GetVSGAddress(&(Info->Server0), Info->ServerCount);
-	assert(tmpvsgaddr == addr);
+	CODA_ASSERT(tmpvsgaddr == addr);
     }
     Info->VSGAddr = addr;
     for (i = 0; i < nServers; i++)
@@ -381,7 +381,7 @@ void vrent::Canonicalize() {
 	// find the hosts real position in the sorted array
 	for (j = 0; j < nServers; j++) 
 	    if (CopyVolHostAddr[i] == VolHostAddr[j]) break;
-	assert(j < nServers);
+	CODA_ASSERT(j < nServers);
 	ServerVolnum[j] = CopySrvVolNum[i];
     }
     char buf[512], *c;

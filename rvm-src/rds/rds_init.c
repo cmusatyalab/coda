@@ -33,7 +33,7 @@ should be returned to Software.Distribution@cs.cmu.edu.
 
 */
 
-static char *rcsid = "$Header: rds_init.c,v 1.1 96/11/22 13:39:51 raiff Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/rvm-src/rds/rds_init.c,v 4.1 1997/01/08 21:54:27 rvb Exp $";
 #endif _BLURB_
 
 
@@ -124,7 +124,7 @@ rds_init_heap(base, length, chunk_size, nlists, tid, err)
 
     /* Add the guard to the end of the block */
     addr = (int *)((char *)fbp + fbp->size * chunk_size);
-    ASSERT((char *)addr <= base + length);
+    CODA_ASSERT((char *)addr <= base + length);
     
     addr--;  /* point to last word in the block */
     rvmret = rvm_set_range(tid, addr, sizeof(guard_t));

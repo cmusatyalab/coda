@@ -21,7 +21,7 @@ PDirHeader DI_DiToDh(PDirInode pdi)
 	size = DIR_PAGESIZE * DI_Pages(pdi);
 
 	pdh = (char *) malloc(size);
-	assert(pdh);
+	CODA_ASSERT(pdh);
 
 	for (i = 0; i < DIR_MAXPAGES; i++) {
 		if (pdi->di_pages[i] == 0) 
@@ -41,12 +41,12 @@ void DI_DhToDi(PDCEntry pdce)
 
 	DIR_intrans();
 
-	assert(pdh);
+	CODA_ASSERT(pdh);
 	pages = DH_Length(pdh)/DIR_PAGESIZE;
 
 	if (pdi == NULL) {
 		pdi = (PDirInode) rvmlib_rec_malloc(sizeof(*pdi));
-		assert(pdi);
+		CODA_ASSERT(pdi);
 		bzero((char *)pdi, sizeof(*pdi));
 		DC_SetDI(pdce, pdi);
 	} 
@@ -58,7 +58,7 @@ void DI_DhToDi(PDCEntry pdce)
 	for ( i=0 ; i<pages ; i++) {
 		if ( pdi->di_pages[i] == 0 ) {
 			pdi->di_pages[i] = rvmlib_rec_malloc(DIR_PAGESIZE);
-			assert(pdi->di_pages[i]); 
+			CODA_ASSERT(pdi->di_pages[i]); 
 		}
 		rvmlib_set_range(pdi->di_pages[i], DIR_PAGESIZE);
 		bcopy((const void *)DIR_Page(pdh->dh_data, i), 
@@ -82,7 +82,7 @@ void DI_Dec(PDirInode pdi)
 
 	DIR_intrans();
 
-	assert(pdi); 
+	CODA_ASSERT(pdi); 
 	rcount = pdi->di_refcount;
 	if (rcount == 1){
 		/* Last vnode referencing directory inode - delete it */
@@ -105,7 +105,7 @@ void DI_Inc(PDirInode pdi)
 
 	DIR_intrans();
 
-        assert(pdi);
+        CODA_ASSERT(pdi);
 	rcount = pdi->di_refcount;
 	rcount++;
 	RVMLIB_MODIFY(pdi->di_refcount, rcount);
@@ -114,7 +114,7 @@ void DI_Inc(PDirInode pdi)
 /* return the refcoount of a directory */
 int DI_Count(PDirInode pdi)
 {
-        assert(pdi);
+        CODA_ASSERT(pdi);
 	return  pdi->di_refcount;
 }
 
@@ -122,13 +122,13 @@ int DI_Count(PDirInode pdi)
 int DI_Pages(PDirInode pdi)
 {
 	int i = 0;
-	assert(pdi);
+	CODA_ASSERT(pdi);
 
 	while( pdi->di_pages[i] && (i <= DIR_MAXPAGES)) 
 		i++;
 	
 	/* check this guy is valid */
-	assert(i< DIR_MAXPAGES);
+	CODA_ASSERT(i< DIR_MAXPAGES);
 	return i;
 }
 
@@ -136,8 +136,8 @@ int DI_Pages(PDirInode pdi)
 void *DI_Page(PDirInode pdi, int page)
 {
 	
-	assert(pdi);
-	assert(page>=0 && page < DIR_MAXPAGES);
+	CODA_ASSERT(pdi);
+	CODA_ASSERT(page>=0 && page < DIR_MAXPAGES);
 
 	return pdi->di_pages[page];
 }
@@ -151,10 +151,10 @@ void DI_Copy(PDirInode oldinode, PDirInode *newinode)
 	DIR_intrans();
 
 	DLog(29, "Entering DI_Copy(%p , %p)", oldinode, newinode);
-	assert(oldinode);
+	CODA_ASSERT(oldinode);
 
 	*newinode = (PDirInode)rvmlib_rec_malloc(sizeof(**newinode));
-	assert(*newinode);
+	CODA_ASSERT(*newinode);
 	rvmlib_set_range(*newinode, sizeof(*newinode));
 
 	bzero((void *)*newinode, sizeof(**newinode));
@@ -175,10 +175,10 @@ void DI_VMCopy(PDirInode oldinode, PDirInode *newinode)
 	int i;
 
 	DLog(29, "Entering DI_Copy(%p , %p)", oldinode, newinode);
-	assert(oldinode);
+	CODA_ASSERT(oldinode);
 
 	*newinode = (PDirInode)malloc(sizeof(**newinode));
-	assert(*newinode);
+	CODA_ASSERT(*newinode);
 
 	bzero((void *)*newinode, sizeof(**newinode));
 	for(i = 0; i < DIR_MAXPAGES; i++)
@@ -199,7 +199,7 @@ void DI_VMDec(PDirInode pdi)
 	int rcount;
 	int i;
 
-	assert(pdi); 
+	CODA_ASSERT(pdi); 
 	rcount = pdi->di_refcount;
 	if (rcount == 1){
 		/* Last vnode referencing directory inode - delete it */
@@ -219,7 +219,7 @@ void DI_VMDec(PDirInode pdi)
 void DI_VMFree(PDirInode pdi)
 {
 
-	assert(pdi); 
+	CODA_ASSERT(pdi); 
 	pdi->di_refcount = 1;
 	DI_VMDec(pdi);
 }
@@ -232,7 +232,7 @@ PDirInode DI_New()
 	DLog(29, "Entering DI_New");
 
 	newinode = (PDirInode)rvmlib_rec_malloc(sizeof(*newinode));
-	assert(newinode);
+	CODA_ASSERT(newinode);
 	rvmlib_set_range(newinode, sizeof(newinode));
 	bzero((void *)newinode, sizeof(*newinode));
 	newinode->di_refcount = 1;

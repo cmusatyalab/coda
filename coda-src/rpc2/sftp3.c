@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rpc2/sftp3.c,v 4.11 1998/09/15 14:28:00 jaharkes Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rpc2/sftp3.c,v 4.12 1998/09/15 20:14:02 smarc Exp $";
 #endif /*_BLURB_*/
 
 
@@ -208,7 +208,7 @@ void sftp_InitRTT(RPC2_Unsigned obs, register struct SFTP_Entry *sEntry)
 {
     unsigned long newrex;
 
-    assert(sEntry->RTT == 0);
+    CODA_ASSERT(sEntry->RTT == 0);
 
     /* initialize estimates */
     sEntry->RTT = obs << SFTP_RTT_SHIFT;
@@ -236,7 +236,7 @@ void sftp_UpdateRTT(RPC2_Unsigned tStamp, register struct SFTP_Entry *sEntry)
     long diff;
     unsigned long newrex;
 
-    assert(sEntry->RTT);
+    CODA_ASSERT(sEntry->RTT);
 
     sftp_rttupdates++;
     obs -= tStamp;
@@ -510,15 +510,15 @@ int sftp_WriteStrategy(register struct SFTP_Entry *sEntry)
     B_ShiftLeft(sEntry->RecvTheseBits, iovlen);
 
     /* update the multicast state */
-    assert(mcastlen == iovlen || mcastlen == 0);
+    CODA_ASSERT(mcastlen == iovlen || mcastlen == 0);
     if (mcastlen != 0) {
 	struct CEntry		*ce;
 	struct MEntry		*me;
 	struct SFTP_Entry	*mse;
 
-	assert((ce = rpc2_GetConn(sEntry->LocalHandle)) != NULL);
-	assert((me = ce->Mgrp) != NULL);
-	assert((mse = (struct SFTP_Entry *)me->SideEffectPtr) != NULL);
+	CODA_ASSERT((ce = rpc2_GetConn(sEntry->LocalHandle)) != NULL);
+	CODA_ASSERT((me = ce->Mgrp) != NULL);
+	CODA_ASSERT((mse = (struct SFTP_Entry *)me->SideEffectPtr) != NULL);
 	mse->RecvLastContig += mcastlen;
     }
 
@@ -663,7 +663,7 @@ int sftp_AckArrived(pBuff, sEntry)
     /* Handle multicast STOREs here */
     if (sEntry->UseMulticast)
 	{
-	assert(sEntry->SDesc->Value.SmartFTPD.TransmissionDirection == CLIENTTOSERVER);
+	CODA_ASSERT(sEntry->SDesc->Value.SmartFTPD.TransmissionDirection == CLIENTTOSERVER);
 	return(MC_CheckAckorNak(sEntry));
 	}
 
@@ -691,7 +691,7 @@ int sftp_AckArrived(pBuff, sEntry)
 	{
 	if (sftp_SendStrategy(sEntry) < 0) return(-1);
 	/* There must be at least ONE unacked packet at this point */
-	assert(sEntry->SendMostRecent > sEntry->SendLastContig);
+	CODA_ASSERT(sEntry->SendMostRecent > sEntry->SendLastContig);
 	}
 
     return(0);
@@ -760,7 +760,7 @@ int sftp_SendStrategy(sEntry)
     winopen = WinIsOpen(sEntry);
 
     /* Sanity check */
-    assert(sEntry->ReadAheadCount > 0 || sEntry->HitEOF || !winopen);
+    CODA_ASSERT(sEntry->ReadAheadCount > 0 || sEntry->HitEOF || !winopen);
 
     /* see if we should be worried about anything new yet */
     CheckWorried(sEntry);
@@ -996,14 +996,14 @@ static int SendSendAhead(sEntry)
 	struct CEntry		*thisce;
 	int			host;
 
-	assert((me = rpc2_GetMgrp(&rpc2_LocalHost, &rpc2_LocalPortal, sEntry->PInfo.RemoteHandle, CLIENT)) != NULL);
-	assert((mse = (struct SFTP_Entry *)me->SideEffectPtr) != NULL);
-	assert(mse == sEntry);			/* paranoia */
+	CODA_ASSERT((me = rpc2_GetMgrp(&rpc2_LocalHost, &rpc2_LocalPortal, sEntry->PInfo.RemoteHandle, CLIENT)) != NULL);
+	CODA_ASSERT((mse = (struct SFTP_Entry *)me->SideEffectPtr) != NULL);
+	CODA_ASSERT(mse == sEntry);			/* paranoia */
 
 	for (host = 0; host < me->howmanylisteners; host++)
 	    {
-	    assert((thisce = me->listeners[host]) != NULL);
-	    assert((thisse = (struct SFTP_Entry *)thisce->SideEffectPtr) != NULL);
+	    CODA_ASSERT((thisce = me->listeners[host]) != NULL);
+	    CODA_ASSERT((thisse = (struct SFTP_Entry *)thisce->SideEffectPtr) != NULL);
 	    if (TestState(thisce, CLIENT, ~C_HARDERROR) && thisse->WhoAmI == SFCLIENT)
 		thisse->SendMostRecent += mse->ReadAheadCount;
 	    }
@@ -1076,17 +1076,17 @@ int sftp_ReadStrategy(sEntry)
 	SE_Descriptor		*thisdesc;
 	int			host;
 
-	assert((me = rpc2_GetMgrp(&rpc2_LocalHost, &rpc2_LocalPortal, sEntry->PInfo.RemoteHandle, CLIENT)) != NULL);
-	assert((mse = (struct SFTP_Entry *)me->SideEffectPtr) != NULL);
-	assert(mse == sEntry);			/* paranoia */
+	CODA_ASSERT((me = rpc2_GetMgrp(&rpc2_LocalHost, &rpc2_LocalPortal, sEntry->PInfo.RemoteHandle, CLIENT)) != NULL);
+	CODA_ASSERT((mse = (struct SFTP_Entry *)me->SideEffectPtr) != NULL);
+	CODA_ASSERT(mse == sEntry);			/* paranoia */
 
 	for (host = 0; host < me->howmanylisteners; host++)
 	    {
-	    assert((thisce = me->listeners[host]) != NULL);
-	    assert((thisse = (struct SFTP_Entry *)thisce->SideEffectPtr) != NULL);
+	    CODA_ASSERT((thisce = me->listeners[host]) != NULL);
+	    CODA_ASSERT((thisse = (struct SFTP_Entry *)thisce->SideEffectPtr) != NULL);
 	    if (TestState(thisce, CLIENT, ~C_HARDERROR) && thisse->WhoAmI == SFCLIENT)
 		{
-		assert((thisdesc = thisse->SDesc) != NULL);
+		CODA_ASSERT((thisdesc = thisse->SDesc) != NULL);
 		thisdesc->Value.SmartFTPD.BytesTransferred += bytesread;
 		}
 	    }
@@ -1243,7 +1243,7 @@ int sftp_StartArrived(pBuff, sEntry)
 
     if (sEntry->UseMulticast)
 	{
-	assert(sftpd->TransmissionDirection == CLIENTTOSERVER);
+	CODA_ASSERT(sftpd->TransmissionDirection == CLIENTTOSERVER);
 	return(MC_CheckStart(sEntry));
 	}
 

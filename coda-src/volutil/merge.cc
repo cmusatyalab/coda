@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/volutil/merge.cc,v 4.6 1998/07/13 11:14:42 jaharkes Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/volutil/merge.cc,v 4.7 1998/08/31 12:23:43 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -159,7 +159,7 @@ void main(int argc, char **argv)
     }
 
     char *DumpBuf = (char *)malloc(DUMPBUFSIZE);
-    assert(DumpBuf != NULL);
+    CODA_ASSERT(DumpBuf != NULL);
     DumpBuffer_t *dbuf = InitDumpBuf((byte *)DumpBuf, (long)DUMPBUFSIZE, DumpFd);
     
     /* At this point both headers should have been read and checked. Write out
@@ -169,8 +169,8 @@ void main(int argc, char **argv)
     
     /* skip over the volumediskdata, is there any need to compare it? */
     VolumeDiskData vol;
-    assert(fdump.getVolDiskData(&vol) == 0);/* Throw this info away for now... */
-    assert(idump.getVolDiskData(&vol) == 0);
+    CODA_ASSERT(fdump.getVolDiskData(&vol) == 0);/* Throw this info away for now... */
+    CODA_ASSERT(idump.getVolDiskData(&vol) == 0);
     DumpVolumeDiskData(dbuf, &vol);
 
     /* Read in the Large Vnodes into an array, only saving the fid and an offset
@@ -225,7 +225,7 @@ static void BuildTable(dumpstream *dump, vtable *table)
     VnodeDiskObject *vdo = (VnodeDiskObject *)buf;
 
     table->table = (ventry **)malloc(sizeof(ventry*) * table->nslots);
-    assert(table->table != NULL);
+    CODA_ASSERT(table->table != NULL);
     bzero((void *)table->table, sizeof(ventry*) * table->nslots);
     for (int i = 0; i < table->nvnodes; i++) {
 	long offset;
@@ -235,11 +235,11 @@ static void BuildTable(dumpstream *dump, vtable *table)
 	    exit(-1);
 	}
 
-	assert(deleted == 0); /* Can't have deleted vnode in full dump */
+	CODA_ASSERT(deleted == 0); /* Can't have deleted vnode in full dump */
 	LogMsg(10, VolDebugLevel, stdout, "vnodeNum %d, offset %d", vnodeNumber, offset);
 	if (vdo->type != vNull) { /* Insert the vnode into the table */
 	    ventry *tmp = (ventry *)malloc(sizeof(ventry));
-	    assert(tmp != NULL);
+	    CODA_ASSERT(tmp != NULL);
 	    LogMsg(60, VolDebugLevel, stdout, "tmp %x", tmp);
 	    tmp->unique = vdo->uniquifier;
 	    tmp->offset = offset;
@@ -273,7 +273,7 @@ static void ModifyTable(dumpstream *dump, VnodeClass vclass, vtable *Table)
 
     if (nslots > Table->nslots) { /* "Grow" Vnode Array */
 	ventry **tmp = (ventry **)malloc(sizeof(ventry*) * nslots);
-	assert(tmp != NULL);
+	CODA_ASSERT(tmp != NULL);
 	bcopy((const void *)Table->table, (void *)tmp, sizeof(ventry*) * Table->nslots);
 	free(Table->table);
 	Table->nslots = nslots;
@@ -284,7 +284,7 @@ static void ModifyTable(dumpstream *dump, VnodeClass vclass, vtable *Table)
     long offset;
     while (dump->getNextVnode(vdo, &vnodeNumber, &deleted, &offset) != -1) {
 	int vnum = vnodeIdToBitNumber(vnodeNumber);
-	assert(vnum >= 0);
+	CODA_ASSERT(vnum >= 0);
 	if (vnum > Table->nslots){
 	    LogMsg(0, VolDebugLevel, stderr, "vnum %d > nslots %d!", vnum, nslots);
 	    exit(-1);
@@ -319,7 +319,7 @@ static void ModifyTable(dumpstream *dump, VnodeClass vclass, vtable *Table)
 		ptr->dump = dump;
 	    } else {			/* Must be new, add the entry. */
 		ventry *tmp = (ventry *)malloc(sizeof(ventry));
-		assert(tmp != NULL);
+		CODA_ASSERT(tmp != NULL);
 		tmp->unique = vdo->uniquifier;
 		tmp->offset = offset;
 		tmp->dump = dump;

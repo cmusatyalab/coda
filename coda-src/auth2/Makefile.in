@@ -89,7 +89,8 @@ LIBS :=	${LIBRPC2}\
 	${LIBUTIL} \
 	${LIBKERNDEP} \
 	${LIBAUSER}\
-	${LIBCOMPAT}
+	${LIBCOMPAT}\
+	${LIBBASE}
 
 LIBRARIES   = libauth2.a libauser.a
 HEADERS     = avenus.h

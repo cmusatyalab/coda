@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/util/rvmtesting.cc,v 4.1 1997/01/08 21:51:11 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/util/rvmtesting.cc,v 4.2 1998/08/26 21:13:02 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -59,27 +59,27 @@ unsigned long *ClobberAddress = 0;
 
 void protect_page(int x)
 {
-    assert(x != 0);
+    CODA_ASSERT(x != 0);
     kern_return_t code = vm_protect(task_self(), (vm_address_t)x,
 				    sizeof(int), FALSE,
 				    VM_PROT_READ | VM_PROT_EXECUTE);
     if (code != KERN_SUCCESS) {
 	LogMsg(0, 0, stdout, "vm_protect(%x, %d, rwx) failed (%d)",
 	       x, sizeof(int), code);
-	assert(0);
+	CODA_ASSERT(0);
     }
 }    
 
 void unprotect_page(int x)
 {
-    assert(x != 0);
+    CODA_ASSERT(x != 0);
     kern_return_t code = vm_protect(task_self(), (vm_address_t)x,
 				    sizeof(int), FALSE,
 				    VM_PROT_READ | VM_PROT_WRITE | VM_PROT_EXECUTE);
     if (code != KERN_SUCCESS) {
 	LogMsg(0, 0, stdout, "vm_unprotect(%x, %d, rwx) failed (%d)",
 	       x, sizeof(int), code);
-	assert(0);
+	CODA_ASSERT(0);
     }
 }    
 /*
@@ -125,7 +125,7 @@ static int getNextPc(struct sigcontext *scp)
 	      /* JumpRs are performed by jumping to the address contained in rs */
 	    case jalr_op:
 	      /* JALR needs to set rd to pc + 2 */
-	      assert(pc->r_format.rd < 32 && pc->r_format.rd >= 0);
+	      CODA_ASSERT(pc->r_format.rd < 32 && pc->r_format.rd >= 0);
 	      scp->sc_regs[pc->r_format.rd] = (int)pc + 8;
 	    case jr_op:
 	      temp = GPR(scp, pc->r_format.rs);
@@ -134,7 +134,7 @@ static int getNextPc(struct sigcontext *scp)
 
 	    default:
 	      LogMsg(5, DCSDebug, stdout, "SPECIAL op error! Not a jump!");
-	      assert(0);	
+	      CODA_ASSERT(0);	
 	  }	      
       }
 
@@ -172,7 +172,7 @@ static int getNextPc(struct sigcontext *scp)
 	      break;
 
 	    default:
-	      assert(0);
+	      CODA_ASSERT(0);
 	  }
 	  /* Sign extend the offset */
 	  temp = (pc->i_format.simmediate << 16) >> 16;
@@ -245,7 +245,7 @@ static int getNextPc(struct sigcontext *scp)
 	  return (int)pc;
 
       default:
-	  assert(0);
+	  CODA_ASSERT(0);
     }
 }    
 

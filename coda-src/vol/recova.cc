@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vol/recova.cc,v 4.8 1998/08/26 21:22:26 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vol/recova.cc,v 4.9 1998/10/30 18:30:00 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -173,7 +173,7 @@ int NewVolHeader(struct VolumeHeader *header, Error *err)
 
     VLog(29,  "NewVolHeader: adding new entry %x to slot %d", header->id, i);
     HashInsert(header->id, i);	    // add new entry to volume hash table
-    assert(HashLookup(header->id) == i);
+    CODA_ASSERT(HashLookup(header->id) == i);
     PrintCamVolume(29, i);
 
     return(i);
@@ -282,7 +282,7 @@ static int DeleteVnodes(unsigned int myind, Device dev, VnodeClass vclass)
     bit32 nLists;
 
 
-    assert( (myind >= 0) && (myind < MAXVOLS) );
+    CODA_ASSERT( (myind >= 0) && (myind < MAXVOLS) );
     vdata = &(SRV_RVM(VolumeList[myind]).data);    
 
     if (vclass == vSmall) {
@@ -333,13 +333,13 @@ static int DeleteVnodes(unsigned int myind, Device dev, VnodeClass vclass)
 	    
 	    if ((vdo->type != vNull) && (vdo->vnodeMagic != vcp->magic)){
 		VLog(0, "DeleteVnodes:VnodeMagic field incorrect for vnode %d",i);
-		assert(0);
+		CODA_ASSERT(0);
 	    }
 
 	    if (vdo->inodeNumber){
 		/* decrement the reference count by one */
 		if (vdo->type != vDirectory) {
-		    assert(vclass == vSmall);
+		    CODA_ASSERT(vclass == vSmall);
 		    DeadInodes[count] = (int)vdo->inodeNumber; // Delay the idec.
 		} else 
 		    DI_Dec((DirInode *)vdo->inodeNumber);
@@ -367,7 +367,7 @@ static int DeleteVnodes(unsigned int myind, Device dev, VnodeClass vclass)
 	}	    
 
 	RVMLIB_END_TRANSACTION(flush, &(status));
-	assert(status == 0);		/* Should never abort... */
+	CODA_ASSERT(status == 0);		/* Should never abort... */
 
 	/* Now delete the inodes for the vnodes we already purged. */
 	if (vclass == vSmall) {
@@ -404,7 +404,7 @@ static int DeleteVnodes(unsigned int myind, Device dev, VnodeClass vclass)
     }
 
     RVMLIB_END_TRANSACTION(flush, &(status));
-    assert(status == 0);		/* Should never abort... */
+    CODA_ASSERT(status == 0);		/* Should never abort... */
     
     return 0;
 }
@@ -450,7 +450,7 @@ static int DeleteVolHeader(int myind) {
 
     RVMLIB_BEGIN_TRANSACTION(restore)
 	/* Sanity check */
-	assert(SRV_RVM(VolumeList[myind]).header.stamp.magic
+	CODA_ASSERT(SRV_RVM(VolumeList[myind]).header.stamp.magic
 	       == VOLUMEHEADERMAGIC);
 	bzero((void *)&tmpheader, sizeof(struct VolumeHeader));
         RVMLIB_MODIFY(SRV_RVM(VolumeList[myind]).header, tmpheader);

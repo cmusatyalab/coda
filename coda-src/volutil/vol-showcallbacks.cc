@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/volutil/vol-showcallbacks.cc,v 4.3 1998/01/10 18:40:04 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/volutil/vol-showcallbacks.cc,v 4.4 1998/04/14 21:00:41 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -80,7 +80,7 @@ long S_ShowCallbacks(RPC2_Handle rpcid, ViceFid *fid, SE_Descriptor *formal_sed)
     strcpy(filename, CBFILE);
     mktemp(filename);
     cbfile = fopen(filename, "w");
-    assert(cbfile != NULL);
+    CODA_ASSERT(cbfile != NULL);
 
     PrintCallBacks(fid, cbfile);
     PrintCallBackState(cbfile);

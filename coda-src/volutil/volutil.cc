@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/volutil/volutil.cc,v 4.4 1998/06/07 20:15:22 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/volutil/volutil.cc,v 4.5 1998/08/31 12:23:53 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -137,7 +137,7 @@ void VolUtilLWP(int *myindex) {
     /* tag this lwp as a volume utility */
     pt = (ProgramType *) malloc(sizeof(ProgramType));
     *pt = volumeUtility;
-    assert(LWP_NewRock(FSTAG, (char *)pt) == LWP_SUCCESS);
+    CODA_ASSERT(LWP_NewRock(FSTAG, (char *)pt) == LWP_SUCCESS);
 
     myfilter.FromWhom = ONESUBSYS;
     myfilter.OldOrNew = OLDORNEW;
@@ -181,7 +181,7 @@ static void InitServer() {
 
     subsysid.Tag = RPC2_SUBSYSBYID;
     subsysid.Value.SubsysId = UTIL_SUBSYSID;
-    assert(RPC2_Export(&subsysid) == RPC2_SUCCESS);
+    CODA_ASSERT(RPC2_Export(&subsysid) == RPC2_SUCCESS);
     }
 
 static long VolGetKey(RPC2_CountedBS *cid, RPC2_EncryptionKey id, RPC2_EncryptionKey skey) {

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/volutil/vol-dump.cc,v 4.7 1998/08/31 12:23:46 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/volutil/vol-dump.cc,v 4.8 1998/10/29 15:29:03 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -55,7 +55,7 @@ supported by Transarc Corporation, Pittsburgh, PA.
 
 */
 
-#define RCSVERSION $Revision: 4.7 $
+#define RCSVERSION $Revision: 4.8 $
 
 /* vol-dump.c */
 
@@ -77,7 +77,7 @@ extern "C" {
 #include <unistd.h>
 #include <stdlib.h>
 
-#include <assert.h>
+#include "coda_assert.h"
 #include <struct.h>
 #include <lwp.h>
 #include <lock.h>
@@ -162,7 +162,7 @@ long S_VolNewDump(RPC2_Handle rpcid, RPC2_Unsigned formal_volumeNumber,
     /* To keep C++ 2.0 happy */
     VolumeId volumeNumber = (VolumeId)formal_volumeNumber;
 
-    assert(LWP_GetRock(FSTAG, (char **)&pt) == LWP_SUCCESS);
+    CODA_ASSERT(LWP_GetRock(FSTAG, (char **)&pt) == LWP_SUCCESS);
 
     SLog(9, "S_VolNewDump: conn: %d, volume:  %#x, Inc?: %u", 
 	 rpcid, volumeNumber, *Incremental);
@@ -438,7 +438,7 @@ static int DumpVnodeIndex(DumpBuffer_t *dbuf, Volume *vp,
 	    return -1;
 	}
 
-	assert(strcmp(Class,((vclass == vLarge)? "Large" : "Small")) == 0);
+	CODA_ASSERT(strcmp(Class,((vclass == vLarge)? "Large" : "Small")) == 0);
 	SLog(9, "Ancient clone had %d vnodes, %d lists.", nvnodes, nlists);
 
 	rec_smolist *vnList;
@@ -525,7 +525,7 @@ static int DumpVnodeIndex(DumpBuffer_t *dbuf, Volume *vp,
 	    if ((count % VnodePollPeriod) == 0)
 		PollAndYield();
        }
-	assert(vnext(vnode) == -1);
+	CODA_ASSERT(vnext(vnode) == -1);
     }
 
     if (vclass == vLarge) { 	/* Output End of Large Vnode list */
@@ -590,7 +590,7 @@ static int DumpVnodeDiskObject(DumpBuffer_t *dbuf, struct VnodeDiskObject *v, in
             DirInode *dip;
 	int size;
 
-	assert(v->inodeNumber != 0);
+	CODA_ASSERT(v->inodeNumber != 0);
 	dip = (DirInode *)(v->inodeNumber);
 
 	/* Dump the Access Control List */

@@ -33,7 +33,7 @@ should be returned to Software.Distribution@cs.cmu.edu.
 
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/rvm-src/rds/rds_private.h,v 4.2 1997/04/01 01:57:17 clement Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/rvm-src/rds/rds_private.h,v 4.3 1998/08/26 15:40:12 braam Exp $";
 #endif _BLURB_
 
 
@@ -43,7 +43,7 @@ static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/rvm-src/rds/rds
 
 #ifdef __STDC__
 #include <string.h>
-#include <assert.h>
+#include "coda_assert.h"
 #endif 
 
 #include "rds.h"
@@ -212,15 +212,11 @@ int           rm_from_list();
 void coalesce();
 
 
-/* ASSERT that preserves stack */
-#define ASSERT(ex) assert(ex)
-
-
 #if 0
-#ifdef ASSERT
-#undef ASSERT
+#ifdef CODA_ASSERT
+#undef CODA_ASSERT
 #endif
-#define ASSERT(ex) \
+#define CODA_ASSERT(ex) \
     { \
     if (!(ex)) \
         { \

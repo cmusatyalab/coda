@@ -593,7 +593,7 @@ extern char *rpc2_timestring();
 #endif RPC2DEBUG
 
 #include <signal.h>
-#include <assert.h>
+#include "coda_assert.h"
 
 
 #ifndef TRUE

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/vproc_pathname.cc,v 4.8 98/09/29 16:38:23 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/vproc_pathname.cc,v 4.9 1998/09/29 21:04:50 jaharkes Exp $";
 #endif /*_BLURB_*/
 
 
@@ -130,7 +130,7 @@ int vproc::namev(char *path, int flags, struct venus_cnode *vpp) {
     /* Each loop iteration moves down through one pathname component. */
     for (;;) {
 	if (plen <= 0)
-	    { print(logFile); Choke("vproc::namev: plen <= 0"); }
+	    { print(logFile); CHOKE("vproc::namev: plen <= 0"); }
 
 	/* Get the next component. */
 	GetComponent(&pptr, &plen, comp);
@@ -291,7 +291,7 @@ int vproc::namev(char *path, int flags, struct venus_cnode *vpp) {
 	    default:
 		{
 		print(logFile);
-		Choke("vproc::namev: bogus vnode type (%d)!", vp.c_type);
+		CHOKE("vproc::namev: bogus vnode type (%d)!", vp.c_type);
 		}
 	}
     }

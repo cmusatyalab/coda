@@ -24,13 +24,13 @@ void SpoolInit() {
     code = ::stat(SpoolDir, &tstat);
     if (code < 0 || (tstat.st_mode & S_IFMT) != S_IFDIR) {
         if (code == 0)
-            ASSERT(::unlink(SpoolDir) == 0);
-        ASSERT(::mkdir(SpoolDir, 0755) == 0);
+            CODA_ASSERT(::unlink(SpoolDir) == 0);
+        CODA_ASSERT(::mkdir(SpoolDir, 0755) == 0);
     }
 
     // ...and it has the correct attributes. 
-    ASSERT(::chown(SpoolDir, V_UID, V_GID) == 0);
-    ASSERT(::chmod(SpoolDir, 0755) == 0);
+    CODA_ASSERT(::chown(SpoolDir, V_UID, V_GID) == 0);
+    CODA_ASSERT(::chmod(SpoolDir, 0755) == 0);
 }
 
 void MakeUserSpoolDir(char *usd, vuid_t owner) {
@@ -42,11 +42,11 @@ void MakeUserSpoolDir(char *usd, vuid_t owner) {
     code = ::stat(usd, &tstat);
     if (code < 0 || (tstat.st_mode & S_IFMT) != S_IFDIR) {
 	if (code == 0)
-	    ASSERT(::unlink(usd) == 0);
-	ASSERT(::mkdir(usd, 0755) == 0);
+	    CODA_ASSERT(::unlink(usd) == 0);
+	CODA_ASSERT(::mkdir(usd, 0755) == 0);
     }
 
     // ...and has the correct attributes.
-    ASSERT(::chown(usd, owner, V_GID) == 0);
-    ASSERT(::chmod(usd, 0700) == 0);
+    CODA_ASSERT(::chown(usd, owner, V_GID) == 0);
+    CODA_ASSERT(::chmod(usd, 0700) == 0);
 }

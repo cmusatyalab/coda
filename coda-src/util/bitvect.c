@@ -1,4 +1,4 @@
-#include <assert.h>
+#include "coda_assert.h"
 #include <stdlib.h>
 #include <string.h>
 #include <lock.h>
@@ -23,13 +23,13 @@ Bitv Bitv_new(int len)
 {
     Bitv set;
 
-    assert(len >= 0);
+    CODA_ASSERT(len >= 0);
     set = malloc(sizeof(*set));
-    assert(set);
+    CODA_ASSERT(set);
 
     if (len > 0) {
 	set->words = calloc(nwords(len), sizeof(unsigned long));
-	assert(set->words);
+	CODA_ASSERT(set->words);
     } else {
 	set->words = NULL;
     }
@@ -48,7 +48,7 @@ void Bitv_free(Bitv *b)
     if ( !(b && *b) ) {
 	PRE_EndCritical();
 	eprint("Trying to free NULL Bitv.\n");
-	assert(0);
+	CODA_ASSERT(0);
     }
 
     if ((*b)->words)
@@ -60,7 +60,7 @@ void Bitv_free(Bitv *b)
 
 int Bitv_length(Bitv b)
 {
-    assert(b);
+    CODA_ASSERT(b);
     U_rlock(b);
     return(b->length);
     U_runlock(b);
@@ -70,8 +70,8 @@ int Bitv_get(Bitv b, int n)
 {
     int index = n/8;
     int bitoffset = n%8;
-    assert(b);
-    assert(0 <= n && n < b->length);
+    CODA_ASSERT(b);
+    CODA_ASSERT(0 <= n && n < b->length);
 
     U_rlock(b);
     return ((b->bytes[index] >> bitoffset) & 1);
@@ -82,9 +82,9 @@ int Bitv_put(Bitv b, int n, int bit)
 {
     int previous;
 
-    assert(b);
-    assert(bit == 0 || bit == 1);
-    assert(0 <= n && n < b->length);
+    CODA_ASSERT(b);
+    CODA_ASSERT(bit == 0 || bit == 1);
+    CODA_ASSERT(0 <= n && n < b->length);
 
     U_wlock(b);
     previous = ((b->bytes[n/8] >> (n%8)) & 1);
@@ -112,7 +112,7 @@ int Bitv_getfree(Bitv b)
 {
     int i, j, loc;
 
-    assert(b);
+    CODA_ASSERT(b);
 
     U_wlock(b);
     for ( i=0 ; i < nwords(b->length) ; i++ ) {
@@ -122,7 +122,7 @@ int Bitv_getfree(Bitv b)
 	    for ( j=0 ; j < 8*sizeof(unsigned long); j++ ) 
 		if ( (1<<j) & availbits ) 
 		    break;
-	    assert( j < 8*sizeof(unsigned long));
+	    CODA_ASSERT( j < 8*sizeof(unsigned long));
 	    loc = (i<<3)*sizeof(unsigned long) + j;
 	    b->words[i] |= (1 << j);
 	    U_wunlock(b);
@@ -136,7 +136,7 @@ int Bitv_getfree(Bitv b)
 int Bitv_count(Bitv b) 
 {
     int i, j, count = 0;
-    assert(b);
+    CODA_ASSERT(b);
     U_rlock(b);
     for (i = 0; i < nwords(b->length) ; i++) 
 	for (j = 0; j < 8 * sizeof(unsigned long); j++) 
@@ -150,7 +150,7 @@ int Bitv_count(Bitv b)
 void Bitv_print(Bitv b, FILE *fd) 
 {
     int i;
-    assert(b);
+    CODA_ASSERT(b);
 
     U_rlock(b);
     fprintf(fd, "Length of map: %d, content: \n", b->length);

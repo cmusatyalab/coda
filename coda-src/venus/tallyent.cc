@@ -2,7 +2,7 @@
 extern "C" {
 #endif __cplusplus
 
-#include <assert.h>
+#include "coda_assert.h"
 #include <stdio.h>
 #include <struct.h>
 
@@ -51,7 +51,7 @@ tallyent::tallyent(int p, vuid_t v, int b, TallyStatus s) {
 	incomplete = 1;
         break;
       default:
-        assert(1 == 0);
+        CODA_ASSERT(1 == 0);
         break;
     }
 }
@@ -66,7 +66,7 @@ tallyent::operator=(tallyent& i) {
 }
 
 tallyent::~tallyent() {
-    assert(TallyList != NULL);
+    CODA_ASSERT(TallyList != NULL);
     TallyList->remove(&prioq_handle);
 }
 
@@ -74,14 +74,14 @@ tallyent::~tallyent() {
 int tallyentPriorityFN(dlink *d1, dlink *d2) {
   tallyent *t1, *t2;
 
-  assert(d1 != NULL);
-  assert(d2 != NULL);
+  CODA_ASSERT(d1 != NULL);
+  CODA_ASSERT(d2 != NULL);
 
   t1 = strbase(tallyent, d1, prioq_handle);
   t2 = strbase(tallyent, d2, prioq_handle);
 
-  assert(t1 != NULL);
-  assert(t2 != NULL);
+  CODA_ASSERT(t1 != NULL);
+  CODA_ASSERT(t2 != NULL);
 
   if (t1->priority == t2->priority) {
 
@@ -137,13 +137,13 @@ void Tally(int priority, vuid_t vuid, int blocks, TallyStatus status) {
   LOG(100, ("Tally: priority=%d, vuid=%d, blocks=%d, status=%d\n", 
 	 priority, (int)vuid, blocks, (int)status));
 
-  assert(TallyList != NULL);
+  CODA_ASSERT(TallyList != NULL);
   d = Find(priority, vuid);
   if (d != NULL) {
     te = strbase(tallyent, d, prioq_handle);
-    assert(te != NULL);
-    assert(te->priority == priority);
-    assert(te->vuid == vuid);
+    CODA_ASSERT(te != NULL);
+    CODA_ASSERT(te->priority == priority);
+    CODA_ASSERT(te->vuid == vuid);
     switch(status) {
       case TSavailable:
         te->available_blocks += blocks;
@@ -157,7 +157,7 @@ void Tally(int priority, vuid_t vuid, int blocks, TallyStatus status) {
         te->incomplete = 1;
         break;
       default:
-        assert(1 == 0);
+        CODA_ASSERT(1 == 0);
         break;
     }
     LOG(100, ("tallyent::tallyent: updated <priority=%d, vuid=%d>\n", priority, (int)vuid));
@@ -174,7 +174,7 @@ void TallyPrint(vuid_t vuid) {
   dlink *d;
   while (d = next()) {
     tallyent *te = strbase(tallyent, d, prioq_handle);
-    assert(te != NULL);
+    CODA_ASSERT(te != NULL);
 
     if (te->vuid != vuid) continue;
 
@@ -200,7 +200,7 @@ void TallySum(int *total_blocks, int *total_files) {
     dlink *d;
     while (d = next()) {
       tallyent *te = strbase(tallyent, d, prioq_handle);
-      assert(te != NULL);
+      CODA_ASSERT(te != NULL);
 
       *total_blocks += (te->available_blocks + te->unavailable_blocks);
       *total_files += (te->available_files + te->unavailable_files);

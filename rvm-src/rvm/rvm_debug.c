@@ -33,7 +33,7 @@ should be returned to Software.Distribution@cs.cmu.edu.
 
 */
 
-static char *rcsid = "$Header: rvm_debug.c,v 1.1 96/11/22 13:40:11 raiff Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/rvm-src/rvm/rvm_debug.c,v 4.1 1997/01/08 21:54:32 rvb Exp $";
 #endif _BLURB_
 
 /*
@@ -121,7 +121,7 @@ rvm_bool_t in_heap(addr,buf,len)
     for (i=0; i<NUM_TWOS; i++)
         if ((len >= twos[i]) && (len < twos[i+1]))
             break;
-    ASSERT(i != NUM_TWOS);
+    CODA_ASSERT(i != NUM_TWOS);
 
     if ((addr >= buf) && (addr < (buf+twos[i])))
         return rvm_true;
@@ -597,7 +597,7 @@ rvm_bool_t chk_node(node,struct_id)
       case dev_region_id:
         retval = chk_dev_node((dev_region_t *)node);
         break;
-      default:      ASSERT(rvm_false);
+      default:      CODA_ASSERT(rvm_false);
         }
 
     return retval;

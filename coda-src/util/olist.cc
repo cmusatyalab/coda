@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/util/olist.cc,v 4.3 1997/06/23 20:12:24 clement Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/util/olist.cc,v 4.4 1998/06/11 14:40:08 jaharkes Exp $";
 #endif /*_BLURB_*/
 
 
@@ -50,7 +50,7 @@ static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/util/o
 extern "C" {
 #endif __cplusplus
 
-#include <assert.h>
+#include "coda_assert.h"
 #include <stdio.h>
 #ifdef __MACH__
 #include <sysent.h>
@@ -269,7 +269,7 @@ olink *olist_iterator::operator()() {
 	    nlink = (olink *)-1;
 	    return 0;
 	}
-	assert(nlink != (olink *)-1);
+	CODA_ASSERT(nlink != (olink *)-1);
 	clink = nlink;		/* we saved nlink in last iteration */
 	nlink = clink->next;	/* clink may be del. before next iter.,
 				   keep ptr to next olink now */

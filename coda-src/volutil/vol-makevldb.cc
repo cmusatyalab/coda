@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/volutil/vol-makevldb.cc,v 4.5 1998/04/14 21:00:38 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/volutil/vol-makevldb.cc,v 4.6 1998/08/31 12:23:48 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -179,7 +179,7 @@ long S_VolMakeVLDB(RPC2_Handle rpcid, RPC2_String formal_infile) {
     GetServerNames();
     InitAddEntry();
 
-    assert(LWP_GetRock(FSTAG, (char **)&pt) == LWP_SUCCESS);
+    CODA_ASSERT(LWP_GetRock(FSTAG, (char **)&pt) == LWP_SUCCESS);
 
     volumelist = fopen(infile, "r");
     if (volumelist == NULL) {

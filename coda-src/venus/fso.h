@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/fso.h,v 4.10 98/09/23 16:56:36 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/fso.h,v 4.11 1998/09/23 20:26:27 jaharkes Exp $";
 #endif /*_BLURB_*/
 
 
@@ -829,7 +829,7 @@ extern void FSOD_Init();
 {\
     if (!(ex)) {\
 	(f)->print(logFile);\
-	Choke("Assertion failed: file \"%s\", line %d\n", __FILE__, __LINE__);\
+	CHOKE("Assertion failed: file \"%s\", line %d\n", __FILE__, __LINE__);\
     }\
 }
 

@@ -35,7 +35,7 @@
 # changes  without  encumbrance.   Such improvements and extensions
 # should be returned to Software.Distribution@cs.cmu.edu.
 #
-# rcsid = $Header: /afs/cs/project/coda-src/cvs/coda/rvm-src/tests/Makefile.in,v 4.6 98/09/29 16:39:12 braam Exp $
+# rcsid = $Header: /afs/cs/project/coda-src/cvs/coda/rvm-src/tests/Makefile.in,v 4.7 1998/09/29 21:05:00 jaharkes Exp $
 #
 
 #   	RVM Test Programs Makefile
@@ -52,10 +52,10 @@ include $(TOPDIR)/Makeconf
 EXECUTABLES = testrvm rvm_basher lwp_basher
 TESTS = testrvm rvm_basher lwp_basher
 
-TESTRVM_LIBS    = $(LIBRVM) $(LIBCOMPAT)
-RVM_BASHER_LIBS = $(LIBRDS) $(LIBSEG) $(LIBRVM) $(LIBCOMPAT)
+TESTRVM_LIBS    = $(LIBRVM) $(LIBCOMPAT) $(LIBBASE)
+RVM_BASHER_LIBS = $(LIBRDS) $(LIBSEG) $(LIBRVM) $(LIBCOMPAT) $(LIBBASE)
 LWP_BASHER_LIBS = $(LIBRDSLWP) $(LIBSEG) $(LIBRVMLWP) $(LIBOLDLWP) \
-		  $(LIBCOMPAT)
+		  $(LIBCOMPAT) $(LIBBASE)
 
 # re-install this when libplumber is ready, for mach platform -- clement
 # LWP_BASHER_LIBS = $(LIBRDSLWP) $(LIBSEG) $(LIBRVMLWP) $(LIBOLDLWP) \

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/local_daemon.cc,v 4.2 1997/12/16 16:08:31 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/local_daemon.cc,v 4.3 1998/08/26 21:24:33 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -133,7 +133,7 @@ void lrdb::CheckLocalSubtree()
 	    char fullpath[MAXPATHLEN];
 	    snprintf(fullpath, MAXPATHLEN, "%s/%s", RootPath, rfm->GetName());
 	    ViceFid *objFid = rfm->GetGlobalRootFid();
-	    ASSERT(objFid);
+	    CODA_ASSERT(objFid);
 	    LOG(0, ("LocalInconsistentObj: objFid=%x.%x.%x\n",
 		    objFid->Volume, objFid->Vnode, objFid->Unique));
 	    NotifyUsersObjectInConflict(fullpath, objFid);

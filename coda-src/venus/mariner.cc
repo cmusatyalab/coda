@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/mariner.cc,v 4.12 1998/09/23 20:26:32 jaharkes Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/mariner.cc,v 4.13 1998/10/30 18:29:54 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -298,7 +298,7 @@ mariner::~mariner() {
 
 
 int mariner::Read() {
-    if (!DataReady) Choke("mariner::Read: not DataReady!");
+    if (!DataReady) CHOKE("mariner::Read: not DataReady!");
 
     /* Pull the next message out of the socket. */
     int n = ::read(fd, commbuf, (int)(sizeof(commbuf) - 1));
@@ -344,7 +344,7 @@ void mariner::AwaitRequest() {
     }
 
     VprocWait((char *)this);
-    if (dying) Choke("mariner::AwaitRequest: signalled while dying!");
+    if (dying) CHOKE("mariner::AwaitRequest: signalled while dying!");
 }
 
 
@@ -372,7 +372,7 @@ void mariner::main(void *parm) {
 	AwaitRequest();
 
 	/* Sanity check new request. */
-	if (idle) Choke("Mariner: signalled but not dispatched!");
+	if (idle) CHOKE("Mariner: signalled but not dispatched!");
 
 	LOG(100, ("mariner::main: cmd = \"%s\"\n", commbuf));
 
@@ -395,7 +395,7 @@ void mariner::main(void *parm) {
 	    Write("LogLevel is now %d\n", LogLevel);
 	}
 	else if (STREQ(argv[0], "dumpcore")) {
-	    Choke("Telnet");
+	    CHOKE("Telnet");
 	}
 	else if (STREQ(argv[0], "quit")) {
 	    dying = 1;

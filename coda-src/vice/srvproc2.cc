@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vice/srvproc2.cc,v 4.17 1998/09/03 21:36:54 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vice/srvproc2.cc,v 4.18 1998/10/21 22:05:59 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -406,7 +406,7 @@ long ViceGetVolumeStatus(RPC2_Handle RPCid, VolumeId vid, VolumeStatus *status, 
 	goto Final;
     }
 
-    assert(GetRights(client->CPS, aCL, aCLSize, (Rights *)&rights, (Rights *)&anyrights) == 0);
+    CODA_ASSERT(GetRights(client->CPS, aCL, aCLSize, (Rights *)&rights, (Rights *)&anyrights) == 0);
 
     if((SystemUser(client)) && (!(rights & PRSFS_READ))) {
 	errorCode = EACCES;
@@ -418,7 +418,7 @@ long ViceGetVolumeStatus(RPC2_Handle RPCid, VolumeId vid, VolumeStatus *status, 
  Final:
     if (vptr) {
 	VPutVnode(&fileCode, vptr);
-	assert(fileCode == 0);
+	CODA_ASSERT(fileCode == 0);
     }
     PutVolObj(&volptr, VOL_NO_LOCK, 0);
 
@@ -537,7 +537,7 @@ long ViceSetVolumeStatus(RPC2_Handle RPCid, VolumeId vid, VolumeStatus *status, 
 	goto Final;
     }
 
-    assert(GetRights(client->CPS, aCL, aCLSize, (Rights *)&rights, (Rights *)&anyrights) == 0);
+    CODA_ASSERT(GetRights(client->CPS, aCL, aCLSize, (Rights *)&rights, (Rights *)&anyrights) == 0);
 
     if(SystemUser(client)) {
 	errorCode = EACCES;
@@ -562,7 +562,7 @@ long ViceSetVolumeStatus(RPC2_Handle RPCid, VolumeId vid, VolumeStatus *status, 
     if(motd->SeqLen > 1)
 	strcpy(V_motd(volptr), (char *)motd->SeqBody);
 
-    assert(!(AllowResolution && V_VMResOn(volptr)));
+    CODA_ASSERT(!(AllowResolution && V_VMResOn(volptr)));
 
     // Only spool a log entry if the quota was set.
     if (AllowResolution && V_RVMResOn(volptr) && oldquota > -1) 
@@ -671,7 +671,7 @@ long ViceSetRootVolume(RPC2_Handle RPCid, RPC2_String volume)
     }
 
     fd = open("/vice/db/ROOTVOLUME", O_WRONLY+O_CREAT+O_TRUNC, 0666);
-    assert(fd > 0);
+    CODA_ASSERT(fd > 0);
     flock(fd,LOCK_EX);
     write(fd, volume, (int) strlen((char *)volume));
     fsync(fd);

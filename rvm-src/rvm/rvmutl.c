@@ -33,7 +33,7 @@ should be returned to Software.Distribution@cs.cmu.edu.
 
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/rvm-src/rvm/rvmutl.c,v 4.5 1998/03/06 20:21:50 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/rvm-src/rvm/rvmutl.c,v 4.6 1998/04/02 13:18:53 braam Exp $";
 #endif _BLURB_
 
 /*
@@ -348,7 +348,7 @@ static unsigned long str2ul(str,ptr,base_used)
             break;
           case 16: if (!isxdigit(*str)) goto exit;
             break;
-          default: ASSERT(rvm_false);
+          default: CODA_ASSERT(rvm_false);
             }
 
         l = l*base + intval(*str);
@@ -616,7 +616,7 @@ static long num_format_size(format)
         return sizeof(char);
       case tv_sw:
         return sizeof(struct timeval);
-      default:          ASSERT(rvm_false);
+      default:          CODA_ASSERT(rvm_false);
         }
 
     return 0;
@@ -658,7 +658,7 @@ static void bad_format_align(err_stream,format)
       case tv_sw:
         fprintf(err_stream,"struct timeval\n"); return;
       case char_sw: case byte_sw:
-      default:          ASSERT(rvm_false);
+      default:          CODA_ASSERT(rvm_false);
         }
     }
 /* numeric size and format switch scanner */
@@ -1019,7 +1019,7 @@ static void pr_memory(out_stream,err_stream,addr,count,
         break;
       case double_sw: case float_sw: case char_sw:
         break;
-      default:          ASSERT(rvm_false);
+      default:          CODA_ASSERT(rvm_false);
         }
 
     /* print with requested format */
@@ -1064,7 +1064,7 @@ static void pr_memory(out_stream,err_stream,addr,count,
             pr_timeval(out_stream,(struct timeval *)&addr[i],
                        rvm_true,&width);
             break;
-          default: ASSERT(rvm_false);
+          default: CODA_ASSERT(rvm_false);
             }
         if ((count != 0) && (format != (unsigned long)char_sw))
             {
@@ -1514,7 +1514,7 @@ static rvm_bool_t write_peekpoke(err_stream)
         pr_rvm_error(err_stream,RVM_EIO,"writing peek/poke file");
         return rvm_false;
         }
-    ASSERT(length == peekpoke.r_length);
+    CODA_ASSERT(length == peekpoke.r_length);
 
     return rvm_true;
     }
@@ -1896,7 +1896,7 @@ static rvm_bool_t do_poke()
                 sngl_float = dbl_float;
                 data_src = (char *)&sngl_float;
                 break;
-              default:          ASSERT(rvm_false);
+              default:          CODA_ASSERT(rvm_false);
                 }
             }
         /* check alignment & do assignment */
@@ -2193,7 +2193,7 @@ static void print_rec(out_stream,err_stream,rec_hdr,cur_msg)
         break;
       case log_wrap_id:
         break;                          /* nothing more to print */
-      default:      ASSERT(rvm_false);  /* log damage if we get here */
+      default:      CODA_ASSERT(rvm_false);  /* log damage if we get here */
         }
 
     putc('\n',out_stream);
@@ -2204,7 +2204,7 @@ static rec_hdr_t *set_log_position()
     rec_hdr_t       *rec_hdr;           /* generic record header */
     trans_hdr_t  *trans_hdr;      /* transaction header */
 
-    ASSERT(log_buf->ptr != -1);
+    CODA_ASSERT(log_buf->ptr != -1);
     no_rec = rvm_false;
     rec_hdr = (rec_hdr_t *)(&log_buf->buf[log_buf->ptr]);
     cur_rec_num = rec_hdr->rec_num;
@@ -2439,7 +2439,7 @@ static rvm_bool_t load_rec_hdr(err_stream)
     rec_end = (rec_end_t *)&log_buf->buf[log_buf->ptr];
     if (rec_end->struct_id != log_wrap_id)
         {
-        ASSERT(rec_end->struct_id == rec_end_id);
+        CODA_ASSERT(rec_end->struct_id == rec_end_id);
         tmp_ptr = log_buf->ptr - rec_end->rec_length;
         if (tmp_ptr < 0)
             {
@@ -2550,7 +2550,7 @@ static rvm_bool_t locate_earliest(out_stream,err_stream)
     rvm_return_t    retval = RVM_SUCCESS; /* return code */
 
     /* see which way to search */
-    ASSERT(!((rec_num == 0) && (ts == NULL)));
+    CODA_ASSERT(!((rec_num == 0) && (ts == NULL)));
     if (no_rec)                         /* start at tail if no cur record */
         {
         if ((retval=init_buffer(log,&log->status.log_tail,
@@ -2594,7 +2594,7 @@ static rvm_bool_t locate_earliest(out_stream,err_stream)
 				   We need to read in the previous record
 				   before we go furhter -- Clement */
 		retval = validate_rec_reverse(log,NO_SYNCH);
-		ASSERT(retval == RVM_SUCCESS);
+		CODA_ASSERT(retval == RVM_SUCCESS);
 		if (log_buf->ptr == -1) break; /* no more records */
 		rec_hdr = (rec_hdr_t *)(&log_buf->buf[log_buf->ptr]);
 	    };
@@ -2963,7 +2963,7 @@ static rvm_bool_t show_by_num(out_stream,err_stream,key)
                 fprintf(out_stream,"  -- no previous record\n");
             break;
 
-          default:      ASSERT(rvm_false);  /* internal error */
+          default:      CODA_ASSERT(rvm_false);  /* internal error */
             }
 
         /* report error if necessary */
@@ -3076,7 +3076,7 @@ static rvm_bool_t show_sub_rec(out_stream,err_stream,key)
                     retval = locate_prev_sub_rec();
                     break;
                     }
-              default:  ASSERT(rvm_false);  /* internal error */
+              default:  CODA_ASSERT(rvm_false);  /* internal error */
                 }
 
         /* report error if necessary */
@@ -3682,7 +3682,7 @@ static rvm_bool_t do_show()
             if (!show_statistics(out_stream,err_stream))
                 goto err_exit;
             break;
-          default: ASSERT(rvm_false);       /* trouble... */
+          default: CODA_ASSERT(rvm_false);       /* trouble... */
             }
         }
   err_exit: no_err = rvm_false;
@@ -3969,7 +3969,7 @@ static rvm_bool_t do_build_seg_dict()
                 {
               case ALL_KEY:     all_sw = rvm_true; break;
               case CLEAR_KEY:   clear_sw = rvm_true; break;
-              default:          ASSERT(rvm_false);
+              default:          CODA_ASSERT(rvm_false);
                 }
             }
 
@@ -4025,13 +4025,13 @@ static rvm_bool_t do_build_seg_dict()
             {
           case log_wrap_id: continue;
           case rec_end_id: break;
-          default: ASSERT(rvm_false);
+          default: CODA_ASSERT(rvm_false);
             }
         switch (rec_end->rec_type)
             {
           case trans_hdr_id: continue;
           case log_seg_id: break;
-          default: ASSERT(rvm_false);
+          default: CODA_ASSERT(rvm_false);
             }
         /* have log segment dictionary defintion */
         if ((retval=load_sub_rec(rec_end->rec_length,REVERSE))
@@ -4839,7 +4839,7 @@ static void clear_cut()
     for (i=0; i<log->seg_dict_len; i++)
         {
         kill_tree(&log->seg_dict_vec[i].mod_tree);
-        ASSERT(log->seg_dict_vec[i].mod_tree.root == NULL);
+        CODA_ASSERT(log->seg_dict_vec[i].mod_tree.root == NULL);
         }
     }
 /* log truncation/recovery support */
@@ -5050,9 +5050,9 @@ static rvm_bool_t do_replay()
                     goto err_exit;
                     }
                 rec_hdr = (rec_hdr_t *)&log_buf->buf[log_buf->ptr];
-                ASSERT(rec_hdr->struct_id == rec_end_id);
+                CODA_ASSERT(rec_hdr->struct_id == rec_end_id);
               case log_wrap_id: break;
-              default: ASSERT(rvm_false);
+              default: CODA_ASSERT(rvm_false);
                 }
             status->last_rec_num = rec_hdr->rec_num;
             status->last_trunc = rec_hdr->timestamp;

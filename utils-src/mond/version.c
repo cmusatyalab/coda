@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/utils-src/mond/version.c,v 3.2 1995/10/09 19:27:10 satya Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/utils-src/mond/version.c,v 3.3 1998/09/07 15:57:26 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -184,7 +184,7 @@ long MondEstablishConn(RPC2_Handle cid, unsigned long Version,
     // check for valid version 
     // (this should be changed to allow for old, but compatible)
     char *hostname = HostNameOfConn(cid);
-    assert (hostname != NULL);
+    CODA_ASSERT (hostname != NULL);
     LogMsg(10,LogLevel,LogFile,
 	   "Beginning MondEstablishConn for %s as a %s",
 	   hostname, ((clientType == MOND_VICE_CLIENT) ? "vice" : "venus"));
@@ -192,7 +192,7 @@ long MondEstablishConn(RPC2_Handle cid, unsigned long Version,
     if (Version != MOND_CURRENT_VERSION
 	|| (clientType != MOND_VENUS_CLIENT && clientType != MOND_VICE_CLIENT)) {
 	char *badhost = HostNameOfConn(cid);
-	assert(hostname != NULL);
+	CODA_ASSERT(hostname != NULL);
 	LogMsg(0,LogLevel,LogFile,
 	       "Incompatible Version request: host %s [%s]; version %ld",
 	       badhost,

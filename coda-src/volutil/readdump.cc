@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/volutil/readdump.cc,v 4.4 1997/12/23 17:20:11 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/volutil/readdump.cc,v 4.5 1998/09/07 15:57:22 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -128,7 +128,7 @@ int Rewind(char *args) {
 	return(-1);
     }
 
-    assert(DumpStream);
+    CODA_ASSERT(DumpStream);
     delete DumpStream;
     DumpStream = new dumpstream(DefaultDumpFile);
     return 0;
@@ -181,7 +181,7 @@ void showVolumeDiskData(int largc, char **largv) {
         return;
     }
     
-    assert(DumpStream->getVolDiskData(&data) == 0);
+    CODA_ASSERT(DumpStream->getVolDiskData(&data) == 0);
 
     printf("\tversion stamp = %x, %u\n", data.stamp.magic, data.stamp.version);
     printf("\tid = %x\n\tpartition = %s\n\tname = %s\n\tinUse = %u\n\tinService = %u\n",
@@ -337,7 +337,7 @@ void setIndex(int largc, char **largv) {
 	    count++;
 	}
 
-	assert(nvnodes >= count); /* May have less if dump is incremental */
+	CODA_ASSERT(nvnodes >= count); /* May have less if dump is incremental */
 	
 	/* We should have read all the Large Vnodes now, get the small index */
 	if (DumpStream->getVnodeIndex(vSmall, &nvnodes, &nslots) == -1) {

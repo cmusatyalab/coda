@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/vol_repair.cc,v 4.7 98/10/07 19:53:41 jaharkes Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/vol_repair.cc,v 4.8 1998/10/13 16:49:29 jaharkes Exp $";
 #endif /*_BLURB_*/
 
 
@@ -151,7 +151,7 @@ int volent::Repair(ViceFid *RepairFid, char *RepairFile, vuid_t vuid,
 	return ETIMEDOUT;
     case Resolving:
 	return ERETRY;
-    default: Choke("volent::Repair: bogus volume state %d", state);
+    default: CHOKE("volent::Repair: bogus volume state %d", state);
     }
 
     return -1;
@@ -357,7 +357,7 @@ int volent::ConnectedRepair(ViceFid *RepairFid, char *RepairFile, vuid_t vuid,
 		    ReturnCodes[i] = ETIMEDOUT;
 	    }
 	if (HostCount != m->rocc.HowMany)
-	    Choke("volent::Repair: collate failed");
+	    CHOKE("volent::Repair: collate failed");
 	if (code != 0) goto Exit;
     }
 
@@ -402,7 +402,7 @@ int volent::DisconnectedRepair(ViceFid *RepairFid, char *RepairFile,
     fsobj *RepairF = 0;
     ViceStatus status;
     vproc *vp = VprocSelf();
-    ASSERT(vp);
+    CODA_ASSERT(vp);
     
     LOG(10, ("volent::DisConnectedRepair: fid = (%x.%x.%x), file = %s, uid = %d\n",
 	    RepairFid->Volume, RepairFid->Vnode, RepairFid->Unique,
@@ -501,8 +501,8 @@ int volent::DisconnectedRepair(ViceFid *RepairFid, char *RepairFile,
 		    continue;
 		RepairVVs[i] = &f->stat.VV;	/* XXX */
 		if (tpfid.Vnode && f->pfid.Vnode) {
-		    ASSERT(tpfid.Vnode == f->pfid.Vnode);
-		    ASSERT(tpfid.Unique == f->pfid.Unique);
+		    CODA_ASSERT(tpfid.Vnode == f->pfid.Vnode);
+		    CODA_ASSERT(tpfid.Unique == f->pfid.Unique);
 		}
 		FSDB->Put(&f);
 	    }
@@ -649,11 +649,11 @@ int volent::LocalRepair(fsobj *f, ViceStatus *status, char *fname, ViceFid *pfid
     {
 	f->data.file = &f->cf;
 	int srcfd = open(fname, O_RDONLY | O_BINARY, 0644/*XXX*/);
-	ASSERT(srcfd);
+	CODA_ASSERT(srcfd);
 	LOG(100, ("LocalRepair: Going to open %s\n", f->data.file->Name()));
 	int tgtfd = open(f->data.file->Name(),
 			 O_WRONLY | O_TRUNC | O_BINARY, 0644/*XXX*/);
-	ASSERT(tgtfd>0);
+	CODA_ASSERT(tgtfd>0);
 	char buf[512];
 	int rc;
 	int tlength = 0;
@@ -715,7 +715,7 @@ int volent::IsUnderRepair(vuid_t vuid) {
 	    }
 
 	default:
-	    Choke("volent::IsUnderRepair: %x, bogus type (%d)", vid, type);
+	    CHOKE("volent::IsUnderRepair: %x, bogus type (%d)", vid, type);
 	    return(0); /* to keep g++ happy */
     }
 }
@@ -772,7 +772,7 @@ int volent::IsASRAllowed() {
 	    }
 
 	default:
-	    Choke("volent::IsASRAllowed: %x, bogus type (%d)", vid, type);
+	    CHOKE("volent::IsASRAllowed: %x, bogus type (%d)", vid, type);
 	    return(0); /* to keep g++ happy */
     }
 

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/venuscb.cc,v 4.10 98/09/23 20:26:34 jaharkes Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/venuscb.cc,v 4.11 1998/09/29 21:04:44 jaharkes Exp $";
 #endif /*_BLURB_*/
 
 
@@ -99,7 +99,7 @@ void CallBackInit() {
     server.Tag = RPC2_SUBSYSBYID;
     server.Value.SubsysId = SUBSYS_CB;
     if (RPC2_Export(&server) != RPC2_SUCCESS)
-	Choke("CallBackInit: RPC2_Export failed");
+	CHOKE("CallBackInit: RPC2_Export failed");
 
     /* Start up the CB servers. */
     for (int i = 0; i < MaxCBServers; i++)
@@ -259,7 +259,7 @@ long CallBackFetch(RPC2_Handle RPCid, ViceFid *Fid, SE_Descriptor *BD) {
      * it really is not supposed to happen.
      */
     if (f->readers <= 0 && !f->shadow) 
-	Choke("CallBackFetch: object not locked! (%x.%x.%x)\n",
+	CHOKE("CallBackFetch: object not locked! (%x.%x.%x)\n",
 	      f->fid.Volume, f->fid.Vnode, f->fid.Unique);
 
     /* Sanity checks. */
@@ -333,7 +333,7 @@ long CallBackConnect(RPC2_Handle RPCid, RPC2_Integer SideEffectType,
     RPC2_GetPeerInfo(RPCid, &thePeer);
     if (thePeer.RemoteHost.Tag != RPC2_HOSTBYINETADDR ||
 	 thePeer.RemotePortal.Tag != RPC2_PORTALBYINETNUMBER)
-	Choke("CallBackConnect: getpeerinfo returned bogus type!");
+	CHOKE("CallBackConnect: getpeerinfo returned bogus type!");
     unsigned long host = ntohl(thePeer.RemoteHost.Value.InetAddress);
     unsigned short portal = ntohs(thePeer.RemotePortal.Value.InetPortNumber);
     LOG(100, ("CallBackConnect: host = %x, portal = %d\n", host, portal));

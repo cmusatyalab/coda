@@ -4,7 +4,7 @@ extern "C" {
 
 #include <sys/param.h>
 #include <sys/types.h>
-#include <assert.h>
+#include "coda_assert.h"
 #include <ctype.h>
 #include <errno.h>
 #include <fcntl.h>
@@ -99,13 +99,13 @@ void InitializeCodaConsole() {
     // Redirect it to come from the toConsole[0] file descriptor
     fclose(stdin);
     newIn = dup(toConsole[0]); 
-    assert(newIn == 0);
+    CODA_ASSERT(newIn == 0);
 
     // Close the CodaConsole's stdout
     // Redirect it to the toAdviceSrv[1] file descriptor
     fclose(stdout);
     newOut = dup(toAdviceSrv[1]);
-    assert(newOut == 1);
+    CODA_ASSERT(newOut == 1);
 
     // Setup the arguments to the call
     args[0] = CODACONSOLEOUT;
@@ -124,10 +124,10 @@ void SendToConsole(char *msg) {
     int rc;
 
     rc = fprintf(toCONSOLE, "%s", msg);
-    assert(rc == strlen(msg));
+    CODA_ASSERT(rc == strlen(msg));
 
     rc = fflush(toCONSOLE);
-    assert(rc == 0);
+    CODA_ASSERT(rc == 0);
 }
 
 #define READFREQUENCY 1
@@ -162,7 +162,7 @@ char *ReadFromConsole(int block) {
     } while ((block == 1) && (rc == NULL));                   /* end do */
 
     if (rc == NULL) {
-      assert(block == 0);
+      CODA_ASSERT(block == 0);
       return(NULL);
     } else {
       fprintf(stderr, "ReadFromConsole: inputline=%s\n", inputline); fflush(stderr);
@@ -261,10 +261,10 @@ void Hoard() {
     int i = 0;
     int numFields;
 
-    assert(HoardOpenCommandFile() == 0);
+    CODA_ASSERT(HoardOpenCommandFile() == 0);
     
     inputline = ReadFromConsole(BLOCKING);
-    assert(inputline != NULL);
+    CODA_ASSERT(inputline != NULL);
     while (strncmp(inputline, "END", strlen("END")) != 0) {
       if (strncmp("Output ERROR", inputline, strlen("Output ERROR")) == 0) {
 	fprintf(stderr, "Output ERROR:\n");
@@ -276,7 +276,7 @@ void Hoard() {
       numFields = sscanf(inputline, "%d %s %c", &priority, pathname, &meta);
 
       // assume that we either got two or three fields: a file or a directory
-      assert((numFields == 2) || (numFields == 3));
+      CODA_ASSERT((numFields == 2) || (numFields == 3));
 
       // setup the command based upon the number of fields found
       if (numFields == 2)
@@ -288,7 +288,7 @@ void Hoard() {
       // We have reached the maximum
       if (i == 5) {
         // Ship of the commands
-//        assert(C_HoardCommands(VenusCID, (RPC2_Integer)uid, i, commands) == RPC2_SUCCESS);
+//        CODA_ASSERT(C_HoardCommands(VenusCID, (RPC2_Integer)uid, i, commands) == RPC2_SUCCESS);
 	  HoardWriteCommandFile(i, commands);
 
         // Free up the pathname memory
@@ -300,25 +300,25 @@ void Hoard() {
 
       // Get next input line
       inputline = ReadFromConsole(BLOCKING);
-      assert(inputline != NULL);
+      CODA_ASSERT(inputline != NULL);
     }
 
-    assert(strncmp(inputline, "END", strlen("END")) == 0);
+    CODA_ASSERT(strncmp(inputline, "END", strlen("END")) == 0);
 //    printf("Make Hoard RPC call\n"); fflush(stdout);
-//    assert(C_HoardCommands(VenusCID, (RPC2_Integer)uid, i, commands) == RPC2_SUCCESS);
+//    CODA_ASSERT(C_HoardCommands(VenusCID, (RPC2_Integer)uid, i, commands) == RPC2_SUCCESS);
     HoardWriteCommandFile(i, commands);
 
     // Free up the pathname memory
     for (int j = 0; j < i; j++) {  free(commands[i].pathname);	}
 
-    assert(HoardCloseCommandFile() == 0);
-    assert(HoardExecCommandFile() == 0);
+    CODA_ASSERT(HoardCloseCommandFile() == 0);
+    CODA_ASSERT(HoardExecCommandFile() == 0);
 }
 
 void HoardFile(char *pathname, int priority, HoardCmd *cmd) {
     char *path;
 
-    assert(pathname != NULL);
+    CODA_ASSERT(pathname != NULL);
     path = (char *)malloc(strlen(pathname)+1);
     strncpy(path, pathname, strlen(pathname)+1);
 
@@ -334,7 +334,7 @@ void HoardDirectory(char *pathname, int priority, char meta, HoardCmd *cmd) {
     //    printf("Hoard: File=%s Priority=%d Meta=%c\n", pathname, priority, meta);
     //    fflush(stdout);
 
-    assert(pathname != NULL);
+    CODA_ASSERT(pathname != NULL);
     path = (char *)malloc(strlen(pathname)+1);
     strncpy(path, pathname, strlen(pathname)+1);
 
@@ -356,12 +356,12 @@ void HoardClear() {
     commands[0].priority = (RPC2_Integer)-1;
     commands[0].meta = NoneMETA;
     
-//    assert(C_HoardCommands(VenusCID, (RPC2_Integer)uid, 1, commands) == RPC2_SUCCESS);
+//    CODA_ASSERT(C_HoardCommands(VenusCID, (RPC2_Integer)uid, 1, commands) == RPC2_SUCCESS);
 
-    assert(HoardOpenCommandFile() == 0);
+    CODA_ASSERT(HoardOpenCommandFile() == 0);
     HoardWriteCommandFile(1, commands);
-    assert(HoardCloseCommandFile() == 0);
-    assert(HoardExecCommandFile() == 0);
+    CODA_ASSERT(HoardCloseCommandFile() == 0);
+    CODA_ASSERT(HoardExecCommandFile() == 0);
 
     LogMsg(100, LogLevel, LogFile,
 	   "Completed clear request\n");
@@ -380,12 +380,12 @@ void HoardList() {
     commands[0].priority = (RPC2_Integer)-1;
     commands[0].meta = NoneMETA;
     
-//    assert(C_HoardCommands(VenusCID, (RPC2_Integer)uid, 1, commands) == RPC2_SUCCESS);
+//    CODA_ASSERT(C_HoardCommands(VenusCID, (RPC2_Integer)uid, 1, commands) == RPC2_SUCCESS);
 
-    assert(HoardOpenCommandFile() == 0);
+    CODA_ASSERT(HoardOpenCommandFile() == 0);
     HoardWriteCommandFile(1, commands);
-    assert(HoardCloseCommandFile() == 0);
-    assert(HoardExecCommandFile() == 0);
+    CODA_ASSERT(HoardCloseCommandFile() == 0);
+    CODA_ASSERT(HoardExecCommandFile() == 0);
 
 }
 
@@ -401,12 +401,12 @@ void HoardOff() {
     commands[0].priority = (RPC2_Integer)-1;
     commands[0].meta = NoneMETA;
     
-//    assert(C_HoardCommands(VenusCID, (RPC2_Integer)uid, 1, commands) == RPC2_SUCCESS);
+//    CODA_ASSERT(C_HoardCommands(VenusCID, (RPC2_Integer)uid, 1, commands) == RPC2_SUCCESS);
 
-    assert(HoardOpenCommandFile() == 0);
+    CODA_ASSERT(HoardOpenCommandFile() == 0);
     HoardWriteCommandFile(1, commands);
-    assert(HoardCloseCommandFile() == 0);
-    assert(HoardExecCommandFile() == 0);
+    CODA_ASSERT(HoardCloseCommandFile() == 0);
+    CODA_ASSERT(HoardExecCommandFile() == 0);
 
 }
 
@@ -422,12 +422,12 @@ void HoardOn() {
     commands[0].priority = (RPC2_Integer)-1;
     commands[0].meta = NoneMETA;
     
-//    assert(C_HoardCommands(VenusCID, (RPC2_Integer)uid, 1, commands) == RPC2_SUCCESS);
+//    CODA_ASSERT(C_HoardCommands(VenusCID, (RPC2_Integer)uid, 1, commands) == RPC2_SUCCESS);
 
-    assert(HoardOpenCommandFile() == 0);
+    CODA_ASSERT(HoardOpenCommandFile() == 0);
     HoardWriteCommandFile(1, commands);
-    assert(HoardCloseCommandFile() == 0);
-    assert(HoardExecCommandFile() == 0);
+    CODA_ASSERT(HoardCloseCommandFile() == 0);
+    CODA_ASSERT(HoardExecCommandFile() == 0);
 
 }
 
@@ -443,12 +443,12 @@ void HoardWalk() {
     commands[0].priority = (RPC2_Integer)-1;
     commands[0].meta = NoneMETA;
     
-//    assert(C_HoardCommands(VenusCID, (RPC2_Integer)uid, 1, commands) == RPC2_SUCCESS);
+//    CODA_ASSERT(C_HoardCommands(VenusCID, (RPC2_Integer)uid, 1, commands) == RPC2_SUCCESS);
 
-    assert(HoardOpenCommandFile() == 0);
+    CODA_ASSERT(HoardOpenCommandFile() == 0);
     HoardWriteCommandFile(1, commands);
-    assert(HoardCloseCommandFile() == 0);
-    assert(HoardExecCommandFile() == 0);
+    CODA_ASSERT(HoardCloseCommandFile() == 0);
+    CODA_ASSERT(HoardExecCommandFile() == 0);
 
 }
 
@@ -464,12 +464,12 @@ void HoardVerify() {
     commands[0].priority = (RPC2_Integer)-1;
     commands[0].meta = NoneMETA;
     
-//    assert(C_HoardCommands(VenusCID, (RPC2_Integer)uid, 1, commands) == RPC2_SUCCESS);
+//    CODA_ASSERT(C_HoardCommands(VenusCID, (RPC2_Integer)uid, 1, commands) == RPC2_SUCCESS);
 
-    assert(HoardOpenCommandFile() == 0);
+    CODA_ASSERT(HoardOpenCommandFile() == 0);
     HoardWriteCommandFile(1, commands);
-    assert(HoardCloseCommandFile() == 0);
-    assert(HoardExecCommandFile() == 0);
+    CODA_ASSERT(HoardCloseCommandFile() == 0);
+    CODA_ASSERT(HoardExecCommandFile() == 0);
 
 }
 
@@ -481,7 +481,7 @@ void RegisterInterests() {
     long rc;
 
     inputline = ReadFromConsole(BLOCKING);
-    assert(inputline != NULL);
+    CODA_ASSERT(inputline != NULL);
     while ((strncmp(inputline, "END", strlen("END")) != 0) && (i < MAXEVENTS)) {
       Yield();
         sscanf(inputline, "%s\n", eventOfInterest);
@@ -518,14 +518,14 @@ void RegisterInterests() {
             i++;
 	}
         inputline = ReadFromConsole(BLOCKING);
-        assert(inputline != NULL);
+        CODA_ASSERT(inputline != NULL);
     }
     rc = (int)(strncmp(inputline, "END", strlen("END")));
-    assert(rc == 0);
+    CODA_ASSERT(rc == 0);
     ObtainWriteLock(&VenusLock);
     rc = C_RegisterInterest(VenusCID, (RPC2_Integer)uid, i, interests);
     ReleaseWriteLock(&VenusLock);
-    assert(rc == RPC2_SUCCESS);
+    CODA_ASSERT(rc == RPC2_SUCCESS);
 }
 
 void CheckNetworkConnectivityForFilters() {
@@ -537,13 +537,13 @@ void CheckNetworkConnectivityForFilters() {
 
   /* Save the name of the client */
   inputline = ReadFromConsole(BLOCKING);
-  assert(inputline != NULL);
+  CODA_ASSERT(inputline != NULL);
   sscanf(inputline, "client = %s\n", clientOriginal);
   strcpy(client, clientOriginal);
   toUpper(client);
 
   inputline = ReadFromConsole(BLOCKING);
-  assert(inputline != NULL);
+  CODA_ASSERT(inputline != NULL);
   /* For each server... */
   while (strncmp(inputline, "END", strlen("END")) != 0) {
 
@@ -572,7 +572,7 @@ void CheckNetworkConnectivityForFilters() {
       
       /* Get the next line of input */
       inputline = ReadFromConsole(BLOCKING);
-      assert(inputline != NULL);
+      CODA_ASSERT(inputline != NULL);
   }
 }
 
@@ -590,7 +590,7 @@ void ProcessInputFromConsole() {
 	  
 	} else if (strncmp(rfc, "DisconnectedCacheMissQuestionnaire",
 			   strlen("DisconnectedCacheMissQuestionnaire")) == 0) {
-	  assert(LWP_SignalProcess(&discomissSync) == LWP_SUCCESS);
+	  CODA_ASSERT(LWP_SignalProcess(&discomissSync) == LWP_SUCCESS);
 
 	} else if (strncmp(rfc, "HoardPeriodicOn",
 			   strlen("HoardPeriodicOn")) == 0) {
@@ -600,7 +600,7 @@ void ProcessInputFromConsole() {
 	  HoardOff();
 	} else if (strncmp(rfc, "Hoard Advice Available",
 			   strlen("Hoard Advice Available")) == 0) {
-	  assert(LWP_SignalProcess(&hoardwalkSync) == LWP_SUCCESS);
+	  CODA_ASSERT(LWP_SignalProcess(&hoardwalkSync) == LWP_SUCCESS);
 	} else if (strncmp(rfc, "HoardWalkAdvice",
 			   strlen("HoardWalkAdvice")) == 0) {
 	  // Ignore this line of input
@@ -611,13 +611,13 @@ void ProcessInputFromConsole() {
 	  Hoard();
 	} else if (strncmp(rfc, "WeakMissQuestionnaire  returns",
 			  strlen("WeakMissQuestionnaire")) == 0) {
-	  assert(sscanf(rfc, "WeakMissQuestionnaire returns %d\n", &weakmissAnswer) == 1);
-	  assert(LWP_SignalProcess(&weakmissSync) == LWP_SUCCESS);
+	  CODA_ASSERT(sscanf(rfc, "WeakMissQuestionnaire returns %d\n", &weakmissAnswer) == 1);
+	  CODA_ASSERT(LWP_SignalProcess(&weakmissSync) == LWP_SUCCESS);
 
 	} else if (strncmp(rfc, "ReadMissQuestionnaire",
 			  strlen("ReadMissQuestionnaire")) == 0) {
-	  assert(sscanf(rfc, "ReadMissQuestionnaire returns %d\n", &readmissAnswer) == 1);
-	  assert(LWP_SignalProcess(&readmissSync) == LWP_SUCCESS);
+	  CODA_ASSERT(sscanf(rfc, "ReadMissQuestionnaire returns %d\n", &readmissAnswer) == 1);
+	  CODA_ASSERT(LWP_SignalProcess(&readmissSync) == LWP_SUCCESS);
 
 	} else if (strncmp(rfc, "RegisterEvents",
 			   strlen("RegisterEvents")) == 0) {
@@ -645,7 +645,7 @@ fprintf(stderr, "got those stats\n"); fflush(stderr);
 	    fprintf(stderr, "rc = %d\n", rc); 
 	    fflush(stderr);
 	  }
-	  assert(rc == RPC2_SUCCESS);
+	  CODA_ASSERT(rc == RPC2_SUCCESS);
 
 	  // Send the information to CodaConsole
 	  sprintf(msg, "%d %d %d %d %d %d\n",
@@ -660,7 +660,7 @@ fprintf(stderr, "got those stats\n"); fflush(stderr);
 	   char filename[MAXPATHLEN];
            int sinceLastUse, percentUsed, totalUsed;
 
-           assert(sscanf(rfc, "GetUsageStats %d %d %d\n", &sinceLastUse, &percentUsed, &totalUsed) == 3);
+           CODA_ASSERT(sscanf(rfc, "GetUsageStats %d %d %d\n", &sinceLastUse, &percentUsed, &totalUsed) == 3);
 
 	   snprintf(filename, MAXPATHLEN, "/tmp/usage_statistics");
 	   unlink(filename);
@@ -673,7 +673,7 @@ fprintf(stderr, "got those stats\n"); fflush(stderr);
 					(RPC2_Integer) percentUsed, 
 					(RPC2_Integer) totalUsed);
 	   ReleaseWriteLock(&VenusLock);
-	   assert(rc == RPC2_SUCCESS);
+	   CODA_ASSERT(rc == RPC2_SUCCESS);
 
 	   OutputMissStatistics();
 	   OutputReplacementStatistics();

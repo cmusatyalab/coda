@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rvmres/rename.cc,v 4.5 1998/10/05 17:15:10 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rvmres/rename.cc,v 4.6 1998/10/07 20:29:49 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -107,7 +107,7 @@ int CheckAndPerformRename(rsle *r, Volume *volptr, VolumeId VSGVolnum,
     
     if (!errorCode) {
 	int tblocks = 0;
-	assert(CleanRenameTarget(r, vlist, volptr, VSGVolnum, 
+	CODA_ASSERT(CleanRenameTarget(r, vlist, volptr, VSGVolnum, 
 				 AllLogs, &tblocks) == 0);
 	*blocks += tblocks;
 	tblocks = 0;
@@ -118,7 +118,7 @@ int CheckAndPerformRename(rsle *r, Volume *volptr, VolumeId VSGVolnum,
 		      &sdv->d_cinode, &tdv->d_cinode, &sv->d_cinode, NULL);
 	if (tv && tv->vptr->delete_me) {
 	    tblocks = -nBlocks(tv->vptr->disk.length);
-	    assert(AdjustDiskUsage(volptr, tblocks) == 0);
+	    CODA_ASSERT(AdjustDiskUsage(volptr, tblocks) == 0);
 	    *blocks += tblocks;
 	    if (tv->vptr->disk.type != vDirectory) {
 		tv->f_sinode = tv->vptr->disk.inodeNumber;
@@ -146,8 +146,8 @@ int CheckAndPerformRename(rsle *r, Volume *volptr, VolumeId VSGVolnum,
 	    
 	    vle *v;
 	    v = FindVLE(*vlist, &fid);
-	    assert(v); 
-	    assert(v->vptr);
+	    CODA_ASSERT(v); 
+	    CODA_ASSERT(v->vptr);
 	    MarkObjInc(&fid, v->vptr);
 	    if (inclist->IsMember(il))
 		delete il;
@@ -159,7 +159,7 @@ int CheckAndPerformRename(rsle *r, Volume *volptr, VolumeId VSGVolnum,
     }
     
     if (newinclist) {
-	assert(newinclist->count() == 0);
+	CODA_ASSERT(newinclist->count() == 0);
 	delete newinclist;
     }
     LogMsg(1, SrvDebugLevel, stdout,  
@@ -204,7 +204,7 @@ static void AddToIncList(dlist *inclist, dlist *vlist, Volume *volptr, ViceFid *
 	    AddILE(*inclist, ".", 1, 1, 1, 1, vDirectory);
 	else {
 	    char name[MAXNAMLEN];
-	    assert(GetNameInParent(ov->vptr, vlist, volptr, name));
+	    CODA_ASSERT(GetNameInParent(ov->vptr, vlist, volptr, name));
 	    AddILE(*inclist, name, fid->Vnode, fid->Unique, 
 		   ov->vptr->disk.vparent, ov->vptr->disk.uparent, ov->vptr->disk.type);
 	}
@@ -379,7 +379,7 @@ static int CheckResolveRenameSemantics(rsle *r, Volume *volptr, ViceFid *dFid, d
 	    {
 		if (!ISDIR(TgtFid)) {
 		    //file remove/update conflict 
-		    assert(tv->vptr);
+		    CODA_ASSERT(tv->vptr);
 		    if (FileRUConf(&r->u.mv.tvv, tv->vptr)) {
 			LogMsg(0, SrvDebugLevel, stdout,  
 			       "ChkResRenSem: RUConflict on target %x.%x",
@@ -420,10 +420,10 @@ static int CheckResolveRenameSemantics(rsle *r, Volume *volptr, ViceFid *dFid, d
     
   Exit:
     if (errorCode) {
-	assert(opv);
-	assert(opv->vptr);
-	assert(npv);
-	assert(npv->vptr);
+	CODA_ASSERT(opv);
+	CODA_ASSERT(opv->vptr);
+	CODA_ASSERT(npv);
+	CODA_ASSERT(npv->vptr);
 	AddToIncList(newinclist, vlist, volptr, &OldDid, 0);
 	if (opv != npv)
 	    AddToIncList(newinclist, vlist, volptr, &NewDid, 0);

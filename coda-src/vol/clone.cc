@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vol/clone.cc,v 4.3 1997/10/23 19:25:34 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vol/clone.cc,v 4.4 1998/08/26 21:22:24 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -79,7 +79,7 @@ extern "C" {
 #include <unistd.h>
 #include <stdlib.h>
 #endif
-#include <assert.h>
+#include "coda_assert.h"
 #include <lwp.h>
 #include <lock.h>
 
@@ -142,7 +142,7 @@ static void CloneIndex(Volume *ovp, Volume *cvp, Volume *dvp, VnodeClass vclass)
 	else
 	    dinode = 0;
         if (vnode->type != vNull) {
-	    assert(vnode->vnodeMagic == vcp->magic);
+	    CODA_ASSERT(vnode->vnodeMagic == vcp->magic);
 	    if (vnode->type == vDirectory && RWOriginal) {
 	    	vnode->cloned = 1;
 		/* NOTE:  the dataVersion++ is incredibly important!!!.
@@ -152,7 +152,7 @@ static void CloneIndex(Volume *ovp, Volume *cvp, Volume *dvp, VnodeClass vclass)
 		   right thing */
 		vnode->dataVersion++;
 		/* write out the changed old vnode */
-		assert(oindex.oput(offset, vnode) == 0);
+		CODA_ASSERT(oindex.oput(offset, vnode) == 0);
 		/* Turn clone flag off for the cloned volume, just for
 		   cleanliness */
 		vnode->cloned = 0;
@@ -164,21 +164,21 @@ static void CloneIndex(Volume *ovp, Volume *cvp, Volume *dvp, VnodeClass vclass)
 	    }
 	    else if (vnode->inodeNumber) {
 		/* a new clone is also referencing this inode */
-	        assert(iinc(device, vnode->inodeNumber, V_parentId(ovp)) != -1);
+	        CODA_ASSERT(iinc(device, vnode->inodeNumber, V_parentId(ovp)) != -1);
 	    }
 	}
 	if (dinode) {
 	    /* the old backup volume is no longer referencing this vnode */
-	    assert(idec(device, dinode, V_parentId(ovp)) != -1);
+	    CODA_ASSERT(idec(device, dinode, V_parentId(ovp)) != -1);
 	}
 	/* write out the vnode to the new cloned volume index */
-	assert(cindex.oput(offset, vnode) == 0);
+	CODA_ASSERT(cindex.oput(offset, vnode) == 0);
     }
 
     /* Isn't this redundant? ***ehs***/
     vindex_iterator dnext(dindex);
     while (dfile && ((offset = dnext(dvnode)) != -1)) {
-	assert(idec(device, dvnode->inodeNumber, V_parentId(ovp)) != -1);
+	CODA_ASSERT(idec(device, dvnode->inodeNumber, V_parentId(ovp)) != -1);
     }
 }
 
@@ -187,7 +187,7 @@ static void FinalDelete(register Volume *vp)
     /* Delete old backup -- it's vnodes are already gone */
     if (vp) {
         Error error;
-	assert(DeleteVolume(V_id(vp)) == 0);
+	CODA_ASSERT(DeleteVolume(V_id(vp)) == 0);
 	VDetachVolume(&error, vp);
     }
 }

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/volutil/dumpstuff.cc,v 4.2 1997/02/26 16:04:01 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/volutil/dumpstuff.cc,v 4.3 1997/10/23 19:25:54 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -182,7 +182,7 @@ byte *Reserve(DumpBuffer_t *buf, int n)
 	current = buf->DumpBufPtr;
     }
     buf->DumpBufPtr += n;
-    assert(buf->DumpBufPtr <= buf->DumpBufEnd);
+    CODA_ASSERT(buf->DumpBufPtr <= buf->DumpBufEnd);
     return current;
 }
 
@@ -343,7 +343,7 @@ int DumpFile(DumpBuffer_t *buf, byte tag, int fd, int vnode)
 	if (n < howMany){
 	    LogMsg(0, VolDebugLevel, stdout, "Error reading inode %d for vnode %d; dump aborted",
 	    	status.st_ino, vnode);
-	    assert(0);
+	    CODA_ASSERT(0);
 	}
     }
     return 0;

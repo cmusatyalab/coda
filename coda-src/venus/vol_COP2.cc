@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/vol_COP2.cc,v 4.3 1998/08/26 21:24:40 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/vol_COP2.cc,v 4.4 1998/09/29 16:38:20 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -61,7 +61,7 @@ extern "C" {
 #endif __cplusplus
 
 #include <stdio.h>
-#include <assert.h>
+#include "coda_assert.h"
 #include <rpc2.h>
 
 #ifdef __cplusplus
@@ -136,7 +136,7 @@ int volent::COP2(mgrpent *m, ViceStoreId *StoreId, vv_t *UpdateSet) {
 /* Younger UpdateSets may also be sent in order to complete a buffer. */
 /* Other UpdateSets will either be piggybacked on subsequent RPCs, or sent directly when they are older. */
 int volent::FlushCOP2(time_t window) {
-    ASSERT(!FID_VolIsFake(vid));
+    CODA_ASSERT(!FID_VolIsFake(vid));
     LOG(100, ("volent::FlushCOP2: vol = %x, window = %d\n",
 	       vid, window));
 
@@ -186,7 +186,7 @@ int volent::FlushCOP2(time_t window) {
 /* Copy the last buffer-full into the supplied buffer so that it can be piggybacked. */
 /* Use the supplied Mgrp for the direct COP2s. */
 int volent::FlushCOP2(mgrpent *m, RPC2_CountedBS *PiggyBS) {
-    ASSERT(!FID_VolIsFake(vid));
+    CODA_ASSERT(!FID_VolIsFake(vid));
     LOG(100, ("volent::FlushCOP2(Piggy): vol = %x\n", vid));
 
     int code = 0;
@@ -199,7 +199,7 @@ int volent::FlushCOP2(mgrpent *m, RPC2_CountedBS *PiggyBS) {
 	BS.SeqBody = (RPC2_ByteSeq)buf;
 	GetCOP2(&BS);
 	if (BS.SeqLen == 0)
-	    { print(logFile); Choke("volent::FlushCOP2(Piggy): No Entries!\n"); }
+	    { print(logFile); CHOKE("volent::FlushCOP2(Piggy): No Entries!\n"); }
 
 	/* Make the call. */
 	code = COP2(m, &BS);
@@ -258,7 +258,7 @@ void volent::ClearCOP2(RPC2_CountedBS *BS) {
     LOG(100, ("volent::ClearCOP2: vol = %x\n", vid));
 
     if (BS->SeqLen % COP2EntrySize != 0)
-	Choke("volent::ClearCOP2: bogus SeqLen (%d)", BS->SeqLen);
+	CHOKE("volent::ClearCOP2: bogus SeqLen (%d)", BS->SeqLen);
 
     for (int cursor = 0; cursor < BS->SeqLen; cursor += COP2EntrySize) {
 	ViceStoreId sid;
@@ -266,7 +266,7 @@ void volent::ClearCOP2(RPC2_CountedBS *BS) {
 	cop2ent *c = FindCOP2(&sid);
 	if (c) {
 	    if (cop2_list->remove(c) != c)
-		{ print(logFile); Choke("volent::ClearCOP2: remove"); }
+		{ print(logFile); CHOKE("volent::ClearCOP2: remove"); }
 	    delete c;
 	}
     }
@@ -287,7 +287,7 @@ void *cop2ent::operator new(size_t len) {
     }
     else
 	c = (cop2ent *)d;
-    assert(c);
+    CODA_ASSERT(c);
     return(c);
 }
 

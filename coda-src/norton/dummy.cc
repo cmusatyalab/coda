@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/norton/dummy.cc,v 4.4 98/10/05 17:15:04 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/norton/dummy.cc,v 4.5 1998/10/29 09:37:19 jaharkes Exp $";
 #endif /*_BLURB_*/
 
 
@@ -39,7 +39,7 @@ static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/norton
 extern "C" {
 #endif __cplusplus
 #include <stdio.h>
-#include <assert.h>
+#include "coda_assert.h"
 #ifdef __cplusplus
 }
 #endif __cplusplus
@@ -60,14 +60,14 @@ void PollAndYield() {
     dlist dl;
     ViceFid fid;
 
-    assert(0);
+    CODA_ASSERT(0);
     FindVLE(dl, &fid);
     return(0);
 }
 
 void Die(char *msg) {
     fprintf(stderr, "%s\n", msg);
-    assert(0);
+    CODA_ASSERT(0);
     return;
 }
 
@@ -75,7 +75,7 @@ int GetFsObj(ViceFid *fid, Volume **volptr, Vnode **vptr,
 	     int lock, int VolumeLock, int ignoreIncon, int ignoreBQ,
 	     int getdirhandle)
 {
-    assert(0);
+    CODA_ASSERT(0);
     return(0);
 }
 

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/lib-src/base/parser.c,v 1.2 1998/08/06 00:18:48 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/lib-src/base/parser.c,v 1.3 1998/09/29 16:39:02 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -45,7 +45,7 @@ extern "C" {
 #include <string.h>
 #include <stddef.h>
 #include <sys/param.h>
-#include <assert.h>
+#include "coda_assert.h"
 
 #define	READLINE_LIBRARY
 #include <readline.h>
@@ -457,7 +457,7 @@ char *Parser_getstr(const char *prompt, const char *deft, char *res,
     int size = strlen(prompt) + strlen(deft) + 8;
     char *theprompt;
     theprompt = malloc(size);
-    assert(theprompt);
+    CODA_ASSERT(theprompt);
 
     sprintf(theprompt, "%s [%s]: ", prompt, deft);
 
@@ -486,7 +486,7 @@ int Parser_getint(const char *prompt, long min, long max, long deft, int base)
     char *line;
     int size = strlen(prompt) + 40;
     char *theprompt = malloc(size);
-    assert(theprompt);
+    CODA_ASSERT(theprompt);
     sprintf(theprompt,"%s [%ld, (0x%lx)]: ", prompt, deft, deft);
 
     fflush(stdout);
@@ -531,14 +531,14 @@ int Parser_getbool(const char *prompt, int deft)
     char *line;
     int size = strlen(prompt) + 8;
     char *theprompt = malloc(size);
-    assert(theprompt);
+    CODA_ASSERT(theprompt);
 
     fflush(stdout);
     
     if ( deft != 0 && deft != 1 ) {
 	fprintf(stderr, "Error: Parser_getbool given bad default (%d).\n",
 		deft);
-	assert ( 0 );
+	CODA_ASSERT ( 0 );
     }
     sprintf(theprompt, "%s [%s]: ", prompt, (deft==0)? "N" : "Y");
 

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/sighand.cc,v 4.13 1998/09/29 21:04:44 jaharkes Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/sighand.cc,v 4.14 1998/10/30 18:29:54 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -97,20 +97,22 @@ void SigInit() {
 #else
                 if (setpgrp(0, getpid()) < 0)
 #endif
-	Choke("SigInit: setpgrp failed (%d)", errno);
+	CHOKE("SigInit: setpgrp failed (%d)", errno);
 #endif /* DJGPP */
     /* Install the signal handlers. */
 #ifdef __BSD44__
     signal(SIGHUP, (void (*)(int))HUP);		/* turn on debugging */
-    signal(SIGILL, (void (*)(int))ILL);		/* Choke */
-    signal(SIGTRAP, (void (*)(int))TRAP);	/* Choke */
+    signal(SIGILL, (void (*)(int))ILL);		/* CHOKE */
+    signal(SIGTRAP, (void (*)(int))TRAP);	/* CHOKE */
+#if	0
     signal(SIGIOT, (void (*)(int))IOT);		/* turn on profiling */
     signal(SIGEMT, (void (*)(int))EMT);		/* turn off profiling */
+#endif
     /* SIGFPE is ignored for the short term */
-    /* signal(SIGFPE, (void (*)(int))FPE);*/		/* Choke */
+    /* signal(SIGFPE, (void (*)(int))FPE);*/		/* CHOKE */
     signal(SIGFPE, SIG_IGN);                    /* Ignore */
-    signal(SIGBUS, (void (*)(int))BUS);		/* Choke */
-    signal(SIGSEGV, (void (*)(int))SEGV);	/* Choke */
+    signal(SIGBUS, (void (*)(int))BUS);		/* CHOKE */
+    signal(SIGSEGV, (void (*)(int))SEGV);	/* CHOKE */
     signal(SIGPIPE, SIG_IGN);	                /* ignore write on pipe with no one to read */
     signal(SIGTERM, (void (*)(int))TERM);	/* exit */
     signal(SIGINT, (void (*)(int))TERM);	/* exit */
@@ -123,14 +125,14 @@ void SigInit() {
 
 #if  defined(__linux__) 
     signal(SIGHUP, (void (*)(int))HUP);		/* turn on debugging */
-    signal(SIGILL, (void (*)(int))ILL);		/* Choke */
-    signal(SIGTRAP, (void (*)(int))TRAP);	/* Choke */
+    signal(SIGILL, (void (*)(int))ILL);		/* CHOKE */
+    signal(SIGTRAP, (void (*)(int))TRAP);	/* CHOKE */
     signal(SIGIOT, (void (*)(int))IOT);		/* turn on profiling */
     /* SIGFPE was ignored for the `short term' */
     /*signal(SIGFPE, SIG_IGN);*/                    /* Ignore */
-    signal(SIGFPE, (void (*)(int))FPE);		/* Choke */
-    signal(SIGBUS, (void (*)(int))BUS);		/* Choke */
-    signal(SIGSEGV, (void (*)(int))SEGV);	/* Choke */
+    signal(SIGFPE, (void (*)(int))FPE);		/* CHOKE */
+    signal(SIGBUS, (void (*)(int))BUS);		/* CHOKE */
+    signal(SIGSEGV, (void (*)(int))SEGV);	/* CHOKE */
     signal(SIGPIPE, SIG_IGN);	                /* ignore write on pipe with no one to read */
     signal(SIGTERM, (void (*)(int))TERM);	/* exit */
     signal(SIGINT, (void (*)(int))TERM);	/* exit */
@@ -143,14 +145,14 @@ void SigInit() {
 
 #ifdef __CYWIN32__
     signal(SIGHUP, (void (*)(int))HUP);		/* turn on debugging */
-    signal(SIGILL, (void (*)(int))ILL);		/* Choke */
-    signal(SIGTRAP, (void (*)(int))TRAP);	/* Choke */
+    signal(SIGILL, (void (*)(int))ILL);		/* CHOKE */
+    signal(SIGTRAP, (void (*)(int))TRAP);	/* CHOKE */
     signal(SIGEMT, (void (*)(int))EMT);		/* turn off profiling */
     /* SIGFPE is ignored for the short term */
-    /* signal(SIGFPE, (void (*)(int))FPE);*/		/* Choke */
+    /* signal(SIGFPE, (void (*)(int))FPE);*/		/* CHOKE */
     signal(SIGFPE, SIG_IGN);                    /* Ignore */
-    signal(SIGBUS, (void (*)(int))BUS);		/* Choke */
-    signal(SIGSEGV, (void (*)(int))SEGV);	/* Choke */
+    signal(SIGBUS, (void (*)(int))BUS);		/* CHOKE */
+    signal(SIGSEGV, (void (*)(int))SEGV);	/* CHOKE */
     signal(SIGPIPE, SIG_IGN);	                /* ignore write on pipe with no one to read */
     signal(SIGTERM, (void (*)(int))TERM);	/* exit */
     signal(SIGINT, (void (*)(int))TERM);	/* exit */
@@ -161,7 +163,7 @@ void SigInit() {
     /* Write our pid to a file so scripts can find us easily. */
     FILE *fp = fopen("pid","w");
     if (fp == NULL)
-	Choke("SigInit: can't open file for pid!");
+	CHOKE("SigInit: can't open file for pid!");
     fprintf(fp, "%d", getpid());
     fclose(fp);
 }
@@ -228,11 +230,11 @@ static void USR1(int sig, int code, struct sigcontext *contextPtr) {
 #if 0
 	int NewModes = 0;
 	FILE *fp = fopen("COPMODES", "r+");
-	if (fp == NULL) Choke("USR1: fopen(COPMODES)");
+	if (fp == NULL) CHOKE("USR1: fopen(COPMODES)");
 	(void)fscanf(fp, "%d", &NewModes);
-	if (fclose(fp) == EOF) Choke("USR1: fclose(COPMODES)");
+	if (fclose(fp) == EOF) CHOKE("USR1: fclose(COPMODES)");
 #endif
-	if (unlink("COPMODES") < 0) Choke("USR1: unlink(COPMODES)");
+	if (unlink("COPMODES") < 0) CHOKE("USR1: unlink(COPMODES)");
 
 #if 0
 	/* This is a hack! -JJK */
@@ -248,11 +250,11 @@ static void USR1(int sig, int code, struct sigcontext *contextPtr) {
     if (stat("MCAST", &tstat) == 0) {
 #if 0
 	FILE *fp = fopen("MCAST", "r+");
-	if (fp == NULL) Choke("USR1: fopen(MCAST)");
+	if (fp == NULL) CHOKE("USR1: fopen(MCAST)");
 	(void)fscanf(fp, "%d", &UseMulticast);
-	if (fclose(fp) == EOF) Choke("USR1: fclose(MCAST)");
+	if (fclose(fp) == EOF) CHOKE("USR1: fclose(MCAST)");
 #endif
-	if (unlink("MCAST") < 0) Choke("USR1: unlink(MCAST)");
+	if (unlink("MCAST") < 0) CHOKE("USR1: unlink(MCAST)");
 	LOG(100, ("UseMulticast is now %d.\n", UseMulticast));
     }
 
@@ -260,7 +262,7 @@ static void USR1(int sig, int code, struct sigcontext *contextPtr) {
 	FILE *fp = fopen("DEBUG", "r+");
 	int found, loglevel, rpc2level, lwplevel;
 
-	if (fp == NULL) Choke("USR1: fopen(DEBUG)");
+	if (fp == NULL) CHOKE("USR1: fopen(DEBUG)");
 
 	found = fscanf(fp, "%d %d %d", &loglevel, &rpc2level, &lwplevel);
 
@@ -280,8 +282,8 @@ static void USR1(int sig, int code, struct sigcontext *contextPtr) {
 		lwp_debug = lwplevel;
 	}
 
-	if (fclose(fp) == EOF) Choke("USR1: fclose(DEBUG)");
-	if (unlink("DEBUG") < 0) Choke("USR1: unlink(DEBUG)");
+	if (fclose(fp) == EOF) CHOKE("USR1: fclose(DEBUG)");
+	if (unlink("DEBUG") < 0) CHOKE("USR1: unlink(DEBUG)");
 
 	LOG(0, ("LogLevel is now %d.\n", LogLevel));
 	LOG(0, ("RPC2_DebugLevel is now %d.\n", RPC2_DebugLevel));
@@ -290,7 +292,7 @@ static void USR1(int sig, int code, struct sigcontext *contextPtr) {
 
     if (stat("DUMP", &tstat) == 0) {
 	/* No longer used! -JJK */
-	if (unlink("DUMP") < 0) Choke("USR1: unlink(DUMP)");
+	if (unlink("DUMP") < 0) CHOKE("USR1: unlink(DUMP)");
     }
 
     signal(SIGUSR1, (void (*)(int))USR1);

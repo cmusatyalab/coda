@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/vproc_vfscalls.cc,v 4.19 1998/10/02 15:11:33 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/vproc_vfscalls.cc,v 4.20 1998/10/04 21:58:11 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -416,7 +416,7 @@ void vproc::setattr(struct venus_cnode *cp, struct coda_vattr *vap) {
 	 (vap->va_mtime.tv_sec == VA_IGNORE_TIME1) &&
 	 (vap->va_ctime.tv_sec == VA_IGNORE_TIME1) )
 
-	Choke("vproc::setattr: no attributes specified");
+	CHOKE("vproc::setattr: no attributes specified");
 
     for (;;) {
 	Begin_VFS(cp->c_fid.Volume, CODA_SETATTR);
@@ -1194,7 +1194,7 @@ void vproc::rmdir(struct venus_cnode *dcp, char *name)
 
 	/* Sanity check. */
 	if (target_fso->IsRoot())
-	    { target_fso->print(logFile); Choke("vproc::rmdir: target is root"); }
+	    { target_fso->print(logFile); CHOKE("vproc::rmdir: target is root"); }
 
 	/* Verify that it is a directory (mount points are an exception). */
 	if (!target_fso->IsDir() || target_fso->IsMtPt())

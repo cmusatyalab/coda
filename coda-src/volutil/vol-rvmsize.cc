@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/volutil/vol-rvmsize.cc,v 4.3 1998/08/31 12:23:49 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/volutil/vol-rvmsize.cc,v 4.4 1998/10/29 15:29:05 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -85,7 +85,7 @@ long S_VolRVMSize(RPC2_Handle rpcid, VolumeId VolID, RVMSize_data *data) {
     ProgramType *pt;
 
     LogMsg(9, VolDebugLevel, stdout, "Checking lwp rock in S_VolRVMSize");
-    assert(LWP_GetRock(FSTAG, (char **)&pt) == LWP_SUCCESS);
+    CODA_ASSERT(LWP_GetRock(FSTAG, (char **)&pt) == LWP_SUCCESS);
 
     LogMsg(9, VolDebugLevel, stdout, "Entering VolRVMSize()");
     VInitVolUtil(volumeUtility);
@@ -139,7 +139,7 @@ long S_VolRVMSize(RPC2_Handle rpcid, VolumeId VolID, RVMSize_data *data) {
     int vnodeindex;
     while ((vnodeindex = vnext(vnode)) != -1) {
 	int tmp;
-	assert(vnode->inodeNumber != 0);
+	CODA_ASSERT(vnode->inodeNumber != 0);
 	DirInode *dip = (DirInode *)(vnode->inodeNumber);
 	tmp = DI_Pages(dip) * DIR_PAGESIZE;
 	size +=  tmp;

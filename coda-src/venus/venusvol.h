@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/venusvol.h,v 4.8 98/10/02 11:15:29 jaharkes Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/venusvol.h,v 4.9 1998/10/07 19:53:39 jaharkes Exp $";
 #endif /*_BLURB_*/
 
 
@@ -205,7 +205,7 @@ class ClientModifyLog {
   public:
     ClientModifyLog() { ResetTransient(); }  /* MUST be called within transaction! */
     void ResetTransient();
-    virtual ~ClientModifyLog() { ASSERT(count() == 0); } /* MUST be called within transaction! */
+    virtual ~ClientModifyLog() { CODA_ASSERT(count() == 0); } /* MUST be called within transaction! */
     void ResetHighWater() { entriesHighWater = entries; bytesHighWater = bytes; }
     void Clear();
 
@@ -1157,7 +1157,7 @@ extern void ReportVCBEvent(VCBEventType, VolumeId, vcbevent * =NULL);
 {\
     if (!(ex)) {\
 	(v)->print(logFile);\
-	Choke("Assertion failed: file \"%s\", line %d\n", __FILE__, __LINE__);\
+	CHOKE("Assertion failed: file \"%s\", line %d\n", __FILE__, __LINE__);\
     }\
 }
 

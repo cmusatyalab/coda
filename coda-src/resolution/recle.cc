@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rvmres/recle.cc,v 4.4 1998/08/31 12:23:24 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rvmres/recle.cc,v 4.5 1998/10/05 17:15:09 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -95,7 +95,7 @@ void recle::InitFromsle(rsle *sl) {
 	if (sl->u.acl.type == ACLSTORE) {
 	    size = sizeof(aclstore);
 	    vle = new (size) recvarl(size);
-	    assert(vle);
+	    CODA_ASSERT(vle);
 	    rvmlib_set_range(vle, vle->size());
 	    aclstore *acls = (aclstore *)(&(vle->vfld[0]));
 	    acls->init(sl->u.acl.acl);
@@ -103,7 +103,7 @@ void recle::InitFromsle(rsle *sl) {
 	else {
 	    size = sizeof(newstore);
 	    vle = new (size) recvarl(size);
-	    assert(vle);
+	    CODA_ASSERT(vle);
 	    rvmlib_set_range(vle, vle->size());
 	    newstore *newst = (newstore *)(&(vle->vfld[0]));
 	    newst->init(sl->u.newst.owner, sl->u.newst.mode, sl->u.newst.author, 
@@ -115,7 +115,7 @@ void recle::InitFromsle(rsle *sl) {
       case ViceCreate_OP:
 	size = sizeof(create_rle) + strlen(sl->name1); // size of information; vle is 4 bytes more
 	vle = new (size) recvarl(size);
-	assert(vle);
+	CODA_ASSERT(vle);
 	rvmlib_set_range(vle, vle->size());
 	c = (create_rle *)(&(vle->vfld[0]));
 	c->init(sl->u.create.cvnode, sl->u.create.cunique, sl->u.create.owner, 
@@ -125,7 +125,7 @@ void recle::InitFromsle(rsle *sl) {
       case ViceSymLink_OP:
 	size = sizeof(symlink_rle) + strlen(sl->name1); // size of information; vle is 4 bytes more
 	vle = new (size) recvarl(size);
-	assert(vle);
+	CODA_ASSERT(vle);
 	rvmlib_set_range(vle, vle->size());
 	s = (symlink_rle *)(&(vle->vfld[0]));
 	s->init(sl->u.slink.cvnode, sl->u.slink.cunique, sl->u.slink.owner, sl->name1);
@@ -134,7 +134,7 @@ void recle::InitFromsle(rsle *sl) {
       case ViceLink_OP:
 	size = sizeof(link_rle) + strlen(sl->name1); // size of information; vle is 4 bytes more
 	vle = new (size) recvarl(size);
-	assert(vle);
+	CODA_ASSERT(vle);
 	rvmlib_set_range(vle, vle->size());
 	l = (link_rle *)(&(vle->vfld[0]));
 	l->init(sl->u.link.cvnode, sl->u.link.cunique, &sl->u.link.cvv, sl->name1);
@@ -143,7 +143,7 @@ void recle::InitFromsle(rsle *sl) {
       case ViceMakeDir_OP:
 	size = sizeof(mkdir_rle) + strlen(sl->name1); // size of information; vle is 4 bytes more
 	vle = new (size) recvarl(size);
-	assert(vle);
+	CODA_ASSERT(vle);
 	rvmlib_set_range(vle, vle->size());
 	mk = (mkdir_rle *)(&(vle->vfld[0]));
 	mk->init(sl->u.mkdir.cvnode, sl->u.mkdir.cunique, sl->u.mkdir.owner, sl->name1);
@@ -152,7 +152,7 @@ void recle::InitFromsle(rsle *sl) {
       case ViceRemove_OP:
 	size = sizeof(rm_rle) + strlen(sl->name1); // size of information; vle is 4 bytes more
 	vle = new (size) recvarl(size);
-	assert(vle);
+	CODA_ASSERT(vle);
 	rvmlib_set_range(vle, vle->size());
 	rm = (rm_rle *)(&(vle->vfld[0]));
 	rm->init(sl->u.rm.cvnode, sl->u.rm.cunique, &sl->u.rm.cvv, sl->name1);
@@ -161,7 +161,7 @@ void recle::InitFromsle(rsle *sl) {
       case ViceRemoveDir_OP:
 	size = sizeof(rmdir_rle) + strlen(sl->name1); // size of information; vle is 4 bytes more
 	vle = new (size) recvarl(size);
-	assert(vle);
+	CODA_ASSERT(vle);
 	rvmlib_set_range(vle, vle->size());
 	rmd = (rmdir_rle *)(&(vle->vfld[0]));
 	rmd->init(sl->u.rmdir.cvnode, sl->u.rmdir.cunique, sl->u.rmdir.childlist,
@@ -171,7 +171,7 @@ void recle::InitFromsle(rsle *sl) {
       case ViceRename_OP:
 	size = sizeof(rename_rle) + strlen(sl->name1) + strlen(sl->name2) + 2;
 	vle = new (size) recvarl(size);
-	assert(vle);
+	CODA_ASSERT(vle);
 	rvmlib_set_range(vle, vle->size());
 	mvle = (rename_rle *)(&(vle->vfld[0]));
 	mvle->init(sl->u.mv.type, sl->u.mv.otherdirv, sl->u.mv.otherdiru,
@@ -183,7 +183,7 @@ void recle::InitFromsle(rsle *sl) {
       case ViceSetVolumeStatus_OP:
 	size = sizeof(setquota_rle);
 	vle = new (size) recvarl(size);
-	assert(vle);
+	CODA_ASSERT(vle);
 	rvmlib_set_range(vle, vle->size());
 	sq = (setquota_rle *)(&(vle->vfld[0]));
 	sq->init(sl->u.sq.oldquota, sl->u.sq.newquota);
@@ -261,7 +261,7 @@ int recle::GetDumpSize() {
 char *recle::DumpToBuf(int *bufsize) {
     *bufsize = GetDumpSize();
     char *buf = new char[*bufsize];
-    assert(buf);
+    CODA_ASSERT(buf);
     long *l = (long *)buf;
     long *lastlong = (long *)(buf + *bufsize - sizeof(long));
     l[0] = DUMP_ENTRY_BEGIN_STAMP;
@@ -275,7 +275,7 @@ char *recle::DumpToBuf(int *bufsize) {
     while (((long)rlep) % sizeof(long)) 
 	rlep++;
 
-    assert((long)(rlep + size) <= (long)lastlong);
+    CODA_ASSERT((long)(rlep + size) <= (long)lastlong);
     bcopy((const void *)&(vle->vfld[0]), (void *) rlep, size);
     
     *lastlong = DUMP_ENTRY_END_STAMP;
@@ -324,7 +324,7 @@ void recle::print(int fd) {
 	    acls->print(fd);
 	else {
 	    newsp = (newstore *)&(vle->vfld[0]);
-	    assert(newsp->type == STSTORE);
+	    CODA_ASSERT(newsp->type == STSTORE);
 	    newsp->print(fd);
 	}
 	break;

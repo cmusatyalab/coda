@@ -29,16 +29,16 @@ typedef struct fid_ent_s {
 #endif
 
 #ifdef __STDC__
-#define assert(b)                                           \
+#define CODA_ASSERT(b)                                           \
 do {                                                        \
     if (!(b)) {                                             \
-	fprintf(stderr,"assert(%s) -- line %d, file %s\n",  \
+	fprintf(stderr,"CODA_ASSERT(%s) -- line %d, file %s\n",  \
                 #b, __LINE__, __FILE__);                    \
 	zombify();                                          \
     }                                                       \
 } while (0)
 #else /* __STDC__ */
-#define assert(b)                                              \
+#define CODA_ASSERT(b)                                              \
 do {                                                           \
     if (!b) {                                                  \
 	fprintf(stderr,"assertion failed line %d, file %s\n",  \

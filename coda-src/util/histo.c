@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/util/histo.c,v 4.3 1998/01/10 18:38:30 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/util/histo.c,v 4.4 1998/03/06 20:20:33 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -50,7 +50,7 @@ static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/util/h
 #endif /* __BSD44__ */
 
 #include <math.h>
-#include <assert.h>
+#include "coda_assert.h"
 #include "histo.h"
 
 /* Math.h doesn't define HUGE appropriately for suns... */
@@ -210,13 +210,13 @@ void MUpdateHisto(hg,newval,number)
 	hg->count += number;
 	hg->sum += newval*(double)number;
 	hg->sum2 += newval*newval*(double)number;
-	assert(hg->sum >= 0);
-	assert(hg->sum2 >= 0);
+	CODA_ASSERT(hg->sum >= 0);
+	CODA_ASSERT(hg->sum2 >= 0);
 	return;
 	}
 
     /* Should never get here */
-    assert(0);
+    CODA_ASSERT(0);
     }
 
 
@@ -253,7 +253,7 @@ PrintHisto(outfile, hg)
 	{
 	fprintf(outfile,"Count = %d, Sum = %g, Sum2 = %g\n", hg->count, hg->sum, hg->sum2); fflush(outfile);
 	temp =	((double)hg->count*hg->sum2 - hg->sum*hg->sum) / ((double)hg->count*(double)(hg->count-1));
-	assert(temp >= 0);
+	CODA_ASSERT(temp >= 0);
 	stddev = sqrt(temp);
 	c90 = stddev*CIFactor(hg->count - 1);
 	}

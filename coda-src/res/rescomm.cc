@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/res/rescomm.cc,v 4.7 1998/10/05 17:15:07 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/res/rescomm.cc,v 4.8 1998/10/30 18:29:49 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -50,7 +50,7 @@ extern "C" {
 #include <errno.h>
 #include <stdio.h>
 #include <ctype.h>
-#include <assert.h>
+#include "coda_assert.h"
 #include <struct.h>
 #include <netdb.h>
 #include <sys/socket.h>
@@ -85,13 +85,13 @@ int PutResMgroup(res_mgrpent **);
 
 void ResProcWait(char *addr) {
     if (LWP_WaitProcess(addr) != LWP_SUCCESS)
-	assert(0);
+	CODA_ASSERT(0);
 }
 
 void ResProcSignal(char *addr, int yield) {
     int lwprc = (yield ? LWP_SignalProcess(addr) : LWP_NoYieldSignal(addr));
     if (lwprc != LWP_SUCCESS && lwprc != LWP_ENOWAIT)
-	assert(0);
+	CODA_ASSERT(0);
 }
 
 void ResCommInit() {
@@ -159,7 +159,7 @@ res_mgrpent::res_mgrpent(unsigned long vsgaddr, RPC2_Handle mid){
     McastInfo.ExpandHandle = 0;
     
     /* get hosts from vsg table */
-    assert(GetHosts(vsgaddr, Hosts, &nhosts) != 0);
+    CODA_ASSERT(GetHosts(vsgaddr, Hosts, &nhosts) != 0);
     for (; nhosts < VSG_MEMBERS; nhosts++)
 	Hosts[nhosts] = 0;
     
@@ -669,9 +669,9 @@ conninfo::conninfo(RPC2_Handle rpcid, int sl) {
     SecLevel = sl;
     cid = rpcid;
 
-    assert(RPC2_GetPeerInfo(rpcid, &peer) == RPC2_SUCCESS);
-    assert(peer.RemoteHost.Tag == RPC2_HOSTBYINETADDR);
-    assert(peer.RemotePortal.Tag == RPC2_PORTALBYINETNUMBER);
+    CODA_ASSERT(RPC2_GetPeerInfo(rpcid, &peer) == RPC2_SUCCESS);
+    CODA_ASSERT(peer.RemoteHost.Tag == RPC2_HOSTBYINETADDR);
+    CODA_ASSERT(peer.RemotePortal.Tag == RPC2_PORTALBYINETNUMBER);
     RemoteAddr = peer.RemoteHost.Value.InetAddress;
     RemotePortNum = peer.RemotePortal.Value.InetPortNumber;
     LogMsg(100, SrvDebugLevel, stdout,  "conninfo: remote host = %x.%x", 

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rvmres/compops.cc,v 4.4 1998/10/05 17:15:09 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rvmres/compops.cc,v 4.5 1998/10/30 18:29:52 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -95,7 +95,7 @@ arrlist *ComputeCompOps(olist *AllLogs, ViceFid *Fid)
     // Extract local log 
     {
 	llog = ExtractLog(AllLogs, ThisHostAddr, Fid);
-	assert(llog);
+	CODA_ASSERT(llog);
 	sllog = SortLog(llog);
 	LogMsg(10, SrvDebugLevel, stdout,
 	       "***** Local Log is \n");
@@ -189,7 +189,7 @@ static olist *ExtractLog(olist *logs,
 
 static olist **ExtractRemoteLogs(olist *logs, ViceFid *Fid, int *nlists) {
     olist **rmtlogs = (olist **)malloc(logs->count() * sizeof(olist *));
-    assert(rmtlogs);
+    CODA_ASSERT(rmtlogs);
 
     olist_iterator next(*logs);
     he *hoste;
@@ -235,7 +235,7 @@ static arrlist *FindRemoteOps(arrlist *sllog, olist **rlogs,
 	    // scan remote log until common point
 	    while (r = (rsle *)next()) 
 		if (r == CommonPoints[i]) break;
-	    assert(r);
+	    CODA_ASSERT(r);
 	    // copy rest of remote log 
 	    while (r = (rsle *)next()) 
 		nonlocalops[i].add((void *)r);
@@ -342,7 +342,7 @@ static void SortLog(olist *log, arrlist *slp) {
     
 static arrlist *SortLog(olist *log) {
     arrlist *slp = new arrlist(log->count());
-    assert(slp);
+    CODA_ASSERT(slp);
     SortLog(log, slp);
     return(slp);
 }

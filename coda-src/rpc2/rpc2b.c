@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rpc2/rpc2b.c,v 4.8 1998/08/05 23:49:47 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rpc2/rpc2b.c,v 4.9 1998/08/26 17:08:11 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -176,7 +176,7 @@ long RPC2_Export(IN Subsys)
 	
 	case RPC2_SUBSYSBYNAME:
 		say(0, RPC2_DebugLevel, "RPC2_Export: obsolete SUBSYSBYNAME used!\n");
-		assert(0);
+		CODA_ASSERT(0);
 	    break;
 
 	default: rpc2_Quit(RPC2_FAIL);
@@ -218,7 +218,7 @@ long RPC2_DeExport(IN Subsys)
 	
 	case RPC2_SUBSYSBYNAME:
 		say(0, RPC2_DebugLevel, "RPC2_Export: obsolete SUBSYSBYNAME used!\n");
-		assert(0);
+		CODA_ASSERT(0);
 
 	    break;
 
@@ -242,12 +242,12 @@ static RPC2_PacketBuffer *Gimme(long size, RPC2_PacketBuffer **flist,
 	
 	if (*flist== NULL)	{
 		rpc2_Replenish(flist, count, size, creacount, OBJ_PACKETBUFFER);
-		assert(*flist);
+		CODA_ASSERT(*flist);
 		(*flist)->Prefix.BufferSize = size;
 	}
 	pb = (RPC2_PacketBuffer *) rpc2_MoveEntry(flist, &rpc2_PBList, NULL, 
 						  count, &rpc2_PBCount);
-	assert(pb->Prefix.Qname == &rpc2_PBList);
+	CODA_ASSERT(pb->Prefix.Qname == &rpc2_PBList);
 	return(pb);
 }
 
@@ -288,8 +288,8 @@ long rpc2_AllocBuffer(IN long MinBodySize, OUT RPC2_PacketBuffer **BuffPtr,
 		return(0);
 
 	*BuffPtr = GetPacket(thissize);
-	assert(*BuffPtr);
-	assert((*BuffPtr)->Prefix.MagicNumber == OBJ_PACKETBUFFER);
+	CODA_ASSERT(*BuffPtr);
+	CODA_ASSERT((*BuffPtr)->Prefix.MagicNumber == OBJ_PACKETBUFFER);
 
 	bzero(&(*BuffPtr)->Header, sizeof(struct RPC2_PacketHeader));
 	(*BuffPtr)->Header.BodyLength = MinBodySize;
@@ -312,8 +312,8 @@ long RPC2_FreeBuffer(INOUT BuffPtr)
     long *tocount;
 
     rpc2_Enter();
-    assert(BuffPtr != NULL && *BuffPtr != NULL);
-    assert((*BuffPtr)->Prefix.MagicNumber == OBJ_PACKETBUFFER);
+    CODA_ASSERT(BuffPtr != NULL && *BuffPtr != NULL);
+    CODA_ASSERT((*BuffPtr)->Prefix.MagicNumber == OBJ_PACKETBUFFER);
 
     switch((int) (*BuffPtr)->Prefix.BufferSize)
 	{
@@ -332,9 +332,9 @@ long RPC2_FreeBuffer(INOUT BuffPtr)
 		tocount = &rpc2_PBLargeFreeCount;
 		break;
 	
-	default:    assert(FALSE);
+	default:    CODA_ASSERT(FALSE);
 	}
-    assert((*BuffPtr)->Prefix.Qname == &rpc2_PBList);
+    CODA_ASSERT((*BuffPtr)->Prefix.Qname == &rpc2_PBList);
     rpc2_MoveEntry(&rpc2_PBList, tolist, *BuffPtr, &rpc2_PBCount, tocount);
     *BuffPtr = NULL;
     rpc2_Quit(RPC2_SUCCESS);
@@ -512,7 +512,7 @@ long RPC2_InitTraceBuffer(IN ecount)
 #ifdef RPC2DEBUG
     if (rpc2_TraceBuffHeader) CBUF_Free(&rpc2_TraceBuffHeader);
     rpc2_TraceBuffHeader = CBUF_Init(sizeof(struct TraceElem), ecount, "RPC2 Trace Buffer");
-    assert (rpc2_TraceBuffHeader != NULL);
+    CODA_ASSERT (rpc2_TraceBuffHeader != NULL);
     return(RPC2_SUCCESS);
 #else
     return(RPC2_SUCCESS);
@@ -918,14 +918,14 @@ static long get_netaddr(long sock)
 
     if (gethostname(hostname, sizeof(hostname)) != 0) {
 	fprintf (stderr, "rpc2_GetLocalHost: cannot gethostname()");
-	assert (0);
+	CODA_ASSERT (0);
     }
 
     h = gethostbyname(hostname);
     if (!h) {
 	fprintf (stderr, "get_netaddr: cannot gethostbyname(%s)",
 		 hostname);
-	assert (0);
+	CODA_ASSERT (0);
     }
     printf("get_netaddr returning: %lx\n", *(long *)(h->h_addr_list[0]));
     return (*(long *)(h->h_addr_list[0]));
@@ -964,7 +964,7 @@ long rpc2_GetLocalHost(localhost, remotehost)
     struct sockaddr_in sin;
     int s, i = sizeof(struct sockaddr_in);
 #ifdef DJGPP
-    assert(remotehost->Tag == RPC2_HOSTBYINETADDR);
+    CODA_ASSERT(remotehost->Tag == RPC2_HOSTBYINETADDR);
     /* horrible hack -- figure out how to do this with MSTCP */
     localhost->Tag = RPC2_HOSTBYINETADDR;
     localhost->Value.InetAddress = __djgpp_get_my_host();
@@ -975,14 +975,14 @@ long rpc2_GetLocalHost(localhost, remotehost)
 
     if (gethostname(hostname, sizeof(hostname)) != 0) {
 	fprintf (stderr, "rpc2_GetLocalHost: cannot gethostname()");
-	assert (0);
+	CODA_ASSERT (0);
     }
 
     h = gethostbyname(hostname);
     if (!h) {
 	fprintf (stderr, "rpc2_GetLocalHost: cannot gethostbyname(%s)",
 		 hostname);
-	assert (0);
+	CODA_ASSERT (0);
     }
 
     localhost->Tag = RPC2_HOSTBYINETADDR;
@@ -991,7 +991,7 @@ long rpc2_GetLocalHost(localhost, remotehost)
 	     hostname, h->h_length, ntohl(localhost->Value.InetAddress));
     return 0;
 #else
-    assert(remotehost->Tag == RPC2_HOSTBYINETADDR);
+    CODA_ASSERT(remotehost->Tag == RPC2_HOSTBYINETADDR);
     sin.sin_family = AF_INET;
     sin.sin_port = htons(1);	/* dummy port number */
     sin.sin_addr.s_addr = remotehost->Value.InetAddress;

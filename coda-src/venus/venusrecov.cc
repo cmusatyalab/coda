@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/venusrecov.cc,v 4.15 98/10/06 21:44:32 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/venusrecov.cc,v 4.16 1998/10/13 16:49:29 jaharkes Exp $";
 #endif /*_BLURB_*/
 
 
@@ -212,7 +212,7 @@ void RecovInit() {
 
     if (RvmType == VM) {
 	if ((rvg = (RecovVenusGlobals *)malloc(sizeof(RecovVenusGlobals))) == 0)
-	    Choke("RecovInit: malloc failed");
+	    CHOKE("RecovInit: malloc failed");
 	bzero((void *)rvg, (int)sizeof(RecovVenusGlobals));
 	rvg->recov_MagicNumber = RecovMagicNumber;
 	rvg->recov_VersionNumber = RecovVersionNumber;
@@ -276,7 +276,7 @@ static void Recov_CheckParms() {
 
 	    case UNSET:
 	    default:
-		Choke("Recov_CheckParms: bogus RvmType (%d)", RvmType);
+		CHOKE("Recov_CheckParms: bogus RvmType (%d)", RvmType);
 	}
 
 	/* VM RvmType forces a brain-wipe! */
@@ -404,7 +404,7 @@ static void Recov_InitRVM() {
 #ifndef DJGPP
 		int child = fork();
 		if (child == -1)
-		    Choke("Recov_InitRVM: fork failed (%d)", errno);
+		    CHOKE("Recov_InitRVM: fork failed (%d)", errno);
 		if (child == 0) {
 #else
 		if (IAmChild) {
@@ -437,10 +437,10 @@ static void Recov_InitRVM() {
 		    union wait status;
 		    int exiter = wait(&status.w_status);
 		    if (exiter != child)
-			Choke("Recov_InitRVM: exiter (%d) != child (%d)", exiter, child);
+			CHOKE("Recov_InitRVM: exiter (%d) != child (%d)", exiter, child);
 #ifdef __BSD44__
 		    if (WEXITSTATUS(status.w_status) != RVM_SUCCESS)
-			Choke("Recov_InitRVM: log initialization failed (%d)", WEXITSTATUS(status.w_status));
+			CHOKE("Recov_InitRVM: log initialization failed (%d)", WEXITSTATUS(status.w_status));
 #endif /* __BSD44__ */
 #endif /* !DJGPP */
 		}
@@ -451,7 +451,7 @@ static void Recov_InitRVM() {
 	    int fd = 0;
 	    if ((fd = open(VenusDataDevice,
 			   O_WRONLY | O_CREAT | O_TRUNC | O_BINARY, 0600)) < 0)
-		Choke("Recov_InitRVM: create of (%s) failed (%d)",
+		CHOKE("Recov_InitRVM: create of (%s) failed (%d)",
 		    VenusDataDevice, errno);
 	    {
 		const int ID_BLKSIZE = 4096;
@@ -461,17 +461,17 @@ static void Recov_InitRVM() {
 		int nblocks = (int) VenusDataDeviceSize / ID_BLKSIZE;
 		for (int i = 0; i < nblocks; i++)
 		    if (write(fd, buf, ID_BLKSIZE) != ID_BLKSIZE)
-			Choke("Recov_InitRVM: write on (%s) failed (%d)",
+			CHOKE("Recov_InitRVM: write on (%s) failed (%d)",
 			    VenusDataDevice, errno);
 
 		int remainder = (int) VenusDataDeviceSize % ID_BLKSIZE;
 		if (remainder != 0)
 		    if (write(fd, buf, remainder) != remainder)
-			Choke("Recov_InitRVM: write on (%s) failed (%d)",
+			CHOKE("Recov_InitRVM: write on (%s) failed (%d)",
 			    VenusDataDevice, errno);
 	    }
 	    if (close(fd) < 0)
-		Choke("Recov_InitRVM: close of (%s) failed (%d)",
+		CHOKE("Recov_InitRVM: close of (%s) failed (%d)",
 		    VenusDataDevice, errno);
 	    eprint("%s initialized at size %#x",
 		   VenusDataDevice, VenusDataDeviceSize);
@@ -483,14 +483,14 @@ static void Recov_InitRVM() {
 	    struct stat tstat;
 
 	    if (stat(VenusLogDevice, &tstat) < 0)
-		Choke("ValidateDevice: stat of (%s) failed (%d)",
+		CHOKE("ValidateDevice: stat of (%s) failed (%d)",
 		    VenusLogDevice, errno);
 	    VenusLogDeviceSize = tstat.st_size;
 	    eprint("%s validated at size %#x",
 		   VenusLogDevice, VenusLogDeviceSize);
 
 	    if (stat(VenusDataDevice, &tstat) < 0)
-		Choke("ValidateDevice: stat of (%s) failed (%d)",
+		CHOKE("ValidateDevice: stat of (%s) failed (%d)",
 		    VenusDataDevice, errno);
 	    VenusDataDeviceSize = tstat.st_size;
 	    eprint("%s validated at size %#x",
@@ -504,9 +504,9 @@ static void Recov_InitRVM() {
 	eprint("Venus not started");
 	exit(-1);
     } else if (ret == RVM_EINTERNAL)
-	Choke("Recov_InitRVM: RVM_INIT failed, internal error %s", rvm_errmsg);
+	CHOKE("Recov_InitRVM: RVM_INIT failed, internal error %s", rvm_errmsg);
     else if (ret != RVM_SUCCESS)
-	Choke("Recov_InitRVM: RVM_INIT failed (%d)", ret);
+	CHOKE("Recov_InitRVM: RVM_INIT failed (%d)", ret);
 
 }
 
@@ -549,7 +549,7 @@ static void Recov_CreateSeg() {
     rvm_return_t ret = rvm_create_segment(VenusDataDevice, dummy,
 					   &Recov_Options, nregions, regions);
     if (ret != RVM_SUCCESS)
-	Choke("Recov_CreateSeg: rvm_create_segment failed (%d)", ret);
+	CHOKE("Recov_CreateSeg: rvm_create_segment failed (%d)", ret);
 
     /* Work around RVM bug! */
     RecovFlush();
@@ -568,18 +568,18 @@ static void Recov_LoadSeg() {
     rvm_return_t ret = rvm_load_segment(VenusDataDevice, dummy,
 					 &Recov_Options, &nregions, &regions);
     if (ret != RVM_SUCCESS)
-	Choke("Recov_LoadSeg: rvm_load_segment failed (%d)", ret);
+	CHOKE("Recov_LoadSeg: rvm_load_segment failed (%d)", ret);
 
     /* Basic sanity checking. */
     if (nregions != 2)
-	Choke("Recov_LoadSeg: bogus nregions (%d)", nregions);
+	CHOKE("Recov_LoadSeg: bogus nregions (%d)", nregions);
     Recov_RvgAddr = regions[0].vmaddr;
     if (regions[0].length != Recov_RvgLength)
-	Choke("Recov_LoadSeg: bogus regions[0] length (%x, %x)",
+	CHOKE("Recov_LoadSeg: bogus regions[0] length (%x, %x)",
 	    regions[0].length, Recov_RvgLength);
     Recov_RdsAddr = regions[1].vmaddr;
     if (regions[1].length != Recov_RdsLength)
-	Choke("Recov_LoadSeg: bogus regions[1] length (%x, %x)",
+	CHOKE("Recov_LoadSeg: bogus regions[1] length (%x, %x)",
 	    regions[1].length, Recov_RdsLength);
 
     free(regions);
@@ -610,15 +610,15 @@ static void Recov_InitSeg()
 		rds_init_heap(Recov_RdsAddr, Recov_RdsLength, (unsigned long)RdsChunkSize,
 			      (unsigned long)RdsNlists, rvmlib_thread_data()->tid, &err);
 		if (err != SUCCESS)
-			Choke("Recov_InitSeg: rds_init_heap failed (%d)", err);
+			CHOKE("Recov_InitSeg: rds_init_heap failed (%d)", err);
 		Recov_EndTrans(0);
 	} else {
 	/* Sanity check RVG fields. */
 	if (rvg->recov_HeapAddr != Recov_RdsAddr || rvg->recov_HeapLength != Recov_RdsLength)
-	    Choke("Recov_InitSeg: heap mismatch (%x, %x) vs (%x, %x)",
+	    CHOKE("Recov_InitSeg: heap mismatch (%x, %x) vs (%x, %x)",
 		rvg->recov_HeapAddr, rvg->recov_HeapLength, Recov_RdsAddr, Recov_RdsLength);
 	if (!rvg->validate())
-	    { rvg->print(stderr); Choke("Recov_InitSeg: rvg validation failed, trying restarting venus with -init"); }
+	    { rvg->print(stderr); CHOKE("Recov_InitSeg: rvg validation failed, trying restarting venus with -init"); }
 #ifdef __linux__  /* strtok broken on Linux ? */
 	eprint("Last init was %s\n", ctime((long *)&rvg->recov_LastInit));
 #else
@@ -644,7 +644,7 @@ static void Recov_InitSeg()
 	int err = 0;
 	rds_start_heap((char *)Recov_RdsAddr, &err);
 	if (err != 0)
-	    Choke("Recov_InitSeg: rds_start_heap failed (%d)", err);
+	    CHOKE("Recov_InitSeg: rds_start_heap failed (%d)", err);
 
 	/* Plumb the heap here? */
 	if (MallocTrace) {	
@@ -680,7 +680,7 @@ static void Recov_GetStatistics() {
 
     rvm_return_t ret = RVM_STATISTICS(&Recov_Statistics);
     if (ret != RVM_SUCCESS)
-	Choke("Recov_GetStatistics: rvm_statistics failed (%d)", ret);
+	CHOKE("Recov_GetStatistics: rvm_statistics failed (%d)", ret);
 }
 
 
@@ -702,7 +702,7 @@ void RecovFlush(int Force) {
     START_TIMING();
     rvm_return_t ret = rvm_flush();
     if (ret != RVM_SUCCESS)
-	Choke("RecovFlush: rvm_flush failed (%d)", ret);
+	CHOKE("RecovFlush: rvm_flush failed (%d)", ret);
     END_TIMING();
     MarinerLog("cache::EndRvmFlush\n");
 
@@ -728,7 +728,7 @@ void RecovTruncate(int Force) {
     START_TIMING();
     rvm_return_t ret = rvm_truncate();
     if (ret != RVM_SUCCESS)
-	Choke("RecovTruncate: rvm_truncate failed (%d)", ret);
+	CHOKE("RecovTruncate: rvm_truncate failed (%d)", ret);
     END_TIMING();
     MarinerLog("cache::EndRvmTruncate\n");
 
@@ -753,13 +753,13 @@ void RecovTerminate() {
 	    rvm_init_tid(&tid);
 	    rvm_return_t ret;
 	    ret = rvm_begin_transaction(&tid, no_restore);
-	    ASSERT(ret == RVM_SUCCESS);
+	    CODA_ASSERT(ret == RVM_SUCCESS);
 	    ret = rvm_set_range(&tid, (char *)&rvg->recov_CleanShutDown,
 				sizeof(rvg->recov_CleanShutDown));
-	    ASSERT(ret == RVM_SUCCESS);
+	    CODA_ASSERT(ret == RVM_SUCCESS);
 	    rvg->recov_CleanShutDown = 1;
 	    ret = rvm_end_transaction(&tid, flush);
-	    ASSERT(ret == RVM_SUCCESS);
+	    CODA_ASSERT(ret == RVM_SUCCESS);
 	}
 
 	eprint("RecovTerminate: clean shutdown");
@@ -771,15 +771,15 @@ void RecovTerminate() {
     rvm_return_t ret = rvm_terminate();
     switch(ret) {
 	case RVM_SUCCESS:
-	    ASSERT(n_uncommit == 0);
+	    CODA_ASSERT(n_uncommit == 0);
 	    break;
 
 	case RVM_EUNCOMMIT:
-	    ASSERT(n_uncommit != 0);
+	    CODA_ASSERT(n_uncommit != 0);
 	    break;
 
 	default:
-	    Choke("RecovTerminate: rvm_terminate failed (%d)", ret);
+	    CHOKE("RecovTerminate: rvm_terminate failed (%d)", ret);
     }
 }
 
@@ -800,7 +800,7 @@ void RecovPrint(int fd) {
     rvm_return_t ret = rvm_print_statistics(&Recov_Statistics, logFile);
     fflush(logFile);
     if (ret != RVM_SUCCESS)
-	Choke("Recov_PrintStatistics: rvm_print_statistics failed (%d)", ret);
+	CHOKE("Recov_PrintStatistics: rvm_print_statistics failed (%d)", ret);
 
     fdprint(fd, "***RDS Statistics***\n");
     rds_stats_t rdsstats;
@@ -838,13 +838,13 @@ static void Recov_AllocateVM(char **addr, unsigned long length)
  
     if (*addr == (char *)-1) {
 	if (errno == ENOMEM)
-	    Choke("Recov_AllocateVM: mmap(%x, %x, ...) out of memory", *addr, length);
+	    CHOKE("Recov_AllocateVM: mmap(%x, %x, ...) out of memory", *addr, length);
 	else
-	    Choke("Recov_AllocateVM: mmap(%x, %x, ...) failed with errno == %d", *addr, length, errno);
+	    CHOKE("Recov_AllocateVM: mmap(%x, %x, ...) failed with errno == %d", *addr, length, errno);
     }
 
     if ((requested_addr != 0) && (*addr != requested_addr)) {
-    	Choke("Recov_AllocateVM: mmap address mismatch; requested %x, returned %x", requested_addr, *addr);
+    	CHOKE("Recov_AllocateVM: mmap address mismatch; requested %x, returned %x", requested_addr, *addr);
     }
 
     LOG(0, ("Recov_AllocateVM: allocated %x bytes at %x\n", length, *addr));
@@ -855,11 +855,11 @@ static void Recov_DeallocateVM(char *addr, unsigned long length) {
 #if	__CYGWIN32__
     int ret = UnmapViewOfFile(addr);
     if (ret != 1)
-  	Choke("Recov_DeallocateVM: deallocate(%x, %x) failed (%d)", addr, length, ret);
+  	CHOKE("Recov_DeallocateVM: deallocate(%x, %x) failed (%d)", addr, length, ret);
       LOG(0, ("Recov_DeallocateVM: deallocated %x bytes at %x\n", length, addr));
 #else
     if (munmap(addr, length)) {
-	Choke("Recov_DeallocateVM: munmap(%x, %x) failed with errno == %d", addr, length, errno);
+	CHOKE("Recov_DeallocateVM: munmap(%x, %x) failed with errno == %d", addr, length, errno);
     }
     LOG(0, ("Recov_DeallocateVM: deallocated %x bytes at %x\n", length, addr));
 #endif	

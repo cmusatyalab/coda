@@ -28,7 +28,7 @@ ds_hash_valid(ds_hash_t *t) {
 
 int
 ds_hash_count(ds_hash_t *t) {
-    ASSERT(DS_HASH_VALID(t));
+    CODA_ASSERT(DS_HASH_VALID(t));
     return t->count;
 }
 
@@ -37,7 +37,7 @@ ds_hash_first(ds_hash_t *t, void *e) {
     int        bucket;
     ds_list_t *chain;
 
-    ASSERT(DS_HASH_VALID(t));
+    CODA_ASSERT(DS_HASH_VALID(t));
     bucket = (t->hfn(e)) % t->nbuckets;
     chain = (t->buckets)[bucket];
     return(ds_list_first(chain));
@@ -48,7 +48,7 @@ ds_hash_last(ds_hash_t *t, void *e) {
     int        bucket;
     ds_list_t *chain;
 
-    ASSERT(DS_HASH_VALID(t));
+    CODA_ASSERT(DS_HASH_VALID(t));
     bucket = (t->hfn(e)) % t->nbuckets;
     chain = (t->buckets)[bucket];
     return(ds_list_last(chain));
@@ -59,7 +59,7 @@ ds_hash_member(ds_hash_t *t, void *e) {
     int        bucket;
     ds_list_t *chain;
 
-    ASSERT(DS_HASH_VALID(t));
+    CODA_ASSERT(DS_HASH_VALID(t));
     bucket = (t->hfn(e)) % t->nbuckets;
     chain = (t->buckets)[bucket];
     return(ds_list_member(chain,e));
@@ -71,8 +71,8 @@ ds_hash_create(COMPFN c, HFN h, int nbuckets, bool safe_destroy,
     ds_hash_t *result;
     int        i;
 
-    ASSERT(h != NULL);
-    ASSERT(nbuckets > 0);
+    CODA_ASSERT(h != NULL);
+    CODA_ASSERT(nbuckets > 0);
 
     ALLOC(result,ds_hash_t);
 
@@ -93,7 +93,7 @@ void
 ds_hash_destroy(ds_hash_t *t) {
     int i;
 
-    ASSERT(DS_HASH_VALID(t));
+    CODA_ASSERT(DS_HASH_VALID(t));
     
     for (i = 0; i < t->nbuckets; i++) {
 	ds_list_destroy((t->buckets)[i]);
@@ -112,7 +112,7 @@ ds_hash_insert(ds_hash_t *t, void *e) {
     ds_list_t *chain;
     void      *result;
 
-    ASSERT(DS_HASH_VALID(t));
+    CODA_ASSERT(DS_HASH_VALID(t));
     bucket = (t->hfn(e)) % t->nbuckets;
     chain = (t->buckets)[bucket];
     
@@ -127,7 +127,7 @@ ds_hash_append(ds_hash_t *t, void *e) {
     ds_list_t *chain;
     void      *result;
 
-    ASSERT(DS_HASH_VALID(t));
+    CODA_ASSERT(DS_HASH_VALID(t));
     bucket = (t->hfn(e)) % t->nbuckets;
     chain = (t->buckets)[bucket];
     result = ds_list_append(chain,e);
@@ -141,7 +141,7 @@ ds_hash_get_first(ds_hash_t *t, void *e) {
     ds_list_t *chain;
     void      *result;
 
-    ASSERT(DS_HASH_VALID(t));
+    CODA_ASSERT(DS_HASH_VALID(t));
     bucket = (t->hfn(e)) % t->nbuckets;
     chain = (t->buckets)[bucket];
     result = ds_list_get_first(chain);
@@ -155,7 +155,7 @@ ds_hash_get_last(ds_hash_t *t, void *e) {
     ds_list_t *chain;
     void      *result;
 
-    ASSERT(DS_HASH_VALID(t));
+    CODA_ASSERT(DS_HASH_VALID(t));
     bucket = (t->hfn(e)) % t->nbuckets;
     chain = (t->buckets)[bucket];
     result = ds_list_get_last(chain);
@@ -169,7 +169,7 @@ ds_hash_remove(ds_hash_t *t, void *e) {
     ds_list_t *chain;
     void      *result;
 
-    ASSERT(DS_HASH_VALID(t));
+    CODA_ASSERT(DS_HASH_VALID(t));
     bucket = (t->hfn(e)) % t->nbuckets;
     chain = (t->buckets)[bucket];
     result = ds_list_remove(chain,e);
@@ -181,8 +181,8 @@ void
 ds_hash_print(ds_hash_t *t, void (*printer)(void*)) {
     int i;
 
-    ASSERT(DS_HASH_VALID(t));
-    ASSERT(printer != NULL);
+    CODA_ASSERT(DS_HASH_VALID(t));
+    CODA_ASSERT(printer != NULL);
 
     for (i = 0; i < t->nbuckets; i++) {
 	if (DS_HASH_DEBUG) {
@@ -196,7 +196,7 @@ ds_hash_iter_t *
 ds_hash_iter_create(ds_hash_t *t) {
     ds_hash_iter_t *result;
 
-    ASSERT(DS_HASH_VALID(t));
+    CODA_ASSERT(DS_HASH_VALID(t));
     ALLOC(result,ds_hash_iter_t);
     result->magic = ds_hash_iter_magic;
     result->table = t;
@@ -209,7 +209,7 @@ ds_hash_iter_create(ds_hash_t *t) {
 void
 ds_hash_iter_destroy(ds_hash_iter_t *i) {
 
-    ASSERT(DS_HASH_ITER_VALID(i));
+    CODA_ASSERT(DS_HASH_ITER_VALID(i));
     if (i->curiter) ds_list_iter_destroy(i->curiter);
     i->magic = 0;
     i->table = NULL;
@@ -223,7 +223,7 @@ ds_hash_iter_next(ds_hash_iter_t *i) {
     void      *result = NULL;
     ds_hash_t *t;
     
-    ASSERT(DS_HASH_ITER_VALID(i));
+    CODA_ASSERT(DS_HASH_ITER_VALID(i));
 
     if (i->curiter != NULL) {
 	result = ds_list_iter_next(i->curiter);
@@ -231,7 +231,7 @@ ds_hash_iter_next(ds_hash_iter_t *i) {
 	if (result == NULL) {
 
 	    t = i->table;
-	    ASSERT(DS_HASH_VALID(t));
+	    CODA_ASSERT(DS_HASH_VALID(t));
 
 	    ds_list_iter_destroy(i->curiter);
 	    i->curiter = NULL;

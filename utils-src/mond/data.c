@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header$";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/utils-src/mond/data.c,v 3.3 1995/10/09 19:26:39 satya Exp $";
 #endif /*_BLURB_*/
 
 
@@ -46,7 +46,7 @@ extern "C" {
 #endif __cplusplus
 
 //#include <stdlib.h>
-#include <assert.h>
+#include "coda_assert.h"
 #include <libc.h>
 #include "lock.h"
 
@@ -790,7 +790,7 @@ vmon_data *bufpool::getSlot(void)
 	    break;
 	case dataClass_last_tag:
 	default:
-	    assert(0);
+	    CODA_ASSERT(0);
 	}
     } else {
 	temp = (vmon_data*) Pool;

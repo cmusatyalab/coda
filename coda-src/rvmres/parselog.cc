@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rvmres/parselog.cc,v 4.3 1998/08/31 12:23:24 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rvmres/parselog.cc,v 4.4 1998/10/05 17:15:09 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -102,11 +102,11 @@ void ParseRemoteLogs(char *buf, int bufsize, int nentries,
 	    loglist = FindLogList(currenthe, vnode, unique);
 	    if (loglist == NULL) {
 		loglist = new remoteloglist(vnode, unique);
-		assert(loglist);
+		CODA_ASSERT(loglist);
 		currenthe->vlist.append(loglist);
 	    }
 	}
-	assert(loglist);
+	CODA_ASSERT(loglist);
 
 	// append entry to vnode's list of log entries 
 	loglist->slelist.append(r);
@@ -137,7 +137,7 @@ static void ReadOpsFromBuf(char *buf, int bufsize,
 	r->InitFromRecleBuf(&tmpptr);
 	index++;
     }
-    assert(index == nentries);
+    CODA_ASSERT(index == nentries);
 }
 
 // FindLogList
@@ -153,9 +153,9 @@ remoteloglist *FindLogList(he *hostent, VnodeId vn, Unique_t un) {
 
 olist *FindRemoteLog(olist *AllLogs, unsigned long hostid, 
 				 ViceFid *Fid) {
-    assert(hostid != ThisHostAddr);
+    CODA_ASSERT(hostid != ThisHostAddr);
     he *rhe = FindHE(AllLogs, hostid);
-    assert(rhe);
+    CODA_ASSERT(rhe);
     remoteloglist *rllp = FindLogList(rhe, Fid->Vnode, Fid->Unique);
     if (rllp) return(&rllp->slelist);
     else return(NULL);

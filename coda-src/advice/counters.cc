@@ -1,9 +1,18 @@
-#include <assert.h>
 
 #include <util.h>
 
 #include "globals.h"
 #include "counters.h"
+
+#ifdef __cplusplus
+extern "C" {
+#endif __cplusplus
+
+#include "coda_assert.h"
+
+#ifdef __cplusplus
+}
+#endif __cplusplus
 
 int CounterDebugging = 101;
 
@@ -97,7 +106,7 @@ void InitCounters() {
 }
 
 void IncrementCounter(InternalCounter *counter, int count) {
-    assert(counter != NULL);
+    CODA_ASSERT(counter != NULL);
     switch (count) {
         case ARRIVED:
 	    counter->arrivedFromVenus++;
@@ -112,7 +121,7 @@ void IncrementCounter(InternalCounter *counter, int count) {
             counter->completedByUser++;
 	    break;
         default:
-            assert(0 == 1);
+            CODA_ASSERT(0 == 1);
     }
 }
 

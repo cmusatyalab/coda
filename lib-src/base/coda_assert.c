@@ -5,7 +5,7 @@
             Coda: an Experimental Distributed File System
                              Release 4.0
 
-          Copyright (c) 1987-1996 Carnegie Mellon University
+          Copyright (c) 1998 Carnegie Mellon University
                          All Rights Reserved
 
 Permission  to  use, copy, modify and distribute this software and its
@@ -29,47 +29,56 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/binding.cc,v 4.2 1997/12/16 16:08:22 braam Exp $";
+static char *rcsid = "$Header: $";
 #endif /*_BLURB_*/
 
 
+#include <stdio.h>
+#include <unistd.h>
+#include "coda_assert.h"
 
+int (*coda_assert_cleanup)() = (int (*)()) 0;
+int   coda_assert_action = CODA_ASSERT_SLEEP;
 
+void
+coda_assert(char *pred, char *file, int line)
+{
+    fprintf(stderr,"Assertion failed: %s, file \"%s\", line %d\n", pred, file, line);
+    fflush(stderr);
 
+    if (coda_assert_cleanup) (coda_assert_cleanup)();
 
-/* from venus */
-#include "binding.h"
-#include "venus.private.h"
+    switch (coda_assert_action) {
+    default:
+	fprintf(stderr,"coda_assert: bad coda_assert_action value %d, assuming CODA_ASSERT_SLEEP\n",
+		coda_assert_action);
+	fflush(stderr);
 
+    case CODA_ASSERT_SLEEP:
+	fprintf(stderr, "Sleeping forever.  You may use gdb to attach to process %d.",
+		getpid());
+	fflush(stderr);
+        for (;;)
+	     sleep(1);
+	break;
 
-#ifdef VENUSDEBUG
-int binding::allocs = 0;
-int binding::deallocs = 0;
-#endif VENUSDEBUG
+    case CODA_ASSERT_EXIT:
+	fprintf(stderr, "VENUS IS EXITTING! Bye!\n");
+	fflush(stderr);
+    	exit(77);
+	break;
 
-binding::binding() {
-
-    binder = 0;
-    bindee = 0;
-    referenceCount = 0;
-
-#ifdef	VENUSDEBUG
-    allocs++;
-#endif	VENUSDEBUG
+    case CODA_ASSERT_ABORT:
+	fprintf(stderr, "VENUS WILL TRY TO DUMP CORE\n");
+	fflush(stderr);
+	abort();
+	break;
+    }
 }
 
-binding::~binding() {
-#ifdef	VENUSDEBUG
-    deallocs++;
-#endif	VENUSDEBUG
-    if (referenceCount != 0)
-      LOG(0, ("binding::~binding:  somebody forgot to decrement before delete\n"));
-
-    if (binder != 0 || bindee != 0)
-	{ print(logFile); CHOKE("binding::~binding: something bogus");}
-}
-
-
-void binding::print(int fd) {
-    fdprint(fd, "binder = %x, bindee = %x, refCount = %d\n", binder, bindee, referenceCount);
+void
+coda_note(char *pred, char *file, int line)
+{
+    fprintf(stderr,"Note failed: %s, file \"%s\", line %d\n", pred, file, line);
+    fflush(stderr);
 }

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/comm_daemon.cc,v 4.3 98/08/26 21:24:26 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/comm_daemon.cc,v 4.4 1998/09/23 20:26:27 jaharkes Exp $";
 #endif /*_BLURB_*/
 
 
@@ -135,7 +135,7 @@ void ServerProbe(unsigned long *lastupp, unsigned long *lastdownp) {
     LOG(1, ("ServerProbe: lastup = %d, lastdown = %d\n", 
 	    lastupp?*lastupp:0, lastdownp?*lastdownp:0));
 
-    ASSERT((lastupp && lastdownp) || (!lastupp && !lastdownp));
+    CODA_ASSERT((lastupp && lastdownp) || (!lastupp && !lastdownp));
 
     int upprobe = 0, downprobe = 0;
 
@@ -290,5 +290,5 @@ void vsgdb::GetDown() {
     /* ever be hit in the course of normal operation.  It is far more likely that if the bound is reached then */
     /* we have a programming error.  Thus, we panic in such event. */
     if (VSGDB->htab.count() >= CacheFiles)
-	Choke("vsgdb::GetDown: vsg entries >= CacheFiles");
+	CHOKE("vsgdb::GetDown: vsg entries >= CacheFiles");
 }

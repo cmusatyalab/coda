@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/lib-src/mlwp/lock.c,v 4.4 1998/04/14 20:42:21 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/lib-src/mlwp/lock.c,v 4.5 1998/10/28 19:58:10 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -57,7 +57,7 @@ supported by Transarc Corporation, Pittsburgh, PA.
 
 
 #include <stdio.h>
-#include <assert.h>
+#include "coda_assert.h"
 #include "lwp.h"
 #include "lwp.private.h"
 #include "lock.h"
@@ -133,7 +133,7 @@ void Lock_ReleaseR(register struct Lock *lock)
 	PROCESS me = LWP_ThisProcess();
 
 	if (lock->excl_locked & WRITE_LOCK) {
-	    assert(lock->excl_locker == me);
+	    CODA_ASSERT(lock->excl_locker == me);
 	    lock->excl_locker = NULL;
 	}
 
@@ -152,7 +152,7 @@ void Lock_ReleaseW(register struct Lock *lock)
 	PROCESS me = LWP_ThisProcess();
 
 	if (lock->excl_locked & WRITE_LOCK) {
-	    assert(lock->excl_locker == me);
+	    CODA_ASSERT(lock->excl_locker == me);
 	    lock->excl_locker = NULL;
 	}
 

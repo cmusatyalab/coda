@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/src/coda-4.0.1/RCSLINK/./coda-src/rvmres/parselog.h,v 1.1 1996/11/22 19:13:27 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rvmres/parselog.h,v 4.1 1997/01/08 21:50:36 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -54,7 +54,7 @@ struct remoteloglist : public olink {
     }
 	
     ~remoteloglist() {
-	// assert(slelist.count() == 0);
+	// CODA_ASSERT(slelist.count() == 0);
     }
 };
 

@@ -48,7 +48,7 @@ static void dc_Grow(int count)
 
 	for ( i = 0 ; i < count ; i++ ) {
 		pdce = malloc(sizeof(*pdce));
-		assert(pdce);
+		CODA_ASSERT(pdce);
 		bzero(pdce, sizeof(*pdce));
 
 		list_head_init(&pdce->dc_hash);
@@ -95,7 +95,7 @@ PDCEntry DC_Get(PDirInode pdi)
 	struct DCEntry *pdce;
 	struct dllist_chain *lh, *tmp;
 	
-	assert(pdi);
+	CODA_ASSERT(pdi);
 	hash = DC_Hash(pdi);
 
 	/* see if it is hashed already */
@@ -109,7 +109,7 @@ PDCEntry DC_Get(PDirInode pdi)
 			/* remove from freelist if first user */
 			if ( pdce->dc_count == 1 ) {
 				list_del(&pdce->dc_list);
-				assert(!DC_Dirty(pdce));
+				CODA_ASSERT(!DC_Dirty(pdce));
 			}
 
 			/* if data was flushed, refresh it */
@@ -137,7 +137,7 @@ PDCEntry DC_Get(PDirInode pdi)
 
 	/* copy in the directory handle, init lock, and copy data */
 	pdce->dc_dh.dh_data = DI_DiToDh(pdi);
-	assert(!DC_Dirty(pdce));
+	CODA_ASSERT(!DC_Dirty(pdce));
 	pdce->dc_refcount = pdi->di_refcount;
 
 	ReleaseWriteLock(&dlock);
@@ -152,7 +152,7 @@ void DC_Rehash(PDCEntry pdce)
 {
 	int hash;
 
-	assert(pdce);
+	CODA_ASSERT(pdce);
 
 	hash = DC_Hash(pdce->dc_pdi);
 
@@ -200,7 +200,7 @@ void DC_Put(PDCEntry pdce)
 
 	if ( pdce->dc_count == 1 ) {
 		list_add(&pdce->dc_list, dfreelist.prev);
-		assert(!DC_Dirty(pdce));
+		CODA_ASSERT(!DC_Dirty(pdce));
 	} 
 	pdce->dc_count--;
 
@@ -246,39 +246,39 @@ inline int DC_Refcount(PDCEntry pdc)
 
 PDirHandle DC_DC2DH(PDCEntry pdce)
 {
-	assert(pdce);
+	CODA_ASSERT(pdce);
 	return &pdce->dc_dh;
 }
 
 
 PDirInode DC_DC2DI(PDCEntry pdce)
 {
-	assert(pdce);
+	CODA_ASSERT(pdce);
 	return pdce->dc_pdi;
 }
 
 void DC_SetDirh(PDCEntry pdce, PDirHeader pdh)
 {
-	assert(pdce);
+	CODA_ASSERT(pdce);
 	pdce->dc_dh.dh_data = pdh;
 }
 
 void DC_SetDI(PDCEntry pdce, PDirInode pdi)
 {
-	assert(pdce);
+	CODA_ASSERT(pdce);
 	pdce->dc_pdi = pdi;
 }
 
 
 void DC_SetCowpdi(PDCEntry pdce, PDirInode pdi)
 {
-	assert(pdce);
+	CODA_ASSERT(pdce);
 	pdce->dc_cowpdi = pdi;
 }
 
 PDirInode DC_Cowpdi(PDCEntry pdce)
 {
-	assert(pdce);
+	CODA_ASSERT(pdce);
 	return pdce->dc_cowpdi;
 }
 
@@ -292,7 +292,7 @@ void DC_SetDirty(PDCEntry pdce, int flag)
 
 int DC_Dirty(PDCEntry pdce)
 {
-	assert(pdce);
+	CODA_ASSERT(pdce);
 	return pdce->dc_dh.dh_dirty;
 }
 		

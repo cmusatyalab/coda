@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rvmres/ops.cc,v 4.3 1998/04/14 21:08:29 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rvmres/ops.cc,v 4.4 1998/10/30 18:29:52 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -344,7 +344,7 @@ void CreateRootLog(Volume *vol, Vnode *vptr) {
     int seqno = -1;
 
     /* allocate the record */
-    assert((V_VolLog(vol)->AllocRecord(&index, &seqno)) == 0);
+    CODA_ASSERT((V_VolLog(vol)->AllocRecord(&index, &seqno)) == 0);
     
     ViceStoreId stid;
     stid.Host = Vnode_vv(vptr).StoreId.Host;
@@ -354,12 +354,12 @@ void CreateRootLog(Volume *vol, Vnode *vptr) {
     
     sl.init(ViceMakeDir_OP, ".", vptr->vnodeNumber, vptr->disk.uniquifier);
     recle *rle = V_VolLog(vol)->RecovPutRecord(index);
-    assert(rle);
+    CODA_ASSERT(rle);
     
     /* initialize the log list header */
-    assert(VnLog(vptr) == NULL);
+    CODA_ASSERT(VnLog(vptr) == NULL);
     VnLog(vptr) = new rec_dlist();
-    assert(VnLog(vptr));
+    CODA_ASSERT(VnLog(vptr));
 
     /* copy the log record into rvm */
     rle->InitFromsle(&sl);
@@ -375,11 +375,11 @@ void CreateResLog(Volume *vol, Vnode *vptr) {
     int seqno = -1;
 
     if (VnLog(vptr)) return;
-    assert(V_VolLog(vol));
+    CODA_ASSERT(V_VolLog(vol));
 
     /* initialize the log list header */
     VnLog(vptr) = new rec_dlist();
-    assert(VnLog(vptr));
+    CODA_ASSERT(VnLog(vptr));
 }
 
 /*
@@ -389,7 +389,7 @@ void CreateResLog(Volume *vol, Vnode *vptr) {
  */
 
 int SpoolVMLogRecord(vle *v, Volume *vol, ViceStoreId *stid, int op, va_list ap) {
-    assert(v);
+    CODA_ASSERT(v);
     SLog(9,  "Entering SpoolVMLogRecord_vle(0x%x.%x.%x)",
 	    V_id(vol), v->vptr->vnodeNumber, v->vptr->disk.uniquifier);
 
@@ -407,7 +407,7 @@ int SpoolVMLogRecord(vle *v, Volume *vol, ViceStoreId *stid, int op, va_list ap)
 
     /* form the log record in vm */
     rsle *rsl = new rsle(stid, v->vptr->vnodeNumber, v->vptr->disk.uniquifier, op, index, seqno);
-    assert(rsl);
+    CODA_ASSERT(rsl);
     rsl->init(op, ap);
 
     //append record to intention list 
@@ -476,7 +476,7 @@ int SpoolVMLogRecord(dlist *vlist, Vnode *vptr, Volume *vol, ViceStoreId *stid,
 
 int SpoolVMLogRecord(dlist *vlist, vle *v, Volume *vol, ViceStoreId *stid, 
 		     int op, va_list ap) {
-    assert(v);
+    CODA_ASSERT(v);
     SLog(9,  
 	   "Entering SpoolVMLogRecord_vle(0x%x.%x.%x)",
 	    V_id(vol), v->vptr->vnodeNumber, v->vptr->disk.uniquifier);
@@ -498,7 +498,7 @@ int SpoolVMLogRecord(dlist *vlist, vle *v, Volume *vol, ViceStoreId *stid,
     /* form the log record in vm */
     rsle *rsl = new rsle(stid, v->vptr->vnodeNumber, 
 			 v->vptr->disk.uniquifier, op, index, seqno);
-    assert(rsl);
+    CODA_ASSERT(rsl);
     rsl->init(op, ap);
     //append record to intention list 
     v->rsl.append(rsl);
@@ -703,7 +703,7 @@ void PurgeLog(rec_dlist *list, Volume *vol, vmindex *ind)
 void DumpLog(rec_dlist *log, Volume *vp, char **buf, int *bufsize, int *nentries) {
     int maxsize = V_VolLog(vp)->size * (sizeof(recle) + sizeof(rename_rle));
     *buf = (char *)malloc(maxsize);
-    assert(buf);
+    CODA_ASSERT(buf);
     int lastentry = 0;
 
     *nentries = *nentries + log->count();	// assume nentries has been initialized by caller
@@ -716,12 +716,12 @@ void DumpLog(rec_dlist *log, Volume *vp, char **buf, int *bufsize, int *nentries
 
 	if ((maxsize - lastentry) < rbufsize) {
 	    // not enough space - need to realloc
-	    assert(maxsize > 0);
+	    CODA_ASSERT(maxsize > 0);
 	    int newmaxsize = maxsize * 2;
 	    while ((newmaxsize - lastentry) < rbufsize) 
 		newmaxsize = maxsize * 2;
 	    char *newbuf = (char *)malloc(newmaxsize);
-	    assert(newbuf);
+	    CODA_ASSERT(newbuf);
 	    bcopy(*buf, newbuf, lastentry);
 	    free(*buf);
 	    *buf = newbuf;
@@ -739,12 +739,12 @@ void DumpLog(rec_dlist *log, Volume *vp, char **buf, int *bufsize, int *nentries
 	    DumpLog(childlist, vp, &childdump, &childdumplength, nentries);
 	    if ((maxsize - lastentry) < childdumplength) {
 		// not enough space - need to realloc
-		assert(maxsize > 0);
+		CODA_ASSERT(maxsize > 0);
 		int newmaxsize = maxsize * 2;
 		while ((newmaxsize - lastentry) < childdumplength) 
 		    newmaxsize = maxsize * 2;
 		char *newbuf = (char *)malloc(newmaxsize);
-		assert(newbuf);
+		CODA_ASSERT(newbuf);
 		bcopy(*buf, newbuf, lastentry);
 		free(*buf);
 		*buf = newbuf;

@@ -33,7 +33,7 @@ should be returned to Software.Distribution@cs.cmu.edu.
 
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/rvm-src/rds/rds_free.c,v 4.2 1997/02/26 16:05:00 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/rvm-src/rds/rds_free.c,v 4.3 1998/08/26 15:40:11 braam Exp $";
 #endif _BLURB_
 
 #include <stdlib.h>
@@ -232,7 +232,7 @@ int rds_do_free(list, mode)
 	    free_block_t *bp = BLOCK_HDR((list->table)[i]); 
 
 	    /* Set the lowguard to reflect that the block has been allocated. */
-	    ASSERT(bp->type == ALLOC_GUARD);
+	    CODA_ASSERT(bp->type == ALLOC_GUARD);
 	    rvmret = rvm_set_range(tid, &(bp->type), sizeof(guard_t));
 	    if (rvmret != RVM_SUCCESS) {
 		err = (int)rvmret;

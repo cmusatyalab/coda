@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rpc2/conn.c,v 4.3 1998/06/07 20:14:54 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rpc2/conn.c,v 4.4 1998/08/26 17:08:07 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -108,7 +108,7 @@ static struct CEntry **HashTable;
 void rpc2_InitConn()
 {
 	HashTable = (struct CEntry **)malloc(INITHASHLENGTH*sizeof(*HashTable));
-	assert(HashTable != NULL);
+	CODA_ASSERT(HashTable != NULL);
 	bzero(HashTable, INITHASHLENGTH*sizeof(struct CEntry *)); 
 	CurrentLength = INITHASHLENGTH;
 	LastHandleAllocated = 0;
@@ -166,7 +166,7 @@ static void Uniquefy(IN register struct CEntry *ceaddr)
 			    return;
 		    }
 	    /* we should never get here! */
-	    assert(1 == 0);	
+	    CODA_ASSERT(1 == 0);	
 	} else {
 		/* realloc() */
 		say(9, RPC2_DebugLevel, 
@@ -174,7 +174,7 @@ static void Uniquefy(IN register struct CEntry *ceaddr)
 		     EntriesInUse, CurrentLength);
 		HashTable = (struct CEntry **) 
 			realloc(HashTable, 2*CurrentLength*sizeof(*HashTable));
-		assert(HashTable);
+		CODA_ASSERT(HashTable);
 		/* zero out new allocation */
 		bzero(&HashTable[CurrentLength], CurrentLength*sizeof(struct CEntry *));
 		HashTable[CurrentLength] = ceaddr;
@@ -199,7 +199,7 @@ struct CEntry *rpc2_AllocConn()
 
     ce = (struct CEntry *)rpc2_MoveEntry(&rpc2_ConnFreeList, &rpc2_ConnList,
 		 (struct CEntry *)NULL, &rpc2_ConnFreeCount, &rpc2_ConnCount);
-    assert (ce->MagicNumber == OBJ_CENTRY);
+    CODA_ASSERT (ce->MagicNumber == OBJ_CENTRY);
 
     /* Initialize */
     ce->State = 0;
@@ -241,8 +241,8 @@ void rpc2_FreeConn(RPC2_Handle whichConn)
     struct CEntry *ce;
 
     ce = rpc2_FindCEAddr(whichConn);
-    assert(ce != NULL);
-    assert(ce->MagicNumber == OBJ_CENTRY);
+    CODA_ASSERT(ce != NULL);
+    CODA_ASSERT(ce->MagicNumber == OBJ_CENTRY);
     rpc2_FreeConns++;
 
     free(ce->Retry_Beta);
@@ -286,7 +286,7 @@ static void PrintHashTable()
 
 void rpc2_SetConnError(IN register struct CEntry *ce)
 {
-    assert (ce->MagicNumber == OBJ_CENTRY);
+    CODA_ASSERT (ce->MagicNumber == OBJ_CENTRY);
 
     if (TestRole(ce, SERVER)) 
 	    SetState(ce, S_HARDERROR);
@@ -436,6 +436,6 @@ struct CEntry *rpc2_GetConn(RPC2_Handle handle)
 	ce = rpc2_FindCEAddr(handle);
 	if (ce == NULL) 
 		return(NULL);
-	assert(ce->MagicNumber == OBJ_CENTRY);
+	CODA_ASSERT(ce->MagicNumber == OBJ_CENTRY);
 	return(ce);
 }

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/vol_resolve.cc,v 4.7 98/09/23 16:56:43 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/vol_resolve.cc,v 4.8 1998/09/29 21:04:49 jaharkes Exp $";
 #endif /*_BLURB_*/
 
 
@@ -106,7 +106,7 @@ void volent::Resolve() {
 
 	    /* Pick a coordinator and get a connection to it. */
 	    unsigned long ph = m->GetPrimaryHost();
-	    ASSERT(ph != 0);
+	    CODA_ASSERT(ph != 0);
 	    code = ::GetConn(&c, ph, V_UID, 0);
 	    if (code != 0) goto HandleResult;
 
@@ -275,7 +275,7 @@ resent::~resent() {
     LOG(10, ("resent::~resent: fid = (%x.%x.%x)\n",
 	      fid.Volume, fid.Vnode, fid.Unique));
 
-    ASSERT(refcnt == 0);
+    CODA_ASSERT(refcnt == 0);
 }
 
 
@@ -349,7 +349,7 @@ void Resolve(volent *v) {
     r = (o == 0)
       ? new resolver
       : strbase(resolver, o, handle);
-    ASSERT(r->idle);
+    CODA_ASSERT(r->idle);
 
     /* Set up context for resolver. */
     r->u.Init();
@@ -399,8 +399,8 @@ void resolver::main(void *parm) {
 	/* Wait for new request. */
 	idle = 1;
 	VprocWait((char *)this);
-	if (idle) Choke("resolver::main: signalled but not dispatched!");
-	if (!u.u_vol) Choke("resolver::main: no volume!");
+	if (idle) CHOKE("resolver::main: signalled but not dispatched!");
+	if (!u.u_vol) CHOKE("resolver::main: no volume!");
 
 	/* Do the resolve. */
 	u.u_vol->Resolve();

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/comm.cc,v 4.24 1998/10/21 22:05:52 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/comm.cc,v 4.25 1998/10/30 18:29:53 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -185,14 +185,14 @@ void CommInit() {
     /* Sanity check COPModes. */
     if ( (ASYNCCOP1 && !ASYNCCOP2) ||
 	 (PIGGYCOP2 && !ASYNCCOP2) )
-	Choke("CommInit: bogus COPModes (%x)", COPModes);
+	CHOKE("CommInit: bogus COPModes (%x)", COPModes);
 
     /* Initialize comm queue */
     bzero((void *)&CommQueue, sizeof(CommQueueStruct));
 
     /* Hostname is needed for file server connections. */
     if (gethostname(myHostName, MAXHOSTNAMELEN) < 0)
-	Choke("CommInit: gethostname failed");
+	CHOKE("CommInit: gethostname failed");
 
     /* Hostid is needed for storeid generation. */
 #ifdef DJGPP
@@ -251,7 +251,7 @@ void CommInit() {
 	/* CHANGE */	
     }
     if (hcount == 0)
-	Choke("CommInit: no bootstrap server");
+	CHOKE("CommInit: no bootstrap server");
 
     RPC2_Perror = 0;
 
@@ -259,7 +259,7 @@ void CommInit() {
     /* Multicast requires that (sftp_portal = rpc2_portal + 1). */
     struct servent *s = getservbyname("venus", "udp");
     if (s == 0) 
-	Choke("CommInit: getservbyname failed; check /etc/services");
+	CHOKE("CommInit: getservbyname failed; check /etc/services");
     RPC2_PortalIdent portal1;
     portal1.Tag = RPC2_PORTALBYINETNUMBER;
     portal1.Value.InetPortNumber = s->s_port;
@@ -267,7 +267,7 @@ void CommInit() {
     /* SFTP initialization. */
     s = getservbyname("venus-se", 0);
     if (s == 0) 
-	Choke("CommInit: getservbyname failed; check /etc/services");
+	CHOKE("CommInit: getservbyname failed; check /etc/services");
     SFTP_Initializer sei;
     SFTP_SetDefaults(&sei);
     sei.WindowSize = sftp_windowsize;
@@ -285,7 +285,7 @@ void CommInit() {
     tv.tv_sec = rpc2_timeout;
     tv.tv_usec = 0;
     if (RPC2_Init(RPC2_VERSION, 0, &portal1, rpc2_retries, &tv) != RPC2_SUCCESS)
-	Choke("CommInit: RPC2_Init failed");
+	CHOKE("CommInit: RPC2_Init failed");
 
     /* Failure package initialization. */
     bzero((void *)FailFilterInfo, (int) (MAXFILTERS * sizeof(struct FailFilterInfoStruct)));
@@ -354,7 +354,7 @@ int GetAdmConn(connent **cpp) {
 
 		default:
 		    if (code < 0)
-			Choke("GetAdmConn: bogus code (%d)", code);
+			CHOKE("GetAdmConn: bogus code (%d)", code);
 		    return(code);
 	    }
 	}
@@ -453,7 +453,7 @@ void PutConn(connent **cpp) {
 	     c->Host, c->uid, c->connid, c->authenticated));
 
     if (!c->inuse)
-	{ c->print(logFile); Choke("PutConn: conn not in use"); }
+	{ c->print(logFile); CHOKE("PutConn: conn not in use"); }
 
     if (c->dying) {
 	connent::conntab->remove(&c->tblhandle);
@@ -708,7 +708,7 @@ srvent *FindServerByCBCid(RPC2_Handle connid) {
 
 void GetServer(srvent **spp, unsigned long host) {
     LOG(100, ("GetServer: host = %x\n", host));
-    assert(host != 0);
+    CODA_ASSERT(host != 0);
 
     srvent *s = FindServer(host);
     if (s) {
@@ -779,7 +779,7 @@ void probeslave::main(void *parm) {
 	    break;
 
 	default:
-	    Choke("probeslave::main: bogus task (%d)", task);
+	    CHOKE("probeslave::main: bogus task (%d)", task);
     }
 
     /* Signal reaper, then commit suicide. */
@@ -837,7 +837,7 @@ void DoProbes(int HowMany, unsigned long *Hosts) {
     connent **Connections = 0;
     int i;
 
-    ASSERT(HowMany > 0);
+    CODA_ASSERT(HowMany > 0);
 
     /* Bind to the servers. */
     Connections = (connent **)malloc(HowMany * sizeof(connent *));
@@ -912,18 +912,18 @@ void MultiProbe(int HowMany, RPC2_Handle *Handles) {
     /* Make multiple copies of the IN/OUT and OUT parameters. */
     RPC2_Unsigned  **secs_ptrs =
 	(RPC2_Unsigned **)malloc(HowMany * sizeof(RPC2_Unsigned *));
-    ASSERT(secs_ptrs);
+    CODA_ASSERT(secs_ptrs);
     RPC2_Unsigned   *secs_bufs =
 	(RPC2_Unsigned *)malloc(HowMany * sizeof(RPC2_Unsigned));
-    ASSERT(secs_bufs);
+    CODA_ASSERT(secs_bufs);
     for (int i = 0; i < HowMany; i++)
 	secs_ptrs[i] = &secs_bufs[i]; 
     RPC2_Integer  **usecs_ptrs =
 	(RPC2_Integer **)malloc(HowMany * sizeof(RPC2_Integer *));
-    ASSERT(usecs_ptrs);
+    CODA_ASSERT(usecs_ptrs);
     RPC2_Integer   *usecs_bufs =
 	(RPC2_Integer *)malloc(HowMany * sizeof(RPC2_Integer));
-    ASSERT(usecs_bufs);
+    CODA_ASSERT(usecs_bufs);
     for (int ii = 0; ii < HowMany; ii++)
 	usecs_ptrs[ii] = &usecs_bufs[ii]; 
 
@@ -961,14 +961,14 @@ long HandleProbe(int HowMany, RPC2_Handle *Handles, long offset, long rpcval) {
 	    LOG(0, ("HandleProbe: thePeer.RemoteHost.Tag = %d\n", thePeer.RemoteHost.Tag));
 	    LOG(0, ("HandleProbe: thePeer.RemotePortal.Tag = %d\n", thePeer.RemotePortal.Tag));
 	    return 0;
-	    /* Choke("HandleProbe: getpeerinfo returned bogus type!"); */
+	    /* CHOKE("HandleProbe: getpeerinfo returned bogus type!"); */
 	}
 	unsigned long host = ntohl(thePeer.RemoteHost.Value.InetAddress);
 
 	/* Locate the server and update its status. */
 	srvent *s = FindServer(host);
 	if (!s)
-	    Choke("HandleProbe: no srvent (RPCid = %d, PeerHost = %x)", RPCid, host);
+	    CHOKE("HandleProbe: no srvent (RPCid = %d, PeerHost = %x)", RPCid, host);
 	LOG(1, ("HandleProbe: (%s, %d)\n", s->name, rpcval));
 	if (rpcval < 0)
 	    s->ServerError((int *)&rpcval);
@@ -1168,7 +1168,7 @@ int srvent::Connect(RPC2_Handle *cidp, int *authp, vuid_t vuid, int Force) {
 
 	    default:
 /*
-		Choke("srvent::Connect: illegal RPC code (%s)", RPC2_ErrorMsg(code));
+		CHOKE("srvent::Connect: illegal RPC code (%s)", RPC2_ErrorMsg(code));
 */
 		code = ETIMEDOUT; break;
 	}
@@ -1274,7 +1274,7 @@ void srvent::ServerError(int *codep) {
 	default:
 	    /* Map RPC2 warnings into EINVAL. */
 	    if (*codep > RPC2_ELIMIT) { *codep = EINVAL; break; }
-	    Choke("srvent::ServerError: illegal RPC code (%d)", *codep);
+	    CHOKE("srvent::ServerError: illegal RPC code (%d)", *codep);
     }
 
     if (connid == 0) {
@@ -1707,7 +1707,7 @@ void PutMgrp(mgrpent **mpp) {
 	     m->VSGAddr, m->uid, m->McastInfo.Mgroup, m->authenticated, m->inuse, m->dying));
 
     if (!m->inuse)
-	{ m->print(logFile); Choke("PutMgrp: mgrp not in use"); }
+	{ m->print(logFile); CHOKE("PutMgrp: mgrp not in use"); }
 
     /* Clean up the host set. */
     m->PutHostSet();
@@ -1762,7 +1762,7 @@ mgrpent::mgrpent(unsigned long vsgaddr, vuid_t vuid,
     McastInfo.ExpandHandle = 0;
     vsgent *vsgp;
     if (VSGDB->Get(&vsgp, vsgaddr) != 0)
-	Choke("mgrpent::mgrpent: can't get VSG (%x)", vsgaddr);
+	CHOKE("mgrpent::mgrpent: can't get VSG (%x)", vsgaddr);
     vsgp->GetHosts(Hosts);
     nhosts = 0;
     for (int i = 0; i < VSG_MEMBERS; i++)
@@ -2129,7 +2129,7 @@ int mgrpent::RVVCheck(vv_t **RVVs, int EqReq) {
     else {
 	if (dom_cnt <= 0 || dom_cnt > rocc.HowMany) {
 	    print(logFile);
-	    Choke("mgrpent::RVVCheck: bogus dom_cnt (%d)", dom_cnt);
+	    CHOKE("mgrpent::RVVCheck: bogus dom_cnt (%d)", dom_cnt);
 	}
 
 	/* Notify servers which have out of date copies. */
@@ -2170,7 +2170,7 @@ int mgrpent::DHCheck(vv_t **RVVs, int ph_ix, int *dh_ixp, int PHReq) {
 	}
 
     /* Dominant set is empty. */
-    Choke("mgrpent::DHCheck: dominant set is empty");
+    CHOKE("mgrpent::DHCheck: dominant set is empty");
     return(0);	/* dummy to keep g++ happy */
 }
 
@@ -2223,7 +2223,7 @@ int mgrpent::CreateMember(unsigned long host) {
     /* Deduce index of specified host. */
     for (i = 0; i < VSG_MEMBERS; i++)
 	if (Hosts[i] == host) break;
-    if (i == VSG_MEMBERS) Choke("mgrpent::CreateMember: no host (%x)", host);
+    if (i == VSG_MEMBERS) CHOKE("mgrpent::CreateMember: no host (%x)", host);
 
     int code = 0;
 
@@ -2243,7 +2243,7 @@ int mgrpent::CreateMember(unsigned long host) {
     if (code != 0) {
 /*
 	print(logFile);
-	Choke("mgrpent::CreateMember: AddToMgrp failed (%d)", code);
+	CHOKE("mgrpent::CreateMember: AddToMgrp failed (%d)", code);
 */
 	(void) RPC2_Unbind(ConnHandle);
 	return(ETIMEDOUT);
@@ -2327,7 +2327,7 @@ unsigned long mgrpent::GetPrimaryHost(int *ph_ixp) {
 	    return(rocc.hosts[i]);
 	}
 
-    Choke("mgrpent::GetPrimaryHost: ph (%x) not found", rocc.primaryhost);
+    CHOKE("mgrpent::GetPrimaryHost: ph (%x) not found", rocc.primaryhost);
     return(0);	/* dummy to keep g++ happy */
 }
 
@@ -2344,7 +2344,7 @@ void mgrpent::SetPrimaryHost(unsigned long host) {
 	}
     }
 
-    Choke("mgrpent::SetPrimaryHost: ph not found");
+    CHOKE("mgrpent::SetPrimaryHost: ph not found");
 }
 
 
@@ -2407,7 +2407,7 @@ void VSGInit() {
 	}
 
 	if (VSGDB->htab.count() + VSGDB->freelist.count() > CacheFiles)
-	    Choke("VSGInit: too many vsg entries (%d + %d > %d)",
+	    CHOKE("VSGInit: too many vsg entries (%d + %d > %d)",
 		VSGDB->htab.count(), VSGDB->freelist.count(), CacheFiles);
     }
 
@@ -2430,7 +2430,7 @@ void *vsgdb:: operator new(size_t size){
 
     /* Allocate recoverable store for the object. */
     v = (vsgdb *)rvmlib_rec_malloc(size);
-    assert(v);
+    CODA_ASSERT(v);
     return(v);
 }
 
@@ -2449,7 +2449,7 @@ void vsgdb::ResetTransient() {
 
     /* Sanity checks. */
     if (MagicNumber != VSGDB_MagicNumber)
-	Choke("vsgdb::Init: bad magic number (%d)", MagicNumber);
+	CHOKE("vsgdb::Init: bad magic number (%d)", MagicNumber);
 
     htab.SetHFn(VSG_HashFN);
 }
@@ -2475,7 +2475,7 @@ vsgent *vsgdb::Create(unsigned long Addr, unsigned long *Hosts) {
 
     /* Check whether the key is already in the database. */
     if ((v = Find(Addr)) != 0)
-	{ v->print(logFile); Choke("vsgdb::Create: key exists"); }
+	{ v->print(logFile); CHOKE("vsgdb::Create: key exists"); }
 
     /* Fashion a new object. */
     Recov_BeginTrans();
@@ -2500,18 +2500,18 @@ int vsgdb::Get(vsgent **vpp, unsigned long Addr, unsigned long *Hosts) {
     v = Find(Addr);
     if (v == 0) {
 	if (Hosts == 0)
-	    Choke("vsgdb::Get: Addr (%x) not found and Hosts == 0", Addr);
+	    CHOKE("vsgdb::Get: Addr (%x) not found and Hosts == 0", Addr);
 
 	v = Create(Addr, Hosts);
 	if (v == 0)
-	    Choke("vsgdb::Get: Create (%x, [%x %x %x %x %x %x %x %x]) failed",
+	    CHOKE("vsgdb::Get: Create (%x, [%x %x %x %x %x %x %x %x]) failed",
 		Addr, Hosts[0], Hosts[1], Hosts[2], Hosts[3], Hosts[4], Hosts[5], Hosts[6], Hosts[7]);
     }
     else {
 	if (Hosts != 0) {
 	    /* Sanity check. */
 	    if (bcmp((const void *)Hosts, (const void *) v->Hosts, (int)(VSG_MEMBERS * sizeof(unsigned long))) != 0)
-		{ v->print(logFile); Choke("vsgdb::Get: inconsistent VSG entries"); }
+		{ v->print(logFile); CHOKE("vsgdb::Get: inconsistent VSG entries"); }
 	}
     }
 
@@ -2664,7 +2664,7 @@ void *vsgent::operator new(size_t size){
     if (VSGDB->freelist.count() > 0)
 	v = strbase(vsgent, VSGDB->freelist.get(), handle);
     else v = (vsgent *)rvmlib_rec_malloc(size);
-    assert(v);
+    CODA_ASSERT(v);
     return(v);
 }
 
@@ -2686,7 +2686,7 @@ vsgent::vsgent(int AllocPriority, unsigned long addr, unsigned long *hosts) {
 void vsgent::ResetTransient() {
     /* Sanity checks. */
     if (MagicNumber != VSGENT_MagicNumber)
-	{ print(logFile); Choke("vsgent::ResetTransient: bogus MagicNumber"); }
+	{ print(logFile); CHOKE("vsgent::ResetTransient: bogus MagicNumber"); }
 
     refcnt = 0;
     EventCounter = 0;
@@ -2699,11 +2699,11 @@ vsgent::~vsgent() {
 	      Addr, Hosts[0], Hosts[1], Hosts[2], Hosts[3], Hosts[4], Hosts[5], Hosts[6], Hosts[7], refcnt));
 
     if (refcnt != 0)
-	{ print(logFile); Choke("vsgent::~vsgent: non-zero refcnt"); }
+	{ print(logFile); CHOKE("vsgent::~vsgent: non-zero refcnt"); }
 
     /* Remove from hash table. */
     if (VSGDB->htab.remove(&Addr, &handle) != &handle)
-	{ print(logFile); Choke("vsgent::~vsgent: htab remove"); }
+	{ print(logFile); CHOKE("vsgent::~vsgent: htab remove"); }
 
 }
 
@@ -2729,7 +2729,7 @@ void vsgent::release() {
     refcnt--;
 
     if (refcnt < 0)
-	{ print(logFile); Choke("vsgent::release: refcnt < 0"); }
+	{ print(logFile); CHOKE("vsgent::release: refcnt < 0"); }
 }
 
 
@@ -2824,7 +2824,7 @@ int vsgent::Connect(RPC2_Handle *midp, int *authp, vuid_t vuid) {
     PutUser(&u);
 
     if (code != 0)
-	Choke("vsgent::Connect: (%x) failed (%d)", Addr, code);
+	CHOKE("vsgent::Connect: (%x) failed (%d)", Addr, code);
     return(0);
 }
 

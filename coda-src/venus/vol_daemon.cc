@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/vol_daemon.cc,v 4.5 1998/09/23 20:26:37 jaharkes Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/vol_daemon.cc,v 4.6 1998/09/29 16:38:22 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -235,7 +235,7 @@ void vdb::GetDown() {
     /* extremely unlikely that this bound will ever be hit in the course of normal operation.  It is far more */
     /* likely that if the bound is reached then we have a programming error.  Thus, we panic in such event. */
     if (VDB->htab.count() >= CacheFiles)
-	Choke("vdb::GetDown: volume entries >= CacheFiles");
+	CHOKE("vdb::GetDown: volume entries >= CacheFiles");
 }
 
 

@@ -30,7 +30,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rpc2/packet.c,v 4.6 98/09/29 23:22:27 rnw Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rpc2/packet.c,v 4.7 1998/10/05 20:32:59 jaharkes Exp $";
 #endif /*_BLURB_*/
 
 
@@ -137,7 +137,7 @@ void rpc2_XmitPacket(IN whichSocket, IN whichPB, IN whichHost, IN whichPortal)
 	}
 #endif RPC2DEBUG
 
-    assert(whichPB->Prefix.MagicNumber == OBJ_PACKETBUFFER);
+    CODA_ASSERT(whichPB->Prefix.MagicNumber == OBJ_PACKETBUFFER);
 
 
 #ifdef RPC2DEBUG
@@ -153,7 +153,7 @@ void rpc2_XmitPacket(IN whichSocket, IN whichPB, IN whichHost, IN whichPortal)
 	    {
 	    struct sockaddr_in sa;
 
-	    assert(whichPortal->Tag == RPC2_PORTALBYINETNUMBER);
+	    CODA_ASSERT(whichPortal->Tag == RPC2_PORTALBYINETNUMBER);
 	    sa.sin_family = AF_INET;
 	    sa.sin_addr.s_addr = whichHost->Value.InetAddress;	/* In network order */
 	    sa.sin_port = whichPortal->Value.InetPortNumber; /* In network order */
@@ -202,7 +202,7 @@ void rpc2_XmitPacket(IN whichSocket, IN whichPB, IN whichHost, IN whichPortal)
 	    }
 	    break;
 	    
-	default: assert(FALSE);
+	default: CODA_ASSERT(FALSE);
 	}
 }
 
@@ -222,10 +222,10 @@ long rpc2_RecvPacket(IN long whichSocket, OUT RPC2_PacketBuffer *whichBuff,
     struct sockaddr_in sa;
 
     say(0, RPC2_DebugLevel, "rpc2_RecvPacket()\n");
-    assert(whichBuff->Prefix.MagicNumber == OBJ_PACKETBUFFER);
+    CODA_ASSERT(whichBuff->Prefix.MagicNumber == OBJ_PACKETBUFFER);
 
     len = whichBuff->Prefix.BufferSize - (long)(&whichBuff->Header) + (long)(whichBuff);
-    assert(len > 0);
+    CODA_ASSERT(len > 0);
     
     /* WARNING: only Internet works; no warnings */
     fromlen = sizeof(sa);
@@ -298,7 +298,7 @@ long rpc2_InitRetry(IN long HowManyRetries, IN struct timeval *Beta0)
     if (HowManyRetries < 0) HowManyRetries = DefaultRetryCount;	/* it's ok, call by value */
     if (Beta0 == NULL) Beta0 = &DefaultRetryInterval; /* ditto */
 
-    assert(Retry_Beta == NULL);
+    CODA_ASSERT(Retry_Beta == NULL);
 
     Retry_N = HowManyRetries;
     Retry_Beta = (struct timeval *)malloc(sizeof(struct timeval)*(2+HowManyRetries));
@@ -358,7 +358,7 @@ long rpc2_SetRetry(IN Conn)
     register long betax, timeused, beta0;	/* entirely in microseconds */
     register long i;
 
-    assert(Conn);
+    CODA_ASSERT(Conn);
 
     /* zero everything but the keep alive interval */
     bzero(&Conn->Retry_Beta[1], sizeof(struct timeval)*(1+Conn->Retry_N));
@@ -558,7 +558,7 @@ long rpc2_SendReliably(IN Conn, IN Sle, IN Packet, IN TimeOut)
 		rpc2_XmitPacket(rpc2_RequestSocket, Packet, &Conn->PeerHost, &Conn->PeerPortal);
 		break;	/* switch */
 		
-	    default: assert(FALSE);
+	    default: CODA_ASSERT(FALSE);
 	    }
 	}
     while (hopeleft);
@@ -627,7 +627,7 @@ void rpc2_ntohp(p)
 
 void rpc2_InitPacket(RPC2_PacketBuffer *pb, struct CEntry *ce, long bodylen)
 {
-	assert(pb);
+	CODA_ASSERT(pb);
 
 	bzero(&pb->Header, sizeof(struct RPC2_PacketHeader));
 	pb->Header.ProtoVersion = RPC2_PROTOVERSION;

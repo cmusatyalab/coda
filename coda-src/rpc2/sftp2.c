@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rpc2/sftp2.c,v 4.3 98/08/26 17:08:13 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rpc2/sftp2.c,v 4.4 1998/09/15 14:28:00 jaharkes Exp $";
 #endif /*_BLURB_*/
 
 
@@ -168,7 +168,7 @@ static void ScanTimerQ()
     /* scan timer queue and notify timed out events */
     for (i = TM_Rescan(sftp_Chain); i > 0; i--)
 	{
-	assert((t = TM_GetExpired(sftp_Chain)) != NULL);
+	CODA_ASSERT((t = TM_GetExpired(sftp_Chain)) != NULL);
 	s = (struct SLSlot *)t->BackPointer;
 	s->State= S_TIMEOUT;
 	REMOVETIMER(s);
@@ -311,7 +311,7 @@ static void ExaminePacket(whichPacket, whichHost, whichPortal)
     /* update the last-heard-from times for this SFTP entry, and the 
        connection-independent entry for this host/SFTP portal. */
     FT_GetTimeOfDay(&sfp->LastWord, (struct timezone *)0);
-    assert(sfp->HostInfo != NULL);
+    CODA_ASSERT(sfp->HostInfo != NULL);
     sfp->HostInfo->LastWord = sfp->LastWord;	/* structure assignment */
 
     /* Go handle the packet appropriately. */
@@ -356,7 +356,7 @@ static void ClientPacket(whichPacket, whichEntry)
     switch ((int) whichPacket->Header.Opcode)
 	{
 	case SFTP_NAK:
-	    assert(FALSE);  /* should have been dealt with in ExaminePacket() */
+	    CODA_ASSERT(FALSE);  /* should have been dealt with in ExaminePacket() */
 	    break;	    
 	    
 	case SFTP_ACK:
@@ -450,7 +450,7 @@ static int hostcmp(host1, host2)
 	    if (host1->Value.InetAddress == host2->Value.InetAddress) return(TRUE);
 	    else return(FALSE);
 
-	default: assert(FALSE);
+	default: CODA_ASSERT(FALSE);
 	}
     /*NOTREACHED*/
     }

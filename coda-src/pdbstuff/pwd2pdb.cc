@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/pdbstuff/pwd2pdb.cc,v 4.6 98/09/29 16:37:51 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/pdbstuff/pwd2pdb.cc,v 4.7 1998/10/08 17:30:11 jaharkes Exp $";
 #endif /*_BLURB_*/
 
 
@@ -313,7 +313,7 @@ void pwparse(register char *nextline, register struct passwd *pwptr)
     pwptr->pw_passwd = p;
     p = pwskip(p, ':');
     pwptr->pw_uid = atoi(p);
-    assert(pwptr->pw_uid < 750 || pwptr->pw_uid > 800);	/* magic range used by AL package */
+    CODA_ASSERT(pwptr->pw_uid < 750 || pwptr->pw_uid > 800);	/* magic range used by AL package */
     p = pwskip(p, ':');
     pwptr->pw_gid = atoi(p);
     pwptr->pw_quota = 0;
@@ -540,7 +540,7 @@ void pwscan()
 	if (pwbuf[i] == '\n')
 	    {
 	    if (mystate == EatNull) continue;
-	    assert(mystate == EatText);
+	    CODA_ASSERT(mystate == EatText);
 	    mystate = EndText;
 	    }
 	switch(mystate)

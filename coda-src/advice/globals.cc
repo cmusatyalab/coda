@@ -214,11 +214,11 @@ void InitEnvironment() {
     error += setenv("TCL_LIBRARY", TCL, 1);
     error += setenv("TK_LIBRARY", TK, 1);
     error += setenv("TIX_LIBRARY", TIX, 1);
-    assert(error == 0);
+    CODA_ASSERT(error == 0);
 }
 
 void InitHostName() {
-  assert(gethostname(HostName, MAXHOSTNAMELEN) == 0);
+  CODA_ASSERT(gethostname(HostName, MAXHOSTNAMELEN) == 0);
   strcpy(ShortHostName, HostName);
   for (int i = 0; i < strlen(HostName); i++)
 	  if (ShortHostName[i] == '.')

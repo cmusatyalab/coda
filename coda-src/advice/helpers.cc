@@ -5,7 +5,7 @@ extern "C" {
 #include <stdio.h>
 #include <ctype.h>
 #include <sys/param.h>
-#include <assert.h>
+#include "coda_assert.h"
 #include <sys/types.h>
 #include <time.h>
 #include <stdlib.h>
@@ -57,7 +57,7 @@ char *GetCommandName(int pid) {
     else if (strcmp(commandname, "") == 0) 
 	snprintf(CommandName, MAXPATHLEN, "Unknown");
     else {
-	assert(strlen(commandname) < MAXPATHLEN);
+	CODA_ASSERT(strlen(commandname) < MAXPATHLEN);
 	snprintf(CommandName, MAXPATHLEN, "%s", commandname);
     }
     return(CommandName);
@@ -111,7 +111,7 @@ char *GetStringFromTimeDiff(long time_difference) {
 char *GetTimeFromLong(long the_time) {
   static char the_string[smallStringLength];
   struct tm *lt = localtime((long *)&the_time);
-  assert(lt != NULL);
+  CODA_ASSERT(lt != NULL);
   snprintf(the_string, smallStringLength, "%02d:%02d:%02d", lt->tm_hour, lt->tm_min, lt->tm_sec);
   return(the_string);
 }
@@ -119,7 +119,7 @@ char *GetTimeFromLong(long the_time) {
 char *GetDateFromLong(long the_time) {
   static char the_string[smallStringLength];
   struct tm *lt = localtime((long *)&the_time);
-  assert(lt != NULL);
+  CODA_ASSERT(lt != NULL);
   snprintf(the_string, smallStringLength, "%02d/%02d/%02d", lt->tm_mon+1, lt->tm_mday, lt->tm_year);
   return(the_string);
 }
@@ -127,7 +127,7 @@ char *GetDateFromLong(long the_time) {
 char *TimeString(long the_time) {
   static char the_string[smallStringLength];
   struct tm *lt = localtime((long *)&the_time);
-  assert(lt != NULL);
+  CODA_ASSERT(lt != NULL);
   snprintf(the_string, smallStringLength, "%02d/%02d/%02d %02d:%02d:%02d", lt->tm_mon+1, lt->tm_mday, lt->tm_year, lt->tm_hour, lt->tm_min, lt->tm_sec);
   return(the_string);
 }

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/res/logalloc.cc,v 4.2 1997/12/20 23:34:33 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/res/logalloc.cc,v 4.3 1998/10/05 17:15:06 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -47,7 +47,7 @@ static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/res/lo
 extern "C" {
 #endif __cplusplus
 
-#include <assert.h>
+#include "coda_assert.h"
 #include <stdio.h>
 #include <string.h>
 
@@ -71,7 +71,7 @@ PMemMgr::PMemMgr(int cSize, int initsize, int vindex, int maxentries) {
     nEntriesDeallocated = 0;
     if(maxEntries > 0) {
 	baseAddr = (char *)malloc(cSize * maxEntries);
-	assert(baseAddr != 0);
+	CODA_ASSERT(baseAddr != 0);
 	bitmapSize = maxEntries >> 3;
 	bitmap = (unsigned char *)malloc(bitmapSize);
 	bzero(bitmap, bitmapSize);
@@ -95,7 +95,7 @@ PMemMgr::PMemMgr(int cSize, int vindex){
     nEntriesAllocated = 0;
     nEntriesDeallocated = 0;
     baseAddr = (char *)malloc(cSize * maxEntries);
-    assert(baseAddr != 0);
+    CODA_ASSERT(baseAddr != 0);
     bitmapSize = maxEntries >> 3;
     bitmap = (unsigned char *)malloc(bitmapSize);
     bzero(bitmap, bitmapSize);
@@ -121,7 +121,7 @@ void PMemMgr::GrowStorageArea() {
 					  * classSize);
     LogMsg(9, SrvDebugLevel, stdout,  "OldAddress is 0x%x and new address is 0x%x", 
 	    baseAddr, newbaseaddress);
-    assert(newbaseaddress != 0);
+    CODA_ASSERT(newbaseaddress != 0);
     if (baseAddr){
 	bcopy(baseAddr, newbaseaddress, (maxEntries * classSize));
 	free(baseAddr);
@@ -132,7 +132,7 @@ void PMemMgr::GrowStorageArea() {
     /* reset bitmap */
     int newbitmapSize = bitmapSize + (STORAGEGROWSIZE >> 3);
     unsigned char *newbitmap = (unsigned char *)malloc(newbitmapSize);
-    assert(newbitmap != 0);
+    CODA_ASSERT(newbitmap != 0);
     bzero(newbitmap, newbitmapSize);
     if (bitmap) {
 	bcopy(bitmap, newbitmap, bitmapSize);
@@ -159,7 +159,7 @@ int PMemMgr::GetFreeBitIndex() {
 		    break;
 		}
 	    }
-	    assert(j < 8);
+	    CODA_ASSERT(j < 8);
 	    return((offset << 3) + j);
 	}
     }
@@ -170,18 +170,18 @@ int PMemMgr::GetFreeBitIndex() {
 void PMemMgr::FreeBitIndex(int index){
     int offset = index >> 3;	/* the byte offset into bitmap */
     int bitoffset = index & 7;
-    assert(offset < bitmapSize);
+    CODA_ASSERT(offset < bitmapSize);
     /* make sure bit is set */
-    assert(bitmap[offset] & (1 << (7-bitoffset)));
+    CODA_ASSERT(bitmap[offset] & (1 << (7-bitoffset)));
     bitmap[offset] &= ~(1 << (7 - bitoffset));
 }
 
 void PMemMgr::SetBitIndex(int index){
     int offset = index >> 3;	/* the byte offset into bitmap */
     int bitoffset = index & 7;
-    assert(offset < bitmapSize);
+    CODA_ASSERT(offset < bitmapSize);
     /* make sure bit is set */
-    assert(~(bitmap[offset]) & (1 << (7-bitoffset)));
+    CODA_ASSERT(~(bitmap[offset]) & (1 << (7-bitoffset)));
     bitmap[offset] |= (1 << (7 - bitoffset));
 }
 /* find an unused log record - return -1 if cant find any */

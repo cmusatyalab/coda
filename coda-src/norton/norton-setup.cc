@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/norton/norton-setup.cc,v 4.5 1998/09/15 14:27:55 jaharkes Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/norton/norton-setup.cc,v 4.6 1998/10/01 22:21:42 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -93,7 +93,7 @@ void LoadRVM(char * log_dev, char * data_dev, rvm_offset_t data_len) {
     rvmptt->list.count = 0;
     rvmptt->list.size = 0;
     rvmlib_set_thread_data(rvmptt);
-    assert(rvmlib_thread_data() != 0);
+    CODA_ASSERT(rvmlib_thread_data() != 0);
 
     options = rvm_malloc_options();
     options->log_dev = log_dev;

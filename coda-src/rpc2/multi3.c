@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rpc2/multi3.c,v 4.4 1998/09/15 14:27:58 jaharkes Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rpc2/multi3.c,v 4.5 1998/09/29 16:38:04 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -136,7 +136,7 @@ struct MEntry *rpc2_AllocMgrp(host, portal, handle)
     register RPC2_Handle    mgrpid;
     register struct bucket  *bucket;
 
-    assert((host->Tag == RPC2_HOSTBYINETADDR && portal->Tag == RPC2_PORTALBYINETNUMBER) || (host->Tag == RPC2_DUMMYHOST && portal->Tag == RPC2_DUMMYPORTAL));
+    CODA_ASSERT((host->Tag == RPC2_HOSTBYINETADDR && portal->Tag == RPC2_PORTALBYINETNUMBER) || (host->Tag == RPC2_DUMMYHOST && portal->Tag == RPC2_DUMMYPORTAL));
     rpc2_AllocMgrps++;
     if (rpc2_MgrpFreeCount == 0)
 	rpc2_Replenish(&rpc2_MgrpFreeList, &rpc2_MgrpFreeCount, sizeof(struct MEntry), &rpc2_MgrpCreationCount, OBJ_MENTRY);
@@ -150,7 +150,7 @@ struct MEntry *rpc2_AllocMgrp(host, portal, handle)
     bucket = rpc2_GetBucket(host, portal, mgrpid);
 
     me = (struct MEntry *)rpc2_MoveEntry(&rpc2_MgrpFreeList, &bucket->chain, NULL, &rpc2_MgrpFreeCount, &bucket->count);
-    assert(me->MagicNumber == OBJ_MENTRY);
+    CODA_ASSERT(me->MagicNumber == OBJ_MENTRY);
     me->ClientHost = *host;	    /* structure assignment */
     me->ClientPortal = *portal;	    /* structure assignment */
     me->MgroupID = mgrpid;
@@ -168,18 +168,18 @@ void rpc2_FreeMgrp(me)
     register int	    i;
     register struct bucket  *bucket;
 
-    assert(me != NULL && !TestRole(me, FREE));
+    CODA_ASSERT(me != NULL && !TestRole(me, FREE));
     if (TestState(me, CLIENT, ~(C_THINK|C_HARDERROR)) ||
         TestState(me, SERVER, ~(S_AWAITREQUEST|S_REQINQUEUE|S_PROCESS|S_HARDERROR)))
 	say(9, RPC2_DebugLevel, "WARNING: freeing busy mgroup\n");
 
     if (TestRole(me, CLIENT))
 	{
-	assert(me->listeners != NULL && me->maxlisteners >= me->howmanylisteners);
+	CODA_ASSERT(me->listeners != NULL && me->maxlisteners >= me->howmanylisteners);
 	for (i = 0; i < me->howmanylisteners; i++)
 	    {
 	    ce = me->listeners[i];
-	    assert(ce->Mgrp == me);		    /* More sanity checks??? */
+	    CODA_ASSERT(ce->Mgrp == me);		    /* More sanity checks??? */
 	    ce->Mgrp = (struct MEntry *)NULL;
 	    }
 	free(me->listeners);
@@ -187,7 +187,7 @@ void rpc2_FreeMgrp(me)
     else    /* Role == SERVER */
 	{
 	    ce = me->conn;
-	    assert(ce->Mgrp == me);		    /* More sanity checks??? */
+	    CODA_ASSERT(ce->Mgrp == me);		    /* More sanity checks??? */
 	    ce->Mgrp = (struct MEntry *)NULL;
 	}
 
@@ -209,7 +209,7 @@ struct MEntry *rpc2_GetMgrp(host, portal, handle, role)
     register struct bucket  *bucket;
     register int	    i;
 
-    assert((host->Tag == RPC2_HOSTBYINETADDR && portal->Tag == RPC2_PORTALBYINETNUMBER) || (host->Tag == RPC2_DUMMYHOST && portal->Tag == RPC2_DUMMYPORTAL));
+    CODA_ASSERT((host->Tag == RPC2_HOSTBYINETADDR && portal->Tag == RPC2_PORTALBYINETNUMBER) || (host->Tag == RPC2_DUMMYHOST && portal->Tag == RPC2_DUMMYPORTAL));
     bucket = rpc2_GetBucket(host, portal, handle);
 
     for (me = bucket->chain, i = 0; i < bucket->count; me = me->Next, i++) {
@@ -219,7 +219,7 @@ struct MEntry *rpc2_GetMgrp(host, portal, handle, role)
 	    me->ClientPortal.Value.InetPortNumber == portal->Value.InetPortNumber &&
 	    me->MgroupID == handle && TestRole(me, role))
 	    {
-	    assert(me->MagicNumber == OBJ_MENTRY);
+	    CODA_ASSERT(me->MagicNumber == OBJ_MENTRY);
 	    return(me);
 	    }
     }
@@ -270,7 +270,7 @@ long RPC2_CreateMgrp(OUT MgroupHandle, IN MulticastHost, IN MulticastPortal, IN 
     /* Get an mgrp entry and initialize it. */
     /* XXXXXX NULL is bad type here */
     me = rpc2_AllocMgrp(&rpc2_LocalHost, &rpc2_LocalPortal, NULL);
-    assert(me != NULL);
+    CODA_ASSERT(me != NULL);
     *MgroupHandle = me->MgroupID;
 
     SetRole(me, CLIENT);
@@ -288,7 +288,7 @@ long RPC2_CreateMgrp(OUT MgroupHandle, IN MulticastHost, IN MulticastPortal, IN 
     }
 
     me->listeners = (struct CEntry **)malloc(LISTENERALLOCSIZE*sizeof(struct CEntry *));
-    assert(me->listeners != NULL);
+    CODA_ASSERT(me->listeners != NULL);
     bzero(me->listeners, LISTENERALLOCSIZE*sizeof(struct CEntry *));
     me->howmanylisteners = 0;
     me->maxlisteners = LISTENERALLOCSIZE;
@@ -308,7 +308,7 @@ long RPC2_CreateMgrp(OUT MgroupHandle, IN MulticastHost, IN MulticastPortal, IN 
 	    say(9, RPC2_DebugLevel, "MGRPBYNAME not supported\n");
 	    rpc2_Quit(RPC2_FAIL);
 
-	default:    assert(FALSE);
+	default:    CODA_ASSERT(FALSE);
 	}
 
     switch(MulticastPortal->Tag)
@@ -339,7 +339,7 @@ long RPC2_CreateMgrp(OUT MgroupHandle, IN MulticastHost, IN MulticastPortal, IN 
 	    me->IPMPortal.Tag = RPC2_PORTALBYINETNUMBER;
 	    break;
 
-	default:    assert(FALSE);
+	default:    CODA_ASSERT(FALSE);
 	}
 
     switch(Subsys->Tag)
@@ -350,7 +350,7 @@ long RPC2_CreateMgrp(OUT MgroupHandle, IN MulticastHost, IN MulticastPortal, IN 
 
 	case RPC2_SUBSYSBYNAME:
 		say(-1, RPC2_DebugLevel, "RPC2_SUBSYSBYNAME has been banned\n");
-	default:    assert(FALSE);
+	default:    CODA_ASSERT(FALSE);
 	}
 
     /* Obtain pointer to appropriate set of side effect routines */
@@ -423,7 +423,7 @@ long RPC2_AddToMgrp(IN MgroupHandle, IN ConnHandle)
 
 	ce = rpc2_GetConn(ConnHandle);
 	if (ce == NULL) rpc2_Quit(RPC2_NOCONNECTION);
-	assert(TestRole(ce, CLIENT));
+	CODA_ASSERT(TestRole(ce, CLIENT));
 	if (TestState(ce, CLIENT, C_HARDERROR)) rpc2_Quit(RPC2_FAIL);
 
 	if (TestState(ce, CLIENT, C_THINK))
@@ -441,7 +441,7 @@ say(0, RPC2_DebugLevel, "Enqueuing on connection 0x%lx\n",ConnHandle);
 	}
 
     /* Check that the connection's Portal Number and SubsysId match that of the mgrp. */
-    assert((me->IPMPortal.Tag == RPC2_PORTALBYINETNUMBER) && (ce->PeerPortal.Tag == RPC2_PORTALBYINETNUMBER));
+    CODA_ASSERT((me->IPMPortal.Tag == RPC2_PORTALBYINETNUMBER) && (ce->PeerPortal.Tag == RPC2_PORTALBYINETNUMBER));
     if (me->IPMPortal.Tag != ce->PeerPortal.Tag ||
         me->IPMPortal.Value.InetPortNumber != ce->PeerPortal.Value.InetPortNumber ||
         me->SubsysId != ce->SubsysId)
@@ -528,7 +528,7 @@ say(0, RPC2_DebugLevel, "Enqueuing on connection 0x%lx\n",ConnHandle);
 	    LWP_NoYieldSignal((char *)me);
 	    rpc2_Quit(rc);
 
-	default:	assert(FALSE);
+	default:	CODA_ASSERT(FALSE);
 	}
 
     rc = pb->Header.ReturnCode;
@@ -546,7 +546,7 @@ say(0, RPC2_DebugLevel, "Enqueuing on connection 0x%lx\n",ConnHandle);
     if (me->howmanylisteners == me->maxlisteners)
 	{
 	me->listeners = (struct CEntry **)realloc(me->listeners, (me->maxlisteners + LISTENERALLOCSIZE)*sizeof(struct CEntry *));
-	assert(me->listeners != NULL);
+	CODA_ASSERT(me->listeners != NULL);
 	bzero(me->listeners + me->maxlisteners, LISTENERALLOCSIZE*sizeof(struct CEntry *));
 	me->maxlisteners += LISTENERALLOCSIZE;
 	}
@@ -574,28 +574,28 @@ void rpc2_RemoveFromMgrp(me, ce)
     TR_REMOVEFROMMGRP();
 #endif RPC2DEBUG
 
-    assert(me != NULL && !TestRole(me, FREE));
+    CODA_ASSERT(me != NULL && !TestRole(me, FREE));
     if (TestState(me, CLIENT, ~(C_THINK|C_HARDERROR)) ||
         TestState(me, SERVER, ~(S_AWAITREQUEST|S_REQINQUEUE|S_PROCESS|S_HARDERROR)))
 	say(9, RPC2_DebugLevel, "WARNING: connection being removed from busy mgroup\n");
 
     /* Find and remove the connection. */
-    assert(ce != NULL && ce->Mgrp == me);
+    CODA_ASSERT(ce != NULL && ce->Mgrp == me);
     if (TestRole(me, SERVER))
 	{
-	assert(me->conn == ce);
+	CODA_ASSERT(me->conn == ce);
 	rpc2_DeleteMgrp(me);	/* connection will be removed in FreeMgrp() */
 	}
     else
 	{
 	for (i = 0; i < me->howmanylisteners; i++)
 	    {
-	    assert(me->listeners[i]->Mgrp == me);
+	    CODA_ASSERT(me->listeners[i]->Mgrp == me);
 	    if (me->listeners[i] == ce)	/* shuffle-up remaining entries */
 		{
 		for (; i < me->howmanylisteners	- 1; i++)   /* reuse i */
 		    {
-		    assert(me->listeners[i+1]->Mgrp == me);
+		    CODA_ASSERT(me->listeners[i+1]->Mgrp == me);
 		    me->listeners[i] = me->listeners[i+1];
 		    }
 		me->howmanylisteners--;
@@ -604,7 +604,7 @@ void rpc2_RemoveFromMgrp(me, ce)
 		}
 	    }
 	/* Didn't find connection in list; ce->Mgrp is a bogus pointer. */
-	assert(FALSE);
+	CODA_ASSERT(FALSE);
 	}
     }
 
@@ -638,7 +638,7 @@ long RPC2_RemoveFromMgrp(IN MgroupHandle, IN ConnHandle)
 
 	ce = rpc2_GetConn(ConnHandle);
 	if (ce == NULL) rpc2_Quit(RPC2_NOCONNECTION);
-	assert(TestRole(ce, CLIENT));
+	CODA_ASSERT(TestRole(ce, CLIENT));
 	if (TestState(ce, CLIENT, C_HARDERROR)) rpc2_Quit(RPC2_FAIL);
 
 	if (TestState(ce, CLIENT, C_THINK))
@@ -663,7 +663,7 @@ long RPC2_RemoveFromMgrp(IN MgroupHandle, IN ConnHandle)
 void rpc2_DeleteMgrp(me)
     register struct MEntry  *me;
     {
-    assert(me != NULL && !TestRole(me, FREE));
+    CODA_ASSERT(me != NULL && !TestRole(me, FREE));
     if (TestState(me, CLIENT, ~(C_THINK|C_HARDERROR)) ||
         TestState(me, SERVER, ~(S_AWAITREQUEST|S_REQINQUEUE|S_PROCESS|S_HARDERROR)))
 	say(9, RPC2_DebugLevel, "WARNING: deleting busy mgroup\n");
@@ -735,14 +735,14 @@ long SetupMulticast(MCast, meaddr, HowMany, ConnHandleList)
 	say(0, RPC2_DebugLevel, "Dequeueing on mgrp 0x%lx\n", MCast->Mgroup);
 	}
 
-    assert(me->listeners != NULL && me->maxlisteners >= me->howmanylisteners);
+    CODA_ASSERT(me->listeners != NULL && me->maxlisteners >= me->howmanylisteners);
     if (me->howmanylisteners == 0) return(RPC2_BADMGROUP);
     if (MCast->ExpandHandle)
 	{
 	if (me->howmanylisteners != HowMany) return(RPC2_BADMGROUP);
 	for (i = 0; i < me->howmanylisteners; i++)
 	    {
-	    assert(me->listeners[i]->Mgrp == me);
+	    CODA_ASSERT(me->listeners[i]->Mgrp == me);
 	    ConnHandleList[i] = me->listeners[i]->UniqueCID;
 	    }
 	}
@@ -869,13 +869,13 @@ bool XlateMcastPacket(pb, ThisHost, ThisPortal)
     if (h_Flags & RPC2_RETRY) return(TRUE);	/* pass the packet untranslated */
 
     /* Lookup the multicast connection handle. */
-    assert(h_RemoteHandle != 0);	/* would be a multicast Bind request! */
-    assert(h_LocalHandle == 0);	/* extra sanity check */
+    CODA_ASSERT(h_RemoteHandle != 0);	/* would be a multicast Bind request! */
+    CODA_ASSERT(h_LocalHandle == 0);	/* extra sanity check */
     me = rpc2_GetMgrp(ThisHost, ThisPortal, h_RemoteHandle, SERVER);
     if (me == NULL) {BOGUS(pb); return(FALSE);}
-    assert(TestRole(me, SERVER));	/* redundant check */
+    CODA_ASSERT(TestRole(me, SERVER));	/* redundant check */
     ce = me->conn;
-    assert(ce != NULL && TestRole(ce, SERVER) && ce->Mgrp == me);
+    CODA_ASSERT(ce != NULL && TestRole(ce, SERVER) && ce->Mgrp == me);
 
     /* Drop ANY multicast packet that is out of the ordinary. */
     /* I suspect that only the checks on the me state and the me sequence

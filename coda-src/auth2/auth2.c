@@ -355,7 +355,7 @@ static void InitRPC()
     RPC2_PortalIdent port;
     RPC2_SubsysIdent subsysid;
 
-    assert(LWP_Init(LWP_VERSION, LWP_MAX_PRIORITY-1, &mylpid) == LWP_SUCCESS);
+    CODA_ASSERT(LWP_Init(LWP_VERSION, LWP_MAX_PRIORITY-1, &mylpid) == LWP_SUCCESS);
 
     port.Tag = RPC2_PORTALBYNAME;
     strcpy(port.Value.Name, AUTH_SERVICE);
@@ -365,7 +365,7 @@ static void InitRPC()
     }
     subsysid.Tag = RPC2_SUBSYSBYID;
     subsysid.Value.SubsysId = AUTH_SUBSYSID;
-    assert(RPC2_Export(&subsysid) == RPC2_SUCCESS);
+    CODA_ASSERT(RPC2_Export(&subsysid) == RPC2_SUCCESS);
     }
 
 
@@ -381,9 +381,9 @@ static void InitAl()
     RPC2_Integer rc;
     struct stat buff;
 
-    assert(stat(PDB, &buff) == 0);
+    CODA_ASSERT(stat(PDB, &buff) == 0);
     AuthTime = buff.st_mtime;
-/*    assert(AL_Initialize(AL_VERSION, PDB, PCF) == 0); */
+/*    CODA_ASSERT(AL_Initialize(AL_VERSION, PDB, PCF) == 0); */
     if ((rc = AL_Initialize(AL_VERSION, PDB, PCF)) != 0) {
 	LogMsg(-1, 0, stdout, "AL_Initialize failed with %d", rc);
 	exit(-1);
@@ -484,7 +484,7 @@ long GetKeys(RPC2_Integer *AuthenticationType, RPC2_CountedBS *cIdent, RPC2_Encr
 void LogFailures(RPC2_Integer AuthenticationType, RPC2_CountedBS *cIdent, RPC2_Integer eType, RPC2_HostIdent *pHost, RPC2_PortalIdent *pPortal)
     {
     unsigned it;
-    assert(pHost->Tag == RPC2_HOSTBYINETADDR);
+    CODA_ASSERT(pHost->Tag == RPC2_HOSTBYINETADDR);
     it = pHost->Value.InetAddress;
     *(cIdent->SeqBody+cIdent->SeqLen-1) = 0;  /* just to make sure */
     LogMsg(-1, 0, stdout, "Authentication failed for \"%s\" from %d.%d.%d.%d",

@@ -9,7 +9,7 @@
 **        TIMEVAL     a time value; currently a struct timeval
 **                    might change with better machines.  Full precision.
 **
-** Macros: ASSERT     use instead of assert.h
+** Macros: CODA_ASSERT     use instead of CODA_ASSERT.h
 **         ALLOC      use instead of malloc for objects
 **         NALLOC     use instead of malloc for arrays
 **         FREE       use instead of free
@@ -67,7 +67,7 @@ typedef struct timeval TIMEVAL;
 
 #ifdef __STDC__
 
-#define ASSERT(cond) 						      \
+#define CODA_ASSERT(cond) 						      \
 do {                                                                  \
     if (!(cond)) {                                                    \
 	int *j = 0;                                                   \
@@ -80,7 +80,7 @@ do {                                                                  \
 
 #else /* __STDC__ */
 
-#define ASSERT(cond) 						      \
+#define CODA_ASSERT(cond) 						      \
 do {                                                                  \
     if (!(cond)) {                                                    \
 	int *j = 0;                                                   \
@@ -98,13 +98,13 @@ do {                                                                  \
 #define ALLOC(X,T)                                                \
 do {                                                              \
     if (((X) = (T *)malloc(sizeof(T))) == NULL)                   \
-	ASSERT(0);                                                \
+	CODA_ASSERT(0);                                                \
 } while (0)
 
 #define NALLOC(X,T,S)                                  \
 do {                                                   \
     if (((X) = (T *)malloc(sizeof(T)*(S))) == NULL) {  \
-	ASSERT(0);                                     \
+	CODA_ASSERT(0);                                     \
     }                                                  \
 } while (0)
 
@@ -125,7 +125,7 @@ do {                      \
 /* tve should be >= tvb. */
 #define TIMEDIFF(tvb,tve,tvr)                           \
 do {                                                    \
-    ASSERT(((tve).sec > (tvb).sec)                      \
+    CODA_ASSERT(((tve).sec > (tvb).sec)                      \
 	   || (((tve).sec == (tvb).sec)                 \
 	       && ((tve).usec > (tvb).usec)));          \
     if ((tve).usec < (tvb).usec) {                      \

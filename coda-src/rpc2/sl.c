@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rpc2/sl.c,v 4.4 1998/06/16 15:43:09 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rpc2/sl.c,v 4.5 1998/08/26 17:08:14 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -182,14 +182,14 @@ void rpc2_ProcessPackets()
 	pb = PullPacket();
 	if (pb == NULL) 
 		return;
-	assert(pb->Prefix.Qname == &rpc2_PBList);
+	CODA_ASSERT(pb->Prefix.Qname == &rpc2_PBList);
 
 	if (PoisonPacket(pb))  
 		return;
-	assert(pb->Prefix.Qname == &rpc2_PBList);
+	CODA_ASSERT(pb->Prefix.Qname == &rpc2_PBList);
 
 	if (ntohl(pb->Header.LocalHandle) == -1) {
-		assert(pb->Prefix.Qname == &rpc2_PBList);
+		CODA_ASSERT(pb->Prefix.Qname == &rpc2_PBList);
 		HandleSLPacket(pb);
 		return;
 	}
@@ -307,15 +307,15 @@ static RPC2_PacketBuffer *PullPacket()
 
 	RPC2_AllocBuffer(RPC2_MAXPACKETSIZE-sizeof(RPC2_PacketBuffer), &pb);
 	if ( !pb ) 
-		assert(0);
-	assert(pb->Prefix.Qname == &rpc2_PBList);
+		CODA_ASSERT(0);
+	CODA_ASSERT(pb->Prefix.Qname == &rpc2_PBList);
 	if (rpc2_RecvPacket(rpc2_RequestSocket, pb, 
 			    &rpc2_ThisHost, &rpc2_ThisPortal) < 0) {
 		say(9, RPC2_DebugLevel, "Recv error, ignoring.\n");
 		RPC2_FreeBuffer(&pb);
 		return(NULL);
 	}
-	assert(pb->Prefix.Qname == &rpc2_PBList);
+	CODA_ASSERT(pb->Prefix.Qname == &rpc2_PBList);
 
 #ifdef RPC2DEBUG
 	if (RPC2_DebugLevel > 9) {
@@ -383,7 +383,7 @@ static void HandleSLPacket(RPC2_PacketBuffer *pb)
 		if (TestState(ce, CLIENT, (C_AWAITREPLY|C_AWAITINIT2)))
 			HandleNak(pb, ce);
 		else {
-			assert(pb->Prefix.Qname == &rpc2_PBList);
+			CODA_ASSERT(pb->Prefix.Qname == &rpc2_PBList);
 			BOGUS(pb, "HandleSLPacket: state != AWAIT\n");
 		}
 		break;
@@ -646,7 +646,7 @@ bool rpc2_FilterMatch(whichF, whichP)
 
 	case OLDORNEW:	break;
 
-	default:    assert(FALSE);
+	default:    CODA_ASSERT(FALSE);
 	}
 	
     switch(whichF->FromWhom)
@@ -659,9 +659,9 @@ bool rpc2_FilterMatch(whichF, whichP)
 	case ONESUBSYS: if (whichF->ConnOrSubsys.SubsysId == whichP->Header.SubsysId) return(TRUE);
 			else return(FALSE);
 			
-	default:	assert(FALSE);
+	default:	CODA_ASSERT(FALSE);
 	}
-    assert(0);
+    CODA_ASSERT(0);
     return FALSE;
     /*NOTREACHED*/
     }
@@ -719,7 +719,7 @@ register struct CEntry *ce;
 
 	say(0, RPC2_DebugLevel, "HandleCurrentReply()\n");
 	rpc2_Recvd.Replies++;
-	/* should this assert ?? XXXX */
+	/* should this CODA_ASSERT ?? XXXX */
 	if (BogusSl(ce, pb)) 
 		return;
 	ce->reqsize += pb->Prefix.LengthOfPacket;
@@ -773,10 +773,10 @@ static void HandleNewRequest(RPC2_PacketBuffer *pb, struct CEntry *ce)
 	/* Look for a waiting recipient */
 	sl = FindRecipient(pb);
 	if (sl != NULL) {
-		assert(sl->MagicNumber == OBJ_SLENTRY);
+		CODA_ASSERT(sl->MagicNumber == OBJ_SLENTRY);
 		SetState(ce, S_PROCESS);
 		if (IsMulticast(pb)) {
-			assert(ce->Mgrp != NULL);
+			CODA_ASSERT(ce->Mgrp != NULL);
 			SetState(ce->Mgrp, S_PROCESS);
 		}
 		rpc2_DeactivateSle(sl, ARRIVED);
@@ -787,7 +787,7 @@ static void HandleNewRequest(RPC2_PacketBuffer *pb, struct CEntry *ce)
 		rpc2_HoldPacket(pb);
 		SetState(ce, S_REQINQUEUE);
 		if (IsMulticast(pb)) {
-			assert(ce->Mgrp != NULL);
+			CODA_ASSERT(ce->Mgrp != NULL);
 			SetState(ce->Mgrp, S_REQINQUEUE);
 		}
 	}
@@ -860,7 +860,7 @@ static void HandleInit1(RPC2_PacketBuffer *pb)
 	/* Find a willing LWP in RPC2_GetRequest() and tap him on the shoulder */
 	sl = FindRecipient(pb);
 	if (sl != NULL) {
-		assert(sl->MagicNumber == OBJ_SLENTRY);
+		CODA_ASSERT(sl->MagicNumber == OBJ_SLENTRY);
 		rpc2_DeactivateSle(sl, ARRIVED);
 		sl->Packet = pb;
 		LWP_NoYieldSignal((char *)sl);
@@ -1091,7 +1091,7 @@ static struct CEntry *MakeConn(struct RPC2_PacketBuffer *pb)
 		ce->EncryptionType = ntohl(ib1->FakeBody.EncryptionType);
 		break;
 		
-	default:  assert(FALSE);
+	default:  CODA_ASSERT(FALSE);
 	}
 	
 	SetRole(ce, SERVER);

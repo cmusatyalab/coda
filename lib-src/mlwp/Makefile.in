@@ -36,7 +36,7 @@
 # improvements or extensions that  they  make,  and  to  grant  Carnegie
 # Mellon the rights to redistribute these changes without encumbrance.
 #
-# static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/lib-src/mlwp/Makefile.in,v 4.6 1998/08/26 15:39:06 braam Exp $";
+# static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/lib-src/mlwp/Makefile.in,v 4.7 1998/09/29 16:39:03 braam Exp $";
 
 TOPDIR = @top_srcdir@
 
@@ -52,8 +52,8 @@ LIBRARIES = liboldlwp.a
 HEADERS   = lock.h lwp.h preempt.h timer.h cargs.h
 TESTS     = test rw  # tdb doesn't work yet
 
-OLD_LIBS = liboldlwp.a $(LIBCOMPAT) 
-NEW_LIBS = libnewlwp.a $(LIBCOMPAT)
+OLD_LIBS = liboldlwp.a $(LIBCOMPAT) $(LIBBASE)
+NEW_LIBS = libnewlwp.a $(LIBCOMPAT) $(LIBBASE)
 
 OFILES = lwp.o lock.o iomgr.o timer.o fasttime.o preempt.o process.o
 PRIVHFILES = lwp.private.h

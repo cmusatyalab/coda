@@ -33,7 +33,7 @@ should be returned to Software.Distribution@cs.cmu.edu.
 
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/rvm-src/seg/rvm_createseg.c,v 4.1 1997/01/08 21:54:45 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/rvm-src/seg/rvm_createseg.c,v 4.2 1998/08/26 15:40:17 braam Exp $";
 #endif _BLURB_
 
 #include <stdio.h>
@@ -66,7 +66,7 @@ rvm_create_segment(DevName, DevLength, options, nregions, regionDefs)
     if (overlap(nregions, regionDefs))
 	return RVM_ERANGE;
 
-    assert( nregions <= RVM_MAX_REGIONS );
+    CODA_ASSERT( nregions <= RVM_MAX_REGIONS );
 	
     /* Erase the old contents of the segment, including entries in the log */
 

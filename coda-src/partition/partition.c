@@ -81,7 +81,7 @@ void DP_Init(const char *tabfile)
     tabhandle = Partent_set(tabfile, "r");
     if ( !tabhandle ) {
 	eprint("No file vicetab file %s found.\n", tabfile);
-	assert(0);
+	CODA_ASSERT(0);
     }
 
     while ( (entry = Partent_get(tabhandle)) ) {
@@ -95,14 +95,14 @@ void DP_Init(const char *tabfile)
 	    eprint("Partition entry %s, %s has unknown type %s.\n",
 		   Partent_host(entry), Partent_dir(entry), 
 		   Partent_type(entry));
-	    assert(0);
+	    CODA_ASSERT(0);
 	}
 
 	if ( operations->init ) {
 	    rc = operations->init(&data, entry, &devno);
 	    if ( rc != 0 ) {
 		eprint("Partition entry %s, %s had initialization error.\n");
-		assert(0);
+		CODA_ASSERT(0);
 	    }
 	}
 
@@ -125,7 +125,7 @@ DP_InitPartition(Partent entry, struct inodeops *operations,
     dp = (struct DiskPartition *) malloc(sizeof (struct DiskPartition));
     if ( ! dp ) {
 	eprint("Out of memory\n");
-	assert(0);
+	CODA_ASSERT(0);
     }
     bzero(dp, sizeof(struct DiskPartition));
 
@@ -134,7 +134,7 @@ DP_InitPartition(Partent entry, struct inodeops *operations,
 	if ( pp->device == devno ) {
 	    eprint("Device %d requested by partition %s in use by %s!\n",
 		   devno, Partent_dir(entry), pp->name);
-	    assert(0);
+	    CODA_ASSERT(0);
 	}
 	if (!pp->next)
 	    break;
@@ -203,7 +203,7 @@ DP_SetUsage(register struct DiskPartition *dp)
     if ( rc != 0 ) {
 	eprint("Error in statfs of %s\n", dp->name);
 	SystemError("");
-	assert( 0 );
+	CODA_ASSERT( 0 );
     }
     
     reserved_blocks = fsbuf.f_bfree - fsbuf.f_bavail; /* reserved for s-user */
@@ -244,11 +244,11 @@ void
 DP_LockPartition(char *name)
 {
     register struct DiskPartition *dp = DP_Get(name);
-    assert(dp != NULL);
+    CODA_ASSERT(dp != NULL);
     if (dp->lock_fd == -1) {
 	dp->lock_fd = open(dp->name, O_RDONLY, 0);
-	assert(dp->lock_fd != -1);
-	assert (flock(dp->lock_fd, LOCK_EX) == 0);
+	CODA_ASSERT(dp->lock_fd != -1);
+	CODA_ASSERT (flock(dp->lock_fd, LOCK_EX) == 0);
     }
 }
 
@@ -256,7 +256,7 @@ void
 DP_UnlockPartition(char *name)
 {
     register struct DiskPartition *dp = DP_Get(name);
-    assert(dp != NULL);
+    CODA_ASSERT(dp != NULL);
     close(dp->lock_fd);
     dp->lock_fd = -1;
 }

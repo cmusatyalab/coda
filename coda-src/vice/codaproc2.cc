@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vice/codaproc2.cc,v 4.10 1998/10/07 20:29:54 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vice/codaproc2.cc,v 4.11 1998/10/21 22:05:54 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -376,7 +376,7 @@ long ViceOpenReintHandle(RPC2_Handle RPCid, ViceFid *Fid,
     RHandle->Inode = icreate((int) V_device(volptr), 0, (int) V_id(volptr), 
 		      (int) v->vptr->vnodeNumber, (int) v->vptr->disk.uniquifier, 
 		      (int) v->vptr->disk.dataVersion + 1);
-    assert(RHandle->Inode > 0);
+    CODA_ASSERT(RHandle->Inode > 0);
 
 FreeLocks:
     /* Put objects. */
@@ -436,7 +436,7 @@ long ViceQueryReintHandle(RPC2_Handle RPCid, VolumeId Vid,
     *Length = (RPC2_Unsigned) status.st_size;
 
  Exit:
-    if (fd != -1) assert(close(fd) == 0);
+    if (fd != -1) CODA_ASSERT(close(fd) == 0);
     SLog(0/*2*/, "ViceQueryReintHandle returns length %d, %s",
 	   status.st_size, ViceErrorMsg(errorCode));
 
@@ -512,7 +512,7 @@ long ViceSendReintFragment(RPC2_Handle RPCid, VolumeId Vid,
 	if (errorCode == RPC2_SEFAIL1) errorCode = EIO;
 
 	/* restore original state */
-	assert(ftruncate(fd, status.st_size) == 0);
+	CODA_ASSERT(ftruncate(fd, status.st_size) == 0);
 	goto Exit;
     }
 
@@ -524,12 +524,12 @@ long ViceSendReintFragment(RPC2_Handle RPCid, VolumeId Vid,
 	errorCode = EINVAL;
 
 	/* restore original state */
-	assert(ftruncate(fd, status.st_size) == 0);
+	CODA_ASSERT(ftruncate(fd, status.st_size) == 0);
 	goto Exit;
     }
 
  Exit:
-    if (fd != -1) assert(close(fd) == 0);
+    if (fd != -1) CODA_ASSERT(close(fd) == 0);
 
     SLog(0/*2*/, "ViceSendReintFragment returns %s", ViceErrorMsg(errorCode));
 
@@ -650,7 +650,7 @@ static int ValidateReintegrateParms(RPC2_Handle RPCid, VolumeId *Vid,
 
     /* Fetch over the client's reintegrate log, and read it into memory. */
     {
-	assert((rfile = new char[rlen]) != 0);
+	CODA_ASSERT((rfile = new char[rlen]) != 0);
 
 	SE_Descriptor sid;
 	sid.Tag = SMARTFTP;
@@ -898,7 +898,7 @@ static int ValidateReintegrateParms(RPC2_Handle RPCid, VolumeId *Vid,
 		    break;
 
 		default:
-		    assert(FALSE);
+		    CODA_ASSERT(FALSE);
 	    }
 
 	    /* Yield after every so many records. */
@@ -952,11 +952,11 @@ static int ValidateReintegrateParms(RPC2_Handle RPCid, VolumeId *Vid,
 	 * of only one new store record.  (The store record is sent
 	 * only by old Venii.)  Verify that is the case.  */
         {
-		assert(rlog->count() == 1);
+		CODA_ASSERT(rlog->count() == 1);
 		
 		rle *r;
 		r = (rle *)rlog->first();
-		assert(r->opcode == ViceNewStore_OP &&
+		CODA_ASSERT(r->opcode == ViceNewStore_OP &&
 		       (r->u.u_store.Request == StoreData || 
 			r->u.u_store.Request == StoreStatusData));
 	}
@@ -1057,7 +1057,7 @@ START_TIMING(Reintegrate_GetObjects);
 		    break;
 
 		default:
-		    assert(FALSE);
+		    CODA_ASSERT(FALSE);
 	    }
 
 	    /* Yield after every so many records. */
@@ -1221,7 +1221,7 @@ START_TIMING(Reintegrate_GetObjects);
 		    break;
 
 		default:
-		    assert(FALSE);
+		    CODA_ASSERT(FALSE);
 	    }
 
 	    /* Yield after every so many records. */
@@ -1327,7 +1327,7 @@ START_TIMING(Reintegrate_CheckSemanticsAndPerform);
 			pFid.Volume = v->fid.Volume;
 			pFid.Vnode = v->vptr->disk.vparent;
 			pFid.Unique = v->vptr->disk.uparent;
-			assert((a_v = FindVLE(*vlist, &pFid)) != 0);
+			CODA_ASSERT((a_v = FindVLE(*vlist, &pFid)) != 0);
 		    }
 		    int deltablocks = nBlocks(r->u.u_store.Length) - 
 		      nBlocks(v->vptr->disk.length);
@@ -1350,7 +1350,7 @@ START_TIMING(Reintegrate_CheckSemanticsAndPerform);
 			    }
 			    else {
 				/* Nth StoreData; discard previous inode. */
-				assert(idec(V_device(volptr), v->f_finode,
+				CODA_ASSERT(idec(V_device(volptr), v->f_finode,
 					    V_parentId(volptr)) == 0);
 			    }
 
@@ -1362,7 +1362,7 @@ START_TIMING(Reintegrate_CheckSemanticsAndPerform);
 						      v->vptr->vnodeNumber, v->vptr->disk.uniquifier,
 						      v->vptr->disk.dataVersion + 1);
 			    }
-			    assert(v->f_finode > 0);
+			    CODA_ASSERT(v->f_finode > 0);
 			    /* Bulk transfer is deferred until all ops have been checked/performed. */
 			    HandleWeakEquality(volptr, v->vptr, &r->u.u_store.Status.VV);
 			    PerformStore(client, VSGVolnum, volptr, v->vptr, v->f_finode,
@@ -1462,7 +1462,7 @@ START_TIMING(Reintegrate_CheckSemanticsAndPerform);
 
 			    /* Note occurrence of COW. */
 			    if (c_inode != 0) {
-				assert(v->f_sinode == 0);
+				CODA_ASSERT(v->f_sinode == 0);
 				v->f_sinode = c_inode;
 				v->f_finode = v->vptr->disk.inodeNumber;
 				truncp = 0;
@@ -1482,7 +1482,7 @@ START_TIMING(Reintegrate_CheckSemanticsAndPerform);
 
 			case StoreNeither:
 			default:
-			    assert(FALSE);
+			    CODA_ASSERT(FALSE);
 		    }
 		    if (errorCode = AdjustDiskUsage(volptr, deltablocks)) {
 			goto Exit;
@@ -1992,7 +1992,7 @@ START_TIMING(Reintegrate_CheckSemanticsAndPerform);
 			VNResLog *vnlog;
 			pdlist *pl = GetResLogList(child_v->vptr->disk.vol_index,
 						   child_v->fid.Vnode, child_v->fid.Unique, &vnlog);
-			assert(pl != NULL);
+			CODA_ASSERT(pl != NULL);
 			ViceStoreId *ghostSid =	&(Vnode_vv(child_v->vptr).StoreId); /* ??? -JJK */
 			parent_v->sl.append(new sle(InitVMLogRecord(V_volumeindex(volptr),
 								    &parent_v->fid, &r->sid,
@@ -2025,7 +2025,7 @@ START_TIMING(Reintegrate_CheckSemanticsAndPerform);
 			}
 		    }
 		    *blocks += tblocks;
-		    assert(child_v->vptr->delete_me);
+		    CODA_ASSERT(child_v->vptr->delete_me);
 		    int deltablocks = -nBlocks(child_v->vptr->disk.length);
 		    if (errorCode = AdjustDiskUsage(volptr, deltablocks))
 			goto Exit;
@@ -2059,14 +2059,14 @@ START_TIMING(Reintegrate_CheckSemanticsAndPerform);
 			parent_v->d_reintstale = 1;
 
 		    /* Perform. */
-		    assert(child_v->f_finode == 0);
+		    CODA_ASSERT(child_v->f_finode == 0);
 		    child_v->f_finode = icreate(V_device(volptr), 0, V_id(volptr),
 					       child_v->vptr->vnodeNumber,
 					       child_v->vptr->disk.uniquifier, 1);
-		    assert(child_v->f_finode > 0);
+		    CODA_ASSERT(child_v->f_finode > 0);
 		    int linklen = strlen((char *)r->u.u_symlink.OldName);
 
-		    assert(iwrite(V_device(volptr), child_v->f_finode, V_parentId(volptr), 0,
+		    CODA_ASSERT(iwrite(V_device(volptr), child_v->f_finode, V_parentId(volptr), 0,
 				  (char *)r->u.u_symlink.OldName, linklen) == linklen);
 		    HandleWeakEquality(volptr, parent_v->vptr, &r->u.u_symlink.DirStatus.VV);
 		    PerformSymlink(client, VSGVolnum, volptr, parent_v->vptr,
@@ -2110,7 +2110,7 @@ START_TIMING(Reintegrate_CheckSemanticsAndPerform);
 		    break;
 
 		default:
-		    assert(FALSE);
+		    CODA_ASSERT(FALSE);
 	    }
 
 	    /* Yield after every so many records. */
@@ -2199,7 +2199,7 @@ START_TIMING(Reintegrate_CheckSemanticsAndPerform);
 		    break;
 
 		default:
-		    assert(FALSE);
+		    CODA_ASSERT(FALSE);
 	    }
 	}
     }
@@ -2288,7 +2288,7 @@ START_TIMING(Reintegrate_PutObjects);
     /* Release the objects. */
     if (volptr) {
 	Volume *tvolptr = 0;
-	assert(GetVolObj(V_id(volptr), &tvolptr, VOL_NO_LOCK) == 0);
+	CODA_ASSERT(GetVolObj(V_id(volptr), &tvolptr, VOL_NO_LOCK) == 0);
 	PutObjects(errorCode, tvolptr, VOL_NO_LOCK, vlist, blocks, 1);
 
 	/* save the sid of the last successfully reintegrated record */
@@ -2344,7 +2344,7 @@ static int AllocReintegrateVnode(Volume **volptr, dlist *vlist,
     /* Get volptr. */
     /* We assume that volume has already been locked in exclusive mode! */
     if (*volptr == 0)
-	assert(GetVolObj(pFid->Volume, volptr, VOL_NO_LOCK, 0, 0) == 0);
+	CODA_ASSERT(GetVolObj(pFid->Volume, volptr, VOL_NO_LOCK, 0, 0) == 0);
 
     /* Allocate/Retrieve the vnode. */
     if (errorCode = AllocVnode(&vptr, *volptr, Type, cFid,
@@ -2352,9 +2352,9 @@ static int AllocReintegrateVnode(Volume **volptr, dlist *vlist,
 	goto Exit;
 
     /* Create a new vle for this vnode and add it to the vlist. */
-    /*    assert(FindVLE(*vlist, cFid) == 0);*/
+    /*    CODA_ASSERT(FindVLE(*vlist, cFid) == 0);*/
     vle *v; v = AddVLE(*vlist, cFid);
-    assert(v->vptr == 0);
+    CODA_ASSERT(v->vptr == 0);
     v->vptr = vptr;
     if ( ISDIR(*cFid) )
 	    v->d_inodemod = 1;
@@ -2362,7 +2362,7 @@ static int AllocReintegrateVnode(Volume **volptr, dlist *vlist,
 Exit:
     /* Sanity check. */
     if (errorCode)
-	assert(vptr == 0);
+	CODA_ASSERT(vptr == 0);
 
     SLog(2,  "AllocReintegrateVnode returns %s", ViceErrorMsg(errorCode));
     return(errorCode);
@@ -2382,7 +2382,7 @@ int AddChild(Volume **volptr, dlist *vlist, ViceFid *Did,
     /* Get volptr. */
     /* We assume that volume has already been locked in exclusive mode! */
     if (*volptr == 0)
-	assert(GetVolObj(Did->Volume, volptr, VOL_NO_LOCK, 0, 0) == 0);
+	CODA_ASSERT(GetVolObj(Did->Volume, volptr, VOL_NO_LOCK, 0, 0) == 0);
 
     /* Parent must NOT have just been alloc'ed, else this will deadlock! */
     /* Notice that the vlist->d_inodemod field must be 1 or we lose 
@@ -2414,7 +2414,7 @@ Exit:
 	Error fileCode = 0;
 	VN_PutDirHandle(vptr);
 	VPutVnode(&fileCode, vptr);
-	assert(fileCode == 0);
+	CODA_ASSERT(fileCode == 0);
     }
 
     SLog(2,  "AddChild returns %s", ViceErrorMsg(errorCode));
@@ -2449,7 +2449,7 @@ static int AddParent(Volume **volptr, dlist *vlist, ViceFid *Fid) {
     /* Get volptr. */
     /* We assume that volume has already been locked in exclusive mode! */
     if (*volptr == 0)
-	assert(GetVolObj(Fid->Volume, volptr, VOL_NO_LOCK, 0, 0) == 0);
+	CODA_ASSERT(GetVolObj(Fid->Volume, volptr, VOL_NO_LOCK, 0, 0) == 0);
 
     /* Child must NOT have just been alloc'ed, else this will deadlock! */
     if (errorCode = GetFsObj(Fid, volptr, &vptr, READ_LOCK, 
@@ -2467,7 +2467,7 @@ Exit:
     if (vptr) {
 	Error fileCode = 0;
 	VPutVnode(&fileCode, vptr);
-	assert(fileCode == 0);
+	CODA_ASSERT(fileCode == 0);
     }
 
     SLog(2,  "AddParent returns %s", ViceErrorMsg(errorCode));
@@ -2480,7 +2480,7 @@ Exit:
 static int ReintNormalVCmp(int ReplicatedOp, VnodeType type, 
 			   void *arg1, void *arg2) 
 {
-    assert(ReplicatedOp == 1);
+    CODA_ASSERT(ReplicatedOp == 1);
 
     switch(type) {
 	case vDirectory:
@@ -2498,7 +2498,7 @@ static int ReintNormalVCmp(int ReplicatedOp, VnodeType type,
 
 	case vNull:
 	default:
-	    assert(0);
+	    CODA_ASSERT(0);
     }
 }
 
@@ -2507,7 +2507,7 @@ static int ReintNormalVCmp(int ReplicatedOp, VnodeType type,
 static int ReintNormalVCmpNoRes(int ReplicatedOp, VnodeType type, 
 				void *arg1, void *arg2) 
 {
-	assert(ReplicatedOp == 1);
+	CODA_ASSERT(ReplicatedOp == 1);
 	ViceVersionVector *vva = (ViceVersionVector *)arg1;
 	ViceVersionVector *vvb = (ViceVersionVector *)arg2;
 
@@ -2524,7 +2524,7 @@ static void ReintPrelimCOP(vle *v, ViceStoreId *OldSid,
 	   stamped with unique Sid at end! */
 
 	if (!SID_EQ(Vnode_vv(v->vptr).StoreId, *OldSid)) {
-		assert(v->vptr->disk.type == vDirectory && AllowResolution && 
+		CODA_ASSERT(v->vptr->disk.type == vDirectory && AllowResolution && 
 		       (V_VMResOn(volptr) || V_RVMResOn(volptr)));
 		v->d_needsres = 1;
 	}
@@ -2538,7 +2538,7 @@ static void ReintFinalCOP(vle *v, Volume *volptr, RPC2_Integer *VS)
 	ViceStoreId *FinalSid;
 	ViceStoreId UniqueSid;
 	if (v->vptr->disk.type == vDirectory && v->d_needsres) {
-		assert(AllowResolution && 
+		CODA_ASSERT(AllowResolution && 
 		       (V_VMResOn(volptr) || V_RVMResOn(volptr)));
 		AllocStoreId(&UniqueSid);
 		FinalSid = &UniqueSid;
@@ -2558,13 +2558,13 @@ static void ReintFinalCOP(vle *v, Volume *volptr, RPC2_Integer *VS)
 	   works correctly. 
 	*/
 	if (v->vptr->disk.type == vDirectory && v->d_needsres) {
-		assert(AllowResolution && 
+		CODA_ASSERT(AllowResolution && 
 		       (V_VMResOn(volptr) || V_RVMResOn(volptr)));
 		if (V_VMResOn(volptr))
 			v->sl.append(new sle(InitVMLogRecord(V_volumeindex(volptr), &v->fid,
 							     FinalSid, ResolveNULL_OP, 0)));
 		if (V_RVMResOn(volptr))
-			assert(SpoolVMLogRecord(v, volptr, FinalSid, ResolveNULL_OP, 0) == 0);
+			CODA_ASSERT(SpoolVMLogRecord(v, volptr, FinalSid, ResolveNULL_OP, 0) == 0);
 	}
 	else {
 		AddPairToCopPendingTable(FinalSid, &v->fid);

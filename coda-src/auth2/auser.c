@@ -258,7 +258,7 @@ void U_InitRPC()
     int rc;
 
 
-    assert(LWP_Init(LWP_VERSION, LWP_MAX_PRIORITY-1, &mylpid) == LWP_SUCCESS);
+    CODA_ASSERT(LWP_Init(LWP_VERSION, LWP_MAX_PRIORITY-1, &mylpid) == LWP_SUCCESS);
 
     rc = RPC2_Init(RPC2_VERSION, 0, NULL, -1, NULL);
     if ( rc != RPC2_SUCCESS ) {

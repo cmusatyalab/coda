@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/volutil/vol-restore.cc,v 4.10 1998/10/29 15:29:04 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/volutil/vol-restore.cc,v 4.11 1998/10/30 18:30:02 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -141,7 +141,7 @@ long S_VolRestore(RPC2_Handle rpcid, RPC2_String formal_partition, RPC2_String f
     VolumeId *volid = (VolumeId *)formal_volid;
     
     
-    assert(LWP_GetRock(FSTAG, (char **)&pt) == LWP_SUCCESS);
+    CODA_ASSERT(LWP_GetRock(FSTAG, (char **)&pt) == LWP_SUCCESS);
 
     VLog(9, "Entering S_VolRestore for %x--%s, partition %s", *volid, volname,
 	partition);
@@ -408,7 +408,7 @@ static void FreeVnodeIndex(Volume *vp, VnodeClass vclass)
 	RVMLIB_MODIFY(SRV_RVM(VolumeList[volindex]).data.nlargevnodes, 0);
 	RVMLIB_MODIFY(SRV_RVM(VolumeList[volindex]).data.nlargeLists, 0);
     } else 
-	assert(0);
+	CODA_ASSERT(0);
     /* now free the list */
     for (int i = 0; i < listsize; i++){
 	    rec_smolink *p;
@@ -423,7 +423,7 @@ static void FreeVnodeIndex(Volume *vp, VnodeClass vclass)
     rvmlib_rec_free(((char *)list));
 
     RVMLIB_END_TRANSACTION(flush, &status);
-    assert(status == 0);	/* Never aborts ... */
+    CODA_ASSERT(status == 0);	/* Never aborts ... */
 }
 
 static int ReadLargeVnodeIndex(DumpBuffer_t *buf, Volume *vp)
@@ -454,7 +454,7 @@ static int ReadLargeVnodeIndex(DumpBuffer_t *buf, Volume *vp)
 		return FALSE;
 	}
     }
-    assert(list_size > 0);
+    CODA_ASSERT(list_size > 0);
     PutTag(tag, buf);
 
     /* Set up a list structure. */
@@ -475,7 +475,7 @@ static int ReadLargeVnodeIndex(DumpBuffer_t *buf, Volume *vp)
     RVMLIB_MODIFY(SRV_RVM(VolumeList[volindex]).data.largeVnodeLists, rlist);
     
     RVMLIB_END_TRANSACTION(flush, &status)
-    assert(status == 0);			/* Never aborts... */
+    CODA_ASSERT(status == 0);			/* Never aborts... */
 
     VnodeDiskObject *camvdo;
     long tmp = 0, i = 0;
@@ -510,7 +510,7 @@ static int ReadLargeVnodeIndex(DumpBuffer_t *buf, Volume *vp)
 	    }
 	} while ((i++ < num_vnodes) && (i % VnodePollPeriod));
 	RVMLIB_END_TRANSACTION(flush, &status)
-	assert(status == 0);			/* Never aborts... */
+	CODA_ASSERT(status == 0);			/* Never aborts... */
 	VLog(9, "S_VolRestore: Did another series of Vnode restores.");
 	PollAndYield();
     }
@@ -570,7 +570,7 @@ static int ReadSmallVnodeIndex(DumpBuffer_t *buf, Volume *vp)
     RVMLIB_MODIFY(SRV_RVM(VolumeList[volindex]).data.smallVnodeLists, rlist);
 
     RVMLIB_END_TRANSACTION(flush, &status)
-    assert(status == 0);			/* Never aborts... */
+    CODA_ASSERT(status == 0);			/* Never aborts... */
     
     VnodeDiskObject *camvdo;
     long    tmp = 0, i = 0, count = 0;
@@ -671,7 +671,7 @@ static int ReadVnodeDiskObject(DumpBuffer_t *buf, VnodeDiskObject *vdop,
 	    ReadLong(buf, (unsigned long *)&vdop->uparent);
 	    break;
 	  case 'A':
-	    assert(vdop->type == vDirectory);
+	    CODA_ASSERT(vdop->type == vDirectory);
 	    ReadByteString(buf, (byte *)VVnodeDiskACL(vdop), VAclDiskSize(vdop));
 	    break;
 	}
@@ -686,7 +686,7 @@ static int ReadVnodeDiskObject(DumpBuffer_t *buf, VnodeDiskObject *vdop,
     
     if (vdop->type == vDirectory) {
 	int npages = 0;
-	assert(ReadTag(buf) == D_DIRPAGES);
+	CODA_ASSERT(ReadTag(buf) == D_DIRPAGES);
 	if (!ReadLong(buf, (unsigned long *)&npages) || 
 	    (npages > DIR_MAXPAGES)) {
 	    VLog(0, "Restore: Dir has to many pages for vnode %d", 

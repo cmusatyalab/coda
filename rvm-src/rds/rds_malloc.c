@@ -33,7 +33,7 @@ should be returned to Software.Distribution@cs.cmu.edu.
 
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/rvm-src/rds/rds_malloc.c,v 4.1 1997/01/08 21:54:27 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/rvm-src/rds/rds_malloc.c,v 4.2 1998/08/26 15:40:12 braam Exp $";
 #endif _BLURB_
 
 
@@ -122,10 +122,10 @@ rds_malloc(size, tid, err)
 	    LEAVE_CRITICAL_SECTION;
 	}
 
-	ASSERT(fbp->size == i);	/* Sanity check */
+	CODA_ASSERT(fbp->size == i);	/* Sanity check */
     
 	/* Check to see that the guards are valid and the type is free */
-	ASSERT((fbp->type == FREE_GUARD) && ((*BLOCK_END(fbp)) == END_GUARD));
+	CODA_ASSERT((fbp->type == FREE_GUARD) && ((*BLOCK_END(fbp)) == END_GUARD));
 		
 	/* Set the lowguard to reflect that the block has been allocated. */
 	rvmret = rvm_set_range(atid, fbp, sizeof(free_block_t));

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/res/reslog.cc,v 4.2 1997/02/26 16:02:52 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/res/reslog.cc,v 4.3 1998/08/31 12:23:21 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -53,7 +53,7 @@ extern "C" {
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <netinet/in.h>
-#include <assert.h>
+#include "coda_assert.h"
 #include <stdio.h>
 #include <struct.h>
 #include <stdarg.h>
@@ -157,7 +157,7 @@ void MakeLogNonEmpty(Vnode *vptr) {
 	loglist = AllocateVMResLogList(vptr->disk.vol_index, 
 				       vptr->vnodeNumber, 
 				       vptr->disk.uniquifier);
-	assert(loglist);
+	CODA_ASSERT(loglist);
 	
     }
     
@@ -266,7 +266,7 @@ void CreateAfterCrashLogRecord(Vnode *vptr, pdlist *list) {
     ind  = InitVMLogRecord(vptr->disk.vol_index, &Fid, 
 			   &Vnode_vv(vptr).StoreId, 
 			   ResolveAfterCrash_OP, 0/* dummy arg */);
-    assert(ind != -1);
+    CODA_ASSERT(ind != -1);
     rlent *rl = (rlent *)( LogStore[vptr->disk.vol_index]->IndexToAddr(ind));
     list->append(&(rl->link));
 }
@@ -492,10 +492,10 @@ int InitVMLogRecord(int volindex, ViceFid *fid, ViceStoreId *stid, int op ...) {
     int index;
     rlent *rl;
     index = LogStore[volindex]->NewMem();
-    assert(index != -1);
+    CODA_ASSERT(index != -1);
     rl = (rlent *)(LogStore[volindex]->IndexToAddr(index));
     LogMsg(49, SrvDebugLevel, stdout,  "InitVMLogRecord - from NewMem got address 0x%x", rl);
-    assert(rl != NULL);
+    CODA_ASSERT(rl != NULL);
     va_list ap;
     va_start(ap, op);
     
@@ -522,7 +522,7 @@ int AppendRVMLogRecord(Vnode *vptr, int index) {
     if (p == NULL)
 	/* log nonexistent - allocate a new log header */
 	p = AllocateVMResLogList(volindex, vid, u);
-    assert(p != NULL);
+    CODA_ASSERT(p != NULL);
     LogMsg(49, SrvDebugLevel, stdout,  "AppendRVMLogRecord: Going to append log at count = %d", p->count());
 
     logrec = (rlent *)(LogStore[volindex]->IndexToAddr(index));
@@ -654,10 +654,10 @@ VolumeId VolindexToVolid(int i) {
  */
 void ReadVolResLog(PMemMgr **p, int fd) {
     struct stat buf;
-    assert(fstat(fd, &buf) == 0);
+    CODA_ASSERT(fstat(fd, &buf) == 0);
     int nentries = (int) (buf.st_size/sizeof(rlent));
     *p = new PMemMgr((int) sizeof(rlent), nentries, -1, nentries);
-    assert(read(fd, (*p)->baseAddr, (int) (nentries * sizeof(rlent))) 
+    CODA_ASSERT(read(fd, (*p)->baseAddr, (int) (nentries * sizeof(rlent))) 
 	   == (nentries * sizeof(rlent)));	
     for (int i = 0; i < (*p)->bitmapSize ; i++) 
 	(*p)->bitmap[i] = 255;
@@ -739,7 +739,7 @@ int rlent::init(ViceFid *dirfid, ViceStoreId *vstid,
 	u.u_newstore.stType = va_arg(ap, unsigned int);
 	if (u.u_newstore.stType == ACLStore) {
 	    AL_AccessList *acl = va_arg(ap, AL_AccessList *);
-	    assert(acl->MySize <= SIZEOF_LARGEDISKVNODE - SIZEOF_SMALLDISKVNODE);
+	    CODA_ASSERT(acl->MySize <= SIZEOF_LARGEDISKVNODE - SIZEOF_SMALLDISKVNODE);
 
 /*	    FOR NOW NO ACL IS STORED TO CONSERVE SPACE IN THE LOG RECORD - 
 	    ONCE OPTIMIZED LOG RECORDS COME ABOUT WE WILL LOOK AT THIS

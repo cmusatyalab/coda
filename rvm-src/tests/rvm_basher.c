@@ -33,7 +33,7 @@ should be returned to Software.Distribution@cs.cmu.edu.
 
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/rvm-src/tests/rvm_basher.c,v 4.7 1998/03/06 20:21:56 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/rvm-src/tests/rvm_basher.c,v 4.8 1998/09/29 16:39:13 braam Exp $";
 #endif _BLURB_
 
 /*
@@ -108,11 +108,11 @@ extern long NRegionDefs;
 extern rvm_bool_t rds_testsw;                 /* special test mode switch */
 
 extern void clear_free_lists();
-/* ASSERT that preserves stack */
-#ifdef ASSERT
-#undef ASSERT
-#endif ASSERT
-#define ASSERT(ex) \
+/* CODA_ASSERT that preserves stack */
+#ifdef CODA_ASSERT
+#undef CODA_ASSERT
+#endif CODA_ASSERT
+#define CODA_ASSERT(ex) \
     { \
     if (!(ex)) \
         { \
@@ -319,29 +319,29 @@ list_entry_t *move_list_ent(fromptr, toptr, victim)
 
     if (fromptr != NULL)
         {
-        ASSERT(fromptr->is_header);
+        CODA_ASSERT(fromptr->is_header);
         if ((victim == NULL) && (fromptr->list.length == 0))
             return NULL;
         else
             {
             if (victim == NULL)         /* choose 1st if no victim */
                 victim = fromptr->nextentry;
-            ASSERT(!victim->is_header);
-            ASSERT(victim->list.name == fromptr);
+            CODA_ASSERT(!victim->is_header);
+            CODA_ASSERT(victim->list.name == fromptr);
             remque((void *)victim);             /* unlink from first list */
             fromptr->list.length --;
             }
         }
     else
         {
-        ASSERT(victim != NULL);
-        ASSERT(!victim->is_header);
-        ASSERT(toptr != NULL);
+        CODA_ASSERT(victim != NULL);
+        CODA_ASSERT(!victim->is_header);
+        CODA_ASSERT(toptr != NULL);
         }
 
     if (toptr != NULL)
         {
-        ASSERT(toptr->is_header);
+        CODA_ASSERT(toptr->is_header);
         victim->list.name = toptr;
         insque((void *)victim,(void *)toptr->preventry); /* insert at tail of second list */
         toptr->list.length ++;
@@ -425,7 +425,7 @@ rvm_bool_t test_chk_sum(block)
     if (chksum != block->chksum)
         {
         printf("\n?  Block checksum doesn't match\n");
-        ASSERT(rvm_false);
+        CODA_ASSERT(rvm_false);
         }
 
     return rvm_true;
@@ -474,7 +474,7 @@ void do_malloc(id)
             if (err == ENO_ROOM) return;
             printf("\n%d: rds_malloc = %d\n", id, err);
             }
-        ASSERT(rvm_false);
+        CODA_ASSERT(rvm_false);
 	}
 
     /* transactionally clear the allocated space */
@@ -484,14 +484,14 @@ void do_malloc(id)
         {
         printf("\n%d: ERROR: malloc begin_trans, code: %s\n",
                id,rvm_return(ret));
-        ASSERT(rvm_false);
+        CODA_ASSERT(rvm_false);
         }
     if ((ret=rvm_set_range(&tid,block->ptr,block->size))
         != RVM_SUCCESS)
         {
         printf("\n%d: ERROR: malloc set_range, code: %s\n",
                id,rvm_return(ret));
-        ASSERT(rvm_false);
+        CODA_ASSERT(rvm_false);
         }
     (void)bzero(block->ptr,block->size); /* blow away obsolete guards */
     block->chksum = 0;
@@ -500,7 +500,7 @@ void do_malloc(id)
         {
         printf("\n%d: ERROR: alloc end_trans, code: %s\n",
                id,rvm_return(ret));
-        ASSERT(rvm_false);
+        CODA_ASSERT(rvm_false);
             }
 
     /* put the block on the allocated list */
@@ -545,7 +545,7 @@ void do_free(id)
                    rvm_return((rvm_return_t)err));
         else
             printf("\n%d: rds_free = %d\n", id, err);
-        ASSERT(rvm_false);
+        CODA_ASSERT(rvm_false);
         }
 
     /* deallocate list entry */
@@ -568,7 +568,7 @@ void test_chk_range(tid,addr,len,id)
         {
         printf("\n%d: ERROR: modify chk_range, code: %s\n",
                id,rvm_return(ret));
-        ASSERT(rvm_false);
+        CODA_ASSERT(rvm_false);
         }
 
     /* modify range and re-test: should fail */
@@ -577,7 +577,7 @@ void test_chk_range(tid,addr,len,id)
         {
         printf("\n%d: ERROR: modify chk_range, code: %s\n",
                id,rvm_return(ret));
-        ASSERT(rvm_false);
+        CODA_ASSERT(rvm_false);
         }
 
     if ((ret = rvm_chk_range(tid,addr+1,len))
@@ -585,7 +585,7 @@ void test_chk_range(tid,addr,len,id)
         {
         printf("\n%d: ERROR: modify chk_range, code: %s\n",
                id,rvm_return(ret));
-        ASSERT(rvm_false);
+        CODA_ASSERT(rvm_false);
         }
 #endif VERSION_TEST
     }
@@ -613,7 +613,7 @@ void do_trans(block,range_list,do_flush,id)
         {
         do_abort = rvm_true;
         save_area = malloc(block->size);
-        ASSERT(save_area != NULL);
+        CODA_ASSERT(save_area != NULL);
         bcopy(block->ptr,save_area,block->size);
         start_mode = restore;
         }
@@ -628,14 +628,14 @@ void do_trans(block,range_list,do_flush,id)
         {
         printf("\n%d: ERROR: modify begin_trans, code: %s\n",
                id,rvm_return(ret));
-        ASSERT(rvm_false);
+        CODA_ASSERT(rvm_false);
         }
     /* pick random ranges and modifications */
     for (j=0; j<n_ranges; j++)
         {
         /* select a random range within the recoverable block */
         range = (block_t *)malloc(sizeof(block_t));
-        ASSERT(range != NULL);
+        CODA_ASSERT(range != NULL);
         init_list_ent(&range->links);
         start = random() % block->size;
         temp = finish = random() % block->size;
@@ -656,7 +656,7 @@ void do_trans(block,range_list,do_flush,id)
             {
             printf("\n%d: ERROR: modify set_range, code: %s\n",
                    id,rvm_return(ret));
-            ASSERT(rvm_false);
+            CODA_ASSERT(rvm_false);
             }
         /* see if range should be checked */
         if ((random() % 100) < chk_range_frac)
@@ -675,7 +675,7 @@ void do_trans(block,range_list,do_flush,id)
             {
             printf("\n%d: ERROR: modify abort_trans, code: %s\n",
                id,rvm_return(ret));
-            ASSERT(rvm_false);
+            CODA_ASSERT(rvm_false);
             }
 
         /* check restoration */
@@ -684,7 +684,7 @@ void do_trans(block,range_list,do_flush,id)
                 {
                 printf("\n%d: modified region improperly restored by abort\n",
                        id);
-                ASSERT(rvm_false);
+                CODA_ASSERT(rvm_false);
                 }
         free(save_area);
         }
@@ -695,7 +695,7 @@ void do_trans(block,range_list,do_flush,id)
             {
             printf("\n%d: ERROR: modify end_trans, code: %s\n",
                id,rvm_return(ret));
-            ASSERT(rvm_false);
+            CODA_ASSERT(rvm_false);
             }
         }
     }
@@ -733,7 +733,7 @@ void do_modify(id)
 
         /* insert marker between transactions */
         range = (block_t *)malloc(sizeof(block_t));
-        ASSERT(range != NULL);
+        CODA_ASSERT(range != NULL);
         init_list_ent(&range->links);
         range->size = n_trans+1;
         range->ptr = NULL;
@@ -767,7 +767,7 @@ rvm_bool_t chk_region(seg_file,region)
         {
         printf("\n? Can't seek to %d in segment file, ret = %d\n",
                reg_pos,io_ret);
-        ASSERT(rvm_false);
+        CODA_ASSERT(rvm_false);
         }
 
     /* scan and check loop */
@@ -780,7 +780,7 @@ rvm_bool_t chk_region(seg_file,region)
             {
             printf("\n? EOF encountered while reading segment; "
                    "offset = %d\n", reg_pos);
-            ASSERT(rvm_false);
+            CODA_ASSERT(rvm_false);
             }
 #if 0
 	/* CL */
@@ -795,7 +795,7 @@ rvm_bool_t chk_region(seg_file,region)
             printf("         region%d[%d] = 0x%x\n",region,j,
                    (c & 255));
             printf("         region offset = %d\n",reg_pos);
-            ASSERT(rvm_false);
+            CODA_ASSERT(rvm_false);
             return rvm_false;
             }
         reg_pos++;
@@ -821,19 +821,19 @@ rvm_bool_t chk_vm()
     if ((stats=rvm_malloc_statistics()) == NULL)
         {
         printf("\n?  rvm_malloc_statistics failed\n");
-        ASSERT(rvm_false);
+        CODA_ASSERT(rvm_false);
         }
 #if ((RVM_MAJOR_VERSION >= 2) && (RVM_MINOR_VERSION >= 0))
     if ((query=rvm_malloc_query()) == NULL)
         {
         printf("\n?  rvm_malloc_query failed\n");
-        ASSERT(rvm_false);
+        CODA_ASSERT(rvm_false);
         }
     if ((retval=RVM_QUERY(query,NULL)) != RVM_SUCCESS)
         {
         printf("\n?  rvm_query failed, code: %s\n",
                rvm_return(ret));
-        ASSERT(rvm_false);
+        CODA_ASSERT(rvm_false);
         }
 #endif VERSION_TEST
     printf("\nChecking segment consistency...\n");
@@ -854,7 +854,7 @@ rvm_bool_t chk_vm()
         {
         printf("\n?  rvm_truncate failed, code: %s\n",
                rvm_return(ret));
-        ASSERT(rvm_false);
+        CODA_ASSERT(rvm_false);
         }
 
     /* re-check vm heap if required */
@@ -870,14 +870,14 @@ rvm_bool_t chk_vm()
         {
         printf("\n?  rvm_statistics failed, code: %s\n",
                rvm_return(ret));
-        ASSERT(rvm_false);
+        CODA_ASSERT(rvm_false);
         }
 #if ((RVM_MAJOR_VERSION >= 2) && (RVM_MINOR_VERSION >= 0))
     if ((retval=RVM_QUERY(query,NULL)) != RVM_SUCCESS)
         {
         printf("\n?  rvm_query failed, code: %s\n",
                rvm_return(ret));
-        ASSERT(rvm_false);
+        CODA_ASSERT(rvm_false);
         }
 #endif VERSION_TEST
 
@@ -904,13 +904,13 @@ rvm_bool_t chk_vm()
         {
         printf("\n? Error opening segment file\n");
         printf("    errno = %d\n",errno);
-        ASSERT(rvm_false);
+        CODA_ASSERT(rvm_false);
         }
     /* check all mapped regions against segment file */
     for (i=0; i<NRegionDefs; i++)
         {
         if (!chk_region(seg_file,i))
-            ASSERT(rvm_false);
+            CODA_ASSERT(rvm_false);
         }
 
     /* all's well -- close file & release the other threads */
@@ -918,7 +918,7 @@ rvm_bool_t chk_vm()
         {
         printf("\n? Error closing segment file\n");
         printf("    ret = %d, errno = %d\n",ret,errno);
-        ASSERT(rvm_false);
+        CODA_ASSERT(rvm_false);
         }
     printf("  memory and segment agree!\n");
 
@@ -926,7 +926,7 @@ rvm_bool_t chk_vm()
     if (gettimeofday(&init_time,NULL) < 0)
         {
         perror("?  Error getting time of day");
-        ASSERT(rvm_false);
+        CODA_ASSERT(rvm_false);
         }
 
     rvm_free_statistics(stats);
@@ -988,7 +988,7 @@ rvm_bool_t chk_moby()
     if ((vm_save = malloc(length)) == NULL)
         {
         printf("? Error: can't allocate buffer for moby test\n");
-        ASSERT(rvm_false);
+        CODA_ASSERT(rvm_false);
         }
     (void)bcopy(start,vm_save,length);
 
@@ -999,13 +999,13 @@ rvm_bool_t chk_moby()
         {
         printf("? ERROR: chk_moby begin_trans 1, code: %s\n",
                rvm_return(ret));
-        ASSERT(rvm_false);
+        CODA_ASSERT(rvm_false);
         }
     if ((ret=rvm_set_range(&tid,start,length)) != RVM_SUCCESS)
         {
         printf("? ERROR: chk_moby set_range 1, code: %s\n",
                rvm_return(ret));
-        ASSERT(rvm_false);
+        CODA_ASSERT(rvm_false);
         }
     /* store random trash in test range & commit */
     for (i=0; i<length; i++)
@@ -1014,7 +1014,7 @@ rvm_bool_t chk_moby()
         {
         printf("? ERROR: chk_moby end_trans 1, code: %s\n",
                rvm_return(ret));
-        ASSERT(rvm_false);
+        CODA_ASSERT(rvm_false);
         }
 
     /* check the results and restore the test range contents */
@@ -1025,20 +1025,20 @@ rvm_bool_t chk_moby()
         {
         printf("? ERROR: chk_moby begin_trans 2, code: %s\n",
                rvm_return(ret));
-        ASSERT(rvm_false);
+        CODA_ASSERT(rvm_false);
         }
     if ((ret=rvm_set_range(&tid,start,length)) != RVM_SUCCESS)
         {
         printf("? ERROR: chk_moby set_range 2, code: %s\n",
                rvm_return(ret));
-        ASSERT(rvm_false);
+        CODA_ASSERT(rvm_false);
         }
     (void)bcopy(vm_save,start,length);
     if ((ret=rvm_end_transaction(&tid,flush)) != RVM_SUCCESS)
         {
         printf("? ERROR: chk_moby end_trans 2, code: %s\n",
                rvm_return(ret));
-        ASSERT(rvm_false);
+        CODA_ASSERT(rvm_false);
         }
 
     free(vm_save);
@@ -1606,7 +1606,7 @@ void show_break()
         {
         printf("\n? Error getting current break point\n");
         printf("    errno = %d\n",errno);
-        ASSERT(rvm_false);
+        CODA_ASSERT(rvm_false);
         }
 
     /* get system maximum */
@@ -1616,7 +1616,7 @@ void show_break()
         {
         printf("\n? Error getting data segment limit\n");
         printf("    errno = %d\n",errno);
-        ASSERT(rvm_false);
+        CODA_ASSERT(rvm_false);
         }
 
     /* print the limits */
@@ -1936,7 +1936,7 @@ static str_name_entry_t cmd_vec[MAX_CMDS] = /* command codes vector */
 #endif  RVM_USELWP
             continue;
 
-          default:  ASSERT(rvm_false);
+          default:  CODA_ASSERT(rvm_false);
             }
         /* check that all necessary parameters have been speced */
         if (strlen(LogFileName) == 0)
@@ -2006,7 +2006,7 @@ static str_name_entry_t cmd_vec[MAX_CMDS] = /* command codes vector */
                    rvm_return((rvm_return_t)err));
         else
             printf("rds_start_heap = %d\n", err);
-        ASSERT(rvm_false);
+        CODA_ASSERT(rvm_false);
         }
 
     /* preload alloc_list */
@@ -2020,7 +2020,7 @@ static str_name_entry_t cmd_vec[MAX_CMDS] = /* command codes vector */
             {
             printf("? rvm_truncate failed, code: %s\n",
                    rvm_return(ret));
-            ASSERT(rvm_false);
+            CODA_ASSERT(rvm_false);
             }
         }
 
@@ -2028,7 +2028,7 @@ static str_name_entry_t cmd_vec[MAX_CMDS] = /* command codes vector */
     if (gettimeofday(&init_time,NULL) < 0)
         {
         perror("?  Error getting time of day");
-        ASSERT(rvm_false);
+        CODA_ASSERT(rvm_false);
         }
     if (time_tests)
 /* temporary fix until linux get timeval.tv_sec defined to be long
@@ -2069,7 +2069,7 @@ static str_name_entry_t cmd_vec[MAX_CMDS] = /* command codes vector */
     if ((ret=rvm_terminate()) != RVM_SUCCESS)
         {
 	printf("? rvm_terminate failed, code: %s\n",rvm_return(ret));
-        ASSERT(rvm_false);
+        CODA_ASSERT(rvm_false);
         }
     exit(0);
     }

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/vproc_pioctl.cc,v 4.11 98/09/29 16:38:24 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/vproc_pioctl.cc,v 4.12 1998/09/29 21:04:51 jaharkes Exp $";
 #endif /*_BLURB_*/
 
 
@@ -1251,14 +1251,14 @@ V_FreeLocks:
 		case VIOC_REP_CMD:
 		    {
 			int rep_cmd;
-			ASSERT(sscanf((char *) data->in, "%d", &rep_cmd) == 1);
+			CODA_ASSERT(sscanf((char *) data->in, "%d", &rep_cmd) == 1);
 			switch (rep_cmd) {
 			case REP_CMD_BEGIN:
 			    {
 				/* begin a repair session */
 				int mode, dummy;
 				fsobj *obj = FSDB->Find(fid);
-				ASSERT(obj);
+				CODA_ASSERT(obj);
 				sscanf((char *) data->in, "%d %d", &dummy, &mode);
 				LRDB->BeginRepairSession(&obj->fid,
 							 mode ? REP_SCRATCH_MODE : REP_DIRECT_MODE, 
@@ -1277,7 +1277,7 @@ V_FreeLocks:
 				int commit, dummy;
 				ViceFid *squirrelFid;
 
-				ASSERT(LRDB);
+				CODA_ASSERT(LRDB);
 				squirrelFid = LRDB->RFM_LookupGlobalRoot(LRDB->repair_root_fid);
 
 				sscanf((char *) data->in, "%d %d", &dummy, &commit);

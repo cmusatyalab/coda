@@ -33,7 +33,7 @@ should be returned to Software.Distribution@cs.cmu.edu.
 
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/rvm-src/rvm/rvm_init.c,v 4.2 1997/11/04 22:03:58 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/rvm-src/rvm/rvm_init.c,v 4.3 1998/04/14 20:45:22 braam Exp $";
 #endif _BLURB_
 
 /*
@@ -90,7 +90,7 @@ rvm_return_t rvm_initialize(char *rvm_version, rvm_options_t *rvm_options)
     rvm_debug(0);                       /* only causes module loading */
     if (strcmp(rvm_version,RVM_VERSION) != 0)
         return RVM_EVERSION_SKEW;       /* version skew */
-    ASSERT(sizeof(rvm_length_t) == sizeof(char *));
+    CODA_ASSERT(sizeof(rvm_length_t) == sizeof(char *));
     if ((retval=bad_options(rvm_options,rvm_true)) != RVM_SUCCESS)
         return retval;                  /* bad options ptr or record */
 

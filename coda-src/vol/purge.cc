@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vol/purge.cc,v 4.3 1997/10/23 19:25:39 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vol/purge.cc,v 4.4 1998/08/26 21:22:26 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -67,7 +67,7 @@ extern "C" {
 #include <string.h>
 #include <unistd.h>
 #include <stdlib.h>
-#include <assert.h>
+#include "coda_assert.h"
 
 #include <lwp.h>
 #include <lock.h>
@@ -104,7 +104,7 @@ void VPurgeVolume(Volume *vp)
     Error ec;
     PurgeIndex(vp, vLarge);
     PurgeIndex(vp, vSmall);
-    assert(DeleteVolume(V_id(vp)) == 0);
+    CODA_ASSERT(DeleteVolume(V_id(vp)) == 0);
 
     /* The following is done in VDetachVolume - but that calls*/
     /* fsync stuff also which I dont understand yet */
@@ -147,7 +147,7 @@ void PurgeIndex(Volume *vp, VnodeClass vclass)
 	    
 	    if ((vdo->type != vNull) && (vdo->vnodeMagic != vcp->magic)){
 		LogMsg(0, VolDebugLevel, stdout, "PurgeIndex:VnodeMagic field incorrect for vnode %d",i);
-		assert(0);
+		CODA_ASSERT(0);
 	    }
 	    if (vdo->inodeNumber){
 		/* decrement the reference count by one */

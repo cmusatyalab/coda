@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/advice/miss.cc,v 4.2 97/02/26 16:02:28 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/advice/miss.cc,v 4.3 1997/12/16 15:54:51 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -41,7 +41,7 @@ extern "C" {
 #endif __cplusplus
 
 #include <stdlib.h>
-#include <assert.h> 
+#include "coda_assert.h" 
 #include <struct.h>
 #include <strings.h>
 #ifdef __MACH__
@@ -88,11 +88,11 @@ miss::miss(char *Path, char *Program) {
     strcpy(path, Path);
     strcpy(program, Program);
 
-    assert(current != NULL);
+    CODA_ASSERT(current != NULL);
     existing_entry = current->get(&queue_handle);
     if (existing_entry != NULL) {
         miss *existing_miss = strbase(miss, existing_entry, queue_handle);
-	assert(existing_miss != NULL);
+	CODA_ASSERT(existing_miss != NULL);
 	existing_miss->num_instances++;
 	delete this;
     } else {
@@ -111,7 +111,7 @@ miss::operator=(miss& m) {
 }
 
 miss::~miss() {
-    assert(current != NULL);
+    CODA_ASSERT(current != NULL);
     current->remove(&queue_handle);
     delete[] path;
     delete[] program;
@@ -135,7 +135,7 @@ void PrintMissList(char *filename) {
 
     while (b = next()) {
         miss *m = strbase(miss, b, queue_handle);
-	assert(m != NULL);
+	CODA_ASSERT(m != NULL);
 	m->print(outfile);
     }
 
@@ -155,14 +155,14 @@ int PathnamePriorityFN(bsnode *b1, bsnode *b2) {
     miss *m1; 
     miss *m2;
 
-    assert(b1 != NULL);
-    assert(b2 != NULL);
+    CODA_ASSERT(b1 != NULL);
+    CODA_ASSERT(b2 != NULL);
 
     m1 = strbase(miss, b1, queue_handle);
     m2 = strbase(miss, b2, queue_handle);
 
-    assert(m1 != NULL);
-    assert(m2 != NULL);
+    CODA_ASSERT(m1 != NULL);
+    CODA_ASSERT(m2 != NULL);
 
     pathcmp = strcmp(m1->path, m2->path);
     programcmp = strcmp(m1->program, m2->program);
@@ -180,7 +180,7 @@ void InitMissQueue() {
 }
 
 void ClearPreviousMissQueue() {
-    assert(previous != NULL);
+    CODA_ASSERT(previous != NULL);
     previous->clear();
     delete previous;
     previous = NULL;
@@ -189,19 +189,19 @@ void ClearPreviousMissQueue() {
 void ReinstatePreviousMissQueue() {
     int i, num;
 
-    assert(previous != NULL);
+    CODA_ASSERT(previous != NULL);
     num = previous->count();
     for (i = 0; i < num; i++){
 	bsnode *b = previous->get(BstGetMin);
-	assert(b != NULL);
+	CODA_ASSERT(b != NULL);
 	miss *m = strbase(miss, b, queue_handle);
-	assert(m != NULL);
-	assert(current != NULL);
+	CODA_ASSERT(m != NULL);
+	CODA_ASSERT(current != NULL);
 	current->insert(&(m->queue_handle));
     }
-    assert(previous != NULL);
+    CODA_ASSERT(previous != NULL);
     num = previous->count();
-    assert(num == 0);
+    CODA_ASSERT(num == 0);
 
     delete previous;
     previous = NULL;
@@ -210,7 +210,7 @@ void ReinstatePreviousMissQueue() {
 void OutputMissStatistics() {
 
     // First move current to previous and create a new current
-    assert(previous == NULL);
+    CODA_ASSERT(previous == NULL);
     previous = current;
     current = new bstree(PathnamePriorityFN);
 

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/volutil/vol-salvage.cc,v 4.21 1998/10/21 22:06:03 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/volutil/vol-salvage.cc,v 4.22 1998/10/29 15:29:05 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -189,7 +189,7 @@ long S_VolSalvage(RPC2_Handle rpcid, RPC2_String path,
     VLog(9, 
 	   "Entering S_VolSalvage (%d, %s, %x, %d, %d, %d)",
 	   rpcid, path, singleVolumeNumber, force, Debug, list);
-    assert(LWP_GetRock(FSTAG, (char **)&pt) == LWP_SUCCESS);
+    CODA_ASSERT(LWP_GetRock(FSTAG, (char **)&pt) == LWP_SUCCESS);
 
     zero_globals();
 
@@ -291,7 +291,7 @@ static int SalvageFileSys(char *path, VolumeId singleVolumeNumber)
     /* house keeping to deal with FORCESALVAGE */
     if ( (strlen(path) + strlen("/FORCESALVAGE")) >= MAXPATHLEN ) {
 	eprint("Fatal string operation detected.\n");
-	assert(0);
+	CODA_ASSERT(0);
     } else {
 	strcpy(forcepath, path);
 	strcat(forcepath, "/FORCESALVAGE");
@@ -335,7 +335,7 @@ static int SalvageFileSys(char *path, VolumeId singleVolumeNumber)
 
     /* open the summary file and unlink it for automatic cleanup */
     inodeFd = open(inodeListPath, O_RDONLY, 0);
-    assert(unlink(inodeListPath) != -1);
+    CODA_ASSERT(unlink(inodeListPath) != -1);
     if (inodeFd == -1) {
 	VLog(0, "Temporary file %s is missing...",
 		inodeListPath);
@@ -454,10 +454,10 @@ static int SalvageVolumeGroup(register struct VolumeSummary *vsp, int nVols)
     struct InodeSummary *isp = vsp->inSummary;
     size = isp->nInodes * sizeof(struct ViceInodeInfo);
     inodes = (struct ViceInodeInfo *)malloc(size);
-    assert(inodes != 0);
-    assert(lseek(inodeFd, isp->index*
+    CODA_ASSERT(inodes != 0);
+    CODA_ASSERT(lseek(inodeFd, isp->index*
 		 sizeof(struct ViceInodeInfo),L_SET) != -1);
-    assert(read(inodeFd,(char *)inodes,size) == size);
+    CODA_ASSERT(read(inodeFd,(char *)inodes,size) == size);
     
     for (int i = 0; i < nVols; i++){
 	VLog(9, "SalvageVolumeGroup: Going to salvage Volume 0x%#08x header",
@@ -585,23 +585,23 @@ static int VnodeInodeCheck(int RW, struct ViceInodeInfo *ip, int nInodes,
 	{
 	    if (vnode->inodeNumber == NEWVNODEINODE){
 		vnode->type = vNull;
-		assert(v_index.put(vnodeNumber, vnode->uniquifier, vnode) == 0);
+		CODA_ASSERT(v_index.put(vnodeNumber, vnode->uniquifier, vnode) == 0);
 		VolumeChanged = 1;
 		continue;
 	    }
 	    else if (vnode->inodeNumber == 0){
 		VLog(0, "SalvageIndex:  Vnode 0x%x has no inodeNumber", 
 		     vnodeNumber);
-		assert(RW);
-		assert(vnode->dataVersion == 0); // inodenumber == 0 only after create 
+		CODA_ASSERT(RW);
+		CODA_ASSERT(vnode->dataVersion == 0); // inodenumber == 0 only after create 
 		VLog(0, "SalvageIndex: Creating an empty object for it");
 		vnode->inodeNumber = icreate(fileSysDevice, 0,
 					     vsp->header.id, vnodeNumber,
 					     vnode->uniquifier, 0);
-		assert(vnode->inodeNumber > 0);
+		CODA_ASSERT(vnode->inodeNumber > 0);
 		if (vnode->cloned)
 		    vnode->cloned = 0;		// invoke COW - XXX added 9/30/92 Puneet Kumar
-		assert(v_index.put(vnodeNumber, vnode->uniquifier, vnode) == 0);
+		CODA_ASSERT(v_index.put(vnodeNumber, vnode->uniquifier, vnode) == 0);
 		VolumeChanged = 1;
 		continue;
 	    }
@@ -641,7 +641,7 @@ static int VnodeInodeCheck(int RW, struct ViceInodeInfo *ip, int nInodes,
 		    VLog(0, "SI: Vnode (0x%x.%x.%x) uniquifier(0x%x)/dataversion(%d) doesn't match with inode(0x%x/%d); marking BARREN",
 			vsp->header.id, vnodeNumber, vnode->uniquifier, vu, vd, iu, id);
 		    SetBarren(vnode->versionvector);
-		    assert(v_index.put(vnodeNumber,vnode->uniquifier,vnode) == 0);
+		    CODA_ASSERT(v_index.put(vnodeNumber,vnode->uniquifier,vnode) == 0);
 		    VolumeChanged = 1;
 		    continue;
 		}
@@ -651,7 +651,7 @@ static int VnodeInodeCheck(int RW, struct ViceInodeInfo *ip, int nInodes,
 		    vsp->header.id, vnodeNumber, vnode->uniquifier);
 		VLog(0, "Marking as BARREN ");
 		SetBarren(vnode->versionvector);
-		assert(v_index.put(vnodeNumber, vnode->uniquifier, vnode) == 0);
+		CODA_ASSERT(v_index.put(vnodeNumber, vnode->uniquifier, vnode) == 0);
 		VolumeChanged = 1;
 		continue;
 	    }
@@ -669,9 +669,9 @@ static int VnodeInodeCheck(int RW, struct ViceInodeInfo *ip, int nInodes,
 		vnode->inodeNumber = icreate(fileSysDevice, 0,
 					     vsp->header.parent, vnodeNumber,
 					     vnode->uniquifier, vnode->dataVersion);
-		assert(vnode->inodeNumber > 0);
+		CODA_ASSERT(vnode->inodeNumber > 0);
 		vnode->length = 0;
-		assert(v_index.put(vnodeNumber,vnode->uniquifier,vnode) == 0);
+		CODA_ASSERT(v_index.put(vnodeNumber,vnode->uniquifier,vnode) == 0);
 		VolumeChanged = 1;
 	    }
 	    else {
@@ -691,12 +691,12 @@ static int VnodeInodeCheck(int RW, struct ViceInodeInfo *ip, int nInodes,
 			vnode->inodeNumber = icreate(fileSysDevice, 0,
 						     vsp->header.parent, vnodeNumber,
 						     vnode->uniquifier, vnode->dataVersion);
-			assert(vnode->inodeNumber > 0);
+			CODA_ASSERT(vnode->inodeNumber > 0);
 			vnode->length = 0;
 			extern ViceVersionVector NullVV;
 			vnode->versionvector = NullVV;
 		    }
-		    assert(v_index.put(vnodeNumber, vnode->uniquifier, vnode) == 0);
+		    CODA_ASSERT(v_index.put(vnodeNumber, vnode->uniquifier, vnode) == 0);
 		    VolumeChanged = 1;
 		}
 		else {	// Barren vnode 
@@ -707,11 +707,11 @@ static int VnodeInodeCheck(int RW, struct ViceInodeInfo *ip, int nInodes,
 			vnode->inodeNumber = icreate(fileSysDevice, 0,
 						     vsp->header.parent, vnodeNumber,
 						     vnode->uniquifier, vnode->dataVersion);
-			assert(vnode->inodeNumber > 0);
+			CODA_ASSERT(vnode->inodeNumber > 0);
 			vnode->length = 0;
 			extern ViceVersionVector NullVV;
 			vnode->versionvector = NullVV;
-			assert(v_index.put(vnodeNumber,vnode->uniquifier,vnode) == 0);
+			CODA_ASSERT(v_index.put(vnodeNumber,vnode->uniquifier,vnode) == 0);
 			VolumeChanged = 1;
 		    }
 		}
@@ -720,8 +720,8 @@ static int VnodeInodeCheck(int RW, struct ViceInodeInfo *ip, int nInodes,
 	}
     }
 
-    assert(vnext(vnode) == -1);
-    assert(nVnodes == 0);
+    CODA_ASSERT(vnext(vnode) == -1);
+    CODA_ASSERT(nVnodes == 0);
     return 0;
 
 }
@@ -736,22 +736,22 @@ static void CleanInodes(struct InodeSummary *isp)
 
     size = isp->nInodes * sizeof(struct ViceInodeInfo);
     inodes = (struct ViceInodeInfo *)malloc(size);
-    assert(inodes != 0);
-    assert(lseek(inodeFd, isp->index * sizeof(struct ViceInodeInfo), 
+    CODA_ASSERT(inodes != 0);
+    CODA_ASSERT(lseek(inodeFd, isp->index * sizeof(struct ViceInodeInfo), 
 		  L_SET) != -1);
-    assert(read(inodeFd, (char *)inodes, size) == size);
+    CODA_ASSERT(read(inodeFd, (char *)inodes, size) == size);
     VLog(0, 
 	   "Inodes found from destroyed volumes: scavenging.");    
     for(int i = 0; i < isp->nInodes; i++) {
 	ViceInodeInfo *ip = &inodes[i];
-	assert(ip->LinkCount > 0);
+	CODA_ASSERT(ip->LinkCount > 0);
 	VLog(1, 
 	       "Scavenging inode %u, size %u, p=(%lx,%lx,%lx,%lx)",
 	       ip->InodeNumber, ip->ByteCount,
 	       ip->VolumeNo, ip->VnodeNumber, ip->VnodeUniquifier, 
 	       ip->InodeDataVersion);
 	while(ip->LinkCount > 0) {
-	    assert(idec(fileSysDevice, ip->InodeNumber, 
+	    CODA_ASSERT(idec(fileSysDevice, ip->InodeNumber, 
 			ip->VolumeNo) == 0);
 	    ip->LinkCount--;
 	}
@@ -814,14 +814,14 @@ static int JudgeEntry(struct DirEntry *de, void *data)
 	       dir->Vid, dir->vnodeNumber, dir->unique, name);
 		VLog(0, 
 	       "JE: child vnode not allocated or uniqfiers dont match; cannot happen");
-		assert(0);
+		CODA_ASSERT(0);
 	}
 	if (strcmp(name,".") == 0) {
 		if (dir->vnodeNumber != vnodeNumber || dir->unique != unique) {
 			SLog(0, "JE:directory vnode %#x.%x.%x: bad '.' entry (was 0x%x.%x); ",
 			     dir->Vid, dir->vnodeNumber, dir->unique, vnodeNumber, unique);
 			VLog(0, "JE: Bad '.' - cannot happen ");
-			assert(0);
+			CODA_ASSERT(0);
 		}
 		dir->haveDot = 1;
 	}  else if (strcmp(name,"..") == 0) {
@@ -831,9 +831,9 @@ static int JudgeEntry(struct DirEntry *de, void *data)
 			struct VnodeEssence *dotdot;
 			pa.Vnode = dir->vparent;
 			dotdot = CheckVnodeNumber(pa.Vnode, dir->uparent);
-			assert(dotdot != NULL); /* XXX Should not be assert */
+			CODA_ASSERT(dotdot != NULL); /* XXX Should not be assert */
 			pa.Unique = dotdot->unique;
-			assert(pa.Unique == dir->uparent);
+			CODA_ASSERT(pa.Unique == dir->uparent);
 		} else {
 			pa.Vnode = dir->vnodeNumber;
 			pa.Unique = dir->unique;
@@ -841,7 +841,7 @@ static int JudgeEntry(struct DirEntry *de, void *data)
 		if (pa.Vnode != vnodeNumber || pa.Unique != unique) {
 			SLog(0, "JE: directory vnode 0x%#08x.%x.%x: bad '..' entry (was 0x%x.%x); Shouldnt Happen ",
 			     dir->Vid, dir->vnodeNumber, dir->unique, vnodeNumber, unique);
-			assert(0);
+			CODA_ASSERT(0);
 		}
 		dir->haveDotDot = 1;
 	} else {
@@ -850,7 +850,7 @@ static int JudgeEntry(struct DirEntry *de, void *data)
 			SLog(0, "JE: parent = %#x.%x.%x ; child thinks parent is 0x%x.%x; Shouldnt Happen", 
 			     dir->Vid, dir->vnodeNumber, dir->unique, 
 			     vnodeEssence->vparent, vnodeEssence->uparent);
-			assert(0);
+			CODA_ASSERT(0);
 		}
 		vnodeEssence->claimed = 1;
 	}
@@ -870,9 +870,9 @@ static void MarkLogEntries(rec_dlist *loglist, VolumeSummary *vsp)
     VLog(9, "Entering MarkLogEntries....\n");
     if (!loglist) {
 	VLog(0, "MarkLogEntries: loglist was NULL ... Not good\n");
-	assert(0);
+	CODA_ASSERT(0);
     }
-    assert(vsp->logbm);
+    CODA_ASSERT(vsp->logbm);
     rec_dlist_iterator next(*loglist);
     recle *r;
     while (r = (recle *)next()) {
@@ -880,7 +880,7 @@ static void MarkLogEntries(rec_dlist *loglist, VolumeSummary *vsp)
 	    VLog(0, "MarkLogEntries: This index %d already set\n",
 		   r->index);
 	    r->print();
-	    assert(0);
+	    CODA_ASSERT(0);
 	}
 	else 
 	    vsp->logbm->SetIndex(r->index);
@@ -909,10 +909,10 @@ static void DistilVnodeEssence(VnodeClass vclass, VolumeId volid) {
 
     if (vip->nVnodes > 0) {
 	vip->vnodes = (struct VnodeEssence *)calloc(vip->nVnodes, sizeof(struct VnodeEssence));
-	assert(vip->vnodes != NULL);
+	CODA_ASSERT(vip->vnodes != NULL);
 	if (vclass == vLarge) {	    /* alloc space for directory entries */
 	    vip->inodes = (Inode *) calloc(vip->nVnodes, sizeof (Inode));
-	    assert(vip->inodes != NULL);
+	    CODA_ASSERT(vip->inodes != NULL);
 	}
 	else {
 	    vip->inodes = NULL;
@@ -940,10 +940,10 @@ static void DistilVnodeEssence(VnodeClass vclass, VolumeId volid) {
 	    vep->unique = vnode->uniquifier;
 	    vep->vid = bitNumberToVnodeNumber(vnodeIndex, vclass);
 	    if (vnode->type == vDirectory) {
-		assert(vclass == vLarge);
+		CODA_ASSERT(vclass == vLarge);
 		/* for directory vnodes inode can never be zero */
 		/* if the inode number is NEWVNODEINODE blow away vnode */
-		assert(vnode->inodeNumber != 0);
+		CODA_ASSERT(vnode->inodeNumber != 0);
 		if (vnode->inodeNumber == NEWVNODEINODE){
 		    /* delete the vnode */
 		    VLog(0, "DistilVnodeEssence: Found a Directory vnode %d that has a special inode ... deleting vnode ",
@@ -989,7 +989,7 @@ void DirCompletenessCheck(struct VolumeSummary *vsp)
 	    return;
     }
     
-    assert(volHeader.destroyMe != DESTROY_ME);
+    CODA_ASSERT(volHeader.destroyMe != DESTROY_ME);
     DistilVnodeEssence(vLarge, vid);
     DistilVnodeEssence(vSmall, vid);
 
@@ -1073,7 +1073,7 @@ void DirCompletenessCheck(struct VolumeSummary *vsp)
     
     if  ( doassert ) {
 	    VLog(0, "Salvage vol 0x%x: fatal error.", vid);
-	    assert(0);
+	    CODA_ASSERT(0);
     }
     /* clean up state */
     for (vclass = 0; vclass < nVNODECLASSES; vclass++) {
@@ -1121,7 +1121,7 @@ static void ClearROInUseBit(struct VolumeSummary *summary)
     VLog(9, "Entering ClearROInUseBit()");
 
     ExtractVolDiskInfo(&ec, summary->volindex, &volHeader);
-    assert(ec == 0);
+    CODA_ASSERT(ec == 0);
 
     if (volHeader.destroyMe == DESTROY_ME)
 	return;
@@ -1132,7 +1132,7 @@ static void ClearROInUseBit(struct VolumeSummary *summary)
     volHeader.dontSalvage = DONT_SALVAGE;
 
     ReplaceVolDiskInfo(&ec, summary->volindex, &volHeader);
-    assert(ec == 0);
+    CODA_ASSERT(ec == 0);
 }
 
 /* "ask" the fileserver to take a volume offline */
@@ -1146,7 +1146,7 @@ static int AskOffline(VolumeId volumeId)
     /* Note:  we're depending upon file server to put the volumes online
        after salvaging */
     /* masquerade as fileserver for FSYNC_askfs call */
-    assert(LWP_GetRock(FSTAG, (char **)&pt) == LWP_SUCCESS);
+    CODA_ASSERT(LWP_GetRock(FSTAG, (char **)&pt) == LWP_SUCCESS);
     tmp = *pt;
     *pt = fileServer;
     rc = FSYNC_askfs(volumeId, FSYNC_OFF, FSYNC_SALVAGE);
@@ -1170,7 +1170,7 @@ static int AskOnline(VolumeId volumeId)
     /* Note:  we're depending upon file server to put the volumes online
        after salvaging */
     /* masquerade as fileserver for FSYNC_askfs call */
-    assert(LWP_GetRock(FSTAG, (char **)&pt) == LWP_SUCCESS);
+    CODA_ASSERT(LWP_GetRock(FSTAG, (char **)&pt) == LWP_SUCCESS);
     tmp = *pt;
     *pt = fileServer;
     rc = FSYNC_askfs(volumeId, FSYNC_ON, 0);
@@ -1191,11 +1191,11 @@ static int CopyInode(Device device, Inode inode1, Inode inode2)
 
     fd1 = iopen(device, inode1, O_RDONLY);
     fd2 = iopen(device, inode2, O_WRONLY);
-    assert(fd1 != -1);
-    assert(fd2 != -1);
+    CODA_ASSERT(fd1 != -1);
+    CODA_ASSERT(fd2 != -1);
     while ((n = read(fd1, buf, sizeof(buf))) > 0)
-	assert(write(fd2, buf, n) == n);
-    assert (n == 0);
+	CODA_ASSERT(write(fd2, buf, n) == n);
+    CODA_ASSERT (n == 0);
     close(fd1);
     close(fd2);
     return 0;
@@ -1210,11 +1210,11 @@ static void PrintInodeList() {
 
     VLog(9, "Entering PrintInodeList()");
 
-    assert(fstat(inodeFd, &status) == 0);
+    CODA_ASSERT(fstat(inodeFd, &status) == 0);
     buf = (struct ViceInodeInfo *) malloc(status.st_size);
-    assert(buf != NULL);
+    CODA_ASSERT(buf != NULL);
     nInodes = status.st_size / sizeof(struct ViceInodeInfo);
-    assert(read(inodeFd, (char *)buf, status.st_size) == status.st_size);
+    CODA_ASSERT(read(inodeFd, (char *)buf, status.st_size) == status.st_size);
     for(ip = buf; nInodes--; ip++) {
 	VLog(0, 
 	       "Inode:%u, linkCount=%d, size=%u, p=(%lx,%lx,%lx,%lx)",
@@ -1233,7 +1233,7 @@ static void release_locks(int volUtil) {
 	return;
     }
     fslock = open("/vice/vol/fs.lock", O_CREAT|O_RDWR, 0666);
-    assert(fslock >= 0);
+    CODA_ASSERT(fslock >= 0);
     if (flock(fslock, LOCK_UN) != 0) {
 	VLog(0, "release_locks: unable to release file server lock");
     }
@@ -1243,7 +1243,7 @@ static void release_locks(int volUtil) {
     close(fslock);
 
     fslock = open ("/vice/vol/volutil.lock", O_CREAT|O_RDWR, 0666);
-    assert(fslock >= 0);
+    CODA_ASSERT(fslock >= 0);
     if (flock(fslock, LOCK_UN) != 0) {
 	VLog(0, "release_locks: unable to release volume utility lock");
     }
@@ -1265,7 +1265,7 @@ static void GetSkipVolumeNumbers() {
     if (stat(DONTSALVVOLS, &s1) == 0){
 	/* file exists */
 	skipsalv = fopen(DONTSALVVOLS, "r");
-	assert(skipsalv != NULL);
+	CODA_ASSERT(skipsalv != NULL);
 	fscanf(skipsalv, "%d\n", &nskipvols);
 	skipvolnums = (VolumeId *)malloc(nskipvols * sizeof(VolumeId));
     { /* drop scope for int i below; to avoid identifier clash */
@@ -1305,7 +1305,7 @@ static void SanityCheckFreeLists() {
 	if (bcmp((const void *)SRV_RVM(SmallVnodeFreeList[i]), (const void *) zerovn,
 		 SIZEOF_SMALLDISKVNODE) != 0) {
 	    VLog(0,"Small Free Vnode at index %d not zero!", i);
-	    assert(0);
+	    CODA_ASSERT(0);
 	}
 	
 	for (j = i + 1; j < SRV_RVM(SmallVnodeIndex); j++)
@@ -1313,7 +1313,7 @@ static void SanityCheckFreeLists() {
 		SRV_RVM(SmallVnodeFreeList[j])) {
 		VLog(0, "Vdo 0x%x appears twice (%d and %d) in smallfreelist!",
 		       SRV_RVM(SmallVnodeFreeList[i]), i, j);
-		assert(0);
+		CODA_ASSERT(0);
 	    }
     }
     
@@ -1321,7 +1321,7 @@ static void SanityCheckFreeLists() {
 	if (bcmp((const void *)SRV_RVM(LargeVnodeFreeList[i]), (const void *) zerovn,
 		 SIZEOF_LARGEDISKVNODE) != 0) {
 	    VLog(0, "Large Free Vnode at index %d not zero!", i);
-	    assert(0);
+	    CODA_ASSERT(0);
 	}
 	
 	for (j = i + 1; j < SRV_RVM(LargeVnodeIndex); j++)
@@ -1329,7 +1329,7 @@ static void SanityCheckFreeLists() {
 		SRV_RVM(LargeVnodeFreeList[j])) {
 		VLog(0, "Vdo 0x%x appears twice (%d and %d) in largefreelist!",
 		       SRV_RVM(LargeVnodeFreeList[i]), i, j);
-		assert(0);
+		CODA_ASSERT(0);
 	    }		    
     }
 }
@@ -1363,7 +1363,7 @@ static int DestroyBadVolumes() {
 		return(VFAIL);
 	    }
 	    /* Remove the volume */
-	    assert(DeleteRvmVolume(i, status.st_dev) == 0);
+	    CODA_ASSERT(DeleteRvmVolume(i, status.st_dev) == 0);
 	}
     }
     return(0);
@@ -1386,11 +1386,11 @@ static void FixInodeLinkcount(struct ViceInodeInfo *inodes,
 
 	/* Delete any links that are still unaccounted for */
 	while (ip->LinkCount > 0) {
-	   assert(idec(fileSysDevice,ip->InodeNumber, ip->VolumeNo) == 0);
+	   CODA_ASSERT(idec(fileSysDevice,ip->InodeNumber, ip->VolumeNo) == 0);
 	   ip->LinkCount--;
 	}
 	while (ip->LinkCount < 0) {
-	   assert(iinc(fileSysDevice,ip->InodeNumber, ip->VolumeNo) == 0);
+	   CODA_ASSERT(iinc(fileSysDevice,ip->InodeNumber, ip->VolumeNo) == 0);
 	   ip->LinkCount++;
 	}
     }
@@ -1433,7 +1433,7 @@ static void CountVolumeInodes(register struct ViceInodeInfo *ip,
 	n++;
 	if (ip->VnodeNumber == INODESPECIAL) {
 	    VLog(0, "CountVolumeInodes: Bogus specialinode; can't happen");
-	    assert(0);
+	    CODA_ASSERT(0);
 	}
 	else {
 	    if (maxunique < ip->VnodeUniquifier)
@@ -1453,7 +1453,7 @@ int OnlyOneVolume(struct ViceInodeInfo *inodeinfo,
 
     if (inodeinfo->VnodeNumber == INODESPECIAL) {
 	VLog(0, "OnlyOneVolume: tripped over INODESPECIAL- can't happen!");
-	assert(FALSE);
+	CODA_ASSERT(FALSE);
     }
     return (inodeinfo->VolumeNo == singleVolumeNumber);
 }
@@ -1466,7 +1466,7 @@ static int CompareInodes(struct ViceInodeInfo *p1, struct ViceInodeInfo *p2)
     if ( (p1->VnodeNumber == INODESPECIAL) ||
 	 (p2->VnodeNumber == INODESPECIAL)) {
 	VLog(0, "CompareInodes: found special inode! Aborting");
-	assert(0);
+	CODA_ASSERT(0);
 	return -1;
     }
     if ( (p1->VolumeNo) < (p2->VolumeNo))
@@ -1547,7 +1547,7 @@ static int GetInodeSummary(char *fspath, char *path, VolumeId singleVolumeNumber
     }
 
     summaryFile = fdopen(summaryFd,"w");
-    assert(summaryFile != NULL);
+    CODA_ASSERT(summaryFile != NULL);
     nInodes = status.st_size / sizeof(ViceInodeInfo);
 
     ip = tmp_ip = (struct ViceInodeInfo *) malloc(status.st_size);
@@ -1583,13 +1583,13 @@ static int GetInodeSummary(char *fspath, char *path, VolumeId singleVolumeNumber
     }
     fflush(summaryFile);	/* Not fclose, because debug would not work */
 
-    assert(fstat(summaryFd,&status) != -1);
+    CODA_ASSERT(fstat(summaryFd,&status) != -1);
     /* store inode info in global array */
     VLog(9, "about to malloc %d bytes for inodeSummary", status.st_size);
     inodeSummary = (struct InodeSummary *) malloc(status.st_size);
-    assert(inodeSummary != NULL);
-    assert(lseek(summaryFd, 0, L_SET) != -1);
-    assert(read(summaryFd, (char *)inodeSummary, status.st_size) == status.st_size);
+    CODA_ASSERT(inodeSummary != NULL);
+    CODA_ASSERT(lseek(summaryFd, 0, L_SET) != -1);
+    CODA_ASSERT(read(summaryFd, (char *)inodeSummary, status.st_size) == status.st_size);
     nVolumesInInodeFile = status.st_size / sizeof (struct InodeSummary);
     close(summaryFd);
     close(inodeFd);
@@ -1658,12 +1658,12 @@ static int GetVolumeSummary(VolumeId singleVolumeNumber) {
 	    continue; 	/* corresponds to purged volume */
 
 	/* Sanity checks */
-	assert(vsp->header.id == SRV_RVM(VolumeList[i]).data.volumeInfo->id);
-	assert(vsp->header.parent ==
+	CODA_ASSERT(vsp->header.id == SRV_RVM(VolumeList[i]).data.volumeInfo->id);
+	CODA_ASSERT(vsp->header.parent ==
 	       SRV_RVM(VolumeList[i]).data.volumeInfo->parentId);
 
 	for (int j = i+1; j < MAXVOLS; j++) 
-	    if (vsp->header.id == SRV_RVM(VolumeList[j]).header.id) assert(0);
+	    if (vsp->header.id == SRV_RVM(VolumeList[j]).header.id) CODA_ASSERT(0);
 	
 	/* reject volumes from other partitions */
 	VLog(39, 

@@ -33,7 +33,7 @@ should be returned to Software.Distribution@cs.cmu.edu.
 
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/rvm-src/seg/rvm_segment_private.h,v 4.1 1997/01/08 21:54:46 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/rvm-src/seg/rvm_segment_private.h,v 4.2 1998/08/26 15:40:18 braam Exp $";
 #endif _BLURB_
 
 
@@ -41,7 +41,7 @@ static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/rvm-src/seg/rvm
 
 #ifndef _RVM_SEGMENT_PRIVATE_H_
 #define _RVM_SEGMENT_PRIVATE_H_
-#include <assert.h>
+#include "coda_assert.h"
 /* Worker definitions */
 
 extern rvm_return_t allocate_vm();

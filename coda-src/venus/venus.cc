@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/venus.cc,v 4.15 1998/09/25 19:09:44 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/venus.cc,v 4.16 1998/10/21 22:05:52 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -127,6 +127,9 @@ int main(int argc, char **argv) {
     fprintf(stderr, "Coda Venus, version %d.%d (%d)\n\r",
 	    VenusMajorVersion, VenusMinorVersion, RecovVersionNumber);
     fflush(stderr);
+
+    coda_assert_action = CODA_ASSERT_SLEEP;
+    coda_assert_cleanup = WorkerCloseMuxfd;
 
     ParseCmdline(argc, argv);
     DefaultCmdlineParms();   /* read vstab */
@@ -543,7 +546,7 @@ extern "C" {
  */
 iopen(int dev, int inode_number, int flag)
 {
-    assert(0);
+    CODA_ASSERT(0);
 }
 
 #ifdef __cplusplus

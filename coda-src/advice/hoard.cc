@@ -17,7 +17,7 @@ int AddElement(char *pathname, int priority, char meta) {
   char fullname[MAXPATHLEN];
 
   /* Assure ourselves that the priority is within range */
-  assert((priority >= H_MIN_PRI) && (priority <= H_MAX_PRI));
+  CODA_ASSERT((priority >= H_MIN_PRI) && (priority <= H_MAX_PRI));
 
   /* Setup the meta-information */
   int attributes = H_DFLT_ATTRS;

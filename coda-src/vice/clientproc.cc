@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vice/clientproc.cc,v 4.11 1998/09/29 16:38:29 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vice/clientproc.cc,v 4.12 1998/10/21 22:05:53 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -129,7 +129,7 @@ int CLIENT_Build(RPC2_Handle RPCid, char *User, RPC2_Integer sl,
 
     /* Get a free client table entry and initialize it. */
     *client = (ClientEntry *)malloc(sizeof(ClientEntry));
-    assert(*client != 0);
+    CODA_ASSERT(*client != 0);
     (*client)->RPCid = RPCid;
     (*client)->NextClient = 0;
     (*client)->DoUnbind = 0;
@@ -214,9 +214,9 @@ static HostTable *client_GetVenusId(RPC2_Handle RPCid)
 	RPC2_PeerInfo peer;
 	int i;
 
-	assert(RPC2_GetPeerInfo(RPCid, &peer) == 0);
-	assert(peer.RemoteHost.Tag == RPC2_HOSTBYINETADDR);
-	assert(peer.RemotePortal.Tag == RPC2_PORTALBYINETNUMBER);
+	CODA_ASSERT(RPC2_GetPeerInfo(RPCid, &peer) == 0);
+	CODA_ASSERT(peer.RemoteHost.Tag == RPC2_HOSTBYINETADDR);
+	CODA_ASSERT(peer.RemotePortal.Tag == RPC2_PORTALBYINETNUMBER);
 
 	/* Look for a corresponding host entry. */
 	for (i = 0; i < maxHost; i++)
@@ -225,7 +225,7 @@ static HostTable *client_GetVenusId(RPC2_Handle RPCid)
 			break;
 	
 	/* Not found.  Make a new host entry. */
-	assert(maxHost < MAXHOSTTABLEENTRIES-1);
+	CODA_ASSERT(maxHost < MAXHOSTTABLEENTRIES-1);
 	if (i == maxHost) {
 		hostTable[i].host = (unsigned int) peer.RemoteHost.Value.InetAddress;
 		hostTable[i].port = peer.RemotePortal.Value.InetPortNumber;
@@ -270,9 +270,9 @@ int CLIENT_MakeCallBackConn(ClientEntry *Client)
     HostTable *HostEntry;
 
     /* Look up the Peer info corresponding to the given RPC handle. */
-    assert(RPC2_GetPeerInfo(Client->RPCid, &peer) == 0);
-    assert(peer.RemoteHost.Tag == RPC2_HOSTBYINETADDR);
-    assert(peer.RemotePortal.Tag == RPC2_PORTALBYINETNUMBER);
+    CODA_ASSERT(RPC2_GetPeerInfo(Client->RPCid, &peer) == 0);
+    CODA_ASSERT(peer.RemoteHost.Tag == RPC2_HOSTBYINETADDR);
+    CODA_ASSERT(peer.RemotePortal.Tag == RPC2_PORTALBYINETNUMBER);
 
     /* Subsystem identifier. */
     sid.Tag = RPC2_SUBSYSBYID;
@@ -288,7 +288,7 @@ int CLIENT_MakeCallBackConn(ClientEntry *Client)
     bp.ClientIdent = &cbs;
     bp.SharedSecret = NULL;
 
-    assert(Client);
+    CODA_ASSERT(Client);
     HostEntry = Client->VenusId;
     ObtainWriteLock(&HostEntry->lock);
 
@@ -418,10 +418,10 @@ static void client_SetUserName(ClientEntry *client)
 	if (AL_NameToId(name, (int *)&(client->Id)) != 0) {
 		if(!STREQ(client->UserName, "NEWCONNECT"))
 			SLog(0, "User id %s unknown", client->UserName);
-		assert(AL_NameToId("System:AnyUser", 
+		CODA_ASSERT(AL_NameToId("System:AnyUser", 
 				   (int *)&(client->Id)) == 0);
 	}
-	assert(AL_GetInternalCPS((int) client->Id, &(client->CPS)) == 0);
+	CODA_ASSERT(AL_GetInternalCPS((int) client->Id, &(client->CPS)) == 0);
 	
 }
 

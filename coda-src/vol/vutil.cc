@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vol/vutil.cc,v 4.6 1998/08/26 21:22:30 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vol/vutil.cc,v 4.7 1998/10/09 21:57:45 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -145,7 +145,7 @@ Volume *VCreateVolume(Error *ec, char *partition, VolumeId volumeId,
     if (AllowResolution && rvmlogsize) {
 	LogMsg(1, SrvDebugLevel, stdout, "Creating log for volume\n");
 	vol.log = new recov_vol_log(volumeId);
-	assert(vol.log);
+	CODA_ASSERT(vol.log);
 	vol.ResOn = RVMRES;
 	vol.maxlogentries = rvmlogsize;
     }

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/res/remotelog.cc,v 4.3 1998/01/10 18:37:43 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/res/remotelog.cc,v 4.4 1998/10/05 17:15:06 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -57,7 +57,7 @@ static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/res/re
 extern "C" {
 #endif __cplusplus
 
-#include <assert.h>
+#include "coda_assert.h"
 #include <stdio.h>
 #include <struct.h>
 
@@ -141,7 +141,7 @@ char *FlattenLocalRMTLElist(olist *llist, int *bufsize) {
     }
     
     char *buf = new char[size * sizeof(rlent)];
-    assert(buf);
+    CODA_ASSERT(buf);
 
     /* copy the res log entries into the buf */
     {
@@ -163,7 +163,7 @@ char *FlattenLocalRMTLElist(olist *llist, int *bufsize) {
 		i++;
 	    }
 	}
-	assert(i == size);
+	CODA_ASSERT(i == size);
     }
     *bufsize = (int) (size * sizeof(rlent));
     return(buf);
@@ -177,8 +177,8 @@ char *FlattenLocalRMTLElist(olist *llist, int *bufsize) {
 /* NOT BEING USED RIGHT NOW */
 olist *BuildRemoteRMTLElist(char *buf, int size) {
     int nentries = size / sizeof(rlent);
-    assert(buf != NULL);
-    assert(nentries > 0);
+    CODA_ASSERT(buf != NULL);
+    CODA_ASSERT(nentries > 0);
     
     olist *list = new olist();
     rlent *prevrl = 0;
@@ -229,7 +229,7 @@ void GetRmSubTreeLocalRMTLE(int volindex, VnodeId vn,
 	{
 	    tmpPlist = new pdlist(plist->offset, plist->storageMgr, 
 				  plist->cnt, plist->head);
-	    assert(tmpPlist);
+	    CODA_ASSERT(tmpPlist);
 	    AddLocalRMTLE(list, vn, un, tmpPlist);
 	}
     }
@@ -274,7 +274,7 @@ void GetRmSubTreeLocalRMTLE(int volindex, VnodeId vn,
     /* add log to list */
     {
 	tmpPlist = new pdlist(offset, stmgr, count, head);
-	assert(tmpPlist);
+	CODA_ASSERT(tmpPlist);
 	AddLocalRMTLE(list, vn, un, tmpPlist);
     }
 

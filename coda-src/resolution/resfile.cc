@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rvmres/resfile.cc,v 4.6 1998/08/31 12:23:25 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rvmres/resfile.cc,v 4.7 1998/10/21 22:05:50 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -48,7 +48,7 @@ extern "C" {
 
 #include <sys/types.h>
 #include <sys/stat.h>
-#include <assert.h>
+#include "coda_assert.h"
 #include <stdio.h>
 
 #ifdef __MACH__
@@ -126,7 +126,7 @@ long FileResolve(res_mgrpent *mgrp, ViceFid *Fid,
 	frstats.file_we++;
     }
     else if (IncVVGroup(VV, &dix)){
-	assert(dix != -1);
+	CODA_ASSERT(dix != -1);
 	errorcode = EINCONS;
     }
     else {				/* regular file resolution */
@@ -175,7 +175,7 @@ long FileResolve(res_mgrpent *mgrp, ViceFid *Fid,
 					  mgrp->rrcc.hosts[dix], &Status, &sid)){
 		SLog(0,  "FileResolve: Error %d in fetchfile", 
 			errorcode);
-		assert(dix != -1);
+		CODA_ASSERT(dix != -1);
 		goto EndFileResolve;
 	    }
 	}
@@ -185,7 +185,7 @@ long FileResolve(res_mgrpent *mgrp, ViceFid *Fid,
 	    ViceVersionVector newvv;
 	    GetMaxVV(&newvv, VV, dix);
 	    struct stat buf;
-	    assert(stat(filename, &buf) == 0);
+	    CODA_ASSERT(stat(filename, &buf) == 0);
 	    int length = buf.st_size;
 	    sid.Value.SmartFTPD.TransmissionDirection = CLIENTTOSERVER;
 	    SLog(9,  "FileResolve: Going to force file");
@@ -198,7 +198,7 @@ long FileResolve(res_mgrpent *mgrp, ViceFid *Fid,
 		 * the submissive ones.  Allow this case raiff 8/16/96
 		 */
 		int HowMany = 0;
-		assert(VV_Check(&HowMany, VV, 0) || IsWeaklyEqual(VV, VSG_MEMBERS));
+		CODA_ASSERT(VV_Check(&HowMany, VV, 0) || IsWeaklyEqual(VV, VSG_MEMBERS));
 		SLog(0, "FileResolve: %d dominant copies",
 		       HowMany);
 		for (int i = 0; i < VSG_MEMBERS; i++) 
@@ -268,7 +268,7 @@ long RS_FetchFile(RPC2_Handle RPCid, ViceFid *Fid,
 
     SLog(9,  "RS_FetchFile ThisHostAddr = %x", ThisHostAddr);
     if (PrimaryHost != ThisHostAddr) return 0;
-    assert(!ISDIR(*Fid));
+    CODA_ASSERT(!ISDIR(*Fid));
     if (!XlateVid(&Fid->Volume)) {
 	SLog(0,  "RS_FetchFile: Couldnt xlate vid %x", Fid->Volume);
 	return(EINVAL);
@@ -317,12 +317,12 @@ FreeLocks:
     if (vptr){
 	if (tmpinode){
 	    SLog(9,  "RS_FetchFile: Getting rid of tmp inode");
-	    assert(!(idec(V_device(volptr), tmpinode,
+	    CODA_ASSERT(!(idec(V_device(volptr), tmpinode,
 			  V_parentId(volptr))));
 	}
 	Error filecode = 0;
 	VPutVnode(&filecode, vptr);
-	assert(filecode == 0);
+	CODA_ASSERT(filecode == 0);
     }
     PutVolObj(&volptr, NO_LOCK);
     SLog(9,  "RS_FetchFile Returns %d", errorcode);
@@ -347,7 +347,7 @@ long RS_ForceFile(RPC2_Handle RPCid, ViceFid *Fid,
     VolumeId parentId;		
     int res = 0;
 
-    assert(Request == ResStoreData);
+    CODA_ASSERT(Request == ResStoreData);
     conninfo *cip = GetConnectionInfo(RPCid);
     if (cip == NULL){
 	SLog(0,  "RS_ForceFile: Couldnt get conninfo ");
@@ -373,7 +373,7 @@ long RS_ForceFile(RPC2_Handle RPCid, ViceFid *Fid,
 	goto FreeLocks;
     }
     /* no protection checks - meta data including VV is an IN parameter */
-    assert(vptr->disk.type == vFile || vptr->disk.type == vSymlink);
+    CODA_ASSERT(vptr->disk.type == vFile || vptr->disk.type == vSymlink);
 
     /* make sure new vv is dominant/equal to current vv */
     res = VV_Cmp(&Vnode_vv(vptr), VV);
@@ -393,13 +393,13 @@ long RS_ForceFile(RPC2_Handle RPCid, ViceFid *Fid,
     CodaBreakCallBack(0, Fid, VSGVolnum);
 
     if (res != VV_EQ) {
-	assert(res == VV_SUB);
+	CODA_ASSERT(res == VV_SUB);
 
 	/* make space for new file */
 	newinode = icreate(V_device(volptr), 0, V_id(volptr), 
 			    vptr->vnodeNumber, vptr->disk.uniquifier,
 			    vptr->disk.dataVersion + 1);
-	assert(newinode > 0);
+	CODA_ASSERT(newinode > 0);
 
 	/* adjust the disk block count by the difference in the files */
 	if(errorcode = AdjustDiskUsage(volptr, (nBlocks(Length) - nBlocks(vptr->disk.length)))) {
@@ -483,7 +483,7 @@ long RS_ForceFile(RPC2_Handle RPCid, ViceFid *Fid,
 
 FreeLocks:
     if (newinode) {
-	assert(!idec(V_device(volptr), newinode, V_parentId(volptr)));
+	CODA_ASSERT(!idec(V_device(volptr), newinode, V_parentId(volptr)));
     }
     if (DiffVV) delete DiffVV;
 
@@ -496,13 +496,13 @@ FreeLocks:
 	    VPutVnode(&filecode, vptr);
 	else
 	    VFlushVnode(&filecode, vptr);
-	assert(filecode == 0);
+	CODA_ASSERT(filecode == 0);
     }
     PutVolObj(&volptr, NO_LOCK);
     RVMLIB_END_TRANSACTION(flush, &(status)); 
-    assert(status == 0);
+    CODA_ASSERT(status == 0);
     if (oldinode && device && parentId)
-	assert(!(idec(device, oldinode, parentId)));
+	CODA_ASSERT(!(idec(device, oldinode, parentId)));
     SLog(9,  "RS_ForceFile returns %d", errorcode);
     return(errorcode);
 }

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/repair/repair.cc,v 4.11 1998/08/05 23:49:36 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/repair/repair.cc,v 4.12 1998/10/07 20:29:45 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -39,7 +39,7 @@ extern "C" {
 
 #include <stdio.h>
 #include <errno.h>
-#include <assert.h>
+#include "coda_assert.h"
 #include <parser.h>
 #include <sys/types.h>
 #include <sys/file.h>
@@ -246,7 +246,7 @@ void doRepair(int largc, char **largv)
        Assumption: rw replicas are all of the same type.
        This must be true if this is a leftmost conflict
     */
-    assert(repv->rwhead);          /* better have one rw replica at least! */
+    CODA_ASSERT(repv->rwhead);          /* better have one rw replica at least! */
     rwv = repv->rwhead;
     while (rwv != 0) {
 	sprintf(tmppath, "%s/%s", reppath, rwv->compname);
@@ -341,7 +341,7 @@ void doRepair(int largc, char **largv)
 		rwv = saverepv->rwhead;
 		while(rwv && vids[i] != rwv->vid)
 		    rwv = rwv->next;
-		assert(vids[i] == rwv->vid);
+		CODA_ASSERT(vids[i] == rwv->vid);
 		printf("repair actions performed on %s have %s ",
 		       rwv->srvname, rcodes[i] ? "failed" : "succeeded");
 		if (rcodes[i]) {
@@ -368,7 +368,7 @@ void doRepair(int largc, char **largv)
 	int statfd = mkstemp(statfilename);
 	if (statfd>0) {
 	    FILE *fp = fdopen(statfd, "w");
-	    assert(fp);
+	    CODA_ASSERT(fp);
 	    if (fixtype == FIXDIR) {
 		fprintf(fp, "Kind of Repair: Directory\n");
 		fprintf(fp, "Repair file changed: %d\n", repfilemodified);
@@ -396,7 +396,7 @@ void doRepair(int largc, char **largv)
 		    rwv = saverepv->rwhead;
 		    while(rwv && vids[i] != rwv->vid)
 			rwv = rwv->next;
-		    assert(vids[i] == rwv->vid);
+		    CODA_ASSERT(vids[i] == rwv->vid);
 		    fprintf(fp, "%s %s\n", 
 			    rwv->srvname, rcodes[i] ? "failed" : "succeeded");
 		}
@@ -467,7 +467,7 @@ void compareDirs(int largc, char **largv)
 	return;
     }
     
-    assert(repv->rwhead);   /* better have atleast one rw replica */
+    CODA_ASSERT(repv->rwhead);   /* better have atleast one rw replica */
 
     if (repair_getfid(uconflictpath, &confFid, &confvv)) {
 	printf("%s isn't in /coda... Are you sure this object is in conflict\n", 
@@ -591,7 +591,7 @@ void clearInc(int largc, char **largv)
 	return;
     }
 
-    assert(repv->rwhead);   /* better have atleast one rw replica */
+    CODA_ASSERT(repv->rwhead);   /* better have atleast one rw replica */
 
     /* initialize the array of ropaths */
     nreplicas = repair_countRWReplicas(repv);
@@ -731,7 +731,7 @@ void removeInc(int largc, char **largv)
 	return;
     }
     
-    assert(repv->rwhead);   /* better have atleast one rw replica */
+    CODA_ASSERT(repv->rwhead);   /* better have atleast one rw replica */
 
     /* get repair type */
     {
@@ -809,7 +809,7 @@ void removeInc(int largc, char **largv)
 		    rwv = repv->rwhead;
 		    while (rwv && repairlist[i].replicaId != rwv->vid)
 			rwv = rwv->next;
-		    assert(repairlist[i].replicaId == rwv->vid);
+		    CODA_ASSERT(repairlist[i].replicaId == rwv->vid);
 		}
 		fprintf(file,"\nreplica %s %lx \n", rwv->srvname, 
 			repairlist[i].replicaId);
@@ -1241,7 +1241,7 @@ static int doCompare(int nreplicas, struct repvol *repv, char **names,
 	    rwv = repv->rwhead;
 	    while (rwv && k[i].replicaId != rwv->vid)
 		rwv = rwv->next;
-	    assert(k[i].replicaId == rwv->vid);
+	    CODA_ASSERT(k[i].replicaId == rwv->vid);
 	}
 	fprintf(file,"\nreplica %s %lx \n", rwv->srvname, k[i].replicaId);
 	for (j = 0; j < k[i].repairCount; j++)
@@ -1500,7 +1500,7 @@ static void SetDefaultPaths()
 
     if (repairrc == NULL){
 	home = getenv("HOME");
-	assert(home != NULL);
+	CODA_ASSERT(home != NULL);
 	strcpy(buf, home);
 	strcat(buf, "/.repairrc");
 	repairrc = buf;
@@ -1552,7 +1552,7 @@ static int GetReplicaNames(char **names, int maxnames, char
 
         /* 5 is for safety */
 	names[i] = (char *)malloc(strlen(de->d_name) + SizeRepName + 5); 
-	assert(names[i]);
+	CODA_ASSERT(names[i]);
 	sprintf(names[i], "%s/%s" , ReplicatedName, de->d_name);
 	if (stat(names[i], &buf)) {
 	    perror(names[i]);

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rvmres/subpreres.cc,v 4.4 1998/08/31 12:23:27 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rvmres/subpreres.cc,v 4.5 1998/10/21 22:05:50 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -110,7 +110,7 @@ long RS_FetchDirContents(RPC2_Handle RPCid, ViceFid *Fid,
 	dh = VN_SetDirHandle(vptr);
 	buf = (char *)malloc(vptr->disk.length + VAclSize(vptr) + 
 			     (2 * sizeof(int))/* for quota */);
-	assert(buf);
+	CODA_ASSERT(buf);
 	bcopy((const void *)DH_Data(dh), buf, vptr->disk.length);
 	VN_PutDirHandle(vptr);
         size = vptr->disk.length;
@@ -181,11 +181,11 @@ long RS_FetchDirContents(RPC2_Handle RPCid, ViceFid *Fid,
     if (vptr){
 	    Error fileCode = 0;
 	    VPutVnode(&fileCode, vptr);
-	    assert(fileCode == 0);
+	    CODA_ASSERT(fileCode == 0);
     }
     PutVolObj(&volptr, NO_LOCK);
     RVMLIB_END_TRANSACTION(flush, &(camstatus));
-    assert(camstatus == 0);
+    CODA_ASSERT(camstatus == 0);
     SLog(2, "RS_FetchDirContents returns code %d, fid %s", errorcode, FID_(Fid));
     return(errorcode);
 }
@@ -250,7 +250,7 @@ FreeLocks:
     Error filecode = 0;
     if (vptr) {
 	VPutVnode(&filecode, vptr);
-	assert(filecode == 0);
+	CODA_ASSERT(filecode == 0);
     }
     PutVolObj(&volptr, NO_LOCK);
     RVMLIB_END_TRANSACTION(flush, &(status));

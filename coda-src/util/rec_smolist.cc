@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/util/rec_smolist.cc,v 4.3 1998/06/11 14:40:13 jaharkes Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/util/rec_smolist.cc,v 4.4 1998/08/26 21:13:01 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -78,7 +78,7 @@ rec_smolist::~rec_smolist() {
 }
 
 void rec_smolist::insert(rec_smolink *p) {
-    assert(p->next == 0);
+    CODA_ASSERT(p->next == 0);
 
     if (last !=	0) {	// at least one entry exists
 	RVMLIB_MODIFY(p->next, last->next);
@@ -92,7 +92,7 @@ void rec_smolist::insert(rec_smolink *p) {
 
 
 void rec_smolist::append(rec_smolink *p) {
-    assert(p->next == 0);
+    CODA_ASSERT(p->next == 0);
 
     if (last !=	0) {	/* at least one entry exists */
 	RVMLIB_MODIFY(p->next, last->next);
@@ -133,7 +133,7 @@ rec_smolink *rec_smolist::remove(rec_smolink *p) {
 rec_smolink *rec_smolist::get() {
     if (last ==	0) return(0);	    /* empty list */
     rec_smolink *q = last->next;
-    assert(q->next);
+    CODA_ASSERT(q->next);
     RVMLIB_MODIFY(last->next, q->next);	    // remove head entry
     RVMLIB_MODIFY(q->next, 0);		    // reset removed entry
     if (q == last) {

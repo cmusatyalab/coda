@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/vol_rcb.cc,v 4.3 98/08/26 21:24:42 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/vol_rcb.cc,v 4.4 1998/09/29 21:04:48 jaharkes Exp $";
 #endif /*_BLURB_*/
 
 
@@ -123,7 +123,7 @@ int volent::RCB(connent *c, RPC2_CountedBS *BS) {
 
 
 int volent::FlushRCB() {
-    ASSERT(vid != LocalFakeVid);
+    CODA_ASSERT(vid != LocalFakeVid);
     LOG(100, ("volent::FlushRCB: vol = %x\n", vid));
 
     int code = 0;
@@ -204,7 +204,7 @@ void volent::ClearRCB(RPC2_CountedBS *BS) {
     LOG(100, ("volent::ClearRCB: vol = %x\n", vid));
 
     if (BS->SeqLen % RCBEntrySize != 0)
-	Choke("volent::ClearRCB: bogus SeqLen (%d)", BS->SeqLen);
+	CHOKE("volent::ClearRCB: bogus SeqLen (%d)", BS->SeqLen);
 
     for (int cursor = 0; cursor < BS->SeqLen; cursor += RCBEntrySize) {
 	ViceFid fid;

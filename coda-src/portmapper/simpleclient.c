@@ -1,10 +1,10 @@
 /*
- *      $Id: simpleclient.c,v 1.2 98/08/05 23:49:33 braam Exp $   
+ *      $Id: simpleclient.c,v 1.3 1998/09/29 22:52:36 rnw Exp $   
  */
 
 /* Simple client to excercise the RPC2 procedure calls */
 
-#include <assert.h>
+#include "coda_assert.h"
 
 #ifdef __BSD44__
 #include <machine/types.h>
@@ -39,9 +39,9 @@ void main(void)
 
 	PROCESS mylpid;
 
-	assert(LWP_Init(LWP_VERSION, LWP_MAX_PRIORITY-1, &mylpid) == LWP_SUCCESS);
+	CODA_ASSERT(LWP_Init(LWP_VERSION, LWP_MAX_PRIORITY-1, &mylpid) == LWP_SUCCESS);
 	/* lwp_debug = 1; */
-	assert(RPC2_Init(RPC2_VERSION, 0, NULL, -1, NULL) > RPC2_ELIMIT);
+	CODA_ASSERT(RPC2_Init(RPC2_VERSION, 0, NULL, -1, NULL) > RPC2_ELIMIT);
 
 	hident.Tag = RPC2_HOSTBYNAME;
 	strcpy(hident.Value.Name, "localhost");
@@ -66,7 +66,7 @@ void main(void)
 	bp.SideEffectType = 0;
 	bp.Color = 0;
 
-	assert(!(rc = RPC2_NewBinding(&hident, &pident, &sident, &bp, &cid)));
+	CODA_ASSERT(!(rc = RPC2_NewBinding(&hident, &pident, &sident, &bp, &cid)));
 
 	rc = portmapper_client_lookup_pbynvp(cid, "hithereservice", 0, 17, &port);
 

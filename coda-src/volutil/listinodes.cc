@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/volutil/listinodes.cc,v 4.6 1998/01/12 23:35:49 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/volutil/listinodes.cc,v 4.7 1998/08/31 12:23:43 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -215,7 +215,7 @@ out:
 /* Abort on platforms to which this code has not been ported yet */
 
    LogMsg(0, VolDebugLevel, stdout, "Arrgh..... ListViceInodes() has not been ported yet!!!");
-   assert(0);
+   CODA_ASSERT(0);
 #endif /* __MACH__ */
 }
 
@@ -233,7 +233,7 @@ int bread(int fd, char *buf, daddr_t blk, long size)
 /* Abort on platforms to which this code has not been ported yet */
 
    LogMsg(0, VolDebugLevel, stdout, "Arrgh..... bread() has not been ported yet!!!");
-   assert(0);
+   CODA_ASSERT(0);
 #endif /* __MACH__ */
 }
 

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/util/dict.cc,v 4.4 98/08/26 21:12:59 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/util/dict.cc,v 4.5 1998/09/15 14:28:03 jaharkes Exp $";
 #endif /*_BLURB_*/
 
 
@@ -56,14 +56,14 @@ extern "C" {
 
 void dictionary::Add(assoc *Assoc) {
     /* Can't do the following sanity check, since Key may not be valid yet! */
-//    assert(Find(Assoc->Key()) == 0);
+//    CODA_ASSERT(Find(Assoc->Key()) == 0);
 
     insert((dlink *)Assoc);
 }
 
 
 void dictionary::Remove(assoc *Assoc) {
-    assert(remove((dlink *)Assoc) == (dlink *)Assoc);
+    CODA_ASSERT(remove((dlink *)Assoc) == (dlink *)Assoc);
 }
 
 
@@ -98,7 +98,7 @@ void dictionary::Kill(assockey& Key) {
 
 assoc::~assoc() {
     /* Derived class MUST provide a dtor! */
-    assert(0);
+    CODA_ASSERT(0);
 }
 
 
@@ -108,7 +108,7 @@ void assoc::Hold() {
 
 
 void assoc::Release() {
-    assert(refcnt > 0);
+    CODA_ASSERT(refcnt > 0);
     refcnt--;
 
     if (dying && refcnt == 0) {
@@ -119,7 +119,7 @@ void assoc::Release() {
 
 
 void assoc::Suicide() {
-    assert(refcnt > 0);
+    CODA_ASSERT(refcnt > 0);
     if (dying) return;
 
     dying = 1;
@@ -135,7 +135,7 @@ assocrefs::assocrefs(int InitialSize, int GrowSize) {
 
 
 assocrefs::~assocrefs() {
-    assert(count == 0);
+    CODA_ASSERT(count == 0);
 
     if (assocs != 0)
 	free(assocs);
@@ -172,10 +172,10 @@ void assocrefs::Attach(assoc *Assoc, int ix) {
 
 	    break;
 	}
-	assert(ix < max);
+	CODA_ASSERT(ix < max);
     }
     else
-	assert(assocs[ix] == 0);
+	CODA_ASSERT(assocs[ix] == 0);
     count++;
     assocs[ix] = Assoc;
     Assoc->Hold();
@@ -187,8 +187,8 @@ void assocrefs::Detach(assoc *Assoc) {
     int DetachAll = (Assoc == 0);
 
     if (!DetachAll) {
-	assert(assocs != 0);
-	assert(count > 0);
+	CODA_ASSERT(assocs != 0);
+	CODA_ASSERT(count > 0);
     }
 
     for (int i = 0; i < max; i++)
@@ -199,7 +199,7 @@ void assocrefs::Detach(assoc *Assoc) {
 	    if (!DetachAll) return;
 	}
 
-    if (!DetachAll) assert(0);
+    if (!DetachAll) CODA_ASSERT(0);
 }
 
 
@@ -208,8 +208,8 @@ void assocrefs::Kill(assoc *Assoc) {
     int KillAll = (Assoc == 0);
 
     if (!KillAll) {
-	assert(assocs != 0);
-	assert(count > 0);
+	CODA_ASSERT(assocs != 0);
+	CODA_ASSERT(count > 0);
     }
 
     for (int i = 0; i < max; i++)
@@ -221,7 +221,7 @@ void assocrefs::Kill(assoc *Assoc) {
 	    if (!KillAll) return;
 	}
 
-    if (!KillAll) assert(0);
+    if (!KillAll) CODA_ASSERT(0);
 }
 
 

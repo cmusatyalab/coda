@@ -4,7 +4,7 @@ extern "C" {
 
 #include <sys/param.h>
 #include <sys/types.h>
-#include <assert.h>
+#include "coda_assert.h"
 #include <strings.h>
 #include <stdio.h>
 
@@ -80,7 +80,7 @@ int main(int argc, char *argv[]) {
   InitializeCodaDemo();
   thisPID = getpid();
   Init_RPC(&mainpid);
-  assert(IOMGR_Initialize() == LWP_SUCCESS);
+  CODA_ASSERT(IOMGR_Initialize() == LWP_SUCCESS);
   CreateLWPs();
 
   /* Setup filter */
@@ -99,7 +99,7 @@ int main(int argc, char *argv[]) {
     /* Handle RPC2 errors. */
     if (code == RPC2_TIMEOUT) {
       sig = LWP_SignalProcess(&demoSync);
-      assert((sig == LWP_SUCCESS) || (sig == LWP_ENOWAIT));
+      CODA_ASSERT((sig == LWP_SUCCESS) || (sig == LWP_ENOWAIT));
       continue;
     }
     if (code <= RPC2_WLIMIT)
@@ -164,7 +164,7 @@ void CreateLWPs() {
    ****    Create LWP to handle interface events   ****
    ****************************************************/
 
-  assert((LWP_CreateProcess((PFIC)CodaDemoHandler,
+  CODA_ASSERT((LWP_CreateProcess((PFIC)CodaDemoHandler,
                             DFTSTACKSIZE*1024, LWP_NORMAL_PRIORITY,
                            (char *)&c, "CodaDemo Interface Handler",
                            (PROCESS *)&demopid)) == (LWP_SUCCESS));
@@ -173,7 +173,7 @@ void CreateLWPs() {
    ******    Create LWP to handle venus events   ******
    ****************************************************/
 
-  assert((LWP_CreateProcess((PFIC)WorkerHandler,
+  CODA_ASSERT((LWP_CreateProcess((PFIC)WorkerHandler,
                             DFTSTACKSIZE*2*1024, LWP_NORMAL_PRIORITY,
                            (char *)&c, "Worker Handler",
                            (PROCESS *)&workerpid)) == (LWP_SUCCESS));
@@ -184,7 +184,7 @@ void CreateLWPs() {
 
 int NewConnection(char *hostName, int portNumber, int pgrp) {
 
-  assert(strlen(hostName) <= MAXHOSTNAMELEN);
+  CODA_ASSERT(strlen(hostName) <= MAXHOSTNAMELEN);
   strcpy(hostname, hostName);
   printf("MARIA: You should check that the hostname is our host\n");
   fflush(stdout);
@@ -206,7 +206,7 @@ void ReturnConnection() {
   long rc;
   RPC2_BindParms bp;
 
-  assert(strlen(hostname) < 64);
+  CODA_ASSERT(strlen(hostname) < 64);
 
   hid.Tag = RPC2_HOSTBYNAME;
   strcpy(hid.Value.Name, hostname);
@@ -233,11 +233,11 @@ void ReturnConnection() {
 
 void WorkerHandler() {
 
-    assert(LWP_WaitProcess(&preWorkerSync) == LWP_SUCCESS);
+    CODA_ASSERT(LWP_WaitProcess(&preWorkerSync) == LWP_SUCCESS);
     ReturnConnection();
 
     while (1) {
-        assert(LWP_WaitProcess(&workerSync) == LWP_SUCCESS);
+        CODA_ASSERT(LWP_WaitProcess(&workerSync) == LWP_SUCCESS);
 
 //	printf("Triggering TokenExpiry\n");
 //	fflush(stdout);
@@ -249,7 +249,7 @@ void CodaDemoHandler() {
     int count = 0;
 
     while (1) {
-    assert(LWP_WaitProcess(&demoSync) == LWP_SUCCESS);
+    CODA_ASSERT(LWP_WaitProcess(&demoSync) == LWP_SUCCESS);
     ProcessInputFromDemo();
     }
 }
@@ -425,7 +425,7 @@ long S_HoardCommands(RPC2_Handle _cid, RPC2_Integer userId, long numCommands, Ho
           printf("%s: file=%s", PrefixString, (char *)commands[i].pathname);
           break;
         default:
-          assert(1 == 0);
+          CODA_ASSERT(1 == 0);
     }
     printf("\n");
 

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/vol_cml.cc,v 4.20 98/09/29 21:04:48 jaharkes Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/vol_cml.cc,v 4.21 1998/10/07 19:53:40 jaharkes Exp $";
 #endif /*_BLURB_*/
 
 
@@ -124,12 +124,12 @@ void ClientModifyLog::ResetTransient() {
 		owner = (vuid_t) m->uid;
 	    }
 	    else {
-		ASSERT(owner == m->uid);
+		CODA_ASSERT(owner == m->uid);
 	    }
 
 	    m->ResetTransient();
 	}
-	ASSERT(owner != UNSET_UID);
+	CODA_ASSERT(owner != UNSET_UID);
     }
 }
 
@@ -234,7 +234,7 @@ void ClientModifyLog::LockObjs(int tid) {
 
 	    fsobj *f = FSDB->Find(&backFetchList[i]);
 	    if (f == NULL)
-		Choke("ClientModifyLog::LockObjs: Object in CML not cached! (%x.%x.%x)\n",
+		CHOKE("ClientModifyLog::LockObjs: Object in CML not cached! (%x.%x.%x)\n",
 		      backFetchList[i].Volume, backFetchList[i].Vnode, backFetchList[i].Unique);
 	    f->Lock(RD);
         }
@@ -264,7 +264,7 @@ void ClientModifyLog::UnLockObjs(int tid) {
 	    dlink *d = m->fid_bindings->first();   /* and only */
 	    binding *b = strbase(binding, d, binder_handle);
 	    fsobj *f = (fsobj *)b->bindee;
-	    ASSERT(f && (f->MagicNumber == FSO_MagicNumber));  /* better be an fso */
+	    CODA_ASSERT(f && (f->MagicNumber == FSO_MagicNumber));  /* better be an fso */
 
 	    /* check the other mle bindings for the fso */
 	    dlist_iterator next(*f->mle_bindings);
@@ -287,17 +287,17 @@ void ClientModifyLog::UnLockObjs(int tid) {
 
 /* lock object of a store */
 void cmlent::LockObj() {
-    ASSERT(opcode == ViceNewStore_OP);
+    CODA_ASSERT(opcode == ViceNewStore_OP);
 
     /* make sure there is only one object of the store */    
-    ASSERT(fid_bindings->count() == 1); 
+    CODA_ASSERT(fid_bindings->count() == 1); 
 
     dlink *d = fid_bindings->first();   /* and only */
     binding *b = strbase(binding, d, binder_handle);
     fsobj *f = (fsobj *)b->bindee;
 
     /* sanity checks */
-    ASSERT(f && (f->MagicNumber == FSO_MagicNumber));  /* better be an fso */
+    CODA_ASSERT(f && (f->MagicNumber == FSO_MagicNumber));  /* better be an fso */
 
     f->Lock(RD);
 }
@@ -305,17 +305,17 @@ void cmlent::LockObj() {
 
 /* unlock object of a store */
 void cmlent::UnLockObj() {
-    ASSERT(opcode == ViceNewStore_OP);
+    CODA_ASSERT(opcode == ViceNewStore_OP);
 
     /* make sure there is only one object of the store */    
-    ASSERT(fid_bindings->count() == 1); 
+    CODA_ASSERT(fid_bindings->count() == 1); 
 
     dlink *d = fid_bindings->first();   /* and only */
     binding *b = strbase(binding, d, binder_handle);
     fsobj *f = (fsobj *)b->bindee;
 
     /* sanity checks */
-    ASSERT(f && (f->MagicNumber == FSO_MagicNumber));  /* better be an fso */
+    CODA_ASSERT(f && (f->MagicNumber == FSO_MagicNumber));  /* better be an fso */
 
     if (f->shadow) {
         /* no need to unlock, just get rid of shadow copy */
@@ -356,7 +356,7 @@ void ClientModifyLog::CancelPending() {
 			    m->flags.frozen = 0;
 		    }
 		    if (m->flags.cancellation_pending) {
-			    ASSERT(m->cancel());
+			    CODA_ASSERT(m->cancel());
 			    cancellation = 1;
 			    break;
 		    }
@@ -602,14 +602,14 @@ void *cmlent::operator new(size_t len) {
 
     LOG(1, ("cmlent::operator new()\n"));
 
-    assert(VDB->AllocatedMLEs < VDB->MaxMLEs);
+    CODA_ASSERT(VDB->AllocatedMLEs < VDB->MaxMLEs);
 
     /* Get entry from free list or heap */
     if (VDB->mlefreelist.count() > 0)
 	c = strbase(cmlent, VDB->mlefreelist.get(), handle);
     else
 	c = (cmlent *)rvmlib_rec_malloc((int) len);
-    assert(c);
+    CODA_ASSERT(c);
 
     /* Do bookkeeping */
     RVMLIB_REC_OBJECT(VDB->AllocatedMLEs);
@@ -723,7 +723,7 @@ cmlent::cmlent(ClientModifyLog *Log, time_t Mtime, vuid_t vuid, int op, int Tid 
 
 	default:
 	    print(logFile);
-	    Choke("cmlent::cmlent: bogus opcode (%d)", op);
+	    CHOKE("cmlent::cmlent: bogus opcode (%d)", op);
     }
     va_end(ap);
 
@@ -819,7 +819,7 @@ void cmlent::ResetTransient() {
 
 	default:
 	    print(logFile);
-	    Choke("cmlent::ResetTransient: bogus opcode (%d)", opcode);
+	    CHOKE("cmlent::ResetTransient: bogus opcode (%d)", opcode);
     }
 }
 
@@ -878,10 +878,10 @@ cmlent::~cmlent() {
 
 	default:
 	    print(logFile);
-	    Choke("cmlent::~cmlent: bogus opcode (%d)", opcode);
+	    CHOKE("cmlent::~cmlent: bogus opcode (%d)", opcode);
     }
 
-    ASSERT(log->list.remove(&handle) == &handle);
+    CODA_ASSERT(log->list.remove(&handle) == &handle);
     /* update CML statistics */
     log->entries--;
     log->bytes -= thisBytes;
@@ -939,7 +939,7 @@ long cmlent::bytes() {
 	         +strlen((char *)u.u_symlink.NewName);
 	break;
     default:
-	ASSERT(0);
+	CODA_ASSERT(0);
     }
     return result;
 }
@@ -1381,7 +1381,7 @@ int volent::LogRemove(time_t Mtime, vuid_t vuid, ViceFid *PFid,
 			    break;
 
 			default:
-			    ASSERT(0);
+			    CODA_ASSERT(0);
 		    }
 		}
 	    } while (cancellation);
@@ -1548,7 +1548,7 @@ int volent::LogRmdir(time_t Mtime, vuid_t vuid, ViceFid *PFid,
 			break;
 
 		    default:
-			ASSERT(0);
+			CODA_ASSERT(0);
 		}
 	    }
 	} while (cancellation);
@@ -1610,7 +1610,7 @@ void volent::CancelStores(ViceFid *Fid) {
 	    Fid->Volume, Fid->Vnode, Fid->Unique));
 
     /* this routine should be called at startup only */
-    ASSERT(!IsReintegrating());
+    CODA_ASSERT(!IsReintegrating());
 
     Recov_BeginTrans();
 	int cancellation;
@@ -1865,7 +1865,7 @@ int cmlent::cancel() {
 	case ViceCreate_OP:
 	    {
 	    cmlent *m = ((ClientModifyLog *)log)->UtimesWriter(&u.u_create.PFid);
-	    ASSERT(m != 0);
+	    CODA_ASSERT(m != 0);
 	    if (m != this) {
 		DoUtimes = 1;
 		UtimesVuid = (vuid_t) uid;
@@ -1878,7 +1878,7 @@ int cmlent::cancel() {
 	case ViceRemove_OP:
 	    {
 	    cmlent *m = ((ClientModifyLog *)log)->UtimesWriter(&u.u_remove.PFid);
-	    ASSERT(m != 0);
+	    CODA_ASSERT(m != 0);
 	    if (m != this) {
 		DoUtimes = 1;
 		UtimesVuid = (vuid_t) uid;
@@ -1891,7 +1891,7 @@ int cmlent::cancel() {
 	case ViceLink_OP:
 	    {
 	    cmlent *m = ((ClientModifyLog *)log)->UtimesWriter(&u.u_link.PFid);
-	    ASSERT(m != 0);
+	    CODA_ASSERT(m != 0);
 	    if (m != this) {
 		DoUtimes = 1;
 		UtimesVuid = (vuid_t) uid;
@@ -1904,7 +1904,7 @@ int cmlent::cancel() {
 	case ViceRename_OP:
 	    {
 	    cmlent *m = ((ClientModifyLog *)log)->UtimesWriter(&u.u_rename.SPFid);
-	    ASSERT(m != 0);
+	    CODA_ASSERT(m != 0);
 	    if (m != this) {
 		DoUtimes = 1;
 		UtimesVuid = (vuid_t) uid;
@@ -1914,7 +1914,7 @@ int cmlent::cancel() {
 
 	    if (!FID_EQ(&u.u_rename.SPFid, &u.u_rename.TPFid)) {
 		cmlent *m = ((ClientModifyLog *)log)->UtimesWriter(&u.u_rename.TPFid);
-		ASSERT(m != 0);
+		CODA_ASSERT(m != 0);
 		if (m != this) {
 		    /* Don't get uptight if this can't be done! */
 /*
@@ -1929,7 +1929,7 @@ int cmlent::cancel() {
 	case ViceMakeDir_OP:
 	    {
 	    cmlent *m = ((ClientModifyLog *)log)->UtimesWriter(&u.u_mkdir.PFid);
-	    ASSERT(m != 0);
+	    CODA_ASSERT(m != 0);
 	    if (m != this) {
 		DoUtimes = 1;
 		UtimesVuid = (vuid_t) uid;
@@ -1942,7 +1942,7 @@ int cmlent::cancel() {
 	case ViceRemoveDir_OP:
 	    {
 	    cmlent *m = ((ClientModifyLog *)log)->UtimesWriter(&u.u_rmdir.PFid);
-	    ASSERT(m != 0);
+	    CODA_ASSERT(m != 0);
 	    if (m != this) {
 		DoUtimes = 1;
 		UtimesVuid = (vuid_t) uid;
@@ -1955,7 +1955,7 @@ int cmlent::cancel() {
 	case ViceSymLink_OP:
 	    {
 	    cmlent *m = ((ClientModifyLog *)log)->UtimesWriter(&u.u_symlink.PFid);
-	    ASSERT(m != 0);
+	    CODA_ASSERT(m != 0);
 	    if (m != this) {
 		DoUtimes = 1;
 		UtimesVuid = (vuid_t) uid;
@@ -1966,7 +1966,7 @@ int cmlent::cancel() {
 	    break;
 
         case ViceRepair_OP:
-	    ASSERT(0);
+	    CODA_ASSERT(0);
 	    break;
     }
 
@@ -1985,7 +1985,7 @@ int cmlent::cancel() {
     if (DoUtimes) {
 /*
 	int code = vol->LogUtimes(UtimesMtime, UtimesVuid, &UtimesFid, UtimesMtime);
-	ASSERT(code == 0);
+	CODA_ASSERT(code == 0);
         vol->RecordsCancelled--;
 */
     }
@@ -2009,7 +2009,7 @@ int cmlent::cancelstore() {
 	if (WRITING(f)) {
 	    Recov_BeginTrans();
 		/* shouldn't be reintegrating, so cancel must go through */   
-		ASSERT(cancel());
+		CODA_ASSERT(cancel());
 		vol->RestoreObj(&f->fid);
 	    Recov_EndTrans(MAXFP);
 	    cancelled = 1;
@@ -2072,7 +2072,7 @@ void ClientModifyLog::IncThread(int tid) {
 		    fsobj *f = (fsobj *)b->bindee;
 
 		    /* sanity checks -- better be an fso */
-		    ASSERT(f && (f->MagicNumber == FSO_MagicNumber));
+		    CODA_ASSERT(f && (f->MagicNumber == FSO_MagicNumber));
 		    f->tSid = f->stat.VV.StoreId;
 	        }
 	    }
@@ -2175,7 +2175,7 @@ int ClientModifyLog::COP1(char *buf, int bufsize, ViceVersionVector *UpdateSet) 
 	/* Pick a server and get a connection to it. */
 	int ph_ix;
 	unsigned long ph = m->GetPrimaryHost(&ph_ix);
-	ASSERT(ph != 0);
+	CODA_ASSERT(ph != 0);
 
 	connent *c = 0;
 	code = ::GetConn(&c, ph, owner, 0);
@@ -2231,7 +2231,7 @@ int ClientModifyLog::COP1(char *buf, int bufsize, ViceVersionVector *UpdateSet) 
 	    LOG(0, ("ClientModifyLog::COP1: stale dir 0x%x.0x%x.0x%x\n", 
 		    StaleDirs[d].Volume, StaleDirs[d].Vnode, StaleDirs[d].Unique));
 	    fsobj *f = FSDB->Find(&StaleDirs[d]);
-	    ASSERT(f);
+	    CODA_ASSERT(f);
 	    Recov_BeginTrans();
 		   f->Kill();
 	    Recov_EndTrans(DMFP);
@@ -2344,7 +2344,7 @@ int ClientModifyLog::COP1(char *buf, int bufsize, ViceVersionVector *UpdateSet) 
 		    LOG(0, ("ClientModifyLog::COP1: stale dir 0x%x.0x%x.0x%x\n", 
 			    StaleDirs[d].Volume, StaleDirs[d].Vnode, StaleDirs[d].Unique));
 		    fsobj *f = FSDB->Find(&StaleDirs[d]);
-		    ASSERT(f);
+		    CODA_ASSERT(f);
 		    Recov_BeginTrans();
 			f->Kill();
 		    Recov_EndTrans(DMFP);
@@ -2367,7 +2367,7 @@ void ClientModifyLog::IncCommit(ViceVersionVector *UpdateSet, int Tid) {
     LOG(1, ("ClientModifyLog::IncCommit: (%s) tid = %d\n", 
 	    vol->name, Tid));
 
-    ASSERT(count() > 0);
+    CODA_ASSERT(count() > 0);
 
     Recov_BeginTrans();
 	rec_dlist_iterator next(list);
@@ -2445,7 +2445,7 @@ int cmlent::realloc()
 
 	    /* Translate fid in the FSDB. */
 	    if ((code = FSDB->TranslateFid(&OldFid, &NewFid)) != 0)
-		    Choke("cmlent::realloc: couldn't translate %s -> %s (%d)",
+		    CHOKE("cmlent::realloc: couldn't translate %s -> %s (%d)",
 		    FID_(&OldFid), FID_2(&NewFid), code);
 	    Recov_EndTrans(MAXFP);
     }
@@ -2533,11 +2533,11 @@ void cmlent::translatefid(ViceFid *OldFid, ViceFid *NewFid) {
 
         case ViceRepair_OP: /* Shouldn't be called for repair */ 
 	default:
-	    Choke("cmlent::translatefid: bogus opcode (%d)", opcode);
+	    CHOKE("cmlent::translatefid: bogus opcode (%d)", opcode);
     }
     if (!found) {
 	print(logFile);
-	Choke("cmlent::translatefid: (%x.%x.%x) not matched",
+	CHOKE("cmlent::translatefid: (%x.%x.%x) not matched",
 	      OldFid->Volume, OldFid->Vnode, OldFid->Unique);
     }
 }
@@ -2557,7 +2557,7 @@ void cmlent::thread() {
 	if (f == 0) {
 	    print(logFile);
 	    (strbase(volent, log, CML))->print(logFile);
-	    Choke("cmlent::thread: can't find (%x.%x.%x)",
+	    CHOKE("cmlent::thread: can't find (%x.%x.%x)",
 		fidp->Volume, fidp->Vnode, fidp->Unique);
 	}
 
@@ -2650,7 +2650,7 @@ int cmlent::size()
 	    break;
 
 	default:
-	    Choke("cmlent::size: bogus opcode (%d)", opcode);
+	    CHOKE("cmlent::size: bogus opcode (%d)", opcode);
     }
 
     return(len);
@@ -2847,7 +2847,7 @@ void cmlent::pack(PARM **_ptr) {
 	    break;
 
 	default:
-	    Choke("cmlent::pack: bogus opcode (%d)", opcode);
+	    CHOKE("cmlent::pack: bogus opcode (%d)", opcode);
     }
 }
 
@@ -2875,7 +2875,7 @@ void cmlent::commit(ViceVersionVector *UpdateSet) {
     while (d = next()) {
 	binding *b = strbase(binding, d, binder_handle);
 	fsobj *f = (fsobj *)b->bindee;
-	ASSERT(f && (f->MagicNumber == FSO_MagicNumber));  /* better be an fso */
+	CODA_ASSERT(f && (f->MagicNumber == FSO_MagicNumber));  /* better be an fso */
 
 	cmlent *FinalCmlent = f->FinalCmlent(tid);
 	if (FinalCmlent == this) {
@@ -2921,7 +2921,7 @@ int cmlent::HaveReintegrationHandle() {
 
 /* MUST NOT be called from within transaction! */
 void cmlent::ClearReintegrationHandle() {
-    ASSERT(opcode == ViceNewStore_OP);
+    CODA_ASSERT(opcode == ViceNewStore_OP);
 
     Recov_BeginTrans();
 	RVMLIB_REC_OBJECT(u);
@@ -3027,7 +3027,7 @@ int cmlent::ValidateReintegrationHandle() {
 		    Offset = Offsetvar_bufs[i];
 
 	if (Offset > u.u_store.Length)
-	    Choke("cmlent::QueryReintegrationHandle: offset > length! (%d, %d)\n",
+	    CHOKE("cmlent::QueryReintegrationHandle: offset > length! (%d, %d)\n",
 		  Offset, u.u_store.Length);
 
 	Recov_BeginTrans();
@@ -3045,7 +3045,7 @@ Exit:
 
 
 int cmlent::WriteReintegrationHandle() {
-    ASSERT(opcode == ViceNewStore_OP);
+    CODA_ASSERT(opcode == ViceNewStore_OP);
 
     volent *vol = strbase(volent, log, CML);
     int code = 0, bytes = 0;
@@ -3064,7 +3064,7 @@ int cmlent::WriteReintegrationHandle() {
 	    { code = ENOENT; goto Exit; }
 
 	if (f->readers <= 0 && !f->shadow) 
-	    Choke("cmlent::WriteReintegrationHandle: object not locked! (%x.%x.%x)\n",
+	    CHOKE("cmlent::WriteReintegrationHandle: object not locked! (%x.%x.%x)\n",
 		  f->fid.Volume, f->fid.Vnode, f->fid.Unique);
 
 	/* Sanity checks. */
@@ -3113,7 +3113,7 @@ int cmlent::WriteReintegrationHandle() {
 	    /* Pick a server and get a connection to it. */
 	    int ph_ix;
 	    unsigned long ph = m->GetPrimaryHost(&ph_ix);
-	    ASSERT(ph != 0);
+	    CODA_ASSERT(ph != 0);
 
 	    connent *c = 0;
 	    code = ::GetConn(&c, ph, log->owner, 0);
@@ -3162,7 +3162,7 @@ int cmlent::WriteReintegrationHandle() {
 	}
 
 	if (length != bytes) 
-	    Choke("cmlent::WriteReintegrateHandle: bytes mismatch (%d, %d)\n",
+	    CHOKE("cmlent::WriteReintegrateHandle: bytes mismatch (%d, %d)\n",
 		    length, bytes);
 
 	Recov_BeginTrans();
@@ -3222,7 +3222,7 @@ int cmlent::CloseReintegrationHandle(char *buf, int bufsize,
 	/* Pick a server and get a connection to it. */
 	int ph_ix;
 	unsigned long ph = m->GetPrimaryHost(&ph_ix);
-	ASSERT(ph != 0);
+	CODA_ASSERT(ph != 0);
 
 	connent *c = 0;
 	code = ::GetConn(&c, ph, log->owner, 0);
@@ -3474,7 +3474,7 @@ int PathAltered(ViceFid *cfid, char *suffix, ClientModifyLog *CML, cmlent *start
 void RecoverPathName(char *path, ViceFid *fid, ClientModifyLog *CML, cmlent *starter)
 {
     /* this algorithm is single-volume based */
-    ASSERT(path && fid && CML && starter);
+    CODA_ASSERT(path && fid && CML && starter);
     LOG(100, ("RecoverPathName: fid = 0x.%x.%x.%x\n", fid->Volume, fid->Vnode, fid->Unique));
 
     ViceFid cfid;
@@ -3540,7 +3540,7 @@ int volent::CheckPointMLEs(vuid_t vuid, char *ckpdir)
 	return(EACCES);
 
     if ( rvmlib_in_transaction() ) {
-	    Choke("CheckPointMLEs started while in transaction!");
+	    CHOKE("CheckPointMLEs started while in transaction!");
     }
 
     int code = CML.CheckPoint(ckpdir);
@@ -3825,7 +3825,7 @@ void ClientModifyLog::IncAbort(int Tid) {
     LOG(0, ("ClientModifyLog::IncAbort: (%s) and tid = %d\n", vol->name, Tid));
     /* eprint("IncAbort CML for %s and tid %d\n", vol->name, Tid); */
 
-    ASSERT(count() > 0);
+    CODA_ASSERT(count() > 0);
 
     Recov_BeginTrans();
 	rec_dlist_iterator next(list, AbortOrder);
@@ -3868,7 +3868,7 @@ static int WriteLinks(struct DirEntry *de, void * hook)
 
 	if (vnode == wl_hook->vnode && vunique == wl_hook->vunique) {
 		char *comp = rindex(wl_hook->hdr->dbuf.linkname, '/') + 1;
-		ASSERT(comp != NULL);
+		CODA_ASSERT(comp != NULL);
 		if (!STREQ(comp, name)) {
 			/* Use the same hblock, overwriting the name
                            field and stashing the return code. */
@@ -3897,7 +3897,7 @@ int cmlent::checkpoint(FILE *fp) {
 		cmlent *m;
 		while ((m = next()) && m->opcode != ViceNewStore_OP)
 		    ;
-		ASSERT(m != 0);
+		CODA_ASSERT(m != 0);
 		if (m != this) break;
 	    }
 
@@ -3905,7 +3905,7 @@ int cmlent::checkpoint(FILE *fp) {
 	    char CacheFileName[CODA_MAXNAMLEN];
 	    {
 		fsobj *f = FSDB->Find(&u.u_store.Fid);
-		ASSERT(f != 0);
+		CODA_ASSERT(f != 0);
 		if (!HAVEDATA(f)) {
 		    eprint("can't checkpoint (%s), no data", hdr.dbuf.name);
 		    break;
@@ -3925,7 +3925,7 @@ int cmlent::checkpoint(FILE *fp) {
 	    /* Make hard-links for other names. */
 	    {
 		fsobj *f = FSDB->Find(&u.u_store.Fid);
-		ASSERT(f != 0);
+		CODA_ASSERT(f != 0);
 		if (f->stat.LinkCount > 1 && f->pfso != 0) {
 		    hdr.dbuf.linkflag = '1';
 		    strcpy(hdr.dbuf.linkname, hdr.dbuf.name);
@@ -3986,7 +3986,7 @@ int cmlent::checkpoint(FILE *fp) {
 /* MUST be called from within transaction! */
 static void GetPath(char *path, ViceFid *fid, char *lastcomp) {
     fsobj *f = FSDB->Find(fid);
-    if (!f) Choke("GetPath: %x.%x.%x", fid->Volume, fid->Vnode, fid->Unique);
+    if (!f) CHOKE("GetPath: %x.%x.%x", fid->Volume, fid->Vnode, fid->Unique);
     char buf[MAXPATHLEN];
     f->GetPath(buf);
     if (lastcomp)
@@ -4017,7 +4017,7 @@ static int WriteData(FILE *wrfp, char *rdfn) {
 
     FILE *rdfp = fopen(rdfn, "r");
     if (rdfp == NULL)
-	Choke("WriteData:: fopen(%s) failed", rdfn);
+	CHOKE("WriteData:: fopen(%s) failed", rdfn);
 
     int code = 0;
     for (int i = 0; ; i++) {
@@ -4057,8 +4057,8 @@ void cmlent::abort() {
     volent *vol = strbase(volent, log, CML);
     vol->RecordsAborted++;
 
-    /* Step 1:  ASSERT that there are no edges emanating from this record. */
-    ASSERT(succ == 0 || succ->count() == 0);
+    /* Step 1:  CODA_ASSERT that there are no edges emanating from this record. */
+    CODA_ASSERT(succ == 0 || succ->count() == 0);
 
     /* Step 2:  Kill fsos linked into this record */
     dlist_iterator next(*fid_bindings);
@@ -4069,7 +4069,7 @@ void cmlent::abort() {
 	fsobj *f = (fsobj *)b->bindee;
 	    
 	/* sanity checks */
-	ASSERT(f && (f->MagicNumber == FSO_MagicNumber));  /* better be an fso */
+	CODA_ASSERT(f && (f->MagicNumber == FSO_MagicNumber));  /* better be an fso */
 
 	f->Lock(WR);
 	f->Kill();
@@ -4104,7 +4104,7 @@ void cmlent::AttachFidBindings() {
 	if (f == 0) {
 	    print(logFile);
 	    (strbase(volent, log, CML))->print(logFile);
-	    Choke("cmlent::AttachFidBindings: can't find (%x.%x.%x)",
+	    CHOKE("cmlent::AttachFidBindings: can't find (%x.%x.%x)",
 		fidp->Volume, fidp->Vnode, fidp->Unique);
 	}
 
@@ -4257,7 +4257,7 @@ unsigned long cmlent::ReintAmount() {
     int amount;
     long bw = UNSET_BW;	/* bandwidth, in bytes/sec */
 
-    ASSERT(opcode == ViceNewStore_OP);
+    CODA_ASSERT(opcode == ViceNewStore_OP);
 
     /* 
      * try to get a dynamic bw estimate.  If that doesn't
@@ -4311,7 +4311,7 @@ cml_iterator::cml_iterator(ClientModifyLog& Log, CmlIterOrder Order,
 	fid = *Fid;
 	fsobj *f = FSDB->Find(&fid);
 	if (f == 0) {
-	    Choke("cml_iterator::cml_iterator: can't find (%x.%x.%x)",
+	    CHOKE("cml_iterator::cml_iterator: can't find (%x.%x.%x)",
 		fid.Volume, fid.Vnode, fid.Unique);
 	}
 	if (f->mle_bindings == 0)
@@ -4326,7 +4326,7 @@ cml_iterator::cml_iterator(ClientModifyLog& Log, CmlIterOrder Order,
 	cmlent *m;
 	while ((m = (*this)()) && m != prelude)
 	    ;
-	ASSERT(m != 0);
+	CODA_ASSERT(m != 0);
     }
 }
 
@@ -4409,7 +4409,7 @@ cmlent *cml_iterator::operator()() {
 		    break;
 
 		default:
-		    ASSERT(0);
+		    CODA_ASSERT(0);
 	    }
 	}
     }

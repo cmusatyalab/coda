@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/libal/alprocs.c,v 4.1 1998/04/14 20:51:46 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/libal/alprocs.c,v 4.2 1998/08/26 21:15:24 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -626,7 +626,7 @@ int AL_Initialize(IN char *Version, IN char *pdbFile, IN char *pcfFile)
     LogMsg(4, AL_DebugLevel,
 	stdout, "Library version: '%s'\tHeader version: '%s'", AL_VERSION, Version);
 
-    assert(strcmp(Version, AL_VERSION) == 0);
+    CODA_ASSERT(strcmp(Version, AL_VERSION) == 0);
 
     /* We do not free AL_pdbFileName or AL_pcfFileName; this is
 	because they may be aliased as pdbFile and pcfFile if
@@ -843,7 +843,7 @@ RetryGet:
     if (mystatbuf.st_mtime != PdbStatBuf.st_mtime)
 	{
 	/* .pdb file has changed since we last did AL_Initialize(). Redo. */
-	assert(AL_Initialize(AL_VERSION, AL_pdbFileName, AL_pcfFileName) == 0);
+	CODA_ASSERT(AL_Initialize(AL_VERSION, AL_pdbFileName, AL_pcfFileName) == 0);
 	fclose(yyin);
 	goto RetryGet;
 	}

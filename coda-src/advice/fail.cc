@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/advice/fail.cc,v 4.4 1998/08/05 23:49:02 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/advice/fail.cc,v 4.5 1998/09/29 16:37:23 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -48,7 +48,7 @@ extern "C" {
 #include <sys/socket.h>
 #include <sys/types.h>
 
-#include <assert.h>
+#include "coda_assert.h"
 #include <ctype.h>
 #include <fail.h>
 #include <netdb.h>
@@ -160,7 +160,7 @@ void InitRPC() {
     PROCESS mylpid;
     int rc;
 
-    assert(LWP_Init(LWP_VERSION, LWP_NORMAL_PRIORITY, &mylpid) == LWP_SUCCESS);
+    CODA_ASSERT(LWP_Init(LWP_VERSION, LWP_NORMAL_PRIORITY, &mylpid) == LWP_SUCCESS);
 
     rc = RPC2_Init(RPC2_VERSION, 0, NULL, -1, NULL);
     if (rc == RPC2_SUCCESS) return;

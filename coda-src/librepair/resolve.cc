@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/resolve/resolve.cc,v 4.9 1998/08/26 21:23:58 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/resolve/resolve.cc,v 4.10 1998/10/07 20:29:47 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -60,7 +60,7 @@ extern "C" {
 #include <unistd.h>
 #include <stdlib.h>
 #include <errno.h>
-#include <assert.h> 
+#include "coda_assert.h" 
 #include <inodeops.h>
 
 #include <parser.h>
@@ -218,7 +218,7 @@ int getunixdirreps C_ARGS((int nreplicas, char *names[], resreplica **reps))
   }
   /* allocate space for dir entries  - allocate some extra nodes */
   direntriesarrsize = (nreplicas + 1) * (buf.st_size/AVGDIRENTRYSIZE);
-  assert(direntriesarr = (resdir_entry *)malloc(direntriesarrsize * sizeof(resdir_entry)));
+  CODA_ASSERT(direntriesarr = (resdir_entry *)malloc(direntriesarrsize * sizeof(resdir_entry)));
   nextavailindex = -1;
   totaldirentries = 0;
 
@@ -477,7 +477,7 @@ int NameNameResolve(int first, int last, int nreplicas, resreplica *dirs, struct
     }
     int answers[MAXHOSTS];
     for (i= 0; i < MAXHOSTS; i++) answers[i] = -1;
-    assert((last-first) <= MAXHOSTS);
+    CODA_ASSERT((last-first) <= MAXHOSTS);
     for (i = first; i < last; i++) {
 	resdir_entry *rde = sortedArrByName[i];
 	printf("Should %s%s be removed? ",

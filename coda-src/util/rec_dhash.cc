@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/util/rec_dhash.cc,v 4.3 1998/06/11 14:40:10 jaharkes Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/util/rec_dhash.cc,v 4.4 1998/08/26 21:13:00 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -78,7 +78,7 @@ extern void Die(char * ...);
 void *rec_dhashtab::operator new(size_t size) {
     rec_dhashtab *r = 0;
     r = (rec_dhashtab *)rvmlib_rec_malloc(sizeof(rec_dhashtab));
-    assert(r);
+    CODA_ASSERT(r);
     return(r);
 }
 

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/fso_daemon.cc,v 4.1 1997/01/08 21:51:28 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/fso_daemon.cc,v 4.2 1998/08/26 21:24:30 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -174,7 +174,7 @@ void fsdb::GarbageCollect() {
 	    fsobj *f = strbase(fsobj, d, del_handle);
 
 	    if (!DYING(f))
-		{ f->print(logFile); Choke("fsdb::GarbageCollect: !dying"); }
+		{ f->print(logFile); CHOKE("fsdb::GarbageCollect: !dying"); }
 
 	    /* Skip busy and local entries. */
 	    if (!GCABLE(f)) {

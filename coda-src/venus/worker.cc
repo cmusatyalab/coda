@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/worker.cc,v 4.25 1998/10/05 17:15:16 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/worker.cc,v 4.26 1998/10/06 21:56:31 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -291,7 +291,7 @@ void VFSMount() {
 	sa.sa_flags = 0;
 	if ( sigaction(SIGCHLD, &sa, NULL) ) {
 	    eprint("Cannot set signal handler for SIGCHLD");
-	    assert(0);
+	    CODA_ASSERT(0);
 	}
     }
     if ( fork() == 0 ) {
@@ -378,7 +378,7 @@ int k_Purge() {
     
     /* Send the message. */
     if (MsgWrite((char *)&msg, sizeof(msg)) != sizeof(msg))
-	    Choke("k_Purge: Flush, message write returns %d", errno);
+	    CHOKE("k_Purge: Flush, message write returns %d", errno);
 
     LOG(1, ("k_Purge: Flush, returns 0\n"));
     VFSStats.VFSOps[CODA_FLUSH].success++;
@@ -415,7 +415,7 @@ int k_Purge(ViceFid *fid, int severely) {
     /* Send the message. */
     if (MsgWrite((char *)&msg, (int) sizeof(msg)) !=  (int) sizeof(msg)) {
 	retcode = errno;
-	Choke("k_Purge: %s, message write fails: errno %d", 
+	CHOKE("k_Purge: %s, message write fails: errno %d", 
 	      msg.oh.opcode == CODA_PURGEFID ? "CODA_PURGEFID" :
 	      msg.oh.opcode == CODA_ZAPFILE ? "CODA_ZAPFILE" : "CODA_ZAPDIR", retcode);
     }
@@ -450,7 +450,7 @@ int k_Purge(vuid_t vuid) {
 
     /* Send the message. */
     if (MsgWrite((char *)&msg, (int) sizeof(union outputArgs)) != (int) sizeof(union outputArgs))
-	Choke("k_Purge: PurgeUser, message write");
+	CHOKE("k_Purge: PurgeUser, message write");
 
     LOG(1, ("k_Purge: PurgeUser, returns 0\n"));
     VFSStats.VFSOps[CODA_PURGEUSER].success++;
@@ -462,7 +462,7 @@ int k_Replace(ViceFid *fid_1, ViceFid *fid_2) {
     if (KernelMask == 0) return(1);
 
     if (!fid_1 || !fid_2)
-	Choke("k_Replace: nil fids");
+	CHOKE("k_Replace: nil fids");
 
     LOG(0, ("k_Replace: ViceFid (%x.%x.%x) with ViceFid (%x.%x.%x) in mini-cache\n", 
 	    fid_1->Volume, fid_1->Vnode, fid_1->Unique, fid_2->Volume, 
@@ -478,7 +478,7 @@ int k_Replace(ViceFid *fid_1, ViceFid *fid_2) {
 	
     /* Send the message. */
     if (MsgWrite((char *)&msg, sizeof (struct coda_replace_out)) != sizeof (struct coda_replace_out))
-	Choke("k_Replace: message write");
+	CHOKE("k_Replace: message write");
 
     LOG(0, ("k_Replace: returns 0\n"));
     VFSStats.VFSOps[CODA_REPLACE].success++;
@@ -496,15 +496,15 @@ void WorkerInit() {
 	MaxPrefetchers = DFLT_MAXPREFETCHERS;
     else
 	if (MaxPrefetchers > MaxWorkers) /* whoa */
-	    Choke("WorkerInit: MaxPrefetchers %d, MaxWorkers only %d!",
+	    CHOKE("WorkerInit: MaxPrefetchers %d, MaxWorkers only %d!",
 		  MaxPrefetchers, MaxWorkers);
 
 #if defined(DJGPP) || defined(__CYGWIN32__)
     worker::muxfd = ::socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
     if (worker::muxfd < 0)
-	    Choke("WorkerInit: socket() returns %d", errno);
+	    CHOKE("WorkerInit: socket() returns %d", errno);
     if (worker::muxfd >= NFDS)
-	    Choke("WorkerInit: worker::muxfd >= %d!", NFDS);
+	    CHOKE("WorkerInit: worker::muxfd >= %d!", NFDS);
 
     dprint("WorkerInit: muxfd = %d", worker::muxfd);
 
@@ -513,14 +513,14 @@ void WorkerInit() {
     addr.sin_addr.s_addr = INADDR_ANY;
     addr.sin_port = htons(8000);
     if (::bind(worker::muxfd, (struct sockaddr *)&addr, sizeof(addr)) == -1)
-	    Choke("WorkerInit: bind() returns %d", errno);
+	    CHOKE("WorkerInit: bind() returns %d", errno);
 #else 
     /* Open the communications channel. */
     worker::muxfd = ::open(kernDevice, O_RDWR, 0);
     if (worker::muxfd < 0)
-	Choke("WorkerInit: open(%s, O_RDWR, 0) returns %d", kernDevice, errno);
+	CHOKE("WorkerInit: open(%s, O_RDWR, 0) returns %d", kernDevice, errno);
     if (worker::muxfd >= NFDS)
-	Choke("WorkerInit: worker::muxfd >= %d!", NFDS);
+	CHOKE("WorkerInit: worker::muxfd >= %d!", NFDS);
  #endif
     /* Flush kernel cache(s). */
     k_Purge();
@@ -785,7 +785,7 @@ void worker::Resign(msgent *msg, int size) {
     else {
 	if (((union outputArgs *)msg->msg_buf)->oh.result == EINCONS) {
 /*	    ((union outputArgs *)msg->msg_buf)->oh.result = ENOENT;*/
-	    Choke("worker::Resign: result == EINCONS");
+	    CHOKE("worker::Resign: result == EINCONS");
 	}
 
 	Return(msg, size);
@@ -802,7 +802,7 @@ void worker::Resign(msgent *msg, int size) {
 
 void worker::Return(msgent *msg, int size) {
     if (returned)
-	Choke("worker::Return: already returned!");
+	CHOKE("worker::Return: already returned!");
 
     char *opstr = VenusOpStr((int) ((union outputArgs*)msg->msg_buf)->oh.opcode);
     char *retstr = VenusRetStr((int) ((union outputArgs*)msg->msg_buf)->oh.result);
@@ -826,7 +826,7 @@ void worker::Return(msgent *msg, int size) {
 	    /* Guard against a race in which the kernel is signalling us, but we entered this */
 	    /* block before the signal reached us.  In this case the error code from the MsgWrite */
 	    /* will be ESRCH.  No other error code is legitimate. */
-	    if (errn != ESRCH) Choke("worker::Return: errno (%d) from MsgWrite", errno);
+	    if (errn != ESRCH) CHOKE("worker::Return: errno (%d) from MsgWrite", errno);
 	    interrupted = 1;
 	}
     }
@@ -850,8 +850,8 @@ void worker::main(void *parm) {
 	AwaitRequest();
 
 	/* Sanity check new request. */
-	if (idle) Choke("Worker: signalled but not dispatched!");
-	if (!msg) Choke("Worker: no message!");
+	if (idle) CHOKE("Worker: signalled but not dispatched!");
+	if (!msg) CHOKE("Worker: no message!");
 
 	union inputArgs *in = (union inputArgs *)msg->msg_buf;
 	union outputArgs *out = (union outputArgs *)msg->msg_buf;

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/advice.cc,v 4.7 1998/05/15 01:23:30 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/advice.cc,v 4.8 1998/08/26 21:24:25 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -398,7 +398,7 @@ CacheMissAdvice adviceconn::RequestReadDisconnectedCacheMissAdvice(ViceFid *fid,
     LOG(0, ("Read Disconnected Cache Miss Advice failed with %d.  Fetching anyway.\n", (int)advice));
     advice = FetchFromServers;
   }
-  assert(advice <= MaxCacheMissAdvice);
+  CODA_ASSERT(advice <= MaxCacheMissAdvice);
   LOG(100, ("L adviceconn::RequestReadDisconnectedCacheMissAdvice()\n"));
   return(advice);
 }
@@ -883,8 +883,8 @@ CacheMissAdvice adviceconn::RequestWeaklyConnectedCacheMissAdvice(ViceFid *fid, 
   if (rc != RPC2_SUCCESS)
     advice = FetchFromServers;
 
-  assert(advice >= -1);
-  assert(advice <= MaxCacheMissAdvice);
+  CODA_ASSERT(advice >= -1);
+  CODA_ASSERT(advice <= MaxCacheMissAdvice);
 
   LOG(100, ("L adviceconn::RequestWeaklyConnectedCacheMissAdvice() with %s\n", 
 	    CacheMissAdviceToString(advice)));
@@ -910,7 +910,7 @@ void adviceconn::InformLostConnection() {
 
 int adviceconn::NewConnection(char *hostName, int portNumber, int pgrp) {
   char myHostName[MAXHOSTNAMELEN+1];
-  assert(strlen(hostName) <= MAXHOSTNAMELEN);
+  CODA_ASSERT(strlen(hostName) <= MAXHOSTNAMELEN);
 
   LOG(100, ("E adviceconn::NewConnection(%s, %d,  %d)\n", 
 	    hostName, portNumber, pgrp));
@@ -926,10 +926,10 @@ int adviceconn::NewConnection(char *hostName, int portNumber, int pgrp) {
 
   strcpy(hostname, hostName);
   int hostlen = gethostname(myHostName, MAXHOSTNAMELEN+1);
-  assert(hostlen != -1);
-  assert(myHostName != NULL);
-  assert(hostname != NULL);
-  assert((strncmp(hostname, "localhost", strlen("localhost")) == 0) ||
+  CODA_ASSERT(hostlen != -1);
+  CODA_ASSERT(myHostName != NULL);
+  CODA_ASSERT(hostname != NULL);
+  CODA_ASSERT((strncmp(hostname, "localhost", strlen("localhost")) == 0) ||
 	 (strncmp(hostname, myHostName, MAXHOSTNAMELEN)) == 0);
 
   port = (unsigned short) portNumber;
@@ -1093,7 +1093,7 @@ int adviceconn::OutputUsageStatistics(vuid_t uid, char *pathname, int discosSinc
     LOG(0, ("E OutputUsageStatistics(%s %d %d %d)\n", pathname,
 	    discosSinceLastUse, percentDiscosUsed, totalDiscosUsed));
 
-    assert(FSDB);
+    CODA_ASSERT(FSDB);
     FSDB->OutputDisconnectedUseStatistics(pathname, discosSinceLastUse, 
 					  percentDiscosUsed, totalDiscosUsed);
     LOG(0, ("L OutputUsageStatistics(%s)\n", pathname));
@@ -1135,8 +1135,8 @@ void adviceconn::ReturnConnection() {
 
   LOG(100, ("E adviceconn:ReturnConnection:  return connection to %s on port %d\n", hostname, port));
 
-  assert(state == AdviceWaiting);
-  assert(strlen(hostname) < 64);
+  CODA_ASSERT(state == AdviceWaiting);
+  CODA_ASSERT(strlen(hostname) < 64);
 
   ObtainWriteLock(&userLock);
   state = AdviceInvalid;
@@ -1169,7 +1169,7 @@ void adviceconn::ReturnConnection() {
 }
 
 void adviceconn::TearDownConnection() {
-  assert(state == AdviceDying);
+  CODA_ASSERT(state == AdviceDying);
 
   LOG(100, ("adviceconn::TearDownConnection()\n"));
 

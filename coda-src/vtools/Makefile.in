@@ -25,7 +25,7 @@
 # improvements or extensions that  they  make,  and  to  grant  Carnegie
 # Mellon the rights to redistribute these changes without encumbrance.
 # 
-# static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vtools/Makefile.in,v 4.9 98/09/29 16:38:42 braam Exp $";
+# static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vtools/Makefile.in,v 4.10 1998/10/08 17:30:13 jaharkes Exp $";
 
 
 TOPDIR = @top_srcdir@
@@ -44,9 +44,9 @@ endif
 
 CBINS       = $(EXECUTABLES)
 
-CMON_LIBS   =  $(LIBVICEDEP) $(LIBRPC2) $(LIBSE) $(LIBOLDLWP) $(LIBCURSES) $(LIBCOMPAT)
-CFS_LIBS    = $(LIBKERNDEP) $(LIBUTIL)
-HOARD_LIBS  = $(LIBUTIL) $(LIBKERNDEP) 
+CMON_LIBS   =  $(LIBVICEDEP) $(LIBRPC2) $(LIBSE) $(LIBOLDLWP) $(LIBCURSES) $(LIBCOMPAT) $(LIBBASE)
+CFS_LIBS    = $(LIBKERNDEP) $(LIBUTIL) $(LIBBASE)
+HOARD_LIBS  = $(LIBUTIL) $(LIBKERNDEP) $(LIBBASE)
 
 CXXFLAGS := $(CXXFLAGS) -UVENUS
 

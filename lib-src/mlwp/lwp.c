@@ -57,7 +57,7 @@ supported by Transarc Corporation, Pittsburgh, PA.
 #include <stdlib.h>
 #include <unistd.h>
 #include <stdio.h>
-#include <assert.h>
+#include "coda_assert.h"
 #include <sys/time.h>
 #ifdef __CYGWIN32__
 #include <time.h>
@@ -635,7 +635,7 @@ int LWP_CreateProcess(ep, stacksize, priority, parm, name, pid)
 	stackptr = (char *) mmap(lwp_stackbase, stacksize, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANON, -1, 0);
 	if ( (int) stackptr == -1 ) {
 		perror("stack: ");
-		assert(0);
+		CODA_ASSERT(0);
 	}
 #if 0
 	sprintf(msg, "STACK: from %p to %p, for %s\n", lwp_stackbase, lwp_stackbase + stacksize, name);
@@ -1550,13 +1550,13 @@ static void InitMyStackInfo(sp)
     if (FindStackInfo(si.id) != NULL) return;
 
     index = GetFreeVMInfoSlot();
-    assert(index != -1);
+    CODA_ASSERT(index != -1);
     vminfo[index] = (stackinfo *)malloc(sizeof(stackinfo));
-    assert(vminfo[index]);
+    CODA_ASSERT(vminfo[index]);
 
     /* get the info via mach call */
     addr = (vm_address_t)sp;
-    assert(vm_region(task_self(), &addr, &si.size, 
+    CODA_ASSERT(vm_region(task_self(), &addr, &si.size, 
 		     &si.protection, &si.maxprot, 
 		     &inheritance, &shared, 
 		     &objname, &offset) == KERN_SUCCESS);
@@ -1574,7 +1574,7 @@ void LWP_ProtectStacks() {
 	if (sip && sip->id != id) {
 	    printf("LWP_ProtectStacks: going to protect from 0x%x to 0x%x\n", 
 		   sip->address, (char *)sip->address + sip->size);
-	    assert(vm_protect(task_self(), sip->address, sip->size, 
+	    CODA_ASSERT(vm_protect(task_self(), sip->address, sip->size, 
 			      FALSE, VM_PROT_NONE) == KERN_SUCCESS);
 	}
     }
@@ -1588,7 +1588,7 @@ void LWP_UnProtectStacks() {
     for (i = 0; i < MAXTHREADS; i++) {
 	sip = vminfo[i];
 	if (sip && sip->id != id) {
-	    assert(vm_protect(task_self(), sip->address, 
+	    CODA_ASSERT(vm_protect(task_self(), sip->address, 
 			      sip->size, FALSE, 
 			      sip->protection) == KERN_SUCCESS);
 	}

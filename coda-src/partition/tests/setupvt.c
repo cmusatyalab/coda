@@ -26,12 +26,12 @@ main(int argc, char **argv)
     pf = Partent_create(host, "/tmp/f", "ftree","width=8,depth=5");
     unlink("vicetab");
     rc = creat("vicetab", 00600);
-    assert( rc != -1 );
+    CODA_ASSERT( rc != -1 );
     vtab = Partent_set("vicetab", "r+");
     rc = Partent_add(vtab, pe);
-    assert( rc == 0 );
+    CODA_ASSERT( rc == 0 );
     rc = Partent_add(vtab, pf);
-    assert( rc == 0 );
+    CODA_ASSERT( rc == 0 );
     Partent_free(&pe);
     Partent_free(&pf);
     Partent_end(vtab);

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vol/index.cc,v 4.4 1998/01/10 18:39:40 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vol/index.cc,v 4.5 1998/08/26 21:22:25 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -102,7 +102,7 @@ vindex::vindex(VolumeId volid, int vnodetype, Device dev, int size, int volindex
     /* hoping this isn't necessary...*/
     /* Make sure objsize is a power of 2 */
     for (objsize = 1; objsize < size; objsize *=2);
-    assert(objsize == size);
+    CODA_ASSERT(objsize == size);
 #endif notdef
 
     vol_id = volid;

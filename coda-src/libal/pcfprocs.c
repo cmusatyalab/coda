@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/libal/pcfprocs.c,v 4.1 1998/04/14 20:51:48 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/libal/pcfprocs.c,v 4.2 1998/08/26 21:15:25 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -115,7 +115,7 @@ int pcfRead(IN char *pcfile)
 #ifndef DJGPP
 #define	ERROR {flock(pcfFD, LOCK_UN); close(pcfFD); return(-1);}	/* Local to pcfRead */
 #else
-#define ERROR assert(0);
+#define ERROR CODA_ASSERT(0);
 #endif
 
 		
@@ -269,7 +269,7 @@ int pcfWrite(IN char *pcfile)
 #ifndef DJGPP
 #define	ERROR {flock(pcfFD, LOCK_UN); close(pcfFD); return(-1);}	/* Local to pcfWrite*/
 #else
-#define ERROR assert(0);
+#define ERROR CODA_ASSERT(0);
 #endif
 
     dobyteswap = FALSE;

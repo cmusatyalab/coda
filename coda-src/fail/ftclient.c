@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/src/coda-4.0.1/RCSLINK/./coda-src/fail/ftclient.c,v 1.1 1996/11/22 19:09:20 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/fail/ftclient.c,v 4.1 1997/01/08 21:49:37 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -44,7 +44,7 @@ static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/src/coda-4.0.1
 #include <stdio.h>
 #include <libc.h>
 #include <strings.h>
-#include <assert.h>
+#include "coda_assert.h"
 #include <sys/param.h>
 #include <sys/time.h>
 #include <sys/types.h>
@@ -381,7 +381,7 @@ InitRPC()
 	SFTP_Initializer sftpi;
 	RPC2_PortalIdent portalid, *portallist[1];
 
-	assert(LWP_Init(LWP_VERSION, LWP_NORMAL_PRIORITY, &mylpid) == LWP_SUCCESS);
+	CODA_ASSERT(LWP_Init(LWP_VERSION, LWP_NORMAL_PRIORITY, &mylpid) == LWP_SUCCESS);
 
 	SFTP_SetDefaults(&sftpi);
 	if (sftp_ackpoint) sftpi.AckPoint = sftp_ackpoint;

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/volutil/physio.cc,v 4.3 1998/08/31 12:23:44 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/volutil/physio.cc,v 4.4 1998/09/07 15:57:22 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -159,7 +159,7 @@ int ReallyWrite (void *formal_file, long block, char *data)
 	    if (!FidCmp(tmpsdp, sdp))
 		break;
 	}
-	assert(tmpsdp);
+	CODA_ASSERT(tmpsdp);
 	DirHtb->remove(&fid, tmpsdp);
 	delete tmpsdp;
     }
@@ -194,7 +194,7 @@ void FidCpy (void *formal_tofile, void *formal_fromfile)
 void Die (char *msg)
 {
     printf("%s\n", msg);
-    assert(0);
+    CODA_ASSERT(0);
 }
 */
 

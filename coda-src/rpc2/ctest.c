@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rpc2/ctest.c,v 4.4 98/06/07 20:14:56 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rpc2/ctest.c,v 4.5 1998/10/31 00:54:47 rnw Exp $";
 #endif /*_BLURB_*/
 
 
@@ -124,7 +124,7 @@ int main(int arg, char **argv)
 	SE_Descriptor sed;
 
 	ErrorLogFile = stderr;
-	assert(LWP_Init(LWP_VERSION, LWP_MAX_PRIORITY-1, &mypid) == LWP_SUCCESS);
+	CODA_ASSERT(LWP_Init(LWP_VERSION, LWP_MAX_PRIORITY-1, &mypid) == LWP_SUCCESS);
 
 
 	for (i='a'; i < 'z' + 1; i++) {
@@ -163,7 +163,7 @@ int main(int arg, char **argv)
     lwp_stackUseEnabled = 0;
 #endif OLDLWP
 
-    assert(RPC2_AllocBuffer(RPC2_MAXPACKETSIZE - 500, &Buff1) == RPC2_SUCCESS);
+    CODA_ASSERT(RPC2_AllocBuffer(RPC2_MAXPACKETSIZE - 500, &Buff1) == RPC2_SUCCESS);
                        /* 500 is a fudge factor */
 
     Buff2 = NULL; /* only for safety; RPC2_MakeRPC() will set it */
@@ -207,7 +207,7 @@ int main(int arg, char **argv)
 	    case SETVMFILESIZE:
 		printf("Local buffer size? ");  (void) scanf("%ld", &VMMaxFileSize);
 		if (VMFileBuf) free(VMFileBuf);
-		assert(VMFileBuf = (char *)malloc((unsigned)VMMaxFileSize));
+		CODA_ASSERT(VMFileBuf = (char *)malloc((unsigned)VMMaxFileSize));
 		break;
 		
 	    case SETREMOTEVMFILESIZE:
@@ -301,7 +301,7 @@ int main(int arg, char **argv)
 
 		printf("Hash mark: ");
 #ifndef	__linux__
-		assert(fseek(stdin, (long) 0, 2) == 0);
+		CODA_ASSERT(fseek(stdin, (long) 0, 2) == 0);
 #endif
 		(void) scanf("%c", &sed.Value.SmartFTPD.hashmark);
 		if (sed.Value.SmartFTPD.hashmark == '0')
@@ -378,7 +378,7 @@ int main(int arg, char **argv)
 		    tt = RPC2_MakeRPC(cid, Buff1, (SE_Descriptor *)NULL, &Buff2, 
 				      (struct timeval *)NULL, (long)0);
 		    if (tt != RPC2_SUCCESS)break;
-		    assert(RPC2_FreeBuffer(&Buff2) == RPC2_SUCCESS);
+		    CODA_ASSERT(RPC2_FreeBuffer(&Buff2) == RPC2_SUCCESS);
 		    }
 #ifdef PROFILE
 		ProfilingOff();
@@ -431,7 +431,7 @@ int main(int arg, char **argv)
 	    for (i=0; i < Buff2->Header.BodyLength; i++)
 		(void) putchar(*nextc++);
 	    printf("''\n");
-	    assert(RPC2_FreeBuffer(&Buff2) == RPC2_SUCCESS);
+	    CODA_ASSERT(RPC2_FreeBuffer(&Buff2) == RPC2_SUCCESS);
 	    }
 
 	rpctime = ((t2.tv_sec - t1.tv_sec)*1000) + ((t2.tv_usec - t1.tv_usec)/1000);
@@ -453,7 +453,7 @@ Finish:
 int iopen()
 {
 	printf("In iopen");
-    assert(1 == 0);
+    CODA_ASSERT(1 == 0);
     return 1;
 }
 

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/local_cml.cc,v 4.8 98/09/29 21:04:44 jaharkes Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/local_cml.cc,v 4.9 1998/10/13 16:49:28 jaharkes Exp $";
 #endif /*_BLURB_*/
 
 
@@ -890,7 +890,7 @@ void cmlent::CheckRepair(char *msg, int *mcode, int *rcode)
 		fid->Volume, fid->Vnode, fid->Unique));
 	break;
     default:
-	Choke("cmlent::CheckRepair: bogus opcode %d", opcode);
+	CHOKE("cmlent::CheckRepair: bogus opcode %d", opcode);
     }
     LOG(100, ("cmlent::CheckRepair: mcode = %d rcode = %d msg = %s\n", *mcode, *rcode, msg));
 }
@@ -928,7 +928,7 @@ int cmlent::DoRepair(char *msg, int rcode)
 		      LObj->fid.Volume, LObj->fid.Vnode, LObj->fid.Unique));
 
 	    if (!LObj->data.havedata)
-		Choke("DoRepair: Store with no local data!");
+		CHOKE("DoRepair: Store with no local data!");
 
 	    /* copy the local-obj cache file into the global-obj cache */
 	    int gfd = open(GObj->data.file->Name(),
@@ -1280,7 +1280,7 @@ int cmlent::DoRepair(char *msg, int rcode)
 	    break;
 	}
     default:
-	Choke("cmlent::DoRepair: bogus opcode %d", opcode);
+	CHOKE("cmlent::DoRepair: bogus opcode %d", opcode);
     }
     return code;
 }
@@ -1368,7 +1368,7 @@ void cmlent::GetLocalOpMsg(char *msg)
 		break;
         }
     default:
-	Choke("cmlent::GetLocalOpMsg: bogus opcode %d", opcode);
+	CHOKE("cmlent::GetLocalOpMsg: bogus opcode %d", opcode);
     }
 }
 
@@ -1538,7 +1538,7 @@ void cmlent::GetVVandFids(ViceVersionVector *vvs[], ViceFid *fids[])
 	    fids[0] = &u.u_repair.Fid;
 	    break;
 	default:
-	    Choke("cmlent::GetVVandFids: bogus opcode (%d)", opcode);
+	    CHOKE("cmlent::GetVVandFids: bogus opcode (%d)", opcode);
     }
 }
 
@@ -1604,7 +1604,7 @@ void cmlent::GetAllFids(ViceFid *fids[])
 	    break;
 
 	default:
-	    Choke("cmlent::GetAllFids: bogus opcode (%d)", opcode);
+	    CHOKE("cmlent::GetAllFids: bogus opcode (%d)", opcode);
     }
 }
 

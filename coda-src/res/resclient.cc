@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/res/resclient.cc,v 4.8 1998/10/21 22:05:45 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/res/resclient.cc,v 4.9 1998/10/30 18:29:48 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -45,7 +45,7 @@ extern "C" {
 #endif __cplusplus
 
 #include <sys/types.h>
-#include <assert.h>
+#include "coda_assert.h"
 #include <stdio.h>
 #include <unistd.h>
 #include <stdlib.h>
@@ -219,7 +219,7 @@ long RS_FetchLog(RPC2_Handle RPCid, ViceFid *Fid, RPC2_Integer *size,
 		loglist = AllocateVMResLogList(vptr->disk.vol_index, 
 					       vptr->vnodeNumber, 
 					       vptr->disk.uniquifier);
-		assert(loglist);
+		CODA_ASSERT(loglist);
 	    }
 	    
 	    if (loglist->count() == 0) 
@@ -277,7 +277,7 @@ long RS_FetchLog(RPC2_Handle RPCid, ViceFid *Fid, RPC2_Integer *size,
 	Error	fileCode = 0;
 	if (vptr) {
 	    VPutVnode(&fileCode, vptr);
-	    assert(fileCode == 0);
+	    CODA_ASSERT(fileCode == 0);
 	}	
 	if (volptr)
 	    PutVolObj(&volptr, NO_LOCK);
@@ -320,7 +320,7 @@ long RS_DirResPhase1(RPC2_Handle RPCid, ViceFid *Fid, RPC2_Integer size,
     /* get log from coordinator */
     {
 	logbuf = (char *)malloc(size);
-	assert(logbuf);
+	CODA_ASSERT(logbuf);
 	SE_Descriptor	sid;
 	bzero((void *)&sid, (int)sizeof(SE_Descriptor));
 	sid.Tag = SMARTFTP;
@@ -407,14 +407,14 @@ PollAndYield();
 	ViceVersionVector DiffVV;
 	DiffVV = status->VV;
 	vle *ov = FindVLE(*vlist, Fid);
-	assert(ov && ov->vptr);
+	CODA_ASSERT(ov && ov->vptr);
 	
 	/* check if new vv is legal */
 	int res = VV_Cmp_IgnoreInc(&Vnode_vv(ov->vptr), &DiffVV);
 	if (res != VV_EQ && res != VV_SUB) {
 	    SLog(0,  "RS_DirResPhase 1: %x.%x VV's are in conflict",
 		   ov->vptr->vnodeNumber, ov->vptr->disk.uniquifier);
-	    assert(0);
+	    CODA_ASSERT(0);
 	}
 	else {
 	    SubVVs(&DiffVV, &Vnode_vv(ov->vptr));
@@ -572,7 +572,7 @@ long RS_DirResPhase2(RPC2_Handle RPCid, ViceFid *Fid, ViceStoreId *logid,
     // spool a resolve nullop record and set out status parameter 
     {
 	vle *ov = FindVLE(*vlist, Fid);
-	assert(ov);
+	CODA_ASSERT(ov);
 	if (AllowResolution && V_VMResOn(volptr)) {
 	    int ind = InitVMLogRecord(V_volumeindex(volptr),
 				      Fid, logid, ResolveNULL_OP, 0);
@@ -581,7 +581,7 @@ long RS_DirResPhase2(RPC2_Handle RPCid, ViceFid *Fid, ViceStoreId *logid,
 	    ov->sl.append(SLE);
 	}
 	if (AllowResolution && V_RVMResOn(volptr)) 
-	    assert(SpoolVMLogRecord(vlist, ov->vptr, 
+	    CODA_ASSERT(SpoolVMLogRecord(vlist, ov->vptr, 
 				    volptr, logid, 
 				    ResolveNULL_OP, 0) == 0);
 	
@@ -635,9 +635,9 @@ long RS_DirResPhase3(RPC2_Handle RPCid, ViceFid *Fid, ViceVersionVector *VV,
     /* get index of host */
     {
 	vre = VRDB.find(V_groupId(volptr));
-	assert(vre);
+	CODA_ASSERT(vre);
 	ix = vre->index(ThisHostAddr);
-	assert(ix >= 0);
+	CODA_ASSERT(ix >= 0);
     }
     
     /* if phase1 was successful update vv */
@@ -655,7 +655,7 @@ long RS_DirResPhase3(RPC2_Handle RPCid, ViceFid *Fid, ViceVersionVector *VV,
 	if (V_RVMResOn(volptr)) {
 	    SLog(0, 
 		   "Going to spool log entry for phase3\n");
-	    assert(SpoolVMLogRecord(vlist, ov->vptr, volptr, &(VV->StoreId), ResolveNULL_OP, 0) == 0);
+	    CODA_ASSERT(SpoolVMLogRecord(vlist, ov->vptr, volptr, &(VV->StoreId), ResolveNULL_OP, 0) == 0);
 	}
     }
     /* truncate log if success everywhere in phase 1 */
@@ -862,7 +862,7 @@ static rlent *CreateCompList(int *sizes, rlent **partialops,
     /* delete duplicate entries */
     {	
 	ViceStoreId prevstoreid;
-	assert(totalops > 0);
+	CODA_ASSERT(totalops > 0);
 	prevstoreid = opsptrs[0]->storeid;
 	tmpdvnode = opsptrs[0]->dvnode;
 	opsptrs[0]->dvnode = KEEPFLAG;
@@ -875,7 +875,7 @@ static rlent *CreateCompList(int *sizes, rlent **partialops,
 	    }
 	    else {
 		prevstoreid = opsptrs[i]->storeid;
-		assert(tmpdvnode == opsptrs[i]->dvnode);
+		CODA_ASSERT(tmpdvnode == opsptrs[i]->dvnode);
 		
 		SLog(39,  "CreateCompList: Keeping entry %d (%x.%x)",
 			i, prevstoreid.Host, prevstoreid.Uniquifier);
@@ -912,7 +912,7 @@ static rlent *CreateCompList(int *sizes, rlent **partialops,
 		if (res == 0) {
 		    SLog(39,  "Found a match between local entry %d and total entry %d",
 			    j, i);
-		    assert(opsptrs[i]->dvnode == KEEPFLAG);
+		    CODA_ASSERT(opsptrs[i]->dvnode == KEEPFLAG);
 		    opsptrs[i]->dvnode = tmpdvnode;
 		    SLog(39,  "Deleting Entry:");
 		    if (SrvDebugLevel >= 39) 
@@ -932,7 +932,7 @@ static rlent *CreateCompList(int *sizes, rlent **partialops,
     /* copy unique log records into a buffer */
     if (*complistsize > 0) {
 	complist = (rlent *)malloc(sizeof(rlent) * *complistsize);
-	assert(complist);
+	CODA_ASSERT(complist);
 	int index = 0;
 	for (int i = 0; i < nhosts; i++) 
 	    for (int j = 0; j < sizes[i]; j++) {
@@ -946,7 +946,7 @@ static rlent *CreateCompList(int *sizes, rlent **partialops,
 		    index++;
 		}
 	    }
-	assert(index == *complistsize);
+	CODA_ASSERT(index == *complistsize);
     }
     else 
 	complist = NULL;
@@ -997,7 +997,7 @@ static int ComputeCompOps(olist *AllHostsList, ViceFid *Fid,
     {
 	nlentries = llrmtle->u.remote.nentries;
 	sortedLlog = (rlent **)malloc(nlentries * sizeof(rlent *));
-	assert(sortedLlog);
+	CODA_ASSERT(sortedLlog);
 	for (int i = 0; i < nlentries; i++) 
 	    sortedLlog[i] = &(llrmtle->u.remote.log[i]);
 	qsort(sortedLlog, nlentries, sizeof(rlent *), 
@@ -1020,7 +1020,7 @@ static int ComputeCompOps(olist *AllHostsList, ViceFid *Fid,
 	    npartialops[i] = 0;
 	    partialops[i] = 0;
 	}
-	assert(AllHostsList->count() <= VSG_MEMBERS);
+	CODA_ASSERT(AllHostsList->count() <= VSG_MEMBERS);
 	
 	/* get each remote host's partial ops */
 	{	
@@ -1029,7 +1029,7 @@ static int ComputeCompOps(olist *AllHostsList, ViceFid *Fid,
 	    while (HE = (he *)next()) {
 		if (HE->hid != ThisHostAddr) {
 		    rmtle *RLE = FindRMTLE(&HE->vlist, Fid->Vnode, Fid->Unique);
-		    assert(RLE);
+		    CODA_ASSERT(RLE);
 		    
 		    partialops[index] = FindRmtPartialOps(RLE->u.remote.nentries,
 							  RLE->u.remote.log,
@@ -1058,7 +1058,7 @@ static int ComputeCompOps(olist *AllHostsList, ViceFid *Fid,
 			index);
 		index++;
 	    }
-	    assert(index == AllHostsList->count());
+	    CODA_ASSERT(index == AllHostsList->count());
 	}
     }
     
@@ -1160,8 +1160,8 @@ static int GetResObjs(rlent *rlog, int nrentries, ViceFid *Fid,
 	    count++;
 	    if ((count & Yield_CollectFidMask) == 0)
 		PollAndYield();
-	    assert(rle->dvnode == vptr->vnodeNumber);
-	    assert(rle->dunique == vptr->disk.uniquifier);
+	    CODA_ASSERT(rle->dvnode == vptr->vnodeNumber);
+	    CODA_ASSERT(rle->dunique == vptr->disk.uniquifier);
 	    switch(rle->opcode) {
 	      case ResolveNULL_OP:
 	      case ViceNewStore_OP:
@@ -1368,7 +1368,7 @@ static int GetResObjs(rlent *rlog, int nrentries, ViceFid *Fid,
 		}
 		break;
 	      default:
-		assert(0);
+		CODA_ASSERT(0);
 		break;
 	    }
 	}
@@ -1380,7 +1380,7 @@ static int GetResObjs(rlent *rlog, int nrentries, ViceFid *Fid,
 	if (vptr) {
 	    Error error = 0;
 	    VPutVnode(&error, vptr);
-	    assert(error == 0);
+	    CODA_ASSERT(error == 0);
 	    vptr = 0;
 	}
     }
@@ -1408,7 +1408,7 @@ static int GetResObjs(rlent *rlog, int nrentries, ViceFid *Fid,
 	SLog(9,  "GetResObjs: ERROR condition - Putting back parent");
 	Error error = 0;
 	VPutVnode(&error, vptr);
-	assert(error == 0);
+	CODA_ASSERT(error == 0);
 	vptr = 0;
     }
     
@@ -1445,7 +1445,7 @@ static int CheckSemPerformRes(rlent *rlog, int nrents,
     
     if (nrents) {
 	result = (int *)malloc(sizeof(int) * nrents);
-	assert((int)result != 0);
+	CODA_ASSERT((int)result != 0);
     }
     /* Initialize the results */
     {
@@ -1461,7 +1461,7 @@ static int CheckSemPerformRes(rlent *rlog, int nrents,
 	int ParentPtrOk = TRUE;
 	
 	pv = FindVLE(*vlist, dFid);
-	assert(pv);
+	CODA_ASSERT(pv);
 	
 	VolumeId VSGVolnum = V_id(volptr);
 	if (!ReverseXlateVid(&VSGVolnum)) {
@@ -1522,7 +1522,7 @@ static int CheckSemPerformRes(rlent *rlog, int nrents,
 		/* XXXXX BE CAREFUL WITH CHILD FID AND RENAMES */
 		ExtractChildFidFromRLE(&rlog[i], &cFid);
 		cFid.Volume = dFid->Volume;
-		assert(cFid.Vnode);
+		CODA_ASSERT(cFid.Vnode);
 		
 		/* if vnode exists - it will exist in vlist */
 		ObjExists = FALSE;
@@ -1569,8 +1569,8 @@ static int CheckSemPerformRes(rlent *rlog, int nrents,
 		  case MARKPARENTINC:
 		    SLog(9,  "CheckSemPerformRes: Marking Parent Inc");
 		    pv = FindVLE(*vlist, dFid);
-		    assert(pv);
-		    assert(pv->vptr);
+		    CODA_ASSERT(pv);
+		    CODA_ASSERT(pv->vptr);
 		    MarkObjInc(dFid, pv->vptr);
 		    AddILE(*inclist, ".", dFid->Vnode, dFid->Unique, 
 			   dFid->Vnode, dFid->Unique, (long)vDirectory);
@@ -1603,8 +1603,8 @@ static int CheckSemPerformRes(rlent *rlog, int nrents,
 						   vntype, vlist, &tblocks);
 		    if (errorCode == 0) {
 			vle *cv = FindVLE(*vlist, &cFid);
-			assert(cv);
-			assert(cv->vptr);
+			CODA_ASSERT(cv);
+			CODA_ASSERT(cv->vptr);
 			MarkObjInc(&cFid, cv->vptr);
 			AddILE(*inclist, name, cFid.Vnode, cFid.Unique, 
 			       cv->vptr->disk.vparent, 
@@ -1614,7 +1614,7 @@ static int CheckSemPerformRes(rlent *rlog, int nrents,
 		    break;
 		  default:
 		    SLog(0,  "Illegal result from CheckValidityResOP");
-		    assert(0);
+		    CODA_ASSERT(0);
 		}
 		*nblocks += tblocks;
 		if (errorCode)
@@ -1689,14 +1689,14 @@ static int CheckValidityResOp(rlent *rle, int NE,
       case ViceCreate_OP:
 	if (!NE) {
 	    if (OE) {
-		assert(0);	/* site participated in create cant get create again */
+		CODA_ASSERT(0);	/* site participated in create cant get create again */
 	    }
 	    else  /* !OE */
 		return(PERFORMOP);
 	}
 	else {	/* name exists */
 	    if (OE) {
-		assert(0);
+		CODA_ASSERT(0);
 	    }
 	    else  /* !OE */
 		return(MARKPARENTINC);	/* N/N Conflict */
@@ -1704,20 +1704,20 @@ static int CheckValidityResOp(rlent *rle, int NE,
 	break;
       case ResolveViceRename_OP:
       case ViceRename_OP:
-	assert(0);
+	CODA_ASSERT(0);
 	break;
       case ResolveViceSymLink_OP:
       case ViceSymLink_OP:
 	if (!NE) {
 	    if (OE) {
-		assert(0); 	
+		CODA_ASSERT(0); 	
 	    }
 	    else
 		return(PERFORMOP);
 	}
 	else {	/* name exists */
 	    if (OE) {
-		assert(0);
+		CODA_ASSERT(0);
 	    }
 	    else /* !OE */
 		return(MARKPARENTINC);
@@ -1752,7 +1752,7 @@ static int CheckValidityResOp(rlent *rle, int NE,
       case ViceMakeDir_OP:
 	if (!NE) {
 	    if (OE) {
-		assert(0);	
+		CODA_ASSERT(0);	
 	    }
 	    else 
 		/* object doesnt exist */
@@ -1760,7 +1760,7 @@ static int CheckValidityResOp(rlent *rle, int NE,
 	}
 	else {	/* name exists */
 	    if (OE) {
-		assert(0);
+		CODA_ASSERT(0);
 	    }
 	    else /* !OE */
 		return(MARKPARENTINC);
@@ -1796,7 +1796,7 @@ static int CheckValidityResOp(rlent *rle, int NE,
 	}
 	break;
       default:
-	assert(0);
+	CODA_ASSERT(0);
 	return(0); /* keep g++ happy */
     }
 }
@@ -1825,7 +1825,7 @@ static int ResolveRename(rlent *rl, Volume *volptr, VolumeId VSGVolnum,
 					    newinclist, blocks);
     if (!errorCode) {
 	int tblocks = 0;
-	assert(CleanRenameTarget(rl, vlist, volptr, VSGVolnum, 
+	CODA_ASSERT(CleanRenameTarget(rl, vlist, volptr, VSGVolnum, 
 				 hvlog, &tblocks) == 0);
 	*blocks += tblocks;
 	tblocks = 0;
@@ -1837,7 +1837,7 @@ static int ResolveRename(rlent *rl, Volume *volptr, VolumeId VSGVolnum,
 		      &sdv->d_cinode, &tdv->d_cinode, &sv->d_cinode, NULL);
 	if (tv && tv->vptr->delete_me) {
 	    tblocks = (int) -nBlocks(tv->vptr->disk.length);
-	    assert(AdjustDiskUsage(volptr, tblocks) == 0);
+	    CODA_ASSERT(AdjustDiskUsage(volptr, tblocks) == 0);
 	    *blocks += tblocks;
 	    if (tv->vptr->disk.type != vDirectory) {
 		tv->f_sinode = tv->vptr->disk.inodeNumber;
@@ -1868,15 +1868,15 @@ static int ResolveRename(rlent *rl, Volume *volptr, VolumeId VSGVolnum,
 	    
 	    vle *v;
 	    v = FindVLE(*vlist, &fid);
-	    assert(v); 
-	    assert(v->vptr);
+	    CODA_ASSERT(v); 
+	    CODA_ASSERT(v->vptr);
 	    MarkObjInc(&fid, v->vptr);
 	    if (inclist->IsMember(il))
 		delete il;
 	    else
 		inclist->insert(il);
 	}
-	assert(newinclist->count() == 0);
+	CODA_ASSERT(newinclist->count() == 0);
 	delete newinclist;
 	newinclist = 0;
 	errorCode = 0;
@@ -1972,12 +1972,12 @@ static int CheckResolveRenameSemantics(rlent *rl, Volume *volptr,
 			spFid.Vnode, spFid.Unique, SrcFid.Vnode, 
 			SrcFid.Unique, OldDid.Vnode, OldDid.Unique);
 		vle *spv = FindVLE(*vlist, &spFid);
-		assert(spv);
-		assert(spv->vptr);
+		CODA_ASSERT(spv);
+		CODA_ASSERT(spv->vptr);
 		if (spFid.Vnode == 1 && spFid.Unique == 1) 
 		    AddILE(*newinclist, ".", 1, 1, 1, 1, vDirectory);
 		else {
-		    assert(GetNameInParent(spv->vptr, vlist, volptr, name));
+		    CODA_ASSERT(GetNameInParent(spv->vptr, vlist, volptr, name));
 		    AddILE(*newinclist, name, spFid.Vnode, spFid.Unique, 
 			   spv->vptr->disk.vparent, spv->vptr->disk.uparent, vDirectory);
 		}
@@ -2049,7 +2049,7 @@ static int CheckResolveRenameSemantics(rlent *rl, Volume *volptr,
 			if (tpFid.Vnode == 1 && tpFid.Unique == 1) 
 			    AddILE(*newinclist, ".", 1, 1, 1, 1, vDirectory);
 			else {
-			    assert(GetNameInParent(tpv->vptr, vlist, volptr, name));
+			    CODA_ASSERT(GetNameInParent(tpv->vptr, vlist, volptr, name));
 			    AddILE(*newinclist, name, tpFid.Vnode, tpFid.Unique, 
 				   tpv->vptr->disk.vparent, tpv->vptr->disk.uparent, vDirectory);
 			}
@@ -2070,7 +2070,7 @@ static int CheckResolveRenameSemantics(rlent *rl, Volume *volptr,
 	    {
 		if (!ISDIR(TgtFid)) {
 		    /* file remove/update conflict */
-		    assert(tv->vptr);
+		    CODA_ASSERT(tv->vptr);
 		    int res = VV_Cmp(&Vnode_vv(tv->vptr), 
 				     &(rl->u.u_rename.rename_tgt.TgtGhost.TgtGhostVV));
 		    if (res != VV_EQ && res != VV_SUB) {
@@ -2115,14 +2115,14 @@ static int CheckResolveRenameSemantics(rlent *rl, Volume *volptr,
     
   Exit:
     if (errorCode) {
-	assert(opv);
-	assert(opv->vptr);
-	assert(npv);
-	assert(npv->vptr);
+	CODA_ASSERT(opv);
+	CODA_ASSERT(opv->vptr);
+	CODA_ASSERT(npv);
+	CODA_ASSERT(npv->vptr);
 	if (opv->vptr->disk.uniquifier == 1) 
 	    AddILE(*newinclist, ".", 1, 1, 1, 1, vDirectory);
 	else {
-	    assert(GetNameInParent(opv->vptr, vlist, volptr, name));
+	    CODA_ASSERT(GetNameInParent(opv->vptr, vlist, volptr, name));
 	    AddILE(*newinclist, name, OldDid.Vnode, OldDid.Unique, 
 		   opv->vptr->disk.vparent, opv->vptr->disk.uparent, vDirectory);
 	}
@@ -2130,7 +2130,7 @@ static int CheckResolveRenameSemantics(rlent *rl, Volume *volptr,
 	    if (npv->vptr->disk.uniquifier == 1) 
 		AddILE(*newinclist, ".", 1, 1, 1, 1, vDirectory);
 	    else {
-		assert(GetNameInParent(npv->vptr, vlist, volptr, name));
+		CODA_ASSERT(GetNameInParent(npv->vptr, vlist, volptr, name));
 		AddILE(*newinclist, name, NewDid.Vnode, NewDid.Unique, 
 		       npv->vptr->disk.vparent, npv->vptr->disk.uparent, vDirectory);
 	    }
@@ -2213,7 +2213,7 @@ void SpoolRenameLogRecord(int opcode, vle *sv, vle *tv, vle *sdv,
 	    pdlist *pl = GetResLogList(tv->vptr->disk.vol_index, 
 				       TgtFid.Vnode, TgtFid.Unique, 
 				       &vnlog);
-	    assert(pl != NULL);
+	    CODA_ASSERT(pl != NULL);
 	    if (SameParent)
 		src_ind = InitVMLogRecord(V_volumeindex(volptr), &OldDid, 
 					 StoreId, opcode, SOURCE, 
@@ -2278,11 +2278,11 @@ void SpoolRenameLogRecord(int opcode, vle *sv, vle *tv, vle *sdv,
 				      OldDid.Vnode, OldDid.Unique,
 				      NewName, 0);
     }
-    assert(src_ind != -1);
+    CODA_ASSERT(src_ind != -1);
     sle *SLE = new sle(src_ind);
     sdv->sl.append(SLE);
     if (!SameParent) {
-	assert(tgt_ind != -1);
+	CODA_ASSERT(tgt_ind != -1);
 	sle *tgtSLE = new sle(tgt_ind);
 	tdv->sl.append(tgtSLE);
     }
@@ -2310,7 +2310,7 @@ static int PerformResOp(rlent *r, dlist *vlist, olist *hvlog,
     long errorCode = 0;
     *blocks = 0;
     char *name = ExtractNameFromRLE(r);
-    assert(name);
+    CODA_ASSERT(name);
     ViceFid cFid;
     /* XXXX BE CAREFUL WITH CHILD FIDS AND RENAMES */
     ExtractChildFidFromRLE(r, &cFid);
@@ -2320,7 +2320,7 @@ static int PerformResOp(rlent *r, dlist *vlist, olist *hvlog,
     switch (r->opcode) {
       case ViceNewStore_OP:
       case ResolveViceNewStore_OP:
-	assert(0);
+	CODA_ASSERT(0);
 	break;
       case ResolveViceRemove_OP:
       case ViceRemove_OP:
@@ -2328,8 +2328,8 @@ static int PerformResOp(rlent *r, dlist *vlist, olist *hvlog,
 	    SLog(9,  "PerformResOP: Removing child %s(%x.%x)",
 		    name, cFid.Vnode, cFid.Unique);
 	    vle *cv = FindVLE(*vlist, &cFid);
-	    assert(cv);
-	    assert(cv->vptr);
+	    CODA_ASSERT(cv);
+	    CODA_ASSERT(cv->vptr);
 	    
 	    /* perform remove */
 	    {
@@ -2340,7 +2340,7 @@ static int PerformResOp(rlent *r, dlist *vlist, olist *hvlog,
 			      blocks);
 		if (cv->vptr->delete_me) {
 		    int tblocks = (int) -nBlocks(cv->vptr->disk.length);
-		    assert(AdjustDiskUsage(volptr, tblocks) == 0);
+		    CODA_ASSERT(AdjustDiskUsage(volptr, tblocks) == 0);
 		    *blocks += tblocks;
 		    cv->f_sinode = cv->vptr->disk.inodeNumber;
 		    cv->vptr->disk.inodeNumber = 0;
@@ -2369,7 +2369,7 @@ static int PerformResOp(rlent *r, dlist *vlist, olist *hvlog,
 		    name, cFid.Vnode, cFid.Unique);
 	    /* create the vnode */
 	    vle *cv = AddVLE(*vlist, &cFid);
-	    assert(cv->vptr == 0);
+	    CODA_ASSERT(cv->vptr == 0);
 	    if (errorCode = AllocVnode(&cv->vptr, volptr, (ViceDataType)vFile, &cFid,
 				       &pv->fid, pv->vptr->disk.owner,
 				       1, blocks)) {
@@ -2389,7 +2389,7 @@ static int PerformResOp(rlent *r, dlist *vlist, olist *hvlog,
 				   (int) cv->vptr->vnodeNumber,
 				   (int) cv->vptr->disk.uniquifier,
 				   (int) cv->vptr->disk.dataVersion);
-	    assert(cv->f_finode > 0);
+	    CODA_ASSERT(cv->f_finode > 0);
 	    cv->vptr->disk.inodeNumber = cv->f_finode;
 	    
 	    /* append log record */
@@ -2407,7 +2407,7 @@ static int PerformResOp(rlent *r, dlist *vlist, olist *hvlog,
 	break;
       case ResolveViceRename_OP:
       case ViceRename_OP:
-	assert(0);
+	CODA_ASSERT(0);
 	break;
       case ResolveViceSymLink_OP:
       case ViceSymLink_OP:
@@ -2416,7 +2416,7 @@ static int PerformResOp(rlent *r, dlist *vlist, olist *hvlog,
 		    name, cFid.Vnode, cFid.Unique);
 	    /* create the vnode */
 	    vle *cv = AddVLE(*vlist, &cFid);
-	    assert(cv->vptr == 0);
+	    CODA_ASSERT(cv->vptr == 0);
 	    if (errorCode = AllocVnode(&cv->vptr, volptr, (ViceDataType)vSymlink, &cFid,
 				       &pv->fid, pv->vptr->disk.owner,
 				       1, blocks)) {
@@ -2438,7 +2438,7 @@ static int PerformResOp(rlent *r, dlist *vlist, olist *hvlog,
 				   (int) cv->vptr->vnodeNumber,
 				   (int) cv->vptr->disk.uniquifier,
 				   (int) cv->vptr->disk.dataVersion);
-	    assert(cv->f_finode > 0);
+	    CODA_ASSERT(cv->f_finode > 0);
 	    cv->vptr->disk.inodeNumber = cv->f_finode;
 	    
 	    /* append log record */
@@ -2492,7 +2492,7 @@ static int PerformResOp(rlent *r, dlist *vlist, olist *hvlog,
 		    name, cFid.Vnode, cFid.Unique);
 	    vle *cv = AddVLE(*vlist, &cFid);
 	    cv->d_inodemod = 1;
-	    assert(!cv->vptr);
+	    CODA_ASSERT(!cv->vptr);
 	    /* allocate the vnode */
 	    if (errorCode = AllocVnode(&cv->vptr, volptr, (ViceDataType)vDirectory,
 				       &cFid, &pv->fid, 
@@ -2539,8 +2539,8 @@ static int PerformResOp(rlent *r, dlist *vlist, olist *hvlog,
 	    SLog(9,  "PerformResOP: Removing child dir %s(%x.%x)",
 		    name, cFid.Vnode, cFid.Unique);
 	    vle *cv = FindVLE(*vlist, &cFid);
-	    assert(cv);
-	    assert(cv->vptr);
+	    CODA_ASSERT(cv);
+	    CODA_ASSERT(cv->vptr);
 	    
 	    PDirHandle dh;
 	    dh = VN_SetDirHandle(cv->vptr);
@@ -2554,7 +2554,7 @@ static int PerformResOp(rlent *r, dlist *vlist, olist *hvlog,
 		    DH_EnumerateDir(dh, PerformTreeRemoval, (void *)&pkdparm);
 		    
 		}
-		assert(DH_IsEmpty(dh));
+		CODA_ASSERT(DH_IsEmpty(dh));
 	    }
 	    int tblocks = 0;
 	    /* remove the empty directory */
@@ -2565,9 +2565,9 @@ static int PerformResOp(rlent *r, dlist *vlist, olist *hvlog,
 			     pv->vptr->disk.unixModifyTime,
 			     0, &r->storeid, &pv->d_cinode, &tblocks);
 		*blocks += tblocks;
-		assert(cv->vptr->delete_me);
+		CODA_ASSERT(cv->vptr->delete_me);
 		tblocks = (int) -nBlocks(cv->vptr->disk.length);
-		assert(AdjustDiskUsage(volptr, tblocks) == 0);
+		CODA_ASSERT(AdjustDiskUsage(volptr, tblocks) == 0);
 		*blocks += tblocks;
 	    }
 
@@ -2579,7 +2579,7 @@ static int PerformResOp(rlent *r, dlist *vlist, olist *hvlog,
 		pdlist *pl = GetResLogList(cv->vptr->disk.vol_index,
 					   cv->fid.Vnode, cv->fid.Unique,
 					   &vnlog);
-		assert(pl != NULL);
+		CODA_ASSERT(pl != NULL);
 		int ind;
 		ind = InitVMLogRecord(V_volumeindex(volptr), &pv->fid, 
 				      &r->storeid, ResolveViceRemoveDir_OP,
@@ -2594,7 +2594,7 @@ static int PerformResOp(rlent *r, dlist *vlist, olist *hvlog,
 	break;
       default:
 	SLog(0,  "Illegal Opcode for performresop %d", r->opcode);
-	assert(0);
+	CODA_ASSERT(0);
 	break;
     }
 
@@ -2637,7 +2637,7 @@ static int ResolveCrossDirRename(rlent *rl, ViceFid *dFid, Volume *volptr,
 	    }
 	    else {
 		char	name[MAXNAMLEN];
-		assert(GetNameInParent(odv->vptr, vlist, volptr, name));
+		CODA_ASSERT(GetNameInParent(odv->vptr, vlist, volptr, name));
 		AddILE(*inclist, name, OldDid.Vnode, OldDid.Unique, 
 		       odv->vptr->disk.vparent, odv->vptr->disk.uparent, vDirectory);
 	    }
@@ -2651,7 +2651,7 @@ static int ResolveCrossDirRename(rlent *rl, ViceFid *dFid, Volume *volptr,
 	    }
 	    else {
 		char name[MAXNAMLEN];
-		assert(GetNameInParent(ndv->vptr, vlist, volptr, name));
+		CODA_ASSERT(GetNameInParent(ndv->vptr, vlist, volptr, name));
 		AddILE(*inclist, name, NewDid.Vnode, NewDid.Unique, 
 		       ndv->vptr->disk.vparent, ndv->vptr->disk.uparent, vDirectory);
 	    }
@@ -2692,9 +2692,9 @@ int CreateObjToMarkInc(Volume *vp, ViceFid *dFid, ViceFid *cFid,
 	    // parent has name 
 	    if ((newfid.Vnode == cFid->Vnode) && (newfid.Unique == cFid->Unique)){
 		cv = FindVLE(*vlist, cFid);
-		assert(cv); 
-		assert(cv->vptr);
-		assert((cv->vptr->disk.linkCount > 0) && !cv->vptr->delete_me);
+		CODA_ASSERT(cv); 
+		CODA_ASSERT(cv->vptr);
+		CODA_ASSERT((cv->vptr->disk.linkCount > 0) && !cv->vptr->delete_me);
 		SLog(9,  "CreateIncObj Child (%x.%x)already exists",
 		       cFid->Vnode, cFid->Unique);
 		return(0);
@@ -2734,7 +2734,7 @@ int CreateObjToMarkInc(Volume *vp, ViceFid *dFid, ViceFid *cFid,
 		}
 
 		// have to create a link 
-		assert(vntype == vFile);
+		CODA_ASSERT(vntype == vFile);
 		VolumeId VSGVolnum = V_id(vp);
 		if (!ReverseXlateVid(&VSGVolnum)) {
 		    SLog(0,  "CreateIncObject: Couldnt RevXlateVid %x",
@@ -2756,7 +2756,7 @@ int CreateObjToMarkInc(Volume *vp, ViceFid *dFid, ViceFid *cFid,
 		    /* it was deleted before the link was done */
 		    SLog(0,  "Undeleting Vnode %s (%x.%x)",
 			    name, cFid->Vnode, cFid->Unique);
-		    assert(cv->vptr->disk.linkCount);
+		    CODA_ASSERT(cv->vptr->disk.linkCount);
 		    cv->vptr->delete_me = 0;
 /*
 		    cv->vptr->disk.dataVersion = 1;
@@ -2764,10 +2764,10 @@ int CreateObjToMarkInc(Volume *vp, ViceFid *dFid, ViceFid *cFid,
 					   cv->vptr->vnodeNumber, 
 					   cv->vptr->disk.uniquifier, 
 					   cv->vptr->disk.dataVersion);
-		    assert(cv->f_finode > 0);
+		    CODA_ASSERT(cv->f_finode > 0);
 		    cv->vptr->disk.inodeNumber = cv->f_finode;
 */
-		    assert(cv->f_sinode > 0);
+		    CODA_ASSERT(cv->f_sinode > 0);
 		    cv->vptr->disk.inodeNumber = cv->f_sinode;
 		    cv->f_sinode = 0;
 		    /* append log record */	
@@ -2798,7 +2798,7 @@ int CreateObjToMarkInc(Volume *vp, ViceFid *dFid, ViceFid *cFid,
 	/* object is missing too - create the object */
 	{
 	    cv = AddVLE(*vlist, cFid);
-	    assert(!cv->vptr);
+	    CODA_ASSERT(!cv->vptr);
 	    int tblocks = 0;
 	    long errorCode = 0;
 	    if (errorCode = AllocVnode(&cv->vptr, vp, (ViceDataType)vntype,
@@ -2841,7 +2841,7 @@ int CreateObjToMarkInc(Volume *vp, ViceFid *dFid, ViceFid *cFid,
 					   (int) cv->vptr->vnodeNumber,
 					   (int) cv->vptr->disk.uniquifier,
 					   (int) cv->vptr->disk.dataVersion);
-		    assert(cv->f_finode > 0);
+		    CODA_ASSERT(cv->f_finode > 0);
 		    cv->vptr->disk.inodeNumber = cv->f_finode;
 		    
 		    // spool log record 
@@ -2884,7 +2884,7 @@ int CreateObjToMarkInc(Volume *vp, ViceFid *dFid, ViceFid *cFid,
 					   (int) cv->vptr->vnodeNumber,
 					   (int) cv->vptr->disk.uniquifier,
 					   (int) cv->vptr->disk.dataVersion);
-		    assert(cv->f_finode > 0);
+		    CODA_ASSERT(cv->f_finode > 0);
 		    cv->vptr->disk.inodeNumber = cv->f_finode;
 		    
 		    if (AllowResolution && V_VMResOn(vp)) {
@@ -2906,7 +2906,7 @@ int CreateObjToMarkInc(Volume *vp, ViceFid *dFid, ViceFid *cFid,
 		    }
 		}
 		else {
-		    assert(cv->vptr->disk.type == vDirectory);
+		    CODA_ASSERT(cv->vptr->disk.type == vDirectory);
 		    if (errorCode = CheckMkdirSemantics(NULL, &pv->vptr, 
 							&cv->vptr, name, &vp,
 							0, NULL, NULL, NULL, 
@@ -3053,8 +3053,8 @@ int CreateResPhase2Objects(ViceFid *pfid, dlist *vlist, dlist *inclist,
     *blocks =  0;
     
     vle *pv = FindVLE(*vlist, pfid);
-    assert(pv);
-    assert(pv->vptr);
+    CODA_ASSERT(pv);
+    CODA_ASSERT(pv->vptr);
 
     ilink *il = 0;
     dlist_iterator next(*inclist);
@@ -3111,7 +3111,7 @@ static RUConflict(rlent *r, dlist *vlist, olist *hvlog,
     vle *cv = 0;
     int rtype = -1;
     
-    assert((r->opcode == ViceRemove_OP) ||
+    CODA_ASSERT((r->opcode == ViceRemove_OP) ||
 	   (r->opcode == ResolveViceRemove_OP) ||
 	   (r->opcode == ViceRemoveDir_OP) ||
 	   (r->opcode == ResolveViceRemoveDir_OP));
@@ -3132,7 +3132,7 @@ static RUConflict(rlent *r, dlist *vlist, olist *hvlog,
 	    cFid.Unique = r->u.u_removedir.cunique;
 	}
 	cv = FindVLE(*vlist, &cFid);
-	assert(cv);
+	CODA_ASSERT(cv);
     }
     
     /* handle file r/u conflicts */
@@ -3242,12 +3242,12 @@ int DirRUConf(RUParm *rup, char *name, long vnode, long unique)
 	cFid.Unique = unique;
 	
 	cv = FindVLE(*(rup->vlist), &cFid);
-	assert(cv);
+	CODA_ASSERT(cv);
 	
 	pFid.Vnode = cv->vptr->disk.vparent;
 	pFid.Unique = cv->vptr->disk.uparent;
 	pv = FindVLE(*(rup->vlist), &pFid);
-	assert(pv);
+	CODA_ASSERT(pv);
     }
 
     /* do file ruconflict detection */
@@ -3257,12 +3257,12 @@ int DirRUConf(RUParm *rup, char *name, long vnode, long unique)
 	    ViceVersionVector *VV;
 	    {
 		/* find the remote parent's log */
-		assert(rup->srvrid != ThisHostAddr);
+		CODA_ASSERT(rup->srvrid != ThisHostAddr);
 		he *rhe = FindHE(rup->hvlog, rup->srvrid);
-		assert(rhe);
+		CODA_ASSERT(rhe);
 		rmtle *r = FindRMTLE(&rhe->vlist, pFid.Vnode, 
 				     pFid.Unique);
-		assert(r);
+		CODA_ASSERT(r);
 
 		/* search log for child's deletion entry */
 		VV = 0;
@@ -3309,9 +3309,9 @@ int DirRUConf(RUParm *rup, char *name, long vnode, long unique)
 	rlent *rmtlog = 0;
 	int nrmtentries = 0;
 	{
-	    assert(rup->srvrid != ThisHostAddr);
+	    CODA_ASSERT(rup->srvrid != ThisHostAddr);
 	    he *rhe = FindHE(rup->hvlog, rup->srvrid);
-	    assert(rhe);
+	    CODA_ASSERT(rhe);
 	    rmtle *r = FindRMTLE(&rhe->vlist, cFid.Vnode, cFid.Unique);
 	    if (!r) {
 		/* object didnt exist to be removed */
@@ -3323,7 +3323,7 @@ int DirRUConf(RUParm *rup, char *name, long vnode, long unique)
 	    rmtlog = r->u.remote.log;
 	    nrmtentries = r->u.remote.nentries;
 	}
-	assert(rmtlog);
+	CODA_ASSERT(rmtlog);
 	
 	/* get last entry of local log for directory */
 	rlent *lastrle;
@@ -3331,18 +3331,18 @@ int DirRUConf(RUParm *rup, char *name, long vnode, long unique)
 	    VNResLog *vnlog;
 	    pdlist *plist = GetResLogList(cv->vptr->disk.vol_index,
 					  vnode, unique, &vnlog);
-	    assert(plist);
+	    CODA_ASSERT(plist);
 	    if (plist->count() == 0) 
 		CreateAfterCrashLogRecord(cv->vptr, plist);
 	    pdlink *pl = plist->last();
-	    assert(pl);
+	    CODA_ASSERT(pl);
 	    lastrle = strbase(rlent, pl, link);
 	}
     	/* check if last entry is in remote log */
 	{
 	    int i = 0;
 
-	    assert(nrmtentries > 0);
+	    CODA_ASSERT(nrmtentries > 0);
 	    for (i = nrmtentries - 1; i >= 0 && lastrle ; i--) 
 		if (SID_EQ(rmtlog[i].storeid, lastrle->storeid) &&
 		    ((rmtlog[i].opcode == lastrle->opcode) ||
@@ -3488,7 +3488,7 @@ static int ExtractVNTypeFromRLE(rlent *a)
 	case ViceRemoveDir_OP:
 		return(vDirectory);
 	default:
-		assert(0);
+		CODA_ASSERT(0);
 		break;
 	}
 	
@@ -3557,7 +3557,7 @@ static void ExtractChildFidFromRLE(rlent *a, ViceFid *fa)
 	default:
 		SLog(0,  "ExtractChildFidFromRLE: Illegal opcode %d",
 		     a->opcode);
-		assert(0);
+		CODA_ASSERT(0);
 		break;
 	}
 }

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/fail/delay.c,v 4.3 1998/08/26 21:16:40 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/fail/delay.c,v 4.4 1998/09/29 16:37:35 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -47,7 +47,7 @@ static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/fail/d
 #include <sys/socket.h>
 #include <netinet/in.h>
 
-#include <assert.h>
+#include "coda_assert.h"
 #include <lwp.h>
 #include <rpc2.h>
 #include <timer.h>
@@ -115,8 +115,8 @@ int queue;
 	struct timeval tmpTime;
 	delayQueueInfo *dq;
 
-	assert(speed > 0);
-	assert(DelayQueues.queues);	/* Make sure Delay_Init was called */
+	CODA_ASSERT(speed > 0);
+	CODA_ASSERT(DelayQueues.queues);	/* Make sure Delay_Init was called */
 
 	msec = pb->Prefix.LengthOfPacket * 1000 * 8 / speed; 
 	if (msec < MINDELAY) 
@@ -141,7 +141,7 @@ int queue;
 	    dq->lastElem = pp;
 	} else {
 	    /* Start the timer. */
-	    assert(!dq->lastElem && !dq->timer.tv_sec && !dq->timer.tv_usec);
+	    CODA_ASSERT(!dq->lastElem && !dq->timer.tv_sec && !dq->timer.tv_usec);
 	    dq->delayQueue = dq->lastElem = pp;
 	    dq->timer = pp->timeToWait;
 	}
@@ -166,16 +166,16 @@ int DecQueue(i, a, b, c, d)
      unsigned char a, b, c, d;
 {
     delayQueueInfo *dq;
-    assert(DelayQueues.queues);		/* Make sure Delay_Init was called */
+    CODA_ASSERT(DelayQueues.queues);		/* Make sure Delay_Init was called */
 
-    assert((i >= 0) && (i <= DelayQueues.count));
+    CODA_ASSERT((i >= 0) && (i <= DelayQueues.count));
 
     dq = &DelayQueues.queues[i];
 
     /* Maybe a bit strong, but why shouldn't it match? */
-    assert((dq->a == a) && (dq->b == b) && (dq->c == c) && (dq->d == d));
+    CODA_ASSERT((dq->a == a) && (dq->b == b) && (dq->c == c) && (dq->d == d));
 
-    assert(dq->count);
+    CODA_ASSERT(dq->count);
     
     if (--dq->count == 0) {
 	free(dq->delayQueue);
@@ -191,7 +191,7 @@ int FindQueue(a, b, c, d)
      unsigned char a, b, c, d;
 {
     int i;
-    assert(DelayQueues.queues);		/* Make sure Delay_Init was called */
+    CODA_ASSERT(DelayQueues.queues);		/* Make sure Delay_Init was called */
 
     for (i = 0; i < DelayQueues.count; i++) {
 	delayQueueInfo *dq = &DelayQueues.queues[i];
@@ -212,7 +212,7 @@ int MakeQueue(a, b, c, d)
     delayQueueInfo *dq, *tmp;
     int newsize;
     
-    assert(DelayQueues.queues);	/* Make sure Delay_Init was called */
+    CODA_ASSERT(DelayQueues.queues);	/* Make sure Delay_Init was called */
 
 #ifdef NOTDEF
     {
@@ -237,7 +237,7 @@ int MakeQueue(a, b, c, d)
 	DelayQueues.size = newsize;
     }
 
-    assert(DelayQueues.count < DelayQueues.size);
+    CODA_ASSERT(DelayQueues.count < DelayQueues.size);
     dq = &DelayQueues.queues[DelayQueues.count];
     dq->delayQueue = dq->lastElem = NULL;
     dq->a = a; dq->b = b; dq->c = c; dq->d = d;
@@ -272,7 +272,7 @@ static int Delay_LWP()
     struct timeval timeToNext;
     delayQueueInfo *dq, *nextEvent;
     
-    assert(DelayQueues.queues);	/* Make sure Delay_Init was called */
+    CODA_ASSERT(DelayQueues.queues);	/* Make sure Delay_Init was called */
     
     while (1) {
 	/* find smallest remaining time. */

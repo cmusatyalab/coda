@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/norton/norton-dir.cc,v 4.10 98/10/26 18:03:14 jaharkes Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/norton/norton-dir.cc,v 4.11 1998/10/29 09:37:19 jaharkes Exp $";
 #endif /*_BLURB_*/
 
 
@@ -225,7 +225,7 @@ delete_name(int volid, int vnum, int unique, char *name, int flag)
 	    return;
     }
     pdh = DC_DC2DH(dc);
-    assert(pdh);
+    CODA_ASSERT(pdh);
 
     RVMLIB_BEGIN_TRANSACTION(restore)
 	    
@@ -336,7 +336,7 @@ create_name(int volid, int vnum, int unique, char *name, int cvnum,
 	    return;
     }
     pdh = DC_DC2DH(dc);
-    assert(pdh);    
+    CODA_ASSERT(pdh);    
 
     RVMLIB_BEGIN_TRANSACTION(restore)
 	    

@@ -1,7 +1,7 @@
 extern "C" {
 
 #include <sys/types.h>
-#include <assert.h>
+#include "coda_assert.h"
 #include <errno.h>
 #include <fcntl.h>
 #include <stdio.h>
@@ -88,11 +88,11 @@ fprintf(stderr,"Sending %s to demo\n",CODADEMO); fflush(stderr);
     /* Close the CodaDemo's stdin and redirect it to come from the toDemo[0] file descriptor */
     fclose(stdin);
     newIn = dup(toDemo[0]); 
-    assert(newIn == 0);
+    CODA_ASSERT(newIn == 0);
 
     fclose(stdout);
     newOut = dup(toAdviceSrv[1]);
-    assert(newOut == 1);
+    CODA_ASSERT(newOut == 1);
 
     args[0] = CODACONSOLEOUT;
     args[1] = NULL;
@@ -108,12 +108,12 @@ void SendToDemo(char *msg) {
 
     rc = fprintf(toDEMO, "%s", msg);
  #ifdef __MACH__
-    assert(rc == 0);
+    CODA_ASSERT(rc == 0);
 #else
-    assert(rc == strlen(msg));
+    CODA_ASSERT(rc == strlen(msg));
 #endif /* __MACH__*/
     rc = fflush(toDEMO);
-    assert(rc == 0);
+    CODA_ASSERT(rc == 0);
 }
 
 
@@ -139,7 +139,7 @@ int MkHoardFile(char *path) {
   FILE *P;
 
   P = fopen(path, "w");
-  assert(P != NULL);
+  CODA_ASSERT(P != NULL);
   
   fprintf(P, "Cache Space Allocated: 12500 files (100000 blocks)\n");
   fprintf(P, "Cache Space Occupied: 708 files (6884 blocks)\n");

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/venusutil.cc,v 4.15 98/09/23 20:26:34 jaharkes Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/venusutil.cc,v 4.16 1998/09/29 21:04:45 jaharkes Exp $";
 #endif /*_BLURB_*/
 
 
@@ -201,7 +201,7 @@ void dprint(char *fmt ...) {
 
 
 /* Print an error message and then exit. */
-void Choke(char *fmt ...) {
+void choke(char *file, int line, char *fmt ...) {
     static int dying = 0;
 
     if (!dying) {
@@ -231,7 +231,7 @@ void Choke(char *fmt ...) {
 	VFSUnmount();
 
 	/* Make a final check for arena corruption. */
-	(void)CheckAllocs("Choke");
+	(void)CheckAllocs("CHOKE");
     }
 
     if (LogInited)
@@ -239,7 +239,7 @@ void Choke(char *fmt ...) {
     fflush(stderr);
     fflush(stdout);
 
-    assert(0);
+    coda_assert("0", file, line);
 
     /* NOTREACHED */
 }
@@ -479,7 +479,7 @@ void DebugOff() {
 
 
 void Terminate() {
-    Choke("terminate signal received");
+    CHOKE("terminate signal received");
 }
 
 
@@ -688,17 +688,17 @@ void SubCSSs(RPCPktStatistics *cs1, RPCPktStatistics *cs2) {
 
 void MallocPrint(int fd) {
     int dfd = ::dup(fd);
-    ASSERT(dfd >= 0);
+    CODA_ASSERT(dfd >= 0);
     LOG(/*100*/0, ("MallocPrint: fd = %d, dfd = %d\n", fd, dfd));
     FILE *fp = fdopen(dfd, "a");
-    ASSERT(fp != NULL);
+    CODA_ASSERT(fp != NULL);
 	
     MallocStats("", fp);
     plumber(fp);
     /* the new plumber is broken */
 /*    newPlumber(fp); */
 
-/*    ASSERT(fclose(fp) != EOF);*/
+/*    CODA_ASSERT(fclose(fp) != EOF);*/
     if (fclose(fp) == EOF)
 	LOG(0, ("MallocPrint: fclose failed!\n"));
 
@@ -816,7 +816,7 @@ char *lvlstr(LockLevel level) {
 	    return("WR");
 
 	default:
-	    Choke("Illegal lock level!");
+	    CHOKE("Illegal lock level!");
 	    return (0); /* dummy to pacify g++ */
     }
 }

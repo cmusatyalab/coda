@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/advice/daemon.cc,v 4.4 1997/12/20 23:34:15 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/advice/daemon.cc,v 4.5 1998/01/10 18:36:49 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -47,7 +47,7 @@ extern "C" {
 #include <stdio.h>
 #include <sys/time.h>
 #include <sys/types.h>
-#include <assert.h> 
+#include "coda_assert.h" 
 
 #include <lwp.h>
 #include <timer.h>
@@ -77,7 +77,7 @@ typedef struct DaemonInfo_t {
 
 
 void DaemonInit() {
-     assert(TM_Init(&DaemonList) == 0);
+     CODA_ASSERT(TM_Init(&DaemonList) == 0);
 
     /* set timer for once-a-day log messages */
     InitOneADay(); 
@@ -86,15 +86,15 @@ void DaemonInit() {
 void RegisterDaemon(unsigned long interval, char *sync) {
     LogMsg(100,LogLevel,LogFile, "RegisterDaemon: %d, %x\n", interval, sync);
 
-    assert(sync != NULL);
+    CODA_ASSERT(sync != NULL);
 
     struct TM_Elem *tp = new TM_Elem;
-    assert(tp != NULL);
+    CODA_ASSERT(tp != NULL);
     tp->TotalTime.tv_sec = interval;
     tp->TotalTime.tv_usec = 0;
 
     struct DaemonInfo *dp = new DaemonInfo;
-    assert(dp != NULL);
+    CODA_ASSERT(dp != NULL);
     dp->interval = interval;
     dp->sync = sync;
 
@@ -110,16 +110,16 @@ void InitOneADay() {
 
     /* figure out when midnight is */
     struct tm *lt = localtime((long *) &curr_time);
-    assert(lt != NULL);
+    CODA_ASSERT(lt != NULL);
     lt->tm_sec = lt->tm_min = lt->tm_hour = 0;       /* midnight today */
     unsigned long midnight = mktime(lt) + SECSPERDAY; /* midnight tomorrow */
     struct TM_Elem *tp = new TM_Elem;
-    assert(tp != NULL);
+    CODA_ASSERT(tp != NULL);
     tp->TotalTime.tv_sec = midnight - curr_time;       /* time until then */
     tp->TotalTime.tv_usec = 0;
 
     struct DaemonInfo *dp = new DaemonInfo;
-    assert(dp != NULL);
+    CODA_ASSERT(dp != NULL);
     dp->interval = SECSPERDAY;
     dp->sync = NULL;
 
@@ -132,17 +132,17 @@ void DispatchDaemons() {
     unsigned long curr_time = time(0);
 
     LogMsg(200,LogLevel,LogFile, "E DispatchDaemons()");
-    assert(DaemonList != NULL);
+    CODA_ASSERT(DaemonList != NULL);
 
     int num_expired = TM_Rescan(DaemonList);
     for (int i = 0; i < num_expired; i++) {
             struct TM_Elem *tp = TM_GetExpired(DaemonList);
 
-	    assert(tp != NULL);
+	    CODA_ASSERT(tp != NULL);
             TM_Remove(DaemonList, tp);
 
-	    assert(tp != NULL);
-	    assert((struct DaemonInfo *)tp->BackPointer != NULL);
+	    CODA_ASSERT(tp != NULL);
+	    CODA_ASSERT((struct DaemonInfo *)tp->BackPointer != NULL);
 
             tp->TotalTime.tv_sec = ((struct DaemonInfo *)tp->BackPointer)->interval;
             tp->TotalTime.tv_usec = 0;
