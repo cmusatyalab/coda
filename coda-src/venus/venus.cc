@@ -168,6 +168,10 @@ static void daemonize(void)
     /* obtain a new process group */
     setsid();
 
+    /* redirect stdin/stdout from/to /dev/null */
+    freopen("/dev/null", "r", stdin);
+    freopen("/dev/null", "w", stdout);
+
     update_pidfile();
 }
 
