@@ -10,6 +10,13 @@ Group: Development/Libraries
 The RVM persistent recoverable memory library. The RVM library is used by
 the Coda distributed filesystem.
 
+%package tools
+Summary: RVM tools
+Group: Development/Libraries
+%description tools
+Userspace tools to initialize and manipulate RVM log and data segments.
+The RVM library is used by the Coda distributed filesystem.
+
 %package dev
 Summary: RVM library development files
 Group: Development/Libraries
@@ -45,13 +52,15 @@ rm -rf $RPM_BUILD_ROOT
 /sbin/ldconfig
 
 %files
-/usr/sbin/rvmutl
-/usr/sbin/rdsinit
 /usr/lib/librvm.so.1.0.0
 /usr/lib/librvmlwp.so.1.0.0
 /usr/lib/libseg.so.1.0.0
 /usr/lib/librds.so.1.0.0
 /usr/lib/librdslwp.so.1.0.0
+
+%files tools
+/usr/sbin/rvmutl
+/usr/sbin/rdsinit
 
 %files dev
 /usr/lib/librvm.la

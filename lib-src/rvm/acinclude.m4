@@ -4,9 +4,10 @@ dnl translate easy to remember target names into recognizable gnu variants and
 dnl test the cross compilation platform and adjust default settings
 
 AC_DEFUN(CODA_SETUP_BUILD,
-[case ${target} in
-  djgpp | win95 | dos )   target=i386-pc-msdos ;;
-  cygwin32 | winnt | nt ) target=i386-pc-cygwin32 ;;
+[AC_SUBST(LIBTOOL_LDFLAGS)
+case ${target} in
+  djgpp | win95 | dos )  target=i386-pc-msdos ;;
+  cygwin* | winnt | nt ) target=i386-pc-cygwin ;;
 esac
 AC_CANONICAL_SYSTEM
 if test ${build} != ${target} ; then
@@ -25,43 +26,61 @@ if test ${build} != ${target} ; then
     dnl get wrong as it tests the build platform feature
     ac_cv_func_mmap_fixed_mapped=yes
     ;;
-   i386-pc-cygwin32 )
-    dnl shared libraries don't work here
-    AM_DISABLE_SHARED
+   i386-pc-cygwin )
     dnl -D__CYGWIN32__ should be defined but sometimes isn't (wasn't?)
+    host=i386-pc-cygwin
     CC="gnuwin32gcc -D__CYGWIN32__"
     CXX="gnuwin32g++"
     AR="gnuwin32ar"
     RANLIB="gnuwin32ranlib"
     AS="gnuwin32as"
     NM="gnuwin32nm"
+    DLLTOOL="gnuwin32dlltool"
+    OBJDUMP="gnuwin32objdump"
+
     LDFLAGS="-L/usr/gnuwin32/lib"
+    
+    dnl We seem to need these to get a dll built
+    libtool_flags="--enable-win32-dll"
+    LIBTOOL_LDFLAGS="-no-undefined"
     ;;
  esac
 fi])
 
-AC_DEFUN(CODA_PATCH_LIBTOOL,
-[if test ${build} != ${target} ; then
- patch < ${srcdir}/libtool.patch
- fi])
-
 dnl ---------------------------------------------
-dnl Path leading to the built, but uninstalled lwp sources
+dnl Specify paths to the lwp includes and libraries
 
 AC_DEFUN(CODA_OPTION_LWP,
-[AC_ARG_WITH(lwp,
-[  --with-lwp   Where the lwp source package is installed],
-[ lwpprefix=`(cd ${withval} ; pwd)`
-  LWPINCLUDES="-I${lwpprefix}/include"
-  LIBLWP="${lwpprefix}/src/liblwp.la" ],
-[ LIBLWP="-L/usr/lib -llwp" ])
-AC_SUBST(LWPINCLUDES)
-AC_SUBST(LIBLWP)])
+ [AC_SUBST(LWPINCLUDES)
+  AC_ARG_WITH(lwp-includes,
+    [  --with-lwp-includes     Location of the the lwp include files],
+    [ CPPFLAGS="${CPPFLAGS} -I`(cd ${withval} ; pwd)`" ])
+  AC_ARG_WITH(lwp-library,
+    [  --with-lwp-library      Location of the lwp library files],
+    [ LDFLAGS="${LDFLAGS} -L`(cd ${withval} ; pwd)`" ])
+  AC_ARG_WITH(lwp-pt,
+    [  --with-lwp-pt           Link against *experimental* lwp_pt library],
+    [ with_LWP_PT=yes ; DEFS="${DEFS} -D_REENTRANT" ],
+    [ with_LWP_PT=no ])
+ ]) 
 
-AC_DEFUN(CODA_FUNC_INSQUE,
-[AC_CHECK_FUNC(insque,,
-  [AC_CHECK_LIB(iberty, insque,,
-    [AC_CHECK_LIB(bfd, insque,,
-      [AC_CHECK_LIB(compat, insque)
-])])])])
+dnl ---------------------------------------------
+dnl Search for an installed lwp library
 
+AC_DEFUN(CODA_FIND_LIBLWP,
+ [AC_CACHE_CHECK(location of liblwp, coda_cv_lwppath,
+  [saved_LDFLAGS="${LDFLAGS}" ; saved_LIBS="${LIBS}"
+   coda_cv_lwppath=none ; LIBS="-llwp"
+   for path in /usr /usr/local /usr/pkg ; do
+     LDFLAGS="${LDFLAGS} -L${path}/lib"
+     AC_TRY_LINK([], [int main(){return 0;}],
+                 [coda_cv_lwppath=${path} ; break])
+   done
+   LDFLAGS="${saved_LDFLAGS}" ; LIBS="${saved_LIBS}"])
+ case $coda_cv_lwppath in
+   none) AC_MSG_ERROR("Cannot determine the location of liblwp") ;;
+   /usr) ;;
+   *)    CPPFLAGS="${CPPFLAGS} -I${coda_cv_lwppath}/include"
+         LDFLAGS="${LDFLAGS} -L${coda_cv_lwppath}/lib" ;;
+ esac])
+                                                

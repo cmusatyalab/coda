@@ -1,10 +1,12 @@
 log basher_log
 data basher_data
+map_private
 ops 500
-threads 1
+cycles 2
+threads 2
 seed 12345
 optimizations all
-truncate 0
+truncate 95
 pre_allocate 100
 block_size 10000
 mod_size 200

@@ -21,7 +21,7 @@ SUBDIRS = include rvm seg rds tests pkgs
 
 EXTRA_DIST = bootstrap.sh configure
 
-MAINTAINERCLEANFILES = AUTHORS ChangeLog INSTALL Makefile.in NEWS \
+MAINTAINERCLEANFILES = AUTHORS ChangeLog INSTALL Makefile.in \
     README aclocal.m4 config.guess config.h.in config.sub configure \
     install-sh libtool ltconfig ltmain.sh missing mkinstalldirs stamp-h.in
 

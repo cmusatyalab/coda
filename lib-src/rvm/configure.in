@@ -14,25 +14,40 @@ AC_PROG_CPP
 AC_PROG_RANLIB
 AC_CHECK_PROG(AR, ar, ar)
 export AR
-AM_PROG_INSTALL
+AC_PROG_INSTALL
 AC_PROG_MAKE_SET
 AM_PROG_LIBTOOL
-CODA_PATCH_LIBTOOL
 
 dnl Checks for libraries.
-dnl Checks for header files.
-AC_CHECK_HEADERS(search.h)
+CODA_FIND_LIBLWP
 
+dnl For playing with the _pt version...
+if test ${with_LWP_PT}p = nop ; then
+  AC_CHECK_LIB(lwp, LWP_Init, [LIBLWP="-llwp"],
+               [AC_MSG_ERROR("Could not locate liblwp")])
+else
+  AC_CHECK_LIB(pthread, pthread_create, [LIBPTHREAD="-lpthread"])
+  AC_CHECK_LIB(lwp_pt, LWP_Init, [LIBLWP="-llwp_pt"],
+               [AC_MSG_ERROR("Failed to locate liblwp_pt")], [${LIBPTHREAD}])
+fi
+AC_SUBST(LIBLWP)
+AC_SUBST(LIBPTHREAD)
+
+dnl Checks for header files.
 dnl Checks for typedefs.
 dnl Checks for compiler characteristics.
 
 dnl Checks for library functions.
 AC_CHECK_FUNCS(strerror)
 AC_FUNC_MMAP
-CODA_FUNC_INSQUE
 
 dnl Checks for system services.
-AM_CYGWIN32
+AC_CYGWIN
+AC_EXEEXT
+
+if test ${with_LWP_PT}p != nop ; then
+  AC_MSG_WARN(["Building against pthreaded lwp libraries, *experimental*"])
+fi
 
 dnl Generate output files
 AC_OUTPUT(Makefile include/Makefile include/rvm/Makefile rvm/Makefile seg/Makefile rds/Makefile tests/Makefile pkgs/Makefile pkgs/rvm.spec pkgs/rvm-nt.spec pkgs/rvm-dos.spec)

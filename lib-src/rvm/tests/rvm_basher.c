@@ -30,7 +30,6 @@ listed in the file CREDITS.
 #include <stdlib.h>
 #include <unistd.h>
 #include <signal.h>
-#include "coda_string.h"
 #include <stdio.h>
 #include <ctype.h>
 #include <errno.h>
@@ -38,10 +37,12 @@ listed in the file CREDITS.
 #include <sys/stat.h>
 #include <sys/time.h>
 #include <sys/resource.h>
-#include "rvm.h"
-#include "rvm_statistics.h"
-#include "rvm_segment.h"
-#include "rds.h"
+#include <string.h>
+
+#include <rvm/rvm.h>
+#include <rvm/rvm_statistics.h>
+#include <rvm/rvm_segment.h>
+#include <rvm/rds.h>
 
 #ifdef __CYGWIN32__
 /* XXX MJC: hack -- no random(), srandom() so use rand() (and forget about
@@ -62,7 +63,7 @@ listed in the file CREDITS.
 
 #ifndef RVM_USELWP
 /* XXX bogus by Eric and Peter to get compile */
-#include <dummy_cthreads.h>
+#include <cthreads.h>
 
 /* define types symbolically to permit use of non-Cthread thread support */
 #define RVM_MUTEX       struct mutex
@@ -301,7 +302,14 @@ list_entry_t *move_list_ent(fromptr, toptr, victim)
                 victim = fromptr->nextentry;
             CODA_ASSERT(!victim->is_header);
             CODA_ASSERT(victim->list.name == fromptr);
-            remque((void *)victim);             /* unlink from first list */
+
+            /* remque((void *)victim); */ /* unlink from first list */
+            if (victim->nextentry)
+                victim->nextentry->preventry = victim->preventry;
+            if (victim->preventry)
+                victim->preventry->nextentry = victim->nextentry;
+            victim->preventry = victim->nextentry = NULL;
+
             fromptr->list.length --;
             }
         }
@@ -316,7 +324,10 @@ list_entry_t *move_list_ent(fromptr, toptr, victim)
         {
         CODA_ASSERT(toptr->is_header);
         victim->list.name = toptr;
-        insque((void *)victim,(void *)toptr->preventry); /* insert at tail of second list */
+        /* insque((void *)victim,(void *)toptr->preventry); */ /* insert at tail of second list */
+        victim->preventry = toptr->preventry;
+        victim->nextentry = toptr;
+        victim->preventry->nextentry = toptr->preventry = victim;
         toptr->list.length ++;
         }
     else victim->list.name = NULL;
@@ -466,7 +477,7 @@ void do_malloc(id)
                id,rvm_return(ret));
         CODA_ASSERT(rvm_false);
         }
-    (void)bzero(block->ptr,block->size); /* blow away obsolete guards */
+    memset(block->ptr, 0, block->size); /* blow away obsolete guards */
     block->chksum = 0;
     /* commit the block */
     if ((ret=rvm_end_transaction(&tid,no_flush)) != RVM_SUCCESS)
@@ -587,7 +598,7 @@ void do_trans(block,range_list,do_flush,id)
         do_abort = rvm_true;
         save_area = malloc(block->size);
         CODA_ASSERT(save_area != NULL);
-        bcopy(block->ptr,save_area,block->size);
+        memcpy(save_area, block->ptr, block->size);
         start_mode = restore;
         }
     else
@@ -963,7 +974,7 @@ rvm_bool_t chk_moby()
         printf("? Error: can't allocate buffer for moby test\n");
         CODA_ASSERT(rvm_false);
         }
-    (void)bcopy(start,vm_save,length);
+    memcpy(vm_save, start, length);
 
     /* set up transaction for moby modification */
     rvm_init_tid(&tid);
@@ -1006,7 +1017,7 @@ rvm_bool_t chk_moby()
                rvm_return(ret));
         CODA_ASSERT(rvm_false);
         }
-    (void)bcopy(vm_save,start,length);
+    memcpy(start, vm_save, length);
     if ((ret=rvm_end_transaction(&tid,flush)) != RVM_SUCCESS)
         {
         printf("? ERROR: chk_moby end_trans 2, code: %s\n",
@@ -1379,7 +1390,10 @@ void set_data_file()
     /* get length of segment if partition specified */
     if (stat(DataFileName, &sbuf) < 0) 
     {
-	char *errstr = strerror(errno);
+	char *errstr = NULL;
+#ifdef HAVE_STRERROR
+        errstr = strerror(errno);
+#endif
 	printf("%s\n", errstr != NULL ? errstr : "Cannot stat data file");
         DataFileName[0] = '\000';
 	return;
@@ -1679,6 +1693,7 @@ int main(argc, argv)
     }
 
     /* initializations */
+    cthread_init();
     cmd_line[0] != '\0';
     cmd_cur=cmd_line;
     chk_block = rvm_false;
@@ -1973,7 +1988,7 @@ int main(argc, argv)
     if (vm_protect_sw)
         options->flags |= RVM_VM_PROTECT;
 #endif /* VERSION_TEST */
-    /* initialize RVM */
+    /* initialize RVM */
     ret = RVM_INIT(options);
     if  (ret != RVM_SUCCESS)
         {
@@ -2023,15 +2038,9 @@ int main(argc, argv)
         CODA_ASSERT(rvm_false);
         }
     if (time_tests)
-/* temporary fix until linux get timeval.tv_sec defined to be long
- * as everybodies else.   -- clement
- */
-#ifdef __linux__
-        printf("\nTests started: %s\n",ctime((time_t *)&init_time.tv_sec));
-#else
         printf("\nTests started: %s\n",ctime(&init_time.tv_sec));
-#endif
-    /* start test run with input parameters */
+
+    /* start test run with input parameters */
     op_cnt = max_op_cnt;
     threads = (cthread_t *)malloc(sizeof(cthread_t) * nthreads);
     last = (int *)malloc(sizeof(int)*nthreads);
@@ -2051,8 +2060,10 @@ int main(argc, argv)
             }
 
         /* wait for all threads to terminate */
-        while (nthreads > 0)
-            condition_wait(&thread_exit_code,&thread_lock);
+        CRITICAL(thread_lock, {
+            while (nthreads > 0)
+                condition_wait(&thread_exit_code,&thread_lock);
+        });
         cthread_yield();                /* let the last one out */
         }
     printf("\n All threads have exited\n");

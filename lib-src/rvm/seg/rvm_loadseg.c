@@ -13,12 +13,11 @@ Coda are listed in the file CREDITS.
 
                         Additional copyrights
                            none currently
-
 #*/
 
 #include <stdlib.h>
-#include <rvm.h>
-#include "rvm_segment.h"
+#include <rvm/rvm.h>
+#include <rvm/rvm_segment.h>
 #include "rvm_segment_private.h"
 
 /* Global variables */

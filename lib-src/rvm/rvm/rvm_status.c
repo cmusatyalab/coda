@@ -13,7 +13,6 @@ Coda are listed in the file CREDITS.
 
                         Additional copyrights
                            none currently
-
 #*/
 
 /*

@@ -27,7 +27,7 @@ listed in the file CREDITS.
 #include <stdlib.h>
 #include <stdio.h>
 #include <errno.h>
-#include "rvm.h"
+#include <rvm/rvm.h>
 #include "testrvm.h"
 
 extern int errno;
