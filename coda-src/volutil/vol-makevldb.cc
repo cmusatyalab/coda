@@ -404,7 +404,7 @@ static void Add(struct vldb *vnew, long date)
 {
     struct vldb *p, *prev, *first;
     int index = HashString(vnew->key, vldbHashSize);
-    LogMsg(19, VolDebugLevel, stdout, "Adding VLDB Entry for vol with key = %s", vnew->key);
+    LogMsg(19, VolDebugLevel, stdout, "Adding VLDB Entry for vol with key = %08x", vnew->key);
     LogMsg(19, VolDebugLevel, stdout, "Add: index = %d, hashsize = %d", index, vldbHashSize);
     for(first = p = &vldb_array[index]; p->hashNext; p += p->hashNext)
         ;
