@@ -1047,7 +1047,6 @@ rvm_return_t rvm_create_log(rvm_options,log_len,mode)
     long            save_errno;
     rvm_return_t    retval;
 
-    if (bad_init()) return RVM_EINIT;   /* not initialized */
     if ((retval=bad_options(rvm_options,rvm_true)) != RVM_SUCCESS)
         return retval;                  /* bad options ptr or record */
     if (rvm_options == NULL)
