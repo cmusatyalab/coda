@@ -23,6 +23,7 @@ case ${target} in
 	    	shortsys=nbsd
 	    	sys=i386_nbsd1
 		vfsdir=bsd44
+		os=`uname -r`
  ;;
 
 	*-*-freebsd* )
