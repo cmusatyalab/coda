@@ -33,7 +33,7 @@ should be returned to Software.Distribution@cs.cmu.edu.
 
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/rvm-src/rvm/rvm.h,v 4.2 1997/04/01 01:55:57 clement Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/rvm-src/rvm/rvm.h,v 4.3 1997/11/04 22:03:58 braam Exp $";
 #endif _BLURB_
 
 /*
@@ -189,7 +189,7 @@ typedef unsigned long rvm_length_t;
     struct unecessary if machine has 64-bit ops */
 
 typedef struct                                           
-    {                                   /* INTERNAL FIELDS PRIVATE */
+    {                                   /* INTERNAL FIELDS static */
     rvm_length_t    high;               /* private */
     rvm_length_t    low;                /* private */
     }
@@ -485,7 +485,7 @@ extern rvm_return_t rvm_modify_bytes C_ARGS
     ((
     rvm_tid_t           *tid,           /* pointer to transaction identifier */
     void                *dest,          /* base address of modification range */
-    void                *src,           /* base address of source range */
+    const void          *src,           /* base address of source range */
     rvm_length_t        length          /* length of modification range */
     ));
 

@@ -33,7 +33,7 @@ should be returned to Software.Distribution@cs.cmu.edu.
 
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/rvm-src/rds/rdsinit.c,v 4.5 1998/01/10 18:40:43 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/rvm-src/rds/rdsinit.c,v 4.6 1998/03/06 20:21:41 braam Exp $";
 #endif _BLURB_
 
 
@@ -95,7 +95,7 @@ char *usage[]={
 ""
 };
 
-PRIVATE char *welcome[]={
+static char *welcome[]={
 "\n",
 "============================================================\n",
 "  Getting parameters for RDS\n",
@@ -157,7 +157,7 @@ char *explain_chunk[]={
 ""
 };
 
-PRIVATE void print_msg(msg)
+static void print_msg(msg)
      char **msg;
 {
     int i=0;
@@ -165,7 +165,7 @@ PRIVATE void print_msg(msg)
 	printf("%s", msg[i++]);
 }
 
-PRIVATE int round_to_multiple(val, n, dir)
+static int round_to_multiple(val, n, dir)
      long           val;
      long           n;
      enum round_dir dir;
@@ -186,7 +186,7 @@ PRIVATE int round_to_multiple(val, n, dir)
 }
 
 
-PRIVATE int confirm_rounded_value(pvalue, base, unit, round_dir, min)
+static int confirm_rounded_value(pvalue, base, unit, round_dir, min)
      unsigned long  *pvalue;
      int            base;
      int            unit;
@@ -250,7 +250,7 @@ PRIVATE int confirm_rounded_value(pvalue, base, unit, round_dir, min)
 }
 
 /* determine if the numeric string is in hex, octal or decimal notation */
-PRIVATE int find_base(string)
+static int find_base(string)
      char *string;
 {
     if (string[0] == '0')
@@ -260,7 +260,7 @@ PRIVATE int find_base(string)
 }
 		
 
-PRIVATE int get_valid_parm(argc, argv, pdatalen,
+static int get_valid_parm(argc, argv, pdatalen,
 			   pstatic_addr, phlen, pslen,
 			   pnlists,pchunksize,firm)
      int          argc;

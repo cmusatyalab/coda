@@ -33,7 +33,7 @@ should be returned to Software.Distribution@cs.cmu.edu.
 
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/rvm-src/seg/rvm_segutil.c,v 4.3 1997/04/01 01:52:03 clement Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/rvm-src/seg/rvm_segutil.c,v 4.4 1998/03/06 20:21:54 braam Exp $";
 #endif _BLURB_
 
 #include <unistd.h>
@@ -80,44 +80,11 @@ int overlap(nregions, regionDefs)
 
     return FALSE;
 }     
-/* Mach memory allocation functions */
-#ifdef	__MACH__
-#include <mach.h>
-#define ALLOCATE_VM_DEFINED
 
-rvm_return_t    
-allocate_vm(addr, length)
-     char **addr;
-     unsigned long length;
-{
-    kern_return_t ret;
-    int anywhere = (*addr == 0);
-	
-    ret = vm_allocate(task_self(), (vm_address_t *)addr, length, anywhere);
-    if (ret == KERN_INVALID_ADDRESS) return RVM_ERANGE;
-    if (ret == KERN_NO_SPACE) return RVM_ENO_MEMORY;
-
-    return RVM_SUCCESS;
-}
-
-rvm_return_t    
-deallocate_vm(addr, length)
-     char *addr;
-     unsigned long length;
-{
-    kern_return_t ret;
-    
-    ret = vm_deallocate(task_self(), (vm_address_t)addr, length);
-    if (ret == KERN_INVALID_ADDRESS) return RVM_ERANGE;
-
-    return RVM_SUCCESS;
-}
-#endif
 
 /* BSD44 memory allocation; uses mmap as an allocator.  Any mmap-aware
    system should be able to use this code */
 
-#if ! defined(__MACH__)
 #include <sys/types.h>
 #include <sys/mman.h>
 #include <errno.h>
@@ -203,96 +170,3 @@ deallocate_vm(addr, length)
 }
 
 
-#endif /* __linux__ || __BSD44__ || __CYGWIN32__ */
-
-/* Generic Unix memory allocation functions */
-#ifndef ALLOCATE_VM_DEFINED
-rvm_return_t
-allocate_vm(addr, length)
-     char **addr;
-     unsigned long length;
-    {
-    rvm_length_t    base,oldbase;       /* base of memory allocated */
-    rvm_length_t    pad,limit;          /* padding for page alignment */
-
-    /* see if can allocate anywhere */
-    if (*addr == 0)
-        {
-        /* round up present break pt to page size & allocate */
-        oldbase = (rvm_length_t)sbrk(0);
-        pad = RVM_ROUND_LENGTH_UP_TO_PAGE_SIZE(oldbase) - oldbase;
-        base = (rvm_length_t)sbrk((int)(length+pad));
-        if (base == -1) return RVM_ENO_MEMORY; /* out of space */
-        if (base == oldbase)            /* got what we expected? */
-            {
-            *addr = (char *)(base+pad); /* yes, return 1st page addr */
-            return RVM_SUCCESS;
-            }
-    
-        /* test if got enough anyway by extracting 1st page addr
-           and testing if in allocated region */
-        oldbase = base;
-        limit = base+pad+length;
-        base = RVM_ROUND_LENGTH_DOWN_TO_PAGE_SIZE(limit);
-        if ((base-length) >= oldbase)
-            {
-            *addr = (char *)base;       /* yes, return 1st page addr */
-            return RVM_SUCCESS;
-            }
-
-        /* try to get remainder of last page */
-        pad = RVM_ROUND_LENGTH_UP_TO_PAGE_SIZE(limit) - limit;
-        base = (rvm_length_t)sbrk((int)(pad));
-        if (base == -1) return RVM_ENO_MEMORY; /* out of space */
-        if (base == limit)              /* got remainder? */
-            {
-            *addr = (char *)((base+pad)-length); /* yes, return 1st page addr */
-            return RVM_SUCCESS;
-            }
-    
-        /* reallocate with certianty */
-        base = (rvm_length_t)sbrk((int)(length+RVM_PAGE_SIZE-1));
-        if (base == -1) return RVM_ENO_MEMORY; /* out of space */
-        *addr = RVM_ROUND_ADDR_UP_TO_PAGE_SIZE(base);
-        }
-    else                              /* move break pt to specified addr */
-        {
-        /* test if break pt already beyond request */
-        oldbase = (rvm_length_t)sbrk(0);
-        if (oldbase > (rvm_length_t)*addr)
-            return RVM_ERANGE;
-
-        /* no, set new break pt for request */
-        oldbase=(rvm_length_t)
-            sbrk((int)RVM_ADD_LENGTH_TO_ADDR(*addr,length)-oldbase);
-        if (oldbase == -1)
-            return RVM_ENO_MEMORY;
-        }
-
-    return RVM_SUCCESS;
-    }
-
-rvm_return_t    
-deallocate_vm(addr, length)
-     char *addr;
-     unsigned long length;
-    {
-    rvm_length_t    oldbase;            /* base of memory allocated */
-
-    return RVM_SUCCESS;                 /* deallocation below may not work */
-
-    /* reset break pt if deallocated space is at end of
-       Unix data segment */
-/*
-    oldbase = (rvm_length_t)sbrk(0);
-    if ((char *)oldbase == RVM_ADD_LENGTH_TO_ADDR(addr,length))
-        {
-        oldbase = (rvm_length_t)brk(addr);
-        if (oldbase == -1)
-            return RVM_ERANGE;
-        }
-
-    return RVM_SUCCESS;
-*/
-    }
-#endif	/* __MACH__ */

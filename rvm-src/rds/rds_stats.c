@@ -33,7 +33,7 @@ should be returned to Software.Distribution@cs.cmu.edu.
 
 */
 
-static char *rcsid = "$Header: /afs/cs.cmu.edu/user/clement/mysrcdir3/rvm-src/rds/RCS/rds_stats.c,v 4.1 1997/01/08 21:54:29 rvb Exp clement $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/rvm-src/rds/rds_stats.c,v 4.2 1997/04/01 01:57:17 clement Exp $";
 #endif _BLURB_
 
 
@@ -43,8 +43,8 @@ static char *rcsid = "$Header: /afs/cs.cmu.edu/user/clement/mysrcdir3/rvm-src/rd
 #include <rds_private.h>
 #include <rvm_segment.h>
 
-int tracing_rds = FALSE;
-void (*rds_trace_printer) (char *, ...);
+int rds_tracing = FALSE;
+FILE *rds_tracing_file = NULL;
     
 /*
  * Print out the current statistics
@@ -60,8 +60,8 @@ rds_print_stats()
        significant. */
        
     printf("Number of\n");
-    printf(" Free bytes: \t %d\n", RDS_STATS.freebytes);
-    printf(" Alloced bytes:\t %d\n", RDS_STATS.mallocbytes);
+    printf(" Free bytes: \t %x\n", RDS_STATS.freebytes);
+    printf(" Alloced bytes:\t %x\n", RDS_STATS.mallocbytes);
     printf(" Mallocs: \t %d\n", RDS_STATS.malloc);
     printf(" Frees: \t %d\n",  RDS_STATS.free);
     printf(" Preallocs: \t %d\n",  RDS_STATS.prealloc);
@@ -132,14 +132,13 @@ int rds_get_stats(stats)
     return 0;
 }
 
-int rds_trace_on(printer)
-     void (*printer) (char *, ...);
+int rds_trace_on(FILE *file)
 {
   ASSERT(HEAP_INIT);
-  tracing_rds = TRUE;
-  rds_trace_printer = printer;
-
-  (*rds_trace_printer)("rdstrace: tracing on\n");
+  ASSERT(file);
+  rds_tracing = TRUE;
+  rds_tracing_file = file;
+  RDS_LOG("rdstrace: tracing on\n");
 
   return 0;
 }
@@ -149,32 +148,30 @@ int
 rds_trace_off ()
 {
   ASSERT(HEAP_INIT);
-  if (tracing_rds) {
-    (*rds_trace_printer)("rdstrace: tracing off\n");
-    tracing_rds = FALSE;
-  }
+  RDS_LOG("rdstrace: tracing off\n");
+  rds_tracing = FALSE;
   return 0;
 }
 
 void rds_trace_dump_stats()
 {
-  (*rds_trace_printer)("rdstrace: start dump_stats\n");
-  (*rds_trace_printer)("rdstrace: Free_bytes \t %d\n", RDS_STATS.freebytes);
-  (*rds_trace_printer)("rdstrace: Alloced_bytes\t %d\n",
+  RDS_LOG("rdstrace: start dump_stats\n");
+  RDS_LOG("rdstrace: Free_bytes \t %x\n", RDS_STATS.freebytes);
+  RDS_LOG("rdstrace: Alloced_bytes\t %x\n",
 		       RDS_STATS.mallocbytes);
-  (*rds_trace_printer)("rdstrace: Mallocs \t %d\n", RDS_STATS.malloc);
-  (*rds_trace_printer)("rdstrace: Frees \t %d\n",  RDS_STATS.free);
-  (*rds_trace_printer)("rdstrace: Preallocs \t %d\n",  RDS_STATS.prealloc);
-  (*rds_trace_printer)("rdstrace: Hits \t\t %d\n",  RDS_STATS.hits);
-  (*rds_trace_printer)("rdstrace: Misses \t %d\n",  RDS_STATS.misses);
-  (*rds_trace_printer)("rdstrace: Large_Hits \t %d\n",  RDS_STATS.large_hits);
-  (*rds_trace_printer)("rdstrace: Large_Misses \t %d\n",
+  RDS_LOG("rdstrace: Mallocs \t %d\n", RDS_STATS.malloc);
+  RDS_LOG("rdstrace: Frees \t %d\n",  RDS_STATS.free);
+  RDS_LOG("rdstrace: Preallocs \t %d\n",  RDS_STATS.prealloc);
+  RDS_LOG("rdstrace: Hits \t\t %d\n",  RDS_STATS.hits);
+  RDS_LOG("rdstrace: Misses \t %d\n",  RDS_STATS.misses);
+  RDS_LOG("rdstrace: Large_Hits \t %d\n",  RDS_STATS.large_hits);
+  RDS_LOG("rdstrace: Large_Misses \t %d\n",
 		       RDS_STATS.large_misses);
-  (*rds_trace_printer)("rdstrace: Coalesces \t %d\n",  RDS_STATS.coalesce);
-  (*rds_trace_printer)("rdstrace: Merges \t %d\n", RDS_STATS.merged);
-  (*rds_trace_printer)("rdstrace: Not_Merged \t %d\n", RDS_STATS.unmerged);
-  (*rds_trace_printer)("rdstrace: Large_List %d\n", RDS_STATS.large_list);
-  (*rds_trace_printer)("rdstrace: stop dump_stats\n");
+  RDS_LOG("rdstrace: Coalesces \t %d\n",  RDS_STATS.coalesce);
+  RDS_LOG("rdstrace: Merges \t %d\n", RDS_STATS.merged);
+  RDS_LOG("rdstrace: Not_Merged \t %d\n", RDS_STATS.unmerged);
+  RDS_LOG("rdstrace: Large_List %d\n", RDS_STATS.large_list);
+  RDS_LOG("rdstrace: stop dump_stats\n");
 }
 
 void rds_trace_dump_free_lists()
@@ -182,49 +179,49 @@ void rds_trace_dump_free_lists()
   int i, j;
   free_block_t *fbp, *ptr;
   
-  (*rds_trace_printer)("rdstrace: start dump_free_lists\n");
+  RDS_LOG("rdstrace: start dump_free_lists\n");
   
   for (i = 1; i < RDS_NLISTS + 1; i++) {
 
     fbp = RDS_FREE_LIST[i].head;
     
     if (RDS_FREE_LIST[i].guard != FREE_LIST_GUARD)
-      (*rds_trace_printer)("rdstrace: Error!!! Bad guard on list %d!!!\n", i);
+      RDS_LOG("rdstrace: Error!!! Bad guard on list %d!!!\n", i);
     
     if (fbp && (fbp->prev != (free_block_t *)NULL))
-      (*rds_trace_printer)("rdstrace: Error!!! Non-null Initial prev pointer.\n");
+      RDS_LOG("rdstrace: Error!!! Non-null Initial prev pointer.\n");
     
     j = 0;
     while (fbp != NULL) {
       j++;
 
       if (i == RDS_MAXLIST) {
-	(*rds_trace_printer)("rdstrace: size %d count 1\n", fbp->size);
+	RDS_LOG("rdstrace: size %d count 1\n", fbp->size);
       }
       
       if (fbp->type != FREE_GUARD)
-	(*rds_trace_printer)("rdstrace: Error!!! Bad lowguard on block\n");
+	RDS_LOG("rdstrace: Error!!! Bad lowguard on block\n");
       
       if ((*BLOCK_END(fbp)) != END_GUARD)
-	(*rds_trace_printer)("rdstrace: Error!!! Bad highguard, %x=%x\n",
+	RDS_LOG("rdstrace: Error!!! Bad highguard, %x=%x\n",
 			     BLOCK_END(fbp), *BLOCK_END(fbp));
       
       ptr = fbp->next;
       
       if (ptr && (ptr->prev != fbp))
-	(*rds_trace_printer)("rdstrace: Error!!! Bad chain link %x <-> %x\n",
+	RDS_LOG("rdstrace: Error!!! Bad chain link %x <-> %x\n",
 			     fbp, ptr);
       
       if (i != RDS_MAXLIST && fbp->size != i)
-	(*rds_trace_printer)("rdstrace: Error!!! OBJECT IS ON WRONG LIST!!!!\n");
+	RDS_LOG("rdstrace: Error!!! OBJECT IS ON WRONG LIST!!!!\n");
       
       fbp = fbp->next;
     }
     
     if (i != RDS_MAXLIST)
-      (*rds_trace_printer)("rdstrace: size %d count %d\n", i, j);
+      RDS_LOG("rdstrace: size %d count %d\n", i, j);
   }
-  (*rds_trace_printer)("rdstrace: stop dump_free_lists\n");
+  RDS_LOG("rdstrace: stop dump_free_lists\n");
 }
 
 void rds_trace_dump_blocks()
@@ -232,7 +229,7 @@ void rds_trace_dump_blocks()
   int same;
   free_block_t *fbp, *next_fbp;
   
-  (*rds_trace_printer)("rdstrace: start dump_blocks\n");
+  RDS_LOG("rdstrace: start dump_blocks\n");
   
   fbp = (free_block_t *)((char *)&(((free_list_t *)RDS_FREE_LIST)[RDS_NLISTS])
 			 + sizeof(free_list_t));
@@ -241,15 +238,15 @@ void rds_trace_dump_blocks()
   while ((char *)fbp < (char *)RDS_HIGH_ADDR) {
     
     if ((fbp->type != FREE_GUARD) && (fbp->type != ALLOC_GUARD))
-      (*rds_trace_printer)("rdstrace: Error!!! Bad lowguard on block\n");
+      RDS_LOG("rdstrace: Error!!! Bad lowguard on block\n");
     
     if ((*BLOCK_END(fbp)) != END_GUARD)
-      (*rds_trace_printer)("rdstrace: Error!!! Bad highguard, %x=%x\n",
+      RDS_LOG("rdstrace: Error!!! Bad highguard, %x=%x\n",
 			   BLOCK_END(fbp), *BLOCK_END(fbp));
     
     next_fbp = NEXT_CONSECUTIVE_BLOCK(fbp);
     
-    (*rds_trace_printer)("rdstrace: addr %d size %d %s\n",
+    RDS_LOG("rdstrace: addr %d size %d %s\n",
 			 fbp,
 			 fbp->size * RDS_CHUNK_SIZE,
 			 (fbp->type == FREE_GUARD ? "free":"alloc"));
@@ -262,13 +259,13 @@ void rds_trace_dump_blocks()
       if ((fbp->type == next_fbp->type) && (fbp->size == next_fbp->size)) {
 	same++;
       } else {
-	(*rds_trace_printer)("rdstrace: %s size %d count %d\n",
+	RDS_LOG("rdstrace: %s size %d count %d\n",
 			     (fbp->type == FREE_GUARD ? "free":"alloc"),
 			     fbp->size, same);
 	same = 1;
       }
     } else {
-      (*rds_trace_printer)("rdstrace: %s size %d count %d\n",
+      RDS_LOG("rdstrace: %s size %d count %d\n",
 			   (fbp->type == FREE_GUARD ? "free":"alloc"),
 			   fbp->size, same);
     }
@@ -277,26 +274,24 @@ void rds_trace_dump_blocks()
     fbp = next_fbp;
   }
   
-  (*rds_trace_printer)("rdstrace: stop dump_blocks\n");
+  RDS_LOG("rdstrace: stop dump_blocks\n");
 }
 
 int
 rds_trace_dump_heap ()
 {
   ASSERT(HEAP_INIT);
-  if (tracing_rds) {
     CRITICAL({
-      (*rds_trace_printer)("rdstrace: start heap_dump\n");
-      (*rds_trace_printer)("rdstrace: version_string %s\n", RDS_VERSION_STAMP);
-      (*rds_trace_printer)("rdstrace: heaplength %d\n", RDS_HEAPLENGTH);
-      (*rds_trace_printer)("rdstrace: chunk_size %d\n", RDS_CHUNK_SIZE);
-      (*rds_trace_printer)("rdstrace: nlists %d\n", RDS_NLISTS);
+      RDS_LOG("rdstrace: start heap_dump\n");
+      RDS_LOG("rdstrace: version_string %s\n", RDS_VERSION_STAMP);
+      RDS_LOG("rdstrace: heaplength %d\n", RDS_HEAPLENGTH);
+      RDS_LOG("rdstrace: chunk_size %d\n", RDS_CHUNK_SIZE);
+      RDS_LOG("rdstrace: nlists %d\n", RDS_NLISTS);
       rds_trace_dump_stats();
-      (*rds_trace_printer)("rdstrace: maxlist %d\n", RDS_MAXLIST);
+      RDS_LOG("rdstrace: maxlist %d\n", RDS_MAXLIST);
       rds_trace_dump_free_lists();
       rds_trace_dump_blocks();
-      (*rds_trace_printer)("rdstrace: stop heap_dump\n");
+      RDS_LOG("rdstrace: stop heap_dump\n");
     });
-  }
   return 0;
 }

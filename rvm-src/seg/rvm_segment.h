@@ -33,7 +33,7 @@ should be returned to Software.Distribution@cs.cmu.edu.
 
 */
 
-static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/src/coda-4.0.1/RCSLINK/./rvm-src/seg/rvm_segment.h,v 1.1 1996/11/22 19:17:15 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/rvm-src/seg/rvm_segment.h,v 4.1 1997/01/08 21:54:46 rvb Exp $";
 #endif _BLURB_
 
 /*
@@ -62,25 +62,23 @@ rvm_region_def_t;
 
 /* error code for damaged segment header */
 #define RVM_ESEGMENT_HDR 2000
-
+
 /* define regions within a segment for segement loader */
-extern rvm_return_t rvm_create_segment C_ARGS
-    ((
+extern rvm_return_t rvm_create_segment (
     char                *DevName,       /* pointer to data device name */
     rvm_offset_t        DevLength,      /* Length of dataDev if really a device */
     rvm_options_t       *options,       /* options record for RVM */
     rvm_length_t        nregions,       /* number of regions defined for segment*/
     rvm_region_def_t    *region_defs    /* array of region defs for segment */
-    ));
+    );
 
 /* load regions of a segment */
-extern rvm_return_t rvm_load_segment C_ARGS 
-    ((
+extern rvm_return_t rvm_load_segment (
     char                *DevName,       /* pointer to data device name */
     rvm_offset_t        DevLength,      /* Length of dataDev if really a device */
     rvm_options_t       *options,       /* options record for RVM */
     unsigned long       *nregions,      /* returned -- number of regions mapped */
     rvm_region_def_t    *regions[]      /* returned array of region descriptors */
-    ));
+    );
 
 #endif _RVM_SEGMENT_H_

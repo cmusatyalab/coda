@@ -33,17 +33,13 @@ should be returned to Software.Distribution@cs.cmu.edu.
 
 */
 
-static char *rcsid = "$Header: /usr/rvb/XX/src/rvm-src/rds/RCS/rds_free.c,v 4.1 1997/01/08 21:54:27 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/rvm-src/rds/rds_free.c,v 4.2 1997/02/26 16:05:00 rvb Exp $";
 #endif _BLURB_
 
 #include <stdlib.h>
 #include <stdio.h>
-#ifdef __MACH__
-#include <sysent.h>
-#else	/* __linux__ || __BSD44__ */
 #include <unistd.h>
 #include <stdlib.h>
-#endif
 #include <rvm.h>
 #include <rds.h>
 #include <rds_private.h>
@@ -91,9 +87,7 @@ rds_free(addr, tid, err)
 	return -1;
     }
 
-    if (tracing_rds) {
-       (*rds_trace_printer)("rdstrace: Error!!! rds_free called\n");
-    }
+    RDS_LOG("rdstrace: Error!!! rds_free called\n");
 
     /* Make sure that the pointer is word aligned */
     if ((bp == NULL) || (int)bp % 4) {
@@ -224,9 +218,7 @@ int rds_do_free(list, mode)
 	return (int) rvmret;
     }
     
-    if (tracing_rds) {
-        (*rds_trace_printer)("rdstrace: start do_free\n");
-    }
+    RDS_LOG("rdstrace: start do_free\n");
 
     err = SUCCESS; 		/* Initialize the error value */
     CRITICAL({
@@ -253,10 +245,8 @@ int rds_do_free(list, mode)
 	    RDS_STATS.freebytes   += bp->size * RDS_CHUNK_SIZE;
 	    RDS_STATS.mallocbytes -= bp->size * RDS_CHUNK_SIZE; 
 	    
-	    if (tracing_rds) {
-	        (*rds_trace_printer)("rdstrace: addr %d size %d\n",
-				     bp, bp->size * RDS_CHUNK_SIZE);
-	    } 
+	    RDS_LOG("rdstrace: addr %p size %x\n",
+				     USER_BLOCK(bp)  , bp->size * RDS_CHUNK_SIZE);
 
 	    /* Add the block to the approprite free list. */
 	    put_block(bp, tid, &err); 
@@ -264,9 +254,7 @@ int rds_do_free(list, mode)
 		break;
 	}
 	
-	if (tracing_rds) {
-	    (*rds_trace_printer)("rdstrace: end do_free\n");
-	}
+	RDS_LOG("rdstrace: end do_free\n");
 
 	if (err != SUCCESS) {
 	    rvm_abort_transaction(tid);

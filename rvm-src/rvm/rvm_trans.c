@@ -33,7 +33,7 @@ should be returned to Software.Distribution@cs.cmu.edu.
 
 */
 
-static char *rcsid = "$Header: /afs/cs.cmu.edu/user/clement/mysrcdir3/rvm-src/rvm/RCS/rvm_trans.c,v 4.1 1997/01/08 21:54:39 rvb Exp clement $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/rvm-src/rvm/rvm_trans.c,v 4.2 1997/04/01 01:55:57 clement Exp $";
 #endif _BLURB_
 
 /*
@@ -518,7 +518,7 @@ rvm_return_t rvm_set_range(rvm_tid,dest,length)
 rvm_return_t rvm_modify_bytes(rvm_tid,dest,src,length)
     rvm_tid_t           *rvm_tid;       /* transaction affected */
     void                *dest;          /* base vm address of range */
-    void                *src;           /* source of nv's */
+    const void                *src;           /* source of nv's */
     rvm_length_t        length;         /* length of range */
     {
     rvm_return_t        retval;

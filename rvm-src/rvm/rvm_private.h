@@ -33,7 +33,7 @@ should be returned to Software.Distribution@cs.cmu.edu.
 
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/rvm-src/rvm/rvm_private.h,v 4.4 1997/11/04 22:04:04 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/rvm-src/rvm/rvm_private.h,v 4.5 1998/03/06 20:21:47 braam Exp $";
 #endif _BLURB_
 
 /*
@@ -56,6 +56,7 @@ static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/rvm-src/rvm/rvm
 #include <sys/types.h>
 #include <stdlib.h>
 #include <string.h>
+#include <assert.h>
 #include "rvm.h"
 #include "rvm_statistics.h"
 
@@ -83,6 +84,11 @@ static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/rvm-src/rvm/rvm
 
 #define FORWARD     rvm_true            /* record scan forward */
 #define REVERSE     rvm_false           /* record scan reverse */
+
+
+
+#define ASSERT(ex) assert(ex)
+#if 0
 /* assert that preserves stack */
 #ifdef ASSERT
 #undef ASSERT
@@ -100,6 +106,9 @@ static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/rvm-src/rvm/rvm
         abort(); \
          } \
     MACRO_END
+
+#endif
+
 /* RVM Internal Error Messages */
 
 #define ERR_DATE_SKEW       "Current time before last recorded - check kernel date"

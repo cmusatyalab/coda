@@ -33,7 +33,7 @@ should be returned to Software.Distribution@cs.cmu.edu.
 
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/rvm-src/rvm/rvm_logrecovr.c,v 4.7.4.1 98/06/18 15:07:13 jaharkes Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/rvm-src/rvm/rvm_logrecovr.c,v 4.8 1998/06/18 16:16:31 jaharkes Exp $";
 #endif _BLURB_
 
 /*
@@ -980,7 +980,8 @@ rvm_return_t scan_wrap_reverse(log,synch)
         if (log_wrap->struct_id2 == log_wrap_id) 
             {
 		ASSERT( (log_wrap->struct_id==log_wrap_id) || rvm_utlsw );
-#ifdef 0
+		/* XXXX fix this */ 
+#if 0
 		if (!((log_wrap->struct_id == log_wrap_id) || rvm_utlsw)) {
 		    printf("not true!\n");
 		    ASSERT(0);
@@ -2335,11 +2336,12 @@ static rvm_return_t merge_node(log,node,preload)
 
     return RVM_SUCCESS;
     }
-static rvm_return_t update_seg(log,seg_dict,seg_dev)
+
+static rvm_return_t update_seg(log,seg_dict,seg_dev)
     log_t           *log;               /* log descriptor */
     seg_dict_t      *seg_dict;          /* segment dictionary entry */
     device_t        *seg_dev;           /* segment device descriptor */
-    {
+{
     log_status_t    *status = &log->status; /* status descriptor */
     log_buf_t       *log_buf = &log->log_buf; /* log buffer descriptor */
     long            r_length;           /* length of data transfered */
@@ -2659,13 +2661,14 @@ static rvm_return_t new_epoch(log,count)
     ASSERT(log->trunc_thread == cthread_self());
     return retval;
     }
-/* recover committed state from log */
+
+/* recover committed state from log */
 rvm_return_t log_recover(log,count,is_daemon,flag)
     log_t           *log;               /* log descriptor */
     rvm_length_t    *count;             /* ptr to statistics counter */
     rvm_bool_t      is_daemon;          /* true if called by daemon */
     rvm_length_t    flag;               /* truncation type flag */
-    {
+{
     log_status_t    *status = &log->status; /* log status descriptor */
     log_daemon_t    *daemon = &log->daemon; /* log daemon descriptor */
     struct timeval  end_time;           /* end of action time temp */
@@ -2817,27 +2820,33 @@ err_exit:
     return retval;
     }
 #undef X
-/* rvm_truncate */
-rvm_return_t rvm_truncate()
-    {
-    rvm_return_t    retval;
 
-    /* initial checks */
-    if (bad_init()) return RVM_EINIT;
-    if (default_log == NULL) return RVM_ELOG;
+
+/* rvm_truncate */
+rvm_return_t rvm_truncate()
+{
+	rvm_return_t    retval;
+
+	/* initial checks */
+	if (bad_init()) 
+		return RVM_EINIT;
+	if (default_log == NULL) 
+		return RVM_ELOG;
 
     /* flush any queued records */
-    if ((retval=flush_log(default_log,
-                          &default_log->status.n_flush))
-        != RVM_SUCCESS) return retval;
+	if ((retval=flush_log(default_log,
+			      &default_log->status.n_flush))
+	    != RVM_SUCCESS) return retval;
 
-    /* do truncation */
-    retval = log_recover(default_log,
-                       &default_log->status.tot_rvm_truncate,
-                       rvm_false,RVM_TRUNCATE_CALL);
-    return retval;
-    }
-/* map & flush <--> truncation synchronization functions */
+	/* do truncation */
+	retval = log_recover(default_log,
+			     &default_log->status.tot_rvm_truncate,
+			     rvm_false,RVM_TRUNCATE_CALL);
+	return retval;
+}
+
+
+/* map & flush <--> truncation synchronization functions */
 
 /* initiate asynchronous truncation */
 rvm_bool_t initiate_truncation(log,threshold)

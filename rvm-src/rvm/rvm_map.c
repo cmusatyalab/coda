@@ -33,7 +33,7 @@ should be returned to Software.Distribution@cs.cmu.edu.
 
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/rvm-src/rvm/rvm_map.c,v 4.5 1998/03/06 20:21:46 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/rvm-src/rvm/rvm_map.c,v 4.6 1998/06/22 16:58:23 jaharkes Exp $";
 #endif _BLURB_
 
 /*
@@ -55,12 +55,8 @@ static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/rvm-src/rvm/rvm
 #if defined(hpux) || defined(__hpux)
 #include <hp_bsd.h>
 #endif /* hpux */
-#ifdef __MACH__
-#include <sysent.h>
-#else	/* __linux__ || __BSD44__ */
 #include <unistd.h>
 #include <stdlib.h>
-#endif
 #include "rvm_private.h"
 
 #ifdef __CYGWIN32__
@@ -91,9 +87,10 @@ static long         seg_code = 1;       /* segment short names */
 static RVM_MUTEX    seg_code_lock;      /* lock for short names generator */
 list_entry_t        page_list;          /* list of usable pages */
 RVM_MUTEX           page_list_lock;     /* lock for usable page list */
-/* basic page, segment lists and region tree initialization */
+
+/* basic page, segment lists and region tree initialization */
 void init_map_roots()
-    {
+{
     init_list_header(&seg_root,seg_id);
     init_rw_lock(&seg_root_lock);
     init_rw_lock(&region_tree_lock);
@@ -105,12 +102,12 @@ void init_map_roots()
     page_mask = ~(page_size - 1);
     mutex_init(&page_list_lock);
     init_list_header(&page_list,free_page_id);
-    }
+}
 
 /* check validity of rvm_region record & ptr */
 rvm_return_t bad_region(rvm_region)
     rvm_region_t    *rvm_region;
-    {
+{
     if (rvm_region == NULL)
         return RVM_EREGION;
     if (rvm_region->struct_id != rvm_region_id)
@@ -121,84 +118,8 @@ rvm_return_t bad_region(rvm_region)
             return RVM_ENAME_TOO_LONG;
 
     return RVM_SUCCESS;
-    }
-
-#ifdef MACH                             /* begin Mach-specific declarations */
-#define PAGE_ALLOC_DEFINED
-#include <mach.h>
+}
 
-/* Mach page allocator/deallocator */
-char *page_alloc(len)
-    rvm_length_t    len;                /* bytes to allocate */
-    {
-    char            *vmaddr;            /* allocated address return */
-    kern_return_t   rtn;                /* kernel return value */
-
-    rtn = vm_allocate(task_self_,(vm_address_t *)&vmaddr,
-                      (vm_size_t)len,TRUE);
-    switch (rtn)
-        {
-      case KERN_SUCCESS:    return vmaddr;
-      case KERN_NO_SPACE:   return NULL;
-      default:              ASSERT(rvm_false); /* error */
-        }
-    /* We must return before here: silence compiler warnings */
-    ASSERT(rvm_false);
-    return NULL;
-    }
-
-void page_free(vmaddr,length)
-    char            *vmaddr;            /* base address of region */
-    rvm_length_t    length;             /* length of region */
-    {
-    kern_return_t   rtn;                /* kernel return value */
-
-
-    rtn = vm_deallocate(task_self_,(vm_address_t)vmaddr,
-                      (vm_size_t)length);
-    switch (rtn)
-        {
-      case KERN_SUCCESS:    return;
-      default:              ASSERT(rvm_false); /* error */
-        }
-    }
-/* Mach virtual memory addressability checker
-   returns true if region addressable
-*/
-static rvm_bool_t mem_chk(vmaddr,length)
-    char            *vmaddr;            /* base address of region */
-    rvm_length_t    length;             /* length of region */
-    {
-    long            i;
-    char            *chk_addr;          /* allocation addres */
-    kern_return_t   rtn;                /* kernel return value */
-
-    /* try to allocate each page of region
-       -- error if can allocate */
-    chk_addr = vmaddr;
-    length = ROUND_TO_PAGE_SIZE(length);
-    for (i=0; i<(length/page_size);i++)
-        {
-        rtn = vm_allocate(task_self_,(vm_address_t *)&chk_addr,
-                          (vm_size_t)page_size,FALSE);
-        if (rtn == KERN_SUCCESS)
-            {
-            /* oops... deallocate the page */
-            rtn = vm_deallocate(task_self_,(vm_address_t)chk_addr,
-                                page_size);
-            ASSERT(rtn == KERN_SUCCESS);
-            return rvm_false;               /* not addressable */
-            }
-        ASSERT(rtn != KERN_INVALID_ADDRESS);
-        chk_addr = RVM_ADD_LENGTH_TO_ADDR(chk_addr,page_size);
-        }
-
-    return rvm_true;                    /* all's well */
-    }
-
-#endif                                 /* end of Mach-specific declarations */
-
-#if	! defined(MACH)	/* begin BSD44-specific declarations */
 #define PAGE_ALLOC_DEFINED 
 #include <sys/types.h>
 #include <sys/mman.h>
@@ -223,7 +144,7 @@ static rvm_bool_t mem_chk(vmaddr,length)
  * if the region was already allocated, this mmap() call would fail.
  *
  * This solution turns out to be NOT CORRECT. Not only does BSD44 not
- * perform in this fashion (it will deallocated whatever was there beforehand,
+ * perform in this fashion (it will deallocate whatever was there beforehand,
  * silently), but there is another complication. If the application has
  * allocated memory in that space, it could cause an erroneous result from
  * the mem_chk() function. Since mmap() (if it behaved as originally beleived)
@@ -414,11 +335,7 @@ rvm_page_entry_t *find_page_entry(char *vmaddr)
 
     return(NULL);
 }
-
-/*
- * The following code has matching functions in the Mach and default
- * compilations.
- */
+
 
 /* BSD44 page allocator */
 char *page_alloc(len)
@@ -466,6 +383,7 @@ char *page_alloc(len)
 
     return vmaddr;
     }
+
 
 /* BSD44 page deallocator */
 void page_free(vmaddr, length)
@@ -515,148 +433,23 @@ rvm_bool_t mem_chk(char *vmaddr, rvm_length_t length)
     return(rvm_false);		/* shouldn't be able to get here */
 }
 
-#endif /* __linux__ || __BSD44__ || __CYGWIN32__ */
-
-#ifndef PAGE_ALLOC_DEFINED              /* begin generic Unix declarations */
-/* Unix page_list allocation */
-static rvm_length_t get_page(length)
-    rvm_length_t    length;
-    {
-    free_page_t     *page;              /* ptr to free page */
-    free_page_t     *bestfit;           /* ptr to best fitting block */
-
-    CRITICAL(page_list_lock,            /* begin page_list_lock crit sec */
-        {
-        page = (free_page_t *)page_list.nextentry;
-        bestfit = NULL;
-        while (page != (free_page_t *)&page_list)
-            {
-            if (page->len >= length)
-                {
-                if (bestfit == NULL)
-                    bestfit = page;
-                else
-                    if (page->len <= bestfit->len)
-                        bestfit = page;
-                if (page->len == length) break; /* exact fit */
-                }
-            page = (free_page_t *)page->links.nextentry;
-            }
-
-        if (bestfit != NULL)
-            {
-            if (bestfit->len == length) /* return whole block */
-                (void)move_list_entry(&page_list,NULL,
-                                      (list_entry_t *)bestfit);
-            else
-                {                       /* trim tail off and return */
-                bestfit->len = bestfit->len - length;
-                bestfit = (free_page_t *)((rvm_length_t)bestfit
-                                           + bestfit->len);
-                }
-            }
-        });                             /* end page_list_lock crit sec */
-
-    return (rvm_length_t)bestfit;
-    }
-void page_free(base,length)
-    char            *base;
-    rvm_length_t    length;
-    {
-    free_page_t     *cell;
-
-    /* construct list entry from page */
-    cell = (free_page_t *)base;
-    cell->links.struct_id = free_page_id;
-    cell->links.is_hdr = rvm_false;
-    cell->len = length;
-
-    /* put on free list */
-    CRITICAL(page_list_lock,            /* begin page_list_lock crit sec */
-        {
-        (void)move_list_entry(NULL,&page_list,
-                              (list_entry_t *)cell);
-        });                             /* end page_list_lock crit sec */
-    }
-/* Unix page-aligned space allocator */
-char *page_alloc(len)
-    rvm_length_t    len;                /* bytes to allocate */
-    {
-    rvm_length_t    base,oldbase;       /* base of memory allocated */
-    rvm_length_t    pad,limit;          /* padding for page alignment */
-
-    /* see if there is a region already allocated */
-    if ((base = get_page(len)) != NULL)
-        goto test_exit;
-
-    /* round up present break pt to page size & allocate */
-    oldbase = (rvm_length_t)sbrk(0);
-    pad = page_size - (oldbase & ~page_mask);
-    base = (rvm_length_t)sbrk((int)(len+pad));
-    if (base == -1) return NULL;        /* out of space */
-    if (base == oldbase)                /* got what we expected? */
-        {
-        base = base+pad;                /* yes, return 1st page addr */
-        goto test_exit;
-        }
-    
-    /* test if got enough anyway by extracting 1st page addr
-       and testing if in allocated region */
-    oldbase = base;
-    limit = base+pad+len;
-    if ((base=(limit & page_mask) - len) >= oldbase)
-        goto test_exit;
-    
-    /* try to get remainder of last page */
-    pad = page_size - (limit & ~page_mask);
-    base = (rvm_length_t)sbrk((int)(pad));
-    if (base == -1) return NULL;        /* out of space */
-    if (base == limit)                  /* got remainder? */
-        {
-        base = (base+pad)-len;          /* yes, return 1st page addr */
-        goto test_exit;
-        }
-    
-    /* save previous allocation and reallocate with certianty */
-    page_free((char *)((oldbase&page_mask)+page_size),len-page_size);
-    base = (rvm_length_t)sbrk((int)(len+page_size-1));
-    if (base == -1) return NULL;        /* out of space */
-    base = (base+page_size-1) & page_mask;
-
-test_exit:
-    ASSERT((base&page_mask) == base);
-    return (char *)base;
-    }
-/* Unix virtual memory addressability checker
-   returns true if region addressable
-*/
-static rvm_bool_t mem_chk(vmaddr,length)
-    char            *vmaddr;            /* base address of region */
-    rvm_length_t    length;             /* length of region */
-    {
-    if (RVM_ADD_LENGTH_TO_ADDR(vmaddr,length) > (char *)sbrk(0))
-        return rvm_false;               /* not addressable */
-
-    return rvm_true;                    /* all's well */
-    }
-
-#endif                                  /* end of generic Unix declarations */
-/* segment short name generator */
+/* segment short name generator */
 static long make_seg_code()
-    {
-    long            retval;
+{
+	long            retval;
 
-    CRITICAL(seg_code_lock,            /* begin seg_code_lock crit sec */
-        { 
+	CRITICAL(seg_code_lock,            /* begin seg_code_lock crit sec */
+		 { 
                                         /* probably indivisible on CISC */
-        retval = seg_code++;            /* machines, but we can't RISC it, */
-                                        /* so we lock it... */
+			 retval = seg_code++;            /* machines, but we can't RISC it, */
+			 /* so we lock it... */
+			 
+		 });                             /* end seg_code_lock crit sec */
+	
+	return retval;
+}
 
-        });                             /* end seg_code_lock crit sec */
-
-    return retval;
-    }
-/* open segment device and set device characteristics */
+/* open segment device and set device characteristics */
 long open_seg_dev(seg,dev_length)
     seg_t           *seg;               /* segment descriptor */
     rvm_offset_t    *dev_length;        /* optional device length */
@@ -680,7 +473,8 @@ long close_seg_dev(seg)
     return close_dev(&seg->dev);
 
     }
-/* close segment devices at termination time */
+
+/* close segment devices at termination time */
 rvm_return_t close_all_segs()
     {
     seg_t           *seg;               /* segment desriptor */
@@ -702,7 +496,8 @@ rvm_return_t close_all_segs()
 
     return retval;
     }
-/* segment lookup via device name */
+
+/* segment lookup via device name */
 seg_t *seg_lookup(dev_name,retval)
     char            *dev_name;          /* segment device name */
     rvm_return_t    *retval;
@@ -728,7 +523,8 @@ seg_t *seg_lookup(dev_name,retval)
     else
         return NULL;
     }
-/* enter segment short name definition in log */
+
+/* enter segment short name definition in log */
 rvm_return_t define_seg(log,seg)
     log_t           *log;               /* log descriptor */
     seg_t           *seg;               /* segment descriptor */
@@ -755,7 +551,8 @@ rvm_return_t define_seg(log,seg)
 
     return retval;
     }
-/* write new segment dictionary entries for all segments */
+
+/* write new segment dictionary entries for all segments */
 rvm_return_t define_all_segs(log)
     log_t           *log;
     {
@@ -773,7 +570,8 @@ rvm_return_t define_all_segs(log)
 
     return retval;
     }
-/* segment builder */
+
+/* segment builder */
 static seg_t *build_seg(rvm_region,log,retval)
     rvm_region_t    *rvm_region;        /* segment's region descriptor */
     log_t           *log;               /* log descriptor */
@@ -820,7 +618,8 @@ err_exit:
     if (seg != NULL) free_seg(seg);     /* deallocated since the seg_code is */
     return NULL;                        /* unique -- to the log, it's just like */
     }                                   /* a segment used read-only  */
-/* device region conflict comparator */
+
+/* device region conflict comparator */
 long dev_partial_include(base1,end1,base2,end2)
     rvm_offset_t    *base1,*end1;
     rvm_offset_t    *base2,*end2;
@@ -847,7 +646,8 @@ long dev_total_include(base1,end1,base2,end2)
 
     return 1;                           /* region1 above region2, may overlap */
     }
-/* vm range conflict comparator */
+
+/* vm range conflict comparator */
 long mem_partial_include(tnode1,tnode2)
     tree_node_t     *tnode1;            /* range1 */
     tree_node_t     *tnode2;            /* range2 */
@@ -890,7 +690,8 @@ long mem_total_include(tnode1,tnode2)
     if (end1 < addr2) return -1;        /* range1 below range2, may overlap */
     return 1;                           /* range1 above range2, may overlap */
     }
-/* find and lock a region record iff vm range
+
+/* find and lock a region record iff vm range
    entirely within a single mapped region
    -- region tree is left lock if mode = w
    -- used by transaction functions and unmap
@@ -927,7 +728,7 @@ region_t *find_whole_range(dest,length,mode)
     
     return region;
     }
-/* find and lock a region record if vm range is at least partially
+/* find and lock a region record if vm range is at least partially
    within a single mapped region; return code for inclusion
 */
 region_t *find_partial_range(dest,length,code)
@@ -962,7 +763,8 @@ region_t *find_partial_range(dest,length,code)
     
     return region;
     }
-/* apply mapping options, compute region size, and round to page size */
+
+/* apply mapping options, compute region size, and round to page size */
 static rvm_return_t round_region(rvm_region,seg)
     rvm_region_t    *rvm_region;        /* user region specs [in/out] */
     seg_t           *seg;               /* segment descriptor */
@@ -1013,7 +815,8 @@ static rvm_return_t round_region(rvm_region,seg)
 
     return RVM_SUCCESS;
     }
-/* validate region and construct descriptors */
+
+/* validate region and construct descriptors */
 static rvm_return_t establish_range(rvm_region,region,mem_region,seg)
     rvm_region_t    *rvm_region;        /* user request region descriptor */
     region_t        **region;           /* internal region descriptor [out]*/
@@ -1057,7 +860,8 @@ static rvm_return_t establish_range(rvm_region,region,mem_region,seg)
 
     return retval;
     }
-/* check for mapping dependencies on previously 
+
+/* check for mapping dependencies on previously 
    mapped regions, or conflict with presently mapped region
    -- caller provides list locking
    returns true if dependency detected
@@ -1080,7 +884,8 @@ static region_t *chk_seg_mappings(chk_region,list_root)
 
     return NULL;
     }
-/* check mapping dependencies within segment */
+
+/* check mapping dependencies within segment */
 static rvm_return_t chk_dependencies(seg,region)
     seg_t           *seg;
     region_t        *region;
@@ -1121,7 +926,8 @@ err_exit:;
 
     return retval;
     }
-/* make data from segment available from mapped region */
+
+/* make data from segment available from mapped region */
 static rvm_return_t map_data(rvm_options,region)
     rvm_options_t   *rvm_options;
     region_t        *region;
@@ -1171,7 +977,8 @@ static rvm_return_t map_data(rvm_options,region)
 
     return retval;
     }
-/* error exit cleanup */
+
+/* error exit cleanup */
 static void clean_up(region,mem_region)
     region_t        *region;
     mem_region_t    *mem_region;
@@ -1202,7 +1009,8 @@ static void clean_up(region,mem_region)
         free_mem_region(mem_region);
         }
     }
-/* rvm_map */
+
+/* rvm_map */
 rvm_return_t rvm_map(rvm_region,rvm_options)
     rvm_region_t        *rvm_region;
     rvm_options_t       *rvm_options;
@@ -1245,7 +1053,7 @@ rvm_return_t rvm_map(rvm_region,rvm_options)
        for truncation dependencies, and enter region in map_list */
     if ((retval=chk_dependencies(seg,region)) != RVM_SUCCESS)
         goto err_exit;
-    /* get the data from the segment */
+    /* get the data from the segment */
     if ((retval = map_data(rvm_options,region)) != RVM_SUCCESS)
         {
         rvm_region->length = 0;
