@@ -66,8 +66,10 @@ RP2GEN=../rp2gen/rp2gen
 # Machine independent FLAGS
 ##############################
 
+# OPTFLAG and GFLAG are set per platform in $(MAKDIR)/configs/Makeconf.$(SYS)
 DEPFLAG   := -MD
-OPTFLAG   := -g
+#OPTFLAG  :=
+#GFLAG    := -g
 LIBFLAGS  := $(OPTLFLAG)
 AFLAGS	  := $(GFLAG) $(DEPFLAG) $(MACHINE_FLAGS) $(MYFLAGS) $(INCLFLAGS)
 CFLAGS	  := $(OPTFLAG) $(AFLAGS) -DPRIVATE=static
