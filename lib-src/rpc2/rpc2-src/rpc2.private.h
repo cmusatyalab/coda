@@ -582,8 +582,6 @@ int mkcall(RPC2_HandleResult_func *ClientHandler, int ArgCount, int HowMany,
 
 /*------ Other definitions ------*/
 
-extern struct in_addr rpc2_bindaddr;
-
 /* Allocation constants */
 
 #define SMALLPACKET	350

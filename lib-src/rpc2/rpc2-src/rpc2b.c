@@ -64,12 +64,9 @@ Pittsburgh, PA.
 #include "trace.h"
 #include "cbuf.h"
 
-/* FreeBSD 2.2.5 defines this in rpc/types.h, all others in netinet/in.h */
-#ifndef INADDR_LOOPBACK
-#define INADDR_LOOPBACK 0x7f000001
-#endif
-
-struct in_addr rpc2_bindaddr = { INADDR_ANY };
+RPC2_HostIdent rpc2_bindhost = {
+    .Tag = RPC2_DUMMYHOST,
+};
 
 long RPC2_Init(char *VId,		/* magic version string */
 	       RPC2_Options *Options,
@@ -104,7 +101,8 @@ long RPC2_Init(char *VId,		/* magic version string */
     rpc2_InitMgrp();
     rpc2_InitHost();
 
-    rpc2_localaddr = rpc2_resolve(NULL, Port);
+    rpc2_localaddr = rpc2_resolve(&rpc2_bindhost, Port);
+
     if (!rpc2_localaddr) {
 	say(-1, RPC2_DebugLevel, "RPC2_Init(): Couldn't get addrinfo for localhost!\n");
 	rpc2_Quit(RPC2_FAIL);
@@ -165,11 +163,28 @@ long RPC2_Init(char *VId,		/* magic version string */
 /* set the IP Addr to bind to */
 struct in_addr RPC2_setip(struct in_addr *ip)
 {
-	rpc2_bindaddr.s_addr = INADDR_ANY;
+    RPC2_HostIdent host;
 
-	if (ip) memcpy(&rpc2_bindaddr, ip, sizeof(struct in_addr));
+    host.Tag = RPC2_HOSTBYINETADDR;
+    memcpy(&host.Value.InetAddress, ip, sizeof(struct in_addr));
 
-	return rpc2_bindaddr;
+    RPC2_setbindaddr(&host);
+    return *ip;
+}
+
+void RPC2_setbindaddr(RPC2_HostIdent *host)
+{
+    if (rpc2_bindhost.Tag == RPC2_HOSTBYADDRINFO)
+	RPC2_freeaddrinfo(rpc2_bindhost.Value.AddrInfo);
+
+    rpc2_bindhost.Tag = RPC2_DUMMYHOST;
+
+    if (!host)
+	return;
+
+    memcpy(&rpc2_bindhost, host, sizeof(RPC2_HostIdent));
+    if (host->Tag == RPC2_HOSTBYADDRINFO)
+	rpc2_bindhost.Value.AddrInfo = RPC2_copyaddrinfo(host->Value.AddrInfo);
 }
 
 long RPC2_Export(IN Subsys)

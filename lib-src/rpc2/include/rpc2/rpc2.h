@@ -751,7 +751,8 @@ extern unsigned int rpc2_NextRandom (char *StatePtr);
 extern long rpc2_Bandwidth;
 
 /* for multihomed servers */
-struct in_addr RPC2_setip(struct in_addr *ip);
+struct in_addr RPC2_setip(struct in_addr *ip); /* deprecated */
+void RPC2_setbindaddr(RPC2_HostIdent *host);
 
 
 /*------- Transmission Statistics -------------*/
