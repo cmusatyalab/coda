@@ -63,7 +63,7 @@ Realm *RealmDB::GetRealm(const char *realmname)
     Realm *realm;
 
     if (!realmname || realmname[0] == '\0')
-	return NULL;
+	realmname = "UNKNOWN";
 
     CODA_ASSERT(strlen(realmname) <= MAXHOSTNAMELEN);
 
