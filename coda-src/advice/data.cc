@@ -5,7 +5,11 @@ extern "C" {
 #include <sys/types.h>
 #include <sys/param.h>
 #include <sys/stat.h>
+#ifdef __BSD44__
 #include <sys/dir.h>
+#else
+#include <dirent.h>
+#endif
 #include <sys/time.h>
 #include <assert.h>
 #include <errno.h>
@@ -277,7 +281,7 @@ int MoveFile(char *filename, char *hereDir, char* thereDir) {
 
 char *GetDataFile(char *here) {
     DIR *hereDIR;
-    struct direct *dirent;
+    struct dirent *dirent;
     static char filename[MAXPATHLEN];
 
     LogMsg(100,LogLevel,LogFile, "E GetDataFile(%s)", here);

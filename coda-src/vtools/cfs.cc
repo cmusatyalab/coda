@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vtools/cfs.cc,v 4.4 1997/10/23 19:26:22 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vtools/cfs.cc,v 4.5 1997/12/20 23:35:41 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -66,7 +66,8 @@ extern "C" {
 #else
 #include <sys/dirent.h>
 #endif
-#else
+#endif
+#ifdef __BSD44__
 #include <sys/dir.h>
 #endif
 
@@ -813,9 +814,10 @@ PRIVATE int findclosures(char ***clist)
 	Return the # of closures found.
      */
     int n = 0;
+    int len;
     char spooldir[MAXPATHLEN];
     DIR *dirp;
-    struct direct *td;
+    struct dirent *td;
 
     /*  XXXX  another hardwired path..... **  */
 
@@ -837,7 +839,8 @@ PRIVATE int findclosures(char ***clist)
 	    n++;
 	    *clist = (char **)realloc(*clist, n*sizeof(char *));
 	    }
-	(*clist)[n-1] = (char *)malloc(strlen(spooldir) + 1 + td->d_namlen + 1);
+	len = strlen(td->d_name);
+	(*clist)[n-1] = (char *)malloc(strlen(spooldir) + 1 + len + 1);
 	strcpy((*clist)[n-1], spooldir);
 	strcat((*clist)[n-1], "/");
 	strcat((*clist)[n-1], td->d_name);
@@ -1146,8 +1149,8 @@ PRIVATE void GetFid(int argc, char *argv[], int opslot)
 	the fid for: just look at the dangling sym link value.  So we don't
 	go to any trouble to find the fid if the object is in conflict.
 	*/
-	bcopy(piobuf, &fid, (int) sizeof(ViceFid));
-	bcopy(piobuf+sizeof(ViceFid), &vv, (int) sizeof(ViceVersionVector));
+	bcopy((const void *)piobuf, (void *)&fid, (int) sizeof(ViceFid));
+	bcopy((const void *)piobuf+sizeof(ViceFid), (void *)&vv, (int) sizeof(ViceVersionVector));
 
 	sprintf(buf, "0x%x.%x.%x",  fid.Volume, fid.Vnode, fid.Unique);
 	printf("FID = %-20s     ", buf);

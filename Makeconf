@@ -20,6 +20,13 @@ BINDIR:=$(exec_prefix)/bin
 SBINDIR:=$(exec_prefix)/sbin
 MANDIR:=$(mandir)
 
+NATIVECC = cc
+CC = cc
+CXX = c++
+AR=ar
+RANLIB=ranlib
+INSTALL = cp -p
+
 include $(MAKDIR)/configs/Makeconf.$(SYS)
 
 
@@ -73,9 +80,6 @@ endif
 # Machine independent FLAGS
 ##############################
 
-CC = cc
-CXX = c++
-INSTALL = cp -p
 
 ifeq ($(INCLDIR),$(INCLSPECIAL))
 INCLFLAGS := -I- -I. $(SHADOWINCLS) -I$(INCLDIR) $(INCLFLAGS)

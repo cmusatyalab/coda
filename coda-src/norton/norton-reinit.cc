@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/norton/norton-reinit.cc,v 4.1 97/01/08 21:49:51 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/norton/norton-reinit.cc,v 4.2 1997/08/20 13:46:31 raiff Exp $";
 #endif /*_BLURB_*/
 
 
@@ -175,7 +175,7 @@ PRIVATE int DumpResLog(int fd, struct VolumeData *voldata, struct
     }
     
     /* Mush the data into the right data structure */
-    bcopy(voldata->volumeInfo, &vh.diskstuff, (int)sizeof(VolumeDiskData));
+    bcopy((const char *)voldata->volumeInfo, (char *)&vh.diskstuff, (int)sizeof(VolumeDiskData));
     vp = &vol;
     vp->header = &vh;
 
@@ -453,7 +453,7 @@ PRIVATE int ReadVnodeList(int fd, Volume *vp, VnodeClass vclass, int ResOn) {
 	}
 	if (norton_debug) printf("Reading vnode number 0x%x\n", vnode_num);
 
-	bzero((void *)vnode, VNODESIZE(vclass));
+	bzero((void *)(void *)vnode, VNODESIZE(vclass));
 	
 	if (read(fd, (void *) vnode, VNODESIZE(vclass)) == -1) {
 	    perror("Reading vnode\n");
@@ -485,7 +485,7 @@ PRIVATE int ReadVnodeList(int fd, Volume *vp, VnodeClass vclass, int ResOn) {
 	
 	CAMLIB_BEGIN_TOP_LEVEL_TRANSACTION_2(CAM_TRAN_NV_SERVER_BASED);
 	if (vclass == vLarge) {
-	    bzero(inode, (int)sizeof(DirInode));
+	    bzero((void *)inode, (int)sizeof(DirInode));
 		
 	    /* Read in the directory pages */
 	    if (read(fd, (void *)&npages, (int)sizeof(npages)) == -1) {
@@ -572,11 +572,12 @@ PRIVATE void NortonSetupVolume(VolHead *vh, Volume *vp, int volindex) {
     // compiler semantics ever change, we need to move it.
     static struct volHeader header;
 
-    bzero(&header, sizeof(struct volHeader));
-    bcopy(vh->data.volumeInfo, &header.diskstuff, sizeof(VolumeDiskData));
+    bzero((void *)&header, sizeof(struct volHeader));
+    bcopy((const void *)vh->data.volumeInfo, (void *)&header.diskstuff, 
+	  sizeof(VolumeDiskData));
     header.back = vp;
     
-    bzero(vp, sizeof(Volume));
+    bzero((void *)vp, sizeof(Volume));
     vp->hashid = vh->header.id;
     vp->header = &header;
     vp->vol_index = volindex;
@@ -663,7 +664,7 @@ PRIVATE int load_server_state(char *dump_file) {
 	return 0;
     }
     
-    bzero(&vol_head, (int)sizeof(VolHead));
+    bzero((void *)&vol_head, (int)sizeof(VolHead));
     while (ReadVolHead(dump_fd, &vol_head)) {
 	/* Check the magic number */
 	if (vol_head.header.stamp.magic != VOLUMEHEADERMAGIC) {
@@ -695,7 +696,7 @@ PRIVATE int load_server_state(char *dump_file) {
 	}
 
 
-	bzero(&data, (int)sizeof(VolumeDiskData));
+	bzero((void *)&data, (int)sizeof(VolumeDiskData));
 	if (!ReadVolDiskData(dump_fd, &data, &res_adm_limit)) {
 	    fprintf(stderr, "Aborting...\n");
 	    CAMLIB_ABORT(VFAIL);
@@ -779,7 +780,7 @@ PRIVATE int load_server_state(char *dump_file) {
 	    
 	    
 	FreeVolumeHeader(vp);
-	bzero(&vol_head, (int)sizeof(VolHead));
+	bzero((void *)&vol_head, (int)sizeof(VolHead));
 
 	// Truncate the RVM log.
 	rvm_truncate();

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/venusvol.cc,v 4.5 97/06/14 21:48:36 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/venusvol.cc,v 4.6 1997/12/16 16:08:38 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -191,7 +191,7 @@ void VolInit() {
 
 	/* Create the local fake volume */
 	VolumeInfo LocalVol;
-	bzero(&LocalVol, (int)sizeof(VolumeInfo));
+	bzero((void *)&LocalVol, (int)sizeof(VolumeInfo));
 	LocalVol.Vid = LocalFakeVid;
         LocalVol.Type = ROVOL;
 	ASSERT(VDB->Create(&LocalVol, "Local"));
@@ -417,7 +417,7 @@ PRIVATE void DeriveVSGInfo(VolumeInfo *volinfo) {
 
     /* Eureka!  Record VSGAddr and canonicalize volinfo hosts. */
     volinfo->VSGAddr = HW_VSGDB[i].vsgid;
-    bcopy(HW_VSGDB[i].hosts, &volinfo->Server0, (int) (MAXHOSTS * sizeof(unsigned long)));
+    bcopy((const void *)HW_VSGDB[i].hosts, (void *) &volinfo->Server0, (int) (MAXHOSTS * sizeof(unsigned long)));
 }
 
 
@@ -538,7 +538,7 @@ int vdb::Get(volent **vpp, char *volname) {
     VolumeInfo volinfo;
     if (Simulating) {
 	/* Construct phony volume info. */
-	bzero(&volinfo, (int)sizeof(VolumeInfo));
+	bzero((void *)&volinfo, (int)sizeof(VolumeInfo));
 	if (sscanf(volname, "%d", &volinfo.Vid) != 1)
 	    Choke("vdb::Get: %s not a number", volname);
 	volinfo.Type = REPVOL;
@@ -825,7 +825,7 @@ volent::volent(VolumeInfo *volinfo, char *volname) {
     current_reco_time = 0;	
     current_rws_cnt = 0;
     current_disc_read_cnt = 0;
-    bzero(&rwsq, (int)sizeof(rec_dlist));
+    bzero((void *)&rwsq, (int)sizeof(rec_dlist));
 }
 
 
@@ -2429,7 +2429,7 @@ void volent::GetHosts(unsigned long *hosts) {
 	case RWVOL:
 	case BACKVOL:
 	case RWRVOL:
-	    bzero(hosts, (int)(MAXHOSTS * sizeof(unsigned long)));
+	    bzero((void *)hosts, (int)(MAXHOSTS * sizeof(unsigned long)));
 	    hosts[0] = host;
 	    return;
 

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/fso_cfscalls2.cc,v 4.7 1997/12/16 16:08:28 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/fso_cfscalls2.cc,v 4.8 1997/12/16 20:15:51 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -50,7 +50,9 @@ extern "C" {
 #endif __cplusplus
 
 #include <stdio.h>
+#ifdef __BSD44__
 #include <sys/dir.h>
+#endif
 #include <sys/types.h>
 #include <sys/file.h>
 #ifndef __FreeBSD__
@@ -542,6 +544,13 @@ static char systype [] = "alpha_linux";
 #endif
 #endif /* __linux__ */
 
+#ifdef __CYGWIN32__
+#ifdef i386
+static char cputype [] = "i386";
+static char systype [] = "i386_win32";
+#endif 
+#endif 
+
 /* local-repair modification */
 /* inc_fid is an OUT parameter which allows caller to form "fake symlink" if it desires. */
 /* Explicit parameter for TRAVERSE_MTPTS? -JJK */
@@ -722,15 +731,9 @@ int fsobj::Readdir(char *buf, int offset, int len, int *cc, vuid_t vuid) {
 	    if (*cc - pos < DIRSIZ(dp))
 		{ print(logFile); Choke("fsobj::Readdir: dir entry too small"); }
 
-#if defined(__linux__) || defined(__BSD44__)
 	    if (dp->d_fileno == 0) break;
 	    LOG(1000, ("\t<%d, %d, %d, %s>\n",
                        dp->d_fileno, dp->d_reclen, dp->d_namlen, dp->d_name));
-#else
-	    if (dp->d_ino == 0) break;
-	    LOG(1000, ("\t<%d, %d, %d, %s>\n",
-                       dp->d_ino, dp->d_reclen, dp->d_namlen, dp->d_name));
-#endif
 	    pos += (int) DIRSIZ(dp);
 	}
     }

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/venusutil.cc,v 4.7 97/12/01 17:28:03 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/venusutil.cc,v 4.8 1997/12/16 16:08:36 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -105,6 +105,10 @@ extern "C" {
 #include "venusvol.h"
 #include "vproc.h"
 #include "worker.h"
+
+#ifdef __CYGWIN32__
+
+#endif
 
 
 /* *****  Exported variables  ***** */
@@ -434,7 +438,9 @@ char *VenusRetStr(int retcode) {
 
     if (retcode == 0) return("SUCCESS");
     if (retcode < 0) return(RPC2_ErrorMsg(retcode));
+#ifndef __CYGWIN32__
     if (retcode < sys_nerr) return((char *)sys_errlist[retcode]);
+#endif
     if (retcode == ERETRY) return("Retry");
     if (retcode == EINCONS) return("Inconsistent");
     snprintf(buf, 12, "%d", retcode); return(buf);
@@ -518,8 +524,10 @@ void RusagePrint(int afd) {
 extern unsigned etext;
 extern unsigned edata;
 extern unsigned end;
+#ifndef __CYGWIN32__
     fdprint(afd, "\tsegment sizes = (%#08x, %#08x, %#08x, %#08x)\n",
 	     etext, edata - etext, end - edata, sbrk(0) - end);
+#endif
 
 #ifdef	__MACH__
     /* Mach statistics. */
@@ -633,7 +641,7 @@ void RPCPrint(int afd) {
     /* Communication statistics. */
     fdprint(afd, "RPC Packets:\n");
     RPCPktStatistics RPCPktStats;
-    bzero(&RPCPktStats, (int)sizeof(RPCPktStatistics));
+    bzero((void *)&RPCPktStats, (int)sizeof(RPCPktStatistics));
     GetCSS(&RPCPktStats);
     struct SStats *rsu = &RPCPktStats.RPC2_SStats_Uni;
     struct SStats *rsm = &RPCPktStats.RPC2_SStats_Multi;
@@ -814,12 +822,12 @@ void MallocPrint(int fd) {
 void StatsInit() {
     int i;
 
-    bzero(&VFSStats, (int)sizeof(VFSStatistics));
+    bzero((void *)&VFSStats, (int)sizeof(VFSStatistics));
     for (i = 0; i < NVFSOPS; i++)
 	strncpy(VFSStats.VFSOps[i].name, VFSOpsNameTemplate[i],
 		VFSSTATNAMELEN);
 
-    bzero(&RPCOpStats, (int)sizeof(RPCOpStatistics));
+    bzero((void *)&RPCOpStats, (int)sizeof(RPCOpStatistics));
     for (i = 0; i < srvOPARRAYSIZE; i++)
 	strncpy(RPCOpStats.RPCOps[i].name, (char *) srv_CallCount[i].name+4, 
 		RPCOPSTATNAMELEN);

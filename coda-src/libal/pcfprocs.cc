@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /usr/rvb/XX/src/coda-src/libal/RCS/pcfprocs.cc,v 4.1 1997/01/08 21:49:46 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/libal/pcfprocs.cc,v 4.2 1997/02/26 16:02:43 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -74,13 +74,15 @@ extern "C" {
 #else	/* __linux__ || __BSD44__ */
 #include <unistd.h>
 #include <stdlib.h>
+#include <stdarg.h>
+
+#include <util.h>
 #endif
 
 #ifdef __cplusplus
 }
 #endif __cplusplus
 
-#include <util.h>
 #include "pcf.h"	/* To ensure that shared global declarations are consistent */
 
 /*------------------------------ Shared Globals ------------------------------------------*/

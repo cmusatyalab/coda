@@ -10,34 +10,21 @@
 
 # the following may need editing depending on your preferences
 
-
 MACHINE_FLAGS = -DLINUX
 SHORTSYS      = linux
 INCLFLAGS     = -I/usr/include
 GFLAG         = -g -gstabs
 CPP           = gcc -E -x c-header
 LIBCURSES     = -lncurses
+LIBTERMCAP    = -ltermcap	
 LIBCOMPAT     =
 LIBREADLINE   = -lreadline
 INCREADLINE   = -I/usr/include/readline
 #for rvm
 LIBTHREADS    =
 LIBMACH       = 
-
+LIBMATH       = -lm
+LIBGDBM       = /usr/lib/libgdbm.a
 LEX           = flex
 #YACC          = bison -y
 PERL          = perl
-
-
-#for advice_srv
-LIBKVM        = 
-LIBGDBM       = /usr/lib/libgdbm.a
-LIBTIX        = /usr/lib/libtix4.0.a
-INCTIX	      = /usr/include/tcl
-LIBTK         = /usr/lib/libtk4.0.a
-INCTK	      = /usr/include/tcl
-LIBTCL        = /usr/lib/libtcl7.4.a
-INCTCL	      = /usr/include/tcl
-LIBMATH       = -lm
-LIBX11        = /usr/X11R6/lib/libX11.a /usr/X11R6/lib/libXpm.so.4.9
-INCX11	      = /usr/X11R6/include

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/user.cc,v 4.3 1997/12/16 16:08:33 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/user.cc,v 4.4 1997/12/20 23:35:08 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -228,8 +228,8 @@ userent::userent(vuid_t userid) {
 
     uid = userid;
     tokensvalid = 0;
-    bzero(&secret, (int) sizeof(SecretToken));
-    bzero(&clear, (int) sizeof(ClearToken));
+    bzero((void *)&secret, (int) sizeof(SecretToken));
+    bzero((void *)&clear, (int) sizeof(ClearToken));
     waitforever = 0;
     admon.Reset();
 }
@@ -267,8 +267,8 @@ long userent::SetTokens(SecretToken *asecret, ClearToken *aclear) {
 
     /* N.B. Using direct assignment to the Token structs rather than the bcopys doesn't seem to work! */
     tokensvalid = 1;
-    bcopy(asecret, &secret, (int) sizeof(SecretToken));
-    bcopy(aclear, &clear, (int) sizeof(ClearToken));
+    bcopy((const void *)asecret, (void *) &secret, (int) sizeof(SecretToken));
+    bcopy((const void *)aclear, (void *) &clear, (int) sizeof(ClearToken));
 LOG(100, ("SetTokens calling Reset\n"));
     Reset();
 
@@ -297,8 +297,8 @@ long userent::GetTokens(SecretToken *asecret, ClearToken *aclear) {
     if (!tokensvalid) return(ENOTCONN);
 
     /* N.B. Using direct assignment to the Token structs rather than the bcopys doesn't seem to work! */
-    bcopy(&secret, asecret, (int)sizeof(SecretToken));
-    bcopy(&clear, aclear, (int)sizeof(ClearToken));
+    bcopy((const void *)&secret, (void *) asecret, (int)sizeof(SecretToken));
+    bcopy((const void *)&clear, (void *) aclear, (int)sizeof(ClearToken));
 
     return(0);
 }
@@ -332,8 +332,8 @@ void userent::Invalidate() {
 
     /* Security is not having to say you're sorry. */
     tokensvalid = 0;
-    bzero(&secret, (int) sizeof(SecretToken));
-    bzero(&clear, (int) sizeof(ClearToken));
+    bzero((void *)&secret, (int) sizeof(SecretToken));
+    bzero((void *)&clear, (int) sizeof(ClearToken));
 
     /* Inform the user's CodaConsole */
     admon.TokensExpired();

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vice/srvproc2.cc,v 4.3 1997/10/23 19:25:25 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vice/srvproc2.cc,v 4.4 1997/12/20 23:35:30 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -69,9 +69,10 @@ extern "C" {
 #include <sys/ioctl.h>
 #include <sys/socket.h>
 #include <net/if.h>
-#ifdef	__linux__
+#ifdef __linux__
 #include <linux/if_ether.h>
-#else
+#endif
+#ifdef __BSD44__
 #include <netinet/if_ether.h>
 #endif
 #if defined(__GLIBC__) && __GLIBC__ >= 2
@@ -491,7 +492,7 @@ void PerformSetQuota(ClientEntry *client, VolumeId VSGVolnum, Volume *volptr, Vn
 
     /* Await COP2 message. */
     if (ReplicatedOp) {
-	ViceFid fids[MAXFIDS]; bzero(fids, (int)(MAXFIDS * sizeof(ViceFid)));
+	ViceFid fids[MAXFIDS]; bzero((void *)fids, (int)(MAXFIDS * sizeof(ViceFid)));
 	fids[0] = *fid;
 	CopPendingMan->add(new cpent(StoreId, fids));
     }

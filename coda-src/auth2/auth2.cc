@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/auth2/auth2.cc,v 4.2 1997/02/26 16:02:31 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/auth2/auth2.cc,v 4.3 1997/12/10 16:06:18 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -300,7 +300,9 @@ PRIVATE void InitSignals()
     FILE *file;
     (void) signal(SIGHUP, (void (*)(int))ResetDebug);
     (void) signal(SIGTSTP, (void (*)(int))SetDebug);
+#ifndef __CYGWIN32__
     (void) signal(SIGXCPU, (void (*)(int))CheckSignal);
+#endif
     (void) signal(SIGTERM, (void (*)(int))Terminate);
 
     if ((file = fopen("pid","w")) == NULL)

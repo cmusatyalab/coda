@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vice/srv.cc,v 4.7 1997/12/10 16:11:55 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vice/srv.cc,v 4.8 1997/12/20 23:35:26 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -71,7 +71,9 @@ extern "C" {
 #include <sys/time.h>
 #include <sys/resource.h>
 #include <sys/file.h>
+#ifndef __CYGWIN32__
 #include <sys/dir.h>
+#endif
 #include <strings.h>
 #include <errno.h>
 #include <signal.h>
@@ -276,7 +278,7 @@ static void InitializeServerRVM(void *initProc,char *name);
 #endif RVMTESTING
 
 /* Signal handlers in Linux will not be passed the arguments code and scp */
-#ifndef __linux__
+#ifdef __BSD44__
 struct sigcontext OldContext; /* zombie() saves original context here */
 #endif
 extern void dumpvm();
@@ -288,14 +290,14 @@ extern void dumpvm();
     */
 
 /* Signal handlers in Linux will not be passed the arguments code and scp */
-#ifdef	__linux__
+#ifndef	__BSD44__
 void zombie(int sig) {
 #else
 void zombie(int sig, int code, struct sigcontext *scp) {
     bcopy(scp, &OldContext, sizeof(struct sigcontext));
 #endif
 
-#ifdef  __linux__
+#ifndef  __BSD44__
     LogMsg(0, 0, stdout,  "****** FILE SERVER INTERRUPTED BY SIGNAL %d ******", sig);
 #else
     LogMsg(0, 0, stdout,  "****** FILE SERVER INTERRUPTED BY SIGNAL %d CODE %d ******", sig, code);
@@ -431,7 +433,9 @@ main(int argc, char *argv[])
     VInitServerList();	/* initialize server info for volume pkg */
 
     /* Notify log of sizes of text and data regions. */
+#ifndef __CYGWIN32__
     LogMsg(0, 0, stdout, "Server etext 0x%x, edata 0x%x", &etext, &edata);
+#endif
     switch (RvmType) {
         case UFS	   :
  	case RAWIO     	   : LogMsg(0, 0, stdout, "RvmType is Rvm"); break;
@@ -1268,12 +1272,13 @@ void SwapLog()
 	LogMsg(0, 0, stdout, "Could not cd to /vice/srv; not swapping logs");
 	return;
     }
-
+#ifndef __CYGWIN32__
     if (pushlog() != 0){
 	LogMsg(0, 0, stderr, 
 	       "Log file names out of order or malformed; not swapping logs");
 	return;
     }
+#endif
 
     LogMsg(0, 0, stdout, "Starting new SrvLog file");
     freopen("/vice/srv/SrvLog","a+",stdout);
@@ -1288,7 +1293,7 @@ void SwapLog()
 }
 
 /* Filter for scandir(); eliminates all but names of form "SrvLog-" */
-PRIVATE int xselect(struct direct *d) {
+PRIVATE int xselect(struct dirent *d) {
     if (strncmp(d->d_name, "SrvLog-", sizeof("SrvLog-")-1)) 
 	return(0); 
     else 
@@ -1301,8 +1306,8 @@ PRIVATE int xselect(struct direct *d) {
 	        +ve if d1 < d2
 		0  if d1 == d2
 */
-PRIVATE int compar(struct direct **dp1, struct direct **dp2) { 
-    struct direct *d1, *d2;
+PRIVATE int compar(struct dirent **dp1, struct dirent **dp2) { 
+    struct dirent *d1, *d2;
 
     d1 = *dp1;
     d2 = *dp2;    
@@ -1323,7 +1328,8 @@ PRIVATE int compar(struct direct **dp1, struct direct **dp2) {
 PRIVATE pushlog() { 
     int i, count;
     char buf[100], buf2[100]; /* can't believe there will be more logs! */
-    struct direct **namelist;
+    struct dirent **namelist;
+#ifndef __CYGWIN32__
    count = scandir(".", (struct direct ***)&namelist, 
 		   (int (*)(const dirent *)) xselect, 
 		   (int (*)(const dirent *const *, const dirent *const *))compar);
@@ -1338,7 +1344,7 @@ PRIVATE pushlog() {
 	    return(-1);
 	}
     }
-	
+#endif	
     /* Clean up storage malloc'ed by scandir() */
     for (i = 0; i < count; i++) free(namelist[i]);
     free(namelist);
@@ -1698,6 +1704,7 @@ void Die(char *msg)
 PRIVATE void DaemonizeSrv() { 
     int child, rc; 
    /* Set DATA segment limit to maximum allowable. */
+#ifndef __CYGWIN32__
     struct rlimit rl;
     if (getrlimit(RLIMIT_DATA, &rl) < 0) {
         perror("getrlimit"); exit(-1);
@@ -1708,7 +1715,7 @@ PRIVATE void DaemonizeSrv() {
     if (setrlimit(RLIMIT_DATA, &rl) < 0) {
 	perror("setrlimit"); exit(-1); 
     }
-
+#endif
     /* the forking code doesn't work well with our "startserver" script. 
        reactivate this when that silly thing is gone */
 #if 0 
@@ -1732,7 +1739,9 @@ PRIVATE void DaemonizeSrv() {
 #endif
 
     signal(SIGUSR2, (void (*)(int))ResetDebug);
+#ifndef __CYGWIN32__
     signal(SIGWINCH, (void (*)(int))SetDebug);
+#endif
     signal(SIGHUP,  SIG_IGN);
     /* Signals that are zombied allow debugging via gdb */
     signal(SIGTRAP, (void (*)(int))zombie);
@@ -1761,7 +1770,11 @@ static void InitializeServerRVM(void *initProc,char *name)
     case UFS : {                                                            
 	rvm_return_t err;						    
 	rvm_options_t *options = rvm_malloc_options();			    
+#ifndef __CYGWIN32__
 	struct rlimit stackLimit;					    
+	stackLimit.rlim_cur = CODA_STACK_LENGTH;			    
+/*	setrlimit(RLIMIT_STACK, &stackLimit);*/	/* Set stack growth limit */ 
+#endif
 	options->log_dev = _Rvm_Log_Device;				    
 	options->flags = optimizationson; 				    
 	if (prottrunc)							    
@@ -1772,8 +1785,6 @@ static void InitializeServerRVM(void *initProc,char *name)
 	    options->truncate = _Rvm_Truncate;				    
 	} 								    
 	sbrk((void *)(0x20000000 - (int)sbrk(0))); /* for garbage reasons. */		    
-	stackLimit.rlim_cur = CODA_STACK_LENGTH;			    
-/*	setrlimit(RLIMIT_STACK, &stackLimit);*/	/* Set stack growth limit */ 
         err = RVM_INIT(options);                   /* Start rvm */           
         if ( err == RVM_ELOG_VERSION_SKEW ) {                                
             LogMsg(0, 0, stdout, 

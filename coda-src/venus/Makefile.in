@@ -25,7 +25,7 @@
 # improvements or extensions that  they  make,  and  to  grant  Carnegie
 # Mellon the rights to redistribute these changes without encumbrance.
 # 
-# static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/Makefile.in,v 4.13 97/12/16 16:08:19 braam Exp $";
+# static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/Makefile.in,v 4.14 1997/12/16 22:48:56 mre Exp $";
 
 
 # 
@@ -250,7 +250,7 @@ worker.o: worker.cc worker.h venus.private.h comm.h fso.h mariner.h\
 libfaketrace.a:	 faketrace.o
 
 faketrace.o: faketrace.c
-	gcc $(CFLAGS) -c $<
+	$(CC) $(CFLAGS) -c $<
 
 testjmp: testjmp.cc
 	$(CXX) $(CXXFLAGS) -o testjmp testjmp.cc

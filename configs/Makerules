@@ -59,8 +59,7 @@ ifdef SUBDIRS
 	done
 endif
 
-qclient-install: $(LIBRARIES) $(HEADERS) $(EXECUTABLES) $(SCRIPTS) $(TESTS)\
-	 hdrinstall installclient mkdep
+qclient-install: installclient
 ifdef SUBDIRS
 	@for d in $(SUBDIRS) ; do \
 	    echo "----> Entering $$d"; \
@@ -274,7 +273,7 @@ lint: $(SOURCES)
 
 %.a:
 	$(AR) rv $@ $?
-	ranlib $@
+	$(RANLIB) $@
 
 %.doc: %.mss
 	-scribe $?  # Scribe doesn't exist most places.

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rvmres/recov_vollog.cc,v 4.2 1997/10/15 15:45:27 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rvmres/recov_vollog.cc,v 4.3 1997/12/20 23:34:51 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -98,7 +98,7 @@ recov_vol_log::recov_vol_log(VolumeId vid, int adm) :recov_inuse(adm, 1) {
 	index = (recle **)RVMLIB_REC_MALLOC(index_size * sizeof(void *));
 	assert(index);
 	RVMLIB_SET_RANGE(index, index_size * sizeof(void *));
-	bzero(index, index_size * sizeof(void *));
+	bzero((void *)index, index_size * sizeof(void *));
     }
     else 
 	index = NULL;
@@ -157,7 +157,7 @@ int recov_vol_log::Grow(int offset) {
     
     recle *l = index[pos];
     RVMLIB_SET_RANGE(index[pos], LOGRECORD_BLOCKSIZE * sizeof(recle));
-    bzero(l, LOGRECORD_BLOCKSIZE * sizeof(recle));
+    bzero((void *)l, LOGRECORD_BLOCKSIZE * sizeof(recle));
     
     
     RVMLIB_SET_RANGE(&size, sizeof(int));
@@ -244,8 +244,8 @@ void recov_vol_log::Increase_Admin_Limit(int newsize) {
     recle **new_index = (recle **)RVMLIB_REC_MALLOC(new_index_size * sizeof(void *));
     assert(new_index);
     RVMLIB_SET_RANGE(new_index, new_index_size * sizeof(void *));
-    bzero(new_index, new_index_size * sizeof(void *));
-    bcopy(index, new_index, sizeof(void *) * (admin_limit / LOGRECORD_BLOCKSIZE));
+    bzero((void *)new_index, new_index_size * sizeof(void *));
+    bcopy((const void *)index, (void *)new_index, sizeof(void *) * (admin_limit / LOGRECORD_BLOCKSIZE));
     
     if (index) RVMLIB_REC_FREE(index);
     RVMLIB_SET_RANGE(&index, sizeof(recle **));

@@ -50,7 +50,6 @@ Mellon the rights to redistribute these changes without encumbrance.
 #include <fcntl.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <sys/dir.h>
 #include <string.h>
 #include <errno.h>
 #include <math.h>

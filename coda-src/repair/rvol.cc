@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/repair/rvol.cc,v 4.5 1997/12/23 17:19:50 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/repair/rvol.cc,v 4.6 1998/01/04 14:58:14 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -60,14 +60,15 @@ extern "C" {
 #include <assert.h>
 #include <setjmp.h>
 #include <sys/types.h>
+#ifndef __CYGWIN32__
 #include <sys/dir.h>
+#endif
 #include <sys/param.h>
 #include <sys/socket.h>
 #include <netdb.h>
 #include <netinet/in.h>
 #include <strings.h>
 #include <sys/stat.h>
-#include <sys/dir.h>
 #include <rpc2.h>
 #include <inodeops.h>
 #ifdef __cplusplus
@@ -258,7 +259,7 @@ PRIVATE char *srvstr(char *path, VolumeId rwid)
        but puts names in the fake directory.  To get the location we
        check each entry in the directory until we find the volume id
        that matches */
-    struct direct *de;
+    struct dirent *de;
     DIR *d = opendir(path);
     if (!d) {
 	sprintf(result, "srvstr couldn't open %s", path);
@@ -324,7 +325,7 @@ PRIVATE char *compstr(char *path, VolumeId rwid)
        but puts names in the fake directory.  To get the location we
        check each entry in the directory until we find the volume id
        that matches */
-    struct direct *de;
+    struct dirent *de;
     DIR *d = opendir(path);
     if (!d) {
 	sprintf(compresult, "compstr couldn't open %s", path);

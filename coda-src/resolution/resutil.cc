@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/res/resutil.cc,v 4.2 1997/06/14 22:07:23 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/res/resutil.cc,v 4.3 1997/12/20 23:34:39 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -154,8 +154,13 @@ long CheckRetCodes(unsigned long *rc, unsigned long *rh,
 	    hosts[i] = 0;
 	    error = rc[i];
 	    addr.s_addr = rh[i];
+#ifndef __CYGWIN32__
 	    LogMsg(0, SrvDebugLevel, stdout,  "CheckRetCodes - an accessible server returned an error (server %s error %d)",
 		   inet_ntoa(addr), rc[i]);
+#else
+	    LogMsg(0, SrvDebugLevel, stdout,  "CheckRetCodes - an accessible server returned an error (server %x error %d)",
+		   rh[i], rc[i]);
+#endif
 	}
     }
     return(error);
@@ -177,8 +182,13 @@ long CheckResRetCodes(unsigned long *rc, unsigned long *rh,
 	    hosts[i] = 0;
 	    error = rc[i];
 	    addr.s_addr = rh[i];
-	    LogMsg(0, SrvDebugLevel, stdout,  "CheckResRetCodes - an accessible server returned an error (server %s error %d)",
+#ifndef __CYGWIN32__
+	    LogMsg(0, SrvDebugLevel, stdout,  "CheckRetCodes - an accessible server returned an error (server %s error %d)",
 		   inet_ntoa(addr), rc[i]);
+#else
+	    LogMsg(0, SrvDebugLevel, stdout,  "CheckRetCodes - an accessible server returned an error (server %x error %d)",
+		   rh[i], rc[i]);
+#endif
 	}
 	if ( result == 0 ||  result == VNOVNODE )
 	    result = error;
@@ -367,7 +377,7 @@ long GetPath(ViceFid *fid, int maxcomponents,
 	    LogMsg(2, SrvDebugLevel, stdout, 
 		   "GetPath: going to compress %d entries\n",
 		   *ncomponents);
-	bzero(components, sizeof(ResPathElem) * *ncomponents);
+	bzero((void *)components, sizeof(ResPathElem) * *ncomponents);
 	for (int i = 0; i < *ncomponents; i++) {
 	    respath *r = (respath *)plist.get();
 	    assert(r);
@@ -531,7 +541,7 @@ void ObtainResStatus(ResStatus *status, VnodeDiskObjectStruct *vdop) {
 
 void GetResStatus(unsigned long *succflags, ResStatus **status_p, 
 		  ViceStatus *finalstatus) {
-    bzero(finalstatus, sizeof(ViceStatus));
+    bzero((void *)finalstatus, sizeof(ViceStatus));
     int gotmbits = 0;
     for (int i = 0; i < VSG_MEMBERS; i++) {
 	if (succflags[i]) {

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/venus.cc,v 4.7 1997/12/19 17:19:50 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/venus.cc,v 4.8 1997/12/19 23:23:41 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -137,8 +137,9 @@ int main(int argc, char **argv) {
     DefaultCmdlineParms();   /* read vstab */
     CdToCacheDir(); 
     CheckInitFile();
+#ifndef __CYGWIN32__
     SetRlimits();
-
+#endif
     /* Initialize.  N.B. order of execution is very important here! */
     /* RecovInit < VSGInit < VolInit < FSOInit < HDB_Init */
 
@@ -462,7 +463,7 @@ PRIVATE void UnsetInitFile() {
     unlink(initPath);
 }
 
-
+#ifndef __CYGWIN32__
 PRIVATE void SetRlimits() {
     /* Set DATA segment limit to maximum allowable. */
     struct rlimit rl;
@@ -484,6 +485,7 @@ PRIVATE void SetRlimits() {
 #endif	CMU
 }
 
+#endif
 
 /*  *****  Should be in a library!  *****  */
 

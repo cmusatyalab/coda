@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/vproc.cc,v 4.11 1997/12/19 11:20:35 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/vproc.cc,v 4.12 1997/12/30 18:11:04 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -314,7 +314,7 @@ void VprocSetRetry(int HowManyRetries, struct timeval *Beta0) {
     ASSERT(VprocRetryN == -1 && VprocRetryBeta == 0);
     VprocRetryN = HowManyRetries;
     VprocRetryBeta = (struct timeval *)malloc(sizeof(struct timeval)*(2+HowManyRetries));
-    bzero(VprocRetryBeta, (int)sizeof(struct timeval)*(2+HowManyRetries));
+    bzero((void *)VprocRetryBeta, (int)sizeof(struct timeval)*(2+HowManyRetries));
     VprocRetryBeta[0] = *Beta0;
 
     /* compute VprocRetryBeta[1] .. VprocRetryBeta[N] */
@@ -391,7 +391,7 @@ vproc::vproc(char *n, PROCBODY f, vproctype t, int stksize, int priority) {
     strcpy(name, n);
     func = f;
     vpid = counter++;
-    bzero(&rvm_data, (int) sizeof(rvm_perthread_t));
+    bzero((void *)&rvm_data, (int) sizeof(rvm_perthread_t));
     rvm_data.die = &Choke;
     type = t;
     lwpri = priority;

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/fail/fail.c,v 4.1 1997/01/08 21:49:36 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/fail/fail.c,v 4.2 1997/07/03 11:41:29 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -53,6 +53,13 @@ static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/fail/f
 
 extern void ntohFF(FailFilter *);
 extern void htonFF(FailFilter *);
+
+#ifdef __CYGWIN32__
+/* XXX MJC: hack -- no random(), srandom() so use rand() (and forget about
+  setting seeds for now */
+#define random rand
+#define srandom
+#endif
 
 #ifdef DEBUG_FAIL
 #define DBG(x) printf x;

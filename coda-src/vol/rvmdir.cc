@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /usr/rvb/XX/src/coda-src/vol/RCS/rvmdir.cc,v 4.1 1997/01/08 21:52:16 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vol/rvmdir.cc,v 4.2 1997/02/26 16:03:55 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -192,12 +192,12 @@ int DCommit(Vnode *vnp)
 	    LogMsg(29, DirDebugLevel, stdout, "DCommit: Allocating inode for dir vnode = %d", 
 		   vnp->vnodeNumber);
 	    vnp->disk.inodeNumber = (Inode)CAMLIB_REC_MALLOC(sizeof(DirInode));
-	    bzero(&shadowInArr, sizeof(DirInode));
+	    bzero((void *)&shadowInArr, sizeof(DirInode));
 	    shadowInArr.refcount = 1;
 	    InArrModified = 1;
 	}
 	else
-	    bcopy((void *)(vnp->disk.inodeNumber), &shadowInArr, sizeof(DirInode));
+	    bcopy((const void *)(vnp->disk.inodeNumber), (void *)&shadowInArr, sizeof(DirInode));
 
 	/* get pages of the directory from the hash table */
 	volume = vnp->volumePtr;
@@ -281,7 +281,7 @@ void ICommit(struct VFid *fid, long *inode)
   DirInode shadowInode;
   int   shadowInodeMod = 0;
 
-  bcopy(inode, &shadowInode, sizeof(DirInode));
+  bcopy((const void *)inode, (void *)&shadowInode, sizeof(DirInode));
   LogMsg(29, DirDebugLevel, stdout, "ICommit: going to get pages for (%u.%d.%d)",
 	 fid->volume, fid->vnode, fid->vunique);
   dlist *dirpages = GetDirShadowPages(fid, DirHtb);
@@ -372,12 +372,12 @@ int VMCopyDirInode(DirInode *oldinode, DirInode **newinode)
     *newinode = (DirInode *)malloc(sizeof(DirInode));
     if (*newinode == NULL) 
 	return -1;
-    bzero(*newinode, sizeof(DirInode));
+    bzero((void *)*newinode, sizeof(DirInode));
     for (int i = 0; i < MAXPAGES; i++)
 	if (oldinode->Pages[i]){
 	    if (((*newinode)->Pages[i] = (long *)malloc(PAGESIZE)) == NULL)
 		return -1;
-	    bcopy(oldinode->Pages[i], (*newinode)->Pages[i], PAGESIZE);
+	    bcopy((const void *)oldinode->Pages[i], (void *) (*newinode)->Pages[i], PAGESIZE);
 	}
     (*newinode)->refcount = oldinode->refcount;
     return 0;

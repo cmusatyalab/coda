@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/res/remotelog.cc,v 4.1 1997/01/08 21:49:59 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/res/remotelog.cc,v 4.2 1997/12/20 23:34:34 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -161,7 +161,7 @@ char *FlattenLocalRMTLElist(olist *llist, int *bufsize) {
 	    while ((pl = (pdlink *)nextrlent()) && (i < size)) {
 		rlent *reslogent = strbase(rlent, pl, link);
 		LogMsg(59, SrvDebugLevel, stdout,  "FlattenLocalRMTLElist - getting entry %d", i);
-		bcopy(reslogent, &(buf[i * sizeof(rlent)]), 
+		bcopy((const char *)reslogent, (char *)&(buf[i * sizeof(rlent)]), 
 		      (int) sizeof(rlent));
 		i++;
 	    }

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/res/rescoord.cc,v 4.1 1997/01/08 21:50:02 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/res/rescoord.cc,v 4.2 1997/12/20 23:34:37 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -240,7 +240,7 @@ long DirResolve(res_mgrpent *mgrp, ViceFid *Fid, ViceVersionVector **VV,
 	    
 	    /* initialize sed for transferring dir contents */
 	    SE_Descriptor sid;
-	    bzero(&sid, sizeof(SE_Descriptor));
+	    bzero((void *)&sid, sizeof(SE_Descriptor));
 	    sid.Tag = SMARTFTP;
 	    sid.Value.SmartFTPD.TransmissionDirection = SERVERTOCLIENT;
 	    sid.Value.SmartFTPD.Tag = FILEINVM;
@@ -345,7 +345,7 @@ PRIVATE char *CollectLogs(res_mgrpent *mgrp, ViceFid *fid, int *sizes,
 
    /* set up the parameters */
    SE_Descriptor sid;
-   bzero(&sid, sizeof(SE_Descriptor));
+   bzero((void *)&sid, sizeof(SE_Descriptor));
    sid.Tag = SMARTFTP;
    sid.Value.SmartFTPD.TransmissionDirection = SERVERTOCLIENT;
    sid.Value.SmartFTPD.Tag = FILEINVM;
@@ -437,7 +437,7 @@ PRIVATE int Phase1(res_mgrpent *mgrp, ViceFid *Fid, rlent *log, int logsize,
 
     SE_Descriptor	sid;
     /* form the descriptor */
-    bzero(&sid, sizeof(SE_Descriptor));
+    bzero((void *)(void *)&sid, sizeof(SE_Descriptor));
     sid.Tag = SMARTFTP;
     sid.Value.SmartFTPD.TransmissionDirection = CLIENTTOSERVER;
     sid.Value.SmartFTPD.ByteQuota = -1;
@@ -554,7 +554,7 @@ int IsWeaklyEqual(ViceVersionVector **VV, int nvvs) {
 	    LogMsg(49, SrvDebugLevel, stdout,  "IsWeaklyEqual: Doing for j = %d", 
 		    j);
 	    if (VV[j] == NULL) continue;
-	    if (bcmp(&(VV[i]->StoreId), &(VV[j]->StoreId), 
+	    if (bcmp((const void *)&(VV[i]->StoreId), (const void *) &(VV[j]->StoreId), 
 		     sizeof(ViceStoreId))) {
 		LogMsg(49, SrvDebugLevel, stdout,  "IsWeaklyEqual - NO - returning");
 		return(0);
@@ -616,7 +616,7 @@ PRIVATE int WEResPhase2(res_mgrpent *mgrp, ViceFid *Fid,
     ViceVersionVector UpdateSet;
     /* form the update set */
     {
-	bzero(&UpdateSet, sizeof(ViceVersionVector));
+	bzero((void *)&UpdateSet, sizeof(ViceVersionVector));
 	
 	for (int i = 0; i < VSG_MEMBERS; i++)
 	    if (successHosts[i])

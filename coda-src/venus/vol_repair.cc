@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /usr/rvb/XX/src/coda-src/venus/RCS/vol_repair.cc,v 4.1 1997/01/08 21:51:49 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/vol_repair.cc,v 4.2 1997/02/26 16:03:37 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -128,9 +128,9 @@ int volent::EnableRepair(vuid_t vuid, VolumeId *RWVols,
     }
 
     /* RWVols, LockUids, and LockWSs are OUT parameters. */
-    bcopy(u.rep.RWVols, RWVols, MAXHOSTS * (int)sizeof(VolumeId));
-    bzero(LockUids, MAXHOSTS * (int)sizeof(vuid_t));
-    bzero(LockWSs, MAXHOSTS * (int)sizeof(unsigned long));
+    bcopy((const void *)u.rep.RWVols, (void *) RWVols, MAXHOSTS * (int)sizeof(VolumeId));
+    bzero((void *)LockUids, MAXHOSTS * (int)sizeof(vuid_t));
+    bzero((void *)LockWSs, MAXHOSTS * (int)sizeof(unsigned long));
 
     return(code);
 }
@@ -167,8 +167,8 @@ int volent::ConnectedRepair(ViceFid *RepairFid, char *RepairFile, vuid_t vuid,
     int i, j;
     fsobj *RepairF = 0;
 
-    bcopy(u.rep.RWVols, RWVols, MAXHOSTS * (int)sizeof(VolumeId));
-    bzero(ReturnCodes, MAXHOSTS * (int)sizeof(int));
+    bcopy((const void *)u.rep.RWVols, (void *) RWVols, MAXHOSTS * (int)sizeof(VolumeId));
+    bzero((void *)ReturnCodes, MAXHOSTS * (int)sizeof(int));
 
     /* Verify that RepairFid is inconsistent. */
     {
@@ -222,7 +222,7 @@ int volent::ConnectedRepair(ViceFid *RepairFid, char *RepairFile, vuid_t vuid,
 
 	/* Compute template VV. */
 	vv_t tvv = NullVV;
-	vv_t *RepairVVs[VSG_MEMBERS]; bzero(RepairVVs, VSG_MEMBERS * (int)sizeof(vv_t *));
+	vv_t *RepairVVs[VSG_MEMBERS]; bzero((void *)RepairVVs, VSG_MEMBERS * (int)sizeof(vv_t *));
 	for (i = 0; i < VSG_MEMBERS; i++)
 	    if (u.rep.RWVols[i] != 0) {
 		fsobj *f = 0;
@@ -239,7 +239,7 @@ int volent::ConnectedRepair(ViceFid *RepairFid, char *RepairFile, vuid_t vuid,
 	
 	/* Set-up the status block. */
 	ViceStatus status;
-	bzero(&status, (int)sizeof(ViceStatus));
+	bzero((void *)&status, (int)sizeof(ViceStatus));
 	if (RepairF != 0) {
 	    status.Length = RepairF->stat.Length;
 	    status.Date = RepairF->stat.Date;
@@ -292,7 +292,7 @@ int volent::ConnectedRepair(ViceFid *RepairFid, char *RepairFile, vuid_t vuid,
 	    fprintf(logFile, "\tAU = %d, OW = %d, CB = %d, MA = %d, AA = %d, MO = %d\n",
 		    status.Author, status.Owner, status.CallBack,
 		    status.MyAccess, status.AnyAccess, status.Mode);
-	    vv_t *tvvs[VSG_MEMBERS]; bzero(tvvs, VSG_MEMBERS * (int)sizeof(vv_t *));
+	    vv_t *tvvs[VSG_MEMBERS]; bzero((void *)tvvs, VSG_MEMBERS * (int)sizeof(vv_t *));
 	    tvvs[0] = &status.VV;
 	    VVPrint(logFile, tvvs);
 	    fflush(logFile);
@@ -410,8 +410,8 @@ int volent::DisconnectedRepair(ViceFid *RepairFid, char *RepairFile,
 
     ViceFid tpfid;
     tpfid.Volume = RepairFid->Volume;
-    bcopy(u.rep.RWVols, RWVols, MAXHOSTS * (int)sizeof(VolumeId));
-    bzero(ReturnCodes, MAXHOSTS * (int)sizeof(int));
+    bcopy((const void *)u.rep.RWVols, (void *) RWVols, MAXHOSTS * (int)sizeof(VolumeId));
+    bzero((void *)ReturnCodes, MAXHOSTS * (int)sizeof(int));
 
     /* Verify that RepairFid is a file fid */
     /* can't repair directories while disconnected */
@@ -489,7 +489,7 @@ int volent::DisconnectedRepair(ViceFid *RepairFid, char *RepairFile,
     {
 	/* Compute template VV. */
 	vv_t tvv = NullVV;
-	vv_t *RepairVVs[VSG_MEMBERS]; bzero(RepairVVs, VSG_MEMBERS * (int)sizeof(vv_t *));
+	vv_t *RepairVVs[VSG_MEMBERS]; bzero((void *)RepairVVs, VSG_MEMBERS * (int)sizeof(vv_t *));
 	for (int i = 0; i < VSG_MEMBERS; i++)
 	    if (u.rep.RWVols[i] != 0) {
 		fsobj *f = 0;
@@ -510,7 +510,7 @@ int volent::DisconnectedRepair(ViceFid *RepairFid, char *RepairFile,
 	/* don't generate a new storeid yet - LogRepair will do that */
 
 	/* set up status block */
-	bzero(&status, (int)sizeof(ViceStatus));
+	bzero((void *)&status, (int)sizeof(ViceStatus));
 	if (RepairF != 0) {
 	    status.Length = RepairF->stat.Length;
 	    status.Date = RepairF->stat.Date;

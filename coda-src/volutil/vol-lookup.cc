@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/volutil/vol-lookup.cc,v 4.2 1997/02/26 16:04:09 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/volutil/vol-lookup.cc,v 4.3 1997/10/23 19:26:08 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -171,7 +171,7 @@ S_VolLookup(RPC2_Handle rpcid, RPC2_String formal_vol, SE_Descriptor *formal_sed
     fclose(infofile);
 
     /* set up SE_Descriptor for transfer */
-    bzero(&sed, sizeof(sed));
+    bzero((void *)&sed, sizeof(sed));
     sed.Tag = SMARTFTP;
     sed.Value.SmartFTPD.Tag = FILEBYNAME;
     sed.Value.SmartFTPD.TransmissionDirection = SERVERTOCLIENT;

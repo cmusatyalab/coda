@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vice/srvproc.cc,v 4.7 1997/12/10 16:11:58 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vice/srvproc.cc,v 4.8 1997/12/20 23:35:28 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -437,7 +437,7 @@ START_TIMING(ViceValidateAttrs_Total);
 		goto Exit;
     }
 
-    bzero((char *) VFlagBS->SeqBody, (int) NumPiggyFids);
+    bzero((void *)(char *) VFlagBS->SeqBody, (int) NumPiggyFids);
 
     /* now check piggyback fids */
     for (VFlagBS->SeqLen = 0; VFlagBS->SeqLen < NumPiggyFids; VFlagBS->SeqLen++) {
@@ -2699,7 +2699,7 @@ void HandleWeakEquality(Volume *volptr, Vnode *vptr, ViceVersionVector *vv) {
 	ViceVersionVector DiffVV;
 	{
 	    ViceVersionVector *vvs[VSG_MEMBERS];
-	    bzero(vvs, (int)(VSG_MEMBERS * sizeof(ViceVersionVector *)));
+	    bzero((void *)vvs, (int)(VSG_MEMBERS * sizeof(ViceVersionVector *)));
 	    vvs[0] = vva;
 	    vvs[1] = vvb;
 	    GetMaxVV(&DiffVV, vvs, -1);
@@ -4133,7 +4133,7 @@ END_TIMING(Fetch_Xfer);
 int FetchFileByName(RPC2_Handle RPCid, char *name, ClientEntry *client) {
     int errorCode = 0;
     SE_Descriptor sid;
-    bzero(&sid, (int) sizeof(SE_Descriptor));
+    bzero((void *)&sid, (int) sizeof(SE_Descriptor));
     sid.Tag = client ? client->SEType : SMARTFTP;
     sid.Value.SmartFTPD.TransmissionDirection = CLIENTTOSERVER;
     sid.Value.SmartFTPD.Tag = FILEBYNAME;
@@ -4192,7 +4192,7 @@ void PerformStore(ClientEntry *client, VolumeId VSGVolnum, Volume *volptr,
 	NewCOP1Update(volptr, vptr, StoreId, vsptr);
 
 	/* Await COP2 message. */
-	ViceFid fids[MAXFIDS]; bzero(fids, (int)(MAXFIDS * sizeof(ViceFid)));
+	ViceFid fids[MAXFIDS]; bzero((void *)fids, (int)(MAXFIDS * sizeof(ViceFid)));
 	fids[0] = Fid;
 	CopPendingMan->add(new cpent(StoreId, fids));
     }
@@ -4311,7 +4311,7 @@ void PerformNewSetAttr(ClientEntry *client, VolumeId VSGVolnum, Volume *volptr,
 	NewCOP1Update(volptr, vptr, StoreId, vsptr);
 
 	/* Await COP2 message. */
-	ViceFid fids[MAXFIDS]; bzero(fids, MAXFIDS * (int) sizeof(ViceFid));
+	ViceFid fids[MAXFIDS]; bzero((void *)fids, MAXFIDS * (int) sizeof(ViceFid));
 	fids[0] = Fid;
 	CopPendingMan->add(new cpent(StoreId, fids));
     }
@@ -4338,7 +4338,7 @@ void PerformSetACL(ClientEntry *client, VolumeId VSGVolnum, Volume *volptr,
 	NewCOP1Update(volptr, vptr, StoreId, vsptr);
 
 	/* Await COP2 message. */
-	ViceFid fids[MAXFIDS]; bzero(fids, (int) (MAXFIDS * sizeof(ViceFid)));
+	ViceFid fids[MAXFIDS]; bzero((void *)fids, (int) (MAXFIDS * sizeof(ViceFid)));
 	fids[0] = Fid;
 	CopPendingMan->add(new cpent(StoreId, fids));
     }
@@ -4532,7 +4532,7 @@ void PerformRename(ClientEntry *client, VolumeId VSGVolnum, Volume *volptr,
 
     /* Await COP2 message. */
     if (ReplicatedOp) {
-	ViceFid fids[MAXFIDS]; bzero(fids, (int) (MAXFIDS * sizeof(ViceFid)));
+	ViceFid fids[MAXFIDS]; bzero((void *)fids, (int) (MAXFIDS * sizeof(ViceFid)));
 	fids[0] = SDid;
 	if (!SameParent) fids[1] = TDid;
 	fids[2] = SFid;
@@ -4714,7 +4714,7 @@ PRIVATE void Perform_CLMS(ClientEntry *client, VolumeId VSGVolnum,
 
     /* Await COP2 message. */
     if (ReplicatedOp) {
-	ViceFid fids[MAXFIDS]; bzero(fids, (int) (MAXFIDS * sizeof(ViceFid)));
+	ViceFid fids[MAXFIDS]; bzero((void *)fids, (int) (MAXFIDS * sizeof(ViceFid)));
 	fids[0] = Did;
 	fids[1] = Fid;
 	CopPendingMan->add(new cpent(StoreId, fids));
@@ -4787,7 +4787,7 @@ PRIVATE void Perform_RR(ClientEntry *client, VolumeId VSGVolnum, Volume *volptr,
 
     /* Await COP2 message. */
     if (ReplicatedOp) {
-	ViceFid fids[MAXFIDS]; bzero(fids, (int) (MAXFIDS * sizeof(ViceFid)));
+	ViceFid fids[MAXFIDS]; bzero((void *)fids, (int) (MAXFIDS * sizeof(ViceFid)));
 	fids[0] = Did;
 	LogMsg(3, SrvDebugLevel, stdout, "Perform_RR: delete_me = %d, !delete_me = %d",
 		vptr->delete_me, !vptr->delete_me);			    /* DEBUG - JJK */

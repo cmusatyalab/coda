@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/vol_cml.cc,v 4.6 97/12/01 17:28:09 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/vol_cml.cc,v 4.7 1997/12/16 16:08:40 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -61,10 +61,8 @@ extern "C" {
 #include <unistd.h>
 #include <stdlib.h>
 #endif
-#ifdef	__linux__
 #include <netinet/in.h>
-#include <endian.h>
-#else
+#ifdef __BSD44__
 #include <machine/endian.h>
 #endif
 
@@ -655,7 +653,7 @@ cmlent::cmlent(ClientModifyLog *Log, time_t Mtime, vuid_t vuid, int op, int Tid 
 	case ViceNewStore_OP:
 	    u.u_store.Fid = *va_arg(ap, ViceFid *);
 	    u.u_store.Length = va_arg(ap, RPC2_Unsigned);
-	    bzero(u.u_store.RHandle, (int) sizeof(ViceReintHandle)*VSG_MEMBERS);
+	    bzero((void *)u.u_store.RHandle, (int) sizeof(ViceReintHandle)*VSG_MEMBERS);
 	    u.u_store.Offset = -1;
 	    break;
 
@@ -2949,7 +2947,7 @@ void cmlent::ClearReintegrationHandle() {
     ATOMIC(
 	RVMLIB_REC_OBJECT(u);
 
-        bzero(u.u_store.RHandle, (int) sizeof(ViceReintHandle)*VSG_MEMBERS);
+        bzero((void *)u.u_store.RHandle, (int) sizeof(ViceReintHandle)*VSG_MEMBERS);
 	u.u_store.Offset = -1;
    , MAXFP)
 }
@@ -3456,7 +3454,7 @@ int PathAltered(ViceFid *cfid, char *suffix, ClientModifyLog *CML, cmlent *start
 	    else 
 	      sprintf(buf, "%s", m->u.u_remove.Name);
 	    strcpy(suffix, buf);
-	    bcopy(&m->u.u_remove.PFid, cfid, (int) sizeof(ViceFid));
+	    bcopy((const void *)&m->u.u_remove.PFid, (void *) cfid, (int) sizeof(ViceFid));
 	    return 1;
 	}
 
@@ -3470,7 +3468,7 @@ int PathAltered(ViceFid *cfid, char *suffix, ClientModifyLog *CML, cmlent *start
 	    else
 	      sprintf(buf, "%s", m->u.u_rmdir.Name);
 	    strcpy(suffix, buf);
-	    bcopy(&m->u.u_rmdir.PFid, cfid, (int) sizeof(ViceFid));
+	    bcopy((const void *)&m->u.u_rmdir.PFid, (void *) cfid, (int) sizeof(ViceFid));
 	    return 1;
 	}
 
@@ -3484,7 +3482,7 @@ int PathAltered(ViceFid *cfid, char *suffix, ClientModifyLog *CML, cmlent *start
 	    else
 	      sprintf(buf, "%s", m->u.u_rename.OldName);
 	    strcpy(suffix, buf);
-	    bcopy(&m->u.u_rename.SPFid, cfid, (int) sizeof(ViceFid));
+	    bcopy((const void *)&m->u.u_rename.SPFid, (void *) cfid, (int) sizeof(ViceFid));
 	    return 1;
 	}
 	m = next();
@@ -3503,7 +3501,7 @@ void RecoverPathName(char *path, ViceFid *fid, ClientModifyLog *CML, cmlent *sta
     char suffix[MAXPATHLEN];
     char buf[MAXPATHLEN];
 
-    bcopy(fid, &cfid, (int)sizeof(ViceFid));
+    bcopy((const void *)fid, (void *) &cfid, (int)sizeof(ViceFid));
     suffix[0] = '\0';
 
     /* the loog invariant is "path(cfid)/suffix == path(fid)" */
@@ -3532,9 +3530,9 @@ void RecoverPathName(char *path, ViceFid *fid, ClientModifyLog *CML, cmlent *sta
 	    /* going up to its parent */
 	    if (f->IsRoot()) {
 		/* this must be the global-root-node of a local-repair subtree */
-		bcopy(&((f->u.mtpoint)->pfid), &cfid, (int)sizeof(ViceFid));
+		bcopy((const void *)&((f->u.mtpoint)->pfid), (void *) &cfid, (int)sizeof(ViceFid));
 	    } else {
-		bcopy(&f->pfid, &cfid, (int)sizeof(ViceFid));
+		bcopy((const void *)&f->pfid, (void *) &cfid, (int)sizeof(ViceFid));
 	    }
 	}
     }
@@ -3760,15 +3758,23 @@ int ClientModifyLog::CheckPoint(char *ckpdir) {
 	eprint("Couldn't open %s for checkpointing", ckpname);
 	return(ENOENT);
     }
+#ifndef __CYGWIN32__
     ::fchown(fileno(dfp), owner, V_GID);
+#else
+    ::chown(ckpname, owner, V_GID);
+#endif
     ::fchmod(fileno(dfp), 0600);
 
     if ((ofp = fopen(lname, "w+")) == NULL) {
 	eprint("Couldn't open %s for checkpointing", lname);
 	return(ENOENT);
     }
+#ifndef __CYGWIN32__
     ::fchown(fileno(ofp), owner, V_GID);
-    ::fchmod(fileno(ofp), 0600);
+#else
+    ::chown(lname, owner, V_GID);
+#endif
+   ::fchmod(fileno(ofp), 0600);
 
     /* 
      * Iterate through the MLEs (in commit order), checkpointing each in turn. 
@@ -3883,7 +3889,7 @@ PRIVATE void WriteLinks(long hook, char *name, long vnode, long vunique) {
 int cmlent::checkpoint(FILE *fp) {
     int code = 0;
 
-    hblock hdr; bzero(&hdr, (int) sizeof(hblock));
+    hblock hdr; bzero((void *)&hdr, (int) sizeof(hblock));
     switch(opcode) {
 	case ViceNewStore_OP:
 	    {
@@ -4024,7 +4030,7 @@ PRIVATE int WriteData(FILE *wrfp, char *rdfn) {
 	char buf[TBLOCK];
 	int cc = fread(buf, (int) sizeof(char), TBLOCK, rdfp);
 	if (cc < TBLOCK)
-	    bzero(buf + cc, TBLOCK - cc);
+	    bzero((void *)buf + cc, TBLOCK - cc);
 	if (fwrite(buf, TBLOCK, 1, wrfp) != 1) {
 	    LOG(0, ("WriteData: (%s) fwrite (%d)", rdfn, errno));
 	    code = (errno ? errno : ENOSPC);
@@ -4039,7 +4045,7 @@ PRIVATE int WriteData(FILE *wrfp, char *rdfn) {
 
 PRIVATE int WriteTrailer(FILE *fp) {
     char buf[TBLOCK];
-    bzero(buf, TBLOCK);
+    bzero((void *)buf, TBLOCK);
     for (int i = 0; i < 2; i++)
 	if (fwrite(buf, TBLOCK, 1, fp) != 1) {
 	    LOG(0, ("WriteTrailer: fwrite (%d)", errno));

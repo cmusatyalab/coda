@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vice/ViceErrorMsg.cc,v 4.1 1997/01/08 21:51:54 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vice/ViceErrorMsg.cc,v 4.2 1997/12/20 23:35:16 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -138,9 +138,7 @@ char *ViceErrorMsg(int errorCode)
 	case ENOTSOCK:		return("Socket operation on a non-socket");
 	case EDESTADDRREQ:	return("Destination address required");
 	case EMSGSIZE:		return("Message too long");
-	case EPROTOTYPE:	return("Bad protocol option");
 	case EPROTONOSUPPORT:	return("Protocol not supported");
-	case EAFNOSUPPORT:	return("Address family not supported");
 	case EADDRINUSE:	return("Address already in use");
 	case EADDRNOTAVAIL:	return("Cannot assign requested address");
 	case ENETDOWN:		return("Network is down");

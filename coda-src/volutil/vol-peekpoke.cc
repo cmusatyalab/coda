@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/volutil/vol-peekpoke.cc,v 4.2 1997/02/26 16:04:10 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/volutil/vol-peekpoke.cc,v 4.3 1997/12/20 23:35:36 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -109,7 +109,7 @@ void setmyname(char *s)
 	char	buf[MAXPATHLEN];
 	if (*s == '/')
 		srvname = strdup(s);
-	else if (getwd(buf) != NULL)
+	else if (getcwd(buf, MAXPATHLEN) != NULL)
 		srvname = strdup(strcat(strcat(buf, "/"), s));
 	else	printf("%s: unable to find the current directory\n", s);
 }

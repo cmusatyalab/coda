@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/volutil/vvlist.cc,v 4.2 1997/02/26 16:04:18 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/volutil/vvlist.cc,v 4.3 1997/10/23 19:26:18 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -157,7 +157,7 @@ vvtable::vvtable(FILE *Ancient, VnodeClass vclass, int listsize)
     nlists = listsize;
     assert(nlists > 0);
     vvlist = (vvent **)malloc(sizeof(vvent) * nlists);
-    bzero(vvlist, sizeof(vvent) * nlists);
+    bzero((void *)vvlist, sizeof(vvent) * nlists);
     
     LogMsg(9, VolDebugLevel, stdout, "After malloc of vvlist, entering do loop");
     do {

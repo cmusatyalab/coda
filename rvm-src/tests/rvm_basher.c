@@ -33,7 +33,7 @@ should be returned to Software.Distribution@cs.cmu.edu.
 
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/rvm-src/tests/rvm_basher.c,v 4.4 1997/11/04 22:04:17 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/rvm-src/tests/rvm_basher.c,v 4.5 1997/12/20 23:36:01 braam Exp $";
 #endif _BLURB_
 
 /*
@@ -48,6 +48,7 @@ static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/rvm-src/tests/r
 #include <string.h>
 #include <stdio.h>
 #include <ctype.h>
+#include <errno.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <sys/time.h>
@@ -56,6 +57,13 @@ static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/rvm-src/tests/r
 #include "rvm_statistics.h"
 #include "rvm_segment.h"
 #include "rds.h"
+
+#ifdef __CYGWIN32__
+/* XXX MJC: hack -- no random(), srandom() so use rand() (and forget about
+  setting seeds for now */
+#define random rand
+#define srandom
+#endif
 
 #ifndef RVM_MAJOR_VERSION
 #define RVM_MAJOR_VERSION     1
@@ -199,6 +207,9 @@ rvm_bool_t          no_yield_sw;        /* request no-yield truncations */
 rvm_bool_t          vm_protect_sw;      /* request vm buffer protection */
 rvm_bool_t          pre_alloc_trunc;    /* truncate after preallocation */
 rvm_bool_t          show_brk;           /* print break point */
+
+FILE               *para_file;          /* parameter file */
+
 /* string name lookup entry declarations */
 
 typedef enum
@@ -767,7 +778,11 @@ rvm_bool_t chk_region(seg_file,region)
                    "offset = %d\n",reg_pos);
             ASSERT(rvm_false);
             }
-
+#if 0
+	/* CL */
+	printf("j: %6d; vm:0x%x; region%d:0x%x; reg_pos:%d\n",
+	       j, (vm[j] & 255), region, (c & 255), reg_pos);
+#endif
         /* check the data against vm */
         if ((char)c != vm[j])
             {
@@ -877,7 +892,11 @@ rvm_bool_t chk_vm()
 #endif VERSION_TEST
 
     /* open segment file read-only */
+#ifdef O_BINARY
+    if ((seg_file = fopen(DataFileName,"rb")) == NULL)
+#else
     if ((seg_file = fopen(DataFileName,"r")) == NULL)
+#endif
         {
         printf("\n? Error opening segment file\n");
         printf("    errno = %d\n",errno);
@@ -1160,7 +1179,7 @@ static void skip_white(ptr)
 static void skip_lf()
     {
     while (rvm_true)
-        if (getc(stdin) == '\n') return;
+        if (getc(para_file) == '\n') return;
     }
 
 /* string scanner */
@@ -1201,7 +1220,7 @@ static int scan_int(low_range,high_range,default_val,name_str,err_str)
     val = strtol(cmd_cur,&cmd_cur,0);
 
     /* check range */
-#ifdef 0
+#if 0
 /* I guess this code fragment is wrong, under this, when (low_range != 0)
  * val will be return no matter whatever value it is.  More reasonable
  * behaviour should be returning val only when 
@@ -1240,12 +1259,12 @@ static char *read_prompt_line(prompt,null_ok)
                 printf("%s ",prompt);
 
             /* get line and check termination conditions */
-            cmd_cur = fgets(cmd_line,CMD_MAX,stdin);
+            cmd_cur = fgets(cmd_line,CMD_MAX,para_file);
             if (cmd_cur == NULL)
                 {
-                if (feof(stdin))
+                if (feof(para_file))
                     {
-                    printf("\n?  Error: EOF reported from stdin !!\n");
+                    printf("\n?  Error: EOF reported from parameter file !!\n");
                     exit(1);
                     }
                 return NULL;            /* error */
@@ -1293,7 +1312,11 @@ void show_test_parms()
         printf("  Number of test cycles:                    %d\n",
                max_cycles);
     printf("  Number of worker threads:                 %d\n",nthreads);
+#ifdef PRIO_PROCESS
     priority = getpriority(PRIO_PROCESS,0);
+#else
+    priority = -1;
+#endif
     printf("  Execution priority:                       %d\n",priority);
     printf("  Random seed:                              %d\n",seed);
     printf("  Allocator check level:                    %d\n",chk_alloc);
@@ -1433,7 +1456,11 @@ static void set_priority()
     priority = scan_int(0,20,0,"scheduling priority",
                         "?  Bad scheduling priority");
 
+#ifdef PRIO_PROCESS
     err = setpriority(PRIO_PROCESS,0,priority);
+#else
+    err = 0;
+#endif
     if (err != 0)
         printf("?  Error setting process priority, err = %d\n",err);
 
@@ -1556,7 +1583,9 @@ void call_plumber()
 void show_break()
     {
     rvm_length_t    cur_brk;
+#ifdef RLIMIT_DATA
     struct rlimit   rlp;
+#endif
 
     /* get current break point */
     errno = 0;
@@ -1569,6 +1598,7 @@ void show_break()
 
     /* get system maximum */
     errno = 0;
+#ifdef RLIMIT_DATA
     if (getrlimit(RLIMIT_DATA,&rlp) < 0)
         {
         printf("\n? Error getting data segment limit\n");
@@ -1580,6 +1610,7 @@ void show_break()
     printf("\nCurrent break point:         0x%x\n",
            RVM_ROUND_LENGTH_UP_TO_PAGE_SIZE(cur_brk+5*RVM_PAGE_SIZE));
     printf("Maximum data segment length: 0x%x\n\n",rlp.rlim_max);
+#endif
     exit(0);
     }
 /* command dispatch */
@@ -1645,7 +1676,17 @@ static str_name_entry_t cmd_vec[MAX_CMDS] = /* command codes vector */
     rvm_return_t	ret;
     char		*addr, *sptr, string[80];
     int 		err, i, length;
-    
+
+    if (argc == 2) {		/* input parameters from file */
+      para_file = fopen(argv[1], "r");
+      if (! para_file) {
+	fprintf(stderr, "open parameter files failed. Basher not started\n");
+	exit(-1);
+      }
+    } else {
+      para_file = stdin;
+    }
+
     /* initializations */
     cmd_line[0] != '\0';
     cmd_cur=cmd_line;

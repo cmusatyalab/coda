@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vtools/hoard.cc,v 4.4 97/10/23 19:26:24 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vtools/hoard.cc,v 4.5 1997/12/16 16:19:43 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -56,7 +56,9 @@ extern "C" {
 #include <string.h>
 #include <sys/param.h>
 #include <sys/types.h>
+#ifdef __BSD44__
 #include <sys/dir.h>
+#endif
 #include <sys/file.h>
 #include <sys/stat.h>
 
@@ -74,6 +76,10 @@ extern int execvp(const char *, const char **);
 #include <unistd.h>
 #include <stdlib.h>
 #endif
+
+
+
+#include <cfs/coda.h>
 
 #ifdef __cplusplus
 }
@@ -234,7 +240,7 @@ main(int argc, char *argv[]) {
     /* Derive the stream of hoard commands. */
     FILE *fp = ParseCommandLine(argc, argv);
 
-    if (getwd(cwd) == NULL)
+    if (getcwd(cwd, MAXPATHLEN) == NULL)
 	error(FATAL, "%s", cwd);
     DEBUG(printf("cwd = %s\n", cwd);)
 
@@ -383,8 +389,8 @@ next_cmd:
 
 		/* Parse <volume-number> <hoard-filename>. */
 		/* Also record <fullname> for later meta-expansion. */
-		VolumeId volno, svollist[MAXSYMLINKS];
-		char name[MAXPATHLEN], snamelist[MAXSYMLINKS][MAXPATHLEN];
+		VolumeId volno, svollist[CFS_MAXSYMLINK];
+		char name[MAXPATHLEN], snamelist[CFS_MAXSYMLINK][MAXPATHLEN];
 		char fullname[MAXPATHLEN];
 		if (GetToken(cp, token, &cp) == NULL) {
 		    parse_error(line);
@@ -451,7 +457,7 @@ next_cmd:
 		    Add.append(new add_entry(volno, name, priority, attributes));
 
 		/* add symlink entries */
-		for (int i = 0; i < MAXSYMLINKS; i++) 
+		for (int i = 0; i < CFS_MAXSYMLINK; i++) 
 		    if (svollist[i] != 0) {
 			DEBUG(printf("adding symlink entry <%x, %s>\n",	
 				     svollist[i], snamelist[i]));
@@ -724,7 +730,7 @@ PRIVATE int canonicalize(char *path, VolumeId *vp, char *vname, char *fullname,
 
     int ix = 0;
     if (svp) 
-	for (int i = 0; i < MAXSYMLINKS; i++) {
+	for (int i = 0; i < CFS_MAXSYMLINK; i++) {
 	    svp[i] = 0;
 	    sname[i][0] = '\0';
 	}
@@ -823,7 +829,7 @@ PRIVATE int canonicalize(char *path, VolumeId *vp, char *vname, char *fullname,
 	    }
 	}
 	if (fullname) {
-	    if (getwd(fullname) == NULL) {
+	    if (getcwd(fullname, MAXPATHLEN) == NULL) {
 		error(!FATAL, "canonicalize: %s", fullname);
 		goto done;
 	    }
@@ -875,7 +881,7 @@ PRIVATE char *vol_getwd(VolumeId *vp, char *head, char *tail) {
     if (head) head[0] = '\0';
 
     char fullname[MAXPATHLEN];
-    if (getwd(fullname) == NULL) {
+    if (getcwd(fullname, MAXPATHLEN) == NULL) {
 	strcpy(tail, fullname);
 	return(NULL);
     }
@@ -1204,7 +1210,7 @@ PRIVATE void ExpandNode(char *mtpt, VolumeId vid, char *name,
 		return;
 	    }
 
-	    struct direct *dp;
+	    struct dirent *dp;
 	    while((dp = readdir(dirp)) != NULL) {
 		DEBUG(printf("ExpandNode: d_name = %s\n", dp->d_name););
 		if (STREQ(".", dp->d_name) || STREQ("..", dp->d_name)) continue;
@@ -1236,7 +1242,9 @@ PRIVATE int CreateOutFile(char *in, char *out) {
 
     if (child == 0) {
 	/* Attempt to create/truncate the target file. */
+#ifndef __CYGWIN32__
 	if (setreuid(ruid, ruid) < 0) exit(errno);
+#endif
 	int fd = open(in, (O_TRUNC | O_CREAT), 0666);
 	if (fd < 0) exit(errno);
 	exit(close(fd) < 0 ? errno : 0);
@@ -1245,10 +1253,10 @@ PRIVATE int CreateOutFile(char *in, char *out) {
 	/* Wait for child to finish. */
 	union wait status;
 	int rc;
-#ifdef	__BSD44__
-	while ((rc = wait(&status.w_status)) != child)
-#else
+#ifdef	__linux__
 	while ((rc = wait(&status)) != child)
+#else
+	while ((rc = wait(&status.w_status)) != child)
 #endif
 	    if (rc < 0) return(-1);
 	if (status.w_retcode != 0) {
@@ -1268,7 +1276,7 @@ PRIVATE int CreateOutFile(char *in, char *out) {
 		ViceFid fid;
 		ViceVersionVector vv;
 	    } gf;
-	    bzero(&gf, sizeof(struct GetFid));
+	    bzero((void *)&gf, sizeof(struct GetFid));
 
 	    struct ViceIoctl vi;
 	    vi.in = 0;
@@ -1301,10 +1309,12 @@ PRIVATE void RenameOutFile(char *from, char *to) {
 	}
 
 	/* Open the target file. */
+#ifndef __CYGWIN32__
 	if (setreuid(ruid, ruid) < 0) {
 	    error(!FATAL, "RenameOutFile: setreuid(%d, %d) failed(%s)", ruid, ruid, sys_errlist[errno]);
 	    exit(errno);
 	}
+#endif
 	int outfd = open(to, (O_TRUNC | O_CREAT | O_WRONLY), 0666);
 	if (outfd < 0) {
 	    error(!FATAL, "RenameOutFile: open(%s) failed(%s)", to, sys_errlist[errno]);
@@ -1325,7 +1335,7 @@ PRIVATE void RenameOutFile(char *from, char *to) {
     else {
 	/* Wait for child to finish. */
 	union wait status;
-#ifdef	__BSD44__
+#ifndef __linux__
 	::wait(&status.w_status);
 #else
 	::wait(&status);

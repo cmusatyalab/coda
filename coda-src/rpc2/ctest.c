@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/src/coda-4.0.1/RCSLINK/./coda-src/rpc2/ctest.c,v 1.1 1996/11/22 19:07:17 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rpc2/ctest.c,v 4.1 1997/01/08 21:50:21 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -84,7 +84,7 @@ extern long RPC2_DebugLevel;
 #ifndef FAKESOCKETS
 extern long SFTP_DebugLevel;
 #endif FAKESOCKETS
-FILE *ErrorLogFile = stderr;
+FILE *ErrorLogFile;
 static char ShortText[200];
 static char LongText[3000];
 PROCESS mypid;			/* Pid of main process */
@@ -114,7 +114,7 @@ main()
 
     SE_Descriptor sed;
 
-
+    ErrorLogFile = stderr;
     assert(LWP_Init(LWP_VERSION, LWP_MAX_PRIORITY-1, &mypid) == LWP_SUCCESS);
 
 

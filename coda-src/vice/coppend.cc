@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vice/coppend.cc,v 4.2 1997/01/28 11:54:37 satya Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vice/coppend.cc,v 4.3 1997/12/20 23:35:22 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -87,7 +87,7 @@ void AddPairToCopPendingTable(ViceStoreId *sid, ViceFid *fid) {
 	}
     }
     else {
-	ViceFid fids[MAXFIDS]; bzero(fids, (int) (MAXFIDS * sizeof(ViceFid)));
+	ViceFid fids[MAXFIDS]; bzero((void *)fids, (int) (MAXFIDS * sizeof(ViceFid)));
 	fids[0] = *fid;
 	CopPendingMan->add(new cpent(sid, fids));
     }

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/vproc_pioctl.cc,v 4.4 1997/12/16 16:08:42 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/vproc_pioctl.cc,v 4.5 1997/12/16 20:15:57 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -318,7 +318,7 @@ void vproc::do_ioctl(ViceFid *fid, unsigned int com, struct ViceIoctl *data) {
 			if (data->in_size == (int)sizeof(int)) {
 			    /* Backup and use volroot's mount point if directed. */
 			    int backup;
-			    bcopy(data->in, &backup, (int)sizeof(int));
+			    bcopy((const void *)data->in, (void *) &backup, (int)sizeof(int));
 			    if (backup) {
 				if (f->fid.Volume == rootfid.Volume ||
 				    f->fid.Vnode != ROOT_VNODE ||
@@ -337,11 +337,11 @@ void vproc::do_ioctl(ViceFid *fid, unsigned int com, struct ViceIoctl *data) {
 			char *cp = data->out;
 
 			/* Copy out the fid. */
-			bcopy(&f->fid, cp, (int)sizeof(ViceFid));
+			bcopy((const void *)&f->fid, (void *) cp, (int)sizeof(ViceFid));
 			cp += sizeof(ViceFid);
 
 			/* Copy out the VV.  This will be garbage unless the object is replicated! */
-			bcopy(&f->stat.VV, cp, (int)sizeof(ViceVersionVector));
+			bcopy((const void *)&f->stat.VV, (void *) cp, (int)sizeof(ViceVersionVector));
 			cp += sizeof(ViceVersionVector);
 
 			data->out_size = (cp - data->out);
@@ -370,7 +370,7 @@ void vproc::do_ioctl(ViceFid *fid, unsigned int com, struct ViceIoctl *data) {
 		        }
 
 			/* Copy out the parent fid. */
-			bcopy(&f->pfid, data->out, (int)sizeof(ViceFid));
+			bcopy((const void *)&f->pfid, (void *) data->out, (int)sizeof(ViceFid));
 			data->out_size = (short)sizeof(ViceFid);
 
 			break;
@@ -541,7 +541,7 @@ O_FreeLocks:
 
 		    /* Volume status block. */
 		    VolumeStatus volstat;
-		    bcopy(cp, (char *)&volstat, (int)sizeof(VolumeStatus));
+		    bcopy((const void *)cp, (void *) (char *)&volstat, (int)sizeof(VolumeStatus));
 		    cp += sizeof(VolumeStatus);
 
 		    /* Volume name. */
@@ -1002,7 +1002,7 @@ V_FreeLocks:
 			{ u.u_error = EACCES; break; }
 
 		    long on;
-		    bcopy(data->in, &on, (int)sizeof(long));
+		    bcopy((const void *)data->in, (void *) &on, (int)sizeof(long));
 		    on &= 0xff;
 		    if (on) DebugOn(); else DebugOff();
 
@@ -1015,7 +1015,7 @@ V_FreeLocks:
 			{ u.u_error = EINVAL; break; }
 
 		    VenusStatistics *Stats = (VenusStatistics *)data->out;
-		    bzero(Stats, (int)sizeof(VenusStatistics));
+		    bzero((void *)Stats, (int)sizeof(VenusStatistics));
 		    Stats->VFSStats = VFSStats;
 		    Stats->CommStats.RPCOpStats = RPCOpStats;
 		    GetCSS(&Stats->CommStats.RPCPktStats);
@@ -1143,7 +1143,7 @@ V_FreeLocks:
 		case VIOC_WAITFOREVER:
 		    {
 		    int on;
-		    bcopy(data->in, &on, (int)sizeof(int));
+		    bcopy((const void *)data->in, (void *) &on, (int)sizeof(int));
 
 		    /* We would like "waitforever" behavior to be settable on a per-process group basis. */
 		    /* However, this would require cooperation with the kernel, which I don't want to */

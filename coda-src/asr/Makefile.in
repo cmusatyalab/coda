@@ -25,7 +25,7 @@
 # improvements or extensions that  they  make,  and  to  grant  Carnegie
 # Mellon the rights to redistribute these changes without encumbrance.
 # 
-# static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/asr/Makefile.in,v 4.4 1997/04/29 21:27:25 rvb Exp $";
+# static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/asr/Makefile.in,v 4.5 1997/12/02 16:39:22 braam Exp $";
 
 
 TOPDIR = @top_srcdir@
@@ -39,7 +39,10 @@ TOPOBJ = @TOPOBJ@
 include $(MAKDIR)/Makeconf
 
 EXECUTABLES = parser
-CBINS       = parser
+ifeq ($(SYS),cywin32)
+EXECUTABLES = parser
+endif
+CBINS       = $(EXECUTABLES)
 HEADERS     = asr.h ruletypes.h
 
 YFLAGS += -d
@@ -52,7 +55,7 @@ LIBS=	$(LIBKERNDEP) $(LIBUTIL)
 OBJECTS = y.tab.o lex.yy.o ruletypes.o resolver.o wildmat.o path.o
 
 parser: ${OBJECTS} $(LIBS)
-	$(CC) $(LIBFLAGS) ${OBJECTS} $(LIBS)  -lfl -o parser
+	$(CC) $(LIBFLAGS) ${OBJECTS} $(LIBS) $(LIBFLEX) -o parser
 
 # Dependencies
 y.tab.c: $(srcdir)/resolver.yacc

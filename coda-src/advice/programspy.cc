@@ -582,7 +582,7 @@ void ParseDataDefinitions(char *filename) {
 		continue;
 	    }
 
-	    bcopy(pioctlbuf, &fid, (int) sizeof(ViceFid));
+	    bcopy((const void *)pioctlbuf, (void *)&fid, (int) sizeof(ViceFid));
 	    d = new dataent(fid.Volume);
 	    returnValue = fgets(line, MAXPATHLEN, dataDefs);
 	    continue;

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rvmres/recle.cc,v 4.1 1997/01/08 21:50:36 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rvmres/recle.cc,v 4.2 1997/12/20 23:34:50 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -279,7 +279,7 @@ char *recle::DumpToBuf(int *bufsize) {
 	rlep++;
 
     assert((long)(rlep + size) <= (long)lastlong);
-    bcopy(&(vle->vfld[0]), rlep, size);
+    bcopy((const void *)&(vle->vfld[0]), (void *) rlep, size);
     
     *lastlong = DUMP_ENTRY_END_STAMP;
     return(buf);

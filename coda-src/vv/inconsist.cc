@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /usr/rvb/XX/src/coda-src/vv/RCS/inconsist.cc,v 4.1 1997/01/08 21:52:42 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vv/inconsist.cc,v 4.2 1997/02/26 16:04:23 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -287,7 +287,7 @@ void InvalidateVV(vv_t *v) {
 void GetMaxVV(vv_t *newvv, vv_t **vvgroup, int domindex)
 {
     int i, j;
-    bzero(newvv, sizeof(ViceVersionVector));
+    bzero((const void *)newvv, sizeof(ViceVersionVector));
     for (i = 0; i < VSG_MEMBERS; i++) {
 	/* compute max of VV[][i] */
 	long max = 0;
@@ -305,14 +305,14 @@ void GetMaxVV(vv_t *newvv, vv_t **vvgroup, int domindex)
 	for (i = 0; i < VSG_MEMBERS; i++) 
 	    if (vvgroup[i]) break;
 	if (i < VSG_MEMBERS) 
-	    bcopy(&(vvgroup[i]->StoreId), &(newvv->StoreId),
+	    bcopy((const void *)&(vvgroup[i]->StoreId), (void *)&(newvv->StoreId),
 		  sizeof(ViceStoreId));
 	break;
     case -2:
 	/* do nothing */
 	break;
     default:
-	bcopy(&(vvgroup[domindex]->StoreId), &(newvv->StoreId),
+	bcopy((const void *)&(vvgroup[domindex]->StoreId), (void *)&(newvv->StoreId),
 	      sizeof(ViceStoreId));
     }
 }

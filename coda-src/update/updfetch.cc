@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/update/updfetch.cc,v 4.1 1997/09/23 12:45:22 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/update/updfetch.cc,v 4.2 1997/12/20 23:35:04 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -213,7 +213,7 @@ PRIVATE void Connect()
 
 
     RPC2_BindParms bparms;
-    bzero(&bparms, sizeof(bparms));
+    bzero((void *)&bparms, sizeof(bparms));
     bparms.SecurityLevel = RPC2_OPENKIMONO;
     bparms.SideEffectType = SMARTFTP;
 

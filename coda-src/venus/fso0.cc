@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/fso0.cc,v 4.6 97/12/16 16:08:26 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/fso0.cc,v 4.7 1997/12/16 22:49:02 mre Exp $";
 #endif /*_BLURB_*/
 
 
@@ -444,7 +444,7 @@ fsdb::fsdb() : htab(FSDB_NBUCKETS, FSO_HashFN) {
 
     LastRef = (long *)RVMLIB_REC_MALLOC(MaxFiles * (int)sizeof(long));
     RVMLIB_SET_RANGE(LastRef, MaxFiles * (int)sizeof(long));
-    bzero(LastRef, (int)(MaxFiles * sizeof(long)));
+    bzero((void *)LastRef, (int)(MaxFiles * sizeof(long)));
 }
 
 
@@ -466,10 +466,10 @@ void fsdb::ResetTransient() {
     delq = new dlist;
     owriteq = new olist;
 
-    bzero(&DirAttrStats, (int)sizeof(CacheStats));
-    bzero(&DirDataStats, (int)sizeof(CacheStats));
-    bzero(&FileAttrStats, (int)sizeof(CacheStats));
-    bzero(&FileDataStats, (int)sizeof(CacheStats));
+    bzero((void *)&DirAttrStats, (int)sizeof(CacheStats));
+    bzero((void *)&DirDataStats, (int)sizeof(CacheStats));
+    bzero((void *)&FileAttrStats, (int)sizeof(CacheStats));
+    bzero((void *)&FileDataStats, (int)sizeof(CacheStats));
     Recomputes = 0;
     Reorders = 0;
 
@@ -785,7 +785,7 @@ int fsdb::Get(fsobj **f_addr, ViceFid *key, vuid_t vuid, int rights, char *comp,
 	    ViceFid *gfid;
 	    while (lgm = next()) {
 		gfid = lgm->GetGlobalFid();
-		if (!bcmp(gfid, key, (int)sizeof(ViceFid))) {
+		if (!bcmp((const void *)gfid, (const void *)key, (int)sizeof(ViceFid))) {
 		    LOG(0, ("fsdb::Get: trying to access localied object 0x%x.%x.%x\n",
 			    key->Volume, key->Vnode, key->Unique));
 		    return EACCES;
@@ -1563,7 +1563,7 @@ void fsdb::ReclaimFsos(int priority, int count) {
 	    CacheFiles = MaxFiles;
 	    long *tmp = (long *)RVMLIB_REC_MALLOC((int)(MaxFiles * sizeof(long)));
 	    RVMLIB_SET_RANGE(tmp, (int)(MaxFiles * sizeof(long)));
-	    bcopy(LastRef, tmp, (int)((MaxFiles - create_count) * sizeof(long)));
+	    bcopy((const void *)LastRef, (void *) tmp, (int)((MaxFiles - create_count) * sizeof(long)));
 	    RVMLIB_REC_FREE(LastRef);
 	    RVMLIB_REC_OBJECT(LastRef);
 	    LastRef = tmp;

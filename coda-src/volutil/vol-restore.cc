@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/volutil/vol-restore.cc,v 4.5 1997/11/14 13:32:35 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/volutil/vol-restore.cc,v 4.5 1997/11/17 21:46:22 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -250,7 +250,7 @@ PRIVATE int RestoreVolume(DumpBuffer_t *buf, char *partition, char *volname, Vol
 	LogMsg(0, VolDebugLevel, stdout, "VolRestore: Volume header missing from dump; not restored");
 	return VFAIL;
     }
-    bzero(&vol, sizeof(VolumeDiskData));
+    bzero((void *)&vol, sizeof(VolumeDiskData));
     if (!ReadVolumeDiskData(buf, &vol)) {
 	LogMsg(0, VolDebugLevel, stdout, "VolRestore: ReadVolDiskData failed; not restored.");
 	return VFAIL;
@@ -454,7 +454,7 @@ PRIVATE int ReadLargeVnodeIndex(DumpBuffer_t *buf, Volume *vp)
 
     rlist = (rec_smolist *)(CAMLIB_REC_MALLOC(sizeof(rec_smolist) * list_size));
     rec_smolist *vmrlist = (rec_smolist *)malloc(sizeof(rec_smolist) * list_size);
-    bzero(vmrlist, sizeof(rec_smolist) * list_size);
+    bzero((void *)vmrlist, sizeof(rec_smolist) * list_size);
     CAMLIB_MODIFY_BYTES(rlist, vmrlist, sizeof(rec_smolist) * list_size);
     free(vmrlist);
 
@@ -490,7 +490,7 @@ PRIVATE int ReadLargeVnodeIndex(DumpBuffer_t *buf, Volume *vp)
 		vdo->vol_index = volindex;
 		vdo->vnodeMagic = LARGEVNODEMAGIC;
 		ViceLockClear((&vdo->lock));
-		bcopy(&(camvdo->nextvn), &(vdo->nextvn), sizeof(rec_smolink));
+		bcopy((const void *)&(camvdo->nextvn), (void *) &(vdo->nextvn), sizeof(rec_smolink));
 		CAMLIB_MODIFY_BYTES(camvdo, vdo, SIZEOF_LARGEDISKVNODE);
 		nvnodes ++;
 	    }
@@ -543,7 +543,7 @@ PRIVATE int ReadSmallVnodeIndex(DumpBuffer_t *buf, Volume *vp)
 
     rlist = (rec_smolist *)(CAMLIB_REC_MALLOC(sizeof(rec_smolist) * list_size));
     rec_smolist *vmrlist = (rec_smolist *)malloc(sizeof(rec_smolist) * list_size);
-    bzero(vmrlist, sizeof(rec_smolist) * list_size);
+    bzero((void *)vmrlist, sizeof(rec_smolist) * list_size);
     CAMLIB_MODIFY_BYTES(rlist, vmrlist, sizeof(rec_smolist) * list_size);
     free(vmrlist);
 
@@ -574,7 +574,7 @@ PRIVATE int ReadSmallVnodeIndex(DumpBuffer_t *buf, Volume *vp)
 		vdo->vol_index = volindex;
 		vdo->vnodeMagic = SMALLVNODEMAGIC;
 		ViceLockClear((&vdo->lock));
-		bcopy(&(camvdo->nextvn), &(vdo->nextvn), sizeof(rec_smolink));
+		bcopy((const void *)&(camvdo->nextvn), (void *) &(vdo->nextvn), sizeof(rec_smolink));
 		CAMLIB_MODIFY_BYTES(camvdo, vdo, SIZEOF_SMALLDISKVNODE);
 		nvnodes ++;
 	    }
@@ -615,7 +615,7 @@ PRIVATE void ReadVnodeDiskObject(DumpBuffer_t *buf, VnodeDiskObject *vdop, DirIn
 	CAMLIB_ABORT(-1);
     }
 
-    bzero(&(vdop->nextvn), sizeof(rec_smolink));
+    bzero((void *)&(vdop->nextvn), sizeof(rec_smolink));
     /* Let the following ReadTag catch any errors. */
     while ((tag = ReadTag(buf)) > D_MAX && tag) {
 	switch (tag) {
@@ -676,7 +676,7 @@ PRIVATE void ReadVnodeDiskObject(DumpBuffer_t *buf, VnodeDiskObject *vdop, DirIn
 	    CAMLIB_ABORT(-1);
 	}
 	*dinode = (DirInode *)malloc(sizeof(DirInode));
-	bzero(*dinode, sizeof(DirInode));
+	bzero((void *)*dinode, sizeof(DirInode));
 	for (int i = 0; i < npages; i++){
 	    (*dinode)->Pages[i] = (long *)malloc(PAGESIZE);
 	    register tmp = ReadTag(buf);

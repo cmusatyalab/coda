@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/res/resclient.cc,v 4.3 1997/02/26 16:02:50 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/res/resclient.cc,v 4.4 1997/10/23 19:24:32 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -55,7 +55,9 @@ extern "C" {
 #include <stdlib.h>
 #endif
 #include <struct.h>
+#ifndef __CYGWIN32__
 #include <sys/dir.h>
+#endif
 #include <lwp.h>
 #include <rpc2.h>
 #include <inodeops.h>
@@ -248,7 +250,7 @@ long RS_FetchLog(RPC2_Handle RPCid, ViceFid *Fid, RPC2_Integer *size,
     /* ship the log */
     {
 	LogMsg(9, SrvDebugLevel, stdout,  "RS_FetchLog: Shipping log ");
-	bzero(&sid, (int)sizeof(SE_Descriptor));
+	bzero((void *)&sid, (int)sizeof(SE_Descriptor));
 	sid.Tag = SMARTFTP;
 	sid.Value.SmartFTPD.TransmissionDirection = SERVERTOCLIENT;
 	sid.Value.SmartFTPD.SeekOffset = 0;
@@ -325,7 +327,7 @@ long RS_DirResPhase1(RPC2_Handle RPCid, ViceFid *Fid, RPC2_Integer size,
 	logbuf = (char *)malloc(size);
 	assert(logbuf);
 	SE_Descriptor	sid;
-	bzero(&sid, (int)sizeof(SE_Descriptor));
+	bzero((void *)&sid, (int)sizeof(SE_Descriptor));
 	sid.Tag = SMARTFTP;
 	sid.Value.SmartFTPD.TransmissionDirection = CLIENTTOSERVER;
 	sid.Value.SmartFTPD.SeekOffset = 0;
@@ -694,7 +696,7 @@ long RS_DirResPhase3(RPC2_Handle RPCid, ViceFid *Fid, ViceVersionVector *VV,
 	if (DirToNetBuf((long *)&dh, buf, (int) ov->vptr->disk.length, &size) == 0) {
 	    LogMsg(9, SrvDebugLevel, stdout,  "RS_DirResPhase3: Shipping dir contents ");
 	    SE_Descriptor sid;
-	    bzero(&sid, (int) sizeof(SE_Descriptor));
+	    bzero((void *)&sid, (int) sizeof(SE_Descriptor));
 	    sid.Tag = SMARTFTP;
 	    sid.Value.SmartFTPD.TransmissionDirection = SERVERTOCLIENT;
 	    sid.Value.SmartFTPD.SeekOffset = 0;
@@ -951,7 +953,7 @@ PRIVATE rlent *CreateCompList(int *sizes, rlent **partialops,
 			   "Copying record with id %x.%x into comp list",
 			    tmprle->storeid.Host, tmprle->storeid.Uniquifier);
 		    tmprle->dvnode = tmpdvnode;
-		    bcopy(tmprle, &complist[index], (int) sizeof(rlent));
+		    bcopy((const char *)tmprle, (char *) &complist[index], (int) sizeof(rlent));
 		    index++;
 		}
 	    }

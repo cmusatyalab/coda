@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vol/recovb.cc,v 4.3 1997/07/28 11:02:54 lily Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vol/recovb.cc,v 4.4 1997/10/15 15:55:03 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -127,7 +127,7 @@ int ExtractVnode(Error *ec, int volindex, int vclass,
 	while(p = next()){
 	    vind = strbase(VnodeDiskObject, p, nextvn);
 	    if (vind->uniquifier == uniquifier){
-		bcopy(vind, vnode, SIZEOF_SMALLDISKVNODE);
+		bcopy((const void *)vind, (void *)vnode, SIZEOF_SMALLDISKVNODE);
 		break;
 	    }
 	}
@@ -149,7 +149,7 @@ int ExtractVnode(Error *ec, int volindex, int vclass,
 	    while(p = next()) {
 		vind = strbase(VnodeDiskObject, p, nextvn);
 		if (vind->uniquifier == uniquifier) {
-		    bcopy(vind, vnode, SIZEOF_LARGEDISKVNODE);
+		    bcopy((const void *)vind, (void *)vnode, SIZEOF_LARGEDISKVNODE);
 		    break;
 		}
 	    }
@@ -379,7 +379,7 @@ int ReplaceVnode(int volindex, int vclass, VnodeId vnodeindex,
 		LogMsg(9, VolDebugLevel, stdout,  "ReplaceVnode: malloc'ing small vnode");
 		vdo = (VnodeDiskObject *)CAMLIB_REC_MALLOC(SIZEOF_SMALLDISKVNODE);
 		zerovnode = (VnodeDiskObject *)buf1;
-		bzero(zerovnode, sizeof(buf1));
+		bzero((void *)zerovnode, sizeof(buf1));
 		CAMLIB_MODIFY_BYTES(vdo, zerovnode, sizeof(buf1));
 	    }
 	    /* increment vnode count */
@@ -388,13 +388,13 @@ int ReplaceVnode(int volindex, int vclass, VnodeId vnodeindex,
     	    /* append vnode into the appropriate rec_smolist */
 	    char buf[sizeof(rec_smolink)];
 	    bzero(buf, sizeof(rec_smolink));
-	    if (bcmp(&(vdo->nextvn), buf, sizeof(rec_smolink))){
+	    if (bcmp((const void *)&(vdo->nextvn), (const void *) buf, sizeof(rec_smolink))){
 		LogMsg(0, VolDebugLevel, stdout,  "ERROR: REC_SMOLINK ON VNODE DURING ALLOCATION WAS NOT ZERO");
 		CAMLIB_MODIFY_BYTES(&(vdo->nextvn), buf, sizeof(rec_smolink));
 	    }
 	    vnlist->append(&(vdo->nextvn));
 	}
-	bcopy( &(vdo->nextvn), &(vnode->nextvn), sizeof(rec_smolink));
+	bcopy( (const void *)&(vdo->nextvn), (void *)&(vnode->nextvn), sizeof(rec_smolink));
 	CAMLIB_MODIFY_BYTES(vdo, vnode, SIZEOF_SMALLDISKVNODE);
     }
     else if (vclass == vLarge) {
@@ -426,7 +426,7 @@ int ReplaceVnode(int volindex, int vclass, VnodeId vnodeindex,
 		LogMsg(9, VolDebugLevel, stdout,  "ReplaceVnode: malloc'ing large vnode");
 		vdo = (VnodeDiskObject *)CAMLIB_REC_MALLOC(SIZEOF_LARGEDISKVNODE);
 		zerovnode = (VnodeDiskObject *)buf2;
-		bzero(zerovnode, sizeof(buf2));
+		bzero((void *)zerovnode, sizeof(buf2));
 		CAMLIB_MODIFY_BYTES(vdo, zerovnode, sizeof(buf2));
 	    }
 	    /* increment vnode count */
@@ -434,7 +434,7 @@ int ReplaceVnode(int volindex, int vclass, VnodeId vnodeindex,
 		  (CAMLIB_REC(VolumeList[volindex]).data.nlargevnodes) + 1);
 	    char buf[sizeof(rec_smolink)];
 	    bzero(buf, sizeof(rec_smolink));
-	    if (bcmp(&(vdo->nextvn), buf, sizeof(rec_smolink))){
+	    if (bcmp((const void *)&(vdo->nextvn),(const void *) buf, sizeof(rec_smolink))){
 		LogMsg(0, VolDebugLevel, stdout,  "ERROR: REC_SMOLINK ON VNODE DURING ALLOCATION WAS NOT ZERO");
 		CAMLIB_MODIFY_BYTES(&(vdo->nextvn), buf, sizeof(rec_smolink));
 	    }
@@ -491,7 +491,7 @@ PRIVATE int DeleteVnode(int volindex, int vclass, VnodeId vnodeindex,
 					    CLS, CAMLIB_LOCK_MODE_WRITE);
 		CAMLIB_LOCK(CAMLIB_LOCK_NAME(CAMLIB_REC(SmallVnodeIndex)),
 					    CLS, CAMLIB_LOCK_MODE_WRITE);
-		bzero(vnode, SIZEOF_SMALLDISKVNODE); /* just to be sure */
+		bzero((void *)vnode, SIZEOF_SMALLDISKVNODE); /* just to be sure */
 		CAMLIB_MODIFY_BYTES(vdo, vnode, SIZEOF_SMALLDISKVNODE);
 		CAMLIB_MODIFY(CAMLIB_REC(SmallVnodeIndex),
 			      CAMLIB_REC(SmallVnodeIndex) + 1);
@@ -524,7 +524,7 @@ PRIVATE int DeleteVnode(int volindex, int vclass, VnodeId vnodeindex,
 			    CLS, CAMLIB_LOCK_MODE_WRITE);
 		CAMLIB_LOCK(CAMLIB_LOCK_NAME(CAMLIB_REC(LargeVnodeIndex)),
 			    CLS, CAMLIB_LOCK_MODE_WRITE);
-		bzero(vnode, SIZEOF_LARGEDISKVNODE);    /* just to be sure */
+		bzero((void *)vnode, SIZEOF_LARGEDISKVNODE);    /* just to be sure */
 		CAMLIB_MODIFY_BYTES(vdo, vnode,	SIZEOF_LARGEDISKVNODE);
 		CAMLIB_MODIFY(CAMLIB_REC(LargeVnodeIndex),
 			      CAMLIB_REC(LargeVnodeIndex) + 1);

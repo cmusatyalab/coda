@@ -9,14 +9,17 @@ dnl   - add a case statement below to set $sys and $vfsdir
 
 
 
-case ${target} in
+case ${host_alias} in
 
 	windows95 )
 		sys=win95
 
  ;;
 	nt )
-		sys=nt
+		sys=cygwin32
+ ;;
+	cygwin32 )
+		sys=cygwin32
  ;;
 
 	*-*-netbsd* )
@@ -52,4 +55,3 @@ AC_SUBST(sys)
 AC_SUBST(fullos)
 AC_SUBST(os)
 AC_SUBST(vfsdir)
-

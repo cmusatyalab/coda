@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/src/coda-4.0.1/coda-src/venus/RCS/local_repair.cc,v 1.1 1996/11/22 19:11:07 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/local_repair.cc,v 4.1 1997/01/08 21:51:31 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -95,7 +95,7 @@ void lrdb::BeginRepairSession(ViceFid *RootFid, int RepMode, char *msg)
 	rfm_iterator next(root_fid_map);
 	rfment *rfm;
 	while (rfm = next()) {
-	    if (!bcmp(rfm->GetFakeRootFid(), repair_root_fid, (int)sizeof(ViceFid))) {
+	    if (!bcmp((const void *)rfm->GetFakeRootFid(), (const void *) repair_root_fid, (int)sizeof(ViceFid))) {
 		ATOMIC(
 		      RVMLIB_REC_OBJECT(subtree_view);
                       subtree_view = rfm->GetView();
@@ -728,7 +728,7 @@ void lrdb::DeLocalization()
 		rfm_iterator next(root_fid_map);
 		rfment *rfm;
 		while (rfm = next()) {
-		    if (!bcmp(rfm->GetLocalRootFid(), lfid, (int)sizeof(ViceFid)))
+		    if (!bcmp((const void *)rfm->GetLocalRootFid(), (const void *) lfid, (int)sizeof(ViceFid)))
 		      break;
 		}
 		if (rfm != NULL) {
@@ -834,7 +834,7 @@ int lrdb::FindRepairObject(ViceFid *fid, fsobj **global, fsobj **local)
     OBJ_ASSERT(this, OBJ = *global);
     while ((OBJ->pfso == NULL) && !RFM_IsGlobalRoot(&OBJ->fid)) {
 	PFid = &OBJ->pfid;
-	OBJ_ASSERT(this, bcmp(PFid, &NullFid, (int)sizeof(ViceFid)));
+	OBJ_ASSERT(this, bcmp((const void *)PFid, (const void *) &NullFid, (int)sizeof(ViceFid)));
 	gcode = 0;
 	rcode = FSDB->Get(&parent, PFid, CRTORUID(vp->u.u_cred), RC_DATA, 0 , &gcode);
 	if (rcode == 0) {
@@ -857,7 +857,7 @@ int lrdb::FindRepairObject(ViceFid *fid, fsobj **global, fsobj **local)
     /* may need to fetch one more if OBJ's parent is GlobalRootObj */
     if (!RFM_IsGlobalRoot(&OBJ->fid)) {
 	PFid = &OBJ->pfid;
-	OBJ_ASSERT(this, bcmp(PFid, &NullFid, (int)sizeof(ViceFid)));
+	OBJ_ASSERT(this, bcmp((const void *)PFid, (const void *) &NullFid, (int)sizeof(ViceFid)));
 	gcode = 0;
 	rcode = FSDB->Get(&parent, PFid, CRTORUID(vp->u.u_cred), RC_DATA, 0, &gcode);
 	if (rcode == 0) {
@@ -883,7 +883,7 @@ int lrdb::FindRepairObject(ViceFid *fid, fsobj **global, fsobj **local)
 	if (RFM_IsGlobalRoot(&OBJ->fid))
 	  break;
 	ViceFid *PFid = &OBJ->pfid;
-	OBJ_ASSERT(this, bcmp(PFid, &NullFid, (int)sizeof(ViceFid)));
+	OBJ_ASSERT(this, bcmp((const void *)PFid, (const void *) &NullFid, (int)sizeof(ViceFid)));
 	OBJ_ASSERT(this, parent = FSDB->Find(PFid)); /* parent must have been cached already */
 	OBJ_ASSERT(this, parent->dir_LookupByFid(comp, &OBJ->fid) == 0);
 	OBJ->SetComp(comp);
@@ -920,7 +920,7 @@ fsobj *lrdb::GetGlobalParentObj(ViceFid *GlobalChildFid)
 	rfm_iterator next(root_fid_map);
 	rfment *rfm;
 	while (rfm = next()) {
-	    if (!bcmp(rfm->GetLocalRootFid(), LocalChildFid, (int)sizeof(ViceFid))) {
+	    if (!bcmp((const void *)rfm->GetLocalRootFid(), (const void *) LocalChildFid, (int)sizeof(ViceFid))) {
 		GlobalParentFid = rfm->GetRootParentFid();
 		LOG(100, ("lrdb::GetGlobalParentObj: ChildFid is RootFid\n"));
 		break;
@@ -931,7 +931,7 @@ fsobj *lrdb::GetGlobalParentObj(ViceFid *GlobalChildFid)
 	fsobj *LocalChildObj = FSDB->Find(LocalChildFid);
 	OBJ_ASSERT(this, LocalChildObj);
 	ViceFid *LocalParentFid = &LocalChildObj->pfid;
-	OBJ_ASSERT(this, bcmp(LocalParentFid, &NullFid, (int)sizeof(ViceFid)));
+	OBJ_ASSERT(this, bcmp((const void *)LocalParentFid, (const void *) &NullFid, (int)sizeof(ViceFid)));
 	GlobalParentFid = LGM_LookupGlobal(LocalParentFid);
 	OBJ_ASSERT(this, GlobalParentFid);
     }
@@ -1053,7 +1053,7 @@ void lrdb::SetSubtreeView(char NewView, char *msg)
 	ATOMIC(
 	       rfm->SetView(NewView);
 	, MAXFP)
-	if (!bcmp(repair_root_fid, FakeRootFid, (int)sizeof(ViceFid))) {
+	if (!bcmp((const void *)repair_root_fid, (const void *) FakeRootFid, (int)sizeof(ViceFid))) {
 	    ATOMIC(
 		   RVMLIB_REC_OBJECT(subtree_view);
 		   subtree_view = NewView;
@@ -1110,7 +1110,7 @@ void lrdb::ReplaceRepairFid(ViceFid *NewGlobalFid, ViceFid *LocalFid)
     lgm_iterator next(local_global_map);
     lgment *lgm;
     while (lgm = next()) {
-	if (!bcmp(lgm->GetLocalFid(), LocalFid, (int)sizeof(ViceFid))) {
+	if (!bcmp((const void *)lgm->GetLocalFid(), (const void *) LocalFid, (int)sizeof(ViceFid))) {
 	    ATOMIC(
 		   lgm->SetGlobalFid(NewGlobalFid);
 	    , MAXFP)
@@ -1254,7 +1254,7 @@ void lrdb::RemoveSubtree(ViceFid *FakeRootFid)
 		rfm_iterator next(root_fid_map);
 		rfment *rfm;
 		while (rfm = next()) {
-		    if (!bcmp(rfm->GetLocalRootFid(), lfid, (int)sizeof(ViceFid)))
+		    if (!bcmp((const void *)rfm->GetLocalRootFid(), (const void *) lfid, (int)sizeof(ViceFid)))
 		      break;
 		}
 		if (rfm != NULL) {

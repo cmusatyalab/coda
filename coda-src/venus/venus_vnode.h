@@ -89,7 +89,7 @@ struct venus_vnode {
 	daddr_t	v_lastr;			/* last read (read-ahead) */
 	u_long	v_id;				/* capability identifier */
 	struct	mount *v_mount;			/* ptr to vfs we are in */
-	int 	(**v_op) __P((void *));		/* vnode operations vector */
+	int 	(**v_op)(void *);		/* vnode operations vector */
 	long	v_numoutput;			/* num of writes in progress */
 	enum	coda_vtype v_type;			/* vnode type */
 	union {

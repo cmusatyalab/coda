@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/venusvm.cc,v 4.5 1997/12/16 16:08:37 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/venusvm.cc,v 4.6 1997/12/20 23:35:10 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -58,13 +58,12 @@ extern "C" {
 #endif
 #include <fcntl.h>
 
-#ifdef	__linux__
 #include <netinet/in.h>
-#include <endian.h>
-#else
+#ifdef __BSD44__
 #include <machine/endian.h>
 #endif /* __linux*/
 #include <netdb.h>
+#ifndef __CYGWIN32__
 #if defined(__GLIBC__) && __GLIBC__ >= 2
 #include <libelf/nlist.h>
 #else
@@ -72,6 +71,7 @@ extern "C" {
 /* nlist.h defines this function but it isnt getting included because it is
    guarded by an ifdef of CMU which isnt getting defined.  XXXXX pkumar 6/13/95 */ 
 extern int nlist(const char*, struct nlist[]);
+#endif
 #endif
 
 #include <rpc2.h>
@@ -289,7 +289,11 @@ PRIVATE int VmonSessionEventSize = 0;
 #endif
 
 PRIVATE int kmem;
+#ifndef __CYGWIN32__
 PRIVATE struct nlist RawStats[3];
+#else
+long RawStats[3];
+#endif
 PRIVATE struct cfs_op_stats vfsop_init_stats[CFS_VFSOPS_SIZE];
 PRIVATE struct cfs_op_stats vnode_init_stats[CFS_VNODEOPS_SIZE];
 
@@ -349,11 +353,11 @@ void VmonInit() {
     if (kmem <= 0) {
 	Choke("Could not open /dev/kmem for reading");
     }
+#ifdef __BSD44__
 
     RawStats[0].n_name = "_cfs_vfsopstats";
     RawStats[1].n_name = "_cfs_vnodeopstats";
     RawStats[2].n_name = 0;
-#ifndef	__linux__
     if (nlist(VMUNIX,RawStats) != 0) {
 	fprintf(stderr, "ERROR: running a pre-vfs-statistics kernel\n");
 	fflush(stderr);
@@ -667,6 +671,7 @@ PRIVATE void CheckCL() {
 }
 
 PRIVATE void CheckMC() {       // Check minicache stats
+#ifndef __CYGWIN32__
     int i;
 
     if (!VmonInited || !VmonEnabled) return;
@@ -715,7 +720,7 @@ PRIVATE void CheckMC() {       // Check minicache stats
     CheckVmonResult(code);
     if (LogLevel >= 100) 
 	MarinerLog("mond::Reported MiniCache stats\n");
-				    
+#endif				    
 }
 
 /* PRIVATE -- was private but couldn't access u->admon then... */ 
@@ -834,7 +839,7 @@ void CheckRW()
 	    }
 	    rwsent *rws = (rwsent *)d;
 	    ReadWriteSharingStats Stats;
-	    bzero(&Stats, (int)sizeof(Stats));
+	    bzero((void *)&Stats, (int)sizeof(Stats));
 	    Stats.Vid = v->GetVid();
 	    Stats.RwSharingCount = rws->sharing_count;
 	    Stats.DiscReadCount = rws->disc_read_count;
@@ -909,7 +914,7 @@ void CheckRepair()
 	return;
     }
     RepairSessionStats Stats;
-    bzero(&Stats, (int)sizeof(RepairSessionStats));
+    bzero((void *)&Stats, (int)sizeof(RepairSessionStats));
     Stats.SessionNum = LRDB->repair_stats.SessionNum;
     Stats.CommitNum = LRDB->repair_stats.CommitNum;
     Stats.AbortNum = LRDB->repair_stats.AbortNum;

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rvmres/subpreres.cc,v 4.1 1997/01/08 21:50:41 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rvmres/subpreres.cc,v 4.2 1997/12/20 23:34:56 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -140,8 +140,8 @@ long RS_FetchDirContents(RPC2_Handle RPCid, ViceFid *Fid,
 	AL_AccessList *aCL;
 	int aCLSize = 0;
 	SetAccessList(vptr, aCL, aCLSize);
-	bcopy(VVnodeACL(vptr), &buf[size], VAclSize(vptr));
-	bzero(&buf[size + aCL->MySize - 1], aCLSize - aCL->MySize);
+	bcopy((const void *)VVnodeACL(vptr), (void *)&buf[size], VAclSize(vptr));
+	bzero((void *)&buf[size + aCL->MySize - 1], aCLSize - aCL->MySize);
 	size += VAclSize(vptr);
 
 	LogMsg(1, SrvDebugLevel, stdout, 
@@ -161,7 +161,7 @@ long RS_FetchDirContents(RPC2_Handle RPCid, ViceFid *Fid,
     {
 	LogMsg(9, SrvDebugLevel, stdout,  
 	       "RS_FetchDirContents: Shipping dir contents ");
-	bzero(&sid, sizeof(SE_Descriptor));
+	bzero((void *)&sid, sizeof(SE_Descriptor));
 	sid.Tag = SMARTFTP;
 	sid.Value.SmartFTPD.TransmissionDirection = SERVERTOCLIENT;
 	sid.Value.SmartFTPD.SeekOffset = 0;

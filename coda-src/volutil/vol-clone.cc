@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/volutil/vol-clone.cc,v 4.3 1997/02/26 16:04:05 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/volutil/vol-clone.cc,v 4.4 1997/10/23 19:26:04 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -371,7 +371,7 @@ PRIVATE void VUCloneIndex(Error *error, Volume *rwVp, Volume *cloneVp, VnodeClas
     rvlist = (rec_smolist *)(CAMLIB_REC_MALLOC(sizeof(rec_smolist) * vnlistSize));
     rec_smolist *tmpvlist = (rec_smolist *)malloc((int)(sizeof(rec_smolist) * vnlistSize));
     assert(tmpvlist != 0);
-    bzero(tmpvlist, (int)(sizeof(rec_smolist) * vnlistSize));
+    bzero((void *)tmpvlist, (int)(sizeof(rec_smolist) * vnlistSize));
     CAMLIB_MODIFY_BYTES(rvlist, tmpvlist, sizeof(rec_smolist)*vnlistSize);
     free(tmpvlist);
 
@@ -500,7 +500,7 @@ int CloneVnode(Volume *rwVp, Volume *cloneVp, int vnodeIndex, rec_smolist *rvlis
     int size=(vclass==vSmall)?SIZEOF_SMALLDISKVNODE:SIZEOF_LARGEDISKVNODE;
     VnodeDiskObject *vdo = (VnodeDiskObject *) CAMLIB_REC_MALLOC(size);
 
-    bzero(&(vnode->nextvn), sizeof(rec_smolink));
+    bzero((void *)&(vnode->nextvn), sizeof(rec_smolink));
     vnode->vol_index = V_volumeindex(cloneVp);
     
     /* update inode */

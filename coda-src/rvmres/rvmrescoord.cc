@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rvmres/rvmrescoord.cc,v 4.1 1997/01/08 21:50:40 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rvmres/rvmrescoord.cc,v 4.2 1997/12/20 23:34:55 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -373,7 +373,7 @@ PRIVATE char *CoordPhase2(res_mgrpent *mgrp, ViceFid *fid,
     
     // set up the parameters 
     SE_Descriptor sid;
-    bzero(&sid, sizeof(SE_Descriptor));
+    bzero((void *)&sid, sizeof(SE_Descriptor));
     sid.Tag = SMARTFTP;
     sid.Value.SmartFTPD.TransmissionDirection = SERVERTOCLIENT;
     sid.Value.SmartFTPD.Tag = FILEINVM;
@@ -505,7 +505,7 @@ PRIVATE int CoordPhase3(res_mgrpent *mgrp, ViceFid *Fid, char *AllLogs, int logs
 	PBinc.SeqLen = RESCOMM_MAXBSLEN;
 	PBinc.MaxSeqLen = RESCOMM_MAXBSLEN;
 	
-	bzero(&sid, sizeof(SE_Descriptor));
+	bzero((void *)&sid, sizeof(SE_Descriptor));
 	sid.Tag = SMARTFTP;
 	sid.Value.SmartFTPD.TransmissionDirection = CLIENTTOSERVER;
 	sid.Value.SmartFTPD.ByteQuota = -1;
@@ -611,7 +611,7 @@ PRIVATE int CoordPhase4(res_mgrpent *mgrp, ViceFid *Fid,
     } /* drop scope for int i above; to avoid identifier clash */
 	AllocStoreId(&UpdateSet.StoreId);
 	
-	bzero(&sid, sizeof(SE_Descriptor));
+	bzero((void *)&sid, sizeof(SE_Descriptor));
 	sid.Tag = SMARTFTP;
 	sid.Value.SmartFTPD.TransmissionDirection = SERVERTOCLIENT;
 	sid.Value.SmartFTPD.Tag = FILEINVM;
@@ -738,7 +738,7 @@ PRIVATE int ResolveInc(res_mgrpent *mgrp, ViceFid *Fid, ViceVersionVector **VVGr
     
     // set up buffers to get dir contents & status blocks
     {
-	bzero(&sid, sizeof(SE_Descriptor));
+	bzero((void *)&sid, sizeof(SE_Descriptor));
 	sid.Tag = SMARTFTP;
 	sid.Value.SmartFTPD.TransmissionDirection = SERVERTOCLIENT;
 	sid.Value.SmartFTPD.Tag = FILEINVM;

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/fso1.cc,v 4.8 1997/12/16 16:08:27 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/fso1.cc,v 4.9 1997/12/16 20:15:47 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -215,10 +215,10 @@ void fsobj::ResetTransient() {
 	{ print(logFile); Choke("fsobj::ResetTransient: bogus MagicNumber"); }
 
     /* This is a horrible way of resetting handles! */
-    bzero(&vol_handle, (int)sizeof(vol_handle));
-    bzero(&prio_handle, (int)sizeof(prio_handle));
-    bzero(&del_handle, (int)sizeof(del_handle));
-    bzero(&owrite_handle, (int)sizeof(owrite_handle));
+    bzero((void *)&vol_handle, (int)sizeof(vol_handle));
+    bzero((void *)&prio_handle, (int)sizeof(prio_handle));
+    bzero((void *)&del_handle, (int)sizeof(del_handle));
+    bzero((void *)&owrite_handle, (int)sizeof(owrite_handle));
 
     if (HAVEDATA(this) && stat.VnodeType == Directory && mvstat != MOUNTPOINT) {
 	data.dir->udcfvalid = 0;
@@ -238,11 +238,11 @@ void fsobj::ResetTransient() {
     flags.marked = 0;
     flags.random = ::random();
 
-    bzero(&u, (int)sizeof(u));
+    bzero((void *)&u, (int)sizeof(u));
 
     pfso = 0;
     children = 0;
-    bzero(&child_link, (int)sizeof(child_link));
+    bzero((void *)&child_link, (int)sizeof(child_link));
 
     priority = -1;
     HoardPri = 0;
@@ -2900,8 +2900,8 @@ void fsobj::GetOperationState(int *conn, int *tid)
 	    else
 	      cfo = cfo->pfso;
 	}
-	if ((cfo != NULL) && (!bcmp(&(cfo->pfid), LRDB->repair_root_fid, (int)sizeof(ViceFid)) ||
-            !bcmp(&(cfo->pfid), LRDB->RFM_FakeRootToParent(LRDB->repair_root_fid), (int)sizeof(ViceFid)))) {
+	if ((cfo != NULL) && (!bcmp((const void *)&(cfo->pfid), (const void *)LRDB->repair_root_fid, (int)sizeof(ViceFid)) ||
+            !bcmp((const void *)&(cfo->pfid), (const void *)LRDB->RFM_FakeRootToParent(LRDB->repair_root_fid), (int)sizeof(ViceFid)))) {
 	    repair_mutation = 1;
 	}
     }

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/fso_dir.cc,v 4.3 1997/02/26 16:03:17 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/fso_dir.cc,v 4.4 1997/12/01 17:27:46 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -64,8 +64,9 @@ extern "C" {
 #endif
 #ifdef	__linux__
 #include <endian.h>
+#endif
 #include <netinet/in.h>
-#else
+#ifdef __BSD44__
 #include <machine/endian.h>
 #endif
 
@@ -324,7 +325,7 @@ void fsobj::dir_MakeDir() {
 
     data.dir = (VenusDirData *)RVMLIB_REC_MALLOC((int)sizeof(VenusDirData));
     RVMLIB_REC_OBJECT(*data.dir);
-    bzero(data.dir, (int)sizeof(VenusDirData));
+    bzero((void *)data.dir, (int)sizeof(VenusDirData));
 
     if (::MakeDir((long *)data.dir, (long *)&fid, (long *)&pfid) != 0)
 	{ print(logFile); Choke("fsobj::dir_MakeDir: MakeDir failed!"); }

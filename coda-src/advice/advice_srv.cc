@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/advice/advice_srv.cc,v 4.4 97/12/16 15:54:43 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/advice/advice_srv.cc,v 4.5 1997/12/16 22:50:03 mre Exp $";
 #endif /*_BLURB_*/
 
 
@@ -65,7 +65,9 @@ extern "C" {
 #include <sys/wait.h> 
 #include <sys/stat.h>
 #include <sys/file.h>
+#ifdef __BSD44__
 #include <sys/dir.h>
+#endif
 #include <pwd.h>
 #include <errno.h>
 #include <strings.h>
@@ -529,8 +531,12 @@ void Child(int code) {
   do {                          /* in case > 1 kid died  */
 #ifdef __BSD44__
     pid = wait3(&status.w_status, WNOHANG,(struct rusage *)0);
-#else
+#endif
+#ifdef __linux__
     pid = wait3(&status, WNOHANG,(struct rusage *)0);
+#endif
+#ifdef __CYGWIN32__
+    pid = wait(&status.w_status);
 #endif
     if (pid>0) {                        /* was a child to reap  */
       LogMsg(100,LogLevel,LogFile,"Child: Child %d died, rc=%d, coredump=%d, termsig=%d",

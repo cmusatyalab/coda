@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/res/reslock.cc,v 4.2 1997/09/23 17:44:35 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/res/reslock.cc,v 4.3 1997/12/20 23:34:38 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -113,7 +113,7 @@ long RS_LockAndFetch(RPC2_Handle RPCid, ViceFid *Fid,
     InitVV(VV);
     *logsize = 0;
     *ncomponents = 0;
-    bzero(rstatus, sizeof(ResStatus));
+    bzero((void *)rstatus, sizeof(ResStatus));
 
     // get info from connection
     conninfo *cip = NULL;
@@ -170,7 +170,7 @@ long RS_LockAndFetch(RPC2_Handle RPCid, ViceFid *Fid,
 	   finishgetobj, (finishgetobj - startgetvnode)/25);
 #endif 0
     // set out parameter 
-    bcopy(&(Vnode_vv(vptr)), VV, sizeof(ViceVersionVector));
+    bcopy((const void *)&(Vnode_vv(vptr)), (void *) VV, sizeof(ViceVersionVector));
     ObtainResStatus(rstatus, &(vptr->disk));
 
     /* set log size as the volume log size - 

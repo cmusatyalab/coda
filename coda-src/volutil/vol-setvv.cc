@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/volutil/vol-setvv.cc,v 4.3 1997/02/26 16:04:15 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/volutil/vol-setvv.cc,v 4.4 1997/10/23 19:26:15 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -152,7 +152,7 @@ long S_VolSetVV(RPC2_Handle rpcid, RPC2_Unsigned formal_volid, RPC2_Unsigned vno
 					(int)vnp->disk.dataVersion);
     }
     else 
-	bcopy(vv, &(Vnode_vv(vnp)), sizeof(ViceVersionVector));
+	bcopy((const void *)vv, (void *)&(Vnode_vv(vnp)), sizeof(ViceVersionVector));
 
     /* update volume version vector,  break callbacks */
     vrent *vre = VRDB.find(V_groupId(vp));    /* Look up the VRDB entry. */

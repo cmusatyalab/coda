@@ -40,14 +40,12 @@ Mellon the rights to redistribute these changes without encumbrance.
 extern "C" {
 #endif __cplusplus
 
-#if defined(__linux__) || defined(__BSD44__)
 #include <sys/types.h>
 #include <sys/param.h>
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <sys/dir.h>
 #include <errno.h>
 #include <ctype.h>
 #ifdef __cplusplus
@@ -72,4 +70,3 @@ struct inodeops inodeops_backup = {
 };
 
 
-#endif

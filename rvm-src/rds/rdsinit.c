@@ -33,7 +33,7 @@ should be returned to Software.Distribution@cs.cmu.edu.
 
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/rvm-src/rds/rdsinit.c,v 4.3 1997/04/01 01:57:17 clement Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/rvm-src/rds/rdsinit.c,v 4.4 1997/09/26 21:59:05 clement Exp $";
 #endif _BLURB_
 
 
@@ -197,11 +197,11 @@ PRIVATE int confirm_rounded_value(pvalue, base, unit, round_dir, min)
     unsigned long t1=0, t2=0;	/* temporary values */
     
     if (base == 16) {
-	snprintf(string, 120, "0x%x (in decimal %u)", *pvalue, *pvalue);
+	sprintf(string,  "0x%x (in decimal %u)", *pvalue, *pvalue);
     } else if (base == 10) {
-	snprintf(string, 120, "%d (in hex 0x%x)", *pvalue, *pvalue);
+	sprintf(string, "%d (in hex 0x%x)", *pvalue, *pvalue);
     } else if (base == 8) {
-	snprintf(string, 120, "0%o (in decimal %u)", *pvalue, *pvalue);
+	sprintf(string, "0%o (in decimal %u)", *pvalue, *pvalue);
     } else {
 	assert(0);		/* illegal base value */
     }
@@ -221,11 +221,11 @@ PRIVATE int confirm_rounded_value(pvalue, base, unit, round_dir, min)
 
     if (t2 != t1) {
     	if (base == 16) {
-    	    snprintf(string, 120, "0x%x (in decimal %u)", t2, t2);
+    	    sprintf(string, "0x%x (in decimal %u)", t2, t2);
     	} else if (base == 10) {
-    	    snprintf(string, 120, "%d (in hex 0x%x)", t2, t2);
+    	    sprintf(string, "%d (in hex 0x%x)", t2, t2);
     	} else if (base == 8) {
-    	    snprintf(string, 120, "0%o (in decimal %u)", t2, t2);
+    	    sprintf(string, "0%o (in decimal %u)", t2, t2);
     	} else {
     	    assert(0);		/* illegal base value */
     	}

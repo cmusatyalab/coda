@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/volutil/vol-ancient.cc,v 4.2 1997/10/23 19:26:03 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/volutil/vol-ancient.cc,v 4.3 1997/12/20 23:35:35 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -91,9 +91,12 @@ long S_VolMarkAsAncient(RPC2_Handle rpcid, VolumeId groupId, VolumeId repId)
     getlistfilename(newlistfile, groupId, repId, "ancient");
 
     if (rename(listfile, newlistfile) < 0) {
+#ifndef __CYGWIN32__
 	LogMsg(0, VolDebugLevel, stdout, "MarkAsAncient: rename %s->%s failed, %s", listfile, newlistfile,
 	    errno < sys_nerr? sys_errlist[errno]: "Cannot rename");
-	VDisconnectFS();
+#else
+LogMsg(0, VolDebugLevel, stdout, "MarkAsAncient: rename %s->%s failed.", listfile, newlistfile);
+#endif	VDisconnectFS();
 	return VFAIL;
     }
 

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/norton/commands.cc,v 4.3 1997/10/15 15:53:01 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/norton/commands.cc,v 4.4 1997/12/23 17:19:38 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -167,7 +167,7 @@ long address_ok(vm_address_t addr, vm_size_t sz, vm_prot_t perm)
 }
 #endif
 
-#ifdef	__linux__
+#if    defined	(__linux__) || defined(__CYGWIN32__)
 #include <sys/mman.h>
 #define vm_address_t caddr_t
 #define vm_size_t    size_t

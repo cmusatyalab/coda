@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /usr/rvb/XX/src/coda-src/vol/RCS/vrdb.cc,v 4.1 1997/01/08 21:52:21 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vol/vrdb.cc,v 4.2 1997/02/26 16:03:58 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -268,7 +268,7 @@ vrent::vrent() {
     bzero(key, sizeof(key));
     volnum = 0;
     nServers = 0;
-    bzero(ServerVolnum, sizeof(ServerVolnum));
+    bzero((void *)ServerVolnum, sizeof(ServerVolnum));
     addr = 0;
 }
 
@@ -277,7 +277,7 @@ vrent::vrent(vrent& vre) {
     strcpy(key, vre.key);
     volnum = vre.volnum;
     nServers = vre.nServers;
-    bcopy(vre.ServerVolnum, ServerVolnum, sizeof(ServerVolnum));
+    bcopy((const void *)vre.ServerVolnum, (void *) ServerVolnum, sizeof(ServerVolnum));
     addr = vre.addr;
 }
 
@@ -293,7 +293,7 @@ vrent::~vrent() {
 
 
 void vrent::GetHosts(unsigned long *Hosts) {
-    bzero(Hosts, VSG_MEMBERS * sizeof(unsigned long));
+    bzero((void *)Hosts, VSG_MEMBERS * sizeof(unsigned long));
 
     for (int i = 0; i < nServers; i++)
 	Hosts[i] = VolToHostAddr(ServerVolnum[i]);
@@ -310,7 +310,7 @@ int vrent::index(unsigned long hostaddr) {
 
 
 void vrent::HostListToVV(unsigned long *Hosts, vv_t *VV) {
-    bzero(VV, sizeof(vv_t));
+    bzero((void *)VV, sizeof(vv_t));
     for (int i = 0; i < VSG_MEMBERS; i++)
 	if (Hosts[i]) {
 	    int ix = index(Hosts[i]);
@@ -328,7 +328,7 @@ int vrent::GetVolumeInfo(VolumeInfo *Info) {
 	return(VNOVOL);
     }
 
-    bzero(Info, sizeof(VolumeInfo));
+    bzero((void *)Info, sizeof(VolumeInfo));
     Info->Vid = volnum;
     Info->Type = REPVOL;
     (&Info->Type0)[REPVOL] = volnum;

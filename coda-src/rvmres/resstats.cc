@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /usr/rvb/XX/src/coda-src/rvmres/RCS/resstats.cc,v 4.2 1997/01/28 11:50:52 satya Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rvmres/resstats.cc,v 4.3 1997/02/26 16:02:58 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -61,11 +61,11 @@ olist ResStatsList;	// list of all volume's res stats
 
 
 fileresstats::fileresstats() {
-    bzero(this, sizeof(fileresstats));
+    bzero((void *)this, sizeof(fileresstats));
 }
 
 logshiphisto::logshiphisto() {
-    bzero(this, sizeof(logshiphisto));
+    bzero((void *)this, sizeof(logshiphisto));
 }
 
 void logshiphisto::print(int fd) {
@@ -117,11 +117,11 @@ void logshiphisto::update(logshiphisto *newlsh) {
   } /* drop scope for int i above; to avoid identifier clash */
 }
 dirresstats::dirresstats() {
-    bzero(this, sizeof(dirresstats));
+    bzero((void *)this, sizeof(dirresstats));
 }
 
 conflictstats::conflictstats() {
-    bzero(this, sizeof(conflictstats));
+    bzero((void *)this, sizeof(conflictstats));
 }
 
 void conflictstats::update(conflictstats *cs) {
@@ -134,7 +134,7 @@ void conflictstats::update(conflictstats *cs) {
 }
 
 hierarchystats::hierarchystats() {
-    bzero(this, sizeof(hierarchystats));
+    bzero((void *)this, sizeof(hierarchystats));
 }
 
 void hierarchystats::print(int fd) {
@@ -187,7 +187,7 @@ void logsize::print(int fd) {
 }
 
 varlhisto::varlhisto() {
-    bzero(this, sizeof(varlhisto));
+    bzero((void *)this, sizeof(varlhisto));
 }
 
 void varlhisto::countalloc(int varsz) {

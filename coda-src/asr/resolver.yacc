@@ -30,7 +30,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/asr/resolver.yacc,v 4.1 1997/01/08 21:49:23 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/asr/resolver.yacc,v 4.2 1997/12/20 23:34:19 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -46,8 +46,10 @@ extern "C" {
 #else
 #include <libc.h>	
 #endif
-#include <sys/param.h>
+#ifdef __BSD44__
 #include <sys/dir.h>
+#endif
+#include <sys/param.h>
 #include <strings.h>
 #include <vcrcommon.h>
 
@@ -58,6 +60,11 @@ extern int yylex();
 #else
 extern int yylex ( void );
 #endif
+
+#include <sys/types.h>
+#include <cfs/coda.h>
+
+
 #ifdef __cplusplus
 }
 #endif __cplusplus

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /usr/rvb/XX/src/coda-src/volutil/RCS/vol-timing.cc,v 4.1 1997/01/08 21:52:36 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/volutil/vol-timing.cc,v 4.2 1997/02/26 16:04:16 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -108,7 +108,7 @@ long S_VolTiming(RPC2_Handle rpcid, RPC2_Integer OnFlag, SE_Descriptor *formal_s
 	fclose(timingfile);
 
 	/* set up SE_Descriptor for transfer */
-	bzero(&sed, sizeof(sed));
+	bzero((void *)&sed, sizeof(sed));
 	sed.Tag = SMARTFTP;
 	sed.Value.SmartFTPD.Tag = FILEBYNAME;
 	sed.Value.SmartFTPD.TransmissionDirection = SERVERTOCLIENT;

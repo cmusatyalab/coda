@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vol/volume.cc,v 4.6 1997/10/23 19:25:43 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vol/volume.cc,v 4.7 1997/11/14 13:19:28 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -68,8 +68,8 @@ extern "C" {
 #include <sys/errno.h>
 #include <sys/stat.h>
 #include <sys/file.h>
+#ifdef __BSD44__
 #include <sys/dir.h>
-#ifndef	__linux__
 #include <fstab.h>
 #endif
 #include <netdb.h>
@@ -277,7 +277,7 @@ void VInitVolumePackage(int nLargeVnodes, int nSmallVnodes, int DoSalvage) {
     InitVolTable(HASHTABLESIZE);
 
     /* Initialize the volume hash tables */
-    bzero(VolumeHashTable, sizeof(VolumeHashTable));
+    bzero((void *)VolumeHashTable, sizeof(VolumeHashTable));
     
     VInitVnodes(vLarge, nLargeVnodes);
     VInitVnodes(vSmall, nSmallVnodes);
@@ -465,7 +465,7 @@ void VGetVolumeInfo(Error *ec, char *key, register VolumeInfo *info)
     LogMsg(9, VolDebugLevel, stdout, "Entering VGetVolumeInfo, key = %s", key);
 
     *ec = 0;
-    bzero(info, sizeof(VolumeInfo));
+    bzero((void *)info, sizeof(VolumeInfo));
     vldp = VLDBLookup(key);
     if (vldp == NULL) {
 	*ec = VNOVOL;

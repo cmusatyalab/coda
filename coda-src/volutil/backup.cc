@@ -28,7 +28,7 @@ Carnegie Mellon encourages users of this software to return any
 improvements or extensions that they make, and to grant Carnegie
 Mellon the rights to redistribute these changes without encumbrance.  */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/volutil/backup.cc,v 4.5 1997/11/14 13:32:32 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/volutil/backup.cc,v 4.6 1997/12/01 17:28:27 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -360,7 +360,7 @@ int ParseDumpList(char *VolumeListFile, volinfo_t **vols)
     while (getVolId(VolumeList, &volId, &flags, comment) == 0) {
 	vol = (volinfo_t *) malloc(sizeof(volinfo_t));
 
-	bzero(vol, sizeof(volinfo_t));		/* Initialize the structure */
+	bzero((void *)vol, sizeof(volinfo_t));		/* Initialize the structure */
 	vol->volId = volId;
 	vol->flags |= flags;
 	strncpy(vol->comment, comment, 40);
@@ -372,7 +372,7 @@ int ParseDumpList(char *VolumeListFile, volinfo_t **vols)
 	    vol->nReplicas = 1;		/* Use replica list to hold server info */
 	    vol->replicas = (repinfo_t *) malloc(sizeof(repinfo_t));
 	    
-	    bzero(vol->replicas, sizeof(repinfo_t));
+	    bzero((void *)vol->replicas, sizeof(repinfo_t));
 
 	    vol->replicas[0].repvolId = volId;
 	    if (getReplica(vol->replicas) == -1) {
@@ -387,7 +387,7 @@ int ParseDumpList(char *VolumeListFile, volinfo_t **vols)
 	    vol->nReplicas = vre->nServers;
 	    vol->replicas=(repinfo_t *)malloc(vol->nReplicas * sizeof(repinfo_t));
 
-	    bzero(vol->replicas, vol->nReplicas * sizeof(repinfo_t));
+	    bzero((void *)vol->replicas, vol->nReplicas * sizeof(repinfo_t));
 
 	    for (char i = 0; i < vol->nReplicas; i++) {
 		vol->replicas[i].repvolId = vre->ServerVolnum[i];
@@ -819,7 +819,7 @@ int main(int argc, char **argv) {
 
     /* Start up thread to handle WriteDump requests. */
     PROCESS dumpPid;
-    bzero(&Rock, sizeof(struct rockInfo));
+    bzero((void *)&Rock, sizeof(struct rockInfo));
     LWP_CreateProcess((PFIC)VolDumpLWP, 5 * 1024, LWP_NORMAL_PRIORITY,
 		      (char *)&Rock, "VolDumpLWP", &dumpPid);
 
@@ -1055,7 +1055,7 @@ PRIVATE void VUInitServerList() {
     FILE *file;
 
     LogMsg(9, Debug, stdout, "Entering VUInitServerList");
-    bzero(Hosts, sizeof(Hosts));
+    bzero((void *)Hosts, sizeof(Hosts));
 
     file = fopen(serverList, "r");
     if (file == NULL) {
@@ -1153,14 +1153,14 @@ PRIVATE void V_BindToServer(char *fileserver, RPC2_Handle *RPCid)
     sident.Tag = RPC2_SUBSYSBYID;
     sident.Value.SubsysId = UTIL_SUBSYSID;
 
-    bzero(&bparms, sizeof(bparms));
+    bzero((void *)&bparms, sizeof(bparms));
     bparms.SecurityLevel = RPC2_OPENKIMONO;
     bparms.SideEffectType = SMARTFTP;
 	
 #ifdef notdef
 	cident.SeqLen = 1 + strlen(uName);
 	cident.SeqBody = (RPC2_ByteSeq) uName;
-	bzero((char *)hkey, RPC2_KEYSIZE);
+	bzero((void *)(char *)hkey, RPC2_KEYSIZE);
 	bcopy(vkey, hkey, RPC2_KEYSIZE);
 	rc = RPC2_Bind(RPC2_ONLYAUTHENTICATE, RPC2_XOR, &hident, &pident, &sident, SMARTFTP,
 	    &cident, hkey, RPCid);
@@ -1307,7 +1307,7 @@ long WriteDump(RPC2_Handle rpcid, unsigned long offset, unsigned long *nbytes, V
     }
     
     /* fetch the file with volume data */
-    bzero(&sed, sizeof(sed));
+    bzero((void *)&sed, sizeof(sed));
     sed.Tag = SMARTFTP;
     sed.Value.SmartFTPD.TransmissionDirection = CLIENTTOSERVER;
     sed.Value.SmartFTPD.ByteQuota = -1;

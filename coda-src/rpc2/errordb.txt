@@ -60,7 +60,6 @@ CEAGAIN, 35 , EAGAIN, /* Resource temporarily unavailable */
 CEALREADY, 37 , EALREADY, /* Operation already in progress */
 CEPROTONOSUPPORT, 43 , EPROTONOSUPPORT, /* Protocol not supported */
 CEOPNOTSUPP, 45 , EOPNOTSUPP, /* Operation not supported */
-CEADDRINUSE, 48 , EADDRINUSE, /* Address already in use */
 CENOBUFS, 55 , ENOBUFS, /* No buffer space available */
 CENOTCONN, 57 , ENOTCONN, /* Socket is not connected */
 CESHUTDOWN, 58 , ESHUTDOWN, /* Can't send after socket shutdown */

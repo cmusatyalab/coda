@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /usr/rvb/XX/src/coda-src/auth2/RCS/authmon.cc,v 4.1 1997/01/08 21:49:26 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/auth2/authmon.cc,v 4.2 1997/02/26 16:02:32 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -153,7 +153,11 @@ int main(int argc, char **argv, char **envp)
 	if (PauseFlag) 
 	    {
 	    LogMsg(-1, 0, stdout, "Auth Monitor pausing\n");
+#ifndef __CYGWIN32__
 	    pause();
+#else
+	    LogMsg(-1, 0, stdout, "WARNING: cannot pause!!!\n");
+#endif
 	    notfirst = 0;
 	    continue;
 	    }

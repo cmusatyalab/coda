@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /usr/rvb/XX/src/coda-src/venus/RCS/vol_vcb.cc,v 4.1 1997/01/08 21:51:49 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/vol_vcb.cc,v 4.2 1997/02/26 16:03:36 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -53,10 +53,8 @@ extern "C" {
 #include <unistd.h>
 #include <stdlib.h>
 #endif
-#ifdef	__linux__
 #include <netinet/in.h>
-#include <endian.h>
-#else
+#ifdef __BSD44__
 #include <machine/endian.h>
 #endif
 
@@ -613,7 +611,7 @@ vcbdent::vcbdent(VolumeId Vid, char *volname) {
     MagicNumber = VCBDENT_MagicNumber;
     strcpy(name, volname);
     vid = Vid;
-    bzero(&data, (int)sizeof(VCBStatistics));
+    bzero((void *)&data, (int)sizeof(VCBStatistics));
 
     VCBDB->htab.insert(&vid, &handle);
 }

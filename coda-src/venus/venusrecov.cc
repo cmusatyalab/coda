@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/venusrecov.cc,v 4.5 1997/12/19 11:20:36 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/venusrecov.cc,v 4.6 1997/12/20 00:09:19 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -126,7 +126,7 @@ PRIVATE const char *VM_RDSADDR = (char *)0x51000000;
 #elif defined(__BSD44__)
 PRIVATE const char *VM_RVGADDR = (char *)0x40000000;
 PRIVATE const char *VM_RDSADDR = (char *)0x41000000;
-#elif	defined(__linux__)
+#elif	defined(__linux__) || defined(__CYGWIN32__)
 PRIVATE const char *VM_RVGADDR = (char *)0x20000000;
 PRIVATE const char *VM_RDSADDR = (char *)0x21000000;
 #endif
@@ -218,7 +218,7 @@ void RecovInit() {
     if (RvmType == VM) {
 	if ((rvg = (RecovVenusGlobals *)malloc(sizeof(RecovVenusGlobals))) == 0)
 	    Choke("RecovInit: malloc failed");
-	bzero(rvg, (int)sizeof(RecovVenusGlobals));
+	bzero((void *)rvg, (int)sizeof(RecovVenusGlobals));
 	rvg->recov_MagicNumber = RecovMagicNumber;
 	rvg->recov_VersionNumber = RecovVersionNumber;
 	rvg->recov_LastInit = Vtime();
@@ -430,8 +430,7 @@ PRIVATE void Recov_InitRVM() {
 		    union wait status;
 #ifdef __MACH__
 		    int exiter = wait(&status);
-#endif /* __MACH__ */
-#if defined(__linux__) || defined(__BSD44__)
+#else
 		    int exiter = wait(&status.w_status);
 #endif /* __linux__ ||__BSD44__ */
 		    if (exiter != child)
@@ -457,7 +456,7 @@ PRIVATE void Recov_InitRVM() {
 	    {
 		const int ID_BLKSIZE = 4096;
 		char buf[ID_BLKSIZE];
-		bzero(buf, ID_BLKSIZE);
+		bzero((void *)buf, ID_BLKSIZE);
 
 		int nblocks = (int) VenusDataDeviceSize / ID_BLKSIZE;
 		for (int i = 0; i < nblocks; i++)
@@ -598,7 +597,7 @@ PRIVATE void Recov_InitSeg() {
 	TRANSACTION(
 	    /* Initialize the block of recoverable Venus globals. */
 	    RVMLIB_REC_OBJECT(*rvg);
-	    bzero(rvg, (int)sizeof(RecovVenusGlobals));
+	    bzero((void *)rvg, (int)sizeof(RecovVenusGlobals));
 	    rvg->recov_MagicNumber = RecovMagicNumber;
 	    rvg->recov_VersionNumber = RecovVersionNumber;
 	    rvg->recov_LastInit = Vtime();

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/egasr/filerepair.cc,v 4.1 1997/01/08 21:49:34 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/egasr/filerepair.cc,v 4.2 1997/12/20 23:34:22 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -53,7 +53,9 @@ extern "C" {
 #include <sys/param.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#ifdef __BSD44__
 #include <sys/dir.h>
+#endif
 #include <strings.h>
 #include <assert.h>
 #include <errno.h>
@@ -117,8 +119,8 @@ int getfid(char *path, ViceFid *outfid /* OUT */,
     /* Easy: no conflicts */
     if (!rc)
     	{
-	bcopy(junk, outfid, (int) sizeof(ViceFid));
-	bcopy(junk+sizeof(ViceFid), outvv, (int)sizeof(ViceVersionVector));
+	bcopy((const void *)junk, (void *)outfid, (int) sizeof(ViceFid));
+	bcopy((const void *)junk+sizeof(ViceFid), (void *)outvv, (int)sizeof(ViceVersionVector));
 	return(0);
 	}
 

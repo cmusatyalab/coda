@@ -31,27 +31,26 @@ III =  rvm-src
  IV =  coda-src
 # V =  utils-src
 
-SUBDIRS = $(I) $(II) $(III) $(IV) $(V)
+SUBDIRS = $(EXTRAS) $(I) $(II) $(III) $(IV) $(V)
+
+CC:=$(NATIVECC)
 
 md: md.o
 	$(CC) $(LIBFLAGS) -o md md.o
 
+md.o: md.c
+	$(CC) -c $<
+
+
 include $(MAKDIR)/configs/Makerules
 
-rcs RCS:
-	ln -s $(TOPDIR)/RCSLINK RCSLINK
-	ln -s RCSLINK RCS
-	find * -type d -print | while  read thedir ; do  ln -s $(TOPOBJ)/RCSLINK/$$thedir $$thedir/RCS; done
-
 reconfigure:
-	$(TOPDIR)/configure --enable-platform=$(SYS) $(TAIL)
+	$(TOPDIR)/configure $(TAIL)
+
 TAIL=
 ifdef SHOB
 TAIL  += --enable-shareobj=$(SHOB)
 endif
 ifdef SECSRC
 TAIL  += --enable-srcdir=$(SECSRC)
-endif
-ifdef RCSDIR
-TAIL  += --enable-rcsdir=$(RCSDIR)
 endif

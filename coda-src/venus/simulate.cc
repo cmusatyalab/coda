@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/simulate.cc,v 4.5 1997/12/16 20:15:53 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/simulate.cc,v 4.6 1997/12/23 17:20:06 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -117,11 +117,9 @@ extern "C" {
 /* Define wrapper macro to cope with absence of VFMT on BSD44 */
 #ifdef __MACH__
 #define SIM_VTTOFT(v) VTTOFT((v) & VFMT)
-#endif /* __MACH__ */
-
-#if defined(__linux__) || defined(__BSD44__)
+#else
 #define SIM_VTTOFT(v)  VTTOFT((v))
-#endif /* __linux__ ||__BSD44__ */
+#endif 
 
 
 const int SimulatorStackSize = 131072;

@@ -9,9 +9,7 @@
 #define TCL "/usr/local/lib/tcl7.4"
 #define TK "/usr/local/lib/tk4.0"
 #define TIX "/usrl/ocal/lib/tix4.1"
-#endif /* __BSD44__ */
-
-#ifdef __linux__ 
+#else
 #define TCL "/usr/lib/tcl7.4"
 #define TK "/usr/lib/tk4.0"
 #define TIX "/usr/lib/tix4.0"

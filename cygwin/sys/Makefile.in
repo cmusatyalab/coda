@@ -1,0 +1,21 @@
+# TARGETS:
+#	install:
+#		assert.h -> $(INCLSPECIAL)
+#	 all:
+#		no op
+
+TOPDIR = @top_srcdir@
+ifndef MAKDIR
+MAKDIR = @top_srcdir@
+endif
+srcdir = @srcdir@
+VPATH  = @srcdir@
+TOPOBJ = @TOPOBJ@
+
+include $(MAKDIR)/Makeconf
+
+HEADERS = file.h time.h
+INCLDIR := $(INCLDIR)/sys
+
+include $(MAKDIR)/configs/Makerules
+

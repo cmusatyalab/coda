@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/update/updateclnt.cc,v 4.4 1997/11/13 23:14:50 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/update/updateclnt.cc,v 4.5 1997/12/20 23:35:01 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -163,8 +163,10 @@ int main(int argc, char **argv)
     (void) signal(SIGQUIT, (void (*)(int))Terminate);
     (void) signal(SIGHUP, (void (*)(int))ResetDebug);
     (void) signal(SIGTSTP, (void (*)(int))SetDebug);
+#ifndef __CYGWIN32__
     (void) signal(SIGXFSZ, (void (*)(int))SetCheck);
     (void) signal(SIGXCPU, (void (*)(int))SwapLog);
+#endif
 
     len = strlen(argv[0]);
     if (len > strlen(UPDATENAME)) {
@@ -532,7 +534,7 @@ PRIVATE void ReConnect()
     time.tv_usec = 0;
 
     RPC2_BindParms bparms;
-    bzero(&bparms, sizeof(bparms));
+    bzero((void *)&bparms, sizeof(bparms));
     bparms.SecurityLevel = RPC2_OPENKIMONO;
     bparms.SideEffectType = SMARTFTP;
 
@@ -647,7 +649,7 @@ PRIVATE int U_BindToServer(char *fileserver, RPC2_Handle *RPCid)
     sident.Value.SubsysId = UTIL_SUBSYSID;
 
     RPC2_BindParms bparms;
-    bzero(&bparms, sizeof(bparms));
+    bzero((void *)&bparms, sizeof(bparms));
     bparms.SecurityLevel = RPC2_OPENKIMONO;
     bparms.SideEffectType = SMARTFTP;
 

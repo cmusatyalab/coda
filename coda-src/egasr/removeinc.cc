@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/egasr/removeinc.cc,v 4.1 1997/01/08 21:49:34 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/egasr/removeinc.cc,v 4.2 1997/12/20 23:34:23 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -49,7 +49,9 @@ extern "C" {
 #include <sys/param.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#ifdef __BSD44_
 #include <sys/dir.h>
+#endif
 #include <strings.h>
 #include <assert.h>
 #include <errno.h>
@@ -88,8 +90,8 @@ int IsObjInc(char *name, ViceFid *fid) {
 	    /* fprintf(stderr, "Error %d for Getfid\n", errno); */
 	    return(0);
 	}
-	bcopy(space, fid, (int) sizeof(ViceFid));
-	bcopy(space+sizeof(ViceFid), &vv, (int) sizeof(ViceVersionVector));
+	bcopy((const void *)space, (void *)fid, (int) sizeof(ViceFid));
+	bcopy((const void *)space+sizeof(ViceFid), (void *)&vv, (int) sizeof(ViceVersionVector));
 	if (!ISDIR(fid->Vnode) && (statbuf.st_mode & S_IFDIR))
 	    return(1);
 	else if (vv.StoreId.Host == -1) 

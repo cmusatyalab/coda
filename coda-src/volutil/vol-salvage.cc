@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/volutil/vol-salvage.cc,v 4.10 1997/11/17 21:46:23 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/volutil/vol-salvage.cc,v 4.11 1997/12/20 23:35:38 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -88,7 +88,9 @@ extern "C" {
 #include <errno.h>
 #include <sys/types.h>
 #include <sys/time.h>
+#ifndef __CYGWIN32__
 #include <sys/dir.h>
+#endif
 
 #include <unistd.h>
 #include <stdlib.h>
@@ -943,7 +945,7 @@ PRIVATE void DistilVnodeEssence(VnodeClass vclass, VolumeId volid) {
 			vnodeIndex);
 		    vip->nAllocatedVnodes--;
 		    vip->volumeBlockCount -= vep->blockCount;
-		    bzero(vep, sizeof(struct VnodeEssence));
+		    bzero((void *)vep, sizeof(struct VnodeEssence));
 		    vnode->type = vNull;
 		    v_index.oput(vnodeIndex, vnode->uniquifier, vnode);
 		}
@@ -1282,11 +1284,11 @@ PRIVATE void SanityCheckFreeLists() {
     int i,j;
     char zerobuf[SIZEOF_LARGEDISKVNODE];
     struct VnodeDiskObject *zerovn = (struct VnodeDiskObject *) zerobuf;
-    bzero(zerovn, SIZEOF_LARGEDISKVNODE);
+    bzero((void *)zerovn, SIZEOF_LARGEDISKVNODE);
     
     LogMsg(0, VolDebugLevel, stdout, "SanityCheckFreeLists: Checking RVM Vnode Free lists.");
     for (i = 0; i < CAMLIB_REC(SmallVnodeIndex); i++) {
-	if (bcmp(CAMLIB_REC(SmallVnodeFreeList[i]), zerovn,
+	if (bcmp((const void *)CAMLIB_REC(SmallVnodeFreeList[i]), (const void *) zerovn,
 		 SIZEOF_SMALLDISKVNODE) != 0) {
 	    LogMsg(0, VolDebugLevel, stdout,"Small Free Vnode at index %d not zero!", i);
 	    assert(0);
@@ -1302,7 +1304,7 @@ PRIVATE void SanityCheckFreeLists() {
     }
     
     for (i = 0; i < CAMLIB_REC(LargeVnodeIndex); i++) {
-	if (bcmp(CAMLIB_REC(LargeVnodeFreeList[i]), zerovn,
+	if (bcmp((const void *)CAMLIB_REC(LargeVnodeFreeList[i]), (const void *) zerovn,
 		 SIZEOF_LARGEDISKVNODE) != 0) {
 	    LogMsg(0, VolDebugLevel, stdout, "Large Free Vnode at index %d not zero!", i);
 	    assert(0);
@@ -1394,7 +1396,7 @@ PRIVATE void zero_globals()
 	free(inodeSummary);
         inodeSummary = NULL;
     }
-    bzero(volumeSummary,
+    bzero((void *)volumeSummary,
 	sizeof(struct VolumeSummary) * MAXVOLS_PER_PARTITION);
 }
 

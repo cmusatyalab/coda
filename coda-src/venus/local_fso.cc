@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /home/braam/src/coda-src/venus/RCS/local_fso.cc,v 1.2 1996/12/05 01:18:25 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/local_fso.cc,v 4.1 1997/01/08 21:51:30 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -386,7 +386,8 @@ void fsobj::DeLocalRootParent(fsobj *RepairRoot, ViceFid *GlobalRootFid, fsobj *
 	rfment *rfm;
 	while (rfm = next()) {
 	    if (rfm->RootCovered()) continue;
-	    if (!bcmp(rfm->GetRootParentFid(), &fid, (int)sizeof(ViceFid)))
+	    if (!bcmp((const void *)rfm->GetRootParentFid(), (const void *)&fid, 
+		      (int)sizeof(ViceFid)))
 	      shared_parent_count++;
 	}
     }
@@ -443,7 +444,8 @@ void fsobj::DeLocalRootParent(fsobj *RepairRoot, ViceFid *GlobalRootFid, fsobj *
 	/* no matter what happened to FSDB::Get(), search it from hash-table */
 	GlobalRootObj = FSDB->Find(GlobalRootFid);
 	if (GlobalRootObj) {
-	    if (!bcmp(&fid, &(GlobalRootObj->pfid), (int)sizeof(ViceFid)) &&
+	    if (!bcmp((const void *)&fid, (const void *)&(GlobalRootObj->pfid), 
+		      (int)sizeof(ViceFid)) &&
 		GlobalRootObj->pfso == this) {
 		/* 
 		 * this is the case where the side-effect of FSDB::Get() in
@@ -649,7 +651,7 @@ int fsobj::IsAncestor(ViceFid *Fid)
     while (cfo) {
 	LOG(100, ("fsobj::IsAncestor: current node is (%s, 0x%x.%x.%x)\n",
 		  cfo->comp, cfo->fid.Volume, cfo->fid.Vnode, cfo->fid.Unique));
-	if (!bcmp(&cfo->fid, Fid, (int)sizeof(ViceFid))) {
+	if (!bcmp((const void *)&cfo->fid, (const void *)Fid, (int)sizeof(ViceFid))) {
 	    return 1;
 	}
 	if (cfo->IsRoot()) {
@@ -821,7 +823,7 @@ int fsobj::ReplaceLocalFakeFid()
 	ViceFid GlobalFid;
 	ATOMIC(
 	       LocalFid = LRDB->GenerateLocalFakeFid(stat.VnodeType);
-	       bcopy(&obj->fid, &GlobalFid, (int)sizeof(ViceFid));
+	       bcopy((const void *)&obj->fid, (void *)&GlobalFid, (int)sizeof(ViceFid));
 	       /* insert the local-global fid mapping */
 	       LRDB->LGM_Insert(&LocalFid, &GlobalFid);
 	       /* globally replace the global-fid with the local-fid */
@@ -912,7 +914,7 @@ int fsobj::LocalFakeify()
      */
     /* preserve the original global fid for "this" object */
     ViceFid GlobalRootFid;
-    bcopy(&fid, &GlobalRootFid, (int)sizeof(ViceFid));
+    bcopy((const void *)&fid, (void *)&GlobalRootFid, (int)sizeof(ViceFid));
 
     if ((code = ReplaceLocalFakeFid()) != 0) {
 	Choke("fsobj::LocalFakeify: replace local fake fid failed");
@@ -1037,7 +1039,7 @@ int fsobj::LocalFakeifyRoot()
      */
     int code = 0;
     ViceFid GlobalRootFid;
-    bcopy(&fid, &GlobalRootFid, (int)sizeof(ViceFid));
+    bcopy((const void *)&fid, (void *)&GlobalRootFid, (int)sizeof(ViceFid));
 
     if ((code = ReplaceLocalFakeFid()) != 0) {
 	Choke("fsobj::LocalFakeifyRoot: replace local fake fid failed");

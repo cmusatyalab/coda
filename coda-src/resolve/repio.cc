@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/resolve/repio.cc,v 4.2 1997/02/26 16:02:54 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/resolve/repio.cc,v 4.3 1997/12/23 17:19:54 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -283,7 +283,7 @@ int repair_parseline(char *line, struct repair *rs)
     if (eos - c <= 0) return(-1);  /* premature eof */
     
     
-    bzero(rs, sizeof(struct repair));  /* init all fields to 0 */
+    bzero((void *)rs, sizeof(struct repair));  /* init all fields to 0 */
     c = line; /* start at the beginning */
     eos = line + strlen(line); /* note the end */
 

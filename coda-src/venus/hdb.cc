@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/hdb.cc,v 4.5 97/12/16 16:08:29 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/hdb.cc,v 4.6 1998/01/09 13:43:57 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -397,7 +397,11 @@ int hdb::List(hdb_list_msg *m) {
     }
 
     /* set ownership of file to actual owner */
+#ifndef __CYGWIN32__
     int err = ::fchown(outfd, m->ruid, (gid_t) -1);
+#else
+    int err = ::chown(m->outfile, m->ruid, (gid_t) -1);
+#endif
     if (err) {
 	LOG(1, ("hdb::List: (%s, %d) fchown failed (%d)\n",
 		m->outfile, m->ruid, errno));
@@ -1209,7 +1213,12 @@ int hdb::Verify(hdb_verify_msg *m) {
     }
 
     /* set ownership of file to actual owner */
+#ifndef __CYGWIN32__
     int err = ::fchown(outfd, m->ruid, (gid_t) -1);
+#else
+    int err = ::chown(m->outfile, m->ruid, (gid_t) -1);
+
+#endif
     if (err) {
 	LOG(1, ("hdb::Verify: (%s, %d) fchown failed (%d)\n",
 		m->outfile, m->ruid, errno));
@@ -1514,7 +1523,7 @@ void *namectxt::operator new(size_t len) {
 
     if (d == 0) {
 	n = (namectxt *)new char[len];
-	bzero(n, (int)len);
+	bzero((void *)n, (int)len);
     }
     else {
 	n = strbase(namectxt, d, fl_handle);
@@ -2322,7 +2331,7 @@ void namectxt::CheckComponent(fsobj *f) {
 	    old_b = strbase(binding, expansion.last(), binder_handle);
 
 	    /* Decrement the reference count */
-	    if (old_b->GetRefCount > 0) {
+	    if (old_b->GetRefCount() > 0) {
 	      old_b->DecrRefCount();
 	    }
 

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/src/coda-4.0.1/coda-src/venus/RCS/vol_COP2.cc,v 1.1 1996/11/22 19:11:21 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/vol_COP2.cc,v 4.1 1997/01/08 21:51:46 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -283,7 +283,7 @@ void *cop2ent::operator new(size_t len) {
     dlink *d = freecop2ents.get();
     if (d == 0) {
 	c = (cop2ent *)new char[len];
-	bzero(c, (int)len);
+	bzero((void *)c, (int)len);
     }
     else
 	c = (cop2ent *)d;

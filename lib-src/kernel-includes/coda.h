@@ -15,7 +15,7 @@
 #include <sys/types.h>
 #endif 
 
-#ifdef __linux__
+#if defined(__linux__) || defined(__CYGWIN32__)
 #define cdev_t u_quad_t
 #if !defined(_UQUAD_T_) && (!defined(__GLIBC__) || __GLIBC__ < 2)
 #define _UQUAD_T_ 1
@@ -23,6 +23,14 @@ typedef unsigned long long u_quad_t;
 #endif 
 #else
 #define cdev_t dev_t
+#endif
+
+#ifdef __CYGWIN32__
+typedef unsigned char u_int8_t;
+struct timespec {
+        time_t  tv_sec;         /* seconds */
+        long    tv_nsec;        /* nanoseconds */
+};
 #endif
 
 

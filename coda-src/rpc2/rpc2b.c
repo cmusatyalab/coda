@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/src/coda-4.0.1/RCSLINK/./coda-src/rpc2/rpc2b.c,v 1.1 1996/11/22 19:07:32 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rpc2/rpc2b.c,v 4.1 1997/01/08 21:50:27 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -979,6 +979,29 @@ long rpc2_GetLocalHost(localhost, remotehost)
      */
     {
     struct sockaddr_in sin;
+#ifdef CYGWIN32
+    char hostname[128];
+    struct hostent *h;
+
+    if (gethostname(hostname, sizeof(hostname)) != 0) {
+	fprintf (stderr, "rpc2_GetLocalHost: cannot gethostname()");
+	assert (0);
+    }
+
+    h = gethostbyname(hostname);
+    if (!h) {
+	fprintf (stderr, "rpc2_GetLocalHost: cannot gethostbyname(%s)",
+		 hostname);
+	assert (0);
+    }
+
+    localhost->Tag = RPC2_HOSTBYINETADDR;
+    memcpy(&localhost->Value.InetAddress, h->h_addr, h->h_length);
+    fprintf (stderr, "rpc2_GetLocalHost: name %s len %d ip %x\n",
+	     hostname, h->h_length, ntohl(localhost->Value.InetAddress));
+    return 0;
+
+#else
     int s, i = sizeof(struct sockaddr_in);
     assert(remotehost->Tag == RPC2_HOSTBYINETADDR);
     sin.sin_family = AF_INET;
@@ -998,6 +1021,7 @@ long rpc2_GetLocalHost(localhost, remotehost)
     localhost->Tag = RPC2_HOSTBYINETADDR;
     localhost->Value.InetAddress = sin.sin_addr.s_addr;
     return 0;
+#endif
     }
 
 unsigned long rpc2_MakeTimeStamp()

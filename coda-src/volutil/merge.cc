@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/volutil/merge.cc,v 4.3 1997/10/23 19:25:57 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/volutil/merge.cc,v 4.4 1997/11/14 13:32:33 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -224,7 +224,7 @@ PRIVATE void BuildTable(dumpstream *dump, vtable *table)
     VnodeDiskObject *vdo = (VnodeDiskObject *)buf;
 
     table->table = (ventry **)malloc(sizeof(ventry) * table->nslots);
-    bzero(table->table, sizeof(ventry) * table->nslots);
+    bzero((void *)table->table, sizeof(ventry) * table->nslots);
     for (int i = 0; i < table->nvnodes; i++) {
 	long offset;
 	int deleted;
@@ -270,7 +270,7 @@ PRIVATE void ModifyTable(dumpstream *dump, VnodeClass vclass, vtable *Table)
 
     if (nslots > Table->nslots) { /* "Grow" Vnode Array */
 	ventry **tmp = (ventry **)malloc(sizeof(ventry) * nslots);
-	bcopy(Table->table, tmp, sizeof(ventry) * Table->nslots);
+	bcopy((const void *)Table->table, (void *)tmp, sizeof(ventry) * Table->nslots);
 	free(Table->table);
 	Table->nslots = nslots;
 	Table->table = tmp;

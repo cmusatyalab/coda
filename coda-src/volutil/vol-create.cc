@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/volutil/vol-create.cc,v 4.2 1997/02/26 16:04:06 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/volutil/vol-create.cc,v 4.3 1997/10/23 19:26:05 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -285,14 +285,14 @@ PRIVATE int ViceCreateRoot(Volume *vp)
     /* set up appropriate fields in a vnode for DCommit */
     char buf3[sizeof(Vnode)];
     Vnode *vn = (Vnode *)buf3;
-    bzero(vn, sizeof(Vnode));
+    bzero((void *)vn, sizeof(Vnode));
     vn->changed = 1;
     vn->delete_me = 0;
     vn->vnodeNumber = (VnodeId)bitNumberToVnodeNumber(0, vLarge);
     vn->volumePtr = vp;
-    bcopy(vnode, &vn->disk, sizeof(VnodeDiskObject));
+    bcopy((const void *)vnode, (void *)&vn->disk, sizeof(VnodeDiskObject));
     DCommit(vn);   
-    bcopy(&(vn->disk), vnode, sizeof(VnodeDiskObject));
+    bcopy((const void *)&(vn->disk), (void *) vnode, sizeof(VnodeDiskObject));
     /* should be cautious here - it is a large vnode - so acl should also be 
       copied.  But DCommit doesnt touch it */
     assert(vnode->inodeNumber != 0);

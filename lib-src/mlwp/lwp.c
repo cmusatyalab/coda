@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/lib-src/mlwp/lwp.c,v 4.5 1997/11/13 14:38:17 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/lib-src/mlwp/lwp.c,v 4.6 1997/12/18 23:44:54 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -59,6 +59,9 @@ supported by Transarc Corporation, Pittsburgh, PA.
 #include <stdio.h>
 #include <assert.h>
 #include <sys/time.h>
+#ifdef __CYGWIN32__
+#include <time.h>
+#endif
 #include "lwp.h"
 #include "lwp.private.h"
 #ifndef OLDLWP
@@ -77,6 +80,7 @@ supported by Transarc Corporation, Pittsburgh, PA.
 #define  MAX(a,b)   ((a) > (b) ? (a) : (b))
 #define	 LWPANCHOR  (*lwp_init)
 #define	 MAX_PRIORITIES	(LWP_MAX_PRIORITY+1)
+
 
 #ifndef TRUE
 #define TRUE 1
@@ -173,6 +177,12 @@ stackinfo     *vminfo[MAXTHREADS];
 /*---------------------------------------*/
 /* Routines identical in OLD and NEW lwp */
 /*---------------------------------------*/
+
+#ifndef timercmp
+#define timercmp(tvp, uvp, cmp) \
+        ((tvp)->tv_sec cmp (uvp)->tv_sec || \
+         (tvp)->tv_sec == (uvp)->tv_sec && (tvp)->tv_usec cmp (uvp)->tv_usec)
+#endif 
 
 /* Iterator macro */
 #define for_all_elts(var, q, body)\

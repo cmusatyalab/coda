@@ -39,12 +39,12 @@ extern "C" {
 #include <string.h>
 #ifdef __linux__
 #include <sys/vfs.h>
-#include <sys/file.h>
 #endif
 #ifdef  __BSD44__
 #include <sys/param.h>
 #include <sys/mount.h>
 #endif
+#include <sys/file.h>
 
 #ifdef __cplusplus
 }
@@ -190,6 +190,7 @@ VGetPartition(char *name)
 void 
 VSetPartitionDiskUsage(register struct DiskPartition *dp)
 {
+#ifndef __CYGWIN32__
     struct statfs fsbuf;
     int rc;
     long reserved_blocks;
@@ -205,6 +206,12 @@ VSetPartitionDiskUsage(register struct DiskPartition *dp)
     dp->free = fsbuf.f_bavail;  /* free blocks for non s-users */
     dp->totalUsable = fsbuf.f_blocks - reserved_blocks; 
     dp->minFree = 100 * reserved_blocks / fsbuf.f_blocks;
+#else
+    dp->free = 10000000;  /* free blocks for non s-users */
+    dp->totalUsable = 10000000; 
+    dp->minFree = 10;
+
+#endif
 }
 
 void 

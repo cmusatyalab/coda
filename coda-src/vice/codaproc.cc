@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vice/codaproc.cc,v 4.6 1997/10/23 19:25:12 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vice/codaproc.cc,v 4.7 1997/12/20 23:35:19 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -498,7 +498,7 @@ long ViceSetVV(RPC2_Handle cid, ViceFid *Fid, ViceVersionVector *VV, RPC2_Counte
 	    goto FreeLocks;
 	}
     }
-    bcopy(VV, &(Vnode_vv(vptr)), (int)sizeof(ViceVersionVector));
+    bcopy((const void *)VV, (void *) &(Vnode_vv(vptr)), (int)sizeof(ViceVersionVector));
     
 FreeLocks:
     CAMLIB_BEGIN_TOP_LEVEL_TRANSACTION_2(CAM_TRAN_NV_SERVER_BASED)
@@ -661,7 +661,7 @@ long ViceRepair(RPC2_Handle cid, ViceFid *Fid, ViceStatus *status,
     }
     /* add vnode to coppending table  */
     {
-	ViceFid fids[MAXFIDS]; bzero(fids, MAXFIDS * (int) sizeof(ViceFid));
+	ViceFid fids[MAXFIDS]; bzero((void *)fids, MAXFIDS * (int) sizeof(ViceFid));
 	fids[0] = (ov->fid);
 	CopPendingMan->add(new cpent(StoreId, fids));
     }
@@ -783,7 +783,7 @@ int GetMyRepairList(ViceFid *Fid, struct listhdr *replicaList, int
     int	i;
     int found = -1;
     for (i = 0; i < replicaCount; i++)
-	if (bcmp(&(replicaList[i].replicaId), &(Fid->Volume), (int)sizeof(VolumeId)))
+	if (bcmp((const void *)&(replicaList[i].replicaId), (const void *) &(Fid->Volume), (int)sizeof(VolumeId)))
 	    continue;
 	else
 	    /* found an entry */
@@ -1037,7 +1037,7 @@ int SetRights(Vnode *vptr, char *name, int rights)
 	    else {
 		/* remove this entry since rights are zero */
 		for (int j = i; j < (aCL->PlusEntriesInUse - 1); j++)
-		    bcopy(&(aCL->ActualEntries[j+1]), &(aCL->ActualEntries[j]),
+		    bcopy((const void *)&(aCL->ActualEntries[j+1]), (void *) &(aCL->ActualEntries[j]),
 			  (int) sizeof(AL_AccessEntry));
 		aCL->PlusEntriesInUse--;
 		aCL->TotalNoOfEntries--;
@@ -1053,7 +1053,7 @@ int SetRights(Vnode *vptr, char *name, int rights)
 	for (int i = aCL->TotalNoOfEntries - 1; 
 	     i > (aCL->TotalNoOfEntries - aCL->MinusEntriesInUse - 1); 
 	     i--)
-	    bcopy(&(aCL->ActualEntries[i]), &(aCL->ActualEntries[i+1]), (int) sizeof(AL_AccessEntry));
+	    bcopy((const void *)&(aCL->ActualEntries[i]), (void *) &(aCL->ActualEntries[i+1]), (int) sizeof(AL_AccessEntry));
 	aCL->TotalNoOfEntries++;
 	aCL->MySize += (int) sizeof(AL_AccessEntry);
     }
@@ -1099,7 +1099,7 @@ int SetNRights(Vnode *vptr, char *name, int rights)
 	    else {
 		/* remove this entry since rights are zero */
 		for (int j = i; j > t - m; j--)
-		    bcopy(&(aCL->ActualEntries[j-1]), &(aCL->ActualEntries[j]), 
+		    bcopy((const void *)&(aCL->ActualEntries[j-1]), (void *) &(aCL->ActualEntries[j]), 
 			  (int) sizeof(AL_AccessEntry));
 		aCL->MinusEntriesInUse--;
 		aCL->TotalNoOfEntries--;
@@ -1112,7 +1112,7 @@ int SetNRights(Vnode *vptr, char *name, int rights)
     if ((m + p) == t){
 	/* all entries are taken - create one */
 	for (int i = t - 1; i > t - m - 1; i--)
-	    bcopy(&(aCL->ActualEntries[i]), &(aCL->ActualEntries[i+1]), 
+	    bcopy((const void *)&(aCL->ActualEntries[i]), (void *) &(aCL->ActualEntries[i+1]), 
 		  (int) sizeof(AL_AccessEntry));
 	t = ++aCL->TotalNoOfEntries;
 	aCL->MySize += (int)sizeof(AL_AccessEntry);
@@ -1732,7 +1732,7 @@ PRIVATE int GetRepairObjects(Volume *volptr, vle *ov, dlist *vlist,
 			/* check if createf exists before */
 			int createfexists = 0;
 			for(int j = 0; j < i; j++) 
-			    if ((bcmp(&(repList[j].parms[0]), 
+			    if ((bcmp((const void *)&(repList[j].parms[0]), (const void *) 
 				      &(repairent.parms[0]),
 				      (int)sizeof(ViceFid)) == 0) &&
 				repList[j].opcode == REPAIR_CREATEF){

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/sighand.cc,v 4.6 97/10/10 21:52:09 clement Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/sighand.cc,v 4.7 1997/12/16 16:08:32 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -107,21 +107,18 @@ void SigInit() {
 	Choke("SigInit: setpgrp failed (%d)", errno);
 
     /* Install the signal handlers. */
+#ifdef __BSD44__
     signal(SIGHUP, (void (*)(int))HUP);		/* turn on debugging */
     signal(SIGILL, (void (*)(int))ILL);		/* Choke */
     signal(SIGTRAP, (void (*)(int))TRAP);	/* Choke */
     signal(SIGIOT, (void (*)(int))IOT);		/* turn on profiling */
-#ifndef	__linux__
     signal(SIGEMT, (void (*)(int))EMT);		/* turn off profiling */
-#endif
     /* SIGFPE is ignored for the short term */
     /* signal(SIGFPE, (void (*)(int))FPE);*/		/* Choke */
     signal(SIGFPE, SIG_IGN);                    /* Ignore */
     signal(SIGBUS, (void (*)(int))BUS);		/* Choke */
     signal(SIGSEGV, (void (*)(int))SEGV);	/* Choke */
-#ifndef	__linux__
     signal(SIGSYS, (void (*)(int))SYS);		/* set {COPmode, Mcast, DebugLevel} */
-#endif
     signal(SIGPIPE, SIG_IGN);	                /* ignore write on pipe with no one to read */
     signal(SIGTERM, (void (*)(int))TERM);	/* exit */
     signal(SIGTSTP, (void (*)(int))TSTP);	/* turn off debugging */
@@ -129,6 +126,42 @@ void SigInit() {
     signal(SIGXFSZ, (void (*)(int))XFSZ);	/* initialize statistics */
     signal(SIGVTALRM, (void (*)(int))VTALRM);	/* swap log */
     signal(SIGUSR1, (void (*)(int))USR1);	/* Toggle malloc trace */
+#endif
+
+#if  defined(__linux__) 
+    signal(SIGHUP, (void (*)(int))HUP);		/* turn on debugging */
+    signal(SIGILL, (void (*)(int))ILL);		/* Choke */
+    signal(SIGTRAP, (void (*)(int))TRAP);	/* Choke */
+    signal(SIGIOT, (void (*)(int))IOT);		/* turn on profiling */
+    /* SIGFPE is ignored for the short term */
+    /* signal(SIGFPE, (void (*)(int))FPE);*/		/* Choke */
+    signal(SIGFPE, SIG_IGN);                    /* Ignore */
+    signal(SIGBUS, (void (*)(int))BUS);		/* Choke */
+    signal(SIGSEGV, (void (*)(int))SEGV);	/* Choke */
+    signal(SIGPIPE, SIG_IGN);	                /* ignore write on pipe with no one to read */
+    signal(SIGTERM, (void (*)(int))TERM);	/* exit */
+    signal(SIGTSTP, (void (*)(int))TSTP);	/* turn off debugging */
+    signal(SIGXCPU, (void (*)(int))XCPU);	/* dump state */
+    signal(SIGXFSZ, (void (*)(int))XFSZ);	/* initialize statistics */
+    signal(SIGVTALRM, (void (*)(int))VTALRM);	/* swap log */
+    signal(SIGUSR1, (void (*)(int))USR1);	/* Toggle malloc trace */
+#endif
+
+#ifdef __CYWIN32__
+    signal(SIGHUP, (void (*)(int))HUP);		/* turn on debugging */
+    signal(SIGILL, (void (*)(int))ILL);		/* Choke */
+    signal(SIGTRAP, (void (*)(int))TRAP);	/* Choke */
+    signal(SIGEMT, (void (*)(int))EMT);		/* turn off profiling */
+    /* SIGFPE is ignored for the short term */
+    /* signal(SIGFPE, (void (*)(int))FPE);*/		/* Choke */
+    signal(SIGFPE, SIG_IGN);                    /* Ignore */
+    signal(SIGBUS, (void (*)(int))BUS);		/* Choke */
+    signal(SIGSEGV, (void (*)(int))SEGV);	/* Choke */
+    signal(SIGPIPE, SIG_IGN);	                /* ignore write on pipe with no one to read */
+    signal(SIGTERM, (void (*)(int))TERM);	/* exit */
+    signal(SIGTSTP, (void (*)(int))TSTP);	/* turn off debugging */
+    signal(SIGUSR1, (void (*)(int))USR1);	/* Toggle malloc trace */
+#endif
 
     if (!Simulating) {
 	/* Write our pid to a file so scripts can find us easily. */
@@ -164,14 +197,14 @@ PRIVATE void IOT(int sig, int code, struct sigcontext *contextPtr) {
   fflush(logFile);
 
   /* linux gets this signal when it shouldn't */
-#ifndef __linux__
+#ifdef __BSD44__
     if (!Profiling)
 	ToggleProfiling();
-#endif
     signal(SIGIOT, (void (*)(int))IOT);
+#endif
 }
 
-#ifndef	__linux__
+#ifndef __linux__
 PRIVATE void EMT(int sig, int code, struct sigcontext *contextPtr) {
     if (Profiling)
 	ToggleProfiling();
@@ -194,7 +227,7 @@ PRIVATE void SEGV(int sig, int code, struct sigcontext *contextPtr) {
     FatalSignal(sig, code, contextPtr);
 }
 
-#ifndef	__linux__
+#ifdef	__BSD44__
 PRIVATE void SYS(int sig, int code, struct sigcontext *contextPtr) {
     int RealSigSys = 1;
     struct stat tstat;
@@ -279,7 +312,7 @@ PRIVATE void TSTP(int sig, int code, struct sigcontext *contextPtr) {
     signal(SIGTSTP, (void (*)(int))TSTP);
 }
 
-
+#ifndef __CYGWIN32__
 PRIVATE void XCPU(int sig, int code, struct sigcontext *contextPtr) {
     DumpState();
 
@@ -308,6 +341,7 @@ PRIVATE void USR1(int sig, int code, struct sigcontext *contextPtr) {
 
     signal(SIGUSR1, (void (*)(int))USR1);
 }
+#endif
 
 PRIVATE void FatalSignal(int sig, int code, struct sigcontext *contextPtr) {
     LOG(0, ("*****  FATAL SIGNAL (%d) *****\n", sig));
@@ -339,7 +373,7 @@ PRIVATE void FatalSignal(int sig, int code, struct sigcontext *contextPtr) {
 	fprintf(logFile, "sc_pc=0x%x\n", contextPtr->sc_pc);
 #endif
 #endif	i386
-#ifdef	__linux__
+#if	defined(__linux__) || defined(__CYGWIN32__)
 	for (int i = 0; i < sizeof(struct sigaction) / sizeof(int); i++)
                 fprintf(logFile, "context[%d] = 0x%x\n", i, *((u_int *)contextPtr + i));
 #else

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/comm.cc,v 4.8 97/10/09 21:47:26 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/comm.cc,v 4.9 1997/12/16 16:08:23 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -70,10 +70,12 @@ extern "C" {
 #include <unistd.h>
 #include <stdlib.h>
 #endif
-#ifndef	__linux__
+#ifdef	__BSD44__
 #include <machine/endian.h>
-#else
+#endif
+
 #include <netinet/in.h>
+#ifdef __linux__
 #include <endian.h>
 #endif
 #include <setjmp.h>
@@ -192,7 +194,7 @@ void CommInit() {
 	Choke("CommInit: bogus COPModes (%x)", COPModes);
 
     /* Initialize comm queue */
-    bzero(&CommQueue, sizeof(CommQueueStruct));
+    bzero((void *)&CommQueue, sizeof(CommQueueStruct));
 
     /* Hostname is needed for file server connections. */
     if (gethostname(myHostName, MAXHOSTNAMELEN) < 0)
@@ -288,7 +290,7 @@ void CommInit() {
 	    Choke("CommInit: RPC2_Init failed");
 
 	/* Failure package initialization. */
-	bzero(FailFilterInfo, (int) (MAXFILTERS * sizeof(struct FailFilterInfoStruct)));
+	bzero((void *)FailFilterInfo, (int) (MAXFILTERS * sizeof(struct FailFilterInfoStruct)));
 	Fail_Initialize("venus", 0);
 	Fcon_Init();
     }
@@ -841,7 +843,7 @@ void DoProbes(int HowMany, unsigned long *Hosts) {
 
     /* Bind to the servers. */
     Connections = (connent **)malloc(HowMany * sizeof(connent *));
-    bzero(Connections, (int) (HowMany * sizeof(connent *)));
+    bzero((void *)Connections, (int) (HowMany * sizeof(connent *)));
     MultiBind(HowMany, Hosts, Connections);
 
     /* Probe them. */
@@ -999,14 +1001,14 @@ void DownServers(char *buf, int *bufsize) {
 	    /* Make sure there is room in the buffer for this entry. */
 	    if ((cp - buf) + sizeof(unsigned long) > maxsize) return;
 
-	    bcopy(&s->host, cp, (int) sizeof(unsigned long));
+	    bcopy((const void *)&s->host, (void *) cp, (int) sizeof(unsigned long));
 	    cp += (int) sizeof(unsigned long);
 	}
 
     /* Null terminate the list.  Make sure there is room in the buffer for the terminator. */
     if ((cp - buf) + sizeof(unsigned long) > maxsize) return;
     unsigned long nullint = 0;
-    bcopy(&nullint, cp, (int) sizeof(unsigned long));
+    bcopy((const void *)&nullint, (void *) cp, (int) sizeof(unsigned long));
     cp += sizeof(unsigned long);
 
     *bufsize = (cp - buf);
@@ -1026,7 +1028,7 @@ void DownServers(int nservers, unsigned long *hostids, char *buf, int *bufsize) 
 	    /* Make sure there is room in the buffer for this entry. */
 	    if ((cp - buf) + sizeof(unsigned long) > maxsize) return;
 
-	    bcopy(&s->host, cp, (int) sizeof(unsigned long));
+	    bcopy((const void *)&s->host, (void *) cp, (int) sizeof(unsigned long));
 	    cp += sizeof(unsigned long);
 	}
     }
@@ -1034,7 +1036,7 @@ void DownServers(int nservers, unsigned long *hostids, char *buf, int *bufsize) 
     /* Null terminate the list.  Make sure there is room in the buffer for the terminator. */
     if ((cp - buf) + sizeof(unsigned long) > maxsize) return;
     unsigned long nullint = 0;
-    bcopy(&nullint, cp, (int) sizeof(unsigned long));
+    bcopy((const void *)&nullint, (void *) cp, (int) sizeof(unsigned long));
     cp += sizeof(unsigned long);
 
     *bufsize = (cp - buf);
@@ -1589,12 +1591,12 @@ RepOpCommCtxt::RepOpCommCtxt() {
     LOG(100, ("RepOpCommCtxt::RepOpCommCtxt: \n"));
 
     HowMany = 0;
-    bzero(handles, (int)(VSG_MEMBERS * sizeof(RPC2_Handle)));
-    bzero(hosts, (int)(VSG_MEMBERS * sizeof(unsigned long)));
-    bzero(retcodes, (int)(VSG_MEMBERS * sizeof(int)));
+    bzero((void *)handles, (int)(VSG_MEMBERS * sizeof(RPC2_Handle)));
+    bzero((void *)hosts, (int)(VSG_MEMBERS * sizeof(unsigned long)));
+    bzero((void *)retcodes, (int)(VSG_MEMBERS * sizeof(int)));
     primaryhost = 0;
     MIp = 0;
-    bzero(dying, (int)(VSG_MEMBERS * sizeof(unsigned)));
+    bzero((void *)dying, (int)(VSG_MEMBERS * sizeof(unsigned)));
 }
 
 
@@ -1758,7 +1760,7 @@ mgrpent::mgrpent(unsigned long vsgaddr, vuid_t vuid,
     /* These members are immutable. */
     VSGAddr = vsgaddr;
     uid = vuid;
-    bzero(&McastInfo, (int)sizeof(RPC2_Multicast));
+    bzero((void *)&McastInfo, (int)sizeof(RPC2_Multicast));
     McastInfo.Mgroup = mid;
     McastInfo.ExpandHandle = 0;
     vsgent *vsgp;
@@ -2513,7 +2515,7 @@ int vsgdb::Get(vsgent **vpp, unsigned long Addr, unsigned long *Hosts) {
     else {
 	if (Hosts != 0) {
 	    /* Sanity check. */
-	    if (bcmp(Hosts, v->Hosts, (int)(VSG_MEMBERS * sizeof(unsigned long))) != 0)
+	    if (bcmp((const void *)Hosts, (const void *) v->Hosts, (int)(VSG_MEMBERS * sizeof(unsigned long))) != 0)
 		{ v->print(logFile); Choke("vsgdb::Get: inconsistent VSG entries"); }
 	}
     }
@@ -2678,7 +2680,7 @@ vsgent::vsgent(int AllocPriority, unsigned long addr, unsigned long *hosts) {
     RVMLIB_REC_OBJECT(*this);
     MagicNumber = VSGENT_MagicNumber;
     Addr = addr;
-    bcopy(hosts, Hosts, (int)(VSG_MEMBERS * sizeof(unsigned long)));
+    bcopy((const void *)hosts, (void *) Hosts, (int)(VSG_MEMBERS * sizeof(unsigned long)));
     ResetTransient();
 
     /* Insert into hash table. */
@@ -2737,7 +2739,7 @@ void vsgent::release() {
 
 
 void vsgent::GetHosts(unsigned long *hosts) {
-    bcopy(Hosts, hosts, (int)(VSG_MEMBERS * sizeof(unsigned long)));
+    bcopy((const void *)Hosts, (void *)hosts, (int)(VSG_MEMBERS * sizeof(unsigned long)));
 }
 
 

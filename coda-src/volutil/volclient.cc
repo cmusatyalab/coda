@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/volutil/volclient.cc,v 4.4 1997/11/14 13:32:39 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/volutil/volclient.cc,v 4.4 1997/11/17 21:46:25 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -671,7 +671,7 @@ long WriteDump(RPC2_Handle rpcid, unsigned long offset, unsigned long *nbytes, V
     }
     
     /* fetch the file with volume data */
-    bzero(&sed, sizeof(sed));
+    bzero((void *)&sed, sizeof(sed));
     sed.Tag = SMARTFTP;
     sed.Value.SmartFTPD.TransmissionDirection = CLIENTTOSERVER;
     sed.Value.SmartFTPD.ByteQuota = -1;
@@ -716,7 +716,7 @@ PRIVATE void restorefromback()
 	exit(-1);
     }
     if (these_args < 5) 
-	bzero(volname, 70);
+	bzero((void *)volname, 70);
     else
 	strcpy(volname, this_argp[4]);
 
@@ -805,7 +805,7 @@ long ReadDump(RPC2_Handle rpcid, RPC2_Unsigned offset, RPC2_Integer *nbytes, Vol
     }
     
     /* fetch the file with volume data */
-    bzero(&sed, sizeof(sed));
+    bzero((void *)&sed, sizeof(sed));
     sed.Tag = SMARTFTP;
     sed.Value.SmartFTPD.TransmissionDirection = SERVERTOCLIENT;
     sed.Value.SmartFTPD.ByteQuota = -1;
@@ -1104,7 +1104,7 @@ PRIVATE void info() {
     sprintf(outfile, "%s", this_argp[3]);	// get output file name 
 
     /* set up side effect descriptor */
-    bzero(&sed, sizeof(sed));
+    bzero((void *)&sed, sizeof(sed));
     sed.Tag = SMARTFTP;
     sed.Value.SmartFTPD.Tag = FILEBYNAME;
     sed.Value.SmartFTPD.TransmissionDirection = SERVERTOCLIENT;
@@ -1154,7 +1154,7 @@ PRIVATE void showvnode() {
     }
     sprintf(outfile, "%s", this_argp[5]);	// get output file name 
     /* set up side effect descriptor */
-    bzero(&sed, sizeof(sed));
+    bzero((void *)&sed, sizeof(sed));
     sed.Tag = SMARTFTP;
     sed.Value.SmartFTPD.Tag = FILEBYNAME;
     sed.Value.SmartFTPD.TransmissionDirection = SERVERTOCLIENT;
@@ -1203,7 +1203,7 @@ PRIVATE void setvv()
 	printf("setvv: Bogus vnode uniquifier %s\n", this_argp[4]);
 	exit(-1);
     }
-    bzero(&vv, sizeof(vv));
+    bzero((void *)&vv, sizeof(vv));
     vv.Versions.Site0 = (bit32) atoi(this_argp[5]);
     vv.Versions.Site1 = (bit32) atoi(this_argp[6]);
     vv.Versions.Site2 = (bit32) atoi(this_argp[7]);
@@ -1352,7 +1352,7 @@ PRIVATE void lookup() {
     sprintf(outfile, "%s", this_argp[3]);   // get output file name 
 
     /* set up side effect descriptor */
-    bzero(&sed, sizeof(sed));
+    bzero((void *)&sed, sizeof(sed));
     sed.Tag = SMARTFTP;
     sed.Value.SmartFTPD.Tag = FILEBYNAME;
     sed.Value.SmartFTPD.TransmissionDirection = SERVERTOCLIENT;
@@ -1540,7 +1540,7 @@ void timing() {
 	exit(-1);
     }
     /* set up side effect descriptor */
-    bzero(&sed, sizeof(sed));
+    bzero((void *)&sed, sizeof(sed));
     sed.Tag = SMARTFTP;
     sed.Value.SmartFTPD.Tag = FILEBYNAME;
     sed.Value.SmartFTPD.TransmissionDirection = SERVERTOCLIENT;
@@ -1645,7 +1645,7 @@ PRIVATE void tracerpc() {
     sprintf(outfile, "%s", this_argp[2]);	// get output file name 
 
     /* set up side effect descriptor */
-    bzero(&sed, sizeof(sed));
+    bzero((void *)&sed, sizeof(sed));
     sed.Tag = SMARTFTP;
     sed.Value.SmartFTPD.Tag = FILEBYNAME;
     sed.Value.SmartFTPD.TransmissionDirection = SERVERTOCLIENT;
@@ -1685,7 +1685,7 @@ PRIVATE void printstats() {
     sprintf(outfile, "%s", this_argp[2]);	// get output file name 
 
     /* set up side effect descriptor */
-    bzero(&sed, sizeof(sed));
+    bzero((void *)&sed, sizeof(sed));
     sed.Tag = SMARTFTP;
     sed.Value.SmartFTPD.Tag = FILEBYNAME;
     sed.Value.SmartFTPD.TransmissionDirection = SERVERTOCLIENT;
@@ -1730,7 +1730,7 @@ PRIVATE void showcallbacks() {
     }
     /* set up side effect descriptor */
     SE_Descriptor sed;
-    bzero(&sed, sizeof(sed));
+    bzero((void *)&sed, sizeof(sed));
     sed.Tag = SMARTFTP;
     sed.Value.SmartFTPD.Tag = FILEBYNAME;
     sed.Value.SmartFTPD.TransmissionDirection = SERVERTOCLIENT;
@@ -2101,7 +2101,7 @@ PRIVATE int V_BindToServer(char *fileserver, RPC2_Handle *RPCid)
 
     printf("V_BindToServer: binding to host %s\n", fileserver);
     RPC2_BindParms bparms;
-    bzero(&bparms, sizeof(bparms));
+    bzero((void *)&bparms, sizeof(bparms));
     bparms.SecurityLevel = RPC2_OPENKIMONO;
     bparms.SideEffectType = SMARTFTP;
 

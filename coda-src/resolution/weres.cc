@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/res/weres.cc,v 4.1 1997/01/08 21:50:06 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/res/weres.cc,v 4.2 1997/12/20 23:34:41 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -97,7 +97,7 @@ int WERes(ViceFid *Fid, ViceVersionVector **VV, ResStatus **rstatusp,
 			  succflags);
 	    GetResStatus(succflags, rstatusp, &vstatus);
 	}
-	else bzero(&vstatus, (int) sizeof(ViceStatus));	// for now send a zeroed vstatus.
+	else bzero((void *)&vstatus, (int) sizeof(ViceStatus));	// for now send a zeroed vstatus.
 	// rpc2 doesn\'t like a NULL being passed as an IN parameter 
 	MRPC_MakeMulti(ForceDirVV_OP, ForceDirVV_PTR, VSG_MEMBERS, 
 		       mgrp->rrcc.handles, mgrp->rrcc.retcodes,

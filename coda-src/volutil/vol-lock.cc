@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/volutil/vol-lock.cc,v 4.2 1997/02/26 16:04:08 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/volutil/vol-lock.cc,v 4.3 1997/10/23 19:26:07 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -128,7 +128,7 @@ long S_VolLock(RPC2_Handle rpcid, VolumeId Vid, ViceVersionVector *VolVV) {
     /* LockQueueMan->add(lqep); */
 
     /* Return the volume's VVV */
-    bcopy(&(V_versionvector(volptr)), VolVV, sizeof(ViceVersionVector));
+    bcopy((const void *)&(V_versionvector(volptr)), (void *)VolVV, sizeof(ViceVersionVector));
     VPutVolume(volptr);
     VDisconnectFS();
     return(0);

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rvmres/subresphase2.cc,v 4.1 1997/01/08 21:50:41 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rvmres/subresphase2.cc,v 4.2 1997/12/20 23:34:57 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -146,7 +146,7 @@ PRIVATE int ShipLogs(RPC2_Handle RPCid, char *buf, int bufsize) {
     int errorCode = 0;
 
     SE_Descriptor sid;
-    bzero(&sid, sizeof(SE_Descriptor));
+    bzero((void *)&sid, sizeof(SE_Descriptor));
     sid.Tag = SMARTFTP;
     sid.Value.SmartFTPD.TransmissionDirection = SERVERTOCLIENT;
     sid.Value.SmartFTPD.SeekOffset = 0;

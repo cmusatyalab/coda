@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/resolve/resolve.cc,v 4.5 1997/12/23 17:19:55 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/resolve/resolve.cc,v 4.6 1998/01/04 14:57:34 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -52,10 +52,12 @@ extern "C" {
 #endif __cplusplus
 
 #include <stdio.h>
-#include <sys/dir.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <sys/param.h>
+#ifndef __CYGWIN32__
+#include <sys/dir.h>
+#endif
 #include <strings.h>
 #ifdef __MACH__
 #include <sysent.h>
@@ -118,8 +120,8 @@ PRIVATE int getfid C_ARGS((char *path, ViceFid *Fid, ViceVersionVector *VV, stru
 	/* return garbage in VV */
 	return 0;
     }
-    bcopy(buf, Fid, sizeof(ViceFid));
-    bcopy(buf+sizeof(ViceFid), VV, sizeof(ViceVersionVector));
+    bcopy((void *)buf, (const void *) Fid, sizeof(ViceFid));
+    bcopy((void *)buf+sizeof(ViceFid), (const void *)VV, sizeof(ViceVersionVector));
     return 0;
 }
 
@@ -208,7 +210,7 @@ int getunixdirreps C_ARGS((int nreplicas, char *names[], resreplica **reps))
 {
 
   DIR *dirp;
-  struct direct *dp;
+  struct dirent *dp;
   struct stat buf;
   resreplica *dirs;
   int	i,j;
@@ -362,8 +364,8 @@ int InsertListHdr C_ARGS((struct repair *rep, struct listhdr **ops, int index))
     repList = (struct repair *)malloc(sizeof(struct repair) * (size + 1));
     if (repList == 0) return -1;
     if (size > 0) 
-	bcopy((*ops)[index].repairList, repList, (size * sizeof(struct repair))); 
-    bcopy(rep, &(repList[size]), sizeof(struct repair)); 
+	bcopy((const void *)(*ops)[index].repairList, (void *) repList, (size * sizeof(struct repair))); 
+    bcopy((const void *)rep, (void *)&(repList[size]), sizeof(struct repair)); 
     /*    free ((*ops)[index].repairList);  */
     ((*ops)[index]).repairList = repList; 
     ((*ops)[index]).repairCount ++; 
@@ -700,6 +702,6 @@ int GetParent(ViceFid *cfid, ViceFid *dfid, char *volmtpt, char *dpath, char *ch
 	printf("Error %d occured while trying to get fid of %s's parent\n", childname);
 	return(rc);
     }
-    bcopy(junk, dfid, sizeof(ViceFid));
+    bcopy((const void *)junk, (void *)dfid, sizeof(ViceFid));
     return(0);
 }

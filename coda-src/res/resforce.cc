@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/res/resforce.cc,v 4.4 1997/08/19 13:47:34 raiff Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/res/resforce.cc,v 4.5 1997/10/23 19:24:35 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -128,7 +128,7 @@ void UpdateRunts(res_mgrpent *mgrp, ViceVersionVector **VV,
 	
 	al.SeqLen = (SIZEOF_LARGEDISKVNODE - SIZEOF_SMALLDISKVNODE);
 	al.SeqBody = (RPC2_ByteSeq)buf;
-	bzero(&sid, (int) sizeof(SE_Descriptor));
+	bzero((void *)&sid, (int) sizeof(SE_Descriptor));
 	sid.Tag = SMARTFTP;
 	sid.Value.SmartFTPD.Tag = FILEBYNAME;
 	sid.Value.SmartFTPD.FileInfo.ByName.ProtectionBits = 0644;
@@ -151,7 +151,7 @@ void UpdateRunts(res_mgrpent *mgrp, ViceVersionVector **VV,
 	int forceError;
 	SE_Descriptor	sid;
 
-	bzero(&sid, (int) sizeof(SE_Descriptor));
+	bzero((void *)&sid, (int) sizeof(SE_Descriptor));
 	sid.Tag = SMARTFTP;
 	sid.Value.SmartFTPD.Tag = FILEBYNAME;
 	sid.Value.SmartFTPD.FileInfo.ByName.ProtectionBits = 0644;
@@ -294,7 +294,7 @@ long RS_DoForceDirOps(RPC2_Handle RPCid, ViceFid *Fid,
     {
 	assert(AccessList->SeqLen == VAclSize(dirvptr));
 	AL_ntohAlist((AL_AccessList *)(AccessList->SeqBody));
-	bcopy(AccessList->SeqBody, VVnodeACL(dirvptr), VAclSize(dirvptr));
+	bcopy((const void *)AccessList->SeqBody, (void *) VVnodeACL(dirvptr), VAclSize(dirvptr));
 	dirvptr->disk.author = status->Author;
 	dirvptr->disk.owner = status->Owner;
 	dirvptr->disk.modeBits = status->Mode;
@@ -416,13 +416,13 @@ long RS_GetForceDirOps(RPC2_Handle RPCid, ViceFid *Fid,
     SetStatus(vptr, status, 0, 0);
 
     /* convert acl into network order */
-    bcopy(VVnodeACL(vptr), AccessList->SeqBody, 
+    bcopy((const void *)VVnodeACL(vptr), (void *)AccessList->SeqBody, 
 	  VAclSize(vptr));
     AccessList->SeqLen = VAclSize(vptr);
     AL_htonAlist((AL_AccessList *)(AccessList->SeqBody));
 
     /* transfer back the file */
-    bzero(&sid, (int)sizeof(SE_Descriptor));
+    bzero((void *)&sid, (int)sizeof(SE_Descriptor));
     sid.Tag = SMARTFTP;
     sid.Value.SmartFTPD.TransmissionDirection = SERVERTOCLIENT;
     sid.Value.SmartFTPD.Tag = FILEBYNAME;

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /usr/rvb/XX/src/coda-src/vol/RCS/vlist.h,v 4.1 1997/01/08 21:52:19 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vol/vlist.h,v 4.2 1997/02/26 16:03:56 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -115,7 +115,7 @@ struct vle : public dlink {
 	vptr = 0;
 
 	/* HC chokes on the correct code (below), so we simply bzero. -JJK */
-	bzero(&u, (int)sizeof(u));
+	bzero((void *)&u, (int)sizeof(u));
 /*
 	if (!ISDIR(fid)) {
 	    f_sid = NullSid;

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/fso_cfscalls0.cc,v 4.6 1997/12/01 17:27:43 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/fso_cfscalls0.cc,v 4.7 1997/12/16 20:15:49 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -139,7 +139,7 @@ int fsobj::Fetch(vuid_t vuid) {
 
     /* Status parameters. */
     ViceStatus status;
-    bzero(&status, (int)sizeof(ViceStatus));
+    bzero((void *)&status, (int)sizeof(ViceStatus));
 
     /* COP2 Piggybacking. */
     char PiggyData[COP2SIZE];
@@ -198,7 +198,7 @@ int fsobj::Fetch(vuid_t vuid) {
 		    RVMLIB_REC_OBJECT(data.dir);
 		    data.dir = (VenusDirData *)RVMLIB_REC_MALLOC((int)sizeof(VenusDirData) + (unsigned) stat.Length);
 		    RVMLIB_REC_OBJECT(*data.dir);
-		    bzero(data.dir, (int)sizeof(VenusDirData));
+		    bzero((void *)data.dir, (int)sizeof(VenusDirData));
 		    npages = (int) stat.Length >> LOGPS;
 		    pageptr = (VenusDirPage *)((char *)data.dir + (int)sizeof(VenusDirData));
 		    for (i = 0; i < npages; i++, pageptr++)
@@ -535,7 +535,7 @@ int fsobj::GetAttr(vuid_t vuid, RPC2_BoundedBS *acl) {
 
     /* Status parameters. */
     ViceStatus status;
-    bzero(&status, (int)sizeof(ViceStatus));
+    bzero((void *)(void *)&status, (int)sizeof(ViceStatus));
 
     /* COP2 Piggybacking. */
     char PiggyData[COP2SIZE];

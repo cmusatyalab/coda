@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/vol_vsr.cc,v 4.2 1997/02/26 16:03:38 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/vol_vsr.cc,v 4.3 1997/12/20 23:35:11 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -78,6 +78,7 @@ extern "C" {
    guarded by an ifdef of CMU which isnt getting defined.  XXXXX pkumar 6/13/95 */ 
 extern int nlist(const char*, struct nlist[]);
 #endif
+
     
 #include <rpc2.h>
 
@@ -119,6 +120,15 @@ PRIVATE int hertz = 0;
 #ifdef	__linux__
 #define VMUNIX "/vmlinuz"
 #endif
+#ifdef __CYGWIN32__
+#define CPUSTATES 199
+#define VMUNIX "ntos"
+#define CP_SYS 0
+#define CP_USER 1
+#define CP_NICE 2
+#define CP_IDLE 3
+#endif
+
 
 /* Raw Statistic Entry. */
 PRIVATE struct nlist RawStats[] = 
@@ -215,7 +225,7 @@ void volent::FlushVSRs(int hard) {
 	olist_iterator vnext(*vsr_list);
 	while (v = (vsr *)vnext()) {
 	    VmonSessionEventArray *na = new(VmonSessionEventArray);
-	    bcopy(&(v->events),na,(int)sizeof(VmonSessionEventArray));
+	    bcopy((const void *)&(v->events), (void *)na,(int)sizeof(VmonSessionEventArray));
 	    /* Convert SigmaTSquared from floating-point milliseconds to fixed-point seconds. */
 	    for (int i = 0; i < (sizeof(VmonSessionEventArray) / sizeof(VmonSessionEvent)); i++) {
 		VmonSessionEvent *se = &((&(na->Event0))[i]);
@@ -223,10 +233,10 @@ void volent::FlushVSRs(int hard) {
 	    }
 
 	    SessionStatistics *ss = new(SessionStatistics);
-	    bcopy(&v->stats, ss, (int)sizeof(SessionStatistics));
+	    bcopy((const void *)&v->stats, (void *) ss, (int)sizeof(SessionStatistics));
 
             CacheStatistics *cs = new (CacheStatistics);
-            bcopy(&v->cachestats, cs, (int)sizeof(CacheStatistics));
+            bcopy((const void *)&v->cachestats, (void *) cs, (int)sizeof(CacheStatistics));
 
 	    VmonEnqueueSession(VsrUnique, vid, v->uid, &AVSG,
 			       v->starttime, v->endtime, v->cetime,
@@ -246,9 +256,9 @@ void volent::InitStatsVSR(vsr *v) {
     SessionStatistics *InitStats = &v->initstats;
     CacheStatistics *CacheStats = &v->cachestats;
 
-    bzero(Stats, (int) sizeof(SessionStatistics));
-    bzero(InitStats, (int) sizeof(SessionStatistics));
-    bzero(CacheStats, (int) sizeof(CacheStatistics));
+    bzero((void *)Stats, (int) sizeof(SessionStatistics));
+    bzero((void *)InitStats, (int) sizeof(SessionStatistics));
+    bzero((void *)CacheStats, (int) sizeof(CacheStatistics));
 
     /* Gather ClientModifyLog information */
     Stats->EntriesStart = CML.count();
@@ -262,7 +272,7 @@ void volent::InitStatsVSR(vsr *v) {
     InitStats->BytesBackFetched = BytesBackFetched;
 
     /* Get CPU data */
-#ifndef	__linux__
+#ifdef	__BSD44__
     if(VmonKmem == 0) {
 	nlist(VMUNIX, RawStats);
 	if(RawStats[0].n_type == 0) {
@@ -323,7 +333,7 @@ void volent::UpdateStatsVSR(vsr *v) {
     Stats->BytesBackFetched = BytesBackFetched - InitStats->BytesBackFetched;
 
     /* Gather CPU usage */
-#ifndef	__linux__
+#ifdef __BSD44__
     if (VmonKmem == 0) {
 	nlist(VMUNIX, RawStats);
 	if(RawStats[0].n_type == 0) {
@@ -373,7 +383,7 @@ vsr::vsr(vuid_t Uid) {
     cetime = 0;
 
     /* think about doing some flagging trick here -- bnoble */
-    bzero(&events, (int)sizeof(VmonSessionEventArray));
+    bzero((void *)&events, (int)sizeof(VmonSessionEventArray));
 
 #ifdef	VENUSDEBUG
     allocs++;

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vol/index.cc,v 4.2 1997/02/26 16:03:52 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vol/index.cc,v 4.3 1997/11/14 13:19:26 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -208,9 +208,9 @@ int vindex_iterator::operator()(VnodeDiskObject *vnode) {
 	    if (vdo->type == vNull)
 		continue;
 	    else if(v_ind->vtype == vSmall)
-		bcopy(vdo, vnode, SIZEOF_SMALLDISKVNODE);
+		bcopy((const void *)vdo, (void *)vnode, SIZEOF_SMALLDISKVNODE);
 	    else if(v_ind->vtype == vLarge)
-		bcopy(vdo, vnode, SIZEOF_LARGEDISKVNODE);
+		bcopy((const void *)vdo, (void *)vnode, SIZEOF_LARGEDISKVNODE);
 	    else
 		LogMsg(0, 0, stdout, "vindex_iterator::operator() bad vnode type %d", v_ind->vtype);
 

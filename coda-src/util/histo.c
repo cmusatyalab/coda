@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /usr/rvb/XX/src/coda-src/util/RCS/histo.c,v 4.1 1997/01/08 21:51:05 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/util/histo.c,v 4.2 1997/02/26 16:03:03 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -54,7 +54,7 @@ static char *rcsid = "$Header: /usr/rvb/XX/src/coda-src/util/RCS/histo.c,v 4.1 1
 #include "histo.h"
 
 /* Math.h doesn't define HUGE appropriately for suns... */
-#ifdef sun
+#ifdef __CYGWIN32__
 #define HUGE 1.701411733192644270e38
 #endif
 

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vol/recova.cc,v 4.5 1997/10/15 15:55:03 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vol/recova.cc,v 4.6 1997/10/23 19:25:40 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -148,7 +148,7 @@ int NewVolHeader(struct VolumeHeader *header, Error *err)
 
     /* Dynamically allocate the volumeDiskData */
     LogMsg(9, VolDebugLevel, stdout,  "NewVolHeader: Going to Allocate VolumeDiskData ");
-    bzero(&data, sizeof(data));
+    bzero((void *)&data, sizeof(data));
     data.volumeInfo = (VolumeDiskData *)CAMLIB_REC_MALLOC(sizeof(VolumeDiskData));
     /* zero out the allocated memory */
     bzero((char *)&tmpinfo, sizeof(tmpinfo));
@@ -214,7 +214,7 @@ int VolHeaderByIndex(int myind, struct VolumeHeader *header) {
 	LogMsg(1, VolDebugLevel, stdout,  "VolHeaderByIndex: bogus volume index %d - maxid %d (ok if volume was purged or deleted)", myind, maxid);
 	return(-1);
     }
-    bcopy(&(CAMLIB_REC(VolumeList[myind]).header), header,
+    bcopy((const void *)&(CAMLIB_REC(VolumeList[myind]).header), (void *) header,
 					    sizeof(struct VolumeHeader));
     if (header->stamp.magic != VOLUMEHEADERMAGIC) {
 	LogMsg(19, VolDebugLevel, stdout,  "VolHeaderByIndex: stamp.magic = %u, VHMAGIC = %u",
@@ -308,7 +308,7 @@ PRIVATE int DeleteVnodes(unsigned int myind, Device dev, VnodeClass vclass) {
     }
     if (vdata->volumeInfo == NULL) return -1; /* WRONG! no VolumeDiskData! */
     
-    bzero(zerovn, SIZEOF_LARGEDISKVNODE);
+    bzero((void *)zerovn, SIZEOF_LARGEDISKVNODE);
 
     int i = 0;
     rec_smolink *p;
@@ -323,7 +323,7 @@ PRIVATE int DeleteVnodes(unsigned int myind, Device dev, VnodeClass vclass) {
 	int count = 0;
 	CAMLIB_BEGIN_TOP_LEVEL_TRANSACTION_2(CAM_TRAN_NV_SERVER_BASED)
 
-	bzero(DeadInodes, sizeof(Inode) * (MaxVnodesPerTransaction + 1));
+	bzero((void *)DeadInodes, sizeof(Inode) * (MaxVnodesPerTransaction + 1));
 
 	while (count < MaxVnodesPerTransaction) {
 	    p = vnlist[i].get();	/* Pull the vnode off the list. */
@@ -437,7 +437,7 @@ PRIVATE int DeleteVolData(int myind) {
 
     /* zero out VolumeData structure */
     LogMsg(9, VolDebugLevel, stdout,  "DeleteVolData: Zeroing out VolumeData at index %d", myind);
-    bzero(&tmpdata, sizeof(struct VolumeData));
+    bzero((void *)&tmpdata, sizeof(struct VolumeData));
     CAMLIB_MODIFY_BYTES(&(CAMLIB_REC(VolumeList[myind]).data), &tmpdata,
 				sizeof(struct VolumeData));
 
@@ -460,7 +460,7 @@ PRIVATE int DeleteVolHeader(int myind) {
 	/* Sanity check */
 	assert(CAMLIB_REC(VolumeList[myind]).header.stamp.magic
 	       == VOLUMEHEADERMAGIC);
-	bzero(&tmpheader, sizeof(struct VolumeHeader));
+	bzero((void *)&tmpheader, sizeof(struct VolumeHeader));
         CAMLIB_MODIFY(CAMLIB_REC(VolumeList[myind]).header, tmpheader);
     CAMLIB_END_TOP_LEVEL_TRANSACTION_2(CAM_PROT_TWO_PHASED, status)
     return status;

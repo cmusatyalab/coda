@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /usr/rvb/XX/src/coda-src/dir/RCS/dir.cc,v 4.1 1997/01/08 21:49:32 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/dir/dir.cc,v 4.2 1997/02/26 16:02:37 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -407,9 +407,9 @@ int DirToNetBuf(long *dir, char *sortedbuf, int maxsize, int *size) {
 	    errorcode = 1;
 	    goto cleanup;
 	}
-	bcopy(&(sdep[i]->vnode), &sortedbuf[sortedindex], sizeof(long));
+	bcopy((const void *)&(sdep[i]->vnode), &sortedbuf[sortedindex], sizeof(long));
 	sortedindex += sizeof(long);
-	bcopy(&(sdep[i]->unique), &sortedbuf[sortedindex], sizeof(long));
+	bcopy((const void *)&(sdep[i]->unique), &sortedbuf[sortedindex], sizeof(long));
 	sortedindex += sizeof(long);
 	strcpy(&sortedbuf[sortedindex], sdep[i]->name);
 	sortedindex += strlen(sdep[i]->name) + 1;

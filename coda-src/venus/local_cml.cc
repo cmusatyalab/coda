@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /usr/rvb/XX/src/coda-src/venus/RCS/local_cml.cc,v 4.1 1997/01/08 21:51:29 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/local_cml.cc,v 4.2 1997/02/26 16:03:22 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -94,9 +94,9 @@ void cmlent::TranslateFid(ViceFid *global, ViceFid *local)
     for (int i = 0; i < 3; i++) {
 	if (Fids[i] != NULL) {
 	    /* Check if Fids[i] is global */
-	    if (!bcmp(Fids[i], global, (int)sizeof(ViceFid))) {
+	    if (!bcmp((const void *)Fids[i], (const void *)global, (int)sizeof(ViceFid))) {
 		RVMLIB_REC_OBJECT(*Fids[i]);
-		bcopy(local, Fids[i], (int)sizeof(ViceFid));
+		bcopy((const void *)local, (void *) Fids[i], (int)sizeof(ViceFid));
 		count++;
 	    }
 	}

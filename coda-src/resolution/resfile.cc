@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rvmres/resfile.cc,v 4.3 1997/02/26 16:02:58 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rvmres/resfile.cc,v 4.4 1997/10/23 19:24:46 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -149,7 +149,7 @@ long FileResolve(res_mgrpent *mgrp, ViceFid *Fid,
 	PROBE(FileresTPinfo, COORDSTARTFILEFETCH);
 	/* fetch dominant file */
 	{
-	    bzero(&sid, sizeof(SE_Descriptor));
+	    bzero((void *)&sid, sizeof(SE_Descriptor));
 	    sid.Tag = SMARTFTP;
 	    sid.Value.SmartFTPD.Tag = FILEBYNAME;
 	    sid.Value.SmartFTPD.FileInfo.ByName.ProtectionBits = 0644;
@@ -227,7 +227,7 @@ long FileResolve(res_mgrpent *mgrp, ViceFid *Fid,
 	    /* do cop2 */
 	    if (!errorcode){
 		ViceVersionVector UpdateSet;
-		bzero(&UpdateSet, sizeof(ViceVersionVector));
+		bzero((void *)&UpdateSet, sizeof(ViceVersionVector));
 		for (int i = 0; i < VSG_MEMBERS; i++)
 		    if (hosts[i])
 			(&(UpdateSet.Versions.Site0))[i] = 1;
@@ -287,7 +287,7 @@ long RS_FetchFile(RPC2_Handle RPCid, ViceFid *Fid,
     }
 
     /* Do the file Transfer */
-    bzero(&sid, sizeof(SE_Descriptor));
+    bzero((void *)&sid, sizeof(SE_Descriptor));
     sid.Tag = SMARTFTP;
     sid.Value.SmartFTPD.TransmissionDirection = SERVERTOCLIENT;
     sid.Value.SmartFTPD.Tag = FILEBYINODE;
@@ -415,7 +415,7 @@ long RS_ForceFile(RPC2_Handle RPCid, ViceFid *Fid,
 	/* fetch the file to be forced */
 	{	
 	    /* set up the SFTP structure */
-	    bzero(&sid, sizeof(SE_Descriptor));
+	    bzero((void *)&sid, sizeof(SE_Descriptor));
 	    sid.Tag = SMARTFTP;
 	    sid.Value.SmartFTPD.TransmissionDirection = CLIENTTOSERVER;
 	    sid.Value.SmartFTPD.SeekOffset = 0;
@@ -481,7 +481,7 @@ long RS_ForceFile(RPC2_Handle RPCid, ViceFid *Fid,
     /* await COP2 from coordinator */
 #define	MAXFIDS	4
     ViceFid fids[MAXFIDS];
-    bzero(fids, MAXFIDS * sizeof(ViceFid));
+    bzero((void *)fids, MAXFIDS * sizeof(ViceFid));
     fids[0] = *Fid;
     AddToCopPendingTable(&(VV->StoreId), fids);
 #undef MAXFIDS 
@@ -534,7 +534,7 @@ PRIVATE int IncVVGroup(ViceVersionVector **VV, int *domindex) {
 	if (res == VV_EQ) continue;
 	/* check for weak equality */
 	if (res == VV_INC){
-	    if (!bcmp(&(VV[i]->StoreId), &(VV[*domindex]->StoreId),
+	    if (!bcmp((const void *)&(VV[i]->StoreId), (void *)&(VV[*domindex]->StoreId),
 		      sizeof(ViceStoreId)))
 		continue;
 	    else 

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/volutil/vol-backup.cc,v 4.4 1997/06/24 01:53:54 clement Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/volutil/vol-backup.cc,v 4.5 1997/10/23 19:30:04 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -248,7 +248,7 @@ long S_VolMakeBackups(RPC2_Handle rpcid, VolumeId originalId, VolumeId *backupId
 	V_backupDate(originalvp) = time(0);
 
 	/* Put the RW's VVV in the backupvp so vol-dump can create an ordering of dumps. */
-	bcopy(&V_versionvector(originalvp), &V_versionvector(backupvp), sizeof(vv_t));
+	bcopy((const void *)&V_versionvector(originalvp), (void *) &V_versionvector(backupvp), sizeof(vv_t));
 	
 	*backupId = V_backupId(originalvp);
     }
@@ -534,7 +534,7 @@ PRIVATE void purgeDeadVnodes(Volume *backupvp, rec_smolist *BackupLists,
     int vnodeIndex = 0;
     while (vnodeIndex != -1) {			     /* More vnodes to process */
 	int count = 0;
-	bzero(DeadInodes, sizeof(Inode) * (MaxVnodesPerTransaction + 1));
+	bzero((void *)DeadInodes, sizeof(Inode) * (MaxVnodesPerTransaction + 1));
 
 	/* Bunch vnode operations into groups of at most 8 per transaction */
 	/* Right now we might have transactions with no operations, oh well. */
@@ -627,7 +627,7 @@ PRIVATE void updateBackupVnodes(Volume *rwvp, Volume *backupvp,
     while (vnodeIndex != -1) {
 	int count = 0;
 
-	bzero(DeadInodes, sizeof(Inode) * (MaxVnodesPerTransaction + 1));
+	bzero((void *)DeadInodes, sizeof(Inode) * (MaxVnodesPerTransaction + 1));
 
 	CAMLIB_BEGIN_TOP_LEVEL_TRANSACTION_2(CAM_TRAN_NV_SERVER_BASED)
 

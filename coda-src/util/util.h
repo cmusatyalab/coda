@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/util/util.h,v 4.2 1997/02/26 16:03:08 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/util/util.h,v 4.3 1997/10/23 19:25:02 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -133,6 +133,12 @@ extern int DirDebugLevel;	/* Dir package */
 extern int AL_DebugLevel;	/* ACL package */
 extern int AuthDebugLevel;	/* Auth package */
 
+#ifdef __CYGWIN32__
+#include <stdarg.h>
+int vsnprintf(char *buf, size_t len, char *fmt, va_list ap);
+int snprintf(char *buf, size_t len, const char *fmt, ...);
+long int gethostid(void);
+#endif
 
 #ifdef __cplusplus
 }
