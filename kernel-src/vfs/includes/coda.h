@@ -587,9 +587,9 @@ struct cfs_open_by_path_out {
 };
 
 /* 
- * Occasionally, don't cache the fid returned by CFS_LOOKUP. For instance, if
- * the fid is inconsistent. This case is handled by setting the top bit of the
- * return result parameter.
+ * Occasionally, we don't cache the fid returned by CFS_LOOKUP. 
+ * For instance, if the fid is inconsistent. 
+ * This case is handled by setting the top bit of the type result parameter.
  */
 #define CFS_NOCACHE          0x80000000
 
