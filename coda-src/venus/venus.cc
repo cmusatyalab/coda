@@ -139,7 +139,8 @@ int main(int argc, char **argv)
     DefaultCmdlineParms();   /* read /etc/coda/venus.conf */
 
     if (LogLevel == 0)
-	parent = daemonize(VenusPidFile);
+	parent = daemonize();
+    update_pidfile(VenusPidFile);
 
     /* open the console file and print vital info */
     freopen(consoleFile, "a+", stderr);
@@ -265,10 +266,83 @@ int main(int argc, char **argv)
     exit(0);
 }
 
-static void ParseCmdline(int argc, char **argv) {
-      for(int i = 1; i < argc; i++)
+static void Usage(char *argv0)
+{
+    printf("Usage: %s [OPTION]...\n\n"
+"Options:\n"
+" -init\t\t\t\twipe and reinitialize persistent state\n"
+" -newinstance\t\t\tfake a 'reinit'\n"
+" -primaryuser <n>\t\tprimary user\n"
+" -mapprivate\t\t\tuse private mmap for RVM\n"
+" -d <debug level>\t\tdebug level\n"
+" -rpcdebug <n>\t\t\trpc2 debug level\n"
+" -lwpdebug <n>\t\t\tlwp debug level\n"
+" -cf <n>\t\t\t# of cache files\n"
+" -c <n>\t\t\t\tcache size in KB\n"
+" -mles <n>\t\t\t# of CML entries\n"
+" -hdbes <n>\t\t\t# of hoard database entries\n"
+" -rdstrace\t\t\tenable RDS heap tracing\n"
+" -k <kernel device>\t\tTake kernel device to be the device for\n"
+"\t\t\t\tkernel/venus communication (/dev/cfs0)\n"
+" -f <cache dir>\t\t\tlocation of cache files\n"
+" -console <error log>\t\tlocation of error log file\n"
+" -m <n>\t\t\t\tCOP modes\n"
+" -maxworkers <n>\t\t# of worker threads\n"
+" -maxcbservers <n>\t\t# of callback server threads\n"
+" -maxprefetchers <n>\t\t# of threads servicing prefetch ioctl\n"
+" -weakthresh <n>\t\tstrong/weak threshold (bytes/sec)\n"
+" -weakstale <n>\t\t\twhen estimates become too old (seconds)\n"
+" -retries <n>\t\t\t# of rpc2 retries\n"
+" -timeout <n>\t\t\trpc2 timeout\n"
+" -ws <n>\t\t\tsftp window size\n"
+" -sa <n>\t\t\tsftp send ahead\n"
+" -ap <n>\t\t\tsftp ack point\n"
+" -ps <n>\t\t\tsftp packet size\n"
+" -rvmt <n>\t\t\tRVM type\n"
+" -vld <RVM log>\t\t\tlocation of RVM log\n"
+" -vlds <n>\t\t\tsize of RVM log\n"
+" -vdd <RVM data>\t\tlocation of RVM data\n"
+" -vdds <n>\t\t\tsize of RVM data\n"
+" -rdscs <n>\t\t\tRDS chunk size\n"
+" -rdsnl <n>\t\t\tRDS # lists\n"
+" -logopts <n>\t\t\tRVM log optimizations\n"
+" -swt <n>\t\t\tshort term weight\n"
+" -mwt <n>\t\t\tmedium term weight\n"
+" -ssf <n>\t\t\tshort term scale factor\n"
+" -alpha <n>\t\t\tpatience ALPHA value\n"
+" -beta <n>\t\t\tpatience BETA value\n"
+" -gamma <n>\t\t\tpatience GAMMA value\n"
+" -von\t\t\t\tenable rpc2 timing\n"
+" -voff\t\t\t\tdisable rpc2 timing\n"
+" -vmon\t\t\t\tenable multirpc2 timing\n"
+" -vmoff\t\t\t\tdisable multirpc2 timing\n"
+" -SearchForNOreFind\t\tsomething, forgot what\n"
+" -noskk\t\t\t\tdisable venus sidekick\n"
+" -noasr\t\t\t\tdisable application specific resolvers\n"
+" -novcb\t\t\t\tdisable volume callbacks\n"
+" -nowalk\t\t\tdisable hoard walks\n"
+" -spooldir <spool directory>\tspooldir to hold CML snapshots\n"
+" -MarinerTcp\t\t\tenable mariner tcp port\n"
+" -noMarinerTcp\t\t\tdisable mariner tcp port\n"
+" -allow-reattach\t\tallow reattach to already mounted tree\n"
+" -relay <addr>\t\t\trelay socket address (windows only)\n\n"
+"For more information see http://www.coda.cs.cmu.edu/\n"
+"Report bugs to <bugs@coda.cs.cmu.edu>.\n", argv0);
+}
+
+static void ParseCmdline(int argc, char **argv)
+{
+    int i, done = 0;
+
+    for(i = 1; i < argc; i++) {
   	if (argv[i][0] == '-') {
-	    if (STREQ(argv[i], "-relay")) {   /* default is 127.0.0.1 */
+	    if (STREQ(argv[i], "-h") || STREQ(argv[i], "--help") ||
+		STREQ(argv[i], "-?"))
+		done = 1, Usage(argv[0]);
+	    else if (STREQ(argv[i], "--version"))
+		done = 1, printf("Venus " PACKAGE_VERSION "\n");
+
+	    else if (STREQ(argv[i], "-relay")) {   /* default is 127.0.0.1 */
  		i++;
 		inet_aton(argv[i], &venus_relay_addr);
  	    } else if (STREQ(argv[i], "-k"))         /* default is /dev/cfs0 */
@@ -395,11 +469,13 @@ static void ParseCmdline(int argc, char **argv) {
 		MapPrivate = true;
 	    else {
 		eprint("bad command line option %-4s", argv[i]);
-		exit(-1);
+		done = -1;
 	    }
 	}
 	else
 	    venusRoot = argv[i];   /* default is /coda */
+    }
+    if (done) exit(done < 0 ? 1 : 0);
 }
 
 
