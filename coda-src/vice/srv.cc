@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vice/srv.cc,v 4.10 1998/01/12 23:35:34 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vice/srv.cc,v 4.11 1998/01/22 18:46:35 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -1680,6 +1680,7 @@ PRIVATE void InitServerKeys(char *fkey1, char *fkey2)
 	    SetServerKeys(ptrkey1, NULL);
 	else
 	    SetServerKeys(ptrkey1, ptrkey2);
+	return;
     }
 
     /* one key */
