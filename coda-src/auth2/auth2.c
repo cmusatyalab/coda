@@ -66,6 +66,7 @@ extern "C" {
 #include <ctype.h>
 #include <lwp/lwp.h>
 #include <rpc2/rpc2.h>
+#include <rpc2/rpc2_addrinfo.h>
 
 #ifdef __cplusplus
 }
@@ -173,7 +174,7 @@ int main(int argc, char **argv)
     Krb5ServerInit();
 #endif
     
-    LogMsg(-1, 0, stdout, "Server successfully started\n");
+    LogMsg(-1, 0, stdout, "Server successfully started");
 
     while(TRUE) {
 	cid = 0;
@@ -188,6 +189,9 @@ int main(int argc, char **argv)
         { /* drop unauthenticated requests on the floor */
             RPC2_PeerInfo peer;
             RPC2_GetPeerInfo(cid, &peer);
+	    CODA_ASSERT(peer.RemoteHost.Tag == RPC2_HOSTBYADDRINFO);
+	    RPC2_freeaddrinfo(peer.RemoteHost.Value.AddrInfo);
+
             if (peer.SecurityLevel == RPC2_OPENKIMONO) {
                 LogMsg(0, SrvDebugLevel, stdout,
                        "Receiving unauthenticated request %d, "
@@ -346,6 +350,7 @@ static void InitRPC()
     PROCESS mylpid;
     RPC2_Integer rc;
     RPC2_PortIdent port;
+    RPC2_Options options;
     RPC2_SubsysIdent subsysid;
     struct timeval tout;
 
@@ -354,9 +359,12 @@ static void InitRPC()
     tout.tv_sec = 15;
     tout.tv_usec = 0;
 
+    memset(&options, 0, sizeof(options));
+    options.Flags = RPC2_OPTION_IPV6;
+
     port.Tag = RPC2_PORTBYNAME;
     strcpy(port.Value.Name, AUTH_SERVICE);
-    if ((rc = RPC2_Init(RPC2_VERSION, 0, &port, -1, &tout)) != RPC2_SUCCESS) {
+    if ((rc = RPC2_Init(RPC2_VERSION, &options, &port, -1, &tout)) != RPC2_SUCCESS) {
 	LogMsg(-1, 0, stdout, "RPC2_Init failed with %s", RPC2_ErrorMsg(rc));
 	exit(-1);
     }
@@ -449,13 +457,25 @@ long GetKeys(RPC2_Integer *AuthenticationType, RPC2_CountedBS *cIdent, RPC2_Encr
 }
 
 
-void LogFailures(RPC2_Integer AuthenticationType, RPC2_CountedBS *cIdent, RPC2_Integer eType, RPC2_HostIdent *pHost, RPC2_PortIdent *pPort)
-    {
-    CODA_ASSERT(pHost->Tag == RPC2_HOSTBYINETADDR);
-    *(cIdent->SeqBody+cIdent->SeqLen-1) = 0;  /* just to make sure */
+void LogFailures(RPC2_Integer AuthenticationType, RPC2_CountedBS *cIdent,
+		 RPC2_Integer eType, RPC2_HostIdent *pHost,
+		 RPC2_PortIdent *pPort)
+{
+    char name[64], host[RPC2_ADDRSTRLEN];
+    int i, len;
+
+    len = cIdent->SeqLen < 64 ? cIdent->SeqLen : 64;
+    for (i = 0; i < len-1; i++)
+	name[i] = isprint(cIdent->SeqBody[i]) ? cIdent->SeqBody[i] : '?';
+    for (;i < 64; i++)
+	name[i] = '\0';
+
+    CODA_ASSERT(pHost->Tag == RPC2_HOSTBYADDRINFO);
+    RPC2_formataddrinfo(pHost->Value.AddrInfo, host, RPC2_ADDRSTRLEN);
+
     LogMsg(-1, 0, stdout, "Authentication failed for \"%s\" from %s",
-	 cIdent->SeqBody, inet_ntoa(pHost->Value.InetAddress));
-    }
+	   name, host);
+}
 
 
 /* ============= Bodies of RPC routines follow =============  */

@@ -233,9 +233,10 @@ int main(int argc, char **argv)
     if (fromfile) {
         ReadTokenFromFile(fromfile, &cToken, sToken);
     } else {
-        rc = U_Authenticate(hostname ? hostname : realm, authmethod, username, 
-                            strlen(username)+1, &cToken, sToken, verbose, 
-                            interactive);
+	struct RPC2_addrinfo *srvs = U_GetAuthServers(realm, hostname);
+	rc = U_Authenticate(srvs, authmethod, username, strlen(username)+1,
+			    &cToken, sToken, verbose, interactive);
+	RPC2_freeaddrinfo(srvs);
         if (rc != 0) {
             fprintf (stderr, "Invalid login (%s).\n", RPC2_ErrorMsg(rc));
             exit (1);

@@ -60,11 +60,13 @@ extern "C" {
 
 #include <lwp/lwp.h>
 #include <rpc2/rpc2.h>
+#include <rpc2/rpc2_addrinfo.h>
 #include <rpc2/se.h>
 #include <util.h>
 #include <prs.h>
 #include "auth2.h"
 #include "auser.h"
+#include "parse_realms.h"
 #include "codaconf.h"
 
 #ifdef __cplusplus
@@ -77,7 +79,7 @@ static int GetVid(char *s, int *id);
 
 static int DebugLevel;
 
-static char *realm = NULL;
+static char *host;
 static char *AuthPortal = AUTH_SERVICE;
 
 static int ChangeUserFlag;
@@ -90,7 +92,9 @@ static RPC2_Handle AuthCid;
 
 int main(int argc, char **argv)
 {
-    register int rc;
+    struct RPC2_addrinfo *srvs = NULL;
+    char *realm;
+    int rc;
     char MyViceName[PRS_MAXNAMELEN];
     char MyPassword[100];
     char cname[PRS_MAXNAMELEN];
@@ -107,12 +111,20 @@ int main(int argc, char **argv)
 
     printf("Your Vice name: ");
     fgets(MyViceName, sizeof(MyViceName), stdin);
-    if ( MyViceName[strlen(MyViceName)-1] == '\n' ){
+    if (MyViceName[strlen(MyViceName)-1] == '\n' ){
 	    MyViceName[strlen(MyViceName)-1] = '\0';
     }
     strncpy(MyPassword, getpass("Your password: "), sizeof(MyPassword));
 
-    rc = U_BindToServer(realm, AUTH_METHOD_CODAUSERNAME, MyViceName, strlen(MyViceName)+1, MyPassword, strlen(MyPassword), &AuthCid, 1);
+    /* get realm information */
+    SplitRealmFromName(MyViceName, &realm);
+    codaconf_init("venus.conf");
+    codaconf_init("auth2.conf");
+    CONF_STR(realm, "realm", NULL);
+
+    srvs = U_GetAuthServers(realm, host);
+    rc = U_BindToServer(srvs, AUTH_METHOD_CODAUSERNAME, MyViceName, strlen(MyViceName)+1, MyPassword, strlen(MyPassword), &AuthCid, 1);
+    RPC2_freeaddrinfo(srvs);
 
     printf("RPC2_Bind() --> %s\n", RPC2_ErrorMsg(rc));
     if (rc < RPC2_ELIMIT) exit(-1);
@@ -207,11 +219,6 @@ static void SetGlobals(int argc, char **argv)
 {
     int i;
 
-    codaconf_init("venus.conf");
-    codaconf_init("auth2.conf");
-
-    CONF_STR(realm, "realm", NULL);
-
     for (i = 1; i < argc; i++)
 	{
 	if (strcmp(argv[i], "-x") == 0)
@@ -222,7 +229,7 @@ static void SetGlobals(int argc, char **argv)
 
 	if (strcmp(argv[i], "-h") == 0 && i < argc - 1)
 	    {
-	    realm = argv[++i];
+	    host = argv[++i];
 	    continue;
 	    }
 

@@ -104,11 +104,11 @@ long PWGetKeys(RPC2_CountedBS *cIdent, RPC2_EncryptionKey hKey, RPC2_EncryptionK
 	register int i;
 	struct stat statbuff;
 
-	LogMsg(0, AuthDebugLevel, stdout, "In PWGetKeys()");
+	LogMsg(10, AuthDebugLevel, stdout, "In PWGetKeys()");
 
 	vid = GetViceId(cIdent);
 
-	LogMsg(0, AuthDebugLevel, stdout, "\tvid = %d", vid);
+	LogMsg(10, AuthDebugLevel, stdout, "\tvid = %d", vid);
 
 	if (vid < 0) return(-1);
 	if (!IsAUser(vid) || IsADeletedUser(vid)) return(-1);

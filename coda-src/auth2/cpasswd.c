@@ -72,6 +72,8 @@ extern "C" {
 #endif
 
 #include <auth2.h>
+#include "parse_realms.h"
+#include "codaconf.h"
 
 static char *myuser;
 static char mypasswd[10];
@@ -86,7 +88,8 @@ int main(int argc, char **argv)
 	char newpw[10];
 	char buf[200];
 	int ok, rc;
-	char *Realm_or_Host = NULL;
+	char *realm = NULL;
+	char *host = NULL;
 
 	memset(newpw, 0, sizeof(newpw));
 	memset(buf, 0, sizeof(buf));
@@ -98,7 +101,7 @@ int main(int argc, char **argv)
     		    exit(1);
  	        }
 
-	        Realm_or_Host = argv[2];
+	        host = argv[2];
 	        argv += 2;
 	        argc -= 2;
  	    }
@@ -111,8 +114,10 @@ int main(int argc, char **argv)
 	}
 	if (argc < 2)
 		uname = myuser;
-	else
+	else {
 		uname = argv[1];
+		SplitRealmFromName(uname, &realm);
+	}
 
 	/* Make sure our arrays don't overflow. */
 	if (strlen(uname) > 20) {
@@ -120,7 +125,11 @@ int main(int argc, char **argv)
 	    exit(1);
 	}
 
-	printf("Changing password for %s\n", uname);
+	codaconf_init("venus.conf");
+	codaconf_init("auth2.conf");
+	CONF_STR(realm, "realm", NULL);
+
+	printf("Changing password for %s@%s\n", uname, realm);
 /*
 	if (U_InitRPC() != 0) {
 		fprintf(stderr, "Internal error: RPC or vstab problems.\n");
@@ -179,7 +188,10 @@ tryagain:
 		printf("Mismatch - password unchanged.\n");
 		exit(1);
 	}
-	rc = U_ChangePassword (Realm_or_Host, uname, newpw, AUTH_METHOD_CODAUSERNAME, myuser, strlen(myuser)+1, mypasswd, strlen(mypasswd));
+	struct RPC2_addrinfo *srvs = U_GetAuthServers(realm, host);
+	rc = U_ChangePassword (srvs, uname, newpw, AUTH_METHOD_CODAUSERNAME, myuser, strlen(myuser)+1, mypasswd, strlen(mypasswd));
+	RPC2_freeaddrinfo(srvs);
+
 	switch(rc) {
 	    case RPC2_DEAD:
 		printf("Server to change passwords down, try again later\n");

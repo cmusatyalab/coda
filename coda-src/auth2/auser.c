@@ -102,11 +102,11 @@ void U_NetToHostClearToken(ClearToken *cToken)
 
 /* Talks to an authentication server and obtains tokens on behalf of user uName.
    Gets back the viceId and clear and secretTokens for this user    */
-int U_Authenticate(const char *realm, const int AuthenticationType,
+int U_Authenticate(struct RPC2_addrinfo *srvs, const int AuthenticationType,
 		   const char *uName, const int uNamelen,
 		   OUT ClearToken *cToken, 
 		   OUT EncryptedSecretToken sToken, 
-		   const int verbose, const int interactive )
+		   const int verbose, const int interactive)
 {
 	RPC2_Handle	RPCid;
 	int		rc;
@@ -118,7 +118,7 @@ int U_Authenticate(const char *realm, const int AuthenticationType,
 
 	switch(AuthenticationType) {
 	case AUTH_METHOD_CODAUSERNAME:
-		if (!verbose) {
+		if (!interactive) {
 			fgets(passwd, sizeof(passwd), stdin);
 			rc = strlen(passwd);
 			if ( passwd[rc-1] == '\n' )
@@ -156,7 +156,7 @@ int U_Authenticate(const char *realm, const int AuthenticationType,
 		return rc;
 
 	secretlen = strlen(passwd);
-	rc = U_BindToServer(realm, AuthenticationType, uName, uNamelen,
+	rc = U_BindToServer(srvs, AuthenticationType, uName, uNamelen,
 			    passwd, secretlen, &RPCid, interactive);
 	if(rc == 0) {
 		bound = 1;
@@ -176,7 +176,7 @@ int U_Authenticate(const char *realm, const int AuthenticationType,
  /* Talks to the central authentication server and changes the password for
   * uName to newPasswd if myName is the same as uName or a system
   * administrator. MyPasswd is used to validate myName. */
-int U_ChangePassword(const char *realm, const char *uName,
+int U_ChangePassword(struct RPC2_addrinfo *srvs, const char *uName,
 		     const char *newPasswd, const int AuthenticationType,
 		     const char *myName, const int myNamelen,
 		     const char *myPasswd, const int myPasswdlen)
@@ -191,7 +191,7 @@ int U_ChangePassword(const char *realm, const char *uName,
 	exit(-1);
     }
 
-    if(!(rc = U_BindToServer(realm, AuthenticationType, myName, myNamelen,
+    if(!(rc = U_BindToServer(srvs, AuthenticationType, myName, myNamelen,
 			     myPasswd, myPasswdlen, &RPCid, 0)))
     {
 	memset ((char *)ek, 0, RPC2_KEYSIZE);
@@ -209,14 +209,17 @@ void U_InitRPC()
     PROCESS mylpid;
     int rc;
     struct timeval tout;
+    RPC2_Options options;
 
 
     CODA_ASSERT(LWP_Init(LWP_VERSION, LWP_MAX_PRIORITY-1, &mylpid) == LWP_SUCCESS);
-    
+    memset(&options, 0, sizeof(options));
+    options.Flags = RPC2_OPTION_IPV6;
+
     tout.tv_sec = 15;
     tout.tv_usec = 0;
 
-    rc = RPC2_Init(RPC2_VERSION, 0, NULL, -1, &tout);
+    rc = RPC2_Init(RPC2_VERSION, &options, NULL, -1, &tout);
     if ( rc != RPC2_SUCCESS ) {
 	    fprintf(stderr, "Cannot initialize RPC2 (error %d). ! Exiting.\n",
 		    rc);
@@ -257,20 +260,14 @@ static int TryBinding(const RPC2_Integer AuthenticationType,
 {
     RPC2_BindParms bp;
     RPC2_HostIdent hident;
-    RPC2_PortIdent pident;
     RPC2_SubsysIdent sident;
     RPC2_CountedBS cident;
     RPC2_EncryptionKey hkey;
     long rc;
     int len;
 
-    struct sockaddr_in *sin = (struct sockaddr_in *)AuthHost->ai_addr;
-
-    hident.Tag = RPC2_HOSTBYINETADDR;
-    hident.Value.InetAddress = sin->sin_addr;
-
-    pident.Tag = RPC2_PORTBYINETNUMBER;
-    pident.Value.InetPortNumber = sin->sin_port;
+    hident.Tag = RPC2_HOSTBYADDRINFO;
+    hident.Value.AddrInfo = RPC2_copyaddrinfo(AuthHost);
 
     sident.Tag = RPC2_SUBSYSBYID;
     sident.Value.SubsysId = htonl(AUTH_SUBSYSID);
@@ -291,27 +288,50 @@ static int TryBinding(const RPC2_Integer AuthenticationType,
     bp.ClientIdent = &cident;
     bp.SharedSecret = &hkey;
 
-    rc = RPC2_NewBinding(&hident, &pident, &sident, &bp, RPCid);
+    rc = RPC2_NewBinding(&hident, NULL, &sident, &bp, RPCid);
+
+    RPC2_freeaddrinfo(hident.Value.AddrInfo);
 
     return (rc);
 }
 
+struct RPC2_addrinfo *U_GetAuthServers(const char *realm, const char *host)
+{
+    struct RPC2_addrinfo hints, *res = NULL;
+    int rc;
+
+    if (!host)
+	return GetAuthServers(realm);
+
+    memset(&hints, 0, sizeof(hints));
+    hints.ai_family   = PF_INET;
+    hints.ai_socktype = SOCK_DGRAM;
+    hints.ai_protocol = IPPROTO_UDP;
+
+    rc = RPC2_getaddrinfo(host, "codaauth2", &hints, &res);
+
+    return (rc == 0) ? res : NULL;
+}
+
 /* Binds to Auth Server on behalf of uName using uPasswd as password.
    Sets RPCid to the value of the connection id.    */
-int U_BindToServer(const char *realm, const RPC2_Integer AuthenticationType, 
+int U_BindToServer(struct RPC2_addrinfo *srvs,
+		   const RPC2_Integer AuthenticationType, 
 		   const char *uName, const int uNamelen,
 		   const char *uPasswd, const int uPasswdlen,
 		   RPC2_Handle *RPCid, const int interactive)
 {
-	struct RPC2_addrinfo *AuthHost, *srvs;
+	struct RPC2_addrinfo AuthHost, *p;
 	int bound = RPC2_FAIL;
 
-	/* fill in the host array */
-	srvs = GetAuthServers(realm);
-
 	/* try all valid entries until we are rejected or accepted */
-	for (AuthHost = srvs; AuthHost; AuthHost = AuthHost->ai_next)
+	for (p = srvs; p; p = p->ai_next)
 	{
+	    /* struct assignment, we only want to try the hosts one by one
+	     * instead of having rpc2 walk the whole chain on each call to
+	     * RPC2_NewBinding. */
+	    AuthHost = *p;
+	    AuthHost.ai_next = NULL;
 #ifdef HAVE_KRB5
 	    /* Get host secret for next host */
 	    /* Either I did this right, or I broke multiple servers badly
@@ -319,7 +339,7 @@ int U_BindToServer(const char *realm, const RPC2_Integer AuthenticationType,
 	     */
 	    if (AuthenticationType == AUTH_METHOD_KERBEROS5) {
 		/* should this be error checked ?*/
-		if (Krb5GetSecret(AuthHost->ai_canonname, &uName, &uNamelen,
+		if (Krb5GetSecret(AuthHost.ai_canonname, &uName, &uNamelen,
 				  &uPasswd, &uPasswdlen, interactive))
 		{
 		    fprintf(stderr, "Failed to get secret for %s\n", AuthHost->ai_canonname);
@@ -330,23 +350,22 @@ int U_BindToServer(const char *realm, const RPC2_Integer AuthenticationType,
 #ifdef HAVE_KRB4
 	    /* Copied Troy's success or mistake :) -JH */
 	    if (AuthenticationType == AUTH_METHOD_KERBEROS4) {
-		if (Krb4GetSecret(AuthHost->ai_canonname, &uName, &uNamelen,
+		if (Krb4GetSecret(AuthHost.ai_canonname, &uName, &uNamelen,
 				   &uPasswd, &uPasswdlen, interactive))
 		{
 		    fprintf(stderr, "Failed to get secret from %s\n",
-			    AuthHost->ai_canonname);
+			    AuthHost.ai_canonname);
 		    continue;
 		}
 	    }
 #endif
 	    bound = TryBinding(AuthenticationType, uName, uNamelen, 
-			       uPasswd, uPasswdlen, AuthHost, RPCid);
+			       uPasswd, uPasswdlen, &AuthHost, RPCid);
 
 	    /* break when we are successful or a server rejects our secret */
 	    if (bound == 0 || bound == RPC2_NOTAUTHENTICATED)
 		break;
 	}
-	RPC2_freeaddrinfo(srvs);
 	return bound;
 }
 

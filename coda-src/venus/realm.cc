@@ -155,8 +155,12 @@ retry:
 
     /* Get a connection to any custodian. */
     for (p = rootservers; p; p = p->ai_next) {
-	struct sockaddr_in *sin = (struct sockaddr_in *)p->ai_addr;
+	struct sockaddr_in *sin;
 	srvent *s;
+
+	CODA_ASSERT(p->ai_family == PF_INET);
+	sin = (struct sockaddr_in *)p->ai_addr;
+
 	s = ::GetServer(&sin->sin_addr, Id());
 	code = s->GetConn(cpp, V_UID);
 	switch(code) {
@@ -213,8 +217,9 @@ void Realm::print(FILE *f)
     fprintf(f, "%08x realm '%s', refcount %d/%d\n", (unsigned int)Id(), Name(),
 	    refcount, rec_refcount);
     for (p = rootservers; p; p = p->ai_next) {
-	struct sockaddr_in *sin = (struct sockaddr_in *)p->ai_addr;
-	fprintf(f, "\t%s\n", inet_ntoa(sin->sin_addr)); 
+	char buf[RPC2_ADDRSTRLEN];
+	RPC2_formataddrinfo(p, buf, RPC2_ADDRSTRLEN);
+	fprintf(f, "\t%s\n", buf); 
     }
 }
 
