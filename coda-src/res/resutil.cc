@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /home/braam/src/coda-src/res/RCS/resutil.cc,v 1.2 1996/12/09 17:28:02 braam Exp $";
+static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/ss/coda-src/res/RCS/resutil.cc,v 4.1 1997/01/08 21:50:04 rvb Exp braam $";
 #endif /*_BLURB_*/
 
 
@@ -51,9 +51,6 @@ extern "C" {
 #include <cam/_setjmp.h>
 #endif CAMELOT
 
-#if 0
-#include <cthreads.h>
-#endif
 #include <netinet/in.h>
 #include <assert.h>
 #include <stdio.h>
@@ -145,7 +142,7 @@ void AllocStoreId(ViceStoreId *s) {
 /* check for return codes other than time outs */
 long CheckRetCodes(unsigned long *rc, unsigned long *rh, 
 		    unsigned long *hosts) {
-
+    struct in_addr addr;
     long error = 0;
     for (int i = 0; i < VSG_MEMBERS; i++){
 	hosts[i] = rh[i];
@@ -154,11 +151,37 @@ long CheckRetCodes(unsigned long *rc, unsigned long *rh,
 	    /* non rpc error - drop this host too */
 	    hosts[i] = 0;
 	    error = rc[i];
-	    LogMsg(0, SrvDebugLevel, stdout,  "CheckRetCodes - an accessible server returned an error (server %x error %d)",
-		    rh[i], rc[i]);
+	    addr.s_addr = rh[i];
+	    LogMsg(0, SrvDebugLevel, stdout,  "CheckRetCodes - an accessible server returned an error (server %s error %d)",
+		   inet_ntoa(addr), rc[i]);
 	}
     }
     return(error);
+}
+
+/* check for return codes for resolution other than time outs; 
+   This routine will return VNOVNODE if that was the only error
+   returned by the available servers */
+long CheckResRetCodes(unsigned long *rc, unsigned long *rh, 
+		      unsigned long *hosts) 
+{
+    struct in_addr addr;
+    long error = 0, result = 0;
+    for (int i = 0; i < VSG_MEMBERS; i++){
+	hosts[i] = rh[i];
+	if (rc[i] == ETIMEDOUT) hosts[i] = 0;
+	if (rh[i] && rc[i] && rc[i] != ETIMEDOUT){
+	    /* non rpc error - drop this host too */
+	    hosts[i] = 0;
+	    error = rc[i];
+	    addr.s_addr = rh[i];
+	    LogMsg(0, SrvDebugLevel, stdout,  "CheckResRetCodes - an accessible server returned an error (server %s error %d)",
+		   inet_ntoa(addr), rc[i]);
+	}
+	if ( result == 0 ||  result == VNOVNODE )
+	    result = error;
+    }
+    return(result);
 }
 
 /**************** ilink class functions *******************/

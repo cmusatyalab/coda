@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/src/coda-4.0.1/RCSLINK/./coda-src/res/resutil.h,v 1.1 1996/11/22 19:12:46 braam Exp $";
+static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/ss/coda-src/res/RCS/resutil.h,v 4.1 1997/01/08 21:50:04 rvb Exp braam $";
 #endif /*_BLURB_*/
 
 
@@ -121,6 +121,7 @@ struct respath : public olink {
 extern void GetResStatus(unsigned long *, ResStatus **, ViceStatus *);
 extern void AllocStoreId(ViceStoreId *);
 extern long CheckRetCodes(unsigned long *, unsigned long *, unsigned long *);
+extern long CheckResRetCodes(unsigned long *, unsigned long *, unsigned long *);
 extern void BSToDlist(RPC2_BoundedBS *, dlist *);
 extern void DlistToBS(dlist *, RPC2_BoundedBS *);
 extern void ParseIncBSEntry(char **, char **, long *, long *, long *, long *, 
