@@ -30,7 +30,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: blurb.doc,v 1.1 96/11/22 13:29:31 raiff Exp $";
+static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/src/coda-4.0.1/RCSLINK/./coda-src/sys/pioctl.s,v 1.1 1996/11/22 19:15:31 braam Exp $";
 #endif undef
 #endif /*_BLURB_*/
 
@@ -96,12 +96,17 @@ SYSCALL(pioctl)
 #include <sys/syscall.h>
 #include <machine/asm.h>
 #ifndef __NetBSD__
-#define SYSCALL(x)	ENTRY(x); movl	$SYS_/**/x, %eax; SVC; jb LCL(cerror)
-#else	__NetBSD__
-#include "netbsdasm.h"	
-#endif	__NetBSD__
+#ifdef __STDC__
+#define SYSCALL(x)	ENTRY(x); movl	$SYS_ ## x, %eax; SVC; jb LCL(cerror)
+#else
+#define SYSCALL(x)	ENTRY(x); movl	$(SYS_/**/x), %eax; SVC; jb LCL(cerror)
+#endif
+
 
 	.globl	LCL(cerror)
+#else	__NetBSD__
+#include "SYS.h"	
+#endif	__NetBSD__
 
 SYSCALL(pioctl)
 	ret
