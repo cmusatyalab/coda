@@ -377,15 +377,12 @@ int sftp_DataArrived(RPC2_PacketBuffer *pBuff, struct SFTP_Entry *sEntry)
 	    rpc2_RetryInterval(sEntry->HostInfo, dataThisRound, 1,
 			       &sEntry->RInterval);
 	}
-	if (sftp_SendAck(sEntry) < 0) 
-	    return(-1);
-	if (sftp_WriteStrategy(sEntry) < 0)
-	    return(-1);	    /* may modify RecvLastContig and RecvTheseBits */
     }
 
     /* we haven't sent an ack for a while, but did see a lot of data packets
      * flying by? Send a gratitious ack reply */
-    if (sEntry->RecvSinceAck > (sEntry->AckPoint + (sEntry->AckPoint >> 2))) {
+    if ((pBuff->Header.Flags & SFTP_ACKME) ||
+	(sEntry->RecvSinceAck > sEntry->WindowSize)) {
 	if (sftp_SendAck(sEntry) < 0) 
 	    return(-1);
 	if (sftp_WriteStrategy(sEntry) < 0)
@@ -765,7 +762,7 @@ int sftp_SendStrategy(struct SFTP_Entry *sEntry)
     {/* Window is open: be more ambitious */
 	if (sEntry->ReadAheadCount > 0)
 	{
-#if 1
+#if 0
 	    /* Pessimistic view, we might have lost all packets. Retransmit
 	     * everything in the worried set. When the RTT estimates are
 	     * correct, we will not push too many packets on the network, as
@@ -803,6 +800,7 @@ static void CheckWorried(struct SFTP_Entry *sEntry)
 	sEntry->SendWorriedLimit = sEntry->SendLastContig;
     
     TVTOTS(&sEntry->RInterval, rexmit);
+    rexmit <<= 1;
     now = rpc2_TVTOTS(&sEntry->LastSS);
     for (i = sEntry->SendAckLimit; i > sEntry->SendWorriedLimit; i--) {
 	if (TESTBIT(sEntry->SendTheseBits, i - sEntry->SendLastContig))

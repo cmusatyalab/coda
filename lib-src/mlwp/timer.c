@@ -170,7 +170,7 @@ void TM_Insert(tlistPtr, elem)
     }
 
     /* Finite timeout, set expiration time */
-    FT_AGetTimeOfDay(&elem->expiration, 0);
+    FT_GetTimeOfDay(&elem->expiration, 0);
     add(&elem->expiration, &elem->TimeLeft);
     next = NULL;
     FOR_ALL_ELTS(p, tlistPtr, {
@@ -208,7 +208,7 @@ int TM_Rescan(tlist)
     struct timeval time;
     register int expired;
 
-    FT_AGetTimeOfDay(&time, 0);
+    FT_GetTimeOfDay(&time, 0);
     expired = 0;
     FOR_ALL_ELTS(e, tlist, {
 	if (!blocking(e)) {

@@ -265,12 +265,8 @@ static bool PacketCame()
 
 	/* Obtain earliest event */
 	t = TM_GetEarliest(rpc2_TimerQueue);
-	if (t == NULL)
-		tvp = NULL;
-	else {
-		tvp = &t->TimeLeft;
-		(void) fflush(stdout);
-	}
+	if (t == NULL) tvp = NULL;
+	else	       tvp = &t->TimeLeft;
     
 	/* Yield control */
 	say(999, RPC2_DebugLevel, "About to enter IOMGR_Select()\n");
