@@ -422,7 +422,8 @@ void BreakCallBack(HostTable *client, ViceFid *afid) {
 	else goodc = tc;	/* Must be client */
     }
 
-    /* Now see if we have any good callbacks left on this file.  If not, nuke it */
+    /* Now see if we have any good callbacks left on this file.  If
+       not, nuke it */
     if (goodc) {
 	/* We have one callback entry */
 	goodc->next = 0;

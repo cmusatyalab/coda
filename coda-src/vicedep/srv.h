@@ -57,7 +57,6 @@ extern "C" {
 #endif __cplusplus
 
 #include <prs.h>
-#include <prs_fs.h>
 #include <voltypes.h>
 #include <errors.h>
 #include <inconsist.h>

@@ -69,7 +69,7 @@ extern "C" {
 #include <stdlib.h>
 
 #include <vice.h>
-#include <prs_fs.h>
+#include <prs.h>
 
 #ifdef __cplusplus
 }

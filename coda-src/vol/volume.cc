@@ -1782,8 +1782,7 @@ void DeleteVolumeFromHashTable(register Volume *vp)
 	VLog(29, "DeleteVolumeFromHashTable: Deleting volume %x from hash table",
 	    vp->hashid);
 	VolumeHashTable[hash] = vp->hashNext;
-    }
-    else {
+    } else {
 	Volume *tvp = VolumeHashTable[hash];
 	if (tvp == NULL)
 	    return;
@@ -1816,31 +1815,6 @@ void SetVolDebugLevel(int level) {
     VolDebugLevel = level;
 }
 
-#if 0
-static int MountedAtRoot(char *path) {
-    /* Returns 1 if path is a subdirectory of  "/"-directory, 0 otherwise */
-
-    struct stat rootbuf, pathbuf;
-
-    /* Check exactly one slash, and in first position */
-    if (rindex(path, '/') != path) return(0);
-
-    /* Then compare root and path device id's */
-    if (stat("/", &rootbuf)) {
-	perror("/");
-	return(0);
-    }
-    if (stat(path, &pathbuf)) {
-	perror(path);
-	return(0);
-    }
-
-    if (rootbuf.st_dev == pathbuf.st_dev) return(0);
-    else return(1);
-}
-#endif 
-
-/* migrated here from partition.cc which was retired */
 
 /* Quota enforcement: since the return value of close is not often
    checked we set ec only when we are already over quota. If a store

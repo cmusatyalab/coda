@@ -2102,7 +2102,7 @@ int GetRights(PRS_InternalCPS *CPS, AL_AccessList *ACL, int ACLSize,
     static  PRS_InternalCPS * anyCPS = 0;
 
     if (anyid == -1) {
-	if (AL_NameToId("anyuser", &anyid) != 0) {
+	if (AL_NameToId("System:AnyUser", &anyid) != 0) {
 	    SLog(0, "UserID anyuser not known");
 	    anyid = 0;
 	} else {

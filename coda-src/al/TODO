@@ -1,0 +1,8 @@
+1/19/98 MGM
+
+1. Add extra functionality to pdbtool.
+
+2. Add test to make sure database actually has needed information when alprocs starts.
+
+Warnings
+1.  This is not 64 bit portable.  All of the output functions need fixed to handle both 64 bit and 32 bit architextures, on 32 bit machines use %ld to print, on 64 bit use %d.

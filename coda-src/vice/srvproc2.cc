@@ -121,13 +121,13 @@ static void PrintUnusedComplaint(RPC2_Handle, RPC2_Integer, char *);
 long FS_ViceConnectFS(RPC2_Handle RPCid, RPC2_Unsigned ViceVersion, 
 		   ViceClient *ClientId)
 {
+	long errorCode;
+	ClientEntry *client = NULL;
+	
 	SLog(1, "FS_ViceConnectFS (version %d) for user %s at %s.%s",
 	     ViceVersion, ClientId->UserName, ClientId->WorkStationName, 
 	     ClientId->VenusName);
 
-	long errorCode;
-	ClientEntry *client = NULL;
-	
 	errorCode = RPC2_GetPrivatePointer(RPCid, (char **)&client);
 
 	if (!client) 

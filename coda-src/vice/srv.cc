@@ -94,7 +94,6 @@ extern "C" {
 
 
 #include <prs.h>
-#include <prs_fs.h>
 #include <al.h>
 
 #include <auth2.h>
@@ -490,7 +489,7 @@ main(int argc, char *argv[])
     pdbtime = (int)buff.st_mtime;
     CODA_ASSERT(AL_Initialize(AL_VERSION, PDB, PCF) == 0);
 
-    CODA_ASSERT(AL_NameToId("Administrators", &SystemId) == 0);
+    CODA_ASSERT(AL_NameToId("System:Administrators", &SystemId) == 0);
 
  /* Initialize failure package */
     Fail_Initialize("file", 0);
