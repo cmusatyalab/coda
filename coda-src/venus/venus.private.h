@@ -129,9 +129,10 @@ const int TIMERINTERVAL = 5;
 const int GETDATA = 1;
 #define	ALL_FIDS    (&NullFid)
 typedef void (*PROC_V_UL)(unsigned long);
-#define	STREQ(a, b) (strcmp((a), (b)) == 0)
-#define	STRNEQ(a, b, n) (strncmp((a), (b), (n)) == 0)
-#define	NBLOCKS(bytes)	((bytes + 1023) >> 10)
+#define	STREQ(a, b)		(strcmp((a), (b)) == 0)
+#define	STRNEQ(a, b, n)		(strncmp((a), (b), (n)) == 0)
+#define	NBLOCKS(bytes)		((bytes + 1023) >> 10)
+#define	NBLOCKS_BYTES(bytes)	(NBLOCK(bytes) << 10)
 
 /* Flags for the various vproc/fsobj name/object lookup routines. */
 #define	FOLLOW_SYMLINKS	0x1	    /* should lookup follow symlinks for last component? */
