@@ -868,7 +868,6 @@ int unpack(ARG *a_types, PARM *args, PARM **_ptr, char *_end, long offset)
 	 _length = ntohl((*_ptr)->integer); (*_ptr)++;
 	 CHECK(_length);
 	 if (mode == OUT_MODE || mode == IN_OUT_MODE) {
-	     RPC2_Integer _length;
 	     /* ignore received MaxSeqLen */
 	     args->bbsp[offset]->SeqLen = _length;
 	     if (_length <= args->bbsp[offset]->MaxSeqLen)
