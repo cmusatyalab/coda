@@ -73,7 +73,7 @@ static void ObtainLock(struct Lock *lock, char type)
     /* this is a safe cancellation point because we (should) only hold
      * the access mutex, and we take ourselves off the pending list in the
      * cleanup handler */
-    while ((lock->excl || ((type == 'W') && lock->readers)) &&
+    while ((lock->excl || ((type == 'W') && lock->readers)) ||
            (lock->pending.next != &pid->lockq))
         pthread_cond_wait(&pid->lock_cond, &lock->access);
 
