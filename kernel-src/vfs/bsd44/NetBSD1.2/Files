@@ -1,9 +1,0 @@
-Files
-sys/conf/files
-sys/kern/vfs_conf.c
-sys/sys/conf.h
-sys/sys/malloc.h
-sys/sys/mount.h
-sys/sys/vnode.h
-sys/arch/i386/conf/GENERIC
-sys/arch/i386/i386/conf.c

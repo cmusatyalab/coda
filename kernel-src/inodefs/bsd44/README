@@ -1,6 +1,0 @@
-The directory ifs is the exported BSD kernel sources for the inode
-file system.  The other files in this directory are the user-level
-faux-inode filesystem.
-
-For advice in incorporating this code into the BSD kernel,
-contact coda@cs.cmu.edu
