@@ -31,10 +31,14 @@ listed in the file CREDITS.
 #include <netinet/in.h>
 #include <lwp.h>
 #include <rpc2.h>
+#ifdef sun
+#include <netdb.h>
+#endif
 #include "fcon.h"
 
-
+#ifndef MAXNAMELEN
 #define MAXNAMELEN	255	 /* Maximum length of a client name */
+#endif
 #define MAXCLIENTS      999	 /* Maximum number of clients */
 #define MAXPROBABILITY	10000	 /* Probabilities are factor/MAXPROBABILITY */
 #define MAXNETSPEED     10000000 /* Speed of Ethernet */

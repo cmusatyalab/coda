@@ -27,8 +27,8 @@ listed in the file CREDITS.
 
 
 /* Maintain state of currently open connection, if there is one */
-RPC2_Handle cid;
-int maxFilterID[2];
+static RPC2_Handle cid;
+static int maxFilterID[2];
 
 void PrintError(char *, int);
 
