@@ -30,7 +30,7 @@
 # Mellon the rights to redistribute these changes without encumbrance.
 # */
 # 
-# static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/configs/Makeconf.i386_nbsd1,v 4.20 1998/01/22 10:18:42 rvb Exp $";
+# static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/configs/Makeconf.i386_nbsd1,v 4.21 98/01/28 22:44:13 braam Exp $";
 # 
 
 # the following may need editing depending on your preferences
@@ -52,10 +52,10 @@ LIBTERMCAP    = /usr/lib/libtermcap.a
 LIBKVM        = /usr/lib/libkvm.a
 ifeq ($(host),i386-unknown-netbsd1.2)
 INCGDBM       = -I/usr/local/include
-LIBGDBM       = /usr/local/lib/libgdbm.a
+LGDBM         = -L/usr/local/lib
 else
-INCGDBM       = -I/usr/pkg/include
-LIBGDBM       = /usr/pkg/lib/libgdbm.a
+INCGDBM       = -I/usr/pkg/include -I/usr/local/include
+LGDBM         = -L/usr/pkg/lib -L/usr/local/lib
 endif
 
 LIBMATH       = -lm
