@@ -85,7 +85,7 @@ void sftp_Listener(void)
 	{
 	ScanTimerQ();	/* wakeup all LWPs with expired timer entries */
 
-	if (AwaitEvent() != 1)
+	if (AwaitEvent() <= 0)
 		continue; /* timeout or bogus wakeup */
 	
 	sftp_ProcessPackets();

@@ -273,7 +273,7 @@ static bool PacketCame()
 	FD_SET(rpc2_RequestSocket, &rmask);
 	nfds = rpc2_RequestSocket + 1;
 
-	if (IOMGR_Select(nfds, &rmask, NULL, NULL, tvp)) 
+	if (IOMGR_Select(nfds, &rmask, NULL, NULL, tvp) > 0) 
 		return(TRUE);
 	else 
 		return(FALSE);
