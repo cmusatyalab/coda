@@ -102,7 +102,7 @@ static void SendNak(RPC2_PacketBuffer *pb);
     RPC2_FreeBuffer(&p); } while (0) 
 
 /* Flag to toggle ip-address/port matching for received packets */
-long RPC2_strict_ip_matching = 1;
+long RPC2_strict_ip_matching = 0;
 
 void rpc2_SocketListener()
 {
