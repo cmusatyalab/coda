@@ -27,11 +27,11 @@ include $(TOPDIR)/Makeconf
 
 
 CFLAGS := -Wall ${CFLAGS}
-HEADERS   = partition.h  vicetab.h viceinode.h ftreeifs.h simpleifs.h
+HEADERS = partition.h  vicetab.h viceinode.h ftreeifs.h simpleifs.h
 OBJS = vicetab.o partition.o inodeops.o simpleifs.o  ftreeifs.o makeftree.o inoder.o backupifs.o
 LIBOBS = vicetab.o partition.o inodeops.o simpleifs.o ftreeifs.o backupifs.o
-EXECUTABLES = makeftree inoder
-SSBINS=makeftree inoder
+EXECUTABLES = inoder
+SSBINS = inoder
 
 LIBRARIES = libpartition.a
 DEPLIBS = $(LIBPARTITION) $(LIBUTIL) $(LIBBASE)
@@ -40,11 +40,9 @@ LIBS := $(DEPLIBS) $(LIBRDS) $(LIBSEG) $(LIBRVM) $(LIBLWP) $(LIBMATH) $(LIBS)
 
 libpartition.a: $(LIBOBS)
 
-makeftree: makeftree.o $(DEPLIBS)
-	$(CC) -o makeftree $(LDFLAGS) makeftree.o $(LIBS)
-
 inoder: inoder.o $(LIBOBS) $(DEPLIBS)
 	$(CC) -o inoder $(LDFLAGS) inoder.o $(LIBS)
 
 
 include $(TOPDIR)/configs/Makerules
+

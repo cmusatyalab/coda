@@ -764,7 +764,7 @@ START_TIMING(SetAttr_Total);
 
     {
 	if (!errorCode && ReplicatedOp) {
-	    SLog(0, "Going to spool store log record %u %u %u %u\n",
+	    SLog(9, "Going to spool store log record %u %o %u %u\n",
 		   Status->Owner, Status->Mode, Status->Author, Status->Date);
 	    if ((errorCode = SpoolVMLogRecord(vlist, v, volptr, StoreId, 
 					     RES_NewStore_OP, STSTORE, 

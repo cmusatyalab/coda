@@ -212,7 +212,6 @@ sbin/codasrv
 sbin/createvol_rep
 sbin/initpw
 sbin/inoder
-sbin/makeftree
 sbin/merge
 sbin/parserecdump
 sbin/partial-reinit.sh

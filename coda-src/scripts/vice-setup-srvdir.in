@@ -139,15 +139,11 @@ while [ $n -le $numservers ]; do
 		    ;;
 	    esac
 	done	      
-
-    #   echo "Now initializing the partition. This takes a while...."
-    #   makeftree ${vicedir}/db/vicetab $srvdir   --  commented out by phil.
-    #   echo 'done.'
 	echo
 	echo "Server directory $srvdir is set up!"
     else
 	echo
-	echo  "Read vicetab(5) and makeftree(8) for set up info."
+	echo  "Read vicetab(5) for set up info."
 	echo
 	echo  "Press return to continue"
 	read ok

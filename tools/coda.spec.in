@@ -181,7 +181,6 @@ fi
 /usr/sbin/createvol_rep
 /usr/sbin/initpw
 /usr/sbin/inoder
-/usr/sbin/makeftree
 /usr/sbin/parserecdump
 /usr/sbin/partial-reinit.sh
 /usr/sbin/pdbtool
