@@ -25,7 +25,7 @@
 EXTRAS = djgpp
 
 
-MACHINE_FLAGS = $(MACHINE_FLAGS) -DDOS
+MACHINE_FLAGS := $(MACHINE_FLAGS) -DDOS
 SHORTSYS      = djgpp
 #CPP           = dos-gcc -E -x c-header
 LIBRELAY      = $(TOPOBJ)/djgpp/relay/librelay.a

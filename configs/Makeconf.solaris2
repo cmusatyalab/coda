@@ -6,7 +6,7 @@
 # the following may need editing depending on your preferences
 
 CPP           = gcc -E -x c-header -traditional-cpp -D_ASM
-MACHINE_FLAGS = $(MACHINE_FLAGS) -DRVM_USELWP
+MACHINE_FLAGS := $(MACHINE_FLAGS) -DRVM_USELWP
 NATIVECC      = gcc
 SHORTSYS      = solaris2
 # for Solaris ... sockets, nsl ...

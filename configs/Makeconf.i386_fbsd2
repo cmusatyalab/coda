@@ -3,7 +3,7 @@
 #	variables, libraries for BSD build
 
 
-MACHINE_FLAGS = $(MACHINE_FLAGS) -D__BSD44__
+MACHINE_FLAGS := $(MACHINE_FLAGS) -D__BSD44__
 SHORTSYS      = bsd44
 LIBCOMPAT     = /usr/lib/libcompat.a
 LIBREADLINE   = /usr/lib/libreadline.a
