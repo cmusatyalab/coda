@@ -12,7 +12,7 @@ the terms of the Coda license.  All other use is illegal.
 */
 
 
-static char *rcsid = "$Header: /usr/home/braam/coda-4.0.1/utils-src/potemkin/potemkin/RCS/vcrcommon.rpc2,v 1.1 1996/12/12 02:31:06 braam Exp braam $";
+static char *rcsid = "$Header: /coda/coda.cs.cmu.edu/project/coda/cvs/coda/utils-src/potemkin/potemkin/Attic/vcrcommon.rpc2,v 1.1 1997/05/15 16:18:13 braam Exp $";
 #endif /*_BLURB_*/%}
 
 
