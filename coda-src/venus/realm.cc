@@ -224,13 +224,15 @@ retry:
 }
 
 
-/* MUST be called from within a transaction */
+/* MUST NOT be called from within a transaction */
 void Realm::SetRootVolName(char *name)
 {
+    Recov_BeginTrans();
     RVMLIB_REC_OBJECT(rootvolname);
     rvmlib_rec_free(rootvolname);
     rootvolname = rvmlib_strdup(name);
     CODA_ASSERT(rootvolname);
+    Recov_EndTrans(MAXFP);
 }
 
 void Realm::print(FILE *f)

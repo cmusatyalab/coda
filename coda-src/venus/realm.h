@@ -56,7 +56,7 @@ public:
     const char *Name(void) { return name; }
     const RealmId Id(void) { return (RealmId)this; }
 
-    /* MUST be called from within a transaction */
+    /* MUST NOT be called from within a transaction */
     void SetRootVolName(char *name);
     const char *GetRootVolName(void) { return rootvolname; }
 
