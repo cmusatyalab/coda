@@ -37,24 +37,35 @@ extern "C" {
 #include <coda_string.h>
 #include "getsecret.h"
 
+void HashSecret(unsigned char *secret, int len, RPC2_EncryptionKey key)
+{
+    MD5_CTX md5ctxt;
+    unsigned char digest[16];
+
+    MD5_Init(&md5ctxt);
+    MD5_Update(&md5ctxt, secret, len);
+    MD5_Final(digest, &md5ctxt);
+
+    memcpy(key, digest, RPC2_KEYSIZE);
+}
+
 int GetSecret(char *tokenfile, RPC2_EncryptionKey key)
 {
     struct stat statbuf;
     static time_t mtime = 0;
     static off_t size = 0;
-    static unsigned char digest[16];
+    static unsigned char cached_key[RPC2_KEYSIZE];
 
     int fd, n;
     unsigned char buf[512];
-    MD5_CTX md5ctxt;
 
+    /* check if the cached key we have is still valid */
     n = stat(tokenfile, &statbuf);
     if (n < 0) {
 	LogMsg(0, SrvDebugLevel, stdout, "Could not stat %s", tokenfile);
 	return -1;
     }
 
-    /* check if the key we have is still valid */
     if (size != statbuf.st_size || mtime != statbuf.st_mtime) {
 	fd = open(tokenfile, O_RDONLY);
 	if (fd < 0) {
@@ -62,6 +73,7 @@ int GetSecret(char *tokenfile, RPC2_EncryptionKey key)
 	    return -1;
 	}
 
+        /* better be safe than sorry, make sure the buffer is padded with 0 */
 	memset(buf, 0, 512);
 	n = read(fd, buf, 512);
 	if (n < 0) {
@@ -71,16 +83,21 @@ int GetSecret(char *tokenfile, RPC2_EncryptionKey key)
 	}
 	close(fd);
 
-	MD5_Init(&md5ctxt);
-	MD5_Update(&md5ctxt, buf, n);
-	MD5_Final(digest, &md5ctxt);
+        HashSecret(buf, n, cached_key);
 
 	/* update size & mtime of when we read the cached key */
 	size = statbuf.st_size;
 	mtime = statbuf.st_mtime;
     }
-    memcpy(key, digest, RPC2_KEYSIZE);
+    memcpy(key, cached_key, RPC2_KEYSIZE);
 
     return 0;
+}
+
+void GenerateSecret(RPC2_EncryptionKey key)
+{
+    int i;
+    for (i = 0; i < RPC2_KEYSIZE; i++)
+        key[i] = rpc2_NextRandom(NULL);
 }
 

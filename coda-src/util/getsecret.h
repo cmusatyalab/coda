@@ -18,10 +18,24 @@ listed in the file CREDITS.
 #ifndef _GETSECRET_H_
 #define _GETSECRET_H_
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include <rpc2/rpc2.h>
+
+#ifdef __cplusplus
+}
+#endif
+
+/* Copy the hash of 'secret' into the RPC2 key */
+void HashSecret(unsigned char *secret, int len, RPC2_EncryptionKey key);
 
 /* Read a tokenfile and return an RPC2 encryption key. */
 int GetSecret(char *tokenfile, RPC2_EncryptionKey key);
+
+/* Fill the RPC2 key with random values (for session keys) */
+void GenerateSecret(RPC2_EncryptionKey key);
 
 #endif /* _GETSECRET_H_ */
 
