@@ -13,8 +13,7 @@ listed in the file CREDITS.
 
                         Additional copyrights
                            none currently
-
-#*/
+*/
 
 
 /* Standard Coda PW Support Routines
@@ -159,7 +158,7 @@ void InitPW(int firsttime)
 	int fd, pfd, i;
 	struct stat stbuf;
 	char *fbuf;
-	char *admin = "system:administrators";	/* CODA_ASSERT dies on literals */
+	char *admin = "System:Administrators";	/* CODA_ASSERT dies on literals */
 
 	if (firsttime == PWFIRSTTIME)
 	{

@@ -116,7 +116,7 @@ int U_SetLocalTokens(IN int setPag, IN ClearToken *cToken, IN EncryptedSecretTok
     buffer.out = 0;
     buffer.in_size = sizeof(inbuff);
     buffer.out_size = 0;
-    GetPathName();
+    GetPathName(); 
     rc = pioctl(pName, _VICEIOCTL(3), &buffer, 0);
     if(rc) {
 	return(-1);

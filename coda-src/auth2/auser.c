@@ -72,7 +72,7 @@ extern "C" {
 }
 #endif __cplusplus
 
-#ifdef __CYGWIN32__
+#if defined (__CYGWIN32__) || defined (DJGPP)
 #define VSTAB "c:\\usr\\coda\\etc\\vstab"
 #else
 #define VSTAB "/usr/coda/etc/vstab"
@@ -216,9 +216,8 @@ int U_Authenticate(char *hostname, int AuthenticationType, char *uName,
 	if (rc)
 		return rc;
 
-
 	rc = U_BindToServer(hostname, AuthenticationType, identity,
-			    identitylen, secret, secretlen, &RPCid);
+			    identitylen, secret, secretlen, &RPCid);;
 	if(rc == 0) {
 		bound = 1;
 		rc = AuthGetTokens(RPCid, sToken, cToken);

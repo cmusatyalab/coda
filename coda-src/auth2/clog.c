@@ -101,7 +101,7 @@ int main(int argc, char **argv)
 
 #ifdef __CYGWIN32__
     username = getlogin();	 
-#else
+#else if !defined(DJGPP)
     pw = getpwuid (getuid ());
     if (pw) {
         username=pw->pw_name;
@@ -160,7 +160,6 @@ int main(int argc, char **argv)
     rc = U_Authenticate(hostname, authmethod, username, 
 			strlen(username)+1, &cToken, sToken, passwdpipe, 
 			interactive);
-
     if (rc != 0) {
 	fprintf (stderr, "Invalid login (%s).\n", RPC2_ErrorMsg(rc));
 	exit (1);
