@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/simulate.cc,v 4.7 1998/01/10 18:38:57 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/simulate.cc,v 4.8 1998/03/06 20:20:47 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -79,22 +79,18 @@ extern "C" {
 #include <string.h>
 #include <sys/param.h>
 #include <sys/stat.h>
-#ifdef __MACH__
-#include <sysent.h>
-#else	/* __linux__ || __BSD44__ */
 #include <unistd.h>
 #include <stdlib.h>
-#endif
+#include <netinet/in.h>
+
+/* from dir */
+#include <codadir.h>
+/* interfaces */
+#include <vice.h>
 
 #ifdef __cplusplus
 }
 #endif __cplusplus
-
-/* interfaces */
-#include <vice.h>
-
-/* from dir */
-#include <coda_dir.h>
 
 /* from venus */
 #include "fso.h"
@@ -142,16 +138,17 @@ char recType;		/* file system type (ITYPE_{UFS,NFS,AFS,CFS}) of record recPtr */
 ViceFid tmpFid;
 char excludeTmp = 0;
 
-PRIVATE FILE *SimInfile = 0;
-PRIVATE FILE *SimOutfile = 0;
-PRIVATE simulator *Simulator = 0;
+static FILE *SimInfile = 0;
+static FILE *SimOutfile = 0;
+static simulator *Simulator = 0;
 
-PRIVATE void InferNameRemoval(long, char *, long, long);
-PRIVATE void XlateFid(generic_fid_t *, ViceFid *, ViceDataType);
-PRIVATE void GetComponent(char *, char *);
-PRIVATE void UpdateFsoName(char **, char *);
-PRIVATE void ParseTmpFid();
-PRIVATE ViceDataType VTTOFT(unsigned short);
+static int InferNameRemoval(struct DirEntry *, void *);
+static int InferOtherNameRemoval(struct DirEntry *, void *);
+static void XlateFid(generic_fid_t *, ViceFid *, ViceDataType);
+static void GetComponent(char *, char *);
+static void UpdateFsoName(char **, char *);
+static void ParseTmpFid();
+static ViceDataType VTTOFT(unsigned short);
 
 
 void SimInit() {
@@ -745,7 +742,7 @@ void simulator::main(void *parm) {
 		/* Get/initialize target parent. */
 		ViceFid tpfid; XlateFid(&r->toDirFid, &tpfid, Directory);
 		fsobj *tpf;
-		if (FID_EQ(spfid, tpfid))
+		if (FID_EQ(&spfid, &tpfid))
 		    tpf = spf;
 		else {
 		  tpf = GetFso(&tpfid, RC_DATA, Directory, DIR_SIZE, 0, 0);
@@ -798,7 +795,7 @@ void simulator::main(void *parm) {
 			tf->UnLock(RD);
 		    } else if (ttype == Directory && !tf->dir_IsEmpty()) {
 			/* Remove target's children if it's a directory! */
-                            ::EnumerateDir((long *)tf->data.dir, (int (*)(void * ...))::InferNameRemoval, (long)tf);
+                            DH_EnumerateDir(&tf->data.dir->dh, ::InferNameRemoval, (void *)tf);
 			FSO_ASSERT(tf, tf->dir_IsEmpty());
 		    }
 		}
@@ -869,7 +866,7 @@ void simulator::main(void *parm) {
 
 		/* Can't have cross-directory links!  -JJK */
 /*		ASSERT(FID_EQ(spfid, tpfid));*/
-		if (!FID_EQ(spfid, tpfid)) {
+		if (!FID_EQ(&spfid, &tpfid)) {
 		    eprint("ignoring cross-directory link:  %s %s", r->fromPath, r->toPath);
 		    tpf->Lock(RD); FSO_RELE(tpf);
 		    PutFso(&tpf);
@@ -1020,7 +1017,8 @@ void simulator::main(void *parm) {
 
 		    /* Remove any children. */
 		    if (!cf->dir_IsEmpty()) {
-                            ::EnumerateDir((long *)cf->data.dir, (int (*)(void * ...))::InferNameRemoval, (long)cf);
+                            DH_EnumerateDir(&cf->data.dir->dh, ::InferNameRemoval, 
+					    (void *)cf);
 			FSO_ASSERT(cf, cf->dir_IsEmpty());
 		    }
 
@@ -1058,7 +1056,7 @@ void simulator::main(void *parm) {
 		    unsigned long clength = (ctype == File ? (unsigned long)-1 :
 					     ctype == Directory ? DIR_SIZE : SYMLINK_SIZE);
 		    /* Watch out for fake mount points! */
-		    if (ISFAKE(cfid)) {
+		    if (FID_IsFake(&cfid)) {
 			FID_ASSERT(cfid, recType == ITYPE_CFS);
 			pf->Lock(RD); FSO_RELE(pf);
 			PutFso(&pf);
@@ -1222,7 +1220,7 @@ fsobj *simulator::GetFso(ViceFid *key, int rights, ViceDataType type,
     fsobj *f = 0;
 
     /* Can't handle fake mount points! */
-    if (ISFAKE(*key)) {
+    if (FID_IsFake(key)) {
 	FID_ASSERT(*key, recType == ITYPE_CFS);
 	goto Exit;
     }
@@ -1231,7 +1229,7 @@ fsobj *simulator::GetFso(ViceFid *key, int rights, ViceDataType type,
     if (pfid != 0) {
 	fsobj *pf = GetFso(pfid, RC_DATA, Directory, DIR_SIZE, 0, 0);
 	ViceFid cfid;
-	if (pf->dir_Lookup(comp, &cfid) == 0 && !FID_EQ(*key, cfid))
+	if (pf->dir_Lookup(comp, &cfid) == 0 && !FID_EQ(key, &cfid))
 	    InferNameRemoval(pf, comp);
 	PutFso(&pf);
     }
@@ -1336,14 +1334,14 @@ fsobj *simulator::GetFso(ViceFid *key, int rights, ViceDataType type,
 
 	/* 5. Sanity-check parent of existing object. */
     if (HAVESTATUS(f) && pfid != 0) {
-	if (FID_EQ(NullFid, f->pfid)) {
+	if (FID_EQ(&NullFid, &f->pfid)) {
 	    /* <pfid, comp> must not be dirty, because that would require an InferredCreate */
 	    /* (at the time the object was first ``gotten''). */
 	    FSO_ASSERT(f, !DirtyDirEntry(f->vol, pfid, comp) && !CreatedObject(f->vol, pfid));
 	    NameInsertion(pfid, comp, f);
 	}
 	else {
-	    if (!FID_EQ(*pfid, f->pfid)) {
+	    if (!FID_EQ(pfid, &f->pfid)) {
 		/* If object is a multi-linked file, then remove existing names and insert new one in new parent.*/
 		/* Otherwise, infer a real rename. */
 		if (type == File) {
@@ -1376,7 +1374,7 @@ fsobj *simulator::GetFso(ViceFid *key, int rights, ViceDataType type,
 		PutFso(&pf);
 		f->Lock(RD); FSO_RELE(f);
 		if (code == 0) {
-		    FSO_ASSERT(f, FID_EQ(f->fid, cfid));
+		    FSO_ASSERT(f, FID_EQ(&f->fid, &cfid));
 		}
 		else {
 		    if (type == File) {
@@ -1432,7 +1430,7 @@ fsobj *simulator::GetFso(ViceFid *key, int rights, ViceDataType type,
 		break;
 
 	    case SymbolicLink:
-		f->data.symlink = (char *)RVMLIB_REC_MALLOC((unsigned)f->stat.Length + 1);
+		f->data.symlink = (char *)rvmlib_rec_malloc((unsigned)f->stat.Length + 1);
 		break;
 
 	    case Invalid:
@@ -1562,7 +1560,7 @@ void simulator::FlushObject(fsobj *f) {
 
     FSO_ASSERT(f, !DIRTY(f));
 
-    if (!FID_EQ(f->pfid, NullFid)) {
+    if (!FID_EQ(&f->pfid, &NullFid)) {
 	NameRemoval(f);
     }
 
@@ -1597,7 +1595,7 @@ void simulator::NameInsertion(ViceFid *pfid, char *comp, fsobj *f) {
 	    f->fid.Volume, f->fid.Vnode, f->fid.Unique));
 
     FSO_ASSERT(f, pfid->Volume == f->fid.Volume);
-    FSO_ASSERT(f, FID_EQ(f->pfid, NullFid) || FID_EQ(f->pfid, *pfid));
+    FSO_ASSERT(f, FID_EQ(&f->pfid, &NullFid) || FID_EQ(&f->pfid, pfid));
     FSO_ASSERT(f, !CreatedObject(f->vol, pfid));
     FSO_ASSERT(f, !CreatedObject(f->vol, &f->fid));
     FSO_ASSERT(f, !DirtyDirEntry(f->vol, pfid, comp));
@@ -1622,7 +1620,7 @@ void simulator::NameInsertion(ViceFid *pfid, char *comp, fsobj *f) {
 
 void simulator::NameRemoval(fsobj *f) {
     FSO_ASSERT(f, !DIRTY(f));
-    FSO_ASSERT(f, !FID_EQ(f->pfid, NullFid));
+    FSO_ASSERT(f, !FID_EQ(&f->pfid, &NullFid));
 
     FSO_HOLD(f); f->UnLock(RD);
     fsobj *pf = GetFso(&f->pfid, RC_DATA, Directory, DIR_SIZE, 0, 0);
@@ -1707,7 +1705,7 @@ fsobj *simulator::InferCreate(ViceFid *key, ViceDataType type, ViceFid *pfid, ch
 
 
 void simulator::InferDelete(fsobj *f) {
-    if (FID_EQ(f->pfid, NullFid)) {
+    if (FID_EQ(&f->pfid, &NullFid)) {
 	eprint("Translating fid in lieu of %s: (%x.%x.%x)",
 	       f->stat.VnodeType == Directory ? "rmdir" : "remove",
 	       f->fid.Volume, f->fid.Vnode, f->fid.Unique);
@@ -1745,7 +1743,7 @@ void simulator::InferNameRemoval(fsobj *pf, char *comp) {
     ViceFid cfid;
     FSO_ASSERT(pf, pf->dir_Lookup(comp, &cfid) == 0);
     fsobj *f = FSDB->Find(&cfid);
-    FSO_ASSERT(pf, f != 0 && HAVESTATUS(f) && FID_EQ(pf->fid, f->pfid));
+    FSO_ASSERT(pf, f != 0 && HAVESTATUS(f) && FID_EQ(&pf->fid, &f->pfid));
 
     ViceDataType ctype = (ViceDataType)f->stat.VnodeType;
     unsigned long clength = (ctype == File ? (unsigned long)-1 :
@@ -1758,13 +1756,17 @@ void simulator::InferNameRemoval(fsobj *pf, char *comp) {
 }
 
 
-PRIVATE void InferNameRemoval(long hook, char *name, long vnode, long vunique) {
-    fsobj *pf = (fsobj *)hook;
+static int InferNameRemoval(struct DirEntry *de, void *hook)
+{
+	char *name = de->name;
+	fsobj *pf = (fsobj *)hook;
 
-    /* Skip over ".." and ".". */
-    if (STREQ(name, "..") || STREQ(name, ".")) return;
+	/* Skip over ".." and ".". */
+	if (STREQ(name, "..") || STREQ(name, ".")) 
+		return 0;
 
-    Simulator->InferNameRemoval(pf, name);
+	Simulator->InferNameRemoval(pf, name);
+	return 0;
 }
 
 void simulator::InferNameRemoval(fsobj *pf, char *comp, fsobj *f) {
@@ -1773,7 +1775,7 @@ void simulator::InferNameRemoval(fsobj *pf, char *comp, fsobj *f) {
 	if (!HAVEDATA(f)) f->dir_MakeDir();
 	if (!f->dir_IsEmpty()) {
 	    FSO_HOLD(pf); pf->UnLock(RD);
-	    ::EnumerateDir((long *)f->data.dir, (int (*)(void * ...))::InferNameRemoval, (long)f);
+	    DH_EnumerateDir(&f->data.dir->dh, ::InferNameRemoval, (void *)f);
 	    pf->Lock(RD); FSO_RELE(pf);
 	}
     }
@@ -1822,18 +1824,23 @@ struct ionr_hook {
     char *comp;
 };
 
-PRIVATE void InferOtherNameRemoval(long hook, char *name, long vnode, long vunique) {
-    struct ionr_hook *ionr_hook = (struct ionr_hook *)hook;
+static int InferOtherNameRemoval(struct DirEntry *de, void * hook) 
+{
+	char *name = de->name;
+	long vnode = ntohl(de->fid.dnf_vnode);
+	long vunique = ntohl(de->fid.dnf_unique);
 
-    if (vnode == ionr_hook->cfid->Vnode &&
-	vunique == ionr_hook->cfid->Unique &&
-	!STREQ(name, ionr_hook->comp))
-	Simulator->InferNameRemoval(ionr_hook->pf, name);
+	struct ionr_hook *ionr_hook = (struct ionr_hook *)hook;
+
+	if (vnode == ionr_hook->cfid->Vnode &&
+	    vunique == ionr_hook->cfid->Unique &&
+	    !STREQ(name, ionr_hook->comp))
+		Simulator->InferNameRemoval(ionr_hook->pf, name);
 }
 
 /* Remove all names for cf in pf OTHER than comp. */
 void simulator::InferOtherNameRemoval(fsobj *pf, fsobj *cf, char *comp) {
-    FSO_ASSERT(cf, FID_EQ(pf->fid, cf->pfid) && cf->stat.VnodeType == File && cf->stat.LinkCount > 1);
+    FSO_ASSERT(cf, FID_EQ(&pf->fid, &cf->pfid) && cf->stat.VnodeType == File && cf->stat.LinkCount > 1);
 
     struct ionr_hook hook;
     hook.pf = pf;
@@ -1841,14 +1848,14 @@ void simulator::InferOtherNameRemoval(fsobj *pf, fsobj *cf, char *comp) {
     hook.comp = comp;
     FSO_HOLD(cf); cf->UnLock(RD);
 
-    ::EnumerateDir((long *)pf->data.dir, (int (*)(void * ...))::InferOtherNameRemoval, (long)&hook);
+    DH_EnumerateDir(&pf->data.dir->dh, ::InferOtherNameRemoval, (void *)&hook);
     cf->Lock(RD); FSO_RELE(cf);
     FSO_ASSERT(cf, cf->stat.LinkCount == 1);
 }
 
 
 void simulator::InferRename(fsobj *sf, ViceFid *tpfid, char *toname) {
-    FSO_ASSERT(sf, sf->stat.VnodeType != File || (!FID_EQ(sf->pfid, *tpfid) && sf->stat.LinkCount == 1));
+    FSO_ASSERT(sf, sf->stat.VnodeType != File || (!FID_EQ(&sf->pfid, tpfid) && sf->stat.LinkCount == 1));
     FSO_HOLD(sf); sf->UnLock(RD);
 
     Begin_VFS(tpfid->Volume, (int)VFSOP_RENAME);
@@ -1857,7 +1864,7 @@ void simulator::InferRename(fsobj *sf, ViceFid *tpfid, char *toname) {
     FSO_ASSERT(spf, spf->dir_LookupByFid(fromname, &sf->fid) == 0);
     FSO_HOLD(spf); spf->UnLock(RD);
     fsobj *tpf;
-    if (FID_EQ(sf->pfid, *tpfid))
+    if (FID_EQ(&sf->pfid, tpfid))
 	tpf = spf;
     else {
 	tpf = GetFso(tpfid, RC_DATA, Directory, DIR_SIZE, 0, 0);
@@ -1891,7 +1898,7 @@ void simulator::InferRename(fsobj *sf, ViceFid *tpfid, char *toname) {
 
 
 void simulator::InferLink(fsobj *sf, ViceFid *tpfid, char *toname) {
-    FSO_ASSERT(sf, FID_EQ(sf->pfid, *tpfid));
+    FSO_ASSERT(sf, FID_EQ(&sf->pfid, tpfid));
     FSO_HOLD(sf); sf->UnLock(RD);
 
     eprint("Inferring link: (%x.%x.%x), %s, (%x.%x.%x)",
@@ -1960,7 +1967,7 @@ void simulator::InferCloses(fsobj *f) {
 
 
 /* Lily's macro doesn't do quite what I want. */
-PRIVATE void XlateFid(generic_fid_t *_gfid_, ViceFid *_cfid_, ViceDataType type) {
+static void XlateFid(generic_fid_t *_gfid_, ViceFid *_cfid_, ViceDataType type) {
     if (type != File && type != Directory && type != SymbolicLink)
 	Choke("XlateFid: bogus vnode type (%d)", type);
 
@@ -1979,7 +1986,7 @@ PRIVATE void XlateFid(generic_fid_t *_gfid_, ViceFid *_cfid_, ViceDataType type)
 }
 
 
-PRIVATE void GetComponent(char *path, char *comp) {
+static void GetComponent(char *path, char *comp) {
     char *cp = rindex(path, '/');
     if (cp == 0) cp = path;
     else cp++;
@@ -1994,18 +2001,18 @@ PRIVATE void GetComponent(char *path, char *comp) {
 
 /* update the name or symlink fields in an fso with info from a record */
 /* these fso fields are in RVM */
-PRIVATE void UpdateFsoName(char **f, char *r) {
+static void UpdateFsoName(char **f, char *r) {
     int len = (r ? (int) strlen(r) : 0) + 1;
-    if (*f) RVMLIB_REC_FREE(*f);
-    *f = (char *)RVMLIB_REC_MALLOC(len);
-    RVMLIB_SET_RANGE(*f, len);
+    if (*f) rvmlib_rec_free(*f);
+    *f = (char *)rvmlib_rec_malloc(len);
+    rvmlib_set_range(*f, len);
     if (r) strcpy(*f, r);
     else *f[0] = '\0';
 }
 
 
 /* Temporary hack to cope with the fact that closes of devices are sometimes passed through! */
-PRIVATE ViceDataType VTTOFT(unsigned short vt) {
+static ViceDataType VTTOFT(unsigned short vt) {
     switch (vt) {
 	case C_VREG: return(File);
 	case C_VDIR: return(Directory);
@@ -2040,17 +2047,17 @@ int simulator::CreatedObject(volent *v, ViceFid *Fid) {
 		break;
 
 	    case ViceCreate_OP:
-		if (FID_EQ(*Fid, m->u.u_create.CFid))
+		if (FID_EQ(Fid, &m->u.u_create.CFid))
 		    created = 1;
 		break;
 
 	    case ViceMakeDir_OP:
-		if (FID_EQ(*Fid, m->u.u_mkdir.CFid))
+		if (FID_EQ(Fid, &m->u.u_mkdir.CFid))
 		    created = 1;
 		break;
 
 	    case ViceSymLink_OP:
-		if (FID_EQ(*Fid, m->u.u_symlink.CFid))
+		if (FID_EQ(Fid, &m->u.u_symlink.CFid))
 		    created = 1;
 		break;
 
@@ -2082,46 +2089,46 @@ int simulator::DirtyDirEntry(volent *v, ViceFid *PFid, char *Name) {
 		break;
 
 	    case ViceCreate_OP:
-		if (FID_EQ(*PFid, m->u.u_create.PFid) &&
+		if (FID_EQ(PFid, &m->u.u_create.PFid) &&
 		    STREQ(Name, (char *)m->u.u_create.Name))
 		    return(1);
 		break;
 
 	    case ViceRemove_OP:
-		if (FID_EQ(*PFid, m->u.u_remove.PFid) &&
+		if (FID_EQ(PFid, &m->u.u_remove.PFid) &&
 		    STREQ(Name, (char *)m->u.u_remove.Name))
 		    return(1);
 		break;
 
 	    case ViceLink_OP:
-		if (FID_EQ(*PFid, m->u.u_link.PFid) &&
+		if (FID_EQ(PFid, &m->u.u_link.PFid) &&
 		    STREQ(Name, (char *)m->u.u_link.Name))
 		    return(1);
 		break;
 
 	    case ViceRename_OP:
-		if (FID_EQ(*PFid, m->u.u_rename.SPFid) &&
+		if (FID_EQ(PFid, &m->u.u_rename.SPFid) &&
 		    STREQ(Name, (char *)m->u.u_rename.OldName))
 		    return(1);
-		if (FID_EQ(*PFid, m->u.u_rename.TPFid) &&
+		if (FID_EQ(PFid, &m->u.u_rename.TPFid) &&
 		    STREQ(Name, (char *)m->u.u_rename.NewName))
 		    return(1);
 		break;
 
 	    case ViceMakeDir_OP:
-		if (FID_EQ(*PFid, m->u.u_mkdir.PFid) &&
+		if (FID_EQ(PFid, &m->u.u_mkdir.PFid) &&
 		    STREQ(Name, (char *)m->u.u_mkdir.Name))
 		    return(1);
 		break;
 
 	    case ViceRemoveDir_OP:
-		if (FID_EQ(*PFid, m->u.u_rmdir.PFid) &&
+		if (FID_EQ(PFid, &m->u.u_rmdir.PFid) &&
 		    STREQ(Name, (char *)m->u.u_rmdir.Name))
 		    return(1);
 		break;
 
 	    case ViceSymLink_OP:
-		if (FID_EQ(*PFid, m->u.u_symlink.PFid) &&
+		if (FID_EQ(PFid, &m->u.u_symlink.PFid) &&
 		    STREQ(Name, (char *)m->u.u_symlink.OldName))
 		    return(1);
 		break;
@@ -2220,10 +2227,10 @@ void simulator::UnperformInsertion(ViceFid *pfid, char *comp, ViceFid *cfid) {
     fsobj *cf = FSDB->Find(cfid);
     FID_ASSERT(*cfid, cf != 0);
 
-    FSO_ASSERT(cf, FID_EQ(cf->pfid, *pfid));
+    FSO_ASSERT(cf, FID_EQ(&cf->pfid, pfid));
     ViceFid tfid;
     FSO_ASSERT(pf, pf->dir_Lookup(comp, &tfid) == 0);
-    FSO_ASSERT(pf, FID_EQ(tfid, *cfid));
+    FSO_ASSERT(pf, FID_EQ(&tfid, cfid));
 
     pf->dir_Delete(comp);
     char tcomp[CFS_MAXNAMLEN];
@@ -2243,7 +2250,7 @@ void simulator::UnperformRemoval(ViceFid *pfid, char *comp, ViceFid *cfid) {
     fsobj *cf = FSDB->Find(cfid);
     FID_ASSERT(*cfid, cf != 0);
 
-    FSO_ASSERT(cf, FID_EQ(cf->pfid, NullFid) || FID_EQ(cf->pfid, *pfid));
+    FSO_ASSERT(cf, FID_EQ(&cf->pfid, &NullFid) || FID_EQ(&cf->pfid, pfid));
     ViceFid tfid;
     FSO_ASSERT(pf, pf->dir_Lookup(comp, &tfid) == ENOENT);
 
@@ -2274,7 +2281,7 @@ void simulator::OutputSkeletonFile(volent *v, FILE *sfp) {
 	fso_vol_iterator next(NL, v);
 	fsobj *f;
 	while (f = next())
-	    if (FID_EQ(f->pfid, NullFid))
+	    if (FID_EQ(&f->pfid, &NullFid))
 		Skeletize(f, 0, sfp);
     }
 }
@@ -2284,7 +2291,7 @@ void simulator::MarkAncestors(fsobj *f) {
     /* Mark this fid and all its ancestors. */
     if (f->flags.marked) return;
     f->flags.marked = 1;
-    if (FID_EQ(f->pfid, NullFid)) return;
+    if (FID_EQ(&f->pfid, &NullFid)) return;
     fsobj *pf = FSDB->Find(&f->pfid);
     FID_ASSERT(f->pfid, pf != 0);
     MarkAncestors(pf);
@@ -2296,7 +2303,7 @@ struct SkeletizeHook {
     FILE *sfp;
 };
 
-PRIVATE void Skeletize(long hook, char *name, long vnode, long vunique) {
+static void Skeletize(long hook, char *name, long vnode, long vunique) {
     SkeletizeHook *s_hook = (SkeletizeHook *)hook;
 
     /* Skip over ".." and ".". */
@@ -2465,7 +2472,7 @@ void simulator::GetPath(ViceFid *fid, char *buf, char *trailer) {
     fsobj *f = FSDB->Find(fid);
     FID_ASSERT(*fid, f != 0);
 
-    if (FID_EQ(f->pfid, NullFid)) {
+    if (FID_EQ(&f->pfid, &NullFid)) {
 	sprintf(buf, "%u/%u.%u", f->fid.Volume, f->fid.Vnode, f->fid.Unique);
     }
     else {
@@ -2496,7 +2503,7 @@ void simulator::GetPath(ViceFid *fid, char *buf, char *trailer) {
  * tmp fid should be the actual tmp directory, not a 
  * symlink.
  */
-PRIVATE void ParseTmpFid() {
+static void ParseTmpFid() {
     tmpFid = NullFid;
 
     if (sscanf(SimTmpFid, "%lx.%lx", &tmpFid.Volume, &tmpFid.Vnode) == 2) {

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/vol_repair.cc,v 4.3 1998/01/10 18:39:12 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/vol_repair.cc,v 4.4 1998/03/06 20:20:52 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -54,22 +54,17 @@ extern "C" {
 #include <sys/stat.h>
 #include <errno.h>
 #include <string.h>
-#ifdef __MACH__
-#include <sysent.h>
-#include <libc.h>
-#else	/* __linux__ || __BSD44__ */
 #include <unistd.h>
 #include <stdlib.h>
-#endif
 
 #include <rpc2.h>
+#include <vice.h>
 
 #ifdef __cplusplus
 }
 #endif __cplusplus
 
 /* interfaces */
-#include <vice.h>
 #include <inconsist.h>
 
 /* from libal */
@@ -373,9 +368,9 @@ Exit:
 	fsobj *f = FSDB->Find(RepairFid);
 	if (f != 0) {
 	    f->Lock(WR);
-	    ATOMIC(
+	    Recov_BeginTrans();
 		f->Kill();
-	    , MAXFP)
+	    Recov_EndTrans(MAXFP);
 	    FSDB->Put(&f);
 
 	    /* Ought to flush its descendents too! */
@@ -550,9 +545,9 @@ int volent::DisconnectedRepair(ViceFid *RepairFid, char *RepairFile,
 	    LOG(0, ("DisconnectedRepair: Going to kill %x.%x.%x \n",
 		    RepairFid->Volume, RepairFid->Vnode, RepairFid->Unique));
 	    f->Lock(WR);
-	    ATOMIC(
+	    Recov_BeginTrans();
 	       f->Kill();
-	     , MAXFP)
+	     Recov_EndTrans(MAXFP);
 
 	    if (f->refcnt > 1) {
 		/* Put isn't going to release the object so can't call create */
@@ -587,7 +582,7 @@ int volent::DisconnectedRepair(ViceFid *RepairFid, char *RepairFile,
 
 	LOG(100, ("DisconnectedRepair: Going to call LocalRepair(%x.%x.%x)\n",
 		  RepairFid->Volume, RepairFid->Vnode, RepairFid->Unique));
-	ATOMIC(
+	Recov_BeginTrans();
 	   code = LogRepair(Mtime, vuid, RepairFid, status.Length, status.Date,
 			    status.Owner, status.Mode);
 	   /*
@@ -605,13 +600,13 @@ int volent::DisconnectedRepair(ViceFid *RepairFid, char *RepairFile,
 	       code = LocalRepair(f, &status,
 				  RepairF ? RepairF->data.file->Name() : RepairFile,
 				  &tpfid);
-	  , DMFP)
+	  Recov_EndTrans(DMFP);
 	  
 	if (code != 0) {
 	    /* kill the object? - XXX */
-	    ATOMIC(
+	    Recov_BeginTrans();
 		   f->Kill();
-	    , MAXFP)
+	    Recov_EndTrans(MAXFP);
 	}
 	FSDB->Put(&f);
     }	    

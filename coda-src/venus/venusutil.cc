@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/venusutil.cc,v 4.12 1998/03/06 20:20:50 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/venusutil.cc,v 4.13 1998/04/14 21:03:07 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -120,8 +120,8 @@ RPCOpStatistics RPCOpStats;
 
 /* *****  Private variables  ***** */
 
-PRIVATE int LogInited = 0;
-PRIVATE char *VFSOpsNameTemplate[NVFSOPS] = {
+static int LogInited = 0;
+static char *VFSOpsNameTemplate[NVFSOPS] = {
     "No-Op",
     "No-Op",
     "Root",
@@ -246,12 +246,6 @@ void Choke(char *fmt ...) {
 
     /* NOTREACHED */
 }
-
-/* Dir package expects to find a Die() routine */
-void Die(char *msg)
-    {
-    Choke(msg);
-    }
 
 
 void VenusPrint(int argc, char **argv) {
@@ -519,7 +513,7 @@ extern unsigned edata;
 extern unsigned end;
 #ifndef __CYGWIN32__
     fdprint(afd, "\tsegment sizes = (%#08x, %#08x, %#08x, %#08x)\n",
-	     etext, edata - etext, end - edata, sbrk(0) - end);
+	     etext, edata - etext, end - edata, (char *)sbrk(0) - end);
 #endif
 
 #ifdef	__MACH__
@@ -567,37 +561,6 @@ extern unsigned end;
 #endif	/* __MACH__ */
 
     fdprint(afd, "\n");
-}
-
-
-int VMUsage() {
-#ifdef	__MACH__
-    vm_task_t target_task = task_self();
-    int region = 0;
-    vm_address_t address = 0;
-    vm_size_t totalsize = 0;
-    for (;;) {
-	vm_size_t size;
-	vm_prot_t protection;
-	vm_prot_t max_protection;
-	vm_inherit_t inheritance;
-	boolean_t shared;
-	port_t object_name;
-	vm_offset_t offset;
-
-	kern_return_t ret = vm_region(target_task, &address, &size, &protection,
-				      &max_protection, &inheritance, &shared,
-				      &object_name, &offset);
-	if (ret != KERN_SUCCESS) break;
-
-	region++;
-	address += size;
-	totalsize += size;
-    }
-    return(totalsize);
-#else	MACH
-    return(0);
-#endif	/* __MACH__ */
 }
 
 
@@ -857,7 +820,7 @@ void ToggleMallocTrace() {
     rds_trace_off();
     MallocTrace = FALSE;
   } else {
-    rds_trace_on(rds_printer);
+    rds_trace_on(logFile);
     rds_trace_dump_heap();
     MallocTrace = TRUE;
   }

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/worker.cc,v 4.16 1998/06/07 20:18:44 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/worker.cc,v 4.17 1998/06/16 10:46:19 jaharkes Exp $";
 #endif /*_BLURB_*/
 
 
@@ -121,7 +121,7 @@ const int WorkerStackSize = 131072;
 int MaxWorkers = UNSET_MAXWORKERS;
 int MaxPrefetchers = UNSET_MAXWORKERS;
 int KernelMask = 0;	/* subsystem is uninitialized until mask is non-zero */
-PRIVATE int Mounted = 0;
+static int Mounted = 0;
 
 
 /* -------------------------------------------------- */
@@ -399,9 +399,8 @@ int k_Purge() {
     msg.oh.unique = 0;
     
     /* Send the message. */
-    if (MsgWrite((char *)&msg, sizeof(struct cfs_out_hdr)) 
-	!= sizeof(struct cfs_out_hdr))
-	Choke("k_Purge: Flush, message write returns %d", errno);
+    if (MsgWrite((char *)&msg, sizeof(msg)) != sizeof(msg))
+	    Choke("k_Purge: Flush, message write returns %d", errno);
 
     LOG(1, ("k_Purge: Flush, returns 0\n"));
     VFSStats.VFSOps[CFS_FLUSH].success++;
@@ -686,7 +685,7 @@ void WorkerReturnEarly(ViceFid *fid) {
     worker_iterator next;
     worker *w;
     while (w = next())
-	if (FID_EQ(w->StoreFid, *fid)) {
+	if (FID_EQ(&w->StoreFid, fid)) {
 	    w->StoreFid = NullFid;
 	    w->Return(0);
 	}

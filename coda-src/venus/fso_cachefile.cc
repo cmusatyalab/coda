@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/fso_cachefile.cc,v 4.4 1998/01/10 18:38:42 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/fso_cachefile.cc,v 4.5 1998/03/06 20:20:43 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -169,11 +169,11 @@ void CacheFile::ResetContainer() {
     if (::close(tfd) < 0)
 	Choke("CacheFile::ResetContainer: close failed (%d)", errno);
 
-    ATOMIC(
-	RVMLIB_REC_OBJECT(*this);
-	inode = tstat.st_ino;
-	length = 0;
-    , MAXFP)
+    Recov_BeginTrans();
+    RVMLIB_REC_OBJECT(*this);
+    inode = tstat.st_ino;
+    length = 0;
+    Recov_EndTrans(MAXFP);
 }
 
 
@@ -205,11 +205,7 @@ void CacheFile::Copy(CacheFile *source) {
 
     int tfd, ffd, n;
     struct stat tstat;
-#ifndef __BSD44__
-    char buf[PAGESIZE];
-#else
-    char buf[MAXBSIZE];
-#endif
+    char buf[DIR_PAGESIZE];
 
     if ((tfd = ::open(name, O_RDWR | O_CREAT | O_TRUNC, V_MODE)) < 0)
 	Choke("CacheFile::Copy: open failed (%d)", errno);

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/hdb_daemon.cc,v 4.3 97/12/16 16:08:30 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/hdb_daemon.cc,v 4.4 1998/01/26 21:31:50 mre Exp $";
 #endif /*_BLURB_*/
 
 
@@ -70,12 +70,12 @@ extern "C" {
 
 /*  *****  Private constants  *****  */
 
-PRIVATE const int HDBDaemonInterval = 300;
-PRIVATE const int HdbWalkInterval = 10 * 60;
-PRIVATE const int HDBDaemonStackSize = 65536;
-PRIVATE const int HDBDaemonPriority = LWP_NORMAL_PRIORITY-1;
+static const int HDBDaemonInterval = 300;
+static const int HdbWalkInterval = 10 * 60;
+static const int HDBDaemonStackSize = 65536;
+static const int HDBDaemonPriority = LWP_NORMAL_PRIORITY-1;
 
-PRIVATE long LastHdbWalk;
+static long LastHdbWalk;
 
 /* *****  Private types  ***** */
 
@@ -89,13 +89,13 @@ struct hdbd_msg : public olink {
 
 /*  *****  Private variables  *****  */
 
-PRIVATE char hdbdaemon_sync;
-PRIVATE olist hdbd_msgq;
+static char hdbdaemon_sync;
+static olist hdbd_msgq;
 
 
 /*  *****  Private routines  ***** */
 
-PRIVATE void HDBD_HandleRequests();
+static void HDBD_HandleRequests();
 
 
 /*  *****  The HDB Daemon  *****  */
@@ -185,7 +185,7 @@ int HDBD_Request(hdbd_request type, void *request, vuid_t euid, vuid_t ruid) {
 }
 
 
-PRIVATE void HDBD_HandleRequests() {
+static void HDBD_HandleRequests() {
     hdbd_msg *m = 0;
     while (m = (hdbd_msg *)hdbd_msgq.get()) {
 	switch(m->type) {

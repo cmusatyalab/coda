@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/venuscb.cc,v 4.5 1998/04/14 21:03:07 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/venuscb.cc,v 4.6 1998/08/05 23:50:19 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -219,7 +219,7 @@ long CallBack(RPC2_Handle RPCid, ViceFid *fid) {
 
     /* Notify Codacon. */
     {
-	if (FID_EQ(*fid, NullFid))
+	if (FID_EQ(fid, &NullFid))
 	    MarinerLog("callback::BackProbe %s\n", s->name);
 	else
 	    MarinerLog("callback::Callback %s (%x.%x.%x)\n",

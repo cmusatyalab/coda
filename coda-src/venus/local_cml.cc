@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/local_cml.cc,v 4.3 1998/01/10 18:38:51 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/local_cml.cc,v 4.4 1998/03/06 20:20:45 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -69,7 +69,7 @@ extern "C" {
 
 
 /* ********** beginning of misc routines ********** */
-PRIVATE int filecopy(int here, int there)
+static int filecopy(int here, int there)
 {
     register int kount;
     char buffer[BUFSIZ];
@@ -118,7 +118,7 @@ int cmlent::LocalFakeify()
      * another subtree that is affected by the operation.
      */
     ViceFid *fid = Fids[0];
-    OBJ_ASSERT(this, !IsLocalFid(fid));
+    OBJ_ASSERT(this, !FID_IsLocal(fid));
     fsobj *root;
     OBJ_ASSERT(this, root = FSDB->Find(fid));
     if (DYING(root)) {
@@ -133,11 +133,11 @@ int cmlent::LocalFakeify()
     if (rc != 0) return rc;
     
     fid = Fids[2];
-    if (fid == NULL || IsLocalFid(fid)) {
+    if (fid == NULL || FID_IsLocal(fid)) {
 	SetRepairFlag();
 	return (0);
     }
-    OBJ_ASSERT(this, !IsLocalFid(fid));
+    OBJ_ASSERT(this, !FID_IsLocal(fid));
     OBJ_ASSERT(this, root = FSDB->Find(fid));
     if (DYING(root)) {
 	LOG(100, ("cmlent::LocalFakeify: object 0x%x.%x.%x removed\n",
@@ -1366,11 +1366,11 @@ void cmlent::GetLocalOpMsg(char *msg)
 void cmlent::SetRepairFlag()
 {
     if (flags.to_be_repaired == 0) {
-	ATOMIC(
-	       RVMLIB_REC_OBJECT(*this);
-	       flags.to_be_repaired = 1;
-	       this->tid = 0;	/* also reset its tid, may not be necessary */
-	, MAXFP)
+	Recov_BeginTrans();
+	RVMLIB_REC_OBJECT(*this);
+	flags.to_be_repaired = 1;
+	this->tid = 0;	/* also reset its tid, may not be necessary */
+	Recov_EndTrans(MAXFP);
     }
 }
 
@@ -1378,10 +1378,10 @@ void cmlent::SetRepairFlag()
 void cmlent::SetRepairMutationFlag()
 {
     if (flags.repair_mutation == 0) {
-	ATOMIC(
-	       RVMLIB_REC_OBJECT(flags);
-	       flags.repair_mutation = 1;
-	, MAXFP)
+	Recov_BeginTrans();
+	RVMLIB_REC_OBJECT(flags);
+	flags.repair_mutation = 1;
+	Recov_EndTrans(MAXFP);
     }
 }
 
@@ -1392,7 +1392,7 @@ int cmlent::InLocalRepairSubtree(ViceFid *LocalRootFid)
      * check whether the objects mutated by this cmlent belongs to
      * the subtree rooted at the object whose fid equals RootFid.
      */
-    OBJ_ASSERT(this, LocalRootFid && IsLocalFid(LocalRootFid));
+    OBJ_ASSERT(this, LocalRootFid && FID_IsLocal(LocalRootFid));
     LOG(100, ("cmlent::InLocalRepairSubtree: LocalRootFid = 0x%x.%x.%x\n",
 	      LocalRootFid->Volume, LocalRootFid->Vnode, LocalRootFid->Unique));
     ViceFid *Fids[3];
@@ -1402,7 +1402,7 @@ int cmlent::InLocalRepairSubtree(ViceFid *LocalRootFid)
 
     for (int i = 0; i < 3; i++) {
 	if (!Fids[i]) continue;
-	if (!IsLocalFid(Fids[i])) continue;
+	if (!FID_IsLocal(Fids[i])) continue;
 	OBJ_ASSERT(this, OBJ = FSDB->Find(Fids[i]));
 	if (OBJ->IsAncestor(LocalRootFid)) return 1;
     }
@@ -1424,7 +1424,7 @@ int cmlent::InGlobalRepairSubtree(ViceFid *GlobalRootFid)
      * also works on dying objects because parent/child relationship is destroyed 
      * only at GC time.
      */
-    OBJ_ASSERT(this, GlobalRootFid && !IsLocalFid(GlobalRootFid));
+    OBJ_ASSERT(this, GlobalRootFid && !FID_IsLocal(GlobalRootFid));
     LOG(100, ("cmlent::InGlobalRepairSubtree: GlobalRootFid = 0x%x.%x.%x\n",
 	GlobalRootFid->Volume, GlobalRootFid->Vnode, GlobalRootFid->Unique));
 
@@ -1440,7 +1440,7 @@ int cmlent::InGlobalRepairSubtree(ViceFid *GlobalRootFid)
 
     for (int i = 0; i < 3; i++) {
 	if (!Fids[i]) continue;
-	if (IsLocalFid(Fids[i])) break;
+	if (FID_IsLocal(Fids[i])) break;
 	OBJ = FSDB->Find(Fids[i]);
 	if (!OBJ) continue;
 	if (OBJ->IsAncestor(GlobalRootFid)) return 1;
@@ -1499,7 +1499,7 @@ void cmlent::GetVVandFids(ViceVersionVector *vvs[], ViceFid *fids[])
 	    vvs[0] = &u.u_rename.SPVV;
 	    fids[1] = &u.u_rename.SFid;
 	    vvs[1] = &u.u_rename.SVV;
-	    if (!FID_EQ(u.u_rename.SPFid, u.u_rename.TPFid)) {
+	    if (!FID_EQ(&u.u_rename.SPFid, &u.u_rename.TPFid)) {
 		fids[2] = &u.u_rename.TPFid;
 		vvs[2] = &u.u_rename.TPVV;
 	    }
@@ -1602,10 +1602,10 @@ void cmlent::GetAllFids(ViceFid *fids[])
 /* must not be called from within a transaction */
 void cmlent::SetTid(int Tid)
 {
-    ATOMIC(
-	   RVMLIB_REC_OBJECT(this->tid);
-	   this->tid = Tid;
-    , MAXFP)
+    Recov_BeginTrans();
+    RVMLIB_REC_OBJECT(this->tid);
+    this->tid = Tid;
+    Recov_EndTrans(MAXFP);
 }
 
 
@@ -1615,7 +1615,7 @@ int cmlent::ContainLocalFid()
     GetAllFids(Fids);
     for (int i = 0; i < 3; i++) {
 	if (Fids[i] == NULL) continue;
-	if (IsLocalFid(Fids[i])) {
+	if (FID_IsLocal(Fids[i])) {
 	    return 1;
 	}
     }

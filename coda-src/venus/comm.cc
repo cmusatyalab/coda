@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/comm.cc,v 4.17 1998/07/14 11:19:03 jaharkes Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/comm.cc,v 4.18 1998/08/05 23:50:15 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -61,15 +61,8 @@ extern "C" {
 #include <stdio.h>
 #include <string.h>
 #include <struct.h>
-#ifdef __MACH__
-  /* sigh if gcc 2.3.3 */
-  /* #define binding Xbinding*/
-#include <sysent.h>
-#include <libc.h>
-#else	/* __linux__ || __BSD44__ */
 #include <unistd.h>
 #include <stdlib.h>
-#endif
 #ifdef	__BSD44__
 #include <machine/endian.h>
 #endif
@@ -151,7 +144,7 @@ struct FailFilterInfoStruct {
 } FailFilterInfo[MAXFILTERS];
 
 
-PRIVATE int VSG_HashFN(void *);
+static int VSG_HashFN(void *);
 
 olist *mgrpent::mgrptab;
 char mgrpent::mgrptab_sync;
@@ -1858,7 +1851,7 @@ int mgrpent::Suicide(int disconnect) {
 #define	_EACCES		64
 #define	_EWOULDBLOCK	128
 
-PRIVATE int Unanimity(int *codep, unsigned long *hosts, RPC2_Integer *retcodes, int mask) {
+static int Unanimity(int *codep, unsigned long *hosts, RPC2_Integer *retcodes, int mask) {
     int	code = -1;
 
     for (int i = 0; i < VSG_MEMBERS; i++) {
@@ -1910,7 +1903,7 @@ PRIVATE int Unanimity(int *codep, unsigned long *hosts, RPC2_Integer *retcodes, 
 }
 
 
-PRIVATE int AnyReturned(unsigned long *hosts, RPC2_Integer *retcodes, int code) {
+static int AnyReturned(unsigned long *hosts, RPC2_Integer *retcodes, int code) {
     for (int i = 0; i < VSG_MEMBERS; i++) {
 	if (hosts[i] == 0) continue;
 
@@ -2392,10 +2385,10 @@ void VSGInit() {
 
     /* Allocate the database if requested. */
     if (InitMetaData) {					/* <==> VSGDB == 0 */
-	TRANSACTION(
+	Recov_BeginTrans();
 	    RVMLIB_REC_OBJECT(VSGDB);
 	    VSGDB = new vsgdb;
-	)
+	Recov_EndTrans(0);
     }
 
     /* Initialize transient members. */
@@ -2437,7 +2430,7 @@ void VSGInit() {
 }
 
 
-PRIVATE int VSG_HashFN(void *key) {
+static int VSG_HashFN(void *key) {
     return(*((unsigned long *)key));
 }
 
@@ -2447,7 +2440,7 @@ void *vsgdb:: operator new(size_t size){
     vsgdb *v = 0;
 
     /* Allocate recoverable store for the object. */
-    v = (vsgdb *)RVMLIB_REC_MALLOC(size);
+    v = (vsgdb *)rvmlib_rec_malloc(size);
     assert(v);
     return(v);
 }
@@ -2496,9 +2489,9 @@ vsgent *vsgdb::Create(unsigned long Addr, unsigned long *Hosts) {
 	{ v->print(logFile); Choke("vsgdb::Create: key exists"); }
 
     /* Fashion a new object. */
-    ATOMIC(
+    Recov_BeginTrans();
 	v = new vsgent(0/*priority*/, Addr, Hosts);
-    , MAXFP)
+    Recov_EndTrans(MAXFP);
 
     if (v == 0)
 	LOG(0, ("vsgdb::Create: (%x, %d) failed\n", Addr, 0/*priority*/));
@@ -2681,7 +2674,7 @@ void *vsgent::operator new(size_t size){
     
     if (VSGDB->freelist.count() > 0)
 	v = strbase(vsgent, VSGDB->freelist.get(), handle);
-    else v = (vsgent *)RVMLIB_REC_MALLOC(size);
+    else v = (vsgent *)rvmlib_rec_malloc(size);
     assert(v);
     return(v);
 }
@@ -2734,7 +2727,7 @@ void vsgent::operator delete(void *deadobj, size_t size) {
     if (VSGDB->freelist.count() < VSGMaxFreeEntries)
 	VSGDB->freelist.append(&v->handle);
     else
-	RVMLIB_REC_FREE(v);
+	rvmlib_rec_free(v);
 }
 
 

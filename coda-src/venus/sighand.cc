@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/sighand.cc,v 4.9 1998/03/06 20:20:46 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/sighand.cc,v 4.10 1998/06/11 14:40:14 jaharkes Exp $";
 #endif /*_BLURB_*/
 
 
@@ -79,20 +79,20 @@ extern "C" {
 #define sigcontext sigcontext_struct
 #endif
 
-PRIVATE void HUP(int, int, struct sigcontext *);
-PRIVATE void ILL(int, int, struct sigcontext *);
-PRIVATE void TRAP(int, int, struct sigcontext *);
-PRIVATE void IOT(int, int, struct sigcontext *);
-PRIVATE void EMT(int, int, struct sigcontext *);
-PRIVATE void FPE(int, int, struct sigcontext *);
-PRIVATE void BUS(int, int, struct sigcontext *);
-PRIVATE void SEGV(int, int, struct sigcontext *);
-PRIVATE void USR1(int, int, struct sigcontext *);
-PRIVATE void TERM(int, int, struct sigcontext *);
-PRIVATE void XCPU(int, int, struct sigcontext *);
-PRIVATE void XFSZ(int, int, struct sigcontext *);
-PRIVATE void VTALRM(int, int, struct sigcontext *);
-PRIVATE void FatalSignal(int, int, struct sigcontext *);
+static void HUP(int, int, struct sigcontext *);
+static void ILL(int, int, struct sigcontext *);
+static void TRAP(int, int, struct sigcontext *);
+static void IOT(int, int, struct sigcontext *);
+static void EMT(int, int, struct sigcontext *);
+static void FPE(int, int, struct sigcontext *);
+static void BUS(int, int, struct sigcontext *);
+static void SEGV(int, int, struct sigcontext *);
+static void USR1(int, int, struct sigcontext *);
+static void TERM(int, int, struct sigcontext *);
+static void XCPU(int, int, struct sigcontext *);
+static void XFSZ(int, int, struct sigcontext *);
+static void VTALRM(int, int, struct sigcontext *);
+static void FatalSignal(int, int, struct sigcontext *);
 
 
 void SigInit() {
@@ -175,25 +175,25 @@ void SigInit() {
 }
 
 
-PRIVATE void HUP(int sig, int code, struct sigcontext *contextPtr) {
+static void HUP(int sig, int code, struct sigcontext *contextPtr) {
     DebugOn();
 
     signal(SIGHUP, (void (*)(int))HUP);
 }
 
 
-PRIVATE void ILL(int sig, int code, struct sigcontext *contextPtr) {
+static void ILL(int sig, int code, struct sigcontext *contextPtr) {
     FatalSignal(sig, code, contextPtr);
 }
 
 
-PRIVATE void TRAP(int sig, int code, struct sigcontext *contextPtr) {
+static void TRAP(int sig, int code, struct sigcontext *contextPtr) {
     FatalSignal(sig, code, contextPtr);
 }
 
 
 #ifdef SIGIOT
-PRIVATE void IOT(int sig, int code, struct sigcontext *contextPtr) {
+static void IOT(int sig, int code, struct sigcontext *contextPtr) {
 
   LOG(0, ("Call into IOT\n"));
   fflush(logFile);
@@ -208,7 +208,7 @@ PRIVATE void IOT(int sig, int code, struct sigcontext *contextPtr) {
 #endif
 
 #ifdef SIGEMT
-PRIVATE void EMT(int sig, int code, struct sigcontext *contextPtr) {
+static void EMT(int sig, int code, struct sigcontext *contextPtr) {
     if (Profiling)
 	ToggleProfiling();
 
@@ -216,21 +216,21 @@ PRIVATE void EMT(int sig, int code, struct sigcontext *contextPtr) {
 }
 #endif
 
-PRIVATE void FPE(int sig, int code, struct sigcontext *contextPtr) {
+static void FPE(int sig, int code, struct sigcontext *contextPtr) {
     FatalSignal(sig, code, contextPtr);
 }
 
 
-PRIVATE void BUS(int sig, int code, struct sigcontext *contextPtr) {
+static void BUS(int sig, int code, struct sigcontext *contextPtr) {
     FatalSignal(sig, code, contextPtr);
 }
 
 
-PRIVATE void SEGV(int sig, int code, struct sigcontext *contextPtr) {
+static void SEGV(int sig, int code, struct sigcontext *contextPtr) {
     FatalSignal(sig, code, contextPtr);
 }
 
-PRIVATE void USR1(int sig, int code, struct sigcontext *contextPtr) {
+static void USR1(int sig, int code, struct sigcontext *contextPtr) {
     struct stat tstat;
     if (stat("COPMODES", &tstat) == 0) {
 #if 0
@@ -304,7 +304,8 @@ PRIVATE void USR1(int sig, int code, struct sigcontext *contextPtr) {
     signal(SIGUSR1, (void (*)(int))USR1);
 }
 
-PRIVATE void TERM(int sig, int code, struct sigcontext *contextPtr) {
+
+static void TERM(int sig, int code, struct sigcontext *contextPtr) {
     LOG(0, ("TERM: Venus exiting\n"));
 
     VDB->FlushVolume();
@@ -325,7 +326,7 @@ PRIVATE void TERM(int sig, int code, struct sigcontext *contextPtr) {
 #ifdef NOTUSED
 /* This handler is now deactivated, as we would sometimes really like to put a
  * venus in the background */
-PRIVATE void TSTP(int sig, int code, struct sigcontext *contextPtr) {
+static void TSTP(int sig, int code, struct sigcontext *contextPtr) {
     DebugOff();
 
     signal(SIGTSTP, (void (*)(int))TSTP);
@@ -333,7 +334,7 @@ PRIVATE void TSTP(int sig, int code, struct sigcontext *contextPtr) {
 #endif
 
 #ifdef SIGXCPU
-PRIVATE void XCPU(int sig, int code, struct sigcontext *contextPtr) {
+static void XCPU(int sig, int code, struct sigcontext *contextPtr) {
     DumpState();
 
     signal(SIGXCPU, (void (*)(int))XCPU);
@@ -341,7 +342,7 @@ PRIVATE void XCPU(int sig, int code, struct sigcontext *contextPtr) {
 
 
 #ifdef SIGXFSZ
-PRIVATE void XFSZ(int sig, int code, struct sigcontext *contextPtr) {
+static void XFSZ(int sig, int code, struct sigcontext *contextPtr) {
     StatsInit();
 
     signal(SIGXFSZ, (void (*)(int))XFSZ);
@@ -349,7 +350,7 @@ PRIVATE void XFSZ(int sig, int code, struct sigcontext *contextPtr) {
 #endif
 
 #ifdef SIGVTALRM
-PRIVATE void VTALRM(int sig, int code, struct sigcontext *contextPtr) {
+static void VTALRM(int sig, int code, struct sigcontext *contextPtr) {
     SwapLog();
     SwapProgramLogs();
     SwapReplacementLogs();
@@ -358,29 +359,18 @@ PRIVATE void VTALRM(int sig, int code, struct sigcontext *contextPtr) {
 }
 #endif
 
-#ifdef UNUSED
-/* the signal of this handler has been taken by the former SIGSYS handler.
-   mainly because SIGSYS provided more useful stuff, but was only supported on
-   BSD systems. */
-PRIVATE void USR1(int sig, int code, struct sigcontext *contextPtr) {
-    ToggleMallocTrace();
-
-    signal(SIGUSR1, (void (*)(int))USR1);
-}
 #endif
-#endif
-
 
 
 
 #ifdef DJGPP
-PRIVATE void FatalSignal(int sig, int code, struct sigcontext *contextPtr) 
+static void FatalSignal(int sig, int code, struct sigcontext *contextPtr) 
 {
     LOG(0, ("*****  FATAL SIGNAL (%d) *****\n", sig));
     TERM(sig, code, 0);
 }
 #else
-PRIVATE void FatalSignal(int sig, int code, struct sigcontext *contextPtr) 
+static void FatalSignal(int sig, int code, struct sigcontext *contextPtr) 
 {
     LOG(0, ("*****  FATAL SIGNAL (%d) *****\n", sig));
 

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/local_repair.cc,v 4.1 1997/01/08 21:51:31 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/local_repair.cc,v 4.2 1998/01/10 18:38:54 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -74,7 +74,7 @@ void lrdb::BeginRepairSession(ViceFid *RootFid, int RepMode, char *msg)
      *	    RepMode is the mode (scratch or direct) of the repair session.
      * OUT: msg is the string that contains the error code to the caller.
      */
-    OBJ_ASSERT(this, RootFid && !IsLocalFid(RootFid) && msg);
+    OBJ_ASSERT(this, RootFid && !FID_IsLocal(RootFid) && msg);
     LOG(100, ("lrdb::BeginRepairSession: RootFid = 0x%x.%x.%x RepMode = %d\n",
 	      RootFid->Volume, RootFid->Vnode, RootFid->Unique, RepMode));
 
@@ -96,20 +96,20 @@ void lrdb::BeginRepairSession(ViceFid *RootFid, int RepMode, char *msg)
 	rfment *rfm;
 	while (rfm = next()) {
 	    if (!bcmp((const void *)rfm->GetFakeRootFid(), (const void *) repair_root_fid, (int)sizeof(ViceFid))) {
-		ATOMIC(
-		      RVMLIB_REC_OBJECT(subtree_view);
-                      subtree_view = rfm->GetView();
-		,MAXFP)
+		Recov_BeginTrans();
+		RVMLIB_REC_OBJECT(subtree_view);
+		subtree_view = rfm->GetView();
+		Recov_EndTrans(MAXFP);
 		break;
 	    }
 	}
     }
 
     if (repair_session_mode == REP_SCRATCH_MODE) { /* set cml-tid for repair mutation */
-	ATOMIC(
-	       RVMLIB_REC_OBJECT(repair_tid_gen);
-	       repair_tid_gen++;
-	, MAXFP)
+	Recov_BeginTrans();
+	RVMLIB_REC_OBJECT(repair_tid_gen);
+	repair_tid_gen++;
+	Recov_EndTrans(MAXFP);
 	repair_session_tid = - repair_tid_gen;
     } else {
 	repair_session_tid = -1;
@@ -225,9 +225,9 @@ void lrdb::EndRepairSession(int Commit, char *msg)
 	while ((mpt = (mptent *)repair_cml_list.get()) && (mpt->GetCml() != current_search_cml)) {
 	    cmlent *m = mpt->GetCml();
 	    if (Commit) {
-		ATOMIC(
-		       delete m;
-		, MAXFP)
+		Recov_BeginTrans();
+		delete m;
+		Recov_EndTrans(MAXFP);
 	    }
 	    delete mpt;
 	    dcount++;
@@ -498,7 +498,7 @@ void lrdb::InitCMLSearch(ViceFid *FakeRootFid)
 	    OBJ_ASSERT(this, obj && obj->IsLocalObj());
 	    ViceFid *LFid = &obj->fid;
 	    ViceFid *GFid = LGM_LookupGlobal(LFid);
-	    OBJ_ASSERT(this, IsLocalFid(LFid) && GFid != NULL);	    
+	    OBJ_ASSERT(this, FID_IsLocal(LFid) && GFid != NULL);	    
 
 	    {	/* built repair_vol_list */
 		volent *Vol = VDB->Find(GFid->Volume);
@@ -601,7 +601,7 @@ void lrdb::ListCML(ViceFid *FakeRootFid, FILE *fp)
 	    OBJ_ASSERT(this, obj && obj->IsLocalObj());
 	    ViceFid *LFid = &obj->fid;
 	    ViceFid *GFid = LGM_LookupGlobal(LFid);
-	    OBJ_ASSERT(this, IsLocalFid(LFid) && GFid != NULL);	    
+	    OBJ_ASSERT(this, FID_IsLocal(LFid) && GFid != NULL);	    
 
 	    {	/* built vol_list */
 		volent *Vol = VDB->Find(GFid->Volume);
@@ -715,14 +715,14 @@ void lrdb::DeLocalization()
 	    fsobj *obj = opt->GetFso();
 	    OBJ_ASSERT(this, obj);
 	    ViceFid *lfid = &obj->fid;
-	    OBJ_ASSERT(this, IsLocalFid(lfid));
+	    OBJ_ASSERT(this, FID_IsLocal(lfid));
 	    
 	    {   /* remove the LGM entry */
 		ViceFid *gfid = LGM_LookupGlobal(lfid);
-		OBJ_ASSERT(this, gfid && !IsLocalFid(gfid));
-		ATOMIC(
-		       LGM_Remove(lfid, gfid);
-		, MAXFP)
+		OBJ_ASSERT(this, gfid && !FID_IsLocal(gfid));
+		Recov_BeginTrans();
+		LGM_Remove(lfid, gfid);
+		Recov_EndTrans(MAXFP);
 	    }
 	    {   /* remove the RFM entry if possible */
 		rfm_iterator next(root_fid_map);
@@ -734,15 +734,15 @@ void lrdb::DeLocalization()
 		if (rfm != NULL) {
 		    ViceFid *frfid = rfm->GetFakeRootFid();
 		    OBJ_ASSERT(this, frfid != NULL);
-		    ATOMIC(
+		    Recov_BeginTrans();
 			   RFM_Remove(frfid);
-		    , MAXFP)
+		    Recov_EndTrans(MAXFP);
 	        }
 	    }
 	    {   /* will add new code to recover a local object here */
-		ATOMIC(
+		Recov_BeginTrans();
 		       obj->Kill();
-		, MAXFP)
+		Recov_EndTrans(MAXFP);
 	    }
 	}
     }
@@ -756,13 +756,13 @@ void lrdb::DeLocalization()
 
 	/* undo the localization on RootParentObj */
 	RootParentObj->DeLocalRootParent(RepairRootObj, GlobalRootFid, RootMtPt);
-	ATOMIC(
+	Recov_BeginTrans();
 	       if (LocalChildObj != NULL) 
 	          LocalChildObj->Kill();
 	       if (GlobalChildObj != NULL)
 	          GlobalChildObj->Kill();
 	       RepairRootObj->Kill();
-       , MAXFP)
+       Recov_EndTrans(MAXFP);
     }
 }
 
@@ -781,7 +781,7 @@ int lrdb::FindRepairObject(ViceFid *fid, fsobj **global, fsobj **local)
     LOG(100, ("lrdb::FindRepairObject: 0x%x.%x.%x\n", fid->Volume, fid->Vnode, fid->Unique));
     
     /* first step: obtain local and global objects according to "fid" */
-    if (IsLocalFid(fid)) {
+    if (FID_IsLocal(fid)) {
 	OBJ_ASSERT(this, *local = FSDB->Find(fid));	/* local object always cached */
 	*global = (fsobj *)NULL;			/* initialized global object */
 
@@ -907,7 +907,7 @@ fsobj *lrdb::GetGlobalParentObj(ViceFid *GlobalChildFid)
      * (must be in FSDB) and its local parent Fid, and then the global parent Fid 
      * and finally use FSDB::Get() to get the global parent.
      */
-    OBJ_ASSERT(this, GlobalChildFid && !IsLocalFid(GlobalChildFid));
+    OBJ_ASSERT(this, GlobalChildFid && !FID_IsLocal(GlobalChildFid));
     LOG(100, ("lrdb::GetGlobalParentObj: GlobalChildFid = 0x%x.%x.%x\n",
 	      GlobalChildFid->Volume, GlobalChildFid->Vnode, GlobalChildFid->Unique));
 
@@ -1050,14 +1050,14 @@ void lrdb::SetSubtreeView(char NewView, char *msg)
 	fsobj *GlobalChildObj = FSDB->Find(GlobalChildFid);
 	OBJ_ASSERT(this, (LocalChildObj != NULL) && (GlobalChildObj != NULL));
 
-	ATOMIC(
+	Recov_BeginTrans();
 	       rfm->SetView(NewView);
-	, MAXFP)
+	Recov_EndTrans(MAXFP);
 	if (!bcmp((const void *)repair_root_fid, (const void *) FakeRootFid, (int)sizeof(ViceFid))) {
-	    ATOMIC(
+	    Recov_BeginTrans();
 		   RVMLIB_REC_OBJECT(subtree_view);
 		   subtree_view = NewView;
-	    , MAXFP)
+	    Recov_EndTrans(MAXFP);
 	}
 	if (OldView == SUBTREE_MIXED_VIEW && NewView == SUBTREE_GLOBAL_VIEW) {
 	    RootParentObj->MixedToGlobal(FakeRootFid, GlobalChildFid, Name);
@@ -1111,9 +1111,9 @@ void lrdb::ReplaceRepairFid(ViceFid *NewGlobalFid, ViceFid *LocalFid)
     lgment *lgm;
     while (lgm = next()) {
 	if (!bcmp((const void *)lgm->GetLocalFid(), (const void *) LocalFid, (int)sizeof(ViceFid))) {
-	    ATOMIC(
+	    Recov_BeginTrans();
 		   lgm->SetGlobalFid(NewGlobalFid);
-	    , MAXFP)
+	    Recov_EndTrans(MAXFP);
 	    return;
 	}
     }
@@ -1156,7 +1156,7 @@ void lrdb::RemoveSubtree(ViceFid *FakeRootFid)
 	    OBJ_ASSERT(this, obj && obj->IsLocalObj());
 	    ViceFid *LFid = &obj->fid;
 	    ViceFid *GFid = LGM_LookupGlobal(LFid);
-	    OBJ_ASSERT(this, IsLocalFid(LFid) && GFid != NULL);	    
+	    OBJ_ASSERT(this, FID_IsLocal(LFid) && GFid != NULL);	    
 
 	    {	/* built gc_vol_list */
 		volent *Vol = VDB->Find(GFid->Volume);
@@ -1219,9 +1219,9 @@ void lrdb::RemoveSubtree(ViceFid *FakeRootFid)
 	vptent *vpt;
 	while (mpt = (mptent *)gc_cml_list.get()) {
 	    cmlent *m = mpt->GetCml();
-	    ATOMIC(
+	    Recov_BeginTrans();
 		   delete m;
-	    , MAXFP)
+	    Recov_EndTrans(MAXFP);
 	    delete mpt;
 	}
 
@@ -1239,14 +1239,14 @@ void lrdb::RemoveSubtree(ViceFid *FakeRootFid)
 	    fsobj *obj = opt->GetFso();
 	    OBJ_ASSERT(this, obj);
 	    ViceFid *lfid = &obj->fid;
-	    OBJ_ASSERT(this, IsLocalFid(lfid));
+	    OBJ_ASSERT(this, FID_IsLocal(lfid));
 	    
 	    {   /* remove the LGM entry */
 		ViceFid *gfid = LGM_LookupGlobal(lfid);
-		OBJ_ASSERT(this, gfid && !IsLocalFid(gfid));
-		ATOMIC(
+		OBJ_ASSERT(this, gfid && !FID_IsLocal(gfid));
+		Recov_BeginTrans();
 		       LGM_Remove(lfid, gfid);
-		, MAXFP)
+		Recov_EndTrans(MAXFP);
 	    }
 
 	    {   /* remove the RFM entry if possible */
@@ -1260,16 +1260,16 @@ void lrdb::RemoveSubtree(ViceFid *FakeRootFid)
 		if (rfm != NULL) {
 		    ViceFid *frfid = rfm->GetFakeRootFid();
 		    OBJ_ASSERT(this, frfid != NULL);
-		    ATOMIC(
+		    Recov_BeginTrans();
 			   RFM_Remove(frfid);
-		    , MAXFP)
+		    Recov_EndTrans(MAXFP);
 		}
 		ReleaseWriteLock(&rfm_lock);
 	    }
 	    {   /* GC the local object, and its pointer entry */
-		ATOMIC(
+		Recov_BeginTrans();
 		       obj->Kill();
-		, MAXFP)
+		Recov_EndTrans(MAXFP);
 		delete opt;
 	    }
 	}
@@ -1285,13 +1285,13 @@ void lrdb::RemoveSubtree(ViceFid *FakeRootFid)
 
 	/* undo the localization on RootParentObj */
 	RootParentObj->DeLocalRootParent(RepairRootObj, GlobalRootFid, RootMtPt);
-	ATOMIC(
+	Recov_BeginTrans();
 	       if (LocalChildObj != NULL) 
 	           LocalChildObj->Kill();
 	       if (GlobalChildObj != NULL)
 	           GlobalChildObj->Kill();
 	       RepairRootObj->Kill();
-	, MAXFP)
+	Recov_EndTrans(MAXFP);
     }
 }
 /* ********** end of lrdb methods ********** */

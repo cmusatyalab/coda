@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/vol_COP2.cc,v 4.1 1997/01/08 21:51:46 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/vol_COP2.cc,v 4.2 1998/01/10 18:39:08 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -84,7 +84,7 @@ extern "C" {
 #include "local.h"
 
 
-PRIVATE const int COP2EntrySize = (int)(sizeof(ViceStoreId) + sizeof(ViceVersionVector));
+static const int COP2EntrySize = (int)(sizeof(ViceStoreId) + sizeof(ViceVersionVector));
 
 #ifdef VENUSDEBUG
 int cop2ent::allocs = 0;
@@ -273,8 +273,8 @@ void volent::ClearCOP2(RPC2_CountedBS *BS) {
 }
 
 
-PRIVATE const int MaxFreeCOP2ents = 16;
-PRIVATE dlist freecop2ents;
+static const int MaxFreeCOP2ents = 16;
+static dlist freecop2ents;
 
 void *cop2ent::operator new(size_t len) {
     cop2ent *c = 0;

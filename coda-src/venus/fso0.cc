@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/fso0.cc,v 4.8 98/01/10 18:38:40 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/fso0.cc,v 4.9 1998/01/26 21:31:43 mre Exp $";
 #endif /*_BLURB_*/
 
 
@@ -95,7 +95,7 @@ int FSO_SWT = UNSET_SWT;
 int FSO_MWT = UNSET_MWT;
 int FSO_SSF = UNSET_SSF;
 
-PRIVATE int FSO_HashFN(void *);
+static int FSO_HashFN(void *);
 
 
 /* Call with CacheDir the current directory. */
@@ -104,35 +104,35 @@ void FSOInit() {
 
     /* Allocate the database if requested. */
     if (InitMetaData) {					/* <==> FSDB == 0 */
-	TRANSACTION(
+	    Recov_BeginTrans();
 	    RVMLIB_REC_OBJECT(FSDB);
 	    FSDB = new fsdb;
-	)
+	    Recov_EndTrans(0);
     }
 
     /* Check the persistent, but separately initializable, members. */
-    TRANSACTION(
-	RVMLIB_REC_OBJECT(*FSDB);
+    Recov_BeginTrans();
+    RVMLIB_REC_OBJECT(*FSDB);
 
-	if (InitMetaData || FSDB->MaxBlocks != CacheBlocks) {
+    if (InitMetaData || FSDB->MaxBlocks != CacheBlocks) {
 	    if (!InitMetaData)
-		eprint("Warning: CacheBlocks changing from %d to %d",
-		       FSDB->MaxBlocks, CacheBlocks);
-
+		    eprint("Warning: CacheBlocks changing from %d to %d",
+			   FSDB->MaxBlocks, CacheBlocks);
+	    
 	    FSDB->MaxBlocks = CacheBlocks;
-	}
-	FSDB->FreeBlockMargin = FSDB->MaxBlocks / FREE_FACTOR;
-
-	if (InitMetaData || (FSO_SWT != UNSET_SWT && FSDB->swt != FSO_SWT))
+    }
+    FSDB->FreeBlockMargin = FSDB->MaxBlocks / FREE_FACTOR;
+    
+    if (InitMetaData || (FSO_SWT != UNSET_SWT && FSDB->swt != FSO_SWT))
 	    FSDB->swt = (FSO_SWT == UNSET_SWT ? DFLT_SWT : FSO_SWT);
-	if (InitMetaData || (FSO_MWT != UNSET_MWT && FSDB->mwt != FSO_MWT))
+    if (InitMetaData || (FSO_MWT != UNSET_MWT && FSDB->mwt != FSO_MWT))
 	    FSDB->mwt = (FSO_MWT == UNSET_MWT ? DFLT_MWT : FSO_MWT);
-	if (InitMetaData || (FSO_SSF != UNSET_SSF && FSDB->ssf != FSO_SSF))
+    if (InitMetaData || (FSO_SSF != UNSET_SSF && FSDB->ssf != FSO_SSF))
 	    FSDB->ssf = (FSO_SSF == UNSET_SSF ? DFLT_SSF : FSO_SSF);
-	FSDB->maxpri = FSDB->MakePri(FSO_MAX_SPRI, FSO_MAX_MPRI);
-	FSDB->stdpri = FSDB->MakePri(FSO_MAX_SPRI, FSO_MAX_MPRI / 2);
-	FSDB->marginpri = FSDB->MakePri(FSO_MAX_SPRI, 0);
-    )
+    FSDB->maxpri = FSDB->MakePri(FSO_MAX_SPRI, FSO_MAX_MPRI);
+    FSDB->stdpri = FSDB->MakePri(FSO_MAX_SPRI, FSO_MAX_MPRI / 2);
+    FSDB->marginpri = FSDB->MakePri(FSO_MAX_SPRI, 0);
+    Recov_EndTrans(0);
 
     /* Initialize transient members. */
     FSDB->ResetTransient();
@@ -228,10 +228,11 @@ void FSOInit() {
 	/* Allocate the fsobj's if requested. */
 	if (InitMetaData) {
 	    /* Do this in a loop to avoid one mongo transaction! */
-	    for (i = 0; i < FSDB->MaxFiles; i++)
-		ATOMIC(
-		  fsobj *f = new (FROMHEAP) fsobj(i);
-	        , MAXFP)
+		for (i = 0; i < FSDB->MaxFiles; i++) {
+			Recov_BeginTrans();
+			fsobj *f = new (FROMHEAP) fsobj(i);
+			Recov_EndTrans(MAXFP);
+		}
 	}
 
 	/* Recover the cache files (allocates as necessary). */
@@ -338,10 +339,10 @@ void FSOInit() {
 	fprintf(fp, "%d", DataVersion);
 	fclose(fp);
 
-	TRANSACTION(
-	    RVMLIB_REC_OBJECT(FSDB->DataVersion);
-	    FSDB->DataVersion = DataVersion;
-	)
+	Recov_BeginTrans();
+	RVMLIB_REC_OBJECT(FSDB->DataVersion);
+	FSDB->DataVersion = DataVersion;
+	Recov_EndTrans(0);
     }
 
     if (!Simulating) {
@@ -354,7 +355,7 @@ void FSOInit() {
 }
 
 
-PRIVATE int FSO_HashFN(void *key) {
+static int FSO_HashFN(void *key) {
     return(((ViceFid *)key)->Volume + ((ViceFid *)key)->Vnode);
 }
 
@@ -427,7 +428,7 @@ void *fsdb::operator new(size_t len){
     fsdb *f = 0;
 
     /* Allocate recoverable store for the object. */
-    f = (fsdb *)RVMLIB_REC_MALLOC((int) len);
+    f = (fsdb *)rvmlib_rec_malloc((int) len);
     assert(f);
     return(f);
 }
@@ -442,8 +443,8 @@ fsdb::fsdb() : htab(FSDB_NBUCKETS, FSO_HashFN) {
     MaxFiles = CacheFiles;
     FreeFileMargin = MaxFiles / FREE_FACTOR;
 
-    LastRef = (long *)RVMLIB_REC_MALLOC(MaxFiles * (int)sizeof(long));
-    RVMLIB_SET_RANGE(LastRef, MaxFiles * (int)sizeof(long));
+    LastRef = (long *)rvmlib_rec_malloc(MaxFiles * (int)sizeof(long));
+    rvmlib_set_range(LastRef, MaxFiles * (int)sizeof(long));
     bzero((void *)LastRef, (int)(MaxFiles * sizeof(long)));
 }
 
@@ -494,7 +495,7 @@ fsobj *fsdb::Find(ViceFid *key) {
     fso_iterator next(NL, key);
     fsobj *f;
     while (f = next())
-	if (FID_EQ(*key, f->fid)) return(f);
+	if (FID_EQ(key, &f->fid)) return(f);
 
     return(0);
 }
@@ -511,9 +512,9 @@ fsobj *fsdb::Create(ViceFid *key, LockLevel level, int priority, char *comp) {
 	{ f->print(logFile); Choke("fsdb::Create: key found"); }
 
     /* Fashion a new object.  This could be a long-running and wide-ranging transaction! */
-    ATOMIC(
-	f = new (FROMFREELIST, priority) fsobj(key, comp);
-    , MAXFP)
+    Recov_BeginTrans();
+    f = new (FROMFREELIST, priority) fsobj(key, comp);
+    Recov_EndTrans(MAXFP);
     if (f != 0)
 	if (level != NL) f->Lock(level);
 
@@ -597,10 +598,10 @@ void VmonUpdateSession(vproc *vp, ViceFid *key, fsobj *f, volent *vol, vuid_t vu
     if (vol == NULL) {
 	LOG(100, ("VmonUpdateSession:  vol == NULL\n"));
         assert((event == MISS) || (event == TIMEOUT) || (event == FAILURE));
-        TRANSACTION(
-                RVMLIB_REC_OBJECT(FSDB->VolumeLevelMiss);
-                FSDB->VolumeLevelMiss++;
-        )       
+        Recov_BeginTrans();
+	RVMLIB_REC_OBJECT(FSDB->VolumeLevelMiss);
+	FSDB->VolumeLevelMiss++;
+        Recov_EndTrans(0);       
         return;
     } 
 
@@ -847,18 +848,17 @@ RestartFind:
 	 * the routine fsobj::IsLocalFid, which checks to see if the _volume_
 	 * the object belongs to is the local volume.  yuck.  --lily
 	 */
-	if ((key->Vnode == LocalFileVnode || key->Vnode == LocalDirVnode) &&
-	    !Simulating) {
-	    LOG(0, ("fsdb::Get: Locally created fid 0x%x.%x.%x not found!\n",
-		    key->Volume, key->Vnode, key->Unique));
-	    return ETIMEDOUT;
+	if (FID_IsDisco(key) && !Simulating) {
+		LOG(0, ("fsdb::Get: Locally created fid %s not found!\n", 
+			FID_(key)));
+		return ETIMEDOUT;
 	}
 
 	/* process possible un-cached local objects */
-	if (IsLocalFid(key)) {
-	    LOG(0, ("fsdb::Get: Un-cached Local object 0x%x.%x.%x\n",
-		    key->Volume, key->Vnode, key->Unique));
-	    return ETIMEDOUT;
+	if (FID_IsLocal(key)) {
+		LOG(0, ("fsdb::Get: Un-cached Local object %s\n",
+			FID_(key)));
+		return ETIMEDOUT;
 	}
 
         /* Must ensure that the volume is cached. */
@@ -897,15 +897,15 @@ RestartFind:
 	VDB->Put(&v);
 
 	/* Transform object into fake mtpt if necessary. */
-	if (ISFAKE(*key)) {
+	if (FID_IsFake(key)) {
 	    f->PromoteLock();
 	    if (f->Fakeify()) {
 		LOG(0, ("fsdb::Get: can't transform %s (%x.%x.%x) into fake mt pt\n",
 			f->comp, f->fid.Volume, f->fid.Vnode, f->fid.Unique));
                 VmonUpdateSession(vp, key, f, f->vol, vuid, ATTR, FAILURE, FSOBJSIZE);
-		ATOMIC(
-		  f->Kill();
-		, CMFP)
+		Recov_BeginTrans();
+		f->Kill();
+		Recov_EndTrans(MAXFP);
 		Put(&f);  		 /* will unlock and garbage collect */
 		return(EIO);
 	    }
@@ -928,9 +928,9 @@ RestartFind:
 
 	/* Perform GC if necessary. */
 	if (GCABLE(f)) {
-	    ATOMIC(
-		f->GC();
-	    , MAXFP)
+	    Recov_BeginTrans();
+	    f->GC();
+	    Recov_EndTrans(MAXFP);
 	    goto RestartFind;
 	}
 
@@ -940,14 +940,14 @@ RestartFind:
 	/* Update component. */
 	if (comp && comp[0] != '\0' && !STREQ(comp, ".") && !STREQ(comp, "..") &&
 	    !STREQ(comp, f->comp)) {
-	    ATOMIC(
+		Recov_BeginTrans();
 		RVMLIB_REC_OBJECT(f->comp);
-		RVMLIB_REC_FREE(f->comp);
+		rvmlib_rec_free(f->comp);
 		int len = (int) strlen(comp) + 1;
-		f->comp = (char *)RVMLIB_REC_MALLOC(len);
-		RVMLIB_SET_RANGE(f->comp, len);
+		f->comp = (char *)rvmlib_rec_malloc(len);
+		rvmlib_set_range(f->comp, len);
 		strcpy(f->comp, comp);
-	    , MAXFP)
+		Recov_EndTrans(MAXFP);
 	}
     }
 
@@ -1046,9 +1046,9 @@ RestartFind:
 		    f->PromoteLock();
 		    if (f->Fakeify())  {
                         VmonUpdateSession(vp, key, f, f->vol, vuid, ATTR, FAILURE, FSOBJSIZE);
-			ATOMIC(
-			  f->Kill();
-			, CMFP)
+			Recov_BeginTrans();
+			f->Kill();
+			Recov_EndTrans(MAXFP);
 			Put(&f);
 			return(EIO);
 		    }
@@ -1292,9 +1292,9 @@ void fsdb::Put(fsobj **f_addr) {
 	LOG(10, ("fsdb::Put: GC (%x.%x.%x)\n",
 		 f->fid.Volume, f->fid.Vnode, f->fid.Unique));
 
-	ATOMIC(
-	    f->GC();
-	, MAXFP)
+	Recov_BeginTrans();
+	f->GC();
+	Recov_EndTrans(MAXFP);
     }
 
     (*f_addr) = 0;
@@ -1346,86 +1346,106 @@ void fsdb::Flush(VolumeId vid) {
     }
 }
 
-/* local-repair modification */
-/* This is specifically to support translation of "local" to "remote" Fids during reintegration. -JJK */
-/* This is incredibly grubby!  It changes the Fid, pFid, and directory pages of multiple fsobj's! */
-/* MUST be called from within transaction! */
-int fsdb::TranslateFid(ViceFid *OldFid, ViceFid *NewFid) {
-    if (OldFid->Volume != NewFid->Volume && !IsLocalFid(NewFid))
-	Choke("fsdb::TranslateFid: X-VOLUME, (%x.%x.%x) --> (%x.%x.%x)",
-	    OldFid->Volume, OldFid->Vnode, OldFid->Unique,
-	    NewFid->Volume, NewFid->Vnode, NewFid->Unique);
 
-    LOG(100, ("fsdb::TranslateFid: from = (%x.%x.%x), to = (%x.%x.%x)\n",
-	      OldFid->Volume, OldFid->Vnode, OldFid->Unique,
-	      NewFid->Volume, NewFid->Vnode, NewFid->Unique));
+/* This is supports translation of "local" to "remote" Fids during 
+   reintegration.  Note that given a fid it can appear in several
+   directories:
+   - in itself (if a directory fid) for the "." entries
+   - in its directory children as ".."
+   - in its parent as the named entry 
+   so we must do 3 replacements
 
-    fsobj *f = 0;
-    ViceFid pFid;
+   MUST be called from within transaction! 
 
-    /* First, change the object itself. */
-    {
+   This routine can als replace local fids with global ones and
+   then, exceptionally, they appear as cross volume replacements.
+
+   Returns: 0 on success, ENOENT if OldFid cannot be found in fsdb.
+
+*/
+
+int fsdb::TranslateFid(ViceFid *OldFid, ViceFid *NewFid) 
+{
+	fsobj *f = 0;
+	ViceFid pFid;
+
+	LOG(100, ("fsdb::TranslateFid: %s --> %s", FID_(OldFid), 
+		  FID_2(NewFid)));
+
+	/* cross volume replacements are for local fids */
+	if (OldFid->Volume != NewFid->Volume && !FID_IsLocal(NewFid))
+		Choke("fsdb::TranslateFid: X-VOLUME, %s --> %s",
+		      FID_(OldFid), FID_2(NewFid));
+
+
+	/* First, change the object itself. */
 	f = Find(OldFid);
 	if (f == 0) {
-	    LOG(0, ("fsdb::TranslateFid: (%x.%x.%x) not found\n",
-		    OldFid->Volume, OldFid->Vnode, OldFid->Unique));
-	    return(ENOENT);
+		LOG(0, ("fsdb::TranslateFid: %s not found\n",
+			FID_(OldFid)));
+		return(ENOENT);
+	}
+	
+	/* Can't handle any case but reintegration (and simulating). */
+	/* in old versions we would choke too  if (!DIRTY(f) && !Simulating) */
+	if (!HAVESTATUS(f)) {
+		f->print(logFile); 
+		Choke("fsdb::TranslateFid: !HAVESTATUS"); 
 	}
 
-	/* Can't handle any case but reintegration (and simulating). */
-	/*
-	if (!HAVESTATUS(f) || (!DIRTY(f) && !Simulating)) 
-	    { f->print(logFile); Choke("fsdb::TranslateFid: !HAVESTATUS ||( !DIRTY && !Simulating)"); }
-	*/
-	if (!HAVESTATUS(f)) 
-	    { f->print(logFile); Choke("fsdb::TranslateFid: !HAVESTATUS"); }
-
-	/* Replace the temp fids in kernel name cache for this object */
+	/* Replace the fids in kernel name cache for this object */
 	k_Replace(OldFid, NewFid);
-
+	
 	/* Check that the NewFid is not already known! */
 	fsobj *Newf = Find(NewFid);
-	if (Newf != 0)
-	    { f->print(logFile); Newf->print(logFile); Choke("fsdb::TranslateFid: NewFid found"); }
-
+	if (Newf != 0) {
+		f->print(logFile); 
+		Newf->print(logFile); 
+		Choke("fsdb::TranslateFid: NewFid found"); 
+	}
+	
 	/* Remove OldObject from table. */
-	if (htab.remove(&f->fid, &f->primary_handle) != &f->primary_handle)
-	    { f->print(logFile); Choke("fsdb::TranslateFid: old object remove"); }
+	if (htab.remove(&f->fid, &f->primary_handle) != 
+	    &f->primary_handle) {
+		f->print(logFile); 
+		Choke("fsdb::TranslateFid: old object remove"); 
+	}
 
-	/* Change Fid, update dir pages (if necessary), and reinsert into table. */
+	/* Change Fid, update dir and reinsert into table. */
 	RVMLIB_REC_OBJECT(f->fid);
 	f->fid = *NewFid;
-	if (f->IsDir() && HAVEDATA(f) && (!f->IsMtPt())) /* local-repair modification */
-	    f->dir_TranslateFid(OldFid, NewFid);
+	
+	/* replace "." and its hardlinks if f is dir */
+	if (f->IsDir() && HAVEDATA(f) && (!f->IsMtPt())) 
+		f->dir_TranslateFid(OldFid, NewFid);
+	
+	/* replace f in the hash table */
 	htab.append(&f->fid, &f->primary_handle);
-
-	/* Parent Fid will be needed below. */
+	
+	/* Update the Parent. */
 	pFid = f->pfid;
-    }
-
-    /* Update the parent and (if they exist) children of the object. */
-    /* Note that although fid's and pfid's may change, cf->pfso and pf->children bindings will not! */
-    {
-	/* Update the parent. */
 	fsobj *pf = Find(&pFid);
 	if (pf)
-	    pf->dir_TranslateFid(OldFid, NewFid);
+		pf->dir_TranslateFid(OldFid, NewFid);
 
-	/* Update the children. */
-	if (ISDIR(*OldFid)) {
-	    fso_iterator next(NL);
-	    fsobj *cf;
-	    while (cf = next())
-		if (FID_EQ(cf->pfid, *OldFid)) {
-		    RVMLIB_REC_OBJECT(cf->pfid);
-		    cf->pfid = *NewFid;
-		    if (cf->IsDir() && HAVEDATA(cf) && (!cf->IsMtPt()))	/* local-repair modification */
-		      cf->dir_TranslateFid(OldFid, NewFid);
-		}
+	/* Update the children, if we f is a parent. */
+	if (! ISDIR(*OldFid))
+		return 0; 
+	
+	fso_iterator next(NL);
+	fsobj *cf;
+	while (cf = next()) { 
+		/* this is probably not supposed to happen. Can it? (pjb) */ 
+		if (! FID_EQ(&cf->pfid, OldFid))
+			continue ;
+
+		RVMLIB_REC_OBJECT(cf->pfid);
+		cf->pfid = *NewFid;
+
+		if (cf->IsDir() && HAVEDATA(cf) && (!cf->IsMtPt()))
+			cf->dir_TranslateFid(OldFid, NewFid);
 	}
-    }
-
-    return(0);
+	return 0;
 }
 
 
@@ -1438,12 +1458,12 @@ int fsdb::CallBackBreak(ViceFid *fid) {
     fsobj *f = FSDB->Find(fid);
     if (f == 0 || !HAVESTATUS(f)) return(0);
 
-    if (REPLACEABLE(f) && !BUSY(f))
-	ATOMIC(
-	  f->Kill(0);
-	, CMFP)
-    else
-	f->Demote(0);
+    if (REPLACEABLE(f) && !BUSY(f)) {
+	    Recov_BeginTrans();
+	    f->Kill(0);
+	    Recov_EndTrans(CMFP);
+    }  else
+	    f->Demote(0);
 
     return(1);
 }
@@ -1557,23 +1577,23 @@ void fsdb::ReclaimFsos(int priority, int count) {
 	/* Create necessary number of new fsobjs (rounded up to suitable multiple). */
 	ASSERT(count > 0);
 	int create_count = 4 * MAX(count, FreeFileMargin);
-	ATOMIC(
-	    RVMLIB_REC_OBJECT(MaxFiles);
-	    MaxFiles += create_count;
-	    CacheFiles = MaxFiles;
-	    long *tmp = (long *)RVMLIB_REC_MALLOC((int)(MaxFiles * sizeof(long)));
-	    RVMLIB_SET_RANGE(tmp, (int)(MaxFiles * sizeof(long)));
-	    bcopy((const void *)LastRef, (void *) tmp, (int)((MaxFiles - create_count) * sizeof(long)));
-	    RVMLIB_REC_FREE(LastRef);
-	    RVMLIB_REC_OBJECT(LastRef);
-	    LastRef = tmp;
-
-	    for (int i = (MaxFiles - create_count); i < MaxFiles; i++) {
+	Recov_BeginTrans();
+	RVMLIB_REC_OBJECT(MaxFiles);
+	MaxFiles += create_count;
+	CacheFiles = MaxFiles;
+	long *tmp = (long *)rvmlib_rec_malloc((int)(MaxFiles * sizeof(long)));
+	rvmlib_set_range(tmp, (int)(MaxFiles * sizeof(long)));
+	bcopy((const void *)LastRef, (void *) tmp, (int)((MaxFiles - create_count) * sizeof(long)));
+	rvmlib_rec_free(LastRef);
+	RVMLIB_REC_OBJECT(LastRef);
+	LastRef = tmp;
+	
+	for (int i = (MaxFiles - create_count); i < MaxFiles; i++) {
 		fsobj *f; f = new (FROMHEAP) fsobj(i);
-	    }
-	, MAXFP)
+	}
+	Recov_EndTrans(MAXFP);
 
-	  ASSERT(count < (FreeFsoCount() - FreeFileMargin));
+	ASSERT(count < (FreeFsoCount() - FreeFileMargin));
 	return;
     }
 
@@ -1658,25 +1678,25 @@ int fsdb::AllocBlocks(int priority, int nblocks) {
 
     /* Maybe a garbage collection would help. */
     if (delq->count() > 0) {
-	ATOMIC(
-	    GarbageCollect();
-	, MAXFP)
+	Recov_BeginTrans();
+	GarbageCollect();
+	Recov_EndTrans(MAXFP);
 	if (GrabFreeBlocks(priority, nblocks))
 	    return(0);
     }
 
     /* Reclaim blocks if possible. */
     /* Try regular GetDown first, specific replacement second. */
-    ATOMIC(
-	GetDown();
-    , MAXFP)
+    Recov_BeginTrans();
+    GetDown();
+    Recov_EndTrans(MAXFP);
     if (GrabFreeBlocks(priority, nblocks))
 	return(0);
-    ATOMIC(
-	   int BlocksNeeded = nblocks +
-	   (priority >= MarginPri() ? 0 : FreeBlockMargin) - FreeBlockCount();
-	   ReclaimBlocks(priority, BlocksNeeded);
-    , MAXFP)
+    Recov_BeginTrans();
+    int BlocksNeeded = nblocks +
+	    (priority >= MarginPri() ? 0 : FreeBlockMargin) - FreeBlockCount();
+    ReclaimBlocks(priority, BlocksNeeded);
+    Recov_EndTrans(MAXFP);
     if (GrabFreeBlocks(priority, nblocks))
 	return(0);
 
@@ -1704,11 +1724,11 @@ void fsdb::ReclaimBlocks(int priority, int nblocks) {
 	/* Extend block limit as necessary. */
 	ASSERT(nblocks > 0);
 	int extend_count = 4 * MAX(nblocks, FreeBlockMargin);
-	ATOMIC(
+	Recov_BeginTrans();
 	    RVMLIB_REC_OBJECT(MaxBlocks);
 	    MaxBlocks += extend_count;
 	    CacheBlocks = MaxBlocks;
-	, MAXFP)
+	Recov_EndTrans(MAXFP);
 
 	  ASSERT(nblocks < (FreeBlockCount() - FreeBlockMargin));
 	return;
@@ -1864,19 +1884,19 @@ void fsdb::UpdateDisconnectedUseStatistics(volent *v) {
 
 	// Promote f to write-lock here.
 
-	ATOMIC(
-	    RVMLIB_REC_OBJECT(f->DisconnectionsSinceUse);
- 	    if (LastRef[f->ix] > v->DiscoRefCounter) {
+	Recov_BeginTrans();
+	RVMLIB_REC_OBJECT(f->DisconnectionsSinceUse);
+	if (LastRef[f->ix] > v->DiscoRefCounter) {
 	        // This object was used during the disconnected session
 	        f->DisconnectionsUsed++;
 	        f->DisconnectionsSinceUse = 0;
-	    } else {
+	} else {
 	        // This object was not used during the disconnected session
 	        RVMLIB_REC_OBJECT(f->DisconnectionsUnused);
 	        f->DisconnectionsUnused++;
 		f->DisconnectionsSinceUse++;
-	    }
-	, MAXFP)
+	}
+	Recov_EndTrans(MAXFP);
 
 	// Demote f back to read-lock here.
     }

@@ -29,10 +29,8 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/venusvm.cc,v 4.9 1998/04/14 21:03:08 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/venusvm.cc,v 4.10 1998/08/23 16:46:29 jaharkes Exp $";
 #endif /*_BLURB_*/
-
-
 
 
 /*
@@ -52,22 +50,22 @@ extern "C" {
 #include <unistd.h>
 #include <stdlib.h>
 #include <fcntl.h>
-
 #include <netinet/in.h>
+#include <netdb.h>
+
 #ifdef __BSD44__
 #include <machine/endian.h>
-#endif
-#include <netdb.h>
-#ifdef __BSD44__
 #include <nlist.h>
 /* nlist.h defines this function but it isnt getting included because it is
    guarded by an ifdef of CMU which isnt getting defined.  XXXXX pkumar 6/13/95 */ 
 extern int nlist(const char*, struct nlist[]);
 #endif
+
 #include <rpc2.h>
 #include <rds.h>
 #include <rvm.h>
 #include <cfs/coda_opstats.h>
+
 /* interfaces */
 #include <vice.h>
 #include <mond.h>
@@ -93,9 +91,6 @@ extern int nlist(const char*, struct nlist[]);
 
 /* *****  Private constants  ***** */
 
-#ifdef MACH 
-#define VMUNIX  "/vmunix"
-#endif
 #ifdef __NetBSD__
 #define VMUNIX "/netbsd"
 #endif
@@ -103,32 +98,29 @@ extern int nlist(const char*, struct nlist[]);
 #undef VMUNIX
 #define VMUNIX "/kernel"
 #endif
-#ifdef	__linux__
-#define VMUNIX "/vmlinuz"
-#endif
 
 #define	DFLT_VMONHOST	"barber.coda.cs.cmu.edu"
 #define	DFLT_VMONPORTAL	1356
 
-PRIVATE const int WarnInterval = 2*60*60;      /* every two hours */
-PRIVATE const int VmonMaxDataSize = 1024 * 1024;       /* one meg */
-PRIVATE const int VmonMaxRvmDataSize = 64 * 1024;          /* 64K */
-PRIVATE const int VmonMaxFreeSEs = 10;
-PRIVATE const int VmonMaxFreeCEs = 10;
-PRIVATE const int VmonBindInterval = 300;   /* every five minutes */
-PRIVATE const int VmonCallEventInterval = 60 * 60;  /* every hour */
-PRIVATE const int VmonMiniCacheInterval = 60 * 60;  /* every hour */
-PRIVATE const int VmonAdviceInterval = 60 * 60;     /* every hour */
-PRIVATE const int VmonRwsInterval = 120 * 60;       /* every two hours */
-PRIVATE const int VmonSubtreeInterval = 120 * 60;   /* every two hours */
-PRIVATE const int VmonRepairInterval = 120 * 60;    /* every two hours */
-PRIVATE const int VmonVCBInterval = 120 * 60;  /* every two hours */
+static const int WarnInterval = 2*60*60;      /* every two hours */
+static const int VmonMaxDataSize = 1024 * 1024;       /* one meg */
+static const int VmonMaxRvmDataSize = 64 * 1024;          /* 64K */
+static const int VmonMaxFreeSEs = 10;
+static const int VmonMaxFreeCEs = 10;
+static const int VmonBindInterval = 300;   /* every five minutes */
+static const int VmonCallEventInterval = 60 * 60;  /* every hour */
+static const int VmonMiniCacheInterval = 60 * 60;  /* every hour */
+static const int VmonAdviceInterval = 60 * 60;     /* every hour */
+static const int VmonRwsInterval = 120 * 60;       /* every two hours */
+static const int VmonSubtreeInterval = 120 * 60;   /* every two hours */
+static const int VmonRepairInterval = 120 * 60;    /* every two hours */
+static const int VmonVCBInterval = 120 * 60;  /* every two hours */
 
 /* ***** Private types ***** */
 
 /* Forward declaration. */
 VmonVenusId MyVenusId;
-PRIVATE RPC2_Integer VmonCommSerial = 0;
+static RPC2_Integer VmonCommSerial = 0;
 
 
 /* Session Entry. */
@@ -262,51 +254,45 @@ struct vmoe {
 
 /* ***** Private variables  ***** */
 
-PRIVATE int VmonEnabled = 1;
-PRIVATE int VmonInited = 0;
-PRIVATE olist *CEActiveList = 0;
-PRIVATE olist *CEFreeList = 0;
-PRIVATE vmoe OE;
-PRIVATE RPC2_Handle VmonHandle = 0;
-PRIVATE unsigned long LastVmonBindAttempt = 0;
-PRIVATE RvmStatistics stats;
-PRIVATE int VmonSessionEventArraySize = 0;
+static int VmonEnabled = 1;
+static int VmonInited = 0;
+static olist *CEActiveList = 0;
+static olist *CEFreeList = 0;
+static vmoe OE;
+static RPC2_Handle VmonHandle = 0;
+static unsigned long LastVmonBindAttempt = 0;
+static RvmStatistics stats;
+static int VmonSessionEventArraySize = 0;
 
-#ifdef	__linux__
-PRIVATE int VmonSessionEventSize = 1; /* got FPEs after disabling some stuff */
-#else
-PRIVATE int VmonSessionEventSize = 0;
-#endif
-
-PRIVATE int kmem;
+static int kmem;
 #ifdef __BSD44__
-PRIVATE struct nlist RawStats[3];
+static struct nlist RawStats[3];
 #else
 long RawStats[3];
 #endif
-PRIVATE struct cfs_op_stats vfsop_init_stats[CFS_VFSOPS_SIZE];
-PRIVATE struct cfs_op_stats vnode_init_stats[CFS_VNODEOPS_SIZE];
+static struct cfs_op_stats vfsop_init_stats[CFS_VFSOPS_SIZE];
+static struct cfs_op_stats vnode_init_stats[CFS_VNODEOPS_SIZE];
 
 /* ***** Private routines  ***** */
 
-PRIVATE void VmonNoteOverflow(enum OverFlow);
-PRIVATE	void CheckSE();			    /* Session Entries */
-PRIVATE	void CheckCE();			    /* CommEvent Entries */
-PRIVATE void CheckCL();                     /* CallCount Entries */
-PRIVATE void CheckST();                     /* Statistics Entries */
-PRIVATE void CheckMC();                     /* MiniCache Entries */
-PRIVATE void CheckAdvice();                 /* Advice Entries */
-PRIVATE	void CheckOE();			    /* Overflow Entry */
-PRIVATE void CheckRW();	    		    /* Report Read/Write Sharing Stats */
-PRIVATE void CheckSubtree();		    /* Report Local Subtree Stats */
-PRIVATE void CheckRepair(); 		    /* Repair Local-Global Repair Stats */
+static void VmonNoteOverflow(enum OverFlow);
+static void CheckSE();			    /* Session Entries */
+static void CheckCE();			    /* CommEvent Entries */
+static void CheckCL();                     /* CallCount Entries */
+static void CheckST();                     /* Statistics Entries */
+static void CheckMC();                     /* MiniCache Entries */
+static void CheckAdvice();                 /* Advice Entries */
+static void CheckOE();			    /* Overflow Entry */
+static void CheckRW();	    		    /* Report Read/Write Sharing Stats */
+static void CheckSubtree();		    /* Report Local Subtree Stats */
+static void CheckRepair(); 		    /* Repair Local-Global Repair Stats */
 void CheckVCB();			    /* VCB Entries */
-PRIVATE int ValidateVmonHandle();
-PRIVATE void tprint(char *,long);
-PRIVATE int CheckVmonResult(long);
-PRIVATE int VmonSpaceUsed();
-PRIVATE int VmonRvmSpaceUsed();
-PRIVATE void GetStatistics(RvmStatistics *);
+static int ValidateVmonHandle();
+static void tprint(char *,long);
+static int CheckVmonResult(long);
+static int VmonSpaceUsed();
+static int VmonRvmSpaceUsed();
+static void GetStatistics(RvmStatistics *);
 
 
 /*  *****  External variables  *****  */
@@ -373,7 +359,6 @@ void VmonInit() {
 	 (int)(sizeof(struct cfs_op_stats)*CFS_VNODEOPS_SIZE));
 
     VmonSessionEventArraySize = (int) sizeof(VmonSessionEventArray);
-    VmonSessionEventSize = (int) sizeof(VmonSessionEvent);
 
     VMOND_Init();
 #endif
@@ -401,12 +386,12 @@ void VmonEnqueueSession(VmonSessionId Session, VolumeId Volume, UserId User,
     packedsize = entries = checks = 0;
     VmonSessionEvent *elem;
 
-    for (i = 0; i < (VmonSessionEventArraySize / VmonSessionEventSize); i++) {
+    for (i = 0; i < (VmonSessionEventArraySize/sizeof(VmonSessionEvent)); i++) {
         elem = &((&(Events->Event0))[i]);
 	if (elem->SuccessCount != 0 || elem->FailureCount != 0)
 	    ++entries;
     }
-    packedsize = VmonSessionEventSize * entries;
+    packedsize = sizeof(VmonSessionEvent) * entries;
 
     /* make sure that new data can be stored in RVM */
     if (VmonRvmSpaceUsed() + sizeof(struct vmse) + packedsize > VmonMaxRvmDataSize) {
@@ -459,7 +444,7 @@ void VmonEnqueueSession(VmonSessionId Session, VolumeId Volume, UserId User,
 	    ASSERT(rvmret == RVM_SUCCESS);
 	}
 
-	for (i = 0; i < (VmonSessionEventArraySize / VmonSessionEventSize); i++) {
+	for (i = 0; i < (VmonSessionEventArraySize/sizeof(VmonSessionEvent)); i++) {
 	    elem = &((&(Events->Event0))[i]);
 	    if (elem->SuccessCount != 0 || elem->FailureCount != 0)
 	        packed[checks++] = *elem;
@@ -527,7 +512,7 @@ void VmonPrint(int fd) {
 }
 
 
-PRIVATE void VmonNoteOverflow(enum OverFlow vm) {
+static void VmonNoteOverflow(enum OverFlow vm) {
 
     switch (vm) {
         case VMOVERFLOW:
@@ -549,7 +534,7 @@ PRIVATE void VmonNoteOverflow(enum OverFlow vm) {
 }
 
 
-PRIVATE void CheckSE() {
+static void CheckSE() {
     if (!VmonInited || !VmonEnabled) return;
 
     if (!ValidateVmonHandle()) return;
@@ -557,55 +542,55 @@ PRIVATE void CheckSE() {
     struct vmse *se = 0;
     int hits = 0;
     int misses = 0;
-    TRANSACTION(
-		while (se = (struct vmse *)SEActiveList.first()) {
-		    if (LogLevel >= 100) 
-			MarinerLog("mond::ReportSession (%x, %d)\n", se->Volume, se->User);
-                    hits = (int)(se->CacheStats.HoardDataHit.Count + 
-                                        se->CacheStats.NonHoardDataHit.Count + 
-                                        se->CacheStats.UnknownHoardDataHit.Count + 
-                                        se->CacheStats.HoardAttrHit.Count + 
-                                        se->CacheStats.NonHoardAttrHit.Count + 
-                                        se->CacheStats.UnknownHoardAttrHit.Count);
-                    misses = (int)(se->CacheStats.HoardDataMiss.Count +
-                                        se->CacheStats.NonHoardDataMiss.Count +
-                                        se->CacheStats.UnknownHoardDataMiss.Count +
-                                        se->CacheStats.HoardAttrMiss.Count +
-                                        se->CacheStats.NonHoardAttrMiss.Count +
-                                        se->CacheStats.UnknownHoardAttrMiss.Count);
-                    VDB->SaveCacheInfo(se->Volume, se->User, hits, misses);
-		    long code = VmonReportSession(VmonHandle, &se->Venus, se->Session,
-						 se->Volume, se->User, &se->AVSG,
-						 se->StartTime, se->EndTime,
-						 se->CETime,
-						 se->Size, se->Events,
-						 &se->Stats, &se->CacheStats);
-		    LOG(100,("Session report: [%x:%d] (%x:%d) (%d) [%d : %d] (%ul)\n",
-			   se->Venus.IPAddress, se->Venus.BirthTime,
-			   se->Volume, se->User, se->Session, se->StartTime,
-			   se->EndTime, se->CETime));
+    Recov_BeginTrans();
+    while (se = (struct vmse *)SEActiveList.first()) {
+	    if (LogLevel >= 100) 
+		    MarinerLog("mond::ReportSession (%x, %d)\n", se->Volume, se->User);
+	    hits = (int)(se->CacheStats.HoardDataHit.Count + 
+			 se->CacheStats.NonHoardDataHit.Count + 
+			 se->CacheStats.UnknownHoardDataHit.Count + 
+			 se->CacheStats.HoardAttrHit.Count + 
+			 se->CacheStats.NonHoardAttrHit.Count + 
+			 se->CacheStats.UnknownHoardAttrHit.Count);
+	    misses = (int)(se->CacheStats.HoardDataMiss.Count +
+			   se->CacheStats.NonHoardDataMiss.Count +
+			   se->CacheStats.UnknownHoardDataMiss.Count +
+			   se->CacheStats.HoardAttrMiss.Count +
+			   se->CacheStats.NonHoardAttrMiss.Count +
+			   se->CacheStats.UnknownHoardAttrMiss.Count);
+	    VDB->SaveCacheInfo(se->Volume, se->User, hits, misses);
+	    long code = VmonReportSession(VmonHandle, &se->Venus, se->Session,
+					  se->Volume, se->User, &se->AVSG,
+					  se->StartTime, se->EndTime,
+					  se->CETime,
+					  se->Size, se->Events,
+					  &se->Stats, &se->CacheStats);
+	    LOG(100,("Session report: [%x:%d] (%x:%d) (%d) [%d : %d] (%ul)\n",
+		     se->Venus.IPAddress, se->Venus.BirthTime,
+		     se->Volume, se->User, se->Session, se->StartTime,
+		     se->EndTime, se->CETime));
 		    LOG(100,("[%x %x %x]\n",se->AVSG.Member0,se->AVSG.Member1,se->AVSG.Member2));
 		    if (LogLevel >= 100) 
-			MarinerLog("mond::ReportSession done\n");
+			    MarinerLog("mond::ReportSession done\n");
 		    code = CheckVmonResult(code);
 		    if (code != 0) break;  
 		    
-//		    RVMLIB_REC_OBJECT(*se);    /* not needed */
+		    //		    RVMLIB_REC_OBJECT(*se);    /* not needed */
 		    RVMLIB_REC_OBJECT(VMSE);
 		    if (SEActiveList.remove(se) != se)
-		        Choke("CheckSE: remove(se)");
+			    Choke("CheckSE: remove(se)");
 		    struct olink *shadowp = SEActiveList.first();
 		    if (shadowp != NULL) RVMLIB_REC_OBJECT(*shadowp);
-		    VMSE.count -= (VmonSessionEventSize * (se->Size));
+		    VMSE.count -= (sizeof(VmonSessionEvent) * (se->Size));
 		    if (se->Size != 0)
-		        RVMLIB_REC_FREE(se->Events);
-		    RVMLIB_REC_FREE(se);
-		}
-    )
+			    rvmlib_rec_free(se->Events);
+		    rvmlib_rec_free(se);
+    }
+    Recov_EndTrans(0);
 }
 
 
-PRIVATE void CheckCE() {
+static void CheckCE() {
     if (!VmonInited || !VmonEnabled) return;
 
     if (!ValidateVmonHandle()) return;
@@ -632,7 +617,7 @@ PRIVATE void CheckCE() {
 }
 
 
-PRIVATE void CheckCL() {
+static void CheckCL() {
 
     if (!VmonInited || !VmonEnabled) return;
 
@@ -660,7 +645,7 @@ PRIVATE void CheckCL() {
     }
 }
 
-PRIVATE void CheckMC() {       // Check minicache stats
+static void CheckMC() {       // Check minicache stats
 #if defined(__BSD44__)
     int i;
 
@@ -713,7 +698,7 @@ PRIVATE void CheckMC() {       // Check minicache stats
 #endif				    
 }
 
-/* PRIVATE -- was private but couldn't access u->admon then... */ 
+/* static -- was private but couldn't access u->admon then... */ 
 void ReportAdviceStatistics(vuid_t vuid) 
 {
     userent *u;
@@ -768,7 +753,7 @@ void CheckAdvice()
     }
 }
 
-PRIVATE void CheckOE() {
+static void CheckOE() {
     if (!VmonInited || !VmonEnabled) return;
 
     if (OE.VMCount > 0 || OE.RVMCount > 0) {
@@ -821,11 +806,11 @@ void CheckRW()
 	rec_dlink *d, *to_be_deleted = NULL;
 	while (d = next()) {
 	    if (to_be_deleted) {
-		ATOMIC(
+		Recov_BeginTrans();
 		       ASSERT(RWSQ->remove(to_be_deleted) == to_be_deleted);
 		       delete to_be_deleted;
 		       to_be_deleted = NULL;
-		, MAXFP)
+		Recov_EndTrans(MAXFP);
 	    }
 	    rwsent *rws = (rwsent *)d;
 	    ReadWriteSharingStats Stats;
@@ -846,10 +831,10 @@ void CheckRW()
 	    to_be_deleted = d;
 	}
 	if (to_be_deleted) {
-	    ATOMIC(
+	    Recov_BeginTrans();
 		   ASSERT(RWSQ->remove(to_be_deleted) == to_be_deleted);
 		   delete to_be_deleted;
-	    , MAXFP)
+	    Recov_EndTrans(MAXFP);
 	}
     }
 }
@@ -971,7 +956,7 @@ void CheckVCB() {
 }
 
 
-PRIVATE int ValidateVmonHandle() {
+static int ValidateVmonHandle() {
     if (Simulating) return(0);
     if (VmonHandle != 0) return(1);
 
@@ -1033,7 +1018,7 @@ PRIVATE int ValidateVmonHandle() {
 
 }
 
-PRIVATE void tprint(char *string, long curr_time) {
+static void tprint(char *string, long curr_time) {
     static long last_time = 0;
 
     if (curr_time - last_time > WarnInterval) {
@@ -1042,7 +1027,7 @@ PRIVATE void tprint(char *string, long curr_time) {
     }
 }
 
-PRIVATE int CheckVmonResult(long code) {
+static int CheckVmonResult(long code) {
     if (code == 0) return(0);
 
     LOG(0, ("CheckVmonResult: failure (%d)\n", code));
@@ -1054,17 +1039,17 @@ PRIVATE int CheckVmonResult(long code) {
 }
 
 
-PRIVATE int VmonSpaceUsed() {
+static int VmonSpaceUsed() {
     return(CEActiveList->count() * sizeof(struct vmce));
 }
 
 
-PRIVATE int VmonRvmSpaceUsed() {
+static int VmonRvmSpaceUsed() {
     return(SEActiveList.count() * sizeof(struct vmse) + VMSE.count);
 }
 
 
-PRIVATE void GetStatistics(RvmStatistics *stats)
+static void GetStatistics(RvmStatistics *stats)
 {
     rds_stats_t rdsstat;
 
@@ -1080,10 +1065,10 @@ PRIVATE void GetStatistics(RvmStatistics *stats)
 
 /*  *****  Vmon Daemon  *****  */
 
-PRIVATE const int VmonDaemonInterval = 60 * TIMERINTERVAL;
-PRIVATE const int VmonDaemonStackSize = 32768;
+static const int VmonDaemonInterval = 60 * TIMERINTERVAL;
+static const int VmonDaemonStackSize = 32768;
 
-PRIVATE char vmondaemon_sync;
+static char vmondaemon_sync;
 
 void VMOND_Init() {
     (void)new vproc("VmonDaemon", (PROCBODY)&VmonDaemon,

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/vol_reintegrate.cc,v 4.12 98/07/08 22:42:11 jaharkes Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/vol_reintegrate.cc,v 4.13 1998/07/14 11:19:05 jaharkes Exp $";
 #endif /*_BLURB_*/
 
 
@@ -41,23 +41,33 @@ static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/
  *
  *    Implementation of the Venus Reintegrate facility.
  *
- *    Reintegration is essentially the merge phase of Davidson's Optimistic Protocol.
- *    Our implementation is highly stylized, however, to account for the fact that our
- *    "database" is a Unix-like file system rather than a conventional database whose
+ *    Reintegration is essentially the merge phase of Davidson's
+ *    Optimistic Protocol.  Our implementation is highly stylized,
+ *    however, to account for the fact that our "database" is a
+ *    Unix-like file system rather than a conventional database whose
  *    operations and integrity constraints are well specified.
  *
- *    Specific details of our implementation are the following:
- *       1. the unit of logging and reintegration is the volume; this follows from:
- *          - a "transaction" may reference objects in only one volume
- *          - a volume is contained within a single storage group
- *       2. the client, i.e., Venus, is always the coordinator for the merge
- *       3. the server does NOT maintain a log of its partitioned operations;
- *          instead, we rely on the client to supply version information with its
- *          "transactions" sufficient to allow the server to distinguish conflicts
+
+
+ * Specific details of our implementation are the following: 
+
+ *       1. the unit of logging and reintegration is the volume; this
+ *       follows from: - a "transaction" may reference objects in only
+ *       one volume - a volume is contained within a single storage
+ *       group
+
+ *       2. the client, i.e., Venus, is always the coordinator for the
+ *       merge
+
+ *       3. the server does NOT maintain a log of its partitioned
+ *       operations; instead, we rely on the client to supply version
+ *       information with its "transactions" sufficient to allow the
+ *       server to distinguish conflicts
+
+
  *       4. "transactions" map one-to-one onto Vice operations;
- *          non-mutating "transactions" are not logged since they can always be 
- *          "serialized" before any conflicting mutations
- *
+ *       non-mutating "transactions" are not logged since they can
+ *       always be "serialized" before any conflicting mutations
  */
 
 
@@ -248,7 +258,6 @@ int volent::IncReintegrate(int tid) {
     cmlstats cancelled;
     CML.IncGetStats(current, cancelled, tid);	/* get incremental stats */
 
-    int pre_vm_usage = VMUsage();
     START_TIMING();
     float pre_elapsed = 0.0, inter_elapsed = 0.0, post_elapsed = 0.0;
     for (;;) {
@@ -409,11 +418,9 @@ extern struct timeval *VprocRetryBeta;
 
     cur_reint_tid = UNSET_TID;
     END_TIMING();
-    int post_vm_usage = VMUsage();
     LOG(0, ("IncReintegrate: (%s,%d) result = %s, elapsed = %3.1f (%3.1f, %3.1f, %3.1f)\n", 
 	    name, tid, VenusRetStr(code), elapsed, pre_elapsed, inter_elapsed, post_elapsed));
-    LOG(100, ("\tdelta_vm = %x, old stats = [%d, %d, %d, %d, %d]\n",
-	   post_vm_usage - pre_vm_usage,
+    LOG(100, ("\t old stats = [%d, %d, %d, %d, %d]\n",
 	   RecordsCancelled - StartCancelled, 
 	   RecordsCommitted - StartCommitted, 
 	   RecordsAborted - StartAborted,
@@ -636,9 +643,9 @@ int cmlent::ReintReady()
 
 /* *****  Reintegrator  ***** */
 
-PRIVATE const int ReintegratorStackSize = 65536;
-PRIVATE const int MaxFreeReintegrators = 2;
-PRIVATE const int ReintegratorPriority = LWP_NORMAL_PRIORITY-2;
+static const int ReintegratorStackSize = 65536;
+static const int MaxFreeReintegrators = 2;
+static const int ReintegratorPriority = LWP_NORMAL_PRIORITY-2;
 
 /* local-repair modification */
 class reintegrator : public vproc {

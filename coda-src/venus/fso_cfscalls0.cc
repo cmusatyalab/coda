@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/fso_cfscalls0.cc,v 4.10 1998/04/14 21:03:04 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/fso_cfscalls0.cc,v 4.11 1998/07/01 10:35:27 jaharkes Exp $";
 #endif /*_BLURB_*/
 
 
@@ -142,13 +142,13 @@ int fsobj::Fetch(vuid_t vuid) {
     SE_Descriptor *sed = 0;
 
     /* C++ 3.0 whines if the following decls moved closer to use  -- Satya */
-    int i, fd = 0, npages;  
-    VenusDirPage *pageptr;
+    int i, fd = 0, npages;
+    struct DirHeader *hdrptr;
     {
 #ifndef O_BINARY
 #define O_BINARY 0
 #endif
-	ATOMIC(
+	    Recov_BeginTrans();
 	    RVMLIB_REC_OBJECT(flags);
 	    flags.fetching = 1;
 
@@ -170,25 +170,26 @@ int fsobj::Fetch(vuid_t vuid) {
 
 		    break;
 
+		    /* I don't know how to lock the DH here, but it should
+		       be done. */
 		case Directory:
-		    FSO_ASSERT(this, (stat.Length & (PAGESIZE - 1)) == 0);
 		    RVMLIB_REC_OBJECT(data.dir);
-		    data.dir = (VenusDirData *)RVMLIB_REC_MALLOC((int)sizeof(VenusDirData) + (unsigned) stat.Length);
+		    data.dir = (VenusDirData *)rvmlib_rec_malloc(sizeof(VenusDirData));
+		    assert(data.dir);
+		    bzero((void *)data.dir, sizeof(VenusDirData));
+		    FSO_ASSERT(this, (stat.Length & (DIR_PAGESIZE - 1)) == 0);
 		    RVMLIB_REC_OBJECT(*data.dir);
-		    bzero((void *)data.dir, (int)sizeof(VenusDirData));
-		    npages = (int) stat.Length >> LOGPS;
-		    pageptr = (VenusDirPage *)((char *)data.dir + (int)sizeof(VenusDirData));
-		    for (i = 0; i < npages; i++, pageptr++)
-			data.dir->pages[i] = pageptr;
+		    DH_Alloc(&data.dir->dh, stat.Length, DIR_DATA_IN_RVM);
 		    sei->Tag = FILEINVM;
 		    sei->FileInfo.ByAddr.vmfile.MaxSeqLen = stat.Length;
-		    sei->FileInfo.ByAddr.vmfile.SeqBody = (RPC2_ByteSeq)(data.dir->pages[0]);
+		    sei->FileInfo.ByAddr.vmfile.SeqBody = 
+			    (RPC2_ByteSeq)(DH_Data(&data.dir->dh));
 		    break;
 
 		case SymbolicLink:
 		    RVMLIB_REC_OBJECT(data.symlink);
 		    /* Malloc one extra byte in case length is 0 (as for runts)! */
-		    data.symlink = (char *)RVMLIB_REC_MALLOC((unsigned) stat.Length + 1);
+		    data.symlink = (char *)rvmlib_rec_malloc((unsigned) stat.Length + 1);
 		    sei->Tag = FILEINVM;
 		    sei->FileInfo.ByAddr.vmfile.MaxSeqLen = stat.Length;
 		    sei->FileInfo.ByAddr.vmfile.SeqBody = (RPC2_ByteSeq)data.symlink;
@@ -197,7 +198,7 @@ int fsobj::Fetch(vuid_t vuid) {
 		case Invalid:
 		    FSO_ASSERT(this, 0);
 	    }
-	, CMFP)
+	Recov_EndTrans(CMFP);
     }
 
     if (flags.replicated) {
@@ -309,16 +310,16 @@ int fsobj::Fetch(vuid_t vuid) {
 	    }
 	}
 
-	ATOMIC(
-	    UpdateStatus(&status, vuid);
-	, CMFP)
+	Recov_BeginTrans();
+	UpdateStatus(&status, vuid);
+	Recov_EndTrans(CMFP);
 
 	/* Read/Write Sharing Stat Collection */
 	if (flags.discread) {	
-	    ATOMIC(
-		   RVMLIB_REC_OBJECT(flags);
-		   flags.discread = 0;
-	    , MAXFP)
+	    Recov_BeginTrans();
+	    RVMLIB_REC_OBJECT(flags);
+	    flags.discread = 0;
+	    Recov_EndTrans(MAXFP);
 	}
 
 	if (flags.usecallback &&
@@ -390,16 +391,16 @@ RepExit:
 	    Demote(0);
 	}
 
-	ATOMIC(
-	    UpdateStatus(&status, vuid);
-	, CMFP)
+	Recov_BeginTrans();
+	UpdateStatus(&status, vuid);
+	Recov_EndTrans(CMFP);
 
 	/* Read/Write Sharing Stat Collection */
 	if (flags.discread) {	
-	    ATOMIC(
-		   RVMLIB_REC_OBJECT(flags);
-		   flags.discread = 0;
-	    , MAXFP)
+	    Recov_BeginTrans();
+	    RVMLIB_REC_OBJECT(flags);
+	    flags.discread = 0;
+	    Recov_EndTrans(MAXFP);
 	}
 
 	if (flags.usecallback &&
@@ -413,27 +414,27 @@ NonRepExit:
 
     if (code == 0) {
 	/* Note the presence of data. */
-	ATOMIC(
-	    RVMLIB_REC_OBJECT(flags);
-	    flags.fetching = 0;
+	Recov_BeginTrans();
+	RVMLIB_REC_OBJECT(flags);
+	flags.fetching = 0;
 
-	    switch(stat.VnodeType) {
-		case File:
-		    data.file->SetLength((unsigned) stat.Length);
-		    break;
-
-		case Directory:
-		    RVMLIB_SET_RANGE(((char *)data.dir + (int)sizeof(VenusDirData)), stat.Length);
-		    break;
-
-		case SymbolicLink:
-		    RVMLIB_SET_RANGE(data.symlink, stat.Length);
-		    break;
-
-		case Invalid:
-		    FSO_ASSERT(this, 0);
-	    }
-	, CMFP)
+	switch(stat.VnodeType) {
+	case File:
+		data.file->SetLength((unsigned) stat.Length);
+		break;
+		
+	case Directory:
+		rvmlib_set_range(((char *)data.dir + (int)sizeof(VenusDirData)), stat.Length);
+		break;
+		
+	case SymbolicLink:
+		rvmlib_set_range(data.symlink, stat.Length);
+		break;
+		
+	case Invalid:
+		FSO_ASSERT(this, 0);
+	}
+	Recov_EndTrans(CMFP);
     }
     else {
        /* 
@@ -441,18 +442,18 @@ NonRepExit:
 	* file length so that DiscardData releases the correct
 	* number of blocks (i.e., the number allocated in fsdb::Get).
 	*/
-	ATOMIC(
-	    RVMLIB_REC_OBJECT(flags);
-	    flags.fetching = 0;
-	    if (HAVEDATA(this)) {
+	Recov_BeginTrans();
+	RVMLIB_REC_OBJECT(flags);
+	flags.fetching = 0;
+	if (HAVEDATA(this)) {
 		if (IsFile()) 
-		    data.file->SetLength((unsigned) stat.Length);
+			data.file->SetLength((unsigned) stat.Length);
 		DiscardData();
 	    }
-
-	    /* Demote existing status. */
-	    Demote();
-	, CMFP)
+	
+	/* Demote existing status. */
+	Demote();
+	Recov_EndTrans(CMFP);
     }
     return(code);
 }
@@ -564,7 +565,8 @@ int fsobj::GetAttr(vuid_t vuid, RPC2_BoundedBS *acl) {
 
 		while ((f = next()) && (numPiggyFids < PIGGY_VALIDATIONS)) {
 		    if (HAVESTATUS(f) && !STATUSVALID(f) && !DYING(f) &&
-			!BUSY(f) && !f->flags.rwreplica && !FID_EQ(f->fid, fid) &&
+			!BUSY(f) && !f->flags.rwreplica && 
+			!FID_EQ(&f->fid, &fid) &&
 			!f->IsLocalObj()) {  
 
 			LOG(1000, ("fsobj::GetAttr: packing piggy fid (%x.%x.%x) comp = %s\n",
@@ -654,10 +656,10 @@ int fsobj::GetAttr(vuid_t vuid, RPC2_BoundedBS *acl) {
 
 				/* Read/Write Sharing Stat Collection */
 				if (pobj->flags.discread) {
-				    ATOMIC(
-					   RVMLIB_REC_OBJECT(pobj->flags);
-					   pobj->flags.discread = 0;
-				    , MAXFP)
+				    Recov_BeginTrans();
+				    RVMLIB_REC_OBJECT(pobj->flags);
+				    pobj->flags.discread = 0;
+				    Recov_EndTrans(MAXFP);
 				}
 
 				if (flags.usecallback && (cbtemp == cbbreaks)) {
@@ -679,21 +681,21 @@ int fsobj::GetAttr(vuid_t vuid, RPC2_BoundedBS *acl) {
 				
 				/* Read/Write Sharing Stat Collection */
 				if (pobj->flags.discread) {
-				    ATOMIC(
-					   RVMLIB_REC_OBJECT(vol->current_rws_cnt);
-					   vol->current_rws_cnt++;
-					   RVMLIB_REC_OBJECT(vol->current_disc_read_cnt);
-					   vol->current_disc_read_cnt++;
-					   RVMLIB_REC_OBJECT(pobj->flags);
-					   pobj->flags.discread = 0;
-				    , MAXFP)
+				    Recov_BeginTrans();
+				    RVMLIB_REC_OBJECT(vol->current_rws_cnt);
+				    vol->current_rws_cnt++;
+				    RVMLIB_REC_OBJECT(vol->current_disc_read_cnt);
+				    vol->current_disc_read_cnt++;
+				    RVMLIB_REC_OBJECT(pobj->flags);
+				    pobj->flags.discread = 0;
+				    Recov_EndTrans(MAXFP);
 				}
 
-				if (REPLACEABLE(pobj) && !BUSY(pobj))
-				    ATOMIC(
-				      pobj->Kill(0);
-				    , MAXFP)
-				else
+				if (REPLACEABLE(pobj) && !BUSY(pobj)) {
+					Recov_BeginTrans();
+					pobj->Kill(0);
+					Recov_EndTrans(MAXFP);
+				} else
 				    pobj->Demote(0);
 
 				nfailed++;	
@@ -707,12 +709,12 @@ int fsobj::GetAttr(vuid_t vuid, RPC2_BoundedBS *acl) {
 				 * validation of piggybacked fids is a side-effect.
 				 */
 				if (HAVEDATA(pobj) && !WRITING(pobj) && !EXECUTING(pobj) && !pobj->IsFakeDir()) {
-				    ATOMIC(
-					   UpdateCacheStats((IsDir() ? &FSDB->DirDataStats 
-							     : &FSDB->FileDataStats),
-							    REPLACE, BLOCKS(pobj));
-					   pobj->DiscardData();
-					   , MAXFP)
+				    Recov_BeginTrans();
+				    UpdateCacheStats((IsDir() ? &FSDB->DirDataStats 
+						      : &FSDB->FileDataStats),
+						     REPLACE, BLOCKS(pobj));
+				    pobj->DiscardData();
+				    Recov_EndTrans(MAXFP);
 				}
 			    }
 		    }
@@ -773,9 +775,9 @@ int fsobj::GetAttr(vuid_t vuid, RPC2_BoundedBS *acl) {
 		LOG(0, ("fsobj::GetAttr: (%x.%x.%x) validated fake directory\n",
 			fid.Volume, fid.Vnode, fid.Unique));
 
-		TRANSACTION(
-		    Kill();
-		)
+		Recov_BeginTrans();
+		Kill();
+		Recov_EndTrans(0);
 
 		code = ERETRY;
 		goto RepExit;
@@ -802,28 +804,28 @@ int fsobj::GetAttr(vuid_t vuid, RPC2_BoundedBS *acl) {
 		/* Operation MUST be restarted from beginning since, even though this */
 		/* fetch was for status-only, the operation MAY be requiring data! */
 		if (HAVEDATA(this)) {
-		    ATOMIC(
-			UpdateCacheStats((IsDir() ? &FSDB->DirDataStats : &FSDB->FileDataStats),
-					 REPLACE, BLOCKS(this));
-			DiscardData();
-			code = ERETRY;
-		    , CMFP)
-
+		    Recov_BeginTrans();
+		    UpdateCacheStats((IsDir() ? &FSDB->DirDataStats : &FSDB->FileDataStats),
+				     REPLACE, BLOCKS(this));
+		    DiscardData();
+		    code = ERETRY;
+		    Recov_EndTrans(CMFP);
+		    
 		    goto RepExit;
 		}
     	    }
 	}
 
-	ATOMIC(
-	    UpdateStatus(&status, vuid);
-	, CMFP)
+	Recov_BeginTrans();
+	UpdateStatus(&status, vuid);
+	Recov_EndTrans(CMFP);
 
 	/* Read/Write Sharing Stat Collection */
 	if (flags.discread) {	
-	    ATOMIC(
-		   RVMLIB_REC_OBJECT(flags);
-		   flags.discread = 0;
-	    , MAXFP)
+	    Recov_BeginTrans();
+	    RVMLIB_REC_OBJECT(flags);
+	    flags.discread = 0;
+	    Recov_EndTrans(MAXFP);
 	}
 
 	if (flags.usecallback &&
@@ -851,21 +853,21 @@ RepExit:
 	    case EINCONS:
 		/* Read/Write Sharing Stat Collection */
 		if (flags.discread) {
-		    ATOMIC(
-			   RVMLIB_REC_OBJECT(vol->current_rws_cnt);
-			   vol->current_rws_cnt++;
-		    , MAXFP)
+		    Recov_BeginTrans();
+		    RVMLIB_REC_OBJECT(vol->current_rws_cnt);
+		    vol->current_rws_cnt++;
+		    Recov_EndTrans(MAXFP);
 		}
-		ATOMIC(
-		    Kill();
-		, CMFP)
+		Recov_BeginTrans();
+		Kill();
+		Recov_EndTrans(CMFP);
 		break;
 
 	    case ENOENT:
 		/* Object no longer exists, discard if possible. */
-		ATOMIC(
-		   Kill();
-		, CMFP)
+		Recov_BeginTrans();
+		Kill();
+		Recov_EndTrans(CMFP);
 		break;
 
 	    default:
@@ -903,27 +905,27 @@ RepExit:
 	    /* Operation MUST be restarted from beginning since, even though this */
 	    /* fetch was for status-only, the operation MAY be requiring data! */
 	    if (HAVEDATA(this)) {
-		ATOMIC(
-		    UpdateCacheStats((IsDir() ? &FSDB->DirDataStats : &FSDB->FileDataStats),
-				     REPLACE, BLOCKS(this));
-		    DiscardData();
-		    code = ERETRY;
-		, CMFP)
+		Recov_BeginTrans();
+		UpdateCacheStats((IsDir() ? &FSDB->DirDataStats : &FSDB->FileDataStats),
+				 REPLACE, BLOCKS(this));
+		DiscardData();
+		code = ERETRY;
+		Recov_EndTrans(CMFP);
 
 		goto NonRepExit;
 	    }
 	}
 
-	ATOMIC(
-	    UpdateStatus(&status, vuid);
-	, CMFP)
+	Recov_BeginTrans();
+	UpdateStatus(&status, vuid);
+	Recov_EndTrans(CMFP);
 
 	/* Read/Write Sharing Stat Collection */
 	if (flags.discread) {	
-	    ATOMIC(
-		   RVMLIB_REC_OBJECT(flags);
-		   flags.discread = 0;
-	    , MAXFP)
+		Recov_BeginTrans();
+		RVMLIB_REC_OBJECT(flags);
+		flags.discread = 0;
+		Recov_EndTrans(MAXFP);
 	}
 
 	if (flags.usecallback &&
@@ -938,18 +940,18 @@ NonRepExit:
     if (code != 0) {
 	/* Read/Write Sharing Stat Collection */
 	if (flags.discread) {
-	    ATOMIC(
-		   RVMLIB_REC_OBJECT(vol->current_rws_cnt);
-		   vol->current_rws_cnt++;
-	    , MAXFP)
+	    Recov_BeginTrans();
+	    RVMLIB_REC_OBJECT(vol->current_rws_cnt);
+	    vol->current_rws_cnt++;
+	    Recov_EndTrans(MAXFP);
 	}
-	ATOMIC(
-	    /* Demote or discard existing status. */
-	    if (HAVESTATUS(this) && code != ENOENT)
+	Recov_BeginTrans();
+	/* Demote or discard existing status. */
+	if (HAVESTATUS(this) && code != ENOENT)
 		Demote();
 	    else
 		Kill();
-	, DMFP)
+	Recov_EndTrans(DMFP);
     }
     return(code);
 }
@@ -1118,10 +1120,10 @@ int fsobj::ConnectedStore(Date_t Mtime, vuid_t vuid, unsigned long NewLength) {
 	}
 
 	/* Do Store locally. */
-	ATOMIC(
-	    LocalStore(Mtime, NewLength);
-	    UpdateStatus(&status, &UpdateSet, vuid);
-	, CMFP)
+	Recov_BeginTrans();
+	LocalStore(Mtime, NewLength);
+	UpdateStatus(&status, &UpdateSet, vuid);
+	Recov_EndTrans(CMFP);
 	if (ASYNCCOP2) ReturnEarly();
 
 	/* Send the COP2 message or add an entry for piggybacking. */
@@ -1140,14 +1142,14 @@ RepExit:
 
 	    default:
 		/* Simulate a disconnection, to be followed by reconnection/reintegration. */
-		ATOMIC(
-		    code = vol->LogStore(Mtime, vuid, &fid, NewLength);
+		Recov_BeginTrans();
+		code = vol->LogStore(Mtime, vuid, &fid, NewLength);
 
-		    if (code == 0) {
+		if (code == 0) {
 			LocalStore(Mtime, NewLength);
 			vol->flags.transition_pending = 1;
-		    }
-		, DMFP)
+		}
+		Recov_EndTrans(DMFP);
 		break;
 	}
     }
@@ -1184,10 +1186,10 @@ RepExit:
 	}
 
 	/* Do Store locally. */
-	ATOMIC(
-	    LocalStore(Mtime, NewLength);
-	    UpdateStatus(&status, 0, vuid);
-	, CMFP)
+	Recov_BeginTrans();
+	LocalStore(Mtime, NewLength);
+	UpdateStatus(&status, 0, vuid);
+	Recov_EndTrans(CMFP);
 
 NonRepExit:
 	PutConn(&c);
@@ -1206,14 +1208,14 @@ int fsobj::DisconnectedStore(Date_t Mtime, vuid_t vuid, unsigned long NewLength,
 	goto Exit;
     }
 
-    ATOMIC(
+    Recov_BeginTrans();
 	/* Failure to log a store would be most unpleasant for the user! */
 	/* Probably we should try to guarantee that it never happens (e.g., by reserving a record at open). */
-	code = vol->LogStore(Mtime, vuid, &fid, NewLength, Tid);
-
-	if (code == 0)
+    code = vol->LogStore(Mtime, vuid, &fid, NewLength, Tid);
+    
+    if (code == 0)
 	    LocalStore(Mtime, NewLength);
-    , DMFP)
+    Recov_EndTrans(DMFP);
 
 Exit:
     return(code);
@@ -1235,11 +1237,11 @@ int fsobj::Store(unsigned long NewLength, Date_t Mtime, vuid_t vuid) {
     }
 
     if (code != 0) {
-	ATOMIC(
-	    /* Stores cannot be retried, so we have no choice but to nuke the file. */
-	    if (code == ERETRY) code = EINVAL;
-	    Kill();
-	, DMFP)
+	Recov_BeginTrans();
+	/* Stores cannot be retried, so we have no choice but to nuke the file. */
+	if (code == ERETRY) code = EINVAL;
+	Kill();
+	Recov_EndTrans(DMFP);
     }
     return(code);
 }
@@ -1400,11 +1402,11 @@ int fsobj::ConnectedSetAttr(Date_t Mtime, vuid_t vuid, unsigned long NewLength,
 	}
 
 	/* Do setattr locally. */
-	ATOMIC(
-	    if (!setacl)
+	Recov_BeginTrans();
+	if (!setacl)
 		LocalSetAttr(Mtime, NewLength, NewDate, NewOwner, NewMode);
-	    UpdateStatus(&status, &UpdateSet, vuid);
-	, CMFP)
+	UpdateStatus(&status, &UpdateSet, vuid);
+	Recov_EndTrans(CMFP);
 	if (ASYNCCOP2) ReturnEarly();
 
 	/* Send the COP2 message or add an entry for piggybacking. */
@@ -1454,11 +1456,11 @@ RepExit:
 	if (code != 0) goto NonRepExit;
 
 	/* Do setattr locally. */
-	ATOMIC(
-	    if (!setacl)
+	Recov_BeginTrans();
+	if (!setacl)
 		LocalSetAttr(Mtime, NewLength, NewDate, NewOwner, NewMode);
-	    UpdateStatus(&status, 0, vuid);
-	, CMFP)
+	UpdateStatus(&status, 0, vuid);
+	Recov_EndTrans(CMFP);
 
 NonRepExit:
 	PutConn(&c);
@@ -1473,13 +1475,13 @@ int fsobj::DisconnectedSetAttr(Date_t Mtime, vuid_t vuid, unsigned long NewLengt
 
     int code = 0;
 
-    ATOMIC(
-	RPC2_Integer tNewMode =	(short)NewMode;	    /* sign-extend!!! */
-	code = vol->LogSetAttr(Mtime, vuid, &fid, NewLength, NewDate, NewOwner, 
-			       (RPC2_Unsigned)tNewMode, Tid);
-	if (code == 0)
+    Recov_BeginTrans();
+    RPC2_Integer tNewMode =	(short)NewMode;	    /* sign-extend!!! */
+    code = vol->LogSetAttr(Mtime, vuid, &fid, NewLength, NewDate, NewOwner, 
+			   (RPC2_Unsigned)tNewMode, Tid);
+    if (code == 0)
 	    LocalSetAttr(Mtime, NewLength, NewDate, NewOwner, NewMode);
-    , DMFP)
+    Recov_EndTrans(DMFP);
 
     return(code);
 }
@@ -1520,9 +1522,9 @@ int fsobj::SetAttr(struct coda_vattr *vap, vuid_t vuid, RPC2_CountedBS *acl) {
 #endif
     /* Only update cache file when truncating and open for write! */
     if (NewLength != (unsigned long)-1 && WRITING(this)) {
-	ATOMIC(
-	    data.file->Truncate((unsigned) NewLength);
-	, MAXFP)
+	Recov_BeginTrans();
+	data.file->Truncate((unsigned) NewLength);
+	Recov_EndTrans(MAXFP);
 	NewLength = (unsigned long)-1;
     }
 
@@ -1735,11 +1737,11 @@ int fsobj::ConnectedCreate(Date_t Mtime, vuid_t vuid, fsobj **t_fso_addr,
 	}
 
 	/* Do Create locally. */
-	ATOMIC(
-	    LocalCreate(Mtime, target_fso, name, vuid, Mode);
-	    UpdateStatus(&parent_status, &UpdateSet, vuid);
-	    target_fso->UpdateStatus(&target_status, &UpdateSet, vuid);
-	, CMFP)
+	Recov_BeginTrans();
+	LocalCreate(Mtime, target_fso, name, vuid, Mode);
+	UpdateStatus(&parent_status, &UpdateSet, vuid);
+	target_fso->UpdateStatus(&target_status, &UpdateSet, vuid);
+	Recov_EndTrans(CMFP);
 	if (target_fso->flags.usecallback &&
 	    target_status.CallBack == CallBackSet &&
 	    cbtemp == cbbreaks)
@@ -1808,11 +1810,11 @@ RepExit:
 			 NBLOCKS(sizeof(fsobj)));
 
 	/* Do Create locally. */
-	ATOMIC(
-	    LocalCreate(Mtime, target_fso, name, vuid, Mode);
-	    UpdateStatus(&parent_status, 0, vuid);
-	    target_fso->UpdateStatus(&target_status, 0, vuid);
-	, CMFP)
+	Recov_BeginTrans();
+	LocalCreate(Mtime, target_fso, name, vuid, Mode);
+	UpdateStatus(&parent_status, 0, vuid);
+	target_fso->UpdateStatus(&target_status, 0, vuid);
+	Recov_EndTrans(CMFP);
 	if (target_fso->flags.usecallback &&
 	    target_status.CallBack == CallBackSet &&
 	    cbtemp == cbbreaks)
@@ -1828,9 +1830,9 @@ NonRepExit:
     else {
 	if (target_fso != 0) {
 	    FSO_ASSERT(target_fso, !HAVESTATUS(target_fso));
-	    ATOMIC(
-		target_fso->Kill();
-	    , DMFP);
+	    Recov_BeginTrans();
+	    target_fso->Kill();
+	    Recov_EndTrans(DMFP);
 	    FSDB->Put(&target_fso);
 	}
     }
@@ -1867,10 +1869,10 @@ int fsobj::DisconnectedCreate(Date_t Mtime, vuid_t vuid, fsobj **t_fso_addr, cha
     UpdateCacheStats(&FSDB->FileAttrStats, CREATE,
 		      NBLOCKS(sizeof(fsobj)));
 
-    ATOMIC(
-	code = vol->LogCreate(Mtime, vuid, &fid, name, &target_fso->fid, Mode, Tid);
+    Recov_BeginTrans();
+    code = vol->LogCreate(Mtime, vuid, &fid, name, &target_fso->fid, Mode, Tid);
 
-	   if (code == 0) {
+    if (code == 0) {
 	    /* This MUST update second-class state! */
 	    LocalCreate(Mtime, target_fso, name, vuid, Mode);
 
@@ -1879,7 +1881,7 @@ int fsobj::DisconnectedCreate(Date_t Mtime, vuid_t vuid, fsobj **t_fso_addr, cha
 	    target_fso->CleanStat.Length = target_fso->stat.Length;
 	    target_fso->CleanStat.Date = target_fso->stat.Date;
 	   }
-    , DMFP)
+    Recov_EndTrans(DMFP);
 
 Exit:
     if (code == 0) {
@@ -1888,9 +1890,9 @@ Exit:
     else {
 	if (target_fso != 0) {
 	    FSO_ASSERT(target_fso, !HAVESTATUS(target_fso));
-	    ATOMIC(
-		target_fso->Kill();
-	    , DMFP);
+	    Recov_BeginTrans();
+	    target_fso->Kill();
+	    Recov_EndTrans(DMFP);
 	    FSDB->Put(&target_fso);
 	}
     }

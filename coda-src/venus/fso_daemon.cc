@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/src/coda-4.0.1/coda-src/venus/RCS/fso_daemon.cc,v 1.1 1996/11/22 19:11:00 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/fso_daemon.cc,v 4.1 1997/01/08 21:51:28 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -76,15 +76,15 @@ extern "C" {
 
 /* *****  Private constants  ***** */
 
-PRIVATE const int FSODaemonInterval = 5;
-PRIVATE const int GetDownInterval = 30;
-PRIVATE const int FlushRefVecInterval = 90;
-PRIVATE const int FSODaemonStackSize = 32768;
+static const int FSODaemonInterval = 5;
+static const int GetDownInterval = 30;
+static const int FlushRefVecInterval = 90;
+static const int FSODaemonStackSize = 32768;
 
 
 /* ***** Private variables  ***** */
 
-PRIVATE char fsdaemon_sync;
+static char fsdaemon_sync;
 
 
 /* ***** Private routines  ***** */
@@ -109,9 +109,9 @@ void FSODaemon() {
 	{
 	    /* Check cache limits. */
 	    if (curr_time - LastGetDown >= GetDownInterval) {
-		ATOMIC(
-		    FSDB->GetDown();
-		, MAXFP)
+		Recov_BeginTrans();
+		FSDB->GetDown();
+		Recov_EndTrans(MAXFP);
 		LastGetDown = curr_time;
 	    }
 
@@ -229,9 +229,9 @@ void fsdb::FlushRefVec() {
 	return;				    /* don't flush if nothing has been referenced */
 
     LastRefCounter = RefCounter;
-    ATOMIC(
-	RVMLIB_SET_RANGE(LastRef, MaxFiles * sizeof(long));
-    , MAXFP)
+    Recov_BeginTrans();
+    rvmlib_set_range(LastRef, MaxFiles * sizeof(long));
+    Recov_EndTrans(MAXFP);
 }
 
 

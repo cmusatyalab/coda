@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/fso_cfscalls2.cc,v 4.10 1998/03/06 20:20:44 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/fso_cfscalls2.cc,v 4.11 1998/05/15 01:23:31 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -96,9 +96,6 @@ extern "C" {
 
 
 /* Call with object write-locked. */
-#if 0
-int fsobj::Open(int writep, int execp, int truncp, dev_t *devp, ino_t *inop, vuid_t vuid) 
-#endif
 int fsobj::Open(int writep, int execp, int truncp, venus_cnode *cp, vuid_t vuid) 
 {
     LOG(10, ("fsobj::Open: (%s, %d, %d, %d), uid = %d\n",
@@ -127,12 +124,12 @@ int fsobj::Open(int writep, int execp, int truncp, venus_cnode *cp, vuid_t vuid)
     if (writep) {
 	Writers++;
 	if (!flags.owrite) {
-	    ATOMIC(
-		FSDB->FreeBlocks((int) BLOCKS(this));
-		FSDB->owriteq->append(&owrite_handle);
-		RVMLIB_REC_OBJECT(flags);
-		flags.owrite = 1;
-	    , ((EMULATING(this) || LOGGING(this)) ? DMFP : CMFP))
+	    Recov_BeginTrans();
+	    FSDB->FreeBlocks((int) BLOCKS(this));
+	    FSDB->owriteq->append(&owrite_handle);
+	    RVMLIB_REC_OBJECT(flags);
+	    flags.owrite = 1;
+	    Recov_EndTrans(((EMULATING(this) || LOGGING(this)) ? DMFP : CMFP));
 	}
     }
     if (execp)
@@ -148,10 +145,10 @@ int fsobj::Open(int writep, int execp, int truncp, venus_cnode *cp, vuid_t vuid)
 
     /* Read/Write Sharing Stat Collection */
     if (EMULATING(this) && !flags.discread) {
-	ATOMIC(
-	       RVMLIB_REC_OBJECT(flags);
-	       flags.discread = 1;
-	, MAXFP)
+	Recov_BeginTrans();
+	RVMLIB_REC_OBJECT(flags);
+	flags.discread = 1;
+	Recov_EndTrans(MAXFP);
       } 
 
     /* If object is directory make sure Unix-format contents are valid. */
@@ -196,9 +193,9 @@ int fsobj::Open(int writep, int execp, int truncp, venus_cnode *cp, vuid_t vuid)
 	    struct stat tstat;
 	    data.dir->udcf->Stat(&tstat);
 	    FSDB->ChangeDiskUsage((int) NBLOCKS(tstat.st_size) - NBLOCKS(data.dir->udcf->Length()));
-	    ATOMIC(
-		data.dir->udcf->SetLength((int) tstat.st_size);
-	    , MAXFP)
+	    Recov_BeginTrans();
+	    data.dir->udcf->SetLength((int) tstat.st_size);
+	    Recov_EndTrans(MAXFP);
 	}
     }
 
@@ -221,13 +218,13 @@ Exit:
 	if (writep) {
 	    Writers--;
 	    if (!WRITING(this)) {
-		TRANSACTION(
-		    if (FSDB->owriteq->remove(&owrite_handle) != &owrite_handle)
+		Recov_BeginTrans();
+		if (FSDB->owriteq->remove(&owrite_handle) != &owrite_handle)
 			{ print(logFile); Choke("fsobj::Open: owriteq remove"); }
-		    RVMLIB_REC_OBJECT(flags);
-		    flags.owrite = 0;
-		    FSDB->ChangeDiskUsage((int) BLOCKS(this));
-		)
+		RVMLIB_REC_OBJECT(flags);
+		flags.owrite = 0;
+		FSDB->ChangeDiskUsage((int) BLOCKS(this));
+		Recov_EndTrans(0);
 	    }
 	}
 	if (execp)
@@ -265,20 +262,20 @@ int fsobj::Close(int writep, int execp, vuid_t vuid) {
 	    return(0);
 	}
 
-	ATOMIC(
-	    /* Last writer: remove from owrite queue. */
-	    if (FSDB->owriteq->remove(&owrite_handle) != &owrite_handle)
+	Recov_BeginTrans();
+	/* Last writer: remove from owrite queue. */
+	if (FSDB->owriteq->remove(&owrite_handle) != &owrite_handle)
 		{ print(logFile); Choke("fsobj::Close: owriteq remove"); }
-	    RVMLIB_REC_OBJECT(flags);
-	    flags.owrite = 0;
+	RVMLIB_REC_OBJECT(flags);
+	flags.owrite = 0;
 
-	    /* Don't do store on files that were deleted while open. */
-	    if (DYING(this)) {
+	/* Don't do store on files that were deleted while open. */
+	if (DYING(this)) {
 		LOG(1, ("fsobj::Close: last writer && dying (%x.%x.%x)\n",
 			fid.Volume, fid.Vnode, fid.Unique));
 		stat.Length = 0;	    /* Necessary for blocks maintenance! */
-	    }
-	, ((EMULATING(this) || LOGGING(this)) ? DMFP : CMFP))
+	}
+	Recov_EndTrans(((EMULATING(this) || LOGGING(this)) ? DMFP : CMFP));
 	if (DYING(this)) {
 	    FSO_RELE(this);		    /* Unpin object. */
 	    return(0);
@@ -308,9 +305,9 @@ int fsobj::Close(int writep, int execp, vuid_t vuid) {
 	    else if (NewLength > stat.Length)
 		UpdateCacheStats(&FSDB->FileDataStats, CREATE, (new_blocks - old_blocks));
 	    FSDB->ChangeDiskUsage((int) NBLOCKS(NewLength));
-	    ATOMIC(
-		data.file->SetLength((unsigned int) NewLength);
-	    , MAXFP)
+	    Recov_BeginTrans();
+	    data.file->SetLength((unsigned int) NewLength);
+	    Recov_EndTrans(MAXFP);
 
 	    /* Attempt the Store. */
 	    vproc *v = VprocSelf();
@@ -390,7 +387,8 @@ int fsobj::Close(int writep, int execp, vuid_t vuid) {
 
 /* local-repair modification */
 /* Need to incorporate System:Administrator knowledge here! -JJK */
-int fsobj::Access(long rights, int modes, vuid_t vuid) {
+int fsobj::Access(long rights, int modes, vuid_t vuid) 
+{
     LOG(10, ("fsobj::Access : (%s, %d, %d), uid = %d\n",
 	      comp, rights, modes, vuid));
 
@@ -401,7 +399,8 @@ int fsobj::Access(long rights, int modes, vuid_t vuid) {
 	 (rights & (long)(PRSFS_WRITE | PRSFS_DELETE | PRSFS_INSERT | PRSFS_LOCK)))
 	return(EROFS);
 
-    /* Disallow mutation of fake directories and mtpts.  Always permit reading of the same. */
+    /* Disallow mutation of fake directories and mtpts.  Always permit
+       reading of the same. */
     if (IsFake() || IsLocalObj()) {
 	if (rights & (long)(PRSFS_WRITE | PRSFS_DELETE | PRSFS_INSERT | PRSFS_LOCK))
 	    return(EROFS);
@@ -409,9 +408,12 @@ int fsobj::Access(long rights, int modes, vuid_t vuid) {
 	return(0);
     }
 
-    /* If the object is not a directory, the access check must be made with respect to its parent. */
-    /* In that case we release the non-directory object during the check, and reacquire it on exit. */
-    /* N.B.  The only time we should be called on a mount point is via "fs lsmount"! -JJK */
+    /* If the object is not a directory, the access check must be made
+       with respect to its parent. */
+    /* In that case we release the non-directory object during the
+       check, and reacquire it on exit. */
+    /* N.B.  The only time we should be called on a mount point is via
+       "fs lsmount"! -JJK */
     if (!IsDir() || IsMtPt()) {
 	/* Pin the object and record the lock level. */
 	FSO_HOLD(this);
@@ -444,7 +446,7 @@ int fsobj::Access(long rights, int modes, vuid_t vuid) {
 
 	/* Record the parent fid and release the object. */
 	ViceFid parent_fid = pfid;
-	if (FID_EQ(NullFid, parent_fid))
+	if (FID_EQ(&NullFid, &parent_fid))
 	    { print(logFile); Choke("fsobj::Access: pfid == Null"); }
 	UnLock(level);
 	FSO_RELE(this);
@@ -462,7 +464,12 @@ int fsobj::Access(long rights, int modes, vuid_t vuid) {
 
 	/* Check mode bits if necessary. */
 	/* Special case if file is "virgin" and this user is the creator. */
+	/*
+	  This is wrong.  Only the kernel can decide virginity, asking
+	  Venus to do this leads to a race condition
 	if (code == 0 && !(IsVirgin() && stat.Owner == vuid))
+	*/
+	if (!(modes & C_A_C_OK))
 	    if (((modes & C_A_X_OK) != 0 && (stat.Mode & OWNEREXEC) == 0) ||
 		((modes & C_A_W_OK) != 0 && (stat.Mode & OWNERWRITE) == 0) ||
 		((modes & C_A_R_OK) != 0 && (stat.Mode & OWNERREAD) == 0))
@@ -635,13 +642,13 @@ int fsobj::Lookup(fsobj **target_fso_addr, ViceFid *inc_fid, char *name, vuid_t 
 		LOG(100, ("fsobj::Lookup: backing up over a mount point\n"));
 
 		/* Next fid is the parent of the mount point. */
-		if (!traverse_mtpts || u.mtpoint == 0 || FID_EQ(u.mtpoint->pfid, NullFid))
+		if (!traverse_mtpts || u.mtpoint == 0 || FID_EQ(&u.mtpoint->pfid, &NullFid))
 		    return(ENOENT);
 
 		target_fid = u.mtpoint->pfid;
 	    }
 	    else {		
-		if (FID_EQ(NullFid, pfid)) {
+		if (FID_EQ(&NullFid, &pfid)) {
 		    if (LRDB->RFM_IsGlobalRoot(&fid) || LRDB->RFM_IsLocalRoot(&fid)) {
 			return EACCES;
 		    } else {
@@ -672,10 +679,10 @@ int fsobj::Lookup(fsobj **target_fso_addr, ViceFid *inc_fid, char *name, vuid_t 
 	    if (target_fso->IsMtPt() && target_fso->flags.ckmtpt) {
 		fsobj *root_fso = target_fso->u.root;
 		FSO_ASSERT(target_fso, (root_fso != 0 && root_fso->u.mtpoint == target_fso));
-		ATOMIC(
-		    root_fso->UnmountRoot();
-		    target_fso->UncoverMtPt();
-		, MAXFP)
+		Recov_BeginTrans();
+		root_fso->UnmountRoot();
+		target_fso->UncoverMtPt();
+		Recov_EndTrans(MAXFP);
 		target_fso->flags.ckmtpt = 0;
 	    }
 

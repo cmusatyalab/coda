@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/local_subtree.cc,v 4.1 1997/01/08 21:51:31 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/local_subtree.cc,v 4.2 1998/01/10 18:38:55 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -59,11 +59,6 @@ extern "C" {
 
 
 /* ********** Mist Routines ********** */
-PRIVATE void MakeDirList(long hook, char *name, long vnode, long vunique) {
-    LOG(100, ("MakeDirList: Fid = 0x%x.%x.%x and Name = %s\n",
-	      hook, vnode, vunique, name));
-    LRDB->DirList_Insert(hook, vnode, vunique, name);
-}
 
 void lrdb::GetSubtreeStats(ViceFid *lrfid)
 {
@@ -361,9 +356,9 @@ void lrdb::RFM_CoverRoot(ViceFid *FakeRootFid)
     rfment *rfm;
     while (rfm = next()) {
 	if (!bcmp((const void *)rfm->GetFakeRootFid(), (const void *) FakeRootFid, (int)sizeof(ViceFid))) {
-	    ATOMIC(
+	    Recov_BeginTrans();
 		   rfm->CoverRoot();
-	    , MAXFP)
+	    Recov_EndTrans(MAXFP);
 	    return;
 	}
     }
@@ -535,7 +530,7 @@ void lrdb::TranslateFid(ViceFid *OldFid, ViceFid *NewFid)
 	      NewFid->Volume, NewFid->Vnode, NewFid->Unique));
 
     {	/* translate fid for the local-global fid map list */
-	if (!IsLocalFid(NewFid)) {
+	if (!FID_IsLocal(NewFid)) {
 	    /* 
 	     * only when NewFid is not a local fid, i.e., the fid replacement
 	     * was caused cmlent::realloc, instead of cmlent::LocalFakeify. 
@@ -634,13 +629,13 @@ void lrdb::DirList_Process(fsobj *DirObj)
 		      ChildName, ChildFid->Volume, ChildFid->Vnode, ChildFid->Unique));
 	    /* repalce ChildFid with a local fid */
 	    ViceFid LocalFid;
-	    ATOMIC(
+	    Recov_BeginTrans();
 		   /* we don't know the type of ChildFid, just assume it is a file */
 		   LocalFid = GenerateLocalFakeFid(File);
 		   /* replace (ChildName, ChildFid) with (ChildName, LocalFid) */
 		   DirObj->dir_Delete(ChildName);
 		   DirObj->dir_Create(ChildName, &LocalFid);
-	    , MAXFP)
+	    Recov_EndTrans(MAXFP);
 	} else {
 	    LOG(100, ("lrdb::DirList_Process: found cached child object (%s, 0x%x.%x.%x)\n",
 		      ChildName, ChildFid->Volume, ChildFid->Vnode, ChildFid->Unique));	    
@@ -654,7 +649,7 @@ void *lrdb::operator new(size_t len)
 {
     lrdb *l = 0;
 
-    l = (lrdb *)RVMLIB_REC_MALLOC((int) len);
+    l = (lrdb *)rvmlib_rec_malloc((int) len);
     assert(l);
     return(l);
 }
@@ -831,7 +826,7 @@ void *lgment::operator new(size_t len)
 {
     lgment *l = 0;
     
-    l = (lgment *)RVMLIB_REC_MALLOC((int)len);
+    l = (lgment *)rvmlib_rec_malloc((int)len);
     assert(l);
     return(l);
 }
@@ -857,7 +852,7 @@ lgment::~lgment()
 
 void lgment::operator delete(void *deadobj, size_t len)
 {
-    RVMLIB_REC_FREE(deadobj);
+    rvmlib_rec_free(deadobj);
 }
 
 ViceFid *lgment::GetLocalFid()
@@ -917,7 +912,7 @@ lgment *lgm_iterator::operator()()
 void *rfment::operator new(size_t len)
 {
     rfment *r = 0;
-    r = (rfment *)RVMLIB_REC_MALLOC((int)sizeof(rfment));
+    r = (rfment *)rvmlib_rec_malloc((int)sizeof(rfment));
     assert(r);
     return(r);
 }
@@ -949,7 +944,7 @@ rfment::rfment(ViceFid *Fake, ViceFid *Global, ViceFid *Local, ViceFid *Parent,
     bcopy((const void *)Parent, (void *) &root_parent_fid, (int)sizeof(ViceFid));
     bcopy((const void *)GlobalChild, (void *) &global_child_fid, (int)sizeof(ViceFid));
     bcopy((const void *)LocalChild, (void *) &local_child_fid, (int)sizeof(ViceFid));
-    name = (char *)RVMLIB_REC_MALLOC((int)(strlen(CompName) + 1));
+    name = (char *)rvmlib_rec_malloc((int)(strlen(CompName) + 1));
     assert(name);
     strcpy(name, CompName);
     view = SUBTREE_MIXED_VIEW;
@@ -961,14 +956,14 @@ rfment::rfment(ViceFid *Fake, ViceFid *Global, ViceFid *Local, ViceFid *Parent,
 rfment::~rfment()
 {
     LOG(1000, ("rfment::~rfment()\n"));
-    RVMLIB_REC_FREE(name);
+    rvmlib_rec_free(name);
 }
 
 /* must be called from within a transaction */
 void rfment::operator delete(void *deadobj, size_t len)
 {
     LOG(1000, ("rfment::operator delete\n"));
-    RVMLIB_REC_FREE(deadobj);
+    rvmlib_rec_free(deadobj);
 }
 
 ViceFid *rfment::GetFakeRootFid()
@@ -1252,10 +1247,10 @@ void LRInit()
     /* Allocate the IOT database if requested. */    
     if (InitMetaData) {
 	eprint("Initial LRDB allocation");
-	TRANSACTION(
-		    RVMLIB_REC_OBJECT(LRDB);
-		    LRDB = new lrdb;
-	)
+	Recov_BeginTrans();
+	RVMLIB_REC_OBJECT(LRDB);
+	LRDB = new lrdb;
+	Recov_EndTrans(0);
     } else {
 	LRDB->ResetTransient();
 
@@ -1271,9 +1266,9 @@ void LRInit()
 		ASSERT(RootParentObj && RootParentObj->IsLocalObj());
 		char *Name = rfm->GetName();
 		RootParentObj->RecoverRootParent(FakeRootFid, Name);
-		ATOMIC(
+		Recov_BeginTrans();
 		       rfm->SetView(SUBTREE_MIXED_VIEW);
-		, MAXFP)
+		Recov_EndTrans(MAXFP);
 	    }
 	}
 

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/fso1.cc,v 4.11 98/01/22 18:42:09 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/fso1.cc,v 4.12 1998/01/26 21:31:45 mre Exp $";
 #endif /*_BLURB_*/
 
 
@@ -103,8 +103,8 @@ extern "C" {
 #include "worker.h"
 
 
-PRIVATE int NullRcRights = 0;
-PRIVATE AcRights NullAcRights = { ALL_UIDS, 0, 0, 0 };
+static int NullRcRights = 0;
+static AcRights NullAcRights = { ALL_UIDS, 0, 0, 0 };
 
 
 /*  *****  Constructors, Destructors  *****  */
@@ -117,7 +117,7 @@ void *fsobj::operator new(size_t len, fso_alloc_t fromwhere){
 
     assert(fromwhere == FROMHEAP);
     /* Allocate recoverable store for the object. */
-    f = (fsobj *)RVMLIB_REC_MALLOC((int)len);
+    f = (fsobj *)rvmlib_rec_malloc((int)len);
     assert(f);
     return(f);
 }
@@ -159,8 +159,8 @@ fsobj::fsobj(ViceFid *key, char *name) : cf() {
     fid = *key;
     {
 	int len = (name ? (int) strlen(name) : 0) + 1;
-	comp = (char *)RVMLIB_REC_MALLOC(len);
-	RVMLIB_SET_RANGE(comp, len);
+	comp = (char *)rvmlib_rec_malloc(len);
+	rvmlib_set_range(comp, len);
 	if (name) strcpy(comp, name);
 	else comp[0] = '\0';
     }
@@ -425,7 +425,7 @@ fsobj::~fsobj() {
     }
 
     /* Return component string to heap. */
-    RVMLIB_REC_FREE(comp);
+    rvmlib_rec_free(comp);
 
 }
 
@@ -465,12 +465,12 @@ void fsobj::Recover() {
 
     /* Uncover mount points. */
     if (mvstat == MOUNTPOINT) {
-	ATOMIC(
-	    RVMLIB_REC_OBJECT(stat.VnodeType);
-	    stat.VnodeType = SymbolicLink;
-	    RVMLIB_REC_OBJECT(mvstat);
-	    mvstat = NORMAL;
-	, MAXFP)
+	Recov_BeginTrans();
+	RVMLIB_REC_OBJECT(stat.VnodeType);
+	stat.VnodeType = SymbolicLink;
+	RVMLIB_REC_OBJECT(mvstat);
+	mvstat = NORMAL;
+	Recov_EndTrans(MAXFP);
     }
 
     /* Rebuild priority queue. */
@@ -481,11 +481,11 @@ void fsobj::Recover() {
 	FSO_ASSERT(this, HAVEDATA(this));
 	eprint("\t(%s, %x.%x.%x) freeing garbage data contents",
 	       comp, fid.Volume, fid.Vnode, fid.Unique);
-	TRANSACTION(
-	    RVMLIB_REC_OBJECT(flags);
-	    flags.fetching = 0;
-	    DiscardData();
-	)
+	Recov_BeginTrans();
+	RVMLIB_REC_OBJECT(flags);
+	flags.fetching = 0;
+	DiscardData();
+	Recov_EndTrans(0);
     }
 
     /* Files that were open for write must be "closed" and discarded. */
@@ -493,10 +493,10 @@ void fsobj::Recover() {
 	FSO_ASSERT(this, HAVEDATA(this));
 	eprint("\t(%s, %x.%x.%x) discarding owrite object",
 	       comp, fid.Volume, fid.Vnode, fid.Unique);
-	TRANSACTION(
-	    RVMLIB_REC_OBJECT(flags);
-	    flags.owrite = 0;
-	)
+	Recov_BeginTrans();
+	RVMLIB_REC_OBJECT(flags);
+	flags.owrite = 0;
+	Recov_EndTrans(0);
 	goto Failure;
     }
 
@@ -506,7 +506,7 @@ void fsobj::Recover() {
     }
 
     /* Get rid of a former mount-root whose fid is not a volume root and whose pfid is NullFid */
-    if ((mvstat == NORMAL) && (fid.Vnode != ROOT_VNODE) && FID_EQ(pfid, NullFid) && !IsLocalObj()) {
+    if ((mvstat == NORMAL) && (fid.Vnode != ROOT_VNODE) && FID_EQ(&pfid, &NullFid) && !IsLocalObj()) {
 	LOG(0, ("fsobj::Recover: 0x%x.%x.%x is a non-volume root whose pfid is NullFid\n",
 		fid.Volume, fid.Vnode, fid.Unique));
 	goto Failure;
@@ -563,9 +563,9 @@ Failure:
 	    }
 
 	    if (HAVEDATA(this)) {
-		ATOMIC(
+		    Recov_BeginTrans();
 		    DiscardData();
-		, MAXFP)
+		    Recov_EndTrans(MAXFP);
 	    }
 	    else {
 		/* Reclaim cache-file blocks. */
@@ -587,9 +587,9 @@ Failure:
 		cf.Reset();
 	    }
 
-	    ATOMIC(
-		Kill();
-	    , MAXFP)
+	    Recov_BeginTrans();
+	    Kill();
+	    Recov_EndTrans(MAXFP);
 	}
     }
 }
@@ -727,10 +727,10 @@ int fsobj::Flush() {
 
     LOG(10, ("fsobj::Flush: flushed (%x.%x.%x)\n",
 	      fid.Volume, fid.Vnode, fid.Unique));
-    ATOMIC(
-	Kill();
-	GC();
-    , MAXFP)
+    Recov_BeginTrans();
+    Kill();
+    GC();
+    Recov_EndTrans(MAXFP);
 
     return(0);
 }
@@ -1260,33 +1260,32 @@ int fsobj::TryToCover(ViceFid *inc_fid, vuid_t vuid) {
     rf->PromoteLock();
 
     /* If root is currently mounted, uncover the mount point and unmount. */
-    ATOMIC(
-	fsobj *mf = rf->u.mtpoint;
-	if (mf != 0) {
+    Recov_BeginTrans();
+    fsobj *mf = rf->u.mtpoint;
+    if (mf != 0) {
 	    if (mf == this) {
-		eprint("TryToCover: re-mounting (%s) on (%s)", tvol->name, comp);
-		UncoverMtPt();
+		    eprint("TryToCover: re-mounting (%s) on (%s)", tvol->name, comp);
+		    UncoverMtPt();
+	    } else {
+		    if (mf->u.root != rf)
+			    { mf->print(logFile); rf->print(logFile); Choke("TryToCover: mf->root != rf"); }
+		    mf->UncoverMtPt();
 	    }
-	    else {
-		if (mf->u.root != rf)
-		    { mf->print(logFile); rf->print(logFile); Choke("TryToCover: mf->root != rf"); }
-		mf->UncoverMtPt();
-	    }
-
+	    
 	    rf->UnmountRoot();
-	}
-    , MAXFP)
+    }
+    Recov_EndTrans(MAXFP);
 
     /* Do the mount magic. */
-    ATOMIC(
-	if (IsFake() && rf->mvstat != ROOT) {
+    Recov_BeginTrans();
+    if (IsFake() && rf->mvstat != ROOT) {
 	    RVMLIB_REC_OBJECT(rf->mvstat);
 	    rf->mvstat = ROOT;
 	    rf->u.mtpoint = 0;
-	}
-	rf->MountRoot(this);
-	CoverMtPt(rf);
-    , MAXFP)
+    }
+    rf->MountRoot(this);
+    CoverMtPt(rf);
+    Recov_EndTrans(MAXFP);
 
     FSDB->Put(&rf);
     VDB->Put(&tvol);
@@ -1389,7 +1388,7 @@ void fsobj::UnmountRoot() {
     if (fid.Vnode != ROOT_VNODE) {
 	mvstat = NORMAL;	    /* couldn't be mount point, could it? */       
 	/* this object could be the global root of a local/global subtree */
-	if (FID_EQ(pfid, NullFid) && !IsLocalObj()) {
+	if (FID_EQ(&pfid, &NullFid) && !IsLocalObj()) {
 	    LOG(0, ("fsobj::UnmountRoot: 0x%x.%x.%x a previous mtroot without pfid, kill it\n",
 		    fid.Volume, fid.Vnode, fid.Unique));
 	    Kill();
@@ -2081,27 +2080,16 @@ void fsobj::DiscardData() {
 	    }
 
 	    /* Get rid of RVM data. */
-	    for (int i = 0; i < MAXPAGES / (8 * sizeof(unsigned int)); i++) {
-		unsigned int *mapword = &(data.dir->mallocbitmap[i]);
-		if (*mapword == 0) continue;
-
-		for (int j = 0; j < 8 * sizeof(unsigned int); j++)
-		    if (*mapword & (1 << j)) {
-			int page = (int) (i * 8 * sizeof(unsigned int) + j);
-			if (data.dir->pages[page] == 0)
-			    { print(logFile); Choke("fsobj::DiscardData: mallocbitmap addled"); }
-			RVMLIB_REC_FREE(data.dir->pages[page]);
-		    }
-	    }
-	    RVMLIB_REC_FREE(data.dir);
+	    DH_FreeData(&data.dir->dh);
+	    rvmlib_rec_free(data.dir);
 	    data.dir = 0;
-	    }
-	    break;
 
+	    break;
+	    }
 	case SymbolicLink:
 	    {
 	    /* Get rid of RVM data. */
-	    RVMLIB_REC_FREE(data.symlink);
+	    rvmlib_rec_free(data.symlink);
 	    data.symlink = 0;
 	    }
 	    break;
@@ -2145,18 +2133,18 @@ int fsobj::Fakeify() {
 
     // Either (pf == 0 and this is the volume root) OR (pf != 0 and it isn't)
 
-    ATOMIC(
-	RVMLIB_REC_OBJECT(*this);
+    Recov_BeginTrans();
+    RVMLIB_REC_OBJECT(*this);
+    
+    flags.fake = 1;
+    if (!IsRoot())  // If we're not the root, pf != 0
+	    pf->AttachChild(this);
 
-	flags.fake = 1;
-        if (!IsRoot())  // If we're not the root, pf != 0
-	  pf->AttachChild(this);
-
-        unsigned long volumehosts[VSG_MEMBERS];
-	srvent *s;
-	char Name[CFS_MAXNAMLEN];
-	int i;
-	if (ISFAKE(fid)) {		/* Fake MTLink */
+    unsigned long volumehosts[VSG_MEMBERS];
+    srvent *s;
+    char Name[CFS_MAXNAMLEN];
+    int i;
+    if (FID_IsFake(&fid)) {		/* Fake MTLink */
 	    /* Initialize status. */
 	    stat.DataVersion = 1;
 	    stat.Mode = 0644;
@@ -2180,8 +2168,8 @@ int fsobj::Fakeify() {
 		ViceFid *LocalFid = LRDB->RFM_LookupLocalRoot(&pfid);
 		FSO_ASSERT(this, LocalFid);
 		/* Write out the link contents. */
-		data.symlink = (char *)RVMLIB_REC_MALLOC((unsigned) stat.Length);
-		RVMLIB_SET_RANGE(data.symlink, stat.Length);
+		data.symlink = (char *)rvmlib_rec_malloc((unsigned) stat.Length);
+		rvmlib_set_range(data.symlink, stat.Length);
 		sprintf(data.symlink, "@%08x.%08x.%08x", LocalFid->Volume, 
 			LocalFid->Vnode, LocalFid->Unique);
 		LOG(100, ("fsobj::Fakeify: making %x.%x.%x a symlink %s\n",
@@ -2197,8 +2185,8 @@ int fsobj::Fakeify() {
 		    ViceFid *GlobalFid = LRDB->RFM_LookupGlobalRoot(&pfid);
 		    FSO_ASSERT(this, GlobalFid);
 		    /* Write out the link contents. */
-		    data.symlink = (char *)RVMLIB_REC_MALLOC((unsigned) stat.Length);
-		    RVMLIB_SET_RANGE(data.symlink, stat.Length);
+		    data.symlink = (char *)rvmlib_rec_malloc((unsigned) stat.Length);
+		    rvmlib_set_range(data.symlink, stat.Length);
 		    sprintf(data.symlink, "@%08x.%08x.%08x", GlobalFid->Volume,
 			    GlobalFid->Vnode, GlobalFid->Unique);
 		    LOG(100, ("fsobj::Fakeify: making %x.%x.%x a symlink %s\n",
@@ -2229,8 +2217,8 @@ int fsobj::Fakeify() {
 		    unsigned long rwvolumeid = vol->u.rep.RWVols[i];
 		    
 		    /* Write out the link contents. */
-		    data.symlink = (char *)RVMLIB_REC_MALLOC((unsigned) stat.Length);
-		    RVMLIB_SET_RANGE(data.symlink, stat.Length);
+		    data.symlink = (char *)rvmlib_rec_malloc((unsigned) stat.Length);
+		    rvmlib_set_range(data.symlink, stat.Length);
 		    sprintf(data.symlink, "@%08x.%08x.%08x", rwvolumeid, pfid.Vnode,
 			    pfid.Unique);
 		    LOG(1, ("fsobj::Fakeify: making %x.%x.%x a symlink %s\n",
@@ -2278,9 +2266,9 @@ int fsobj::Fakeify() {
 	    }
 	}
 
-	Reference();
-	ComputePriority();
-    , CMFP)
+    Reference();
+    ComputePriority();
+    Recov_EndTrans(CMFP);
 
     return(0);
 }
@@ -2457,7 +2445,7 @@ void fsobj::ReturnEarly() {
 	case CFS_CLOSE:
 	    {
 	    /* Don't return early here if we already did so in a callback handler! */
-	    if (!(flags.era && FID_EQ(w->StoreFid,NullFid)))
+	    if (!(flags.era && FID_EQ(&w->StoreFid, &NullFid)))
 		w->Return(0);
 	    break;
 	    }
@@ -2503,7 +2491,7 @@ void fsobj::GetPath(char *buf, int fullpath) {
 	return;
     }
 
-    if (pfso == 0 && !FID_EQ(pfid, NullFid)) {
+    if (pfso == 0 && !FID_EQ(&pfid, &NullFid)) {
 	fsobj *pf = FSDB->Find(&pfid);
 	if (pf != 0 && HAVESTATUS(pf) && !GCABLE(pf)) {
 	    pfso = pf;
@@ -2754,11 +2742,8 @@ void fsobj::print(int fdes) {
 	    int pagecount;
 	    fdprint(fdes, "\tdirectory = %x, udcf = [%x, %d]\n",
 		    data.dir, data.dir->udcf, data.dir->udcfvalid);
-	    for (pagecount = 0; pagecount < MAXPAGES; pagecount++)
-		if (data.dir->pages[pagecount] == 0) break;
 	    fdprint(fdes, "\tpages = %d, malloc bitmap = [ ", pagecount);
-	    for (int i = 0; i < MAXPAGES / (8 * sizeof(unsigned int)); i++)
-		fdprint(fdes, "%x ", data.dir->mallocbitmap[i]);
+	    fdprint(fdes, "data at %p ", DH_Data(&(data.dir->dh)));
 	    fdprint(fdes, "]\n");
 	}
     }

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/venus.private.h,v 4.13 1998/03/06 20:20:48 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/venus.private.h,v 4.14 1998/06/07 20:18:43 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -123,7 +123,6 @@ const int MIN_CB = 2048;
 #define DFLT_SPOOLDIR "/usr/coda/spool"
 #define UNSET_SPOOLDIR 0
 
-
 const int FREE_FACTOR = 16;
 
 
@@ -133,10 +132,6 @@ const int NFDS = 32;	/* IOMGR-enforced limit!  Kernel may allocate fds numbered 
 /* definition of vuid_t that used to be here has been moved to vicedep/vcrcommon.rpc2  (Satya 3/23/92) */
 const vuid_t V_UID = (vuid_t)0;	    /* UID that the venus process runs under. */
 
-#ifdef __MACH__
-/* On Mach and other systems with 16-bit gids, the -2 value gives a gid of 65534 */
-const vgid_t V_GID = (vgid_t)-2;    /* GID that the venus process runs under. */
-#else
 /* Group id fields are 32 bits in BSD44 (not 16 bits); the use of a small 
    negative number (-2) means its unsigned long representation is huge
    (4294967294).  This causes the "ar" program to screw up because it
@@ -145,7 +140,6 @@ const vgid_t V_GID = (vgid_t)-2;    /* GID that the venus process runs under. */
    unsigned int which is 32-bit, so we also need to hardcode the number
    here.  (Clement 6/10/97) */
 const vuid_t V_GID = (vuid_t)65534;    /* GID that the venus process runs under. */
-#endif 
 const vuid_t ALL_UIDS = (vuid_t)-1;
 const vuid_t HOARD_UID = (vuid_t)-2; /* uid of hoard daemon */
 const vuid_t UNSET_UID = (vuid_t)-666; /* beastly but recognizable */
@@ -159,11 +153,6 @@ const int V_MAXACLLEN = 1000;
 const int V_BLKSIZE = 8192;
 const TIMERINTERVAL = 5;
 const int GETDATA = 1;
-const VnodeId ROOT_VNODE = 1;
-const Unique_t ROOT_UNIQUE = 1;
-const VnodeId LocalFileVnode = 0xfffffffe;
-const VnodeId LocalDirVnode = 0xffffffff;
-const VnodeId FakeVnode = 0xfffffffc;
 #define	ALL_FIDS    (&NullFid)
 typedef void (*PROC_V_UL)(unsigned long);
 #define	STREQ(a, b) (strcmp((a), (b)) == 0)
@@ -184,11 +173,7 @@ typedef void (*PROC_V_UL)(unsigned long);
 #else	VENUSDEBUG
 #define	LOG(level, stmt)
 #endif	VENUSDEBUG
-#define	ASSERT(ex)\
-{\
-    if (!(ex))\
-	Choke("Assertion failed: file \"%s\", line %d\n", __FILE__, __LINE__);\
-}
+#define	ASSERT(ex) assert(ex)
 
 
 /*  *****  Locking macros.  *****  */
@@ -249,6 +234,7 @@ enum LockLevel { NL, RD, SH, WR };
     struct rusage StartRU, EndRU;\
     getrusage(RUSAGE_SELF, &StartRU);
 */
+
 #define END_TIMING()\
     gettimeofday(&EndTV, 0);\
     float elapsed; elapsed = SubTimes(EndTV, StartTV);\
@@ -313,23 +299,8 @@ struct CacheStats {
 	if (islower(*c)) *c = toupper(*c);\
 }
 
-#define FID_EQ(a, b)\
-    ((a).Volume == (b).Volume && (a).Vnode == (b).Vnode && (a).Unique == (b).Unique)
-
-#define FID_LT(a, b)\
-    /* Assumes that ((a).Volume == (b).Volume)! */\
-    (((((a).Vnode) < ((b).Vnode))) || (((a).Vnode == (b).Vnode) && (((a).Unique) < ((b).Unique))))
-
-#define	ISDIR(fid)  ((fid).Vnode & 1)	     /* Directory fids are odd */
-
-#define	ISFAKE(fid) ((fid).Vnode == FakeVnode)
 
 /*  *****  Declarations for source files without their own headers.  ***** */
-/* util.c */
-#if 0
-extern void fdprint(long, char * ...);
-extern void eprint(char * ...);
-#endif
 extern void dprint(char * ...);
 extern void Choke(char* ...);  /* used to be Die() but clashes with vicedep/srv.h & dir/dir.private.h */
 extern void rds_printer(char * ...);
@@ -347,7 +318,6 @@ extern void DebugOff();
 extern void Terminate();
 extern void DumpState();
 extern void RusagePrint(int);
-extern int VMUsage();
 extern void VFSPrint(int);
 extern void RPCPrint(int);
 extern void GetCSS(RPCPktStatistics *);
@@ -381,7 +351,6 @@ extern RPCOpStatistics RPCOpStats;
 extern struct timeval DaemonExpiry;
 
 /* venus.c */
-extern int main(int, char **);
 class vproc;
 extern vproc *Main;
 extern ViceFid rootfid;
@@ -404,7 +373,6 @@ extern void MakeUserSpoolDir(char *, vuid_t);
 extern "C" {
 #endif __cplusplus
 
-/* dummy.c/libmalloc.a/libplumber.a */
 extern void MallocStats(char *, FILE *);
 extern long CheckAllocs(char *);
 extern void plumber(FILE *);

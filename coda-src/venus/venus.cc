@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/venus.cc,v 4.10 1998/03/06 20:20:48 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/venus.cc,v 4.11 1998/04/14 21:03:06 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -49,13 +49,8 @@ extern "C" {
 #include <sys/resource.h>
 #include <sys/param.h>
 #include <stdio.h>
-#ifdef __MACH__
-#include <sysent.h>
-#include <libc.h>
-#else	/* __linux__ || __BSD44__ */
 #include <unistd.h>
 #include <stdlib.h>
-#endif
 
 extern int rpause(int, int, int);  /* why isn't this in sys/resource.h? */
 #ifdef __cplusplus
@@ -111,12 +106,12 @@ struct timeval DaemonExpiry = {TIMERINTERVAL, 0};
 
 /* *****  Private routines  ***** */
 
-PRIVATE void ParseCmdline(int, char **);
-PRIVATE void DefaultCmdlineParms();
-PRIVATE void CdToCacheDir();
-PRIVATE void CheckInitFile();
-PRIVATE void UnsetInitFile();
-PRIVATE void SetRlimits();
+static void ParseCmdline(int, char **);
+static void DefaultCmdlineParms();
+static void CdToCacheDir();
+static void CheckInitFile();
+static void UnsetInitFile();
+static void SetRlimits();
 /* **** defined in worker.c **** */
 extern testKernDevice();
 
@@ -164,6 +159,7 @@ int main(int argc, char **argv) {
     StatsInit();
     SimInit();      /* if simulating, open trace file and set filter */
     SigInit();      /* set up signal handlers */
+    DIR_Init(DIR_DATA_IN_RVM);
     RecovInit();    /* set up RVM and recov daemon */
     CommInit();     /* set up RPC2, {connection,server,mgroup} lists, probe daemon */
     UserInit();     /* fire up user daemon */
@@ -224,7 +220,7 @@ int main(int argc, char **argv) {
 
 int IAmChild = 0;
 
-PRIVATE void ParseCmdline(int argc, char **argv) {
+static void ParseCmdline(int argc, char **argv) {
     for(int i = 1; i < argc; i++)
 	if (argv[i][0] == '-') {
 	    if (STREQ(argv[i], "-k"))         /* default is /dev/cfs0 */
@@ -399,15 +395,15 @@ PRIVATE void ParseCmdline(int argc, char **argv) {
     fflush(stderr);
 
     if (Simulating) {
-	RvmType = VM;
-	COPModes = 0;
+	    RvmType = VM;
+	    COPModes = 0;
     }
 }
 
 
 /* Initialize "general" unset command-line parameters to their vstab values or hard-wired defaults. */
 /* Note that individual modules initialize their own unset command-line parameters as appropriate. */
-PRIVATE void DefaultCmdlineParms() {
+static void DefaultCmdlineParms() {
     /* Try vstab first. */
     if (!Simulating) {
 	struct vstab *v = getvsent();
@@ -431,7 +427,7 @@ PRIVATE void DefaultCmdlineParms() {
 }
 
 
-PRIVATE void CdToCacheDir() {
+static void CdToCacheDir() {
     if (Simulating) return;
 
     if (chdir(CacheDir) < 0) {
@@ -444,7 +440,7 @@ PRIVATE void CdToCacheDir() {
     }
 }
 
-PRIVATE void CheckInitFile() {
+static void CheckInitFile() {
     char initPath[MAXPATHLEN];
     struct stat tstat;
 
@@ -473,7 +469,7 @@ PRIVATE void CheckInitFile() {
     }
 }
 
-PRIVATE void UnsetInitFile() {
+static void UnsetInitFile() {
     char initPath[MAXPATHLEN];
 
     if (Simulating) return;
@@ -488,7 +484,7 @@ PRIVATE void UnsetInitFile() {
 }
 
 #ifndef __CYGWIN32__
-PRIVATE void SetRlimits() {
+static void SetRlimits() {
     /* Set DATA segment limit to maximum allowable. */
     struct rlimit rl;
     if (getrlimit(RLIMIT_DATA, &rl) < 0)
@@ -496,19 +492,7 @@ PRIVATE void SetRlimits() {
     rl.rlim_cur = rl.rlim_max;
     if (setrlimit(RLIMIT_DATA, &rl) < 0)
 	{ perror("setrlimit"); exit(-1); }
-
-#ifdef	CMU
-    /* 
-     * Turn off resource-pausing on ENOSPC. Otherwise, Venus
-     * will hang if its cache partition becomes full while 
-     * dumping a checkpoint file.  Standard BSD kernels don't
-     * support resource pausing.
-     */
-    if (rpause(ENOSPC, RPAUSE_ALL, RPAUSE_DISABLE) < 0)
-	{ perror("rpause"); exit(-1); }
-#endif	CMU
 }
-
 #endif
 
 /*  *****  Should be in a library!  *****  */

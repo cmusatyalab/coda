@@ -25,28 +25,8 @@
 # improvements or extensions that  they  make,  and  to  grant  Carnegie
 # Mellon the rights to redistribute these changes without encumbrance.
 # 
-# static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/Makefile.in,v 4.15 1998/01/10 18:38:35 braam Exp $";
+# static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/Makefile.in,v 4.16 1998/04/14 21:03:02 braam Exp $";
 
-
-# 
-#                          IBM COPYRIGHT NOTICE
-# 
-#                           Copyright (C) 1986
-#              International Business Machines Corporation
-#                          All Rights Reserved
-# 
-# This  file  contains  some  code identical to or derived from the 1986
-# version of the Andrew File System ("AFS"), which is owned by  the  IBM
-# Corporation.    This  code is provded "AS IS" and IBM does not warrant
-# that it is free of infringement of  any  intellectual  rights  of  any
-# third  party.    IBM  disclaims  liability of any kind for any damages
-# whatsoever resulting directly or indirectly from use of this  software
-# or  of  any  derivative work.  Carnegie Mellon University has obtained
-# permission to distribute this code, which is based on Version 2 of AFS
-# and  does  not  contain the features and enhancements that are part of
-# Version 3 of AFS.  Version 3 of  AFS  is  commercially  available  and
-# supported by Transarc Corporation, Pittsburgh, PA.
-# 
 
 TOPDIR = @top_srcdir@
 ifndef MAKDIR
@@ -77,7 +57,7 @@ LIBS=	$(LIBUTIL)\
 	$(LIBFAIL)\
 	$(LIBKERNDEP) \
 	$(LIBVV)\
-	$(LIBDIRLIB)\
+	$(LIBCDIRLIB)\
 	$(LIBSYS)\
 	$(LIBMACH)\
 	$(LIBCOMPAT)\

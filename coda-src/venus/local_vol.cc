@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/local_vol.cc,v 4.2 97/02/27 18:49:15 lily Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/local_vol.cc,v 4.3 1997/12/16 16:08:32 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -75,31 +75,31 @@ void volent::TranslateCMLFid(ViceFid *global, ViceFid *local)
 /* must not be called from within a transaction */
 void volent::ClearRepairCML()
 {
-    ATOMIC(
-	   rec_dlist_iterator next(CML.list);
-	   rec_dlink *d = next();			
-
-	   while (1) {
-	       if (!d) break;
-	       cmlent *m = strbase(cmlent, d, handle);
-	       if (m->IsRepairMutation()) {
-		   m->print(logFile);
-		   d = next();	
-		   m->abort();
-	       } else {
-		   d = next();
-	       }
-	   }
-    , DMFP)    
+    Recov_BeginTrans();
+    rec_dlist_iterator next(CML.list);
+    rec_dlink *d = next();			
+    
+    while (1) {
+	    if (!d) break;
+	    cmlent *m = strbase(cmlent, d, handle);
+	    if (m->IsRepairMutation()) {
+		    m->print(logFile);
+		    d = next();	
+		    m->abort();
+	    } else {
+		    d = next();
+	    }
+    }
+    Recov_EndTrans(DMFP);
 }
 
 /* must not be called from within a transaction */
 int volent::GetReintId()
 {
-    ATOMIC(
-	   RVMLIB_REC_OBJECT(reint_id_gen);
-	   reint_id_gen++;
-    , MAXFP)
+    Recov_BeginTrans();
+    RVMLIB_REC_OBJECT(reint_id_gen);
+    reint_id_gen++;
+    Recov_EndTrans(MAXFP);
     return reint_id_gen;
 }
 
@@ -171,9 +171,9 @@ void volent::CheckLocalSubtree()
     }
     if (!contain_local_obj) {
 	LOG(0, ("volent::CheckLocalSubtree: (%s)reset has_local_subtree flag!\n", name));
-	ATOMIC(
+	Recov_BeginTrans();
 	       RVMLIB_REC_OBJECT(flags);
 	       flags.has_local_subtree = 0;
-	, MAXFP)
+	Recov_EndTrans(MAXFP);
     }
 }

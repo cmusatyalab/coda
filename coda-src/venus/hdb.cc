@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/hdb.cc,v 4.9 1998/01/26 21:31:48 mre Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/hdb.cc,v 4.10 1998/03/06 20:20:44 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -78,15 +78,16 @@ extern "C" {
 #include <utmp.h>
 #endif
 
+#include <codadir.h>
+
 #ifdef __cplusplus
 }
 #endif __cplusplus
 
+
+
 /* interfaces */
 #include <vice.h>
-
-/* from dir */
-#include <coda_dir.h>
 
 /* from venus */
 #include "venus_vnode.h"
@@ -107,6 +108,7 @@ extern "C" {
 
 
 int HDBEs = UNSET_HDBE;
+int MetaExpand(struct DirEntry *entry, long hook) ;
 
 /* ***** Allow periodic hoard walks ***** */
 char PeriodicWalksAllowed = 1;
@@ -124,38 +126,38 @@ int NameCtxt_deallocs = 0;
 #define	UTMP_FILE   "/etc/utmp"
 #endif
 #define	CONSOLE	    "console"
-/*PRIVATE const*/ int HDB_YIELDMASK = 0x1;  /* yield every 2 iterations */
+/*static const*/ int HDB_YIELDMASK = 0x1;  /* yield every 2 iterations */
 
 
 /*  *****  Private Variables  *****  */
 
-PRIVATE	int ValidCount = 0;		    /* number of valid name-ctxts */
-PRIVATE	int SuspectCount = 0;		    /* number of suspect name-ctxts */
-/* PRIVATE */	int IndigentCount = 0;	    /* number of indigent name-ctxts */
-                                            /* no longer PRIVATE (see fso0.c) */
-PRIVATE	int InconsistentCount = 0;	    /* number of inconsistent name-ctxts */
-PRIVATE	int MetaNameCtxts = 0;		    /* number of outstanding meta name-ctxts */
-PRIVATE	int MetaExpansions = 0;		    /* number of meta-expansions performed */
+static int ValidCount = 0;		    /* number of valid name-ctxts */
+static int SuspectCount = 0;		    /* number of suspect name-ctxts */
+/* static */	int IndigentCount = 0;	    /* number of indigent name-ctxts */
+                                            /* no longer static (see fso0.c) */
+static int InconsistentCount = 0;	    /* number of inconsistent name-ctxts */
+static int MetaNameCtxts = 0;		    /* number of outstanding meta name-ctxts */
+static int MetaExpansions = 0;		    /* number of meta-expansions performed */
 
 
-PRIVATE int ReceivedAdvice;
+static int ReceivedAdvice;
 
 extern int SearchForNOreFind;
 
 
 /*  *****  Private Routines  *****  */
 
-PRIVATE int HDB_HashFN(void *);
+static int HDB_HashFN(void *);
 
 /*  *****  HDB Maintenance  ******  */
 
 void HDB_Init() {
     /* Allocate the database if requested. */
     if (InitMetaData) {					/* <==> HDB == 0 */
-	TRANSACTION(
-	    RVMLIB_REC_OBJECT(HDB);
-	    HDB = new hdb;
-	)
+	Recov_BeginTrans();
+	RVMLIB_REC_OBJECT(HDB);
+	HDB = new hdb;
+	Recov_EndTrans(0);
     }
 
     /* Initialize transient members. */
@@ -194,7 +196,7 @@ void HDB_Init() {
 }
 
 
-PRIVATE int HDB_HashFN(void *key) {
+static int HDB_HashFN(void *key) {
     int value = ((hdb_key *)key)->vid;
 
     /*    return(((hdb_key *)key)->vid + ((int *)(((hdb_key *)key)->name))[0]); */
@@ -211,7 +213,7 @@ void *hdb::operator new(size_t len){
     hdb *h = 0;
 
    /* Allocate recoverable store for the object. */
-    h = (hdb *)RVMLIB_REC_MALLOC((int)len);
+    h = (hdb *)rvmlib_rec_malloc((int)len);
     assert(h);
     return(h);
 }
@@ -266,10 +268,10 @@ hdbent *hdb::Create(VolumeId vid, char *name, vuid_t vuid,
 	{ h->print(logFile); Choke("hdb::Create: key exists"); }
 
     /* Fashion a new object. */
-    ATOMIC(
-	h = new hdbent(vid, name, vuid,
-		       priority, expand_children, expand_descendents);
-    , DMFP)
+    Recov_BeginTrans();
+    h = new hdbent(vid, name, vuid,
+		   priority, expand_children, expand_descendents);
+    Recov_EndTrans(DMFP);
 
     if (h == 0)
 	LOG(0, ("hdb::Create: (%x, %s, %d) failed\n", vid, name, 0/*AllocPriority*/));
@@ -333,9 +335,9 @@ int hdb::Delete(hdb_delete_msg *m) {
 	return(EACCES);
     }
 
-    ATOMIC(
-	delete h;
-    , DMFP)
+    Recov_BeginTrans();
+    delete h;
+    Recov_EndTrans(DMFP);
 
     return(0);
 }
@@ -356,16 +358,16 @@ int hdb::Clear(hdb_clear_msg *m) {
     /* Reorganized this loop to move the ATOMIC wrapper around the loop, rather
        than around the delete within.  Otherwise, clearing a large database of
        hoard entries is painfully slow!   mre (10/97) */
-    ATOMIC(
-        hdb_iterator next(m->cuid);
-	hdbent *h = next();
-	while (h != 0) {
+    Recov_BeginTrans();
+    hdb_iterator next(m->cuid);
+    hdbent *h = next();
+    while (h != 0) {
 	    hdbent *succ = next();
 	    delete h;
 	    h = succ;
-	}
-    , MAXFP)
-    RecovSetBound(DMFP);
+    }
+    Recov_EndTrans(MAXFP);
+    Recov_SetBound(DMFP);
 
     return(0);
 }
@@ -420,10 +422,10 @@ int hdb::List(hdb_list_msg *m) {
 
 void hdb::SetDemandWalkTime() {
       /* Potential problem:  What if user demands hoard walk while disconnected? */
-      TRANSACTION(
-        RVMLIB_REC_OBJECT(HDB->TimeOfLastDemandWalk);
-        TimeOfLastDemandWalk = Vtime();
-      )
+      Recov_BeginTrans();
+      RVMLIB_REC_OBJECT(HDB->TimeOfLastDemandWalk);
+      TimeOfLastDemandWalk = Vtime();
+      Recov_EndTrans(0);
 }
 
 
@@ -699,7 +701,7 @@ void hdb::ValidateCacheStatus(vproc *vp, int *interrupt_failures, int *statusByt
 	/* Find our fsobj and make sure it's still the same pointer. */
 	g = FSDB->Find(&tfid);
 	if ((g != NULL) && (f != NULL) && (g == f)) {
-	    if (FID_EQ(g->fid, f->fid))
+	    if (FID_EQ(&g->fid, &f->fid))
 		continue;  /* Everything looks okay -- continue on our merry way */
         }
 
@@ -1316,7 +1318,7 @@ void *hdbent::operator new(size_t len){
     if (HDB->freelist.count() > 0)
 	h  = strbase(hdbent, HDB->freelist.get(), tbl_handle); 
     else
-	h = (hdbent *)RVMLIB_REC_MALLOC((int) len);
+	h = (hdbent *)rvmlib_rec_malloc((int) len);
 	
     assert(h);
     return(h);
@@ -1331,8 +1333,8 @@ hdbent::hdbent(VolumeId Vid, char *Name, vuid_t Vuid,
     vid = Vid;
     {
 	int len = (int) strlen(Name) + 1;
-	path = (char *)RVMLIB_REC_MALLOC(len);
-	RVMLIB_SET_RANGE(path, len);
+	path = (char *)rvmlib_rec_malloc(len);
+	rvmlib_set_range(path, len);
 	strcpy(path, Name);
     }
     vuid = Vuid;
@@ -1376,13 +1378,13 @@ hdbent::~hdbent() {
 
 
     /* Release path. */
-    RVMLIB_REC_FREE(path);
+    rvmlib_rec_free(path);
 
     /* Stick on free list or give back to heap. */
     if (HDB->freelist.count() < HDBMaxFreeEntries)
 	HDB->freelist.append(&tbl_handle);
     else
-	RVMLIB_REC_FREE(this);
+	rvmlib_rec_free(this);
 }
 
 
@@ -1511,8 +1513,8 @@ hdbent *hdb_iterator::operator()() {
  *
  */
 
-PRIVATE const int MaxFreeNameCtxts = 32;
-PRIVATE dlist freenamectxts;
+static const int MaxFreeNameCtxts = 32;
+static dlist freenamectxts;
 
 void *namectxt::operator new(size_t len) {
     namectxt *n = 0;
@@ -2135,60 +2137,67 @@ struct MetaExpandHook {
     dlist *new_children;
 };
 
-/* 
- * This MetaExpand routine takes the MetaExpandHook data structure (which contains
- * a parent namectxt and a new list of children expansions) and a pathname.  (Yes,
- * it completely ignores the vnode and vunique parameters.)  
+/*  This MetaExpand routine takes the MetaExpandHook data structure
+ * (which contains a parent namectxt and a new list of children
+ * expansions) and a pathname.  (Yes, it completely ignores the vnode
+ * and vunique parameters.)
  *
- * It then iterates through the parent namectxt's list of children looking for
- * a match between the final component of the child's path and the pathname 
- * sent in as a parameter.  If it finds such a match, it moves the child namectxt
- * off of the parent's list of children and onto what will become the parent's
- * new list of children, and then it returns.  If not such match is found, it
- * creates a new namectxt for this name and inserts it into what will become
- * the parent's new list of children.
+ * It then iterates through the parent namectxt's list of children
+ * looking for a match between the final component of the child's path
+ * and the pathname sent in as a parameter.  If it finds such a match,
+ * it moves the child namectxt off of the parent's list of children
+ * and onto what will become the parent's new list of children, and
+ * then it returns.  If not such match is found, it creates a new
+ * namectxt for this name and inserts it into what will become the
+ * parent's new list of children.
  *
- * This routine is called from ::EnumerateDir (which appears in ../dir/dir.cc).
- */
-void MetaExpand(long hook, char *name, long vnode, long vunique) {
-    /* Skip "." and "..". */
-    if (STREQ(name, ".") || STREQ(name, ".."))
-	return;
+ * This routine is called from DH_EnumerateDir (which appears in ../dir/dir.c).  */
+int MetaExpand(PDirEntry entry, void *hook) 
+{
+	char *name = entry->name;
 
-    struct MetaExpandHook *me_hook = (struct MetaExpandHook *)hook;
-    namectxt *parent = me_hook->nc;
-    dlist *new_children = me_hook->new_children;
+	/* Skip "." and "..". */
+	if (STREQ(name, ".") || STREQ(name, ".."))
+		return 0;
 
-    /* Lookup the child namectxt corresponding to this directory entry. */
-    /* If found, move the namectxt to the new_children list and return. */
-    dlist_iterator next(*(parent->children));
-    dlink *d;
-    while (d = next()) {
-	namectxt *child = strbase(namectxt, d, child_link);
+	struct MetaExpandHook *me_hook = (struct MetaExpandHook *)hook;
+	namectxt *parent = me_hook->nc;
+	dlist *new_children = me_hook->new_children;
 
-	char *c = rindex(child->path, '/');
-	if (c == 0) c = child->path;
-	else c++;
-	if (STREQ(name, c)) {
-	    if (parent->children->remove(&child->child_link) != &child->child_link) {
-		parent->print(logFile);
-		child->print(logFile);
-		Choke("MetaExpand: children->remove failed");
-	    }
-	    new_children->insert(&child->child_link);
-	    return;
+	/* Lookup the child namectxt corresponding to this directory entry. */
+	/* If found, move the namectxt to the new_children list and return. */
+	dlist_iterator next(*(parent->children));
+	dlink *d;
+	while (d = next()) {
+		namectxt *child = strbase(namectxt, d, child_link);
+
+		char *c = rindex(child->path, '/');
+		if (c == 0) c = child->path;
+		else c++;
+		if (STREQ(name, c)) {
+			if (parent->children->remove(&child->child_link) != 
+			    &child->child_link) {
+				parent->print(logFile);
+				child->print(logFile);
+				Choke("MetaExpand: children->remove failed");
+			}
+			new_children->insert(&child->child_link);
+			return 0;
+		}
 	}
-    }
 
-    /* Not found.  Create a new namectxt for this directory entry and stick it on the new_children list. */
-    namectxt *child = new namectxt(parent, name);
-    new_children->insert(&child->child_link);
+	/* Not found.  Create a new namectxt for this directory entry
+           and stick it on the new_children list. */
+	namectxt *child = new namectxt(parent, name);
+	new_children->insert(&child->child_link);
+
+	return 0;
 }
 
 /* 
  * MetaExpand() controls the meta-expansion of a namectxt.  We only expand
  * an entry when there is good reason to do so.  The real work of meta-expansion
- * is done by dir/dir.cc's EnumerateDir() routine, which calls MetaExpand(<with args>)
+ * is done by dir/dir.c's DH_EnumerateDir() routine, which calls MetaExpand(<with args>)
  * on each child of the directory (see above).
  */
 
@@ -2218,7 +2227,7 @@ void namectxt::MetaExpand() {
     }
 
     /* Discard expandee info if bound object has changed. */
-    if (!FID_EQ(expander_fid, f->fid))
+    if (!FID_EQ(&expander_fid, &f->fid))
 	KillChildren();
 
     /* ?MARIA?  Is it possible for the fid's to be different but the VV's to be the same
@@ -2282,7 +2291,7 @@ void namectxt::MetaExpand() {
 	struct MetaExpandHook hook;
 	hook.nc = this;
 	hook.new_children = new_children;
-	::EnumerateDir((long *)f->data.dir, (int (*)(void * ...))::MetaExpand, (long)(&hook));
+	DH_EnumerateDir(&f->data.dir->dh, ::MetaExpand, (void *)(&hook));
 
 	/* Kill anything left on the current list, and discard it. */
 	/* Install new_children as the current children list. */

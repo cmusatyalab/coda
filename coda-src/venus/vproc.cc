@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/vproc.cc,v 4.14 1998/01/20 20:58:30 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/vproc.cc,v 4.15 1998/07/01 10:35:28 jaharkes Exp $";
 #endif /*_BLURB_*/
 
 
@@ -92,8 +92,9 @@ char vproc::rtry_sync;
 int vnode_allocs = 0;
 int vnode_deallocs = 0;
 
+extern const int  RVM_THREAD_DATA_ROCK_TAG;
 
-PRIVATE const int VPROC_ROCK_TAG = 1776;
+static const int VPROC_ROCK_TAG = 1776;
 
 
 void VprocInit() {
@@ -193,7 +194,7 @@ void VprocWait(char *addr) {
 #ifdef	VENUSDEBUG
     {
 	/* Sanity-check: vproc must not context-switch in mid-transaction! */
-	rvm_perthread_t *_rvm_data = RVM_THREAD_DATA;
+	rvm_perthread_t *_rvm_data = rvmlib_thread_data();
 	if (_rvm_data && _rvm_data->tid != 0)
 	    Choke("VprocWait: in transaction (tid = %x)", _rvm_data->tid);
     }
@@ -210,7 +211,7 @@ void VprocMwait(int wcount, char **addrs) {
 #ifdef	VENUSDEBUG
     {
 	/* Sanity-check: vproc must not context-switch in mid-transaction! */
-	rvm_perthread_t *_rvm_data = RVM_THREAD_DATA;
+	rvm_perthread_t *_rvm_data = rvmlib_thread_data();
 	if (_rvm_data && _rvm_data->tid != 0)
 	    Choke("VprocMwait: in transaction (tid = %x)", _rvm_data->tid);
     }
@@ -227,7 +228,7 @@ void VprocSignal(char *addr, int yield) {
 #ifdef	VENUSDEBUG
     if (yield) {
 	/* Sanity-check: vproc must not context-switch in mid-transaction! */
-	rvm_perthread_t *_rvm_data = RVM_THREAD_DATA;
+	rvm_perthread_t *_rvm_data = rvmlib_thread_data();
 	if (_rvm_data && _rvm_data->tid != 0)
 	    Choke("VprocSignal: in transaction (tid = %x)", _rvm_data->tid);
     }
@@ -249,7 +250,7 @@ void VprocSleep(struct timeval *delay) {
 #ifdef	VENUSDEBUG
     {
 	/* Sanity-check: vproc must not context-switch in mid-transaction! */
-	rvm_perthread_t *_rvm_data = RVM_THREAD_DATA;
+	rvm_perthread_t *_rvm_data = rvmlib_thread_data();
 	if (_rvm_data && _rvm_data->tid != 0)
 	    Choke("VprocSleep: in transaction (tid = %x)", _rvm_data->tid);
     }
@@ -263,7 +264,7 @@ void VprocYield() {
 #ifdef	VENUSDEBUG
     {
 	/* Sanity-check: vproc must not context-switch in mid-transaction! */
-	rvm_perthread_t *_rvm_data = RVM_THREAD_DATA;
+	rvm_perthread_t *_rvm_data = rvmlib_thread_data();
 	if (_rvm_data && _rvm_data->tid != 0)
 	    Choke("VprocYield: in transaction (tid = %x)", _rvm_data->tid);
     }
@@ -284,7 +285,7 @@ int VprocSelect(int nfds, int *readfds, int *writefds, int *exceptfds, struct ti
 #ifdef	VENUSDEBUG
     {
 	/* Sanity-check: vproc must not context-switch in mid-transaction! */
-	rvm_perthread_t *_rvm_data = RVM_THREAD_DATA;
+	rvm_perthread_t *_rvm_data = rvmlib_thread_data();
 	if (_rvm_data && _rvm_data->tid != 0)
 	    Choke("VprocSelect: in transaction (tid = %x)", _rvm_data->tid);
     }
@@ -392,7 +393,7 @@ vproc::vproc(char *n, PROCBODY f, vproctype t, int stksize, int priority) {
     func = f;
     vpid = counter++;
     bzero((void *)&rvm_data, (int) sizeof(rvm_perthread_t));
-    rvm_data.die = &Choke;
+    /*    rvm_data.die = &Choke; */
     type = t;
     lwpri = priority;
     seq = 0;
@@ -495,7 +496,7 @@ void vproc::GetStamp(char *buf) {
 }
 
 
-PRIVATE int VolModeMap[NVFSOPS] = {
+static int VolModeMap[NVFSOPS] = {
     VM_MUTATING,
     VM_MUTATING,
     VM_OBSERVING,	    /* VFSOP_ROOT */
@@ -819,7 +820,7 @@ void va_init(struct coda_vattr *vap) {
     vap->va_blocksize = VA_IGNORE_BLOCKSIZE;
     vap->va_mtime = vap->va_atime;
     vap->va_ctime = vap->va_atime;
-    vap->va_rdev = VA_IGNORE_RDEV;
+    vap->va_rdev = (long long unsigned int)VA_IGNORE_RDEV;
 #ifdef __BSD44__
     vap->va_flags = 0; /* not the ignore value, must be clear */
 #endif /* __BSD44__ */
@@ -861,7 +862,7 @@ void VattrToStat(struct coda_vattr *vap, struct stat *sp) {
 
 
 long FidToNodeid(ViceFid *fid) {
-    if (FID_EQ(*fid, NullFid))
+    if (FID_EQ(fid, &NullFid))
 	Choke("FidToNodeid: null fid");
 
 #ifdef __BSD44__

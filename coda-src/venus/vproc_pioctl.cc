@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/vproc_pioctl.cc,v 4.6 1998/01/10 18:39:16 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/vproc_pioctl.cc,v 4.7 1998/03/06 20:20:54 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -131,13 +131,13 @@ void vproc::do_ioctl(ViceFid *fid, unsigned int com, struct ViceIoctl *data) {
 			    { u.u_error = ENOTDIR; break; }
 
 			/* Verify that we have administer permission. */
-			/* No.  This must be checked at the server to allow System:Administrators to */
-			/* always change ACLs.  Alternatively, we could have venus cache the identity */
+			/* No.  This must be checked at the server to
+                           allow System:Administrators to */
+			/* always change ACLs.  Alternatively, we
+                           could have venus cache the identity */
 			/* of administrators. */
-/*
-			 u.u_error = f->Access((long)PRSFS_ADMINISTER, 0, CRTORUID(u.u_cred));
-			 if (u.u_error) break;
-*/
+			/* u.u_error = f->Access((long)PRSFS_ADMINISTER, 0,
+			 CRTORUID(u.u_cred)); if (u.u_error) break; */
 
 			/* Do the operation. */
 			RPC2_CountedBS acl;
@@ -158,8 +158,10 @@ void vproc::do_ioctl(ViceFid *fid, unsigned int com, struct ViceIoctl *data) {
 			    { u.u_error = ENOTDIR; break; }
 
 			/* Verify that we have lookup permission. */
-			/* No.  This must be checked at the server to allow System:Administrators to */
-			/* always change ACLs.  Alternatively, we could have venus cache the identity */
+			/* No.  This must be checked at the server to
+                           allow System:Administrators to */
+			/* always change ACLs.  Alternatively, we
+                           could have venus cache the identity */
 			/* of administrators. */
 /*
 			 u.u_error = f->Access((long)PRSFS_LOOKUP, 0, CRTORUID(u.u_cred));
@@ -191,7 +193,7 @@ void vproc::do_ioctl(ViceFid *fid, unsigned int com, struct ViceIoctl *data) {
 			f = FSDB->Find(fid);
 			if (f != 0) {
 			    u.u_error = f->Flush();
-			    RecovSetBound(DMFP);
+			    Recov_SetBound(DMFP);
 			    f = 0;
 			}
 
@@ -249,13 +251,13 @@ void vproc::do_ioctl(ViceFid *fid, unsigned int com, struct ViceIoctl *data) {
 
 			/* We only remove MTLinks, not valid MtPts! */
 			if (target_fso->IsMtPt()) {
-			    ATOMIC(
+			    Recov_BeginTrans();
 				fsobj *root_fso = target_fso->u.root;
 				FSO_ASSERT(target_fso,
 					   root_fso != 0 && root_fso->u.mtpoint == target_fso);
 				root_fso->UnmountRoot();
 				target_fso->UncoverMtPt();
-			    , MAXFP)
+			    Recov_EndTrans(MAXFP);
 			}
 
 			/* Do the remove. */
@@ -619,7 +621,7 @@ O_FreeLocks:
 		    (void)k_Purge();
 
 		    FSDB->Flush(fid->Volume);
-		    RecovSetBound(DMFP);
+		    Recov_SetBound(DMFP);
 
 		    break;
 		    }
@@ -1031,7 +1033,7 @@ V_FreeLocks:
 		    (void)k_Purge();
 
 		    FSDB->Flush();
-		    RecovSetBound(DMFP);
+		    Recov_SetBound(DMFP);
 
 		    break;
 		    }

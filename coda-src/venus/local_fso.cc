@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/local_fso.cc,v 4.2 1998/01/10 18:38:54 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/local_fso.cc,v 4.3 1998/04/14 21:03:06 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -39,8 +39,11 @@ static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/
 #ifdef __cplusplus
 extern "C" {
 #endif __cplusplus
-
+#include <stdio.h>
 #include <struct.h>
+#include <netinet/in.h>
+#include <codadir.h>
+
 /* interfaces */
 #include <vcrcommon.h>
 #include <vice.h>
@@ -50,8 +53,6 @@ extern "C" {
 #endif __cplusplus
 
 
-/* from dir */
-#include <coda_dir.h>
 
 /* from venus */
 #include "fso.h"
@@ -64,10 +65,15 @@ extern "C" {
 
 
 /* ********** Mist Routines ********** */
-PRIVATE void MakeDirList(long hook, char *name, long vnode, long vunique) {
-    LOG(100, ("MakeDirList: Fid = 0x%x.%x.%x and Name = %s\n",
-	      hook, vnode, vunique, name));
-    LRDB->DirList_Insert(hook, vnode, vunique, name);
+int MakeDirList(struct DirEntry *de, void *hook)
+{
+	long vnode = ntohl(de->fid.dnf_vnode);
+	long vunique = ntohl(de->fid.dnf_unique);
+	char *name = de->name;
+	LOG(100, ("MakeDirList: Fid = 0x%x.%x.%x and Name = %s\n",
+		  (int)hook, vnode, vunique, name));
+	LRDB->DirList_Insert((long )hook, vnode, vunique, name);
+	return 0;
 }
 
 int fsobj::RepairStore() 
@@ -201,10 +207,10 @@ int fsobj::RepairStore()
 	}
 
 	/* Do Store locally. */
-	ATOMIC(
-	    LocalStore(Mtime, NewLength);
-	    UpdateStatus(&status, &UpdateSet, vuid);
-	, CMFP)
+	Recov_BeginTrans();
+	LocalStore(Mtime, NewLength);
+	UpdateStatus(&status, &UpdateSet, vuid);
+	Recov_EndTrans(CMFP);
 	if (ASYNCCOP2) ReturnEarly();
 
 	/* Send the COP2 message or add an entry for piggybacking. */
@@ -258,10 +264,10 @@ RepExit:
 	}
 
 	/* Do Store locally. */
-	ATOMIC(
-	    LocalStore(Mtime, NewLength);
-	    UpdateStatus(&status, 0, vuid);
-	, CMFP)
+	Recov_BeginTrans();
+	LocalStore(Mtime, NewLength);
+	UpdateStatus(&status, 0, vuid);
+	Recov_EndTrans(CMFP);
 
 NonRepExit:
 	PutConn(&c);
@@ -395,42 +401,42 @@ void fsobj::DeLocalRootParent(fsobj *RepairRoot, ViceFid *GlobalRootFid, fsobj *
 
     /* step 2: de-link root-parent and repair-root */
     if (MtPt == NULL) {
-	ATOMIC(
-	       RVMLIB_REC_OBJECT(*this);
-	       RVMLIB_REC_OBJECT(*RepairRoot);
-	       dir_Delete(RepairRoot->comp);
-	       dir_Create(RepairRoot->comp, GlobalRootFid);
-	       if (shared_parent_count == 0) {
-		   flags.local = 0;
-	       }
-	       DetachChild(RepairRoot);
-	       RepairRoot->pfso = NULL;
-	       RepairRoot->pfid = NullFid;    
-	, MAXFP)
+	Recov_BeginTrans();
+	RVMLIB_REC_OBJECT(*this);
+	RVMLIB_REC_OBJECT(*RepairRoot);
+	dir_Delete(RepairRoot->comp);
+	dir_Create(RepairRoot->comp, GlobalRootFid);
+	if (shared_parent_count == 0) {
+		flags.local = 0;
+	}
+	DetachChild(RepairRoot);
+	RepairRoot->pfso = NULL;
+	RepairRoot->pfid = NullFid;    
+	Recov_EndTrans(MAXFP);
     } else {
 	LOG(100, ("fsobj::DeLocalRootParent: Volume Root\n"));
-	ATOMIC(
-	       RVMLIB_REC_OBJECT(*this);
-	       RVMLIB_REC_OBJECT(*RepairRoot);
-	       dir_Delete(RepairRoot->comp);
-	       dir_Create(RepairRoot->comp, &MtPt->fid);
-	       if (shared_parent_count == 0) {
-		   flags.local = 0;
-	       }
-	       DetachChild(RepairRoot);
-	       RepairRoot->pfso = NULL;
-	       RepairRoot->pfid = NullFid;    
-	, MAXFP)	
+	Recov_BeginTrans();
+	RVMLIB_REC_OBJECT(*this);
+	RVMLIB_REC_OBJECT(*RepairRoot);
+	dir_Delete(RepairRoot->comp);
+	dir_Create(RepairRoot->comp, &MtPt->fid);
+	if (shared_parent_count == 0) {
+		flags.local = 0;
+	}
+	DetachChild(RepairRoot);
+	RepairRoot->pfso = NULL;
+	RepairRoot->pfid = NullFid;    
+	Recov_EndTrans(MAXFP);
     }
 
     /* step 3: re-link root-parent and global-root(if possible) */
     if (MtPt != NULL) {
 	/* re-establish the child-parent relation between "this" and MtPt */
-	ATOMIC(
-	       MtPt->pfso = this;
-	       MtPt->pfid = this->fid;
-	       this->AttachChild(MtPt);
-	, MAXFP)
+	Recov_BeginTrans();
+	MtPt->pfso = this;
+	MtPt->pfid = this->fid;
+	this->AttachChild(MtPt);
+	Recov_EndTrans(MAXFP);
     } else {
 	/* try to get global-root cached as much as possible */
 	fsobj *GlobalRootObj = NULL;
@@ -456,11 +462,11 @@ void fsobj::DeLocalRootParent(fsobj *RepairRoot, ViceFid *GlobalRootFid, fsobj *
 		LOG(0, ("fsobj::DeLocalRootParent:GlobalRoot already hooked\n"));
 	    } else {
 		/* re-establish child-parent relation between "this" and GlobalRootObj */
-		ATOMIC(
-		       GlobalRootObj->pfso = this;
-		       GlobalRootObj->pfid = this->fid;
-		       this->AttachChild(GlobalRootObj);
-		, MAXFP)
+		Recov_BeginTrans();
+		GlobalRootObj->pfso = this;
+		GlobalRootObj->pfid = this->fid;
+		this->AttachChild(GlobalRootObj);
+		Recov_EndTrans(MAXFP);
 	    }
 	}
     }
@@ -479,20 +485,20 @@ void fsobj::MixedToGlobal(ViceFid *FakeRootFid, ViceFid *GlobalChildFid, char *N
     fsobj *FakeRootObj = FSDB->Find(FakeRootFid);
     fsobj *GlobalChildObj = FSDB->Find(GlobalChildFid);
     FSO_ASSERT(this, FakeRootObj != NULL && GlobalChildObj != NULL);
-    ATOMIC(
-	   RVMLIB_REC_OBJECT(*this);
-	   RVMLIB_REC_OBJECT(*FakeRootObj);
-	   RVMLIB_REC_OBJECT(*GlobalChildObj);
-	   this->dir_Delete(Name);			/* replace fid-name binding in RootParentObj's dir-pages */
-	   this->dir_Create(Name, GlobalChildFid);
-	   this->DetachChild(FakeRootObj);
-	   FakeRootObj->pfid = NullFid;
-	   FakeRootObj->pfso = NULL;
-	   FakeRootObj->DetachChild(GlobalChildObj);	/* preserve the fid-name binding in FakeRootObjs's dir-pages */
-	   this->AttachChild(GlobalChildObj);
-	   GlobalChildObj->pfid = this->fid;
-	   GlobalChildObj->pfso = this;	   
-    , MAXFP)
+    Recov_BeginTrans();
+    RVMLIB_REC_OBJECT(*this);
+    RVMLIB_REC_OBJECT(*FakeRootObj);
+    RVMLIB_REC_OBJECT(*GlobalChildObj);
+    this->dir_Delete(Name);			/* replace fid-name binding in RootParentObj's dir-pages */
+    this->dir_Create(Name, GlobalChildFid);
+    this->DetachChild(FakeRootObj);
+    FakeRootObj->pfid = NullFid;
+    FakeRootObj->pfso = NULL;
+    FakeRootObj->DetachChild(GlobalChildObj);	/* preserve the fid-name binding in FakeRootObjs's dir-pages */
+    this->AttachChild(GlobalChildObj);
+    GlobalChildObj->pfid = this->fid;
+    GlobalChildObj->pfso = this;	   
+    Recov_EndTrans(MAXFP);
 }
 
 /* must not be called from within a transaction */
@@ -508,20 +514,20 @@ void fsobj::GlobalToMixed(ViceFid *FakeRootFid, ViceFid *GlobalChildFid, char *N
     fsobj *FakeRootObj = FSDB->Find(FakeRootFid);
     fsobj *GlobalChildObj = FSDB->Find(GlobalChildFid);
     FSO_ASSERT(this, FakeRootObj != NULL && GlobalChildObj != NULL);
-    ATOMIC(
-	   RVMLIB_REC_OBJECT(*this);
-	   RVMLIB_REC_OBJECT(*FakeRootObj);
-	   RVMLIB_REC_OBJECT(*GlobalChildObj);
-	   this->dir_Delete(Name); /* replace fid-name binding in RootParentObj's dir-pages */
-	   this->dir_Create(Name, FakeRootFid);
-	   this->DetachChild(GlobalChildObj);
-	   this->AttachChild(FakeRootObj);
-	   FakeRootObj->pfid = this->fid;
-	   FakeRootObj->pfso = this;
-	   FakeRootObj->AttachChild(GlobalChildObj); /* the fid-name binding is aleady in the dir-pages */
-	   GlobalChildObj->pfid = *FakeRootFid;
-	   GlobalChildObj->pfso = FakeRootObj;
-    , MAXFP)
+    Recov_BeginTrans();
+    RVMLIB_REC_OBJECT(*this);
+    RVMLIB_REC_OBJECT(*FakeRootObj);
+    RVMLIB_REC_OBJECT(*GlobalChildObj);
+    this->dir_Delete(Name); /* replace fid-name binding in RootParentObj's dir-pages */
+    this->dir_Create(Name, FakeRootFid);
+    this->DetachChild(GlobalChildObj);
+    this->AttachChild(FakeRootObj);
+    FakeRootObj->pfid = this->fid;
+    FakeRootObj->pfso = this;
+    FakeRootObj->AttachChild(GlobalChildObj); /* the fid-name binding is aleady in the dir-pages */
+    GlobalChildObj->pfid = *FakeRootFid;
+    GlobalChildObj->pfso = FakeRootObj;
+    Recov_EndTrans(MAXFP);
 }
 
 /* must not be called from within a transaction */
@@ -537,20 +543,20 @@ void fsobj::MixedToLocal(ViceFid *FakeRootFid, ViceFid *LocalChildFid, char *Nam
     fsobj *FakeRootObj = FSDB->Find(FakeRootFid);
     fsobj *LocalChildObj = FSDB->Find(LocalChildFid);
     FSO_ASSERT(this, FakeRootObj != NULL && LocalChildObj != NULL);
-    ATOMIC(
-	   RVMLIB_REC_OBJECT(*this);
-	   RVMLIB_REC_OBJECT(*FakeRootObj);
-	   RVMLIB_REC_OBJECT(*LocalChildObj);
-	   this->dir_Delete(Name); /* replace fid-name binding in RootParentObj's dir-pages */
-	   this->dir_Create(Name, LocalChildFid);
-	   this->DetachChild(FakeRootObj);
-	   FakeRootObj->pfid = NullFid;
-	   FakeRootObj->pfso = NULL;
-	   FakeRootObj->DetachChild(LocalChildObj); /* preserve fid-name binding in FakeRootObjs's dir-pages */
-	   this->AttachChild(LocalChildObj);
-	   LocalChildObj->pfid = this->fid;
-	   LocalChildObj->pfso = this;
-    , MAXFP)
+    Recov_BeginTrans();
+    RVMLIB_REC_OBJECT(*this);
+    RVMLIB_REC_OBJECT(*FakeRootObj);
+    RVMLIB_REC_OBJECT(*LocalChildObj);
+    this->dir_Delete(Name); /* replace fid-name binding in RootParentObj's dir-pages */
+    this->dir_Create(Name, LocalChildFid);
+    this->DetachChild(FakeRootObj);
+    FakeRootObj->pfid = NullFid;
+    FakeRootObj->pfso = NULL;
+    FakeRootObj->DetachChild(LocalChildObj); /* preserve fid-name binding in FakeRootObjs's dir-pages */
+    this->AttachChild(LocalChildObj);
+    LocalChildObj->pfid = this->fid;
+    LocalChildObj->pfso = this;
+    Recov_EndTrans(MAXFP);
 }
 
 /* must not be called from within a transaction */
@@ -566,20 +572,20 @@ void fsobj::LocalToMixed(ViceFid *FakeRootFid, ViceFid *LocalChildFid, char *Nam
     fsobj *FakeRootObj = FSDB->Find(FakeRootFid);
     fsobj *LocalChildObj = FSDB->Find(LocalChildFid);
     FSO_ASSERT(this, FakeRootObj != NULL && LocalChildObj != NULL);
-    ATOMIC(
-	   RVMLIB_REC_OBJECT(*this);
-	   RVMLIB_REC_OBJECT(*FakeRootObj);
-	   RVMLIB_REC_OBJECT(*LocalChildObj);
-	   this->dir_Delete(Name); /* replace fid-name binding in RootParentObj's dir-pages */
-	   this->dir_Create(Name, FakeRootFid);
-	   this->DetachChild(LocalChildObj);
-	   this->AttachChild(FakeRootObj);
-	   FakeRootObj->pfid = this->fid;
-	   FakeRootObj->pfso = this;
-	   FakeRootObj->AttachChild(LocalChildObj); /* the fid-name binding is aleady in the dir-pages */
-	   LocalChildObj->pfid = *FakeRootFid;
-	   LocalChildObj->pfso = FakeRootObj;
-    , MAXFP)
+    Recov_BeginTrans();
+    RVMLIB_REC_OBJECT(*this);
+    RVMLIB_REC_OBJECT(*FakeRootObj);
+    RVMLIB_REC_OBJECT(*LocalChildObj);
+    this->dir_Delete(Name); /* replace fid-name binding in RootParentObj's dir-pages */
+    this->dir_Create(Name, FakeRootFid);
+    this->DetachChild(LocalChildObj);
+    this->AttachChild(FakeRootObj);
+    FakeRootObj->pfid = this->fid;
+    FakeRootObj->pfso = this;
+    FakeRootObj->AttachChild(LocalChildObj); /* the fid-name binding is aleady in the dir-pages */
+    LocalChildObj->pfid = *FakeRootFid;
+    LocalChildObj->pfso = FakeRootObj;
+    Recov_EndTrans(MAXFP);
 }
 
 /* must not be called from within a transaction */
@@ -587,15 +593,15 @@ void fsobj::SetComp(char *name)
 {
     FSO_ASSERT(this, name != NULL);
     int len = (int) strlen(name) + 1;
-    ATOMIC(
-	   if (comp != NULL) {
-	       RVMLIB_REC_OBJECT(comp);
-	       RVMLIB_REC_FREE(comp);
+    Recov_BeginTrans();
+    if (comp != NULL) {
+	    RVMLIB_REC_OBJECT(comp);
+	    rvmlib_rec_free(comp);
 	   }
-	   comp = (char *)RVMLIB_REC_MALLOC(len);
-	   RVMLIB_SET_RANGE(comp, len);
-	   strcpy(comp, name);
-    , MAXFP)
+    comp = (char *)rvmlib_rec_malloc(len);
+    rvmlib_set_range(comp, len);
+    strcpy(comp, name);
+    Recov_EndTrans(MAXFP);
 }
 
 /* must not be called from within a transaction */
@@ -608,15 +614,15 @@ void fsobj::RecoverRootParent(ViceFid *FakeRootFid, char *Name)
     FSO_ASSERT(this, FakeRootFid && Name);
     fsobj *FakeRootObj = FSDB->Find(FakeRootFid);
     FSO_ASSERT(this, FakeRootObj && FakeRootObj->IsLocalObj() && FakeRootObj->IsFake());
-    ATOMIC(	   
-	   RVMLIB_REC_OBJECT(*this);
-	   RVMLIB_REC_OBJECT(*FakeRootObj);
-	   dir_Delete(Name);
-	   dir_Create(Name, FakeRootFid);
-	   FakeRootObj->pfid = this->fid;
-	   FakeRootObj->pfso = this;
-	   AttachChild(FakeRootObj);
-   , MAXFP)
+    Recov_BeginTrans();	   
+    RVMLIB_REC_OBJECT(*this);
+    RVMLIB_REC_OBJECT(*FakeRootObj);
+    dir_Delete(Name);
+    dir_Create(Name, FakeRootFid);
+    FakeRootObj->pfid = this->fid;
+    FakeRootObj->pfso = this;
+    AttachChild(FakeRootObj);
+    Recov_EndTrans(MAXFP);
 }
 
 /* need not be called from within a transaction */
@@ -731,36 +737,36 @@ int fsobj::ReplaceLocalFakeFid()
 	    OBJ_ASSERT(this, RootParentObj);
 
 	    /* detach the FakeRootObj from RootParentObj */
-	    ATOMIC(
-	      RVMLIB_REC_OBJECT(*RootParentObj);
-	      RVMLIB_REC_OBJECT(*obj);
-	      RVMLIB_REC_OBJECT(*LocalRootObj);
-	      RootParentObj->dir_Delete(obj->comp);
-	      RootParentObj->dir_Create(obj->comp, LocalRootFid);
-	      RootParentObj->DetachChild(obj);
-	      obj->pfso = (fsobj *)NULL;
-	      obj->pfid = NullFid;
-	      RootParentObj->AttachChild(LocalRootObj);
-	      if (LocalRootObj->IsRoot())
-		LocalRootObj->UnmountRoot();
-	      LocalRootObj->pfso = RootParentObj;
-	      LocalRootObj->pfid = RootParentObj->fid;
-	      if (LocalChildObj != NULL && LocalChildObj->IsMtPt())
-		LocalChildObj->UncoverMtPt();
-	      if (GlobalRootObj != NULL && GlobalRootObj->IsRoot())
-		GlobalRootObj->UnmountRoot();
-	      if (GlobalChildObj != NULL && GlobalChildObj->IsMtPt())
-		GlobalChildObj->UncoverMtPt();
+	    Recov_BeginTrans();
+	    RVMLIB_REC_OBJECT(*RootParentObj);
+	    RVMLIB_REC_OBJECT(*obj);
+	    RVMLIB_REC_OBJECT(*LocalRootObj);
+	    RootParentObj->dir_Delete(obj->comp);
+	    RootParentObj->dir_Create(obj->comp, LocalRootFid);
+	    RootParentObj->DetachChild(obj);
+	    obj->pfso = (fsobj *)NULL;
+	    obj->pfid = NullFid;
+	    RootParentObj->AttachChild(LocalRootObj);
+	    if (LocalRootObj->IsRoot())
+		    LocalRootObj->UnmountRoot();
+	    LocalRootObj->pfso = RootParentObj;
+	    LocalRootObj->pfid = RootParentObj->fid;
+	    if (LocalChildObj != NULL && LocalChildObj->IsMtPt())
+		    LocalChildObj->UncoverMtPt();
+	    if (GlobalRootObj != NULL && GlobalRootObj->IsRoot())
+		    GlobalRootObj->UnmountRoot();
+	    if (GlobalChildObj != NULL && GlobalChildObj->IsMtPt())
+		    GlobalChildObj->UncoverMtPt();
 
-	      obj->Kill(0);			/* GC FakeRootObj */
-	      if (LocalChildObj != NULL)
-		LocalChildObj->Kill(0);		/* GC LocalChildObj */
+	    obj->Kill(0);			/* GC FakeRootObj */
+	    if (LocalChildObj != NULL)
+		    LocalChildObj->Kill(0);		/* GC LocalChildObj */
 	      if (GlobalChildObj != NULL)
-		GlobalChildObj->Kill(0);	/* GC GlobalChildObj */
-	    , MAXFP)
-
-	    obj->UnLock(WR);
-	    continue;
+		      GlobalChildObj->Kill(0);	/* GC GlobalChildObj */
+	      Recov_EndTrans(MAXFP);
+	      
+	      obj->UnLock(WR);
+	      continue;
 	}
 	if (obj->IsDir() && HAVEDATA(obj) && (!obj->IsMtPt())) {
 	    /* deal with possible un-cached children under "obj" */
@@ -768,7 +774,7 @@ int fsobj::ReplaceLocalFakeFid()
 	    ViceFid *DirFid = &obj->fid;
 	    VenusData *DirData = &obj->data;
 
-	    ::EnumerateDir((long *)DirData->dir, (int (*)(void * ...))MakeDirList, DirFid->Volume);
+	    DH_EnumerateDir(&DirData->dir->dh, MakeDirList, (void *)DirFid->Volume);
 	    LRDB->DirList_Process(obj);
 	}
 	if (obj->children != 0) {	/* Try to PUSH the stack if appropriate */
@@ -822,22 +828,22 @@ int fsobj::ReplaceLocalFakeFid()
 	/* do the actual fid replacement */
 	ViceFid LocalFid;
 	ViceFid GlobalFid;
-	ATOMIC(
-	       LocalFid = LRDB->GenerateLocalFakeFid(stat.VnodeType);
-	       bcopy((const void *)&obj->fid, (void *)&GlobalFid, (int)sizeof(ViceFid));
-	       /* insert the local-global fid mapping */
-	       LRDB->LGM_Insert(&LocalFid, &GlobalFid);
-	       /* globally replace the global-fid with the local-fid */
-	       FSO_ASSERT(this, FSDB->TranslateFid(&GlobalFid, &LocalFid) == 0);
-	       LRDB->TranslateFid(&GlobalFid, &LocalFid);
-	       obj->vol->TranslateCMLFid(&GlobalFid, &LocalFid);
-	       obj->SetLocalObj();
-	, MAXFP)
+	Recov_BeginTrans();
+	LocalFid = LRDB->GenerateLocalFakeFid(stat.VnodeType);
+	bcopy((const void *)&obj->fid, (void *)&GlobalFid, (int)sizeof(ViceFid));
+	/* insert the local-global fid mapping */
+	LRDB->LGM_Insert(&LocalFid, &GlobalFid);
+	/* globally replace the global-fid with the local-fid */
+	FSO_ASSERT(this, FSDB->TranslateFid(&GlobalFid, &LocalFid) == 0);
+	LRDB->TranslateFid(&GlobalFid, &LocalFid);
+	obj->vol->TranslateCMLFid(&GlobalFid, &LocalFid);
+	obj->SetLocalObj();
+	Recov_EndTrans(MAXFP);
 	if (HAVEDATA(obj) && !DYING(obj))
-	  obj->SetRcRights(RC_DATA | RC_STATUS);
+		obj->SetRcRights(RC_DATA | RC_STATUS);
 	else
-	  obj->ClearRcRights();
-
+		obj->ClearRcRights();
+	
 	obj->UnLock(WR);
     }
     FSO_ASSERT(this, stack.count() == 0);
@@ -870,7 +876,7 @@ int fsobj::LocalFakeify()
 	while (obj = next()) {
 	    if (obj->IsRoot()) continue;
 	    if (GCABLE(obj)) continue;
-	    if (obj->pfso == NULL && !FID_EQ(obj->pfid, NullFid)) {
+	    if (obj->pfso == NULL && !FID_EQ(&obj->pfid, &NullFid)) {
 		fsobj *pf = FSDB->Find(&obj->pfid);
 		if (pf != 0 && HAVESTATUS(pf) && !GCABLE(pf)) {
 		    /* re-estacblish the parent-chile linkage between pf and obj */
@@ -943,56 +949,56 @@ int fsobj::LocalFakeify()
 	return (ENOSPC);
     }
     LOG(100, ("fsobj::LocalFakeify: created a new fake-root node\n"));
-    ATOMIC(
-	   /* 
-	    * replace the (comp, GlobalRootFid) pair with the (comp, FakeRootFid)
-	    * pair in the parent directory structure. Note that "this" has become
-	    * the LocalRootFid's fsobj object.
-	    */
-	   RVMLIB_REC_OBJECT(*pf);
-	   RVMLIB_REC_OBJECT(*this);
-	   RVMLIB_REC_OBJECT(*FakeRoot);	   
-	   pf->dir_Delete(comp);
-	   pf->dir_Create(comp, &FakeRootFid);
-	   /* 
-	    * note that "pf" may not always have "this" in its children list and we
-	    * need to test this before we call the DetachChild routine
-	    */
-	   pf->DetachChild(this);
-	   pf->AttachChild(FakeRoot);
-	   this->pfso = NULL;
-	   this->pfid = NullFid;
-	   pf->RcRights = RC_DATA | RC_STATUS;		/* set RootParentObj in valid and non-mutatable status */
-	   pf->flags.local = 1;				/* it will be killed when repair is done */
-
+    Recov_BeginTrans();
+    /* 
+     * replace the (comp, GlobalRootFid) pair with the (comp, FakeRootFid)
+     * pair in the parent directory structure. Note that "this" has become
+     * the LocalRootFid's fsobj object.
+     */
+    RVMLIB_REC_OBJECT(*pf);
+    RVMLIB_REC_OBJECT(*this);
+    RVMLIB_REC_OBJECT(*FakeRoot);	   
+    pf->dir_Delete(comp);
+    pf->dir_Create(comp, &FakeRootFid);
+    /* 
+     * note that "pf" may not always have "this" in its children list and we
+     * need to test this before we call the DetachChild routine
+     */
+    pf->DetachChild(this);
+    pf->AttachChild(FakeRoot);
+    this->pfso = NULL;
+    this->pfid = NullFid;
+    pf->RcRights = RC_DATA | RC_STATUS;		/* set RootParentObj in valid and non-mutatable status */
+    pf->flags.local = 1;				/* it will be killed when repair is done */
+    
 	   /* Initialize status for the new fake-dir object */
-	   FakeRoot->flags.fake = 1;
-	   FakeRoot->flags.local = 1;
-	   FakeRoot->stat.DataVersion = 1;
-	   FakeRoot->stat.Mode = 0444;
-	   FakeRoot->stat.Owner = V_UID;
-	   FakeRoot->stat.Length = 0;
-	   FakeRoot->stat.Date = Vtime();
-	   FakeRoot->stat.LinkCount = 2;
-	   FakeRoot->stat.VnodeType = Directory;
-	   FakeRoot->Matriculate();		/* need this ??? -luqi */
-	   FakeRoot->pfid = pf->fid;
-	   FakeRoot->pfso = pf;
-	   /* Create the target directory. */
-	   FakeRoot->dir_MakeDir();
-	   FakeRoot->stat.Length = FakeRoot->dir_Length();
-	   FakeRoot->RcRights = RC_DATA | RC_STATUS;
-	   UpdateCacheStats(&FSDB->DirDataStats, CREATE, BLOCKS(FakeRoot));
-      
-	   /* Create the "global" and "local" children. */
-
-	   FakeRoot->dir_Create("global", &GlobalChildFid);
-	   FakeRoot->dir_Create("local", &LocalChildFid);
-
-	   /* add an new entry to the LRDB maintained fid-map */
-	   LRDB->RFM_Insert(&FakeRootFid, &GlobalRootFid, &fid, &pf->fid,
-	                    &GlobalChildFid, &LocalChildFid, comp);
-    , MAXFP)
+    FakeRoot->flags.fake = 1;
+    FakeRoot->flags.local = 1;
+    FakeRoot->stat.DataVersion = 1;
+    FakeRoot->stat.Mode = 0444;
+    FakeRoot->stat.Owner = V_UID;
+    FakeRoot->stat.Length = 0;
+    FakeRoot->stat.Date = Vtime();
+    FakeRoot->stat.LinkCount = 2;
+    FakeRoot->stat.VnodeType = Directory;
+    FakeRoot->Matriculate();		/* need this ??? -luqi */
+    FakeRoot->pfid = pf->fid;
+    FakeRoot->pfso = pf;
+    /* Create the target directory. */
+    FakeRoot->dir_MakeDir();
+    FakeRoot->stat.Length = FakeRoot->dir_Length();
+    FakeRoot->RcRights = RC_DATA | RC_STATUS;
+    UpdateCacheStats(&FSDB->DirDataStats, CREATE, BLOCKS(FakeRoot));
+    
+    /* Create the "global" and "local" children. */
+    
+    FakeRoot->dir_Create("global", &GlobalChildFid);
+    FakeRoot->dir_Create("local", &LocalChildFid);
+    
+    /* add an new entry to the LRDB maintained fid-map */
+    LRDB->RFM_Insert(&FakeRootFid, &GlobalRootFid, &fid, &pf->fid,
+		     &GlobalChildFid, &LocalChildFid, comp);
+    Recov_EndTrans(MAXFP);
 
     LRDB->GetSubtreeStats(&fid);
     return(0);
@@ -1046,10 +1052,10 @@ int fsobj::LocalFakeifyRoot()
 	Choke("fsobj::LocalFakeifyRoot: replace local fake fid failed");
     }
 
-    ATOMIC(
-	   RVMLIB_REC_OBJECT(vol->flags);
-	   vol->flags.has_local_subtree = 1;
-    , MAXFP)
+    Recov_BeginTrans();
+    RVMLIB_REC_OBJECT(vol->flags);
+    vol->flags.has_local_subtree = 1;
+    Recov_EndTrans(MAXFP);
 
     /* 
      * step 3. create a new object as FakeRoot with the newly generated 
@@ -1077,60 +1083,60 @@ int fsobj::LocalFakeifyRoot()
 	return (ENOSPC);
     }
     LOG(100, ("fsobj::LocalFakeifyRoot: created a new fake-root node\n"));
-    ATOMIC(
-	   /* 
-	    * replace the (comp, MtPt->fid) pair with the (comp, FakeRootFid)
-	    * pair in the parent directory structure. Note that "this" has become
-	    * the LocalRootFid's fsobj object.
-	    */
-	   RVMLIB_REC_OBJECT(*pf);
-	   RVMLIB_REC_OBJECT(*this);
-	   RVMLIB_REC_OBJECT(*FakeRoot);	   
-	   pf->dir_Delete(comp);
-	   pf->dir_Create(comp, &FakeRootFid);
-	   /* 
-	    * note that "pf" may not always have "this" in its children list and we
-	    * need to test this before we call the DetachChild routine
-	    */
-	   pf->DetachChild(MtPt);
-	   pf->AttachChild(FakeRoot);
-	   this->pfso = NULL;
-	   this->pfid = NullFid;
-	   MtPt->pfso = NULL;
-	   MtPt->pfid = NullFid;
-	   pf->RcRights = RC_DATA | RC_STATUS;	/* set RootParentObj in valid and non-mutatable status */
-	   pf->flags.local = 1;			/* it will be killed when repair is done */
+    Recov_BeginTrans();
+    /* 
+     * replace the (comp, MtPt->fid) pair with the (comp, FakeRootFid)
+     * pair in the parent directory structure. Note that "this" has become
+     * the LocalRootFid's fsobj object.
+     */
+    RVMLIB_REC_OBJECT(*pf);
+    RVMLIB_REC_OBJECT(*this);
+    RVMLIB_REC_OBJECT(*FakeRoot);	   
+    pf->dir_Delete(comp);
+    pf->dir_Create(comp, &FakeRootFid);
+    /* 
+     * note that "pf" may not always have "this" in its children list and we
+     * need to test this before we call the DetachChild routine
+     */
+    pf->DetachChild(MtPt);
+    pf->AttachChild(FakeRoot);
+    this->pfso = NULL;
+    this->pfid = NullFid;
+    MtPt->pfso = NULL;
+    MtPt->pfid = NullFid;
+    pf->RcRights = RC_DATA | RC_STATUS;	/* set RootParentObj in valid and non-mutatable status */
+    pf->flags.local = 1;			/* it will be killed when repair is done */
 
-	   /* Initialize status for the new fake-dir object */
-	   FakeRoot->flags.fake = 1;
-	   FakeRoot->flags.local = 1;
-	   FakeRoot->stat.DataVersion = 1;
-	   FakeRoot->stat.Mode = 0444;
-	   FakeRoot->stat.Owner = V_UID;
-	   FakeRoot->stat.Length = 0;
-	   FakeRoot->stat.Date = Vtime();
-	   FakeRoot->stat.LinkCount = 2;
-	   FakeRoot->stat.VnodeType = Directory;
-	   FakeRoot->Matriculate();		/* need this ??? -luqi */
-	   FakeRoot->pfid = pf->fid;
-	   FakeRoot->pfso = pf;
-	   /* Create the target directory. */
-	   FakeRoot->dir_MakeDir();
-	   FakeRoot->stat.Length = FakeRoot->dir_Length();
-	   FakeRoot->RcRights = RC_DATA | RC_STATUS;
-	   UpdateCacheStats(&FSDB->DirDataStats, CREATE, BLOCKS(FakeRoot));
-      
-	   /* Create the "global" and "local" children. */
-
-	   FakeRoot->dir_Create("global", &GlobalChildFid);
-	   FakeRoot->dir_Create("local", &LocalChildFid);
-
-	   /* add an new entry to the LRDB maintained fid-map */
-	   rfment *rfm = new rfment(&FakeRootFid, &GlobalRootFid, &fid, &pf->fid,  
-				    &GlobalChildFid, &LocalChildFid, comp);
-	   rfm->SetRootMtPt(MtPt);
-	   LRDB->root_fid_map.insert(rfm);
-    , MAXFP)
+    /* Initialize status for the new fake-dir object */
+    FakeRoot->flags.fake = 1;
+    FakeRoot->flags.local = 1;
+    FakeRoot->stat.DataVersion = 1;
+    FakeRoot->stat.Mode = 0444;
+    FakeRoot->stat.Owner = V_UID;
+    FakeRoot->stat.Length = 0;
+    FakeRoot->stat.Date = Vtime();
+    FakeRoot->stat.LinkCount = 2;
+    FakeRoot->stat.VnodeType = Directory;
+    FakeRoot->Matriculate();		/* need this ??? -luqi */
+    FakeRoot->pfid = pf->fid;
+    FakeRoot->pfso = pf;
+    /* Create the target directory. */
+    FakeRoot->dir_MakeDir();
+    FakeRoot->stat.Length = FakeRoot->dir_Length();
+    FakeRoot->RcRights = RC_DATA | RC_STATUS;
+    UpdateCacheStats(&FSDB->DirDataStats, CREATE, BLOCKS(FakeRoot));
+    
+    /* Create the "global" and "local" children. */
+    
+    FakeRoot->dir_Create("global", &GlobalChildFid);
+    FakeRoot->dir_Create("local", &LocalChildFid);
+    
+    /* add an new entry to the LRDB maintained fid-map */
+    rfment *rfm = new rfment(&FakeRootFid, &GlobalRootFid, &fid, &pf->fid,  
+			     &GlobalChildFid, &LocalChildFid, comp);
+    rfm->SetRootMtPt(MtPt);
+    LRDB->root_fid_map.insert(rfm);
+    Recov_EndTrans(MAXFP);
 
     LRDB->GetSubtreeStats(&fid);
     return(0);

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/vproc_vfscalls.cc,v 4.13 1997/12/18 23:44:47 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/vproc_vfscalls.cc,v 4.14 1998/03/06 20:20:55 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -221,7 +221,11 @@ void vproc::open(struct venus_vnode **vpp, int flags) {
     int writep = (flags & C_O_WRITE) != 0;
     int truncp = (flags & C_O_TRUNC) != 0;
     int exclp =  (flags & C_O_EXCL)  != 0;
+    int createp =  (flags & C_O_CREAT)  != 0;
     int	execp =	0;	    /* With VFS we're no longer told of execs! -JJK */
+
+    if ( createp ) 
+	    writep = 1;
 
     fsobj *f = 0;
 
@@ -251,12 +255,18 @@ void vproc::open(struct venus_vnode **vpp, int flags) {
 	    if ((*vpp)->v_flag & VTEXT)
 		{ u.u_error = ETXTBSY; goto FreeLocks; }
 
-	    /* Truncating requires write permission. */
-	    /* Otherwise, either write or insert suffices (to support insert only directories). */
+	    /* Special modes to pass:
+                Truncating requires write permission.
+		  Newly created stuff is writeable if parent allows it, 
+                   modebits are ignored for new files: C_O_C_OK
+	         Otherwise, either write or insert suffices (to support
+                   insert only directories). 
+	    */
 	    long rights = (truncp
 			   ? (long)PRSFS_WRITE
 			   : (long)(PRSFS_WRITE | PRSFS_INSERT));
-	    u.u_error = f->Access(rights, C_A_W_OK, CRTORUID(u.u_cred));
+	    int modes = (createp ? C_A_C_OK : C_A_W_OK);
+	    u.u_error = f->Access(rights, modes, CRTORUID(u.u_cred));
 	    if (u.u_error) goto FreeLocks;
 	}
 
@@ -465,16 +475,21 @@ void vproc::setattr(struct venus_vnode *vp, struct coda_vattr *vap) {
 	{
 	    /* chmod, fchmod */
 	    if (vap->va_mode != VA_IGNORE_MODE) {
-		u.u_error = f->Access((long)PRSFS_WRITE, 0, CRTORUID(u.u_cred));
-		if (u.u_error) goto FreeLocks;
+		    if ( vap->va_mode & S_ISUID ) 
+			    u.u_error = f->Access((long)PRSFS_ADMINISTER, 0, CRTORUID(u.u_cred));
+		    else
+			    u.u_error = f->Access((long)PRSFS_WRITE, 0, CRTORUID(u.u_cred));
+		if (u.u_error) 
+			goto FreeLocks;
 	    }
 
 	    /* chown, fchown */
 	    if (vap->va_uid != VA_IGNORE_UID) {
 		/* Need to allow for System:Administrators here! -JJK */
+#if 0
 		if (f->stat.Owner != (vuid_t)vap->va_uid)
 		    { u.u_error = EACCES; goto FreeLocks; }
-
+#endif
 		u.u_error = f->Access((long)PRSFS_ADMINISTER, 0, CRTORUID(u.u_cred));
 		if (u.u_error) goto FreeLocks;
 	    }
@@ -841,7 +856,7 @@ void vproc::link(struct venus_vnode *vp, struct venus_vnode *tdvp, char *toname)
 	{ u.u_error = EINVAL; return; }
 
     /* Another pathological case. */
-    if (FID_EQ(dcp->c_fid, scp->c_fid))
+    if (FID_EQ(&dcp->c_fid, &scp->c_fid))
 	{ u.u_error = EINVAL; return; }
 
     for (;;) {
@@ -916,7 +931,7 @@ void vproc::rename(struct venus_vnode *dvp, char *name,
 	     tpcp->c_fid.Volume, tpcp->c_fid.Vnode, tpcp->c_fid.Unique,
 	     name, toname));
 
-    int	SameParent = FID_EQ(spcp->c_fid, tpcp->c_fid);
+    int	SameParent = FID_EQ(&spcp->c_fid, &tpcp->c_fid);
     int	TargetExists = 0;
     fsobj *s_parent_fso = 0;
     fsobj *t_parent_fso = 0;
@@ -1024,7 +1039,7 @@ void vproc::rename(struct venus_vnode *dvp, char *name,
 	    { u.u_error = EINVAL; goto FreeLocks; }
 
 	/* Watch out for aliasing. */
-	if (FID_EQ(s_fso->fid, tpcp->c_fid) || FID_EQ(s_fso->fid, spcp->c_fid))
+	if (FID_EQ(&s_fso->fid, &tpcp->c_fid) || FID_EQ(&s_fso->fid, &spcp->c_fid))
 	    { u.u_error = ELOOP; goto FreeLocks; }
 
 	/* Cannot allow rename out of the source directory if source has multiple links! */
@@ -1040,8 +1055,8 @@ void vproc::rename(struct venus_vnode *dvp, char *name,
 	    }
 
 	    /* Watch out for aliasing. */
-	    if (FID_EQ(t_fso->fid, tpcp->c_fid) || FID_EQ(t_fso->fid, spcp->c_fid) ||
-		FID_EQ(t_fso->fid, s_fso->fid))
+	    if (FID_EQ(&t_fso->fid, &tpcp->c_fid) || FID_EQ(&t_fso->fid, &spcp->c_fid) ||
+		FID_EQ(&t_fso->fid, &s_fso->fid))
 		{ u.u_error = ELOOP; goto FreeLocks; }
 
 	    /* Verify that source and target are the same type of object, and that target is empty if a directory. */
@@ -1059,7 +1074,7 @@ void vproc::rename(struct venus_vnode *dvp, char *name,
 	    if (!SameParent && s_fso->IsDir() && !t_parent_fso->IsRoot()) {
 		ViceFid test_fid = t_parent_fso->pfid;
 		for (;;) {
-		    if (FID_EQ(s_fso->fid, test_fid))
+		    if (FID_EQ(&s_fso->fid, &test_fid))
 			{ u.u_error = ELOOP; goto FreeLocks; }
 
 		    /* Exit when volume root is reached. */
@@ -1068,7 +1083,7 @@ void vproc::rename(struct venus_vnode *dvp, char *name,
 
 		    /* test_fid <-- Parent(test_fid). */
 		    /* Take care not to get s_parent twice! */
-		    if (FID_EQ(s_parent_fso->fid, test_fid)) {
+		    if (FID_EQ(&s_parent_fso->fid, &test_fid)) {
 			test_fid = s_parent_fso->pfid;
 			continue;
 		    }
@@ -1265,7 +1280,7 @@ void vproc::readdir(struct venus_vnode *dvp, struct uio *uiop) {
 	     uiop->uio_offset, uiop->uio_iov->iov_len));
 
     int offset = (int) uiop->uio_offset;
-    char *buf = uiop->uio_iov->iov_base;
+    char *buf = (char *)uiop->uio_iov->iov_base;
     int len = uiop->uio_iov->iov_len;
     int cc = 0;
 
@@ -1384,7 +1399,7 @@ void vproc::readlink(struct venus_vnode *vp, struct uio *uiop) {
     LOG(1, ("vproc::readlink: fid = (%x.%x.%x)\n",
 	     cp->c_fid.Volume, cp->c_fid.Vnode, cp->c_fid.Unique));
 
-    char *buf = uiop->uio_iov->iov_base;
+    char *buf = (char *)uiop->uio_iov->iov_base;
     int len = uiop->uio_iov->iov_len;
     int cc = 0;
 

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/vol_vcb.cc,v 4.2 1997/02/26 16:03:36 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/vol_vcb.cc,v 4.3 1998/01/10 18:39:12 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -313,10 +313,10 @@ int volent::GetVolAttr(vuid_t vuid) {
 		    default:  /* not OK */
 			LOG(1, ("volent::GetVolAttr: vid 0x%x invalid\n", v->vid));
 			v->ClearCallBack();
-			ATOMIC(
+			Recov_BeginTrans();
 			    RVMLIB_REC_OBJECT(v->VVV);
 			    v->VVV = NullVV;   
-			, MAXFP)
+			Recov_EndTrans(MAXFP);
 
 			ReportVCBEvent(FailedValidate, v->vid, &ve);
 
@@ -367,12 +367,12 @@ void volent::CollateVCB(mgrpent *m, RPC2_Integer *sbufs, CallBackStatus *cbufs) 
 
     if (collatedCB == CallBackSet) {
 	SetCallBack();
-	ATOMIC(
+	Recov_BeginTrans();
 	    RVMLIB_REC_OBJECT(VVV);
 	    for (i = 0; i < m->nhosts; i++)
 	        if (m->rocc.hosts[i])
 		   (&VVV.Versions.Site0)[i] = sbufs[i];
-	, MAXFP)
+	Recov_EndTrans(MAXFP);
     } else {
 	ClearCallBack();
 
@@ -380,10 +380,10 @@ void volent::CollateVCB(mgrpent *m, RPC2_Integer *sbufs, CallBackStatus *cbufs) 
 	   If so, server said stamp invalid. */
         for (i = 0; i < m->nhosts; i++)
 	    if (m->rocc.hosts[i] && (sbufs[i] == 0)) {
-		ATOMIC(
+		Recov_BeginTrans();
 		   RVMLIB_REC_OBJECT(VVV);
 		   VVV = NullVV;
-		, MAXFP)
+		Recov_EndTrans(MAXFP);
 		break;
 	    }
     }
@@ -467,10 +467,10 @@ int volent::CallBackBreak() {
     if (rc) {
 	VCBStatus = NoCallBack;
     
-	ATOMIC(
+	Recov_BeginTrans();
 	    RVMLIB_REC_OBJECT(VVV);
 	    VVV = NullVV;   
-	, MAXFP)
+	Recov_EndTrans(MAXFP);
     }
 
     return(rc);    
@@ -532,7 +532,7 @@ void *vcbdb::operator new(size_t len) {
     vcbdb *v = 0;
 
     /* Allocate recoverable store for the object. */
-    v = (vcbdb *)RVMLIB_REC_MALLOC((int) len);
+    v = (vcbdb *)rvmlib_rec_malloc((int) len);
     assert(v);
     return(v);
 }
@@ -563,9 +563,9 @@ vcbdent *vcbdb::Create(VolumeId vid, char *volname) {
     }
 
     /* Fashion a new object. */
-    ATOMIC(
+    Recov_BeginTrans();
 	v = new vcbdent(vid, volname);
-    , MAXFP)
+    Recov_EndTrans(MAXFP);
 
     if (v == 0)
 	LOG(0, ("vcbdb::Create: (%x, %s) failed\n", vid, volname));
@@ -597,7 +597,7 @@ void vcbdb::print(int fd) {
 void *vcbdent::operator new(size_t len){
     vcbdent *v = 0;
 
-    v = (vcbdent *)RVMLIB_REC_MALLOC((int) len);
+    v = (vcbdent *)rvmlib_rec_malloc((int) len);
     assert(v);
     return(v);
 }
@@ -707,7 +707,7 @@ void ReportVCBEvent(VCBEventType event, VolumeId vid, vcbevent *ve) {
 	v = VCBDB->Create(vol->vid, vol->name);
     }
 
-    ATOMIC(
+    Recov_BeginTrans();
 	RVMLIB_REC_OBJECT(v->data);
 	switch(event) {
 	case Acquire:
@@ -757,6 +757,6 @@ void ReportVCBEvent(VCBEventType event, VolumeId vid, vcbevent *ve) {
 	    Choke("ReportVCBEvent: Unknown event %d!", event);	
 	    break;
 	}
-    , MAXFP)
+    Recov_EndTrans(MAXFP);
 
 }

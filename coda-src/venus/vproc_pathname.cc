@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/vproc_pathname.cc,v 4.4 1997/12/10 22:10:41 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/vproc_pathname.cc,v 4.5 1997/12/16 20:15:56 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -150,7 +150,7 @@ int vproc::namev(char *path, int flags, struct venus_vnode **vpp) {
 	SkipSlashes(&pptr, &plen);
 
 	/* Handle ".." out of venus here! */
-	if (FID_EQ(VTOC(pvp)->c_fid, rootfid) && STREQ(comp, "..")) {
+	if (FID_EQ(&(VTOC(pvp)->c_fid), &rootfid) && STREQ(comp, "..")) {
 	    LOG(100, ("vproc::namev: .. out of this venus\n"));
 
 	    u.u_error = ENOENT;

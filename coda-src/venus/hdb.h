@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/hdb.h,v 4.3 1998/01/26 21:31:49 mre Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/hdb.h,v 4.4 1998/07/08 22:42:09 jaharkes Exp $";
 #endif /*_BLURB_*/
 
 
@@ -340,24 +340,24 @@ enum pestate {	PeValid,		/* expansion need not be checked */
 };
 
 class namectxt {
-  friend class fsobj;
-  friend class hdb;
-  friend class hdbent;
-  friend class hdb_iterator;
-  friend void MetaExpand(long, char *, long, long);
-  friend int NC_PriorityFN(bsnode *, bsnode *);
-  friend void NotifyUsersOfKillEvent(dlist *, int);
+	friend class fsobj;
+	friend class hdb;
+	friend class hdbent;
+	friend class hdb_iterator;
+	friend int MetaExpand(PDirEntry de, void *hook);
+	friend int NC_PriorityFN(bsnode *, bsnode *);
+	friend void NotifyUsersOfKillEvent(dlist *, int);
 
-    /* Key. */
-    ViceFid cdir;			/* starting directory of expansion */
-    char *path;				/* subsequent components */
+	/* Key. */
+	ViceFid cdir;			/* starting directory of expansion */
+	char *path;			/* subsequent components */
 
-    /* Assoc(key). */
-    vuid_t vuid;			/* owner of this context */
-    int	priority;			/* priority to be used for resource allocation */
-    enum pestate state;			/* {Valid, Suspect, Indigent} */
-    unsigned inuse : 1;			/* state cannot change when inuse */
-    unsigned dying : 1;			/* commit suicide when next !inuse */
+	/* Assoc(key). */
+	vuid_t vuid;			/* owner of this context */
+	int	priority;		/* priority to be used for resource allocation */
+	enum pestate state;		/* {Valid, Suspect, Indigent} */
+	unsigned inuse : 1;		/* state cannot change when inuse */
+	unsigned dying : 1;		/* commit suicide when next !inuse */
     unsigned demote_pending : 1;	/* transit to "suspect" state when next !inuse */
     unsigned meta_expanded : 1;		/* this context was created due to meta-expansion */
     unsigned expand_children : 1;	/* meta-expand the children of bound object */
@@ -433,7 +433,6 @@ extern int IndigentCount;
 
 /* hdb.c */
 extern void HDB_Init();
-extern void MetaExpand(long, char *, long, long);
 extern int NC_PriorityFN(bsnode *, bsnode *);
 
 /* hdb_daemon.c */

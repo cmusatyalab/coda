@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/local_daemon.cc,v 4.1 97/01/08 21:51:30 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/local_daemon.cc,v 4.2 1997/12/16 16:08:31 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -57,12 +57,12 @@ extern "C" {
 #include "advice_daemon.h"
 
 /* ***** Private constants ***** */
-PRIVATE const int LRDaemonStackSize = 32768;
-PRIVATE const int LRDaemonInterval = 5;
-PRIVATE const int CheckSubtreeInterval = 5 * 60;
+static const int LRDaemonStackSize = 32768;
+static const int LRDaemonInterval = 5;
+static const int CheckSubtreeInterval = 5 * 60;
 
 /* ***** Private variables ***** */
-PRIVATE char lrdaemon_sync;
+static char lrdaemon_sync;
 
 void LRDBDaemon() 
 {

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/venusrecov.cc,v 4.8 1998/03/06 20:20:49 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/venusrecov.cc,v 4.9 1998/05/15 01:23:31 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -55,18 +55,8 @@ extern "C" {
 #include <sys/stat.h>
 #include <sys/wait.h>
 #include <errno.h>
-#ifdef __MACH__
-#include <sysent.h>
-#include <libc.h>
-#include <mach.h>
-#else	/* __linux__ || __BSD44__ */
 #include <unistd.h>
 #include <stdlib.h>
-#endif
-
-#ifdef	__linux__
-#define MAX(a,b)   ( (a) > (b) ? (a) : (b))
-#endif
 
 /* from rvm */
 #include <rds.h>
@@ -74,9 +64,7 @@ extern "C" {
 #include <rvm_segment.h>
 #include <rvm_statistics.h>
 
-#ifndef __MACH__
 #include <sys/mman.h>
-#endif
 
 #ifdef __cplusplus
 }
@@ -118,47 +106,47 @@ int MAXTS = UNSET_MAXTS;
 /*  *****  Private Constants  *****  */
 
 #ifdef MACH
-PRIVATE const char *VM_RVGADDR = (char *)0x00c00000;
-PRIVATE const char *VM_RDSADDR = (char *)0x01c00000;
+static const char *VM_RVGADDR = (char *)0x00c00000;
+static const char *VM_RDSADDR = (char *)0x01c00000;
 #elif defined(NetBSD1_3)
-PRIVATE const char *VM_RVGADDR = (char *)0x50000000;
-PRIVATE const char *VM_RDSADDR = (char *)0x51000000;
+static const char *VM_RVGADDR = (char *)0x50000000;
+static const char *VM_RDSADDR = (char *)0x51000000;
 #elif defined(__BSD44__)
-PRIVATE const char *VM_RVGADDR = (char *)0x40000000;
-PRIVATE const char *VM_RDSADDR = (char *)0x41000000;
+static const char *VM_RVGADDR = (char *)0x40000000;
+static const char *VM_RDSADDR = (char *)0x41000000;
 #elif  defined(__linux__) && defined(sparc)
-PRIVATE const char *VM_RVGADDR = (char *)0xbebd000;
-PRIVATE const char *VM_RDSADDR = (char *)0xbfbd000;
+static const char *VM_RVGADDR = (char *)0xbebd000;
+static const char *VM_RDSADDR = (char *)0xbfbd000;
 #elif	defined(__linux__) || defined(__CYGWIN32__)
-PRIVATE const char *VM_RVGADDR = (char *)0x20000000;
-PRIVATE const char *VM_RDSADDR = (char *)0x21000000;
+static const char *VM_RVGADDR = (char *)0x20000000;
+static const char *VM_RDSADDR = (char *)0x21000000;
 #elif	defined(DJGPP)
-PRIVATE const char *VM_RVGADDR = (char *)0x02000000;
-PRIVATE const char *VM_RDSADDR = (char *)0x03000000;
+static const char *VM_RVGADDR = (char *)0x02000000;
+static const char *VM_RDSADDR = (char *)0x03000000;
 #endif
 
 
 /*  *****  Private Variables  *****  */
 
-PRIVATE rvm_options_t Recov_Options;
-PRIVATE char *Recov_RvgAddr = 0;
-PRIVATE rvm_length_t Recov_RvgLength = 0;
-PRIVATE char *Recov_RdsAddr = 0;
-PRIVATE rvm_length_t Recov_RdsLength = 0;
-PRIVATE int Recov_TimeToFlush = 0;
-PRIVATE rvm_statistics_t Recov_Statistics;
+static rvm_options_t Recov_Options;
+static char *Recov_RvgAddr = 0;
+static rvm_length_t Recov_RvgLength = 0;
+static char *Recov_RdsAddr = 0;
+static rvm_length_t Recov_RdsLength = 0;
+static int Recov_TimeToFlush = 0;
+static rvm_statistics_t Recov_Statistics;
 
 /*  *****  Private Functions  *****  */
 
-PRIVATE void Recov_CheckParms();
-PRIVATE void Recov_InitRVM();
-PRIVATE void Recov_LayoutSeg();
-PRIVATE void Recov_CreateSeg();
-PRIVATE void Recov_LoadSeg();
-PRIVATE void Recov_InitSeg();
-PRIVATE void Recov_GetStatistics();
-PRIVATE void Recov_AllocateVM(char **, unsigned long);
-PRIVATE void Recov_DeallocateVM(char *, unsigned long);
+static void Recov_CheckParms();
+static void Recov_InitRVM();
+static void Recov_LayoutSeg();
+static void Recov_CreateSeg();
+static void Recov_LoadSeg();
+static void Recov_InitSeg();
+static void Recov_GetStatistics();
+static void Recov_AllocateVM(char **, unsigned long);
+static void Recov_DeallocateVM(char *, unsigned long);
 
 /* Crude formula for estimating recoverable data requirements! */
 #define	RECOV_BYTES_NEEDED()\
@@ -265,7 +253,7 @@ void RecovInit() {
 }
 
 
-PRIVATE void Recov_CheckParms() {
+static void Recov_CheckParms() {
     /* From recov module. */
     {
 	if (InitMetaData == UNSET_IMD) InitMetaData = DFLT_IMD;
@@ -368,7 +356,7 @@ PRIVATE void Recov_CheckParms() {
 
 extern int IAmChild;
 
-PRIVATE void Recov_InitRVM() {
+static void Recov_InitRVM() {
 
     rvm_init_options(&Recov_Options);
     Recov_Options.log_dev = VenusLogDevice;
@@ -534,7 +522,7 @@ PRIVATE void Recov_InitRVM() {
 
 
 /* Venus meta-data segment consists of two regions, RVG and RDS. */
-PRIVATE void Recov_LayoutSeg() {
+static void Recov_LayoutSeg() {
     /* RVG region: structure containing small number of global variables. */
     Recov_RvgAddr = (char *)VM_RVGADDR;
     Recov_RvgLength = RVM_ROUND_LENGTH_UP_TO_PAGE_SIZE(sizeof(RecovVenusGlobals));
@@ -548,7 +536,7 @@ PRIVATE void Recov_LayoutSeg() {
 
 
 /* Might need to fork here! -JJK */
-PRIVATE void Recov_CreateSeg() {
+static void Recov_CreateSeg() {
     /* The Venus segment has two regions. */
     /* N.B. The segment package assumes that VM is allocated PRIOR to seg creation! */
     unsigned long nregions = 2;
@@ -583,7 +571,7 @@ PRIVATE void Recov_CreateSeg() {
 }
 
 
-PRIVATE void Recov_LoadSeg() {
+static void Recov_LoadSeg() {
     rvm_offset_t dummy;
     unsigned long nregions = 0;
     rvm_region_def_t *regions = 0;
@@ -611,30 +599,30 @@ PRIVATE void Recov_LoadSeg() {
 }
 
 
-PRIVATE void Recov_InitSeg() {
-    rvg = (RecovVenusGlobals *)Recov_RvgAddr;
+static void Recov_InitSeg() 
+{
+	rvg = (RecovVenusGlobals *)Recov_RvgAddr;
 
-    /* Initialize/validate the segment. */
-    if (InitMetaData) {
-	TRANSACTION(
-	    /* Initialize the block of recoverable Venus globals. */
-	    RVMLIB_REC_OBJECT(*rvg);
-	    bzero((void *)rvg, (int)sizeof(RecovVenusGlobals));
-	    rvg->recov_MagicNumber = RecovMagicNumber;
-	    rvg->recov_VersionNumber = RecovVersionNumber;
-	    rvg->recov_LastInit = Vtime();
-	    rvg->recov_HeapAddr = Recov_RdsAddr;
-	    rvg->recov_HeapLength = (unsigned int)Recov_RdsLength;
-
-	    /* Initialize the recoverable heap. */
-	    int err = 0;
-	    rds_init_heap(Recov_RdsAddr, Recov_RdsLength, (unsigned long)RdsChunkSize,
-			  (unsigned long)RdsNlists, _rvm_data->tid, &err);
-	    if (err != SUCCESS)
-		Choke("Recov_InitSeg: rds_init_heap failed (%d)", err);
-	)
-    }
-    else {
+	/* Initialize/validate the segment. */
+	if (InitMetaData) {
+		Recov_BeginTrans();
+		/* Initialize the block of recoverable Venus globals. */
+		RVMLIB_REC_OBJECT(*rvg);
+		bzero((void *)rvg, (int)sizeof(RecovVenusGlobals));
+		rvg->recov_MagicNumber = RecovMagicNumber;
+		rvg->recov_VersionNumber = RecovVersionNumber;
+		rvg->recov_LastInit = Vtime();
+		rvg->recov_HeapAddr = Recov_RdsAddr;
+		rvg->recov_HeapLength = (unsigned int)Recov_RdsLength;
+		
+		/* Initialize the recoverable heap. */
+		int err = 0;
+		rds_init_heap(Recov_RdsAddr, Recov_RdsLength, (unsigned long)RdsChunkSize,
+			      (unsigned long)RdsNlists, rvmlib_thread_data()->tid, &err);
+		if (err != SUCCESS)
+			Choke("Recov_InitSeg: rds_init_heap failed (%d)", err);
+		Recov_EndTrans(0);
+	} else {
 	/* Sanity check RVG fields. */
 	if (rvg->recov_HeapAddr != Recov_RdsAddr || rvg->recov_HeapLength != Recov_RdsLength)
 	    Choke("Recov_InitSeg: heap mismatch (%x, %x) vs (%x, %x)",
@@ -650,10 +638,10 @@ PRIVATE void Recov_InitSeg() {
 	/* Copy CleanShutDown to VM global, then set it FALSE. */
 	CleanShutDown = rvg->recov_CleanShutDown;
 	eprint("Last shutdown was %s", (CleanShutDown ? "clean" : "dirty"));
-	TRANSACTION(
-	    RVMLIB_REC_OBJECT(rvg->recov_CleanShutDown);
-	    rvg->recov_CleanShutDown = 0;
-	)
+	Recov_BeginTrans();
+	RVMLIB_REC_OBJECT(rvg->recov_CleanShutDown);
+	rvg->recov_CleanShutDown = 0;
+	Recov_EndTrans(0);
     }
 /*
     eprint("Recov_InitSeg: magic = %x, version = %d, clean = %d, rvn = %s",
@@ -670,21 +658,34 @@ PRIVATE void Recov_InitSeg() {
 
 	/* Plumb the heap here? */
 	if (MallocTrace) {	
-	  rds_trace_on(rds_printer);
+	  rds_trace_on(logFile);
 	  rds_trace_dump_heap();
 	}
     }
 }
 
 
+/* Venus transaction handling */
+void Recov_BeginTrans(void)
+{
+	rvmlib_begin_transaction(no_restore);
+}
+
+void Recov_EndTrans(int time)
+{
+	rvmlib_end_transaction(no_flush, 0);
+	Recov_SetBound(time);
+}
+
+
 /* Bounds the (non)persistence of committed no_flush transactions. */
-void RecovSetBound(int bound) {
+void Recov_SetBound(int bound) {
     if (bound < Recov_TimeToFlush)
 	Recov_TimeToFlush = bound;
 }
 
 
-PRIVATE void Recov_GetStatistics() {
+static void Recov_GetStatistics() {
     if (RvmType == VM) return;
 
     rvm_return_t ret = RVM_STATISTICS(&Recov_Statistics);
@@ -708,18 +709,15 @@ void RecovFlush(int Force) {
     if (FlushSize == 0) return;
 
     MarinerLog("cache::BeginRvmFlush (%d, %d, %s)\n", FlushCount, FlushSize, reason);
-    int pre_vm_usage = VMUsage();
     START_TIMING();
     rvm_return_t ret = rvm_flush();
     if (ret != RVM_SUCCESS)
 	Choke("RecovFlush: rvm_flush failed (%d)", ret);
     END_TIMING();
-    int post_vm_usage = VMUsage();
     MarinerLog("cache::EndRvmFlush\n");
 
-/*    if (post_vm_usage - pre_vm_usage != 0)*/
-    LOG(1, ("RecovFlush: count = %d, size = %d, elapsed = %3.1f, delta_vm = %x\n",
-	    FlushCount, FlushSize, elapsed, post_vm_usage - pre_vm_usage));
+    LOG(1, ("RecovFlush: count = %d, size = %d, elapsed = %3.1f\n",
+	    FlushCount, FlushSize, elapsed));
 }
 
 
@@ -737,18 +735,16 @@ void RecovTruncate(int Force) {
     if (TruncateSize == 0) return;
 
     MarinerLog("cache::BeginRvmTruncate (%d, %d, %s)\n", TruncateCount, TruncateSize, reason);
-    int pre_vm_usage = VMUsage();
     START_TIMING();
     rvm_return_t ret = rvm_truncate();
     if (ret != RVM_SUCCESS)
 	Choke("RecovTruncate: rvm_truncate failed (%d)", ret);
     END_TIMING();
-    int post_vm_usage = VMUsage();
     MarinerLog("cache::EndRvmTruncate\n");
 
 /*    if (post_vm_usage - pre_vm_usage != 0)*/
-    LOG(1, ("RecovTruncate: count = %d, size = %d, elapsed = %3.1f, delta_vm = %x\n",
-	    TruncateCount, TruncateSize, elapsed, post_vm_usage - pre_vm_usage));
+    LOG(1, ("RecovTruncate: count = %d, size = %d, elapsed = %3.1f\n",
+	    TruncateCount, TruncateSize, elapsed));
 }
 
 
@@ -831,7 +827,7 @@ void RecovPrint(int fd) {
 
 /*  *****  VM Allocation/Deallocation  *****  */
 
-PRIVATE void Recov_AllocateVM(char **addr, unsigned long length) {
+static void Recov_AllocateVM(char **addr, unsigned long length) {
 #if	MACH
     kern_return_t ret = vm_allocate(task_self(), (vm_address_t *)addr,
 				    (unsigned int)length, (*addr == 0));
@@ -841,7 +837,7 @@ PRIVATE void Recov_AllocateVM(char **addr, unsigned long length) {
 
 #else
     char *requested_addr = *addr;
-    *addr = mmap(*addr, length, (PROT_READ | PROT_WRITE),
+    *addr = (char *)mmap(*addr, length, (PROT_READ | PROT_WRITE),
 		 (MAP_PRIVATE | MAP_ANON), -1, 0);
 
     if (*addr == (char *)-1) {
@@ -860,7 +856,7 @@ PRIVATE void Recov_AllocateVM(char **addr, unsigned long length) {
 }
 
 
-PRIVATE void Recov_DeallocateVM(char *addr, unsigned long length) {
+static void Recov_DeallocateVM(char *addr, unsigned long length) {
 #if	MACH
     kern_return_t ret = vm_deallocate(task_self(), (vm_address_t)addr, (unsigned int)length);
     if (ret != KERN_SUCCESS)
@@ -880,8 +876,8 @@ PRIVATE void Recov_DeallocateVM(char *addr, unsigned long length) {
 RPC2_String Copy_RPC2_String(RPC2_String& src) {
     int len = (int) strlen((char *)src) + 1;
 
-    RPC2_String tgt = (RPC2_String)RVMLIB_REC_MALLOC(len);
-    RVMLIB_SET_RANGE(tgt, len);
+    RPC2_String tgt = (RPC2_String)rvmlib_rec_malloc(len);
+    rvmlib_set_range(tgt, len);
     bcopy(src, tgt, len);
 
     return(tgt);
@@ -889,16 +885,16 @@ RPC2_String Copy_RPC2_String(RPC2_String& src) {
 
 
 void Free_RPC2_String(RPC2_String& STR) {
-    RVMLIB_REC_FREE(STR);
+    rvmlib_rec_free(STR);
 }
 
 
 /*  *****  recov_daemon.c  *****  */
 
-PRIVATE const int RecovDaemonInterval = 5;
-PRIVATE	const int RecovDaemonStackSize = 262144;    /* MUST be big to handle rvm_trucates! */
+static const int RecovDaemonInterval = 5;
+static const int RecovDaemonStackSize = 262144;    /* MUST be big to handle rvm_trucates! */
 
-PRIVATE char recovdaemon_sync;
+static char recovdaemon_sync;
 
 void RECOVD_Init() {
     (void)new vproc("RecovDaemon", (PROCBODY)&RecovDaemon,

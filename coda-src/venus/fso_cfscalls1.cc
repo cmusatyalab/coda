@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/fso_cfscalls1.cc,v 4.3 1998/01/10 18:38:47 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/fso_cfscalls1.cc,v 4.4 1998/04/14 21:03:05 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -199,11 +199,11 @@ int fsobj::ConnectedRemove(Date_t Mtime, vuid_t vuid, char *name, fsobj *target_
 	}
 
 	/* Do Remove locally. */
-	ATOMIC(
-	    LocalRemove(Mtime, name, target_fso);
-	    UpdateStatus(&parent_status, &UpdateSet, vuid);
-	    target_fso->UpdateStatus(&target_status, &UpdateSet, vuid);
-       , CMFP)
+	Recov_BeginTrans();
+	LocalRemove(Mtime, name, target_fso);
+	UpdateStatus(&parent_status, &UpdateSet, vuid);
+	target_fso->UpdateStatus(&target_status, &UpdateSet, vuid);
+	Recov_EndTrans(CMFP);
 	if (ASYNCCOP2) ReturnEarly();
 
 	/* Send the COP2 message or add an entry for piggybacking. */
@@ -254,11 +254,11 @@ RepExit:
 	if (code != 0) goto NonRepExit;
 
 	/* Do Remove locally. */
-	ATOMIC(
-	    LocalRemove(Mtime, name, target_fso);
-	    UpdateStatus(&parent_status, 0, vuid);
-	    target_fso->UpdateStatus(&target_status, 0, vuid);
-       , CMFP)
+	Recov_BeginTrans();
+	LocalRemove(Mtime, name, target_fso);
+	UpdateStatus(&parent_status, 0, vuid);
+	target_fso->UpdateStatus(&target_status, 0, vuid);
+	Recov_EndTrans(CMFP);
 
 NonRepExit:
 	PutConn(&c);
@@ -279,14 +279,14 @@ int fsobj::DisconnectedRemove(Date_t Mtime, vuid_t vuid, char *name, fsobj *targ
 	goto Exit;
     }
 
-    ATOMIC(
-	code = vol->LogRemove(Mtime, vuid, &fid, name, &target_fso->fid, 
-			      target_fso->stat.LinkCount, Tid);
+    Recov_BeginTrans();
+    code = vol->LogRemove(Mtime, vuid, &fid, name, &target_fso->fid, 
+			  target_fso->stat.LinkCount, Tid);
 
-	if (code == 0)
+    if (code == 0)
 	    /* This MUST update second-class state! */
 	    LocalRemove(Mtime, name, target_fso);
-    , DMFP)
+    Recov_EndTrans(DMFP);
 
 Exit:
     return(code);
@@ -432,11 +432,11 @@ int fsobj::ConnectedLink(Date_t Mtime, vuid_t vuid, char *name, fsobj *source_fs
 	}
 
 	/* Do Link locally. */
-	ATOMIC(
-	    LocalLink(Mtime, name, source_fso);
-	    UpdateStatus(&parent_status, &UpdateSet, vuid);
-	    source_fso->UpdateStatus(&source_status, &UpdateSet, vuid);
-	, CMFP)
+	Recov_BeginTrans();
+	LocalLink(Mtime, name, source_fso);
+	UpdateStatus(&parent_status, &UpdateSet, vuid);
+	source_fso->UpdateStatus(&source_status, &UpdateSet, vuid);
+	Recov_EndTrans(CMFP);
 	if (ASYNCCOP2) ReturnEarly();
 
 	/* Send the COP2 message or add an entry for piggybacking. */
@@ -488,11 +488,11 @@ RepExit:
 	if (code != 0) goto NonRepExit;
 
 	/* Do Link locally. */
-	ATOMIC(
-	    LocalLink(Mtime, name, source_fso);
-	    UpdateStatus(&parent_status, 0, vuid);
-	    source_fso->UpdateStatus(&source_status, 0, vuid);
-	, CMFP)
+	Recov_BeginTrans();
+	LocalLink(Mtime, name, source_fso);
+	UpdateStatus(&parent_status, 0, vuid);
+	source_fso->UpdateStatus(&source_status, 0, vuid);
+	Recov_EndTrans(CMFP);
 
 NonRepExit:
 	PutConn(&c);
@@ -513,13 +513,13 @@ int fsobj::DisconnectedLink(Date_t Mtime, vuid_t vuid, char *name, fsobj *source
 	goto Exit;
     }
 
-    ATOMIC(
-	code = vol->LogLink(Mtime, vuid, &fid, name, &source_fso->fid, Tid);
-
-	if (code == 0)
+    Recov_BeginTrans();
+    code = vol->LogLink(Mtime, vuid, &fid, name, &source_fso->fid, Tid);
+    
+    if (code == 0)
 	    /* This MUST update second-class state! */
 	    LocalLink(Mtime, name, source_fso);
-    , DMFP)
+    Recov_EndTrans(DMFP);
 
 Exit:
     return(code);
@@ -629,10 +629,10 @@ void fsobj::LocalRename(Date_t Mtime, fsobj *s_parent_fso, char *s_name,
 	/* Update the source status to reflect the rename and possible create/delete. */
 	if (!STREQ(s_fso->comp, t_name)) {
 	    RVMLIB_REC_OBJECT(s_fso->comp);
-	    RVMLIB_REC_FREE(s_fso->comp);
+	    rvmlib_rec_free(s_fso->comp);
 	    int len = (int) strlen(t_name) + 1;
-	    s_fso->comp = (char *)RVMLIB_REC_MALLOC(len);
-	    RVMLIB_SET_RANGE(s_fso->comp, len);
+	    s_fso->comp = (char *)rvmlib_rec_malloc(len);
+	    rvmlib_set_range(s_fso->comp, len);
 	    strcpy(s_fso->comp, t_name);
 	}
 	s_fso->DetachHdbBindings();
@@ -741,15 +741,15 @@ int fsobj::ConnectedRename(Date_t Mtime, vuid_t vuid, fsobj *s_parent_fso,
 	}
 
 	/* Do Rename locally. */
-	ATOMIC(
-	    LocalRename(Mtime, s_parent_fso, s_name, s_fso, t_name, t_fso);
-	    UpdateStatus(&t_parent_status, &UpdateSet, vuid);
-	    if (!SameParent)
+	Recov_BeginTrans();
+	LocalRename(Mtime, s_parent_fso, s_name, s_fso, t_name, t_fso);
+	UpdateStatus(&t_parent_status, &UpdateSet, vuid);
+	if (!SameParent)
 		s_parent_fso->UpdateStatus(&s_parent_status, &UpdateSet, vuid);
-	    s_fso->UpdateStatus(&source_status, &UpdateSet, vuid);
-	    if (TargetExists)
+	s_fso->UpdateStatus(&source_status, &UpdateSet, vuid);
+	if (TargetExists)
 		t_fso->UpdateStatus(&target_status, &UpdateSet, vuid);
-	, CMFP)
+	Recov_EndTrans(CMFP);
 	if (ASYNCCOP2) ReturnEarly();
 
 	/* Send the COP2 message or add an entry for piggybacking. */
@@ -809,15 +809,15 @@ RepExit:
 	PutConn(&c);
 
 	/* Do Rename locally. */
-	ATOMIC(
-	    LocalRename(Mtime, s_parent_fso, s_name, s_fso, t_name, t_fso);
-	    UpdateStatus(&t_parent_status, 0, vuid);
-	    if (!SameParent)
+	Recov_BeginTrans();
+	LocalRename(Mtime, s_parent_fso, s_name, s_fso, t_name, t_fso);
+	UpdateStatus(&t_parent_status, 0, vuid);
+	if (!SameParent)
 		s_parent_fso->UpdateStatus(&s_parent_status, 0, vuid);
-	    s_fso->UpdateStatus(&source_status, 0, vuid);
-	    if (TargetExists)
+	s_fso->UpdateStatus(&source_status, 0, vuid);
+	if (TargetExists)
 		t_fso->UpdateStatus(&target_status, 0, vuid);
-	, CMFP)
+	Recov_EndTrans(CMFP);
 
 NonRepExit:
 	PutConn(&c);
@@ -841,16 +841,16 @@ int fsobj::DisconnectedRename(Date_t Mtime, vuid_t vuid, fsobj *s_parent_fso, ch
 	goto Exit;
     }
 
-    ATOMIC(
-	code = vol->LogRename(Mtime, vuid, &s_parent_fso->fid, s_name,
-			      &fid, t_name, &s_fso->fid,
-			      (TargetExists ? &t_fso->fid : &NullFid),
-			      (TargetExists ? t_fso->stat.LinkCount : 0), Tid);
+    Recov_BeginTrans();
+    code = vol->LogRename(Mtime, vuid, &s_parent_fso->fid, s_name,
+			  &fid, t_name, &s_fso->fid,
+			  (TargetExists ? &t_fso->fid : &NullFid),
+			  (TargetExists ? t_fso->stat.LinkCount : 0), Tid);
 
-	if (code == 0)
+    if (code == 0)
 	    /* This MUST update second-class state! */
 	    LocalRename(Mtime, s_parent_fso, s_name, s_fso, t_name, t_fso);
-    , DMFP)
+    Recov_EndTrans(DMFP);
 
 Exit:
     return(code);
@@ -1046,11 +1046,11 @@ int fsobj::ConnectedMkdir(Date_t Mtime, vuid_t vuid, fsobj **t_fso_addr,
 	}
 
 	/* Do Mkdir locally. */
-	ATOMIC(
-	    LocalMkdir(Mtime, target_fso, name, vuid, Mode);
-	    UpdateStatus(&parent_status, &UpdateSet, vuid);
-	    target_fso->UpdateStatus(&target_status, &UpdateSet, vuid);
-	, CMFP)
+	Recov_BeginTrans();
+	LocalMkdir(Mtime, target_fso, name, vuid, Mode);
+	UpdateStatus(&parent_status, &UpdateSet, vuid);
+	target_fso->UpdateStatus(&target_status, &UpdateSet, vuid);
+	Recov_EndTrans(CMFP);
 	if (target_fso->flags.usecallback &&
 	    target_status.CallBack == CallBackSet &&
 	    cbtemp == cbbreaks)
@@ -1119,11 +1119,11 @@ RepExit:
 			 NBLOCKS(sizeof(fsobj)));
 
 	/* Do Mkdir locally. */
-	ATOMIC(
-	    LocalMkdir(Mtime, target_fso, name, vuid, Mode);
-	    UpdateStatus(&parent_status, 0, vuid);
-	    target_fso->UpdateStatus(&target_status, 0, vuid);
-	, CMFP)
+	Recov_BeginTrans();
+	LocalMkdir(Mtime, target_fso, name, vuid, Mode);
+	UpdateStatus(&parent_status, 0, vuid);
+	target_fso->UpdateStatus(&target_status, 0, vuid);
+	Recov_EndTrans(CMFP);
 	if (target_fso->flags.usecallback &&
 	    target_status.CallBack == CallBackSet &&
 	    cbtemp == cbbreaks)
@@ -1139,9 +1139,9 @@ NonRepExit:
     else {
 	if (target_fso != 0) {
 	    FSO_ASSERT(target_fso, !HAVESTATUS(target_fso));
-	    ATOMIC(
-		target_fso->Kill();
-	    , DMFP);
+	    Recov_BeginTrans();
+	    target_fso->Kill();
+	    Recov_EndTrans(DMFP);
 	    FSDB->Put(&target_fso);
 	}
     }
@@ -1180,10 +1180,10 @@ int fsobj::DisconnectedMkdir(Date_t Mtime, vuid_t vuid, fsobj **t_fso_addr, char
     UpdateCacheStats(&FSDB->DirAttrStats, CREATE,
 		      NBLOCKS(sizeof(fsobj)));
 
-    ATOMIC(
-	code = vol->LogMkdir(Mtime, vuid, &fid, name, &target_fso->fid, Mode, Tid);
+    Recov_BeginTrans();
+    code = vol->LogMkdir(Mtime, vuid, &fid, name, &target_fso->fid, Mode, Tid);
 
-	   if (code == 0) {
+    if (code == 0) {
 	    /* This MUST update second-class state! */
 	    LocalMkdir(Mtime, target_fso, name, vuid, Mode);
 
@@ -1192,7 +1192,7 @@ int fsobj::DisconnectedMkdir(Date_t Mtime, vuid_t vuid, fsobj **t_fso_addr, char
 	    target_fso->CleanStat.Length = target_fso->stat.Length;
 	    target_fso->CleanStat.Date = target_fso->stat.Date;
 	   }
-    , DMFP)
+    Recov_EndTrans(DMFP);
 
 Exit:
     if (code == 0) {
@@ -1201,9 +1201,9 @@ Exit:
     else {
 	if (target_fso != 0) {
 	    FSO_ASSERT(target_fso, !HAVESTATUS(target_fso));
-	    ATOMIC(
-		target_fso->Kill();
-	    , DMFP);
+	    Recov_BeginTrans();
+	    target_fso->Kill();
+	    Recov_EndTrans(DMFP);
 	    FSDB->Put(&target_fso);
 	}
     }
@@ -1357,11 +1357,11 @@ int fsobj::ConnectedRmdir(Date_t Mtime, vuid_t vuid, char *name, fsobj *target_f
 	}
 
 	/* Do Rmdir locally. */
-	ATOMIC(
-	    LocalRmdir(Mtime, name, target_fso);
-	    UpdateStatus(&parent_status, &UpdateSet, vuid);
-	    target_fso->UpdateStatus(&target_status, &UpdateSet, vuid);
-	, CMFP)
+	Recov_BeginTrans();
+	LocalRmdir(Mtime, name, target_fso);
+	UpdateStatus(&parent_status, &UpdateSet, vuid);
+	target_fso->UpdateStatus(&target_status, &UpdateSet, vuid);
+	Recov_EndTrans(CMFP);
 	if (ASYNCCOP2) ReturnEarly();
 
 	/* Send the COP2 message or add an entry for piggybacking. */
@@ -1412,11 +1412,11 @@ RepExit:
 	if (code != 0) goto NonRepExit;
 
 	/* Do Rmdir locally. */
-	ATOMIC(
-	    LocalRmdir(Mtime, name, target_fso);
-	    UpdateStatus(&parent_status, 0, vuid);
-	    target_fso->UpdateStatus(&target_status, 0, vuid);
-	, CMFP)
+	Recov_BeginTrans();
+	LocalRmdir(Mtime, name, target_fso);
+	UpdateStatus(&parent_status, 0, vuid);
+	target_fso->UpdateStatus(&target_status, 0, vuid);
+	Recov_EndTrans(CMFP);
 
 NonRepExit:
 	PutConn(&c);
@@ -1437,13 +1437,13 @@ int fsobj::DisconnectedRmdir(Date_t Mtime, vuid_t vuid, char *name, fsobj *targe
 	goto Exit;
     }
 
-    ATOMIC(
-	code = vol->LogRmdir(Mtime, vuid, &fid, name, &target_fso->fid, Tid);
+    Recov_BeginTrans();
+    code = vol->LogRmdir(Mtime, vuid, &fid, name, &target_fso->fid, Tid);
 
-	if (code == 0)
+    if (code == 0)
 	    /* This MUST update second-class state! */
 	    LocalRmdir(Mtime, name, target_fso);
-    , DMFP)
+    Recov_EndTrans(DMFP);
 
 Exit:
     return(code);
@@ -1510,8 +1510,8 @@ void fsobj::LocalSymlink(Date_t Mtime, fsobj *target_fso, char *name,
 	/* Write out the link contents. */
 	int linklen = (int) strlen(contents);
 	target_fso->stat.Length = linklen;
-	target_fso->data.symlink = (char *)RVMLIB_REC_MALLOC(linklen + 1);
-	RVMLIB_SET_RANGE(target_fso->data.symlink, linklen);
+	target_fso->data.symlink = (char *)rvmlib_rec_malloc(linklen + 1);
+	rvmlib_set_range(target_fso->data.symlink, linklen);
 	bcopy(contents, target_fso->data.symlink, linklen);
 	UpdateCacheStats(&FSDB->FileDataStats, CREATE,
 			 NBLOCKS(linklen));
@@ -1631,11 +1631,11 @@ int fsobj::ConnectedSymlink(Date_t Mtime, vuid_t vuid, fsobj **t_fso_addr,
 	}
 
 	/* Do Symlink locally. */
-	ATOMIC(
-	    LocalSymlink(Mtime, target_fso, name, contents, vuid, Mode);
-	    UpdateStatus(&parent_status, &UpdateSet, vuid);
-	    target_fso->UpdateStatus(&target_status, &UpdateSet, vuid);
-	, CMFP)
+	Recov_BeginTrans();
+	LocalSymlink(Mtime, target_fso, name, contents, vuid, Mode);
+	UpdateStatus(&parent_status, &UpdateSet, vuid);
+	target_fso->UpdateStatus(&target_status, &UpdateSet, vuid);
+	Recov_EndTrans(CMFP);
 	if (target_fso->flags.usecallback &&
 	    target_status.CallBack == CallBackSet &&
 	    cbtemp == cbbreaks)
@@ -1705,11 +1705,11 @@ RepExit:
 			 NBLOCKS(sizeof(fsobj)));
 
 	/* Do Symlink locally. */
-	ATOMIC(
-	    LocalSymlink(Mtime, target_fso, name, contents, vuid, Mode);
-	    UpdateStatus(&parent_status, 0, vuid);
-	    target_fso->UpdateStatus(&target_status, 0, vuid);
-	, CMFP)
+	Recov_BeginTrans();
+	LocalSymlink(Mtime, target_fso, name, contents, vuid, Mode);
+	UpdateStatus(&parent_status, 0, vuid);
+	target_fso->UpdateStatus(&target_status, 0, vuid);
+	Recov_EndTrans(CMFP);
 	if (target_fso->flags.usecallback &&
 	    target_status.CallBack == CallBackSet &&
 	    cbtemp == cbbreaks)
@@ -1725,9 +1725,9 @@ NonRepExit:
     else {
 	if (target_fso != 0) {
 	    FSO_ASSERT(target_fso, !HAVESTATUS(target_fso));
-	    ATOMIC(
-		target_fso->Kill();
-	    , DMFP);
+	    Recov_BeginTrans();
+	    target_fso->Kill();
+	    Recov_EndTrans(DMFP);
 	    FSDB->Put(&target_fso);
 	}
     }
@@ -1767,11 +1767,11 @@ int fsobj::DisconnectedSymlink(Date_t Mtime, vuid_t vuid, fsobj **t_fso_addr,
     UpdateCacheStats(&FSDB->FileAttrStats, CREATE,
 		      NBLOCKS(sizeof(fsobj)));
 
-    ATOMIC(
-	code = vol->LogSymlink(Mtime, vuid, &fid, name,
-			       contents, &target_fso->fid, Mode, Tid);
-
-	   if (code == 0) {
+    Recov_BeginTrans();
+    code = vol->LogSymlink(Mtime, vuid, &fid, name,
+			   contents, &target_fso->fid, Mode, Tid);
+    
+    if (code == 0) {
 	    /* This MUST update second-class state! */
 	    LocalSymlink(Mtime, target_fso, name, contents, vuid, Mode);
 
@@ -1780,7 +1780,7 @@ int fsobj::DisconnectedSymlink(Date_t Mtime, vuid_t vuid, fsobj **t_fso_addr,
 	    target_fso->CleanStat.Length = target_fso->stat.Length;
 	    target_fso->CleanStat.Date = target_fso->stat.Date;
 	   }
-    , DMFP)
+    Recov_EndTrans(DMFP);
 
 Exit:
     if (code == 0) {
@@ -1789,9 +1789,9 @@ Exit:
     else {
 	if (target_fso != 0) {
 	    FSO_ASSERT(target_fso, !HAVESTATUS(target_fso));
-	    ATOMIC(
-		target_fso->Kill();
-	    , DMFP);
+	    Recov_BeginTrans();
+	    target_fso->Kill();
+	    Recov_EndTrans(DMFP);
 	    FSDB->Put(&target_fso);
 	}
     }
@@ -1884,10 +1884,10 @@ int fsobj::SetVV(ViceVersionVector *newvv, vuid_t vuid) {
 	    }
 
 	    /* Do op locally. */
-	    ATOMIC(
-		RVMLIB_REC_OBJECT(stat);
-		stat.VV = *newvv;
-	    , CMFP)
+	    Recov_BeginTrans();
+	    RVMLIB_REC_OBJECT(stat);
+	    stat.VV = *newvv;
+	    Recov_EndTrans(CMFP);
 
 RepExit:
 	    PutMgrp(&m);
@@ -1927,10 +1927,10 @@ RepExit:
 	    if (code != 0) goto NonRepExit;
 
 	    /* Do op locally. */
-	    ATOMIC(
-		RVMLIB_REC_OBJECT(stat);
-		stat.VV = *newvv;
-	    , CMFP)
+	    Recov_BeginTrans();
+	    RVMLIB_REC_OBJECT(stat);
+	    stat.VV = *newvv;
+	    Recov_EndTrans(CMFP);
 
 NonRepExit:
 	    PutConn(&c);

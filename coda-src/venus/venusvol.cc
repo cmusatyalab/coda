@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/venusvol.cc,v 4.8 1998/04/14 21:03:09 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/venusvol.cc,v 4.9 1998/06/07 20:15:08 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -179,17 +179,17 @@ extern "C" {
 
 int MLEs = UNSET_MLE;
 
-PRIVATE	void DeriveVSGInfo(VolumeInfo *);   /* HACK!  Until server returns VSGAddr for ROVOL. */
+static void DeriveVSGInfo(VolumeInfo *);   /* HACK!  Until server returns VSGAddr for ROVOL. */
 
 
 /* local-repair modification */
 void VolInit() {
     /* Allocate the database if requested. */
     if (InitMetaData) {					/* <==> VDB == 0 */
-	TRANSACTION(
-	    RVMLIB_REC_OBJECT(VDB);
-	    VDB = new vdb;
-	)
+	Recov_BeginTrans();
+	RVMLIB_REC_OBJECT(VDB);
+	VDB = new vdb;
+	Recov_EndTrans(0);
 
 	/* Create the local fake volume */
 	VolumeInfo LocalVol;
@@ -199,10 +199,10 @@ void VolInit() {
 	ASSERT(VDB->Create(&LocalVol, "Local"));
 	
 	/* allocate database for VCB usage. */
-	TRANSACTION(
-	    RVMLIB_REC_OBJECT(VCBDB);
-	    VCBDB = new vcbdb;
-	)
+	Recov_BeginTrans();
+	RVMLIB_REC_OBJECT(VCBDB);
+	VCBDB = new vcbdb;
+	Recov_EndTrans(0);
     }
 
     /* Initialize transient members. */
@@ -315,10 +315,10 @@ CheckRootVolume:
     /* Record name in RVM. */
     if (rvg->recov_RootVolName[0] == '\0' ||
 	 !STRNEQ(RootVolName, rvg->recov_RootVolName, V_MAXVOLNAMELEN)) {
-	ATOMIC(
-	    RVMLIB_SET_RANGE(rvg->recov_RootVolName, V_MAXVOLNAMELEN);
+	Recov_BeginTrans();
+	    rvmlib_set_range(rvg->recov_RootVolName, V_MAXVOLNAMELEN);
 	    strncpy(rvg->recov_RootVolName, RootVolName, V_MAXVOLNAMELEN);
-	, MAXFP)
+	Recov_EndTrans(MAXFP);
     }
 
     /* Retrieve the volume. */
@@ -337,7 +337,7 @@ CheckRootVolume:
 
 
 /* We need to hardwire a VSGDB until GetVolumeInfo returns VSGAddr for ROVOLs! -JJK */
-PRIVATE void DeriveVSGInfo(VolumeInfo *volinfo) {
+static void DeriveVSGInfo(VolumeInfo *volinfo) {
     int i, j, k;
     struct vsge {
 	unsigned long vsgid;
@@ -427,7 +427,7 @@ PRIVATE void DeriveVSGInfo(VolumeInfo *volinfo) {
 void *vdb::operator new(size_t len) {
     vdb *v = 0;
 
-    v = (vdb *)RVMLIB_REC_MALLOC((int)len);
+    v = (vdb *)rvmlib_rec_malloc((int)len);
     assert(v);
     return(v);
 }
@@ -482,19 +482,19 @@ volent *vdb::Create(VolumeInfo *volinfo, char *volname) {
 /*	{ v->print(logFile); Choke("vdb::Create: key exists"); }*/
 	eprint("reinstalling volume %s (%s)", v->name, volname);
 
-	TRANSACTION(
-	    RVMLIB_SET_RANGE(v->name, V_MAXVOLNAMELEN);
-	    strcpy(v->name, volname);
-	    /* Other fields? -JJK */
-	)
+	Recov_BeginTrans();
+	rvmlib_set_range(v->name, V_MAXVOLNAMELEN);
+	strcpy(v->name, volname);
+	/* Other fields? -JJK */
+	Recov_EndTrans(0);
 
 	return(v);
     }
 
     /* Fashion a new object. */
-    ATOMIC(
+    Recov_BeginTrans();
 	v = new volent(volinfo, volname);
-    , MAXFP)
+    Recov_EndTrans(MAXFP);
 
     if (v == 0)
 	LOG(0, ("vdb::Create: (%x, %s, %d) failed\n", volinfo->Vid, volname, 0/*AllocPriority*/));
@@ -594,10 +594,10 @@ int vdb::Get(volent **vpp, char *volname) {
 	    char fakename[V_MAXVOLNAMELEN];
 	    sprintf(fakename, "%u", v->vid);
 	    ASSERT(Find(fakename) == 0);
-	    ATOMIC(
-		RVMLIB_SET_RANGE(v->name, V_MAXVOLNAMELEN);
+	    Recov_BeginTrans();
+		rvmlib_set_range(v->name, V_MAXVOLNAMELEN);
 		strcpy(v->name, fakename);
-	    , MAXFP)
+	    Recov_EndTrans(MAXFP);
 
 	    /* Should we flush the old volent? */
 
@@ -754,7 +754,7 @@ void *volent::operator new(size_t len) {
     if (VDB->freelist.count() > 0)
 	v = strbase(volent, VDB->freelist.get(), handle);
     else 
-        v = (volent *)RVMLIB_REC_MALLOC((int)len);
+        v = (volent *)rvmlib_rec_malloc((int)len);
     assert(v);
     return(v);
 }
@@ -952,7 +952,7 @@ void volent::operator delete(void *deadobj, size_t len) {
     if (VDB->freelist.count() < VOLENTMaxFreeEntries)
 	VDB->freelist.append(&v->handle);
     else
-	RVMLIB_REC_FREE(deadobj);
+	rvmlib_rec_free(deadobj);
 }
 
 /*MUST NOT be called from within transaction. */
@@ -962,14 +962,14 @@ void volent::Recover() {
     /* of our queue). */
     if (!CleanShutDown &&
 	 (FileFids.Count != 0 || DirFids.Count != 0 || SymlinkFids.Count != 0)) {
-	ATOMIC(
+	Recov_BeginTrans();
 	    RVMLIB_REC_OBJECT(FileFids);
 	    FileFids.Count = 0;
 	    RVMLIB_REC_OBJECT(DirFids);
 	    DirFids.Count = 0;
 	    RVMLIB_REC_OBJECT(SymlinkFids);
 	    SymlinkFids.Count = 0;
-	, MAXFP)
+	Recov_EndTrans(MAXFP);
     }
 }
 
@@ -1309,35 +1309,35 @@ void volent::GetVolInfoForAdvice(int *unique_references, int *unique_unreference
 
 
 void volent::SetDisconnectionTime() {
-    TRANSACTION(
+    Recov_BeginTrans();
         RVMLIB_REC_OBJECT(DisconnectionTime);
         DisconnectionTime = Vtime();
-    )
+    Recov_EndTrans(0);
 }
 
 
 void volent::UnsetDisconnectionTime() {
-    TRANSACTION(
+    Recov_BeginTrans();
         RVMLIB_REC_OBJECT(DisconnectionTime);
         DisconnectionTime = 0;
-    )
+    Recov_EndTrans(0);
 }
 
 void volent::SetDiscoRefCounter() {
-    TRANSACTION(
+    Recov_BeginTrans();
         RVMLIB_REC_OBJECT(DiscoRefCounter);
         DiscoRefCounter = FSDB->RefCounter;
-    )
+    Recov_EndTrans(0);
 
   LOG(0, ("DiscoRef= %d\n", DiscoRefCounter));
 }
 
 
 void volent::UnsetDiscoRefCounter() {
-    TRANSACTION(
+    Recov_BeginTrans();
         RVMLIB_REC_OBJECT(DiscoRefCounter);
         DiscoRefCounter = 0;
-    )
+    Recov_EndTrans(0);
   LOG(0, ("DiscoRef= %d\n", DiscoRefCounter));
 }
 
@@ -1656,7 +1656,7 @@ void volent::TakeTransition() {
     }
 
     /* Bound RVM persistence out of paranoia. */
-    RecovSetBound(DMFP);
+    Recov_SetBound(DMFP);
 }
 
 
@@ -1770,7 +1770,7 @@ volent::WriteDisconnect(unsigned age, unsigned time) {
     int code = 0;
 
     if (type == REPVOL) {
-	ATOMIC(
+	Recov_BeginTrans();
 	    RVMLIB_REC_OBJECT(*this);
 	    flags.logv = 1;
 	    if (age != AgeLimit || time != ReintLimit ||
@@ -1785,7 +1785,7 @@ volent::WriteDisconnect(unsigned age, unsigned time) {
 		   else 
 		       ReintLimit = time*1000;
 	    }
-        , MAXFP)
+        Recov_EndTrans(MAXFP);
 	flags.transition_pending = 1;
     } else
 	code = EINVAL;
@@ -1798,12 +1798,12 @@ volent::WriteReconnect() {
     int code = 0;
 
     if (type == REPVOL) {
-	ATOMIC(
+	Recov_BeginTrans();
 	       RVMLIB_REC_OBJECT(*this);
 	       flags.logv = 0;
 	       AgeLimit = V_UNSETAGE;
 	       ReintLimit = V_UNSETREINTLIMIT;
-	, MAXFP)
+	Recov_EndTrans(MAXFP);
 	flags.transition_pending = 1;
     } else
 	code = EINVAL;
@@ -2038,12 +2038,12 @@ int volent::AllocFid(ViceDataType Type, ViceFid *target_fid,
 	    target_fid->Unique = Fids->Unique;
 	    *AllocHost = Fids->AllocHost;
 
-	    ATOMIC(
+	    Recov_BeginTrans();
 		   RVMLIB_REC_OBJECT(*Fids);
 		   Fids->Vnode += Fids->Stride;
 		   Fids->Unique++;
 		   Fids->Count--;
-	    , MAXFP)
+	    Recov_EndTrans(MAXFP);
 
 	    LOG(100, ("volent::AllocFid: target_fid = (%x.%x.%x)\n",
 		      target_fid->Volume, target_fid->Vnode, target_fid->Unique));
@@ -2120,7 +2120,7 @@ int volent::AllocFid(ViceDataType Type, ViceFid *target_fid,
 
 		if (NewFids.Count <= 0)
 		    { code = EINVAL; goto Exit; }
-		ATOMIC(
+		Recov_BeginTrans();
 		    FidRange *Fids = 0;
 		    switch(Type) {
 			case File:
@@ -2156,7 +2156,7 @@ int volent::AllocFid(ViceDataType Type, ViceFid *target_fid,
 		    Fids->Vnode += Fids->Stride;
 		    Fids->Unique++;
 		    Fids->Count--;
-		, MAXFP)
+		Recov_EndTrans(MAXFP);
 	    }
 
 Exit:
@@ -2694,7 +2694,7 @@ volent *vol_iterator::operator()() {
 void *rwsent::operator new(size_t len) {
     rwsent *rws = 0;
 
-    rws = (rwsent *)RVMLIB_REC_MALLOC((int)sizeof(rwsent));
+    rws = (rwsent *)rvmlib_rec_malloc((int)sizeof(rwsent));
     assert(rws);
     return(rws);
 }
@@ -2713,17 +2713,17 @@ rwsent::~rwsent(){ /* nothing to do */ }
 
 /* MUST be called from within transaction! */
 void rwsent::operator delete(void *deadobj, size_t len) {
-    RVMLIB_REC_FREE(deadobj);
+    rvmlib_rec_free(deadobj);
 }
 
 
 /* must not be called from within a transaction */
 void volent::RwStatUp()
 {
-    ATOMIC(
+    Recov_BeginTrans();
 	   RVMLIB_REC_OBJECT(current_reco_time);
 	   current_reco_time = Vtime();
-    , MAXFP)
+    Recov_EndTrans(MAXFP);
 }
 
 /* must not be called from within a transaction */
@@ -2736,14 +2736,14 @@ void volent::RwStatDown()
     while (fso = next()) {
 	if (fso->flags.discread) {
 	    count++;
-	    ATOMIC(
+	    Recov_BeginTrans();
 		   RVMLIB_REC_OBJECT(fso->flags);
 		   fso->flags.discread = 0;
-	    , MAXFP)
+	    Recov_EndTrans(MAXFP);
 	}
     }
 
-    ATOMIC(
+    Recov_BeginTrans();
 	   /* needs to be changed into Vmon Reporting Later */
 	   rwsent *rws = new rwsent(current_rws_cnt, current_disc_read_cnt + count, 
 				    current_reco_time - current_disc_time);
@@ -2754,7 +2754,7 @@ void volent::RwStatDown()
 	   current_rws_cnt = 0;
 	   RVMLIB_REC_OBJECT(current_disc_read_cnt);
 	   current_disc_read_cnt = 0;
-    , MAXFP)
+    Recov_EndTrans(MAXFP);
 }
 
 /* must not be called from within a transaction */

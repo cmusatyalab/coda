@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/venusrecov.h,v 4.1 97/01/08 21:51:39 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/venusrecov.h,v 4.2 1997/12/16 16:08:35 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -51,13 +51,12 @@ extern "C" {
 
 #include <stdio.h>
 #include <rpc2.h>
+#include <rvmlib.h>
 
 #ifdef __cplusplus
 }
 #endif __cplusplus
 
-/* from rvm (include-special) */
-#include <rvmlib.h>
 
 /* from venus */
 #include "venus.private.h"
@@ -170,8 +169,10 @@ extern int MAXTS;
 
 /*  *****  Functions  *****  */
 
+extern void Recov_BeginTrans();
+extern void Recov_EndTrans(int);
+extern void Recov_SetBound(int);
 extern void RecovInit();
-extern void RecovSetBound(int);
 extern void RecovFlush(int =0);		/* XXX - parameter is now redundant! */
 extern void RecovTruncate(int =0);	/* XXX - parameter is now redundant! */
 extern void RecovTerminate();
@@ -185,27 +186,5 @@ extern void RecovDaemon();
     ((char *)(rec_ptr) >= rvg->recov_HeapAddr &&\
      (char *)(rec_ptr) < rvg->recov_HeapAddr + rvg->recov_HeapLength)
 
-#define TRANSACTION(body)\
-    ATOMIC(body, 0)
-
-#define	ATOMIC(body, persistence_bound)\
-{\
-    int pre_vm_usage; int post_vm_usage;\
-    int foo, *foop;\
-    if (LogLevel >= 1) pre_vm_usage = VMUsage();\
-    START_TIMING();\
-\
-    RVMLIB_BEGIN_TRANSACTION(no_restore)\
-	{ body }\
-    foop = &foo; /* gross hack for g++ */ \
-    RVMLIB_END_TRANSACTION(no_flush, foop)\
-\
-    END_TIMING();\
-    if (LogLevel >= 1) post_vm_usage = VMUsage();\
-    LOG(/*1000*/1, ("Transaction: elapsed = %3.1f, delta_vm = %x\n", elapsed, post_vm_usage - pre_vm_usage));\
-    TransCount++;\
-    TransElapsed += elapsed;\
-    RecovSetBound(persistence_bound);\
-}
 
 #endif	_VENUS_RECOV_H_

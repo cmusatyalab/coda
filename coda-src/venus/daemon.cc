@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/daemon.cc,v 4.4 1998/01/10 18:38:39 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/daemon.cc,v 4.5 1998/03/06 20:20:40 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -81,7 +81,7 @@ extern "C" {
 #include "venus.private.h"
 
 
-PRIVATE struct TM_Elem *DaemonList;
+static struct TM_Elem *DaemonList;
 
 void InitOneADay();
 

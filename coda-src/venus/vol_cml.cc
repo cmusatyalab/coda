@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/vol_cml.cc,v 4.13 98/06/19 16:31:56 jaharkes Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/vol_cml.cc,v 4.14 1998/06/19 17:58:12 jaharkes Exp $";
 #endif /*_BLURB_*/
 
 
@@ -54,21 +54,21 @@ extern "C" {
 #include <stdarg.h>
 #include <struct.h>
 
-#ifdef __MACH__
-#include <sysent.h>
-#include <libc.h>
-#else	/* __linux__ || __BSD44__ */
 #include <unistd.h>
 #include <stdlib.h>
-#endif
+
 #include <netinet/in.h>
 #ifdef __BSD44__
 #include <machine/endian.h>
 #endif
 
+#include <lock.h>
 #include <rpc2.h>
 #include <se.h>
 #include <multi.h>
+
+/* from dir */
+#include <codadir.h>
 
 extern int get_len(ARG **, PARM **, MODE);
 extern int struct_len(ARG **, PARM **);
@@ -80,10 +80,6 @@ extern void pack_struct(ARG *, PARM **, PARM **);
 #ifdef __cplusplus
 }
 #endif __cplusplus
-
-
-/* from dir */
-#include <coda_dir.h>
 
 /* from util */
 #include <dlist.h>
@@ -100,8 +96,8 @@ extern void pack_struct(ARG *, PARM **, PARM **);
 #include "vproc.h"
 
 
-PRIVATE int RLE_Size(ARG * ...);
-PRIVATE void RLE_Pack(PARM **, ARG * ...);
+static int RLE_Size(ARG * ...);
+static void RLE_Pack(PARM **, ARG * ...);
 
 int LogOpts = 1;	/* perform log optimizations? */
 
@@ -225,14 +221,14 @@ void ClientModifyLog::LockObjs(int tid) {
     for (i = 0; i < nFids; i++) 
 	for (int j = i+1; j < nFids; j++) 
 	    if (Fid_Compare(&backFetchList[i], &backFetchList[j]) || 
-		FID_EQ(backFetchList[i], NullFid))
+		FID_EQ(&backFetchList[i], &NullFid))
 		break;  /* no match or null */
 	    else /* they match -- zero out duplicate */
 		backFetchList[j] = NullFid;
 
     /* find and lock objects corresponding to non-null fids */
     for (i = 0; i < nFids; i++) 
-	if (!FID_EQ(backFetchList[i], NullFid)) {
+	if (!FID_EQ(&backFetchList[i], &NullFid)) {
 	    LOG(100, ("ClientModifyLog::LockObjs: Locking %x.%x.%x\n",
 		    backFetchList[i].Volume, backFetchList[i].Vnode, backFetchList[i].Unique));
 
@@ -347,27 +343,27 @@ void cmlent::UnLockObj() {
  * server (i.e., outcome is known), it is safe to unfreeze the records.  
  */
 void ClientModifyLog::CancelPending() {
-    ATOMIC(
-	int cancellation;
-	do {
+    Recov_BeginTrans();
+    int cancellation;
+    do {
 	    cancellation = 0;
 	    cml_iterator next(*this);
 	    cmlent *m;
 
 	    while (m = next()) {
-		if (m->flags.frozen) {
-		    RVMLIB_REC_OBJECT(m->flags);
-		    m->flags.frozen = 0;
-		}
-		if (m->flags.cancellation_pending) {
-		    ASSERT(m->cancel());
-		    cancellation = 1;
-		    break;
-		}
+		    if (m->flags.frozen) {
+			    RVMLIB_REC_OBJECT(m->flags);
+			    m->flags.frozen = 0;
+		    }
+		    if (m->flags.cancellation_pending) {
+			    ASSERT(m->cancel());
+			    cancellation = 1;
+			    break;
+		    }
 	    }
 
-	} while (cancellation);
-    , MAXFP)
+    } while (cancellation);
+    Recov_EndTrans(MAXFP);
 }
 
 
@@ -382,10 +378,10 @@ void ClientModifyLog::ClearPending() {
 
     while (m = next())
 	if (m->flags.cancellation_pending) {
-	    ATOMIC(
+	    Recov_BeginTrans();
 		   RVMLIB_REC_OBJECT(m->flags);
 		   m->flags.cancellation_pending = 0;
-	    , MAXFP)
+	    Recov_EndTrans(MAXFP);
 	}
 }
 
@@ -436,10 +432,10 @@ void ClientModifyLog::GetReintegrateable(int tid, int *nrecs) {
 	 * is known; this may span multiple reintegration attempts
 	 * and different transactions.
 	 */
-	ATOMIC(
+	Recov_BeginTrans();
 	       RVMLIB_REC_OBJECT(m->flags);
 	       m->flags.frozen = 1;
-	, MAXFP)
+	Recov_EndTrans(MAXFP);
 
 	/* 
 	 * don't use the settid call because it is transactional.
@@ -559,14 +555,14 @@ void ClientModifyLog::HandleFailedMLE() {
 
 	    /* localize or abort */
 	    if ((m->LocalFakeify() != 0) && (!m->IsToBeRepaired())) {
-		ATOMIC(			       
-		       m->abort();
-		, MAXFP)
+		    Recov_BeginTrans();			       
+		    m->abort();
+		    Recov_EndTrans(MAXFP);
 	    } else {
-		ATOMIC(
-		       RVMLIB_REC_OBJECT(vol->flags);
-		       vol->flags.has_local_subtree = 1;
-		, MAXFP)
+		    Recov_BeginTrans();
+		    RVMLIB_REC_OBJECT(vol->flags);
+		    vol->flags.has_local_subtree = 1;
+		Recov_EndTrans(MAXFP);
 
 		/* tell the user where the localized object is */
 		LRDB->CheckLocalSubtree();
@@ -612,7 +608,7 @@ void *cmlent::operator new(size_t len) {
     if (VDB->mlefreelist.count() > 0)
 	c = strbase(cmlent, VDB->mlefreelist.get(), handle);
     else
-	c = (cmlent *)RVMLIB_REC_MALLOC((int) len);
+	c = (cmlent *)rvmlib_rec_malloc((int) len);
     assert(c);
 
     /* Do bookkeeping */
@@ -911,7 +907,7 @@ void cmlent::operator delete(void *deadobj, size_t len) {
     if (VDB->mlefreelist.count() < MLENTMaxFreeEntries)
 	VDB->mlefreelist.append((rec_dlink *)&c->handle);
     else
-	RVMLIB_REC_FREE(deadobj);
+	rvmlib_rec_free(deadobj);
 
     RVMLIB_REC_OBJECT(VDB->AllocatedMLEs);
     VDB->AllocatedMLEs--;
@@ -1438,7 +1434,7 @@ int volent::LogRename(time_t Mtime, vuid_t vuid, ViceFid *SPFid,
 		       char *OldName, ViceFid *TPFid, char *NewName,
 		       ViceFid *SFid, ViceFid *TFid, int LinkCount, int tid) {
     /* Record "target remove" as a separate log entry. */
-    if (!FID_EQ(*TFid, NullFid)) {
+    if (!FID_EQ(TFid, &NullFid)) {
 	int code;
 	if (ISDIR(*SFid))
 	    code = LogRmdir(Mtime, vuid, TPFid, NewName, TFid, tid);
@@ -1506,12 +1502,12 @@ int volent::LogRmdir(time_t Mtime, vuid_t vuid, ViceFid *PFid,
 			    break;
 
 			case ViceRename_OP:
-			    if (!FID_EQ(*CFid, m->u.u_rename.SFid))
+			    if (!FID_EQ(CFid, &m->u.u_rename.SFid))
 				DependentChildren = 1;
 			    break;
 
 			case ViceMakeDir_OP:
-			    if (FID_EQ(*CFid, m->u.u_mkdir.PFid))
+			    if (FID_EQ(CFid, &m->u.u_mkdir.PFid))
 				DependentChildren = 1;
 			    break;
 		    }
@@ -1623,7 +1619,7 @@ void volent::CancelStores(ViceFid *Fid) {
     /* this routine should be called at startup only */
     ASSERT(!IsReintegrating());
 
-    ATOMIC(
+    Recov_BeginTrans();
 	int cancellation;
 	do {
 	    cancellation = 0;
@@ -1641,7 +1637,7 @@ void volent::CancelStores(ViceFid *Fid) {
 		}
 	    }
 	} while (cancellation);
-    , MAXFP)
+    Recov_EndTrans(MAXFP);
 
     /* we may have cancelled the last record. */
     if (CML.count() == 0)
@@ -1742,23 +1738,23 @@ cmlent *ClientModifyLog::UtimesWriter(ViceFid *Fid) {
 		return(m);
 
 	    case ViceRemove_OP:
-		if (FID_EQ(*Fid, m->u.u_remove.PFid))
+		if (FID_EQ(Fid, &m->u.u_remove.PFid))
 		    return(m);
 		break;
 
 	    case ViceLink_OP:
-		if (FID_EQ(*Fid, m->u.u_link.PFid))
+		if (FID_EQ(Fid, &m->u.u_link.PFid))
 		    return(m);
 		break;
 
 	    case ViceRename_OP:
-		if (FID_EQ(*Fid, m->u.u_rename.SPFid) ||
-		    FID_EQ(*Fid, m->u.u_rename.TPFid))
+		if (FID_EQ(Fid, &m->u.u_rename.SPFid) ||
+		    FID_EQ(Fid, &m->u.u_rename.TPFid))
 		    return(m);
 		break;
 
 	    case ViceRemoveDir_OP:
-		if (FID_EQ(*Fid, m->u.u_rmdir.PFid))
+		if (FID_EQ(Fid, &m->u.u_rmdir.PFid))
 		    return(m);
 		break;
 
@@ -1923,7 +1919,7 @@ int cmlent::cancel() {
 		UtimesMtime = time;
 	    }
 
-	    if (!FID_EQ(u.u_rename.SPFid, u.u_rename.TPFid)) {
+	    if (!FID_EQ(&u.u_rename.SPFid, &u.u_rename.TPFid)) {
 		cmlent *m = ((ClientModifyLog *)log)->UtimesWriter(&u.u_rename.TPFid);
 		ASSERT(m != 0);
 		if (m != this) {
@@ -2018,11 +2014,11 @@ int cmlent::cancelstore() {
 	fsobj *f = (fsobj *)b->bindee;
 
 	if (WRITING(f)) {
-	    ATOMIC(
+	    Recov_BeginTrans();
 		/* shouldn't be reintegrating, so cancel must go through */   
 		ASSERT(cancel());
 		vol->RestoreObj(&f->fid);
-	    , MAXFP)
+	    Recov_EndTrans(MAXFP);
 	    cancelled = 1;
 	}
     }
@@ -2038,7 +2034,6 @@ int ClientModifyLog::IncReallocFids(int tid) {
     volent *vol = strbase(volent, this, CML);
     LOG(1, ("ClientModifyLog::IncReallocFids: (%s) and tid = %d\n", 
 	    vol->name, tid));
-    int pre_vm_usage = VMUsage();
 
     int code = 0;
     cml_iterator next(*this, CommitOrder);
@@ -2048,15 +2043,14 @@ int ClientModifyLog::IncReallocFids(int tid) {
 	  code = m->realloc();
 	if (code != 0) break;
     }
-    int post_vm_usage = VMUsage();
-    LOG(0, ("ClientModifyLog::IncReallocFids: (%s), delta_vm = %x\n",
-	    vol->name, post_vm_usage - pre_vm_usage));
+    LOG(0, ("ClientModifyLog::IncReallocFids: (%s)\n", vol->name));
     return(code);
 }
 
 
 /* MUST be called from within transaction! */
-void ClientModifyLog::TranslateFid(ViceFid *OldFid, ViceFid *NewFid) {
+void ClientModifyLog::TranslateFid(ViceFid *OldFid, ViceFid *NewFid) 
+{
     cml_iterator next(*this, CommitOrder, OldFid);
     cmlent *m;
     while (m = next())
@@ -2069,8 +2063,6 @@ void ClientModifyLog::IncThread(int tid) {
     volent *vol = strbase(volent, this, CML);
     LOG(1, ("ClientModifyLog::IncThread: (%s) tid = %d\n", 
 	    vol->name, tid));
-
-    int pre_vm_usage = VMUsage();
 
     /* Initialize "threading" state in dirty fsobj's. */
     {
@@ -2105,9 +2097,7 @@ void ClientModifyLog::IncThread(int tid) {
     if (LogLevel >= 10)
 	print(logFile);
 
-    int post_vm_usage = VMUsage();
-    LOG(0, ("ClientModifyLog::IncThread: (%s), delta_vm = %x\n",
-	     vol->name, post_vm_usage - pre_vm_usage));
+    LOG(0, ("ClientModifyLog::IncThread: (%s)\n", vol->name));
 }
 
 
@@ -2117,8 +2107,6 @@ void ClientModifyLog::IncThread(int tid) {
 void ClientModifyLog::IncPack(char **bufp, int *bufsizep, int tid) {
     volent *vol = strbase(volent, this, CML);
     LOG(1, ("ClientModifyLog::IncPack: (%s) and tid = %d\n", vol->name, tid));
-
-    int pre_vm_usage = VMUsage();
 
     /* Compute size of buffer needed. */
     {
@@ -2145,9 +2133,7 @@ void ClientModifyLog::IncPack(char **bufp, int *bufsizep, int tid) {
 	    m->pack(&_ptr);
     }
 
-    int post_vm_usage = VMUsage();
-    LOG(0, ("ClientModifyLog::IncPack: (%s), delta_vm = %x\n",
-	     vol->name, post_vm_usage - pre_vm_usage));
+    LOG(0, ("ClientModifyLog::IncPack: (%s)\n", vol->name));
 }
 
 
@@ -2160,8 +2146,6 @@ int ClientModifyLog::COP1(char *buf, int bufsize, ViceVersionVector *UpdateSet) 
     int code = 0, i = 0;
     mgrpent *m = 0;
     
-    int pre_vm_usage = VMUsage();
-
     /* Set up the SE descriptor. */
     SE_Descriptor sed;
     sed.Tag = SMARTFTP;
@@ -2255,9 +2239,9 @@ int ClientModifyLog::COP1(char *buf, int bufsize, ViceVersionVector *UpdateSet) 
 		    StaleDirs[d].Volume, StaleDirs[d].Vnode, StaleDirs[d].Unique));
 	    fsobj *f = FSDB->Find(&StaleDirs[d]);
 	    ASSERT(f);
-	    ATOMIC(
+	    Recov_BeginTrans();
 		   f->Kill();
-	    , DMFP)
+	    Recov_EndTrans(DMFP);
 	}
 
 	/* Fashion the update set. */
@@ -2368,18 +2352,17 @@ int ClientModifyLog::COP1(char *buf, int bufsize, ViceVersionVector *UpdateSet) 
 			    StaleDirs[d].Volume, StaleDirs[d].Vnode, StaleDirs[d].Unique));
 		    fsobj *f = FSDB->Find(&StaleDirs[d]);
 		    ASSERT(f);
-		    ATOMIC(
+		    Recov_BeginTrans();
 			f->Kill();
-		    , DMFP)
+		    Recov_EndTrans(DMFP);
 		}
 	    }
     }
 
 Exit:
     PutMgrp(&m);
-    int post_vm_usage = VMUsage();
-    LOG(0, ("ClientModifyLog::COP1: (%s), %d bytes, returns %d, index = %d, delta_vm = %x\n",
-	     vol->name, bufsize, code, Index, post_vm_usage - pre_vm_usage));
+    LOG(0, ("ClientModifyLog::COP1: (%s), %d bytes, returns %d, index = %d\n",
+	     vol->name, bufsize, code, Index));
     return(code);
 }
 
@@ -2391,10 +2374,9 @@ void ClientModifyLog::IncCommit(ViceVersionVector *UpdateSet, int Tid) {
     LOG(1, ("ClientModifyLog::IncCommit: (%s) tid = %d\n", 
 	    vol->name, Tid));
 
-    int pre_vm_usage = VMUsage();
     ASSERT(count() > 0);
 
-    ATOMIC(
+    Recov_BeginTrans();
 	rec_dlist_iterator next(list);
 	rec_dlink *d = next();			/* get first element */
 
@@ -2412,20 +2394,20 @@ void ClientModifyLog::IncCommit(ViceVersionVector *UpdateSet, int Tid) {
 		d = next();
 	    }
 	}
-    , DMFP)
+    Recov_EndTrans(DMFP);
 
     /* flush COP2 for this volume */
     vol->FlushCOP2();
     vol->flags.resolve_me = 0;
-    int post_vm_usage = VMUsage();
-    LOG(0, ("ClientModifyLog::IncCommit: (%s), delta_vm = %x\n",
-	    vol->name, post_vm_usage - pre_vm_usage));
+    LOG(0, ("ClientModifyLog::IncCommit: (%s)\n", vol->name));
 }
 
 
-/* Allocate a real fid for a locally created one, and translate all references. */
+/* Allocate a real fid for a locally created one, and translate all 
+   references. */
 /* Must NOT be called from within transaction! */
-int cmlent::realloc() {
+int cmlent::realloc() 
+{
     volent *vol = strbase(volent, log, CML);
 
     int code = 0;
@@ -2462,18 +2444,17 @@ int cmlent::realloc() {
 
     code = vol->AllocFid(type, &NewFid, &AllocHost, (vuid_t) uid, 1);
     if (code == 0) {
-	ATOMIC(
+	    Recov_BeginTrans();
 	    vol->FidsRealloced++;
 
 	    /* Translate fids in log records. */
 	    log->TranslateFid(&OldFid, &NewFid);
 
-	    /* Translates fids in the FSDB. */
+	    /* Translate fid in the FSDB. */
 	    if ((code = FSDB->TranslateFid(&OldFid, &NewFid)) != 0)
-		Choke("cmlent::realloc: couldn't translate (%x.%x.%x) -> (%x.%x.%x) (%d)",
-		    OldFid.Volume, OldFid.Vnode, OldFid.Unique,
-		    NewFid.Volume, NewFid.Vnode, NewFid.Unique, code);
-	    , MAXFP)
+		    Choke("cmlent::realloc: couldn't translate %s -> %s (%d)",
+		    FID_(&OldFid), FID_2(&NewFid), code);
+	    Recov_EndTrans(MAXFP);
     }
 
 Exit:
@@ -2487,73 +2468,73 @@ void cmlent::translatefid(ViceFid *OldFid, ViceFid *NewFid) {
     RVMLIB_REC_OBJECT(u);
     switch(opcode) {
 	case ViceNewStore_OP:
-	    if (FID_EQ(u.u_store.Fid, *OldFid))
+	    if (FID_EQ(&u.u_store.Fid, OldFid))
 	    { u.u_store.Fid = *NewFid; found = 1; }
 	    break;
 
 	case ViceUtimes_OP:
-	    if (FID_EQ(u.u_utimes.Fid, *OldFid))
+	    if (FID_EQ(&u.u_utimes.Fid, OldFid))
 	    { u.u_utimes.Fid = *NewFid; found = 1; }
 	    break;
 
 	case ViceChown_OP:
-	    if (FID_EQ(u.u_chown.Fid, *OldFid))
+	    if (FID_EQ(&u.u_chown.Fid, OldFid))
 	    { u.u_chown.Fid = *NewFid; found = 1; }
 	    break;
 
 	case ViceChmod_OP:
-	    if (FID_EQ(u.u_chmod.Fid, *OldFid))
+	    if (FID_EQ(&u.u_chmod.Fid, OldFid))
 	    { u.u_chmod.Fid = *NewFid; found = 1; }
 	    break;
 
 	case ViceCreate_OP:
-	    if (FID_EQ(u.u_create.PFid, *OldFid))
+	    if (FID_EQ(&u.u_create.PFid, OldFid))
 	    { u.u_create.PFid = *NewFid; found = 1; }
-	    if (FID_EQ(u.u_create.CFid, *OldFid))
+	    if (FID_EQ(&u.u_create.CFid, OldFid))
 	    { u.u_create.CFid = *NewFid; found = 1; }
 	    break;
 
 	case ViceRemove_OP:
-	    if (FID_EQ(u.u_remove.PFid, *OldFid))
+	    if (FID_EQ(&u.u_remove.PFid, OldFid))
 	    { u.u_remove.PFid = *NewFid; found = 1; }
-	    if (FID_EQ(u.u_remove.CFid, *OldFid))
+	    if (FID_EQ(&u.u_remove.CFid, OldFid))
 	    { u.u_remove.CFid = *NewFid; found = 1; }
 	    break;
 
 	case ViceLink_OP:
-	    if (FID_EQ(u.u_link.PFid, *OldFid))
+	    if (FID_EQ(&u.u_link.PFid, OldFid))
 	    { u.u_link.PFid = *NewFid; found = 1; }
-	    if (FID_EQ(u.u_link.CFid, *OldFid))
+	    if (FID_EQ(&u.u_link.CFid, OldFid))
 	    { u.u_link.CFid = *NewFid; found = 1; }
 	    break;
 
 	case ViceRename_OP:
-	    if (FID_EQ(u.u_rename.SPFid, *OldFid))
+	    if (FID_EQ(&u.u_rename.SPFid, OldFid))
 	    { u.u_rename.SPFid = *NewFid; found = 1; }
-	    if (FID_EQ(u.u_rename.TPFid, *OldFid))
+	    if (FID_EQ(&u.u_rename.TPFid, OldFid))
 	    { u.u_rename.TPFid = *NewFid; found = 1; }
-	    if (FID_EQ(u.u_rename.SFid, *OldFid))
+	    if (FID_EQ(&u.u_rename.SFid, OldFid))
 	    { u.u_rename.SFid = *NewFid; found = 1; }
 	    break;
 
 	case ViceMakeDir_OP:
-	    if (FID_EQ(u.u_mkdir.PFid, *OldFid))
+	    if (FID_EQ(&u.u_mkdir.PFid, OldFid))
 	    { u.u_mkdir.PFid = *NewFid; found = 1; }
-	    if (FID_EQ(u.u_mkdir.CFid, *OldFid))
+	    if (FID_EQ(&u.u_mkdir.CFid, OldFid))
 	    { u.u_mkdir.CFid = *NewFid; found = 1; }
 	    break;
 
 	case ViceRemoveDir_OP:
-	    if (FID_EQ(u.u_rmdir.PFid, *OldFid))
+	    if (FID_EQ(&u.u_rmdir.PFid, OldFid))
 	    { u.u_rmdir.PFid = *NewFid; found = 1; }
-	    if (FID_EQ(u.u_rmdir.CFid, *OldFid))
+	    if (FID_EQ(&u.u_rmdir.CFid, OldFid))
 	    { u.u_rmdir.CFid = *NewFid; found = 1; }
 	    break;
 
 	case ViceSymLink_OP:
-	    if (FID_EQ(u.u_symlink.PFid, *OldFid))
+	    if (FID_EQ(&u.u_symlink.PFid, OldFid))
 	    { u.u_symlink.PFid = *NewFid; found = 1; }
-	    if (FID_EQ(u.u_symlink.CFid, *OldFid))
+	    if (FID_EQ(&u.u_symlink.CFid, OldFid))
 	    { u.u_symlink.CFid = *NewFid; found = 1; }
 	    break;
 
@@ -2598,8 +2579,10 @@ void cmlent::thread() {
 
 
 /* local-repair modification */
-/* Computes amount of space a record will require when packed into an RPC buffer. */
-int cmlent::size() {
+/* Computes amount of space a record will require when packed 
+   into an RPC buffer. */
+int cmlent::size() 
+{
     int len = 0;
     ViceStatus DummyStatus;
     RPC2_CountedBS DummyCBS;
@@ -2797,7 +2780,7 @@ void cmlent::pack(PARM **_ptr) {
 	    SPStatus.VV = u.u_rename.SPVV;
 	    SPStatus.Date = time;
 	    ViceStatus TPStatus;
-	    TPStatus.VV = (FID_EQ(u.u_rename.SPFid, u.u_rename.TPFid)
+	    TPStatus.VV = (FID_EQ(&u.u_rename.SPFid, &u.u_rename.TPFid)
 			   ? u.u_rename.SPVV : u.u_rename.TPVV);
 	    ViceStatus SStatus;
 	    SStatus.VV = u.u_rename.SVV;
@@ -2909,8 +2892,8 @@ void cmlent::commit(ViceVersionVector *UpdateSet) {
 	     * if the final update removed the object, don't bother adding the
 	     * COP2, but do update the version vector as in connected mode.
 	     */
-	    if (!(opcode == ViceRemove_OP && FID_EQ(u.u_remove.CFid, f->fid)) &&
-		!(opcode == ViceRemoveDir_OP && FID_EQ(u.u_rmdir.CFid, f->fid)))
+	    if (!(opcode == ViceRemove_OP && FID_EQ(&u.u_remove.CFid, &f->fid)) &&
+		!(opcode == ViceRemoveDir_OP && FID_EQ(&u.u_rmdir.CFid, &f->fid)))
 		FinalMutationForAnyObject = 1;
 
 	    RVMLIB_REC_OBJECT(f->stat.VV);
@@ -2947,12 +2930,12 @@ int cmlent::HaveReintegrationHandle() {
 void cmlent::ClearReintegrationHandle() {
     ASSERT(opcode == ViceNewStore_OP);
 
-    ATOMIC(
+    Recov_BeginTrans();
 	RVMLIB_REC_OBJECT(u);
 
         bzero((void *)u.u_store.RHandle, (int) sizeof(ViceReintHandle)*VSG_MEMBERS);
 	u.u_store.Offset = -1;
-   , MAXFP)
+   Recov_EndTrans(MAXFP);
 }
 
 
@@ -2999,11 +2982,11 @@ int cmlent::GetReintegrationHandle() {
 	if (code != 0) goto Exit;
 
 	/* unmarshall all of the handles */
-	ATOMIC(
+	Recov_BeginTrans();
 	    RVMLIB_REC_OBJECT(u);
 	    for (i = 0; i < m->nhosts; i++)
 	        u.u_store.RHandle[i] = VR_bufs[i];
-	,MAXFP)
+	Recov_EndTrans(MAXFP);
     }
 
 Exit:
@@ -3054,10 +3037,10 @@ int cmlent::ValidateReintegrationHandle() {
 	    Choke("cmlent::QueryReintegrationHandle: offset > length! (%d, %d)\n",
 		  Offset, u.u_store.Length);
 
-	ATOMIC(
+	Recov_BeginTrans();
 	    RVMLIB_REC_OBJECT(u);   
 	    u.u_store.Offset = Offset;
-	, MAXFP)
+	Recov_EndTrans(MAXFP);
     }
 
 Exit:
@@ -3189,13 +3172,13 @@ int cmlent::WriteReintegrationHandle() {
 	    Choke("cmlent::WriteReintegrateHandle: bytes mismatch (%d, %d)\n",
 		    length, bytes);
 
-	ATOMIC(
+	Recov_BeginTrans();
 	    RVMLIB_REC_OBJECT(u);
 	    if (u.u_store.Offset == -1) 
 	       u.u_store.Offset = length;
 	    else 
 	       u.u_store.Offset += length;
-	, MAXFP)
+	Recov_EndTrans(MAXFP);
     }
 
  Exit:
@@ -3344,17 +3327,18 @@ Exit:
 
 /* Compute the size required for a ReintegrationLog Entry. */
 /* Patterned after code in MRPC_MakeMulti(). */
-PRIVATE int RLE_Size(ARG *ArgTypes ...) {
+static int RLE_Size(ARG *ArgTypes ...) 
+{
     int len = 0;
 
     va_list ap;
     va_start(ap, ArgTypes);
-    /* 
-     * In GNU C, unions are not passed on the stack. Not even four byte ones.
-     * If we try to get a PARM from va_arg, GNU C will treat the four bytes on the
-     * stack as a pointer (because unions are "big"!).  So we mislead it to get 
-     * the four bytes off the stack sans dereferencing.
-     */
+    /*  In GNU C, unions are not passed on the stack. Not even four
+     * byte ones.  If we try to get a PARM from va_arg, GNU C will
+     * treat the four bytes on the stack as a pointer (because unions
+     * are "big"!).  So we mislead it to get the four bytes off the
+     * stack sans dereferencing.  */
+
     PARM *args = (PARM *) &(va_arg(ap, unsigned long));
     for	(ARG *a_types =	ArgTypes; a_types->mode	!= C_END; a_types++, args = (PARM *) &(va_arg(ap, unsigned long))) {
 	LOG(1000, ("RLE_Size: a_types = [%d %d %d %x], args = (%x %x)\n",
@@ -3382,7 +3366,7 @@ PRIVATE int RLE_Size(ARG *ArgTypes ...) {
 
 /* Pack a ReintegrationLog Entry. */
 /* Patterned after code in MRPC_MakeMulti(). */
-PRIVATE void RLE_Pack(PARM **ptr, ARG *ArgTypes ...) {
+static void RLE_Pack(PARM **ptr, ARG *ArgTypes ...) {
     va_list ap;
     va_start(ap, ArgTypes);
 
@@ -3432,10 +3416,10 @@ union hblock {
     } dbuf;
 };
 
-PRIVATE void GetPath(char *, ViceFid *, char * =0);
-PRIVATE int WriteHeader(FILE *, hblock&);
-PRIVATE int WriteData(FILE *, char *);
-PRIVATE int WriteTrailer(FILE *);
+static void GetPath(char *, ViceFid *, char * =0);
+static int WriteHeader(FILE *, hblock&);
+static int WriteData(FILE *, char *);
+static int WriteTrailer(FILE *);
 
 int PathAltered(ViceFid *cfid, char *suffix, ClientModifyLog *CML, cmlent *starter)
 {
@@ -3450,7 +3434,7 @@ int PathAltered(ViceFid *cfid, char *suffix, ClientModifyLog *CML, cmlent *start
     }
 
     while (m) {
-	if (m->opcode == ViceRemove_OP && FID_EQ(m->u.u_remove.CFid, *cfid)) {
+	if (m->opcode == ViceRemove_OP && FID_EQ(&m->u.u_remove.CFid, cfid)) {
 	    /* when the cfid is removed, prepend suffix and replace cfid with its father */
 	    if (suffix[0]) 
 	      sprintf(buf, "%s/%s", m->u.u_remove.Name, suffix);
@@ -3461,7 +3445,7 @@ int PathAltered(ViceFid *cfid, char *suffix, ClientModifyLog *CML, cmlent *start
 	    return 1;
 	}
 
-	if (m->opcode == ViceRemoveDir_OP && FID_EQ(m->u.u_rmdir.CFid, *cfid)) {
+	if (m->opcode == ViceRemoveDir_OP && FID_EQ(&m->u.u_rmdir.CFid, cfid)) {
 	    /*
 	     * when the current fid(directory) is removed, prepend suffix
 	     * replace cfid with its father.
@@ -3475,7 +3459,7 @@ int PathAltered(ViceFid *cfid, char *suffix, ClientModifyLog *CML, cmlent *start
 	    return 1;
 	}
 
-	if (m->opcode == ViceRename_OP && FID_EQ(m->u.u_rename.SFid, *cfid)) {
+	if (m->opcode == ViceRename_OP && FID_EQ(&m->u.u_rename.SFid, cfid)) {
 	    /*
 	     * when the current fid is renamed, prepend the original name to
 	     * suffix and replace cfid with the original father fid.
@@ -3639,10 +3623,10 @@ int volent::PurgeMLEs(vuid_t vuid) {
 		    lgm->print(logFile);
 		    fflush(logFile);
 		    left_over_entry = 1;
-		    ATOMIC(
+		    Recov_BeginTrans();
 			   OBJ_ASSERT(this, LRDB->local_global_map.remove(lgm) == lgm);
 			   delete lgm;
-		    , MAXFP)
+		    Recov_EndTrans(MAXFP);
 		    break;
 		}
 	    } while (left_over_entry);
@@ -3659,7 +3643,7 @@ int volent::PurgeMLEs(vuid_t vuid) {
 	    if (!d) break;
 	    m = strbase(cmlent, d, handle);
 	    d = next();
-	    ATOMIC(
+	    Recov_BeginTrans();
 		   if (m->IsToBeRepaired())
 		      /* 
 		       * this record must be associated with
@@ -3671,7 +3655,7 @@ int volent::PurgeMLEs(vuid_t vuid) {
 		      delete m;
 		   else 
 		      m->abort();
-	    , MAXFP)
+	    Recov_EndTrans(MAXFP);
 	}
 	VOL_ASSERT(this, CML.count() == 0);
     }  
@@ -3695,9 +3679,9 @@ int volent::PurgeMLEs(vuid_t vuid) {
 	    fsobj *lobj;
 	    VOL_ASSERT(this, lobj = FSDB->Find(lfid));
 	    /* kill the local object */
-	    ATOMIC(
+	    Recov_BeginTrans();
 		   lobj->Kill(0);
-	    , CMFP)
+	    Recov_EndTrans(CMFP);
 	    to_be_removed = lgm;
 	}
     }
@@ -3850,7 +3834,7 @@ void ClientModifyLog::IncAbort(int Tid) {
 
     ASSERT(count() > 0);
 
-    ATOMIC(
+    Recov_BeginTrans();
 	rec_dlist_iterator next(list, AbortOrder);
 	rec_dlink *d = next();		/* get the first (last) element */
 
@@ -3865,7 +3849,7 @@ void ClientModifyLog::IncAbort(int Tid) {
 		d = next();
 	    }
 	}
-    , DMFP)
+    Recov_EndTrans(DMFP);
 }
 
 
@@ -3878,23 +3862,32 @@ struct WriteLinksHook {
 };
 
 
-PRIVATE void WriteLinks(long hook, char *name, long vnode, long vunique) {
-    struct WriteLinksHook *wl_hook = (struct WriteLinksHook *)hook;
+static int WriteLinks(struct DirEntry *de, void * hook)
+{
+	unsigned long vnode = ntohl(de->fid.dnf_vnode);
+	unsigned long vunique = ntohl(de->fid.dnf_unique);
+	char *name = de->name;
 
-    if (wl_hook->code) return;
+	struct WriteLinksHook *wl_hook = (struct WriteLinksHook *)hook;
 
-    if (vnode == wl_hook->vnode && vunique == wl_hook->vunique) {
-	char *comp = rindex(wl_hook->hdr->dbuf.linkname, '/') + 1;
-	ASSERT(comp != NULL);
-	if (!STREQ(comp, name)) {
-	    /* Use the same hblock, overwriting the name field and stashing the return code. */
-	    int prefix_count = comp - wl_hook->hdr->dbuf.linkname;
-	    strncpy(wl_hook->hdr->dbuf.name, wl_hook->hdr->dbuf.linkname, prefix_count);
-	    wl_hook->hdr->dbuf.name[prefix_count] = '\0';
-	    strcat(wl_hook->hdr->dbuf.name, name);
-	    wl_hook->code = WriteHeader(wl_hook->fp, *(wl_hook->hdr));
+	if (wl_hook->code) 
+		return 0;
+
+	if (vnode == wl_hook->vnode && vunique == wl_hook->vunique) {
+		char *comp = rindex(wl_hook->hdr->dbuf.linkname, '/') + 1;
+		ASSERT(comp != NULL);
+		if (!STREQ(comp, name)) {
+			/* Use the same hblock, overwriting the name
+                           field and stashing the return code. */
+			int prefix_count = comp - wl_hook->hdr->dbuf.linkname;
+			strncpy(wl_hook->hdr->dbuf.name, wl_hook->hdr->dbuf.linkname, 
+				prefix_count);
+			wl_hook->hdr->dbuf.name[prefix_count] = '\0';
+			strcat(wl_hook->hdr->dbuf.name, name);
+			wl_hook->code = WriteHeader(wl_hook->fp, *(wl_hook->hdr));
+		}
 	}
-    }
+	return 0;
 }
 
 
@@ -3949,8 +3942,7 @@ int cmlent::checkpoint(FILE *fp) {
 		    hook.hdr = &hdr;
 		    hook.fp = fp;
 		    hook.code = 0;
-		    ::EnumerateDir((long *)f->pfso->data.dir,
-				   (int (*)(void * ...))WriteLinks, (long)(&hook));
+		    DH_EnumerateDir(&f->pfso->data.dir->dh, WriteLinks, (void *)(&hook));
 		    code = hook.code;
 		}
 	    }
@@ -3999,7 +3991,7 @@ int cmlent::checkpoint(FILE *fp) {
 
 
 /* MUST be called from within transaction! */
-PRIVATE void GetPath(char *path, ViceFid *fid, char *lastcomp) {
+static void GetPath(char *path, ViceFid *fid, char *lastcomp) {
     fsobj *f = FSDB->Find(fid);
     if (!f) Choke("GetPath: %x.%x.%x", fid->Volume, fid->Vnode, fid->Unique);
     char buf[MAXPATHLEN];
@@ -4010,7 +4002,7 @@ PRIVATE void GetPath(char *path, ViceFid *fid, char *lastcomp) {
 }
 
 
-PRIVATE int WriteHeader(FILE *fp, hblock& hdr) {
+static int WriteHeader(FILE *fp, hblock& hdr) {
     char *cp;
     for (cp = hdr.dbuf.chksum; cp < &hdr.dbuf.chksum[sizeof(hdr.dbuf.chksum)]; cp++)
 	*cp = ' ';
@@ -4027,7 +4019,7 @@ PRIVATE int WriteHeader(FILE *fp, hblock& hdr) {
 }
 
 
-PRIVATE int WriteData(FILE *wrfp, char *rdfn) {
+static int WriteData(FILE *wrfp, char *rdfn) {
     VprocYield();		/* Yield at least once per dumped file! */
 
     FILE *rdfp = fopen(rdfn, "r");
@@ -4055,7 +4047,7 @@ PRIVATE int WriteData(FILE *wrfp, char *rdfn) {
 }
 
 
-PRIVATE int WriteTrailer(FILE *fp) {
+static int WriteTrailer(FILE *fp) {
     char buf[TBLOCK];
     bzero((void *)buf, TBLOCK);
     for (int i = 0; i < 2; i++)
@@ -4294,7 +4286,8 @@ unsigned long cmlent::ReintAmount() {
 
 
 /* reintegrating --> frozen */
-int cmlent::IsReintegrating() {
+int cmlent::IsReintegrating() 
+{
     volent *vol = strbase(volent, log, CML);
 
     if (vol->flags.reintegrating && IsFrozen() &&
@@ -4367,59 +4360,59 @@ cmlent *cml_iterator::operator()() {
 	    cmlent *m = (cmlent *)b->binder;
 	    switch(m->opcode) {
 		case ViceNewStore_OP:
-		    if (FID_EQ(m->u.u_store.Fid, fid)) return(m);
+		    if (FID_EQ(&m->u.u_store.Fid, &fid)) return(m);
 		    break;
 
 		case ViceUtimes_OP:
-		    if (FID_EQ(m->u.u_utimes.Fid, fid)) return(m);
+		    if (FID_EQ(&m->u.u_utimes.Fid, &fid)) return(m);
 		    break;
 
 		case ViceChown_OP:
-		    if (FID_EQ(m->u.u_chown.Fid, fid)) return(m);
+		    if (FID_EQ(&m->u.u_chown.Fid, &fid)) return(m);
 		    break;
 
 		case ViceChmod_OP:
-		    if (FID_EQ(m->u.u_chmod.Fid, fid)) return(m);
+		    if (FID_EQ(&m->u.u_chmod.Fid, &fid)) return(m);
 		    break;
 
 		case ViceCreate_OP:
-		    if (FID_EQ(m->u.u_create.PFid, fid)) return(m);
-		    if (FID_EQ(m->u.u_create.CFid, fid)) return(m);
+		    if (FID_EQ(&m->u.u_create.PFid, &fid)) return(m);
+		    if (FID_EQ(&m->u.u_create.CFid, &fid)) return(m);
 		    break;
 
 		case ViceRemove_OP:
-		    if (FID_EQ(m->u.u_remove.PFid, fid)) return(m);
-		    if (FID_EQ(m->u.u_remove.CFid, fid)) return(m);
+		    if (FID_EQ(&m->u.u_remove.PFid, &fid)) return(m);
+		    if (FID_EQ(&m->u.u_remove.CFid, &fid)) return(m);
 		    break;
 
 		case ViceLink_OP:
-		    if (FID_EQ(m->u.u_link.PFid, fid)) return(m);
-		    if (FID_EQ(m->u.u_link.CFid, fid)) return(m);
+		    if (FID_EQ(&m->u.u_link.PFid, &fid)) return(m);
+		    if (FID_EQ(&m->u.u_link.CFid, &fid)) return(m);
 		    break;
 
 		case ViceRename_OP:
-		    if (FID_EQ(m->u.u_rename.SPFid, fid)) return(m);
-		    if (FID_EQ(m->u.u_rename.TPFid, fid)) return(m);
-		    if (FID_EQ(m->u.u_rename.SFid, fid)) return(m);
+		    if (FID_EQ(&m->u.u_rename.SPFid, &fid)) return(m);
+		    if (FID_EQ(&m->u.u_rename.TPFid, &fid)) return(m);
+		    if (FID_EQ(&m->u.u_rename.SFid, &fid)) return(m);
 		    break;
 
 		case ViceMakeDir_OP:
-		    if (FID_EQ(m->u.u_mkdir.PFid, fid)) return(m);
-		    if (FID_EQ(m->u.u_mkdir.CFid, fid)) return(m);
+		    if (FID_EQ(&m->u.u_mkdir.PFid, &fid)) return(m);
+		    if (FID_EQ(&m->u.u_mkdir.CFid, &fid)) return(m);
 		    break;
 
 		case ViceRemoveDir_OP:
-		    if (FID_EQ(m->u.u_rmdir.PFid, fid)) return(m);
-		    if (FID_EQ(m->u.u_rmdir.CFid, fid)) return(m);
+		    if (FID_EQ(&m->u.u_rmdir.PFid, &fid)) return(m);
+		    if (FID_EQ(&m->u.u_rmdir.CFid, &fid)) return(m);
 		    break;
 
 		case ViceSymLink_OP:
-		    if (FID_EQ(m->u.u_symlink.PFid, fid)) return(m);
-		    if (FID_EQ(m->u.u_symlink.CFid, fid)) return(m);
+		    if (FID_EQ(&m->u.u_symlink.PFid, &fid)) return(m);
+		    if (FID_EQ(&m->u.u_symlink.CFid, &fid)) return(m);
 		    break;
 
 	        case ViceRepair_OP:
-		    if (FID_EQ(m->u.u_repair.Fid, fid)) return(m);
+		    if (FID_EQ(&m->u.u_repair.Fid, &fid)) return(m);
 		    break;
 
 		default:

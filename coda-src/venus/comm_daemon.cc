@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /coda/usr/lily/src/coda-src/venus/RCS/comm_daemon.cc,v 4.1 97/01/08 21:51:20 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/comm_daemon.cc,v 4.2 1997/03/06 21:04:54 lily Exp $";
 #endif /*_BLURB_*/
 
 
@@ -68,13 +68,13 @@ extern "C" {
 
 /*  *****  Probe Daemon  *****  */
 
-PRIVATE const int ProbeDaemonStackSize = 40960;
-PRIVATE	const int T1Interval = 12 * 60;		     /* "up" servers */
-PRIVATE	const int T2Interval = 4 * 60;		     /* "down" servers */
-PRIVATE const int CommCheckInterval = 5;
-PRIVATE	const int ProbeInterval	= CommCheckInterval; /* min(T1, T2, Comm) */
+static const int ProbeDaemonStackSize = 40960;
+static const int T1Interval = 12 * 60;		     /* "up" servers */
+static const int T2Interval = 4 * 60;		     /* "down" servers */
+static const int CommCheckInterval = 5;
+static const int ProbeInterval	= CommCheckInterval; /* min(T1, T2, Comm) */
 
-PRIVATE char probe_sync;
+static char probe_sync;
 
 void PROD_Init() {
     (void)new vproc("ProbeDaemon", (PROCBODY)&ProbeDaemon,
@@ -217,11 +217,11 @@ void ServerProbe(unsigned long *lastupp, unsigned long *lastdownp) {
 
 /*  *****  VSG Daemon  *****  */
 
-PRIVATE const int VSGDaemonStackSize = 8192;
-PRIVATE const int VSGDaemonInterval = 300;
-PRIVATE const int VSGGetDownInterval = 300;
+static const int VSGDaemonStackSize = 8192;
+static const int VSGDaemonInterval = 300;
+static const int VSGGetDownInterval = 300;
 
-PRIVATE char vsg_sync;
+static char vsg_sync;
 
 void VSGD_Init() {
     (void)new vproc("VSGDaemon", (PROCBODY) &VSGDaemon,
@@ -281,10 +281,9 @@ void vsgdb::GetDown() {
 	    readahead = ((tv = next()) != 0);
 
 	    LOG(10, ("vsgdb::GetDown: GC'ing %x\n", v->Addr));
-	    TRANSACTION(
-		delete v;
-	    )
-
+	    Recov_BeginTrans();
+	    delete v;
+	    Recov_EndTrans(0);
 	    if (readahead) v = tv;
 	}
     }

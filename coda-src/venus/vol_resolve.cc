@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/vol_resolve.cc,v 4.4 98/04/14 21:03:10 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/vol_resolve.cc,v 4.5 1998/07/14 11:19:06 jaharkes Exp $";
 #endif /*_BLURB_*/
 
 
@@ -170,7 +170,7 @@ int volent::RecResolve(connent *c, ViceFid *fid)
         return code;
 
     pfid = &(f->pfid);
-    if ( ( ! FID_EQ(*pfid, NullFid)) && 
+    if ( ( ! FID_EQ(pfid, &NullFid)) && 
 	 (pfid->Volume == fid->Volume) 
 	 && (pfid->Vnode != fid->Vnode) ) {
         code = RecResolve(c, pfid);
@@ -198,7 +198,7 @@ void volent::ResSubmit(char **waitblkp, ViceFid *fid) {
 	olist_iterator next(*res_list);
 	resent *r = 0;
 	while (r = (resent *)next())
-	    if (FID_EQ((r->fid), *fid)) break;
+	    if (FID_EQ(&r->fid, fid)) break;
 	if (r == 0) {
 	    r = new resent(fid);
 	    res_list->append(r);
@@ -287,9 +287,9 @@ void resent::HandleResult(int code) {
 	fsobj *f = FSDB->Find(&fid);
 	if (f != 0) {
 	    f->Lock(WR);
-	    ATOMIC(
-		f->Kill();
-	    , CMFP)
+	    Recov_BeginTrans();
+	    f->Kill();
+	    Recov_EndTrans(CMFP);
 	    FSDB->Put(&f);
 	}
     }
@@ -320,8 +320,8 @@ void resent::print(int afd) {
 
 /* *****  Resolver  ***** */
 
-PRIVATE const int ResolverStackSize = 32768;
-PRIVATE const int MaxFreeResolvers = 2;
+static const int ResolverStackSize = 32768;
+static const int MaxFreeResolvers = 2;
 
 
 class resolver : public vproc {

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/fso.h,v 4.7 1998/03/06 20:20:41 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/fso.h,v 4.8 1998/07/08 22:42:08 jaharkes Exp $";
 #endif /*_BLURB_*/
 
 
@@ -71,6 +71,8 @@ extern "C" {
 
 #include <rpc2.h>
 
+#include <codadir.h>
+
 #ifdef __cplusplus
 }
 #endif __cplusplus
@@ -100,8 +102,6 @@ extern "C" {
 #include "venus.private.h"
 
 /* from coda include again, must appear AFTER venus.private.h */
-#include <dir.private.h>
-
 
 /*  *****  Constants  ***** */
 
@@ -285,11 +285,16 @@ enum FsoState {	FsoRunt,
 };
 
 /* Representation of UFS file in cache directory. */
-/* Currently, CacheFiles and fsobjs are statically bound to each other, one-to-one, by embedding */
-/* a single CacheFile in each fsobj.  An fsobj may use its CacheFile in several ways (or not at all). */
-/* We guarantee that these uses are mutually exclusive (in time, per-fsobj), hence the static allocation */
-/* policy works.  In the future we may choose not to make the uses mutually exclusive, and will then */
-/* have to implement some sort of dynamic allocation/binding scheme. */
+/* Currently, CacheFiles and fsobjs are statically bound to each
+   other, one-to-one, by embedding */
+/* a single CacheFile in each fsobj.  An fsobj may use its CacheFile
+   in several ways (or not at all). */
+/* We guarantee that these uses are mutually exclusive (in time,
+   per-fsobj), hence the static allocation */
+/* policy works.  In the future we may choose not to make the uses
+   mutually exclusive, and will then */
+/* have to implement some sort of dynamic allocation/binding
+   scheme. */
 /* The different uses of CacheFile are: */
 /*    1. Copy of plain file */
 /*    2. Unix-format copy of directory */
@@ -381,19 +386,14 @@ enum MountStatus {  NORMAL,
 		    ROOT
 };
 
-struct VenusDirPage {
-    char data[PAGESIZE];
-};
 
 struct VenusDirData {
-    /* Vice format directory in VM/RVM. */
-    unsigned int mallocbitmap[MAXPAGES / (8 * sizeof(unsigned int))];
-    VenusDirPage *pages[MAXPAGES];	/* ought to dynamically manage this array! */
-
-    /* Unix format directory in UFS. */
-    /*T*/unsigned udcfvalid : 1;
-    /*T*/CacheFile *udcf;
-    /*T*/int padding;
+	/* Vice format directory in VM/RVM. */
+	struct DirHandle dh;
+	/* Unix format directory in UFS. */
+	/*T*/unsigned udcfvalid : 1;
+	/*T*/CacheFile *udcf;
+	/*T*/int padding;
 };
 
 union VenusData {
@@ -710,7 +710,7 @@ class fsobj {
     int IsSymLink() { return(stat.VnodeType == (int)SymbolicLink); }
     int IsNormal() { return(mvstat == NORMAL); }
     int IsRoot() { return(mvstat == ROOT); }
-    int IsVenusRoot() { return(FID_EQ(fid, rootfid)); }
+    int IsVenusRoot() { return(FID_EQ(&fid, &rootfid)); }
     int	IsMtPt() { return(mvstat == MOUNTPOINT); }      /* covered mount point */
     int	IsMTLink() { return(stat.VnodeType == (int)SymbolicLink && stat.Mode == 0644); }
                                                         /* uncovered mount point */

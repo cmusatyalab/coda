@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /usr/rvb/XX/src/coda-src/venus/RCS/vol_rcb.cc,v 4.1 1997/01/08 21:51:48 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/vol_rcb.cc,v 4.2 1997/02/26 16:03:35 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -76,7 +76,7 @@ extern "C" {
 #include "local.h"
 
 
-PRIVATE const int RCBEntrySize = (int) (sizeof(ViceFid) + sizeof(unsigned long));
+static const int RCBEntrySize = (int) (sizeof(ViceFid) + sizeof(unsigned long));
 
 int volent::RCB(mgrpent *m, RPC2_CountedBS *BS) {
     LOG(10, ("volent::RCB: \n"));
