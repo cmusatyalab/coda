@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/vproc.h,v 4.10 1997/12/20 23:35:12 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/vproc.h,v 4.11 1998/01/04 16:23:32 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -425,12 +425,11 @@ extern int vnode_deallocs;
    platforms, to be used in struct vattr to indicate a field to be
    ignored.  Used mostly in vproc::setattr() */
 
-#if 0 
 #define	VA_IGNORE_FSID		((long)-1)
 #define	VA_IGNORE_ID		((long)-1)
 #define VA_IGNORE_NLINK		((short)-1)
 #define VA_IGNORE_BLOCKSIZE	((long)-1)
-#define VA_IGNORE_RDEV		((dev_t)-1)
+#define VA_IGNORE_RDEV		(-1)
 #define VA_IGNORE_STORAGE	((u_quad_t) -1)
 #define VA_IGNORE_MODE		((u_short)-1)
 #define VA_IGNORE_UID		((vuid_t) -1)
@@ -439,19 +438,5 @@ extern int vnode_deallocs;
 #define VA_IGNORE_SIZE		((u_quad_t)-1) 
 #define VA_IGNORE_TIME1		((time_t)-1)
 #define VA_IGNORE_FLAGS		((u_long) -1)
-#endif 
-#define	VA_IGNORE_FSID		(-1)
-#define	VA_IGNORE_ID		(-1)
-#define VA_IGNORE_NLINK		(-1)
-#define VA_IGNORE_BLOCKSIZE	(-1)
-#define VA_IGNORE_RDEV		(-1)
-#define VA_IGNORE_STORAGE	( -1)
-#define VA_IGNORE_MODE		(-1)
-#define VA_IGNORE_UID		(-1)
-#define VA_IGNORE_TIME2		(-1)
-#define VA_IGNORE_GID		(-1)
-#define VA_IGNORE_SIZE		(-1) 
-#define VA_IGNORE_TIME1		(-1)
-#define VA_IGNORE_FLAGS		(-1)
 
 #endif /* _VENUS_PROC_H_ */
