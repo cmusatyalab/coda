@@ -14,7 +14,7 @@
 # Otherwise, we are probably a BSD like OS.
 
 LOCKDIR=/var/lock/subsys
-PIDDIR=/vice/srv
+PIDDIR=/vice/auth2
 DBDIR=/vice/db
 
 PATH=/sbin:/usr/sbin:/usr/local/sbin:$PATH
@@ -53,8 +53,8 @@ case "$1" in
 	fi
 	;;
   stop)
-	if [ -f $PIDDIR/auth2.pid ]; then
-		kill -9 `cat $PIDDIR/auth2.pid`
+	if [ -f $PIDDIR/pid ]; then
+		kill -9 `cat $PIDDIR/pid`
 	fi
 	rm -f $LOCKDIR/auth2.init
 
