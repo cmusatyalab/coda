@@ -1146,6 +1146,9 @@ int srvent::GetStatistics(ViceStatistics *Stats) {
     int code = 0;
 
     connent *c = 0;
+
+    memset(Stats, 0, sizeof(ViceStatistics));
+    
     code = GetConn(&c, host, V_UID, 0);
     if (code != 0) goto Exit;
 
@@ -2169,15 +2172,19 @@ void mgrpent::KillMember(unsigned long host, int forcibly) {
 }
 
 
-unsigned long mgrpent::GetPrimaryHost(int *ph_ixp) {
-    if (ph_ixp != 0) *ph_ixp = -1;
+unsigned long mgrpent::GetPrimaryHost(int *ph_ixp)
+{
+    int i;
 
-    if (rocc.primaryhost == 0) return(0);
+    if (ph_ixp) *ph_ixp = -1;
+
+    if (rocc.primaryhost == 0)
+	rocc.primaryhost = rocc.hosts[PickDH(NULL)];
 
     /* Sanity check. */
-    for (int i = 0; i < VSG_MEMBERS; i++)
+    for (i = 0; i < VSG_MEMBERS; i++)
 	if (rocc.hosts[i] == rocc.primaryhost) {
-	    if (ph_ixp != 0) *ph_ixp = i;
+	    if (ph_ixp) *ph_ixp = i;
             /* Add a round robin distribution, primarily to spread fetches
              * across AVSG. */
             /* Added a random factor to reduce the amount of switching

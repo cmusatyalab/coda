@@ -62,7 +62,8 @@ class lqman {
     int pid;
     dlist objects;
 
-    int func(void *);
+    friend int LQman_init(void *);
+    int func(void);
 
   public:
     lqman(char * ="anonymous lqman");

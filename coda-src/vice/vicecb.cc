@@ -343,7 +343,7 @@ void BreakCallBack(HostTable *client, ViceFid *afid) {
     LogMsg(3, SrvDebugLevel, stdout, "BreakCallBack for Fid 0x%x.%x.%x",
 	     afid->Volume, afid->Vnode, afid->Unique);
     if (client) LogMsg(3, SrvDebugLevel, stdout, "Venus %s.%d",
-			client->HostName, client->port);
+			client->HostName, ntohs(client->port));
     else LogMsg(3, SrvDebugLevel, stdout, "No connection");
 
     struct FileEntry *tf = FindEntry(afid),

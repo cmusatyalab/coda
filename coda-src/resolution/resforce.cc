@@ -699,8 +699,6 @@ int ForceDir(vle *pv, Volume *volptr, VolumeId repvolid,
 int RuntExists(ViceVersionVector **VV, int maxvvs, int *isrunt, 
 		       int *NonRuntIndex) 
 {
-
-    extern int IsRunt(ViceVersionVector *);
     int runtexists = 0;
     *NonRuntIndex = -1;
 

@@ -352,7 +352,7 @@ void VmonEnqueueSession(VmonSessionId Session, VolumeId Volume, UserId User,
 			 RPC2_Unsigned EndTime, RPC2_Unsigned CETime,
 			 VmonSessionEventArray *Events,
 			 SessionStatistics *Stats, CacheStatistics *CacheStats) {
-    int i;
+    unsigned int i;
 
     if (!VmonInited || !VmonEnabled) return;
 

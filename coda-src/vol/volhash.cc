@@ -44,6 +44,7 @@ extern "C" {
 #include <inconsist.h>
 #include <util.h>
 #include "volhash.h"
+#include "voldefs.h"
 
 typedef int (*PFIV)(void *);
 
@@ -57,7 +58,7 @@ int VolIdHash(VolumeId volid)
     register int n;
     char s[32], *tmp;
     
-    sprintf(s, "%010lu", volid);
+    sprintf(s, VFORMAT, volid);
     /* Sum the id in reverse so that consecutive integers, as strings, do not
        hash to consecutive locations */
     tmp = s;

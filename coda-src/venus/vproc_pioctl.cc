@@ -449,6 +449,7 @@ OI_FreeLocks:
         case VIOC_BEGINWB:
         case VIOC_STATUSWB:
         case VIOC_ENDWB:
+	case VIOC_SYNCCACHE:
 	    {
 #ifdef    TIMING
  	    gettimeofday(&u.u_tv1, 0); u.u_tv2.tv_sec = 0;

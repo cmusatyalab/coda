@@ -2388,6 +2388,7 @@ void ClientModifyLog::IncCommit(ViceVersionVector *UpdateSet, int Tid) {
 
     /* flush COP2 for this volume */
     vol->FlushCOP2();
+
     vol->flags.resolve_me = 0;
     LOG(0, ("ClientModifyLog::IncCommit: (%s)\n", vol->name));
 }
@@ -3987,7 +3988,7 @@ int cmlent::checkpoint(FILE *fp) {
 		strcpy(CacheFileName, f->data.file->Name());
 	    }
 	    sprintf(hdr.dbuf.mode, "%6o ", 0644);
-	    sprintf(hdr.dbuf.uid, "%6o ", uid);
+	    sprintf(hdr.dbuf.uid, "%6lo ", uid);
 	    sprintf(hdr.dbuf.gid, "%6o ", -1);
 	    sprintf(hdr.dbuf.size, "%11lo ", u.u_store.Length);
 	    sprintf(hdr.dbuf.mtime, "%11lo ", time);
@@ -4021,9 +4022,9 @@ int cmlent::checkpoint(FILE *fp) {
 	    GetPath(hdr.dbuf.name, &u.u_mkdir.CFid);
 	    strcat(hdr.dbuf.name, "/");
 	    sprintf(hdr.dbuf.mode, "%6o ", 0755);
-	    sprintf(hdr.dbuf.uid, "%6o ", uid);
+	    sprintf(hdr.dbuf.uid, "%6lo ", uid);
 	    sprintf(hdr.dbuf.gid, "%6o ", -1);
-	    sprintf(hdr.dbuf.size, "%11lo ", 0);
+	    sprintf(hdr.dbuf.size, "%11lo ", (long)0);
 	    sprintf(hdr.dbuf.mtime, "%11lo ", time);
 	    hdr.dbuf.linkflag = '\0';
 	    if ((code = WriteHeader(fp, hdr)) != 0) break;
@@ -4034,9 +4035,9 @@ int cmlent::checkpoint(FILE *fp) {
 	    {
 	    GetPath(hdr.dbuf.name, &u.u_symlink.CFid);
 	    sprintf(hdr.dbuf.mode, "%6o ", 0755);
-	    sprintf(hdr.dbuf.uid, "%6o ", uid);
+	    sprintf(hdr.dbuf.uid, "%6lo ", uid);
 	    sprintf(hdr.dbuf.gid, "%6o ", -1);
-	    sprintf(hdr.dbuf.size, "%11lo ", 0);
+	    sprintf(hdr.dbuf.size, "%11lo ", (long)0);
 	    sprintf(hdr.dbuf.mtime, "%11lo ", time);
 	    hdr.dbuf.linkflag = '2';
 	    strcpy(hdr.dbuf.linkname, (char *)u.u_symlink.OldName);
@@ -4226,12 +4227,12 @@ void cmlent::writeops(FILE *fp) {
 
     case OLDCML_Chown_OP:
 	RecoverPathName(path, &u.u_chown.Fid, log, this);
-	sprintf(msg, "Chown \t%s (owner = %d)", path, u.u_chown.Owner);
+	sprintf(msg, "Chown \t%s (owner = %ld)", path, u.u_chown.Owner);
 	break;
 
     case OLDCML_Chmod_OP:
 	RecoverPathName(path, &u.u_chmod.Fid, log, this);
-	sprintf(msg, "Chmod \t%s (mode = %o)", path, u.u_chmod.Mode);
+	sprintf(msg, "Chmod \t%s (mode = %lo)", path, u.u_chmod.Mode);
 	break;
 
     case OLDCML_Create_OP:

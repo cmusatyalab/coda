@@ -60,23 +60,32 @@ void InitLockQueue() {
     LockQueueMan = new lqman("LockQueue Manager");
 }
 
-lqman::lqman(char *n) {
+int LQman_init(void *c)
+{
+    return ((lqman *)c)->func();
+}
+
+lqman::lqman(char *n)
+{
     name = new char[strlen(n) + 1];
     strcpy(name, n);
     Lock_Init(&lock);
     
     /* Create the LWP process */
     printf("lqman: Creating LockQueue Manager.....");
-    LWP_CreateProcess((PFIC) &(lqman::func), LockQueManStkSize, LWP_NORMAL_PRIORITY, (char*)this, name, (PROCESS *)&pid);
+    LWP_CreateProcess((PFIC) LQman_init, LockQueManStkSize,
+		      LWP_NORMAL_PRIORITY, (char*)this, name, (PROCESS *)&pid);
     printf("done\n");
 }
 
-lqman::~lqman() {
+lqman::~lqman()
+{
     delete name;
     LWP_DestroyProcess((PROCESS) pid);
 }
 
-int lqman::func(void *parm) {
+int lqman::func(void)
+{
     ProgramType *pt;
     rvm_perthread_t rvmptt;
 
@@ -120,7 +129,8 @@ int lqman::func(void *parm) {
     return 0;
 }
 
-void lqman::add(lqent *lqe) {
+void lqman::add(lqent *lqe)
+{
     LogMsg(1, SrvDebugLevel, stdout,  "lqman::add adding entry for volume 0x%x",
 	    lqe->Vid);
     ObtainWriteLock(&lock);

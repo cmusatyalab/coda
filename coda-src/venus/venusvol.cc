@@ -1431,33 +1431,21 @@ void volent::TakeTransition() {
     /* Compute next state. */
     VolumeStateType nextstate;
     VolumeStateType prevstate = state;
-    switch(state) {
-	case Hoarding:
-	case Emulating:
-  	     nextstate = (size == 0) ? Emulating : 
-		     ((flags.logv || CML.count() > 0) ? Logging : 
-		      ((res_list->count() > 0) ? Resolving : Hoarding));
-	     break;
-        case Logging:
-	     nextstate = (size == 0) ? Emulating : 
-		     ((res_list->count() > 0) ? Resolving : 
-		      ((flags.logv || flags.staylogging || CML.count() > 0) ? Logging :
-		       Hoarding));
-	     break;
 
-	case Resolving:
-	    CODA_ASSERT(res_list->count() == 0);
-	    nextstate = (size == 0) ? Emulating : ((flags.logv || CML.count() > 0) ?
-		    Logging : Hoarding);
-	    break;
-	default:
-	    CODA_ASSERT(0);
-    }
+    CODA_ASSERT(state != Resolving || res_list->count() == 0);
+    CODA_ASSERT(state == Hoarding || state == Emulating || state == Logging ||
+		state == Resolving);
+
+    if      (size == 0)				      nextstate = Emulating;
+    else if (res_list->count())			      nextstate = Resolving;
+    else if (flags.logv || CML.count() || flags.staylogging)
+						      nextstate = Logging;
+    else					      nextstate = Hoarding;
 
     /* Special cases here. */
     /*
-     * 1.  If the volume is transitioning  _to_ emulating, any reintegations will not
-     *     be stopped because of lack of tokens.
+     * 1.  If the volume is transitioning  _to_ emulating, any reintegations
+     *     will not be stopped because of lack of tokens.
      */
     if (nextstate == Emulating)
 	ClearReintegratePending();
@@ -1801,7 +1789,7 @@ int volent::SyncCache(ViceFid * fid) {
 	    
 	    flags.sync_reintegrate = 1;
 	    /* reintegrate_until = findDepenents(fid); */
-	    reintegrate_until == NULL;   //do the whole volume
+	    reintegrate_until = NULL;   //do the whole volume
 	    
 	    if (flags.transition_pending) { 
 		// make sure no one else took our transition
@@ -2358,7 +2346,7 @@ int volent::GetVolStat(VolumeStatus *volstat, RPC2_BoundedBS *Name,
 		    msg->MaxSeqLen > VENUS_MAXBSLEN ||
 		    motd->MaxSeqLen > VENUS_MAXBSLEN)
 		    CHOKE("volent::GetVolStat: BS len too large");
-		ARG_MARSHALL(IN_OUT_MODE, VolumeStatus, volstatvar, *volstat, VSG_MEMBERS);
+		ARG_MARSHALL(OUT_MODE, VolumeStatus, volstatvar, *volstat, VSG_MEMBERS);
 		ARG_MARSHALL_BS(IN_OUT_MODE, RPC2_BoundedBS, Namevar, *Name, VSG_MEMBERS, VENUS_MAXBSLEN);
 		ARG_MARSHALL_BS(IN_OUT_MODE, RPC2_BoundedBS, msgvar, *msg, VSG_MEMBERS, VENUS_MAXBSLEN);
 		ARG_MARSHALL_BS(IN_OUT_MODE, RPC2_BoundedBS, motdvar, *motd, VSG_MEMBERS, VENUS_MAXBSLEN);

@@ -150,7 +150,7 @@ extern "C" {
 #define VIOC_ENDML              _VICEIOCTL(CFS_IOCTL_BASE + 29) /* Stop logging (write back) */
 
 #define	VIOC_HDB_VERIFY		_VICEIOCTL(CFS_IOCTL_BASE + 30)	/* Compare hoard database to cache contents */
-/* #define	VIOC_BWHINT		_VICEIOCTL(CFS_IOCTL_BASE + 31)	/* Give a bandwidth hint */
+/* #define	VIOC_BWHINT		_VICEIOCTL(CFS_IOCTL_BASE + 31)	* Give a bandwidth hint */
 
 #define VIOC_HDB_ENABLE		_VICEIOCTL(CFS_IOCTL_BASE + 32)	/* Enable hoard walks */
 #define VIOC_HDB_DISABLE	_VICEIOCTL(CFS_IOCTL_BASE + 33)	/* Disable hoard walks */

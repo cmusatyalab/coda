@@ -370,6 +370,8 @@ long FS_ViceQueryReintHandle(RPC2_Handle RPCid, VolumeId Vid,
 
     SLog(0/*1*/, "ViceQueryReintHandle for volume 0x%x", Vid);
 
+    *Length = (RPC2_Unsigned)-1;
+
     /* Map RPC handle to client structure. */
     if ((errorCode = (int) RPC2_GetPrivatePointer(RPCid, (char **)&client)) != RPC2_SUCCESS) {
 	SLog(0, "ViceQueryReintHandle: GetPrivatePointer failed (%d)", errorCode);
@@ -402,7 +404,7 @@ long FS_ViceQueryReintHandle(RPC2_Handle RPCid, VolumeId Vid,
  Exit:
     if (fd != -1) CODA_ASSERT(close(fd) == 0);
     SLog(0/*2*/, "ViceQueryReintHandle returns length %d, %s",
-	   status.st_size, ViceErrorMsg(errorCode));
+	   *Length, ViceErrorMsg(errorCode));
 
     return(errorCode);
 }
@@ -609,7 +611,8 @@ static int ValidateReintegrateParms(RPC2_Handle RPCid, VolumeId *Vid,
 		goto Exit;
 	}
     SLog(2,  "ValidateReintegrateParms: %s %s.%d",
-	     (*client)->UserName, (*client)->VenusId->HostName, (*client)->VenusId->port);
+	     (*client)->UserName, (*client)->VenusId->HostName,
+	     ntohs((*client)->VenusId->port));
 
 
     /* Fetch over the client's reintegrate log, and read it into memory. */

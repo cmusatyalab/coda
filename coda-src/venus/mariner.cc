@@ -510,7 +510,8 @@ void mariner::FidStat(ViceFid *fid) {
 	    break;
 	}
 
-	u.u_error = FSDB->Get(&f, fid, CRTORUID(u.u_cred), RC_STATUS);
+	u.u_error = FSDB->Get(&f, fid, CRTORUID(u.u_cred), RC_STATUS,
+			      NULL, NULL, 1);
 	if (u.u_error) {
 	    Write("fsdb::Get(%x.%x.%x) failed (%d)\n",
 		  fid->Volume, fid->Vnode, fid->Unique, u.u_error);

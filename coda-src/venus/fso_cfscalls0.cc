@@ -509,7 +509,6 @@ int fsobj::GetAttr(vuid_t vuid, RPC2_BoundedBS *acl) {
 
     /* Status parameters. */
     ViceStatus status;
-    bzero((void *)(void *)&status, (int)sizeof(ViceStatus));
 
     /* COP2 Piggybacking. */
     char PiggyData[COP2SIZE];
@@ -1012,7 +1011,7 @@ NonRepExit:
 	/* Demote or discard existing status. */
 	if (HAVESTATUS(this) && code != ENOENT)
 		Demote();
-	    else
+	else
 		Kill();
 	Recov_EndTrans(DMFP);
     }

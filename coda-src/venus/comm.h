@@ -429,7 +429,7 @@ class mgrpent {
     int CreateMember(unsigned long);
     void PutHostSet();
     void KillMember(unsigned long, int);
-    unsigned long GetPrimaryHost(int * =0);
+    unsigned long GetPrimaryHost(int *ph_ixp=NULL);
 
     void print() { print(stdout); }
     void print(FILE *fp) { fflush(fp); print(fileno(fp)); }

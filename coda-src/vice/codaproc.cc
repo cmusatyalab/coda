@@ -371,7 +371,7 @@ long FS_ViceResolve(RPC2_Handle cid, ViceFid *Fid)
     // call resolve on object  only if no locking errors 
     if ( errorCode ) 
 	    goto UnlockExit;
-    if ( lockerror && lockerror != VNOVNODE )
+    if ( lockerror )
 	    goto UnlockExit;
 
     if (ISDIR(*Fid)) {

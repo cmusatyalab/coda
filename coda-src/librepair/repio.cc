@@ -95,8 +95,8 @@ int repair_putdfile(char *fname, int replicaCount, struct listhdr *replicaList)
 	Returns -1 on failure, with msg on stderr.
     */
     {
-    register int i, j, k;
-    register unsigned int x;
+    int i, j, k;
+    unsigned int x;
     struct repair *r;
     FILE *ff;
     
@@ -105,15 +105,15 @@ int repair_putdfile(char *fname, int replicaCount, struct listhdr *replicaList)
     
     /* Write out number of replicas */
     x = htonl(replicaCount);
-    putw((int)x, ff);
+    fwrite(&x, sizeof(int), 1, ff);
     
     /* Write out header for each replica */
     for (i = 0; i < replicaCount; i++)
     	{
 	x = htonl(replicaList[i].replicaId);
-	putw(x, ff);
+	fwrite(&x, sizeof(int), 1, ff);
 	x = htonl(replicaList[i].repairCount);
-	putw(x, ff);
+	fwrite(&x, sizeof(int), 1, ff);
 	}
 
     /* Write out list of repairs for each replica */
@@ -123,7 +123,7 @@ int repair_putdfile(char *fname, int replicaCount, struct listhdr *replicaList)
 	for (j = 0; j < replicaList[i].repairCount; j++)
 	    {
 	    x = htonl(r[j].opcode);
-	    putw(x, ff);
+	    fwrite(&x, sizeof(int), 1, ff);
 	    fputs(r[j].name, ff);
 	    fputs("\n", ff);
 	    fputs(r[j].newname, ff);
@@ -131,7 +131,7 @@ int repair_putdfile(char *fname, int replicaCount, struct listhdr *replicaList)
 	    for (k = 0; k < REPAIR_MAX; k++)
 		{
 		x = htonl(r[j].parms[k]);
-		putw(x, ff);
+		fwrite(&x, sizeof(int), 1, ff);
 		}
 	    }
 	}
@@ -168,16 +168,16 @@ int repair_getdfile(char *fname, int *replicaCount, struct listhdr **replicaList
     ff = fopen(fname, "r");
     if (!ff) goto ERR;
     
-    x = getw(ff); CHKERR();
+    fread(&x, sizeof(int), 1, ff); CHKERR();
     *replicaCount = ntohl(x);
 
     *replicaList = (struct listhdr *) calloc(*replicaCount, sizeof(struct listhdr));
 
     for (i = 0; i < *replicaCount; i++)
 	{
-	x = getw(ff); CHKERR();
+	fread(&x, sizeof(int), 1, ff); CHKERR();
 	(*replicaList)[i].replicaId  = ntohl(x);
-	x = getw(ff); CHKERR();
+	fread(&x, sizeof(int), 1, ff); CHKERR();
 	(*replicaList)[i].repairCount  = ntohl(x);	
 	}
 
@@ -196,7 +196,7 @@ int repair_getdfile(char *fname, int *replicaCount, struct listhdr **replicaList
 	
 	for (j = 0; j < (*replicaList)[i].repairCount; j++)
 	{
-	    x = getw(ff); CHKERR();
+	    fread(&x, sizeof(int), 1, ff); CHKERR();
 	    r[j].opcode = ntohl(x);
 
 	    s = r[j].name;
@@ -209,7 +209,7 @@ int repair_getdfile(char *fname, int *replicaCount, struct listhdr **replicaList
 
 	    for (k = 0; k < REPAIR_MAX; k++)
 	    {
-		x = getw(ff); CHKERR();
+		fread(&x, sizeof(int), 1, ff); CHKERR();
 		r[j].parms[k] = ntohl(x);
 	    }
 	}

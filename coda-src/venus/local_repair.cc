@@ -431,7 +431,7 @@ void lrdb::PreserveAllLocalMutation(char *msg)
     while (current_search_cml != NULL) {
 	current_search_cml->GetLocalOpMsg(opmsg);
 	if (current_search_cml->GetTid() > 0) {
-	    sprintf(msg, "%s belongs to transaction %d\n %local mutation(s) replayed\n",
+	    sprintf(msg, "%s belongs to transaction %d\n %ld local mutation(s) replayed\n",
 		    opmsg, current_search_cml->GetTid(), opcnt);
 	    return;
 	}

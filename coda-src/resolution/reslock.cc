@@ -191,7 +191,8 @@ long RS_UnlockVol(RPC2_Handle RPCid, VolumeId Vid)
 	return(errorcode);
     }
     /* make sure unlocker is locker */
-    if (V_VolLock(volptr).IPAddress != cip->GetRemoteHost()){
+    if (V_VolLock(volptr).IPAddress && 
+	V_VolLock(volptr).IPAddress != cip->GetRemoteHost()){
 	    SLog(0,  "RS_UnlockVol: unlocker != locker for %x", Vid);
 	    VPutVolume(volptr);
 	    return(EINVAL);	/* define new error codes */

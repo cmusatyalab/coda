@@ -882,7 +882,7 @@ void hdb::StatusWalk(vproc *vp, int *TotalBytesToFetch) {
 	if (indigentnc == 0)
 	    CHOKE("hdb::Walk: enospc_failure but no indigent namectxts on queue");
 
-	sprintf(ibuf, "\n   ENOSPC:  [%x, %s], [%d, %d]\n",
+	sprintf(ibuf, "\n   ENOSPC:  [%lx, %s], [%d, %d]\n",
 		indigentnc->cdir.Volume, indigentnc->path,
 		FSDB->MakePri(0, indigentnc->priority), indigentnc->vuid);
     }

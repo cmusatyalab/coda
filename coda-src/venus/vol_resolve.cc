@@ -79,7 +79,7 @@ void volent::Resolve() {
     if (code != 0) goto Exit;
 
     resent *r;
-    while (code == 0 && (r = (resent *)res_list->get())) {
+    while ((r = (resent *)res_list->get())) {
 	mgrpent *m = 0;
 	connent *c = 0;
 
@@ -150,8 +150,10 @@ int volent::RecResolve(connent *c, ViceFid *fid)
     /* recursively try ancestors within the same volume */
 
     f = FSDB->Find(fid);
-    if ( f == NULL ) 
+    if ( f == NULL ) {
+	LOG(10,("RecResolve: Couldn't find current object\n"));
         return code;
+    }
 
     pfid = &(f->pfid);
     if ( ( ! FID_EQ(pfid, &NullFid)) && 
@@ -160,6 +162,7 @@ int volent::RecResolve(connent *c, ViceFid *fid)
         code = RecResolve(c, pfid);
 	LOG(10,("RecResolve: recursive call for (0x%x.0x%x.0x%x) returns %d\n", pfid->Volume, pfid->Vnode, pfid->Unique, code));
     } else {
+	LOG(10,("RecResolve: Couldn't find parent\n"));
         return code;
     }
     

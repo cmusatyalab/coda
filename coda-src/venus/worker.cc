@@ -359,8 +359,8 @@ int VFSUnload()
     
 	} while (i < 10 && res == 0);
 	if (i==10 && res ==0) return -1;
-	return 0;
 #endif
+	return 0;
 }
 
 void VFSUnmount() 
