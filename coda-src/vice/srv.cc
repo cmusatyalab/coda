@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vice/srv.cc,v 4.1 1997/01/08 21:51:58 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vice/srv.cc,v 4.2 1997/07/22 20:13:22 clement Exp $";
 #endif /*_BLURB_*/
 
 
@@ -268,6 +268,8 @@ PRIVATE int ParseArgs(int, char **);
 PRIVATE void NewParms(int);
 PRIVATE void InitServerKeys(char *, char *);
 
+PRIVATE void SetRlimits(void);
+
 /* ******* Default signal handler ******** */
 #ifdef RVMTESTING
 #include <rvmtesting.h>
@@ -399,6 +401,8 @@ main(int argc, char *argv[])
     freopen("SrvErr","a+",stderr);
 
     SwapLog();
+
+    SetRlimits();
 
     /* CamHistoInit(); */	
     /* Initialize CamHisto package */
@@ -1723,4 +1727,16 @@ void Die(char *msg)
 {
     LogMsg(0, 0, stdout,"%s",msg);
     assert(0);
+}
+
+PRIVATE void SetRlimits() {
+    /* Set DATA segment limit to maximum allowable. */
+    struct rlimit rl;
+    if (getrlimit(RLIMIT_DATA, &rl) < 0)
+	{ perror("getrlimit"); exit(-1); }
+    rl.rlim_cur = rl.rlim_max;
+    LogMsg(0, 0, stdout, "Resource limit on data size are set to %d\n", rl.rlim_cur);
+    if (setrlimit(RLIMIT_DATA, &rl) < 0)
+	{ perror("setrlimit"); exit(-1); }
+
 }
