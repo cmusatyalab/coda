@@ -509,7 +509,7 @@ int CLIENT_MakeWriteBackConn(HostTable * HostEntry)
     if (errorCode > RPC2_ELIMIT) {
 	    if (errorCode != 0) {
 		    SLog(0, "RPC2_Bind to %s port %d for writeback got %s",
-			 HostEntry->HostName, HostEntry->port, 
+			 HostEntry->HostName, ntohl(HostEntry->port), 
 			 ViceErrorMsg((int) errorCode));
  	    }
 
@@ -517,16 +517,16 @@ int CLIENT_MakeWriteBackConn(HostTable * HostEntry)
 	    errorCode = RevokeWBPermit(newconn->id, 0);
 	    if (errorCode < 0) {
 		SLog(0, "Writeback message to %s port %d failed %s",
-		     HostEntry->HostName, HostEntry->port, 
+		     HostEntry->HostName, ntohl(HostEntry->port), 
 		     ViceErrorMsg((int) errorCode));
 		newconn->id = 0;
 	    }
 	    else
 		SLog(0, "Writeback message to %s port %d on conn %x succeeded",
-		     HostEntry->HostName, HostEntry->port,newconn->id);
+		     HostEntry->HostName, ntohl(HostEntry->port), newconn->id);
     } else {
 	    SLog(0, "RPC2_Bind to %s port %d for writeback failed %s",
-		 HostEntry->HostName, HostEntry->port, 
+		 HostEntry->HostName, ntohl(HostEntry->port), 
 		 ViceErrorMsg((int) errorCode));
 	    newconn->id = 0;
     }
