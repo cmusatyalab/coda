@@ -60,16 +60,13 @@ RP2GEN=../rp2gen/rp2gen
 # Machine independent FLAGS
 ##############################
 
-# OPTFLAG and GFLAG are set per platform in $(MAKDIR)/configs/Makeconf.$(SYS)
 DEPFLAG   := -MD
-#OPTFLAG  := -O2
-#GFLAG    :=
-LIBFLAGS  := $(OPTLFLAG)
-AFLAGS	  := $(GFLAG) $(DEPFLAG) $(MACHINE_FLAGS) $(MYFLAGS) $(INCLFLAGS)
-CFLAGS	  := $(OPTFLAG) $(AFLAGS) 
-CXXFLAGS  := $(CFLAGS)
+CFLAGS	  := $(CFLAGS)   $(DEPFLAG) $(MACHINE_FLAGS) $(MYFLAGS) $(INCLFLAGS)
+CXXFLAGS  := $(CXXFLAGS) $(DEPFLAG) $(MACHINE_FLAGS) $(MYFLAGS) $(INCLFLAGS)
 
 RP2FLAGS  = -e  -I . -I $(srcdir) 
+
+LIBS	  := $(LIBS) $(LIBCOMPAT) $(LIBFIXUP)
 
 
 # uncomment some of the next lines if you have kerberos
@@ -90,7 +87,7 @@ RP2FLAGS  = -e  -I . -I $(srcdir)
 LIBBASE =$(TOPOBJ)/lib-src/base/libbase.a
 
 # -- LWP --
-LIBOLDLWP = -llwp
+LIBLWP = -llwp
 
 # -- RVM --
 LIBRVM= $(TOPOBJ)/rvm-src/rvm/librvm.a

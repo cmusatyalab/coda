@@ -32,19 +32,19 @@ OBJS = basic.o
 all: basic setupvt createmany deletemany scaninodes
 
 basic: basic.o ../libpartition.a
-	${CC} -o basic basic.o ../libpartition.a ../../util/libutil.a ${LIBOLDLWP} -lm
+	${CC} -o basic basic.o ../libpartition.a ../../util/libutil.a ${LIBLWP} -lm
 
 setupvt: setupvt.o ../libpartition.a
-	${CC} -o setupvt setupvt.o ../libpartition.a ../../util/libutil.a ${LIBOLDLWP} -lm
+	${CC} -o setupvt setupvt.o ../libpartition.a ../../util/libutil.a ${LIBLWP} -lm
 
 createmany: createmany.o ../libpartition.a
-	${CC} -o createmany createmany.o ../libpartition.a ../../util/libutil.a ${LIBOLDLWP} -lm
+	${CC} -o createmany createmany.o ../libpartition.a ../../util/libutil.a ${LIBLWP} -lm
 
 deletemany: deletemany.o ../libpartition.a
-	${CC} -o deletemany deletemany.o ../libpartition.a ../../util/libutil.a ${LIBOLDLWP} -lm
+	${CC} -o deletemany deletemany.o ../libpartition.a ../../util/libutil.a ${LIBLWP} -lm
 
 scaninodes: scaninodes.o ../libpartition.a
-	${CC} -o scaninodes scaninodes.o ../libpartition.a ../../util/libutil.a ${LIBOLDLWP} -lm
+	${CC} -o scaninodes scaninodes.o ../libpartition.a ../../util/libutil.a ${LIBLWP} -lm
 
 libuinodefs.a: inodefsulib.o
 

@@ -30,7 +30,7 @@ LIBOBJ = rds_coalesce.o rds_free.o rds_init.o rds_malloc.o rds_prealloc.o \
        rds_split.o rds_stats.o rds_start.o rds_util.o rds_zap.o 
 
 OBJ = rdsinit.o
-RDSINIT_LIBS = $(LIBSEG) $(LIBRVM) $(LIBOLDLWP) $(LIBCOMPAT) $(LIBTHREADS) $(LIBBASE) $(LIBFIXUP)
+RDSINIT_LIBS = $(LIBSEG) $(LIBRVM) $(LIBTHREADS) $(LIBBASE) $(LIBFIXUP)
 
 
 HERE := $(shell basename `pwd`)
@@ -50,7 +50,7 @@ HEADERS     = ${EXPHEADERS} ${PRIVHEADERS}
 librds.a: $(LIBOBJ)
 
 rdsinit: $(OBJ) librds.a $(RDSINIT_LIBS)
-	$(CC) -o rdsinit $(OBJ) librds.a $(RDSINIT_LIBS)
+	$(CC) -o rdsinit $(OBJ) librds.a $(RDSINIT_LIBS) $(LIBLWP) $(LIBCOMPAT)
 endif
 
 
@@ -66,7 +66,7 @@ librdslwp.a: $(LIBOBJ)
 endif
 
 ifeq ($(RVMTARGET), pthread)
-CLFAGS += -DRVM_USEPT -DREENTRANT
+CFLAGS += -DRVM_USEPT -DREENTRANT
 
 endif
 

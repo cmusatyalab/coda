@@ -38,14 +38,15 @@ LIBOBS =
 EXECUTABLES = rpc2portmap simpleclient
 SSBINS=rpc2portmap
 
-LIBS = ${LIBRPC2} ${LIBOLDLWP} ${LIBCOMPAT} ${LIBBASE} ${LIBFIXUP}
+DEPLIBS = ${LIBRPC2} ${LIBBASE}
+LIBS := $(DEPLIBS) ${LIBLWP} ${LIBCOMPAT} ${LIBFIXUP} ${LIBDL} $(LIBS)
 
 libportmap.a: $(OBJS)
 
-rpc2portmap:   rpc2portmap.o libportmap.a ${LIBS}
-	$(CC) -o $@ $^ ${LIBS} ${LIBDL}
+rpc2portmap:   rpc2portmap.o libportmap.a ${DEPLIBS}
+	$(CC) -o $@ $^ ${LIBS}
 
-simpleclient:   simpleclient.o libportmap.a ${LIBS}
-	$(CC) -o $@ $^ ${OBJECTS} ${LIBS} ${LIBDL}
+simpleclient:   simpleclient.o libportmap.a ${DEPLIBS}
+	$(CC) -o $@ $^ ${LIBS}
 
 include $(TOPDIR)/configs/Makerules

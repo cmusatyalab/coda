@@ -234,3 +234,38 @@ AC_DEFUN(CODA_CHECK_INET_NTOA,
     AC_DEFINE(HAVE_INET_NTOA)
   fi)
 
+dnl ---------------------------------------------
+dnl Path leading to the lwp headers and library.
+
+AC_DEFUN(CODA_OPTION_LWP,
+  [AC_ARG_WITH(lwp-includes,
+    [  --with-lwp-includes	Location of the lwp include files],
+    [ CFLAGS="${CFLAGS} -I`(cd ${withval} ; pwd)`"
+      CXXFLAGS="${CXXFLAGS} -I`(cd ${withval} ; pwd)`" ])
+   AC_ARG_WITH(lwp-library,
+    [  --with-lwp-library	Location of the lwp library files],
+    [ LDFLAGS="${LDFLAGS} -L`(cd ${withval} ; pwd)`" ])])
+
+dnl ---------------------------------------------
+dnl Search for an installed lwp library
+
+AC_DEFUN(CODA_FIND_LIBLWP,
+  [AC_CACHE_CHECK(location of liblwp, coda_cv_lwppath,
+   [saved_LDFLAGS="${LDFLAGS}" ; saved_LIBS="${LIBS}"
+    coda_cv_lwppath=none ; LIBS="-llwp"
+    for path in /usr /usr/local /usr/pkg ; do
+      LDFLAGS="${LDFLAGS} -L${path}/lib"
+      AC_TRY_LINK([], [int main(){return 0;}],
+	          [coda_cv_lwppath=${path} ; break])
+    done
+    LDFLAGS="${saved_LDFLAGS}" ; LIBS="${saved_LIBS}"])
+  case $coda_cv_lwppath in
+    none) AC_MSG_ERROR("Cannot determine the location of liblwp")
+          ;;
+    /usr) ;;
+    *)    CFLAGS="${CFLAGS} -I${coda_cv_lwppath}/include"
+          CXXFLAGS="${CXXFLAGS} -I${coda_cv_lwppath}/include"
+          LDFLAGS="${LDFLAGS} -L${coda_cv_lwppath}/lib"
+          ;;
+  esac])
+   

@@ -47,29 +47,12 @@ EXECUTABLES = codasrv printvrdb
 SSBINS      = $(EXECUTABLES)
 LIBRARIES   = libviceerror.a
 
-CLIBS =	$(LIBVOLSERV)  \
-	$(LIBVICEDEP)   \
-	$(LIBAUTH2)	\
-	$(LIBAL)	\
-	$(LIBVOLUTIL)	\
-	$(LIBRES)	\
-	$(LIBREPAIR) 	\
-	$(LIBVOL)	\
-	$(LIBVV)	\
-	$(LIBPARTITION)	\
-	$(LIBSYSENT)	\
-	$(LIBDIRLIB)	\
-	$(LIBUTIL) 	\
-	$(LIBCODARDS)   \
-	$(LIBSEG)  	\
-	$(LIBCODARVM) 	\
-	$(LIBRPC2) 	\
-	$(LIBSE)	\
-	$(LIBFAIL)	\
-	$(LIBOLDLWP)	\
-	$(LIBBASE)	\
-	$(LIBKVM)	\
-	$(LIBCOMPAT)
+DEPLIBS = $(LIBVOLSERV) $(LIBVICEDEP) $(LIBAUTH2) $(LIBAL) $(LIBVOLUTIL) \
+    $(LIBRES) $(LIBREPAIR) $(LIBVOL) $(LIBVV) $(LIBPARTITION) $(LIBSYSENT) \
+    $(LIBDIRLIB) $(LIBUTIL) $(LIBCODARDS) $(LIBSEG) $(LIBCODARVM) $(LIBRPC2) \
+    $(LIBSE) $(LIBFAIL) $(LIBBASE)
+LIBS := $(DEPLIBS) $(LIBLWP) $(LIBKVM) $(LIBCOMPAT) $(LIBDB) $(LIBMATH) \
+    $(LIBFIXUP) $(LIBS)
 
 objects=srvproc.o	\
 	srvproc2.o	\
@@ -83,12 +66,12 @@ objects=srvproc.o	\
 	writeback.o
 
 ifeq ($(SYS),sol2)
-LIBFIXUP += -R/usr/ucblib -L/usr/ucblib -lucb
+LIBS += -R/usr/ucblib -L/usr/ucblib -lucb
 endif
 
 
-codasrv: ${objects} srv.o dummyplumber.o ${CLIBS}
-	$(CXX) $(LDFLAGS) srv.o ${objects} dummyplumber.o ${CLIBS} $(LIBDB) -lm $(LIBFIXUP) -o codasrv
+codasrv: ${objects} srv.o dummyplumber.o ${DEPLIBS}
+	$(CXX) $(LDFLAGS) srv.o ${objects} dummyplumber.o ${LIBS} -o codasrv
 
 printvrdb: printvrdb.o 
 	$(CXX) ${LDFLAGS} printvrdb.o $(LIBFIXUP) -o printvrdb

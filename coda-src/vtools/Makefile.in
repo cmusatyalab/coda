@@ -33,7 +33,7 @@ endif
 
 CBINS       = $(EXECUTABLES)
 
-CMON_LIBS   =  $(LIBVICEDEP) $(LIBRPC2) $(LIBSE) $(LIBOLDLWP) $(LIBCOMPAT) $(LIBBASE)
+CMON_LIBS   =  $(LIBVICEDEP) $(LIBRPC2) $(LIBSE) $(LIBBASE)
 CFS_LIBS    = $(LIBKERNDEP) $(LIBUTIL) $(LIBBASE)
 HOARD_LIBS  = $(LIBUTIL) $(LIBKERNDEP) $(LIBBASE)
 STD_LIBS = $(LIBCURSES) $(LIBCOMPAT) $(LIBFIXUP)
@@ -43,7 +43,7 @@ CXXFLAGS := $(CXXFLAGS) -UVENUS -DSYSCONFDIR=\"@sysconfdir@\"
 include $(TOPDIR)/configs/Makerules
 
 cmon: cmon.o $(CMON_LIBS)
-	$(CXX) $(LDFLAGS) cmon.o $(CMON_LIBS) $(STD_LIBS) -o cmon
+	$(CXX) $(LDFLAGS) cmon.o $(CMON_LIBS) $(LIBLWP) $(LIBCOMPAT) $(STD_LIBS) -o cmon
 
 codacon:    codacon.o
 	$(CXX) $(LDFLAGS) codacon.o $(LIBBASE) $(LIBFIXUP) -o codacon

@@ -50,10 +50,9 @@ SSBINS      = $(EXECUTABLES)
 RP2FILES    = update.rpc2
 RP2HEADERS  = $(notdir ${RP2FILES:.rpc2=.h})
 
-LIBS=	${LIBVICEERROR}\
+DEPLIBS = ${LIBVICEERROR}\
 	${LIBUTIL}\
 	${LIBPORTMAP}\
-	${LIBNEWLWP}\
 	$(LIBVICEDEP)\
 	${LIBRPC2}\
 	${LIBSE}\
@@ -61,23 +60,21 @@ LIBS=	${LIBVICEERROR}\
 	${LIBVV}\
 	${LIBPARTITION}\
 	${LIBUTIL}\
-	$(LIBOLDLWP)\
 	${LIBKERNDEP}\
-	$(LIBTHREADS)\
-	$(LIBCOMPAT)\
 	$(LIBBASE)
+LIBS := $(DEPLIBS) $(LIBLWP) $(LIBCOMPAT) $(LIBS) $(LIBMATH)
 
 ifeq ($(SYS),sol2)
-LIBFIXUP += -R/usr/ucblib -L/usr/ucblib -lucb
+LIBS += -R/usr/ucblib -L/usr/ucblib -lucb
 endif
 
 include $(TOPDIR)/configs/Makerules
 
-updatesrv: updatesrv.o update.server.o ${LIBS}
-	$(CXX) $(LDFLAGS) updatesrv.o update.server.o ${LIBS} ${LIBFIXUP} -lm -o updatesrv
+updatesrv: updatesrv.o update.server.o ${DEPLIBS}
+	$(CXX) $(LDFLAGS) updatesrv.o update.server.o ${LIBS} -o updatesrv
 
-updateclnt: updateclnt.o update.client.o  ${LIBS}
-	$(CXX) $(LDFLAGS) updateclnt.o update.client.o  ${LIBS} ${LIBFIXUP} -lm -o updateclnt
+updateclnt: updateclnt.o update.client.o  ${DEPLIBS}
+	$(CXX) $(LDFLAGS) updateclnt.o update.client.o  ${LIBS} -o updateclnt
 
-updatefetch: updatefetch.o update.client.o  ${LIBS}
-	$(CXX) $(LDFLAGS) updatefetch.o update.client.o  ${LIBS} ${LIBFIXUP} -lm -o updatefetch
+updatefetch: updatefetch.o update.client.o  ${DEPLIBS}
+	$(CXX) $(LDFLAGS) updatefetch.o update.client.o  ${LIBS} -o updatefetch

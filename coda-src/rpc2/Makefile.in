@@ -36,7 +36,8 @@ HEADERS	     = rpc2.h se.h multi.h sftp.h rpc2.private.h errors.h errorsdefs.h
 CFLAGS := -Wall -DRPC2DEBUG -DERRORTR $(CFLAGS)
 AFLAGS := -DRPC2DEBUG $(AFLAGS)
 
-LIBS	= $(LIBOLDLWP) $(LIBCOMPAT) $(LIBBASE) $(LIBFIXUP)
+DEPLIBS = $(LIBBASE)
+LIBS := $(DEPLIBS) $(LIBLWP) $(LIBCOMPAT) $(LIBFIXUP) $(LIBS)
 
 HFILES	  = rpc2.h rpc2.private.h se.h cbuf.h trace.h multi.h 
 SEHFILES  = sftp.h
@@ -60,8 +61,8 @@ librpc2.a: $(OFILES) $(ASMOFILES)
 libse.a: $(SEOFILES)
 
 # Test programs
-${EXECUTABLES}: librpc2.a libse.a $(LIBS)
-	$(CC) $(LIBFLAGS) $@.o librpc2.a libse.a $(LIBS) -o $@
+${EXECUTABLES}: librpc2.a libse.a $(DEPLIBS)
+	$(CC) $(LDFLAGS) $@.o librpc2.a libse.a $(LIBS) -o $@
 
 # Dependencies for object files
 ctest: ctest.o

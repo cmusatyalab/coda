@@ -28,9 +28,9 @@ include $(TOPDIR)/Makeconf
 EXECUTABLES = blurb
 SCRIPTS     = blurb-ansify
 
-LIBS = $(LIBUTIL)
+LIBS := $(LIBUTIL) $(LIBFIXUP) $(LIBS)
 
 blurb:	blurb.o $(LIBS)
-	$(CC) $(LIBFLAGS) blurb.o $(LIBS) $(LIBFIXUP) -o blurb
+	$(CC) $(LIBFLAGS) blurb.o $(LIBS) -o blurb
 
 include $(TOPDIR)/configs/Makerules

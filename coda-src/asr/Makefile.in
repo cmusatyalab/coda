@@ -34,7 +34,8 @@ HEADERS     = asr.h ruletypes.h
 
 YFLAGS= -d
 
-LIBS=	$(LIBKERNDEP) $(LIBUTIL) $(LIBBASE)
+DEPLIBS = $(LIBKERNDEP) $(LIBUTIL) $(LIBBASE)
+LIBS := $(DEPLIBS) $(LEXLIB) $(LIBFIXUP) $(LIBS)
 
 #uncomment if you want to turn on timing of the ASR 
 #PERSONAL_FLAGS= -DTIMING
@@ -43,8 +44,8 @@ OBJECTS = resolver_parser.o resolver_lexer.o ruletypes.o resolver.o wildmat.o pa
 
 include $(TOPDIR)/configs/Makerules
 
-parser: ${OBJECTS} $(LIBS)
-	$(CXX) $(LDFLAGS) ${OBJECTS} $(LIBS) $(LEXLIB) $(LIBFIXUP) -o parser
+parser: ${OBJECTS} $(DEPLIBS)
+	$(CXX) $(LDFLAGS) ${OBJECTS} $(LIBS) -o parser
 
 # YYuck!  I don't know how to tell yyac to deliver a .cc extension  GRRR..(pjb)
 resolver_parser.o: resolver_parser.c

@@ -42,10 +42,12 @@ OBJS= fid.o codadir.o dirbody.o dirinode.o dhcache.o # salvage.o
 
 libcodadir.a:  $(OBJS)
 
-DT= libcodadir.a  $(LIBUTIL) $(LIBRDS) $(LIBSEG) $(LIBRVMLWP)  $(LIBOLDLWP)  $(LIBCOMPAT)  $(LIBBASE) $(LIBREADLINE) $(LIBTERMCAP) $(LIBFIXUP)
+DEPLIBS = libcodadir.a $(LIBUTIL) $(LIBRDS) $(LIBSEG) $(LIBRVMLWP) $(LIBBASE)\
+    $(LIBFIXUP)
+LIBS := $(DEPLIBS) $(LIBLWP) $(LIBCOMPAT) $(LIBREADLINE) $(LIBTERMCAP) $(LIBS)
 
-dirtest: dirtest.o libcodadir.a
-	$(CC) -o dirtest dirtest.o $(DT)
+dirtest: dirtest.o $(DEPLIBS)
+	$(CC) -o dirtest dirtest.o $(LIBS)
 
 include $(TOPDIR)/configs/Makerules
 

@@ -36,20 +36,21 @@ EXECUTABLES = makeftree inoder
 SSBINS=makeftree inoder
 
 LIBRARIES = libpartition.a
-LIBS = $(LIBPARTITION) $(LIBUTIL) $(LIBRDS) $(LIBSEG) $(LIBRVM) $(LIBOLDLWP) $(LIBBASE)
+DEPLIBS = $(LIBPARTITION) $(LIBUTIL) $(LIBRDS) $(LIBSEG) $(LIBRVM) $(LIBBASE)
+LIBS := $(DEPLIBS) $(LIBLWP) $(LIBMATH) $(LIBFIXUP) $(LIBS)
 
 ifeq ($(SYS),sol2)
-LIBFIXUP += -R/usr/ucblib -L/usr/ucblib -lucb
+LIBS += -R/usr/ucblib -L/usr/ucblib -lucb
 endif
 
 
 libpartition.a: $(LIBOBS)
 
-makeftree: makeftree.o $(LIBS)
-	$(CC) -o makeftree makeftree.o $(LIBS) $(LIBMATH) $(LIBFIXUP)
+makeftree: makeftree.o $(DEPLIBS)
+	$(CC) -o makeftree makeftree.o $(LIBS)
 
-inoder: inoder.o $(LIBOBS)
-	$(CC) -o inoder inoder.o $(LIBS) $(LIBMATH) $(LIBFIXUP)
+inoder: inoder.o $(LIBOBS) $(DEPLIBS)
+	$(CC) -o inoder inoder.o $(LIBS)
 
 
 include $(TOPDIR)/configs/Makerules

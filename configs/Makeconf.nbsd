@@ -5,11 +5,8 @@
 
 # the following may need editing depending on your preferences
 
-MACHINE_FLAGS += -D__BSD44__
+MACHINE_FLAGS = $(MACHINE_FLAGS) -D__BSD44__
 SHORTSYS      = bsd44
-INCLFLAGS     = -I/usr/include
-OPTFLAG	      = -O2
-GFLAG         = -g
 LIBCOMPAT     = /usr/lib/libcompat.a
 LIBREADLINE   = /usr/pkg/lib/libreadline.a
 INCREADLINE   = -I/usr/pkg/include/readline

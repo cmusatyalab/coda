@@ -59,7 +59,7 @@ include $(TOPDIR)/configs/Makerules
 # on y.tab.h, but it gets generated at the same time by yacc...
 
 rp2gen: rp2main.o rp2gen_parser.o rp2gen_lexer.o symtab.o crout.o util.o $(LIBFIXUP)
-	${CC} $(LIBFLAGS) rp2main.o rp2gen_parser.o rp2gen_lexer.o symtab.o crout.o util.o $(LIBFIXUP) -o rp2gen
+	${CC} $(LDFLAGS) rp2main.o rp2gen_parser.o rp2gen_lexer.o symtab.o crout.o util.o $(LIBFIXUP) -o rp2gen
 
 rp2main.o: rp2main.c rp2.h
 

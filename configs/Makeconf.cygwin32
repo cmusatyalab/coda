@@ -13,10 +13,8 @@
 
 EXTRAS = cygwin
 
-MACHINE_FLAGS  += -D__CYGWIN32__
+MACHINE_FLAGS  += $(MACHINE_FLAGS) -D__CYGWIN32__ -gstabs
 #SHORTSYS      	= linux
-#OPTFLAG	= -fno-exceptions -O2
-GFLAG		= -g -gstabs
 LIBFIXUP	= $(TOPOBJ)/cygwin/libbraindead.a
 #LIBCURSES	= -lncurses
 LIBCOMPAT	=

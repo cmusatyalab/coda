@@ -39,11 +39,10 @@ TESTS = testrvm rvm_basher lwp_basher
 
 TESTRVM_LIBS    = $(LIBRVM) $(LIBCOMPAT) $(LIBBASE) $(LIBTHREADS)
 RVM_BASHER_LIBS = $(LIBRDS) $(LIBSEG) $(LIBRVM) $(LIBCOMPAT) $(LIBBASE) $(LIBTHREADS)
-LWP_BASHER_LIBS = $(LIBRDSLWP) $(LIBSEG) $(LIBRVMLWP) $(LIBOLDLWP) \
-		  $(LIBCOMPAT) $(LIBBASE)
+LWP_BASHER_LIBS = $(LIBRDSLWP) $(LIBSEG) $(LIBRVMLWP) $(LIBBASE)
 
 # re-install this when libplumber is ready, for mach platform -- clement
-# LWP_BASHER_LIBS = $(LIBRDSLWP) $(LIBSEG) $(LIBRVMLWP) $(LIBOLDLWP) \
+# LWP_BASHER_LIBS = $(LIBRDSLWP) $(LIBSEG) $(LIBRVMLWP) $(LIBLWP) \
 #                  $(LIBPLUMBER)
 # CFLAGS := $(CFLAGS) -DHAS_PLUMBER
 
@@ -63,7 +62,8 @@ lwp_basher.o:	rvm_basher.c
 	-mv xxx_basher.o rvm_basher.o
 
 lwp_basher: lwp_basher.o $(LWP_BASHER_LIBS)
-	    $(CC) $(LIBFLAGS) lwp_basher.o $(LWP_BASHER_LIBS) -o lwp_basher
+	    $(CC) $(LIBFLAGS) lwp_basher.o $(LWP_BASHER_LIBS) \
+		$(LIBLWP) $(LIBCOMPAT) -o lwp_basher
 
 
 include $(TOPDIR)/configs/Makerules

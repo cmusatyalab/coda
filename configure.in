@@ -9,6 +9,8 @@ sinclude(configs/coda_cross.m4)
 dnl Load the CODA_ tests.
 sinclude(configs/coda_macros.m4)
 
+CODA_OPTION_LWP
+
 dnl Checks for programs.
 AC_PROG_CC
 AC_PROG_CXX
@@ -30,10 +32,11 @@ AC_PATH_PROG(PERL, perl, "")
 AC_PATH_PROGS(TIXWISH, [tixwish tixwish-tk4.1 tixwish4.1.8.0], "/usr/bin/tixwish")
 
 dnl Checks for libraries.
+CODA_FIND_LIBLWP
 CODA_CHECK_LIBTERMCAP
 CODA_CHECK_LIBCURSES
 CODA_CHECK_LIBDB185
-AC_CHECK_LIB(nsl, inet_ntoa)
+AC_SEARCH_LIBS(inet_ntoa, nsl)
 
 dnl Checks for header files.
 AC_CHECK_HEADERS(search.h sys/resource.h sys/stream.h)

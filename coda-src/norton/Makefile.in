@@ -32,8 +32,7 @@ ifeq ($(SYS),sol2)
 LIBFIXUP += -R/usr/ucblib -L/usr/ucblib -lucb
 endif
 
-NLIBS =	$(LIBIBERTY) \
-	$(LIBAUTH2)	\
+DEPLIBS = $(LIBAUTH2)	\
 	$(LIBRES)	\
 	$(LIBAL)	\
 	$(LIBREPAIR)	\
@@ -48,13 +47,10 @@ NLIBS =	$(LIBIBERTY) \
 	$(LIBSEG) 	\
 	$(LIBCODARVM) 	\
 	$(LIBRPC2) 	\
-	$(LIBOLDLWP)	\
 	$(LIBBASE)
 
-STD_LIBS = $(LIBCOMPAT)	\
-	$(LIBREADLINE)  \
-	$(LIBTERMCAP)	\
-	$(LIBFIXUP)
+LIBS := $(DEPLIBS) $(LIBLWP) $(LIBDB) $(LIBREADLINE) $(LIBTERMCAP)	\
+	$(LIBCOMPAT) $(LIBFIXUP) $(LIBMATH) $(LIBS)
 
 common_objects = norton-setup.o commands.o norton-volume.o \
 		 norton-recov.o norton-vnode.o norton-dir.o norton-rds.o dummy.o
@@ -64,8 +60,8 @@ reinit_objs =	norton-reinit.o ${common_objects}
 
 include $(TOPDIR)/configs/Makerules
 
-norton: ${norton_objs} ${NLIBS}
-	$(CXX) $(LDFLAGS) ${norton_objs} ${NLIBS} $(LIBDB) ${STD_LIBS} -lm -o norton
+norton: ${norton_objs} ${DEPLIBS}
+	$(CXX) $(LDFLAGS) ${norton_objs} ${LIBS} -o norton
 
-norton-reinit: ${reinit_objs} ${NLIBS}
-	$(CXX) $(LDFLAGS) ${reinit_objs} ${NLIBS} $(LIBDB) ${STD_LIBS} -lm -o norton-reinit
+norton-reinit: ${reinit_objs} ${DEPLIBS}
+	$(CXX) $(LDFLAGS) ${reinit_objs} ${LIBS} -o norton-reinit
