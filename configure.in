@@ -70,7 +70,7 @@ CODA_CHECK_LIBTERMCAP
 CODA_CHECK_LIBCURSES
 CODA_CHECK_READLINE
 
-CODA_CHECK_MD5
+CODA_CHECK_HASH
 CODA_CHECK_KERBEROS
 
 AC_SEARCH_LIBS(bcopy, ucb)
@@ -143,6 +143,7 @@ coda-src/al/Makefile
 coda-src/vicedep/Makefile  
 coda-src/auth2/Makefile 
 coda-src/vv/Makefile 
+coda-src/lka/Makefile
 coda-src/vol/Makefile 
 coda-src/librepair/Makefile 
 coda-src/venus/Makefile 

@@ -3,7 +3,7 @@
                            Coda File System
                               Release 5
 
-          Copyright (c) 1987-1999 Carnegie Mellon University
+          Copyright (c) 1987-2003 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -12,7 +12,7 @@ file  LICENSE.  The  technical and financial  contributors to Coda are
 listed in the file CREDITS.
 
                         Additional copyrights
-                           none currently
+              Copyright (c) 2002-2003 Intel Corporation
 
 #*/
 
@@ -186,8 +186,8 @@ int fsobj::ConnectedRemove(Date_t Mtime, uid_t uid, char *name, fsobj *target_fs
 	/* Do Remove locally. */
 	Recov_BeginTrans();
 	LocalRemove(Mtime, name, target_fso);
-	UpdateStatus(&parent_status, &UpdateSet, uid);
-	target_fso->UpdateStatus(&target_status, &UpdateSet, uid);
+	UpdateStatusAndClearSHA(&parent_status, &UpdateSet, uid);
+	target_fso->UpdateStatusAndClearSHA(&target_status, &UpdateSet, uid);
 	Recov_EndTrans(CMFP);
 	if (ASYNCCOP2) ReturnEarly();
 
@@ -239,8 +239,8 @@ RepExit:
 	/* Do Remove locally. */
 	Recov_BeginTrans();
 	LocalRemove(Mtime, name, target_fso);
-	UpdateStatus(&parent_status, 0, uid);
-	target_fso->UpdateStatus(&target_status, 0, uid);
+	UpdateStatusAndClearSHA(&parent_status, 0, uid);
+	target_fso->UpdateStatusAndClearSHA(&target_status, 0, uid);
 	Recov_EndTrans(CMFP);
 
 NonRepExit:
@@ -427,8 +427,8 @@ int fsobj::ConnectedLink(Date_t Mtime, uid_t uid, char *name, fsobj *source_fso)
 	/* Do Link locally. */
 	Recov_BeginTrans();
 	LocalLink(Mtime, name, source_fso);
-	UpdateStatus(&parent_status, &UpdateSet, uid);
-	source_fso->UpdateStatus(&source_status, &UpdateSet, uid);
+	UpdateStatusAndClearSHA(&parent_status, &UpdateSet, uid);
+	source_fso->UpdateStatusAndClearSHA(&source_status, &UpdateSet, uid);
 	Recov_EndTrans(CMFP);
 	if (ASYNCCOP2) ReturnEarly();
 
@@ -481,8 +481,8 @@ RepExit:
 	/* Do Link locally. */
 	Recov_BeginTrans();
 	LocalLink(Mtime, name, source_fso);
-	UpdateStatus(&parent_status, 0, uid);
-	source_fso->UpdateStatus(&source_status, 0, uid);
+	UpdateStatusAndClearSHA(&parent_status, 0, uid);
+	source_fso->UpdateStatusAndClearSHA(&source_status, 0, uid);
 	Recov_EndTrans(CMFP);
 
 NonRepExit:
@@ -745,12 +745,12 @@ int fsobj::ConnectedRename(Date_t Mtime, uid_t uid, fsobj *s_parent_fso,
 	/* Do Rename locally. */
 	Recov_BeginTrans();
 	LocalRename(Mtime, s_parent_fso, s_name, s_fso, t_name, t_fso);
-	UpdateStatus(&t_parent_status, &UpdateSet, uid);
+	UpdateStatusAndClearSHA(&t_parent_status, &UpdateSet, uid);
 	if (!SameParent)
-		s_parent_fso->UpdateStatus(&s_parent_status, &UpdateSet, uid);
-	s_fso->UpdateStatus(&source_status, &UpdateSet, uid);
+		s_parent_fso->UpdateStatusAndClearSHA(&s_parent_status, &UpdateSet, uid);
+	s_fso->UpdateStatusAndClearSHA(&source_status, &UpdateSet, uid);
 	if (TargetExists)
-		t_fso->UpdateStatus(&target_status, &UpdateSet, uid);
+		t_fso->UpdateStatusAndClearSHA(&target_status, &UpdateSet, uid);
 	Recov_EndTrans(CMFP);
 	if (ASYNCCOP2) ReturnEarly();
 
@@ -812,12 +812,12 @@ RepExit:
 	/* Do Rename locally. */
 	Recov_BeginTrans();
 	LocalRename(Mtime, s_parent_fso, s_name, s_fso, t_name, t_fso);
-	UpdateStatus(&t_parent_status, 0, uid);
+	UpdateStatusAndClearSHA(&t_parent_status, 0, uid);
 	if (!SameParent)
-		s_parent_fso->UpdateStatus(&s_parent_status, 0, uid);
-	s_fso->UpdateStatus(&source_status, 0, uid);
+		s_parent_fso->UpdateStatusAndClearSHA(&s_parent_status, 0, uid);
+	s_fso->UpdateStatusAndClearSHA(&source_status, 0, uid);
 	if (TargetExists)
-		t_fso->UpdateStatus(&target_status, 0, uid);
+		t_fso->UpdateStatusAndClearSHA(&target_status, 0, uid);
 	Recov_EndTrans(CMFP);
 
 NonRepExit:
@@ -1058,8 +1058,8 @@ int fsobj::ConnectedMkdir(Date_t Mtime, uid_t uid, fsobj **t_fso_addr,
 	/* Do Mkdir locally. */
 	Recov_BeginTrans();
 	LocalMkdir(Mtime, target_fso, name, uid, Mode);
-	UpdateStatus(&parent_status, &UpdateSet, uid);
-	target_fso->UpdateStatus(&target_status, &UpdateSet, uid);
+	UpdateStatusAndClearSHA(&parent_status, &UpdateSet, uid);
+	target_fso->UpdateStatusAndClearSHA(&target_status, &UpdateSet, uid);
 	Recov_EndTrans(CMFP);
 	if (target_status.CallBack == CallBackSet && cbtemp == cbbreaks)
 	    target_fso->SetRcRights(RC_STATUS | RC_DATA);
@@ -1127,8 +1127,8 @@ RepExit:
 	/* Do Mkdir locally. */
 	Recov_BeginTrans();
 	LocalMkdir(Mtime, target_fso, name, uid, Mode);
-	UpdateStatus(&parent_status, 0, uid);
-	target_fso->UpdateStatus(&target_status, 0, uid);
+	UpdateStatusAndClearSHA(&parent_status, 0, uid);
+	target_fso->UpdateStatusAndClearSHA(&target_status, 0, uid);
 	Recov_EndTrans(CMFP);
 	if (target_status.CallBack == CallBackSet && cbtemp == cbbreaks)
 	    target_fso->SetRcRights(RC_STATUS | RC_DATA);
@@ -1373,8 +1373,8 @@ int fsobj::ConnectedRmdir(Date_t Mtime, uid_t uid, char *name, fsobj *target_fso
 	/* Do Rmdir locally. */
 	Recov_BeginTrans();
 	LocalRmdir(Mtime, name, target_fso);
-	UpdateStatus(&parent_status, &UpdateSet, uid);
-	target_fso->UpdateStatus(&target_status, &UpdateSet, uid);
+	UpdateStatusAndClearSHA(&parent_status, &UpdateSet, uid);
+	target_fso->UpdateStatusAndClearSHA(&target_status, &UpdateSet, uid);
 	Recov_EndTrans(CMFP);
 	if (ASYNCCOP2) ReturnEarly();
 
@@ -1427,8 +1427,8 @@ RepExit:
 	/* Do Rmdir locally. */
 	Recov_BeginTrans();
 	LocalRmdir(Mtime, name, target_fso);
-	UpdateStatus(&parent_status, 0, uid);
-	target_fso->UpdateStatus(&target_status, 0, uid);
+	UpdateStatusAndClearSHA(&parent_status, 0, uid);
+	target_fso->UpdateStatusAndClearSHA(&target_status, 0, uid);
 	Recov_EndTrans(CMFP);
 
 NonRepExit:
@@ -1655,8 +1655,8 @@ int fsobj::ConnectedSymlink(Date_t Mtime, uid_t uid, fsobj **t_fso_addr,
 	/* Do Symlink locally. */
 	Recov_BeginTrans();
 	LocalSymlink(Mtime, target_fso, name, contents, uid, Mode);
-	UpdateStatus(&parent_status, &UpdateSet, uid);
-	target_fso->UpdateStatus(&target_status, &UpdateSet, uid);
+	UpdateStatusAndClearSHA(&parent_status, &UpdateSet, uid);
+	target_fso->UpdateStatusAndClearSHA(&target_status, &UpdateSet, uid);
 	Recov_EndTrans(CMFP);
 	if (target_status.CallBack == CallBackSet && cbtemp == cbbreaks)
 	    target_fso->SetRcRights(RC_STATUS | RC_DATA);
@@ -1725,8 +1725,8 @@ RepExit:
 	/* Do Symlink locally. */
 	Recov_BeginTrans();
 	LocalSymlink(Mtime, target_fso, name, contents, uid, Mode);
-	UpdateStatus(&parent_status, 0, uid);
-	target_fso->UpdateStatus(&target_status, 0, uid);
+	UpdateStatusAndClearSHA(&parent_status, 0, uid);
+	target_fso->UpdateStatusAndClearSHA(&target_status, 0, uid);
 	Recov_EndTrans(CMFP);
 	if (target_status.CallBack == CallBackSet && cbtemp == cbbreaks)
 	    target_fso->SetRcRights(RC_STATUS | RC_DATA);

@@ -197,7 +197,7 @@ int fsobj::RepairStore()
 	/* Do Store locally. */
 	Recov_BeginTrans();
 	LocalStore(Mtime, NewLength);
-	UpdateStatus(&status, &UpdateSet, vp->u.u_uid);
+	UpdateStatusAndClearSHA(&status, &UpdateSet, vp->u.u_uid);
 	Recov_EndTrans(CMFP);
 	if (ASYNCCOP2) ReturnEarly();
 
@@ -251,7 +251,7 @@ RepExit:
 	/* Do Store locally. */
 	Recov_BeginTrans();
 	LocalStore(Mtime, NewLength);
-	UpdateStatus(&status, 0, vp->u.u_uid);
+	UpdateStatusAndClearSHA(&status, 0, vp->u.u_uid);
 	Recov_EndTrans(CMFP);
 
 NonRepExit:
@@ -798,7 +798,7 @@ int fsobj::ReplaceLocalFakeFid()
 	Recov_BeginTrans();
 	/* LocalFid = LRDB->GenerateLocalFakeFid(stat.VnodeType);  stat.VnodeType is incorrect!  -Remi */
 	LocalFid = LRDB->GenerateLocalFakeFid((ISDIR(obj->fid) ? Directory : File));
-	memmove((void *)&GlobalFid, (const void *)&obj->fid, (int)sizeof(VenusFid));
+	memcpy(&GlobalFid, &obj->fid, sizeof(VenusFid));
 	/* insert the local-global fid mapping */
 	LRDB->LGM_Insert(&LocalFid, &GlobalFid);
 	/* globally replace the global-fid with the local-fid */

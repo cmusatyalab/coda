@@ -5,5 +5,6 @@
 # autoconf   - configure
 #
 
+rm -rf autom4te.cache
 autoheader
 autoconf

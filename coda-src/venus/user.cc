@@ -52,10 +52,12 @@ extern "C" {
 /* interfaces */
 #include <auth2.h>
 #include <vice.h>
+#include <lka.h>
 
 #ifdef __cplusplus
 }
 #endif
+
 
 #include "adv_monitor.h"
 #include "comm.h"
@@ -443,6 +445,9 @@ int userent::Connect(RPC2_Handle *cid, int *auth, struct in_addr *host)
 	bparms.ClientIdent = &clientident;
 	bparms.SharedSecret = &clear.HandShakeKey;
 
+	int MaxRetryBind = 3;
+    RetryConnect: /* in case ViceGetAttrPlusSHA() below fails, retry a few times */
+
 	LOG(1, ("userent::Connect: RPC2_NewBinding(%s)\n", inet_ntoa(*host)));
 	code = (int) RPC2_NewBinding(&hid, &pid, &ssid, &bparms, cid);
 	LOG(1, ("userent::Connect: RPC2_NewBinding -> %s\n", RPC2_ErrorMsg(code)));
@@ -467,7 +472,8 @@ int userent::Connect(RPC2_Handle *cid, int *auth, struct in_addr *host)
 	 * It is only reset when RVM is reinitialized */
 	memcpy(vc.VenusUUID, &VenusGenID, sizeof(ViceUUID));
 
-	char *sname = FindServer(&hid.Value.InetAddress)->name;
+        srvent *sv = FindServer(&hid.Value.InetAddress);
+	char *sname = sv->name;
 	LOG(1, ("userent::Connect: NewConnectFS(%s)\n", sname)); 
 	MarinerLog("fetch::NewConnectFS %s\n", sname);
 	UNI_START_MESSAGE(ViceNewConnectFS_OP);
@@ -483,6 +489,51 @@ int userent::Connect(RPC2_Handle *cid, int *auth, struct in_addr *host)
 		    RPC2_ErrorMsg(unbind_code)));
 	    return(code);
 	}
+
+	/* Discover whether ViceGetAttrPlusSHA() is supported */
+	{
+	  LOG(0, ("userent::Connect: ViceGetAttrPlusSHA(%s)\n", sname)); 
+	  UNI_START_MESSAGE(ViceGetAttrPlusSHA_OP);
+
+	  ViceStatus dummystatus;
+	  ViceFid bogusfid = {0, 0, 0}; /* we expect EINVAL return code */
+	  RPC2_BoundedBS dummysha;
+	  dummysha.SeqBody = NULL;
+	  dummysha.MaxSeqLen = 0;
+	  dummysha.SeqLen = 0;
+	  int shacode = 0;
+
+	  char dummyPiggyData[COP2SIZE]; 	  /* COP2 Piggybacking. */
+	  RPC2_CountedBS dummyPiggyBS;
+	  dummyPiggyBS.SeqLen = 0;
+	  dummyPiggyBS.SeqBody = (RPC2_ByteSeq)dummyPiggyData;
+
+	  shacode = (int) ViceGetAttrPlusSHA(*cid, &bogusfid, 0, &dummystatus, &dummysha, 0, &dummyPiggyBS);
+
+	  UNI_END_MESSAGE(ViceGetAttrPlusSHA_OP);
+	  UNI_RECORD_STATS(ViceGetAttrPlusSHA_OP);
+	  LOG(0, ("userent::Connect: ViceGetAttrPlusSHA() -> %d\n", shacode));
+
+	  if (shacode == RPC2_INVALIDOPCODE) sv->VGAPlusSHA_Supported = 0; /* no doubts! */
+	  else {
+	    if (shacode < 0) {
+	      /* some other RPC2 error code */
+	      RPC2_Unbind(*cid); 
+	      if (--MaxRetryBind) goto RetryConnect; /* retry a few times */
+	      else return(shacode);  /* give up */
+	    }
+	    else {
+	      /* Only a shacode of EINVAL confirms presence of ViceGetAttrPlusSHA().
+		 Conservatively interpret all other server return codes as nonexistence */
+	      if (shacode == EINVAL) sv->VGAPlusSHA_Supported = 1;
+	      else sv->VGAPlusSHA_Supported = 0;
+	    } 
+	  }
+
+	  LOG(0, ("userent::Connect: VGAPlusSHA_Supported -> %d\n", sv->VGAPlusSHA_Supported));
+
+	}
+
 	return(0);
     }
 }

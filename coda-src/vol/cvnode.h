@@ -44,6 +44,7 @@ extern "C" {
 #include <rec_smolist.h>
 #include <rec_dlist.h>
 #include "vicelock.h"
+#include "lka.h"
 #define ROOTVNODE 1
 
 typedef int VnodeType;
@@ -163,7 +164,15 @@ typedef struct Vnode {
     				   for the cache entry to be valid */
     struct	Lock lock;	/* Internal lock */
     PROCESS	writer;		/* Process id having write lock */
+
+    /* SHA160, there is no room in the VnodeDiskObject, but we don't
+       really want to recalculate it for every GetAttr. Eventually this
+       should end up in the VnodeDiskObject. */
+    unsigned char SHA[SHA_DIGEST_LENGTH];
+
     VnodeDiskObject disk;	/* The actual disk data for the vnode */
+    /* The VnodeDiskObject needs to be the last one in the Vnode structure,
+     * because the ACLs are dangling off the end... */
 } Vnode;
 
 #define Vnode_vv(vptr)		((vptr)->disk.versionvector)
@@ -184,6 +193,7 @@ SIZOEOF_SMALLDISKVNODE > sizeof(VnodeDiskData)
 #define VAclSize(vnp)		(SIZEOF_LARGEVNODE - SIZEOF_SMALLVNODE)
 #define VAclDiskSize(v)		(SIZEOF_LARGEDISKVNODE - SIZEOF_SMALLDISKVNODE)
 #define VnLog(vnp)		((vnp)->disk.log)
+#define VnSHA(vnp)		((vnp)->SHA)
 
 PDirHandle SetDirHandle(struct Vnode *);
 extern int VolumeHashOffset();

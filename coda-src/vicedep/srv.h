@@ -172,6 +172,7 @@ typedef struct WBHolderEntry {
 
 #define DISCONNECT ViceDisconnectFS_OP
 #define GETATTR ViceGetAttr_OP
+#define GETATTRPLUSSHA ViceGetAttrPlusSHA_OP
 #define GETACL ViceGetACL_OP
 #define FETCH ViceFetch_OP
 #define SETATTR ViceSetAttr_OP
@@ -200,6 +201,7 @@ typedef struct WBHolderEntry {
 #define REINTEGRATE ViceReintegrate_OP
 #define ALLOCFIDS ViceAllocFids_OP
 #define VALIDATEATTRS ViceValidateAttrs_OP
+#define VALIDATEATTRSPLUSSHA ViceValidateAttrsPlusSHA_OP
 #define NEWCONNECTFS ViceNewConnectFS_OP
 #define GETVOLVS ViceGetVolVS_OP
 #define VALIDATEVOLS ViceValidateVols_OP
@@ -338,6 +340,9 @@ extern void CodaDeleteCallBack(HostTable *, ViceFid *, VolumeId);
 
 /* resolution */
 extern int AllowResolution;
+
+/* lookaside */
+extern int AllowSHA;
 
 /* coppend.c */
 extern void AddToCopPendingTable(ViceStoreId *, ViceFid *);

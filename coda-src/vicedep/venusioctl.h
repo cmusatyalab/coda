@@ -58,6 +58,8 @@ extern "C" {
 }
 #endif
 
+#define CFS_PIOBUFSIZE 2048 /* max size of in,out data in pioctls (Satya, 1/03) */
+
 
 /* Definitions of Venus-specific ioctls  */
 
@@ -104,6 +106,8 @@ extern "C" {
 #define	VIOC_SETCELLSTATUS	_VICEIOCTL(36)	/* set corresponding info */
 #define	VIOC_FLUSHVOLUME	_VICEIOCTL(37)	/* flush whole volume's data */
 #define	VIOC_LISTCACHE_VOLUME	_VICEIOCTL(39)	/* list volume's cached status */
+#define VIOC_LOOKASIDE          _VICEIOCTL(40) /* Add or remove  cache lookaside databases (Satya, 1/2003) */
+
 
 #define	CFS_IOCTL_BASE	192
 

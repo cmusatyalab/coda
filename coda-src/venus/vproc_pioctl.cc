@@ -3,7 +3,7 @@
                            Coda File System
                               Release 5
 
-          Copyright (c) 1987-1999 Carnegie Mellon University
+          Copyright (c) 1987-2003 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -12,7 +12,7 @@ file  LICENSE.  The  technical and financial  contributors to Coda are
 listed in the file CREDITS.
 
                         Additional copyrights
-                           none currently
+              Copyright (c) 2002-2003 Intel Corporation
 
 #*/
 
@@ -43,13 +43,12 @@ extern "C" {
 #include <prs.h>
 #include <rpc2/rpc2.h>
 #include <rpc2/fail.h>
+#include <lka.h>
+#include <vice.h>
 
 #ifdef __cplusplus
 }
 #endif
-
-/* interfaces */
-#include <vice.h>
 
 /* from vicedep */
 #include <venusioctl.h>
@@ -1066,8 +1065,19 @@ V_FreeLocks:
 	case VIOC_WR_ALL:
 	case VIOC_REP_CMD:
         case VIOC_UNLOADKERNEL:	
+        case VIOC_LOOKASIDE:
 	    {
 	    switch(com) {
+                case VIOC_LOOKASIDE:
+	            {
+		      /* cache lookaside command (cfs lka) */
+		      memset(data->out, 0, CFS_PIOBUFSIZE);
+		      LKParseAndExecute((char *)data->in,  
+                                  (char *)data->out, CFS_PIOBUFSIZE-1);
+		      data->out_size = strlen(data->out) + 1; 
+		      break; /* outmsg has success/failure info */
+
+	            }
 		case VIOC_LISTCACHE:
 	            {
 		      /* List cache status */

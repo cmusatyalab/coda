@@ -132,6 +132,7 @@ int probingon;			// default 0
 int optimizationson;		// default 0
 int Authenticate;		// default 1
 int AllowResolution;		// default 1, controls directory resolution 
+int AllowSHA;			// default 0, whether we calculate SHA checksums
 int comparedirreps;		// default 1 
 int pathtiming;			// default 0 
 int pollandyield;		// default 1 
@@ -962,6 +963,9 @@ void PrintCounters(FILE *fp)
     SLog(0, "TossWBPermit %d", Counters[ViceTossWBPermit_OP]); 
     SLog(0, "RejectWBPermit %d", Counters[ViceRejectWBPermit_OP]); 
 
+    SLog(0, "GetAttrPlusSHA %d", Counters[GETATTRPLUSSHA]); 
+    SLog(0, "ValidateAttrsPlusSHA %d", Counters[VALIDATEATTRSPLUSSHA]); 
+
     seconds = Counters[FETCHTIME]/1000;
     if(seconds <= 0) 
 	seconds = 1;
@@ -1338,6 +1342,7 @@ static int ReadConfigFile(void)
     /* srv.cc defined values ... */
     CONF_INT(Authenticate,	"authenticate",	   1); 
     CONF_INT(AllowResolution,	"resolution",	   1); 
+    CONF_INT(AllowSHA,		"allow_sha",	   0); 
     CONF_INT(comparedirreps,	"comparedirreps",  1); 
     CONF_INT(pollandyield,	"pollandyield",    1); 
     CONF_INT(pathtiming,	"pathtiming",	   1);

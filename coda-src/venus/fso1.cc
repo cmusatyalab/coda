@@ -3,7 +3,7 @@
                            Coda File System
                               Release 5
 
-          Copyright (c) 1987-1999 Carnegie Mellon University
+          Copyright (c) 1987-2003 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -12,8 +12,7 @@ file  LICENSE.  The  technical and financial  contributors to Coda are
 listed in the file CREDITS.
 
                         Additional copyrights
-                           none currently
-
+		Copyright (c) 2002-2003 Intel Corporation
 #*/
 
 
@@ -671,24 +670,27 @@ int fsobj::Flush() {
 /* MUST be called from within transaction! */
 /* Call with object write-locked. */
 /* Called as result of {GetAttr, ValidateAttr, GetData, ValidateData}. */
-void fsobj::UpdateStatus(ViceStatus *vstat, uid_t uid)
+
+void fsobj::UpdateStatusAndSHA(ViceStatus *vstat, uid_t uid, RPC2_BoundedBS *newsha)
 {
     /* Mount points are never updated. */
     if (IsMtPt())
-	{ print(logFile); CHOKE("fsobj::UpdateStatus: IsMtPt!"); }
+	{ print(logFile); CHOKE("fsobj::UpdateStatusAndSHA: IsMtPt!"); }
     /* Fake objects are never updated. */
     if (IsFake())
-	{ print(logFile); CHOKE("fsobj::UpdateStatus: IsFake!"); }
+	{ print(logFile); CHOKE("fsobj::UpdateStatusAndSHA: IsFake!"); }
 
-    LOG(100, ("fsobj::UpdateStatus: (%s), uid = %d\n", FID_(&fid), uid));
+    LOG(100, ("fsobj::UpdateStatusAndSHA: (%s), uid = %d\n", FID_(&fid), uid));
 
-    if (HAVESTATUS(this)) {		/* {ValidateAttr, GetData, ValidateData} */
-	if (!StatusEq(vstat, 0))
-	    ReplaceStatus(vstat, 0);
+    if (HAVESTATUS(this)) {		/* {ValidateAttr} */
+      if (!StatusEq(vstat, 0))
+	    ReplaceStatusAndSHA(vstat, 0, newsha);
+      /* else ValidateAttr was successful for this object, so
+	 leave SHA alone */
     }
     else {				/* {GetAttr} */
 	Matriculate();
-	ReplaceStatus(vstat, 0);
+	ReplaceStatusAndSHA(vstat, 0, newsha);
     }
 
     /* Set access rights and parent (if they differ). */
@@ -702,22 +704,23 @@ void fsobj::UpdateStatus(ViceStatus *vstat, uid_t uid)
 /* MUST be called from within transaction! */
 /* Call with object write-locked. */
 /* Called for mutating operations. */
-void fsobj::UpdateStatus(ViceStatus *vstat, vv_t *UpdateSet, uid_t uid)
+/* SHA is always cleared by this call */
+void fsobj::UpdateStatusAndClearSHA(ViceStatus *vstat, vv_t *UpdateSet, uid_t uid)
 {
     /* Mount points are never updated. */
     if (IsMtPt())
-	{ print(logFile); CHOKE("fsobj::UpdateStatus: IsMtPt!"); }
+	{ print(logFile); CHOKE("fsobj::UpdateStatusAndClearSHA: IsMtPt!"); }
     /* Fake objects are never updated. */
     if (IsFake())
-	{ print(logFile); CHOKE("fsobj::UpdateStatus: IsFake!"); }
+	{ print(logFile); CHOKE("fsobj::UpdateStatusAndClearSHA: IsFake!"); }
 
-    LOG(100, ("fsobj::UpdateStatus: (%s), uid = %d\n", FID_(&fid), uid));
+    LOG(100, ("fsobj::UpdateStatusAndClearSHA: (%s), uid = %d\n", FID_(&fid), uid));
 
     /* Install the new status block. */
     if (!StatusEq(vstat, 1))
 	/* Ought to Die in this event! */;
 
-    ReplaceStatus(vstat, UpdateSet);
+    ReplaceStatusAndSHA(vstat, UpdateSet, NULL);
 
     /* Set access rights and parent (if they differ). */
     /* N.B.  It should be a fatal error if they differ! */
@@ -795,15 +798,20 @@ int fsobj::StatusEq(ViceStatus *vstat, int Mutating)
 
 /* MUST be called from within transaction! */
 /* Call with object write-locked. */
-void fsobj::ReplaceStatus(ViceStatus *vstat, vv_t *UpdateSet)
+void fsobj::ReplaceStatusAndSHA(ViceStatus *vstat, vv_t *UpdateSet, RPC2_BoundedBS *vsha)
 {
     RVMLIB_REC_OBJECT(stat);
+    RVMLIB_REC_OBJECT(VenusSHA);
+
+    if (vsha && vsha->SeqLen == SHA_DIGEST_LENGTH)
+	 memcpy(VenusSHA, vsha->SeqBody, SHA_DIGEST_LENGTH);
+    else memset(VenusSHA, 0, SHA_DIGEST_LENGTH);
 
     /* We're changing the length? 
      * Then the cached data is probably no longer useable! But try to fix up
      * the cachefile so that we can at least give a stale copy. */
     if (HAVEDATA(this) && stat.Length != vstat->Length) {
-	LOG(0, ("fsobj::ReplaceStatus: (%s), changed stat.length %d->%d\n",
+	LOG(0, ("fsobj::ReplaceStatusAndSHA: (%s), changed stat.length %d->%d\n",
 		FID_(&fid), stat.Length, vstat->Length));
 	if (IsFile())
 	    LocalSetAttr((unsigned long)-1, vstat->Length, (unsigned long)-1,

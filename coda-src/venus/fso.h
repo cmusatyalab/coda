@@ -3,7 +3,7 @@
                            Coda File System
                               Release 5
 
-          Copyright (c) 1987-1999 Carnegie Mellon University
+          Copyright (c) 1987-2003 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -12,7 +12,7 @@ file  LICENSE.  The  technical and financial  contributors to Coda are
 listed in the file CREDITS.
 
                         Additional copyrights
-                           none currently
+              Copyright (c) 2002-2003 Intel Corporation
 
 #*/
 
@@ -70,6 +70,9 @@ extern int global_kernfd;
 #include <rec_ohash.h>
 #include <olist.h>
 #include <rec_olist.h>
+
+/* from lka */
+#include <lka.h>
 
 /* from venus */
 #include "binding.h"
@@ -429,6 +432,7 @@ class fsobj {
     AcRights AnyUser;				/* access control rights: any user */
     AcRights SpecificUser[CPSIZE];		/* access control rights: specific users */
     FsoFlags flags;				/* some of these are transient */
+    unsigned char VenusSHA[SHA_DIGEST_LENGTH]; /* if non-zero, the saved SHA of the file; used by lookaside code; */
 
     /* Mount state. */
     MountStatus	mvstat;				/* { NORMAL, MOUNTPOINT, ROOT } */
@@ -500,10 +504,10 @@ class fsobj {
     void Kill(int =1);
     void GC();
     int Flush();
-    void UpdateStatus(ViceStatus *, uid_t);
-    void UpdateStatus(ViceStatus *, ViceVersionVector *, uid_t);
+    void UpdateStatusAndSHA(ViceStatus *, uid_t, RPC2_BoundedBS *);
+    void UpdateStatusAndClearSHA(ViceStatus *, ViceVersionVector *, uid_t);
     int StatusEq(ViceStatus *, int);
-    void ReplaceStatus(ViceStatus *, ViceVersionVector *);
+    void ReplaceStatusAndSHA(ViceStatus *, ViceVersionVector *, RPC2_BoundedBS *);
     int CheckRcRights(int);
     void SetRcRights(int);
     void ClearRcRights();

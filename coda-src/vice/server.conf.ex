@@ -82,6 +82,13 @@ trace=100
 #
 #vicetab=db/vicetab
 
+#
+# Whether the server should calculate SHA checksums, this adds CPU usage
+# to GetAttrPlusSHA operations allows clients to use a local lookaside
+# cache to avoid fetches.
+#
+allow_sha=1
+
 #authenticate=1
 #buffs=100
 #cbwait=240
