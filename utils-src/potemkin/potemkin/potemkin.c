@@ -17,6 +17,9 @@
 #undef __KERNEL__
 #include <mntent.h>
 #else /* __linux__ */
+#include <sys/file.h>
+#include <sys/uio.h>
+
 #endif /* __linux__ */
 
 #include <ds_list.h>
@@ -1116,9 +1119,9 @@ DoSetattr(struct inputArgs *in, struct outputArgs *out, int *reply)
 	(vap->va_uid == (uid_t)-1) &&
 	(vap->va_gid == (gid_t)-1) &&
 	(vap->va_size == (off_t)-1) &&
-	(vap->va_atime.ts_sec == (long)-1) &&
-	(vap->va_mtime.ts_sec == (long)-1) &&
-	(vap->va_ctime.ts_sec == (long)-1))
+	(vap->va_atime.tv_sec == (long)-1) &&
+	(vap->va_mtime.tv_sec == (long)-1) &&
+	(vap->va_ctime.tv_sec == (long)-1))
     {
 	out->result = 0;
 	goto earlyexit;
@@ -1144,9 +1147,9 @@ DoSetattr(struct inputArgs *in, struct outputArgs *out, int *reply)
 	(vap->va_uid == (uid_t)-1) &&
 	(vap->va_gid == (gid_t)-1) &&
 	(vap->va_size == (off_t)-1) &&
-	(vap->va_atime.ts_sec == (long)-1) &&
-	(vap->va_mtime.ts_sec == (long)-1) &&
-	(vap->va_ctime.ts_sec == (long)-1))
+	(vap->va_atime.tv_sec == (long)-1) &&
+	(vap->va_mtime.tv_sec == (long)-1) &&
+	(vap->va_ctime.tv_sec == (long)-1))
     {
 	out->result = EINVAL;
 	printf("SETATTR: nothing set!\n");
@@ -1212,11 +1215,11 @@ DoSetattr(struct inputArgs *in, struct outputArgs *out, int *reply)
     }
     
     /* Are we setting the mtime/atime? */
-    if ((vap->va_atime.ts_sec != -1) || (vap->va_mtime.ts_sec != -11)) {
-	times[0].tv_sec = vap->va_atime.ts_sec;
-	times[0].tv_usec = vap->va_atime.ts_nsec/1000;
-	times[1].tv_sec = vap->va_mtime.ts_sec;
-	times[1].tv_usec = vap->va_mtime.ts_nsec/1000;
+    if ((vap->va_atime.tv_sec != -1) || (vap->va_mtime.tv_sec != -1)) {
+	times[0].tv_sec = vap->va_atime.tv_sec;
+	times[0].tv_usec = vap->va_atime.tv_nsec/1000;
+	times[1].tv_sec = vap->va_mtime.tv_sec;
+	times[1].tv_usec = vap->va_mtime.tv_nsec/1000;
 	if (utimes(path, times)) {
 	    printf("SETATTR: chmod failed\n");
 	    out->result = errno;

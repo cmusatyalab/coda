@@ -18,7 +18,7 @@ typedef struct fid_ent_s {
     char              name[MAXNAMLEN+1];
 } fid_ent_t;
 
-#if defined(__NetBSD__) && defined(__i386__)
+#if defined(__BSD44__) && defined(__i386__)
 #define SYS_STRING  "i386_nbsd1"
 #endif
 
@@ -50,6 +50,8 @@ static void coda_iattr_to_vattr(struct iattr *, struct vattr *);
 #define SYS_STRING "linux"
 #define ts_sec tv_sec
 #define ts_nsec tv_nsec
+#else
+#define MOUNT_CFS 1
 #endif
 
 
