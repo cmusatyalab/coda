@@ -17,6 +17,8 @@ listed in the file CREDITS.
 #*/
 
 #include <sys/param.h>
+#include <sys/types.h>
+#include <sys/stat.h>
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -67,6 +69,9 @@ static void do_rewrite(const char *conffile, int argc, char **argv)
 
     inf = fopen(conffile, "r");
     FAILIF(!inf, "Failed to open '%s' for reading\n", conffile);
+
+    /* Set umask to 022 so that the newly created file uses 0644 */
+    umask(022);
 
     /* find the last line that contains a (possibly commented) reference to our
      * variable, create a backup copy at the same time */
