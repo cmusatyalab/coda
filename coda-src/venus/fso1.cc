@@ -345,15 +345,15 @@ fsobj::~fsobj() {
 	    CHOKE("fsobj::~fsobj: bogus mvstat");
     }
 
+    /* Release data. */
+    if (HAVEDATA(this))
+	DiscardData();
+
     /* Remove from volume's fso list */
     list_del(&vol_handle);
 
     /* Unlink from volume. */
     VDB->Put(&vol);
-
-    /* Release data. */
-    if (HAVEDATA(this))
-	DiscardData();
 
     /* Remove from the delete queue. */
     if (FSDB->delq->remove(&del_handle) != &del_handle)

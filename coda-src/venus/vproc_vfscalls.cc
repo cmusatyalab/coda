@@ -180,9 +180,6 @@ void vproc::open(struct venus_cnode *cp, int flags) {
     int createp =  (flags & C_O_CREAT)  != 0;
     int	execp =	0;	    /* With VFS we're no longer told of execs! -JJK */
 
-    if ( createp ) 
-	    writep = 1;
-
     fsobj *f = 0;
 
     for (;;) {
