@@ -29,6 +29,19 @@
 #hostname=
 
 #
+# When a server is confused about it's identity the server will complain.
+# (i.e. gethostbyname(hostname()) == 127.x.x.x). Use this option to force
+# the ip-address through which clients will be able to reach this machine.
+#
+# The actual cause seems to be a very common setup when the machine has no
+# default interfaces configured and /etc/hosts contains a line similar to
+# 127.0.0.1 (or .2)	myhostname.mydomain
+#
+# Removing that line from /etc/hosts also solves the problem.
+#
+#ipaddress=
+
+#
 # For multiple servers:  Define the above 4 in a file: server_X.conf
 # for a server which is started with the parameter "-n X" or define the
 # following replacing X with the server number.
