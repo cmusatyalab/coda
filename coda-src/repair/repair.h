@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/repair/repair.h,v 4.1 1997/01/08 21:49:56 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/repair/repair.h,v 4.2 1997/12/23 17:19:49 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -93,11 +93,10 @@ int repair_getfid(char *path, ViceFid *outfid, ViceVersionVector *outvv);
 
     
 /* Routines for path processing */
-int repair_isleftmost  C_ARGS((char *path, char *realpath));
-int repair_getmnt      C_ARGS((char *realpath, char *prefix, char *suffix, VolumeId *vid));
-int repair_inconflict  C_ARGS((char *name, ViceFid *conflictfid));
-void myperror C_ARGS((char *op, char *path, int e));
-int IsInCoda	C_ARGS((char *name));
+int repair_isleftmost(char *path, char *realpath, int len);
+int repair_getmnt(char *realpath, char *prefix, char *suffix, VolumeId *vid);
+int repair_inconflict(char *name, ViceFid *conflictfid);
+void repair_perror(char *op, char *path, int e);
 
 /* User-visible commands */
 void beginRepair  C_ARGS((int argc, char **largv));

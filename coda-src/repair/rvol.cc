@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/repair/rvol.cc,v 4.4 1997/10/23 19:24:26 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/repair/rvol.cc,v 4.5 1997/12/23 17:19:50 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -81,6 +81,8 @@ extern "C" {
 
 /* Head of circular linked list of volumes in repair */
 struct repvol *RepVolHead;
+static char compresult[2048];
+static char junk[2048];
 
 PRIVATE char *volstr(char *), *srvstr(char *, VolumeId);
 PRIVATE char *compstr(char *, VolumeId);
@@ -198,19 +200,18 @@ int repair_unlinkrep(struct repvol *repv)
 
 int repair_finish(struct repvol *repv)
     /* Frees all data structures associated with repv.*/
-    {
+{
     struct rwvol *rwv, *next;
 
     rwv = repv->rwhead;
-    while (rwv)
-	{
+    while (rwv)	{
 	next = rwv->next;
 	free(rwv);
 	rwv = next;
-	}
+    }
     free(repv);
     return(0);
-    }
+}
 
 int repair_countRWReplicas(struct repvol *repv)
 {
@@ -226,9 +227,8 @@ int repair_countRWReplicas(struct repvol *repv)
 PRIVATE char *volstr(char *path)
     /* Returns a static string identifying volume name of path.
        String contains msg if pioctl fails */
-    {
+{
     struct ViceIoctl vioc;
-    static char junk[2048];
     int rc;
 
     bzero(junk, sizeof(junk));
@@ -239,12 +239,12 @@ PRIVATE char *volstr(char *path)
     rc = pioctl(path, VIOCGETVOLSTAT, &vioc, 1);
     if (rc) return("VIOCGETVOLSTAT failed");
     else return(junk+sizeof(struct VolumeStatus)); /* name is after VolumeStatus */
-    }
+}
 
+/* Returns a static string identifying servers with replicas of path
+   String contains msg if pioctl fails */    
 PRIVATE char *srvstr(char *path, VolumeId rwid)
-    /* Returns a static string identifying servers with replicas of path
-       String contains msg if pioctl fails */    
-    {
+{
     struct ViceIoctl vioc;
     char junk[2048], tmp[64];
     static char result[2048];
@@ -264,7 +264,7 @@ PRIVATE char *srvstr(char *path, VolumeId rwid)
 	sprintf(result, "srvstr couldn't open %s", path);
 	return(result);
     }
-    while (de = readdir(d)) {
+    while ( (de = readdir(d)) ) {
 	if (!strcmp(de->d_name, ".") ||
 	    !strcmp(de->d_name, ".."))
 	    continue;
@@ -301,7 +301,7 @@ PRIVATE char *srvstr(char *path, VolumeId rwid)
 		hosts[i] = htonl(hosts[i]);    /* gethostbyaddr requires network order */
 		thp = gethostbyaddr((char *)&hosts[i], sizeof(long), AF_INET);
 		if (thp) sprintf(tmp, "%s ", thp->h_name);
-		else sprintf(tmp, "%08x ", hosts[i]);
+		else sprintf(tmp, "%08lx ", hosts[i]);
 		strcat(result, tmp);
 	    }
     }
@@ -315,9 +315,8 @@ PRIVATE char *compstr(char *path, VolumeId rwid)
    this rw volume id. */
 {
     struct ViceIoctl vioc;
-    char junk[2048], tmp[64];
-    static char compresult[2048];
-    int i, rc;
+    char junk[2048];
+    int rc;
     char rwpath[MAXPATHLEN];
     VolumeStatus *vs;
 
@@ -331,7 +330,7 @@ PRIVATE char *compstr(char *path, VolumeId rwid)
 	sprintf(compresult, "compstr couldn't open %s", path);
 	return(compresult);
     }
-    while (de = readdir(d)) {
+    while ( (de = readdir(d)) ) {
 	if (!strcmp(de->d_name, ".") ||
 	    !strcmp(de->d_name, ".."))
 	    continue;

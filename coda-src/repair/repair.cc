@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/repair/repair.cc,v 4.4 1997/10/23 19:24:25 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/repair/repair.cc,v 4.5 1997/12/23 17:19:47 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -91,13 +91,11 @@ struct stat compOutputStatBuf;	// file information for the repair
 				// commands file
 struct stat doInputStatBuf;
 
-PRIVATE jmp_buf NormalJmpBuf;  /* to exit from ci loops gracefully */
 
 PRIVATE void	SetDefaultPaths();
 PRIVATE int	compareVV(int, char **, struct repvol *);
 PRIVATE void	GetArgs(int argc, char *argv[]);
 PRIVATE	int	getcompareargs(int, char **, char *, char *);
-PRIVATE	int	getlistargs(char *, char *);
 PRIVATE int	getremoveargs(int, char **, char *);
 PRIVATE void	getremovelists(int, resreplica *, struct listhdr **);
 PRIVATE int	getrepairargs(int, char **, char *, char *, char *);
@@ -150,36 +148,44 @@ command_t list[] = {
 };
 
 main(int argc, char *argv[])
-    {
-    int rc;
+{
 
     /* parse args */
-    GetArgs(argc, argv);
 
     SetDefaultPaths();
 
-    /* initialize normal mode setjmp */
-    rc = setjmp(NormalJmpBuf);
-    if (rc){exit(0);}
 
     signal(SIGINT, (void (*)(int))INT);	/* catch SIGINT */
 
     /* check if help is available and accessible */
-    if (access(HELPDIR, R_OK|X_OK) < 0)	{
+    /*    if (access(HELPDIR, R_OK|X_OK) < 0)	{
 	printf("The help directory \"%s\" is not accessible\n", HELPDIR);
-    }
+    } */
 
     /* print a message indicating basic repair methodology */
     printf(INITHELPMSG);
+
     /* warn user if no tokens are found */
     if (GetTokens()) {
 	printf("\n\n\nWARNING: YOU DON'T HAVE TOKENS.  "
 	       "YOU MIGHT WANT TO AUTHENTICATE FIRST\n\n");
     }
     /* Sit in command loop */
-    Parser_init("*", list);
-    Parser_commands();
+    if ( argc == 3 ) {
+	    beginRepair(1, &argv[1]);
+	    compareDirs(1, &argv[2]);
+	    doRepair(1, &argv[2]);
+	    quit(0, NULL);
+    } else if ( argc != 3 ) {
+	    GetArgs(argc, argv);
+	    Parser_init("repair > ", list);
+	    Parser_commands();
+    } else {
+	    printf("Usage: repair { object fixfile } \n");
+	    exit(1);
     }
+
+}
 
 /*
   BEGIN_HTML
@@ -189,7 +195,7 @@ main(int argc, char *argv[])
 
 void doRepair(int largc, char **largv)
     /* args: <reppathname> <fixfilename> */
-    {
+{
     enum {FIXDIR, FIXFILE} fixtype;
     VolumeId vid;
     struct repvol *repv;
@@ -203,7 +209,7 @@ void doRepair(int largc, char **largv)
     char realfixpath[MAXPATHLEN];
     char reppath[MAXPATHLEN], tmppath[MAXPATHLEN];
     char prefix[MAXPATHLEN], suffix[MAXPATHLEN];
-    long vids[MAXHOSTS];
+    VolumeId vids[MAXHOSTS];
     long rcodes[MAXHOSTS];
     
 
@@ -221,7 +227,7 @@ void doRepair(int largc, char **largv)
     if (rc < 0) return;
 
     /* Is this the leftmost element in conflict? */
-    rc = repair_isleftmost(uconflictpath, reppath); 
+    rc = repair_isleftmost(uconflictpath, reppath, MAXPATHLEN); 
     if (rc < 0) return;
 
     /* Is the volume locked for repair? */
@@ -248,7 +254,7 @@ void doRepair(int largc, char **largv)
 	    rwv = rwv->next;
     }
     if (rc < 0) {
-	myperror(" lstat", tmppath, errno);  
+	repair_perror(" lstat", tmppath, errno);  
 	printf("No replicas accessible\n");
 	printf("Possible causes: disconnection or lack of authentication\n");
 	return;
@@ -315,7 +321,7 @@ void doRepair(int largc, char **largv)
     bzero(space, (short)sizeof(space));
     rc = pioctl(reppath, VIOC_REPAIR, &vioc, 0);
     if (rc < 0 && errno != ETOOMANYREFS) 
-	myperror(" REPAIR", reppath, errno);
+	repair_perror(" REPAIR", reppath, errno);
     {	
 	long *l;
 	l = (long *) space;
@@ -333,7 +339,7 @@ void doRepair(int largc, char **largv)
 		printf("repair actions performed on %s have %s ",
 		       rwv->srvname, rcodes[i] ? "failed" : "succeeded");
 		if (rcodes[i]) {
-		    printf("(%d)\n", rcodes[i]); 
+		    printf("(%ld)\n", rcodes[i]); 
 		    printf("Possible causes: disconnection, lack of authentication, lack of server space\n");	
 		    printf("fix file contains operations that are in conflict against the server replica .... \n");
 		} else {
@@ -436,7 +442,7 @@ void compareDirs(int largc, char **largv)
     if (rc < 0) return;
 
     /* Is this the leftmost element in conflict? */
-    rc = repair_isleftmost(uconflictpath, reppath); 
+    rc = repair_isleftmost(uconflictpath, reppath, MAXPATHLEN); 
     if (rc < 0) return;
 
     /* Is the volume locked for repair */
@@ -529,7 +535,6 @@ int allowclear = 0;
 void clearInc(int largc, char **largv)
 {
     int	    rc, i;
-    char    *p;
     char    reppath[MAXPATHLEN], uconflictpath[MAXPATHLEN];
     char    prefix[MAXPATHLEN], suffix[MAXPATHLEN];
     VolumeId	vid;
@@ -537,7 +542,6 @@ void clearInc(int largc, char **largv)
     int	    sizeOfPath;
     char    **names;
     int	    nreplicas;
-    struct stat buf;
 
     if (!allowclear) {
 	printf("Clear Inconsistency: This command is obsolete.");
@@ -556,7 +560,7 @@ void clearInc(int largc, char **largv)
     }
 
     /* Is this the leftmost element in conflict? */
-    rc = repair_isleftmost(uconflictpath, reppath); 
+    rc = repair_isleftmost(uconflictpath, reppath, MAXPATHLEN); 
     if (rc < 0) return;
     
     /* Is the volume locked for repair */
@@ -616,7 +620,7 @@ void clearInc(int largc, char **largv)
 	    vioc.out = 0;
 	    rc = pioctl(names[i], VIOC_SETVV, &vioc, 0);
 	    if (rc){
-		myperror("SETVV", names[i], errno);
+		repair_perror("SETVV", names[i], errno);
 		return;
 	    }
 	}
@@ -688,7 +692,7 @@ void removeInc(int largc, char **largv)
 #endif	0
 
     /* Is this the leftmost element in conflict? */
-    rc = repair_isleftmost(uconflictpath, reppath); 
+    rc = repair_isleftmost(uconflictpath, reppath, MAXPATHLEN); 
     if (rc < 0) return;
 
     /* Is the volume locked for repair */
@@ -713,7 +717,7 @@ void removeInc(int largc, char **largv)
 		rwv = rwv->next;
 	}
 	if (rc < 0) {
-	    myperror(" lstat", tmppath, errno);  
+	    repair_perror(" lstat", tmppath, errno);  
 	    printf("NO replicas accessible\n");
 	    return;
 	}
@@ -739,14 +743,15 @@ void removeInc(int largc, char **largv)
 	vv_t fixvv;
 	struct ViceIoctl vioc;
 	char space[2048];
-	
-	if (rc = repair_getfid(names[0], &fixfid, &fixvv)) {
+
+	rc = repair_getfid(names[0], &fixfid, &fixvv);
+	if (rc) {
 	    printf("Could not get fid for %s\n", names[0]);
 	    printf("Possible causes: disconnection or lack of authentication\n");
 	    goto Error;
 	}
 
-	sprintf(tmppath, "@%x.%x.%x", fixfid.Volume, 
+	sprintf(tmppath, "@%lx.%lx.%lx", fixfid.Volume, 
 		fixfid.Vnode, fixfid.Unique);
 
 	/* do the repair */
@@ -757,7 +762,7 @@ void removeInc(int largc, char **largv)
 	bzero(space, (int)sizeof(space));
 	rc = pioctl(reppath, VIOC_REPAIR, &vioc, 0);
 	if (rc < 0 && errno != ETOOMANYREFS) 
-	    myperror(" REPAIR", reppath, errno);
+	    repair_perror(" REPAIR", reppath, errno);
     }
     else {
 	/* get the directory entries and create list of 
@@ -779,7 +784,7 @@ void removeInc(int largc, char **largv)
 			rwv = rwv->next;
 		    assert(repairlist[i].replicaId == rwv->vid);
 		}
-		fprintf(file,"\nreplica %s %x \n", rwv->srvname, 
+		fprintf(file,"\nreplica %s %lx \n", rwv->srvname, 
 			repairlist[i].replicaId);
 		for (j = 0; j < repairlist[i].repairCount; j++)
 		    repair_printline(&(repairlist[i].repairList[j]), file);
@@ -810,7 +815,7 @@ void removeInc(int largc, char **largv)
 	    bzero(space, (int)sizeof(space));
 	    rc = pioctl(reppath, VIOC_REPAIR, &vioc, 0);
 	    if (rc < 0 && errno != ETOOMANYREFS) 
-		myperror(" REPAIR", reppath, errno);
+		repair_perror(" REPAIR", reppath, errno);
 	    /* Clean up */
 	    unlink(tmppath); 
 	}
@@ -846,7 +851,7 @@ void removeInc(int largc, char **largv)
 			    vioc.out = 0;
 			    rc = pioctl(names[i], VIOC_SETVV, &vioc, 0);
 			    if (rc){
-				myperror("SETVV", names[i], errno);
+				repair_perror("SETVV", names[i], errno);
 				goto Error;
 			    }
 			}
@@ -878,7 +883,7 @@ void removeInc(int largc, char **largv)
 	vioc.out = 0;
 	repair_unlinkrep(repv);
 	retcode = pioctl(repv->mnt, VIOC_DISABLEREPAIR, &vioc, 0);
-	if (retcode < 0) myperror(" DISABLEREPAIR", repv->mnt, errno);
+	if (retcode < 0) repair_perror(" DISABLEREPAIR", repv->mnt, errno);
 	repair_finish(repv);
     }
     if (!rc) {
@@ -967,7 +972,7 @@ void endRepair(int largc, char **largv)
 		  repair_unlinkrep(repv);
 		  errno = 0;
 		  rc = pioctl(repv->mnt, VIOC_DISABLEREPAIR, &vioc, 0);
-		  if (rc < 0) myperror(" DISABLEREPAIR", repv->mnt, errno);
+		  if (rc < 0) repair_perror(" DISABLEREPAIR", repv->mnt, errno);
 		  repair_finish(repv);
 	      }
 
@@ -996,22 +1001,42 @@ void quit(int largc, char **largv)
 
 /* 
   user passed path (realpath) is what the user gives as the fixfile.
-  if the object is in coda then fixpath contains the @fid representation of the object
+  if the object is in coda then fixpath contains the @fid 
+  representation of the object
  */
-PRIVATE int getrepairargs(int largc, char **largv, char *conflictpath, char *fixpath /* OUT */,
-			  char *realpath)
-    {
-    char *p;
-    char msg[2*MAXPATHLEN+100];
+PRIVATE int getrepairargs(int largc, char **largv, char *conflictpath, 
+			  char *fixpath, char *realpath)
+{
     ViceFid fixfid;
     vv_t fixvv;
-    
+
+    if (largc == 1) {
+	    strncpy(conflictpath, doRepDefault, MAXPATHLEN);
+	    strncpy(fixpath, compDirDefault, MAXPATHLEN);
+    } else if ( largc == 3 ) {
+	    strncpy(conflictpath, largv[1], MAXPATHLEN);
+	    strncpy(fixpath, largv[2], MAXPATHLEN);
+    } else {
+	    printf("%s {object fixfile }\n", largv[0]);
+	    return(-1);
+    }
+    if (!repair_getfid(fixpath, &fixfid, &fixvv)) {
+	     	printf("%s is in Coda and cannot be used as the fix file\n", 
+		       fixpath);
+	return(-1); 
+    }
+    strncpy(realpath, fixpath, MAXPATHLEN);
+    return 0;
+
+#if 0    
+    char msg[2*MAXPATHLEN+100];
+
     if (largc == 1) {
       Parser_getstr("Pathname of object in conflict?", 
 	       (*doRepDefault == '\0') ? beginRepDefault : doRepDefault,
 	       conflictpath, MAXPATHLEN);
       Parser_getstr("Pathname of fix file?", 
-	       (*compDirDefault == '\0') ? "" : compDirDefault, fixpath,
+	       (*compDirDefault == '\0') ? "/tmp/fix" : compDirDefault, fixpath,
 	       MAXPATHLEN);
     } else {
       if (largc != 3) {
@@ -1025,44 +1050,56 @@ PRIVATE int getrepairargs(int largc, char **largv, char *conflictpath, char *fix
     strcpy(doRepDefault, conflictpath);
     strcpy(realpath, fixpath);
     strcpy(compDirDefault, fixpath);
-    if (!repair_getfid(fixpath, &fixfid, &fixvv))
-	{
-/* 	printf("%s is in Coda and cannot be used as the fix file\n", fixpath);
-	return(-1);
-*/  
-	sprintf(fixpath, "@%x.%x.%x", fixfid.Volume, fixfid.Vnode, fixfid.Unique);
-	}
+    if (!repair_getfid(fixpath, &fixfid, &fixvv)) {
+	     	printf("%s is in Coda and cannot be used as the fix file\n", fixpath);
+	return(-1); 
+	/*	sprintf(fixpath, "@%lx.%lx.%lx",  
+		fixfid.Volume, fixfid.Vnode, fixfid.Unique); */
+    }
 	
-    sprintf(msg, "OK to repair \"%s\" by fixfile \"%s\"?", conflictpath, fixpath);
+    sprintf(msg, "OK to repair \"%s\" by fixfile \"%s\"?", 
+	    conflictpath, fixpath);
     if (!Parser_getbool(msg, 0)) return(-1);
     else return(0);    
-    }
+    return 0;
+#endif
+}
 
 
 PRIVATE	int getcompareargs(int largc, char **largv, char *reppath, char *filepath)
 {
-    if (largc == 1) {
-      Parser_getstr("Pathname of Object in conflict?", 
-	       doRepDefault, reppath, MAXPATHLEN);
-      *filepath = 0;
-    } else {
-      if (largc != 3) {
-	printf("%s <object> <fixfile>\n", largv[0]);
-	return(-1);
-      }
-      strncpy(reppath, largv[1], MAXPATHLEN);
-      strncpy(filepath, largv[2], MAXPATHLEN);
-    }
-    while (*filepath && IsInCoda(filepath)) {
-      if (*filepath)
-	printf("Please use a fixfile not in /coda \n");
-      Parser_getstr("Pathname of repair file produced?", 
-	       (*compDirDefault == '\0') ? "" : compDirDefault, 
-	       filepath, MAXPATHLEN);
-    }
+	switch ( largc ) {
+#if 0
+	case 1 : 
+		Parser_getstr("Pathname of Object in conflict?", 
+			      doRepDefault, reppath, MAXPATHLEN);
+		Parser_getstr("Fix file?", "/tmp/fix", filepath, MAXPATHLEN);
+		break;
+	case 3 :
+		strncpy(reppath, largv[1], MAXPATHLEN);
+		strncpy(filepath, largv[2], MAXPATHLEN);
+		break ; 
+#endif
+	case 1 : 
+		Parser_getstr("Fix file?", "/tmp/fix", filepath, MAXPATHLEN);
+		break;
+	case 2 :
+		strncpy(filepath, largv[1], MAXPATHLEN);
+		break ; 
+	default :
+		printf("%s { <fixfile> }\n", largv[0]);
+		return(-1);
+	}
 
-    strcpy(compDirDefault, filepath);
-    return 0;
+	while (*filepath && (strncmp(filepath, "/coda", 5) == 0)) {
+		if (*filepath)
+			printf("Please use a fix file not in /coda \n");
+		Parser_getstr("Fix file?", "", filepath, MAXPATHLEN);
+	}
+
+	strncpy(reppath, doRepDefault, MAXPATHLEN);
+	strncpy(compDirDefault, filepath, MAXPATHLEN);
+	return 0;
 }
 
 PRIVATE int getremoveargs(int largc, char **largv, char *uconfpath)
@@ -1081,27 +1118,14 @@ PRIVATE int getremoveargs(int largc, char **largv, char *uconfpath)
     return(0);
 }
 
-/* woferry - this is not being used, but still uses strarg
-PRIVATE	int getlistargs(char *args, char *reppath)
-{
-    char *p;
-    
-    p = args;
-    *reppath = 0;
-    while (*reppath == 0)
-	strarg(&p, " ", "Pathname of Object in conflict?", 
-	       doRepDefault, reppath);
-
-    return 0;
-}
-*/
 
 PRIVATE int doCompare(int nreplicas, struct repvol *repv, char **names, 
 		      char *filepath, char *volmtpt, ViceFid *incfid)
 {
     resreplica *dirs;
     struct  listhdr *k;
-    int	i, j;
+    int	i;
+    unsigned long j;
     FILE *file;
     struct rwvol *rwv;
 
@@ -1147,7 +1171,7 @@ PRIVATE int doCompare(int nreplicas, struct repvol *repv, char **names,
 		rwv = rwv->next;
 	    assert(k[i].replicaId == rwv->vid);
 	}
-	fprintf(file,"\nreplica %s %x \n", rwv->srvname, k[i].replicaId);
+	fprintf(file,"\nreplica %s %lx \n", rwv->srvname, k[i].replicaId);
 	for (j = 0; j < k[i].repairCount; j++)
 	    repair_printline(&(k[i].repairList[j]), file);
     }
@@ -1252,10 +1276,10 @@ PRIVATE void printAcl(struct Acl *acl)
     
     printf("There are %d plus entries\n", acl->nplus);
     for (i = 0; i < acl->nplus; i++)
-	printf("%s \t %d\n", ((acl->pluslist)[i]).name, ((acl->pluslist)[i]).rights);
+	printf("%s \t %ld\n", ((acl->pluslist)[i]).name, ((acl->pluslist)[i]).rights);
     printf("There are %d negative entries\n", acl->nminus);
     for (i = 0; i < acl->nminus; i++)
-	printf("%s \t %d\n", ((acl->minuslist)[i]).name, ((acl->minuslist)[i]).rights);
+	printf("%s \t %ld\n", ((acl->minuslist)[i]).name, ((acl->minuslist)[i]).rights);
     printf("End of Access List\n");
 }
 
@@ -1406,7 +1430,6 @@ PRIVATE void SetDefaultPaths()
     FILE *reprc;
     int ec;
     char arg1, arg2[MAXPATHLEN];  
-    char *display;
 
     beginRepDefault[0] = '\0';
     doRepDefault[0] = '\0';
@@ -1418,7 +1441,8 @@ PRIVATE void SetDefaultPaths()
 	strcat(buf, "/.repairrc");
 	repairrc = buf;
     } 
-    if (reprc = fopen(repairrc, "r")){
+    reprc = fopen(repairrc, "r");
+    if (reprc){
 	while((ec = fscanf(reprc, "%c\t%s\n", &arg1, arg2)) != EOF){
 	    if (ec != 2){
 		printf("Error in file %s \n", repairrc);
@@ -1492,16 +1516,13 @@ PRIVATE int GetTokens() {
 }
 
 /*
-  BEGIN_HTML
-  <a name="beginrepair"><strong> begin a new repair session </strong></a>
-  END_HTML
+beginrepair: begin a new repair session
+args:  <reppathname>
 */
 void beginRepair(int largc, char **largv)
-    /* args:  <reppathname> */
     {
     VolumeId vid;
     int rc;
-    char *p;
     VolumeId *tv;
     struct ViceIoctl vioc;
     struct repvol *repv;
@@ -1519,19 +1540,18 @@ void beginRepair(int largc, char **largv)
     }
 
     if (largc == 1)
-      Parser_getstr("Pathname of object in conflict?", beginRepDefault,
-		    userpath, MAXPATHLEN);
-    else {
-      if (largc != 2) {
-	printf("beginrepair <reppathname>\n");
-	return;
-      }
-      strncpy(userpath, largv[1], MAXPATHLEN);
+	    Parser_getstr("Pathname of object in conflict?", beginRepDefault,
+			  userpath, MAXPATHLEN);
+    else  if (largc == 2) {
+	    strncpy(userpath, largv[1], MAXPATHLEN);
+    } else {
+	    printf("beginrepair <reppathname>\n");
+	    return;
     }
 
     strcpy(beginRepDefault, userpath);
     strcpy(doRepDefault, userpath);
-    rc = repair_isleftmost(userpath, reppath);
+    rc = repair_isleftmost(userpath, reppath, MAXPATHLEN);
     if (rc < 0) return;
 
     rc = repair_getmnt(reppath, prefix, suffix, &vid);
@@ -1556,7 +1576,7 @@ void beginRepair(int largc, char **largv)
 	    printf("Repair in progress on volume at \"%s\"\n", prefix);
 	    /* Print out Workstation/IP addr here --- Satya */
 	    }
-	else myperror(" ENABLEREPAIR", prefix, errno); /* some other error */
+	else repair_perror(" ENABLEREPAIR", prefix, errno); /* some other error */
 	repair_finish(repv);
 	return;
 	}
@@ -1630,7 +1650,6 @@ void checkLocal(int largc, char **largv)
     {
     struct ViceIoctl vioc;
     int rc;
-    struct repvol *repv;
     char space[2048];
     char buf[2048];
 
@@ -1668,7 +1687,6 @@ void listLocal(int largc, char **largv)
     int fd;
     struct ViceIoctl vioc;
     int rc;
-    struct repvol *repv;
     char space[2048];
     char buf[2048];
     char filename[MAXPATHLEN];
@@ -1757,7 +1775,6 @@ void preserveAllLocal(int largc, char **largv)
     {
     struct ViceIoctl vioc;
     int rc;
-    struct repvol *repv;
     char space[2048];
     char buf[BUFSIZ];
     
@@ -1797,7 +1814,6 @@ void discardLocal(int largc, char **largv)
     {
     struct ViceIoctl vioc;
     int rc;
-    struct repvol *repv;
     char space[2048];
     char buf[BUFSIZ];
     
@@ -1834,7 +1850,6 @@ void discardAllLocal(int largc, char **largv)
     {
     struct ViceIoctl vioc;
     int rc;
-    struct repvol *repv;
     char space[2048];
     char buf[BUFSIZ];
     
@@ -1871,7 +1886,6 @@ void setLocalView(int largc, char **largv)
     {
     struct ViceIoctl vioc;
     int rc;
-    struct repvol *repv;
     char space[2048];
     char buf[BUFSIZ];
 
@@ -1909,7 +1923,6 @@ void setGlobalView(int largc, char **largv)
     {
     struct ViceIoctl vioc;
     int rc;
-    struct repvol *repv;
     char space[2048];
     char buf[BUFSIZ];
 
@@ -1948,7 +1961,6 @@ void setMixedView(int largc, char **largv)
     {
     struct ViceIoctl vioc;
     int rc;
-    struct repvol *repv;
     char space[2048];
     char buf[BUFSIZ];
 
