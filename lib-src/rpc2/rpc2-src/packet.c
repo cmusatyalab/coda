@@ -137,8 +137,16 @@ void rpc2_XmitPacket(IN long whichSocket, IN RPC2_PacketBuffer *whichPB,
     if (FailPacket(Fail_SendPredicate, whichPB, addr, whichSocket))
 	return;
 
+#if 0
+    /* The MSG_CONFIRM flag significantly reduces arp traffic with linux-2.4
+     * and higher. However... a precompiled binary that uses this flag fails
+     * to send any packets when run on linux-2.2 kernels. As I don't want to
+     * add a run-time check (yet), so I'm disabling the setting of this flag
+     * for now. --JH
+     */
     if (confirm)
 	flags = MSG_CONFIRM;
+#endif
 
     n = sendto(whichSocket, &whichPB->Header, whichPB->Prefix.LengthOfPacket,
 	       flags, addr->ai_addr, addr->ai_addrlen);
