@@ -621,89 +621,89 @@ static void ServerLWP(int *Ident)
     while (1) {
 	LastOp[lwpid] = 0;
 	CurrentClient[lwpid] = (ClientEntry *)0;
-	if ((rc = RPC2_GetRequest(&myfilter, &mycid, &myrequest, 0, GetKeysFromToken, RPC2_XOR, NULL))
-		== RPC2_SUCCESS) {
-	    if (RPC2_GetPrivatePointer(mycid, (char **)&client) != RPC2_SUCCESS) 
-		client = 0;
-	    
-	    if (client) {
-		/* check rpc2 connection handle */
-		if (client->RPCid != mycid) {
-		    SLog(0, "Invalid client pointer from GetPrivatePointer");
-		    myrequest->Header.Opcode = BADCLIENT; /* ignore request & Unbind */
-		    client = 0;
-		}
-		/* check token expiry, compare the token expiry time to the
-		 * receive timestamp in the PacketBuffer. */
-		if (client->SecurityLevel != RPC2_OPENKIMONO &&
-		    myrequest->Prefix.RecvStamp.tv_sec > client->EndTimestamp) {
-		    SLog(0, "Client Token expired");
-		    /* force a disconnection for this rpc2 connection */
-		    myrequest->Header.Opcode = TokenExpired_OP;
-		}
-	    }
-	    LastOp[lwpid] = myrequest->Header.Opcode;
-	    CurrentClient[lwpid] = client;
-	    if (client) {
-		client->LastCall = client->VenusId->LastCall = (unsigned int)time(0);
-		/* the next time is used to eliminate GetTime calls from active stat */
-		if (myrequest->Header.Opcode != GETTIME)
-		    client->VenusId->ActiveCall = client->LastCall;
-		client->LastOp = (int)myrequest->Header.Opcode;
-     	    }
+	rc = RPC2_GetRequest(&myfilter, &mycid, &myrequest, 0,
+			     GetKeysFromToken, RPC2_XOR, NULL);
 
-	    SLog(5, "Worker %d received request %d on cid %d for %s at %s",
-		    lwpid, myrequest->Header.Opcode, mycid,
-		    client ? client->UserName : "NA",
-		    client ? inet_ntoa(client->VenusId->host) : "NA");
-	    if (myrequest->Header.Opcode > 0 && myrequest->Header.Opcode < FETCHDATA) {
-		Counters[TOTAL]++;
-		Counters[myrequest->Header.Opcode]++;
-		if (!(Counters[TOTAL] & 0xFFF)) {
-		    PrintCounters(stdout);
-		}
-	    }
-
-            /* save fields we need, ExecuteRequest will thrash the buffer */
-            opcode = myrequest->Header.Opcode;
-
-	    rc = srv_ExecuteRequest(mycid, myrequest, 0);
-
-	    if (rc) {
-		SLog(0, "srv.c request %d for %s at %s failed: %s",
-			opcode, client ? client->UserName : "NA",
-			client ? inet_ntoa(client->VenusId->host) : "NA",
-			ViceErrorMsg((int)rc));
-		if(rc <= RPC2_ELIMIT) {
-		    if(client && client->RPCid == mycid && !client->DoUnbind) {
-			ObtainWriteLock(&(client->VenusId->lock));
-			CLIENT_Delete(client);
-			ReleaseWriteLock(&(client->VenusId->lock));
-		    }
-		}
-	    }
-	    if(client) {
-		if(client->DoUnbind) {
-		    SLog(0, "Worker%d: Unbinding RPC connection %d",
-							    lwpid, mycid);
-		    RPC2_Unbind(mycid);
-		    AL_FreeCPS(&(client->CPS));
-		    free((char *)client);
-		    client = 0;
-		}
-		else {
-		    client->LastOp = 0;
-		}
-	    }
-            /* if bad client pointer Unbind the rpc connection */
-	    if (opcode == BADCLIENT) {
-		SLog(0, "Worker%d: Unbinding RPC connection %d (BADCLIENT)",
-					    lwpid, mycid);
-		RPC2_Unbind(mycid);
-	    }
+	if (rc != RPC2_SUCCESS) {
+	    SLog(0,"RPC2_GetRequest failed with %s", ViceErrorMsg((int)rc));
+	    continue;
 	}
-	else {
-	    SLog(0,"RPC2_GetRequest failed with %s",ViceErrorMsg((int)rc));
+
+	if (RPC2_GetPrivatePointer(mycid, (char **)&client) != RPC2_SUCCESS) 
+	    client = 0;
+	    
+	/* check rpc2 connection handle */
+	if (client && client->RPCid != mycid) {
+	    SLog(0, "Invalid client pointer from GetPrivatePointer");
+	    myrequest->Header.Opcode = BADCLIENT; /* ignore request & Unbind */
+	    client = 0;
+	}
+
+	/* check token expiry, compare the token expiry time to the
+	 * receive timestamp in the PacketBuffer. */
+	if (client && client->SecurityLevel != RPC2_OPENKIMONO &&
+	    myrequest->Prefix.RecvStamp.tv_sec > client->EndTimestamp) {
+	    SLog(0, "Client Token expired");
+	    /* force a disconnection for this rpc2 connection */
+	    myrequest->Header.Opcode = TokenExpired_OP;
+	}
+
+	LastOp[lwpid] = myrequest->Header.Opcode;
+	CurrentClient[lwpid] = client;
+
+	if (client) {
+	    client->LastCall = client->VenusId->LastCall = (unsigned int)time(0);
+	    /* the next time is used to eliminate GetTime calls from active stat */
+	    if (myrequest->Header.Opcode != GETTIME)
+		client->VenusId->ActiveCall = client->LastCall;
+	    client->LastOp = (int)myrequest->Header.Opcode;
+	}
+
+	SLog(5, "Worker %d received request %d on cid %d for %s at %s",
+	     lwpid, myrequest->Header.Opcode, mycid,
+	     client ? client->UserName : "NA",
+	     client ? inet_ntoa(client->VenusId->host) : "NA");
+
+	if (myrequest->Header.Opcode > 0 && myrequest->Header.Opcode < FETCHDATA) {
+	    Counters[TOTAL]++;
+	    Counters[myrequest->Header.Opcode]++;
+	    if (!(Counters[TOTAL] & 0xFFF))
+		PrintCounters(stdout);
+	}
+
+	/* save fields we need, ExecuteRequest will thrash the buffer */
+	opcode = myrequest->Header.Opcode;
+
+	rc = srv_ExecuteRequest(mycid, myrequest, 0);
+
+	if (rc) {
+	    SLog(0, "srv.c request %d for %s at %s failed: %s",
+		 opcode, client ? client->UserName : "NA",
+		 client ? inet_ntoa(client->VenusId->host) : "NA",
+		 ViceErrorMsg((int)rc));
+
+	    if(client && rc <= RPC2_ELIMIT)
+		client->DoUnbind = 1;
+	}
+	if(client) {
+	    if(client->DoUnbind) {
+		struct Lock *lock = &client->VenusId->lock;
+
+		SLog(0, "Worker%d: Unbinding RPC connection %d",
+		     lwpid, mycid);
+
+		ObtainWriteLock(lock);
+		client->LastOp = 0;
+		CLIENT_Delete(client);
+		ReleaseWriteLock(lock);
+	    } else
+		client->LastOp = 0;
+	}
+	/* if bad client pointer Unbind the rpc connection */
+	if (opcode == BADCLIENT) {
+	    SLog(0, "Worker%d: Unbinding RPC connection %d (BADCLIENT)",
+		 lwpid, mycid);
+	    RPC2_Unbind(mycid);
 	}
     }
 }
@@ -745,7 +745,6 @@ static void ResLWP(int *Ident){
 	    SLog(0, "RPC2_GetRequest failed with %s", 
 		    ViceErrorMsg((int)rc));
     }
-
 }
 
 static void CallBackCheckLWP()
@@ -849,7 +848,7 @@ static void ShutDown()
 
     VShutdown();
 
-    fd = open("SHUTDOWN",O_CREAT+O_RDWR, 0666);
+    fd = open("SHUTDOWN",O_CREAT|O_WRONLY, 0666);
     close(fd);
     exit(0);
 }

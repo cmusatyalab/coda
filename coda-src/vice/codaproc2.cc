@@ -583,7 +583,7 @@ static int ValidateReintegrateParms(RPC2_Handle RPCid, VolumeId *Vid,
 		index = -1;
 		goto Exit;
 	}
-	if(!(*client) || (*client)->DoUnbind) {
+	if(!*client) {
 		SLog(0,  "ValidateReintegrateParms: NULL private pointer for RPCid %x", RPCid);
 		errorCode = EINVAL;
 		index = -1;

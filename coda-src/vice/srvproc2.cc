@@ -124,16 +124,17 @@ static void PrintVolumeStatus(VolumeStatus *);
 */
 long FS_ViceDisconnectFS(RPC2_Handle RPCid)
 {
-    ClientEntry * client;
+    ClientEntry *client = 0;
     long   errorCode;
 
     SLog(1, "ViceDisconnectFS");
     errorCode = RPC2_GetPrivatePointer(RPCid, (char **)&client);
 
     if (!errorCode && client) {
-	ObtainWriteLock(&client->VenusId->lock);
+	struct Lock *lock = &client->VenusId->lock;
+	ObtainWriteLock(lock);
 	CLIENT_Delete(client);
-	ReleaseWriteLock(&client->VenusId->lock);
+	ReleaseWriteLock(lock);
     }
     else {
 	SLog(0, "GetPrivate failed in Disconnect rc = %d, client = %d",

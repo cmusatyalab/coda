@@ -147,38 +147,35 @@ int CLIENT_Build(RPC2_Handle RPCid, char *User, RPC2_Integer sl,
 
 void CLIENT_Delete(ClientEntry *clientPtr) 
 {
-    if (clientPtr == 0) {
+    if (!clientPtr) {
 	    SLog(0, "Client pointer is zero in CLIENT_Delete");
 	    return;
     }
 
-    SLog(1, "Deleting client entry for user %s at %s.%d",
-	 clientPtr->UserName, inet_ntoa(clientPtr->VenusId->host), 
-	 ntohs(clientPtr->VenusId->port));
+    SLog(1, "Unbinding client entry for rpcid %d", clientPtr->RPCid);
 
-    if(clientPtr->DoUnbind) {
-	    SLog(0, "DoUnbind is TRUE in CLIENT_Delete");
-	    return;
+    if (!list_empty(&clientPtr->Clients)) {
+	list_del(&clientPtr->Clients);
+	CurrentConnections--;
     }
-
-    list_del(&clientPtr->Clients);
-    CurrentConnections--;
 
     /* Free the ClientEntry. */
     RPC2_SetPrivatePointer(clientPtr->RPCid, (char *)0);
 
     /* Delay destroying our own connection to the client */
     if(clientPtr->LastOp) {
-	    clientPtr->DoUnbind = 1;
-    } else {
-	    SLog(0, "Unbinding RPC2 connection %d", clientPtr->RPCid);
-
-	    RPC2_Unbind(clientPtr->RPCid);
-	    clientPtr->RPCid = 0;
-	    AL_FreeCPS(&(clientPtr->CPS));
-	    clientPtr->VenusId = 0;
-	    free((char *)clientPtr);
+	clientPtr->DoUnbind = 1;
+	return;
     }
+
+    SLog(0, "Deleting client entry for user %s at %s.%d rpcid %d",
+	 clientPtr->UserName, inet_ntoa(clientPtr->VenusId->host), 
+	 ntohs(clientPtr->VenusId->port), clientPtr->RPCid);
+
+    RPC2_Unbind(clientPtr->RPCid);
+    clientPtr->RPCid = 0;
+    AL_FreeCPS(&(clientPtr->CPS));
+    free(clientPtr);
 }
 
 
