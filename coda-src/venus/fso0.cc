@@ -141,16 +141,26 @@ void FSOInit() {
 #ifdef __BSD44__
 	struct dirent **namelist;
 	int nentries;
+	char *cwd,*abspath;
+
 	nentries = scandir(".", &namelist, 0, 0) ;
 	if (nentries < 0) CHOKE("FSOInit: scandir");
+
+	cwd = getwd(NULL);
+	abspath = (char*)malloc(sizeof(char)*MAXPATHLEN);
+	CODA_ASSERT(abspath != NULL);
 
 	/* Examine each entry and decide to keep or delete it */
 	for (i = 0; i < nentries; i++) {
 	    /* Don't unlink special files. */
+	    abspath = strncpy(abspath,cwd,MAXPATHLEN);
+	    abspath = strncat(abspath,"/",2);
+	    abspath = strncat(abspath,namelist[i]->d_name,
+			      MAXPATHLEN-strlen(cwd));
 	    if (STREQ(namelist[i]->d_name, ".") ||
 		STREQ(namelist[i]->d_name, "..") ||
 		STREQ(namelist[i]->d_name, "lost+found") ||
-		STREQ(namelist[i]->d_name, VenusLogFile) ||
+		STREQ(abspath, VenusLogFile) ||
 		STREQ(namelist[i]->d_name, "pid"))
 		goto FREE_ENTRY;
 
@@ -169,6 +179,8 @@ FREE_ENTRY: /* release entry from namelist */
 	}
 	/* Free the array allocated by scandir() */
 	free(namelist);
+	free(abspath);
+	free(cwd);
 #endif /* __BSD44__ */
 
 	/* Allocate the fsobj's if requested. */

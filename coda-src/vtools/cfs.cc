@@ -152,7 +152,7 @@ static void WhereIs(int, char**, int);
 static void WriteBackStart(int, char**, int);
 static void WriteBackStop(int, char**, int);
 static void WriteBackAuto(int, char**, int);
-static void SyncCache(int, char**, int);
+static void ForceReintegrate(int, char**, int);
 static void WriteDisconnect(int, char**, int);
 static void WriteReconnect(int, char**, int);
 
@@ -391,7 +391,7 @@ struct command cmdarray[] =
 	    NULL
 	},
 
-	{"forcereintegrate", "fr", SyncCache,
+	{"forcereintegrate", "fr", ForceReintegrate,
 	    "cfs forcereintegrate <dir> [<dir> <dir> ...]",
 	    "Force modifications in a disconnected volume to the server",
 	    NULL
@@ -2577,11 +2577,17 @@ static void WriteBackAuto(int argc, char *argv[], int opslot)
   }
 }
 
-static void SyncCache(int argc, char *argv[], int opslot)
+static void ForceReintegrate(int argc, char *argv[], int opslot)
 {
   int  i = 2, rc, w;
   struct ViceIoctl vio;
-  
+  VolumeStatus *vs;
+  char *volname, *omsg, *motd;
+  VolumeStateType conn_state;
+  int conflict;
+  int cml_count;
+  char *ptr;  
+
   if (argc < 3) {
     printf("Usage: %s\n", cmdarray[opslot].usetxt);
     exit(-1);
@@ -2598,13 +2604,48 @@ static void SyncCache(int argc, char *argv[], int opslot)
     if (argc > 3) printf("  %*s:  ", w, argv[i]); /* echo input if more than one fid */
     
     rc = pioctl(argv[i], VIOC_SYNCCACHE, &vio, 0);
+    fflush(stdout); 
     if (rc < 0) {
-	fflush(stdout); 
 	perror("  VIOC_SYNCCACHE"); 
-	printf("  return code : %d",rc);
+	printf("  VIOC_SYNCCACHE returns %d\n",rc);
     }
-    else
-	printf("modifications reintegrated to server\n");
+    else {   /* test CML entries remaining by doing a ListVolume*/
+	vio.in = 0;
+        vio.in_size = 0;
+        vio.out_size = PIOBUFSIZE;
+        vio.out = piobuf;
+
+        /* Do the pioctl */
+        rc = pioctl(argv[i], VIOCGETVOLSTAT, &vio, 1);
+        if (rc < 0) {
+	    perror("  VIOC_GETVOLSTAT");
+	    printf("  VIOC_GETVOLSTAT returns %d\n");
+	}
+	else {  /* Get pointers to output fields */
+	        /* Format is (status, name, conn_state, conflict,
+		   cml_count, offlinemsg, motd) */
+	    ptr = piobuf;		/* invariant: ptr always point to next obj
+					   to be read */
+	    vs = (VolumeStatus *)ptr;
+	    ptr += sizeof(VolumeStatus);
+	    volname = ptr;
+	    ptr += strlen(volname)+1;
+	    ptr += sizeof(int);
+	    memcpy ((void *)&conflict, (void *)ptr, sizeof(int));
+	    ptr += sizeof(int);
+	    memcpy ((void *)&cml_count, (void *)ptr, sizeof(int));
+	    
+	    if (!cml_count) 
+		printf("Modifications to %s reintegrated to server\n",volname);
+	    else {
+		printf("%d CML entries remaining for volume %s\n",cml_count,volname);
+		if (conflict)
+		    printf("Reintegrationf failed due to a conflict\n");
+	    }
+	}
+	
+	
+    }
   }
 }
 

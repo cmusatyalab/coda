@@ -1801,15 +1801,18 @@ int volent::SyncCache(ViceFid * fid) {
 
 	if (type == REPVOL) {
 	    LOG(1,("volent::SyncCache()\n"));
-	    flags.transition_pending = 1;
-	    if (flags.transition_pending && VOLBUSY(this)) { 
-		// wait until they get out of our volume
+
+
+	    //	    if (flags.transition_pending && VOLBUSY(this)) { 
+	    // wait until they get out of our volume
+		    
+	    while (VOLBUSY(this))
 		VprocWait((char*)&this->shrd_count);
-	    }
-	    
+	   
+	    flags.transition_pending = 1;
 	    flags.sync_reintegrate = 1;
+	    reintegrate_until = NULL;   //do the whole volume	    
 	    /* reintegrate_until = findDepenents(fid); */
-	    reintegrate_until = NULL;   //do the whole volume
 	    
 	    if (flags.transition_pending) { 
 		// make sure no one else took our transition

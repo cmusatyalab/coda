@@ -208,6 +208,7 @@ int CacheFile::Copy(char *destname, ino_t *ino)
 
     for (;;) {
         n = ::read(ffd, buf, (int) sizeof(buf));
+	LOG(100,("CacheFile::Copy: copying %d bytes", n));
         if (n == 0)
 	    break;
         if (n < 0)

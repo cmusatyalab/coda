@@ -179,13 +179,13 @@ void MarinerMux(int mask) {
     /* Handle any new "Mariner Connect" requests. */
     if      (mariner::tcp_muxfd != -1 && (mask & (1 << mariner::tcp_muxfd))) {
         struct sockaddr_in sin;
-        int sinlen = sizeof(struct sockaddr_in);
+        u_int32_t sinlen = sizeof(struct sockaddr_in);
 	newfd = ::accept(mariner::tcp_muxfd, (sockaddr *)&sin, &sinlen);
     }
 #ifdef HAVE_SYS_UN_H
     else if (mariner::unix_muxfd != -1 && (mask & (1 << mariner::unix_muxfd))) {
         struct sockaddr_un s_un;
-        int sunlen = sizeof(struct sockaddr_un);
+        u_int32_t sunlen = sizeof(struct sockaddr_un);
 	newfd = ::accept(mariner::unix_muxfd, (sockaddr *)&s_un, &sunlen);
     }
 #endif

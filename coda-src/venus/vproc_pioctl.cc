@@ -847,9 +847,16 @@ OI_FreeLocks:
 		  }
 	      case VIOC_SYNCCACHE:
 		  {
+		      int old_wb_flag = 0;
+
 		      v->Exit(volmode, CRTORUID(u.u_cred));
 		      entered = 0;
+		      old_wb_flag = v->flags.writebackreint;
+		      v->flags.writebackreint = 1;
+
 		      u.u_error = v->SyncCache(NULL);
+
+		      v->flags.writebackreint = old_wb_flag;
 		  }
 	    }
 

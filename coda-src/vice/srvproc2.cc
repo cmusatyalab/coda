@@ -49,6 +49,7 @@ extern "C" {
 
 #include <sys/types.h>
 #include <sys/time.h>
+#include <sys/resource.h>
 #include <netinet/in.h>
 #include <netdb.h>
 #include <sys/ioctl.h>
@@ -967,7 +968,6 @@ void SetSystemStats_linux(ViceStatistics *stats)
 }
 #endif
 
-#include <sys/resource.h>
 static struct rusage resource;
 
 static void SetSystemStats(ViceStatistics *stats)

@@ -43,6 +43,7 @@ extern "C" {
 #include <sys/time.h>
 #include "coda_string.h"
 #include <errno.h>
+#include <resolv.h>
 
 #ifdef	__linux__
 #include <ncurses.h>
@@ -177,6 +178,9 @@ main(int argc, char *argv[])
 	exit(1);
     }
 #endif
+
+    /* DEBUG */
+    _res.options |= RES_DEBUG;
 
     initscr();
     curWin = newwin(1, 1, 0, 0);
@@ -645,8 +649,12 @@ static void ComputePV(struct server *s, struct printvals *pv)
     for (i = 0; i < 3; i++) 
     	{
 	strcpy(pv->diskname[i], ShortDiskName((char *)di[i]->Name));
-	pv->diskutil[i] = (int) (0.5 +
-	    (100.0*(di[i]->TotalBlocks - di[i]->BlocksAvailable))/di[i]->TotalBlocks);
+	if (di[i]->TotalBlocks != 0)
+                pv->diskutil[i] = (int) (0.5 +
+	            (100.0*(di[i]->TotalBlocks - di[i]->BlocksAvailable)) /
+                     di[i]->TotalBlocks);
+	else
+		pv->diskutil[i] = 0;
 	}
     }
 

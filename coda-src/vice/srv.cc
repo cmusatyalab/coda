@@ -1743,7 +1743,7 @@ static void InitializeServerRVM(char *name)
 #endif
 
 #if	defined(__FreeBSD__)
-	sbrk((void *)(0x50000000 - (int)sbrk(0))); /* for garbage reasons. */
+	sbrk((int)(0x50000000 - (int)sbrk(0))); /* for garbage reasons. */
 #elif	defined(__NetBSD__) && (defined(NetBSD1_3) || defined(NetBSD1_4))
 	sbrk((void *)(0x50000000 - (int)sbrk(0))); /* for garbage reasons. */
 #elif	defined(__NetBSD__) && NetBSD1_2

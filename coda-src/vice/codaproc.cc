@@ -342,6 +342,11 @@ long FS_ViceResolve(RPC2_Handle cid, ViceFid *Fid)
     // a single path 
     pathelembuf = (ResPathElem *)malloc(sizeof(ResPathElem) * (MAXPATHLEN/2) 
 					* VSG_MEMBERS);
+
+    if (pathelembuf == NULL) 
+	    goto FreeGroups;
+    CODA_ASSERT(pathelembuf != NULL);  // XXX Should we do something nicer ?
+
     for (j = 0; j < VSG_MEMBERS; j++) 
 	    pathelem_ptrs[j] = &(pathelembuf[j * (MAXPATHLEN/2)]);
 
