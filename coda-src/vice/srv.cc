@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vice/srv.cc,v 4.4 1997/10/13 03:55:22 clement Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vice/srv.cc,v 4.5 1997/10/23 19:25:18 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -268,16 +268,14 @@ PRIVATE int pushlog();
 PRIVATE int ParseArgs(int, char **);
 PRIVATE void NewParms(int);
 PRIVATE void InitServerKeys(char *, char *);
+PRIVATE void DaemonizeSrv(void);
 
-PRIVATE void SetRlimits(void);
-
-/* ******* Default signal handler ******** */
 #ifdef RVMTESTING
 #include <rvmtesting.h>
 #endif RVMTESTING
 
 /* Signal handlers in Linux will not be passed the arguments code and scp */
-#ifndef __linux
+#ifndef __linux__
 struct sigcontext OldContext; /* zombie() saves original context here */
 #endif
 extern void dumpvm();
@@ -392,6 +390,8 @@ main(int argc, char *argv[])
 
     setmyname(argv[0]);
 
+    DaemonizeSrv();
+
     len = (int) strlen(argv[0]);
     for(i = 0;i < len;i++) {
 	*(argv[0]+i) = ' ';
@@ -410,8 +410,6 @@ main(int argc, char *argv[])
     freopen("SrvErr","a+",stderr);
 
     SwapLog();
-
-    SetRlimits();
 
     /* CamHistoInit(); */	
     /* Initialize CamHisto package */
@@ -504,25 +502,6 @@ main(int argc, char *argv[])
     coda_init();
 
     FileMsg();
-
-    /* Got rid of all the old signal handlers;
-       the equivalent function is now provided via the RPC2 interface
-       in volutil; the only exceptions are to set and reset debugging,
-       in case the server is in a loop and unable to receive RPCs.
-      (Satya 2/15/92)
-   */
-    signal(SIGUSR2, (void (*)(int))ResetDebug);
-    signal(SIGWINCH, (void (*)(int))SetDebug);
-
-    /* Signals that are zombied allow debugging via gdb */
-    signal(SIGTRAP, (void (*)(int))zombie);
-    signal(SIGILL,  (void (*)(int))zombie);
-#ifdef	RVMTESTING
-    signal(SIGBUS, (void (*)(int))my_sigBus); /* Defined in util/rvmtesting.c */
-#else	RVMTESTING
-    signal(SIGBUS,  (void (*)(int))zombie);
-#endif	RVMTESTING
-    signal(SIGSEGV, (void (*)(int))zombie);
 
 
     assert(file = fopen("pid","w"));
@@ -1283,11 +1262,7 @@ void rds_printer(char *fmt ...)
 }
 
 /*
-  BEGIN_HTML
-  <a name="SwapLog"><strong>Move the current <tt>/vice/srv/SrvLog</tt> file
-  out of the way. 
-  </strong></a> 
-  END_HTML
+SwapLog: Move the current /vice/srv/SrvLog file out of the way. 
 */
 void SwapLog()
 {
@@ -1299,9 +1274,9 @@ void SwapLog()
 	return;
     }
 
-
     if (pushlog() != 0){
-	LogMsg(0, 0, stdout, "Log file names out of order or malformed; not swapping logs");
+	LogMsg(0, 0, stderr, 
+	       "Log file names out of order or malformed; not swapping logs");
 	return;
     }
 
@@ -1317,22 +1292,21 @@ void SwapLog()
 #endif
 }
 
+/* Filter for scandir(); eliminates all but names of form "SrvLog-" */
+PRIVATE int xselect(struct direct *d) {
+    if (strncmp(d->d_name, "SrvLog-", sizeof("SrvLog-")-1)) 
+	return(0); 
+    else 
+	return(1);    
+}
 
-PRIVATE int xselect(struct direct *d)
-    /* Filter for scandir(); eliminates all but names of form "SrvLog-" */
-    {
-    if (strncmp(d->d_name, "SrvLog-", sizeof("SrvLog-")-1)) return(0); /* no match */
-    else return(1);    
-    }
-
-PRIVATE int compar(struct direct **dp1, struct direct **dp2)
-    /*	Descending order comparator func for qsort() invoked by scandir().
+/*	Descending order comparator func for qsort() invoked by scandir().
 	All inputs assumed to be of the form "SrvLog-...." 
 	Returns -ve if d1 > d2 
 	        +ve if d1 < d2
 		0  if d1 == d2
-    */
-    {
+*/
+PRIVATE int compar(struct direct **dp1, struct direct **dp2) { 
     struct direct *d1, *d2;
 
     d1 = *dp1;
@@ -1345,51 +1319,42 @@ PRIVATE int compar(struct direct **dp1, struct direct **dp2)
 
     /* Order lexically if equal lengths */
     return(-strcmp(d1->d_name, d2->d_name));
-    }
+}
 
-PRIVATE pushlog()
-    {
-    /* Finds the highest index of SrvLog, SrvLog-1, SrvLog-2, ...SrvLog-N.
-       Then "pushes" them, resulting in SrvLog-1, SrvLog-2,....SrvLog-(N+1).
-       All work is done in the current directory.
-    */
+/* Finds the highest index of SrvLog, SrvLog-1, SrvLog-2, ...SrvLog-N.
+   Then "pushes" them, resulting in SrvLog-1, SrvLog-2,....SrvLog-(N+1).
+   All work is done in the current directory.
+*/
+PRIVATE pushlog() { 
     int i, count;
     char buf[100], buf2[100]; /* can't believe there will be more logs! */
     struct direct **namelist;
-
-
-#ifdef	__MACH__
-   count = scandir(".", &namelist,  xselect, compar);
-#else
-   count = scandir(".", (struct direct ***)&namelist, (int (*)(const dirent *)) xselect, (int (*)(const dirent *const *, const dirent *const *))compar);
-#endif
-    
-    /* Sanity check all names for safety */
-    for (i = 0; i < count; i++)
-	{
-	sprintf(buf, "SrvLog-%d", count-i);
-	if (strcmp(namelist[i]->d_name, buf) != 0)
-	    {
-	    return(-1);
-	    }
-	}
-    
+   count = scandir(".", (struct direct ***)&namelist, 
+		   (int (*)(const dirent *)) xselect, 
+		   (int (*)(const dirent *const *, const dirent *const *))compar);
     /* It is safe now to blindly rename */
-    for (i = 0; i < count; i++)
-	{
+    for (i = 0; i < count; i++) {
 	sprintf(buf, "SrvLog-%d", count-i);
+	if (strcmp(namelist[i]->d_name, buf) != 0) 
+	    continue;
 	sprintf(buf2, "SrvLog-%d", count-i+1);	
-	if (rename(buf, buf2)) {perror(buf); return(-1);}
+	if (rename(buf, buf2)) {
+	    perror(buf); 
+	    return(-1);
 	}
+    }
 	
     /* Clean up storage malloc'ed by scandir() */
     for (i = 0; i < count; i++) free(namelist[i]);
     free(namelist);
     
     /* Rename SrvLog itself */
-    if (rename("SrvLog", "SrvLog-1")) {perror("SrvLog"); return(-1);}
-    return(0);
+    if (rename("SrvLog", "SrvLog-1")) {
+	perror("SrvLog"); 
+	return(-1);
     }
+    return(0);
+}
 
 
 PRIVATE void FileMsg()
@@ -1726,14 +1691,54 @@ void Die(char *msg)
     assert(0);
 }
 
-PRIVATE void SetRlimits() {
-    /* Set DATA segment limit to maximum allowable. */
-    struct rlimit rl;
-    if (getrlimit(RLIMIT_DATA, &rl) < 0)
-	{ perror("getrlimit"); exit(-1); }
-    rl.rlim_cur = rl.rlim_max;
-    LogMsg(0, 0, stdout, "Resource limit on data size are set to %d\n", rl.rlim_cur);
-    if (setrlimit(RLIMIT_DATA, &rl) < 0)
-	{ perror("setrlimit"); exit(-1); }
 
+PRIVATE void DaemonizeSrv() { 
+    int child, rc; 
+   /* Set DATA segment limit to maximum allowable. */
+    struct rlimit rl;
+    if (getrlimit(RLIMIT_DATA, &rl) < 0) {
+        perror("getrlimit"); exit(-1);
+    }
+    rl.rlim_cur = rl.rlim_max;
+    LogMsg(0, 0, stdout, 
+	   "Resource limit on data size are set to %d\n", rl.rlim_cur);
+    if (setrlimit(RLIMIT_DATA, &rl) < 0) {
+	perror("setrlimit"); exit(-1); 
+    }
+
+    /* the forking code doesn't work well with our "startserver" script. 
+       reactivate this when that silly thing is gone */
+#if 0 
+    child = fork();
+    
+    if ( child < 0 ) { 
+	fprintf(stderr, "Cannot fork: exiting.\n");
+	exit(1);
+    }
+
+    if ( child != 0 ) /* parent */
+	exit(0); 
+#endif 
+
+    rc = setsid();
+#if 0
+    if ( rc < 0 ) {
+	fprintf(stderr, "Error detaching from terminal.\n");
+	exit(1);
+    }
+#endif
+
+    signal(SIGUSR2, (void (*)(int))ResetDebug);
+    signal(SIGWINCH, (void (*)(int))SetDebug);
+    signal(SIGHUP,  SIG_IGN);
+    /* Signals that are zombied allow debugging via gdb */
+    signal(SIGTRAP, (void (*)(int))zombie);
+    signal(SIGILL,  (void (*)(int))zombie);
+    signal(SIGFPE,  (void (*)(int))zombie);
+#ifdef	RVMTESTING
+    signal(SIGBUS, (void (*)(int))my_sigBus); /* Defined in util/rvmtesting.c */
+#else	RVMTESTING
+    signal(SIGBUS,  (void (*)(int))zombie);
+#endif	RVMTESTING
+    signal(SIGSEGV, (void (*)(int))zombie);
 }
