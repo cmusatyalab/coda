@@ -33,7 +33,7 @@ should be returned to Software.Distribution@cs.cmu.edu.
 
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/rvm-src/rvm/rvm_logrecovr.c,v 4.6 1998/01/12 23:36:09 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/rvm-src/rvm/rvm_logrecovr.c,v 4.7.4.1 98/06/18 15:07:13 jaharkes Exp $";
 #endif _BLURB_
 
 /*
@@ -45,9 +45,7 @@ static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/rvm-src/rvm/rvm
 #include <sys/file.h>
 #include <sys/time.h>
 #include "rvm_private.h"
-#ifdef	__MACH__
-#include <mach.h>
-#endif	/* __MACH__ */
+#include <assert.h>
 
 #ifdef RVM_LOG_TAIL_BUG
 #include <rvmtesting.h>
@@ -2723,20 +2721,20 @@ X(in_recovery)
                 if ((retval=new_epoch(log,count)) != RVM_SUCCESS)
                     goto err_exit1;
                 ASSERT(log->trunc_thread == cthread_self());
-
-                /* signal epoch switch done */
-                if (is_daemon)
-                    {
-                    ASSERT(log->daemon.thread == cthread_self());
-                    ASSERT(daemon->state == truncating);
-                    ASSERT((status->trunc_state & RVM_ASYNC_TRUNCATE) != 0);
-                    condition_signal(&daemon->flush_flag);
-                    ASSERT(log->daemon.thread == cthread_self());
-                    ASSERT(daemon->state == truncating);
-                    }
                 }
+
 X(err_exit1)
 err_exit1:;
+	    /* signal `initiate_truncation' that the first part is done */
+	    if (is_daemon)
+		{
+		ASSERT(log->daemon.thread == cthread_self());
+		ASSERT(daemon->state == truncating);
+		ASSERT((status->trunc_state & RVM_ASYNC_TRUNCATE) != 0);
+		condition_signal(&daemon->flush_flag);
+		ASSERT(log->daemon.thread == cthread_self());
+		ASSERT(daemon->state == truncating);
+		}
             });                         /* end dev_lock crit sec */
 
         if (retval != RVM_SUCCESS) goto err_exit;
@@ -2748,17 +2746,17 @@ err_exit1:;
 X(do_trunc)
             /* build tree and time */
             kretval= gettimeofday(&tmp_time,(struct timezone *)NULL);
-            if (kretval != 0) return RVM_EIO;
+            if (kretval != 0) assert(0); /* return RVM_EIO; */
 X(build_tree)
             if ((retval=build_tree(log)) != RVM_SUCCESS) /* phase 2 */
-                return retval;
+                assert(0); /* return retval; */
 X(build_tree done)
             ASSERT(log->trunc_thread == cthread_self());
             ASSERT((status->trunc_state & RVM_TRUNC_PHASES)
                    == RVM_TRUNC_BUILD_TREE);
 	    
             kretval= gettimeofday(&end_time,(struct timezone *)NULL);
-            if (kretval != 0) return RVM_EIO;
+            if (kretval != 0) assert(0); /* return RVM_EIO; */
             end_time = sub_times(&end_time,&tmp_time);
             last_tree_build_time = round_time(&end_time);
             if (rvm_chk_sigint != NULL) /* test for interrupt */
@@ -2766,7 +2764,7 @@ X(build_tree done)
 
             /* apply tree and time */
             kretval= gettimeofday(&tmp_time,(struct timezone *)NULL);
-            if (kretval != 0) return RVM_EIO;
+            if (kretval != 0) assert(0); /* return RVM_EIO; */
 X(apply_mods)
             if ((retval=apply_mods(log)) != RVM_SUCCESS) /* phase 3 */
                 goto err_exit;
@@ -2775,7 +2773,7 @@ X(apply_mods end)
             ASSERT((status->trunc_state & RVM_TRUNC_PHASES)
                    == RVM_TRUNC_APPLY);
             kretval= gettimeofday(&end_time,(struct timezone *)NULL);
-            if (kretval != 0) return RVM_EIO;
+            if (kretval != 0) assert(0); /* return RVM_EIO; */
             end_time = sub_times(&end_time,&tmp_time);
             last_tree_apply_time = round_time(&end_time);
             if (rvm_chk_sigint != NULL) /* test for interrupt */
