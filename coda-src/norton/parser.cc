@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/src/coda-4.0.1/RCSLINK/./coda-src/norton/parser.cc,v 1.1 1996/11/22 19:15:03 braam Exp $";
+static char *rcsid = "$Header: parser.cc,v 4.1 97/01/08 21:49:52 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -48,8 +48,9 @@ extern "C" {
 #include <ctype.h>
 #include <string.h>
 
-#include <readline/readline.h>	/* this lives in /usr/misc/.gnu-comp/include */
-/* Keep C++ happy */
+#define	READLINE_LIBRARY
+#include <readline.h>
+
 extern void using_history();
 extern void stifle_history(int);
 extern void add_history(char *);
