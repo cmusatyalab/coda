@@ -70,9 +70,9 @@ int CopyAndComputeViceSHA(int infd, int outfd,
     char shachunk[SHACHUNKSIZE];
 
     SHA1_Init(&cx);
-    while (i++) {
+    while (1) {
 	/* make sure we yield to other threads once in a while */
-	if ((i % SHA_YIELD_INTERVAL) == 0)
+	if ((++i % SHA_YIELD_INTERVAL) == 0)
 	    LWP_DispatchProcess();
 
 	bytes_in = read (infd, shachunk, SHACHUNKSIZE);

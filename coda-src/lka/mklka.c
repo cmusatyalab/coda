@@ -47,6 +47,9 @@ char *TreeRoot = 0; /* pathname of root of tree to be walked and hashed */
 int SetDescriptor(struct rwcdb *dbh); 
 int WalkTree(char *troot, char *prefix, struct rwcdb *dbh);
 
+/* dummy function for ComputeViceSHA */
+int LWP_DispatchProcess(void) { return 0; }
+
 int main(int argc, char **argv)
 {
   struct rwcdb dbh; /* database handle */

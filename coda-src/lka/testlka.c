@@ -34,6 +34,10 @@ listed in the file CREDITS.
 char em[4096];
 int emlen = sizeof(em);
 
+/* dummy function for ComputeViceSHA */
+int LWP_DispatchProcess(void) { return 0; }
+
+
 int main(int argc, char **argv)
 {
   int rc, fd, cfd;
