@@ -751,7 +751,7 @@ void WorkerInit()
 	    exit(-1);
     }
     worker::muxfd = MCFD;
-    dprint("WorkerInit: muxfd = %d", worker::muxfd);
+    dprint("WorkerInit: muxfd = %d\n", worker::muxfd);
 #elif defined(__CYGWIN32__)
     int sd[2];
     if (socketpair(AF_LOCAL, SOCK_STREAM, 0, sd)) {
