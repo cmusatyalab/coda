@@ -30,7 +30,7 @@ VENUS-SCRIPTS = vutil volmunge venus-setup coda-setup-ports
 VOL-SCRIPTS	= createvol_rep purgevol purgevol_rep bldvldb.sh
 VICE-SCRIPTS	= startserver codastart
 REINIT-SCRIPTS	= partial-reinit.sh
-UPGRADE-SCRIPTS	= pwdtopdbtool.py
+UPGRADE-SCRIPTS	= #pwdtopdbtool.py
 VICE-SETUP      = vice-setup vice-setup-rvm vice-setup-scm vice-setup-srvdir vice-setup-user vice-killvolumes coda-setup-ports
 
 BACKUP-SCRIPTS	= backup.sh tape.pl

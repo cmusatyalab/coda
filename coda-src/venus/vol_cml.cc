@@ -3216,7 +3216,10 @@ void RecoverPathName(char *path, VenusFid *fid, ClientModifyLog *CML, cmlent *st
 	    fsobj *f = FSDB->Find(&cfid);
 	    if (f == NULL) {
 		LOG(0, ("RecoverPathName: fid = %s object no cached\n", FID_(&cfid)));
-		sprintf(path, "???/%s", suffix);
+		/* gcc-3.2 barfs about trigraps when it sees ? ? /, by
+		 * splitting it up in two strings that are joined by the
+		 * preprocessor we avoid this warning. */
+		sprintf(path, "??" "?/%s", suffix);
 		return;
 	    }
 	    if (suffix[0])
@@ -3238,7 +3241,8 @@ void RecoverPathName(char *path, VenusFid *fid, ClientModifyLog *CML, cmlent *st
     fsobj *f = FSDB->Find(&cfid);	/* find the root object of the lowest volume */
     if (f == NULL) {
 	LOG(0, ("RecoverPathName: volume root %s not cached\n", FID_(&cfid)));
-	sprintf(path, "???/%s", suffix);
+	/* gcc-3.2 barfs about trigraps when it sees ? ? / */
+	sprintf(path, "??" "?/%s", suffix);
 	return;
     }
     f->GetPath(prefix, 1);
@@ -3425,6 +3429,17 @@ int repvol::LastMLETime(unsigned long *time)
 }
 
 
+static void BackupOldFile(const char *name)
+{
+    char oldname[MAXPATHLEN];
+
+    CODA_ASSERT(strlen(name) < (MAXPATHLEN - 4));
+    strcpy(oldname, name);
+    strcat(oldname, ".old");
+
+    ::rename(name, oldname);
+}
+
 /* Returns {0, ENOSPC}. */
 int ClientModifyLog::CheckPoint(char *ckpdir)
 {
@@ -3432,50 +3447,46 @@ int ClientModifyLog::CheckPoint(char *ckpdir)
     LOG(1, ("ClientModifyLog::CheckPoint: (%s), cdir = %s\n",
 	     vol->name, (ckpdir ? ckpdir : "")));
 
-    int code = 0;
+    int code = 0, n;
 
 #ifdef DJGPP
     return 0;
 #endif
 
-    /* Create the CKP file. */
-    /* The last component of the name will be "<volname>@<mountpath>". */
-    FILE *dfp = NULL, *ofp = NULL;
-    char ckpname[MAXPATHLEN], lname[MAXPATHLEN];
+    /* the spool directory name */
+    char spoolname[MAXPATHLEN], *volname;
+    
+    if (ckpdir) strcpy(spoolname, ckpdir);
+    else        MakeUserSpoolDir(spoolname, owner);
 
-    if (ckpdir)
-	strcpy(ckpname, ckpdir);
-    else
-	MakeUserSpoolDir(ckpname, owner);
-    strcat(ckpname, "/");
-    strcat(ckpname, vol->name);
-    strcat(ckpname, "@");
-    char mountpath[MAXPATHLEN];
-    vol->GetMountPath(mountpath);
-    {
-	/* Substitute |'s in mount path for /'s. */
-	/* Of course, we're assuming that | is never legitimately used in a mount path! */
-	for (char *cp = mountpath; *cp; cp++)
-	    if (*cp == '/') *cp = '_';
-    }
-    strncat(ckpname, mountpath, CODA_MAXNAMLEN - (int) strlen(vol->name) - 2);
-    {
-	/* remove other characters with sideeffects from the name */
-	for (char *cp = ckpname; *cp; cp++)
-	    if (*cp == ':') *cp = '_';
-    }
-    (void) strcpy(lname, ckpname);
+    strcat(spoolname, "/");
+
+    n = strlen(spoolname);
+    volname = spoolname + n;
+
+    /* The last component of the name will be "<volname>@<realm>". */
+    n = snprintf(volname, MAXPATHLEN-n, "%s@%s", vol->name, vol->realm->Name());
+    if (n < 0) return 0;
+
+    /* remove characters with possibly unwanted side effects from the last
+     * component */
+    for (char *cp = volname; *cp; cp++)
+	if (*cp == ':' || *cp == '/' || *cp == '|')
+	    *cp = '_';
+
+    char ckpname[MAXPATHLEN], lname[MAXPATHLEN];
+    /* append .tar and .cml */
+    (void) strcpy(ckpname, spoolname);
     (void) strcat(ckpname, ".tar");
+
+    (void) strcpy(lname, spoolname);
     (void) strcat(lname, ".cml");
 
-    {
-	/* rename the old checkpoint file out of the way, if possible */
-	char oldname[MAXPATHLEN];
-	(void) strcat(strcpy(oldname, ckpname), ".old");
-	(void) ::rename(ckpname, oldname);
-	(void) strcat(strcpy(oldname, lname), ".old");
-	(void) ::rename(lname, oldname);
-    }
+    /* rename the old checkpoint file, if possible */
+    BackupOldFile(ckpname);
+    BackupOldFile(lname);
+
+    FILE *dfp = NULL, *ofp = NULL;
 
     if ((dfp = fopen(ckpname, "w+")) == NULL) {
 	eprint("Couldn't open %s for checkpointing", ckpname);

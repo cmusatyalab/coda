@@ -195,7 +195,6 @@ exit 0
 /usr/sbin/printvrdb
 /usr/sbin/purgevol
 /usr/sbin/purgevol_rep
-/usr/sbin/pwdtopdbtool.py
 /usr/sbin/rpc2portmap
 /usr/sbin/startserver
 /usr/sbin/updatesrv

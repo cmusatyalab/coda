@@ -222,7 +222,6 @@ sbin/pdbtool
 sbin/printvrdb
 sbin/purgevol
 sbin/purgevol_rep
-sbin/pwdtopdbtool.py
 sbin/readdump
 sbin/rpc2portmap
 sbin/startserver
