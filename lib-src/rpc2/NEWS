@@ -1,6 +1,11 @@
 New in 1.27:
 
 * Fixes for LWP-2.0
+* Reduced size of the medium packets to 1500.
+* Explicitly clear the EchoTimestamp when we receive an out-of-order
+  SFTP data packet to avoid sending a stale timestamp value.
+* Make sure we retransmit at least one packet once we hit EOF so that we
+  can continue to make progress.
 
 New in 1.26:
 

@@ -595,7 +595,7 @@ int mkcall(RPC2_HandleResult_func *ClientHandler, int ArgCount, int HowMany,
 /* Allocation constants */
 
 #define SMALLPACKET	350
-#define MEDIUMPACKET	3000
+#define MEDIUMPACKET	1500
 #define LARGEPACKET	RPC2_MAXPACKETSIZE
 
 

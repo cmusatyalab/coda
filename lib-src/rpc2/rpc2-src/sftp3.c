@@ -85,7 +85,7 @@ long sftp_datas, sftp_datar, sftp_acks, sftp_ackr, sftp_busy,
 struct sftpStats sftp_Sent, sftp_MSent;
 struct sftpStats sftp_Recvd, sftp_MRecvd;
 
-static void CheckWorried(struct SFTP_Entry *sEntry);
+static int CheckWorried(struct SFTP_Entry *sEntry);
 static int ResendWorried(struct SFTP_Entry *sEntry);
 static int SendSendAhead(struct SFTP_Entry *sEntry, int worried);
 static int SendFirstUnacked(struct SFTP_Entry *sEntry);
@@ -335,6 +335,8 @@ int sftp_DataArrived(RPC2_PacketBuffer *pBuff, struct SFTP_Entry *sEntry)
      * of data the source sent between the previous ack and this one. -JH */
     if (pBuff->Header.SeqNumber == sEntry->RecvLastContig+1)
 	sEntry->TimeEcho = pBuff->Header.TimeStamp;
+    else
+	sEntry->TimeEcho = 0;
     
     sEntry->XferState = XferInProgress; /* this is how it gets turned on in Client for fetch */
     SETBIT(sEntry->RecvTheseBits, moffset);
@@ -752,7 +754,7 @@ int sftp_SendStrategy(struct SFTP_Entry *sEntry)
     assert(sEntry->ReadAheadCount > 0 || sEntry->HitEOF || !winopen);
 
     /* see if we should be worried about anything new yet */
-    CheckWorried(sEntry);
+    worried = CheckWorried(sEntry);
 
     /*  If there is no more new data to send, this call is for
      * retransmission.  Ensure progress is made by sending the first
@@ -763,7 +765,6 @@ int sftp_SendStrategy(struct SFTP_Entry *sEntry)
      * the retransmission timer will expire eventually, and the packet
      * will be placed in the worried set.  The first unacked packet is
      * SendLastContig+1.  */
-    worried = sEntry->SendWorriedLimit > sEntry->SendLastContig;
     if (!winopen)
     {
 	/* Window is closed: try to send any worried packets */
@@ -773,38 +774,34 @@ int sftp_SendStrategy(struct SFTP_Entry *sEntry)
 #else
 	/* Assuming we don't lose packets that much, sending only the first
 	 * unacked is marginally faster. -JH */
+	return worried ? SendFirstUnacked(sEntry) : 0;
+#endif
+    }
+
+    /* Window is open: be more ambitious */
+    if (sEntry->ReadAheadCount > 0)
+    {
+#if 0
+	if (ResendWorried(sEntry) < 0) return(-1);
+#else
+	/* If we're starting to get worried about packets, send the first
+	 * unacknowledged packet in the worried set. If that doesn't fix
+	 * it, we will hit the end of the send window, and start sending
+	 * the complete worried set anyways. -JH */
 	if (worried && SendFirstUnacked(sEntry) < 0)
 	    return(-1);
 #endif
+	return SendSendAhead(sEntry, worried); /* may close window */
     }
-    else
-    {/* Window is open: be more ambitious */
-	if (sEntry->ReadAheadCount > 0)
-	{
-#if 0
-	    if (ResendWorried(sEntry) < 0) return(-1);
-#else
-	    /* If we're starting to get worried about packets, send the first
-	     * unacknowledged packet in the worried set. If that doesn't fix
-	     * it, we will hit the end of the send window, and start sending
-	     * the complete worried set anyways. -JH */
-	    if (worried && SendFirstUnacked(sEntry) < 0)
-		return(-1);
-#endif
-	    if (SendSendAhead(sEntry, worried) < 0) /* may close window */
-		return(-1);
-	}
-	else
-	{
-	    /* Hit EOF, try to flush the last packets to the other side. */
-	    if (ResendWorried(sEntry) < 0) return(-1);
-	}
-    }
-    return(0);
+
+    /* Hit EOF, try to flush the last packets to the other side. We should be
+     * able to be a little more agressive compared to the case where we're
+     * in the middle of the transfer with a closed window */
+    return worried ? ResendWorried(sEntry) : SendFirstUnacked(sEntry);
 }
 
 
-static void CheckWorried(struct SFTP_Entry *sEntry)
+static int CheckWorried(struct SFTP_Entry *sEntry)
     /* Check the packets from SendWorriedLimit to SendAckLimit, and
        see if we should be Worried about any of them.  */
 {
@@ -838,6 +835,8 @@ static void CheckWorried(struct SFTP_Entry *sEntry)
     sEntry->SendWorriedLimit = i;
     say(/*9*/4, SFTP_DebugLevel, "LastContig = %ld, Worried = %ld, AckLimit = %ld, MostRecent = %ld\n",
 				  sEntry->SendLastContig, sEntry->SendWorriedLimit, sEntry->SendAckLimit, sEntry->SendMostRecent);
+
+    return (sEntry->SendWorriedLimit > sEntry->SendLastContig);
 }
 
 static int ResendWorried(struct SFTP_Entry *sEntry)
@@ -983,8 +982,9 @@ static int SendSendAhead(struct SFTP_Entry *sEntry, int worried)
 
     /* try to avoid generating data when there might be ack packets queued up
      * already and we're not about to send a full window's worth */
-    dont_ackme = worried || (sEntry->ReadAheadCount < sEntry->SendAhead) &&
-	(rpc2_MorePackets() != -1);
+    dont_ackme = worried ||
+	((sEntry->ReadAheadCount < sEntry->SendAhead) &&
+	 (rpc2_MorePackets() != -1));
 	
     /* j is the packet to be acked */
     if (sEntry->AckPoint > sEntry->ReadAheadCount)
