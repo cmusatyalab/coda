@@ -29,9 +29,8 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/advice/advice_srv.h,v 4.3 1997/12/16 15:54:44 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/advice/Attic/advice_srv.h,v 4.6 98/01/29 20:00:27 braam Exp $";
 #endif /*_BLURB_*/
-
 
 
 
@@ -46,8 +45,7 @@ static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/advice
 
 /* Definitions:  Pathnames to other executables... */
 #define CODACONSOLEOUT "tixwish"
-#define CODACONSOLE "/usr/lib/coda/CodaConsole"
-#define JUMPSTARTASR "parser"        
+#define JUMPSTARTASR "parser"
 
 #define CFS "cfs"
 
@@ -71,6 +69,7 @@ extern int execute_tcl(char *script, char *args[]);
 enum StoplightStates { SLunknown, SLdisconnect, SLweak, SLstrong, SLoff, SLquit };
 #define VDBFileName "/tmp/advice_vdb.out"
 
+#define TMPDIR "/tmp"
 
 extern void Yield();
 
