@@ -716,17 +716,19 @@ static int ValidateReintegrateParms(RPC2_Handle RPCid, VolumeId *Vid,
 
 	    case OLDCML_SymLink_OP:
 		RLE_Unpack(&_ptr, OLDCML_SymLink_PTR, &r->Fid[0],
-			   NewName, OldName,// yes, newname then oldname
+			   OldName, NewName,
 			   &r->Fid[1], &Status, &DirStatus,
                            &DummyAllocHost, &r->sid, &DummyCBS);
 
-		r->Name[0] = strdup(OldName);
+		// NewName contains link name, OldName contains link content
+
+		r->Name[0] = strdup(NewName);
 		if (!r->Name[0]) {
 		    errorCode = ENOMEM;
 		    goto Exit;
 		}
 
-		r->Name[1] = strdup(NewName);
+		r->Name[1] = strdup(OldName);
 		if (!r->Name[1]) {
 		    free(r->Name[0]);
 		    r->Name[0] = NULL;
@@ -879,17 +881,19 @@ static int ValidateReintegrateParms(RPC2_Handle RPCid, VolumeId *Vid,
 
 	    case CML_SymLink_OP:
 		RLE_Unpack(&_ptr, CML_SymLink_PTR, &r->Fid[0],
-                           &r->VV[0], OldName, NewName, &r->Fid[1],
+                           &r->VV[0], NewName, OldName, &r->Fid[1],
                            &r->u.u_symlink.Owner, &r->u.u_symlink.Mode,
                            &r->sid);
 
-		r->Name[0] = strdup(OldName);
+		// NewName contains link name, OldName contains link content
+
+		r->Name[0] = strdup(NewName);
 		if (!r->Name[0]) {
 		    errorCode = ENOMEM;
 		    goto Exit;
 		}
 
-		r->Name[1] = strdup(NewName);
+		r->Name[1] = strdup(OldName);
 		if (!r->Name[1]) {
 		    free(r->Name[0]);
 		    r->Name[0] = NULL;
@@ -1923,7 +1927,7 @@ START_TIMING(Reintegrate_CheckSemanticsAndPerform);
 		    vle *child_v = FindVLE(*vlist, &r->Fid[1]);
 		    if ((errorCode = CheckSymlinkSemantics(client, &parent_v->vptr,
 							   &child_v->vptr,
-							   r->Name[1],
+							   r->Name[0],
 							   &volptr, 1, VCmp,
 							   &r->VV[0],
 							   &NullVV,
@@ -1940,15 +1944,15 @@ START_TIMING(Reintegrate_CheckSemanticsAndPerform);
 					       child_v->vptr->vnodeNumber,
 					       child_v->vptr->disk.uniquifier, 1);
 		    CODA_ASSERT(child_v->f_finode > 0);
-		    int linklen = strlen(r->Name[0]);
+		    int linklen = strlen(r->Name[1]);
 
 		    int n = iwrite(V_device(volptr), child_v->f_finode,
-				   V_parentId(volptr), 0, r->Name[0], linklen);
+				   V_parentId(volptr), 0, r->Name[1], linklen);
 		    CODA_ASSERT(n == linklen);
 
 		    HandleWeakEquality(volptr, parent_v->vptr, &r->VV[0]);
 		    PerformSymlink(client, VSGVolnum, volptr, parent_v->vptr,
-				   child_v->vptr, r->Name[1],
+				   child_v->vptr, r->Name[0],
 				   child_v->f_finode, linklen, r->Mtime,
 				   r->u.u_symlink.Mode, 0, &r->sid,
 				   &parent_v->d_cinode, &deltablocks);
@@ -1960,7 +1964,7 @@ START_TIMING(Reintegrate_CheckSemanticsAndPerform);
 			  ? ResolveViceSymLink_OP : RES_SymLink_OP;
 			if ((errorCode = SpoolVMLogRecord(vlist, parent_v, 
 							 volptr, &r->sid,
-							 opcode, r->Name[1],
+							 opcode, r->Name[0],
 							 r->Fid[1].Vnode,
 							 r->Fid[1].Unique))) {
 			    SLog(0, 

@@ -99,8 +99,8 @@ typedef RPC2_Enum
 		 IN RPC2_CountedBS PiggyCOP2);
 
 7: OLDCML_SymLink(IN ViceFid Did,
-		 IN RPC2_String OldName,
-		 IN RPC2_String NewName,
+		 IN RPC2_String Content,
+		 IN RPC2_String Name,
 		 IN OUT ViceFid Fid,
 		 IN OUT ViceStatus Status,
 		 IN OUT ViceStatus DirStatus,
@@ -160,8 +160,8 @@ typedef RPC2_Enum
 
 16: CML_SymLink	(IN ViceFid Did,
 		 IN ViceVersionVector pVV,
-		 IN RPC2_String OldName,
-		 IN RPC2_String NewName,
+		 IN RPC2_String Name,
+		 IN RPC2_String Content,
 		 IN ViceFid Fid,
 		 IN UserId Owner,
 		 IN RPC2_Unsigned Mode,

@@ -634,9 +634,9 @@ cmlent::cmlent(ClientModifyLog *Log, time_t Mtime, vuid_t vuid, int op, int Tid 
 	case CML_SymLink_OP:
 	    u.u_symlink.PFid = *va_arg(ap, ViceFid *);
 	    name = va_arg(ap, RPC2_String);
-	    Name = Copy_RPC2_String(name);
-	    name = va_arg(ap, RPC2_String);
 	    NewName = Copy_RPC2_String(name);
+	    name = va_arg(ap, RPC2_String);
+	    Name = Copy_RPC2_String(name); // content
 	    u.u_symlink.CFid = *va_arg(ap, ViceFid *);
 	    u.u_symlink.Mode = va_arg(ap, RPC2_Unsigned);
 	    break;
@@ -1427,14 +1427,14 @@ int repvol::LogRmdir(time_t Mtime, vuid_t vuid, ViceFid *PFid, char *Name,
 
 /* local-repair modification */
 int repvol::LogSymlink(time_t Mtime, vuid_t vuid, ViceFid *PFid,
-                       char *OldName, char *NewName, ViceFid *CFid,
+                       char *Name, char *Contents, ViceFid *CFid,
                        RPC2_Unsigned Mode, int tid)
 {
     LOG(1, ("repvol::LogSymlink: %d, %d, (%s), %s, %s, (%s), %o %d\n",
-	    Mtime, vuid, FID_(PFid), OldName, NewName, FID_2(CFid), Mode, tid));
+	    Mtime, vuid, FID_(PFid), Name, Contents, FID_2(CFid), Mode, tid));
 
     cmlent *symlink_mle = new cmlent(&CML, Mtime, vuid, CML_SymLink_OP, tid,
-				      PFid, OldName, NewName, CFid, Mode);
+				      PFid, Name, Contents, CFid, Mode);
     return(symlink_mle == 0 ? ENOSPC : 0);
 }
 
@@ -2503,7 +2503,7 @@ int cmlent::size()
 
 	case CML_SymLink_OP:
 	    len += RLE_Size(CML_SymLink_PTR, &u.u_symlink.PFid,
-			    &u.u_symlink.PVV, Name, NewName,
+			    &u.u_symlink.PVV, NewName, Name,
 			    &u.u_symlink.CFid, uid, u.u_symlink.Mode, &sid);
 	    break;
 
@@ -2590,7 +2590,7 @@ void cmlent::pack(PARM **_ptr) {
 
 	case CML_SymLink_OP:
 	    RLE_Pack(_ptr, CML_SymLink_PTR, &u.u_symlink.PFid,
-		     &u.u_symlink.PVV, Name, NewName, &u.u_symlink.CFid, uid,
+		     &u.u_symlink.PVV, NewName, Name, &u.u_symlink.CFid, uid,
 		     u.u_symlink.Mode, &sid);
 	    break;
 
