@@ -8,8 +8,9 @@ case ${prefix} in
 	;;
 
     */coda* )
-	# If '/coda*' is already in the prefix, we don't need to do anything
-	# for the sysconfdir.
+	# If '/coda*' is already in the prefix, we don't need to add
+        # a coda subdirectory to the sysconfdir.
+	sysconfdir=${prefix}/etc
 	initsuffix='etc'
 	;;
 
