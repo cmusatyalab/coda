@@ -301,6 +301,8 @@ ViceNewConnection (IN RPC2_Integer SideEffectType,
 20: ViceGetTime	(OUT RPC2_Unsigned Seconds,
 		 OUT RPC2_Integer USeconds);
 
+21: TokenExpired ();
+
 22: ViceGetStatistics (IN OUT ViceStatistics Statistics);
 
 24: ViceGetVolumeInfo (IN RPC2_String Vid,
