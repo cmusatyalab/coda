@@ -79,10 +79,16 @@ static long DontFailPacket(predicate, pb, addr, sock)
 
     if (predicate)
 	{
+#ifdef CODA_IPV6
+	    say(10, RPC2_DebugLevel, "Error in DontFailPacket: predicate set!");
+	    return(-1);
+	    
+#else /* CODA_IPV6 */
 	ip1 = (ntohl(addr->sin_addr.s_addr) >> 24) & 0x000000ff;
 	ip2 = (ntohl(addr->sin_addr.s_addr) >> 16) & 0x000000ff;
 	ip3 = (ntohl(addr->sin_addr.s_addr) >> 8) & 0x000000ff;
 	ip4 = ntohl(addr->sin_addr.s_addr) & 0x000000ff;
+#endif /* CODA_IPV6 */
 	ntohPktColor(pb);
 	color = GetPktColor(pb);
 	htonPktColor(pb);
@@ -122,12 +128,21 @@ void rpc2_XmitPacket(IN long whichSocket, IN RPC2_PacketBuffer *whichPB,
 	case RPC2_HOSTBYINETADDR:
 	case RPC2_MGRPBYINETADDR:
 	    {
+#ifdef CODA_IPV6
+            struct sockaddr_in *sa;
+	    
+	    assert(whichPort->Tag == RPC2_PORTBYINETNUMBER);
+	    sa = (struct sockaddr_in *) whichHost->Value.AddrInfo->ai_addr;
+	    sa->sin_port = whichPort->Value.InetPortNumber; /* In network order */
+#else /* CODA_IPV6 */
 	    struct sockaddr_in sa;
 
 	    assert(whichPort->Tag == RPC2_PORTBYINETNUMBER);
+
 	    sa.sin_family = AF_INET;
 	    sa.sin_addr.s_addr = whichHost->Value.InetAddress.s_addr;	/* In network order */
 	    sa.sin_port = whichPort->Value.InetPortNumber; /* In network order */
+#endif /* CODA_IPV6 */
 
 	    if (ntohl(whichPB->Header.Flags) & RPC2_MULTICAST)
 		{
@@ -142,9 +157,16 @@ void rpc2_XmitPacket(IN long whichSocket, IN RPC2_PacketBuffer *whichPB,
 
 	    if (DontFailPacket(Fail_SendPredicate, whichPB, &sa, whichSocket))
 		{
+#ifdef CODA_IPV6
+                n = sendto(whichSocket, &whichPB->Header,
+                           whichPB->Prefix.LengthOfPacket, 0,
+                           whichHost->Value.AddrInfo->ai_addr,
+			   whichHost->Value.AddrInfo->ai_addrlen);
+#else /* CODA_IPV6 */
                 n = sendto(whichSocket, &whichPB->Header,
                            whichPB->Prefix.LengthOfPacket, 0,
                            (struct sockaddr *)&sa, sizeof(struct sockaddr_in));
+#endif /* CODA_IPV6 */
 
 #ifdef __linux__
                 if ((n == -1) && (errno == ECONNREFUSED))
@@ -156,17 +178,24 @@ void rpc2_XmitPacket(IN long whichSocket, IN RPC2_PacketBuffer *whichPB,
 		     * We retry the send, because the failing host was possibly
 		     * not the one we tried to send to this time. --JH
                      */
+#ifdef CODA_IPV6
+                    n = sendto(whichSocket, &whichPB->Header,
+                               whichPB->Prefix.LengthOfPacket, 0,
+			       whichHost->Value.AddrInfo->ai_addr,
+                               whichHost->Value.AddrInfo->ai_addrlen);
+#else /* CODA_IPV6 */
                     n = sendto(whichSocket, &whichPB->Header,
                                whichPB->Prefix.LengthOfPacket, 0,
                                (struct sockaddr *)&sa,
                                sizeof(struct sockaddr_in));
+#endif /* CODA_IPV6 */
                 }
 #endif
 
 		if (n != whichPB->Prefix.LengthOfPacket)
 		    {
 		    char msg[100];
-		    (void) sprintf(msg, "socket %ld", whichSocket);
+		    (void) sprintf(msg, "Xmit_Packet socket %ld, errno %d", whichSocket, errno);
 		    if (RPC2_Perror) perror(msg);
 		    }
 	        }
@@ -189,7 +218,12 @@ long rpc2_RecvPacket(IN long whichSocket, OUT RPC2_PacketBuffer *whichBuff)
 {
     long rc, len;
     int fromlen;
+#ifdef CODA_IPV6
+    struct sockaddr_storage sa;
+    struct sockaddr_in *saip = (struct sockaddr_in *)&sa;
+#else /* CODA_IPV6 */
     struct sockaddr_in sa;
+#endif /* CODA_IPV6 */
 
     say(0, RPC2_DebugLevel, "rpc2_RecvPacket()\n");
     assert(whichBuff->Prefix.MagicNumber == OBJ_PACKETBUFFER);
@@ -207,6 +241,37 @@ long rpc2_RecvPacket(IN long whichSocket, OUT RPC2_PacketBuffer *whichBuff)
 	    return(-1);
     }
 
+#ifdef CODA_IPV6
+    /* do we really need to zero these? */
+    memset(&whichBuff->Prefix.PeerHost, 0, sizeof(RPC2_HostIdent));
+    memset(&whichBuff->Prefix.PeerPort, 0, sizeof(RPC2_PortIdent));
+
+    whichBuff->Prefix.PeerHost.Tag = RPC2_HOSTBYINETADDR;
+    whichBuff->Prefix.PeerPort.Tag = RPC2_PORTBYINETNUMBER;
+    /* XXX this isn't the correct way to get this, I'm sure */
+    whichBuff->Prefix.PeerPort.Value.InetPortNumber = saip->sin_port;
+
+    if (!whichBuff->Prefix.PeerHost.Value.AddrInfo) {
+	whichBuff->Prefix.PeerHost.Value.AddrInfo = malloc(sizeof(struct addrinfo));
+	if (!whichBuff->Prefix.PeerHost.Value.AddrInfo) {
+	    say(10, RPC2_DebugLevel, "Error in recvf from: errno = %d\n", errno);
+	    return(-1);
+	}
+	memset(whichBuff->Prefix.PeerHost.Value.AddrInfo,0,sizeof(struct addrinfo));
+    }
+    if (!whichBuff->Prefix.PeerHost.Value.AddrInfo->ai_addr) {
+	whichBuff->Prefix.PeerHost.Value.AddrInfo->ai_addr = malloc(sizeof(sa));
+	if (!whichBuff->Prefix.PeerHost.Value.AddrInfo->ai_addr) {
+	    say(10, RPC2_DebugLevel, "Error in recvf from: errno = %d\n", errno);
+	    return(-1);
+	}
+	memcpy(whichBuff->Prefix.PeerHost.Value.AddrInfo->ai_addr,
+	       &sa, fromlen);
+	whichBuff->Prefix.PeerHost.Value.AddrInfo->ai_addrlen = fromlen;
+    }
+    /* XXX I hope that this doesn't conflict with an addrinfo allocation.
+       I'm not sure enough on how the operation works... */
+#else /* CODA_IPV6 */
     /* do we really need to zero these? */
     memset(&whichBuff->Prefix.PeerHost, 0, sizeof(RPC2_HostIdent));
     memset(&whichBuff->Prefix.PeerPort, 0, sizeof(RPC2_PortIdent));
@@ -215,6 +280,7 @@ long rpc2_RecvPacket(IN long whichSocket, OUT RPC2_PacketBuffer *whichBuff)
     whichBuff->Prefix.PeerHost.Value.InetAddress.s_addr = sa.sin_addr.s_addr;
     whichBuff->Prefix.PeerPort.Tag = RPC2_PORTBYINETNUMBER;
     whichBuff->Prefix.PeerPort.Value.InetPortNumber = sa.sin_port;
+#endif /* CODA_IPV6 */
 
     TR_RECV();
 
@@ -567,6 +633,12 @@ long rpc2_SendReliably(IN Conn, IN Sle, IN Packet, IN TimeOut)
 /* For converting packet headers to/from network order */
 void rpc2_htonp(RPC2_PacketBuffer *p)
 {
+#ifdef CODA_IPV6
+  /*
+   * Actually, the test for endianness shouldn't be necessary -- most
+   * implementations make these nops on the right machines.
+   */
+#endif /* CODA_IPV6 */
 	p->Header.ProtoVersion = htonl(p->Header.ProtoVersion);
 	p->Header.RemoteHandle = htonl(p->Header.RemoteHandle);
 	p->Header.LocalHandle = htonl(p->Header.LocalHandle);

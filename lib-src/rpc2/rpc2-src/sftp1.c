@@ -99,6 +99,10 @@ static long MakeBigEnough();
 long SFTP_Init()
 {
     char *sname;
+#ifdef CODA_IPV6
+    static RPC2_HostIdent sftp_Host;
+    static struct addrinfo sftp_Host_AddrInfo;
+#endif /* CODA_IPV6 */
     
     say(0, SFTP_DebugLevel, "SFTP_Init()\n");
 
@@ -108,7 +112,14 @@ long SFTP_Init()
     if (sftp_Port.Tag)
     {
         /* Create socket for SFTP packets */
+#ifdef CODA_IPV6
+	/* sftp_Host_AddrInfo.ai_family = PF_UNSPEC; */
+	sftp_Host_AddrInfo.ai_family = AF_INET6;
+	sftp_Host.Value.AddrInfo = &sftp_Host_AddrInfo;
+        if (rpc2_CreateIPSocket(&sftp_Socket, &sftp_Port, &sftp_Host) != RPC2_SUCCESS)
+#else /* CODA_IPV6 */
         if (rpc2_CreateIPSocket(&sftp_Socket, &sftp_Port) != RPC2_SUCCESS)
+#endif /* CODA_IPV6 */
             return(RPC2_FAIL);
     }
 

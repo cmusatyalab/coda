@@ -347,8 +347,19 @@ long RPC2_GetRequest(IN RPC2_RequestFilter *Filter,
     /* And now we are really done */
     if (ce->Flags & CE_OLDV)
     {
+#ifdef CODA_IPV6
+	char addr[50];
+	struct addrinfo *aip = ce->PeerHost.Value.AddrInfo;
+	if (!inet_ntop(aip->ai_family,aip->ai_addr,addr,aip->ai_addrlen)) {
+	    say(-1, RPC2_DebugLevel, "Request from (untranslatable): Old rpc2 version\n");
+	} else {
+	    say(-1, RPC2_DebugLevel, "Request from %s: Old rpc2 version\n",
+		addr);
+	}
+#else /* CODA_IPV6 */
 	say(-1, RPC2_DebugLevel, "Request from %s: Old rpc2 version\n",
 		inet_ntoa(ce->PeerHost.Value.InetAddress));
+#endif /* CODA_IPV6 */
 
 	/* Get rid of allocated connection entry. */
 	DROPIT();
@@ -969,18 +980,47 @@ static int ResolveBindParms(IN whichConn, IN whichHost, IN whichPort, IN whichSu
     */
     {
     struct servent *sentry;
+#ifdef CODA_IPV6
+    struct addrinfo hint;
+    struct addrinfo *result;
+    int retval;
+#else /* CODA_IPV6 */
     struct hostent *hentry;
+#endif /* CODA_IPV6 */
 
     /* Resolve host */
     switch(whichHost->Tag)
 	{
 	case RPC2_HOSTBYINETADDR:	/* you passed it in in network order! */
 		whichConn->PeerHost.Tag = RPC2_HOSTBYINETADDR;
+#ifdef CODA_IPV6
+		whichConn->PeerHost.Value.AddrInfo =
+		    whichHost->Value.AddrInfo; /* structure assignment */
+#else /* CODA_IPV6 */
 		whichConn->PeerHost.Value.InetAddress.s_addr =
 		    whichHost->Value.InetAddress.s_addr;
+#endif /* CODA_IPV6 */
 		break;
 
 	case RPC2_HOSTBYNAME:
+#ifdef CODA_IPV6
+		bzero(&hint, sizeof(struct addrinfo));
+		hint.ai_family = PF_UNSPEC;
+		hint.ai_socktype = SOCK_DGRAM;
+		/* XXX need to know whether or not we're server, so
+		   we'll know whether or not to set AI_PASSIVE */
+		if ((retval = getaddrinfo(whichHost->Value.Name, NULL,
+					  &hint, &result))) {
+		    say(0, RPC2_DebugLevel, "ResolveBindParms: getaddrinfo failed\n");
+		    return(RPC2_FAIL);
+		}
+		whichConn->PeerHost.Tag = RPC2_HOSTBYINETADDR;
+		/* XXX here -- just keep the addrinfo we were given */
+		whichConn->PeerHost.Value.AddrInfo = result;
+		/* memcpy(&whichConn->PeerHost.Value, result->ai_addr,
+		       result->ai_addrlen); */
+		/* XXX what do I do with multiple return values? */
+#else /* CODA_IPV6 */
 		if ((hentry = gethostbyname (whichHost->Value.Name)) == NULL) {
 		    say(0, RPC2_DebugLevel, "ResolveBindParms: gethostbyname failed\n");
 		    return(RPC2_FAIL);
@@ -988,6 +1028,7 @@ static int ResolveBindParms(IN whichConn, IN whichHost, IN whichPort, IN whichSu
 		whichConn->PeerHost.Tag = RPC2_HOSTBYINETADDR;
 		memcpy(&whichConn->PeerHost.Value.InetAddress, hentry->h_addr,
 		       hentry->h_length); /* Already in network byte order */
+#endif /* CODA_IPV6 */
 	    break;
 
 	default:  assert(FALSE);

@@ -448,13 +448,22 @@ int SFXlateMcastPacket(RPC2_PacketBuffer *pb)
 	    h_SeqNumber,					/* decrypt first */
 	    h_ThisRPCCall;					/* decrypt first */
     RPC2_PortIdent		XlatePort;
+#ifdef CODA_IPV6
+    char addr[50];
+#endif /* CODA_IPV6 */
 
     XlatePort = pb->Prefix.PeerPort;		/* structure assignment */
 
     say(9, SFTP_DebugLevel, "SFXlateMcastPacket()\n");
+#ifdef CODA_IPV6
+    rpc2_addrinfo_ntop(pb->Prefix.PeerHost.Value.AddrInfo, addr, 50);
+    say(9, SFTP_DebugLevel, "Host = %s\tPort = 0x%x\tMgrp = 0x%lx\n",
+	addr, (unsigned) XlatePort.Value.InetPortNumber - 1, h_RemoteHandle);
+#else /* CODA_IPV6 */
     say(9, SFTP_DebugLevel, "Host = %s\tPort = 0x%x\tMgrp = 0x%lx\n",
 	inet_ntoa(pb->Prefix.PeerHost.Value.InetAddress),
 	(unsigned) XlatePort.Value.InetPortNumber - 1, h_RemoteHandle);
+#endif /* CODA_IPV6 */
 
     /* Find and validate the relevant data structures */
     assert(h_RemoteHandle != 0 && h_LocalHandle == 0);
@@ -476,9 +485,15 @@ int SFXlateMcastPacket(RPC2_PacketBuffer *pb)
     if (mse->WhoAmI != SFSERVER) {
 	say(9, SFTP_DebugLevel, "mse->WhoAmI != SFSERVER\n"); return(FALSE);}
 
+#ifdef CODA_IPV6
+    rpc2_addrinfo_ntop(pb->Prefix.PeerHost.Value.AddrInfo, addr, 50);
+    say(9, SFTP_DebugLevel, "Host = %s\tPort = 0x%x\tMgrp = 0x%lx\n",
+	addr, XlatePort.Value.InetPortNumber, h_RemoteHandle );
+#else /* CODA_IPV6 */
     say(9, SFTP_DebugLevel, "Host = %s\tPort = 0x%x\tMgrp = 0x%lx\n",
 	    inet_ntoa(pb->Prefix.PeerHost.Value.InetAddress),
 	    XlatePort.Value.InetPortNumber, h_RemoteHandle );
+#endif /* CODA_IPV6 */
 
     /* Decrypt the packet with the MULTICAST session key. Clear the encrypted bit so that we don't
 	decrypt again with the connection session key. */

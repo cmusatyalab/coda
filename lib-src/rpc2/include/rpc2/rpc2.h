@@ -333,7 +333,11 @@ typedef
 	HostTag Tag;
 	union
 	    {
+#ifdef CODA_IPV6
+		struct addrinfo *AddrInfo; /* includes sockaddr, which includes port */
+#else /* CODA_IPV6 */
 	    struct in_addr InetAddress;	/* NOTE: in network order, not host order */
+#endif /* CODA_IPV6 */
 	    char Name[64];	/* minimum length for use with domain names */
 	    }
 	    Value;
@@ -373,7 +377,11 @@ typedef
 	MgrpTag Tag;
 	union
 	    {
-	    struct in_addr  InetAddress;    /* NOTE: in network order, not host order */
+#ifdef CODA_IPV6
+		struct addrinfo *AddrInfo; /* includes sockaddr, which includes port */
+#else /* CODA_IPV6 */
+	    struct in_addr InetAddress;	/* NOTE: in network order, not host order */
+#endif /* CODA_IPV6 */
 	    char	    Name[64];	    /* minimum length for use with domain names */
 	    }
 	    Value;

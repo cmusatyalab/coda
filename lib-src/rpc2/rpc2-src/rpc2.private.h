@@ -47,6 +47,11 @@ Pittsburgh, PA.
 #include <rpc2/rpc2.h>
 #include <string.h>
 #include <dllist.h>
+/* for IPv6 */
+#include <config.h>
+#ifdef CODA_IPV6
+#include <netdb.h>
+#endif /* CODA_IPV6 */
 
 /*
 Magic Number assignments for runtime system objects.
@@ -310,9 +315,12 @@ struct HEntry {
 		     MagicNumber;
     struct HEntry    *Qname;	/* LinkEntry field */
     struct HEntry    *HLink;	/* for host hash */
+#ifdef CODA_IPV6
+    struct addrinfo  Host;      /* IP address */
+#else /* CODA_IPV6 */
     struct in_addr   Host;      /* IP address */
+#endif /* CODA_IPV6 */
     struct timeval   LastWord;	/* Most recent time we've heard from this host*/
-
     unsigned RPC2_NumEntries;	/* number of observations recorded */
     RPC2_NetLogEntry RPC2_Log[RPC2_MAXLOGLENGTH];
 				/* circular buffer for recent observations on
@@ -450,7 +458,12 @@ void rpc2_FreeSubsys();
 void FreeHeld(struct SL_Entry *sle);
 
 /* Socket creation */
+
+#ifdef CODA_IPV6
+long rpc2_CreateIPSocket(long *svar, RPC2_PortIdent *pvar, RPC2_HostIdent *hvar);
+#else /* CODA_IPV6 */
 long rpc2_CreateIPSocket(long *svar, RPC2_PortIdent *pvar);
+#endif /* CODA_IPV6 */
 
 /* Packet  routines */
 long rpc2_SendReliably(), rpc2_MSendPacketsReliably();
@@ -477,7 +490,11 @@ void rpc2_IncrementSeqNumber(struct CEntry *);
 
 /* Host manipulation routines */
 void rpc2_InitHost(void);
+#ifdef CODA_IPV6
+struct HEntry *rpc2_FindHEAddr(struct addrinfo *whichHost);
+#else /* CODA_IPV6 */
 struct HEntry *rpc2_FindHEAddr(struct in_addr *whichHost);
+#endif /* CODA_IPV6 */
 struct HEntry *rpc2_GetHost(RPC2_HostIdent *host);
 struct HEntry *rpc2_AllocHost(RPC2_HostIdent *host);
 void rpc2_FreeHost(struct HEntry **whichHost);
@@ -524,6 +541,10 @@ extern FILE *ErrorLogFile;
 void rpc2_InitRandom();
 long rpc2_TrueRandom();
 
+#ifdef CODA_IPV6
+void rpc2_addrinfo_ntop();
+#endif /* CODA_IPV6 */
+
 /* encryption */
 void rpc2_ApplyD(RPC2_PacketBuffer *pb, struct CEntry *ce);
 void rpc2_ApplyE(RPC2_PacketBuffer *pb, struct CEntry *ce);
@@ -551,11 +572,26 @@ int mkcall(RPC2_HandleResult_func *ClientHandler, int ArgCount, int HowMany,
 
 /* Macros to check if host and portal ident structures are equal */
 /* The lengths of the names really should be #defined. */
+#ifdef CODA_IPV6
+
+/* #define rpc2_HostIdentEqual(_hi1p_,_hi2p_) TRUE */
+
+#define rpc2_HostIdentEqual(_hi1p_,_hi2p_) \
+(((_hi1p_)->Tag == RPC2_HOSTBYINETADDR && (_hi2p_)->Tag == RPC2_HOSTBYINETADDR)? \
+ ((_hi1p_)->Value.AddrInfo->ai_family == (_hi2p_)->Value.AddrInfo->ai_family && \
+ (_hi1p_)->Value.AddrInfo->ai_addrlen == (_hi2p_)->Value.AddrInfo->ai_addrlen && !memcmp((_hi1p_)->Value.AddrInfo->ai_addr,(_hi2p_)->Value.AddrInfo->ai_addr,(_hi2p_)->Value.AddrInfo->ai_addrlen)): \
+ (((_hi1p_)->Tag == RPC2_HOSTBYNAME && (_hi2p_)->Tag == RPC2_HOSTBYNAME)? \
+  (strncmp((_hi1p_)->Value.Name, (_hi2p_)->Value.Name, 64) == 0):0))
+
+#else /* CODA_IPV6 */
+
 #define rpc2_HostIdentEqual(_hi1p_,_hi2p_) \
 (((_hi1p_)->Tag == RPC2_HOSTBYINETADDR && (_hi2p_)->Tag == RPC2_HOSTBYINETADDR)? \
  ((_hi1p_)->Value.InetAddress.s_addr == (_hi2p_)->Value.InetAddress.s_addr): \
  (((_hi1p_)->Tag == RPC2_HOSTBYNAME && (_hi2p_)->Tag == RPC2_HOSTBYNAME)? \
   (strncmp((_hi1p_)->Value.Name, (_hi2p_)->Value.Name, 64) == 0):0))
+
+#endif /* CODA_IPV6 */
 
 #define rpc2_PortIdentEqual(_pi1p_,_pi2p_) \
 (((_pi1p_)->Tag == RPC2_PORTBYINETNUMBER && (_pi2p_)->Tag == RPC2_PORTBYINETNUMBER)? \

@@ -52,6 +52,9 @@ Pittsburgh, PA.
 #include <netdb.h>
 #include <assert.h>
 #include "rpc2.private.h"
+#ifdef CODA_IPV6
+#include <sys/socket.h>
+#endif /* CODA_IPV6 */
 #include <rpc2/se.h>
 #include "trace.h"
 #include "cbuf.h"
@@ -77,6 +80,13 @@ static struct bucket
 static RPC2_Handle	LastMgrpidAllocated;
 #define	LISTENERALLOCSIZE   8		    /* malloc/realloc granularity */
 
+#ifdef CODA_IPV6
+/* try to grab the low-order 8 bits, assuming all are stored big endian */
+#define HASHHOST(h) (((h)->Value.AddrInfo->ai_addr->sa_data[(h)->Value.AddrInfo->ai_addrlen-1]) & (MGRPHASHLENGTH-1))
+#else /* CODA_IPV6 */
+#define HASHHOST(h) ((((h)->s_addr & 0xff000000) >> 24) & (HOSTHASHBUCKETS-1))
+#endif /* CODA_IPV6 */
+
 /* Initialize the multicast group data structures; all this requires
    is zeroing the hash table. */
 void rpc2_InitMgrp()
@@ -96,7 +106,11 @@ static struct bucket *rpc2_GetBucket(host, port, mgrpid)
     {
     int index;
 
+#ifdef CODA_IPV6
+    index = HASHHOST(host);
+#else /* CODA_IPV6 */
     index = (host->Value.InetAddress.s_addr ^ mgrpid) & (MGRPHASHLENGTH - 1);
+#endif /* CODA_IPV6 */
     say(9, RPC2_DebugLevel, "bucket = %d, count = %d\n", index, MgrpHashTable[index].count);
     return(&MgrpHashTable[index]);
     }
@@ -113,6 +127,9 @@ struct MEntry *rpc2_AllocMgrp(host, port, handle)
     struct MEntry  *me;
     RPC2_Handle    mgrpid;
     struct bucket  *bucket;
+#ifdef CODA_IPV6
+    char addr[50];
+#endif /* CODA_IPV6 */
 
     rpc2_AllocMgrps++;
     if (rpc2_MgrpFreeCount == 0)
@@ -123,7 +140,12 @@ struct MEntry *rpc2_AllocMgrp(host, port, handle)
        mgrpid in the rpc2_initmulticast message.  Thus, the unique
        identifier is <client_host, client_port, mgrpid, role>. */
     mgrpid = (handle == 0) ? ++LastMgrpidAllocated : handle;
+#ifdef CODA_IPV6
+    rpc2_addrinfo_ntop(host->Value.AddrInfo, addr, 50);
+    say(9, RPC2_DebugLevel, "Allocating Mgrp: host = %s\tport = 0x%x\tmgrpid = 0x%lx\t", addr, port->Value.InetPortNumber, mgrpid);
+#else /* CODA_IPV6 */
     say(9, RPC2_DebugLevel, "Allocating Mgrp: host = %s\tport = 0x%x\tmgrpid = 0x%lx\t", inet_ntoa(host->Value.InetAddress), port->Value.InetPortNumber, mgrpid);
+#endif /* CODA_IPV6 */
     bucket = rpc2_GetBucket(host, port, mgrpid);
 
     me = (struct MEntry *)rpc2_MoveEntry(&rpc2_MgrpFreeList, &bucket->chain, NULL, &rpc2_MgrpFreeCount, &bucket->count);
@@ -144,6 +166,9 @@ void rpc2_FreeMgrp(me)
     struct CEntry  *ce;
     int	    i;
     struct bucket  *bucket;
+#ifdef CODA_IPV6
+    char addr[50];
+#endif /* CODA_IPV6 */
 
     assert(me != NULL && !TestRole(me, FREE));
     if (TestState(me, CLIENT, ~(C_THINK|C_HARDERROR)) ||
@@ -170,7 +195,12 @@ void rpc2_FreeMgrp(me)
 
     rpc2_FreeMgrps++;
     SetRole(me, FREE);
+#ifdef CODA_IPV6
+    rpc2_addrinfo_ntop(me->ClientHost.Value.AddrInfo, addr, 50);
+    say(9, RPC2_DebugLevel, "Freeing Mgrp: ClientHost = %s\tClientPort = 0x%x\tMgroupID = 0x%lx\t", addr, me->ClientPort.Value.InetPortNumber, me->MgroupID);
+#else /* CODA_IPV6 */
     say(9, RPC2_DebugLevel, "Freeing Mgrp: ClientHost = %s\tClientPort = 0x%x\tMgroupID = 0x%lx\t", inet_ntoa(me->ClientHost.Value.InetAddress), me->ClientPort.Value.InetPortNumber, me->MgroupID);
+#endif /* CODA_IPV6 */
     bucket = rpc2_GetBucket(&me->ClientHost, &me->ClientPort, me->MgroupID);
     rpc2_MoveEntry(&bucket->chain, &rpc2_MgrpFreeList, me, &bucket->count, &rpc2_MgrpFreeCount);
 }
@@ -191,6 +221,27 @@ struct MEntry *rpc2_GetMgrp(host, port, handle, role)
     bucket = rpc2_GetBucket(host, port, handle);
 
     for (me = bucket->chain, i = 0; i < bucket->count; me = me->Next, i++) {
+#ifdef CODA_IPV6
+	char addr[50];
+
+	rpc2_addrinfo_ntop(me->ClientHost.Value.AddrInfo, addr, 50);
+	say(9, RPC2_DebugLevel, "GetMgrp: %s.%u.%ld\n", addr,
+	    (unsigned) me->ClientPort.Value.InetPortNumber, me->MgroupID);
+	/* XXX not convinced this is the right way to compare addresses */
+        if ((me->ClientHost.Value.AddrInfo->ai_family ==
+	     host->Value.AddrInfo->ai_family) &&
+	    (me->ClientHost.Value.AddrInfo->ai_addrlen ==
+	     host->Value.AddrInfo->ai_addrlen) &&
+	    (!memcmp(me->ClientHost.Value.AddrInfo->ai_addr,
+		     host->Value.AddrInfo->ai_addr,
+		     me->ClientHost.Value.AddrInfo->ai_addrlen)) &&
+           (me->ClientPort.Value.InetPortNumber==port->Value.InetPortNumber) &&
+	    (me->MgroupID == handle) && TestRole(me, role))
+	    {
+	    assert(me->MagicNumber == OBJ_MENTRY);
+	    return(me);
+	    }
+#else /* CODA_IPV6 */
 	say(9, RPC2_DebugLevel, "GetMgrp: %s.%u.%ld\n",
 	    inet_ntoa(me->ClientHost.Value.InetAddress),
 	    (unsigned) me->ClientPort.Value.InetPortNumber, me->MgroupID);
@@ -202,6 +253,7 @@ struct MEntry *rpc2_GetMgrp(host, port, handle, role)
 	    assert(me->MagicNumber == OBJ_MENTRY);
 	    return(me);
 	    }
+#endif /* CODA_IPV6 */
     }
 
     return((struct MEntry *)NULL);
@@ -277,8 +329,13 @@ long RPC2_CreateMgrp(OUT MgroupHandle, IN MulticastHost, IN MulticastPort, IN  S
 	{
 	case RPC2_MGRPBYINETADDR:	/* you passed it in network order */
 	    me->IPMHost.Tag = (HostTag) RPC2_MGRPBYINETADDR;
+#ifdef CODA_IPV6
+	    /* struct assignment, with embedded pointers */
+	    me->IPMHost.Value.AddrInfo = MulticastHost->Value.AddrInfo;
+#else /* CODA_IPV6 */
 	    me->IPMHost.Value.InetAddress.s_addr =
 		MulticastHost->Value.InetAddress.s_addr;
+#endif /* CODA_IPV6 */
 	    break;
 
 	case RPC2_MGRPBYNAME:		/* NOT yet supported */
@@ -821,6 +878,9 @@ int XlateMcastPacket(RPC2_PacketBuffer *pb)
 	    h_LocalHandle = ntohl(pb->Header.LocalHandle),
 	    h_Flags = ntohl(pb->Header.Flags),
 	    h_SeqNumber;				/* decrypt first */
+#ifdef CODA_IPV6
+    char addr[50];
+#endif /* CODA_IPV6 */
 
     say(9, RPC2_DebugLevel, "In XlateMcastPacket()\n");
 
@@ -855,9 +915,15 @@ int XlateMcastPacket(RPC2_PacketBuffer *pb)
         TestState(ce, SERVER, ~S_AWAITREQUEST) ||
         (h_Flags & RPC2_RETRY) != 0) {BOGUS(pb); return(FALSE);}
 
+#ifdef CODA_IPV6
+    rpc2_addrinfo_ntop(pb->Prefix.PeerHost.Value.AddrInfo, addr, 50);
+    say(9, RPC2_DebugLevel, "Host = 0x%s\tPort = 0x%x\tMgrp = 0x%lx\n",
+	addr, pb->Prefix.PeerPort.Value.InetPortNumber, h_RemoteHandle);
+#else /* CODA_IPV6 */
     say(9, RPC2_DebugLevel, "Host = 0x%s\tPort = 0x%x\tMgrp = 0x%lx\n",
 	inet_ntoa(pb->Prefix.PeerHost.Value.InetAddress),
 	pb->Prefix.PeerPort.Value.InetPortNumber, h_RemoteHandle);
+#endif /* CODA_IPV6 */
 
     /* Decrypt the packet with the MULTICAST session key. Clear the encrypted 
        bit so that we don't decrypt again with the connection session key. */

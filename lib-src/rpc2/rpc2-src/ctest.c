@@ -52,6 +52,9 @@ Pittsburgh, PA.
 #include <rpc2/se.h>
 #include "sftp.h"
 #include "test.h"
+#ifdef CODA_IPV6
+#include <netdb.h>
+#endif /* CODA_IPV6 */
 
 #define SUBSYS_SRV 1001
 
@@ -568,7 +571,12 @@ void GetHost(RPC2_HostIdent *h)
 	if (!qflag) printf("Host id? ");
 	(void) fscanf(ifd, "%s", buff);
 	if (!qflag && fflag) printf(" %s\n", buff);
+#ifdef CODA_IPV6
+    } while (!inet_pton(h->Value.AddrInfo->ai_family, buff,
+			h->Value.AddrInfo->ai_addr));
+#else /* CODA_IPV6 */
     } while (inet_aton(buff, &h->Value.InetAddress) != 0);
+#endif /* CODA_IPV6 */
 }
 
 void GetPort(    RPC2_PortIdent *p)

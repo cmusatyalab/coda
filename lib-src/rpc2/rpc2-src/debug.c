@@ -37,7 +37,6 @@ Pittsburgh, PA.
 
 */
 
-
 #ifdef RPC2DEBUG
 #include <stdio.h>
 #include <sys/types.h>
@@ -179,12 +178,20 @@ static void PrintNetLog(char *what, unsigned int NumEntries,
 
 void rpc2_PrintHEntry(struct HEntry *hPtr, FILE *tFile)
 {
+#ifdef CODA_IPV6
+    char addr[50];
+#endif /* CODA_IPV6 */
     if (tFile == NULL) tFile = rpc2_logfile;	/* it's ok, call-by-value */
 
     fprintf(tFile, "\nHost 0x%lx state is...\n\tNextEntry = 0x%lx  PrevEntry = 0x%lx  MagicNumber = %s\n",
 	(long)hPtr, (long)hPtr->Next, (long)hPtr->Prev, WhichMagic(hPtr->MagicNumber));
 
-    fprintf(tFile, "\tHost.InetAddress = %s\n", inet_ntoa(hPtr->Host));
+#ifdef CODA_IPV6
+    rpc2_addrinfo_ntop(&hPtr->Host, addr, 50);
+    fprintf(tFile, "Host.AddrInfo = %s", addr);
+#else /* CODA_IPV6 */
+    fprintf(tFile, "\tHostInetAddress = %s\n", inet_ntoa(hPtr->Host));
+#endif /* CODA_IPV6 */
     fprintf(tFile, "\tLastWord = %ld.%06ld\n", hPtr->LastWord.tv_sec, hPtr->LastWord.tv_usec);
     fprintf(tFile, "\tRTT = %ld.%03ld, RTTvar = %ld.%03ld\n",
 	    hPtr->RTT >> RPC2_RTT_SHIFT,
@@ -345,8 +352,14 @@ void rpc2_PrintHostIdent(RPC2_HostIdent *hPtr, FILE *tFile)
         case RPC2_HOSTBYINETADDR:
         case RPC2_MGRPBYINETADDR:
             {
+#ifdef CODA_IPV6
+		char addr[50];
+		rpc2_addrinfo_ntop(hPtr->Value.AddrInfo, addr, 50);
+		fprintf(tFile, "Host.AddrInfo = %s", addr);
+#else /* CODA_IPV6 */
                 fprintf(tFile, "Host.InetAddress = %s",
                         inet_ntoa(hPtr->Value.InetAddress));
+#endif /* CODA_IPV6 */
                 break;	
             }
 
@@ -653,9 +666,19 @@ void rpc2_PrintTraceElem(struct TraceElem *whichTE, long whichIndex,
 			break;
 		    
 		    case RPC2_HOSTBYINETADDR:
+#ifdef CODA_IPV6
+		    {
+			char addr[50];
+			rpc2_addrinfo_ntop(tea->Host.Value.AddrInfo, addr, 50);
+			fprintf(outFile, "Host:     Tag = RPC2_HOSTBYINETADDR	AddrInfo = %s\n",
+				addr);
+			break;
+		    }
+#else /* CODA_IPV6 */
 			fprintf(outFile, "Host:     Tag = RPC2_HOSTBYINETADDR	InetAddress = %s\n",
 				inet_ntoa(tea->Host.Value.InetAddress));
 			break;
+#endif /* CODA_IPV6 */
 
 		    default:
 			fprintf(outFile, "Host:   ?????????\n");

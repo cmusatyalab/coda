@@ -47,6 +47,12 @@ Pittsburgh, PA.
 #include <sys/time.h>
 #include <time.h>
 #include <assert.h>
+/* what's the right thing to do here? */
+#include <config.h>
+#ifdef CODA_IPV6
+#include <rpc2/rpc2.h>
+#include <netdb.h>
+#endif /* CODA_IPV6 */
 #include "rpc2.private.h"
 
 /* HASHLENGTH should be a power of two, because we use modulo HASHLENGTH-1 to

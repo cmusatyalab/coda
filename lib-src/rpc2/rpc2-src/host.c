@@ -80,7 +80,12 @@ of the Coda License.
    We hash on the low bytes of the host address (in network order) */
  
 #define HOSTHASHBUCKETS 64
+#ifdef CODA_IPV6
+/* try to grab the low-order 8 bits, assuming all are stored big endian */
+#define HASHHOST(h) (((h)->ai_addr->sa_data[(h)->ai_addrlen-1]) & (HOSTHASHBUCKETS-1))
+#else /* CODA_IPV6 */
 #define HASHHOST(h) ((((h)->s_addr & 0xff000000) >> 24) & (HOSTHASHBUCKETS-1))
+#endif /* CODA_IPV6 */
                                         /* mod HOSTHASHBUCKETS */
 static struct HEntry **HostHashTable;	/* malloc'ed hash table static size */
 
@@ -93,7 +98,11 @@ void rpc2_InitHost()
 
 /* Returns pointer to the host entry corresponding to hostid
    Returns NULL if host does not exist.  */
+#ifdef CODA_IPV6
+struct HEntry *rpc2_FindHEAddr(IN struct addrinfo *whichHost)
+#else /* CODA_IPV6 */
 struct HEntry *rpc2_FindHEAddr(IN struct in_addr *whichHost)
+#endif /* CODA_IPV6 */
 {
 	long bucket;
 	struct HEntry *headdr;
@@ -104,7 +113,14 @@ struct HEntry *rpc2_FindHEAddr(IN struct in_addr *whichHost)
 	bucket = HASHHOST(whichHost);
 	headdr = HostHashTable[bucket];
 	while (headdr)  {
+#ifdef CODA_IPV6
+		if (headdr->Host.ai_family == whichHost->ai_family &&
+		    headdr->Host.ai_addrlen == whichHost->ai_addrlen &&
+		    (!memcmp(headdr->Host.ai_addr,whichHost->ai_addr,
+			     headdr->Host.ai_addrlen)))
+#else /* CODA_IPV6 */
 		if (headdr->Host.s_addr == whichHost->s_addr)
+#endif /* CODA_IPV6 */
 			return(headdr);
 		headdr = headdr->HLink;
 	}
@@ -116,7 +132,11 @@ struct HEntry *rpc2_FindHEAddr(IN struct in_addr *whichHost)
 struct HEntry *rpc2_GetHost(RPC2_HostIdent *host)
 {
 	struct HEntry *he;
+#ifdef CODA_IPV6
+	he = rpc2_FindHEAddr(host->Value.AddrInfo);
+#else /* CODA_IPV6 */
 	he = rpc2_FindHEAddr(&host->Value.InetAddress);
+#endif /* CODA_IPV6 */
 	assert(!he || he->MagicNumber == OBJ_HENTRY);
 	return(he);
 }
@@ -140,7 +160,11 @@ struct HEntry *rpc2_AllocHost(RPC2_HostIdent *host)
 	assert (he->MagicNumber == OBJ_HENTRY);
 
 	/* Initialize */
+#ifdef CODA_IPV6
+	he->Host = *host->Value.AddrInfo; /* struct assignment */
+#else /* CODA_IPV6 */
 	he->Host.s_addr = host->Value.InetAddress.s_addr;
+#endif /* CODA_IPV6 */
 	he->LastWord.tv_sec = he->LastWord.tv_usec = 0;
 
 	/* clear the network measurement logs */
@@ -304,6 +328,9 @@ void RPC2_UpdateEstimates(struct HEntry *host, RPC2_Unsigned elapsed_us,
     long	   eBR;      /* estimated byterate (ns/B) */
     unsigned long  eU;       /* temporary unsigned variable */
     long	   eL;       /* temporary signed variable */
+#ifdef CODA_IPV6
+    char addr[50];
+#endif /* CODA_IPV6 */
 
     if (!host) return;
 
@@ -364,12 +391,21 @@ void RPC2_UpdateEstimates(struct HEntry *host, RPC2_Unsigned elapsed_us,
     eL -= (host->RTTVar >> RPC2_RTTVAR_SHIFT);
     host->RTTVar += eL;
 
+#ifdef CODA_IPV6
+    rpc2_addrinfo_ntop(&host->Host, addr, 50);
+    say(0, RPC2_DebugLevel,
+	"Est: %s %4ld.%06lu/%-5lu<%-5lu RTT:%lu/%lu us BR:%lu/%lu ns/B\n",
+	    addr, elapsed_us / 1000000, elapsed_us % 1000000,
+	    InBytes, OutBytes, host->RTT>>RPC2_RTT_SHIFT, host->RTTVar>>RPC2_RTTVAR_SHIFT,
+	    (host->BR>>RPC2_BR_SHIFT), host->BRVar>>RPC2_BRVAR_SHIFT);
+#else /* CODA_IPV6 */
     say(0, RPC2_DebugLevel,
 	"Est: %s %4ld.%06lu/%-5lu<%-5lu RTT:%lu/%lu us BR:%lu/%lu ns/B\n",
 	    inet_ntoa(host->Host), elapsed_us / 1000000, elapsed_us % 1000000,
 	    InBytes, OutBytes, host->RTT>>RPC2_RTT_SHIFT,
 	    host->RTTVar>>RPC2_RTTVAR_SHIFT, (host->BR>>RPC2_BR_SHIFT),
 	    host->BRVar>>RPC2_BRVAR_SHIFT);
+#endif /* CODA_IPV6 */
 
     return;
 }
