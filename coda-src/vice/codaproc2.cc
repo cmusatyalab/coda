@@ -657,7 +657,7 @@ static int ValidateReintegrateParms(RPC2_Handle RPCid, VolumeId *Vid,
 	case OLDCML_Rename_OP:
 	case CML_SymLink_OP:
 	case CML_Rename_OP:
-	    r->Name[0] = new char[MAXNAMELEN+1];
+	    r->Name[1] = new char[MAXNAMELEN+1];
 	    if (!r->Name[1]) {
 		errorCode = ENOMEM;
 		goto Exit;
