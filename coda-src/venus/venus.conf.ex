@@ -123,13 +123,13 @@ cacheblocks=100000
 #
 # Map private,
 # Whether to use a private mmaping of the RVM data file instead of a
-# anonymous mmap. Using a private mmap will reduce startup times, since
+# anonymous mmap. Using a private mmap will reduce startup times, as
 # missing pages are paged in when they are accesses. Also swap usage is
 # reduced as any unmodified pages do not have to be backed up by swap
-# memory when memory gets tight. On the other hand, private mappings are
-# still somewhat experimental and do not work when rvm data is stored on
-# a raw partition. Set to 1 to use private mappings, 0 to use anonymous
-# mappings.
+# memory when memory gets tight. Private mappings do not work when rvm
+# data is stored on a raw partition. Set to 1 to use private mappings,
+# 0 to use anonymous mappings.
+# This option is on by default, uncomment the following line to disable.
 # 
 #mapprivate=0
 
@@ -161,6 +161,7 @@ cacheblocks=100000
 # bulk data transfers. This allows a Coda client to connect to servers
 # from behind a masquerading firewall. The rpc2 library on both the
 # client and the servers must be at least version 1.9 for this to work.
+# This option is on by default, uncomment the following line to disable.
 # 
 #masquerade=0
 
