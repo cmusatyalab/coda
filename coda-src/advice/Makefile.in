@@ -25,7 +25,7 @@
 # improvements or extensions that  they  make,  and  to  grant  Carnegie
 # Mellon the rights to redistribute these changes without encumbrance.
 # 
-# static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/advice/Makefile.in,v 4.5 97/12/16 15:54:43 braam Exp $";
+# static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/advice/Makefile.in,v 4.6 97/12/16 16:46:13 mre Exp $";
 
 
 TOPDIR = @top_srcdir@
@@ -40,8 +40,8 @@ include $(MAKDIR)/Makeconf
 
 EXECUTABLES = advice_srv
 CSBINS      = $(EXECUTABLES)
-CBINS       = $(SCRIPTS)
-# HEADERS     = advice_srv.h console_handler.h counters.h data.h filecopy.h globals.h helpers.h conversions.h miss.h mybstree.h portability_problems.h rpc_setup.h volent.h
+
+# HEADERS     = advice_srv.h console_handler.h counters.h data.h filecopy.h globals.h helpers.h conversions.h miss.h mybstree.h rpc_setup.h volent.h
 
 RP2FILES    = $(ADMON_RPC2) $(ADSRV_RPC2)
 RP2HEADERS  = $(notdir $(RP2FILES:.rpc2=.h))
@@ -68,8 +68,7 @@ HFILES =	$(INCLDIR)/admon.rpc2	\
 
 AOBJS = advice_srv.o console_handler.o counters.o daemon.o data.o \
 	fail.o filecopy.o globals.o helpers.o conversions.o miss.o \
-	mybstree.o portability_problems.o programspy.o replacementlog.o\
-	rpc_setup.o rpcs.o volent.o
+	mybstree.o programspy.o replacementlog.o rpc_setup.o rpcs.o volent.o
 
 advice: advice_srv
 

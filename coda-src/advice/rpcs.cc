@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/advice/advice_srv.cc,v 4.3 97/07/15 14:20:09 lily Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/advice/rpcs.cc,v 4.1 97/12/16 15:54:57 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -69,20 +69,25 @@ int execl(char *, char *, ...);
 }
 #endif __cplusplus
 
+/* from util */
 #include <util.h>
+#include <proc.h>
 #include <bstree.h>
 
+/* from vicedep */
 #include "admon.h"
 #include "adsrv.h"
+
+/* from venus */
 #include "advice.h"
 
+/* local */
 #include "advice_srv.h"
 #include "console_handler.h"
 #include "counters.h"
 #include "globals.h"
 #include "helpers.h"
 #include "miss.h"
-#include "portability_problems.h"
 //#include "rpcs.h"
 
 #define DFT_USERTIMEOUT 30

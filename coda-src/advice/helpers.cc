@@ -9,16 +9,18 @@ extern "C" {
 #include <sys/types.h>
 #include <time.h>
 #include <stdlib.h>
+#include <string.h>
 
 #ifdef __cplusplus
 }
 #endif __cplusplus
 
+/* from util */
 #include <util.h>
+#include <proc.h>
 
 #include "globals.h"
 #include "helpers.h"
-#include "portability_problems.h"
 
 
 /*******************************************************************************************
@@ -144,6 +146,64 @@ void ErrorReport(char *message)
   exit(1);
 }
 
+
+
+/************************************************************ 
+ *
+ *  void path(char *pathname, char *directory, char *file);
+ *
+ ************************************************************/
+
+
+/* An implementation of path(3), which is a standard function in 
+ * Mach OS.  The behaviour, according to Mach man page, is:
+ *
+ *    The handling of most names is obvious, but several special
+ *    cases exist.  The name "f", containing no slashes, is split
+ *    into directory "." and filename "f".  The name "/" is direc-
+ *    tory "/" and filename ".".  The path "" is directory "." and
+ *    filename ".".
+ *       -- manpage of path(3)
+ */
+
+void path(char *pathname, char *direc, char *file)
+{
+  char *maybebase, *tok;
+  int num_char_to_be_rm;
+
+  if (strlen(pathname)==0) {
+    strcpy(direc, ".");
+    strcpy(file, ".");
+    return;
+  }
+  if (strchr(pathname, '/')==0) {
+    strcpy(direc, ".");
+    strcpy(file, pathname);
+    return;
+  } 
+  if (strcmp(pathname, "/")==0) {
+    strcpy(direc, "/");
+    strcpy(file, ".");
+    return;
+  }
+  strcpy(direc, pathname);
+  maybebase = strtok(direc,"/");
+  while (tok = strtok(0,"/")) 
+    maybebase = tok;
+  strcpy(file, maybebase);
+  strcpy(direc, pathname);
+  num_char_to_be_rm = strlen(file) + 
+    (direc[strlen(pathname)-1]=='/' ? 1 : 0);/* any trailing slash ? */
+  *(direc+strlen(pathname)-num_char_to_be_rm) = '\0';
+    /* removing the component for file from direc */
+  if (strlen(direc)==0) strcpy(direc,"."); /* this happen when pathname 
+                                            * is "name/", for example */
+  if (strlen(direc)>=2) /* don't do this if only '/' remains in direc */
+    if (*(direc+strlen(direc)-1) == '/' )
+      *(direc+strlen(direc)-1) = '\0'; 
+       /* remove trailing slash in direc */
+  return;
+}
 
 
 

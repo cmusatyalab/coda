@@ -9,3 +9,6 @@ extern char *TimeString(long);
 
 extern void ErrorReport(char *);
 extern void PrintCounters();
+
+
+extern void path(char *, char *, char *);
