@@ -81,7 +81,7 @@ static char *srvdomainname(const char *node, const char *service,
 static int DN_HOST(char *msg, int mlen, char **ptr, char *dest)
 {
     int len = dn_expand(msg, msg + mlen, *ptr, dest, MAXHOSTNAMELEN);
-    if (len < 0) return -1;
+    if (len < 0 || len > MAXHOSTNAMELEN) return -1;
     *ptr += len;
     return 0;
 }
@@ -197,6 +197,7 @@ static int do_srv_lookup(const char *node, const char *service,
 #ifdef HAVE_RES_SEARCH
     char answer[1024], *srvdomain;
     int len;
+    static int initialized = 0;
     const char *proto = (hints && hints->ai_protocol == IPPROTO_UDP) ?
 	"udp" : "tcp";
 
@@ -204,11 +205,20 @@ static int do_srv_lookup(const char *node, const char *service,
     if (!srvdomain)
 	return RPC2_EAI_MEMORY;
 
+    /* according to the manpage I have in front of me, this function should
+     * already be called implicitly by the first call to res_search. However
+     * it looks like the libresolv implementation RH 9.0 doesn't do this. */
+    if (!initialized) {
+	res_init();
+	initialized = 1;
+    }
+
     len = res_search(srvdomain, ns_c_in, ns_t_srv, answer, sizeof(answer));
 
     free(srvdomain);
     
-    if (len == -1)
+    /* make sure we actually got a usable answer */
+    if (len < NS_HFIXEDSZ || len > sizeof(answer))
 	return RPC2_EAI_FAIL;
 
     return parse_res_reply(answer, len, hints, res);
