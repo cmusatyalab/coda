@@ -1,35 +1,3 @@
-/*
-
-            Coda: an Experimental Distributed File System
-                             Release 3.1
-
-          Copyright (c) 1987-1998 Carnegie Mellon University
-                         All Rights Reserved
-
-Permission  to  use, copy, modify and distribute this software and its
-documentation is hereby granted,  provided  that  both  the  copyright
-notice  and  this  permission  notice  appear  in  all  copies  of the
-software, derivative works or  modified  versions,  and  any  portions
-thereof, and that both notices appear in supporting documentation, and
-that credit is given to Carnegie Mellon University  in  all  documents
-and publicity pertaining to direct or indirect use of this code or its
-derivatives.
-
-CODA IS AN EXPERIMENTAL SOFTWARE SYSTEM AND IS  KNOWN  TO  HAVE  BUGS,
-SOME  OF  WHICH MAY HAVE SERIOUS CONSEQUENCES.  CARNEGIE MELLON ALLOWS
-FREE USE OF THIS SOFTWARE IN ITS "AS IS" CONDITION.   CARNEGIE  MELLON
-DISCLAIMS  ANY  LIABILITY  OF  ANY  KIND  FOR  ANY  DAMAGES WHATSOEVER
-RESULTING DIRECTLY OR INDIRECTLY FROM THE USE OF THIS SOFTWARE  OR  OF
-ANY DERIVATIVE WORK.
-
-Carnegie  Mellon  encourages  users  of  this  software  to return any
-improvements or extensions that  they  make,  and  to  grant  Carnegie
-Mellon the rights to redistribute these changes without encumbrance.
-*/
-
-/* $Header: /afs/cs/project/coda-src/cvs/coda/kernel-src/vfs/bsd44/cfs/cfs_psdev.c,v 1.7 1998/08/18 16:31:41 rvb Exp $ */
-
-#define CTL_C
 /* 
  * Mach Operating System
  * Copyright (c) 1989 Carnegie-Mellon University
@@ -56,11 +24,8 @@ Mellon the rights to redistribute these changes without encumbrance.
 /*
  * HISTORY
  * $Log: cfs_psdev.c,v $
- * Revision 1.7  1998/08/18 16:31:41  rvb
- * Sync the code for NetBSD -current; test on 1.3 later
- *
- * Revision 1.8  1998/06/09 23:30:42  rvb
- * Try to allow ^C -- take 1
+ * Revision 1.6  1998/01/23 11:53:41  rvb
+ * Bring RVB_CFS1_1 to HEAD
  *
  * Revision 1.5.2.8  98/01/23  11:21:04  rvb
  * Sync with 2.2.5
@@ -143,7 +108,6 @@ extern int cfsnc_initialized;    /* Set if cache has been initialized */
 #include <vcfs.h>
 #include <sys/param.h>
 #include <sys/systm.h>
-#include <sys/kernel.h>
 #include <sys/malloc.h>
 #include <sys/proc.h>
 #include <sys/mount.h>
@@ -269,10 +233,6 @@ vc_nb_close (dev, flag, mode, p)
     if (mi->mi_rootvp) {
 	/* Let unmount know this is for real */
 	VTOC(mi->mi_rootvp)->c_flags |= C_UNMOUNTING;
-#if	defined(__NetBSD__) && defined(NetBSD1_3) && (NetBSD1_3 >= 7)
-	if (vfs_busy(mi->mi_vfsp, 0, 0))
-	    return (EBUSY);
-#endif
 	cfs_unmounting(mi->mi_vfsp);
 	err = dounmount(mi->mi_vfsp, flag, p);
 	if (err)
@@ -571,10 +531,7 @@ struct cfs_clstat cfs_clstat;
 
 /* If you want this to be interruptible, set this to > PZERO */
 int cfscall_sleep = PZERO - 1;
-#ifdef	CTL_C
 int cfs_pcatch = PCATCH;
-#else
-#endif
 
 int
 cfscall(mntinfo, inSize, outSize, buffer) 
@@ -583,9 +540,8 @@ cfscall(mntinfo, inSize, outSize, buffer)
 	struct vcomm *vcp;
 	struct vmsg *vmp;
 	int error;
-#ifdef	CTL_C
+#if	0
 	struct proc *p = curproc;
-	unsigned int psig_omask = p->p_sigmask;
 	int i;
 #endif
 	if (mntinfo == NULL) {
@@ -631,7 +587,9 @@ cfscall(mntinfo, inSize, outSize, buffer)
 	 * ENODEV.  */
 
 	/* Ignore return, We have to check anyway */
-#ifdef	CTL_C
+#if	1
+	(void) tsleep(&vmp->vm_sleep, cfscall_sleep, "cfscall", 0);
+#else
 	/* This is work in progress.  Setting cfs_pcatch lets tsleep reawaken
 	   on a ^c or ^z.  The problem is that emacs sets certain interrupts
 	   as SA_RESTART.  This means that we should exit sleep handle the
@@ -641,29 +599,15 @@ cfscall(mntinfo, inSize, outSize, buffer)
 	 */
 	i = 0;
 	do {
-	    error = tsleep(&vmp->vm_sleep, (cfscall_sleep|cfs_pcatch), "cfscall", hz*2);
-	    if (error == 0)
-	    	break;
-	    else if (error == EWOULDBLOCK) {
-		    printf("cfscall: tsleep returns %d TIMEOUT, cnt %d\n", error, i);
-    	    } else if (p->p_siglist == sigmask(SIGIO)) {
-		    p->p_sigmask |= p->p_siglist;
-		    printf("cfscall: tsleep returns %d SIGIO, cnt %d\n", error, i);
-	    } else {
-		    printf("cfscall: tsleep returns %d, cnt %d\n", error, i);
-		    printf("cfscall: siglist = %x, sigmask = %x, mask %x\n",
-			    p->p_siglist, p->p_sigmask,
-			    p->p_siglist & ~p->p_sigmask);
-		    break;
-		    p->p_sigmask |= p->p_siglist;
-		    printf("cfscall: new mask, siglist = %x, sigmask = %x, mask %x\n",
+	    error = tsleep(&vmp->vm_sleep, (cfscall_sleep|cfs_pcatch), "cfscall", 0);
+	    if (error != 0)
+		    printf("tsleep returns %d, cnt %d\n", error, i);
+	    else if (p->p_siglist) {
+		    printf("tsleep 0, siglist = %x, sigmask = %x, mask %x\n",
 			    p->p_siglist, p->p_sigmask,
 			    p->p_siglist & ~p->p_sigmask);
 	    }
-	} while (error && i++ < 128);
-	p->p_sigmask = psig_omask;
-#else
-	(void) tsleep(&vmp->vm_sleep, cfscall_sleep, "cfscall", 0);
+	} while (error && i++ < 10);
 #endif
 	if (VC_OPEN(vcp)) {	/* Venus is still alive */
  	/* Op went through, interrupt or not... */

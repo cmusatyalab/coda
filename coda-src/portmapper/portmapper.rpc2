@@ -1,5 +1,5 @@
 /*
- *	$Id: portmapper.rpc2,v 1.1 1998/04/14 20:54:07 braam Exp $
+ *	$Id: portmapper.rpc2,v 1.2 1998/08/05 23:49:32 braam Exp $
  *
  *	A simple portmapper for RPC2
  */

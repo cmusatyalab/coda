@@ -1,9 +1,11 @@
+#ifndef _BLURB_
+#define _BLURB_
 /*
 
             Coda: an Experimental Distributed File System
                              Release 3.1
 
-          Copyright (c) 1987-1998 Carnegie Mellon University
+          Copyright (c) 1987-1995 Carnegie Mellon University
                          All Rights Reserved
 
 Permission  to  use, copy, modify and distribute this software and its
@@ -27,8 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-/* $Header: /afs/cs/project/coda-src/cvs/coda/kernel-src/vfs/bsd44/cfs/cfs_subr.c,v 1.9 1998/08/18 16:31:41 rvb Exp $ */
-
+#endif /*_BLURB_*/
 
 /* 
  * Mach Operating System
@@ -45,12 +46,9 @@ Mellon the rights to redistribute these changes without encumbrance.
 /*
  * HISTORY
  * $Log: cfs_subr.c,v $
- * Revision 1.9  1998/08/18 16:31:41  rvb
- * Sync the code for NetBSD -current; test on 1.3 later
- *
- * Revision 1.8  98/01/31  20:53:12  rvb
+ * Revision 1.8  1998/01/31 20:53:12  rvb
  * First version that works on FreeBSD 2.2.5
- * 
+ *
  * Revision 1.7  98/01/23  11:53:42  rvb
  * Bring RVB_CFS1_1 to HEAD
  * 
@@ -205,7 +203,7 @@ Mellon the rights to redistribute these changes without encumbrance.
 #include <cfs/cfsnc.h>
 
 
-__RCSID("$Header: /afs/cs/project/coda-src/cvs/coda/kernel-src/vfs/bsd44/cfs/cfs_subr.c,v 1.9 1998/08/18 16:31:41 rvb Exp $");
+__RCSID("$Header: /coda/coda.cs.cmu.edu/project/coda/cvs/coda/kernel-src/vfs/bsd44/cfsSV/Attic/cfs_subr.c,v 1.8 1998/01/31 20:53:12 rvb Exp $");
 
 #if	NVCFS
 
