@@ -27,7 +27,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-/* $Header: /afs/cs/project/coda-src/cvs/coda/kernel-src/vfs/bsd44/cfs/cfs_vnodeops.c,v 1.11 1998/08/28 18:12:23 rvb Exp $ */
+/* $Header: /coda/coda.cs.cmu.edu/project/coda/cvs/coda/kernel-src/vfs/netbsd/cfs/Attic/cfs_vnodeops.c,v 1.12 1998/08/28 18:28:00 rvb Exp $ */
 
 /* 
  * Mach Operating System
@@ -46,6 +46,9 @@ Mellon the rights to redistribute these changes without encumbrance.
 /*
  * HISTORY
  * $Log: cfs_vnodeops.c,v $
+ * Revision 1.12  1998/08/28 18:28:00  rvb
+ * NetBSD -current is stricter!
+ *
  * Revision 1.11  1998/08/28 18:12:23  rvb
  * Now it also works on FreeBSD -current.  This code will be
  * committed to the FreeBSD -current and NetBSD -current
