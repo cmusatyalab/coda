@@ -574,7 +574,8 @@ int sftp_AckArrived(RPC2_PacketBuffer *pBuff, struct SFTP_Entry *sEntry)
 	for (i = sEntry->SendLastContig+1; i <= pBuff->Header.GotEmAll; i++) 
 	    {
 	    pb = sEntry->ThesePackets[PBUFF(i)];
-	    dataThisRound += ntohl(pb->Header.BodyLength);
+	    if (!(ntohl(pb->Header.SEFlags) & SFTP_COUNTED))
+		dataThisRound += ntohl(pb->Header.BodyLength);
 	    }
 
 	for (i = 1; i <= sizeof(int)*BITMASKWIDTH; i++)
@@ -710,29 +711,26 @@ int sftp_SendStrategy(struct SFTP_Entry *sEntry)
      * the retransmission timer will expire eventually, and the packet
      * will be placed in the worried set.  The first unacked packet is
      * SendLastContig+1.  */
-    if (!winopen || (sEntry->HitEOF && sEntry->ReadAheadCount == 0))
-    {/* Window is closed: try to send first unacked packet */
-	if (!winopen)
+    if (!winopen)
+    {
+	/* Window is closed: try to send first unacked packet */
+	/* Do not send the first unacked packet if there are no worried
+	 * packets yet. Wait until we actually have a real reason to start
+	 * retrying. The packet should _not_ be sent unless it is in the
+	 * worried set.  We are guaranteed forward progress because the
+	 * retransmission timer will expire eventually, and the packet
+	 * will be placed in the worried set. */
+	sftp_windowfulls++;
+	if (sEntry->SendWorriedLimit > sEntry->SendLastContig)
 	{
-	    /* If the window is full do not send the first unacked packet if
-	     * there are no worried packets yet. Wait until we actually have a
-	     * real reason to start retrying. The packet should _not_ be sent
-	     * unless it is in the worried set.  We are guaranteed forward
-	     * progress because the retransmission timer will expire
-	     * eventually, and the packet will be placed in the worried set.
-	     */
-	    sftp_windowfulls++;
-	    if (sEntry->SendWorriedLimit < sEntry->SendLastContig+1) return(0);
+	    if (SendFirstUnacked(sEntry, TRUE) < 0) return(-1);
 	}
-
-	if (SendFirstUnacked(sEntry, TRUE) < 0)
-	    return(-1);
     }
     else
     {/* Window is open: be more ambitious */
 	if (sEntry->ReadAheadCount > 0)
 	{
-#if 1
+#if 0
 	    /* Pessimistic view, we might have lost all packets. Retransmit
 	     * everything in the worried set. When the RTT estimates are
 	     * correct, we will not push too many packets on the network, as
@@ -744,8 +742,7 @@ int sftp_SendStrategy(struct SFTP_Entry *sEntry)
 	     * present set of worried packets --JH */
 	    if (sEntry->SendWorriedLimit > sEntry->SendLastContig)
 	    {
-		if (SendFirstUnacked(sEntry, FALSE) < 0)
-		    return(-1);
+		if (SendFirstUnacked(sEntry, FALSE) < 0) return(-1);
 	    }
 #endif
 	    if (SendSendAhead(sEntry) < 0) return(-1);  /* may close window */

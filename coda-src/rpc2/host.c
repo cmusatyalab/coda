@@ -64,14 +64,6 @@ of the Coda License.
 
 */
 
-/* When this is defined we keep a running estimate of the number of
- * nanoseconds it takes to send a byte. This allows us to converge a
- * lot faster to a  more stable bandwidth estimate.
- * If it is not defined, fall back on the old bytes/second estimate, which
- * tends to jitter a lot in the high bandwidth case, and has problems dropping
- * down to the slow bandwidth estimates. */
-#define NS_per_BYTE 1
-
 /* Code to track host liveness 
 
    We track liveness by host ip-address, as we're really interested
@@ -154,11 +146,7 @@ struct HEntry *rpc2_AllocHost(RPC2_HostIdent *host)
 
 	he->RTT       = 0;
 	he->RTTVar    = 0;
-#ifdef NS_per_BYTE
 	he->BW        = 1000 << RPC2_BW_SHIFT;
-#else
-	he->BW        = 10000000 << RPC2_BW_SHIFT;
-#endif
 	he->BWVar     = 0 << RPC2_BWVAR_SHIFT;
 	he->LastBytes = 0;
 
@@ -304,27 +292,21 @@ void rpc2_UpdateEstimates(struct HEntry *host, struct timeval *elapsed,
      * we try to get some sensible information. (mayby 500us is better?) */
     if (elapsed_us == 0) elapsed_us = 20;
 
-#ifdef NS_per_BYTE
-    /* we need to clap elapsed usec to about 67 seconds to avoid overflows */
-    if (eU > 0x03ffffff) eU = 0x03ffffff;
-#else
-    /* we need to clamp Bytes to a maximum value that avoids overflows in the
-     * following calculations  */
-    if (Bytes > 0xffff) Bytes = 0xffff;
-#endif
+    /* we need to clamp elapsed elapsed_us to about 16 seconds to avoid
+     * overflows with the 31 bit calculations below */
+    if (elapsed_us > 0x00ffffff) elapsed_us = 0x00ffffff;
 
     /* calculate an estimated rtt */
-    eRTT = (host->RTT >> RPC2_RTT_SHIFT) - (host->RTTVar >> RPC2_RTTVAR_SHIFT);
-    if (eRTT < 0) { eRTT = 0; }
+    eRTT = (host->RTT >> RPC2_RTT_SHIFT) + (host->RTTVar >> RPC2_RTTVAR_SHIFT);
 
-    if (elapsed_us > eRTT)
+    if (elapsed_us > eRTT &&
+	Bytes >= 512) /* HACK! only use measurements from `larger' packets */
     {
 	eU  = elapsed_us - eRTT;
-#ifdef NS_per_BYTE
-	eBW = ((eU * 100) / Bytes) * 10;
-#else
-	eBW = ((Bytes << 16) / eU) << 4;
-#endif
+
+	/* eBW = ( eU * 1000 ) / Bytes ; */
+	eBW = ((eU << 7) / Bytes) << 3;
+
 	eBW -= (host->BW >> RPC2_BW_SHIFT);
 	host->BW += eBW;
 
@@ -339,34 +321,26 @@ void rpc2_UpdateEstimates(struct HEntry *host, struct timeval *elapsed,
     host->BWVar += eBW;
 
     /* get a new RTT estimate in elapsed_us */
-    if (Bytes < host->LastBytes)
-    {
-	/* from here on eBW contains a lower estimate on the effective
-	 * bandwidth, eRTT will contain a updated RTT estimate */
-#ifdef NS_per_BYTE
-	eBW = (host->BW >> RPC2_BW_SHIFT) +
-	    ((host->BWVar >> RPC2_BWVAR_SHIFT) >> 1);
+    eL = 0;
 
-	eU = (eBW / (Bytes * 1000));
-#else
-	eBW = (host->BW >> RPC2_BW_SHIFT) -
-	    ((host->BWVar >> RPC2_BWVAR_SHIFT) >> 1);
-	if (eBW < 16) eBW = 16;
+    /* from here on eBW contains a lower estimate on the effective
+     * bandwidth, eRTT will contain a updated RTT estimate */
+    eBW = (host->BW >> RPC2_BW_SHIFT) +
+	((host->BWVar >> RPC2_BWVAR_SHIFT) >> 1);
 
-	eU = ((Bytes << 16) / eBW) << 4;
-#endif
-	if (elapsed_us > eU) eL = elapsed_us - eU;
-	else		 eL = 0;
+    /* eU = ( eBW * Bytes ) / 1000 ; */
+    eU = ((eBW >> 3) * Bytes) >> 7;
 
-	/* the RTT & RTT variance are shifted analogous to Jacobson's
-	* article in SIGCOMM'88 */
+    if (elapsed_us > eU)
+	eL = elapsed_us - eU;
 
-	eL -= (host->RTT >> RPC2_RTT_SHIFT);
-	host->RTT += eL;
+    /* the RTT & RTT variance are shifted analogous to Jacobson's
+     * article in SIGCOMM'88 */
 
-	if (eL < 0) eL = -eL;
-    }
-    else eL = 0;
+    eL -= (host->RTT >> RPC2_RTT_SHIFT);
+    host->RTT += eL;
+
+    if (eL < 0) eL = -eL;
 
     eL -= (host->RTTVar >> RPC2_RTTVAR_SHIFT);
     host->RTTVar += eL;
@@ -406,16 +380,8 @@ void rpc2_RetryInterval(struct HEntry *host, RPC2_Unsigned Bytes, int retry,
     effBW = (host->BW >> RPC2_BW_SHIFT);
     // - ((host->BWVar >> RPC2_BWVAR_SHIFT) >> 1);
 
-#ifdef NS_per_BYTE
-    rto += effBW / (Bytes * 1000);
-#else
-    if (effBW <= 0) effBW = 16;
-
-    /* make sure we don't overflow during the shifts */
-    if (Bytes > 0xffff) Bytes = 0xffff;
-
-    rto += ((Bytes << 16) / effBW) << 4;
-#endif
+    /* rto += ( effBW * Bytes ) / 1000 ; */
+    rto += ((effBW >> 3) * Bytes) >> 7;
     
     /* minimum bound for rtt estimates to compensate for scheduling etc. */
     if (rto < RPC2_MINRTO) rto = RPC2_MINRTO;
