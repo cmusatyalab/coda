@@ -25,7 +25,7 @@
 # improvements or extensions that  they  make,  and  to  grant  Carnegie
 # Mellon the rights to redistribute these changes without encumbrance.
 # 
-# static char *rcsid = "$Header: Makefile.in,v 1.1 96/12/09 14:40:59 raiff Exp $";
+# static char *rcsid = "$Header: Makefile.in,v 4.1 97/01/08 21:49:22 rvb Exp $";
 
 
 TOPDIR = @top_srcdir@
@@ -59,7 +59,7 @@ lex.yy.c: resolver.lex
 
 # YYuck!  I don't know how to tell yyac to deliver a .cc extension  GRRR..(pjb)
 y.tab.o: y.tab.c
-	$(C++) $(CFLAGS) -c $<
+	$(CXX) -x c++ $(CFLAGS) -c $<
 
 
 include $(TOPDIR)/Makerules

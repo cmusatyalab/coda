@@ -30,7 +30,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/src/coda-4.0.1/RCSLINK/./coda-src/asr/resolver.lex,v 1.1 1996/11/22 19:15:16 braam Exp $";
+static char *rcsid = "$Header: resolver.lex,v 4.1 97/01/08 21:49:23 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -43,27 +43,22 @@ extern "C" {
 #include "y.tab.h"
 #include "asr.h"
 #include <stdio.h>
-#ifdef	__linux__
-#include <stdlib.h>
-#else
+#ifdef __MACH__
 #include <libc.h>
 #endif
+#if defined(__linux__) || defined(__NetBSD__)
+#include <stdlib.h>
+#endif /* __NetBSD__ || LINUX */
 extern int yylook();
 
 #define YYERRCODE	256		/* gross hack to simulate error */
 int yywrap() {
 	return(1);
 }
-#ifdef	__linux__
 int yyback(int *p, int m);
 int yyoutput(int);
 static void yyunput(int, char *);
 
-#else
-int yyback(int *p, int m);
-int yyoutput(int);
-int yyunput(int);
-#endif
 #ifdef __cplusplus
 }
 #endif __cplusplus

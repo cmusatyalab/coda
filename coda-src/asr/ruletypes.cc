@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/src/coda-4.0.1/RCSLINK/./coda-src/asr/ruletypes.cc,v 1.1 1996/11/22 19:15:12 braam Exp $";
+static char *rcsid = "$Header: ruletypes.cc,v 4.1 97/01/08 21:49:23 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -264,7 +264,11 @@ int command_t::execute() {
 	// parent process 
 	union wait cstatus;
 	int cpid = rc;
+#ifdef	__NetBSD__
+	for (rc = wait(&cstatus.w_status); (rc != -1) && (rc != cpid); rc = wait(&cstatus.w_status))
+#else
 	for (rc = wait(&cstatus); (rc != -1) && (rc != cpid); rc = wait(&cstatus))
+#endif
 	    fprintf(stderr, "Waiting for %d to finish ...\n", cpid);
 	if (cstatus.w_coredump) {
 	    fprintf(stderr, "%s dumped core\n", name);
