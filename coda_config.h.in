@@ -1,0 +1,13 @@
+#ifndef _CODA_CONF_H_
+#define _CODA_CONF_H_ 1
+
+/* Define to the location of the configuration files */
+#define SYSCONFDIR "@sysconfdir@"
+
+/* Define the cpu type for @cpu expansion */
+#define CPUTYPE "@cputype@"
+
+/* Define the system type for @sys expansion */
+#define SYSTYPE "@systype@"
+
+#endif /* _CODA_CONF_H_ */
