@@ -36,17 +36,15 @@
 # improvements or extensions that  they  make,  and  to  grant  Carnegie
 # Mellon the rights to redistribute these changes without encumbrance.
 #
-# static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/lib-src/mlwp/Makefile.in,v 4.5 1998/05/15 01:23:54 braam Exp $";
+# static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/lib-src/mlwp/Makefile.in,v 4.6 1998/08/26 15:39:06 braam Exp $";
 
 TOPDIR = @top_srcdir@
-ifndef MAKDIR
-MAKDIR = @top_srcdir@
-endif
+
 srcdir = @srcdir@
 VPATH  = @srcdir@
 TOPOBJ = @TOPOBJ@
 
-include $(MAKDIR)/Makeconf
+include $(TOPDIR)/Makeconf
 
 CFLAGS += -Wall 
 
@@ -112,4 +110,4 @@ newrw:	rw.o $(NEW_LIBS)
 	rm rw.o
 	$(CC) $(LIBFLAGS) rw.o $(NEW_LIBS) -o newrw
 
-include $(MAKDIR)/configs/Makerules
+include $(TOPDIR)/configs/Makerules

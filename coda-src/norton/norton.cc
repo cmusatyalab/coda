@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/norton/norton.cc,v 4.2 97/12/23 17:19:42 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/norton/norton.cc,v 4.3 1998/09/23 20:14:49 jaharkes Exp $";
 #endif /*_BLURB_*/
 
 
@@ -68,4 +68,5 @@ int main(int argc, char * argv[]) {
 
     err = rvm_terminate();
     printf("rvm_terminate returns %s\n", rvm_return(err));
+    return 0;
 }

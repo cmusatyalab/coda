@@ -1,14 +1,12 @@
 
 TOPDIR = @top_srcdir@
-ifndef MAKDIR
-MAKDIR = @top_srcdir@
-endif
+
 srcdir = @srcdir@
 VPATH  = @srcdir@
 TOPOBJ = @TOPOBJ@
 
 # Need to conditionalize this
-include $(MAKDIR)/Makeconf
+include $(TOPDIR)/Makeconf
 
 EXECUTABLES = hello testudp selectme theabort
 CSBINS = hello testudp selectme
@@ -25,6 +23,6 @@ testudp: testudp.o
 selectme: selectme.o
 	$(CC) -o selectme selectme.o
 
-include $(MAKDIR)/configs/Makerules
+include $(TOPDIR)/configs/Makerules
 
 

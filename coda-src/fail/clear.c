@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/fail/clear.c,v 4.1 1997/12/23 17:19:22 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/fail/clear.c,v 4.2 1998/01/05 16:41:50 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -61,8 +61,13 @@ int clear(int argc, char **argv)
 
   get_targets(argc, argv, &targets, &num_targets);
 
-  if (num_targets)
+  if (num_targets) {
     clear_targets(targets, num_targets);
-  else
-    printf("usage: %s [-c client1 client2 ...] [-s server1 server2 ...]\n", argv[0]);
+    return 0;
+  }  else {
+	  printf("usage: %s [-c client1 client2 ...] [-s server1 server2 ...]\n", 
+	   argv[0]);
+	  return -1;
+  }
+  
 }

@@ -50,8 +50,8 @@ static void dc_Grow(int count)
 		pdce = malloc(sizeof(*pdce));
 		assert(pdce);
 
-		INIT_LIST_HEAD(&pdce->dc_hash);
-		INIT_LIST_HEAD(&pdce->dc_list);
+		list_head_init(&pdce->dc_hash);
+		list_head_init(&pdce->dc_list);
 
 		ObtainWriteLock(&dlock); 
 		list_add(&pdce->dc_list, &dfreelist);
@@ -160,9 +160,10 @@ void DC_Drop(PDCEntry pdce)
 	ObtainWriteLock(&dlock); 
 	list_del(&pdce->dc_hash);
 	list_del(&pdce->dc_list);
+	ReleaseWriteLock(&dlock);
+
 	DH_FreeData(&pdce->dc_dh);
 	free(pdce);
-	ReleaseWriteLock(&dlock);
 }
 
 void DC_HashInit()
@@ -172,10 +173,10 @@ void DC_HashInit()
 	Lock_Init(&dlock);
 
 	for ( i=0 ; i < DCSIZE ; i++ ) {
-		INIT_LIST_HEAD(&dcache[i]);
+		list_head_init(&dcache[i]);
 	}
-	INIT_LIST_HEAD(&dfreelist);
-	INIT_LIST_HEAD(&dnewlist);
+	list_head_init(&dfreelist);
+	list_head_init(&dnewlist);
 }
 	
 

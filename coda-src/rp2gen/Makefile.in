@@ -25,7 +25,7 @@
 # improvements or extensions that  they  make,  and  to  grant  Carnegie
 # Mellon the rights to redistribute these changes without encumbrance.
 # 
-# static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rp2gen/Makefile.in,v 4.5 1998/06/04 17:30:02 shafeeq Exp $";
+# static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rp2gen/Makefile.in,v 4.6 1998/06/11 15:29:18 braam Exp $";
 
 
 # 
@@ -52,14 +52,12 @@
 # The REAL Makefile
 # The other Makefiles invoke this after setting: CC CFLAGS LFLAGS
 TOPDIR = @top_srcdir@
-ifndef MAKDIR
-MAKDIR = @top_srcdir@
-endif
+
 srcdir = @srcdir@
 VPATH  = @srcdir@
 TOPOBJ = @TOPOBJ@
 
-include $(MAKDIR)/Makeconf
+include $(TOPDIR)/Makeconf
 
 CC=$(NATIVECC)
 CFLAGS:=  -I. -I/usr/include -I$(TOPOBJ)/include 
@@ -90,4 +88,4 @@ crout.o: crout.c rp2.h
 
 util.o	: util.c rp2.h
 
-include $(MAKDIR)/configs/Makerules
+include $(TOPDIR)/configs/Makerules

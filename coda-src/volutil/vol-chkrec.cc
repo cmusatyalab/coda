@@ -29,12 +29,13 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/volutil/vol-chkrec.cc,v 4.2 1997/02/26 16:04:05 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/volutil/vol-chkrec.cc,v 4.3 1998/08/31 12:23:45 braam Exp $";
 #endif /*_BLURB_*/
 
 
 
 
+extern void PrintVolumesInHashTable();
 
 
 ACKKK!!!! As I understand things this file should not be compiled as part
@@ -55,31 +56,23 @@ extern "C" {
 #include <stdio.h>
 #include <sys/file.h>
 #include <assert.h>
-
-#ifdef __MACH__
-#include <sysent.h>
-#include <libc.h>
-#else	/* __linux__ || __BSD44__ */
 #include <unistd.h>
 #include <stdlib.h>
-#endif
 
 #include <camprivate.h>
 #include <lwp.h>
 #include <lock.h>
 
-#include <mach.h>
 #include <util.h>
 #include <rvmlib.h>
+#include <vice.h>
 #ifdef __cplusplus
 }
 #endif __cplusplus
 
 #include "vol-rcvheap.h"
 
-
 #include <coda_globals.h>
-#include <vice.h>
 #include <cvnode.h>
 #include <volume.h>
 #include <partition.h>
@@ -93,11 +86,10 @@ static int ChkRecSeg(int volindex);
 static int ChkRecObj(char *addr, int size);
 
 /*
-  BEGIN_HTML
-  <a name="S_VolChkRec"><strong>Check the recoverable heap for leaks/corruptions</strong></a>
-  END_HTML
+  S_VolChkRec: Check the recoverable heap for leaks/corruptions
 */
-long S_VolChkRec(RPC2_Handle rpcid, VolumeId volid){
+long S_VolChkRec(RPC2_Handle rpcid, VolumeId volid)
+{
     Volume *vp;
     Error error;
     int status;	    // transaction status variable
@@ -113,49 +105,48 @@ long S_VolChkRec(RPC2_Handle rpcid, VolumeId volid){
     if (volid){
 	vp = VGetVolume(&error, volid);
 	if (error) {
-	    LogMsg(0, VolDebugLevel, stdout, "S_VolChkRec: failure attaching volume %d", volid);
+	    VLOG(0, "S_VolChkRec: failure attaching volume %d", volid);
 	    if (error != VNOVOL) {
-		VPutVolume(vp);
+		    VPutVolume(vp);
 	    }
 	    rvmlib_abort(error);
+	    return error;
 	}
 	
 	int volindex = V_volumeindex(vp);
 	rc = ChkRecSeg(volindex);
 	VPutVolume(vp);
-    }
-    else {
-	for (int i = 0; i < MAXVOLS; i++){
-	    LogMsg(9, VolDebugLevel, stdout, "S_VolChkRec: Checking Volume Index %d", i);
-	    int rcode = ChkRecSeg(i);
-	    if (rcode == -1)
-		rc = -1;
-	    LogMsg(9, VolDebugLevel, stdout, "S_VolChkRec: Finished Checking Volume %d", i);
+    } else {
+	    for (int i = 0; i < MAXVOLS; i++){
+		    VLOG(9, "S_VolChkRec: Checking Volume Index %#x", i);
+		    int rcode = ChkRecSeg(i);
+		    if (rcode == -1)
+			    rc = -1;
+		    VLOG(9, "S_VolChkRec: Finished Checking Volume %#x", i);
 	}
 	/* check the free vnode lists */
 	struct VnodeDiskObject **vnlist;
 	vnlist = &(SRV_RVM(SmallVnodeFreeList[0]));
 	for (i = 0; i < SMALLFREESIZE; i++){
 	    if (vnlist[i] && ChkRecAddr((char *)vnlist[i])){
-		LogMsg(0, VolDebugLevel, stdout, "S_VolChkRec: Bad Small Free Vnode %d", i);
+		VLOG(0, "S_VolChkRec: Bad Small Free Vnode %d", i);
 		rc = -1;
 	    }
 	}
 	vnlist = &(SRV_RVM(LargeVnodeFreeList[0]));
 	for (i = 0; i < LARGEFREESIZE; i++){
 	    if (vnlist[i] && ChkRecAddr((char *)vnlist[i])){
-		LogMsg(0, VolDebugLevel, stdout, "S_VolChkRec: Bad Large Free Vnode %d", i);
+		VLOG(0, "S_VolChkRec: Bad Large Free Vnode %d", i);
 		rc = -1;
 	    }
 	}
     }
     RVMLIB_END_TRANSACTION(flush, &(status));
     VDisconnectFS();
-    printf("VolChkRec: printing Volume Hash table\n");
-    extern void PrintVolumesInHashTable();
+    VLOG(0, "VolChkRec: printing Volume Hash table\n");
     PrintVolumesInHashTable();
     if (status)
-	LogMsg(0, VolDebugLevel, stdout, "S_VolShowVnode failed with %d", status);
+	VLOG(0, "S_VolShowVnode failed with %d", status);
     return (status?status:rc);
 }
 

@@ -25,18 +25,16 @@
 # improvements or extensions that  they  make,  and  to  grant  Carnegie
 # Mellon the rights to redistribute these changes without encumbrance.
 # 
-# static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vtools/Makefile.in,v 4.7 1998/04/14 21:01:11 braam Exp $";
+# static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vtools/Makefile.in,v 4.8 1998/05/15 16:55:10 braam Exp $";
 
 
 TOPDIR = @top_srcdir@
-ifndef MAKDIR
-MAKDIR = @top_srcdir@
-endif
+
 srcdir = @srcdir@
 VPATH  = @srcdir@
 TOPOBJ = @TOPOBJ@
 
-include $(MAKDIR)/Makeconf
+include $(TOPDIR)/Makeconf
 
 EXECUTABLES = cmon codacon cfs hoard spy replay
 ifeq ($(SYS),cygwin32)
@@ -76,4 +74,4 @@ up: up.o
 	$(CXX) $(LIBFLAGS)  up.o -o up
 
 
-include $(MAKDIR)/configs/Makerules
+include $(TOPDIR)/configs/Makerules

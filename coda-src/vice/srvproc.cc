@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vice/srvproc.cc,v 4.11 1998/04/14 20:55:38 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vice/srvproc.cc,v 4.12 1998/08/31 12:23:37 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -2390,26 +2390,23 @@ END_TIMING(SymLink_Total);
 /*  *****  Utility Routines  *****  */
 
 /* Initialize return status from a vnode. */
-void SetStatus(Vnode *vptr, ViceStatus *status, Rights rights, Rights anyrights)
+void SetStatus(struct Vnode *vptr, ViceStatus *status, Rights rights, Rights anyrights)
 {
     status->InterfaceVersion = 1;
 
     /* fill in VnodeType  */
-    if (vptr->disk.type == vFile) {
-	status->VnodeType = File;
-    }
-    else {
-	if (vptr->disk.type == vDirectory) {
+    switch (vptr->disk.type) {
+    case vFile:
+	    status->VnodeType = File;
+	    break;
+    case vDirectory:
 	    status->VnodeType = Directory;
-	}
-	else {
-	    if (vptr->disk.type == vSymlink) {
-		status->VnodeType = SymbolicLink;
-	    }
-	    else {
-		status->VnodeType = Invalid;	/*invalid type field */
-	    }
-	}
+	    break;
+    case vSymlink:
+	    status->VnodeType = SymbolicLink;
+	    break;
+    default:
+	    status->VnodeType = Invalid; 
     }
 
     status->LinkCount = vptr->disk.linkCount;
@@ -2439,26 +2436,25 @@ int GetRights(PRS_InternalCPS *CPS, AL_AccessList *ACL, int ACLSize,
 	if (AL_NameToId("anyuser", &anyid) != 0) {
 	    LogMsg(0, SrvDebugLevel, stdout,"UserID anyuser not known");
 	    anyid = 0;
-	}
-	else {
+	} else {
 	    if (AL_GetInternalCPS(anyid, &anyCPS) != 0) {
 		LogMsg(0, SrvDebugLevel, stdout,"UserID anyuser no CPS");
 		anyid = 0;
 	    }
 	}
     }
-    if (anyid != 0) {
-	if (AL_CheckRights(ACL, anyCPS, (int *)anyrights) != 0) {
-	    LogMsg(0, SrvDebugLevel, stdout,"CheckRights failed");
-	    anyrights = 0;
-	}
-    }
-    else {
-	*anyrights = -1;
-    }
 
+    if (anyid != 0) {
+	    if (AL_CheckRights(ACL, anyCPS, (int *)anyrights) != 0) {
+		    LogMsg(0, SrvDebugLevel, stdout,"CheckRights failed");
+		    anyrights = 0;
+	}
+    } else {
+	    *anyrights = -1;
+    }
+    
     if (AL_CheckRights(ACL, CPS, (int *)rights) != 0) {
-	*rights = 0;
+	    *rights = 0;
     }
     return(0);
 }
@@ -2723,8 +2719,12 @@ int CheckReadMode(ClientEntry *client, Vnode *vptr)
 
 /* CopyOnWrite: copy out the inode for a cloned Vnode
    - directories: set the disk.inode field to 0 and 
-     create a dcentry with the old contents. 
-   - files: copy the file
+     create a dcentry with the _old_ contents. 
+     NOTE: afterwards the vptr->dh  will have VM data, 
+     but no RVM data.
+     new one is committed.
+   - files: copy the file: the current way is disastrous.
+     XXXXXXX
 */
 static void CopyOnWrite(Vnode *vptr, Volume *volptr)
 {
@@ -2739,7 +2739,8 @@ static void CopyOnWrite(Vnode *vptr, Volume *volptr)
 		     vptr->vnodeNumber);
 		PDCEntry pdce = DC_New();
 		PDirHeader pdirh;
-
+		
+		assert(pdce);
 		assert(vptr->disk.inodeNumber != 0);
 		pdirh = DI_DiToDh((PDirInode)vptr->disk.inodeNumber);
 		assert(pdirh);
@@ -2755,16 +2756,19 @@ static void CopyOnWrite(Vnode *vptr, Volume *volptr)
 		vptr->dh = pdce;
 
 	} else {
-		SLog(0, "CopyOnWrite: Copying inode for files (vnode%d)", vptr->vnodeNumber);
+		SLog(0, "CopyOnWrite: Copying inode for files (vnode%d)", 
+		     vptr->vnodeNumber);
 		size = (int) vptr->disk.length;
 		ino = icreate((int) V_device(volptr), 0, (int) V_id(volptr),
-			      (int) vptr->vnodeNumber, (int) vptr->disk.uniquifier, 
+			      (int) vptr->vnodeNumber, 
+			      (int) vptr->disk.uniquifier, 
 			      (int) vptr->disk.dataVersion);
 		assert(ino > 0);
 		if (size > 0) {
 			buff = (char *)malloc(size);
 			assert(buff != 0);
-			rdlen = iread((int) V_device(volptr), (int) vptr->disk.inodeNumber, 
+			rdlen = iread((int) V_device(volptr), 
+				      (int) vptr->disk.inodeNumber, 
 				      (int) V_parentId(volptr), 0, buff, size);
 			START_TIMING(CopyOnWrite_iwrite);
 			wrlen = iwrite((int) V_device(volptr), (int) ino, 

@@ -29,30 +29,28 @@
 #Mellon the rights to redistribute these changes without encumbrance.
 #*/
 #
-#static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/utils-src/potemkin/potemkin/Makefile.in,v 1.2 1997/12/02 16:41:10 braam Exp $";
+#static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/utils-src/potemkin/potemkin/Makefile.in,v 1.3 1998/03/06 20:22:01 braam Exp $";
 #endif /*_BLURB_*/
 
 # Coda top level Makefile
 # Josh Raiff
 
 TOPDIR= @top_srcdir@
-ifndef MAKDIR
-MAKDIR = @top_srcdir@
-endif
+
 srcdir = @srcdir@
 VPATH = @srcdir@
 TOPOBJ= @TOPOBJ@
 TOPOBJ= @TOPOBJ@
 
 
-include $(MAKDIR)/Makeconf
+include $(TOPDIR)/Makeconf
 
 EXECUTABLES = potemkin
 
 potemkin: potemkin.o
 	$(CC) -o potemkin $? $(LIBDS)
 
-include $(MAKDIR)/configs/Makerules
+include $(TOPDIR)/configs/Makerules
 
 
 

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/vproc_vfscalls.cc,v 4.16 1998/09/23 16:56:45 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/vproc_vfscalls.cc,v 4.17 1998/09/23 18:47:26 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -152,7 +152,6 @@ void vproc::vget(struct venus_cnode *vpp, struct cfid *cfidp) {
     LOG(1, ("vproc::vget: fid = %s, nc = %x\n", FID_(&cfidp->cfid_fid),
 	    u.u_nc));
 
-    int code = 0;
     fsobj *f = 0;
 
     if (u.u_nc && LogLevel >= 100)
@@ -338,7 +337,6 @@ void vproc::ioctl(struct venus_cnode *cp, unsigned int com,
 
 void vproc::getattr(struct venus_cnode *cp, struct coda_vattr *vap) 
 {
-
     LOG(1, ("vproc::getattr: fid = %s\n", FID_(&cp->c_fid)));
 
     fsobj *f = 0;
@@ -445,11 +443,13 @@ void vproc::setattr(struct venus_cnode *cp, struct coda_vattr *vap) {
 	    /* chmod, fchmod */
 	    if (vap->va_mode != VA_IGNORE_MODE) {
 		    if ( vap->va_mode & S_ISUID ) 
-			    u.u_error = f->Access((long)PRSFS_ADMINISTER, 0, CRTORUID(u.u_cred));
+			    u.u_error = f->Access((long)PRSFS_ADMINISTER, 
+						  0, CRTORUID(u.u_cred));
 		    else
-			    u.u_error = f->Access((long)PRSFS_WRITE, 0, CRTORUID(u.u_cred));
-		if (u.u_error) 
-			goto FreeLocks;
+			    u.u_error = f->Access((long)PRSFS_WRITE, 0, 
+						  CRTORUID(u.u_cred));
+		    if (u.u_error) 
+			    goto FreeLocks;
 	    }
 
 	    /* chown, fchown */
@@ -462,7 +462,8 @@ void vproc::setattr(struct venus_cnode *cp, struct coda_vattr *vap) {
 		u.u_error = f->Access((long)PRSFS_ADMINISTER, 0, CRTORUID(u.u_cred));
 		if (u.u_error) goto FreeLocks;
 	    }
-	    /* gid should be V_GID for chown requests, VA_IGNORE_GID otherwise */
+	    /* gid should be V_GID for chown requests, 
+	       VA_IGNORE_GID otherwise */
 	    if (vap->va_gid != VA_IGNORE_GID)
 	        vap->va_gid = V_GID;
 	    /* truncate, ftruncate */
@@ -1043,7 +1044,7 @@ void vproc::rename(struct venus_cnode *spcp, char *name,
 			{ u.u_error = ELOOP; goto FreeLocks; }
 
 		    /* Exit when volume root is reached. */
-		    if (test_fid.Vnode == ROOT_VNODE && test_fid.Unique == ROOT_UNIQUE)
+		    if (FID_IsVolRoot(&test_fid))
 			break;
 
 		    /* test_fid <-- Parent(test_fid). */

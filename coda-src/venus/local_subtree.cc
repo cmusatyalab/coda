@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/local_subtree.cc,v 4.2 1998/01/10 18:38:55 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/local_subtree.cc,v 4.3 1998/08/26 21:24:34 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -494,31 +494,32 @@ void lrdb::RFM_Remove(ViceFid *FakeRootFid)
 }
 
 /* must be called from within a transaction */
+
+/* generate local fid used in the faked subtrees */
 ViceFid lrdb::GenerateLocalFakeFid(ViceDataType fidtype)
 {
-    /* generate local fid used in the faked subtrees */
     ViceFid fid;
-    fid.Volume = LocalFakeVid;
-    fid.Vnode = (fidtype == Directory) ? LocalDirVnode : LocalFileVnode;
     RVMLIB_REC_OBJECT(local_fid_unique_gen);
-    fid.Unique = local_fid_unique_gen++;
-    LOG(1000, ("lrdb::GenerateLocalFakeFid: return 0x%x.%x.%x\n",
-	       fid.Volume, fid.Vnode, fid.Unique));
+    local_fid_unique_gen++;
+    if ( fidtype = Directory ) 
+	    FID_MakeLocalDir(&fid, local_fid_unique_gen);
+    else 
+	    FID_MakeLocalFile(&fid, local_fid_unique_gen);
+    LOG(1000, ("lrdb::GenerateLocalFakeFid: return %s\n", FID_(&fid)));
     return fid;
 }
 
+/* generate a fake-fid whose volume is the special "Local" volume */
 /* must be called from within a transaction */
 ViceFid lrdb::GenerateFakeLocalFid()
 {
-    /* generate a fake-fid whose volume is the special "Local" volume */
-    ViceFid fid;
-    fid.Volume = LocalFakeVid;
-    fid.Vnode = FakeVnode;
-    RVMLIB_REC_OBJECT(local_fid_unique_gen);
-    fid.Unique = local_fid_unique_gen++;
-    LOG(1000, ("lrdb::GenerateFakeLocalFid: return 0x%x.%x.%x\n",
-	       fid.Volume, fid.Vnode, fid.Unique));
-    return fid;
+	ViceFid fid;
+	FID_MakeLocalSubtreeRoot(&fid, local_fid_unique_gen);
+
+	RVMLIB_REC_OBJECT(local_fid_unique_gen);
+	local_fid_unique_gen++;
+	LOG(1000, ("lrdb::GenerateFakeLocalFid: return %s\n", FID_(&fid)));
+	return fid;
 }
 
 /* must be called from within a transaction */
@@ -530,7 +531,7 @@ void lrdb::TranslateFid(ViceFid *OldFid, ViceFid *NewFid)
 	      NewFid->Volume, NewFid->Vnode, NewFid->Unique));
 
     {	/* translate fid for the local-global fid map list */
-	if (!FID_IsLocal(NewFid)) {
+	if (!FID_VolIsLocal(NewFid)) {
 	    /* 
 	     * only when NewFid is not a local fid, i.e., the fid replacement
 	     * was caused cmlent::realloc, instead of cmlent::LocalFakeify. 

@@ -33,7 +33,7 @@ should be returned to Software.Distribution@cs.cmu.edu.
 
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/rvm-src/rvm/rvm_logrecovr.c,v 4.8 1998/06/18 16:16:31 jaharkes Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/rvm-src/rvm/rvm_logrecovr.c,v 4.9 1998/08/26 15:40:14 braam Exp $";
 #endif _BLURB_
 
 /*
@@ -443,7 +443,7 @@ int find_buf_word(wrd,disp)
     {
     log_buf_t       *log_buf = &default_log->log_buf;
 
-    return find_word(wrd,log_buf->buf,disp,log_buf->r_length);
+    return find_word(wrd, (rvm_length_t *)log_buf->buf,disp,log_buf->r_length);
     }
 /* load log auxillary buffer */
 rvm_return_t load_aux_buf(log,log_offset,length,aux_ptr,

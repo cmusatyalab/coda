@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/vol_COP2.cc,v 4.2 1998/01/10 18:39:08 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/vol_COP2.cc,v 4.3 1998/08/26 21:24:40 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -136,7 +136,7 @@ int volent::COP2(mgrpent *m, ViceStoreId *StoreId, vv_t *UpdateSet) {
 /* Younger UpdateSets may also be sent in order to complete a buffer. */
 /* Other UpdateSets will either be piggybacked on subsequent RPCs, or sent directly when they are older. */
 int volent::FlushCOP2(time_t window) {
-    ASSERT(vid != LocalFakeVid);
+    ASSERT(!FID_VolIsFake(vid));
     LOG(100, ("volent::FlushCOP2: vol = %x, window = %d\n",
 	       vid, window));
 
@@ -186,7 +186,7 @@ int volent::FlushCOP2(time_t window) {
 /* Copy the last buffer-full into the supplied buffer so that it can be piggybacked. */
 /* Use the supplied Mgrp for the direct COP2s. */
 int volent::FlushCOP2(mgrpent *m, RPC2_CountedBS *PiggyBS) {
-    ASSERT(vid != LocalFakeVid);
+    ASSERT(!FID_VolIsFake(vid));
     LOG(100, ("volent::FlushCOP2(Piggy): vol = %x\n", vid));
 
     int code = 0;

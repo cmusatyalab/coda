@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/volutil/vol-showvnode.cc,v 4.4 1998/04/14 21:00:42 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/volutil/vol-showvnode.cc,v 4.5 1998/08/31 12:23:52 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -145,12 +145,12 @@ long S_VolShowVnode(RPC2_Handle rpcid, RPC2_Unsigned formal_volid, RPC2_Unsigned
     infofile = fopen(INFOFILE, "w");
     fprintf(infofile, "%x.%x(%x), %s, cloned=%d, mode=%o, links=%d, length=%ld\n",
 	vnodeid, vnp->disk.uniquifier, vnp->disk.dataVersion,
-	vnp->disk.type == vFile? (int)"file": vnp->disk.type == vDirectory? (int)"directory":
-	vnp->disk.type == vSymlink? (int) "symlink" : (int)"unknown type",
+	vnp->disk.type == vFile? "file": vnp->disk.type == vDirectory? "directory":
+	vnp->disk.type == vSymlink? "symlink" : "unknown type",
 	vnp->disk.cloned, vnp->disk.modeBits, vnp->disk.linkCount,
 	vnp->disk.length);
-    fprintf(infofile, "inode=0x%x, parent=%x.%x, serverTime=%s",
-	vnp->disk.inodeNumber, vnp->disk.vparent, vnp->disk.uparent, (int)ctime((long *)&vnp->disk.serverModifyTime));
+    fprintf(infofile, "inode=0x%x, parent=%x.%x, serverTime=%d",
+	vnp->disk.inodeNumber, vnp->disk.vparent, vnp->disk.uparent, ctime((long *)&vnp->disk.serverModifyTime));
     fprintf(infofile, "author=%u, owner=%u, modifyTime=%s, volumeindex = %d",
         vnp->disk.author, vnp->disk.owner, (int)ctime((long *)&vnp->disk.unixModifyTime),
 	vnp->disk.vol_index);

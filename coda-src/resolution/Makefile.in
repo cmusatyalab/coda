@@ -25,18 +25,16 @@
 # improvements or extensions that  they  make,  and  to  grant  Carnegie
 # Mellon the rights to redistribute these changes without encumbrance.
 # 
-# static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rvmres/Makefile.in,v 4.2 1997/04/29 21:27:25 rvb Exp $";
+# static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rvmres/Makefile.in,v 4.3 1997/12/02 16:40:02 braam Exp $";
 
 
 TOPDIR = @top_srcdir@
-ifndef MAKDIR
-MAKDIR = @top_srcdir@
-endif
+
 srcdir = @srcdir@
 VPATH  = @srcdir@
 TOPOBJ = @TOPOBJ@
 
-include $(MAKDIR)/Makeconf
+include $(TOPDIR)/Makeconf
 
 LIBRARIES = librvmres.a
 HEADERS	  = ops.h recle.h rsle.h compops.h parselog.h ruconflict.h resstats.h
@@ -48,29 +46,4 @@ RVMRESOBJS = ops.o recle.o recov_vollog.o rsle.o rvmrescoord.o \
 
 librvmres.a:	${RVMRESOBJS}
 
-# Objects for librvmres.a
-ops.o: ops.h recle.h rsle.h 
-
-recle.o: ops.h rsle.h recle.h
-
-rsle.o: ops.h rsle.h recle.h 
-
-recov_vollog.o: recle.h rsle.h
-
-compops.o: rsle.h compops.h parselog.h
-
-parselog.o: rsle.h parselog.h
-
-ruconflict.o: rsle.h ruconflict.h parselog.h
-
-subresphase2.o: ops.h 
-
-subresphase3.o: rsle.h parselog.h compops.h ruconflict.h ops.h
-
-subresphase34.o: ops.h
-
-rename.o: ruconflict.h ops.h rsle.h 
-
-resstats.o: resstats.h 
-
-include $(MAKDIR)/configs/Makerules
+include $(TOPDIR)/configs/Makerules

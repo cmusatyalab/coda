@@ -12,4 +12,4 @@ O_OBJS  = inodefssyscall.o
 M_OBJS  = inodefs.o
 
 
-include $(MAKDIR)/Rules.make
+include $(TOPDIR)/Rules.make

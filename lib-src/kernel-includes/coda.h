@@ -142,14 +142,10 @@ typedef struct ViceFid {
 } ViceFid;
 #endif	/* VICEFID */
 
-static inline ino_t coda_f2i(struct ViceFid *fid)
-{
-      if ( fid ) {
-              return (fid->Unique + (fid->Vnode << 10) + (fid->Volume << 20));
-      } else { 
-              return 0;
-      }
-}
+
+#define coda_f2i(fid)\
+	(fid) ? ((fid)->Unique + ((fid)->Vnode<<10) + ((fid)->Volume<<20)) : 0
+
 #ifndef __BIT_TYPES_DEFINED__
 #define u_int32_t unsigned int
 #endif

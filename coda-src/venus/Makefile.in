@@ -25,18 +25,16 @@
 # improvements or extensions that  they  make,  and  to  grant  Carnegie
 # Mellon the rights to redistribute these changes without encumbrance.
 # 
-# static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/Makefile.in,v 4.19 98/09/23 16:56:34 braam Exp $";
+# static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/Makefile.in,v 4.20 1998/09/23 20:26:24 jaharkes Exp $";
 
 
 TOPDIR = @top_srcdir@
-ifndef MAKDIR
-MAKDIR = @top_srcdir@
-endif
+
 srcdir = @srcdir@
 VPATH  = @srcdir@
 TOPOBJ = @TOPOBJ@
 
-include $(MAKDIR)/Makeconf
+include $(TOPDIR)/Makeconf
 
 EXECUTABLES = venus
 CSBINS      = venus
@@ -92,4 +90,4 @@ testjmp: testjmp.cc
 testtallyent: tallyent.cc tallyent.h
 	$(CXX) $(CXXFLAGS) -DTESTING -o testtallyent ${srcdir}/tallyent.cc ${LIBUTIL}
 
-include $(MAKDIR)/configs/Makerules
+include $(TOPDIR)/configs/Makerules

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/lib-src/base/Attic/parser.c,v 1.1.2.1 1998/05/15 16:51:11 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/lib-src/base/parser.c,v 1.2 1998/08/06 00:18:48 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -41,9 +41,6 @@ extern "C" {
 
 #include <stdio.h>
 #include <stdlib.h>
-#ifdef	__MACH__
-#include <libc.h>
-#endif
 #include <ctype.h>
 #include <string.h>
 #include <stddef.h>
@@ -60,7 +57,6 @@ extern void add_history(char *);
 #ifdef __cplusplus
 }
 #endif __cplusplus
-
 
 #include "parser.h"
 #define CMD_COMPLETE 0

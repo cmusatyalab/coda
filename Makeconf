@@ -28,11 +28,11 @@ AR=ar
 RANLIB=ranlib
 INSTALL = cp -p
 
-include $(MAKDIR)/configs/Makeconf.$(SYS)
+include $(TOPDIR)/configs/Makeconf.$(SYS)
 
 
 ##############################
-# VPATH
+# VPATH & INCLUDE DIRECTORY
 ##############################
 
 # edit VPATH appropiately
@@ -43,18 +43,20 @@ NEWVPATH := $(SECSRC)$(VPATHTAIL):$(VPATH)
 VPATH := $(NEWVPATH)
 endif
 
+INCLDIR=$(TOPOBJ)/include
+
 ifneq ($(VPATH),)
 colon=:
-#SHADOWINCLS := -I. -I$(SHADOWINCLS) -I$(INCLDIR)
-#SHADOWPATH  := $(VPATH)
-INCLDIR=$(TOPOBJ)/include
+
 INCLPATH  := .:$(VPATH):$(INCLDIR)
 INCLFLAGS :=  -I$(subst $(colon), -I,$(INCLPATH))
 else
-INCLDIR=$(TOPOBJ)/include
 INCLFLAGS :=  -I. -I$(INCLDIR)
 INCLPATH  := .:$(INCLDIR)
 endif
+
+vpath %.h $(INCLPATH)
+vpath %.rpc2 $(INCLPATH)
 
 ##############################
 # Location of objects
@@ -67,7 +69,7 @@ RP2GEN=../rp2gen/rp2gen
 ##############################
 
 DEPFLAG   := -MD
-OPTFLAG   := -g
+OPTFLAG   := -g 
 LIBFLAGS  := $(OPTLFLAG)
 AFLAGS	  := $(GFLAG) $(DEPFLAG) $(MACHINE_FLAGS) $(MYFLAGS) $(INCLFLAGS)
 CFLAGS	  := $(OPTFLAG) $(AFLAGS) 
@@ -75,8 +77,6 @@ CXXFLAGS  := $(CFLAGS)
 
 RP2FLAGS  = -e  -I . -I $(srcdir) -I $(INCLDIR)
 
-vpath %.h $(INCLPATH)
-vpath %.rpc2 $(INCLPATH)
 
 # uncomment some of the next lines if you have kerberos
 # KERBEROS=yes
@@ -147,4 +147,4 @@ RES_RPC2 = ../vicedep/res.rpc2
 ADMON_RPC2 = ../vicedep/admon.rpc2
 ADSRV_RPC2 = ../vicedep/adsrv.rpc2
 
-all: 
+all: coda

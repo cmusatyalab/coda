@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/venusvol.cc,v 4.11 98/09/15 14:28:06 jaharkes Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/venusvol.cc,v 4.12 1998/09/23 20:26:35 jaharkes Exp $";
 #endif /*_BLURB_*/
 
 
@@ -193,7 +193,7 @@ void VolInit() {
 	/* Create the local fake volume */
 	VolumeInfo LocalVol;
 	bzero((void *)&LocalVol, (int)sizeof(VolumeInfo));
-	LocalVol.Vid = LocalFakeVid;
+	FID_MakeVolFake(&LocalVol.Vid);
         LocalVol.Type = ROVOL;
 	ASSERT(VDB->Create(&LocalVol, "Local"));
 	
@@ -325,8 +325,7 @@ CheckRootVolume:
 	return(0);
     }
     rootfid.Volume = v->vid;
-    rootfid.Vnode = ROOT_VNODE;
-    rootfid.Unique = ROOT_UNIQUE;
+    FID_MakeRoot(&rootfid);
     VDB->Put(&v);
 
     return(1);
@@ -638,7 +637,8 @@ void vdb::FlushVolume() {
     vol_iterator next;
     volent *v;
     while (v = next()) {
-	if (v->vid == LocalFakeVid) continue;
+	if (FID_VolIsFake(v->vid)) 
+		continue;
 	v->FlushVSRs(VSR_FLUSH_HARD);
     }
 }
@@ -819,7 +819,7 @@ volent::volent(VolumeInfo *volinfo, char *volname) {
 
 /* local-repair modification */
 void volent::ResetTransient() {
-    if ((type == ROVOL || type == REPVOL) && (vid != LocalFakeVid)) {
+    if ((type == ROVOL || type == REPVOL) && !FID_VolIsFake(vid) ) {
 	/* don't need to set VSG for non-replicated volumes */
 	if ((vsg = VSGDB->Find(host)) == 0)
 	    { print(logFile); Choke("volent::ResetTransient: couldn't find vsg"); }
@@ -869,7 +869,7 @@ void volent::ResetTransient() {
     VCBHits = 0;
 
     vsr_list = new olist;
-    if (vid != LocalFakeVid)
+    if (!FID_VolIsFake(vid))
       VsrUnique = GetAVSG((unsigned long *)&AVSG);
 
     saved_uid = -1;
@@ -910,7 +910,7 @@ volent::~volent() {
 	delete res_list;
     }
     {
-	if (vid != LocalFakeVid) {
+	if (!FID_VolIsFake(vid)) {
 	    FlushVSRs(VSR_FLUSH_HARD);
 	    delete vsr_list;
 	}
@@ -1385,7 +1385,7 @@ void volent::DisconnectedCacheMiss(vproc *vp, vuid_t vuid, ViceFid *fid, char *c
     /* Get the pathname */
     GetMountPath(pathname, 0);
     assert(fid != NULL);
-    if ((fid->Vnode != ROOT_VNODE) || (fid->Unique != ROOT_UNIQUE)) 
+    if (!FID_IsVolRoot(fid)) 
         strcat(pathname, "/???");
     if (comp) {
         strcat(pathname, "/");
@@ -1545,8 +1545,9 @@ void volent::TakeTransition() {
     switch(state) {
         case Hoarding:
             {
-	      if ((prevstate != Hoarding) && (AdviceEnabled) && (vid != LocalFakeVid))
-		  NotifyStateChange();
+	      if ((prevstate != Hoarding) && (AdviceEnabled) && 
+		  (!FID_VolIsFake(vid)))
+		      NotifyStateChange();
 
 	      /* If:                                                                         *
 	       *     we were disconnected                                                    *
@@ -1557,7 +1558,7 @@ void volent::TakeTransition() {
 	       *                                                                             */
 	      if ((prevstate == Emulating) && 
 		  (FSDB->RefCounter > DiscoRefCounter) &&
-		  (vid != LocalFakeVid)) {
+		  (!FID_VolIsFake(vid))) {
 		  FSDB->UpdateDisconnectedUseStatistics(this);
 	      }
 
@@ -1565,7 +1566,8 @@ void volent::TakeTransition() {
                *  if we are transitioning from the Emulating state into the Hoarding state.  * 
                *  This is to catch volumes which have no modifications.  We let the advice   *
                *  monitor decide whether or not to actually question the user.               */
-	      if ((prevstate == Emulating) && (AdviceEnabled) && (vid != LocalFakeVid)) 
+	      if ((prevstate == Emulating) && (AdviceEnabled) && 
+		  (!FID_VolIsFake(vid))) 
 		  TriggerReconnectionQuestionnaire();
 
 
@@ -1579,8 +1581,9 @@ void volent::TakeTransition() {
 
         case Emulating:
             {
-	      if ((prevstate != Emulating) && (AdviceEnabled) && (vid != LocalFakeVid))
-		  NotifyStateChange();
+	      if ((prevstate != Emulating) && (AdviceEnabled) && 
+		  (!FID_VolIsFake(vid)))
+		      NotifyStateChange();
 
               if (prevstate == Hoarding) {
                 SetDiscoRefCounter();
@@ -1596,8 +1599,9 @@ void volent::TakeTransition() {
             }
 
         case Logging:
-	    if ((prevstate != Logging) && (AdviceEnabled) && (vid != LocalFakeVid))
-	        NotifyStateChange();
+	    if ((prevstate != Logging) && (AdviceEnabled) && 
+		(!FID_VolIsFake(vid)))
+		    NotifyStateChange();
 
 	    if (ReadyToReintegrate()) 
 		::Reintegrate(this);
@@ -1612,7 +1616,7 @@ void volent::TakeTransition() {
 	     * N.B. Must occur *before* call to TriggerReconnectionQuestionnaire           */
 	    if ((prevstate == Emulating) && 
 		(FSDB->RefCounter > DiscoRefCounter) &&
-		(vid != LocalFakeVid)) {
+		(!FID_VolIsFake(vid))) {
 	            FSDB->UpdateDisconnectedUseStatistics(this);
 	    }
 
@@ -1621,7 +1625,7 @@ void volent::TakeTransition() {
              *  if we are transitioning from the Emulating state into the Logging state.  * 
              *  This is to catch volumes which have modifications.  We let the advice     *
              *  monitor decide whether or not to actually question the user.              */
-	    if ((prevstate == Emulating) && (AdviceEnabled) && (vid != LocalFakeVid))
+	    if ((prevstate == Emulating) && (AdviceEnabled) && (!FID_VolIsFake(vid)))
 		TriggerReconnectionQuestionnaire();  
 
 
@@ -1633,7 +1637,8 @@ void volent::TakeTransition() {
 	    break;
 
 	case Resolving:
-	    if ((prevstate != Resolving) && (AdviceEnabled) && (vid != LocalFakeVid))
+	    if ((prevstate != Resolving) && (AdviceEnabled) && 
+		(!FID_VolIsFake(vid)))
 	        NotifyStateChange();
 
 	    ::Resolve(this);
@@ -1668,8 +1673,8 @@ void volent::DownMember(long eTime) {
      * chance of the vsr's being flushed when an independent deamon
      * discovers the new server state.
      */
-    if (vid != LocalFakeVid) 
-      this->FlushVSRs(VSR_FLUSH_HARD);
+    if (!FID_VolIsFake(vid)) 
+	    this->FlushVSRs(VSR_FLUSH_HARD);
     ResetStats();
     /* Consider transitting to Emulating state. */
     if (AvsgSize() == 0) {
@@ -1701,7 +1706,7 @@ void volent::UpMember(long eTime) {
      * chance of the vsr's being flushed when an independent deamon
      * discovers the new server state.
      */
-    if (vid != LocalFakeVid)
+    if (!FID_VolIsFake(vid))
       this->FlushVSRs(VSR_FLUSH_HARD);
     ResetStats();
     
@@ -1948,7 +1953,7 @@ int volent::GetMgrp(mgrpent **m, vuid_t vuid, RPC2_CountedBS *PiggyBS) {
 	    Choke("volent::GetMgrp: bogus code (%d)", code);
 
 	/* Get PiggyCOP2 buffer if requested. */
-	if (code == 0 && PiggyBS != 0 && vid != LocalFakeVid)
+	if (code == 0 && PiggyBS != 0 && !FID_VolIsFake(vid))
 	    code = FlushCOP2(*m, PiggyBS);
     }
 
@@ -2161,21 +2166,24 @@ Exit:
 
 ViceFid volent::GenerateLocalFid(ViceDataType fidtype) {
     ViceFid fid;
-    fid.Volume = vid;
-    fid.Vnode = (fidtype == Directory) ? LocalDirVnode : LocalFileVnode;
-    fid.Unique = FidUnique++;
+
+    if ( fidtype == Directory ) 
+	    FID_MakeDiscoDir(&fid, vid, FidUnique);
+    else 
+	    FID_MakeDiscoFile(&fid, vid, FidUnique);
+
+    FidUnique++;
 
     return(fid);
 }
 
 
-ViceFid volent::GenerateFakeFid() {
-    ViceFid fid;
-    fid.Volume = vid;
-    fid.Vnode = FakeVnode;
-    fid.Unique = FidUnique++;
-
-    return(fid);
+ViceFid volent::GenerateFakeFid() 
+{
+	ViceFid fid;
+	FID_MakeSubtreeRoot(&fid, vid, FidUnique);
+	FidUnique++;
+	return(fid);
 }
 
 
@@ -2193,11 +2201,11 @@ int volent::GetVolStat(VolumeStatus *volstat, RPC2_BoundedBS *Name,
 			RPC2_BoundedBS *msg, RPC2_BoundedBS *motd, vuid_t vuid) {
     LOG(100, ("volen::GetVolStat: vid = %x, vuid = %d\n", vid, vuid));
 
-    if (vid == LocalFakeVid) {
+    if (FID_VolIsFake(vid)) {
 	/* make up some numbers for the local-fake volume */
 	LOG(100, ("volent::GetVolStat: Local Volume vuid = %d\n", vuid));	
-	volstat->Vid = LocalFakeVid;
-	volstat->ParentId = 0xfffffffe;		/* OK ? */
+	FID_MakeVolFake(&volstat->Vid);
+	volstat->ParentId = 0xfffffffe; /* NONSENSE, but what is right? pjb */
 	volstat->InService = 1;
     	volstat->Blessed = 1;
 	volstat->NeedsSalvage = 1;
@@ -2434,7 +2442,7 @@ void volent::GetHosts(unsigned long *hosts) {
 
 
 unsigned long volent::GetAVSG(unsigned long *hosts) {
-    ASSERT(vid != LocalFakeVid);
+    ASSERT( !FID_VolIsFake(vid));
     unsigned long AvsgId = 0;
 
     /* Always return AVSG identifier. */
@@ -2534,8 +2542,7 @@ void volent::GetMountPath(char *buf, int ok_to_assert) {
 
     ViceFid fid;
     fid.Volume = vid;
-    fid.Vnode = ROOT_VNODE;
-    fid.Unique = ROOT_UNIQUE;
+    FID_MakeRoot(&fid);
     fsobj *f = FSDB->Find(&fid);
     if (f) {
 	f->GetPath(buf, 1);
@@ -2613,7 +2620,7 @@ void volent::print(int afd) {
     }
 
     /* Volume Session Statistics */ 
-    if ((vid != LocalFakeVid) && (LogLevel >= 100)) {
+    if ( !FID_VolIsFake(vid) && (LogLevel >= 100)) {
         vsr *record;
         record = GetVSR(2660);
         assert(record->cetime == 0);

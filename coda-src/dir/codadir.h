@@ -29,7 +29,6 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/dir/codadir.h,v 4.1 1998/08/26 21:15:06 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -136,24 +135,8 @@ void DH_Put(PDirHandle);
 void DH_Init(PDirHandle dh);
 
 /* fid support */
-/* local fid and local volume related stuff */
-static VnodeId ROOT_VNODE = 1;
-static Unique_t ROOT_UNIQUE = 1;
 
 #define	ISDIR(fid)  ((fid).Vnode & 1)	     /* Directory fids are odd */
-
-/* to determine if the volume is the local copy during a repair/conflict */
-static VolumeId LocalFakeVid = 0xffffffff;
-#define FID_IsLocal(x) ((x)->Volume == LocalFakeVid)
-
-/* directory vnode number for dangling links during conflicts*/
-static VnodeId FakeVnode = 0xfffffffc;
-#define	FID_IsFake(fid) ((fid)->Vnode == FakeVnode)
-
-/* was this fid created during a disconnection */
-static VnodeId LocalFileVnode = 0xfffffffe;
-static VnodeId LocalDirVnode  = 0xffffffff;
-#define FID_IsDisco(x) ( ((x)->Vnode == LocalFileVnode) || ((x)->Vnode == LocalDirVnode))
 
 #define FID_LT(a, b)\
     /* Assumes that ((a).Volume == (b).Volume)! */\
@@ -162,15 +145,54 @@ static VnodeId LocalDirVnode  = 0xffffffff;
 #define FID_LTE(a, b)\
     /* Assumes that ((a).Volume == (b).Volume)! */\
     ((((a).Vnode) < ((b).Vnode)) || ((a).Vnode == (b).Vnode && ((a).Unique) <= ((b).Unique)))
+
+
+/* local fid and local volume related stuff */
+inline int FID_IsVolRoot(struct ViceFid *fid);
+inline void FID_MakeRoot(struct ViceFid *fid);
+
+
+
+/* check if this is a local directory or file */
+inline int FID_IsDisco(struct ViceFid *x);
+inline int FID_IsLocalDir(struct ViceFid *fid);
+inline int FID_IsLocalFile(struct ViceFid *fid);
+inline void FID_MakeDiscoFile(struct ViceFid *fid, VolumeId vid, 
+			      Unique_t unique);
+inline void FID_MakeDiscoDir(struct ViceFid *fid, VolumeId vid,
+			     Unique_t unique);
+
+/* directory vnode number for dangling links during conflicts - 
+   two versions, one for the remote copy one for the local oopy*/
+
+/* make the root of a repair subtree residing on the server */
+inline int FID_IsFakeRoot(struct ViceFid *fid);
+inline void FID_MakeSubtreeRoot(struct ViceFid *fid, VolumeId vid, 
+				Unique_t unique);
+/* fill fids residing in the local tree */
+inline void FID_MakeLocalDir(struct ViceFid *fid, Unique_t unique);
+inline void FID_MakeLocalFile(struct ViceFid *fid, Unique_t unique);
+inline void FID_MakeLocalSubtreeRoot(struct ViceFid *fid, Unique_t unique);
+
+/* check if the volume is local */
+inline void FID_MakeVolFake(VolumeId *id);
+inline int  FID_VolIsLocal(struct ViceFid *x);
+inline int FID_VolIsFake(VolumeId id);
+
+/* compare parts of fids */
 int FID_EQ(struct ViceFid *fa, struct ViceFid *fb);
 int FID_VolEQ(struct ViceFid *fa, struct ViceFid *fb);
+int FID_Cmp(struct ViceFid *, struct ViceFid *);
+
+/*  copy or transform parts of fids */
 void FID_CpyVol(struct ViceFid *target, struct ViceFid *source);
 void FID_VFid2DFid(struct ViceFid *vf, struct DirFid *df);
 void FID_DFid2VFid(struct DirFid *df, struct ViceFid *vf);
 void FID_PrintFid(struct DirFid *fid);
 void FID_Int2DFid(struct DirFid *fid, int vnode, int unique);
 void FID_NFid2Int(struct DirNFid *fid, VnodeId *vnode, Unique_t *unique);
-int FID_Cmp(struct ViceFid *, struct ViceFid *);
+
+/* print fids */
 char *FID_(struct ViceFid *);
 char *FID_2(struct ViceFid *);
 

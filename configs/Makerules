@@ -26,7 +26,7 @@ install:
 #  recursively descend into subdirs and do hdrinstall and build
 ###############################################################
 coda: Coda
-Coda: $(LIBRARIES) $(HEADERS) $(EXECUTABLES) $(SCRIPTS) $(TESTS)\
+Coda: $(RP2HEADERS) $(LIBRARIES) $(HEADERS) $(EXECUTABLES) $(SCRIPTS) $(TESTS)\
 	 hdrinstall mkdep
 ifdef SUBDIRS
 	@for d in $(SUBDIRS) ; do \
@@ -125,10 +125,18 @@ endif
 #####################
 # install headers
 #####################
-hdrinstall: $(HEADERS)
+hdrinstall: chdrinstall rp2hdrinstall
+
+chdrinstall: $(HEADERS) 
 ifdef HEADERS
 	$(TOPDIR)/tools/our-install 644 $(INCLDIR) $?
-	-touch hdrinstall
+	-touch chdrinstall
+endif
+
+rp2hdrinstall: $(RP2HEADERS)
+ifdef RP2HEADERS
+	$(TOPDIR)/tools/our-install 644 $(INCLDIR) $(RP2HEADERS)
+	-touch rp2hdrinstall
 endif
 
 
@@ -154,29 +162,29 @@ ifdef SUBDIRS
 endif
 
 realclean:
-	$(RM) *.o *.a .depend *.d
-	$(RM) *.client.cc *.client.c *.server.cc *.server.c *.multi.cc *.multi.c $(RP2HEADERS)
-	$(RM) $(EXECUTABLES) $(LIBRARIES) $(TESTS) core
-	$(RM) lex.yy.c y.tab.c y.tab.h
-	$(RM) hdrinstall libinstall bininstall scriptinstall \
+	-$(RM) *.o *.a  .depfiles/*.d
+	-rmdir .depfiles
+	-$(RM) *.client.cc *.client.c *.server.cc *.server.c *.multi.cc *.multi.c $(RP2HEADERS)
+	-$(RM) $(EXECUTABLES) $(LIBRARIES) $(TESTS) core
+	-$(RM) lex.yy.c y.tab.c y.tab.h
+	-$(RM) chdrinstall rp2hdrinstall libinstall bininstall scriptinstall \
 	      c_bin_install c_sbin_install s_bin_install s_sbin_install 
-	$(RM) *.l.c *.pt.c *.l.o *.pt.o
+	-$(RM) *.l.c *.pt.c *.l.o *.pt.o
 
 distclean: clean
-	rm -rf include
-	rm -f coda-src/rpc2/errorsdefs.h
-	rm -f coda-src/rpc2/switchc2s.h
-	rm -f coda-src/rpc2/switchs2c.h
-	rm -f config.cache config.log config.status
-	rm -f Makeconf.setup `find . -name "Makefile" | grep -v linux`
+	-rm -rf include
+	-rm -f coda-src/rpc2/errorsdefs.h
+	-rm -f coda-src/rpc2/switchc2s.h
+	-rm -f coda-src/rpc2/switchs2c.h
+	-rm -f config.cache config.log config.status
+	-rm -f Makeconf.setup `find . -name "Makefile" | grep -v linux`
 
-	
 
 #####################
 # dependency generation
 #####################
 mkdep:
-	@$(TOPOBJ)/md -o .depend -d -S $(INCLFLAGS) *.d
+#	@$(TOPOBJ)/md -o .depend -d -S $(INCLFLAGS) *.d
 
 
 ###############################################################
@@ -186,47 +194,17 @@ mkdep:
 ##################
 # testing variables
 ##################
-show showvar:
-	@echo  SECSRC: $(SECSRC)
-	@echo  SHADOWINCLS: $(SHADOWINCLS)
-	@echo  SHADOWRP2: $(SHADOWRP2)
-	@echo  INCLPATH: $(INCLPATH)	
-	@echo  OLDVPATH: $(OLDVPATH)
-	@echo  VPATH: $(VPATH)
-	@echo  VPATHTAIL: $(VPATHTAIL)
-	@echo  SHOB: $(SHOB)
-	@echo  SECSRC: $(SECSRC) 
-	@echo  CFLAGS: $(CFLAGS)
-	@echo  INCLDIR: $(INCLDIR)
-	@echo  INCLFLAGS: $(INCLFLAGS)
-	@echo  TOPDIR: $(TOPDIR) 
-	@echo  LIBDIR: $(LIBDIR)
-	@echo  LIBS: $(LIBS)
-	@echo  LIBEXECDIR: $(LIBEXECDIR)
-	@echo  BINDIR: $(BINDIR)
-	@echo  SBINDIR: $(SBINDIR)
-	@echo  MANDIR:  $(MANDIR)
-	@echo  SHORTSYS:  $(SHORTSYS)
-	@echo  VFSDIR:  $(VFSDIR)
-	@echo  MANDIR:  $(MANDIR)
-	@echo  LIBRARIES:  $(LIBRARIES)
-	@echo  EXECUTABLES: $(EXECUTABLES)
-	@echo  HEADERS: $(HEADERS)
-	@echo  RP2GEN: $(RP2GEN)
-	@echo  RP2FILES:    $(RP2FILES)
-	@echo  RP2HEADERS:  $(RP2HEADERS)
-	@echo  CBINS: $(CBINS)
-	@echo  TARGETCBINS: $(TARGETCBINS)	
-	@echo  CSBINS: $(CSBINS)
-	@echo  TARGETCSBINS: $(TARGETCSBINS)
-	@echo  host: $(host)
-	@echo  host_alias: $(host_alias)
+VARS=SECSRC OLDVPATH VPATH VPATHTAIL\
+    CLFLAGS INCLDIR INCLFLAGS INCLPATH TOPDIR LIBDIR LIBS LIBEXECDIR\
+    BINDIR SBINDIR MANDIR SHORTSYS VFSDIR LIBRARIES EXECUTABLES SSBINS\
+    SBINS CSBINS CBINS TARGETCBINS TARGETCSBINS host host_alias sys\
+    shortsys HEADERS RP2HEADERS
+ECHOVAR+= echo "$(VAR)	 $($(VAR))" ;
+ECHOCMD:= $(foreach VAR, $(VARS), $(ECHOVAR))
 
-##################
-# linting
-##################
-lint: $(SOURCES)
-	lint $(INCDIRS) $(SOURCES)
+show showvar:
+	@$(ECHOCMD)
+
 
 ###############################################################
 # 		build rules
@@ -236,6 +214,11 @@ lint: $(SOURCES)
 	$(CPP) -P -D__ASSEMBLY__ $(AFLAGS) $< > $*.ss
 	$(AS) -o $@ $*.ss
 	$(RM) $*.ss
+
+.c.o:
+	$(CC) -MD $(CFLAGS) $(CPPFLAGS) -c $<
+	@mkdir -p .depfiles ; mv $*.d .depfiles
+
 
 %.a:
 	$(AR) rv $@ $?
@@ -263,4 +246,4 @@ endif
 #	suck down any dependencies we know about
 ###############################################################
 
--include .depend
+-include .depfiles/*.d

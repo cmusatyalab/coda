@@ -25,17 +25,15 @@
 # improvements or extensions that  they  make,  and  to  grant  Carnegie
 # Mellon the rights to redistribute these changes without encumbrance.
 # 
-# static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/repair/Makefile.in,v 4.9 1998/09/15 14:27:57 jaharkes Exp $";
+# static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/repair/Makefile.in,v 4.10 1998/09/15 22:56:59 braam Exp $";
 
 TOPDIR = @top_srcdir@
-ifndef MAKDIR
-MAKDIR = @top_srcdir@
-endif
+
 srcdir = @srcdir@
 VPATH  = @srcdir@
 TOPOBJ = @TOPOBJ@
 
-include $(MAKDIR)/Makeconf
+include $(TOPDIR)/Makeconf
 
 EXECUTABLES = repair
 CBINS       = repair
@@ -51,5 +49,5 @@ reptest: reptest.o (OFILES) $(RLIBS)
 repair:  repair.o $(OFILES) $(RLIBS)
 	$(CXX) $(LIBFLAGS) repair.o $(OFILES) $(RLIBS) -o repair
 
-include $(MAKDIR)/configs/Makerules
+include $(TOPDIR)/configs/Makerules
 

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/vol_vsr.cc,v 4.6 1998/08/23 16:46:30 jaharkes Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/vol_vsr.cc,v 4.7 1998/08/26 21:24:43 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -158,7 +158,7 @@ int vsr::deallocs = 0;
 #endif VENUSDEBUG
 
 vsr *volent::GetVSR(vuid_t uid) {
-    ASSERT(vid != LocalFakeVid);
+    ASSERT(!FID_VolIsFake(vid));
     LOG(100, ("volent::GetVSR: vol = %x, session = %d, uid = %d\n",
 	       vid, VsrUnique, uid));
 
@@ -183,7 +183,7 @@ vsr *volent::GetVSR(vuid_t uid) {
 
 
 void volent::PutVSR(vsr *v) {
-    ASSERT(vid != LocalFakeVid);
+    ASSERT(!FID_VolIsFake(vid));
     LOG(100, ("volent::PutVSR: vol = %x, session = %d, uid = %d\n",
 	       vid, VsrUnique, v->uid));
 
@@ -194,7 +194,7 @@ void volent::PutVSR(vsr *v) {
 
 
 void volent::FlushVSRs(int hard) {
-    ASSERT(vid != LocalFakeVid);
+    ASSERT(!FID_VolIsFake(vid));
     LOG(100, ("volent::FlushVSRs: vol = %x, session = %d, hard = %d\n", 
 	      vid, VsrUnique, hard));
 

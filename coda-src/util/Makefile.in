@@ -29,14 +29,12 @@
 
 
 TOPDIR = @top_srcdir@
-ifndef MAKDIR
-MAKDIR = @top_srcdir@
-endif
+
 srcdir = @srcdir@
 VPATH  = @srcdir@
 TOPOBJ = @TOPOBJ@
 
-include $(MAKDIR)/Makeconf
+include $(TOPDIR)/Makeconf
 
 LIBRARIES = libutil.a
 HEADERS   = util.h olist.h ohash.h dlist.h dhash.h bstree.h dict.h \
@@ -54,4 +52,4 @@ OBJECTS = util.o olist.o ohash.o dlist.o dhash.o bstree.o dict.o  \
 
 libutil.a: ${OBJECTS} 
 
-include $(MAKDIR)/configs/Makerules
+include $(TOPDIR)/configs/Makerules

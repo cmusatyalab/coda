@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rvmres/subresphase3.cc,v 4.5 1998/01/10 18:38:22 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rvmres/subresphase3.cc,v 4.6 1998/08/31 12:23:27 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -1465,6 +1465,8 @@ ViceStoreId *GetRemoteRemoveStoreId(olist *AllLogs, unsigned long serverid,
     LogMsg(9, SrvDebugLevel, stdout,  
 	   "GetRemoteRemoveStoreId: Couldnt find remove entry for %s %x.%x",
 	   cname, cFid->Vnode, cFid->Unique);
+    return NULL;
+
 }
 
 // SetPhase3DirStatus

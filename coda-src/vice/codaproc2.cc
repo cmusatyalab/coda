@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vice/codaproc2.cc,v 4.7 1998/04/14 20:55:36 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vice/codaproc2.cc,v 4.8 1998/08/31 12:23:34 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -2099,8 +2099,13 @@ START_TIMING(Reintegrate_CheckSemanticsAndPerform);
 		    sid.Value.SmartFTPD.FileInfo.ByInode.Device = V_device(volptr);
 		    sid.Value.SmartFTPD.FileInfo.ByInode.Inode = v->f_finode;
 		    if (errorCode = CallBackFetch(CBCid, &r->u.u_store.UntranslatedFid, &sid)) {
-                        index = -1;
-			goto Exit;
+#if 0 /* xXXX Jan clean this up */
+			    if ( errorCode < RPC2_ELIMIT ) {
+				    CLIENT_CleanUpHost(he);
+			    }
+#endif 			    
+			    index = -1;
+			    goto Exit;
 		    }
 		    RPC2_Integer len = sid.Value.SmartFTPD.BytesTransferred;
 		    if (r->u.u_store.Length != len) {
@@ -2126,10 +2131,14 @@ START_TIMING(Reintegrate_CheckSemanticsAndPerform);
     }
 
 Exit:
-    if (Index)  *Index = (RPC2_Integer) index;
+    
+
+    if (Index)  
+	    *Index = (RPC2_Integer) index;
     PutVolObj(&volptr, VOL_NO_LOCK);
-    LogMsg(10, SrvDebugLevel, stdout,  "CheckSemanticsAndPerform: returning %s", ViceErrorMsg(errorCode));
-END_TIMING(Reintegrate_CheckSemanticsAndPerform);
+    LogMsg(10, SrvDebugLevel, stdout,  
+	   "CheckSemanticsAndPerform: returning %s", ViceErrorMsg(errorCode));
+    END_TIMING(Reintegrate_CheckSemanticsAndPerform);
     return(errorCode);
 }
 

@@ -10,18 +10,16 @@
 # Unlicensed use or distribution of this code is illegal.
 # 
 # 
-# static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/norton/Makefile.in,v 4.8 1998/05/15 16:55:04 braam Exp $";
+# static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/norton/Makefile.in,v 4.9 1998/06/18 20:30:59 jaharkes Exp $";
 
 
 TOPDIR = @top_srcdir@
-ifndef MAKDIR
-MAKDIR = @top_srcdir@
-endif
+
 srcdir = @srcdir@
 VPATH  = @srcdir@
 TOPOBJ = @TOPOBJ@
 
-include $(MAKDIR)/Makeconf
+include $(TOPDIR)/Makeconf
 
 EXECUTABLES = norton norton-reinit
 SCRIPTS     = reinit
@@ -62,4 +60,4 @@ norton: ${norton_objs} ${NLIBS}
 norton-reinit: ${reinit_objs} ${NLIBS}
 	$(CXX) $(LIBFLAGS) ${reinit_objs} ${NLIBS} -o norton-reinit
 
-include $(MAKDIR)/configs/Makerules
+include $(TOPDIR)/configs/Makerules

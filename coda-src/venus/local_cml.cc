@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/local_cml.cc,v 4.5 98/08/26 21:24:33 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/local_cml.cc,v 4.6 1998/09/15 14:28:04 jaharkes Exp $";
 #endif /*_BLURB_*/
 
 
@@ -118,7 +118,7 @@ int cmlent::LocalFakeify()
      * another subtree that is affected by the operation.
      */
     ViceFid *fid = Fids[0];
-    OBJ_ASSERT(this, !FID_IsLocal(fid));
+    OBJ_ASSERT(this, !FID_VolIsLocal(fid));
     fsobj *root;
     OBJ_ASSERT(this, root = FSDB->Find(fid));
     if (DYING(root)) {
@@ -133,11 +133,11 @@ int cmlent::LocalFakeify()
     if (rc != 0) return rc;
     
     fid = Fids[2];
-    if (fid == NULL || FID_IsLocal(fid)) {
+    if (fid == NULL || FID_VolIsLocal(fid)) {
 	SetRepairFlag();
 	return (0);
     }
-    OBJ_ASSERT(this, !FID_IsLocal(fid));
+    OBJ_ASSERT(this, !FID_VolIsLocal(fid));
     OBJ_ASSERT(this, root = FSDB->Find(fid));
     if (DYING(root)) {
 	LOG(100, ("cmlent::LocalFakeify: object 0x%x.%x.%x removed\n",
@@ -1408,7 +1408,7 @@ int cmlent::InLocalRepairSubtree(ViceFid *LocalRootFid)
      * check whether the objects mutated by this cmlent belongs to
      * the subtree rooted at the object whose fid equals RootFid.
      */
-    OBJ_ASSERT(this, LocalRootFid && FID_IsLocal(LocalRootFid));
+    OBJ_ASSERT(this, LocalRootFid && FID_VolIsLocal(LocalRootFid));
     LOG(100, ("cmlent::InLocalRepairSubtree: LocalRootFid = 0x%x.%x.%x\n",
 	      LocalRootFid->Volume, LocalRootFid->Vnode, LocalRootFid->Unique));
     ViceFid *Fids[3];
@@ -1418,7 +1418,7 @@ int cmlent::InLocalRepairSubtree(ViceFid *LocalRootFid)
 
     for (int i = 0; i < 3; i++) {
 	if (!Fids[i]) continue;
-	if (!FID_IsLocal(Fids[i])) continue;
+	if (!FID_VolIsLocal(Fids[i])) continue;
 	OBJ_ASSERT(this, OBJ = FSDB->Find(Fids[i]));
 	if (OBJ->IsAncestor(LocalRootFid)) return 1;
     }
@@ -1440,7 +1440,7 @@ int cmlent::InGlobalRepairSubtree(ViceFid *GlobalRootFid)
      * also works on dying objects because parent/child relationship is destroyed 
      * only at GC time.
      */
-    OBJ_ASSERT(this, GlobalRootFid && !FID_IsLocal(GlobalRootFid));
+    OBJ_ASSERT(this, GlobalRootFid && !FID_VolIsLocal(GlobalRootFid));
     LOG(100, ("cmlent::InGlobalRepairSubtree: GlobalRootFid = 0x%x.%x.%x\n",
 	GlobalRootFid->Volume, GlobalRootFid->Vnode, GlobalRootFid->Unique));
 
@@ -1456,7 +1456,7 @@ int cmlent::InGlobalRepairSubtree(ViceFid *GlobalRootFid)
 
     for (int i = 0; i < 3; i++) {
 	if (!Fids[i]) continue;
-	if (FID_IsLocal(Fids[i])) break;
+	if (FID_VolIsLocal(Fids[i])) break;
 	OBJ = FSDB->Find(Fids[i]);
 	if (!OBJ) continue;
 	if (OBJ->IsAncestor(GlobalRootFid)) return 1;
@@ -1631,7 +1631,7 @@ int cmlent::ContainLocalFid()
     GetAllFids(Fids);
     for (int i = 0; i < 3; i++) {
 	if (Fids[i] == NULL) continue;
-	if (FID_IsLocal(Fids[i])) {
+	if (FID_VolIsLocal(Fids[i])) {
 	    return 1;
 	}
     }

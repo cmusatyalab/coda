@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/volutil/vol-clone.cc,v 4.6 1998/04/14 21:00:36 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/volutil/vol-clone.cc,v 4.7 1998/08/31 12:23:46 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -84,6 +84,8 @@ extern "C" {
 
 #include <volutil.h>
 #include <vice.h>
+#include <errors.h>
+#include <partition.h>
 #ifdef __cplusplus
 }
 #endif __cplusplus
@@ -92,13 +94,10 @@ extern "C" {
 #include <cvnode.h>
 #include <volume.h>
 #include <srv.h>
-#include <errors.h>
-#include <partition.h>
 #include <viceinode.h>
 #include <vutil.h>
 #include <index.h>
 #include <recov.h>
-#include <codadir.h>
 #include <camprivate.h>
 #include <coda_globals.h>
 #include <vldb.h>
@@ -172,19 +171,20 @@ long S_VolClone(RPC2_Handle rpcid, RPC2_Unsigned formal_ovolid,
 	return error;
     }
     
-    if (V_type(originalvp) != readonlyVolume && V_type(originalvp) != readwriteVolume){
-	LogMsg(0, VolDebugLevel, stdout, "S_VolClone: The volume to be cloned must be RW or R/o; aborting");
+    if (V_type(originalvp) != readonlyVolume && 
+	V_type(originalvp) != readwriteVolume){
+	VLog(0, "S_VolClone: volume to be cloned must be RW or RO; aborting");
 	VPutVolume(originalvp);
 	VDisconnectFS();
 	return VFAIL;
     }
     if (V_type(originalvp) == readwriteVolume){
-	LogMsg(29, VolDebugLevel, stdout, "Cloning RW volume - trying to lock ");
+	VLog(29, "Cloning RW volume - trying to lock ");
 	/* lock the whole volume for the duration of the clone */
 	if (V_VolLock(originalvp).IPAddress){
-	    LogMsg(0, VolDebugLevel, stdout, "S_VolClone: old volume already locked; Aborting... ");
+	    VLog(0, "S_VolClone: old volume already locked; Aborting... ");
 	    RVMLIB_BEGIN_TRANSACTION(restore)
-		VPutVolume(originalvp);	/* Do these need transactions? */
+	      VPutVolume(originalvp);	/* Do these need transactions? */
 	    RVMLIB_END_TRANSACTION(flush, &(status));
 	    assert(status == 0);
 	    VDisconnectFS();
@@ -195,24 +195,28 @@ long S_VolClone(RPC2_Handle rpcid, RPC2_Unsigned formal_ovolid,
 	V_VolLock(originalvp).IPAddress = (unsigned int)1;
 	V_VolLock(originalvp).WriteLockType = VolUtil;
 
-	LogMsg(9, VolDebugLevel, stdout, "S_VolClone: Goint to obtain write lock on old volume");
+	VLog(9, "S_VolClone: Goint to obtain write lock on old volume");
 	ObtainWriteLock(&(V_VolLock(originalvp).VolumeLock));
-	LogMsg(9, VolDebugLevel, stdout, "S_VolClone:Obtained write lock on old volume");
+	VLog(9, "S_VolClone:Obtained write lock on old volume");
     }
 
     RVMLIB_BEGIN_TRANSACTION(restore)
     newId = VAllocateVolumeId(&error);
-    LogMsg(9, VolDebugLevel, stdout, "VolClone: VAllocateVolumeId returns %x", newId);
+    VLog(9, "VolClone: VAllocateVolumeId returns %x", newId);
     if (error){
-	LogMsg(0, VolDebugLevel, stdout, "S_VolClone:Unable to allocate a volume number; volume not cloned");
+	VLog(0, "S_VolClone:Unable to allocate volume number;" 
+	     "volume not cloned");
 	VPutVolume(originalvp);
 	rvmlib_abort(VNOVOL);
+	return VNOVOL;
     }
-    newvp = VCreateVolume(&error, V_partname(originalvp), newId, originalId, 0, readonlyVolume);
+    newvp = VCreateVolume(&error, V_partname(originalvp), newId, 
+			  originalId, 0, readonlyVolume);
     if (error) {
-	LogMsg(0, VolDebugLevel, stdout, "S_VolClone:Unable to create the volume; aborted");
+	VLog(0, "S_VolClone:Unable to create the volume; aborted");
 	VPutVolume(originalvp);
 	rvmlib_abort(VNOVOL);
+	return VNOVOL;
     }
 
     V_blessed(newvp) = 0;
@@ -314,6 +318,7 @@ int MaxVnodesPerTransaction = 8;
 static void VUCloneIndex(Error *error, Volume *rwVp, Volume *cloneVp, VnodeClass vclass)
 {
     int status;
+    unsigned int i;
     bit32 nvnodes;
     bit32 vnlistSize;
     rec_smolist *rvlist;
@@ -348,9 +353,9 @@ static void VUCloneIndex(Error *error, Volume *rwVp, Volume *cloneVp, VnodeClass
     }
 
     assert(ovList);	/* How can it not have a list? */
-    for (int i = 0; (i < onLists && onVnodes > 0); i++){
+    for (i = 0; (i < onLists && onVnodes > 0); i++){
 	rec_smolink *p;
-	while(p = ovList[i].get()) {
+	while( (p = ovList[i].get()) ) {
 	    VnodeDiskObject *vdo;
 	    vdo = strbase(VnodeDiskObject, p, nextvn);
 	    rvmlib_rec_free((char *)vdo);

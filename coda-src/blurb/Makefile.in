@@ -25,18 +25,16 @@
 # improvements or extensions that  they  make,  and  to  grant  Carnegie
 # Mellon the rights to redistribute these changes without encumbrance.
 # 
-# static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/blurb/Makefile.in,v 4.3 1997/12/02 16:39:26 braam Exp $";
+# static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/blurb/Makefile.in,v 4.4 1998/03/13 15:25:41 braam Exp $";
 
 
 TOPDIR = @top_srcdir@
-ifndef MAKDIR
-MAKDIR = @top_srcdir@
-endif
+
 srcdir = @srcdir@
 VPATH  = @srcdir@
 TOPOBJ = @TOPOBJ@
 
-include $(MAKDIR)/Makeconf
+include $(TOPDIR)/Makeconf
 
 EXECUTABLES = blurb
 SCRIPTS     = blurb-ansify
@@ -46,4 +44,4 @@ LIBS = $(LIBUTIL)
 blurb:	blurb.o $(LIBS)
 	$(CC) $(LIBFLAGS) blurb.o $(LIBS) -o blurb
 
-include $(MAKDIR)/configs/Makerules
+include $(TOPDIR)/configs/Makerules

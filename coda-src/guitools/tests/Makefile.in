@@ -25,18 +25,16 @@
 # improvements or extensions that  they  make,  and  to  grant  Carnegie
 # Mellon the rights to redistribute these changes without encumbrance.
 # 
-# static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/guitools/Makefile.in,v 1.2 97/12/16 16:47:32 mre Exp $";
+# static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/guitools/tests/Makefile.in,v 1.1 1997/12/18 22:56:37 mre Exp $";
 
 
 TOPDIR = @top_srcdir@
-ifndef MAKDIR
-MAKDIR = @top_srcdir@
-endif
+
 srcdir = @srcdir@
 VPATH  = @srcdir@
 TOPOBJ = @TOPOBJ@
 
-include $(MAKDIR)/Makeconf
+include $(TOPDIR)/Makeconf
 
 
 CodaDemo.tcl: CodaDemo.tcl.in
@@ -45,4 +43,4 @@ CodaDemo.tcl: CodaDemo.tcl.in
 DemoSetup: DemoSetup.in
 	cp $< $@
 
-include $(MAKDIR)/configs/Makerules
+include $(TOPDIR)/configs/Makerules

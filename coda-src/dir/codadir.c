@@ -130,7 +130,10 @@ static int dir_NameBlobs (char *name)
     return 1+((i+15)>>LESZ);
 }
 
-/* Find a bunch of contiguous entries; at least nblobs in a row.  */
+/* 
+   Find a bunch of contiguous entries; at least nblobs in a row.  
+   return the blob number (always bigger than DHE+1)  
+*/
 static int dir_FindBlobs (struct DirHeader **dh, int nblobs)
 {
 	register int i, j, k;
@@ -146,7 +149,7 @@ static int dir_FindBlobs (struct DirHeader **dh, int nblobs)
 		/* if page could contain enough entries */
 		if ((*dh)->dirh_allomap[i] >= nblobs)	{
 			/* If there are EPP free entries, then the page is not
-			   even allocated. Add the page to the directory. */
+			   yet allocated. Add the page to the directory. */
 			if ((*dh)->dirh_allomap[i] == EPP) {
 				dir_AddPage(dh);
 				grown = 1;
@@ -174,6 +177,7 @@ static int dir_FindBlobs (struct DirHeader **dh, int nblobs)
 				pp->freecount -= nblobs;
 				for (k=0; k<nblobs; k++)
 					pp->freebitmap[(j+k)>>3] |= (1<<((j+k) % 8));
+				assert ( (j + i *EPP) > DHE +1 );
 				return j+i*EPP;
 			}
 		}
@@ -350,7 +354,6 @@ static int dir_DirEntry2VDirent(PDirEntry ep, struct venus_dirent *vd, VolumeId 
 	return vd->d_reclen;
 }
 
-
 /*
  *   Fid support routines  -- to be extracted to a Fid library
  */
@@ -525,6 +528,8 @@ int DIR_Create (struct DirHeader **dh, char *entry, struct DirFid *fid)
 	ep->next = dir->dirh_hashTable[i];
 	dir->dirh_hashTable[i] = htons(firstblob);
 
+	assert(DIR_DirOK(dir));
+
 	return 0;
 }
 
@@ -553,12 +558,18 @@ int DIR_Delete(struct DirHeader *dir, char *entry)
 	
 	dir_FreeBlobs(dir, index, nitems);
 
+	assert(DIR_DirOK(dir));
+
 	return 0;
 }
 
 /* Format an empty directory properly.  Note that the first 13 entries
    in a directory header page are allocated, 1 to the page header, 4
-   to the allocation map and 8 to the hash table. */
+   to the allocation map and 8 to the hash table. 
+   
+   We don't do this in conjunction with the parent, to flexibly create
+   root directories too. Maybe MakeSubDir is a good idea? 
+*/
 int DIR_MakeDir (struct DirHeader **dir,struct DirFid *me, 
 		 struct DirFid *parent)
 {
@@ -599,6 +610,9 @@ int DIR_MakeDir (struct DirHeader **dir,struct DirFid *me,
 
 	DIR_Create(dir, ".", me);
 	DIR_Create(dir, "..", parent);
+
+	assert(DIR_DirOK(*dir));
+	assert(DIR_DirOK(*dir));
 
 	return 0;
 }
@@ -707,39 +721,6 @@ void DIR_Print(PDirHeader dir)
 
 
 
-/*
- * Public FID routines: to be taken elsewhere.
- */
-
-void FID_PrintFid(struct DirFid *fid)
-{
-	printf("vnode: %ld, unique %ld\n", fid->df_vnode, fid->df_unique);
-	return;
-}
-
-void FID_CpyVol(struct ViceFid *target, struct ViceFid *source)
-{
-	assert(target && source);
-	target->Volume = source->Volume;
-}
-
-
-void FID_Int2DFid(struct DirFid *fid, int vnode, int unique)
-{
-	assert(fid);
-
-	fid->df_vnode = vnode;
-	fid->df_unique = unique;
-	return;
-}
-
-void FID_NFid2Int(struct DirNFid *fid, VnodeId *vnode, Unique_t *unique)
-{
-	*vnode = ntohl(fid->dnf_vnode);
-	*unique = ntohl(fid->dnf_unique);
-	return;
-}
-
 static void fid_NFidV2Fid(struct DirNFid *dnfid, VolumeId vol, struct ViceFid *fid)
 {
 	fid->Vnode = ntohl(dnfid->dnf_vnode);
@@ -748,72 +729,6 @@ static void fid_NFidV2Fid(struct DirNFid *dnfid, VolumeId vol, struct ViceFid *f
 	return;
 }
 
-void FID_VFid2DFid(struct ViceFid *vf, struct DirFid *df)
-{
-	assert( vf && df );
-	df->df_vnode = vf->Vnode;
-	df->df_unique = vf->Unique;
-
-}
-
-void FID_DFid2VFid(struct DirFid *df, struct ViceFid *vf)
-{
-	assert( vf && df );
-	vf->Vnode = df->df_vnode;
-	vf->Unique = df->df_unique;
-}
-
-char *FID_(struct ViceFid *vf)
-{
-	static char str1[50];
-	snprintf(str1, 50, "(0x%lx.0x%lx.0x%lx)", 
-		 vf->Volume, vf->Vnode, vf->Unique);
-	return str1;
-}
-
-char *FID_2(struct ViceFid *vf)
-{
-	static char str1[50];
-	snprintf(str1, 50, "(0x%lx.0x%lx.0x%lx)", 
-		 vf->Volume, vf->Vnode, vf->Unique);
-	return str1;
-}
-
-
-int FID_Cmp(struct ViceFid *fa, struct ViceFid *fb) 
-{
-	if ((fa->Volume) < (fb->Volume)) 
-		return(-1);
-	if ((fa->Volume) > (fb->Volume)) 
-		return(1);
-	if ((fa->Vnode) < (fb->Vnode)) 
-		return(-1);
-	if ((fa->Vnode) > (fb->Vnode)) 
-		return(1);
-	if ((fa->Unique) < (fb->Unique)) 
-		return(-1);
-	if ((fa->Unique) > (fb->Unique)) 
-		return(1);
-	return(0);
-}
-
-int FID_EQ(struct ViceFid *fa, struct ViceFid *fb)
-{
-	if  (fa->Volume != fb->Volume) 
-		return 0;
-	if  (fa->Vnode != fb->Vnode) 
-		return 0;
-	if  (fa->Unique != fb->Unique) 
-		return 0;
-	return 1;
-}
-
-int FID_VolEQ(struct ViceFid *fa, struct ViceFid *fb)
-{
-	if  (fa->Volume != fb->Volume) 
-		return 0;
-	return 1;
-}
 
 /* Look up a file name in directory.
    return 0 upon success
@@ -836,7 +751,7 @@ int DIR_Lookup (struct DirHeader *dir, char *entry, struct DirFid *fid)
 	return 0;
 }
 
-/* another version of lookup for use in enumerate dir */
+/* an EnumerateDir hook for comparing two directories. */
 int dir_HkCompare(PDirEntry de, void *hook)
 {
 	struct DirFid dfid;
@@ -861,7 +776,6 @@ int DIR_Convert (PDirHeader dir, char *file, VolumeId vol)
 	int num;
 	char *buf;
 	int offset = 0;
-	int rc;
 
 	if ( !dir ) 
 		return ENOENT;
@@ -974,7 +888,6 @@ char *DIR_FindName(struct DirHeader *dhp, struct DirFid *fid,
 }
 
 #endif 
-
 /* compare two directories */
 int DIR_Compare(PDirHeader d1, PDirHeader d2)
 {

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vtools/cfs.cc,v 4.7 1998/08/31 12:23:54 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vtools/cfs.cc,v 4.8 1998/09/02 21:00:23 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -1670,7 +1670,7 @@ static void LsMount (int argc, char *argv[], int opslot)
 		/* Check if first char is a '#'; this is a heuristic, but rarely misleads */
 		if (piobuf[0] == '#')
 		    printf("Dangling sym link; looks like a mount point for volume \"%s\"\n", &piobuf[1]);
-		else printf("Not a volume mount point\n", argv[i]);
+		else printf("!! %s is not a volume mount point\n", argv[i]);
 		continue;
 		}
 	    }

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/advice/rpcs.cc,v 4.4 98/04/14 20:58:02 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/advice/rpcs.cc,v 4.5 1998/09/15 14:27:53 jaharkes Exp $";
 #endif /*_BLURB_*/
 
 
@@ -121,6 +121,7 @@ long EstablishedConnection()
     sprintf(msg, "ValidateIndicators\n");
     SendToConsole(msg);
     CheckStack("Post:EstablishedConnection");
+    return 0;
 }
 
 long S_LostConnection(RPC2_Handle _cid)

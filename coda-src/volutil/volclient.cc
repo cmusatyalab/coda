@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/volutil/volclient.cc,v 4.9 1998/08/05 23:50:34 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/volutil/volclient.cc,v 4.10 1998/08/31 12:23:52 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -317,6 +317,7 @@ int main(int argc, char **argv) {
 	printf("peek, poke, peeks, pokes, peekx, togglemalloc, pokex\n");
 	exit(-1);
     }
+    return 0;
 }
 
 /*

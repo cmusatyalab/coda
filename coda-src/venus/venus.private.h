@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/venus.private.h,v 4.17 1998/09/23 18:47:24 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/venus.private.h,v 4.18 1998/09/25 19:09:44 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -106,10 +106,17 @@ extern "C" {
 #if defined(DJGPP) 
 #define	DFLT_CD	"C:/usr/coda/venus.cache"    /* Win cache directory */
 #elif  defined(__CYGWIN32__)
-#define	DFLT_CD	"//??/C:/usr/coda/venus.cache"    /* Win cache directory */
+#define	DFLT_CD	"C:/usr/coda/venus.cache"    /* Win cache directory */
 #else 
 #define	DFLT_CD	"/usr/coda/venus.cache"	    /* cache directory */
 #endif
+
+#if defined(__CYGWIN32__)
+#define CF_PREFIX "/DosDevices"
+#else
+#define CF_PREFIX ""
+#endif
+
 #define	UNSET_CD 0
 const int DFLT_CB = 8192;		    /* cache blocks */
 const int UNSET_CB = -1;

@@ -29,14 +29,8 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/fail/fail.c,v 4.4 1998/08/05 23:49:23 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/fail/fail.c,v 4.5 1998/08/26 21:16:40 braam Exp $";
 #endif /*_BLURB_*/
-
-
-
-
-
-
 
 /*
   Network failure simulation package
@@ -45,6 +39,8 @@ static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/fail/f
 
  */
 
+#include <string.h>
+#include <stdlib.h>
 #include <sys/types.h>
 #include <netinet/in.h>
 #include <sys/socket.h>
@@ -102,15 +98,16 @@ static int FilterID = 1;
 #define TEMPDEBUG(msg)
 #endif DEBUG_FAIL
 
-static PrintFilter(f)
+static int PrintFilter(f)
 register FailFilter *f;
 {
     printf("\tip %d.%d.%d.%d color %d len %d-%d factor %d speed %d\n",
 	   f->ip1, f->ip2, f->ip3, f->ip4, f->color, f->lenmin,
 	   f->lenmax, f->factor, f->speed);
+    return 0;
 }
 
-static PrintFilters()
+static  int PrintFilters()
 {
     int side, which;
 
@@ -121,6 +118,7 @@ static PrintFilters()
 	    PrintFilter(&theFilters[side][which]);
 	}
     }
+    return 0;
 }
 
 
@@ -261,7 +259,7 @@ int Fail_PurgeFilters(side)
 {
     switch (side) {
       case sendSide:
-	theFilters[(int)sendSide] = (FailFilter *)realloc(0);
+	theFilters[(int)sendSide] = (FailFilter *)NULL;
 	numFilters[(int)sendSide] = 0;
 #ifdef NOTDEF
 	for (i = 0; i < numFilters[(int)sendSide]; i++)
@@ -270,11 +268,11 @@ int Fail_PurgeFilters(side)
 			 filter->ip3, filter->ip4);
 		theQueues[(int)sendSide][i] = 0;
 #endif NOTDEF
-	theQueues[(int)sendSide] = (int *)realloc(0);
+	theQueues[(int)sendSide] = (int *)NULL;
 	break;
 
       case recvSide:
-	theFilters[(int)recvSide] = (FailFilter *)realloc(0);
+	theFilters[(int)recvSide] = (FailFilter *)NULL;
 	numFilters[(int)recvSide] = 0;
 #ifdef NOTDEF
 	for (i = 0; i < numFilters[(int)recvside]; i++)
@@ -283,13 +281,13 @@ int Fail_PurgeFilters(side)
 			 filter->ip3, filter->ip4);
 		theQueues[(int)recvside][i] = 0;
 #endif NOTDEF    
-	theQueues[(int)recvSide] = (int *)realloc(0);
+	theQueues[(int)recvSide] = (int *)NULL;
 	break;
 
       case noSide:
-	theFilters[(int)sendSide] = (FailFilter *)realloc(0);
+	theFilters[(int)sendSide] = (FailFilter *)NULL;
 	numFilters[(int)sendSide] = 0;
-	theFilters[(int)recvSide] = (FailFilter *)realloc(0);
+	theFilters[(int)recvSide] = (FailFilter *)NULL;
 	numFilters[(int)recvSide] = 0;
 #ifdef NOTDEF
 	for (i = 0; i < numFilters[(int)sendSide]; i++)
@@ -303,8 +301,8 @@ int Fail_PurgeFilters(side)
 			 filter->ip3, filter->ip4);
 		theQueues[(int)recvside][i] = 0;
 #endif NOTDEF
-	theQueues[(int)sendSide] = (int *)realloc(0);
-	theQueues[(int)recvSide] = (int *)realloc(0);
+	theQueues[(int)sendSide] = (int *)NULL;
+	theQueues[(int)recvSide] = (int *)NULL;
 	break;
 
       default: {
@@ -442,7 +440,6 @@ DBG(("PacketMatch: %s\n", result ? "yes" : "no"))
 static int FlipCoin(factor)
 int factor;
 {
-    long random();
 
     return ((random() % MAXPROBABILITY) < factor);
 }

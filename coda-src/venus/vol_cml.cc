@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/vol_cml.cc,v 4.17 98/09/23 16:56:42 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/vol_cml.cc,v 4.18 1998/09/23 20:26:37 jaharkes Exp $";
 #endif /*_BLURB_*/
 
 
@@ -2411,21 +2411,21 @@ int cmlent::realloc()
     RPC2_Unsigned AllocHost;
     switch(opcode) {
 	case ViceCreate_OP:
-	    if (u.u_create.CFid.Vnode != LocalFileVnode)
+	    if (!FID_IsLocalFile(&u.u_create.CFid))
 		goto Exit;
 	    OldFid = u.u_create.CFid;
 	    type = File;
 	    break;
 
 	case ViceMakeDir_OP:
-	    if (u.u_mkdir.CFid.Vnode != LocalDirVnode)
+	    if (!FID_IsLocalDir(&u.u_mkdir.CFid))
 		goto Exit;
 	    OldFid = u.u_mkdir.CFid;
 	    type = Directory;
 	    break;
 
 	case ViceSymLink_OP:
-	    if (u.u_symlink.CFid.Vnode != LocalFileVnode)
+	    if (!FID_IsLocalFile(&u.u_symlink.CFid))
 		goto Exit;
 	    OldFid = u.u_symlink.CFid;
 	    type = SymbolicLink;
@@ -3485,7 +3485,7 @@ void RecoverPathName(char *path, ViceFid *fid, ClientModifyLog *CML, cmlent *sta
     suffix[0] = '\0';
 
     /* the loog invariant is "path(cfid)/suffix == path(fid)" */
-    while (!(cfid.Vnode == ROOT_VNODE && cfid.Unique == ROOT_UNIQUE)) {
+    while (! FID_IsVolRoot(&cfid) ) {
 	/* while the current fid is root of the volume */
 	if (!PathAltered(&cfid, suffix, CML, starter)) {
 	    /*

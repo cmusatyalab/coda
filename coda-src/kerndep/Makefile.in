@@ -25,19 +25,17 @@
 # improvements or extensions that  they  make,  and  to  grant  Carnegie
 # Mellon the rights to redistribute these changes without encumbrance.
 # 
-# static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/kerndep/Makefile.in,v 4.6 1997/12/01 17:27:16 braam Exp $";
+# static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/kerndep/Makefile.in,v 4.7 1997/12/02 16:39:35 braam Exp $";
 
 
 TOPDIR = @top_srcdir@
-ifndef MAKDIR
-MAKDIR = @top_srcdir@
-endif
+
 srcdir = @srcdir@
 VPATH  = @srcdir@
 TOPOBJ = @TOPOBJ@
 
 # Need to conditionalize this
-include $(MAKDIR)/Makeconf
+include $(TOPDIR)/Makeconf
 
 LIBRARIES = libkerndep.a 
 HEADERS   = pioctl.h
@@ -49,4 +47,4 @@ libkerndep.a:  pioctl.o
 pioctl.o: pioctl.c
 	$(CC) $(CFLAGS) -c $<
 
-include $(MAKDIR)/configs/Makerules
+include $(TOPDIR)/configs/Makerules

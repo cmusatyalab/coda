@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/asr/ruletypes.cc,v 4.6 1998/01/10 18:36:56 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/asr/ruletypes.cc,v 4.7 1998/01/14 23:53:40 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -250,12 +250,16 @@ void command_t::expandreplicas(int n, char **repnames) {
 
 int command_t::execute() {
     char name[MAXPATHLEN];
-    int index;
+    int index, i;
     sprintf(name, "%s/%s", cmddname, cmdfname);
     char **argv = (char **)malloc((argc + 2) * sizeof(char *));
     argv[0] = name;
     
-    for (int i = 0, index = 1; i < argc; i++, index++) 
+    for (/* no, you can't declare 'i' for just the loop
+	    scope, because then 'index' becomes another loop-scope-only variable
+	    (under at least some compilers).
+	    The joys of C++. */
+	 /* int */ i = 0, index = 1; i < argc; i++, index++) 
 	argv[index] = &(arglist[i]->name[0]);
     argv[index] = NULL;
     
@@ -281,19 +285,19 @@ int command_t::execute() {
 	}
 	return(cstatus.w_retcode);
     }
-    else {
-	// child process 
-	DEBUG((stdout, "Going to execute command %s ", name));
-	if (debug) {
-	    for (int i = 0; i < argc; i++) 
-		DEBUG((stdout, "%s ", argv[i + 1]));
-	    DEBUG((stdout, "\n"));
-	}
-	if (execv(name, argv)) {
-	    fprintf(stderr, "error during execing \n");
-	    return(-1);
-	}
+    /* else { */
+    // child process 
+    DEBUG((stdout, "Going to execute command %s ", name));
+    if (debug) {
+      for (int i = 0; i < argc; i++) 
+	DEBUG((stdout, "%s ", argv[i + 1]));
+      DEBUG((stdout, "\n"));
     }
+    if (execv(name, argv)) {
+      fprintf(stderr, "error during execing \n");
+      exit(-1);
+    }
+    return 0; /* NOT REACHED - make-compiler-happy */
 }
 void command_t::print() {
     print(stdout);

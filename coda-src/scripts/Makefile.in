@@ -25,18 +25,16 @@
 # improvements or extensions that  they  make,  and  to  grant  Carnegie
 # Mellon the rights to redistribute these changes without encumbrance.
 # 
-# static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/scripts/Makefile.in,v 4.23 1998/08/23 18:08:49 jaharkes Exp $";
+# static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/scripts/Makefile.in,v 4.24 1998/09/14 21:50:02 braam Exp $";
 
 TOPDIR = @top_srcdir@
-ifndef MAKDIR
-MAKDIR = @top_srcdir@
-endif
+
 srcdir = @srcdir@
 VPATH  = @srcdir@
 TOPOBJ = @TOPOBJ@
 
 # Need to conditionalize this
-include $(MAKDIR)/Makeconf
+include $(TOPDIR)/Makeconf
 
 VENUS-SCRIPTS = vutil volmunge venus-setup
 
@@ -89,5 +87,5 @@ logreintegration: logreintegration.in translate.sed
 translate.sed: Makefile
 	echo "s%+TIXWISH+%@TIXWISH@%g" >> $@
 
-include $(MAKDIR)/configs/Makerules
+include $(TOPDIR)/configs/Makerules
 

@@ -27,22 +27,20 @@
 # improvements or extensions that  they  make,  and  to  grant  Carnegie
 # Mellon the rights to redistribute these changes without encumbrance.
 #
-# static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/portmapper/Makefile.in,v 1.1 1998/04/14 20:54:06 braam Exp $";
+# static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/portmapper/Makefile.in,v 1.2 1998/08/05 23:49:31 braam Exp $";
 
 TOPDIR = @top_srcdir@
-ifndef MAKDIR
-MAKDIR = @top_srcdir@
-endif
+
 srcdir = @srcdir@
 VPATH  = @srcdir@
 TOPOBJ = @TOPOBJ@
 
 
-include $(MAKDIR)/Makeconf
+include $(TOPDIR)/Makeconf
 
 
 CFLAGS := -Wall ${CFLAGS}
-HEADERS   = map.h portmapper.h
+HEADERS   = map.h
 RP2HEADERS = portmapper.h
 
 OBJS = portmapper.server.o portmapper.client.o map.o server.o
@@ -50,7 +48,6 @@ OBJS = portmapper.server.o portmapper.client.o map.o server.o
 LIBOBS = 
 EXECUTABLES = rpc2portmap simpleclient
 SSBINS=rpc2portmap
-RP2FILES=portmapper.rpc2
 
 libportmap.a: $(OBJS)
 
@@ -60,7 +57,4 @@ rpc2portmap:   rpc2portmap.o libportmap.a
 simpleclient:   simpleclient.o libportmap.a
 	$(CC) -o $@ $^ ${OBJECTS} ${LIBRPC2} ${LIBOLDLWP} ${LIBCOMPAT}
 
-portmapper.server.o: portmapper.server.c
-portmapper.client.o: portmapper.client.c
-
-include $(MAKDIR)/configs/Makerules
+include $(TOPDIR)/configs/Makerules

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/fso1.cc,v 4.14 98/09/23 16:56:37 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/fso1.cc,v 4.15 1998/09/23 20:26:28 jaharkes Exp $";
 #endif /*_BLURB_*/
 
 
@@ -163,7 +163,7 @@ fsobj::fsobj(ViceFid *key, char *name) : cf() {
 	if (name) strcpy(comp, name);
 	else comp[0] = '\0';
     }
-    if (fid.Vnode == ROOT_VNODE && fid.Unique == ROOT_UNIQUE)
+    if (FID_IsVolRoot(&fid))
 	mvstat = ROOT;
     ResetTransient();
 
@@ -501,7 +501,8 @@ void fsobj::Recover() {
     }
 
     /* Get rid of a former mount-root whose fid is not a volume root and whose pfid is NullFid */
-    if ((mvstat == NORMAL) && (fid.Vnode != ROOT_VNODE) && FID_EQ(&pfid, &NullFid) && !IsLocalObj()) {
+    if ((mvstat == NORMAL) && !FID_IsVolRoot(&fid) && 
+	FID_EQ(&pfid, &NullFid) && !IsLocalObj()) {
 	LOG(0, ("fsobj::Recover: 0x%x.%x.%x is a non-volume root whose pfid is NullFid\n",
 		fid.Volume, fid.Vnode, fid.Unique));
 	goto Failure;
@@ -1227,8 +1228,7 @@ int fsobj::TryToCover(ViceFid *inc_fid, vuid_t vuid) {
 	    { print(logFile); Choke("fsobj::TryToCover: couldn't get <tvolid, tunique>"); }
     }
     else {
-	root_fid.Vnode = ROOT_VNODE;
-	root_fid.Unique = ROOT_UNIQUE;
+	    FID_MakeRoot(&root_fid);
     }
     code = FSDB->Get(&rf, &root_fid, vuid, RC_STATUS, comp);
     if (code != 0) {
@@ -1367,7 +1367,7 @@ void fsobj::UnmountRoot() {
     k_Purge(&fid);
 
     /* Enter new state (ROOT, without link). */
-    if (fid.Vnode != ROOT_VNODE) {
+    if (FID_IsVolRoot(&fid)) {
 	mvstat = NORMAL;	    /* couldn't be mount point, could it? */       
 	/* this object could be the global root of a local/global subtree */
 	if (FID_EQ(&pfid, &NullFid) && !IsLocalObj()) {
@@ -1926,16 +1926,7 @@ void fsobj::DisconnectedCacheMiss(vproc *vp, vuid_t vuid, char *comp) {
 
     /* Get the pathname */
     GetPath(pathname, 1);
- /*
-    if (f != NULL)
-        f->GetPath(pathname, 1);
-    else {
-        v->GetMountPath(pathname, 0);
-	assert(key != NULL);
-	if ((key->Vnode != ROOT_VNODE) || (key->Unique != ROOT_UNIQUE)) 
-	    strcat(pathname, "/???");
-    }
- */
+
     if (comp) {
         strcat(pathname, "/");
 	strcat(pathname,comp);
@@ -2125,7 +2116,7 @@ int fsobj::Fakeify() {
     srvent *s;
     char Name[CODA_MAXNAMLEN];
     int i;
-    if (FID_IsFake(&fid)) {		/* Fake MTLink */
+    if (FID_IsFakeRoot(&fid)) {		/* Fake MTLink */
 	    /* Initialize status. */
 	    stat.DataVersion = 1;
 	    stat.Mode = 0644;

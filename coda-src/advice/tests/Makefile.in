@@ -25,18 +25,16 @@
 # improvements or extensions that  they  make,  and  to  grant  Carnegie
 # Mellon the rights to redistribute these changes without encumbrance.
 # 
-# static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/advice/tests/Makefile.in,v 1.5 97/12/16 22:51:14 mre Exp $";
+# static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/advice/tests/Makefile.in,v 1.6 1997/12/18 22:58:14 mre Exp $";
 
 
 TOPDIR = @top_srcdir@
-ifndef MAKDIR
-MAKDIR = @top_srcdir@
-endif
+
 srcdir = @srcdir@
 VPATH  = @srcdir@
 TOPOBJ = @TOPOBJ@
 
-include $(MAKDIR)/Makeconf
+include $(TOPDIR)/Makeconf
 
 LIBS =  ../$(LIBFAIL)\
 	../$(LIBUTIL)\
@@ -70,4 +68,4 @@ fake_advice: $(LIBS) $(OTHERLIBS) ../libfakeadvice.a ../advice_srv
 fake_venus: $(VOBJS) $(LIBS) $(OTHERLIBS)
 	$(CXX) $(CFLAGS) $(LIBFLAGS) $(VOBJS) $(LIBS) $(OTHERLIBS) -o fake_venus
 
-include $(MAKDIR)/configs/Makerules
+include $(TOPDIR)/configs/Makerules

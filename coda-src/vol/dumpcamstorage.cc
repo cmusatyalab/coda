@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vol/dumpcamstorage.cc,v 4.3 1998/01/10 18:39:39 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vol/dumpcamstorage.cc,v 4.4 1998/08/26 21:22:25 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -340,7 +340,7 @@ void PrintCamVnode(int level, int volindex, int vclass, VnodeId vnodeindex,
     
     rc = ExtractVnode(&ec, volindex, vclass, vnodeindex, unq, vnode);
     if (ec != 0) {
-	printf("Error %d from ExtractVnode; aborting vnode dump\n");
+	printf("Error %d from ExtractVnode; aborting vnode dump\n", ec);
 	return;
     }
     printf("Printing %s vnode %u, (index %d) from volume %u\n",

@@ -96,7 +96,7 @@ int VN_DCommit(Vnode *vnp)
 		     vnp->vnodeNumber);
 		vnp->disk.inodeNumber = 0;
 		DI_Dec(pdi);
-	} else if (!vnp->delete_me && vnp->changed) {
+	} else if (vnp->changed) {
 		/* directory was modified - commit the pages */
 		DLog(29, "VN_DCommit: Commiting pages for dir vnode = %d", 
 			vnp->vnodeNumber);

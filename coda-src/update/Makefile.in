@@ -25,7 +25,7 @@
 # improvements or extensions that  they  make,  and  to  grant  Carnegie
 # Mellon the rights to redistribute these changes without encumbrance.
 # 
-# static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/update/Makefile.in,v 4.12 1998/05/27 20:29:23 braam Exp $";
+# static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/update/Makefile.in,v 4.13 1998/08/05 23:50:03 braam Exp $";
 
 
 # 
@@ -50,21 +50,16 @@
 
 
 TOPDIR = @top_srcdir@
-ifndef MAKDIR
-MAKDIR = @top_srcdir@
-endif
+
 srcdir = @srcdir@
 VPATH  = @srcdir@
 TOPOBJ = @TOPOBJ@
 
-include $(MAKDIR)/Makeconf
+include $(TOPDIR)/Makeconf
 
 EXECUTABLES = updatesrv updateclnt updatefetch
 SSBINS      = $(EXECUTABLES)
 HEADERS     = ${RP2FILES} ${RP2HEADERS}
-
-RP2FILES    = update.rpc2
-RP2HEADERS  = $(notdir ${RP2FILES:.rpc2=.h})
 
 LIBS=	${LIBVICEERROR}\
 	${LIBUTIL}\
@@ -92,4 +87,4 @@ updateclnt: updateclnt.o update.client.o  ${LIBS}
 updatefetch: updatefetch.o update.client.o  ${LIBS}
 	$(CXX) $(LIBFLAGS) updatefetch.o update.client.o  ${LIBS} -o updatefetch
 
-include $(MAKDIR)/configs/Makerules
+include $(TOPDIR)/configs/Makerules

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/fail/join.c,v 4.1 1997/12/23 17:19:28 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/fail/join.c,v 4.2 1998/01/05 16:41:56 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -77,4 +77,5 @@ int join(int argc, char **argv)
     join_targets(targets, num_targets);
   else
     printf("usage: %s [-c client1 client2 ...] [-s server1 server2 ...]\n", argv[0]);
+  return -1;
 }

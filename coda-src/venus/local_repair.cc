@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/local_repair.cc,v 4.2 1998/01/10 18:38:54 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/local_repair.cc,v 4.3 1998/08/26 21:24:34 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -74,7 +74,7 @@ void lrdb::BeginRepairSession(ViceFid *RootFid, int RepMode, char *msg)
      *	    RepMode is the mode (scratch or direct) of the repair session.
      * OUT: msg is the string that contains the error code to the caller.
      */
-    OBJ_ASSERT(this, RootFid && !FID_IsLocal(RootFid) && msg);
+    OBJ_ASSERT(this, RootFid && !FID_VolIsLocal(RootFid) && msg);
     LOG(100, ("lrdb::BeginRepairSession: RootFid = 0x%x.%x.%x RepMode = %d\n",
 	      RootFid->Volume, RootFid->Vnode, RootFid->Unique, RepMode));
 
@@ -498,7 +498,7 @@ void lrdb::InitCMLSearch(ViceFid *FakeRootFid)
 	    OBJ_ASSERT(this, obj && obj->IsLocalObj());
 	    ViceFid *LFid = &obj->fid;
 	    ViceFid *GFid = LGM_LookupGlobal(LFid);
-	    OBJ_ASSERT(this, FID_IsLocal(LFid) && GFid != NULL);	    
+	    OBJ_ASSERT(this, FID_VolIsLocal(LFid) && GFid != NULL);	    
 
 	    {	/* built repair_vol_list */
 		volent *Vol = VDB->Find(GFid->Volume);
@@ -601,7 +601,7 @@ void lrdb::ListCML(ViceFid *FakeRootFid, FILE *fp)
 	    OBJ_ASSERT(this, obj && obj->IsLocalObj());
 	    ViceFid *LFid = &obj->fid;
 	    ViceFid *GFid = LGM_LookupGlobal(LFid);
-	    OBJ_ASSERT(this, FID_IsLocal(LFid) && GFid != NULL);	    
+	    OBJ_ASSERT(this, FID_VolIsLocal(LFid) && GFid != NULL);	    
 
 	    {	/* built vol_list */
 		volent *Vol = VDB->Find(GFid->Volume);
@@ -715,11 +715,11 @@ void lrdb::DeLocalization()
 	    fsobj *obj = opt->GetFso();
 	    OBJ_ASSERT(this, obj);
 	    ViceFid *lfid = &obj->fid;
-	    OBJ_ASSERT(this, FID_IsLocal(lfid));
+	    OBJ_ASSERT(this, FID_VolIsLocal(lfid));
 	    
 	    {   /* remove the LGM entry */
 		ViceFid *gfid = LGM_LookupGlobal(lfid);
-		OBJ_ASSERT(this, gfid && !FID_IsLocal(gfid));
+		OBJ_ASSERT(this, gfid && !FID_VolIsLocal(gfid));
 		Recov_BeginTrans();
 		LGM_Remove(lfid, gfid);
 		Recov_EndTrans(MAXFP);
@@ -781,7 +781,7 @@ int lrdb::FindRepairObject(ViceFid *fid, fsobj **global, fsobj **local)
     LOG(100, ("lrdb::FindRepairObject: 0x%x.%x.%x\n", fid->Volume, fid->Vnode, fid->Unique));
     
     /* first step: obtain local and global objects according to "fid" */
-    if (FID_IsLocal(fid)) {
+    if (FID_VolIsLocal(fid)) {
 	OBJ_ASSERT(this, *local = FSDB->Find(fid));	/* local object always cached */
 	*global = (fsobj *)NULL;			/* initialized global object */
 
@@ -907,7 +907,7 @@ fsobj *lrdb::GetGlobalParentObj(ViceFid *GlobalChildFid)
      * (must be in FSDB) and its local parent Fid, and then the global parent Fid 
      * and finally use FSDB::Get() to get the global parent.
      */
-    OBJ_ASSERT(this, GlobalChildFid && !FID_IsLocal(GlobalChildFid));
+    OBJ_ASSERT(this, GlobalChildFid && !FID_VolIsLocal(GlobalChildFid));
     LOG(100, ("lrdb::GetGlobalParentObj: GlobalChildFid = 0x%x.%x.%x\n",
 	      GlobalChildFid->Volume, GlobalChildFid->Vnode, GlobalChildFid->Unique));
 
@@ -1156,7 +1156,7 @@ void lrdb::RemoveSubtree(ViceFid *FakeRootFid)
 	    OBJ_ASSERT(this, obj && obj->IsLocalObj());
 	    ViceFid *LFid = &obj->fid;
 	    ViceFid *GFid = LGM_LookupGlobal(LFid);
-	    OBJ_ASSERT(this, FID_IsLocal(LFid) && GFid != NULL);	    
+	    OBJ_ASSERT(this, FID_VolIsLocal(LFid) && GFid != NULL);	    
 
 	    {	/* built gc_vol_list */
 		volent *Vol = VDB->Find(GFid->Volume);
@@ -1239,11 +1239,11 @@ void lrdb::RemoveSubtree(ViceFid *FakeRootFid)
 	    fsobj *obj = opt->GetFso();
 	    OBJ_ASSERT(this, obj);
 	    ViceFid *lfid = &obj->fid;
-	    OBJ_ASSERT(this, FID_IsLocal(lfid));
+	    OBJ_ASSERT(this, FID_VolIsLocal(lfid));
 	    
 	    {   /* remove the LGM entry */
 		ViceFid *gfid = LGM_LookupGlobal(lfid);
-		OBJ_ASSERT(this, gfid && !FID_IsLocal(gfid));
+		OBJ_ASSERT(this, gfid && !FID_VolIsLocal(gfid));
 		Recov_BeginTrans();
 		       LGM_Remove(lfid, gfid);
 		Recov_EndTrans(MAXFP);

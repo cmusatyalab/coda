@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rpc2/sftp6.c,v 4.3 98/08/26 17:08:14 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rpc2/sftp6.c,v 4.4 1998/09/15 14:28:01 jaharkes Exp $";
 #endif /*_BLURB_*/
 
 
@@ -99,13 +99,15 @@ static MC_SendStrategy(), SDescCmp(), MC_ExtractParmsFromPacket();
 	mse->SDesc = NULL;\
 	if (mdesc) free(mdesc);\
 	free(ceaddr);\
-	return;\
+	return -1;\
         }
 
 #define	INIT_SE_DESC(desc)\
+        {\
 	((SE_Descriptor	*)desc)->LocalStatus = SE_SUCCESS;  /* non-execution == success */\
 	((SE_Descriptor	*)desc)->RemoteStatus =	SE_SUCCESS; /* non-execution == success */\
-	((SE_Descriptor *)desc)->Value.SmartFTPD.BytesTransferred = 0;
+	((SE_Descriptor *)desc)->Value.SmartFTPD.BytesTransferred = 0;\
+        }
 
 #define INIT_SE_ENTRY(se, desc, req)\
 	se->SDesc = desc;\
@@ -260,6 +262,7 @@ long SFTP_MultiRPC1(IN HowMany, IN ConnHandleList, IN MCast, INOUT SDescList, IN
 	}
 
     free(ceaddr);
+    return -1;
     }
 
 #undef	HOSTSEOK

@@ -29,18 +29,16 @@
 # changes  without  encumbrance.   Such improvements and extensions
 # should be returned to Software.Distribution@cs.cmu.edu.
 #
-# rcsid = $Header: /afs/cs/project/coda-src/cvs/coda/rvm-src/rvm/Makefile.in,v 4.11 1998/05/27 20:46:10 braam Exp $
+# rcsid = $Header: /afs/cs/project/coda-src/cvs/coda/rvm-src/rvm/Makefile.in,v 4.12 1998/06/16 10:46:26 jaharkes Exp $
 #
 
 TOPDIR = @top_srcdir@
-ifndef MAKDIR
-MAKDIR = @top_srcdir@
-endif
+
 srcdir = @srcdir@
 VPATH  = @srcdir@
 TOPOBJ = @TOPOBJ@
 
-include $(MAKDIR)/Makeconf
+include $(TOPDIR)/Makeconf
 
 # BSD platforms need libcompat.a for insque and deque
 RVMUTL_LIBS = ${LIBCOMPAT} ${LIBTHREADS} ${LIBMACH}
@@ -116,4 +114,4 @@ LIBOBJ += rvm_pthread.o
 librvmpt.a: $(LIBOBJ)
 endif
 
-include $(MAKDIR)/configs/Makerules
+include $(TOPDIR)/configs/Makerules

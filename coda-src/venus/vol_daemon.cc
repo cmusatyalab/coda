@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/vol_daemon.cc,v 4.4 98/08/26 21:24:42 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/vol_daemon.cc,v 4.5 1998/09/23 20:26:37 jaharkes Exp $";
 #endif /*_BLURB_*/
 
 
@@ -216,7 +216,7 @@ void vdb::GetDown() {
 	int readahead = 0;
 	while ((VDB->htab.count() >= VOLThreshold) && (readahead || (v = next()))) {
 	    readahead = 0;
-	    if (v->vid == LocalFakeVid) continue;
+	    if (FID_VolIsFake(v->vid)) continue;
 	    if (v->refcnt > 0) continue;
 	    
 	    volent *tv = 0;
@@ -247,7 +247,7 @@ void vdb::FlushCOP2() {
     vol_iterator vnext;
     volent *v;
     while (v = vnext()) {
-	if (v->vid == LocalFakeVid) continue;
+	if (FID_VolIsFake(v->vid)) continue;
 	if (v->IsReplicated()) {
 	    for (;;) {
 		int code = 0;
@@ -273,7 +273,8 @@ void vdb::TakeTransition() {
     vol_iterator vnext;
     volent *v;
     while (v = vnext()) {
-	if (v->vid == LocalFakeVid) continue;
+	if (!FID_VolIsFake(v->vid)) 
+		continue;
 
 	LOG(1000, ("vdb::TakeTransition: checking %s\n", v->name));
 	if (v->Enter((VM_OBSERVING | VM_NDELAY), V_UID) == 0) {
@@ -290,7 +291,8 @@ void vdb::FlushVSR() {
     vol_iterator vnext;
     volent *v;
     while (v = vnext()) {
-	if (v->vid == LocalFakeVid) continue;
+	if (FID_VolIsFake(v->vid)) 
+		continue;
 	v->FlushVSRs(VSR_FLUSH_NOT_HARD);
     }
 }
@@ -359,7 +361,8 @@ void TrickleReintegrate() {
     vol_iterator vnext;
     volent *v;
     while (v = vnext()) {
-	if (v->vid == LocalFakeVid) continue;
+	if (FID_VolIsFake(v->vid)) 
+		continue;
 
 	LOG(1000, ("TrickleReintegrate: checking %s\n", v->name));
 	if (v->Enter((VM_OBSERVING | VM_NDELAY), V_UID) == 0) {

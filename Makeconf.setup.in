@@ -33,20 +33,13 @@ LIBS= @LIBS@
 #
 
 SYS = @sys@
-VFSDIR = @vfsdir@
 
 # SYS=i386_mach
-# SYS=linux        VFSDIR = linux or linux21
+# SYS=linux
 # SYS=i386_nbsd1
-# SYS=pmax_mach
 # SYS=cygwin32
-#
-# Shared objects -- sharing is dangerous but if you wish
-# flag:  --enable-shareobj=
-# 
 
 
-SHOB=@SHOB@
 
 #
 # Second shadow dir -- for your private sources, visible from where
@@ -56,9 +49,3 @@ SHOB=@SHOB@
 
 SECSRC = @SECSRC@
 
-#
-# If you need to override, uncomment the following line
-# and provide a Makeconf.override files
-#
-
-# OVERRIDE= yes

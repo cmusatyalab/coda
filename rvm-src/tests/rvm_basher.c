@@ -33,7 +33,7 @@ should be returned to Software.Distribution@cs.cmu.edu.
 
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/rvm-src/tests/rvm_basher.c,v 4.6 1998/01/10 18:40:51 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/rvm-src/tests/rvm_basher.c,v 4.7 1998/03/06 20:21:56 braam Exp $";
 #endif _BLURB_
 
 /*
@@ -44,6 +44,7 @@ static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/rvm-src/tests/r
 
 #include <errno.h>
 #include <stdlib.h>
+#include <unistd.h>
 #include <signal.h>
 #include <string.h>
 #include <stdio.h>
@@ -777,8 +778,8 @@ rvm_bool_t chk_region(seg_file,region)
         c = getc(seg_file);
         if (c == EOF)
             {
-            printf("\n? EOF encountered while reading segment; ",
-                   "offset = %d\n",reg_pos);
+            printf("\n? EOF encountered while reading segment; "
+                   "offset = %d\n", reg_pos);
             ASSERT(rvm_false);
             }
 #if 0
@@ -1275,8 +1276,13 @@ static char *read_prompt_line(prompt,null_ok)
             if ((null_ok) || (cmd_line[0] != '\0'))
                 return cmd_cur=cmd_line;
             }
+    return NULL;
+
     }
-/* display test parameters */
+
+
+/* display test parameters */
+
 void show_test_parms()
     {
     int             priority;

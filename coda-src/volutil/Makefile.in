@@ -25,7 +25,7 @@
 # improvements or extensions that  they  make,  and  to  grant  Carnegie
 # Mellon the rights to redistribute these changes without encumbrance.
 # 
-# static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/volutil/Makefile.in,v 4.11 1998/09/15 14:28:09 jaharkes Exp $";
+# static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/volutil/Makefile.in,v 4.12 1998/09/15 22:57:01 braam Exp $";
 
 
 # 
@@ -50,21 +50,17 @@
 
 
 TOPDIR = @top_srcdir@
-ifndef MAKDIR
-MAKDIR = @top_srcdir@
-endif
+
 srcdir = @srcdir@
 VPATH  = @srcdir@
 TOPOBJ = @TOPOBJ@
 
-include $(MAKDIR)/Makeconf
+include $(TOPDIR)/Makeconf
 
 EXECUTABLES = volutil parserecdump backup readdump merge
 SSBINS      = $(EXECUTABLES)
 LIBRARIES   = libvolutil.a libvolserv.a
 HEADERS     = volutil.private.h
-RP2FILES    = $(VOLUTIL_RPC2) $(VOLDUMP_RPC2)
-RP2HEADERS  = $(notdir ${RP2FILES:.rpc2=.h})
 
 VLIBS =	${LIBVOL} \
 	${LIBVV} \
@@ -148,7 +144,7 @@ readdump: readdump.o dumpstream.o dumpstuff.o ${VLIBS}
 parserecdump: parserecdump.o ${VLIBS}
 	$(CXX) $(LIBFLAGS) parserecdump.o ${VLIBS} -o parserecdump
 
-include $(MAKDIR)/configs/Makerules
+include $(TOPDIR)/configs/Makerules
 
 
 

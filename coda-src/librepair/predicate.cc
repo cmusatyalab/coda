@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/resolve/predicate.cc,v 4.5 1998/03/06 20:20:23 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/resolve/predicate.cc,v 4.6 1998/08/26 21:23:58 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -280,7 +280,7 @@ int MaybeSubsetRemove C_ARGS((int nreplicas, resreplica *dirs, resdir_entry **de
 	    return 0;
 	}
 	else {
-	    sprintf(str, "Then should it be RECREATED at all sites?", deGroup[0]->name);
+	    sprintf(str, "Then should %s be RECREATED at all sites?", deGroup[0]->name);
 	    if (Parser_getbool(str, 1))
 		return 1;
 	}

@@ -25,17 +25,15 @@
 # improvements or extensions that  they  make,  and  to  grant  Carnegie
 # Mellon the rights to redistribute these changes without encumbrance.
 # 
-# static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/fail/Makefile.in,v 4.10 1998/05/15 16:54:55 braam Exp $";
+# static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/fail/Makefile.in,v 4.11 1998/08/27 19:40:47 braam Exp $";
 
 TOPDIR = @top_srcdir@
-ifndef MAKDIR
-MAKDIR = @top_srcdir@
-endif
+
 srcdir = @srcdir@
 VPATH  = @srcdir@
 TOPOBJ = @TOPOBJ@
 
-include $(MAKDIR)/Makeconf
+include $(TOPDIR)/Makeconf
 
 ifneq ($(SHORTSYS),djgpp)
 EXECUTABLES = filcon
@@ -44,11 +42,8 @@ SBINS       = $(EXECUTABLES)
 endif
 
 LIBRARIES   = libfail.a
-HEADERS     = ${RP2FILES} fail.h ${RP2HEADERS}
-
-RP2FILES    = fcon.rpc2
-RP2HEADERS  = $(notdir ${RP2FILES:.rpc2=.h})
-
+HEADERS     = ${RP2FILES} fail.h 
+RP2HEADERS  = fcon.h
 
 FLIBS = ${LIBRPC2} ${LIBSE} ${LIBOLDLWP} ${LIBUTIL} ${LIBCOMPAT} \
        ${LIBBASE} ${LIBREADLINE} ${LIBTERMCAP}
@@ -61,7 +56,4 @@ libfail.a: ${OBJS}
 filcon: filcon.o libfail.a ${FLIBS}
 	${CC} ${LIBFLAGS} filcon.o libfail.a ${FLIBS} -o filcon
 
-fcon.client.o: fcon.client.c
-fcon.server.o: fcon.server.c
-
-include $(MAKDIR)/configs/Makerules
+include $(TOPDIR)/configs/Makerules

@@ -1,7 +1,5 @@
 TOPDIR = @top_srcdir@
-ifndef MAKDIR
-MAKDIR = @top_srcdir@
-endif
+
 srcdir = @srcdir@
 VPATH = @srcdir@
 TOPOBJ= @TOPOBJ@
@@ -10,7 +8,7 @@ TOPOBJ= @TOPOBJ@
 # Nothing is exported from the kernel !!!!!!!
 # Nothing is exported from the kernel !!!!!!!
 
-include $(MAKDIR)/Makeconf
+include $(TOPDIR)/Makeconf
 
 EXECUTABLES =
 LIBRARIES   =
@@ -18,5 +16,5 @@ HEADERS     =
 LIBRARIES   =
 EXECUTABLES =
 
-include $(MAKDIR)/configs/Makerules
+include $(TOPDIR)/configs/Makerules
 

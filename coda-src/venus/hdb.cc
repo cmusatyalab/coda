@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/hdb.cc,v 4.12 98/09/23 16:56:39 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/hdb.cc,v 4.13 1998/09/23 20:26:31 jaharkes Exp $";
 #endif /*_BLURB_*/
 
 
@@ -1345,8 +1345,7 @@ void hdbent::ResetTransient() {
 
     ViceFid cdir;
     cdir.Volume = vid;
-    cdir.Vnode = ROOT_VNODE;
-    cdir.Unique = ROOT_UNIQUE;
+    FID_MakeRoot(&cdir);
     nc = new namectxt(&cdir, path, vuid, priority,
 		       expand_children, expand_descendents);
 }

@@ -25,7 +25,7 @@
 # improvements or extensions that  they  make,  and  to  grant  Carnegie
 # Mellon the rights to redistribute these changes without encumbrance.
 # 
-# static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vol/Makefile.in,v 4.6 1998/05/15 01:23:38 braam Exp $";
+# static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vol/Makefile.in,v 4.7 1998/08/26 21:22:23 braam Exp $";
 
 
 # 
@@ -50,14 +50,12 @@
 
 
 TOPDIR = @top_srcdir@
-ifndef MAKDIR
-MAKDIR = @top_srcdir@
-endif
+
 srcdir = @srcdir@
 VPATH  = @srcdir@
 TOPOBJ = @TOPOBJ@
 
-include $(MAKDIR)/Makeconf
+include $(TOPDIR)/Makeconf
 
 LIBRARIES = libvol.a
 HEADERS	  = vldb.h \
@@ -82,4 +80,4 @@ testvrdb: testvrdb.o vrdb.o $(LIBUTIL)
 	${CXX} ${LIBFLAGS} testvrdb.o vrdb.o $(LIBUTIL) -o testvrdb
 
 
-include $(MAKDIR)/configs/Makerules
+include $(TOPDIR)/configs/Makerules

@@ -25,7 +25,7 @@
 # improvements or extensions that  they  make,  and  to  grant  Carnegie
 # Mellon the rights to redistribute these changes without encumbrance.
 # 
-# static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/libal/Makefile.in,v 4.8 1998/04/14 20:51:46 braam Exp $";
+# static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/libal/Makefile.in,v 4.9 1998/08/26 21:15:24 braam Exp $";
 
 
 # 
@@ -50,14 +50,12 @@
 
 
 TOPDIR = @top_srcdir@
-ifndef MAKDIR
-MAKDIR = @top_srcdir@
-endif
+
 srcdir = @srcdir@
 VPATH  = @srcdir@
 TOPOBJ = @TOPOBJ@
 
-include $(MAKDIR)/Makeconf
+include $(TOPDIR)/Makeconf
 
 ifneq ($(SHORTSYS),djgpp)
 EXECUTABLES = pcfgen
@@ -95,4 +93,4 @@ pcfgen:	pcfgen.o libal.a $(LIBUTIL)
 altest: altest.o libal.a $(LIBUTIL)
 	$(CC) ${LIBFLAGS} altest.o libal.a $(LIBUTIL) -o altest
 
-include $(MAKDIR)/configs/Makerules
+include $(TOPDIR)/configs/Makerules

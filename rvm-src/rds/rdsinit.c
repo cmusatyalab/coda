@@ -33,7 +33,7 @@ should be returned to Software.Distribution@cs.cmu.edu.
 
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/rvm-src/rds/rdsinit.c,v 4.6 1998/03/06 20:21:41 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/rvm-src/rds/rdsinit.c,v 4.7 1998/08/26 15:40:12 braam Exp $";
 #endif _BLURB_
 
 
@@ -180,8 +180,9 @@ static int round_to_multiple(val, n, dir)
 	    return ( val + n -rem );
 	else if (dir==DOWN)
 	    return ( val - rem );
-    } else
-	return( val );
+    }
+ 
+    return( val );
 
 }
 
@@ -289,7 +290,7 @@ static int get_valid_parm(argc, argv, pdatalen,
 	    
 	para_given = 1;
 	if (firm)
-	    return;		/* no need to get confirm from user */
+	    return 0;		/* no need to get confirm from user */
     }
 
     /* looping to get parameters from user interactively, and confirm */
@@ -314,7 +315,8 @@ static int get_valid_parm(argc, argv, pdatalen,
 	    fgets(string,80,stdin);
 	    base = find_base(string);
 	    *pstatic_addr = (char *)strtoul(string, NULL, 0);
-        } while (!confirm_rounded_value(pstatic_addr, base, RVM_PAGE_SIZE,UP,
+        } while (!confirm_rounded_value((unsigned long *)pstatic_addr, 
+					base, RVM_PAGE_SIZE,UP,
 					0x4000000)); 
 				/* note 0x4000000 is just a very loose lower
 				*  bound.  Actual number should be much
@@ -389,7 +391,7 @@ static int get_valid_parm(argc, argv, pdatalen,
 	else if (strcmp(string,"q\n") == 0 || strcmp(string,"Q\n") == 0)
 	    longjmp(jmpbuf_quit,1);
     } while (!paraOK);
-    return;
+    return 0;
 }
 
 

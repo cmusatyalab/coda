@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rpc2/multi3.c,v 4.3 98/08/26 17:08:09 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rpc2/multi3.c,v 4.4 1998/09/15 14:27:58 jaharkes Exp $";
 #endif /*_BLURB_*/
 
 
@@ -268,6 +268,7 @@ long RPC2_CreateMgrp(OUT MgroupHandle, IN MulticastHost, IN MulticastPortal, IN 
 	}
 
     /* Get an mgrp entry and initialize it. */
+    /* XXXXXX NULL is bad type here */
     me = rpc2_AllocMgrp(&rpc2_LocalHost, &rpc2_LocalPortal, NULL);
     assert(me != NULL);
     *MgroupHandle = me->MgroupID;

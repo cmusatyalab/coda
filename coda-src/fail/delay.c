@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/fail/delay.c,v 4.2 1998/05/15 01:22:56 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/fail/delay.c,v 4.3 1998/08/26 21:16:40 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -41,6 +41,7 @@ static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/fail/d
  *           L. Mummert
  */
 #include <stdio.h>
+#include <stdlib.h>
 #include <sys/types.h>
 #include <sys/time.h>
 #include <sys/socket.h>
@@ -91,6 +92,7 @@ int Delay_Init()
     DelayQueues.size = 4;	/* Good number to start with! */
     LWP_CreateProcess((PFIC) Delay_LWP, 4096, LWP_NORMAL_PRIORITY,
 		      "Delay_LWP", NULL, &DelayLWPPid);
+    return 0;
 }
 
 /* 

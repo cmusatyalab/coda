@@ -25,18 +25,16 @@
 # improvements or extensions that  they  make,  and  to  grant  Carnegie
 # Mellon the rights to redistribute these changes without encumbrance.
 # 
-# static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/guitools/Makefile.in,v 1.6 1998/02/09 21:56:24 braam Exp $";
+# static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/guitools/Makefile.in,v 1.7 1998/05/15 16:54:57 braam Exp $";
 
 
 TOPDIR = @top_srcdir@
-ifndef MAKDIR
-MAKDIR = @top_srcdir@
-endif
+
 srcdir = @srcdir@
 VPATH  = @srcdir@
 TOPOBJ = @TOPOBJ@
 
-include $(MAKDIR)/Makeconf
+include $(TOPDIR)/Makeconf
 
 
 TCLSCRIPTS  = 	Advice.tcl              \
@@ -87,4 +85,4 @@ translate.sed: Makefile
 	echo "s%+TIXWISH+%@TIXWISH@%g" >> $@
 	echo "s%+GUIDIR+%${GUIDIR}%g" >> $@
 
-include $(MAKDIR)/configs/Makerules
+include $(TOPDIR)/configs/Makerules

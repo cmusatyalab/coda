@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/util/rvmlib.cc,v 4.2 1997/02/26 16:03:08 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/util/rvmlib.c,v 4.1 1998/08/26 21:13:01 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -274,6 +274,17 @@ inline void rvmlib_free(void *p, char *file, int line)
 		assert(0);
 	}
 }
+
+inline void rvmlib_check_trans(char *where, char *file)
+
+{
+	if ( ! rvmlib_in_transaction() ) {
+		fprintf(stderr, "Aborting: no transaction in %s (%s)!\n", where, file);
+		fflush(stderr);
+		abort();
+	}
+}
+
 
 int rvmlib_in_transaction(void) 
 {

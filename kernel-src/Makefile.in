@@ -6,18 +6,16 @@
 # Moved up further Peter Braam
 
 TOPDIR = @top_srcdir@
-ifndef MAKDIR
-MAKDIR = @top_srcdir@
-endif
+
 srcdir = @srcdir@
 VPATH  = @srcdir@
 TOPOBJ = @TOPOBJ@
 
-include $(MAKDIR)/Makeconf
+include $(TOPDIR)/Makeconf
 
   I =  vfs
 #  II =  inodefs
 
 SUBDIRS = $(I) $(II)
 
-include $(MAKDIR)/configs/Makerules
+include $(TOPDIR)/configs/Makerules

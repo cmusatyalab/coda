@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/fso0.cc,v 4.11 98/09/23 16:56:36 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/fso0.cc,v 4.12 1998/09/23 20:26:27 jaharkes Exp $";
 #endif /*_BLURB_*/
 
 
@@ -533,7 +533,7 @@ void VmonUpdateSession(vproc *vp, ViceFid *key, fsobj *f, volent *vol, vuid_t vu
         return;
 
     /* Return if this is for a Local volume */
-    if (key->Volume == LocalFakeVid)
+    if (FID_VolIsFake(key->Volume))
         return;
 
     /* Validate params */
@@ -815,7 +815,7 @@ RestartFind:
 	}
 
 	/* process possible un-cached local objects */
-	if (FID_IsLocal(key)) {
+	if (FID_VolIsLocal(key)) {
 		LOG(0, ("fsdb::Get: Un-cached Local object %s\n",
 			FID_(key)));
 		return ETIMEDOUT;
@@ -857,7 +857,7 @@ RestartFind:
 	VDB->Put(&v);
 
 	/* Transform object into fake mtpt if necessary. */
-	if (FID_IsFake(key)) {
+	if (FID_IsFakeRoot(key)) {
 	    f->PromoteLock();
 	    if (f->Fakeify()) {
 		LOG(0, ("fsdb::Get: can't transform %s (%x.%x.%x) into fake mt pt\n",
@@ -1328,7 +1328,7 @@ int fsdb::TranslateFid(ViceFid *OldFid, ViceFid *NewFid)
 		  FID_2(NewFid)));
 
 	/* cross volume replacements are for local fids */
-	if (OldFid->Volume != NewFid->Volume && !FID_IsLocal(NewFid))
+	if (OldFid->Volume != NewFid->Volume && !FID_VolIsLocal(NewFid))
 		Choke("fsdb::TranslateFid: X-VOLUME, %s --> %s",
 		      FID_(OldFid), FID_2(NewFid));
 

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/volutil/dumpstream.cc,v 4.3 1997/10/23 19:25:51 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/volutil/dumpstream.cc,v 4.4 1998/09/07 15:57:21 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -670,7 +670,8 @@ dumpstream::copyVnodeData(DumpBuffer_t *dbuf)
 	    }
 	}
 	return filesize;
-    } else return 0;	    
+    } 
+    return 0;	    
 }
 
 void dumpstream::setIndex(VnodeClass vclass)

@@ -41,14 +41,11 @@ if [ x$RPM_BUILD_ROOT = x ]; then
   RPM_BUILD_ROOT=/
 fi
 
-if [ X$1 = X ]; then
-	echo "Usage: $0 comma,separated,list,of,servers [cachesize in kb]"
+if [ $# != 2 ]; then
+	echo "Usage: $0 comma,separated,list,of,servers cachesize-in-kb"
 	exit 1
 else
 	SERVERS=$1
-fi
-
-if [ X$2 != X ]; then
 	CACHESIZE=$2
 fi
 

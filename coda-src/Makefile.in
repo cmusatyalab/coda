@@ -33,14 +33,12 @@
 #  Josh Raiff
 
 TOPDIR = @top_srcdir@
-ifndef MAKDIR
-MAKDIR = @top_srcdir@
-endif
+
 srcdir = @srcdir@
 VPATH  = @srcdir@
 TOPOBJ = @TOPOBJ@
 
-include $(MAKDIR)/Makeconf
+include $(TOPDIR)/Makeconf
 
   I =  scripts
  II =  kerndep 
@@ -63,7 +61,7 @@ else
 SUBDIRS = $(II) $(III) $(IV) $(V) $(VI) $(VII)
 endif
 
-include $(MAKDIR)/configs/Makerules
+include $(TOPDIR)/configs/Makerules
 
 
 

@@ -27,18 +27,16 @@
 # improvements or extensions that  they  make,  and  to  grant  Carnegie
 # Mellon the rights to redistribute these changes without encumbrance.
 #
-# static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/partition/Makefile.in,v 1.5 1998/01/10 18:37:25 braam Exp $";
+# static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/partition/Makefile.in,v 1.6 1998/01/15 21:07:17 braam Exp $";
 
 TOPDIR = @top_srcdir@
-ifndef MAKDIR
-MAKDIR = @top_srcdir@
-endif
+
 srcdir = @srcdir@
 VPATH  = @srcdir@
 TOPOBJ = @TOPOBJ@
 
 
-include $(MAKDIR)/Makeconf
+include $(TOPDIR)/Makeconf
 
 CFLAGS := -Wall ${CFLAGS}
 HEADERS   = partition.h  vicetab.h viceinode.h ftreeifs.h simpleifs.h
@@ -60,4 +58,4 @@ inoder: inoder.o $(LIBOBS)
 	$(CC) -o inoder inoder.o $(LIBS) $(LIBMATH)
 
 
-include $(MAKDIR)/configs/Makerules
+include $(TOPDIR)/configs/Makerules

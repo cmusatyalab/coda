@@ -29,15 +29,13 @@
 
 
 TOPDIR = @top_srcdir@
-ifndef MAKDIR
-MAKDIR = @top_srcdir@
-endif
+
 srcdir = @srcdir@
 VPATH  = @srcdir@
 TOPOBJ = @TOPOBJ@
 
 # Need to conditionalize this
-include $(MAKDIR)/Makeconf
+include $(TOPDIR)/Makeconf
 
 
 LIBRARIES = libcodadir.a 
@@ -50,7 +48,7 @@ endif
 CFLAGS += -Wall
 CXXFLAGS := $(CFLAGS)
 
-OBJS= codadir.o dirinode.o dhcache.o  # dirtest.c salvage.o buffer.o dir.o 
+OBJS= fid.o codadir.o dirinode.o dhcache.o  # salvage.o 
 
 libcodadir.a:  $(OBJS)
 
@@ -59,5 +57,5 @@ DT= libcodadir.a  $(LIBUTIL) $(LIBRDS) $(LIBSEG) $(LIBRVMLWP)  $(LIBOLDLWP)  $(L
 dirtest: dirtest.o libcodadir.a
 	$(CC) -o dirtest dirtest.o $(DT) 
 
-include $(MAKDIR)/configs/Makerules
+include $(TOPDIR)/configs/Makerules
 

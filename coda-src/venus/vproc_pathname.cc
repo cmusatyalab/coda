@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/vproc_pathname.cc,v 4.6 1998/08/26 21:24:44 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/vproc_pathname.cc,v 4.7 1998/09/23 16:56:44 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -314,14 +314,13 @@ Exit:
 /* Map fid to full or volume-relative pathname.  Kind of like getwd(). */
 /* XXX - Need fsobj::IsRealRoot predicate which excludes "fake" roots! -JJK */
 void vproc::GetPath(ViceFid *fid, char *out, int *outlen, int fullpath) {
-    LOG(1, ("vproc::GetPath: (%x.%x.%x), %d\n",
-		fid->Volume, fid->Vnode, fid->Unique, fullpath));
+    LOG(1, ("vproc::GetPath: %s, %d\n", FID_(fid), fullpath));
 
     if (*outlen < MAXPATHLEN)
 	{ u.u_error = ENAMETOOLONG; *outlen = 0; goto Exit; }
 
     /* Handle degenerate case of file system or volume root! */
-    if (fid->Vnode == ROOT_VNODE && fid->Unique == ROOT_UNIQUE) {
+    if (FID_IsVolRoot(fid)) {
 	if (!fullpath) {
 	    strcpy(out, ".");
 	    *outlen = 2;
@@ -348,7 +347,7 @@ void vproc::GetPath(ViceFid *fid, char *out, int *outlen, int fullpath) {
 	/* Initialize the "prev" and "current" fids to the target object and its parent, respectively. */
 	u.u_error = FSDB->Get(&f, fid, CRTORUID(u.u_cred), RC_STATUS);
 	if (u.u_error) goto FreeLocks;
-	if (/*f->IsRealRoot()*/(f->fid.Vnode == ROOT_VNODE && f->fid.Unique == ROOT_UNIQUE)) {
+	if (FID_IsVolRoot(&f->fid)) {
 	    fsobj *newf = f->u.mtpoint;
 	    FSDB->Put(&f);
 
@@ -386,7 +385,7 @@ void vproc::GetPath(ViceFid *fid, char *out, int *outlen, int fullpath) {
 	    }
 
 	    /* Termination condition is when current object is root. */
-	    if (/*f->IsRealRoot()*/(f->fid.Vnode == ROOT_VNODE && f->fid.Unique == ROOT_UNIQUE)) {
+	    if (FID_IsVolRoot(&f->fid)) {
 		if (!fullpath) {
 		    char tbuf[MAXPATHLEN];
 		    strcpy(tbuf, out);
@@ -410,7 +409,7 @@ void vproc::GetPath(ViceFid *fid, char *out, int *outlen, int fullpath) {
 	    }
 
 	    /* Move on to next object. */
-	    if (/*f->IsRealRoot()*/(f->fid.Vnode == ROOT_VNODE && f->fid.Unique == ROOT_UNIQUE)) {
+	    if (FID_IsVolRoot(&f->fid)) {
 		fsobj *newf = f->u.mtpoint;
 		FSDB->Put(&f);
 

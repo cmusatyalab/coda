@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/volutil/vol-backup.cc,v 4.7 1998/04/14 21:00:36 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/volutil/vol-backup.cc,v 4.8 1998/08/31 12:23:45 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -105,11 +105,11 @@ extern int CloneVnode(Volume *, Volume *, int, rec_smolist *,
 /* Temp check for debugging. */
 void checklists(int vol_index)
 {
+	unsigned int i;
     bit32 nlists = SRV_RVM(VolumeList[vol_index]).data.nsmallLists;
-    bit32 nvnodes = SRV_RVM(VolumeList[vol_index]).data.nsmallvnodes;
     int *lists = (int *)SRV_RVM(VolumeList[vol_index]).data.smallVnodeLists;
 
-    for (int i = 0; i < nlists; i++) {
+    for (i = 0; i < nlists; i++) {
 	/* Make sure any lists that are single elements are circular */
 	if (lists[i])
 	    assert(*((int *)lists[i]));
@@ -298,49 +298,48 @@ static int MakeNewClone(Volume *rwvp, VolumeId *backupId, Volume **backupvp)
     newId = VAllocateVolumeId(&error);
 
     if (error){
-	LogMsg(0, VolDebugLevel, stdout,
-	       "VolMakeBackups: Unable to allocate a volume number; ABORTING");
+	VLog(0, "VolMakeBackups: Unable to allocate volume number; ABORTING");
 	rvmlib_abort(VNOVOL);
+	return VNOVOL;
     } else
-	LogMsg(29, VolDebugLevel, stdout, "Backup: VAllocateVolumeId returns %x",
-	       newId);
+	VLog(29, "Backup: VAllocateVolumeId returns %x", newId);
 	
     
-    newvp = VCreateVolume(&error, V_partname(rwvp), newId, V_id(rwvp), 0, backupVolume);
+    newvp = VCreateVolume(&error, V_partname(rwvp), newId, V_id(rwvp), 
+			  0, backupVolume);
 			  
     if (error) {
-	LogMsg(0, VolDebugLevel, stdout,
-	       "S_VolMakeBackups:Unable to create the volume; aborted");
+	VLog(0, "S_VolMakeBackups:Unable to create the volume; aborted");
 	rvmlib_abort(VNOVOL);
+	return VNOVOL;
     }
 
     /* Don't let other users get at new volume until clone is done. */
     V_blessed(newvp) = 0;
     VUpdateVolume(&error, newvp);
     if (error) {
-	LogMsg(0, VolDebugLevel, stdout, "S_VolMakeBackups: Volume %x can't be unblessed!", newId);
+	VLog(0, "S_VolMakeBackups: Volume %x can't be unblessed!", newId);
 	rvmlib_abort(VFAIL);
+	return VFAIL;
     }
     
     RVMLIB_END_TRANSACTION(flush, &(status));
     if (status != 0) {
-	LogMsg(0, VolDebugLevel, stdout, "S_VolMakeBackups: volume backup creation failed for volume %x",
-	    V_id(rwvp));
+	VLog(0, "S_VolMakeBackups: volume backup creation failed for %#x",
+	     V_id(rwvp));
 	return status;
     }
     
-    LogMsg(9, VolDebugLevel, stdout,
-	   "S_VolMakeBackups: Created Volume %x; going to clone from %x",
-	   newId, V_id(rwvp));
-
+    VLog(9, "S_VolMakeBackups: Created Volume %x; going to clone from %x",
+	 newId, V_id(rwvp));
     checklists(V_volumeindex(rwvp));
     checklists(V_volumeindex(newvp));
 
     /* Should I putvolume on newvp if this fails? */
     VUCloneVolume(&error, rwvp, newvp);
     if (error){
-	LogMsg(0, VolDebugLevel, stdout, "S_VolMakeBackups: Error while cloning volume %x -> %x",
-	    V_id(rwvp), newId);
+	VLog(0, "S_VolMakeBackups: Error while cloning volume %x -> %x",
+	     V_id(rwvp), newId);
 	return error;
     }
 
@@ -350,12 +349,12 @@ static int MakeNewClone(Volume *rwvp, VolumeId *backupId, Volume **backupvp)
     /* Modify backup stats and pointers in the original volume, this includes 
      * the BackupId, BackupDate, and deleting the old Backup volume.
      */
-    LogMsg(0, VolDebugLevel, stdout, "S_VolMakeBackups: Deleting the old backup volume");
+    VLog(0, "S_VolMakeBackups: Deleting the old backup volume");
     VolumeId oldId = V_backupId(rwvp);
     Volume *oldbackupvp = VGetVolume(&error, oldId);
     if (error) {
-	LogMsg(0, VolDebugLevel, stdout, "S_VolMakeBackups: Unable to get the old backup volume %x %d",
-	    V_backupId(rwvp), error);
+	VLog(0, "S_VolMakeBackups: Unable to get the old backup volume %x %d",
+	     V_backupId(rwvp), error);
 	V_backupId(rwvp) = oldId = newId;
     } else {
 	checklists(V_volumeindex(rwvp));
@@ -369,24 +368,28 @@ static int MakeNewClone(Volume *rwvp, VolumeId *backupId, Volume **backupvp)
 
 
 	/* Renumber new clone to that of old clone. */	
-	HashDelete(newId);  	/* Remove newId from hash tables */
+	/* Remove newId from hash tables */
+	HashDelete(newId);  	
 	DeleteVolumeFromHashTable(newvp);
-	newId = V_id(newvp) = oldId;  /* Modify the Id in the vm cache and rvm */
+	/* Modify the Id in the vm cache and rvm */
+	newId = V_id(newvp) = oldId;  
 
-	RVMLIB_BEGIN_TRANSACTION(restore)
-	    RVMLIB_MODIFY(SRV_RVM(VolumeList[V_volumeindex(newvp)]).header.id, oldId);
+	RVMLIB_BEGIN_TRANSACTION(restore);
+	RVMLIB_MODIFY(SRV_RVM(VolumeList[V_volumeindex(newvp)]).header.id, 
+		      oldId);
 	RVMLIB_END_TRANSACTION(flush, &(status));
 	assert(status == 0);
 
 	HashInsert(oldId, V_volumeindex(newvp));
 	
-	LogMsg(5, VolDebugLevel, stdout, "S_VolMakeBackups: Finished deleting old volume.");
+	VLog(5, "S_VolMakeBackups: Finished deleting old volume.");
     }
 
     /* Finalize operation by setting up VolData */
     
     V_backupDate(rwvp) = V_creationDate(newvp);
-    /* assign a name to the clone by appending ".backup" to the original name. */
+    /* assign a name to the clone by appending ".backup" 
+       to the original name. */
     AssignVolumeName(&V_disk(newvp), V_name(rwvp), ".backup");
 
     V_type(newvp) = backupVolume;
@@ -395,10 +398,9 @@ static int MakeNewClone(Volume *rwvp, VolumeId *backupId, Volume **backupvp)
 
     *backupId = newId;	    /* set value of out parameter */
     *backupvp = newvp;
-    return(status?status:0);
+    return status;
 }
 
-
 
 static void ModifyIndex(Volume *rwvp, Volume *backupvp, VnodeClass vclass)
 {

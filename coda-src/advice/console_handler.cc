@@ -240,6 +240,7 @@ int HoardWriteCommandFile(int number, HoardCmd *commands) {
 	}
     }
     fflush(CommandFILE);
+    return -1;
 }
 
 int HoardExecCommandFile() {
