@@ -1,4 +1,4 @@
-Summary: LWP thread library
+Summary: LWP thread library development files (cygwin32 cross compilation)
 Name: @PACKAGE@-cygwin32
 Version: @VERSION@
 Release: 1
@@ -7,18 +7,13 @@ Copyright: LGPL
 BuildRoot: /usr/src/redhat/BUILD/@PACKAGE@-@VERSION@/Root
 Group: Development/Libraries
 %description
-The LWP userspace threads library. The LWP threads library is used by the Coda
-distributed filesystem, RVM (a persistent VM library), and RPC2/SFTP (remote
-procedure call library)
-
-%package dev
-Summary: LWP thread library development files
-Group: Development/Libraries
-%description dev
 Headers and static libraries for developing programs using the LWP userspace
 threads library. The LWP threads library is used by the Coda distributed
 filesystem, RVM (a persistent VM library), and RPC2/SFTP (a remote procedure
 call library)
+These files have been built using the cygwin32 cross compiler, and are
+intended to be used with the cygwin32 cross compilation package as found on
+the Coda ftp site.
 
 %changelog
 * Mon Oct 25 1999 Jan Harkes <jaharkes@cs.cmu.edu>
@@ -36,17 +31,17 @@ rm -rf $RPM_BUILD_ROOT
 mkdir -p $RPM_BUILD_ROOT
 make prefix=$RPM_BUILD_ROOT/usr/gnuwin32 install
 
-rm -f /tmp/@PACKAGE@-@VERSION@.zip
+rm -f /tmp/@PACKAGE@-win32-bin-@VERSION@.zip
 mkdir -p $RPM_BUILD_ROOT/win-bins
 mv $RPM_BUILD_ROOT/usr/gnuwin32/lib/liblwp-1-0-0.dll $RPM_BUILD_ROOT/win-bins
 cd $RPM_BUILD_ROOT/win-bins
-/usr/bin/gnuwin32strip liblwp-1-0-0.dll
-zip /tmp/@PACKAGE@-@VERSION@.zip *
+/usr/bin/gnuwin32strip *
+zip /tmp/@PACKAGE@-win32-bin-@VERSION@.zip *
 
 %clean
 rm -rf $RPM_BUILD_ROOT
 
-%files dev
+%files
 /usr/gnuwin32/lib/liblwp.la
 /usr/gnuwin32/lib/liblwp.a
 %dir /usr/gnuwin32/include/lwp

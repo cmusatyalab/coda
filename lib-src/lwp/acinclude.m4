@@ -10,6 +10,8 @@ case ${target} in
   cygwin* | winnt | nt ) target=i386-pc-cygwin ;;
 esac
 AC_CANONICAL_SYSTEM
+host=${target}
+program_prefix=
 if test ${build} != ${target} ; then
   case ${target} in
    i386-pc-msdos )
@@ -28,7 +30,6 @@ if test ${build} != ${target} ; then
     ;;
    i386-pc-cygwin )
     dnl -D__CYGWIN32__ should be defined but sometimes isn't (wasn't?)
-    host=i386-pc-cygwin
     CC="gnuwin32gcc -D__CYGWIN32__"
     CXX="gnuwin32g++"
     AR="gnuwin32ar"
