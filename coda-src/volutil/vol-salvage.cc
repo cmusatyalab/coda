@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/ss/coda-src/volutil/RCS/vol-salvage.cc,v 4.3 1997/02/26 16:04:13 rvb Exp braam $";
+static char *rcsid = "$Header: /usr2/raiff/coda/coda-src/volutil/RCS/vol-salvage.cc,v 4.4 97/04/30 19:51:13 braam Exp Locker: raiff $";
 #endif /*_BLURB_*/
 
 
@@ -338,6 +338,11 @@ PRIVATE int SalvageFileSys(char *path, VolumeId singleVolumeNumber)
 	LogMsg(0, VolDebugLevel, stdout, "\"%s\" is not a mounted file system", path);
 	return(VNOVNODE);
     }
+#else 
+    /* Name isn't used by anything put LogMsg, but we better initialize it. 
+     * (raiff 5/12/97)
+     */
+    name = "";
 #endif
     VLockPartition(path);
     if (singleVolumeNumber || ForceSalvage)
