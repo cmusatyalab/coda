@@ -54,9 +54,9 @@ rm -rf $RPM_BUILD_ROOT
 %files
 /usr/lib/librvm.so.1.0.0
 /usr/lib/librvmlwp.so.1.0.0
-/usr/lib/libseg.so.1.0.0
-/usr/lib/librds.so.1.0.0
-/usr/lib/librdslwp.so.1.0.1
+/usr/lib/libseg.so.1.1.0
+/usr/lib/librds.so.1.0.2
+/usr/lib/librdslwp.so.1.0.2
 
 %files tools
 /usr/sbin/rvmutl
@@ -83,3 +83,4 @@ rm -rf $RPM_BUILD_ROOT
 /usr/include/rvm/rvm_statistics.h
 /usr/include/rvm/rvm_segment.h
 /usr/include/rvm/rds.h
+

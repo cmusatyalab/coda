@@ -40,6 +40,7 @@ rds_zap_heap(DevName, DevLength, startAddr, staticLength, heapLength, nlists, ch
     unsigned long n_loadregions;
     rvm_return_t rvmret;
     
+    memset(regions, 0, 2 * sizeof(rvm_region_def_t));
     regions[0].length = heapLength;
     regions[0].vmaddr = startAddr;
     regions[1].length = staticLength;

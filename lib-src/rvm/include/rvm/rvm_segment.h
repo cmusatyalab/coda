@@ -67,7 +67,7 @@ extern rvm_return_t rvm_load_segment (
 /* release regions of a segment */
 extern rvm_return_t rvm_release_segment (
     unsigned long       nregions,      /* number of regions mapped */
-    rvm_region_def_t    *regions[]     /* array of region descriptors */
+    rvm_region_def_t    **regions      /* array of region descriptors */
     );
 
 #endif /* _RVM_SEGMENT_H_ */
