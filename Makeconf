@@ -53,7 +53,7 @@ CXXFLAGS  := $(DEPFLAG) $(MACHINE_FLAGS) $(INCLFLAGS) $(CXXFLAGS)
 
 RP2FLAGS  = -e  -I . -I $(srcdir) 
 
-LIBS	  := $(LIBS) $(LIBFIXUP) $(LIBUCB)
+LIBS	  := $(LIBS) $(LIBFIXUP)
 
 # uncomment some of the next lines if you have kerberos
 # KERBEROS=yes
