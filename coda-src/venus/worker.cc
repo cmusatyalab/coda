@@ -61,6 +61,7 @@ extern "C" {
 #include <linux/fs.h>
 #endif
 #include <mntent.h>
+#include <sys/utsname.h>
 #endif
 
 #ifdef sun
@@ -311,6 +312,13 @@ void VFSMount()
 #endif /* __BSD44__ */
 
 #ifdef __linux__
+    int islinux20 = 0;
+    { /* Test if we are running on a 2.0 kernel. In that case we need to pass
+	 different mount arguments. */
+	struct utsname un;
+	uname(&un);
+	islinux20 = strncmp(un.release, "2.0.", 4) == 0 ? 1 : 0;
+    }
     {
 	struct sigaction sa;
 	sa.sa_handler = SIG_IGN;
@@ -348,10 +356,13 @@ void VFSMount()
       mountdata.version = CODA_MOUNT_VERSION;
       mountdata.fd = worker::muxfd;
 
-      error = mount("coda", venusRoot, "coda",  MS_MGC_VAL, &mountdata);
+      error = mount("coda", venusRoot, "coda",  MS_MGC_VAL,
+		    islinux20 ? (void *)&kernDevice : (void *)&mountdata);
+
       if ( error ) {
 	pid_t parent;
-	LOG(1, ("CHILD: mount system call failed. Killing parent.\n"));
+	LOG(0, ("CHILD: mount system call failed. Killing parent.\n"));
+	eprint("CHILD: mount system call failed. Killing parent.\n");
 	parent = getppid();
 	kill(parent, SIGKILL);
       } else {
