@@ -34,7 +34,7 @@
  * Export of Technical Data.
  */
 
-static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/src/coda-4.0.1/RCSLINK/./lib-src/libcs/searcharg.c,v 1.1 1996/11/22 19:19:51 braam Exp $";
+static char *rcsid = "$Header: /coda/coda.cs.cmu.edu/project/coda/cvs/coda/lib-src/libcs/Attic/searcharg.c,v 4.1 1997/01/08 21:54:02 rvb Exp $";
 #endif /*_BLURB_*/
 
 /*  searcharg  --  parse string from string table
