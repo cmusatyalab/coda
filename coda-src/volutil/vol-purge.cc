@@ -65,7 +65,6 @@ extern "C" {
 #include <volume.h>
 #include <viceinode.h>
 #include <partition.h>
-#include <srvsignal.h>
 #include <vutil.h>
 #include <recov.h>
 

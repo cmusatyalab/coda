@@ -104,7 +104,6 @@ extern "C" {
 #include <voltypes.h>
 #include <cvnode.h>
 #include <volume.h>
-#include <srvsignal.h>
 #include <fssync.h>
 #include <vutil.h>
 #include <index.h>

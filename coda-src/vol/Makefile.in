@@ -47,7 +47,7 @@ CXXFLAGS += -Wall
 LIBRARIES = libvol.a
 HEADERS	  = vldb.h \
 	    fssync.h recov.h vutil.h\
-	    srvsignal.h index.h vicelock.h treeremove.h \
+	    index.h vicelock.h treeremove.h \
 	    vlist.h cvnode.h coda_globals.h voldefs.h volume.h camprivate.h \
 	    volres.h volhash.h vrdb.h vsg.h struct.h lockqueue.h vollocate.h
 # TESTS	  = testvrdb testvsg # these don't compile
