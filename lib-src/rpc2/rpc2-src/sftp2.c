@@ -153,7 +153,9 @@ void sftp_ExaminePacket(RPC2_PacketBuffer *pb)
     }
 
     /* SANITY CHECK: validate socket-level and connection-level host values. */
-    if (!RPC2_cmpaddrinfo(sfp->HostInfo->Addr, pb->Prefix.PeerAddr))
+    /* It looks like we can validly get an IPv6 reply to an IPv4 request, so
+     * I disabled this for now */
+    if (0 && !RPC2_cmpaddrinfo(sfp->HostInfo->Addr, pb->Prefix.PeerAddr))
     {
 	say(0, SFTP_DebugLevel, "Received SFTP packet from unexpected host\n");
 	SFSendNAK(pb); /* NAK this packet */

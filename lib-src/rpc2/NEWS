@@ -1,3 +1,10 @@
+New in 1.26:
+
+* SFTP was agressively dropping incoming packets that didn't come back
+  from the correct IP address. However, if there is 6-to-4 translation,
+  a request to <ipv4> comes back from [::ffff:<ipv4>]. This could also
+  help somewhat on multihomed hosts.
+
 New in 1.25:
 
 * Avoid allocating an unusable local connection identifier.
