@@ -662,6 +662,7 @@ static int ValidateReintegrateParms(RPC2_Handle RPCid, VolumeId *Vid,
 		errorCode = ENOMEM;
 		goto Exit;
 	    }
+	    /* fall through */
 
 	case OLDCML_Create_OP:
 	case OLDCML_Link_OP:
@@ -1650,7 +1651,7 @@ START_TIMING(Reintegrate_CheckSemanticsAndPerform);
 		    ReintPrelimCOP(sd_v, &r->VV[0].StoreId, &r->sid, volptr);
 		    if (!SameParent)
 			ReintPrelimCOP(td_v, &r->VV[1].StoreId, &r->sid, volptr);
-		    ReintPrelimCOP(s_v, &r->VV[0].StoreId, &r->sid, volptr);
+		    ReintPrelimCOP(s_v, &r->VV[2].StoreId, &r->sid, volptr);
 		    if (TargetExists)
 			ReintPrelimCOP(t_v, &NullVV.StoreId, &r->sid, volptr); /* XXX wrong? */
 		    {
