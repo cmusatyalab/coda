@@ -1,0 +1,1 @@
+sinclude(configure.in)dnl
