@@ -1,0 +1,283 @@
+#!/bin/csh -f
+#ifndef _BLURB_
+#define _BLURB_
+#/*
+#
+#            Coda: an Experimental Distributed File System
+#                             Release 4.0
+#
+#          Copyright (c) 1987-1996 Carnegie Mellon University
+#                         All Rights Reserved
+#
+#Permission  to  use, copy, modify and distribute this software and its
+#documentation is hereby granted,  provided  that  both  the  copyright
+#notice  and  this  permission  notice  appear  in  all  copies  of the
+#software, derivative works or  modified  versions,  and  any  portions
+#thereof, and that both notices appear in supporting documentation, and
+#that credit is given to Carnegie Mellon University  in  all  documents
+#and publicity pertaining to direct or indirect use of this code or its
+#derivatives.
+#
+#CODA IS AN EXPERIMENTAL SOFTWARE SYSTEM AND IS  KNOWN  TO  HAVE  BUGS,
+#SOME  OF  WHICH MAY HAVE SERIOUS CONSEQUENCES.  CARNEGIE MELLON ALLOWS
+#FREE USE OF THIS SOFTWARE IN ITS "AS IS" CONDITION.   CARNEGIE  MELLON
+#DISCLAIMS  ANY  LIABILITY  OF  ANY  KIND  FOR  ANY  DAMAGES WHATSOEVER
+#RESULTING DIRECTLY OR INDIRECTLY FROM THE USE OF THIS SOFTWARE  OR  OF
+#ANY DERIVATIVE WORK.
+#
+#Carnegie  Mellon  encourages  users  of  this  software  to return any
+#improvements or extensions that  they  make,  and  to  grant  Carnegie
+#Mellon the rights to redistribute these changes without encumbrance.
+#*/
+#
+#static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/src/coda-4.0.1/RCSLINK/./coda-src/scripts/alphaci,v 1.1 1996/11/22 19:06:39 braam Exp $";
+#endif /*_BLURB_*/
+
+
+
+#ifndef _BLURB_
+#define _BLURB_
+#/*
+#
+#            Coda: an Experimental Distributed File System
+#                             Release 3.1
+#
+#          Copyright (c) 1987-1995 Carnegie Mellon University
+#                         All Rights Reserved
+#
+#Permission  to  use, copy, modify and distribute this software and its
+#documentation is hereby granted,  provided  that  both  the  copyright
+#notice  and  this  permission  notice  appear  in  all  copies  of the
+#software, derivative works or  modified  versions,  and  any  portions
+#thereof, and that both notices appear in supporting documentation, and
+#that credit is given to Carnegie Mellon University  in  all  documents
+#and publicity pertaining to direct or indirect use of this code or its
+#derivatives.
+#
+#CODA IS AN EXPERIMENTAL SOFTWARE SYSTEM AND IS  KNOWN  TO  HAVE  BUGS,
+#SOME  OF  WHICH MAY HAVE SERIOUS CONSEQUENCES.  CARNEGIE MELLON ALLOWS
+#FREE USE OF THIS SOFTWARE IN ITS "AS IS" CONDITION.   CARNEGIE  MELLON
+#DISCLAIMS  ANY  LIABILITY  OF  ANY  KIND  FOR  ANY  DAMAGES WHATSOEVER
+#RESULTING DIRECTLY OR INDIRECTLY FROM THE USE OF THIS SOFTWARE  OR  OF
+#ANY DERIVATIVE WORK.
+#
+#Carnegie  Mellon  encourages  users  of  this  software  to return any
+#improvements or extensions that  they  make,  and  to  grant  Carnegie
+#Mellon the rights to redistribute these changes without encumbrance.
+#*/
+#
+#static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/src/coda-4.0.1/RCSLINK/./coda-src/scripts/alphaci,v 1.1 1996/11/22 19:06:39 braam Exp $";
+#endif /*_BLURB_*/
+
+#############################################################################
+# Script to install modified sources into RCS and in alpha source directory #
+############################################################################# 
+
+
+# No arguments; typically invoked via make in a directory whose name is <module>
+#	E.g. (cd /coda/usr/satya/venus; make install)
+#
+# Expects
+#	-  symlink named RCS in the current directory.
+#	-  a file named RCSMSG in the current directory.
+#	-  the environment variables SRCDIR and MAKEPSD
+#	   (these are defined by Coda Makeconf and CMU-CS make respectively)
+#
+# Checks for $FREEZE_FILE (defined below) and will not check in changes if this
+# file exists.
+#
+# cd's into MAKEPSD and obtains names of all files in it.
+#
+# Excludes those files with explicitly IGNORE-able extensions (specified below).
+#
+# Prompts the user about any other files not already in RCS.
+#
+# Checks in the appropriate files (from above) with the checkin message in RCSMSG.
+#
+# Checks out the newly-checked-in files (unlocked) in the current dir & SRCDIR/<module>
+#
+# Can be suppressed by setting environment variable SUPPRESS_ALPHACI
+
+# Should alphaci be punted altogether?
+if ($?SUPPRESS_ALPHACI) then 
+  echo "Suppressing RCS checkin"
+  exit(0)
+endif
+
+# Make sure environment defines SRCDIR & MAKEPSD, then obtain module name
+if (!($?SRCDIR)) then
+  echo "ERROR:  SRCDIR not set"
+  exit(1)
+endif
+
+if (!(-e $SRCDIR)) then
+  echo "ERROR:  Can't find SRCDIR: $SRCDIR"
+  exit(1)
+endif 
+
+set FREEZE_FILE=$SRCDIR/CODE_FREEZE
+if (-e $FREEZE_FILE) then
+  echo "ERROR: The Coda source tree is currently frozen"
+  exit(1)
+endif
+
+if (!($?MAKEPSD)) then
+  echo "ERROR:  MAKEPSD not set"
+  exit(1)
+endif
+
+
+# Extract first of possibly many colon-separated pathnames in MAKEPSD
+set CWD = `expr ${MAKEPSD}: : '\([^:]*\):.*'`
+
+if (!(-d $CWD)) then
+  echo "ERROR:  Can't find directory $CWD"
+  exit(1)
+endif
+
+
+# cd to CWD and make sure it is well-formed
+cd $CWD
+
+# Check for RCS directory
+if (!(-e RCS)) then
+  echo "ERROR:  You must have a sym link named RCS in this directory"
+  exit(1)
+endif
+
+# Obtain last component
+set MODULE = `pwd`
+set MODULE = `basename $MODULE`
+
+
+# Define files to be ignored
+set IGNORE_EXTNS = "CKP BAK"
+set IGNORE_TRAILERS = "~"
+set IGNORE_FULLNAMES = "RCS RCSMSG RCSMSG.old core"
+
+# Obtain file names and decide which must be checked in
+set ALLFILES = "*"
+set CHECKIN_FILES
+
+foreach F ($ALLFILES)
+
+  # Should we ignore this file?
+  set noglob   # tests below don't work well with filename expansion
+  foreach X ($IGNORE_FULLNAMES)
+      if ($F == $X) goto NextFile
+  end
+
+  foreach X ($IGNORE_TRAILERS)
+    if ($F =~ *$X) goto NextFile
+  end
+
+  foreach X ($IGNORE_EXTNS)
+    if ($F =~ *.$X) goto NextFile
+  end
+
+  unset noglob # it's safe to resume filename expansion
+
+  # OK, this is a file we must pay attention to
+  # Is it mentioned in RCS?
+  if (-e "RCS/$F,v") then
+    # Is it writable?
+    if (-w $F) then
+      set CHECKIN_FILES = "$CHECKIN_FILES $F"
+    else 
+      # It is probably not locked; ask user what to do
+      set reply
+      while (($reply != "y") && ($reply != "n"))
+        echo -n "$F is not writable; should I still check it in? [yn] "
+        set reply = "$<"
+      end
+      if ($reply == "y") set CHECKIN_FILES = "$CHECKIN_FILES $F"
+    endif
+  else
+    # It's not in RCS; ask user what to do.
+    set reply
+    while (($reply != "y") && ($reply != "n"))
+      echo -n "$F is not in RCS; do you want it checked in? [yn] "
+      set reply = "$<"
+    end
+    if ($reply == "y") set CHECKIN_FILES = "$CHECKIN_FILES $F"
+  endif 
+
+  # 
+NextFile:
+end
+
+# Find out whether any files need to be checked in; CHECKIN_FILES could be
+# just a bunch of blanks
+set TEMP = (XXX $CHECKIN_FILES)
+if ($#TEMP > 1) then 
+  set DOCHECKIN = 1
+else
+  set DOCHECKIN = 0
+endif
+
+# Now checkin the files, then check them out unlocked in SRCDIR
+if ($DOCHECKIN) then
+
+  # Check for RCS message
+  if (!(-e RCSMSG)) then
+    echo "ERROR:  You must provide an RCSMSG file with a check-in message"
+    exit(1)
+  endif
+
+  echo "  "
+  echo "Checking in files into RCS ...."
+  echo "  "
+  rcsci -u $CHECKIN_FILES < RCSMSG
+
+  echo "  "
+  echo "Checking out files into $SRCDIR/$MODULE"
+  echo "  "
+  (cd $SRCDIR/$MODULE; rcsco $CHECKIN_FILES)
+else
+  echo "No files to checkin into RCS"
+endif
+
+# Create HTML documents if necessary
+set CC2HTML = "/coda/project/coda/alpha/bin/c++2html"
+set HTMLDIR = "/coda/project/coda/alpha/coda-internals/src-html"
+set HTML_FILES = "Updated HTML files : "
+foreach i ($CHECKIN_FILES)
+	/bin/grep -l BEGIN_HTML $i > /dev/null
+	# Check whether HTML documents are needed for $i
+	if (! $status) then
+	   if (!(-d ${HTMLDIR}/$MODULE)) then 
+		/bin/mkdir ${HTMLDIR}/${MODULE}
+		if ($status) then
+		    echo "failed to mkdir ${HTMLDIR}/${MODULE}"
+		    set HTML_FILES = "failed to mkdir ${HTMLDIR}/${MODULE}"
+		    break;
+	        endif
+	   endif
+	   echo "creating HTML document for $i"
+	   $CC2HTML $i >! ${HTMLDIR}/${MODULE}/${i}.html
+	   set HTML_FILES = "$HTML_FILES ${i}.html"
+	endif
+end
+
+
+# Move RCSMSG out of the way, so it doesn't get reused accidentally
+if (-e RCSMSG) mv RCSMSG RCSMSG.old
+
+# Post notice on changelog bboard
+# This part is pretty CMU-SCS-specific and non-portable
+echo "Constructing message for changelog post ..."
+set HOST = `hostname`
+set CPUTYPE = `/etc/machine`
+
+echo "Posted by alphaci from $HOST" > /tmp/$$
+if ($DOCHECKIN) then
+  echo "Files checked into RCS:     $CHECKIN_FILES" >> /tmp/$$
+  echo "$HTML_FILES" >> /tmp/$$
+  echo "RCS message follows:" >> /tmp/$$
+  cat RCSMSG.old >> /tmp/$$
+else
+  echo "No files checked into RCS" >> /tmp/$$
+endif
+
+post - -subject "Installed $MODULE for $CPUTYPE" cmu.cs.proj.coda.changelog < /tmp/$$
+rm /tmp/$$
