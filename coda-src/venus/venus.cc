@@ -36,6 +36,7 @@ extern "C" {
 #include <stdlib.h>
 #include <fcntl.h>
 #include <netdb.h>
+#include <coda_flock.h>
 #ifdef __cplusplus
 }
 #endif
@@ -134,7 +135,7 @@ static void open_pidfile(void)
     pidfd = open(VenusPidFile, O_RDWR | O_CREAT, 0640);
     if (pidfd < 0) CHOKE("can't open file for pid!");
 
-    rc = lockf(pidfd, F_TLOCK, 0);
+    rc = myflock(pidfd, MYFLOCK_EX, MYFLOCK_NB);
     if (rc < 0) CHOKE("can't lock file for pid!");
     /* leave pidfd open otherwise we lose the lock */
 }
