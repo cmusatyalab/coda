@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/util/util.cc,v 4.1 1997/01/08 21:51:15 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/util/util.c,v 4.2 1997/11/04 21:24:54 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -197,9 +197,12 @@ void eprint(char *fmt, ...)
     cp += strlen(cp);
     strcat(cp, "\n");
 
-    /* Write to stderr */
-    PrintTimeStamp(stderr);  /* first put out a timestamp */
-    fprintf(stderr, msg); /* then the message */
+    /* Write to stderr & stdout*/
+    PrintTimeStamp(stdout); 
+    fprintf(stdout, msg); 
+    fflush(stdout);
+    PrintTimeStamp(stderr);
+    fprintf(stderr, msg);
     fflush(stderr);
 }
 
