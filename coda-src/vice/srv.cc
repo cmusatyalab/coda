@@ -30,7 +30,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vice/srv.cc,v 4.17 1998/04/14 20:55:37 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vice/srv.cc,v 4.18 1998/06/07 20:15:16 braam Exp $";
 #endif /*_BLURB_*/
 
 /*
@@ -448,6 +448,16 @@ main(int argc, char *argv[])
 	       "Main thread just did a RVM_SET_THREAD_DATA\n");
     }
 
+    InitializeServerRVM("codaserver"); 
+
+    /* Trace mallocs and frees in the persistent heap if requested. */
+    if (MallocTrace) {	
+      rds_trace_on(rds_printer);
+      rds_trace_dump_heap();
+    }
+    
+    coda_init();
+
 #ifdef PERFORMANCE 
     /* initialize the array of thread_t to 0 - Puneet */
     for (i = 0; i < NLWPS; i ++)
@@ -484,15 +494,6 @@ main(int argc, char *argv[])
     RPC2_Trace = trace;
 
     InitPartitions(VCT);
-    InitializeServerRVM("codaserver"); 
-
-    /* Trace mallocs and frees in the persistent heap if requested. */
-    if (MallocTrace) {	
-      rds_trace_on(rds_printer);
-      rds_trace_dump_heap();
-    }
-    
-    coda_init();
 
     FileMsg();
 
