@@ -193,9 +193,9 @@ int CompareDirs(struct repvol *repv, char *fixfile, struct repinfo *inf, char *m
     char realm[MAXHOSTNAMELEN];
     int ret, i, nreps, nConflicts = 0, setmode = 0, setacl = 0, setowner = 0;
     unsigned long j;
-    resreplica *dirs;
+    resreplica *dirs = NULL;
     struct volrep *rwv;
-    struct  listhdr *k;
+    struct  listhdr *k = NULL;
     FILE *file;
 
     if ((repv == NULL) || (inf == NULL)) {

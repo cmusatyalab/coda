@@ -909,7 +909,7 @@ int repvol::DisableRepair(uid_t uid)
     if (IsUnderRepair(uid))
 	flags.repair_mode = 0;
     else
-	LOG(0, ("volent::DisableRepair: %x not under repair", vid));
+	LOG(0, ("volent::DisableRepair: %x not under repair\n", vid));
 
     return(0);
 }

@@ -630,7 +630,10 @@ int fsobj::IsAncestor(VenusFid *Fid)
 	if (FID_EQ(&cfo->fid, Fid))
 	    return 1;
 
-	if (cfo->IsRoot()) {
+	if (cfo->IsRoot() && !cfo->IsVenusRoot()) {
+	    if (!cfo->u.mtpoint)
+		break;
+
 	    LOG(100, ("fsobj::IsAncestor: going up to through a mount point\n"));
 	    cfo = cfo->u.mtpoint->pfso;
 	} else {

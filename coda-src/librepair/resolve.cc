@@ -191,7 +191,7 @@ int getunixdirreps (int nreplicas, char *names[], resreplica **reps)
   int i,j;
   
   /* allocate space for making replica headers */
-  *reps = dirs = (resreplica *)malloc(nreplicas * sizeof(resreplica));
+  *reps = dirs = (resreplica *)calloc(nreplicas, sizeof(resreplica));
 
   /* get approximate size of directories */
   if (stat(names[0], &buf)){
@@ -645,7 +645,10 @@ void resClean (int nreplicas, resreplica *dirs, struct listhdr *lh)
 	free(lh);
     }
     /* free up the global array of dir entries */
-    free(direntriesarr);
+    if (direntriesarr) {
+	free(direntriesarr);
+	direntriesarr = NULL;
+    }
 }
 
 int GetParent(char *realm, ViceFid *cfid, ViceFid *dfid, char *volmtpt, char *dpath, char *childname) {

@@ -38,6 +38,7 @@ listed in the file CREDITS.
 #include <lwp/lwp.h>
 #include <lwp/lock.h>
 #include <rvm/rvm.h>
+#include <rvm/rds.h>
 #include <rvmlib.h>
 #include <util.h>
 #include <parser.h>
@@ -769,10 +770,9 @@ struct dirdata *dt_initrvm(char *log, char *data)
 	rvm_options_t *options = rvm_malloc_options();
 	rvm_return_t err;
 	struct stat buf;
-	struct dirdata *dd;
+	char *rdsheap;
 	size_t size;
 	rvm_offset_t length;
-
 
 	if ( stat(data, &buf) ) {
 		perror("Statting data file");
@@ -791,14 +791,14 @@ struct dirdata *dt_initrvm(char *log, char *data)
 		exit(2);
 	}
 
-        rds_load_heap(data, length, (char **)&dd, (int *)&err);  
+        rds_load_heap(data, length, &rdsheap, &err);  
 	if (err != RVM_SUCCESS) {
 		printf("rds_load_heap error %s\n",rvm_return(err));
 		abort();
 	}
 
 	rvm_free_options(options);					    
-	return dd;
+	return (struct dirdata *)rdsheap;
 }
 
 	

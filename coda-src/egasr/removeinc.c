@@ -30,6 +30,7 @@ extern "C" {
 #include <config.h>
 #endif
 
+#include <stdlib.h>
 #include <stdio.h>
 #include <sys/param.h>
 #include <sys/types.h>
@@ -50,54 +51,63 @@ extern int wildmat(char *text, char *pattern);
 #endif
 
 
-int IsObjInc(char *name, ViceFid *fid) 
+int IsObjInc(char *name, ViceFid *fid, char *realm) 
 {
-    int rc;
-    char symval[MAXPATHLEN];
+    struct GetFid {
+	ViceFid fid;
+	ViceVersionVector vv;
+	char realm[MAXHOSTNAMELEN+1];
+    } out;
+    struct ViceIoctl vio;
     struct stat statbuf;
+    char symval[MAXPATHLEN];
+    int rc, n;
 
-    fid->Vnode = 0; fid->Unique = 0; fid->Volume = 0;
+    memset(fid, 0, sizeof(ViceFid));
+    realm[0] = '\0';
 
     /* what if the begin repair has been done already */
     rc = stat(name, &statbuf);
-    if (rc == 0) {
-	struct ViceIoctl vioc;
-	char space[2048];
-        ViceVersionVector vv;
-	vioc.in_size = (short) (1+strlen(name));
-	vioc.in = name;
-	vioc.out_size = (short) sizeof(space);
-	vioc.out = space;
-	memset(space, 0, (int) sizeof(space));
-	rc = pioctl(name, VIOC_GETFID, &vioc, 0);
-	if (rc < 0 && errno != ETOOMANYREFS) {
-	    /* fprintf(stderr, "Error %d for Getfid\n", errno); */
-	    return(0);
-	}
-	memcpy(fid, space, sizeof(ViceFid));
-	memcpy(&vv, space+sizeof(ViceFid), sizeof(ViceVersionVector));
-	if (!ISDIR(*fid) && (statbuf.st_mode & S_IFDIR))
-	    return(1);
-	else if (vv.StoreId.Host == -1) 
-	    return(1);
-	else return(0);
-    }
-    
-    /* is it a sym link */
-    symval[0] = 0;
-    rc = readlink(name, symval, MAXPATHLEN);
-    if (rc < 0) return(0);
-    
-    /* it's a sym link, alright */
-    if (symval[0] == '@')
-	sscanf(symval, "@%lx.%lx.%lx", &fid->Volume, &fid->Vnode, &fid->Unique);
+    if (rc) {
+	/* is it a sym link */
+	symval[0] = 0;
+	rc = readlink(name, symval, MAXPATHLEN);
+	if (rc < 0) return(0);
 
-    return(1);
+	/* it's a sym link, alright */
+	n = sscanf(symval, "@%lx.%lx.%lx@%s",
+		   &fid->Volume, &fid->Vnode, &fid->Unique, realm);
+
+	return(n == 4);
+    }
+
+    memset(&out, 0, sizeof(out));
+    vio.in = NULL;
+    vio.in_size = 0;
+    vio.out = (char *)&out;
+    vio.out_size = sizeof(out);
+
+    rc = pioctl(name, VIOC_GETFID, &vio, 0);
+    if (rc < 0 && errno != ETOOMANYREFS) {
+	fprintf(stderr, "Error %d for Getfid\n", errno);
+	return(0);
+    }
+    memcpy(fid, &out.fid, sizeof(ViceFid));
+    strcpy(realm, out.realm);
+
+    if (!ISDIR(out.fid) && (statbuf.st_mode & S_IFDIR))
+	return(1);
+
+    if (out.vv.StoreId.Host == -1) 
+	return(1);
+
+    return(0);
 }
 
 int main(int argc, char **argv) 
 {
     ViceFid fid;
+    char realm[MAXHOSTNAMELEN+1];
     char tmpfname[80];
     int fd;
     struct ViceIoctl vioc;
@@ -110,8 +120,9 @@ int main(int argc, char **argv)
     }
     
     /* make sure object is inconsistent */
-    if (!IsObjInc(argv[1], &fid)) {
-	/* fprintf(stderr, "%s isn't inconsistent\n", argv[1]); */
+    if (!IsObjInc(argv[1], &fid, realm)) {
+	fprintf(stderr, "%s isn't inconsistent\n", argv[1]);
+	exit(0);
     }
     
     /* get fid and make sure it is a file */
