@@ -417,7 +417,6 @@ NonRepExit:
 	switch(stat.VnodeType) {
 	case File:
 		/* File is already `truncated' to the correct length */
-		//data.file->SetLength((unsigned) stat.Length);
 		break;
 		
 	case Directory:

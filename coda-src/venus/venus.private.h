@@ -304,8 +304,6 @@ extern void GetCSS(RPCPktStatistics *);
 extern void SubCSSs(RPCPktStatistics *, RPCPktStatistics *);
 extern void MallocPrint(int);
 extern void StatsInit();
-extern void ProfInit();
-extern void ToggleProfiling();
 extern void SwapLog();
 extern void ToggleMallocTrace();
 extern char *lvlstr(LockLevel);
@@ -321,9 +319,7 @@ extern int LogLevel;
 extern long int RPC2_DebugLevel;
 extern long int SFTP_DebugLevel;
 extern long int RPC2_Trace;
-extern int ProfBoot;
 extern int MallocTrace;
-extern int Profiling;
 extern ViceFid NullFid;		    /* should be const -JJK */
 extern vv_t NullVV;		    /* should be const -JJK */
 extern VFSStatistics VFSStats;

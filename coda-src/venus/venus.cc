@@ -110,7 +110,7 @@ static void SetRlimits();
 /* **** defined in worker.c **** */
 extern int testKernDevice();
 
-int venus_relay_addr = INADDR_LOOPBACK;
+struct in_addr venus_relay_addr = { INADDR_LOOPBACK };
 
 static char *venusdotconf = SYSCONFDIR "/venus.conf";
 
@@ -140,9 +140,7 @@ int main(int argc, char **argv) {
     
     CdToCacheDir(); 
     CheckInitFile();
-#if ! defined(__CYGWIN32__) && ! defined(DJGPP)
     SetRlimits();
-#endif
     /* Initialize.  N.B. order of execution is very important here! */
     /* RecovInit < VSGInit < VolInit < FSOInit < HDB_Init */
 
@@ -168,7 +166,6 @@ int main(int argc, char **argv) {
     RPC2_SetLog(logFile, RPC2_DebugLevel);
     SpoolInit();    /* make sure the spooling directory exists */
     DaemonInit();   /* before any Daemons initialize and after LogInit */
-    ProfInit();
     StatsInit();
     SigInit();      /* set up signal handlers */
     DIR_Init(DIR_DATA_IN_RVM);
@@ -241,27 +238,14 @@ int main(int argc, char **argv) {
     exit(0);
 }
 
-int getip(char *addr)
-{
-	int ip;
-	int a1,a2,a3,a4;
-
-	if (sscanf (addr, "%d.%d.%d.%d", &a1, &a2, &a3, &a4) != 4)
-		return -1;
-
-	ip = a4 + (a3 << 8) + (a2<<16) + (a1<<24);
-	printf("Connecting to: %d.%d.%d.%d (0x%x)\n", a1,a2,a3,a4,ip);
-	
-	return ip;
-}
-
 static void ParseCmdline(int argc, char **argv) {
       for(int i = 1; i < argc; i++)
   	if (argv[i][0] == '-') {
  	    if (STREQ(argv[i], "-conffile")) {/* default /etc/coda/venus.conf */
  		i++, venusdotconf = argv[i];
 	    } else if (STREQ(argv[i], "-relay")) {   /* default is 127.0.0.1 */
- 		i++, venus_relay_addr = getip(argv[i]);
+ 		i++;
+		inet_aton(argv[i], &venus_relay_addr);
  	    } else if (STREQ(argv[i], "-k"))         /* default is /dev/cfs0 */
   		i++, kernDevice = argv[i];
   	    else if (STREQ(argv[i], "-h"))    /* names of file servers */
@@ -283,9 +267,7 @@ static void ParseCmdline(int argc, char **argv) {
 	    } else if (STREQ(argv[i], "-lwpdebug")) {    /* debugging */
 		i++;
 		lwp_debug =atoi(argv[i]);
-	    } else if (STREQ(argv[i], "-p"))     /* profiling */
-		ProfBoot = 1;
-	     else if (STREQ(argv[i], "-rdstrace"))     /* RDS heap tracing */
+	    } else if (STREQ(argv[i], "-rdstrace"))     /* RDS heap tracing */
 		MallocTrace = 1;
 	    else if (STREQ(argv[i], "-r"))     /* name of root volume */
 		i++, RootVolName = argv[i];
@@ -516,7 +498,7 @@ static void DefaultCmdlineParms()
 #ifdef moremoremore
     char *x = NULL;
     CONF_STR(x, "relay", NULL, "127.0.0.1");
-    venus_relay_addr = getip(x);
+    inet_aton(x, &venus_relay_addr);
 #endif
 }
 
@@ -571,17 +553,18 @@ static void UnsetInitFile() {
     unlink(initPath);
 }
 
-#ifndef __CYGWIN32__
 static void SetRlimits() {
+#if !defined(__CYGWIN32__) && !defined(DJGPP)
     /* Set DATA segment limit to maximum allowable. */
     struct rlimit rl;
     if (getrlimit(RLIMIT_DATA, &rl) < 0)
 	{ perror("getrlimit"); exit(-1); }
+
     rl.rlim_cur = rl.rlim_max;
     if (setrlimit(RLIMIT_DATA, &rl) < 0)
 	{ perror("setrlimit"); exit(-1); }
-}
 #endif
+}
 
 /*  *****  Should be in a library!  *****  */
 

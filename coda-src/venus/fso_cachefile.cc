@@ -262,18 +262,8 @@ void CacheFile::Stat(struct stat *tstat) {
 
 /* MUST be called from within transaction! */
 void CacheFile::Truncate(long newlen) {
-#ifdef __CYGWIN32__
-    int fd;
-#endif
-
     CODA_ASSERT(inode != (ino_t)-1);
 
-    /*
-    if (length < newlen) {
-       eprint("Truncate: %d->%d:  -> ::truncate(name %s, length %d)\n",
-		length, newlen, name, newlen);
-    }
-    */
     if (length != newlen) {
 	RVMLIB_REC_OBJECT(*this);
 	length = validdata = newlen;
@@ -281,11 +271,12 @@ void CacheFile::Truncate(long newlen) {
 #ifndef __CYGWIN32__
     CODA_ASSERT(::truncate(name, length) == 0);
 #else 
-    fd = open(name, O_RDWR);
-    if ( fd < 0 )
-	    CODA_ASSERT(0);
-    CODA_ASSERT(::ftruncate(fd, length) == 0);
-    close(fd);
+    {
+	int fd = open(name, O_WRONLY | O_BINARY);
+	if ( fd < 0 ) CODA_ASSERT(0);
+	CODA_ASSERT(::ftruncate(fd, length) == 0);
+	close(fd);
+    }
 #endif
 }
 

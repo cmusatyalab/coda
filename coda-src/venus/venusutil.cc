@@ -16,12 +16,6 @@ listed in the file CREDITS.
 
 #*/
 
-
-
-
-
-
-
 /*
  *
  *     Utility routines used by Venus.
@@ -93,9 +87,7 @@ extern "C" {
 
 FILE *logFile = 0;
 int LogLevel = 0;
-int ProfBoot = 0;
 int MallocTrace = 0;
-int Profiling = 0;
 ViceFid NullFid = {0, 0, 0};
 vv_t NullVV = {{0, 0, 0, 0, 0, 0, 0, 0}, {0, 0}, 0};
 VFSStatistics VFSStats;
@@ -748,29 +740,6 @@ LOG(0, ("E StatsInit()\n"));
 		    RPCOPSTATNAMELEN);
     }
     LOG(0, ("L StatsInit()\n"));
-}
-
-
-void ProfInit() {
-    LOG(0, ("ProfInit(): profiling is broken; fix it!\n"));
-    return;
-#if 0
-    /* This code used to work once upon a time */
-    moncontrol(0);
-    if (ProfBoot) ToggleProfiling();
-#endif /* undef */
-}
-
-
-void ToggleProfiling() {
-    LOG(0, ("ToggleProfiling(): profiling is broken; fix it!"));
-    return;
-#if 0
-    /* This is the code that used to work */
-    Profiling = 1 - Profiling;
-    moncontrol(Profiling);
-    LOG(0, ("Profiling is now %s\n", Profiling ? "on" : "off"));
-#endif /* undef */
 }
 
 void ToggleMallocTrace() {
