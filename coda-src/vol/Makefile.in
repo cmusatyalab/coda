@@ -58,6 +58,10 @@ LIBVOLOBJS= dirvnode.o cvnode.o volume.o vutil.o vldb.o fssync.o \
 	index.o recova.o recovb.o recovc.o volhash.o dumpcamstorage.o \
         vrdb.o vsg.o vlist.o lockqueue.o
 
+ifeq ($(SYS),sol2)
+LIBFIXUP += -R/usr/ucblib -L/usr/ucblib -lucb
+endif
+
 libvol.a: ${LIBVOLOBJS}
 
 testvsg: testvsg.o vsg.o $(LIBUTIL) $(LIBFIXUP)

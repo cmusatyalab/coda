@@ -68,6 +68,11 @@ extern "C" {
 #include <rvmlib.h>
 
 #include <vice.h>
+
+#ifdef sun
+#include "sunflock.h"
+#endif
+
 #ifdef __cplusplus
 }
 #endif __cplusplus

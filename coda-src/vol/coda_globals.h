@@ -42,7 +42,9 @@ listed in the file CREDITS.
 /*
  * Recoverable Object Declarations
  */
+#ifndef sun
 typedef int boolean_t;
+#endif
 
 struct camlib_recoverable_segment {
 	/* flag to determine whether or not initialization is required */
