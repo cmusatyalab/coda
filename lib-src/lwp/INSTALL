@@ -20,7 +20,7 @@ order to set up the build environment. Known versions that work are automake
     $ sh bootstrap.sh
 
 From here the everything is identical to (but possibly more up-to-date than)
-using tarball from the Coda ftp site.
+using the tarball from the Coda ftp site.
 
 
 Configuring

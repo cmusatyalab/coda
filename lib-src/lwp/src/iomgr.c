@@ -63,7 +63,7 @@ Pittsburgh, PA.
 
 
 /* Stack size for IOMGR process and processes instantiated to handle signals */
-#define STACK_SIZE	0x4000
+#define STACK_SIZE	0x8000
                         
 /********************************\
 * 				 *
