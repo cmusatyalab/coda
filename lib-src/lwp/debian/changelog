@@ -1,3 +1,9 @@
+lwp (1.6) unstable; urgency=low
+
+  * Merged debian package files into lwp distribution. 
+
+ -- Jan Harkes <jaharkes@cs.cmu.edu>  Thu, 30 Nov 2000 19:50:29 -0500
+
 lwp (1.5-1) unstable; urgency=low
 
   * New upstream release
