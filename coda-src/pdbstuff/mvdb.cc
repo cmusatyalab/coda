@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/pdbstuff/mvdb.cc,v 4.2 1997/02/26 16:02:46 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/pdbstuff/mvdb.cc,v 4.3 1998/03/06 20:20:19 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -74,18 +74,17 @@ extern "C" {
 #endif __cplusplus
 
 #include <stdio.h>
+#include <unistd.h>
 #include <sys/file.h>
 #include <sys/param.h>
+#ifdef __BSD44__
+#include <sys/cdefs.h>
+#endif
+#include <sys/types.h>
 #include <sys/stat.h>
 #include <sys/time.h>
 #include <errno.h>
-#ifdef __MACH__
-#include <sysent.h>
-#include <libc.h>
-#else	/* __linux__ || __BSD44__ */
-#include <unistd.h>
 #include <stdlib.h>
-#endif
 
 #ifdef __cplusplus
 }
@@ -152,7 +151,7 @@ main(int argc, char *argv[])
 	else  *srcfile++ = 0;	/* it's ok, call by value! */
 
 	sprintf(cmd, "%s/%s", argv[firstarg], srcfile);	/* stat the source file */
-	if(stat(cmd, &statbuf1) < 0)
+	if(::stat(cmd, &statbuf1) < 0)
 	    {
 	    perror(cmd);
 	    break;

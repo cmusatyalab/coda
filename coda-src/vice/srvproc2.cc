@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vice/srvproc2.cc,v 4.11 1998/04/14 20:55:39 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vice/srvproc2.cc,v 4.12 1998/06/07 20:15:17 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -191,7 +191,7 @@ long ViceConnectFS(RPC2_Handle RPCid, RPC2_Unsigned ViceVersion, ViceClient *Cli
 	    ViceVersion, ClientId->UserName, ClientId->WorkStationName, ClientId->VenusName);
 
     long errorCode;
-    ClientEntry *client;
+    ClientEntry *client = NULL;
 
     errorCode = RPC2_GetPrivatePointer(RPCid, (char **)&client);
 
@@ -204,9 +204,9 @@ long ViceConnectFS(RPC2_Handle RPCid, RPC2_Unsigned ViceVersion, ViceClient *Cli
 		errorCode = CLIENT_MakeCallBackConn(client);
 	else {
 		errorCode = CallBack(client->VenusId->id, &NullFid);
-		if ( errorCode  == RPC2_NAKED ) {
+		if ( errorCode  != RPC2_SUCCESS ) {
 			/* XXX tear down naked connection */
-		errorCode = CLIENT_MakeCallBackConn(client);
+			errorCode = CLIENT_MakeCallBackConn(client);
 		}
 	}			
     }

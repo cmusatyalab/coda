@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rpc2/sl.c,v 4.2 1998/04/14 21:07:08 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rpc2/sl.c,v 4.3 1998/06/04 22:38:06 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -370,7 +370,7 @@ PRIVATE void HandleSLPacket(RPC2_PacketBuffer *pb)
 		if (TestState(ce, CLIENT, (C_AWAITREPLY|C_AWAITINIT2)))
 			HandleNak(pb, ce);
 		else 
-			BOGUS(pb, "HandleSLPacket: state != AWAIT\n");
+			BOGUS(pb, "HandleSLPacket: NAK rcvd, state!=AWAIT\n");
 		break;
 		
 	default: BOGUS(pb, "HandleSLPacket: bogus opcode\n");

@@ -45,3 +45,11 @@ Under FreeBSD:
 	./configure
 	make install
 4. cp <foo>/src/sys/sys/mount.h /usr/include/sys
+
+Building Coda:
+
+1. unpack the tar ball, say in SRC=/moose/coda-4.?.?
+
+2. cd $SRC ; mkdir obj ; cd obj $SRC/configure ; make coda
+
+3. to install: cd $SRC/obj 

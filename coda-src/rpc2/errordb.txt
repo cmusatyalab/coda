@@ -38,6 +38,7 @@ CEDEADLK, 11 , EDEADLK, /* Resource deadlock avoided */
 CENOMEM, 12 , ENOMEM, /* Cannot allocate memory */
 CEACCES, 13 , EACCES, /* Permission denied */
 CEFAULT, 14 , EFAULT, /* Bad address */
+CENOTBLK, 15, ENOTBLK, /* Not a block device */
 CEBUSY, 16 , EBUSY, /* Device busy */
 CEEXIST, 17 , EEXIST, /* File exists */
 CEXDEV, 18 , EXDEV, /* Cross-device link */
@@ -59,6 +60,7 @@ CEDOM, 33 , EDOM, /* Numerical argument out of domain */
 CERANGE, 34 , ERANGE, /* Result too large */
 CEAGAIN, 35 , EAGAIN, /* Resource temporarily unavailable */
 CEALREADY, 37 , EALREADY, /* Operation already in progress */
+CENOSYS, 38, ENOSYS, /* Function not implemented */
 CEPROTONOSUPPORT, 43 , EPROTONOSUPPORT, /* Protocol not supported */
 CEOPNOTSUPP, 45 , EOPNOTSUPP, /* Operation not supported */
 CENOBUFS, 55 , ENOBUFS, /* No buffer space available */
