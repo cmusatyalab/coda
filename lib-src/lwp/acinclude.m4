@@ -24,6 +24,7 @@ dnl Shared libraries work for i386, mips, sparc, and alpha platforms. They
 dnl might work for all platforms. If not, read the PORTING document.
 
 dnl When cross-compiling, pick the right compiler toolchain.
+dnl Can be overridden by providing the CROSS_COMPILE environment variable.
 if test ${build} != ${host} ; then
   case ${host} in
    i*86-pc-msdos )
@@ -43,8 +44,7 @@ if test ${build} != ${host} ; then
     AS="dos-as"
     NM="dos-nm"
 
-    dnl We have to override some things the configure script tends to
-    dnl get wrong as it tests the build platform feature
+    dnl avoid using mmap for allocating lwp stacks
     ac_cv_func_mmap_fixed_mapped=no
     ;;
    i*86-pc-cygwin )
@@ -65,13 +65,22 @@ if test ${build} != ${host} ; then
     LIBTOOL_LDFLAGS="-no-undefined"
     ;;
    arm-unknown-linux-gnuelf )
-    CC="arm-unknown-linuxelf-gcc"
-    AR="arm-unknown-linuxelf-ar"
-    RANLIB="arm-unknown-linuxelf-ranlib"
-    AS="arm-unknown-linuxelf-as"
-    NM="arm-unknown-linuxelf-nm"
-    OBJDUMP="arm-unknown-linuxelf-objdump"
+    CROSS_COMPILE="arm-unknown-linuxelf-"
     ;;
  esac
-fi])
+fi
+if test "${CROSS_COMPILE}" ; then
+  CC=${CROSS_COMPILE}gcc
+  CXX=${CROSS_COMPILE}g++
+  CPP="${CC} -E"
+  AS=${CROSS_COMPILE}as
+  LD=${CROSS_COMPILE}ld
+  AR=${CROSS_COMPILE}ar
+  RANLIB=${CROSS_COMPILE}ranlib
+  NM=${CROSS_COMPILE}nm
+  OBJDUMP=${CROSS_COMPILE}objdump
+  DLLTOOL=${CROSS_COMPILE}dlltool
+  ac_cv_func_mmap_fixed_mapped=yes
+fi
+])
 
