@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vice/srvproc2.cc,v 4.6 1998/01/12 23:35:45 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vice/srvproc2.cc,v 4.7 1998/01/20 20:57:48 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -664,6 +664,8 @@ long ViceGetRootVolume(RPC2_Handle RPCid, RPC2_BoundedBS *volume)
 	volume->SeqBody[len] = '\0';
     }
     volume->SeqLen = strlen((char *)volume->SeqBody) + 1;
+#if 0
+    /* almost right: sadle we need to check the VRDB instead */
     if ( VLDBLookup(volume->SeqBody) == NULL ) {
 	    LogMsg(0, SrvDebugLevel, stdout, 
 		   "ViceGetRootVolume Volume = %s in ROOTVOLUME is bogus!",
@@ -673,7 +675,7 @@ long ViceGetRootVolume(RPC2_Handle RPCid, RPC2_BoundedBS *volume)
 		   volume->SeqBody);
 	    errorCode = VNOVOL;
     }
-
+#endif
     LogMsg(2, SrvDebugLevel, stdout, 
 	   "ViceGetRootVolume returns %s, Volume = %s",
 	   ViceErrorMsg(errorCode), volume->SeqBody);
