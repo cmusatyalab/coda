@@ -132,7 +132,7 @@ int CacheFile::ValidContainer()
 /* Must be called from within a transaction!  Assume caller has done
    RVMLIB_REC_OBJECT() */
 
-void CacheFile::Create(int newlength = 0)
+void CacheFile::Create(int newlength)
 {
     LOG(10, ("CacheFile::Create: %s, %d\n", name, newlength));
 
@@ -183,7 +183,7 @@ int CacheFile::Copy(CacheFile *destination)
     return 0;
 }
 
-int CacheFile::Copy(char *destname, ino_t *ino, int recovering = 0)
+int CacheFile::Copy(char *destname, ino_t *ino, int recovering)
 {
     LOG(10, ("CacheFile::Copy: from %s, %d, %d/%d, to %s\n",
 	     name, inode, validdata, length, destname));
