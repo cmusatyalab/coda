@@ -313,7 +313,11 @@ int coda_getaddrinfo(const char *node, const char *service,
     err = RPC2_EAI_NONAME;
     if (hints && (hints->ai_flags & CODA_AI_RES_SRV))
     {
+#ifdef PF_INET6
 	char *end, tmp[sizeof(struct in6_addr)];
+#else
+	char *end, tmp[sizeof(struct in_addr)];
+#endif
 
 	/* we can only do an IN SRV record lookup if both node and
 	 * service are specified and not numerical */
