@@ -235,6 +235,7 @@ sbin/auth2
 sbin/backup
 sbin/backup.sh
 sbin/bldvldb.sh
+sbin/codaconfedit
 sbin/codasrv
 sbin/createvol_rep
 sbin/initpw

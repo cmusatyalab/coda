@@ -206,6 +206,7 @@ fi
 %files server	
 /usr/sbin/@AUTH2@
 /usr/sbin/bldvldb.sh
+/usr/sbin/codaconfedit
 /usr/sbin/codasrv
 /usr/sbin/createvol_rep
 /usr/sbin/initpw
