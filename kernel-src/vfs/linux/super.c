@@ -158,6 +158,7 @@ ENTRY;
 	if ( error ) {
 	    printk("coda_read_super: coda_get_rootfid failed with %d\n",
 		   error);
+	    unlock_super(sb);
 	    goto exit;
 	}	  
 
