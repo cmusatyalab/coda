@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/worker.cc,v 4.10 1998/01/22 10:18:36 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/worker.cc,v 4.11 1998/03/06 20:20:56 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -236,7 +236,8 @@ void testKernDevice()
 	msg.oh.unique = 0;
 
 	/* Send the message. */
-	if (write(fd, (char *)&msg, (int)sizeof(u_long) * 2) != sizeof(u_long) * 2) {
+	if (write(fd, (char *)&msg, sizeof(struct cfs_out_hdr)) != 
+		  sizeof(struct cfs_out_hdr)) {
 	    eprint("write for flush failed (%d), exiting", errno);
 	    exit(-1);
 	}
@@ -399,7 +400,8 @@ int k_Purge() {
     msg.oh.unique = 0;
     
     /* Send the message. */
-    if (MsgWrite((char *)&msg, (int)sizeof(u_long) * 2) != (int)sizeof(u_long)*2)
+    if (MsgWrite((char *)&msg, sizeof(struct cfs_out_hdr)) 
+	!= sizeof(struct cfs_out_hdr))
 	Choke("k_Purge: Flush, message write returns %d", errno);
 
     LOG(1, ("k_Purge: Flush, returns 0\n"));

@@ -1,4 +1,3 @@
-# do something
 #!/bin/sh
 #
 # skeleton      Example file to build /etc/init.d scripts.
@@ -8,36 +7,62 @@
 # Author:       Miquel van Smoorenburg, <miquels@drinkel.nl.mugnet.org>
 #
 
-# Source function library if we are a System V type OS using SYSV init.
-# Otherwise, we are probably a BSD like OS.
+# chkconfig: 345 95 01
+# description: The Coda cache manager.
 
-PATH=/sbin:/usr/sbin:$PATH
+
+LOCKDIR=/var/lock/subsys
+PIDDIR=/usr/coda/venus.cache
+CACHEDIR=/usr/coda/venus.cache
+ETCDIR=/usr/coda/etc
+SPOOLDIR=/usr/coda/spool
+
+PATH=/sbin:/usr/sbin:/usr/local/sbin:$PATH
 export PATH
+
+[ -f /usr/sbin/venus ] || exit 0
+[ -d $LOCKDIR ] || exit 0 
+[ -d $CACHEDIR ] || exit 0 
+[ -d $SPOOLDIR ] || exit 0
+[ -d $ETCDIR ] || exit 0
 
 # See how we were called.
 case "$1" in
   start)
-	# start auth2 & update stuff: first the scm case
-    	echo -n "Starting Coda: "
-	if [ -f /usr/sbin/venus ]; then
+	# auth2
+	if [ ! -f $LOCKDIR/venus.init ]; then
+		touch $LOCKDIR/venus.init
 		venus &
+		echo started: venus
+	else
+		echo "venus: already locked."
+		exit 0
 	fi
 	;;
   stop)
-	echo -n "Stopping Coda: "
-	if [ -f /usr/sbin/vutil ]; then
-	      	vutil -shutdown
+	if [ -f $PIDDIR/auth2.pid ]; then
+		
+		kill -TERM `cat $PIDDIR/pid`
 		umount /coda
+		rm -f $LOCKDIR/venus.init
 	fi
+
 	;;
-  norestart)
-	# this tells us not to restart the server....
-	if [ -d /var/lock ]; then
-		rm -f /var/lock/subsys/coda_server.init
+
+  hardstop)
+	if [ -f $PIDDIR/auth2.pid ]; then
+		
+		kill -KILL `cat $PIDDIR/pid`
+		umount /coda
+		echo stopped: venus
+		rm -f $LOCKDIR/venus.init
 	fi
+
 	;;
+
+
   *)
-	echo "Usage: $0 {start|stop}"
+	echo "Usage: $0 {start|stop|hardstop}"
 	exit 1
 esac
 

@@ -108,25 +108,21 @@ fi
 #
 # startup scripts
 #
+if [ `uname` = NetBSD -o `uname` = FreeBSD ]; then
 yesno=""
 until [ x$yesno != x ]; do
    echo -n 'Do you want to start the server at boot time? (y/n) '
    read yesno
    if [ x$yesno = xy  -o  x$yesno = xyes -o x$yesno = xY ]; then
        touch /vice/srv/STARTFROMBOOT
-       if [ `uname` = Linux ]; then
-	    ln -s /etc/rc.d/init.d/vice.init /etc/rc.d/rc3.d/S98vice
-       fi
-       if [ `uname` = NetBSD -o `uname` = FreeBSD ]; then
-	    mv /etc/vice.init /etc/rc.vice
 	    grep '/etc/rc.vice' /etc/rc.local > /dev/null 2>1
 	    if [ $? != 0 ]; then 
 	         echo 'if [ -e /etc/rc.vice ]; then /etc/rc.vice start ; fi' >> /etc/rc.local 
 	    fi
-       fi
        echo "Startup scripts now installed."
    fi
 done
+fi
 
 #
 # /vice/hostname 

@@ -7,81 +7,66 @@
 # Author:       Miquel van Smoorenburg, <miquels@drinkel.nl.mugnet.org>
 #
 
+# chkconfig: 345 96 01
+# description: The Coda File Server
+
 # Source function library if we are a System V type OS using SYSV init.
 # Otherwise, we are probably a BSD like OS.
 
 VICE=/vice
 VICESRV=${VICE}/srv
+LOCKDIR=/var/lock/subsys
+PIDDIR=/vice/srv
 
-PATH=/sbin:/usr/sbin:$PATH
+PATH=/sbin:/usr/sbin:/usr/local/sbin:$PATH
 export PATH
+
+[ -f /usr/sbin/volutil ] || exit 0
+[ -f /usr/sbin/srv ] || exit 0
+[ -f /usr/sbin/startserver ] || exit 0
+[ -d $VICESRV ] || exit 0
+
 
 # See how we were called.
 case "$1" in
   start)
-	# start auth2 & update stuff: first the scm case
-    	echo -n "Starting Coda: "
-	if [ "`cat /vice/hostname`" = "`cat /vice/db/scm`" ]; then
-	    if [ -f /usr/sbin/authmon  ]; then
- 		authmon &
-		echo -n "authmon/auth2,"
-	    fi
-	else 	# for non-scm machines.
-	    if [ -f /usr/sbin/authmon  ]; then
-		authmon -chk &
-		echo -n "authmon/auth2(ro),"
-	    fi
+	# file server
+      	rm -f $VICESRV/pid
+	if [ -e $LOCKDIR/codasrv.init ]; then
+	    echo "codasrv already locked"
+	    exit 0
 	fi
-
-	# update srv and updatemon run on all servers
-	if [ -f /usr/sbin/updatemon ]; then
-		updatemon -h `cat /vice/db/scm`  -q coda_udpsrv &
-		echo "updatemon/updateclnt."
-		updatemon -s -p /vice/db &
-		echo "updatemon/updatesrv."
-	fi
-
-	# now the server
-	if [  -f ${VICESRV}/STARTFROMBOOT -a ! -f ${VICESRV}/CRASH ]; then
-	    if [ -f /usr/sbin/startserver ]; then
-	      	rm -f $VICESRV/pid
-		startserver &
-		echo "srv."
-	    fi
+	if [ ! -f ${VICESRV}/CRASH ]; then
+	    touch $LOCKDIR/codasrv.init 
+	    startserver &
+	    echo "srv."
 	else
-	    echo "`date`: srv not started." >> ${VICE}/srv/SrvErr
-	    echo "missing STARTFROMBOOT or CRASH." >> ${VICE}/srv/SrvErr
+	    echo "`date`: found CRASH, srv not started." >> ${VICE}/srv/SrvErr
 	fi
-	# The following is for SYSV based machines such as Red Hat Linux.
-	if [ -d /var/lock ]; then
-		touch /var/lock/subsys/coda_server.init
-	fi
+
 	;;
   stop)
 	# Normal Coda FS shutdown:
 	# if pid file doesn't exist, it isn't likely that srv is running.
 	echo -n "Shutting down Coda: "
-	if [ -f /vice/srv/pid ]; then
-	    if [ -f /usr/sbin/volutil ]; then
+	if [ -f $PIDDIR/pid ]; then
 	      	volutil shutdown
 		echo -n "vice.init: sleeping 30 secs to let srv shutdown..."
 		sleep 30
 		echo "..done"
-	    fi
-	fi
-	# the pid file must not exist on boot up.
-	if [ -d /var/lock ]; then
-		rm -f /var/lock/subsys/coda_server.init
+		rm -f $LOCKDIR/codasrv.init
 	fi
 	;;
-  norestart)
-	# this tells us not to restart the server....
-	if [ -d /var/lock ]; then
-		rm -f /var/lock/subsys/coda_server.init
-	fi
+
+  hardstop)
+	# Normal Coda FS shutdown:
+	# if pid file doesn't exist, it isn't likely that srv is running.
+	echo -n "Killing codasrv: "
+	killall  -9 srv
+	rm -f $LOCKDIR/codasrv.init
 	;;
   *)
-	echo "Usage: $0 {start|stop}"
+	echo "Usage: $0 {start|stop|hardstop}"
 	exit 1
 esac
 

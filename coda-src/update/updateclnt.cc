@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/update/updateclnt.cc,v 4.8 1998/01/20 20:56:47 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/update/updateclnt.cc,v 4.9 1998/04/14 21:08:34 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -172,10 +172,10 @@ int main(int argc, char **argv)
 	strcpy(argv[0], UPDATENAME);
     }
 
-    freopen("/vice/srv/UpdateLog", "a+", stdout);
-    freopen("/vice/srv/UpdateLog", "a+", stderr);
+    freopen("/vice/srv/UpdateClntLog", "a+", stdout);
+    freopen("/vice/srv/UpdateClntLog", "a+", stderr);
 
-    assert(file = fopen("/vice/srv/UpdatePid", "w"));
+    assert(file = fopen("/vice/srv/updateclnt.pid", "w"));
     fprintf(file, "%d", getpid());
     fclose(file);
     RPC2_DebugLevel = SrvDebugLevel / 10;

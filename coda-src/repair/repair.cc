@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/repair/repair.cc,v 4.8 1998/01/10 18:37:38 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/repair/repair.cc,v 4.9 1998/04/14 20:58:52 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -91,25 +91,26 @@ struct stat compOutputStatBuf;	// file information for the repair
 struct stat doInputStatBuf;
 
 
-PRIVATE void	SetDefaultPaths();
-PRIVATE int	compareVV(int, char **, struct repvol *);
-PRIVATE void	GetArgs(int argc, char *argv[]);
-PRIVATE	int	getcompareargs(int, char **, char *, char *, 
+static void	SetDefaultPaths();
+static int	compareVV(int, char **, struct repvol *);
+static void	GetArgs(int argc, char *argv[]);
+static	int	getcompareargs(int, char **, char *, char *, 
 			       char **, char **, char **, char **);
-PRIVATE int	getremoveargs(int, char **, char *);
-PRIVATE void	getremovelists(int, resreplica *, struct listhdr **);
-PRIVATE int	getrepairargs(int, char **, char *, char *, char *);
-PRIVATE int	makedff(char *extfile, char *intfile);
-PRIVATE int	doCompare(int, struct repvol *, char **, char *, char *, 
+static int	getremoveargs(int, char **, char *);
+static void	getremovelists(int, resreplica *, struct listhdr **);
+static int	getrepairargs(int, char **, char *, char *, char *);
+static int	makedff(char *extfile, char *intfile);
+static int	doCompare(int, struct repvol *, char **, char *, char *, 
 			  ViceFid *, char *, char *, char *, char *);
-PRIVATE int	compareStatus(int, resreplica *);
-PRIVATE int	compareQuotas(int , char **);
-PRIVATE int 	compareOwner(int, resreplica *);
-PRIVATE void	printAcl(struct Acl *);
-PRIVATE int	compareAcl(int, resreplica *);
-PRIVATE int 	GetReplicaNames(char **, int , char *);
-PRIVATE int 	GetTokens();
-PRIVATE void 	INT(int, int, struct sigcontext *);
+static int	compareStatus(int, resreplica *);
+static int	compareQuotas(int , char **);
+static int 	compareOwner(int, resreplica *);
+static void	printAcl(struct Acl *);
+static int	compareAcl(int, resreplica *);
+static int 	GetReplicaNames(char **, int , char *);
+static int 	GetTokens();
+static void      help(int argc, char **argv);
+static void 	INT(int, int, struct sigcontext *);
 
 #define INITHELPMSG 	\
 "This repair tool can be used to manually repair server/server \n\
@@ -145,6 +146,7 @@ command_t list[] = {
   {"setglobalview", setGlobalView, 0, ""},	/* no args */
   {"setmixedview", setMixedView, 0, ""},	/* no args */
   {"setlocalview", setLocalView, 0, ""},	/* no args */
+  {"help", help, 0, ""},
   { 0, 0, 0, ""},
 };
 
@@ -187,6 +189,12 @@ main(int argc, char *argv[])
 
 }
 
+
+void help(int largc, char **largv)
+{
+	printf("See the Coda manual or repair.1 for help\n");
+
+} 
 /*
   BEGIN_HTML
   <a name="dorepair"><strong> perform the repair actions as specified by the repair-file </strong></a>
@@ -1027,7 +1035,7 @@ void quit(int largc, char **largv)
   if the object is in coda then fixpath contains the @fid 
   representation of the object
  */
-PRIVATE int getrepairargs(int largc, char **largv, char *conflictpath, 
+static int getrepairargs(int largc, char **largv, char *conflictpath, 
 			  char *fixpath, char *realpath)
 {
     ViceFid fixfid;
@@ -1089,7 +1097,7 @@ PRIVATE int getrepairargs(int largc, char **largv, char *conflictpath,
 }
 
 
-PRIVATE	int getcompareargs(int largc, char **largv, char *reppath, 
+static	int getcompareargs(int largc, char **largv, char *reppath, 
 			   char *filepath,  char **user, char **rights, 
 			   char **owner, char **mode)
 {
@@ -1141,7 +1149,7 @@ exit :
 	return(-1);
 }
 
-PRIVATE int getremoveargs(int largc, char **largv, char *uconfpath)
+static int getremoveargs(int largc, char **largv, char *uconfpath)
 {
     if (largc == 1)
       Parser_getstr("Pathname of Object in conflict?", 
@@ -1158,7 +1166,7 @@ PRIVATE int getremoveargs(int largc, char **largv, char *uconfpath)
 }
 
 
-PRIVATE int doCompare(int nreplicas, struct repvol *repv, char **names, 
+static int doCompare(int nreplicas, struct repvol *repv, char **names, 
 		      char *filepath, char *volmtpt, ViceFid *incfid,
 		      char *user, char *rights, char *owner, char *mode)
 {
@@ -1284,7 +1292,7 @@ PRIVATE int doCompare(int nreplicas, struct repvol *repv, char **names,
     return(nConflicts);
 }
 
-PRIVATE int compareStatus(int nreplicas, resreplica *dirs)
+static int compareStatus(int nreplicas, resreplica *dirs)
 {
     int	i;
     for (i = 1; i < nreplicas; i++)
@@ -1292,14 +1300,14 @@ PRIVATE int compareStatus(int nreplicas, resreplica *dirs)
 	    return -1;
     return 0;
 }
-PRIVATE int compareOwner(int nreplicas, resreplica *dirs) {
+static int compareOwner(int nreplicas, resreplica *dirs) {
     int i;
     for (i = 1; i < nreplicas; i++)
 	if (dirs[i].owner != dirs[0].owner)
 	    return -1;
     return 0;
 }
-PRIVATE int compareQuotas(int nreplicas, char **names)
+static int compareQuotas(int nreplicas, char **names)
 {
     if (nreplicas <= 1) {
 	printf("Comparing Quotas: Not enough replicas to compare\n");
@@ -1336,7 +1344,7 @@ PRIVATE int compareQuotas(int nreplicas, char **names)
     return 0;
 }
 
-PRIVATE void printAcl(struct Acl *acl)
+static void printAcl(struct Acl *acl)
 {
     int i;
     
@@ -1349,7 +1357,7 @@ PRIVATE void printAcl(struct Acl *acl)
     printf("End of Access List\n");
 }
 
-PRIVATE int compareAcl(int nreplicas, resreplica *dirs)
+static int compareAcl(int nreplicas, resreplica *dirs)
 {
     int	i, j;
     struct Acl *al0, *ali;
@@ -1377,7 +1385,7 @@ PRIVATE int compareAcl(int nreplicas, resreplica *dirs)
 }
 
 
-PRIVATE int compareVV(int nreplicas, char **names, struct repvol *repv) 
+static int compareVV(int nreplicas, char **names, struct repvol *repv) 
 {
     vv_t vv[MAXHOSTS];
     vv_t *vvp[MAXHOSTS];
@@ -1402,7 +1410,7 @@ PRIVATE int compareVV(int nreplicas, char **names, struct repvol *repv)
     return(0);
 }
 
-PRIVATE void getremovelists(int nreplicas, resreplica *dirs, struct listhdr **repairlist)
+static void getremovelists(int nreplicas, resreplica *dirs, struct listhdr **repairlist)
 {
     struct repair rep;
     resdir_entry *rde;
@@ -1425,7 +1433,7 @@ PRIVATE void getremovelists(int nreplicas, resreplica *dirs, struct listhdr **re
 	}
 }
 
-PRIVATE int makedff(char *extfile, char *intfile /* OUT */)
+static int makedff(char *extfile, char *intfile /* OUT */)
     /* extfile: external (ASCII) rep
        intfile: internal (binary) rep
        Returns 0 on success, -1 on failures
@@ -1454,7 +1462,7 @@ PRIVATE int makedff(char *extfile, char *intfile /* OUT */)
     return(0);
     }
 
-PRIVATE void GetArgs(int argc, char *argv[])
+static void GetArgs(int argc, char *argv[])
 {
     int i;
 
@@ -1480,7 +1488,7 @@ BadArgs:
 }
 
 
-PRIVATE void SetDefaultPaths()
+static void SetDefaultPaths()
 {
     char buf[MAXPATHLEN];
     char *repairrc = getenv("REPAIRRC");
@@ -1526,7 +1534,7 @@ PRIVATE void SetDefaultPaths()
     }
 }
 
-PRIVATE int GetReplicaNames(char **names, int maxnames, char
+static int GetReplicaNames(char **names, int maxnames, char
 			     *ReplicatedName) {
     struct dirent *de;
     struct stat buf;
@@ -1567,7 +1575,7 @@ PRIVATE int GetReplicaNames(char **names, int maxnames, char
 }
 
 // return zero if user has valid tokens
-PRIVATE int GetTokens() {
+static int GetTokens() {
     ClearToken clear;
     EncryptedSecretToken secret;
     return (U_GetLocalTokens(&clear, secret));
@@ -2045,7 +2053,7 @@ void setMixedView(int largc, char **largv)
     fflush(stdout);
 }
 
-PRIVATE void INT(int, int, struct sigcontext *) {
+static void INT(int, int, struct sigcontext *) {
     /* force an end to the current repair session when ^C is hit */
     printf("abnormal exit of repair tool\n");
     fflush(stdout);

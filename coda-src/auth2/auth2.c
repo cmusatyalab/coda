@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/auth2/auth2.cc,v 4.6 1998/03/19 15:19:52 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/auth2/auth2.c,v 4.1 1998/04/14 20:49:39 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -165,6 +165,7 @@ int main(int argc, char **argv)
     RPC2_Handle cid;
     register int rc;
     struct stat buff;
+    FILE *file; 
 
     InitGlobals(argc, argv);
     InitLog();
@@ -175,6 +176,14 @@ int main(int argc, char **argv)
     PWArray = (RPC2_EncryptionKey *)malloc(PWLen*RPC2_KEYSIZE);
     assert(PWArray != NULL);
     InitPW();
+
+    file = fopen("/vice/srv/auth2.pid", "w");
+    if ( !file ) {
+	    perror("Error writing auth2.pid");
+	    exit(1);
+    }
+    fprintf(file, "%d", getpid());
+    fclose(file);
     
     LogMsg(-1, 0, stdout, "Server successfully started\n");
 

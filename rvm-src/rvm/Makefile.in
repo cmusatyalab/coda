@@ -42,7 +42,7 @@
 # changes  without  encumbrance.   Such improvements and extensions
 # should be returned to Software.Distribution@cs.cmu.edu.
 #
-# rcsid = $Header: /afs/cs/project/coda-src/cvs/coda/rvm-src/rvm/Makefile.in,v 4.8 1997/12/02 16:40:57 braam Exp $
+# rcsid = $Header: /afs/cs/project/coda-src/cvs/coda/rvm-src/rvm/Makefile.in,v 4.9 1998/01/10 18:40:45 braam Exp $
 #
 
 TOPDIR = @top_srcdir@
@@ -55,8 +55,6 @@ TOPOBJ = @TOPOBJ@
 
 include $(MAKDIR)/Makeconf
 
-# presto changeo!
-INCLDIR := $(INCLSPECIAL)
 SHOB_LIB_DIR := $(SHOB_LIB_SPECIAL)
 
 EXECUTABLES = rvmutl

@@ -33,7 +33,7 @@ should be returned to Software.Distribution@cs.cmu.edu.
 
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/rvm-src/seg/rvm_loadseg.c,v 4.2 1998/03/06 20:21:53 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/rvm-src/seg/rvm_loadseg.c,v 4.3 1998/04/14 20:45:27 braam Exp $";
 #endif _BLURB_
 
 #include <stdlib.h>
@@ -74,6 +74,7 @@ rvm_load_segment(DevName, DevLength, options, nregions, regions)
     RVM_ZERO_OFFSET(hdr_region->offset);
     hdr_region->length = RVM_SEGMENT_HDR_SIZE;
 
+    hdr_region->vmaddr = NULL;
     err = allocate_vm(&(hdr_region->vmaddr), hdr_region->length);
     if (err != RVM_SUCCESS)
 	return err;

@@ -267,8 +267,7 @@ void coda_flag_alias_children(struct inode *inode, int flag)
 	while ( alias != &inode->i_dentry ) {
 		alias_de = list_entry(alias, struct dentry, d_alias);
 		if ( !alias_de ) {
-			printk("Corrupt alias list for %*s\n",
-			       alias_de->d_name.len, alias_de->d_name.name);
+			printk("Null alias list for inode %ld\n", inode->i_ino);
 			return;
 		}
 		coda_flag_children(alias_de, flag);

@@ -30,7 +30,7 @@
 #Mellon the rights to redistribute these changes without encumbrance.
 #*/
 #
-#static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/scripts/startserver,v 4.8 1998/01/28 19:12:02 braam Exp $";
+#static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/scripts/startserver,v 4.10 1998/03/18 18:56:41 braam Exp $";
 #endif /*_BLURB_*/
 
 if [ -f /vice/srv/pid ]; then
@@ -39,7 +39,7 @@ if [ -f /vice/srv/pid ]; then
 fi 
 
 # Remove outdated logfiles
-rm -f /vice/srv/SrvErr
+mv /vice/srv/SrvErr /vice/srv/SrvErr.prev
 rm -f /vice/srv/SrvLog-7
 rm -f /vice/srv/CRASH
 
@@ -49,6 +49,6 @@ rm -f /vice/srv/CRASH
 # length of the file or device holding the RVM data segment.
 # These parameters are taken from /vice/srv.conf
 
-srv $* -trunc 5 -nosalvageonshutdown -nodumpvm `grep '^\-rvm ' /vice/srv.conf`
+srv $* -trunc 5 -debarrenize -nosalvageonshutdown -nodumpvm `grep '^\-rvm ' /vice/srv.conf`
 
 rm -f /vice/srv/pid

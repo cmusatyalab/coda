@@ -1,0 +1,40 @@
+
+Coda Servers for Windows NT
+---------------------------
+
+This release of Coda has alpha support for Coda servers running on NT
+and Windows 95.  The Win32 binaries are constructed using the Cygnus
+Win32 kit, which effectively translates Unix system calls to Win32
+calls.
+
+We build the Win32 binaries on Linux workstations using a cross
+compiler, just for our convenience.
+
+NOTE: there is no client support for NT yet.
+
+Building
+--------
+
+1. Get the cross compiling kit:
+ftp://ftp.coda.cs.cmu.edu/pub/tools/win32/cygwin-b19_glibc-2.i386.rpm
+
+You also need:
+ftp://ftp.coda.cs.cmu.edu/pub/tools/win32/libgdbm-nt-1.7.3-2.i386.rpm
+
+(These are rpms for RedHat 5.0. Sources are available of course.)
+
+2. Get a tar ball of release 4.6.0 or higher:
+
+ftp://ftp.coda.cs.cmu.edu/pub/coda/src
+
+3. Unpack & build
+
+./configure --host=nt
+make coda
+
+Installing
+----------
+
+1. Install into an area for NT binaries
+
+

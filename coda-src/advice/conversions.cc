@@ -77,6 +77,10 @@ InterestID GetInterestID(char *interestString) {
       interest = TaskAvailabilityID;
     else if (strncmp(interestString, "TaskUnavailable", strlen("TaskUnavailable")) == 0)
       interest = TaskUnavailableID;
+    else if (strncmp(interestString, "ProgramAccessLogs", strlen("ProgramAccessLogs")) == 0)
+      interest = ProgramAccessLogsID;
+    else if (strncmp(interestString, "ReplacementLogs", strlen("ReplacementLogs")) == 0)
+     interest = ReplacementLogsID;
     else if (strncmp(interestString, "InvokeASR", strlen("InvokeASR")) == 0)
       interest = InvokeASRID;
     else {
@@ -178,6 +182,12 @@ char *InterestToString(InterestID interest) {
       case TaskUnavailableID:
         strncpy(returnString, "TaskUnavailable", MAXEVENTLEN);
         break;
+      case ProgramAccessLogsID:
+	  strncpy(returnString, "ProgramAccessLogs", MAXEVENTLEN);
+	  break;
+      case ReplacementLogsID:
+	  strncpy(returnString, "ReplacementLogs", MAXEVENTLEN);
+	  break;
       case InvokeASRID:
         strncpy(returnString, "InvokeASR", MAXEVENTLEN);
         break;

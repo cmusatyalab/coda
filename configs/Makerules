@@ -241,14 +241,19 @@ srcinstall:
 # testing variables
 ##################
 show showvar:
+	@echo  SECSRC: $(SECSRC)
 	@echo  RP2GEN: $(RP2GEN)
 	@echo  SHADOWINCLS: $(SHADOWINCLS)
 	@echo  SHADOWRP2: $(SHADOWRP2)
 	@echo  INCLPATH: $(INCLPATH)	
+	@echo  OLDVPATH: $(OLDVPATH)
 	@echo  VPATH: $(VPATH)
-	@echo  SHOB: $(SHOB) 
+	@echo  VPATHTAIL: $(VPATHTAIL)
+	@echo  SHOB: $(SHOB)
 	@echo  SECSRC: $(SECSRC) 
 	@echo  CFLAGS: $(CFLAGS)
+	@echo  INCLDIR: $(INCLDIR)
+	@echo  INCLFLAGS: $(INCLFLAGS)
 	@echo  TOPDIR: $(TOPDIR) 
 	@echo  LIBDIR: $(LIBDIR)
 	@echo  LIBEXECDIR: $(LIBEXECDIR)

@@ -14,9 +14,6 @@ TOPOBJ = @TOPOBJ@
 
 include $(MAKDIR)/Makeconf
 
-# presto changeo
-INCLDIR := $(INCLSPECIAL)
-
 HEADERS = assert.h voltypes.h inodeops.h
 
 include $(MAKDIR)/configs/Makerules

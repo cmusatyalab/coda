@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rpc2/rpc2a.c,v 4.3 1997/11/13 15:03:15 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rpc2/rpc2a.c,v 4.4 1998/04/14 21:07:02 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -92,31 +92,37 @@ Protocol
 
 Connection Invariants:
 =====================
-	1. State:	Modified in GetRequest, SendResponse, MakeRPC,
-			    MultiRPC, Bind and SocketListener.
-			Always C_THINK in client code.
-			In S_AWAITREQUEST when not servicing a request, in server code.
-			In S_PROCESS between a GetRequest and a SendResponse in server code.
-			Other values used only during bind sequence.
-			Set to S_HARDERROR or C_HARDERROR on a permanent error.
+	1. State:	  
+	                  Modified in GetRequest, SendResponse,
+	                  MakeRPC, MultiRPC, Bind and SocketListener.
+	                  Always C_THINK in client code.  In
+	                  S_AWAITREQUEST when not servicing a request,
+	                  in server code.  In S_PROCESS between a
+	                  GetRequest and a SendResponse in server
+	                  code.  Other values used only during bind
+	                  sequence.  Set to S_HARDERROR or C_HARDERROR
+	                  on a permanent error.
 
-	2. NextSeqNumber:
-			Initialized by connection creation code in GetRequest.
-			ALWAYS  updated by SocketListener, except in the RPC2_MultiRPC case.
-			Updated in RPC2_MultiRPC() if SocketListener return code is WAITING.
-			On client side, in state C_THINK, this value is the next outgoing
-			    request's sequence number.
-			On server side, in state S_AWAITREQUEST, this value is the
-			    next incoming request's sequence number.
+	2. NextSeqNumber: Initialized by connection creation code in
+			GetRequest.  ALWAYS updated by SocketListener,
+			except in the RPC2_MultiRPC case.  Updated in
+			RPC2_MultiRPC() if SocketListener return code
+			is WAITING.  On client side, in state C_THINK,
+			this value is the next outgoing request's
+			sequence number.  On server side, in state
+			S_AWAITREQUEST, this value is the next
+			incoming request's sequence number.
 
 NOTE 1
 ======
-    The code  works with the LWP preemption package.  All user-callable
-    RPC2 routines are in critical sections.  The independent LWPs such as 
-    SocketListener, side-effect LWPs, etc. are totally non-preemptible, since they do not
-    do a PRE_PreemptMe() call.  The only lower-level RPC routines that have to be 
-    explicitly bracketed by critical sections are the randomize and encryption routines which
-    are useful independent of RPC2.
+
+    The code works with the LWP preemption package.  All user-callable
+    RPC2 routines are in critical sections.  The independent LWPs such
+    as SocketListener, side-effect LWPs, etc. are totally
+    non-preemptible, since they do not do a PRE_PreemptMe() call.  The
+    only lower-level RPC routines that have to be explicitly bracketed
+    by critical sections are the randomize and encryption routines
+    which are useful independent of RPC2.  
 */
 
 

@@ -402,9 +402,9 @@ static void Dump_Processes()
 	for (i=0; i<MAX_PRIORITIES; i++)
 	    for_all_elts(x, runnable[i], {
 		printf("[Priority %d]\n", i);
-		Dump_One_Process(x, stdout, FREE_STACKS);
+		Dump_One_Process(x, lwp_logfile, FREE_STACKS);
 	    })
-	for_all_elts(x, blocked, { Dump_One_Process(x, stdout, FREE_STACKS); })
+	for_all_elts(x, blocked, { Dump_One_Process(x, lwp_logfile, FREE_STACKS); })
     } else
 	printf("***LWP: LWP support not initialized\n");
 }
@@ -415,9 +415,9 @@ void LWP_Print_Processes()
 	for (i=0; i<MAX_PRIORITIES; i++)
 	    for_all_elts(x, runnable[i], {
 		printf("[Priority %d]\n", i);
-		Dump_One_Process(x, stdout, DONT_FREE);
+		Dump_One_Process(x, lwp_logfile, DONT_FREE);
 	    })
-	for_all_elts(x, blocked, { Dump_One_Process(x, stdout, DONT_FREE); })
+	for_all_elts(x, blocked, { Dump_One_Process(x, lwp_logfile, DONT_FREE); })
     } else
 	printf("***LWP: LWP support not initialized\n");
 }
@@ -773,47 +773,39 @@ int LWP_DestroyProcess(pid)
 #endif OLDLWP
 }
 
-int LWP_DispatchProcess()		/* explicit voluntary preemption */
+/* explicit voluntary preemption */
+int LWP_DispatchProcess()
 {
-    lwpdebug(0, "Entered Dispatch_Process");
-    if (lwp_init) {
+	lwpdebug(0, "Entered Dispatch_Process");
+	if (lwp_init) {
 #ifdef OLDLWP
-	Set_LWP_RC();
+		Set_LWP_RC();
 #else OLDLWP
-	Dispatcher();
+		Dispatcher();
 #endif OLDLWP
-	return LWP_SUCCESS;
-    } else
-	return LWP_EINIT;
+		return LWP_SUCCESS;
+	} else
+		return LWP_EINIT;
 }
 
 
+/* New initialization procedure; checks header and library versions
+   Use this instead of LWP_InitializeProcessSupport() First argument
+   should always be LWP_VERSION.  */
 
-int LWP_Init(version, priority, pid)
-    int version;
-    int priority;
-    PROCESS *pid;
-    /* New initialization procedure; checks header and library versions
-       Use this instead of LWP_InitializeProcessSupport()
-       First argument should always be LWP_VERSION.
-    */
-    {
-    if (version != LWP_VERSION)
-	{
-	fprintf(stderr, "**** FATAL ERROR: LWP VERSION MISMATCH ****\n");
-	exit(-1);
-	}
-    
-    else return(InitializeProcessSupport(priority, pid));    
+int LWP_Init(int version, int priority, PROCESS *pid)
+{
+    if (version != LWP_VERSION) {
+	    fprintf(stderr, "**** FATAL ERROR: LWP VERSION MISMATCH ****\n");
+	    exit(-1);
+    } else 
+	    return(InitializeProcessSupport(priority, pid));    
 
     lwp_logfile = stderr;
-    }
+}
 
-
-static int InitializeProcessSupport(priority, pid)
-    int priority;
-    PROCESS *pid;
-    /* Used to be externally visible as  LWP_InitializeProcessSupport() */
+/* Used to be externally visible as  LWP_InitializeProcessSupport() */
+static int InitializeProcessSupport(int priority, PROCESS *pid)
 {
 #ifdef OLDLWP
 
@@ -829,15 +821,15 @@ static int InitializeProcessSupport(priority, pid)
 
     if (priority >= MAX_PRIORITIES) return LWP_EBADPRI;
     for (i=0; i<MAX_PRIORITIES; i++) {
-        runnable[i].head = NULL;
-        runnable[i].count = 0;
+	    runnable[i].head = NULL;
+	    runnable[i].count = 0;
     }
     blocked.head = NULL;
     blocked.count = 0;
     lwp_init = (struct lwp_ctl *) malloc(sizeof(struct lwp_ctl));
     temp = (PROCESS) malloc(sizeof(struct lwp_pcb));
     if (lwp_init == NULL || temp == NULL)
-        Abort_LWP("Insufficient Storage to Initialize LWP Support");
+	    Abort_LWP("Insufficient Storage to Initialize LWP Support");
     LWPANCHOR.processcnt = 1;
     LWPANCHOR.outerpid = temp;
     LWPANCHOR.outersp = NULL;
@@ -1555,7 +1547,7 @@ void LWP_ProtectStacks() {
 			      FALSE, VM_PROT_NONE) == KERN_SUCCESS);
 	}
     }
-    fflush(stdout);
+    fflush(lwp_logfile);
 }
 
 void LWP_UnProtectStacks() {

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/update/update.rpc2,v 4.1 1997/01/08 21:51:00 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/update/update.rpc2,v 4.2 1998/04/14 21:08:32 braam Exp $";
 #endif /*_BLURB_*/
 
 /*
@@ -56,11 +56,12 @@ supported by Transarc Corporation, Pittsburgh, PA.
 %}
 
 
+
 Subsystem "update" 1 1;
 #define SUBSYS_UPDATE 132137
 
 
-UpdateFetch	(IN RPC2_String FileName,
+1: UpdateFetch	(IN RPC2_String FileName,
 		 IN RPC2_Unsigned Time,
 		 OUT RPC2_Unsigned NewTime,
 		 OUT RPC2_Unsigned CurrentSecs,

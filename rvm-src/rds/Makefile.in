@@ -41,7 +41,7 @@
 # changes  without  encumbrance.   Such improvements and extensions
 # should be returned to Software.Distribution@cs.cmu.edu.
 #
-# rcsid = $Header: /afs/cs/project/coda-src/cvs/coda/rvm-src/rds/Makefile.in,v 4.5 1997/12/02 16:40:55 braam Exp $
+# rcsid = $Header: /afs/cs/project/coda-src/cvs/coda/rvm-src/rds/Makefile.in,v 4.6 1998/01/10 18:40:41 braam Exp $
 #
 
 #   	RDS Makefile: depends on csmake.
@@ -59,7 +59,6 @@ TOPOBJ = @TOPOBJ@
 include $(MAKDIR)/Makeconf
 
 # presto changeo!
-INCLDIR := $(INCLSPECIAL)
 SHOB_LIB_DIR := $(SHOB_LIB_SPECIAL)
 
 EXECUTABLES = rdsinit 

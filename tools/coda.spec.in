@@ -143,11 +143,27 @@ else
 	/usr/sbin/venus-setup testserver.coda.cs.cmu.edu
 fi
 cd /usr/lib/coda
+if [ ! -x /usr/bin/tixindex ]; then
+	chmod a+x /usr/bin/tixindex 
+fi
 tixindex *tcl
+if [ ! -f /usr/bin/tixwish ]; then
+	ln -s /usr/bin/tixwish* /usr/bin/tixwish
+	if [ x$? != x0 ]; then
+		echo "**WARNING: tixwish is not correctly installed"
+	fi
+fi
+/sbin/chkconfig -add venus.init
+
 
 %post source
 cd /usr/src/redhat/BUILD
 tar zxf coda-@CVER@.tgz
+
+%post server-@LIBC@
+/sbin/chkconfig --add update.init
+/sbin/chkconfig --add auth2.init
+/sbin/chkconfig --add vice.init
 
 %post kernel-@KVER@-module
 /sbin/depmod -a 
@@ -263,6 +279,8 @@ tar zxf coda-@CVER@.tgz
 /usr/bin/norton-reinit
 /usr/bin/reinit
 /etc/rc.d/init.d/vice.init
+/etc/rc.d/init.d/auth2.init
+/etc/rc.d/init.d/update.init
 
 %files backup-@LIBC@	
 /usr/sbin/backup.sh

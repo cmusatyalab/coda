@@ -28,7 +28,7 @@ Carnegie Mellon encourages users of this software to return any
 improvements or extensions that they make, and to grant Carnegie
 Mellon the rights to redistribute these changes without encumbrance.  */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/volutil/backup.cc,v 4.8 1998/03/12 20:45:29 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/volutil/backup.cc,v 4.9 1998/04/14 21:00:35 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -828,7 +828,7 @@ int main(int argc, char **argv) {
 
     /* Start up thread to periodically poll down servers */
     PROCESS pollPid;
-    LWP_CreateProcess((PFIC)PollLWP, 5 * 1024, LWP_NORMAL_PRIORITY - 1,
+    LWP_CreateProcess((PFIC)PollLWP, 8 * 1024, LWP_NORMAL_PRIORITY - 1,
 		      (char *)Naptime, "PollLWP", &pollPid);
 
     /* First try to backup (clone, dump, and mark) all volumes. Do all

@@ -1,0 +1,65 @@
+1998-05-14    <braam@carissimi.coda.cs.cmu.edu>
+
+	* increased the stack of advice_daemon in Venus to 0x4000. Stack
+	overflow was caused by several char[MAXPATHLEN] on the stack. 
+	* increased the stacksize of various things in advice_srv
+	* asked advice_srv to exit if Gui falls over
+	* Fixed some missing code in advice/conversions.cc
+	* Guidir: beginning of better handling of PATHS and 
+	GetServerInformation. advice_srv now works .. at CMU for Peter...
+	* Makeconf Eliots problem with VPATH/INCLFLAGS. fixed.
+	* lwp.c correct initialization of lwp_logfile. 
+
+1998-05-01    <braam@carissimi.coda.cs.cmu.edu>
+
+	* ======== Release 4.6.0 =========
+	* lib-src/mlwp: patches added from Odyssey group to aid in
+	debugging stack problems.
+	* added LWP_SetLog file to set log file and level.
+	* coda-src/rpc2, rp2gen: changes from Odyssey: change time 
+	measurement units to ms from 10ms; add float type to XDR.
+	* included shrink packet bug fix 
+	* assert: changed to while (1) { sleep(1); } to preserve more
+	stack. 
+	* C++/C: we upgraded libal and auth2 and vicedep to "C". All stub
+	will now appear with C linkage (rules for C++ stub code were
+	removed). 
+	* Changed logging in RPC2 to use a log file rather than stdout. 
+	* rvm-src/seg/rvm_loadseg.c: initialized the hdr_vmaddr pointer to 
+	NULL. 
+	* coda-src/venus/vproc.h: use euid instead of fsuid.  This allows
+	samba to export /coda to my windows machine and I can save files
+	directly into Coda.
+	* coda-src/vice/srvproc.cc ViceNewConnection violated RPC2
+	semantics by making a long running call to set up a callback
+	connection with Venus.  This resulted in Venus retransmitting
+	packets. We moved this setup to ViceNewConnectFS. 
+	* kernel-src/vfs/linux21: added /proc entries in /proc/fs/coda
+	showing statistics.  Fixed a bug in flag_children (dereferenced a
+	NULL in a printk statement).  Took care of O_RDONLY == 0
+	(i.e. it's not a bit which is set).
+	* coda-src/advice: the Coda console is still not operational
+	* coda-src/portmapper: a simple portmapper has been added. We will
+	start using this in the future. 
+	* coda-src/rpc2/sl.c: ShrinkPacket -- this contained a nasty bug.
+	If a  packet was sent with a wrong length field in it a random pointer
+	to a buffer may have been returned.  This whole area needs more
+	revisiting. 
+	* coda-src/scripts/startserver: makes a backup copy of
+	SrvErr. Starts the server with the -debarrenize flag to avoid
+	silly salvage problems.
+	* vice.init: split up into 3 scripts for auth2, update and the
+	server. Should now also stop these correctly.  Did away with
+	STARTFROMBOOT for Linux.     
+	* lwp.c: changed the Logging of errors to write to a FILE
+	*lwp_logfile. LWP_SetLog can set this file and the debug
+	level. 
+	* sys/....h: Bob Baron changed a few header orders for
+	compilation on recent FreeBSD's.
+	* kernel-src/vfs/linux21: important bug fix -- the VATRR flag
+	was cleared instead of set in file_write. Fixed.
+	* added suitable RVM addresses for Sparc 1+ machines running
+	Linux. 
+	* Increased the stack size in the PollServer thread in
+	backup. 
+	

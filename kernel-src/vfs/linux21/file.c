@@ -192,13 +192,14 @@ static ssize_t coda_file_write(struct file *coda_file, const char *buff,
                 return -1;
         }
 
-        cnp->c_flags &= ~C_VATTR;
-
 	down(&cont_inode->i_sem);
         result = cont_file.f_op->write(&cont_file , buff, count, 
 				       &(cont_file.f_pos));
 	up(&cont_inode->i_sem);
         coda_restore_codafile(coda_inode, coda_file, cont_inode, &cont_file);
+	
+	if (result)
+		cnp->c_flags |= C_VATTR;
 
         return result;
 }

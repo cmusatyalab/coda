@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/advice.cc,v 4.5 1998/02/26 11:53:23 mre Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/advice.cc,v 4.6 1998/04/14 21:03:02 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -931,7 +931,7 @@ int adviceconn::NewConnection(char *hostName, int portNumber, int pgrp) {
   assert(hostname != NULL);
   assert((strncmp(hostname, "localhost", strlen("localhost")) == 0) ||
 	 (strncmp(hostname, myHostName, MAXHOSTNAMELEN)) == 0);
-  
+
   port = (unsigned short) portNumber;
   pgid = pgrp;
   state = AdviceWaiting;
@@ -1149,8 +1149,8 @@ void adviceconn::ReturnConnection() {
   sid.Value.SubsysId = ADMONSUBSYSID;
 
   bp.SecurityLevel = RPC2_OPENKIMONO;
-  bp.EncryptionType = NULL;
-  bp.SideEffectType = NULL;
+  bp.EncryptionType = 0;
+  bp.SideEffectType = 0;
   bp.ClientIdent = NULL;
   bp.SharedSecret = NULL;
   rc = RPC2_NewBinding(&hid, &pid, &sid, &bp, &cid);
@@ -1538,11 +1538,18 @@ char *InterestToString(InterestID interest) {
       case TaskUnavailableID:
         strncpy(returnString, "TaskUnavailable", MAXEVENTLEN);
         break;
+      case ProgramAccessLogsID:
+	  strncpy(returnString, "ProgramAccessLogs", MAXEVENTLEN);
+	  break;
+      case ReplacementLogsID:
+	  strncpy(returnString, "ReplacementLogs", MAXEVENTLEN);
+	  break;
       case InvokeASRID:
         strncpy(returnString, "InvokeASR", MAXEVENTLEN);
         break;
       default:
-        assert(1 == 0);
+	LOG(0, ("InterestToString: Unrecognized Event ID = %d\n", (int)interest));
+	strncpy(returnString, "UnknownEventString", MAXEVENTLEN);
   }
 
   return(returnString);

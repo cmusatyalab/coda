@@ -94,7 +94,10 @@ unsigned short coda_flags_to_cflags(unsigned short flags)
 {
 	unsigned short coda_flags = 0;
 
-	if ( flags & (O_RDONLY | O_RDWR) )
+	if ( (flags & 0xf) == O_RDONLY )
+		coda_flags |= C_O_READ;
+
+	if ( flags &  O_RDWR )
 		coda_flags |= C_O_READ;
 
 	if ( flags & (O_WRONLY | O_RDWR) )

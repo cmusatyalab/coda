@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rpc2/rpc2.h,v 4.4 1998/04/14 21:07:01 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rpc2/rpc2.h,v 4.5 1998/05/07 17:23:52 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -640,8 +640,10 @@ extern long RPC2_DeExport (RPC2_SubsysIdent *Subsys);
 extern long rpc2_AllocBuffer (long MinBodySize, RPC2_PacketBuffer **BufferPtr, char *SrcFile, long SrcLine);
 extern long RPC2_FreeBuffer (RPC2_PacketBuffer **Buffer);
 extern long RPC2_SendResponse (RPC2_Handle ConnHandle, RPC2_PacketBuffer *Reply);
-extern long RPC2_GetRequest (RPC2_RequestFilter *Filter, RPC2_Handle *ConnHandle,
-	RPC2_PacketBuffer **Request, struct timeval *Patience, long (*GetKeys)(),
+extern long RPC2_GetRequest (RPC2_RequestFilter *Filter, 
+			     RPC2_Handle *ConnHandle,
+			     RPC2_PacketBuffer **Request, 
+			     struct timeval *Patience, long (*GetKeys)(),
 	long EncryptionTypeMask, long (*AuthFail)());
 extern long RPC2_MakeRPC (RPC2_Handle ConnHandle, RPC2_PacketBuffer *Request,
 	 SE_Descriptor *SDesc, RPC2_PacketBuffer **Reply, struct timeval *Patience, long EnqueueRequest);

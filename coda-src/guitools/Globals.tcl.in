@@ -31,18 +31,34 @@ proc InitPathnamesArray { } {
     }
 
     # The ++ notation below is replaced by the Makefile
-    set Pathnames(cfs) +CFS+
-    set Pathnames(ctokens) +CTOKENS+
-    set Pathnames(clog) +CLOG+
-    set Pathnames(cunlog) +CUNLOG+
-    set Pathnames(vutil) +VUTIL+
-    set Pathnames(hoard) +HOARD+
+#     set Pathnames(cfs) +CFS+          
+#     set Pathnames(ctokens) +CTOKENS+  
+#     set Pathnames(clog) +CLOG+        
+#     set Pathnames(cunlog) +CUNLOG+    
+#     set Pathnames(vutil) +VUTIL+      
+#     set Pathnames(hoard) +HOARD+      
+                                        
+#     set Pathnames(awk) +AWK+          
+#     set Pathnames(cp) +CP+            
+#     set Pathnames(df) +DF+            
+#     set Pathnames(grep) +GREP+        
+#     set Pathnames(hostname) +HOSTNAME+
 
-    set Pathnames(awk) +AWK+
-    set Pathnames(cp) +CP+
-    set Pathnames(df) +DF+
-    set Pathnames(grep) +GREP+
-    set Pathnames(hostname) +HOSTNAME+
+set Pathnames(cfs) cfs
+set Pathnames(ctokens) ctokens
+set Pathnames(clog) clog    
+set Pathnames(cunlog) cunlog
+set Pathnames(vutil) vutil      
+set Pathnames(hoard) hoard
+                                  
+set Pathnames(awk) awk        
+set Pathnames(cp) cp            
+set Pathnames(df) df
+set Pathnames(grep) grep
+set Pathnames(hostname) hostname
+
+
+
 }
 
 proc InitAdviceRC { path } {

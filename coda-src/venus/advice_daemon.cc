@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/advice_daemon.cc,v 4.4 1998/02/26 11:53:22 mre Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/advice_daemon.cc,v 4.5 1998/04/14 21:03:03 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -78,7 +78,7 @@ double totalFetched = 0;
 double totalToFetch = 0;
 int lastPercentage = 0;
 
-const int AdviceDaemonStackSize = 8192;
+const int AdviceDaemonStackSize = 0x4000; /* 16k */
 
 int MaxAMServers = UNSET_MAXAMSERVERS;
 
@@ -162,7 +162,7 @@ void adviceserver::main(void *parm) {
     idle = 1;
     LOG(100, ("adviceserver::GetRequest\n"));
     long code = RPC2_GetRequest(&filter, &handle, &packet,
-				NULL, NULL, NULL, NULL);
+				NULL, NULL, 0, NULL);
     idle = 0;
 
     /* Handle RPC2 errors. */
@@ -235,7 +235,7 @@ long S_NewAdviceService(RPC2_Handle _cid, RPC2_String hostname, RPC2_Integer use
   int max, used;
   assert( LWP_CurrentProcess(&this_pid) == LWP_SUCCESS);
   LWP_StackUsed(this_pid, &max, &used);
-  LOG(10, ("NewAdviceService: stack requested = %d, stack used to date = %d \n", max, used));
+  LOG(00, ("NewAdviceService: stack requested = %d, stack used to date = %d \n", max, used));
  }
 
   if ((int)AdSrvVersion != ADSRV_VERSION) {
@@ -252,6 +252,7 @@ long S_NewAdviceService(RPC2_Handle _cid, RPC2_String hostname, RPC2_Integer use
     return CAENOSUCHUSER;
 
   rc = u->NewConnection((char *)hostname, (int)port, (int)pgrp);
+
   u->InitializeProgramLog((vuid_t)userId);
   u->InitializeReplacementLog((vuid_t)userId);
 

@@ -1,0 +1,76 @@
+#!/bin/sh
+#
+# skeleton      Example file to build /etc/init.d scripts.
+#
+# Version:      @(#) /etc/init.d/skeleton 1.01 26-Oct-1993
+#
+# Author:       Miquel van Smoorenburg, <miquels@drinkel.nl.mugnet.org>
+#
+
+# chkconfig: 345 95 02
+# description: The Coda update server and clients
+
+# Source function library if we are a System V type OS using SYSV init.
+# Otherwise, we are probably a BSD like OS.
+
+LOCKDIR=/var/lock/subsys
+PIDDIR=/vice/srv
+DBDIR=/vice/db
+
+PATH=/sbin:/usr/sbin:/usr/local/sbin:$PATH
+export PATH
+
+[ -f /usr/sbin/updatesrv ] || exit 0
+[ -f /usr/sbin/updateclnt ] || exit 0
+[ -d $PIDDIR ] || exit 0
+[ -d $LOCKDIR ] || exit 0
+
+# See how we were called.
+case "$1" in
+  start)
+	# updatesrv
+	if [ ! -f $LOCKDIR/updatesrv.init ]; then
+		touch $LOCKDIR/updatesrv.init
+		updatesrv -p $DBDIR &
+		echo "updatesrv"
+	else
+		echo "updatesrv: already locked."
+		exit 1
+	fi
+
+	# updateclnt
+	if [ ! -f $LOCKDIR/updateclnt.init ]; then
+		touch $LOCKDIR/updateclnt.init
+		updateclnt  -h `cat $DBDIR/scm`  -q coda_udpsrv &
+		echo "updateclnt"
+	else
+		echo "updateclnt: already locked."
+		exit 1
+	fi
+	;;
+  stop)
+	if [ -f $PIDDIR/updatesrv.pid ]; then
+		kill -9 `cat $PIDDIR/updatesrv.pid`
+		rm -f $LOCKDIR/updatesrv.init
+	fi
+
+	if [ -f $PIDDIR/updateclnt.pid ]; then
+		kill -9 `cat $PIDDIR/updateclnt.pid`
+		rm -f $LOCKDIR/updateclnt.init
+	fi
+	;;
+
+ restart)
+        echo -n "Restarting auth2: "
+        $0 stop
+        $0 start
+        echo "done."
+        ;;
+
+
+  *)
+	echo "Usage: $0 {start|stop|restart}"
+	exit 1
+esac
+
+exit 0

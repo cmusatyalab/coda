@@ -39,35 +39,32 @@ include $(MAKDIR)/configs/Makeconf.$(SYS)
 
 ifneq ($(SECSRC),)
 VPATHTAIL := $(subst $(TOPDIR),,$(VPATH))
-OLDVPATH := $(VPATH)
 NEWVPATH := $(SECSRC)$(VPATHTAIL):$(VPATH)
 VPATH := $(NEWVPATH)
-else
-OLDVPATH := $(VPATH)
-VPATH := .:$(OLDVPATH)
 endif
 
 ifneq ($(VPATH),)
 colon=:
-SHADOWINCLS := -I$(subst $(colon), -I,$(VPATH))
-SHADOWPATH  := $(VPATH)
+#SHADOWINCLS := -I. -I$(SHADOWINCLS) -I$(INCLDIR)
+#SHADOWPATH  := $(VPATH)
+INCLDIR=$(TOPOBJ)/include
+INCLPATH  := .:$(VPATH):$(INCLDIR)
+INCLFLAGS :=  -I$(subst $(colon), -I,$(INCLPATH))
+else
+INCLDIR=$(TOPOBJ)/include
+INCLFLAGS :=  -I. -I$(INCLDIR)
+INCLPATH  := .:$(INCLDIR)
 endif
 
 ##############################
 # Location of objects
 ##############################
 
-INCLDIR=$(TOPOBJ)/include
-INCLSPECIAL=$(INCLDIR)
 RP2GEN=../rp2gen/rp2gen
 
 ##############################
 # Machine independent FLAGS
 ##############################
-
-
-INCLFLAGS :=  -I. $(SHADOWINCLS) -I$(INCLDIR) $(INCLFLAGS)
-INCLPATH  := .:$(SHADOWPATH):$(INCLDIR)
 
 DEPFLAG   := -MD
 OPTFLAG   := -g

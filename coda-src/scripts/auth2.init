@@ -7,6 +7,9 @@
 # Author:       Miquel van Smoorenburg, <miquels@drinkel.nl.mugnet.org>
 #
 
+# chkconfig: 345 95 01
+# description: The Coda authentication server.
+
 # Source function library if we are a System V type OS using SYSV init.
 # Otherwise, we are probably a BSD like OS.
 
@@ -47,8 +50,15 @@ case "$1" in
 
 	;;
 
+ restart)
+        echo -n "Restarting auth2: "
+        $0 stop
+        $0 start
+        echo "done."
+        ;;
+
   *)
-	echo "Usage: $0 {start|stop}"
+	echo "Usage: $0 {start|stop|restart}"
 	exit 1
 esac
 

@@ -221,14 +221,12 @@ proc CheckStatisticsCurrency { currency } {
 }
 
 proc GetListOfServerNames { } {
-    SendToStdErr "Implement GetListOfServerNames"
 
-#    set VENUSLOG /usr/coda/venus.cache/venus.log
-#    set first {{ print $1 " " $6}}
-#    set third {{ print $3 "." $16 }}
-#    set servers [exec grep ", binding = " $VENUSLOG | grep ", host = " | grep " : cid = " | awk $third | sort -u | awk -F. $first]
+	SendToAdviceMonitor "GetListOfServerNames"
 
-    return "stravinsky 172696 tchaikovsky 155944 mussorgsky 132686 rameau 243764 poulenc 183567 massenet 137479"
+	set answer [gets stdin]
+
+	return $answer
 }
 
 proc InitServers { } {

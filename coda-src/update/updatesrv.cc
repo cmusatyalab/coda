@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/update/updatesrv.cc,v 4.7 1998/03/19 15:16:19 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/update/updatesrv.cc,v 4.8 1998/04/14 21:08:35 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -84,6 +84,7 @@ extern "C" {
 #include <stdarg.h>
 #include <assert.h>
 #include <signal.h>
+#include <string.h>
 #include <lwp.h>
 #include <lock.h>
 #include <rpc2.h>
@@ -128,49 +129,46 @@ int main(int argc, char **argv)
     strcpy(pname,"coda_udpsrv");
 
     for (i = 1; i < argc; i++) {
-	if (!strcmp(argv[i], "-d"))
-	    SrvDebugLevel = atoi(argv[++i]);  /* perhaps there should be a UpdateDebugLevel? */
-	else
-	    if (!strcmp(argv[i], "-l"))
-		lwps = atoi(argv[++i]);
-	else
-	    if (!strcmp(argv[i], "-p")) {
-		badParm = 0;
-		strcpy(prefix, argv[++i]);
-	    }
-	else
-	    if (!strcmp(argv[i], "-q")) {
-		badParm = 0;
-		strcpy(pname, argv[++i]);
+	    if (!strcmp(argv[i], "-d"))
+		    /* perhaps there should be a UpdateDebugLevel? */
+		    SrvDebugLevel = atoi(argv[++i]);  
+	    else if (!strcmp(argv[i], "-l"))
+		    lwps = atoi(argv[++i]);
+	    else if (!strcmp(argv[i], "-p")) {
+		    badParm = 0;
+		    strcpy(prefix, argv[++i]);
+	    } else 	if (!strcmp(argv[i], "-q")) {
+		    badParm = 0;
+		    strcpy(pname, argv[++i]);
+	    } else 	{
+		    fprintf(stderr, "Bad argument %s to update srv\n", 
+			    argv[i]);
+		    fprintf(stderr, "Usage: updatesrv [-p prefix"
+			    "-d (debug level)]) [-l (number of lwps)]");
+		    exit(1);
 	    }
     }
-    if (badParm) {
-	LogMsg(0, SrvDebugLevel, stderr, 
-	       "usage: updatesrv [-p prefix -d (debug level)]) [-l (number of lwps)] ");
-	LogMsg(0, SrvDebugLevel, stderr, "[-q (portal name)] \n");
-	exit(-1);
-    }
+
     (void) signal(SIGHUP, (void (*)(int))ResetDebug);
     (void) signal(SIGTSTP, (void (*)(int))SetDebug);
     (void) signal(SIGQUIT, (void (*)(int))Terminate);
-
-    len = strlen(argv[0]);
-    if (len > strlen(UPDSRVNAME)) {
-	for (i = 0; i < len; i++) {
-	    *(argv[0] + i) = ' ';
-	}
-	strcpy(argv[0], UPDSRVNAME);
-    }
-
+    
     if (chdir(prefix)) {
-	LogMsg(0, SrvDebugLevel, stdout, "could not chdir to %s\n", prefix);
-	exit(-1);
+	    perror("could not chdir to prefix directory");
+	    exit(-1);
     }
-    freopen("UpdateLog","a+",stdout);
-    freopen("UpdateLog","a+",stderr);
-    assert(file = fopen("pid", "w"));
+
+    freopen("UpdateSrvLog","a+",stdout);
+    freopen("UpdateSrvLog","a+",stderr);
+
+    file = fopen("/vice/srv/updatesrv.pid", "w");
+    if ( !file ) {
+	    perror("Error writing /vice/srv/updatesrv.pid");
+	    exit(1);
+    }
     fprintf(file, "%d", getpid());
     fclose(file);
+
     RPC2_DebugLevel = SrvDebugLevel / 10;
 
     assert(LWP_Init(LWP_VERSION, LWP_MAX_PRIORITY - 1, &parentPid) == LWP_SUCCESS);
@@ -180,8 +178,8 @@ int main(int argc, char **argv)
 	portal1.Tag = RPC2_PORTALBYINETNUMBER;
 	portal1.Value.InetPortNumber = htons(1359);
 #else
-    portal1.Tag = RPC2_PORTALBYNAME;
-    strcpy(portal1.Value.Name, "coda_udpsrv");
+	portal1.Tag = RPC2_PORTALBYNAME;
+	strcpy(portal1.Value.Name, "coda_udpsrv");
 #endif
 
     SFTP_SetDefaults(&sftpi);
@@ -207,7 +205,8 @@ int main(int argc, char **argv)
 	       == LWP_SUCCESS);
     }
     gettimeofday(&tp, &tsp);
-    LogMsg(0, SrvDebugLevel, stdout, "Update Server started %s", ctime((long *)&tp.tv_sec));
+    LogMsg(0, SrvDebugLevel, stdout, 
+	   "Update Server started %s", ctime((long *)&tp.tv_sec));
 
     assert(LWP_WaitProcess((char *)&parentPid) == LWP_SUCCESS);
 
@@ -224,7 +223,9 @@ PRIVATE void SetDebug()
 	SrvDebugLevel = 1;
     }
     RPC2_DebugLevel = SrvDebugLevel/10;
-    LogMsg(0, SrvDebugLevel, stdout, "Set Debug On level = %d, RPC level = %d\n",SrvDebugLevel, RPC2_DebugLevel);
+    LogMsg(0, SrvDebugLevel, stdout, 
+	   "Set Debug On level = %d, RPC level = %d\n",
+	   SrvDebugLevel, RPC2_DebugLevel);
 }
 
 
