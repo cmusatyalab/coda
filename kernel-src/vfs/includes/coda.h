@@ -27,7 +27,7 @@ typedef unsigned long long u_quad_t;
  * Cfs constants
  */
 #define CFS_MAXNAMLEN   255
-#define CFS_MAXPATHLEN  256
+#define CFS_MAXPATHLEN  1024
 #define CFS_MAXSYMLINK  10
 
 /* these are Coda's version of O_RDONLY etc combinations
@@ -177,8 +177,8 @@ struct coda_vattr {
 #define CFS_READLINK	((u_long) 19)
 #define CFS_FSYNC	((u_long) 20)
 #define CFS_INACTIVE	((u_long) 21)
-#define	CFS_VGET	((u_long) 22)
-#define	CFS_SIGNAL	((u_long) 23)
+#define CFS_VGET	((u_long) 22)
+#define CFS_SIGNAL	((u_long) 23)
 #define CFS_REPLACE	((u_long) 24)
 #define CFS_FLUSH       ((u_long) 25)
 #define CFS_PURGEUSER   ((u_long) 26)
@@ -186,12 +186,12 @@ struct coda_vattr {
 #define CFS_ZAPDIR      ((u_long) 28)
 #define CFS_ZAPVNODE    ((u_long) 29)
 #define CFS_PURGEFID    ((u_long) 30)
-
 #define CFS_NCALLS 31
+
 #define DOWNCALL(opcode) (opcode >= CFS_REPLACE && opcode <= CFS_PURGEFID)
 
 #define VC_MAXDATASIZE	    8192
-#define VC_MAXMSGSIZE       sizeof(union inputArgs)+sizeof(union outputArgs) +\
+#define VC_MAXMSGSIZE      sizeof(union inputArgs)+sizeof(union outputArgs) +\
                             VC_MAXDATASIZE  
 
 
@@ -204,6 +204,7 @@ struct cfs_in_hdr {
     unsigned long unique;	    /* Keep multiple outstanding msgs distinct */
     u_short pid;		    /* Common to all */
     u_short pgid;		    /* Common to all */
+    u_short sid;                    /* Common to all */
     struct coda_cred cred;	    /* Common to all */
 };
 
