@@ -32,6 +32,11 @@ extern "C" {
 #endif
 #include <sys/file.h>
 
+#ifdef sun
+#include <sys/statvfs.h>
+#include "sunflock.h"
+#endif
+
 #ifdef __cplusplus
 }
 #endif __cplusplus
@@ -124,7 +129,7 @@ DP_InitPartition(Partent entry, struct inodeops *operations,
 	eprint("Out of memory\n");
 	CODA_ASSERT(0);
     }
-    bzero(dp, sizeof(struct DiskPartition));
+    memset(dp, 0, sizeof(struct DiskPartition));
     list_head_init(&dp->dp_chain);
 
     
@@ -193,10 +198,28 @@ DP_Get(char *name)
 void 
 DP_SetUsage(register struct DiskPartition *dp)
 {
-#if defined(__CYGWIN32__) || defined(DJGPP)
+#if defined(__CYGWIN32__) || defined(DJGPP) 
     dp->free = 10000000;  /* free blocks for non s-users */
     dp->totalUsable = 10000000; 
     dp->minFree = 10;
+#else
+#if defined(sun)
+    struct statvfs vfsbuf;
+    int rc;
+    int reserved_blocks;
+
+    rc = statvfs(dp->name, &vfsbuf);
+    if ( rc != 0 ) {
+	eprint("Error in statvfs of %s\n", dp->name);
+	perror("");
+	CODA_ASSERT( 0 );
+    }
+
+    reserved_blocks = vfsbuf.f_bfree-vfsbuf.f_bavail; /* reserved for s-user */
+    dp->free = vfsbuf.f_bavail;  /* free blocks for non s-users */
+    dp->totalUsable = vfsbuf.f_blocks - reserved_blocks; 
+    dp->minFree = 100 * reserved_blocks / vfsbuf.f_blocks;
+
 #else
     struct statfs fsbuf;
     int rc;
@@ -214,6 +237,7 @@ DP_SetUsage(register struct DiskPartition *dp)
     dp->totalUsable = fsbuf.f_blocks - reserved_blocks; 
     dp->minFree = 100 * reserved_blocks / fsbuf.f_blocks;
 
+#endif
 #endif
 }
 

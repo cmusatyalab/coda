@@ -27,6 +27,7 @@ TOPOBJ = @TOPOBJ@
 
 include $(TOPDIR)/Makeconf
 
+
 CFLAGS := -Wall ${CFLAGS}
 HEADERS   = partition.h  vicetab.h viceinode.h ftreeifs.h simpleifs.h
 OBJS = vicetab.o partition.o inodeops.o simpleifs.o  ftreeifs.o makeftree.o inoder.o backupifs.o
@@ -36,6 +37,10 @@ SSBINS=makeftree inoder
 
 LIBRARIES = libpartition.a
 LIBS = $(LIBPARTITION) $(LIBUTIL) $(LIBRDS) $(LIBSEG) $(LIBRVM) $(LIBOLDLWP) $(LIBBASE)
+
+ifeq ($(SYS),sol2)
+LIBFIXUP += -R/usr/ucblib -L/usr/ucblib -lucb
+endif
 
 
 libpartition.a: $(LIBOBS)
