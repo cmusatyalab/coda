@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/fso.h,v 4.6 1998/01/26 21:31:42 mre Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/fso.h,v 4.7 1998/03/06 20:20:41 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -110,7 +110,7 @@ const int FSDB_MagicNumber = 3620289;
 const int FSDB_NBUCKETS = 2048;
 const int FSO_MagicNumber = 2687694;
 
-const int BLOCKS_PER_FILE = 8;			    /* rule of thumb */
+const int BLOCKS_PER_FILE = 24;			    /* rule of thumb */
 const int DFLT_CF = DFLT_CB / BLOCKS_PER_FILE;
 const int UNSET_CF = -1;
 const int MIN_CF = MIN_CB / BLOCKS_PER_FILE;

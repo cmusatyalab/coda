@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/vol_reintegrate.cc,v 4.10 98/06/19 17:58:14 jaharkes Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/vol_reintegrate.cc,v 4.11 98/06/22 16:58:21 jaharkes Exp $";
 #endif /*_BLURB_*/
 
 
@@ -147,6 +147,7 @@ void volent::Reintegrate()
 
             code = IncReintegrate(thisTid);
 
+            MarinerLog("reintegrate::%s, %d/%d\n", name, nrecs, startedrecs);
             eprint("Reintegrate: %s, %d/%d records, result = %s", 
                     name, nrecs, startedrecs, VenusRetStr(code));
 

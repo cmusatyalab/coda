@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/hdb.h,v 4.2 97/12/16 16:08:30 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/hdb.h,v 4.3 1998/01/26 21:31:49 mre Exp $";
 #endif /*_BLURB_*/
 
 
@@ -171,7 +171,7 @@ const int HDB_NBUCKETS = 2048;
 const int HDBENT_MagicNumber = 8204933;
 const int HDBMaxFreeEntries = 32;
 
-const int BLOCKS_PER_HDBE = 16;
+const int BLOCKS_PER_HDBE = 48;
 const int DFLT_HDBE = DFLT_CB / BLOCKS_PER_HDBE;
 const int UNSET_HDBE = -1;
 const int MIN_HDBE = MIN_CB / BLOCKS_PER_HDBE;
