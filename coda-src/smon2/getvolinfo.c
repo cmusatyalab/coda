@@ -86,8 +86,8 @@ long Bind(char *host, short port, long subsys, RPC2_Handle *cid)
 
 static char *viceaddr(unsigned long srvaddr)
 {
-    unsigned long netaddr = htonl(srvaddr);
-    struct in_addr host = *(struct in_addr *)&netaddr;
+    struct in_addr host;
+    host.s_addr = htonl(srvaddr);
     return inet_ntoa(host);
 }
 
