@@ -49,6 +49,10 @@ extern "C" {
 #include "fso.h"
 #include "venus.private.h"
 
+/* Prototype */
+extern "C" {
+int mkpath (const char *name, mode_t mode);
+}
 
 /*  *****  CacheFile Members  *****  */
 
@@ -57,7 +61,8 @@ extern "C" {
 CacheFile::CacheFile(int i) {
     /* Assume caller has done RVMLIB_REC_OBJECT! */
     /* RVMLIB_REC_OBJECT(*this); */
-    sprintf(name, "V%d", i);
+    sprintf(name, "%x/%x%/%x/%x", (i>>24) & 0xff, (i>>16) & 0xff,
+	    			  (i>>8) & 0xff, i & 0xff);
     inode = (ino_t)-1;
     length = validdata = 0;
     refcnt = 1;
@@ -132,6 +137,8 @@ void CacheFile::Create(int newlength = 0) {
 
     int tfd;
     struct stat tstat;
+    if (mkpath(name, V_MODE | 0100)<0)
+        CHOKE("CacheFile::Create: could not make path for %s", name);
     if ((tfd = ::open(name, O_RDWR | O_CREAT | O_TRUNC | O_BINARY, V_MODE)) < 0)
 	CHOKE("CacheFile::Create: open failed (%d)", errno);
 

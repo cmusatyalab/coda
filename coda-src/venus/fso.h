@@ -277,12 +277,15 @@ enum FsoState {	FsoRunt,
 /* The different uses of CacheFile are: */
 /*    1. Copy of plain file */
 /*    2. Unix-format copy of directory */
+
+#define CACHEFILENAMELEN 12
+
 class CacheFile {
     long length;
     long validdata; /* amount of successfully fetched data */
     int  refcnt;
     ino_t inode;				/* for iopen() */
-    char name[8];				/* "Vxxxxxx" */
+    char name[CACHEFILENAMELEN];		/* "xx/xx/xx/xx" */
     int numopens;
 
     int ValidContainer();

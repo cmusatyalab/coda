@@ -350,12 +350,14 @@ extern int vnode_deallocs;
    inputbuffer, which is the same pointer as the output buffer.
 */
 
+#define CNODE_CFNAME_LEN 128
+
 struct venus_cnode {
 	u_short	    c_flags;	/* flags (see below) */
 	ViceFid	    c_fid;	/* file handle */
 	dev_t	    c_device;	/* associated vnode device */
 	ino_t	    c_inode;	/* associated vnode inode */
-	char        c_cfname[128]; /* container file name */
+	char        c_cfname[CNODE_CFNAME_LEN]; /* container file name */
 	int         c_type;
 };
 

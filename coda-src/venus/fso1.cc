@@ -127,7 +127,8 @@ fsobj::fsobj(int i) : cf(i) {
 
 /* MUST be called from within transaction! */
 fsobj::fsobj(ViceFid *key, char *name) : cf() {
-    LOG(10, ("fsobj::fsobj: fid = (%s), comp = %s\n", FID_(key), name));
+    LOG(10, ("fsobj::fsobj: fid = (%s), comp = %s\n", FID_(key),
+	     name == NULL ? "(no name)" : name));
 
     RVMLIB_REC_OBJECT(*this);
     ResetPersistent();
