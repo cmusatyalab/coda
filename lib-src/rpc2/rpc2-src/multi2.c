@@ -67,11 +67,13 @@ Pittsburgh, PA.
 #define _PADWORD(n)(((n)+1) & ~1)
 #define _PADLONG(n)_PAD(n)
 
-extern int mkcall(long (*ClientHandler)(), int ArgCount, int HowMany,
-		  RPC2_Handle ConnList[], long offset, long rpcval, int *args);
+extern int mkcall(RPC2_HandleResult_func *ClientHandler, int ArgCount,
+		  int HowMany, RPC2_Handle ConnList[], long offset, long rpcval,
+		  int *args);
 
-extern long HandleResult();
-long MRPC_UnpackMulti();
+long MRPC_UnpackMulti(int HowMany, RPC2_Handle ConnHandleList[],
+                      ARG_INFO *ArgInfo, RPC2_PacketBuffer *rspbuffer,
+                      long rpcval, long offset);
 
 int  get_len(ARG **a_types, PARM **args, MODE mode);
 void pack(ARG *a_types, PARM **args, PARM **_ptr);
@@ -92,9 +94,11 @@ void byte_pad(PARM **args);
     HandleResult	user procedure to be called after each server return
     Timeout	user specified timeout
 */
-long MRPC_MakeMulti(int ServerOp, ARG ArgTypes[], RPC2_Integer HowMany,
-		    RPC2_Handle CIDList[], RPC2_Integer RCList[], RPC2_Multicast *MCast,
-		    long (*HandleResult)(), struct timeval *Timeout, ...)
+long MRPC_MakeMulti (int ServerOp, ARG ArgTypes[], RPC2_Integer HowMany,
+		     RPC2_Handle CIDList[], RPC2_Integer RCList[],
+		     RPC2_Multicast *MCast,
+		     RPC2_HandleResult_func *HandleResult,
+		     struct timeval *Timeout,  ...)
 {
     RPC2_PacketBuffer *_reqbuffer;
     struct timeval;

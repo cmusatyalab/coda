@@ -140,7 +140,7 @@ struct TraceElem
 	    RPC2_PacketBuffer Request;
 	    int IsNullSDesc;
 	    SE_Descriptor SDesc;
-	    long (*HandleResult)();
+	    RPC2_HandleResult_func *HandleResult;
 	    int IsNullBreathOfLife;
 	    struct timeval BreathOfLife;
 /*	    int EnqueueRequest; */

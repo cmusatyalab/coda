@@ -664,14 +664,39 @@ extern long RPC2_DeExport (RPC2_SubsysIdent *Subsys);
 extern long rpc2_AllocBuffer (long MinBodySize, RPC2_PacketBuffer **BufferPtr, char *SrcFile, long SrcLine);
 extern long RPC2_FreeBuffer (RPC2_PacketBuffer **Buffer);
 extern long RPC2_SendResponse (RPC2_Handle ConnHandle, RPC2_PacketBuffer *Reply);
-extern long RPC2_GetRequest (RPC2_RequestFilter *Filter, RPC2_Handle *ConnHandle,
-	RPC2_PacketBuffer **Request, struct timeval *Patience, long (*GetKeys)(),
-	long EncryptionTypeMask, long (*AuthFail)());
+
+typedef long RPC2_GetKeys_func(RPC2_Integer AuthenticationType,
+			       RPC2_CountedBS CIdent,
+			       RPC2_EncryptionKey SharedSecret,
+			       RPC2_EncryptionKey sessionkey);
+typedef long RPC2_AuthFail_func(RPC2_Integer AuthenticationType,
+				RPC2_CountedBS CIdent,
+				RPC2_Integer EncryptionType,
+				RPC2_HostIdent PeerHost,
+				RPC2_PortIdent PeerPort);
+
+extern long RPC2_GetRequest (RPC2_RequestFilter *Filter,
+			     RPC2_Handle *ConnHandle,
+			     RPC2_PacketBuffer **Request,
+			     struct timeval *Patience, RPC2_GetKeys_func *,
+			     long EncryptionTypeMask, RPC2_AuthFail_func *);
+
 extern long RPC2_MakeRPC (RPC2_Handle ConnHandle, RPC2_PacketBuffer *Request,
-	 SE_Descriptor *SDesc, RPC2_PacketBuffer **Reply, struct timeval *Patience, long EnqueueRequest);
-extern long RPC2_MultiRPC (int HowMany, RPC2_Handle ConnHandleList[], RPC2_Integer RCList[],
-	RPC2_Multicast *MCast, RPC2_PacketBuffer *Request, SE_Descriptor SDescList[],
-	long (*UnpackMulti)(), ARG_INFO *ArgInfo, struct timeval *BreathOfLife);
+			  SE_Descriptor *SDesc, RPC2_PacketBuffer **Reply,
+			  struct timeval *Patience, long EnqueueRequest);
+
+typedef long RPC2_UnpackMulti_func(int HowMany,
+				   RPC2_Handle ConnHandleList[],
+				   ARG_INFO *ArgInfo,
+				   RPC2_PacketBuffer *Reply,
+				   long errcode, long idx);
+
+extern long RPC2_MultiRPC (int HowMany, RPC2_Handle ConnHandleList[],
+			   RPC2_Integer RCList[], RPC2_Multicast *MCast,
+			   RPC2_PacketBuffer *Request,
+			   SE_Descriptor SDescList[], RPC2_UnpackMulti_func *, 
+			   ARG_INFO *ArgInfo, struct timeval *BreathOfLife);
+
 extern long RPC2_NewBinding (RPC2_HostIdent *Host, RPC2_PortIdent *Port,
 	 RPC2_SubsysIdent *Subsys, RPC2_BindParms *BParms, RPC2_Handle *ConnHandle);
 extern long RPC2_InitSideEffect (RPC2_Handle ConnHandle, SE_Descriptor *SDesc);
@@ -693,10 +718,9 @@ extern long RPC2_CreateMgrp (RPC2_Handle *MgroupHandle, RPC2_McastIdent *Multica
 extern long RPC2_AddToMgrp (RPC2_Handle MgroupHandle, RPC2_Handle ConnHandle);
 extern long RPC2_RemoveFromMgrp (RPC2_Handle MgroupHandle, RPC2_Handle ConnHandle);
 extern long RPC2_DeleteMgrp (RPC2_Handle MgroupHandle);
-
 extern long MRPC_MakeMulti (int ServerOp, ARG ArgTypes[], RPC2_Integer HowMany,
 	RPC2_Handle CIDList[], RPC2_Integer RCList[], RPC2_Multicast *MCast,
-	long (*HandleResult)(), struct timeval *Timeout,  ...);
+	RPC2_HandleResult_func *, struct timeval *Timeout,  ...);
 
 extern long RPC2_SetColor (RPC2_Handle ConnHandle, RPC2_Integer Color);
 extern long RPC2_GetColor (RPC2_Handle ConnHandle, RPC2_Integer *Color);

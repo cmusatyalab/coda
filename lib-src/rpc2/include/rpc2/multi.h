@@ -43,7 +43,8 @@ Pittsburgh, PA.
 #include "se.h"
 #define MAXSERVERS 100
 
-extern long MakeMulti();
+typedef long RPC2_HandleResult_func(int HowMany, RPC2_Handle ConnList, long offset, long rpcval, ...);
+
 
 /* union for packing and unpacking unspecified arguments (identified by parallel ARG
  * structure
@@ -74,7 +75,7 @@ typedef	union PARM {				     /* PARM will always be 4 bytes */
 typedef struct arg_info {
 			ARG		*ArgTypes;
 			PARM		*Args;
-			long		(*HandleResult)();
+			RPC2_HandleResult_func *HandleResult;
 			int		ArgCount;
 } ARG_INFO;
 
