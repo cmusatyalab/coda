@@ -5,20 +5,5 @@
 # definitions for NT
 # Peter Braam
 
-
-#
-# for native compilation the include paths below need "ifeq"-ing
-# like the binaries do:
-#
-
-EXTRAS = cygwin
-
 MACHINE_FLAGS  := $(MACHINE_FLAGS) -D__CYGWIN32__ -gstabs
 SHORTSYS      	= cygwin
-LIBFIXUP	= $(TOPOBJ)/cygwin/libbraindead.a
-LIBCOMPAT	=
-INCREADLINE	= 
-LIBREADLINE	= 
-LIBTERMCAP	= -ltermcap
-#for rvm
-GUIDIR        = /usr/lib/coda

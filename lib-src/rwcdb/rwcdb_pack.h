@@ -19,6 +19,13 @@ Coda are listed in the file CREDITS.
 
 #include <sys/types.h>
 
+/* really bad hack, but this should work for 'most' systems :) */
+#ifndef __BYTE_ORDER
+#define __BIG_ENDIAN    4321
+#define __LITTLE_ENDIAN 1234
+#define __BYTE_ORDER __LITTLE_ENDIAN
+#endif
+
 /*=====================================================================*/
 /* stuff for packing/unpacking db values */
 

@@ -160,6 +160,7 @@ int MsgRead(msgent *m)
 #elif defined(__CYGWIN32__)
         DWORD size;  
         size_t cc = read(worker::muxfd, (char *)&size, sizeof(size)); 
+	CODA_ASSERT(size <= VC_MAXMSGSIZE);
 	cc = read(worker::muxfd, m->msg_buf, (int)size);
 #else
 	size_t cc = read(worker::muxfd, m->msg_buf, (int) (VC_MAXMSGSIZE));

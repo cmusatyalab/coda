@@ -140,6 +140,8 @@ typedef int		     int32_t;
 typedef unsigned int	   u_int32_t;
 #endif
 
+typedef int32_t cuid_t;
+typedef int32_t cgid_t;
 
 /*
  * Cfs constants
@@ -239,8 +241,8 @@ struct coda_vattr {
 	long     	va_type;	/* vnode type (for create) */
 	u_short		va_mode;	/* files access mode and type */
 	short		va_nlink;	/* number of references to file */
-	uid_t		va_uid;		/* owner user id */
-	gid_t		va_gid;		/* owner group id */
+	cuid_t		va_uid;		/* owner user id */
+	cgid_t		va_gid;		/* owner group id */
 	long		va_fileid;	/* file id */
 	u_quad_t	va_size;	/* file size in bytes */
 	long		va_blocksize;	/* blocksize preferred for i/o */
@@ -326,7 +328,7 @@ struct coda_in_hdr {
     u_int32_t unique;	    /* Keep multiple outstanding msgs distinct */
     pid_t pid;
     pid_t pgid;
-    uid_t uid;
+    cuid_t uid;
 };
 
 /* Really important that opcode and unique are 1st two fields! */
@@ -615,7 +617,7 @@ struct coda_vget_out {
 /* CODA_PURGEUSER is a venus->kernel call */
 struct coda_purgeuser_out {
     struct coda_out_hdr oh;
-    uid_t uid;
+    cuid_t uid;
 };
 
 /* coda_zapfile: */

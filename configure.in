@@ -163,8 +163,6 @@ utils-src/Makefile
 utils-src/potemkin/Makefile 
 utils-src/potemkin/ds/Makefile 
 utils-src/potemkin/potemkin/Makefile  
-cygwin/Makefile 
-cygwin/sys/Makefile
 djgpp/Makefile 
 djgpp/relay/Makefile 
 djgpp/inject/Makefile 

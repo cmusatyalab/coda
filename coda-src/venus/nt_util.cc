@@ -71,9 +71,7 @@ nt_do_mounts (void *junk)
     HANDLE h;
     OW_PSEUDO_MOUNT_INFO info;
     DWORD nBytesReturned;
-    CHAR outBuf[4096];
     DWORD d;
-    int n;
     int ctlcode = OW_FSCTL_DISMOUNT_PSEUDO;
     
     WCHAR link[20] = L"\\??\\X:";  
@@ -151,7 +149,7 @@ nt_mount (char *drivename)
 
     mount = 1;
     
-    h = CreateThread(0, 0, nt_do_mounts, NULL, 0, NULL);
+    h = CreateThread(0, 0, (LPTHREAD_START_ROUTINE)nt_do_mounts, NULL, 0, NULL);
 
     if (!h) {
 	eprint ("CreateThread failed.  Mount unsuccessful.  Killing venus.");
@@ -244,7 +242,7 @@ int nt_initialize_ipc (int sock)
     doexit = 0;
 
     // Start the kernel monitor
-    kernelmon = CreateThread (0, 0, listen_kernel, NULL, 0, NULL);
+    kernelmon = CreateThread (0, 0, (LPTHREAD_START_ROUTINE)listen_kernel, NULL, 0, NULL);
     if (kernelmon == NULL) {
 	return 0;
     }
@@ -297,7 +295,7 @@ static SERVICE_STATUS_HANDLE   myhand;
 
 // Service prototypes
 
-static void ntsrv_start (DWORD argc, LPTSTR *argv);
+static void ntsrv_start (DWORD argc, LPSTR *argv);
 static void ntsrv_install (void);
 static void ntsrv_remove (void);
 static void ntsrv_ctrl (DWORD op);
@@ -309,7 +307,7 @@ int
 main (int argc, char **argv)
 {
     SERVICE_TABLE_ENTRY Dispatch[] = {
-	{ TEXT(ServiceName), ntsrv_start },
+	{ TEXT(ServiceName), (LPSERVICE_MAIN_FUNCTION)ntsrv_start },
 	{ NULL, NULL }
     };
     
@@ -333,7 +331,7 @@ main (int argc, char **argv)
 
 // Service Control Handler Function
 
-void ntsrv_ctrl (DWORD op)
+static void ntsrv_ctrl (DWORD op)
 {
     if (op == SERVICE_CONTROL_STOP || op == SERVICE_CONTROL_SHUTDOWN) {
 	
@@ -359,9 +357,9 @@ void ntsrv_ctrl (DWORD op)
 }
 
 
-void ntsrv_start (DWORD argc, LPTSTR *argv)
+static void ntsrv_start (DWORD argc, LPSTR *argv)
 {
-    myhand = RegisterServiceCtrlHandler (TEXT(ServiceName),  ntsrv_ctrl);
+    myhand = RegisterServiceCtrlHandler (TEXT(ServiceName), (LPHANDLER_FUNCTION)ntsrv_ctrl);
     
     if (!myhand) {
 	eprint ("srv_start: Could not register Ctrl Handler (%d)\n",
@@ -475,7 +473,7 @@ void ntsrv_remove (void)
     if (DeleteService (Srv))
 	printf ("Service Deleted.\n");
     else
-	printf ("Service was not deleted:  error number %d\n", GetLastError());
+	printf ("Service was not deleted:  error number %ld\n", (long)GetLastError());
     
     CloseServiceHandle (Srv);
     CloseServiceHandle (SCMan);

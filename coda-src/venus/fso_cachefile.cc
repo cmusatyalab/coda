@@ -148,8 +148,7 @@ void CacheFile::Create(int newlength)
     if (::fchown(tfd, (uid_t)V_UID, (gid_t)V_GID) < 0)
 	CHOKE("CacheFile::Create: fchown failed (%d)", errno);
 #else
-    if (::chown(name, (uid_t)V_UID, (gid_t)V_GID) < 0)
-	CHOKE("CacheFile::Create: fchown failed (%d)", errno);
+    chown(name, (uid_t)V_UID, (gid_t)V_GID);
 #endif
 #endif
     if (::ftruncate(tfd, newlength) < 0)
