@@ -273,6 +273,7 @@ ROOTVOLUME
 VLDB
 VRDB
 VRList
+maxgroupid
 VSGDB
 EOF
 

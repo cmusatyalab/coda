@@ -179,9 +179,14 @@ long S_VolCreate(RPC2_Handle rpcid, RPC2_String formal_partition,
 	AssignVolumeName(&V_disk(vp), volname, 0);
 
 	/* could probably begin transaction here instead of at beginning */
-	/* must include both ViceCreateRoot and 
-	   VUpdateVolume for vv atomicity */
-	ViceCreateRoot(vp);
+	/* must include both ViceCreateRoot and VUpdateVolume for vv atomicity */
+	if (!ViceCreateRoot(vp)) {
+		VLog(0, "Unable to create the volume root; aborted");
+		rvmlib_abort(VNOVOL);
+		status = VNOVOL;
+		goto exit;
+	}
+
 	V_destroyMe(vp) = V_needsSalvaged(vp) = 0;
 	V_linkcount(vp) = 1;
 	volidx = V_volumeindex(vp);
@@ -206,8 +211,7 @@ long S_VolCreate(RPC2_Handle rpcid, RPC2_String formal_partition,
 	return(status?status:rc);
 }
 
-/* Adapted from the file server; create a root directory for */
-/* a new volume */
+/* Adapted from the file server; create a root directory for a new volume */
 static int ViceCreateRoot(Volume *vp)
 {
     PDirHandle dir;
@@ -219,6 +223,18 @@ static int ViceCreateRoot(Volume *vp)
     char buf3[sizeof(Vnode)];
     Vnode *vn = (Vnode *)buf3;
     vindex v_index(V_id(vp), vLarge, V_device(vp), SIZEOF_LARGEDISKVNODE);
+    int adminid, anyuserid;
+
+    if (AL_NameToId(PRS_ADMINGROUP, &adminid) == -1) {
+	fprintf(stderr, "Cannot find group id for '" PRS_ADMINGROUP
+		        "', check pdb databases!\n");
+	return 0;
+    }
+    if (AL_NameToId(PRS_ANYUSERGROUP, &anyuserid) == -1) {
+	fprintf(stderr, "Cannot find group id for '" PRS_ANYUSERGROUP
+		        "', check pdb databases!\n");
+	return 0;
+    }
 
     memset((void *)vn, 0, sizeof(Vnode));
     memset((char *)vnode, 0, SIZEOF_LARGEDISKVNODE);    
@@ -233,17 +249,18 @@ static int ViceCreateRoot(Volume *vp)
     /* set up the physical directory */
     CODA_ASSERT(!(DH_MakeDir(dir, &did, &did)));
 
-    /* build a two entry ACL that gives all rights to system:admininstrators
-     * and read-lookup rights to system:anyuser */
+    /* build a two entry ACL that gives all rights to System:Administrators
+     * and read-lookup rights to System:AnyUser */
     ACL = VVnodeDiskACL(vnode);
     ACL->MySize = sizeof(AL_AccessList);
     ACL->Version = AL_ALISTVERSION;
     ACL->TotalNoOfEntries = 2;
     ACL->PlusEntriesInUse = 2;
     ACL->MinusEntriesInUse = 0;
-    ACL->ActualEntries[0].Id = PRS_SYSTEMADMINID;
+
+    ACL->ActualEntries[0].Id = adminid;
     ACL->ActualEntries[0].Rights = PRSFS_ALL;
-    ACL->ActualEntries[1].Id = PRS_ANYUSERID;
+    ACL->ActualEntries[1].Id = anyuserid;
     ACL->ActualEntries[1].Rights = PRSFS_READ | PRSFS_LOOKUP;
 
     /* set up vnode info */

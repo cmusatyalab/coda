@@ -88,12 +88,12 @@ int CLIENT_Build(RPC2_Handle RPCid, char *User, RPC2_Integer sl,
     /* get the client's username */
     if (sl == RPC2_OPENKIMONO) {
 	if (STRNEQ(User, "UID=", 4) && AL_IdToName(atoi(User+4), User) == -1)
-	    strcpy(User,"System:AnyUser");
+	    strcpy(User, PRS_ANYUSERGROUP);
     } else {
 	/* The token length, magic, and expiration times have already
 	 * been validated by GetKeysFromToken */
 	if (AL_IdToName((int) st->ViceId, User) == -1)
-	    strcpy(User, "System:AnyUser");
+	    strcpy(User, PRS_ANYUSERGROUP);
 
 	SLog(1, "Authorized Connection for user %s, uid %d, "
 		"Start %d, end %d, time %d",
@@ -448,7 +448,7 @@ static void client_SetUserName(ClientEntry *client)
 {
 	char *name;
 	if (Authenticate && client->SecurityLevel == RPC2_OPENKIMONO)
-		name = "System:AnyUser";
+		name = PRS_ANYUSERGROUP;
 	else
 		name = client->UserName;
 
@@ -456,8 +456,9 @@ static void client_SetUserName(ClientEntry *client)
 	if (AL_NameToId(name, (int *)&(client->Id)) != 0) {
 		if(!STREQ(client->UserName, NEWCONNECT))
 			SLog(0, "User id %s unknown", name);
-		CODA_ASSERT(AL_NameToId("System:AnyUser", 
-				   (int *)&(client->Id)) == 0);
+
+		/* assign the id of System:AnyUser */
+		client->Id = AnyUserId;
 	}
 	CODA_ASSERT(AL_GetInternalCPS((int) client->Id, &(client->CPS)) == 0);
 }

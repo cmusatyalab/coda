@@ -72,7 +72,9 @@ PARTITION=$3
 if [ ! -f "${vicedir}/db/VRList" -a -f "${vicedir}/vol/VRList" ] ; then
   echo "Moving ${vicedir}/vol/VRList to ${vicedir}/db"
   cp "${vicedir}/vol/VRList" "${vicedir}/db/VRList" && rm ${vicedir}/vol/VRList
+  # Need to replicate VRList and maxgroupid too
   echo VRList >> "${vicedir}/db/files"
+  echo maxgroupid >> "${vicedir}/db/files"
 fi
 touch "${vicedir}/db/VRList"
 

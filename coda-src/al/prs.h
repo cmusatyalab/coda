@@ -38,19 +38,12 @@ supported by Transarc Corporation, Pittsburgh, PA.
 #define _PRS_
 
 
-#define PRS_VERSION "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/libal/prs.h,v 4.1 1997/01/08 21:49:47 rvb Exp $"
+#define PRS_VERSION "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/al/prs.h,v 1.2 1999/02/11 21:37:33 smarc Exp $"
 
-#define PRS_MAXNAMELEN 100    /*Maximum length of group and user names*/
+#define PRS_MAXNAMELEN 100    /* Maximum length of group and user names */
 
-#define PRS_SYSTEMID 777      /*Userid of System*/
-
-#define PRS_ANONYMOUSID 776   /*Userid of the fake user Anonymous*/
-
-#define PRS_ANYUSERID -101    /*GroupId of System:AnyUser*/
-
-#define PRS_SYSTEMADMINID -204 /*GroupId of System:Administrators */
-
-
+#define PRS_ANYUSERGROUP "System:AnyUser"
+#define PRS_ADMINGROUP   "System:Administrators"
 
 typedef struct
 {

@@ -4,7 +4,8 @@ import sys, string, os
 
 #************** these will probably need to be configured
 # the `System' user initially owns all groups.
-groupowner = 777
+groupowner = "System"
+groupownid = 777
 oldusers   = "/vice/db/user.coda"
 oldgroups  = "/vice/db/group.coda"
 #**************
@@ -17,11 +18,10 @@ if os.path.exists('/vice/db/prot_users.db'):
 # Start a pipe to the pdbtool
 pdbtool = os.popen('pdbtool', 'w')
 
-# Whack in a couple of the (new) default entries
-pdbtool.write("nui Anonymous 776\n")
-pdbtool.write("nui System 777\n")
-pdbtool.write("ng System:AnyUser 777\n")
-pdbtool.write("ci System:AnyUser -101\n")
+# Whack in a couple of the default entries
+pdbtool.write("nui %(groupowner)s %(groupownid)d\n" % vars())
+pdbtool.write("ng System:AnyUser %(groupownid)d\n" % vars())
+pdbtool.write("ng System:Administrators %(groupownid)d\n" % vars())
 
 # Add all existing users
 names = {}
@@ -35,7 +35,7 @@ for line in open(oldgroups).readlines():
   group, gid = string.split(line)[:2]
   members   = string.split(line)[2:]
   gid = string.atoi(gid)
-  pdbtool.write("ng %(group)s %(groupowner)d\n" % vars())
+  pdbtool.write("ng %(group)s %(groupownid)d\n" % vars())
   pdbtool.write("ci %(group)s %(gid)d\n" % vars())
   for user in members:
     uid = names[user]

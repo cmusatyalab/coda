@@ -276,7 +276,7 @@ extern int LookupChild(Volume *, Vnode *, char *, ViceFid *);
 extern int AddChild(Volume **, dlist *, ViceFid *, char *, int =0);
 
 /* codasrv.c */
-extern int SystemId;
+extern int SystemId, AnyUserId;
 extern int SrvDebugLevel;
 extern unsigned StartTime;
 extern int CurrentConnections;

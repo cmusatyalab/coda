@@ -1991,32 +1991,23 @@ void SetStatus(struct Vnode *vptr, ViceStatus *status, Rights rights, Rights any
 int GetRights(PRS_InternalCPS *CPS, AL_AccessList *ACL, int ACLSize,
 	       Rights *rights, Rights *anyrights )
 {
-    static int  anyid = 0;
-    static  PRS_InternalCPS * anyCPS = 0;
+    static PRS_InternalCPS * anyCPS = 0;
 
-    if (anyid == 0) {
-	if (AL_NameToId("System:AnyUser", &anyid) != 0) {
-	    SLog(0, "UserID anyuser not known");
-	} else if (AL_GetInternalCPS(anyid, &anyCPS) != 0) {
-	    SLog(0, "UserID anyuser no CPS");
-	}
+    if (AL_GetInternalCPS(AnyUserId, &anyCPS) != 0) {
+	SLog(0, "'" PRS_ANYUSERGROUP "' no CPS");
     }
 
-    if (anyid != 0) {
-	if (AL_CheckRights(ACL, anyCPS, (int *)anyrights) != 0) {
-		    SLog(0, "CheckRights failed");
-		    anyrights = 0;
-	}
-    } else {
-	    *anyrights = -1;
+    if (AL_CheckRights(ACL, anyCPS, (int *)anyrights) != 0) {
+	SLog(0, "CheckRights failed");
+	*anyrights = 0;
     }
     
     if (AL_CheckRights(ACL, CPS, (int *)rights) != 0) {
-	    *rights = 0;
+	*rights = 0;
     }
 
     /* When a client can throw away it's tokens, and then perform some
-     * operation, the client essentially has the same rights when
+     * operation, the client essentially has the same rights while
      * authenticated */
     *rights |= *anyrights;
 
@@ -2259,10 +2250,7 @@ static void CopyOnWrite(Vnode *vptr, Volume *volptr)
 
 int SystemUser(ClientEntry *client)
 {
-    if(AL_IsAMember(SystemId,client->CPS) == 0) {
-	return(0);
-    }
-    return(1);
+    return AL_IsAMember(SystemId, client->CPS);
 }
 
 

@@ -136,7 +136,7 @@ void InitPW(int firsttime)
 	int fd, i;
 	struct stat stbuf;
 	char *fbuf;
-	char *admin = "System:Administrators";	/* CODA_ASSERT dies on literals */
+	char *admin = PRS_ADMINGROUP;
 
 	if (firsttime == PWFIRSTTIME)
 	{

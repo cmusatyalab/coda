@@ -604,8 +604,17 @@ void tool_import(int argc, char *argv[])
     /* recreate all users */
     userfile = fopen(argv[1], "r");
     while(1) {
-	rc = fscanf(userfile, "%[^:]:%*[^:]:%d:%*s\n", user, &user_id);
+	rc = fscanf(userfile, "%[^:]:%*[^:]:%d:%*[^\n]\n", user, &user_id);
 	if (rc < 0) break;
+
+	if (user_id == 0) {
+	    printf("Userid 0 must be avoided, skipping entry for %s\n", user);
+	    continue;
+	}
+	if (user_id < 0) {
+	    printf("Skipping user %s with a negative id %d\n", user, user_id);
+	    continue;
+	}
 
 	/* create user */
 	PDB_lookupById(user_id, &s);
@@ -625,14 +634,27 @@ void tool_import(int argc, char *argv[])
     /* recreate groups */
     groupfile = fopen(argv[2], "r");
     while (1) {
-	rc = fscanf(groupfile, "%[^:]:%*[^:]:%d:%s\n",
+	rc = fscanf(groupfile, "%[^:]:%*[^:]:%d:%[^\n]\n",
 		    group, &group_id, owner_and_members);
 	if (rc < 0) break;
+
+	if (group_id == 0) {
+	    printf("Groupid 0 must be avoided, skipping entry for %s\n",
+		   group);
+	    continue;
+	}
 
 	/* restore the :'s in the group name */
 	s = group; while ((s = strchr(s, '%')) != NULL) *s = ':';
 
 	owner = strtok(owner_and_members, ",");
+
+	/* negate positive group ids, Coda groups are negative numbers */
+	if (group_id > 0) {
+	    group_id = -group_id;
+	    /* assume this is the /etc/group file, force owner to System */
+	    owner = "System";
+	}
 
 	/* create group */
 	PDB_lookupByName(owner, &owner_id);
@@ -645,23 +667,34 @@ void tool_import(int argc, char *argv[])
 		   group, owner);
 	    continue;
 	}
+	PDB_lookupById(group_id, &s);
+	if (s) {
+	    printf("Duplicate group for id %d, found both %s and %s\n",
+		   group_id, s, group);
+	    free(s);
+	    continue;
+	}
 	PDB_createGroup(group, owner_id, &create_id);
 	PDB_changeId(create_id, group_id);
 	printf("Created group %s, id %d, owner %s\n", group, group_id, owner);
     }   
 
-    /* add group members*/
+    /* Add group members. Groups can be members of another group, so that is
+     * why we needed to create all the groups first */
     rewind(groupfile);
     while (1) {
-	rc = fscanf(groupfile, "%[^:]:%*[^:]:%d:%s\n",
+	rc = fscanf(groupfile, "%[^:]:%*[^:]:%d:%[^\n]\n",
 		    group, &group_id, owner_and_members);
 	if (rc < 0) break;
+
+	if (group_id == 0) continue;
 
 	/* restore the :'s in the group name */
 	s = group; while ((s = strchr(s, '%')) != NULL) *s = ':';
 
-	/* skip the owner */
-	(void)strtok(owner_and_members, ",");
+	/* skip the owner when the group_id is negative */
+	if (group_id > 0) group_id = -group_id;
+	else		  (void)strtok(owner_and_members, ",");
 
 	/* add group members */
 	printf("Adding members to %s\n\t", group);

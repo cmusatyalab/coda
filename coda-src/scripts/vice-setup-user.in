@@ -87,16 +87,6 @@ until [ "x$username" != x ]; do
  	fi
 done
 
-cat > pdbsetup<<EOF
-nui Anonymous 776
-nui System 777
-ng System:AnyUser 777
-ci System:AnyUser -101
-nui $username $userid
-ng System:Administrators $userid
-ci System:Administrators -204
-EOF
-
 if [ -f prot_users.db ] ; then
   echo "Going to rebuild the protection databases"
   echo "moving ${vicedir}/db/prot_users.db to ${vicedir}/db/prot_users.db.old"
@@ -115,6 +105,12 @@ elif [ -f prot_index.dir ] ; then
   mv prot_index.dir prot_index.dir.old
   mv prot_index.pag prot_index.pag.old
 fi
+
+cat > pdbsetup <<EOF
+nui $username $userid
+ng System:Administrators $userid
+ng System:AnyUser $userid
+EOF
 
 pdbtool source pdbsetup
 rm pdbsetup

@@ -133,7 +133,7 @@ extern "C" void SetServerKeys(RPC2_EncryptionKey, RPC2_EncryptionKey);
 
 /* *****  Exported variables  ***** */
 
-int SystemId;
+int SystemId, AnyUserId;
 unsigned StartTime;
 int CurrentConnections;
 int Counters[MAXCNTRS];
@@ -521,8 +521,12 @@ int main(int argc, char *argv[])
     stat(CODADB, &buff);
     pdbtime = (int)buff.st_mtime;
     CODA_ASSERT(AL_Initialize(AL_VERSION) == 0);
-
-    CODA_ASSERT(AL_NameToId("System:Administrators", &SystemId) == 0);
+    if (AL_NameToId(PRS_ADMINGROUP, &SystemId) ||
+	AL_NameToId(PRS_ANYUSERGROUP, &AnyUserId)) {
+	SLog(0, "Failed to find '" PRS_ADMINGROUP "' or '" PRS_ANYUSERGROUP
+	        "' in the pdb database.");
+	CODA_ASSERT(0 && "check pdb database");
+    }
 
  /* Initialize failure package */
     Fail_Initialize("file", 0);
