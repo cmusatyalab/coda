@@ -279,6 +279,7 @@ class CacheFile {
     int  fd;
     long length;
     long validdata; /* amount of successfully fetched data */
+    int  refcnt;
 
     int ValidContainer();
     void ResetContainer();
@@ -296,9 +297,10 @@ class CacheFile {
 
     void Validate();
     void Reset();
-    void Swap(CacheFile *);
     void Copy(CacheFile *);
-    void Remove();
+
+    void IncRef() { refcnt++; } /* creation already does an implicit incref */
+    int  DecRef();             /* returns refcnt, unlinks if refcnt becomes 0 */
 
     void Stat(struct stat *);
     void Truncate(long);
@@ -474,7 +476,7 @@ class fsobj {
     CacheFile cf;
 
     /* Local synchronization state. */
-    /*T*/char sync;				/* for waiting/signalling */
+    /*T*/char fso_sync;				/* for waiting/signalling */
     /*T*/short readers;				/* entry readers, not object readers */
     /*T*/short writers;				/* entry writers, not object writers */
     /*T*/short openers;				/* object openers */

@@ -199,7 +199,6 @@ class ClientModifyLog {
     /* Reintegration routines. */
     void TranslateFid(ViceFid *, ViceFid *);
     int COP1(char *, int, ViceVersionVector *, int outoforder);
-    void LockObjs(int);
     void UnLockObjs(int);
     void MarkFailedMLE(int);
     void HandleFailedMLE();
@@ -400,8 +399,11 @@ class cmlent {
     int Aged();
     unsigned long ReintTime(unsigned long bw);
     unsigned long ReintAmount();
-    int IsReintegrating();
-    int IsFrozen() { return flags.frozen; }
+
+    void Freeze();
+    int  IsReintegrating();
+    int  IsFrozen() { return flags.frozen; }
+    void Thaw();
   
     /* for partial reintegration */
     int HaveReintegrationHandle();
@@ -419,8 +421,6 @@ class cmlent {
 
     void AttachFidBindings();
     void DetachFidBindings();
-    void LockObj();
-    void UnLockObj();
 
     void print() { print(stdout); }
     void print(FILE *fp) { fflush(fp); print(fileno(fp)); }
@@ -806,7 +806,7 @@ class volent {
     /*T*/ int saved_misses;
     
     /* Local synchronization state. */
-    /*T*/char sync;
+    /*T*/char vol_sync;
     /*T*/int refcnt;			/* count of fsobj's plus active threads */
    
     /* Read/Write Sharing Stats */

@@ -2229,30 +2229,14 @@ void fsobj::Lock(LockLevel level) {
 	{ print(logFile); CHOKE("fsobj::Lock: bogus lock level %d", level); }
 
     FSO_HOLD(this);
-    while (level == RD ? (writers > 0) : (writers > 0 || readers > 0)) {
-	/* 
-	 * if the object is being backfetched for reintegration, make
-	 * a shadow and retry.  Note that if it is being backfetched, there  
-	 * should be no writers, and there should be at least one reader.
-	 */
-	if (DIRTY(this) && IsBackFetching()) {
-	    CODA_ASSERT(readers > 0 && writers == 0);
-	    LOG(0, ("WAITING(%s) locked for backfetch, shadowing\n",
-		    FID_(&fid)));
-	    START_TIMING();
-	    MakeShadow();
-	    END_TIMING();
-	    LOG(0, ("WAIT OVER, elapsed = %3.1f\n", elapsed));
-	}
-
-	if (shadow == 0) { 
-	    LOG(0, ("WAITING(%s): level = %s, readers = %d, writers = %d\n",
-		    FID_(&fid), lvlstr(level), readers, writers));
-	    START_TIMING();
-	    VprocWait(&sync);
-	    END_TIMING();
-	    LOG(0, ("WAIT OVER, elapsed = %3.1f\n", elapsed));
-	}
+    while (level == RD ? (writers > 0) : (writers > 0 || readers > 0))
+    {
+	LOG(0, ("WAITING(%s): level = %s, readers = %d, writers = %d\n",
+		FID_(&fid), lvlstr(level), readers, writers));
+	START_TIMING();
+	VprocWait(&fso_sync);
+	END_TIMING();
+	LOG(0, ("WAIT OVER, elapsed = %3.1f\n", elapsed));
     }
     level == RD ? (readers++) : (writers++);
 }
@@ -2287,7 +2271,7 @@ void fsobj::UnLock(LockLevel level) {
     if (readers < 0 || writers < 0)
 	{ print(logFile); CHOKE("fsobj::UnLock: readers = %d, writers = %d", readers, writers); }
     if (level == RD ? (readers == 0) : (writers == 0))
-	VprocSignal(&sync);
+	VprocSignal(&fso_sync);
     FSO_RELE(this);
 }
 
@@ -2471,33 +2455,34 @@ int fsobj::IsBackFetching() {
 }
 
 
-void fsobj::MakeShadow() {
-    /* 
-     * since only one reintegration is allowed at a time, there
-     * can be only one shadow copy of any object.
-     */
-    CODA_ASSERT(shadow == 0);
-
+void fsobj::MakeShadow()
+{
     /*
      * Create a shadow, using a name both distinctive and that will
-     * be garbage collected at startup.  Move the old cache file to it,
-     * to preseve any backfetches in progress.  Then create a new
-     * copy of the data for the fso, and unlock.
+     * be garbage collected at startup.
      */
-    shadow = new CacheFile(-ix);
-    cf.Copy(shadow);
+    if (!shadow) shadow = new CacheFile(-ix);
+    else	 shadow->IncRef();
 
-    /* swap the on disk container files between cf and the new cachefile */
-    cf.Swap(shadow);
-    
+    /* As we only call MakeShadow during the freezing, and there is only one
+     * reintegration at a time, we can sync the shadow copy with the lastest
+     * version of the real file. -JH */
+    /* As an optimization (to avoid blocking the reintegration too much) we
+     * might want to do this only when we just created the shadow file or when
+     * there are no writers to the real container file... Maybe later. -JH */
+    Lock(RD);
+    cf.Copy(shadow);
     UnLock(RD);
 }
 
 
-void fsobj::RemoveShadow() {
-    shadow->Remove();
-    delete shadow;
-    shadow = 0;
+void fsobj::RemoveShadow()
+{
+    if (shadow->DecRef() == 0)
+    {
+	delete shadow;
+	shadow = 0;
+    }
 }
 
 

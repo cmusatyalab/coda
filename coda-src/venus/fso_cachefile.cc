@@ -63,6 +63,7 @@ CacheFile::CacheFile(int i) {
     inode = (ino_t)-1;
     length = validdata = 0;
     fd = -1;
+    refcnt = 1;
     /* Container reset will be done by eventually by FSOInit()! */
 }
 
@@ -70,6 +71,7 @@ CacheFile::CacheFile(int i) {
 CacheFile::CacheFile() {
     CODA_ASSERT(inode != (ino_t)-1 && length == 0);
     fd = -1;
+    refcnt = 1;
 }
 
 
@@ -158,35 +160,6 @@ void CacheFile::ResetContainer() {
 }
 
 
-/*
- * Swap the on-disk cache-files between two CacheFile structures.
- */  
-void CacheFile::Swap(CacheFile *destination) {
-    LOG(10, ("CacheFile::Swap: source: %s, %d, %d/%d, dest: %s\n",
-	      name, inode, validdata, length, destination->name));
-
-    ino_t swap_inode;
-    long  swap_length;
-    long  swap_validdata;
-    char  swap_name[8];
-
-    swap_inode = destination->inode;
-    swap_length = destination->length;
-    swap_validdata = destination->validdata;
-    memcpy(swap_name, destination->name, 8);
-
-    destination->inode = inode;
-    destination->length = length;
-    destination->validdata = validdata;
-    memcpy(destination->name, name, 8);
-
-    inode = swap_inode;
-    length = swap_length;
-    validdata = swap_validdata;
-    memcpy(name, swap_name, 8);
-}
-
-
 /* 
  * copies a cache file, data and attributes, to a new one.  
  */
@@ -241,10 +214,15 @@ void CacheFile::Copy(CacheFile *destination) {
 }
 
 
-void CacheFile::Remove() {
-    length = validdata = 0;
-    if (::unlink(name) < 0)
-        CHOKE("CacheFile::Remove: unlink failed (%d)", errno);
+int CacheFile::DecRef()
+{
+    if (--refcnt == 0)
+    {
+	length = validdata = 0;
+	if (::unlink(name) < 0)
+	    CHOKE("CacheFile::DecRef: unlink failed (%d)", errno);
+    }
+    return refcnt;
 }
 
 

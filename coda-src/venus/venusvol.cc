@@ -1899,7 +1899,7 @@ void volent::Wait() {
     LOG(0, ("WAITING(VOL): shrd_count = %d, excl_count = %d, excl_pgid = %d\n",
 	    shrd_count, excl_count, excl_pgid));
     START_TIMING();
-    VprocWait(&sync);
+    VprocWait(&vol_sync);
     END_TIMING();
     LOG(0, ("WAIT OVER, elapsed = %3.1f\n", elapsed));
     waiter_count--;
@@ -1907,7 +1907,7 @@ void volent::Wait() {
 
 
 void volent::Signal() {
-    VprocSignal(&sync);
+    VprocSignal(&vol_sync);
 }
 
 void volent::Lock(VolLockType l, int pgid)

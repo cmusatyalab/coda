@@ -250,7 +250,6 @@ int volent::IncReintegrate(int tid) {
     do {
 	char *buf = 0;
 	int bufsize = 0;
-	int locked = 0;
 	ViceVersionVector UpdateSet;
 	code = 0;
 	cur_reint_tid = tid; 
@@ -266,13 +265,6 @@ int volent::IncReintegrate(int tid) {
 	     */
 	    code = CML.IncReallocFids(tid);
 	    if (code != 0) goto CheckResult;
-
-	    /*
-	     * Step 2 is to reference count all objects, and lock 
-	     * operands of stores.  These will be backfetched.
-	     */
-	    CML.LockObjs(tid);
-	    locked = 1;
 
 	    /* 
 	     * Step 3 is to "thread" the log and pack it into a buffer 
@@ -303,8 +295,6 @@ int volent::IncReintegrate(int tid) {
 CheckResult:
 	    START_TIMING();
 	    if (buf != 0) delete buf;
-
-	    if (locked) CML.UnLockObjs(tid);
 
 	    switch(code) {
 	    case 0 : 
@@ -441,7 +431,6 @@ extern struct timeval *VprocRetryBeta;
  */
 int volent::PartialReintegrate(int tid) {
     cmlent *m;
-    int locked = 0;
     int code = 0;
     ViceVersionVector UpdateSet;
 
@@ -459,10 +448,6 @@ int volent::PartialReintegrate(int tid) {
     {
 	code = m->realloc();
 	if (code != 0) goto CheckResult;
-
-	/* lock object, for survival of mle as well */
-	m->LockObj();
-	locked = 1;
     }
 
     /* 
@@ -503,7 +488,12 @@ int volent::PartialReintegrate(int tid) {
     }
 
 CheckResult:
-    if (locked) m->UnLockObj();
+    /* 
+     * if this record was being partially reintegrated, but was
+     * not sent completely, then the partial results are invalid.
+     */
+    if (m->HaveReintegrationHandle() && !m->DoneSending())
+	m->ClearReintegrationHandle();		/* start over! */
 
     /* allow log optimizations to go through. */
     cur_reint_tid = UNSET_TID;

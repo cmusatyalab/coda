@@ -231,15 +231,13 @@ long CallBackFetch(RPC2_Handle RPCid, ViceFid *Fid, SE_Descriptor *BD) {
 	{ code = ENOENT; goto GetLost; }
 
     /* 
-     * We do not lock the object, because the reintegrator thread
-     * has already read locked it for our purposes (unless a shadow
-     * copy has been created).  However, we check to make sure there 
-     * is a read lock just in case.  This is a choke for now, because 
-     * it really is not supposed to happen.
+     * We do not lock the object, because the reintegrator thread has already
+     * created a shadow copy. However, we check to make sure there is a shadow
+     * file just in case. This is a choke for now, because it really is not
+     * supposed to happen.
      */
-    if (f->readers <= 0 && !f->shadow) 
-	CHOKE("CallBackFetch: object not locked! (%x.%x.%x)\n",
-	      f->fid.Volume, f->fid.Vnode, f->fid.Unique);
+    if (!f->shadow) 
+	CHOKE("CallBackFetch: no shadow file! (%s)\n", FID_(&f->fid));
 
     /* Sanity checks. */
     if (!f->IsFile() || !HAVEALLDATA(f)) {
@@ -271,8 +269,7 @@ long CallBackFetch(RPC2_Handle RPCid, ViceFid *Fid, SE_Descriptor *BD) {
 	sei->ByteQuota = -1;
 
         /* and open a safe fd to the containerfile */
-        if (f->shadow) fd = f->shadow->Open(f, O_RDONLY);
-        else           fd = f->data.file->Open(f, O_RDONLY);
+        fd = f->shadow->Open(f, O_RDONLY);
         CODA_ASSERT(fd != -1);
 
         sei->Tag = FILEBYFD;
@@ -299,8 +296,7 @@ long CallBackFetch(RPC2_Handle RPCid, ViceFid *Fid, SE_Descriptor *BD) {
     }
 
 GetLost:
-    if (f->shadow) f->shadow->Close();
-    else           f->data.file->Close();
+    if (f) f->shadow->Close();
     LOG(1, ("CallBackFetch: returning %d\n", code));
     return(code);
 }

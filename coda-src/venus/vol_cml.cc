@@ -160,165 +160,6 @@ void ClientModifyLog::IncGetStats(cmlstats& current, cmlstats& cancelled, int ti
 }
 
 
-#define INITFIDLISTLENGTH 50
-
-/* 
- * lock objects in the CML corresponding to store records.
- * objects must be locked in fid order.
- */
-void ClientModifyLog::LockObjs(int tid) {
-    int i;
-    volent *vol = strbase(volent, this, CML);
-    LOG(1, ("ClientModifyLog::LockObjs: (%s) and tid = %d\n", vol->name, tid));
-
-    int max = INITFIDLISTLENGTH;
-    ViceFid *backFetchList;
-    int nFids = 0;
-
-    /* get some space for the list.  will extend later if needed. */
-    backFetchList = (ViceFid *) malloc(sizeof(ViceFid) * max);
-    bzero((char *) backFetchList, (int) sizeof(ViceFid) * max);
-
-    cml_iterator next(*this);
-    cmlent *m;
-    while ((m = next())) 
-	if (m->GetTid() == tid) 
-	    if (m->opcode == OLDCML_NewStore_OP) {
-		backFetchList[nFids++] = m->u.u_store.Fid;
-
-                if (nFids == max) {  /* get more space */
-                    /* I am terrified of realloc. */
-                    max += INITFIDLISTLENGTH;
-                    ViceFid *newBFList = (ViceFid *) malloc(sizeof(ViceFid) * max);
-                    bcopy((char *) backFetchList, (char *) newBFList, 
-			  (int) sizeof(ViceFid) * nFids);
-                    free(backFetchList);
-                    backFetchList = newBFList;
-                }
-	    }
-
-    /* now sort them. we must lock in this order */
-    (void) qsort((char *) backFetchList, nFids, sizeof(ViceFid), 
-		 (int (*)(const void *, const void *))Fid_Compare);
-
-    /* remove duplicates */
-    for (i = 0; i < nFids; i++) 
-	for (int j = i+1; j < nFids; j++) 
-	    if (Fid_Compare(&backFetchList[i], &backFetchList[j]) || 
-		FID_EQ(&backFetchList[i], &NullFid))
-		break;  /* no match or null */
-	    else /* they match -- zero out duplicate */
-		backFetchList[j] = NullFid;
-
-    /* find and lock objects corresponding to non-null fids */
-    for (i = 0; i < nFids; i++) 
-	if (!FID_EQ(&backFetchList[i], &NullFid)) {
-	    LOG(100, ("ClientModifyLog::LockObjs: Locking %x.%x.%x\n",
-		    backFetchList[i].Volume, backFetchList[i].Vnode, backFetchList[i].Unique));
-
-	    fsobj *f = FSDB->Find(&backFetchList[i]);
-	    if (f == NULL)
-		CHOKE("ClientModifyLog::LockObjs: Object in CML not cached! (%x.%x.%x)\n",
-		      backFetchList[i].Volume, backFetchList[i].Vnode, backFetchList[i].Unique);
-	    f->Lock(RD);
-        }
-
-    free(backFetchList);
-}
-
-
-/* Unlock objects that were referenced in STORE records */
-void ClientModifyLog::UnLockObjs(int tid) {
-    volent *vol = strbase(volent, this, CML);
-    LOG(1, ("ClientModifyLog::UnLockObjs: (%s) and tid = %d\n", vol->name, tid));
-
-    /* 
-     * Because CML records can be frozen, there may be multiple
-     * store records for an object.  The cancellation_pending 
-     * field is not a reliable indicator because of early store 
-     * cancellation.  To unlock only once, find the first store
-     * store record for the object, and unlock only if the record 
-     * in hand is that one.
-     */
-    cml_iterator next(*this);
-    cmlent *m;
-    while ((m = next())) 
-	if ((m->GetTid() == tid) && (m->opcode == OLDCML_NewStore_OP)) {
-	    /* get the fso */
-	    dlink *d = m->fid_bindings->first();   /* and only */
-	    binding *b = strbase(binding, d, binder_handle);
-	    fsobj *f = (fsobj *)b->bindee;
-	    CODA_ASSERT(f && (f->MagicNumber == FSO_MagicNumber));  /* better be an fso */
-
-	    /* check the other mle bindings for the fso */
-	    dlist_iterator next(*f->mle_bindings);
-	    dlink *fd;
-	    cmlent *store_mle = 0;
-
-	    while((fd = next())) {
-		binding *fb = strbase(binding, fd, bindee_handle);
-		cmlent *fm = (cmlent *)fb->binder;
-		if ((fm->GetTid() == tid) && (fm->opcode == OLDCML_NewStore_OP)) {
-		    store_mle = fm;	/* first store record for this fso */
-		    break;	
-		}
-	    }
-	    if (m == store_mle)
-		m->UnLockObj();
-	}
-}
-
-
-/* lock object of a store */
-void cmlent::LockObj() {
-    CODA_ASSERT(opcode == OLDCML_NewStore_OP);
-
-    /* make sure there is only one object of the store */    
-    CODA_ASSERT(fid_bindings->count() == 1); 
-
-    dlink *d = fid_bindings->first();   /* and only */
-    binding *b = strbase(binding, d, binder_handle);
-    fsobj *f = (fsobj *)b->bindee;
-
-    /* sanity checks */
-    CODA_ASSERT(f && (f->MagicNumber == FSO_MagicNumber));  /* better be an fso */
-
-    f->Lock(RD);
-}
-
-
-/* unlock object of a store */
-void cmlent::UnLockObj() {
-    CODA_ASSERT(opcode == OLDCML_NewStore_OP);
-
-    /* make sure there is only one object of the store */    
-    CODA_ASSERT(fid_bindings->count() == 1); 
-
-    dlink *d = fid_bindings->first();   /* and only */
-    binding *b = strbase(binding, d, binder_handle);
-    fsobj *f = (fsobj *)b->bindee;
-
-    /* sanity checks */
-    CODA_ASSERT(f && (f->MagicNumber == FSO_MagicNumber));  /* better be an fso */
-
-    if (f->shadow) {
-        /* no need to unlock, just get rid of shadow copy */
-        f->RemoveShadow();
-	/* 
-	 * if this record was being partially reintegrated, but was
-	 * not sent completely, then the partial results are invalid.
-	 */
-	if (HaveReintegrationHandle() && !DoneSending())
-	    ClearReintegrationHandle();		/* start over! */
-
-    } else {
-        LOG(100, ("cmlent::UnlockObj: Unlocking %x.%x.%x\n",
-	    f->fid.Volume, f->fid.Vnode, f->fid.Unique));
-        f->UnLock(RD);
-    }
-}
-
-
 /* 
  * called after a reintegration failure to remove cmlents that would
  * have been cancelled had reintegration not been in progress.
@@ -335,10 +176,9 @@ void ClientModifyLog::CancelPending() {
 	    cmlent *m;
 
 	    while ((m = next())) {
-		    if (m->flags.frozen) {
-			    RVMLIB_REC_OBJECT(m->flags);
-			    m->flags.frozen = 0;
-		    }
+		    if (m->IsFrozen())
+			    m->Thaw();
+
 		    if (m->flags.cancellation_pending) {
 			    CODA_ASSERT(m->cancel());
 			    cancellation = 1;
@@ -349,7 +189,6 @@ void ClientModifyLog::CancelPending() {
     } while (cancellation);
     Recov_EndTrans(MAXFP);
 }
-
 
 /*
  * called after reintegration success to clear cancellations
@@ -386,6 +225,49 @@ void ClientModifyLog::CancelStores() {
     }
 }
 
+void cmlent::Freeze()
+{
+    if (opcode == OLDCML_NewStore_OP)
+    {
+	/* make sure there is only one object of the store */    
+	CODA_ASSERT(fid_bindings->count() == 1); 
+
+	dlink *d = fid_bindings->first();   /* and only */
+	binding *b = strbase(binding, d, binder_handle);
+	fsobj *f = (fsobj *)b->bindee;
+
+	/* sanity checks, this better be an fso */
+	CODA_ASSERT(f && (f->MagicNumber == FSO_MagicNumber));
+
+	f->MakeShadow();
+    }
+
+    RVMLIB_REC_OBJECT(flags);
+    flags.frozen = 1;
+}
+
+void cmlent::Thaw()
+{
+    if (opcode == OLDCML_NewStore_OP)
+    {
+	/* make sure there is only one object of the store */    
+	CODA_ASSERT(fid_bindings->count() == 1); 
+
+	dlink *d = fid_bindings->first();   /* and only */
+	binding *b = strbase(binding, d, binder_handle);
+	fsobj *f = (fsobj *)b->bindee;
+
+	/* sanity checks, this better be an fso */
+	CODA_ASSERT(f && (f->MagicNumber == FSO_MagicNumber));
+
+	/* no need to unlock, just get rid of shadow copy */
+	CODA_ASSERT(f->shadow);
+	f->RemoveShadow();
+    }
+
+    RVMLIB_REC_OBJECT(flags);
+    flags.frozen = 0;
+}
 
 /* 
  * Scan the log for reintegrateable records, subject to the
@@ -424,8 +306,7 @@ void ClientModifyLog::GetReintegrateable(int tid, int *nrecs) {
 	 * and different transactions.
 	 */
 	Recov_BeginTrans();
-	       RVMLIB_REC_OBJECT(m->flags);
-	       m->flags.frozen = 1;
+	m->Freeze();
 	Recov_EndTrans(MAXFP);
 
 	/* 
@@ -832,6 +713,9 @@ cmlent::~cmlent() {
 
     RVMLIB_REC_OBJECT(*this);
     long thisBytes = bytes();
+
+    /* or should we assert on this cmlent not being frozen? -JH */
+    if (IsFrozen()) Thaw();
 
     /* Detach from fsobj's. */
     DetachFidBindings();
@@ -1781,7 +1665,7 @@ int cmlent::cancel() {
      * If this record is being reintegrated, just mark it for
      * cancellation and we'll get to it later.
      */
-    if (flags.frozen) {
+    if (IsFrozen()) {
 	LOG(0, ("cmlent::cancel: cmlent frozen, skip\n"));
 	RVMLIB_REC_OBJECT(flags);	/* called from within transaction */
 	flags.cancellation_pending = 1;
@@ -3185,9 +3069,9 @@ int cmlent::WriteReintegrationHandle() {
 	if (f == 0)
 	    { code = ENOENT; goto Exit; }
 
-	if (f->readers <= 0 && !f->shadow) 
-	    CHOKE("cmlent::WriteReintegrationHandle: object not locked! (%x.%x.%x)\n",
-		  f->fid.Volume, f->fid.Vnode, f->fid.Unique);
+	if (!f->shadow) 
+	    CHOKE("cmlent::WriteReintegrationHandle: no shadow file! (%s)\n",
+		  FID_(&f->fid));
 
 	/* Sanity checks. */
 	if (!f->IsFile() || !HAVEALLDATA(f)) {
@@ -3207,9 +3091,8 @@ int cmlent::WriteReintegrationHandle() {
 	    sei->SeekOffset = u.u_store.Offset;
 	    sei->ByteQuota = length;
 
-            /* and open a safe fd to the containerfile */
-	    if (f->shadow) fd = f->shadow->Open(f, O_RDONLY);
-            else           fd = f->data.file->Open(f, O_RDONLY);
+            /* and open the containerfile */
+	    fd = f->shadow->Open(f, O_RDONLY);
             CODA_ASSERT(fd != -1);
 
             sei->Tag = FILEBYFD;
@@ -3255,10 +3138,8 @@ int cmlent::WriteReintegrationHandle() {
     }
 
  Exit:
-    if (f) {
-        if (f->shadow) f->shadow->Close();
-        else           f->data.file->Close();
-    }
+    if (f) f->shadow->Close();
+
     PutConn(&c);
     LOG(0, ("cmlent::WriteReintegrateHandle: (%s), %d bytes, returns %s, new offset %d\n",
 	     vol->name, length, VenusRetStr(code), u.u_store.Offset));
