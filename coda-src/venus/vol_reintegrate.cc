@@ -621,7 +621,7 @@ int cmlent::ReintReady()
     }
 
     /* if vol staying write disconnected, check age. does not apply to ASRs */
-    if (!ASRinProgress && !Aged() && vol->flags.logv) {
+    if (!ASRinProgress && vol->flags.logv && !Aged()) {
 	LOG(100, ("cmlent::ReintReady: record too young\n"));
 	return 0; 
     }
