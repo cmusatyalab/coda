@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: blurb.doc,v 1.1 96/11/22 13:29:31 raiff Exp $";
+static char *rcsid = "$Header: /home/braam/src/coda-src/volutil/RCS/vol-peekpoke.cc,v 1.1 1996/11/22 19:14:02 braam Exp braam $";
 #endif /*_BLURB_*/
 
 
@@ -60,8 +60,9 @@ extern int nlist(const char*, struct nlist[]);
     
 #include <string.h>
 #include <sys/param.h>
+#ifdef MACH
 #include <mach.h>
-
+#endif
 #include <lwp.h>
 #include <lock.h>
 #include <rpc2.h>
@@ -98,6 +99,7 @@ void setmyname(char *s)
 	else	printf("%s: unable to find the current directory\n", s);
 }
 
+#ifndef LINUX
 static
 long checkaddress(vm_address_t addr, vm_size_t sz, vm_prot_t perm)
 {
@@ -161,6 +163,25 @@ long okaddr(vm_address_t *pm, RPC2_String s, vm_size_t sz, vm_prot_t perm)
 	LogMsg(0, VolDebugLevel, stdout, "okaddr using address 0x%lx\n", (long) *pm);
 	return(checkaddress(*pm, sz, perm));
 }
+#else
+
+#define vm_address_t  unsigned int
+#define vm_size_t     unsigned int
+#define vm_prot_t     int
+#define VM_PROT_READ 1
+#define VM_PROT_WRITE 2
+static
+long checkaddress(vm_address_t addr, vm_size_t sz, vm_prot_t perm)
+{
+  return -1;
+}
+
+static
+long okaddr(vm_address_t *pm, RPC2_String s, vm_size_t sz, vm_prot_t perm)
+{
+  return -1;
+}
+#endif
 
 /*
   BEGIN_HTML

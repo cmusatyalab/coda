@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: blurb.doc,v 1.1 96/11/22 13:29:31 raiff Exp $";
+static char *rcsid = "$Header: /home/braam/src/coda-src/volutil/RCS/backup.cc,v 1.1 1996/11/22 19:14:16 braam Exp braam $";
 #endif /*_BLURB_*/
 
 
@@ -63,7 +63,9 @@ extern "C" {
 #include <sys/socket.h>
 #include <sys/param.h>
 #include <sys/stat.h>
+#ifdef __MACH__
 #include <sys/fs.h>
+#endif
 #include <netinet/in.h>
 #include <netdb.h>
 #include <libc.h>
@@ -317,6 +319,7 @@ getReplica(repinfo_t *rep) {
 
 void SetPartitionDiskUsage(register partitionInfo_t *dp)
 {
+#ifndef LINUX
     static struct fs sblock;  /*Static because of constraints on lwp proc size*/
     int fd;
     long totalblks, free, used, availblks;
@@ -339,6 +342,9 @@ void SetPartitionDiskUsage(register partitionInfo_t *dp)
     availblks = totalblks * (100 - sblock.fs_minfree) / 100;
 
     dp->free = availblks - used; /* May be negative, which is OK */
+#else
+    dp->free =0;
+#endif
 }
 
 InitPartitionEntry(partitionInfo_t **table, char *name, char *todayName)

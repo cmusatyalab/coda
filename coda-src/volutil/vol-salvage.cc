@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: blurb.doc,v 1.1 96/11/22 13:29:31 raiff Exp $";
+static char *rcsid = "$Header: /home/braam/src/coda-src/volutil/RCS/vol-salvage.cc,v 1.1 1996/11/22 19:14:06 braam Exp braam $";
 #endif /*_BLURB_*/
 
 
@@ -72,7 +72,7 @@ supported by Transarc Corporation, Pittsburgh, PA.
 
 #define SalvageVersion "2.0"
 
-#include <dir.h>
+#include <coda_dir.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -83,8 +83,17 @@ extern "C" {
 #include <sys/param.h>
 #include <sys/file.h>
 #include <sys/stat.h>
+
+#ifdef LINUX
+#include <dirent.h>
+#include <stdio.h>
+#include <mntent.h>
+#include <sys/vfs.h>
+#include <linux/ext2_fs.h>
+#else
 #include <sys/inode.h>
 #include <fstab.h>
+#endif
 #include <sysent.h>
 #include <errno.h>
 #include <sys/types.h>
@@ -94,8 +103,9 @@ extern "C" {
 #include <lwp.h>
 #include <lock.h>
 #include <rpc2.h>
-
+#ifdef MACH
 #include <mach.h>
+#endif
 #ifdef __cplusplus
 }
 #endif __cplusplus
@@ -176,8 +186,7 @@ long S_VolSalvage(RPC2_Handle rpcid, RPC2_String formal_path, VolumeId singleVol
 {
     long rc = 0;
     int UtilityOK = 0;	/* flag specifying whether the salvager may run as a volume utility */
-    ProgramType *pt;
-    /* These are to keep C++ > 2.0 happy */
+    ProgramType *pt;  /* These are to keep C++ > 2.0 happy */
     char *path = (char *) formal_path;
 
     LogMsg(9, VolDebugLevel, stdout, "Entering S_VolSalvage (%d, %s, %x, %d, %d, %d)",
@@ -211,26 +220,41 @@ long S_VolSalvage(RPC2_Handle rpcid, RPC2_String formal_path, VolumeId singleVol
 	if (rc = DestroyBadVolumes())
 	    return(rc);
     }
-
     
     if (path == NULL) {
-	struct fstab *fsent;
-	int didSome = 0;
-	setfsent();
-	while (fsent = getfsent()) {
-	    if (strncmp(fsent->fs_file, VICE_PARTITION_PREFIX, 
-			VICE_PREFIX_SIZE)== 0) {
-		rc = SalvageFileSys(fsent->fs_file, 0);
-		if (rc != 0)
-		    goto cleanup;
-		didSome++;
-	    }
-	}
-	if (!didSome) {
-	    LogMsg(0, VolDebugLevel, stdout, "No file system partitions named %s* found; not salvaged",
-		VICE_PARTITION_PREFIX);
+      int didSome = 0;
+#ifndef LINUX
+      struct fstab *fsent;
+      setfsent();
+      while (fsent = getfsent()) {
+	if (strncmp(fsent->fs_file, VICE_PARTITION_PREFIX, 
+		    VICE_PREFIX_SIZE)== 0) {
+	  rc = SalvageFileSys(fsent->fs_file, 0);
+	  if (rc != 0)
 	    goto cleanup;
+	  didSome++;
 	}
+      }
+#else
+      struct mntent *mntent;
+      FILE *mnt_handle;
+      mnt_handle = setmntent("/etc/mtab", "r");
+      while ( mntent = getmntent(mnt_handle)) { 
+	if (strncmp(mntent->mnt_dir, VICE_PARTITION_PREFIX, 
+		    VICE_PREFIX_SIZE)== 0) {
+	  rc = SalvageFileSys(mntent->mnt_dir, 0);
+	  if (rc != 0)
+	    goto cleanup;
+	  didSome++;
+	}
+      }
+#endif
+      if (!didSome) {
+	LogMsg(0, VolDebugLevel, stdout, 
+	       "No partitions named %s* found; not salvaged",
+	       VICE_PARTITION_PREFIX);
+	goto cleanup;
+      }
     }
     else rc = SalvageFileSys(path, singleVolumeNumber);
 
@@ -404,6 +428,7 @@ PRIVATE int SalvageFileSys(char *path, VolumeId singleVolumeNumber)
 /* Return the name of the indicated block device */
 PRIVATE char *devName(unsigned int dev)
 {
+#ifndef LINUX
     struct direct *dp;
     static char name[32];
     int rc;
@@ -425,6 +450,9 @@ PRIVATE char *devName(unsigned int dev)
     }
     closedir(dirp);
     return NULL;
+#else 
+    return NULL;
+#endif
 }
 
 PRIVATE	int SalvageVolumeGroup(register struct VolumeSummary *vsp, int nVols)
@@ -566,6 +594,7 @@ PRIVATE int SalvageVolHead(register struct VolumeSummary *vsp)
  */
 PRIVATE int VnodeInodeCheck(int RW, struct ViceInodeInfo *ip, int nInodes, 
 			    struct VolumeSummary *vsp) {
+#ifndef LINUX
     LogMsg(9, VolDebugLevel, stdout, "Entering VnodeInodeCheck()");    
     VolumeId volumeNumber = vsp->header.id;
     char buf[SIZEOF_SMALLDISKVNODE];
@@ -728,11 +757,15 @@ PRIVATE int VnodeInodeCheck(int RW, struct ViceInodeInfo *ip, int nInodes,
     assert(vnext(vnode) == -1);
     assert(nVnodes == 0);
     return 0;
+#else
+    return -1;
+#endif
 }
 /* inodes corresponding to a volume that has been blown away.
  * We need to idec them
  */
 PRIVATE void CleanInodes(struct InodeSummary *isp) {
+#ifndef LINUX
     int size;
     struct ViceInodeInfo *inodes = 0;
 
@@ -756,6 +789,9 @@ PRIVATE void CleanInodes(struct InodeSummary *isp) {
 	}
     }
     free(inodes);
+#else
+    return;
+#endif
     
 }
 
@@ -1000,7 +1036,7 @@ void DirCompletenessCheck(struct VolumeSummary *vsp)
 	    assert(0);
 	}
 	dirHandle = dir.dirHandle;
-	EnumerateDir((long *)&dirHandle, (int (*)(...))JudgeEntry, (long)&dir);
+	EnumerateDir((long *)&dirHandle, (int (*)(void * ...))JudgeEntry, (long)&dir);
 	LogMsg(9, VolDebugLevel, stdout, "DCC: Finished checking directory(%#08x.%x.%x)",
 	    vsp->header.id, dir.vnodeNumber, dir.unique);
 	if (RecoverableResLogs) {
