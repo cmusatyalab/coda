@@ -1211,7 +1211,7 @@ void SwapLog()
 	return;
     }
 
-    SLog(0, "Starting new SrvLog file");
+    SLog(0, "Reopening SrvLog/SrvErr files");
     freopen("SrvLog", "a+", stdout);
     freopen("SrvErr", "a+", stderr);
     

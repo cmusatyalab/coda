@@ -172,7 +172,7 @@ static int DumpResLog(int fd, struct VolumeData *voldata,
     }
     
     /* Mush the data into the right data structure */
-    memmove((void *)&vh.diskstuff, (const void *)voldata->volumeInfo, (int)sizeof(VolumeDiskData));
+    memcpy(&vh.diskstuff, voldata->volumeInfo, sizeof(VolumeDiskData));
     vp = &vol;
     vp->header = &vh;
 

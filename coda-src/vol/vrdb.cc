@@ -59,16 +59,15 @@ int nametabHashfn(void *p) {
 }
 
 vrtab::vrtab(char *n) : ohashtab(VRTABHASHSIZE, vrtabHashfn), 
-    namehtb(VRTABHASHSIZE, nametabHashfn) {
-	
-	name = new char[strlen(n) + 1];
-	strcpy(name, n);
+    namehtb(VRTABHASHSIZE, nametabHashfn)
+{
+    name = strdup(n);
 }
 
 
 vrtab::~vrtab() {
     clear();
-    delete[] name;
+    free(name);
 }
 
 

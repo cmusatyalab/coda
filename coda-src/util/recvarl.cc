@@ -53,11 +53,9 @@ void *recvarl::operator new(size_t size, int recvsize) {
     return(r);
 }
 
-#if 0 // not needed anymore with 2.95 and up??
 void *recvarl::operator new(size_t size) {
     CODA_ASSERT(0); /* dummy definition of new() to pacify g++; should never get here*/
 }
-#endif
 
 void recvarl::operator delete(void *deadobj, size_t size) {
     CODA_ASSERT(0); /* destructor should never let control get here */
@@ -91,5 +89,4 @@ void *recvarl::end() {
 void recvarl::destroy() {
     CODA_ASSERT(this);
     rvmlib_rec_free(this);
-//  this = 0;   Assignment to this no longer allowed; we lose some safety..
 }

@@ -107,7 +107,7 @@ int PDB_db_nextkey(PDB_HANDLE h, int *id)
 #define R_NEXT		1
 	static int which = R_FIRST;
 	u_int32_t uid, klen, dpos;
-        int rc;
+	int rc;
 
 next:
 	rc = rwcdb_next(&h->main, which == R_FIRST);
@@ -200,7 +200,7 @@ static char *malloc_name(char *name)
 	CODA_ASSERT(namekey);
 
 	strcpy(namekey, "NAME");
-	strcat(namekey, name);
+	strcpy(&namekey[4], name);
 
 	return namekey;
 }
@@ -220,7 +220,7 @@ void PDB_db_write(PDB_HANDLE h, int32_t id, char *name, void *data, size_t size)
 	CODA_ASSERT(rc == 1);
 
 	namekey = malloc_name(name);
-        rc = rwcdb_insert(&h->main, namekey, strlen(namekey),
+	rc = rwcdb_insert(&h->main, namekey, strlen(namekey),
 			  (char *)&netid, sizeof(netid));
 	free(namekey);
 
@@ -283,7 +283,7 @@ void PDB_db_delete(PDB_HANDLE h, int32_t id, char *name)
 {
 	u_int32_t realid = H2DB_ID(id);
 
-        rwcdb_delete(&h->main, (char *)&realid, sizeof(u_int32_t));
+	rwcdb_delete(&h->main, (char *)&realid, sizeof(u_int32_t));
 
 	PDB_db_delete_xfer(h, name);
 }
@@ -296,7 +296,7 @@ void PDB_db_delete_xfer(PDB_HANDLE h, char *name)
 	if (!name) return;
 
 	namekey = malloc_name(name);
-        rwcdb_delete(&h->main, namekey, strlen(namekey));
+	rwcdb_delete(&h->main, namekey, strlen(namekey));
 	free(namekey);
 }
 

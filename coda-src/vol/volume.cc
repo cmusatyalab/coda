@@ -273,7 +273,7 @@ void VInitVolumePackage(int nLargeVnodes, int nSmallVnodes, int DoSalvage)
 	Error error;
 	Volume *vp;
 	VolumeHeader header;
-	char thispartition[64];
+	char thispartition[V_MAXPARTNAMELEN];
 	int nAttached = 0, nUnattached = 0;
 	int i = 0;
 	rvm_return_t camstatus;
@@ -292,9 +292,8 @@ void VInitVolumePackage(int nLargeVnodes, int nSmallVnodes, int DoSalvage)
 	    /* Make sure volume is in the volid hashtable */
 	    VLog(9, "VInitVolumePackage: hashing (vol,idx) (0x%x,%d)\n",
 		 header.id, i);
-	    if (HashInsert(header.id, i) == -1) {
-		VLog(10, "VInitVolPackage: HashInsert failed! Two %x volumes exist!", header.id);
-	    }
+	    if (HashInsert(header.id, i) != -1)
+		VLog(0, "VInitVolPackage: Volume %x was not yet in the hash!", header.id);
 	    
 	    GetVolPartition(&error, header.id, i, thispartition);
 	    if (error != 0) 
@@ -305,15 +304,19 @@ void VInitVolumePackage(int nLargeVnodes, int nSmallVnodes, int DoSalvage)
 		VLog(0, "Volume %x stays offline (%s/%s exists)", 
 		     header.id, vice_file("offline"), 
 		     VolumeExternalName(header.id));
+
+	    if (!vp)
+		continue;
+
 	    /* if volume was not salvaged force it offline. */
 	    /* a volume is not salvaged if it exists in the 
 		/"vicedir"/vol/skipsalvage file 
 		*/
-	    if (vp && skipvolnums != NULL && 
+	    if (skipvolnums != NULL && 
 		InSkipVolumeList(header.parent, skipvolnums, nskipvols)){
 		VLog(0, "Forcing Volume %x Offline", header.id);
 		VForceOffline(vp);
-	    } else if (vp) {
+	    } else {
 		    /* initialize the RVM log vm structures */
 		    if (V_RVMResOn(vp)) {
 			    V_VolLog(vp)->ResetTransients(V_id(vp));
@@ -321,8 +324,7 @@ void VInitVolumePackage(int nLargeVnodes, int nSmallVnodes, int DoSalvage)
 			    ResStatsList.insert((olink *)V_VolLog(vp)->vmrstats);
 		    }
 	    }
-	    if (vp)
-		    VPutVolume(vp);
+	    VPutVolume(vp);
 	}
 	VLog(0, "Attached %d volumes; %d volumes not attached",
 	     nAttached, nUnattached);
@@ -939,7 +941,7 @@ static Volume *attach2(Error *ec, char *name,
 Volume *
 VAttachVolume(Error *ec, VolumeId volumeId, int mode)
 {
-    char part[VMAXPATHLEN];
+    char part[V_MAXPARTNAMELEN];
     int myind;
 
     VLog(9, "Entering VAttachVolume() for volume %x", volumeId);

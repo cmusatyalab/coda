@@ -51,12 +51,11 @@ int main(int argc, char * argv[])
 	if (strcmp(argv[0], "-n") == 0) {
 	    argc--; argv++;
 	    ServerNumber = atoi(argv[0]);
-	    argc--; argv++;
 	}
 	if (strcmp(argv[0],"-mapprivate") == 0) {
-	    argc--; argv++;
 	    mapprivate = 1;
 	}
+	argc--; argv++;
     }
     
     if (argc != 3) {

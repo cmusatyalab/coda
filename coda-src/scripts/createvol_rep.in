@@ -55,9 +55,14 @@ NSERVERS=0
 MAXSERVERS=8
 
 # deal with Parameters 
-VOLNAME=$1
-VSGADDR=$2
-PARTITION=$3
+VOLNAME="$1"
+VSGADDR="$2"
+PARTITION="$3"
+
+# Hmm, we sometimes need to use the volumename in regular expressions
+# As a result we can't use a lot of special characters, but having at
+# least '/' would be nice.
+_VOLNAME=`echo ${VOLNAME} | sed 's&/&\/&g'`
 
 #
 # Create these files if they don't already exist.
@@ -78,12 +83,12 @@ if [ ! -f "${vicedir}/vol/BigVolumeList" ] ; then
 fi
 
 # Validate the <volname> parameter
-if  [ x$VOLNAME = "x`awk ' $1 ~ /^[WRB]'$1'$/  {print $1}' ${vicedir}/vol/BigVolumeList`" ]; then
+if  [ x$VOLNAME = "x`awk ' $1 ~ /^[WRB]'${_VOLNAME}'$/  {print $1}' ${vicedir}/vol/BigVolumeList`" ]; then
     echo "$VOLNAME exists as a non replicated volume in ${vicedir}/vol/BigVolumeList"
     exit 1
 fi
 
-if [ x$VOLNAME = x`awk ' $1 ~ /^[WRB]'$1'\.[0-7]$/  {print $1}' ${vicedir}/vol/BigVolumeList` ]; then
+if [ x$VOLNAME = x`awk ' $1 ~ /^[WRB]'${_VOLNAME}'\.[0-7]$/  {print $1}' ${vicedir}/vol/BigVolumeList` ]; then
     echo "$VOLNAME exists as a replica in ${vicedir}/vol/BigVolumeList"
     exit 1
 fi
@@ -96,7 +101,7 @@ if [ $? -ne 0 ]; then
     exit 1
 fi
 
-if [ x$VOLNAME = "x`awk ' $1 ~ /^'$1'$/  {print $1}' ${vicedir}/db/VRList.new`" ]; then
+if [ x$VOLNAME = "x`awk ' $1 ~ /^'${_VOLNAME}'$/  {print $1}' ${vicedir}/db/VRList.new`" ]; then
 	echo "Volume $VOLNAME already exists in ${vicedir}/db/VRList"
 	exit 1
 fi

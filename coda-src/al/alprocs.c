@@ -342,19 +342,6 @@ int AL_CheckRights(IN AL_AccessList *Alist, IN PRS_InternalCPS *CPS,
 		*WhichRights = 0; return(0);
 	}
 
-#if 0
-/* I disabled this code. We already have enough special treatment rules.
- * And I don't see why "777" should always be the last entry in the CPS list,
- * especially when at some point we allow for more than one authenticator per
- * connection. Oh, and I don't like hardcoded numbers. -JH */
-
-	/* System always gets all rights; being a user, it will always be
-	   the last entry in the sorted CPS list */
-	if (CPS->IdList[CPS->InclEntries - 1] == PRS_SYSTEMID){
-		*WhichRights = -1;
-		return(0);
-	}
-#endif
 	/* Each iteration eats up exactly one entry from either Alist or CPS.
 	   Duplicate Entries in access list ==> accumulated rights are obtained
 	   Duplicate Entries in CPS ==> irrelevant */
