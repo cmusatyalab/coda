@@ -8,7 +8,7 @@ extern "C" {
 #endif
 #define _CYG_ERRNO_H_
 
-#include "/usr/local/gnuwin32/i586-pc-cygwin32/include/errno.h"
+#include "i586-pc-cygwin32/include/errno.h"
 
 
 

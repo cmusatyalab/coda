@@ -25,7 +25,7 @@
 # improvements or extensions that  they  make,  and  to  grant  Carnegie
 # Mellon the rights to redistribute these changes without encumbrance.
 # 
-# static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/advice/Makefile.in,v 4.9 97/12/19 17:19:42 braam Exp $";
+# static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/advice/Makefile.in,v 4.10 1998/01/09 13:43:42 rvb Exp $";
 
 
 TOPDIR = @top_srcdir@
@@ -53,10 +53,10 @@ LIBS =	$(LIBFAIL)\
 	$(LIBRPC2)\
 	$(LIBOLDLWP)\
 	$(LIBCOMPAT)\
-	$(LIBKERNDEP)\
-	$(LIBGDBM)
+	$(LIBKERNDEP)
 
-OTHERLIBS = $(LIBSYS) $(LIBKVM)
+OTHERLIBS = $(LIBSYS) $(LIBKVM) 	$(LIBGDBM)
+
 
 HFILES =	$(INCLDIR)/admon.rpc2	\
 		$(INCLDIR)/adsrv.rpc2	\
@@ -85,7 +85,7 @@ replacementlog.o: replacementlog.cc
 fake_rpc_setup.o: rpc_setup.cc
 	$(CXX) $(CFLAGS) -D__FAKE__ -c ${srcdir}/rpc_setup.cc -o fake_rpc_setup.o
 
-advice_srv: $(LIBS) $(OTHERLIBS) libadvice.a advice_srv.o
+advice_srv: $(LIBS) libadvice.a advice_srv.o
 	$(CXX) $(LIBFLAGS) advice_srv.o libadvice.a $(LIBS) $(OTHERLIBS) -o advice_srv
 
 

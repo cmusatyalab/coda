@@ -33,7 +33,7 @@ should be returned to Software.Distribution@cs.cmu.edu.
 
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/rvm-src/rvm/rvm_logrecovr.c,v 4.4 1997/10/18 05:09:00 clement Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/rvm-src/rvm/rvm_logrecovr.c,v 4.5 1997/11/04 22:04:01 braam Exp $";
 #endif _BLURB_
 
 /*
@@ -41,7 +41,7 @@ static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/rvm-src/rvm/rvm
 *                       RVM log recovery support
 *
 */
-
+#include <unistd.h>
 #include <sys/file.h>
 #include <sys/time.h>
 #include "rvm_private.h"

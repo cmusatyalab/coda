@@ -14,7 +14,7 @@ TOPOBJ = @TOPOBJ@
 
 include $(MAKDIR)/Makeconf
 
-HEADERS = file.h time.h
+HEADERS = file.h time.h socketvar.h
 INCLDIR := $(INCLDIR)/sys
 
 include $(MAKDIR)/configs/Makerules

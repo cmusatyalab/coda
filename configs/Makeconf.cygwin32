@@ -1,14 +1,17 @@
 #
 # sets:
-#	variables, libraries for Linux build
+#	variables, libraries for Linux -> NT cross compilation
 
-# definitions for Linux make and install of Coda
-# first draft
-
+# definitions for NT
 # Peter Braam
-# Josh Raiff, modified for configure
 
-# the following may need editing depending on your preferences
+
+#
+# for native compilation the include paths below need "ifeq"-ing
+# like the binaries do:
+#
+
+#ifneq (build, host)
 
 CC = gnuwin32gcc
 C++ = gnuwin32g++
@@ -17,25 +20,28 @@ AR = gnuwin32ar
 RANLIB = gnuwin32ranlib
 AS = gnuwin32as
 
+# endif
+
 NATIVECC= cc
 
 EXTRAS = cygwin
 
 MACHINE_FLAGS = -DCYGWIN32
 SHORTSYS      = linux
-INCLFLAGS     =   -I/usr/local/gnuwin32/i586-pc-cygwin32/include -I/usr/local/gnuwin32
+INCLFLAGS     =   -I/usr/gnuwin32/i586-pc-cygwin32/include -I/usr/gnuwin32/include -I/usr/gnuwin32
 GFLAG         = -g -gstabs
 CPP           = gnuwin32gcc -E -x c-header
+OPTLFLAG      = -L/usr/gnuwin32/lib
 LIBCURSES     = -lncurses
 LIBCOMPAT     =
-LIBREADLINE   = /usr/local/gnuwin32/lib/libreadline.a
+LIBREADLINE   = /usr/gnuwin32/lib/libreadline.a
 LIBTERMCAP    = 
-INCREADLINE   = -I/usr/local/gnuwin32/include/readline
+INCREADLINE   = -I/usr/gnuwin32/include/readline
 #for rvm
 LIBTHREADS    =
 LIBMACH       = 
 LIBMATH       = 
-LIBGDBM       = /usr/local/gnuwin32/i586-pc-cygwin32/lib/libgdbm.a
+LIBGDBM       = /usr/gnuwin32/lib/libgdbm.a
 LIBFLEX       =  
 LEX           = flex
 #YACC          = bison -y
