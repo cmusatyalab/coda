@@ -1,0 +1,14 @@
+
+TOPDIR = @top_srcdir@
+ifndef MAKDIR
+MAKDIR = @top_srcdir@/configs
+endif
+srcdir = @srcdir@
+VPATH  = @srcdir@
+TOPOBJ = @TOPOBJ@
+
+include $(MAKDIR)/Makeconf
+
+SUBDIRS = $(I) $(II) $(III) $(IV)
+
+include $(MAKDIR)/Makerules
