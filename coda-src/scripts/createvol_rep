@@ -30,7 +30,7 @@
 #Mellon the rights to redistribute these changes without encumbrance.
 #*/
 #
-#static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/scripts/createvol_rep,v 4.7 98/07/01 10:35:24 jaharkes Exp $";
+#static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/scripts/createvol_rep,v 4.8 98/09/14 21:50:02 braam Exp $";
 #endif /*_BLURB_*/
 
 PATH=$PATH:/usr/local/sbin
@@ -55,7 +55,7 @@ fi
 
 # Initialize local variables
 VOLNAME=$1
-SERVERS=()
+SERVERS=
 NSERVERS=0
 MAXSERVERS=8
 PARTITION=$3
