@@ -44,7 +44,7 @@ fi
 # defaults, will be overridden by settings in the server.conf file
 vicedir=/vice
 
-conf="`codaconfedit server.conf`"
+conf="`@sbindir@/codaconfedit server.conf`"
 if [ "x${conf}" != x/dev/null ] ; then
   . ${conf}
   haveconf=1
@@ -114,7 +114,7 @@ n=1
 while [ $n -le $numservers ]; do
 
     if [ $numservers -gt 1 ]; then
-        conf="`codaconfedit server_$n.conf`"
+        conf="`@sbindir@/codaconfedit server_$n.conf`"
 	if [ "x$conf" != x/dev/null ]; then
 	    . $conf
 	fi
@@ -302,9 +302,9 @@ EOF
 
     if [ $haveconf = 1 ] ; then
 	conffile="`basename $conf`"
-	codaconfedit $conffile rvm_log $log
-	codaconfedit $conffile rvm_data $data
-	codaconfedit $conffile rvm_data_length $dsparm
+	@sbindir@/codaconfedit $conffile rvm_log $log
+	@sbindir@/codaconfedit $conffile rvm_data $data
+	@sbindir@/codaconfedit $conffile rvm_data_length $dsparm
     else
 	echo "-rvm $log $data $dsparm" >> ${vicedir}/srv.conf
     fi

@@ -30,7 +30,7 @@ export PATH
 
 # load the server configuration file
 vicedir=/vice
-. "`codaconfedit server.conf`"
+. "`@sbindir@/codaconfedit server.conf`"
 
 if [ ! -f ${vicedir}/hostname -o ! -f ${vicedir}/db/scm ] ; then
    echo "Coda server configuration error.  Could not find needed files."

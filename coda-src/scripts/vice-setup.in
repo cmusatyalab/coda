@@ -53,7 +53,7 @@ echo
 #
 # initial information
 #
-conf="`codaconfedit server.conf`"
+conf="`@sbindir@/codaconfedit server.conf`"
 if [ "x$conf" != x/dev/null ] ; then
     yesno=""
     echo "You already have a file $conf!"
@@ -84,7 +84,7 @@ echo 'Setting up config files for a coda server.'
 
 # figure out where the server.conf template, and thus the new server.conf
 # file are located.
-conf_template="`codaconfedit server.conf.ex`"
+conf_template="`@sbindir@/codaconfedit server.conf.ex`"
 if [ "x$conf_template" = x/dev/null ] ; then
     echo "Could not find the server.conf.ex template file"
     exit 1
@@ -115,8 +115,8 @@ if [ "x$vicedir" = x ] ; then
 fi
 
 if [ $mkconf = 1 ] ; then
-   codaconfedit server.conf vicedir $vicedir
-   codaconfedit server.conf numservers $numservers
+   @sbindir@/codaconfedit server.conf vicedir $vicedir
+   @sbindir@/codaconfedit server.conf numservers $numservers
 fi
 
 echo "Setting up $vicedir."
@@ -329,8 +329,8 @@ echo $bn > ${vicedir}/hostname
 # server.conf standard 
 #
 if [ $mkconf = 1 ] ; then
-    codaconfedit server.conf rvmtruncate 5
-    codaconfedit server.conf trace 100
+    @sbindir@/codaconfedit server.conf rvmtruncate 5
+    @sbindir@/codaconfedit server.conf trace 100
 fi
 
 #

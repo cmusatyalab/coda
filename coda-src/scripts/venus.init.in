@@ -18,9 +18,10 @@ export PATH
 
 # defaults
 pid_file=/usr/coda/venus.cache/pid
+mountpoint=/coda
 
 # overridden from the venus.conf
-[ -f @sysconfdir@/venus.conf ] && . @sysconfdir@/venus.conf
+[ -f @sbindir@/codaconfedit ] && . `@sbindir@/codaconfedit venus.conf`
 
 [ -f @sbindir@/venus ] || exit 0
 
@@ -49,7 +50,7 @@ case "$1" in
 	echon "Shutting down venus: "
 	if [ -f $pid_file ]; then
 		kill -TERM `cat $pid_file`
-		umount /coda
+		umount $mountpoint
 	fi
 	rm -f $pid_file
 	[ -d /var/lock/subsys ] && rm -f /var/lock/subsys/venus.init
@@ -59,7 +60,7 @@ case "$1" in
 	echon "Killing venus: "
 	if [ -f $pid_file ]; then
 		kill -9 `cat $pid_file`
-		umount /coda
+		umount $mountpoint
 	fi
 	rm -f $pid_file
 	echo "done."

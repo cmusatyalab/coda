@@ -22,7 +22,7 @@ export PATH
 
 # load the server configuration file
 vicedir=/vice
-. "`codaconfedit server.conf`"
+. "`@sbindir@/codaconfedit server.conf`"
 
 if [ `cat ${vicedir}/hostname` != `cat ${vicedir}/db/scm` ]
 then
