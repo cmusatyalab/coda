@@ -3690,6 +3690,10 @@ int ClientModifyLog::CheckPoint(char *ckpdir) {
 
     int code = 0;
 
+#ifdef DJGPP
+    return 0;
+#endif
+
     /* Create the CKP file. */
     /* The last component of the name will be "<volname>@<mountpath>". */
     FILE *dfp = NULL, *ofp = NULL;
@@ -3842,8 +3846,10 @@ struct WriteLinksHook {
 
 static int WriteLinks(struct DirEntry *de, void * hook)
 {
-	unsigned long vnode = ntohl(de->fid.dnf_vnode);
-	unsigned long vunique = ntohl(de->fid.dnf_unique);
+	VnodeId vnode;
+	Unique_t vunique;
+	FID_NFid2Int(&de->fid, &vnode, &vunique);
+
 	char *name = de->name;
 
 	struct WriteLinksHook *wl_hook = (struct WriteLinksHook *)hook;

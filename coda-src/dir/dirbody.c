@@ -70,6 +70,12 @@ static void fid_Fid2NFid(struct DirFid *fid, struct DirNFid *nfid);
 static void fid_NFid2Fid(struct DirNFid *nfid, struct DirFid *fid); 
 static void fid_NFidV2Fid(struct DirNFid *, VolumeId, struct ViceFid *);
 
+struct DirFind {
+	char            *df_ename;
+	struct DirEntry *df_tp;
+	struct DirEntry *df_lp;
+	int             df_index;          	
+};
 
 /* locking policy: DH_ routines lock.  DIR routines may
    assume directory is locked */
@@ -1006,75 +1012,80 @@ int DIR_Hash (char *string)
     return tval;
 }
 
+/* an EnumerateDir hook to find a DirEntry with case-insensitive match.*/
+/* BUG: index is always set to 0. smarc */
+int dir_FindCaseInsensitive(PDirEntry de, void *hook){
+	struct DirFind *find = (struct DirFind *) hook;
+	char           *p = NULL;
+	char           *name = strdup(find->df_ename);
+	int            length = strlen(name);
+	char           *name2;
+	int            length2;
+	int            rc = 0;
+
+      	/* lowercase name to look for */
+	for (p = name; p < name + length; p++)
+		if (isupper(*p))
+	       		*p += 'a' - 'A';
+
+	name2 = strdup(de->name);
+       	length2 = strlen(name2);
+
+      	/* lowercase name2 */       
+	for (p = name2; p < name2 + length2; p++)
+      	       	if (isupper(*p))
+			*p += 'a' - 'A';
+
+	if (!strcmp(name, name2)){
+		find->df_tp = de;
+		find->df_index = 0; /* BUG no way to find out about index here. smarc */
+		strcpy(find->df_ename, de->name);
+		rc = 1; /* indicate EnumerateDir to stop */
+	}
+	else 
+		find->df_lp = de;
+		
+	if (name) free(name);
+	if (name2) free(name2);
+
+	return rc;
+}
+
 /* Find a directory entry, given its name.  This entry returns a
    pointer to DirEntry, and a pointer to the previous DirEntry (to aid
    the delete code) in the hash chain.  If no entry is found a null
-   pointer is returned instead. */
+   pointer is returned instead. 
+
+BUG: index doesn't work with CLU_CASE_INSENSITIVE so far. smarc
+*/
 static struct DirEntry *dir_FindItem (struct DirHeader *dir, char *ename, 
 				       struct DirEntry **preventry, int *index, int flags)
 {
-	int num;
-	char *p = NULL;
+	int rc = 0;
 	register int i;	
 	register short blobno;
 	register struct DirEntry *tp;
 	register struct DirEntry *lp = NULL;	/* page of previous entry in chain */
-	char *name = strdup(ename);
-	int length = strlen(name);
-	char *name2 = NULL;
-	int length2 = 0;
+	struct DirFind find;
 
 	switch (flags) {
 	case CLU_CASE_INSENSITIVE:
 		if (!dir) 
 			return 0;
-		
-		/* lowercase name to look for */
-		for (p=name; p<name+length; p++){
-			if (isupper(*p))
-				*p += 'a' - 'A';
-		}
 
-		for(i=0;i<NHASH;i++) {
-			/* For each hash chain, enumerate  the list. */
-			num = ntohs(dir->dirh_hashTable[i]);
-			while (num != 0) {
-				/* Walk down the hash table list. */
-				tp = dir_GetBlob(dir,num);
-				if (!tp) 
-					break;
-			
-				name2 = strdup(tp->name);
-				length2 = strlen(name2);
+		find.df_ename = ename;
+		find.df_lp = NULL;
+		find.df_tp = NULL;
+		rc = DIR_EnumerateDir(dir, dir_FindCaseInsensitive, (void *) &find);
+		if (rc){
+			if (preventry)
+		          	*preventry = find.df_lp;
+		       	if (index)
+		       		*index = find.df_index;	
+			strcpy(ename, find.df_tp->name);	       							
+			return find.df_tp;			
+		}		       			
 
-				/* lowercase name2 */
-				for (p=name2; p<name2+length2; p++){
-					if (isupper(*p))
-						*p += 'a' - 'A';
-				}
-			
-				if (!strcmp(name2, name)){
-				/* found */
-					if (preventry)
-						*preventry = lp;
-					if (index)
-						*index = num;
-
-					if (name2) 
-						free(name2);
-					if (name) 
-						free(name);	
-					strcpy(ename, tp->name);
-					return tp;
-				}
-
-				lp = tp;
-				num = ntohs(tp->next);
-				if (name2) free(name2);
-			}
-		}
-
-		if (name) free(name);
 		return 0;
 		break;
 
@@ -1113,6 +1124,7 @@ static struct DirEntry *dir_FindItem (struct DirHeader *dir, char *ename,
 		}
 		break;
 	default:
+		fprintf(stdout, "!!! You might have an unsupported Coda kernel module. Please update coda.o !!!\n");
 		CODA_ASSERT(0);
 	}
 

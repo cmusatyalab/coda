@@ -125,6 +125,11 @@ int main(int argc, char **argv) {
     /* Initialize.  N.B. order of execution is very important here! */
     /* RecovInit < VSGInit < VolInit < FSOInit < HDB_Init */
 
+#ifdef DJGPP
+    /* disable debug messages */
+    __djgpp_set_quiet_socket(1);
+#endif
+
     /* test mismatch with kernel before doing real work */
     testKernDevice();
 
@@ -169,6 +174,10 @@ int main(int argc, char **argv) {
 	tv.tv_usec = 0;
 	VprocSleep(&tv);
     }
+
+#ifdef DJGPP
+    k_Purge();
+#endif
 
     UnsetInitFile();
     eprint("Venus starting...");

@@ -50,12 +50,13 @@ extern "C" {
 /* ********** Mist Routines ********** */
 int MakeDirList(struct DirEntry *de, void *hook)
 {
-	long vnode = ntohl(de->fid.dnf_vnode);
-	long vunique = ntohl(de->fid.dnf_unique);
+	VnodeId vnode;
+	Unique_t unique;
+	FID_NFid2Int(&de->fid, &vnode, &unique);
 	char *name = de->name;
 	LOG(100, ("MakeDirList: Fid = 0x%x.%x.%x and Name = %s\n",
-		  (int)hook, vnode, vunique, name));
-	LRDB->DirList_Insert((long )hook, vnode, vunique, name);
+		  (int)hook, vnode, unique, name));
+	LRDB->DirList_Insert((long )hook, vnode, unique, name);
 	return 0;
 }
 
