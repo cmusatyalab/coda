@@ -38,7 +38,7 @@ vice_dir_init (char *dirname, int serverno)
 	if (serverno != 0) {
 	    snprintf(serverdir, MAXPATHLEN, "%s/server_%d", vicedir, serverno);
 	} else {
-	    strncpy(serverdir,vicedir);
+	    strncpy(serverdir,vicedir, MAXPATHLEN);
 	}
 }
 
