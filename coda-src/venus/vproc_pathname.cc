@@ -423,7 +423,7 @@ void vproc::verifyname(char *name, int flags)
     {
         if (!name[0] ||                       /* "" */
             (name[1] == '.' && (!name[2] ||   /* "." */
-             (name[2] == '.' && name[3])))) { /* ".." */
+             (name[2] == '.' && !name[3])))) { /* ".." */
             u.u_error = EINVAL;
             return;
         }
