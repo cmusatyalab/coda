@@ -47,7 +47,7 @@ coda_cnode_free(struct cnode *cinode)
    - fill in the attributes
 */
 int
-coda_cnode_make( struct inode **inode, ViceFid *fid, struct super_block *sb)
+coda_cnode_make(struct inode **inode, ViceFid *fid, struct super_block *sb)
 {
         struct cnode *cnp;
         struct vattr attr;
@@ -111,6 +111,7 @@ coda_cnode_make( struct inode **inode, ViceFid *fid, struct super_block *sb)
         EXIT;
         return 0;
 }
+
 
 inline int
 coda_fideq(ViceFid *fid1, ViceFid *fid2)

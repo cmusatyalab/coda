@@ -41,8 +41,10 @@ static int coda_follow_link(struct inode * dir, struct inode * inode,
 			    int flag, int mode, struct inode ** res_inode);
 static int coda_getlink(struct inode *inode, char **buffer, int *lenght);
 static int coda_readpage(struct inode *inode, struct page *page);
+static int coda_cnode_makectl(struct inode **inode, struct super_block *sb);
 
 /* external routines */
+extern struct cnode *coda_cnode_alloc(void);
 void coda_load_creds(struct CodaCred *cred);
 extern int coda_upcall(struct coda_sb_info *, int insize, int *outsize, caddr_t buffer);
 extern  int coda_cnode_make(struct inode **inode, ViceFid *, struct super_block *);
@@ -154,28 +156,28 @@ static int coda_create(struct inode *dir, const char *name, int length,
 		       int mode, struct inode **result)
 {
         int error=0, size, payload_offset;
-        char *buf;
+        char *buf = NULL;
         struct inputArgs *in;
         struct outputArgs *out;
         struct cnode *dircnp;
 ENTRY;
         *result = NULL;
-        
-        CDEBUG(D_INODE, "name: %s, length %d, mode %o\n", name, length, mode);
+	CDEBUG(D_INODE, "name: %s, length %d, mode %o\n", name, length, mode);
 
+	/* sanity */
         if (!dir || !S_ISDIR(dir->i_mode)) {
                 printk("coda_create: inode is null or not a directory\n");
-                iput(dir);
-                return -ENOENT;
+                error = ENOENT;
+		goto exit;
         }
-	
-        dircnp = ITOC(dir);
+	dircnp = ITOC(dir);
         CHECK_CNODE(dircnp);
 
         /* cannot contact dead venus */
         if (IS_DYING(dircnp)) {
                 COMPLAIN_BITTERLY(create, dircnp->c_fid);
-                return -ENODEV; 
+                error = ENODEV; 
+		goto exit;
         }
 
 
@@ -184,7 +186,8 @@ ENTRY;
                       dircnp->c_fid.Volume, 
                       dircnp->c_fid.Vnode, 
                       dircnp->c_fid.Unique, name);
-                return -ENAMETOOLONG;
+                error = ENAMETOOLONG;
+		goto exit;
         }
 
         payload_offset = VC_INSIZE(cfs_create_in);
@@ -202,7 +205,6 @@ ENTRY;
         /* Venus must get null terminated string */
         memcpy((char *)in + payload_offset, name, length);
         *( (char *)in + payload_offset + length ) = '\0';
-
         size = payload_offset + length + 1;
 
 #if 0
@@ -254,54 +256,39 @@ static int coda_lookup(struct inode *dir, const char *name, int length,
 	int payload_offset, size;
 	
 	*res_inode = NULL;
-CDEBUG(D_INODE, "\n");
-
         ENTRY;
         CDEBUG(D_INODE, "name %s, len %d\n", name, length);
+
+	/* sanity */
 	if (!dir || !S_ISDIR(dir->i_mode)) {
                 printk("coda_lookup: inode is NULL or not a directory.\n");
-                iput(dir);
-                return -ENOENT;
+                error = ENOENT;
+		goto exit;
 	}
-CDEBUG(D_INODE, "\n");
-
 	dircnp = ITOC(dir);
 	CHECK_CNODE(dircnp);
 	
-	CDEBUG(D_INODE, "lookup: %s in %ld.%ld.%ld\n", name, dircnp->c_fid.Volume,
-              dircnp->c_fid.Vnode, dircnp->c_fid.Unique);
+	CDEBUG(D_INODE, "lookup: %s in %ld.%ld.%ld\n", name, 
+	       dircnp->c_fid.Volume,
+	       dircnp->c_fid.Vnode, dircnp->c_fid.Unique);
 
         /* check for operation on dying object */
 	if ( IS_DYING(dircnp) ) {
                 COMPLAIN_BITTERLY(lookup, dircnp->c_fid);
                 savedcnp = dircnp;
-                /* error = coda_cnode_getnew(&(CTOI(dircnp))); */
-                error = 1;
-                CDEBUG(D_INODE, "cannot deal with dying inodes yet\n.");
-                return -ENODEV;
+		error = ENODEV;
+		goto exit;
 	}
 
         /* control object, create inode for it on the fly, release will
            release it.  */
-        if ( strcmp(name, CFS_CONTROL) == 0 &&
-             ( dir == dir->i_sb->s_mounted) ) {
-                struct ViceFid ctl_fid;
-                ctl_fid.Volume = CTL_VOL;
-                ctl_fid.Vnode = CTL_VNO;
-                ctl_fid.Unique = CTL_UNI;
-                
-		*res_inode = iget(dir->i_sb, CTL_INO);
-		if ( *res_inode ) {
-		    (*res_inode)->i_op = &coda_ioctl_inode_operations;
-		    (*res_inode)->i_mode = 00444;
-		    error = 0;
-		} else { 
-		    error = -ENOENT;
-		}
-		CDEBUG(D_INODE, "Lookup on CTL object; iput of ino %ld, count %d\n", dir->i_ino, dir->i_count);
-		iput(dir);
-                EXIT;
-                return error;
+        if ( (dir == dir->i_sb->s_mounted) && 
+	     (CFS_CONTROLLEN == length ) && 
+	     (strncmp(name, CFS_CONTROL, CFS_CONTROLLEN) == 0 )) {
+	    /* warning coda_cnode_makectl returns negative errors */
+	        error = -coda_cnode_makectl(res_inode, dir->i_sb);
+		CDEBUG(D_SPECIAL, "Lookup on CTL object; iput of ino %ld, count %d\n", dir->i_ino, dir->i_count);
+                goto exit;
         }
 
         /* do we have it already name cache */
@@ -309,10 +296,9 @@ CDEBUG(D_INODE, "\n");
 		CHECK_CNODE(savedcnp);
 		*res_inode = CTOI(savedcnp);
 		iget((*res_inode)->i_sb, (*res_inode)->i_ino);
-		iput(dir);
 		CDEBUG(D_INODE, "cache hit for ino: %ld, count: %d!\n",
 		       (*res_inode)->i_ino, (*res_inode)->i_count);
-		return 0;
+		goto exit;
 	}
 	CDEBUG(D_INODE, "name not found in cache!\n");
 
@@ -338,7 +324,6 @@ CDEBUG(D_INODE, "\n");
         payload_offset = VC_INSIZE(cfs_lookup_in);
         in->d.cfs_lookup.name = (char *) payload_offset;
 
-
         /* send Venus a null terminated string */
         memcpy((char *)in + payload_offset, name, length);
         *((char *)in + payload_offset + length) = '\0';
@@ -346,11 +331,11 @@ CDEBUG(D_INODE, "\n");
         size = payload_offset + length + 1;
         error = coda_upcall(coda_sbp(dir->i_sb), size, &size, buf);
         if (!error) {
-	  error =out->result;
+	    error =out->result;
         } else {
-	  CDEBUG(D_INODE, "upcall returns error: %d\n", error);
-	  *res_inode = (struct inode *) NULL;
-	  goto exit;
+	    CDEBUG(D_INODE, "upcall returns error: %d\n", error);
+	    *res_inode = (struct inode *) NULL;
+	    goto exit;
 	}
 
         if ( error) {
@@ -372,13 +357,11 @@ CDEBUG(D_INODE, "\n");
 
 	/* at last we have our inode number from Venus, now allocate storage for
 	   the cnode and do iget, and fill in the attributes */
-	error = coda_cnode_make(res_inode, &out->d.cfs_lookup.VFid, 
+	error = -coda_cnode_make(res_inode, &out->d.cfs_lookup.VFid, 
                                              dir->i_sb);
 	if ( error ) {
 	    *res_inode = NULL;
-	    error = -error;
 	    goto exit;
-	    
 	}
 
 	/* put the thing in the name cache */
@@ -417,9 +400,8 @@ coda_unlink(struct inode *dir_inode, const char *name, int length)
 
         if ( IS_DYING(dircnp) ) {
                 COMPLAIN_BITTERLY(unlink, dircnp->c_fid);
-                iput(dir_inode);
-        EXIT;
-                return -ENODEV;
+                result = ENODEV;
+		goto exit;
         }
 
         /* this file should no longer be in the namecache! */
@@ -1153,3 +1135,20 @@ int coda_readpage(struct inode * inode, struct page * page)
         return 0;
 }
 
+
+/* the CONTROL inode is made without asking attributes from Venus */
+int coda_cnode_makectl(struct inode **inode, struct super_block *sb)
+{
+    int error = 0;
+
+    *inode = iget(sb, CTL_INO);
+    if ( *inode ) {
+	(*inode)->i_op = &coda_ioctl_inode_operations;
+	(*inode)->i_mode = 00444;
+	error = 0;
+    } else { 
+	error = -ENOMEM;
+    }
+    
+    return error;
+}

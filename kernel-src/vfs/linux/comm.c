@@ -189,7 +189,7 @@ CDEBUG(D_UPCALL, "process %d woken up by Venus.\n", current->pid);
 		printk("coda_upcall: interrupted before read: (op,un)  (%d.%d), flags = %x\n",
 		       vmp->vm_opcode, vmp->vm_unique, vmp->vm_flags);
 		REMQUE(vmp->vm_chain);
-		error = EINTR;
+		error = ERESTARTSYS;
 	    } else { 	
 		/* (!(vmp->vm_flags & VM_WRITE)) means interrupted after
                    upcall started */
@@ -201,7 +201,7 @@ CDEBUG(D_UPCALL, "process %d woken up by Venus.\n", current->pid);
 			   vmp->vm_opcode, vmp->vm_unique, vmp->vm_flags);
 		
 		REMQUE(vmp->vm_chain);
-		error = EINTR;
+		error = ERESTARTSYS;
 		
 		CODA_ALLOC(svmp, struct vmsg *, sizeof (struct vmsg));
 

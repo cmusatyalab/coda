@@ -729,6 +729,7 @@ extern struct cfs_mntinfo cfs_mnttbl[]; /* indexed by minor device number */
 extern struct vnode *cfs_ctlvp;
 
 #define	CFS_CONTROL		".CONTROL"
+#define CFS_CONTROLLEN           8
 #define	CTL_VOL			-1
 #define	CTL_VNO			-1
 #define	CTL_UNI			-1

@@ -66,7 +66,8 @@ struct venus_dirent {
 #define D_CNODE     32
 #define D_UPCALL    64  /* up and downcall debugging */
 #define D_PSDEV    128  
-#define D_SPECIAL  256
+#define D_PIOCTL   256
+#define D_SPECIAL  512
 
 #define myprintf(ARG)  printk ARG
 
