@@ -29,7 +29,7 @@
 # changes  without  encumbrance.   Such improvements and extensions
 # should be returned to Software.Distribution@cs.cmu.edu.
 #
-# rcsid = $Header: /afs/cs/project/coda-src/cvs/coda/rvm-src/rds/Makefile.in,v 4.8 1998/05/27 20:46:08 braam Exp $
+# rcsid = $Header: /coda/coda.cs.cmu.edu/project/coda/cvs/coda/rvm-src/rds/Attic/Makefile.in,v 4.9 1998/06/16 10:46:24 jaharkes Exp $
 #
 
 

@@ -34,7 +34,7 @@
 #Rewritten for the bourne shell by Anders Hammarquist <iko@iko.pp.se>
 #*/
 #
-#static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/egasr/xfrepair,v 4.3 98/09/14 22:01:44 braam Exp $";
+#static char *rcsid = "$Header: /coda/coda.cs.cmu.edu/project/coda/cvs/coda/coda-src/egasr/xfrepair,v 4.2.8.1 1998/10/08 11:26:28 jaharkes Exp $";
 #endif /*_BLURB_*/
 
 CTOKENS=ctokens

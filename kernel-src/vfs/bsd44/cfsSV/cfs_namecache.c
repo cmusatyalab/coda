@@ -46,7 +46,10 @@ Mellon the rights to redistribute these changes without encumbrance.
 
 /*
  * HISTORY
- * $Log:	cfs_namecache.c,v $
+ * $Log: cfs_namecache.c,v $
+ * Revision 1.8  1998/01/31 20:53:10  rvb
+ * First version that works on FreeBSD 2.2.5
+ *
  * Revision 1.7  98/01/23  11:53:39  rvb
  * Bring RVB_CFS1_1 to HEAD
  * 
@@ -208,7 +211,7 @@ Mellon the rights to redistribute these changes without encumbrance.
 #include <vm/vm_object.h>
 #endif
 
-__RCSID("$Header: /afs/cs/project/coda-src/cvs/coda/kernel-src/vfs/bsd44/cfs/cfs_namecache.c,v 1.7 98/01/23 11:53:39 rvb Exp $");
+__RCSID("$Header: /coda/coda.cs.cmu.edu/project/coda/cvs/coda/kernel-src/vfs/bsd44/cfsSV/Attic/cfs_namecache.c,v 1.8 1998/01/31 20:53:10 rvb Exp $");
 
 /* 
  * Declaration of the name cache data structure.

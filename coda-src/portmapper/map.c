@@ -1,5 +1,5 @@
 
-/* $Id: map.c,v 1.1 1998/04/14 20:54:06 braam Exp $ */
+/* $Id: map.c,v 1.2 1998/08/05 23:49:31 braam Exp $ */
 
 /* structure management for an RPC2 portmapper */
 

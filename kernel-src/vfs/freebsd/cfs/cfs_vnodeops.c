@@ -14,7 +14,10 @@
 
 /*
  * HISTORY
- * $Log:	cfs_vnodeops.c,v $
+ * $Log: cfs_vnodeops.c,v $
+ * Revision 1.8  1998/02/24 22:22:50  rvb
+ * Fixes up mainly to flush iopen and friends
+ *
  * Revision 1.7  98/01/31  20:53:15  rvb
  * First version that works on FreeBSD 2.2.5
  * 

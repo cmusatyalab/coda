@@ -1,0 +1,53 @@
+#!+TIXWISH+
+#
+# create graphical stuff
+#
+label .label -text "File transfer progress"
+pack .label
+tixMeter .meter -height 60 -width 200 -value 0.0
+pack .meter
+
+#
+# The procedure which gets called for all venus messages
+#
+proc updatemeter {} {
+  variable input
+
+  #
+  # Get a line (may be empty or not ready yet)
+  #
+  set n [ gets $input line ]
+  if { $n == -1 } {
+    if [ eof $input ] {
+      puts "Connection to venus lost"
+      exit 0
+    }
+    return
+  }
+
+  #
+  # match our patterns
+  #
+  if [ regexp {^store::SendReintFragment [^\(]+\((.+)/(.+)\)$} $line x offset size ] {
+    if { $offset == -1 } { set offset 0 }
+    set done [ expr double($offset) / $size ]
+    #.label configure -text [ lindex $line 2 ]
+    .meter configure -value $done
+  } elseif [ string match "store::CloseReintHandle*" $line ] {
+    .meter configure -value 1.0
+  }
+}
+
+#
+# connect to the venus port
+#
+set input [ socket localhost venus ]
+puts "Connected to venus"
+puts $input "set:fetch"
+flush $input
+
+#
+# set the socket to non-blocking and attach the callback
+#
+fconfigure $input -blocking off
+fileevent $input readable updatemeter

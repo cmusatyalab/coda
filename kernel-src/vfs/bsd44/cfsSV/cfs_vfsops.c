@@ -13,7 +13,10 @@
 
 /*
  * HISTORY
- * $Log:	cfs_vfsops.c,v $
+ * $Log: cfs_vfsops.c,v $
+ * Revision 1.8  1998/02/24 22:22:48  rvb
+ * Fixes up mainly to flush iopen and friends
+ *
  * Revision 1.7  98/01/23  11:53:45  rvb
  * Bring RVB_CFS1_1 to HEAD
  * 
