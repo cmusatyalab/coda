@@ -1527,7 +1527,11 @@ case ${host_alias} in
 
 	*-*-netbsd* )
 	    	shortsys=nbsd
-	    	sys=i386_nbsd1
+		sys=nbsd
+		case ${host_cpu} in
+			i*6 )   arch=i386 ;;
+			sparc ) arch=sparc ;;
+		esac
 		vfsdir=bsd44
 		os=`uname -r`
 		initsuffix=../etc

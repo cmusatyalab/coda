@@ -47,7 +47,7 @@ Pittsburgh, PA.
 #include <time.h>
 #endif
 
-#include <sys/types.h>
+#include <sys/param.h>
 #include <sys/mman.h>
 
 #include "lwp.h"
@@ -550,6 +550,10 @@ int LWP_CreateProcess(PFIC ep, int stacksize, int priority, char *parm,
 #if defined(__linux__) || defined(__BSD44__)
 	pagesize = getpagesize();
 	stackptr = (char *) mmap(lwp_stackbase, stacksize, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANON, -1, 0);
+#ifndef	MAP_FAILED
+	/* for netbsd 1.3 and libc5 */
+#define MAP_FAILED      ((void *) -1)
+#endif
 	if ( stackptr == MAP_FAILED ) {
 		perror("stack: ");
 		CODA_ASSERT(0);

@@ -122,16 +122,23 @@ _returnto:
 #endif sun3
 
 #if defined(sun4) || defined(sparc)
-#ifdef __linux__
+#if defined(__linux__) || defined(__NetBSD__)
 /* This info from Miguel de Icaza (and SunOS header files/libc) */
 #define STACK_ALIGN 8
 #define WINDOWSIZE (4*16)
 #define ARGPUSHSIZE (6*4)
 #define MINFRAME  (WINDOWSIZE+ARGPUSHSIZE+4) /* min frame */
 #define SA(X)     (((X)+(STACK_ALIGN-1)) & ~(STACK_ALIGN-1))
+#ifdef __linux__
 #define NAME(x) x
 #define ENTRY(x) .type x,@function; .global x; x:
 #include <asm/traps.h>
+#else  /* __NetBSD__ */
+#include <machine/asm.h>
+#include <machine/trap.h>
+#define NAME(x) _C_LABEL(x)
+#define ST_FLUSH_WINDOWS T_FLUSHWIN
+#endif /* __NetBSD__ */
 #else
 #include <sun4/asm_linkage.h>
 #include <sun4/trap.h>
@@ -157,8 +164,8 @@ ENTRY(savecontext)
 	tst	%i2
 	be	1f
 	st	%sp, [%i1]
-	and	%i2, -STACK_ALIGN, %sp
-	sub	%sp, SA(MINFRAME), %sp
+	and	%i2, -STACK_ALIGN, %o0
+	sub	%o0, SA(MINFRAME), %sp
 1:
 	call	.ptr_call, 0
 	mov	%i0, %g1
@@ -174,8 +181,12 @@ ENTRY(returnto)
 	retl
 	restore
 
+#if defined(__linux__) || defined(__NetBSD__)
 #ifdef __linux__
 ENTRY(.ptr_call)
+#else  /* __NetBSD__ */
+ASENTRY(.ptr_call)
+#endif /* __NetBSD__ */
 	jmp %g1
 	nop
 #endif
