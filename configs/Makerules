@@ -216,8 +216,9 @@ show showvar:
 	$(RM) $*.ss
 
 .c.o:
-	$(CC) -MD $(CFLAGS) $(CPPFLAGS) -c $<
-	@mkdir -p .depfiles ; mv $*.d .depfiles
+	$(CC) $(CFLAGS) $(CPPFLAGS) -c $<
+	@mkdir -p .depfiles
+	@mv $*.d .depfiles || true
 
 
 %.a:
