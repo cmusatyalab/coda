@@ -141,7 +141,6 @@ extern "C" {
 
 #include <unistd.h>
 #include <stdlib.h>
-#include <netdb.h>
 
 #include <rpc2/rpc2.h>
 /* interfaces */
@@ -152,6 +151,7 @@ extern "C" {
 #endif /* __cplusplus */
 
 /* from venus */
+#include <parse_realms.h>
 #include "adv_daemon.h"
 #include "advice.h"
 #include "comm.h"
@@ -625,30 +625,27 @@ int vdb::Get(volent **vpp, Volid *volid)
 
 /* MUST NOT be called from within transaction! */
 /* This call ALWAYS goes through to servers! */
-int vdb::Get(volent **vpp, Realm *realm, const char *volname)
+int vdb::Get(volent **vpp, Realm *realm, const char *name)
 {
     int code = 0;
-    char *realm_name;
+    volent *v = NULL;
+    char *realm_name = NULL;
+    char *volname = strdup(name);
+    CODA_ASSERT(volname);
 
     realm->GetRef();
 
-    /* Here we do the following 'translation' */
-    /* "volume"     -> keep existing realm */
-    /* "volume@"    -> keep existing realm */
-    /* "volume@xxx" -> user realm 'xxx' */
+    SplitRealmFromName(volname, &realm_name);
 
-    realm_name = strrchr(volname, '@');
     if (realm_name) {
-	*realm_name = '\0';
-	if (realm_name[1]) {
-	    realm->PutRef();
-	    realm = REALMDB->GetRealm(realm_name++);
-	}
+	realm->PutRef();
+	realm = REALMDB->GetRealm(realm_name);
     }
 
     if (!realm) {
 	eprint("Failed to find realm \"%s\"\n", realm_name);
-	return ENOENT;
+	code = ENOENT;
+	goto error_exit;
     }
 
     LOG(100, ("vdb::Get: volname = %s @ %s\n", volname, realm->Name()));
@@ -677,15 +674,17 @@ int vdb::Get(volent **vpp, Realm *realm, const char *volname)
 
 	if (code == 0) break; /* used to || with ENXIO (VNOVOL) */
 
-	if (code != 0 && code != ETIMEDOUT) return(code);
+	if (code != 0 && code != ETIMEDOUT)
+	    goto error_exit;
     }
 
     /* Look for existing volent with the desired name. */
-    volent *v = Find(realm, volname);
+    v = Find(realm, volname);
     if (code == ETIMEDOUT) {
 	/* Completely disconnected case. */
 	if (v) goto Exit;
-	return(ETIMEDOUT);
+
+	goto error_exit;
     }
     if (v && v->GetVolumeId() != volinfo.Vid) {
 	eprint("Mapping changed for volume %s (%x --> %x)",
@@ -714,13 +713,18 @@ int vdb::Get(volent **vpp, Realm *realm, const char *volname)
     if (!v) {
 	LOG(0, ("vdb::Get: Create (%x, %s) failed\n", volinfo.Vid, volname));
 	*vpp = NULL;
-	return EIO;
+	code = EIO;
+	goto error_exit;
     }
 
 Exit:
     v->hold();
     *vpp = v;
-    return(0);
+    code = 0;
+
+error_exit:
+    free(volname);
+    return code;
 }
 
 

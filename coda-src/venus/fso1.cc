@@ -1162,7 +1162,7 @@ int fsobj::TryToCover(VenusFid *inc_fid, vuid_t vuid) {
 #warning "Check for cross-realm mounts here"
     root_fid.Volume = tvol->vid;
     if (IsFake()) {
-	if (sscanf(data.symlink, "@%*x.%lx.%lx", &root_fid.Vnode, &root_fid.Unique) != 2)
+	if (sscanf(data.symlink, "@%*lx.%*lx.%lx.%lx", &root_fid.Vnode, &root_fid.Unique) != 2)
 	    { print(logFile); CHOKE("fsobj::TryToCover: couldn't get <tvolid, tunique>"); }
     }
     else {
@@ -1995,7 +1995,7 @@ int fsobj::Fakeify()
 	    stat.DataVersion = 1;
 	    stat.Mode = 0644;
 	    stat.Owner = V_UID;
-	    stat.Length = 27; /* "@XXXXXXXX.YYYYYYYY.ZZZZZZZZ" */
+	    stat.Length = 36; /* "@RRRRRRRR.XXXXXXXX.YYYYYYYY.ZZZZZZZZ" */
 	    stat.Date = Vtime();
 	    stat.LinkCount = 1;
 	    stat.VnodeType = SymbolicLink;
@@ -2016,8 +2016,8 @@ int fsobj::Fakeify()
 		/* Write out the link contents. */
 		data.symlink = (char *)rvmlib_rec_malloc((unsigned) stat.Length);
 		rvmlib_set_range(data.symlink, stat.Length);
-		sprintf(data.symlink, "@%08lx.%08lx.%08lx", LocalFid->Volume, 
-			LocalFid->Vnode, LocalFid->Unique);
+		sprintf(data.symlink, "@%08lx.%08lx.%08lx.%08lx",
+			LocalFid->Realm, LocalFid->Volume, LocalFid->Vnode, LocalFid->Unique);
 		LOG(100, ("fsobj::Fakeify: making %s a symlink %s\n",
 			  FID_(&fid), data.symlink));
 	    } else {
@@ -2033,9 +2033,9 @@ int fsobj::Fakeify()
 		    /* Write out the link contents. */
 		    data.symlink = (char *)rvmlib_rec_malloc((unsigned) stat.Length);
 		    rvmlib_set_range(data.symlink, stat.Length);
-		    sprintf(data.symlink, "@%08lx.%08lx.%08lx",
-			    GlobalFid->Volume, GlobalFid->Vnode,
-			    GlobalFid->Unique);
+		    sprintf(data.symlink, "@%08lx.%08lx.%08lx.%08lx",
+			    GlobalFid->Realm, GlobalFid->Volume,
+			    GlobalFid->Vnode, GlobalFid->Unique);
 		    LOG(100, ("fsobj::Fakeify: making %s a symlink %s\n",
 			      FID_(&fid), data.symlink));
 		} else if (strcmp(comp, "localhost") == 0) {
@@ -2047,10 +2047,13 @@ int fsobj::Fakeify()
 		    /* Write out the link contents. */
 		    data.symlink = (char *)rvmlib_rec_malloc((unsigned) stat.Length);
 		    rvmlib_set_range(data.symlink, stat.Length);
-		    sprintf(data.symlink, "@%08lx.%08lx.%08lx", vp->GetVolumeId(), pfid.Vnode, pfid.Unique);
+		    sprintf(data.symlink, "@%08lx.%08lx.%08lx.%08lx",
+			    vp->GetRealmId(), vp->GetVolumeId(),
+			    pfid.Vnode, pfid.Unique);
 		    LOG(100, ("fsobj::Fakeify: making %s a symlink %s\n",
 			      FID_(&fid), data.symlink));
 		} else {
+		    RealmId realmid;
                     VolumeId rwvolumeid;
                     struct in_addr host;
 
@@ -2069,12 +2072,14 @@ int fsobj::Fakeify()
                       CHOKE("fsobj::fakeify couldn't find the server for %s\n",
                             comp);
 
-                    rwvolumeid = vp->volreps[i]->vid;
+		    realmid = vp->volreps[i]->GetRealmId();
+                    rwvolumeid = vp->volreps[i]->GetVolumeId();
 		    
 		    /* Write out the link contents. */
 		    data.symlink = (char *)rvmlib_rec_malloc((unsigned) stat.Length);
 		    rvmlib_set_range(data.symlink, stat.Length);
-		    sprintf(data.symlink, "@%08lx.%08lx.%08lx", rwvolumeid, pfid.Vnode, pfid.Unique);
+		    sprintf(data.symlink, "@%08lx.%08lx.%08lx.%08lx",
+			    realmid, rwvolumeid, pfid.Vnode, pfid.Unique);
 		    LOG(1, ("fsobj::Fakeify: making %s a symlink %s\n",
 			    FID_(&fid), data.symlink));
 		}

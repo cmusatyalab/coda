@@ -16,34 +16,24 @@ listed in the file CREDITS.
 
 #*/
 
-#ifndef _REALMDB_H_
-#define _REALMDB_H_
+#ifndef _PARSE_REALMS_H_
+#define _PARSE_REALMS_H_
 
-#include "persistent.h"
+#ifdef __cplusplus
+extern "C" {
+#endif
 
-class Realm;
+/* Given "name@realm", replaced the '@' with '\0' and returns a pointer to the
+ * realm part. If the input matches either 'name@' or 'name' it doesn't change
+ * the realm (but strips the '@'). */
+void SplitRealmFromName(char *name, char **realm);
 
-class RealmDB : protected PersistentObject {
-    friend void RealmDBInit(void);
+/* Given a realm name, returns a list of ip-addresses of the realm's root
+ * servers. */
+struct in_addr *GetRealmServers(const char *realm_name);
 
-public:
-    RealmDB(void);
-    ~RealmDB(void);
+#ifdef __cplusplus
+}
+#endif
 
-    void ResetTransient(void);
-
-    Realm *GetRealm(const char *realm);
-    Realm *GetRealm(const RealmId realmid);
-
-    void print(FILE *f);
-    void print(void) { print(stdout); }
-
-private:
-    struct dllist_head realms;
-};
-
-void RealmDBInit(void);
-#define REALMDB (rvg->recov_REALMDB)
-
-#endif /* _REALMDB_H_ */
-
+#endif /* _PARSE_REALMS_H_ */

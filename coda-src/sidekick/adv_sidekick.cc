@@ -16,6 +16,7 @@ listed in the file CREDITS.
 #*/
 
 #include <coda_config.h>
+#include <venusfid.h>
 
 #include "adv_sidekick.h"
 
@@ -149,7 +150,7 @@ int executor(char *pathname, int vuid, int req_no) {
     char asr[MAXPATHLEN], asrlog[MAXPATHLEN], conf[MAXPATHLEN];
     char fixfile[MAXPATHLEN], fixed[MAXPATHLEN], parent[MAXPATHLEN], hd[MAXPATHLEN];
     VolumeId vid;
-    ViceFid fixfid;
+    VenusFid fixfid;
     vv_t fixvv;
     struct stat sbuf;
     struct repinfo inf;

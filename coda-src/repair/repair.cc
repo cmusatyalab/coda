@@ -16,6 +16,7 @@ listed in the file CREDITS.
 
 #*/
 
+#include <venusfid.h>
 #include "repair.h"
 
 int allowclear = 0, session = NOT_IN_SESSION, repair_DebugFlag = 0;
@@ -146,7 +147,7 @@ void GetArgs(int argc, char *argv[]) {
 }
 
 int getcompareargs(int largc, char **largv, char **filepath, struct repinfo *inf) {
-    ViceFid fixfid;
+    VenusFid fixfid;
     vv_t fixvv;
     int j;
 
@@ -190,8 +191,9 @@ int getcompareargs(int largc, char **largv, char **filepath, struct repinfo *inf
     return(-1);
 }
 
-int getrepairargs(int largc, char **largv, char *fixpath) {
-    ViceFid fixfid;
+int getrepairargs(int largc, char **largv, char *fixpath)
+{
+    VenusFid fixfid;
     vv_t fixvv;
 
     if (largc == 1) Parser_getstr("Pathname of fixfile?", cfix, fixpath, MAXPATHLEN);
@@ -548,7 +550,7 @@ void rep_RemoveInc(int largc, char **largv) {
 void rep_ReplaceInc(int largc, char **largv) {
     int rc, dirconf;
     char fixpath[MAXPATHLEN], mergefile[MAXPATHLEN], msgbuf[DEF_BUF];
-    ViceFid fixfid;
+    VenusFid fixfid;
     vv_t fixvv;
     struct stat sbuf;
 

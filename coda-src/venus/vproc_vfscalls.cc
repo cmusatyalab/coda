@@ -351,7 +351,7 @@ FreeLocks:
 	vap->va_uid = (short)V_UID;
 	vap->va_gid = (short)V_GID;
 	vap->va_nlink = 1;
-	vap->va_size = 27;  /* @XXXXXXXX.YYYYYYYY.ZZZZZZZZ */
+	vap->va_size = 36;  /* @RRRRRRRR.XXXXXXXX.YYYYYYYY.ZZZZZZZZ */
 	vap->va_blocksize = V_BLKSIZE;
 	vap->va_fileid = FidToNodeid(&cp->c_fid);
 	vap->va_atime.tv_sec = Vtime();

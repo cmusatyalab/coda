@@ -203,7 +203,7 @@ int repair_mountrw(struct repvol *repv, VolumeId *rwarray, int arraylen, char *m
 		}
 	    }
 	    if (i == arraylen) {
-		strerr(msg, msgsize, "No such replica vid=0x%x", ((VolumeStatus *)space)->Vid);
+		strerr(msg, msgsize, "No such replica vid=%x", ((VolumeStatus *)space)->Vid);
 		goto CLEANUP;
 	    }
 	}

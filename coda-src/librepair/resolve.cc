@@ -79,7 +79,7 @@ int totaldirentries = 0;
 int nConflicts;
 static char AclBuf[2048];
 
-static int getfid (char *path, ViceFid *Fid, ViceVersionVector *VV, struct ViceIoctl *vi)
+static int getfid (char *path, VenusFid *Fid, ViceVersionVector *VV, struct ViceIoctl *vi)
 {
     char buf[2048];
     vi->out = buf;
@@ -97,16 +97,16 @@ static int getfid (char *path, ViceFid *Fid, ViceVersionVector *VV, struct ViceI
 		perror("res_getfid: readlink");
 		return errno;	
 	}
-	sscanf(symval, "@%x.%x.%x", &(Fid->Volume), &(Fid->Vnode), &(Fid->Unique));
+	sscanf(symval, "@%x.%x.%x.%x", &(Fid->Realm), &(Fid->Volume), &(Fid->Vnode), &(Fid->Unique));
 	/* return garbage in VV */
 	return 0;
     }
-    memcpy((void *) Fid, (void *)buf, sizeof(ViceFid));
-    memcpy((void *)VV, (char *)buf+sizeof(ViceFid), sizeof(ViceVersionVector));
+    memcpy((void *) Fid, (void *)buf, sizeof(VenusFid));
+    memcpy((void *)VV, (char *)buf+sizeof(VenusFid), sizeof(ViceVersionVector));
     return 0;
 }
 
-int res_getfid (char *path, ViceFid *Fid, ViceVersionVector *VV)
+int res_getfid (char *path, VenusFid *Fid, ViceVersionVector *VV)
 {
     struct ViceIoctl vi;
     vi.in = 0;
@@ -114,7 +114,7 @@ int res_getfid (char *path, ViceFid *Fid, ViceVersionVector *VV)
     return getfid(path, Fid, VV, &vi);
 }
 
-int res_getmtptfid (char *path, ViceFid *Fid, ViceVersionVector *VV)
+int res_getmtptfid (char *path, VenusFid *Fid, ViceVersionVector *VV)
 {
     int getmtpt = 1;
     struct ViceIoctl vi;
@@ -211,7 +211,7 @@ int getunixdirreps (int nreplicas, char *names[], resreplica **reps)
 
   for(j = 0; j < nreplicas; j++){
       int count;
-      ViceFid   Fid;
+      VenusFid   Fid;
       ViceVersionVector VV;
 
       dirs[j].entry1 = totaldirentries;
@@ -459,7 +459,7 @@ int NameNameResolve(int first, int last, int nreplicas, resreplica *dirs, struct
     
     for (i = first; i < last; i++) {
 	resdir_entry *rde = sortedArrByName[i];
-	printf("%s%s\n\tFid: (0x%x.%x) VV:(%d %d %d %d %d %d %d %d)(0x%x.%x)\n",
+	printf("%s%s\n\tFid: (%x.%x) VV:(%d %d %d %d %d %d %d %d)(%x.%x)\n",
 	       dirs[rde->replicaid].path, sortedArrByName[first]->name,
 	       rde->vno, rde->uniqfier, rde->VV.Versions.Site0,
 	       rde->VV.Versions.Site1, rde->VV.Versions.Site2, rde->VV.Versions.Site3,
@@ -521,7 +521,7 @@ int NameNameResolve(int first, int last, int nreplicas, resreplica *dirs, struct
 		else if (goodvnode != sortedArrByName[i+first]->vno ||
 			 goodunique != sortedArrByName[i+first]->uniqfier) {
 		    printf("Please try to rename or remove one of the two objects:\n");
-		    printf("(0x%x.%x) and (0x%x.%x) with name %s\n",
+		    printf("(%x.%x) and (%x.%x) with name %s\n",
 			   goodvnode, goodunique, sortedArrByName[i+first]->vno, 
 			   sortedArrByName[i+first]->uniqfier,
 			   sortedArrByName[first]->name);
@@ -535,7 +535,7 @@ int NameNameResolve(int first, int last, int nreplicas, resreplica *dirs, struct
 	for (i = 0; i < nobjects; i++) {
 	    struct repair rep;
 	    if (answers[i]) {
-		if (ISDIR(sortedArrByName[first+i]->vno))
+		if (ISDIRVNODE(sortedArrByName[first+i]->vno))
 		    rep.opcode = REPAIR_REMOVED;
 		else
 		    rep.opcode = REPAIR_REMOVEFSL;
@@ -654,7 +654,7 @@ void resClean (int nreplicas, resreplica *dirs, struct listhdr *lh)
     free(direntriesarr);
 }
 
-int GetParent(ViceFid *cfid, ViceFid *dfid, char *volmtpt, char *dpath, char *childname) {
+int GetParent(VenusFid *cfid, VenusFid *dfid, char *volmtpt, char *dpath, char *childname) {
     /* returns fid and absolute path of parent */
     int rc;
     struct ViceIoctl vi;
@@ -663,7 +663,7 @@ int GetParent(ViceFid *cfid, ViceFid *dfid, char *volmtpt, char *dpath, char *ch
 
     /* first get the path of the child relative to vol root */
     vi.in = (char *)cfid;
-    vi.in_size = sizeof(ViceFid);
+    vi.in_size = sizeof(VenusFid);
     vi.out = tmp;
     vi.out_size = sizeof(tmp);
     memset(tmp, 0, sizeof(tmp));
@@ -705,7 +705,7 @@ int GetParent(ViceFid *cfid, ViceFid *dfid, char *volmtpt, char *dpath, char *ch
     //ViceVersionVector VV;
     //res_getfid(path, dfid, &VV);
     vi.in = (char *)cfid;
-    vi.in_size = sizeof(ViceFid);
+    vi.in_size = sizeof(VenusFid);
     vi.out = tmp;
     vi.out_size = sizeof(tmp);
     strcpy(path, "/coda");
@@ -714,6 +714,6 @@ int GetParent(ViceFid *cfid, ViceFid *dfid, char *volmtpt, char *dpath, char *ch
 	printf("Error %d occured while trying to get fid of %s's parent\n", childname);
 	return(rc);
     }
-    memcpy(dfid, tmp, sizeof(ViceFid));
+    memcpy(dfid, tmp, sizeof(VenusFid));
     return(0);
 }

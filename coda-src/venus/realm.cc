@@ -3,7 +3,7 @@
                            Coda File System
                               Release 5
 
-          Copyright (c) 1987-1999 Carnegie Mellon University
+          Copyright (c) 2002 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -27,7 +27,6 @@ extern "C" {
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
-#include <netdb.h>
 
 #ifdef __cplusplus
 }
@@ -38,95 +37,7 @@ extern "C" {
 #include "realm.h"
 #include "server.h"
 #include "comm.h"
-
-#define MAXLINELEN 256
-static char line[MAXLINELEN];
-
-static struct in_addr *ResolveRootServers(char *servers)
-{
-    int i;
-    struct in_addr *hosts;
-    char *host;
-
-    hosts = (struct in_addr *)malloc(sizeof(struct in_addr));
-    if (!hosts) {
-	eprint("Cannot allocate initial hosts array");
-	return NULL;
-    }
-
-    i = 0;
-    for (i = 0; host = strtok(servers, " \t\n");) {
-
-	struct hostent *h;
-	servers = NULL;
-
-#ifndef GETHOSTBYNAME_ACCEPTS_IPADDRS
-	if (!inet_aton(host, &hosts[i]))
-#endif
-	{
-	    h = gethostbyname(host);
-	    if (!h) {
-		eprint("Cannot resolve realm rootserver '%s'", host);
-		continue;
-	    }
-	    if (h->h_length != sizeof(struct in_addr)) {
-		eprint("Cannot find IPv4 address for realm rootserver '%s'",
-		       host);
-		continue;
-	    }
-	    memcpy(&hosts[i], h->h_addr, sizeof(struct in_addr));
-	}
-
-	if (hosts[i].s_addr == INADDR_ANY ||
-	    hosts[i].s_addr == INADDR_NONE ||
-	    hosts[i].s_addr == INADDR_LOOPBACK ||
-	    (hosts[i].s_addr & IN_CLASSA_NET) == IN_LOOPBACKNET ||
-	    IN_MULTICAST(hosts[i].s_addr) ||
-	    IN_BADCLASS(hosts[i].s_addr))
-	{
-	    eprint("Address for '%s' resolved to bad or unusable address '%s', "
-		   "ignoring it", host, inet_ntoa(hosts[i]));
-	    continue;
-	}
-
-	hosts = (struct in_addr *)realloc(hosts, (i+2)*sizeof(struct in_addr));
-	if (!h) {
-	    eprint("Cannot realloc hosts array");
-	    return NULL;
-	}
-	i++;
-    }
-    hosts[i].s_addr = INADDR_ANY;
-
-    return hosts;
-}
-
-struct in_addr *GetRealmServers(const char *realm_name)
-{
-    FILE *f;
-    int namelen = strlen(realm_name), found;
-
-    f = fopen(realmtab, "r");
-    if (!f) {
-	eprint("Couldn't open '%s'", realmtab);
-	return NULL;
-    }
-
-    found = 0;
-    while (!found && fgets(line, MAXLINELEN, f)) {
-	if (line[0] == '#') continue;
-
-	if (strncmp(line, realm_name, namelen) == 0 && isspace(line[namelen]))
-	    found = 1;
-    }
-    fclose(f);
-
-    if (found)
-	return ResolveRootServers(&line[namelen]);
-
-    return NULL;
-}
-
+#include "parse_realms.h"
 
 Realm::Realm(const char *realm_name, struct dllist_head *h) :
     PersistentObject(h)

@@ -156,7 +156,7 @@ int Renamed (int nreplicas, resreplica *dirs, resdir_entry **deGroup, int nDirEn
 #endif /* notdef */
     }
     int renamed = 0;
-    ViceFid tmpfid;
+    VenusFid tmpfid;
     tmpfid.Vnode = deGroup[0]->vno;
     tmpfid.Unique = deGroup[0]->uniqfier;
     for (i = 0; i < nreplicas; i++) {
@@ -164,7 +164,7 @@ int Renamed (int nreplicas, resreplica *dirs, resdir_entry **deGroup, int nDirEn
 	char childpath[MAXNAMELEN];
 	if (repfound[i]) continue;
 	tmpfid.Volume = dirs[i].replicaid;
-	ViceFid parentfid;
+	VenusFid parentfid;
 	if (!GetParent(&tmpfid, &parentfid, NULL, path, childpath)) {
 	    renamed = 1;
 	    printf("Object %s was renamed\n", deGroup[0]->name);
@@ -199,7 +199,7 @@ int SubsetCreate (int nreplicas, resreplica *dirs, resdir_entry **deGroup, int n
     /* This should be a subset remove except when there are */
     /* Hard Links */
     /* nsites == nreplicas */
-    if ((nl = nlinks(deGroup[0], &(dirs[deGroup[0]->replicaid]))) == 1 || ISDIR(deGroup[0]->vno))
+    if ((nl = nlinks(deGroup[0], &(dirs[deGroup[0]->replicaid]))) == 1 || ISDIRVNODE(deGroup[0]->vno))
 	/* file has no hard link or object is */
 	/* a directory (no hard links) */
 	return 0;
@@ -230,7 +230,7 @@ int SubsetRemove (int nreplicas, resreplica *dirs, resdir_entry **deGroup, int n
 
     if (nSites > nDirEntries && nSites == nreplicas) {
 	/* we can be sure only when object is a file and has no hard links */
-	if (!ISDIR(deGroup[0]->vno) && nlinks(deGroup[0], &(dirs[deGroup[0]->replicaid])) >= 2){
+	if (!ISDIRVNODE(deGroup[0]->vno) && nlinks(deGroup[0], &(dirs[deGroup[0]->replicaid])) >= 2){
 	    printf("Object %s has hard links; Resolution cannot be automated\n", deGroup[0]->name);
 	    return 0;
 	}
@@ -257,7 +257,7 @@ int MaybeSubsetRemove (int nreplicas, resreplica *dirs, resdir_entry **deGroup, 
 
     if (nSites > nDirEntries && nSites == nreplicas) {
 	/* we can be sure only when object is a file and has no hard links */
-	if (!ISDIR(deGroup[0]->vno) && nlinks(deGroup[0], &(dirs[deGroup[0]->replicaid])) >= 2){
+	if (!ISDIRVNODE(deGroup[0]->vno) && nlinks(deGroup[0], &(dirs[deGroup[0]->replicaid])) >= 2){
 	    printf("Object %s has hard links; Resolution cannot be automated\n", deGroup[0]->name);
 	    return 0;
 	}

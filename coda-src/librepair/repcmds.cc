@@ -113,7 +113,7 @@ int BeginRepair(char *pathname, struct repvol **repv, char *msg, int msgsize) {
  * Returns 0 on success, -1 on error and fills in msg if non-NULL */
 int ClearInc(struct repvol *repv, char *msg, int msgsize) {
     char msgbuf[DEF_BUF];
-    ViceFid confFid, Fid[MAXHOSTS];
+    VenusFid confFid, Fid[MAXHOSTS];
     vv_t vv[MAXHOSTS];
     struct ViceIoctl vioc;
     int rc, i, nreplicas;
@@ -186,7 +186,7 @@ int ClearInc(struct repvol *repv, char *msg, int msgsize) {
 int CompareDirs(struct repvol *repv, char *fixfile, struct repinfo *inf, char *msg, int msgsize) {
     char msgbuf[DEF_BUF], space[DEF_BUF], tmppath[MAXPATHLEN];
     VolumeId vid;
-    ViceFid confFid;
+    VenusFid confFid;
     vv_t confvv;
     struct ViceIoctl vioc;
     struct stat sbuf;
@@ -208,7 +208,7 @@ int CompareDirs(struct repvol *repv, char *fixfile, struct repinfo *inf, char *m
 	return(-1);
     }
 
-    if (!ISDIR(confFid.Vnode) || !(repv->dirconf)) {
+    if (!ISDIRVNODE(confFid.Vnode) || !(repv->dirconf)) {
 	strerr(msg, msgsize, "Compare can only be performed on directory replicas");
 	return(-1);
     }
@@ -466,7 +466,7 @@ int EndRepair(struct repvol *repv, int commit, char *msg, int msgsize) {
 int RemoveInc(struct repvol *repv, char *msg, int msgsize) {
     char msgbuf[DEF_BUF], tmppath[MAXPATHLEN];
     struct stat buf;
-    ViceFid fixfid, confFid;
+    VenusFid fixfid, confFid;
     ViceVersionVector confvv;
     vv_t fixvv;
     char *user = NULL, *rights = NULL, *owner = NULL, *mode = NULL, **names;
@@ -656,7 +656,7 @@ int compareVV(int nreplicas, char **names, struct repvol *repv) {
     char msgbuf[DEF_BUF];
     vv_t vv[MAXHOSTS];
     vv_t *vvp[MAXHOSTS];
-    ViceFid fid;
+    VenusFid fid;
     int nhosts = 0;
     int i;
     int HowMany = 0;
@@ -736,7 +736,7 @@ void getremovelists(int nreplicas, resreplica *dirs, struct listhdr **repairlist
     for ( i = 0 ; i < nreplicas; i++) {
 	for ( j = 0; j < dirs[i].nentries; j++) {
 	    rde = &(direntriesarr[dirs[i].entry1 + j]);
-	    if (ISDIR(rde->vno))
+	    if (ISDIRVNODE(rde->vno))
 		rep.opcode = REPAIR_REMOVED;
 	    else
 		rep.opcode = REPAIR_REMOVEFSL;

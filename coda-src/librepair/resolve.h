@@ -24,6 +24,8 @@ listed in the file CREDITS.
  * Created 09/18/89  Puneet Kumar
  */
 
+#include <venusfid.h>
+
 /* Header file for definitions used by the 
  * resolution subsystem  
  */
@@ -35,7 +37,7 @@ listed in the file CREDITS.
 #define	AVGDIRENTRYSIZE 12
 #define	GROWSIZE    32
 #define MAXHOSTS    8
-#define	ISDIR(vnode) ((vnode) &	1)  /* directory vnodes are odd */
+#define	ISDIRVNODE(vnode) ((vnode) &	1)  /* directory vnodes are odd */
 #define NNCONFLICTS -1
 
 struct Acl {
@@ -100,6 +102,6 @@ extern int InRepairList (struct listhdr *, unsigned , long , long );
 extern int getunixdirreps (int , char **, resreplica **);
 extern int dirresolve (int , resreplica *, int (*)(char *), struct listhdr **, char *, VolumeId, struct repinfo *);
 extern void resClean (int, resreplica *, struct listhdr *);
-extern int GetParent (ViceFid *, ViceFid *, char *, char *, char *);
+extern int GetParent (VenusFid *, VenusFid *, char *, char *, char *);
 
 #endif

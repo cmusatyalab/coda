@@ -24,6 +24,7 @@ listed in the file CREDITS.
             October 1989
 */
 
+#include <venusfid.h>
 #include "repcmds.h"
 
 static char *repair_abspath(char *result, unsigned int len, char *name);
@@ -200,7 +201,7 @@ int repair_getmnt(char *realpath, char *prefix, char *suffix, VolumeId *vid, cha
 /* Assumes no conflicts to left of last component.  This is NOT checked. 
  * Returns 0 if name refers to an object in conflict and fills in conflictfid if non-NULL.
  * Returns -1 on error */
-int repair_inconflict(char *name, ViceFid *conflictfid) {
+int repair_inconflict(char *name, VenusFid *conflictfid) {
     char symval[MAXPATHLEN];
     struct stat statbuf;
     int rc;
@@ -216,9 +217,9 @@ int repair_inconflict(char *name, ViceFid *conflictfid) {
     /* it's a sym link, alright */
     if (symval[0] == '@') {
 	if (conflictfid)
-	    sscanf(symval, "@%lx.%lx.%lx",
-		   &conflictfid->Volume, &conflictfid->Vnode, 
-		   &conflictfid->Unique);
+	    sscanf(symval, "@%lx.%lx.%lx.%lx",
+		   &conflictfid->Realm, &conflictfid->Volume,
+		   &conflictfid->Vnode, &conflictfid->Unique);
 	return(0);
     }
     else return(-1);
@@ -229,7 +230,7 @@ int repair_inconflict(char *name, ViceFid *conflictfid) {
  * Garbage may be copied into outvv for non-replicated files
  *
  * Returns 0 on success, Returns -1 on error and fills in msg if non-null */
-int repair_getfid(char *path, ViceFid *outfid, ViceVersionVector *outvv, char *msg, int msgsize) {
+int repair_getfid(char *path, VenusFid *outfid, ViceVersionVector *outvv, char *msg, int msgsize) {
     int rc, saveerrno;
     struct ViceIoctl vi;
     char junk[DEF_BUF];
@@ -245,8 +246,8 @@ int repair_getfid(char *path, ViceFid *outfid, ViceVersionVector *outvv, char *m
 
     /* Easy: no conflicts */
     if (!rc) {
-	memcpy(outfid, junk, sizeof(ViceFid));
-	memcpy(outvv, junk+sizeof(ViceFid), sizeof(ViceVersionVector));
+	memcpy(outfid, junk, sizeof(VenusFid));
+	memcpy(outvv, junk+sizeof(VenusFid), sizeof(ViceVersionVector));
 	return(0);
     }
 
@@ -277,7 +278,7 @@ static char *repair_abspath(char *result, unsigned int len, char *name) {
  * Returns -1 on error and fills in msg if non-NULL. */
 static int repair_getvid(char *path, VolumeId *vid, char *msg, int msgsize) {
     char msgbuf[DEF_BUF];
-    ViceFid vfid;
+    VenusFid vfid;
     ViceVersionVector vv;
 
     if (repair_getfid(path, &vfid, &vv, msgbuf, sizeof(msgbuf)) < 0) {

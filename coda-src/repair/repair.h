@@ -76,6 +76,4 @@ be displayed. Help message on individual commands can also be\n\
 obtained by using the \"help\" facility. Finally, you can use the\n\
 \"endrepair\" or \"quit\" to terminate the current repair session.\n"
 
-#define ISDIR(vnode) ((vnode) & 1)  /* directory vnodes are odd */
-
 #endif

@@ -61,6 +61,7 @@ extern "C" {
 #include <codaconf.h>
 #include <inconsist.h>
 #include <coda_config.h>
+#include <venusfid.h>
 
 /* From venusvol.h.  A volume is in exactly one of these states. */
 typedef enum {	Hoarding,
@@ -951,7 +952,7 @@ static int validateclosurespec(char *name, char *volname, char *volrootpath)
     int rc;
     char *cp, *ap, *Volname;
     struct ViceIoctl vio;
-    ViceFid *fid;
+    VenusFid *fid;
 
     /* Parse the closure spec into a <volname, volume-root path> pair. */
 
@@ -1011,7 +1012,7 @@ static int validateclosurespec(char *name, char *volname, char *volrootpath)
     vio.out_size = PIOBUFSIZE;
     rc = pioctl(volrootpath, VIOC_GETFID, &vio, 1);
     if (rc) { PERROR(volrootpath); return(0);}
-    fid = (ViceFid *)piobuf;
+    fid = (VenusFid *)piobuf;
     if (fid->Vnode != 1 || fid->Unique != 1)
         {
         printf("%s is not the root of volume %s\n", volrootpath, volname);
@@ -1107,7 +1108,6 @@ static void BeginRepair(int argc, char *argv[], int opslot)
 {
     struct ViceIoctl vio;
     int rc;
-    ViceFid fid;
 
     if (argc != 3) {
         printf("Usage: %s\n", cmdarray[opslot].usetxt);
@@ -1227,10 +1227,10 @@ static void FlushASR(int argc, char *argv[], int opslot) {
     }
 }
 
-static int pioctl_GetFid(char *path, ViceFid *fid, ViceVersionVector *vv)
+static int pioctl_GetFid(char *path, VenusFid *fid, ViceVersionVector *vv)
 {
     struct GetFid {
-        ViceFid           fid;
+        VenusFid          fid;
         ViceVersionVector vv;
     }                out;
     struct ViceIoctl vio;
@@ -1252,7 +1252,7 @@ static int pioctl_GetFid(char *path, ViceFid *fid, ViceVersionVector *vv)
     if (rc < 0) return rc;
 
     /* Got the fid! */
-    if (fid) memcpy(fid, &out.fid, sizeof(ViceFid));
+    if (fid) memcpy(fid, &out.fid, sizeof(VenusFid));
     if (vv)  memcpy(vv,  &out.vv,  sizeof(ViceVersionVector));
 
     return rc;
@@ -1262,7 +1262,7 @@ static int pioctl_GetFid(char *path, ViceFid *fid, ViceVersionVector *vv)
 static void GetFid(int argc, char *argv[], int opslot)
     {
     int i, rc, w;
-    ViceFid fid;
+    VenusFid fid;
     ViceVersionVector vv;
     char buf[100];
 
@@ -1282,14 +1282,13 @@ static void GetFid(int argc, char *argv[], int opslot)
         rc = pioctl_GetFid(argv[i], &fid, &vv);
         if (rc < 0) { PERROR("VIOC_GETFID"); continue; }
 
-        sprintf(buf, "0x%x.%x.%x",  fid.Volume, fid.Vnode, fid.Unique);
-        printf("FID = %-20s     ", buf);
+        printf("FID = %-20s     ", FID_(&fid));
         sprintf(buf, "[%d %d %d %d %d %d %d %d]",
                vv.Versions.Site0, vv.Versions.Site1,vv.Versions.Site2,
                vv.Versions.Site3, vv.Versions.Site4,vv.Versions.Site5,
                vv.Versions.Site6,vv.Versions.Site7);
         printf("VV = %-24s  ", buf);
-        printf("STOREID = 0x%x.%x  FLAGS = 0x%x\n", vv.StoreId.Host, 
+        printf("STOREID = %x.%x  FLAGS = 0x%x\n", vv.StoreId.Host, 
                 vv.StoreId.Uniquifier, vv.Flags);
         }
     
@@ -1316,7 +1315,7 @@ static int pioctl_SetVV(char *path, ViceVersionVector *vv)
 static void MarkFidIncon(int argc, char *argv[], int opslot)
 {
     int i, rc, w;
-    ViceFid fid;
+    VenusFid fid;
     ViceVersionVector vv;
     char buf[100];
 
@@ -1348,7 +1347,7 @@ static void GetPath(int argc, char *argv[], int opslot)
     {
     int i, rc, w;
     struct ViceIoctl vio;
-    ViceFid fid;
+    VenusFid fid;
 
     if (argc < 3)
         {
@@ -1370,7 +1369,7 @@ static void GetPath(int argc, char *argv[], int opslot)
 
         /* Get its path */
         vio.in = (char *)&fid;
-        vio.in_size = (int) sizeof(ViceFid);
+        vio.in_size = (int) sizeof(VenusFid);
         vio.out = piobuf;
         vio.out_size = PIOBUFSIZE;
         rc = pioctl(mountpoint, VIOC_GETPATH, &vio, 0);
