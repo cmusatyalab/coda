@@ -50,7 +50,6 @@ extern "C" {
 
 #include <util.h>
 #include <srv.h>
-#include <vsg.h>
 #include "rescomm.private.h"
 #include "rescomm.h"
 #include "resolution.h"

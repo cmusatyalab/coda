@@ -75,7 +75,6 @@ extern "C" {
 #include <volume.h>
 #include <vrdb.h>
 #include <vldb.h>
-#include <vsg.h>
 #include <vutil.h>
 #include <codaconf.h>
 #include <vice_file.h>

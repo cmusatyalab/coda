@@ -114,7 +114,6 @@ extern int Fcon_Init();
 #include <vrdb.h>
 #include <rescomm.h>
 #include <lockqueue.h>
-#include <vsg.h>
 #include "coppend.h"
 
 

@@ -83,7 +83,6 @@ extern "C" {
 #endif
 
 #include <voltypes.h>
-#include <vsg.h>
 #include <vrdb.h>
 #include <vldb.h>
 #include <volume.h>
