@@ -146,7 +146,7 @@ static int resolve_host(const char *name, int port, const struct summary *sum,
 	ai->ai_addrlen = sizeof(*sin);
 	ai->ai_addr = (struct sockaddr *)sin;
 
-	if (sum->flags & AI_CANONNAME)
+	if (sum->flags & CODA_AI_CANONNAME)
 	    ai->ai_canonname = strdup(he->h_name);
 
 	ai->ai_next = *res;
@@ -268,11 +268,11 @@ static int do_srv_lookup(const char *realm, const char *service,
 #ifdef TESTING
     fprintf(stderr, "Doing SRV record lookup for %s %s\n", realm, service);
 #endif
+#ifdef HAVE_RES_SEARCH
     srvdomain = srvdomainname(realm, service, sum);
     if (!srvdomain)
 	return CODA_EAI_MEMORY;
 
-#ifdef HAVE_RES_SEARCH
     len = res_search(srvdomain, ns_c_in, ns_t_srv, answer, sizeof(answer));
 
     free(srvdomain);
