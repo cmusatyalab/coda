@@ -563,8 +563,6 @@ istat(struct DiskPartition *dp, Inode  inode_number, struct stat *statbuf)
 #endif
     return 0;
 }
-#endif
-
 
 static int inosort(const struct dirent **a, const struct dirent **b)
 {
@@ -578,8 +576,6 @@ static int inosort(const struct dirent **a, const struct dirent **b)
     return -1;
 }
 
-
-#if 0
 /* generic routine to do things on all files in the tree */
 void dosubs(int *level, int width, int depth)
 {

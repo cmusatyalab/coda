@@ -375,7 +375,7 @@ class namectxt {
     ~namectxt();
     void operator delete(void *, size_t);
 
-    void Demote(int =0);		/* --> immediate or eventual transition to suspect state */
+    void Demote(int recursive=0);		/* --> immediate or eventual transition to suspect state */
     void CheckComponent(fsobj *);
 
     int GetPriority()

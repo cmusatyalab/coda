@@ -430,10 +430,11 @@ void mariner::main(void)
 		      argv[0], argv[1], argv[2], argv[3], argv[4],
 		      argv[5], argv[6], argv[7], argv[8], argv[9]);
 	if (argc < 1 || STREQ(argv[0], "help")) {
-	    Write("Commands are:\n");
-	    Write("\thelp, debugon, debugoff, dumpcore, quit, rpcon, rpcoff, rpc2t\n");
-	    Write("\tera, cop <modes>, umc, set:fetch, clear:fetch, reporton <uid>, reportoff\n");
-	    Write("\t, fd <fd>pathstat <pathname>, fidstat <fid>, rpc2stat, print <args>\n");
+	    Write(
+"Commands are:\n"
+"\thelp, debugon, debugoff, dumpcore, quit, rpcon, rpcoff, rpc2t\n"
+"\tcop <modes>, umc, set:fetch, clear:fetch, reporton <uid>, reportoff\n"
+"\t, fd <fd>pathstat <pathname>, fidstat <fid>, rpc2stat, print <args>\n");
 	}
 	else if (STREQ(argv[0], "debugon")) {
 	    DebugOn();

@@ -214,14 +214,23 @@ void testKernDevice()
 #if defined(DJGPP) || defined(__CYGWIN32__)
 	return;
 #endif
+	int fd = -1;
+	char *str, *p;
+	CODA_ASSERT((str = p = strdup(kernDevice)) != NULL);
+
+	for(p = strtok(p, ","); p && fd == -1; p = strtok(NULL, ","))
+	    fd = ::open(p, O_RDWR, 0);
+
 	/* If the open of the kernel device succeeds we know that there is
 	   no other living venus. */
-	int fd = ::open(kernDevice, O_RDWR, 0);
 	if (fd < 0) {
-		eprint("Probably another Venus is running! open(%s) failed (%d), exiting",
-		       kernDevice, errno);
-		exit(-1);
-	}
+	    eprint("Probably another Venus is running! open failed for %s, exiting",
+		   kernDevice);
+	    free(str);
+	    exit(-1);
+	} else
+	    kernDevice = strdup(p);
+	free(str);
 
 	/* Construct a purge message */
 	union outputArgs msg;
@@ -588,7 +597,7 @@ int k_Purge(ViceFid *fid, int severely) {
     }	
 
     /* Send the message. */
-    if (MsgWrite((char *)&msg, (int) size) !=  size) {
+    if (MsgWrite((char *)&msg, (int) size) != size) {
 	retcode = errno;
 	LOG(0, ("k_Purge: %s, message write fails: errno %d\n", 
 	      msg.oh.opcode == CODA_PURGEFID ? "CODA_PURGEFID" :
@@ -666,7 +675,8 @@ int k_Replace(ViceFid *fid_1, ViceFid *fid_2) {
 }
 
 /* -------------------------------------------------- */
-void WorkerInit() {
+void WorkerInit()
+{
     if (MaxWorkers == UNSET_MAXWORKERS)
         MaxWorkers = DFLT_MAXWORKERS;
 
@@ -696,8 +706,8 @@ void WorkerInit() {
 #else 
     /* Open the communications channel. */
     worker::muxfd = ::open(kernDevice, O_RDWR, 0);
-    if (worker::muxfd < 0) {
-        eprint("WorkerInit: open(%s, O_RDWR, 0) returns %d", kernDevice, errno);
+    if (worker::muxfd == -1) {
+        eprint("WorkerInit: open %s failed", kernDevice);
         exit(-1);
     }
 #endif
@@ -1291,9 +1301,8 @@ void worker::main(void)
 		string.cs_maxlen = CODA_MAXPATHLEN;
 		readlink(&vtarget, &string);
 
-		if (u.u_error == 0) {
+		if (u.u_error == 0)
 		    MarinerReport(&(vtarget.c_fid), CRTORUID(u.u_cred));
-		}
 
 		out->coda_readlink.count = string.cs_len;
 		/* readlink.data is an offset, with the wrong type .. sorry */

@@ -71,7 +71,7 @@ void ReadTokenFromFile(char *filename, ClearToken *cToken,
 
     f = fopen(filename, "r");
     if (!f) {
-        fprintf(stderr, "Failed to open %s.\n");
+        fprintf(stderr, "Failed to open %s.\n", filename);
 	exit(-1);
     }
 
