@@ -649,12 +649,12 @@ long mem_partial_include(tnode1,tnode2)
     /* rebind types and compute end points */
     addr1 = (rvm_length_t)(((mem_region_t *)tnode1)->vmaddr);
     addr2 = (rvm_length_t)(((mem_region_t *)tnode2)->vmaddr);
-    end1 = addr1 + ((mem_region_t *)tnode1)->length;
-    end2 = addr2 + ((mem_region_t *)tnode2)->length;
+    end1 = addr1 + ((mem_region_t *)tnode1)->length - 1;
+    end2 = addr2 + ((mem_region_t *)tnode2)->length - 1;
 
-    if (addr1 >= end2) return 1;        /* range1 above range2 */
-    if (end1 <= addr2) return -1;       /* range1 below range2 */
-    return 0;                           /* ranges at least partially overlap */
+    if (addr1 > end2) return 1;        /* range1 above range2 */
+    if (end1 < addr2) return -1;       /* range1 below range2 */
+    return 0;                          /* ranges at least partially overlap */
     }
 
 /* vm range within other range comparator */
@@ -670,13 +670,14 @@ long mem_total_include(tnode1,tnode2)
     /* rebind types and compute end points */
     addr1 = (rvm_length_t)(((mem_region_t *)tnode1)->vmaddr);
     addr2 = (rvm_length_t)(((mem_region_t *)tnode2)->vmaddr);
-    end1 = addr1 + ((mem_region_t *)tnode1)->length;
-    end2 = addr2 + ((mem_region_t *)tnode2)->length;
+    end1 = addr1 + ((mem_region_t *)tnode1)->length - 1;
+    end2 = addr2 + ((mem_region_t *)tnode2)->length - 1;
 
-    if (((addr1 >= addr2) && (addr1 < end2)) &&
-        ((end1 > addr2) && (end1 <= end2))
-        ) return 0;                     /* range1 included in range2 */
-    if (end1 < addr2) return -1;        /* range1 below range2, may overlap */
+    if ((addr1 >= addr2) && (addr1 <= end2) && (end1 <= end2))
+        return 0;                       /* range1 included in range2 */
+/* This test does not correspond to the comment, changed it. -JH */
+//    if (end1 < addr2) return -1;        /* range1 below range2, may overlap */
+    if (addr1 < addr2) return -1;       /* range1 below range2, may overlap */
     return 1;                           /* range1 above range2, may overlap */
     }
 
