@@ -340,6 +340,10 @@ int coda_getaddrinfo(const char *node, const char *service,
     /* when not doing SRV record lookup or when it failed, we use
      * a normal lookup */
     err = RPC2_getaddrinfo(node, service, hints, &srvs);
+    if (err == RPC2_EAI_SERVICE) {
+	fprintf(stderr, "Unable to map '%s' to a port, check /etc/services.\n",
+		service);
+    }
 
 Exit:
     /* append new addresses to the end of **res? */
