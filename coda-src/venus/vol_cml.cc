@@ -230,7 +230,7 @@ int cmlent::Freeze()
     int err;
 
     /* already frozen, nothing to do */
-    if (flags.frozen) return 0;
+    //if (flags.frozen) return 0;
 
     if (opcode == OLDCML_NewStore_OP)
     {
@@ -244,8 +244,10 @@ int cmlent::Freeze()
 	/* sanity checks, this better be an fso */
 	CODA_ASSERT(f && (f->MagicNumber == FSO_MagicNumber));
 
-	err = f->MakeShadow();
-	if (err) return err;
+	if (!f->shadow) {
+	    err = f->MakeShadow();
+	    if (err) return err;
+	}
     }
 
     RVMLIB_REC_OBJECT(flags);
