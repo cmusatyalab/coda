@@ -47,7 +47,7 @@ DEPLIBS = libcodadir.a $(LIBUTIL) $(LIBRDS) $(LIBSEG) $(LIBRVMLWP) $(LIBBASE)\
 LIBS := $(DEPLIBS) $(LIBLWP) $(LIBCOMPAT) $(LIBREADLINE) $(LIBTERMCAP) $(LIBS)
 
 dirtest: dirtest.o $(DEPLIBS)
-	$(CC) -o dirtest dirtest.o $(LIBS)
+	$(CC) -o dirtest $(LDFLAGS) dirtest.o $(LIBS)
 
 include $(TOPDIR)/configs/Makerules
 
