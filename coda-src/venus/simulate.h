@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/src/coda-4.0.1/RCSLINK/./coda-src/venus/simulate.h,v 1.1 1996/11/22 19:11:36 braam Exp $";
+static char *rcsid = "$Header: /usr/rvb/XX/src/coda-src/venus/RCS/simulate.h,v 4.1 1997/01/08 21:51:34 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -143,13 +143,13 @@ extern void SimExit();
 extern void SimReport();
 extern void Simulate();
 
-#if defined(__linux__) || defined(__NetBSD__)
+#if defined(__linux__) || defined(__BSD44__)
 /* (Satya, 8/12/96): these definitions are found in sys/inode.h in Mach.
-   The NetBSD equivalent file (sys/mount.h) has none of these definitions;
+   The BSD44 equivalent file (sys/mount.h) has none of these definitions;
    they are assumed by the dfstrace package and are used in tracelib.h.
-   I've put these definitions here for now, to get on with the NetBSD port.
+   I've put these definitions here for now, to get on with the BSD port.
    
-   Porting dfstrace to NetBSD will involve cleaning this up.
+   Porting dfstrace to BSD will involve cleaning this up.
 */
 
 #define	ITYPE_UFS	0
@@ -158,7 +158,7 @@ extern void Simulate();
 #define	ITYPE_BDEV	3
 #define	ITYPE_SPEC	4
 #define ITYPE_CFS	5
-#endif __NetBSD__
+#endif /* __linux__ ||__BSD44__ */
 
 
 #endif not _VENUS_SIM_H_

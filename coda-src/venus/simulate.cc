@@ -29,16 +29,16 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /home/braam/src/coda-src/venus/RCS/simulate.cc,v 1.2 1996/12/05 01:21:32 braam Exp $";
+static char *rcsid = "$Header: /usr/rvb/XX/src/coda-src/venus/RCS/simulate.cc,v 4.1 1997/01/08 21:51:33 rvb Exp $";
 #endif /*_BLURB_*/
 
 
 
 /* IMPORTANT: README (Satya, 8/22/96)
 
-   This code has not been tested on NetBSD.  
+   This code has not been tested on BSD44.  
    Main change has been to eliminate use of VFMT, which does
-   not exist on NetBSD.
+   not exist on BSD44.
 */
 
 
@@ -81,17 +81,17 @@ extern "C" {
 #include <sys/stat.h>
 #ifdef __MACH__
 #include <sysent.h>
-#endif /* __MACH__ */
-#if __NetBSD__ | LINUX
+#else	/* __linux__ || __BSD44__ */
 #include <unistd.h>
 #include <stdlib.h>
-#endif __NetBSD__
+#endif
 
-#ifdef __NetBSD__
+#ifdef __BSD44__
 #include <dirent.h> /* to get defn of MAXNAMLEN */
-#endif __NetBSD__
+#endif /* __BSD44 */
 
 #include <libcs.h>
+
 #ifdef __cplusplus
 }
 #endif __cplusplus
@@ -122,14 +122,14 @@ extern "C" {
 }
 
 
-/* Define wrapper macro to cope with absence of VFMT on NetBSD */
+/* Define wrapper macro to cope with absence of VFMT on BSD44 */
 #ifdef __MACH__
 #define SIM_VTTOFT(v) VTTOFT((v) & VFMT)
 #endif /* __MACH__ */
 
-#if defined(__linux__) || defined(__NetBSD__)
+#if defined(__linux__) || defined(__BSD44__)
 #define SIM_VTTOFT(v)  VTTOFT((v))
-#endif __NetBSD__
+#endif /* __linux__ ||__BSD44__ */
 
 
 const int SimulatorStackSize = 131072;

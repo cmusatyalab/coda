@@ -1,4 +1,4 @@
-I've modified some of this code to get it to compile on NetBSD, but
+I've modified some of this code to get it to compile on BSD, but
 I have no confidence that the modified code will still run under Mach.
 Some of the changes should be propogated back (namely, bool --> rvm_bool_t)
 but I'm going to let Peter check in his Linux changes instead, which

@@ -22,10 +22,10 @@
  * Added CFS-specific files
  *
  * Revision 3.1.1.1  1995/03/04  19:08:06  bnoble
- * Branch for NetBSD port revisions
+ * Branch for BSD port revisions
  *
  * Revision 3.1  1995/03/04  19:08:04  bnoble
- * Bump to major revision 3 to prepare for NetBSD port
+ * Bump to major revision 3 to prepare for BSD port
  *
  * Revision 2.6  1995/02/17  16:25:26  dcs
  * These versions represent several changes:
@@ -100,14 +100,21 @@
 #include <sys/uio.h>
 #include <sys/ioctl.h>
 #include <sys/proc.h>
+
+/* struct kinfo_proc in <sys/user.h> requires these files. */
+#include <vm/vm.h>		/* XXX */
+#include <vm/vm_param.h>	/* XXX */
+#include <vm/pmap.h>		/* XXX */
+#include <vm/lock.h>		/* XXX */
+#include <vm/vm_map.h>		/* XXX */
 #include <sys/user.h>
+
 #include <cfs/cfs.h>
 #include <cfs/cnode.h>
 #include <cfs/cfs_opstats.h>
 #include <vm/vm_kern.h>
 
 
-struct cnode *makecfsnode();
 struct cnode *cfsnc_lookup();
 struct cnode *cfs_find();
 
@@ -214,7 +221,7 @@ cfs_open(vpp, flag, cred, p)
     if (error) {
 	goto exit;
     }
-    /* We get the vnode back locked in both Mach and NetBSD.  Needs unlocked */
+    /* We get the vnode back locked in both Mach and BSD44.  Needs unlocked */
     VOP_DO_UNLOCK(vp);
     
     /* Keep a reference until the close comes in. */
@@ -368,7 +375,7 @@ cfs_rdwr(vp, uiop, rw, ioflag, cred, p)
 		}
 		/* 
 		 * We get the vnode back locked in both Mach and
-		 * NetBSD.  Needs unlocked 
+		 * BSD44.  Needs unlocked 
 		 */
 		VOP_DO_UNLOCK(cfvp);
 	    }
@@ -489,15 +496,16 @@ cfs_ioctl(vp, com, data, flag, cred, p)
 { 
     struct inputArgs *in = NULL;
     struct outputArgs *out;
-    int error, size;
-    struct vnode *tvp;
+    int error = 0, size;
+    struct vnode *tvp = 0;
     register struct a {
 	char *path;
 	struct ViceIoctl vidata;
 	int follow;
     } *iap = (struct a *)data;
     char *buf;
-    struct nameidata *ndp;
+    struct nameidata nd;
+    struct nameidata *ndp = &nd;
     
     MARK_ENTRY(CFS_IOCTL_STATS);
     
@@ -915,7 +923,7 @@ cfs_fsync(vp, cred, p)
     MARK_ENTRY(CFS_FSYNC_STATS);
 
     /* Check for fsync on an unmounting object */
-    /* The NetBSD kernel, in it's infinite wisdom, can try to fsync
+    /* The BSD44 kernel, in it's infinite wisdom, can try to fsync
      * after an unmount has been initiated.  This is a Bad Thing,
      * which we have to avoid.  Not a legitimate failure for stats.
      */
@@ -925,7 +933,7 @@ cfs_fsync(vp, cred, p)
        
     /* Check for operation on a dying object */
     /* We can expect fsync on the root vnode if we are in the midst
-       of unmounting (in NetBSD), so silently ignore it. */
+       of unmounting (in BSD44), so silently ignore it. */
     if (IS_DYING(cp)) {
 	if (!IS_ROOT_VP(vp)) {
 	    COMPLAIN_BITTERLY(fsync, cp->c_fid);
@@ -1017,7 +1025,7 @@ cfs_inactive(vp, cred, p)
  */
 
 /* 
- * It appears that in NetBSD, lookup is supposed to return the vnode locked
+ * It appears that in BSD44, lookup is supposed to return the vnode locked
  */
 
 int

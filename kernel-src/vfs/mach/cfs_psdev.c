@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/src/coda-4.0.1/RCSLINK/./kernel-src/vfs/mach/cfs_psdev.c,v 1.1 1996/11/22 19:16:05 braam Exp $";
+static char *rcsid = "$Header: /usr/rvb/XX/src/kernel-src/vfs/mach/RCS/cfs_psdev.c,v 4.1 1997/01/08 21:53:28 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -94,7 +94,7 @@ int cfs_psdev_print_entry = 0;
 #endif 
 
 /* 
- * These functions are written for NetBSD.  The Mach versions are just
+ * These functions are written for BSD44.  The Mach versions are just
  * wrappers that call these with the right number of arguments 
  */
 
@@ -103,7 +103,7 @@ vc_nb_open(dev, flag, mode, p)
     dev_t        dev;      
     int          flag;     
     int          mode;     
-    struct proc *p;             /* NetBSD only */
+    struct proc *p;             /* BSD44 only */
 {
     register struct vcomm *vcp;
     struct ody_mntinfo *op;

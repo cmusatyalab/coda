@@ -27,7 +27,7 @@
  *
  * 
  * Revision 3.1  1995/03/04  19:08:16  bnoble
- * Bump to major revision 3 to prepare for NetBSD port
+ * Bump to major revision 3 to prepare for BSD port
  *
  * Revision 2.8  1995/02/17  18:21:41  dcs
  * Small change. Assume venus is only interested in specifying the size
@@ -145,10 +145,17 @@ typedef struct ViceFid {
 #include <cfs/cfs_NetBSD.h>
 #endif /* __NetBSD__ */
 
+#ifdef __FreeBSD__
+#include <cfs/cfs_FreeBSD.h>
+/* XXX */
+#undef __P()
+#define __P(protos)     protos
+#endif /* __FreeBSD__ */
+
 #ifdef KERNEL
 /*************** VFS operation prototypes */
 
-/* These are used directly by NetBSD, and wrapped for Mach. */
+/* These are used directly by BSD44, and wrapped for Mach. */
 
 int cfs_mount     __P((VFS_T *, char *, caddr_t, struct nameidata *, 
 		       struct proc *));
@@ -661,21 +668,21 @@ extern int cfsdebug;
 #define CFSDEBUG(N, STMT)       { if (cfsdebug & CFSDBGMSK(N)) { STMT } }
 
 /* Prototypes of functions exported within cfs */
-extern int  cfs_vmflush __P(());
-extern void print_cfsnc __P(());
-extern void cfsnc_init __P(());
+extern int  cfs_vmflush __P((struct cnode *cp));
+extern void print_cfsnc __P((void));
+extern void cfsnc_init __P((void));
 extern int  cfsnc_resize __P((int, int));
-extern void cfsnc_gather_stats __P(());
-extern void cfs_flush __P(());
-extern void cfs_testflush __P(());
+extern void cfsnc_gather_stats __P((void));
+extern void cfs_flush __P((void));
+extern void cfs_testflush __P((void));
 extern void cfsnc_purge_user __P((struct ucred *));
 extern void cfsnc_zapParentfid __P((ViceFid *));
 extern void cfsnc_zapvnode __P((ViceFid *, struct ucred *));
 extern void cfsnc_zapfid __P((ViceFid *));
 extern void cfsnc_replace __P((ViceFid *, ViceFid *));
 extern void cfs_save __P((struct cnode *));
-extern void cfsnc_flush __P(());
-extern int  cfs_vnodeopstats_init __P(());
+extern void cfsnc_flush __P((void));
+extern int  cfs_vnodeopstats_init __P((void));
 extern int  cfs_kill __P((VFS_T *));
 extern void cfs_unsave __P((struct cnode *));
 extern int  getNewVnode __P((struct vnode **));

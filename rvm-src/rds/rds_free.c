@@ -33,12 +33,17 @@ should be returned to Software.Distribution@cs.cmu.edu.
 
 */
 
-static char *rcsid = "$Header: rds_free.c,v 1.1 96/11/22 13:39:50 raiff Exp $";
+static char *rcsid = "$Header: /usr/rvb/XX/src/rvm-src/rds/RCS/rds_free.c,v 4.1 1997/01/08 21:54:27 rvb Exp $";
 #endif _BLURB_
 
 #include <stdlib.h>
 #include <stdio.h>
+#ifdef __MACH__
+#include <sysent.h>
+#else	/* __linux__ || __BSD44__ */
 #include <unistd.h>
+#include <stdlib.h>
+#endif
 #include <rvm.h>
 #include <rds.h>
 #include <rds_private.h>

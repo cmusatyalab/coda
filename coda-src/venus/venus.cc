@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: venus.cc,v 4.1 97/01/08 21:51:36 rvb Exp $";
+static char *rcsid = "$Header: /usr/rvb/XX/src/coda-src/venus/RCS/venus.cc,v 4.2 1997/02/18 15:28:26 lily Exp $";
 #endif /*_BLURB_*/
 
 
@@ -52,11 +52,10 @@ extern "C" {
 #ifdef __MACH__
 #include <sysent.h>
 #include <libc.h>
-#endif /* __MACH__ */
-#ifdef __NetBSD__
+#else	/* __linux__ || __BSD44__ */
 #include <unistd.h>
 #include <stdlib.h>
-#endif __NetBSD__
+#endif
 
 extern int rpause(int, int, int);  /* why isn't this in sys/resource.h? */
 #ifdef __cplusplus

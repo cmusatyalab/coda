@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /home/braam/src/coda-src/venus/RCS/worker.cc,v 1.2 1996/12/16 05:11:50 braam Exp $";
+static char *rcsid = "$Header: /usr/rvb/XX/src/coda-src/venus/RCS/worker.cc,v 4.1 1997/01/08 21:51:52 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -52,18 +52,24 @@ extern "C" {
 #include <sys/socket.h>
 #include <sys/stat.h>
 #include <sys/syscall.h>
+#ifndef __FreeBSD__
+// Since vproc.h knows struct uio.
 #include <sys/uio.h>
+#endif
 #include <errno.h>
 #include <string.h>
 #ifdef __MACH__
 #include <sysent.h>
 #include <libc.h>
-#endif /* __MACH__ */
-#ifdef __NetBSD__
+#else	/* __linux__ || __BSD44__ */
 #include <unistd.h>
 #include <stdlib.h>
-#endif __NetBSD__
-#ifdef LINUX
+#endif
+#ifdef  __FreeBSD__
+#include <sys/param.h>
+#include <sys/mount.h>
+#endif
+#ifdef __linux__
 #include <sys/mount.h>
 #include <linux/fs.h>
 #include <mntent.h>
@@ -256,14 +262,22 @@ void VFSMount() {
 	exit(-1);
     }
 #endif /* __MACH__ */
-#ifdef __NetBSD__
+#ifdef __BSD44__
+#ifndef	MOUNT_CFS
+    /* for FreeBSD
+ - Add line below into /usr/include/sys/mount.h. Don't forget to adjust
+		MOUNT_MAXTYPE.
+	# define MOUNT_CFS	old MOUNT_MAXTYPE +1
+	In #define INITMOUNTNAMES,
+	        "cfs",          /* 19 or so MOUNT_CFS */
+#endif
     if (mount(MOUNT_CFS, venusRoot, 0, kernDevice) < 0) {
 	eprint("mount(%s, %s) failed (%d), exiting",
 	       kernDevice, venusRoot, errno);
 	exit(-1);
     }
-#endif __NetBSD__
-#ifdef LINUX
+#endif /* __BSD44__ */
+#ifdef __linux__
     if ( fork() == 0 ) {
       int error;
       error = mount("coda", venusRoot, "coda",  MS_MGC_VAL , &kernDevice);
@@ -823,7 +837,7 @@ void worker::main(void *parm) {
 		/* Original code used to have a local declaration of a struct cnode here.
 		   This avoided heap allocation and freeing, but only worked in Mach (because
 		   the cnode contains the vnode rather than the vnode being separately allocated).
-		   No choice in NetBSD but to use {MAKE,DISCARD}_VNODE.
+		   No choice in BSD44 but to use {MAKE,DISCARD}_VNODE.
 		   This hurts peformance because it adds 2 new's and 2 delete's for even
 		   the most trivial Venus request.   But it has the benefit of avoiding
 		   the use of CN_INIT() altogether, making the code easier to understand.
@@ -1044,7 +1058,7 @@ void worker::main(void *parm) {
 
 #ifdef __MACH__
 #ifdef undef /* doesn't even seem to work on i386_mach  (Satya, 8/20/96) */
-/* Don't want to deal with porting this code to NetBSD just yet (Satya, 8/16/96) */
+/* Don't want to deal with porting this code to BSD44 just yet (Satya, 8/16/96) */
 	    case ODY_PREFETCH: 
 		/* A prefetch (for SETS) is similar to open, but the cache container file
 		 * is opened with the IPREFETCH flag set to tell the kernel to treat its data

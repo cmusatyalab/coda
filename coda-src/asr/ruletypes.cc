@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: ruletypes.cc,v 4.1 97/01/08 21:49:23 rvb Exp $";
+static char *rcsid = "$Header: /usr/rvb/XX/src/coda-src/asr/RCS/ruletypes.cc,v 4.2 1997/01/17 20:32:14 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -41,10 +41,13 @@ extern "C" {
 #endif __cplusplus
 
 #include <stdio.h>
+#ifdef __MACH__
+#include <sysent.h>
 #include <libc.h>
-#ifdef	__linux__
+#else	/* __linux__ || __BSD44__ */
 #include <unistd.h>
-#endif 
+#include <stdlib.h>
+#endif
 #include <sys/param.h>
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -264,7 +267,7 @@ int command_t::execute() {
 	// parent process 
 	union wait cstatus;
 	int cpid = rc;
-#ifdef	__NetBSD__
+#ifdef __BSD44__
 	for (rc = wait(&cstatus.w_status); (rc != -1) && (rc != cpid); rc = wait(&cstatus.w_status))
 #else
 	for (rc = wait(&cstatus); (rc != -1) && (rc != cpid); rc = wait(&cstatus))

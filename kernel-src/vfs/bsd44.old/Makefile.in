@@ -31,7 +31,7 @@
 # improvements or extensions that  they  make,  and  to  grant  Carnegie
 # Mellon the rights to redistribute these changes without encumbrance.
 # 
-# static char *rcsid = "$Header: Makefile.in,v 1.1 96/12/09 14:41:07 raiff Exp $";
+# static char *rcsid = "$Header: /usr/rvb/XX/src/kernel-src/vfs/netbsd/RCS/Makefile.in,v 4.1 1997/01/08 21:53:34 rvb Exp $";
 
 #  Mach Operating System
 #  Copyright (c) 1990 Carnegie-Mellon University
@@ -58,7 +58,7 @@ INCLDIR := $(INCLDIR)/cfs
 
 EXECUTABLES = cfsnstat
 LIBRARIES   = pioctl.o
-HEADERS     = cfs.h cfs_LINUX.h cfs_MACH.h cfs_NetBSD.h cfs_opstats.h \
+HEADERS     = cfs.h cfs_LINUX.h cfs_MACH.h cfs_NetBSD.h cfs_FreeBSD.h cfs_opstats.h \
 	      cfs_vnodeops.h cfsio.h cfsnc.h cnode.h mach_vioctl.h
 LIBRARIES   =
 EXECUTABLES =
@@ -77,8 +77,8 @@ include $(TOPDIR)/Makerules
 # Identify files of interest
 
 # (Satya, 8/9/96): should other modules obtain the .h files in HFILES from the Coda compilation tree?
-#		Or from /usr/include/cfs?  The latter doesn't exist on Mach, but does on NetBSD.
-#		As an expedient during the port	to NetBSD, I am installing all the .h files
+#		Or from /usr/include/cfs?  The latter doesn't exist on Mach, but does on BSD44.
+#		As an expedient during the port	to BSD44, I am installing all the .h files
 #		Straighten this out soon....
 
 

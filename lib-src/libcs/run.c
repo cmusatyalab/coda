@@ -34,7 +34,7 @@
  * Export of Technical Data.
  */
 
-static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/src/coda-4.0.1/RCSLINK/./lib-src/libcs/run.c,v 1.1 1996/11/22 19:19:38 braam Exp $";
+static char *rcsid = "$Header: /usr/rvb/XX/src/lib-src/libcs/RCS/run.c,v 4.1 1997/01/08 21:54:02 rvb Exp $";
 #endif /*_BLURB_*/
 
 /*  run[c], run[c]v, run[c]p, run[c]vp -- exec process and wait for it to exit
@@ -85,7 +85,7 @@ static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/src/coda-4.0.1
 
 #define RUN_MAXARGS 1024
 
-#if	defined(__NetBSD__) || defined(__WIN32__) || defined(LINUX)
+#if defined(__linux__) || defined(__BSD44__) || defined(__WIN32__)
 #define	sigif	sigaction
 #define	sif_handler	sa_handler
 #define	sif_mask	sa_mask
@@ -111,7 +111,7 @@ int usepath;
 #else
 	struct sigif ignoresig,intsig,quitsig;
 #endif
-#if	defined(__NetBSD__) || defined(__WIN32__) || defined(__LINUX__)
+#if	defined(__BSD44__) || defined(__WIN32__)
 	int status;
 #else
 	union wait status;
@@ -138,10 +138,10 @@ int usepath;
 #else
 	ignoresig.sif_handler = SIG_IGN;	/* ignore INT and QUIT signals */
 #endif
-#if	defined(__NetBSD__) || defined(__WIN32__)
+#if	defined(__BSD44__) || defined(__WIN32__)
 	sigemptyset(&ignoresig.sif_mask);
 	ignoresig.sif_flags = 0;
-#elif LINUX
+#elif	defined(__linux__)
 	ignoresig.sa_mask = 0;
 	ignoresig.sa_flags = 0;
 #else
@@ -152,7 +152,7 @@ int usepath;
 	(void) sigif (SIGQUIT,&ignoresig,&quitsig);
 
 	do {
-#if	defined(__NetBSD__) || defined(__WIN32__)
+#if	defined(__BSD44__) || defined(__WIN32__)
 		wpid = waitpid (-1, &status, WUNTRACED);
 #else
 		wpid = wait3 (&status, WUNTRACED, (struct rusage *)0);
@@ -166,7 +166,7 @@ int usepath;
 	/* restore signals */
 	(void) sigif (SIGINT,&intsig,(struct sigif *)0);
 	(void) sigif (SIGQUIT,&quitsig,(struct sigif *)0);
-#if	defined(__NetBSD__) || defined(__WIN32__)
+#if	defined(__BSD44__) || defined(__WIN32__)
 	if (WIFSIGNALED (status) ||
 	    (WIFEXITED(status) && WEXITSTATUS(status) == 0xff))
 		return (-1);

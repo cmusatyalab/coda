@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/src/coda-4.0.1/RCSLINK/./kernel-src/vfs/mach/cfs_vnodeops.h,v 1.1 1996/11/22 19:16:13 braam Exp $";
+static char *rcsid = "$Header: /usr/rvb/XX/src/kernel-src/vfs/mach/RCS/cfs_vnodeops.h,v 4.1 1997/01/08 21:53:31 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -208,7 +208,7 @@ cfs_strategy __P((struct buf *,
 
 
 /*
- * The following don't exist in NetBSD, but are needed in Mach
+ * The following don't exist in BSD44, but are needed in Mach
  */
 
 #ifdef	__MACH__

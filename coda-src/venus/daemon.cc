@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/src/coda-4.0.1/coda-src/venus/RCS/daemon.cc,v 1.1 1996/11/22 19:10:49 braam Exp $";
+static char *rcsid = "$Header: /usr/rvb/XX/src/coda-src/venus/RCS/daemon.cc,v 4.1 1997/01/08 21:51:21 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -54,11 +54,10 @@ extern "C" {
 #ifdef __MACH__
 #include <sysent.h>
 #include <libc.h>
-#endif /* __MACH__ */
-#ifdef __NetBSD__
+#else	/* __linux__ || __BSD44__ */
 #include <unistd.h>
 #include <stdlib.h>
-#endif __NetBSD__
+#endif
 
 
 #ifdef __cplusplus
@@ -127,9 +126,9 @@ void InitOneADay() {
 #ifdef __MACH__
 #define MKTIME(tm) gtime(tm)  /* gtime() is CMU home brew */
 #endif /* __MACH__ */
-#if defined(__linux__) || defined(__NetBSD__)
+#if defined(__linux__) || defined(__BSD44__)
 #define MKTIME(tm) mktime(tm) /* mktime() is part of 4.4 BSD */
-#endif __NetBSD__
+#endif /* __linux__ ||__BSD44__ */
 
     unsigned long midnight = MKTIME(lt) + SECSPERDAY; /* midnight tomorrow */
     struct TM_Elem *tp = (struct TM_Elem *) malloc(sizeof(struct TM_Elem));

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/src/coda-4.0.1/lib-src/mlwp/RCS/iomgr.c,v 1.1 1996/11/22 19:18:58 braam Exp $";
+static char *rcsid = "$Header: /usr/rvb/XX/src/lib-src/mlwp/RCS/iomgr.c,v 4.1 1997/01/08 21:54:11 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -69,7 +69,7 @@ supported by Transarc Corporation, Pittsburgh, PA.
 #include "lwp.private.h"
 #include "timer.h"
 
-#if	defined(__NetBSD__) || defined(__WIN32__)
+#if	defined(__BSD44__) || defined(__WIN32__)
 #define	sigif	sigaction
 #define	sif_handler	sa_handler
 #define	sif_mask	sa_mask

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /home/braam/src/coda-src/venus/RCS/vol_cml.cc,v 1.2 1996/12/05 01:22:09 braam Exp $";
+static char *rcsid = "$Header: /usr/rvb/XX/src/coda-src/venus/RCS/vol_cml.cc,v 4.1 1997/01/08 21:51:46 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -53,18 +53,17 @@ extern "C" {
 #include <sys/types.h>
 #include <stdarg.h>
 #include <struct.h>
-#ifdef __NetBSD__
+#if    defined(__BSD44__)
 #include <dirent.h> /* to get defn of MAXNAMLEN */
-#endif __NetBSD__
+#endif /* __BSD44__ */
 
 #ifdef __MACH__
 #include <sysent.h>
 #include <libc.h>
-#endif /* __MACH__ */
-#if defined(__linux__) || defined(__NetBSD__)
+#else	/* __linux__ || __BSD44__ */
 #include <unistd.h>
 #include <stdlib.h>
-#endif __NetBSD__
+#endif
 #ifdef	__linux__
 #include <netinet/in.h>
 #include <endian.h>

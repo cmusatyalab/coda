@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-rvb/cvs/src/coda-4.0.1/coda-src/asr/path.c,v 1.2 1997/01/07 18:40:18 rvb Exp $";
+static char *rcsid = "$Header: /usr/rvb/XX/src/coda-src/asr/RCS/path.c,v 4.1 1997/01/08 21:49:22 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -42,11 +42,13 @@ extern "C" {
 
 #include "asr.h"
 
-#if defined(__linux__) || defined(__NetBSD__)
-#include <unistd.h>
-#else
+#ifdef __MACH__
+#include <sysent.h>
 #include <libc.h>
-#endif 
+#else	/* __linux__ || __BSD44__ */
+#include <unistd.h>
+#include <stdlib.h>
+#endif
 #include <sys/param.h>
 #include <sys/dir.h>
 #include <strings.h>
@@ -61,7 +63,7 @@ extern "C" {
 #endif __cplusplus
 
 
-#if LINUX || NetBSD
+#if defined(__linux__) || defined(__BSD44__)
 
 /* An implementation of path(3) which is a standard function in Mach OS
  * the behaviour is according to man page in Mach OS, which says,

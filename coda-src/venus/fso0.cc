@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /coda/usr/satya/STM/coda-4.0.1/coda-src/venus/RCS/fso0.cc,v 4.1 1997/01/08 21:51:23 rvb Exp $";
+static char *rcsid = "$Header: /usr/rvb/XX/src/coda-src/venus/RCS/fso0.cc,v 4.2 1997/01/28 11:53:18 satya Exp $";
 #endif /*_BLURB_*/
 
 
@@ -56,9 +56,9 @@ extern "C" {
 #ifdef __MACH__
 #include <sys/dir.h> 
 #endif /* __MACH__ */
-#ifdef __NetBSD__
+#ifdef __BSD44__
 #include <dirent.h> /* NOT sys/dirent.h!!! (Satya, 8/12,96) */
-#endif __NetBSD__
+#endif /* __BSD44 */
 #ifdef __linux__ /* platform independent directory structures (pjb 11/96) */
 #include <venus-dirent.h>
 #endif	/* __linux__ */
@@ -69,11 +69,10 @@ extern "C" {
 #ifdef __MACH__
 #include <sysent.h>
 #include <libc.h>
-#endif /* __MACH__ */
-#ifdef __NetBSD__
+#else	/* __linux__ || __BSD44__ */
 #include <unistd.h>
 #include <stdlib.h>
-#endif __NetBSD__
+#endif
 
 #ifdef __cplusplus
 }
@@ -196,7 +195,7 @@ void FSOInit() {
 	    closedir(cdir);
 #endif /* __MACH__ */
 
-#ifdef __NetBSD__
+#ifdef __BSD44__
 	    struct dirent **namelist;
 	    int nentries;
 	    nentries = scandir(".", &namelist, 0, 0) ;
@@ -229,7 +228,7 @@ void FSOInit() {
 	    }
 	    /* Free the array allocated by scandir() */
 	    free(namelist);
-#endif __NetBSD__
+#endif /* __BSD44__ */
 	}
 
 	/* Allocate the fsobj's if requested. */

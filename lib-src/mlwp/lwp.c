@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/src/coda-4.0.1/RCSLINK/./lib-src/mlwp/lwp.c,v 1.1 1996/11/22 19:18:48 braam Exp $";
+static char *rcsid = "$Header: /usr/rvb/XX/src/lib-src/mlwp/RCS/lwp.c,v 4.1 1997/01/08 21:54:12 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -1336,7 +1336,7 @@ PRIVATE void Initialize_PCB(temp, priority, stack, stacksize, ep, parm, name)
     temp -> misc = NULL;	/* currently unused */
     temp -> next = NULL;
     temp -> prev = NULL;
-#ifdef LINUX    
+#ifdef __linux__
     temp -> rused = 0;
 #else
     temp -> rused = NULL;

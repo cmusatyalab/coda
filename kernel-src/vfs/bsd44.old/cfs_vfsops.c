@@ -25,10 +25,10 @@
  * Added CFS-specific files
  *
  * Revision 3.1.1.1  1995/03/04  19:08:02  bnoble
- * Branch for NetBSD port revisions
+ * Branch for BSD port revisions
  *
  * Revision 3.1  1995/03/04  19:08:01  bnoble
- * Bump to major revision 3 to prepare for NetBSD port
+ * Bump to major revision 3 to prepare for BSD port
  *
  * Revision 2.4  1995/02/17  16:25:22  dcs
  * These versions represent several changes:
@@ -97,9 +97,14 @@ struct cfs_op_stats cfs_vfsopstats[CFS_VFSOPS_SIZE];
 #define MRAK_INT_GEN(op) (cfs_vfsopstats[op].gen_intrn++)
 
 extern int cfsnc_initialized;     /* Set if cache has been initialized */
-
+#ifndef __FreeBSD__
 extern struct cdevsw cdevsw[];    /* For sanity check in cfs_mount */
+#endif
 
+extern int vcdebug;
+#define VCDEBUG if (vcdebug) printf
+
+int
 cfs_vfsopstats_init()
 {
 	register int i;
@@ -121,10 +126,11 @@ cfs_vfsopstats_init()
  * Set up mount info record and attach it to vfs struct.
  */
 /*ARGSUSED*/
+int
 cfs_mount(vfsp, path, data, ndp, p)
     VFS_T *vfsp;           /* Allocated and initialized by mount(2) */
     char *path;            /* path covered: ignored by the fs-layer */
-    caddr_t data;          /* Need to define a data type for this in netbsd? */
+    caddr_t data;          /* Need to define a data type for this in BSD44? */
     struct nameidata *ndp; /* Clobber this to lookup the device name */
     struct proc *p;        /* The ever-famous proc pointer */
 {
@@ -168,11 +174,24 @@ cfs_mount(vfsp, path, data, ndp, p)
 	MARK_INT_FAIL(CFS_MOUNT_STATS);
 	return(ENXIO);
     }
-    
+
+    /* 
+     * Set mount path names.
+     */
+    { u_int len;
+      strcpy (vfsp->mnt_stat.f_mntonname, "/coda"); /* By rule. */
+      error = copyinstr(data, vfsp->mnt_stat.f_mntfromname,
+			MNAMELEN-1, &len);
+      if (error) {
+	MARK_INT_FAIL(CFS_MOUNT_STATS);
+	return (error);
+      }
+    }
+
     /*
      * See if the device table matches our expectations.
      */
-    if (cdevsw[major(dev)].d_open != VCOPEN) {
+    if (cdevsw[major(dev)]->d_open != VCOPEN) {
 	MARK_INT_FAIL(CFS_MOUNT_STATS);
 	return(ENXIO);
     }
@@ -196,8 +215,15 @@ cfs_mount(vfsp, path, data, ndp, p)
     
     /* No initialization (here) of mi_vcomm! */
     vfsp->VFS_DATA = (VFS_ANON_T)mi;
+#ifdef __FreeBSD__
+    /* Seems a bit overkill, since usualy /coda is the only mount point
+     * for cfs.
+     */
+    getnewfsid (vfsp, MOUNT_CFS);
+#else  /* __FreeBSD__ */
     VFS_FSID(vfsp).val[0] = 0;
     VFS_FSID(vfsp).val[1] = makefstype(MOUNT_CFS);
+#endif /* __FreeBSD__ */
     mi->mi_vfschain.vfsp = vfsp;
     mi->mi_vfschain.next = NULL;
     
@@ -280,11 +306,12 @@ cfs_unmount(vfsp, mntflags, p)
 		 * will effectively fail, but shouldn't crash
 		 * either the kernel or venus. One to blaim: --
 		 * DCS 11/29/94 */
-#ifndef __NetBSD__             /* XXX - NetBSD venii cannot fake unmount */
-		FAKE_UNMOUNT(vfsp);
-#else __NetBSD__
+#ifdef __BSD44__
+		/* XXX - BSD44 venii cannot fake unmount */
 		return (error);
-#endif __NetBSD__
+#else 
+		FAKE_UNMOUNT(vfsp);
+#endif /* __BSD44__ */
 
 		myprintf(("CFS_UNMOUNT: faking unmount, vfsp %x active == %d\n", vfsp, active));
 	    } else {
@@ -359,7 +386,7 @@ cfs_root(vfsp, vpp)
 		(VTOC(op->rootvp)->c_fid.Unique != 0))
 		{ /* Found valid root. */
 		    *vpp = op->rootvp;
-		    /* On Mach, this is VN_HOLD.  On NetBSD, VN_LOCK */
+		    /* On Mach, this is VN_HOLD.  On BSD44, VN_LOCK */
 		    CFS_ROOT_REF(*vpp);
 		    MARK_INT_SAT(CFS_ROOT_STATS);
 		    return(0);
@@ -426,6 +453,7 @@ cfs_root(vfsp, vpp)
 }
 
 #ifndef __NetBSD__
+#ifndef __FreeBSD__
 
 /* Locate a type-specific FS based on a name (tome) */
 int findTome(tome, data, coveredvp, vpp, p)
@@ -516,6 +544,7 @@ int findTome(tome, data, coveredvp, vpp, p)
     return ENOENT;	/* Indicate that no matching warden was found */
 }
 
+#endif /* __FreeBSD__ */
 #endif /* __NetBSD__ */
 
 int
@@ -551,6 +580,11 @@ cfs_statfs(vfsp, sbp, p)
     sbp->f_ffree = -1;
     bcopy((caddr_t)&(VFS_FSID(vfsp)), (caddr_t)&(sbp->f_fsid),
 	  sizeof (fsid_t));
+
+    if (sbp != &vfsp->mnt_stat) {
+      bcopy(vfsp->mnt_stat.f_mntonname,   sbp->f_mntonname,   MNAMELEN);
+      bcopy(vfsp->mnt_stat.f_mntfromname, sbp->f_mntfromname, MNAMELEN);
+    }
     
     MARK_INT_SAT(CFS_STATFS_STATS);
     return(0);
@@ -657,6 +691,7 @@ void
 cfs_init()
 {
     ENTRY;
+    VCDEBUG("cfs: vfs module installed.\n");
 }
 
 /*

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/src/coda-4.0.1/RCSLINK/./kernel-src/vfs/mach/cfs_subr.c,v 1.1 1996/11/22 19:16:08 braam Exp $";
+static char *rcsid = "$Header: /usr/rvb/XX/src/kernel-src/vfs/mach/RCS/cfs_subr.c,v 4.1 1997/01/08 21:53:28 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -55,10 +55,10 @@ static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/src/coda-4.0.1
  * Added CFS-specific files
  *
  * Revision 3.1.1.1  1995/03/04  19:07:59  bnoble
- * Branch for NetBSD port revisions
+ * Branch for BSD port revisions
  *
  * Revision 3.1  1995/03/04  19:07:58  bnoble
- * Bump to major revision 3 to prepare for NetBSD port
+ * Bump to major revision 3 to prepare for BSD port
  *
  * Revision 2.8  1995/03/03  17:00:04  dcs
  * Fixed kernel bug involving sleep and upcalls. Basically if you killed
@@ -513,7 +513,7 @@ cfs_kill(whoIam)
     /* 
      * Algorithm is as follows: 
      *     First, step through all cnodes and mark them unmounting.
-     *         NetBSD kernels may try to fsync them now that venus
+     *         BSD44 kernels may try to fsync them now that venus
      *         is dead, which would be a bad thing.
      *
      *     Second, flush whatever vnodes we can from the name cache.
@@ -705,16 +705,16 @@ int
 cfs_vmflush(cp)
      struct cnode *cp;
 {
-#ifndef __NetBSD__
+#ifndef __BSD44__
     /* Unset <device, inode> so that page_read doesn't try to use
        (possibly) invalid cache file. */
     cp->c_device = 0;
     cp->c_inode = 0;
 
     return(inode_uncache_try(VTOI(CTOV(cp))) ? 0 : ETXTBSY);
-#else /* __NetBSD__ */
+#else /* __BSD44__ */
     return 0;
-#endif /* __NetBSD__ */
+#endif /* __BSD44__ */
 }
 
 /*

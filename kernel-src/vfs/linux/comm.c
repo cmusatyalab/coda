@@ -20,10 +20,10 @@
  * Added CFS-specific files
  *
  * Revision 3.1.1.1  1995/03/04  19:07:59  bnoble
- * Branch for NetBSD port revisions
+ * Branch for BSD port revisions
  *
  * Revision 3.1  1995/03/04  19:07:58  bnoble
- * Bump to major revision 3 to prepare for NetBSD port
+ * Bump to major revision 3 to prepare for BSD port
  *
  * Revision 2.8  1995/03/03  17:00:04  dcs
  * Fixed kernel bug involving sleep and upcalls. Basically if you killed

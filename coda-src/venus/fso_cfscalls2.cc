@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-nbsd-port/coda-4.0.1/coda-src/venus/RCS/fso_cfscalls2.cc,v 4.1 1997/01/08 21:51:27 rvb Exp $";
+static char *rcsid = "$Header: /usr/rvb/XX/src/coda-src/venus/RCS/fso_cfscalls2.cc,v 4.2 1997/01/17 15:22:50 satya Exp $";
 #endif /*_BLURB_*/
 
 
@@ -53,27 +53,29 @@ extern "C" {
 #include <sys/dir.h>
 #include <sys/types.h>
 #include <sys/file.h>
+#ifndef __FreeBSD__
+// Since vproc.h knows struct uio.
 #include <sys/uio.h>
+#endif
 #include <string.h>
 #ifdef __MACH__
 #include <sysent.h>
 #include <libc.h>
-#endif /* __MACH__ */
-#if defined(__linux__) || defined(__NetBSD__)
+#else	/* __linux__ || __BSD44__ */
 #include <unistd.h>
 #include <stdlib.h>
-#endif __NetBSD__
+#endif
 
 #include <rpc2.h>
 
-#if (LINUX || __NetBSD__)
+#if defined(__linux__) || defined(__BSD44__)
 
 #ifdef DIRSIZ
 #undef DIRSIZ
 #endif DIRSIZ
 #define DIRSIZ(dp)      ((sizeof (struct direct) - (MAXNAMLEN+1)) + \
                          (((dp)->d_namlen+1 + 3) &~ 3))
-#endif /* LINUX || __NetBSD__ */
+#endif /* __linux__ || __BSD44__ */
 
 #ifdef __cplusplus
 }
@@ -526,6 +528,13 @@ static char systype [] = "i386_nbsd1";
 #endif /* i386 */
 #endif /* __NetBSD__ */
 
+#ifdef __FreeBSD__
+#ifdef i386
+static char cputype [] = "i386";
+static char systype [] = "i386_fbsd2";
+#endif /* i386 */
+#endif /* __FreeBSD__ */
+
 #ifdef __linux__
 #ifdef i386
 static char cputype [] = "i386";
@@ -712,7 +721,7 @@ int fsobj::Readdir(char *buf, int offset, int len, int *cc, vuid_t vuid) {
 	    if (*cc - pos < DIRSIZ(dp))
 		{ print(logFile); Choke("fsobj::Readdir: dir entry too small"); }
 
-#if (LINUX || __NetBSD__)
+#if defined(__linux__) || defined(__BSD44__)
 	    if (dp->d_fileno == 0) break;
 	    LOG(1000, ("\t<%d, %d, %d, %s>\n",
                        dp->d_fileno, dp->d_reclen, dp->d_namlen, dp->d_name));

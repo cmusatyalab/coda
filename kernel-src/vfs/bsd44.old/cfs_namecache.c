@@ -25,10 +25,10 @@
  * Added CFS-specific files
  *
  * Revision 3.1.1.1  1995/03/04  19:07:57  bnoble
- * Branch for NetBSD port revisions
+ * Branch for BSD port revisions
  *
  * Revision 3.1  1995/03/04  19:07:56  bnoble
- * Bump to major revision 3 to prepare for NetBSD port
+ * Bump to major revision 3 to prepare for BSD port
  *
  * Revision 2.3  1994/10/14  09:57:54  dcs
  * Made changes 'cause sun4s have braindead compilers
@@ -103,11 +103,11 @@
 #include <cfs/cnode.h>
 #include <cfs/cfsnc.h>
 
-#ifdef __NetBSD__
+#ifdef __BSD44__
 #ifndef insque
 #include <sys/systm.h>
 #endif /* insque */
-#endif /* __NetBSD__ */
+#endif /* __BSD44__ */
 
 /* 
  * Declaration of the name cache data structure.

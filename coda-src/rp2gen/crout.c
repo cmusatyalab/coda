@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/src/coda-4.0.1/RCSLINK/./coda-src/rp2gen/crout.c,v 1.1 1996/11/22 19:08:45 braam Exp $";
+static char *rcsid = "$Header: /usr/rvb/XX/src/coda-src/rp2gen/RCS/crout.c,v 4.1 1997/01/08 21:50:12 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -75,13 +75,13 @@ static locals(FILE *where);
 static common(FILE *where);
 static client_procs(PROC *head, FILE *where);
 static one_client_proc(PROC *proc, FILE *where);
-#ifdef	__NetBSD__
+#ifdef __BSD44__
 static spit_parm(VAR *parm, WHO who, FILE *where, rp2_bool header);
 #else
 static spit_parm(VAR *parm, WHO who, FILE *where, int header);
 #endif
 static for_limit(VAR *parm, WHO who, FILE *where);
-#ifdef	__NetBSD__
+#ifdef __BSD44__
 static spit_body(PROC *proc, rp2_bool in_parms, rp2_bool out_parms, FILE *where);
 #else
 static spit_body(PROC *proc, int in_parms, int out_parms, FILE *where);
@@ -104,7 +104,7 @@ static free_dynamicarray(VAR *parm, FILE *where);
 static pass_parm(VAR *parm, FILE *where);
 static execute(PROC *head, FILE *where);
 static multi_procs(PROC *head, FILE *where);
-#ifdef	__NetBSD__
+#ifdef __BSD44__
 static pr_size(VAR *parm, FILE *where, rp2_bool TOP, int proc, int arg);
 #else
 static pr_size(VAR *parm, FILE *where, int TOP, int proc, int arg);
@@ -405,7 +405,7 @@ static common(where)
 	fputs("\n#include <sys/types.h>\n#include <netinet/in.h>\n#include <sys/time.h>\n", where);
 	fputs("#include <string.h>\n", where);
 	fputs("#ifdef __MACH__\n#include <sysent.h>\n#include <libc.h>\n#endif /* __MACH__ */\n", where);
-	fputs("#ifdef __NetBSD__\n#include <unistd.h>\n#include <stdlib.h>\n#endif __NetBSD__\n", where);
+	fputs("#if defined(__BSD44__)\n#include <unistd.h>\n#include <stdlib.h>\n#endif /*__BSD44__*/\n", where);
 	fputs("\n#ifdef __cplusplus\n}\n#endif __cplusplus\n", where);
     }
     else {

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: fso_dir.cc,v 4.1 97/01/08 21:51:28 rvb Exp $";
+static char *rcsid = "$Header: /usr/rvb/XX/src/coda-src/venus/RCS/fso_dir.cc,v 4.2 1997/02/18 15:28:25 lily Exp $";
 #endif /*_BLURB_*/
 
 
@@ -58,11 +58,10 @@ extern "C" {
 #ifdef __MACH__
 #include <sysent.h>
 #include <libc.h>
-#endif /* __MACH__ */
-#if defined(__linux__) || defined(__NetBSD__)
+#else	/* __linux__ || __BSD44__ */
 #include <unistd.h>
 #include <stdlib.h>
-#endif __NetBSD__
+#endif
 #ifdef	__linux__
 #include <endian.h>
 #include <netinet/in.h>
@@ -117,7 +116,7 @@ PRIVATE void CVOpen(char *filename, CVDescriptor *cvd) {
     cvd->dirBytes = 0;
     cvd->dirPos = 0;
     if (minFreeSize == -1) {
-	struct direct dir; /* equated to struct dirent on NetBSD */
+	struct direct dir; /* equated to struct dirent on BSD44 */
 	dir.d_namlen = 1;
 	minFreeSize = DIRSIZ(&dir);
     }

@@ -1,5 +1,5 @@
 #!/bin/csh -f
-#
+# $Id: CHECKOUT,v 4.2 1997/02/10 14:51:16 inamura Exp $
 # Script to do a clean checkout of a unique version of Coda sources
 # from RCS.  A unique Coda version id looks like "C401_8Jan1997_16h28m"
 #
@@ -19,6 +19,7 @@ set PLATFORM = `uname`
 
 switch ($PLATFORM)
 
+case FreeBSD:
 case NetBSD:
 		set RCSCO = "co"
 		breaksw

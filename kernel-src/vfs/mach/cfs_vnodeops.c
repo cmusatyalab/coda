@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/src/coda-4.0.1/RCSLINK/./kernel-src/vfs/mach/cfs_vnodeops.c,v 1.1 1996/11/22 19:16:10 braam Exp $";
+static char *rcsid = "$Header: /usr/rvb/XX/src/kernel-src/vfs/mach/RCS/cfs_vnodeops.c,v 4.1 1997/01/08 21:53:29 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -57,10 +57,10 @@ static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/src/coda-4.0.1
  * Added CFS-specific files
  *
  * Revision 3.1.1.1  1995/03/04  19:08:06  bnoble
- * Branch for NetBSD port revisions
+ * Branch for BSD port revisions
  *
  * Revision 3.1  1995/03/04  19:08:04  bnoble
- * Bump to major revision 3 to prepare for NetBSD port
+ * Bump to major revision 3 to prepare for BSD port
  *
  * Revision 2.6  1995/02/17  16:25:26  dcs
  * These versions represent several changes:
@@ -249,7 +249,7 @@ cfs_open(vpp, flag, cred, p)
     if (error) {
 	goto exit;
     }
-    /* We get the vnode back locked in both Mach and NetBSD.  Needs unlocked */
+    /* We get the vnode back locked in both Mach and BSD44.  Needs unlocked */
     VOP_DO_UNLOCK(vp);
     
     /* Keep a reference until the close comes in. */
@@ -403,7 +403,7 @@ cfs_rdwr(vp, uiop, rw, ioflag, cred, p)
 		}
 		/* 
 		 * We get the vnode back locked in both Mach and
-		 * NetBSD.  Needs unlocked 
+		 * BSD44.  Needs unlocked 
 		 */
 		VOP_DO_UNLOCK(cfvp);
 	    }
@@ -950,7 +950,7 @@ cfs_fsync(vp, cred, p)
     MARK_ENTRY(CFS_FSYNC_STATS);
 
     /* Check for fsync on an unmounting object */
-    /* The NetBSD kernel, in it's infinite wisdom, can try to fsync
+    /* The BSD44 kernel, in it's infinite wisdom, can try to fsync
      * after an unmount has been initiated.  This is a Bad Thing,
      * which we have to avoid.  Not a legitimate failure for stats.
      */
@@ -960,7 +960,7 @@ cfs_fsync(vp, cred, p)
        
     /* Check for operation on a dying object */
     /* We can expect fsync on the root vnode if we are in the midst
-       of unmounting (in NetBSD), so silently ignore it. */
+       of unmounting (in BSD44), so silently ignore it. */
     if (IS_DYING(cp)) {
 	if (!IS_ROOT_VP(vp)) {
 	    COMPLAIN_BITTERLY(fsync, cp->c_fid);
@@ -1052,7 +1052,7 @@ cfs_inactive(vp, cred, p)
  */
 
 /* 
- * It appears that in NetBSD, lookup is supposed to return the vnode locked
+ * It appears that in BSD44, lookup is supposed to return the vnode locked
  */
 
 int

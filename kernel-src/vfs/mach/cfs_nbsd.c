@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/src/coda-4.0.1/RCSLINK/./kernel-src/vfs/mach/cfs_nbsd.c,v 1.1 1996/11/22 19:16:03 braam Exp $";
+static char *rcsid = "$Header: /usr/rvb/XX/src/kernel-src/vfs/mach/RCS/cfs_nbsd.c,v 4.1 1997/01/08 21:53:27 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -58,8 +58,8 @@ static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/src/coda-4.0.1
  *
  */
 
-/* NetBSD-specific routines for the cfs code */
-#ifdef __NetBSD__
+/* BSD44-specific routines for the cfs code */
+#ifdef __BSD44__
 
 #include <cfs/cfs.h>
 #include <cfs/cfs_vnodeops.h>
@@ -72,7 +72,7 @@ static int lockdebug = 0;
 /* Definition of the vfs operation vector */
 
 /*
- * Some NetBSD details:
+ * Some BSD44 details:
  * 
  *   cfs_start is called at the end of the mount syscall.
  *
@@ -109,7 +109,7 @@ struct vfsops cfs_vfsops = {
     0
 };
 
-/* NetBSD interfaces to the vnodeops */
+/* BSD44 interfaces to the vnodeops */
 int cfs_nb_open      __P((struct vop_open_args *));
 int cfs_nb_close     __P((struct vop_close_args *));
 int cfs_nb_read      __P((struct vop_read_args *));
@@ -191,7 +191,7 @@ struct vnodeopv_entry_desc cfs_vnodeop_entries[] = {
     { (struct vnodeop_desc*)NULL, (int(*)())NULL }
 };
 
-/* Definitions of NetBSD vnodeop interfaces */
+/* Definitions of BSD44 vnodeop interfaces */
 
 /* A generic panic: we were called with something we didn't define yet */
 int
@@ -362,7 +362,7 @@ cfs_nb_lookup(ap)
      * If we are creating, and this was the last name to be looked up,
      * and the error was ENOENT, then there really shouldn't be an
      * error and we can make the leaf NULL and return success.  Since
-     * this is supposed to work under Mach as well as NetBSD, we're
+     * this is supposed to work under Mach as well as BSD44, we're
      * leaving this fn wrapped.  We also must tell lookup/namei that
      * we need to save the last component of the name.  (Create will
      * have to free the name buffer later...lucky us...)
@@ -455,7 +455,7 @@ cfs_nb_create(ap)
 
     /* Locking strategy. */
     /*
-     * In NetBSD, all creates must explicitly vput their dvp's.  We'll
+     * In BSD44, all creates must explicitly vput their dvp's.  We'll
      * go ahead and use the LOCKLEAF flag of the cnp argument.
      * However, I'm pretty sure that create must return the leaf
      * locked; so there is a DIAGNOSTIC check to ensure that this is
@@ -787,7 +787,7 @@ cfs_nb_strategy(ap)
     return (cfs_strategy(ap->a_bp, GLOBAL_PROC));
 }
 
-/***************************** NetBSD-only vnode operations */
+/***************************** BSD44-only vnode operations */
 int
 cfs_nb_reclaim(ap) 
     struct vop_reclaim_args *ap;
@@ -983,4 +983,4 @@ vcfsattach(n)
 {
 }
 
-#endif __NetBSD__
+#endif /* __BSD44__ */

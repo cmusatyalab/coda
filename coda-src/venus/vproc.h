@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: vproc.h,v 4.2 97/01/17 15:23:03 satya Exp $";
+static char *rcsid = "$Header: /usr/rvb/XX/src/coda-src/venus/RCS/vproc.h,v 4.3 1997/02/18 15:28:29 lily Exp $";
 #endif /*_BLURB_*/
 
 
@@ -56,7 +56,14 @@ extern "C" {
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <sys/time.h>
+
+#ifdef __FreeBSD__
+# define KERNEL 1
+# include <sys/uio.h>
+# undef  KERNEL
+#else 
 #include <sys/uio.h>
+#endif /* __FreeBSD__ */
 
 #ifdef __NetBSD__
 #define __attribute__(x)    /* dummied out because of machine/segments.h */
@@ -64,7 +71,7 @@ extern "C" {
 #undef __attribute__
 #else
 #include <sys/user.h>
-#endif __NetBSD__
+#endif /* __NetBSD__ */
 
 #ifdef __MACH__
 /* Pick up private versions of vnode headers from vicedep */
@@ -322,19 +329,19 @@ extern long FidToNodeid(ViceFid *);
 #define	CRTORUID(cred)	((vuid_t)((cred).cr_ruid))
 #endif /* __MACH__ */
 
-#if defined(__linux__) || defined(__NetBSD__)
-/* vnodes in NetBSD don't seem to store effective user & group ids.  So just
+#if defined(__linux__) || defined(__BSD44__)
+/* vnodes in BSD44 don't seem to store effective user & group ids.  So just
    coerce everything to uid */
 #define	CRTOEUID(cred)	((vuid_t)((cred).cr_uid))
 #define	CRTORUID(cred)	((vuid_t)((cred).cr_uid))
-#endif __NetBSD__
+#endif /* __linux__ || __BSD44__ */
 
 #define	FTTOVT(ft)	((ft) == (int)File ? VREG :\
 			 (ft) == (int)Directory ? VDIR :\
 			 (ft) == (int)SymbolicLink ? VLNK :\
 			 VREG)
 
-/* VN_INIT() only defined for Mach; not used in NetBSD */
+/* VN_INIT() only defined for Mach; not used in BSD44 */
 #ifdef __MACH__
 #define	VN_INIT(VP, VFSP, TYPE,	DEV)	{\
     (VP)->v_flag = 0;\
@@ -380,7 +387,7 @@ extern long FidToNodeid(ViceFid *);
 #define	VFSOP_REINTEGRATE   33
 
 /* vnode_{allocs,deallocs} used to be inside #ifdef VENUSDEBUG, but the port 
-   to NetBSD caused the MAKE_VNODE() & DISCARD_VNODE() macros to become 
+   to BSD44 caused the MAKE_VNODE() & DISCARD_VNODE() macros to become 
    too convoluted (Satya, 8/14/96) */
 extern int vnode_allocs;
 extern int vnode_deallocs;
@@ -395,7 +402,7 @@ extern int vnode_deallocs;
    
    On Mach, all the data is directly embedded in the encapsulating cnode.
    
-   On NetBSD, the vnode corresponding to a cnode has to be explicitly allocated; 
+   On BSD44, the vnode corresponding to a cnode has to be explicitly allocated; 
    the v_data field of the vnode points to its associated cnode.
 
    All this makes the code trickier to understand, but it does keep down the 
@@ -420,7 +427,7 @@ extern int vnode_deallocs;
 }
 #endif /* __MACH__ */
 
-#if  __NetBSD__ || LINUX
+#if defined(__linux__) || defined(__BSD44__)
 #define	MAKE_VNODE(vp, fid, type)\
 {\
     struct cnode *tcp = new cnode;\
@@ -440,14 +447,14 @@ extern int vnode_deallocs;
     delete (VTOC((vp))); /* Has to happen BEFORE delete of vp; else VTOC() won't work!! -- Satya */ \
     delete (vp);\
 }
-#endif __NetBSD__
+#endif /* __linux__ || __BSD44__ */
 
 
 #define	VFSOP_TO_VSE(vfsop)\
     (vfsop)
 
 
-/* Macros for fields of struct vattr that are different in Mach and NetBSD;
+/* Macros for fields of struct vattr that are different in Mach and BSD44;
    use of these reduces ugly #ifdef's in mainline code (Satya, 8/15/96) */
 
 #ifdef __MACH__
@@ -461,7 +468,7 @@ extern int vnode_deallocs;
 #define VA_CTIME_2(va)	(va)->va_ctime.tv_usec
 #endif /* __MACH__ */
 
-#ifdef __NetBSD__ 
+#ifdef __BSD44__
 #define VA_ID(va)	(va)->va_fileid
 #define VA_STORAGE(va)	(va)->va_bytes
 #define VA_MTIME_1(va)	(va)->va_mtime.tv_sec
@@ -470,8 +477,7 @@ extern int vnode_deallocs;
 #define VA_ATIME_2(va)	(va)->va_atime.tv_nsec
 #define VA_CTIME_1(va)	(va)->va_ctime.tv_sec
 #define VA_CTIME_2(va)	(va)->va_ctime.tv_nsec
-#endif __NetBSD__
-
+#endif /* __BSD44__ */
 
 #ifdef	__linux__
 #define VA_ID(va)	(va)->va_fileid
@@ -507,12 +513,12 @@ extern int vnode_deallocs;
 #define VA_IGNORE_TIME1		((long)-1)
 #endif /* __MACH */
 
-#ifdef __NetBSD__
+#ifdef __BSD44__
 #define VA_IGNORE_GID		((vgid_t) -1)
 #define VA_IGNORE_SIZE		((u_quad_t)-1) 
 #define VA_IGNORE_TIME1		((time_t)-1)
 #define VA_IGNORE_FLAGS		((u_long) -1)
-#endif /* __ NetBSD__ */
+#endif /* __ BSD44__ */
 
 #ifdef __linux__
 #define VA_IGNORE_GID		((vgid_t) -1)

@@ -25,7 +25,7 @@
 # improvements or extensions that  they  make,  and  to  grant  Carnegie
 # Mellon the rights to redistribute these changes without encumbrance.
 # 
-# static char *rcsid = "$Header: Makefile.in,v 4.4 97/02/09 22:26:33 rvb Exp $";
+# static char *rcsid = "$Header: /usr/rvb/XX/src/coda-src/venus/RCS/Makefile.in,v 4.5 1997/02/18 15:28:21 lily Exp $";
 
 
 # 
@@ -67,7 +67,7 @@ HEADERS	    = advice.h hdb.h newplumb.h venus_vnode.h
 CXXFLAGS := $(CXXFLAGS) -DVENUS -DTIMING -DDISABLE_VMON -DVENUSDEBUG \
 	    -DRVM_USELWP 
 
-# Conditional definition of MACHLIBS for NetBSD port (Satya, 8/16/96)
+# Conditional definition of MACHLIBS for BSD44 port (Satya, 8/16/96)
 
 LIBS=	$(LIBUTIL)\
 	$(LIBCODARDS)\
@@ -232,7 +232,7 @@ worker.o: worker.cc worker.h venus.private.h comm.h fso.h mariner.h\
 	simulate.h venuscb.h venusstats.h venusvol.h vproc.h\
 	 worker.h   $(HFILES)
 
-# (Satya, 8/16/96): this is a temporary hack to build a dummy libtrace.a for NetBSD;
+# (Satya, 8/16/96): this is a temporary hack to build a dummy libtrace.a for BSD44;
 # All the routines are dummies;  copy libfaketrace.a to include-special
 # The rules below must use gcc; CC has been changed to g++ in this file.  
 libfaketrace.a:	 faketrace.o

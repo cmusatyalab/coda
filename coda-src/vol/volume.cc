@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /home/braam/src/coda-src/vol/RCS/volume.cc,v 1.6 1996/12/16 05:21:37 braam Exp $";
+static char *rcsid = "$Header: /usr/rvb/XX/src/coda-src/vol/RCS/volume.cc,v 4.1 1997/01/08 21:52:20 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -78,13 +78,13 @@ extern "C" {
 #include <string.h>
 #include <setjmp.h>
 #ifdef __MACH__
-#include <libc.h>
 #include <sysent.h>
-#endif /* __MACH__ */
-#if defined(__linux__) || defined(__NetBSD__)
+#include <libc.h>
+#include <mach.h>
+#else	/* __linux__ || __BSD44__ */
 #include <unistd.h>
 #include <stdlib.h>
-#endif __NetBSD__
+#endif
 #ifdef	__linux__
 #include <dirent.h>
 #include <stdio.h>
@@ -96,9 +96,6 @@ extern "C" {
 #include <lwp.h>
 #include <lock.h>
 
-#ifdef __MACH__
-#include <mach.h>
-#endif /* __MACH__ */
 #ifdef __cplusplus
 }
 #endif __cplusplus
@@ -304,7 +301,7 @@ void VInitVolumePackage(int nLargeVnodes, int nSmallVnodes, int DoSalvage) {
 
     /* Find all partitions named /vicep* */
     /* this is rather platform depentdent... Grr.. */
-#ifndef LINUX 
+#ifndef __linux__
     setfsent();
     while (fsent = getfsent()) {
         char *part = fsent->fs_file;
@@ -316,7 +313,7 @@ void VInitVolumePackage(int nLargeVnodes, int nSmallVnodes, int DoSalvage) {
 	}
 	/* Satya (8/2/96): test below used to be a simple test (status.st_ino != ROOTINO)
 		on Mach; unfortunately ROOTINO is defined in sys/fs.h which doesn't
-		exist in NetBSD; MountedAtRoot() is a more portable test for the same */
+		exist in BSD44; MountedAtRoot() is a more portable test for the same */
 	if (!MountedAtRoot(part)) {
 	    LogMsg(0, VolDebugLevel, stdout, "%s is not a mounted file system; ignored", part);
 	    continue;
@@ -380,7 +377,7 @@ void VInitVolumePackage(int nLargeVnodes, int nSmallVnodes, int DoSalvage) {
     /* Setting Debug to 1 and List to 0; maybe remove later ***ehs***/
     /* invoke salvager for full salvage */
     *pt = salvager;	/* MUST set *pt to salvager before vol_salvage */
-#ifndef LINUX
+#ifndef __linux__
     assert(S_VolSalvage(0, NULL, 0, DoSalvage, 1, 0) == 0);
 #endif
     *pt = fileServer;

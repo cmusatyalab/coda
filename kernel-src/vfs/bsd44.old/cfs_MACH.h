@@ -33,7 +33,7 @@
 /* #include <cfs/cfs_opstats.h> */
 
 /* 
- * NetBSD, and code, expects number of minor devices to be NVCFS, but
+ * BSD44, and code, expects number of minor devices to be NVCFS, but
  * for some reason our mach config stuff defines a funky name for the
  * device.
  */
@@ -278,14 +278,14 @@ do {                                                 \
     vp->v_type = ITYPE_CFS;                          \
 } while (0)
 
-/* locking/unlocking: ain't no such beast in Mach, but there is in NetBSD */
+/* locking/unlocking: ain't no such beast in Mach, but there is in BSD44 */
 #define VN_LOCK(vp)             /* MT */
 #define VN_UNLOCK(vp)           /* MT */
 
-/* Mach wants roots returned ref'd, NetBSD wants them locked */
+/* Mach wants roots returned ref'd, BSD44 wants them locked */
 #define CFS_ROOT_REF(vp)        VN_HOLD(vp)
 
-/* Mach wants lookups unlocked, NetBSD wants them locked */
+/* Mach wants lookups unlocked, BSD44 wants them locked */
 #define LOOKUP_LOCK(vp)         /* MT */
 
 /********************************* struct vattr differences */

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/src/coda-4.0.1/RCSLINK/./kernel-src/vfs/mach/pioctl.c,v 1.1 1996/11/22 19:16:22 braam Exp $";
+static char *rcsid = "$Header: /usr/rvb/XX/src/kernel-src/vfs/mach/RCS/pioctl.c,v 4.1 1997/01/08 21:53:33 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -59,17 +59,17 @@ extern "C" {
 #ifdef __MACH__
 #include <sys/viceioctl.h>
 #endif __MACH__
-#if defined(__linux__) || defined(__NetBSD__)
+#if defined(__linux__) || defined(__BSD44__)
 #include "mach_vioctl.h"
-#endif __NetBSD__
+#endif /* __linux__ || __BSD44__ */
 
 #ifdef __MACH__
 #include <sysent.h>
-#endif __MACH__
-#ifdef __NetBSD__
+#include <libc.h>
+#else	/* __linux__ || __BSD44__ */
 #include <unistd.h>
 #include <stdlib.h>
-#endif __NetBSD__
+#endif
 
         /* this needs to be sorted out XXXX */ 
 #ifdef	__linux__

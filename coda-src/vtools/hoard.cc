@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /coda/usr/satya/STM/coda-4.0.1/coda-src/vtools/RCS/hoard.cc,v 4.1 1997/01/08 21:52:40 rvb Exp $";
+static char *rcsid = "$Header: /usr/rvb/XX/src/coda-src/vtools/RCS/hoard.cc,v 4.2 1997/01/28 11:57:09 satya Exp $";
 #endif /*_BLURB_*/
 
 
@@ -63,17 +63,16 @@ extern "C" {
 #include <ctype.h>
 #include <errno.h>
 extern FILE *_findiop();
-#ifdef __MACH__
-extern int execvp(const char *, const char **);
-#include <libc.h>
-#include <sysent.h>
-#endif /* __MACH__ */
-#if defined(__NetBSD__) || defined(__linux__)
-#include <unistd.h>
-#include <stdlib.h>
-#endif /* __NetBSD__ || __linux__ */
 #include <stdarg.h>
 #include <inodefs.h>
+#ifdef __MACH__
+extern int execvp(const char *, const char **);
+#include <sysent.h>
+#include <libc.h>
+#else	/* __linux__ || __BSD44__ */
+#include <unistd.h>
+#include <stdlib.h>
+#endif
 
 #ifdef __cplusplus
 }
@@ -1237,7 +1236,7 @@ PRIVATE int CreateOutFile(char *in, char *out) {
 	/* Wait for child to finish. */
 	union wait status;
 	int rc;
-#ifdef	__NetBSD__
+#ifdef	__BSD44__
 	while ((rc = wait(&status.w_status)) != child)
 #else
 	while ((rc = wait(&status)) != child)
@@ -1317,7 +1316,7 @@ PRIVATE void RenameOutFile(char *from, char *to) {
     else {
 	/* Wait for child to finish. */
 	union wait status;
-#ifdef	__NetBSD__
+#ifdef	__BSD44__
 	::wait(&status.w_status);
 #else
 	::wait(&status);

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/src/coda-4.0.1/kernel-src/vfs/mach/RCS/cnode.h,v 1.2 1996/12/09 19:17:44 braam Exp $";
+static char *rcsid = "$Header: /usr/rvb/XX/src/kernel-src/vfs/mach/RCS/cnode.h,v 4.1 1997/01/08 21:53:32 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -56,10 +56,10 @@ static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/src/coda-4.0.1
  * Added CFS-specific files
  *
  * Revision 3.1.1.1  1995/03/04  19:08:23  bnoble
- * Branch for NetBSD port revisions
+ * Branch for BSD port revisions
  *
  * Revision 3.1  1995/03/04  19:08:23  bnoble
- * Bump to major revision 3 to prepare for NetBSD port
+ * Bump to major revision 3 to prepare for BSD port
  *
  * Revision 2.2  1994/12/06  13:39:18  dcs
  * Add a flag value to indicate a cnode was orphaned, e.g. the venus
@@ -116,7 +116,7 @@ typedef struct ViceFid {
 #include <cfs/mach_vfs.h>
 #include <cfs/mach_vnode.h>
 #endif
-#ifdef __NetBSD__
+#ifdef __BSD44__
 #include <sys/mount.h>
 #endif
 #endif	KERNEL
@@ -135,7 +135,7 @@ struct cnode {
 #endif	KERNEL
     dev_t	    c_device;	/* associated vnode device */
     ino_t	    c_inode;	/* associated vnode inode */
-    LINKS;                      /* links if on NetBSD machine */
+    LINKS;                      /* links if on BSD machine */
 };
 
 /* flags */

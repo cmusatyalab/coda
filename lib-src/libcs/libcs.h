@@ -34,7 +34,7 @@
  * Export of Technical Data.
  */
 
-static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/src/coda-4.0.1/RCSLINK/./lib-src/libcs/libcs.h,v 1.1 1996/11/22 19:19:26 braam Exp $";
+static char *rcsid = "$Header: /usr/rvb/XX/src/lib-src/libcs/RCS/libcs.h,v 4.1 1997/01/08 21:53:57 rvb Exp $";
 #endif /*_BLURB_*/
 
 #ifndef	_LIBCS_H_
@@ -66,7 +66,7 @@ static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/src/coda-4.0.1
 extern FILE *fopenp __P((const char *, const char *, char *, const char *));
 extern FILE *fwantread __P((const char *, const char *, char *, const char *));
 extern FILE *fwantwrite __P((const char *, const char *, char *, const char *, int));
-#if   !(__NetBSD__ || LINUX)
+#if !(defined(__linux__) || defined(__BSD44__))
 extern int snprintf __P((char *, int, const char *, ...));
 extern int vsnprintf __P((char *, int, const char *, va_list));
 #endif

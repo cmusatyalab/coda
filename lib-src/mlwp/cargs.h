@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/src/coda-4.0.1/RCSLINK/./lib-src/mlwp/cargs.h,v 1.1 1996/11/22 19:18:51 braam Exp $";
+static char *rcsid = "$Header: /usr/rvb/XX/src/lib-src/mlwp/RCS/cargs.h,v 4.1 1997/01/08 21:54:11 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -56,11 +56,11 @@ supported by Transarc Corporation, Pittsburgh, PA.
 */
 
 
-/* On NetBSD, always require prototypes */
-#ifdef	__NetBSD__
+/* On BSD44, always require prototypes */
+#ifdef	__BSD44__
 #undef	C_ARGS
 #define	C_ARGS(arglist)	arglist
-#endif  /* __NetBSD__ */
+#endif	/* __BSD44__ */
 
 /* On other systems, base use of prototypes on compiler */
 #ifndef	C_ARGS

@@ -29,14 +29,14 @@
 #Mellon the rights to redistribute these changes without encumbrance.
 #*/
 #
-#static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/src/coda-4.0.1/RCSLINK/./coda-src/fail/Makefile.real,v 1.1 1996/11/22 19:09:13 braam Exp $";
+#static char *rcsid = "$Header: /usr/rvb/XX/src/coda-src/fail/RCS/Makefile.real,v 4.1 1997/01/08 21:49:36 rvb Exp $";
 #endif /*_BLURB_*/
 
 
 
 
 
-# -lcompat is needed on NetBSD for insque(), remque(), etc.
+# -lcompat is needed on BSD44 for insque(), remque(), etc.
 LIBCOMPAT_pmax_mach  =
 LIBCOMPAT_i386_mach  =
 LIBCOMPAT_sun4_mach  =

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/src/coda-4.0.1/coda-src/advice/RCS/daemon.cc,v 1.2 1996/12/09 20:10:47 braam Exp $";
+static char *rcsid = "$Header: /usr/rvb/XX/src/coda-src/advice/RCS/daemon.cc,v 4.1 1997/01/08 21:49:16 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -51,8 +51,9 @@ extern "C" {
 
 #include <lwp.h>
 #include <timer.h>
+#ifndef __FreeBSD__
 #include <libc.h>
-
+#endif
 
 #ifdef __cplusplus
 }
@@ -111,7 +112,7 @@ void InitOneADay() {
     struct tm *lt = localtime((long *) &curr_time);
     assert(lt != NULL);
     lt->tm_sec = lt->tm_min = lt->tm_hour = 0;       /* midnight today */
-#if defined(__linux__) || defined(__NetBSD__)
+#if defined(__linux__) || defined(__BSD44__)
     unsigned long midnight = mktime(lt) + SECSPERDAY; /* midnight tomorrow */
 #else
     unsigned long midnight = gtime(lt) + SECSPERDAY; /* midnight tomorrow */

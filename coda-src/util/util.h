@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/src/coda-4.0.1/RCSLINK/./coda-src/util/util.h,v 1.1 1996/11/22 19:08:29 braam Exp $";
+static char *rcsid = "$Header: /usr/rvb/XX/src/coda-src/util/RCS/util.h,v 4.1 1997/01/08 21:51:16 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -61,8 +61,12 @@ supported by Transarc Corporation, Pittsburgh, PA.
     
 */
 
-#include <stdlib.h>
+#ifdef __MACH__
+#include <sysent.h>
+#else	/* __linux__ || __BSD44__ */
 #include <unistd.h>
+#include <stdlib.h>
+#endif
 
 #ifdef __cplusplus
 extern "C" {
@@ -70,6 +74,7 @@ extern "C" {
 
 #include <signal.h>
 #include <assert.h> /* in lieu of explicit definition below */
+#include <stdio.h>
 
 #ifdef __cplusplus
 }

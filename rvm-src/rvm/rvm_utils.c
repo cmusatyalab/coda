@@ -33,7 +33,7 @@ should be returned to Software.Distribution@cs.cmu.edu.
 
 */
 
-static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/src/coda-4.0.1/rvm-src/rvm/RCS/rvm_utils.c,v 1.2 1996/12/04 22:51:15 braam Exp $";
+static char *rcsid = "$Header: /usr/rvb/XX/src/rvm-src/rvm/RCS/rvm_utils.c,v 4.1 1997/01/08 21:54:39 rvb Exp $";
 #endif _BLURB_
 
 /*
@@ -57,7 +57,12 @@ static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/src/coda-4.0.1
 #if defined(hpux) || defined(__hpux)
 #include <hp_bsd.h>
 #endif /* hpux */
+#ifdef __MACH__
+#include <sysent.h>
+#else	/* __linux__ || __BSD44__ */
 #include <unistd.h>
+#include <stdlib.h>
+#endif
 #include <stdio.h>
 #include <sys/time.h>
 #include "rvm_private.h"

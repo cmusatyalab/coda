@@ -29,10 +29,10 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/src/coda-4.0.1/coda-src/venus/RCS/venus-dirent.h,v 1.2 1996/12/09 18:53:28 braam Exp $";
+static char *rcsid = "$Header: /usr/rvb/XX/src/coda-src/venus/RCS/venus-dirent.h,v 4.1 1997/01/08 21:51:36 rvb Exp $";
 #endif /*_BLURB_*/
 
-/*	$NetBSD: dirent.h,v 1.9 1994/12/13 15:58:20 mycroft Exp $	*/
+/*	$BSD: dirent.h,v 1.9 1994/12/13 15:58:20 mycroft Exp $	*/
 
 /*-
  * Copyright (c) 1989, 1993
@@ -80,7 +80,7 @@ static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/src/coda-4.0.1
  * The maximum length of a name in a directory is MAXNAMLEN.
  */
 
-#if LINUX || MACH
+#if	defined(__linux__) || defined(__MACH__)
 #define u_int32_t   unsigned int
 #define u_int16_t   unsigned short
 #define u_int8_t    char

@@ -33,7 +33,7 @@ should be returned to Software.Distribution@cs.cmu.edu.
 
 */
 
-static char *rcsid = "$Header: /home/clement/MS/rvm-src/rds/RCS/rdsinit.c,v 1.2 1997/01/03 20:23:27 clement Exp $";
+static char *rcsid = "$Header: /usr/rvb/XX/src/rvm-src/rds/RCS/rdsinit.c,v 4.1 1997/01/08 21:54:30 rvb Exp $";
 #endif _BLURB_
 
 
@@ -49,7 +49,13 @@ static char *rcsid = "$Header: /home/clement/MS/rvm-src/rds/RCS/rdsinit.c,v 1.2 
 #include <sys/stat.h>
 #include <sys/errno.h>
 #include <stdio.h>
+#ifdef __MACH__
+#include <sysent.h>
+#include <libc.h>
+#else	/* __linux__ || __BSD44__ */
 #include <unistd.h>
+#include <stdlib.h>
+#endif
 #include <rvm.h>
 #include <rvm_segment.h>
 #include <rds.h>
@@ -174,8 +180,8 @@ PRIVATE get_valid_parm(argc, argv, length, pstatic_addr, phlen, pslen, pnlists,p
 	  printf("   it must be larger than the largest possible break point of your application,\n");
 	  printf("   and it should not be in conflict other use of vm (such as shared libraries).\n");
 	  printf("   It must be on a page boundary (pagesize=0x%x)\n", RVM_PAGE_SIZE);   
-	  printf("   (In CMU, we use 0x20000000 (536870912) with Linux and NetBSD,\n");
-	  printf("   0x70000000 (1879048192) with Mach and NetBSD without problem.)\n");
+	  printf("   (In CMU, we use 0x20000000 (536870912) with Linux and BSD44,\n");
+	  printf("   0x70000000 (1879048192) with Mach and BSD44 without problem.)\n");
 
 
 	  printf("   =====> please enter a hex value for starting address of rvm: 0x");

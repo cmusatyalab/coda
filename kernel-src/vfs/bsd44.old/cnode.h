@@ -21,10 +21,10 @@
  * Added CFS-specific files
  *
  * Revision 3.1.1.1  1995/03/04  19:08:23  bnoble
- * Branch for NetBSD port revisions
+ * Branch for BSD port revisions
  *
  * Revision 3.1  1995/03/04  19:08:23  bnoble
- * Bump to major revision 3 to prepare for NetBSD port
+ * Bump to major revision 3 to prepare for BSD port
  *
  * Revision 2.2  1994/12/06  13:39:18  dcs
  * Add a flag value to indicate a cnode was orphaned, e.g. the venus
@@ -81,7 +81,7 @@ typedef struct ViceFid {
 #include <vfs/vfs.h>
 #include <vfs/vnode.h>
 #endif
-#ifdef __NetBSD__
+#ifdef __BSD44__
 #include <sys/mount.h>
 #endif
 #endif	KERNEL
@@ -100,7 +100,7 @@ struct cnode {
 #endif	KERNEL
     dev_t	    c_device;	/* associated vnode device */
     ino_t	    c_inode;	/* associated vnode inode */
-    LINKS;                      /* links if on NetBSD machine */
+    LINKS;                      /* links if on BSD machine */
 };
 
 /* flags */

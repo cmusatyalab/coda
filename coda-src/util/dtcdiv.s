@@ -30,7 +30,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/src/coda-4.0.1/RCSLINK/./coda-src/util/dtcdiv.s,v 1.1 1996/11/22 19:08:07 braam Exp $";
+static char *rcsid = "$Header: /usr/rvb/XX/src/coda-src/util/RCS/dtcdiv.s,v 4.1 1997/01/08 21:51:04 rvb Exp $";
 #endif undef
 #endif /*_BLURB_*/
 
@@ -51,6 +51,9 @@ static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/src/coda-4.0.1
  *	Created for the Coda File System.
  *
  * $Log: dtcdiv.s,v $
+ * Revision 4.1  1997/01/08 21:51:04  rvb
+ * r = 4.1; fix $ HEADERS
+ *
  * Revision 1.1  1996/11/22 19:08:07  braam
  * First Checkin (pre-release)
  *
@@ -61,7 +64,7 @@ Revision 3.3.1.1  96/08/26  12:30:33  raiff
 Branch for release beta-26Aug1996_41240
 
 Revision 3.3  96/08/01  09:54:01  satya
-Syntactic changes for NetBSD port
+Syntactic changes for BSD port
 
 Revision 3.2.4.1  96/07/24  11:08:33  raiff
 Branch for release beta-24Jul1996_36690

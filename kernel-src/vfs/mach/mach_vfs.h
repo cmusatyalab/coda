@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/src/coda-4.0.1/kernel-src/vfs/mach/RCS/mach_vfs.h,v 1.2 1996/12/09 19:17:44 braam Exp $";
+static char *rcsid = "$Header: /usr/rvb/XX/src/kernel-src/vfs/mach/RCS/mach_vfs.h,v 4.1 1997/01/08 21:53:32 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -43,6 +43,9 @@ static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/src/coda-4.0.1
 /*
  * HISTORY
  * $Log: mach_vfs.h,v $
+ * Revision 4.1  1997/01/08 21:53:32  rvb
+ * r = 4.1; fix $ HEADERS
+ *
  * Revision 1.2  1996/12/09 19:17:44  braam
  * changes to includes
  *
@@ -56,10 +59,10 @@ static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/src/coda-4.0.1
  * Branch for release beta-26Aug1996_41240
  * 
  * Revision 3.3  96/08/23  19:23:55  satya
- * vfs.h and vnode.h should come from /usr/include/sys on NetBSD.
+ * vfs.h and vnode.h should come from /usr/include/sys on BSD.
  * Added #ifdef __MACH__ around code.  Also added bogus code surrounded
- * by #ifdef __NetBSD__ to trap if these versions of vfs.h and vnode.h 
- * are included on NetBSD.
+ * by #ifdef __BSD44__ to trap if these versions of vfs.h and vnode.h 
+ * are included on BSD.
  * 
  * Revision 3.2.4.1  96/07/24  11:17:29  raiff
  * Branch for release beta-24Jul1996_36690
@@ -108,15 +111,15 @@ static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/src/coda-4.0.1
 #define	_VFS_VFS_H_
 
 /* The files vfs/vfs.h and vfs/vnode.h should only get included in Mach; on 
-   NetBSD these definitions should be found in sys/mount.h and sys/vnode.h
-   provided by the system.  The use of "#ifdef __MACH__" and "#ifdef __NetBSD__"
+   BSD44 these definitions should be found in sys/mount.h and sys/vnode.h
+   provided by the system.  The use of "#ifdef __MACH__" and "#ifdef __BSD44__"
    is only due to paranoia... (Satya, 8/9/96)
 */
-#ifdef __NetBSD__
+#ifdef __BSD44__
 
 xxxxx    /* generate a compiler error, so we know we are including this file
 	when shouldn't */
-#endif __NetBSD__
+#endif /* __BSD44__ */
 
 #ifdef __MACH__
 #ifdef __cplusplus

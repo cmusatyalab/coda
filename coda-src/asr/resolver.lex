@@ -30,7 +30,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: resolver.lex,v 4.1 97/01/08 21:49:23 rvb Exp $";
+static char *rcsid = "$Header: /usr/rvb/XX/src/coda-src/asr/RCS/resolver.lex,v 4.2 1997/01/17 20:32:14 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -46,9 +46,9 @@ extern "C" {
 #ifdef __MACH__
 #include <libc.h>
 #endif
-#if defined(__linux__) || defined(__NetBSD__)
+#if defined(__linux__) || defined(__BSD44__)
 #include <stdlib.h>
-#endif /* __NetBSD__ || LINUX */
+#endif /* __linux__ || __BSD44__ */
 extern int yylook();
 
 #define YYERRCODE	256		/* gross hack to simulate error */

@@ -2,7 +2,7 @@
 
 /*************** Include files */
 
-/* NetBSD includes */
+/* BSD44 includes */
 /* Overkill...     */
 #ifdef KERNEL
 #include <sys/types.h>          /* Needed by malloc.h */
@@ -13,12 +13,12 @@
 #include <sys/mount.h>          /* no struct vfs, struct mount instead */
 #include <sys/uio.h>
 #include <sys/vnode.h>          /* vnode.h lives in sys, get via makefile */
-#include <cfs/mach_vioctl.h>    /* No viceioctl.h on NetBSD */
+#include <cfs/mach_vioctl.h>    /* No viceioctl.h on BSD44 */
 #include <vcfs.h>               /* Number of minor devices */
 #include <sys/signal.h>
 #include <sys/proc.h>          /* Definition for struct proc */
 #include <sys/namei.h>         /* For lookup operations */
-#include <miscfs/specfs/specdev.h>  /* wow.  netbsd is screwed. */
+#include <miscfs/specfs/specdev.h>  /* wow.  bsd44 is screwed. */
 #include <sys/dir.h>
 #include <ufs/ifs/ifs.h>
 #else
@@ -184,7 +184,7 @@ struct cfid {
  */
 
 
-/* On netbsd, just a pointer to a vnode */
+/* On bsd44, just a pointer to a vnode */
 typedef struct vnode *C_VNODE_T;           /* needed in cnode.h */
 
 /* 
@@ -218,7 +218,7 @@ typedef struct vnode *C_VNODE_T;           /* needed in cnode.h */
 /* XXX - is this right? */
 #define CNODE_COUNT(cp)    CTOV(cp)->v_usecount
 
-/* NetBSD vnodes don't have any Pager info in them ('cause there are
+/* BSD44 vnodes don't have any Pager info in them ('cause there are
    no external pagers, duh!) */
 #define VNODE_VM_INFO_INIT(vp)         /* MT */
 
@@ -243,7 +243,7 @@ extern int print_hold_release;
 #define VN_LOCK(vp)          VOP_LOCK(vp)
 #define VN_UNLOCK(vp)        VOP_UNLOCK(vp)
 
-/* NetBSD wants roots returned locked/ref'd.  Mach wants them vref'd */
+/* BSD44 wants roots returned locked/ref'd.  Mach wants them vref'd */
 
 #define CFS_ROOT_REF(vp) \
 do {                     \
@@ -251,7 +251,7 @@ do {                     \
     VN_LOCK(vp);         \
 } while (0)
 
-/* NetBSD wants lookups returned locked.  Mach doesn't */
+/* BSD44 wants lookups returned locked.  Mach doesn't */
 
 #define LOOKUP_LOCK(vp)     VOP_LOCK(vp);
 
@@ -313,7 +313,7 @@ do {                                                           \
 } while (0)
 #endif
 
-/****************** Prototypes missing from NetBSD includes */
+/****************** Prototypes missing from BSD44 includes */
 
 extern int vfinddev __P((dev_t, enum vtype, struct vnode **));
 extern int dounmount __P((struct mount *, int, struct proc *));

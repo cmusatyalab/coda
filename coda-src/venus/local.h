@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/src/coda-4.0.1/RCSLINK/./coda-src/venus/local.h,v 1.1 1996/11/22 19:11:46 braam Exp $";
+static char *rcsid = "$Header: /usr/rvb/XX/src/coda-src/venus/RCS/local.h,v 4.1 1997/01/08 21:51:29 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -290,7 +290,7 @@ public:
 
 /* class for a dir entry used for process uncached children
    (Satya, 8/12/96): had to change the name from dirent to
-   vdirent to prevent name clash with sys/dirent.h in NetBSD
+   vdirent to prevent name clash with sys/dirent.h in BSD44
 */
 class vdirent : public dlink {
     ViceFid fid;

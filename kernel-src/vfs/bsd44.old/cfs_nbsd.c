@@ -37,8 +37,8 @@
  *
  */
 
-/* NetBSD-specific routines for the cfs code */
-#ifdef __NetBSD__
+/* BSD44-specific routines for the cfs code */
+#ifdef __BSD44__
 
 #include <cfs/cfs.h>
 #include <cfs/cfs_vnodeops.h>
@@ -51,14 +51,14 @@ static int lockdebug = 0;
 /* Definition of the vfs operation vector */
 
 /*
- * Some NetBSD details:
+ * Some BSD44 details:
  * 
  *   cfs_start is called at the end of the mount syscall.
  *
  *   cfs_init is called at boot time.
  */
 
-extern int cfsdebug;
+/* extern int cfsdebug; */
 
 int cfs_vnop_print_entry = 0;
 
@@ -71,7 +71,9 @@ int cfs_vnop_print_entry = 0;
 
  
 struct vfsops cfs_vfsops = {
+#ifndef __FreeBSD__
     MOUNT_CFS,
+#endif
     cfs_mount,
     cfs_start,
     cfs_unmount,
@@ -88,7 +90,15 @@ struct vfsops cfs_vfsops = {
     0
 };
 
-/* NetBSD interfaces to the vnodeops */
+#ifdef __FreeBSD__
+/* 
+ * VFS init for FreeBSD. FreeBSD employs dynamic linking at startup 
+ * to register VFSs using 'linker set (see kernel.h)'.
+ */
+VFS_SET(cfs_vfsops, cfs, MOUNT_CFS, VFCF_NETWORK);
+#endif
+
+/* BSD44 interfaces to the vnodeops */
 int cfs_nb_open      __P((void *));
 int cfs_nb_close     __P((void *));
 int cfs_nb_read      __P((void *));
@@ -135,7 +145,9 @@ struct vnodeopv_entry_desc cfs_vnodeop_entries[] = {
     { &vop_setattr_desc, cfs_nb_setattr },		/* setattr */
     { &vop_read_desc, cfs_nb_read },		/* read */
     { &vop_write_desc, cfs_nb_write },		/* write */
+#ifndef __FreeBSD__
     { &vop_lease_desc, nbsd_vop_nop },          /* lease */
+#endif
     { &vop_ioctl_desc, cfs_nb_ioctl },		/* ioctl */
     { &vop_select_desc, cfs_nb_select },		/* select */
     { &vop_mmap_desc, nbsd_vop_error },	/* mmap */
@@ -168,8 +180,16 @@ struct vnodeopv_entry_desc cfs_vnodeop_entries[] = {
     { &vop_bwrite_desc, nbsd_vop_error },	/* bwrite */
     { (struct vnodeop_desc*)NULL, (int(*)())NULL }
 };
+#ifdef __FreeBSD__
+static struct vnodeopv_desc cfs_vnodeop_opv_desc =
+	{ &cfs_vnodeop_p, cfs_vnodeop_entries };
+VNODEOP_SET(cfs_vnodeop_opv_desc);
+#endif
 
-/* Definitions of NetBSD vnodeop interfaces */
+#ifdef __NetBSD__
+struct vnodeopv_desc cfs_vnodeop_opv_desc = 
+        { &cfs_vnodeop_p, cfs_vnodeop_entries };
+#endif
 
 /* A generic panic: we were called with something we didn't define yet */
 int
@@ -368,7 +388,7 @@ cfs_nb_lookup(v)
      * If we are creating, and this was the last name to be looked up,
      * and the error was ENOENT, then there really shouldn't be an
      * error and we can make the leaf NULL and return success.  Since
-     * this is supposed to work under Mach as well as NetBSD, we're
+     * this is supposed to work under Mach as well as BSD44, we're
      * leaving this fn wrapped.  We also must tell lookup/namei that
      * we need to save the last component of the name.  (Create will
      * have to free the name buffer later...lucky us...)
@@ -462,7 +482,7 @@ cfs_nb_create(v)
 
     /* Locking strategy. */
     /*
-     * In NetBSD, all creates must explicitly vput their dvp's.  We'll
+     * In BSD44, all creates must explicitly vput their dvp's.  We'll
      * go ahead and use the LOCKLEAF flag of the cnp argument.
      * However, I'm pretty sure that create must return the leaf
      * locked; so there is a DIAGNOSTIC check to ensure that this is
@@ -542,7 +562,7 @@ cfs_nb_link(v)
 	struct cnode *tdcp;
 
 	cp = VTOC(ap->a_vp);
-	tdcp = VTOC(ap->a_dvp);
+	tdcp = VTOC(ap->a_tdvp);
 	myprintf(("nb_link:   vp fid: (%x.%x.%x)\n",
 		  cp->c_fid.Volume, cp->c_fid.Vnode, cp->c_fid.Unique));
 	myprintf(("nb_link: tdvp fid: (%x.%x.%x)\n",
@@ -573,17 +593,17 @@ cfs_nb_link(v)
      *       unconditionally unlock it after.
      */
     
-    if ((ap->a_vp != ap->a_dvp) && (result = VOP_LOCK(ap->a_dvp))) {
+    if ((ap->a_vp != ap->a_tdvp) && (result = VOP_LOCK(ap->a_tdvp))) {
 	goto exit;
     }
 	
-    result = cfs_link(ap->a_dvp, ap->a_vp, tname, cnp->cn_cred, 
+    result = cfs_link(ap->a_tdvp, ap->a_vp, tname, cnp->cn_cred, 
 		      cnp->cn_proc);
 
  exit:
 
-    if (ap->a_vp != ap->a_dvp) {
-	VOP_UNLOCK(ap->a_dvp);
+    if (ap->a_vp != ap->a_tdvp) {
+	VOP_UNLOCK(ap->a_tdvp);
     }
     vput(ap->a_vp);
 
@@ -809,7 +829,7 @@ cfs_nb_strategy(v)
     return (cfs_strategy(ap->a_bp, GLOBAL_PROC));
 }
 
-/***************************** NetBSD-only vnode operations */
+/***************************** BSD44-only vnode operations */
 int
 cfs_nb_reclaim(v) 
     void *v;
@@ -849,7 +869,7 @@ cfs_nb_lock(v)
  start:
     while (vp->v_flag & VXLOCK) {
 	vp->v_flag |= VXWANT;
-	sleep((caddr_t)vp, PINOD);
+	tsleep((caddr_t)vp, PINOD, "cfs vn lock", 0);
     }
     if (vp->v_tag == VT_NON)
 	return (ENOENT);
@@ -859,7 +879,7 @@ cfs_nb_lock(v)
 #ifdef DIAGNOSTIC
 	myprintf(("cfs_nb_lock: lock contention\n"));
 #endif
-	(void) sleep((caddr_t)cp, PINOD);
+	(void) tsleep((caddr_t)cp, PINOD, "cfs vn lock", 0);
 #ifdef DIAGNOSTIC
 	myprintf(("cfs_nb_lock: contention resolved\n"));
 #endif
@@ -904,9 +924,6 @@ cfs_nb_islocked(v)
 	return (1);
     return (0);
 }
-
-struct vnodeopv_desc cfs_vnodeop_opv_desc = 
-        { &cfs_vnodeop_p, cfs_vnodeop_entries };
 
 /* How one looks up a vnode given a device/inode pair: */
 
@@ -1013,4 +1030,4 @@ vcfsattach(n)
 {
 }
 
-#endif __NetBSD__
+#endif /* __BSD44__ */

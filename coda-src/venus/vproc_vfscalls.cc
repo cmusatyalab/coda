@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: vproc_vfscalls.cc,v 4.2 97/01/17 15:23:05 satya Exp $";
+static char *rcsid = "$Header: /usr/rvb/XX/src/coda-src/venus/RCS/vproc_vfscalls.cc,v 4.3 1997/02/18 15:28:31 lily Exp $";
 #endif /*_BLURB_*/
 
 
@@ -83,8 +83,10 @@ extern "C" {
 
 #include <sys/types.h>
 #include <sys/file.h>
+#ifndef __FreeBSD__
+// Since vproc.h knows struct uio.
 #include <sys/uio.h>
-
+#endif  /* __FreeBSD__ */
 #ifdef __cplusplus
 }
 #endif __cplusplus
@@ -99,11 +101,10 @@ extern "C" {
 #ifdef __MACH__
 #include <sysent.h>
 #include <libc.h>
-#endif /* __MACH__ */
-#ifdef __NetBSD__
+#else	/* __linux__ || __BSD44__ */
 #include <unistd.h>
 #include <stdlib.h>
-#endif __NetBSD__
+#endif
 
 #ifdef __cplusplus
 }
@@ -125,19 +126,23 @@ extern "C" {
 #define	C_INCON	0x2
 
 /* From <vfs/vnode.h>.  Not otherwise defined since conditionalized by KERNEL. -JJK */
+#ifdef __FreeBSD__
+#include <sys/vnode.h>
+#else 
 #define IO_UNIT		0x01		/* do io as atomic unit for VOP_RDWR */
 #define IO_APPEND	0x02		/* append write for VOP_RDWR */
 #define IO_SYNC		0x04		/* sync io for VOP_RDWR */
 #ifndef	__linux__
 #define IO_NDELAY	0x08		/* non-blocking i/o for fifos */
 #endif 
+#endif
 
 /* ***** VFS Operations  ***** */
 
 /* These operations originally took a struct vfs * as first argument.
    But that argument was NEVER used anywhere.  My best guess is that it was
    present to match calls of similar name inside the kernel.  Since this is a
-   pain to port to NetBSD and no purpose is served by it, I've deleted all
+   pain to port to BSD44 and no purpose is served by it, I've deleted all
    references to struct vfs from Venus.   (Satya, 8/15/96)
 */
 void vproc::mount(char *path, void *data) {
@@ -484,9 +489,9 @@ FreeLocks:
 #ifdef __MACH__
 	vap->va_blocks = NBLOCKS(vap->va_size) << 1;    /* 512 byte units! */
 #endif /* __MACH__ */
-#ifdef __NetBSD__
+#ifdef __BSD44__
 	vap->va_bytes = vap->va_size;
-#endif __NetBSD__
+#endif /* __BSD44__ */
     }
 }
 
@@ -506,7 +511,7 @@ void vproc::setattr(struct vnode *vp, struct vattr *vap) {
     fsobj *f = 0;
 
     /* 
-     * NetBSD supports chflags, which sets the va_flags field of 
+     * BSD44 supports chflags, which sets the va_flags field of 
      * the vattr.  Coda doesn't support these flags, but we will
      * allow calls that clear the field.  
      * 
@@ -520,10 +525,10 @@ void vproc::setattr(struct vnode *vp, struct vattr *vap) {
 	 (vap->va_nlink != VA_IGNORE_NLINK) ||
 	 (vap->va_blocksize != VA_IGNORE_BLOCKSIZE) ||
 	 (vap->va_rdev != VA_IGNORE_RDEV) ||
-#ifdef __NetBSD__
+#ifdef __BSD44__
 	 (vap->va_flags != VA_IGNORE_FLAGS &&
 	     vap->va_flags != 0) ||
-#endif /* __NetBSD__ */
+#endif /* __BSD44__ */
 	 (VA_STORAGE(vap) != VA_IGNORE_STORAGE) )
 	{ u.u_error = EINVAL; return; }
 
@@ -532,9 +537,9 @@ void vproc::setattr(struct vnode *vp, struct vattr *vap) {
 	 (vap->va_uid == VA_IGNORE_UID) &&
 	 (vap->va_gid == VA_IGNORE_GID) &&
 	 (vap->va_size == VA_IGNORE_SIZE) &&
-#ifdef __NetBSD__
+#ifdef __BSD44__
 	 (vap->va_flags == VA_IGNORE_FLAGS) &&
-#endif /* __NetBSD__ */
+#endif /* __BSD44__ */
 	 (VA_ATIME_1(vap) == VA_IGNORE_TIME1) &&
 	 (VA_MTIME_1(vap) == VA_IGNORE_TIME1) &&
 	 (VA_CTIME_1(vap) == VA_IGNORE_TIME1) )

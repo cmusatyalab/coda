@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: inodefs.h,v 4.2 97/01/28 11:36:35 satya Exp $";
+static char *rcsid = "$Header: /usr/rvb/XX/src/kernel-src/inodefs/common/RCS/inodefs.h,v 4.3 1997/01/29 18:07:07 lily Exp $";
 #endif /*_BLURB_*/
 
 /* Interface definition for inode operations; the definition is 
@@ -56,6 +56,9 @@ static char *rcsid = "$Header: inodefs.h,v 4.2 97/01/28 11:36:35 satya Exp $";
 #ifdef __MACH__
 #include <sysent.h>	/* Mach defines these in sysent.h */
 #else /* __MACH__ */
+#ifdef __FreeBSD__
+#include <cfs/mach_vioctl.h>	/* for struct ViceIoctl */
+#endif /* __FreeBSD__ */
 extern int icreate __P((int, int, int, int, int, int));
 extern int iopen   __P((int, int, int));
 extern int iread   __P((int, int, long, unsigned int, char *, unsigned int));

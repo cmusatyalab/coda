@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/src/coda-4.0.1/coda-src/venus/RCS/vol_reintegrate.cc,v 1.1 1996/11/22 19:12:06 braam Exp $";
+static char *rcsid = "$Header: /usr/rvb/XX/src/coda-src/venus/RCS/vol_reintegrate.cc,v 4.1 1997/01/08 21:51:48 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -655,9 +655,9 @@ void Reintegrate(volent *v) {
 #ifdef __MACH__
     r->u.u_cred.cr_ruid = v->CML.Owner();
 #endif /* __MACH__ */
-#ifdef __NetBSD__
+#ifdef __BSD44__
     r->u.u_cred.cr_uid = v->CML.Owner();
-#endif __NetBSD__
+#endif /* __BSD44__ */
     r->u.u_vol = v;
     v->hold();			    /* vproc::End_VFS() will do release */
 

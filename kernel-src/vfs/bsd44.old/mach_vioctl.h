@@ -71,4 +71,8 @@ struct ViceIoctl {
 
 #define _VALIDVICEIOCTL(com) (com >= _VICEIOCTL(0) && com <= _VICEIOCTL(255))
 
+/* Added prototype to make this function ANSI C type link(not C++ mangled) */
+int pioctl(const char *path, unsigned long com, 
+	   struct ViceIoctl *vidata, int follow);
+
 #endif	_SYS_VICEIOCTL_H_

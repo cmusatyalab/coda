@@ -21,10 +21,10 @@
  * Added CFS-specific files
  *
  * Revision 3.1.1.1  1995/03/04  19:08:11  bnoble
- * Branch for NetBSD port revisions
+ * Branch for BSD port revisions
  *
  * Revision 3.1  1995/03/04  19:08:11  bnoble
- * Bump to major revision 3 to prepare for NetBSD port
+ * Bump to major revision 3 to prepare for BSD port
  *
  * Revision 2.1  1994/07/21  16:25:30  satya
  * Conversion to C++ 3.0; start of Coda Release 2.0
@@ -48,7 +48,10 @@
 
 #include <sys/ioctl.h>
 #include <cfs/cfsio.h>
+#include <stdio.h>
+#include <stdlib.h>
 
+void
 main(argc, argv)
      int argc;
      char *argv[];

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /home/braam/src/coda-src/advice/RCS/advice_srv.cc,v 1.3 1996/12/02 18:12:08 braam Exp $";
+static char *rcsid = "$Header: /usr/rvb/XX/src/coda-src/advice/RCS/advice_srv.cc,v 4.1 1997/01/08 21:49:15 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -51,16 +51,18 @@ extern "C" {
 
 #ifdef	__MACH__
 #include <sys/table.h>
-#include <libc.h>
-#include <sysent.h>
 extern void path(char *, char *, char *); /* defined in a Mach library */
 #endif /* MACH */
-
-#if defined(__linux__) || defined(__NetBSD__)
-#include <stdlib.h>
-#include <unistd.h>
+#if defined(__linux__) || defined(__BSD44__)
 void path(char *, char *, char *); /* defined locally */
-#endif /* LINUX || __NetBSD__ */
+#endif /* __linux__ || __BSD44__ */
+#ifdef __MACH__
+#include <sysent.h>
+#include <libc.h>
+#else	/* __linux__ || __BSD44__ */
+#include <unistd.h>
+#include <stdlib.h>
+#endif
 
 #include <stdio.h>
 #include <sys/param.h>
@@ -2060,7 +2062,7 @@ void Child(int code) {
   LogMsg(1000,LogLevel,LogFile,"Child: SIGCHLD event, code = %d", code);
   
   do {                          /* in case > 1 kid died  */
-#ifdef	__NetBSD__
+#ifdef __BSD44__
     pid = wait3(&status.w_status, WNOHANG,(struct rusage *)0);
 #else
     pid = wait3(&status, WNOHANG,(struct rusage *)0);
@@ -2300,7 +2302,7 @@ void EndASREventHandler(char *c) {
   }
 }
 
-#if defined(__linux__) || defined(__NetBSD__)
+#if defined(__linux__) || defined(__BSD44__)
 
 /* An implementation of path(3) which is a standard function in Mach OS
  * the behaviour is according to man page in Mach OS, which says,
@@ -2353,7 +2355,7 @@ void path(char *pathname, char *direc, char *file)
   return;
 }
 
-#endif /* LINUX || __NetBSD__ */
+#endif /* __linux__ || __BSD44__ */
 
 
 

@@ -34,7 +34,7 @@
  * Export of Technical Data.
  */
 
-static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/src/coda-4.0.1/RCSLINK/./lib-src/libcs/expand.c,v 1.1 1996/11/22 19:19:21 braam Exp $";
+static char *rcsid = "$Header: /usr/rvb/XX/src/lib-src/libcs/RCS/expand.c,v 4.1 1997/01/08 21:53:50 rvb Exp $";
 #endif /*_BLURB_*/
 
 /*
@@ -66,7 +66,7 @@ static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/src/coda-4.0.1
  */
 #include <sys/param.h>
 #include <sys/stat.h>
-#if	defined(__NetBSD__) || defined(__WIN32__)
+#if	defined(__BSD44__) || defined(__WIN32__)
 #include <dirent.h>
 #else
 #include <sys/dir.h>
@@ -167,7 +167,7 @@ endit:
 static void matchdir(pattern)
 	char *pattern;
 {
-#if	defined(__NetBSD__) || defined(__WIN32__)
+#if	defined(__BSD44__) || defined(__WIN32__)
 	register struct dirent *dp;
 #else
 	register struct direct *dp;

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /coda/usr/satya/STM/coda-4.0.1/coda-src/volutil/RCS/vol-salvage.cc,v 4.1 1997/01/08 21:52:34 rvb Exp $";
+static char *rcsid = "$Header: /usr/rvb/XX/src/coda-src/volutil/RCS/vol-salvage.cc,v 4.2 1997/01/28 11:56:15 satya Exp $";
 #endif /*_BLURB_*/
 
 
@@ -88,15 +88,12 @@ extern "C" {
 #include <sys/dir.h>
 
 #ifdef __MACH__
-#include <libc.h>
 #include <sysent.h>
-#include <mach.h>
-#endif /* __MACH__ */
-
-#if defined(__linux__) || defined(__NetBSD__)
+#include <libc.h>
+#else	/* __linux__ || __BSD44__ */
 #include <unistd.h>
 #include <stdlib.h>
-#endif /* __NetBSD__ || LINUX */
+#endif
 
 /* If'defd includes below are highly platform-specific */
 
@@ -113,7 +110,7 @@ extern "C" {
 #include <linux/ext2_fs.h>
 #endif
 
-#ifdef	__NetBSD__
+#ifdef __BSD44__
 /* Not yet implemented */
 #include <fstab.h>
 #endif
@@ -215,10 +212,10 @@ long S_VolSalvage(RPC2_Handle rpcid, RPC2_String formal_path, VolumeId singleVol
     ProgramType *pt;  /* These are to keep C++ > 2.0 happy */
     char *path = (char *) formal_path;
 
-#ifdef __NetBSD__
-      LogMsg(0, VolDebugLevel, stdout, "Arrrgh.... S_VolSalvage() not yet implemented for NetBSD!!");
+#ifdef __BSD44__
+      LogMsg(0, VolDebugLevel, stdout, "Arrrgh.... S_VolSalvage() not yet implemented for BSD44!!");
       assert(0);
-#endif /* __NetBSD__ */
+#endif /* __BSD44__ */
 
     LogMsg(9, VolDebugLevel, stdout, "Entering S_VolSalvage (%d, %s, %x, %d, %d, %d)",
 			rpcid, path, singleVolumeNumber, force, Debug, list);
@@ -281,7 +278,7 @@ long S_VolSalvage(RPC2_Handle rpcid, RPC2_String formal_path, VolumeId singleVol
 	  didSome++;
 	}
       }
-#endif /* LINUX */
+#endif /* __linux*/
 
 
 
@@ -490,12 +487,12 @@ PRIVATE char *devName(unsigned int dev)
 
 #ifdef	__linux__
     return NULL;
-#endif /* LINUX */
+#endif /* __linux*/
 
-#ifdef __NetBSD__
-    LogMsg(0, VolDebugLevel, stdout, "Arrghhh... devName() not implemented for NetBSD yet");
+#ifdef __BSD44__
+    LogMsg(0, VolDebugLevel, stdout, "Arrghhh... devName() not implemented for BSD44 yet");
     assert(0);
-#endif /* __NetBSD__ */
+#endif /* __BSD44__ */
 }
 
 PRIVATE	int SalvageVolumeGroup(register struct VolumeSummary *vsp, int nVols)
@@ -802,10 +799,10 @@ PRIVATE int VnodeInodeCheck(int RW, struct ViceInodeInfo *ip, int nInodes,
     return 0;
 #endif /* __MACH__ */
 
-#if defined(__linux__) || defined(__NetBSD__)
+#if defined(__linux__) || defined(__BSD44__)
     LogMsg(0, VolDebugLevel, stdout, "Arrrgghhh... VnodeInodeCheck() not yet implemented");
     assert(0);
-#endif /* __NetBSD__ || LINUX */
+#endif /* __linux__ || __BSD44__ */
 }
 /* inodes corresponding to a volume that has been blown away.
  * We need to idec them
@@ -837,7 +834,7 @@ PRIVATE void CleanInodes(struct InodeSummary *isp) {
     free(inodes);
 #endif /* __MACH__ */
 
-#if defined(__linux__) || defined(__NetBSD__)
+#if defined(__linux__) || defined(__BSD44__)
     LogMsg(0, VolDebugLevel, stdout, "Arrrghh... CleanInodes() not yet implemented");
     assert(0);
 #endif

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-nbsd-port/coda-4.0.1/coda-src/venus/RCS/vproc.cc,v 4.1 1997/01/08 21:51:50 rvb Exp $";
+static char *rcsid = "$Header: /usr/rvb/XX/src/coda-src/venus/RCS/vproc.cc,v 4.2 1997/01/17 15:23:01 satya Exp $";
 #endif /*_BLURB_*/
 
 
@@ -56,11 +56,10 @@ extern "C" {
 #ifdef __MACH__
 #include <sysent.h>
 #include <libc.h>
-#endif /* __MACH__ */
-#ifdef __NetBSD__
+#else	/* __linux__ || __BSD44__ */
 #include <unistd.h>
 #include <stdlib.h>
-#endif __NetBSD__
+#endif
 
 #include <math.h>
 #include <lwp.h>
@@ -87,7 +86,7 @@ olist vproc::tbl;
 int vproc::counter;
 char vproc::rtry_sync;
 
-/* These used to be inside #ifdef VENUSDEBUG, but port to NetBSD
+/* These used to be inside #ifdef VENUSDEBUG, but port to BSD44
    causes the MAKE_VNODE() & DISCARD_VNODE() macros to become too 
    convoluted (Satya, 8/14/96) */
 int vnode_allocs = 0;
@@ -843,14 +842,14 @@ void VattrToStat(struct vattr *vap, struct stat *sp) {
     sp->st_spare4[0] = 0;
     sp->st_spare4[1] = 0;
 #endif /* __MACH__ */
-#ifdef __NetBSD__
+#ifdef __BSD44__
     sp->st_blocks = (int64_t)ceil(((double)vap->va_bytes) / S_BLKSIZE);
     sp->st_flags = 0;
     sp->st_gen = 0;
     sp->st_lspare = 0;
     sp->st_qspare[0] = 0;
     sp->st_qspare[1] = 0;
-#endif __NetBSD__
+#endif /* __BSD44__ */
 }
 
 

@@ -42,7 +42,7 @@
 # changes  without  encumbrance.   Such improvements and extensions
 # should be returned to Software.Distribution@cs.cmu.edu.
 #
-# rcsid = $Header: /afs/cs.cmu.edu/project/coda-braam/src/coda-4.0.1/rvm-src/rvm/RCS/Makefile.in,v 1.2 1996/12/09 19:19:35 braam Exp $
+# rcsid = $Header: /usr/rvb/XX/src/rvm-src/rvm/RCS/Makefile.in,v 4.1 1997/01/08 21:54:30 rvb Exp $
 #
 
 TOPDIR = @top_srcdir@
@@ -63,7 +63,7 @@ HEADERS     = ${EXPHEADERS} ${PRIVHEADERS}
 
 # For mach platforms, we need to add libthread.a and libmach.a
 # LIBTHREADS and LIBMACH are defined in configs/Makeconf.Mach
-# NetBSD platforms need libcompat.a for insque and deque
+# BSD platforms need libcompat.a for insque and deque
 RVMUTL_LIBS = ${LIBCOMPAT} ${LIBTHREADS} ${LIBMACH}
 
 EXPHEADERS  = rvm.h rvm_statistics.h rvm_lwp.h rvm_private.h \

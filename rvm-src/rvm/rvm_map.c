@@ -33,7 +33,7 @@ should be returned to Software.Distribution@cs.cmu.edu.
 
 */
 
-static char *rcsid = "$Header: rvm_map.c,v 1.1 96/11/22 13:40:25 raiff Exp $";
+static char *rcsid = "$Header: /usr/rvb/XX/src/rvm-src/rvm/RCS/rvm_map.c,v 4.1 1997/01/08 21:54:35 rvb Exp $";
 #endif _BLURB_
 
 /*
@@ -48,13 +48,15 @@ static char *rcsid = "$Header: rvm_map.c,v 1.1 96/11/22 13:40:25 raiff Exp $";
 #include <libc.h>
 #endif
 #include <sys/file.h>
-#ifdef	__MACH__
-#include <sysent.h>
-#endif
 #if defined(hpux) || defined(__hpux)
 #include <hp_bsd.h>
 #endif /* hpux */
+#ifdef __MACH__
+#include <sysent.h>
+#else	/* __linux__ || __BSD44__ */
 #include <unistd.h>
+#include <stdlib.h>
+#endif
 #include "rvm_private.h"
 
 /* global variables */
@@ -188,7 +190,7 @@ static rvm_bool_t mem_chk(vmaddr,length)
 
 #endif                                 /* end of Mach-specific declarations */
 
-#if __NetBSD__ || LINUX               /* begin NetBSD-specific declarations */
+#if	defined(__linux__) || defined(__BSD44__)	/* begin BSD44-specific declarations */
 #define PAGE_ALLOC_DEFINED 
 #include <sys/types.h>
 #include <sys/mman.h>
@@ -207,12 +209,12 @@ static rvm_bool_t mem_chk(vmaddr,length)
  * allocated it, we quickly reallocated it and wiped the egg off of our
  * faces).
  *
- * The original NetBSD port of this attempted to take advantage of the
+ * The original BSD44 port of this attempted to take advantage of the
  * fact that if mmap() is called with the MAP_FIXED flag, it would
  * attempt to allocate exactly the region of memory in question. Supposedly,
  * if the region was already allocated, this mmap() call would fail.
  *
- * This solution turns out to be NOT CORRECT. Not only does NetBSD not
+ * This solution turns out to be NOT CORRECT. Not only does BSD44 not
  * perform in this fashion (it will deallocated whatever was there beforehand,
  * silently), but there is another complication. If the application has
  * allocated memory in that space, it could cause an erroneous result from
@@ -410,7 +412,7 @@ rvm_page_entry_t *find_page_entry(char *vmaddr)
  * compilations.
  */
 
-/* NetBSD page allocator */
+/* BSD44 page allocator */
 char *page_alloc(len)
     rvm_length_t    len;
     {
@@ -446,7 +448,7 @@ char *page_alloc(len)
     return vmaddr;
     }
 
-/* NetBSD page deallocator */
+/* BSD44 page deallocator */
 void page_free(vmaddr, length)
     char            *vmaddr;
     rvm_length_t     length;
@@ -490,7 +492,7 @@ rvm_bool_t mem_chk(char *vmaddr, rvm_length_t length)
     return(rvm_false);		/* shouldn't be able to get here */
 }
 
-#endif /* __NetBSD__ */
+#endif /* __linux__ || __BSD44__ */
 
 #ifndef PAGE_ALLOC_DEFINED              /* begin generic Unix declarations */
 /* Unix page_list allocation */

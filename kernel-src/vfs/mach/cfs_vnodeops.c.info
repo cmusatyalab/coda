@@ -84,7 +84,7 @@ Return
 ***** cfs_read()
 ***** cfs_write()
 
-These functions are just used to MUX into cfs_rdwr.  NetBSD uses
+These functions are just used to MUX into cfs_rdwr.  BSD44 uses
 different type signatures for read and write vnode operations.
 
 ***** cfs_rdwr : function
@@ -146,7 +146,7 @@ struct ia {
 
 Ioctl's must be on the control object.  (Because these are pioctl's?)
 Lookup the vnode for the iap->path
-Ensure that that vnode's type is CFS (v_type in Mach, v_tag in NetBSD)
+Ensure that that vnode's type is CFS (v_type in Mach, v_tag in BSD44)
 Alloocate a buffer.
 Adjust the size of the ioctl command word to only cover iap->vidata
 Copy in iap->vidata.in.

@@ -21,10 +21,10 @@
  * Added CFS-specific files
  *
  * Revision 3.1.1.1  1995/03/04  19:08:22  bnoble
- * Branch for NetBSD port revisions
+ * Branch for BSD port revisions
  *
  * Revision 3.1  1995/03/04  19:08:21  bnoble
- * Bump to major revision 3 to prepare for NetBSD port
+ * Bump to major revision 3 to prepare for BSD port
  *
  * Revision 2.2  1994/08/28  19:37:39  luqi
  * Add a new CFS_REPLACE call to allow venus to replace a ViceFid in the
@@ -61,9 +61,16 @@
 #define _CFSNC_HEADER_
 
 #include <sys/types.h>
+/* struct kinfo_proc in <sys/user.h> requires these files. */
+#include <vm/vm.h>		/* XXX */
+#include <vm/vm_param.h>	/* XXX */
+#include <vm/pmap.h>		/* XXX */
+#include <vm/lock.h>		/* XXX */
+#include <vm/vm_map.h>		/* XXX */
 #include <sys/user.h>
-#include <rpc/types.h>
-#include <rpc/xdr.h>
+
+/* #include <rpc/types.h> */
+/* #include <rpc/xdr.h> */
 #include <cfs/cfs.h>
 #include <cfs/cnode.h>
 

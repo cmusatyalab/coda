@@ -11,7 +11,7 @@
 /*
  * kernel includes are clearly platform dependent 
  * 
- * however, Venus builds its own VFS interface, modeled on NetBSD 
+ * however, Venus builds its own VFS interface, modeled on BSD44 
  */
 #ifdef KERNEL
 #include <linux/kernel.h>
@@ -261,7 +261,7 @@ if ( coda_upcallerror( errorp, out, __FUNCTION__) ) goto label ;
 
 
 
-#define DIRBLKSIZ 1024  /*  from NetBSD 1.2 dirent.h */
+#define DIRBLKSIZ 1024  /*  from BSD44 1.2 dirent.h */
 
 
 #if 0

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /coda/usr/lily/newbuild/src/coda-src/venus/RCS/venus.private.h,v 4.3 1997/01/28 12:00:58 satya Exp $";
+static char *rcsid = "$Header: /usr/rvb/XX/src/coda-src/venus/RCS/venus.private.h,v 4.4 1997/02/18 15:28:27 lily Exp $";
 #endif /*_BLURB_*/
 
 
@@ -78,9 +78,9 @@ extern "C" {
 #include "venusstats.h"
 
 /*  *****  New error codes.  *****  */
-#if defined(__linux__) || defined(__NetBSD__)
+#if defined(__linux__) || defined(__BSD44__)
 #define ESUCCESS	0	/* MACH'ism, it appears */
-#endif __NetBSD__
+#endif /* __linux__ ||__BSD44__ */
 
 #define	EMULTRSLTS	ETOOMANYREFS	    /* external */
 #define	ESYNRESOLVE	155		    /* internal */
@@ -127,8 +127,8 @@ const int NFDS = 32;	/* IOMGR-enforced limit!  Kernel may allocate fds numbered 
 /* definition of vuid_t that used to be here has been moved to vicedep/vcrcommon.rpc2  (Satya 3/23/92) */
 const vuid_t V_UID = (vuid_t)0;	    /* UID that the venus process runs under. */
 
-#ifdef __NetBSD__
-/* Group id fields are 32 bits in NetBSD (not 16 bits); the use of a small 
+#ifdef __BSD44__
+/* Group id fields are 32 bits in BSD44 (not 16 bits); the use of a small 
    negative number (-2) means its unsigned long representation is huge
    (4294967294).  This causes the "ar" program to screw up because it
    blindly does a sprintf() of the gid into the ".a" file. (Satya, 1/11/97) */
@@ -136,7 +136,7 @@ const vuid_t V_GID = (vuid_t)65534;    /* GID that the venus process runs under.
 #else
 /* On Mach and other systems with 16-bit gids, the -2 value gives a gid of 65534 */
 const vgid_t V_GID = (vgid_t)-2;    /* GID that the venus process runs under. */
-#endif /* __NetBSD__ */
+#endif /* __BSD44__ */
 const vuid_t ALL_UIDS = (vuid_t)-1;
 const vuid_t HOARD_UID = (vuid_t)-2; /* uid of hoard daemon */
 const unsigned short V_MODE = 0600;

@@ -20,10 +20,10 @@
  * Added CFS-specific files
  *
  * Revision 3.1.1.1  1995/03/04  19:07:59  bnoble
- * Branch for NetBSD port revisions
+ * Branch for BSD port revisions
  *
  * Revision 3.1  1995/03/04  19:07:58  bnoble
- * Bump to major revision 3 to prepare for NetBSD port
+ * Bump to major revision 3 to prepare for BSD port
  *
  * Revision 2.8  1995/03/03  17:00:04  dcs
  * Fixed kernel bug involving sleep and upcalls. Basically if you killed
@@ -152,7 +152,7 @@ cfscall(mntinfo, inSize, outSize, buffer)
 {
 	struct vcomm *vcp;
 	struct vmsg *vmp;
-	int error;
+	int error = 0;
 
 	if (mntinfo == NULL) {
 	    /* Unlikely, but could be a race condition with a dying warden */
@@ -419,6 +419,7 @@ int handleDownCall(opcode, out)
 	  return (0);
       }			   
     }
+    return (EBADRPC);
 }
 
 
@@ -478,7 +479,7 @@ cfs_kill(whoIam)
     /* 
      * Algorithm is as follows: 
      *     First, step through all cnodes and mark them unmounting.
-     *         NetBSD kernels may try to fsync them now that venus
+     *         BSD44 kernels may try to fsync them now that venus
      *         is dead, which would be a bad thing.
      *
      *     Second, flush whatever vnodes we can from the name cache.
@@ -670,16 +671,16 @@ int
 cfs_vmflush(cp)
      struct cnode *cp;
 {
-#ifndef __NetBSD__
+#ifdef	__BSD44__
+    return 0;
+#else /* __BSD44__ */
     /* Unset <device, inode> so that page_read doesn't try to use
        (possibly) invalid cache file. */
     cp->c_device = 0;
     cp->c_inode = 0;
 
     return(inode_uncache_try(VTOI(CTOV(cp))) ? 0 : ETXTBSY);
-#else /* __NetBSD__ */
-    return 0;
-#endif /* __NetBSD__ */
+#endif /* __BSD44__ */
 }
 
 /*

@@ -31,7 +31,7 @@
 # changes  without  encumbrance.   Such improvements and extensions
 # should be returned to Software.Distribution@cs.cmu.edu.
 #
-# rcsid = $Header: Makefile.real.in,v 1.1 96/12/09 14:41:16 raiff Exp $
+# rcsid = $Header: /usr/rvb/XX/src/rvm-src/rvm/RCS/Makefile.real.in,v 4.1 1997/01/08 21:54:30 rvb Exp $
 #
 #endif _BLURB_
 
@@ -86,6 +86,7 @@ OBJECTS_sun4_mach   = ${OBJ1} ${LWPOBJ1} ${OBJ2}
 OBJECTS_alpha_osf20 = ${OBJ1} ${OBJ2}
 OBJECTS_hp700_ux90  = ${OBJ1} ${PTOBJ1} ${OBJ2}
 OBJECTS_i386_nbsd1  = ${OBJ1} ${LWPOBJ1} ${OBJ2}
+OBJECTS_i386_fbsd2  = ${OBJ1} ${LWPOBJ1} ${OBJ2}
 OBJECTS             = $(OBJECTS_${SYS})
 
 # Used to make depend
@@ -100,13 +101,14 @@ LIBS_hp700_ux90  = librvm.a librvmpt.a
 
 # For mach platforms, we need to add libthread.a and libmach.a
 # LIBTHREADS and LIBMACH are defined in the all_mach Makeconf.sys
-# NetBSD platforms need libcompat.a for insque and deque
+# BSD platforms need libcompat.a for insque and deque
 RVMUTLLIBS_pmax_mach   = ${LIBTHREADS} ${LIBMACH}
 RVMUTLLIBS_i386_mach   = ${LIBTHREADS} ${LIBMACH}
 RVMUTLLIBS_sun4_mach   = ${LIBTHREADS} ${LIBMACH}
 RVMUTLLIBS_alpha_osf20 = 
 RVMUTLLIBS_hp700_ux90  = 
 RVMUTLLIBS_i386_nbsd1  = ${LIBCOMPAT}
+RVMUTLLIBS_i386_fbsd2  = ${LIBCOMPAT}
 RVMUTLLIBS             = $(RVMUTLLIBS_${SYS})
 
 

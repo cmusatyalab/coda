@@ -33,7 +33,7 @@ should be returned to Software.Distribution@cs.cmu.edu.
 
 */
 
-static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/src/coda-4.0.1/RCSLINK/./rvm-src/rvm/rvm_private.h,v 1.1 1996/11/22 19:16:52 braam Exp $";
+static char *rcsid = "$Header: /usr/rvb/XX/src/rvm-src/rvm/RCS/rvm_private.h,v 4.1 1997/01/08 21:54:36 rvb Exp $";
 #endif _BLURB_
 
 /*
@@ -233,7 +233,7 @@ typedef enum
     free_page_id,                       /* free page header descriptor */
     rw_qentry_id,                       /* rw_lock queue entry */
     tree_root_id,                       /* tree root */
-    /* mmapped_list_id,*/                    /* NetBSD/mmap systems only */
+    /* mmapped_list_id,*/                    /* BSD/mmap systems only */
     struct_last_id                      /* marker for last structure id */
    }
 struct_id_t;
@@ -1185,7 +1185,7 @@ int_tid_t;
 #define TRANS_HDR(x)        ((trans_hdr->flags & (x)) != 0)
 /* functions and structures for managing list of RVM-allocated
      regions of memory (added by tilt, Nov 19 1996) */
-#if  __NetBSD__ || LINUX
+#if defined(__linux__) || defined(__BSD44__)
 typedef struct rvm_page_entry {
     char                   *start;
     char                   *end;
@@ -1197,7 +1197,7 @@ rvm_bool_t rvm_register_page(char *vmaddr, rvm_length_t length);
 rvm_bool_t rvm_unregister_page(char *vmaddr, rvm_length_t length);
 rvm_bool_t mem_chk(char *vmaddr, rvm_length_t length);
 rvm_page_entry_t *find_page_entry(char *vmaddr);
-#endif /* __NetBSD__ */
+#endif /* __linux__ || __BSD44__ */
 /* list management functions */
 
 extern

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/src/coda-4.0.1/RCSLINK/./kernel-src/vfs/mach/cfsncstat.c,v 1.1 1996/11/22 19:16:19 braam Exp $";
+static char *rcsid = "$Header: /usr/rvb/XX/src/kernel-src/vfs/mach/RCS/cfsncstat.c,v 4.1 1997/01/08 21:53:32 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -56,10 +56,10 @@ static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/src/coda-4.0.1
  * Added CFS-specific files
  *
  * Revision 3.1.1.1  1995/03/04  19:08:13  bnoble
- * Branch for NetBSD port revisions
+ * Branch for BSD port revisions
  *
  * Revision 3.1  1995/03/04  19:08:12  bnoble
- * Bump to major revision 3 to prepare for NetBSD port
+ * Bump to major revision 3 to prepare for BSD port
  *
  * Revision 2.1  1994/07/21  16:25:30  satya
  * Conversion to C++ 3.0; start of Coda Release 2.0

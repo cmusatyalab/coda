@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/src/coda-4.0.1/coda-src/venus/RCS/venusrecov.cc,v 1.2 1996/12/09 18:56:36 braam Exp $";
+static char *rcsid = "$Header: /usr/rvb/XX/src/coda-src/venus/RCS/venusrecov.cc,v 4.1 1997/01/08 21:51:38 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -58,11 +58,11 @@ extern "C" {
 #ifdef __MACH__
 #include <sysent.h>
 #include <libc.h>
-#endif /* __MACH__ */
-#if defined(__linux__) || defined(__NetBSD__)
+#include <mach.h>
+#else	/* __linux__ || __BSD44__ */
 #include <unistd.h>
 #include <stdlib.h>
-#endif __NetBSD__
+#endif
 
 #ifdef	__linux__
 #define MAX(a,b)   ( (a) > (b) ? (a) : (b))
@@ -74,13 +74,9 @@ extern "C" {
 #include <rvm_segment.h>
 #include <rvm_statistics.h>
 
-#ifdef	__MACH__
-#include <mach.h>
-#endif	/* __MACH__ */
-
-#if defined(__linux__) || defined(__NetBSD__)
+#if defined(__linux__) || defined(__BSD44__)
 #include <sys/mman.h>
-#endif __NetBSD__
+#endif
 
 #ifdef __cplusplus
 }
@@ -121,16 +117,16 @@ int MAXTS = UNSET_MAXTS;
 
 /*  *****  Private Constants  *****  */
 
-#if MACH
+#ifdef MACH
 PRIVATE const char *VM_RVGADDR = (char *)0x00c00000;
 PRIVATE const char *VM_RDSADDR = (char *)0x01c00000;
-#elif defined(__NetBSD__) 
+#elif defined(__BSD44__)
 PRIVATE const char *VM_RVGADDR = (char *)0x40000000;
 PRIVATE const char *VM_RDSADDR = (char *)0x41000000;
-#elif LINUX
+#elif	defined(__linux__)
 PRIVATE const char *VM_RVGADDR = (char *)0x20000000;
 PRIVATE const char *VM_RDSADDR = (char *)0x21000000;
-#endif /* MACH and __NetBSD__ */
+#endif
 
 
 /*  *****  Private Variables  *****  */
@@ -425,19 +421,19 @@ PRIVATE void Recov_InitRVM() {
 #ifdef __MACH__
 		    int exiter = wait(&status);
 #endif /* __MACH__ */
-#if defined(__linux__) || defined(__NetBSD__)
+#if defined(__linux__) || defined(__BSD44__)
 		    int exiter = wait(&status.w_status);
-#endif __NetBSD__
+#endif /* __linux__ ||__BSD44__ */
 		    if (exiter != child)
 			Choke("Recov_InitRVM: exiter (%d) != child (%d)", exiter, child);
 #ifdef __MACH__
 		    if (status.w_retcode != RVM_SUCCESS)
 			Choke("Recov_InitRVM: log initialization failed (%d)", status.w_retcode);
 #endif /* __MACH__ */
-#ifdef __NetBSD__
+#ifdef __BSD44__
 		    if (WEXITSTATUS(status.w_status) != RVM_SUCCESS)
 			Choke("Recov_InitRVM: log initialization failed (%d)", WEXITSTATUS(status.w_status));
-#endif __NetBSD__
+#endif /* __BSD44__ */
 
 		}
 	    }
@@ -610,7 +606,7 @@ PRIVATE void Recov_InitSeg() {
 		rvg->recov_HeapAddr, rvg->recov_HeapLength, Recov_RdsAddr, Recov_RdsLength);
 	if (!rvg->validate())
 	    { rvg->print(stderr); Choke("Recov_InitSeg: rvg validation failed, trying restarting venus with -init"); }
-#ifdef LINUX  /* strtok broken on Linux ? */
+#ifdef __linux__  /* strtok broken on Linux ? */
 	eprint("Last init was %s\n", ctime((long *)&rvg->recov_LastInit));
 #else
         eprint("Last init was %s", strtok(ctime((long *)&rvg->recov_LastInit), "\n"));
@@ -808,7 +804,7 @@ PRIVATE void Recov_AllocateVM(char **addr, unsigned long length) {
 	Choke("Recov_AllocateVM: allocate(%x, %x) failed (%d)", *addr, length, ret);
     LOG(0, ("Recov_AllocateVM: allocated %x bytes at %x\n", length, *addr));
 
-#elif defined(__NetBSD__) || LINUX 
+#elif defined(__linux__) || defined(__BSD44__)
     char *requested_addr = *addr;
     *addr = mmap(*addr, length, (PROT_READ | PROT_WRITE),
 		 (MAP_PRIVATE | MAP_ANON), -1, 0);
@@ -828,7 +824,7 @@ PRIVATE void Recov_AllocateVM(char **addr, unsigned long length) {
 
 #else /* DEFAULT */
     Choke("Recov_AllocateVM: not yet implemented for this platform!");
-#endif /* MACH and __NetBSD__ */
+#endif
 }
 
 
@@ -838,14 +834,14 @@ PRIVATE void Recov_DeallocateVM(char *addr, unsigned long length) {
     if (ret != KERN_SUCCESS)
 	Choke("Recov_DeallocateVM: deallocate(%x, %x) failed (%d)", addr, length, ret);
     LOG(0, ("Recov_DeallocateVM: deallocated %x bytes at %x\n", length, addr));
-#elif defined(__NetBSD__) || LINUX 
+#elif defined(__linux__) || defined(__BSD44__)
     if (munmap(addr, length)) {
 	Choke("Recov_DeallocateVM: munmap(%x, %x) failed with errno == %d", addr, length, errno);
     }
     LOG(0, ("Recov_DeallocateVM: deallocated %x bytes at %x\n", length, addr));
-#else	/* MACH and __NetBSD__ */
+#else	/* MACH || __linux__ || __BSD44__ */
     Choke("Recov_DeallocateVM: not yet implemented for this platform");
-#endif	/* MACH and __NetBSD__ */
+#endif	/* MACH || __linux__ || __BSD44__ */
 }
 
 

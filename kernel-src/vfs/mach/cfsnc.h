@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/src/coda-4.0.1/RCSLINK/./kernel-src/vfs/mach/cfsnc.h,v 1.1 1996/11/22 19:16:15 braam Exp $";
+static char *rcsid = "$Header: /usr/rvb/XX/src/kernel-src/vfs/mach/RCS/cfsnc.h,v 4.1 1997/01/08 21:53:31 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -56,10 +56,10 @@ static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/src/coda-4.0.1
  * Added CFS-specific files
  *
  * Revision 3.1.1.1  1995/03/04  19:08:22  bnoble
- * Branch for NetBSD port revisions
+ * Branch for BSD port revisions
  *
  * Revision 3.1  1995/03/04  19:08:21  bnoble
- * Bump to major revision 3 to prepare for NetBSD port
+ * Bump to major revision 3 to prepare for BSD port
  *
  * Revision 2.2  1994/08/28  19:37:39  luqi
  * Add a new CFS_REPLACE call to allow venus to replace a ViceFid in the

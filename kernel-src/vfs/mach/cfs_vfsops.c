@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/src/coda-4.0.1/RCSLINK/./kernel-src/vfs/mach/cfs_vfsops.c,v 1.1 1996/11/22 19:16:09 braam Exp $";
+static char *rcsid = "$Header: /usr/rvb/XX/src/kernel-src/vfs/mach/RCS/cfs_vfsops.c,v 4.1 1997/01/08 21:53:29 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -56,10 +56,10 @@ static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/src/coda-4.0.1
  * Added CFS-specific files
  *
  * Revision 3.1.1.1  1995/03/04  19:08:02  bnoble
- * Branch for NetBSD port revisions
+ * Branch for BSD port revisions
  *
  * Revision 3.1  1995/03/04  19:08:01  bnoble
- * Bump to major revision 3 to prepare for NetBSD port
+ * Bump to major revision 3 to prepare for BSD port
  *
  * Revision 2.4  1995/02/17  16:25:22  dcs
  * These versions represent several changes:
@@ -155,7 +155,7 @@ cfs_vfsopstats_init()
 cfs_mount(vfsp, path, data, ndp, p)
     VFS_T *vfsp;           /* Allocated and initialized by mount(2) */
     char *path;            /* path covered: ignored by the fs-layer */
-    caddr_t data;          /* Need to define a data type for this in netbsd? */
+    caddr_t data;          /* Need to define a data type for this in bsd44? */
     struct nameidata *ndp; /* Clobber this to lookup the device name */
     struct proc *p;        /* The ever-famous proc pointer */
 {
@@ -313,9 +313,9 @@ cfs_unmount(vfsp, mntflags, p)
 		 * DCS 11/29/94 */
 #ifndef __NetBSD__             /* XXX - NetBSD venii cannot fake unmount */
 		FAKE_UNMOUNT(vfsp);
-#else __NetBSD__
+#else /* __NetBSD__ */
 		return (error);
-#endif __NetBSD__
+#endif /* __NetBSD__ */
 
 		myprintf(("CFS_UNMOUNT: faking unmount, vfsp %x active == %d\n", vfsp, active));
 	    } else {
@@ -390,7 +390,7 @@ cfs_root(vfsp, vpp)
 		(VTOC(op->rootvp)->c_fid.Unique != 0))
 		{ /* Found valid root. */
 		    *vpp = op->rootvp;
-		    /* On Mach, this is VN_HOLD.  On NetBSD, VN_LOCK */
+		    /* On Mach, this is VN_HOLD.  On BSD44, VN_LOCK */
 		    CFS_ROOT_REF(*vpp);
 		    MARK_INT_SAT(CFS_ROOT_STATS);
 		    return(0);
@@ -456,7 +456,7 @@ cfs_root(vfsp, vpp)
     return(error);
 }
 
-#ifndef __NetBSD__
+#ifndef __BSD44__
 
 /* Locate a type-specific FS based on a name (tome) */
 int findTome(tome, data, coveredvp, vpp, p)
@@ -547,7 +547,7 @@ int findTome(tome, data, coveredvp, vpp, p)
     return ENOENT;	/* Indicate that no matching warden was found */
 }
 
-#endif /* __NetBSD__ */
+#endif /* __BSD44__ */
 
 int
 cfs_quotactl(vfsp, cmd, uid, arg, p)

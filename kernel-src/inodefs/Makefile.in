@@ -1,5 +1,5 @@
 # BUILD for a specific architecture
-#	NetBSD & MACH Makefiles are the same
+#	BSD & MACH Makefiles are the same
 
 # Josh Raiff
 # Moved up further Peter Braam

@@ -30,7 +30,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/src/coda-4.0.1/RCSLINK/./kernel-src/ifs/netbsd/ilib.s,v 1.1 1996/11/22 19:16:29 braam Exp $";
+static char *rcsid = "$Header: /usr/rvb/XX/src/kernel-src/inodefs/netbsd/RCS/ilib.s,v 4.1 1997/01/08 21:53:17 rvb Exp $";
 #endif undef
 #endif /*_BLURB_*/
 
@@ -57,11 +57,17 @@ supported by Transarc Corporation, Pittsburgh, PA.
 */
 
 
-#include <sys/syscall.h>
+#ifdef	__NetBSD__
 #include <machine/asm.h>
+#endif
+#ifdef	__FreeBSD__
+#include <machine/asmacro.h>
+#endif
+#include <sys/syscall.h>
 
 #include "SYS.h"	
 
+#ifdef	__NetBSD__
 SYSCALL(icreate)
 	ret
 
@@ -79,3 +85,19 @@ SYSCALL(iinc)
 
 SYSCALL(idec)
 	ret
+#endif
+
+#ifdef	__FreeBSD__
+ENTRY(icreate)
+	ret
+ENTRY(iopen)
+	ret
+ENTRY(iread)
+	ret
+ENTRY(iwrite)
+	ret
+ENTRY(iinc)
+	ret
+ENTRY(idec)
+	ret
+#endif

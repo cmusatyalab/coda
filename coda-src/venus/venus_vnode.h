@@ -1,12 +1,12 @@
 /* 
- TEMPORARY HACK FOR NETBSD 1.2 : complete revamp of venus_vnode.h data
+ TEMPORARY HACK FOR BSD 1.2 : complete revamp of venus_vnode.h data
  is required.  For now, just use NetBSD 1.2's version of sys/vnode.h
  and add in a few definitions that Peter had added to venus_vnode.h
  This should be properly fixed REAL SOON ... (Satya, 1/10/97)
 */
 
 
-#ifdef __NetBSD__
+#ifdef __BSD44__
 /* Code below was obtained in the following way:
     (a) identify changes made by Peter to sys/vnode.h on NetBSD 1.1 to
 	get venus_vnode.h 
@@ -449,7 +449,7 @@ int	vaccess __P((mode_t file_mode, uid_t uid, gid_t gid,
 
 /* ------------------------------------------------------------------------ */
 
-#endif /* __NetBSD__ */
+#endif /* __BSD44__ */
 
 
 #if defined(__linux__) || defined(__MACH__)

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/src/coda-4.0.1/coda-src/venus/RCS/venusvm.cc,v 1.2 1996/12/09 18:57:37 braam Exp $";
+static char *rcsid = "$Header: /usr/rvb/XX/src/coda-src/venus/RCS/venusvm.cc,v 4.1 1997/01/08 21:51:39 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -52,11 +52,10 @@ extern "C" {
 #ifdef __MACH__
 #include <sysent.h>
 #include <libc.h>
-#endif /* __MACH__ */
-#if defined(__linux__) || defined(__NetBSD__)
+#else	/* __linux__ || __BSD44__ */
 #include <unistd.h>
 #include <stdlib.h>
-#endif __NetBSD__
+#endif
 #include <fcntl.h>
 
 #ifdef	__linux__
@@ -64,7 +63,7 @@ extern "C" {
 #include <endian.h>
 #else
 #include <machine/endian.h>
-#endif /* LINUX */
+#endif /* __linux*/
 #include <netdb.h>
 #include <nlist.h>
 /* nlist.h defines this function but it isnt getting included because it is
@@ -105,6 +104,10 @@ extern int nlist(const char*, struct nlist[]);
 #endif
 #ifdef __NetBSD__
 #define VMUNIX "/netbsd"
+#endif
+#ifdef __FreeBSD__
+#undef VMUNIX
+#define VMUNIX "/kernel"
 #endif
 #ifdef	__linux__
 #define VMUNIX "/vmlinuz"
