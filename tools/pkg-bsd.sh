@@ -215,6 +215,7 @@ bin/replay
 bin/spy
 bin/xaskuser
 bin/xfrepair
+etc/coda/venus.conf
 @dirrm lib/coda
 EOF
     fi

@@ -150,10 +150,8 @@ void FSOInit() {
 	    if (STREQ(namelist[i]->d_name, ".") ||
 		STREQ(namelist[i]->d_name, "..") ||
 		STREQ(namelist[i]->d_name, "lost+found") ||
-		STREQ(namelist[i]->d_name, LOGFILE) ||
-		STREQ(namelist[i]->d_name, LOGFILE_OLD) ||
-		STREQ(namelist[i]->d_name, "pid") ||
-		STREQ(namelist[i]->d_name, "core"))
+		STREQ(namelist[i]->d_name, VenusLogFile) ||
+		STREQ(namelist[i]->d_name, "pid"))
 		goto FREE_ENTRY;
 
 	    /* Don't unlink cache files. */

@@ -66,7 +66,7 @@ chown -R root.bin $RPM_BUILD_DIR/coda-@VERSION@
 rm -rf $RPM_BUILD_DIR/obj-@VERSION@
 mkdir $RPM_BUILD_DIR/obj-@VERSION@
 cd $RPM_BUILD_DIR/obj-@VERSION@
-$RPM_BUILD_DIR/coda-@VERSION@/configure --prefix=$RPM_BUILD_ROOT/usr
+$RPM_BUILD_DIR/coda-@VERSION@/configure --prefix=/usr
 make
 
 %install
@@ -77,8 +77,8 @@ mkdir -p $RPM_BUILD_ROOT/usr/coda/venus.cache $RPM_BUILD_ROOT/dev \
 	$RPM_BUILD_ROOT/coda $RPM_BUILD_ROOT/etc/rc.d/init.d\
 	$RPM_BUILD_ROOT/usr/lib/coda $RPM_BUILD_ROOT/etc/rc.d/init.d
 
-make client-install
-make server-install
+make prefix=$RPM_BUILD_ROOT client-install
+make prefix=$RPM_BUILD_ROOT server-install
 
 mknod $RPM_BUILD_ROOT/dev/cfs0 c 67 0
 touch $RPM_BUILD_ROOT/coda/NOT_REALLY_CODA
@@ -180,6 +180,7 @@ cd /usr/lib/coda
 /usr/bin/spy
 /usr/bin/xaskuser
 /usr/bin/xfrepair
+/etc/coda/venus.conf.ex
 /usr/lib/coda/Advice.tcl
 /usr/lib/coda/CodaConsole
 /usr/lib/coda/Consider.tcl

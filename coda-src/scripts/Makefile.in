@@ -48,7 +48,6 @@ else
   # use BSD style init scripts
   CINIT-SCRIPTS   = # rc.venus
   SINIT-SCRIPTS   = rc.vice
-  INITDIR	  = ${prefix}/etc
 endif
 endif
 
