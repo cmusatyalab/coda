@@ -63,6 +63,7 @@ extern "C" {
 #include <vice.h>
 #include <cvnode.h>
 #include <volume.h>
+#include <auth2.h>
 
 /* From Vol package. */
 #define	ThisHostAddr		((unsigned long)(HostAddress[ThisServerId]))
@@ -140,6 +141,7 @@ typedef struct ClientEntry {
     int			DoUnbind;		/* true if Unbind needed */
     struct ClientEntry	*NextClient;		/* next entry for host	*/
     char		UserName[MAXNAMELENGTH]; /* name of user	*/
+    SecretToken		Token;			/* the client's token */
 } ClientEntry;
 
 
