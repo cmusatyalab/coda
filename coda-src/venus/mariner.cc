@@ -90,13 +90,13 @@ void MarinerInit() {
 
 #ifdef HAVE_SYS_UN_H
     /* use unix domain sockets wherever available */
-    struct sockaddr_un sun;
+    struct sockaddr_un s_un;
 
     unlink(MarinerSocketPath);
     
-    memset(&sun, 0, sizeof(struct sockaddr_un));
-    sun.sun_family = AF_UNIX;
-    strcpy(sun.sun_path, MarinerSocketPath);
+    memset(&s_un, 0, sizeof(struct sockaddr_un));
+    s_un.sun_family = AF_UNIX;
+    strcpy(s_un.sun_path, MarinerSocketPath);
 
     if ((sock = socket(AF_UNIX, SOCK_STREAM, 0)) < 0) {
         eprint("MarinerInit: socket creation failed", errno);
@@ -105,7 +105,7 @@ void MarinerInit() {
 
     setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, (char *)&opt, sizeof(int));
     
-    if (bind(sock, (struct sockaddr *)&sun, sizeof(sun)) < 0) {
+    if (bind(sock, (struct sockaddr *)&s_un, sizeof(s_un)) < 0) {
         eprint("MarinerInit: socket bind failed", errno);
         close(sock);
         goto Next;
@@ -184,9 +184,9 @@ void MarinerMux(int mask) {
     }
 #ifdef HAVE_SYS_UN_H
     else if (mariner::unix_muxfd != -1 && (mask & (1 << mariner::unix_muxfd))) {
-        struct sockaddr_un sun;
+        struct sockaddr_un s_un;
         unsigned int sunlen = sizeof(struct sockaddr_un);
-	newfd = ::accept(mariner::unix_muxfd, (sockaddr *)&sun, &sunlen);
+	newfd = ::accept(mariner::unix_muxfd, (sockaddr *)&s_un, &sunlen);
     }
 #endif
 

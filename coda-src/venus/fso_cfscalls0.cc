@@ -36,6 +36,7 @@ extern "C" {
 #include <sys/file.h>
 #include <unistd.h>
 #include <stdlib.h>
+#include <fcntl.h>
 
 #include <rpc2.h>
 #include <se.h>
