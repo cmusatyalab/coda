@@ -2548,13 +2548,13 @@ long FS_ViceValidateVols(RPC2_Handle cid, RPC2_Integer numVids,
     /* check the piggybacked volumes */
 
     for (int i = 0; i < numVids; i++) {
-	int error, index, ix, count;
+	int error, index, ix;
 	Volume *volptr;
 	VolumeId rwVid;
 	RPC2_Integer myVS;
 
     	rwVid = Vids[i].Vid;
-	if (!XlateVid(&rwVid, &count, &ix)) {
+	if (!XlateVid(&rwVid, NULL, &ix)) {
 	    SLog(1, "ValidateVolumes: Couldn't translate VSG %x", 
 		   Vids[i].Vid);
 	    goto InvalidVolume;
@@ -2576,7 +2576,7 @@ long FS_ViceValidateVols(RPC2_Handle cid, RPC2_Integer numVids,
 	VPutVolume(volptr);
 
 	/* check the version stamp in our slot in the vector */
-	index = i * count + ix;
+	index = i * VSG_MEMBERS + ix;
 	if ((long)ntohl(((RPC2_Unsigned *) VSBS->SeqBody)[index]) == myVS) {
 	    SLog(8, "ValidateVolumes: 0x%x ok, adding callback", 
 		   Vids[i].Vid);
