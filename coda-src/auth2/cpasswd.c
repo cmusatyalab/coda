@@ -75,16 +75,13 @@ extern "C" {
 #include "parse_realms.h"
 #include "codaconf.h"
 
-static char *myuser;
-static char mypasswd[10];
-
 int main(int argc, char **argv)
 {
 	char *p;
 	int insist;
 	int flags;
 	int c, pwlen;
-	char newpw[128];
+	char oldpw[128], newpw[128];
 	int ok, rc;
 	char *username, *realm;
 	char *host = NULL;
@@ -147,7 +144,7 @@ int main(int argc, char **argv)
 	}
 */
 	U_InitRPC();
-	strcpy(mypasswd, getpass("Old password: "));
+	strncpy(oldpw, getpass("Old password: "), sizeof(oldpw)-1);
 tryagain:
 	memset(newpw, 0, sizeof(newpw));
 	strncpy(newpw, getpass("New password: "), sizeof(newpw)-1);
@@ -190,12 +187,12 @@ tryagain:
 		goto tryagain;
 	}
 
-	if (strcmp(newpw, getpass("Retype new password:")) != 0) {
+	if (strcmp(newpw, getpass("Retype new password: ")) != 0) {
 		printf("Mismatch - password unchanged.\n");
 		exit(1);
 	}
 	srvs = U_GetAuthServers(realm, host);
-	rc = U_ChangePassword (srvs, username, newpw, AUTH_METHOD_CODAUSERNAME, myuser, strlen(myuser)+1, mypasswd, strlen(mypasswd));
+	rc = U_ChangePassword (srvs, username, newpw, AUTH_METHOD_CODAUSERNAME, username, strlen(username)+1, oldpw, strlen(oldpw)+1);
 	RPC2_freeaddrinfo(srvs);
 
 	switch(rc) {
@@ -203,7 +200,7 @@ tryagain:
 		printf("Server to change passwords down, try again later\n");
 		break;
 	    case AUTH_DENIED:
-		printf("%s not authenticated to change passwd for %s\n", myuser, username);
+		printf("authentication failed, unable to change passwd for %s\n", username);
 		break;
 	    case AUTH_SUCCESS:
 		printf("Password changed\n");
