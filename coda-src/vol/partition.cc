@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/ss/coda-src/vol/RCS/partition.cc,v 4.3 1997/04/16 14:31:51 braam Exp braam $";
+static char *rcsid = "$Header: /usr2/raiff/coda/coda-src/vol/RCS/partition.cc,v 4.4 97/04/28 15:08:41 braam Exp Locker: raiff $";
 #endif /*_BLURB_*/
 
 
@@ -182,7 +182,7 @@ PRIVATE void VSetPartitionDiskUsage(register struct DiskPartition *dp)
     dp->free = availblks - used; /* May be negative, which is OK */
 #endif
 
-    rc = statfs(dp->devName, &fsbuf);
+    rc = statfs(dp->name, &fsbuf);
     assert( rc == 0 );
     
     reserved_blocks = fsbuf.f_bfree - fsbuf.f_bavail; /* reserved for s-user */
