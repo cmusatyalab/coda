@@ -111,7 +111,7 @@ long rpc2_AllocMgrps, rpc2_FreeMgrps;
 
 long rpc2_HoldHWMark, rpc2_FreezeHWMark;
 
-char *rpc2_LastEdit = "$Header: /afs/cs/project/coda-src/cvs/rpc2/rpc2-src/globals.c,v 4.9.2.2 2003/03/17 00:39:25 jaharkes Exp $";
+char *rpc2_LastEdit = "$Header: /coda/coda.cs.cmu.edu/project/coda/cvs/rpc2/rpc2-src/globals.c,v 4.10 2003/06/20 17:40:10 jaharkes Exp $";
 
 long rpc2_errno;
 

@@ -50,11 +50,13 @@ MAINTAINERCLEANFILES = Makefile.in
 
 fasttime_pt.lo: fasttime.c
 	$(LTCOMPILE) -c $< && \
-	mv fasttime.lo fasttime_pt.lo
+	mv fasttime.lo fasttime_pt.lo && \
+	mv fasttime.o fasttime_pt.o
         
 timer_pt.lo: timer.c
 	$(LTCOMPILE) -c $< && \
-	mv timer.lo timer_pt.lo
+	mv timer.lo timer_pt.lo && \
+	mv timer.o timer_pt.o
         
 cswitch_pt.o: cswitch.c
 	$(COMPILE) -c $< && mv cswitch.o cswitch_pt.o

@@ -35,7 +35,6 @@ struct lwp_pcb {
     struct list_head list;              /* list of all threads */
 
     int              concurrent;
-    int              waiting;
     int              priority;
 
     char	     name[32];          /* ASCII name */
@@ -58,7 +57,7 @@ struct lwp_pcb {
 
 void lwp_JOIN(PROCESS pid);
 void lwp_LEAVE(PROCESS pid);
-int lwp_threads_waiting(void);
+extern int lwp_waiting;
 
 /* logging classes */
 #define LWP_DBG_LOCKS 1
