@@ -30,7 +30,8 @@ LIBOBJ = rds_coalesce.o rds_free.o rds_init.o rds_malloc.o rds_prealloc.o \
        rds_split.o rds_stats.o rds_start.o rds_util.o rds_zap.o 
 
 OBJ = rdsinit.o
-RDSINIT_LIBS = $(LIBSEG) $(LIBRVM) $(LIBTHREADS) $(LIBBASE) $(LIBFIXUP)
+DEPLIBS = $(LIBSEG) $(LIBRVM) $(LIBTHREADS) $(LIBBASE)
+LIBS := $(DEPLIBS) $(LIBLWP) $(LIBCOMPAT) $(LIBFIXUP) $(LIBS)
 
 
 HERE := $(shell basename `pwd`)
@@ -49,8 +50,8 @@ PRIVHEADERS = rds_private.h
 HEADERS     = ${EXPHEADERS} ${PRIVHEADERS}
 librds.a: $(LIBOBJ)
 
-rdsinit: $(OBJ) librds.a $(RDSINIT_LIBS)
-	$(CC) -o rdsinit $(OBJ) librds.a $(RDSINIT_LIBS) $(LIBLWP) $(LIBCOMPAT)
+rdsinit: $(OBJ) librds.a $(DEPLIBS)
+	$(CC) $(LDFLAGS) $(OBJ) librds.a $(LIBS) -o rdsinit
 endif
 
 
