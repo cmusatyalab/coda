@@ -1,4 +1,4 @@
-/* $Id: rpc2portmap.c,v 1.2 1998/04/07 05:22:47 robert Exp $ */
+/* $Id: rpc2portmap.c,v 1.1 1998/04/14 20:54:07 braam Exp $ */
 
 /* main for rpc2portmap daemon */
 

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-__RCSID("$Header: /afs/cs/project/coda-src/cvs/coda/kernel-src/vfs/bsd44/cfs/coda_opstats.h,v 1.2.38.2 97/12/16 12:40:04 rvb Exp $");
+__RCSID("$Header: /coda/coda.cs.cmu.edu/project/coda/cvs/coda/kernel-src/vfs/freebsd/cfs/Attic/coda_opstats.h,v 1.3 1998/01/23 11:53:53 rvb Exp $");
 #endif /*_BLURB_*/
 
 

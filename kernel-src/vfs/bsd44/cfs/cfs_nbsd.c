@@ -14,7 +14,10 @@
 
 /* 
  * HISTORY
- * $Log:	cfs_nbsd.c,v $
+ * $Log: cfs_nbsd.c,v $
+ * Revision 1.18  1998/01/23 11:53:40  rvb
+ * Bring RVB_CFS1_1 to HEAD
+ *
  * Revision 1.17.2.1  97/12/09  16:07:11  rvb
  * Sync with vfs/include/coda.h
  * 
