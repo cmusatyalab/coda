@@ -156,3 +156,11 @@ cacheblocks=100000
 #
 #rootvolume=
 
+#
+# The masquerade option enables SFTP to use the same ports as RPC2 for
+# bulk data transfers. This allows a Coda client to connect to servers
+# from behind a masquerading firewall. The rpc2 library on both the
+# client and the servers must be at least version 1.9 for this to work.
+# 
+#masquerade=0
+

@@ -378,6 +378,8 @@ static void ParseCmdline(int argc, char **argv) {
 		allow_reattach = 1;
   	    else if (STREQ(argv[i], "-masquerade"))
   		masquerade = 1;
+  	    else if (STREQ(argv[i], "-nomasquerade"))
+  		masquerade = 0;
 	    /* Private mapping ... */
 	    else if (STREQ(argv[i], "-mapprivate"))
 		MapPrivate = true;
@@ -410,6 +412,7 @@ static void DefaultCmdlineParms()
     CONF_STR(kernDevice,        "kerneldevice",  "/dev/cfs0");
     CONF_INT(MapPrivate,	"mapprivate",	 0);
     CONF_STR(MarinerSocketPath, "marinersocket", "/usr/coda/spool/mariner");
+    CONF_INT(masquerade,	"masquerade",	 0);
     CONF_STR(venusRoot,         "mountpoint",    DFLT_VR);
     CONF_INT(PrimaryUser,       "primaryuser",   UNSET_PRIMARYUSER);
     CONF_STR(fsname,            "rootservers",   "");

@@ -198,9 +198,15 @@ void CommInit() {
         {
             struct hostent *h;
             h = gethostbyname(ServerName);
-            CODA_ASSERT(h->h_length != sizeof(struct in6_addr));
-            if (h && h->h_length == sizeof(struct in_addr))
+	    if (!h) {
+		LOG(0, ("Can't resolve server %s\n", ServerName));
+	    }
+            if (h && h->h_length == sizeof(struct in_addr)) {
                 memcpy(&addr, h->h_addr, sizeof(struct in_addr));
+	    } else {
+		LOG(0, ("Failed to resolve an IPv4 address for server %s\n",
+			ServerName));
+	    }
         }
 
         if (addr.s_addr != INADDR_ANY) {
@@ -208,7 +214,9 @@ void CommInit() {
             s->rootserver = 1;
             /* Don't call PutServer, keeps a refcount on the rootservers */
             hcount++;
-        }
+        } else {
+	    LOG(0, ("Did not add IP address for server %s\n", ServerName));
+	}
     }
     if (!hcount)
 	CHOKE("CommInit: no bootstrap server");
