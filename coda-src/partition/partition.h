@@ -68,7 +68,7 @@ struct DiskPartition {
 
 
 
-void DP_Init(const char *tabfile);
+void DP_Init(const char *tabfile, const char *hostname);
 void DP_LockPartition(char *name);
 void DP_UnlockPartition(char *name);
 

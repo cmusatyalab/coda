@@ -28,6 +28,7 @@ listed in the file CREDITS.
 
 #include "vicetab.h"
 #include "partition.h"
+#include "util.h"
 
 #define MODE 00700
 
@@ -37,6 +38,7 @@ int mdirs(int);
 int
 main(int argc, char **argv)
 {
+    char host[256];
     int level = 1, rc;
     int depth, width;
     struct DiskPartition *dp;
@@ -46,7 +48,7 @@ main(int argc, char **argv)
 	exit(1);
     }
     
-    DP_Init(argv[1]);
+    DP_Init(argv[1], hostname(host));
 
     dp = DP_Get(argv[2]);
     

@@ -485,7 +485,7 @@ int main(int argc, char *argv[])
     RPC2_InitTraceBuffer(trace);
     RPC2_Trace = trace;
 
-    DP_Init(vicetab);
+    DP_Init(vicetab, srvhost);
     DIR_Init(DIR_DATA_IN_VM);
     DC_HashInit();
 

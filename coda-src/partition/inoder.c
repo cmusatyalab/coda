@@ -1,3 +1,4 @@
+
 /* BLURB gpl
 
                            Coda File System
@@ -30,6 +31,7 @@ listed in the file CREDITS.
 #include "inodeops.h"
 #include "viceinode.h"
 #include "partition.h"
+#include "util.h"
 
 #define MODE 00700
 
@@ -39,6 +41,7 @@ int mdirs(int);
 int
 main(int argc, char **argv)
 {
+    char myname[256];
     int rc, dev;
     int depth, width;
     struct DiskPartition *dp;
@@ -48,7 +51,7 @@ main(int argc, char **argv)
 	exit(1);
     }
     
-    DP_Init(argv[1]);
+    DP_Init(argv[1], hostname(myname));
 
     dp = DP_Get(argv[2]);
     

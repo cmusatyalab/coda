@@ -65,9 +65,8 @@ static struct inodeops *DP_InodeOpsByType(char *type);
    method.  When the partition has been initialized successfully, it is
    inserted in the DiskPartitionList, a linked list of DiskPartitions.
    */
-void DP_Init(const char *tabfile)
+void DP_Init(const char *tabfile, const char *hostname)
 {
-    char myname[256];
     int rc;
     Partent entry;
     FILE *tabhandle;
@@ -85,7 +84,7 @@ void DP_Init(const char *tabfile)
     }
 
     while ( (entry = Partent_get(tabhandle)) ) {
-        if ( ! UtilHostEq(hostname(myname), Partent_host(entry)) ) {
+        if ( ! UtilHostEq(hostname, Partent_host(entry)) ) {
 	    Partent_free(&entry);
 	    continue;
 	}
