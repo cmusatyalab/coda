@@ -181,10 +181,10 @@ while [ $n -le $numservers ]; do
 	echo  "we don't need all that much RVM."
 	echo
 	echo  "Here are some random samples,"
-	echo  "  mp3 files        ~75MB RVM per GB."
-	echo  "  jpeg images     ~608MB RVM per GB."
-	echo  "  email folders ~23024MB RVM per GB."
-	echo  "  freebsd-src   ~31853MB RVM per GB."
+	echo  "  mp3 files     ~0.08MB RVM per GB."
+	echo  "  jpeg images   ~0.50MB RVM per GB."
+	echo  "  email folders ~37.8MB RVM per GB (maildir, 1 file per message)"
+	echo  "  netbsd-pkgsrc  ~180MB RVM per GB (large tree but not much data)"
 	echo
 	echo  "To get a more precize number for your dataset there is a small"
 	echo  "tool (rvmsizer) which can reasonably predict the amount of RVM"
