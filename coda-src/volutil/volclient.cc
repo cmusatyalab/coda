@@ -489,7 +489,7 @@ static void create(void)
 	fprintf(stderr, "VolCreate failed with %s\n", RPC2_ErrorMsg((int)rc));
 	exit(-1);
     }
-    fprintf(stderr, "Volume %lx (%s) created \n", volumeid, volumeName);
+    printf("Volume %lx (%s) created \n", volumeid, volumeName);
     exit(0);
 }
 
@@ -531,8 +531,8 @@ static void clone(void)
 	fprintf(stderr, "VolClone failed with %s\n", RPC2_ErrorMsg((int)rc));
 	exit(-1);
     }
-    fprintf(stderr, "VolClone: New Volume id = %lx\n", newvolid);
-    fprintf(stderr, "VolClone: New Volume name is %s\n", newvolname);
+    printf("VolClone: New Volume id = %lx\n", newvolid);
+    printf("VolClone: New Volume name is %s\n", newvolname);
     exit(0);
 }
 
@@ -793,7 +793,7 @@ static void restorefromback(void)
 	exit(-1);
     }
 
-    fprintf(stderr, "VolRestore successful, created %#8lx\n", volid);
+    printf("VolRestore successful, created %#8lx\n", volid);
     exit(0);
 }
 
@@ -920,10 +920,10 @@ static void rvmsize(void)
 	fprintf(stderr, "VolRVMSize failed with %s\n", RPC2_ErrorMsg((int)rc));
 	exit(-1);
     }
-    fprintf(stderr, "Volume %lx used a total of %ld bytes.\n", volid, data.VolumeSize);
-    fprintf(stderr, "\t%ld small vnodes used %ld bytes.\n", data.nSmallVnodes, data.SmallVnodeSize);
-    fprintf(stderr, "\t%ld large vnodes used %ld bytes.\n", data.nLargeVnodes, data.LargeVnodeSize);
-    fprintf(stderr, "\t and %ld bytes of DirPages.\n", data.DirPagesSize);
+    printf("Volume %lx used a total of %ld bytes.\n", volid, data.VolumeSize);
+    printf("\t%ld small vnodes used %ld bytes.\n", data.nSmallVnodes, data.SmallVnodeSize);
+    printf("\t%ld large vnodes used %ld bytes.\n", data.nLargeVnodes, data.LargeVnodeSize);
+    printf("\t and %ld bytes of DirPages.\n", data.DirPagesSize);
     exit(0);
 }
 
@@ -956,8 +956,7 @@ static void backup(void)
 	fprintf(stderr, "VolMakeBackups failed with %s\n", RPC2_ErrorMsg((int)rc));
 	exit(-1);
     }
-    fprintf(stderr, "Backup (id = %lx) of Volume %lx created\n",
-	    backupVid, Vid);
+    printf("Backup (id = %lx) of Volume %lx created\n", backupVid, Vid);
     exit(0);
 }
 
@@ -1010,7 +1009,7 @@ static void create_rep(void)
 	fprintf(stderr, "VolCreate failed with %s\n", RPC2_ErrorMsg((int)rc));
 	exit(-1);
     }
-    fprintf(stderr, "Volume %lx (%s) created \n", volumeid, volumeName);
+    printf("Volume %lx (%s) created \n", volumeid, volumeName);
     exit(0);
 }
 
@@ -1248,7 +1247,7 @@ static void purge(void)
 	fprintf(stderr, "VolPurge failed with %s\n", RPC2_ErrorMsg((int)rc));
 	exit(-1);
     }
-    fprintf(stderr, "Volume %lx (%s) successfully purged\n", volid, this_argp[3]);
+    printf("Volume %lx (%s) successfully purged\n", volid, this_argp[3]);
     exit(0);
 }
 /*
@@ -1277,7 +1276,7 @@ static void lock(void)
 	fprintf(stderr, "VolLock failed with %s\n", RPC2_ErrorMsg((int)rc));
 	exit(-1);
     }
-    fprintf(stderr, "Locked volume %lx had a VVV of (%ld,%ld,%ld,%ld,%ld,%ld,%ld,%ld)\n",
+    printf("Locked volume %lx had a VVV of (%ld,%ld,%ld,%ld,%ld,%ld,%ld,%ld)\n",
 	   Vid, vvv.Versions.Site0, vvv.Versions.Site1, vvv.Versions.Site2,
 	   vvv.Versions.Site3, vvv.Versions.Site4, vvv.Versions.Site5,
 	   vvv.Versions.Site6, vvv.Versions.Site7);
@@ -1308,7 +1307,7 @@ static void unlock(void)
 	fprintf(stderr, "VolUnlock failed with %s\n", RPC2_ErrorMsg((int)rc));
 	exit(-1);
     }
-    fprintf(stderr, "Volume %lx is unlocked.\n", Vid);
+    printf("Volume %lx is unlocked.\n", Vid);
     exit(0);
 }
 
@@ -1715,7 +1714,7 @@ static void getmaxvol(void)
         fprintf(stderr, "Couldn't get maxvolid: %s\n", RPC2_ErrorMsg((int)rc));
 	exit (-1);
     }
-    fprintf(stderr, "Maximum volume id is 0x%lX\n", maxid);
+    printf("Maximum volume id is 0x%lX\n", maxid);
     exit (0);
 }
 
@@ -1743,7 +1742,7 @@ static void setmaxvol(void)
 	exit(-1);
     }
 
-    fprintf(stderr, "Maximum volume id set to 0x%lx\n", volid);
+    printf("Maximum volume id set to 0x%lx\n", volid);
     exit(0);
 }
 
@@ -1796,7 +1795,7 @@ static void peekint(void)
 
     if ((rc = VolPeekInt(rpcid, (RPC2_String) this_argp[2], &value)) != RPC2_SUCCESS)
 	peekpokeerr();
-    fprintf(stderr, "%s contains 0x%lx\n", this_argp[2], (long) value);
+    printf("%s contains 0x%lx\n", this_argp[2], (long) value);
     exit (0);
 }
 
@@ -1840,7 +1839,7 @@ static void peekmem(void)
     if ((rc = VolPeekMem(rpcid, (RPC2_String) this_argp[2], &buf)) != RPC2_SUCCESS)
 	peekpokeerr();
     buf.SeqBody[(int) buf.SeqLen] = '\0';
-    fprintf(stderr, "%s contains %s\n", this_argp[2], buf.SeqBody);
+    printf("%s contains %s\n", this_argp[2], buf.SeqBody);
     exit (0);
 }
 
@@ -1861,7 +1860,7 @@ static void pokemem(void)
 
     if ((rc = VolPokeMem(rpcid, (RPC2_String) this_argp[2], &buf)) != RPC2_SUCCESS)
 	peekpokeerr();
-    fprintf(stderr, "%s stored at %s\n", buf.SeqBody, this_argp[2]);
+    printf("%s stored at %s\n", buf.SeqBody, this_argp[2]);
 
     exit(0);
 }
@@ -1887,9 +1886,9 @@ static void peekxmem(void)
 
     if ((rc = VolPeekMem(rpcid, (RPC2_String) this_argp[2], &buf)) != RPC2_SUCCESS)
 	peekpokeerr();
-    fprintf(stderr, "%s contains 0x", this_argp[2]);
-    while(buf.SeqLen--) fprintf(stderr, "%02x", *buf.SeqBody++);
-    fprintf(stderr, "\n");
+    printf("%s contains 0x", this_argp[2]);
+    while(buf.SeqLen--) printf("%02x", *buf.SeqBody++);
+    printf("\n");
     exit (0);
 }
 
@@ -1930,7 +1929,7 @@ static void pokexmem(void)
 
     if ((rc = VolPokeMem(rpcid, (RPC2_String) this_argp[2], &buf)) != RPC2_SUCCESS)
 	peekpokeerr();
-    fprintf(stderr, "0x%s stored at %s\n",
+    printf("0x%s stored at %s\n",
 	    (this_argp[4][0] == '0' && this_argp[4][1] == 'x') ?
 	    this_argp[4] + 2 : this_argp[4],
 	    this_argp[2]);
@@ -1956,10 +1955,7 @@ static void setwb(RPC2_Integer wbflag)
 	fprintf(stderr, "VolSetWBParms failed with %s\n", RPC2_ErrorMsg((int)rc));
 	exit(-1);
     }
-    if (wbflag)
-	fprintf(stderr, "WriteBack allowed for Volume %lx\n",Vid);
-    else
-	fprintf(stderr, "WriteBack disallowed for Volume %lx\n",Vid);
+    printf("WriteBack %sallowed for Volume %lx\n", wbflag ? "" : "dis", Vid);
 
     exit(0);
 }
