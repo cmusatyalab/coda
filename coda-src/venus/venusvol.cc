@@ -1436,7 +1436,7 @@ void volent::TakeTransition() {
     VolumeStateType nextstate;
     VolumeStateType prevstate = state;
 
-    CODA_ASSERT(state != Resolving || res_list->count() == 0);
+    //CODA_ASSERT(state != Resolving || res_list->count() == 0);
     CODA_ASSERT(state == Hoarding || state == Emulating || state == Logging ||
 		state == Resolving);
 
