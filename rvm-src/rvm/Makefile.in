@@ -26,7 +26,7 @@ TOPOBJ = @TOPOBJ@
 include $(TOPDIR)/Makeconf
 
 # BSD platforms need libcompat.a for insque and deque
-RVMUTL_LIBS = ${LIBCOMPAT} ${LIBTHREADS} ${LIBBASE} ${LIBFIXUP}
+RVMUTL_LIBS = ${LIBTHREADS} ${LIBBASE} $(LIBS)
 
 EXPHEADERS  = rvm.h rvm_statistics.h rvm_lwp.h rvm_private.h \
               rvm_pthread.h
@@ -60,35 +60,23 @@ OBJ = rvmutl.o
 #		library produced: librvmlwp.a
 #  - pthreads
 
-
-
-HERE := $(shell basename `pwd`)
-ifeq ($(HERE),rvmlwp)
-RVMTARGET := lwp
-endif
-
-
-ifeq ($(RVMTARGET),)
-HEADERS     = ${EXPHEADERS} ${PRIVHEADERS}
-LIBRARIES   = librvm.a
-EXECUTABLES = rvmutl
-SSBINS      = rvmutl
+HEADERS     := ${EXPHEADERS} ${PRIVHEADERS}
+LIBRARIES   := librvm.a
+EXECUTABLES := rvmutl
+SSBINS      := rvmutl
 librvm.a: $(LIBOBJ)
 rvmutl:  librvm.a ${OBJ}
 	$(CC) $(LIBFLAGS) ${OBJ} librvm.a ${RVMUTL_LIBS} -o $@
-endif
 
-ifeq ($(RVMTARGET),lwp)
-CFLAGS += -DRVM_USELWP
+# and build the lwp version of librvm here as well
+LIBRARIES  += librvmlwp.a
+LWPLIBOBJ  := $(LIBOBJ:.o=_lwp.o)
 
-%.o : $(srcdir)/../rvm/%.c
-	$(CC) $(CFLAGS) -c $< -o $@
-	@mkdir -p .depfiles ; mv $*.d .depfiles
+librvmlwp.a: $(LWPLIBOBJ)
 
+%_lwp.o : %.c
+	$(CC) $(CFLAGS) -DRVM_USELWP -c $< -o $@
 
-LIBRARIES   = librvmlwp.a
-librvmlwp.a: $(LIBOBJ)
-endif
 
 ifeq ($(RVMTARGET),cthreads)
 CFLAGS += ....

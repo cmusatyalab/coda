@@ -37,9 +37,10 @@ extern "C" {
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <sys/file.h>    
+#include <sys/ioctl.h>    
 #include <vcrcommon.h>
 #include <time.h>
-#include <cfs/coda.h>
+#include <coda.h>
 extern int yylineno;
 extern char yytext[];
 extern int yylex();

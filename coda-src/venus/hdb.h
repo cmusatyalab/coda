@@ -37,7 +37,7 @@ extern "C" {
 
 /* interfaces */
 #include <vice.h>
-#include <cfs/coda.h>
+#include <coda.h>
 
 #define HDB_ASSERT(ex) \
 {\

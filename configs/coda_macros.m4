@@ -163,6 +163,20 @@ AC_DEFUN(CODA_CHECK_BCOPY,
     AC_DEFINE(HAVE_BCOPY_IN_STRINGS_H)
   fi)
 
+AC_SUBST(LIBUCB)
+AC_DEFUN(CODA_CHECK_LIBUCB, 
+  [AC_MSG_CHECKING(if bcopy lives in libucb)
+   AC_TRY_LINK([char bcopy();], bcopy(),
+     [AC_MSG_RESULT("no")],
+     [coda_save_LIBS="$LIBS"
+      LIBS="$LIBS /usr/ucblib/libucb.a"
+      AC_TRY_LINK([char bcopy();], bcopy(),
+        [AC_MSG_RESULT("yes")
+	 LIBUCB="/usr/ucblib/libucb.a"]
+        [AC_MSG_ERROR("Cannot figure out where bcopy lives")])
+      LIBS="$coda_save_LIBS"])
+  ])
+
 dnl check wether we have setenv
 AC_DEFUN(CODA_CHECK_SETENV, 
   AC_CACHE_CHECK(for setenv,

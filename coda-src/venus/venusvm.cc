@@ -52,7 +52,7 @@ extern int nlist(const char*, struct nlist[]);
 #include <rpc2.h>
 #include <rds.h>
 #include <rvm.h>
-#include <cfs/coda_opstats.h>
+#include <coda_opstats.h>
 
 /* interfaces */
 #include <vice.h>

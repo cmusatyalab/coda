@@ -31,12 +31,20 @@ AC_PATH_PROG(HOSTNAME, hostname, "")
 AC_PATH_PROG(PERL, perl, "")
 AC_PATH_PROGS(TIXWISH, [tixwish tixwish-tk4.1 tixwish4.1.8.0], "/usr/bin/tixwish")
 
+AC_PATH_PROG(MV, mv, "")
+AC_PATH_PROG(RM, rm, "")
+MV="${MV} -f"
+RM="${RM} -f"
+
 dnl Checks for libraries.
 CODA_FIND_LIBLWP
 CODA_CHECK_LIBTERMCAP
 CODA_CHECK_LIBCURSES
 CODA_CHECK_LIBDB185
+CODA_CHECK_LIBUCB
+AC_SEARCH_LIBS(bind, socket)
 AC_SEARCH_LIBS(inet_ntoa, nsl)
+AC_SEARCH_LIBS(insque, compat)
 
 dnl Checks for header files.
 AC_CHECK_HEADERS(search.h sys/resource.h sys/stream.h)
@@ -74,7 +82,7 @@ AC_ARG_ENABLE(srcdir, [Second shadow directory (srcdir)], SECSRC=$enable_srcdir)
 sinclude(configs/codaconf.m4)
 
 AC_PROG_MAKE_SET
-AC_OUTPUT(Makefile Makeconf.setup  
+AC_OUTPUT(Makefile Makeconf.setup newmake
 configs/Makefile 
 lib-src/Makefile 
 lib-src/base/Makefile
@@ -130,11 +138,4 @@ coda-src/util/tests/Makefile
 coda-src/venus/tests/Makefile  
 coda-src/advice/tests/Makefile 
 coda-src/guitools/tests/Makefile
-coda-src/smon2/Makefile ,
-mkdir -p rvm-src/rvmlwp 
-rm -f rvm-src/rvmlwp/Makefile
-ln -f -s ../rvm/Makefile rvm-src/rvmlwp/Makefile
-mkdir -p rvm-src/rdslwp
-rm -f rvm-src/rdslwp/Makefile
-ln -f -s ../rds/Makefile rvm-src/rdslwp/Makefile
- )
+coda-src/smon2/Makefile)

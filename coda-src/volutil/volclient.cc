@@ -16,13 +16,6 @@ listed in the file CREDITS.
 
 #*/
 
-
-
-
-
-
-
-
 /***************************************************/
 /*	volclient.c				   */
 /*	    - client side for volume utilities	   */
@@ -138,6 +131,16 @@ static void V_InitRPC(int timeout);
 static int V_BindToServer(char *fileserver, RPC2_Handle *RPCid);
 static void VolDumpLWP(struct rockInfo *rock);
 extern long volDump_ExecuteRequest(RPC2_Handle, RPC2_PacketBuffer*,SE_Descriptor*);
+
+#ifdef __cplusplus
+extern "C" {
+#endif __cplusplus
+
+int iopen(long dev, long ino, long flags) { return 0; }
+
+#ifdef __cplusplus
+}
+#endif __cplusplus
 
 int main(int argc, char **argv) {
 #ifndef __CYGWIN32__

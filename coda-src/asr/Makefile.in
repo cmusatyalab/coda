@@ -32,8 +32,6 @@ endif
 CBINS       = $(EXECUTABLES)
 HEADERS     = asr.h ruletypes.h
 
-YFLAGS= -d
-
 DEPLIBS = $(LIBKERNDEP) $(LIBUTIL) $(LIBBASE)
 LIBS := $(DEPLIBS) $(LEXLIB) $(LIBFIXUP) $(LIBS)
 
@@ -43,6 +41,12 @@ LIBS := $(DEPLIBS) $(LEXLIB) $(LIBFIXUP) $(LIBS)
 OBJECTS = resolver_parser.o resolver_lexer.o ruletypes.o resolver.o wildmat.o path.o
 
 include $(TOPDIR)/configs/Makerules
+
+YFLAGS= -d
+
+resolver_parser.c: resolver_parser.h
+resolver_parser.h: resolver_parser.y
+	$(YACC) $(YFLAGS) $< && mv y.tab.c $*.c && mv y.tab.h $*.h
 
 parser: ${OBJECTS} $(DEPLIBS)
 	$(CXX) $(LDFLAGS) ${OBJECTS} $(LIBS) -o parser

@@ -28,10 +28,6 @@ EXECUTABLES = norton norton-reinit
 SCRIPTS     = reinit
 SBINS       = $(EXECUTABLES) $(SCRIPTS)
 
-ifeq ($(SYS),sol2)
-LIBFIXUP += -R/usr/ucblib -L/usr/ucblib -lucb
-endif
-
 DEPLIBS = $(LIBAUTH2)	\
 	$(LIBRES)	\
 	$(LIBAL)	\
@@ -49,8 +45,7 @@ DEPLIBS = $(LIBAUTH2)	\
 	$(LIBRPC2) 	\
 	$(LIBBASE)
 
-LIBS := $(DEPLIBS) $(LIBLWP) $(LIBDB) $(LIBREADLINE) $(LIBTERMCAP)	\
-	$(LIBCOMPAT) $(LIBFIXUP) $(LIBMATH) $(LIBS)
+LIBS := $(DEPLIBS) $(LIBLWP) $(LIBDB) $(LIBREADLINE) $(LIBTERMCAP) $(LIBMATH) $(LIBS)
 
 common_objects = norton-setup.o commands.o norton-volume.o \
 		 norton-recov.o norton-vnode.o norton-dir.o norton-rds.o dummy.o

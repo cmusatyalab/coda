@@ -47,7 +47,7 @@ extern "C" {
 #endif /* __NetBSD__ */
 #endif
 
-#include <cfs/coda.h>
+#include <coda.h>
 
 #include <lwp/lwp.h>
 #include <lwp/lock.h>

@@ -27,7 +27,7 @@ include $(TOPDIR)/Makeconf
 
 DEPLIBS =  ../$(LIBFAIL) ../$(LIBUTIL) ../$(LIBVICEDEP) ../$(LIBSE)\
 	../$(LIBRPC2) ../$(LIBKERNDEP)
-LIBS := $(LIBLWP) $(LIBCOMPAT) $(LIBGDBM) $(LIBS)
+LIBS := $(LIBLWP) $(LIBGDBM) $(LIBS)
 OTHERLIBS = $(LIBSYS) $(LIBKVM)
 
 OBJECTS = replacementlog_test.o programspy_test.o

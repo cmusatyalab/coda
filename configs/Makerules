@@ -181,8 +181,7 @@ ifdef SUBDIRS
 endif
 
 realclean:
-	-$(RM) *.o *.a  .depfiles/*.d *.d
-	-rmdir .depfiles
+	-$(RM) *.o *.a  *.d
 	-$(RM) *.client.cc *.client.c *.server.cc *.server.c *.multi.cc *.multi.c *.print.c $(RP2HEADERS)
 	-$(RM) $(EXECUTABLES) $(LIBRARIES) $(TESTS) core
 	-$(RM) chdrinstall rp2hdrinstall libinstall bininstall scriptinstall \
@@ -236,13 +235,9 @@ show showvar:
 
 .c.o:
 	$(CC) $(CFLAGS) $(CPPFLAGS) -c $<
-	@mkdir -p .depfiles
-	@mv $*.d .depfiles || true
 
 .cc.o:
 	$(CXX) $(CXXFLAGS) $(CPPFLAGS) -c $<
-	@mkdir -p .depfiles
-	@mv $*.d .depfiles || true
 
 %.a:
 	$(AR) rv $@ $?
@@ -253,15 +248,6 @@ show showvar:
 %.client.c %.server.c %.multi.c %.h: %.rpc2
 	${RP2GEN} ${RP2FLAGS} $<
 
-
-ifndef NO_LEX
-lex.yy.c:
-	$(LEX) $(LFLAGS) $<
-
-#y.tab.c:
-#	$(YACC) $(YFLAGS) $<
-endif
-
 .PHONY FORCE:
 
 
@@ -270,4 +256,5 @@ endif
 #	suck down any dependencies we know about
 ###############################################################
 
--include .depfiles/*.d
+-include *.d
+

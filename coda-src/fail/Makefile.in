@@ -35,8 +35,7 @@ HEADERS     = ${RP2FILES} fail.h
 RP2HEADERS  = fcon.h
 
 DEPLIBS = ${LIBRPC2} ${LIBSE} ${LIBUTIL} ${LIBBASE}
-LIBS := ${DEPLIBS} ${LIBLWP} ${LIBREADLINE} ${LIBTERMCAP} ${LIBCOMPAT} \
-    ${LIBFIXUP} ${LIBS}
+LIBS := ${DEPLIBS} ${LIBLWP} ${LIBREADLINE} ${LIBTERMCAP} ${LIBS}
 
 # No longer of interest: tvclient tvserver ftclient ftserver 
 OBJS = fcon.client.o fcon.server.o filtutil.o fcon.o fail.o delay.o clear.o isolate.o list.o join.o slow.o heal.o partition.o newpartition.o

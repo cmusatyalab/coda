@@ -49,10 +49,6 @@ SSBINS      = $(EXECUTABLES)
 LIBRARIES   = libvolutil.a libvolserv.a
 HEADERS     = volutil.private.h
 
-ifeq ($(SYS),sol2)
-LIBFIXUP += -R/usr/ucblib -L/usr/ucblib -lucb
-endif
-
 VLIBS =	${LIBVOL} \
 	${LIBVV} \
 	$(LIBVICEDEP)\
@@ -66,12 +62,11 @@ VLIBS =	${LIBVOL} \
 	${LIBSYSENT} \
 	${LIBBASE}
 
-LIBS=	${LIBREADLINE} \
+LIBS:=	${LIBREADLINE} \
 	${LIBLWP} \
 	$(LIBUTIL) \
-	$(LIBCOMPAT) \
 	$(LIBTERMCAP) \
-	$(LIBFIXUP)
+	$(LIBS)
 
 
 LOCALOBJS = readstuff.o dumpstuff.o vvlist.o

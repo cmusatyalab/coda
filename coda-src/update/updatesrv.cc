@@ -84,6 +84,9 @@ extern "C" {
 extern void SFTP_SetDefaults (SFTP_Initializer *initPtr);
 extern void SFTP_Activate (SFTP_Initializer *initPtr);
 #include <vice.h>
+
+int iopen(long dev, long ino, long flags) { return 0; }
+
 #ifdef __cplusplus
 }
 #endif __cplusplus

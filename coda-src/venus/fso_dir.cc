@@ -40,7 +40,7 @@ extern "C" {
 #include <unistd.h>
 #include <stdlib.h>
 #include <time.h>
-#include <cfs/coda.h>
+#include <coda.h>
 
 /* interfaces */
 #include <vice.h>

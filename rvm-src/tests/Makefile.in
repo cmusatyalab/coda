@@ -37,8 +37,8 @@ include $(TOPDIR)/Makeconf
 EXECUTABLES = testrvm rvm_basher lwp_basher
 TESTS = testrvm rvm_basher lwp_basher
 
-TESTRVM_LIBS    = $(LIBRVM) $(LIBCOMPAT) $(LIBBASE) $(LIBTHREADS)
-RVM_BASHER_LIBS = $(LIBRDS) $(LIBSEG) $(LIBRVM) $(LIBCOMPAT) $(LIBBASE) $(LIBTHREADS)
+TESTRVM_LIBS    = $(LIBRVM) $(LIBBASE)
+RVM_BASHER_LIBS = $(LIBRDS) $(LIBSEG) $(LIBRVM) $(LIBBASE)
 LWP_BASHER_LIBS = $(LIBRDSLWP) $(LIBSEG) $(LIBRVMLWP) $(LIBBASE)
 
 # re-install this when libplumber is ready, for mach platform -- clement
@@ -48,10 +48,10 @@ LWP_BASHER_LIBS = $(LIBRDSLWP) $(LIBSEG) $(LIBRVMLWP) $(LIBBASE)
 
 
 testrvm: testrvm.o $(TESTRVM_LIBS)
-	$(CC) $(LDFLAGS) testrvm.o $(TESTRVM_LIBS) -o testrvm
+	$(CC) $(LDFLAGS) testrvm.o $(TESTRVM_LIBS) $(LIBS) -o testrvm
 
 rvm_basher: rvm_basher.o $(RVM_BASHER_LIBS)
-	$(CC) $(LDFLAGS) rvm_basher.o $(RVM_BASHER_LIBS) -o rvm_basher
+	$(CC) $(LDFLAGS) rvm_basher.o $(RVM_BASHER_LIBS) $(LIBS) -o rvm_basher
 
 # Coda-specific installations
 
@@ -63,7 +63,7 @@ lwp_basher.o:	rvm_basher.c
 
 lwp_basher: lwp_basher.o $(LWP_BASHER_LIBS)
 	    $(CC) $(LDFLAGS) lwp_basher.o $(LWP_BASHER_LIBS) \
-		$(LIBLWP) $(LIBCOMPAT) -o lwp_basher
+		$(LIBLWP) $(LIBS) -o lwp_basher
 
 
 include $(TOPDIR)/configs/Makerules

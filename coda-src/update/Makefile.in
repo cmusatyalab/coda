@@ -62,11 +62,7 @@ DEPLIBS = ${LIBVICEERROR}\
 	${LIBUTIL}\
 	${LIBKERNDEP}\
 	$(LIBBASE)
-LIBS := $(DEPLIBS) $(LIBLWP) $(LIBCOMPAT) $(LIBS) $(LIBMATH)
-
-ifeq ($(SYS),sol2)
-LIBS += -R/usr/ucblib -L/usr/ucblib -lucb
-endif
+LIBS := $(DEPLIBS) $(LIBLWP) $(LIBMATH) $(LIBS)
 
 include $(TOPDIR)/configs/Makerules
 

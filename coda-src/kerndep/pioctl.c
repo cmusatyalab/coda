@@ -169,7 +169,7 @@ int pioctl(const char *path, unsigned long com,
     /* marschalls into send_data. send_data will be allocated. make sure to free it afterwards*/ 
     size = marschalling(&send_data, path, &data); 
 
-    /* send_data contains blob of PioctlData, path, vi.out, vi.in; /*
+    /* send_data contains blob of PioctlData, path, vi.out, vi.in; */
     /* this is neccessary for DJGPP. Also used for Cygwin to keep kernel module clean */
     /* outbuf contains pioctl command and will be used for return values */
     

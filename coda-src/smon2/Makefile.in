@@ -29,7 +29,7 @@ EXECUTABLES = smon2 rpc2ping
 SBINS       = smon2 rpc2ping
 
 DEPLIBS = $(LIBVICEDEP) $(LIBRPC2) $(LIBSE) $(LIBSYS) $(LIBBASE)
-LIBS := $(DEPLIBS) $(LIBLWP) $(LIBCOMPAT) $(LIBFIXUP) $(LIBS)
+LIBS := $(DEPLIBS) $(LIBLWP) $(LIBS)
 
 include $(TOPDIR)/configs/Makerules
 

@@ -51,8 +51,7 @@ DEPLIBS = $(LIBVOLSERV) $(LIBVICEDEP) $(LIBAUTH2) $(LIBAL) $(LIBVOLUTIL) \
     $(LIBRES) $(LIBREPAIR) $(LIBVOL) $(LIBVV) $(LIBPARTITION) $(LIBSYSENT) \
     $(LIBDIRLIB) $(LIBUTIL) $(LIBCODARDS) $(LIBSEG) $(LIBCODARVM) $(LIBRPC2) \
     $(LIBSE) $(LIBFAIL) $(LIBBASE)
-LIBS := $(DEPLIBS) $(LIBLWP) $(LIBKVM) $(LIBCOMPAT) $(LIBDB) $(LIBMATH) \
-    $(LIBFIXUP) $(LIBS)
+SRVLIBS := $(DEPLIBS) $(LIBLWP) $(LIBKVM) $(LIBDB) $(LIBMATH) $(LIBS)
 
 objects=srvproc.o	\
 	srvproc2.o	\
@@ -65,16 +64,11 @@ objects=srvproc.o	\
 	ViceErrorMsg.o	\
 	writeback.o
 
-ifeq ($(SYS),sol2)
-LIBS += -R/usr/ucblib -L/usr/ucblib -lucb
-endif
-
-
 codasrv: ${objects} srv.o ${DEPLIBS}
-	$(CXX) $(LDFLAGS) srv.o ${objects} ${LIBS} -o codasrv
+	$(CXX) $(LDFLAGS) srv.o ${objects} ${SRVLIBS} -o codasrv
 
 printvrdb: printvrdb.o 
-	$(CXX) ${LDFLAGS} printvrdb.o $(LIBFIXUP) -o printvrdb
+	$(CXX) ${LDFLAGS} printvrdb.o $(LIBS) -o printvrdb
 
 libviceerror.a: ViceErrorMsg.o
 

@@ -25,6 +25,8 @@ III =  coda-src
 
 SUBDIRS = $(I) $(EXTRAS) $(II) $(III) $(V)
 
-
 include $(TOPDIR)/configs/Makerules
+
+subdirclean:
+	-$(RM) include/vcrcommon.h
 

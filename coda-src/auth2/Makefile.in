@@ -78,10 +78,6 @@ RP2HEADERS  = auth2.h
 DEPLIBS = ${LIBRPC2} ${LIBAL} ${LIBUTIL} ${LIBKERNDEP} ${LIBAUSER} ${LIBBASE}
 LIBS := ${DEPLIBS} ${LIBLWP} ${LIBS}
 
-ifeq ($(SYS),sol2)
-LIBS += -R/usr/ucblib -L/usr/ucblib -lucb
-endif
-
 LIBRARIES   = libauth2.a libauser.a
 HEADERS     = avenus.h
 OBJS = auth2.client.o auth2.server.o auth2.multi.o au.o auser.o avenus.o avice.o initpw.o
@@ -96,7 +92,7 @@ $(AUTH2): auth2.o libauth2.a $(DEPLIBS)
 	$(CC) $(LDFLAGS) auth2.o libauth2.a $(LIBKRBS) $(LIBS) $(LIBDB) -o $(AUTH2)
 
 initpw: initpw.o $(DEPLIBS)
-	$(CC) $(LDFLAGS) initpw.o $(LIBS) $(LIBFIXUP) -o initpw
+	$(CC) $(LDFLAGS) initpw.o $(LIBS) -o initpw
 
 $(AU): au.o libauser.a $(DEPLIBS)
 	$(CC) $(LDFLAGS) au.o libauser.a $(LIBKRBS) $(LIBS) -o $(AU)

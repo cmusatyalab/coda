@@ -51,7 +51,7 @@ extern FILE *_findiop();
 #include <stdlib.h>
 
 #include <time.h>
-#include <cfs/coda.h>
+#include <coda.h>
 
 #ifdef __cplusplus
 }
@@ -68,7 +68,9 @@ extern FILE *_findiop();
 #endif
 
 /* Manifest Constants. */
+#ifndef STREQ
 #define	STREQ(a, b) (strcmp(a, b) == 0)
+#endif
 #define	FATAL	1
 #define	MAXCMDLEN   (MAXPATHLEN + 1024)
 #define	ALL_UIDS    ((vuid_t)-1)

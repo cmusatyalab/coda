@@ -37,7 +37,7 @@ CFLAGS := -Wall -DRPC2DEBUG -DERRORTR $(CFLAGS)
 AFLAGS := -DRPC2DEBUG $(AFLAGS)
 
 DEPLIBS = $(LIBBASE)
-LIBS := $(DEPLIBS) $(LIBLWP) $(LIBCOMPAT) $(LIBFIXUP) $(LIBS)
+LIBS := $(DEPLIBS) $(LIBLWP) $(LIBS)
 
 HFILES	  = rpc2.h rpc2.private.h se.h cbuf.h trace.h multi.h 
 SEHFILES  = sftp.h

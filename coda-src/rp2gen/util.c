@@ -263,7 +263,7 @@ char *coda_rp2_basename(name)
     r = name + strlen(name);
     for (p=name; *p!='\0'; p++)
 	switch (*p) {
-	    case '/':	l = p;
+	    case '/':   l = p;
 			break;
 	    case '.':	r = p;
 			break;

@@ -24,7 +24,6 @@ TOPOBJ = @TOPOBJ@
 
 include $(TOPDIR)/Makeconf
 
-INCLDIR := $(INCLDIR)/cfs
 HEADERS = coda.h coda_opstats.h
 
 include $(TOPDIR)/configs/Makerules

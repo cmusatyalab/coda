@@ -16,10 +16,6 @@ listed in the file CREDITS.
 
 #*/
 
-
-
-
-
 /**************************************************/
 /* 	backup.c				  */
 /*	   - Coordinator for backup subsystem.	  */
@@ -168,6 +164,16 @@ extern long volDump_ExecuteRequest(RPC2_Handle, RPC2_PacketBuffer*,
 #ifndef NDEBUG
 static void unlockReplicas(volinfo_t *vol);
 #endif
+
+#ifdef __cplusplus
+extern "C" {
+#endif __cplusplus
+
+int iopen(long dev, long ino, long flags) { return 0; }
+
+#ifdef __cplusplus
+}
+#endif __cplusplus
 
 
 /* get_volId parses the VolumeList file to obtain the volId and

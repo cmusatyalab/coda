@@ -49,6 +49,9 @@ extern "C" {
 #include <se.h>
 #include "sftp.h"
 #include <vice.h>
+
+int iopen(long dev, long ino, long flags) { return 0; }
+
 #ifdef __cplusplus
 }
 #endif __cplusplus

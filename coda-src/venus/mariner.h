@@ -92,7 +92,7 @@ class mariner : public vproc {
 
   public:
     int IsLogging(void)		  { return logging; }
-    int write(char *buf, int len) { ::write(fd, buf, len); }
+    int write(char *buf, int len) { return ::write(fd, buf, len); }
 };
 
 

@@ -83,6 +83,8 @@ extern "C" {
 #include <vice.h>
 #include <util.h>
 
+int iopen(long dev, long ino, long flags) { return 0; }
+
 #ifdef sun
 int utimes(const char *, const struct timeval *);
 #endif

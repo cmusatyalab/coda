@@ -37,11 +37,7 @@ SSBINS=makeftree inoder
 
 LIBRARIES = libpartition.a
 DEPLIBS = $(LIBPARTITION) $(LIBUTIL) $(LIBRDS) $(LIBSEG) $(LIBRVM) $(LIBBASE)
-LIBS := $(DEPLIBS) $(LIBLWP) $(LIBMATH) $(LIBFIXUP) $(LIBS)
-
-ifeq ($(SYS),sol2)
-LIBS += -R/usr/ucblib -L/usr/ucblib -lucb
-endif
+LIBS := $(DEPLIBS) $(LIBLWP) $(LIBMATH) $(LIBS)
 
 
 libpartition.a: $(LIBOBS)

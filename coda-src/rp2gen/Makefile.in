@@ -46,20 +46,24 @@ TOPOBJ = @TOPOBJ@
 
 include $(TOPDIR)/Makeconf
 
-CC=$(NATIVECC)
 CFLAGS:= -MD -I. -I/usr/include -I$(TOPOBJ)/include 
 
 EXECUTABLES = rp2gen
 
-YFLAGS = -d
-
 include $(TOPDIR)/configs/Makerules
+
+%_native.o: %.c
+	$(NATIVECC) $(CFLAGS) -c $< -o $@
 
 # All the things that seem to depend on y.tab.c (except y.tab.o) really depend
 # on y.tab.h, but it gets generated at the same time by yacc...
+YFLAGS = -d
+rp2gen_parser.c: rp2gen_parser.h
+rp2gen_parser.h: rp2gen_parser.y
+	$(YACC) $(YFLAGS) $< && mv y.tab.c $*.c && mv y.tab.h $*.h
 
 rp2gen: rp2main.o rp2gen_parser.o rp2gen_lexer.o symtab.o crout.o util.o $(LIBFIXUP)
-	${CC} $(LDFLAGS) rp2main.o rp2gen_parser.o rp2gen_lexer.o symtab.o crout.o util.o $(LIBFIXUP) -o rp2gen
+	${CC} $(LDFLAGS) $^ -o $@
 
 rp2main.o: rp2main.c rp2.h
 
@@ -73,5 +77,5 @@ crout.o: crout.c rp2.h
 
 util.o	: util.c rp2.h
 
-# these need to be cleaned too
-TESTS= rp2gen_lexer.c rp2gen_parser.c y.tab.h
+# these might need to be cleaned too
+TESTS= rp2gen_lexer.c rp2gen_parser.c rp2gen_parser.h

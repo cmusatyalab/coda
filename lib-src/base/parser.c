@@ -33,7 +33,7 @@ extern "C" {
 #include "coda_assert.h"
 
 #define	READLINE_LIBRARY
-#include <readline.h>
+#include <readline/readline.h>
 
 extern void using_history();
 extern void stifle_history(int);

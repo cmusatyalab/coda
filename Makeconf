@@ -66,7 +66,7 @@ CXXFLAGS  := $(CXXFLAGS) $(DEPFLAG) $(MACHINE_FLAGS) $(MYFLAGS) $(INCLFLAGS)
 
 RP2FLAGS  = -e  -I . -I $(srcdir) 
 
-LIBS	  := $(LIBS) $(LIBCOMPAT) $(LIBFIXUP)
+LIBS	  := $(LIBS) $(LIBCOMPAT) $(LIBFIXUP) $(LIBUCB)
 
 
 # uncomment some of the next lines if you have kerberos
@@ -94,10 +94,8 @@ LIBRVM= $(TOPOBJ)/rvm-src/rvm/librvm.a
 LIBRDS= $(TOPOBJ)/rvm-src/rds/librds.a	 		
 LIBSEG= $(TOPOBJ)/rvm-src/seg/libseg.a 			
 # with threads
-LIBRVMLWP = $(TOPOBJ)/rvm-src/rvmlwp/librvmlwp.a
-LIBRDSLWP = $(TOPOBJ)/rvm-src/rdslwp/librdslwp.a
-LIBRVMLWP = $(TOPOBJ)/rvm-src/rvmlwp/librvmlwp.a
-LIBRDSLWP = $(TOPOBJ)/rvm-src/rdslwp/librdslwp.a
+LIBRVMLWP = $(TOPOBJ)/rvm-src/rvm/librvmlwp.a
+LIBRDSLWP = $(TOPOBJ)/rvm-src/rds/librdslwp.a
 
 # -- CODA --
 LIBCODARVM = $(LIBRVMLWP)

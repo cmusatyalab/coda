@@ -21,7 +21,7 @@ listed in the file CREDITS.
 #include <lwp/lock.h>
 #include <sys/types.h>
 #include <time.h>
-#include <cfs/coda.h>
+#include <coda.h>
 #include <dllist.h>
 
 /* bytes per page */

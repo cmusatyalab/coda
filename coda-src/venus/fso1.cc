@@ -51,7 +51,7 @@ extern "C" {
 #include <math.h>
 
 #include <time.h>
-#include <cfs/coda.h>
+#include <coda.h>
 
 #ifdef __cplusplus
 }

@@ -34,7 +34,7 @@ Coda are listed in the file CREDITS.
 #ifdef HAVE_SYS_IOCCOM_H
 #include <sys/ioccom.h>
 #endif
-#include <cfs/coda.h>
+#include <coda.h>
 
 /* WARNING: don't send more data than allowed by the CFS_MAXMSG size
 in coda.h */

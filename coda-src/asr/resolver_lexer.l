@@ -24,7 +24,7 @@ listed in the file CREDITS.
 extern "C" {
 #endif __cplusplus
 
-#include "y.tab.h"
+#include "resolver_parser.h"
 #include "asr.h"
 #include <stdio.h>
 #include <stdlib.h>

@@ -42,7 +42,7 @@ Pittsburgh, PA.
 #include <sys/param.h>
 #include <sys/stat.h>
 #include "rp2.h"
-#include "y.tab.h"
+#include "rp2gen_parser.h"
 
 #define RETURN(Arg) if (yydebug != 0) printf("Lex: token:%d\n", Arg); return(Arg)
 
