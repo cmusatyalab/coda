@@ -27,8 +27,8 @@ include $(TOPDIR)/Makeconf
 CFLAGS += -Wall 
 
 LIBRARIES = libbase.a 
-HEADERS   = coda_assert.h configfiles.h dllist.h base64.h
-OBJECTS   = coda_assert.o dllist.o coda_malloc.c base64.o # configfiles.o
+HEADERS   = coda_assert.h configfiles.h dllist.h base64.h urlquote.h
+OBJECTS   = coda_assert.o dllist.o coda_malloc.c base64.o urlquote.o # configfiles.o
 
 HEADERS += parser.h
 ifneq ($(SHORTSYS),djgpp)

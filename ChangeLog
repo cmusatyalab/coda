@@ -1,3 +1,14 @@
+1999-06-09    <jaharkes@cs.cmu.edu>
+	* ======== Release 5.2.5  =========
+	* Fixed bug in codacon, it tried to connect to 1.0.0.127.
+	* `cfs lv' now lists more information about the volume, like
+	  inconsistencies, even while disconnected. (Clement)
+	* Changes to allow multiple servers on the same machine. (Peter)
+	* We forgot to clear a directory handle when aborting a reintegration.
+	* Enabled cross-directory rename resolution.
+	* Cleanup of the fetch continuation code, this should take care of
+	  several cases that could crash a client.
+
 1999-05-31    <jaharkes@cs.cmu.edu>
 	* ======== Release 5.2.4  =========
 	* Client uniquifiers were not unique, because the random generator

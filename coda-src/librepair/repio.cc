@@ -16,13 +16,6 @@ listed in the file CREDITS.
 
 #*/
 
-
-
-
-
-
-
-
 /* Created:
 	M. Satyanarayanan
 	June 1989
@@ -78,6 +71,7 @@ extern "C" {
 #include <stdlib.h>
 #include <prs.h>
 #include <rpc2.h>
+#include <urlquote.h>
 
 #ifdef __cplusplus
 }
@@ -245,16 +239,18 @@ int repair_parseline(char *line, struct repair *rs)
 	Some opcodes don't use a name field
     */
     {
-    register char *c, *d, *eos;
-    register int i;
-
+    char *c, *d, *eos;
+    int i;
+    char unquoted_name[3*MAXNAMELEN];
 
 #define NEXTFIELD()\
     /* Set c to start of next field, d to the null at the end of this field */\
-    c = eatwhite(c);    /* consume leading whitespace */\
-    if (!*c) return(-1); /* premature eof */\
-    d = eatnonwhite(c); /* consume field and stop at wsp char */\
-    *d = 0;             /* insert string terminator */
+    c = eatwhite(c);		/* consume leading whitespace */\
+    if (!*c) return(-1);	/* premature eof */\
+    if (*c == '"') {		/* handle quoted strings as a field as well */ \
+	d = ++c; while (*d && *d != '"') d++; \
+    } else d = eatnonwhite(c);	/* otherwise, consume until wsp char */\
+    *d = 0;			/* insert string terminator */
     
 #define ADVANCE()\
     /* Advance both c and d beyond the current field */\
@@ -300,21 +296,21 @@ Opfound:
 	case REPAIR_RENAME:
 	    ADVANCE();
 	    NEXTFIELD();
-	    if (strlen(c) >= MAXNAMELEN) return(-1);
-	    else strcpy(rs->name, c);
+	    if (unquote(rs->name, c, MAXNAMELEN) != 0)
+		return(-1);
 
 	    /* get the new name too */
 	    ADVANCE();
 	    NEXTFIELD();
-	    if (strlen(c) >= MAXNAMELEN) return(-1);
-	    else strcpy(rs->newname, c);
+	    if (unquote(rs->newname, c, MAXNAMELEN) !=0)
+		return(-1);
 	    break;
 	    
 	default:
 	    ADVANCE();
 	    NEXTFIELD();
-	    if (strlen(c) >= MAXNAMELEN) return(-1);
-	    else strcpy(rs->name, c);
+	    if (unquote(rs->newname, c, MAXNAMELEN) !=0)
+		return(-1);
 	    break;
 	}
 
@@ -480,10 +476,10 @@ static char *eatnonwhite(char *s)
     /*  Returns pointer to first white char, starting at s.
         Terminating null treated as white char
     */
-    {
+{
     while (*s && !(*s == ' ' || *s == '\t')) s++;
     return(s);
-    }
+}
 
 
 static int acldecode(char *s, unsigned int *r)
@@ -528,6 +524,7 @@ static int acldecode(char *s, unsigned int *r)
 void repair_printline(struct repair *rs, FILE *ff)
     {
     char *c;
+    char quoted_name[3*MAXNAMELEN];
     int i;
     
     switch(rs->opcode)
@@ -548,10 +545,16 @@ void repair_printline(struct repair *rs, FILE *ff)
 	}
     
 
-    fprintf(ff, "\t%s %s", c, rs->name);
+    /* At some point we can always quote the filenames. However, currently
+     * I prefer to _only_ break the existing servers on something they
+     * couldn't do anyways. */
+    quote(quoted_name, rs->name, 3*MAXNAMELEN);
+    fprintf(ff, "\t%s %s", c, quoted_name);
 
     if (rs->opcode == REPAIR_RENAME) {
-	fprintf(ff, "\t%s ", rs->newname);
+	quote(quoted_name, rs->newname, 3*MAXNAMELEN);
+	fprintf(ff, "\t%s ", c, quoted_name);
+
 	for (i = 0; i < REPAIR_MAX; i++)
 	{
 	    fprintf(ff, " %08x", rs->parms[i]);
