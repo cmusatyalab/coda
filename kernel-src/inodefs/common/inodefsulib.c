@@ -34,26 +34,22 @@ static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/src/coda-4.0.1
 
 /*
  * userspace IFS library.
- * Designed to simulate the IFS kernel inode_io system call in Linux.
+ * Designed to simulate the inode related system calls
  *
- * Base on an idea of Peter Braam.
+ * Based on an idea of Peter Braam.
  *
- * Written by Werner Frielingsdorf.
- * 
- * 24-10-96.
- *
- * Still planning on optimizing the code a little more.
- *
- * 
+ * Written by Werner Frielingsdorf. 24-10-96.
+ * Rewritten with enhancements  Peter Braam
  *
  */
 
 /*
  * Inodes are simulated using files.
- * The files go in chains representing links.
- * 123-1, 123-2, 123-3 etc.
- * The vnode, volume, unique and dataversion fields are stored at the
- * beginning of the the file.
+ * The name of the file is the "inode number" for the file
+ * 1 2 3 4 5 6 7 etc.
+ * The vnode, volume, unique and dataversion fields are stored in the
+ * resource forks:
+ * .1 .2 .3 .4 etc.
  */
 
 #include <sys/types.h>
@@ -65,57 +61,50 @@ static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/src/coda-4.0.1
 #include <sys/dir.h>
 #include <errno.h>
 
-#define	FNAMESIZE	256
-#define MAX_NODES	99999
-#define	MAX_LINKS	999
-#define	FILEDATA	36
-#define DATAOFFSET	(sizeof(long)*4)
+#include "uifs.h"
 
 
-struct i_header {
-	long	volume;
-	long	vnode;
-	long	unique;
-	long	dataversion;
-};
+/* static data */
+static ino_t uifs_nextino = 0;
 
-/*
- * Hard coded for the time being.
- * -- Should be dynamic and determined by the device.
- */
-char	mountpnt[MAXPATHLEN]="/mnt/vice";
+static char	*mountpnt="/vicepa";
+static mode_t   mode=S_IREAD | S_IWRITE;
 
-#define		INOTOSTR(inode_number, lnk, filename) \
-		sprintf(filename,"%s/%lu-%d",mountpnt,inode_number,lnk);
+
+void inotostr(ino_t ino, char *filename)
+{
+    sprintf(filename,"%s/%lu",mountpnt,ino);
+}
+
+
+void inotores(ino_t ino, char *filename)
+{
+        sprintf(filename,"%s/.%lu",mountpnt,ino);
+}
 
 
 
 /*
  * iopen, simply returns an open call on the first file of the inode chain
  * and lseek to the data offset.
- *
  */
-int iopen(dev, inode_number, flag)
-dev_t	dev;
-ino_t	inode_number;
-int	flag;
 
+int iopen(dev_t dev, ino_t inode_number,int flag)
 {
 	char	filename[FNAMESIZE];
 	int	fd;
 
 	/* Attempt open. */
 
-	INOTOSTR(inode_number, 1, filename);
-	fd=open(filename, O_CREAT | flag, 0600);
-	if (fd<0)
-		return -1;	
+    if ( flag & O_CREAT ) {
+        printf("Cannot create files with iopen. Use icreate.\n");
+        return -1;
+    }
 
-	/* Do lseek to offset of data */
-	if (lseek(fd, DATAOFFSET, 0)<0) {
-		close (fd);
-		return -1;
-	}
+	inotostr(inode_number, filename);
+	fd=open(filename, flag, 0600);
+	if (fd<0)	return -1;	
+
 	return fd;
 }
 
@@ -123,117 +112,214 @@ int	flag;
 
 /*
  * icreate.  Simulates the kernel ifs call icreate.
- * Creates a inode chain by creating the first file "inodeno-1".
- *
- * Could do with some caching.
+ * returns -1 in case of failure
  */
 
-int icreate(dev, inode_number, volume, vnode, unique, dataversion)
-dev_t	dev;
-ino_t	inode_number;
-u_long	volume;
-u_long	vnode;
-u_long	unique;
-u_long	dataversion;
-
+int icreate(dev_t dev, ino_t inode_number, u_long volume, u_long vnode, 
+            u_long unique, u_long dataversion)
 {
-	int	fd;
+	int	fd, rc;
 	ino_t	i;
 	char	filename[FNAMESIZE];
+	char	resfilename[FNAMESIZE];
 	struct
-	i_header header={volume, vnode, unique, dataversion};
+	i_header header={1, volume, vnode, unique, dataversion, VICEMAGIC};
 
-	/*  Find an available inode.  Cache this.  */
-	for (i=0;i<=MAX_NODES;i++) {
-		INOTOSTR(i,1, filename);
-		if ((fd=creat(filename, 0700)) < 0) {
-			if (errno!=EEXIST)
-				return -1; 
-		}
-		else
-			break;
-	}
+	/*  Find an available inode. */
+    fd = 0;
+    while ( fd == 0 ) { 
+        if ( uifs_nextino == 0 ) {
+            /* XXX critical */
+            uifs_nextino = maxino() + 1;
+            i= uifs_nextino;
+        } else {
+            uifs_nextino++;
+            i= uifs_nextino;
+        }
+
+        inotostr(i, filename);
+        if ((fd = open(filename, O_CREAT | O_EXCL, mode)) < 0) {
+            if ( errno == EEXIST ) {
+                uifs_nextino = 0; 
+                fd = 0; 
+                continue;
+            } else {
+                return -1;
+            }
+        } else {
+            close(fd);
+        }
+    }
 
 	/* write header */
-
-	if (write(fd, (char *)&header, sizeof(struct i_header))<0) {
-		close (fd);
-		return -1;
+	inotores(i,resfilename);
+	if ( (fd = open(resfilename, O_CREAT | O_EXCL | O_RDWR, mode) ) < 0 ){
+        printf("Error opening resource for inode file %d\n",i);
+        unlink(filename);
+        return -1;
+	} else { 
+        rc = write(fd, (char *)&header, sizeof(struct i_header)); 
+        if ( rc != sizeof(struct i_header)) {
+            close (fd);
+            printf("Error writing header for inode file %d\n",i);
+            return -1;
+        }
 	}
-
 	close(fd);
 
 	return i;
 }
 
+/* write header */
+static int put_header(struct i_header *header, ino_t ino)
+{
+	char	resfilename[FNAMESIZE];
+    int fd, rc;
 
+    inotores(ino, resfilename);
+	if ( (fd = open(resfilename, O_RDWR)) < 0 ){
+        printf("Error opening resource for inode file %d\n",ino);
+        return -1;
+	} else { 
+        rc = write(fd, (char *)header, sizeof(struct i_header)); 
+        if ( rc != sizeof(struct i_header)) {
+            close (fd);
+            printf("Error writing header for inode file %d\n",ino);
+            return -1;
+        }
+	}
+
+	close(fd);
+    return 0;
+}
+
+/* read header */
+int get_header(struct i_header *header, ino_t ino)
+{
+	char	resfilename[FNAMESIZE];
+    int fd, rc;
+
+    inotores(ino, resfilename);
+	if ( (fd = open(resfilename, O_RDONLY) ) < 0 ){
+        printf("Error opening resource for inode file %d\n",ino);
+        return -1;
+	} else { 
+        rc = read(fd, (char *)header, sizeof(struct i_header)); 
+        if ( rc != sizeof(struct i_header)) {
+            close (fd);
+            printf("Error reading header for inode file %d\n",ino);
+            return -1;
+        }
+	}
+
+	close(fd);
+    return 0;
+}
+
+
+/* set the link count in the header */
+static int set_link(long *count, ino_t ino)
+{
+	char	resfilename[FNAMESIZE];
+    int fd, rc;
+
+    if ( count <= 0) {
+        printf("Cannot set link number to non-positive integer\n");
+        return -1;
+    }
+
+    inotores(ino, resfilename);
+	if ( (fd = open(resfilename, O_RDWR)) < 0 ){
+        printf("Error opening resource for inode file %d\n",ino);
+        return -1;
+	} else { 
+        rc = write(fd, (char *)count, sizeof(long)); 
+        if ( rc != sizeof(long)) {
+            close (fd);
+            printf("Error reading header for inode file %d\n",ino);
+            return -1;
+        }
+	}
+
+	close(fd);
+    return 0;
+}
 
 
 /*
  * iinc, increments the links by adding another file to the inode chain.
  */
-int iinc(dev, inode_number, parent_vol)
-dev_t	dev;
-ino_t	inode_number;
-ino_t	parent_vol;
-
+int iinc(dev_t dev, ino_t  inode_number, ino_t parent_vol)
 {
+    int  rc;
 	char	inofile[FNAMESIZE];
 	char	linkfile[FNAMESIZE];
-	struct
-	stat	statinf;
+	struct	stat	statinf;
+    struct  i_header header;
+    long lnk;
 
-	INOTOSTR(inode_number, 1, inofile);
+    inotostr(inode_number,  inofile);
 	/* Get number of files in chain from stat info */
 	if (stat(inofile, &statinf) < 0)
 		return -1;
 
-	/* Link one more file to first inode chain */
-	INOTOSTR(inode_number, statinf.st_nlink+1, linkfile);
-	if (link(inofile, linkfile)<0)
-		return -1;
+    rc = get_header(&header, inode_number);
+    if  ( rc != 0 ) return -1;
+    
+    lnk = header.lnk + 1;
+    rc = set_link(&lnk, inode_number);
+    if  ( rc != 0 ) return -1;
+
+    return 0;
 }
 
 
 /*
  * idec
- * removes the last file in the inode chain.
+ * decreases the link attribute in the resource, or removes file
+ * when this is about to become negative
  */
-int idec(dev, inode_number, parent_vol)
-dev_t	dev;
-ino_t	inode_number;
-ino_t	parent_vol;
-
+int idec(dev_t dev, ino_t inode_number, ino_t parent_vol)
 {
-	char	inofile[FNAMESIZE];
-	char	linkfile[FNAMESIZE];
-	struct
-	stat	statinf;
+    int rc;
+	struct	stat	statinf;
+    struct  i_header header;
+    long lnk;
 
-	INOTOSTR(inode_number, 1, inofile);
+    rc = get_header(&header, inode_number);
+    if ( rc != 0 ) return -1;
+    
+    if ( header.lnk == 1 ) { /* file needs to be removed */
+        char filename[FNAMESIZE];
+        char resfilename[FNAMESIZE];
 
-	if (stat(inofile, &statinf) < 0)
-		return -1;
+        inotostr(inode_number, filename);
+        inotores(inode_number, resfilename);
+        rc = unlink(filename);
+        if ( rc ) printf("Error deleting file: %s\n", filename);
+            
+        rc = unlink(resfilename);
+        if ( rc ) {
+            printf("Error deleting resource file: %s\n", resfilename);
+            return -1;
+        }
+        return 0;  
 
-	/* Remove last file of inode chain. */
-	INOTOSTR(inode_number, statinf.st_nlink, linkfile);
-	if (unlink(linkfile)<0)
-		return -1;
+    } else { /* just decrease link count */
+        lnk = header.lnk - 1;
+        set_link(&lnk , inode_number);
+    }
+
+    return 0;
 }
+
 
 /*
  * iread,
- * opens the first file in the inode chain and performs a lseek/read/close.
- *
+ * opens the first file in the inode chain and performs a read & close.
  */
-int iread(dev, inode_number, parent_vol, offset, buf, count)
-dev_t	dev;
-ino_t	inode_number;
-ino_t	parent_vol;
-int	offset;
-char	*buf;
-int	count;
-
+int iread(dev_t dev, ino_t inode_number, ino_t parent_vol, int offset, 
+          char *buf, int count) 
 {
 	int	fd,res;
 	char	inofile[FNAMESIZE];
@@ -242,13 +328,13 @@ int	count;
 		errno= EINVAL;
 		return -1;
 	}
-	INOTOSTR(inode_number, 1, inofile);
+	inotostr(inode_number,  inofile);
 
 	if ((fd=open(inofile, O_RDONLY , 0))<0)
 		return fd;
 	
 	/*  lseek and read the requested data  */
-	if (lseek(fd, DATAOFFSET+offset, 0)<0)
+	if (lseek(fd,offset, 0)<0)
 		return -1;
 
 	res=read(fd, buf, count);
@@ -259,22 +345,16 @@ int	count;
 /*
  * iwrite,
  * Similar to iread, opens the first file in the inode chain,
- * lseeks to offset, reads data and then closes the fd.
+ * and reads data and then closes the fd.
  *
  */
-int iwrite(dev, inode_number, parent_vol, offset, buf, count)
-dev_t	dev;
-ino_t	inode_number;
-ino_t	parent_vol;
-int	offset;
-char	*buf;
-int	count;
-
+int iwrite(dev_t dev, ino_t inode_number,ino_t  parent_vol, int  offset, 
+           char *buf, int count)
 {
 	int	fd,res;
-	char	inofile[FNAMESIZE];
+	char inofile[FNAMESIZE];
 
-	INOTOSTR(inode_number, 1, inofile);
+	inotostr(inode_number,  inofile);
 
 	if (offset < 0) {
 		errno= EINVAL;
@@ -285,7 +365,7 @@ int	count;
 		return fd;
 	
 	/*  lseek and read the requested data  */
-	if (lseek(fd, DATAOFFSET+offset, 0)<0)
+	if (lseek(fd, offset, 0)<0)
 		return -1;
 
 	res=write(fd, buf, count);
@@ -296,39 +376,67 @@ int	count;
 /*
  * istat,
  * retrieves inode information from the first file in the inode chain.
- * and stores the attributes from the file header to the fields of the
+ * and stores the attributes from the resource file to the fields of the
  * stat struct.
  *
  */
-int istat(dev, inode_number, statbuf)
-dev_t	dev;
-ino_t	inode_number;
-struct	stat	*statbuf;
-
+int istat(dev_t dev,ino_t  inode_number, struct stat *statbuf)
 {
 	int	fd,res;
-	char	inofile[FNAMESIZE];
-	struct
-	i_header header;
+	char inofile[FNAMESIZE];
+	struct i_header header;
 
-	INOTOSTR(inode_number, 1, inofile);
+	inotostr(inode_number, inofile);
 
 	if (stat(inofile, statbuf)<0)
 		return -1;
 
-	if ((fd=open(inofile,O_RDONLY))<0)
-		return -1;
+    if ( get_header(&header, inode_number) != 0 ) 
+        return -1;
 
-	if (read(fd, (char *)&header, DATAOFFSET)!=DATAOFFSET) {
-		close (fd);
-		return -1;
-	}
-	close(fd);
-	
+    /* is this really what we want??? XXXX */	
 	(*(long *)&statbuf->st_gid)=header.volume;
+    statbuf->st_nlink = header.lnk;
 	statbuf->st_size=header.vnode;
 	statbuf->st_blksize=header.unique;
 	statbuf->st_blocks=header.dataversion;
 	return 0;
 }
+
+
+
+ino_t maxino() 
+{
+    struct dirent **namelist;
+    int n, i;
+    ino_t max;
+    
+    n = scandir(mountpnt, &namelist, 0, &inosort);
+    if (n < 0)
+        perror("scandir");
+    else
+        max =  atoi(namelist[n-1]->d_name);
+
+    for ( i = 0 ; i < n ; i++ ) free(namelist[i]);
+    free(namelist) ;
+
+    return max;
+
+}
+
+static int inosort(const struct dirent **a, const struct dirent **b)
+{
+    ino_t inoa, inob;
+    
+    inoa = atoi((*a)->d_name);
+    inob = atoi((*b)->d_name);
+    
+    if ( inoa == inob ) return 0;
+    if ( inoa > inob ) return 1;
+    if ( inoa < inob ) return -1;
+
+}
+
+
+
 
