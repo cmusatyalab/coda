@@ -70,7 +70,7 @@ $RPM_BUILD_DIR/coda-@VERSION@/configure --prefix=/usr
 make
 
 %install
-cd $RPM_BUILD_DIR/obj-@CVER@
+cd $RPM_BUILD_DIR/obj-@VERSION@
 rm -rf $RPM_BUILD_ROOT
 mkdir -p $RPM_BUILD_ROOT/usr/coda/venus.cache $RPM_BUILD_ROOT/dev \
 	$RPM_BUILD_ROOT/usr/coda/etc \
@@ -93,7 +93,7 @@ chown -R root.root $RPM_BUILD_ROOT
 
 %clean
 rm -rf $RPM_BUILD_ROOT
-rm -rf $RPM_BUILD_DIR/obj-@CVER@
+rm -rf $RPM_BUILD_DIR/obj-@VERSION@
 
 %pre client
 grep "^coda" /proc/mounts > /dev/null 2>&1

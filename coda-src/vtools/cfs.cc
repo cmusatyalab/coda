@@ -311,7 +311,7 @@ struct command cmdarray[] =
             NULL
         },
         {"setacl", "sa", SetACL, 
-            "cfs setacl [-clear] [-negative] <dir> <id> <rights> [<id> <rights> ....]",
+            "cfs setacl [-clear] [-negative] <dir> <name> <rights> [<name> <rights> ....]",
             "Set access control list",
             NULL
         },
