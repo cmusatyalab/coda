@@ -424,6 +424,7 @@ class mgrpent {
     int RVVCheck(vv_t **, int);
     int DHCheck(vv_t **, int, int *,  int =0);
     int PickDH(vv_t **RVVs);
+    int IsAuthenticated(void) { return authenticated; }
 
     int GetHostSet();
     int CreateMember(unsigned long);

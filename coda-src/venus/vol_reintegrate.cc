@@ -380,7 +380,7 @@ extern struct timeval *VprocRetryBeta;
 		LOG(0, ("volent::IncReintegrate: fail code = %d\n", code));
 		CML.print(logFile);
 		/* 	
-	 * checkpoint the log before localizing or aborting.
+                 * checkpoint the log before localizing or aborting.
 		 * release read lock; it will be boosted in CML.Checkpoint.
 		 * Note that we may have to wait until other mutators finish 
 		 * mucking with the volume/log, which means the state we checkpoint 

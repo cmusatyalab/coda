@@ -2197,6 +2197,12 @@ int ClientModifyLog::COP1(char *buf, int bufsize, ViceVersionVector *UpdateSet,
     code = vol->GetMgrp(&m, owner, (PIGGYCOP2 ? &PiggyBS : 0));
     if (code != 0) goto Exit;
 
+    /* abort reintegration if the user is not authenticated */
+    if (!m->IsAuthenticated()) {
+        code = ETIMEDOUT; /* treat this as an `spurious disconnection' */
+        goto Exit;
+    }
+
     if (vol->IsWeaklyConnected() && m->rocc.HowMany > 1) {
 	/* Pick a server and get a connection to it. */
 	int ph_ix;
