@@ -49,7 +49,6 @@ pid_file=/usr/coda/venus.cache/pid
 run_control_file=/usr/coda/venus.cache/VENUS_CTRL
 rvm_log=/usr/coda/LOG
 rvm_data=/usr/coda/DATA
-codatmpdir=/usr/coda/tmp
 
 # override with user defined paths
 if [ -f /etc/coda/venus.conf ] ; then
@@ -87,7 +86,6 @@ makedir () {
 }
 
 makedir 755 $checkpointdir
-makedir 755 $codatmpdir
 makedir 755 $marinersocketdir
 makedir 755 $mountpoint
 makedir 700 $cachedir
