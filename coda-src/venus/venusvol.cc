@@ -275,6 +275,42 @@ int VOL_HashFN(const void *key)
     return volid->Realm + volid->Volume;
 }
 
+int GetRootVolName(Realm *realm, char buf[V_MAXVOLNAMELEN])
+{
+    connent *c = NULL;
+    int code = ENOENT;
+    RPC2_BoundedBS RVN;
+
+    memset(buf, 0, V_MAXVOLNAMELEN);
+
+    RVN.MaxSeqLen = V_MAXVOLNAMELEN-1;
+    RVN.SeqLen = 0;
+    RVN.SeqBody = (RPC2_ByteSeq)buf;
+
+    /* Get the connection. */
+    if (realm->GetAdmConn(&c) != 0) {
+	LOG(100, ("GetRootVolName: can't get admin connection for realm %s!\n",
+		  realm->Name()));
+	RPCOpStats.RPCOps[ViceGetRootVolume_OP].bad++;
+	return ENOENT;
+    }
+
+    /* Make the RPC call. */
+    MarinerLog("store::GetRootVolume %s\n", realm->Name());
+    UNI_START_MESSAGE(ViceGetRootVolume_OP);
+    code = (int) ViceGetRootVolume(c->connid, &RVN);
+    UNI_END_MESSAGE(ViceGetRootVolume_OP);
+    MarinerLog("store::getrootvolume done\n");
+    code = c->CheckResult(code, 0);
+    UNI_RECORD_STATS(ViceGetRootVolume_OP);
+
+    PutConn(&c);
+
+    LOG(10, ("GetRootVolume: (%s) received name: %s, code: %d\n",
+	     realm->Name(), buf, code));
+
+    return code;
+}
 
 int GetRootVolume()
 {
@@ -296,48 +332,21 @@ int GetRootVolume()
 
     /* If we don't already know the root volume name ask the servers for it. */
     {
-	RPC2_BoundedBS RVN;
-	RVN.MaxSeqLen = V_MAXVOLNAMELEN-1;
-	RVN.SeqLen = 0;
 	char buf[V_MAXVOLNAMELEN];
-	memset(buf, 0, V_MAXVOLNAMELEN);
-	RVN.SeqBody = (RPC2_ByteSeq)buf;
-
-	/* Get the default realm */
-	int code = ENOENT;
-	connent *c = NULL;
 	Realm *r = REALMDB->GetRealm(default_realm);
-	CODA_ASSERT(r);
+	int code;
 
-	/* Get the connection. */
-	code = r->GetAdmConn(&c);
+	code = GetRootVolName(r, buf);
+
 	r->PutRef();
-	if (code != 0) {
-	    LOG(100, ("GetRootVolume: can't get connection for realm %s!\n", default_realm));
-	    RPCOpStats.RPCOps[ViceGetRootVolume_OP].bad++;
-	    goto failure;
-	}
 
-	/* Make the RPC call. */
-	MarinerLog("store::GetRootVolume\n");
-	UNI_START_MESSAGE(ViceGetRootVolume_OP);
-	code = (int) ViceGetRootVolume(c->connid, &RVN);
-	UNI_END_MESSAGE(ViceGetRootVolume_OP);
-	MarinerLog("store::getrootvolume done\n");
-	code = c->CheckResult(code, 0);
-	LOG(10, ("GetRootVolume: received name: %s, code: %d\n", RVN.SeqBody, code));
-	UNI_RECORD_STATS(ViceGetRootVolume_OP);
-
-	PutConn(&c);
-
-failure:
 	if (code != 0) {
 	    eprint("GetRootVolume: can't get root volume name!");
-	    return(0);
+	    return 0;
 	}
 
 	RootVolName = new char[V_MAXVOLNAMELEN];
-	strncpy(RootVolName, (char *)RVN.SeqBody, V_MAXVOLNAMELEN);
+	strncpy(RootVolName, buf, V_MAXVOLNAMELEN);
     }
 
 found_rootvolname:
@@ -625,7 +634,7 @@ int vdb::Get(volent **vpp, Realm *realm, const char *name)
     int code = 0;
     volent *v = NULL;
     char *realm_name = NULL;
-    char *volname = strdup(name);
+    char *volname = strdup(name), *name2 = NULL;
     CODA_ASSERT(volname);
 
     realm->GetRef();
@@ -637,6 +646,16 @@ int vdb::Get(volent **vpp, Realm *realm, const char *name)
 	realm = REALMDB->GetRealm(realm_name);
 	CODA_ASSERT(realm);
     }
+
+    if (volname[0] == '\0') {
+	name2 = volname;
+	volname = (char *)malloc(V_MAXVOLNAMELEN);
+	CODA_ASSERT(volname);
+
+	if (GetRootVolName(realm, volname) != 0)
+	    goto error_exit;
+    }
+
 
     LOG(100, ("vdb::Get: volname = %s@%s\n", volname, realm->Name()));
 
@@ -716,6 +735,7 @@ Exit:
 error_exit:
     realm->PutRef();
     free(volname);
+    if (name2) free(name2);
     return code;
 }
 

@@ -135,7 +135,7 @@ class connent {
   friend class mgrpent;
   friend class fsobj;
   friend int GetTime(long *, long *);
-  friend int GetRootVolume(void);
+  friend int GetRootVolName(Realm *, char *);
   friend class vdb;
   friend class volent;
   friend void repvol::Resolve(void);

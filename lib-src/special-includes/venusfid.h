@@ -66,7 +66,7 @@ inline int FID_VolEQ(const Volid *a, const Volid *b)
 
 inline int FID_VolEQ(const VenusFid *a, const VenusFid *b)
 {
-	return FID_VolEQ(MakeVolid(a), MakeVolid(b));
+	return FID_VolEQ((Volid *)a, (Volid *)b);
 }
 
 inline int FID_VolIsLocal(VenusFid *fid)
