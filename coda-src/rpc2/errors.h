@@ -38,7 +38,7 @@ Coda are listed in the file CREDITS.
 #define ERRORS_H
 
 #include <stdio.h>
-#include <sys/errno.h>
+#include <errno.h>
 #include <errorsdefs.h>
 
 /* exported definitions */

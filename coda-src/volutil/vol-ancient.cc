@@ -25,7 +25,7 @@ extern "C" {
 #endif __cplusplus
 
 #include <sys/types.h>
-#include <sys/errno.h>
+#include <errno.h>
 
 #include <lwp.h>
 #include <lock.h>

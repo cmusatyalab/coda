@@ -25,7 +25,7 @@ Coda are listed in the file CREDITS.
 #include <sys/file.h>
 #include <sys/stat.h>
 #include <sys/uio.h>
-#include <sys/errno.h>
+#include <errno.h>
 #include <unistd.h>
 #include <stdlib.h>
 #include "rvm_private.h"

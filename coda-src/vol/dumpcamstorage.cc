@@ -37,7 +37,7 @@ extern "C" {
 #include <stdio.h>
 #include <ctype.h>
 #include <sys/param.h>
-#include <sys/errno.h>
+#include <errno.h>
 #include <sys/stat.h>
 #include <sys/time.h>
 #include <sys/file.h>

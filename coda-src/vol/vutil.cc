@@ -53,7 +53,7 @@ extern "C" {
 
 #include <stdio.h>
 #include <sys/types.h>
-#include <sys/errno.h>
+#include <errno.h>
 #include <sys/time.h>
 #include <sys/stat.h>
 #include <sys/file.h>
