@@ -61,7 +61,7 @@ supported by Transarc Corporation, Pittsburgh, PA.
 #include <machine/asm.h>
 #endif
 #ifdef	__FreeBSD__
-#include <machine/asmacro.h>
+#include <machine/asmacros.h>
 #endif
 #include <sys/syscall.h>
 
