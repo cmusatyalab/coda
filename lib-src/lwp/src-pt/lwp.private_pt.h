@@ -57,7 +57,7 @@ struct lwp_pcb {
 
 void lwp_JOIN(PROCESS pid);
 void lwp_LEAVE(PROCESS pid);
-extern int lwp_waiting;
+int lwp_threads_waiting(void);
 
 /* logging classes */
 #define LWP_DBG_LOCKS 1
