@@ -3,23 +3,20 @@
 #	variables, libraries for BSD build
 
 
-MACHINE_FLAGS = -D__BSD44__
+MACHINE_FLAGS += -D__BSD44__
 SHORTSYS      = bsd44
 INCLFLAGS     = -I/usr/include
 OPTFLAG	      =
 GFLAG         = -g
-LIBCURSES     = -lcurses
 LIBCOMPAT     = /usr/lib/libcompat.a
 LIBREADLINE   = /usr/lib/libreadline.a
 INCREADLINE   = -I/usr/include/readline
-LIBTERMCAP    = -ltermcap
 #for rvm
 LIBTHREADS    =
 LIBMACH       = 
 
 #for advice_srv
 LIBKVM        = /usr/lib/libkvm.a
-LIBDB         =
 LIBMATH       = -lm
 GUIDIR        = /usr/lib/coda
 

@@ -65,45 +65,46 @@ void PDB_freeProfile(PDB_profile *r)
 
 void PDB_writeProfile(PDB_HANDLE h, PDB_profile *r)
 {
-	void *d;
+	void *data;
+	size_t size;
    
 	/* sanity check arguments */
 	CODA_ASSERT(r && h);
    
 	/* pack the record */
-	pdb_pack(r, &d);
+	pdb_pack(r, &data, &size);
 
-	PDB_db_write(h, r->id, r->name, d);
+	PDB_db_write(h, r->id, r->name, data, size);
 }
 
 
 void PDB_readProfile(PDB_HANDLE h, int32_t id, PDB_profile *r)
 {
 	void *data;
+	size_t size;
 
 	/* sanity check arguments */
 	CODA_ASSERT(r && h);
 
-	data=PDB_db_read(h, id, NULL);
-
+	PDB_db_read(h, id, NULL, &data, &size);
 	CODA_ASSERT(data);
 
-	pdb_unpack(r,data);
+	pdb_unpack(r, data, size);
 }
 
 
 void PDB_readProfile_byname(PDB_HANDLE h, char *name, PDB_profile *r)
 {
-	void *data;
+	void  *data;
+	size_t size;
 
 	/* sanity check arguments */
 	CODA_ASSERT(r && h);
 
-	data=PDB_db_read(h, 0, name);
-
+	PDB_db_read(h, 0, name, &data, &size);
 	CODA_ASSERT(data);
 	
-	pdb_unpack(r,data);
+	pdb_unpack(r, data, size);
 }
 
 

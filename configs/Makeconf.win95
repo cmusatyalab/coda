@@ -25,7 +25,7 @@ NATIVECC= cc
 EXTRAS = djgpp
 
 
-MACHINE_FLAGS = -DDOS
+MACHINE_FLAGS += -DDOS
 SHORTSYS      = djgpp
 INCLFLAGS     =
 OPTFLAG	      =

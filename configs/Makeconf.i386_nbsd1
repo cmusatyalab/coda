@@ -5,22 +5,19 @@
 
 # the following may need editing depending on your preferences
 
-MACHINE_FLAGS = -D__BSD44__
+MACHINE_FLAGS += -D__BSD44__
 SHORTSYS      = bsd44
 INCLFLAGS     = -I/usr/include
 OPTFLAG	      =
 GFLAG         = -g
-LIBCURSES     = -lcurses
 LIBCOMPAT     = /usr/lib/libcompat.a
 LIBREADLINE   = /usr/pkg/lib/libreadline.a
 INCREADLINE   = -I/usr/pkg/include/readline
 #for rvm
 LIBTHREADS    =
 LIBMACH       = 
-LIBTERMCAP    = /usr/lib/libtermcap.a
 #for advice_srv
 LIBKVM        = /usr/lib/libkvm.a
-LIBDB         =
 
 KRBINCLFLAGS  = -I/usr/athena/include -I/usr/include/kerberosIV
 LIBKRBS       =    /usr/athena/lib/libkrb4.a /usr/athena/lib/libkrb5.a /usr/athena/lib/libcrypto.a /usr/athena/lib/libcom_err.a  /usr/athena/lib/libdes425.a /usr/athena/lib/libkrb524.a

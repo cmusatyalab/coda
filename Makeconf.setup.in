@@ -34,6 +34,12 @@ YACC=   @YACC@
 LEX=    @LEX@
 LEXLIB= @LEXLIB@
 
+LIBTERMCAP= @LIBTERMCAP@
+LIBCURSES=  @LIBCURSES@
+LIBDB=	    @LIBDB@
+
+MACHINE_FLAGS= @DEFS@
+
 #
 # Platform, uncomment your choice; 
 #  flag:  --enable-platform=the_plf

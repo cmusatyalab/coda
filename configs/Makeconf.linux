@@ -10,13 +10,11 @@
 
 # the following may need editing depending on your preferences
 
-MACHINE_FLAGS = 
+#MACHINE_FLAGS += 
 SHORTSYS      = linux
 INCLFLAGS     = -I/usr/include
 OPTFLAG	      =
 GFLAG         = -g
-LIBCURSES     = -lncurses
-LIBTERMCAP    = $(LIBS)
 LIBCOMPAT     =
 LIBREADLINE   = -lreadline
 
@@ -25,7 +23,6 @@ INCREADLINE   = -I/usr/include/readline
 LIBTHREADS    =
 LIBMACH       = 
 LIBMATH       = -lm
-LIBDB         = -ldb
 PERL          = perl
 
 GUIDIR        = /usr/lib/coda

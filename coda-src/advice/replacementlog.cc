@@ -28,10 +28,10 @@ extern "C" {
 #include <fcntl.h>
 #include <errno.h>
 
-#if !defined(__GLIBC__) || __GLIBC_MINOR__ < 1
-#include <db.h>
-#else 
+#ifdef HAVE_DB_185_H
 #include <db_185.h>
+#else 
+#include <db.h>
 #endif
 
 #include <lock.h>

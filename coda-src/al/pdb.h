@@ -71,8 +71,8 @@ int PDB_nameInUse(char *name);
 void PDB_changeId(int32_t oldid, int32_t newid);
 
 /* internal packing functions */
-void pdb_pack(PDB_profile *r, void **data);
-void pdb_unpack(PDB_profile *r, void *data);
+void pdb_pack(PDB_profile *r, void **data, size_t *size);
+void pdb_unpack(PDB_profile *r, void *data, size_t size);
 
 /* core PDB_ profile functions */
 void PDB_freeProfile(PDB_profile *r);
@@ -90,8 +90,8 @@ PDB_HANDLE PDB_db_open(int mode);
 void PDB_db_close(PDB_HANDLE h);
 void PDB_db_maxids(PDB_HANDLE h, int32_t *uid, int32_t *gid);
 void PDB_db_update_maxids(PDB_HANDLE h, int32_t uid, int32_t gid, int mode);
-void PDB_db_write(PDB_HANDLE h, int32_t id, char *name, void *buf);
-void *PDB_db_read(PDB_HANDLE h, int32_t id, char *name);
+void PDB_db_write(PDB_HANDLE h, int32_t id, char *name, void *buf, size_t size);
+void PDB_db_read(PDB_HANDLE h, int32_t id, char *name, void **buf,size_t *size);
 void PDB_db_delete(PDB_HANDLE h, int32_t id, char *name);
 void PDB_db_delete_xfer(PDB_HANDLE h, char *name);
 int PDB_db_exists(void);

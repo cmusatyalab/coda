@@ -406,15 +406,16 @@ int PDB_nameInUse(char *name)
 {
 	PDB_HANDLE h;
 	void *r;
+	size_t size;
 	PDB_profile p;
 
 	h = PDB_db_open(O_RDONLY);
 
-	r = PDB_db_read(h, 0, name);
+	PDB_db_read(h, 0, name, &r, &size);
 
 	PDB_db_close(h);
 
-	pdb_unpack(&p, r);
+	pdb_unpack(&p, r, size);
 
 	return (p.id != 0);
 }
@@ -424,7 +425,8 @@ void PDB_changeId(int32_t oldId, int32_t newId)
 {
 	PDB_HANDLE h;
 	PDB_profile r,p;
-	void *tmp;
+	void  *tmp;
+	size_t size;
 	int32_t nextid;
 	pdb_array_off off;
 
@@ -432,9 +434,9 @@ void PDB_changeId(int32_t oldId, int32_t newId)
 
 	h = PDB_db_open(O_RDWR);
 
-	tmp = PDB_db_read(h, newId, NULL);
+	PDB_db_read(h, newId, NULL, &tmp, &size);
 	CODA_ASSERT(tmp);
-	pdb_unpack(&r, tmp);
+	pdb_unpack(&r, tmp, size);
 	CODA_ASSERT(r.id == 0);
 
 	PDB_readProfile(h, oldId, &r);

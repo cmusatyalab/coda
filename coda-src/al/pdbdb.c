@@ -39,16 +39,15 @@ listed in the file CREDITS.
 #include <errno.h>
 #include <limits.h>
 
+#ifdef HAVE_DB_185_H
+#include <db_185.h>
+#else 
+#include <db.h>
+#endif
+
 
 #include <coda_assert.h>
 #include "pdb.h"
-
-#if !defined(__GLIBC__) || __GLIBC_MINOR__ < 1
-#include <db.h>
-#else 
-#include <db_185.h>
-#endif
-
 
 #define PDB_MAIN "/vice/db/coda.db"
 #define PDB_NAME "/vice/db/name.db"
@@ -66,8 +65,9 @@ PDB_HANDLE PDB_db_open(int mode)
 	struct PDB_HANDLE_S *handle;
 
 	handle = malloc(sizeof(*handle));
-	memset(handle, 0, sizeof(*handle));
 	CODA_ASSERT(handle);
+
+	memset(handle, 0, sizeof(*handle));
 
 	switch (mode) {
 	case O_RDWR: 
@@ -114,6 +114,8 @@ int PDB_db_nextkey(PDB_HANDLE h, int *id)
 	DBT key;
         int rc;
 
+	memset(&key, 0, sizeof(DBT));
+
         rc = h->main->seq(h->main, &key, NULL, which);
 
         if ( rc != RET_SUCCESS ) {
@@ -148,9 +150,12 @@ void PDB_db_maxids(PDB_HANDLE h, int32_t *uid, int32_t *gid)
 	int32_t *ids;
         int rc;
 
+	memset(&key, 0, sizeof(DBT));
 	key.size = sizeof(zero);
 	key.data = &zero;
 	
+	memset(&value, 0, sizeof(DBT));
+
         rc = h->main->get(h->main, &key, &value, 0);
 
 	if ( rc != RET_SUCCESS) {
@@ -175,8 +180,11 @@ void PDB_db_update_maxids(PDB_HANDLE h, int32_t uid, int32_t gid, int mode)
 	
 	CODA_ASSERT(uid >= 0 && gid <= 0);
 
+	memset(&key, 0, sizeof(DBT));
 	key.size = sizeof(zero);
 	key.data = &zero;
+
+	memset(&value, 0, sizeof(DBT));
 	
         rc = h->main->get(h->main, &key, &value, 0);
 
@@ -210,25 +218,29 @@ void PDB_db_update_maxids(PDB_HANDLE h, int32_t uid, int32_t gid, int mode)
 	CODA_ASSERT(rc == RET_SUCCESS);
 }
 
-void PDB_db_write(PDB_HANDLE h, int32_t id, char *name, void *buf)
+void PDB_db_write(PDB_HANDLE h, int32_t id, char *name, void *data, size_t size)
 {
-	DBT namerec, mainrec;
-	int rc;
-	DBT *bufd;
+	DBT namerec, mainrec, dbdata;
 	int32_t netid;
+	int rc;
 
-	CODA_ASSERT(id && name && buf);
+	CODA_ASSERT(id && name && data);
 
 	netid = htonl(id);
-	bufd = (DBT *)buf;
 
-	namerec.size = strlen(name);
-	namerec.data = name;
-
+	memset(&mainrec, 0, sizeof(DBT));
 	mainrec.size = sizeof(netid);
 	mainrec.data = (char *)&netid;
 
-        rc = h->main->put(h->main, &mainrec, bufd, 0);
+	memset(&namerec, 0, sizeof(DBT));
+	namerec.size = strlen(name);
+	namerec.data = name;
+
+	memset(&dbdata, 0, sizeof(DBT));
+	dbdata.size = size;
+	dbdata.data = data;
+
+        rc = h->main->put(h->main, &mainrec, &dbdata, 0);
 	CODA_ASSERT(rc == RET_SUCCESS);
 
         rc = h->name->put(h->name, &namerec, &mainrec, 0);
@@ -240,52 +252,52 @@ void PDB_db_write(PDB_HANDLE h, int32_t id, char *name, void *buf)
 		PDB_db_update_maxids(h, 0, id, PDB_MAXID_SET);
 
 	/* This frees the memory allocated in pdb_pack */
-	free(bufd->data);
-	free(bufd);
+	free(data);
 }
 
 
-void *PDB_db_read(PDB_HANDLE h, int32_t id, char *name)
+void PDB_db_read(PDB_HANDLE h, int32_t id, char *name, void **data,size_t *size)
 {
-	DBT d;
-	DBT *foundid;
-	void *data;
+	DBT key, value;
 	int32_t realid;
 	int rc;
 
-	/* The data allocated here is freed in pdb_unpack */
-	foundid = (DBT *) malloc(sizeof(*foundid));
-	CODA_ASSERT(foundid);
-
 	realid = htonl(id);
 	if ( name ) {
-		d.size = strlen(name);
-		d.data = name; 
-                rc = h->name->get(h->name, &d, foundid, 0);
+		memset(&key, 0, sizeof(DBT));
+		key.size = strlen(name);
+		key.data = name; 
+
+		memset(&value, 0, sizeof(DBT));
+
+                rc = h->name->get(h->name, &key, &value, 0);
 		if ( rc != RET_SUCCESS ) {
-                        foundid->data = NULL; 
-                        foundid->size = 0; 
-			return (void *)foundid;
+			*data = NULL;
+			*size = 0;
+			return;
                 }
-		realid = *(int32_t *)foundid->data;
-                foundid->data = NULL;
-                foundid->size = 0; 
+		realid = *(int32_t *)value.data;
 	}
 		
-	d.size = sizeof(realid);
-	d.data = (char *)&realid;
-        rc = h->main->get(h->main, &d, foundid, 0);
+	memset(&key, 0, sizeof(DBT));
+	key.size = sizeof(realid);
+	key.data = (char *)&realid;
+
+	memset(&value, 0, sizeof(DBT));
+
+        rc = h->main->get(h->main, &key, &value, 0);
         if ( rc != RET_SUCCESS ) {
-                foundid->data = NULL;
-                foundid->size = 0; 
-        } else {
-                data = malloc(foundid->size);
-                CODA_ASSERT(data);
-                memcpy(data, foundid->data, foundid->size);
-                foundid->data = data;
+		*data = NULL;
+		*size = 0;
+		return;
         }
 
-	return (void *)foundid;
+	*data = malloc(value.size);
+	CODA_ASSERT(*data);
+
+	memcpy(*data, value.data, value.size);
+	*size = value.size;
+	return;
 }
 
 
@@ -295,14 +307,16 @@ void PDB_db_delete(PDB_HANDLE h, int32_t id, char *name)
 	int32_t realid;
 
 	realid = htonl(id);
+
+	memset(&key, 0, sizeof(DBT));
 	key.size = sizeof(realid); 
 	key.data = (char *)&realid;
 
         h->main->del(h->main, &key, 0);
 
-	if (!name) 
-		return;
+	if (!name) return;
 
+	memset(&key, 0, sizeof(DBT));
 	key.size = strlen(name); 
 	key.data = name;
 
@@ -344,8 +358,9 @@ int PDB_db_exists(void)
 		return 0;
 	
 	/* check the sanity */
-	
+
 	/* this record has a special 1-byte key equal to zero */
+	memset(&key, 0, sizeof(DBT));
 	key.size = 1;
 	key.data = &zero;
 
