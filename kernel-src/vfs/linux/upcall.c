@@ -287,7 +287,7 @@ ENTRY;
         inp->cfs_create.mode = mode;
         inp->cfs_create.name = offset;
 
-	printk("insize %d, offset %d\n", insize, offset);
+	/* printk("insize %d, offset %d\n", insize, offset); */
         /* Venus must get null terminated string */
         memcpy(((char *)inp) + offset, name, length);
         *(((char *)inp) + offset + length) = '\0';
