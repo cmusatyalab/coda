@@ -538,6 +538,7 @@ long RPC2_NewBinding(IN RPC2_HostIdent *Host, IN RPC2_PortIdent *Port,
     struct Init4Body *ib4;    
     struct SL_Entry *sl;
     long rc, init2rc, init4rc, savexrandom = 0, saveyrandom = 0, bsize;
+    struct RPC2_addrinfo *addr, *peeraddrs;
 
 #define DROPCONN()\
 	    {rpc2_SetConnError(ce); (void) RPC2_Unbind(*ConnHandle); *ConnHandle = 0;}
@@ -568,7 +569,7 @@ long RPC2_NewBinding(IN RPC2_HostIdent *Host, IN RPC2_PortIdent *Port,
     
     
     /* Step 0: Resolve bind parameters */
-    struct RPC2_addrinfo *addr, *peeraddrs = rpc2_resolve(Host, Port);
+    peeraddrs = rpc2_resolve(Host, Port);
     if (!peeraddrs)
 	rpc2_Quit(RPC2_NOBINDING);
 
