@@ -24,7 +24,7 @@ AM_PROG_LIBTOOL
 dnl Checks for libraries.
 AC_CHECK_LIB(pthread, pthread_create, [LIBPTHREAD="-lpthread"])
 AC_SUBST(LIBPTHREAD)
-AM_CONDITIONAL(pthread, test x$LIBPTHREAD != x)
+AM_CONDITIONAL(build_pthread, test x$LIBPTHREAD != x)
 
 dnl Checks for header files.
 dnl Checks for typedefs.

@@ -17,7 +17,7 @@
 #                            none currently
 #*/
 
-if pthread
+if build_pthread
 EXTRA = src-pt
 endif
 
