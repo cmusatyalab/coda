@@ -395,7 +395,7 @@ rpc2_ConnFromBindInfo(struct RPC2_addrinfo *addr, RPC2_Integer whichUnique)
     int next, count;
     struct CEntry *ce;
     struct dllist_head *ptr;
-    int i, j;
+    int i, j = 0;
     
     /* If RBCache is being used, check it first; search it backwards,
      * to increase chances of hit on recent binds.  */

@@ -329,7 +329,7 @@ long SFTP_CreateMgrp(IN MgroupHandle)
 		       me->IPMAddr);
 
     /* Depending on rpc2_ipv6ready, rpc2_splitaddrinfo might return a simple
-     * IPv4 address. Convert it back to the more useful rpc2_addrinfo... */
+     * IPv4 address. Convert it back to the more useful RPC2_addrinfo... */
     rpc2_simplifyHost(&PeerInfo->RemoteHost, &PeerInfo->RemotePort);
 
     PeerInfo->RemoteSubsys.Tag = RPC2_SUBSYSBYID;
@@ -408,7 +408,7 @@ long SFTP_InitMulticast(IN MgroupHandle, IN ConnHandle, IN Request)
     RPC2_GetPeerInfo(ConnHandle, &mse->PInfo);
 
     /* Depending on rpc2_ipv6ready, rpc2_splitaddrinfo might return a simple
-     * IPv4 address. Convert it back to the more useful rpc2_addrinfo... */
+     * IPv4 address. Convert it back to the more useful RPC2_addrinfo... */
     rpc2_simplifyHost(&mse->PInfo.RemoteHost, &mse->PInfo.RemotePort);
 
     memcpy(mse->PInfo.SessionKey, me->SessionKey, sizeof(RPC2_EncryptionKey));
@@ -466,7 +466,7 @@ int SFXlateMcastPacket(RPC2_PacketBuffer *pb)
     ai = pb->Prefix.PeerAddr;
     if (ai->ai_family == PF_INET)
 	XlatePort = ((struct sockaddr_in *)ai->ai_addr)->sin_port;
-    else if (ai->ai_family == PF_INET6)
+    else
 	XlatePort = ((struct sockaddr_in6 *)ai->ai_addr)->sin6_port;
 
     XlatePort = htons(ntohs(XlatePort) - 1);

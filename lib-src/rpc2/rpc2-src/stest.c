@@ -50,6 +50,7 @@ Pittsburgh, PA.
 #include <lwp/lwp.h>
 #include <lwp/timer.h>
 #include <rpc2/rpc2.h>
+#include <rpc2/rpc2_addrinfo.h>
 #include <rpc2/se.h>
 #include "sftp.h"
 #include "test.h"

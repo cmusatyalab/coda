@@ -80,7 +80,6 @@ long RPC2_Init(char *VId,		/* magic version string */
 {
     char *c;
     long rc, i, ctpid;
-    int error;
     struct RPC2_addrinfo *rpc2_localaddr;
 
     rpc2_logfile = stderr;
@@ -108,7 +107,7 @@ long RPC2_Init(char *VId,		/* magic version string */
     rpc2_localaddr = rpc2_resolve(NULL, Port);
     if (!rpc2_localaddr) {
 	say(-1, RPC2_DebugLevel, "RPC2_Init(): Couldn't get addrinfo for localhost!\n");
-	rpc2_Quit(rc);
+	rpc2_Quit(RPC2_FAIL);
     }
     
     /* XXX we only bind to the first one that binds successfully */
@@ -811,8 +810,7 @@ long RPC2_ClearNetInfo(IN Conn)
 long rpc2_CreateIPSocket(long *svar, struct RPC2_addrinfo *addr,
 			 RPC2_PortIdent *Port)
 {
-    struct servent *sentry;
-    int err = RPC2_FAIL, blen = 0x8000 ;
+    int err = RPC2_FAIL;
 
     for (; addr; addr = addr->ai_next) {
 	/* Allocate socket */
@@ -845,6 +843,7 @@ long rpc2_CreateIPSocket(long *svar, struct RPC2_addrinfo *addr,
 
 	/* Retrieve fully resolved socket address */
 	if (Port) {
+	    struct RPC2_addrinfo *ai;
 	    struct sockaddr_storage bindaddr;
 	    socklen_t blen = sizeof(bindaddr);
 	    int rc = getsockname(*svar, (struct sockaddr *)&bindaddr, &blen);
@@ -855,11 +854,9 @@ long rpc2_CreateIPSocket(long *svar, struct RPC2_addrinfo *addr,
 		continue;
 	    }
 
-	    {
-		struct RPC2_addrinfo *ai = rpc2_allocaddrinfo(&bindaddr, blen);
-		rpc2_splitaddrinfo(NULL, Port, ai);
-		RPC2_freeaddrinfo(ai);
-	    }
+	    ai = RPC2_allocaddrinfo((struct sockaddr *)&bindaddr, blen);
+	    rpc2_splitaddrinfo(NULL, Port, ai);
+	    RPC2_freeaddrinfo(ai);
 
 #ifdef RPC2DEBUG
 	    if (RPC2_DebugLevel > 9) {

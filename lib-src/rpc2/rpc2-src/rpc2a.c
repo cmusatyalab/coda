@@ -550,7 +550,6 @@ long RPC2_NewBinding(IN RPC2_HostIdent *Host, IN RPC2_PortIdent *Port,
     switch ((int) Bparms->SecurityLevel) {
     case RPC2_OPENKIMONO:
 	    break;
-	    
 
     case RPC2_AUTHONLY:
     case RPC2_HEADERSONLY:
@@ -570,10 +569,9 @@ long RPC2_NewBinding(IN RPC2_HostIdent *Host, IN RPC2_PortIdent *Port,
     
     /* Step 0: Resolve bind parameters */
     struct RPC2_addrinfo *addr, *peeraddrs = rpc2_resolve(Host, Port);
-    if (!peeraddrs) {
-	    DROPCONN();
-	    rpc2_Quit(RPC2_NOBINDING);
-    }
+    if (!peeraddrs)
+	rpc2_Quit(RPC2_NOBINDING);
+
     say(9, RPC2_DebugLevel, "Bind parameters successfully resolved\n");
 
 try_next_addr:

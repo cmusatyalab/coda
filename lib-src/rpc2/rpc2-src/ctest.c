@@ -561,8 +561,6 @@ void ClearStats()
 
 void GetHost(RPC2_HostIdent *h)
 {
-    char buff[100];
-
     h->Tag = RPC2_HOSTBYNAME;
     if (!qflag) printf("Host name? ");
     (void) fscanf(ifd, "%s", h->Value.Name);

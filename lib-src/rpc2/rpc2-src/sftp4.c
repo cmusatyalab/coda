@@ -70,7 +70,6 @@ struct CBUF_Header *TraceBuf;
 int sftp_XmitPacket(struct SFTP_Entry *sEntry, RPC2_PacketBuffer *pb)
 {
     int whichSocket;
-    RPC2_PortIdent *whichPort;
     struct RPC2_addrinfo *ai;
 
 #ifdef RPC2DEBUG

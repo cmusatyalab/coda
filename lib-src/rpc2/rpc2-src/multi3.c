@@ -242,8 +242,7 @@ long RPC2_CreateMgrp(OUT MgroupHandle, IN MulticastHost, IN MulticastPort, IN Su
     long		SideEffectType;
     {
     struct MEntry	*me;
-    struct servent	*sentry;
-    long			secode;
+    long		secode;
 
     rpc2_Enter();
     say(0, RPC2_DebugLevel, "In RPC2_CreateMgrp()\n");

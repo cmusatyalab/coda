@@ -48,6 +48,8 @@ Pittsburgh, PA.
 #include <string.h>
 #include <dllist.h>
 
+#include <rpc2/rpc2_addrinfo.h>
+
 /*
 Magic Number assignments for runtime system objects.
 Truly random values to allow easy detection of storage corruption.
@@ -574,14 +576,11 @@ extern long rpc2_BindLimit, rpc2_BindsInQueue;
 extern long rpc2_FreeMgrps, rpc2_AllocMgrps;
 
 /* RPC2_addrinfo helper routines */
-struct RPC2_addrinfo *rpc2_allocaddrinfo(struct sockaddr *addr, size_t addrlen);
 struct RPC2_addrinfo *rpc2_resolve(RPC2_HostIdent *Host, RPC2_PortIdent *Port);
-void                  rpc2_printaddrinfo(struct RPC2_addrinfo *ai, FILE *f);
-void                  rpc2_splitaddrinfo(RPC2_HostIdent *Host,
-					 RPC2_PortIdent *Port,
-					 struct RPC2_addrinfo *addr);
-void		      rpc2_simplifyHost(RPC2_HostIdent *Host,
-					RPC2_PortIdent *Port);
+void rpc2_printaddrinfo(const struct RPC2_addrinfo *ai, FILE *f);
+void rpc2_splitaddrinfo(RPC2_HostIdent *Host, RPC2_PortIdent *Port,
+			const struct RPC2_addrinfo *ai);
+void rpc2_simplifyHost(RPC2_HostIdent *Host, RPC2_PortIdent *Port);
 
 
 /*--------------- Useful definitions that used to be in potpourri.h or util.h ---------------*/

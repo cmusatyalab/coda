@@ -37,6 +37,7 @@ Pittsburgh, PA.
 
 */
 
+#include <rpc2/rpc2_addrinfo.h>
 
 /*------------ For tracing calls -------------*/
 /* Call codes */
@@ -502,7 +503,7 @@ struct TraceElem
 	tea->whichPB_Address = whichPB;\
 	tea->whichPB = *whichPB;	/* structure assignment */\
 	rpc2_htonp(&tea->whichPB);\
-	tea->whichAddr = *addr;	/* structure assignment */\
+	tea->whichAddr = *addr;	/* BAD! structure assignment */\
 	tea->whichAddr.ai_next = NULL; \
 	} }while(0)
 
@@ -596,7 +597,7 @@ struct TraceElem
 	te->CallCode = XLATEMCASTPACKET;\
 	tea->pb = *pb;			/* structure assignment */\
 	tea->pb_address = (long) pb;\
-	tea->ThisAddr = *pb->Prefix.PeerAddr;	/* structure assignment */\
+	tea->ThisAddr = *pb->Prefix.PeerAddr;	/* BAD! structure assignment */\
 	tea->ThisAddr.ai_next = NULL; \
 	} } while (0)
 #endif

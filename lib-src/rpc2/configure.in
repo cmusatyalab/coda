@@ -37,8 +37,10 @@ dnl Checks for libraries.
 CODA_FIND_LIB(lwp, [#include <lwp/lwp.h>], [LWP_Init(0,0,0)])
 CODA_CHECK_LIBTERMCAP
 CODA_CHECK_READLINE
-dnl AC_SEARCH_LIBS(inet_ntoa, nsl)
-AC_SEARCH_LIBS(socket, socket)
+AC_SEARCH_LIBS(bind, socket)
+AC_SEARCH_LIBS(inet_ntoa, nsl)
+AC_SEARCH_LIBS(gethostbyname, resolv)
+AC_SEARCH_LIBS(res_search, resolv)
 
 dnl For playing with the _pt version...
 if test ${with_LWP_PT}p = nop ; then
@@ -54,7 +56,8 @@ AC_SUBST(LIBLWP)
 AC_SUBST(LIBPTHREAD)
 
 dnl Checks for header files.
-AC_CHECK_HEADERS(sys/stream.h arpa/inet.h arpa/nameser.h netdb.h)
+AC_CHECK_HEADERS(sys/stream.h arpa/inet.h netdb.h)
+AC_CHECK_HEADERS(arpa/nameser.h resolv.h)
 
 dnl Checks for typedefs.
 
@@ -62,7 +65,8 @@ dnl Checks for compiler characteristics.
 CODA_DARWIN_BROKEN_CPP_WORKAROUND
 
 dnl Checks for library functions.
-AC_CHECK_FUNCS(ffs iopen)
+AC_CHECK_FUNCS(ffs iopen getaddrinfo getipnodebyname)
+AC_CHECK_FUNCS(res_search)
 AC_FUNC_SELECT_ARGTYPES
 
 dnl Checks for system services.

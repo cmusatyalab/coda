@@ -53,18 +53,6 @@ Pittsburgh, PA.
 #include <string.h>
 #include "rpc2.private.h"
 
-
-/*
-                    IBM COPYRIGHT NOTICE
-
-This file contains  some code identical to or  derived from
-the 1986 version of  the Andrew File System, which is owned
-by  the  IBM  Corporation.  Carnegie Mellon  University has
-obtained permission to distribute this code under the terms
-of the Coda License.
-
-*/
-
 /* Code to track host liveness 
 
    We track liveness by host ip-address, as we're really interested

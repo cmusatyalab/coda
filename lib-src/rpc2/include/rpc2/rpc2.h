@@ -37,7 +37,6 @@ Pittsburgh, PA.
 
 */
 
-
 #ifndef _RPC2_
 #define _RPC2_
 
@@ -52,39 +51,6 @@ Pittsburgh, PA.
 #ifdef HAVE_ARPA_INET_H
 #include <arpa/inet.h>
 #endif
-
-/* struct addrinfo wrappers, by using our own versions we can support systems
- * that don't have these useful functions yet and can avoid allocation problems
- * when copying the struct around. But to simplify things we should definitely
- * try to keep the layout identical if the system already has getaddrinfo. */
-struct RPC2_addrinfo {
-    int ai_flags;
-    int ai_family;
-    int ai_socktype;
-    int ai_protocol;
-    size_t ai_addrlen;
-    struct sockaddr *ai_addr;
-    char *ai_canonname;
-    struct RPC2_addrinfo *ai_next;
-};
-
-/* These functions match their non RPC2_ counterparts */
-int RPC2_getaddrinfo(const char *node, const char *service,
-		     const struct RPC2_addrinfo *hints,
-		     struct RPC2_addrinfo **res);
-int RPC2_freeaddrinfo(struct RPC2_addrinfo *res);
-const char *RPC2_gai_strerror(int errcode);
-
-/* copyaddrinfo is in my opinion missing from the getaddrinfo suite */
-/* cmpaddrinfo tests whether 'host' matches any of the entries in 'node' */
-struct RPC2_addrinfo *RPC2_copyaddrinfo(struct RPC2_addrinfo *node);
-int RPC2_cmpaddrinfo(struct RPC2_addrinfo *node, struct RPC2_addrinfo *host);
-
-/* this one is inspired by inet_ntop, but this one adds the portnumber to the
- * output and only works for addrinfo structs. */
-#define RPC2_ADDRSTRLEN (46 + 1 + 10 + 1) /* inet6 addr + : + portnumber + \0 */
-void RPC2_formataddrinfo(struct RPC2_addrinfo *host, char *buf, size_t buflen);
-
 
 /* This string is used in RPC initialization calls to ensure that the
 runtime system and the header files are mutually consistent.  Also
