@@ -133,4 +133,3 @@ put_header(struct DiskPartition *dp, struct i_header *header, Inode ino)
 	return -1;
 }
 
-	
