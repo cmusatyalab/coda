@@ -119,7 +119,7 @@ _returnto:
 	rts				| Return to previous process
 #endif /* sun3 */
 
-#if defined(sun4) || defined(sparc)
+#if defined(sun4) || defined(sparc) || defined(__sparc__)
 #if defined(__linux__) || defined(__NetBSD__)
 /* This info from Miguel de Icaza (and SunOS header files/libc) */
 #define STACK_ALIGN 8
@@ -894,8 +894,14 @@ returnto:
 
 /* Code for DEC Alpha architecture */
       
-#if defined(__alpha) && defined(__linux__)
+#if defined(__alpha) || defined(__alpha__)
+#if defined(__linux__)
 #include <alpha/regdef.h>
+#elif defined(__FreeBSD__)
+#include <machine/asm.h>
+#else
+#error "First time alpha port to this platform, hacking time"
+#endif
 
 
       .extern PRE_Block       4
