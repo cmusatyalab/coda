@@ -30,7 +30,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/src/coda-4.0.1/RCSLINK/./coda-src/rp2gen/rp2gen.lex,v 1.1 1996/11/22 19:08:50 braam Exp $";
+static char *rcsid = "$Header: rp2gen.lex,v 4.1 97/01/08 21:50:16 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -92,7 +92,6 @@ struct {
  * i386_nbsd1's flex defines input() as a function which uses the macro 
  * YY_INPUT rather than using a macro input().
  */
-#ifdef __NetBSD__
 #undef YY_INPUT
 #define YY_INPUT(buf,result,max_size)                          \
 do {                                                           \
@@ -105,32 +104,6 @@ do {                                                           \
     }                                                          \
     result = (c == EOF) ? YY_NULL : (buf[0] = c, 1);           \
 } while (0)               
-#elif LINUX
-#undef YY_INPUT
-#define YY_INPUT(buf,result,max_size)                          \
-do {                                                           \
-    int c;                                                     \
-                                                               \
-    if (unput_stack.unput_top > 0) {                           \
-	c = unput_stack.unput_chars[--unput_stack.unput_top];  \
-    } else {                                                   \
-	c = (file == NULL ? getchar() : getc(file));           \
-    }                                                          \
-    result = (c == EOF) ? YY_NULL : (buf[0] = c, 1);           \
-} while (0)               
-#else /* not gnuish */
-#undef input
-static int input()
-{
-    int c;
-
-    if (unput_stack.unput_top > 0)
-	c = unput_stack.unput_chars[--unput_stack.unput_top];
-    else
-	c = (file == NULL ? getchar() : getc(file));
-    return c == EOF ? 0 : c;
-}
-#endif /* __NetBSD__ */
 
 /* 
  * But, unput is a macro in both lex and flex.  God only knows what will
