@@ -797,6 +797,9 @@ struct ViceIoctl {
 struct PioctlData {
         const char *path;
         int follow;
+#if defined(__CYGWIN32__)
+	int cmd;
+#endif
         struct ViceIoctl vi;
 };
 
