@@ -49,18 +49,33 @@ int check_args_num(int argc,int n){
 	else return 0;
 }
 
+/* Convert a name or id argument into a numerical id value */
+int32_t get_id(char *n)
+{
+	int32_t id;
+	
+	/* try to interpret the passed argument as a numeric id */
+	id = atoi(n);
+	if(id != 0) return id;
+
+	/* Attempt to find the argument as a name */
+	PDB_lookupByName(n, &id);
+
+	return id;
+}
+
 /* LOOKUP BY ID */
-void tool_byId(int argc,char *argv[]){
+void tool_byNameOrId(int argc,char *argv[]){
 	PDB_profile sample;
 	PDB_HANDLE h;
-	long arg1;
+	int32_t arg1;
 	if(check_args_num(argc,2)){
 		printf("Usage: i idnum\nidnum\t\tnumber of user/group\n");
 		return;
 	}
-	arg1 = atol(argv[1]);
+	arg1 = get_id(argv[1]);
 	if(arg1 == 0){
-		printf("Give numerical value.\n");
+		printf("'%s' not found.\n", argv[1]);
 		return;
 	}
 	h = PDB_db_open(O_RDONLY);
@@ -69,24 +84,6 @@ void tool_byId(int argc,char *argv[]){
 	PDB_freeProfile(&sample);
 	PDB_db_close(h);
 }
-
-/* LOOKUP BY NAME */
-void tool_byName(int argc,char *argv[]){
-	int32_t id;
-	PDB_profile sample;
-	PDB_HANDLE h;
-	if(check_args_num(argc,2)){
-		printf("Usage: n name\nnamet\tname of user/group\n");
-		return;
-	}
-	PDB_lookupByName(argv[1], &id);
-	h = PDB_db_open(O_RDONLY);
-	PDB_readProfile(h, id, &sample);
-	PDB_printProfile(stdout, &sample);
-	PDB_freeProfile(&sample);
-	PDB_db_close(h);
-}
-
 
 /* LIST EVERTHING */
 void tool_list(int argc,char *argv[]){
@@ -127,15 +124,15 @@ void tool_newUser(int argc,char *argv[]){
 void tool_newUser_Id(int argc,char *argv[]){
 	char *s;
 	int32_t id;
-	long arg2;
+	int32_t arg2;
 	if(check_args_num(argc,3)){
 		printf("Usage: nui name id\nname\t\t"
 		       "name of new user\nid\t\tid of new user\n");
 		return;
 	}
-	arg2 = atol(argv[2]);
-	if(arg2 == 0){
-		printf("Give numerical value.\n");
+	arg2 = atoi(argv[2]);
+	if(!PDB_ISUSER(arg2)){
+		printf("Not a valid user-id (it needs to be > 0).\n");
 		return;
 	}
 	PDB_lookupById((int32_t) arg2, &s);
@@ -144,7 +141,6 @@ void tool_newUser_Id(int argc,char *argv[]){
 		free(s);
 		return;
 	}
-	free(s);
 	PDB_createUser(argv[1], &id);
 	if (id == 0){
 		printf("Failed to creat user.\n");
@@ -157,13 +153,13 @@ void tool_newUser_Id(int argc,char *argv[]){
 
 /* CREATE NEW USER */
 void tool_changeName(int argc,char *argv[]){
-	long arg1;
+	int32_t arg1;
 	if(check_args_num(argc,3)){
 		printf("Usage: cn id name\nid\t\t"
 		       "id number of user\n\nname\t\tnew name of user\n");
 		return;
 	}
-	arg1 = atol(argv[1]);
+	arg1 = atoi(argv[1]);
 	if(arg1 == 0){
 		printf("Give numerical value.\n");
 		return;
@@ -176,25 +172,19 @@ void tool_changeName(int argc,char *argv[]){
 void tool_newGroup(int argc,char *argv[]){
 	char *s;
 	int32_t id;
-	long arg2;
+	int32_t arg2;
 	if(check_args_num(argc,3)){
 		printf("Usage: ng name owner\nname\t\t"
 		       "name of new group\nowner\t\t"
-		       "id number of group owner\n");
+		       "id/name number of group owner\n");
 		return;
 	}
-	arg2 = atol(argv[2]);
-	if(arg2 == 0){
-		printf("Give numerical value.\n");
-		return;
-	}
-	if(!PDB_ISUSER(arg2)){
-		printf("Owner must be a user!\n");
-		return;
-	}
+	arg2 = get_id(argv[2]);
 	PDB_lookupById((int32_t) arg2, &s);
-	if(s == NULL){
-		printf("No user %ld!\n",arg2);
+	if(!PDB_ISUSER(arg2) || s == NULL){
+		printf("Owner must be a valid username/id, %s not found!\n",
+		       argv[2]);
+		if (s) free(s);
 		return;
 	}
 	free(s);
@@ -269,29 +259,23 @@ void tool_addtoGroup(int argc,char *argv[]){
 	long arg1, arg2;
 	if(check_args_num(argc,3)){
 		printf("Usage: ag group user\ngroup\t\t"
-		       "id of group to add to\nuser\t\t"
-		       "id number of user to add\n");
+		       "id or name of group to add to\nuser\t\t"
+		       "id or name of user to add\n");
 		return;
 	}
-	arg1 = atol(argv[1]);
-	if(arg1 == 0){
-		printf("Give numerical value.\n");
-		return;
-	}
+	arg1 = get_id(argv[1]);
 	PDB_lookupById((int32_t) arg1, &s);
-	if(s == NULL){
-		printf("No group %ld!\n",arg1);
+	if(!PDB_ISGROUP(arg1) || s == NULL){
+		printf("No group %s found!\n", argv[1]);
+		if (s) free(s);
 		return;
 	}
 	free(s);
-	arg2 = atol(argv[2]);
-	if(arg2 == 0){
-		printf("Give numerical value.\n");
-		return;
-	}
+	arg2 = get_id(argv[2]);
 	PDB_lookupById((int32_t) arg2, &s);
 	if(s == NULL){
-		printf("No user %ld!\n",arg2);
+		printf("No user or group %s found!\n", argv[2]);
+		if (s) free(s);
 		return;
 	}
 	free(s);
@@ -300,21 +284,21 @@ void tool_addtoGroup(int argc,char *argv[]){
 
 /* REMOVE SOMEONE (USER OR GROUP) TO A GROUP */
 void tool_removefromGroup(int argc,char *argv[]){
-	long arg1, arg2;
+	int32_t arg1, arg2;
 	if(check_args_num(argc,3)){
 		printf("Usage: rg group user\ngroup\t\t"
-		       "id of group to remove from\nuser\t\t"
-		       "id number of user to remove\n");
+		       "id or name of group to remove from\nuser\t\t"
+		       "id or name of user to remove\n");
 		return;
 	}
-	arg1 = atol(argv[1]);
-	if(arg1 == 0){
-		printf("Give numerical value.\n");
+	arg1 = get_id(argv[1]);
+	if(!PDB_ISGROUP(arg1)) {
+		printf("No group %s found!\n", argv[1]);
 		return;
 	}
-	arg2 = atol(argv[2]);
-	if(arg2 == 0){
-		printf("Give numerical value.\n");
+	arg2 = get_id(argv[2]);
+	if(arg2 == 0) {
+		printf("No user or group %s found!\n", argv[2]);
 		return;
 	}
 	PDB_removeFromGroup(arg2, arg1);
@@ -325,17 +309,14 @@ void tool_delete(int argc,char *argv[]){
 	char *s;
 	long arg1;
 	if(check_args_num(argc,2)){
-		printf("Usage: d id\nid\t\tid number of user/group\n");
+		printf("Usage: d id/name\n"
+		       "id/name\t\tid or name of user/group\n");
 		return;
 	}
-	arg1 = atol(argv[1]);
-	if(arg1 == 0){
-		printf("Give numerical value.\n");
-		return;
-	}
+	arg1 = get_id(argv[1]);
 	PDB_lookupById((int32_t) arg1, &s);
 	if(s == NULL){
-		printf("No user %ld!\n",arg1);
+		printf("%s not found!\n",argv[1]);
 		return;
 	}
 	free(s);
@@ -352,13 +333,14 @@ void tool_update(int argc,char *argv[]){
 	PDB_HANDLE h;
 	PDB_profile p;
 	if(check_args_num(argc,2)){
-		printf("Usage: u id\nid\t\tid number of user/group\n");
+		printf("Usage: u id/name\n"
+		       "id/name\t\tid or name of user/group\n");
 		return;
 	}
 	h = PDB_db_open(O_RDWR);
-	arg1 = atol(argv[1]);
+	arg1 = get_id(argv[1]);
 	if(arg1 == 0){
-		printf("Give numerical value.\n");
+		printf("%s not found.\n", argv[1]);
 		return;
 	}
 	PDB_readProfile(h, arg1, &p);
@@ -421,17 +403,17 @@ void tool_changeId(int argc,char *argv[])
 	int32_t id;
 	long arg2;
 	if(check_args_num(argc,3)) {
-		printf("Usage %s username newid\n", argv[0]);
+		printf("Usage %s user/group newid\n", argv[0]);
+		return;
+	}
+	id = get_id(argv[1]);
+	if (id == 0) {
+		printf("%s not found.\n", argv[1]);
 		return;
 	}
 	arg2 = atol(argv[2]);
 	if(arg2 == 0){
-		printf("Give numerical value.\n");
-		return;
-	}
-	PDB_lookupByName(argv[1], &id);
-	if (id == 0){
-		printf("Invalid user.\n");
+		printf("Give numerical value for newid.\n");
 		return;
 	}
 	PDB_changeId(id,arg2);
@@ -615,32 +597,33 @@ void tool_help(int argc, char *argv[])
 	    return;
 	}
 
-        printf("i <id>\t\t\t\tread database by ID\n");
-	printf("n <name>\t\t\tread database by name\n");
+        printf("i <id/name>\t\t\tget info from database about ID/name\n");
 	printf("nu <username>\t\t\tcreate a new user\n");
 	printf("nui <username> <userid>\t\tcreate a new user with id\n");
-	printf("ng <groupname> <ownerid>\tcreate a new group\n");
+	printf("ng <groupname> <ownerid/name>\tcreate a new group\n");
 	printf("l <name>\t\t\tlook up an ID by name\n");
 	printf("list\t\t\t\tlist all entries\n");
 	printf("cu <newusername> <userid>\tclone a user\n");
-	printf("ag <groupid> <id>\t\tadd a group or user to a group\n");
-	printf("rg <groupid> <id>\t\tremove a group or user from a group\n");
-	printf("d <id>\t\t\t\tdelete a user or a group\n");
+	printf("ag <groupid/name> <id/name>\tadd a group or user to a group\n");
+	printf("rg <groupid/name> <id/name>\tremove a group or user from a group\n");
+	printf("d <id/name>\t\t\t\tdelete a user or a group\n");
 	printf("cm\t\t\t\tcompact the database (RARE)\n");
 	printf("ci <name> <newid>\t\tchange the Id of a user or group\n");
 	printf("cn <id> <newname>\t\tchange the Name of a user or group\n");
-	printf("u <id>\t\t\t\tupdate an id\n");
+	printf("u <id/name>\t\t\tupdate an id/name\n");
 	printf("ids\t\t\t\tget the database maxids\n");
 	printf("maxids <userid> <groupid>\tset the database maxids\n");
 	printf("export <userfile> <groupfile>\tdump the contents of the pdb database\n");
 	printf("import <userfile> <groupfile>\tread a dumped pdb database\n");
 	printf("source <file>\t\t\tread commands from file\n");
+	printf("exit\t\t\t\texit the pdbtool\n");
 }
 
 command_t pdbcmds[] =
 {
-        {"i", tool_byId, 0, "read database by user ID"},
-	{"n", tool_byName, 0, "read database by user name"},
+        {"i", tool_byNameOrId, 0, "get info from the database (by name or id)"},
+	/* 'n' only for compatibility with pre-5.3 pdbtool */
+	{"n", tool_byNameOrId, 0, "get info from the database (by name or id)"},
 	{"nu", tool_newUser, 0, "create a new user"},
 	{"nui", tool_newUser_Id, 0, "create a new user with id"},
 	{"ng", tool_newGroup, 0, "create a new group"},
