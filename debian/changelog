@@ -1,3 +1,9 @@
+coda (5.3.11-2) experimental; urgency=low
+
+  * Fixed wrong partition initialization.
+
+ -- Jan Harkes <jaharkes@cs.cmu.edu>  Wed, 17 Jan 2001 12:34:19 -0500
+
 coda (5.3.11-1) experimental; urgency=low
 
   * New release, merging debian stuff into tarball.

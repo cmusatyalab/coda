@@ -1,5 +1,47 @@
+2001-01-15    <jaharkes@cs.cmu.edu>
+        * ======== Release 5.3.11 =========
+	* Filerepair merged into repair tool (Rimas Svarcas).
+	* Properly expanding sysconfdir (Greg Troxel).
+	* Experimental `staging server' support (Shafeeq Sinnamohideen).
+	* Fix volutil getvolumelist corruption due to broken snprintf
+	  implementations.
+	* Directory code cleanups and corrected handling of boundary
+	  conditions when growing a directory.
+	* venus-setup improvements related to kernel modules, device
+	  creation, and setting up initial directories.
+	* Avoid crash when no resolution log is available on the server.
+	* Brought norton-reinit back from the dead.
+	* Hardcoded portnumbers in case of failed getsrvbyname lookups.
+	* Select strongest server in an AVSG.
+	* Repair cleanups (Rimas Svarcas).
+	* Support for masquerading firewalls, use venus.conf option
+	  `masquerade' to enable. Only works with 5.3.11 servers.
+	* Improved auth2 access checking.
+	* Removed last bits of vstab support.
+	* Dropping unauthenticated connections to updatesrv.
+	* Avoiding endless loops while killing mgrps.
+	* Fixed volutil authentication.
+	* Fixed partition size calculation, it wrongly assumed 1K blocks.
+	* Fixed Y2K bug in volutil info.
+	* Fixed file truncation bug (truncating a new file without writing
+	  data).
+	* Added a yield during volutil dumpestimate to avoid rpc2 timeouts
+	  when checking a large volume.
+	* Improved volutil dump/restore reporting.
+	* Added check for -fno-operator-names (Timothy Wood).
+	* Added warning when gethostbyname(myname) returns a 127.x.x.x
+	  address.
+	* Added warning when db/servers has a server with `reserved' hostid
+	  (0, 127 or 255).
+	* Added ipaddress=xxx.xxx.xxx.xxx server.conf option to override
+	  incorrect gethostbyname(myname) results.
+	* Fixed server hostTable iterators.
+	* Allow server to bind to IN_ADDR_ANY when not running multiple
+	  servers on the same machine.
+	* Moved /vice/vol/VRList to /vice/db/VRList to allow SCM takeover.
+
 2000-10-06    <jaharkes@cs.cmu.edu>
-        * ======== Release 5.3.9 =========
+        * ======== Release 5.3.10 =========
 	* Fixed mounting /coda on Linux 2.0 kernels.
 	* Caught wrong initialization of a volume flag which causes
 	  disconnected volumes when the network is strong and servers

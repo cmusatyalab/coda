@@ -77,7 +77,7 @@ void DP_Init(const char *tabfile, const char *hostname)
 
     if (!hostname) {
 	gethostname(host, MAXHOSTNAMELEN);
-	hostname = &host;
+	hostname = host;
     }
 
     codadev = 1;
