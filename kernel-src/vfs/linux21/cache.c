@@ -37,7 +37,9 @@ static void coda_ccinsert(struct coda_cache *el, struct super_block *sb)
 {
 	struct coda_sb_info *sbi = coda_sbp(sb);
 	ENTRY;
-	if ( !sbi ||  ! list_empty(&el->cc_cclist) ) {
+	/* third test verifies cc was initialized before adding it 
+	   to the sblist. Probably superfluous */
+	if ( !sbi || !el || !list_empty(&el->cc_cclist) ) {
 		printk("coda_ccinsert: NULL sbi or el->cc_cclist not empty!\n");
 		return ;
 	}
@@ -49,7 +51,7 @@ static void coda_ccinsert(struct coda_cache *el, struct super_block *sb)
 static void coda_cninsert(struct coda_cache *el, struct coda_inode_info *cii)
 {
 	ENTRY;
-	if ( !cii ||  ! list_empty(&el->cc_cnlist)) {
+	if ( !cii ||  !el || ! list_empty(&el->cc_cnlist)) {
 		printk("coda_cninsert: NULL cii or el->cc_cnlist not empty!\n");
 		return ;
 	}
@@ -275,10 +277,10 @@ void coda_flag_alias_children(struct inode *inode, int flag)
 			printk("Null alias list for inode %ld\n", inode->i_ino);
 			return;
 		}
-#if 0
 		coda_flag_children(alias_de, flag);
-#endif
+#if 0  /* this is probably better, but I can't get it going */
 		d_drop(alias_de);
+#endif
 		alias= alias->next;
 	}
 }
@@ -291,11 +293,11 @@ void coda_flag_inode(struct inode *inode, int flag)
 		CDEBUG(D_CACHE, " no inode!\n");
 		return;
 	}
-	coda_flag_alias_children(inode, 0);
 #if 0
+	coda_flag_alias_children(inode, 0);
+#endif 
 	cii = ITOC(inode);
 	cii->c_flags |= flag;
-#endif 
 }		
 
 

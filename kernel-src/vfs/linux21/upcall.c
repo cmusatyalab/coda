@@ -847,9 +847,10 @@ int coda_downcall(int opcode, union outputArgs * out, struct super_block *sb)
 			  CDEBUG(D_DOWNCALL, "zapdir: inode = %ld flagged\n", inode->i_ino);
 			  coda_cache_clear_inode(inode);
 			  CDEBUG(D_DOWNCALL, "zapdir: inode = %ld cache cleared\n", inode->i_ino);
+#endif
+
 			  coda_flag_alias_children(inode, C_PURGE);
 			  CDEBUG(D_DOWNCALL, "zapdir: inode = %ld children flagged\n", inode->i_ino);
-#endif
 		  } else 
 			  CDEBUG(D_DOWNCALL, "zapdir: no inode\n");
 		  
