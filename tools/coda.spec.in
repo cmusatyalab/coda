@@ -76,7 +76,7 @@ rm -rf $RPM_BUILD_DIR/obj-@VERSION@
 mkdir $RPM_BUILD_DIR/obj-@VERSION@
 cd $RPM_BUILD_DIR/obj-@VERSION@
 $RPM_BUILD_DIR/coda-@VERSION@/configure --prefix=$RPM_BUILD_ROOT/usr
-make
+make coda
 
 %install
 cd $RPM_BUILD_DIR/obj-@CVER@
