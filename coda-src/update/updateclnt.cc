@@ -535,7 +535,9 @@ static void ReConnect()
     RPC2_PortIdent sid;
     RPC2_SubsysIdent ssid;
     RPC2_HostIdent hid;
-    RPC2_CountedBS dummy;
+    RPC2_CountedBS cident;
+    RPC2_EncryptionKey secret;
+    char hostname[64];
     int     i;
     long portmapid;
     long port;
@@ -569,16 +571,24 @@ static void ReConnect()
 	    sid.Value.InetPortNumber = htons(port);
 	    ssid.Tag = RPC2_SUBSYSBYID;
 	    ssid.Value.SubsysId= SUBSYS_UPDATE;
-	    dummy.SeqLen = 0;
 	    
 	    time.tv_sec = waitinterval;
 	    time.tv_usec = 0;
 	    
 	    RPC2_BindParms bparms;
 	    bzero((void *)&bparms, sizeof(bparms));
-	    bparms.SecurityLevel = RPC2_OPENKIMONO;
+	    bparms.SecurityLevel = RPC2_AUTHONLY;
+	    bparms.EncryptionType = RPC2_XOR;
 	    bparms.SideEffectType = SMARTFTP;
-	    
+
+	    gethostname(hostname, 63); hostname[63] = '\0';
+	    cident.SeqBody = (RPC2_ByteSeq)&hostname;
+	    cident.SeqLen = strlen(hostname) + 1;
+	    bparms.ClientIdent = &cident;
+
+	    GetSecret(vice_sharedfile("db/update.tk"), secret);
+	    bparms.SharedSecret = &secret;
+
 	    if ((rc = RPC2_NewBinding(&hid, &sid, &ssid, &bparms, &con))) {
 		    LogMsg(0, SrvDebugLevel, stdout, 
 			   "Bind failed with %s\n", 
