@@ -61,8 +61,6 @@ ifeq ($(SHORTSYS),djgpp)
 EXECUTABLES = clog
 endif
 
-CFLAGS := -Wall $(CFLAGS)
-
 RP2HEADERS  = auth2.h
 
 DEPLIBS = ${LIBAL} ${LIBUTIL} ${LIBKERNDEP} ${LIBAUSER} ${LIBBASE}

@@ -31,8 +31,6 @@ ifneq ($(SHORTSYS),djgpp)
 TESTS	    = altest
 endif
 
-CFLAGS += -Wall
-
 ifneq ($(SHORTSYS),djgpp)
 EXECUTABLES = pdbtool altest
 SSBINS      = pdbtool

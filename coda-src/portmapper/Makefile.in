@@ -27,8 +27,6 @@ TOPOBJ = @TOPOBJ@
 
 include $(TOPDIR)/Makeconf
 
-
-CFLAGS += -Wall
 HEADERS   = map.h
 RP2HEADERS = portmapper.h
 

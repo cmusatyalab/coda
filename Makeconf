@@ -48,8 +48,8 @@ vpath %.rpc2 $(INCLPATH)
 ##############################
 
 DEPFLAG   := -MD
-CFLAGS	  := $(DEPFLAG) $(MACHINE_FLAGS) $(INCLFLAGS) $(CFLAGS)
-CXXFLAGS  := $(DEPFLAG) $(MACHINE_FLAGS) $(INCLFLAGS) $(CXXFLAGS)
+CFLAGS	  := -Wall $(DEPFLAG) $(MACHINE_FLAGS) $(INCLFLAGS) $(CFLAGS)
+CXXFLAGS  := -Wall $(DEPFLAG) $(MACHINE_FLAGS) $(INCLFLAGS) $(CXXFLAGS)
 
 RP2FLAGS  = -e  -I . -I $(srcdir) 
 
