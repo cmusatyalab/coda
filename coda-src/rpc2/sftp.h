@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rpc2/sftp.h,v 4.5 98/07/22 18:47:22 jaharkes Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rpc2/sftp.h,v 4.6 98/08/07 17:29:37 jaharkes Exp $";
 #endif /*_BLURB_*/
 
 
@@ -246,7 +246,7 @@ struct SFTP_Entry		/* per-connection data structure */
     SE_Descriptor *PiggySDesc;	/* malloc()ed copy of SDesc; held on until SendResponse, if piggybacking
 					might take place */
 
-#define SFTP_MINRTT   1          /* min rtt is 0 msec */
+#define SFTP_MINRTT   10         /* min rtt is 10 msec (kernel scheduler)*/
 #define SFTP_MAXRTT   300000     /* max rtt is 300 seconds */
 
 /*  Transmission Parameters:
