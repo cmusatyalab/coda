@@ -32,9 +32,9 @@ static void iomgr_sigio_handler(int n)
     struct sigaction action;
    
     memset(&action, 0, sizeof(struct sigaction));
-    action.sa_handler  = iomgr_sigio_handler;
+    action.sa_handler = iomgr_sigio_handler;
     sigemptyset(&action.sa_mask);
-    action.sa_flags    = 0;
+    action.sa_flags = 0;
 
     sigaction(SIGIO, &action, NULL);
 }
@@ -62,9 +62,9 @@ int IOMGR_Select(int fds, fd_set *readfds, fd_set *writefds, fd_set *exceptfds,
         tp = &to;
     }
 
-    if (pid->havelock) lwp_LEAVE(pid);
+    lwp_LEAVE(pid);
     retval = select(fds, readfds, writefds, exceptfds, tp);
-    if (!pid->concurrent) lwp_JOIN(pid);
+    lwp_JOIN(pid);
 
     return retval;
 }
@@ -72,15 +72,7 @@ int IOMGR_Select(int fds, fd_set *readfds, fd_set *writefds, fd_set *exceptfds,
 /* ofcourse not to be confused with poll(2) :( */
 int IOMGR_Poll(void)
 {
-    int i;
-
-    if (!list_empty(&lwp_join_queue))
-        return 1;
-
-    for (i = 0; i < LWP_MAX_PRIORITY; i++)
-        if (!list_empty(&lwp_runq[i]))
-            return 1;
-    return 0;
+    return !list_empty(&lwp_runq);
 }
 
 int IOMGR_Cancel (PROCESS pid)
@@ -111,3 +103,4 @@ int IOMGR_CancelSignal (int signo)
     assert(0);
     return LWP_SUCCESS;
 }
+

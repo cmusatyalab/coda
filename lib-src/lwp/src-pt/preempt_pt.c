@@ -46,18 +46,15 @@ void PRE_BeginCritical(void)
     assert(LWP_CurrentProcess(&pid) == 0);
     /* how critical could this section be? */
     pthread_setcancelstate(PTHREAD_CANCEL_DISABLE, NULL);
-    if (!pid->havelock) lwp_JOIN(pid);
+    PRE_Concurrent(0);
 }
 
 void PRE_EndCritical(void)
 {
     PROCESS pid;
     assert(LWP_CurrentProcess(&pid) == 0);
-    if (pid->concurrent) lwp_LEAVE(pid);
-    /* Hmm, non-concurrent threads might be cancelled here while still
-     * holding the run_mutex. Maybe I need to add another flag to the
-     * PROCESS structure, so that non-concurrent threads can re-enable
-     * cancellations at some more convenient place */
+    PRE_Concurrent(1);
     pthread_setcancelstate(PTHREAD_CANCEL_ENABLE, NULL);
+    pthread_testcancel();
 }
 

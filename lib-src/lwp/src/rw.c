@@ -190,7 +190,10 @@ static void read_process(id)
 	    ObtainReadLock(&q->lock);
 	}
 	asleep--;
-	for (i=0; i<10000; i++) ;
+	for (i=0; i<10000; i++) {
+	    struct timeval sleep = { 0, 0 };
+	    select(0, NULL, NULL, NULL, &sleep);
+	}
 
 	printf("[%d: %s]\n", id, myremove(q));
 
@@ -270,7 +273,9 @@ int main(int argc, char **argv)
     printf("done]\n");
 
     /* Now loop until everyone's done */
-    while (asleep != nreaders+1) LWP_DispatchProcess();
+    while (asleep != nreaders+1 || !empty(q))
+	LWP_DispatchProcess();
+
     /* Destroy the readers */
     for (i=nreaders-1; i>=0; i--) LWP_DestroyProcess(readers[i]);
     printf("\n*Exiting*\n");

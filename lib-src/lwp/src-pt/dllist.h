@@ -50,6 +50,8 @@ struct list_head {
     e->prev = e->next = e; } while(0);
 
 #define list_empty(head) ((head)->next == head)
+#define list_for_each(ptr, head) \
+    for (ptr = (head)->next; ptr != head; ptr = ptr->next)
 
 #endif /* _DLLIST_H_ */
 

@@ -36,11 +36,9 @@ struct lwp_pcb {
 
     struct list_head runq;
     pthread_cond_t   run_cond;
-    pthread_cond_t   join_cond;
     struct list_head lockq;
     pthread_cond_t   lock_cond;
     int              concurrent;
-    int              havelock;
     int              priority;
 
     char	     name[32];          /* ASCII name */
@@ -60,8 +58,7 @@ struct lwp_pcb {
     char         **evlist;              /* list of event we wait for */
 };
 
-extern struct list_head lwp_runq[LWP_MAX_PRIORITY + 1];
-extern struct list_head lwp_join_queue;
+extern struct list_head lwp_runq;
 
 void lwp_JOIN(PROCESS pid);
 void lwp_LEAVE(PROCESS pid);

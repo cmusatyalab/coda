@@ -112,7 +112,7 @@ int procA(int dummy)
     }
 }
 
-int procB(intdummy)
+int procB(int dummy)
 {
     while(1)
     {
