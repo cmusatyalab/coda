@@ -1,3 +1,13 @@
+New in 1.1:
+
+* Fixed a bad stackbase on NetBSD/FreeBSD platforms.
+* Fixed a locking bug in lock_pt.c.
+* Using pthread_attr_setdetachstate in lwp_pt.c instead of modifying the attr
+  struct directly.
+* Improved cross-compiling with cygwin32 and djgpp.
+* Added a script that might produce a useable ports/packages descriptions.
+* Wrote a bit in the INSTALL document.
+
 New in 1.0:
 
 * Extracted LWP out of the main Coda source tree.
