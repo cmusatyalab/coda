@@ -1,3 +1,61 @@
+2004-12-22	<jaharkes@cs.cmu.edu>
+	* ======== Release 6.0.8 =========
+	* Removed obsolete purgevol script.
+	* codasrv daemonizes itself.
+	* Allow '/' characters in volume names in createvol_rep, also don't
+	  assume /vicepa is always a top-level directory.
+	* Fixed RVM usage estimates that are given when setting up a server,
+	  they were off by quite a bit.
+	* Changed vice-setup to assume the rootvolume is named '/', and
+	  try to automatically create it.
+	* Number of CML and hoard entries are not relative to the number of
+	  cache files instead of the cache size.
+	* Make cfs flushobject recurse across mountpoints.
+	* cpasswd broke in the last release, fixed.
+	* cfs forcereintegrate broke as well, fixed.
+	* Be less strict in codadump2tar so that even incremental dumps
+	  can be converted.
+
+2004-10-21	<jaharkes@cs.cmu.edu>
+	* ======== Release 6.0.7 =========
+	* new codadump2tar, takes a 'volutil dump' file and spits out a
+	  tar archive, doesn't yet work for incremental dumps. (Satya)
+	* Send shutdown and zombie events to codacon. (Phil Nelson)
+	* Added several manpages in docbook format. We need docbook2man or
+	  docbook-to-man to convert these into *roff.
+	* rpc2_timeout and rpc2_retries are now venus.conf options.
+	* venus daemonizes after /coda is mounted.
+	* New norton function 'rename volume <id/name> <newname>' to
+	  relabel existing volume replicas on a server.
+	* createvol_rep doesn't use the VSGDB (E0000XXX numbers)
+	  anymore, servers are now explicitly named;
+	     'createvol_rep <volumename> <server>[/<partition] ...'
+	* Default rootvolume name is '/'. If /vice/db/ROOTVOLUME
+	  exists we transparently map requests for '/' to the volume
+	  named in the ROOTVOLUME file. (i.e. nothing really changed)
+	* Correctly swap the ports to network byte order in the DNS SRV
+	  response. (Ivan Popov)
+	* Ignore realm names starting with a period. (Ivan Popov)
+	* Fixed cfs forcereintegrate error return code. (Jim Page)
+	* When tcp sockets for codacon are enabled, only bind the listen
+	  socket to localhost. (Phil Nelson)
+	* Avoid reserved userid 1 and username System during server setup.
+	  (Nickolai Zeldovich)
+	* gcc-3.3.4 compile fixes. (aredridel/bugs@coda)
+	* Fix a bunch of warnings all over the code. (Troy Benjegerdes)
+	* Avoid an occasional crash when a token expires.
+	* When an authenticated request fails because of an expired
+	  token, don't immediately return EPERM but retry on an
+	  unauthenticated connection.
+	* Avoid dropping locally modified objects when validateattrs fails.
+	* Make sure we transition a volume with a pending changes to
+	  (Write-)Disconnected state after startup.
+	* When SRV records say that a service is definitely not
+	  available ('.' response) don't fall back on normal DNS host
+	  resolution.
+	* Codaconfedit used to re-add already correctly set values.
+	* Removed most of the writeback permits code.
+
 2004-04-20	<jaharkes@cs.cmu.edu>
 	* ======== Release 6.0.6 =========
 	* Some fixes for the venus & vice-rvm setup scripts. (Mark Phalan)
