@@ -43,19 +43,18 @@ Pittsburgh, PA.
 #endif
 
 #include <stdio.h>
-#include "coda_string.h"
 #include <sys/types.h>
 #include <sys/time.h>
 #include <sys/stat.h>
 #include <sys/signal.h>
 #include <netinet/in.h>
 #include <math.h>
+#include <assert.h>
 #include <lwp/lwp.h>
 #include <lwp/timer.h>
 #include <rpc2/rpc2.h>
 #include <rpc2/se.h>
 #include "sftp.h"
-#include "rpc2.private.h"
 #include "test.h"
 
 #define SUBSYS_SRV 1001
@@ -176,11 +175,11 @@ void HandleRequests(lwp)
 	    i = LWP_CreateProcess(HandleRequests, STESTSTACK, LWP_NORMAL_PRIORITY,
 			      numLWPs, "server", &pids[numLWPs]);
 #endif
-	    CODA_ASSERT(i == LWP_SUCCESS);
+	    assert(i == LWP_SUCCESS);
 	    printf("New LWP %d (%p)\n", numLWPs, pids[numLWPs]);
 	    numLWPs++;
 	}
-	CODA_ASSERT(RPC2_AllocBuffer(RPC2_MAXPACKETSIZE-500, &OutBuff) == RPC2_SUCCESS);
+	assert(RPC2_AllocBuffer(RPC2_MAXPACKETSIZE-500, &OutBuff) == RPC2_SUCCESS);
 	                          /* 500 is a fudge factor */
 	(void) ProcessPacket(cid, InBuff, OutBuff);
 	availableLWPs++;
@@ -190,16 +189,15 @@ void HandleRequests(lwp)
     }
 }
 
-long FindKey(IN authenticationtype, IN ClientIdent, OUT IdentKey,
-	     OUT SessionKey)
+long FindKey(authenticationtype, ClientIdent, IdentKey, SessionKey)
     RPC2_Integer authenticationtype;
     RPC2_CountedBS *ClientIdent;
     RPC2_EncryptionKey IdentKey;
     RPC2_EncryptionKey SessionKey;
     {
     long x;
-    say(0, RPC2_DebugLevel, "*** In FindKey('%s', 0x%lx, 0x%lx) ***\n",
-		(char *)ClientIdent->SeqBody, (long)IdentKey, (long)SessionKey);
+    fprintf(stderr, "*** In FindKey('%s', 0x%lx, 0x%lx) ***\n",
+	    ClientIdent->SeqBody, IdentKey, SessionKey);
     x = -1;
     if (strcmp((char *)ClientIdent->SeqBody, "satya") == 0) x =1;
     if (strcmp((char *)ClientIdent->SeqBody, "bovik") == 0) x = 2;
@@ -230,7 +228,7 @@ long FindKey(IN authenticationtype, IN ClientIdent, OUT IdentKey,
 
 void iopen(void)
 {
-    CODA_ASSERT(1 == 0);
+    assert(1 == 0);
 }
 
 
@@ -336,6 +334,10 @@ long ProcessPacket(RPC2_Handle cIn, RPC2_PacketBuffer *pIn, RPC2_PacketBuffer *p
 
 
 	case ENDREMOTEPROFILING:
+	    {
+	    /* hack */
+	    extern PROCESS rpc2_SocketListenerPID;
+
 #ifdef PROFILE
 	    ProfilingOff();
 	    DoneProfiling();
@@ -355,7 +357,7 @@ long ProcessPacket(RPC2_Handle cIn, RPC2_PacketBuffer *pIn, RPC2_PacketBuffer *p
 
 
 	    break;
-
+	    }
 	case FETCHFILE:
 	case STOREFILE:
 	    sed.Tag = SMARTFTP;
@@ -421,7 +423,7 @@ long ProcessPacket(RPC2_Handle cIn, RPC2_PacketBuffer *pIn, RPC2_PacketBuffer *p
 	    if (VerboseFlag) SFTP_PrintSED(&sed, rpc2_tracefile);
 
 	    pOut->Header.BodyLength = replylen; /* should ensure not too long */
-	    bzero((char *)pOut->Body, (int) replylen);
+	    memset(pOut->Body, 0, replylen);
 	    i = WhatHappened(RPC2_SendResponse(cIn, pOut), "SendResponse");
 	break;
 	
@@ -459,7 +461,7 @@ long ProcessPacket(RPC2_Handle cIn, RPC2_PacketBuffer *pIn, RPC2_PacketBuffer *p
 	    VMMaxFileSize = (int) ntohl((unsigned long)*iptr);
 	    printf("New VM file buffer size = %ld\n ", VMMaxFileSize);
 	    if (VMFileBuf) free(VMFileBuf);
-	    CODA_ASSERT(VMFileBuf = (char *)malloc((unsigned)VMMaxFileSize));
+	    assert(VMFileBuf = (char *)malloc((unsigned)VMMaxFileSize));
 	    pOut->Header.ReturnCode = RPC2_SUCCESS;
 	    pOut->Header.BodyLength = 0;
 	    i = WhatHappened(RPC2_SendResponse(cIn, pOut), "SendResponse");

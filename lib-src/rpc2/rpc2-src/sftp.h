@@ -47,7 +47,6 @@ Pittsburgh, PA.
 
 #include <unistd.h>
 #include <stdlib.h>
-#include "coda_string.h"
 /*	    
     Features:
 	    1. Windowing with bit masks to avoid unnecessary retransmissions

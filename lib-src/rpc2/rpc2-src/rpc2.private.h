@@ -37,6 +37,8 @@ Pittsburgh, PA.
 
 */
 
+#ifndef _RPC2_PRIVATE_H_
+#define _RPC2_PRIVATE_H_
 
 #include <netinet/in.h>
 #include <signal.h>
@@ -400,7 +402,7 @@ struct InitMulticastBody	/* Client to Server */
 /* The basic connection abstraction */
 extern struct CEntry *rpc2_ConnFreeList,	/* free connection blocks */
 			*rpc2_ConnList;		/* active connections  */
-extern long rpc2_ConnFreeCount, rpc2_ConnCount, rpc2_ConnCreationCount;	
+extern long rpc2_ConnCount;
 
 /* The multicast group abstraction */
 extern struct MEntry *rpc2_MgrpFreeList;	/* free mgrp blocks */
@@ -411,15 +413,12 @@ extern long rpc2_MgrpFreeCount, rpc2_MgrpCreationCount;
 extern struct SL_Entry *rpc2_SLFreeList,	/* free entries */
         	*rpc2_SLReqList,		/* in use, of type REQ */
 		*rpc2_SLList;     /* in use, of types REPLY or OTHER */
-extern long rpc2_SLFreeCount, rpc2_SLReqCount, rpc2_SLCount,
-            rpc2_SLCreationCount;
+extern long rpc2_SLReqCount, rpc2_SLCount;
 
 /* Packet buffers */
 extern RPC2_PacketBuffer *rpc2_PBList, *rpc2_PBHoldList;
 extern long rpc2_PBCount, rpc2_PBHoldCount, rpc2_PBFreezeCount;
 extern RPC2_PacketBuffer *rpc2_PBSmallFreeList, *rpc2_PBMediumFreeList, *rpc2_PBLargeFreeList;
-extern long rpc2_PBSmallFreeCount, rpc2_PBMediumFreeCount, rpc2_PBLargeFreeCount;
-extern long rpc2_PBSmallCreationCount, rpc2_PBMediumCreationCount, rpc2_PBLargeCreationCount;
 
 /* Subsystem definitions */
 extern struct SubsysEntry *rpc2_SSFreeList,	/* free entries */
@@ -434,8 +433,6 @@ extern long rpc2_HostFreeCount, rpc2_HostCount, rpc2_HostCreationCount;
 /*------------- Miscellaneous  global data  ------------*/
 extern long rpc2_RequestSocket;	/* fd of RPC socket  */
 				/* we may need more when we deal with many domains */
-extern RPC2_PortIdent   rpc2_LocalPort;	/* of rpc2_RequestSocket */
-extern RPC2_HostIdent   rpc2_LocalHost;	/* of rpc2_RequestSocket */
 extern struct TM_Elem *rpc2_TimerQueue;
 extern struct CBUF_Header *rpc2_TraceBuffHeader;
 extern PROCESS rpc2_SocketListenerPID;	/* used in IOMGR_Cancel() calls */
@@ -590,8 +587,6 @@ extern long rpc2_FreezeHWMark, rpc2_HoldHWMark;
 
 
 /* Conditional debugging output macros: no side effect in these! */
-extern FILE *rpc2_logfile;
-extern FILE *rpc2_tracefile;
 char *rpc2_timestring();
 #ifdef RPC2DEBUG
 #define say(when, what, how...)\
@@ -645,3 +640,4 @@ do {\
 
 #define TSDELTA(_ts1_, _ts2_) ((int)(_ts1_) - (int)(_ts2_))
 
+#endif

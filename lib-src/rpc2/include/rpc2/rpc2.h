@@ -45,6 +45,7 @@ Pittsburgh, PA.
 #include <config.h>
 #endif
 
+#include <stdio.h>
 #include <sys/time.h>  
 #include <netinet/in.h>
 
@@ -773,5 +774,20 @@ extern struct SStats rpc2_MSent;
 extern struct RStats rpc2_MRecvd;
 
 extern int rpc2_43bsd;	/* TRUE  on 4.3BSD, FALSE on 4.2BSD */
+
+/* For debugging */
+extern FILE *rpc2_logfile;
+extern FILE *rpc2_tracefile;
+
+/* What port are we listening on. */
+extern RPC2_HostIdent   rpc2_LocalHost;
+extern RPC2_PortIdent   rpc2_LocalPort;
+
+/* Allocation/destruction counters */
+extern long rpc2_PBSmallCreationCount,  rpc2_PBSmallFreeCount;
+extern long rpc2_PBMediumCreationCount, rpc2_PBMediumFreeCount;
+extern long rpc2_PBLargeCreationCount,  rpc2_PBLargeFreeCount;
+extern long rpc2_SLCreationCount,       rpc2_SLFreeCount;
+extern long rpc2_ConnCreationCount,     rpc2_ConnFreeCount;
 
 #endif /* _RPC2_ */
