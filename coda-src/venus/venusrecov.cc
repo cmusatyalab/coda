@@ -772,7 +772,7 @@ static void Recov_AllocateVM(void **addr, unsigned long length)
 {
     void *requested_addr = *addr;
 #ifdef HAVE_MMAP
-    mmap_anon(*addr, *addr, length, (PROT_READ | PROT_WRITE));
+    mmap_anon(*addr, (char *)*addr, length, (PROT_READ | PROT_WRITE));
 #else
     {
       HANDLE hMap = CreateFileMapping((HANDLE)0xFFFFFFFF, NULL,
