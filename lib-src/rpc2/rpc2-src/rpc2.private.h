@@ -48,9 +48,6 @@ Pittsburgh, PA.
 #include <string.h>
 #include <dllist.h>
 
-#define bool long
-
-
 /*
 Magic Number assignments for runtime system objects.
 Truly random values to allow easy detection of storage corruption.
@@ -476,7 +473,6 @@ struct CEntry *rpc2_ConnFromBindInfo(RPC2_HostIdent *whichHost, RPC2_PortIdent *
 struct CEntry *rpc2_GetConn(RPC2_Handle handle);
 void rpc2_ReapDeadConns(void);
 void rpc2_IncrementSeqNumber(struct CEntry *);
-/*  XXX where is this baby extern bool rpc2_TestState(); */
 
 /* Host manipulation routines */
 void rpc2_InitHost(void);
@@ -504,7 +500,7 @@ struct MEntry *rpc2_AllocMgrp(), *rpc2_GetMgrp();
 void rpc2_HoldPacket(), rpc2_UnholdPacket();
 
 /* RPC2_GetRequest() filter matching function */
-bool rpc2_FilterMatch();
+int rpc2_FilterMatch();
 
 /* Autonomous LWPs */
 void rpc2_SocketListener(), rpc2_ClockTick();

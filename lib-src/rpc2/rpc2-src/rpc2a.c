@@ -114,7 +114,7 @@ static int InvokeSE(), ResolveBindParms(), ServerHandShake();
 static void SendOKInit2(), RejectBind(), Send4AndSave();
 static RPC2_PacketBuffer *Send2Get3();
 static RPC2_PacketBuffer *HeldReq(RPC2_RequestFilter *filter, struct CEntry **ce);
-static bool GetFilter(RPC2_RequestFilter *inf, RPC2_RequestFilter *outf);
+static int GetFilter(RPC2_RequestFilter *inf, RPC2_RequestFilter *outf);
 static long GetNewRequest(IN RPC2_RequestFilter *filter, IN struct timeval *timeout, OUT struct RPC2_PacketBuffer **pb, OUT struct CEntry **ce);
 static long MakeFake(INOUT RPC2_PacketBuffer *pb, IN struct CEntry *ce, RPC2_Integer *AuthenticationType, OUT long *xrand, OUT RPC2_CountedBS *cident);
 static long Test3(RPC2_PacketBuffer *pb, struct CEntry *ce, long yrand, RPC2_EncryptionKey ekey);
@@ -1035,7 +1035,7 @@ static int ResolveBindParms(IN whichConn, IN whichHost, IN whichPort, IN whichSu
     return(RPC2_SUCCESS);
     }
 
-static bool GetFilter(RPC2_RequestFilter *inf, RPC2_RequestFilter *outf)
+static int GetFilter(RPC2_RequestFilter *inf, RPC2_RequestFilter *outf)
 {
 	struct SubsysEntry *ss;
 	struct CEntry *ce;

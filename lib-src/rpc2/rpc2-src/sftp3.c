@@ -952,7 +952,7 @@ static int SendSendAhead(struct SFTP_Entry *sEntry)
     RPC2_PacketBuffer *pb;
     long i, j;
     unsigned long now;
-    bool x, y, dont_ackme;
+    int x, y, dont_ackme;
 
     if (sEntry->ReadAheadCount == 0)
 	{/* Nothing to send; but caller expects need ack limit to be set */

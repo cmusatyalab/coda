@@ -106,6 +106,44 @@ STUBELEM stub_predefined[] = {
 
 };
 
+static int hash(char *name)
+{
+    unsigned int value;
+
+    for (value=0; *name!='\0'; name++)
+	value += *name;
+    return value % SYMTAB_SIZE;
+}
+
+extern int strcmp();
+#define equal(s1, s2) (strcmp(s1, s2) == 0)
+
+ENTRY *find(char *name)
+{
+    int index;
+    ENTRY *p;
+
+    index = hash(name);
+    for (p=table[index]; p!=NIL; p=p->thread)
+	if (equal(p->name, name)) return p;
+    return NIL;
+}
+
+void enter(ENTRY *e)
+{
+    int index;
+
+    if (find(e->name) != NIL) {
+	printf("RP2GEN: duplicate identifier: %s, ignoring\n", e->name);
+	return;
+    }
+    index = hash(e->name);
+    /* Insert at this bucket */
+    e -> thread = table[index];
+    table[index] = e;
+}
+
+
 static void init_stubspecial()
 {
     ENTRY *entryp;
@@ -152,7 +190,7 @@ void init_table(void)
 
     /* Enter predefined types */
     for (i=0; i<sizeof predefined/sizeof(predefined[0]); i++) {
-	register ENTRY *e;
+	ENTRY *e;
 	e = make_entry(rpc2_simple_type(predefined[i].tag), NIL);
 	e -> name = predefined[i].name;
 	e -> bound = NIL;
@@ -161,41 +199,3 @@ void init_table(void)
     init_stubspecial();
 }
 
-static int hash(name)
-    register char *name;
-{
-    register unsigned int value;
-
-    for (value=0; *name!='\0'; name++)
-	value += *name;
-    return value % SYMTAB_SIZE;
-}
-
-extern int strcmp();
-#define equal(s1, s2) (strcmp(s1, s2) == 0)
-
-ENTRY *find(name)
-    char *name;
-{
-    register int index;
-    register ENTRY *p;
-
-    index = hash(name);
-    for (p=table[index]; p!=NIL; p=p->thread)
-	if (equal(p->name, name)) return p;
-    return NIL;
-}
-
-void enter(ENTRY *e)
-{
-    int index;
-
-    if (find(e->name) != NIL) {
-	printf("RP2GEN: duplicate identifier: %s, ignoring\n", e->name);
-	return;
-    }
-    index = hash(e->name);
-    /* Insert at this bucket */
-    e -> thread = table[index];
-    table[index] = e;
-}

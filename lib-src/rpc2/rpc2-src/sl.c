@@ -70,7 +70,7 @@ Pittsburgh, PA.
  
 void rpc2_IncrementSeqNumber();
 static void DelayedAck(struct SL_Entry *sle);
-bool XlateMcastPacket(RPC2_PacketBuffer *pb);
+int XlateMcastPacket(RPC2_PacketBuffer *pb);
 void HandleInitMulticast();
 void rpc2_ProcessPackets();
 void rpc2_ExpireEvents();
@@ -78,7 +78,7 @@ void rpc2_ExpireEvents();
 static RPC2_PacketBuffer *PullPacket(), *ShrinkPacket();
 static struct CEntry *MakeConn(), *FindOrNak();
 static struct SL_Entry *FindRecipient();
-static bool BogusSl(), MorePackets(), PacketCame();
+static int BogusSl(), MorePackets(), PacketCame();
 static void
 	    Tell(), HandleSLPacket(), DecodePacket(),
 	    HandleCurrentReply(),
@@ -265,7 +265,7 @@ void rpc2_ExpireEvents()
 }
 
 
-static bool MorePackets()
+static int MorePackets()
 {
 	struct timeval tv;
 	fd_set rmask;
@@ -294,7 +294,7 @@ static bool MorePackets()
 }
 
 
-static bool PacketCame()
+static int PacketCame()
     /*  Await the earliest future event or a packet.
     	Returns TRUE if packet came, FALSE if earliest event expired */
 {
@@ -624,7 +624,7 @@ static RPC2_PacketBuffer *ShrinkPacket(RPC2_PacketBuffer *pb)
 }
 
 
-bool rpc2_FilterMatch(whichF, whichP)
+int rpc2_FilterMatch(whichF, whichP)
     RPC2_RequestFilter *whichF;	
     RPC2_PacketBuffer *whichP;
     /* Returns TRUE iff whichP matches whichF; FALSE otherwise */
@@ -1198,7 +1198,7 @@ void FreeHeld(struct SL_Entry *sle)
 	rpc2_FreeSle(&ce->MySl);
 }
 
-static bool BogusSl(struct CEntry *ce, RPC2_PacketBuffer *pb)
+static int BogusSl(struct CEntry *ce, RPC2_PacketBuffer *pb)
 {
 	struct SL_Entry *sl;
 

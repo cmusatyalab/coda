@@ -88,7 +88,7 @@ void sftp_Listener(void)
 void SFTP_DispatchProcess(void)
     {
     struct timeval tv;
-    bool rpc2, sftp;
+    int rpc2, sftp;
 
     while (sftp_MorePackets(&rpc2, &sftp))
 	{
@@ -153,7 +153,7 @@ static void ScanTimerQ()
 
 /* This function is only called by SFTP_DispatchProcess, which is not called
  * by the sftp code itself */
-bool sftp_MorePackets(bool *rpc2, bool *sftp)
+int sftp_MorePackets(int *rpc2, int *sftp)
 {
 /* This ioctl peeks into the socket's receive queue, and reports the amount
  * of data ready to be read. Linux officially uses TIOCINQ, but it's an alias
