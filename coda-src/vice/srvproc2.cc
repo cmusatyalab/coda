@@ -1097,7 +1097,7 @@ long FS_ViceNewConnectFS(RPC2_Handle RPCid, RPC2_Unsigned ViceVersion,
     }
 
    /* set up a writeback channel if there isn't one for this host */
-    if (OpenWritebackConn && errorCode == RPC2_SUCCESS) {
+    if (!NoWritebackConn && errorCode == RPC2_SUCCESS) {
 	/* try all free connections */
 	while ((WBconn = findIdleWBConn(client->VenusId)) != NULL) {
 	    WBconn->inuse = 1;

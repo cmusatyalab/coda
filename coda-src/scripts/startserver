@@ -39,6 +39,6 @@ fi
 # length of the file or device holding the RVM data segment.
 # These parameters are taken from /vice/srv.conf
 
-codasrv $* $XFLAGS -t 1000 -trunc 5 -debarrenize -nosalvageonshutdown -nodumpvm `grep '^\-rvm ' /vice/srv.conf`
+codasrv $* $XFLAGS -t 1000 -trunc 5 `grep '^\-rvm ' /vice/srv.conf`
 
 rm -f /vice/srv/pid

@@ -45,4 +45,4 @@ extern void DeleteFile (ViceFid *);
 extern int InitCallBack ();
 extern int CheckWriteBack(ViceFid * Fid);
 
-extern int OpenWritebackConn;
+extern int NoWritebackConn;

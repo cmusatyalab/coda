@@ -76,7 +76,7 @@ extern "C" {
 #include <vice.private.h>
 #include <writeback.h>
 
-int OpenWritebackConn;      /* open a wb conn to venus on connect */
+int NoWritebackConn;      /* don't open a wb conn to venus on connect */
 
 /* Move this somewhere useful */
 extern void WBClearReaders(HostTable * VenusId, VolumeId vid, VolumeId VSGVolnum);
@@ -176,7 +176,7 @@ long FS_ViceGetWBPermit(RPC2_Handle cid, VolumeId Vid,
     }
 
     /* Check to see if we can enable WB caching */
-    if (((volptr->header)->diskstuff.WriteBackEnable) && OpenWritebackConn) {
+    if (((volptr->header)->diskstuff.WriteBackEnable) && !NoWritebackConn) {
 	CODA_ASSERT(client->VenusId);
 	if (!list_empty(&volptr->WriteBackHolders)) {	  /* at least 1 client has it  */
 	    if (matchWBHolder(volptr,client->VenusId)) {  /* this client has it already*/

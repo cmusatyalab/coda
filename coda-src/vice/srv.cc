@@ -184,7 +184,7 @@ int thread_count;
 static int ServerNumber = 0;	/* 0 => single server,
 				   1,2,3 => number in multi server */
 
-static char *serverconf = SYSCONFDIR "/server.conf";
+static char *serverconf = SYSCONFDIR "/server"; /* ".conf" */
 
 /* File server parameters.   Defaults set by ReadConfigFile. */
 
@@ -203,7 +203,7 @@ static int buffs = 0;		// default 100, formerly 200
 static int cbwait = 0;		// default 240
 static int chk = 0;		// default 30
 static int ForceSalvage = 0;	// default 1
-static int SalvageOnShutdown = 0; // default 1 */
+static int SalvageOnShutdown = 0; // default 0 */
 
 static int ViceShutDown = 0;
 static int Statistics;
@@ -222,7 +222,7 @@ extern int etext, edata;	/* Info to be used in creating rvm segment */
 /*static */int camlog_fd;
 /*static */char camlog_record[SIZEOF_LARGEDISKVNODE + 8 + sizeof(VolumeDiskData)];
 /* static */ char *_DEBUG_p;
-/*static */int nodumpvm = FALSE;	// default 0 (aka FALSE)
+/*static */int DumpVM = 0;
 int prottrunc = FALSE;
 /* static */int MallocTrace = FALSE;
 /* static */void rds_printer(char *fmt ...);
@@ -321,7 +321,7 @@ void zombie(int sig, int code, struct sigcontext *scp) {
 	}
 	rvm_free_options(&curopts);
 
-	if (!nodumpvm)
+	if (DumpVM)
 	    dumpvm(); /* sanity check rvm recovery. */
     }
     
@@ -368,8 +368,8 @@ int main(int argc, char *argv[])
 	SLog(0, "[-noauth] [-forcesalvage] [-quicksalvage]");
 	SLog(0, "[-cp (connections in process)] [-cm (connections max)");
 	SLog(0, "[-cam] [-nc] [-rvm logdevice datadevice length] [-nores] [-trunc percent]");
-	SLog(0, " [-nocmp] [-nopy] [-nodumpvm] [-nosalvageonshutdown] [-mondhost hostname] [-mondport portnumber]");
-	SLog(0, "[-debarrenize] [-optstore] [-dir workdir] [-srvhost host]");
+	SLog(0, " [-nocmp] [-nopy] [-dumpvm] [-nosalvageonshutdown] [-mondhost hostname] [-mondport portnumber]");
+	SLog(0, "[-nodebarrenize] [-optstore] [-dir workdir] [-srvhost host]");
 	SLog(0, " [-rvmopt] [-canonicalize] [-usenscclock]");
 	SLog(0, " [-nowriteback] [-mapprivate] [-zombify]");
 
@@ -1341,16 +1341,20 @@ static int ReadConfigFile(void)
 {
     char confname[80];
     int  datalen = 0;
-    int  dumpvm = 0;
 
     /* Load configuration file. */
-    (void) conf_init(serverconf);
+    sprintf (confname, "%s.conf", serverconf);
+    (void) conf_init(confname);
+
+    /* Load server specific configuration file */
+    sprintf (confname, "%s_%d.conf", serverconf, ServerNumber);
+    (void) conf_init(confname);
 
     /* srv.cc defined values ... */
     CONF_INT(Authenticate,	"authenticate",	   1); 
     CONF_INT(AllowResolution,	"resolution",	   1); 
     CONF_INT(comparedirreps,	"comparedirreps",  1); 
-    CONF_INT(pollandyield,	"pullandyield",    1); 
+    CONF_INT(pollandyield,	"pollandyield",    1); 
     CONF_INT(OptimizeStore,	"optstore",	   0); 
     CONF_INT(pathtiming,	"pathtiming",	   1);
     CONF_INT(MapPrivate,	"mapprivate",	   0);
@@ -1366,46 +1370,28 @@ static int ReadConfigFile(void)
     CONF_INT(timeout,		"timeout",	   15);
     CONF_INT(retrycnt,		"retrycnt",	   4);
     CONF_INT(lwps,		"lwps",		   6);
-    if (lwps > MAXLWP)
-        lwps = MAXLWP;
+    if (lwps > MAXLWP) lwps = MAXLWP;
+
     CONF_INT(buffs,		"buffs",	   100);
     CONF_INT(stack,		"stack",	   96);
     CONF_INT(cbwait,		"cbwait",	   240);
     CONF_INT(chk,		"chk",		   30);
     CONF_INT(ForceSalvage,	"forcesalvage",	   1);
-    CONF_INT(SalvageOnShutdown,	"salvageonshutdown", 1);
-    CONF_INT(dumpvm,		"dumpvm",	   1);
-    if (!nodumpvm)
-      nodumpvm = !dumpvm;
-
+    CONF_INT(SalvageOnShutdown,	"salvageonshutdown", 0);
+    CONF_INT(DumpVM,		"dumpvm",	   0);
 
     /* Rvm parameters */
     CONF_INT(_Rvm_Truncate, 	"rvmtruncate",	   0);
-    if (ServerNumber == 0) {
-        if (RvmType == UNSET) {
-	    CONF_STR(_Rvm_Log_Device,   "rvm_log",         "");
-	    CONF_STR(_Rvm_Data_Device,  "rvm_data",        "");
-	    CONF_INT(datalen,		"rvm_data_length", 0);
-	    CONF_STR(srvhost,  	        "hostname",	   NULL);
-	}
-    } else {
-        if (RvmType == UNSET) {
-            sprintf (confname, "rvm_log_%d", ServerNumber);
-	    CONF_STR(_Rvm_Log_Device,   confname,	"");
-	    
-	    sprintf (confname, "rvm_data_%d", ServerNumber);
-	    CONF_STR(_Rvm_Data_Device,  confname,	"");
-	    
-	    sprintf (confname, "rvm_data_length_%d", ServerNumber);
-	    CONF_INT(datalen,	        confname, 	0);
-	    
-	    sprintf (confname, "hostname_%d", ServerNumber);
-	    CONF_STR(srvhost,  	        confname,	NULL);
-	}
-	if (srvhost == NULL || *srvhost == 0) {
-	    SLog(0, "Multiple servers specified, must specify hostname.\n");
-	    exit(-1);
-	}
+
+    if (RvmType == UNSET) {
+        CONF_STR(_Rvm_Log_Device,  "rvm_log",         "");
+        CONF_STR(_Rvm_Data_Device, "rvm_data",        "");
+        CONF_INT(datalen,	   "rvm_data_length", 0);
+        CONF_STR(srvhost,  	   "hostname",	       NULL);
+    }
+    if (ServerNum && (srvhost == NULL || *srvhost == 0)) {
+        SLog(0, "Multiple servers specified, must specify hostname.\n");
+        exit(-1);
     }
     if (datalen != 0) {
         _Rvm_DataLength = RVM_MK_OFFSET(0, datalen);
@@ -1422,11 +1408,10 @@ static int ReadConfigFile(void)
     }
 
     /* Other command line parameters ... */
-    extern int debarrenize;
+    extern int nodebarrenize;
 
-    CONF_INT(debarrenize,	"debarrenize",	   1);
-    CONF_INT(OpenWritebackConn, "writeback",	   1);
-
+    CONF_INT(nodebarrenize,   "nodebarrenize",	   0);
+    CONF_INT(NoWritebackConn, "nowriteback",	   0);
 
     return 0;
 }
@@ -1436,7 +1421,7 @@ static int ParseArgs(int argc, char *argv[])
 {
     int   i;
 
-    OpenWritebackConn = 1;
+    NoWritebackConn = 0;
 
     for (i = 1; i < argc; i++) {
 	if (!strcmp(argv[i], "-d")) {
@@ -1526,8 +1511,8 @@ static int ParseArgs(int argc, char *argv[])
 	    if (!strcmp(argv[i], "-nopy")) 
 		pollandyield = 0;
 	else 
-	    if (!strcmp(argv[i], "-nosalvageonshutdown")) 
-		SalvageOnShutdown = 0;
+	    if (!strcmp(argv[i], "-salvageonshutdown")) 
+		SalvageOnShutdown = 1;
 	else 
 	    if (!strcmp(argv[i], "-rvmopt")) 
 		optimizationson = RVM_COALESCE_RANGES;
@@ -1601,8 +1586,8 @@ static int ParseArgs(int argc, char *argv[])
 		_Rvm_DataLength = RVM_MK_OFFSET(0, atoi(argv[++i]));
 	    }
 	else 
-	    if (!strcmp(argv[i], "-nodumpvm")) {
-		nodumpvm = TRUE;
+	    if (!strcmp(argv[i], "-dumpvm")) {
+		DumpVM = 1;
 	    }
 	else
 	    if (!strcmp(argv[i], "-trunc")) {
@@ -1617,13 +1602,13 @@ static int ParseArgs(int argc, char *argv[])
 		SmonPort = atoi(argv[++i]);
 	    }
 	else 
-	    if (!strcmp(argv[i], "-debarrenize")) {
-		extern int debarrenize;
-		debarrenize = 1;
+	    if (!strcmp(argv[i], "-nodebarrenize")) {
+		extern int nodebarrenize;
+		nodebarrenize = 1;
 	    }
 	else 
 	    if (!strcmp(argv[i], "-nowriteback")) {
-		OpenWritebackConn = 0;
+		NoWritebackConn = 1;
 	    }
 	else 
 	    if (!strcmp(argv[i], "-optstore")) {
@@ -1844,7 +1829,7 @@ static void InitializeServerRVM(char *name)
 	else if (_Rvm_Truncate > 0 && _Rvm_Truncate < 100) {
 	    SLog(0,
 		 "Setting Rvm Truncate threshhold to %d.\n", _Rvm_Truncate); 
-	    options->truncate = _Rvm_Truncate;				    
+	    options->truncate = _Rvm_Truncate;
 	}
 #if	defined(__NetBSD_Version__) && (__NetBSD_Version__ >= 104000000)
 #define	NetBSD1_4

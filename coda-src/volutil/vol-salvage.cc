@@ -131,7 +131,7 @@ static int ForceSalvage = 0;		/* If salvage should occur
 int nskipvols = 0;			/* volumes to be skipped during salvage */
 VolumeId *skipvolnums = NULL;
 
-int debarrenize = 0;			/* flag for debarrenizing vnodes on startup */
+int nodebarrenize = 0;			/* flag for debarrenizing vnodes on startup */
 
 static Device fileSysDevice;		/* The device number of
 					   partition being salvaged */
@@ -654,7 +654,7 @@ static int VnodeInodeCheck(int RW, struct ViceInodeInfo *ip, int nInodes,
 	    }
 	    else {
 		if (!IsBarren(vnode->versionvector)){
-		    if (!debarrenize) {
+		    if (nodebarrenize) {
 			VLog(0, 
 			       "Vnode (%x.%x.%x) incorrect inode - marking as BARREN",
 			       vsp->header.id, vnodeNumber, vnode->uniquifier);
@@ -678,7 +678,7 @@ static int VnodeInodeCheck(int RW, struct ViceInodeInfo *ip, int nInodes,
 		    VolumeChanged = 1;
 		}
 		else {	// Barren vnode 
-		    if (debarrenize) {
+		    if (!nodebarrenize) {
 			VLog(0, 
 			       "Vnode 0x%x.%x.%x is BARREN - Debarrenizing\n",
 			       vsp->header.id, vnodeNumber, vnode->uniquifier);
