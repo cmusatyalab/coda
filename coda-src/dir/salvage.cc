@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: blurb.doc,v 1.1 96/11/22 13:29:31 raiff Exp $";
+static char *rcsid = "$Header: /home/braam/src/coda-src/dir/RCS/salvage.cc,v 1.1 1996/11/22 19:07:04 braam Exp braam $";
 #endif /*_BLURB_*/
 
 
@@ -80,7 +80,7 @@ extern "C" {
 #endif __cplusplus
 
 
-#include "dir.h"
+#include "coda_dir.h"
 #include "dir.private.h"
 
 /* This routine is called with one parameter, the id (the same thing that is passed to physio or the buffer package) of a directory to check.  It returns 1 if the directory looks good, and 0 otherwise. */
