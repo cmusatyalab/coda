@@ -195,7 +195,7 @@ showvar:
 	@echo  SECSRC: $(SECSRC) 
 	@echo  CFLAGS: $(CFLAGS)
 	@echo  TOPDIR: $(TOPDIR) 
-	@echo  LIBIFS: $(LIBIFS) 
+	@echo  LIBINODEFS: $(LIBINODEFS) 
 
 ##################
 # linting
