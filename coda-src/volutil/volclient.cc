@@ -599,7 +599,7 @@ static void dump(void)
 	exit(-1);
     }
 
-    fprintf(stderr, "\n%sVolDump completed, %ld bytes dumped\n",
+    fprintf(stderr, "\n%sVolDump completed, %lu bytes dumped\n",
 	    Incremental ? "Incremental " : "", rock->numbytes);
     exit(0);
 }
