@@ -73,10 +73,10 @@ file adosfs/adutil.c			adosfs
 file adosfs/advfsops.c			adosfs
 file adosfs/advnops.c			adosfs
 file cfs/cfs_namecache.c		vcfs			needs-count
-file cfs/cfs_nbsd.c			vcfs
 file cfs/cfs_psdev.c			vcfs
 file cfs/cfs_subr.c			vcfs
 file cfs/cfs_vfsops.c			vcfs
+file cfs/cfs_venus.c			vcfs
 file cfs/cfs_vnodeops.c			vcfs
 file ddb/db_access.c			ddb
 file ddb/db_aout.c			ddb
