@@ -142,7 +142,7 @@ vsr *volent::GetVSR(vuid_t uid) {
     /* Check for an existing VSR for this user. */
     olist_iterator next(*vsr_list);
     vsr *v;
-    while (v = (vsr *)next())
+    while ((v = (vsr *)next()))
 	if (uid == v->uid) return(v);
 
     /* Construct a new one. */
@@ -176,7 +176,7 @@ void volent::FlushVSRs(int hard) {
         * and then remove it from the list.
         */
 	vsr *v;
-	while (v = (vsr *)vsr_list->get()) {
+	while ((v = (vsr *)vsr_list->get())) {
 	    /* Convert SigmaTSquared from floating-point milliseconds to fixed-point seconds. */
 	    for (int i = 0; i < (sizeof(VmonSessionEventArray) / sizeof(VmonSessionEvent)); i++) {
 		VmonSessionEvent *se = &((&(v->events.Event0))[i]);
@@ -196,7 +196,7 @@ void volent::FlushVSRs(int hard) {
         */
 	vsr *v;
 	olist_iterator vnext(*vsr_list);
-	while (v = (vsr *)vnext()) {
+	while ((v = (vsr *)vnext())) {
 	    VmonSessionEventArray *na = new(VmonSessionEventArray);
 	    bcopy((const void *)&(v->events), (void *)na,(int)sizeof(VmonSessionEventArray));
 	    /* Convert SigmaTSquared from floating-point milliseconds to fixed-point seconds. */

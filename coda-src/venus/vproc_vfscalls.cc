@@ -1339,7 +1339,7 @@ FreeLocks:
 	k_Purge(&cp->c_fid, 1);
 
 	/* Make a "fake" name for the inconsistent object. */
-	sprintf(buf, "@%08x.%08x.%08x",
+	sprintf(buf, "@%08lx.%08lx.%08lx",
 		cp->c_fid.Volume, cp->c_fid.Vnode, cp->c_fid.Unique);
 	string->cs_len = 27;
     }

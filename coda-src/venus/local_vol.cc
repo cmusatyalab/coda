@@ -51,7 +51,7 @@ void volent::TranslateCMLFid(ViceFid *global, ViceFid *local)
     VOL_ASSERT(this, vid == global->Volume);
     cml_iterator next(CML, CommitOrder);
     cmlent *m;
-    while (m = next()) {
+    while ((m = next())) {
 	m->TranslateFid(global, local);
     }
 }
@@ -119,7 +119,7 @@ int volent::ContainUnrepairedCML()
 {
     cml_iterator next(CML, CommitOrder);
     cmlent *m;
-    while (m = next()) {
+    while ((m = next())) {
 	if (m->IsToBeRepaired())
 	  return 1;
     }
@@ -146,7 +146,7 @@ void volent::CheckLocalSubtree()
     lgment *lgm;
     ViceFid *gfid;
     int contain_local_obj = 0;
-    while (lgm = next()) {
+    while ((lgm = next())) {
 	gfid = lgm->GetGlobalFid();
 	if (gfid->Volume == vid) {
 	    contain_local_obj = 1;

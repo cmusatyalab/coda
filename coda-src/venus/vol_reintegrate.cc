@@ -583,7 +583,7 @@ int volent::ReadyToReintegrate() {
 	    cmlent *m;
 	    cml_iterator next(CML, CommitOrder);
 
-	    while (m = next()) 
+	    while ((m = next())) 
 		ready += m->ReintReady();
     }
 

@@ -203,7 +203,7 @@ void volent::GetCOP2(RPC2_CountedBS *BS) {
 
     dlist_iterator next(*cop2_list);
     cop2ent *c;
-    while (c = (cop2ent *)next()) {
+    while ((c = (cop2ent *)next())) {
 	/* Copy in the Sid and the US. */
 	if (BS->SeqLen + sizeof(ViceStoreId) + sizeof(ViceVersionVector) > COP2SIZE)
 	    return;
@@ -228,7 +228,7 @@ void volent::GetCOP2(RPC2_CountedBS *BS) {
 cop2ent *volent::FindCOP2(ViceStoreId *StoreId) {
     dlist_iterator next(*cop2_list);
     cop2ent *c;
-    while (c = (cop2ent *)next())
+    while ((c = (cop2ent *)next()))
 	if (StoreId->Host == c->sid.Host &&
 	    StoreId->Uniquifier == c->sid.Uniquifier)
 	    return(c);

@@ -351,7 +351,7 @@ extern char *fsname;
 extern char *CacheDir;
 extern int CacheBlocks;
 extern char *RootVolName;
-extern int PrimaryUser;
+extern vuid_t PrimaryUser;
 
 /* spool.cc */
 extern void SpoolInit();

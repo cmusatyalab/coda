@@ -86,7 +86,8 @@ int volent::GetVolAttr(vuid_t vuid) {
     VOL_ASSERT(this, (state == Hoarding || state == Logging));
     VOL_ASSERT(this, IsReplicated());
 
-    int i, code = 0;
+    unsigned int i;
+    int code = 0;
 
     /* Acquire an Mgroup. */
     mgrpent *m = 0;
@@ -105,7 +106,7 @@ int volent::GetVolAttr(vuid_t vuid) {
 	if (VV_Cmp(&VVV, &NullVV) == VV_EQ) {
 	    InitVCBData(vid);
 
-	    if (code = ValidateFSOs()) 
+	    if ((code = ValidateFSOs())) 
 		goto RepExit;
 
 	    RPC2_Integer VS;
@@ -264,7 +265,7 @@ int volent::GetVolAttr(vuid_t vuid) {
 
 	    /* now set status of volumes */
 	    for (i = 0; i < numVFlags; i++)  /* look up the object */
-		if (v = VDB->Find(VidList[i].Vid)) {
+		if ((v = VDB->Find(VidList[i].Vid))) {
 		    fso_vol_iterator next(NL, v);
 		    fsobj *f;
 		    vcbevent ve(v->fso_list->count());
@@ -276,7 +277,7 @@ int volent::GetVolAttr(vuid_t vuid) {
 	                    v->SetCallBack();
 
 			    /* validate cached access rights for the caller */
-			    while (f = next()) 
+			    while ((f = next())) 
 				if (f->IsDir()) {
 				    f->PromoteAcRights(ALL_UIDS);
 				    f->PromoteAcRights(vuid);
@@ -318,11 +319,11 @@ RepExit:
 
 /* collate version stamp and callback status out parameters from servers */
 void volent::CollateVCB(mgrpent *m, RPC2_Integer *sbufs, CallBackStatus *cbufs) {
-    int i;
+    unsigned int i;
     CallBackStatus collatedCB = CallBackSet;
 
     if (LogLevel >= 100) {
-	fprintf(logFile, "volent::CollateVCB: vid 0x%x Current VVV:\n", vid);
+	fprintf(logFile, "volent::CollateVCB: vid 0x%lx Current VVV:\n", vid);
     	PrintVV(logFile, &VVV);
 
 	fprintf(logFile, "volent::CollateVCB: Version stamps returned:");
@@ -333,7 +334,7 @@ void volent::CollateVCB(mgrpent *m, RPC2_Integer *sbufs, CallBackStatus *cbufs) 
 	fprintf(logFile, "\nvolent::CollateVCB: Callback status returned:");
 	for (i = 0; i < m->nhosts; i++) 
 	    if (m->rocc.hosts[i])
-	    	fprintf(logFile, " %lu", cbufs[i]);
+	    	fprintf(logFile, " %u", cbufs[i]);
 
 	fprintf(logFile, "\n");
 	fflush(logFile);
@@ -393,7 +394,7 @@ int volent::ValidateFSOs() {
     vproc *vp = VprocSelf();
     fso_vol_iterator next(NL, this);
 
-    while (f = next()) {
+    while ((f = next())) {
 #ifdef AUTOFETCH
 	if ((HAVESTATUS(f) && STATUSVALID(f)) &&
 	    (DATAVALID(f) || !HAVEDATA(f)))
@@ -566,7 +567,7 @@ vcbdent *vcbdb::Create(VolumeId vid, char *volname) {
 vcbdent *vcbdb::Find(VolumeId volnum) {
     vcbd_iterator next(&volnum);
     vcbdent *v;
-    while (v = next())
+    while ((v = next()))
 	if (v->vid == volnum) return(v);
 
     return(0);
@@ -578,7 +579,7 @@ void vcbdb::print(int fd) {
     vcbdent *v;
 
     fdprint(fd, "\n***** VCB Statistics *****\n");
-    while (v = next())
+    while ((v = next()))
 	v->print(fd);
 }
 

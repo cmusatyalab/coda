@@ -207,7 +207,7 @@ void vdb::FlushCOP2() {
     /* For each volume. */
     vol_iterator vnext;
     volent *v;
-    while (v = vnext()) {
+    while ((v = vnext())) {
 	if (FID_VolIsFake(v->vid)) continue;
 	if (v->IsReplicated()) {
 	    for (;;) {
@@ -233,7 +233,7 @@ void vdb::TakeTransition() {
     /* For each volume. */
     vol_iterator vnext;
     volent *v;
-    while (v = vnext()) {
+    while ((v = vnext())) {
 	if (!FID_VolIsFake(v->vid)) 
 		continue;
 
@@ -251,7 +251,7 @@ void vdb::FlushVSR() {
     /* For each volume. */
     vol_iterator vnext;
     volent *v;
-    while (v = vnext()) {
+    while ((v = vnext())) {
 	if (FID_VolIsFake(v->vid)) 
 		continue;
 	v->FlushVSRs(VSR_FLUSH_NOT_HARD);
@@ -271,7 +271,7 @@ void vdb::CheckPoint(unsigned long curr_time) {
     vol_iterator vnext;
     volent *v;
 
-    while (v = vnext()) {
+    while ((v = vnext())) {
 	unsigned long lmTime= 0;
 
         /* check if the volume contains cmlent to be repaired */
@@ -300,7 +300,7 @@ void vdb::CheckReintegratePending() {
     /* For each volume. */
     vol_iterator vnext;
     volent *v;
-    while (v = vnext())
+    while ((v = vnext()))
 	v->CheckReintegratePending();
 }
 
@@ -309,7 +309,7 @@ void vdb::CheckLocalSubtree()
 {
     vol_iterator next;
     volent *v;
-    while (v = next())
+    while ((v = next()))
       v->CheckLocalSubtree();
 }
 
@@ -321,7 +321,7 @@ void TrickleReintegrate() {
     /* For each volume. */
     vol_iterator vnext;
     volent *v;
-    while (v = vnext()) {
+    while ((v = vnext())) {
 	if (FID_VolIsFake(v->vid)) 
 		continue;
 

@@ -107,7 +107,7 @@ void Rtry_Signal() {
 vproc *FindVproc(int vpid) {
     vproc_iterator next;
     vproc *vp;
-    while (vp = next())
+    while ((vp = next()))
 	if (vp->vpid == vpid) return(vp);
 
     return(0);
@@ -132,7 +132,7 @@ void VprocPreamble(struct Lock *init_lock) {
 	CHOKE("VprocPreamble: LWP_CurrentProcess failed (%d)", lwprc);
     vproc_iterator next;
     vproc *vp;
-    while (vp = next())
+    while ((vp = next()))
 	if (vp->lwpid == (int)x) break;
     if (vp == 0)
 	CHOKE("VprocPreamble: lwp not found");
@@ -355,7 +355,7 @@ void PrintVprocs(int fd) {
 
     vproc_iterator next;
     vproc *vp;
-    while(vp = next()) vp->print(fd);
+    while((vp = next())) vp->print(fd);
 
     fdprint(fd, "\n");
 }
@@ -771,7 +771,7 @@ vproc *vproc_iterator::operator()() {
     if (type == (vproctype)-1) return((vproc *)olist_iterator::operator()());
 
     vproc *vp;
-    while (vp = (vproc *)olist_iterator::operator()())
+    while ((vp = (vproc *)olist_iterator::operator()()))
 	if (vp->type == type) return(vp);
     return(0);
 }

@@ -77,7 +77,7 @@ userent *FindUser(vuid_t vuid) {
     user_iterator next;
     userent *u;
 
-    while (u = next())
+    while ((u = next()))
 	if (u->uid == vuid) return(u);
 
     return(0);
@@ -88,7 +88,7 @@ userent *FindUserByAdviceHandle(RPC2_Handle handle) {
   user_iterator next;
   userent *u;
 
-  while (u = next())
+  while ((u = next()))
     if (u->admon.IsAdviceHandle(handle) == TRUE) return(u);
 
   return(0);
@@ -138,7 +138,7 @@ void UserPrint(int fd) {
 
     user_iterator next;
     userent *u;
-    while (u = next()) u->print(fd);
+    while ((u = next())) u->print(fd);
 
     fdprint(fd, "\n");
 }
@@ -189,7 +189,7 @@ int ConsoleUser(vuid_t user)
 
     strcpy(w.ut_line, CONSOLE);
     while (!found && (u = getutline(&w))) {
-	struct passwd *pw = getpwnam(u->ut_name);
+	pw = getpwnam(u->ut_name);
 	if (pw) found = (user == pw->pw_uid);
     }
     endutent();
@@ -281,7 +281,7 @@ LOG(100, ("SetTokens calling Reset\n"));
     /* Make dirty volumes "owned" by this user available for reintegration. */
     vol_iterator next;
     volent *v;
-    while (v = next())
+    while ((v = next()))
 	if (v->type == REPVOL && v->state == Emulating && v->CML.Owner() == uid) {
 	    v->flags.transition_pending = 1;
 	    v->ClearReintegratePending();
@@ -599,7 +599,7 @@ void UserDaemon() {
 
 	user_iterator next;
 	userent *u;
-	while (u = next()) 
+	while ((u = next())) 
 	    u->CheckTokenExpiry();
 
 	/* Bump sequence number. */

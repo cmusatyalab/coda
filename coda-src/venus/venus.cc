@@ -72,9 +72,9 @@ char *venusRoot = UNSET_VR;
 char *kernDevice = UNSET_KD;
 char *fsname = UNSET_FS;
 char *CacheDir = UNSET_CD;
-int CacheBlocks = UNSET_CB;
+int   CacheBlocks = UNSET_CB;
 char *RootVolName = UNSET_RV;
-int PrimaryUser = UNSET_PRIMARYUSER;
+vuid_t PrimaryUser = (vuid_t)UNSET_PRIMARYUSER;
 char *SpoolDir = UNSET_SPOOLDIR;
 
 /* *****  Private constants  ***** */

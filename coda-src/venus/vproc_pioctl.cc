@@ -1185,7 +1185,7 @@ V_FreeLocks:
 		    /* this should go away */
 		    rpc2_Bandwidth = *((unsigned *)data->in);
 		    
-		    while (s = next()) {
+		    while ((s = next())) {
 			/* need bytes/sec */
 			if (s->InitBandwidth(*((long *)data->in) >> 3)) {
 			    u.u_error = EINVAL;

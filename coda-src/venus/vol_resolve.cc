@@ -181,7 +181,7 @@ void volent::ResSubmit(char **waitblkp, ViceFid *fid) {
     {
 	olist_iterator next(*res_list);
 	resent *r = 0;
-	while (r = (resent *)next())
+	while ((r = (resent *)next()))
 	    if (FID_EQ(&r->fid, fid)) break;
 	if (r == 0) {
 	    r = new resent(fid);

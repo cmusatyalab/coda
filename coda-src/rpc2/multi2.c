@@ -241,7 +241,7 @@ long MRPC_MakeMulti(int ServerOp, ARG ArgTypes[], RPC2_Integer HowMany,
 	    case RPC2_ENUM_TAG:	/* 9: begin of case RPC2_ENUM_TAG */
 		    switch(a_types->mode) {
 		    case IN_MODE:	/* is this the right way to ENUM parameter ? */
-			    va_array[i].integer = va_arg(ap, RPC2_Integer *);
+			    va_array[i].integer = va_arg(ap, RPC2_Integer);
 			    break;
 		    case OUT_MODE:
 		    case IN_OUT_MODE:
@@ -409,7 +409,7 @@ void pack(ARG *a_types, PARM **args, PARM **_ptr)
 				}
 				else if(mode == IN_OUT_MODE)
 				{
-				  memcpy(*_ptr, **arg->bytep, a_types->bound);
+				  memcpy(*_ptr, *arg->bytep, a_types->bound);
 				  (*args)++;
 				}
 				else if (mode == NO_MODE)
@@ -801,7 +801,7 @@ void unpack(ARG *a_types, PARM *args, PARM **_ptr, long offset)
 #endif
 				   }
 				   else {
-				     memcpy(*(args->bytep[offset]),
+				     memcpy(args->bytep[offset],
 					    *_ptr, a_types->bound);
 				     (*_ptr) ++;
 				   }

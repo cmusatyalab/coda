@@ -123,7 +123,7 @@ was reached. */
 msgent *FindMsg(olist& ol, u_long seq) {
     msg_iterator next(ol);
     msgent *m;
-    while (m = next())
+    while ((m = next()))
 	if (((union inputArgs *)m->msg_buf)->ih.unique == seq) return(m);
 
     return(0);
@@ -556,7 +556,7 @@ int WorkerCloseMuxfd() {
 worker *FindWorker(u_long seq) {
     worker_iterator next;
     worker *w;
-    while (w = next())
+    while ((w = next()))
 	if (w->msg && ((union inputArgs *)w->msg)->ih.unique == seq) return(w);
 
     return(0);
@@ -566,7 +566,7 @@ worker *FindWorker(u_long seq) {
 worker *GetIdleWorker() {
     worker_iterator next;
     worker *w;
-    while (w = next())
+    while ((w = next()))
 	if (w->idle) return(w);
 
     /* No idle workers; can we create a new one? */
@@ -669,7 +669,7 @@ void WorkerMux(int mask) {
 void WorkerReturnEarly(ViceFid *fid) {
     worker_iterator next;
     worker *w;
-    while (w = next())
+    while ((w = next()))
 	if (FID_EQ(&w->StoreFid, fid)) {
 	    w->StoreFid = NullFid;
 	    w->Return(0);
@@ -681,7 +681,7 @@ int GetWorkerIdleTime() {
     /* Return 0 if any call is in progress. */
     worker_iterator next;
     worker *w;
-    while (w = next())
+    while ((w = next()))
 	if (!w->idle) return(0);
 
     return(Vtime() - worker::lastresign);
@@ -705,7 +705,7 @@ void PrintWorkers(int fd) {
 
     worker_iterator next;
     worker *w;
-    while (w = next()) w->print(fd);
+    while ((w = next())) w->print(fd);
 }
 
 

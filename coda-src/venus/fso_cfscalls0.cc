@@ -64,10 +64,10 @@ extern "C" {
 /* C-stub to jump into the c++ method without compiler warnings */
 static void FetchProgressIndicator_stub(void *up, unsigned int offset)
 {
-    ((fsobj *)up)->FetchProgressIndicator(offset);
+    ((fsobj *)up)->FetchProgressIndicator((long)offset);
 }
 
-void fsobj::FetchProgressIndicator(unsigned int offset)
+void fsobj::FetchProgressIndicator(long offset)
 {
     unsigned long last;
     unsigned long curr;
@@ -83,7 +83,7 @@ void fsobj::FetchProgressIndicator(unsigned int offset)
 	MarinerLog("progress::fetching (%s) %lux\n", comp, curr);
     }
 
-    stat.GotThisData = (unsigned long)offset;
+    stat.GotThisData = offset;
 }
 
 int fsobj::Fetch(vuid_t vuid) {
@@ -121,7 +121,7 @@ int fsobj::Fetch(vuid_t vuid) {
 
     int code = 0;
     char prel_str[256];
-    sprintf(prel_str, "fetch::Fetch %%s [%d]\n", BLOCKS(this));
+    sprintf(prel_str, "fetch::Fetch %%s [%ld]\n", BLOCKS(this));
     ViceFetchType fetchtype = (flags.rwreplica ? FetchDataRepair : FetchData);
 
     /* Dummy argument for ACL. */
@@ -147,9 +147,9 @@ int fsobj::Fetch(vuid_t vuid) {
 
 #define OLDFETCH 1
 #ifdef OLDFETCH
-    unsigned long offset = 0;
+    long offset = 0;
 #else
-    unsigned long offset = PARTIALDATA(this) ? stat.GotThisData : 0;
+    long offset = PARTIALDATA(this) ? stat.GotThisData : 0;
 #endif
 
     /* C++ 3.0 whines if the following decls moved closer to use  -- Satya */
@@ -420,7 +420,7 @@ RepExit:
 	{
 	    long bytes = sed->Value.SmartFTPD.BytesTransferred;
 	    LOG(10, ("ViceFetch: fetched %d bytes\n", bytes));
-	    if (bytes != (status.Length - offset)) {
+	    if (bytes != ((long)status.Length - offset)) {
 		print(logFile);
 		CHOKE("fsobj::Fetch: bytes mismatch (%d, %d)",
 		    bytes, (status.Length - offset));
@@ -678,7 +678,7 @@ int fsobj::GetAttr(vuid_t vuid, RPC2_BoundedBS *acl) {
 		     * collate flags from vsg members. even if the return
 		     * is ERETRY we can (and should) grab the flags.
 		     */
-		    unsigned numVFlags = 0;
+		    int numVFlags = 0;
 
 		    for (i = 0; i < VSG_MEMBERS; i++)
 			if (m->rocc.hosts[i])
@@ -709,7 +709,7 @@ int fsobj::GetAttr(vuid_t vuid, RPC2_BoundedBS *acl) {
 			 */
 			fsobj *pobj;
 
-			if (pobj = FSDB->Find(&FAVs[i].Fid))
+			if ((pobj = FSDB->Find(&FAVs[i].Fid)))
 			    if (VFlags[i] && HAVESTATUS(pobj)) {
 				LOG(1000, ("fsobj::GetAttr: ValidateAttrs (%s), fid (%x.%x.%x) valid\n",
 					  pobj->comp, FAVs[i].Fid.Volume, 
@@ -933,6 +933,20 @@ RepExit:
 		Recov_EndTrans(CMFP);
 		break;
 
+	    case ENXIO:
+		/* VNOVOL is mapped to ENXIO, and when ViceValidateAttrs
+		 * returns this error for all servers, we should get rid of
+		 * all cached fsobjs for this volume. */
+		if (vol) {
+		    fso_vol_iterator next(NL, vol);
+		    fsobj *f;
+		    Recov_BeginTrans();
+		    while ((f = next()))
+			f->Kill(0);
+		    Recov_EndTrans(CMFP);
+		}
+		break;
+
 	    case ENOENT:
 		/* Object no longer exists, discard if possible. */
 		Recov_BeginTrans();
@@ -1079,7 +1093,7 @@ int fsobj::ConnectedStore(Date_t Mtime, vuid_t vuid, unsigned long NewLength) {
 
     int code = 0;
     char prel_str[256];
-    sprintf(prel_str, "store::Store %%s [%d]\n", NBLOCKS(NewLength));
+    sprintf(prel_str, "store::Store %%s [%ld]\n", NBLOCKS(NewLength));
 
     /* Dummy argument for ACL. */
     RPC2_CountedBS dummybs;
@@ -1190,7 +1204,7 @@ int fsobj::ConnectedStore(Date_t Mtime, vuid_t vuid, unsigned long NewLength) {
 	    {
 		long bytes = sedvar_bufs[dh_ix].Value.SmartFTPD.BytesTransferred;
 		LOG(10, ("(Multi)ViceStore: stored %d bytes\n", bytes));
-		if (bytes != status.Length) {
+		if (bytes != (long)status.Length) {
 		    print(logFile);
 		    CHOKE("fsobj::Store: bytes mismatch (%d, %d)",
 			bytes, status.Length);
@@ -1257,7 +1271,7 @@ RepExit:
 	{
 	    long bytes = sed->Value.SmartFTPD.BytesTransferred;
 	    LOG(10, ("ViceStore: stored %d bytes\n", bytes));
-	    if (bytes != status.Length) {
+	    if (bytes != (long)status.Length) {
 		print(logFile);
 		CHOKE("fsobj::Store: bytes mismatch (%d, %d)",
 		    bytes, status.Length);

@@ -137,9 +137,9 @@ static void Recov_DeallocateVM(char *, unsigned long);
 #define	RECOV_BYTES_NEEDED()\
     (MLEs * (sizeof(cmlent) + 64) +\
     CacheFiles * (sizeof(fsobj) + 64) +\
-    CacheFiles / 4 * (sizeof(VenusDirData) + 3072) +\
-    CacheFiles / 64 * sizeof(volent) +\
-    CacheFiles / 256 * sizeof(vsgent) +\
+    (CacheFiles / 4) * (sizeof(VenusDirData) + 3072) +\
+    (CacheFiles / 64) * sizeof(volent) +\
+    (CacheFiles / 256) * sizeof(vsgent) +\
     HDBEs * (sizeof(hdbent) + 128) +\
     128 * 1024)
 

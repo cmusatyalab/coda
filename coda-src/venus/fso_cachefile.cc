@@ -97,7 +97,7 @@ int CacheFile::ValidContainer() {
       tstat.st_gid == (gid_t)V_GID &&
       (tstat.st_mode & ~S_IFMT) == V_MODE &&
       tstat.st_ino == inode &&
-      tstat.st_size == length;
+      tstat.st_size == (off_t)length;
 
     if (!valid && LogLevel >= 10) {
 	dprint("CacheFile::ValidContainer: %s invalid\n", name);
@@ -206,7 +206,7 @@ void CacheFile::Copy(CacheFile *source) {
     if (::close(ffd) < 0)
 	CHOKE("CacheFile::Copy: source close failed (%d)", errno);
     
-    CODA_ASSERT(source->length == tstat.st_size);
+    CODA_ASSERT((off_t)source->length == tstat.st_size);
 
     inode = tstat.st_ino;
     length = source->length;
@@ -232,7 +232,7 @@ void CacheFile::Stat(struct stat *tstat) {
 
 
 /* MUST be called from within transaction! */
-void CacheFile::Truncate(unsigned newlen) {
+void CacheFile::Truncate(long newlen) {
 #ifdef __CYGWIN32__
     int fd;
 #endif
@@ -262,7 +262,7 @@ void CacheFile::Truncate(unsigned newlen) {
 
 
 /* MUST be called from within transaction! */
-void CacheFile::SetLength(unsigned newlen) {
+void CacheFile::SetLength(long newlen) {
     CODA_ASSERT(inode != (ino_t)-1);
 
     if (length != newlen) {

@@ -82,7 +82,7 @@ class userent {
     int tokensvalid;
     SecretToken secret;
     ClearToken clear;
-    unsigned int waitforever : 1;
+    int waitforever : 1;
 
     /* Advice stuff */
     adviceconn admon;

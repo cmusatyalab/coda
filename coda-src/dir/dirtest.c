@@ -272,11 +272,10 @@ void dt_bulktest(int argc, char **argv)
 	int err;
 
 	int rvmcount;
-	int dirno;
 	int *ino1;
 	int *ino2;
-	char *mdir_argv[5] = {"mdir", "newdir", "0", "0", "1", "1"};
-	char *create_argv[4] = {"create/del", argv[1], "newdir", "0", "0"};
+	char *mdir_argv[6] = {"mdir", "newdir", "0", "0", "1", "1"};
+	char *create_argv[5] = {"create/del", argv[1], "newdir", "0", "0"};
 	char *rmdir_arg[2] = {"rmdir", "1" };
 
 

@@ -132,7 +132,7 @@ void fsdb::RecomputePriorities(int Force) {
     int recomputes = 0;
     fso_iterator next(NL);
     fsobj *f;
-    while (f = next()) {
+    while ((f = next())) {
 	recomputes++;
 	f->ComputePriority();
     }

@@ -163,7 +163,7 @@ void fsobj::ResetPersistent() {
     stat.VnodeType = Invalid;
     stat.LinkCount = (unsigned char)-1;
     stat.Length = stat.GotThisData = 0;
-    stat.DataVersion = -1;
+    stat.DataVersion = 0;
     stat.VV = NullVV;
     stat.VV.StoreId.Host = NO_HOST;
     stat.Date = (Date_t)-1;
@@ -771,7 +771,7 @@ int fsobj::StatusEq(ViceStatus *vstat, int Mutating) {
     int eq = 1;
     int log = (Mutating || HAVEDATA(this));
 
-    if (stat.Length != vstat->Length) {
+    if (stat.Length != (long)vstat->Length) {
 	eq = 0;
 	if (log)
 	    LOG(0, ("fsobj::StatusEq: (%x.%x.%x), Length %d != %d\n",
@@ -1169,7 +1169,7 @@ int fsobj::TryToCover(ViceFid *inc_fid, vuid_t vuid) {
     volent *tvol = 0;
     if (IsFake()) {
 	VolumeId tvid;
-	if (sscanf(data.symlink, "@%x.%*x.%*x", &tvid) != 1)
+	if (sscanf(data.symlink, "@%lx.%*x.%*x", &tvid) != 1)
 	    { print(logFile); CHOKE("fsobj::TryToCover: couldn't get tvid"); }
 	code = VDB->Get(&tvol, tvid);
     }
@@ -1209,7 +1209,7 @@ int fsobj::TryToCover(ViceFid *inc_fid, vuid_t vuid) {
     ViceFid root_fid;
     root_fid.Volume = tvol->vid;
     if (IsFake()) {
-	if (sscanf(data.symlink, "@%*x.%x.%x", &root_fid.Vnode, &root_fid.Unique) != 2)
+	if (sscanf(data.symlink, "@%*x.%lx.%lx", &root_fid.Vnode, &root_fid.Unique) != 2)
 	    { print(logFile); CHOKE("fsobj::TryToCover: couldn't get <tvolid, tunique>"); }
     }
     else {
@@ -1576,7 +1576,7 @@ int CheckForDuplicates(dlist *hdb_bindings_list, void *binder) {
     /* Look for this binder */
     dlist_iterator next(*hdb_bindings_list);
     dlink *d;
-    while (d = next()) {
+    while ((d = next())) {
 	binding *b = strbase(binding, d, bindee_handle);
 	if (b->binder == binder) {
 	  /* Found it! */
@@ -1640,7 +1640,7 @@ void fsobj::DemoteHdbBindings() {
 
     dlist_iterator next(*hdb_bindings);
     dlink *d;
-    while (d = next()) {
+    while ((d = next())) {
 	binding *b = strbase(binding, d, bindee_handle);
 	DemoteHdbBinding(b);
     }
@@ -1672,7 +1672,7 @@ void fsobj::DetachHdbBindings() {
     if (hdb_bindings == 0) return;
 
     dlink *d;
-    while (d = hdb_bindings->first()) {
+    while ((d = hdb_bindings->first())) {
 	binding *b = strbase(binding, d, bindee_handle);
 	DetachHdbBinding(b, 1);
     }
@@ -1717,7 +1717,7 @@ void fsobj::DetachHdbBinding(binding *b, int DemoteNameCtxt) {
     LOG(0, ("Detach: hdb_binding list contains %d namectxts\n", hdb_bindings->count()));
 	dlist_iterator next(*hdb_bindings);
 	dlink *d;
-	while (d = next()) {
+	while ((d = next())) {
 	    binding *b = strbase(binding, d, bindee_handle);
 	    namectxt *nc = (namectxt *)b->binder;
 	    if (nc->priority > new_HoardPri) {
@@ -2072,7 +2072,7 @@ int fsobj::Fakeify() {
     if (!IsRoot()) {
 	/* Laboriously scan database to find our parent! */
 	fso_vol_iterator next(NL, vol);
-	while (pf = next()) {
+	while ((pf = next())) {
 	    if (!pf->IsDir() || pf->IsMtPt()) continue;
 	    if (!HAVEALLDATA(pf)) continue;
 	    if (!pf->dir_IsParent(&fid)) continue;
@@ -2126,7 +2126,7 @@ int fsobj::Fakeify() {
 		/* Write out the link contents. */
 		data.symlink = (char *)rvmlib_rec_malloc((unsigned) stat.Length);
 		rvmlib_set_range(data.symlink, stat.Length);
-		sprintf(data.symlink, "@%08x.%08x.%08x", LocalFid->Volume, 
+		sprintf(data.symlink, "@%08lx.%08lx.%08lx", LocalFid->Volume, 
 			LocalFid->Vnode, LocalFid->Unique);
 		LOG(100, ("fsobj::Fakeify: making %x.%x.%x a symlink %s\n",
 			  fid.Volume, fid.Vnode, fid.Unique, data.symlink));
@@ -2143,10 +2143,11 @@ int fsobj::Fakeify() {
 		    /* Write out the link contents. */
 		    data.symlink = (char *)rvmlib_rec_malloc((unsigned) stat.Length);
 		    rvmlib_set_range(data.symlink, stat.Length);
-		    sprintf(data.symlink, "@%08x.%08x.%08x", GlobalFid->Volume,
-			    GlobalFid->Vnode, GlobalFid->Unique);
-		    LOG(100, ("fsobj::Fakeify: making %x.%x.%x a symlink %s\n",
-			      fid.Volume, fid.Vnode, fid.Unique, data.symlink));
+		    sprintf(data.symlink, "@%08lx.%08lx.%08lx",
+			    GlobalFid->Volume, GlobalFid->Vnode,
+			    GlobalFid->Unique);
+		    LOG(100, ("fsobj::Fakeify: making %s a symlink %s\n",
+			      FID_(&fid), data.symlink));
 		} else {
 		    /* the normal fake link */
 		    /* get the volumeid corresponding to the server name */
@@ -2175,10 +2176,10 @@ int fsobj::Fakeify() {
 		    /* Write out the link contents. */
 		    data.symlink = (char *)rvmlib_rec_malloc((unsigned) stat.Length);
 		    rvmlib_set_range(data.symlink, stat.Length);
-		    sprintf(data.symlink, "@%08x.%08x.%08x", rwvolumeid, pfid.Vnode,
+		    sprintf(data.symlink, "@%08lx.%08lx.%08lx", rwvolumeid, pfid.Vnode,
 			    pfid.Unique);
-		    LOG(1, ("fsobj::Fakeify: making %x.%x.%x a symlink %s\n",
-			    fid.Volume, fid.Vnode, fid.Unique, data.symlink));
+		    LOG(1, ("fsobj::Fakeify: making %s a symlink %s\n",
+			    FID_(&fid), data.symlink));
 		}
 	    }
 	    UpdateCacheStats(&FSDB->FileDataStats, CREATE, BLOCKS(this));
@@ -2214,7 +2215,7 @@ int fsobj::Fakeify() {
 		    (s->name))
 		    sprintf(Name, "%s", s->name);
 		else
-		    sprintf(Name, "%08x", volumehosts[i]);
+		    sprintf(Name, "%08lx", volumehosts[i]);
 		ViceFid FakeFid = vol->GenerateFakeFid();
 		LOG(1, ("fsobj::Fakeify: new entry (%s, %x.%x.%x)\n",
 			Name, FakeFid.Volume, FakeFid.Vnode, FakeFid.Unique));
@@ -2457,7 +2458,7 @@ int fsobj::IsVirgin() {
 	if (virginal && IsFile() && DIRTY(this)) {
 	    cml_iterator next(vol->CML, CommitOrder, &fid);
 	    cmlent *m;
-	    while (m = next())
+	    while ((m = next()))
 		if (m->opcode == OLDCML_NewStore_OP)
 		    break;
 	    if (m != 0) virginal = 0;
@@ -2475,7 +2476,7 @@ int fsobj::IsBackFetching() {
     cml_iterator next(vol->CML, CommitOrder, &fid);
     cmlent *m;
 
-    while (m = next()) 
+    while ((m = next())) 
 	if ((m->opcode == OLDCML_NewStore_OP) && m->IsReintegrating()) 
 	    return 1;
 
@@ -2529,7 +2530,7 @@ void fsobj::CacheReport(int fd, int level) {
 	/* N.B. Recursion here could overflow smallish stacks! */
 	dlist_iterator next(*children);
 	dlink *d;
-	while (d = next()) {
+	while ((d = next())) {
 	    fsobj *cf = strbase(fsobj, d, child_link);
 
 	    slots++;
@@ -2545,7 +2546,7 @@ void fsobj::CacheReport(int fd, int level) {
 	/* N.B. Recursion here could overflow smallish stacks! */
 	dlist_iterator next(*children);
 	dlink *d;
-	while (d = next()) {
+	while ((d = next())) {
 	    fsobj *cf = strbase(fsobj, d, child_link);
 
 	    if (cf->IsDir())
@@ -2646,7 +2647,7 @@ void fsobj::print(int fdes) {
     if (hdb_bindings) {
       dlist_iterator next(*hdb_bindings);
       dlink *d;
-      while (d = next()) {
+      while ((d = next())) {
 	binding *b = strbase(binding, d, bindee_handle);
 	namectxt *nc = (namectxt *)b->binder;
 	if (nc != NULL) 
@@ -2748,8 +2749,8 @@ void fsobj::ListCacheLong(FILE* fp)
 		 (IsRoot() ? '/' :
 		  (IsVenusRoot() ? 'v': ' '))));
 
-  fprintf(fp, "%c %c%c %s  (%x.%x.%x)\n",
-	  valid, type, linktype, path, fid.Volume, fid.Vnode, fid.Unique);	
+  fprintf(fp, "%c %c%c %s  %s\n",
+	  valid, type, linktype, path, FID_(&fid));	
   fflush(fp);
 }
 

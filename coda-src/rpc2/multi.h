@@ -89,7 +89,7 @@ typedef struct arg_info {
     type *name##_ptrs[howmany];\
     type name##_bufs[howmany];\
     {\
-	for (int name##_local_i = 0; name##_local_i < howmany; name##_local_i++) {\
+	for (unsigned int name##_local_i = 0; name##_local_i < howmany; name##_local_i++) {\
 	    name##_ptrs[name##_local_i] = &name##_bufs[name##_local_i];\
 	    if (mode == IN_OUT_MODE && &(object) != 0) name##_bufs[name##_local_i] = (object);\
 	}\

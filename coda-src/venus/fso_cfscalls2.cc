@@ -260,7 +260,7 @@ int fsobj::Close(int writep, int execp, vuid_t vuid)
 	   fooled by the truncation and */
 	/* subsequent closing (without further writing) of an
 	   existing file. */
-	unsigned long NewLength;
+	long NewLength;
 	Date_t NewDate;
 	{
 	    struct stat tstat;

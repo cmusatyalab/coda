@@ -74,7 +74,7 @@ void lrdb::GetSubtreeStats(ViceFid *lrfid)
 	if (fso->children != 0) {			/* PUSH: check children */
 	    dlist_iterator next(*(fso->children));	/* PUSH: iterate child list */
 	    dlink *d;
-	    while (d = next()) {
+	    while ((d = next())) {
 		fsobj *cf = strbase(fsobj, d, child_link);
 		opt = new optent(cf);			/* PUSH: found another child */
 		opt->SetTag(chgt + 1);			/* PUSH: adjust node height */
@@ -112,7 +112,7 @@ ViceFid *lrdb::LGM_LookupLocal(ViceFid *global)
 	       global->Volume, global->Vnode, global->Unique));
     lgm_iterator next(local_global_map);
     lgment *lgm;
-    while (lgm = next()) {
+    while ((lgm = next())) {
 	if (!bcmp((const void *)global, (const void *) lgm->GetGlobalFid(), 
 		  (int)sizeof(ViceFid))) {
 	    ViceFid *local = lgm->GetLocalFid();
@@ -132,7 +132,7 @@ ViceFid *lrdb::LGM_LookupGlobal(ViceFid *local)
 	       local->Volume, local->Vnode, local->Unique));
     lgm_iterator next(local_global_map);
     lgment *lgm;
-    while (lgm = next()) {
+    while ((lgm = next())) {
 	if (!bcmp((const void *)local, (const void *) lgm->GetLocalFid(), (int)sizeof(ViceFid))) {
 	    ViceFid *global = lgm->GetGlobalFid();
 	    LOG(1000, ("lrdb::LGM_LookupLocal: found global = 0x%x.%x.%x\n",
@@ -166,7 +166,7 @@ void lrdb::LGM_Remove(ViceFid *local, ViceFid *global)
     /* make sure the mapping is there and correct */
     lgm_iterator next(local_global_map);
     lgment *lgm, *target = (lgment *)NULL;
-    while (lgm = next()) {
+    while ((lgm = next())) {
 	if (!bcmp((const void *)local, (const void *) lgm->GetLocalFid(), (int)sizeof(ViceFid)) &&
 	    !bcmp((const void *)global, (const void *) lgm->GetGlobalFid(), (int)sizeof(ViceFid))) {
 	    LOG(100, ("lrdb::LGM_Remove: found the map entry\n"));
@@ -189,7 +189,7 @@ ViceFid *lrdb::RFM_LookupGlobalRoot(ViceFid *FakeRootFid)
 	       FakeRootFid->Volume, FakeRootFid->Vnode, FakeRootFid->Unique));
     rfm_iterator next(root_fid_map);
     rfment *rfm;
-    while (rfm = next()) {
+    while ((rfm = next())) {
 	if (!bcmp((const void *)rfm->GetFakeRootFid(), (const void *) FakeRootFid, (int)sizeof(ViceFid))) {
 	    LOG(1000, ("lrdb::RFM_LookupGlobalRoot: found\n"));
 	    return rfm->GetGlobalRootFid();
@@ -208,7 +208,7 @@ ViceFid *lrdb::RFM_LookupLocalRoot(ViceFid *FakeRootFid)
 	       FakeRootFid->Volume, FakeRootFid->Vnode, FakeRootFid->Unique));
     rfm_iterator next(root_fid_map);
     rfment *rfm;
-    while (rfm = next()) {
+    while ((rfm = next())) {
 	if (!bcmp((const void *)rfm->GetFakeRootFid(), (const void *) FakeRootFid, (int)sizeof(ViceFid))) {
 	    LOG(1000, ("lrdb::RFM_LookupLocalRoot: found\n"));
 	    return rfm->GetLocalRootFid();
@@ -227,7 +227,7 @@ ViceFid *lrdb::RFM_LookupRootParent(ViceFid *FakeRootFid)
 	       FakeRootFid->Volume, FakeRootFid->Vnode, FakeRootFid->Unique));
     rfm_iterator next(root_fid_map);
     rfment *rfm;
-    while (rfm = next()) {
+    while ((rfm = next())) {
 	if (!bcmp((const void *)rfm->GetFakeRootFid(), (const void *) FakeRootFid, (int)sizeof(ViceFid))) {
 	    LOG(1000, ("lrdb::RFM_LookupRootParent: found\n"));
 	    return rfm->GetRootParentFid();
@@ -246,7 +246,7 @@ ViceFid *lrdb::RFM_LookupGlobalChild(ViceFid *FakeRootFid)
 	       FakeRootFid->Volume, FakeRootFid->Vnode, FakeRootFid->Unique));
     rfm_iterator next(root_fid_map);
     rfment *rfm;
-    while (rfm = next()) {
+    while ((rfm = next())) {
 	if (!bcmp((const void *)rfm->GetFakeRootFid(), (const void *) FakeRootFid, (int)sizeof(ViceFid))) {
 	    LOG(1000, ("lrdb::RFM_LookupGlobalChild: found\n"));
 	    return rfm->GetGlobalChildFid();
@@ -265,7 +265,7 @@ ViceFid *lrdb::RFM_LookupLocalChild(ViceFid *FakeRootFid)
 	       FakeRootFid->Volume, FakeRootFid->Vnode, FakeRootFid->Unique));
     rfm_iterator next(root_fid_map);
     rfment *rfm;
-    while (rfm = next()) {
+    while ((rfm = next())) {
 	if (!bcmp((const void *)rfm->GetFakeRootFid(), (const void *) FakeRootFid, (int)sizeof(ViceFid))) {
 	    LOG(1000, ("lrdb::RFM_LookupLocalChild: found\n"));
 	    return rfm->GetLocalChildFid();
@@ -284,7 +284,7 @@ fsobj *lrdb::RFM_LookupRootMtPt(ViceFid *FakeRootFid)
 	       FakeRootFid->Volume, FakeRootFid->Vnode, FakeRootFid->Unique));
     rfm_iterator next(root_fid_map);
     rfment *rfm;
-    while (rfm = next()) {
+    while ((rfm = next())) {
 	if (!bcmp((const void *)rfm->GetFakeRootFid(), (const void *) FakeRootFid, (int)sizeof(ViceFid))) {
 	    LOG(1000, ("lrdb::RFM_LookupLocalChild: found\n"));
 	    return rfm->GetRootMtPt();
@@ -303,7 +303,7 @@ ViceFid *lrdb::RFM_ParentToFakeRoot(ViceFid *RootParentFid)
 	       RootParentFid->Volume, RootParentFid->Vnode, RootParentFid->Unique));
     rfm_iterator next(root_fid_map);
     rfment *rfm;
-    while (rfm = next()) {
+    while ((rfm = next())) {
 	if (!bcmp((const void *)rfm->GetRootParentFid(), (const void *) RootParentFid, (int)sizeof(ViceFid))) {
 	    LOG(1000, ("lrdb::RFM_ParentToFakeRoot: found\n"));
 	    return rfm->GetFakeRootFid();
@@ -322,7 +322,7 @@ ViceFid *lrdb::RFM_FakeRootToParent(ViceFid *FakeRootFid)
 	       FakeRootFid->Volume, FakeRootFid->Vnode, FakeRootFid->Unique));
     rfm_iterator next(root_fid_map);
     rfment *rfm;
-    while (rfm = next()) {
+    while ((rfm = next())) {
 	if (!bcmp((const void *)rfm->GetFakeRootFid(), (const void *) FakeRootFid, (int)sizeof(ViceFid))) {
 	    LOG(1000, ("lrdb::RFM_ParentToFakeRoot: found\n"));
 	    return rfm->GetRootParentFid();
@@ -338,7 +338,7 @@ void lrdb::RFM_CoverRoot(ViceFid *FakeRootFid)
     OBJ_ASSERT(this, FakeRootFid);
     rfm_iterator next(root_fid_map);
     rfment *rfm;
-    while (rfm = next()) {
+    while ((rfm = next())) {
 	if (!bcmp((const void *)rfm->GetFakeRootFid(), (const void *) FakeRootFid, (int)sizeof(ViceFid))) {
 	    Recov_BeginTrans();
 		   rfm->CoverRoot();
@@ -355,7 +355,7 @@ int lrdb::RFM_IsRootParent(ViceFid *Fid)
     OBJ_ASSERT(this, Fid);
     rfm_iterator next(root_fid_map);
     rfment *rfm;
-    while (rfm = next()) {
+    while ((rfm = next())) {
 	if (!bcmp((const void *)rfm->GetRootParentFid(), (const void *) Fid, (int)sizeof(ViceFid))) {
 	    return 1;
 	}
@@ -369,7 +369,7 @@ int lrdb::RFM_IsFakeRoot(ViceFid *Fid)
     OBJ_ASSERT(this, Fid);
     rfm_iterator next(root_fid_map);
     rfment *rfm;
-    while (rfm = next()) {
+    while ((rfm = next())) {
 	if (!bcmp((const void *)rfm->GetFakeRootFid(), (const void *) Fid, (int)sizeof(ViceFid))) {
 	    return 1;
 	}
@@ -382,7 +382,7 @@ int lrdb::RFM_IsGlobalRoot(ViceFid *Fid)
     OBJ_ASSERT(this, Fid);
     rfm_iterator next(root_fid_map);
     rfment *rfm;
-    while (rfm = next()) {
+    while ((rfm = next())) {
 	if (rfm->RootCovered()) continue;
 	if (!bcmp((const void *)rfm->GetGlobalRootFid(), (const void *) Fid, (int)sizeof(ViceFid))) {
 	    return 1;
@@ -396,7 +396,7 @@ int lrdb::RFM_IsGlobalChild(ViceFid *Fid)
     OBJ_ASSERT(this, Fid);
     rfm_iterator next(root_fid_map);
     rfment *rfm;
-    while (rfm = next()) {
+    while ((rfm = next())) {
 	if (rfm->RootCovered()) continue;
 	if (!bcmp((const void *)rfm->GetGlobalChildFid(), (const void *) Fid, (int)sizeof(ViceFid))) {
 	    return 1;
@@ -410,7 +410,7 @@ int lrdb::RFM_IsLocalRoot(ViceFid *Fid)
     OBJ_ASSERT(this, Fid);
     rfm_iterator next(root_fid_map);
     rfment *rfm;
-    while (rfm = next()) {
+    while ((rfm = next())) {
 	if (rfm->RootCovered()) continue;
 	if (!bcmp((const void *)rfm->GetLocalRootFid(), (const void *) Fid, (int)sizeof(ViceFid))) {
 	    return 1;
@@ -424,7 +424,7 @@ int lrdb::RFM_IsLocalChild(ViceFid *Fid)
     OBJ_ASSERT(this, Fid);
     rfm_iterator next(root_fid_map);
     rfment *rfm;
-    while (rfm = next()) {
+    while ((rfm = next())) {
 	if (rfm->RootCovered()) continue;
 	if (!bcmp((const void *)rfm->GetLocalChildFid(), (const void *) Fid, (int)sizeof(ViceFid))) {
 	    return 1;
@@ -464,7 +464,7 @@ void lrdb::RFM_Remove(ViceFid *FakeRootFid)
     /* first find out the map entry */
     rfm_iterator next(root_fid_map);
     rfment *rfm, *target = (rfment *)NULL;
-    while (rfm = next()) {
+    while ((rfm = next())) {
 	if (!bcmp((const void *)FakeRootFid, (const void *) rfm->GetFakeRootFid(), (int)sizeof(ViceFid))) {
 	    LOG(1000, ("lrdb::RFM_Remove: found the entry\n"));
 	    target = rfm;
@@ -522,7 +522,7 @@ void lrdb::TranslateFid(ViceFid *OldFid, ViceFid *NewFid)
 	     */
 	    lgm_iterator next(local_global_map);
 	    lgment *lgm;
-	    while (lgm = next()) {
+	    while ((lgm = next())) {
 		if (!bcmp((const void *)lgm->GetGlobalFid(), (const void *) OldFid, (int)sizeof(ViceFid))) {
 		    lgm->SetGlobalFid(NewFid);
 		}
@@ -544,7 +544,7 @@ void lrdb::PurgeRootFids()
 {
     rfm_iterator next(root_fid_map);
     rfment *rfm;
-    while (rfm = next()) {
+    while ((rfm = next())) {
 	ViceFid *FakeRootFid = rfm->GetFakeRootFid();
 	ViceFid *GlobalRootFid = rfm->GetGlobalRootFid();
 	ViceFid *LocalRootFid = rfm->GetLocalRootFid();
@@ -573,7 +573,7 @@ void lrdb::DirList_Clear()
 {
     LOG(1000, ("lrdb::DirList_Clear: |dir_list| = %d\n", dir_list.count()));
     vdirent *dir;
-    while (dir = (vdirent *)dir_list.get())
+    while ((dir = (vdirent *)dir_list.get()))
       delete dir;
     OBJ_ASSERT(this, dir_list.count() == 0);
 }
@@ -603,7 +603,7 @@ void lrdb::DirList_Process(fsobj *DirObj)
 	       ParentFid->Volume, ParentFid->Vnode, ParentFid->Unique));
     dir_iterator next(dir_list);
     vdirent *dir;
-    while (dir = next()) {
+    while ((dir = next())) {
 	char *ChildName = dir->GetName();
 	if (!strcmp(ChildName, ".") || !strcmp(ChildName, ".."))
 	  continue;
@@ -725,7 +725,7 @@ void lrdb::print(int fd)
 	opt_iterator next(repair_obj_list);
 	optent *opt;
 	fdprint(fd, "=======================================================================\n");
-	while (opt = next()) {
+	while ((opt = next())) {
 	    fsobj *obj = opt->GetFso();
 	    if (obj == NULL) {
 		fdprint(fd, "bad entry: can't get fsobj\n");
@@ -740,7 +740,7 @@ void lrdb::print(int fd)
 	vpt_iterator next(repair_vol_list);
 	vptent *vpt;
 	fdprint(fd, "=======================================================================\n");
-	while (vpt = next()) {
+	while ((vpt = next())) {
 	    volent *vol = vpt->GetVol();
 	    if (vol == NULL) {
 		fdprint(fd, "bad entry: can't get volent\n");
@@ -755,7 +755,7 @@ void lrdb::print(int fd)
 	mpt_iterator next(repair_cml_list);
 	mptent *mpt;
 	fdprint(fd, "=======================================================================\n");
-	while (mpt = next()) {
+	while ((mpt = next())) {
 	    cmlent *cml = mpt->GetCml();
 	    if (cml == NULL) {
 		fdprint(fd, "bad entry: can't get cmlent\n");
@@ -769,7 +769,7 @@ void lrdb::print(int fd)
 	fdprint(fd, "there are %d entries in the global-local-fid map\n", local_global_map.count());
 	lgm_iterator next(local_global_map);
 	lgment *lgm;
-	while (lgm = next()) {
+	while ((lgm = next())) {
 	    lgm->print(fd);
 	    fdprint(fd, "\n");
 	}
@@ -778,7 +778,7 @@ void lrdb::print(int fd)
 	fdprint(fd, "there are %d entries in the root-fid map\n", root_fid_map.count());
 	rfm_iterator next(root_fid_map);
 	rfment *rfm;
-	while (rfm = next()) {
+	while ((rfm = next())) {
 	    fdprint(fd, "====================================\n");
 	    rfm->print(fd);
 	    fdprint(fd, "====================================\n");
@@ -1242,7 +1242,7 @@ void LRInit()
 	{   /* check local-subtree root nodes */
 	    rfm_iterator next(LRDB->root_fid_map);
 	    rfment *rfm;
-	    while (rfm = next()) {
+	    while ((rfm = next())) {
 		if (rfm->RootCovered() || (rfm->GetView() == SUBTREE_MIXED_VIEW)) 
 		  continue;
 		ViceFid *FakeRootFid = rfm->GetFakeRootFid();
@@ -1260,7 +1260,7 @@ void LRInit()
 	{   /* GC local-repair mutations (if any) */
 	    vol_iterator next;
 	    volent *vol;
-	    while (vol = next()) {
+	    while ((vol = next())) {
 		vol->ClearRepairCML();
 	    }
 	}

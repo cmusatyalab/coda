@@ -150,7 +150,7 @@ void MarinerMux(int mask) {
     /* Dispatch mariners which have pending requests, and kill dying mariners. */
     mariner_iterator next;
     mariner *m;
-    while (m = next()) {
+    while ((m = next())) {
 	if (m->dying) {
 	    delete m;
 	    continue;
@@ -182,7 +182,7 @@ void MarinerLog(char *fmt ...) {
 
     mariner_iterator next;
     mariner *m;
-    while (m = next())
+    while ((m = next()))
 	if (m->logging) ::write(m->fd, buf, len);
 }
 
@@ -195,7 +195,7 @@ void MarinerReport(ViceFid *fid, vuid_t vuid) {
 
     mariner_iterator next;
     mariner *m;
-    while (m = next())
+    while ((m = next()))
 	if (m->reporting && (m->vuid == ALL_UIDS || m->vuid == vuid)) {
 	    if (first) {
 		m->u.Init();
@@ -234,7 +234,7 @@ void PrintMariners(int fd) {
 
     mariner_iterator next;
     mariner *m;
-    while (m = next()) m->print(fd);
+    while ((m = next())) m->print(fd);
 }
 
 
@@ -453,7 +453,7 @@ void mariner::main(void *parm) {
 	else if (STREQ(argv[0], "fidstat") && argc == 2) {
 	    /* Lookup the object and print it out. */
 	    ViceFid fid;
-	    if (sscanf(argv[1], "%x.%x.%x", &fid.Volume, &fid.Vnode, &fid.Unique) == 3)
+	    if (sscanf(argv[1], "%lx.%lx.%lx", &fid.Volume, &fid.Vnode, &fid.Unique) == 3)
 		FidStat(&fid);
 	    else
 		Write("badly formed fid; try (%%x.%%x.%%x)\n");

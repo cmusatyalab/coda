@@ -279,7 +279,7 @@ enum FsoState {	FsoRunt,
 /*    1. Copy of plain file */
 /*    2. Unix-format copy of directory */
 class CacheFile {
-    unsigned length;
+    long length;
 
     int ValidContainer();
     void ResetContainer();
@@ -298,14 +298,14 @@ class CacheFile {
     void Remove();
 
     void Stat(struct stat *);
-    void Truncate(unsigned);
-    void SetLength(unsigned);
+    void Truncate(long);
+    void SetLength(long);
 
     char *Name()
 	{ return(name); }
     ino_t Inode()
 	{ return(inode); }
-    int Length()
+    long Length()
 	{ return(length); }
 
     void print() { print (stdout); }
@@ -317,9 +317,9 @@ class CacheFile {
 struct VenusStat {
     ViceDataType VnodeType;
     unsigned char LinkCount;
-    unsigned long Length;
-    unsigned long GotThisData;	/* amount of successfully fetched data */
-    long DataVersion;
+    long	  Length;
+    long          GotThisData;	/* amount of successfully fetched data */
+    unsigned int  DataVersion;
     ViceVersionVector VV;
     Date_t Date;
     vuid_t Author;
@@ -330,7 +330,7 @@ struct VenusStat {
 /* Condensed version of VenusStat. */
 /* needed to restore objects after store cancellation */
 struct MiniVenusStat {
-    unsigned long Length;
+    long   Length;
     Date_t Date;
 };
 
@@ -736,7 +736,7 @@ class fsobj {
     int RepairRmdir(char *, fsobj *);
     int RepairSymlink(fsobj **, char *, char *, unsigned short, int);
 
-    void FetchProgressIndicator(unsigned int offset);
+    void FetchProgressIndicator(long offset);
 };
 
 class fso_iterator : public rec_ohashtab_iterator {
@@ -827,7 +827,7 @@ extern void FSOD_Init();
     char buf[256];\
     strcpy(buf, (comp));\
     if (buf[0] == '\0')\
-	sprintf(buf, "[%x.%x.%x]", (fid).Volume, (fid).Vnode, (fid).Unique);\
+	sprintf(buf, "%s", FID_(&(fid)));\
     MarinerLog((str), buf);\
 }
 #define	CFSOP_POSTLUDE(str)\

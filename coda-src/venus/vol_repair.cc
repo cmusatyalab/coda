@@ -174,8 +174,8 @@ int volent::ConnectedRepair(ViceFid *RepairFid, char *RepairFile, vuid_t vuid,
     /* Translate RepairFile to cache entry if "REPAIRFILE_BY_FID." */
     {
 	ViceFid RepairFileFid;
-	if (sscanf(RepairFile, "@%x.%x.%x",
-		   &RepairFileFid.Volume, &RepairFileFid.Vnode, &RepairFileFid.Unique) == 3) {
+	if (sscanf(RepairFile, "@%lx.%lx.%lx", &RepairFileFid.Volume,
+		   &RepairFileFid.Vnode, &RepairFileFid.Unique) == 3) {
 	    code = FSDB->Get(&RepairF, &RepairFileFid, vuid, RC_DATA);
 	    if (code != 0) return(code);
 
@@ -265,9 +265,8 @@ int volent::ConnectedRepair(ViceFid *RepairFid, char *RepairFile, vuid_t vuid,
 
 	/* A little debugging help. */
 	if (LogLevel >= 1) {
-	    fprintf(logFile, "Repairing (%x.%x.%x):\n",
-		    RepairFid->Volume, RepairFid->Vnode, RepairFid->Unique);
-	    fprintf(logFile, "\tIV = %d, VT = %d, LC = %d, LE = %d, DV = %d, DA = %d\n",
+	    fprintf(logFile, "Repairing %s:\n", FID_(RepairFid));
+	    fprintf(logFile, "\tIV = %d, VT = %d, LC = %d, LE = %ld, DV = %d, DA = %d\n",
 		    status.InterfaceVersion, status.VnodeType, status.LinkCount,
 		    status.Length, status.DataVersion, status.Date);
 	    fprintf(logFile, "\tAU = %d, OW = %d, CB = %d, MA = %d, AA = %d, MO = %d\n",
@@ -453,8 +452,8 @@ int volent::DisconnectedRepair(ViceFid *RepairFid, char *RepairFile,
     /* Translate RepairFile to cache entry if "REPAIRFILE_BY_FID." */
     {
 	ViceFid RepairFileFid;
-	if (sscanf(RepairFile, "@%x.%x.%x",
-		   &RepairFileFid.Volume, &RepairFileFid.Vnode, &RepairFileFid.Unique) == 3) {
+	if (sscanf(RepairFile, "@%lx.%lx.%lx", &RepairFileFid.Volume,
+		   &RepairFileFid.Vnode, &RepairFileFid.Unique) == 3) {
 	    code = FSDB->Get(&RepairF, &RepairFileFid, vuid, RC_DATA);
 	    if (code != 0) return(code);
 

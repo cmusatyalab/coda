@@ -148,7 +148,7 @@ void HDB_Init() {
 	{
 	    hdb_iterator next;
 	    hdbent *h;
-	    while (h = next())
+	    while ((h = next()))
 		/* Initialize transient members. */
 		h->ResetTransient();
 
@@ -176,7 +176,7 @@ static int HDB_HashFN(void *key) {
 
     /*    return(((hdb_key *)key)->vid + ((int *)(((hdb_key *)key)->name))[0]); */
 
-    for (int i=0; i < strlen(((hdb_key *)key)->name); i++) {
+    for (unsigned int i=0; i < strlen(((hdb_key *)key)->name); i++) {
       value += (int)((((hdb_key *)key)->name)[i]);
     }
     return(value);
@@ -225,7 +225,7 @@ hdbent *hdb::Find(VolumeId vid, char *name) {
     class hdb_key key(vid, name);
     hdb_iterator next(&key);
     hdbent *h;
-    while (h = next())
+    while ((h = next()))
 	if (vid == h->vid && STREQ(name, h->path))
 	    return(h);
 
@@ -383,7 +383,7 @@ int hdb::List(hdb_list_msg *m, vuid_t local_id) {
     /* Dump the entries. */
     hdb_iterator next(m->luid);
     hdbent *h;
-    while (h = next())
+    while ((h = next()))
 	h->print(outfd);
 
     /* Close the list file. */
@@ -430,7 +430,7 @@ int hdb::MakeAdviceRequestFile(char *HoardListFileName) {
 	int nservers = 0; 
 	srv_iterator next;
 	srvent *s;
-	while (s = next()) {
+	while ((s = next())) {
 	    (void) s->GetBandwidth(&bw);
 	    sum += bw;
 	    nservers++;
@@ -439,7 +439,8 @@ int hdb::MakeAdviceRequestFile(char *HoardListFileName) {
     }
 
     if (bw != 0)
-	fprintf(HoardListFILE, "Speed of Network Connection = %d Bytes/sec\n", bw);
+	fprintf(HoardListFILE, "Speed of Network Connection = %ld Bytes/sec\n",
+		bw);
     else
         fprintf(HoardListFILE, "Speed of Network Connection = unknown\n");
 
@@ -459,7 +460,7 @@ int hdb::MakeAdviceRequestFile(char *HoardListFileName) {
       int nonempty = 0;
       int numIterations = 0;
 
-      while (b = next()) {
+      while ((b = next())) {
 	numIterations++;
         fsobj *f = strbase(fsobj, b, prio_handle);
 	CODA_ASSERT(f != NULL);
@@ -485,18 +486,18 @@ int hdb::MakeAdviceRequestFile(char *HoardListFileName) {
   	        case -1:	
 		    /* Determine object should NOT be fetched. */
 		    f->SetFetchAllowed(HF_DontFetch);
-        	    fprintf(HoardListFILE, "%x.%x.%x & -1 & %s & %d & %s & %d\n", f->fid.Volume, f->fid.Vnode, f->fid.Unique, ObjWithinVolume, f->HoardPri, estimatedCostString, estimatedBlockDiff);
+        	    fprintf(HoardListFILE, "%lx.%lx.%lx & -1 & %s & %d & %s & %d\n", f->fid.Volume, f->fid.Vnode, f->fid.Unique, ObjWithinVolume, f->HoardPri, estimatedCostString, estimatedBlockDiff);
 		    break;
 	        case 0:
 		    /* Cannot determine automatically; give user choice.*/
                     f->SetFetchAllowed(HF_DontFetch);
-        	    fprintf(HoardListFILE, "%x.%x.%x & 0 & %s & %d & %s & %d\n", f->fid.Volume, f->fid.Vnode, f->fid.Unique, ObjWithinVolume, f->HoardPri, estimatedCostString, estimatedBlockDiff);
+        	    fprintf(HoardListFILE, "%lx.%lx.%lx & 0 & %s & %d & %s & %d\n", f->fid.Volume, f->fid.Vnode, f->fid.Unique, ObjWithinVolume, f->HoardPri, estimatedCostString, estimatedBlockDiff);
 		    nonempty++;
 		    break;
 	        case 1:
 		    /* Determine object should DEFINITELY be fetched. */
 		    f->SetFetchAllowed(HF_Fetch);
-		    fprintf(HoardListFILE, "%x.%x.%x & 1 & %s & %d & %s & %d\n", f->fid.Volume, f->fid.Vnode, f->fid.Unique, ObjWithinVolume, f->HoardPri, estimatedCostString, estimatedBlockDiff);
+		    fprintf(HoardListFILE, "%lx.%lx.%lx & 1 & %s & %d & %s & %d\n", f->fid.Volume, f->fid.Vnode, f->fid.Unique, ObjWithinVolume, f->HoardPri, estimatedCostString, estimatedBlockDiff);
 		    nonempty++;
 		    break;
  	        default:
@@ -581,7 +582,7 @@ void hdb::RequestHoardWalkAdvice() {
     
     while (!feof(HoardAdviceFILE)) {
 	int ask_state;
-        fscanf(HoardAdviceFILE, "%x.%x.%x %d\n", &(fid.Volume), &(fid.Vnode), &(fid.Unique), &ask_state);
+        fscanf(HoardAdviceFILE, "%lx.%lx.%lx %d\n", &(fid.Volume), &(fid.Vnode), &(fid.Unique), &ask_state);
         g = FSDB->Find(&fid);
         if (g == NULL) 
             continue;   // The object has appearently disappeared...
@@ -622,7 +623,7 @@ void hdb::ValidateCacheStatus(vproc *vp, int *interrupt_failures, int *statusByt
 
     fso_iterator next(NL);
     fsobj *f, *g;
-    while (f = next()) {
+    while ((f = next())) {
         if (STATUSVALID(f)) continue;
 
 	/* Set up uarea. */
@@ -633,9 +634,8 @@ void hdb::ValidateCacheStatus(vproc *vp, int *interrupt_failures, int *statusByt
 	vp->u.u_priority = f->priority;
 
 	/* Perform a vget(). */
-	LOG(1, ("hdb::Walk: vget(%x.%x.%x, %d, %d, %d)\n",
-		f->fid.Volume, f->fid.Vnode, f->fid.Unique,
-		f->priority, f->HoardVuid, f->stat.Length));
+	LOG(1, ("hdb::Walk: vget(%s, %d, %d, %d)\n",
+		FID_(&f->fid), f->priority, f->HoardVuid, f->stat.Length));
 	ViceFid tfid = f->fid;
 	for (;;) {
 	    vp->Begin_VFS(tfid.Volume, CODA_VGET);
@@ -713,7 +713,7 @@ void hdb::ValidateCacheStatus(vproc *vp, int *interrupt_failures, int *statusByt
 void hdb::ListPriorityQueue() {
     bstree_iterator next(*prioq, BstDescending);
     bsnode *b;
-    while (b = next()) {
+    while ((b = next())) {
 	namectxt *n = strbase(namectxt, b, prio_handle);
 	n->print(logFile);
     }
@@ -733,7 +733,7 @@ int hdb::GetSuspectPriority(int vid, char *pathname, int uid) {
     lastslash = rindex(parentpath, '/');
     if (lastslash != 0) *lastslash = '\0';
 
-    while (b = next()) {
+    while ((b = next())) {
 	namectxt *n = strbase(namectxt, b, prio_handle);
 	if (LogLevel >= 100) { n->print(logFile); fflush(logFile); }
 	if ((n->cdir.Volume == vid) && ((n->vuid == uid) || (n->vuid == ALL_UIDS))) {
@@ -811,7 +811,7 @@ int hdb::CalculateTotalBytesToFetch() {
 
     fso_iterator next(NL);
     fsobj *f;
-    while (f = next()) {
+    while ((f = next())) {
         CODA_ASSERT(f != NULL);
         if (DATAVALID(f)) continue;
 	total += f->stat.Length;
@@ -873,7 +873,7 @@ void hdb::StatusWalk(vproc *vp, int *TotalBytesToFetch) {
 	bstree_iterator next(*prioq, BstDescending);
 	bsnode *b;
 	namectxt *indigentnc = 0;
-	while (b = next()) {
+	while ((b = next())) {
 	    namectxt *n = strbase(namectxt, b, prio_handle);
 
 	    if (n->state == PeIndigent) {
@@ -901,7 +901,7 @@ void TallyAllHDBentries(dlist *hdb_bindings, int blocks, TallyStatus status) {
   dlist_iterator next_hdbent(*hdb_bindings);
   dlink *d;
 
-  while (d = next_hdbent()) {
+  while ((d = next_hdbent())) {
     binding *b = strbase(binding, d, bindee_handle);
     namectxt *nc = (namectxt *)b->binder;
     Tally(nc->GetPriority(), nc->GetUid(), blocks, status);
@@ -929,7 +929,7 @@ void hdb::DataWalk(vproc *vp, int TotalBytesToFetch) {
 
 	bstree_iterator next(*FSDB->prioq, BstDescending);
 	bsnode *b = 0;
-	while (b = next()) {
+	while ((b = next())) {
 	    fsobj *f = strbase(fsobj, b, prio_handle);
 	    CODA_ASSERT(f != NULL);
 	    int blocks = BLOCKS(f);
@@ -1036,7 +1036,7 @@ void hdb::DataWalk(vproc *vp, int TotalBytesToFetch) {
 	bstree_iterator next(*FSDB->prioq, BstDescending);
 	bsnode *b = 0;
 	InitTally();
-	while (b = next()) {
+	while ((b = next())) {
             fsobj *f = strbase(fsobj, b, prio_handle);
 	    CODA_ASSERT(f != NULL);
 	    int blocks = (int)BLOCKS(f);
@@ -1064,7 +1064,7 @@ void hdb::DataWalk(vproc *vp, int TotalBytesToFetch) {
 	    if (indigent_fsobjs == 0) {
 		char path[MAXPATHLEN];
 		f->GetPath(path);
-		sprintf(ibuf, "\n   ENOSPC:  [%x, %s], [%d, %d]\n",
+		sprintf(ibuf, "\n   ENOSPC:  [%lx, %s], [%d, %d]\n",
 			f->fid.Volume, path,
 			f->priority, f->HoardVuid);
 	    }
@@ -1087,7 +1087,7 @@ void hdb::PostWalkStatus() {
 
     bstree_iterator prioq_next(*prioq, BstDescending);
     bsnode *b = 0;
-    while (b = prioq_next()) {
+    while ((b = prioq_next())) {
       namectxt *n = strbase(namectxt, b, prio_handle);
 
       switch (n->state) {
@@ -1193,7 +1193,7 @@ int hdb::Verify(hdb_verify_msg *m, vuid_t local_id) {
     /* Print suspicious entries. */
     hdb_iterator next(m->luid);
     hdbent *h;
-    while (h = next()){
+    while ((h = next())){
 	h->printsuspect(outfd, m->verbosity);
     }
     /* Close the list file. */
@@ -1227,7 +1227,7 @@ void hdb::ResetUser(vuid_t vuid) {
     hdb_iterator next;
     hdbent *h;
     LOG(100, ("E hdb::ResetUser()\n"));
-    while (h = next()) {
+    while ((h = next())) {
       CODA_ASSERT(h != NULL);
       if (h->vuid == vuid) {
 	CODA_ASSERT(h->nc != NULL);
@@ -1251,7 +1251,7 @@ void hdb::print(int fd, int SummaryOnly) {
     if (!SummaryOnly) {
 	hdb_iterator next;
 	hdbent *h;
-	while (h = next()) {
+	while ((h = next())) {
 	    h->print(fd);
 	    /*
 	      fdprint(fd, "\tList of namectxts for this hdbent:\n");
@@ -1388,7 +1388,7 @@ hdb_iterator::hdb_iterator(hdb_key *key) : rec_ohashtab_iterator(HDB->htab, key)
 
 hdbent *hdb_iterator::operator()() {
     rec_olink *o;
-    while (o = rec_ohashtab_iterator::operator()()) {
+    while ((o = rec_ohashtab_iterator::operator()())) {
 	hdbent *h = strbase(hdbent, o, tbl_handle);
 	if (vuid == ALL_UIDS || vuid == h->vuid) return(h);
     }
@@ -1642,7 +1642,7 @@ namectxt::~namectxt() {
     /* Discard expansion. */
     {
 	dlink *d = 0;
-	while (d = expansion.first()) {
+	while ((d = expansion.first())) {
 	    binding *b = strbase(binding, d, binder_handle);
 	    CODA_ASSERT(b != NULL);
 
@@ -1860,7 +1860,7 @@ void namectxt::KillChildren() {
 	{ print(logFile); CHOKE("namectxt::KillChildren: children == 0"); }
 
     dlink *d;
-    while (d = children->first()) {
+    while ((d = children->first())) {
 	namectxt *child = strbase(namectxt, d, child_link);
 	CODA_ASSERT(child != NULL);
 	child->Kill();
@@ -1883,7 +1883,7 @@ void namectxt::Demote(int recursive) {
 
 	    dlist_iterator cnext(*children);
 	    dlink *d;
-	    while (d = cnext()) {
+	    while ((d = cnext())) {
 		namectxt *child = strbase(namectxt, d, child_link);
 		child->Demote(1);
 	    }
@@ -2124,7 +2124,7 @@ int MetaExpand(PDirEntry entry, void *hook)
 	/* If found, move the namectxt to the new_children list and return. */
 	dlist_iterator next(*(parent->children));
 	dlink *d;
-	while (d = next()) {
+	while ((d = next())) {
 		namectxt *child = strbase(namectxt, d, child_link);
 
 		char *c = rindex(child->path, '/');
@@ -2343,7 +2343,7 @@ void namectxt::print(int fd) {
     if (expansion.count() > 0) {
       dlist_iterator enext(expansion);
       dlink *e;
-      while (e = enext()) {
+      while ((e = enext())) {
 	binding *b = strbase(binding, e, binder_handle);
 	fdprint(fd, "\t\t");
 	b->print(fd);
@@ -2384,7 +2384,7 @@ void namectxt::print(int fd) {
 void namectxt::getpath(char *buf) {
         volent *v = VDB->Find(cdir.Volume);
 	if (v) v->GetMountPath(buf, 0);
-	if (!v || !strcmp(buf, "???")) sprintf(buf, "0x%x", cdir.Volume);
+	if (!v || !strcmp(buf, "???")) sprintf(buf, "0x%lx", cdir.Volume);
 	strcat(buf, "/");
 	if (path[0] == '.') strcat(buf, &path[2]); /* strip leading "./" */
 	else strcat(buf, path);
@@ -2429,7 +2429,7 @@ void namectxt::printsuspect(int fd, int verbosity) {
     if (children) {
 	dlist_iterator cnext(*children);
 	dlink *d;
-	while (d = cnext()) {
+	while ((d = cnext())) {
 	    namectxt *child = strbase(namectxt, d, child_link);
 	    child->printsuspect(fd, ((verbosity > 100) ? verbosity : 0));
 	}

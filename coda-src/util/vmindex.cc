@@ -83,8 +83,8 @@ vmindex_iterator::~vmindex_iterator() {
     ind = 0;
 }
 
-unsigned long vmindex_iterator::operator()() {
-    unsigned long rval = -1;
+long vmindex_iterator::operator()() {
+    long rval = -1;
     if (ind && ind->indices && (current_ind < ind->count)) {
 	rval = ind->indices[current_ind];
 	current_ind++;

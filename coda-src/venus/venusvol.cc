@@ -214,7 +214,7 @@ void VolInit() {
 
 	    vol_iterator next;
 	    volent *v;
-	    while (v = next()) {
+	    while ((v = next())) {
 		/* Initialize transient members. */
 		v->ResetTransient();
 
@@ -363,7 +363,7 @@ void vdb::operator delete(void *deadobj, size_t len) {
 volent *vdb::Find(VolumeId volnum) {
     vol_iterator next(&volnum);
     volent *v;
-    while (v = next())
+    while ((v = next()))
 	if (v->vid == volnum) return(v);
 
     return(0);
@@ -373,7 +373,7 @@ volent *vdb::Find(VolumeId volnum) {
 volent *vdb::Find(char *volname) {
     vol_iterator next;
     volent *v;
-    while (v = next())
+    while ((v = next()))
 	if (STREQ(v->name, volname)) return(v);
 
     return(0);
@@ -430,7 +430,7 @@ int vdb::Get(volent **vpp, VolumeId vid) {
 
     /* If not, get it by name (synonym). */
     char volname[20];
-    sprintf(volname, "%u", vid);
+    sprintf(volname, "%lu", vid);
     return(Get(vpp, volname));
 }
 
@@ -487,7 +487,7 @@ int vdb::Get(volent **vpp, char *volname) {
 
 	    /* Put a (unique) fakename in the old volent. */
 	    char fakename[V_MAXVOLNAMELEN];
-	    sprintf(fakename, "%u", v->vid);
+	    sprintf(fakename, "%lu", v->vid);
 	    CODA_ASSERT(Find(fakename) == 0);
 	    Recov_BeginTrans();
 		rvmlib_set_range(v->name, V_MAXVOLNAMELEN);
@@ -547,7 +547,7 @@ void vdb::Put(volent **vpp) {
 void vdb::FlushVolume() {
     vol_iterator next;
     volent *v;
-    while (v = next()) {
+    while ((v = next())) {
 	if (FID_VolIsFake(v->vid)) 
 		continue;
 	v->FlushVSRs(VSR_FLUSH_HARD);
@@ -558,7 +558,7 @@ void vdb::FlushVolume() {
 void vdb::AttachFidBindings() {
     vol_iterator next;
     volent *v;
-    while (v = next())
+    while ((v = next()))
 	v->CML.AttachFidBindings();
 }
 
@@ -568,7 +568,7 @@ int vdb::WriteDisconnect(unsigned age, unsigned time) {
     volent *v;
     int code = 0;
 
-    while (v = next()) {
+    while ((v = next())) {
 	if (v->IsReplicated()) {
 	    code = v->WriteDisconnect(age, time); 
 	    if (code) break;
@@ -583,7 +583,7 @@ int vdb::WriteReconnect() {
     volent *v;
     int code = 0;
 
-    while (v = next()) {
+    while ((v = next())) {
 	if (v->IsReplicated()) {
             code = v->WriteReconnect();
 	    if (code) break;
@@ -597,7 +597,7 @@ void vdb::GetCmlStats(cmlstats& total_current, cmlstats& total_cancelled) {
     /* N.B.  We assume that caller has passed in zeroed-out structures! */
     vol_iterator next;
     volent *v;
-    while (v = next()) {
+    while ((v = next())) {
 	cmlstats current;
 	cmlstats cancelled;
 	v->CML.IncGetStats(current, cancelled);
@@ -626,7 +626,7 @@ void vdb::print(int fd, int SummaryOnly) {
     if (!SummaryOnly) {
 	vol_iterator next;
 	volent *v;
-	while (v = next()) v->print(fd);
+	while ((v = next())) v->print(fd);
     }
 
     fdprint(fd, "\n");
@@ -637,7 +637,7 @@ void vdb::ListCache(FILE *fp, int long_format, unsigned int valid)
 {
   volent *v = 0;
   vol_iterator next;
-  while (v = next())
+  while ((v = next()))
     v->ListCache(fp, long_format, valid);
 }
 
@@ -934,7 +934,7 @@ int volent::Enter(int mode, vuid_t vuid) {
 
  	fso_vol_iterator next(NL, this);
 	fsobj *f;
-	while (f = next())
+	while ((f = next()))
 	    f->Demote(0);
 
 	just_transitioned = 1;
@@ -1125,7 +1125,7 @@ void volent::Exit(int mode, vuid_t vuid) {
 
 	fso_vol_iterator next(NL, this);
 	fsobj *f;
-	while (f = next())
+	while ((f = next()))
 	    f->Demote(0);
     }
 
@@ -1204,7 +1204,7 @@ void volent::GetVolInfoForAdvice(int *unique_references, int *unique_unreference
     {
         fso_vol_iterator next(NL, this);
         fsobj *f = 0;
-        while (f = next()) {
+        while ((f = next())) {
             if (FSDB->LastRef[f->ix] > DiscoRefCounter)
                 /* If object was reference after the point of disconnection */
                 (*unique_references)++;
@@ -1328,7 +1328,7 @@ void volent::TriggerReconnectionQuestionnaire() {
 
     LOG(100, ("TriggerReconnectionQuestionnaire:  vid=%x, name=%s.\n", vid, name));
 
-    while (u = next()) {
+    while ((u = next())) {
         if (u->IsAdviceValid(ReconnectionID, 0) == TRUE) {
             unique_hits = 0;
             unique_notreferenced = 0;
@@ -1583,7 +1583,7 @@ void volent::DownMember(long eTime) {
      */
     olist_iterator next(*vsr_list);
     vsr *vsrp;
-    while (vsrp = (vsr *)next())
+    while ((vsrp = (vsr *)next()))
 	vsrp->cetime = eTime;
     /*
      * XXX - we are flushing all of the vsr's at comm event time.
@@ -1616,7 +1616,7 @@ void volent::UpMember(long eTime) {
      * events end sessions.  */
     olist_iterator next(*vsr_list);
     vsr *vsrp;
-    while (vsrp = (vsr *)next())
+    while ((vsrp = (vsr *)next()))
 	if (vsrp->cetime == 0) vsrp->cetime = eTime;
     /*
      * XXX - we are flushing all of the vsr's at comm event time.
@@ -2553,7 +2553,7 @@ void volent::print(int afd) {
 	fdprint(afd, "\tResList: count = %d\n", res_list->count());
 	olist_iterator rnext(*res_list);
 	resent *r;
-	while (r = (resent *)rnext())
+	while ((r = (resent *)rnext()))
 	    r->print(afd);
     }
 
@@ -2577,7 +2577,7 @@ void volent::print(int afd) {
 	rec_dlink *d;
 	rec_dlist_iterator next(rwsq);
 	rwsent *rws;
-	while (d = next()) {
+	while ((d = next())) {
 	    rws = (rwsent *)d;
 	    fdprint(afd, "\tsharing_count = %d disc_read_count = %d read_duration = %d\n",
 		    rws->sharing_count, rws->disc_read_count, rws->disc_duration);
@@ -2592,10 +2592,10 @@ void volent::ListCache(FILE* fp, int long_format, unsigned int valid)
 {
   char mountpath[MAXPATHLEN];
   GetMountPath(mountpath, 0);
-  fprintf(fp, "%s: %x\n", mountpath, vid);
+  fprintf(fp, "%s: %lx\n", mountpath, vid);
   fsobj *f = 0;
   fso_vol_iterator next(NL, this);
-  while (f = next()) {
+  while ((f = next())) {
     if ( !FSDB->Find(&f->fid) )
       fprintf(fp, "Not Cached.");
     else 
@@ -2666,7 +2666,7 @@ void volent::RwStatDown()
     fso_vol_iterator next(NL, this);
     fsobj *fso;
     int count = 0;
-    while (fso = next()) {
+    while ((fso = next())) {
 	if (fso->flags.discread) {
 	    count++;
 	    Recov_BeginTrans();

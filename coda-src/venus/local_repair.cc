@@ -78,7 +78,7 @@ void lrdb::BeginRepairSession(ViceFid *RootFid, int RepMode, char *msg)
     {	/* iterate the RFM map and set the repair session initial view */
 	rfm_iterator next(root_fid_map);
 	rfment *rfm;
-	while (rfm = next()) {
+	while ((rfm = next())) {
 	    if (!bcmp((const void *)rfm->GetFakeRootFid(), (const void *) repair_root_fid, (int)sizeof(ViceFid))) {
 		Recov_BeginTrans();
 		RVMLIB_REC_OBJECT(subtree_view);
@@ -104,7 +104,7 @@ void lrdb::BeginRepairSession(ViceFid *RootFid, int RepMode, char *msg)
     /* set repair flag for relavant volumes */
     vpt_iterator next(repair_vol_list);
     vptent *vpt;
-    while (vpt = next()) {
+    while ((vpt = next())) {
 	volent *vol = vpt->GetVol();
 	VolumeId Vols[MAXHOSTS];
 	vuid_t LockUids[MAXHOSTS];
@@ -169,7 +169,7 @@ void lrdb::EndRepairSession(int Commit, char *msg)
 	    if (Commit) {
 		vpt_iterator next(repair_vol_list);
 		vptent *vpt;
-		while (vpt = next()) {
+		while ((vpt = next())) {
 		    volent *vol = vpt->GetVol();
 		    OBJ_ASSERT(this, vol);
 		    LOG(100, ("lrdb::EndRepairSession: reintegrate mutation for volume %x\n",
@@ -178,12 +178,13 @@ void lrdb::EndRepairSession(int Commit, char *msg)
 		    {	/* collect mutation stats */
 			cml_iterator next(*(vol->GetCML()), CommitOrder);
 			cmlent *m;
-			while (m = next())
+			while ((m = next()))
 			  if (m->GetTid() == repair_session_tid)
 			    repair_stats.RepMutationNum++;
 		    }
 		    if (rc != 0) {
-			sprintf(msg, "commit failed(%d) on volume %x", rc, vol->GetVid());
+			sprintf(msg, "commit failed(%d) on volume %lx",
+				rc, vol->GetVid());
 			return;
 		    }
 		}
@@ -191,7 +192,7 @@ void lrdb::EndRepairSession(int Commit, char *msg)
 		LOG(100, ("lrdb::EndRepairSession: abort repair mutations in CML\n"));
 		vpt_iterator next(repair_vol_list);
 		vptent *vpt;	
-		while (vpt = next()) {
+		while ((vpt = next())) {
 		    volent *vol = vpt->GetVol();
 		    OBJ_ASSERT(this, vol);
 		    vol->IncAbort(repair_session_tid);
@@ -217,7 +218,7 @@ void lrdb::EndRepairSession(int Commit, char *msg)
 	    dcount++;
 	}
 
-	while (mpt = (mptent *)repair_cml_list.get()) {
+	while ((mpt = (mptent *)repair_cml_list.get())) {
 	    delete mpt;
 	    rcount++;
 	}
@@ -234,7 +235,7 @@ void lrdb::EndRepairSession(int Commit, char *msg)
     {	/* step 4: check every involved volume's state transition and CML state */
 	vpt_iterator next(repair_vol_list);
 	vptent *vpt;	
-	while (vpt = next()) {
+	while ((vpt = next())) {
 	    volent *vol = vpt->GetVol();
 	    OBJ_ASSERT(this, vol);
 	    vol->CheckTransition();
@@ -244,12 +245,12 @@ void lrdb::EndRepairSession(int Commit, char *msg)
 
     {	/* step 5: Misc Garbage Collection */
 	optent *opt;
-	while (opt = (optent *)repair_obj_list.get()) 
+	while ((opt = (optent *)repair_obj_list.get())) 
 	  delete opt;
 	OBJ_ASSERT(this, repair_obj_list.count() == 0);
 
 	vptent *vpt;
-	while (vpt = (vptent *)repair_vol_list.get())
+	while ((vpt = (vptent *)repair_vol_list.get()))
 	  delete vpt;
 	OBJ_ASSERT(this, repair_vol_list.count() == 0);
 
@@ -489,7 +490,7 @@ void lrdb::InitCMLSearch(ViceFid *FakeRootFid)
 		OBJ_ASSERT(this, Vol != NULL);
 		vpt_iterator next(repair_vol_list);
 		vptent *vpt;
-		while (vpt = next()) {
+		while ((vpt = next())) {
 		    if (vpt->GetVol() == Vol) break;
 		}
 		if (vpt == NULL) {
@@ -502,7 +503,7 @@ void lrdb::InitCMLSearch(ViceFid *FakeRootFid)
 	    if (obj->children != 0) {		/* Push the Stack */
 		dlist_iterator next(*(obj->children));
 		dlink *d;
-		while (d = next()) {
+		while ((d = next())) {
 		    fsobj *cf = strbase(fsobj, d, child_link);
 		    if (GCABLE(cf)) continue;
 		    opt = new optent(cf);
@@ -524,10 +525,10 @@ void lrdb::InitCMLSearch(ViceFid *FakeRootFid)
     {	/* find and put all the related cmlents into repair_cml_list list */
 	vpt_iterator next(repair_vol_list);
 	vptent *vpt;
-	while (vpt = next()) {
+	while ((vpt = next())) {
 	    cml_iterator next(*(vpt->GetVol()->GetCML()), CommitOrder);
 	    cmlent *m;
-	    while (m = next()) {
+	    while ((m = next())) {
 		/* check that this cmlent belongs to the subtree rooted	at LocalRoot */
 		if (m->InLocalRepairSubtree(LocalRootFid)) {
 		    m->SetRepairFlag();
@@ -592,7 +593,7 @@ void lrdb::ListCML(ViceFid *FakeRootFid, FILE *fp)
 		OBJ_ASSERT(this, Vol != NULL);
 		vpt_iterator next(vol_list);
 		vptent *vpt;
-		while (vpt = next()) {
+		while ((vpt = next())) {
 		    if (vpt->GetVol() == Vol) break;
 		}
 		if (vpt == NULL) {
@@ -605,7 +606,7 @@ void lrdb::ListCML(ViceFid *FakeRootFid, FILE *fp)
 	    if (obj->children != 0) {		/* Push the Stack */
 		dlist_iterator next(*(obj->children));
 		dlink *d;
-		while (d = next()) {
+		while ((d = next())) {
 		    fsobj *cf = strbase(fsobj, d, child_link);
 		    if (GCABLE(cf)) continue;
 		    opt = new optent(cf);
@@ -627,10 +628,10 @@ void lrdb::ListCML(ViceFid *FakeRootFid, FILE *fp)
     {	/* gather related cmlents into cml_list list */
 	vpt_iterator next(vol_list);
 	vptent *vpt;
-	while (vpt = next()) {
+	while ((vpt = next())) {
 	    cml_iterator next(*(vpt->GetVol()->GetCML()), CommitOrder);
 	    cmlent *m;
-	    while (m = next()) {
+	    while ((m = next())) {
 		/* check that this cmlent belongs to the subtree rooted	at LocalRoot */
 		if (m->InLocalRepairSubtree(LocalRootFid)) {
 		    m->writeops(fp);
@@ -641,7 +642,7 @@ void lrdb::ListCML(ViceFid *FakeRootFid, FILE *fp)
 
     {	/* garbage collect vol_list */
 	vptent *vpt;
-	while (vpt = (vptent *)vol_list.get())
+	while ((vpt = (vptent *)vol_list.get()))
 	  delete vpt;
 	OBJ_ASSERT(this, vol_list.count() == 0);
     }
@@ -658,7 +659,7 @@ void lrdb::AdvanceCMLSearch()
 {
     mpt_iterator next(repair_cml_list);
     mptent *mpt;
-    while (mpt = next()) {
+    while ((mpt = next())) {
 	if (mpt->GetCml() == current_search_cml)
 	  break;
     }
@@ -695,7 +696,7 @@ void lrdb::DeLocalization()
 
     {	/* GC all the local objects in repair_obj_list, GC LGM and RFM at the same time */
 	optent *opt;
-	while (opt = (optent *)repair_obj_list.get()) {
+	while ((opt = (optent *)repair_obj_list.get())) {
 	    fsobj *obj = opt->GetFso();
 	    OBJ_ASSERT(this, obj);
 	    ViceFid *lfid = &obj->fid;
@@ -711,7 +712,7 @@ void lrdb::DeLocalization()
 	    {   /* remove the RFM entry if possible */
 		rfm_iterator next(root_fid_map);
 		rfment *rfm;
-		while (rfm = next()) {
+		while ((rfm = next())) {
 		    if (!bcmp((const void *)rfm->GetLocalRootFid(), (const void *) lfid, (int)sizeof(ViceFid)))
 		      break;
 		}
@@ -902,7 +903,7 @@ fsobj *lrdb::GetGlobalParentObj(ViceFid *GlobalChildFid)
     {	/* first check to see if LocalChildFid is also the LocalRootFid */
 	rfm_iterator next(root_fid_map);
 	rfment *rfm;
-	while (rfm = next()) {
+	while ((rfm = next())) {
 	    if (!bcmp((const void *)rfm->GetLocalRootFid(), (const void *) LocalChildFid, (int)sizeof(ViceFid))) {
 		GlobalParentFid = rfm->GetRootParentFid();
 		LOG(100, ("lrdb::GetGlobalParentObj: ChildFid is RootFid\n"));
@@ -967,7 +968,7 @@ void lrdb::SetSubtreeView(char NewView, char *msg)
     strcpy(msg, " ");		/* initilize the output message */
     rfm_iterator next(root_fid_map);
     rfment *rfm;
-    while (rfm = next()) {
+    while ((rfm = next())) {
 	if (rfm->RootCovered()) continue;
 	ViceFid *RootParentFid = rfm->GetRootParentFid();
 	ViceFid *FakeRootFid = rfm->GetFakeRootFid();
@@ -1092,7 +1093,7 @@ void lrdb::ReplaceRepairFid(ViceFid *NewGlobalFid, ViceFid *LocalFid)
     /* we only need to replace the fid in local-global-fid map */
     lgm_iterator next(local_global_map);
     lgment *lgm;
-    while (lgm = next()) {
+    while ((lgm = next())) {
 	if (!bcmp((const void *)lgm->GetLocalFid(), (const void *) LocalFid, (int)sizeof(ViceFid))) {
 	    Recov_BeginTrans();
 		   lgm->SetGlobalFid(NewGlobalFid);
@@ -1146,7 +1147,7 @@ void lrdb::RemoveSubtree(ViceFid *FakeRootFid)
 		OBJ_ASSERT(this, Vol != NULL);
 		vpt_iterator next(gc_vol_list);
 		vptent *vpt;
-		while (vpt = next()) {
+		while ((vpt = next())) {
 		    if (vpt->GetVol() == Vol) break;
 		}
 		if (vpt == NULL) {
@@ -1159,7 +1160,7 @@ void lrdb::RemoveSubtree(ViceFid *FakeRootFid)
 	    if (obj->children != 0) {		/* Push the Stack */
 		dlist_iterator next(*(obj->children));
 		dlink *d;
-		while (d = next()) {
+		while ((d = next())) {
 		    fsobj *cf = strbase(fsobj, d, child_link);
 		    if (GCABLE(cf)) continue;
 		    opt = new optent(cf);
@@ -1181,10 +1182,10 @@ void lrdb::RemoveSubtree(ViceFid *FakeRootFid)
     {	/* step 2: find and put all the related cmlents int gc_cml_list list */
 	vpt_iterator next(gc_vol_list);
 	vptent *vpt;
-	while (vpt = next()) {
+	while ((vpt = next())) {
 	    cml_iterator next(*(vpt->GetVol()->GetCML()), CommitOrder);
 	    cmlent *m;
-	    while (m = next()) {
+	    while ((m = next())) {
 		/* check that this cmlent belongs to the subtree rooted	at LocalRoot */
 		if (m->InLocalRepairSubtree(LocalRootFid)) {
 		    mptent *mpt = new mptent(m);
@@ -1200,7 +1201,7 @@ void lrdb::RemoveSubtree(ViceFid *FakeRootFid)
     {	/* step 3: GC the related CML recods, gc_cml_list and gc_vol_list */
 	mptent *mpt;
 	vptent *vpt;
-	while (mpt = (mptent *)gc_cml_list.get()) {
+	while ((mpt = (mptent *)gc_cml_list.get())) {
 	    cmlent *m = mpt->GetCml();
 	    Recov_BeginTrans();
 		   delete m;
@@ -1208,7 +1209,7 @@ void lrdb::RemoveSubtree(ViceFid *FakeRootFid)
 	    delete mpt;
 	}
 
-	while (vpt = (vptent *)gc_vol_list.get()) {
+	while ((vpt = (vptent *)gc_vol_list.get())) {
 	    delete vpt;
 	}	
 	OBJ_ASSERT(this, gc_cml_list.count() == 0 && gc_vol_list.count() == 0);
@@ -1218,7 +1219,7 @@ void lrdb::RemoveSubtree(ViceFid *FakeRootFid)
 	/* GC all the local objects in repair_obj_list, GC LGM and RFM at the same time */
 	LOG(0, ("lrdb::RemoveSubtree: %d local objects to be garbage collected\n", gc_obj_list.count()));
 	optent *opt;
-	while (opt = (optent *)gc_obj_list.get()) {
+	while ((opt = (optent *)gc_obj_list.get())) {
 	    fsobj *obj = opt->GetFso();
 	    OBJ_ASSERT(this, obj);
 	    ViceFid *lfid = &obj->fid;
@@ -1236,7 +1237,7 @@ void lrdb::RemoveSubtree(ViceFid *FakeRootFid)
 		ObtainWriteLock(&rfm_lock);
 		rfm_iterator next(root_fid_map);
 		rfment *rfm;
-		while (rfm = next()) {
+		while ((rfm = next())) {
 		    if (!bcmp((const void *)rfm->GetLocalRootFid(), (const void *) lfid, (int)sizeof(ViceFid)))
 		      break;
 		}

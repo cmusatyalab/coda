@@ -78,7 +78,7 @@ tallyent::tallyent(tallyent&) {
     abort();
 }
 
-tallyent::operator=(tallyent& i) {
+int tallyent::operator=(tallyent& i) {
     abort();
     return(0);
 }
@@ -140,7 +140,7 @@ dlink *Find(int priority, vuid_t vuid) {
   dlist_iterator next(*TallyList);
   dlink *d;
 
-  while (d = next()) {
+  while ((d = next())) {
     tallyent *te = strbase(tallyent, d, prioq_handle);
     if ((te->priority == priority) && (te->vuid == vuid)) return(d);
   }
@@ -190,7 +190,7 @@ void TallyPrint(vuid_t vuid) {
   LOG(0, ("Tally for vuid=%d:\n", (int)vuid));
   dlist_iterator next(*TallyList);
   dlink *d;
-  while (d = next()) {
+  while ((d = next())) {
     tallyent *te = strbase(tallyent, d, prioq_handle);
     CODA_ASSERT(te != NULL);
 
@@ -216,7 +216,7 @@ void TallySum(int *total_blocks, int *total_files) {
   {
     dlist_iterator next(*TallyList);
     dlink *d;
-    while (d = next()) {
+    while ((d = next())) {
       tallyent *te = strbase(tallyent, d, prioq_handle);
       CODA_ASSERT(te != NULL);
 

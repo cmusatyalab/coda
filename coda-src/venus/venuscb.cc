@@ -258,7 +258,7 @@ long CallBackFetch(RPC2_Handle RPCid, ViceFid *Fid, SE_Descriptor *BD) {
 	char *comp = f->comp;
 	char buf[CODA_MAXNAMLEN];
 	if (comp[0] == '\0') {
-	    sprintf(buf, "[%x.%x.%x]", f->fid.Volume, f->fid.Vnode, f->fid.Unique);
+	    sprintf(buf, "%s", FID_(&f->fid));
 	    comp = buf;
 	}
 	MarinerLog("callback::BackFetch %s, %s [%d]\n", s->name, comp, BLOCKS(f));

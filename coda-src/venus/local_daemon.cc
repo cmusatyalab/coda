@@ -103,7 +103,7 @@ void lrdb::CheckLocalSubtree()
     ObtainReadLock(&rfm_lock);
     rfm_iterator next(root_fid_map);
     rfment *rfm;
-    while (rfm = next()) {
+    while ((rfm = next())) {
 	if (!rfm->RootCovered()) {
 	    ViceFid *RootFid = rfm->GetRootParentFid();
 	    OBJ_ASSERT(this, RootFid != NULL);

@@ -75,7 +75,7 @@ int fsobj::RepairStore()
     }
     int code = 0;
     char prel_str[256];
-    sprintf(prel_str, "store::Store %%s [%d]\n", NBLOCKS(NewLength));
+    sprintf(prel_str, "store::Store %%s [%ld]\n", NBLOCKS(NewLength));
 
     /* Dummy argument for ACL. */
     RPC2_CountedBS dummybs;
@@ -186,7 +186,7 @@ int fsobj::RepairStore()
 	    {
 		long bytes = sedvar_bufs[dh_ix].Value.SmartFTPD.BytesTransferred;
 		LOG(10, ("(Multi)ViceStore: stored %d bytes\n", bytes));
-		if (bytes != status.Length) {
+		if (bytes != (long)status.Length) {
 		    print(logFile);
 		    CHOKE("fsobj::Store: bytes mismatch (%d, %d)",
 			bytes, status.Length);
@@ -244,7 +244,7 @@ RepExit:
 	{
 	    long bytes = sed->Value.SmartFTPD.BytesTransferred;
 	    LOG(10, ("ViceStore: stored %d bytes\n", bytes));
-	    if (bytes != status.Length) {
+	    if (bytes != (long)status.Length) {
 		print(logFile);
 		CHOKE("fsobj::Store: bytes mismatch (%d, %d)",
 		      bytes, status.Length);
@@ -379,7 +379,7 @@ void fsobj::DeLocalRootParent(fsobj *RepairRoot, ViceFid *GlobalRootFid, fsobj *
     {	/* check if RootParentObj(this) is a shared root-parent-obj with another subtree */
 	rfm_iterator next(LRDB->root_fid_map);
 	rfment *rfm;
-	while (rfm = next()) {
+	while ((rfm = next())) {
 	    if (rfm->RootCovered()) continue;
 	    if (!bcmp((const void *)rfm->GetRootParentFid(), (const void *)&fid, 
 		      (int)sizeof(ViceFid)))
@@ -624,7 +624,7 @@ cmlent *fsobj::FinalCmlent(int tid)
     dlink *d;
     cmlent *last = (cmlent *)0;
 
-    while (d = next()) {
+    while ((d = next())) {
 	binding *b = strbase(binding, d, bindee_handle);
 	cmlent *m = (cmlent *)b->binder;
 	CODA_ASSERT(m);
@@ -779,7 +779,7 @@ int fsobj::ReplaceLocalFakeFid()
 			obj->fid.Volume, obj->fid.Vnode, obj->fid.Unique));
 		/* need to skip expanding DFS search tree for obj's children, and de-link them */
 		dlink *d = 0;
-		while (d = obj->children->first()) {
+		while ((d = obj->children->first())) {
 		    fsobj *cf = strbase(fsobj, d, child_link);
 		    obj->DetachChild(cf);
 		    cf->pfso = 0;
@@ -791,7 +791,7 @@ int fsobj::ReplaceLocalFakeFid()
 		/* expand the DFS search tree */
 		dlist_iterator next(*(obj->children));
 		dlink *d;
-		while (d = next()) {
+		while ((d = next())) {
 		    fsobj *cf = strbase(fsobj, d, child_link);
 		    /* fid-replacement is needed for any object that is not GCABLE()! */
 		    if (GCABLE(cf)) continue;
@@ -860,7 +860,7 @@ int fsobj::LocalFakeify()
     {
 	fso_iterator next(NL);
 	fsobj *obj;
-	while (obj = next()) {
+	while ((obj = next())) {
 	    if (obj->IsRoot()) continue;
 	    if (GCABLE(obj)) continue;
 	    if (obj->pfso == NULL && !FID_EQ(&obj->pfid, &NullFid)) {
@@ -882,7 +882,7 @@ int fsobj::LocalFakeify()
     if (!IsRoot()) {
 	/* Laboriously scan database */
 	fso_vol_iterator next(NL, vol);
-	while (pf = next()) {
+	while ((pf = next())) {
 	    if (!pf->IsDir() || pf->IsMtPt()) continue;
 	    if (!HAVEALLDATA(pf)) continue;
 	    if (!pf->dir_IsParent(&fid)) continue;

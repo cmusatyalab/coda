@@ -138,8 +138,6 @@ int HDBD_Request(hdbd_request type, void *request, struct uarea *u) {
     /* Ensure request was issued by "locally authoritative" entity. */
     vuid_t euid = CRTOEUID(u->u_cred);
     vuid_t ruid = CRTORUID(u->u_cred);
-    userent *uent;
-    ClearToken token;
 
     if (euid != V_UID && !AuthorizedUser(ruid)) {
 	LOG(0, ("HDBD_Request (%s): <%d, %d> Not an authorized user\n",
@@ -173,7 +171,7 @@ int HDBD_Request(hdbd_request type, void *request, struct uarea *u) {
 
 static void HDBD_HandleRequests() {
     hdbd_msg *m = 0;
-    while (m = (hdbd_msg *)hdbd_msgq.get()) {
+    while ((m = (hdbd_msg *)hdbd_msgq.get())) {
 	switch(m->type) {
 	    case HdbAdd:
 		m->result = HDB->Add((hdb_add_msg *)m->request, m->local_id);

@@ -49,6 +49,6 @@ class vmindex_iterator {
   public:
     vmindex_iterator(vmindex*);
     ~vmindex_iterator();
-    unsigned long operator()();	/* return next index */
+    long operator()();	/* return next index */
 };
 #endif _VMINDEX_H

@@ -61,7 +61,9 @@ static void HUP(int, int, struct sigcontext *);
 static void ILL(int, int, struct sigcontext *);
 static void TRAP(int, int, struct sigcontext *);
 static void IOT(int, int, struct sigcontext *);
+#ifdef SIGEMT
 static void EMT(int, int, struct sigcontext *);
+#endif
 static void FPE(int, int, struct sigcontext *);
 static void BUS(int, int, struct sigcontext *);
 static void SEGV(int, int, struct sigcontext *);
@@ -377,7 +379,7 @@ static void FatalSignal(int sig, int code, struct sigcontext *contextPtr)
 #endif	/* !defined(i386) && !defined(powerpc) */
 
 #ifndef __BSD44__
-	for (int i = 0; i < sizeof(struct sigaction) / sizeof(int); i++)
+	for (int i = 0; i < (sizeof(struct sigaction) / sizeof(int)); i++)
                 fprintf(logFile, "context[%d] = 0x%x\n", i, *((u_int *)contextPtr + i));
 #else
 	for (int i = 0; i < sizeof(struct sigcontext) / sizeof(int); i++)

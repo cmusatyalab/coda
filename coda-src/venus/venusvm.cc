@@ -262,7 +262,6 @@ static void VmonNoteOverflow(enum OverFlow);
 static void CheckSE();			    /* Session Entries */
 static void CheckCE();			    /* CommEvent Entries */
 static void CheckCL();                     /* CallCount Entries */
-static void CheckST();                     /* Statistics Entries */
 static void CheckMC();                     /* MiniCache Entries */
 static void CheckAdvice();                 /* Advice Entries */
 static void CheckOE();			    /* Overflow Entry */
@@ -519,7 +518,7 @@ static void CheckSE() {
     int hits = 0;
     int misses = 0;
     Recov_BeginTrans();
-    while (se = (struct vmse *)SEActiveList.first()) {
+    while ((se = (struct vmse *)SEActiveList.first())) {
 	    if (LogLevel >= 100) 
 		    MarinerLog("mond::ReportSession (%x, %d)\n", se->Volume, se->User);
 	    hits = (int)(se->CacheStats.HoardDataHit.Count + 
@@ -572,7 +571,7 @@ static void CheckCE() {
     if (!ValidateVmonHandle()) return;
 
     struct vmce *ce = 0;
-    while (ce = (struct vmce *)CEActiveList->first()) {
+    while ((ce = (struct vmce *)CEActiveList->first())) {
 	if (LogLevel >= 100) 
 	    MarinerLog("mond::ReportCommEvent (%x, %d)\n", ce->ServerIPAddress, ce->Type);
 	long code = VmonReportCommEvent(VmonHandle, &ce->Venus,
@@ -720,7 +719,7 @@ void CheckAdvice()
     if (Time - LastTime < VmonAdviceInterval) return;
     LastTime = Time;
 
-    while (u = next()) {
+    while ((u = next())) {
 	if ((u->GetUid() != V_UID) &&
 	    (u->GetUid() != ALL_UIDS) &&
 	    (u->GetUid() != HOARD_UID))
@@ -771,7 +770,7 @@ void CheckRW()
     /* iterating through every volume */
     vol_iterator next;
     volent *v;
-    while (v = next()) {
+    while ((v = next())) {
 	rec_dlist *RWSQ = v->GetRwQueue();
 	if (RWSQ->count() == 0) continue;
 
@@ -779,7 +778,7 @@ void CheckRW()
 	/* there is a remote possibility of concurrency control problem with rws-queue changes */
 	rec_dlist_iterator next(*RWSQ);
 	rec_dlink *d, *to_be_deleted = NULL;
-	while (d = next()) {
+	while ((d = next())) {
 	    if (to_be_deleted) {
 		Recov_BeginTrans();
 		       CODA_ASSERT(RWSQ->remove(to_be_deleted) == to_be_deleted);
@@ -802,7 +801,8 @@ void CheckRW()
 					   &Stats);
 	    if (LogLevel >= 100) 
 		MarinerLog("mond::Reported RW stats code = %d\n", code);    
-	    if (code = CheckVmonResult(code)) return;
+	    code = CheckVmonResult(code);
+	    if (code) return;
 	    to_be_deleted = d;
 	}
 	if (to_be_deleted) {
@@ -918,7 +918,7 @@ void CheckVCB() {
 
     vcbd_iterator next;
     vcbdent *v;
-    while (v = next()) {
+    while ((v = next())) {
 	long code = VmonReportVCBStats(VmonHandle, 
 				       &MyVenusId,
 				       rvg->recov_LastInit,

@@ -98,7 +98,7 @@ void ClientModifyLog::ResetTransient() {
 	/* Set owner. */
 	cml_iterator next(*this, CommitOrder);
 	cmlent *m;
-	while (m = next()) {
+	while ((m = next())) {
 	    if (owner == UNSET_UID) {
 		owner = (vuid_t) m->uid;
 	    }
@@ -117,7 +117,7 @@ void ClientModifyLog::ResetTransient() {
 void ClientModifyLog::Clear() {
     rec_dlink *d;
 
-    while (d = list.first())
+    while ((d = list.first()))
 	delete strbase(cmlent, d, handle);
 }
 
@@ -127,7 +127,7 @@ long ClientModifyLog::_bytes() {
     cmlent *e;
     long result = 0;
 
-    while (e = next())
+    while ((e = next()))
 	result += e->bytes();
 
     return result;
@@ -138,7 +138,7 @@ void ClientModifyLog::IncGetStats(cmlstats& current, cmlstats& cancelled, int ti
     /* First, compute current statistics. */
     cml_iterator next(*this, CommitOrder);
     cmlent *m;
-    while (m = next()) {
+    while ((m = next())) {
 	if (tid != UNSET_TID && m->GetTid() != tid) continue;
 	if (m->opcode == OLDCML_NewStore_OP) {
 	    current.store_count++;
@@ -166,7 +166,7 @@ void ClientModifyLog::LockObjs(int tid) {
     volent *vol = strbase(volent, this, CML);
     LOG(1, ("ClientModifyLog::LockObjs: (%s) and tid = %d\n", vol->name, tid));
 
-    unsigned max = INITFIDLISTLENGTH;
+    int max = INITFIDLISTLENGTH;
     ViceFid *backFetchList;
     int nFids = 0;
 
@@ -176,7 +176,7 @@ void ClientModifyLog::LockObjs(int tid) {
 
     cml_iterator next(*this);
     cmlent *m;
-    while (m = next()) 
+    while ((m = next())) 
 	if (m->GetTid() == tid) 
 	    if (m->opcode == OLDCML_NewStore_OP) {
 		backFetchList[nFids++] = m->u.u_store.Fid;
@@ -237,7 +237,7 @@ void ClientModifyLog::UnLockObjs(int tid) {
      */
     cml_iterator next(*this);
     cmlent *m;
-    while (m = next()) 
+    while ((m = next())) 
 	if ((m->GetTid() == tid) && (m->opcode == OLDCML_NewStore_OP)) {
 	    /* get the fso */
 	    dlink *d = m->fid_bindings->first();   /* and only */
@@ -250,7 +250,7 @@ void ClientModifyLog::UnLockObjs(int tid) {
 	    dlink *fd;
 	    cmlent *store_mle = 0;
 
-	    while(fd = next()) {
+	    while((fd = next())) {
 		binding *fb = strbase(binding, fd, bindee_handle);
 		cmlent *fm = (cmlent *)fb->binder;
 		if ((fm->GetTid() == tid) && (fm->opcode == OLDCML_NewStore_OP)) {
@@ -329,7 +329,7 @@ void ClientModifyLog::CancelPending() {
 	    cml_iterator next(*this);
 	    cmlent *m;
 
-	    while (m = next()) {
+	    while ((m = next())) {
 		    if (m->flags.frozen) {
 			    RVMLIB_REC_OBJECT(m->flags);
 			    m->flags.frozen = 0;
@@ -355,7 +355,7 @@ void ClientModifyLog::ClearPending() {
     cml_iterator next(*this);
     cmlent *m;
 
-    while (m = next())
+    while ((m = next()))
 	if (m->flags.cancellation_pending) {
 	    Recov_BeginTrans();
 		   RVMLIB_REC_OBJECT(m->flags);
@@ -394,7 +394,7 @@ void ClientModifyLog::GetReintegrateable(int tid, int *nrecs) {
     cml_iterator next(*this, CommitOrder);
     unsigned long cur_reintegration_time = 0, this_time;
 
-    while (m = next()) {
+    while ((m = next())) {
 	if (!m->ReintReady())
 	    break;    
 
@@ -484,7 +484,7 @@ void ClientModifyLog::MarkFailedMLE(int ix) {
 
     cml_iterator next(*this);
     cmlent *m;
-    while (m = next()) 
+    while ((m = next())) 
 	if (m->tid == vol->cur_reint_tid) 
 	    if (i++ == ix || ix == -1)
 		m->flags.failed = 1;
@@ -500,7 +500,7 @@ void ClientModifyLog::MarkCommittedMLE(RPC2_Unsigned Uniquifier) {
 
     cml_iterator next(*this);
     cmlent *m;
-    while (m = next()) 
+    while ((m = next())) 
 	if (m->tid == vol->cur_reint_tid && 
 	    m->sid.Uniquifier == Uniquifier)
 	    m->flags.committed = 1;
@@ -572,7 +572,7 @@ void ClientModifyLog::print(int fd) {
 
     cml_iterator next(*this, CommitOrder);
     cmlent *m;
-    while (m = next())
+    while ((m = next()))
 	m->print(fd);
 }
 
@@ -1600,7 +1600,7 @@ void volent::CancelStores(ViceFid *Fid) {
 	    cancellation = 0;
 	    cml_iterator next(CML, AbortOrder, Fid);
 	    cmlent *m;
-	    while (m = next()) {
+	    while ((m = next())) {
 		if (m->opcode == OLDCML_NewStore_OP && m->cancel()) {    
 		    cancellation = 1;
 		    /* 
@@ -1626,10 +1626,10 @@ void volent::RestoreObj(ViceFid *Fid) {
     fsobj *f = FSDB->Find(Fid);
 
     /* Length attribute. */
-    unsigned long Length;
+    long Length;
     cmlent *lwriter = CML.LengthWriter(Fid);
     if (lwriter == 0) {
-	FSO_ASSERT(f, f->CleanStat.Length != (unsigned long)-1);
+	FSO_ASSERT(f, f->CleanStat.Length != -1);
 	Length = f->CleanStat.Length;
     }
     else {
@@ -1686,7 +1686,7 @@ void volent::RestoreObj(ViceFid *Fid) {
 cmlent *ClientModifyLog::LengthWriter(ViceFid *Fid) {
     cml_iterator next(*this, AbortOrder, Fid);
     cmlent *m;
-    while (m = next()) {
+    while ((m = next())) {
 	switch(m->opcode) {
 	    case OLDCML_NewStore_OP:
 	    case OLDCML_Repair_OP:
@@ -1702,7 +1702,7 @@ cmlent *ClientModifyLog::LengthWriter(ViceFid *Fid) {
 cmlent *ClientModifyLog::UtimesWriter(ViceFid *Fid) {
     cml_iterator next(*this, AbortOrder, Fid);
     cmlent *m;
-    while (m = next()) {
+    while ((m = next())) {
 	switch(m->opcode) {
 	    case OLDCML_NewStore_OP:
 	    case OLDCML_Utimes_OP:
@@ -2013,7 +2013,7 @@ int ClientModifyLog::IncReallocFids(int tid) {
     int code = 0;
     cml_iterator next(*this, CommitOrder);
     cmlent *m;
-    while (m = next()) {
+    while ((m = next())) {
 	if (m->GetTid() == tid)
 	  code = m->realloc();
 	if (code != 0) break;
@@ -2028,7 +2028,7 @@ void ClientModifyLog::TranslateFid(ViceFid *OldFid, ViceFid *NewFid)
 {
     cml_iterator next(*this, CommitOrder, OldFid);
     cmlent *m;
-    while (m = next())
+    while ((m = next()))
 	m->translatefid(OldFid, NewFid);
 }
 
@@ -2043,13 +2043,13 @@ void ClientModifyLog::IncThread(int tid) {
     {
 	cml_iterator next(*this, CommitOrder);
 	cmlent *m;
-	while (m = next())
+	while ((m = next()))
 	    if (m->GetTid() == tid) {
 		/* we may do this more than once per object */
 		dlist_iterator next(*m->fid_bindings);
 		dlink *d;
 
-		while (d = next()) {
+		while ((d = next())) {
 		    binding *b = strbase(binding, d, binder_handle);
 		    fsobj *f = (fsobj *)b->bindee;
 
@@ -2064,7 +2064,7 @@ void ClientModifyLog::IncThread(int tid) {
     {
 	cml_iterator next(*this, CommitOrder);
 	cmlent *m;
-	while (m = next())
+	while ((m = next()))
 	  if (m->GetTid() == tid)
 	      m->thread();
     }
@@ -2088,7 +2088,7 @@ void ClientModifyLog::IncPack(char **bufp, int *bufsizep, int tid) {
 	int len = 0;
 	cml_iterator next(*this, CommitOrder);
 	cmlent *mle;
-	while (mle = next())
+	while ((mle = next()))
 	  if (mle->GetTid() == tid)
 	    len += mle->size();
 
@@ -2103,7 +2103,7 @@ void ClientModifyLog::IncPack(char **bufp, int *bufsizep, int tid) {
 	PARM *_ptr = (PARM *)*bufp;
 	cml_iterator next(*this, CommitOrder);
 	cmlent *m;
-	while (m = next())
+	while ((m = next()))
 	  if (m->GetTid() == tid)
 	    m->pack(&_ptr);
     }
@@ -2118,7 +2118,8 @@ void ClientModifyLog::IncPack(char **bufp, int *bufsizep, int tid) {
 /* MUST NOT be called from within transaction! */
 int ClientModifyLog::COP1(char *buf, int bufsize, ViceVersionVector *UpdateSet) {
     volent *vol = strbase(volent, this, CML);
-    int code = 0, i = 0;
+    int code = 0;
+    unsigned int i = 0;
     mgrpent *m = 0;
     
     /* Set up the SE descriptor. */
@@ -2310,7 +2311,7 @@ int ClientModifyLog::COP1(char *buf, int bufsize, ViceVersionVector *UpdateSet) 
 	 * validation.  Finally, if the number of stale directories
 	 * found is at maximum, clear the volume callback to be safe.
 	 */
-	for (int rep = 0; rep < m->nhosts; rep++) 
+	for (unsigned int rep = 0; rep < m->nhosts; rep++) 
 	    if (m->rocc.hosts[rep]) {	/* did this server participate? */
 		/* must look at all server feedback */
 		ARG_UNMARSHALL(NumStaleDirsvar, NumStaleDirs, rep);
@@ -2854,7 +2855,7 @@ void cmlent::commit(ViceVersionVector *UpdateSet) {
 
     dlist_iterator next(*fid_bindings);
     dlink *d;
-    while (d = next()) {
+    while ((d = next())) {
 	binding *b = strbase(binding, d, binder_handle);
 	fsobj *f = (fsobj *)b->bindee;
 	CODA_ASSERT(f && (f->MagicNumber == FSO_MagicNumber));  /* better be an fso */
@@ -2974,7 +2975,8 @@ Exit:
 
 int cmlent::ValidateReintegrationHandle() {
     volent *vol = strbase(volent, log, CML);
-    int code = 0, i = 0;
+    int code = 0;
+    unsigned int i = 0;
     mgrpent *m = 0;
     RPC2_Integer Offset = -1;
     
@@ -3079,7 +3081,7 @@ int cmlent::WriteReintegrationHandle() {
 	    char *comp = f->comp;
 	    char buf[CODA_MAXNAMLEN];
 	    if (comp[0] == '\0') {
-		sprintf(buf, "[%x.%x.%x]", f->fid.Volume, f->fid.Vnode, f->fid.Unique);
+		sprintf(buf, "%s", FID_(&f->fid));
 		comp = buf;
 	    }
 
@@ -3144,7 +3146,7 @@ int cmlent::WriteReintegrationHandle() {
 	    bytes = sedvar_bufs[dh_ix].Value.SmartFTPD.BytesTransferred;
 	}
 
-	if (length != bytes) 
+	if ((long)length != bytes) 
 	    CHOKE("cmlent::WriteReintegrateHandle: bytes mismatch (%d, %d)\n",
 		    length, bytes);
 
@@ -3405,7 +3407,7 @@ int PathAltered(ViceFid *cfid, char *suffix, ClientModifyLog *CML, cmlent *start
     cmlent *m;
 
     /* can't use cml_iterator's prelude because we need to start from starter! */
-    while (m = next()) {
+    while ((m = next())) {
       if (m == starter)
 	break;
     }
@@ -3562,7 +3564,7 @@ int volent::PurgeMLEs(vuid_t vuid) {
 	    int fid_map_entry_cnt = 0;
 	    lgm_iterator next(LRDB->local_global_map);
 	    lgment *lgm;
-	    while (lgm = next()) {
+	    while ((lgm = next())) {
 		if ((lgm->GetGlobalFid())->Volume == vid) fid_map_entry_cnt++;
 	    }
 	    LOG(0, ("volent::PurgeMLEs: there are %d local-global-map entries to be cleaned\n",
@@ -3575,7 +3577,7 @@ int volent::PurgeMLEs(vuid_t vuid) {
 	    rfm_iterator next(LRDB->root_fid_map);
 	    rfment *rfm;
 	    
-	    while (rfm = next()) {
+	    while ((rfm = next())) {
 		if (rfm->RootCovered()) continue;
 		ViceFid *RootFid = rfm->GetFakeRootFid();
 		if (RootFid->Volume != vid) continue;
@@ -3594,7 +3596,7 @@ int volent::PurgeMLEs(vuid_t vuid) {
 		left_over_entry = 0;
 		lgm_iterator next(LRDB->local_global_map);
 		lgment *lgm;
-		while (lgm = next()) {
+		while ((lgm = next())) {
 		    if ((lgm->GetGlobalFid())->Volume != vid) continue;
 		    LOG(0, ("volent::PurgeMLEs: found a left over entry\n"));
 		    lgm->print(logFile);
@@ -3644,7 +3646,7 @@ int volent::PurgeMLEs(vuid_t vuid) {
 	 */
 	lgm_iterator next(LRDB->local_global_map);
 	lgment *lgm, *to_be_removed = NULL;
-	while (lgm = next()) {
+	while ((lgm = next())) {
 	    if (to_be_removed) {
 		VOL_ASSERT(this, LRDB->local_global_map.remove(to_be_removed) == to_be_removed);
 		delete to_be_removed;
@@ -3766,7 +3768,7 @@ int ClientModifyLog::CheckPoint(char *ckpdir) {
     eprint("and %s", lname);
     cml_iterator next(*this, CommitOrder);
     cmlent *m;    
-    while (m = next()) {
+    while ((m = next())) {
 	m->writeops(ofp);
 	if (code) continue;
 	code = m->checkpoint(dfp);
@@ -4054,7 +4056,7 @@ void cmlent::abort() {
     dlist_iterator next(*fid_bindings);
     dlink *d;
 
-    while (d = next()) {
+    while ((d = next())) {
 	binding *b = strbase(binding, d, binder_handle);
 	fsobj *f = (fsobj *)b->bindee;
 	    
@@ -4076,7 +4078,7 @@ void cmlent::abort() {
 void ClientModifyLog::AttachFidBindings() {
     cml_iterator next(*this);
     cmlent *m;
-    while (m = next())
+    while ((m = next()))
 	m->AttachFidBindings();
 }
 
@@ -4112,7 +4114,7 @@ void cmlent::DetachFidBindings() {
     if (fid_bindings == 0) return;
 
     dlink *d;
-    while (d = fid_bindings->get()) {
+    while ((d = fid_bindings->get())) {
 	binding *b = strbase(binding, d, binder_handle);
 	fsobj *f = (fsobj *)b->bindee;
 	f->DetachMleBinding(b);
@@ -4130,7 +4132,7 @@ void cmlent::writeops(FILE *fp) {
     switch(opcode) {
     case OLDCML_NewStore_OP:
 	RecoverPathName(path, &u.u_store.Fid, log, this);
-	sprintf(msg, "Store \t%s (length = %d)", path, u.u_store.Length);
+	sprintf(msg, "Store \t%s (length = %ld)", path, u.u_store.Length);
 	break;
 
     case OLDCML_Utimes_OP:
@@ -4186,8 +4188,8 @@ void cmlent::writeops(FILE *fp) {
 	break;
 
     case OLDCML_Repair_OP:
-	sprintf(msg, "Disconnected Repair by an ASR for 0x%x.%x.%x",
-		u.u_repair.Fid.Volume, u.u_repair.Fid.Vnode, u.u_repair.Fid.Unique);
+	sprintf(msg, "Disconnected Repair by an ASR for %s",
+		FID_(&u.u_repair.Fid));
 	break;
     default:
 	break;
