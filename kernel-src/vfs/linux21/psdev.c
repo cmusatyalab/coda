@@ -573,7 +573,7 @@ void cleanup_module(void)
         }
         unregister_chrdev(CODA_PSDEV_MAJOR,"coda_psdev");
 
-#if CONFIG_PROC_FS
+#ifdef CONFIG_SYSCTL
         coda_sysctl_clean();
 
         proc_unregister(&proc_sys_coda, proc_coda_cache_inv_control.low_ino);
@@ -583,7 +583,7 @@ void cleanup_module(void)
 	proc_unregister(&proc_sys_root, proc_sys_coda.low_ino);
 #endif
 
-#ifdef CONFIG_SYSCTL
+#if CONFIG_PROC_FS
         proc_unregister(&proc_fs_coda, proc_coda_cache_inv.low_ino);
         proc_unregister(&proc_fs_coda, proc_coda_permission.low_ino);
         proc_unregister(&proc_fs_coda, proc_coda_upcall.low_ino);

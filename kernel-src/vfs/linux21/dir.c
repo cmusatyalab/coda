@@ -50,7 +50,6 @@ static void coda_dentry_delete(struct dentry *);
 static int coda_venus_readdir(struct file *filp, void *dirent, 
 			      filldir_t filldir);
 int coda_fsync(struct file *, struct dentry *dentry);
-static int coda_refresh_inode(struct dentry *dentry);
 
 int coda_crossvol_rename = 0;
 int coda_hasmknod = 0;
@@ -195,12 +194,6 @@ int coda_permission(struct inode *inode, int mask)
                 return 0;
         }
 
-	if ( current->fsuid == cp->c_last_fsuid && 
-	     mask == (cp->c_last_mask & mask) ) {
-		return 0;
-	}
-	     
-
 	if ( coda_access_cache == 1 ) {
 		if ( coda_cache_check(inode, mask) ) {
 			coda_permission_stat.hit_count++;
@@ -208,6 +201,8 @@ int coda_permission(struct inode *inode, int mask)
 		}
 	}
 
+        cp = ITOC(inode);
+        CHECK_CNODE(cp);
 
         CDEBUG(D_INODE, "mask is %o\n", mask);
         error = venus_access(inode->i_sb, &(cp->c_fid), mask);
@@ -217,10 +212,6 @@ int coda_permission(struct inode *inode, int mask)
 
 	if ( error == 0 ) {
 		coda_cache_enter(inode, mask);
-		/* insert in the ultra mini cache */
-		cp->c_last_fsuid = current->fsuid;
-		cp->c_last_mask = mask;
-
 	}
 
         return error; 
@@ -842,11 +833,6 @@ static int coda_venus_readdir(struct file *filp, void *getdent,
         while ( pos + string_offset < result ) {
                 vdirent = (struct venus_dirent *) (buff + pos);
 
-		/* see if we can read d_namlen in this recoord */
-		if ( pos + string_offset >= result ) {
-			break;
-		}
-
                 /* test if the name is fully in the buffer */
                 if ( pos + string_offset + (int) vdirent->d_namlen >= result ){
                         break;
@@ -923,51 +909,6 @@ static void coda_dentry_delete(struct dentry * dentry)
 }
 
 
-static int coda_refresh_inode(struct dentry *dentry)
-{
-	struct coda_vattr attr;
-	int error;
-	int old_mode;
-	ino_t old_ino;
-	struct inode *inode = dentry->d_inode;
-	struct coda_inode_info *cii = ITOC(inode);
-
-	ENTRY;
-	
-	error = venus_getattr(inode->i_sb, &(cii->c_fid), &attr);
-	if ( error ) { 
-		make_bad_inode(inode);
-		return -EIO;
-	}
-
-	/* this inode may be lost if:
-            - it's ino changed 
-	    - type changes must be permitted for repair and
-	      missing mount points.
-	*/
-	old_mode = inode->i_mode;
-	old_ino = inode->i_ino;
-	coda_vattr_to_iattr(inode, &attr);
-
-
-	if ((old_mode & S_IFMT) != (inode->i_mode & S_IFMT)) {
-		printk("Coda: inode %ld, fid %s changed type!\n",
-		       inode->i_ino, coda_f2s(&(cii->c_fid)));
-	}
-
-	/* the following can happen when a local fid is replaced 
-	   with a global one, here we lose and declar the inode bad */
-	if (inode->i_ino != old_ino) {
-		make_bad_inode(inode);
-		inode->i_mode = old_mode;
-		return -EIO;
-	}
-	
-
-	cii->c_flags &= ~C_VATTR;
-	return 0;
-}
-
 
 /*
  * This is called when we want to check if the inode has
@@ -978,18 +919,61 @@ static int coda_refresh_inode(struct dentry *dentry)
 
 int coda_revalidate_inode(struct dentry *dentry)
 {
+	struct coda_vattr attr;
 	int error = 0;
-	struct coda_inode_info *cii = ITOC(dentry->d_inode);
+	int old_mode;
+	ino_t old_ino;
+	struct inode *inode = dentry->d_inode;
+	struct coda_inode_info *cii = ITOC(inode);
 
 	ENTRY;
 	CDEBUG(D_INODE, "revalidating: %*s/%*s\n", 
 	       dentry->d_name.len, dentry->d_name.name,
 	       dentry->d_parent->d_name.len, dentry->d_parent->d_name.name);
 
-	if (cii->c_flags & (C_VATTR | C_PURGE)) {
-		error = coda_refresh_inode(dentry);
+	if ( cii->c_flags == 0 )
+		return 0;
+
+	/* Venus closed the device .... */
+	if ( cii->c_flags & C_DYING ) { 
+		make_bad_inode(inode);
+		return -EIO;
 	}
 
-	return error;
+	
+	if (cii->c_flags & (C_VATTR | C_PURGE)) {
+		error = venus_getattr(inode->i_sb, &(cii->c_fid), &attr);
+		if ( error ) { 
+			make_bad_inode(inode);
+			return -EIO;
+		}
+
+		/* this inode may be lost if:
+		   - it's ino changed 
+		   - type changes must be permitted for repair and
+		   missing mount points.
+		*/
+		old_mode = inode->i_mode;
+		old_ino = inode->i_ino;
+		coda_vattr_to_iattr(inode, &attr);
+
+
+		if ((old_mode & S_IFMT) != (inode->i_mode & S_IFMT)) {
+			printk("Coda: inode %ld, fid %s changed type!\n",
+			       inode->i_ino, coda_f2s(&(cii->c_fid)));
+		}
+
+		/* the following can happen when a local fid is replaced 
+		   with a global one, here we lose and declar the inode bad */
+		if (inode->i_ino != old_ino) {
+			make_bad_inode(inode);
+			inode->i_mode = old_mode;
+			return -EIO;
+		}
+		
+		cii->c_flags &= ~C_VATTR;
+	}
+
+	return 0;
 }
 

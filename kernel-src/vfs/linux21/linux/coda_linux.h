@@ -1,7 +1,7 @@
 /* 
  * Coda File System, Linux Kernel module
  * 
- * Original version, adapted from coda_mach.c, (C) Carnegie Mellon University
+ * Original version, adapted from cfs_mach.c, (C) Carnegie Mellon University
  * Linux modifications (C) 1996, Peter J. Braam
  * Rewritten for Linux 2.1 (C) 1997 Carnegie Mellon University
  *

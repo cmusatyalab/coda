@@ -27,7 +27,7 @@ struct coda_sb_info
 	struct list_head    sbi_volroothead;
 };
 
-/* communication pending/processing queues queues */
+/* communication pending/processing queues */
 struct vcomm {
 	u_long		    vc_seq;
 	struct wait_queue  *vc_waitq; /* Venus wait queue */

@@ -612,7 +612,7 @@ static inline unsigned long coda_waitfor_upcall(struct vmsg *vmp)
 				break;
 			/* signal is present: after timeout always return 
 			   really smart idea, probably useless ... */
-			if ( jiffies > vmp->vm_posttime + coda_timeout * HZ )
+			if ( jiffies - vmp->vm_posttime > coda_timeout * HZ )
 				break; 
 		}
 		schedule();
