@@ -37,9 +37,12 @@ Pittsburgh, PA.
 
 */
 
-#ifndef _LWPTIMER_
-#define _LWPTIMER_
+#ifndef _LWP_TIMER_H_
+#define _LWP_TIMER_H_
 
+#ifdef __cplusplus
+extern "C" {
+#endif __cplusplus
 
 struct TM_Elem {
     struct TM_Elem	*Next;		/* filled by package */
@@ -76,4 +79,8 @@ extern int  TM_Rescan (struct TM_Elem *tlist);
 extern struct TM_Elem *TM_GetExpired (struct TM_Elem *tlist);
 extern struct TM_Elem *TM_GetEarliest (struct TM_Elem *tlist);
 
-#endif /* _LWPTIMER_ */
+#ifdef __cplusplus
+}
+#endif __cplusplus
+
+#endif /* _LWP_TIMER_H_ */

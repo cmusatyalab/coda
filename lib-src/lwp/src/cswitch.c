@@ -25,7 +25,7 @@ listed in the file CREDITS.
 
 void OtherProcess(PROCESS parent)
     {
-        PRE_PreemptMe();
+    PRE_PreemptMe();
     for(;;)
 	{
         /* we just yield */
@@ -62,8 +62,8 @@ int main(int argc, char **argv)
 #if 0
         LWP_DispatchProcess();
 #else
-        LWP_QWait();
         LWP_QSignal(otherpid);
+        LWP_QWait();
 #endif
     }
 

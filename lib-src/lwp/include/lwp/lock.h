@@ -37,11 +37,24 @@ Pittsburgh, PA.
 
 */
 
-#ifndef LWPLOCK_INCLUDED
-#define LWPLOCK_INCLUDED
+#ifndef _LWP_LOCK_H_
+#define _LWP_LOCK_H_
+
+#ifdef __cplusplus
+extern "C" {
+#endif __cplusplus
 
 #include <lwp/lwp.h>
-/* all locks wait on excl_locked except for READ_LOCK, which waits on readers_reading */
+
+#define READ_LOCK	1
+#define WRITE_LOCK	2
+#define SHARED_LOCK	4
+
+/* When compiling for pthreads, always compile with -D_REENTRANT */
+#ifndef _REENTRANT
+
+/* all locks wait on excl_locked except for READ_LOCK, which waits on
+ * readers_reading */
 struct Lock {
 	unsigned char   wait_states;	/* type of lockers waiting */
 	unsigned char   excl_locked;	/* anyone have boosted, shared or write lock? */
@@ -50,14 +63,30 @@ struct Lock {
 	PROCESS         excl_locker;
 };
 
-typedef struct Lock Lock;
-
-#define READ_LOCK	1
-#define WRITE_LOCK	2
-#define SHARED_LOCK	4
-
 /* next defines wait_states for which we wait on excl_locked */
 #define EXCL_LOCKS (WRITE_LOCK|SHARED_LOCK)
+
+void Lock_Obtain (struct Lock*, int);
+void Lock_ReleaseR (struct Lock *);
+void Lock_ReleaseW (struct Lock *);
+
+#else /* _REENTRANT  */
+#include <pthread.h>
+
+struct dllist_head {
+    struct dllist_head *next, *prev;
+};
+
+struct Lock {
+    char               initialized;
+    char               readers;
+    PROCESS            excl;
+    pthread_mutex_t    access;
+    struct dllist_head pending;
+};
+#endif /* _REENTRANT */
+
+typedef struct Lock Lock;
 
 /* extern definitions for lock manager routines */
 void ObtainReadLock(struct Lock *lock);
@@ -68,9 +97,11 @@ void ReleaseWriteLock(struct Lock *lock);
 void ReleaseSharedLock(struct Lock *lock);
 int CheckLock(struct Lock *lock);
 int WriteLocked(struct Lock *lock);
-extern void Lock_Init (struct Lock*);
-extern void Lock_Obtain (struct Lock*, int);
-extern void Lock_ReleaseR (struct Lock *);
-extern void Lock_ReleaseW (struct Lock *);
+void Lock_Init (struct Lock *lock);
 
-#endif /* LWPLOCK_INCLUDED */
+#ifdef __cplusplus
+}
+#endif __cplusplus
+
+#endif /* _LWP_LOCK_H_ */
+

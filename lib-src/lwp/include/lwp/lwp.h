@@ -37,23 +37,31 @@ Pittsburgh, PA.
 
 */
 
-#ifndef LWP_INCLUDED
-#define LWP_INCLUDED
+#ifndef _LWP_LWP_H_
+#define _LWP_LWP_H_
+
+#ifdef __cplusplus
+extern "C" {
+#endif __cplusplus
+
 #include <sys/time.h>
 #include <stdio.h>
-
 
 #ifndef TRUE
 #define TRUE 1
 #define FALSE 0
 #endif
 
-
 /*
     LWP_VERSION is first argument to LWP_Init().
     Ensures header matches library.
 */
-#define LWP_VERSION  210888002  /* Change this if you make an incompatible change of some kind */
+/* Change this if you make an incompatible change of some kind */
+#ifndef _REENTRANT
+#define LWP_VERSION  210888002 /* old lwp */
+#else
+#define LWP_VERSION  210888003 /* pthreaded lwp */
+#endif
 
 #define LWP_SUCCESS	0
 #define LWP_EBADPID	-1
@@ -113,7 +121,6 @@ extern struct timeval run_wait_threshold;
 typedef int (*PFI) (void *);
 #endif
 
-
 void LWP_SetLog(FILE *file, int level);
 extern int LWP_QWait();
 extern int LWP_QSignal (PROCESS pid);
@@ -142,7 +149,6 @@ extern void LWP_ProtectStacks();
 #define LWP_SignalProcess(event)	LWP_INTERNALSIGNAL(event, 1)
 #define LWP_NoYieldSignal(event)	LWP_INTERNALSIGNAL(event, 0)
 
-
 /* extern definitions for the io manager routines */
 extern int IOMGR_SoftSig (PFIC aproc, char *arock);
 extern int IOMGR_Initialize();
@@ -164,7 +170,10 @@ extern int TM_GetTimeOfDay (struct timeval *tv, struct timezone *tz);
 extern int FT_AGetTimeOfDay (struct timeval *tv, struct timezone *tz);
 extern unsigned int FT_ApproxTime() ;
 
-#endif /* LWP_INCLUDED */
+#ifdef __cplusplus
+}
+#endif __cplusplus
 
+#endif /* _LWP_LWP_H_ */
 
 

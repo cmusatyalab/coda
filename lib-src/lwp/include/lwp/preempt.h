@@ -16,9 +16,7 @@ Coda are listed in the file CREDITS.
 
 #*/
 
-
 /*
-
                          IBM COPYRIGHT NOTICE
 
                           Copyright (C) 1986
@@ -41,8 +39,12 @@ Pittsburgh, PA.
 */
 
 
-#ifndef _LWPPREEMPT_ 
-#define _LWPPREEMPT_
+#ifndef _LWP_PREEMPT_H_ 
+#define _LWP_PREEMPT_H_
+
+#ifdef __cplusplus
+extern "C" {
+#endif __cplusplus
 
 #define DEFAULTSLICE	10
 
@@ -54,5 +56,8 @@ extern void PRE_Concurrent(int on);
 extern void PRE_BeginCritical();
 extern void PRE_EndCritical();
 
+#ifdef __cplusplus
+}
+#endif __cplusplus
 
-#endif /* _LWPPREEMPT_ */
+#endif /* _LWP_PREEMPT_H_ */

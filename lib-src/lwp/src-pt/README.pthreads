@@ -1,0 +1,57 @@
+Notes for lwp on top of pthreads
+--------------------------------
+
+The pthread-lwp implementation is compatible with the non-preemptive
+lwp implementation. It even encapsulates enough of the `quirks' to
+allow venus to run without problems.
+
+
+New function
+------------
+
+void PRE_Concurrent(int on)
+/* on != 0 : Take the calling thread out of the LWP runqueues and let it
+ *           run concurrently.
+ * on == 0 : Return the calling thread under the reign of the big lock.
+ */
+
+
+Special notes
+-------------
+
+LWP RW-locks
+  Can safely be used by both concurrent and non-concurrent threads.
+  When locking, non-concurrent threads release the run_mutex.
+
+LWP_QSignal/LWP_QWait
+  Implemented as a counting semaphore. No more lost signals, and
+  allows concurrent threads to use it without waiting for the run_mutex
+  (yielding non-concurrent threads). Non-concurrent threads release the
+  mutex while waiting.
+
+LWP_SignalProcess/LWP_NoYieldSignal/LWP_MwaitProcess/LWP_WaitProcess
+  Concurrent threads need to aquire the run_mutex and will therefore
+  block until the current non-concurrent thread yields. This affects
+  both waiting and signalling threads.
+
+
+Compiling
+---------
+
+Make sure that LIBPTHREAD is defined in the Makeconf file. You also need
+to compile all c/c++ code with the -D_REENTRANT flag.
+
+
+Future additions
+----------------
+
+IOMGR_Read/IOMGR_Write functions that release the run_mutex for
+non-concurrent threads (simple, look at IOMGR_Select). But they should
+then also be implemented as `polling' functions in the normal LWP
+implementation.
+
+
+For more information, read the source (lwp_pt.c, lock_pt.c, etc.) I've
+tried to put in a lot of useful comments.
+
+-- Jan

@@ -28,17 +28,13 @@ liblwp_la_LDFLAGS = -version-info 1:0:0
 
 noinst_PROGRAMS = cswitch test test-static tdb rw
 LDADD = liblwp.la
-cswitch_SOURCES = cswitch.c
-test_SOURCES = test.c
 test_static_SOURCES = test.c
 test_static_LDFLAGS = -static
-tdb_SOURCES = tdb.c
-rw_SOURCES = rw.c
+
+MAINTAINERCLEANFILES = Makefile.in
 
 SUFFIXES = .ss
 
 %.s: %.ss
 	$(CPP) -x c-header -P -D__ASSEMBLY__ $(AFLAGS) $< > $*.s
-
-MAINTAINERCLEANFILES = Makefile.in
 

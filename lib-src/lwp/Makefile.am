@@ -17,9 +17,13 @@
 #                            none currently
 #*/
 
-SUBDIRS = include src
+if pthread
+EXTRA = src-pt
+endif
 
-EXTRA_DIST = bootstrap.sh configure
+SUBDIRS = include src $(EXTRA)
+
+EXTRA_DIST = acinclude.m4 bootstrap.sh configure
 
 MAINTAINERCLEANFILES = AUTHORS ChangeLog INSTALL Makefile.in NEWS \
     README aclocal.m4 config.guess config.h.in config.sub configure \
