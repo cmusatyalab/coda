@@ -161,7 +161,7 @@ interpret:
 		goto exec_fail_dealloc;
 	}
 
-#if	0
+#ifndef	CFS
 	/*
 	 * Get the image header, which we define here as meaning the first
 	 * page of the executable.
