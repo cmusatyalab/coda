@@ -33,7 +33,7 @@ should be returned to Software.Distribution@cs.cmu.edu.
 
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/rvm-src/rvm/rvm_utils.c,v 4.4 97/10/18 05:09:07 clement Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/rvm-src/rvm/rvm_utils.c,v 4.5 98/02/18 13:18:03 rvb Exp $";
 #endif _BLURB_
 
 /*
@@ -2331,4 +2331,4 @@ rvm_offset_t rvm_rnd_offset_to_sector(x)
     tmp.low = tmp.low & (SECTOR_MASK);
 
     return tmp;
-    } 
+    }
