@@ -294,7 +294,7 @@ int volent::ConnectedRepair(ViceFid *RepairFid, char *RepairFile, vuid_t vuid,
 	sei->TransmissionDirection = CLIENTTOSERVER;
 
         /* and open a safe fd to the containerfile */
-        if (RepairF) fd = RepairF->data.file->Open(&RepairF->fid, O_RDONLY);
+        if (RepairF) fd = RepairF->data.file->Open(RepairF, O_RDONLY);
         else         fd = open(RepairFile, O_RDONLY, (int)V_MODE);
         CODA_ASSERT(fd != -1);
 

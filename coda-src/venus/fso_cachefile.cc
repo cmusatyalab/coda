@@ -317,7 +317,7 @@ void CacheFile::print(int fdes) {
     fdprint(fdes, "[ %s, %d, %d/%d ]\n", name, inode, validdata, length);
 }
 
-int CacheFile::Open(ViceFid *fid, int flags)
+int CacheFile::Open(fsobj *fso, int flags)
 {
     union outputArgs msg;
 
@@ -327,8 +327,9 @@ int CacheFile::Open(ViceFid *fid, int flags)
     if (HAVE.coda_openfid) {
         msg.oh.opcode = CODA_MAKE_CINODE;
         msg.oh.unique = 0;
-        msg.coda_openfid.CodaFid = *fid;
-        msg.coda_openfid.fd = fd;
+        fso->GetFid(&msg.coda_make_cinode.CodaFid);
+        fso->GetVattr(&msg.coda_make_cinode.attr);
+        msg.coda_make_cinode.fd = fd;
         
         /* Send the message. */
         if (write(global_kernfd, (char *)&msg, sizeof(msg)) != sizeof(msg)) {

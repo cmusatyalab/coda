@@ -107,7 +107,7 @@ int fsobj::RepairStore()
 	sei->ByteQuota = -1;
 
         /* and open a safe fd to the containerfile */
-        int fd = data.file->Open(&fid, O_RDONLY);
+        int fd = data.file->Open(this, O_RDONLY);
         CODA_ASSERT(fd != -1);
 
         sei->Tag = FILEBYFD;

@@ -271,8 +271,8 @@ long CallBackFetch(RPC2_Handle RPCid, ViceFid *Fid, SE_Descriptor *BD) {
 	sei->ByteQuota = -1;
 
         /* and open a safe fd to the containerfile */
-        if (f->shadow) fd = f->shadow->Open(&f->fid, O_RDONLY);
-        else           fd = f->data.file->Open(&f->fid, O_RDONLY);
+        if (f->shadow) fd = f->shadow->Open(f, O_RDONLY);
+        else           fd = f->data.file->Open(f, O_RDONLY);
         CODA_ASSERT(fd != -1);
 
         sei->Tag = FILEBYFD;

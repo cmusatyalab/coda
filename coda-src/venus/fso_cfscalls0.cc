@@ -89,7 +89,7 @@ void fsobj::FetchProgressIndicator(long offset)
 }
 
 int fsobj::Fetch(vuid_t vuid) {
-    int fd;
+    int fd = -1;
 
     LOG(10, ("fsobj::Fetch: (%s), uid = %d\n", comp, vuid));
 
@@ -174,7 +174,7 @@ int fsobj::Fetch(vuid_t vuid) {
 		    data.file->SetValidData(offset);
 
                     /* and open a safe fd to the containerfile */
-		    fd = data.file->Open(&fid, O_WRONLY | O_CREAT);
+		    fd = data.file->Open(this, O_WRONLY | O_CREAT);
                     CODA_ASSERT(fd != -1);
 
 		    sei->Tag = FILEBYFD;
@@ -399,7 +399,7 @@ NonRepExit:
 	PutConn(&c);
     }
     
-    if (stat.VnodeType == File) 
+    if (fd != -1)
         data.file->Close();
 
     if (code == 0) {
@@ -1105,7 +1105,7 @@ int fsobj::ConnectedStore(Date_t Mtime, vuid_t vuid, unsigned long NewLength)
 	sei->ByteQuota = -1;
 
         /* and open a safe fd to the containerfile */
-        int fd = data.file->Open(&fid, O_RDONLY);
+        int fd = data.file->Open(this, O_RDONLY);
         CODA_ASSERT(fd != -1);
 
         sei->Tag = FILEBYFD;

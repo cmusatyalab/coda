@@ -291,7 +291,7 @@ class CacheFile {
     ~CacheFile();
 
     /* for safely obtaining access to container files, USE THESE!!! */
-    int Open(ViceFid *fid, int flags);
+    int Open(fsobj *fso, int flags);
     int Close();
 
     void Validate();
@@ -682,6 +682,7 @@ class fsobj {
 
     /* Miscellaneous utility routines. */
     void GetVattr(struct coda_vattr *);		/* translate attributes to VFS format */
+    void GetFid(ViceFid *f) { *f = fid; }
     void ReturnEarly();
     void GetPath(char *, int =0);		/* from volume-root (NOT Venus-root) */
     int IsFile() { return(stat.VnodeType == (int)File); }
