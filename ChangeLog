@@ -1,4 +1,19 @@
 1999-05-07    <jaharkes@cs.cmu.edu>
+	* Servers would assert when they got a connection from an unknown
+	  userid.
+	* Codacon couldn't bind to venus if only the loopback device was
+	  available.
+	* Added libdb2 detection, as it isn't 1.85 compatible (fileformat).
+	* Reshuffled the tree a bit
+	  resolve          -> librepair
+	  res/rvmres 	   -> resolution
+	  kernel-src/linux -> linux-coda (separate tree)
+	* Correct lock ordering when breaking callbacks on multiple clients.
+	* Replaced 'cfs bw' with 'cfs strong/adaptive'.
+	* Corrected lock ordering when creating hardlinks.
+	* Switched from gdbm to db-1.85.
+	* Fixed loss of reintegration records after venus reinitialization.
+	  This needed extra space in the RVM header, reinit your venus.
 	* Caught several bugs related to partially cached objects.
 	* Removed VM resolution, and fixed some bugs with RVM resolution.
 	* Incorporated patches to get compiled on NetBSD 1.4
@@ -11,6 +26,10 @@
 	* Fixes to kernel module refcounting.
 	* Added statfs upcall, `df' now gives information about the cache
 	  usage.
+	* Fixed kernel oops when reading from /proc/fs/coda/upcall_stats.
+	* Processes got stuck when writing to /proc/sys/coda/*_stats.
+	* Increased the precision of the upcall stats timing
+	  (echo 1 > /proc/net/upcall_stats to turn it on).
 	* Got rid of 1000's of warnings when compiling with -Wall
 	  (still not completely done yet).
 	* Reduced server retry timeout to max. 15 seconds.
@@ -22,7 +41,7 @@
 	* Several repair/resolve related refcounting/deref. bugs fixed.
 	* Fixed an uninitialized pointer deref when dumping volumes.
 	* Added 200M choice to vice-setup-rvm.
-	* Cleanup & proper locking in the callback mechanism on the server.
+	* Cleanup & proper locking in the callback code on the server.
 	* Correctly log client addresses and port numbers in callback msgs.
 	* LockQueue manager forgot to initialize thread specific data.
 	* Split RPC2 & SFTP netlogs.
