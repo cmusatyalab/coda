@@ -22,8 +22,8 @@ INCLUDES = -I$(top_builddir)/include -I$(top_srcdir)/include \
     -DRPC2DEBUG -DERRORTR
 LDADD = librpc2.la libse.la $(LIBLWP)
 
-pkginclude_HEADERS = sftp.h rpc2.private.h
-noinst_HEADERS = test.h
+pkginclude_HEADERS = sftp.h
+noinst_HEADERS = rpc2.private.h test.h
 lib_LTLIBRARIES = librpc2.la libse.la
 noinst_PROGRAMS = ctest stest rpc2test
 EXTRA_DIST = makeinc.pl errordb.txt fxor.s
