@@ -151,7 +151,7 @@ int repvol::ConnectedRepair(ViceFid *RepairFid, char *RepairFile, vuid_t vuid,
 			    VolumeId *RWVols, int *ReturnCodes)
 {
     int code = 0;
-    int i, j, fd;
+    int i, j, fd, localFake = 0;
     fsobj *RepairF = NULL;
     struct ViceFid gfid, *rFid = NULL;
     
@@ -178,12 +178,14 @@ int repvol::ConnectedRepair(ViceFid *RepairFid, char *RepairFile, vuid_t vuid,
 	/* Check for local repair expansion */
 	if ((code == 0) && FAKEROOTFID(*RepairFid)) {
 	    fsobj *g = NULL;
+	    localFake = 1;
 	    ViceFid inc; /* Required for getting Lookup() to traverse mount points */
 	    f->Lookup(&g, &inc, "global", vuid, CLU_CASE_SENSITIVE);
 	    LOG(100, ("Local-Repair expansion, got (%x.%x.%x) inc (%x.%x.%x)\n", 
 		      g->fid.Volume, g->fid.Vnode, g->fid.Unique, inc.Volume, inc.Vnode, inc.Unique));
 	    gfid = g->fid;
 	    rFid = &gfid;
+	    FSDB->Put(&g);
 	}
 	else /* normal repair, proceed as usual */
 	    rFid = RepairFid; 
@@ -399,7 +401,7 @@ int repvol::ConnectedRepair(ViceFid *RepairFid, char *RepairFile, vuid_t vuid,
 	    rep_ent = l->repairList;
 
 	    rc = time(&modtime);
-	    if (code == (time_t)-1) {
+	    if (rc == (time_t)-1) {
 	      code = errno;
 	      goto Exit;
 	    }
@@ -417,7 +419,6 @@ int repvol::ConnectedRepair(ViceFid *RepairFid, char *RepairFile, vuid_t vuid,
 		    if (code != 0) {
 			LOG(15, ("Repair: FSDB->Get(%x.%x.%x) error", 
 				 rFid->Volume, rFid->Vnode, rFid->Unique));
-			FSDB->Put(&f);
 			goto Exit;
 		    }
 		    
@@ -430,6 +431,7 @@ int repvol::ConnectedRepair(ViceFid *RepairFid, char *RepairFile, vuid_t vuid,
 		    }
 		    entryFid = e->fid;
 		    repLC = e->stat.LinkCount;
+		    FSDB->Put(&e);
 
 		    if (rep_ent[i].opcode == REPAIR_RENAME) {
 			code = f->Lookup(&e, NULL, rep_ent[i].newname, vuid, CLU_CASE_SENSITIVE);
@@ -443,6 +445,7 @@ int repvol::ConnectedRepair(ViceFid *RepairFid, char *RepairFile, vuid_t vuid,
 		    mvFid = e->fid;
 		    mvPFid = e->pfid;
 		    mvLC = e->stat.LinkCount;
+		    FSDB->Put(&e);
 
 		    FSDB->Put(&f);
 		}
@@ -524,13 +527,13 @@ Exit:
     PutMgrp(&m);
     FSDB->Put(&RepairF);
 
-    if (code == 0) {
+    if ((code == 0) && !localFake) {
 	/* Purge the fake object. */
 	fsobj *f = FSDB->Find(RepairFid);
 	if (f != 0) {
 	    f->Lock(WR);
 	    Recov_BeginTrans();
-		f->Kill();
+	        f->Kill();
 	    Recov_EndTrans(MAXFP);
 	    FSDB->Put(&f);
 
@@ -542,7 +545,7 @@ Exit:
 	    ResSubmit(0, RepairFid);
 	}
     }
-    if (code ==	ESYNRESOLVE) code = EMULTRSLTS;		/* ??? -JJK */
+    if (code ==	ESYNRESOLVE) code = EMULTRSLTS;	/* "multiple results" */
 
     return(code);
 }

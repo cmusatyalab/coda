@@ -327,14 +327,21 @@ void rep_CompareDirs(int largc, char **largv) {
     if (getcompareargs(largc, largv, &fixfile, &inf) < 0)
 	return;
 
-    while ((ret = CompareDirs(RepairVol, fixfile, &inf, msgbuf, sizeof(msgbuf))) == -2) {
-	if (DoRepair(RepairVol, fixfile, stdout, msgbuf, sizeof(msgbuf)) < 0)
-	    break;
-	if (session == LOCAL_GLOBAL) {
-	    rep_PreserveAllLocal(0, NULL);
-	    return;
+    if (session == LOCAL_GLOBAL) {
+	if ((ret = CompareDirs(RepairVol, fixfile, &inf, msgbuf, sizeof(msgbuf))) == -2) {
+	    if (DoRepair(RepairVol, fixfile, stdout, msgbuf, sizeof(msgbuf)) >= 0) {
+		rep_PreserveAllLocal(0, NULL);
+		return;
+	    }
 	}
     }
+    else { /* session == SERVER_SERVER */
+	while ((ret = CompareDirs(RepairVol, fixfile, &inf, msgbuf, sizeof(msgbuf))) == -2) {
+	    if (DoRepair(RepairVol, fixfile, stdout, msgbuf, sizeof(msgbuf)) < 0)
+		break;
+	}
+    }
+
     if (ret < 0)
 	fprintf(stderr, "%s\n%s failed\n", msgbuf, ((ret == -2) ? "dorepair" : "comparedirs"));
 }
