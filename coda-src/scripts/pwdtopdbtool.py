@@ -19,9 +19,21 @@ if os.path.exists('/vice/db/prot_users.db'):
 pdbtool = os.popen('pdbtool', 'w')
 
 # Whack in a couple of the default entries
+# These values used to be hardcoded, it is actually good to have them
+# hardcoded in a way when upgrading an existing server because all the
+# ACLs in RVM are using UIDs -101 and -204.
+pdbtool.write("nui System 777\n")
 pdbtool.write("nui %(groupowner)s %(groupownid)d\n" % vars())
-pdbtool.write("ng System:AnyUser %(groupownid)d\n" % vars())
 pdbtool.write("ng System:Administrators %(groupownid)d\n" % vars())
+pdbtool.write("ci System:Administrators -204\n")
+pdbtool.write("ng System:AnyUser System\n")
+pdbtool.write("ci System:AnyUser -101\n")
+
+# if you don't mind resetting ACLs this might work as well.
+#pdbtool.write("nui System 1\n")
+#pdbtool.write("nui %(groupowner)s %(groupownid)d\n" % vars())
+#pdbtool.write("ng System:Administrators %(groupownid)d\n" % vars())
+#pdbtool.write("ng System:AnyUser System\n") # i.e. any unauthenticated user
 
 # Add all existing users
 names = {}

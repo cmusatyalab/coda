@@ -592,7 +592,8 @@ void tool_export(int argc, char *argv[])
 void tool_import(int argc, char *argv[])
 {
     FILE *userfile, *groupfile;
-    char user[64], group[64], owner_and_members[1024], *owner, *member, *s;
+    char user[64], group[64], owner_and_members[1024];
+    char *owner, *member, *s, *strtokarg = NULL;
     int32_t user_id, group_id, owner_id, member_id, create_id;
     int rc;
 
@@ -652,7 +653,7 @@ void tool_import(int argc, char *argv[])
 	/* negate positive group ids, Coda groups are negative numbers */
 	if (group_id > 0) {
 	    group_id = -group_id;
-	    /* assume this is the /etc/group file, force owner to System */
+	    /* assuming this is the /etc/group file, force owner to System */
 	    owner = "System";
 	}
 
@@ -692,13 +693,18 @@ void tool_import(int argc, char *argv[])
 	/* restore the :'s in the group name */
 	s = group; while ((s = strchr(s, '%')) != NULL) *s = ':';
 
-	/* skip the owner when the group_id is negative */
-	if (group_id > 0) group_id = -group_id;
-	else		  (void)strtok(owner_and_members, ",");
+	if (group_id > 0) {
+	    group_id = -group_id;
+	    strtokarg = owner_and_members;
+	} else {
+	    /* skip the owner when the group_id is negative */
+	    (void)strtok(owner_and_members, ",");
+	}
 
 	/* add group members */
 	printf("Adding members to %s\n\t", group);
-	while ((member = strtok(NULL, ",")) != NULL) {
+	while ((member = strtok(strtokarg, ",")) != NULL) {
+	    strtokarg = NULL;
 	    /* restore the :'s in the name */
 	    s = member; while ((s = strchr(s, '%')) != NULL) *s = ':';
 

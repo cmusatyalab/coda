@@ -107,9 +107,10 @@ elif [ -f prot_index.dir ] ; then
 fi
 
 cat > pdbsetup <<EOF
+nui System 1
 nui $username $userid
 ng System:Administrators $userid
-ng System:AnyUser $userid
+ng System:AnyUser System
 EOF
 
 pdbtool source pdbsetup

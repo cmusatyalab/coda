@@ -1,3 +1,11 @@
+2001-01-19    <jaharkes@cs.cmu.edu>
+        * ======== Release 5.3.12 =========
+	* Fixed partition initialization bug.
+	* Patch for pdbtool to import real /etc/group file (Steffen Neumann).
+	* Avoid creating duplicate groups when importing.
+	* Removed hardcoded uid's for System:AnyUser and System:Administrators.
+	* Cleanups for purgevol_rep, it now also purges backup volumes.
+
 2001-01-15    <jaharkes@cs.cmu.edu>
         * ======== Release 5.3.11 =========
 	* Filerepair merged into repair tool (Rimas Svarcas).
