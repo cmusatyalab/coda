@@ -748,7 +748,10 @@ void WorkerInit()
 	    exit(-1);
     }
     worker::muxfd = sd[0];
-    nt_initialize_ipc (sd[1]);
+    if (!nt_initialize_ipc (sd[1])) {
+            dprint("WorkerInit: nt_initialize_ipc failed.");
+            exit (-1);
+    }
     dprint("WorkerInit: muxfd = %d", worker::muxfd);
 #else
     worker::muxfd = ::socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);

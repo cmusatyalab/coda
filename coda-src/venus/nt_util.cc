@@ -62,6 +62,9 @@ wcslen (PWCHAR wstr)
 }
 
 
+// Can't use "normal" parameters due ot the fact that this will 
+// be called to start a new thread.  Use the static it for mount
+// communication.
 static DWORD
 nt_do_mounts (void *junk)
 {
@@ -82,8 +85,14 @@ nt_do_mounts (void *junk)
     
     d = DefineDosDevice(DDD_RAW_TARGET_PATH, "codadev", "\\Device\\codadev");
     if ( d == 0 ) {
-	eprint ("DDD failed, mount failed.\n");
-	return 1; 
+	if (mount) {
+	    eprint ("DDD failed, mount failed.  Killing venus.");
+	    kill(getpid(), SIGKILL);
+	    exit(1);
+	} else {
+	    eprint ("DDD failed, umount failed.");
+	    return 1;
+	}
     }
 
     h = CreateFile ("\\\\.\\codadev", GENERIC_READ | GENERIC_WRITE,
@@ -91,8 +100,14 @@ nt_do_mounts (void *junk)
 		    OPEN_EXISTING, 0, NULL);
 
     if (h == INVALID_HANDLE_VALUE) {
-	eprint ("CreateFile failed, mount failed.\n");
-	return 1; 
+	if (mount) {
+	    eprint ("CreateFile failed, mount failed.  Killing venus.");
+	    kill(getpid(), SIGKILL);
+	    exit(1); 
+	} else { 
+	    eprint ("CreateFile failed, umount failed.");
+	    return 1;
+	}
     } 
     
     // Set up the info for the DeviceIoControl.
@@ -105,8 +120,17 @@ nt_do_mounts (void *junk)
     
     d = DeviceIoControl(h, ctlcode, &info, sizeof(info), NULL, 0,
 			&nBytesReturned, NULL);
-    if (d)
-        return 1;
+    if (!d) {
+	if (mount) {
+	    eprint ("Mount failed.  Killing venus.");
+	    kill(getpid(), SIGKILL);
+	    exit(1);
+	} else {
+	    eprint ("Umount failed.");
+	    return 1;
+	}
+    } 
+
     return 0;
 }
 
@@ -123,12 +147,16 @@ nt_mount (char *drivename)
     HANDLE h;
 
     nt_umount (drivename);
+
     mount = 1;
     
     h = CreateThread(0, 0, nt_do_mounts, NULL, 0, NULL);
 
-    if (!h)
-	eprint ("CreateThread failed.  Mount unsuccessful.\n");
+    if (!h) {
+	eprint ("CreateThread failed.  Mount unsuccessful.  Killing venus.");
+	kill(getpid(), SIGKILL);
+	exit(1); 
+    }
 
     CloseHandle (h);
 }
@@ -151,8 +179,9 @@ listen_kernel (void *junk)
     // Get the device ready;
     rc = DefineDosDevice(DDD_RAW_TARGET_PATH, "codadev", "\\Device\\codadev");
     if ( rc == 0 ) {
-	eprint ("DDD failed, listen_kernel failed.\n");
-	return 1; 
+	eprint ("DDD failed, listen_kernel failed.");
+	kill(getpid(), SIGKILL);
+	exit(1); 
     }
 
     h = CreateFile ("\\\\.\\codadev", GENERIC_READ | GENERIC_WRITE,
@@ -161,7 +190,8 @@ listen_kernel (void *junk)
 
     if (h == INVALID_HANDLE_VALUE) {
 	eprint ("CreateFile failed, listen_kernel failed.");
-	return 1; 
+	kill(getpid(), SIGKILL);
+	exit(1); 
     } 
 
     while (1) {
