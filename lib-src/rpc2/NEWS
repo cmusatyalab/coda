@@ -1,3 +1,7 @@
+New in 1.13:
+
+* Fixed crash when an expired connection receives a NAK.
+
 New in 1.12:
 
 * Fixed gcc-3.0 compiler warnings.
