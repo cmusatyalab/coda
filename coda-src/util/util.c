@@ -258,7 +258,7 @@ char *hostname(char *name)
 int UtilHostEq(const char *name1, const char *name2)
 {
     char *addr;
-    int len;
+    int len, ret = 0;
     struct hostent *host;
 
     /* Validity check */
@@ -268,27 +268,23 @@ int UtilHostEq(const char *name1, const char *name2)
     host = gethostbyname(name1);
     if ( ! host ) 
         return 0;
-    else
-        len = host->h_length;
+
+    len = host->h_length;
 
     addr = (char *) malloc(len);
-    if (!addr )
+    if (!addr)
         return 0;
-    else 
-        memcpy(addr, host->h_addr_list[0], len);
+
+    memcpy(addr, host->h_addr_list[0], len);
 
     host = gethostbyname(name2);
-    if ( ! host ) 
-        return 0;
 
-    if ( host->h_length != len ) 
-	return 0;
+    if (host && host->h_length == len)
+	ret = memcmp(addr, host->h_addr_list[0], len) == 0;
 
-    if ( memcmp(addr, host->h_addr_list[0], len) == 0 ) 
-	return 1;
-    else 
-	return 0;
+    free(addr);
 
+    return ret;
 }
 
 void UtilDetach()
