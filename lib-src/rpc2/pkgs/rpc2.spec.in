@@ -1,0 +1,73 @@
+Summary: RPC2 library
+Name: @PACKAGE@
+Version: @VERSION@
+Release: 1
+Source: ftp://ftp.coda.cs.cmu.edu/pub/coda/src/@PACKAGE@-@VERSION@.tar.gz
+Copyright: LGPL
+BuildRoot: /usr/src/redhat/BUILD/@PACKAGE@/Root
+Group: Development/Libraries
+%description
+The RPC2 library.
+
+%package dev
+Summary: RPC2 library development files
+Group: Development/Libraries
+%description dev
+Headers and static libraries for developing programs using the RPC2 library.
+
+%changelog
+* Thu Oct 28 1999 Jan Harkes <jaharkes@cs.cmu.edu>
+- First stab at packaging the rpc2 library.
+	
+%prep
+%setup -n @PACKAGE@-@VERSION@
+
+%build
+./configure --prefix=/usr
+make
+
+%install
+rm -rf $RPM_BUILD_ROOT
+mkdir -p $RPM_BUILD_ROOT
+make prefix=$RPM_BUILD_ROOT/usr install
+chmod 755 $RPM_BUILD_ROOT/usr/lib/libfail.so.1.0.0
+chmod 755 $RPM_BUILD_ROOT/usr/lib/librpc2.so.1.0.0
+chmod 755 $RPM_BUILD_ROOT/usr/lib/libse.so.1.0.0
+
+%clean
+rm -rf $RPM_BUILD_ROOT
+
+%post
+/sbin/ldconfig
+
+%postun
+/sbin/ldconfig
+
+%files
+/usr/bin/filcon
+/usr/lib/libfail.so.1.0.0
+/usr/lib/librpc2.so.1.0.0
+/usr/lib/libse.so.1.0.0
+
+%files dev
+/usr/bin/rp2gen
+/usr/lib/libfail.a
+/usr/lib/libfail.la
+/usr/lib/libfail.so
+/usr/lib/librpc2.a
+/usr/lib/librpc2.la
+/usr/lib/librpc2.so
+/usr/lib/libse.a
+/usr/lib/libse.la
+/usr/lib/libse.so
+%dir /usr/include/rpc2
+/usr/include/rpc2/errors.h
+/usr/include/rpc2/errorsdefs.h
+/usr/include/rpc2/fail.h
+/usr/include/rpc2/fcon.h
+/usr/include/rpc2/map.h
+/usr/include/rpc2/multi.h
+/usr/include/rpc2/ports.h
+/usr/include/rpc2/rpc2.h
+/usr/include/rpc2/se.h
+

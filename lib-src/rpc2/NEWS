@@ -1,0 +1,5 @@
+New in 1.0:
+
+* Extracted RPC2 out of the main Coda source tree.
+* Using an automake/autoconf/libtool build environment.
+* Creating shared libraries.

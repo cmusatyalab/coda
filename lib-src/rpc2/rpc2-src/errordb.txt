@@ -1,0 +1,75 @@
+VREADONLY, EROFS , VREADONLY, /* Attempt to write a read-only volume */
+VDISKFULL, ENOSPC , VDISKFULL, /* Partition is "full", i.e. rougly within  n% of full */
+CEWOULDBLOCK, EAGAIN , EWOULDBLOCK, /* Operation would block */
+VSALVAGE, 101 , VSALVAGE, /* Volume needs salvage */
+VNOVNODE, 102 , VNOVNODE, /* Bad vnode number quoted */
+VNOVOL, 103 , VNOVOL, /* Volume not attached, doesn't exist, not created or not online */
+VVOLEXISTS, 104 , VVOLEXISTS, /* Volume already exists */
+VNOSERVICE, 105 , VNOSERVICE, /* Volume is not in service, obsolete, or somesuch*/
+VOFFLINE, 106 , VOFFLINE, /* Volume is off line*/
+VONLINE, 107 , VONLINE, /* Volume is already on line */
+VBUSY, 110 , VBUSY, /* Volume temporarily unavailable; try again. */
+VMOVED, 111 , VMOVED, /* Volume has moved; do a VGetVolumeInfo */
+VNOSERVER, 112 , VNOSERVER, /* File server lwp is not running */
+VLOGSTALE, 113 , VLOGSTALE, /* CML head already reintegrated successfully */
+VFAIL, 200 , VFAIL, /* Unknown Coda error */
+CAEFAIL, 300, CAEFAIL, /* Unknown error related to the Advice Monitor */
+CAEVERSIONSKEW, 301, CAEVERSIONSKEW, /* Version skew between Venus and the Advice Monitor */
+CAENOSUCHUSER, 302, CAENOSUCHUSER, /* Advice Monitor attempted to connect on behalf of an unknown user */
+CAENOTVALID, 303, CAENOTVALID, /* Advice Monitor attempted to test liveness of a connection that is not valid */
+CAENOASR, 304, CAENOASR, /* Advice Monitor returned the result of an ASR, but not ASR is pending */
+CAEUNEXPECTEDASR, 305, CAEUNEXPECTEDASR, /* Advice Monitor returned the result of the wrong ASR */
+CAEASRINPROGRESS, 306, CAEASRINPROGRESS, /* Venus requested an ASR while another one is in progress */
+CAEADVICEPENDING, 307, CAEADVICEPENDING, /* Advice Monitor requested a NewConnection while a request for advice is pending; try again later */
+CAENOSERVERS, 308, CAENOSERVERS, /* No servers are known to Venus */
+EINCOMPATIBLE, 198, EINCOMPATIBLE, /* Version vectors are incompatible */
+EINCONS, 199, EINCONS, /* File is inconsistent */
+CEPERM, 1 , EPERM, /* Operation not permitted */
+CENOENT, 2 , ENOENT, /* No such file or directory */
+CESRCH, 3 , ESRCH, /* No such process */
+CEINTR, 4 , EINTR, /* Interrupted system call */
+CEIO, 5 , EIO, /* Input/output error */
+CENXIO, 6 , ENXIO, /* Device not configured */
+CE2BIG, 7 , E2BIG, /* Argument list too long */
+CENOEXEC, 8 , ENOEXEC, /* Exec format error */
+CEBADF, 9 , EBADF, /* Bad file descriptor */
+CECHILD, 10 , ECHILD, /* No child processes */
+CEDEADLK, 11 , EDEADLK, /* Resource deadlock avoided */
+CENOMEM, 12 , ENOMEM, /* Cannot allocate memory */
+CEACCES, 13 , EACCES, /* Permission denied */
+CEFAULT, 14 , EFAULT, /* Bad address */
+CENOTBLK, 15, ENOTBLK, /* Not a block device */
+CEBUSY, 16 , EBUSY, /* Device busy */
+CEEXIST, 17 , EEXIST, /* File exists */
+CEXDEV, 18 , EXDEV, /* Cross-device link */
+CENODEV, 19 , ENODEV, /* Operation not supported by device */
+CENOTDIR, 20 , ENOTDIR, /* Not a directory */
+CEISDIR, 21 , EISDIR, /* Is a directory */
+CEINVAL, 22 , EINVAL, /* Invalid argument */
+CENFILE, 23 , ENFILE, /* Too many open files in system */
+CEMFILE, 24 , EMFILE, /* Too many open files */
+CENOTTY, 25 , ENOTTY, /* Inappropriate ioctl for device */
+CETXTBSY, 26 , ETXTBSY, /* Text file busy */
+CEFBIG, 27 , EFBIG, /* File too large */
+CENOSPC, 28 , ENOSPC, /* No space left on device */
+CESPIPE, 29 , ESPIPE, /* Illegal seek */
+CEROFS, 30 , EROFS, /* Read-only file system */
+CEMLINK, 31 , EMLINK, /* Too many links */
+CEPIPE, 32 , EPIPE, /* Broken pipe */
+CEDOM, 33 , EDOM, /* Numerical argument out of domain */
+CERANGE, 34 , ERANGE, /* Result too large */
+CEAGAIN, 35 , EAGAIN, /* Resource temporarily unavailable */
+CEALREADY, 37 , EALREADY, /* Operation already in progress */
+CENOSYS, 38, ENOSYS, /* Function not implemented */
+CEPROTONOSUPPORT, 43 , EPROTONOSUPPORT, /* Protocol not supported */
+CEOPNOTSUPP, 45 , EOPNOTSUPP, /* Operation not supported */
+CENOBUFS, 55 , ENOBUFS, /* No buffer space available */
+CENOTCONN, 57 , ENOTCONN, /* Socket is not connected */
+CESHUTDOWN, 58 , ESHUTDOWN, /* Can't send after socket shutdown */
+CETOOMANYREFS, 59 , ETOOMANYREFS, /* Too many references: can't splice */
+CETIMEDOUT, 60 , ETIMEDOUT, /* Operation timed out */
+CELOOP, 62 , ELOOP, /* Too many levels of symbolic links */
+CENAMETOOLONG, 63 , ENAMETOOLONG, /* File name too long */
+CENOTEMPTY, 66 , ENOTEMPTY, /* Directory not empty */
+CEDQUOT, 69 , EDQUOT, /* Disc quota exceeded */
+CEVOLUME, 158, CEVOLUME, /* Volume error */
