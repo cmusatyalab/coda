@@ -29,6 +29,7 @@ extern "C" {
 
 #include "norton.h"
 #include "parser.h"
+#include "vice_file.h"
 
 void usage(char * name) {
     fprintf(stderr,
@@ -42,6 +43,7 @@ int main(int argc, char * argv[])
     rvm_return_t err;
     mapprivate = 0;
     char *exename = argv[0];
+    int ServerNumber = 0;
 
     argc--; argv++;
     while (argc > 3) {
