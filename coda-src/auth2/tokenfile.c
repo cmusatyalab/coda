@@ -57,7 +57,7 @@ void WriteTokenToFile(char *filename, ClearToken *cToken,
 
     f = fopen(filename, "w");
     fputs("*** Coda Token ***", f);
-    base64_encode(f, buf, len);
+    coda_base64_encode(f, buf, len);
     fclose(f);
     free(buf);
 }
@@ -77,7 +77,7 @@ void ReadTokenFromFile(char *filename, ClearToken *cToken,
 
     /* skip the first line */
     while((c = fgetc(f)) != EOF && c != '\n' && c != '\r') /* skip */;
-    base64_decode(f, &buf, &len);
+    coda_base64_decode(f, &buf, &len);
     fclose(f);
 
     if (len != sizeof(ClearToken) + sizeof(EncryptedSecretToken)) {

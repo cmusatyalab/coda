@@ -24,8 +24,8 @@ extern "C" {
 
 #include <stdio.h>
 
-void base64_encode(FILE *out, char *in, int len);
-void base64_decode(FILE *in, char **out, int *len);
+void coda_base64_encode(FILE *out, char *in, int len);
+void coda_base64_decode(FILE *in, char **out, int *len);
 
 #ifdef __cplusplus
 }

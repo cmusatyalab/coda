@@ -22,7 +22,7 @@ listed in the file CREDITS.
 static char *b2e =
     "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
 
-void base64_encode(FILE *out, char *in, int len)
+void coda_base64_encode(FILE *out, char *in, int len)
 {
     int i;
 
@@ -51,7 +51,7 @@ void base64_encode(FILE *out, char *in, int len)
     fputc('\n', out);
 }
 
-void base64_decode(FILE *in, char **out, int *len)
+void coda_base64_decode(FILE *in, char **out, int *len)
 {
     int val = 0, s = 18, n = 0, c, done = 0;
         
@@ -108,11 +108,11 @@ void main(int argc, char **argv)
     }
 
     fp = fopen(TESTFILE, "w");
-    base64_encode(fp, outbuf, outlen);
+    coda_base64_encode(fp, outbuf, outlen);
     fclose(fp);
     
     fp = fopen(TESTFILE, "r");
-    base64_decode(fp, &inbuf, &inlen);
+    coda_base64_decode(fp, &inbuf, &inlen);
     fclose(fp);
 
     if (outlen != inlen || memcmp(outbuf, inbuf, outlen) != 0)
@@ -122,3 +122,4 @@ void main(int argc, char **argv)
     putchar('\n');
 }
 #endif
+

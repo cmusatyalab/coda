@@ -32,31 +32,37 @@ extern "C" {
 
 void usage(char * name) {
     fprintf(stderr,
-	    "Usage: %s [-mapprivate] <log_device> <data_device> <length>\n",
+	    "Usage: %s [-n servernumber] [-mapprivate] <log_device> <data_device> <length>\n",
 	    name);
 }
 
 
-int main(int argc, char * argv[]) {
-    rvm_return_t 	err;
-    int argstart;
+int main(int argc, char * argv[])
+{
+    rvm_return_t err;
+    mapprivate = 0;
+    char *exename = argv[0];
 
-    if (argc == 5 && strcmp(argv[1],"-mapprivate") == 0) {
-      mapprivate = 1;
-      argstart = 2;
-      argc--;
-    } else {
-      mapprivate = 0;
-      argstart = 1;
+    argc--; argv++;
+    while (argc > 3) {
+	if (strcmp(argv[0], "-n") == 0) {
+	    argc--; argv++;
+	    ServerNumber = atoi(argv[0]);
+	    argc--; argv++;
+	}
+	if (strcmp(argv[0],"-mapprivate") == 0) {
+	    argc--; argv++;
+	    mapprivate = 1;
+	}
     }
     
-    if (argc != 4) {
-	usage(argv[0]);
+    if (argc != 3) {
+	usage(exename);
 	exit(1);
     }
 
-    
-    NortonInit(argv[argstart], argv[argstart+1], atoi(argv[argstart+2]));
+    vice_dir_init("/vice", ServerNumber);
+    NortonInit(argv[0], argv[1], atoi(argv[2]));
     
     InitParsing();
     Parser_commands();
