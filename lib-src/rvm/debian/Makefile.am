@@ -21,5 +21,5 @@ EXTRA_DIST = changelog control copyright dirs docs librvm1.files \
     librvm1.postinst librvm1.prerm postinst prerm rules rvm-tools.files \
     rvm-tools.postinst rvm-tools.prerm watch
 
-MAINTAINERCLEANFILES = Makefile.in
-
+MAINTAINERCLEANFILES = Makefile.in changelog
+CONFIG_CLEAN_FILES =
