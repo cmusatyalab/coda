@@ -25,9 +25,27 @@ echon() {
     fi
 }
 
+# exit if errors
+set -e
+
+#
+# Configuration
+#
+conf=@prefix@/etc/coda/server.conf
+if [ -f ${conf} ] ; then
+  . ${conf}
+  haveconf=1
+else
+  haveconf=0
+fi
+
+if [ x${vicedir} = x ] ; then
+  vicedir=/vice
+fi
+
 # Set up password and group files for Coda
 
-cd /vice/db
+cd ${vicedir}/db
 
 echo "Setting up users and groups for Coda"
 echo
@@ -80,19 +98,19 @@ EOF
 
 if [ -f prot_users.db ] ; then
   echo "Going to rebuild the protection databases"
-  echo "moving /vice/db/prot_users.db to /vice/db/prot_users.db.old"
+  echo "moving ${vicedir}/db/prot_users.db to ${vicedir}/db/prot_users.db.old"
   mv prot_users.db prot_users.db.old
 elif [ -f prot_users.dir ] ; then
   echo "Going to rebuild the protection databases"
-  echo "moving /vice/db/prot_users.[dir|pag] to /vice/db/prot_users.[dir|pag].old"
+  echo "moving ${vicedir}/db/prot_users.[dir|pag] to ${vicedir}/db/prot_users.[dir|pag].old"
   mv prot_users.dir prot_users.dir.old
   mv prot_users.pag prot_users.pag.old
 fi
 if [ -f prot_index.db ] ; then
-  echo "moving /vice/db/prot_index.db to /vice/db/prot_index.db.old"
+  echo "moving ${vicedir}/db/prot_index.db to ${vicedir}/db/prot_index.db.old"
   mv prot_index.db prot_index.db.old
 elif [ -f prot_index.dir ] ; then
-  echo "moving /vice/db/prot_index.[dir|pag] to /vice/db/prot_index.[dir|pag].old"
+  echo "moving ${vicedir}/db/prot_index.[dir|pag] to ${vicedir}/db/prot_index.[dir|pag].old"
   mv prot_index.dir prot_index.dir.old
   mv prot_index.pag prot_index.pag.old
 fi

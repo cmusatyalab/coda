@@ -25,8 +25,26 @@ echon() {
     fi
 }
 
+# exit if errors
+set -e
+
+#
+# Configuration
+#
+conf=@prefix@/etc/coda/server.conf
+if [ -f ${conf} ] ; then
+  . ${conf}
+  haveconf=1
+else
+  haveconf=0
+fi
+
+if [ x${vicedir} = x ] ; then
+  vicedir=/vice
+fi
+
 # current first maximum replicated volume id
-cd /vice/vol
+cd ${vicedir}/vol
 echo 2130706432 > maxgroupid
 
 #
@@ -45,7 +63,7 @@ bn=`echo $hn | cut -f 1 -d .`
 if [ x$bn = x ]; then
     bn=$hn
 fi
-cd /vice/db
+cd ${vicedir}/db
 
 until [ "x$id" != x ]; do
    echo 'Enter an id for this server.'
@@ -58,26 +76,26 @@ echo "$bn		$id" >> servers
 echo done!
 
 #
-#  this is the scm so put hostname in /vice/db/scm
+#  this is the scm so put hostname in ${vicedir}/db/scm
 #
-echo $bn > /vice/db/scm
+echo $bn > ${vicedir}/db/scm
 
 #
 # set up the initial VSG on the SCM; this is the SCM itself only. 
 #
 echo "Initializing the VSGDB to contain the SCM as E0000100"
-echo E0000100 $bn > /vice/db/VSGDB
-echo /vice/db/VSGDB set up
+echo E0000100 $bn > ${vicedir}/db/VSGDB
+echo ${vicedir}/db/VSGDB set up
 
 id=""
 echo
 echo Setting up ROOTVOLUME file
-cd /vice/db
+cd ${vicedir}/db
 until [ "x$id" != x ]; do
    echon 'Enter the name of the rootvolume (< 32 chars) : '
    read id
 done
-echo $id > /vice/db/ROOTVOLUME
+echo $id > ${vicedir}/db/ROOTVOLUME
 echo
 echo
 

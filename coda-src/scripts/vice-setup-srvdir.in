@@ -26,6 +26,18 @@ echon() {
 }
 
 #
+# Configuration
+#
+conf=@prefix@/etc/coda/server.conf
+if [ -f ${conf} ] ; then
+  . ${conf}
+fi
+
+if [ x${vicedir} = x ] ; then
+  vicedir=/vice
+fi
+
+#
 # Setting up the server directory
 #
 
@@ -47,7 +59,7 @@ fi
 if [ -d "$srvdir" -o -h "$srvdir" ]; then
     if [ -f "$srvdir/FTREEDB" ]; then
       echo "An FTREEDB exists in $srvdir.  Clean up first and rerun $0"
-      echo "You may also want to clean up /vice/db/vicetab"
+      echo "You may also want to clean up ${vicedir}/db/vicetab"
       exit 1
     fi
 else
@@ -67,20 +79,44 @@ if [ x$bn = x ]; then
 fi
 
 until [ "x$yesno" != x ]; do
-   echon "Shall I set up a vicetab entry for approx 256000 files for $srvdir (y/n) "
+   echon "Shall I set up a vicetab entry for $srvdir (y/n) "
    read yesno
 done
 if [ "x$yesno" = xy -o "x$yesno" = xyes -o "x$yesno" = xY ]; then
-    grep $srvdir /vice/db/vicetab >/dev/null 2>&1
+    grep $srvdir ${vicedir}/db/vicetab >/dev/null 2>&1
     if [ $? = 0 ]; then
-	echo "$srvdir already in /vice/db/vicetab. Please clean up first."
+	echo "$srvdir already in ${vicedir}/db/vicetab. Please clean up first."
 	exit 1
     fi
 
-    echo "$bn   $srvdir   ftree   width=64,depth=3" >> /vice/db/vicetab
-    echo "Now initializing the partition. This takes a while...."
-    makeftree /vice/db/vicetab $srvdir
-    echo 'done.'
+    size=""
+    until [ "x$size" != x ]; do
+        echo "Select the maximum number of files for the server."
+	echo "[256K, 1M, 2M, 16M]: "
+	read size
+	case "$size" in
+	  256[kK] )
+    	      echo "$bn   $srvdir   ftree   width=64,depth=3" >> ${vicedir}/db/vicetab
+	      ;;
+ 	  1[mM] )
+    	      echo "$bn   $srvdir   ftree   width=32,depth=4" >> ${vicedir}/db/vicetab
+	      ;;
+ 	  2[mM] )
+    	      echo "$bn   $srvdir   ftree   width=128,depth=3" >> ${vicedir}/db/vicetab
+	      ;;
+ 	  16[mM] )
+    	      echo "$bn   $srvdir   ftree   width=256,depth=3" >> ${vicedir}/db/vicetab
+	      ;;
+          * )
+	      echo "Choose from one of the listed values."
+	      size=""
+	      ;;
+	esac
+    done	      
+
+#   echo "Now initializing the partition. This takes a while...."
+#   makeftree ${vicedir}/db/vicetab $srvdir   --  commented out by phil.
+#    echo 'done.'
     echo
     echo 'Server directory is set up!'
 else
