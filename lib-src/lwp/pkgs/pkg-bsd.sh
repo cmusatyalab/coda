@@ -14,20 +14,20 @@ function MakePortsTree () {
     bsd=$2
 
     # make ports stuff
-    mkdir lib
+    mkdir devel
     MakeSubTree ${ver} ${bsd}
 
-#    chown -R root.root lib
+#    chown -R root.root devel
 }
 
 function MakeSubTree () {
     ver=$1
     bsd=$2
 
-    mkdir lib/lwp
-    MakeMakefile ${ver} lib/lwp/Makefile ${bsd}
+    mkdir devel/lwp
+    MakeMakefile ${ver} devel/lwp/Makefile ${bsd}
 
-    mkdir lib/lwp/files
+    mkdir devel/lwp/files
 
     if [ x${bsd} = xNetBSD ]
     then
@@ -39,27 +39,27 @@ EOF
 	cp /dev/null /tmp/mf
     fi
 
-    if [ -f lwp-${ver}.tar.gz ] ; then
-	md5sum lwp-${ver}.tar.gz >> /tmp/mf
-	mv /tmp/mf lib/lwp/files/md5
-    elif [ -f ../lwp-${ver}.tar.gz ] ; then
-	md5sum ../lwp-${ver}.tar.gz >> /tmp/mf
-	mv /tmp/mf lib/lwp/files/md5
-    fi
+    for dir in . .. ../.. ; do
+      if [ -f ${dir}/lwp-${ver}.tar.gz ] ; then
+	( cd ${dir} ; md5sum lwp-${ver}.tar.gz | awk '{printf("MD5 (%s) = %s\n",$2,$1)}' >> /tmp/mf )
+	mv /tmp/mf devel/lwp/files/md5
+	break;
+      fi
+    done
     rm -f /tmp/mf
 
-    mkdir lib/lwp/pkg
+    mkdir devel/lwp/pkg
 
-    cat > lib/lwp/pkg/COMMENT << EOF
+    cat > devel/lwp/pkg/COMMENT << EOF
 LWP thread library
 EOF
-    cat > lib/lwp/pkg/DESCR << EOF
+    cat > devel/lwp/pkg/DESCR << EOF
 The LWP userspace threads library. The LWP threads library is used by the Coda
 distributed filesystem, RVM (a persistent VM library), and RPC2/SFTP (remote
 procedure call library)
 EOF
 
-    MakePLIST lib/lwp/pkg/PLIST ${bsd}
+    MakePLIST devel/lwp/pkg/PLIST ${bsd}
 }
 
 function MakeMakefile () {
@@ -86,7 +86,7 @@ function MakeMakefile () {
 
 DISTNAME=	lwp-@VERSION@
 PKGNAME=	lwp-@VERSION@
-CATEGORIES=	lib
+CATEGORIES=	devel
 MASTER_SITES=	ftp://ftp.coda.cs.cmu.edu/pub/coda/src/
 EXTRACT_SUFX=	.tar.gz
 
@@ -102,6 +102,7 @@ INSTALL_TARGET=	install
 
 GNU_CONFIGURE=	yes
 USE_GMAKE=	yes
+USE_LIBTOOL=	yes
 
 @NetBSD .include "../../mk/bsd.pkg.mk"
 @FreeBSD .include <bsd.port.mk>
@@ -123,19 +124,26 @@ function MakePLIST () {
     then
 	cat > ${dst} << EOF
 @comment \$NetBSD\$
+lib/liblwp.so.1.0
 EOF
     else
-	cp /dev/null ${dst}
+	cat > ${dst} << EOF
+lib/liblwp.so
+lib/liblwp.so.1
+EOF
     fi
 
     cat >> ${dst} << EOF
-lib/liblwp.so*
-include/lwp/*
-@dirrm lib/coda
+lib/liblwp.a
+lib/liblwp.la
+include/lwp/lock.h
+include/lwp/lwp.h
+include/lwp/preempt.h
+include/lwp/timer.h
 EOF
 }
 
 MakePortsTree $VERSION $BSD
-tar -czf pkg-lwp-$VERSION-$BSD.tgz lib
-rm -rf lib
+tar -czf pkg-lwp-$VERSION-$BSD.tgz devel
+rm -rf devel
 
