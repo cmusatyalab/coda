@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/lib-src/mlwp/iomgr.c,v 4.3 1997/06/14 22:09:48 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/lib-src/mlwp/iomgr.c,v 4.4 1997/10/23 18:53:29 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -57,11 +57,7 @@ supported by Transarc Corporation, Pittsburgh, PA.
 
 
 #include <stdio.h>
-#ifdef	__linux__
-#include <bsd/signal.h>
-#else
 #include <signal.h>
-#endif
 #include <errno.h>
 #include <sys/file.h>
 #include <sys/time.h>
@@ -69,25 +65,15 @@ supported by Transarc Corporation, Pittsburgh, PA.
 #include "lwp.private.h"
 #include "timer.h"
 
-#if	defined(__BSD44__) || defined(__WIN32__)
-#define	sigif	sigaction
-#define	sif_handler	sa_handler
-#define	sif_mask	sa_mask
-#define	sif_flags	sa_flags
-#else
-#define	sigif	sigvec
-#define	sif_handler	sv_handler
-#define	sif_mask	sv_mask
-#define	sif_flags	sv_flags
-#endif
-
 #define NIL	0
 #ifndef TRUE
 #define TRUE 1
 #define FALSE 0
 #endif  TRUE
 
-#define fd_set  long    /* since we don't include sysent.h any more */
+#ifndef NSIG
+#define NSIG 8*sizeof(sigset_t)
+#endif
 
 /* Stack size for IOMGR process and processes instantiated to handle signals */
 #define STACK_SIZE	32768  /* 32K */
@@ -129,7 +115,7 @@ extern int errno;
 PRIVATE long openMask;			/* mask of open files on an IOMGR abort */
 PRIVATE long sigsHandled;		/* sigmask(signo) is on if we handle signo */
 PRIVATE int anySigsDelivered;		/* true if any have been delivered. */
-PRIVATE struct sigif oldVecs[NSIG];	/* the old signal vectors */
+PRIVATE struct sigaction oldVecs[NSIG];	/* the old signal vectors */
 PRIVATE char *sigEvents[NSIG];		/* the event to do an LWP signal on */
 PRIVATE int sigDelivered[NSIG];		/* True for signals delivered so far.
 					   This is an int array to make sure there
@@ -636,19 +622,19 @@ int IOMGR_Signal (signo, event)
     char *event;
 {
 
-    struct sigif sv;
+    struct sigaction sv;
 
     if (badsig(signo))
 	return LWP_EBADSIG;
     if (event == NIL)
 	return LWP_EBADEVENT;
-    sv.sif_handler = SigHandler;
-    sv.sif_mask = ~0;	/* mask all signals */
-    sv.sif_flags = 0;
+    sv.sa_handler = SigHandler;
+    sigfillset(&sv.sa_mask);
+    sv.sa_flags = 0;
     sigsHandled |= mysigmask(signo);
     sigEvents[signo] = event;
     sigDelivered[signo] = FALSE;
-    if (sigif (signo, &sv, &oldVecs[signo]) == -1)
+    if (sigaction (signo, &sv, &oldVecs[signo]) == -1)
 	return LWP_ESYSTEM;
     return LWP_SUCCESS;
 }
@@ -659,7 +645,7 @@ int IOMGR_CancelSignal (signo)
 {
     if (badsig(signo) || (sigsHandled & mysigmask(signo)) == 0)
 	return LWP_EBADSIG;
-    sigif (signo, &oldVecs[signo], (struct sigif *)0);
+    sigaction (signo, &oldVecs[signo], (struct sigaction *)0);
     sigsHandled &= ~mysigmask(signo);
     return LWP_SUCCESS;
 }

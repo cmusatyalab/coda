@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/vproc_vfscalls.cc,v 4.11 1997/12/16 16:08:43 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/vproc_vfscalls.cc,v 4.12 1997/12/16 20:15:59 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -562,7 +562,7 @@ void vproc::access(struct venus_vnode *vp, int mode) {
 	u.u_error = FSDB->Get(&f, &cp->c_fid, CRTORUID(u.u_cred), RC_STATUS);
 	if (u.u_error) goto FreeLocks;
 
-	modes = ((mode & OWNERBITS) >> 6);
+	modes = mode & (OWNERBITS >> 6);
 	rights = f->IsDir()
 	  ? DirAccessMap[modes]
 	  : FileAccessMap[modes];
@@ -1393,7 +1393,7 @@ void vproc::readlink(struct venus_vnode *vp, struct uio *uiop) {
     int len = uiop->uio_iov->iov_len;
     int cc = 0;
 
-    if (len > MAXPATHLEN)
+    if (len > CFS_MAXPATHLEN)
 	{ u.u_error = EINVAL; return; }
 
     fsobj *f = 0;

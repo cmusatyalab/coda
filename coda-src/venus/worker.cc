@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/worker.cc,v 4.5 1997/12/10 22:10:44 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/worker.cc,v 4.6 1997/12/16 20:16:00 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -1176,7 +1176,7 @@ void worker::main(void *parm) {
 
 		struct iovec aiov;
 		aiov.iov_base = (char *)out + sizeof (struct cfs_readlink_out);
-		aiov.iov_len = MAXPATHLEN;
+		aiov.iov_len = CFS_MAXPATHLEN;
 		struct uio auio;
 		auio.uio_iov = &aiov;
 		auio.uio_iovcnt = 1;

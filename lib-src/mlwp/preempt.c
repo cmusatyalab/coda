@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /usr/rvb/XX/src/lib-src/mlwp/RCS/preempt.c,v 4.1 1997/01/08 21:54:15 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/lib-src/mlwp/preempt.c,v 4.2 1997/02/26 16:04:58 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -55,125 +55,74 @@ supported by Transarc Corporation, Pittsburgh, PA.
 
 */
 
-
+#include <stdio.h>
 #include <sys/time.h>
-#ifdef	__linux__
-#include <bsd/signal.h>
-#else
 #include <signal.h>
-#endif
 #include "lwp.h"
 #include "lwp.private.h"
 #include "preempt.h"
 
-#if	defined(__BSD44__) || defined(__WIN32__)
-#define	sigif	sigaction
-#define	sif_handler	sa_handler
-#define	sif_mask	sa_mask
-#define	sif_flags	sa_flags
-#else
-#define	sigif	sigvec
-#define	sif_handler	sv_handler
-#define	sif_mask	sv_mask
-#define	sif_flags	sv_flags
-#endif
-
-#ifdef	__WIN32__
-struct sigcontext {
-    int sc_mask;
-};
-
-#define ITIMER_REAL 0
-struct itimerval {
-    struct timeval it_interval;
-    struct timeval it_value;
-};
-#endif
-
 char PRE_Block = 0;		/* used in lwp.c and process.s */
-/* static function declarations */
-#ifdef	__STDC__
-#define AlarmHandlerType void
-#else
-#define AlarmHandlerType int
-#endif
-PRIVATE AlarmHandlerType AlarmHandler(sig, code, scp)
-    int sig;
-    int code;
-#ifndef	__linux__
-    struct sigcontext *scp;
-#else
-struct sigaction *scp;
-#endif
-    {
 
-    if (PRE_Block == 0 && lwp_cpptr->level == 0)
-	{
-	/* just to suppress the C++ warnings */
-	sig = 0;
-	code = 0;
+/* run the scheduler unless we are in a critical region */
+PRIVATE void AlarmHandler(int sig)
+{
+    if (PRE_Block == 0 && lwp_cpptr->level == 0) {
 	PRE_BeginCritical();
-#ifdef	__linux__
-	sigsetmask(scp->sa_mask);
-#else
-	sigsetmask(scp->sc_mask);
-#endif
+
 	LWP_DispatchProcess();
 	PRE_EndCritical();
-	}
-    
     }
+}
 
-int PRE_InitPreempt(slice)
-    struct timeval *slice;
-    {
-
+int PRE_InitPreempt(struct timeval *slice)
+{
     struct itimerval itv;
-    struct sigif vec;
+    struct sigaction vec;
 
     if (lwp_cpptr == 0) return (LWP_EINIT);
     
-    if (slice == 0)
-	{
+    if (slice == 0) {
 	itv.it_interval.tv_sec = DEFAULTSLICE;
 	itv.it_value.tv_sec = DEFAULTSLICE;
 	itv.it_interval.tv_usec = itv.it_value.tv_usec = 0;
-	}
-    else
-	{
+    }  else	{
 	itv.it_interval = *slice;
 	itv.it_value = *slice;
-	}
+    }
 
-    vec.sif_handler = AlarmHandler;
-    vec.sif_mask = vec.sif_flags = 0;
+    vec.sa_handler = AlarmHandler;
+    sigemptyset(&vec.sa_mask);
+    vec.sa_flags = 0;
 
-    if ((sigif(SIGALRM, &vec, (struct sigif *)0) == -1) ||
+    if ((sigaction(SIGALRM, &vec, (struct sigaction *)0) == -1) ||
 	(setitimer(ITIMER_REAL, &itv, (struct itimerval *) 0) == -1))
 	return(LWP_ESYSTEM);
 
     return(LWP_SUCCESS);
-    }
+}
 
-int PRE_EndPreempt(){
+int PRE_EndPreempt()
+{
 
     struct itimerval itv;
-    struct sigif vec;
+    struct sigaction vec;
 
     if (lwp_cpptr == 0) return (LWP_EINIT);
     
     itv.it_value.tv_sec = 0;
     itv.it_value.tv_usec = 0;
 
-    vec.sif_handler = SIG_DFL;;
-    vec.sif_mask = vec.sif_flags = 0;
+    vec.sa_handler = SIG_DFL;;
+    sigemptyset(&vec.sa_mask);
+    vec.sa_flags = 0;
 
     if ((setitimer(ITIMER_REAL, &itv, (struct itimerval *) 0) == -1) ||
-	(sigif(SIGALRM, &vec, (struct sigif *)0) == -1))
+	(sigaction(SIGALRM, &vec, NULL) == -1))
 	return(LWP_ESYSTEM);
 
     return(LWP_SUCCESS);
-    }
+}
 
 void PRE_PreemptMe()
 {

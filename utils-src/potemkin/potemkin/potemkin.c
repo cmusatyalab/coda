@@ -94,7 +94,7 @@ fid_create(char *name, fid_ent_t *parent)
     result = (fid_ent_t *) malloc (sizeof(fid_ent_t));
     result->fid.Volume = Volno;
     result->fid.Vnode = result->fid.Unique = Uniq++;
-    result->type = VCNON;
+    result->type = C_VNON;
     result->kids = ds_list_create(fid_comp, TRUE, FALSE);
     result->parent = parent;
     assert(strlen(name) <= MAXNAMLEN);
@@ -164,19 +164,19 @@ fid_assign_type(fid_ent_t *fep, struct stat *sbuf) {
 
     switch (sbuf->st_mode & S_IFMT) {
     case S_IFDIR:
-	fep->type = VCDIR;
+	fep->type = C_VDIR;
 	break;
     case S_IFREG:
-	fep->type = VCREG;
+	fep->type = C_VREG;
 	break;
     case S_IFLNK:
-	fep->type = VCLNK;
+	fep->type = C_VLNK;
 	break;
     case S_IFSOCK:               /* Can't be any of these */
     case S_IFIFO:
     case S_IFCHR:
     case S_IFBLK:
-	fep->type = VCBAD;
+	fep->type = C_VBAD;
 	return -1;
 	break;
     default:
@@ -197,14 +197,14 @@ fid_print(FILE *ostr, fid_ent_t *fep)
     char             *fullname;
 
     switch (fep->type) {
-    case VCDIR:
-	typestr = "VCDIR";
+    case C_VDIR:
+	typestr = "C_VDIR";
 	break;
-    case VCREG:
-	typestr = "VCREG";
+    case C_VREG:
+	typestr = "C_VREG";
 	break;
-    case VCLNK:
-	typestr = "VCLNK";
+    case C_VLNK:
+	typestr = "C_VLNK";
 	break;
     default:
 	typestr = "????";
@@ -414,7 +414,6 @@ fill_vattr(struct stat *sbuf, fid_ent_t *fep, struct coda_vattr *vbuf)
     vbuf->va_nlink = sbuf->st_nlink;
     vbuf->va_uid = sbuf->st_uid;
     vbuf->va_gid = sbuf->st_gid;
-    vbuf->va_fsid = fep->fid.Volume;
     /* vbuf->va_fileid = fep->fid.Vnode; */
     /* va_fileid has to be the vnode number of the cache file.  Sorry. */
     /*    vbuf->va_fileid = sbuf->st_ino; */
@@ -435,8 +434,6 @@ fill_vattr(struct stat *sbuf, fid_ent_t *fep, struct coda_vattr *vbuf)
     vbuf->va_rdev = 0; /* Can't have special devices in /coda */
     vbuf->va_bytes = sbuf->st_size; /* Should this depend on cache/uncache? */
     vbuf->va_filerev = fep->fid.Vnode; 
-    vbuf->va_vaflags = 0; /* XXX -? */
-
 }
 
 
@@ -450,7 +447,12 @@ fill_vattr(struct stat *sbuf, fid_ent_t *fep, struct coda_vattr *vbuf)
  *        in:   nothing
  *        out:  Fid of root vnode
  */
-   
+
+#define VC_OUTSIZE(name) sizeof(struct name)
+#define VC_INSIZE(name)  sizeof(struct name)
+#define VC_OUT_NO_DATA   sizeof(struct cfs_out_hdr)
+#define VC_IN_NO_DATA    sizeof(struct cfs_in_hdr)
+
 void
 DoRoot(union inputArgs *in, union outputArgs *out, int *reply)
 {
@@ -458,7 +460,7 @@ DoRoot(union inputArgs *in, union outputArgs *out, int *reply)
     if (!RootFid) {
 	root = fid_create(".", NULL);
 	assert(ds_hash_insert(FidTab, root));
-	root->type = VCDIR;
+	root->type = C_VDIR;
 	RootFep = root;
 	RootFid = &(root->fid);
     }
@@ -576,7 +578,7 @@ DoLookup(union inputArgs *in, union outputArgs *out, int *reply)
     /* We'd better be looking up in a directory */
     dummy.fid = *fp;
     assert((fep = (fid_ent_t *) ds_hash_member (FidTab, &dummy)) != NULL);
-    if (fep->type != VCDIR) {
+    if (fep->type != C_VDIR) {
 	out->oh.result = ENOTDIR;
 	goto exit;
     }
@@ -753,8 +755,8 @@ DoCreate(union inputArgs *in, union outputArgs *out, int *reply)
     cred = &(in->ih.cred);
     exclp = in->cfs_create.excl;
     mode = in->cfs_create.mode;
-    readp = mode & VREAD;
-    writep = mode & VWRITE;
+    readp = mode & C_M_READ;
+    writep = mode & C_M_WRITE;
     truncp = (attr->va_size == 0);
     assert((int)in->cfs_create.name == VC_INSIZE(cfs_create_in));
     name = (char*)in + (int)in->cfs_create.name;
@@ -770,7 +772,7 @@ DoCreate(union inputArgs *in, union outputArgs *out, int *reply)
     /* Where are we creating this? */
     dummy.fid = *fp;
     assert((fep = (fid_ent_t *) ds_hash_member(FidTab, &dummy)) != NULL);
-    if (fep->type != VCDIR) {
+    if (fep->type != C_VDIR) {
 	printf("Ack!  Trying to create in a non-directory!\n");
 	out->oh.result = ENOTDIR;
 	goto exit;
@@ -897,7 +899,7 @@ DoCreate(union inputArgs *in, union outputArgs *out, int *reply)
 	out->oh.result = ENOENT;
 	goto exit;
     }
-    if (newFep->type != VCREG) {
+    if (newFep->type != C_VREG) {
 	printf("AACK!  Create is 'creating' a non-file file of type %d!\n",
 	       newFep->type);
     }
@@ -950,7 +952,7 @@ DoRemove(union inputArgs *in, union outputArgs *out, int *reply)
     /* Get the directory from which we are removing */
     dummy.fid = *fp;
     assert((fep = (fid_ent_t *) ds_hash_member(FidTab, &dummy)) != NULL);
-    if (fep->type != VCDIR) {
+    if (fep->type != C_VDIR) {
 	printf("REMOVE: parent not directory!\n");
 	out->oh.result = ENOTDIR;
 	goto exit;
@@ -1125,11 +1127,10 @@ DoSetattr(union inputArgs *in, union outputArgs *out, int *reply)
 	goto earlyexit;
     }
 
-    if ((vap->va_type != VCNON) ||
+    if ((vap->va_type != C_VNON) ||
 	(vap->va_fileid != (long)-1) ||
 	(vap->va_gen != (long)-1) ||
 	(vap->va_bytes != (long)-1) ||
-	(vap->va_fsid != (long)-1) ||
 	(vap->va_nlink != (short)-1) ||
 	(vap->va_blocksize != (long)-1) ||
 	(vap->va_rdev != (dev_t)-1))
@@ -1175,9 +1176,9 @@ DoSetattr(union inputArgs *in, union outputArgs *out, int *reply)
     /* Are we truncating the file? */
     if ((u_long)vap->va_size != (u_long)-1) {
 	/* Is it either a directory or a symlink? */
-	if (fep->type != VCREG) {
-	    printf("SETATTR: Setting length of something not VCREG\n");
-	    out->oh.result = (fep->type == VCDIR) ? EISDIR : EINVAL;
+	if (fep->type != C_VREG) {
+	    printf("SETATTR: Setting length of something not C_VREG\n");
+	    out->oh.result = (fep->type == C_VDIR) ? EISDIR : EINVAL;
 	    goto exit;
 	}
 	/* Try to do the truncate */
@@ -1191,7 +1192,7 @@ DoSetattr(union inputArgs *in, union outputArgs *out, int *reply)
     /* Are we setting owner/group? */
     if ((vap->va_uid != (uid_t)-1) || (vap->va_gid != (gid_t)-1)) {
 	/* As long as it's not a symlink. */
-	if (fep->type == VCLNK) {
+	if (fep->type == C_VLNK) {
 	    printf("SETATTR: chown(2) of a symlink\n");
 	    out->oh.result = EINVAL;
 	    goto exit;
@@ -1275,7 +1276,7 @@ DoRename(union inputArgs *in, union outputArgs *out, int *reply)
     /* Grab source directory, make sure it's a directory. */
     dummy.fid = *sdfp;
     assert((sdfep = (fid_ent_t *) ds_hash_member(FidTab, &dummy)) != NULL);
-    if (sdfep->type != VCDIR) {
+    if (sdfep->type != C_VDIR) {
 	printf("Ack!  Trying to rename something from a non-directory!\n");
 	out->oh.result = ENOTDIR;
 	goto exit;
@@ -1284,7 +1285,7 @@ DoRename(union inputArgs *in, union outputArgs *out, int *reply)
     /* Grab target directory, make sure it's a directory. */
     dummy.fid = *tdfp;
     assert((tdfep = (fid_ent_t *) ds_hash_member(FidTab, &dummy)) != NULL);
-    if (tdfep->type != VCDIR) {
+    if (tdfep->type != C_VDIR) {
 	printf("Ack!  Trying to rename something from a non-directory!\n");
 	out->oh.result = ENOTDIR;
 	goto exit;
@@ -1446,7 +1447,7 @@ DoMkdir(union inputArgs *in, union outputArgs *out, int *reply)
     /* Where are we creating this? */
     dummy.fid = *fp;
     assert((fep = (fid_ent_t *) ds_hash_member(FidTab, &dummy)) != NULL);
-    if (fep->type != VCDIR) {
+    if (fep->type != C_VDIR) {
 	printf("Ack!  Trying to mkdir in a non-directory!\n");
 	out->oh.result = ENOTDIR;
 	goto exit;
@@ -1567,7 +1568,7 @@ DoRmdir(union inputArgs *in, union outputArgs *out, int *reply)
     /* Get the directory from which we are removing */
     dummy.fid = *fp;
     assert((fep = (fid_ent_t *) ds_hash_member(FidTab, &dummy)) != NULL);
-    if (fep->type != VCDIR) {
+    if (fep->type != C_VDIR) {
 	printf("RMDIR: parent not directory!\n");
 	out->oh.result = ENOTDIR;
 	goto exit;
@@ -1718,7 +1719,7 @@ DoReadlink(union inputArgs *in, union outputArgs *out, int *reply)
     /* Grab the fid to readlink */
     dummy.fid = *fp;
     assert((fep = (fid_ent_t *) ds_hash_member(FidTab, &dummy)) != NULL);
-    if (fep->type != VCLNK) {
+    if (fep->type != C_VLNK) {
 	printf("Ack!  Trying to readlink something not a symlink!\n");
 	out->oh.result = ENOTDIR;
 	goto exit;
@@ -1735,7 +1736,7 @@ DoReadlink(union inputArgs *in, union outputArgs *out, int *reply)
     out->cfs_readlink.data = (char*)VC_OUTSIZE(cfs_readlink_out);
     *count = readlink(path,
 		      (char*)out+(int)out->cfs_readlink.data,
-		      VC_DATASIZE-1);
+		      VC_MAXDATASIZE-1);
 
     assert(!seteuid(suid));
     assert(!setgid(sgid));
@@ -1810,14 +1811,14 @@ DoLink(union inputArgs *in, union outputArgs *out, int *reply)
     assert((dfep = (fid_ent_t *) ds_hash_member(FidTab, &dummy)) != NULL);
 
     /* Is dfp a directory? */
-    if (dfep->type != VCDIR) {
+    if (dfep->type != C_VDIR) {
 	printf("Ack!  Trying to hardlink in a non-directory!\n");
 	out->oh.result = ENOTDIR;
 	goto exit;
     }
 
     /* Is tfp *not* a directory? */
-    if (tfep->type == VCDIR) {
+    if (tfep->type == C_VDIR) {
 	printf("Ack!  Trying to hardlink to a directory!\n");
 	out->oh.result = EPERM;
 	goto exit;
@@ -1925,7 +1926,7 @@ DoSymlink(union inputArgs *in, union outputArgs *out, int *reply)
 	
     dummy.fid = *fp;
     assert((fep = (fid_ent_t *) ds_hash_member(FidTab, &dummy)) != NULL);
-    if (fep->type != VCDIR) {
+    if (fep->type != C_VDIR) {
 	printf("Ack!  Trying to symlink in a non-directory!\n");
 	out->oh.result = ENOTDIR;
 	goto exit;
@@ -1976,7 +1977,7 @@ DoSymlink(union inputArgs *in, union outputArgs *out, int *reply)
     assert(!setgid(sgid));
 
     /* We know it's a symlink */
-    newFep->type = VCLNK;
+    newFep->type = C_VLNK;
 
     /* We're going to succeed.  Enter the fid, and set return value */
     out->oh.result = 0;
@@ -2198,11 +2199,10 @@ coda_iattr_to_vattr(struct iattr *iattr, struct coda_vattr *vattr)
 	vattr->va_atime.tv_nsec =  (time_t) -1;
         vattr->va_mtime.tv_nsec = (time_t) -1;
 	vattr->va_ctime.tv_nsec = (time_t) -1;
-        vattr->va_type = VCNON;
+        vattr->va_type = C_VNON;
 	vattr->va_fileid = (long)-1;
 	vattr->va_gen = (long)-1;
 	vattr->va_bytes = (long)-1;
-	vattr->va_fsid = (long)-1;
 	vattr->va_nlink = (short)-1;
 	vattr->va_blocksize = (long)-1;
 	vattr->va_rdev = (dev_t)-1;
@@ -2211,14 +2211,14 @@ coda_iattr_to_vattr(struct iattr *iattr, struct coda_vattr *vattr)
         /* determine the type */
         mode = iattr->ia_mode;
                 if ( S_ISDIR(mode) ) {
-                vattr->va_type = VCDIR; 
+                vattr->va_type = C_VDIR; 
         } else if ( S_ISREG(mode) ) {
-                vattr->va_type = VCREG;
+                vattr->va_type = C_VREG;
         } else if ( S_ISLNK(mode) ) {
-                vattr->va_type = VCLNK;
+                vattr->va_type = C_VLNK;
         } else {
                 /* don't do others */
-                vattr->va_type = VCNON;
+                vattr->va_type = C_VNON;
         }
         
         /* set those vattrs that need change */

@@ -34,7 +34,7 @@
  * Export of Technical Data.
  */
 
-static char *rcsid = "$Header: /usr/rvb/XX/src/lib-src/libcs/RCS/run.c,v 4.1 1997/01/08 21:54:02 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/lib-src/libcs/run.c,v 4.2 1997/02/26 16:04:56 rvb Exp $";
 #endif /*_BLURB_*/
 
 /*  run[c], run[c]v, run[c]p, run[c]vp -- exec process and wait for it to exit
@@ -142,7 +142,7 @@ int usepath;
 	sigemptyset(&ignoresig.sif_mask);
 	ignoresig.sif_flags = 0;
 #elif	defined(__linux__)
-	ignoresig.sa_mask = 0;
+	sigemptyset(&ignoresig.sa_mask);
 	ignoresig.sa_flags = 0;
 #else
 	ignoresig.sif_mask = 0;
