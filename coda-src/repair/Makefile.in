@@ -28,15 +28,17 @@ EXECUTABLES = repair
 CBINS       = repair
 # TESTS	    = reptest
 
-RLIBS = ${LIBREPAIR} ${LIBVV} ${LIBAUTH2} ${LIBKERNDEP} ${LIBUTIL} ${LIBBASE}  $(LIBREADLINE) $(LIBTERMCAP) ../auth2/libauser.a ${LIBFIXUP}
+RLIBS = ${LIBREPAIR} ${LIBVV} ${LIBAUTH2} ${LIBKERNDEP} ${LIBUTIL} ${LIBBASE}  $(LIBREADLINE)  ../auth2/libauser.a
+
+STD_LIBS = $(LIBTERMCAP) ${LIBFIXUP}
 
 OFILES = rvol.o path.o
 
 reptest: reptest.o (OFILES) $(RLIBS)
-	$(CXX) $(LIBFLAGS) reptest.o $(OFILES) $(RLIBS) -o reptest
+	$(CXX) $(LIBFLAGS) reptest.o $(OFILES) $(RLIBS) $(STD_LIBS) -o reptest
 
 repair:  repair.o $(OFILES) $(RLIBS)
-	$(CXX) $(LIBFLAGS) repair.o $(OFILES) $(RLIBS) -o repair
+	$(CXX) $(LIBFLAGS) repair.o $(OFILES) $(RLIBS) $(STD_LIBS) -o repair
 
 include $(TOPDIR)/configs/Makerules
 
