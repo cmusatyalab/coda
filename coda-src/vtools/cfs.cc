@@ -1575,7 +1575,12 @@ static void GetMountPoint(int argc, char *argv[], int opslot)
 {
   int i, rc;
   struct ViceIoctl vio;
-  VolumeId vol_id;
+  struct {
+      VolumeId volume;
+      char realm[MAXHOSTNAMELEN];
+  } arg;
+
+  memset(&arg, 0, sizeof(arg));
   
   /* Parse command line arguments. */
   if (argc < 3) {
@@ -1584,12 +1589,16 @@ static void GetMountPoint(int argc, char *argv[], int opslot)
   }
 
   for (i = 2; i < argc; i++) {
-    if ( sscanf(argv[i], "%x", &vol_id) != 1 ) {
-      printf("Usage: %s\n", cmdarray[opslot].usetxt);
-      exit(-1);
+    rc = sscanf(argv[i], "%x@%s", &arg.volume, &arg.realm);
+    if (rc < 1) {
+	printf("Usage: %s\n", cmdarray[opslot].usetxt);
+	exit(-1);
     }
-    vio.in = (char *)&vol_id;
-    vio.in_size = (int) sizeof(VolumeId);
+    if (rc < 2)
+	arg.realm[0] = '\0';
+
+    vio.in = (char *)&arg;
+    vio.in_size = sizeof(arg);
     vio.out = piobuf;
     vio.out_size = PIOBUFSIZE;
 
@@ -1598,7 +1607,7 @@ static void GetMountPoint(int argc, char *argv[], int opslot)
     if (rc < 0) { PERROR("Failed in GetMountPoint."); exit(-1); }
     
     /* Print output field */
-    printf("%x:  %s\n", vol_id, (char *)piobuf);
+    printf("%x:  %s\n", argv[i], (char *)piobuf);
   }
 }
 
@@ -2449,29 +2458,39 @@ static void WhereIs (int argc, char *argv[], int opslot)
 
 
 static void WaitForever (int argc, char *argv[], int opslot)
-    {
-    int rc, value = -1;
+{
+    int rc;
     struct ViceIoctl vio;
+    struct {
+	int value;
+	char realm[MAXHOSTNAMELEN+1];
+    } arg;
 
-    if (argc == 3)
-        {
-        if (strcmp(argv[2], "-on") == 0) value = 1;
-        if (strcmp(argv[2], "-off") == 0) value = 0;
-        }
+    memset(&arg, 0, sizeof(arg));
+    arg.value = -1;
 
-    if (value == -1)
-        {
-        printf("Usage: %s\n", cmdarray[opslot].usetxt);
-        exit(-1);
-        }
+    if (argc > 3) {
+	strncpy(arg.realm, argv[3], MAXHOSTNAMELEN);
+	arg.realm[MAXHOSTNAMELEN] = '\0';
+    }
 
-    vio.in = (caddr_t)&value;
-    vio.in_size = (short) sizeof(value);
+    if (argc > 2) {
+	if (strcmp(argv[2], "-on") == 0) arg.value = 1;
+	if (strcmp(argv[2], "-off") == 0) arg.value = 0;
+    }
+
+    if (arg.value == -1) {
+	printf("Usage: %s\n", cmdarray[opslot].usetxt);
+	exit(-1);
+    }
+
+    vio.in = (char *)&arg;
+    vio.in_size = sizeof(arg);
     vio.out = 0;
     vio.out_size = 0;
     rc = pioctl(mountpoint, VIOC_WAITFOREVER, &vio, 0);
     if (rc < 0){ PERROR("VIOC_WAITFOREVER"); exit(-1); }
-    }
+}
 
 
 static void WriteDisconnect(int argc, char *argv[], int opslot)
