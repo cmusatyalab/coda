@@ -1,6 +1,19 @@
 2004-04-20	<jaharkes@cs.cmu.edu>
 	* ======== Release 6.0.6 =========
-	...
+	* Some fixes for the venus & vice-rvm setup scripts. (Mark Phalan)
+	* Release dead connections in auth2. (Mark Phalan)
+	* Some kerberos fixes. (Mark Phalan)
+	* Fixed resolv.h configure test.
+	* After a reintegration conflict, link objects to the right parent.
+	* Return an error when trying to open a symlink as a file.
+	* CML entries associated with inconsistent objects were not always
+	  correctly moved along with the object.
+	* Removed unused writeback caching related server code.
+	* Avoid venus crash when opening a file O_CREAT|O_RDONLY.
+	* Canonicalize hostnames before passing them to kerberos
+	  (Michael Tautschnig)
+	* Fixed 2 small memory leaks in the Coda server.
+	* Bumped the 256K files per volume limit up to 512K.
 
 2004-03-19	<jaharkes@cs.cmu.edu>
 	* ======== Release 6.0.5 =========
