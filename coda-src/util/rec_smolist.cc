@@ -56,7 +56,8 @@ rec_smolist::rec_smolist() {
 rec_smolist::~rec_smolist() {
 }
 
-void rec_smolist::insert(rec_smolink *p) {
+void rec_smolist::insert(struct rec_smolink *p)
+{
     CODA_ASSERT(p->next == 0);
 
     if (last !=	0) {	// at least one entry exists
@@ -64,13 +65,14 @@ void rec_smolist::insert(rec_smolink *p) {
 	RVMLIB_MODIFY(last->next, p);
     }
     else {		// no existing entries
-      RVMLIB_MODIFY(p->next, p);
+	RVMLIB_MODIFY(p->next, p);
 	RVMLIB_MODIFY(last, p);
     }
 }
 
 
-void rec_smolist::append(rec_smolink *p) {
+void rec_smolist::append(struct rec_smolink *p)
+{
     CODA_ASSERT(p->next == 0);
 
     if (last !=	0) {	/* at least one entry exists */
@@ -85,10 +87,11 @@ void rec_smolist::append(rec_smolink *p) {
 }
 
 
-rec_smolink *rec_smolist::remove(rec_smolink *p) {
+struct rec_smolink *rec_smolist::remove(struct rec_smolink *p)
+{
     if (last ==	0) return(0);	    // empty list
 
-    rec_smolink *q = last;
+    struct rec_smolink *q = last;
     while(q->next != last && q->next != p){
 	q =  q->next;
     }
@@ -109,9 +112,10 @@ rec_smolink *rec_smolist::remove(rec_smolink *p) {
 }
 
 
-rec_smolink *rec_smolist::get() {
+struct rec_smolink *rec_smolist::get(void)
+{
     if (last ==	0) return(0);	    /* empty list */
-    rec_smolink *q = last->next;
+    struct rec_smolink *q = last->next;
     CODA_ASSERT(q->next);
     RVMLIB_MODIFY(last->next, q->next);	    // remove head entry
     RVMLIB_MODIFY(q->next, 0);		    // reset removed entry
@@ -121,7 +125,8 @@ rec_smolink *rec_smolist::get() {
     return(q);
 }
 
-int rec_smolist::IsEmpty() {
+int rec_smolist::IsEmpty(void)
+{
     if (last == 0) return(1);
     return(0);
 }
@@ -145,13 +150,14 @@ void rec_smolist::print(int fd) {
 
     /* then print out all of the olinks */
     rec_smolist_iterator next(*this);
-    rec_smolink *p;
+    struct rec_smolink *p;
     while((p = next()))
-	p->print(fd);
+	rec_smolink_print(p, fd);
 }
 
 
-rec_smolist_iterator::rec_smolist_iterator(rec_smolist& l) {
+rec_smolist_iterator::rec_smolist_iterator(rec_smolist& l)
+{
     clist = &l;
     clink = l.last;
     nlink = clink ? clink->next : 0;
@@ -161,7 +167,8 @@ rec_smolist_iterator::rec_smolist_iterator(rec_smolist& l) {
  * loose the integrity of the list. Therefore we keep track of the next object we
  * will look at, so if the current object disappears, we still have the next one.
  */
-rec_smolink * rec_smolist_iterator::operator()() {
+struct rec_smolink *rec_smolist_iterator::operator()()
+{
     clink = nlink;
 
     if (nlink) nlink = nlink->next;
@@ -172,29 +179,9 @@ rec_smolink * rec_smolist_iterator::operator()() {
     return(clink);
 }
 
-rec_smolink::rec_smolink() {
-/* the user should do initialization */
-printf("in rec_smolink constructor - shouldnt be \n");
-}
-
-
-rec_smolink::~rec_smolink() {
-    printf("rec_smolink: dtor deleting %p\n", this);
-}
-
-void rec_smolink::print() {
-    print(stderr);
-}
-
-
-void rec_smolink::print(FILE *fp) {
-    fflush(fp);
-    print(fileno(fp));
-}
-
-
-void rec_smolink::print(int fd) {
+void rec_smolink_print(struct rec_smolink *l, int fd)
+{
     char buf[40];
-    sprintf(buf, "%p : Olink next = %p\n", this, next);
+    sprintf(buf, "%p : Olink next = %p\n", l, l->next);
     write(fd, buf, strlen(buf));
 }

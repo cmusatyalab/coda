@@ -294,15 +294,15 @@ int ReplaceVnode(int volindex, int vclass, VnodeId vnodeindex,
 	RVMLIB_MODIFY(*nvnodes, *nvnodes + 1);
 
 	/* append vnode into the appropriate rec_smolist */
-	char buf[sizeof(rec_smolink)];
-	memset(buf, 0, sizeof(rec_smolink));
-	if (memcmp(&(vdo->nextvn), buf, sizeof(rec_smolink)) != 0) {
+	char buf[sizeof(struct rec_smolink)];
+	memset(buf, 0, sizeof(struct rec_smolink));
+	if (memcmp(&(vdo->nextvn), buf, sizeof(struct rec_smolink)) != 0) {
 	    VLog(0,  "ERROR: REC_SMOLINK ON VNODE DURING ALLOCATION WAS NOT ZERO");
-	    rvmlib_modify_bytes(&(vdo->nextvn), buf, sizeof(rec_smolink));
+	    rvmlib_modify_bytes(&(vdo->nextvn), buf, sizeof(struct rec_smolink));
 	}
 	vlist->append(&(vdo->nextvn));
     }
-    memcpy(&(vnode->nextvn), &(vdo->nextvn), sizeof(rec_smolink));
+    memcpy(&(vnode->nextvn), &(vdo->nextvn), sizeof(struct rec_smolink));
     rvmlib_modify_bytes(vdo, vnode, size);
 
     VLog(19, "Replace vnode - VnodeDiskObject passed to rtn:");
@@ -436,7 +436,7 @@ void ReplaceVolDiskInfo(Error *ec, int volindex, VolumeDiskData *vol)
 /* find a vnode with uniquifier u in a given index */
 VnodeDiskObject *FindVnode(rec_smolist *vnlist, Unique_t u) {
     rec_smolist_iterator next(*vnlist);
-    rec_smolink *p;
+    struct rec_smolink *p;
     VnodeDiskObject *vdo;
     while ((p = next())) {
 	vdo = strbase(VnodeDiskObject, p, nextvn);

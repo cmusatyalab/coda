@@ -139,7 +139,7 @@ void print_VolData(struct VolumeData *data)
 	    p->print();
 	    if (!p->IsEmpty()) {
 		rec_smolist_iterator next(*p);
-		rec_smolink *l;
+		struct rec_smolink *l;
 		while ((l = next())) {
 		    VnodeDiskObject *vdo;
 		    vdo = strbase(VnodeDiskObject, l, nextvn);
@@ -160,7 +160,7 @@ void print_VolData(struct VolumeData *data)
 	    p->print();
 	    if (!p->IsEmpty()){
 		rec_smolist_iterator next(*p);
-		rec_smolink *l;
+		struct rec_smolink *l;
 		while((l = next())){
 		    VnodeDiskObject *vdo;
 		    vdo = strbase(VnodeDiskObject, l, nextvn);

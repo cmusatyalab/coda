@@ -167,7 +167,7 @@ vindex_iterator::~vindex_iterator()
 /* in the specified index */
 int vindex_iterator::operator()(VnodeDiskObject *vnode)
 {
-    rec_smolink *p;
+    struct rec_smolink *p;
     while (clist < nlists) {
 	p = nextlink ? (*nextlink)() : 0;
 	if (p) {

@@ -67,22 +67,22 @@ extern "C" {
 
 class rec_smolist;
 class rec_smolist_iterator;
-class rec_smolink;
+struct rec_smolink;
 
 
 class rec_smolist {
-  friend class rec_smolist_iterator;
-    rec_smolink *last;	    // last->next is head of list
+    friend class rec_smolist_iterator;
+    struct rec_smolink *last;	    // last->next is head of list
 
   public:
     rec_smolist();
     ~rec_smolist();
-    void insert(rec_smolink *);	// add at head of list
-    void append(rec_smolink *);	// add at tail of list
-    rec_smolink *remove(rec_smolink *); // remove specified entry
-    rec_smolink *get();		// return and remove head of list
-    int	IsEmpty();		// 1 if list is empty
-    void print();
+    void insert(struct rec_smolink *);	// add at head of list
+    void append(struct rec_smolink *);	// add at tail of list
+    struct rec_smolink *remove(struct rec_smolink *); // remove specified entry
+    struct rec_smolink *get(void);	// return and remove head of list
+    int	IsEmpty(void);		// 1 if list is empty
+    void print(void);
     void print(FILE *);
     void print(int);
 };
@@ -90,8 +90,8 @@ class rec_smolist {
 
 class rec_smolist_iterator {
     rec_smolist *clist;		// current olist
-    rec_smolink *clink;		// current olink
-    rec_smolink *nlink;		// next olink (in case they remove the object)
+    struct rec_smolink *clink;	// current olink
+    struct rec_smolink *nlink;	// next olink (in case they remove the object)
 	
   public:
     rec_smolist_iterator(rec_smolist&);
@@ -101,22 +101,9 @@ class rec_smolist_iterator {
 };
 
 
-/* generic list object:
-   1. pointer to the next list item
-   2. size of object 
-   3. pointer to object 
-*/
-class rec_smolink {		    
-  friend class rec_smolist;
-  friend class rec_smolist_iterator;
-  friend int main(int , char **);
-    rec_smolink *next;
-  public:
-    rec_smolink();
-    ~rec_smolink();
-    void print();
-    void print(FILE *);
-    void print(int);
+struct rec_smolink {
+    struct rec_smolink *next;
 };
+void rec_smolink_print(struct rec_smolink *l, int fd);
 
 #endif /* _UTIL_REC_SMOLIST_H_ */

@@ -130,7 +130,7 @@ typedef struct VnodeDiskObjectStruct {
     ViceLock	  lock;		/* Advisory lock */
     Date_t	  serverModifyTime;	/* Used only by the server;
 					   for incremental backup purposes */
-    rec_smolink	  nextvn;	/* link to next vnode with same vnodeindex */
+    struct rec_smolink	  nextvn;	/* link to next vnode with same vnodeindex */
     rec_dlist	  *log;		/* resolution log in RVM */
     /* Missing:
        archiving/migration

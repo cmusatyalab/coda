@@ -287,7 +287,7 @@ static int DeleteVnodes(unsigned int myind, Device dev, VnodeClass vclass)
     if (vdata->volumeInfo == NULL) return -1; /* WRONG! no VolumeDiskData! */
     
     int i = 0;
-    rec_smolink *p;
+    struct rec_smolink *p;
     VnodeDiskObject *vdo;
     int moreVnodes = TRUE;
 
