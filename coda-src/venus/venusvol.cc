@@ -1592,10 +1592,12 @@ int repvol::SyncCache(VenusFid * fid)
 {
     LOG(1,("volent::SyncCache()\n"));
 
-    while (VOLBUSY(this))
-	VprocWait((char*)&shrd_count);
-
     flags.transition_pending = 1;
+    while (VOLBUSY(this)) {
+	VprocWait((char*)&shrd_count);
+	flags.transition_pending = 1;
+    }
+
     flags.sync_reintegrate = 1;
 
     while (flags.transition_pending && !VOLBUSY(this))
