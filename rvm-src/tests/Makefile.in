@@ -35,7 +35,7 @@
 # changes  without  encumbrance.   Such improvements and extensions
 # should be returned to Software.Distribution@cs.cmu.edu.
 #
-# rcsid = $Header: /afs/cs/project/coda-src/cvs/coda/rvm-src/tests/Makefile.in,v 4.2 1997/04/29 21:27:25 rvb Exp $
+# rcsid = $Header: /afs/cs/project/coda-src/cvs/coda/rvm-src/tests/Makefile.in,v 4.3 1997/07/23 00:12:01 clement Exp $
 #
 
 #   	RVM Test Programs Makefile
@@ -57,7 +57,7 @@ TESTS = testrvm rvm_basher lwp_basher
 TESTRVM_LIBS    = $(LIBRVM) $(LIBCOMPAT) $(LIBMACH)
 RVM_BASHER_LIBS = $(LIBRDS) $(LIBSEG) $(LIBRVM) $(LIBCOMPAT) $(LIBMACH)
 LWP_BASHER_LIBS = $(LIBRDSLWP) $(LIBSEG) $(LIBRVMLWP) $(LIBOLDLWP) \
-		  $(LIBMACH)
+		  $(LIBMACH) $(LIBCOMPAT)
 
 # re-install this when libplumber is ready, for mach platform -- clement
 # LWP_BASHER_LIBS = $(LIBRDSLWP) $(LIBSEG) $(LIBRVMLWP) $(LIBOLDLWP) \
@@ -82,7 +82,7 @@ rvm_basher: rvm_basher.o $(RVM_BASHER_LIBS)
 
 lwp_basher.o:	rvm_basher.c 
 	-mv rvm_basher.o xxx_basher.o
-	make CFLAGS="$(CFLAGS) -DRVM_USELWP" rvm_basher.o
+	${MAKE} CFLAGS="$(CFLAGS) -DRVM_USELWP" rvm_basher.o
 	mv rvm_basher.o lwp_basher.o
 	-mv xxx_basher.o rvm_basher.o
 
@@ -94,12 +94,12 @@ installlwpfiles:
 	-chmod 0755 $(BINDIR)/lwp_basher
 
 reinstalllwp:
-	make lwp_basher
-	make installlwpfiles
+	${MAKE} lwp_basher
+	${MAKE} installlwpfiles
 
 installlwp:
 	-rm lwp_basher lwp_basher.o
-	make reinstalllwp
+	${MAKE} reinstalllwp
 
 lwp:	lwp_basher
 
