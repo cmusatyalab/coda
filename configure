@@ -1381,7 +1381,7 @@ ac_compile='${CC-cc} -c $CFLAGS $CPPFLAGS conftest.$ac_ext 1>&5'
 ac_link='${CC-cc} -o conftest${ac_exeext} $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS 1>&5'
 cross_compiling=$ac_cv_prog_cc_cross
 
-     CXX="$coda_saved_CC"
+     CXX="$coda_saved_CXX"
 fi
 
 echo "$ac_t""$coda_cv_cxx_no_exceptions" 1>&6
@@ -1428,7 +1428,7 @@ ac_compile='${CC-cc} -c $CFLAGS $CPPFLAGS conftest.$ac_ext 1>&5'
 ac_link='${CC-cc} -o conftest${ac_exeext} $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS 1>&5'
 cross_compiling=$ac_cv_prog_cc_cross
 
-     CXX="$coda_saved_CC"
+     CXX="$coda_saved_CXX"
 fi
 
 echo "$ac_t""$coda_cv_cxx_permissive" 1>&6
