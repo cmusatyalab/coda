@@ -202,7 +202,7 @@ int RepairSubsetCreate (int nreplicas, resreplica *dirs, resdir_entry **deGroup,
 		char *str;
 		struct stat buf;
 
-		str = (char *)malloc(strlen(deGroup[0]->name) + strlen(dirs[i].path) + 1);
+		str = (char *)malloc(strlen(deGroup[0]->name) + strlen(dirs[deGroup[0]->replicaid].path) + 1);
 		strcpy(str, dirs[deGroup[0]->replicaid].path);
 		strcat(str, deGroup[0]->name);
 #ifdef S_IFLNK

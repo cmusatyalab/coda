@@ -396,7 +396,7 @@ class cmlent {
     void commit(ViceVersionVector *);
     int cancelstore();
     int Aged();
-    unsigned long ReintTime();
+    unsigned long ReintTime(unsigned long bw);
     unsigned long ReintAmount();
     int IsReintegrating();
     int IsFrozen() { return flags.frozen; }

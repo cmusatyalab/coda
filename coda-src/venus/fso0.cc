@@ -250,7 +250,9 @@ FREE_ENTRY: /* release entry from namelist */
 	/* Recover fsobj <--> cmlent bindings: a grid-like data structure. */
 	/* This MUST wait until all fsobj's and cmlent's have been recovered/reset! */
 	{
+	    Recov_BeginTrans();
 	    VDB->AttachFidBindings();
+	    Recov_EndTrans(0);
 
 	    /* Sanity check. */
 	    fso_iterator next(NL);

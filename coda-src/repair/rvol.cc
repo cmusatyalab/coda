@@ -259,7 +259,6 @@ static char *srvstr(char *path, VolumeId rwid)
 	    if (vs->Vid == rwid)  break;
 	}
     }
-    closedir(d);
     if (de) {
 	/* get the server name by doing the pioctl (for compatibility with old venii)*/
 	vioc.in_size = 0;
@@ -284,6 +283,9 @@ static char *srvstr(char *path, VolumeId rwid)
     }
     else 
 	sprintf(result, "UnknownServer");
+
+    closedir(d);
+
     return(result);
 }
 
@@ -325,10 +327,14 @@ static char *compstr(char *path, VolumeId rwid)
 	    if (vs->Vid == rwid)  break;
 	}
     }
+
+    if (de) {
+	strncpy(compresult, de->d_name, 2047);
+	compresult[2048] = '\0';
+    } else
+	strcpy(compresult, "UnknownComponent");
+
     closedir(d);
-    if (de) 
-	sprintf(compresult, "%s", de->d_name);
-    else 
-	sprintf(compresult, "UnknownComponent");
+
     return(compresult);
 }

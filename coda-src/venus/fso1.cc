@@ -2007,6 +2007,8 @@ void fsobj::DiscardData() {
     LOG(10, ("fsobj::DiscardData: (%x.%x.%x)\n",
 	      fid.Volume, fid.Vnode, fid.Unique));
 
+    CODA_ASSERT(!flags.dirty);
+
     RVMLIB_REC_OBJECT(data);
     switch(stat.VnodeType) {
 	case File:

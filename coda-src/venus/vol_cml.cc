@@ -393,12 +393,16 @@ void ClientModifyLog::GetReintegrateable(int tid, int *nrecs) {
     cmlent *m;
     cml_iterator next(*this, CommitOrder);
     unsigned long cur_reintegration_time = 0, this_time;
+    unsigned long bw; /* bandwidth in bytes/sec */
+
+    /* get the current bandwidth estimate */
+    vol->vsg->GetBandwidth(&bw);
 
     while ((m = next())) {
 	if (!m->ReintReady())
 	    break;    
 
-	this_time = m->ReintTime();
+	this_time = m->ReintTime(bw);
 
 	if (!ASRinProgress && 
 	    (this_time + cur_reintegration_time > vol->ReintLimit)) 
@@ -445,8 +449,13 @@ void ClientModifyLog::GetReintegrateable(int tid, int *nrecs) {
 cmlent *ClientModifyLog::GetFatHead(int tid) {
     volent *vol = strbase(volent, this, CML);
     cmlent *m;
-    cml_iterator next(*this, CommitOrder);
-    m = next();
+    unsigned long bw; /* bandwidth in bytes/sec */
+
+    /* get the current bandwidth estimate */
+    vol->vsg->GetBandwidth(&bw);
+
+    /* Get the first entry in the CML */
+    m = (cmlent *)list.first();
 
     /* The head of the CML must exists, be a store operation and ready
      * for reintegration. */
@@ -458,7 +467,7 @@ cmlent *ClientModifyLog::GetFatHead(int tid) {
 
     /* If we already have a reintegration handle, or if the reintegration time
      * exceeds the limit, we need to do a partial reintegration of the store. */
-    if (m->HaveReintegrationHandle() || m->ReintTime() > vol->ReintLimit) {
+    if (m->HaveReintegrationHandle() || m->ReintTime(bw) > vol->ReintLimit) {
         /*
          * Don't use the settid call because it is transactional.
          * Here the tid is transient.
@@ -4075,6 +4084,7 @@ void cmlent::abort() {
 
 /*  *****  Routines for Maintaining fsobj <--> cmlent Bindings  *****  */
 
+/* MUST be called from within transaction! */
 void ClientModifyLog::AttachFidBindings() {
     cml_iterator next(*this);
     cmlent *m;
@@ -4083,6 +4093,7 @@ void ClientModifyLog::AttachFidBindings() {
 }
 
 
+/* MUST be called from within transaction! */
 void cmlent::AttachFidBindings() {
     ViceFid *fids[3];
     ViceVersionVector *vvs[3];
@@ -4217,16 +4228,10 @@ int cmlent::Aged() {
  * this record (in milleseconds), given an estimate of bandwidth in 
  * bytes/second.
  */
-unsigned long cmlent::ReintTime() {
+unsigned long cmlent::ReintTime(unsigned long bw) {
     volent *vol = strbase(volent, log, CML);
     double time = 0;
-    unsigned long bw;	/* bandwidth, in bytes/sec */
 
-    /* 
-     * try to get a dynamic bw estimate.  If that doesn't
-     * work, fall back on the static estimate.
-     */
-    vol->vsg->GetBandwidth(&bw);
     if (bw > 0) {
 	time = (double) size();
 	if (opcode == OLDCML_NewStore_OP) 

@@ -186,7 +186,6 @@ void MarinerLog(char *fmt ...) {
 	if (m->logging) ::write(m->fd, buf, len);
 }
 
-
 /* This should be made an option to a more general logging facility! -JJK */
 void MarinerReport(ViceFid *fid, vuid_t vuid) {
     int first = 1;

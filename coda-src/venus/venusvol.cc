@@ -555,6 +555,7 @@ void vdb::FlushVolume() {
 }
 
 
+/* MUST be called from within transaction! */
 void vdb::AttachFidBindings() {
     vol_iterator next;
     volent *v;
