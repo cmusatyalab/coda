@@ -146,7 +146,7 @@ msgent *FindMsg(olist& ol, u_long seq) {
     msg_iterator next(ol);
     msgent *m;
     while ((m = next()))
-	if (((union inputArgs *)&m->msg_buf)->ih.unique == seq) return(m);
+	if (((union inputArgs *)m->msg_buf)->ih.unique == seq) return(m);
 
     return(0);
 }
@@ -835,7 +835,7 @@ worker *GetIdleWorker() {
 
 int IsAPrefetch(msgent *m) {
     /* determines if a message is a prefetch request */
-    union inputArgs *in = (union inputArgs *)&m->msg_buf;
+    union inputArgs *in = (union inputArgs *)m->msg_buf;
     
     if (in->ih.opcode != CODA_IOCTL)
 	return(0);
@@ -845,7 +845,7 @@ int IsAPrefetch(msgent *m) {
 
 void DispatchWorker(msgent *m) {
     /* We filter out signals (i.e., interrupts) before passing messages on to workers. */
-    union inputArgs *in = (union inputArgs *)&m->msg_buf;
+    union inputArgs *in = (union inputArgs *)m->msg_buf;
     
     if (in->ih.opcode == CODA_SIGNAL) {
 	eprint("DispatchWorker: signal received (seq = %d)", in->ih.unique);
@@ -1019,7 +1019,7 @@ void worker::AwaitRequest() {
 	LOG(1000, ("worker::AwaitRequest: dequeuing message\n"));
 	ActiveMsgs.append(m);
 	msg = m;
-	opcode = (int) ((union inputArgs *)&m->msg_buf)->ih.opcode;
+	opcode = (int) ((union inputArgs *)m->msg_buf)->ih.opcode;
 	idle = 0;
 	return;
     }
@@ -1031,8 +1031,8 @@ void worker::AwaitRequest() {
 /* Called by workers after completing a service request. */
 void worker::Resign(msgent *msg, int size) {
     if (returned) {
-	char *opstr = VenusOpStr((int) ((union outputArgs*)&msg->msg_buf)->oh.opcode);
-	char *retstr = VenusRetStr((int) ((union outputArgs *)&msg->msg_buf)->oh.result);
+	char *opstr = VenusOpStr((int) ((union outputArgs*)msg->msg_buf)->oh.opcode);
+	char *retstr = VenusRetStr((int) ((union outputArgs *)msg->msg_buf)->oh.result);
 	
 #ifdef TIMING
 	float elapsed;
@@ -1044,8 +1044,8 @@ void worker::Resign(msgent *msg, int size) {
 #endif
     }
     else {
-	if (((union outputArgs *)&msg->msg_buf)->oh.result == EINCONS) {
-/*	    ((union outputArgs *)&msg->msg_buf)->oh.result = ENOENT;*/
+	if (((union outputArgs *)msg->msg_buf)->oh.result == EINCONS) {
+/*	    ((union outputArgs *)msg->msg_buf)->oh.result = ENOENT;*/
 	    CHOKE("worker::Resign: result == EINCONS");
 	}
 
@@ -1065,8 +1065,8 @@ void worker::Return(msgent *msg, size_t size) {
     if (returned)
 	CHOKE("worker::Return: already returned!");
 
-    char *opstr = VenusOpStr((int) ((union outputArgs*)&msg->msg_buf)->oh.opcode);
-    char *retstr = VenusRetStr((int) ((union outputArgs*)&msg->msg_buf)->oh.result);
+    char *opstr = VenusOpStr((int) ((union outputArgs*)msg->msg_buf)->oh.opcode);
+    char *retstr = VenusRetStr((int) ((union outputArgs*)msg->msg_buf)->oh.result);
 
 #ifdef	TIMING
     float elapsed;
@@ -1088,8 +1088,8 @@ void worker::Return(msgent *msg, size_t size) {
 	int errn = errno;
 	if (cc != size) {
 	    eprint("worker::Return: message write error %d (op = %d, seq = %d), wrote %d of %d bytes\n",
-		   errno, ((union outputArgs*)&msg->msg_buf)->oh.opcode,
-		   ((union outputArgs*)&msg->msg_buf)->oh.unique, cc, size);  
+		   errno, ((union outputArgs*)msg->msg_buf)->oh.opcode,
+		   ((union outputArgs*)msg->msg_buf)->oh.unique, cc, size);  
 
 	    /* Guard against a race in which the kernel is signalling us, but we entered this */
 	    /* block before the signal reached us.  In this case the error code from the MsgWrite */
@@ -1103,7 +1103,7 @@ void worker::Return(msgent *msg, size_t size) {
 }
 
 void worker::Return(int code) {
-    ((union outputArgs*)&msg->msg_buf)->oh.result = code; 
+    ((union outputArgs*)msg->msg_buf)->oh.result = code; 
     Return(msg, (int)sizeof (struct coda_out_hdr));
 }
 
@@ -1125,8 +1125,8 @@ void worker::main(void)
 	if (idle) CHOKE("Worker: signalled but not dispatched!");
 	if (!msg) CHOKE("Worker: no message!");
 
-	union inputArgs *in = (union inputArgs *)&msg->msg_buf;
-	union outputArgs *out = (union outputArgs *)&msg->msg_buf;
+	union inputArgs *in = (union inputArgs *)msg->msg_buf;
+	union outputArgs *out = (union outputArgs *)msg->msg_buf;
 	
         /* we reinitialize these on every loop */
         size = sizeof(struct coda_out_hdr);
@@ -1501,7 +1501,7 @@ void worker::main(void)
                 /* Fashion a CLOSE message. */
                 msgent *fm = (msgent *)worker::FreeMsgs.get();
                 if (!fm) fm = new msgent;
-                union inputArgs *dog = (union inputArgs *)&fm->msg_buf;
+                union inputArgs *dog = (union inputArgs *)fm->msg_buf;
 
                 dog->coda_close.ih.unique = (u_long)-1;
                 dog->coda_close.ih.opcode = CODA_CLOSE;
