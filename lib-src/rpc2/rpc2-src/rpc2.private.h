@@ -544,7 +544,6 @@ void rpc2_PrintTMElem(), rpc2_PrintFilter(), rpc2_PrintSLEntry(),
 	rpc2_PrintHostIdent(), rpc2_PrintPortIdent(), rpc2_PrintSEDesc();
 extern FILE *ErrorLogFile;
 
-void rpc2_InitRandom(void);
 unsigned int rpc2_TrueRandom(void);
 
 /* encryption */

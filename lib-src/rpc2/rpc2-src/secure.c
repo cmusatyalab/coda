@@ -115,7 +115,7 @@ unsigned int rpc2_TrueRandom(void)
     while (x == 0) {
 	TM_GetTimeOfDay(&tp, NULL);
 	x = tp.tv_usec >> 8;	/* No sign problems 'cause tv_usec never has high bit set */
-    }    
+    }
     return(x);
 }
 
