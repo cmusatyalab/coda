@@ -56,7 +56,6 @@ extern "C" {
 #endif __cplusplus
 
 #include <util.h>
-/* #include <volutil.h> */
 #include <codaconf.h>
 #include <vice_file.h>
 #include "update.h"
