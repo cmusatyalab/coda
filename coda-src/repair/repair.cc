@@ -22,9 +22,6 @@ int allowclear = 0, session = NOT_IN_SESSION, repair_DebugFlag = 0;
 struct repvol *RepairVol = NULL;
 char cfix[MAXPATHLEN];
 
-char compDirDefault[MAXPATHLEN];
-char compOutputFile[MAXPATHLEN]; /* filename for output of last docompare */
-
 /* Relax, command parser allows abbreviations of command names */
 command_t list[] = {
     {"beginrepair",      rep_BeginRepair,      0, ""}, /* <reppathname> */
@@ -420,7 +417,7 @@ void rep_Exit(int largc, char **largv) {
 }
 
 void rep_Help(int largc, char **largv) {
-    printf("See the Coda manual or repair.1 for help\n");
+    printf("See the Coda manual or repair.1 for help.\nPerhaps try doing a \"beginrepair\".");
     fflush(stdout);
 }
 

@@ -39,7 +39,7 @@ static int volstat(char *path, char *space, int size);
  * Allocates new repvol and returns it in repv
  * Returns 0 on success, -1 on error and fills in msg if non-NULL */
 int repair_newrep(char *pathname, struct repvol **repv, char *msg, int msgsize) {
-    char reppath[MAXPATHLEN], prefix[MAXPATHLEN], suffix[MAXPATHLEN];
+    char msgbuf[DEF_BUF], reppath[MAXPATHLEN], prefix[MAXPATHLEN], suffix[MAXPATHLEN];
     VolumeId vid;
 
     if (repv == NULL) {
@@ -47,13 +47,13 @@ int repair_newrep(char *pathname, struct repvol **repv, char *msg, int msgsize) 
 	return(-1);
     }
 
-    if (repair_isleftmost(pathname, reppath, MAXPATHLEN) < 0) {
-	strerr(msg, msgsize, "Not the leftmost object in conflict");
+    if (repair_isleftmost(pathname, reppath, MAXPATHLEN, msgbuf, sizeof(msgbuf)) < 0) {
+	strerr(msg, msgsize, "Not leftmost conflict: %s", msgbuf);
 	return(-1);
     }
 
-    if (repair_getmnt(reppath, prefix, suffix, &vid) < 0) {
-	strerr(msg, msgsize, "Could not get mount point of volume");
+    if (repair_getmnt(reppath, prefix, suffix, &vid, msgbuf, sizeof(msgbuf)) < 0) {
+	strerr(msg, msgsize, "Could not get volume mount point: %s", msgbuf);
 	return(-1);
     }
 

@@ -29,34 +29,33 @@ listed in the file CREDITS.
 static char *repair_abspath(char *result, unsigned int len, char *name);
 static int repair_getvid(char *path, VolumeId *vid, char *msg, int msgsize);
 
-/*
- leftmost: check pathname for inconsistent object
-
- path:	user-provided path of alleged object in conflict
- realpath:	true path (sans sym links) of object in conflict
- 
- Returns 0 iff path refers to an object in conflict and this is the
-           leftmost such object on its true path (as returned by getwd())
- Returns -1, after printing error messages, in all other cases.  
-*/
-int repair_isleftmost(char *path, char *realpath, int len) {
+/* leftmost: check pathname for inconsistent object
+ * path:	user-provided path of alleged object in conflict
+ * realpath:	true path (sans sym links) of object in conflict
+ * 
+ * Returns 0 iff path refers to an object in conflict and this is the
+ *           leftmost such object on its true path (as returned by getwd())
+ * Returns -1 on error and fills in msg if non-NULL. */
+int repair_isleftmost(char *path, char *realpath, int len, char *msg, int msgsize) {
     register char *car, *cdr;
-    int symlinks;
+    int symlinks, rc = 0;
     char buf[MAXPATHLEN], symbuf[MAXPATHLEN], here[MAXPATHLEN], tmp[MAXPATHLEN];
     
-    strcpy(buf, path); /* tentative */
+    strncpy(buf, path, sizeof(buf)); /* tentative */
     symlinks = 0;
     if (!getcwd(here, sizeof(here))) { /* remember where we are */
-	printf("Couldn't stat current working directory\n");
-	exit(-1);
+	strerr(msg, msgsize, "Could not get current working directory");
+	return(-1);
     }
-#define RETURN(x) {CODA_ASSERT(!chdir(here)); return(x);}
 
     /* simulate namei() */
     while (1) {
 	/* start at beginning of buf */
 	if (*buf == '/') {
-	    CODA_ASSERT(!chdir("/"));
+	    if (chdir("/") < 0) {
+		strerr(msg, msgsize, "cd /: %s", strerror(errno));
+		break;
+	    }
 	    car = buf+1;
 	}
 	else car = buf;
@@ -69,11 +68,15 @@ int repair_isleftmost(char *path, char *realpath, int len) {
 		/* We're at the end */
 		if (repair_inconflict(car, 0) == 0) {
 		    repair_abspath(realpath, len, car);
-		    RETURN(0);
+		    if (chdir(here) < 0) {
+			strerr(msg, msgsize, "cd %s: %s", here, strerror(errno));
+			break;
+		    }
+		    return(0);
 		} 
 		else {
-		    printf("object not in conflict\n");
-		    RETURN(-1);
+		    strerr(msg, msgsize, "Object not in conflict");
+		    break;
 		}
 	    }
 	    *cdr = 0; /* clobber slash */
@@ -81,17 +84,17 @@ int repair_isleftmost(char *path, char *realpath, int len) {
 
 	    /* Is this piece ok? */
 	    if (repair_inconflict(car, 0) == 0) {
-		printf("%s is to the left of %s and is in conflict\n", 
+		strerr(msg, msgsize, "%s is to the left of %s and is in conflict", 
 		       repair_abspath(tmp, MAXPATHLEN, car), path);
-		RETURN(-1);
+		break;
 	    }
 	    
 	    /* Is this piece a sym link? */
 	    if (readlink(car, symbuf, MAXPATHLEN) > 0) {
 		if (++symlinks >= CODA_MAXSYMLINKS) {
 		    errno = ELOOP;
-		    perror(path);
-		    RETURN(-1);
+		    strerr(msg, msgsize, "%s: %s", path, strerror(errno));
+		    break;
 		}
 		strcat(symbuf, "/");
 		strcat(symbuf, cdr);
@@ -101,8 +104,8 @@ int repair_isleftmost(char *path, char *realpath, int len) {
 		
 	    /* cd to next component */
 	    if (chdir(car) < 0) {
-		perror(repair_abspath(tmp, MAXPATHLEN, car));
-		RETURN(-1);
+		strerr(msg, msgsize, "%s: %s", repair_abspath(tmp, MAXPATHLEN, car), strerror(errno));
+		break;
 	    }
 
 	    /* Phew! Traversed another component! */
@@ -110,23 +113,20 @@ int repair_isleftmost(char *path, char *realpath, int len) {
 	    *(cdr-1) = '/'; /* Restore clobbered slash */
 	}
     }
-#undef RETURN
+    CODA_ASSERT(!chdir(here)); /* XXXX */
+    return(-1);
 }
 
-/*
-    Obtains mount point of last volume in realpath
-    Returns 0 on success, -1 on failure.
-    Null OUT parameters will not be filled.
-       
-    realpath:	abs pathname (sans sym links)of replicated object
-    prefix:	part before last volume encountered in realpath
-    suffix:	part inside last volume
-    vid:	id of last volume
-
-    CAVEAT: code assumes realpath has no conflicts except (possibly)
-          last component.  This is NOT checked.
-*/
-int repair_getmnt(char *realpath, char *prefix, char *suffix, VolumeId *vid) {
+/* Obtains mount point of last volume in realpath
+ * Assumes realpath has no conflicts except (possibly) last component.
+ * Returns 0 on success, -1 on error and fills in msg if non-NULL
+ * NULL out parameters will not be filled.
+ *
+ * realpath:	abs pathname (sans sym links) of replicated object
+ * prefix:	part before last volume encountered in realpath
+ * suffix:	part inside last volume
+ * vid:	        id of last volume */
+int repair_getmnt(char *realpath, char *prefix, char *suffix, VolumeId *vid, char *msg, int msgsize) {
     char msgbuf[DEF_BUF], buf[MAXPATHLEN];
     VolumeId currvid, oldvid;
     char *slash;
@@ -134,13 +134,15 @@ int repair_getmnt(char *realpath, char *prefix, char *suffix, VolumeId *vid) {
     int rc;
 
     /* Find abs path */
-    CODA_ASSERT(*realpath == '/');
+    if (*realpath != '/') {
+	strerr(msg, msgsize, "%s not an absolute pathname", realpath);
+	return(-1);
+    }
     strcpy(buf, realpath);
     
     /* obtain volume id of last component */
-    rc = repair_getvid(buf, &currvid, msgbuf, sizeof(msgbuf));
-    if (rc < 0) {
-	fprintf(stderr, "%s", msgbuf);
+    if (repair_getvid(buf, &currvid, msgbuf, sizeof(msgbuf)) < 0) {
+	strerr(msg, msgsize, "%s", msgbuf);
 	return(-1);
     }
 
@@ -151,15 +153,13 @@ int repair_getmnt(char *realpath, char *prefix, char *suffix, VolumeId *vid) {
        object in conflict 
        -  will always point at starting char of suffix
     */
-
     tail = buf + strlen(buf); 
     slash = buf + strlen(buf); /* points at trailing null */
     oldvid = currvid;
     while (1) {
 	/* break the string and find nex right slash */
 	slash = strrchr(buf, '/'); 
-	/* abs path ==> '/' guaranteed */
-	CODA_ASSERT(slash);
+	CODA_ASSERT(slash); /* abs path ==> '/' guaranteed */
 
 	/* possibility 1: ate whole path up */
 	if (slash == buf) break; 
@@ -171,9 +171,9 @@ int repair_getmnt(char *realpath, char *prefix, char *suffix, VolumeId *vid) {
 	/* possibility 2: crossed out of Coda */
 	if (rc < 0) {
 	    /* not in Coda probably */
-	    if (errno == EINVAL) break; 
+	    if (errno == EINVAL) break;
 	    /* this is an unacceptable error */
-	    fprintf(stderr, "%s", msgbuf);
+	    strerr(msg, msgsize, "%s", msgbuf);
 	    return(-1);
 	}
 
@@ -190,28 +190,19 @@ int repair_getmnt(char *realpath, char *prefix, char *suffix, VolumeId *vid) {
     }
 
     /* set OUT parameters */
-    if (prefix) 
-	strcpy(prefix, buf);  /* this gives us the mount point */
-    if (vid) 
-	*vid = oldvid;
-    if (suffix )
-	strcpy(suffix, tail); 
-
+    if (prefix) strcpy(prefix, buf); /* this gives us the mount point */
+    if (vid)    *vid = oldvid;
+    if (suffix) strcpy(suffix, tail); 
     return(0);
 }
 
-/* 
-   returns 0 if name refers to an object in conflict
-   and conflictfid is filled  if it is non-null.
-   returns -1 otherwise (even if any other error)
-       
-   CAVEAT: assumes no conflicts to left of last component.
-   This is NOT checked.
-*/
-int repair_inconflict(char *name, ViceFid *conflictfid /* OUT */) {
-    int rc;
+/* Assumes no conflicts to left of last component.  This is NOT checked. 
+ * Returns 0 if name refers to an object in conflict and fills in conflictfid if non-NULL.
+ * Returns -1 on error */
+int repair_inconflict(char *name, ViceFid *conflictfid) {
     char symval[MAXPATHLEN];
     struct stat statbuf;
+    int rc;
 
     rc = stat(name, &statbuf);
     if ((rc == 0) || (errno != ENOENT)) return(-1);
@@ -227,7 +218,7 @@ int repair_inconflict(char *name, ViceFid *conflictfid /* OUT */) {
 	    sscanf(symval, "@%lx.%lx.%lx",
 		   &conflictfid->Volume, &conflictfid->Vnode, 
 		   &conflictfid->Unique);
-	return (0);
+	return(0);
     }
     else return(-1);
 }
@@ -272,17 +263,9 @@ int repair_getfid(char *path, ViceFid *outfid, ViceVersionVector *outvv, char *m
     return(-1);
 }
 
-void repair_perror(char *op, char *path, int e) {
-    char msg[MAXPATHLEN+100];
-
-    sprintf(msg, "%s: %s", op, path);
-    errno = e;  /* in case it has been clobbered by now */
-    perror(msg);
-}
-
 static char *repair_abspath(char *result, unsigned int len, char *name) {
-    CODA_ASSERT(getcwd(result, len));
-    CODA_ASSERT( strlen(name) + 1 <= len );
+    CODA_ASSERT(getcwd(result, len));     /* XXXX */
+    CODA_ASSERT(strlen(name) + 1 <= len); /* XXXX */
 
     strcat(result, "/");
     strcat(result, name);
@@ -290,7 +273,7 @@ static char *repair_abspath(char *result, unsigned int len, char *name) {
 }
 
 /* Returns 0 and fills volid with the volume id of path.  
-   Returns -1 on failure */
+ * Returns -1 on error and fills in msg if non-NULL. */
 static int repair_getvid(char *path, VolumeId *vid, char *msg, int msgsize) {
     char msgbuf[DEF_BUF];
     ViceFid vfid;

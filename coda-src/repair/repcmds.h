@@ -105,10 +105,9 @@ extern int  repair_newrep(char *reppath, struct repvol **repv, char *msg, int ms
 
 /* Path processing routines -- path.cc */
 extern int  repair_getfid(char *path, ViceFid *outfid, ViceVersionVector *outvv, char *msg, int msgsize);
-extern int  repair_getmnt(char *realpath, char *prefix, char *suffix, VolumeId *vid);
+extern int  repair_getmnt(char *realpath, char *prefix, char *suffix, VolumeId *vid, char *msg, int msgsize);
 extern int  repair_inconflict(char *name, ViceFid *conflictfid);
-extern int  repair_isleftmost(char *path, char *realpath, int len);
-extern void repair_perror(char *op, char *path, int e);
+extern int  repair_isleftmost(char *path, char *realpath, int len, char *msg, int msgsize);
 
 #define freeif(pointer)				\
 do {						\
