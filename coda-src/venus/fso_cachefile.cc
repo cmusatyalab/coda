@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /usr/rvb/XX/src/coda-src/venus/RCS/fso_cachefile.cc,v 4.1 1997/01/08 21:51:26 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-rvb/real/coda-src/venus/RCS/fso_cachefile.cc,v 4.2 1997/02/26 16:03:18 rvb Exp rvb $";
 #endif /*_BLURB_*/
 
 
@@ -261,6 +261,15 @@ void CacheFile::Truncate(unsigned newlen) {
 
     ASSERT(inode != (ino_t)-1);
 
+#ifdef	__MACH__
+#else
+    /*
+    if (length < newlen) {
+       eprint("Truncate: %d->%d:  -> ::truncate(name %s, length %d)\n",
+		length, newlen, name, newlen);
+    }
+    */
+#endif
     if (length != newlen) {
 	RVMLIB_REC_OBJECT(*this);
 	length = newlen;

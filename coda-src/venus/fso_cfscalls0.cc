@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /usr/rvb/XX/src/coda-src/venus/RCS/fso_cfscalls0.cc,v 4.2 1997/01/17 15:22:47 satya Exp $";
+static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-rvb/real/coda-src/venus/RCS/fso_cfscalls0.cc,v 4.3 1997/02/26 16:03:18 rvb Exp rvb $";
 #endif /*_BLURB_*/
 
 
@@ -1284,6 +1284,12 @@ void fsobj::LocalSetAttr(Date_t Mtime, unsigned long NewLength,
 
 	    if (HAVEDATA(this)) {
 		int delta_blocks = (int) (BLOCKS(this) - NBLOCKS(NewLength));
+#ifdef	__MACH__
+#else
+		if (delta_blocks < 0) {
+			eprint("LocalSetAttr: %d\n", delta_blocks);
+		}
+#endif
 		UpdateCacheStats(&FSDB->FileDataStats, REMOVE, delta_blocks);
 		FSDB->FreeBlocks(delta_blocks);
 		data.file->Truncate((unsigned) NewLength);
@@ -1520,8 +1526,13 @@ int fsobj::SetAttr(struct vattr *vap, vuid_t vuid, RPC2_CountedBS *acl) {
 	       VA_CTIME_1(vap), VA_CTIME_2(vap));
     }
 
+#ifdef	__MACH__
     unsigned long NewLength = (vap->va_size != VA_IGNORE_SIZE && vap->va_size < stat.Length)
       ? vap->va_size : (unsigned long)-1;
+#else
+    unsigned long NewLength = vap->va_size != VA_IGNORE_SIZE 
+      ? vap->va_size : (unsigned long)-1;
+#endif
     Date_t NewDate = (VA_MTIME_1(vap) != VA_IGNORE_TIME1 && VA_MTIME_1(vap) != stat.Date)
       ? VA_MTIME_1(vap) : (Date_t)-1;
     vuid_t NewOwner = (vap->va_uid != VA_IGNORE_UID && vap->va_uid != stat.Owner)
@@ -1529,6 +1540,9 @@ int fsobj::SetAttr(struct vattr *vap, vuid_t vuid, RPC2_CountedBS *acl) {
     unsigned short NewMode = (vap->va_mode != VA_IGNORE_MODE && (vap->va_mode & 0777) != stat.Mode)
       ? (vap->va_mode & 0777) : (unsigned short)-1;
 
+#ifdef	__MACH__
+    /* ???? This does happen often; does the other Truncate call get used */
+#endif
     /* Only update cache file when truncating and open for write! */
     if (NewLength != (unsigned long)-1 && WRITING(this)) {
 	ATOMIC(
