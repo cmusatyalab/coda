@@ -12,7 +12,7 @@ TOPOBJ = @TOPOBJ@
 
 include $(TOPDIR)/Makeconf
 
-HEADERS = errno.h nlist.h stdlib.h 
+HEADERS = errno.h nlist.h
 SUBDIRS = sys
 
 ifeq ($(SYS),cygwin32)
