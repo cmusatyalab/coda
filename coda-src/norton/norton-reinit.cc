@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/src/coda-4.0.1/RCSLINK/./coda-src/norton/norton-reinit.cc,v 1.1 1996/11/22 19:15:07 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/norton/norton-reinit.cc,v 4.1 97/01/08 21:49:51 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -839,6 +839,14 @@ PRIVATE int dump_server_state(char *dump_file, char *skipvollist[], int nskipvol
 	if (InSkipVolumeList(vol->data.volumeInfo->id, skipvols, nskipvols))
 	    continue;
 
+	// Check that its not a backup of something we are skipping
+	// This check should probably go in InSkipVolumeList()
+	if ((vol->data.volumeInfo->type == BACKVOL) && 
+	    InSkipVolumeList(vol->data.volumeInfo->parentId, 
+			     skipvols, nskipvols)) {
+	  continue;
+	}
+	    
 	printf("Writing volume 0x%x\n", vol->data.volumeInfo->id);
 
 	if (!DumpVolHead(dump_fd, vol) ||
