@@ -242,7 +242,7 @@ void vdb::TakeTransition() {
     vol_iterator vnext;
     volent *v;
     while ((v = vnext())) {
-	if (!FID_VolIsFake(v->vid)) 
+	if (FID_VolIsFake(v->vid)) 
 		continue;
 
 	LOG(1000, ("vdb::TakeTransition: checking %s\n", v->name));

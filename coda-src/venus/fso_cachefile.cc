@@ -166,10 +166,6 @@ int CacheFile::Copy(CacheFile *destination)
 {
     ino_t ino;
 
-    LOG(10, ("CacheFile::Copy: from %s, %d, %d/%d, to %s, %d, %d/%d\n",
-	      name, inode, validdata, length, destination->name,
-	      destination->inode, destination->validdata, destination->length));
-
     Copy(destination->name, &ino);
 
     destination->inode  = ino;

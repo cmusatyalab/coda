@@ -522,7 +522,6 @@ class fsobj {
     void ReplaceStatus(ViceStatus *, ViceVersionVector *);
     int CheckRcRights(int);
     void SetRcRights(int);
-    void ReturnRcRights();
     void ClearRcRights();
     int IsValid(int);
     int CheckAcRights(vuid_t, long, int);

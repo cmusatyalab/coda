@@ -2897,7 +2897,9 @@ void cmlent::commit(ViceVersionVector *UpdateSet) {
     while ((d = next())) {
 	binding *b = strbase(binding, d, binder_handle);
 	fsobj *f = (fsobj *)b->bindee;
-	CODA_ASSERT(f && (f->MagicNumber == FSO_MagicNumber));  /* better be an fso */
+
+	/* better be an fso */
+	CODA_ASSERT(f && (f->MagicNumber == FSO_MagicNumber));
 
 	cmlent *FinalCmlent = f->FinalCmlent(tid);
 	if (FinalCmlent == this) {
@@ -2915,8 +2917,54 @@ void cmlent::commit(ViceVersionVector *UpdateSet) {
 	    f->stat.VV.StoreId = sid;
 	    AddVVs(&f->stat.VV, UpdateSet);
 
-	    if (vol->flags.resolve_me) 
-		vol->ResSubmit(0, &f->fid);
+	    if (vol->flags.resolve_me) {
+		/* We probably want to do a synchronous resolve here, but have
+		 * to look at how that works with volume locks etc. I'm
+		 * currently doing the next best thing by forcing the volume
+		 * to take a transition. --JH */
+
+		/* Hmm, most operations mutate the _directory_ resolving
+		 * nonexistant objects doesn't work, we better submit the
+		 * parent as well. --JH */
+		/* which fids do we need to resolve... */
+		switch(opcode) {
+		case OLDCML_Create_OP:
+		    vol->ResSubmit(NULL, &u.u_create.PFid);
+		    vol->ResSubmit(NULL, &u.u_create.CFid);
+		    break;
+		case OLDCML_NewStore_OP:
+		    vol->ResSubmit(NULL, &u.u_store.Fid);
+		    break;
+		case OLDCML_SymLink_OP:
+		    vol->ResSubmit(NULL, &u.u_symlink.PFid);
+		    vol->ResSubmit(NULL, &u.u_symlink.CFid);
+		    break;
+		case OLDCML_Link_OP:
+		    vol->ResSubmit(NULL, &u.u_link.PFid);
+		    vol->ResSubmit(NULL, &u.u_link.CFid);
+		    break;
+		case OLDCML_MakeDir_OP:
+		    vol->ResSubmit(NULL, &u.u_mkdir.PFid);
+		    vol->ResSubmit(NULL, &u.u_mkdir.CFid);
+		    break;
+		case OLDCML_Rename_OP:
+		    vol->ResSubmit(NULL, &u.u_rename.SPFid);
+		    vol->ResSubmit(NULL, &u.u_rename.TPFid);
+		    vol->ResSubmit(NULL, &u.u_rename.SFid);
+		    break;
+		case OLDCML_Remove_OP:
+		    vol->ResSubmit(NULL, &u.u_remove.PFid);
+		    break;
+		case OLDCML_RemoveDir_OP:
+		    vol->ResSubmit(NULL, &u.u_rmdir.PFid);
+		    break;
+		case OLDCML_Repair_OP:
+		    vol->ResSubmit(NULL, &u.u_repair.Fid);
+		    break;
+		}
+
+		vol->flags.transition_pending = 1;
+	    }
 	}
     }
     if (FinalMutationForAnyObject) {

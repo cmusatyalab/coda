@@ -926,17 +926,9 @@ int cmlent::DoRepair(char *msg, int rcode)
 		CHOKE("DoRepair: Store with no local data!");
 
 	    /* copy the local-obj cache file into the global-obj cache */
-	    int gfd = open(GObj->data.file->Name(),
-			   O_WRONLY | O_TRUNC | O_BINARY, 0);
-	    int lfd = open(LObj->data.file->Name(), O_RDONLY | O_BINARY, 0);
-	    OBJ_ASSERT(this, gfd >= 0 && lfd >= 0);
-	    code = filecopy(lfd, gfd);
-	    OBJ_ASSERT(this, code == 0);
-	    close(gfd);
-	    close(lfd);
+	    LObj->data.file->Copy(GObj->data.file);
+
 	    /* set the local-obj length to the global-obj length */
-	    /* XXX Err, it seems to be the other way around, who wrote that
-	     * comment? --JH */
 	    GObj->stat.Length = LObj->stat.Length;
 	    code = GObj->RepairStore();
 	    GObj->GetPath(GlobalPath, 1);

@@ -135,6 +135,13 @@ long RecovDirResolve(res_mgrpent *mgrp, ViceFid *Fid, ViceVersionVector **VV,
     
     SLog(0, "Entering RecovDirResolve %s\n", FID_(Fid));
 
+#if 0
+    /* This should not be done for several reasons. 
+     * First of all, if the ancestor has a conflict we essentially return
+     * EINCONS for the wrong object. Second, we are only resolving the contents
+     * of the current directory. If anything is wrong with the ancestors, it
+     * should not affect successful resolution of this object. --JH */
+
     // Check if object can be resolved 
     if (checkpaths) {
 	if (SrvDebugLevel >= 10)
@@ -161,6 +168,8 @@ long RecovDirResolve(res_mgrpent *mgrp, ViceFid *Fid, ViceVersionVector **VV,
 	    goto Exit;
 	}
     }
+#endif
+
     // Check if Regular Directory Resolution is required 
     {	
 	int errorCode = 0;
@@ -782,12 +791,14 @@ static int ResolveInc(res_mgrpent *mgrp, ViceFid *Fid, ViceVersionVector **VVGro
     }
     // clear inconsistency if equal
     {
-	if (DirsEqual)
+	if (DirsEqual) {
 	    MRPC_MakeMulti(ClearIncon_OP, ClearIncon_PTR, VSG_MEMBERS,
 			   mgrp->rrcc.handles, mgrp->rrcc.retcodes,
 			   mgrp->rrcc.MIp, 0, 0, Fid, VV);
-	mgrp->CheckResult();
-	errorcode = CheckRetCodes((unsigned long *)mgrp->rrcc.retcodes, mgrp->rrcc.hosts, succflags);
+	    mgrp->CheckResult();
+	    errorcode = CheckRetCodes((unsigned long *)mgrp->rrcc.retcodes, mgrp->rrcc.hosts, succflags);
+	} else
+	    errorcode = EINCONS;
     }
   Exit:
     // free all the allocate dir bufs

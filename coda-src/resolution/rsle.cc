@@ -504,7 +504,7 @@ void rsle::print(int fd) {
 	break;
       case ResolveViceRename_OP:
       case RES_Rename_OP:
-	u.rm.print(fd);
+	u.mv.print(fd);
 	break;
       case ResolveViceSetVolumeStatus_OP:
       case RES_SetVolumeStatus_OP:

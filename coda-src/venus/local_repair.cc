@@ -174,6 +174,15 @@ void lrdb::EndRepairSession(int Commit, char *msg)
 		    OBJ_ASSERT(this, vol);
 		    LOG(100, ("lrdb::EndRepairSession: reintegrate mutation for volume %x\n",
 			      vol->GetVid()));
+		    {	/* freeze cml entries */
+			cml_iterator next(*(vol->GetCML()), CommitOrder);
+			cmlent *m;
+			Recov_BeginTrans();
+			while ((m = next()))
+			  if (m->GetTid() == repair_session_tid)
+			    m->Freeze();
+			Recov_EndTrans(MAXFP);
+		    }
 		    rc = vol->IncReintegrate(repair_session_tid);
 		    {	/* collect mutation stats */
 			cml_iterator next(*(vol->GetCML()), CommitOrder);

@@ -40,7 +40,7 @@ extern "C" {
 #include <volume.h>
 #include "lockqueue.h"
 
-const int  LQTIMEOUT = 600;	/* seconds */
+const int  LQTIMEOUT = 300;	/* seconds */
 const int  LQINTERVAL =	60;	/* seconds */
 const int  LockQueManStkSize = 8192;
 lqman *LockQueueMan;

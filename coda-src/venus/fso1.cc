@@ -607,11 +607,7 @@ void fsobj::Demote(int TellServers)
 
     LOG(10, ("fsobj::Demote: fid = (%s)\n", FID_(&fid)));
 
-    /* Only return RC rights if the servers don't know that we're demoting! */
-    if (TellServers)
-	ReturnRcRights();
-    else
-	ClearRcRights();
+    ClearRcRights();
 
     if (IsDir())
 	DemoteAcRights(ALL_UIDS);
@@ -629,12 +625,10 @@ void fsobj::Demote(int TellServers)
 /* Call with object write-locked. */
 void fsobj::Kill(int TellServers) 
 {
-
 	if (DYING(this)) 
 		return;
 
 	LOG(10, ("fsobj::Kill: (%s)\n", FID_(&fid)));
-
 
 	DisableReplacement();
 	
@@ -642,12 +636,7 @@ void fsobj::Kill(int TellServers)
 	RVMLIB_REC_OBJECT(state);
 	state = FsoDying;
 
-	/* Only return RC rights if the servers don't know that we're
-           demoting! */
-	if (TellServers)
-		ReturnRcRights();
-	else
-		ClearRcRights();
+	ClearRcRights();
 	
 	if (IsDir())
 		DemoteAcRights(ALL_UIDS);
@@ -876,14 +865,6 @@ void fsobj::SetRcRights(int rights) {
     FSO_ASSERT(this, !(rights & RC_DATA) ||
 	             ((rights & RC_DATA) && HAVEALLDATA(this)));
     RcRights = rights;
-}
-
-
-void fsobj::ReturnRcRights() {
-    if (RcRights != NullRcRights)
-	/*vol->ReturnRcRights(&fid)*/;
-
-    ClearRcRights();
 }
 
 

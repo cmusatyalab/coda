@@ -362,12 +362,6 @@ long FS_ViceResolve(RPC2_Handle cid, ViceFid *Fid)
 				  MAXPATHLEN/2, pathsizevar_ptrs[j], 
 				  pathelem_ptrs[j]);
 	    mgrp->rrcc.retcodes[j] = rc;
-
-#if 0 /* this seems to mess with the CheckResult/CheckResRetCodes -JH */
-	    /* if volume is already locked, bail out */
-	    if ( rc > 0 && rc != VNOVNODE ) 
-		    break;
-#endif
     }
 				    
     // delete hosts from mgroup where rpc failed 

@@ -273,8 +273,7 @@ void rename_rle::init(unsigned short srctgt, VnodeId odv, Unique_t odu, VnodeId 
 
 void rename_rle::print(int fd) {
     char buf[512];
-    SLog(1, 
-	   "name %s dir 0x%lx.%lx\n",
+    SLog(1, "name %s dir 0x%lx.%lx",
 	   oldname, otherdirv, otherdiru);
     sprintf(buf, "    %s other dir (0x%lx.%lx) %s (0x%lx.%lx)[%ld %ld %ld %ld %ld %ld %ld %ld 0x%lx.%lx 0x%lx]\n renamed to %s\n",
 	    type == SOURCE ? "(src)" : "(target)",

@@ -1464,14 +1464,15 @@ void volent::TakeTransition() {
 
     /* Special cases here. */
     /*
-     * 1.  If the volume is transitioning  _to_ emulating, any reintegations
+     * 1.  If the volume is transitioning _to_ emulating, any reintegations
      *     will not be stopped because of lack of tokens.
      */
     if (nextstate == Emulating)
 	ClearReintegratePending();
 
-    /* 2.  We refuse to transit to reintegration unless owner has auth tokens. */
-    /* 3.  We force "zombie" volumes to emulation state until they are un-zombied. */
+    /* 2. We refuse to transit to reintegration unless owner has auth tokens.
+     * 3. We force "zombie" volumes to emulation state until they are
+     *    un-zombied. */
     if (nextstate == Logging && CML.count() > 0) {
 	userent *u = 0;
 	GetUser(&u, CML.owner);
@@ -1492,23 +1493,24 @@ void volent::TakeTransition() {
 		  (!FID_VolIsFake(vid)))
 		      NotifyStateChange();
 
-	      /* If:                                                                         *
-	       *     we were disconnected                                                    *
-	       *     the user has made some (read-only) references since disconnecting, and  *
-	       *     the volume is not a local fake volume,                                  *
-	       * then we want to collect some usage statistics for the purposes of providing *
-	       * hoard advice.                                                               *
-	       *                                                                             */
+	      /* If:
+	       *   - we were disconnected
+	       *   - the user has made some (read-only) references since
+	       *     disconnecting, and
+	       *   - the volume is not a local fake volume,
+	       * then we want to collect some usage statistics for the purposes
+	       * of providing hoard advice. */
 	      if ((prevstate == Emulating) && 
 		  (FSDB->RefCounter > DiscoRefCounter) &&
 		  (!FID_VolIsFake(vid))) {
 		  FSDB->UpdateDisconnectedUseStatistics(this);
 	      }
 
-              /*  We trigger a reconnection questionnaire request to the advice monitor      *
-               *  if we are transitioning from the Emulating state into the Hoarding state.  * 
-               *  This is to catch volumes which have no modifications.  We let the advice   *
-               *  monitor decide whether or not to actually question the user.               */
+	      /*  We trigger a reconnection questionnaire request to the advice
+	       *  monitor if we are transitioning from the Emulating state into
+	       *  the Hoarding state. This is to catch volumes which have no
+	       *  modifications.  We let the advice monitor decide whether or
+	       *  not to actually question the user. */
 	      if ((prevstate == Emulating) && (AdviceEnabled) && 
 		  (!FID_VolIsFake(vid))) 
 		  TriggerReconnectionQuestionnaire();
@@ -1549,14 +1551,15 @@ void volent::TakeTransition() {
 	    if (ReadyToReintegrate()) 
 		::Reintegrate(this);
 
-            /* If:                                                                         *
-	     *     we were disconnected                                                    *
-	     *     the user has made some references since disconnecting, and              *
-	     *     the volume is not a local fake volume,                                  *
-	     * then we want to collect some usage statistics for the purposes of providing *
-	     * hoard advice.                                                               *
-             *                                                                             *
-	     * N.B. Must occur *before* call to TriggerReconnectionQuestionnaire           */
+            /* If:
+	     *   - we were disconnected
+	     *   - the user has made some references since disconnecting, and
+	     *   - the volume is not a local fake volume,
+	     * then we want to collect some usage statistics for the purposes
+	     * of providing hoard advice.
+             *
+	     * N.B. Must occur *before* call to
+	     * TriggerReconnectionQuestionnaire */
 	    if ((prevstate == Emulating) && 
 		(FSDB->RefCounter > DiscoRefCounter) &&
 		(!FID_VolIsFake(vid))) {
@@ -1564,10 +1567,11 @@ void volent::TakeTransition() {
 	    }
 
 
-            /*  We trigger a reconnection questionnaire request to the advice monitor     *
-             *  if we are transitioning from the Emulating state into the Logging state.  * 
-             *  This is to catch volumes which have modifications.  We let the advice     *
-             *  monitor decide whether or not to actually question the user.              */
+	    /*  We trigger a reconnection questionnaire request to the advice
+	     *  monitor if we are transitioning from the Emulating state into
+	     *  the Logging state. This is to catch volumes which have
+	     *  modifications.  We let the advice monitor decide whether or not
+	     *  to actually question the user. */
 	    if ((prevstate == Emulating) && (AdviceEnabled) && (!FID_VolIsFake(vid)))
 		TriggerReconnectionQuestionnaire();  
 
