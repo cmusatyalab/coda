@@ -1,0 +1,25 @@
+#
+# sets:
+#	variables, libraries for Solaris 2.6 build
+
+
+# the following may need editing depending on your preferences
+
+#MACHINE_FLAGS +=
+SHORTSYS      = sol2
+INCLFLAGS     = -I/usr/include
+OPTFLAG	      = -O2
+GFLAG         = -g
+LIBREADLINE   = /usr/local/lib/libreadline.a
+INCREADLINE   = -I/usr/local/include/readline
+#for rvm
+LIBTHREADS    =
+LIBMACH       = 
+#for advice_srv
+LIBKVM        = /usr/lib/libkvm.a
+
+KRBINCLFLAGS  = -I/usr/athena/include -I/usr/include/kerberosIV
+LIBKRBS       =    /usr/athena/lib/libkrb4.a /usr/athena/lib/libkrb5.a /usr/athena/lib/libcrypto.a /usr/athena/lib/libcom_err.a  /usr/athena/lib/libdes425.a /usr/athena/lib/libkrb524.a
+
+LIBMATH       = -lm
+GUIDIR        = /usr/lib/coda

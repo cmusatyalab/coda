@@ -72,6 +72,16 @@ case ${host_alias} in
 		esac
 		initsuffix=../etc/rc.d/init.d
  ;;
+	*-*-solaris2* )
+		shortsys=sol2
+		sys=sol2
+		case ${host_cpu} in
+			i*6 )   arch=i386 ;;
+			sparc ) arch=sparc ;;
+		esac
+		vfsdir=solaris
+		initstuff=../etc
+;;
 esac
 AC_SUBST(shortsys)
 AC_SUBST(sys)
