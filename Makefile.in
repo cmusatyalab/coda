@@ -29,10 +29,8 @@ SUBDIRS = $(I) $(II) $(III) $(IV) $(V)
 
 include $(TOPDIR)/Makerules
 
-THISDIR = $(shell pwd)
-rcs: 
-ifdef RCSDIR
+rcs RCS:
+	ln -s $(TOPDIR)/RCSLINK RCSLINK
+	ln -s RCSLINK RCS
+	find * -type d -print | while  read thedir ; do  ln -s $(TOPOBJ)/RCSLINK/$$thedir $$thedir/RCS; done
 
-	ln -s $(TOPDIR)/RCSLINK RCSLINK	
-	find . -type d -print | while  read thedir ; do  ln -s $(THISDIR)/RCSLINK/$$thedir $$thedir/RCS; done
-endif
