@@ -1280,7 +1280,7 @@ int repvol::LogRename(time_t Mtime, vuid_t vuid, ViceFid *SPFid,
     /* Record "target remove" as a separate log entry. */
     if (!FID_EQ(TFid, &NullFid)) {
 	int code;
-	if (ISDIR(*SFid))
+	if (ISDIR(*TFid))
 	    code = LogRmdir(Mtime, vuid, TPFid, NewName, TFid, tid);
 	else
 	    code = LogRemove(Mtime, vuid, TPFid, NewName, TFid, LinkCount, tid);
