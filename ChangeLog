@@ -1,3 +1,14 @@
+1998-07-23    <jaharkes@telos.odyssey.cs.cmu.edu>
+
+	* ======== Release 4.6.3 =========
+	* Removed some network flooding avoidance mechanism which caused SFTP
+	to work at 10KB/s on high bandwidth/low latency networks (100Base-T).
+	* When a volume is not automatically salvage-able, ALL errors are
+	reported instead of one. This is helpful when attempting to repair
+	by hand.
+	* Fix for norton, recreate a directory entry for some file.
+	* Modified coda.spec to _not_ to create the /usr/bin/tixwish softlink.
+
 1998-07-14    <jaharkes@telos.odyssey.cs.cmu.edu>
 
 	* ======== Release 4.6.2 =========
