@@ -92,6 +92,7 @@ AC_CHECK_HEADERS(ncurses/ncurses.h byteswap.h sys/bswap.h sys/endian.h)
 
 AC_CHECK_HEADERS(resolv.h, [], [],
 [#ifdef HAVE_NETINET_IN_H
+#include <sys/types.h>
 #include <netinet/in.h>
 #endif
 ])
