@@ -54,12 +54,19 @@ struct venus_dirent {
 
 /* debugging aids */
 
-#define panic printk
+#define coda_panic printk
 
 
-#define D_VENUSRET  1   /* print results returned by Venus */ 
-#define D_ENTRY     2   /* print entry and exit into procedure */
-#define D_MALLOC    4   /* print malloc, de-alloc information */
+/* debugging masks */
+#define D_SUPER     1   /* print results returned by Venus */ 
+#define D_INODE     2   /* print entry and exit into procedure */
+#define D_FILE      4   /* print malloc, de-alloc information */
+#define D_CACHE     8   /* cache debugging */
+#define D_MALLOC    16
+#define D_CNODE     32
+#define D_UPCALL    64  /* up and downcall debugging */
+#define D_PSDEV    128  
+#define D_SPECIAL  256
 
 #define myprintf(ARG)  printk ARG
 
@@ -88,10 +95,10 @@ do {                                                           \
 } while (0) ;                            
 
 #define ENTRY    \
-    if(coda_debug & D_ENTRY) printk("Process %d entered %s\n",current->pid,__FUNCTION__)
+    if(coda_print_entry) printk("Process %d entered %s\n",current->pid,__FUNCTION__)
 
 #define EXIT    \
-    if(coda_debug & D_ENTRY) printk("Process %d leaving %s\n",current->pid,__FUNCTION__)
+    if(coda_print_entry) printk("Process %d leaving %s\n",current->pid,__FUNCTION__)
 
 
 /* 
@@ -121,31 +128,29 @@ enum vcexcl	{ NONEXCL, EXCL};		/* (non)excl create (create) */
 #define VFS_T           struct coda_sb_info
 #define VFS_DATA        mnt_sb 
 
-/* Linux doesn't support Sun's VFS, a vnode is just an inode anyway */
+/* Linux doesn't support Sun's VFS: a vnode is just an inode anyway */
 /* these macros should only be called for Linux in core inodes */
 
-/* inode to coda_inode */
-#define ITOCI(the_inode) (struct coda_inode *)((the_inode)->u.generic_ip)
 /* inode to cnode */
-#define ITOC(the_inode)  &((ITOCI(the_inode))->ci_cnode)
+#define ITOC(the_inode)  ((struct cnode *)(the_inode)->u.generic_ip)
 /* cnode to inode */
 #define CTOI(the_cnode)  ((the_cnode)->c_vnode)
 
-
-#define panic printk
+#define coda_panic printk
 #define CHECK_CNODE(c)                                                \
 do {                                                                  \
   struct cnode *cnode = (c);                                          \
   if (!cnode)                                                         \
-    panic ("%s(%d): cnode is null\n", __FUNCTION__, __LINE__);        \
+    coda_panic ("%s(%d): cnode is null\n", __FUNCTION__, __LINE__);        \
   if (cnode->c_magic != CODA_CNODE_MAGIC)                             \
-    panic ("%s(%d): cnode magic wrong\n", __FUNCTION__, __LINE__);    \
+    coda_panic ("%s(%d): cnode magic wrong\n", __FUNCTION__, __LINE__);    \
   if (!cnode->c_vnode)                                                \
-    panic ("%s(%d): cnode has null inode\n", __FUNCTION__, __LINE__); \
+    coda_panic ("%s(%d): cnode has null inode\n", __FUNCTION__, __LINE__); \
+  if ( (struct cnode *)cnode->c_vnode->u.generic_ip != cnode )           \
+    coda_panic("AAooh, %s(%d) cnode doesn't link right!", __FUNCTION__,__LINE__);\
 } while (0);
 
 #define CN_INIT(CP)        memset((CP), 0, (int)sizeof(struct cnode))
-#define CI_INIT(CI)        bzero((CI), 0, (int)sizeof(struct coda_inode))
 
 typedef struct inode *C_VNODE_T;
 #define LINKS  struct cnode *c_next     /* needed in cnode.h */
@@ -161,7 +166,7 @@ typedef struct inode *C_VNODE_T;
 #define inode_uncache_try(a) ETXTBSY
 
 #ifdef KERNEL
-#define CTOV(cp)        CTOI(cp)
+#define CTOV(the_cp)        CTOI((the_cp))
 #define VTOC(vp)        ITOC(vp)
 #else 
 #define    CTOV(cp)        ((struct vnode *)((cp)->c_vnode))
@@ -195,29 +200,29 @@ struct cfid {
 do {                                                                      \
     if (size < 3000) {                                                    \
         ptr = (cast)kmalloc((unsigned long) size, GFP_KERNEL);            \
-                CDEBUG(D_MALLOC, "alloced: %x at %x.\n", (int) size, (int) ptr);\
-     }  else                                                              \
+                CDEBUG(D_MALLOC, "kmalloced: %x at %x.\n", (int) size, (int) ptr);\
+     }  else {                                                             \
         ptr = (cast)vmalloc((unsigned long) size);                        \
+	CDEBUG(D_MALLOC, "vmalloced: %x at %x.\n", (int) size, (int) ptr);}\
     if (ptr == 0) {                                                       \
-        panic("kernel malloc returns 0 at %s:%d\n", __FILE__, __LINE__);  \
+        coda_panic("kernel malloc returns 0 at %s:%d\n", __FILE__, __LINE__);  \
     }                                                                     \
     memset( ptr, 0, size );                                                   \
 } while (0)
 
 
-#define CODA_FREE(ptr, size) do {if (size < 3000) { kfree_s((ptr), size); CDEBUG(D_MALLOC, "de-alloced: %x at %x.\n", (int) size, (int) ptr); } else vfree((ptr));} while (0)
+#define CODA_FREE(ptr,size) do {if (size < 3000) { kfree_s((ptr), (size)); CDEBUG(D_MALLOC, "kfreed: %x at %x.\n", (int) size, (int) ptr); } else { vfree((ptr)); CDEBUG(D_MALLOC, "vfreed: %x at %x.\n", (int) size, (int) ptr);} } while (0)
 
+#define crfree(cred) CODA_FREE( (cred), sizeof(struct ucred))
 
 
 #ifdef KERNEL
 enum vtype      { VNON, VREG, VDIR, VBLK, VCHR, VLNK, VSOCK, VFIFO, VBAD };
-
 #define VTEXT           0  /* XXX what on earth is going on? */
-
 #endif KERNEL
 
-/* I assume this will work;-) */
-#define VN_HOLD(ip) ((struct inode *)ip)->i_count++; 
+/*  */
+#define VN_HOLD(ip) iget(coda_super_block, (ip)->i_ino); 
 #define VN_RELE(vp) iput((struct inode *)vp);
 
 
@@ -306,17 +311,7 @@ struct CodaCred {
 #define ucred CodaCred
 
 
-/* I need the operation to run on behalf of whomever spawned the msg, so 
- * use its curdirectory and identity.
- */
-#if 0
-#define BECOME_CALLER(msg) \
-    /*HACK*/ CHANGE_ID(msg->set->identity); \
-    /*HACK*/ Process_cdir = msg->set->curdir; \
-    /*HACK*/ Process_root = msg->set->rootdir; 
 
-#define BECOME_MYSELF(mycdir)
-#endif 
 /* Maximal pathname length */
 #define MAXPATHLEN PATH_MAX
 
@@ -329,99 +324,6 @@ struct CodaCred {
 
 
 
-/* MUTEX is badly defined in linux/wait.h */
-/*
- * QUESTION? Would it be easier to just use spin locks and assume the
- * critical section is small/short? No, duhh. we're on a uniprocessor, so
- * if a lock were held and we spun, the lock would never get released.
- * It's probably the case that this situation will never happen anyway...
- */
-
-struct mymutex {
-    int lock_data;
-    CONDITION wait;
-};
-
-
-#if 0
-#undef MUTEX
-#define MUTEX struct mymutex
-#define MUTEX_INIT(m) (m)->lock_data = 0; (m)->wait = NULL;
-
-
-#ifndef DEBUGCTHREAD
-
-#define cthread_yield() { printf("Yielding %s:%d\n", __FILE__, __LINE__); }
-
-#define condition_signal(cond) \
-    { \
-       DEBUG(THREAD,printf("Signaling condition 0x%x %s:%d\n", (int)(cond),__FILE__,__LINE__););\
-       wake_up_interruptible((cond)); \
-    }
-
-#define mutex_unlock(m)\
-    { \
-	DEBUG(THREAD,printf("mutex_unlock (0x%x)%s:%d...", (int)(m), __FILE__, __LINE__);); \
-	simple_unlock((m)); \
-        DEBUG(THREAD,printf("done\n");); \
-    }
-
-#define mutex_lock(m)\
-    { \
-	DEBUG(THREAD,printf("mutex_lock (0x%x)%s:%d...", (int)(m), __FILE__, __LINE__);); \
-	simple_lock((m)); \
-        DEBUG(THREAD,printf("done\n");); \
-    }
-
-#define condition_wait(cond, lock) \
-    { \
-       DEBUG(THREAD,printf("Waiting on condition 0x%x %s:%d\n", (int)(cond),__FILE__,__LINE__););\
-       sets_condition_wait(cond, lock); \
-       DEBUG(THREAD,printf("Recieved signal on condition 0x%x %s:%d\n", (int)(cond),__FILE__,__LINE__););\
-    } 
-    
-#else DEBUGCTHREAD
-#define mutex_lock(m)			simple_lock((m));
-#define mutex_unlock(m)			simple_unlock((m));
-
-
-#define cthread_yield() { DEBUG(THREAD,printf("Yielding %s:%d\n", __FILE__, __LINE__);); }
-
-#define condition_signal(cond) \
-    { \
-       wake_up_interruptible((cond)); \
-    }
-
-#define condition_wait(cond, lock) sets_condition_wait(cond,lock)
-
-#endif  DEBUGCTHREAD
-
-extern void sets_condition_wait(CONDITION *cond, MUTEX *lock);
-#endif 0
-
-
-
-#ifdef KERNEL
-#ifdef assert
-#undef assert
-#endif assert
-
-#define assert(cond) 							\
-    if (!(cond)) {    							\
-	printf("Assert at line \"%s\", line %d\n", __FILE__, __LINE__); \
-	for (;;) ; \
-    }
-#endif KERNEL
-/* HACK because linux insists on writing dir entries to user space. */
-
-#define CHECK_USER_BUFFER(buf, size) \
-  { \
-     int tmp; \
-     if (bufsize < DIR_PAGE_SIZE) \
-	return -EINVAL; \
-    tmp = verify_area(VERIFY_WRITE, buf, sizeof(size)); \
-    if (tmp) return tmp; \
-  }
 
 #endif _LINUX_CODA_FS
 

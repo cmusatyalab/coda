@@ -700,8 +700,9 @@ struct cfs_mntinfo {
     char		*mi_name;      /* FS-specific name for this device */
     struct ody_mntinfo	mi_vfschain;   /* List of vfs mounted on this device */
 };
-
+#ifndef __linux__
 extern struct cfs_mntinfo cfs_mnttbl[]; /* indexed by minor device number */
+#endif
 
 
 /*

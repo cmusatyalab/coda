@@ -98,7 +98,7 @@ typedef struct ViceFid {
 #ifdef __BSD44__
 #include <sys/mount.h>
 #endif
-
+#if 0
 /*
  * Cnode lookup stuff.
  * NOTE: CNODE_CACHESIZE must be a power of 2 for cfshash to work!
@@ -107,7 +107,7 @@ typedef struct ViceFid {
 #define cnode_hash(fid) \
     (((fid)->Volume + (fid)->Vnode) & (CNODE_CACHESIZE-1))
 
-
+#endif
 /* defintion of cnode, which combines ViceFid with inode information */
 
 struct cnode {
@@ -116,8 +116,8 @@ struct cnode {
 #else
         struct vnode    *c_vnode;    /* for use in Venus */
 #endif
-        u_short	    c_flags;	     /* flags (see below) */
-        ViceFid	    c_fid;	     /* file handle */
+        u_short	         c_flags;     /* flags (see below) */
+        ViceFid	         c_fid;	     /* file handle */
 #ifdef	KERNEL
         int             c_magic;     /* to verify the data structure */
 #ifdef	__linux__
@@ -140,36 +140,9 @@ struct cnode {
 
 /* flags */
 #define C_VATTR       0x1         /* Validity of vattr in the cnode */
-#define VALID_VATTR(cp)          ((cp->c_flags) & C_VATTR)
-
 #define C_SYMLINK     0x2         /* Validity of symlink pointer in the cnode */
+#define VALID_VATTR(cp)          ((cp->c_flags) & C_VATTR)
 #define VALID_SYMLINK(cp)        ((cp->c_flags) & C_SYMLINK)
-
-
-
-
-#ifdef	__linux__
-#ifndef KERNEL
-
-
-struct iattr {
-	unsigned int	ia_valid;
-	umode_t		ia_mode;
-	uid_t		ia_uid;
-	gid_t		ia_gid;
-	off_t		ia_size;
-	time_t		ia_atime;
-	time_t		ia_mtime;
-	time_t		ia_ctime;
-};
-
-struct coda_inode {
-        struct iattr ci_attr;
-        struct cnode ci_cnode;
-};
-
-#endif KERNEL
-#endif	/* __linux__ */
 
 
 #ifdef KERNEL
@@ -180,14 +153,6 @@ struct coda_inode {
 #define CN_LOCKED     0x10       /* Set if lock held */
 #define CN_UNMOUNTING 0X20       /* Set if unmounting */
 #define IS_UNMOUNTING(cp)       ((cp)->c_flags & CN_UNMOUNTING)
-
-
-#ifdef	__linux__
-struct coda_inode {
-        struct iattr ci_attr;
-        struct cnode ci_cnode;
-};
-#endif	/* __linux__ */
 
 #endif KERNEL
 
