@@ -63,7 +63,7 @@ CFLAGS += -DCODAAUTH
 ifeq ($(SHORTSYS),djgpp)
 EXECUTABLES = $(CLOG)
 else
-EXECUTABLES = $(CLOG) $(AUTH2) initpw $(AU) cpasswd ctokens cunlog
+EXECUTABLES = $(CLOG) $(AUTH2) initpw $(AU) cpasswd ctokens cunlog tokentool
 CBINS       = $(CLOG) cpasswd ctokens cunlog
 
 CSBINS      = $(AU)
@@ -115,3 +115,6 @@ cpasswd: cpasswd.o libauser.a ${LIBS}
 
 ctokens: ctokens.o libauser.a ${LIBS}
 	${CC} $(LIBFLAGS) ctokens.o libauser.a ${LIBS} $(LIBFIXUP) -o ctokens
+
+tokentool: tokentool.o tokenfile.o ${LIBS}
+	${CC} $(LIBFLAGS) tokentool.o tokenfile.o ${LIBS} $(LIBFIXUP) -o tokentool

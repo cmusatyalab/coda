@@ -53,6 +53,7 @@ void WriteTokenToFile(char *filename, ClearToken *cToken,
 
     f = fopen(filename, "w");
     fputs("*** Coda Token ***", f);
+    base64_encode(f, buf, len);
     fclose(f);
     free(buf);
 }
