@@ -55,6 +55,7 @@ int main(int argc, char **argv)
   struct rwcdb dbh; /* database handle */
   int rc, i, open = 0;
   char dbfile[PATH_MAX], realroot[PATH_MAX], prefix[PATH_MAX];
+  char *lkdbdir, *lkdbfile;
   char *tmp, *d, *r;
   int dirs = 0;
 
@@ -70,11 +71,23 @@ int main(int argc, char **argv)
   if (!NewLKDB || !TreeRoot) goto ParseError;
 
   /* get absolute path to the lka database we want to create */
-  tmp = realpath(NewLKDB, dbfile);
+  tmp = strrchr(NewLKDB, '/');
   if (!tmp) {
-    printf("realpath(%s): %s\n", NewLKDB, strerror(errno));
+      lkdbdir = ".";
+      lkdbfile = NewLKDB;
+  } else {
+      *tmp = '\0';
+      lkdbdir = NewLKDB;
+      lkdbfile = tmp + 1;
+  }
+
+  tmp = realpath(lkdbdir, dbfile);
+  if (!tmp) {
+    printf("realpath(%s): %s\n", lkdbfile, strerror(errno));
     goto err;
   }
+  strcat(dbfile, "/");
+  strcat(dbfile, lkdbfile);
 
   /* get absolute path to the subtree we want to index */
   tmp = realpath(TreeRoot, realroot);
@@ -99,7 +112,7 @@ int main(int argc, char **argv)
   }
 
   /* Create lookaside database */
-  rc = rwcdb_init(&dbh, dbfile, O_RDWR);
+  rc = rwcdb_init(&dbh, dbfile, O_CREAT | O_RDWR);
   if (rc) {
     printf("%s: %s\n", dbfile, strerror(errno));
     goto err;
