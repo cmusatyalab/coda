@@ -181,7 +181,7 @@ int repair_getmnt(char *realpath, char *prefix, char *suffix, VolumeId *vid,
 	}
 
 	/* possibility 3: crossed an internal Coda mount point */
-	if (oldvid != currvid && strcmp(oldrealm, currrealm) != 0)
+	if (oldvid != currvid || strcmp(oldrealm, currrealm) != 0)
 	    break; /* restore slash to previous value and break */
 
 	/* possibility 4: we are still in the same volume */

@@ -446,7 +446,7 @@ int EndRepair(struct repvol *repv, int commit, char *msg, int msgsize) {
 	vioc.out = NULL;
 	vioc.out_size = 0;
 	errno = 0;
-	if ((rc = pioctl(repv->rodir, VIOC_DISABLEREPAIR, &vioc, 0)) < 0)
+	if ((rc = pioctl(repv->mnt, VIOC_DISABLEREPAIR, &vioc, 0)) < 0)
 	    strerr(msg, msgsize, "DISABLEREPAIR %s: %s", repv->mnt, strerror(errno));
     }
     repair_finish(repv);
