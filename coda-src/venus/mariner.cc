@@ -445,7 +445,7 @@ void mariner::main(void)
 	if (argc < 1 || STREQ(argv[0], "help")) {
 	    Write(
 "Commands are:\n"
-"\thelp, debugon, debugoff, dumpcore, quit, rpcon, rpcoff, rpc2t\n"
+"\thelp, debugon, debugoff, dumpcore, quit, rpc2t\n"
 "\tcop <modes>, umc, set:fetch, clear:fetch, reporton <uid>, reportoff\n"
 "\t, fd <fd>pathstat <pathname>, fidstat <fid>, rpc2stat, print <args>\n");
 	}
@@ -462,16 +462,6 @@ void mariner::main(void)
 	}
 	else if (STREQ(argv[0], "quit")) {
 	    dying = 1;
-	}
-	else if (STREQ(argv[0], "rpcon")) {
-	    if (freopen("rpc.log", "w+", stdout) == NULL)
-		Write("rpcon failed\n");
-	    else
-		RPC2_DebugLevel = 100;
-	}
-	else if (STREQ(argv[0], "rpcoff")) {
-	    fflush(stdout);
-	    fclose(stdout);
 	}
 	else if (STREQ(argv[0], "rpc2t")) {
 	    if (rpc2trace == 0) {	/* Turn on rpc2 tracing. */

@@ -105,11 +105,7 @@ int NameCtxt_deallocs = 0;
 
 /*  *****  Private Constants  *****  */
 
-#ifndef UTMP_FILE
-#define	UTMP_FILE   "/etc/utmp"
-#endif
-#define	CONSOLE	    "console"
-/*static const*/ int HDB_YIELDMASK = 0x1;  /* yield every 2 iterations */
+static const int HDB_YIELDMASK = 0x1;  /* yield every 2 iterations */
 
 
 /*  *****  Private Variables  *****  */

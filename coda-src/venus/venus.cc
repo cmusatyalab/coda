@@ -127,14 +127,6 @@ struct in_addr venus_relay_addr = { INADDR_LOOPBACK };
 /* local-repair modification */
 int main(int argc, char **argv)
 {
-    /* Print to the console -- important during reboot. */
-#if ! defined(__CYGWIN32__) && ! defined(DJGPP)
-    freopen("/dev/console", "w", stderr);
-#endif
-    fprintf(stderr, "Coda Venus, version %d.%d.%d\n\r",
-	    VenusMajorVersion, VenusMinorVersion, VenusReleaseVersion);
-    fflush(stderr);
-
     coda_assert_action = CODA_ASSERT_SLEEP;
     coda_assert_cleanup = VFSUnmount;
 
@@ -143,9 +135,8 @@ int main(int argc, char **argv)
 
     /* open the console file and print vital info */
     freopen(consoleFile, "a+", stderr);
-    fprintf(stderr, "Coda Venus, version %d.%d.%d\n",
-             VenusMajorVersion, VenusMinorVersion, VenusReleaseVersion);
-    fflush(stderr);
+    eprint("Coda Venus, version %d.%d.%d\n",
+	   VenusMajorVersion, VenusMinorVersion, VenusReleaseVersion);
     
     CdToCacheDir(); 
     CheckInitFile();

@@ -82,7 +82,7 @@ extern "C" {
 
 /* *****  Exported variables  ***** */
 
-FILE *logFile = 0;
+FILE *logFile;
 int LogLevel = 0;
 int MallocTrace = 0;
 const VenusFid NullFid = {0, 0, 0, 0};
