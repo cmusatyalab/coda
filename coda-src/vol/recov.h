@@ -24,6 +24,8 @@ listed in the file CREDITS.
 #ifndef _RECOV_H_
 #define _RECOV_H_ 1
 
+#include <volume.h>
+
 #define HASHTABLESIZE	512	/* Number of buckets in volume hash table */
 
 extern int coda_init();
