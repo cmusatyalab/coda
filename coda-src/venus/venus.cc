@@ -60,6 +60,8 @@ extern "C" {
 #include "coda_assert.h"
 #include "codaconf.h"
 
+#include "nt_util.h"
+
 #include <coda_config.h>
 
 /* FreeBSD 2.2.5 defines this in rpc/types.h, all others in netinet/in.h */
@@ -236,6 +238,10 @@ int main(int argc, char **argv) {
     fflush(stderr);
 
     LWP_TerminateProcessSupport();
+
+#if defined(__CYGWIN32__) && defined(NEW_NT_IPC)
+    nt_stop_ipc();
+#endif
     exit(0);
 }
 
