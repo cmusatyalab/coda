@@ -13,6 +13,15 @@ VMOVED, 111 , VMOVED, /* Volume has moved; do a VGetVolumeInfo */
 VNOSERVER, 112 , VNOSERVER, /* File server lwp is not running */
 VLOGSTALE, 113 , VLOGSTALE, /* CML head already reintegrated successfully */
 VFAIL, 200 , VFAIL, /* Unknown Coda error */
+CAEFAIL, 300, CAEFAIL, /* Unknown error related to the Advice Monitor */
+CAEVERSIONSKEW, 301, CAEVERSIONSKEW, /* Version skew between Venus and the Advice Monitor */
+CAENOSUCHUSER, 302, CAENOSUCHUSER, /* Advice Monitor attempted to connect on behalf of an unknown user */
+CAENOTVALID, 303, CAENOTVALID, /* Advice Monitor attempted to test liveness of a connection that is not valid */
+CAENOASR, 304, CAENOASR, /* Advice Monitor returned the result of an ASR, but not ASR is pending */
+CAEUNEXPECTEDASR, 305, CAEUNEXPECTEDASR, /* Advice Monitor returned the result of the wrong ASR */
+CAEASRINPROGRESS, 306, CAEASRINPROGRESS, /* Venus requested an ASR while another one is in progress */
+CAEADVICEPENDING, 307, CAEADVICEPENDING, /* Advice Monitor requested a NewConnection while a request for advice is pending; try again later */
+EINCOMPATIBLE, 198, EINCOMPATIBLE, /* Version vectors are incompatible */
 EINCONS, 199, EINCONS, /* File is inconsistent */
 CEPERM, 1 , EPERM, /* Operation not permitted */
 CENOENT, 2 , ENOENT, /* No such file or directory */
