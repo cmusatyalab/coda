@@ -49,9 +49,10 @@ void ViceSHAtoHex (unsigned char vsha[SHA_DIGEST_LENGTH],
 
   int i;
 
-  if (printbuflen < (1 + (3*SHA_DIGEST_LENGTH - 1))) return; /* buffer too short */
+  if (printbuflen <= (3*SHA_DIGEST_LENGTH - 1)) return; /* buffer too short */
   for (i = 0; i < SHA_DIGEST_LENGTH; i++)
-    sprintf(&printbuf[3*i], "%s%02x.", i ? "." : "", vsha[i]);
+    sprintf(&printbuf[3*i], "%02x.", vsha[i]);
+  printbuf[3*SHA_DIGEST_LENGTH-1] = '\0';
 }
 
 
@@ -82,7 +83,7 @@ int ComputeViceSHA(int fd, unsigned char vsha[SHA_DIGEST_LENGTH])
 
 int IsZeroSHA(unsigned char testsha[SHA_DIGEST_LENGTH])
 {
-/* IsZeroSHA() returns 1 iff testsha is all zeros; 0 otherwise */
+/* IsZeroSHA() returns 1 if testsha is all zeros; 0 otherwise */
 
   for (int i = 0; i < SHA_DIGEST_LENGTH; i++)
     if (testsha[i]) return(0); /* non-zero byte in sha */

@@ -853,7 +853,7 @@ int fsobj::GetAttr(vuid_t vuid, RPC2_BoundedBS *acl)
 
 		  if (m->rocc.AllReplicasSupportSHA()) {
 
-		    LOG(0, ("fsobj::GetAttr: ViceGetAttrPlusSHA(0x%x.%x.%x)\n", fid.Volume, fid.Vnode, fid.Unique));
+		    LOG(1, ("fsobj::GetAttr: ViceGetAttrPlusSHA(0x%x.%x.%x)\n", fid.Volume, fid.Vnode, fid.Unique));
 		    MULTI_START_MESSAGE(ViceGetAttrPlusSHA_OP);
 		    code = (int)MRPC_MakeMulti(ViceGetAttrPlusSHA_OP, ViceGetAttrPlusSHA_PTR,
 					       VSG_MEMBERS, m->rocc.handles,
@@ -870,7 +870,7 @@ int fsobj::GetAttr(vuid_t vuid, RPC2_BoundedBS *acl)
 		    MULTI_RECORD_STATS(ViceGetAttrPlusSHA_OP);
 		  }
 		  else {
-		    LOG(0, ("fsobj::GetAttr: ViceGetAttr()\n"));
+		    LOG(1, ("fsobj::GetAttr: ViceGetAttr()\n"));
 		    MULTI_START_MESSAGE(ViceGetAttr_OP);
 		    code = (int)MRPC_MakeMulti(ViceGetAttr_OP, ViceGetAttr_PTR,
 					       VSG_MEMBERS, m->rocc.handles,

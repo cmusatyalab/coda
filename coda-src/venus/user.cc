@@ -499,9 +499,8 @@ int userent::Connect(RPC2_Handle *cid, int *auth, struct in_addr *host)
 	  ViceStatus dummystatus;
 	  ViceFid bogusfid = {0, 0, 0}; /* we expect EINVAL return code */
 	  RPC2_BoundedBS dummysha;
-	  RPC2_Byte dummybuf[SHA_DIGEST_LENGTH];
-	  dummysha.SeqBody = dummybuf;
-	  dummysha.MaxSeqLen = SHA_DIGEST_LENGTH;
+	  dummysha.SeqBody = NULL;
+	  dummysha.MaxSeqLen = 0;
 	  dummysha.SeqLen = 0;
 	  int shacode = 0;
 
