@@ -1,3 +1,8 @@
+1999-05-13    <jaharkes@cs.cmu.edu>
+	* Avoid random data problems and buffer overflows when reading
+	  auth2 and volutil tokens.
+	* Only query the servers in the vstab for volume information.
+
 1999-05-07    <jaharkes@cs.cmu.edu>
 	* Servers would assert when they got a connection from an unknown
 	  userid.

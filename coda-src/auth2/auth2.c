@@ -371,7 +371,7 @@ static void CheckTokenKey()
 	    exit(-1);
 	    }
 	memset(TokenKey, 0, RPC2_KEYSIZE);
-	read(tf, TokenKey, RPC2_KEYSIZE);
+	fread(TokenKey, 1, RPC2_KEYSIZE, tf);
 	TokenTime = statbuf.st_mtime;
 	fclose(tf);
 	}

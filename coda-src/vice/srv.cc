@@ -1555,7 +1555,7 @@ static void InitServerKeys(char *fkey1, char *fkey2)
     } else {
 	NoKey1 = 0;
 	memset(ptrkey1, 0, RPC2_KEYSIZE);
-	read(tf, ptrkey1, RPC2_KEYSIZE);
+	fread(ptrkey1, 1, RPC2_KEYSIZE, tf);
 	fclose(tf);
     }
 
@@ -1565,7 +1565,7 @@ static void InitServerKeys(char *fkey1, char *fkey2)
     } else {
         NoKey2 = 0;
 	memset(ptrkey2, 0, RPC2_KEYSIZE);
-	read(tf, ptrkey2, RPC2_KEYSIZE);
+	fread(ptrkey2, 1, RPC2_KEYSIZE, tf);
 	fclose(tf);
     }
 

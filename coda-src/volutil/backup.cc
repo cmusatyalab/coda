@@ -1093,7 +1093,7 @@ static void V_InitRPC()
 	exit(-1);
     }
     memset(vkey, 0, RPC2_KEYSIZE);
-    read(tokfile, vkey, RPC2_KEYSIZE);
+    fread(vkey, 1, RPC2_KEYSIZE, tokfile);
     fclose(tokfile);
 
     CODA_ASSERT(LWP_Init(LWP_VERSION, LWP_MAX_PRIORITY-1, &mylpid) == LWP_SUCCESS);
