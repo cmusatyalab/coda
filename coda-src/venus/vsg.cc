@@ -39,11 +39,14 @@ vsgent::vsgent(struct in_addr Hosts[VSG_MEMBERS], RealmId id)
 
     realmid = id;
     nhosts = 0;
+    max_vsg = 0;
     for (i = 0; i < VSG_MEMBERS; i++) {
         hosts[i] = Hosts[i];
 
-        if (Hosts[i].s_addr)
+        if (Hosts[i].s_addr) {
             nhosts++;
+	    max_vsg = i+1;
+	}
     }
 
     list_head_init(&mgrpents);

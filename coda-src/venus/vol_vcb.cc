@@ -216,7 +216,7 @@ int repvol::GetVolAttr(uid_t uid)
                 if (LogLevel >= 1000) PrintVV(logFile, &rv->VVV);
 
                 VidList[nVols].Vid = rv->GetVolumeId();
-                for (i = 0; i < VSG_MEMBERS; i++) {
+                for (i = 0; i < vsg->MaxVSG(); i++) {
                     *((RPC2_Unsigned *)&((char *)VSBS.SeqBody)[VSBS.SeqLen]) =
                         htonl((&rv->VVV.Versions.Site0)[i]);
                     VSBS.SeqLen += sizeof(RPC2_Unsigned);
@@ -265,7 +265,7 @@ int repvol::GetVolAttr(uid_t uid)
 	    }
 
 	    unsigned numVFlags = 0;
-	    for (i = 0; i < VSG_MEMBERS; i++) {
+	    for (i = 0; i < vsg->MaxVSG(); i++) {
 		if (m->rocc.hosts[i].s_addr != 0) {
 		    if (numVFlags == 0) {
 			/* unset, copy in one response */
@@ -361,12 +361,12 @@ void repvol::CollateVCB(mgrpent *m, RPC2_Integer *sbufs, CallBackStatus *cbufs)
     	PrintVV(logFile, &VVV);
 
 	fprintf(logFile, "volent::CollateVCB: Version stamps returned:");
-	for (i = 0; i < VSG_MEMBERS; i++)
+	for (i = 0; i < vsg->MaxVSG(); i++)
 	    if (m->rocc.hosts[i].s_addr != 0) 
 		fprintf(logFile, " %lu", sbufs[i]);
 
 	fprintf(logFile, "\nvolent::CollateVCB: Callback status returned:");
-	for (i = 0; i < VSG_MEMBERS; i++) 
+	for (i = 0; i < vsg->MaxVSG(); i++) 
 	    if (m->rocc.hosts[i].s_addr != 0)
 	    	fprintf(logFile, " %u", cbufs[i]);
 
@@ -374,7 +374,7 @@ void repvol::CollateVCB(mgrpent *m, RPC2_Integer *sbufs, CallBackStatus *cbufs)
 	fflush(logFile);
     }
 
-    for (i = 0; i < VSG_MEMBERS; i++) {
+    for (i = 0; i < vsg->MaxVSG(); i++) {
 	if (m->rocc.hosts[i].s_addr != 0 && (cbufs[i] != CallBackSet))
 	    collatedCB = NoCallBack;
     }
@@ -383,7 +383,7 @@ void repvol::CollateVCB(mgrpent *m, RPC2_Integer *sbufs, CallBackStatus *cbufs)
 	SetCallBack();
 	Recov_BeginTrans();
 	    RVMLIB_REC_OBJECT(VVV);
-	    for (i = 0; i < VSG_MEMBERS; i++)
+	    for (i = 0; i < vsg->MaxVSG(); i++)
 	        if (m->rocc.hosts[i].s_addr != 0)
 		   (&VVV.Versions.Site0)[i] = sbufs[i];
 	Recov_EndTrans(MAXFP);
@@ -392,7 +392,7 @@ void repvol::CollateVCB(mgrpent *m, RPC2_Integer *sbufs, CallBackStatus *cbufs)
 
 	/* check if any of the returned stamps are zero.
 	   If so, server said stamp invalid. */
-        for (i = 0; i < VSG_MEMBERS; i++)
+        for (i = 0; i < vsg->MaxVSG(); i++)
 	    if (m->rocc.hosts[i].s_addr != 0 && (sbufs[i] == 0)) {
 		Recov_BeginTrans();
 		   RVMLIB_REC_OBJECT(VVV);

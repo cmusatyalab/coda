@@ -41,6 +41,7 @@ class vsgent : private RefCountedObject {
 
 private:
     unsigned int nhosts; /* number of replica servers in this VSG */
+    unsigned int max_vsg; /* highest used index in the hosts array */
     struct in_addr hosts[VSG_MEMBERS];  /* hosts in this VSG */
     struct dllist_head mgrpents;        /* list of mgroups for this VSG */
     RealmId realmid;
@@ -68,6 +69,7 @@ public:
     void KillMgrpMember(struct in_addr *);
 
     unsigned int NHosts(void) { return nhosts; }
+    unsigned int MaxVSG(void) { return max_vsg; }
     void GetHosts(struct in_addr Hosts[VSG_MEMBERS]) {
       memcpy(Hosts, hosts, VSG_MEMBERS * sizeof(struct in_addr));
     }
