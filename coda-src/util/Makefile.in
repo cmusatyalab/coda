@@ -28,7 +28,7 @@ include $(TOPDIR)/Makeconf
 
 LIBRARIES = libutil.a
 HEADERS   = util.h olist.h ohash.h dlist.h dhash.h bstree.h dict.h \
-	    histo.h rvmlib.h rec_olist.h \
+	    daemonizer.h histo.h rvmlib.h rec_olist.h \
 	    rec_smolist.h rec_ohash.h rec_dlist.h rec_dhash.h rec_bstree.h \
 	    vmindex.h bitmap.h arrlist.h recvarl.h rvmtesting.h bitvect.h\
 	    mkpath.h vice_file.h getsecret.h
@@ -36,7 +36,7 @@ HEADERS   = util.h olist.h ohash.h dlist.h dhash.h bstree.h dict.h \
 OBJECTS = util.o olist.o ohash.o dlist.o dhash.o bstree.o dict.o  \
 	  histo.o rvmlib.o rec_olist.o rec_smolist.o rec_ohash.o rec_dlist.o \
 	  rec_dhash.o rec_bstree.o vmindex.o arrlist.o recvarl.o \
-	  rvmtesting.o bitvect.o bitmap.o bitvect.o  \
+	  rvmtesting.o bitvect.o bitmap.o bitvect.o daemonizer.o \
 	  rec_dhash.o rec_bstree.o bitmap.o vmindex.o arrlist.o recvarl.o \
 	  rvmtesting.o bitvect.o mkpath.o vice_file.o getsecret.o
 
