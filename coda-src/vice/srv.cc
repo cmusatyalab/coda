@@ -620,10 +620,21 @@ static void ServerLWP(int *Ident)
 	    if (RPC2_GetPrivatePointer(mycid, (char **)&client) != RPC2_SUCCESS) 
 		client = 0;
 	    
-	    if (client && client->RPCid != mycid) {
-	        SLog(0, "Invalid client pointer from GetPrivatePointer");
-		myrequest->Header.Opcode = BADCLIENT; /* ignore request & Unbind */
-		client = 0;
+	    if (client) {
+		/* check rpc2 connection handle */
+		if (client->RPCid != mycid) {
+		    SLog(0, "Invalid client pointer from GetPrivatePointer");
+		    myrequest->Header.Opcode = BADCLIENT; /* ignore request & Unbind */
+		    client = 0;
+		}
+		/* check token expiry, compare the token expiry time to the
+		 * receive timestamp in the PacketBuffer. */
+		if (client->SecurityLevel != RPC2_OPENKIMONO &&
+		    myrequest->Prefix.RecvStamp.tv_sec > client->Token.EndTimestamp) {
+		    SLog(0, "Client Token expired");
+		    /* force a disconnection for this rpc2 connection */
+		    myrequest->Header.Opcode = TokenExpired_OP;
+		}
 	    }
 	    LastOp[lwpid] = myrequest->Header.Opcode;
 	    CurrentClient[lwpid] = client;

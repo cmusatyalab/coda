@@ -705,31 +705,31 @@ long FS_ViceNewConnection(RPC2_Handle RPCid, RPC2_Integer set,
 			  RPC2_Integer sl,  RPC2_Integer et, 
 			  RPC2_Integer at, RPC2_CountedBS *cid)
 {
-	ClientEntry *client = 0;
-	SecretToken st;
-	char    user[PRS_MAXNAMELEN+1];
+	char username[PRS_MAXNAMELEN+1] = NEWCONNECT;
+	SecretToken *st = NULL;
+	ClientEntry *client = NULL;
 	long errorCode;
 
 	if (sl == RPC2_OPENKIMONO) {
-		if (cid->SeqLen > 0)
-			strncpy(user, (char *)cid->SeqBody, PRS_MAXNAMELEN);
-		else
-			strcpy(user, NEWCONNECT);
-	} else {
-		bcopy(cid->SeqBody, (char *)&st, (int)cid->SeqLen);
-		SLog(1, "Authorized Connection for uid %d, Start %d, end %d, time %d",
-		     st.ViceId, st.BeginTimestamp, st.EndTimestamp, time(0));
-		if (AL_IdToName((int) st.ViceId, user))
-			strcpy(user, "System:AnyUser");
+	    strncpy(username, cid->SeqBody, PRS_MAXNAMELEN);
+	    username[PRS_MAXNAMELEN] = '\0';
+	} else
+	    st = (SecretToken *)cid->SeqBody;
+
+	errorCode = CLIENT_Build(RPCid, username, sl, st, &client);
+	if (errorCode) {
+	    SLog(0,"New connection setup FAILED, RPCid %d, security level %d, "
+		   "remote cid %d returns %s",
+		 RPCid, sl, cid, ViceErrorMsg((int) errorCode));
+	    return (errorCode);
 	}
+	
+	client->SEType = (int) set;
 
-	errorCode = CLIENT_Build(RPCid, user, sl, &client);
-	if (!errorCode) 
-		client->SEType = (int) set;
+	SLog(1,"New connection received RPCid %d, security lvl %d, rem id %d",
+	     RPCid, sl, cid);
 
-	SLog(1,"New connection received RPCid %d, security level %d, remote cid %d returns %s",
-	     RPCid, sl, cid, ViceErrorMsg((int) errorCode));
-	return(errorCode);
+	return(0);
 }
 
 

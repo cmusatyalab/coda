@@ -82,25 +82,31 @@ static char *client_SLDecode(RPC2_Integer);
 static void client_SetUserName(ClientEntry *);
 
 
-int CLIENT_Build(RPC2_Handle RPCid, char *User, RPC2_Integer sl, 
-		 ClientEntry **client) 
+int CLIENT_Build(RPC2_Handle RPCid, char *User, RPC2_Integer sl,
+		 SecretToken *st, ClientEntry **client) 
 {
     long errorCode;
 
-    /* Translate from textual representation of uid to user name (if necessary). */
-    char username[PRS_MAXNAMELEN + 1];
-    if (STRNEQ(User, "UID=", 4)) {
-	if (AL_IdToName(atoi(User + 4), username))
-		strcpy(username,"System:AnyUser");
+    /* get the client's username */
+    if (sl == RPC2_OPENKIMONO) {
+	if (STRNEQ(User, "UID=", 4) && AL_IdToName(atoi(User+4), User) == -1)
+	    strcpy(User,"System:AnyUser");
     } else {
-	    strcpy(username, User);
+	/* The token length, magic, and expiration times have already
+	 * been validated by GetKeysFromToken */
+	if (AL_IdToName((int) st->ViceId, User) == -1)
+	    strcpy(User, "System:AnyUser");
+
+	SLog(1, "Authorized Connection for user %s, uid %d, "
+		"Start %d, end %d, time %d",
+	     User, st->ViceId, st->BeginTimestamp, st->EndTimestamp, time(0));
     }
 
     /* Get the private pointer; it will be used to hold a reference to
        the new client entry. */
     errorCode = RPC2_GetPrivatePointer(RPCid, (char **)client);
-    if(errorCode != RPC2_SUCCESS)
-	    return(errorCode);
+    if(errorCode != RPC2_SUCCESS) return(errorCode);
+
     if (*client) {
 	    SLog(0, "Someone left garbage in the client pointer. Freeing.");
 	    /* I added this; couldn't see any reason not to free it. -JJK */
@@ -116,7 +122,10 @@ int CLIENT_Build(RPC2_Handle RPCid, char *User, RPC2_Integer sl,
     (*client)->DoUnbind = 0;
     (*client)->LastOp = 0;
     (*client)->SecurityLevel = sl;
-    strcpy((*client)->UserName, username);
+    strcpy((*client)->UserName, User);
+    if (st) memcpy(&(*client)->Token, st, sizeof(SecretToken));
+    else    memset(&(*client)->Token, 0, sizeof(SecretToken));
+
     (*client)->VenusId = client_GetVenusId(RPCid);
 
     /* Stash a reference to the new entry in the connection's private
@@ -189,7 +198,6 @@ void CLIENT_Delete(ClientEntry *clientPtr)
 
 static HostTable *client_GetVenusId(RPC2_Handle RPCid) 
 {
-
 	/* Look up the Peer info corresponding to the given RPC
            handle. */
 	RPC2_PeerInfo peer;
@@ -421,7 +429,6 @@ static void client_SetUserName(ClientEntry *client)
 				   (int *)&(client->Id)) == 0);
 	}
 	CODA_ASSERT(AL_GetInternalCPS((int) client->Id, &(client->CPS)) == 0);
-	
 }
 
 

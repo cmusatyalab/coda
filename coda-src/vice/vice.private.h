@@ -21,7 +21,8 @@ listed in the file CREDITS.
 
 
 
-extern int CLIENT_Build(RPC2_Handle, char *, RPC2_Integer, ClientEntry **);
+extern int CLIENT_Build(RPC2_Handle, char *, RPC2_Integer, SecretToken *,
+			ClientEntry **);
 extern void CLIENT_Delete(ClientEntry *);
 extern void CLIENT_CleanUpHost(HostTable *);
 extern void CLIENT_GetWorkStats(int *, int *, unsigned int);
