@@ -866,8 +866,6 @@ void fsobj::SetRcRights(int rights) {
 	Recov_EndTrans(MAXFP);
     }
 
-    FSO_ASSERT(this, flags.local == 1);
-
     /* There is a problem if the rights are set that we have valid data,
      * but we actually don't have data yet. */
     FSO_ASSERT(this, !(rights & RC_DATA) ||
