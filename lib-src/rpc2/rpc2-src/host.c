@@ -73,8 +73,10 @@ int HASHHOST(struct RPC2_addrinfo *ai)
 	lsb = ((struct sockaddr_in *)ai->ai_addr)->sin_addr.s_addr;
 	break;
 
+#if defined(PF_INET6)
     case PF_INET6:
 	lsb = ((u_int32_t *)&((struct sockaddr_in6 *)ai->ai_addr)->sin6_addr)[3];
+#endif
 	break;
     }
     return lsb & (HOSTHASHBUCKETS-1);

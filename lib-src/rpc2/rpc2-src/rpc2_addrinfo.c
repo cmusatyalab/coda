@@ -108,7 +108,7 @@ static int addrinfo_init(int family, const void *addr, short port,
 	    addrlen = sizeof(*sin);
 	    break;
 	}
-#if !defined(__CYGWIN32__)
+#if defined(PF_INET6)
     case PF_INET6:
 	{
 	    struct sockaddr_in6 *sin6 = (struct sockaddr_in6 *)&ss;
@@ -148,7 +148,9 @@ static int getaddrinfo_noresolve(const char *node, short port,
     int err4, err6;
 
     err4 = err6 = RPC2_EAI_NONAME;
+#if defined(PF_INET6)
     if (!hints || hints->ai_family != PF_INET6) /* PF_UNSPEC || PF_INET */
+#endif
     {
 	struct in_addr addr;
 	if (!node) {
@@ -163,7 +165,7 @@ static int getaddrinfo_noresolve(const char *node, short port,
     }
 v4_not_found:
 
-#if !defined(__CYGWIN32__)
+#if defined(PF_INET6)
     if (!hints || hints->ai_family != PF_INET) /* PF_UNSPEC || PF_INET6 */
     {
 	struct in6_addr addr;
@@ -275,7 +277,7 @@ int RPC2_cmpaddrinfo(const struct RPC2_addrinfo *node,
 		    return 1;
 		break;
 	    }
-#if !defined(__CYGWIN32__)
+#if defined(PF_INET6)
 	case PF_INET6:
 	    {
 		struct sockaddr_in6 *sin6N, *sin6H;
@@ -316,10 +318,12 @@ void RPC2_formataddrinfo(const struct RPC2_addrinfo *ai,
 	port = ((struct sockaddr_in *)ai->ai_addr)->sin_port;
 	prefix = 0;
 	break;
+#if defined(PF_INET6)
     case PF_INET6:
 	addr = &((struct sockaddr_in6 *)ai->ai_addr)->sin6_addr;
 	port = ((struct sockaddr_in6 *)ai->ai_addr)->sin6_port;
 	break;
+#endif
     }
 
     if (ai->ai_canonname) {
@@ -411,9 +415,14 @@ int RPC2_getaddrinfo(const char *node, const char *service,
     if (!node || (hints && hints->ai_flags & RPC2_AI_NUMERICHOST))
 	return getaddrinfo_noresolve(node, port, hints, res);
 
+#if defined (PF_INET6)
     family = (hints && hints->ai_family == PF_INET) ? PF_INET : PF_INET6;
-
     he = getipnodebyname(node, family, (family == PF_INET6) ? AI_ALL : 0, &err);
+#else
+    he = getipnodebyname(node, family, 0, &err);
+
+#endif
+
     if (!he) {
 	switch (err) {
 	case HOST_TRY_AGAIN: return RPC2_EAI_AGAIN;
@@ -569,10 +578,12 @@ void rpc2_splitaddrinfo(RPC2_HostIdent *Host, RPC2_PortIdent *Port,
             Port->Value.InetPortNumber =
                 ((struct sockaddr_in *)ai->ai_addr)->sin_port;
             break;
+#if defined(PF_INET6)
         case PF_INET6:
             Port->Value.InetPortNumber =
                 ((struct sockaddr_in6 *)ai->ai_addr)->sin6_port;
             break;
+#endif
         default:
             Port->Tag = RPC2_DUMMYPORT;
         }
