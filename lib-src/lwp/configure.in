@@ -43,7 +43,7 @@ if test ${build} != ${target} ; then
 fi
 
 dnl Finalizing initialization
-AM_INIT_AUTOMAKE(lwp, 1.0)
+AM_INIT_AUTOMAKE(lwp, 5.3)
 AM_CONFIG_HEADER(config.h)
 
 dnl Checks for programs.
