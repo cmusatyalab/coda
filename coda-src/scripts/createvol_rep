@@ -97,6 +97,9 @@ if  [ $# = 3 ]; then
 		    xCYGWIN32_NT)
 			HEXGROUPID=`printf %x $GROUPID`
 			;;
+		    xCYGWIN_NT-4.0)
+			HEXGROUPID=`printf %x $GROUPID`
+			;;
 		    x*)	
 			cat << EOF >/tmp/$$
 ibase = 10

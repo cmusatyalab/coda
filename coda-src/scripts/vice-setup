@@ -84,8 +84,8 @@ auth2.tk.BAK
 auth2.lock
 pro.db
 servers
-vice.pdb
-vice.pcf
+coda.pdb
+name.pdb
 volutil.tk
 VRDB
 files
@@ -111,6 +111,8 @@ echo lockfiles created.
 
 case x`uname`  in
   xCYGWIN32_NT)
+    ;;
+  xCYGWIN_NT-4.0)
     ;;
   x*)
     vice-setup-ports
@@ -217,9 +219,3 @@ vice-setup-srvdir
 echo "You have set up " `cat /vice/hostname`
 echo "Your scm is " `cat /vice/db/scm`
 echo "Other config files will be fetched from the SCM by updateclnt."
-
-
-
-
-
-

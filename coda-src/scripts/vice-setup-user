@@ -60,14 +60,22 @@ until [ x$username != x ]; do
  	fi
 done
 
-echo "System:Administrators   -204    $username" > group.coda
-echo $username::$userid::Administrator:: > user.coda
+cat > pdbsetup<<EOF
+nui Anonymous 776
+nui System 777
+ng System:Anyuser 777
+ci System:Anyuser -101
+nui $username $userid
+ng System:Administrators $userid
+ci System:Administrators -204
+EOF
 
-pwd2pdb -u user.coda -g group.coda > vice.pdb
-pcfgen vice.pdb
+pdbtool pdbsetup
+rm pdbsetup
 
 echo "$userid	changeme	admin user" > passwd.coda
 initpw -k "drseuss " < passwd.coda > auth2.pw
+rm passwd.coda
 
 echo "An initial administrative user $username (id $userid)"
 echo "with Coda password changeme now exists."
