@@ -1,34 +1,3 @@
-/*
-
-            Coda: an Experimental Distributed File System
-                             Release 3.1
-
-          Copyright (c) 1987-1998 Carnegie Mellon University
-                         All Rights Reserved
-
-Permission  to  use, copy, modify and distribute this software and its
-documentation is hereby granted,  provided  that  both  the  copyright
-notice  and  this  permission  notice  appear  in  all  copies  of the
-software, derivative works or  modified  versions,  and  any  portions
-thereof, and that both notices appear in supporting documentation, and
-that credit is given to Carnegie Mellon University  in  all  documents
-and publicity pertaining to direct or indirect use of this code or its
-derivatives.
-
-CODA IS AN EXPERIMENTAL SOFTWARE SYSTEM AND IS  KNOWN  TO  HAVE  BUGS,
-SOME  OF  WHICH MAY HAVE SERIOUS CONSEQUENCES.  CARNEGIE MELLON ALLOWS
-FREE USE OF THIS SOFTWARE IN ITS "AS IS" CONDITION.   CARNEGIE  MELLON
-DISCLAIMS  ANY  LIABILITY  OF  ANY  KIND  FOR  ANY  DAMAGES WHATSOEVER
-RESULTING DIRECTLY OR INDIRECTLY FROM THE USE OF THIS SOFTWARE  OR  OF
-ANY DERIVATIVE WORK.
-
-Carnegie  Mellon  encourages  users  of  this  software  to return any
-improvements or extensions that  they  make,  and  to  grant  Carnegie
-Mellon the rights to redistribute these changes without encumbrance.
-*/
-
-/* $Header: /afs/cs/project/coda-src/cvs/coda/kernel-src/vfs/bsd44/cfs/cfs_vfsops.c,v 1.9 1998/08/18 16:31:44 rvb Exp $ */
-
 /* 
  * Mach Operating System
  * Copyright (c) 1989 Carnegie-Mellon University
@@ -44,13 +13,7 @@ Mellon the rights to redistribute these changes without encumbrance.
 
 /*
  * HISTORY
- * $Log: cfs_vfsops.c,v $
- * Revision 1.9  1998/08/18 16:31:44  rvb
- * Sync the code for NetBSD -current; test on 1.3 later
- *
- * Revision 1.8  98/02/24  22:22:48  rvb
- * Fixes up mainly to flush iopen and friends
- * 
+ * $Log:	cfs_vfsops.c,v $
  * Revision 1.7  98/01/23  11:53:45  rvb
  * Bring RVB_CFS1_1 to HEAD
  * 
@@ -208,37 +171,7 @@ extern struct cdevsw cdevsw[];    /* For sanity check in cfs_mount */
 #endif
 /* NetBSD interface to statfs */
 
-#if	defined(__NetBSD__) && defined(NetBSD1_3) && (NetBSD1_3 >= 5)
-extern struct vnodeopv_desc cfs_vnodeop_opv_desc;
-
-struct vnodeopv_desc *cfs_vnodeopv_descs[] = {
-	&cfs_vnodeop_opv_desc,
-	NULL,
-};
-
-struct vfsops cfs_vfsops = {
-    MOUNT_CFS,
-    cfs_mount,
-    cfs_start,
-    cfs_unmount,
-    cfs_root,
-    cfs_quotactl,
-    cfs_nb_statfs,
-    cfs_sync,
-    cfs_vget,
-    (int (*) (struct mount *, struct fid *, struct mbuf *, struct vnode **,
-	      int *, struct ucred **))
-	eopnotsupp,
-    (int (*) (struct vnode *, struct fid *)) eopnotsupp,
-    cfs_init,
-#if (NetBSD1_3 >= 7)
-    cfs_sysctl,
-#endif
-    (int (*)(void)) eopnotsupp,
-    cfs_vnodeopv_descs,
-    0
-};
-#elif	defined(__NetBSD__)
+#ifdef	__NetBSD__
 struct vfsops cfs_vfsops = {
     MOUNT_CFS,
     cfs_mount,
@@ -482,15 +415,10 @@ cfs_unmount(vfsp, mntflags, p)
 	printf("cfs_unmount: ROOT: vp %p, cp %p\n", mi->mi_rootvp, VTOC(mi->mi_rootvp));
 #endif
 	vrele(mi->mi_rootvp);
-	active = cfs_kill(vfsp, NOT_DOWNCALL);
 
+	active = cfs_kill(vfsp, NOT_DOWNCALL);
 #ifdef	NetBSD1_3
-#if	defined(__NetBSD__) && defined(NetBSD1_3) && (NetBSD1_3 >= 7)
-	if (1)
-#else
-	if ((error = vfs_busy(mi->mi_vfsp)) == 0)
-#endif
-	{
+	if ((error = vfs_busy(mi->mi_vfsp)) == 0) {
 		error = vflush(mi->mi_vfsp, NULLVP, FORCECLOSE);
 		printf("cfs_unmount: active = %d, vflush active %d\n", active, error);
 		error = 0;
@@ -549,7 +477,7 @@ cfs_root(vfsp, vpp)
 		*vpp = mi->mi_rootvp;
 		/* On Mach, this is vref.  On NetBSD, VOP_LOCK */
 		vref(*vpp);
-		VOP_X_LOCK(*vpp, LK_EXCLUSIVE);
+		VOP_LOCK(*vpp);
 		MARK_INT_SAT(CFS_ROOT_STATS);
 		return(0);
 	    }
@@ -568,7 +496,7 @@ cfs_root(vfsp, vpp)
 
 	*vpp = mi->mi_rootvp;
 	vref(*vpp);
-	VOP_X_LOCK(*vpp, LK_EXCLUSIVE);
+	VOP_LOCK(*vpp);
 	MARK_INT_SAT(CFS_ROOT_STATS);
 	goto exit;
     } else if (error == ENODEV) {
@@ -583,7 +511,7 @@ cfs_root(vfsp, vpp)
 	 */
 	*vpp = mi->mi_rootvp;
 	vref(*vpp);
-	VOP_X_LOCK(*vpp, LK_EXCLUSIVE);
+	VOP_LOCK(*vpp);
 	MARK_INT_FAIL(CFS_ROOT_STATS);
 	error = 0;
 	goto exit;
@@ -749,34 +677,6 @@ cfs_init(void)
 {
     ENTRY;
     return 0;
-}
-#endif
-
-#if	defined(__NetBSD__) && defined(NetBSD1_3) && (NetBSD1_3 >= 7)
-int
-cfs_sysctl(name, namelen, oldp, oldlp, newp, newl, p)
-	int *name;
-	u_int namelen;
-	void *oldp;
-	size_t *oldlp;
-	void *newp;
-	size_t newl;
-	struct proc *p;
-{
-
-	/* all sysctl names at this level are terminal */
-	if (namelen != 1)
-		return (ENOTDIR);		/* overloaded */
-
-	switch (name[0]) {
-/*
-	case FFS_CLUSTERREAD:
-		return (sysctl_int(oldp, oldlp, newp, newl, &doclusterread));
- */
-	default:
-		return (EOPNOTSUPP);
-	}
-	/* NOTREACHED */
 }
 #endif
 
