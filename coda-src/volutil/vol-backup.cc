@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /usr/rvb/XX/src/coda-src/volutil/RCS/vol-backup.cc,v 4.2 1997/01/28 11:56:05 satya Exp $";
+static char *rcsid = "$Header: /home/clement/ah/ss/coda-src/volutil/RCS/vol-backup.cc,v 4.3 1997/02/26 16:04:04 rvb Exp clement $";
 #endif /*_BLURB_*/
 
 
@@ -264,6 +264,8 @@ long S_VolMakeBackups(RPC2_Handle rpcid, VolumeId originalId, VolumeId *backupId
     assert(error == 0);
     VPutVolume(originalvp);
     CAMLIB_END_TOP_LEVEL_TRANSACTION_2(CAM_PROT_TWO_PHASED, status)
+#ifndef __linux__
+/* temporarily disable for linux, need to fix this */
     if (status == 0) {
 	LogMsg(0, VolDebugLevel, stdout,
 	       "S_VolMakeBackups: backup (%x) made of volume %x ",
@@ -274,6 +276,7 @@ long S_VolMakeBackups(RPC2_Handle rpcid, VolumeId originalId, VolumeId *backupId
 	       "S_VolMakeBackups: volume backup failed for volume %x",
 	       V_id(originalvp));
     }
+#endif
     VListVolumes();	     /* Really ugly, do this to update VolumeList file */
     VDisconnectFS();
     S_VolUnlock(rpcid, originalId);
