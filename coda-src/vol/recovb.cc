@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vol/recovb.cc,v 4.2 1997/02/26 16:03:54 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vol/recovb.cc,v 4.3 1997/07/28 11:02:54 lily Exp $";
 #endif /*_BLURB_*/
 
 
@@ -341,6 +341,7 @@ int ReplaceVnode(int volindex, int vclass, VnodeId vnodeindex,
     if (volindex < 0 || volindex > maxid || volindex > MAXVOLS) {
 	LogMsg(0, VolDebugLevel, stdout,  "ReplaceVnode: bogus volume index %d", volindex);
 	CAMLIB_ABORT(VFAIL);	// invalid volume index
+	return VNOVOL;
     }
 
     CAMLIB_LOCK(CAMLIB_LOCK_NAME(CAMLIB_REC(VolumeList[volindex])),
@@ -461,8 +462,9 @@ PRIVATE int DeleteVnode(int volindex, int vclass, VnodeId vnodeindex,
 {
     VolumeId maxid = 0;
 
-    LogMsg(9, VolDebugLevel, stdout,  "Entering DeleteVnode(%d, %d, %d, <struct>)", volindex,
-					    vclass, vnodeindex);
+    LogMsg(9, VolDebugLevel, stdout,  
+	   "Entering DeleteVnode(%d, %d, %d, <struct>)", 
+	   volindex, vclass, vnodeindex);
     maxid = (CAMLIB_REC(MaxVolId) & 0x00FFFFFF);
     if (volindex < 0 || volindex > maxid || volindex > MAXVOLS) {
 	LogMsg(0, VolDebugLevel, stdout,  "DeleteVnode: bogus volume index %d", volindex);

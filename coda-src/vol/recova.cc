@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vol/recova.cc,v 4.3 1997/02/26 16:03:53 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vol/recova.cc,v 4.4 1997/07/28 11:02:50 lily Exp $";
 #endif /*_BLURB_*/
 
 
@@ -211,7 +211,7 @@ int VolHeaderByIndex(int myind, struct VolumeHeader *header) {
 
     maxid = (CAMLIB_REC(MaxVolId) & 0x00FFFFFF);
     if ((myind < 0) || (myind >= maxid) || (myind >= MAXVOLS)) {
-	LogMsg(1, VolDebugLevel, stdout,  "VolHeaderByIndex: bogus volume index %d", myind);
+	LogMsg(1, VolDebugLevel, stdout,  "VolHeaderByIndex: bogus volume index %d - maxid %d (ok if volume was purged or deleted)", myind, maxid);
 	return(-1);
     }
     bcopy(&(CAMLIB_REC(VolumeList[myind]).header), header,
