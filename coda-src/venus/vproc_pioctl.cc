@@ -1398,8 +1398,10 @@ V_FreeLocks:
 
 		case VIOC_GETPATH:
 		    {
-		    if (data->in_size != (int)sizeof(VenusFid))
+		    if (data->in_size <= sizeof(VenusFid) || 
+			*((char *)data->in + data->in_size - 1) != '\0')
 			{ u.u_error = EINVAL; break; }
+
 		    ViceFid fid;
 		    memcpy(&fid, data->in, sizeof(ViceFid));
 		    char *realmname = (char *)data->in + sizeof(ViceFid);
@@ -1409,7 +1411,7 @@ V_FreeLocks:
 		    VenusFid vfid;
 		    MakeVenusFid(&vfid, realm->Id(), &fid);
 
-		    GetPath(&vfid, (char *) data->out, &out_size, 0);
+		    GetPath(&vfid, (char *) data->out, &out_size, 1);
 
 		    data->out_size = out_size;
 

@@ -203,7 +203,7 @@ int vproc::namev(char *path, int flags, struct venus_cnode *vpp) {
 		}
 
 		/* Append the trailing part of the original pathname. */
-		if (linklen + plen > MAXPATHLEN) {
+		if (linklen + plen > CODA_MAXPATHLEN) {
 		    u.u_error = ENAMETOOLONG;
 		    goto Exit;
 		}
@@ -289,131 +289,99 @@ Exit:
 /* XXX - Need fsobj::IsRealRoot predicate which excludes "fake" roots! -JJK */
 void vproc::GetPath(VenusFid *fid, char *out, int *outlen, int fullpath)
 {
+    char start[CODA_MAXPATHLEN], *end = start + sizeof(start) - 1, *p;
+    int len, have_last = 0, done = 0;
+    VenusFid current, last;
     LOG(1, ("vproc::GetPath: %s, %d\n", FID_(fid), fullpath));
 
-    if (*outlen < MAXPATHLEN)
-	{ u.u_error = ENAMETOOLONG; *outlen = 0; goto Exit; }
+    p = end; *p = '\0';
 
-    /* Handle degenerate case of file system or volume root! */
-    if (FID_IsVolRoot(fid)) {
-	if (!fullpath) {
-	    strcpy(out, ".");
-	    *outlen = 2;
-	    goto Exit;
-	}
-
-	if (FID_EQ(fid, &rootfid)) {
-	    strcpy(out, venusRoot);
-	    *outlen = strlen(venusRoot) + 1;
-	    goto Exit;
-	}
-    }
-
-    for (;;) {
+    current = *fid;
+    while (!done) {
 	fsobj *f = 0;
-	VenusFid currFid;
-	VenusFid prevFid;
-	out[0] = '\0';
-	*outlen = 0;
 
-	Begin_VFS(fid, CODA_VGET);
+	Begin_VFS(&current, CODA_VGET);
 	if (u.u_error) goto Exit;
 
-	/* Initialize the "prev" and "current" fids to the target object and its parent, respectively. */
-	u.u_error = FSDB->Get(&f, fid, u.u_uid, RC_STATUS);
+	u.u_error = FSDB->Get(&f, &current, u.u_uid,
+			      have_last ? RC_DATA : RC_STATUS);
 	if (u.u_error) goto FreeLocks;
-	if (FID_IsVolRoot(&f->fid)) {
-	    fsobj *newf = f->u.mtpoint;
-	    FSDB->Put(&f);
 
-	    f = newf;
-	    if (f == 0) {
-		u.u_error = ENOENT;
-		goto Exit;
-	    }
-	    f->Lock(RD);
-	}
-	prevFid = f->fid;
-	currFid = f->pfid;
-	FSDB->Put(&f);
-
-	for (;;) {
-	    /* Get the current object. */
-	    u.u_error = FSDB->Get(&f, &currFid, u.u_uid, RC_DATA);
-	    if (u.u_error) goto FreeLocks;
-
-	    /* Lookup the name of the previous component. */
+	if (have_last) {
 	    char comp[CODA_MAXNAMLEN];
-	    u.u_error = f->dir_LookupByFid(comp, &prevFid);
+	    u.u_error = f->dir_LookupByFid(comp, &last);
 	    if (u.u_error) goto FreeLocks;
 
 	    /* Prefix the pathname with this latest component. */
-	    /* I know this is inefficient; I don't care! -JJK */
-	    {
-		char tbuf[MAXPATHLEN];
-		strcpy(tbuf, out);
-		strcpy(out, comp);
-		if (tbuf[0] != '\0') {
-		    strcat(out, "/");
-		    strcat(out, tbuf);
-		}
+	    len = strlen(comp);
+	    if (p - len - 1 < start) {
+		u.u_error = ENAMETOOLONG;
+		goto FreeLocks;
 	    }
-
-	    /* Termination condition is when current object is root. */
-	    if (FID_IsVolRoot(&f->fid)) {
-		if (!fullpath) {
-		    char tbuf[MAXPATHLEN];
-		    strcpy(tbuf, out);
-		    strcpy(out, "./");
-		    strcat(out, tbuf);
-		    *outlen = strlen(out) + 1;
-
-		    goto FreeLocks;
-		}
-
-		if (FID_EQ(&f->fid, &rootfid)) {
-		    char tbuf[MAXPATHLEN];
-		    strcpy(tbuf, out);
-		    strcpy(out, venusRoot);
-		    strcat(out, "/");
-		    strcat(out, tbuf);
-		    *outlen = strlen(out) + 1;
-
-		    goto FreeLocks;
-		}
-	    }
-
-	    /* Move on to next object. */
-	    if (FID_IsVolRoot(&f->fid)) {
-		fsobj *newf = f->u.mtpoint;
-		FSDB->Put(&f);
-
-		f = newf;
-		if (f == 0) {
-		    u.u_error = ENOENT;
-		    goto FreeLocks;
-		}
-		f->Lock(RD);
-	    }
-	    prevFid = f->fid;
-	    currFid = f->pfid;
-	    FSDB->Put(&f);
+	    p -= len;
+	    strncpy(p, comp, len);
+	    *(--p) = '/';
 	}
+
+	/* Termination condition is when current object is root. */
+	if (FID_IsVolRoot(&current)) {
+
+	    if (fullpath && FID_EQ(&current, &rootfid)) {
+		len = strlen(venusRoot);
+		if (p - len < start) {
+		    u.u_error = ENAMETOOLONG;
+		    goto FreeLocks;
+		}
+		p -= len;
+		strncpy(p, venusRoot, len);
+		done = 1;
+		goto FreeLocks;
+	    }
+
+		/* can't find where we are mounted, we try to return at least
+		 * as much as we've discovered up until now */
+	    if (!fullpath || !f->u.mtpoint) {
+		len = strlen(f->vol->GetName());
+		if (p - len - 2 < start)
+		    u.u_error = ENAMETOOLONG;
+		else {
+		    *(--p) = '>';
+		    p -= len;
+		    strncpy(p, f->vol->GetName(), len);
+		    *(--p) = '<';
+		}
+		done = 1;
+		goto FreeLocks;
+	    }
+
+	    /* continue with the mountlink object */
+	    last = f->u.mtpoint->fid;
+	    current = f->u.mtpoint->pfid;
+	} else {
+	    last = current;
+	    current = f->pfid;
+	}
+	have_last = 1;
 
 FreeLocks:
 	FSDB->Put(&f);
 	int retry_call = 0;
 	End_VFS(&retry_call);
-	if (!retry_call) break;
+	if (u.u_error && !retry_call)
+	    break;
     }
 
 Exit:
-    if (u.u_error != 0) {
-	out[0] = '\0';
+    len = end - p;
+    if (len < *outlen) {
+	strncpy(out, p, len+1);
+	*outlen = len+1;
+    } else {
+	*out = '\0';
 	*outlen = 0;
+	u.u_error = ENAMETOOLONG;
     }
-    LOG(1, ("vproc::GetPath: returns %s (%s)\n",
-	     VenusRetStr(u.u_error), out));
+    LOG(1, ("vproc::GetPath: returns %s (%s)\n", VenusRetStr(u.u_error), out));
 }
 
 void vproc::verifyname(char *name, int flags)
