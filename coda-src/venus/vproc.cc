@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /coda/usr/lily/src/coda-src/venus/RCS/vproc.cc,v 4.5 97/03/06 21:04:54 lily Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/vproc.cc,v 4.6 1997/04/23 17:46:23 lily Exp $";
 #endif /*_BLURB_*/
 
 
@@ -868,7 +868,9 @@ long FidToNodeid(ViceFid *fid) {
     /* Other volume root.  We need the relevant mount point's fid, but we don't know what that is! */
     if (fid->Vnode == ROOT_VNODE && fid->Unique == ROOT_UNIQUE) {
 	LOG(0, ("FidToNodeid: volume root (%x); returning bogus nodeid\n", fid->Volume));
-	return(0);
+
+	/* This cannot possibly be right! Now we get inode number 0 in the kernel! */
+	/*	return(0); */
     }
 
     /* Non volume root. */
