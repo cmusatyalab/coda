@@ -19,7 +19,7 @@ BINDIR      =  /lib/modules/`uname -r`/fs
 CBINS       =  coda.o
 EXECUTABLES =  coda.o
 HEADERS     =  odytypes.h cnode.h cfs_linux.h cfs.h cfs_opstats.h
-OBJS        =  psdev.o cnode.o comm.o super.o inode.o file.o
+OBJS        =  psdev.o cnode.o comm.o super.o inode.o file.o namecache.o sysctl.o 
 
 DEFINES =  -DMODULE  -DLINUX -DMODVERSIONS -Wstrict-prototypes -Wall -O2
 INCL    =  -I/usr/src/linux/include  -include /usr/src/linux/include/linux/modversions.h
