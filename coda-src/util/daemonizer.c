@@ -58,13 +58,14 @@ static void update_pidfile(char *pidfile)
 
     pidfd = open(pidfile, O_WRONLY | O_CREAT, 0640);
     if (pidfd < 0) {
-	fprintf(stderr, "can't open pidfile \"%s\"\n", pidfile);
+	fprintf(stderr, "Can't open pidfile \"%s\"\n", pidfile);
 	exit(1);
     }
 
     rc = myflock(pidfd, MYFLOCK_EX, MYFLOCK_NB);
     if (rc < 0) {
-	fprintf(stderr, "can't lock pidfile \"%s\"\n", pidfile);
+	fprintf(stderr, "Can't lock pidfile \"%s\", am I already running?\n",
+		pidfile);
 	exit(1);
     }
 
@@ -75,7 +76,7 @@ static void update_pidfile(char *pidfile)
     ftruncate(pidfd, 0);
     rc = write(pidfd, str, n);
     if (rc != n) {
-	fprintf(stderr, "can't update pidfile \"%s\"\n", pidfile);
+	fprintf(stderr, "Can't update pidfile \"%s\"\n", pidfile);
 	exit(1);
     }
     /* leave pidfd open otherwise we lose the lock */
