@@ -143,27 +143,27 @@ case `uname -sr` in
 esac
 
 case $datasize in 
-    22M )
+    22[mM] )
  	dsparm=23068672 # was 20480000
  	heapsize=0x1200000
  	;;
-    44M )
+    44[mM] )
  	dsparm=46137344 # was 39690240
  	heapsize=0x2400000
  	;;
-    90M )
+    90[mM] )
  	dsparm=94371840 # was 79380480
  	heapsize=0x4a00000
  	;;
-    130M )
+    130[mM] )
  	dsparm=136314880 # was 119070700
  	heapsize=0x7000000
  	;;
-    200M )
+    200[mM] )
  	dsparm=209715200
  	heapsize=0xb000000
  	;;
-    315M )
+    315[mM] )
  	dsparm=330301440
  	heapsize=0x13000000
  	;;
