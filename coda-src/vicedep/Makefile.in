@@ -50,8 +50,8 @@ INCLFLAGS = -I. -I$(srcdir)
 # All rpc2 files except for vcrcommon.rpc2 are listed in RP2FILES.
 # vcrcommon is special, as it only generates a header file and the link rule
 # for libvicedep would complain about vcrcommon.xxx.o not being available. 
-RP2FILES = admon.rpc2 adsrv.rpc2 callback.rpc2 cml.rpc2 mond.rpc2 res.rpc2 \
-	   vice.rpc2 voldump.rpc2 volutil.rpc2 writeback.rpc2
+RP2FILES = adv_skk.rpc2 callback.rpc2 cml.rpc2 mond.rpc2 res.rpc2 \
+	   vice.rpc2 voldump.rpc2 volutil.rpc2 writeback.rpc2 venus_adv.rpc2
 
 RP2CLOBJ = $(notdir ${RP2FILES:.rpc2=.client.o})
 RP2SROBJ = $(notdir ${RP2FILES:.rpc2=.server.o})
@@ -63,4 +63,3 @@ LIBRARIES = libvicedep.a
 include $(TOPDIR)/configs/Makerules
 
 libvicedep.a: $(RP2CLOBJ) $(RP2SROBJ) $(RP2MUOBJ)
-

@@ -17,27 +17,26 @@ Coda are listed in the file CREDITS.
 #*/
 %}
 
-/*
- * adsrv.rpc2
- * Defines the Advice Server subsystem interface of Venus.
- *
- * Created by Maria Ebling, May 1993
+/* venus_adv.rpc2 Venus Advice subsystem.
+ * Defines RPC2 calls which the Advice Sidekick can make to Venus.
+ * 
+ * July 2000	Created.	-Remington
  */
 
 server prefix "S";
 client prefix "C";
 
-Subsystem "AdSrv";
+Subsystem "VenusAdv";
 
-#define ADSRVSUBSYSID 300
+#define VA_SUBSYSID 300
 
-/* #define ADSRVPORTAL 1435  -- for fake_venus */
+#include "vcrcommon.rpc2"
 
+/*******************************************************************/
 
-/* IMPORTANT!  Change this anytime this file is changed! */
-#define ADSRV_VERSION 6
-
-/* Keep this list in sync with the one in coda-src/venus/advice.cc! */
+/* Keep in sync with
+ *	coda-src/venus/adv_monitor.cc 
+ */
 typedef RPC2_Enum
 {
        TokensAcquiredID                    = 0,
@@ -74,7 +73,6 @@ typedef RPC2_Enum
        InvokeASRID                         = 31
 } InterestID;
 #define MAXEVENTS 32
-/* Keep this list in sync with the one in coda-src/venus/advice.cc! */
 
 typedef RPC2_Struct
 {
@@ -82,7 +80,6 @@ typedef RPC2_Struct
 	RPC2_Integer argument;
   	RPC2_Integer value;
 } InterestValuePair;
-
 
 typedef RPC2_Enum
 {
@@ -98,7 +95,6 @@ typedef RPC2_Struct
 	RPC2_Integer argument;
 	RPC2_Integer value;
 } ParameterValuePair;
-
 
 typedef RPC2_Enum
 {
@@ -135,51 +131,25 @@ typedef RPC2_Struct
 	RPC2_Integer bw;
 } ServerEnt;
 
-/*
- * NewAdviceService
- *
- * Advice Servers use this call to inform Venus of
- * their existance.
- */
-1:NewAdviceService	(IN RPC2_String HostName,
-			 IN RPC2_Integer UserID,
-			 IN RPC2_Integer Port,
-			 IN RPC2_Integer PGrpID,
-			 IN RPC2_Integer AdSrvVersion,
-			 IN RPC2_Integer AdMonVersion,
-			 OUT RPC2_Integer VenusMajorVersionNum,
-			 OUT RPC2_Integer VenusMinorVersionNum);
+/*******************************************************************/
 
-/*
- * ConnectionAlive
- *
- * Advice Servers use this call to make sure that the connection
- * to Venus is alive.
- */
+/* Tell Venus that we exist. */
+1:NewAdviceService(IN RPC2_String HostName,
+		   IN RPC2_Integer UserID,
+		   IN RPC2_Integer Port,
+		   IN RPC2_Integer PGrpID,
+		   OUT RPC2_Integer VenusMajorVersionNum,
+		   OUT RPC2_Integer VenusMinorVersionNum);
+
+/* Check that connections to Venus is still alive. */
 2:ConnectionAlive(IN RPC2_Integer UserID);
 
+3:RegisterInterest(IN RPC2_Integer UserID, IN InterestValuePair interests[]);
 
-/*
- * RegisterInterest
- *
- * Advice Servers use this call to inform Venus about
- * their interest in certain events.
- */
-3:RegisterInterest	(IN RPC2_Integer UserID, IN InterestValuePair interests[]);
+/* Get a list of server names. */
+4:GetServerInformation(OUT ServerEnt servers[]);
 
-/*
- * GetServerInformation
- *
- * Advice Servers use this call to get a list of server names.
- */
-4:GetServerInformation	(OUT ServerEnt servers[]);
-
-/* 
- * GetCacheStatistics
- * 
- * Advice Servers use this call to get information about
- * space usage, both cache space and rvm space.
- */
+/* Get information about space usage, both cache space and rvm space. */
 5:GetCacheStatistics 	(OUT RPC2_Integer FilesAllocated,
 			 OUT RPC2_Integer FilesOccupied,
 			 OUT RPC2_Integer BlocksAllocated,
@@ -187,56 +157,20 @@ typedef RPC2_Struct
 			 OUT RPC2_Integer RVMAllocated,
 			 OUT RPC2_Integer RVMOccupied);
 
-/*
- * GetNextHoardWalk
- *
- * Advice Servers use this call to determine when the next
- * hoard walk is scheduled to occur.
- */
-6:GetNextHoardWalk	(OUT RPC2_Integer nextWalkTimeSeconds);
+/* Determine when the next hoard walk is scheduled to occur. */
+6:GetNextHoardWalk(OUT RPC2_Integer nextWalkTimeSeconds);
 
-/*
- *
- */
 7:OutputUsageStatistics  (IN RPC2_Integer UserID, 
 			  IN RPC2_String Pathname,
 			  IN RPC2_Integer DisconnectionsSinceLastUse,
 			  IN RPC2_Integer PercentDisconnectionsUsed,
 			  IN RPC2_Integer TotalDisconnectionsUsed);
 
-/* 
- * HoardCommands
- *
- * Advice Servers use this call to ship hoard commands to Venus.
- */
+/* Ship hoard commands to Venus. */
 8:HoardCommands	(IN RPC2_Integer UserID, IN HoardCmd commands[]);
 
+/* Return the result of a completed ASR. */
+9:ResultOfASR		(IN VolumeId vid, IN RPC2_Integer ASRid, IN RPC2_Integer result);
 
-/*
- * SetParameters
- *
- * Advice Servers use this call to set Venus parameters dynamically.
- *
- */
-9:SetParameters	(IN RPC2_Integer UserID, IN ParameterValuePair parameters[]);
-
-
-/*
- * ResultOfASR
- *
- * Advice Servers use this call to return the result
- * of an ASR Invokation.
- */
-10:ResultOfASR		(IN RPC2_Integer ASRid,
-			 IN RPC2_Integer result);
-
-/*
- * ImminentDeath
- *
- * Advice Servers use this call to inform Venus of
- * their imminent death (when they are being good
- * citizens).
- */
-11:ImminentDeath	(IN RPC2_String HostName,
-			 IN RPC2_Integer UserID,
-			 IN RPC2_Integer Port);
+/* Tell Venus we're about to die (when we know about it). */
+10:ImminentDeath(IN RPC2_String HostName, IN RPC2_Integer Port);
