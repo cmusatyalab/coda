@@ -29,43 +29,50 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/norton/norton.cc,v 4.1 1997/01/08 21:49:52 rvb Exp $";
+static char *rcsid = "$Header: $";
 #endif /*_BLURB_*/
 
 
+#include "filtutil.h"
 
-#ifdef __cplusplus
-extern "C" {
-#endif __cplusplus
-#include <stdio.h>
+/* For each of the two targets, install a filter that blocks communications
+   to the other target */
+void partition_targets(target_t target1, target_t target2)
+{
+  FailFilter *partition;
 
-#ifdef __cplusplus
+  create_filter(FILTER_PARTITION, &partition);
+
+  if (!partition) {
+    PrintError("Unable to create filter", 0);
+    return;
+  }
+
+  if (!open_connection(target1)) {
+    set_filter_host(target2, partition);
+    insert_filter(partition, 0);
+    close_connection();
+  }
+
+  if (!open_connection(target2)) {
+    set_filter_host(target1, partition);
+    insert_filter(partition, 0);
+    close_connection();
+  }
+
+  destroy_filter(&partition);
 }
-#endif __cplusplus
-
-#include "parser.h"
-#include "norton.h"
-
-void usage(char * name) {
-    fprintf(stderr, "Usage: %s <log_device> <data_device> <length>\n",
-	    name);
-}
 
 
-int main(int argc, char * argv[]) {
-    rvm_return_t 	err;
-    
-    if (argc != 4) {
-	usage(argv[0]);
-	exit(1);
-    }
+void main(int argc, char **argv)
+{
+  int num_targets;
+  target_t target1, target2;
 
-    
-    NortonInit(argv[1], argv[2], atoi(argv[3]));
-    
-    InitParsing();
-    Parser_commands();
+  InitRPC();
 
-    err = rvm_terminate();
-    printf("rvm_terminate returns %s\n", rvm_return(err));
+  if (!get_targ_pair(argc, argv, &target1, &target2))
+    partition_targets(target1, target2);
+  else
+    printf("usage: %s -[c|s] host1 -[c|s] host2\n", argv[0]);
 }

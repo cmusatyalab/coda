@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/norton/norton-dir.cc,v 4.2 1997/10/15 15:53:01 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/norton/norton-dir.cc,v 4.3 1997/10/23 19:24:06 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -61,7 +61,7 @@ extern "C" {
 #include <coda_globals.h>
 #include <rvmdir.h>
 
-#include "parser.h"
+#include <parser.h>
 #include "norton.h"
 
 PRIVATE void printentry(struct DirSummary *dir, char *name, VnodeId
@@ -124,9 +124,9 @@ void show_dir(int argc, char *argv[]) {
 
 
     if ((argc != 5) ||
-	(parse_int(argv[2], &volid) != 1) ||
-	(parse_int(argv[3], &vnode) != 1) ||
-	(parse_int(argv[4], &unique) != 1)) {
+	(Parser_int(argv[2], &volid) != 1) ||
+	(Parser_int(argv[3], &vnode) != 1) ||
+	(Parser_int(argv[4], &unique) != 1)) {
 	fprintf(stderr, "Usage: show directory <volid> <vnode> <unique> \n");
 	return;
     }
@@ -245,10 +245,10 @@ void delete_name(int argc, char *argv[]) {
 	flag = 0;
 
     if ((argc != 7) ||
-	(parse_int(argv[2], &volid) != 1) ||
-	(parse_int(argv[3], &vnode) != 1) ||
-	(parse_int(argv[4], &unique) != 1) ||
-	(parse_int(argv[6], &flag) != 1)) {
+	(Parser_int(argv[2], &volid) != 1) ||
+	(Parser_int(argv[3], &vnode) != 1) ||
+	(Parser_int(argv[4], &unique) != 1) ||
+	(Parser_int(argv[6], &flag) != 1)) {
 	fprintf(stderr, "Usage: delete name <parent_volid> ");
 	fprintf(stderr, "<parent_vnode> <parent_unique> <name> <flag>\n"); 
 	return;
@@ -371,11 +371,11 @@ void sh_create_name(int argc, char **argv) {
     
 
     if ((argc != 8) ||
-	(parse_int(argv[2], &volid) != 1) ||
-	(parse_int(argv[3], &vnode) != 1) ||
-	(parse_int(argv[4], &unique) != 1) ||
-	(parse_int(argv[6], &cvnode) != 1) ||
-	(parse_int(argv[7], &cunique) != 1))  {
+	(Parser_int(argv[2], &volid) != 1) ||
+	(Parser_int(argv[3], &vnode) != 1) ||
+	(Parser_int(argv[4], &unique) != 1) ||
+	(Parser_int(argv[6], &cvnode) != 1) ||
+	(Parser_int(argv[7], &cunique) != 1))  {
 	fprintf(stderr, "Usage: create name <parent_volid> ");
 	fprintf(stderr, "<parent_vnode> <parent_unique> <name>");
 	fprintf(stderr, " <newvnode> <newunique>\n"); 

@@ -31,10 +31,10 @@ linux:
 	ln -s $(INCLDIR) linux
 
 coda: coda.o
-	touch coda.o
+	-touch coda.o
 
 Coda: coda.o
-	touch coda.o
+	-touch coda.o
 
 coda.o: linux $(OBJS)
 	$(LD) -m "`ld --help | awk '/supported emulations/ {print $$4}'`" -r -o $@ $(OBJS)

@@ -25,7 +25,7 @@
 # improvements or extensions that  they  make,  and  to  grant  Carnegie
 # Mellon the rights to redistribute these changes without encumbrance.
 # 
-# static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/repair/Makefile.in,v 4.3 1997/04/29 21:27:25 rvb Exp $";
+# static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/repair/Makefile.in,v 4.4 1997/12/02 16:39:50 braam Exp $";
 
 TOPDIR = @top_srcdir@
 ifndef MAKDIR
@@ -41,15 +41,16 @@ EXECUTABLES = repair
 CBINS       = repair
 # TESTS	    = reptest
 
-LIBS = ${LIBRESOLVE} ${LIBVV} ${LIBAUTH2} ${LIBKERNDEP}
+LIBS = ${LIBRESOLVE} ${LIBVV} ${LIBAUTH2} ${LIBKERNDEP} ${LIBUTIL} \
+       $(LIBREADLINE) -ltermcap
 
 OFILES = rvol.o path.o
 
 reptest: reptest.o (OFILES) $(LIBS)
 	$(CXX) $(LIBFLAGS) reptest.o $(OFILES) $(LIBS) -o reptest
 
-repair:  repair.o $(OFILES) $(LIBS) $(LIBCS)
-	$(CXX) $(LIBFLAGS) repair.o $(OFILES) $(LIBS) $(LIBCS) -o repair
+repair:  repair.o $(OFILES) $(LIBS)
+	$(CXX) $(LIBFLAGS) repair.o $(OFILES) $(LIBS) -o repair
 
 include $(MAKDIR)/configs/Makerules
 

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/norton/commands.cc,v 4.2 1997/02/26 16:02:46 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/norton/commands.cc,v 4.3 1997/10/15 15:53:01 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -48,82 +48,82 @@ extern "C" {
 }
 #endif __cplusplus
 
-#include "parser.h"
+#include <parser.h>
 #include "norton.h"
 
 command_t del_commands[] = {
-//    { "directory",	notyet,		0},
-//    { "inode",		notyet,		0},
-    { "name",		delete_name,		0},
-//    { "vnode",		notyet,		0},
-    { "volume",		sh_delete_volume,	0},
-    { 0, 0, 0}
+//    { "directory",	notyet,		0,	""},
+//    { "inode",		notyet,		0,	""},
+    { "name",		delete_name,		0,	""},
+//    { "vnode",		notyet,		0,	""},
+    { "volume",		sh_delete_volume,	0,	""},
+    { 0, 0, 0, ""}
 };
 
 command_t create_commands[] = {
-    { "name",		sh_create_name,		0},
-    { 0, 0, 0}
+    { "name",		sh_create_name,		0,	""},
+    { 0, 0, 0, ""}
 };
 
 command_t salvage_commands[] = {
-    { "all",  		notyet,		0},
-    { "directory",	notyet,		0},
-    { "inode",		notyet,		0},
-    { "resolution",	notyet,		0},
-    { "vnode",		notyet,		0},
-    { "volume",		notyet,		0},
-    { 0, 0, 0}
+    { "all",  		notyet,		0,	""},
+    { "directory",	notyet,		0,	""},
+    { "inode",		notyet,		0,	""},
+    { "resolution",	notyet,		0,	""},
+    { "vnode",		notyet,		0,	""},
+    { "volume",		notyet,		0,	""},
+    { 0, 0, 0, ""}
 };
 
 command_t show_vol_cmds[] = {
-    { "details",	show_volume_details,	0},
-    { 0, 0, 0},
+    { "details",	show_volume_details,	0,	""},
+    { 0, 0, 0, ""},
 };
 
 
 command_t show_cmds[] = {
-    { "debug", 		show_debug,	0},
-    { "directory",	show_dir,	0},
-    { "free",		show_free,	0},
-    { "heap",		show_heap,	0},
-    { "index",		show_index,	0},
-//    { "inode",		notyet,		0},
-    { "vnode",		show_vnode,	0},
-    { "volume",		show_volume,	show_vol_cmds},
-    { 0, 0, 0}
+    { "debug", 		show_debug,	0,	""},
+    { "directory",	show_dir,	0,	""},
+    { "free",		show_free,	0,	""},
+    { "heap",		show_heap,	0,	""},
+    { "index",		show_index,	0,	""},
+//    { "inode",		notyet,		0,	""},
+    { "vnode",		show_vnode,	0,	""},
+    { "volume",		show_volume,	show_vol_cmds,	""},
+    { 0, 0, 0, ""}
 };
 
 command_t list_cmds[] = {
-    { "volumes",	list_vols,	0},
-    { 0, 0, 0}
+    { "volumes",	list_vols,	0,	""},
+    { 0, 0, 0, ""}
 };
 
 command_t set_cmds[] = {
-    { "debug",	set_debug,	0},
-    { 0, 0, 0}
+    { "debug",	set_debug,	0,	""},
+    { 0, 0, 0, ""}
 };
 
 
 
 command_t commands[] = {
-    { "?",		quick_help, 	0},
-    { "delete",	 	0,		del_commands},
-    { "create",         0,              create_commands},
-    { "examine",	examine,	0},
-    { "exit",		exit_parser,	0},
-    { "help",		quick_help,	0},
-    { "list",		list_vols,	list_cmds},
-    { "quit",		exit_parser,	0},
-//    { "salvage",	0,		salvage_commands},
-    { "show",		0,		show_cmds},
-    { "set",		0,		set_cmds},
-//    { "truncate",	notyet,		0},
-    { "x",		examine, 	0},
-    { 0, 0, 0}
+    { "?",		Parser_qhelp, 	0,		  ""},
+    { "delete",	 	0,		del_commands,	  ""},
+    { "create",         0,              create_commands,  ""},
+    { "examine",	examine,	0,		  ""},
+    { "exit",		Parser_exit,	0,		  ""},
+    { "help",		Parser_qhelp,	0,		  ""},
+    { "list",		list_vols,	list_cmds,	  ""},
+    { "quit",		Parser_exit,	0,		  ""},
+//  { "salvage",	0,		salvage_commands, ""},
+    { "show",		0,		show_cmds,	  ""},
+    { "set",		0,		set_cmds,	  ""},
+//  { "truncate",	notyet,		0,		  ""},
+    { "x",		examine, 	0,		  ""},
+    { 0, 0, 0, ""}
 };
 
 void InitParsing() {
-    init_parser("norton> ", &commands[0]);
+    Parser_init("norton> ", &commands[0]);
 }
 
 void notyet(int argc, char *argv[]) {
@@ -203,8 +203,8 @@ void examine(int argc, char *argv[]) {
 	i;
     
     if ((argc != 3) ||
-	(parse_int(argv[1], (int *)&base) != 1) ||
-	(parse_int(argv[2], &len) != 1)) {
+	(Parser_int(argv[1], (int *)&base) != 1) ||
+	(Parser_int(argv[2], &len) != 1)) {
 	fprintf(stderr, "Usage: examine <addr> <len>\n");
 	return;
     }
@@ -239,7 +239,7 @@ void set_debug(int argc, char *argv[]) {
     int debug_level;
     
     if ((argc != 3) ||
-	(parse_int(argv[2], &debug_level) != 1)) {
+	(Parser_int(argv[2], &debug_level) != 1)) {
 	fprintf(stderr, "Usage: set debug <debug_level>\n");
 	return;
     }

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /usr/rvb/XX/src/coda-src/resolve/RCS/predicate.cc,v 4.1 1997/01/08 21:50:08 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/resolve/predicate.cc,v 4.2 1997/02/26 16:02:54 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -55,7 +55,7 @@ extern "C" {
 #include <errno.h>
 #include <sys/param.h>
 
-extern int getbool(char *prompt, int defalt /* sic! */);
+#include <parser.h>
 
 #ifdef __cplusplus
 }
@@ -232,7 +232,7 @@ int SubsetCreate C_ARGS((int nreplicas, resreplica *dirs, resdir_entry **deGroup
 	/* strictly dominant to the sites that dont  - not sure about this */
 	printf("%s exists at only a subset of the sites.\n", deGroup[0]->name);
 	printf("It has hard links too so resolution cannot be automated\n");
-	if (getbool("Do you want me to create it at all sites? [y]", 1))
+	if (Parser_getbool("Do you want me to create it at all sites? [y]", 1))
 	    return 1;
 	else return 0;
     }
@@ -260,7 +260,7 @@ int SubsetRemove C_ARGS((int nreplicas, resreplica *dirs, resdir_entry **deGroup
 	}
 	else {
 	    sprintf(str, "%s was removed at some sites; should it be REMOVED at ALL sites?", deGroup[0]->name);
-	    if (getbool(str, 0))
+	    if (Parser_getbool(str, 0))
 		return 1;
 	}
     }
@@ -287,7 +287,7 @@ int MaybeSubsetRemove C_ARGS((int nreplicas, resreplica *dirs, resdir_entry **de
 	}
 	else {
 	    sprintf(str, "Then should it be RECREATED at all sites?", deGroup[0]->name);
-	    if (getbool(str, 1))
+	    if (Parser_getbool(str, 1))
 		return 1;
 	}
     }

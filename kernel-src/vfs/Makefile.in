@@ -11,6 +11,6 @@ TOPOBJ = @TOPOBJ@
 
 include $(MAKDIR)/Makeconf
 
-SUBDIRS = includes
+SUBDIRS = includes $(VFSDIR)
 
 include $(MAKDIR)/configs/Makerules

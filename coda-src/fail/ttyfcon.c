@@ -32,13 +32,6 @@ Mellon the rights to redistribute these changes without encumbrance.
 static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/fail/ttyfcon.c,v 4.1 1997/01/08 21:49:39 rvb Exp $";
 #endif /*_BLURB_*/
 
-
-
-
-
-
-
-
 /*
   Network failure emulation package
 
@@ -48,25 +41,23 @@ static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/fail/t
  */
 
 #include <assert.h>
+#include <sys/param.h>
 #include <stdio.h>
 #include <strings.h>
 #include <ctype.h>
 #include <netdb.h>
 #include <sys/socket.h>
-#include <ci.h>
-#include <del.h>
-#include <netinet/in.h>
+#include <parser.h>
 #include "fail.h"
 
 extern void ntohFF(FailFilter *);
 extern void htonFF(FailFilter *);
 
-#define MAXHOSTNAMELEN 32
 typedef struct conninfo {
     int cid;			/* Connection ID */
     char hostname[MAXHOSTNAMELEN];
     int port;
-    char clientName[MAXNAMELEN];
+    char clientName[MAXHOSTNAMELEN];
     int clientNumber;
     struct conninfo *next;
 } ConnInfo;
@@ -74,52 +65,56 @@ typedef struct conninfo {
 int numConns;
 ConnInfo *conns;
 
+int NewConn(char *, short, unsigned long *);
+
 /* CMU Command Interpreter stuff */
 
-int AddClient(), DeleteClient(), ListClients(), SaveClients(),
-    cmdInsertFilter(), cmdRemoveFilter(), cmdReplaceFilter(),
-    cmdGetFilters(), cmdPurgeFilters(), Status(), Quit();
-
+void  AddClient(int argc, char **argv);
+void  DeleteClient(int argc, char **argv);
+void  ListClients(int argc, char **argv);
+void  SaveClients(int argc, char **argv);
+void  cmdInsertFilter(int argc, char **argv);
+void  cmdRemoveFilter(int argc, char **argv);
+void  cmdReplaceFilter(int argc, char **argv);
+void  cmdGetFilters(int argc, char **argv);
+void  cmdPurgeFilters(int argc, char **argv);
+void  SetRPC2Debug(int argc, char **argv);
 extern long RPC2_DebugLevel;	/* secret! */
 
-CIENTRY list[] = {
-    CICMD ("addclient", AddClient),
-    CICMD ("deleteclient", DeleteClient),
-    CICMD ("listclients", ListClients),
-    CICMD ("saveclients", SaveClients),
-    CICMD ("insertfilter", cmdInsertFilter),
-    CICMD ("removefilter", cmdRemoveFilter),
+command_t list[] = {
+    {"addclient", AddClient, 0,"addclient hostname port"},
+    {"deleteclient", DeleteClient, 0, "deleteclient clientnumber"},
+    {"listclients", ListClients, 0, "shows all the clients"},
+    {"saveclients", SaveClients, 0, "" },
+    {"insertfilter", cmdInsertFilter, 0,  "insertfilter <clientnum> [in|out] <after post>  [<hostname>|-1.-1.-1.-1] <color(-1)> <lenmin(0)> <lenmax(65550)> <probability([0-10000]) <speed[0-10000000]>" },
+    {"removefilter", cmdRemoveFilter, 0, "" },
 #if 0
-    CICMD ("replacefilter", cmdReplaceFilter),
+    {"replacefilter", cmdReplaceFilter, 0, "" },
 #endif
-    CICMD ("getfilters", cmdGetFilters),
-    CICMD ("purgeFilters", cmdPurgeFilters),
-    CICMD ("status", Status),
-    CICMD ("quit", Quit),
-    CILONG ("RPC2_DebugLevel", RPC2_DebugLevel),
-    CIEND
+    {"getfilters", cmdGetFilters, 0, "" },
+    {"purgeFilters", cmdPurgeFilters, 0, "" },
+    {"quit", Parser_exit, 0, "" },
+    {"help", Parser_help, 0, "" },
+    {"?", Parser_qhelp, 0, "" },
+    {"rpc2debug", SetRPC2Debug, 0, "" },
+    { 0, 0, 0, NULL }
 };
 
 int maxFilterID = 999;
-
-iopen(int dummy1, int dummy2, int dummy3) {/* fake ITC system call */} 
-
-main()
-{
-    printf("TTY fcon\n");
-    InitRPC();
-    ci("fcon>", NULL, 0, list, NULL, NULL);
-}
-
-#define MAXARGS		16
-
 /* for convenience, since practically everything uses them */
 int argc;
 char *argv[MAXARGS];
 
-int BreakupArgs(args, argv)
-char *args;
-char **argv;
+iopen(int dummy1, int dummy2, int dummy3) {/* fake ITC system call */} 
+
+main(int argc, char **argv)
+{
+    InitRPC();
+    Parser_init("ttyfcon> ", list);
+    Parser_commands();
+}
+
+int BreakupArgs(char *args, char **argv)
 {
     register char *p = args;
     int i = 0;
@@ -137,10 +132,9 @@ char **argv;
 
 /* addclient <host> <port> */
 
-AddClient(args)
-char *args;
+void AddClient(int argc, char **argv)
 {
-    char hostname[128];
+    char hostname[MAXHOSTNAMELEN];
     short port;
     unsigned long cid;
     ConnInfo *info;
@@ -149,19 +143,18 @@ char *args;
     int count;
     ConnInfo *tmp, *lasttmp;
 
-    if (!*args) {
-	gethostname(hostname, 128);
-	getstr("Host", hostname, hostname);
-	port = getshort("Port", 0, 32767, 0);
+    if (argc == 1) {
+	gethostname(hostname, MAXHOSTNAMELEN);
+	Parser_getstr("Host", hostname, hostname, MAXHOSTNAMELEN);
+	port = (short) Parser_getint("Port: ", 0, 32767, 0, 0);
     }
     else {
-	argc = BreakupArgs(args, argv);
-	if (argc != 2) {
+	if (argc != 3) {
 	    printf("addclient <host> <port>\n");
 	    return;
 	}
-	strcpy(hostname, argv[0]);
-	port = atoi(argv[1]);
+	strcpy(hostname, argv[1]);
+	port = atoi(argv[2]);
     }
 
     printf("Trying to bind to %s on port %d...\n", hostname, port);
@@ -179,7 +172,7 @@ char *args;
     info->cid = cid;
     strncpy(info->hostname, hostname, MAXHOSTNAMELEN);
     info->port = port;
-    name.MaxSeqLen = MAXNAMELEN;
+    name.MaxSeqLen = MAXHOSTNAMELEN;
     name.SeqLen = 1;
     name.SeqBody = (RPC2_ByteSeq) info->clientName;
     if (rc = /*Fcon_*/GetInfo(cid, &name)) {
@@ -206,12 +199,12 @@ char *args;
       lasttmp->next = info;
 
     numConns++;
+    return;
 }
 
 /* RPC2 stuff */
-
 InitRPC()
-    {
+{
     PROCESS mylpid;
     int rc;
 
@@ -221,13 +214,10 @@ InitRPC()
     if (rc == RPC2_SUCCESS) return;
     PrintError("InitRPC", rc);
     if (rc < RPC2_ELIMIT) exit(-1);
-    }
+}
 
 
-NewConn(hostname, port, cid)
-char *hostname;
-short port;
-unsigned long *cid;
+int NewConn(char *hostname, short port, unsigned long *cid)
 {
     int rc;
     RPC2_HostIdent hident;
@@ -256,24 +246,19 @@ unsigned long *cid;
 }
 
 /* DeleteClient <num> */
-
-DeleteClient(args)
-char *args;
+void DeleteClient(int argc, char **argv)
 {
-    char *p;
     int which, rc;
     ConnInfo *conn, *temp;
 
-    if (!*args) {
+    if (argc == 1) {
 	if (numConns == 0) {
 	    printf("There are no clients.\n");
 	    return;
 	}
-	which = getint("Client No.", 1, MAXCLIENTS, 1);
-    }
-    else {
-	p = args;
-	which = intarg(&p, " ", "Client No.", 1, MAXCLIENTS, 1);
+	which = Parser_getint("Client No. :", 1, MAXCLIENTS, 1, 0);
+    } else {
+	which = Parser_intarg(argv[1], "Client No.", 1, MAXCLIENTS, 1, 10);
     }
 
     conn = conns; temp = NULL;
@@ -281,16 +266,14 @@ char *args;
     {    
       if (conn->clientNumber == which)
         break;
-      if (conn->clientNumber > which)
-      {
+      if (conn->clientNumber > which) {
         printf("No client with number %d\n", which);
         return;
       }
       temp = conn;
       conn = conn->next;
     }
-    if (conn == NULL)
-    {
+    if (conn == NULL) {
       printf("No client with number %d\n", which);
       return;
     }
@@ -302,15 +285,15 @@ char *args;
     numConns--;
 
     rc = RPC2_Unbind(conn->cid);
-    if (rc) PrintError("Couldn't unbind", rc);
+    if (rc) 
+	PrintError("Couldn't unbind", rc);
 
     free(conn);
+    return;
 }
 
 /* ListClients */
-
-ListClients(args)
-char *args;
+void ListClients(int argc, char **argv)
 {
     ConnInfo *conn;
 
@@ -319,21 +302,22 @@ char *args;
 	return;
     }
 
-    for (conn = conns; conn; conn = conn->next)
-      printf("%-2d: %s (%s, %d)\n", conn->clientNumber, conn->clientName, conn->hostname, conn->port);
+    for (conn = conns; conn; conn = conn->next) { 
+	printf("%-2d: %s (%s, %d)\n", conn->clientNumber, 
+	       conn->clientName, conn->hostname, conn->port);
+    }
+    return;
 }
 
 /* SaveClients */
-
-SaveClients(args)
-char *args;
+void SaveClients(int argc, char **argv)
 {
+return; 
 }
 
 /* Help for parsing filter args */
 
-FailFilterSide SideArg(p)
-char **p;
+FailFilterSide SideArg(char **p)
 {
     FailFilterSide side = noSide;
     
@@ -359,15 +343,14 @@ FailFilterSide getside()
     return side;
 }
 
-getipaddr(ip1, ip2, ip3, ip4)
-int *ip1, *ip2, *ip3, *ip4;
+int getipaddr(int *ip1, int *ip2, int *ip3, int *ip4)
 {
-    char hostname[128];
+    char hostname[MAXHOSTNAMELEN];
     struct hostent *host;
 
     do {
-	gethostname(hostname, 128);
-	getstr("Host", hostname, hostname);
+	gethostname(hostname, MAXHOSTNAMELEN);
+	Parser_getstr("Host", hostname, hostname, MAXHOSTNAMELEN);
 	if (sscanf(hostname, "%d.%d.%d.%d", ip1, ip2, ip3, ip4) != 4) {
 	    host = gethostbyname(hostname);
 	    if (host == NULL)
@@ -390,8 +373,7 @@ int *ip1, *ip2, *ip3, *ip4;
     } while (host == NULL);
 }
 
-getcid(ClientNumber)
-int ClientNumber;
+getcid(int ClientNumber)
 {
   ConnInfo *conn;
 
@@ -414,10 +396,9 @@ int ClientNumber;
   }
 }
 
-/* insertfilter client side which hostname/ip1 ip2 ip3 ip4 color lenmin lenmax prob*10000  */
-
-cmdInsertFilter(args)
-char *args;
+/* insertfilter client side which hostname/ip1 ip2 ip3 ip4 color
+   lenmin lenmax prob*10000 */
+void cmdInsertFilter(int argc, char **argv)
 {
     int rc;
     FailFilterSide side;
@@ -426,8 +407,8 @@ char *args;
     int ip1, ip2, ip3, ip4, color, lenmin, lenmax, prob, speed;
     struct hostent *host;
 
-    if (!*args) {
-	client = getint("Client No.", 1, MAXCLIENTS, 1);
+    if (argc == 1) {
+	client = Parser_getint("Client No.", 1, MAXCLIENTS, 1, 10);
 	side = getside();
         if ((cid = getcid(client)) < 0)
           return;
@@ -436,29 +417,28 @@ char *args;
 	    PrintError("Couldn't CountFilters", maxFilter);
 	    return;
 	}
-	which = getint("After what filter", 0, maxFilterID, 0);
+	which = Parser_getint("After what filter", 0, maxFilterID, 0, 10);
 	getipaddr(&ip1, &ip2, &ip3, &ip4);
-	color = getshort("Color", -1, 255, -1);
-	lenmin = getint("Minimum length", 0, 65535, 0);
-	lenmax = getint("Maximum length", 0, 65535, 65535);
-	prob = getint("Probability (0 [off] - 10000 [on])", 0, MAXPROBABILITY, 0);
+	color = Parser_getint("Color", -1, 255, -1, 10);
+	lenmin = Parser_getint("Minimum length", 0, 65535, 0, 10);
+	lenmax = Parser_getint("Maximum length", 0, 65535, 65535, 10);
+	prob = Parser_getint("Probability (0 [off] - 10000 [on])", 0, MAXPROBABILITY, 0, 10);
 	if (prob == 0)
 	    speed = 0;
 	else 
-	    speed = getint("Speed (bps) (0 [none] - 10000000 [ether])", 0, 
-			   MAXNETSPEED, MAXNETSPEED);
+	    speed = Parser_getint("Speed (bps) (0 [none] - 10000000 [ether])", 0, 
+			   MAXNETSPEED, MAXNETSPEED, 10);
     }
     else {
-	argc = BreakupArgs(args, argv);
-	if ((argc != 9) && (argc != 8)) {
+	if ((argc != 10) && (argc != 9)) {
 	    printf("insertfilter <client> <side> <pos> <host> <color> <lenmin> <lenmax> <probability> [ <speed> ]\n");
 	    return;
 	}
-	client = atoi(argv[0]);
-	side = SideArg(&argv[1]);
+	client = atoi(argv[1]);
+	side = SideArg(&argv[2]);
 	if (side == noSide) return;
-	which = atoi(argv[2]);
-	host = gethostbyname(argv[3]);
+	which = atoi(argv[3]);
+	host = gethostbyname(argv[4]);
 	if (host != NULL) {
 	    ip1 = ((unsigned char *)host->h_addr)[0];
 	    ip2 = ((unsigned char *)host->h_addr)[1];
@@ -470,22 +450,22 @@ char *args;
 		ip2 < -1 || ip2 > 255 ||
 		ip3 < -1 || ip3 > 255 ||
 		ip4 < -1 || ip4 > 255) {
-		printf("No such host as %s.\n", argv[3]);
+		printf("No such host as %s.\n", argv[4]);
 		return;
 	    }
 	
-	color = atoi(argv[4]);
-	lenmin = atoi(argv[5]);
-	lenmax = atoi(argv[6]);
-	prob = atoi(argv[7]);
+	color = atoi(argv[5]);
+	lenmin = atoi(argv[6]);
+	lenmax = atoi(argv[7]);
+	prob = atoi(argv[8]);
 
-	if (argc == 8) {
+	if (argc == 9) {
 	    if (prob == 0)
 		speed = 0;
 	    else
 		speed = MAXNETSPEED;
 	} else
-	    speed = atoi(argv[8]);
+	    speed = atoi(argv[9]);
     }
 
     filter.ip1 = ip1;
@@ -511,14 +491,11 @@ char *args;
         printf("Filter inserted with ID number %d\n", rc);
         maxFilterID = (rc > maxFilterID)?rc:maxFilterID;
     }
+    return;
 }
 
 /* GetFilters client */
-
-PrintFilters(side, num, filters)
-FailFilterSide side;
-int num;
-FailFilter filters[];
+PrintFilters(FailFilterSide side, int num, FailFilter *filters)
 {
     int i;
     register FailFilter *f;
@@ -542,8 +519,7 @@ FailFilter filters[];
     }
 }
 
-cmdGetFilters(args)
-char *args;
+void cmdGetFilters(int argc, char **argv)
 {
     int client, cid;
     FailFilter filters[32];	/* demagic */
@@ -552,11 +528,11 @@ char *args;
     int i, rc;
     int j;
 
-    if (!*args) {
-	client = getint("Client No.", 1, MAXCLIENTS, 1);
+    if (argc == 1) {
+	client = Parser_getint("Client No.", 1, MAXCLIENTS, 1, 10);
     }
     else {
-	client = atoi(args);
+	client = atoi(argv[1]);
     }
     filtersBS.MaxSeqLen = sizeof(filters);
     filtersBS.SeqLen = 1;
@@ -583,16 +559,14 @@ char *args;
 }
 
 /* purgeFilters client side */
-
-cmdPurgeFilters(args)
-char *args;
+void cmdPurgeFilters(int argc, char **argv)
 {
     int client, cid, rc;
     FailFilterSide side;
 
-    if (!*args) {
+    if (argc == 1) {
 	char p[128];
-	client = getint("Client No.", 1, MAXCLIENTS, 1);
+	client = Parser_getint("Client No.", 1, MAXCLIENTS, 1, 10);
     
 	printf("Side (in, out, both) ");
 	fflush(stdout);
@@ -603,18 +577,16 @@ char *args;
 	    side = recvSide;
 	else
 	    side = noSide;	/* If not specified it'll be both sides */
-    }
-    else {
-	argc = BreakupArgs(args, argv);
-	if (argc != 2) {
+    } else {
+	if (argc != 3) {
 	    printf("purgeFilters client side\n");
 	    return;
 	}
-	client = atoi(argv[0]);
+	client = atoi(argv[1]);
 
-	if (!strncmp("out", argv[1], 3) || !strncmp("send", argv[1], 4))
+	if (!strncmp("out", argv[2], 3) || !strncmp("send", argv[2], 4))
 	    side = sendSide;
-	else if (!strncmp("in", argv[1], 2) || !strncmp("rec", argv[1], 3))
+	else if (!strncmp("in", argv[2], 2) || !strncmp("rec", argv[2], 3))
 	    side = recvSide;
 	else
 	    side = noSide;	/* If not specified it'll be both sides */
@@ -631,8 +603,7 @@ char *args;
 
 /* RemoveFilter client side which */
 
-cmdRemoveFilter(args)
-char *args;
+void cmdRemoveFilter(int argc, char **argv)
 {
     int client, cid;
     FailFilterSide side;
@@ -640,8 +611,8 @@ char *args;
     int which;
     int rc;
 
-    if (!*args) {
-	client = getint("Client No.", 1, MAXCLIENTS, 1);
+    if (argc == 1) {
+	client = Parser_getint("Client No.", 1, MAXCLIENTS, 1, 10);
 	side = getside();
         if ((cid = getcid(client)) < 0)
           return;
@@ -654,17 +625,16 @@ char *args;
 	    printf("There are no filters.\n");
 	    return;
 	}
-	which = getint("Which filter", 0, maxFilterID, 0);
+	which = Parser_getint("Which filter", 0, maxFilterID, 0, 10);
     }
     else {
-	argc = BreakupArgs(args, argv);
-	if (argc != 3) {
+	if (argc != 4) {
 	    printf("removefilter client side which\n");
 	    return;
 	}
-	client = atoi(argv[0]);
-	side = SideArg(&argv[1]);
-	which = atoi(argv[2]);
+	client = atoi(argv[1]);
+	side = SideArg(&argv[2]);
+	which = atoi(argv[3]);
         if ((cid = getcid(client)) < 0)
           return;
     }
@@ -672,34 +642,23 @@ char *args;
     if (rc = /*Fcon_*/RemoveFilter(cid, side, which)) {
 	PrintError("Couldn't RemoveFilter", rc);
     }
+    return;
 }
     
-
-/* Status */
-
-Status(args)
-char *args;
+void  SetRPC2Debug(int argc, char **argv)
 {
+    if (argc != 2) {
+	printf("usage: %s level\n", argv[0]);
+	return;
+    } else {
+	RPC2_DebugLevel = atoi(argv[1]);
+    }
+    return;
 }
-
-/* Quit */
-
-Quit(args)
-char *args;
-{
-    extern int ciexit;
-
-    LWP_TerminateProcessSupport();
-    ciexit = 1;
-}
-
 
 /* Print an error msg.  Call perror if err = 0; otherwise call
    RPC2_ErrorMsg(err). */
-
-PrintError(msg, err)
-char *msg;
-int err;
+PrintError(char *msg, int err)
 {
     extern int errno;
     

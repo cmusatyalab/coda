@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/norton/norton-vnode.cc,v 4.1 1997/01/08 21:49:51 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/norton/norton-vnode.cc,v 4.2 1997/10/15 15:53:02 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -57,7 +57,7 @@ extern "C" {
 #include <camprivate.h>
 #include <coda_globals.h>
 
-#include "parser.h"
+#include <parser.h>
 #include "norton.h"
 
 
@@ -94,13 +94,13 @@ void show_vnode(int argc, char *argv[]) {
 
 
     if ((argc != 5) ||
-	(parse_int(argv[2], &volid) != 1) ||
-	(parse_int(argv[4], &unique) != 1)) {
+	(Parser_int(argv[2], &volid) != 1) ||
+	(Parser_int(argv[4], &unique) != 1)) {
 	fprintf(stderr, "Usage: show vnode <volid> [<vnode> | ?] <unique> \n");
 	return;
     }
 
-    if (parse_int(argv[3], &vnode) == 1) {
+    if (Parser_int(argv[3], &vnode) == 1) {
 	show_vnode(volid, vnode, unique);
     }
     else if (*argv[3] == '?') {

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /usr/rvb/XX/src/coda-src/resolve/RCS/cure.cc,v 4.1 1997/01/08 21:50:07 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/resolve/cure.cc,v 4.2 1997/02/26 16:02:54 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -60,7 +60,7 @@ extern "C" {
 #include <sys/stat.h>
 #include <sys/param.h>
 
-extern int getbool(char *prompt, int defalt /* sic! */);
+#include <parser.h>
 
 #ifdef __cplusplus
 }
@@ -140,7 +140,7 @@ int RepairRename C_ARGS((int nreplicas, resreplica *dirs,
 	sprintf(curpath, "%s/%s", parentpath[i], childpath[i]);
 	if (prevset &&  (!strcmp(curpath, prevpath))) continue; 
 	sprintf(buf, "Do you want to preserve %s? ", curpath);
-	if (getbool(buf, 1)) break;
+	if (Parser_getbool(buf, 1)) break;
 	strcpy(prevpath, curpath);
 	prevset = 1;
     }

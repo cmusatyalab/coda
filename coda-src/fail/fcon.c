@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/fail/fcon.c,v 4.1 1997/01/08 21:49:37 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/fail/fcon.c,v 4.2 1997/10/09 21:27:07 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -55,7 +55,6 @@ static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/fail/f
 #include <rpc2.h>
 #include "fail.h"
 
-#define NULL 0
 
 int Fcon_LWP();
 PRIVATE PrintRPCError(int, RPC2_Handle); /* forward decl to pacify gcc */

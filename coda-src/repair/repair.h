@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/src/coda-4.0.1/RCSLINK/./coda-src/repair/repair.h,v 1.1 1996/11/22 19:12:36 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/repair/repair.h,v 4.1 1997/01/08 21:49:56 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -100,24 +100,24 @@ void myperror C_ARGS((char *op, char *path, int e));
 int IsInCoda	C_ARGS((char *name));
 
 /* User-visible commands */
-int beginRepair  C_ARGS((char *args));
-void endRepair   C_ARGS((char *args));
+void beginRepair  C_ARGS((int argc, char **largv));
+void endRepair   C_ARGS((int argc, char **largv));
 int showReplicas C_ARGS((char *args));
-int doRepair     C_ARGS((char *args));
-int compareDirs	 C_ARGS((char *args));
-int clearInc	 C_ARGS((char *args));
-void quit	 C_ARGS((char *args));
+void doRepair     C_ARGS((int argc, char **largv));
+void compareDirs C_ARGS((int argc, char **largv));
+void clearInc	 C_ARGS((int argc, char **largv));
+void quit	 C_ARGS((int argc, char **largv));
 int unlockVolume C_ARGS((char *args));
-int removeInc	 C_ARGS((char *args));
-void checkLocal      	C_ARGS((char *args));
-void listLocal       	C_ARGS((char *args));
-void preserveLocal   	C_ARGS((char *args));
-void preserveAllLocal   C_ARGS((char *args));
-void discardLocal    	C_ARGS((char *args));
-void discardAllLocal  	C_ARGS((char *args));
-void setLocalView    	C_ARGS((char *args));
-void setGlobalView   	C_ARGS((char *args));
-void setMixedView    	C_ARGS((char *args));
+void removeInc	 C_ARGS((int argc, char **largv));
+void checkLocal      	C_ARGS((int argc, char **largv));
+void listLocal       	C_ARGS((int argc, char **largv));
+void preserveLocal   	C_ARGS((int argc, char **largv));
+void preserveAllLocal   C_ARGS((int argc, char **largv));
+void discardLocal    	C_ARGS((int argc, char **largv));
+void discardAllLocal  	C_ARGS((int argc, char **largv));
+void setLocalView    	C_ARGS((int argc, char **largv));
+void setGlobalView   	C_ARGS((int argc, char **largv));
+void setMixedView    	C_ARGS((int argc, char **largv));
 
 extern char repair_ReadOnlyPrefix[];
 extern int  repair_DebugFlag;

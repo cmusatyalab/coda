@@ -217,7 +217,7 @@ distclean: clean
 	rm -f coda-src/rpc2/switchc2s.h
 	rm -f coda-src/rpc2/switchs2c.h
 	rm -f config.cache config.log config.status
-	rm -f Makeconf.setup `find . -name "Makefile"`
+	rm -f Makeconf.setup `find . -name "Makefile" | grep -v linux`
 
 	
 

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/volutil/readdump.cc,v 4.2 1997/02/26 16:04:03 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/volutil/readdump.cc,v 4.3 1997/10/23 19:25:59 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -49,8 +49,8 @@ extern "C" {
 
 #include <sys/param.h>
 #include <stdio.h>
-#include <ci.h>
-#include <libcs.h>
+#include <parser.h>
+#include <limits.h>
 #ifdef __MACH__
 #include <sysent.h>
 #else	/* __linux__ || __BSD44__ */
@@ -75,25 +75,22 @@ extern "C" {
 #include "dumpstream.h"
 
 
-/* Obviously needs work. */
+void OpenDumpFile(int, char **);
+void setIndex(int, char **);
+void showHeader(int, char **);
+void showVolumeDiskData(int, char **);
+void showVnodeDiskObject(int, char **);
+void skipVnodes(int, char **);
 
-int OpenDumpFile(char *);
-int setIndex(char *);
-int showHeader(char *);
-int showVolumeDiskData(char *);
-int showVnodeDiskObject(char *);
-int skipVnodes(char *args);
-
-CIENTRY CiList[] =
-{
-    CICMD("openDumpFile", OpenDumpFile),		/* FileName */
-    CICMD("setIndex", setIndex),			/* "large" or "small" */
-    CICMD("showHeader", showHeader),			/* no args */
-    CICMD("showVolumeDiskData", showVolumeDiskData),	/* no args */
-    CICMD("nextVnode", showVnodeDiskObject),		/* args? */
-    CICMD("skipVnodes", skipVnodes),			/* nvnodes to skip */
-    CICMD("quit", exit),
-    CIEND
+command_t list[] = {
+  {"openDumpFile", OpenDumpFile, 0, ""},		/* FileName */
+  {"setIndex", setIndex, 0, ""},			/* "large" or "small" */
+  {"showHeader", showHeader, 0, ""},			/* no args */
+  {"showVolumeDiskData", showVolumeDiskData, 0, ""},	/* no args */
+  {"nextVnode", showVnodeDiskObject, 0, ""},		/* args? */
+  {"skipVnodes", skipVnodes, 0, ""},			/* nvnodes to skip */
+  {"quit", Parser_exit, 0, ""},
+  { 0, 0, 0, NULL }
 };
 
 char DefaultDumpFile[MAXPATHLEN];
@@ -101,12 +98,19 @@ char DefaultSize[10];			/* "large" or "small" */
 dumpstream *DumpStream;
 int Open = 0;
 
-int OpenDumpFile(char *args) {		/* FileName */
-    char filename[MAXPATHLEN], *p = args;
+void OpenDumpFile(int largc, char **largv) {		/* FileName */
+    char filename[MAXPATHLEN];
 
-    *filename = 0;
-    while (*filename == 0)
-	strarg(&p, " ", "Name of DumpFile?", DefaultDumpFile, filename);
+    if (largc == 1)
+	Parser_getstr("Name of DumpFile?", DefaultDumpFile, filename,
+		      MAXPATHLEN);
+    else {
+      if (largc != 2) {
+	printf("openDumpFile <num>\n");
+	return;
+      }
+      strncpy(filename, largv[1], MAXPATHLEN);
+    }
 
     strcpy(DefaultDumpFile, filename);
 
@@ -115,7 +119,7 @@ int OpenDumpFile(char *args) {		/* FileName */
 
     DumpStream = new dumpstream(filename);
     Open = 1;
-    return 0;
+    return;
 }
 
 int Rewind(char *args) {
@@ -138,10 +142,10 @@ void PrintVersionVector(vv_t *v, char *str) {
 	     v->StoreId.Host, v->StoreId.Uniquifier, v->Flags);
 }    
 
-int showHeader(char *args) {
+void showHeader(int largc, char **largv) {
     if (!Open) {
 	printf("No DumpFile open yet!\n");
-	return(-1);
+	return;
     }
 
     Rewind(0);	/* Start from the beginning of the dump */
@@ -149,7 +153,7 @@ int showHeader(char *args) {
     struct DumpHeader head;
     if (DumpStream->getDumpHeader(&head) == 0) {
 	printf("Error -- DumpHead is not valid\n");
-        return(-1);
+        return;
     }
 
     printf("%s Dump Version = %d\n", (head.Incremental)?"Incremental":"Full",
@@ -157,13 +161,13 @@ int showHeader(char *args) {
     printf("VolId = 0x%x, name = %s\n", head.volumeId, head.volumeName);
     printf("Parent = 0x%x, backupDate = %s", head.parentId, ctime((long *)&head.backupDate));
     printf("Ordering references: Oldest %d, Latest %d\n",head.oldest,head.latest);
-    return 0;
+    return;
 }
 
-int showVolumeDiskData(char *args) {
+void showVolumeDiskData(int largc, char **largv) {
     if (!Open) {
 	printf("No DumpFile open yet!\n");
-	return(-1);
+	return;
     }
 
     int i = 0;
@@ -174,7 +178,7 @@ int showVolumeDiskData(char *args) {
     struct DumpHeader head;
     if (DumpStream->getDumpHeader(&head) == 0) {
 	printf("Error -- DumpHead is not valid\n");
-        return(-1);
+        return;
     }
     
     assert(DumpStream->getVolDiskData(&data) == 0);
@@ -271,15 +275,21 @@ int showVolumeDiskData(char *args) {
     printf("\n");
     printf("\tofflineMessage = %s\n", data.offlineMessage);
     printf("\tmotd = %s\n\n", data.motd);
-    return 0;
+    return;
 }
 
-int setIndex(char *args) {
-    char vnodeType[10], *p = args;
+void setIndex(int largc, char **largv) {
+    char vnodeType[10];
 
-    *vnodeType = 0;
-    while (*vnodeType == 0)
-	strarg(&p, " ", "Large or Small?", DefaultSize, vnodeType);
+    if (largc == 1)
+      Parser_getstr("Large or Small?", DefaultSize, vnodeType, 10);
+    else {
+      if (largc != 2) {
+	printf("setIndex <size>\n");
+	return;
+      }
+      strncpy(vnodeType, largv[1], 10);
+    }
 
     /* Case insensitize the input. */
     for (int i = 0; i < 10; i++) 
@@ -288,7 +298,7 @@ int setIndex(char *args) {
 
     if ((strcmp(vnodeType, "large") != 0) && (strcmp(vnodeType, "small") != 0)) {
 	printf("Index must be either large or small\n");
-	return(-1);
+	return;
     }
 
     if (vnodeType[0] == 'l') { /* Probably will pick small next time. */
@@ -299,21 +309,21 @@ int setIndex(char *args) {
     struct DumpHeader head;
     if (DumpStream->getDumpHeader(&head) == 0) {
 	printf("DumpHeader is not valid.\n");
-	return (-1);
+	return;
     }
 
     /* skip over the volumediskdata */
     VolumeDiskData vol;
     if (DumpStream->getVolDiskData(&vol) != 0) {
 	printf("VolumeDiskData is not valid.\n");
-	return (-1);
+	return;
     }
 
     /* Large index */
     long nvnodes, nslots;
     if (DumpStream->getVnodeIndex(vLarge, &nvnodes, &nslots) == -1) {
 	printf("Large Index header is not valid.\n");
-	return (-1);
+	return;
     }
 
     if (vnodeType[0] == 's') {
@@ -332,47 +342,52 @@ int setIndex(char *args) {
 	/* We should have read all the Large Vnodes now, get the small index */
 	if (DumpStream->getVnodeIndex(vSmall, &nvnodes, &nslots) == -1) {
 	    printf("Small Index header is not valid.\n");
-	    return (-1);
+	    return;
 	}
     }
 
     printf("There are %d vnodes in %d slots.\n", nvnodes, nslots);
-    return (0);
+    return;
 }
 
-int skipVnodes(char *args) {
+void skipVnodes(int largc, char **largv) {
     if (!Open) {
 	printf("No DumpFile open yet!\n");
-	return(-1);
+	return;
     }
 
-    char num[10], *p = args;
-    *num = 0;
-    while (*num == 0)
-	strarg(&p, " ", "Number of Vnodes to skip?", " ", num);
+    long n;
 
-    int n = atoi(num);
+    if (largc == 1)
+      n = Parser_intarg(NULL, "Number of Vnodes to skip?", 0, 0, INT_MAX, 10);
+    else {
+      if (largc != 2) {
+	printf("skipVnodes <num>\n");
+	return;
+      }
+      Parser_arg2int(largv[1], &n, 10);
+    }
 
     char buf[SIZEOF_LARGEDISKVNODE];
     VnodeDiskObject *vnode = (VnodeDiskObject *)buf;
     long vnum, offset;
     int del;
     
-    for (int i = 0; i < n; i++) {
+    for (long i = 0; i < n; i++) {
 	if (DumpStream->getNextVnode(vnode, &vnum, &del, &offset)) {
 	    printf("Not positioned at a vnode, perhaps no more vNodes\n");
-	    return(-1);
+	    return;
 	}
     }
 
     if (del) {
 	printf("Vnode 0x%#08x at offset %d was deleted.\n", vnum, offset);
-	return 0;
+	return;
     }
     
     printf("Vnode %#8x is at offset %d in the dump.\n", vnum, offset);
     if (vnode->type == vNull && vnode->linkCount == 0)
-	return(-1);
+	return;
     printf("\ttype = %u\n\tcloned = %u\n\tmode = %o\n\tlinks = %u\n",
 	vnode->type, vnode->cloned, vnode->modeBits, vnode->linkCount);
     printf("\tlength = %u\n\tunique = %u\n\tversion = %u\n\tinode = %u\n",
@@ -382,15 +397,15 @@ int skipVnodes(char *args) {
 	vnode->vol_index, vnode->unixModifyTime, vnode->author, vnode->owner, vnode->vparent, vnode->uparent);
     printf("\tmagic = %x\n\tservermodtime = %u\n",
 	vnode->vnodeMagic, vnode->serverModifyTime);
-    return 0;
+    return;
 }    
 
     
-int showVnodeDiskObject(char *args)
+void showVnodeDiskObject(int largc, char **largv)
 {
     if (!Open) {
 	printf("No DumpFile open yet!\n");
-	return(-1);
+	return;
     }
 
     char buf[SIZEOF_LARGEDISKVNODE];
@@ -399,17 +414,17 @@ int showVnodeDiskObject(char *args)
     int del;
     if (DumpStream->getNextVnode(vnode, &vnum, &del, &offset)) {
 	printf("Not positioned at a vnode, perhaps no more vNodes\n");
-	return(-1);
+	return;
     }
 
     if (del) {
 	printf("Vnode 0x%#08x at offset %d was deleted.\n", vnum, offset);
-	return 0;
+	return;
     }
     
     printf("Vnode %#8x is at offset %d in the dump.\n", vnum, offset);
     if (vnode->type == vNull && vnode->linkCount == 0)
-	return(-1);
+	return;
     printf("\ttype = %u\n\tcloned = %u\n\tmode = %o\n\tlinks = %u\n",
 	vnode->type, vnode->cloned, vnode->modeBits, vnode->linkCount);
     printf("\tlength = %u\n\tunique = %u\n\tversion = %u\n\tinode = %u\n",
@@ -419,7 +434,7 @@ int showVnodeDiskObject(char *args)
 	vnode->vol_index, vnode->unixModifyTime, vnode->author, vnode->owner, vnode->vparent, vnode->uparent);
     printf("\tmagic = %x\n\tservermodtime = %u\n",
 	vnode->vnodeMagic, vnode->serverModifyTime);
-    return 0;
+    return;
 }
 
 
@@ -433,6 +448,7 @@ void main(int argc, char **argv) {
 	strncpy(DefaultDumpFile, argv[1], sizeof(DefaultDumpFile));
     
     strcpy(DefaultSize, "Large");
-    ci("dump>", 0, 0, (CIENTRY *)CiList, 0, 0);
+    Parser_init("dump> ", list);
+    Parser_commands();
 }
     

@@ -29,43 +29,56 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/norton/norton.cc,v 4.1 1997/01/08 21:49:52 rvb Exp $";
+static char *rcsid = "$Header: $";
 #endif /*_BLURB_*/
 
 
-
-#ifdef __cplusplus
-extern "C" {
-#endif __cplusplus
-#include <stdio.h>
-
-#ifdef __cplusplus
-}
-#endif __cplusplus
-
-#include "parser.h"
-#include "norton.h"
-
-void usage(char * name) {
-    fprintf(stderr, "Usage: %s <log_device> <data_device> <length>\n",
-	    name);
-}
+#include "filtutil.h"
 
 
-int main(int argc, char * argv[]) {
-    rvm_return_t 	err;
-    
-    if (argc != 4) {
-	usage(argv[0]);
-	exit(1);
+/* Inserts an all-blocking filter on every named machine.  On servers it
+   inserts a filter that allows the server to talk to itself */
+void isolate_targets(target_t *targets, int num_targets)
+{
+  int num;
+  FailFilter *isolate, *server;
+
+  create_filter(FILTER_ISOLATE, &isolate);
+  create_filter(FILTER_SERVER, &server);
+
+  if (!isolate || !server) {
+    PrintError("Unable to create filters", 0);
+    return;
+  }
+
+  for (num = 0; num < num_targets; num++)
+    if (!open_connection(targets[num])) {
+      insert_filter(isolate, 0);
+
+      if (targets[num].server) {
+	set_filter_host(targets[num], server);
+	insert_filter(server, 0);
+      }
+
+      close_connection();
     }
 
-    
-    NortonInit(argv[1], argv[2], atoi(argv[3]));
-    
-    InitParsing();
-    Parser_commands();
+  destroy_filter(&isolate);
+  destroy_filter(&server);
+}
 
-    err = rvm_terminate();
-    printf("rvm_terminate returns %s\n", rvm_return(err));
+
+void main(int argc, char **argv)
+{
+  int num_targets;
+  target_t *targets;
+
+  InitRPC();
+
+  get_targets(argc, argv, &targets, &num_targets);
+
+  if (num_targets)
+    isolate_targets(targets, num_targets);
+  else
+    printf("usage: %s [-c client1 client2 ...] [-s server1 server2 ...]\n", argv[0]);
 }

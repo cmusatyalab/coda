@@ -29,43 +29,40 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/norton/norton.cc,v 4.1 1997/01/08 21:49:52 rvb Exp $";
+static char *rcsid = "$Header: $";
 #endif /*_BLURB_*/
 
 
+#include <sys/param.h>
+#include "fail.h"
 
-#ifdef __cplusplus
-extern "C" {
-#endif __cplusplus
-#include <stdio.h>
+typedef struct target {
+  char hostname[MAXHOSTNAMELEN];
+  int  server;
+} target_t;
 
-#ifdef __cplusplus
-}
-#endif __cplusplus
+typedef enum {
+  FILTER_ISOLATE = 0,
+  FILTER_PARTITION = 1,
+  FILTER_SERVER = 2,
+  FILTER_JOIN = 3,
+} filter_type;
 
-#include "parser.h"
-#include "norton.h"
+#define MAXFILTERTYPE 3
 
-void usage(char * name) {
-    fprintf(stderr, "Usage: %s <log_device> <data_device> <length>\n",
-	    name);
-}
+void create_filter(filter_type, FailFilter **);
+void destroy_filter(FailFilter *);
+int set_filter_host(target_t, FailFilter *);
+int insert_filter(FailFilter *, int);
+int match_filters(FailFilter *, int, target_t, FailFilter **, int *);
+void remove_filter(FailFilter);
+int clear_filters();
+int list_filters(FailFilter **, int *);
+int show_filter(FailFilter);
 
+void get_targets(int, char **, target_t **, int *);
+int get_targ_pair(int, char **, target_t *, target_t *);
 
-int main(int argc, char * argv[]) {
-    rvm_return_t 	err;
-    
-    if (argc != 4) {
-	usage(argv[0]);
-	exit(1);
-    }
-
-    
-    NortonInit(argv[1], argv[2], atoi(argv[3]));
-    
-    InitParsing();
-    Parser_commands();
-
-    err = rvm_terminate();
-    printf("rvm_terminate returns %s\n", rvm_return(err));
-}
+void InitRPC();
+int open_connection(target_t);
+void close_connection();

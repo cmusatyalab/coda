@@ -26,10 +26,10 @@ mandir = @mandir@
 # Platform, uncomment your choice; 
 #  flag:  --enable-platform=the_plf
 #
-SYS = @PLATFORM@
-
+SYS = @sys@
+VFSDIR = @vfsdir@
 # SYS=i386_mach
-# SYS=i386_linux2
+# SYS=linux
 # SYS=i386_nbsd1
 # SYS=pmax_mach
 

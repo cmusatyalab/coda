@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/resolve/resolve.cc,v 4.3 1997/02/26 16:02:55 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/resolve/resolve.cc,v 4.4 1997/10/23 19:24:38 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -66,7 +66,7 @@ extern "C" {
 #endif
 #include <errno.h>
 #include <assert.h> 
-extern int getbool(char *, int);
+#include <parser.h>
 #include <inodeops.h>
 
 #ifdef __cplusplus
@@ -487,7 +487,7 @@ int NameNameResolve(int first, int last, int nreplicas, resreplica *dirs, struct
 	resdir_entry *rde = sortedArrByName[i];
 	printf("Should %s%s be removed? ",
 	       dirs[rde->replicaid].path, rde->name);
-	answers[i-first] = getbool("", 0);
+	answers[i-first] = Parser_getbool("", 0);
     }
     int nobjects = last - first;
     int nyes = 0;
