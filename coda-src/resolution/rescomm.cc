@@ -48,10 +48,6 @@ extern "C" {
 }
 #endif __cplusplus
 
-#ifdef sun
-#define mutex coda_mutex
-#endif
-
 #include <util.h>
 #include <srv.h>
 #include <vsg.h>
