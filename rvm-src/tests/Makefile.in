@@ -31,7 +31,7 @@
 # changes  without  encumbrance.   Such improvements and extensions
 # should be returned to Software.Distribution@cs.cmu.edu.
 #
-# rcsid = $Header: Makefile,v 1.1 94/07/30 23:16:59 bnoble Locked $
+# rcsid = $Header: /afs/cs.cmu.edu/project/coda-braam/src/coda-4.0.1/rvm-src/tests/RCS/Makefile.in,v 1.1 1996/11/22 19:17:28 braam Exp braam $
 #
 #endif _BLURB_
 
@@ -57,65 +57,35 @@ SEGOBJDIR = ${ROOT}/obj/seg
 RDSOBJDIR = ${ROOT}/obj/rds
 PLUMBLIB  = /coda/project/coda/alpha/LIB-SPECIAL
 LWPLIB    = ${ROOT}/LWPROOT/lib
-LIBFLAGS  = ${LIBFLAGS} ${LIBCOMPAT}
+LIBFLAGS  := ${LIBFLAGS} ${LIBCOMPAT}
 cc = ${CC}
 # CFLAGS = -g3 -O2 -I/afs/cs.cmu.edu/user/tilt/rvm-top/include
 
 # tests definitions
-HFILES = $(RVMDIR)/rvm.h $(RVMDIR)/rvm_statistics.h \
-    	    $(RDSDIR)/rds.h $(SEGDIR)/rvm_segment.h
+HFILES = $(RVMDIR)/rvm.h $(RVMDIR)/rvm_statistics.h $(RDSDIR)/rds.h $(SEGDIR)/rvm_segment.h
 
 # build simple RVM test program
-testrvm.o: $(HFILES) testrvm.h testrvm.c
-	$(cc) -c $(CFLAGS) testrvm.c
+testrvm.o: testrvm.h testrvm.c
 
-testrvm: $(HFILES) testrvm.h testrvm.o $(RVMOBJDIR)/librvm.a
-	$(cc) $(CFLAGS) -o testrvm testrvm.o \
-	    $(RVMOBJDIR)/librvm.a $(LIBFLAGS)
+testrvm: testrvm.h testrvm.o
+	$(cc) $(CFLAGS) -o testrvm testrvm.o $(LIBRVM) $(LIBFLAGS)
 
 # build better test program using seg and rds
-rvm_basher.o:	rvm_basher.c $(HFILES)
-	$(cc) -c $(CFLAGS) -I$(RDSDIR)/rds.h -I$(SEGDIR)/rvm_segment.h \
-    	    rvm_basher.c
+rvm_basher.o:	rvm_basher.c 
 
-rvm_basher: rvm_basher.o $(HFILES) $(RVMOBJDIR)/librvm.a \
-    	    $(RDSOBJDIR)/librds.a $(SEGOBJDIR)/libseg.a
-	$(cc) $(CFLAGS) -o rvm_basher rvm_basher.o $(RDSOBJDIR)/librds.a \
-    	    $(SEGOBJDIR)/libseg.a $(RVMOBJDIR)/librvm.a $(LIBFLAGS)
-
-#clean:  
-#	-rm *.o testrvm rvm_basher lwp_basher
-
-installfiles:
-	$(INSTALL) testrvm $(BINDIR)
-	-chmod 0755 $(BINDIR)/testrvm
-	$(INSTALL) rvm_basher $(BINDIR)
-	-chmod 0755 $(BINDIR)/rvm_basher
-
-install:
-	make clean
-	make reinstall
-
-reinstall:
-	make all
-	make installfiles
-
-all:  testrvm rvm_basher
-
+rvm_basher: rvm_basher.o 
+	$(cc) $(CFLAGS) -o rvm_basher rvm_basher.o  $(LIBRDS) $(LIBSEG) $(LIBRVM) $(LIBFLAGS)
 
 # Coda-specific installations
 
-lwp_basher.o:	rvm_basher.c $(HFILES) $(RVMDIR)/rvm_lwp.h
+lwp_basher.o:	rvm_basher.c 
 	-mv rvm_basher.o xxx_basher.o
 	make CFLAGS="$(CFLAGS) -DRVM_USELWP" rvm_basher.o
 	mv rvm_basher.o lwp_basher.o
 	-mv xxx_basher.o rvm_basher.o
 
-lwp_basher: lwp_basher.o $(HFILES) $(RVMOBJDIR)/librvmlwp.a \
-    	    $(RDSOBJDIR)/librdslwp.a $(SEGOBJDIR)/libseg.a
-	$(cc) $(CFLAGS) -o lwp_basher lwp_basher.o $(RDSOBJDIR)/librdslwp.a \
-    	    $(SEGOBJDIR)/libseg.a $(RVMOBJDIR)/librvmlwp.a \
-    	    $(PLUMBLIB)/libplumber.a $(LWPLIB)/liboldlwp.a -lmach
+lwp_basher: lwp_basher.o 
+	    $(cc) $(CFLAGS) -o lwp_basher lwp_basher.o $(LIBRDSLWP) $(LIBSEG) $(LIBRVMLWP) $(LIBOLDLWP) $(LIBFLAGS) $(PLUMBLIB)/libplumber.a  -lmach
 
 installlwpfiles:
 	$(INSTALL) lwp_basher $(BINDIR)
@@ -130,3 +100,5 @@ installlwp:
 	make reinstalllwp
 
 lwp:	lwp_basher
+
+include $(TOPDIR)/Makerules
