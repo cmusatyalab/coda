@@ -2077,18 +2077,14 @@ void SetStatus(struct Vnode *vptr, ViceStatus *status, Rights rights, Rights any
 int GetRights(PRS_InternalCPS *CPS, AL_AccessList *ACL, int ACLSize,
 	       Rights *rights, Rights *anyrights )
 {
-    static int  anyid = -1;
+    static int  anyid = 0;
     static  PRS_InternalCPS * anyCPS = 0;
 
-    if (anyid == -1) {
+    if (anyid == 0) {
 	if (AL_NameToId("System:AnyUser", &anyid) != 0) {
 	    SLog(0, "UserID anyuser not known");
-	    anyid = 0;
-	} else {
-	    if (AL_GetInternalCPS(anyid, &anyCPS) != 0) {
-		SLog(0, "UserID anyuser no CPS");
-		anyid = 0;
-	    }
+	} else if (AL_GetInternalCPS(anyid, &anyCPS) != 0) {
+	    SLog(0, "UserID anyuser no CPS");
 	}
     }
 
@@ -2104,6 +2100,12 @@ int GetRights(PRS_InternalCPS *CPS, AL_AccessList *ACL, int ACLSize,
     if (AL_CheckRights(ACL, CPS, (int *)rights) != 0) {
 	    *rights = 0;
     }
+
+    /* When a client can throw away it's tokens, and then perform some
+     * operation, the client essentially has the same rights when
+     * authenticated */
+    *rights |= *anyrights;
+
     return(0);
 }
 
