@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /usr/rvb/XX/src/coda-src/util/RCS/rvmlib.h,v 4.1 1997/01/08 21:51:10 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/util/rvmlib.h,v 4.2 1997/02/26 16:03:08 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -217,59 +217,71 @@ extern int optimizationson;
 }
 
 #define	RVMLIB_ABORT(status)\
-{\
-    if (RvmType == VM) rvmlib_internal_abort("AbortTransaction: RvmType == VM");\
-    if (RvmType != RAWIO && RvmType != UFS) { assert(0);}\
-    rvm_perthread_t *_rvm_data = RVM_THREAD_DATA;\
-    if (_rvm_data == 0) rvmlib_internal_abort("AbortTransaction: _rvm_data = 0");\
-    if (_rvm_data->tid == 0) {\
-	if (_rvm_data->die) { \
-	    (_rvm_data->die)("AbortTransaction: _rvm_data->tid = 0");\
-	}\
-        else rvmlib_internal_abort("AbortTransaction: _rvm_data->tid is NULL");\
-    }\
-    (void)rvm_abort_transaction(_rvm_data->tid);\
-    if (_rvm_data->list.table != NULL) free(_rvm_data->list.table);\
-    _rvm_data->list.table = NULL;\
-    _rvm_data->list.count = _rvm_data->list.size = 0;\
-    _rvm_data->tid = 0;\
-    _longjmp(_rvm_data->abort, status);\
-}
-
-
+    rvmlib_abort(status);
 
 #define	RVMLIB_SET_RANGE(base, size)\
-{\
-    if (RvmType != VM) {\
-	rvm_perthread_t *_rvm_data = RVM_THREAD_DATA;\
-	if (_rvm_data == 0) rvmlib_internal_abort("SetRange: _rvm_data = 0");\
-	if (_rvm_data->tid == 0)\
-	    (_rvm_data->die)("SetRange: _rvm_data->tid = 0");\
-	rvm_return_t ret = rvm_set_range(_rvm_data->tid, (char *)(base), size);\
-	if (ret != RVM_SUCCESS) RVMLIB_ABORT(ret)\
-    }\
-}
+    rvmlib_set_range(base, size);
 
 #define	RVMLIB_REC_OBJECT(object)\
     RVMLIB_SET_RANGE(&(object), sizeof(object))\
 
 #define	RVMLIB_REC_MALLOC(size)\
-    (RvmType == VM ? malloc(size) : \
-     ((RvmType == RAWIO) || (RvmType == UFS)) ? rvmlib_internal_malloc(size, 1) : \
-     NULL)
+    rvmlib_rec_malloc(size);
 
 #define	RVMLIB_REC_FREE(p)\
-do {\
-    if (RvmType == VM) free(p); \
-    else if (RvmType == RAWIO || RvmType == UFS) rvmlib_internal_free(p, 1);\
-    else assert(0);\
-} while(0)
+    rvmlib_rec_free(p)
 
 #define RVMLIB_IN_TRANSACTION	\
-    ((RvmType == RAWIO || RvmType == UFS) \
-     && ((RVM_THREAD_DATA)->tid != NULL))
+    rvmlib_in_transaction()
 
+inline void rvmlib_abort(int status)
+{
+    if (RvmType == VM) rvmlib_internal_abort("AbortTransaction: RvmType == VM");
+    if (RvmType != RAWIO && RvmType != UFS) { assert(0);}
+    rvm_perthread_t *_rvm_data = RVM_THREAD_DATA;
+    if (_rvm_data == 0) rvmlib_internal_abort("AbortTransaction: _rvm_data = 0");
+    if (_rvm_data->tid == 0) {
+	if (_rvm_data->die) { 
+	    (_rvm_data->die)("AbortTransaction: _rvm_data->tid = 0");
+	}
+        else rvmlib_internal_abort("AbortTransaction: _rvm_data->tid is NULL");
+    }
+    (void)rvm_abort_transaction(_rvm_data->tid);
+    if (_rvm_data->list.table != NULL) free(_rvm_data->list.table);
+    _rvm_data->list.table = NULL;
+    _rvm_data->list.count = _rvm_data->list.size = 0;
+    _rvm_data->tid = 0;
+    _longjmp(_rvm_data->abort, status);
+}
 
+inline void rvmlib_set_range(void *base, unsigned long size){
+    if (RvmType != VM) {
+	rvm_perthread_t *_rvm_data = RVM_THREAD_DATA;
+	if (_rvm_data == 0) rvmlib_internal_abort("SetRange: _rvm_data = 0");
+	if (_rvm_data->tid == 0)
+	    (_rvm_data->die)("SetRange: _rvm_data->tid = 0");
+	rvm_return_t ret = rvm_set_range(_rvm_data->tid, (char *)(base), size);
+	if (ret != RVM_SUCCESS) RVMLIB_ABORT(ret)
+    }
+}
+
+inline void *rvmlib_rec_malloc(unsigned long size){
+    RvmType == VM ? malloc(size) : 
+     ((RvmType == RAWIO) || (RvmType == UFS)) ? rvmlib_internal_malloc(size, 1) : 
+     NULL;
+}
+
+inline void rvmlib_rec_free(void *p)
+{
+    if (RvmType == VM) free(p);
+    else if (RvmType == RAWIO || RvmType == UFS) rvmlib_internal_free(p, 1);
+    else assert(0);
+}
+
+inline int rvmlib_in_transaction(void) {
+    return ((RvmType == RAWIO || RvmType == UFS)
+     && ((RVM_THREAD_DATA)->tid != NULL));
+}
 
 /* *** Camelot compatibility macros *** */
 #ifndef CAMELOT
