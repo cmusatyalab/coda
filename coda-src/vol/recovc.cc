@@ -348,9 +348,11 @@ void VSetMaxVolumeId(VolumeId newid) {
  */
 void GrowVnodes(VolumeId volid, int vclass, short newBMsize) 
 {
-    rec_smolist *newvlist;
-    int myind, newvnodes;
-    bit32 cursize, newsize;
+    rec_smolist *newvlist, **vlist;
+    int myind;
+    char *name;
+    unsigned int grow;
+    bit32 newsize, *size;
 
     LogMsg(9, VolDebugLevel, stdout,  "Entering GrowVnodes for volid %x, vclass %d", volid, vclass);
 
@@ -359,71 +361,46 @@ void GrowVnodes(VolumeId volid, int vclass, short newBMsize)
 	CODA_ASSERT(0);
     }
 
-    newvnodes = newBMsize << 3;   // multiply by 8 since newBMsize is in bytes
-
-
     if (vclass == vSmall) {
-	cursize = SRV_RVM(VolumeList[myind]).data.nsmallLists;
-	newsize = cursize + SMALLGROWSIZE;
-	if (newvnodes % SMALLGROWSIZE)
-	    newvnodes += SMALLGROWSIZE - (newvnodes % SMALLGROWSIZE);
-	if (newvnodes > (int)newsize) newsize = newvnodes;
-	LogMsg(0, VolDebugLevel, stdout,  "GrowVnodes: growing Small list from %d to %d for volume 0x%x",
-					    cursize, newsize, volid);
-	/* create a new larger list and zero out its tail */
-	newvlist = (rec_smolist *) rvmlib_rec_malloc(sizeof(rec_smolist) * newsize);
-
-	char *tmpslist = (char *)malloc(sizeof(rec_smolist) * (int)(newsize - cursize));
-	CODA_ASSERT(tmpslist);
-	memset(tmpslist, 0, sizeof(rec_smolist) * (int)(newsize - cursize));
-	rvmlib_modify_bytes(&(newvlist[cursize]), tmpslist,
-			    sizeof(rec_smolist) * (newsize-cursize));
-	free(tmpslist);
-	
-	/* copy the existing vnode pointers into the new list */
-	rvmlib_modify_bytes(newvlist,
-		    SRV_RVM(VolumeList[myind]).data.smallVnodeLists,
-		    cursize * sizeof(rec_smolist));
-	rvmlib_rec_free((char *)SRV_RVM(VolumeList[myind]).data.smallVnodeLists);
-	/* copy the list pointer into the VolumeData structure */
-	RVMLIB_MODIFY(SRV_RVM(VolumeList[myind]).data.smallVnodeLists,
-								newvlist);
-	/* update the list size in recoverable storage and cache */
-	RVMLIB_MODIFY(SRV_RVM(VolumeList[myind]).data.nsmallLists,
-								newsize);
+	name = "Small";
+	vlist = &SRV_RVM(VolumeList[myind]).data.smallVnodeLists;
+	size = &SRV_RVM(VolumeList[myind]).data.nsmallLists;
+	grow = SMALLGROWSIZE;
+    } else {
+	name = "Large";
+	vlist = &SRV_RVM(VolumeList[myind]).data.largeVnodeLists;
+	size = &SRV_RVM(VolumeList[myind]).data.nlargeLists;
+	grow = LARGEGROWSIZE;
     }
 
-    else {	/* vclass == vLarge */
-	cursize = SRV_RVM(VolumeList[myind]).data.nlargeLists;
-	newsize = cursize + LARGEGROWSIZE;
-	if (newvnodes % LARGEGROWSIZE)
-	    newvnodes += LARGEGROWSIZE - (newvnodes % LARGEGROWSIZE);
-	if (newvnodes > (int)newsize) newsize = newvnodes;
-	LogMsg(0, VolDebugLevel, stdout,  "GrowVnodes: growing Large list from %d to %d for volume 0x%x",
-		cursize, newsize, volid);
-	/* create a new larger list and zero out its tail */
-	newvlist = (rec_smolist *)rvmlib_rec_malloc(sizeof(rec_smolist) * newsize);
+    newsize = newBMsize << 3;   // multiply by 8 since newBMsize is in bytes
+    newsize += grow - (newsize % grow); /* align */
 
-	char *tmpllist = (char *)malloc(sizeof(rec_smolist) * (int)(newsize - cursize));
-	CODA_ASSERT(tmpllist);
-	memset(tmpllist, 0, sizeof(rec_smolist) * (int)(newsize - cursize));
-	rvmlib_modify_bytes(&(newvlist[cursize]), tmpllist, 
-			    sizeof(rec_smolist) * (newsize - cursize));
-	free(tmpllist);
-	
-	/* copy the existing vnode pointers into the new list */
-	rvmlib_modify_bytes(newvlist, 
-			    SRV_RVM(VolumeList[myind]).data.largeVnodeLists,
-			    cursize * sizeof(rec_smolist));
-	rvmlib_rec_free((char *)SRV_RVM(VolumeList[myind]).data.largeVnodeLists);
-	/* copy the list pointer into the VolumeData structure */
-	RVMLIB_MODIFY(SRV_RVM(VolumeList[myind]).data.largeVnodeLists,
-		      newvlist);
-	/* update the list size in recoverable storage and in cache */
-	RVMLIB_MODIFY(SRV_RVM(VolumeList[myind]).data.nlargeLists,
-		      newsize);
+    /* If the array is already big enough we can return early */
+    if (*size > newsize) return;
 
+    LogMsg(0, VolDebugLevel, stdout,  "GrowVnodes: growing %s list from %d to %d for volume 0x%x", name, *size, newsize, volid);
+
+    /* create a new larger list and zero out its tail */
+    newvlist = (rec_smolist *)rvmlib_rec_malloc(sizeof(rec_smolist) * newsize);
+
+    { /* clear the tail of the new list */
+	void *tail = &(newvlist[*size]);
+	int len = sizeof(rec_smolist) * (newsize - *size);
+
+	rvmlib_set_range(tail, len);
+	memset(tail, 0, len);
     }
+
+    /* copy the existing vnode pointers into the new list */
+    rvmlib_modify_bytes(newvlist, *vlist, *size * sizeof(rec_smolist));
+
+    /* free the old list */
+    rvmlib_rec_free((char *)*vlist);
+
+    /* copy pointer and size of the new list to RVM */
+    RVMLIB_MODIFY(*vlist, newvlist);
+    RVMLIB_MODIFY(*size, newsize);
 }
 
 /* Lookup volume disk info for specified volume */
@@ -441,8 +418,7 @@ void ExtractVolDiskInfo(Error *ec, int volindex, VolumeDiskData *vol) {
     }
 
 
-    memmove((void *)vol,
-	    (void *)SRV_RVM(VolumeList[volindex]).data.volumeInfo, 
+    memcpy((void *)vol, (void *)SRV_RVM(VolumeList[volindex]).data.volumeInfo, 
 	    sizeof(VolumeDiskData));
     if (vol->stamp.magic != VOLUMEINFOMAGIC ||
 		    vol->stamp.version != VOLUMEINFOVERSION) {
@@ -472,33 +448,24 @@ int AvailVnode(int volindex, int vclass, VnodeId vnodeindex, Unique_t u)
 	    return(0);
 	}
 	vlist = &(SRV_RVM(VolumeList[volindex]).data.smallVnodeLists[vnodeindex]);
-    }
-    else if (vclass == vLarge) {
+    } else {
 	if (vnodeindex >= SRV_RVM(VolumeList[volindex]).data.nlargeLists) {
 	    LogMsg(0, VolDebugLevel, stdout,  "ExtractVnode: bogus large vnode index %d", vnodeindex);
 	    return(0);
 	}
 	vlist = &(SRV_RVM(VolumeList[volindex]).data.largeVnodeLists[vnodeindex]);
     }
-    else {
-	return(0);
-    }
 
     /* check the lists for vnode existence */
     if (u == 0) 
 	return(vlist->IsEmpty());
-    else {
-	/* check if vnode matching uniquifier exists in list */
-	rec_smolist_iterator next(*vlist);
-	rec_smolink *p;
-	while ((p = next())) {
-	    VnodeDiskObject *vdo;
-	    vdo = strbase(VnodeDiskObject, p, nextvn);
-	    if (vdo->uniquifier == u)
-		return(0);
-	}
-	return(1);
-    }
+
+    /* check if vnode matching uniquifier exists in list */
+    VnodeDiskObject *vdo = FindVnode(vlist, u);
+    if (vdo)
+	return 0;
+
+    return 1;
 }
 
 

@@ -185,9 +185,8 @@ int VolHeaderByIndex(int myind, struct VolumeHeader *header)
 		VLog(1,  "VolHeaderByIndex: bogus volume index %d - maxid %d (ok if volume was purged or deleted)", myind, maxid);
 		return(-1);
 	}
-	memmove((void *) header,
-		(const void *)&(SRV_RVM(VolumeList[myind]).header),
-		sizeof(struct VolumeHeader));
+	memcpy(header, &(SRV_RVM(VolumeList[myind]).header),
+	       sizeof(struct VolumeHeader));
     if (header->stamp.magic != VOLUMEHEADERMAGIC) {
 	    VLog(19,  "VolHeaderByIndex: stamp.magic = %u, VHMAGIC = %u",
 		 header->stamp.magic, VOLUMEHEADERMAGIC);
