@@ -236,15 +236,17 @@ int U_Authenticate(char *hostname, int AuthenticationType, char *uName,
  /* Talks to the central authentication server and changes the password for uName to
     newPasswd if myName is the same as uName or a system administrator.  MyPasswd
     is used to validate myName.  */
-int U_ChangePassword(IN char *uName, IN char *newPasswd, IN int AuthenticationType, IN char *myName, IN int myNamelen,
-		     IN char *myPasswd, IN int myPasswdlen)
+int U_ChangePassword(IN char *DefAuthHost, IN char *uName, IN char *newPasswd,
+                     IN int AuthenticationType, IN char *myName,
+                     IN int myNamelen, IN char *myPasswd, IN int myPasswdlen)
 {
     int rc;
     RPC2_Integer cpid;
     RPC2_Handle RPCid;
     RPC2_EncryptionKey ek;
 
-    if(!(rc = U_BindToServer((char *)NULL, AuthenticationType, myName, myNamelen, myPasswd, myPasswdlen, &RPCid))) {
+    if(!(rc = U_BindToServer(DefAuthHost, AuthenticationType, myName, myNamelen,
+                             myPasswd, myPasswdlen, &RPCid))) {
 	bzero((char *)ek, RPC2_KEYSIZE);
 	strncpy((char *)ek, newPasswd, RPC2_KEYSIZE);
 	if(!(rc = AuthNameToId(RPCid, (RPC2_String) uName, &cpid))) {

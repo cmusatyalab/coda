@@ -16,11 +16,6 @@ listed in the file CREDITS.
 
 #*/
 
-
-
-
-
-
 #ifdef __cplusplus
 extern "C" {
 #endif __cplusplus
@@ -135,7 +130,6 @@ void UpdateRunts(res_mgrpent *mgrp, ViceVersionVector **VV,
 	sid.Value.SmartFTPD.ByteQuota = -1;
 	strcpy(sid.Value.SmartFTPD.FileInfo.ByName.LocalFileName,
 	       filename);
-	ARG_MARSHALL_BS(IN_OUT_MODE, RPC2_CountedBS, alvar, al, VSG_MEMBERS, (SIZEOF_LARGEDISKVNODE - SIZEOF_SMALLDISKVNODE));
 	ARG_MARSHALL(OUT_MODE, RPC2_Integer, forceErrorvar, forceError, VSG_MEMBERS);
 	ARG_MARSHALL(IN_OUT_MODE, SE_Descriptor, sidvar, sid, VSG_MEMBERS);
 	SLog(0,
@@ -144,7 +138,7 @@ void UpdateRunts(res_mgrpent *mgrp, ViceVersionVector **VV,
 	MRPC_MakeMulti(DoForceDirOps_OP, DoForceDirOps_PTR,
 		       VSG_MEMBERS, mgrp->rrcc.handles, 
 		       mgrp->rrcc.retcodes, mgrp->rrcc.MIp,
-		       0, 0, Fid, &vstatus, alvar_ptrs, 
+		       0, 0, Fid, &vstatus, &al,
 		       forceErrorvar_ptrs, sidvar_bufs);
 	mgrp->CheckResult();
 	unlink(filename);

@@ -65,12 +65,129 @@ extern "C" {
 }
 #endif __cplusplus
 
-
+#ifndef O_BINARY
+#define O_BINARY 0
+#endif
 
 void printusage(void)
 {
-		    fprintf(stderr, "Usage clog [-pipe] [-test] [-host authserver]"
-			    " [{-kerberos4,-kerberos5,-coda}] [username]\n");
+		    fprintf(stderr,
+                            "Usage clog [-pipe] [-test] [-host authserver]"
+                            "[{-kerberos4,-kerberos5,-coda}]\n\t"
+                            "[-tofile <file>] [-fromfile <file>] [username]\n");
+}
+
+/* base 64 encoding/decoding to store the tokens in a convenient fileformat */
+char *b2e = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=";
+
+void base64_encode(FILE *out, char *in, int len)
+{
+    int i;
+
+    fputs("*** Coda Token ***\n", out);
+    for (i = 0; i < len; i += 3) {
+        if ((i % 72) == 71) fputc('\n', out);
+
+        fputc(b2e[(in[i] >> 2) & 0x3f], out);
+
+        if (i+1 < len)
+            fputc(b2e[((in[i] << 4) & 0x30) | ((in[i+1] >> 4) & 0xf)], out);
+        else {
+            fputc(b2e[((in[i] << 4) & 0x30)], out);
+            fputc('=', out);
+            fputc('=', out);
+            break;
+        }
+
+        if (i+2 < len) {
+            fputc(b2e[((in[i+1] << 2) & 0x3c) | ((in[i+2] >> 6) & 0x3)], out);
+            fputc(b2e[in[i+2] & 0x3f], out);
+        } else {
+            fputc(b2e[((in[i+1] << 2) & 0x3c)], out);
+            fputc('=', out);
+        }
+    }
+    fputc('\n', out);
+}
+
+void base64_decode(FILE *in, char **out, int *len)
+{
+    int val = 0, s = 18, n = 0, c, header = 1, done = 0;
+        
+    *len = 24; *out = malloc(*len);
+
+    while((c = fgetc(in)) != EOF) {
+        if (c == '\n' || c == '\r') {
+            header = 0; /* we are now past the first line */
+            continue;
+        }
+
+        /* skip the first line */
+        if (header)
+            continue;
+
+        if (c != '=') {
+            if      (c >= 'A' && c <= 'Z') c =  c - 'A';
+            else if (c >= 'a' && c <= 'z') c = (c - 'a') + 26;
+            else if (c >= '0' && c <= '9') c = (c - '0') + 52;
+            else if (c == '+')             c = 62;
+            else if (c == '/')             c = 63;
+            val = val | (c << s);
+        } else
+            done = 1;
+
+        if ((s -= 6) < 0) {
+            (*out)[n]   = (val >> 16) & 0xff;
+            (*out)[n+1] = (val >> 8) & 0xff;
+            (*out)[n+2] = val & 0xff;
+            val = 0; s = 18;
+            if (done) break;
+
+            if ((n += 3) == *len) {
+                *len += 24; *out = realloc(*out, *len);
+            }
+        }
+    }
+    *len = n;
+}
+
+void WriteTokenToFile(char *filename, ClearToken *cToken,
+                      EncryptedSecretToken sToken)
+{
+    FILE *f;
+    char *buf;
+    int len;
+
+    len = sizeof(ClearToken) + sizeof(EncryptedSecretToken);
+    buf = malloc(len);
+    memcpy(buf, (char *)cToken, sizeof(ClearToken));
+    memcpy(buf + sizeof(ClearToken), sToken, sizeof(EncryptedSecretToken));
+
+    f = fopen(filename, "w");
+    base64_encode(f, buf, len);
+    fclose(f);
+    free(buf);
+}
+
+void ReadTokenFromFile(char *filename, ClearToken *cToken,
+                       EncryptedSecretToken sToken)
+{
+    FILE *f;
+    char *buf;
+    int len;
+
+    f = fopen(filename, "w");
+    base64_decode(f, &buf, &len);
+    fclose(f);
+
+    if (len == (sizeof(ClearToken) + sizeof(EncryptedSecretToken))) {
+        fprintf(stderr, "Corrupted token file?\n");
+        free(buf);
+        exit(-EINVAL);
+    }
+    memcpy((char *)cToken, buf, sizeof(ClearToken));
+    memcpy(sToken, buf + sizeof(ClearToken), sizeof(EncryptedSecretToken));
+    free(buf);
 }
 
 int main(int argc, char **argv)
@@ -98,6 +215,8 @@ int main(int argc, char **argv)
     long		    rc;
     int i;
     int testing = 0;
+    char *tofile   = NULL;
+    char *fromfile = NULL;
 
 #ifdef __CYGWIN32__
     username = getlogin();	 
@@ -113,6 +232,11 @@ int main(int argc, char **argv)
 	    if (U_GetAuthMethod(argv[i], &authmethod)) {
 		    i++;
 		    continue;
+	    } else if ( strcmp(argv[i], "-?") == 0 ||
+                        strcmp(argv[i], "-h") == 0 ||
+                        strcmp(argv[i], "--help") == 0 ) {
+		    printusage();
+		    exit(0);
 	    } else if ( strcmp(argv[i], "-test") == 0 ) {
 		    testing =1;
 		    i++;
@@ -122,6 +246,22 @@ int main(int argc, char **argv)
 	    }  else if ( strcmp(argv[i], "-pipe") == 0 ) {
 		    passwdpipe =1;
 		    i++;
+	    }  else if ( strcmp(argv[i], "-fromfile") == 0 ) {
+		    i++;
+		    if (i >= argc) {
+			    fprintf(stderr, "Missing file to write token to\n");
+			    printusage();
+			    exit(1);
+		    }
+                    tofile = argv[i++];
+	    }  else if ( strcmp(argv[i], "-tofile") == 0 ) {
+		    i++;
+		    if (i >= argc) {
+			    fprintf(stderr,"Missing file to read token from\n");
+			    printusage();
+			    exit(1);
+		    }
+                    fromfile = argv[i++];
 	    } else if ( strcmp(argv[i], "-host") == 0) {
 		    i++;
 		    if (i >= argc) {
@@ -157,16 +297,25 @@ int main(int argc, char **argv)
 
     U_InitRPC();
 
-    rc = U_Authenticate(hostname, authmethod, username, 
-			strlen(username)+1, &cToken, sToken, passwdpipe, 
-			interactive);
-    if (rc != 0) {
-	fprintf (stderr, "Invalid login (%s).\n", RPC2_ErrorMsg(rc));
-	exit (1);
+    if (fromfile) {
+        ReadTokenFromFile(fromfile, &cToken, sToken);
+    } else {
+        rc = U_Authenticate(hostname, authmethod, username, 
+                            strlen(username)+1, &cToken, sToken, passwdpipe, 
+                            interactive);
+        if (rc != 0) {
+            fprintf (stderr, "Invalid login (%s).\n", RPC2_ErrorMsg(rc));
+            exit (1);
+        }
     }
 
     if (testing)
 	    printf ("Sending token to venus\n");
+
+    if (tofile) {
+        WriteTokenToFile(tofile, &cToken, sToken);
+    }
+
     if(U_SetLocalTokens(0, &cToken, sToken))
 	printf("Local login only, could not contact venus\n");
     

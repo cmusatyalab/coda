@@ -82,7 +82,7 @@ int main(int argc, char **argv)
 	char newpw[10];
 	char buf[200];
 	int ok, rc;
-	char *DefAuthHost;
+	char *DefAuthHost = NULL;
 
 	bzero(newpw, sizeof(newpw));
 	bzero(buf, sizeof(buf));
@@ -175,7 +175,7 @@ tryagain:
 		printf("Mismatch - password unchanged.\n");
 		exit(1);
 	}
-	rc = U_ChangePassword (uname, newpw, AUTH_METHOD_CODAUSERNAME, myuser, strlen(myuser)+1, mypasswd, strlen(mypasswd));
+	rc = U_ChangePassword (DefAuthHost, uname, newpw, AUTH_METHOD_CODAUSERNAME, myuser, strlen(myuser)+1, mypasswd, strlen(mypasswd));
 	switch(rc) {
 	    case RPC2_DEAD:
 		printf("Server to change passwords down, try again later\n");

@@ -50,13 +50,12 @@ int U_Authenticate(char *hostname, int AuthenticationType, char *uName,
 		   EncryptedSecretToken sToken, 
 		   int passwdpipe, int interactive );
 
- /* Talks to the central authentication server and changes the password for uName to
-    newPasswd if myName is the same as uName or a system administrator.  MyPasswd
-    is used to validate myName.  */
-int U_ChangePassword(char *uName, char *newPasswd, 
-		     int AuthenticationType, char *myName, 
-		     int myNamelen,
-		     char *myPasswd, int myPasswdlen);
+ /* Talks to the central authentication server and changes the password for
+  * uName to newPasswd if myName is the same as uName or a system
+  * administrator. MyPasswd is used to validate myName.  */
+int U_ChangePassword(char *DefAuthHost, char *uName, char *newPasswd, 
+		     int AuthenticationType, char *myName, int myNamelen,
+                     char *myPasswd, int myPasswdlen);
 
 void U_InitRPC();
 char *U_AuthErrorMsg(int rc);

@@ -114,7 +114,7 @@ NewConnection	(IN RPC2_Integer SideEffectType,
 
 8: DoForceDirOps	(IN ViceFid Fid,
 		 IN ViceStatus status,
-		 IN OUT RPC2_CountedBS AccessList,
+		 IN RPC2_CountedBS AccessList,
 		 OUT RPC2_Integer rstatus,
 		 IN OUT SE_Descriptor sed);
 
