@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/util/rvmlib.h,v 4.2 1997/02/26 16:03:08 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/util/rvmlib.h,v 4.3 1997/08/20 14:10:18 clement Exp $";
 #endif /*_BLURB_*/
 
 
@@ -310,9 +310,15 @@ switch (RvmType) {							    \
 	sbrk((void *)(0x20000000 - (int)sbrk(0))); /* for garbage reasons. */		    \
 	stackLimit.rlim_cur = CODA_STACK_LENGTH;			    \
 /*	setrlimit(RLIMIT_STACK, &stackLimit);*/	/* Set stack growth limit */ \
-        if ((err = RVM_INIT(options)) != RVM_SUCCESS)	/* Start rvm */	    \
-	    LogMsg(0, SrvDebugLevel, stdout, "rvm_init failed %s", rvm_return(err));	    \
-        assert(err == RVM_SUCCESS);			  		    \
+        err = RVM_INIT(options);                   /* Start rvm */           \
+        if ( err == RVM_ELOG_VERSION_SKEW ) {                                \
+            LogMsg(0, 0, stdout, "rvm_init failed because of skew RVM-log version."); \
+            LogMsg(0, 0, stdout, "Coda server not started.");                  \
+            exit(-1);                                                          \
+	} else if (err != RVM_SUCCESS) {                                     \
+	    LogMsg(0, 0, stdout, "rvm_init failed %s",rvm_return(err));	    \
+            assert(0);                                                       \
+	}                                                                    \
 	assert(_Rvm_Data_Device != NULL);	   /* Load in recoverable mem */ \
         rds_load_heap(_Rvm_Data_Device,_Rvm_DataLength,(char **)&camlibRecoverableSegment, (int *)&err);  \
 	if (err != RVM_SUCCESS)						    \
