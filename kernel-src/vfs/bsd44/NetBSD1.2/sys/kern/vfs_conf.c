@@ -109,6 +109,10 @@ extern	struct vfsops union_vfsops;
 extern 	struct vfsops adosfs_vfsops;
 #endif
 
+#ifdef CFS
+extern  struct vfsops cfs_vfsops;
+#endif
+
 /*
  * XXX ORDERING MATTERS, for COMPAT_09.  when that goes away, 
  * empty slots can go away.
@@ -191,6 +195,11 @@ struct vfsops *vfssw[] = {
 #else
 	NULL,
 #endif
+#ifdef  CFS
+	&cfs_vfsops,            /* 17 = MOUNT_CFS */
+#else
+	NULL,
+#endif
 #ifdef LKM			/* for LKM's.  add new FS's before these */
 	NULL,
 	NULL,
@@ -231,6 +240,9 @@ extern struct vnodeopv_desc cd9660_fifoop_opv_desc;
 extern struct vnodeopv_desc union_vnodeop_opv_desc;
 extern struct vnodeopv_desc msdosfs_vnodeop_opv_desc;
 extern struct vnodeopv_desc adosfs_vnodeop_opv_desc;
+#ifdef CFS
+extern struct vnodeopv_desc cfs_vnodeop_opv_desc;
+#endif
 
 struct vnodeopv_desc *vfs_opv_descs[] = {
 #ifdef FFS
@@ -295,6 +307,9 @@ struct vnodeopv_desc *vfs_opv_descs[] = {
 #endif
 #ifdef ADOSFS
 	&adosfs_vnodeop_opv_desc,
+#endif
+#ifdef CFS
+	&cfs_vnodeop_opv_desc,
 #endif
 	NULL
 };

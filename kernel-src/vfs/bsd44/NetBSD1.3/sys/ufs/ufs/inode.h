@@ -130,6 +130,12 @@ struct inode {
 #define	i_ffs_shortlink	i_din.ffs_din.di_shortlink
 #define	i_ffs_size		i_din.ffs_din.di_size
 #define	i_ffs_uid		i_din.ffs_din.di_uid
+#ifdef	CFS
+#define i_ffs_vicep1		i_din.ffs_din.di_u.volumeid
+#define i_ffs_vicep2		i_din.ffs_din.di_spare[0]
+#define i_ffs_vicep3		i_din.ffs_din.di_spare[1]
+#define i_ffs_vicep4		i_din.ffs_din.di_gen
+#endif
 
 #define i_e2fs_mode		i_din.e2fs_din.e2di_mode
 #define i_e2fs_uid		i_din.e2fs_din.e2di_uid

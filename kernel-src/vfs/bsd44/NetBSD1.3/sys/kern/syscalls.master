@@ -516,3 +516,55 @@
 278	STD		{ int sys___stat13(const char *path, struct stat *ub); }
 279	STD		{ int sys___fstat13(int fd, struct stat *sb); }
 280	STD		{ int sys___lstat13(const char *path, struct stat *ub); }
+281	UNIMPL
+282	UNIMPL
+283	UNIMPL
+284	UNIMPL
+285	UNIMPL
+286	UNIMPL
+287	UNIMPL
+288	UNIMPL
+289	UNIMPL
+290	UNIMPL
+291	UNIMPL
+292	UNIMPL
+293	UNIMPL
+294	UNIMPL
+295	UNIMPL
+296	UNIMPL
+297	UNIMPL
+298	UNIMPL
+299	UNIMPL
+300	UNIMPL
+;
+; system calls 301-310 reserved for Coda File System
+; (XXX) fill in the prototypes
+#ifdef CFS
+301     STD          { int sys_icreate(int dev, int near_inode, int param1, \
+	                           int param2, int param3, int param4); }
+302     STD          { int sys_iopen(int dev, int inode, int usermode); }
+303     STD          { int sys_iread(int dev, int inode, long inode_p1,     \
+                                 unsigned int offset, char *cbuf,       \
+                                 unsigned int count); }
+304     STD          { int sys_iwrite(int dev, int inode, long inode_p1,     \
+                                  unsigned int offset, char *cbuf,       \
+                                  unsigned int count); }
+305     STD          { int sys_iinc(int dev, int inode, long inode_p1); }
+306     STD          { int sys_idec(int dev, int inode, long inode_p1); }
+307     STD          { int sys_pioctl(char *path, int com, caddr_t comarg,   \
+                                  int follow); }
+308     UNIMPL       setpag
+309     UNIMPL       
+310	UNIMPL
+#else /* !CFS */
+301     UNIMPL       icreate
+302     UNIMPL       iopen
+303     UNIMPL       iread
+304     UNIMPL       iwrite
+305     UNIMPL       iinc
+306     UNIMPL       idec
+307     UNIMPL       pioctl
+308     UNIMPL       setpag
+309     UNIMPL
+310     UNIMPL       
+#endif /* !CFS */

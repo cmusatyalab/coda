@@ -102,7 +102,8 @@ struct statfs {
 #define MOUNT_DEVFS	16	/* existing device Filesystem */
 #define	MOUNT_EXT2FS	17	/* Linux EXT2FS */
 #define MOUNT_TFS	18	/* Netcon Novell filesystem */
-#define	MOUNT_MAXTYPE	18
+#define	MOUNT_CFS	19	/* Coda filesystem */
+#define	MOUNT_MAXTYPE	19
 
 #define INITMOUNTNAMES { \
 	"none",		/*  0 MOUNT_NONE */ \
@@ -124,7 +125,8 @@ struct statfs {
 	"devfs",	/* 16 MOUNT_DEVFS */ \
 	"ext2fs",	/* 17 MOUNT_EXT2FS */ \
 	"tfs",		/* 18 MOUNT_TFS */ \
-	0,		/* 18 MOUNT_SPARE */ \
+	"cfs",		/* 19 MOUNT_TFS */ \
+	0,		/* 19 MOUNT_SPARE */ \
 }
 
 /*

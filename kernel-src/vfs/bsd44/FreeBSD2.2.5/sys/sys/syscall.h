@@ -207,4 +207,11 @@
 #define	SYS_rfork	251
 #define	SYS_issetugid	253
 #define	SYS_lchown	254
-#define	SYS_MAXSYSCALL	326
+#define	SYS_sys_icreate	351
+#define	SYS_sys_iopen	352
+#define	SYS_sys_iread	353
+#define	SYS_sys_iwrite	354
+#define	SYS_sys_iinc	355
+#define	SYS_sys_idec	356
+#define	SYS_sys_pioctl	357
+#define	SYS_MAXSYSCALL	361

@@ -171,6 +171,8 @@ define	tcbus { }			# TurboChannel attachment
 pseudo-device vnd: disk
 pseudo-device ccd: disk
 pseudo-device md: disk
+pseudo-device vcfs: tty
+pseudo-device vcfsX: tty
 
 pseudo-device pty: tty
 pseudo-device tb: tty
@@ -189,6 +191,13 @@ file adosfs/adlookup.c			adosfs
 file adosfs/adutil.c			adosfs
 file adosfs/advfsops.c			adosfs
 file adosfs/advnops.c			adosfs
+file cfs/cfs_namecache.c		vcfs			needs-count
+file cfs/cfs_nbsd.c			vcfs
+file cfs/cfs_psdev.c			vcfs
+file cfs/cfs_subr.c			vcfs
+file cfs/cfs_venus.c			vcfs
+file cfs/cfs_vfsops.c			vcfs
+file cfs/cfs_vnodeops.c			vcfs
 file ddb/db_access.c			ddb
 file ddb/db_aout.c			ddb
 file ddb/db_break.c			ddb
@@ -487,6 +496,8 @@ file ufs/ffs/ffs_subr.c			ffs | mfs
 file ufs/ffs/ffs_tables.c		ffs | mfs
 file ufs/ffs/ffs_vfsops.c		ffs | mfs
 file ufs/ffs/ffs_vnops.c		ffs | mfs
+file ufs/ifs/ifs_isyscalls.c		vcfs | vcfsX | odydev
+file ufs/ifs/ifs_subr.c			vcfs | vcfsX | odydev
 file ufs/lfs/lfs_alloc.c		lfs
 file ufs/lfs/lfs_bio.c			lfs
 file ufs/lfs/lfs_balloc.c		lfs

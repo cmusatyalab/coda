@@ -953,6 +953,58 @@ struct sys_shmget_args {
 	syscallarg(int) shmflg;
 };
 
+struct sys_icreate_args {
+	syscallarg(int) dev;
+	syscallarg(int) near_inode;
+	syscallarg(int) param1;
+	syscallarg(int) param2;
+	syscallarg(int) param3;
+	syscallarg(int) param4;
+};
+
+struct sys_iopen_args {
+	syscallarg(int) dev;
+	syscallarg(int) inode;
+	syscallarg(int) usermode;
+};
+
+struct sys_iread_args {
+	syscallarg(int) dev;
+	syscallarg(int) inode;
+	syscallarg(long) inode_p1;
+	syscallarg(unsigned int) offset;
+	syscallarg(char *) cbuf;
+	syscallarg(unsigned int) count;
+};
+
+struct sys_iwrite_args {
+	syscallarg(int) dev;
+	syscallarg(int) inode;
+	syscallarg(long) inode_p1;
+	syscallarg(unsigned int) offset;
+	syscallarg(char *) cbuf;
+	syscallarg(unsigned int) count;
+};
+
+struct sys_iinc_args {
+	syscallarg(int) dev;
+	syscallarg(int) inode;
+	syscallarg(long) inode_p1;
+};
+
+struct sys_idec_args {
+	syscallarg(int) dev;
+	syscallarg(int) inode;
+	syscallarg(long) inode_p1;
+};
+
+struct sys_pioctl_args {
+	syscallarg(char *) path;
+	syscallarg(int) com;
+	syscallarg(caddr_t) comarg;
+	syscallarg(int) follow;
+};
+
 /*
  * System call prototypes.
  */
@@ -1195,3 +1247,13 @@ int	sys_shmdt	__P((struct proc *, void *, register_t *));
 int	sys_shmget	__P((struct proc *, void *, register_t *));
 #else
 #endif
+#ifdef CFS
+int	sys_icreate	__P((struct proc *, void *, register_t *));
+int	sys_iopen	__P((struct proc *, void *, register_t *));
+int	sys_iread	__P((struct proc *, void *, register_t *));
+int	sys_iwrite	__P((struct proc *, void *, register_t *));
+int	sys_iinc	__P((struct proc *, void *, register_t *));
+int	sys_idec	__P((struct proc *, void *, register_t *));
+int	sys_pioctl	__P((struct proc *, void *, register_t *));
+#else /* !CFS */
+#endif /* !CFS */

@@ -184,6 +184,11 @@ cdev_decl(ccd);
 cdev_decl(joy);
 #include "apm.h"
 cdev_decl(apm);
+#ifdef	CFS
+#include "vcfs.h"
+/*#include "vcfsX.h"*/
+cdev_decl(vc_nb_);
+#endif
 
 #include "ipfilter.h"
 #include "satlink.h"
@@ -244,6 +249,15 @@ struct cdevsw	cdevsw[] =
 	cdev_ipf_init(NIPFILTER,ipl),	/* 44: ip-filter device */
 	cdev_satlink_init(NSATLINK,satlink), /* 45: planetconnect satlink */
 	cdev_rnd_init(NRND,rnd),	/* 46: random source pseudo-device */
+	cdev_lkm_dummy(),		/* 47 */
+	cdev_lkm_dummy(),		/* 48 */
+	cdev_lkm_dummy(),		/* 49 */
+	cdev_lkm_dummy(),		/* 50 */
+#if	(NVCFS + NVCFSX) > 0
+	cdev_vc_nb_init(NVCFS,vc_nb_),  /* 51: coda file system psdev */
+#else
+	cdev_notdef(),                  /* 51 */
+#endif
 };
 int	nchrdev = sizeof(cdevsw) / sizeof(cdevsw[0]);
 

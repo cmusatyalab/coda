@@ -102,6 +102,7 @@ struct statfs {
 #define	MOUNT_UNION	"union"		/* Union (translucent) Filesystem */
 #define	MOUNT_ADOSFS	"adosfs"	/* AmigaDOS Filesystem */
 #define MOUNT_EXT2FS   "ext2fs"		/* Second Extended Filesystem */
+#define MOUNT_CFS       "cfs"           /* Coda Filesystem */
 
 /*
  * Structure per mounted file system.  Each mounted file system has an

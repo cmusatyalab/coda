@@ -129,7 +129,8 @@
 #define	M_BIOBUF	82	/* BIO buffer */
 #define	M_KTRACE	83	/* KTRACE */
 #define	M_SELECT	84	/* select() buffer */
-#define	M_LAST		85	/* Must be last type + 1 */
+#define M_CFS		85	/* Coda */
+#define	M_LAST		86	/* Must be last type + 1 */
 
 #define INITKMEMNAMES { \
 	"free",		/* 0 M_FREE */ \
@@ -214,6 +215,7 @@
 	"BIO buffer",	/* 82 M_BIOBUF */ \
 	"KTRACE",	/* 83 M_KTRACE */ \
 	"select",	/* 84 M_SELECT */ \
+	"Coda",		/* 85 M_CFS */ \
 }
 
 struct kmemstats {

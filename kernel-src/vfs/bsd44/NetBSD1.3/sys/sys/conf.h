@@ -328,6 +328,14 @@ extern struct cdevsw cdevsw[];
 	(dev_type_ioctl((*))) enodev, (dev_type_stop((*))) nullop, \
 	0, (dev_type_poll((*))) enodev, (dev_type_mmap((*))) enodev }
 
+#ifdef	CFS
+/* open, close, read, write, ioctl, select */
+#define cdev_vc_nb_init(c,n) { \
+	dev_init(c,n,open), dev_init(c,n,close), dev_init(c,n,read), \
+	dev_init(c,n,write), dev_init(c,n,ioctl),  \
+        (dev_type_stop((*))) nullop, 0, dev_init(c,n,poll), \
+	(dev_type_mmap((*))) enodev}
+#endif /* CFS */
 /* symbolic sleep message strings */
 extern	const char devopn[], devio[], devwait[], devin[], devout[];
 extern	const char devioc[], devcls[];

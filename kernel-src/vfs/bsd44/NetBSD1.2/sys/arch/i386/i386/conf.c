@@ -179,6 +179,11 @@ cdev_decl(ccd);
 #include "joy.h"
 cdev_decl(joy);
 
+#ifdef CFS
+#include "vcfs.h"
+cdev_decl(vc_nb_);
+#endif
+
 struct cdevsw	cdevsw[] =
 {
 	cdev_cn_init(1,cn),		/* 0: virtual console */
@@ -228,6 +233,13 @@ struct cdevsw	cdevsw[] =
 	cdev_svr4_net_init(1,svr4_net),	/* 43: svr4 net pseudo-device */
 #else
 	cdev_notdef(),			/* 43 */
+#endif
+	cdev_notdef(),			/* 44 */
+	cdev_notdef(),			/* 45 */
+#ifdef NVCFS
+	cdev_vc_nb_init(NVCFS,vc_nb_),  /* 46: coda file system psdev */
+#else
+	cdev_notdef(),                  /* 46 */
 #endif
 };
 int	nchrdev = sizeof(cdevsw) / sizeof(cdevsw[0]);

@@ -117,6 +117,13 @@ struct inode {
 #define	i_size		i_din.di_size
 #define	i_uid		i_din.di_uid
 
+#ifdef	CFS
+#define i_vicep1	i_din.di_u.volumeid
+#define i_vicep2	i_din.di_spare[0]
+#define i_vicep3	i_din.di_spare[1]
+#define i_vicep4	i_din.di_gen
+#endif
+
 /* These flags are kept in i_flag. */
 #define	IN_ACCESS	0x0001		/* Access time update request. */
 #define	IN_CHANGE	0x0002		/* Inode change time update request. */

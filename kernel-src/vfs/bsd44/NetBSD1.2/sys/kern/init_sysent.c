@@ -598,5 +598,66 @@ struct sysent sysent[] = {
 	{ 0, 0,
 	    sys_nosys },			/* 231 = unimplemented shmget */
 #endif
+	{ 0, 0,
+	    sys_nosys },			/* 232 = unimplemented */
+	{ 0, 0,
+	    sys_nosys },			/* 233 = unimplemented */
+	{ 0, 0,
+	    sys_nosys },			/* 234 = unimplemented */
+	{ 0, 0,
+	    sys_nosys },			/* 235 = unimplemented */
+	{ 0, 0,
+	    sys_nosys },			/* 236 = unimplemented */
+	{ 0, 0,
+	    sys_nosys },			/* 237 = unimplemented */
+	{ 0, 0,
+	    sys_nosys },			/* 238 = unimplemented */
+	{ 0, 0,
+	    sys_nosys },			/* 239 = unimplemented */
+	{ 0, 0,
+	    sys_nosys },			/* 240 = unimplemented */
+#ifdef CFS
+	{ 6, s(struct sys_icreate_args),
+	    sys_icreate },			/* 241 = icreate */
+	{ 3, s(struct sys_iopen_args),
+	    sys_iopen },			/* 242 = iopen */
+	{ 6, s(struct sys_iread_args),
+	    sys_iread },			/* 243 = iread */
+	{ 6, s(struct sys_iwrite_args),
+	    sys_iwrite },			/* 244 = iwrite */
+	{ 3, s(struct sys_iinc_args),
+	    sys_iinc },				/* 245 = iinc */
+	{ 3, s(struct sys_idec_args),
+	    sys_idec },				/* 246 = idec */
+	{ 4, s(struct sys_pioctl_args),
+	    sys_pioctl },			/* 247 = pioctl */
+	{ 0, 0,
+	    sys_nosys },			/* 248 = unimplemented setpag */
+	{ 0, 0,
+	    sys_nosys },			/* 249 = unimplemented */
+	{ 0, 0,
+	    sys_nosys },			/* 250 = unimplemented */
+#else /* !CFS */
+	{ 0, 0,
+	    sys_nosys },			/* 241 = unimplemented icreate */
+	{ 0, 0,
+	    sys_nosys },			/* 242 = unimplemented iopen */
+	{ 0, 0,
+	    sys_nosys },			/* 243 = unimplemented iread */
+	{ 0, 0,
+	    sys_nosys },			/* 244 = unimplemented iwrite */
+	{ 0, 0,
+	    sys_nosys },			/* 245 = unimplemented iinc */
+	{ 0, 0,
+	    sys_nosys },			/* 246 = unimplemented idec */
+	{ 0, 0,
+	    sys_nosys },			/* 247 = unimplemented pioctl */
+	{ 0, 0,
+	    sys_nosys },			/* 248 = unimplemented setpag */
+	{ 0, 0,
+	    sys_nosys },			/* 249 = unimplemented */
+	{ 0, 0,
+	    sys_nosys },			/* 250 = unimplemented */
+#endif /* !CFS */
 };
 

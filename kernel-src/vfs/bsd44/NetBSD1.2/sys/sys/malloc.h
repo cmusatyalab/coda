@@ -121,6 +121,9 @@
 #define	M_IPQ		69	/* IP packet queue entry */
 #define	M_AFS		70	/* Andrew File System */
 #define	M_ADOSFSBITMAP	71	/* adosfs bitmap */
+
+#define M_CFS           83      /* Coda file system structures and tables. */
+
 #define	M_TEMP		84	/* misc temporary data buffers */
 #define	M_LAST		85	/* Must be last type + 1 */
 
@@ -200,6 +203,7 @@
 	NULL, NULL, NULL, NULL, \
 	NULL, NULL, NULL, NULL, NULL, \
 	NULL, NULL, NULL, \
+	"cfs",          /* 83 M_CFS */ \
 	"temp",		/* 84 M_TEMP */ \
 }
 

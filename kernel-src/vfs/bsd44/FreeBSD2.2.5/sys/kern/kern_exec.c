@@ -161,6 +161,7 @@ interpret:
 		goto exec_fail_dealloc;
 	}
 
+#if	0
 	/*
 	 * Get the image header, which we define here as meaning the first
 	 * page of the executable.
@@ -175,7 +176,9 @@ interpret:
 		error = bread(imgp->vp, 0, imgp->vp->v_mount->mnt_stat.f_iosize,
 		     p->p_ucred, &bp);
 		imgp->image_header = bp->b_data;
-	} else {
+	} else 
+#endif
+	{
 		int resid;
 
 		/*

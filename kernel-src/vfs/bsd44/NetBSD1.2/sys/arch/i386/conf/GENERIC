@@ -58,6 +58,7 @@ options		FFS		# UFS
 options		QUOTA		# UFS quotas
 options		LFS		# log-structured file system
 options		MFS		# memory file system
+options		CFS		# Coda File System
 
 options		NFSCLIENT	# Network File System client
 options		NFSSERVER	# Network File System server
@@ -202,3 +203,4 @@ pseudo-device	pty	64		# pseudo-terminals
 pseudo-device	tb	1		# tablet line discipline
 pseudo-device	vnd	4		# paging to files
 pseudo-device	ccd	4		# concatenated disk devices
+pseudo-device   vcfs    4               # coda minicache <-> venus comm.

@@ -117,6 +117,10 @@ extern 	struct vfsops adosfs_vfsops;
 extern struct vfsops ext2fs_vfsops;
 #endif
 
+#ifdef CFS
+extern struct vfsops cfs_vfsops;
+#endif
+
 struct vfsops *vfssw[] = {
 #ifdef FFS
 	&ffs_vfsops,
@@ -165,6 +169,11 @@ struct vfsops *vfssw[] = {
 #endif
 #ifdef EXT2FS
 	&ext2fs_vfsops,
+#endif
+#ifdef  CFS
+	&cfs_vfsops,
+#else
+	NULL,
 #endif
 #ifdef LKM			/* for LKM's.  add new FS's before these */
 	NULL,
@@ -221,6 +230,9 @@ extern struct vnodeopv_desc adosfs_vnodeop_opv_desc;
 extern struct vnodeopv_desc ext2fs_vnodeop_opv_desc;
 extern struct vnodeopv_desc ext2fs_specop_opv_desc;
 extern struct vnodeopv_desc ext2fs_fifoop_opv_desc;
+#ifdef CFS
+extern struct vnodeopv_desc cfs_vnodeop_opv_desc;
+#endif
 
 struct vnodeopv_desc *vfs_opv_descs[] = {
 #ifdef FFS
@@ -292,6 +304,9 @@ struct vnodeopv_desc *vfs_opv_descs[] = {
 #ifdef FIFO
 	&ext2fs_fifoop_opv_desc,
 #endif
+#endif
+#ifdef CFS
+	&cfs_vnodeop_opv_desc,
 #endif
 	NULL
 };

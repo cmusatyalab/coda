@@ -128,6 +128,8 @@
 #define	M_NFSBIGFH	74	/* NFS big filehandle */
 #define M_EXT2FSNODE	75	/* EXT2FS vnode private part */
 #define M_VMSWAP	76	/* VM swap structures */
+
+#define M_CFS           83      /* Coda file system structures and tables. */
 #define	M_TEMP		84	/* misc temporary data buffers */
 #define	M_LAST		85	/* Must be last type + 1 */
 
@@ -209,8 +211,9 @@
 	"NFS bigfh",	/* 74 M_NFSBIGFH */ \
 	"EXT2FS node",  /* 75 M_EXT2FSNODE */ \
 	"VM swap",	/* 76 M_VMSWAP */ \
-	NULL, NULL, NULL, NULL, \
-	NULL, NULL, NULL, \
+	NULL, NULL, NULL, /* 77, 78, 79 */ \
+	NULL, NULL, NULL, /* 80, 81, 82 */ \
+	"cfs",          /* 83 M_CFS */ \
 	"temp",		/* 84 M_TEMP */ \
 }
 

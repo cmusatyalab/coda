@@ -463,3 +463,60 @@
 323	UNIMPL	NOHIDE	thr_wakeup
 324	UNIMPL	NOHIDE	mlockall
 325	UNIMPL	NOHIDE	munlockall
+326	UNIMPL	NOHIDE	nosys
+327	UNIMPL	NOHIDE	nosys
+328	UNIMPL	NOHIDE	nosys
+329	UNIMPL	NOHIDE	nosys
+330	UNIMPL	NOHIDE	nosys
+331	UNIMPL	NOHIDE	nosys
+332	UNIMPL	NOHIDE	nosys
+333	UNIMPL	NOHIDE	nosys
+334	UNIMPL	NOHIDE	nosys
+335	UNIMPL	NOHIDE	nosys
+336	UNIMPL	NOHIDE	nosys
+337	UNIMPL	NOHIDE	nosys
+338	UNIMPL	NOHIDE	nosys
+339	UNIMPL	NOHIDE	nosys
+340	UNIMPL	NOHIDE	nosys
+341	UNIMPL	NOHIDE	nosys
+342	UNIMPL	NOHIDE	nosys
+343	UNIMPL	NOHIDE	nosys
+344	UNIMPL	NOHIDE	nosys
+345	UNIMPL	NOHIDE	nosys
+346	UNIMPL	NOHIDE	nosys
+347	UNIMPL	NOHIDE	nosys
+348	UNIMPL	NOHIDE	nosys
+349	UNIMPL	NOHIDE	nosys
+350	UNIMPL	NOHIDE	nosys
+;
+; system calls 351-360 reserved for Coda File System
+; (XXX) fill in the prototypes
+#ifdef CFS
+351	STD	BSD	{ int sys_icreate(int dev, int near_inode, int param1,\
+				int param2, int param3, int param4); }
+352	STD	BSD	{ int sys_iopen(int dev, int inode, int usermode); }
+353	STD	BSD	{ int sys_iread(int dev, int inode, long inode_p1, \
+				unsigned int offset, char *cbuf, \
+				unsigned int count); }
+354	STD	BSD	{ int sys_iwrite(int dev, int inode, long inode_p1, \
+				unsigned int offset, char *cbuf, \
+				unsigned int count); }
+355	STD	BSD	{ int sys_iinc(int dev, int inode, long inode_p1); }
+356	STD	BSD	{ int sys_idec(int dev, int inode, long inode_p1); }
+357	STD	BSD	{ int sys_pioctl(char *path, int com, caddr_t comarg, \
+				int follow); }
+358	UNIMPL	NOHIDE	 setpag
+359	UNIMPL	NOHIDE nosys
+360	UNIMPL	NOHIDE nosys
+#else /* !CFS */
+351	UNIMPL	NOHIDE	icreate
+352	UNIMPL	NOHIDE	iopen
+353	UNIMPL	NOHIDE	iread
+354	UNIMPL	NOHIDE	iwrite
+355	UNIMPL	NOHIDE	iinc
+356	UNIMPL	NOHIDE	idec
+357	UNIMPL	NOHIDE	pioctl
+358	UNIMPL	NOHIDE	setpag
+359	UNIMPL	NOHIDE	nosys
+360	UNIMPL	NOHIDE	nosys
+#endif /* !CFS */

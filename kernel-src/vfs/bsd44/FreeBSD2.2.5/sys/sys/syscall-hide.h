@@ -213,3 +213,13 @@ HIDE_BSD(minherit)
 HIDE_BSD(rfork)
 HIDE_BSD(issetugid)
 HIDE_BSD(lchown)
+#ifdef CFS
+HIDE_BSD(sys_icreate)
+HIDE_BSD(sys_iopen)
+HIDE_BSD(sys_iread)
+HIDE_BSD(sys_iwrite)
+HIDE_BSD(sys_iinc)
+HIDE_BSD(sys_idec)
+HIDE_BSD(sys_pioctl)
+#else /* !CFS */
+#endif /* !CFS */

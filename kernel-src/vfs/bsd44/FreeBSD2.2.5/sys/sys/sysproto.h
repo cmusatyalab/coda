@@ -732,6 +732,54 @@ struct	lchown_args {
 	int uid;
 	int gid;
 };
+#ifdef CFS
+struct	sys_icreate_args {
+	int dev;
+	int near_inode;
+	int param1;
+	int param2;
+	int param3;
+	int param4;
+};
+struct	sys_iopen_args {
+	int dev;
+	int inode;
+	int usermode;
+};
+struct	sys_iread_args {
+	int dev;
+	int inode;
+	long inode_p1;
+	unsigned int offset;
+	char * cbuf;
+	unsigned int count;
+};
+struct	sys_iwrite_args {
+	int dev;
+	int inode;
+	long inode_p1;
+	unsigned int offset;
+	char * cbuf;
+	unsigned int count;
+};
+struct	sys_iinc_args {
+	int dev;
+	int inode;
+	long inode_p1;
+};
+struct	sys_idec_args {
+	int dev;
+	int inode;
+	long inode_p1;
+};
+struct	sys_pioctl_args {
+	char * path;
+	int com;
+	caddr_t comarg;
+	int follow;
+};
+#else /* !CFS */
+#endif /* !CFS */
 int	nosys __P((struct proc *, struct nosys_args *, int []));
 void	exit __P((struct proc *, struct rexit_args *, int [])) __dead2;
 int	fork __P((struct proc *, struct fork_args *, int []));
@@ -903,6 +951,16 @@ int	minherit __P((struct proc *, struct minherit_args *, int []));
 int	rfork __P((struct proc *, struct rfork_args *, int []));
 int	issetugid __P((struct proc *, struct issetugid_args *, int []));
 int	lchown __P((struct proc *, struct lchown_args *, int []));
+#ifdef CFS
+int	sys_icreate __P((struct proc *, struct sys_icreate_args *, int []));
+int	sys_iopen __P((struct proc *, struct sys_iopen_args *, int []));
+int	sys_iread __P((struct proc *, struct sys_iread_args *, int []));
+int	sys_iwrite __P((struct proc *, struct sys_iwrite_args *, int []));
+int	sys_iinc __P((struct proc *, struct sys_iinc_args *, int []));
+int	sys_idec __P((struct proc *, struct sys_idec_args *, int []));
+int	sys_pioctl __P((struct proc *, struct sys_pioctl_args *, int []));
+#else /* !CFS */
+#endif /* !CFS */
 
 #ifdef COMPAT_43
 
@@ -1029,6 +1087,9 @@ struct	ogetdirentries_args {
 #ifdef LFS
 #else
 #endif
+#ifdef CFS
+#else /* !CFS */
+#endif /* !CFS */
 int	ocreat __P((struct proc *, struct ocreat_args *, int []));
 int	olseek __P((struct proc *, struct olseek_args *, int []));
 int	ostat __P((struct proc *, struct ostat_args *, int []));

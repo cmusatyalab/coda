@@ -425,3 +425,44 @@
 230	UNIMPL		shmdt
 231	UNIMPL		shmget
 #endif
+232     UNIMPL
+233     UNIMPL
+234     UNIMPL
+235     UNIMPL
+236     UNIMPL
+237     UNIMPL
+238     UNIMPL
+239     UNIMPL
+240     UNIMPL
+;
+; system calls 241-249 reserved for Coda File System
+; (XXX) fill in the prototypes
+#ifdef CFS
+241     STD          { int sys_icreate(int dev, int near_inode, int param1, \
+	                           int param2, int param3, int param4); }
+242     STD          { int sys_iopen(int dev, int inode, int usermode); }
+243     STD          { int sys_iread(int dev, int inode, long inode_p1,     \
+                                 unsigned int offset, char *cbuf,       \
+                                 unsigned int count); }
+244     STD          { int sys_iwrite(int dev, int inode, long inode_p1,     \
+                                  unsigned int offset, char *cbuf,       \
+                                  unsigned int count); }
+245     STD          { int sys_iinc(int dev, int inode, long inode_p1); }
+246     STD          { int sys_idec(int dev, int inode, long inode_p1); }
+247     STD          { int sys_pioctl(char *path, int com, caddr_t comarg,   \
+                                  int follow); }
+248     UNIMPL       setpag
+249     UNIMPL       
+250	UNIMPL
+#else /* !CFS */
+241     UNIMPL       icreate
+242     UNIMPL       iopen
+243     UNIMPL       iread
+244     UNIMPL       iwrite
+245     UNIMPL       iinc
+246     UNIMPL       idec
+247     UNIMPL       pioctl
+248     UNIMPL       setpag
+249     UNIMPL
+250     UNIMPL       
+#endif /* !CFS */

@@ -598,4 +598,25 @@
 /* syscall: "__lstat13" ret: "int" args: "const char *" "struct stat *" */
 #define	SYS___lstat13	280
 
-#define	SYS_MAXSYSCALL	281
+/* syscall: "icreate" ret: "int" args: "int" "int" "int" "int" "int" "int" */
+#define	SYS_icreate	301
+
+/* syscall: "iopen" ret: "int" args: "int" "int" "int" */
+#define	SYS_iopen	302
+
+/* syscall: "iread" ret: "int" args: "int" "int" "long" "unsigned int" "char *" "unsigned int" */
+#define	SYS_iread	303
+
+/* syscall: "iwrite" ret: "int" args: "int" "int" "long" "unsigned int" "char *" "unsigned int" */
+#define	SYS_iwrite	304
+
+/* syscall: "iinc" ret: "int" args: "int" "int" "long" */
+#define	SYS_iinc	305
+
+/* syscall: "idec" ret: "int" args: "int" "int" "long" */
+#define	SYS_idec	306
+
+/* syscall: "pioctl" ret: "int" args: "char *" "int" "caddr_t" "int" */
+#define	SYS_pioctl	307
+
+#define	SYS_MAXSYSCALL	311

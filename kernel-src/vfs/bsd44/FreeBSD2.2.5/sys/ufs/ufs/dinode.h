@@ -64,6 +64,9 @@ struct dinode {
 	union {
 		u_short	oldids[2];	/*   4: Ffs: old user and group ids. */
 		ino_t	inumber;	/*   4: Lfs: inode number. */
+#ifdef	CFS
+		long	volumeid;	/*   4: Coda/Odyssey volume number */
+#endif
 	} di_u;
 	u_quad_t	di_size;	/*   8: File byte count. */
 	struct timespec	di_atime;	/*  16: Last access time. */

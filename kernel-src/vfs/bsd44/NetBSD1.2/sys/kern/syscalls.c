@@ -307,4 +307,36 @@ char *syscallnames[] = {
 	"#230 (unimplemented shmdt)",		/* 230 = unimplemented shmdt */
 	"#231 (unimplemented shmget)",		/* 231 = unimplemented shmget */
 #endif
+	"#232 (unimplemented)",		/* 232 = unimplemented */
+	"#233 (unimplemented)",		/* 233 = unimplemented */
+	"#234 (unimplemented)",		/* 234 = unimplemented */
+	"#235 (unimplemented)",		/* 235 = unimplemented */
+	"#236 (unimplemented)",		/* 236 = unimplemented */
+	"#237 (unimplemented)",		/* 237 = unimplemented */
+	"#238 (unimplemented)",		/* 238 = unimplemented */
+	"#239 (unimplemented)",		/* 239 = unimplemented */
+	"#240 (unimplemented)",		/* 240 = unimplemented */
+#ifdef CFS
+	"icreate",			/* 241 = icreate */
+	"iopen",			/* 242 = iopen */
+	"iread",			/* 243 = iread */
+	"iwrite",			/* 244 = iwrite */
+	"iinc",			/* 245 = iinc */
+	"idec",			/* 246 = idec */
+	"pioctl",			/* 247 = pioctl */
+	"#248 (unimplemented setpag)",		/* 248 = unimplemented setpag */
+	"#249 (unimplemented)",		/* 249 = unimplemented */
+	"#250 (unimplemented)",		/* 250 = unimplemented */
+#else /* !CFS */
+	"#241 (unimplemented icreate)",		/* 241 = unimplemented icreate */
+	"#242 (unimplemented iopen)",		/* 242 = unimplemented iopen */
+	"#243 (unimplemented iread)",		/* 243 = unimplemented iread */
+	"#244 (unimplemented iwrite)",		/* 244 = unimplemented iwrite */
+	"#245 (unimplemented iinc)",		/* 245 = unimplemented iinc */
+	"#246 (unimplemented idec)",		/* 246 = unimplemented idec */
+	"#247 (unimplemented pioctl)",		/* 247 = unimplemented pioctl */
+	"#248 (unimplemented setpag)",		/* 248 = unimplemented setpag */
+	"#249 (unimplemented)",		/* 249 = unimplemented */
+	"#250 (unimplemented)",		/* 250 = unimplemented */
+#endif /* !CFS */
 };

@@ -356,4 +356,47 @@ char *syscallnames[] = {
 	"__stat13",			/* 278 = __stat13 */
 	"__fstat13",			/* 279 = __fstat13 */
 	"__lstat13",			/* 280 = __lstat13 */
+	"#281 (unimplemented)",		/* 281 = unimplemented */
+	"#282 (unimplemented)",		/* 282 = unimplemented */
+	"#283 (unimplemented)",		/* 283 = unimplemented */
+	"#284 (unimplemented)",		/* 284 = unimplemented */
+	"#285 (unimplemented)",		/* 285 = unimplemented */
+	"#286 (unimplemented)",		/* 286 = unimplemented */
+	"#287 (unimplemented)",		/* 287 = unimplemented */
+	"#288 (unimplemented)",		/* 288 = unimplemented */
+	"#289 (unimplemented)",		/* 289 = unimplemented */
+	"#290 (unimplemented)",		/* 290 = unimplemented */
+	"#291 (unimplemented)",		/* 291 = unimplemented */
+	"#292 (unimplemented)",		/* 292 = unimplemented */
+	"#293 (unimplemented)",		/* 293 = unimplemented */
+	"#294 (unimplemented)",		/* 294 = unimplemented */
+	"#295 (unimplemented)",		/* 295 = unimplemented */
+	"#296 (unimplemented)",		/* 296 = unimplemented */
+	"#297 (unimplemented)",		/* 297 = unimplemented */
+	"#298 (unimplemented)",		/* 298 = unimplemented */
+	"#299 (unimplemented)",		/* 299 = unimplemented */
+	"#300 (unimplemented)",		/* 300 = unimplemented */
+#ifdef CFS
+	"icreate",			/* 301 = icreate */
+	"iopen",			/* 302 = iopen */
+	"iread",			/* 303 = iread */
+	"iwrite",			/* 304 = iwrite */
+	"iinc",			/* 305 = iinc */
+	"idec",			/* 306 = idec */
+	"pioctl",			/* 307 = pioctl */
+	"#308 (unimplemented setpag)",		/* 308 = unimplemented setpag */
+	"#309 (unimplemented)",		/* 309 = unimplemented */
+	"#310 (unimplemented)",		/* 310 = unimplemented */
+#else /* !CFS */
+	"#301 (unimplemented icreate)",		/* 301 = unimplemented icreate */
+	"#302 (unimplemented iopen)",		/* 302 = unimplemented iopen */
+	"#303 (unimplemented iread)",		/* 303 = unimplemented iread */
+	"#304 (unimplemented iwrite)",		/* 304 = unimplemented iwrite */
+	"#305 (unimplemented iinc)",		/* 305 = unimplemented iinc */
+	"#306 (unimplemented idec)",		/* 306 = unimplemented idec */
+	"#307 (unimplemented pioctl)",		/* 307 = unimplemented pioctl */
+	"#308 (unimplemented setpag)",		/* 308 = unimplemented setpag */
+	"#309 (unimplemented)",		/* 309 = unimplemented */
+	"#310 (unimplemented)",		/* 310 = unimplemented */
+#endif /* !CFS */
 };

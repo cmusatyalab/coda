@@ -206,4 +206,11 @@
 #define	SYS_shmctl	229
 #define	SYS_shmdt	230
 #define	SYS_shmget	231
-#define	SYS_MAXSYSCALL	232
+#define	SYS_icreate	241
+#define	SYS_iopen	242
+#define	SYS_iread	243
+#define	SYS_iwrite	244
+#define	SYS_iinc	245
+#define	SYS_idec	246
+#define	SYS_pioctl	247
+#define	SYS_MAXSYSCALL	251

@@ -708,5 +708,88 @@ struct sysent sysent[] = {
 	    sys___fstat13 },			/* 279 = __fstat13 */
 	{ 2, s(struct sys___lstat13_args),
 	    sys___lstat13 },			/* 280 = __lstat13 */
+	{ 0, 0,
+	    sys_nosys },			/* 281 = unimplemented */
+	{ 0, 0,
+	    sys_nosys },			/* 282 = unimplemented */
+	{ 0, 0,
+	    sys_nosys },			/* 283 = unimplemented */
+	{ 0, 0,
+	    sys_nosys },			/* 284 = unimplemented */
+	{ 0, 0,
+	    sys_nosys },			/* 285 = unimplemented */
+	{ 0, 0,
+	    sys_nosys },			/* 286 = unimplemented */
+	{ 0, 0,
+	    sys_nosys },			/* 287 = unimplemented */
+	{ 0, 0,
+	    sys_nosys },			/* 288 = unimplemented */
+	{ 0, 0,
+	    sys_nosys },			/* 289 = unimplemented */
+	{ 0, 0,
+	    sys_nosys },			/* 290 = unimplemented */
+	{ 0, 0,
+	    sys_nosys },			/* 291 = unimplemented */
+	{ 0, 0,
+	    sys_nosys },			/* 292 = unimplemented */
+	{ 0, 0,
+	    sys_nosys },			/* 293 = unimplemented */
+	{ 0, 0,
+	    sys_nosys },			/* 294 = unimplemented */
+	{ 0, 0,
+	    sys_nosys },			/* 295 = unimplemented */
+	{ 0, 0,
+	    sys_nosys },			/* 296 = unimplemented */
+	{ 0, 0,
+	    sys_nosys },			/* 297 = unimplemented */
+	{ 0, 0,
+	    sys_nosys },			/* 298 = unimplemented */
+	{ 0, 0,
+	    sys_nosys },			/* 299 = unimplemented */
+	{ 0, 0,
+	    sys_nosys },			/* 300 = unimplemented */
+#ifdef CFS
+	{ 6, s(struct sys_icreate_args),
+	    sys_icreate },			/* 301 = icreate */
+	{ 3, s(struct sys_iopen_args),
+	    sys_iopen },			/* 302 = iopen */
+	{ 6, s(struct sys_iread_args),
+	    sys_iread },			/* 303 = iread */
+	{ 6, s(struct sys_iwrite_args),
+	    sys_iwrite },			/* 304 = iwrite */
+	{ 3, s(struct sys_iinc_args),
+	    sys_iinc },				/* 305 = iinc */
+	{ 3, s(struct sys_idec_args),
+	    sys_idec },				/* 306 = idec */
+	{ 4, s(struct sys_pioctl_args),
+	    sys_pioctl },			/* 307 = pioctl */
+	{ 0, 0,
+	    sys_nosys },			/* 308 = unimplemented setpag */
+	{ 0, 0,
+	    sys_nosys },			/* 309 = unimplemented */
+	{ 0, 0,
+	    sys_nosys },			/* 310 = unimplemented */
+#else /* !CFS */
+	{ 0, 0,
+	    sys_nosys },			/* 301 = unimplemented icreate */
+	{ 0, 0,
+	    sys_nosys },			/* 302 = unimplemented iopen */
+	{ 0, 0,
+	    sys_nosys },			/* 303 = unimplemented iread */
+	{ 0, 0,
+	    sys_nosys },			/* 304 = unimplemented iwrite */
+	{ 0, 0,
+	    sys_nosys },			/* 305 = unimplemented iinc */
+	{ 0, 0,
+	    sys_nosys },			/* 306 = unimplemented idec */
+	{ 0, 0,
+	    sys_nosys },			/* 307 = unimplemented pioctl */
+	{ 0, 0,
+	    sys_nosys },			/* 308 = unimplemented setpag */
+	{ 0, 0,
+	    sys_nosys },			/* 309 = unimplemented */
+	{ 0, 0,
+	    sys_nosys },			/* 310 = unimplemented */
+#endif /* !CFS */
 };
 
