@@ -208,6 +208,7 @@ bin/filerepair
 bin/hoard
 bin/logbandwidth
 bin/logcmls
+bin/logprogress
 bin/logreintegration
 bin/parser
 bin/removeinc
@@ -237,14 +238,12 @@ sbin/initpw
 sbin/inoder
 sbin/makeftree
 sbin/merge
-sbin/mvdb
 sbin/parserecdump
 sbin/partial-reinit.sh
-sbin/pcfgen
+sbin/pdbtool
 sbin/printvrdb
 sbin/purgevol
 sbin/purgevol_rep
-sbin/pwd2pdb
 sbin/rdsinit
 sbin/readdump
 sbin/rpc2portmap

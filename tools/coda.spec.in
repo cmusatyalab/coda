@@ -14,7 +14,6 @@ you must install a kernel module, or have a Coda enabled kernel, and
 you should get the Coda documentation package.
 
 
-
 %package client
 Summary: Coda client
 Group: Networking/Daemons
@@ -158,32 +157,33 @@ tixindex *tcl
 /etc/rc.d/init.d/venus.init
 %dir /coda
 %verify() /coda/NOT_REALLY_CODA
-/usr/sbin/venus-setup
-/usr/sbin/vutil
-/usr/sbin/venus
 /usr/sbin/@AU@
+/usr/sbin/venus
+/usr/sbin/venus-setup
+/usr/sbin/volmunge
+/usr/sbin/vutil
 /usr/bin/advice_srv
-/usr/bin/filcon
+/usr/bin/cfs
 /usr/bin/@CLOG@
+/usr/bin/cmon
+/usr/bin/codacon
 /usr/bin/cpasswd
 /usr/bin/ctokens
 /usr/bin/cunlog
-/usr/bin/repair
-/usr/bin/cmon
-/usr/bin/codacon
-/usr/bin/cfs
-/usr/bin/hoard
-/usr/bin/spy
-/usr/bin/replay
-/usr/bin/parser
+/usr/bin/filcon
 /usr/bin/filerepair
-/usr/bin/removeinc
-/usr/bin/xfrepair
-/usr/bin/xaskuser
+/usr/bin/hoard
 /usr/bin/logbandwidth
 /usr/bin/logcmls
+/usr/bin/logprogress
 /usr/bin/logreintegration
-/usr/sbin/volmunge
+/usr/bin/parser
+/usr/bin/removeinc
+/usr/bin/repair
+/usr/bin/replay
+/usr/bin/spy
+/usr/bin/xaskuser
+/usr/bin/xfrepair
 /usr/lib/coda/Advice.tcl
 /usr/lib/coda/CodaConsole
 /usr/lib/coda/Consider.tcl
@@ -215,36 +215,34 @@ tixindex *tcl
 /usr/lib/coda/tixCodaMeter.tcl
 
 %files server	
-/usr/sbin/rvmutl
-/usr/sbin/rdsinit
-/usr/sbin/startserver
-/usr/sbin/partial-reinit.sh
+/usr/sbin/@AUTH2@
+/usr/sbin/bldvldb.sh
+/usr/sbin/codasrv
 /usr/sbin/createvol_rep
+/usr/sbin/initpw
+/usr/sbin/inoder
+/usr/sbin/makeftree
+/usr/sbin/parserecdump
+/usr/sbin/partial-reinit.sh
+/usr/sbin/pdbtool
+/usr/sbin/printvrdb
 /usr/sbin/purgevol
 /usr/sbin/purgevol_rep
-/usr/sbin/bldvldb.sh
+/usr/sbin/rdsinit
+/usr/sbin/rpc2portmap
+/usr/sbin/rvmutl
+/usr/sbin/startserver
+/usr/sbin/updatesrv
+/usr/sbin/updateclnt
+/usr/sbin/updatefetch
+/usr/sbin/vice-killvolumes
 /usr/sbin/vice-setup
 /usr/sbin/vice-setup-rvm
 /usr/sbin/vice-setup-srvdir
 /usr/sbin/vice-setup-user
 /usr/sbin/vice-setup-scm
 /usr/sbin/vice-setup-ports
-/usr/sbin/vice-killvolumes
-/usr/sbin/pcfgen
-/usr/sbin/pwd2pdb
-/usr/sbin/mvdb
-/usr/sbin/@AUTH2@
-/usr/sbin/initpw
 /usr/sbin/volutil
-/usr/sbin/rpc2portmap
-/usr/sbin/makeftree
-/usr/sbin/inoder
-/usr/sbin/parserecdump
-/usr/sbin/codasrv
-/usr/sbin/printvrdb
-/usr/sbin/updatesrv
-/usr/sbin/updateclnt
-/usr/sbin/updatefetch
 /usr/bin/filcon
 /usr/bin/norton
 /usr/bin/norton-reinit
@@ -254,14 +252,14 @@ tixindex *tcl
 /etc/rc.d/init.d/update.init
 
 %files backup	
-/usr/sbin/backup.sh
-/usr/sbin/tape.pl
 /usr/sbin/auth2
-/usr/sbin/volutil
 /usr/sbin/backup
-/usr/sbin/readdump
+/usr/sbin/backup.sh
 /usr/sbin/merge
+/usr/sbin/readdump
+/usr/sbin/tape.pl
 /usr/sbin/updatesrv
 /usr/sbin/updateclnt
 /usr/sbin/updatefetch
+/usr/sbin/volutil
 /usr/bin/filcon
