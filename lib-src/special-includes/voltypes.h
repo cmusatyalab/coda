@@ -50,7 +50,7 @@ Pittsburgh, PA.
 #define FALSE	0
 #endif
 
-typedef unsigned long bit32;	/* Unsigned, 32 bits */
+typedef unsigned int bit32;	/* Unsigned, 32 bits */
 typedef unsigned short bit16;	/* Unsigned, 16 bits */
 typedef unsigned char byte;	/* Unsigned, 8 bits */
 
