@@ -144,6 +144,7 @@ extern RecovVenusGlobals *rvg;
 extern int TransCount;
 extern float TransElapsed;
 extern int RecovTimeToFlush;
+extern int MapPrivate;
 
 extern int InitMetaData;
 extern rvm_type_t RvmType;

@@ -77,6 +77,7 @@ int RecovInited = 0;
 RecovVenusGlobals *rvg = 0;
 int TransCount = 0;
 float TransElapsed = 0.0;
+int MapPrivate = 0;
 
 int InitMetaData = UNSET_IMD;
 char *VenusLogDevice = UNSET_VLD;
@@ -346,6 +347,8 @@ static void Recov_InitRVM() {
     Recov_Options.log_dev = VenusLogDevice;
     Recov_Options.truncate = 0;
     Recov_Options.flags = RVM_COALESCE_TRANS;  /* oooh, daring */
+    if (MapPrivate)
+        Recov_Options.flags |= RVM_MAP_PRIVATE;
 
     rvm_init_statistics(&Recov_Statistics);
 

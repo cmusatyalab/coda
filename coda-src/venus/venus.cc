@@ -410,6 +410,9 @@ static void ParseCmdline(int argc, char **argv) {
 		mariner_tcp_enable = 1;
 	    else if (STREQ(argv[i], "-noMarinerTcp"))
 		mariner_tcp_enable = 0;
+	    /* Private mapping ... */
+	    else if (STREQ(argv[i], "-mapprivate"))
+		MapPrivate = true;
 	    else {
 		eprint("bad command line option %-4s", argv[i]);
 		exit(-1);
@@ -451,6 +454,8 @@ static void DefaultCmdlineParms()
     CONF_STR(VenusLogDevice,    "rvm_log",       DFLT_VLD);
     CONF_STR(VenusDataDevice,   "rvm_data",      DFLT_VDD);
     CONF_STR(MarinerSocketPath, "marinersocket", "/usr/coda/spool/mariner");
+
+    CONF_INT(MapPrivate, "mapprivate", 0);
 
     CONF_INT(CacheFiles, "cachefiles", UNSET_CF);
     {
