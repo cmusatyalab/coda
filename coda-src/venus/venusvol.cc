@@ -1976,9 +1976,9 @@ again:
         p = m->volhandle.next;
 
         if (m->uid != uid) continue;
-        m->Suicide(1);
-	/* We yielded in m->Suicide, have to restart the scan */
-	goto again;
+        if (m->Suicide(1))
+		/* We yielded in m->Suicide, have to restart the scan */
+		goto again;
     }
 }
 
