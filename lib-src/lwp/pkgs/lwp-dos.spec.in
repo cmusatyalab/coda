@@ -30,12 +30,15 @@ rm -rf $RPM_BUILD_ROOT
 mkdir -p $RPM_BUILD_ROOT
 make prefix=$RPM_BUILD_ROOT/usr/lib/gcc-lib/i386-go32w95mmap-msdos/2.7.2.1 install
 
+# Why is the djgpp library search path so weird?
+mv $RPM_BUILD_ROOT/usr/lib/gcc-lib/i386-go32w95mmap-msdos/2.7.2.1/lib/liblwp.* $RPM_BUILD_ROOT/usr/lib/gcc-lib/i386-go32w95mmap-msdos/2.7.2.1/
+
 %clean
 rm -rf $RPM_BUILD_ROOT
 
 %files
-/usr/lib/gcc-lib/i386-go32w95mmap-msdos/2.7.2.1/lib/liblwp.la
-/usr/lib/gcc-lib/i386-go32w95mmap-msdos/2.7.2.1/lib/liblwp.a
+/usr/lib/gcc-lib/i386-go32w95mmap-msdos/2.7.2.1/liblwp.la
+/usr/lib/gcc-lib/i386-go32w95mmap-msdos/2.7.2.1/liblwp.a
 %dir /usr/lib/gcc-lib/i386-go32w95mmap-msdos/2.7.2.1/include/lwp
 /usr/lib/gcc-lib/i386-go32w95mmap-msdos/2.7.2.1/include/lwp/lock.h
 /usr/lib/gcc-lib/i386-go32w95mmap-msdos/2.7.2.1/include/lwp/lwp.h
