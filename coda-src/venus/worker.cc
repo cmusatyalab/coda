@@ -218,7 +218,9 @@ void testKernDevice()
 	char *str, *p;
 	CODA_ASSERT((str = p = strdup(kernDevice)) != NULL);
 
-	for(p = strtok(p, ","); p && fd == -1; p = strtok(NULL, ","))
+#if 0
+	for(p = strtok(p, ","); fd == -1 && (p = strtok(NULL, ",")) != NULL;)
+#endif
 	    fd = ::open(p, O_RDWR, 0);
 
 	/* If the open of the kernel device succeeds we know that there is
