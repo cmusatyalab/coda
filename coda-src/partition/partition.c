@@ -202,7 +202,7 @@ DP_SetUsage(struct DiskPartition *dp)
 #if defined(HAVE_SYS_STATVFS_H)
     struct statvfs vfsbuf;
     int rc;
-    int reserved_blocks;
+    int reserved_blocks, scale;
 
     rc = statvfs(dp->name, &vfsbuf);
     if ( rc != 0 ) {
@@ -210,34 +210,31 @@ DP_SetUsage(struct DiskPartition *dp)
 	perror("");
 	CODA_ASSERT( 0 );
     }
-
-    reserved_blocks = vfsbuf.f_bfree-vfsbuf.f_bavail; /* reserved for s-user */
-    dp->free = vfsbuf.f_bavail;  /* free blocks for non s-users */
-    dp->totalUsable = vfsbuf.f_blocks - reserved_blocks; 
-    dp->minFree = 100 * reserved_blocks / vfsbuf.f_blocks;
-
 #elif defined(HAVE_STATFS)
-    struct statfs fsbuf;
+    struct statfs vfsbuf;
     int rc;
-    long reserved_blocks;
+    long reserved_blocks, scale;
 
-    rc = statfs(dp->name, &fsbuf);
+    rc = statfs(dp->name, &vfsbuf);
     if ( rc != 0 ) {
 	eprint("Error in statfs of %s\n", dp->name);
 	perror("");
 	CODA_ASSERT( 0 );
     }
-    
-    reserved_blocks = fsbuf.f_bfree - fsbuf.f_bavail; /* reserved for s-user */
-    dp->free = fsbuf.f_bavail;  /* free blocks for non s-users */
-    dp->totalUsable = fsbuf.f_blocks - reserved_blocks; 
-    dp->minFree = 100 * reserved_blocks / fsbuf.f_blocks;
-
 #else
-    dp->free = 10000000;  /* free blocks for non s-users */
-    dp->totalUsable = 10000000; 
-    dp->minFree = 10;
+#error "Need statvfs or statfs"
 #endif
+
+    /* scale values to # of 512 byte blocks, further fixup is later-on */
+    scale = vfsbuf.f_bsize / 512;
+    reserved_blocks = vfsbuf.f_bfree-vfsbuf.f_bavail; /* reserved for s-user */
+    dp->free = vfsbuf.f_bavail * scale;  /* free blocks for non s-users */
+    dp->totalUsable = (vfsbuf.f_blocks - reserved_blocks) * scale; 
+    dp->minFree = 100 * reserved_blocks / vfsbuf.f_blocks;
+
+    /* and scale values to the expected 1K per block */
+    dp->free /= 2;
+    dp->totalUsable /= 2;
 }
 
 void 
@@ -268,7 +265,7 @@ DP_PrintStats(FILE *fp)
 			 dp->name, dp->totalUsable, dp->minFree, dp->free);
 	    else
 		    SLog(0, "Partition %s: %dK available (minfree=%d%%), overallocated %dK.",
-			 dp->name, dp->totalUsable, dp->minFree, dp->free);
+			 dp->name, dp->totalUsable, dp->minFree, -dp->free);
     }
 }
 
