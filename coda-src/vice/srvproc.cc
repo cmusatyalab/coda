@@ -3607,21 +3607,22 @@ Exit:
     return(errorCode);
 }
 
-int FetchFileByName(RPC2_Handle RPCid, char *name, ClientEntry *client) {
+int FetchFileByName(RPC2_Handle RPCid, char *name, ClientEntry *client)
+{
     int errorCode = 0;
     SE_Descriptor sid;
     memset(&sid, 0, sizeof(SE_Descriptor));
     sid.Tag = client ? client->SEType : SMARTFTP;
     sid.Value.SmartFTPD.TransmissionDirection = CLIENTTOSERVER;
     sid.Value.SmartFTPD.Tag = FILEBYNAME;
-    sid.Value.SmartFTPD.FileInfo.ByName.ProtectionBits = 0777;
-    strcpy(sid.Value.SmartFTPD.FileInfo.ByName.LocalFileName, name);
+    sid.Value.SmartFTPD.FileInfo.ByName.ProtectionBits = 0600;
+    strncpy(sid.Value.SmartFTPD.FileInfo.ByName.LocalFileName, name, 255);
     sid.Value.SmartFTPD.ByteQuota = -1;
     sid.Value.SmartFTPD.SeekOffset = 0;
     sid.Value.SmartFTPD.hashmark = 0;
     if ((errorCode = (int) RPC2_InitSideEffect(RPCid, &sid))
 	<= RPC2_ELIMIT) {
-	SLog(0, "FetchFileByName: InitSideEffect failed %d", 
+	SLog(0, "FetchFileByFD: InitSideEffect failed %d", 
 		errorCode);
 	return(errorCode);
     }
@@ -3629,7 +3630,36 @@ int FetchFileByName(RPC2_Handle RPCid, char *name, ClientEntry *client) {
     if ((errorCode = (int) RPC2_CheckSideEffect(RPCid, &sid, SE_AWAITLOCALSTATUS)) 
 	<= RPC2_ELIMIT) {
 	if (errorCode == RPC2_SEFAIL1) errorCode = EIO;
-	SLog(0, "FetchFileByName: CheckSideEffect failed %d",
+	SLog(0, "FetchFileByFD: CheckSideEffect failed %d",
+		errorCode);
+	return(errorCode);
+    }    
+    return(0);
+}
+
+int FetchFileByFD(RPC2_Handle RPCid, int fd, ClientEntry *client)
+{
+    int errorCode = 0;
+    SE_Descriptor sid;
+    memset(&sid, 0, sizeof(SE_Descriptor));
+    sid.Tag = client ? client->SEType : SMARTFTP;
+    sid.Value.SmartFTPD.TransmissionDirection = CLIENTTOSERVER;
+    sid.Value.SmartFTPD.Tag = FILEBYFD;
+    sid.Value.SmartFTPD.FileInfo.ByFD.fd = fd;
+    sid.Value.SmartFTPD.ByteQuota = -1;
+    sid.Value.SmartFTPD.SeekOffset = 0;
+    sid.Value.SmartFTPD.hashmark = 0;
+    if ((errorCode = (int) RPC2_InitSideEffect(RPCid, &sid))
+	<= RPC2_ELIMIT) {
+	SLog(0, "FetchFileByFD: InitSideEffect failed %d", 
+		errorCode);
+	return(errorCode);
+    }
+
+    if ((errorCode = (int) RPC2_CheckSideEffect(RPCid, &sid, SE_AWAITLOCALSTATUS)) 
+	<= RPC2_ELIMIT) {
+	if (errorCode == RPC2_SEFAIL1) errorCode = EIO;
+	SLog(0, "FetchFileByFD: CheckSideEffect failed %d",
 		errorCode);
 	return(errorCode);
     }    

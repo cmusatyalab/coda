@@ -50,6 +50,7 @@ extern "C" {
 #include "comm.h"
 #include "fso.h"
 #include "mariner.h"
+#include "mgrp.h"
 #include "venuscb.h"
 #include "venusvol.h"
 #include "venus.private.h"
@@ -153,8 +154,7 @@ int repvol::GetVolAttr(vuid_t vuid)
 	     */
 	    RPC2_CountedBS VSBS;
 	    VSBS.SeqLen = 0;
-	    VSBS.SeqBody = (RPC2_ByteSeq) malloc(PIGGY_VALIDATIONS * m->nhosts
-						 * sizeof(RPC2_Integer));
+	    VSBS.SeqBody = (RPC2_ByteSeq) malloc(PIGGY_VALIDATIONS * VSG_MEMBERS * sizeof(RPC2_Integer));
 
 	    /* 
 	     * this is a BS instead of an array because the RPC2 array
@@ -192,20 +192,18 @@ int repvol::GetVolAttr(vuid_t vuid)
 	    repvol_iterator next;
 	    repvol *rv;
             struct in_addr Hosts[VSG_MEMBERS], vHosts[VSG_MEMBERS];
-            GetHosts(Hosts);
 
 	    /* one of the following should be this volume. */
 	    while ((rv = next()) && (nVols < PIGGY_VALIDATIONS)) 
             {
+                /* Check whether the volume is hosted by the same VSG as the
+                 * current volume */
+                if (vsg != rv->vsg)
+                    continue;
+
 		if ((!rv->IsHoarding() && !rv->IsWriteDisconnected()) ||
                     !rv->WantCallBack() ||
                     VV_Cmp(&rv->VVV, &NullVV) == VV_EQ)
-                    continue;
-
-                /* Check whether the volume is hosted by the same VSG as the
-                 * current volume */
-                rv->GetHosts(vHosts);
-                if (memcmp(Hosts, vHosts, VSG_MEMBERS * sizeof(struct in_addr)))
                     continue;
 
                 LOG(1000, ("volent::GetVolAttr: packing volume %s, vid %p, vvv:\n",
@@ -213,7 +211,7 @@ int repvol::GetVolAttr(vuid_t vuid)
                 if (LogLevel >= 1000) PrintVV(logFile, &rv->VVV);
 
                 VidList[nVols].Vid = rv->GetVid();
-                for (i = 0; i < m->nhosts; i++) {
+                for (i = 0; i < VSG_MEMBERS; i++) {
                     *((RPC2_Unsigned *)&((char *)VSBS.SeqBody)[VSBS.SeqLen]) =
                         htonl((&rv->VVV.Versions.Site0)[i]);
                     VSBS.SeqLen += sizeof(RPC2_Unsigned);
@@ -262,7 +260,7 @@ int repvol::GetVolAttr(vuid_t vuid)
 	    }
 
 	    unsigned numVFlags = 0;
-	    for (i = 0; i < m->nhosts; i++) {
+	    for (i = 0; i < VSG_MEMBERS; i++) {
 		if (m->rocc.hosts[i].s_addr != 0) {
 		    if (numVFlags == 0) {
 			/* unset, copy in one response */
@@ -332,7 +330,7 @@ int repvol::GetVolAttr(vuid_t vuid)
     }
 
 RepExit:
-    PutMgrp(&m);
+    if (m) m->Put();
     
     return(code);
 }
@@ -349,12 +347,12 @@ void repvol::CollateVCB(mgrpent *m, RPC2_Integer *sbufs, CallBackStatus *cbufs)
     	PrintVV(logFile, &VVV);
 
 	fprintf(logFile, "volent::CollateVCB: Version stamps returned:");
-	for (i = 0; i < m->nhosts; i++)
+	for (i = 0; i < VSG_MEMBERS; i++)
 	    if (m->rocc.hosts[i].s_addr != 0) 
 		fprintf(logFile, " %lu", sbufs[i]);
 
 	fprintf(logFile, "\nvolent::CollateVCB: Callback status returned:");
-	for (i = 0; i < m->nhosts; i++) 
+	for (i = 0; i < VSG_MEMBERS; i++) 
 	    if (m->rocc.hosts[i].s_addr != 0)
 	    	fprintf(logFile, " %u", cbufs[i]);
 
@@ -362,7 +360,7 @@ void repvol::CollateVCB(mgrpent *m, RPC2_Integer *sbufs, CallBackStatus *cbufs)
 	fflush(logFile);
     }
 
-    for (i = 0; i < m->nhosts; i++) {
+    for (i = 0; i < VSG_MEMBERS; i++) {
 	if (m->rocc.hosts[i].s_addr != 0 && (cbufs[i] != CallBackSet))
 	    collatedCB = NoCallBack;
     }
@@ -371,7 +369,7 @@ void repvol::CollateVCB(mgrpent *m, RPC2_Integer *sbufs, CallBackStatus *cbufs)
 	SetCallBack();
 	Recov_BeginTrans();
 	    RVMLIB_REC_OBJECT(VVV);
-	    for (i = 0; i < m->nhosts; i++)
+	    for (i = 0; i < VSG_MEMBERS; i++)
 	        if (m->rocc.hosts[i].s_addr != 0)
 		   (&VVV.Versions.Site0)[i] = sbufs[i];
 	Recov_EndTrans(MAXFP);
@@ -380,7 +378,7 @@ void repvol::CollateVCB(mgrpent *m, RPC2_Integer *sbufs, CallBackStatus *cbufs)
 
 	/* check if any of the returned stamps are zero.
 	   If so, server said stamp invalid. */
-        for (i = 0; i < m->nhosts; i++)
+        for (i = 0; i < VSG_MEMBERS; i++)
 	    if (m->rocc.hosts[i].s_addr != 0 && (sbufs[i] == 0)) {
 		Recov_BeginTrans();
 		   RVMLIB_REC_OBJECT(VVV);

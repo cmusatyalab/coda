@@ -2164,7 +2164,7 @@ struct MetaExpandHook {
  * it moves the child namectxt off of the parent's list of children
  * and onto what will become the parent's new list of children, and
  * then it returns.  If not such match is found, it creates a new
- * namectxt for this name and inserts it into what will become the
+  * namectxt for this name and inserts it into what will become the
  * parent's new list of children.
  *
  * This routine is called from DH_EnumerateDir (which appears in ../dir/dir.c).  */
@@ -2353,11 +2353,6 @@ void namectxt::CheckComponent(fsobj *f) {
 	do {
 	    old_b = strbase(binding, expansion.last(), binder_handle);
 
-	    /* Decrement the reference count */
-	    if (old_b->GetRefCount() > 0) {
-	      old_b->DecrRefCount();
-	    }
-
 	    /* Detach the bindee if necessary. */
 	    fsobj *f = (fsobj *)old_b->bindee;
 	    if (f != 0)
@@ -2376,30 +2371,27 @@ void namectxt::CheckComponent(fsobj *f) {
     }
 
     /* We've discovered a new terminal component. */
-    {
+    if (f) {
 	b = new binding;
 
 	/* Attach binder. */
-	expansion.append(&b->binder_handle);
 	b->binder = this;
 
 	/* Attach bindee. */
-	/* If (f == 0) it must be an inconsistent object! */
-	if (f != 0)
-	    f->AttachHdbBinding(b);
+        f->AttachHdbBinding(b);
 
 	/* did we get bound successfully? */
 	if (!b->bindee) {
-	    expansion.remove(&b->binder_handle);
 	    b->binder = NULL;
 	    delete b;
-	}
+        } else
+            expansion.append(&b->binder_handle);
     }
 }
 
 
-void namectxt::print(int fd) {
-    fdprint(fd, "    cdir = (%x.%x.%x), path = %s, vuid = %d, priority = %d (%d, %d)\n",
+void namectxt::print(int fd, void *filter) {
+    fdprint(fd, "\tcdir = (%x.%x.%x), path = %s, vuid = %d, priority = %d (%d, %d)\n",
 	     cdir.Volume, cdir.Vnode, cdir.Unique,
 	     path, vuid, priority, depth, random);
     fdprint(fd, "\tstate = %s, flags = [%d %d %d %d %d %d]\n",
@@ -2415,40 +2407,21 @@ void namectxt::print(int fd) {
       dlink *e;
       while ((e = enext())) {
 	binding *b = strbase(binding, e, binder_handle);
+        if (filter && b->binder && b->binder != filter &&
+                      b->bindee && b->bindee != filter)
+            continue;
+
 	fdprint(fd, "\t\t");
 	b->print(fd);
-	if (b->binder != 0) 
-	  if (((namectxt *)(b->binder))->path != NULL)
-	    fdprint(fd, "\t\t\tnamectxt.path = %s", ((namectxt *)(b->binder))->path);
-	if (b->bindee != 0) 
-	  if (((fsobj *)(b->bindee))->comp != NULL)
-	    fdprint(fd, "\t\t\tfsobj.comp = %s\n",((fsobj *)(b->bindee))->comp);
+	if (b->binder && b->binder != this) {
+            fdprint(fd, "\t\tunexpected binder\n");
+            if (((namectxt *)(b->binder))->path)
+                fdprint(fd, "\t\tnamectxt.path = %s\n", ((namectxt *)(b->binder))->path);
+        }
+	if (b->bindee && ((fsobj *)(b->bindee))->comp)
+	    fdprint(fd, "\t\tfsobj.comp = %s\n",((fsobj *)(b->bindee))->comp);
       }
     }
-
-    /* MARIA:  Delete this stuff
-    if (children) {
-      dlist_iterator cnext(*children);
-      dlink *c;
-      fdprint(fd, "\n\tcount of children list = %d\n", (*children).count());
-      while (c = cnext()) {
-	CODA_ASSERT(c != NULL);
-	binding *b = strbase(binding, c, binder_handle);
-	fdprint(fd, "\t\t");
-	CODA_ASSERT(b != NULL);
-	b->print(fd);
-	if (b->binder != 0) 
-	  fdprint(fd, "\t\t\tnamectxt.path = %s", ((namectxt *)(b->binder))->path);
-	if (b->bindee != 0) 
-	  fdprint(fd, "\t\t\tfsobj.comp = %s <%x.%x.%x>\n",
-		  ((fsobj *)(b->bindee))->comp, 
-		  ((fsobj *)(b->bindee))->fid.Volume,
-		  ((fsobj *)(b->bindee))->fid.Vnode,
-		  ((fsobj *)(b->bindee))->fid.Unique);
-      }
-    }
-    */
-
 }
 
 void namectxt::getpath(char *buf) {

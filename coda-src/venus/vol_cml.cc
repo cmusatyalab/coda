@@ -75,6 +75,7 @@ extern void pack_struct(ARG *, PARM **, PARM **);
 #include "fso.h"
 #include "local.h"
 #include "mariner.h"
+#include "mgrp.h"
 #include "venus.private.h"
 #include "venuscb.h"
 #include "venusvol.h"
@@ -2145,14 +2146,17 @@ int ClientModifyLog::COP1(char *buf, int bufsize, ViceVersionVector *UpdateSet,
         goto Exit;
     }
 
-    if (vol->IsWeaklyConnected() && m->nhosts > 1) {
+    if (vol->IsWeaklyConnected() && m->vsg->NHosts() > 1) {
 	/* Pick a server and get a connection to it. */
 	int ph_ix; struct in_addr *phost;
         phost = m->GetPrimaryHost(&ph_ix);
 	CODA_ASSERT(phost->s_addr != 0);
 
 	connent *c = 0;
-	code = ::GetConn(&c, phost, owner, 0);
+        srvent *s;
+        GetServer(&s, phost);
+	code = s->GetConn(&c, owner);
+        PutServer(&s);
 	if (code != 0) goto Exit;
 	
 	/* don't bother with VCBs, will lose them on resolve anyway */
@@ -2229,15 +2233,15 @@ int ClientModifyLog::COP1(char *buf, int bufsize, ViceVersionVector *UpdateSet,
 
     } else {
 	RPC2_CountedBS OldVS;
-	vol->PackVS(m->nhosts, &OldVS);
+	vol->PackVS(VSG_MEMBERS, &OldVS);
 
 	/* Make multiple copies of the IN/OUT and OUT parameters. */
-	ARG_MARSHALL(IN_OUT_MODE, SE_Descriptor, sedvar, sed, m->nhosts);
-	ARG_MARSHALL(OUT_MODE, RPC2_Integer, VSvar, VS, m->nhosts);
-	ARG_MARSHALL(OUT_MODE, CallBackStatus, VCBStatusvar, VCBStatus, m->nhosts);
-	ARG_MARSHALL(OUT_MODE, RPC2_Integer, Indexvar, Index, m->nhosts);
-	ARG_MARSHALL(OUT_MODE, RPC2_Integer, NumStaleDirsvar, NumStaleDirs, m->nhosts);
-	ARG_MARSHALL_ARRAY(OUT_MODE, ViceFid, StaleDirsvar, 0, MaxStaleDirs, StaleDirs, m->nhosts);
+	ARG_MARSHALL(IN_OUT_MODE, SE_Descriptor, sedvar, sed, VSG_MEMBERS);
+	ARG_MARSHALL(OUT_MODE, RPC2_Integer, VSvar, VS, VSG_MEMBERS);
+	ARG_MARSHALL(OUT_MODE, CallBackStatus, VCBStatusvar, VCBStatus, VSG_MEMBERS);
+	ARG_MARSHALL(OUT_MODE, RPC2_Integer, Indexvar, Index, VSG_MEMBERS);
+	ARG_MARSHALL(OUT_MODE, RPC2_Integer, NumStaleDirsvar, NumStaleDirs, VSG_MEMBERS);
+	ARG_MARSHALL_ARRAY(OUT_MODE, ViceFid, StaleDirsvar, 0, MaxStaleDirs, StaleDirs, VSG_MEMBERS);
 
 	/* Make the RPC call. */
 	MarinerLog("store::Reintegrate %s, (%d, %d)\n", 
@@ -2246,7 +2250,7 @@ int ClientModifyLog::COP1(char *buf, int bufsize, ViceVersionVector *UpdateSet,
 	MULTI_START_MESSAGE(ViceReintegrate_OP);
 	code = (int) MRPC_MakeMulti(ViceReintegrate_OP,
 				    ViceReintegrate_PTR,
-				    m->nhosts, m->rocc.handles,
+				    VSG_MEMBERS, m->rocc.handles,
 				    m->rocc.retcodes, m->rocc.MIp, 0, 0,
 				    vol->vid, bufsize, Indexvar_ptrs,
 				    outoforder,
@@ -2267,7 +2271,7 @@ int ClientModifyLog::COP1(char *buf, int bufsize, ViceVersionVector *UpdateSet,
 	/* Collate the failure index.  Grab the smallest one. Take special
 	 * care to treat the index different when an error is returned.
 	 * This double usage of the index is really asking for trouble! */
-	for (i = 0; i < m->nhosts; i++) {
+	for (i = 0; i < VSG_MEMBERS; i++) {
 	    if (m->rocc.hosts[i].s_addr != 0) {
 		if ((code != EALREADY || m->rocc.retcodes[i] == EALREADY) &&
 		    (Index == UNSET_INDEX || Index > Indexvar_bufs[i]))
@@ -2314,7 +2318,7 @@ int ClientModifyLog::COP1(char *buf, int bufsize, ViceVersionVector *UpdateSet,
 	 * validation.  Finally, if the number of stale directories
 	 * found is at maximum, clear the volume callback to be safe.
 	 */
-	for (unsigned int rep = 0; rep < m->nhosts; rep++) 
+	for (unsigned int rep = 0; rep < VSG_MEMBERS; rep++) 
             /* did this server participate? */
 	    if (m->rocc.hosts[rep].s_addr != 0) {
 		/* must look at all server feedback */
@@ -2341,7 +2345,7 @@ int ClientModifyLog::COP1(char *buf, int bufsize, ViceVersionVector *UpdateSet,
     }
 
 Exit:
-    PutMgrp(&m);
+    if (m) m->Put();
     LOG(0, ("ClientModifyLog::COP1: (%s), %d bytes, returns %d, index = %d\n",
 	     vol->name, bufsize, code, Index));
     return(code);
@@ -3025,7 +3029,10 @@ int cmlent::GetReintegrationHandle()
     phost = *m->GetPrimaryHost(&ph_ix);
     CODA_ASSERT(phost.s_addr != 0);
 
-    code = ::GetConn(&c, &phost, log->owner, 0);
+    srvent *s;
+    GetServer(&s, &phost);
+    code = s->GetConn(&c, log->owner);
+    PutServer(&s);
     if (code != 0) goto Exit;
 
     {
@@ -3056,7 +3063,7 @@ int cmlent::GetReintegrationHandle()
 
 Exit:
     PutConn(&c);
-    PutMgrp(&m);
+    if (m) m->Put();
     LOG(0, ("cmlent::GetReintegrationHandle: (%s), returns %s\n",
 	     vol->name, VenusRetStr(code)));
     return(code);
@@ -3071,7 +3078,10 @@ int cmlent::ValidateReintegrationHandle()
     RPC2_Unsigned Offset = (unsigned long)-1;
     
     /* Acquire a connection. */
-    code = ::GetConn(&c, &u.u_store.ReintPH, log->owner, 0);
+    srvent *s;
+    GetServer(&s, &u.u_store.ReintPH);
+    code = s->GetConn(&c, log->owner);
+    PutServer(&s);
     if (code != 0) goto Exit;
 
     {
@@ -3117,7 +3127,10 @@ int cmlent::WriteReintegrationHandle()
     RPC2_Unsigned length = ReintAmount();
 
     /* Acquire a connection. */
-    code = ::GetConn(&c, &u.u_store.ReintPH, log->owner, 0);
+    srvent *s;
+    GetServer(&s, &u.u_store.ReintPH);
+    code = s->GetConn(&c, log->owner);
+    PutServer(&s);
     if (code != 0) goto Exit;
 
     {
@@ -3234,7 +3247,10 @@ int cmlent::CloseReintegrationHandle(char *buf, int bufsize,
     empty_PiggyBS.SeqBody = (RPC2_ByteSeq)PiggyData;
 
     /* Get a connection to the server. */
-    code = ::GetConn(&c, &u.u_store.ReintPH, log->owner, 0);
+    srvent *s;
+    GetServer(&s, &u.u_store.ReintPH);
+    code = s->GetConn(&c, log->owner);
+    PutServer(&s);
     if (code != 0) goto Exit;
 
     /* don't bother with VCBs, will lose them on resolve anyway */

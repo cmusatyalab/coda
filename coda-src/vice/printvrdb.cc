@@ -16,12 +16,6 @@ listed in the file CREDITS.
 
 #*/
 
-
-
-
-
-
-
 /********************************
  * printvrdb.c			*
  * Jay Kistler	 	*
@@ -47,13 +41,13 @@ extern "C" {
 #include <codaconf.h>
 #include <coda_config.h>
 #include <vice_file.h>
+#include <vcrcommon.h>
 
 char *serverconf = SYSCONFDIR "/server"; /* ".conf" */
 char *vicedir = NULL;
 
 
 /* This is cheating! */
-#define VSG_MEMBERS 8
 struct vrent {
     unsigned header : 32;
     unsigned nextptr : 32;

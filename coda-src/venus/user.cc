@@ -63,6 +63,7 @@ extern "C" {
 #include "mariner.h"
 #include "user.h"
 #include "venus.private.h"
+#include "vsg.h"
 #include "worker.h"
 
 #define	CLOCK_SKEW  120	    /* seconds */
@@ -346,12 +347,7 @@ LOG(100, ("After HDB::ResetUser in userent::Reset\n"));
     }
 
     /* Delete the user's mgrps. */
-    {
-	repvol_iterator next;
-	repvol *v;
-	while ((v = next()))
-            v->KillUserMgrps(uid);
-    }
+    VSGDB->KillUserMgrps(uid);
 
 LOG(100, ("L userent::Reset()\n"));
 }

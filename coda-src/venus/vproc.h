@@ -337,13 +337,6 @@ extern long FidToNodeid(ViceFid *);
 			 C_VREG)
 
 
-/* vnode_{allocs,deallocs} used to be inside #ifdef VENUSDEBUG, but the port 
-   to BSD44 caused the MAKE_VNODE() & DISCARD_VNODE() macros to become 
-   too convoluted (Satya, 8/14/96) */
-extern int vnode_allocs;
-extern int vnode_deallocs;
-
-
 /* Venus cnodes are a small placeholder structure to pass arguments
    into the output buffer back to the kernel without clobbering the
    inputbuffer, which is the same pointer as the output buffer.

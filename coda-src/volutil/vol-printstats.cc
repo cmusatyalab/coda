@@ -40,36 +40,34 @@ extern "C" {
 #include <util.h>
 #include <srv.h>
 
-#define STATSFILE "/tmp/statsfileXXXXXX"
-
-static FILE *statsfile;
 /*
   BEGIN_HTML
   <a name="S_PrintStats"><strong>Print out various server statistics</strong></a>
   END_HTML
 */
-long S_PrintStats(RPC2_Handle rpcid, SE_Descriptor *formal_sed) {
+long S_PrintStats(RPC2_Handle rpcid, SE_Descriptor *formal_sed)
+{
+    FILE *statsfile;
     SE_Descriptor sed;
     long rc = 0;
-    LogMsg(1, VolDebugLevel, stdout,
-	   "Entering S_PrintStats\n");
-    char filename[256];
-    strcpy(filename, STATSFILE);
-    mktemp(filename);
-    statsfile = fopen(filename, "w");
+    int fd;
+
+    LogMsg(1, VolDebugLevel, stdout, "Entering S_PrintStats\n");
+
+    statsfile = tmpfile();
     CODA_ASSERT(statsfile != NULL);
 
     PrintCounters(statsfile);
     PrintCallBackState(statsfile);
-    fclose(statsfile);
 
     // ship the file back 
+    fd = fileno(statsfile);
+    lseek(fd, 0, SEEK_SET);
     memset(&sed, 0, sizeof(SE_Descriptor));
     sed.Tag = SMARTFTP;
-    sed.Value.SmartFTPD.Tag = FILEBYNAME;
     sed.Value.SmartFTPD.TransmissionDirection = SERVERTOCLIENT;
-    strcpy(sed.Value.SmartFTPD.FileInfo.ByName.LocalFileName, filename);
-    sed.Value.SmartFTPD.FileInfo.ByName.ProtectionBits = 0755;
+    sed.Value.SmartFTPD.Tag = FILEBYFD;
+    sed.Value.SmartFTPD.FileInfo.ByFD.fd = fd;
 
     if ((rc = RPC2_InitSideEffect(rpcid, &sed)) <= RPC2_ELIMIT) 
 	LogMsg(0, VolDebugLevel, stdout, 
@@ -79,9 +77,9 @@ long S_PrintStats(RPC2_Handle rpcid, SE_Descriptor *formal_sed) {
 		RPC2_ELIMIT)) 
 	LogMsg(0, VolDebugLevel, stdout, 
 	       "PrintStats: CheckSideEffect failed with %s", RPC2_ErrorMsg(rc));
-    LogMsg(1, VolDebugLevel, stdout,
-	   "PrintStats returns %d\n", rc);
-    unlink(filename);
+
+    fclose(statsfile);
+    LogMsg(1, VolDebugLevel, stdout, "PrintStats returns %d\n", rc);
     return(rc);
 }
 

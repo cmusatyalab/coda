@@ -33,6 +33,7 @@ listed in the file CREDITS.
 #define _INCON_
 
 #include <vice.h>
+#include <vcrcommon.h>
 
 #define EINCONS  199	      /* should go into /usr/cs/include/errno.h */
 
@@ -42,8 +43,6 @@ listed in the file CREDITS.
 #define	VV_SUB	2
 #define	VV_INC	3
 
-#define VSG_MEMBERS 8	      /* Number of servers per Volume Storage Group */
-			      /* Note: may have problems if increase beyond MAXHOSTS */
 #define VV_INCON    0x01      /* mask for inconsistency flag */
 #define	VV_LOCAL    0x02      /* mask for local flag */
 #define VV_BARREN   0x04      /* mask for barren flag - small vnode without a valid inode */

@@ -53,6 +53,7 @@ extern "C" {
 #include "comm.h"
 #include "fso.h"
 #include "mariner.h"
+#include "mgrp.h"
 #include "venuscb.h"
 #include "venus.private.h"
 #include "venusrecov.h"
@@ -146,7 +147,7 @@ int fsobj::ConnectedRemove(Date_t Mtime, vuid_t vuid, char *name, fsobj *target_
 	    int ph_ix; unsigned long ph;
             ph = ntohl(m->GetPrimaryHost(&ph_ix)->s_addr);
 
-	    vp->PackVS(m->nhosts, &OldVS);
+	    vp->PackVS(VSG_MEMBERS, &OldVS);
 
 	    ARG_MARSHALL(IN_OUT_MODE, ViceStatus, parent_statusvar, parent_status, VSG_MEMBERS);
 	    ARG_MARSHALL(IN_OUT_MODE, ViceStatus, target_statusvar, target_status, VSG_MEMBERS);
@@ -197,13 +198,10 @@ int fsobj::ConnectedRemove(Date_t Mtime, vuid_t vuid, char *name, fsobj *target_
 	if (ASYNCCOP2) ReturnEarly();
 
 	/* Send the COP2 message or add an entry for piggybacking. */
-	if (PIGGYCOP2)
-	    vp->AddCOP2(&sid, &UpdateSet);
-	else
-	    vp->COP2(m, &sid, &UpdateSet);
+        vp->COP2(m, &sid, &UpdateSet);
 
 RepExit:
-	PutMgrp(&m);
+	if (m) m->Put();
 	switch(code) {
 	    case 0:
 		if (asy_resolve) {
@@ -388,7 +386,7 @@ int fsobj::ConnectedLink(Date_t Mtime, vuid_t vuid, char *name, fsobj *source_fs
 	    int ph_ix; unsigned long ph;
             ph = ntohl(m->GetPrimaryHost(&ph_ix)->s_addr);
 
- 	    vp->PackVS(m->nhosts, &OldVS);
+ 	    vp->PackVS(VSG_MEMBERS, &OldVS);
 	    ARG_MARSHALL(IN_OUT_MODE, ViceStatus, source_statusvar, source_status, VSG_MEMBERS);
 	    ARG_MARSHALL(IN_OUT_MODE, ViceStatus, parent_statusvar, parent_status, VSG_MEMBERS);
 	    ARG_MARSHALL(OUT_MODE, RPC2_Integer, VSvar, VS, VSG_MEMBERS);
@@ -438,13 +436,10 @@ int fsobj::ConnectedLink(Date_t Mtime, vuid_t vuid, char *name, fsobj *source_fs
 	if (ASYNCCOP2) ReturnEarly();
 
 	/* Send the COP2 message or add an entry for piggybacking. */
-	if (PIGGYCOP2)
-	    vp->AddCOP2(&sid, &UpdateSet);
-	else
-	    vp->COP2(m, &sid, &UpdateSet);
+        vp->COP2(m, &sid, &UpdateSet);
 
 RepExit:
-	PutMgrp(&m);
+	if (m) m->Put();
 	switch(code) {
 	    case 0:
 		if (asy_resolve) {
@@ -700,7 +695,7 @@ int fsobj::ConnectedRename(Date_t Mtime, vuid_t vuid, fsobj *s_parent_fso,
 	    int ph_ix; unsigned long ph;
             ph = ntohl(m->GetPrimaryHost(&ph_ix)->s_addr);
 
- 	    vp->PackVS(m->nhosts, &OldVS);
+ 	    vp->PackVS(VSG_MEMBERS, &OldVS);
 	    ARG_MARSHALL(IN_OUT_MODE, ViceStatus, t_parent_statusvar, t_parent_status, VSG_MEMBERS);
 	    ARG_MARSHALL(IN_OUT_MODE, ViceStatus, s_parent_statusvar, s_parent_status, VSG_MEMBERS);
 	    ARG_MARSHALL(IN_OUT_MODE, ViceStatus, source_statusvar, source_status, VSG_MEMBERS);
@@ -759,13 +754,10 @@ int fsobj::ConnectedRename(Date_t Mtime, vuid_t vuid, fsobj *s_parent_fso,
 	if (ASYNCCOP2) ReturnEarly();
 
 	/* Send the COP2 message or add an entry for piggybacking. */
-	if (PIGGYCOP2)
-	    vp->AddCOP2(&sid, &UpdateSet);
-	else
-	    vp->COP2(m, &sid, &UpdateSet);
+        vp->COP2(m, &sid, &UpdateSet);
 
 RepExit:
-	PutMgrp(&m);
+	if (m) m->Put();
 	switch(code) {
 	    case 0:
 		if (asy_resolve) {
@@ -1012,7 +1004,7 @@ int fsobj::ConnectedMkdir(Date_t Mtime, vuid_t vuid, fsobj **t_fso_addr,
 	Recov_EndTrans(MAXFP);
 	{
 	    /* Make multiple copies of the IN/OUT and OUT parameters. */
- 	    vp->PackVS(m->nhosts, &OldVS);
+ 	    vp->PackVS(VSG_MEMBERS, &OldVS);
 	    ARG_MARSHALL(IN_OUT_MODE, ViceStatus, target_statusvar, target_status, VSG_MEMBERS);
 	    ARG_MARSHALL(IN_OUT_MODE, ViceFid, target_fidvar, target_fid, VSG_MEMBERS);
 	    ARG_MARSHALL(IN_OUT_MODE, ViceStatus, parent_statusvar, parent_status, VSG_MEMBERS);
@@ -1066,13 +1058,10 @@ int fsobj::ConnectedMkdir(Date_t Mtime, vuid_t vuid, fsobj **t_fso_addr,
 	if (ASYNCCOP2) target_fso->ReturnEarly();
 
 	/* Send the COP2 message or add an entry for piggybacking. */
-	if (PIGGYCOP2)
-	    vp->AddCOP2(&sid, &UpdateSet);
-	else
-	    vp->COP2(m, &sid, &UpdateSet);
+        vp->COP2(m, &sid, &UpdateSet);
 
 RepExit:
-	PutMgrp(&m);
+	if (m) m->Put();
 	switch(code) {
 	    case 0:
 		if (asy_resolve) {
@@ -1330,7 +1319,7 @@ int fsobj::ConnectedRmdir(Date_t Mtime, vuid_t vuid, char *name, fsobj *target_f
 	    int ph_ix; unsigned long ph;
             ph = ntohl(m->GetPrimaryHost(&ph_ix)->s_addr);
 
- 	    vp->PackVS(m->nhosts, &OldVS);
+ 	    vp->PackVS(VSG_MEMBERS, &OldVS);
 	    ARG_MARSHALL(IN_OUT_MODE, ViceStatus, parent_statusvar, parent_status, VSG_MEMBERS);
 	    ARG_MARSHALL(IN_OUT_MODE, ViceStatus, target_statusvar, target_status, VSG_MEMBERS);
 	    ARG_MARSHALL(OUT_MODE, RPC2_Integer, VSvar, VS, VSG_MEMBERS);
@@ -1379,13 +1368,10 @@ int fsobj::ConnectedRmdir(Date_t Mtime, vuid_t vuid, char *name, fsobj *target_f
 	if (ASYNCCOP2) ReturnEarly();
 
 	/* Send the COP2 message or add an entry for piggybacking. */
-	if (PIGGYCOP2)
-	    vp->AddCOP2(&sid, &UpdateSet);
-	else
-	    vp->COP2(m, &sid, &UpdateSet);
+        vp->COP2(m, &sid, &UpdateSet);
 
 RepExit:
-	PutMgrp(&m);
+	if (m) m->Put();
 	switch(code) {
 	    case 0:
 		if (asy_resolve) {
@@ -1606,7 +1592,7 @@ int fsobj::ConnectedSymlink(Date_t Mtime, vuid_t vuid, fsobj **t_fso_addr,
 	Recov_EndTrans(MAXFP);
 	{
 	    /* Make multiple copies of the IN/OUT and OUT parameters. */
- 	    vp->PackVS(m->nhosts, &OldVS);
+ 	    vp->PackVS(VSG_MEMBERS, &OldVS);
 	    ARG_MARSHALL(IN_OUT_MODE, ViceFid, target_fidvar, target_fid, VSG_MEMBERS);
 	    ARG_MARSHALL(IN_OUT_MODE, ViceStatus, target_statusvar, target_status, VSG_MEMBERS);
 	    ARG_MARSHALL(IN_OUT_MODE, ViceStatus, parent_statusvar, parent_status, VSG_MEMBERS);
@@ -1660,13 +1646,10 @@ int fsobj::ConnectedSymlink(Date_t Mtime, vuid_t vuid, fsobj **t_fso_addr,
 	if (ASYNCCOP2) target_fso->ReturnEarly();
 
 	/* Send the COP2 message or add an entry for piggybacking. */
-	if (PIGGYCOP2)
-	    vp->AddCOP2(&sid, &UpdateSet);
-	else
-	    vp->COP2(m, &sid, &UpdateSet);
+        vp->COP2(m, &sid, &UpdateSet);
 
 RepExit:
-	PutMgrp(&m);
+	if (m) m->Put();
 	switch(code) {
 	    case 0:
 		if (asy_resolve) {
@@ -1903,28 +1886,28 @@ int fsobj::SetVV(ViceVersionVector *newvv, vuid_t vuid) {
 	    /* Do op locally. */
 	    Recov_BeginTrans();
 	    RVMLIB_REC_OBJECT(stat);
-	    stat.VV = *newvv;
-	    Recov_EndTrans(CMFP);
+            stat.VV = *newvv;
+            Recov_EndTrans(CMFP);
 
 RepExit:
-	    PutMgrp(&m);
-	    switch(code) {
-		case 0:
-		    break;
+            if (m) m->Put();
+            switch(code) {
+            case 0:
+                break;
 
-		case ETIMEDOUT:
-		    code = ERETRY;
-		    break;
+            case ETIMEDOUT:
+                code = ERETRY;
+                break;
 
-		case ESYNRESOLVE:
-		case EINCONS:
-		    CHOKE("fsobj::SetVV: code = %d", code);
-		    break;
+            case ESYNRESOLVE:
+            case EINCONS:
+                CHOKE("fsobj::SetVV: code = %d", code);
+                break;
 
-		default:
-		    break;
-	    }
-	}
+            default:
+                break;
+            }
+        }
 	else {
 	    /* Acquire a Connection. */
 	    connent *c;

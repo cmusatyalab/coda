@@ -102,7 +102,7 @@ extern int CheckWriteMode(ClientEntry *, Vnode *);
 
 extern void ChangeDiskUsage(Volume *, int);
 
-extern int FetchFileByName(RPC2_Handle, char *, ClientEntry *);
+extern int FetchFileByFD(RPC2_Handle, int fd, ClientEntry *);
 
 extern long FileResolve(res_mgrpent *, ViceFid *, ViceVersionVector **);
 
@@ -488,7 +488,8 @@ long FS_ViceRepair(RPC2_Handle cid, ViceFid *Fid, ViceStatus *status,
     int FRep;
     int myRepairCount = 0;
     struct repair *myRepairList = 0;
-    char    filename[100];  		/* for transfer by name */
+    FILE *repairf = NULL;  /* temporary filehandle for directory repairs */
+    int repairfd = -1;
 
     SLog(1,  "ViceRepair: Fid = %s", FID_(Fid));
     
@@ -547,10 +548,11 @@ long FS_ViceRepair(RPC2_Handle cid, ViceFid *Fid, ViceStatus *status,
 	}
 	else {
 	    /* directory repair - transfer by name */
-	    strcpy(filename, "/tmp/repair.XXXXXX");
-	    mktemp(filename);
-	    if ((errorCode = FetchFileByName(cid, filename, client))) {
-		unlink(filename);
+            repairf = tmpfile();
+	    if (!repairf) goto FreeLocks;
+            repairfd = fileno(repairf);
+            if ((errorCode = FetchFileByFD(cid, repairfd, client))) {
+                fclose(repairf);
 		goto FreeLocks;
 	    }
 	}
@@ -561,12 +563,17 @@ long FS_ViceRepair(RPC2_Handle cid, ViceFid *Fid, ViceStatus *status,
 	if (!FRep) {
 	    struct listhdr *replicaList = 0;
 	    int replicaCount;
+
 	    /* parse repair file */
-	    if ((errorCode = repair_getdfile(filename, &replicaCount, &replicaList))){
+            lseek(repairfd, 0, SEEK_SET);
+	    errorCode = repair_getdfile(repairfd, &replicaCount, &replicaList);
+            fclose(repairf);
+            
+            if (errorCode) {
 		SLog(0,  "CheckDirRepairSemantics: Error %d in getdfile", errorCode);
 		goto FreeLocks;
 	    }
-	    unlink(filename);
+
 	    if ((errorCode = GetMyRepairList(&(ov->fid), replicaList, replicaCount, 
 					    &myRepairList, &myRepairCount))) {
 		SLog(0,  "CheckDirRepairSemantics: Error %d in getmyrepairlist",

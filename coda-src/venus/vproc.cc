@@ -64,12 +64,6 @@ olist vproc::tbl;
 int vproc::counter;
 char vproc::rtry_sync;
 
-/* These used to be inside #ifdef VENUSDEBUG, but port to BSD44
-   causes the MAKE_VNODE() & DISCARD_VNODE() macros to become too 
-   convoluted (Satya, 8/14/96) */
-int vnode_allocs = 0;
-int vnode_deallocs = 0;
-
 extern const int  RVM_THREAD_DATA_ROCK_TAG;
 
 static const int VPROC_ROCK_TAG = 1776;

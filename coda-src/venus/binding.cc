@@ -50,5 +50,5 @@ binding::~binding() {
 
 
 void binding::print(int fd) {
-    fdprint(fd, "binder = %x, bindee = %x, refCount = %d\n", binder, bindee, referenceCount);
+    fdprint(fd, "%p: binder = %p, bindee = %p, refCount = %d\n", this, binder, bindee, referenceCount);
 }

@@ -126,7 +126,7 @@ listed in the file CREDITS.
 
 #ifdef __cplusplus
 extern "C" {
-#endif __cplusplus
+#endif /* __cplusplus */
 
 #ifdef HAVE_CONFIG_H
 #include <config.h>
@@ -149,8 +149,7 @@ extern "C" {
 
 #ifdef __cplusplus
 }
-#endif __cplusplus
-
+#endif /* __cplusplus */
 
 /* from venus */
 #include "adv_daemon.h"
@@ -159,6 +158,7 @@ extern "C" {
 #include "fso.h"
 #include "local.h"
 #include "mariner.h"
+#include "mgrp.h"
 #include "user.h"
 #include "venus.private.h"
 #include "venuscb.h"
@@ -167,6 +167,13 @@ extern "C" {
 #include "vproc.h"
 
 int MLEs = 0;
+
+#ifdef VENUSDEBUG
+unsigned int volrep::allocs = 0;
+unsigned int volrep::deallocs = 0;
+unsigned int repvol::allocs = 0;
+unsigned int repvol::deallocs = 0;
+#endif
 
 /* local-repair modification */
 void VolInit()
@@ -196,7 +203,7 @@ void VolInit()
 	{
 	    int FoundMLEs = 0;
 
-            { /* Initialize transient members. */
+            { /* Need to initialize volume replica transient members first. */
                 volrep_iterator next;
                 volrep *v;
                 while ((v = next()))
@@ -398,6 +405,20 @@ volent *vdb::Find(char *volname)
     return(0);
 }
 
+static int GetVolReps(VolumeInfo *volinfo, volrep *volreps[VSG_MEMBERS])
+{
+    int i, err = 0;
+
+    memset(volreps, 0, VSG_MEMBERS * sizeof(volrep *));
+    for (i = 0; i < VSG_MEMBERS && !err; i++) {
+        if (!(&volinfo->RepVolMap.Volume0)[i]) continue;
+            
+        err = VDB->Get((volent **)&volreps[i],(&volinfo->RepVolMap.Volume0)[i]);
+        if (!err) err = volreps[i]->IsReplicated();
+    }
+    return err;
+}
+
 /* MUST NOT be called from within transaction! */
 volent *vdb::Create(VolumeInfo *volinfo, char *volname)
 {
@@ -425,28 +446,21 @@ volent *vdb::Create(VolumeInfo *volinfo, char *volname)
     case REPVOL:
         {
         repvol *vp;
-        volrep *vsg[VSG_MEMBERS];
-        int i, err = 0;
+        volrep *volreps[VSG_MEMBERS];
+        int i, err;
 
-        memset(vsg, 0, VSG_MEMBERS * sizeof(volrep *));
-        for (i = 0; i < VSG_MEMBERS && !err; i++) {
-            if (!(&volinfo->RepVolMap.Volume0)[i]) continue;
-            
-            err = VDB->Get((volent **)&vsg[i],(&volinfo->RepVolMap.Volume0)[i]);
-            if (!err) err = vsg[i]->IsReplicated();
-        }
-
+        err = GetVolReps(volinfo, volreps);
         if (!err) {
             /* instantiate the new replicated volume */
             Recov_BeginTrans();
-            vp = new repvol(volinfo->Vid, volname, vsg);
+            vp = new repvol(volinfo->Vid, volname, volreps);
             v = vp;
             Recov_EndTrans(MAXFP);
         }
         /* we can safely put the replicas as the new repvol has grabbed
          * refcounts on all of them */
         for (i = 0; i < VSG_MEMBERS; i++)
-            if (vsg[i]) VDB->Put((volent **)&vsg[i]);
+            if (volreps[i]) VDB->Put((volent **)&volreps[i]);
         break;
         }
 
@@ -757,29 +771,6 @@ void vdb::ListCache(FILE *fp, int long_format, unsigned int valid)
     while ((v = rvnext()) || (v = vrnext()))
         v->ListCache(fp, long_format, valid);
 }
-
-void vdb::MgrpPrint(int fd)
-{
-    repvol *v = 0;
-    repvol_iterator next;
-
-    fdprint(fd, "Mgroups:\n");
-    while ((v = next()))
-        v->MgrpPrint(fd);
-    fdprint(fd, "\n");
-
-}
-
-void repvol::MgrpPrint(int fd)
-{
-    struct dllist_head *p;
-
-    list_for_each(p, mgrpents) {
-        mgrpent *m = list_entry(p, mgrpent, volhandle);
-        m->print(fd);
-    }
-}
-
 
 /* local-repair modification */
 
@@ -1380,6 +1371,7 @@ void repvol::UpMember(void)
  */
 void volrep::WeakMember()
 {
+    flags.weaklyconnected = 1;
     /* if we are a volume replica notify our replicated parent */
     if (IsReadWriteReplica()) {
         volent *v = VDB->Find(ReplicatedVol());
@@ -1404,6 +1396,7 @@ void repvol::WeakMember()
 
 void volrep::StrongMember()
 {
+    flags.weaklyconnected = 0;
     /* if we are a volume replica notify our replicated parent */
     if (IsReadWriteReplica()) {
         volent *v = VDB->Find(ReplicatedVol());
@@ -1667,10 +1660,19 @@ volrep::volrep(VolumeId vid, char *name, struct in_addr *addr, int readonly,
 
     /* Insert into hash table. */
     VDB->volrep_hash.insert(&vid, &handle);
+
+#ifdef VENUSDEBUG
+    allocs++;
+#endif
 }
 
 volrep::~volrep()
 {
+#ifdef VENUSDEBUG
+    deallocs++;
+#endif
+
+    PutServer(&volserver);
     /* Remove from hash table. */
     if (VDB->volrep_hash.remove(&vid, &handle) != &handle)
 	{ print(logFile); CHOKE("volrep::~volrep: htab remove"); }
@@ -1680,14 +1682,24 @@ void volrep::ResetTransient(void)
 {
     list_head_init(&vollist);
 
+    volserver = NULL;
+    if (host.s_addr) {
+        GetServer(&volserver, &host);
+        CODA_ASSERT(volserver != NULL);
+    }
+
     ResetVolTransients();
 }
 
 void repvol::ResetTransient(void)
 {
+    struct in_addr hosts[VSG_MEMBERS];
+
     res_list = new olist;
     cop2_list = new dlist;
-    list_head_init(&mgrpents);
+
+    GetHosts(hosts);
+    vsg = VSGDB->GetVSG(hosts);
 
     Lock_Init(&CML_lock);
     CML.ResetTransient();
@@ -1721,7 +1733,7 @@ void repvol::ResetTransient(void)
 
     /* grab a refcount on the underlying replicas */
     for (int i = 0; i < VSG_MEMBERS; i++)
-        if (vsg[i]) vsg[i]->hold();
+        if (volreps[i]) volreps[i]->hold();
 
     /* don't grab a refcount to the staging server volume, it will get
      * purged by the VolDaemon automatically */
@@ -1742,14 +1754,14 @@ int volent::Collate(connent *c, int code, int TranslateEINCOMP)
     return(code);
 }
 
-repvol::repvol(VolumeId vid, char *name, volrep *volreps[VSG_MEMBERS]) : volent(vid, name)
+repvol::repvol(VolumeId vid, char *name, volrep *reps[VSG_MEMBERS]) : volent(vid, name)
 {
     LOG(10, ("repvol::repvol %08x %08x %08x %08x %08x %08x %08x %08x\n",
-             volreps[0], volreps[1], volreps[2], volreps[3],
-             volreps[4], volreps[5], volreps[6], volreps[7]));
+             reps[0], reps[1], reps[2], reps[3],
+             reps[4], reps[5], reps[6], reps[7]));
 
     RVMLIB_REC_OBJECT(*this);
-    memcpy(vsg, volreps, VSG_MEMBERS * sizeof(volrep *));
+    memcpy(volreps, reps, VSG_MEMBERS * sizeof(volrep *));
 
     VVV = NullVV;
     AgeLimit = V_UNSETAGE;
@@ -1769,6 +1781,10 @@ repvol::repvol(VolumeId vid, char *name, volrep *volreps[VSG_MEMBERS]) : volent(
 
     /* Insert into hash table. */
     VDB->repvol_hash.insert(&vid, &handle);
+
+#ifdef VENUSDEBUG
+    allocs++;
+#endif
 }
 
 repvol::~repvol()
@@ -1777,13 +1793,17 @@ repvol::~repvol()
     
     int i;
 
+#ifdef VENUSDEBUG
+    deallocs++;
+#endif
+
     /* Remove from hash table. */
     if (VDB->repvol_hash.remove(&vid, &handle) != &handle)
 	{ print(logFile); CHOKE("repvol::~repvol: htab remove"); }
 
     /* Unlink from VSG (if applicable). */
     for (i = 0; i < VSG_MEMBERS; i++)
-        VDB->Put((volent **)&vsg[i]);
+        VDB->Put((volent **)&volreps[i]);
 
     if (ro_replica)
 	VDB->Put((volent **)&ro_replica);
@@ -1799,17 +1819,7 @@ repvol::~repvol()
         CHOKE("volent::~volent: cop2_list not empty");
     delete cop2_list;
     
-    KillMgrps();
-}
-
-void repvol::KillMgrps(void)
-{
-    LOG(10, ("repvol::KillMgrps volume = %x\n", vid));
-
-    while (mgrpents.next != &mgrpents) {
-        mgrpent *m = list_entry(mgrpents.next, mgrpent, volhandle);
-        m->Suicide(1); /* takes `m' out of the mgrpents list */
-    }
+    vsg->Put();
 }
 
 int volrep::GetConn(connent **c, vuid_t vuid)
@@ -1818,7 +1828,7 @@ int volrep::GetConn(connent **c, vuid_t vuid)
     *c = 0;
 
     while (code == ERETRY && !flags.transition_pending) {
-        code = ::GetConn(c, &host, vuid, 0);
+        code = volserver->GetConn(c, vuid);
         if (code < 0)
             CHOKE("volent::GetConn: bogus code (%d)", code);
     }
@@ -1832,15 +1842,13 @@ int volrep::GetConn(connent **c, vuid_t vuid)
 int repvol::GetConn(connent **c, vuid_t vuid)
 {
     int code = ETIMEDOUT;
-    unsigned long Hosts[VSG_MEMBERS];
     *c = 0;
 
     /* Get a connection to any custodian. */
-    GetHosts(Hosts);
     for (int i = 0; i < VSG_MEMBERS && !flags.transition_pending; i++) {
-	if (replica[i]->host) {
+	if (replica[i]) {
 	    do {
-		code = ::GetConn(c, replica[i]->host, vuid, 0);
+		code = replica[i]->GetConn(c, vuid);
 		if (code < 0)
 		    CHOKE("volent::GetConn: bogus code (%d)", code);
 	    } while (code == ERETRY && !flags.transition_pending);
@@ -1856,94 +1864,29 @@ int repvol::GetConn(connent **c, vuid_t vuid)
 }
 #endif
 
-const int MAXMGRPSPERUSER = 3;  /* Max simultaneous mgrps per user per vol. */
-
 int repvol::GetMgrp(mgrpent **m, vuid_t vuid, RPC2_CountedBS *PiggyBS)
 {
-    *m = 0;
     int code = 0;
+    *m = 0;
 
     if (flags.transition_pending)
         return ERETRY;
 
-    /* Get an mgrp for this user. */ 
-try_again:
-    /* Check whether there is already a free mgroup. */
-    struct dllist_head *p;
-    int count = 0;
-
-    list_for_each(p, mgrpents) {
-        *m = list_entry(p, mgrpent, volhandle);
-        if (vuid != ALL_UIDS && vuid != (*m)->uid) continue;
-        count++;
-        if ((*m)->inuse) continue;
-
-        (*m)->inuse = 1;
-        goto got_mgrp;
-    }
-    
-    /* Wait here if MAX mgrps are already in use. */
-    if (count >= MAXMGRPSPERUSER) {
-        *m = 0;
-	if (VprocInterrupted()) { return(EINTR); }
-        Mgrp_Wait();
-	if (VprocInterrupted()) { return(EINTR); }
-        goto try_again;
-    }
-
-    /* Try to connect to the VSG on behalf of the user. */
-    {
-        RPC2_Handle MgrpHandle = 0;
-        int auth = 1;
-        userent *u = 0;
-        struct in_addr mgrpaddr;
-        mgrpaddr.s_addr = INADDR_ANY; /* Request to form an mgrp */
-
-	/* set up unauthenticated connections to the staging server */
-	if (ro_replica) auth = 0;
-
-        GetUser(&u, vuid);
-        code = u->Connect(&MgrpHandle, &auth, &mgrpaddr);
-        PutUser(&u);
-
-        if (code < 0)
-            CHOKE("repvol::GetMgrp: bogus code (%d) from u->Connect", code);
-
-        if (code)
-            return(code);
-
-        /* Create and install the new mgrpent. */
-        *m = new mgrpent(this, vuid, MgrpHandle, auth);
-        list_add(&(*m)->volhandle, &mgrpents);
-    }
-
-got_mgrp:
-    /* Form the host set. */
-    code = (*m)->GetHostSet();
-    if (code < 0)
-        CHOKE("repvol::GetMgrp: bogus code (%d) from GetHostSet", code);
-
-    if ((*m)->dying || code) {
-        if (!code) code = ERETRY;
-        goto exit;
-    }
-
-    /* Choose whether to multicast or not. XXX probably broken --JH */
-    (*m)->rocc.MIp = (UseMulticast) ? &(*m)->McastInfo : 0;
-    
-/*--- We should have a usable mgrp now */
+    /* If we have a ro_replica, force an unauthenticated connection to the
+     * staging server */
+    code = vsg->GetMgrp(m, vuid, ro_replica == NULL);
 
     /* Get PiggyCOP2 buffer if requested. */
-    if (PiggyBS)
+    if (*m && PiggyBS)
         code = FlushCOP2(*m, PiggyBS);
 
-    if (flags.transition_pending)
+    if (flags.transition_pending) {
+        if (*m) (*m)->Put();
+        *m = NULL;
 	code = ERETRY;
-exit: 
-    if (code)
-        ::PutMgrp(m);
+    }
 
-    return(code);
+    return code;
 }
 
 void volrep::KillMgrpMember(struct in_addr *member)
@@ -1957,29 +1900,7 @@ void volrep::KillMgrpMember(struct in_addr *member)
 
 void repvol::KillMgrpMember(struct in_addr *member)
 {
-    struct dllist_head *p;
-
-    list_for_each(p, mgrpents) {
-        mgrpent *m = list_entry(p, mgrpent, volhandle);
-        m->KillMember(member, 0);
-    }
-}
-
-void repvol::KillUserMgrps(vuid_t uid)
-{
-    struct dllist_head *p;
-    LOG(10, ("repvol::KillUserMgrps volume = %x, uid = %d\n", vid, uid));
-
-again:
-    for(p = mgrpents.next; p != &mgrpents;) {
-        mgrpent *m = list_entry(p, mgrpent, volhandle);
-        p = m->volhandle.next;
-
-        if (m->uid != uid) continue;
-        if (m->Suicide(1))
-		/* We yielded in m->Suicide, have to restart the scan */
-		goto again;
-    }
+    vsg->KillMgrpMember(member);
 }
 
 /* returns minimum bandwidth in Bytes/sec, or INIT_BW if none obtainable */
@@ -1991,17 +1912,12 @@ void volent::GetBandwidth(unsigned long *bw)
 
 void volrep::GetBandwidth(unsigned long *bw)
 {
-    srvent *s;
     *bw = INIT_BW;
-    GetServer(&s, &host);
-    s->GetBandwidth(bw);
-    PutServer(&s);
+    volserver->GetBandwidth(bw);
 }
 
 void repvol::GetBandwidth(unsigned long *bw)
 {
-    struct in_addr host;
-    srvent *s;
     *bw = 0;
 
     if (ro_replica) {
@@ -2011,12 +1927,9 @@ void repvol::GetBandwidth(unsigned long *bw)
 
     for (int i = 0; i < VSG_MEMBERS; i++) {
         unsigned long tmpbw = 0;
-        if (!vsg[i]) continue;
+        if (!volreps[i]) continue;
 
-        vsg[i]->Host(&host);
-        if (!host.s_addr) continue;
-
-        vsg[i]->GetBandwidth(&tmpbw);
+        volreps[i]->GetBandwidth(&tmpbw);
 
         if (tmpbw && (!*bw || tmpbw < *bw))
             *bw = tmpbw;
@@ -2180,7 +2093,7 @@ int repvol::AllocFid(ViceDataType Type, ViceFid *target_fid,
 	    }
 
 Exit:
-	    PutMgrp(&m);
+	    if (m) m->Put();
 	}
     }
 
@@ -2210,8 +2123,8 @@ void repvol::GetHosts(struct in_addr hosts[VSG_MEMBERS])
     }
 
     for (int i = 0; i < VSG_MEMBERS; i++)
-        if (vsg[i])
-            vsg[i]->Host(&hosts[i]);
+        if (volreps[i])
+            volreps[i]->Host(&hosts[i]);
 }
 
 void volent::GetVids(VolumeId out[VSG_MEMBERS])
@@ -2234,8 +2147,8 @@ void repvol::GetVids(VolumeId out[VSG_MEMBERS])
     }
 
     for (int i = 0; i < VSG_MEMBERS; i++)
-        if (vsg[i])
-            out[i] = vsg[i]->GetVid();
+        if (volreps[i])
+            out[i] = volreps[i]->GetVid();
 }
 
 int repvol::IsHostedBy(const struct in_addr *host)
@@ -2244,7 +2157,7 @@ int repvol::IsHostedBy(const struct in_addr *host)
 	return ro_replica->IsHostedBy(host);
 
     for (int i = 0; i < VSG_MEMBERS; i++)
-        if (vsg[i] && vsg[i]->IsHostedBy(host))
+        if (volreps[i] && volreps[i]->IsHostedBy(host))
             return 1;
 
     return 0;
@@ -2264,7 +2177,7 @@ int repvol::AVSGsize(void)
 	return ro_replica->IsAvailable() ? 1 : 0;
     
     for (int i = 0; i < VSG_MEMBERS; i++)
-        if (vsg[i] && vsg[i]->IsAvailable())
+        if (volreps[i] && volreps[i]->IsAvailable())
             avsgsize++;
 
     return avsgsize;
@@ -2278,7 +2191,7 @@ int repvol::WeakVSGSize()
 	return ro_replica->IsWeaklyConnected() ? 1 : 0;
 
     for (int i = 0; i < VSG_MEMBERS; i++)
-        if (vsg[i] && vsg[i]->IsWeaklyConnected())
+        if (volreps[i] && volreps[i]->IsWeaklyConnected())
             count++;
 
     return(count);
@@ -2292,14 +2205,21 @@ void repvol::SetStagingServer(struct in_addr *srvr)
     char stagingname[V_MAXVOLNAMELEN];
 
     /* Disconnect existing mgrps and force a cache-revalidation */
-    KillMgrps();
+    vsg->Put();
+    vsg = NULL;
+
     flags.transition_pending = 1;
     flags.demotion_pending = 1;
 
     if (ro_replica)
 	VDB->Put((volent **)&ro_replica);
 
-    if (srvr->s_addr == 0) return;
+    if (!srvr->s_addr) {
+        struct in_addr hosts[VSG_MEMBERS];
+        GetHosts(hosts);
+        vsg = VSGDB->GetVSG(hosts);
+        return;
+    }
 
     strcpy(stagingname, name);
     /* make sure we don't overflow stagingname when appending ".ro" */
@@ -2313,14 +2233,15 @@ void repvol::SetStagingServer(struct in_addr *srvr)
     StagingVol.Server0 = ntohl(srvr->s_addr);
 
     ro_replica = (volrep *)VDB->Create(&StagingVol, stagingname);
-    if (ro_replica) ro_replica->hold();
-
-    /* fake a CB-connection */
-    {
-	srvent *s;
-	GetServer(&s, srvr);
-	if (s) s->connid = 666;
-	PutServer(&s);
+    if (ro_replica) {
+        ro_replica->hold();
+        /* fake a CB-connection */
+        {
+            srvent *s;
+            GetServer(&s, srvr);
+            if (s) s->connid = 666;
+            PutServer(&s);
+        }
     }
 }
 
@@ -2554,7 +2475,7 @@ int volent::GetVolStat(VolumeStatus *volstat, RPC2_BoundedBS *Name,
 	    Name->SeqLen = strlen((char *)name) + 1;
 
 RepExit:
-	    PutMgrp(&m);
+	    if (m) m->Put();
 	}
 	else {
 	    /* Acquire a Connection. */
@@ -2662,13 +2583,10 @@ int volent::SetVolStat(VolumeStatus *volstat, RPC2_BoundedBS *Name,
 	    }
 
             /* Send the COP2 message or add an entry for piggybacking. */
-            if (PIGGYCOP2)
-	        vp->AddCOP2(&sid, &UpdateSet);
- 	    else
-	        vp->COP2(m, &sid, &UpdateSet);
+            vp->COP2(m, &sid, &UpdateSet);
 
 RepExit:
-	    PutMgrp(&m);
+	    if (m) m->Put();
 	}
 	else {
 	    /* Acquire a Connection. */
@@ -2743,8 +2661,8 @@ void volent::print(int afd)
 
 void volrep::print_volrep(int afd)
 {
-    fdprint(afd, "\thost: %s, available %d", inet_ntoa(host), flags.available);
-    fdprint(afd, "replicated parent volume = %x\n", replicated);
+    fdprint(afd, "\thost: %s, available %d ", inet_ntoa(host), flags.available);
+    fdprint(afd, "replicated parent = %x\n", replicated);
 }
 
 void repvol::print_repvol(int afd)
@@ -2761,7 +2679,7 @@ void repvol::print_repvol(int afd)
     /* Replicas */
     fdprint(afd, "\tvolume replicas: [ ");
     for (int i = 0; i < VSG_MEMBERS; i++)
-        fdprint(afd, "%#08x, ", vsg[i] ? vsg[i]->GetVid() : 0);
+        fdprint(afd, "%#08x, ", volreps[i] ? volreps[i]->GetVid() : 0);
     fdprint(afd, "]\n");
     fdprint(afd, "\tstaging volume: %#08x\n",ro_replica?ro_replica->GetVid():0);
 

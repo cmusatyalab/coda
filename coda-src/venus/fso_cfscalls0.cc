@@ -52,6 +52,7 @@ extern "C" {
 #include "comm.h"
 #include "fso.h"
 #include "mariner.h"
+#include "mgrp.h"
 #include "venuscb.h"
 #include "vproc.h"
 #include "venus.private.h"
@@ -335,7 +336,7 @@ int fsobj::Fetch(vuid_t vuid) {
 	Recov_EndTrans(CMFP);
 
 RepExit:
-	PutMgrp(&m);
+	if (m) m->Put();
 	switch(code) {
 	    case 0:
 		if (asy_resolve)
@@ -840,7 +841,7 @@ int fsobj::GetAttr(vuid_t vuid, RPC2_BoundedBS *acl)
 	Recov_EndTrans(CMFP);
 
 RepExit:
-	PutMgrp(&m);
+	if (m) m->Put();
 	if (IsFakeDir() && code == EINCONS) {
 	    code = 0;
 	}
@@ -1082,7 +1083,7 @@ int fsobj::ConnectedStore(Date_t Mtime, vuid_t vuid, unsigned long NewLength)
 	    int ph_ix; unsigned long ph;
             ph = ntohl(m->GetPrimaryHost(&ph_ix)->s_addr);
 
-	    vp->PackVS(m->nhosts, &OldVS);
+	    vp->PackVS(VSG_MEMBERS, &OldVS);
 
 	    ARG_MARSHALL(IN_OUT_MODE, ViceStatus, statusvar, status, VSG_MEMBERS);
 	    ARG_MARSHALL(IN_OUT_MODE, SE_Descriptor, sedvar, *sed, VSG_MEMBERS);
@@ -1140,13 +1141,10 @@ int fsobj::ConnectedStore(Date_t Mtime, vuid_t vuid, unsigned long NewLength)
 	if (ASYNCCOP2) ReturnEarly();
 
 	/* Send the COP2 message or add an entry for piggybacking. */
-	if (PIGGYCOP2)
-	    vp->AddCOP2(&sid, &UpdateSet);
-	else
-	    (void)vp->COP2(m, &sid, &UpdateSet);
+        (void)vp->COP2(m, &sid, &UpdateSet);
 
 RepExit:
-	PutMgrp(&m);
+	if (m) m->Put();
 	switch(code) {
 	    case 0:
 		if (asy_resolve)
@@ -1373,7 +1371,7 @@ int fsobj::ConnectedSetAttr(Date_t Mtime, vuid_t vuid, unsigned long NewLength,
 	    /* Make multiple copies of the IN/OUT and OUT parameters. */
 	    int ph_ix; unsigned long ph;
             ph = ntohl(m->GetPrimaryHost(&ph_ix)->s_addr);
-	    vp->PackVS(m->nhosts, &OldVS);
+	    vp->PackVS(VSG_MEMBERS, &OldVS);
 
 	    ARG_MARSHALL(IN_OUT_MODE, ViceStatus, statusvar, status, VSG_MEMBERS);
 	    ARG_MARSHALL(OUT_MODE, RPC2_Integer, VSvar, VS, VSG_MEMBERS);
@@ -1441,13 +1439,10 @@ int fsobj::ConnectedSetAttr(Date_t Mtime, vuid_t vuid, unsigned long NewLength,
 	if (ASYNCCOP2) ReturnEarly();
 
 	/* Send the COP2 message or add an entry for piggybacking. */
-	if (PIGGYCOP2)
-	    vp->AddCOP2(&sid, &UpdateSet);
-	else
-	    vp->COP2(m, &sid, &UpdateSet);
+        vp->COP2(m, &sid, &UpdateSet);
 
 RepExit:
-	PutMgrp(&m);
+	if (m) m->Put();
 	switch(code) {
 	    case 0:
 		if (asy_resolve)
@@ -1743,7 +1738,7 @@ int fsobj::ConnectedCreate(Date_t Mtime, vuid_t vuid, fsobj **t_fso_addr,
 	Recov_EndTrans(MAXFP);
 	{
 	    /* Make multiple copies of the IN/OUT and OUT parameters. */
-	    vp->PackVS(m->nhosts, &OldVS);
+	    vp->PackVS(VSG_MEMBERS, &OldVS);
 	    ARG_MARSHALL(IN_OUT_MODE, ViceStatus, target_statusvar, target_status, VSG_MEMBERS);
 	    ARG_MARSHALL(IN_OUT_MODE, ViceFid, target_fidvar, target_fid, VSG_MEMBERS);
 	    ARG_MARSHALL(IN_OUT_MODE, ViceStatus, parent_statusvar, parent_status, VSG_MEMBERS);
@@ -1798,13 +1793,10 @@ int fsobj::ConnectedCreate(Date_t Mtime, vuid_t vuid, fsobj **t_fso_addr,
 	if (ASYNCCOP2) target_fso->ReturnEarly();
 
 	/* Send the COP2 message or add an entry for piggybacking. */
-	if (PIGGYCOP2)
-	    vp->AddCOP2(&sid, &UpdateSet);
-	else
-	    vp->COP2(m, &sid, &UpdateSet);
+        vp->COP2(m, &sid, &UpdateSet);
 
 RepExit:
-	PutMgrp(&m);
+	if (m) m->Put();
 	switch(code) {
 	    case 0:
 		if (asy_resolve) {

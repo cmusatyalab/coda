@@ -94,37 +94,43 @@ dnl All coda-servers _must_ use the same library, otherwise certain databases
 dnl cannot be replicated.
 AC_SUBST(LIBDB)
 AC_DEFUN(CODA_CHECK_LIBDB185,
-  AC_CHECK_LIB(db, dbopen, [LIBDB="-ldb"],
-    [AC_CHECK_LIB(c, dbopen, [LIBDB=""],
-       [AC_CHECK_LIB(c, dbm_open, [],
-          [if test $target != i386-pc-djgpp ; then
-	     AC_MSG_ERROR("failed to find libdb")
-	   fi])])])
+ [AC_CHECK_LIB(c, dbopen, [LIBDB="-lc"],
+   [AC_CHECK_LIB(db1, dbopen, [LIBDB="-ldb1"],
+     [AC_CHECK_LIB(db, dbopen, [LIBDB="-ldb"])])])
 
-  if test "$ac_cv_lib_c_dbm_open" = yes; then
-    [AC_MSG_WARN([Found ndbm instead of libdb 1.85. This uses])
-     AC_MSG_WARN([an incompatible disk file format and the programs])
-     AC_MSG_WARN([will not be able to read replicated shared databases.])
-     sleep 5
-    AC_DEFINE(HAVE_NDBM, 1, [Define if you have ndbm])]
-  else
-    dnl Check if the found libdb is libdb2 using compatibility mode.
+  dnl Check if the found libdb happens to be libdb2 using compatibility mode.
+  if test -n "$LIBDB" ; then
+    AC_CHECK_HEADERS(db_185.h)
     AC_MSG_CHECKING("if $LIBDB is libdb 1.85")
     coda_save_LIBS="$LIBS"
     LIBS="$LIBDB $LIBS"
     AC_TRY_LINK([char db_open();], db_open(),
-      [AC_MSG_RESULT("no")
-       AC_CHECK_LIB(db1, dbopen, [LIBDB="-ldb1"],
-         dnl It probably will compile but it wont be compatible..
-         [AC_MSG_WARN([Found libdb2 instead of libdb 1.85. This uses])
-          AC_MSG_WARN([an incompatible disk file format and the programs])
-          AC_MSG_WARN([will not be able to read replicated shared databases.])])
-	  sleep 5
-       dnl In any case we should not be using db.h
-       AC_DEFINE(HAVE_DB_185_H, 1, [Define if your libdb is 1.85])],
-      [AC_MSG_RESULT("yes")])
+     [AC_MSG_RESULT("no")
+      dnl It probably will compile but it wont be compatible..
+      AC_MSG_WARN([Found libdb2 instead of libdb 1.85. This uses])
+      AC_MSG_WARN([an incompatible disk file format and the programs])
+      AC_MSG_WARN([will not be able to read replicated shared databases.])
+      sleep 5],
+     [AC_MSG_RESULT("yes")])
     LIBS="$coda_save_LIBS"
-  fi)
+  else
+    dnl look for other database libraries
+    AC_CHECK_LIB(c, dbm_open,
+     [AC_MSG_WARN([Found ndbm instead of libdb 1.85. This uses])
+      AC_MSG_WARN([an incompatible disk file format and the programs])
+      AC_MSG_WARN([will not be able to read replicated shared databases.])
+      sleep 5
+      AC_DEFINE(HAVE_NDBM, 1, [Define if you have ndbm])
+      LIBDB="-lc"])
+  fi
+  dnl only on i386-pc-djgpp can we get away without having a libdb
+  if test -z "$LIBDB" -a $target != i386-pc-djgpp ; then
+    AC_MSG_ERROR("failed to find libdb")
+  fi
+  dnl get rid of the libc dummy
+  if test "$LIBDB" = -lc ; then
+    LIBDB=""
+  fi])
 
 dnl check wether we have flock or fcntl
 AC_DEFUN(CODA_CHECK_FILE_LOCKING,

@@ -45,11 +45,8 @@ extern "C" {
 
 #include <util.h>
 
-
-#define TRACEFILE "/tmp/tracefileXXXXXX"
 #define RPCTRACEBUFSIZE 500
 
-static FILE *tracefile;
 int RPCTraceBufInited = 0;
 
 /*
@@ -57,15 +54,16 @@ int RPCTraceBufInited = 0;
   <a name="S_TraceRpc"><strong>Turn on(off) rpc tracing (and process trace buffer)</strong></a>
   END_HTML
 */
-long S_TraceRpc(RPC2_Handle rpcid, SE_Descriptor *formal_sed) {
+long S_TraceRpc(RPC2_Handle rpcid, SE_Descriptor *formal_sed)
+{
+    FILE *tracefile;
     SE_Descriptor sed;
     long rc = 0;
-    LogMsg(1, VolDebugLevel, stdout,
-	   "Entering S_TraceRpc\n");
-    char filename[256];
-    strcpy(filename, TRACEFILE);
-    mktemp(filename);
-    tracefile = fopen(filename, "w");
+    int fd;
+
+    LogMsg(1, VolDebugLevel, stdout, "Entering S_TraceRpc\n");
+
+    tracefile = tmpfile();
     CODA_ASSERT(tracefile != NULL);
 
     if (!RPCTraceBufInited) {
@@ -86,15 +84,15 @@ long S_TraceRpc(RPC2_Handle rpcid, SE_Descriptor *formal_sed) {
 	RPC2_DumpState(tracefile, 0);
 	RPC2_Trace = 0;
     }
-    fclose(tracefile);
 
     // ship the file back 
+    fd = fileno(tracefile);
+    lseek(fd, 0, SEEK_SET);
     memset(&sed, 0, sizeof(SE_Descriptor));
     sed.Tag = SMARTFTP;
-    sed.Value.SmartFTPD.Tag = FILEBYNAME;
     sed.Value.SmartFTPD.TransmissionDirection = SERVERTOCLIENT;
-    strcpy(sed.Value.SmartFTPD.FileInfo.ByName.LocalFileName, filename);
-    sed.Value.SmartFTPD.FileInfo.ByName.ProtectionBits = 0755;
+    sed.Value.SmartFTPD.Tag = FILEBYFD;
+    sed.Value.SmartFTPD.FileInfo.ByFD.fd = fd;
 
     if ((rc = RPC2_InitSideEffect(rpcid, &sed)) <= RPC2_ELIMIT) 
 	LogMsg(0, VolDebugLevel, stdout, 
@@ -105,8 +103,7 @@ long S_TraceRpc(RPC2_Handle rpcid, SE_Descriptor *formal_sed) {
 	LogMsg(0, VolDebugLevel, stdout, 
 	       "TraceRpc: CheckSideEffect failed with %s", RPC2_ErrorMsg(rc));
     
-    LogMsg(1, VolDebugLevel, stdout,
-	   "TraceRpc returns %d\n", rc);
-    unlink(filename);
+    fclose(tracefile);
+    LogMsg(1, VolDebugLevel, stdout, "TraceRpc returns %d\n", rc);
     return(rc);
 }

@@ -66,6 +66,7 @@ extern "C" {
 #include "hdb.h"
 #include "local.h"
 #include "mariner.h"
+#include "mgrp.h"
 #include "user.h"
 #include "venus.private.h"
 #include "venus.version.h"
@@ -75,6 +76,7 @@ extern "C" {
 #include "venusstats.h"
 #include "venusvol.h"
 #include "vproc.h"
+#include "vsg.h"
 #include "worker.h"
 
 #ifdef __CYGWIN32__
@@ -272,13 +274,14 @@ void VenusPrint(int fd, int argc, char **argv) {
     }
 
     fdprint(fd, "*****  VenusPrint  *****\n\n");
+    FILE *f = fdopen(fd, "a");
     if (rusagep || allp)  RusagePrint(fd);
     if (recovp || allp)   if (RecovInited) RecovPrint(fd);
     if (vprocp || allp)   PrintVprocs(fd);
     if (userp || allp)    UserPrint(fd);
-    if (serverp || allp)  ServerPrint(fd);
+    if (serverp || allp)  ServerPrint(f);
     if (connp || allp)    ConnPrint(fd);
-    if (mgrpp || allp)    VDB->MgrpPrint(fd);
+    if (mgrpp || allp)    VSGDB->print(f);
     if (volumep || allp)  if (RecovInited && VDB) VDB->print(fd);
     if (fsop || allp)     if (RecovInited && FSDB) FSDB->print(fd);
     if (fsosump && !allp) if (RecovInited && FSDB) FSDB->print(fd, 1);
@@ -691,6 +694,12 @@ void MallocPrint(int fd)
 	     (srvent::allocs - srvent::deallocs) * sizeof(srvent));
     fdprint(fd, "mgrpent: %d, %d, %d\n", mgrpent::allocs, mgrpent::deallocs,
 	     (mgrpent::allocs - mgrpent::deallocs) * sizeof(mgrpent));
+    fdprint(fd, "vsgent: %d, %d, %d\n", vsgent::allocs, vsgent::deallocs,
+	     (vsgent::allocs - vsgent::deallocs) * sizeof(vsgent));
+    fdprint(fd, "volrep: %d, %d, %d\n", volrep::allocs, volrep::deallocs,
+	     (volrep::allocs - volrep::deallocs) * sizeof(volrep));
+    fdprint(fd, "repvol: %d, %d, %d\n", repvol::allocs, repvol::deallocs,
+	     (repvol::allocs - repvol::deallocs) * sizeof(repvol));
     fdprint(fd, "binding: %d, %d, %d\n", binding::allocs, binding::deallocs,
 	     (binding::allocs - binding::deallocs) * sizeof(binding));
     fdprint(fd, "namectxt: %d, %d, %d\n", NameCtxt_allocs, NameCtxt_deallocs,
@@ -701,8 +710,6 @@ void MallocPrint(int fd)
 	     (cop2ent::allocs - cop2ent::deallocs) * sizeof(cop2ent));
     fdprint(fd, "msgent: %d, %d, %d\n", msgent::allocs, msgent::deallocs,
 	     (msgent::allocs - msgent::deallocs) * sizeof(msgent));
-    fdprint(fd, "vnode: %d, %d, %d\n", vnode_allocs, vnode_deallocs,
-	     (vnode_allocs - vnode_deallocs) * sizeof(struct venus_cnode));
 #endif	VENUSDEBUG
 }
 

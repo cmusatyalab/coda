@@ -51,6 +51,7 @@ extern "C" {
 #include "comm.h"
 #include "fso.h"
 #include "mariner.h"
+#include "mgrp.h"
 #include "venuscb.h"
 #include "venusvol.h"
 #include "venus.private.h"

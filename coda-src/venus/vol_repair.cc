@@ -64,6 +64,7 @@ extern "C" {
 #include "fso.h"
 #include "local.h"
 #include "mariner.h"
+#include "mgrp.h"
 #include "venus.private.h"
 #include "venusvol.h"
 #include "vproc.h"
@@ -116,7 +117,7 @@ int repvol::EnableRepair(vuid_t vuid, VolumeId *RWVols,
     memset(LockWSs, 0, VSG_MEMBERS * sizeof(unsigned long));
     memset(RWVols, 0, VSG_MEMBERS * sizeof(VolumeId));
     for (i = 0; i < VSG_MEMBERS; i++)
-        if (vsg[i]) RWVols[i] = vsg[i]->GetVid();
+        if (volreps[i]) RWVols[i] = volreps[i]->GetVid();
 
     return(code);
 }
@@ -161,7 +162,7 @@ int repvol::ConnectedRepair(ViceFid *RepairFid, char *RepairFile, vuid_t vuid,
     memset(ReturnCodes, 0, VSG_MEMBERS * sizeof(int));
     memset(RWVols, 0, VSG_MEMBERS * sizeof(VolumeId));
     for (i = 0; i < VSG_MEMBERS; i++)
-        if (vsg[i]) RWVols[i] = vsg[i]->GetVid();
+        if (volreps[i]) RWVols[i] = volreps[i]->GetVid();
 
     /* Verify that RepairFid is inconsistent. */
     {
@@ -248,10 +249,10 @@ int repvol::ConnectedRepair(ViceFid *RepairFid, char *RepairFile, vuid_t vuid,
 	vv_t *RepairVVs[VSG_MEMBERS];
 	memset((void *)RepairVVs, 0, VSG_MEMBERS * (int)sizeof(vv_t *));
 	for (i = 0; i < VSG_MEMBERS; i++)
-	    if (vsg[i]) {
+	    if (volreps[i]) {
 		fsobj *f = 0;
 		ViceFid rwfid;
-		rwfid.Volume = vsg[i]->GetVid();
+		rwfid.Volume = volreps[i]->GetVid();
 		rwfid.Vnode = rFid->Vnode;
 		rwfid.Unique = rFid->Unique;
 		if (FSDB->Get(&f, &rwfid, vuid, RC_STATUS) != 0)
@@ -445,7 +446,7 @@ int repvol::ConnectedRepair(ViceFid *RepairFid, char *RepairFile, vuid_t vuid,
 	GetHosts(VSGHosts);
 	int HostCount = 0;	/* for sanity check */
 	for (i = 0; i < VSG_MEMBERS; i++)
-	    if (vsg[i]) {
+	    if (volreps[i]) {
 		for (j = 0; j < VSG_MEMBERS; j++)
 		    if (VSGHosts[i].s_addr == m->rocc.hosts[j].s_addr) {
 			ReturnCodes[i] = (m->rocc.retcodes[j] >= 0)
@@ -565,13 +566,13 @@ int repvol::ConnectedRepair(ViceFid *RepairFid, char *RepairFile, vuid_t vuid,
     }
 
     /* Send the COP2 message.  Don't Piggy!  */
-    (void)COP2(m, &sid, &UpdateSet);
+    (void)COP2(m, &sid, &UpdateSet, 1);
 
 Exit:
     if (RepairF) RepairF->data.file->Close(fd);
     else         close(fd);
 
-    PutMgrp(&m);
+    if (m) m->Put();
     FSDB->Put(&local);
     FSDB->Put(&global);
     FSDB->Put(&RepairF);
@@ -626,7 +627,7 @@ int repvol::DisconnectedRepair(ViceFid *RepairFid, char *RepairFile,
     memset(ReturnCodes, 0, VSG_MEMBERS * sizeof(int));
     memset(RWVols, 0, VSG_MEMBERS * sizeof(VolumeId));
     for (i = 0; i < VSG_MEMBERS; i++)
-        if (vsg[i]) RWVols[i] = vsg[i]->GetVid();
+        if (volreps[i]) RWVols[i] = volreps[i]->GetVid();
 
     /* Verify that RepairFid is a file fid */
     /* can't repair directories while disconnected */
@@ -708,10 +709,10 @@ int repvol::DisconnectedRepair(ViceFid *RepairFid, char *RepairFile,
         memset(RepairVVs, 0, VSG_MEMBERS * sizeof(vv_t *));
 
 	for (int i = 0; i < VSG_MEMBERS; i++)
-	    if (vsg[i]) {
+	    if (volreps[i]) {
 		fsobj *f = 0;
 		ViceFid rwfid;
-		rwfid.Volume = vsg[i]->GetVid();
+		rwfid.Volume = volreps[i]->GetVid();
 		rwfid.Vnode = RepairFid->Vnode;
 		rwfid.Unique = RepairFid->Unique;
 		if (FSDB->Get(&f, &rwfid, vuid, RC_STATUS) != 0)

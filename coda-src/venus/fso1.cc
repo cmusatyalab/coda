@@ -192,8 +192,7 @@ void fsobj::ResetTransient()
     memset((void *)&del_handle, 0, (int)sizeof(del_handle));
     memset((void *)&owrite_handle, 0, (int)sizeof(owrite_handle));
 
-    if (HAVEDATA(this) && stat.VnodeType == Directory &&
-	mvstat != MOUNTPOINT) {
+    if (HAVEDATA(this) && stat.VnodeType == Directory && mvstat != MOUNTPOINT) {
 	data.dir->udcfvalid = 0;
 	data.dir->udcf = 0;
     }
@@ -1385,7 +1384,7 @@ void fsobj::Reference() {
 
 /* local-repair modification */
 /* Need not be called from within transaction. */
-void fsobj::ComputePriority() {
+void fsobj::ComputePriority(int Force) {
     LOG(1000, ("fsobj::ComputePriority: (%s)\n", FID_(&fid)));
 
     if (IsLocalObj()) {
@@ -1432,7 +1431,12 @@ void fsobj::ComputePriority() {
 	new_priority = FSDB->MakePri(spri, mpri);
     }
 
-    if (priority == -1 || new_priority != priority) {
+    /* Force is only set by RecomputePriorities when called by the Hoard
+     * daemon (once every 10 minutes). By forcefully taking all FSO's off
+     * the priority queue and requeueing them the random seed is perturbed
+     * to avoid cache pollution by unreferenced low priority objects which
+     * happen to have a high random seed */
+    if (Force || priority == -1 || new_priority != priority) {
 	FSDB->Reorders++;		    /* transient value; punt set_range */
 
 	DisableReplacement();		    /* remove... */
@@ -1557,9 +1561,8 @@ void fsobj::AttachHdbBinding(binding *b)
 
     /* Check for duplicates */
     if ((dup = CheckForDuplicates(hdb_bindings, b->binder))) {
-	dup->IncrRefCount();
 	LOG(100, ("This is a duplicate binding...skip it.\n"));
-	return;
+        return;
     }
 
     if (LogLevel >= 1000) {
@@ -1572,6 +1575,7 @@ void fsobj::AttachHdbBinding(binding *b)
 	hdb_bindings = new dlist;
     hdb_bindings->insert(&b->bindee_handle);
     b->bindee = this;
+    b->IncrRefCount();
 
     if (LogLevel >= 10) {
       dprint("fsobj::AttachHdbBinding:\n");
@@ -1659,6 +1663,7 @@ void fsobj::DetachHdbBinding(binding *b, int DemoteNameCtxt) {
     if (hdb_bindings->remove(&b->bindee_handle) != &b->bindee_handle)
 	{ print(logFile); b->print(logFile); CHOKE("fsobj::DetachHdbBinding: bindee remove"); }
     b->bindee = 0;
+    b->DecrRefCount();
     if (IsSymLink() && hdb_bindings->count() == 0)
 	EnableReplacement();
 
@@ -1841,6 +1846,7 @@ void fsobj::AttachMleBinding(binding *b) {
 	mle_bindings = new dlist;
     mle_bindings->append(&b->bindee_handle);
     b->bindee = this;
+    b->IncrRefCount();
 
     /* Set our "dirty" flag if this is the first binding. (i.e. this fso has an mle) */
     if (mle_bindings->count() == 1) {
@@ -1872,6 +1878,7 @@ void fsobj::DetachMleBinding(binding *b) {
     if (mle_bindings->remove(&b->bindee_handle) != &b->bindee_handle)
 	{ print(logFile); b->print(logFile); CHOKE("fsobj::DetachMleBinding: bindee remove"); }
     b->bindee = 0;
+    b->DecrRefCount();
 
     /* Clear our "dirty" flag if this was the last binding. */
     if (mle_bindings->count() == 0) {
@@ -2053,8 +2060,8 @@ int fsobj::Fakeify()
 		    /* the normal fake link */
 		    /* get the volumeid corresponding to the server name */
 		    for (i = 0; i < VSG_MEMBERS; i++) {
-                        if (!vp->vsg[i]) continue;
-                        vp->vsg[i]->Host(&host);
+                        if (!vp->volreps[i]) continue;
+                        vp->volreps[i]->Host(&host);
 
 			if ((s = FindServer(&host)) && s->name &&
                             strcmp(s->name, comp) == 0) {
@@ -2065,7 +2072,7 @@ int fsobj::Fakeify()
                       CHOKE("fsobj::fakeify couldn't find the server for %s\n",
                             comp);
 
-                    rwvolumeid = vp->vsg[i]->vid;
+                    rwvolumeid = vp->volreps[i]->vid;
 		    
 		    /* Write out the link contents. */
 		    data.symlink = (char *)rvmlib_rec_malloc((unsigned) stat.Length);
@@ -2493,7 +2500,7 @@ void fsobj::print(int fdes) {
 	binding *b = strbase(binding, d, bindee_handle);
 	namectxt *nc = (namectxt *)b->binder;
 	if (nc != NULL) 
-	  nc->print(fdes);
+	  nc->print(fdes, this);
       }
 
     }

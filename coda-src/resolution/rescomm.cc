@@ -367,8 +367,7 @@ void GetServer(srvent **spp, unsigned long host) {
 
 void PutServer(srvent **spp) {
     LogMsg(20, SrvDebugLevel, stdout,  "PutServer: ");
-
-    *spp = 0;
+    *spp = NULL;
 }
 
 void ServerPrint() {

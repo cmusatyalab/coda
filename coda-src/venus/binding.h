@@ -16,12 +16,6 @@ listed in the file CREDITS.
 
 #*/
 
-
-
-
-
-
-
 /*
  *    Generic associative data structure.
  */
@@ -43,7 +37,7 @@ extern "C" {
 
 /* from util */
 #include <dlist.h>
-
+#include <coda_assert.h>
 
 class binding {
   public:
@@ -64,8 +58,7 @@ class binding {
     ~binding();
 
     void IncrRefCount() { referenceCount++; }
-    void DecrRefCount() { referenceCount--; }
-    int GetRefCount() { return(referenceCount); }
+    void DecrRefCount() { CODA_ASSERT(referenceCount > 0); referenceCount--; }
 
     void print() { print(stdout); }
     void print(FILE *fp) { fflush(fp); print(fileno(fp)); }

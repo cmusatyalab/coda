@@ -51,6 +51,9 @@
 /* Define if you have the <arpa/nameser.h> header file.  */
 #undef HAVE_ARPA_NAMESER_H
 
+/* Define if you have the <db_185.h> header file.  */
+#undef HAVE_DB_185_H
+
 /* Define if you have the <netinet/in.h> header file.  */
 #undef HAVE_NETINET_IN_H
 
@@ -102,14 +105,8 @@
 /* Define if you have the <unistd.h> header file.  */
 #undef HAVE_UNISTD_H
 
-/* Define if you have the c library (-lc).  */
-#undef HAVE_LIBC
-
 /* Define if you have ndbm */
 #undef HAVE_NDBM
-
-/* Define if your libdb is 1.85 */
-#undef HAVE_DB_185_H
 
 /* Definition for socklen_t if the type is missing */
 #undef socklen_t

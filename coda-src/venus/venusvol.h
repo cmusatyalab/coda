@@ -54,9 +54,9 @@ extern "C" {
 #include <voldefs.h>
 
 /* from venus */
-#include "comm.h"
 #include "venusrecov.h"
 #include "venus.private.h"
+#include "vsg.h"
 
 /* Forward declarations. */
 class ClientModifyLog;
@@ -527,7 +527,6 @@ class vdb {
     void print(int, int =0);
 
     void ListCache(FILE *, int long_format=1, unsigned int valid=3);
-    void MgrpPrint(int fd);
 };
 
 
@@ -687,6 +686,8 @@ class volent {
     void ListCache(FILE *, int long_format=1, unsigned int valid=3);
 };
 
+class srvent;
+
 /* A volume replica entry. */
 class volrep : public volent {
     friend class vdb;
@@ -696,7 +697,8 @@ class volrep : public volent {
     struct in_addr host;        /* server that has this volume */
     
     /* not yet used */
-/*T*/struct dllist_head vollist; /* list of volumes on a srvent */
+/*T*/srvent *volserver;          /* srvent of the server hosting this volume */
+/*T*/struct dllist_head vollist; /* links volumes to a srvent */
 
     volrep(VolumeId vid, char *name, struct in_addr *addr, int readonly,
            VolumeId parent=0);
@@ -704,6 +706,11 @@ class volrep : public volent {
     void ResetTransient();
 
   public:
+#ifdef VENUSDEBUG
+    static unsigned int allocs;
+    static unsigned int deallocs;
+#endif
+
     VolumeId ReplicatedVol() { return replicated; }
     int IsReadWriteReplica() { return (ReplicatedVol() != 0); }
 
@@ -737,9 +744,9 @@ class repvol : public volent {
     friend void Reintegrate(repvol *);
     friend void VolInit(void);
 
-    volrep *vsg[VSG_MEMBERS];      /* underlying volume replicas */
+    volrep *volreps[VSG_MEMBERS];  /* underlying volume replicas */
     volrep *ro_replica;		   /* R/O staging replica for this volume */
-/*T*/struct dllist_head mgrpents;  /* list of mgrpents for this volume */
+    vsgent *vsg;
 
     /* Preallocated Fids. */
     FidRange FileFids;
@@ -776,16 +783,18 @@ class repvol : public volent {
 
     /*T*/PermitStatus VPStatus;   /* do we have a volume permit? */
 
-    repvol(VolumeId vid, char *name, volrep *vsg[VSG_MEMBERS]);
+    repvol(VolumeId vid, char *name, volrep *reps[VSG_MEMBERS]);
     ~repvol();
     void ResetTransient();
-    void MgrpPrint(int fd);
 
   public:
+#ifdef VENUSDEBUG
+    static unsigned int allocs;
+    static unsigned int deallocs;
+#endif
+
     int GetMgrp(mgrpent **, vuid_t, RPC2_CountedBS * =0);
     void KillMgrpMember(struct in_addr *);
-    void KillUserMgrps(vuid_t);
-    void KillMgrps(void);
     void GetBandwidth(unsigned long *bw);
 
     void DownMember();
@@ -895,7 +904,7 @@ class repvol : public volent {
 
     /* COP2 routines. */
     int COP2(mgrpent *, RPC2_CountedBS *);
-    int COP2(mgrpent *, ViceStoreId *, ViceVersionVector *);
+    int COP2(mgrpent *, ViceStoreId *, ViceVersionVector *, int donotpiggy=0);
     int FlushCOP2(time_t =0);
     int FlushCOP2(mgrpent *, RPC2_CountedBS *);
     void GetCOP2(RPC2_CountedBS *);

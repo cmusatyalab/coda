@@ -26,17 +26,18 @@ listed in the file CREDITS.
  *
  *    Implementation of the Venus COP2 facility.
  *
- *    The purpose of these routines is to distribute the UpdateSet to the AVSG members
- *    following a mutating operation.  Distribution may be synchronous, i.e., COP2() is
- *    invoked by the worker thread immediately following the COP1 call, or asynchronous.
- *    Asynchronous has two variants:  piggybacked and non-piggybacked.  In the piggybacked
- *    case the UpdateSet is sent in the next worker-invoked RPC to the relevant VSG.  In
- *    the non-piggybacked case the UpdateSet is sent in a COP2 RPC invoked by the volume
- *    daemon.  Non-piggybacked is used when piggybacked is not enabled or when no RPC
- *    occurs within a timeout period.  In either case multiple UpdateSets (corresponding to
- *    multiple COP1s) may be sent in the same RPC.  Also, UpdateSet propagation is idempotent,
- *    so UpdateSets piggybacked on successive RPCs to the same VSG may overlap.
- *
+ *    The purpose of these routines is to distribute the UpdateSet to the AVSG
+ *    members following a mutating operation.  Distribution may be
+ *    synchronous, i.e., COP2() is invoked by the worker thread immediately
+ *    following the COP1 call, or asynchronous. Asynchronous has two variants:
+ *    piggybacked and non-piggybacked.  In the piggybacked case the UpdateSet
+ *    is sent in the next worker-invoked RPC to the relevant VSG.  In the
+ *    non-piggybacked case the UpdateSet is sent in a COP2 RPC invoked by the
+ *    volume daemon.  Non-piggybacked is used when piggybacked is not enabled
+ *    or when no RPC occurs within a timeout period.  In either case multiple
+ *    UpdateSets (corresponding to multiple COP1s) may be sent in the same
+ *    RPC.  Also, UpdateSet propagation is idempotent, so UpdateSets
+ *    piggybacked on successive RPCs to the same VSG may overlap.
  */
 
 
@@ -63,6 +64,7 @@ extern "C" {
 /* from venus */
 #include "comm.h"
 #include "mariner.h"
+#include "mgrp.h"
 #include "venus.private.h"
 #include "coda_assert.h"
 #include "local.h"
@@ -102,12 +104,19 @@ int repvol::COP2(mgrpent *m, RPC2_CountedBS *PiggyBS)
 
 
 /* Send a single UpdateSet. */
-int repvol::COP2(mgrpent *m, ViceStoreId *StoreId, vv_t *UpdateSet)
+int repvol::COP2(mgrpent *m, ViceStoreId *StoreId, vv_t *UpdateSet,
+                 int donotpiggy)
 {
     RPC2_CountedBS PiggyBS;
     PiggyBS.SeqLen = 0;
     char PiggyData[COP2SIZE];
     PiggyBS.SeqBody = (RPC2_ByteSeq)PiggyData;
+
+    /* If we are piggybacking COP2's just log a new COP2 entry */
+    if (!donotpiggy && PIGGYCOP2) {
+        AddCOP2(StoreId, UpdateSet);
+        return 0;
+    }
 
     htonsid(StoreId, (ViceStoreId *)&PiggyBS.SeqBody[PiggyBS.SeqLen]);
     PiggyBS.SeqLen += sizeof(ViceStoreId);
@@ -142,7 +151,10 @@ int repvol::FlushCOP2(time_t window)
 	/* Get an Mgrp for the "system" user. */
 	mgrpent *m = 0;
 	code = GetMgrp(&m, V_UID);
-	if (code != 0) { PutMgrp(&m); break; }
+	if (code) {
+            if (m) m->Put();
+            break;
+        }
 
 	/* Get a buffer full of pending COP2 messages. */
 	/* Note that all cop2ents may have vanished due to concurrent */
@@ -154,13 +166,13 @@ int repvol::FlushCOP2(time_t window)
 	GetCOP2(&BS);
 	if (BS.SeqLen == 0) {
 	    LOG(1, ("volent::FlushCOP2: vol = %x, No Entries!\n", vid));
-	    PutMgrp(&m);
+            if (m) m->Put();
 	    break;
 	}
 
 	/* Make the call. */
 	code = COP2(m, &BS);
-	PutMgrp(&m);
+        if (m) m->Put();
 	if (code != 0) break;
 
 	/* Start over at the head of the list. */

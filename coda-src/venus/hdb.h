@@ -383,9 +383,9 @@ class namectxt {
     vuid_t GetUid()
         { return(vuid); }
 
-    void print()  { print(stdout); }
-    void print(FILE *fp)  { fflush(fp); print(fileno(fp)); }
-    void print(int);
+    void print(void * =0)  { print(stdout); }
+    void print(FILE *fp, void * =0)  { fflush(fp); print(fileno(fp)); }
+    void print(int, void * =0);
     void printsuspect(int, int);
     void getpath(char *);
 

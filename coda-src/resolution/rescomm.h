@@ -43,7 +43,7 @@ extern "C" {
 #include <dlist.h>
 #include <vice.h>
 #include <res.h>
-#define VSG_MEMBERS 8
+#include <vcrcommon.h>
 #include "resutil.h"
 
 /* forward declarations */

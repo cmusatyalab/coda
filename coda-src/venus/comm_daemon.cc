@@ -41,16 +41,10 @@ extern "C" {
 #include "vproc.h"
 
 /*
- *
- *    Implementation of the Venus Communications daemons.
- *
- *    There are two separate daemons:
- *       1. A "probe" daemon, which periodically and on-demand sends probe messages 
- *	    to servers and checks the health of the network.
- *       2. A "vsg" daemon, which is responsible for maintenance of the VSGDB.
- *
+ *    Implementation of the Venus "probe" daemon, which periodically and
+ *    on-demand sends probe messages to servers and checks the health of the
+ *    network.
  */
-
 
 /*  *****  Probe Daemon  *****  */
 

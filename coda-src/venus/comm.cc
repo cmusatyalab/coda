@@ -114,7 +114,6 @@ struct FailFilterInfoStruct {
 
 static int VSG_HashFN(void *);
 
-char mgrpent::mgrp_sync;
 olist *srvent::srvtab;
 char srvent::srvtab_sync;
 olist *connent::conntab;
@@ -125,8 +124,6 @@ int connent::allocs = 0;
 int connent::deallocs = 0;
 int srvent::allocs = 0;
 int srvent::deallocs = 0;
-int mgrpent::allocs = 0;
-int mgrpent::deallocs = 0;
 #endif	VENUSDEBUG
 
 
@@ -212,7 +209,7 @@ void CommInit() {
         if (addr.s_addr != INADDR_ANY) {
             GetServer(&s, &addr);
             s->rootserver = 1;
-            /* Don't call PutServer, keeps a refcount on the rootservers */
+            /* Don't call PutServer, this keeps a refcount on the rootservers */
             hcount++;
         } else {
 	    LOG(0, ("Did not add IP address for server %s\n", ServerName));
@@ -302,7 +299,8 @@ void Conn_Signal() {
 
 
 /* Get a connection to any server (as root). */
-int GetAdmConn(connent **cpp) {
+int GetAdmConn(connent **cpp)
+{
     LOG(100, ("GetAdmConn: \n"));
 
     *cpp = 0;
@@ -315,7 +313,7 @@ int GetAdmConn(connent **cpp) {
 	srvent *s;
 	while ((s = next())) {
             if (!s->IsRootServer()) continue;
-	    code = GetConn(cpp, &s->host, V_UID, 0);
+	    code = s->GetConn(cpp, V_UID);
 	    switch(code) {
 		case 0:
 		    return(0);
@@ -343,72 +341,60 @@ int GetAdmConn(connent **cpp) {
 }
 
 
-int GetConn(connent **cpp, struct in_addr *host, vuid_t vuid, int Force)
+int srvent::GetConn(connent **cpp, vuid_t vuid, int Force)
 {
-    LOG(100, ("GetConn: host = %s, vuid = %d, force = %d\n",
-              inet_ntoa(*host), vuid, Force));
+    LOG(100, ("srvent::GetConn: host = %s, vuid = %d, force = %d\n",
+              inet_ntoa(host), vuid, Force));
 
     *cpp = 0;
     int code = 0;
     connent *c = 0;
-    int found = 0;
 
     /* Grab an existing connection if one is free. */
     /* Before creating a new connection, make sure the per-user limit is not exceeded. */
     for (;;) {
 	/* Check whether there is already a free connection. */
-	struct ConnKey Key; Key.host = *host; Key.vuid = vuid;
+	struct ConnKey Key; Key.host = host; Key.vuid = vuid;
 	conn_iterator next(&Key);
 	int count = 0;
 	while ((c = next())) {
 	    count++;
 	    if (!c->inuse) {
 		c->inuse = 1;
-		found = 1;
-		break;
+                *cpp = c;
+                return 0;
 	    }
 	}
-	if (found) break;
+
+	if (count < MAXCONNSPERUSER) break;
 
 	/* Wait here if MAX conns are already in use. */
 	/* Synchronization needs fixed for MP! -JJK */
-	if (count < MAXCONNSPERUSER) break;
 	if (VprocInterrupted()) return(EINTR);
 /*	    RPCOpStats.RPCOps[opcode].busy++;*/
 	Conn_Wait();
 	if (VprocInterrupted()) return(EINTR);
     }
 
-    if (!found) {
-	/* Try to connect to the server on behalf of the user. */
-	srvent *s = 0;
-	GetServer(&s, host);
-	RPC2_Handle ConnHandle = 0;
-	int auth = 1;
-	code = s->Connect(&ConnHandle, &auth, vuid, Force);
-	PutServer(&s);
+    /* Try to connect to the server on behalf of the user. */
+    RPC2_Handle ConnHandle = 0;
+    int auth = 1;
+    code = Connect(&ConnHandle, &auth, vuid, Force);
 
-	switch(code) {
-	    case 0:
-		break;
-
-	    case EINTR:
-		return(EINTR);
-
-	    case EPERM:
-	    case ERETRY:
-		return(ERETRY);
-
-	    default:
-		return(ETIMEDOUT);
-	}
-
-	/* Create and install the new connent. */
-	c = new connent(host, vuid, ConnHandle, auth);
-	c->inuse = 1;
-	connent::conntab->insert(&c->tblhandle);
+    switch(code) {
+    case 0:      break;
+    case EINTR:  return(EINTR);
+    case EPERM:
+    case ERETRY: return(ERETRY);
+    default:     return(ETIMEDOUT);
     }
 
+    /* Create and install the new connent. */
+    c = new connent(&host, vuid, ConnHandle, auth);
+    if (!c) return(ENOMEM);
+
+    connent::conntab->insert(&c->tblhandle);
+    c->inuse = 1;
     *cpp = c;
     return(0);
 }
@@ -692,9 +678,11 @@ void GetServer(srvent **spp, struct in_addr *host)
 {
     LOG(100, ("GetServer: host = %s\n", inet_ntoa(*host)));
     CODA_ASSERT(host != 0);
+    CODA_ASSERT(host->s_addr != 0);
 
     srvent *s = FindServer(host);
     if (s) {
+        s->GetRef();
 	*spp = s;
 	return;
     }
@@ -710,7 +698,9 @@ void PutServer(srvent **spp)
 {
     LOG(100, ("PutServer: \n"));
 
-    *spp = 0;
+    if (*spp)
+        (*spp)->PutRef();
+    *spp = NULL;
 }
 
 
@@ -756,7 +746,10 @@ void probeslave::main(void)
 	    {
 	    /* *result gets pointer to connent on success, 0 on failure. */
 	    struct in_addr *host = (struct in_addr *)arg;
-	    (void)GetConn((connent **)result, host, V_UID, 1);
+            srvent *s;
+            GetServer(&s, host);
+	    s->GetConn((connent **)result, V_UID, 1);
+            PutServer(&s);
 	    }
 	    break;
 
@@ -856,15 +849,18 @@ void MultiBind(int HowMany, struct in_addr *Hosts, connent **Connections)
 	fprintf(logFile, "]\n");
     }
 
-    int slaves = 0;
+    srvent **s = (srvent **)malloc(HowMany * sizeof(srvent *));
+    if (!s) return;
+
+    int ix, slaves = 0;
     char slave_sync = 0;
-    for (int ix = 0; ix < HowMany; ix++) {
+    for (ix = 0; ix < HowMany; ix++) {
 	/* Try to get a connection without forcing a bind. */
 	connent *c = 0;
-	if (GetConn(&c, &Hosts[ix], V_UID, 0) == 0) {
+        GetServer(&s[ix], &Hosts[ix]);
+	if (s[ix]->GetConn(&c, V_UID) == 0) {
 	    /* Stuff the connection in the array. */
 	    Connections[ix] = c;
-
 	    continue;
 	}
 
@@ -875,6 +871,10 @@ void MultiBind(int HowMany, struct in_addr *Hosts, connent **Connections)
 				 (void *)(&Connections[ix]), &slave_sync);
 	}
     }
+
+    for (ix = 0; ix < HowMany; ix++)
+        PutServer(&s[ix]);
+    free(s);
 
     /* Reap any slaves we created. */
     while (slave_sync != slaves) {
@@ -1043,24 +1043,17 @@ void ServerPrint() {
     ServerPrint(stdout);
 }
 
-
-void ServerPrint(FILE *fp) {
-    fflush(fp);
-    ServerPrint(fileno(fp));
-}
-
-
-void ServerPrint(int fd)
+void ServerPrint(FILE *f)
 {
     if (srvent::srvtab == 0) return;
 
-    fdprint(fd, "Servers: count = %d\n", srvent::srvtab->count());
+    fprintf(f, "Servers: count = %d\n", srvent::srvtab->count());
 
     srv_iterator next;
     srvent *s;
-    while ((s = next())) s->print(fd);
+    while ((s = next())) s->print(f);
 
-    fdprint(fd, "\n");
+    fprintf(f, "\n");
 }
 
 
@@ -1097,12 +1090,15 @@ srvent::srvent(struct in_addr *Host, int isrootserver)
 }
 
 
-srvent::~srvent() {
+srvent::~srvent()
+{
 #ifdef	VENUSDEBUG
     deallocs++;
 #endif	VENUSDEBUG
 
     LOG(1, ("srvent::~srvent: host = %s, conn = %d\n", name, connid));
+
+    srvent::srvtab->remove(&tblhandle);
 
     delete name;
 
@@ -1178,12 +1174,11 @@ int srvent::GetStatistics(ViceStatistics *Stats)
     LOG(100, ("srvent::GetStatistics: host = %s\n", name));
 
     int code = 0;
-
     connent *c = 0;
 
     memset(Stats, 0, sizeof(ViceStatistics));
     
-    code = GetConn(&c, &host, V_UID, 0);
+    code = GetConn(&c, V_UID);
     if (code != 0) goto Exit;
 
     /* Make the RPC call. */
@@ -1451,15 +1446,11 @@ void srvent::ForceStrong(int on) {
 }
 
 
-int srvent::IsRootServer(void)
+void srvent::print(FILE *f)
 {
-    return rootserver;
-}
-
-void srvent::print(int fd)
-{
-    fdprint(fd, "%#08x : %-16s : cid = %d, host = %s, binding = %d, bw = %d, isroot = %d\n",
+    fprintf(f, "%#08x : %-16s : cid = %d, host = %s, binding = %d, bw = %d, isroot = %d\n",
             (long)this, name, connid, inet_ntoa(host), Xbinding, bw, rootserver);
+    PrintRef(f);
 }
 
 
@@ -1475,713 +1466,6 @@ srvent *srv_iterator::operator()() {
     return(s);
 }
 
-
-/* ***** Replicated operation context  ***** */
-
-RepOpCommCtxt::RepOpCommCtxt()
-{
-    LOG(100, ("RepOpCommCtxt::RepOpCommCtxt: \n"));
-
-    HowMany = 0;
-    memset(handles, 0, VSG_MEMBERS * sizeof(RPC2_Handle));
-    memset(hosts, 0, VSG_MEMBERS * sizeof(struct in_addr));
-    memset(retcodes, 0, VSG_MEMBERS * sizeof(RPC2_Integer));
-    memset(&primaryhost, 0, sizeof(struct in_addr));
-    MIp = 0;
-    memset(dying, 0, VSG_MEMBERS * sizeof(unsigned));
-}
-
-
-/* ***** Mgroup  ***** */
-
-#define	MGRPQ_LOCK()
-#define	MGRPQ_UNLOCK()
-#define	MGRPQ_WAIT()	    VprocWait((char *)&mgrpent::mgrp_sync)
-#define	MGRPQ_SIGNAL()	    VprocSignal((char *)&mgrpent::mgrp_sync)
-
-void Mgrp_Wait() {
-    MGRPQ_LOCK();
-    LOG(0, ("WAITING(MGRPQ):\n"));
-    START_TIMING();
-    MGRPQ_WAIT();
-    END_TIMING();
-    LOG(0, ("WAIT OVER, elapsed = %3.1f\n", elapsed));
-    MGRPQ_UNLOCK();
-}
-
-
-void Mgrp_Signal() {
-    MGRPQ_LOCK();
-    MGRPQ_SIGNAL();
-    MGRPQ_UNLOCK();
-}
-
-void PutMgrp(mgrpent **mpp)
-{
-    mgrpent *m = *mpp;
-    *mpp = 0;
-    if (m == 0) {
-	LOG(100, ("PutMgrp: null mgrp\n"));
-	return;
-    }
-
-    LOG(100, ("PutMgrp: volumeid = %#08x, uid = %d, mid = %d, auth = %d, inuse = %d, dying = %d\n",
-	     m->vid, m->uid, m->McastInfo.Mgroup, m->authenticated, m->inuse, m->dying));
-
-    if (!m->inuse)
-	{ m->print(logFile); CHOKE("PutMgrp: mgrp not in use"); }
-
-    /* Clean up the host set. */
-    m->PutHostSet();
-
-    if (m->dying) {
-        list_del(&m->volhandle);
-        delete m;
-    } else
-        m->inuse = 0;
-
-    Mgrp_Signal();
-}
-
-
-mgrpent::mgrpent(repvol *vol, vuid_t vuid, RPC2_Handle mid, int authflag)
-{
-    LOG(1,("mgrpent::mgrpent volumeid = %#08x, uid = %d, mid = %d, auth = %d\n",
-           vol->GetVid(), vuid, mid, authflag));
-
-    /* These members are immutable. */
-    uid = vuid;
-    vid = vol->GetVid();
-    memset(&McastInfo, 0, sizeof(RPC2_Multicast));
-    McastInfo.Mgroup = mid;
-    McastInfo.ExpandHandle = 0;
-    vol->GetHosts(Hosts);
-    nhosts = 0;
-    for (int i = 0; i < VSG_MEMBERS; i++)
-	if (Hosts[i].s_addr) nhosts++;
-    authenticated = authflag;
-
-    /* These members are mutable. */
-    inuse = 1;
-    dying = 0;
-
-#ifdef	VENUSDEBUG
-    allocs++;
-#endif	VENUSDEBUG
-}
-
-
-mgrpent::~mgrpent()
-{
-#ifdef	VENUSDEBUG
-    deallocs++;
-#endif	VENUSDEBUG
-    LOG(1,("mgrpent::~mgrpent vid = %#08x uid = %d, mid = %d, auth = %d\n",
-           vid, uid, McastInfo.Mgroup, authenticated));
-
-    int code = 0;
-
-    /* Kill active members. */
-    for (int i = 0; i < VSG_MEMBERS; i++)
-	KillMember(&rocc.hosts[i], 1);
-
-    /* Delete Mgroup. */
-    code = (int) RPC2_DeleteMgrp(McastInfo.Mgroup);
-    LOG(1, ("mgrpent::~mgrpent: RPC2_DeleteMgrp -> %s\n", RPC2_ErrorMsg(code)));
-}
-
-int mgrpent::Suicide(int disconnect)
-{
-    LOG(1, ("mgrpent::Suicide: volid = %#08x, uid = %d, mid = %d, disconnect = %d\n", 
-	    vid, uid, McastInfo.Mgroup, disconnect));
-
-    dying = 1;
-
-    if (inuse) return(0);
-
-    inuse = 1;
-
-    if (disconnect) {
-	/* Make the RPC call. */
-	MarinerLog("fetch::DisconnectFS (%#x)\n", vid);
-	MULTI_START_MESSAGE(ViceDisconnectFS_OP);
-	int code = (int) MRPC_MakeMulti(ViceDisconnectFS_OP, ViceDisconnectFS_PTR,
-			      VSG_MEMBERS, rocc.handles,
-			      rocc.retcodes, rocc.MIp, 0, 0);
-	MULTI_END_MESSAGE(ViceDisconnectFS_OP);
-	MarinerLog("fetch::disconnectfs done\n");
-
-	/* Collate responses from individual servers and decide what to do next. */
-	code = CheckNonMutating(code);
-	MULTI_RECORD_STATS(ViceDisconnectFS_OP);
-    }
-
-    mgrpent *myself = this; // needed because &this is illegal
-    PutMgrp(&myself);
-
-    return(1);
-}
-
-
-/* Bit-masks for ignoring certain classes of errors. */
-#define	_ETIMEDOUT	1
-#define	_EINVAL		2
-#define	_ENXIO		4
-#define	_ENOSPC		8
-#define	_EDQUOT		16
-#define	_EIO		32
-#define	_EACCES		64
-#define	_EWOULDBLOCK	128
-
-static int Unanimity(int *codep, struct in_addr *hosts, RPC2_Integer *retcodes, int mask)
-{
-    int	code = -1;
-
-    for (int i = 0; i < VSG_MEMBERS; i++) {
-	if (!hosts[i].s_addr) continue;
-
-	switch(retcodes[i]) {
-	    case ETIMEDOUT:
-		if (mask & _ETIMEDOUT) continue;
-		break;
-
-	    case EINVAL:
-		if (mask & _EINVAL) continue;
-		break;
-
-	    case ENXIO:
-		if (mask & _ENXIO) continue;
-		break;
-
-	    case EIO:
-		if (mask & _EIO) continue;
-		break;
-
-	    case ENOSPC:
-		if (mask & _ENOSPC) continue;
-		break;
-
-	    case EDQUOT:
-		if (mask & _EDQUOT) continue;
-		break;
-
-	    case EACCES:
-		if (mask & _EACCES) continue;
-		break;
-
-	    case EWOULDBLOCK:
-		if (mask & _EWOULDBLOCK) continue;
-		break;
-	}
-
-	if (code == -1)
-	    code = (int) retcodes[i];
-	else
-	    if (code != retcodes[i])
-		return(0);
-    }
-
-    *codep = (code == -1 ? ERETRY : code);
-    return(1);
-}
-
-
-int RepOpCommCtxt::AnyReturned(int code)
-{
-    for (int i = 0; i < VSG_MEMBERS; i++) {
-	if (!hosts[i].s_addr) continue;
-
-	if (retcodes[i] == code) return(1);
-    }
-
-    return(0);
-}
-
-
-/* Translate RPC and Volume errors, and update server state. */
-void mgrpent::CheckResult()
-{
-    for (int i = 0; i < VSG_MEMBERS; i++) {
-	if (!rocc.hosts[i].s_addr) continue;
-
-	switch(rocc.retcodes[i]) {
-	    default:
-		if (rocc.retcodes[i] < 0) {
-		    srvent *s = 0;
-		    GetServer(&s, &rocc.hosts[i]);
-		    s->ServerError((int *)&rocc.retcodes[i]);
-		    PutServer(&s);
-		}
-		/* Note that KillMember may zero rocc.hosts[i] !!! */
-		if (rocc.retcodes[i] == ETIMEDOUT || rocc.retcodes[i] == ERETRY)
-		    KillMember(&rocc.hosts[i], 1);
-		break;
-
-	    case VBUSY:
-		rocc.retcodes[i] = EWOULDBLOCK;
-		break;
-
-	    case VNOVOL:
-		rocc.retcodes[i] = ENXIO;
-		break;
-
-	    case VNOVNODE:
-		rocc.retcodes[i] = ENOENT;
-		break;
-
-	    case VLOGSTALE:
-		rocc.retcodes[i] = EALREADY;
-		break;
-
-	    case VSALVAGE:
-	    case VVOLEXISTS:
-	    case VNOSERVICE:
-	    case VOFFLINE:
-	    case VONLINE:
-	    case VNOSERVER:
-	    case VMOVED:
-	    case VFAIL:
-		eprint("mgrpent::CheckResult: illegal code (%d)",
-		       rocc.retcodes[i]);
-		rocc.retcodes[i] = EINVAL;
-		break;
-	}
-    }
-}
-
-
-/* Maps return codes from Vice:
-	0		Call succeeded at all responding hosts (|responders| > 0),
-	ETIMEDOUT	No hosts responded,
-	ESYNRESOLVE	Multiple non-maskable results were returned,
-	EASYRESOLVE	Call succeeded at (at least) one host, and no non-maskable
-			errors were returned, but some maskable errors were,
-	ERETRY		Some responders NAK'ed,
-	Other (> 0)	Call succeeded at no responding host, and all non-maskable errors
-			were the same, but some maskable errors may have been returned.
-*/
-int mgrpent::CheckNonMutating(int acode)
-{
-    LOG(100, ("mgrpent::CheckNonMutating: acode = %d\n\t\thosts = [%#x %#x %#x %#x %#x %#x %#x %#x],\n\t\tretcodes = [%d %d %d %d %d %d %d %d]\n",
-	    acode, rocc.hosts[0], rocc.hosts[1], rocc.hosts[2], rocc.hosts[3],
-	    rocc.hosts[4], rocc.hosts[5], rocc.hosts[6], rocc.hosts[7],
-	    rocc.retcodes[0], rocc.retcodes[1], rocc.retcodes[2], rocc.retcodes[3],
-	    rocc.retcodes[4], rocc.retcodes[5], rocc.retcodes[6], rocc.retcodes[7]));
-
-    int code = 0;
-    int i;
-    
-    CheckResult();
-    
-    /* check for this here because CheckResult may nuke hosts */
-    if (rocc.HowMany == 0) return(ETIMEDOUT);
-
-    /* Perform additional translations. */
-    for (i = 0; i < VSG_MEMBERS; i++) {
-	if (!rocc.hosts[i].s_addr) continue;
-
-	switch(rocc.retcodes[i]) {
-	    case ENOSPC:
-	    case EDQUOT:
-	    case EINCOMPATIBLE:
-		eprint("mgrpent::CheckNonMutating: illegal code (%d)", rocc.retcodes[i]);
-		rocc.retcodes[i] = EINVAL;
-		break;
-	}
-    }
-
-    /* The ideal case is a unanimous response. */
-    if (Unanimity(&code, rocc.hosts, rocc.retcodes, 0))
-	return(code);
-
-    /* Since this operation is non-mutating, we can retry immediately if any
-     * host NAK'ed. */
-    if (rocc.AnyReturned(ERETRY))
-	return(ERETRY);
-
-    /* Look for unanimity, masking off more and more error types. */
-    static int ErrorMasks[] = {
-	_ETIMEDOUT,
-	_ETIMEDOUT | _EINVAL,
-	_ETIMEDOUT | _EINVAL | _ENXIO,
-	_ETIMEDOUT | _EINVAL | _ENXIO | _EIO,
-	_ETIMEDOUT | _EINVAL | _ENXIO | _EIO | _EACCES,
-	_ETIMEDOUT | _EINVAL | _ENXIO | _EIO | _EACCES | _EWOULDBLOCK
-    };
-    static int nErrorMasks = (int) (sizeof(ErrorMasks) / sizeof(int));
-    int mask = ErrorMasks[0];
-    for (i = 0; i < nErrorMasks; i++, mask = ErrorMasks[i])
-	if (Unanimity(&code, rocc.hosts, rocc.retcodes, mask))
-	    { if (code == 0) code = EASYRESOLVE; return(code); }
-
-    /* We never achieved consensus. */
-    /* Force a synchronous resolve. */
-    return(ESYNRESOLVE);
-}
-
-
-/* Maps return codes from Vice:
-	0		Call succeeded at all responding hosts (|responders| > 0),
-	ETIMEDOUT	No hosts responded,
-	EASYRESOLVE	Call succeeded at (at least) one host, and some (maskable or
-			non-maskable) errors were returned,
-	ERETRY		All responders NAK'ed, or call succeeded at no responding host
-			and multiple non-maskable errors were returned,
-	Other (> 0)	Call succeeded at no responding host, and all non-maskable errors
-			were the same, but some maskable errors may have been returned.
-
-   OUT parameter, UpdateSet, indicates which sites call succeeded at.
-*/
-int mgrpent::CheckCOP1(int acode, vv_t *UpdateSet, int TranslateEincompatible) {
-    LOG(100, ("mgrpent::CheckCOP1: acode = %d\n\t\thosts = [%#x %#x %#x %#x %#x %#x %#x %#x],\n\t\tretcodes = [%d %d %d %d %d %d %d %d]\n",
-	       acode, rocc.hosts[0], rocc.hosts[1], rocc.hosts[2], rocc.hosts[3],
-	       rocc.hosts[4], rocc.hosts[5], rocc.hosts[6], rocc.hosts[7],
-	       rocc.retcodes[0], rocc.retcodes[1], rocc.retcodes[2], rocc.retcodes[3],
-	       rocc.retcodes[4], rocc.retcodes[5], rocc.retcodes[6], rocc.retcodes[7]));
-
-    int code = 0;
-    int i;
-
-    InitVV(UpdateSet);
-
-    CheckResult();
-    
-    /* check for this here because CheckResult may nuke hosts */
-    if (rocc.HowMany == 0) return(ETIMEDOUT);
-
-    /* Perform additional translations. */
-    for (i = 0; i < VSG_MEMBERS; i++) {
-	if (!rocc.hosts[i].s_addr) continue;
-
-	switch(rocc.retcodes[i]) {
-	    case EINCOMPATIBLE:
-		if (TranslateEincompatible)
-		    rocc.retcodes[i] = ERETRY;	    /* NOT for reintegrate! */
-		break;
-	}
-    }
-
-    /* Record successes in the UpdateSet. */
-    for (i = 0; i < VSG_MEMBERS; i++) {
-	if (!rocc.hosts[i].s_addr) continue;
-
-	if (rocc.retcodes[i] == 0)
-	    (&(UpdateSet->Versions.Site0))[i] = 1;
-    }
-
-    /* The ideal case is a unanimous response. */
-    if (Unanimity(&code, rocc.hosts, rocc.retcodes, 0))
-	return(code);
-
-    /* Look for unanimity, masking off more and more error types. */
-    static int ErrorMasks[] = {
-	_ETIMEDOUT,
-	_ETIMEDOUT | _EINVAL,
-	_ETIMEDOUT | _EINVAL | _ENXIO,
-	_ETIMEDOUT | _EINVAL | _ENXIO | _EIO,
-	_ETIMEDOUT | _EINVAL | _ENXIO | _EIO | ENOSPC,
-	_ETIMEDOUT | _EINVAL | _ENXIO | _EIO | ENOSPC | EDQUOT,
-	_ETIMEDOUT | _EINVAL | _ENXIO | _EIO | ENOSPC | EDQUOT | _EACCES,
-	_ETIMEDOUT | _EINVAL | _ENXIO | _EIO | ENOSPC | EDQUOT | _EACCES | _EWOULDBLOCK
-    };
-    static int nErrorMasks = (int) (sizeof(ErrorMasks) / sizeof(int));
-    int mask = ErrorMasks[0];
-    for (i = 0; i < nErrorMasks; i++, mask = ErrorMasks[i])
-	if (Unanimity(&code, rocc.hosts, rocc.retcodes, mask))
-	    { if (code == 0) code = EASYRESOLVE; return(code); }
-
-    /* We never achieved consensus. */
-    /* Return ASYRESOLVE if operation succeeded at any host. */
-    /* Otherwise, return RETRY, which will induce a RESOLVE at a more convenient point. */
-    if (rocc.AnyReturned(0))
-	return(EASYRESOLVE);
-    return(ERETRY);
-}
-
-
-/* This is identical to mgrpent::CheckCOP1(), EXCEPT that we want to treat */
-/* EINCOMPATIBLE results as non-maskable rather that translating them to ERETRY. */
-int mgrpent::CheckReintegrate(int acode, vv_t *UpdateSet)
-{
-    int ret = CheckCOP1(acode, UpdateSet, 0);
-
-    /* CheckCOP1 doesn't know how to handle EALREADY. If any host had
-     * returned EALREADY we can get rid of some CML entries. */
-    if (ret == ERETRY) {
-        if (rocc.AnyReturned(EALREADY))
-            return(EALREADY);
-    }
-    return(ret);
-}
-
-
-/* Check the remote vectors. */
-/* Returns:conf
-	0		Version check succeeded
-	ESYNRESOLVE	Version check failed
-	EASYRESOLVE	!EqReq and check yielded Dom/Sub
-*/
-int mgrpent::RVVCheck(vv_t **RVVs, int EqReq)
-{
-    /* Construct the array so that only valid VVs are checked. */
-    for (int j = 0; j < VSG_MEMBERS; j++)
-	if (!rocc.hosts[j].s_addr || rocc.retcodes[j]) RVVs[j] = 0;
-    if (LogLevel >= 100) VVPrint(logFile, RVVs);
-
-    int dom_cnt = 0;
-    if (!VV_Check(&dom_cnt, RVVs, EqReq)) {
-	return(ESYNRESOLVE);
-    }
-    else {
-	if (dom_cnt <= 0 || dom_cnt > rocc.HowMany) {
-	    print(logFile);
-	    CHOKE("mgrpent::RVVCheck: bogus dom_cnt (%d)", dom_cnt);
-	}
-
-	/* Notify servers which have out of date copies. */
-	if (dom_cnt < rocc.HowMany) return(EASYRESOLVE);
-    }
-
-    return(0);
-}
-
-#define DOMINANT(idx) (rocc.hosts[idx].s_addr && \
-                       rocc.retcodes[idx] == 0 && \
-                       (RVVs == 0 || RVVs[idx] != 0))
-
-int mgrpent::PickDH(vv_t **RVVs)
-{
-    int i, chosen = 0;
-    srvent *s;
-    unsigned long bw, bwmax = 0;
-
-    CODA_ASSERT(rocc.HowMany != 0);
-
-    /* find strongest host in the dominant set. */
-    for (i = 0; i < VSG_MEMBERS; i++) {
-	if (DOMINANT(i)) {
-            GetServer(&s, &rocc.hosts[i]);
-            s->GetBandwidth(&bw);
-            PutServer(&s);
-
-            if (bw >= bwmax) {
-                bwmax = bw;
-                chosen = i;
-            }
-        }
-    }
-
-    return chosen;
-}
-
-/* Validate the existence of a dominant host; return its index in OUT parameter. */
-/* If there are multiple hosts in the dominant set, prefer the primary host. */
-/* The caller may specify that the PH must be dominant. */
-/* Returns {0, ERETRY}. */
-int mgrpent::DHCheck(vv_t **RVVs, int ph_ix, int *dh_ixp, int PHReq)
-{
-    *dh_ixp = -1;
-
-    /* Return the primary host if it is in the dominant set. */
-    if (ph_ix != -1 && DOMINANT(ph_ix))
-    {
-        *dh_ixp = ph_ix;
-        return(0);
-    }
-	
-    /* Find a non-primary host from the dominant set. */
-    *dh_ixp = PickDH(RVVs);
-
-    if (PHReq) {
-        LOG(1, ("DHCheck: Volume (%x) PH -> %x", vid, rocc.hosts[*dh_ixp]));
-        rocc.primaryhost = rocc.hosts[*dh_ixp];
-        return(ERETRY);
-    }
-
-    return(0);
-}
-
-
-int mgrpent::GetHostSet()
-{
-    int i, idx;
-    LOG(100, ("mgrpent::GetHostSet: volumeid = %#08x, uid = %d, mid = %d\n",
-	      vid, uid, McastInfo.Mgroup));
-
-    /* Create members of the specified set which are not already in the
-     * Mgroup. */
-    for (i = 0; i < VSG_MEMBERS; i++)
-	if (Hosts[i].s_addr && !rocc.hosts[i].s_addr) {
-	    switch(CreateMember(i)) {
-		case EINTR:
-		    return(EINTR);
-
-		case EPERM:
-		    return(EPERM);
-
-		default:
-		    break;
-	    }
-	}
-
-    /* Kill members of the Mgroup which are not in the specified set. */
-    for (i = 0; i < VSG_MEMBERS; i++)
-	if (!Hosts[i].s_addr && rocc.hosts[i].s_addr)
-	    KillMember(&rocc.hosts[i], 1);
-
-    /* Ensure that Mgroup is not empty. */
-    if (rocc.HowMany == 0) return(ETIMEDOUT);
-
-    /* Validate primaryhost. */
-    if (!rocc.primaryhost.s_addr)
-    {
-        /* When the rocc.retcodes are all be zero, all available
-         * hosts are Dominant Hosts, and we can use PickDH */
-        memset(rocc.retcodes, 0, sizeof(RPC2_Integer) * VSG_MEMBERS);
-        idx = PickDH(NULL);
-	rocc.primaryhost = rocc.hosts[idx];
-    }
-
-    return(0);
-}
-
-
-int mgrpent::CreateMember(int idx)
-{
-    int i;
-    LOG(100, ("mgrpent::CreateMember: volumeid = %#08x, uid = %d, mid = %d, host = %s\n", 
-	      vid, uid, McastInfo.Mgroup, inet_ntoa(Hosts[idx])));
-
-    if (!Hosts[idx].s_addr)
-        CHOKE("mgrpent::CreateMember: no host at index %d", idx);
-
-    int code = 0;
-
-    /* Bind/Connect to the server. */
-    srvent *s = 0;
-    GetServer(&s, &Hosts[idx]);
-    RPC2_Handle ConnHandle = 0;
-    int auth = authenticated;
-    code = s->Connect(&ConnHandle, &auth, uid, 0);
-    PutServer(&s);
-    if (code != 0) return(code);
-
-    /* Add new connection to the Mgrp. */
-    code = (int) RPC2_AddToMgrp(McastInfo.Mgroup, ConnHandle);
-    LOG(1, ("mgrpent::CreateMember: RPC_AddToMgrp -> %s\n",
-	     RPC2_ErrorMsg(code)));
-    if (code != 0) {
-/*
-	print(logFile);
-	CHOKE("mgrpent::CreateMember: AddToMgrp failed (%d)", code);
-*/
-	(void) RPC2_Unbind(ConnHandle);
-	return(ETIMEDOUT);
-    }
-
-    /* Update rocc state. */
-    rocc.HowMany++;
-    rocc.handles[idx] = ConnHandle;
-    rocc.hosts[idx] = Hosts[idx];
-    rocc.retcodes[idx] = 0;
-    rocc.dying[idx] = 0;
-
-    return(0);
-}
-
-
-void mgrpent::PutHostSet() {
-    LOG(100, ("mgrpent::PutHostSet: \n"));
-
-    /* Kill dying members. */
-    for (int i = 0; i < VSG_MEMBERS; i++)
-	if (rocc.dying[i]) KillMember(&rocc.hosts[i], 0);
-}
-
-
-void mgrpent::KillMember(struct in_addr *host, int forcibly)
-{
-    LOG(100, ("mgrpent::KillMember: volumeid = %#08x, uid = %d, mid = %d, host = %s, forcibly = %d\n",
-	      vid, uid, McastInfo.Mgroup, inet_ntoa(*host), forcibly));
-
-    long code = 0;
-
-    if (!host->s_addr) return;
-
-    /* we first mark the host that should die to avoid making the passed
-     * host pointer useless (f.i. when it is &rocc.hosts[i]) */
-    for (int i = 0; i < VSG_MEMBERS; i++)
-	if (rocc.hosts[i].s_addr == host->s_addr)
-            rocc.dying[i] = 1;
-
-    if (inuse && !forcibly)
-        return;
-
-    /* now we can safely kill dying members */
-    for (int i = 0; i < VSG_MEMBERS; i++) {
-        if (rocc.dying[i]) {
-            if (rocc.hosts[i].s_addr == rocc.primaryhost.s_addr) {
-                rocc.primaryhost.s_addr = 0;
-            }
-
-            code = RPC2_RemoveFromMgrp(McastInfo.Mgroup, rocc.handles[i]);
-	    LOG(1, ("mgrpent::KillMember: RPC2_RemoveFromMgrp(%s, %d) -> %s\n",
-                    inet_ntoa(rocc.hosts[i]), rocc.handles[i],
-                    RPC2_ErrorMsg((int) code)));
-
-	    code = RPC2_Unbind(rocc.handles[i]);
-	    LOG(1, ("mgrpent::KillMember: RPC2_Unbind(%s, %d) -> %s\n",
-                    inet_ntoa(rocc.hosts[i]), rocc.handles[i],
-                    RPC2_ErrorMsg((int) code)));
-
-	    rocc.HowMany--;
-	    rocc.handles[i] = 0;
-	    rocc.hosts[i].s_addr = 0;
-            rocc.retcodes[i] = 0;
-	    rocc.dying[i] = 0;
-	}
-    }
-}
-
-
-struct in_addr *mgrpent::GetPrimaryHost(int *ph_ixp)
-{
-    int i;
-
-    if (ph_ixp) *ph_ixp = -1;
-
-    if (!rocc.primaryhost.s_addr)
-	rocc.primaryhost = rocc.hosts[PickDH(NULL)];
-
-    /* Sanity check. */
-    for (i = 0; i < VSG_MEMBERS; i++)
-	if (rocc.hosts[i].s_addr == rocc.primaryhost.s_addr) {
-	    if (ph_ixp) *ph_ixp = i;
-#if 0
-            /* Add a round robin distribution, primarily to spread fetches
-             * across AVSG. */
-            /* Added a random factor to reduce the amount of switching
-             * between servers to only of 1 out of every 32 calls --JH */
-	    if (RoundRobin && ((rpc2_NextRandom(NULL) & 0x1f) == 0)) {
-		int j;
-		for (j = i + 1; j != i; j = (j + 1) % VSG_MEMBERS)
-		    if (rocc.hosts[j].s_addr) {
-			/* We have a valid host. It'd be nice to use strongly
-			   connected hosts in preference to weak ones, but I'm
-			   not sure how to access to srvent from here.
-			   -- DCS 2/2/96
-			   */
-			rocc.primaryhost = rocc.hosts[j];
-			break;
-		    }
-	    }
-#endif
-	    return(&rocc.hosts[i]);
-	}
-
-    CHOKE("mgrpent::GetPrimaryHost: ph (%x) not found", rocc.primaryhost);
-    return(NULL); /* dummy to keep g++ happy */
-}
 
 /* *****  Fail library manipulations ***** */
 

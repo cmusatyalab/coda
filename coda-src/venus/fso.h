@@ -528,7 +528,7 @@ class fsobj {
 
     /* Priority state. */
     void Reference();
-    void ComputePriority();
+    void ComputePriority(int Force=0);
     void EnableReplacement();
     void DisableReplacement();
     void AttachHdbBinding(binding *);

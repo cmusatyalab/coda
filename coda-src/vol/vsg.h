@@ -23,8 +23,9 @@ listed in the file CREDITS.
 #ifndef _VOL_VSG_H_
 #define _VOL_VSG_H_	1
 #include <ohash.h>
-#define VSG_MEMBERS 8
+#include <vcrcommon.h>
 #define VSGHASHTBLSIZE	64
+
 class vsgent {
     friend int GetHosts(unsigned long, unsigned long *, int *);
     friend int AddMember(vsgent *);

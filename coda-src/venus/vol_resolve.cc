@@ -52,6 +52,7 @@ extern "C" {
 #include "comm.h"
 #include "fso.h"
 #include "mariner.h"
+#include "mgrp.h"
 #include "venus.private.h"
 #include "venusvol.h"
 #include "vproc.h"
@@ -93,7 +94,10 @@ void repvol::Resolve()
 	    /* Pick a coordinator and get a connection to it. */
 	    struct in_addr *phost = m->GetPrimaryHost();
 	    CODA_ASSERT(phost->s_addr != 0);
-	    code = ::GetConn(&c, phost, V_UID, 0);
+            srvent *s;
+            GetServer(&s, phost);
+	    code = s->GetConn(&c, V_UID);
+            PutServer(&s);
 	    if (code != 0) goto HandleResult;
 
 	    /* Make the RPC call. */
@@ -135,7 +139,7 @@ void repvol::Resolve()
 
 HandleResult:
 	PutConn(&c);
-	PutMgrp(&m);
+        if (m) m->Put();
 	r->HandleResult(code);
     }
 

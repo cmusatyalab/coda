@@ -1,4 +1,21 @@
-2001-01-xx    <jaharkes@cs.cmu.edu>
+2001-03-27   <jaharkes@cs.cmu.edu>
+        * Reintroduced VSGs in venus.
+        * Fixed refcounting for hdb_bindings.
+        * Added refcounting on srvent structures.
+        * Moved venus/mgrp related operations into venus/mgrp.cc.
+        * Re-randomizing during hoardwalks to add fair reclaiming behaviour
+          in the low end of the priority queue.
+        * Fixed PackVS bug when hosts in an mgrp are not all packed into the
+          beginning of the hosts array.
+        * Merged decision to use vol->AddCOP2 into vol->COP2.
+        * Fixed signal handler so that simply sending SIGHUP rotates the
+          logfiles without crashing venus.
+        * Replaced a couple of uses of mktemp() with tmpfile().
+        * Removed most redefines of VSG_MEMBERS, this constant should now only
+          be defined in vcrcommon.rpc2.
+        * Reordered test that searches for libdb 1.85.
+
+2001-02-25   <jaharkes@cs.cmu.edu>
         * ======== Release 5.3.13 =========
 	* Fixed incorrect ACL creation on new volumes.
 	* Caught memory leak in volutil dumpestimates.

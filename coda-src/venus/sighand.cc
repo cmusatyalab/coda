@@ -149,13 +149,16 @@ static void SigControl(int sig)
     char command[80];
 
     if (stat(VenusControlFile, &tstat) != 0) {
-	strcpy(command, "SWAPLOGS");
-    } else {
-	fp = fopen(VenusControlFile, "r+");
-	if (fp == NULL) {
-	    LOG(0, ("SigControl: open(%s) failed", VenusControlFile));
-	    return;
-	}
+	SwapLog();
+	adv_mon.SwapProgramLog();
+	adv_mon.SwapReplacementLog();
+        return;
+    }
+
+    fp = fopen(VenusControlFile, "r+");
+    if (fp == NULL) {
+        LOG(0, ("SigControl: open(%s) failed", VenusControlFile));
+        return;
     }
 
     (void)fscanf(fp, "%79s", &command);

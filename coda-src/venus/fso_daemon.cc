@@ -134,7 +134,7 @@ void fsdb::RecomputePriorities(int Force) {
     fsobj *f;
     while ((f = next())) {
 	recomputes++;
-	f->ComputePriority();
+	f->ComputePriority(Force);
     }
     END_TIMING();
     LOG(100, ("fsdb::RecomputePriorities: recomputes = %d, elapsed = %3.1f (%3.1f, %3.1f)\n",
@@ -184,7 +184,7 @@ void fsdb::GetDown() {
     GarbageCollect();
 
     /* Start with fso priorities at their correct values. */
-    RecomputePriorities(1);
+    RecomputePriorities();
 
     /* Reclaim fsos and/or blocks as needed. */
     START_TIMING();

@@ -91,6 +91,7 @@ extern "C" {
 /* from venus */
 #include "comm.h"
 #include "mariner.h"
+#include "mgrp.h"
 #include "venus.private.h"
 #include "vproc.h"
 #include "worker.h"

@@ -41,6 +41,7 @@ extern "C" {
 /* from venus */
 #include "fso.h"
 #include "local.h"
+#include "mgrp.h"
 #include "venuscb.h"
 #include "venusrecov.h"
 #include "venus.private.h"
@@ -142,7 +143,7 @@ int fsobj::RepairStore()
 	    int ph_ix; unsigned long ph;
             ph = ntohl(m->GetPrimaryHost(&ph_ix)->s_addr);
 
- 	    vp->PackVS(m->nhosts, &OldVS);
+ 	    vp->PackVS(VSG_MEMBERS, &OldVS);
 
 	    ARG_MARSHALL(IN_OUT_MODE, ViceStatus, statusvar, status, VSG_MEMBERS);
 	    ARG_MARSHALL(IN_OUT_MODE, SE_Descriptor, sedvar, *sed, VSG_MEMBERS);
@@ -200,13 +201,10 @@ int fsobj::RepairStore()
 	if (ASYNCCOP2) ReturnEarly();
 
 	/* Send the COP2 message or add an entry for piggybacking. */
-	if (PIGGYCOP2)
-	    vp->AddCOP2(&sid, &UpdateSet);
-	else
-	    vp->COP2(m, &sid, &UpdateSet);
+        vp->COP2(m, &sid, &UpdateSet);
 
 RepExit:
-	PutMgrp(&m);
+        if (m) m->Put();
 	switch(code) {
 	    case 0:
 		if (asy_resolve)
