@@ -466,10 +466,10 @@ int inet_aton(const char *str, struct in_addr *out)
 		if (val > 255) break;
 		l |= val;
         }
-	if (*str || i != 4) return(-1);
+	if (*str || i != 4) return(0);
 
         out->s_addr = htonl(l);
-        return(0);
+        return(1);
 }
 #endif
 

@@ -319,7 +319,7 @@ static int TryBinding(RPC2_Integer AuthenticationType, char *viceName,
     int len;
 
     hident.Tag = RPC2_HOSTBYINETADDR;
-    if (inet_aton(AuthHost, &hident.Value.InetAddress) == -1)
+    if (inet_aton(AuthHost, &hident.Value.InetAddress) == 0)
     {
 	hident.Tag = RPC2_HOSTBYNAME;
 	strcpy(hident.Value.Name, AuthHost);
