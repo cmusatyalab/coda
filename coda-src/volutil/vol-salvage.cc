@@ -114,11 +114,11 @@ extern "C" {
 
 static int debug = 0;			/* -d flag */
 
-static int ListInodeOption = 0;	/* -i flag */
+static int ListInodeOption = 0;	        /* -i flag */
 
-static int ForceSalvage = 0;		/* If salvage should occur despite the
-					   DONT_SALVAGE flag
-					   in the volume header */
+static int ForceSalvage = 0;		/* If salvage should occur
+					   despite the DONT_SALVAGE
+					   flag in the volume header */
 
 
 int nskipvols = 0;			/* volumes to be skipped during salvage */
@@ -168,9 +168,8 @@ long S_VolSalvage(RPC2_Handle rpcid, RPC2_String path,
     int UtilityOK = 0;	/* flag specifying whether the salvager may run as a volume utility */
     ProgramType *pt;  /* These are to keep C++ > 2.0 happy */
 
-    VLog(9, 
-	   "Entering S_VolSalvage (%d, %s, %x, %d, %d, %d)",
-	   rpcid, path, singleVolumeNumber, force, Debug, list);
+    VLog(9, "Entering S_VolSalvage (%d, %s, %x, %d, %d, %d)",
+	 rpcid, path, singleVolumeNumber, force, Debug, list);
     CODA_ASSERT(LWP_GetRock(FSTAG, (char **)&pt) == LWP_SUCCESS);
 
     zero_globals();
@@ -179,9 +178,7 @@ long S_VolSalvage(RPC2_Handle rpcid, RPC2_String path,
     debug = Debug;
     ListInodeOption = list;
     
-    VLog(0, 
-	   "Vice file system salvager, version %s.", 
-	   SalvageVersion);
+    VLog(0, "Vice file system salvager, version %s.",  SalvageVersion);
 
     /* Note:  if path and volume number are specified, we initialize this */
     /* as a standard volume utility: negotations have to be made with */
@@ -193,8 +190,7 @@ long S_VolSalvage(RPC2_Handle rpcid, RPC2_String path,
 
     rc = VInitVolUtil(UtilityOK? volumeUtility: salvager);
     if (rc != 0) {
-	VLog(0, 
-	       "S_VolSalvage: VInitVolUtil failed with %d.", rc);
+	VLog(0, "S_VolSalvage: VInitVolUtil failed with %d.", rc);
 	return(rc);
     }
 
@@ -206,15 +202,18 @@ long S_VolSalvage(RPC2_Handle rpcid, RPC2_String path,
     }
     
     if (path == NULL) {
-	    struct DiskPartition *dp = DiskPartitionList;
+	    struct DiskPartition *dp;
+	    struct dllist_head *tmp;
 
-	    do {
-		    rc = SalvageFileSys(dp->name, 0);
-		    if (rc != 0)
-			    goto cleanup;
-		    dp = dp->next;
-	    } while ( dp ) ;
-	    
+	    tmp = &DiskPartitionList;
+	    while ( (tmp = tmp->next) != &DiskPartitionList ) {
+		    dp = list_entry(tmp, struct DiskPartition, dp_chain);
+		    if ( dp->ops->ListCodaInodes ) {
+			    rc = SalvageFileSys(dp->name, 0);
+			    if (rc != 0)
+				    goto cleanup;
+		    }
+	    }
     } else 
 	    rc = SalvageFileSys(path, singleVolumeNumber);
 
@@ -244,9 +243,9 @@ long S_VolSalvage(RPC2_Handle rpcid, RPC2_String path,
  *	the id of the parent if this is a backup or read-only clone.
  *  3.  Salvage each set of read-only volumes + r/w volume they correspond
  *	to(SalvageVolumeGroup), i.e. check that
- *	* each vnode has an inode (SalvageIndex), and 
- *	* a name exists in a directory for each vnode(SalvageVolume), and
- *	* a vnode exists for all names in each directory(SalvageVolume)
+ *	*  each vnode has an inode (SalvageIndex), and 
+ *	*  a name exists in a directory for each vnode(SalvageVolume), and
+ *	*  a vnode exists for all names in each directory(SalvageVolume)
  */
 
 static int SalvageFileSys(char *path, VolumeId singleVolumeNumber)
@@ -257,38 +256,37 @@ static int SalvageFileSys(char *path, VolumeId singleVolumeNumber)
     char inodeListPath[32];
     char forcepath[MAXNAMLEN];
     struct VolumeSummary *vsp;
-    int i,rc, camstatus;
+    int i,rc;
+    rvm_return_t camstatus = RVM_SUCCESS;
 
-    VLog(9, 
-	   "Entering SalvageFileSys (%s, %x)", path, singleVolumeNumber);
+    VLog(9, "Entering SalvageFileSys (%s, %x)", path, singleVolumeNumber);
 
     if (stat(path,&status) == -1) {
-	VLog(0, 
-	       "Couldn't find file system \"%s\", aborting", path);
-	return(VFAIL);
+	    VLog(0, "Couldn't find file system \"%s\", aborting", path);
+	    return(VFAIL);
     }
 
     DP_LockPartition(path);
 
     /* house keeping to deal with FORCESALVAGE */
     if ( (strlen(path) + strlen("/FORCESALVAGE")) >= MAXPATHLEN ) {
-	eprint("Fatal string operation detected.\n");
-	CODA_ASSERT(0);
+	    eprint("Fatal string operation detected.\n");
+	    CODA_ASSERT(0);
     } else {
-	strcpy(forcepath, path);
-	strcat(forcepath, "/FORCESALVAGE");
+	    strcpy(forcepath, path);
+	    strcat(forcepath, "/FORCESALVAGE");
     }
 
     if (singleVolumeNumber || ForceSalvage)
-	ForceSalvage = 1;
-    else {
-	if (stat(forcepath, &force) == 0)
 	    ForceSalvage = 1;
+    else {
+	    if (stat(forcepath, &force) == 0)
+		    ForceSalvage = 1;
     }
 
     if (singleVolumeNumber) {	/* not running in full salvage mode */
-	if ((rc = AskOffline(singleVolumeNumber)) != 0)
-	    return (rc);
+	if  ((rc = AskOffline(singleVolumeNumber)) != 0)
+	     return (rc);
     } else {
 	VLog(0, 
 	       "Salvaging file system partition %s", path);
@@ -336,7 +334,7 @@ static int SalvageFileSys(char *path, VolumeId singleVolumeNumber)
 
 
     /* there we go: salvage it */
-    RVMLIB_BEGIN_TRANSACTION(restore)
+    rvmlib_begin_transaction(restore);
 
     for (i = 0, vsp = volumeSummary; i < nVolumesInInodeFile; i++){
 	VolumeId rwvid = inodeSummary[i].RWvolumeId;
@@ -392,7 +390,7 @@ static int SalvageFileSys(char *path, VolumeId singleVolumeNumber)
 	vsp++;
     }
 
-    RVMLIB_END_TRANSACTION(flush, &(camstatus));
+    rvmlib_end_transaction(flush, &(camstatus));
     if (camstatus){
 	VLog(0, "SFS: aborting salvage with status %d", camstatus);
 	return (camstatus);
@@ -1097,25 +1095,25 @@ void DirCompletenessCheck(struct VolumeSummary *vsp)
 /* Zero inUse and needsSalvaged fields in VolumeDiskData */
 static void ClearROInUseBit(struct VolumeSummary *summary)
 {
-    Error ec;
-    VolumeId headerVid = summary->header.id;
-    VolumeDiskData volHeader;
+	Error ec;
+	VolumeId headerVid = summary->header.id;
+	VolumeDiskData volHeader;
 
-    VLog(9, "Entering ClearROInUseBit()");
+	VLog(9, "Entering ClearROInUseBit()");
 
-    ExtractVolDiskInfo(&ec, summary->volindex, &volHeader);
-    CODA_ASSERT(ec == 0);
+	ExtractVolDiskInfo(&ec, summary->volindex, &volHeader);
+	CODA_ASSERT(ec == 0);
 
-    if (volHeader.destroyMe == DESTROY_ME)
-	return;
-    volHeader.inUse = 0;
-    VLog(9, "ClearROInUseBit: setting volHeader.inUse = %d for volume %x",
-		volHeader.inUse, volHeader.id);
-    volHeader.needsSalvaged = 0;
-    volHeader.dontSalvage = DONT_SALVAGE;
+	if (volHeader.destroyMe == DESTROY_ME)
+		return;
+	volHeader.inUse = 0;
+	VLog(9, "ClearROInUseBit: setting volHeader.inUse = %d for volume %x",
+	     volHeader.inUse, volHeader.id);
+	volHeader.needsSalvaged = 0;
+	volHeader.dontSalvage = DONT_SALVAGE;
 
-    ReplaceVolDiskInfo(&ec, summary->volindex, &volHeader);
-    CODA_ASSERT(ec == 0);
+	ReplaceVolDiskInfo(&ec, summary->volindex, &volHeader);
+	CODA_ASSERT(ec == 0);
 }
 
 /* "ask" the fileserver to take a volume offline */

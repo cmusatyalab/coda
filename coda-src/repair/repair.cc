@@ -53,7 +53,7 @@ extern "C" {
 #include <inconsist.h>
 #include "repair.h"
 
-extern int IsCreatedEarlier C_ARGS((struct listhdr **, int, long, long));
+extern int IsCreatedEarlier (struct listhdr **, int, long, long);
 
 #define HELPDIR "/coda/project/coda/doc/cihelp/repair"
 #define ISDIR(vnode) ((vnode) & 1)  /* directory vnodesare odd */

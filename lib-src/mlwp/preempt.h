@@ -44,13 +44,12 @@ Pittsburgh, PA.
 #ifndef _LWPPREEMPT_ 
 #define _LWPPREEMPT_
 
-#include "cargs.h"
 
 
 #define DEFAULTSLICE	10
 
 /* extern routine declarations */
-extern int PRE_InitPreempt C_ARGS((struct timeval *slice));
+extern int PRE_InitPreempt (struct timeval *slice);
 extern int PRE_EndPreempt();
 extern void PRE_PreemptMe();
 extern void PRE_BeginCritical();

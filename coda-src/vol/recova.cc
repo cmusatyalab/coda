@@ -17,12 +17,6 @@ listed in the file CREDITS.
 #*/
 
 
-
-
-
-
-
-
 /*
  * recova.c:
  * Routines for accessing volume abstractions in recoverable storage
@@ -176,26 +170,27 @@ int ExtractVolHeader(VolumeId volid, struct VolumeHeader *header)
 
 /* Get a volume header from recoverable storage given the appropriate index */
 /* Returns 0 if successful, -1 otherwise */
-int VolHeaderByIndex(int myind, struct VolumeHeader *header) {
-    VolumeId maxid = 0;
-    int status = 0;	/* transaction status variable */
+int VolHeaderByIndex(int myind, struct VolumeHeader *header) 
+{
+	VolumeId maxid = 0;
+	int status = 0;	/* transaction status variable */
 
-    VLog(9,  "Entering VolHeaderByIndex for index %d", myind);
+	VLog(9,  "Entering VolHeaderByIndex for index %d", myind);
 
-    maxid = (SRV_RVM(MaxVolId) & 0x00FFFFFF);
-    if ((myind < 0) || (myind >= maxid) || (myind >= MAXVOLS)) {
-	VLog(1,  "VolHeaderByIndex: bogus volume index %d - maxid %d (ok if volume was purged or deleted)", myind, maxid);
-	return(-1);
-    }
-    bcopy((const void *)&(SRV_RVM(VolumeList[myind]).header), (void *) header,
-					    sizeof(struct VolumeHeader));
+	maxid = (SRV_RVM(MaxVolId) & 0x00FFFFFF);
+	if ((myind < 0) || (myind >= maxid) || (myind >= MAXVOLS)) {
+		VLog(1,  "VolHeaderByIndex: bogus volume index %d - maxid %d (ok if volume was purged or deleted)", myind, maxid);
+		return(-1);
+	}
+	bcopy((const void *)&(SRV_RVM(VolumeList[myind]).header), 
+	      (void *) header, sizeof(struct VolumeHeader));
     if (header->stamp.magic != VOLUMEHEADERMAGIC) {
-	VLog(19,  "VolHeaderByIndex: stamp.magic = %u, VHMAGIC = %u",
-		header->stamp.magic, VOLUMEHEADERMAGIC);
+	    VLog(19,  "VolHeaderByIndex: stamp.magic = %u, VHMAGIC = %u",
+		 header->stamp.magic, VOLUMEHEADERMAGIC);
     }
     if (header->stamp.version != VOLUMEHEADERVERSION) {
-	VLog(19,  "VolHeaderByIndex: stamp.version = %u, VHVERSION = %u",
-		header->stamp.version, VOLUMEHEADERVERSION);
+	    VLog(19,  "VolHeaderByIndex: stamp.version = %u, VHVERSION = %u",
+		 header->stamp.version, VOLUMEHEADERVERSION);
     }
 
     return(0);
@@ -204,26 +199,30 @@ int VolHeaderByIndex(int myind, struct VolumeHeader *header) {
 /* remove a volume from recoverable storage. Free any allocated storage and */
 /* zero out the slot in the recoverable volume list. Returns -1 if volume not */
 /* found, 0 otherwise */
-int DeleteVolume(Volume *vp) {
+int DeleteVolume(Volume *vp) 
+{
     int status = 0;
-
-    VLog(9,  "Entering DeleteVolume for volume %x", V_id(vp));
+    rvm_return_t rvmstatus = RVM_SUCCESS; 
     unsigned int myind = V_volumeindex(vp);
     Device dev = V_device(vp);
 
-    HashDelete(V_id(vp));		/* remove volume from volume hash table */
-    FreeVolume(vp);			/* Clear up all vm traces. */
+    VLog(9,  "Entering DeleteVolume for volume %x", V_id(vp));
+
+    HashDelete(V_id(vp));	/* remove volume from volume hash table */
+    FreeVolume(vp);		/* Clear up all vm traces. */
     
     /* Mark the volume for destruction. */
-    RVMLIB_BEGIN_TRANSACTION(restore)
+    rvmlib_begin_transaction(restore);
     RVMLIB_MODIFY(SRV_RVM(VolumeList[myind]).data.volumeInfo->destroyMe,
 		  DESTROY_ME);
     RVMLIB_MODIFY(SRV_RVM(VolumeList[myind]).data.volumeInfo->blessed,
 		  0);
-    RVMLIB_END_TRANSACTION(flush, &(status));
-    if (status) return status;
+    rvmlib_end_transaction(flush, &(rvmstatus));
+    if (rvmstatus) 
+	    return (int)rvmstatus;
     
-    if ((status = DeleteVnodes(myind, dev, vSmall)) != 0) return status;
+    if ((status = DeleteVnodes(myind, dev, vSmall)) != 0) 
+	    return status;
     if ((status = DeleteVnodes(myind, dev, vLarge)) != 0) return status;
     if ((status = DeleteVolData(myind)) != 0) return status;
     if ((status = DeleteVolHeader(myind)) != 0) return status;
@@ -262,7 +261,7 @@ static int DeleteVnodes(unsigned int myind, Device dev, VnodeClass vclass)
     struct VnodeDiskObject *zerovn = (struct VnodeDiskObject *) zerobuf;
     struct VolumeData *vdata;
     rec_smolist *vnlist;
-    int status = 0;
+    rvm_return_t status = RVM_SUCCESS;
     bit32 nLists;
 
 
@@ -294,42 +293,45 @@ static int DeleteVnodes(unsigned int myind, Device dev, VnodeClass vclass)
 
     /* Only idec inodes after the transaction has committed in case of abort */
     /* I assume an Inode is the same basic type as an int (e.g. a pointer) */
-    int *DeadInodes = (int*)malloc((MaxVnodesPerTransaction + 1) * sizeof(Inode));
+    int *DeadInodes = (int*)malloc(MaxVnodesPerTransaction * sizeof(Inode));
 
     while (moreVnodes) {
 	int count = 0;
-	RVMLIB_BEGIN_TRANSACTION(restore)
+	rvmlib_begin_transaction(restore);
 
-	bzero((void *)DeadInodes, sizeof(Inode) * (MaxVnodesPerTransaction + 1));
+	bzero((void *)DeadInodes, MaxVnodesPerTransaction * sizeof(Inode));
 
 	while (count < MaxVnodesPerTransaction) {
-	    p = vnlist[i].get();	/* Pull the vnode off the list. */
+		/* Pull the vnode off the list. */
+		p = vnlist[i].get();
 
-	    if (p == NULL) {
-		if (++i < nLists) 
-		    continue;
+		if (p == NULL) {
+			if (++i < nLists) 
+				continue;
+			moreVnodes = FALSE;
+			break;
+		}
 
-		moreVnodes = FALSE;
-		break;
-	    }
-	    count++;
-	    vdo = strbase(VnodeDiskObject, p, nextvn);
+		vdo = strbase(VnodeDiskObject, p, nextvn);
 	    
-	    if ((vdo->type != vNull) && (vdo->vnodeMagic != vcp->magic)){
-		VLog(0, "DeleteVnodes:VnodeMagic field incorrect for vnode %d",i);
-		CODA_ASSERT(0);
-	    }
+		if ((vdo->type != vNull) && (vdo->vnodeMagic != vcp->magic)){
+			VLog(0, "DeleteVnodes:VnodeMagic incorrect for vn %d",
+			     i);
+			CODA_ASSERT(0);
+		}
 
-	    if (vdo->inodeNumber){
-		/* decrement the reference count by one */
-		if (vdo->type != vDirectory) {
-		    CODA_ASSERT(vclass == vSmall);
-		    DeadInodes[count] = (int)vdo->inodeNumber; // Delay the idec.
-		} else 
-		    DI_Dec((DirInode *)vdo->inodeNumber);
-	    }	
+		/* decrement the reference counts by one */
+		if (vdo->inodeNumber){
+			if (vdo->type != vDirectory) {
+				CODA_ASSERT(vclass == vSmall);
+				/* Delay the idec until after commit */
+				DeadInodes[count] = (int)vdo->inodeNumber; 
+			} else 
+				DI_Dec((DirInode *)vdo->inodeNumber);
+		}	
+		count++;
 
-	    /* Delete the vnode */
+		/* Delete the vnode */
 	    if ((vclass == vSmall) &&
 	        (SRV_RVM(SmallVnodeIndex) < SMALLFREESIZE - 1)) {
 		VLog(29, "DeleteVnodes: Adding small vnode index %d to free list", i);
@@ -350,7 +352,7 @@ static int DeleteVnodes(unsigned int myind, Device dev, VnodeClass vclass)
 	    }
 	}	    
 
-	RVMLIB_END_TRANSACTION(flush, &(status));
+	rvmlib_end_transaction(flush, &(status));
 	CODA_ASSERT(status == 0);		/* Should never abort... */
 
 	/* Now delete the inodes for the vnodes we already purged. */
@@ -361,8 +363,7 @@ static int DeleteVnodes(unsigned int myind, Device dev, VnodeClass vclass)
 		 */
 		if (DeadInodes[j])
 		    if (idec((int)dev, DeadInodes[j], (vdata->volumeInfo)->parentId))
-			VLog(0, 0, stdout,
-			       "VolBackup: idec failed with %d", errno);
+			VLog(0, "DeleteVnodes: idec failed with %d", errno);
 	    }	
 	}
 	
@@ -377,7 +378,7 @@ static int DeleteVnodes(unsigned int myind, Device dev, VnodeClass vclass)
 	(vclass==vLarge?"Large":"Small"));
 
     /* free the empty array (of pointers) for the vnodes */
-    RVMLIB_BEGIN_TRANSACTION(restore)
+    rvmlib_begin_transaction(restore);
     if (vclass == vSmall) {
        rvmlib_rec_free((char *)SRV_RVM(VolumeList[myind]).data.smallVnodeLists);
        RVMLIB_MODIFY(SRV_RVM(VolumeList[myind]).data.smallVnodeLists, NULL);
@@ -387,8 +388,8 @@ static int DeleteVnodes(unsigned int myind, Device dev, VnodeClass vclass)
        RVMLIB_MODIFY(SRV_RVM(VolumeList[myind]).data.largeVnodeLists, NULL);
     }
 
-    RVMLIB_END_TRANSACTION(flush, &(status));
-    CODA_ASSERT(status == 0);		/* Should never abort... */
+    rvmlib_end_transaction(flush, &(status));
+    CODA_ASSERT(status == RVM_SUCCESS); /* Should never abort... */
     
     return 0;
 }
@@ -396,12 +397,13 @@ static int DeleteVnodes(unsigned int myind, Device dev, VnodeClass vclass)
 /* zero out the VolumeData structure at the given index in recoverable storage */
 /* We assume the vnodes for the volume have already been freed. */
 /* Note: this is a heavyweight operation with lots of modifies to rvm */
-static int DeleteVolData(int myind) {
+static int DeleteVolData(int myind) 
+{
     struct VolumeData *vdata, tmpdata;
-    int status = 0;
+    rvm_return_t status = RVM_SUCCESS;
     VLog(9,  "Entering DeleteVolData for index %d", myind);
 
-    RVMLIB_BEGIN_TRANSACTION(restore)
+    rvmlib_begin_transaction(restore);
     
     /* make some abbreviations */
     vdata = &(SRV_RVM(VolumeList[myind]).data);
@@ -417,7 +419,7 @@ static int DeleteVolData(int myind) {
     rvmlib_modify_bytes(&(SRV_RVM(VolumeList[myind]).data), &tmpdata,
 				sizeof(struct VolumeData));
 
-    RVMLIB_END_TRANSACTION(flush, &(status));
+    rvmlib_end_transaction(flush, &(status));
     
     VLog(9,  "Leaving DeleteVolData()");
     return status;
@@ -426,20 +428,21 @@ static int DeleteVolData(int myind) {
 /* zero out the Volume Header at the specified index in recoverable storage */
 /* since this is PRIVATE, we assume the index has already been checked for validity */
 /* and that the routine is wrapped in a transaction by the caller */
-static int DeleteVolHeader(int myind) {
+static int DeleteVolHeader(int myind) 
+{
     VolumeHeader tmpheader;
-    int status = 0;
+    rvm_return_t status = RVM_SUCCESS;
     
     VLog(9,  "Entering DeleteVolHeader for index %d", myind);
 
-    RVMLIB_BEGIN_TRANSACTION(restore)
+    rvmlib_begin_transaction(restore);
 	/* Sanity check */
-	CODA_ASSERT(SRV_RVM(VolumeList[myind]).header.stamp.magic
-	       == VOLUMEHEADERMAGIC);
-	bzero((void *)&tmpheader, sizeof(struct VolumeHeader));
-        RVMLIB_MODIFY(SRV_RVM(VolumeList[myind]).header, tmpheader);
-    RVMLIB_END_TRANSACTION(flush, &(status));
-    return status;
+    CODA_ASSERT(SRV_RVM(VolumeList[myind]).header.stamp.magic
+		== VOLUMEHEADERMAGIC);
+    bzero((void *)&tmpheader, sizeof(struct VolumeHeader));
+    RVMLIB_MODIFY(SRV_RVM(VolumeList[myind]).header, tmpheader);
+    rvmlib_end_transaction(flush, &(status));
+    return (int)status;
 }
     
 

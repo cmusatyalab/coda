@@ -84,7 +84,7 @@ long S_VolChkRec(RPC2_Handle rpcid, VolumeId volid)
     CODA_ASSERT(LWP_GetRock(FSTAG, (char **)&pt) == LWP_SUCCESS);
 
     VLog(9, "Entering VolChkRec()");
-    RVMLIB_BEGIN_TRANSACTION(restore)
+    rvmlib_begin_transaction(restore)
     VInitVolUtil(volumeUtility);
     if (volid){
 	vp = VGetVolume(&error, volid);
@@ -125,7 +125,7 @@ long S_VolChkRec(RPC2_Handle rpcid, VolumeId volid)
 	    }
 	}
     }
-    RVMLIB_END_TRANSACTION(flush, &(status));
+    rvmlib_end_transaction(flush, &(status));
     VDisconnectFS();
     VLOG(0, "VolChkRec: printing Volume Hash table\n");
     PrintVolumesInHashTable();

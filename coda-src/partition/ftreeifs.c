@@ -157,13 +157,13 @@ static int f_init (union PartitionData **data,
     } else {
 	eprint("Error in init of partition %s:%s", 
 	       Partent_host(partent), Partent_dir(partent));
-	SystemError("");
+	perror("");
 	CODA_ASSERT(0);
     }
     
     if ( access(Partent_dir(partent), R_OK | W_OK) != 0 ) {
 	eprint("Cannot access %s\n", Partent_dir(partent));
-	SystemError("");
+	perror("");
 	CODA_ASSERT(0);
     }
 
@@ -206,7 +206,7 @@ static int f_init (union PartitionData **data,
 	dev = 0;
 	eprint("Error in init of partition %s:%s: no resource database.", 
 	       Partent_host(partent), Partent_dir(partent));
-	SystemError("");
+	perror("");
 	CODA_ASSERT(0);
     }
     
@@ -215,7 +215,7 @@ static int f_init (union PartitionData **data,
     if ( options->resource == -1 ) {
 	dev = 0;
 	eprint("Error opening resource file!\n");
-	SystemError("");
+	perror("");
 	CODA_ASSERT(0);
     }
 

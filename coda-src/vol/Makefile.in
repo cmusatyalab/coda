@@ -54,7 +54,7 @@ HEADERS	  = vldb.h \
 
 VICEDEPHDRS = $(INCLDIR)/vice.h
 
-LIBVOLOBJS= dirvnode.o cvnode.o volume.o vutil.o vldb.o hash.o fssync.o \
+LIBVOLOBJS= dirvnode.o cvnode.o volume.o vutil.o vldb.o fssync.o \
 	index.o recova.o recovb.o recovc.o volhash.o dumpcamstorage.o \
         vrdb.o vsg.o vlist.o
 

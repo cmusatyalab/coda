@@ -23,21 +23,23 @@ listed in the file CREDITS.
 #include <sys/param.h>
 #include <fcntl.h>
 #include <dirent.h>
+
+
+#include <dllist.h>
 #include <vcrcommon.h>
 #include <voltypes.h>
 #include <lwp.h>
 #include <lock.h>
 #include <vicetab.h>
-/* #include <cbitmap.h> */
 #include <viceinode.h>
 
 /* exported variables */
-extern struct DiskPartition *DiskPartitionList;
+extern struct dllist_head DiskPartitionList;
 
 typedef struct DiskPartition DiskPartition;
 
 struct DiskPartition {
-    struct DiskPartition *next;
+    struct dllist_head  dp_chain;
     char  name[MAXPATHLEN];       /* Directory where partition can be found */
     char  devName[MAXPATHLEN];    /* Device mounted on name */
     Device	device;		  /* device number MUST be unique */
@@ -67,8 +69,6 @@ struct DiskPartition {
 
 
 void DP_Init(const char *tabfile);
-void DP_InitPartition(Partent entry, struct inodeops *operations,
-		    union PartitionData *data, Device devno);
 void DP_LockPartition(char *name);
 void DP_UnlockPartition(char *name);
 
@@ -84,10 +84,9 @@ void DP_UnlockPartition(char *name);
 #include <ftreeifs.h>
 
 union PartitionData {
-    struct part_ftree_opts ftree;
-    struct part_simple_opts simple;
-    /*    struct part_linuxext2_opts ext2;
-    struct part_rawmach_opts mach; */
+	struct part_ftree_opts ftree;
+	struct part_simple_opts simple;
+	/*    struct part_linuxext2_opts ext2; */
 };
 
 struct inodeops {
@@ -114,13 +113,8 @@ struct inodeops {
 		       int judgeParam);
 };
 
-
-
-
 extern struct inodeops inodeops_simple;
 extern struct inodeops inodeops_ftree;
 extern struct inodeops inodeops_backup;
-
-
 
 #endif PARTITION_INCLUDED

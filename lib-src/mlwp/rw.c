@@ -49,9 +49,6 @@ Pittsburgh, PA.
 
 #include "lwp.h"
 #include "lock.h"
-#ifdef PREEMPT
-#include "preempt.h"
-#endif PREEMPT
 
 #define DEFAULT_READERS	5
 
@@ -83,7 +80,7 @@ static char *messages[] =
 	"And everywhere that Mary went,",
 	"The lamb was sure to go",
 	"Mary had a little lamb,",
-	"Its fleece was white as snow,",
+        "Its fleece was white as snow,",
 	"And everywhere that Mary went,",
 	"The lamb was sure to go",
 	"Mary had a little lamb,",
@@ -179,11 +176,7 @@ static void read_process(id)
     printf("\t[Reader %d]\n", id);
     LWP_DispatchProcess();		/* Just relinquish control for now */
 
-#ifdef PREEMPT
-    PRE_PreemptMe(); 
-#endif PREEMPT
-
-    for (;;) {
+   for (;;) {
         register int i;
 
 	/* Wait until there is something in the queue */
@@ -196,15 +189,9 @@ static void read_process(id)
 	}
 	asleep--;
 	for (i=0; i<10000; i++) ;
-#ifdef PREEMPT
-	PRE_BeginCritical();
-#endif PREEMPT
 
 	printf("[%d: %s]\n", id, myremove(q));
 
-#ifdef PREEMPT
-	PRE_EndCritical();
-#endif PREEMPT
 	ReleaseReadLock(&q->lock);
 	LWP_DispatchProcess();
     }
@@ -215,9 +202,6 @@ static void write_process(){
     char **mesg;
 
     printf("\t[Writer]\n");
-#ifdef PREEMPT
-    PRE_PreemptMe();
-#endif PREEMPT
 
     /* Now loop & write data */
     for (mesg=messages; *mesg!=0; mesg++) {
@@ -263,9 +247,6 @@ int main(int argc, char **argv)
     printf("[Support initialized]\n");
     tv.tv_sec = 0;
     tv.tv_usec = interval;
-#ifdef PREEMPT
-    PRE_InitPreempt(&tv);
-#endif PREEMPT
 
     /* Initialize queue */
     q = init();

@@ -40,14 +40,6 @@ Coda are listed in the file CREDITS.
 #include <sys/time.h>
 #include <sys/param.h>
 
-#ifndef C_ARGS
-#if defined(c_plusplus) || defined(__STDC__)
-#define C_ARGS(arglist) arglist
-#else   /* c_plusplus || __STDC__ */
-#define C_ARGS(arglist) ()
-#endif  /* c_plusplus || __STDC__ */
-#endif  /* C_ARGS */
-
 /* define bool, TRUE, and FALSE */
 
 #ifndef TRUE
@@ -95,61 +87,49 @@ typedef enum
     rvm_last_mode                       /* internal use only */
     }
 rvm_mode_t;
-
+
 /*  Function return codes:  rvm_return_t */
 typedef enum {
-    RVM_SUCCESS = 0,                    /* success return code */
+	RVM_SUCCESS = 0,          /* success return code */
 
-    rvm_first_code = 199,               /* internal use only */
+	rvm_first_code = 199,     /* internal use only */
 
-    RVM_EINIT,                          /* RVM not initialized */
-    RVM_EINTERNAL,                      /* internal error, see rvm_errmsg */
-    RVM_EIO,                            /* I/O error, see errno */
-    RVM_ELOG,                           /* invalid log device */
-    RVM_ELOG_VERSION_SKEW,              /* RVM log format version skew */
-    RVM_EMODE,                          /* invalid transaction begin/end mode */
-    RVM_ENAME_TOO_LONG,                 /* device name longer than 1023 chars */
-    RVM_ENO_MEMORY,                     /* heap exhausted */
-    RVM_ENOT_MAPPED,                    /* designated region not mapped */
-    RVM_EOFFSET,                        /* invalid segment offset */
-    RVM_EOPTIONS,                       /* invalid options record or pointer */
-    RVM_EOVERLAP,                       /* region overlaps existing seg mapping */
-    RVM_EPAGER,                         /* invalid external pager */
-    RVM_ERANGE,                         /* invalid virtual memory address */
-    RVM_EREGION,                        /* invalid region descriptor or pointer */
-    RVM_EREGION_DEF,                    /* invalid region definition descriptor */
-    RVM_ESRC,                           /* invalid address range for new
-                                           values */
-    RVM_ESTATISTICS,                    /* invalid statistics record */
-    RVM_ESTAT_VERSION_SKEW,             /* RVM statistics format version skew */
-    RVM_ETERMINATED,                    /* terminated by error already reported */
-    RVM_ETHREADS,                       /* illegal C Thread library */
-    RVM_ETID,                           /* invalid transaction identifier or ptr */
-    RVM_ETOO_BIG,                       /* internal resouces exceeded */
-    RVM_EUNCOMMIT,                      /* uncommitted transaction(s) pending */
-    RVM_EVERSION_SKEW,                  /* RVM library version skew */
-    RVM_EVM_OVERLAP,                    /* region overlaps existing vm mapping */
+	RVM_EINIT,                /* RVM not initialized */
+	RVM_EINTERNAL,            /* internal error, see rvm_errmsg */
+	RVM_EIO,                  /* I/O error, see errno */
+	RVM_ELOG,                 /* invalid log device */
+	RVM_ELOG_VERSION_SKEW,    /* RVM log format version skew */
+	RVM_EMODE,                /* invalid transaction begin/end mode */
+	RVM_ENAME_TOO_LONG,       /* device name longer than 1023 chars */
+	RVM_ENO_MEMORY,           /* heap exhausted */
+	RVM_ENOT_MAPPED,          /* designated region not mapped */
+	RVM_EOFFSET,              /* invalid segment offset */
+	RVM_EOPTIONS,             /* invalid options record or pointer */
+	RVM_EOVERLAP,             /* region overlaps existing seg mapping */
+	RVM_EPAGER,               /* invalid external pager */
+	RVM_ERANGE,               /* invalid virtual memory address */
+	RVM_EREGION,              /* invalid region descriptor or pointer */
+	RVM_EREGION_DEF,          /* invalid region definition descriptor */
+	RVM_ESRC,                 /* invalid address range for new values */
+	RVM_ESTATISTICS,          /* invalid statistics record */
+	RVM_ESTAT_VERSION_SKEW,   /* RVM statistics format version skew */
+	RVM_ETERMINATED,          /* terminated by error already reported */
+	RVM_ETHREADS,             /* illegal C Thread library */
+	RVM_ETID,                 /* invalid transaction identifier or ptr */
+	RVM_ETOO_BIG,             /* internal resouces exceeded */
+	RVM_EUNCOMMIT,            /* uncommitted transaction(s) pending */
+	RVM_EVERSION_SKEW,        /* RVM library version skew */
+	RVM_EVM_OVERLAP,          /* region overlaps existing vm mapping */
 
-    rvm_last_code                       /* internal use only */
-    }
-rvm_return_t;
+	rvm_last_code             /* internal use only */
+} rvm_return_t;
 
 /* Enumeration type print name functions */
-extern char *rvm_return C_ARGS
-    ((
-    rvm_return_t        code            /* return code */
-    ));
+extern char *rvm_return(rvm_return_t code);
+extern char *rvm_mode(rvm_mode_t  mode);
+extern char *rvm_type(rvm_struct_id_t id);
 
-extern char *rvm_mode C_ARGS
-    ((
-    rvm_mode_t          mode            /* transaction mode */
-    ));
 
-extern char *rvm_type C_ARGS
-    ((
-    rvm_struct_id_t     id              /* structure identifier */
-    ));
-
 /*  RVM basic length and offset types:
     these types are used throughout RVM to hide machine-dependent
     representations of maximum virtual memory region lengths and
@@ -280,7 +260,7 @@ rvm_offset_t;
 /* return rvm_offset x rounded down to integral page-size offset */
 #define RVM_ROUND_OFFSET_DOWN_TO_PAGE_SIZE(x)  \
     rvm_rnd_offset_dn_to_page(&(x))
-
+
 /* transaction identifier descriptor */
 typedef struct
     {
@@ -296,21 +276,12 @@ rvm_tid_t;
 
 /* rvm_tid_t initializer, copier & finalizer */
 
-extern rvm_tid_t    *rvm_malloc_tid C_ARGS(());
+extern rvm_tid_t    *rvm_malloc_tid ();
 
-extern void rvm_init_tid C_ARGS
-    ((
-    rvm_tid_t       *tid                /* pointer to record to initialize */
-    ));
-extern rvm_tid_t *rvm_copy_tid C_ARGS
-    ((
-    rvm_tid_t       *tid                /* pointer to record to be copied */
-    ));
-extern void rvm_free_tid C_ARGS
-    ((
-    rvm_tid_t       *tid                /* pointer to record to be copied */
-    ));
-
+extern void rvm_init_tid(rvm_tid_t       *tid); /* pointer to record to initialize */
+extern rvm_tid_t *rvm_copy_tid(rvm_tid_t *tid); /* pointer to record to be copied */
+extern void rvm_free_tid(rvm_tid_t  *tid);      /* pointer to record to be copied */
+
 /*  options descriptor:  rvm_options_t */
 typedef struct
     {
@@ -352,21 +323,12 @@ rvm_options_t;
 
 /* rvm_options_t initializer, copier & finalizer */
 
-extern rvm_options_t *rvm_malloc_options C_ARGS(());
+extern rvm_options_t *rvm_malloc_options();
 
-extern void rvm_init_options C_ARGS
-    ((
-    rvm_options_t   *options            /* pointer to record to initialize */
-    ));
-extern rvm_options_t *rvm_copy_options C_ARGS
-    ((
-    rvm_options_t   *options            /* pointer to record to be copied */
-    ));
-extern void rvm_free_options C_ARGS
-    ((
-    rvm_options_t   *options            /* pointer to record to be freed */
-    ));
-
+extern void rvm_init_options(rvm_options_t *options);
+extern rvm_options_t *rvm_copy_options(rvm_options_t *options);
+extern void rvm_free_options(rvm_options_t   *options);
+
 /*  region descriptor: rvm_region_t */
 typedef struct
     {
@@ -384,24 +346,12 @@ typedef struct
 rvm_region_t;
 
 /* rvm_region_t allocator, initializer, copier & finalizer */
-extern rvm_region_t *rvm_malloc_region C_ARGS(());
-
-extern void rvm_init_region C_ARGS
-    ((
-    rvm_region_t    *region             /* pointer to record to initialize */
-    ));
-
+extern rvm_region_t *rvm_malloc_region ();
+extern void rvm_init_region(rvm_region_t *region);
 /* note: copier copies pointers to the char arrays */
-extern rvm_region_t *rvm_copy_region C_ARGS
-    ((
-    rvm_region_t    *region             /* pointer to record to be copied */
-    ));
+extern rvm_region_t *rvm_copy_region(rvm_region_t *region);
+extern void rvm_free_region(rvm_region_t *region);
 
-extern void rvm_free_region C_ARGS
-    ((
-    rvm_region_t *region                /* pointer to record to be freed */
-    ));
-
 /*
         Main Function Declarations
 */
@@ -416,83 +366,69 @@ extern rvm_return_t rvm_initialize(char *version, rvm_options_t *opts);
 extern rvm_return_t rvm_terminate (void);   /* no parameters */
 
 /* map recoverable storage */
-extern rvm_return_t rvm_map C_ARGS
-    ((
+extern rvm_return_t rvm_map(
     rvm_region_t         *region,       /* pointer to region descriptor */
     rvm_options_t        *options       /* optional ptr to option descriptor */
-    ));
+    );
 
 /* unmap recoverable storage */
-extern rvm_return_t rvm_unmap C_ARGS
-    ((
-    rvm_region_t        *region         /* pointer to region descriptor */
-    ));
+extern rvm_return_t rvm_unmap(rvm_region_t *region);
 
 /* set RVM options */
-extern rvm_return_t rvm_set_options C_ARGS
-    ((
-    rvm_options_t       *options        /* pointer to option descriptor */
-    ));
+extern rvm_return_t rvm_set_options(rvm_options_t *options);
 
 /* query RVM options */
-extern rvm_return_t rvm_query C_ARGS
-    ((
+extern rvm_return_t rvm_query(
     rvm_options_t       *options,       /* address of pointer to option
                                            descriptor [out] */
     rvm_region_t        *region         /* optional pointer to region descriptor */
-    ));
-
+    );
+
 /* begin a transaction */
-extern rvm_return_t rvm_begin_transaction C_ARGS
-    ((
+extern rvm_return_t rvm_begin_transaction(
     rvm_tid_t           *tid,           /* pointer to transaction identifier */
     rvm_mode_t          mode            /* transaction begin mode */
-    ));
+    );
 
 /* declare a modification region for a transaction */
-extern rvm_return_t rvm_set_range C_ARGS
-    ((
+extern rvm_return_t rvm_set_range(
     rvm_tid_t           *tid,           /* pointer to transaction identifier */
     void                *dest,          /* base address of modification range */
     rvm_length_t        length          /* length of modification range */
-    ));
+    );
 
 /* modification of a region for a transaction */
-extern rvm_return_t rvm_modify_bytes C_ARGS
-    ((
+extern rvm_return_t rvm_modify_bytes(
     rvm_tid_t           *tid,           /* pointer to transaction identifier */
     void                *dest,          /* base address of modification range */
     const void          *src,           /* base address of source range */
     rvm_length_t        length          /* length of modification range */
-    ));
+    );
 
 /* abort a transaction */
-extern rvm_return_t rvm_abort_transaction C_ARGS
-    ((
+extern rvm_return_t rvm_abort_transaction(
     rvm_tid_t           *tid            /* pointer to transaction identifier */
-    ));
+    );
 
 /* commit a transaction */
-extern rvm_return_t rvm_end_transaction C_ARGS
-    ((
+extern rvm_return_t rvm_end_transaction(
     rvm_tid_t           *tid,           /* pointer to transaction identifier */
     rvm_mode_t          mode            /* transaction commit mode */
-    ));
+    );
 
 /* flush log cache buffer to log device */
-extern rvm_return_t rvm_flush C_ARGS(( )); /* no parameters */
+extern rvm_return_t rvm_flush(); /* no parameters */
 
 /* apply logged changes to segments and garbage collect the log device */
-extern rvm_return_t rvm_truncate C_ARGS(( )); /* no parameters */
+extern rvm_return_t rvm_truncate(); /* no parameters */
 
 /* initialize log */
-extern rvm_return_t rvm_create_log C_ARGS
-    ((
+extern rvm_return_t rvm_create_log(
     rvm_options_t   *rvm_options,       /* ptr to options record */
     rvm_offset_t    *log_len,           /* length of log data area */
     long            mode                /* file creation protection mode */
-    ));
-
+    );
+
 /* underlying support functions for length, offset, and rounding macros
 
    *** use outside of the macros can compromise portability ***
@@ -501,44 +437,32 @@ extern rvm_return_t rvm_create_log C_ARGS
    integer formats since their operations will be available in the
    native instruction set
 */
-extern rvm_offset_t rvm_mk_offset C_ARGS
-    ((
+extern rvm_offset_t rvm_mk_offset(
     rvm_length_t        x,
     rvm_length_t        y
-    ));
-extern rvm_offset_t rvm_add_offsets C_ARGS
-    ((
+    );
+extern rvm_offset_t rvm_add_offsets(
     rvm_offset_t        *x,
     rvm_offset_t        *y
-    ));
-extern rvm_offset_t rvm_add_length_to_offset C_ARGS
-    ((
+);
+extern rvm_offset_t rvm_add_length_to_offset(
     rvm_offset_t        *offset,
     rvm_length_t        length
-    ));
-extern rvm_offset_t rvm_sub_offsets C_ARGS
-    ((
+    );
+extern rvm_offset_t rvm_sub_offsets(
     rvm_offset_t        *x,
     rvm_offset_t        *y
-    ));
-extern rvm_offset_t rvm_sub_length_from_offset C_ARGS
-    ((
+    );
+extern rvm_offset_t rvm_sub_length_from_offset(
     rvm_offset_t        *offset,
     rvm_length_t        length
-    ));
+    );
 
 /* private functions to support page rounding */
 
-extern rvm_length_t rvm_page_size C_ARGS(());
-extern rvm_length_t rvm_page_mask C_ARGS(());
-extern rvm_offset_t rvm_rnd_offset_up_to_page C_ARGS
-    ((
-    rvm_offset_t        *x
-    ));
-extern rvm_offset_t rvm_rnd_offset_dn_to_page C_ARGS
-    ((
-    rvm_offset_t        *x
-    ));
-
+extern rvm_length_t rvm_page_size ();
+extern rvm_length_t rvm_page_mask ();
+extern rvm_offset_t rvm_rnd_offset_up_to_page(rvm_offset_t *x);
+extern rvm_offset_t rvm_rnd_offset_dn_to_page(rvm_offset_t *x);
 
 #endif RVM_VERSION

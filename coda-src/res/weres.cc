@@ -58,7 +58,7 @@ long RS_ForceVV(RPC2_Handle RPCid, ViceFid *Fid, ViceVersionVector *VV,
     Vnode *vptr = 0;
     Volume *volptr = 0;
     VolumeId VSGVolnum = Fid->Volume;
-    int status = 0;
+    rvm_return_t status = RVM_SUCCESS;
     ViceVersionVector *DiffVV = 0;
     int errorcode = 0;
     conninfo *cip = GetConnectionInfo(RPCid);
@@ -154,7 +154,7 @@ long RS_ForceVV(RPC2_Handle RPCid, ViceFid *Fid, ViceVersionVector *VV,
     }
 
 FreeLocks:
-    RVMLIB_BEGIN_TRANSACTION(restore);
+    rvmlib_begin_transaction(restore);
     /* release lock on vnode and put the volume */
     Error filecode = 0;
     if (vptr) {
@@ -162,7 +162,7 @@ FreeLocks:
 	CODA_ASSERT(filecode == 0);
     }
     PutVolObj(&volptr, NO_LOCK);
-    RVMLIB_END_TRANSACTION(flush, &(status));
+    rvmlib_end_transaction(flush, &(status));
     SLog(9,  "RS_ForceVV returns %d", errorcode);
     return(errorcode);
 }

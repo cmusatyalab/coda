@@ -215,7 +215,7 @@ static int RestoreVolume(DumpBuffer_t *buf, char *partition,
     Error error;
     register Volume *vp;
     VolumeId parentid;
-    int status = 0;
+    rvm_return_t status = RVM_SUCCESS;
 
     /* Get header information from the dump buffer. */
     if (!ReadDumpHeader(buf, &header)) {
@@ -251,7 +251,7 @@ static int RestoreVolume(DumpBuffer_t *buf, char *partition,
 	return VFAIL;
     }
 
-    RVMLIB_BEGIN_TRANSACTION(restore);
+    rvmlib_begin_transaction(restore);
     if (*volid != 0) {
 	/* update Maxid of the volumes so that the volume routines will work */
 	unsigned long maxid = *volid & 0x00FFFFFF;
@@ -288,7 +288,7 @@ static int RestoreVolume(DumpBuffer_t *buf, char *partition,
 	rvmlib_abort(VFAIL);
     }
 
-    RVMLIB_END_TRANSACTION(flush, &status)
+    rvmlib_end_transaction(flush, &status);
 	    error:
     if (status == 0)
 	VLog(9, "restore createvol of %#x completed successfully", *volid);
@@ -336,7 +336,7 @@ static int RestoreVolume(DumpBuffer_t *buf, char *partition,
     V_inService(vp) = V_blessed(vp) = 1;
     
     VLog(0, "partname -%s-", V_partname(vp));
-    RVMLIB_BEGIN_TRANSACTION(restore);
+    rvmlib_begin_transaction(restore);
 
     VUpdateVolume(&error, vp);
     if (error) {
@@ -353,7 +353,7 @@ static int RestoreVolume(DumpBuffer_t *buf, char *partition,
     }
     VListVolumes();			/* Create updated /vice/vol/VolumeList */
 
-    RVMLIB_END_TRANSACTION(flush, &status)
+    rvmlib_end_transaction(flush, &status);
     if (status == 0)
 	VLog(9, "S_VolRestore: VUpdateVolume completed successfully");
     else {
@@ -375,9 +375,9 @@ static void FreeVnodeIndex(Volume *vp, VnodeClass vclass)
     bit32 listsize;
     int volindex = V_volumeindex(vp);
     VnodeDiskObject *vdo;
-    int status = 0;
+    rvm_return_t status = RVM_SUCCESS;
 
-    RVMLIB_BEGIN_TRANSACTION(restore);
+    rvmlib_begin_transaction(restore);
 
     if (vclass == vSmall){
 	list = SRV_RVM(VolumeList[volindex]).data.smallVnodeLists;
@@ -406,13 +406,14 @@ static void FreeVnodeIndex(Volume *vp, VnodeClass vclass)
     }	
     rvmlib_rec_free(((char *)list));
 
-    RVMLIB_END_TRANSACTION(flush, &status);
+    rvmlib_end_transaction(flush, &status);
     CODA_ASSERT(status == 0);	/* Never aborts ... */
 }
 
 static int ReadLargeVnodeIndex(DumpBuffer_t *buf, Volume *vp)
 {
-    int num_vnodes, list_size = 0, status = 0;
+    int num_vnodes, list_size = 0;
+    rvm_return_t status = RVM_SUCCESS;
     long vnodenumber;
     int	nvnodes = 0;
     char    vbuf[SIZEOF_LARGEDISKVNODE];
@@ -442,7 +443,7 @@ static int ReadLargeVnodeIndex(DumpBuffer_t *buf, Volume *vp)
     PutTag(tag, buf);
 
     /* Set up a list structure. */
-    RVMLIB_BEGIN_TRANSACTION(restore);
+    rvmlib_begin_transaction(restore);
 
     rlist = (rec_smolist *)(rvmlib_rec_malloc(sizeof(rec_smolist) * list_size));
     rec_smolist *vmrlist = (rec_smolist *)malloc(sizeof(rec_smolist) * list_size);
@@ -458,13 +459,13 @@ static int ReadLargeVnodeIndex(DumpBuffer_t *buf, Volume *vp)
     RVMLIB_MODIFY(SRV_RVM(VolumeList[volindex]).data.nlargeLists, list_size);
     RVMLIB_MODIFY(SRV_RVM(VolumeList[volindex]).data.largeVnodeLists, rlist);
     
-    RVMLIB_END_TRANSACTION(flush, &status)
+    rvmlib_end_transaction(flush, &status);
     CODA_ASSERT(status == 0);			/* Never aborts... */
 
     VnodeDiskObject *camvdo;
     long tmp = 0, i = 0;
     while (i < num_vnodes) {
-	RVMLIB_BEGIN_TRANSACTION(restore);
+	rvmlib_begin_transaction(restore);
 	do {
 		int rc; 
 		rc = ReadVnodeDiskObject(buf, vdo, &dinode, vp, &vnodenumber);
@@ -493,7 +494,7 @@ static int ReadLargeVnodeIndex(DumpBuffer_t *buf, Volume *vp)
 		nvnodes ++;
 	    }
 	} while ((i++ < num_vnodes) && (i % VnodePollPeriod));
-	RVMLIB_END_TRANSACTION(flush, &status)
+	rvmlib_end_transaction(flush, &status);
 	CODA_ASSERT(status == 0);			/* Never aborts... */
 	VLog(9, "S_VolRestore: Did another series of Vnode restores.");
 	PollAndYield();
@@ -511,7 +512,8 @@ static int ReadLargeVnodeIndex(DumpBuffer_t *buf, Volume *vp)
 static int ReadSmallVnodeIndex(DumpBuffer_t *buf, Volume *vp)
 {
     long vnodenumber;
-    int num_vnodes, list_size = 0, status = 0;
+    int num_vnodes, list_size = 0;
+    rvm_return_t status = RVM_SUCCESS;
     int	nvnodes = 0;
     char    vbuf[SIZEOF_SMALLDISKVNODE];
     VnodeDiskObject *vdo = (VnodeDiskObject *)vbuf;
@@ -537,7 +539,7 @@ static int ReadSmallVnodeIndex(DumpBuffer_t *buf, Volume *vp)
     PutTag(tag, buf);
 
     /* Set up a list structure. */
-    RVMLIB_BEGIN_TRANSACTION(restore);
+    rvmlib_begin_transaction(restore);
 
     rlist = (rec_smolist *)(rvmlib_rec_malloc(sizeof(rec_smolist) * list_size));
     rec_smolist *vmrlist = (rec_smolist *)malloc(sizeof(rec_smolist) * list_size);
@@ -553,13 +555,13 @@ static int ReadSmallVnodeIndex(DumpBuffer_t *buf, Volume *vp)
     RVMLIB_MODIFY(SRV_RVM(VolumeList[volindex]).data.nsmallLists, list_size);
     RVMLIB_MODIFY(SRV_RVM(VolumeList[volindex]).data.smallVnodeLists, rlist);
 
-    RVMLIB_END_TRANSACTION(flush, &status)
+    rvmlib_end_transaction(flush, &status);
     CODA_ASSERT(status == 0);			/* Never aborts... */
     
     VnodeDiskObject *camvdo;
     long    tmp = 0, i = 0, count = 0;
     while (i < num_vnodes) {
-	RVMLIB_BEGIN_TRANSACTION(restore);
+	rvmlib_begin_transaction(restore);
 	do {
 	    ReadVnodeDiskObject(buf, vdo, NULL, vp, &vnodenumber);
 	    VLog(19, "Just read vnode for index %d.", vnodenumber);
@@ -578,7 +580,7 @@ static int ReadSmallVnodeIndex(DumpBuffer_t *buf, Volume *vp)
 	    }
  	} while ((i++ < num_vnodes) && (i % VnodePollPeriod));
 
-	RVMLIB_END_TRANSACTION(flush, &status)
+	rvmlib_end_transaction(flush, &status);
 	if (status != 0)
 	    return FALSE;
 	VLog(9, "S_VolRestore: Did another series of Vnode restores.");

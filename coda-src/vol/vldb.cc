@@ -57,12 +57,12 @@ extern "C" {
 
 #include <lock.h>
 #include <lwp.h>
+#include <util.h>
 
 #ifdef __cplusplus
 }
 #endif __cplusplus
 
-#include <util.h>
 #include <vice.h>
 #include "cvnode.h"
 #include "volume.h"

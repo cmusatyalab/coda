@@ -189,9 +189,9 @@ if [ $isscm = Y ]; then
     echo " - start rpc2portmap as: rpc2portmap"
     echo " - start updateclnt as:  updateclnt -h $hn -q coda_udpsrv"
     echo " - start updatesrv as: updatesrv -p /vice/db"
-    echo " - start the fileserver: startserver &
+    echo " - start the fileserver: startserver &"
     echo " - wait until the server is up: tail -f /vice/srv/SrvLog"
-    echo " - create your root volume: "createvol_rep $RV E0000100 $DP"
+    echo " - create your root volume: createvol_rep $RV E0000100 $DP"
     echo " - setup a client: venus-setup $hn 20000"
     echo " - start venus: venus"
     echo " - enjoy Coda."

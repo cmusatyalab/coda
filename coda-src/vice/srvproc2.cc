@@ -845,250 +845,45 @@ static void SetRPCStats(ViceStatistics *stats)
     stats->EtherNetGoodReads = 0;
     stats->EtherNetTotalBytesWritten = 0;
     stats->EtherNetTotalBytesRead = 0;
-#ifdef sun3
-#ifndef sunV3
-    if (supported && !GetEtherStats()) {
-	stats->EtherNetTotalErrors = etherRetries;
-	stats->EtherNetTotalWrites = etherWrites;
-	stats->EtherNetTotalInterupts = etherInterupts;
-	stats->EtherNetGoodReads = etherGoodReads;
-	stats->EtherNetTotalBytesWritten = etherBytesWritten;
-	stats->EtherNetTotalBytesRead = etherBytesRead;
-    }
-#endif
-#endif
 }
 
 
 int GetEtherStats()
 {
-#ifdef sun3
-#ifndef sunV3
-    int     rc;
-    struct  etherstats	ether;
-    struct  ifreq	ifr;
-    static  int		etherFD = 0;
-
-    if (!etherFD) {
-	etherFD = socket(AF_INET, SOCK_DGRAM, 0);
-	if (etherFD <= 0) {
-	    SLog(0, "Open for Socket failed with %s", ViceErrorMsg(errno));
-	    etherFD = 0;
-	    supported = 0;
-	    return(-1);
-	}
-    }
-    strcpy(ifr.ifr_name, "ec0");
-    ifr.ifr_cptr = (char *) & ether;
-    rc = ioctl(etherFD, SIOCQTRAFFIC, &ifr);
-    if (rc) {
-	SLog(0, "IOCTL for SIOCQTRAFFIC not supported");
-	close(etherFD);
-	supported = 0;
-	return(-1);
-    }
-    etherRetries = ether.WriteRetries;
-    etherWrites = ether.WriteAttempts;
-    etherInterupts = ether.InterruptsHandled;
-    etherGoodReads = ether.ReadSuccesses;
-    etherBytesRead = ether.BytesWritten;
-    etherBytesWritten = ether.BytesRead;
-    return(0);
-#endif
-#endif
 return(0);
 }
 
+static struct DiskPartition *get_part(struct dllist_head *hd)
+{
+	if ( hd = &DiskPartitionList )
+		return NULL;
+
+	return list_entry(hd, struct DiskPartition, dp_chain);
+}
 
 static void SetVolumeStats(ViceStatistics *stats)
 {
-    struct DiskPartition * part;
+	struct DiskPartition * part;
+	struct dllist_head *tmp;
+	struct ViceDisk *disk; 
+	int i;
 
-    part = DiskPartitionList;
-    if(part) {
-	stats->Disk1.TotalBlocks = part->totalUsable;
-	stats->Disk1.BlocksAvailable = part->free;
-	bzero(stats->Disk1.Name,32);
-	strncpy((char *)stats->Disk1.Name,part->name,32);
-	part = part->next;
-    }
-    else
-	stats->Disk1.TotalBlocks = -1;
-    if(part) {
-	stats->Disk2.TotalBlocks = part->totalUsable;
-	stats->Disk2.BlocksAvailable = part->free;
-	bzero(stats->Disk2.Name,32);
-	strncpy((char *)stats->Disk2.Name,part->name,32);
-	part = part->next;
-    }
-    else
-	stats->Disk2.TotalBlocks = -1;
-    if(part) {
-	stats->Disk3.TotalBlocks = part->totalUsable;
-	stats->Disk3.BlocksAvailable = part->free;
-	bzero(stats->Disk3.Name,32);
-	strncpy((char *)stats->Disk3.Name,part->name,32);
-	part = part->next;
-    }
-    else
-	stats->Disk3.TotalBlocks = -1;
-    if(part) {
-	stats->Disk4.TotalBlocks = part->totalUsable;
-	stats->Disk4.BlocksAvailable = part->free;
-	bzero(stats->Disk4.Name,32);
-	strncpy((char *)stats->Disk4.Name,part->name,32);
-	part = part->next;
-    }
-    else
-	stats->Disk4.TotalBlocks = -1;
-    if(part) {
-	stats->Disk5.TotalBlocks = part->totalUsable;
-	stats->Disk5.BlocksAvailable = part->free;
-	bzero(stats->Disk5.Name,32);
-	strncpy((char *)stats->Disk5.Name,part->name,32);
-	part = part->next;
-    }
-    else
-	stats->Disk5.TotalBlocks = -1;
-    if(part) {
-	stats->Disk6.TotalBlocks = part->totalUsable;
-	stats->Disk6.BlocksAvailable = part->free;
-	bzero(stats->Disk6.Name,32);
-	strncpy((char *)stats->Disk6.Name,part->name,32);
-	part = part->next;
-    }
-    else
-	stats->Disk6.TotalBlocks = -1;
-    if(part) {
-	stats->Disk7.TotalBlocks = part->totalUsable;
-	stats->Disk7.BlocksAvailable = part->free;
-	bzero(stats->Disk7.Name,32);
-	strncpy((char *)stats->Disk7.Name,part->name,32);
-	part = part->next;
-    }
-    else
-	stats->Disk7.TotalBlocks = -1;
-    if(part) {
-	stats->Disk8.TotalBlocks = part->totalUsable;
-	stats->Disk8.BlocksAvailable = part->free;
-	bzero(stats->Disk8.Name,32);
-	strncpy((char *)stats->Disk8.Name,part->name,32);
-	part = part->next;
-    }
-    else
-	stats->Disk8.TotalBlocks = -1;
-    if(part) {
-	stats->Disk9.TotalBlocks = part->totalUsable;
-	stats->Disk9.BlocksAvailable = part->free;
-	bzero(stats->Disk9.Name,32);
-	strncpy((char *)stats->Disk9.Name,part->name,32);
-	part = part->next;
-    }
-    else
-	stats->Disk9.TotalBlocks = -1;
-    if(part) {
-	stats->Disk10.TotalBlocks = part->totalUsable;
-	stats->Disk10.BlocksAvailable = part->free;
-	bzero(stats->Disk10.Name,32);
-	strncpy((char *)stats->Disk10.Name,part->name,32);
-	part = part->next;
-    }
-    else
-	stats->Disk10.TotalBlocks = -1;
-}
+	tmp = DiskPartitionList.next;
 
-#ifdef __MACH__
-static struct nlist RawStats[] = 
-{
-#define CPTIME	0
-    {"_cp_time" },
-#define BOOT	1
-    {"_boottime" },
-#define DISK	2
-    {"_dk_xfer" },
-#define HZ	3
-    {"_hz" },
-#define PHZ	4
-    {"_phz" },
-    {0 },
-};
-static void SetSystemStats_mach(ViceStatistics *stats)
-{
-    static	int	kmem = 0;
-/*  static	struct	mapent	*swapMap = 0;
-    static	int	swapMapAddr = 0;
-    static	int	swapMapSize = 0;
-    static	int	numSwapBlks = 0;
-    int		numSwapEntries,
-		dmmax;
-    struct	mapent	* sp;
-*/
-    register	int	i;
-    long	busy[CPUSTATES];
-    long	xfer[DK_NDRIVE];
-    struct	timeval	bootTime;
-
-    if(kmem == -1) {
-	return;
-    }
-    
-    if(kmem == 0) {
-	nlist("/vmunix", RawStats);
-	if(RawStats[0].n_type == 0) {
-	    SLog(0, "Could not get a namelist from VMUNIX");
-	    kmem = -1;
-	    return;
+	for ( i = 0 ; i < 10 ; i++ ) {
+		part = get_part(tmp);
+		/* beware: pointer arithmetic */
+		disk = &(stats->Disk1) + i;
+		if(part) {
+			disk->TotalBlocks = part->totalUsable;
+			disk->BlocksAvailable = part->free;
+			bzero(disk->Name, 32);
+			strncpy((char *)disk->Name, part->name, 32);
+			tmp = tmp->next;
+		} else
+			disk->TotalBlocks = -1;
 	}
-	kmem = open("/dev/kmem",0,0);
-	if (kmem <= 0) {
-	    SLog(0, "Could not open /dev/kmem");
-	    kmem = -1;
-	    return;
-	}
-    }
-
-    lseek(kmem, (long) RawStats[CPTIME].n_value,0);
-    read(kmem, (char *)busy, (int)sizeof(busy));
-    stats->SystemCPU = busy[CP_SYS];
-    stats->UserCPU = busy[CP_USER];
-    stats->NiceCPU = busy[CP_NICE];
-    stats->IdleCPU = busy[CP_IDLE];
-    lseek(kmem, (long) RawStats[BOOT].n_value,0);
-    read(kmem, (char *)&bootTime, (int)sizeof(bootTime));
-    stats->BootTime = bootTime.tv_sec;
-    lseek(kmem, (long) RawStats[DISK].n_value,0);
-    read(kmem, (char *)xfer, (int)sizeof(xfer));
-    stats->TotalIO = 0;
-    for(i = 0; i < DK_NDRIVE; i++) {
-	stats->TotalIO += xfer[i];
-    }
-/*
- * Mach doesn't do swapping.  Later we should use an alternative means of finding
- * memory usage and process size; for now we will consider them 0.
-  if(!swapMap) {
-	lseek(kmem, RawStats[SWAPMAP].n_value,0);
-	read(kmem, (char *)&swapMapAddr, sizeof(swapMapAddr));
-	swapMapAddr += sizeof(struct map);
-	lseek(kmem, RawStats[NSWAPMAP].n_value,0);
-	read(kmem, (char *)&numSwapEntries, sizeof(numSwapEntries));
-	swapMapSize = (--numSwapEntries)*sizeof(struct mapent);
-	lseek(kmem, RawStats[NSWAPBLKS].n_value,0);
-	read(kmem, (char *)&numSwapBlks, sizeof(numSwapBlks));
-	lseek(kmem, RawStats[DMMAX].n_value,0);
-	read(kmem, (char *)&dmmax, sizeof(dmmax));
-	numSwapBlks -= dmmax/2;
-	swapMap = (struct mapent *)malloc(swapMapSize);
-    }
-    sp = (struct mapent *)swapMap;
-    lseek(kmem, swapMapAddr, 0);
-    read(kmem, (char *)sp, swapMapSize);
-    for(stats->TotalVM = stats->ActiveVM = numSwapBlks; sp->m_size; sp++) {
-	stats->ActiveVM -= sp->m_size;
-    }
-    stats->ProcessSize = sbrk(0) >> 10;
-*/
 }
-#endif  
 
 #ifdef __BSD44__
 
@@ -1176,17 +971,13 @@ static void SetSystemStats_bsd44(ViceStatistics *stats)
 	LogMsg(0, SrvDebugLevel, stdout, "Could not read DISK data from kernel: %s", kvm_geterr(kd));
 	return;
     }
-#ifdef	__MACH__
-    At this point is we cared, we could follow the code in /usr/bin/cmstat/dkstats.c
-    and chase thru the chains of disks and get their statistics.  But cmon does not
-    print this; so why bother.
-#endif
 }
 #endif
 
-#ifdef __linux__
-static void SetSystemStats_linux(ViceStatistics *stats)
+#ifndef __BSD44__
+static void SetNoSystemStats(ViceStatistics *stats)
 {
+	memset(stats, 0, sizeof(*stats));
 }
 #endif
 
@@ -1226,25 +1017,11 @@ static void SetSystemStats(ViceStatistics *stats)
     stats->Spare5   = resource.ru_utime.tv_sec * 100 + resource.ru_utime.tv_usec / 10000;
     stats->Spare6   = resource.ru_stime.tv_sec * 100 + resource.ru_stime.tv_usec / 10000;
 
-#ifdef	SOMEDAY
-    stats->TotalVM = resource.ru_maxrss;
-    stats->ProcessSize = resource.ru_ixrss + resource.ru_idrss + resource.ru_isrss;
-    stats->TotalIO = resource.ru_inblock + resource.ru_oublock;
-    stats->ActiveVM = 0;
 
-    stats->Spare? = resource.ru_minflt;
-    stats->Spare? = resource.ru_majflt;
-    stats->Spare? = resource.ru_nswap;
-    stats->Spare? = resource.ru_nvcsw;
-    stats->Spare? = resource.ru_nivcsw;
-#endif
-
-#if	defined(__MACH__)
-    SetSystemStats_mach(*stats);
-#elif	defined(__BSD44__)
+#if	defined(__BSD44__)
     SetSystemStats_bsd44(stats);
-#elif	defined(__linux__)
-    SetSystemStats_linux(stats);
+#else
+    SetNoSystemStats(stats);
 #endif
 }
 

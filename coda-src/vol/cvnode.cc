@@ -145,9 +145,11 @@ int VolumeHashOffset()
 void VInitVnodes(VnodeClass vclass, int nVnodes)
 {
 	byte *va;
-	register struct VnodeClassInfo *vcp = &VnodeClassInfo_Array[vclass];
+	struct VnodeClassInfo *vcp = &VnodeClassInfo_Array[vclass];
 
-	SLog(9,  "Entering VInitVnodes(vclass = %d, vnodes = %d)", vclass, nVnodes);
+	SLog(9,  "Entering VInitVnodes(vclass = %d, vnodes = %d)", 
+	     vclass, nVnodes);
+
 	/* shouldn't these be set to 0? ***/
 	vcp->allocs = vcp->gets = vcp->reads = vcp->writes = 0;
 	vcp->cacheSize = nVnodes;
@@ -250,15 +252,18 @@ int VAllocFid(Volume *vp, VnodeType type, ViceFidRange *range, int stride, int i
 	Unique_t BaseUnique = vp->nextVnodeUnique;
 	vp->nextVnodeUnique += count;
 	if (vp->nextVnodeUnique > V_uniquifier(vp)) {
+		rvm_return_t status;
 		SLog(0, "VAllocFid: volume disk uniquifier being extended");
 		V_uniquifier(vp) = vp->nextVnodeUnique + 200;
 		
-		int camstatus = 0;
-		
-		RVMLIB_BEGIN_TRANSACTION(restore)
-			VUpdateVolume(&ec, vp);
-		RVMLIB_END_TRANSACTION(flush,  &(camstatus));
+		rvmlib_begin_transaction(restore);
+		VUpdateVolume(&ec, vp);
+		rvmlib_end_transaction(flush,  &(status));
 
+		if (status) {
+			SLog(0, "VallocFid: rvm Error %d\n", status);
+			ec = VNOVNODE;
+		}
 		if (ec) 
 			return(ec);
 	}
@@ -306,10 +311,10 @@ int VAllocFid(Volume *vp, VnodeType type, VnodeId vnode, Unique_t unique)
 		SLog(0, "VAllocFid: volume disk uniquifier being extended");
 		V_uniquifier(vp) = vp->nextVnodeUnique + 200;
 
-		int camstatus = 0;
-		RVMLIB_BEGIN_TRANSACTION(restore)
-			VUpdateVolume(&ec, vp);
-		RVMLIB_END_TRANSACTION(flush, &(camstatus));
+		rvm_return_t camstatus;
+		rvmlib_begin_transaction(restore);
+		VUpdateVolume(&ec, vp);
+		rvmlib_end_transaction(flush, &(camstatus));
 		
 		if (ec) return(ec);
 	}
@@ -370,17 +375,17 @@ static Vnode *VAllocVnodeCommon(Error *ec, Volume *vp, VnodeType type,
 	/* Grow vnode array if necessary. */
 	LogMsg(19, VolDebugLevel, stdout,  "vol_index.elts = %d", vol_index.elts());
 	if ((vp->vnIndex[vclass].bitmapSize << 3) > vol_index.elts()) {
-		LogMsg(1, VolDebugLevel, stdout,  "VAllocVnode: growing %s vnode array", vclass ? "small" : "large");
-		int camstatus = 0;
-		RVMLIB_BEGIN_TRANSACTION(restore);
+		rvm_return_t camstatus;
+		VLog(1, "VAllocVnode: growing %s vnode array", vclass ? "small" : "large");
+		rvmlib_begin_transaction(restore);
 		GrowVnodes(V_id(vp), vclass, vp->vnIndex[vclass].bitmapSize);
-		RVMLIB_END_TRANSACTION(flush,  &(camstatus));
+		rvmlib_end_transaction(flush,  &(camstatus));
 	}
 	
 	/* Check that object does not already exist in RVM. */
 	if (ObjectExists(V_volumeindex(vp), vclass, 
 			 vnodeIdToBitNumber(vnode), unique)) {
-		LogMsg(0, VolDebugLevel, stdout,  "VAllocVnode: object (%x.%x.%x) found in RVM",
+		VLog(0, "VAllocVnode: object (%x.%x.%x) found in RVM",
 		       V_id(vp), vnode, unique);
 		*ec = EEXIST;
 		return(NULL);

@@ -105,7 +105,7 @@ void rvmlib_begin_transaction(restore_mode)
 void rvmlib_end_transaction(int flush_mode, rvm_return_t *statusp)
 {
 	rvm_perthread_t *_rvm_data;
-	rvm_return_t _status;
+	rvm_return_t _status = RVM_SUCCESS;
 
 	if (RvmType == VM) {
 		if (statusp)

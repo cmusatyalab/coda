@@ -35,15 +35,3 @@ extern "C" {
 }
 #endif __cplusplus
 
-
-int HashString(register char *s, unsigned int size)
-{
-    register unsigned int sum;
-    register int n;
-    
-    /* Sum the string in reverse so that consecutive integers, as strings, do not
-       hash to consecutive locations */
-    for (sum = 0, n = strlen(s), s += n-1; n--; s--)
-        sum = (sum*31) + (*s-31);
-    return ((sum % size) + 1);
-}

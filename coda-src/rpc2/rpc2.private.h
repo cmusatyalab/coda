@@ -545,9 +545,10 @@ void rpc2_NoteBinding(RPC2_HostIdent *whichHost, RPC2_PortIdent *whichPort,
 #define MORETHANONEBITSET(x) (x != (1 << (ffs((long)x)-1)))
 
 /* Macros to work with preemption package */
-#include "preempt.h"
-#define rpc2_Enter() (PRE_BeginCritical())
-#define rpc2_Quit(rc) return(PRE_EndCritical(), (long)rc)
+/* #define rpc2_Enter() (PRE_BeginCritical()) */
+#define rpc2_Enter() do { } while (0)
+/*#define rpc2_Quit(rc) return(PRE_EndCritical(), (long)rc) */
+#define rpc2_Quit(rc) return((long)rc)
 
 /* Macros to check if host and portal ident structures are equal */
 /* The lengths of the names really should be #defined. */

@@ -131,14 +131,12 @@ void InitLWP() {
 
 extern void InitVolTable(int);
 extern void InitLogStorage();
-extern struct DiskPartition *DiskPartitionList;
 /* Do a partial vol package init.  VInitVolPackage() invokes the
  * salvager, we can't.
  */
 void NortonInitVolPackage() 
 {
 
-    DiskPartitionList = NULL;
 
     VInitServerList();
     InitLRU(VOLUMECACHESIZE);

@@ -86,10 +86,10 @@ extern VolumeId RepVolume;
 extern int  nConflicts;
 
 
-extern void InitListHdr C_ARGS((int , resreplica *, struct listhdr **));
-extern int InsertListHdr C_ARGS((struct repair *, struct listhdr **, int ));
-extern int InRepairList C_ARGS((struct listhdr *, unsigned , long , long ));
-extern int getunixdirreps C_ARGS((int , char **, resreplica **));
-extern int dirresolve C_ARGS((int , resreplica *, int (*)(char *), struct listhdr **, char *));
-extern void resClean C_ARGS((int, resreplica *, struct listhdr *));
-extern int GetParent C_ARGS((ViceFid *, ViceFid *, char *, char *, char *));
+extern void InitListHdr (int , resreplica *, struct listhdr **);
+extern int InsertListHdr (struct repair *, struct listhdr **, int );
+extern int InRepairList (struct listhdr *, unsigned , long , long );
+extern int getunixdirreps (int , char **, resreplica **);
+extern int dirresolve (int , resreplica *, int (*)(char *), struct listhdr **, char *);
+extern void resClean (int, resreplica *, struct listhdr *);
+extern int GetParent (ViceFid *, ViceFid *, char *, char *, char *);

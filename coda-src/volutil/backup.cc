@@ -44,22 +44,14 @@ extern "C" {
 #include <sys/socket.h>
 #include <sys/param.h>
 #include <sys/stat.h>
-#ifdef __MACH__
-#include <sysent.h>
-#else	/* __linux__ || __BSD44__ */
 #include <unistd.h>
 #include <stdlib.h>
-#endif
-
 #include <netinet/in.h>
 #include <netdb.h>
-#ifdef __MACH__
-#include <sys/fs.h>
-#include <fstab.h>
-#endif
 #include <errno.h>
 #include <strings.h>
 
+#include <dllist.h>
 #include <lwp.h>
 #include <lock.h>
 #include <timer.h>
@@ -72,12 +64,12 @@ extern "C" {
 #include <vice.h>
 #include "volutil.h"
 #include <voldump.h>
+#include <util.h>
 
 #ifdef __cplusplus
 }
 #endif __cplusplus
 
-#include <util.h>
 #include <inconsist.h>
 #include <cvnode.h>
 #include <volume.h>
@@ -155,12 +147,6 @@ typedef struct volinfo {
     repinfo_t *replicas;
 } volinfo_t;
 
-
-/* a dummy partition type "backup" is used by backup.cc 
- * leveraging on the partition package 
- */
-struct DiskPartition *DiskPartitionList = NULL;
-struct DiskPartition *Partitions = NULL;
 
 /* Procedure definitions. */
 static void V_InitRPC();
@@ -290,12 +276,13 @@ getReplica(repinfo_t *rep) {
 
 
 /* change the partition name entry to have the todayName appended */
-int PreparePartitionEntries(struct DiskPartition *part)
+int PreparePartitionEntries(void)
 {
     long t = time(0);
     char todayName[11];
     char today[10];
-    struct DiskPartition *dp = 0;
+    struct DiskPartition *dp;
+    struct dllist_head *tmp, *next;
     time_t now = time(0);
     char *name = dp->name;
     
@@ -303,22 +290,36 @@ int PreparePartitionEntries(struct DiskPartition *part)
     sprintf(todayName, "/");
     strcat(todayName, today);
 
-    CODA_ASSERT(part);
-
-    for (dp = part; dp ; dp = dp->next) {
-	name = dp->name;
-	if ((strlen(todayName) + strlen(name) < sizeof(dp->name))) {
-	    strcat(dp->name, todayName);
-	    if (mkdir(dp->name, 0755) != 0) {
-		LogMsg(0, 0, stdout, 
-		       "Error '%s' creating directory %s.", 
-		       strerror(errno), dp->name);
-		return -1;
+    tmp = DiskPartitionList.next;
+    while( tmp != &DiskPartitionList) {
+	    next = tmp->next;
+	    dp = list_entry(tmp, struct DiskPartition, dp_chain);
+	    /* remove those partitions that have salvage methods 
+	       they belong to the fileserver, not to us */
+	    if ( dp->ops->ListCodaInodes ) {
+		    list_del(&dp->dp_chain); 
+		    free(dp);
+		    tmp = next;
+		    continue; 
 	    }
-	} else {
-	    LogMsg(0, 0, stdout, "Name too long! %s", dp->name);
-	    return -1;
-	}
+	    name = dp->name;
+	    if ((strlen(todayName) + strlen(name) < sizeof(dp->name))) {
+		    strcat(dp->name, todayName);
+		    if (mkdir(dp->name, 0755) != 0) {
+			    VLog(0, "Error '%s' creating directory %s.", 
+				   strerror(errno), dp->name);
+			    return -1;
+		    }
+	    } else {
+		    VLog(0, "Name too long! %s", dp->name);
+		    return -1;
+	    }
+		    tmp = next;
+    }
+
+    if ( list_empty(&DiskPartitionList) ) {
+	    VLog(0, "No diskpartitions for backup!! Bailing out.\n");
+	    exit(1);
     }
 
     return 0;
@@ -513,23 +514,22 @@ static int backup(volinfo_t *vol) {
     return 0;
 }
 
-struct DiskPartition *findBestPartition(struct DiskPartition *Parts) 
+struct DiskPartition *findBestPartition(void) 
 {
-    unsigned long space;
-    struct DiskPartition *best, *part = 0;
+	unsigned long space;
+	struct DiskPartition *best, *part;
+	struct dllist_head *tmp;
 
-    CODA_ASSERT(Parts);
-
-    best = Parts;
-    space = Parts->free;
-    for (part = Parts; part ; part = part->next) {
-	if (part->free > space) {
-	    best = part;
-	    space = part->free;
+	best = 0;
+	tmp = &DiskPartitionList;
+	while( (tmp = tmp->next) != &DiskPartitionList) {
+		part = list_entry(tmp, struct DiskPartition, dp_chain);
+		if (!best || part->free > space) {
+			best = part;
+			space = part->free;
+		}
 	}
-    }
-
-    return best;
+	return best;
 }
 
 /* Turns out the VVV isn't maintained across repairs or resolves. So
@@ -549,11 +549,11 @@ struct DiskPartition *findBestPartition(struct DiskPartition *Parts)
  * will be saved.
  *
  * Here's the deal: for each replica, create a dump file on the
- * emptiest partition in Parts (or in the current directory if no
- * Parts were specified).  If the replica wasn't cloned, or was
- * already dumped, skip it.  */
+ * emptiest partition. 
+ * If the replica wasn't cloned, or was already dumped, skip it.  
+ */
 
-int dumpVolume(volinfo_t *vol, struct DiskPartition  *Parts)
+int dumpVolume(volinfo_t *vol)
 {
     repinfo_t *reps = vol->replicas;
     VolumeId volId = vol->volId;
@@ -577,21 +577,13 @@ int dumpVolume(volinfo_t *vol, struct DiskPartition  *Parts)
 	struct DiskPartition *part = NULL;
 	char buf[MAXPATHLEN];
 
-	if (Parts == 0) {	/* No partitions specified. */
-	    if (vol->flags & REPLICATED)
-		sprintf(buf,"%s/%x.%x",Hosts[reps[i].serverNum].name, volId, reps[i].repvolId);
-	    else
-		sprintf(buf, "%s/%x", Hosts[reps[i].serverNum].name, volId);
-	} else {
-	    /* No concurrency problems since LWP isn't pre-emptive. */
-	    part = findBestPartition(Parts);
-	    
-	    if (vol->flags & REPLICATED) 
+	part = findBestPartition();
+	if (vol->flags & REPLICATED) 
 		sprintf(buf, "%s/%s-%x.%x", part->name,
 			Hosts[reps[i].serverNum].name, volId, reps[i].repvolId);
 	    else 
 		sprintf(buf, "%s/%s-%x", part->name, Hosts[reps[i].serverNum].name, volId);
-	}
+	
 
 	/* Remove the file if it already exists. Since we made the
 	 * dump dir it can only exist if we are retrying the
@@ -605,7 +597,7 @@ int dumpVolume(volinfo_t *vol, struct DiskPartition  *Parts)
 	Rock.volid = reps[i].backupId;
 	Rock.numbytes = 0;
 	
-	LogMsg(0, 0, stdout, "Dumping %x.%x to %s ...", volId, reps[i].repvolId, buf);
+	VLog(0, "Dumping %x.%x to %s ...", volId, reps[i].repvolId, buf);
 
 	rc = VolNewDump(Hosts[reps[i].serverNum].rpcid, reps[i].backupId, &I);
 	if (rc != RPC2_SUCCESS) {
@@ -621,36 +613,34 @@ int dumpVolume(volinfo_t *vol, struct DiskPartition  *Parts)
 	/* Incremental can be forced to be full. */	
 	if (I == 0) vol->flags &= ~INCREMENTAL;
 	
-	if (Parts) {
-	    /* Setup a pointer from the dump subtree to the actual dumpfile
-	     * if a different partition was used for storage.
-	     */
-	    
-	    char link[66];
-	    if (vol->flags & REPLICATED)
+	/* Setup a pointer from the dump subtree to the actual dumpfile
+	 * if a different partition was used for storage.
+	 */
+	
+	char link[66];
+	if (vol->flags & REPLICATED)
 		sprintf(link,"%s/%x.%x",Hosts[reps[i].serverNum].name,
 			volId, reps[i].repvolId);
-	    else
+	else
 		sprintf(link, "%s/%x", Hosts[reps[i].serverNum].name, volId);
 	    
-	    /* Remove the link if it exists. See comment by previous
-               unlink. */
-	    unlink(link);
+	/* Remove the link if it exists. See comment by previous
+	   unlink. */
+	unlink(link);
 	    
-	    if (symlink(buf, link) == -1) {
+	if (symlink(buf, link) == -1) {
 		if (errno == EEXIST) {	/* Retrying dump. */
-		    if (unlink(link) != -1)
-			if (symlink(buf, link) != -1)
-			    break;
+			if (unlink(link) != -1)
+				if (symlink(buf, link) != -1)
+					break;
 		}
 		perror("symlink");
 		unlink(buf);	/* Delete the dump file. */		
 		return -1;
-	    }
-
-	    /* Reset diskusage for the partition that was used */
-	    DP_SetUsage(part);
 	}
+
+	/* Reset diskusage for the partition that was used */
+	DP_SetUsage(part);
 
 	/* At this point, we know everything worked for this replica. */
 	LogMsg(0, 0, stdout, "\t\tTransferred %d bytes\n", Rock.numbytes);
@@ -715,7 +705,6 @@ MarkAsAncient(volinfo_t *vol) {
     return nmarked;
 }
 
-
 
 int main(int argc, char **argv) {
     /* Process arguments */
@@ -752,7 +741,7 @@ int main(int argc, char **argv) {
 	    strncpy(dumpdir, argv[1], MAXPATHLEN);
 	    argc--; argv++;
 	} else {	/* Must have had unrecognized input. */
-	    printf("Usage: %s [-p pollPeriod] [-t timeout] [-d debuglevel] <dumpfile> [<backupdir>]\n", myname);
+	    printf("Usage: %s [-p pollPeriod] [-t timeout] [-d debuglevel] <dumpfile> <backupdir>\n", myname);
 	    exit(1);
 	}
     }
@@ -788,9 +777,8 @@ int main(int argc, char **argv) {
 
     /* initialize the partitions */
     DP_Init("/vice/db/vicetab");
-    Partitions = DiskPartitionList;
     /* change the name */
-    if ( PreparePartitionEntries(Partitions) != 0 ) {
+    if ( PreparePartitionEntries() != 0 ) {
 	eprint("Malformed partitions! Cannot prepare for dumping.");
 	exit(1);
     }
@@ -830,7 +818,7 @@ int main(int argc, char **argv) {
 
     /* Dump phase: dump all the volumes that were successfully backed up. */
     for (vol = Volumes; vol; vol = vol->next) {
-	if (dumpVolume(vol, Partitions) < vol->nCloned) {
+	if (dumpVolume(vol) < vol->nCloned) {
 	    LogMsg(0, 0, stdout,"Dump of volume %x failed!\n",vol->volId);
 	    vol->flags |= BADNESS;
 	}
@@ -888,7 +876,7 @@ int main(int argc, char **argv) {
 		/* dumpVolume will only try those reps that haven't
 		 * been dumped since the last clone.  */
 		int ndumped;
-		if ((ndumped = dumpVolume(vol, Partitions)) < vol->nCloned) {
+		if ((ndumped = dumpVolume(vol)) < vol->nCloned) {
 		    vol->flags |= BADNESS;
 		    LogMsg(0, 0, stdout,"Dump of volume %x failed again!\n",vol->volId);
 		}
@@ -1174,6 +1162,8 @@ static void V_BindToServer(char *fileserver, RPC2_Handle *RPCid)
 static void PollLWP(int naptime)
 {
     struct timeval time;
+    struct DiskPartition *part;
+    struct dllist_head *tmp;
 
     time.tv_sec = naptime;
     time.tv_usec = 0;
@@ -1185,12 +1175,14 @@ static void PollLWP(int naptime)
 	PollServers();
 
 	/* Recheck the disk usage for the partitions we are using. */
-	for (struct DiskPartition *part = Partitions; part ; part = part->next) {
-	    DP_SetUsage(part);
+	tmp = &DiskPartitionList;
+	while( (tmp = tmp->next)  != &DiskPartitionList ) {
+		part = list_entry(tmp, struct DiskPartition, dp_chain);
+		DP_SetUsage(part);
 	}
 
 	(void)IOMGR_Poll();
-	LWP_DispatchProcess();			/* Yield everytime through loop */
+	LWP_DispatchProcess();	/* Yield everytime through loop */
 	
     }
 }
@@ -1226,7 +1218,6 @@ static void PollServers()
 		   Hosts[i].rpcid);
     }
 }
-
 
 
 static void VolDumpLWP(struct rockInfo *rock)

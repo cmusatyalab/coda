@@ -535,46 +535,38 @@ typedef struct trace_stat {
 	u_long             recordBytes;         /* bytes in all records thus far */
 } trace_stat_t;
 
-/* functions */
-#ifndef C_ARGS
-#if c_plusplus
-#define C_ARGS(arglist) arglist
-#else c_plusplus
-#define C_ARGS(arglist) ()
-#endif c_plusplus
-#endif C_ARGS
 
-extern FILE *Trace_Open C_ARGS((char *name));
-extern int Trace_Close C_ARGS((FILE *fp));
-extern dfs_header_t *Trace_GetRecord C_ARGS((FILE *fp));
-extern int Trace_FreeRecord C_ARGS((FILE *fp, dfs_header_t *recPtr));
-extern int Trace_SetFilter C_ARGS((FILE *fp, char *fileName));
-extern int Trace_Stats C_ARGS((FILE *fp, trace_stat_t *statPtr));
-extern int Trace_PrintPreamble C_ARGS((FILE *fp));
-extern int Trace_GetVersion C_ARGS((FILE *fp, char *vp));
+extern FILE *Trace_Open (char *name);
+extern int Trace_Close (FILE *fp);
+extern dfs_header_t *Trace_GetRecord (FILE *fp);
+extern int Trace_FreeRecord (FILE *fp, dfs_header_t *recPtr);
+extern int Trace_SetFilter (FILE *fp, char *fileName);
+extern int Trace_Stats (FILE *fp, trace_stat_t *statPtr);
+extern int Trace_PrintPreamble (FILE *fp);
+extern int Trace_GetVersion (FILE *fp, char *vp);
 
-extern char *Trace_NodeIdToStr C_ARGS((int addr));
-extern char *Trace_OpcodeToStr C_ARGS((u_char opcode));
-extern char *Trace_FlagsToStr 	C_ARGS((u_char flags));
-extern char *Trace_InodeTypeToStr C_ARGS((int type));
-extern char *Trace_FidPtrToStr C_ARGS((generic_fid_t *fidPtr));
-extern char *Trace_OpenFlagsToStr C_ARGS((u_short flags));
-extern char *Trace_RecTimeToStr C_ARGS((dfs_header_t *recPtr));
-extern char *Trace_FileTypeToStr C_ARGS((u_short type));
-extern void Trace_PrintRecord C_ARGS((dfs_header_t *recPtr));
-extern void Trace_DumpRecord C_ARGS((dfs_header_t *recPtr));
+extern char *Trace_NodeIdToStr (int addr);
+extern char *Trace_OpcodeToStr (u_char opcode);
+extern char *Trace_FlagsToStr 	(u_char flags);
+extern char *Trace_InodeTypeToStr (int type);
+extern char *Trace_FidPtrToStr (generic_fid_t *fidPtr);
+extern char *Trace_OpenFlagsToStr (u_short flags);
+extern char *Trace_RecTimeToStr (dfs_header_t *recPtr);
+extern char *Trace_FileTypeToStr (u_short type);
+extern void Trace_PrintRecord (dfs_header_t *recPtr);
+extern void Trace_DumpRecord (dfs_header_t *recPtr);
 
-extern int Trace_FidsEqual C_ARGS((generic_fid_t *f1, generic_fid_t *f2));
-extern void Trace_CopyRecord C_ARGS((dfs_header_t *sp, dfs_header_t *dpp));
+extern int Trace_FidsEqual (generic_fid_t *f1, generic_fid_t *f2);
+extern void Trace_CopyRecord (dfs_header_t *sp, dfs_header_t *dpp);
 
-extern int Trace_GetUser C_ARGS((FILE *fp, short pid, uid_t *uidp));
-extern short Trace_GetFileType C_ARGS((dfs_header_t *recPtr));
-extern short Trace_GetFileIndex C_ARGS((dfs_header_t *recPtr));
-extern short Trace_GetRefCount C_ARGS((dfs_header_t *recPtr));
-extern void Trace_GetFid C_ARGS((dfs_header_t *recPtr, 
-				  generic_fid_t **fidpList, int *num));
-extern void Trace_GetPath C_ARGS((dfs_header_t *recPtr,
-				  char **pathplist, int *num));
+extern int Trace_GetUser (FILE *fp, short pid, uid_t *uidp);
+extern short Trace_GetFileType (dfs_header_t *recPtr);
+extern short Trace_GetFileIndex (dfs_header_t *recPtr);
+extern short Trace_GetRefCount (dfs_header_t *recPtr);
+extern void Trace_GetFid (dfs_header_t *recPtr, 
+				  generic_fid_t **fidpList, int *num);
+extern void Trace_GetPath (dfs_header_t *recPtr,
+				  char **pathplist, int *num);
 
 /* macros */
 /* fid conversion macros */

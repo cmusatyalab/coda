@@ -113,20 +113,10 @@ struct listhdr
     struct repair *repairList;	/* pointer to array of repair entries for this replica */
     };
 
-/* Function specification */
-
-#ifndef C_ARGS
-#if  (__cplusplus | __STDC__)
-#define C_ARGS(arglist) arglist
-#else   __cplusplus
-#define C_ARGS(arglist) ()
-#endif  __cplusplus
-#endif  C_ARGS
-
 /* I/O routines */
-int repair_putdfile C_ARGS((char *fname, int replicaCount, struct listhdr *replicaList));
-int repair_getdfile C_ARGS((char *fname, int *replicaCount, struct listhdr **replicaList));
-int repair_parseline C_ARGS((char *line, struct repair *rs));
-int repair_parsefile C_ARGS((char *fname, int *hdcount, struct listhdr **hdarrray));
-void repair_printline C_ARGS((struct repair *rs, FILE *ff));
-void repair_printfile C_ARGS((char *fname));
+int repair_putdfile (char *fname, int replicaCount, struct listhdr *replicaList);
+int repair_getdfile (char *fname, int *replicaCount, struct listhdr **replicaList);
+int repair_parseline (char *line, struct repair *rs);
+int repair_parsefile (char *fname, int *hdcount, struct listhdr **hdarrray);
+void repair_printline (struct repair *rs, FILE *ff);
+void repair_printfile (char *fname);

@@ -42,7 +42,6 @@ Pittsburgh, PA.
 #ifdef __linux__
 #include <search.h>
 #endif
-#define _TIMER_IMPL_
 #include "lwp.h"
 #include "lwp.private.h"
 #include "timer.h"
@@ -58,9 +57,9 @@ typedef unsigned char bool;
 static int globalInitDone = 0;
 
 /* declaration of private routines */
-static void subtract C_ARGS((register struct timeval *t1, register struct timeval *t2, register struct timeval *t3));
-static void add C_ARGS((register struct timeval *t1, register struct timeval *t2));
-static bool blocking C_ARGS((register struct TM_Elem *t));
+static void subtract (register struct timeval *t1, register struct timeval *t2, register struct timeval *t3);
+static void add (register struct timeval *t1, register struct timeval *t2);
+static bool blocking (register struct TM_Elem *t);
 
 
 

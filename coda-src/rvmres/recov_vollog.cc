@@ -53,24 +53,27 @@ extern "C" {
 #include "resstats.h"
 
 // must be called from within a transaction 
-void *recov_vol_log::operator new(size_t len) {
-    recov_vol_log *rcvl = 0;
-    
+void *recov_vol_log::operator new(size_t len) 
+{
+    recov_vol_log *rcvl;
+
     rcvl = (recov_vol_log *)rvmlib_rec_malloc((int) len);
     CODA_ASSERT(rcvl);
     return(rcvl);
 }
 
 /* this mostly initializes an array of pointers to log entries */
-recov_vol_log::recov_vol_log(VolumeId vid, int adm) :recov_inuse(adm, 1) {
+recov_vol_log::recov_vol_log(VolumeId vid, int adm) :recov_inuse(adm, 1) 
+{
 
     RVMLIB_REC_OBJECT(*this);
     Version = VERSION_NUMBER;
     malloced = 1; /* used to be dynamically set; but volume logs are only
-    			ever allocated via new(); hence force this to one;
-			getting rid of it would mean a reinit (Satya, 5/22/95) */
+		     ever allocated via new(); hence force this to one;
+		     getting rid of it would mean a reinit (Satya, 5/22/95) */
     /* admin_limit must be a multiple of sizeof(long) */
-    while (adm & (VOLLOG_GROWSIZE - 1)) adm++;
+    while (adm & (VOLLOG_GROWSIZE - 1)) 
+	     adm++;
     admin_limit = adm;
     size = 0;
     
@@ -93,7 +96,8 @@ recov_vol_log::recov_vol_log(VolumeId vid, int adm) :recov_inuse(adm, 1) {
 }
 
 
-void recov_vol_log::ResetTransients(VolumeId vid) {
+void recov_vol_log::ResetTransients(VolumeId vid) 
+{
     /* allocate bitmap first */
     vm_inuse = new bitmap(admin_limit, 0);
     CODA_ASSERT(vm_inuse);
@@ -104,11 +108,13 @@ void recov_vol_log::ResetTransients(VolumeId vid) {
     vmrstats = new resstats(vid, LogSize());
 }
 
-recov_vol_log::~recov_vol_log() {
+recov_vol_log::~recov_vol_log() 
+{
     if (index) rvmlib_rec_free(index); 
 }
 
-void recov_vol_log::operator delete(void *deadobj, size_t len) {
+void recov_vol_log::operator delete(void *deadobj, size_t len) 
+{
     rvmlib_rec_free(deadobj);
 }
 
@@ -119,9 +125,12 @@ void recov_vol_log::operator delete(void *deadobj, size_t len) {
 
 //increase number of log entries by VOLLOG_GROWSIZE (still < admin_limit) 
 // called from within a transaction
-int recov_vol_log::Grow(int offset) {
-    if (size == admin_limit) return(-1);
-    if (size + VOLLOG_GROWSIZE > admin_limit) return(-1);
+int recov_vol_log::Grow(int offset) 
+{
+    if (size == admin_limit) 
+	    return(-1);
+    if (size + VOLLOG_GROWSIZE > admin_limit) 
+	    return(-1);
     
     int pos;		// where new block will be inserted
     if (offset == -1) 	// default position of new block is at the end 
@@ -159,17 +168,17 @@ void recov_vol_log::FreeBlock(int i) {
     size -= LOGRECORD_BLOCKSIZE;
 }
 /* outside or within a transaction */
-void recov_vol_log::Increase_rec_max_seqno(int i) {
-    int status;
+void recov_vol_log::Increase_rec_max_seqno(int i) 
+{
+    rvm_return_t status;
     
     if (!rvmlib_in_transaction()) {
-	RVMLIB_BEGIN_TRANSACTION(restore);
+	rvmlib_begin_transaction(restore);
 	rvmlib_set_range(&rec_max_seqno, sizeof(int));
 	rec_max_seqno += i;
-	RVMLIB_END_TRANSACTION(flush, &status);
+	rvmlib_end_transaction(flush, &status);
 	CODA_ASSERT(status == RVM_SUCCESS);
-    }
-    else { 
+    } else { 
 	rvmlib_set_range(&rec_max_seqno, sizeof(int));
 	rec_max_seqno += i;
     }
@@ -189,12 +198,10 @@ void recov_vol_log::PrintUnreachableRecords(bitmap *shadowbm) {
 	int recovvalue = recov_inuse.Value(i);
 	if (recovvalue != shadowvalue) {
 	    if (shadowvalue) 
-		SLog(0,
-		       "Log rec at index %d is allocated in vm but not in RVM .... BAD BAD\n",
-		       i);
+		SLog(0, "Log rec at index %d is allocated in vm"
+		     "but not in RVM .... BAD BAD\n", i);
 	    else {
-		SLog(0,
-		       "Log rec at index %d is unreachable\n",i);
+		SLog(0, "Log rec at index %d is unreachable\n",i);
 		recle *r = (recle *)IndexToAddr(i);
 		CODA_ASSERT(r);
 		r->print(stdout);
@@ -216,10 +223,12 @@ int recov_vol_log::LogSize() {
 
 /* Public Routines */
 
-
-void recov_vol_log::Increase_Admin_Limit(int newsize) {
-    if (newsize <=  admin_limit) return;
-    while (newsize & (LOGRECORD_BLOCKSIZE - 1)) newsize++;
+void recov_vol_log::Increase_Admin_Limit(int newsize) 
+{
+    if (newsize <=  admin_limit) 
+	    return;
+    while (newsize & (LOGRECORD_BLOCKSIZE - 1)) 
+	    newsize++;
     
     int new_index_size = newsize / LOGRECORD_BLOCKSIZE;
     recle **new_index = (recle **)rvmlib_rec_malloc(new_index_size * sizeof(void *));
@@ -243,32 +252,14 @@ void recov_vol_log::Increase_Admin_Limit(int newsize) {
 }
 
 // not always called within a transaction 
-int recov_vol_log::AllocRecord(int *index, int *seqno) {
+int recov_vol_log::AllocRecord(int *index, int *seqno) 
+{
     *seqno = -1;
     *index = vm_inuse->GetFreeIndex();
     if (*index == -1) { //no space available 
 	SLog(0, "AllocRecord: No space left in volume log.\n");
 	return(ENOSPC);
     }
-    
-#ifdef notdef	
-    
-    int status;
-    
-    if (!rvmlib_in_transaction()){
-	// start new transaction if one is not started already 
-	RVMLIB_BEGIN_TRANSACTION(restore);
-	Increase_Admin_Limit(admin_limit * 2);
-	RVMLIB_END_TRANSACTION(flush, &status);
-	if (status != RVM_SUCCESS) return(-1);
-    }
-    else
-	Increase_Admin_Limit(admin_limit * 2);
-    
-    *index = vm_inuse->GetFreeIndex();
-    CODA_ASSERT(*index != -1);
-
-#endif notdef
     
     nused++;
     if (max_seqno == rec_max_seqno) 
@@ -281,21 +272,18 @@ int recov_vol_log::AllocRecord(int *index, int *seqno) {
 }
 
 // not called within a transaction 
-void recov_vol_log::DeallocRecord(int index) {
-    SLog(10,
-	   "Entering recov_vol_log::DeallocRecord(%d)\n", index);
+void recov_vol_log::DeallocRecord(int index) 
+{
+	SLog(10, "Entering recov_vol_log::DeallocRecord(%d)\n", index);
     if (recov_inuse.Value(index)) {	// the rvm record better not be allocated
-	SLog(0,
-	       "recov_vol_log::DeallocRecord(%d): recov bitmap says record allocated\n",
-	       index);
+	SLog(0,"recov_vol_log::DeallocRecord(%d): recov bitmap says record allocated\n",
+	     index);
 	CODA_ASSERT(0);
     }
     if (!vm_inuse->Value(index)) {
-	SLog(10, 
-	       "recov_vol_log::DeallocRecord(%d) is already deallocated\n", 
-	       index);
-    }
-    else
+	SLog(10, "recov_vol_log::DeallocRecord(%d) is already deallocated\n", 
+	     index);
+    } else
 	vm_inuse->FreeIndex(index);
     nused--;	
 }
@@ -487,16 +475,16 @@ recov_vol_log::ChooseWrapAroundVnode(Volume *vol, int different)
 		    }
 		}
 
-		int status;
+		rvm_return_t status;
 		CODA_ASSERT(!rvmlib_in_transaction());
-		RVMLIB_BEGIN_TRANSACTION(restore);
+		rvmlib_begin_transaction(restore);
 		RVMLIB_REC_OBJECT(wrapvn);
 		wrapvn = r[j].dvnode;
 		RVMLIB_REC_OBJECT(wrapun);
 		wrapun = r[j].dunique;
 		RVMLIB_REC_OBJECT(lastwrapindex);
 		lastwrapindex = (i * LOGRECORD_BLOCKSIZE) + j;
-		RVMLIB_END_TRANSACTION(flush, &status);
+		rvmlib_end_transaction(flush, &status);
 		CODA_ASSERT(status == RVM_SUCCESS);
 		return(0);
 	    }
@@ -518,7 +506,7 @@ int recov_vol_log::AllocViaWrapAround(int *index, int *seqno,
     *seqno = -1;
     vmindex ind;
     int different = 0;
-    int status = 0;
+    rvm_return_t status = RVM_SUCCESS;
     int i;
 
     VnodeId prevwrapvn = wrapvn;
@@ -563,12 +551,12 @@ int recov_vol_log::AllocViaWrapAround(int *index, int *seqno,
 	    SLog(0,
 		   "AllocViaWrapAround: 0x%x.%x has only single vnode on list\n",
 		   wrapvn, wrapun);
-	    RVMLIB_BEGIN_TRANSACTION(restore);
+	    rvmlib_begin_transaction(restore);
 	    Error fileCode = 0;
 	    VPutVnode(&fileCode, vptr);
 	    vptr = 0;
 	    CODA_ASSERT(fileCode == 0);
-	    RVMLIB_END_TRANSACTION(flush, &status);
+	    rvmlib_end_transaction(flush, &status);
 	    CODA_ASSERT(status == RVM_SUCCESS);
 
 	    different = 1;
@@ -583,7 +571,7 @@ int recov_vol_log::AllocViaWrapAround(int *index, int *seqno,
 		   "AllocViaWrapAround: Reclaiming first log rec of 0x%x.%x\n\n",
 		   wrapvn, wrapun);
 	    CODA_ASSERT(!rvmlib_in_transaction());
-	    RVMLIB_BEGIN_TRANSACTION(restore);
+	    rvmlib_begin_transaction(restore);
 	    recle *le = (recle *)VnLog(vptr)->get();
 	    rec_dlist *childlog;
 	    if (childlog = le->HasList()) 
@@ -608,7 +596,7 @@ int recov_vol_log::AllocViaWrapAround(int *index, int *seqno,
 	    VPutVnode(&fileCode, vptr);
 	    vptr = 0;
 	    CODA_ASSERT(fileCode == 0);
-	    RVMLIB_END_TRANSACTION(flush, &status);
+	    rvmlib_end_transaction(flush, &status);
 	    if (status != RVM_SUCCESS) return(ENOSPC);
 	    FreeVMIndices(volptr, &ind);
 	    break;

@@ -25,7 +25,7 @@ listed in the file CREDITS.
 /* cure.h */
 
 /* routines included in other files */
-int ObjExists C_ARGS((resreplica *, long , long ));
-int RepairRename C_ARGS((int , resreplica *, resdir_entry **, int , listhdr **, char *));
-int RepairSubsetCreate C_ARGS((int , resreplica *, resdir_entry **, int , listhdr **));
-int RepairSubsetRemove C_ARGS((int, resreplica *, resdir_entry **, int , listhdr **));
+int ObjExists (resreplica *, long , long );
+int RepairRename (int , resreplica *, resdir_entry **, int , listhdr **, char *);
+int RepairSubsetCreate (int , resreplica *, resdir_entry **, int , listhdr **);
+int RepairSubsetRemove (int, resreplica *, resdir_entry **, int , listhdr **);

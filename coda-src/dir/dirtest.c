@@ -287,8 +287,8 @@ void dt_bulktest(int argc, char **argv)
 	}
 	count = atoi(argv[2]);
 	rvmcount = atoi(argv[3]);
-
 	printtime();
+
 	rvmlib_begin_transaction(RESTORE);
 	
 	ino1 = rvmlib_rec_malloc(sizeof(int) * 256); 
@@ -297,7 +297,7 @@ void dt_bulktest(int argc, char **argv)
 
 	for ( i = 0 ; i < count/rvmcount ; i++ ) {
 		for ( j = 0 ; j < rvmcount ; j++ ) {
-			printf("creating %d, %d\n", i, j);
+			/* printf("creating %d, %d\n", i, j); */
 			dt_mdir(5, mdir_argv);
 			dt_create(5, create_argv);
 			rvmlib_begin_transaction(RESTORE);
@@ -313,6 +313,7 @@ void dt_bulktest(int argc, char **argv)
 			rvmlib_end_transaction(FLUSH, &err);
 			dt_free(2, rmdir_arg);
 		}
+		printtime();
 		rvm_flush();
 	}
 	printtime();

@@ -65,14 +65,14 @@ extern struct repvol *RepVolHead; /* head of circular linked list */
 extern int NewStyleRepair;
 
 /* Routines for volume data structure manipulation */
-int repair_findrep   C_ARGS((VolumeId vid, struct repvol **repv));
-int repair_newrep    C_ARGS((VolumeId vid, char *mnt, struct repvol **repv));
-int repair_mountrw   C_ARGS((struct repvol *repv, VolumeId *rwarray, int arraylen));
-int repair_linkrep   C_ARGS((struct repvol *repv));
-int repair_unlinkrep C_ARGS((struct repvol *repv));
-int repair_cleanup   C_ARGS((struct repvol *repv));
-int repair_finish    C_ARGS((struct repvol *repv));
-int repair_countRWReplicas C_ARGS((struct repvol *repv));
+int repair_findrep   (VolumeId vid, struct repvol **repv);
+int repair_newrep    (VolumeId vid, char *mnt, struct repvol **repv);
+int repair_mountrw   (struct repvol *repv, VolumeId *rwarray, int arraylen);
+int repair_linkrep   (struct repvol *repv);
+int repair_unlinkrep (struct repvol *repv);
+int repair_cleanup   (struct repvol *repv);
+int repair_finish    (struct repvol *repv);
+int repair_countRWReplicas (struct repvol *repv);
 int repair_getfid(char *path, ViceFid *outfid, ViceVersionVector *outvv);
 
     
@@ -83,24 +83,24 @@ int repair_inconflict(char *name, ViceFid *conflictfid);
 void repair_perror(char *op, char *path, int e);
 
 /* User-visible commands */
-void beginRepair  C_ARGS((int argc, char **largv));
-void endRepair   C_ARGS((int argc, char **largv));
-int showReplicas C_ARGS((char *args));
-void doRepair     C_ARGS((int argc, char **largv));
-void compareDirs C_ARGS((int argc, char **largv));
-void clearInc	 C_ARGS((int argc, char **largv));
-void quit	 C_ARGS((int argc, char **largv));
-int unlockVolume C_ARGS((char *args));
-void removeInc	 C_ARGS((int argc, char **largv));
-void checkLocal      	C_ARGS((int argc, char **largv));
-void listLocal       	C_ARGS((int argc, char **largv));
-void preserveLocal   	C_ARGS((int argc, char **largv));
-void preserveAllLocal   C_ARGS((int argc, char **largv));
-void discardLocal    	C_ARGS((int argc, char **largv));
-void discardAllLocal  	C_ARGS((int argc, char **largv));
-void setLocalView    	C_ARGS((int argc, char **largv));
-void setGlobalView   	C_ARGS((int argc, char **largv));
-void setMixedView    	C_ARGS((int argc, char **largv));
+void beginRepair  (int argc, char **largv);
+void endRepair   (int argc, char **largv);
+int showReplicas (char *args);
+void doRepair     (int argc, char **largv);
+void compareDirs (int argc, char **largv);
+void clearInc	 (int argc, char **largv);
+void quit	 (int argc, char **largv);
+int unlockVolume (char *args);
+void removeInc	 (int argc, char **largv);
+void checkLocal      	(int argc, char **largv);
+void listLocal       	(int argc, char **largv);
+void preserveLocal   	(int argc, char **largv);
+void preserveAllLocal   (int argc, char **largv);
+void discardLocal    	(int argc, char **largv);
+void discardAllLocal  	(int argc, char **largv);
+void setLocalView    	(int argc, char **largv);
+void setGlobalView   	(int argc, char **largv);
+void setMixedView    	(int argc, char **largv);
 
 extern char repair_ReadOnlyPrefix[];
 extern int  repair_DebugFlag;

@@ -27,13 +27,12 @@ listed in the file CREDITS.
 #define MINDELAY  16   /* minimum delay time, in msec */
  		       /* anything less is not delayed */
 
-#include "cargs.h"
 
 /* Exported Routines */
-int Delay_Init C_ARGS(());
-int DelayPacket C_ARGS((int speed, long socket, struct sockaddr_in *sap, RPC2_PacketBuffer *pb, int queue));
-int FindQueue C_ARGS((unsigned char a, unsigned char b, unsigned char c, unsigned char d));
-int MakeQueue C_ARGS((unsigned char a, unsigned char b, unsigned char c, unsigned char d));
+int Delay_Init ();
+int DelayPacket (int speed, long socket, struct sockaddr_in *sap, RPC2_PacketBuffer *pb, int queue);
+int FindQueue (unsigned char a, unsigned char b, unsigned char c, unsigned char d);
+int MakeQueue (unsigned char a, unsigned char b, unsigned char c, unsigned char d);
      
 
      

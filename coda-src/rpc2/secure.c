@@ -45,7 +45,6 @@ Pittsburgh, PA.
 #include <sys/time.h>
 #include "lwp.h"
 #include "timer.h"
-#include "preempt.h"
 #include "rpc2.h"
 #include "rpc2.private.h"
 
@@ -85,7 +84,6 @@ void rpc2_Encrypt(IN FromBuffer, OUT ToBuffer, IN HowManyBytes, IN WhichKey, IN 
     unsigned char *p, *q, *r, *s;
     long i;
     
-    PRE_BeginCritical();
     CODA_ASSERT(EncryptionType == RPC2_XOR);	/* for now */
     
     p = (unsigned char *)FromBuffer;		/* ptr to next input char */
@@ -97,7 +95,6 @@ void rpc2_Encrypt(IN FromBuffer, OUT ToBuffer, IN HowManyBytes, IN WhichKey, IN 
 	*s++ = (*p++) ^ (*q++);
 	if (q >= r) q = (unsigned char *)WhichKey;
 	}
-    PRE_EndCritical();
     }
 
 
@@ -109,29 +106,23 @@ void rpc2_Decrypt(IN FromBuffer, OUT ToBuffer,  IN HowManyBytes, IN WhichKey, IN
     int EncryptionType;
 
     {
-    PRE_BeginCritical();
     CODA_ASSERT(EncryptionType == RPC2_XOR);
     rpc2_Encrypt(FromBuffer, ToBuffer, HowManyBytes, WhichKey, EncryptionType);
-    PRE_EndCritical();
     }
 
 #ifdef NEWRANDOM
 void rpc2_InitRandom()
     {
-    PRE_BeginCritical();
     initstate(rpc2_TrueRandom(), RNState, sizeof(RNState));    
     setstate(RNState);		/* default for rpc2_NextRandom() */
-    PRE_EndCritical();
     }
 #else
 void rpc2_InitRandom()
     {
     long seed;
 
-    PRE_BeginCritical();
     seed = rpc2_TrueRandom();
     srand(seed);
-    PRE_EndCritical();
     }
 #endif
 
@@ -146,13 +137,11 @@ long rpc2_TrueRandom()
     struct timeval tp;
     long x=0;
 
-    PRE_BeginCritical();
     while (x == 0)
 	{
 	TM_GetTimeOfDay(&tp, NULL);
 	x = tp.tv_usec >> 8;	/* No sign problems 'cause tv_usec never has high bit set */
 	}    
-    PRE_EndCritical();
     return(x);
     }
 
@@ -173,12 +162,10 @@ long rpc2_NextRandom(StatePtr)
     char *s;
     long x;
 
-    PRE_BeginCritical();
     if (StatePtr == NULL) StatePtr = RNState;	/* it's ok, call by value */
     s = (char *) setstate(StatePtr);
     while ((x = random()) > 1073741824);	/* 2**30 */
     setstate(s);
-    PRE_EndCritical();
     return(x);
     }
 
@@ -195,9 +182,7 @@ long rpc2_NextRandom(StatePtr)
     {
     long x;
 
-    PRE_BeginCritical();
     while ((x = rand()) > 1073741824);	/* 2**30 */
-    PRE_EndCritical();
     return(x);
     }
 

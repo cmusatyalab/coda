@@ -58,20 +58,11 @@ extern "C" {
 #define TRUE 1
 #define FALSE 0
 
-#ifdef LWP
-#define SystemError(y) (fprintf(stderr, "%d(%s): ", getpid(), LWP_ActiveProcess->name), perror(y))
-#else
-#define SystemError(y) (fprintf(stderr, "%d: ", getpid()), perror(y))
-#endif
-
 /* Useful functions in libutil.a */
-/*extern int ffs(register int x);*/
 extern int CaseFoldedCmp(char *s1, char *s2);
-
-/* length-checked string routines: These used to be macros but C++ generates bogus
-	code for comma-expressions in conditionals */
 extern int SafeStrCat(char *dest, char *src, int totalspace);
 extern int SafeStrCpy(char *dest, char *src, int totalspace);
+int HashString(char *s, unsigned int size);
 void eprint(char *, ...);
 void fdprint(long afd, char *fmt, ...);
 
@@ -100,19 +91,17 @@ char *hostname(char *);
 void UtilDetach();
 
 /* Useful locking macros */
-#define U_wlock(b)     ObtainWriteLock(&((b)->lock))
-#define U_rlock(b)    ObtainReadLock(&((b)->lock))
+#define U_wlock(b)      ObtainWriteLock(&((b)->lock))
+#define U_rlock(b)      ObtainReadLock(&((b)->lock))
 #define U_wunlock(b)    ReleaseWriteLock(&((b)->lock))
 #define U_runlock(b)    ReleaseReadLock(&((b)->lock))
 
-/* Extern decls for variables used in Coda to control verbosity of messages from LogMsg().
-   These should probably be spread out in the individual header files for 
-   various packages, like the variables themselves.  But that gets to be a 
-   pain, and this is harmless anyway ..... */
+/* Extern decls for variables used in Coda to control verbosity of
+   messages from LogMsg(). Should these be here?
+*/
 
 extern int SrvDebugLevel;	/* Server */
 extern int VolDebugLevel;	/* Vol package */
-
 extern int DirDebugLevel;	/* Dir package */
 extern int AL_DebugLevel;	/* ACL package */
 extern int AuthDebugLevel;	/* Auth package */

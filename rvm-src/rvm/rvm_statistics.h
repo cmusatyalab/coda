@@ -177,38 +177,27 @@ typedef struct
     }
 rvm_statistics_t;
 /* get RVM statistics */
-extern rvm_return_t rvm_statistics C_ARGS
-    ((
+extern rvm_return_t rvm_statistics(
     char                *version,       /* pointer to RVM statistics version string */
     rvm_statistics_t    *statistics     /* address of pointer to statistics
                                            descriptor] */
-    ));
+    );
 #define RVM_STATISTICS(statistics) \
     rvm_statistics(RVM_STATISTICS_VERSION,(statistics))
 
 /* rvm_statistics_t initializer, copier & finalizer */
 
-extern rvm_statistics_t *rvm_malloc_statistics C_ARGS(());
+extern rvm_statistics_t *rvm_malloc_statistics ();
 
-extern void rvm_init_statistics C_ARGS
-    ((
-    rvm_statistics_t    *statistics     /* pointer to record to initialize */
-    ));
-extern rvm_statistics_t *rvm_copy_statistics C_ARGS
-    ((
-    rvm_statistics_t    *statistics     /* pointer to record to be copied */
-    ));
-extern void rvm_free_statistics C_ARGS
-    ((
-    rvm_statistics_t    *statistics     /* pointer to record to be freed */
-    ));
+extern void rvm_init_statistics(rvm_statistics_t *statistics);
+extern rvm_statistics_t *rvm_copy_statistics(rvm_statistics_t *statistics); 
+extern void rvm_free_statistics(rvm_statistics_t *statistics);
 
 /* rvm_statistics_t printer */
-extern rvm_return_t rvm_print_statistics C_ARGS
-    ((
+extern rvm_return_t rvm_print_statistics(
     rvm_statistics_t    *statistics,    /* pointer to record to be printed */
     FILE                *out_stream     /* output stream */
-    ));
+    );
 
 
 #endif _RVM_STATISTICS_VERSION

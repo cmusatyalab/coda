@@ -41,16 +41,12 @@ Pittsburgh, PA.
 #ifndef _LWP_PRIVATE_
 #define _LWP_PRIVATE_
 
-/* Merged header for OLD (Andrew-LWP) and NEW (cthread-LWP) versions of LWP.
-   Default is NEW (use -llibnewlwp.a)
-   Use of -DOLDLWP to turn on OLD (and use -liboldlwp.a)
+/* 
+   Cthreads are gone ; removed the newlwp stuff.
 */
 
 #include <sys/time.h>
 #include <stdio.h>
-#ifndef OLDLWP
-#include    <cthreads.h>
-#endif OLDLWP
 
 /* Initial size of eventlist in a PCB; grows dynamically  */ 
 #define EVINITSIZE  5
@@ -151,21 +147,5 @@ extern FILE *lwp_logfile;
 #else LWPDEBUG
 #define lwpdebug(level, msg)
 #endif LWPDEBUG
-
-#ifndef OLDLWP
-typedef struct si {
-    cthread_t	id;		/* this thread's id */
-    vm_address_t address;	/* this thread's sp */
-    vm_size_t	size;		/* size of the stack region */
-    vm_prot_t	protection;	/* protection of the stack */
-    vm_prot_t	maxprot;	/* max protection  on the stack */
-} stackinfo;
-
-#define MAXTHREADS	100
-static void InitVMInfo();
-static void InitMyStackInfo(char *);
- 
-
-#endif OLDLWP
 
 #endif _LWP_PRIVATE_

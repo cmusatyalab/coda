@@ -100,24 +100,32 @@ long int S_VolPurge(RPC2_Handle rpcid, RPC2_Unsigned formal_purgeId,
     }
 
     vp = VGetVolume(&error, purgeId);	/* Does this need a transaction? */
-    if (error){
-	if (error == VOFFLINE){
-	    VLog(9, "VolPurge: Volume %x was already offline", V_id(vp));
-	    AlreadyOffline = 1;
-	} else if (error == VNOVOL){
-	    /* volume is not attached or is shutting down */
-	    vp = VAttachVolume(&error2, purgeId, V_UPDATE);
-	    if (error2) {
-		VLog(0, "Unable to attach volume %x; not purged", purgeId);
-		rc = VNOVOL;
-	    }
-	    AlreadyOffline = 1;
-	} else {
-	    if (vp)
-		VPutVolume(vp);
-	    VLog(0, "VolPurge: GetVolume %x  returns error %d", purgeId, error);
-	    rc = error;
+    if ( !vp ) {
+	    rc = VNOVOL;
+	    VLog(0, "No such volume: 0x%x\n", purgeId);
 	    goto exit;
+    }
+    if (error) {
+	if (error == VOFFLINE){
+		VLog(9, "VolPurge: Volume %x was already offline", V_id(vp));
+		AlreadyOffline = 1;
+	} else if (error == VNOVOL){
+		/* volume is not attached or is shutting down */
+		vp = VAttachVolume(&error2, purgeId, V_UPDATE);
+		if (error2) {
+			VLog(0, "Unable to attach volume %x; not purged", 
+			     purgeId);
+			rc = VNOVOL;
+			goto exit;
+		}
+		AlreadyOffline = 1;
+	} else {
+		if (vp)
+			VPutVolume(vp);
+		VLog(0, "VolPurge: GetVolume %x  returns error %d", 
+		     purgeId, error);
+		rc = error;
+		goto exit;
 	}
     }
 
@@ -148,7 +156,7 @@ long int S_VolPurge(RPC2_Handle rpcid, RPC2_Unsigned formal_purgeId,
 
     /* By this time the volume is attached and is offline */
     CODA_ASSERT(V_inUse(vp) == 0);
-    CODA_ASSERT(DeleteVolume(vp) == 0);  /* Remove the volume from rvm and vm */
+    CODA_ASSERT(DeleteVolume(vp) == 0);  /* Remove volume from rvm and vm */
     vp->shuttingDown = 1;
 
     /* Don't need to call VPutVolume since all vm traces have been removed. */
@@ -157,6 +165,7 @@ long int S_VolPurge(RPC2_Handle rpcid, RPC2_Unsigned formal_purgeId,
     PrintVolumesInHashTable();
  exit:
     VDisconnectFS();
-    VLog(0, "purge: volume %x (%s) purged", purgeId, purgeName);
+    if  ( !rc ) 
+	    VLog(0, "purge: volume %x (%s) purged", purgeId, purgeName);
     return(status?status:rc);
 }

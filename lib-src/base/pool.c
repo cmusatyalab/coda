@@ -20,7 +20,6 @@ Coda are listed in the file CREDITS.
 #include <stdlib.h>
 #include <string.h>
 #include <lock.h>
-#include <preempt.h>
 #include "pool.h"
 #include "bitvect.h"
 
@@ -34,7 +33,6 @@ struct Pool {
 
 void P_Destroy(PPool *pool)
 {
-	PRE_BeginCritical();
 
 	if ( !pool ) {
 		PRE_EndCritical();
@@ -44,7 +42,6 @@ void P_Destroy(PPool *pool)
 	if ( (*pool)->freemap ) 
 		Bitv_free(&(*pool)->freemap);
 	free(pool);
-	PRE_EndCritical();
 }
 
 PPool P_New(int count, int size) 

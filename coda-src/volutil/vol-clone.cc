@@ -112,7 +112,7 @@ long S_VolClone(RPC2_Handle rpcid, RPC2_Unsigned formal_ovolid,
     struct vldb *vldp = NULL;
     char *newvolname = (char *)formal_newname;
 
-    int status = 0;
+    rvm_return_t status = RVM_SUCCESS;
     int rc = 0;
     Error error;
 
@@ -143,9 +143,9 @@ long S_VolClone(RPC2_Handle rpcid, RPC2_Unsigned formal_ovolid,
     if (error) {
 	VLog(0, "S_VolClone: failure attaching volume %x", originalId);
 	if (originalvp) {
-	    RVMLIB_BEGIN_TRANSACTION(restore)
+	    rvmlib_begin_transaction(restore);
 		VPutVolume(originalvp);	/* Do these need transactions? */
-	    RVMLIB_END_TRANSACTION(flush, &(status));
+	    rvmlib_end_transaction(flush, &(status));
 	    CODA_ASSERT(status == 0);
 	}
 	VDisconnectFS();
@@ -164,9 +164,9 @@ long S_VolClone(RPC2_Handle rpcid, RPC2_Unsigned formal_ovolid,
 	/* lock the whole volume for the duration of the clone */
 	if (V_VolLock(originalvp).IPAddress){
 	    VLog(0, "S_VolClone: old volume already locked; Aborting... ");
-	    RVMLIB_BEGIN_TRANSACTION(restore)
-	      VPutVolume(originalvp);	/* Do these need transactions? */
-	    RVMLIB_END_TRANSACTION(flush, &(status));
+	    rvmlib_begin_transaction(restore);
+	    VPutVolume(originalvp);	/* Do these need transactions? */
+	    rvmlib_end_transaction(flush, &(status));
 	    CODA_ASSERT(status == 0);
 	    VDisconnectFS();
 	    return EWOULDBLOCK;
@@ -181,7 +181,7 @@ long S_VolClone(RPC2_Handle rpcid, RPC2_Unsigned formal_ovolid,
 	VLog(9, "S_VolClone:Obtained write lock on old volume");
     }
 
-    RVMLIB_BEGIN_TRANSACTION(restore)
+    rvmlib_begin_transaction(restore);
     newId = VAllocateVolumeId(&error);
     VLog(9, "VolClone: VAllocateVolumeId returns %x", newId);
     if (error){
@@ -212,7 +212,7 @@ long S_VolClone(RPC2_Handle rpcid, RPC2_Unsigned formal_ovolid,
 	goto exit1;
     }
     
-    RVMLIB_END_TRANSACTION(flush, &(status));
+    rvmlib_end_transaction(flush, &(status));
  exit1:
     if (status != 0) {
 	VLog(0, "S_VolClone: volume creation failed for volume %x", originalId);
@@ -230,9 +230,9 @@ long S_VolClone(RPC2_Handle rpcid, RPC2_Unsigned formal_ovolid,
 	    originalId, newId);
 	V_VolLock(originalvp).IPAddress = 0;
 	ReleaseWriteLock(&(V_VolLock(originalvp).VolumeLock));
-	RVMLIB_BEGIN_TRANSACTION(restore)
+	rvmlib_begin_transaction(restore);
 	    VPutVolume(originalvp);	/* Do these need transactions? */
-	RVMLIB_END_TRANSACTION(flush, &(status));
+	rvmlib_end_transaction(flush, &(status));
 	CODA_ASSERT(status == 0);
 	VDisconnectFS();
 	return error;
@@ -264,7 +264,7 @@ long S_VolClone(RPC2_Handle rpcid, RPC2_Unsigned formal_ovolid,
     V_destroyMe(newvp) = 0;
     V_blessed(newvp) = 1;
 
-    RVMLIB_BEGIN_TRANSACTION(restore)
+    rvmlib_begin_transaction(restore);
     VUpdateVolume(&error, newvp);
     VDetachVolume(&error, newvp);
     VUpdateVolume(&error, originalvp);
@@ -273,7 +273,7 @@ long S_VolClone(RPC2_Handle rpcid, RPC2_Unsigned formal_ovolid,
     ReleaseWriteLock(&(V_VolLock(originalvp).VolumeLock)); 
     VPutVolume(originalvp);
     VListVolumes();	/* Create updated /vice/vol/VolumeList */
-    RVMLIB_END_TRANSACTION(flush, &(status));
+    rvmlib_end_transaction(flush, &(status));
     VDisconnectFS();
 
     if (status == 0) {
@@ -302,7 +302,7 @@ int MaxVnodesPerTransaction = 8;
 
 static void VUCloneIndex(Error *error, Volume *rwVp, Volume *cloneVp, VnodeClass vclass)
 {
-    int status;
+    rvm_return_t status;
     unsigned int i;
     bit32 nvnodes;
     bit32 vnlistSize;
@@ -321,7 +321,7 @@ static void VUCloneIndex(Error *error, Volume *rwVp, Volume *cloneVp, VnodeClass
     else 
 	CODA_ASSERT(0);
 
-    RVMLIB_BEGIN_TRANSACTION(restore)
+    rvmlib_begin_transaction(restore);
     
     /* free vnodes allocated earlier by VCreateVolume. */
     bit32 onVnodes, onLists;
@@ -370,7 +370,7 @@ static void VUCloneIndex(Error *error, Volume *rwVp, Volume *cloneVp, VnodeClass
 	RVMLIB_MODIFY(SRV_RVM(VolumeList[cvolInd]).data.nlargeLists,vnlistSize);
     }
 
-    RVMLIB_END_TRANSACTION(flush, &(status));
+    rvmlib_end_transaction(flush, &(status));
     CODA_ASSERT(status == 0);				/* Never aborts... */
 	
     char buf[SIZEOF_LARGEDISKVNODE];
@@ -386,7 +386,7 @@ static void VUCloneIndex(Error *error, Volume *rwVp, Volume *cloneVp, VnodeClass
     
     while(moreVnodes) {
 	
-	RVMLIB_BEGIN_TRANSACTION(restore)
+	rvmlib_begin_transaction(restore);
 	for (int count = 0; count < MaxVnodesPerTransaction; count++) {
 	    if ((vnodeindex = vnext(vnode)) == -1) {
 		moreVnodes = FALSE;
@@ -402,7 +402,7 @@ static void VUCloneIndex(Error *error, Volume *rwVp, Volume *cloneVp, VnodeClass
 
 
 	} 
-	RVMLIB_END_TRANSACTION(flush, &(status));
+	rvmlib_end_transaction(flush, &(status));
     error:
 	if (status != 0) {
 	    VLog(0, "CloneIndex: abort for RW %x RO %x",

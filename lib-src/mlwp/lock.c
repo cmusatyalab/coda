@@ -47,11 +47,11 @@ Pittsburgh, PA.
 /* null out a lock */
 void Lock_Init(register struct Lock *lock)
 {
-    lock -> readers_reading = 0;
-    lock -> excl_locked = 0;
-    lock -> wait_states = 0;
-    lock -> num_waiting = 0;
-    lock -> excl_locker = NULL;
+	lock -> readers_reading = 0;
+	lock -> excl_locked = 0;
+	lock -> wait_states = 0;
+	lock -> num_waiting = 0;
+	lock -> excl_locker = NULL;
 }
 
 void Lock_Obtain(register struct Lock *lock, int how)
@@ -59,7 +59,6 @@ void Lock_Obtain(register struct Lock *lock, int how)
 	PROCESS me = LWP_ThisProcess();
 
 	switch (how) {
-
 	case READ_LOCK:
 		lock->num_waiting++;
 		do {
@@ -93,20 +92,23 @@ void Lock_Obtain(register struct Lock *lock, int how)
 		lock->excl_locked = SHARED_LOCK;
 		break;
 
-	case BOOSTED_LOCK:	lock->num_waiting++;
-				do {
-				    lock->wait_states |= WRITE_LOCK;
-				    LWP_WaitProcess(&lock->excl_locked);
-				} while (lock->readers_reading);
-				lock->num_waiting--;
-				lock->excl_locked = WRITE_LOCK;
-				lock->excl_locker = me;
-				break;
+#if 0
+	case BOOSTED_LOCK:	
+		lock->num_waiting++;
+		do {
+			lock->wait_states |= WRITE_LOCK;
+			LWP_WaitProcess(&lock->excl_locked);
+		} while (lock->readers_reading);
+		lock->num_waiting--;
+		lock->excl_locked = WRITE_LOCK;
+		lock->excl_locker = me;
+		break;
+#endif
 
-	default:		fprintf(stderr, 
-				 "Can't happen, bad LOCK type: %d\n", how);
-				abort();
-    }
+	default:
+		fprintf(stderr, "Can't happen, bad LOCK type: %d\n", how);
+		abort();
+	}
 }
 
 /* release a lock, giving preference to new readers */
@@ -115,8 +117,8 @@ void Lock_ReleaseR(register struct Lock *lock)
 	PROCESS me = LWP_ThisProcess();
 
 	if (lock->excl_locked & WRITE_LOCK) {
-	    CODA_ASSERT(lock->excl_locker == me);
-	    lock->excl_locker = NULL;
+		CODA_ASSERT(lock->excl_locker == me);
+		lock->excl_locker = NULL;
 	}
 
 	if (lock->wait_states & READ_LOCK) {
@@ -134,8 +136,8 @@ void Lock_ReleaseW(register struct Lock *lock)
 	PROCESS me = LWP_ThisProcess();
 
 	if (lock->excl_locked & WRITE_LOCK) {
-	    CODA_ASSERT(lock->excl_locker == me);
-	    lock->excl_locker = NULL;
+		CODA_ASSERT(lock->excl_locker == me);
+		lock->excl_locker = NULL;
 	}
 
 	if (lock->wait_states & EXCL_LOCKS) {
@@ -163,9 +165,8 @@ void  ObtainReadLock(struct Lock *lock)
 	if ( (lock->excl_locked & WRITE_LOCK) && lock->excl_locker == me) {
 		lock->readers_reading++;
 		return;
-	}
-	else
-	    Lock_Obtain(lock, READ_LOCK);
+	} else
+		Lock_Obtain(lock, READ_LOCK);
 }
 
 void  ObtainWriteLock(struct Lock *lock)
@@ -186,25 +187,9 @@ void  ObtainWriteLock(struct Lock *lock)
 void  ObtainSharedLock(struct Lock *lock)
 {
     if (!(lock)->excl_locked && !(lock)->wait_states)
-	(lock) -> excl_locked = SHARED_LOCK;
+	    (lock) -> excl_locked = SHARED_LOCK;
     else
-	Lock_Obtain(lock, SHARED_LOCK);
-}
-
-void  BoostSharedLock(struct Lock *lock)
-{
-    if (!(lock)->readers_reading)
-	(lock)->excl_locked = WRITE_LOCK;
-    else
-	Lock_Obtain(lock, BOOSTED_LOCK);
-}
-
-/* this must only be called with a WRITE or boosted SHARED lock! */
-void  UnboostSharedLock(struct Lock *lock)
-{
-    (lock)->excl_locked = SHARED_LOCK;
-    if((lock)->wait_states)
-	Lock_ReleaseR(lock);
+	    Lock_Obtain(lock, SHARED_LOCK);
 }
 
 void  ReleaseReadLock(struct Lock *lock)
@@ -215,36 +200,63 @@ void  ReleaseReadLock(struct Lock *lock)
 
 void  ReleaseWriteLock(struct Lock *lock)
 {
-    if ((lock)->wait_states) 
-	    Lock_ReleaseR(lock);
-    (lock)->excl_locked &= ~WRITE_LOCK;
+	if ((lock)->wait_states) 
+		Lock_ReleaseR(lock);
+	(lock)->excl_locked &= ~WRITE_LOCK;
 }
 
 /* can be used on shared or boosted (write) locks */
 void  ReleaseSharedLock(struct Lock *lock)
 {
-    if ((lock)->wait_states) 
-	    Lock_ReleaseR(lock);
-    (lock)->excl_locked &= ~(SHARED_LOCK | WRITE_LOCK);
-}
-
-/* I added this next macro to make sure it is safe to nuke a lock -- Mike K. */
-int  LockWaiters(struct Lock *lock)
-{
-    return ((int) ((lock)->num_waiting));
+	if ((lock)->wait_states) 
+		Lock_ReleaseR(lock);
+	(lock)->excl_locked &= ~(SHARED_LOCK | WRITE_LOCK);
 }
 
 int  CheckLock(struct Lock *lock)
 {
-    if ((lock)->excl_locked)
-	return -1;
-    else
-	return (lock)->readers_reading;
+	if ((lock)->excl_locked)
+		return -1;
+	else
+		return (lock)->readers_reading;
 }
 
 int  WriteLocked(struct Lock *lock)
 {
-    return ((lock)->excl_locked != 0);
+	return ((lock)->excl_locked != 0);
 }
 
+#if 0
+/* We don't use this stuff pjb */
 
+int LockWaiters(struct Lock *lock);
+void BoostSharedLock(struct Lock *lock);
+void UnboostSharedLock(struct Lock *lock);
+
+/* I added this next macro to make sure it is safe to nuke a lock -- Mike K. */
+int  LockWaiters(struct Lock *lock)
+{
+	return ((int) ((lock)->num_waiting));
+}
+
+/* this next is not a flag, but rather a parameter to Lock_Obtain */
+#define BOOSTED_LOCK 6
+
+
+void  BoostSharedLock(struct Lock *lock)
+{
+    if (!(lock)->readers_reading)
+	    (lock)->excl_locked = WRITE_LOCK;
+    else
+	    Lock_Obtain(lock, BOOSTED_LOCK);
+}
+
+/* this must only be called with a WRITE or boosted SHARED lock! */
+void  UnboostSharedLock(struct Lock *lock)
+{
+	(lock)->excl_locked = SHARED_LOCK;
+	if((lock)->wait_states)
+		Lock_ReleaseR(lock);
+}
+
+#endif 0

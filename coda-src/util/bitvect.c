@@ -61,7 +61,6 @@ Bitv Bitv_new(int len)
 void Bitv_free(Bitv *b)
 {
 
-    PRE_BeginCritical();
 
     if ( !(b && *b) ) {
 	PRE_EndCritical();
@@ -73,7 +72,6 @@ void Bitv_free(Bitv *b)
 	free((*b)->words);
     free(*b);
 
-    PRE_EndCritical();
 }
 
 int Bitv_length(Bitv b)

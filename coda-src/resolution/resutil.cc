@@ -75,7 +75,7 @@ long RS_MarkInc(RPC2_Handle RPCid, ViceFid *Fid)
     Volume *volptr = 0;
     Vnode *vptr = 0;
     int errorcode = 0;
-    int status = 0;
+    rvm_return_t status = RVM_SUCCESS;
     
     SLog(9,  "ResMarkInc: Fid = (%x.%x.%x)", FID_(Fid));
     /* Fetch the object and mark inconsistent */
@@ -94,7 +94,7 @@ long RS_MarkInc(RPC2_Handle RPCid, ViceFid *Fid)
     SetIncon(vptr->disk.versionvector);
 
 FreeLocks:
-    RVMLIB_BEGIN_TRANSACTION(restore)
+    rvmlib_begin_transaction(restore);
     SLog(9,  "ResMarkInc: Putting back vnode and volume");
     if (vptr){
 	Error fileCode = 0;
@@ -102,7 +102,7 @@ FreeLocks:
 	CODA_ASSERT(fileCode == 0);
     }
     PutVolObj(&volptr, NO_LOCK);
-    RVMLIB_END_TRANSACTION(flush, &(status));
+    rvmlib_end_transaction(flush, &(status));
     SLog(2,  "ResMarkInc returns code %d", errorcode);
     return(errorcode);
 }

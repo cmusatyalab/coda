@@ -59,8 +59,8 @@ extern "C" {
 #include "predicate.h"
 #include "cure.h"
 
-int	resdirCompareByFidName C_ARGS((resdir_entry **, resdir_entry **));
-int	resdirCompareByName C_ARGS((resdir_entry **, resdir_entry **));
+int	resdirCompareByFidName (resdir_entry **, resdir_entry **);
+int	resdirCompareByName (resdir_entry **, resdir_entry **);
 static int nextindex();
 
 
@@ -75,7 +75,7 @@ VolumeId RepVolume;
 int nConflicts;
 static char AclBuf[2048];
 
-static int getfid C_ARGS((char *path, ViceFid *Fid, ViceVersionVector *VV, struct ViceIoctl *vi)) 
+static int getfid (char *path, ViceFid *Fid, ViceVersionVector *VV, struct ViceIoctl *vi)
 {
     char buf[2048];
     vi->out = buf;
@@ -102,7 +102,7 @@ static int getfid C_ARGS((char *path, ViceFid *Fid, ViceVersionVector *VV, struc
     return 0;
 }
 
-int res_getfid C_ARGS((char *path, ViceFid *Fid, ViceVersionVector *VV))
+int res_getfid (char *path, ViceFid *Fid, ViceVersionVector *VV)
 {
     struct ViceIoctl vi;
     vi.in = 0;
@@ -110,7 +110,7 @@ int res_getfid C_ARGS((char *path, ViceFid *Fid, ViceVersionVector *VV))
     return getfid(path, Fid, VV, &vi);
 }
 
-int res_getmtptfid C_ARGS((char *path, ViceFid *Fid, ViceVersionVector *VV)) 
+int res_getmtptfid (char *path, ViceFid *Fid, ViceVersionVector *VV)
 {
     int getmtpt = 1;
     struct ViceIoctl vi;
@@ -118,14 +118,14 @@ int res_getmtptfid C_ARGS((char *path, ViceFid *Fid, ViceVersionVector *VV))
     vi.in_size = sizeof(int);
     return getfid(path, Fid, VV, &vi);
 }
-char *SkipLine C_ARGS((char *buf))
+char *SkipLine (char *buf)
 {
     while (*buf != '\n') buf++;
     buf++;
     return buf;
 }
 
-struct Acl *ParseAcl C_ARGS((char *buf))
+struct Acl *ParseAcl (char *buf)
 {
     struct Acl *ta;
     struct AclEntry *alist;
@@ -157,7 +157,7 @@ struct Acl *ParseAcl C_ARGS((char *buf))
     return ta;
 }
 
-void FreeAcl C_ARGS((struct Acl *ta))
+void FreeAcl (struct Acl *ta)
 {
     if (ta){
 	if (ta->pluslist) free(ta->pluslist);
@@ -165,7 +165,7 @@ void FreeAcl C_ARGS((struct Acl *ta))
 	free(ta);
     }
 }
-struct Acl *res_getacl C_ARGS((char *path))
+struct Acl *res_getacl (char *path)
 {
     struct ViceIoctl vi;
 
@@ -183,7 +183,7 @@ struct Acl *res_getacl C_ARGS((char *path))
     return(ParseAcl(AclBuf));
 }
 
-int getunixdirreps C_ARGS((int nreplicas, char *names[], resreplica **reps))
+int getunixdirreps (int nreplicas, char *names[], resreplica **reps)
 {
 
   DIR *dirp;
@@ -286,7 +286,7 @@ static int nextindex()
     return(nextavailindex);
 }
 
-void MarkEntriesByFid C_ARGS((long Vnode, long unique))
+void MarkEntriesByFid (long Vnode, long unique)
 {
     resdir_entry *direntryptr = direntriesarr;
     for(int i = 0; i < totaldirentries; i++)
@@ -296,13 +296,13 @@ void MarkEntriesByFid C_ARGS((long Vnode, long unique))
 }
 
 /* this assumes mark_arr to be an array of resdir_entry/s to be marked */
-void MarkEntriesByGroup C_ARGS((resdir_entry **mark_arr, int nentries))
+void MarkEntriesByGroup (resdir_entry **mark_arr, int nentries)
 {
     for (int i = 0; i < nentries; i++)
 	mark_arr[i]->lookedAt = 1;
 }
 
-int GetConflictType C_ARGS((int nreplicas, resreplica *dirs, resdir_entry **deGroup, int nentries, int *conflictType, char *volmtpt))
+int GetConflictType (int nreplicas, resreplica *dirs, resdir_entry **deGroup, int nentries, int *conflictType, char *volmtpt)
 {
     int i;
     *conflictType = STRONGLY_EQUAL;
@@ -322,7 +322,7 @@ int GetConflictType C_ARGS((int nreplicas, resreplica *dirs, resdir_entry **deGr
     
 }
 
-void InitListHdr C_ARGS((int nreplicas, resreplica *dirs, struct listhdr **opList))
+void InitListHdr (int nreplicas, resreplica *dirs, struct listhdr **opList)
 {   struct listhdr *lh;
     *opList = lh = (struct listhdr *) malloc(nreplicas * sizeof(struct listhdr));
     for (int i = 0; i < nreplicas; i++){
@@ -333,7 +333,7 @@ void InitListHdr C_ARGS((int nreplicas, resreplica *dirs, struct listhdr **opLis
 }
 
 /* inserts a copy of a repair struct into the repair ops list */
-int InsertListHdr C_ARGS((struct repair *rep, struct listhdr **ops, int index))
+int InsertListHdr (struct repair *rep, struct listhdr **ops, int index)
 {
     int size = (*ops)[index].repairCount;
     struct repair *repList;
@@ -361,7 +361,7 @@ int InRepairList (struct listhdr *opList, unsigned opcode, long vnode, long uniq
 }
 
 /* checks if a fid has been created by an earlier operation in a repair list */
-int IsCreatedEarlier C_ARGS((struct listhdr **opList, int index, long vnode, long unique)) 
+int IsCreatedEarlier (struct listhdr **opList, int index, long vnode, long unique)
 {
     struct repair *repList = (*opList)[index].repairList;
     unsigned int count = (*opList)[index].repairCount;
@@ -525,8 +525,8 @@ int NameNameResolve(int first, int last, int nreplicas, resreplica *dirs, struct
 
 /* dirresolve : returns NNCONFLICTS(-1) if this resolve is definitely not the last needed compare/repair 
    return 0 if the compare implied that the resulting repair will make the directories equal */
-int dirresolve C_ARGS((int nreplicas, resreplica *dirs, int (*cbfn)(char *), 
-		       struct listhdr **opList, char *volmtpt))
+int dirresolve (int nreplicas, resreplica *dirs, int (*cbfn)(char *), 
+		       struct listhdr **opList, char *volmtpt)
 {
     int i;
 
@@ -591,13 +591,13 @@ int dirresolve C_ARGS((int nreplicas, resreplica *dirs, int (*cbfn)(char *),
     return 0;
 }   
 
-int resdirCompareByName C_ARGS((resdir_entry **a, resdir_entry **b))
+int resdirCompareByName (resdir_entry **a, resdir_entry **b)
 {
     return(strcmp((*a)->name, (*b)->name));
 }
 
 /* this sorts by Fid as the primary index and the name as the secondary index */
-int resdirCompareByFidName C_ARGS((resdir_entry **a, resdir_entry **b))
+int resdirCompareByFidName (resdir_entry **a, resdir_entry **b)
 {
     if ((u_long)((*a)->vno) < (u_long)((*b)->vno)) return -1;
     else if ((u_long)((*a)->vno) > (u_long)((*b)->vno)) return 1; 
@@ -607,7 +607,7 @@ int resdirCompareByFidName C_ARGS((resdir_entry **a, resdir_entry **b))
 }
 
 /* clean up routine */
-void resClean C_ARGS((int nreplicas, resreplica *dirs, struct listhdr *lh))
+void resClean (int nreplicas, resreplica *dirs, struct listhdr *lh)
 {
     int i;
     if (dirs){

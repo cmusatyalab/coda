@@ -133,7 +133,8 @@ hashent *vhashtab::find(VolumeId volid)
 }
 
 /* Returns the number of volumes in the table */
-int vhashtab::volumes() {
+int vhashtab::volumes() 
+{
     return(vols);
 }
 
@@ -176,12 +177,13 @@ int HashLookup(VolumeId volid) {
 
 /* insert a new volume into the volume name hash table. */
 /* Returns -1 if the entry already exists */
-int HashInsert(VolumeId volid, int vol_index) {
-    hashent *vol = VolTable->find(volid);
-    if (vol != NULL) return (-1);
-    vol = new hashent(volid, vol_index);
-    VolTable->add(vol);
-    return(0);
+int HashInsert(VolumeId volid, int vol_index) 
+{
+	hashent *vol = VolTable->find(volid);
+	if (vol != NULL) return (-1);
+	vol = new hashent(volid, vol_index);
+	VolTable->add(vol);
+	return(0);
 }
 
 /* delete a volume from the volume name hash table. */

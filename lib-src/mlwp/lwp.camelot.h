@@ -24,7 +24,7 @@ Coda are listed in the file CREDITS.
 #include    <cthreads.h>
 
 /* Camelot support for LWP package */
-typedef void (*CamThreadProc_t) C_ARGS((void *, int));
+typedef void (*CamThreadProc_t) (void *, int);
 extern int Camelot_Running;		/* runtime flag for lwp */
 extern void Camelot_LWPInit();		/* must be called before LWP_Init */
 

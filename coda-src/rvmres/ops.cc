@@ -372,7 +372,8 @@ void CreateResLog(Volume *vol, Vnode *vptr) {
   Note that this routine is overloaded.
  */
 
-int SpoolVMLogRecord(vle *v, Volume *vol, ViceStoreId *stid, int op, va_list ap) {
+int SpoolVMLogRecord(vle *v, Volume *vol, ViceStoreId *stid, int op, va_list ap) 
+{
     CODA_ASSERT(v);
     SLog(9,  "Entering SpoolVMLogRecord_vle(0x%x.%x.%x)",
 	    V_id(vol), v->vptr->vnodeNumber, v->vptr->disk.uniquifier);
@@ -383,26 +384,25 @@ int SpoolVMLogRecord(vle *v, Volume *vol, ViceStoreId *stid, int op, va_list ap)
 
     /* reserve a slot for the record in volume log */
     if (V_VolLog(vol)->AllocRecord(&index, &seqno)) {
-	SLog(0, 
-	       "SpoolVMLogRecord - no space left in volume");
+	SLog(0, "SpoolVMLogRecord - no space left in volume");
 	SLog(0, "- returns ENOSPC\n");
 	return(ENOSPC);
     }
 
     /* form the log record in vm */
-    rsle *rsl = new rsle(stid, v->vptr->vnodeNumber, v->vptr->disk.uniquifier, op, index, seqno);
+    rsle *rsl = new rsle(stid, v->vptr->vnodeNumber, v->vptr->disk.uniquifier, 
+			 op, index, seqno);
     CODA_ASSERT(rsl);
     rsl->init(op, ap);
 
     //append record to intention list 
     v->rsl.append(rsl);
-
-    SLog(9,  
-	   "Leaving SpoolVMLogRecord_vle() - returns SUCCESS\n");
+    SLog(9,  "Leaving SpoolVMLogRecord_vle() - returns SUCCESS\n");
     return(0);
 }
 
-int SpoolVMLogRecord(vle *v, Volume *vol, ViceStoreId *stid, int op ...) {
+int SpoolVMLogRecord(vle *v, Volume *vol, ViceStoreId *stid, int op ...) 
+{
     SLog(9,  "Entering SpoolVMLogRecord_vle(0x%x.%x.%x)",
 	    V_id(vol), v->vptr->vnodeNumber, v->vptr->disk.uniquifier);
 
@@ -411,13 +411,13 @@ int SpoolVMLogRecord(vle *v, Volume *vol, ViceStoreId *stid, int op ...) {
     int errorCode = SpoolVMLogRecord(v, vol, stid, op, ap);
     va_end(ap);
 
-    SLog(9,  
-	   "Leaving SpoolVMLogRecord() - returns %d\n",
-	   errorCode);
+    SLog(9, "Leaving SpoolVMLogRecord() - returns %d\n", errorCode);
     return(errorCode);
 }
 
-int SpoolVMLogRecord(dlist *vlist, Vnode *vptr, Volume *vol, ViceStoreId *stid, int op ...) {
+int SpoolVMLogRecord(dlist *vlist, Vnode *vptr, Volume *vol, ViceStoreId *stid, 
+		     int op ...) 
+{
     SLog(9,  "Entering SpoolVMLogRecord_dlist(0x%x.%x.%x) ",
 	    V_id(vol), vptr->vnodeNumber, vptr->disk.uniquifier);
 
@@ -426,13 +426,13 @@ int SpoolVMLogRecord(dlist *vlist, Vnode *vptr, Volume *vol, ViceStoreId *stid, 
     int errorCode = SpoolVMLogRecord(vlist, vptr, vol, stid, op, ap);
     va_end(ap);
 
-    SLog(9,  
-	   "Leaving SpoolVMLogRecord() - returns %d\n",
-	   errorCode);
+    SLog(9, "Leaving SpoolVMLogRecord() - returns %d\n", errorCode);
     return(errorCode);
 }
 
-int SpoolVMLogRecord(dlist *vlist, vle *v,  Volume *vol, ViceStoreId *stid, int op ...) {
+int SpoolVMLogRecord(dlist *vlist, vle *v,  Volume *vol, ViceStoreId *stid, 
+		     int op ...) 
+{
     SLog(9,  "Entering SpoolVMLogRecord_dlist(0x%x.%x.%x) ",
 	    V_id(vol), v->vptr->vnodeNumber, v->vptr->disk.uniquifier);
 
@@ -446,7 +446,8 @@ int SpoolVMLogRecord(dlist *vlist, vle *v,  Volume *vol, ViceStoreId *stid, int 
 }
 
 int SpoolVMLogRecord(dlist *vlist, Vnode *vptr, Volume *vol, ViceStoreId *stid, 
-		     int op, va_list ap) {
+		     int op, va_list ap) 
+{
     ViceFid fid;
     FormFid(fid, V_id(vol), vptr->vnodeNumber, vptr->disk.uniquifier);
     vle *v = FindVLE(*vlist, &fid);
@@ -459,11 +460,11 @@ int SpoolVMLogRecord(dlist *vlist, Vnode *vptr, Volume *vol, ViceStoreId *stid,
 }
 
 int SpoolVMLogRecord(dlist *vlist, vle *v, Volume *vol, ViceStoreId *stid, 
-		     int op, va_list ap) {
+		     int op, va_list ap) 
+{
     CODA_ASSERT(v);
-    SLog(9,  
-	   "Entering SpoolVMLogRecord_vle(0x%x.%x.%x)",
-	    V_id(vol), v->vptr->vnodeNumber, v->vptr->disk.uniquifier);
+    SLog(9, "Entering SpoolVMLogRecord_vle(0x%x.%x.%x)",
+	 V_id(vol), v->vptr->vnodeNumber, v->vptr->disk.uniquifier);
 
     int errorcode = 0;
     int index = -1;
@@ -472,8 +473,7 @@ int SpoolVMLogRecord(dlist *vlist, vle *v, Volume *vol, ViceStoreId *stid,
     /* reserve a slot for the record in volume log */
     if (V_VolLog(vol)->AllocRecord(&index, &seqno)) {
 	if (V_VolLog(vol)->AllocViaWrapAround(&index, &seqno, vol, vlist)) {
-	    SLog(0, 
-		   "SpoolVMLogRecord - no space left in volume");
+	    SLog(0, "SpoolVMLogRecord - no space left in volume");
 	    SLog(0, "- returns ENOSPC\n");
 	    return(ENOSPC);
 	}
@@ -486,8 +486,7 @@ int SpoolVMLogRecord(dlist *vlist, vle *v, Volume *vol, ViceStoreId *stid,
     rsl->init(op, ap);
     //append record to intention list 
     v->rsl.append(rsl);
-    SLog(9,  
-	   "Leaving SpoolVMLogRecord_vle() - returns SUCCESS\n");
+    SLog(9,  "Leaving SpoolVMLogRecord_vle() - returns SUCCESS\n");
     return(0);
 }
 

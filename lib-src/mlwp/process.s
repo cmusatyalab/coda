@@ -59,7 +59,7 @@ Pittsburgh, PA.
 #
 */
 
-	.globl	_PRE_Block
+	.globl	_PRE_Block 
 
 topstack =	0
 
@@ -335,15 +335,11 @@ _returnto:
 /* Code for MIPS R2000/R3000 architecture
  * Written by Zalman Stern April 30th, 1989.
  */
-#if	MACH
-#include <mips/regdef.h>
-#define s8	fp
-#else
 #include <regdef.h>
 #ifndef s8
 #define s8	fp
 #endif  s8
-#endif
+
 #define regspace 9 * 4 + 4 + 6 * 8
 #define floats 0
 #define registers floats + 6 * 8

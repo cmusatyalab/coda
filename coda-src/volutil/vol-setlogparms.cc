@@ -50,7 +50,9 @@ extern "C" {
 #include <logalloc.h>
 #include <recov_vollog.h>
 
+#if 0
 extern PMemMgr *LogStore[];
+#endif 
 
 /*
   S_VolSetLogParms: Set the parameters for the resolution log
@@ -62,7 +64,7 @@ long S_VolSetLogParms(RPC2_Handle rpcid, VolumeId Vid, RPC2_Integer OnFlag,
     Error error;
     ProgramType *pt;
     int rc = 0;
-    int status = 0;
+    rvm_return_t status = RVM_SUCCESS;
 
     VLog(9, "Entering S_VolSetLogParms: rpcid = %d, Volume = %x", 
 	 rpcid, Vid);
@@ -99,7 +101,7 @@ long S_VolSetLogParms(RPC2_Handle rpcid, VolumeId Vid, RPC2_Integer OnFlag,
 	return EINVAL;
     }
 
-    RVMLIB_BEGIN_TRANSACTION(restore);
+    rvmlib_begin_transaction(restore);
 
     if (maxlogsize != 0) {
 	if ((maxlogsize & 0x1F) != 0) {
@@ -108,6 +110,7 @@ long S_VolSetLogParms(RPC2_Handle rpcid, VolumeId Vid, RPC2_Integer OnFlag,
 	    rvmlib_abort(EINVAL);
 	    goto exit;
 	}
+#if 0
 	if (AllowResolution && V_VMResOn(volptr)) {
 	    if (LogStore[V_volumeindex(volptr)]->maxRecordsAllowed > maxlogsize) {
 		VLog(0, "S_VolSetLogParms: Cant reduce log size");
@@ -121,6 +124,7 @@ long S_VolSetLogParms(RPC2_Handle rpcid, VolumeId Vid, RPC2_Integer OnFlag,
 	    LogStore[V_volumeindex(volptr)]->maxRecordsAllowed = maxlogsize;
 	    V_maxlogentries(volptr) = maxlogsize;
 	}
+#endif
 	if (AllowResolution && V_RVMResOn(volptr) && V_VolLog(volptr)){
 	    V_VolLog(volptr)->Increase_Admin_Limit(maxlogsize);
 	    VLog(0, "S_VolSetLogParms: Changed RVM log size to %d\n",
@@ -134,7 +138,7 @@ long S_VolSetLogParms(RPC2_Handle rpcid, VolumeId Vid, RPC2_Integer OnFlag,
 	rvmlib_abort(error);
 	goto exit;
     }
-    RVMLIB_END_TRANSACTION(flush, &(status));
+    rvmlib_end_transaction(flush, &(status));
 
  exit:
     VPutVolume(volptr);

@@ -88,7 +88,7 @@ long S_VolShowVnode(RPC2_Handle rpcid, RPC2_Unsigned formal_volid,
     Vnode *vnp = 0;
     Error error;
     SE_Descriptor sed;
-    int status;	    // transaction status variable
+    rvm_return_t status = RVM_SUCCESS;
     long rc = 0;
     ProgramType *pt;
     VolumeId tmpvolid;
@@ -106,7 +106,7 @@ long S_VolShowVnode(RPC2_Handle rpcid, RPC2_Unsigned formal_volid,
     if (!XlateVid(&volid))
 	volid = tmpvolid;
 
-    RVMLIB_BEGIN_TRANSACTION(restore);
+    rvmlib_begin_transaction(restore);
     VInitVolUtil(volumeUtility);
 /*    vp = VAttachVolume(&error, volid, V_READONLY); */
     vp = VGetVolume(&error, volid);
@@ -172,7 +172,7 @@ long S_VolShowVnode(RPC2_Handle rpcid, RPC2_Unsigned formal_volid,
 	rvmlib_abort(VFAIL);
     }
 
-    RVMLIB_END_TRANSACTION(flush, &(status));
+    rvmlib_end_transaction(flush, &(status));
  exit:
 
     if (vnp){

@@ -51,7 +51,6 @@ Pittsburgh, PA.
 #include <sys/time.h>
 #include <netdb.h>
 #include "timer.h"
-#include "preempt.h"
 #include "lwp.h"
 #include "rpc2.h"
 #include "rpc2.private.h"

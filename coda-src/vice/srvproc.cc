@@ -341,7 +341,7 @@ START_TIMING(GetAttr_Total);
 	} else {
 	    ViceFid pFid;
 
-	    VN_VN2PFid(v->vptr, volptr, &pFid);
+    VN_VN2PFid(v->vptr, volptr, &pFid);
 	    av = AddVLE(*vlist, &pFid);
 	    if (errorCode = GetFsObj(&pFid, &volptr, &av->vptr, 
 				     READ_LOCK, NO_LOCK, InconOK, 0, 0))
@@ -1717,9 +1717,8 @@ START_TIMING(MakeDir_Total);
 					     ViceMakeDir_OP, Name, 
 					     NewDid->Vnode, NewDid->Unique, 
 					     client?client->Id:0)) 
-		SLog(0, 
-		       "ViceMakeDir: Error %d during SpoolVMLogRecord for parent\n",
-		       errorCode);
+		SLog(0, "ViceMakeDir: Error %d during SpoolVMLogRecord for parent\n",
+		     errorCode);
 	    // spool child's log record 
 	    if ( errorCode == 0 )
 		    CODA_ASSERT(DC_Dirty(cv->vptr->dh));
@@ -1728,9 +1727,8 @@ START_TIMING(MakeDir_Total);
 							    NewDid->Vnode, 
 							    NewDid->Unique,
 							    client?client->Id:0)))
-		SLog(0, 
-		       "ViceMakeDir: Error %d during SpoolVMLogRecord for child\n",
-		       errorCode);
+		SLog(0, "ViceMakeDir: Error %d during SpoolVMLogRecord for child\n",
+		     errorCode);
 	}
     
 
@@ -2560,7 +2558,7 @@ int ValidateParms(RPC2_Handle RPCid, ClientEntry **client, int *ReplicatedOp,
     if ( replicated ) {
 	    SLog(10, "ValidateParms: %x --> %x", GroupVid, *Vidp);
     } else {
-	    SLog(10, "ValidateParms: using replica %s", *Vidp);
+	    SLog(10, "ValidateParms: using replica %x", *Vidp);
     }
 
     return(0);
@@ -2651,12 +2649,12 @@ FreeLocks:
 
 	if (*vptr) {
 START_TIMING(AllocVnode_Transaction);
-	    int status = 0;
-	    RVMLIB_BEGIN_TRANSACTION(restore);
+	    rvm_return_t status = RVM_SUCCESS;
+	    rvmlib_begin_transaction(restore);
 	    VPutVnode(&fileCode, *vptr);
 	    CODA_ASSERT(fileCode == 0);
 	    *vptr = 0;
-	    RVMLIB_END_TRANSACTION(flush, &(status));
+	    rvmlib_end_transaction(flush, &(status));
 END_TIMING(AllocVnode_Transaction);
 	}
     }
@@ -4463,6 +4461,8 @@ static void Perform_RR(ClientEntry *client, VolumeId VSGVolnum, Volume *volptr,
     if (vptr->disk.type == vDirectory) {
 	PDirHandle cDir;
 	cDir = VN_SetDirHandle(vptr);
+	/* put objects will detect this and DI_Dec the inode */
+	DC_SetDirty(vptr->dh, 1);
 	DH_FreeData(cDir);
 	VN_PutDirHandle(vptr);
     }
@@ -4491,9 +4491,9 @@ static void Perform_RR(ClientEntry *client, VolumeId VSGVolnum, Volume *volptr,
 
 #ifdef _TIMEPUTOBJS_
 #undef RVMLIB_END_TOP_LEVEL_TRANSACTION_2 
-#undef RVMLIB_END_TRANSACTION 
+#undef rvmlib_end_transaction 
 
-#define	RVMLIB_END_TRANSACTION(flush_mode, statusp)\
+#define	rvmlib_end_transaction(flush_mode, statusp)\
 	/* User code goes in this block. */\
     }\
 \
@@ -4537,8 +4537,8 @@ START_NSC_TIMING(PutObjects_TransactionEnd);\
 END_NSC_TIMING(PutObjects_TransactionEnd);\
 }
 
-#define RVMLIB_END_TRANSACTION(flush, &(status)); \
-    RVMLIB_END_TRANSACTION(flush, (&(status)))
+#define rvmlib_end_transaction(flush, &(status)); \
+    rvmlib_end_transaction(flush, (&(status)))
 
 
 #endif _TIMEPUTOBJS_
@@ -4578,8 +4578,8 @@ START_TIMING(PutObjects_Transaction);
     /* Separate branches for Mutating and Non-Mutating cases are to
        avoid transaction in the latter. */
     if (TranFlag) {
-	int status = 0;
-	RVMLIB_BEGIN_TRANSACTION(restore);
+	rvm_return_t status = RVM_SUCCESS;
+	rvmlib_begin_transaction(restore);
 
 	/* Put the directory pages, the vnodes, and the volume. */
 	/* Don't mutate inodes until AFTER transaction commits. */
@@ -4705,7 +4705,7 @@ START_TIMING(PutObjects_Transaction);
 
 	/* Volume. */
 	PutVolObj(&volptr, LockLevel);
-	RVMLIB_END_TRANSACTION(flush, &(status));
+	rvmlib_end_transaction(flush, &(status));
 	CODA_ASSERT(status == 0);
     } else { 
 /*  NO transaction */

@@ -462,7 +462,7 @@ long FS_ViceSetVV(RPC2_Handle cid, ViceFid *Fid, ViceVersionVector *VV, RPC2_Cou
     Volume *volptr = 0;
     ClientEntry *client = 0;
     long errorCode = 0;
-    int	camstatus = 0;
+    rvm_return_t camstatus = RVM_SUCCESS;
 
     SLog(9,  "Entering ViceSetVV(%u.%d.%d)", Fid->Volume, Fid->Vnode, Fid->Unique);
     
@@ -490,7 +490,7 @@ long FS_ViceSetVV(RPC2_Handle cid, ViceFid *Fid, ViceVersionVector *VV, RPC2_Cou
     bcopy((const void *)VV, (void *) &(Vnode_vv(vptr)), (int)sizeof(ViceVersionVector));
     
 FreeLocks:
-    RVMLIB_BEGIN_TRANSACTION(restore)
+    rvmlib_begin_transaction(restore);
        int fileCode = 0;
        if (vptr){
 	   VPutVnode((Error *)&fileCode, vptr);
@@ -498,7 +498,7 @@ FreeLocks:
        }
        if (volptr)
 	   PutVolObj(&volptr, NO_LOCK);
-    RVMLIB_END_TRANSACTION(flush, &(camstatus));       
+    rvmlib_end_transaction(flush, &(camstatus));       
     if (camstatus){
 	SLog(0,  "ViceSetVV: Error during transaction");
 	return(camstatus);
@@ -691,10 +691,12 @@ FreeLocks:
     PutObjects(errorCode, volptr, SHARED_LOCK, vlist, deltablocks, 1);
 
     /* truncate log of object being repaired - only leave repair record */
+#if 0
     if (!errorCode && !FRep && AllowResolution && vmresolutionOn) {
 	CODA_ASSERT(volindex != -1);
 	TruncResLog(volindex, Fid->Vnode, Fid->Unique);
     }
+#endif
     return(errorCode);
 }
 
@@ -2141,7 +2143,7 @@ long InternalCOP2(RPC2_Handle cid, ViceStoreId *StoreId, ViceVersionVector *Upda
     for (i = 0; i < MAXFIDS; i++) vptrs[i] = 0;
     cpent *cpe = 0;
     int nfids = 0;
-    int	status = 0;	    /* transaction status variable */
+    rvm_return_t status = RVM_SUCCESS;
     vmindex freed_indices;
     recov_vol_log *vollog = NULL;
 
@@ -2179,7 +2181,7 @@ START_TIMING(COP2_Total);
     if (!errorCode && volptr && V_RVMResOn(volptr)) vollog = V_VolLog(volptr);
 
 START_TIMING(COP2_Transaction);
-    RVMLIB_BEGIN_TRANSACTION(restore)
+    rvmlib_begin_transaction(restore);
     if (!errorCode) {
 	/* Update the version vectors. */
 	for (i = 0; i < nfids; i++)
@@ -2196,7 +2198,7 @@ START_TIMING(COP2_Transaction);
 
     /* Put the volume. */
     PutVolObj(&volptr, NO_LOCK);
-    RVMLIB_END_TRANSACTION(flush, &(status));
+    rvmlib_end_transaction(flush, &(status));
 END_TIMING(COP2_Transaction);
 
     if (cpe) {

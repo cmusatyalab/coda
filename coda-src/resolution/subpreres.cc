@@ -69,7 +69,7 @@ long RS_FetchDirContents(RPC2_Handle RPCid, ViceFid *Fid,
     char *buf = NULL;
     PDirHandle dh;
     int size = 0;
-    int camstatus = 0;
+    rvm_return_t camstatus = RVM_SUCCESS;
     SE_Descriptor sid;
 
     SLog(9, "RS_FetchDirContents: Fid = %s", FID_(Fid));
@@ -160,7 +160,7 @@ long RS_FetchDirContents(RPC2_Handle RPCid, ViceFid *Fid,
   Exit:
     if (buf) 
 	    free(buf);
-    RVMLIB_BEGIN_TRANSACTION(restore)
+    rvmlib_begin_transaction(restore);
     SLog(9, "RS_FetchDirContents: Putting back vnode and volume for %s", FID_(Fid));
     if (vptr){
 	    Error fileCode = 0;
@@ -168,7 +168,7 @@ long RS_FetchDirContents(RPC2_Handle RPCid, ViceFid *Fid,
 	    CODA_ASSERT(fileCode == 0);
     }
     PutVolObj(&volptr, NO_LOCK);
-    RVMLIB_END_TRANSACTION(flush, &(camstatus));
+    rvmlib_end_transaction(flush, &(camstatus));
     CODA_ASSERT(camstatus == 0);
     SLog(2, "RS_FetchDirContents returns code %d, fid %s", errorcode, FID_(Fid));
     return(errorcode);
@@ -180,7 +180,7 @@ long RS_ClearIncon(RPC2_Handle RPCid, ViceFid *Fid,
     Vnode *vptr = 0;
     Volume *volptr = 0;
     VolumeId VSGVolnum = Fid->Volume;
-    int status = 0;
+    rvm_return_t status = RVM_SUCCESS;
     int errorcode = 0;
 
     conninfo *cip = GetConnectionInfo(RPCid);
@@ -229,7 +229,7 @@ long RS_ClearIncon(RPC2_Handle RPCid, ViceFid *Fid,
     }
 
 FreeLocks:
-    RVMLIB_BEGIN_TRANSACTION(restore);
+    rvmlib_begin_transaction(restore);
     /* release lock on vnode and put the volume */
     Error filecode = 0;
     if (vptr) {
@@ -237,7 +237,7 @@ FreeLocks:
 	CODA_ASSERT(filecode == 0);
     }
     PutVolObj(&volptr, NO_LOCK);
-    RVMLIB_END_TRANSACTION(flush, &(status));
+    rvmlib_end_transaction(flush, &(status));
     SLog(9, "RS_ClearIncon returns %d, fid %s", errorcode, FID_(Fid));
     return(errorcode);
 }

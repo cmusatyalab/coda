@@ -16,12 +16,6 @@ listed in the file CREDITS.
 
 #*/
 
-
-
-
-
-
-
 /*
  *
  * Specification of the Volume name hash table.

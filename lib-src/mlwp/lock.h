@@ -43,21 +43,18 @@ Pittsburgh, PA.
 #include <lwp.h>
 /* all locks wait on excl_locked except for READ_LOCK, which waits on readers_reading */
 struct Lock {
-    unsigned char   wait_states;	/* type of lockers waiting */
-    unsigned char   excl_locked;	/* anyone have boosted, shared or write lock? */
-    unsigned char   readers_reading;	/* # readers actually with read locks */
-    unsigned char   num_waiting;	/* probably need this soon */
-    PROCESS         excl_locker;
+	unsigned char   wait_states;	/* type of lockers waiting */
+	unsigned char   excl_locked;	/* anyone have boosted, shared or write lock? */
+	unsigned char   readers_reading;/* # readers actually with read locks */
+	unsigned char   num_waiting;	/* probably need this soon */
+	PROCESS         excl_locker;
 };
 
 typedef struct Lock Lock;
 
-
 #define READ_LOCK	1
 #define WRITE_LOCK	2
 #define SHARED_LOCK	4
-/* this next is not a flag, but rather a parameter to Lock_Obtain */
-#define BOOSTED_LOCK 6
 
 /* next defines wait_states for which we wait on excl_locked */
 #define EXCL_LOCKS (WRITE_LOCK|SHARED_LOCK)
@@ -66,12 +63,9 @@ typedef struct Lock Lock;
 void ObtainReadLock(struct Lock *lock);
 void ObtainWriteLock(struct Lock *lock);
 void ObtainSharedLock(struct Lock *lock);
-void BoostSharedLock(struct Lock *lock);
-void UnboostSharedLock(struct Lock *lock);
 void ReleaseReadLock(struct Lock *lock);
 void ReleaseWriteLock(struct Lock *lock);
 void ReleaseSharedLock(struct Lock *lock);
-int LockWaiters(struct Lock *lock);
 int CheckLock(struct Lock *lock);
 int WriteLocked(struct Lock *lock);
 extern void Lock_Init (struct Lock*);

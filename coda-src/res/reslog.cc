@@ -76,7 +76,8 @@ PMemMgr *LogStore[MAXVOLS];
 olist *VolLogPtrs[MAXVOLS];	/* olist *, because it is an array of olists*/
 
 /* initialize the storage allocator for the resolution log */
-void InitLogStorage() {
+void InitLogStorage() 
+{
     for (int i = 0; i < MAXVOLS; i++) {
 	/* initialize to empty storage */
 	if (SRV_RVM(VolumeList[i]).data.volumeInfo)
@@ -87,15 +88,6 @@ void InitLogStorage() {
 		LogStore[i] = new PMemMgr((int)sizeof(rlent), 0, i, MAXLOGSIZE);
 	else
 	    LogStore[i] = NULL;
-/* bug fix: comment out original logic */
-#if 0
-	if ((SRV_RVM(VolumeList[i]).data.volumeInfo) && 
-	    (SRV_RVM(VolumeList[i]).data.volumeInfo->maxlogentries))
-	    LogStore[i] = new PMemMgr(sizeof(rlent), 0, i, 
-		      SRV_RVM(VolumeList[i]).data.volumeInfo->maxlogentries);
-	else
-	    LogStore[i] = new PMemMgr(sizeof(rlent), 0, i, MAXLOGSIZE);
-#endif 0
 
 	VolLogPtrs[i] = NULL;
     }

@@ -42,6 +42,13 @@ Pittsburgh, PA.
 #include <sys/time.h>
 #include <stdio.h>
 
+
+#ifndef TRUE
+#define TRUE 1
+#define FALSE 0
+#endif  TRUE
+
+
 /*
     LWP_VERSION is first argument to LWP_Init().
     Ensures header matches library.

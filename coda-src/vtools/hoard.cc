@@ -147,12 +147,12 @@ class delete_entry : public olink {
     }
 };
 
-class list_entry : public olink {
+class listentry : public olink {
   public:
     hdb_list_msg msg;
     char tname[MAXPATHLEN];
 
-    list_entry(char *lname, vuid_t luid) {
+    listentry(char *lname, vuid_t luid) {
 	sprintf(msg.outfile, "/usr/coda/tmp/XXXXXX");
 	(void)mktemp(msg.outfile);
 
@@ -498,7 +498,7 @@ next_cmd:
 		    }
 		}
 
-		List.append(new list_entry(lname, luid));
+		List.append(new listentry(lname, luid));
 		break;
 		}
 
@@ -1011,8 +1011,8 @@ static void DoDeletes(olist& Delete) {
 
 static void DoLists(olist& List) {
     olist_iterator next(List);
-    list_entry *l;
-    while (l = (list_entry *)next()) {
+    listentry *l;
+    while (l = (listentry *)next()) {
 	struct ViceIoctl vi;
 	vi.in = (char *)&l->msg;
 	vi.in_size = sizeof(hdb_list_msg);

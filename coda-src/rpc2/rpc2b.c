@@ -53,7 +53,6 @@ Pittsburgh, PA.
 #include <sys/file.h>
 #include "lwp.h"
 #include "timer.h"
-#include "preempt.h"
 #include "rpc2.h"
 #include "rpc2.private.h"
 #include "se.h"

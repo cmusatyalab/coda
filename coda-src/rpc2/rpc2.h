@@ -41,7 +41,6 @@ Pittsburgh, PA.
 #ifndef _RPC2_
 #define _RPC2_
 
-#include <cargs.h> /* from LWP */
 #include <sys/time.h>  
 #include <netinet/in.h>
 

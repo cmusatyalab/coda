@@ -124,12 +124,15 @@ long RS_LockAndFetch(RPC2_Handle RPCid, ViceFid *Fid,
     /* set log size as the volume log size - 
        that is the max log size a client 
        can send in the collect logs phase */
+#if 0
     if (AllowResolution && V_VMResOn(volptr)) {
 	    nentries = LogStore[V_volumeindex(volptr)]->maxEntries;
 	    *logsize = ((nentries == 0) ? 1 : nentries) *
 		    LogStore[V_volumeindex(volptr)]->classSize;
 	    SLog(39,  "RS_LockAndFetch: Returning logsize = %d", *logsize);
-    } else if (AllowResolution && V_RVMResOn(volptr)) {
+    } else 
+#endif
+    if (AllowResolution && V_RVMResOn(volptr)) {
 	    // set size to max possible 
 	    // by using rename_rle we hope that all strings will fit 
 	    // in the buffer length being returned.

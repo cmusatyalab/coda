@@ -1,6 +1,6 @@
 # TARGETS:
 #	install:
-#		lock.h lwp.h preempt.h timer.h cargs.h ->$(INCLSPECIAL)
+#		lock.h lwp.h timer.h ->$(INCLSPECIAL)
 #		liboldlwp.a -> $(LIBSPECIAL)
 #		test rw -> $(BINDIR)
 #	 all:
@@ -38,7 +38,7 @@ include $(TOPDIR)/Makeconf
 CFLAGS += -Wall 
 
 LIBRARIES = liboldlwp.a
-HEADERS   = lock.h lwp.h preempt.h timer.h cargs.h
+HEADERS   = lock.h lwp.h timer.h
 TESTS     = test rw  # tdb doesn't work yet
 
 OLD_LIBS = liboldlwp.a $(LIBCOMPAT) $(LIBBASE)
@@ -56,27 +56,6 @@ AFLAGS := -DLWPDEBUG $(AFLAGS) $(oldFLAGS)
 old: liboldlwp.a
 liboldlwp.a: $(OFILES)
 
-# Since we never use libnewlwp.a, don't compile it unless its asked for.
-new: libnewlwp.a
-# If building libnewlwp.a, clean up before and after yourself.
-# also flush -DOLDLWP by overriding oldFLAGS
-#libnewlwp.a: $(OFILES)
-libnewlwp.a:
-	$(RM) $(OFILES)
-	$(MAKE) oldFLAGS= $(OFILES)
-	$(AR) rv $@ $(OFILES)
-	ranlib $@
-	$(RM) $(OFILES)
-
-# Confusion
-confused:
-	@echo "Type 'make old' for liboldlwp.a, and"
-	@echo "Type 'make new' for libnewlwp.a."
-	@exit 1
-
-# Dependencies for object files
-$(OFILES):  $(HEADERS) $(PRIVHFILES)
-
 # Test programs
 test:	test.o $(OLD_LIBS)
 	${CC} ${LIBFLAGS} $(oldFLAGS) test.o $(OLD_LIBS) -o test
@@ -87,16 +66,6 @@ tdb:	tdb.o $(OLD_LIBS)
 rw:	rw.o $(OLD_LIBS)
 	$(CC) $(LIBFLAGS) $(oldFLAGS) rw.o $(OLD_LIBS) -o rw
 
-newtest:test.o $(NEW_LIBS)
-	rm test.o
-	${CC} ${LIBFLAGS} test.o $(NEW_LIBS) -o newtest
 
-neqtdb:	tdb.o $(NEW_LIBS)
-	rm tdb.o
-	$(CC) $(LIBFLAGS) tdb.o $(NEW_LIBS) -o newtdb 
-
-newrw:	rw.o $(NEW_LIBS)
-	rm rw.o
-	$(CC) $(LIBFLAGS) rw.o $(NEW_LIBS) -o newrw
 
 include $(TOPDIR)/configs/Makerules

@@ -38,10 +38,10 @@ extern "C" {
 #include "resolve.h"
 #include "repio.h"
 
-extern int getunixdirreps C_ARGS((int , char **, resreplica **));
-extern int dirresolve C_ARGS((int , resreplica *, int (*)(char *), struct listhdr **));
+extern int getunixdirreps (int , char **, resreplica **);
+extern int dirresolve (int , resreplica *, int (*)(char *), struct listhdr **);
 
-void main C_ARGS((int argc, char **argv))
+void main (int argc, char **argv)
 {
     int	nreplicas;
     resreplica *dirs;

@@ -491,7 +491,6 @@ int IOMGR_SoftSig(aproc, arock)
 
 int IOMGR_Initialize()
 {
-    extern int TM_Init C_ARGS((register struct TM_Elem **list));
 
     /* If lready initialized, just return */
     if (IOMGR_Id != NULL) return LWP_SUCCESS;

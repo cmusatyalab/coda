@@ -528,8 +528,7 @@ int VolDiskInfoById(Error *ec, VolumeId volid, VolumeDiskData *vol) {
     if (myind == -1) {
 	VLog(0,  "VolDiskInfoById: HashLookup failed for volume %x", volid);
 	*ec = VNOVOL;  /* volume not found */
-    }
-    else {
+    } else {
 	ExtractVolDiskInfo(ec, myind, vol);
     }
 

@@ -53,11 +53,11 @@ extern "C" {
 #include <lwp.h>
 #include <lock.h>
 #include <volutil.h>
+#include <util.h>
 #ifdef __cplusplus
 }
 #endif __cplusplus
 
-#include <util.h>
 #include <voltypes.h>
 #include <voldefs.h>
 #include <vldb.h>

@@ -62,9 +62,9 @@ int ObjExists(resreplica *dir, long vnode, long unique)
     return 0;
 }
 
-int RepairRename C_ARGS((int nreplicas, resreplica *dirs, 
+int RepairRename (int nreplicas, resreplica *dirs, 
 			 resdir_entry **deGroup, int nDirEntries, 
-			 listhdr **ops, char *volmtpt))
+			 listhdr **ops, char *volmtpt)
 {
     char parentpath[MAXHOSTS][MAXPATHLEN];
     ViceFid parentfid[MAXHOSTS];
@@ -243,7 +243,7 @@ int RepairSubsetCreate (int nreplicas, resreplica *dirs, resdir_entry **deGroup,
 
 /* given an object, RepairSubsetRemove decides which replicas */
 /* have that object and places that info in the repair ops list */
-int RepairSubsetRemove C_ARGS((int nreplicas, resreplica *dirs, resdir_entry **deGroup, int nDirEntries, listhdr **ops))
+int RepairSubsetRemove (int nreplicas, resreplica *dirs, resdir_entry **deGroup, int nDirEntries, listhdr **ops)
 {
     int isDir = ISDIR(deGroup[0]->vno);
     struct repair rep;

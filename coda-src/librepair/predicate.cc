@@ -53,7 +53,7 @@ PtrFuncInt Predicates[] = {	/* the predicate routines */
 };
 int nPredicates = 7;
 
-int Equal C_ARGS((resdir_entry **deGroup, int nDirEntries))
+int Equal (resdir_entry **deGroup, int nDirEntries)
 {
     int i;
     for (i = 1; i < nDirEntries; i++){
@@ -69,7 +69,7 @@ int Equal C_ARGS((resdir_entry **deGroup, int nDirEntries))
     return 1;
 }
 
-static void PrintArgs C_ARGS((char *name, resdir_entry **deGroup, int nDirEntries))
+static void PrintArgs (char *name, resdir_entry **deGroup, int nDirEntries)
 {
     printf("Predicate %s : %d entries \n", name, nDirEntries);
     for (int i = 0; i < nDirEntries; i++)
@@ -79,7 +79,7 @@ static void PrintArgs C_ARGS((char *name, resdir_entry **deGroup, int nDirEntrie
 }
 
 /* The following predicates return TRUE (1) or FALSE (0) */
-int ObjectOK C_ARGS((int nreplicas, resreplica *dirs,resdir_entry **deGroup, int nDirEntries))
+int ObjectOK (int nreplicas, resreplica *dirs,resdir_entry **deGroup, int nDirEntries)
 {
     /* remember to check if the names are the same */
     if (nreplicas != nDirEntries) return 0; 
@@ -87,7 +87,7 @@ int ObjectOK C_ARGS((int nreplicas, resreplica *dirs,resdir_entry **deGroup, int
 }
 
 
-int WeaklyEqual C_ARGS((int nreplicas, resreplica *dirs, resdir_entry **deGroup, int nDirEntries))
+int WeaklyEqual (int nreplicas, resreplica *dirs, resdir_entry **deGroup, int nDirEntries)
 {
     if (nreplicas != nDirEntries) return 0;
     for(int i = 1; i < nDirEntries; i++)
@@ -96,7 +96,7 @@ int WeaklyEqual C_ARGS((int nreplicas, resreplica *dirs, resdir_entry **deGroup,
     return 1;
 }
 
-int AllPresent C_ARGS((int nreplicas, resreplica *dirs, resdir_entry **deGroup, int nDirEntries))
+int AllPresent (int nreplicas, resreplica *dirs, resdir_entry **deGroup, int nDirEntries)
 {
     return(nreplicas == nDirEntries);
 }
@@ -104,7 +104,7 @@ int AllPresent C_ARGS((int nreplicas, resreplica *dirs, resdir_entry **deGroup, 
 /* given an object and its version vector at each replica */
 /* nObjectSites returns the min number of sites the object was */
 /* created at */
-int nObjectSites C_ARGS((resdir_entry **deGroup, int nDirEntries))
+int nObjectSites (resdir_entry **deGroup, int nDirEntries)
 {   
     ViceVersionVector vv;
     int	count = 0;
@@ -122,7 +122,7 @@ int nObjectSites C_ARGS((resdir_entry **deGroup, int nDirEntries))
     return(count);
 }
 
-int nlinks C_ARGS((resdir_entry *re, resreplica *dir))
+int nlinks (resdir_entry *re, resreplica *dir)
 {
     char *path;
     struct stat buf;
@@ -135,7 +135,7 @@ int nlinks C_ARGS((resdir_entry *re, resreplica *dir))
     return(buf.st_nlink);
 }
 
-int Renamed C_ARGS((int nreplicas, resreplica *dirs, resdir_entry **deGroup, int nDirEntries))
+int Renamed (int nreplicas, resreplica *dirs, resdir_entry **deGroup, int nDirEntries)
 {
 //    int objsites = nObjectSites(deGroup, nDirEntries);
 //    if (objsites <= nDirEntries) return 0;
@@ -178,7 +178,7 @@ int Renamed C_ARGS((int nreplicas, resreplica *dirs, resdir_entry **deGroup, int
 
 
 /* Object was created at only a subset of the sites */
-int SubsetCreate C_ARGS((int nreplicas, resreplica *dirs, resdir_entry **deGroup, int nDirEntries))
+int SubsetCreate (int nreplicas, resreplica *dirs, resdir_entry **deGroup, int nDirEntries)
 {
     int	nl;
 
@@ -218,7 +218,7 @@ int SubsetCreate C_ARGS((int nreplicas, resreplica *dirs, resdir_entry **deGroup
 }
 
 /* Object was removed at a subset of the sites */
-int SubsetRemove C_ARGS((int nreplicas, resreplica *dirs, resdir_entry **deGroup, int nDirEntries))
+int SubsetRemove (int nreplicas, resreplica *dirs, resdir_entry **deGroup, int nDirEntries)
 {
     char str[1024];
 
@@ -246,7 +246,7 @@ int SubsetRemove C_ARGS((int nreplicas, resreplica *dirs, resdir_entry **deGroup
 }
 
 
-int MaybeSubsetRemove C_ARGS((int nreplicas, resreplica *dirs, resdir_entry **deGroup, int nDirEntries)) {
+int MaybeSubsetRemove (int nreplicas, resreplica *dirs, resdir_entry **deGroup, int nDirEntries) {
     char str[1024];
 
     if (nreplicas <= nDirEntries) return 0;

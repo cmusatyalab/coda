@@ -52,7 +52,7 @@ typedef enum {	UNSET =	0,		/* uninitialized */
 typedef struct {
 	rvm_tid_t *tid;
 	rvm_tid_t tids;
-	jmp_buf abort;
+	/*	jmp_buf abort; */
 	intentionList_t list;
 } rvm_perthread_t;
 
@@ -97,7 +97,6 @@ void rvmlib_end_transaction(int flush_mode, rvm_return_t *statusp);
 }
 #endif __cplusplus
 
-
 #define CODA_STACK_LENGTH 0x20000	/* 128 K */
 #define LOGTHRESHOLD	50
 
@@ -115,99 +114,6 @@ do { \
 #define rvmlib_rec_malloc(size) rvmlib_malloc(size, __FILE__, __LINE__)
 #define rvmlib_rec_free(addr) rvmlib_free(addr, __FILE__, __LINE__)
 
-
-#ifdef OLDTRANS
-
-#define	RVMLIB_BEGIN_TRANSACTION(restore_mode)\
-{\
-    rvm_perthread_t *_rvm_data;\
-    rvm_tid_t tid;\
-    rvm_return_t _status;\
-\
-    if (RvmType == RAWIO || RvmType == UFS ) {\
-	/* Initialize the rvm_perthread_t object. */\
-	_rvm_data = rvmlib_thread_data();\
-	if (_rvm_data == 0) RVMLIB_ASSERT("BeginTransaction: _rvm_data = 0");\
-	if (_rvm_data->tid != 0) { \
-	   if (_rvm_data->die) \
-              (_rvm_data->die)("BeginTransaction: _rvm_data->tid = %x, nested trans file %s line %d",\
-						_rvm_data->tid, __FILE__, __LINE__);\
-	   else RVMLIB_ASSERT("_rvm_data->tid is non zero during begin transaction");\
-	   }\
-	rvm_init_tid(&tid);\
-	_rvm_data->tid = &tid;\
-	_rvm_data->list.table = NULL;\
-	_rvm_data->list.count = 0;\
-	_rvm_data->list.size = 0;\
-\
-        /* I am skipping the protected truncate bit for now */	\
-\
-	/* Begin the transaction. */\
-	_status = rvm_begin_transaction(_rvm_data->tid, (restore_mode));\
-	if (_status == RVM_SUCCESS)\
-	    _status = (rvm_return_t)_setjmp(_rvm_data->abort);\
-    }\
-    else if (RvmType == VM) {\
-	_status = RVM_SUCCESS;\
-    }\
-    else {\
-        CODA_ASSERT(0);\
-    }\
-\
-    if (_status == 0/*RVM_SUCCESS*/) {\
-	/* User code goes in this block. */
-
-#define	RVMLIB_END_TRANSACTION(flush_mode, statusp)\
-	/* User code goes in this block. */\
-    }\
-\
-    if (RvmType == RAWIO || RvmType == UFS) {\
-	/* End the transaction. */\
-	if (_status == 0/*RVM_SUCCESS*/) {\
-	   if (flush_mode == no_flush) {\
-		_status = rvm_end_transaction(_rvm_data->tid, flush_mode);\
-                if ((_status == RVM_SUCCESS) && (_rvm_data->list.table != NULL))\
-                _status = (rvm_return_t)rds_do_free(&_rvm_data->list, flush_mode);\
-		}\
-           else {\
-              /* flush mode */\
-              if (_rvm_data->list.table != NULL) {\
-		_status = rvm_end_transaction(_rvm_data->tid, no_flush);\
-                if (_status == RVM_SUCCESS) \
-                _status = (rvm_return_t)rds_do_free(&_rvm_data->list, flush);\
-	      }\
-              else \
-                 _status = rvm_end_transaction(_rvm_data->tid, flush);\
-           }\
-	}\
-	if (statusp)\
-	    *(statusp) = _status;\
-	else {\
-	    if (_status != RVM_SUCCESS) (_rvm_data->die)("EndTransaction: _status = %d", _status);\
-	}\
-\
-	/* De-initialize the rvm_perthread_t object. */\
-	_rvm_data->tid = 0;\
-        if (_rvm_data->list.table) free(_rvm_data->list.table);\
-    }\
-    else if (RvmType == VM) {\
-	if (statusp)\
-	    *(statusp) = RVM_SUCCESS;\
-    }\
-    else {\
-       CODA_ASSERT(0);\
-    }\
-}
-
-
-#else
-
-#define RVMLIB_BEGIN_TRANSACTION(restore_mode) rvmlib_begin_transaction(restore_mode);
-
-#define	RVMLIB_END_TRANSACTION(flush_mode, statusp) rvmlib_end_transaction(flush_mode, (rvm_return_t *) statusp);
-
-#endif
-
 #define RVMLIB_REC_OBJECT(object) rvmlib_set_range(&(object), sizeof(object))
 
 
@@ -215,10 +121,7 @@ inline void rvmlib_check_trans(char *where, char *file);
 #define rvmlib_intrans()  rvmlib_check_trans(__FUNCTION__, __FILE__)
 
 
-/* *** Camelot compatibility macros *** */
-
-#define SRV_RVM(name) \
-    (((struct camlib_recoverable_segment *) (camlibRecoverableSegment))->name)
+/* macros */
 
 #define RVMLIB_MODIFY(object, newValue)					    \
 do {									    \

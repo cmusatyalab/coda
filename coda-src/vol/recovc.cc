@@ -17,12 +17,6 @@ listed in the file CREDITS.
 #*/
 
 
-
-
-
-
-
-
 /*
  * recovc.c:
  * Routines for accessing volume abstractions in recoverable storage
@@ -137,68 +131,24 @@ void checkvm() {
 }
 #endif NOTDEF
 
-int coda_init() {
-
+int coda_init() 
+{
     VnodeDiskObject *svnodes[SMALLFREESIZE];
     VnodeDiskObject *lvnodes[LARGEFREESIZE];
     char buf1[SIZEOF_SMALLDISKVNODE];
     char buf2[SIZEOF_LARGEDISKVNODE];
     VnodeDiskObject *zerovnode;
     VolumeId volid = 0;
-    int status = 0;	    // transaction status variable
+    rvm_return_t status = RVM_SUCCESS;
     int i = 0;
 
     if (ThisServerId == -1) {
-	LogMsg(0, VolDebugLevel, stdout,  "ThisServerId is uninitialized!!! Exiting.");
-	CODA_ASSERT(0);
+	VLog(0, "ThisServerId is uninitialized!!! Exiting.");
+	exit(1);
     }
 
-#ifdef NOTDEF
-    if (SRV_RVM(already_initialized) == TRUE) {
-	if (!nodumpvm)
-	checkvm(); 
-	unlink("/vicepa/dumpvm");
-    }
-#endif NOTDEF
-
-    RVMLIB_BEGIN_TRANSACTION(restore);
-
-
-    if (SRV_RVM(already_initialized) == FALSE) {
-	RVMLIB_MODIFY(SRV_RVM(already_initialized), TRUE);
-
-
-	/* Initialize MaxVolId to zero but with the serverid  */
-	/* in the high byte */
-	RVMLIB_MODIFY(SRV_RVM(MaxVolId), (VolumeId)(ThisServerId << 24));
-	LogMsg(29, VolDebugLevel, stdout,  "coda_init: MaxVolId = %x", SRV_RVM(MaxVolId));
-
-	/* allocate vnodediskobject structures to fill the large and small */
-	/* vnode free lists, and set freelist pointers */
-	zerovnode = (VnodeDiskObject *)buf1;
-	bzero((void *)zerovnode, sizeof(buf1));
-	for(i = 0; i < SMALLFREESIZE; i++) {
-	    svnodes[i] = (VnodeDiskObject *)rvmlib_rec_malloc(SIZEOF_SMALLDISKVNODE);
-	    rvmlib_modify_bytes(svnodes[i], zerovnode, sizeof(buf1));
-	}
-	rvmlib_modify_bytes(SRV_RVM(SmallVnodeFreeList), svnodes, sizeof(svnodes));
-	RVMLIB_MODIFY(SRV_RVM(SmallVnodeIndex), SMALLFREESIZE - 1);
-	LogMsg(29, VolDebugLevel, stdout,  "Storing SmallVnodeIndex = %d", SRV_RVM(SmallVnodeIndex));
-
-	zerovnode = (VnodeDiskObject *)buf2;
-	bzero((void *)zerovnode, sizeof(buf2));
-	for(i = 0; i < LARGEFREESIZE; i++) {
-	    lvnodes[i] = (VnodeDiskObject *)rvmlib_rec_malloc(SIZEOF_LARGEDISKVNODE);
-	    rvmlib_modify_bytes(lvnodes[i], zerovnode, sizeof(buf2));
-	}
-	rvmlib_modify_bytes(SRV_RVM(LargeVnodeFreeList), lvnodes, sizeof(lvnodes));
-	RVMLIB_MODIFY(SRV_RVM(LargeVnodeIndex), LARGEFREESIZE - 1);
-	LogMsg(29, VolDebugLevel, stdout,  "Storing LargeVnodeIndex = %d", SRV_RVM(LargeVnodeIndex));
-    }
-
-    dump_storage(49, "Finished coda initialization\n");
-    RVMLIB_END_TRANSACTION(flush, &(status));
-    CODA_ASSERT(status == 0);	/* Should never abort. */
+    /* the VMCounter constant is used for generating strictly incrementing
+       store id's during resolution. */
     if (!VMCounter) {
         struct timeval tv;
         struct timezone tz;
@@ -206,6 +156,45 @@ int coda_init() {
         startuptime = tv.tv_sec;
         VMCounter = 1;
     }
+
+    if (SRV_RVM(already_initialized) == TRUE)
+	    return 0;
+
+    /* initialize RVM on a new server */
+    rvmlib_begin_transaction(restore);
+
+    RVMLIB_MODIFY(SRV_RVM(already_initialized), TRUE);
+
+    /* Initialize MaxVolId to zero + (serverid << 24) */
+    RVMLIB_MODIFY(SRV_RVM(MaxVolId), (VolumeId)(ThisServerId << 24));
+    VLog(29, "coda_init: MaxVolId = %x", SRV_RVM(MaxVolId));
+
+    /* allocate vnodediskobject structures to fill the large and small */
+    /* vnode free lists, and set freelist pointers */
+    zerovnode = (VnodeDiskObject *)buf1;
+    bzero((void *)zerovnode, sizeof(buf1));
+    for(i = 0; i < SMALLFREESIZE; i++) {
+	    svnodes[i] = (VnodeDiskObject *)rvmlib_rec_malloc(SIZEOF_SMALLDISKVNODE);
+	    rvmlib_modify_bytes(svnodes[i], zerovnode, sizeof(buf1));
+    }
+    rvmlib_modify_bytes(SRV_RVM(SmallVnodeFreeList), svnodes, sizeof(svnodes));
+    RVMLIB_MODIFY(SRV_RVM(SmallVnodeIndex), SMALLFREESIZE - 1);
+    VLog(29, "Storing SmallVnodeIndex = %d", SRV_RVM(SmallVnodeIndex));
+
+    zerovnode = (VnodeDiskObject *)buf2;
+    bzero((void *)zerovnode, sizeof(buf2));
+    for(i = 0; i < LARGEFREESIZE; i++) {
+	    lvnodes[i] = (VnodeDiskObject *)rvmlib_rec_malloc(SIZEOF_LARGEDISKVNODE);
+	    rvmlib_modify_bytes(lvnodes[i], zerovnode, sizeof(buf2));
+    }
+    rvmlib_modify_bytes(SRV_RVM(LargeVnodeFreeList), lvnodes, sizeof(lvnodes));
+    RVMLIB_MODIFY(SRV_RVM(LargeVnodeIndex), LARGEFREESIZE - 1);
+    VLog(29, "Storing LargeVnodeIndex = %d", SRV_RVM(LargeVnodeIndex));
+
+    dump_storage(49, "Finished coda initialization\n");
+    rvmlib_end_transaction(flush, &(status));
+
+    CODA_ASSERT(status == RVM_SUCCESS);	/* Should never abort. */
     return(0);
 }
 

@@ -42,11 +42,15 @@ extern "C" {
 #include <util.h>
 #include "partition.h"
 
-/* operations on partitions not involving volumes
+static void DP_InitPartition(Partent entry, struct inodeops *operations,
+	       union PartitionData *data, Device devno);
+
+/* 
+ * operations on partitions not involving volumes
  * this depends on vicetab.h and inodeops.h
  */
 
-struct DiskPartition *DiskPartitionList;
+struct dllist_head DiskPartitionList;
 
 static struct inodeops *DP_InodeOpsByType(char *type);
 /* InitPartitions reads the vicetab file. For each server partition it finds
@@ -62,7 +66,10 @@ void DP_Init(const char *tabfile)
     FILE *tabhandle;
     struct inodeops *operations;
     union PartitionData *data;
-    Device  devno;
+    Device  devno, codadev;
+
+    codadev = 1;
+    list_head_init(&DiskPartitionList);
 
     tabhandle = Partent_set(tabfile, "r");
     if ( !tabhandle ) {
@@ -92,8 +99,11 @@ void DP_Init(const char *tabfile)
 	    }
 	}
 
-
+	/* the devno is written to RVM storage in the vnodes - 
+	   whatever scheme for numbering partitions is used should 
+	   take note of this */
         DP_InitPartition(entry, operations, data, devno);
+	codadev++; 
     }
     Partent_end(tabhandle);
 
@@ -101,11 +111,12 @@ void DP_Init(const char *tabfile)
     DP_PrintStats(stdout);
 }
 
-void
+static void
 DP_InitPartition(Partent entry, struct inodeops *operations,
 	       union PartitionData *data, Device devno)
 {
     struct DiskPartition *dp, *pp;
+    struct dllist_head *tmp;
 
     /* allocate */
     dp = (struct DiskPartition *) malloc(sizeof (struct DiskPartition));
@@ -114,23 +125,21 @@ DP_InitPartition(Partent entry, struct inodeops *operations,
 	CODA_ASSERT(0);
     }
     bzero(dp, sizeof(struct DiskPartition));
+    list_head_init(&dp->dp_chain);
+
+    
+    tmp = &DiskPartitionList;
+    while ((tmp = tmp->next) != &DiskPartitionList) {
+	    pp = list_entry(tmp, struct DiskPartition, dp_chain);
+	    if ( pp->device == devno ) {
+		    eprint("Device %d requested by partition %s used by %s!\n",
+			   devno, Partent_dir(entry), pp->name);
+		    CODA_ASSERT(0);
+	    }
+    }
 
     /* Add it to the end.  Preserve order for printing. Check devno. */
-    for (pp = DiskPartitionList; pp; pp = pp->next) {
-	if ( pp->device == devno ) {
-	    eprint("Device %d requested by partition %s in use by %s!\n",
-		   devno, Partent_dir(entry), pp->name);
-	    CODA_ASSERT(0);
-	}
-	if (!pp->next)
-	    break;
-    }
-    if (pp)
-	pp->next = dp;
-    else
-	DiskPartitionList = dp;
-    dp->next = NULL;
-
+    list_add(&dp->dp_chain, DiskPartitionList.prev);
     /*  fill in the structure */
     strncpy(dp->name, Partent_dir(entry), MAXPATHLEN);
     dp->device = devno;
@@ -143,15 +152,17 @@ DP_InitPartition(Partent entry, struct inodeops *operations,
 struct DiskPartition *
 DP_Find(Device devno)
 {
-    register struct DiskPartition *dp;
+    struct DiskPartition *dp;
+    struct dllist_head *tmp;
 
-    for (dp = DiskPartitionList; dp; dp = dp->next) {
-	if (dp->device == devno)
-	    break;
+    tmp = &DiskPartitionList;
+    while( (tmp = tmp->next) != &DiskPartitionList) {
+	    dp = list_entry(tmp, struct DiskPartition, dp_chain);
+	    if (dp->device == devno)
+		    break;
     }
     if (dp == NULL) {
-	LogMsg(0, VolDebugLevel, stdout,  
-	       "FindPartition Couldn't find partition %d", devno);
+	    SLog(0, "FindPartition Couldn't find partition %d", devno);
     }
     return dp;	
 }
@@ -159,15 +170,17 @@ DP_Find(Device devno)
 struct DiskPartition *
 DP_Get(char *name)
 {
-    register struct DiskPartition *dp;
+    struct DiskPartition *dp;
+    struct dllist_head *tmp;
 
-    for (dp = DiskPartitionList; dp; dp = dp->next) {
-	if (strcmp(dp->name, name) == 0)
-	    break;
+    tmp = &DiskPartitionList;
+    while( (tmp = tmp->next) != &DiskPartitionList) {
+	    dp = list_entry(tmp, struct DiskPartition, dp_chain);
+	    if (strcmp(dp->name, name) == 0)
+		    break;
     }
     if (dp == NULL) {
-	LogMsg(0, VolDebugLevel, stdout,  
-	       "VGetPartition Couldn't find partition %s", name);
+	VLog(0, "VGetPartition Couldn't find partition %s", name);
     }
     return dp;	
 }
@@ -188,7 +201,7 @@ DP_SetUsage(register struct DiskPartition *dp)
     rc = statfs(dp->name, &fsbuf);
     if ( rc != 0 ) {
 	eprint("Error in statfs of %s\n", dp->name);
-	SystemError("");
+	perror("");
 	CODA_ASSERT( 0 );
     }
     
@@ -204,9 +217,13 @@ void
 DP_ResetUsage() 
 {
     struct DiskPartition *dp;
-    for (dp = DiskPartitionList; dp; dp = dp->next) {
-	DP_SetUsage(dp);
-	LWP_DispatchProcess();
+    struct dllist_head *tmp;
+
+    tmp = &DiskPartitionList;
+    while( (tmp = tmp->next) != &DiskPartitionList) {
+	    dp = list_entry(tmp, struct DiskPartition, dp_chain);
+	    DP_SetUsage(dp);
+	    LWP_DispatchProcess();
     }
 }
 
@@ -214,15 +231,17 @@ void
 DP_PrintStats(FILE *fp) 
 {
     struct DiskPartition *dp;
-    for (dp = DiskPartitionList; dp; dp = dp->next) {
-	if (dp->free >= 0)
-	LogMsg(0, 0, fp,  
-	       "Partition %s: %d available size (1K blocks, minfree=%d%%), %d free blocks.",
-	       dp->name, dp->totalUsable, dp->minFree, dp->free);
-	else
-	LogMsg(0, 0, fp,  
-	       "Partition %s: %d available size (1K blocks, minfree=%d%%), overallocated by %d blocks.",
-	       dp->name, dp->totalUsable, dp->minFree, dp->free);
+    struct dllist_head *tmp;
+
+    tmp = &DiskPartitionList;
+    while( (tmp = tmp->next) != &DiskPartitionList) {
+	    dp = list_entry(tmp, struct DiskPartition, dp_chain);
+	    if (dp->free >= 0)
+		    SLog(0, "Partition %s: %dK available (minfree=%d%%), %dK free.",
+			 dp->name, dp->totalUsable, dp->minFree, dp->free);
+	    else
+		    SLog(0, "Partition %s: %dK available (minfree=%d%%), overallocated %dK.",
+			 dp->name, dp->totalUsable, dp->minFree, dp->free);
     }
 }
 
@@ -263,10 +282,5 @@ static struct inodeops *DP_InodeOpsByType(char *type)
 	return &inodeops_backup;
     }
 
-#if 0  
-    if ( strcmp(type, "raw_Mach") ) {
-        return &inodeops_raw_mach;
-    }
-#endif
     return NULL;
 }

@@ -211,6 +211,7 @@ setcount(int volid, int vnum, int unique, int count)
     VnodeId vnodeindex = vnodeIdToBitNumber(vnum);
     int     vclass = vnodeIdToClass(vnum);
     int	    volindex;
+    rvm_return_t status;
     
     volindex = GetVolIndex(volid);
     if (volindex < 0) {
@@ -218,7 +219,7 @@ setcount(int volid, int vnum, int unique, int count)
 	    return;
     }
 
-    RVMLIB_BEGIN_TRANSACTION(restore)
+    rvmlib_begin_transaction(restore);
 	    
     if (ExtractVnode(&error, volindex, vclass, (VnodeId)vnodeindex,
 		     (Unique_t)unique, vnode) < 0) {
@@ -237,9 +238,9 @@ setcount(int volid, int vnum, int unique, int count)
 	return;
     }
 	    
-    RVMLIB_END_TRANSACTION(flush, &error);
+    rvmlib_end_transaction(flush, &status);
 
-    if (error) {
+    if (status) {
 	fprintf(stderr, "ERROR: Transaction aborted with status %d\n",
 		error);
     }
@@ -291,7 +292,7 @@ delete_smallvnode(int volid, int vnum, int unique)
 	return;
     }
 
-    RVMLIB_BEGIN_TRANSACTION(restore)
+    rvmlib_begin_transaction(restore)
 	    
     if (ExtractVnode(&error, volindex, vclass, (VnodeId)vnodeindex,
 		     (Unique_t)unique, vnode) < 0) {
@@ -309,7 +310,7 @@ delete_smallvnode(int volid, int vnum, int unique)
 	return;
     }
 	    
-    RVMLIB_END_TRANSACTION(flush, &(error));
+    rvmlib_end_transaction(flush, &(error));
 
     if (error) {
 	fprintf(stderr, "ERROR: Transaction aborted with status %d\n",

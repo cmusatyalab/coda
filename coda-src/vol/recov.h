@@ -16,13 +16,6 @@ listed in the file CREDITS.
 
 #*/
 
-
-
-
-
-
-
-
 /*
  * Routines for accessing volume abstractions in recoverable storage
  */
@@ -42,9 +35,7 @@ extern int ExtractVolHeader(VolumeId volid, struct VolumeHeader *header);
 extern int VolHeaderByIndex(int index, struct VolumeHeader *header);
 extern void CheckVolData(Error *ec, int volindex);
 extern void CheckSmallVnodeHeader(Error *ec, int volindex);
-/*extern void ExtractSmallVnodeList(Error *ec, int volindex, VnodeDiskObject ***vlist, int *elts);*/
 extern void CheckLargeVnodeHeader(Error *ec, int volindex);
-/*extern void ExtractLargeVnodeList(Error *ec, int volindex, VnodeDiskObject ***vlist, int *elts);*/
 extern int ExtractVnode(Error *, int, int, VnodeId, Unique_t, 
 			 VnodeDiskObject *);
 extern int ReplaceVnode(int, int, VnodeId, Unique_t, VnodeDiskObject *);

@@ -32,6 +32,7 @@ listed in the file CREDITS.
 extern "C" {
 #endif __cplusplus
 
+#include <string.h>
 #include <sys/time.h>
 #include <sys/file.h>
 #include <unistd.h>

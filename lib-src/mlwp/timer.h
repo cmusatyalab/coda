@@ -40,7 +40,6 @@ Pittsburgh, PA.
 #ifndef _LWPTIMER_
 #define _LWPTIMER_
 
-#include "cargs.h"
 
 struct TM_Elem {
     struct TM_Elem	*Next;		/* filled by package */
@@ -51,13 +50,6 @@ struct TM_Elem {
     char		*BackPointer;	/* filled by caller, not interpreted by package */
 };
 
-#ifndef _TIMER_IMPL_
-extern void TM_Insert C_ARGS((struct TM_Elem *tlistPtr, struct TM_Elem *elem));
-extern void TM_Remove C_ARGS((struct TM_Elem *tlistPtr, struct TM_Elem *elem));
-extern int  TM_Rescan C_ARGS((struct TM_Elem *tlist));
-extern struct TM_Elem *TM_GetExpired C_ARGS((struct TM_Elem *tlist));
-extern struct TM_Elem *TM_GetEarliest C_ARGS((struct TM_Elem *tlist));
-#endif
 
 #define FOR_ALL_ELTS(var, list, body)\
 	{\
@@ -70,12 +62,18 @@ extern struct TM_Elem *TM_GetEarliest C_ARGS((struct TM_Elem *tlist));
 	}
 
 /* extern definitions of timer routines */
-extern int  TM_eql C_ARGS((register struct timeval *t1, register struct timeval *t2));
-extern int  TM_Init C_ARGS((register struct TM_Elem **list));
-extern int  TM_Final C_ARGS((register struct TM_Elem **list));
-extern void TM_Insert C_ARGS((struct TM_Elem *tlistPtr, struct TM_Elem *elem));
-extern int  TM_Rescan C_ARGS((struct TM_Elem *tlist));
-extern struct TM_Elem *TM_GetExpired C_ARGS((struct TM_Elem *tlist));
-extern struct TM_Elem *TM_GetEarliest C_ARGS((struct TM_Elem *tlist));
+extern void TM_Insert (struct TM_Elem *tlistPtr, struct TM_Elem *elem);
+extern void TM_Remove (struct TM_Elem *tlistPtr, struct TM_Elem *elem);
+extern int  TM_Rescan (struct TM_Elem *tlist);
+extern struct TM_Elem *TM_GetExpired (struct TM_Elem *tlist);
+extern struct TM_Elem *TM_GetEarliest (struct TM_Elem *tlist);
+
+extern int  TM_eql (register struct timeval *t1, register struct timeval *t2);
+extern int  TM_Init (register struct TM_Elem **list);
+extern int  TM_Final (register struct TM_Elem **list);
+extern void TM_Insert (struct TM_Elem *tlistPtr, struct TM_Elem *elem);
+extern int  TM_Rescan (struct TM_Elem *tlist);
+extern struct TM_Elem *TM_GetExpired (struct TM_Elem *tlist);
+extern struct TM_Elem *TM_GetEarliest (struct TM_Elem *tlist);
 
 #endif _LWPTIMER_

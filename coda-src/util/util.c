@@ -109,6 +109,21 @@ int SafeStrCpy(char *dest, char *src, int totalspace)
     return(0);
 }
 
+
+int HashString(char *s, unsigned int size)
+{
+	unsigned int sum;
+	int n;
+
+	/* Sum the string in reverse so that consecutive integers, as
+	   strings, do not hash to consecutive locations */
+
+	for (sum = 0, n = strlen(s), s += n-1; n--; s--)
+		sum = (sum*31) + (*s-31);
+	return ((sum % size) + 1);
+}
+
+
 void PrintTimeStamp(FILE *f)
     /* Prints current timestamp on f; 
        Keeps track of when last invocation was;

@@ -33,7 +33,6 @@ listed in the file CREDITS.
 #include <rpc2.h>
 #include "fcon.h"
 
-#include "cargs.h"
 
 #define MAXNAMELEN	255	 /* Maximum length of a client name */
 #define MAXCLIENTS      999	 /* Maximum number of clients */
@@ -44,21 +43,21 @@ listed in the file CREDITS.
 
 /* Exported routines */
 
-int Fail_Initialize C_ARGS((char *name, long flags));
+int Fail_Initialize (char *name, long flags);
 
-int Fcon_Init C_ARGS((void)); /* Warning: doesn't return anything */
+int Fcon_Init (void); /* Warning: doesn't return anything */
 
-void Fail_GetInfo C_ARGS((char *info));
+void Fail_GetInfo (char *info);
 
-int Fail_InsertFilter C_ARGS((FailFilterSide side,
-			    int which, FailFilter *filter));
+int Fail_InsertFilter (FailFilterSide side,
+			    int which, FailFilter *filter);
 
-int Fail_RemoveFilter C_ARGS((FailFilterSide side,
-			    int id));
+int Fail_RemoveFilter (FailFilterSide side,
+			    int id);
 
-int Fail_ReplaceFilter C_ARGS((FailFilterSide side,
-			     int id, FailFilter *filter));
+int Fail_ReplaceFilter (FailFilterSide side,
+			     int id, FailFilter *filter);
 
-int Fail_GetFilters C_ARGS((FailFilterSide side,
-			  RPC2_BoundedBS *filters));
+int Fail_GetFilters (FailFilterSide side,
+			  RPC2_BoundedBS *filters);
 

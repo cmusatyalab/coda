@@ -64,6 +64,7 @@ VLIBS =	${LIBVOL} \
 	${LIBMACH}  \
 	${LIBBASE}\
 	${LIBREADLINE} \
+	$(LIBUTIL) \
 	$(LIBCOMPAT) \
 	$(LIBTERMCAP)
 
@@ -110,7 +111,7 @@ OBJS =		${VOLUTILOBJS} ${VOLCLIENTOBJS}
 libvolutil.a:	${VOLUTILOBJS} 
 libvolserv.a:   volutil.o
 
-parserecdump.o:	parserecdump.cc vol-dumprecstore.h
+parserecdump.o:	parserecdump.cc
 
 local.a: ${LOCALOBJS}
 

@@ -189,6 +189,7 @@ delete_name(int volid, int vnum, int unique, char *name, int flag)
     PDirInode pdi;
     struct ViceFid fid;
     Error   error;
+    rvm_return_t status;
     VnodeId vnodeindex = vnodeIdToBitNumber(vnum);
     int     vclass = vnodeIdToClass(vnum);
     int	    volindex;
@@ -211,7 +212,7 @@ delete_name(int volid, int vnum, int unique, char *name, int flag)
     pdh = DC_DC2DH(dc);
     CODA_ASSERT(pdh);
 
-    RVMLIB_BEGIN_TRANSACTION(restore)
+    rvmlib_begin_transaction(restore);
 	    
     if (ExtractVnode(&error, volindex, vclass, (VnodeId)vnodeindex,
 		     (Unique_t)unique, vnode) < 0) {
@@ -255,9 +256,9 @@ delete_name(int volid, int vnum, int unique, char *name, int flag)
 	return;
     }
 	    
-    RVMLIB_END_TRANSACTION(flush, &error);
+    rvmlib_end_transaction(flush, &status);
 
-    if (error) {
+    if (status) {
 	fprintf(stderr, "ERROR: Transaction aborted with status %d\n",
 		error);
     }
@@ -298,6 +299,7 @@ create_name(int volid, int vnum, int unique, char *name, int cvnum,
     PDirInode pdi;
     struct ViceFid vfid;
     Error   error;
+    rvm_return_t status;
     VnodeId vnodeindex = vnodeIdToBitNumber(vnum);
     VnodeId cvnodeindex = vnodeIdToBitNumber(cvnum);
     int     vclass = vnodeIdToClass(vnum);
@@ -322,7 +324,7 @@ create_name(int volid, int vnum, int unique, char *name, int cvnum,
     pdh = DC_DC2DH(dc);
     CODA_ASSERT(pdh);    
 
-    RVMLIB_BEGIN_TRANSACTION(restore)
+    rvmlib_begin_transaction(restore);
 	    
     if (ExtractVnode(&error, volindex, vclass, (VnodeId)vnodeindex,
 		     (Unique_t)unique, vnode) < 0) {
@@ -392,9 +394,9 @@ create_name(int volid, int vnum, int unique, char *name, int cvnum,
 	return;
     }
 	    
-    RVMLIB_END_TRANSACTION(flush, &(error));
+    rvmlib_end_transaction(flush, &(status));
 
-    if (error) {
+    if (status) {
 	fprintf(stderr, "ERROR: Transaction aborted with status %d\n",
 		error);
     }

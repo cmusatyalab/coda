@@ -69,7 +69,7 @@ long S_VolSetVV(RPC2_Handle rpcid, RPC2_Unsigned formal_volid,
     Volume *vp;
     Vnode *vnp;
     Error error;
-    int status;	    // transaction status variable
+    rvm_return_t status = RVM_SUCCESS;
     long rc = 0;
     ProgramType *pt;
     ViceFid fid; 
@@ -88,7 +88,7 @@ long S_VolSetVV(RPC2_Handle rpcid, RPC2_Unsigned formal_volid,
 	tmpvolid = volid;
     }
 
-    RVMLIB_BEGIN_TRANSACTION(restore)
+    rvmlib_begin_transaction(restore);
     VInitVolUtil(volumeUtility);
     /*    vp = VAttachVolume(&error, volid, V_READONLY); */
     /* Ignoring the volume lock for now - assume this will 
@@ -116,9 +116,9 @@ long S_VolSetVV(RPC2_Handle rpcid, RPC2_Unsigned formal_volid,
 	vnp = VGetVnode(&error, vp, vnodeid, unique, WRITE_LOCK, 1, 1);
 	CODA_ASSERT(IsBarren(vnp->disk.versionvector));
 	
-	VLog(0, SrvDebugLevel, stdout, "%x.%x.%x is barren - Debarrenizing it", 
+	VLog(0, "%x.%x.%x is barren - Debarrenizing it", 
 		V_id(vp), vnp->vnodeNumber, vnp->disk.uniquifier);
-	VLog(0, SrvDebugLevel, stdout, "Object will be inconsistent and input vector is ignored");
+	VLog(0, "Object will be inconsistent and input vector is ignored");
 
 	/* clear the barren flag - make sure object will be marked 
 	   inconsistent; create a new inode so salvager will not complain */
@@ -160,7 +160,7 @@ long S_VolSetVV(RPC2_Handle rpcid, RPC2_Unsigned formal_volid,
     }
 
     VPutVolume(vp);
-    RVMLIB_END_TRANSACTION(flush, &(status));
+    rvmlib_end_transaction(flush, &(status));
 
  exit:
 

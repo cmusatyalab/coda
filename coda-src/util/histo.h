@@ -59,21 +59,10 @@ struct hgram
     double sum2; /* sum of squares of values (not in oflow or uflow) */
     };
 
-
-
-/* Functions */
-#ifndef C_ARGS
-#if (__cplusplus | __STDC__)
-#define C_ARGS(arglist) arglist
-#else __cplusplus
-#define C_ARGS(arglist)()
-#endif __cplusplus
-#endif C_ARGS
-
-extern int InitHisto C_ARGS((struct hgram *, double, double, int,enum htype));
-extern void ClearHisto C_ARGS((struct hgram *));
-extern void UpdateHisto C_ARGS((struct hgram *, double));
-extern void MUpdateHisto C_ARGS((struct hgram *, double, int));
-extern int PrintHisto C_ARGS((FILE *, struct hgram *));
-extern int PlotHisto C_ARGS((FILE *, struct hgram *, char *, char *, char *, char*));
+extern int InitHisto (struct hgram *, double, double, int,enum htype);
+extern void ClearHisto (struct hgram *);
+extern void UpdateHisto (struct hgram *, double);
+extern void MUpdateHisto (struct hgram *, double, int);
+extern int PrintHisto (FILE *, struct hgram *);
+extern int PlotHisto (FILE *, struct hgram *, char *, char *, char *, char*);
 #endif _HISTO_

@@ -65,7 +65,7 @@ static int DumpGlobalState(int fd) {
 
 static int ReadGlobalState(int fd) {
     VolumeId maxvolid;
-    int status;
+    rvm_return_t status;
 
     if (read(fd, &maxvolid, (int)sizeof(int)) == -1) {
 	perror("Reading max volume ID\n");
@@ -74,9 +74,9 @@ static int ReadGlobalState(int fd) {
 
     if (norton_debug) printf("Read maximum vol ID: 0x%x\n", maxvolid);
 
-    RVMLIB_BEGIN_TRANSACTION(restore);
+    rvmlib_begin_transaction(restore);
     VSetMaxVolumeId(maxvolid);
-    RVMLIB_END_TRANSACTION(flush, &(status));
+    rvmlib_end_transaction(flush, &(status));
     if (norton_debug) printf("Set max vol id to 0x%08x.  RVM Status = %d\n",
 		      maxvolid, status);
     return 1;
@@ -429,7 +429,7 @@ static int ReadVnodeList(int fd, Volume *vp, VnodeClass vclass, int ResOn) {
     VnodeId 	vnode_num;
     int 	npages;
     int		i;
-    int 	status;
+    rvm_return_t status;
     Error	err;
 
     /* We need to allocate this in RVM! */
@@ -485,7 +485,7 @@ static int ReadVnodeList(int fd, Volume *vp, VnodeClass vclass, int ResOn) {
 	vnp->changed = 1;
 	vnp->delete_me = 0;
 	
-	RVMLIB_BEGIN_TRANSACTION(restore);
+	rvmlib_begin_transaction(restore);
 	if (vclass == vLarge) {
 	    bzero((void *)inode, (int)sizeof(DirInode));
 		
@@ -550,7 +550,7 @@ static int ReadVnodeList(int fd, Volume *vp, VnodeClass vclass, int ResOn) {
 		    vnp->vnodeNumber);
 	    return 0;
 	}
-	RVMLIB_END_TRANSACTION(flush, &(status));
+	rvmlib_end_transaction(flush, &(status));
 	if (status != 0) {
 	    fprintf(stderr,
 		    "Transaction exited with status %d!, aborting\n",
@@ -646,7 +646,7 @@ extern void FreeVolumeHeader(register Volume *vp);
 static int load_server_state(char *dump_file) {
     int dump_fd, volindex;
     int res_adm_limit;
-    int status;
+    rvm_return_t status;
     VolumeDiskData data;
     VolHead	   vol_head;
     Volume	   *vp;
@@ -677,7 +677,7 @@ static int load_server_state(char *dump_file) {
 
 	printf("Reading volume 0x%x\n", vol_head.header.id);
 	
-	RVMLIB_BEGIN_TRANSACTION(restore);
+	rvmlib_begin_transaction(restore);
 
 	if ((vol_type = vol_head.header.type) != RWVOL) {
 	    // Pretend that this is a read-write volume, restore
@@ -742,7 +742,7 @@ static int load_server_state(char *dump_file) {
 	    return 0;
 	}
 
-	RVMLIB_END_TRANSACTION(flush, &(status));
+	rvmlib_end_transaction(flush, &(status));
 	if (status != 0) {
 	    fprintf(stderr,
 		    "Transaction exited with status %d!, aborting\n",
@@ -766,7 +766,7 @@ static int load_server_state(char *dump_file) {
 
 	if (vol_type != RWVOL) {
 	    // Need to change the volume type.
-	    RVMLIB_BEGIN_TRANSACTION(restore);
+	    rvmlib_begin_transaction(restore);
 
 	    vol_head.header.type = vol_type;
 	    vp->header->diskstuff.type = vol_type;
@@ -774,7 +774,7 @@ static int load_server_state(char *dump_file) {
 				&vol_head.header, 
 				sizeof(struct VolumeHeader));
 	    ReplaceVolDiskInfo(&err, volindex, &vp->header->diskstuff);
-	    RVMLIB_END_TRANSACTION(flush, &(status));
+	    rvmlib_end_transaction(flush, &(status));
 	    if (status != 0) {
 		fprintf(stderr,
 			"Transaction exited with status %d!, aborting\n",

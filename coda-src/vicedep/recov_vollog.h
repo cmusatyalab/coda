@@ -51,7 +51,7 @@ class recov_vol_log {
     // recoverable part 
     unsigned Version:8;		// version information for resolution system 
     unsigned malloced:8;
-    int admin_limit;		// absolute limit on # of log entries - changed only by volutil 
+    int admin_limit;		// absolute limit on # of log entries changed by volutil
     int size;			// <= admin_limit; number of entries in volume log 
     recle **index;		// array of ptrs to log record blocks :
                                 // size = admin_limit/LOGRECORD_BLOCKSIZE 

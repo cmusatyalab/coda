@@ -17,34 +17,26 @@ listed in the file CREDITS.
 #*/
 
 
-
-
-
-
-
-
 #ifndef _CAMPRIVATE_H_
 #define _CAMPRIVATE_H_ 1
 #include "rec_smolist.h"
-/* Declarations private to the camelot part of the volume package */
+/* Declarations private to the RVM part of the volume package */
 
 /*
-  BEGIN_HTML
-   <a name="VolumeData"> <strong>Volume meta data in RVM </strong></a>
-   END_HTML
+   VolumeData: Volume meta data in RVM
 */
 
 /* Used to be part of struct VolumeHeader, now private to camelot storage */
-struct VolumeData {
-    VolumeDiskData	*volumeInfo;	/* pointer to VolumeDiskData structure */
-    rec_smolist *smallVnodeLists;	/* pointer to array of Vnode list ptrs */
+struct VolumeData 
+{
+    VolumeDiskData *volumeInfo;	        /* pointer to VolumeDiskData */
+    rec_smolist    *smallVnodeLists;	/* pointer to array of Vnode list ptrs */
     bit32	    nsmallvnodes;	/* number of alloced vnodes */
     bit32	    nsmallLists;	/* number of vnode lists */
-    rec_smolist *largeVnodeLists;	/* pointer to array of Vnode list ptrs */
+    rec_smolist    *largeVnodeLists;	/* pointer to array of Vnode list ptrs */
     bit32	    nlargevnodes;	/* number of alloced vnodes */
     bit32	    nlargeLists;	/* number of vnode lists */
-    /* removed fields for VolumeAcl and volumeMountTable (obsolete) */
-    bit32	reserved[10];	/* If you add fields, add them before
+    bit32	    reserved[10];	/* If you add fields, add them before
     				   here and reduce the size of this array */
 };
 

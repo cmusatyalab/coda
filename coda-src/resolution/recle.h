@@ -30,7 +30,8 @@ listed in the file CREDITS.
 
 class rsle;
 
-class recle : public rec_dlink {	/* Recoverable resolution Log Entry - fixed length part */
+/* Recoverable resolution Log Entry - fixed length part */
+class recle : public rec_dlink {
 //friend class rsle;
   public:
     unsigned long	serverid;

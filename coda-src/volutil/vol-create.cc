@@ -102,7 +102,7 @@ long S_VolCreate(RPC2_Handle rpcid, RPC2_String formal_partition,
 	VolumeId volumeId = 0;
 	VolumeId parentId = 0;
 	Volume *vp = NULL;
-	int status = 0;    /* transaction status variable */
+	rvm_return_t status = RVM_SUCCESS;    /* transaction status variable */
 	int rc = 0;
 	int volidx;
 	ProgramType *pt;
@@ -119,7 +119,7 @@ long S_VolCreate(RPC2_Handle rpcid, RPC2_String formal_partition,
 	VLog(9, "Entering S_VolCreate: rpcid = %d, partition = %s," 
 	     "volname = %s, volumeid = %x, repvol = %d, grpid = %x",
 	     rpcid, partition, volname, volid ? *volid : 0, repvol, grpId);
-	RVMLIB_BEGIN_TRANSACTION(restore);
+	rvmlib_begin_transaction(restore);
 
 	rc = VInitVolUtil(volumeUtility);
 	if (rc != 0) {
@@ -184,7 +184,7 @@ long S_VolCreate(RPC2_Handle rpcid, RPC2_String formal_partition,
 	VUpdateVolume(&error, vp);
 	VDetachVolume(&error, vp);	/* Allow file server to grab it */
 	CODA_ASSERT(error == 0);
-	RVMLIB_END_TRANSACTION(flush, &(status));
+	rvmlib_end_transaction(flush, &(status));
  exit: 
 
 	/* to make sure that rvm records are getting flushed 
@@ -194,6 +194,7 @@ long S_VolCreate(RPC2_Handle rpcid, RPC2_String formal_partition,
 	if (status == 0) {
 		VLog(0, "create: volume %x (%s) created", volumeId, volname);
 		*volid = volumeId;	    /* set value of out parameter */
+#if 0
 		if (SRV_RVM(VolumeList[volidx]).data.volumeInfo)
 			if (SRV_RVM(VolumeList[volidx]).data.volumeInfo->maxlogentries)
 				LogStore[volidx] = new PMemMgr(sizeof(rlent), 0, volidx,
@@ -202,6 +203,7 @@ long S_VolCreate(RPC2_Handle rpcid, RPC2_String formal_partition,
 				LogStore[volidx] = new PMemMgr(sizeof(rlent), 0, volidx, MAXLOGSIZE);
 		else
 			CODA_ASSERT(0);
+#endif
 	}
 	else {
 		VLog(0, "create: volume creation failed for volume %x", volumeId);

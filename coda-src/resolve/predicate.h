@@ -36,11 +36,11 @@ extern int nPredicates;
 #define MAYBESUBSET_REMOVE 6
 #define	UNKNOWN_CONFLICT    -1
 
-int ObjectOK C_ARGS((int , resreplica *, resdir_entry **, int nDirEntries));
-int SubsetRemove C_ARGS((int , resreplica *, resdir_entry **, int ));
-int MaybeSubsetRemove C_ARGS((int , resreplica *, resdir_entry **, int ));
-int SubsetCreate C_ARGS((int , resreplica *, resdir_entry **, int ));
-int AllPresent C_ARGS((int , resreplica *, resdir_entry **, int ));
-int Renamed C_ARGS((int , resreplica *, resdir_entry **, int ));
-int WeaklyEqual C_ARGS((int , resreplica *, resdir_entry **, int ));
+int ObjectOK (int , resreplica *, resdir_entry **, int nDirEntries);
+int SubsetRemove (int , resreplica *, resdir_entry **, int );
+int MaybeSubsetRemove (int , resreplica *, resdir_entry **, int );
+int SubsetCreate (int , resreplica *, resdir_entry **, int );
+int AllPresent (int , resreplica *, resdir_entry **, int );
+int Renamed (int , resreplica *, resdir_entry **, int );
+int WeaklyEqual (int , resreplica *, resdir_entry **, int );
 

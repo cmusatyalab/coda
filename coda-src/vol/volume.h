@@ -256,12 +256,12 @@ struct ResVolLock {
 /* VM structure maintained per volume */
 struct Volume {
     struct	Volume 	*hashNext; /* Next in hash resolution table */
-    VolumeId	hashid;		/* Volume number -- for hash table lookup */
+    VolumeId	hashid;		   /* Volume number -- for hash table lookup */
     struct	volHeader *header; /* Cached disk data */
-    Device	device;		/* Unix device for the volume */ 
+    Device	device;		   /* Unix device for the volume */ 
     struct DiskPartition
-    		*partition;	/* Information about the Unix partition */
-    int		vol_index;	/* index of this volume in recoverable volume array */
+    		*partition;	   /* Information about the Unix partition */
+    int		vol_index;	   /* index of this volume in recoverable volume array */
     struct	vnodeIndex vnIndex[nVNODECLASSES];
     Unique_t	nextVnodeUnique;/* Derived originally from volume uniquifier.
 			   	   This is the actual next version number to
@@ -299,7 +299,7 @@ struct Volume {
 typedef struct Volume Volume;
 
 /*
-  Cached version of the volume's administrative data</strong></a> 
+  Cached version of the volume's administrative data
 */
 struct volHeader {
     struct volHeader *prev, *next;/* LRU pointers */

@@ -34,14 +34,6 @@ listed in the file CREDITS.
 
 #include <vice.h>
 
-/* #ifndef C_ARGS --- uncomment after rvm.h is fixed (Satya, 6/3/95) */
-#if	(__cplusplus | __STDC__)
-#define	C_ARGS(arglist)	arglist
-#else	__cplusplus
-#define	C_ARGS(arglist)	()
-#endif	__cplusplus
-/* #ifndef C_ARGS --- uncomment after rvm.h is fixed (Satya, 6/3/95) */
-
 #define EINCONS  199	      /* should go into /usr/cs/include/errno.h */
 
 /* The possible results of a two-way version vector compare. */
@@ -84,17 +76,17 @@ typedef ViceStoreId storeid_t;
 typedef ViceVersionVector vv_t;
 
 
-extern int VV_Cmp C_ARGS((vv_t *, vv_t *));
-extern int VV_Cmp_IgnoreInc C_ARGS((vv_t *, vv_t *));
-extern int VV_Check C_ARGS((int *, vv_t **, int));
-extern int VV_Check_IgnoreInc C_ARGS((int *, vv_t **, int));
-extern int IsRunt C_ARGS((vv_t *));
+extern int VV_Cmp (vv_t *, vv_t *);
+extern int VV_Cmp_IgnoreInc (vv_t *, vv_t *);
+extern int VV_Check (int *, vv_t **, int);
+extern int VV_Check_IgnoreInc (int *, vv_t **, int);
+extern int IsRunt (vv_t *);
 
-extern void AddVVs C_ARGS((vv_t *, vv_t *));
-extern void SubVVs C_ARGS((vv_t *, vv_t *));
-extern void InitVV C_ARGS((vv_t *));
-extern void InvalidateVV C_ARGS((vv_t *));
-extern void GetMaxVV C_ARGS((vv_t *, vv_t **, int));
+extern void AddVVs (vv_t *, vv_t *);
+extern void SubVVs (vv_t *, vv_t *);
+extern void InitVV (vv_t *);
+extern void InvalidateVV (vv_t *);
+extern void GetMaxVV (vv_t *, vv_t **, int);
 
 #ifdef __cplusplus
 extern "C" {
@@ -106,6 +98,6 @@ extern "C" {
 }
 #endif __cplusplus
 
-extern void PrintVV C_ARGS((FILE *, vv_t *));
+extern void PrintVV (FILE *, vv_t *);
 
 #endif _INCON_

@@ -336,12 +336,13 @@ void show_volume(char *name) {
 void delete_volume(VolHead *vol) {
     byte destroyflag=0xD3;
     Error error;
+    rvm_return_t status;
 
     if (vol) {
-	RVMLIB_BEGIN_TRANSACTION(restore);
+	rvmlib_begin_transaction(restore);
 	rvmlib_modify_bytes(&(vol->data.volumeInfo->destroyMe), 
 			    &destroyflag, sizeof(byte));
-	RVMLIB_END_TRANSACTION(flush, &(error));
+	rvmlib_end_transaction(flush, &status);
 	    }
 
 }

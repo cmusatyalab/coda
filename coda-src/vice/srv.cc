@@ -655,26 +655,7 @@ static void ServerLWP(int *Ident)
 		}
 	    }
 	    rc = srv_ExecuteRequest(mycid, myrequest, 0);
-#ifdef PERFORMANCE 
-#ifndef OLDLWP
-	    if (SrvDebugLevel > 0){
-		/* check how much time it took for call */
-		if(thread_info(th_id, THREAD_BASIC_INFO, (thread_info_t)thrinfo, &info_cnt) != KERN_SUCCESS)
-		    SLog(1, "Thread Info failed for %d", *Ident);
-		else{
-		    time_value_sub(thrinfo->user_time, save_utime, ptime);
-		    SLog(1, "RES_USAGE: utime = %d secs, %d usecs", ptime.seconds, ptime.microseconds);
-		    /* save new time in save area */
-		    save_utime.seconds = thrinfo->user_time.seconds;
-		    save_utime.microseconds = thrinfo->user_time.microseconds;
-		    time_value_sub(thrinfo->system_time, save_stime, ptime);
-		    SLog(1, " stime = %d secs, %d usecs", ptime.seconds, ptime.microseconds);
-		    save_stime.seconds = thrinfo->system_time.seconds;
-		    save_stime.microseconds = thrinfo->system_time.microseconds;
-		}
-	    }
-#endif OLDLWP
-#endif PERFORMANCE
+
 	    if (rc) {
 		SLog(0, "srv.c request %d for %s at %s failed: %s",
 			myrequest->Header.Opcode, userName, workName, ViceErrorMsg((int)rc));
