@@ -19,6 +19,8 @@
 #*/
 
 CC=${NATIVECC}
+CFLAGS=
+LDFLAGS=
 EXEEXT=
 YFLAGS=-d
 INCLUDES = -I$(top_builddir)/include -I$(top_srcdir)/include

@@ -11,6 +11,7 @@ case ${target} in
   win95 | win98 ) target=i386-pc-msdos
 		  dosmmap=true ;;
   cygwin* | winnt | nt ) target=i386-pc-cygwin ;;
+  arm ) target=arm-unknown-linux-gnuelf ;;
 esac
 AC_CANONICAL_SYSTEM
 host=${target}
@@ -49,6 +50,14 @@ if test ${build} != ${target} ; then
     dnl We seem to need these to get a dll built
     libtool_flags="--enable-win32-dll"
     LIBTOOL_LDFLAGS="-no-undefined"
+    ;;
+   arm-unknown-linux-gnuelf )
+    CC="arm-unknown-linuxelf-gcc"
+    AR="arm-unknown-linuxelf-ar"
+    RANLIB="arm-unknown-linuxelf-ranlib"
+    AS="arm-unknown-linuxelf-as"
+    NM="arm-unknown-linuxelf-nm"
+    OBJDUMP="arm-unknown-linuxelf-objdump"
     ;;
  esac
 fi])
