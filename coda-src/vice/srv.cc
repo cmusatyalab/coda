@@ -1337,8 +1337,8 @@ static int ReadConfigFile(void)
     char confname[80];
     int  datalen = 0;
     int  multconf;
-    int  zombify;
-    int  numservers;
+    int  zombify = 0;
+    int  numservers = 0;
 
     /* don't complain if config files are missing */
     codaconf_quiet = 1;
@@ -1804,7 +1804,9 @@ static void InitializeServerRVM(char *name)
 #if	defined(__FreeBSD__)
 	sbrk((int)(0x50000000 - (int)sbrk(0))); /* for garbage reasons. */
 #elif	defined(__NetBSD__) && (defined(NetBSD1_3) || defined(NetBSD1_4))
-	/*	sbrk((void *)(0x50000000 - (int)sbrk(0))); /* for garbage reasons. */
+	/*sbrk((void *)(0x50000000 - (int)sbrk(0))); / * for garbage reasons. */
+	/* Commented out by Phil Nelson because it caused a SIGBUS on 1.4.2
+	   and it appears to work just fine without this for 1.4.1 ... */
 #elif	defined(__NetBSD__) && NetBSD1_2
 	sbrk((void *)(0x20000000 - (int)sbrk(0))); /* for garbage reasons. */
 #endif
