@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vice/smon.cc,v 4.6 1998/05/27 20:29:36 braam Exp $";
+static char *rcsid = "$Header: /coda/coda.cs.cmu.edu/project/coda/cvs/coda/coda-src/vice/smon.cc,v 4.6 1998/05/27 20:29:36 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -236,7 +236,7 @@ PRIVATE struct nlist RawStats[] =
 
 /* ***** Private variables  ***** */
 
-PRIVATE int SmonEnabled = 0;
+PRIVATE int SmonEnabled = 1;
 PRIVATE int SmonInited = 0;
 PRIVATE smoe SOE;
 PRIVATE olist *RVMResList = 0;

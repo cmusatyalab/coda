@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vice/srvproc2.cc,v 4.13 1998/06/16 15:43:16 braam Exp $";
+static char *rcsid = "$Header: /coda/coda.cs.cmu.edu/project/coda/cvs/coda/coda-src/vice/srvproc2.cc,v 4.13 1998/06/16 15:43:16 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -760,7 +760,7 @@ ViceNewConnection: Called after a new bind request is received.
 */
 
 long ViceNewConnection(RPC2_Handle RPCid, RPC2_Integer set, RPC2_Integer sl,
-			 RPC2_Integer et, RPC2_Integer at, RPC2_CountedBS *cid)
+			 RPC2_Integer et, RPC2_CountedBS *cid)
 {
     ClientEntry *client = 0;
     SecretToken st;

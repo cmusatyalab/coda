@@ -45,7 +45,10 @@ Mellon the rights to redistribute these changes without encumbrance.
 
 /*
  * HISTORY
- * $Log:	cfs_subr.c,v $
+ * $Log: cfs_subr.c,v $
+ * Revision 1.8  1998/01/31 20:53:12  rvb
+ * First version that works on FreeBSD 2.2.5
+ *
  * Revision 1.7  98/01/23  11:53:42  rvb
  * Bring RVB_CFS1_1 to HEAD
  * 
@@ -200,7 +203,7 @@ Mellon the rights to redistribute these changes without encumbrance.
 #include <cfs/cfsnc.h>
 
 
-__RCSID("$Header: /afs/cs/project/coda-src/cvs/coda/kernel-src/vfs/bsd44/cfs/cfs_subr.c,v 1.7 98/01/23 11:53:42 rvb Exp $");
+__RCSID("$Header: /coda/coda.cs.cmu.edu/project/coda/cvs/coda/kernel-src/vfs/bsd44/cfsSV/Attic/cfs_subr.c,v 1.8 1998/01/31 20:53:12 rvb Exp $");
 
 #if	NVCFS
 

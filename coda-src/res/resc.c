@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/res/resc.c,v 4.2 1998/04/14 21:08:25 braam Exp $";
+static char *rcsid = "$Header: /coda/coda.cs.cmu.edu/project/coda/cvs/coda/coda-src/res/Attic/resc.c,v 4.2 1998/04/14 21:08:25 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -58,7 +58,6 @@ static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/res/re
 #include "vice.h"
 #include "callback.h"
 #include "voldefs.h"
-#include <ports.h>
 
 #define MAXSRV 8
 #define VSG_MEMBERS 8
@@ -138,7 +137,7 @@ void main(int argc, char **argv)
 	hi.Tag = RPC2_HOSTBYNAME;
 	strcpy(hi.Value.Name, mcname);
 	pi.Tag = RPC2_PORTALBYINETNUMBER;
-	pi.Value.InetPortNumber = htons(PORT_codasrv); 
+	pi.Value.InetPortNumber = htons(1361); 
 	si.Tag = RPC2_SUBSYSBYID;
 	si.Value.Id = SUBSYS_SRV;
 	rc = RPC2_Bind(RPC2_OPENKIMONO, NULL, &hi, &pi, &si, 

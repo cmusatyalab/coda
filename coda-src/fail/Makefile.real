@@ -1,0 +1,104 @@
+#ifndef _BLURB_
+#define _BLURB_
+#/*
+#
+#            Coda: an Experimental Distributed File System
+#                             Release 4.0
+#
+#          Copyright (c) 1987-1996 Carnegie Mellon University
+#                         All Rights Reserved
+#
+#Permission  to  use, copy, modify and distribute this software and its
+#documentation is hereby granted,  provided  that  both  the  copyright
+#notice  and  this  permission  notice  appear  in  all  copies  of the
+#software, derivative works or  modified  versions,  and  any  portions
+#thereof, and that both notices appear in supporting documentation, and
+#that credit is given to Carnegie Mellon University  in  all  documents
+#and publicity pertaining to direct or indirect use of this code or its
+#derivatives.
+#
+#CODA IS AN EXPERIMENTAL SOFTWARE SYSTEM AND IS  KNOWN  TO  HAVE  BUGS,
+#SOME  OF  WHICH MAY HAVE SERIOUS CONSEQUENCES.  CARNEGIE MELLON ALLOWS
+#FREE USE OF THIS SOFTWARE IN ITS "AS IS" CONDITION.   CARNEGIE  MELLON
+#DISCLAIMS  ANY  LIABILITY  OF  ANY  KIND  FOR  ANY  DAMAGES WHATSOEVER
+#RESULTING DIRECTLY OR INDIRECTLY FROM THE USE OF THIS SOFTWARE  OR  OF
+#ANY DERIVATIVE WORK.
+#
+#Carnegie  Mellon  encourages  users  of  this  software  to return any
+#improvements or extensions that  they  make,  and  to  grant  Carnegie
+#Mellon the rights to redistribute these changes without encumbrance.
+#*/
+#
+#static char *rcsid = "$Header: /coda/coda.cs.cmu.edu/project/coda/cvs/coda/coda-src/fail/Attic/Makefile.real,v 4.2 1997/02/26 16:02:38 rvb Exp $";
+#endif /*_BLURB_*/
+
+
+
+
+
+# -lcompat is needed on BSD44 for insque(), remque(), etc.
+LIBCOMPAT_pmax_mach  =
+LIBCOMPAT_i386_mach  =
+LIBCOMPAT_sun4_mach  =
+LIBCOMPAT_alpha_osf20=
+LIBCOMPAT_i386_nbsd1 = -lcompat
+LIBCOMPAT            = $(LIBCOMPAT_${SYS})
+
+LIBS = ${LIBRPC2} ${LIBSE} ${LIBOLDLWP} -lcs ${LIBCOMPAT} -lm
+
+
+# Files of interest
+# No longer of interest: tvclient tvserver ftclient ftserver 
+RESULTS = libfail.a ttyfcon partition heal slow
+LIBOBJS = fail.o delay.o fcon.client.o fcon.server.o fcon.o
+SOURCES = partition.c heal.c slow.c fail.c delay.c fcon.c ttyfcon.c tvserver.c tvclient.c fcon.h fail.h tv.rpc2 fcon.rpc2 ft.rpc2
+
+# The real stuff; invoke with build
+all:	${RESULTS}
+
+libfail.a: ${LIBOBJS}
+	ar rv libfail.a $?
+	ranlib libfail.a
+
+ttyfcon: ttyfcon.o libfail.a
+	${CC} ${CFLAGS} ttyfcon.o libfail.a ${LIBS} -o ttyfcon
+
+partition: partition.c libfail.a partition.o
+	${CC} ${CFLAGS} partition.o libfail.a ${LIBS} -o partition
+
+heal: heal.c libfail.a heal.o
+	${CC} ${CFLAGS} heal.o libfail.a ${LIBS} -o heal
+
+slow: slow.c libfail.a slow.o
+	${CC} ${CFLAGS} slow.o libfail.a ${LIBS} -o slow
+
+tvclient: tvclient.o tv.client.o libfail.a
+	${CC} ${CFLAGS} tvclient.o tv.client.o libfail.a ${LIBS} -o tvclient
+
+tvserver: tvserver.o tv.server.o libfail.a
+	${CC} ${CFLAGS} tvserver.o tv.server.o libfail.a ${LIBS} -o tvserver
+
+ftclient: ftclient.o ft.client.o libfail.a
+	${CC} ${CFLAGS} ftclient.o ft.client.o libfail.a ${LIBS} -o ftclient
+
+ftserver: ftserver.o ft.server.o libfail.a
+	${CC} ${CFLAGS} ftserver.o ft.server.o libfail.a ${LIBS} -o ftserver
+
+.c.o:
+	$(CC) $(CFLAGS) -c $*.c
+
+fail.o: fail.c fcon.h fail.h
+
+tvserver.o tvclient.o: tv.h
+
+ftserver.o ftclient.o: ft.h
+
+fcon.client.c fcon.server.c fcon.h: fcon.rpc2
+	${RP2GEN}  fcon.rpc2
+
+tv.client.c tv.server.c tv.h: tv.rpc2
+	${RP2GEN}  tv.rpc2
+
+ft.client.c ft.server.c ft.h: ft.rpc2
+	${RP2GEN}  ft.rpc2
+

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/fail/slow.c,v 4.4 1998/05/15 01:22:57 braam Exp $";
+static char *rcsid = "$Header: /coda/coda.cs.cmu.edu/project/coda/cvs/coda/coda-src/fail/Attic/slow.c,v 4.4 1998/05/15 01:22:57 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -88,7 +88,7 @@ int slow(int argc, char** argv)
 		PrintError("Can't bind", rc);
 		exit(-1);
 	}
-	printf("Bind Succeeded \n");
+	printf("Bind Succeded \n");
 	RPC2_SetColor(cid1, FAIL_IMMUNECOLOR);
 
 	printf("Trying to bind to %s on port %d...\n", host2, port2);
@@ -97,7 +97,7 @@ int slow(int argc, char** argv)
 		PrintError("Can't bind", rc);
 		exit(-1);
 	}
-	printf("Bind Succeeded \n");
+	printf("Bind Succeded \n");
 	RPC2_SetColor(cid2, FAIL_IMMUNECOLOR);
 
 	he1 = gethostbyname(host1);

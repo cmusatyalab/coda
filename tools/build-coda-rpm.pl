@@ -2,10 +2,10 @@
 
 use Getopt::Long;
 
-GetOptions("debug!" => \$debug, "kerberos!" => \$kerberos, "rel=s" => \$rel, "version=s" => \$version);
+GetOptions("debug!" => \$debug, "rel=s" => \$rel, "version=s" => \$version);
 
 if ( ! $rel || ! $version ) {
-    print "Usage $0 --rel=release --version=cvs-version  {--debug} {--kerberos} \n";
+    print "Usage $0 --rel=release --version=cvs-version  {--debug} \n";
     exit 1;
 }
 
@@ -15,18 +15,6 @@ if ( $debug == 1 ) {
 } else {
     $codaname = "coda";
 }
-
-if ( $kerberos == 1 ) {
-  $codaname = $codaname . "-kerberos";
-  $auth2name="kauth2";
-  $clogname="kclog";
-  $auname="kau";
-} else {
-  $auth2name="auth2";
-  $clogname="clog";
-  $auname="au";
-}
-
 print "DEBUG is $debug, name is $codaname\n";
 
 
@@ -43,9 +31,6 @@ while ( <> ) {
     ~ s/\@LIBC\@/$libc/g;
     ~ s/\@DEBUG\@/$debug/g;
     ~ s/\@CODA\@/$codaname/g;
-    ~ s/\@AUTH2\@/$auth2name/g;
-    ~ s/\@CLOG\@/$clogname/g;
-    ~ s/\@AU\@/$auname/g;
     print SPEC $_;
     print $_
 }

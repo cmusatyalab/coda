@@ -29,54 +29,39 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/auth2/Attic/cunlog.c,v 1.1.2.1 1998/05/15 16:50:51 braam Exp $";
+static char *rcsid = "$Header: /coda/coda.cs.cmu.edu/project/coda/cvs/coda/coda-src/util/Attic/sys55.cc,v 4.1 1997/01/08 21:51:11 rvb Exp $";
 #endif /*_BLURB_*/
 
 
-/*
 
-                         IBM COPYRIGHT NOTICE
 
-                          Copyright (C) 1986
-             International Business Machines Corporation
-                         All Rights Reserved
 
-This  file  contains  some  code identical to or derived from the 1986
-version of the Andrew File System ("AFS"), which is owned by  the  IBM
-Corporation.    This  code is provded "AS IS" and IBM does not warrant
-that it is free of infringement of  any  intellectual  rights  of  any
-third  party.    IBM  disclaims  liability of any kind for any damages
-whatsoever resulting directly or indirectly from use of this  software
-or  of  any  derivative work.  Carnegie Mellon University has obtained
-permission to distribute this code, which is based on Version 2 of AFS
-and  does  not  contain the features and enhancements that are part of
-Version 3 of AFS.  Version 3 of  AFS  is  commercially  available  and
-supported by Transarc Corporation, Pittsburgh, PA.
-
-*/
-
-/*
-	cunlog -- tell Venus to clean up your connecion
-
-*/
 
 #ifdef __cplusplus
 extern "C" {
 #endif __cplusplus
 
-#include <unistd.h>
-#include <stdlib.h>
-#include <auth2.h>
-#include "avenus.h"
+#include <stdio.h>
+#include <sys/reboot.h>
+#include <errno.h>
+#include <signal.h>
+#include <pwd.h>
+#include <sys/types.h>
+#include <sys/time.h>
+#include <sys/syslog.h>
+#ifdef __MACH__
+#include <libc.h>
+#endif /* __MACH__ */
+
 #ifdef __cplusplus
 }
 #endif __cplusplus
 
 
 
-
-int main(int argc, char **argv)
-{
-    U_DeleteLocalTokens();
-    exit(0);
-}
+main()
+    {
+    sync();
+    syscall(55, 0);
+    perror("reboot");
+    }

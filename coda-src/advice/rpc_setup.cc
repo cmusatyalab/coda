@@ -7,12 +7,12 @@ extern "C" {
 #include <netinet/in.h>
 #include <stdlib.h>
 
-#include <ports.h>
 #include <lwp.h>
 #include <rpc2.h>
 
 #include "admon.h"
 #include "adsrv.h"
+
 #ifdef __cplusplus
 }
 #endif __cplusplus
@@ -94,7 +94,7 @@ RPC2_Handle connect_to_machine(char *machine_name)
 #ifdef __FAKE__
   pid.Value.InetPortNumber = htons(ntohs(ADSRVPORTAL));
 #else
-  pid.Value.InetPortNumber = htons(PORT_venus);
+  pid.Value.InetPortNumber = htons(ADSRVPORTAL);
 #endif /* __FAKE__ */
   sid.Tag = RPC2_SUBSYSBYID;
   sid.Value.SubsysId = ADSRVSUBSYSID; 

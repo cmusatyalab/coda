@@ -14,8 +14,7 @@ TOPOBJ = @TOPOBJ@
 
 include $(MAKDIR)/Makeconf
 
-
-HEADERS = ports.h voltypes.h inodeops.h # config.h
+HEADERS = assert.h voltypes.h inodeops.h
 
 include $(MAKDIR)/configs/Makerules
 

@@ -30,7 +30,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vice/srv.cc,v 4.19 1998/06/16 20:45:42 braam Exp $";
+static char *rcsid = "$Header: /coda/coda.cs.cmu.edu/project/coda/cvs/coda/coda-src/vice/srv.cc,v 4.19 1998/06/16 20:45:42 braam Exp $";
 #endif /*_BLURB_*/
 
 /*
@@ -65,6 +65,7 @@ supported by Transarc Corporation, Pittsburgh, PA.
 #ifdef __cplusplus
 extern "C" {
 #endif __cplusplus
+
 #include <stdio.h>
 #include <sys/types.h>
 #include <sys/time.h>
@@ -82,7 +83,6 @@ extern "C" {
 #include <stdarg.h>
 #include <stdlib.h>
 
-#include <ports.h>
 #include <lwp.h>
 #include <timer.h>
 #include <rpc2.h>
@@ -471,10 +471,10 @@ main(int argc, char *argv[])
 #ifdef __CYGWIN32__
 	/* XXX -JJK */
 	portal1.Tag = RPC2_PORTALBYINETNUMBER;
-	portal1.Value.InetPortNumber = htons(PORT_codasrv);
+	portal1.Value.InetPortNumber = htons(1361);
 #else
     portal1.Tag = RPC2_PORTALBYNAME;
-    strcpy(portal1.Value.Name, "codasrv");
+    strcpy(portal1.Value.Name, "coda_filesrv");
 #endif
     portallist[0] = &portal1;
 
@@ -484,7 +484,7 @@ main(int argc, char *argv[])
     sei.AckPoint = sei.SendAhead = SrvSendAhead;
     sei.EnforceQuota = 1;
     sei.Portal.Tag = RPC2_PORTALBYINETNUMBER;
-    sei.Portal.Value.InetPortNumber = htons(PORT_codasrvse);
+    sei.Portal.Value.InetPortNumber = htons(1362);	/* XXX -JJK */
     SFTP_Activate(&sei);
     struct timeval to;
     to.tv_sec = timeout;

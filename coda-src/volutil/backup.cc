@@ -28,7 +28,7 @@ Carnegie Mellon encourages users of this software to return any
 improvements or extensions that they make, and to grant Carnegie
 Mellon the rights to redistribute these changes without encumbrance.  */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/volutil/backup.cc,v 4.11 1998/06/07 20:15:20 braam Exp $";
+static char *rcsid = "$Header: /coda/coda.cs.cmu.edu/project/coda/cvs/coda/coda-src/volutil/backup.cc,v 4.11 1998/06/07 20:15:20 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -1152,13 +1152,22 @@ PRIVATE void V_BindToServer(char *fileserver, RPC2_Handle *RPCid)
     hident.Tag = RPC2_HOSTBYNAME;
     strcpy(hident.Value.Name, fileserver);
     pident.Tag = RPC2_PORTALBYNAME;
-    strcpy(pident.Value.Name, "codasrv");
+    strcpy(pident.Value.Name, "coda_filesrv");
     sident.Tag = RPC2_SUBSYSBYID;
     sident.Value.SubsysId = UTIL_SUBSYSID;
 
     bzero((char *)&bparms, sizeof(bparms));
     bparms.SecurityLevel = RPC2_OPENKIMONO;
     bparms.SideEffectType = SMARTFTP;
+	
+#ifdef notdef
+	cident.SeqLen = 1 + strlen(uName);
+	cident.SeqBody = (RPC2_ByteSeq) uName;
+	bzero((char *)hkey, RPC2_KEYSIZE);
+	bcopy(vkey, hkey, RPC2_KEYSIZE);
+	rc = RPC2_Bind(RPC2_ONLYAUTHENTICATE, RPC2_XOR, &hident, &pident, &sident, SMARTFTP,
+	    &cident, hkey, RPCid);
+#endif notdef
 
     LogMsg(10, Debug, stdout, "V_BindToServer: binding to host %s\n", fileserver);
     rc = RPC2_NewBinding(&hident, &pident, &sident, &bparms, &rpcid);

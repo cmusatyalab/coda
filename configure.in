@@ -38,7 +38,6 @@ kernel-src/vfs/Makefile
 kernel-src/vfs/includes/Makefile 
 lib-src/Makefile 
 lib-src/mlwp/Makefile 
-lib-src/base/Makefile
 lib-src/special-includes/Makefile 
 rvm-src/Makefile 
 rvm-src/rvm/Makefile 
@@ -61,6 +60,7 @@ coda-src/fail/Makefile
 coda-src/vicedep/Makefile  
 coda-src/auth2/Makefile 
 coda-src/vv/Makefile 
+coda-src/login/Makefile 
 coda-src/vol/Makefile 
 coda-src/resolve/Makefile 
 coda-src/venus/Makefile 

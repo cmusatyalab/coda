@@ -9,6 +9,7 @@ client prefix "portmapper_client";
 
 Subsystem "portmapper";
 #define PORTMAPPER_SUBSYSID	1
+#define PORTMAPPER_PORT		6400
 
 /*
  * Useful types and their closest approximations in RPC2 types

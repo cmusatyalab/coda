@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/volutil/volclient.cc,v 4.8 1998/06/07 20:15:22 braam Exp $";
+static char *rcsid = "$Header: /coda/coda.cs.cmu.edu/project/coda/cvs/coda/coda-src/volutil/volclient.cc,v 4.8 1998/06/07 20:15:22 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -69,7 +69,7 @@ extern "C" {
 #include <sftp.h>
 #include <util.h>
 #include <partition.h>
-#include <ports.h>
+
 #include <vice.h>
 #include <callback.h>
 #include <volutil.h>
@@ -2095,10 +2095,10 @@ PRIVATE int V_BindToServer(char *fileserver, RPC2_Handle *RPCid)
 #ifdef __CYGWIN32__
 	/* XXX -JJK */
 	pident.Tag = RPC2_PORTALBYINETNUMBER;
-	pident.Value.InetPortNumber = htons(PORT_codasrv);
+	pident.Value.InetPortNumber = htons(1361);
 #else
     pident.Tag = RPC2_PORTALBYNAME;
-    strcpy(pident.Value.Name, "codasrv");
+    strcpy(pident.Value.Name, "coda_filesrv");
 #endif
     sident.Tag = RPC2_SUBSYSBYID;
     sident.Value.SubsysId = UTIL_SUBSYSID;

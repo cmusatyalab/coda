@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rpc2/debug.c,v 4.3 1998/04/14 21:06:58 braam Exp $";
+static char *rcsid = "$Header: /coda/coda.cs.cmu.edu/project/coda/cvs/coda/coda-src/rpc2/Attic/debug.c,v 4.3 1998/04/14 21:06:58 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -70,26 +70,6 @@ supported by Transarc Corporation, Pittsburgh, PA.
 #include "trace.h"
 
 /*----- Routines to aid in debugging -----*/
-
-char *rpc2_timestring()
-{
-	struct timeval t;
-	static char mytime[9];
-	int rc;
-
-	rc = gettimeofday(&t, NULL);
-
-	if ( rc ) {
-		return "BADTIME";
-	} else {
-		strftime(mytime, sizeof(mytime), "%H:%M:%S", 
-			 localtime(&t.tv_sec));
-		mytime[8] = 0;
-		return mytime;
-	}
-}
-		
-	
 
 PRIVATE char *WhichMagic(x)
     {

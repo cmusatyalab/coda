@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/update/updatesrv.cc,v 4.11 1998/06/19 21:07:56 braam Exp $";
+static char *rcsid = "$Header: /coda/coda.cs.cmu.edu/project/coda/cvs/coda/coda-src/update/updatesrv.cc,v 4.11 1998/06/19 21:07:56 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -85,14 +85,9 @@ extern "C" {
 #include <assert.h>
 #include <signal.h>
 #include <string.h>
-
-
-
 #include <lwp.h>
 #include <lock.h>
 #include <rpc2.h>
-#include <map.h>
-#include <portmapper.h>
 #include <se.h>
 extern void SFTP_SetDefaults (SFTP_Initializer *initPtr);
 extern void SFTP_Activate (SFTP_Initializer *initPtr);
@@ -131,7 +126,6 @@ int main(int argc, char **argv)
     RPC2_SubsysIdent server;
     SFTP_Initializer sftpi;
     int rc;
-    long portmapid;
     
     rc = chdir("/vice/srv");
     if ( rc ) {
@@ -190,8 +184,14 @@ int main(int argc, char **argv)
 
     assert(LWP_Init(LWP_VERSION, LWP_MAX_PRIORITY - 1, &parentPid) == LWP_SUCCESS);
 
-    portal1.Tag = RPC2_PORTALBYINETNUMBER;
-    portal1.Value.InetPortNumber = 0;
+#ifdef __CYGWIN32__
+	/* XXX -JJK */
+	portal1.Tag = RPC2_PORTALBYINETNUMBER;
+	portal1.Value.InetPortNumber = htons(1359);
+#else
+	portal1.Tag = RPC2_PORTALBYNAME;
+	strcpy(portal1.Value.Name, "coda_udpsrv");
+#endif
 
     SFTP_SetDefaults(&sftpi);
     sftpi.PacketSize = 1024;
@@ -203,22 +203,6 @@ int main(int argc, char **argv)
     tp.tv_sec = 80;
     tp.tv_usec = 0;
     assert(RPC2_Init(RPC2_VERSION, 0, &portal1, 6, &tp) == RPC2_SUCCESS);
-
-    /* register the port with the portmapper */
-    portmapid = portmap_bind("localhost");
-    if ( !portmapid ) {
-	    fprintf(stderr, "Cannot bind to rpc2portmap; exiting\n");
-	    return 1;
-    }
-    rc = portmapper_client_register_sqsh(portmapid, 
-					 (unsigned char *) "codaupdate", 
-					 0, 17,  portal1.Value.InetPortNumber);
-
-    if ( rc ) {
-	    fprintf(stderr, "Cannot register with rpc2portmap; exiting\n");
-	    return 1;
-    }
-    RPC2_Unbind(portmapid); 
 
     server.Tag = RPC2_SUBSYSBYID;
     server.Value.SubsysId = SUBSYS_UPDATE;
@@ -394,7 +378,6 @@ Final:
 long UpdateNewConnection(RPC2_Handle cid, RPC2_Integer SideEffectType, 
 			 RPC2_Integer SecurityLevel, 
 			 RPC2_Integer EncryptionType, 
-			 RPC2_Integer AuthType, 
 			 RPC2_CountedBS *ClientIdent)
 {
     LogMsg(0, SrvDebugLevel, stdout,

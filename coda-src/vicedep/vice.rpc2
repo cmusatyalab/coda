@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vicedep/vice.rpc2,v 4.3 1998/06/11 15:29:27 braam Exp $";
+static char *rcsid = "$Header: /coda/coda.cs.cmu.edu/project/coda/cvs/coda/coda-src/vicedep/vice.rpc2,v 4.3 1998/06/11 15:29:27 braam Exp $";
 #endif /*_BLURB_*/
 
 /*
@@ -358,7 +358,6 @@ ViceSetRootVolume (IN RPC2_String Volume);
 ViceNewConnection (IN RPC2_Integer SideEffectType,
 		   IN RPC2_Integer SecurityLevel,
 		   IN RPC2_Integer EncryptionType,
-   		   IN RPC2_Integer AuthType,
 		   IN RPC2_CountedBS ClientIdent)
 		   NEW_CONNECTION;
 

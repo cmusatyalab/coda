@@ -29,6 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
+static char *rcsid = "$Header: /coda/coda.cs.cmu.edu/project/coda/cvs/coda/coda-src/rpc2/Attic/rpc2.private.h,v 4.5 1998/06/07 20:14:59 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -363,9 +364,9 @@ struct Init4Body		/* Server to Client */
     {
     RPC2_Integer InitialSeqNumber;	/* Seq number of first expected packet from client */
     RPC2_EncryptionKey	SessionKey;	/* for use from now on */
-    RPC2_Integer XRandomPlusTwo;	/* prevent replays of this packet -rnw 2/7/98 */
     RPC2_Integer Spare1;
     RPC2_Integer Spare2;
+    RPC2_Integer Spare3;
     };
 
 struct InitMulticastBody	/* Client to Server */
@@ -573,11 +574,10 @@ extern long rpc2_FreezeHWMark, rpc2_HoldHWMark;
 /* Conditional debugging output macros */
 extern FILE *rpc2_logfile;
 extern FILE *rpc2_tracefile;
-extern char *rpc2_timestring();
 #ifdef RPC2DEBUG
 #define say(when, what, how...)\
-	if (when < what){fprintf(rpc2_logfile, "[%s]%s: \"%s\", line %d:    ",\
-		rpc2_timestring(), LWP_Name(), __FILE__, __LINE__);\
+	if (when < what){fprintf(rpc2_logfile, "%s: \"%s\", line %d:    ",\
+		LWP_Name(), __FILE__, __LINE__);\
 			fprintf(rpc2_logfile, ## how);(void) fflush(rpc2_logfile);}\
 	else
 #else 

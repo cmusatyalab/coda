@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/res/resutil.cc,v 4.4 1998/01/10 18:37:53 braam Exp $";
+static char *rcsid = "$Header: /coda/coda.cs.cmu.edu/project/coda/cvs/coda/coda-src/resolution/resutil.cc,v 4.4 1998/01/10 18:37:53 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -81,7 +81,7 @@ extern "C" {
 
 
 long RS_NewConnection(RPC2_Handle RPCid, RPC2_Integer set, 
-		       RPC2_Integer sl, RPC2_Integer et, RPC2_Integer at,
+		       RPC2_Integer sl, RPC2_Integer et,
 		       RPC2_CountedBS *cid){
 /*RPC2_Handle  RPCid;		RPC Id		*/
 /*RPC2_Integer set;		Side Effect Type	*/

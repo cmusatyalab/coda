@@ -30,7 +30,7 @@
 #Mellon the rights to redistribute these changes without encumbrance.
 #*/
 #
-#static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/scripts/vutil,v 4.4 1998/06/22 12:48:45 braam Exp $";
+#static char *rcsid = "$Header: /coda/coda.cs.cmu.edu/project/coda/cvs/coda/coda-src/scripts/Attic/vutil,v 4.4 1998/06/22 12:48:45 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -45,18 +45,18 @@ debugfile=/usr/coda/venus.cache/DEBUG
 usage ()
 {
     echo Usage: 
-    echo ${prog} ckp
-    echo ${prog} cs 
-    echo ${prog} d debug_level 
-    echo ${prog} "m {0,2,3,6,7}"
-    echo ${prog} "mc {0,1} "
-    echo ${prog} "p {0,1} "
-    echo ${prog} shutdown 
-    echo ${prog} stats 
-    echo ${prog} swap
+    echo ${prog} -ckp
+    echo ${prog} -cs 
+    echo ${prog} -d debug_level 
+    echo ${prog} "-m {0,2,3,6,7}"
+    echo ${prog} "-mc {0,1} "
+    echo ${prog} "-p {0,1} "
+    echo ${prog} -shutdown 
+    echo ${prog} -stats 
+    echo ${prog} -swap
     if [ `uname` = Linux ]; then
-	echo ${prog} kdebug level
-	echo ${prog} ktrace {0,1}
+	echo ${prog} -kdebug level
+	echo ${prog} -ktrace
     fi
     exit 1
 }
@@ -65,16 +65,13 @@ if  [ $# = 0 ]; then
     usage
 fi
 
-par=${1#-}
-#echo $par
-
-case $par in
-	ckp )
+case $1 in
+	-ckp )
 	    echo > ${ckpfile}
 	    ${kill} -USR1 ${vpid}
 	    ;;
 
-	m )
+	-m )
 	    if [ x$2 = x0 ]; then  usage ; fi
 	    val="$2"
 	    if [ "$val" != 0 -a "$val" != 2 -a "$val" != 3 -a "$val" != 6 -a "$val" != 7 ]; then
@@ -84,24 +81,24 @@ case $par in
 	    ${kill} -USR1 ${vpid}
 	    ;;
 
-	cs )
+	-cs )
 	    ${kill} -XFSZ ${vpid}
 	    ;;
 
-	d )
+	-d )
 	    if [ x$2 = x ]; then  usage ; fi
 	    echo "$2 $3" > ${debugfile}
 	    ${kill} -USR1 ${vpid}
 	    ;;
 
-	mc )
+	-mc )
 	    if [ x$2 = x ]; then  usage ; fi
 	    if  [ x$3 != x -a "$3" != 1 ]; then usage ; fi
 	    echo "$2 $3" > ${mcfile}
 	    ${kill} -USR1 ${vpid}
 	    ;;
 
-	p )
+	-p )
 	    if [ x$2 = x ]; then  usage ; fi
 	    val="$2"
 	    if [ $val = 0 ]; then
@@ -112,26 +109,26 @@ case $par in
 	    fi
 	    ;;
 
-	shutdown )
+	-shutdown )
 	    ${kill} -TERM ${vpid}
 	    ;;
 
-	stats )
+	-stats )
 	    ${kill} -XCPU ${vpid}
 	    ;;
 
-	swap )
+	-swap )
 	    ${kill} -VTALRM ${vpid}
 	    ;;
 
-	kdebug )
+	-kdebug )
 	    if [ `uname` != Linux -o x$2 = x ]; then usage ; fi
             echo $2 > /proc/sys/coda/debug
 	    ;;
 
-	ktrace )
-	    if [ `uname` != Linux -o x$2 = x ]; then usage ; fi
-            echo $2 > /proc/sys/coda/printentry
+	-ktrace )
+	    if [ `uname` != Linux  ]; then usage ; fi
+            echo 1 > /proc/sys/coda/printentry
 	    ;;
 
 

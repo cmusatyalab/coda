@@ -24,7 +24,6 @@ struct protoentry
 
 /* functions available */
 
-long portmap_bind(char *host);
 void initnamehashtable(void);
 struct protoentry *find_mapping(char *name, int version, int protocol, int port);
 void register_mapping(char *name, int version, int protocol, int port);

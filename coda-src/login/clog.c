@@ -29,6 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
+static char *rcsid = "$Header: /coda/coda.cs.cmu.edu/project/coda/cvs/coda/coda-src/login/Attic/clog.c,v 4.1 1998/04/14 20:53:22 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -63,141 +64,87 @@ supported by Transarc Corporation, Pittsburgh, PA.
 #ifdef __cplusplus
 extern "C" {
 #endif __cplusplus
-#include <sys/param.h>
+
 #include <sys/types.h>
 #include <stdio.h>
 #include <pwd.h>
+#ifdef __MACH__
+#include <sysent.h>
+#include <libc.h>
+#else	/* __linux__ || __BSD44__ */
 #include <unistd.h>
 #include <stdlib.h>
-#include <string.h>
+#endif
 
+#include <string.h>
 #include <lwp.h>
 #include <rpc2.h>
-#include <auth2.h>
-
-#include "avenus.h"
-#include "auser.h"
 
 #ifdef __cplusplus
 }
 #endif __cplusplus
 
+#include <auth2.h>
 
-
-void printusage(void)
-{
-		    fprintf(stderr, "Usage clog [-pipe] [-test] [-host authserver]"
-			    " [{-kerberos4,-kerberos5,-coda}] [username]\n");
-}
 
 int main(int argc, char **argv)
 {
     EncryptedSecretToken    sToken;
-    RPC2_Integer            authmethod = AUTH_METHOD_CODAUSERNAME;
-    int                     passwdpipe = 0;
-    int                     interactive = 1;
     ClearToken		    cToken;
-    EncryptedSecretToken    testSTok;
-    ClearToken		    testCTok;
     struct passwd	    pwent;
     struct passwd	    *pw = &pwent;
-    char *hostname=NULL;
+    static char		    passwd[100];
     long		    rc;
-    int i;
-    int testing = 0;
 
-    pw = getpwuid (getuid ());
-
-    i = 1;
-    while (i < argc) {
-	    if (U_GetAuthMethod(argv[i], &authmethod)) {
-		    i++;
-		    continue;
-	    } else if ( strcmp(argv[i], "-test") == 0 ) {
-		    testing =1;
-		    i++;
-	    } else if ( strcmp(argv[i], "-nokinit") == 0 ) {
-		    interactive = 0;
-		    i++;
-	    }  else if ( strcmp(argv[i], "-pipe") == 0 ) {
-		    passwdpipe =1;
-		    i++;
-	    } else if ( strcmp(argv[i], "-host") == 0) {
-		    i++;
-		    if (i >= argc) {
-			    fprintf(stderr, "Missing host\n");
-			    printusage();
-			    exit(1);
-		    }
-		    hostname = argv[i];
-		    i++;
-	    } else if ( i == argc-1 ) {
-		    pw = getpwnam (argv[i]);
-		    i++;
-	    }
-	    /* still coming: 
-	       -e ".............": newpag, authenticate, exec
-	       -u unsafe, tell Venus to use uid instead of pag.
-	    */
-	    else {
-		    fprintf(stderr, "Wrong argument: %s\n", argv[i]);
-		    printusage();
-		    exit(1);
-	    }
-
-    }
-    
-    if (pw == NULL) {
+    bzero(passwd, sizeof(passwd));
+    if (argc < 2) {
+	pw = getpwuid (getuid ());
+	if (pw == NULL) {
 	    fprintf (stderr, "Can't figure out your user id.\n");
 	    fprintf (stderr, "Try \"clog user\"\n");
 	    exit (1);
+	}
+    }
+    else if (argc == 2 && strcmp(argv[1],"-x") != 0) {
+	pw = getpwnam (argv[1]);
+	if (pw == NULL) {
+	    fprintf (stderr, "%s not a valid user.\n", argv[1]);
+	    exit (1);
+	}
+    }
+    else if (argc == 3) {
+	if (strcmp(argv[1],"-x") == 0)
+	    pw->pw_name = argv[2];
+	else {
+	    pw = getpwnam (argv[1]);
+	    if (pw == NULL) {
+		fprintf (stderr, "%s not a valid user.\n", argv[1]);
+	        exit (1);
+	    }
+	    strcpy(passwd, argv[2]);
+	    bzero((char *)argv[2], strlen(passwd));
+	}
+    }
+    else if (argc == 4 && strcmp(argv[1],"-x") == 0) {
+	pw->pw_name = argv[2];
+	strcpy(passwd, argv[3]);
+	bzero((char *)argv[3], strlen(passwd));
+    }
+    else {
+	fprintf (stderr, "Usage: log [[-x] user [password]]\n");
+	exit (1);
     }
 
+    /* set flags to disable cs name resolver */
 
     U_InitRPC();
-
-    rc = U_Authenticate(hostname, authmethod, pw->pw_name, 
-			strlen(pw->pw_name)+1, &cToken, sToken, passwdpipe, 
-			interactive);
-
+    if (passwd[0] == '\0') strcpy (passwd, getpass ("Password: "));
+    rc = U_Authenticate(pw->pw_name, passwd, &cToken, sToken);
     if (rc != 0) {
 	fprintf (stderr, "Invalid login (%s).\n", RPC2_ErrorMsg(rc));
 	exit (1);
     }
-
-    if (testing)
-	    printf ("Sending token to venus\n");
     if(U_SetLocalTokens(0, &cToken, sToken))
 	printf("Local login only, could not contact venus\n");
-    
-    if (testing) {
-	    printf("Getting tokens back from venus\n");
-	    if (U_GetLocalTokens(&testCTok, testSTok) < 0)
-		    perror("U_GetLocalTokens");
-	    
-	    printf("Comparing clear token\n");
-	    if(bcmp((char *)&cToken,(char *)&testCTok,sizeof(ClearToken)) != 0) {
-		    printf("Bad ClearToken\n");
-	    }
-	    printf("Comparing secret token\n");
-	    if(bcmp((char *)sToken,(char *)testSTok,
-		    sizeof(EncryptedSecretToken)) != 0) {
-	    printf("Bad SecretToken\n");
-	    }
-
-	    fprintf(stderr,"net order:\n");		
-	    fprintf(stderr,"\tAuthHandle = %ld\n",testCTok.AuthHandle);
-	    fprintf(stderr,"\tViceId = %ld\n",testCTok.ViceId);
-	    fprintf(stderr,"\tBeginTimestamp = %ld\n",testCTok.BeginTimestamp);
-	    fprintf(stderr,"\tEndTimestamp = %ld\n",testCTok.EndTimestamp);
-	    U_NetToHostClearToken(&testCTok);
-	    fprintf(stderr,"host order:\n");
-	    fprintf(stderr,"\tAuthHandle = %ld\n",testCTok.AuthHandle);
-	    fprintf(stderr,"\tViceId = %ld\n",testCTok.ViceId);
-	    fprintf(stderr,"\tBeginTimestamp = %ld\n",testCTok.BeginTimestamp);
-	    fprintf(stderr,"\tEndTimestamp = %ld\n",testCTok.EndTimestamp);
-
-	    printf("Done ! ! ! !\n");
-    }
-    return 0;
+    exit(0);
 }

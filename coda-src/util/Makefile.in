@@ -25,8 +25,28 @@
 # improvements or extensions that  they  make,  and  to  grant  Carnegie
 # Mellon the rights to redistribute these changes without encumbrance.
 # 
+# static char *rcsid = "$Header: /coda/coda.cs.cmu.edu/project/coda/cvs/coda/coda-src/util/Attic/Makefile.in,v 4.7 1998/03/06 20:20:32 braam Exp $";
 
 
+# 
+#                          IBM COPYRIGHT NOTICE
+# 
+#                           Copyright (C) 1986
+#              International Business Machines Corporation
+#                          All Rights Reserved
+# 
+# This  file  contains  some  code identical to or derived from the 1986
+# version of the Andrew File System ("AFS"), which is owned by  the  IBM
+# Corporation.    This  code is provded "AS IS" and IBM does not warrant
+# that it is free of infringement of  any  intellectual  rights  of  any
+# third  party.    IBM  disclaims  liability of any kind for any damages
+# whatsoever resulting directly or indirectly from use of this  software
+# or  of  any  derivative work.  Carnegie Mellon University has obtained
+# permission to distribute this code, which is based on Version 2 of AFS
+# and  does  not  contain the features and enhancements that are part of
+# Version 3 of AFS.  Version 3 of  AFS  is  commercially  available  and
+# supported by Transarc Corporation, Pittsburgh, PA.
+# 
 
 TOPDIR = @top_srcdir@
 ifndef MAKDIR
@@ -39,8 +59,8 @@ TOPOBJ = @TOPOBJ@
 include $(MAKDIR)/Makeconf
 
 LIBRARIES = libutil.a
-COMMONHEADERS   = util.h olist.h ohash.h dlist.h dhash.h bstree.h dict.h \
-	    histo.h rvmlib.h rec_olist.h \
+COMMONHEADERS   = util.h olist.h ohash.h dlist.h dhash.h bstree.h dict.h process.h \
+	    histo.h dtcreg.h timing_paths.h rvmlib.h rec_olist.h \
 	    rec_smolist.h rec_ohash.h rec_dlist.h rec_dhash.h rec_bstree.h \
 	    vmindex.h bitmap.h arrlist.h recvarl.h rvmtesting.h bitvect.h\
 	    proc.h 
@@ -48,7 +68,7 @@ COMMONHEADERS   = util.h olist.h ohash.h dlist.h dhash.h bstree.h dict.h \
 
 # Multiversion definitions
 
-COMMONOBJECTS = util.o olist.o ohash.o dlist.o dhash.o bstree.o dict.o  \
+COMMONOBJECTS = util.o olist.o ohash.o dlist.o dhash.o bstree.o dict.o process.o \
 	  histo.o rvmlib.o rec_olist.o rec_smolist.o rec_ohash.o rec_dlist.o \
 	  rec_dhash.o rec_bstree.o bitmap.o vmindex.o arrlist.o recvarl.o \
 	  rvmtesting.o bitvect.o proc.o

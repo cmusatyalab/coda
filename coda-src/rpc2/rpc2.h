@@ -28,6 +28,8 @@ Carnegie  Mellon  encourages  users  of  this  software  to return any
 improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
+
+static char *rcsid = "$Header: /coda/coda.cs.cmu.edu/project/coda/cvs/coda/coda-src/rpc2/Attic/rpc2.h,v 4.8 1998/06/07 20:14:57 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -493,7 +495,6 @@ typedef
 	RPC2_Integer SideEffectType;
 	RPC2_Integer SecurityLevel;
 	RPC2_Integer EncryptionType;
-	RPC2_Integer AuthenticationType;
 	RPC2_CountedBS ClientIdent;
 	}
     RPC2_NewConnectionBody;
@@ -516,7 +517,6 @@ typedef
 	long SecurityLevel;
 	long EncryptionType;
 	RPC2_EncryptionKey *SharedSecret;
-	RPC2_Integer AuthenticationType;
 	RPC2_CountedBS *ClientIdent;
 	long SideEffectType;
 	RPC2_Integer Color;

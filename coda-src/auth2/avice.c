@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/auth2/avice.c,v 4.1.2.1 1998/05/15 16:50:48 braam Exp $";
+static char *rcsid = "$Header: /coda/coda.cs.cmu.edu/project/coda/cvs/coda/coda-src/auth2/avice.c,v 4.1 1998/04/14 20:49:40 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -77,11 +77,12 @@ extern "C" {
 #include <util.h>
 #include <rpc2.h>
 
+#include "auth2.h"
+
 #ifdef __cplusplus
 }
 #endif __cplusplus
 
-#include "auth2.h"
 
 static int Key1IsValid = FALSE;
 static int Key2IsValid = FALSE;
@@ -89,71 +90,6 @@ static RPC2_EncryptionKey Key1;
 static RPC2_EncryptionKey Key2;
 
 extern void ntoh_SecretToken(SecretToken *);
-
-/* prototype */
-long GetKeysFromToken(INOUT RPC2_CountedBS *cIdent,
-                      OUT RPC2_EncryptionKey hKey,
-                      OUT RPC2_EncryptionKey sKey);
-
-
-/*  Wrapper function when multiple authentication type support was added;
-    fits new calling parameters.  We only allow by-token authentication to
-    vice
-*/
-
-long GetKeys(RPC2_Integer *AuthenticationType, RPC2_CountedBS *cIdent, RPC2_EncryptionKey hKey, RPC2_EncryptionKey sKey)
-
-{
-	switch (*AuthenticationType)
-	{
-		case	AUTH_METHOD_NULL:
-			/* we don't like this */
-				return -1;
-#ifdef PWCODADB
-		case	AUTH_METHOD_CODAUSERNAME:
-#ifdef VICEPWCODADB
-/* to support direct login to the Vice server, you will need to link in
-   libpwsupport, and define both of these.  Note that Vice was NOT designed
-   to have direct password support, and it has not been tested.  Further
-   more this may be a disaster, as libpwsupport requires some init functions
-   to be called that are currently not called by Vice.
-
-                   !!!!! DO NOT ENABLE VICEPWCODADB !!!!!
-*/
-
-			/* use coda password database */
-			return PWGetKeys(cIdent, hKey, sKey);
-
-#else	/* VICEPWCODADB */
-
-			/* we don't like this either */
-				return -1;
-
-#endif	/* VICEPWCODADB */
-#endif	/* PWCODADB */
-
-		case	AUTH_METHOD_CODATOKENS:
-			/* this is a good way to auth to Vice */
-				return GetKeysFromToken(cIdent, hKey, sKey);
-
-		case	AUTH_METHOD_PK:
-			/* just a reserved constant, thanks */
-				return -1;
-
-		case	AUTH_METHOD_KERBEROS4:
-			/* do not ever allow this -- does not provide a VID
-			   mapping */
-				return -1;
-
-		case	AUTH_METHOD_KERBEROS5:
-			/* ditto */
-				return -1;
-
-		default:
-			/* unknown auth type */
-				return -1;
-	}
-}
 
 /*  Use a pointer to this routine in RPC2_GetRequest().  Derives hKey
     and sKey from ClientIdent using one or the other of the global

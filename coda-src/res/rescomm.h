@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/res/rescomm.h,v 4.1 1997/01/08 21:50:01 rvb Exp $";
+static char *rcsid = "$Header: /coda/coda.cs.cmu.edu/project/coda/cvs/coda/coda-src/res/Attic/rescomm.h,v 4.1 1997/01/08 21:50:01 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -204,7 +204,7 @@ class conninfo {
   friend class conninfo_iterator;
   friend void srvent::Reset();
   friend void ResCommInit();
-  friend long RS_NewConnection(RPC2_Handle , RPC2_Integer, RPC2_Integer,RPC2_Integer, RPC2_Integer, RPC2_CountedBS *);
+  friend long RS_NewConnection(RPC2_Handle , RPC2_Integer, RPC2_Integer, RPC2_Integer, RPC2_CountedBS *);
     /* globals state */
     static  olist *CInfoTab;
     static  int ncinfos;

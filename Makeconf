@@ -78,11 +78,6 @@ RP2FLAGS  = -e  -I . -I $(srcdir) -I $(INCLDIR)
 vpath %.h $(INCLPATH)
 vpath %.rpc2 $(INCLPATH)
 
-# uncomment some of the next lines if you have kerberos
-# KERBEROS=yes
-# KERBEROS4=yes
-# KERBEROS5=yes
-
 ##############################
 # Library definitions
 ##############################
@@ -123,7 +118,6 @@ LIBRESOLVE =../resolve/libresolve.a
 LIBRESLIB =../res/libreslib.a
 LIBUTIL =../util/libutil.a
 LIBRPC2 =../rpc2/librpc2.a
-LIBPORTMAP =../portmapper/libportmap.a
 LIBSE =../rpc2/libse.a
 LIBFAIL =../fail/libfail.a
 LIBRVMRES =../rvmres/librvmres.a

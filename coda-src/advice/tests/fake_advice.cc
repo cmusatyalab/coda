@@ -130,7 +130,7 @@ RPC2_Handle connect_to_machine(char *machine_name)
   strcpy(hid.Value.Name, machine_name);
   pid.Tag = RPC2_PORTALBYINETNUMBER;
 //  pid.Value.InetPortNumber = htons(ntohs(ADSRVPORTAL));
-  pid.Value.InetPortNumber = PORT_venus;
+  pid.Value.InetPortNumber = ADSRVPORTAL;
 printf("Connecting to InetPortNumber = %d\n", pid.Value.InetPortNumber);
   sid.Tag = RPC2_SUBSYSBYID;
   sid.Value.SubsysId = ADSRVSUBSYSID; 

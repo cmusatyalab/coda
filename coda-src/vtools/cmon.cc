@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vtools/cmon.cc,v 4.6 1998/06/24 18:47:45 jaharkes Exp $";
+static char *rcsid = "$Header: /coda/coda.cs.cmu.edu/project/coda/cvs/coda/coda-src/vtools/cmon.cc,v 4.6 1998/06/24 18:47:45 jaharkes Exp $";
 #endif /*_BLURB_*/
 
 
@@ -62,7 +62,6 @@ extern "C" {
 #include <curses.h>
 #endif
 
-#include <ports.h>
 #include <lwp.h>
 #include <rpc2.h>
 #include <se.h>
@@ -181,7 +180,7 @@ PRIVATE void srvlwp(int slot)
     hi.Tag = RPC2_HOSTBYNAME;
     strcpy(hi.Value.Name, moi->srvname);
     pi.Tag = RPC2_PORTALBYINETNUMBER;
-    pi.Value.InetPortNumber = htons(PORT_codasrv);
+    pi.Value.InetPortNumber = htons(1361); /* wired-in! YUKKK! */
     si.Tag = RPC2_SUBSYSBYID;
     si.Value.SubsysId= SUBSYS_SRV;
     

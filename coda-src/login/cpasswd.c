@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/auth2/Attic/cpasswd.c,v 1.1.2.1 1998/05/15 16:50:50 braam Exp $";
+static char *rcsid = "$Header: /coda/coda.cs.cmu.edu/project/coda/cvs/coda/coda-src/login/Attic/cpasswd.c,v 4.1 1998/04/14 20:53:22 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -71,16 +71,16 @@ extern "C" {
 
 #include <stdio.h>
 #include <pwd.h>
+#ifdef __MACH__
+#include <sysent.h>
+#include <libc.h>
+#else	/* __linux__ || __BSD44__ */
 #include <unistd.h>
 #include <stdlib.h>
-#include <string.h>
-
+#endif
 #include <lwp.h>
 #include <rpc2.h>
-#include "auth2.h"
-#include "auser.h"
-#include <prs.h>
-#include "auth2.common.h"
+
 #ifdef __cplusplus
 }
 #endif __cplusplus
@@ -165,7 +165,7 @@ tryagain:
 	ok = 0;
 	flags = 0;
 	p = newpw;
-	while (( c = *p++) ) {
+	while (c = *p++) {
 		if (c >= 'a' && c <= 'z')
 			flags |= 2;
 		else if (c >= 'A' && c <= 'Z')
@@ -193,7 +193,7 @@ tryagain:
 		printf("Mismatch - password unchanged.\n");
 		exit(1);
 	}
-	rc = U_ChangePassword (uname, newpw, AUTH_METHOD_CODAUSERNAME, myuser, strlen(myuser)+1, mypasswd, strlen(mypasswd));
+	rc = U_ChangePassword (uname, newpw, myuser, mypasswd);
 	switch(rc) {
 	    case RPC2_DEAD:
 		printf("Server to change passwords down, try again later\n");

@@ -23,6 +23,7 @@ export PATH
 [ -f /usr/sbin/venus ] || exit 0
 [ -d $LOCKDIR ] || exit 0 
 [ -d $CACHEDIR ] || exit 0 
+[ -d $SPOOLDIR ] || exit 0
 [ -d $ETCDIR ] || exit 0
 
 # See how we were called.

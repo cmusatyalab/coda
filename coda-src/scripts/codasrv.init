@@ -54,8 +54,8 @@ case "$1" in
 		echo -n "vice.init: sleeping 30 secs to let srv shutdown..."
 		sleep 30
 		echo "..done"
+		rm -f $LOCKDIR/codasrv.init
 	fi
-	rm -f $LOCKDIR/codasrv.init
 	;;
 
   hardstop)

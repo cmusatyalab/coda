@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rp2gen/crout.c,v 4.12 1998/06/19 21:07:52 braam Exp $";
+static char *rcsid = "$Header: /coda/coda.cs.cmu.edu/project/coda/cvs/coda/coda-src/rp2gen/Attic/crout.c,v 4.12 1998/06/19 21:07:52 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -382,7 +382,7 @@ copcodes(head, who, where)
 	    if (server_prefix)
 		fprintf(where, "extern long %s_%s(", server_prefix, head->name);
 	    else fprintf(where, "extern long %s(", head->name);
-	    if (strictproto) fprintf(where, "RPC2_Handle cid, RPC2_Integer SideEffectType, RPC2_Integer SecurityLevel, RPC2_Integer EncryptionType, RPC2_Integer AuthType, RPC2_CountedBS *ClientIdent");
+	    if (strictproto) fprintf(where, "RPC2_Handle cid, RPC2_Integer SideEffectType, RPC2_Integer SecurityLevel, RPC2_Integer EncryptionType, RPC2_CountedBS *ClientIdent");
 	    fprintf(where, ");\n");
 
 	    /* Other definitions */
@@ -1323,11 +1323,10 @@ static check_new_connection(proc)
     /* Check argument types */
     for (formals = proc->formals, len=0; *formals!=NIL; formals++, len++) ;
     formals = proc->formals;
-    if (len != 5 || formals[0]->type->type->tag != RPC2_INTEGER_TAG ||
+    if (len != 4 || formals[0]->type->type->tag != RPC2_INTEGER_TAG ||
 		    formals[1]->type->type->tag != RPC2_INTEGER_TAG ||
 		    formals[2]->type->type->tag != RPC2_INTEGER_TAG ||
-		    formals[3]->type->type->tag != RPC2_INTEGER_TAG ||
-		    formals[4]->type->type->tag != RPC2_COUNTEDBS_TAG) {
+		    formals[3]->type->type->tag != RPC2_COUNTEDBS_TAG) {
 	puts("RP2GEN: bad parameters for NEW_CONNECTION procedure");
 	exit(1);
     }
