@@ -1611,7 +1611,6 @@ int fsobj::SetAttr(struct coda_vattr *vap, vuid_t vuid, RPC2_CountedBS *acl)
 	    data.file = &cf;
 	    data.file->Truncate((unsigned) NewLength);
 	    Recov_EndTrans(MAXFP);
-	    SetRcRights(RC_STATUS | RC_DATA);
 	}
 	
 	/* Avoid performing action where possible. */
