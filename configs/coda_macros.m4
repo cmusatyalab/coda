@@ -313,7 +313,8 @@ dnl also test for new functions introduced by readline 4.2
 
 AC_SUBST(LIBREADLINE)
 AC_DEFUN(CODA_CHECK_READLINE,
-  [AC_CHECK_LIB(readline, rl_initialize, [LIBREADLINE=-lreadline], [], $LIBTERMCAP)
+  [AC_CHECK_LIB(readline, rl_initialize, [LIBREADLINE=-lreadline],
+                [AC_MSG_ERROR("failed to find readline library")], $LIBTERMCAP)
    AC_CHECK_LIB(readline, rl_completion_matches,
      [AC_DEFINE(HAVE_RL_COMPLETION_MATCHES, 1, [Define if you have readline 4.2 or later])], [], $LIBTERMCAP)])
 
