@@ -33,10 +33,7 @@ extern "C" {
 #include "coda_assert.h"
 
 #include <readline/readline.h>
-
-extern void using_history();
-extern void stifle_history(int);
-extern void add_history(char *);
+#include <readline/history.h>
 
 #ifdef __cplusplus
 }
