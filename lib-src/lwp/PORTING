@@ -21,6 +21,6 @@ C-procedure calling convention for position independent code.
 
 -call.c-------------------------------------
 /* gcc -S -DPIC -fPIC -c call.c -o call.s */
-void call(void (*fn)(void)) { fn() };
+void call(void (*fn)(void)) { fn(); }
 --------------------------------------------
 
