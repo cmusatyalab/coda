@@ -55,6 +55,7 @@ void WriteTokenToFile(char *filename, ClearToken *cToken,
     memcpy(buf + sizeof(ClearToken), sToken, sizeof(EncryptedSecretToken));
     import(cToken);
 
+    umask(0177);
     f = fopen(filename, "w");
     fputs("*** Coda Token ***", f);
     coda_base64_encode(f, buf, len);
