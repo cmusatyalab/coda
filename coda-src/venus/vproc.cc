@@ -815,7 +815,7 @@ long FidToNodeid(VenusFid *fid)
 
 #ifdef __BSD44__
     /* Venus Root.  Use the mount point's nodeid. */
-	if (IsVenusRoot(fid))
+	if (FID_EQ(fid, &rootfid))
 	    return(rootnodeid);
 
 	/* Other volume root.  We need the relevant mount point's fid,

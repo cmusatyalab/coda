@@ -2305,7 +2305,15 @@ void repvol::SetStagingServer(struct in_addr *srvr)
 	(&StagingVol.Type0)[replicatedVolume] = vid;
 	StagingVol.Server0 = ntohl(srvr->s_addr);
 
-	ro_replica = (volrep *)VDB->Create(realm, &StagingVol, stagingname);
+	/* My initial guess is that the staging volume is a fake volume that
+	 * should be created in our 'local' realm to avoid collisions with real
+	 * volumeid's. On the other hand, we do have to talk to a server, which
+	 * is different from all the other fake volumes, so perhaps it needs
+	 * it's own unique 'staging-server realm'. Or maybe it should be in the
+	 * same realm as the other replicas because of authentication issues?
+	 * I guess it depends on how authentication with staging servers ends
+	 * up being resolved. --JH */
+	ro_replica = (volrep *)VDB->Create(realm, &StagingVol,stagingname);
 
 	if (ro_replica) {
 	    ro_replica->hold();
