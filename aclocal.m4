@@ -9,10 +9,10 @@ AC_DEFUN(CODA_CC_FNO_EXCEPTIONS,
        coda_cv_cc_fno_exceptions=yes,
        coda_cv_cc_fno_exceptions=no)
      AC_LANG_RESTORE
-     CC="$coda_saved_CC")],
-  if test $coda_cv_cc_fno_exceptions = yes; then
-    CC="$CC -fno-exceptions"
-  fi)
+     CC="$coda_saved_CC")
+   if test $coda_cv_cc_fno_exceptions = yes; then
+     CC="$CC -fno-exceptions"
+   fi])
 
 AC_DEFUN(CODA_CXX_FNO_EXCEPTIONS,
   [AC_CACHE_CHECK(whether the C++ compiler accepts -fno-exceptions,
@@ -25,10 +25,10 @@ AC_DEFUN(CODA_CXX_FNO_EXCEPTIONS,
        coda_cv_cxx_fno_exceptions=yes,
        coda_cv_cxx_fno_exceptions=no)
      AC_LANG_RESTORE
-     CXX="$coda_saved_CXX")],
-  if test $coda_cv_cxx_fno_exceptions = yes; then
-    CXX="$CXX -fno-exceptions"
-  fi)
+     CXX="$coda_saved_CXX")
+   if test $coda_cv_cxx_fno_exceptions = yes; then
+     CXX="$CXX -fno-exceptions"
+   fi])
 
 dnl Check which lib provides termcap functionality
 AC_SUBST(LIBTERMCAP)
