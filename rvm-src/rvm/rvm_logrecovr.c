@@ -33,7 +33,7 @@ should be returned to Software.Distribution@cs.cmu.edu.
 
 */
 
-static char *rcsid = "$Header: /afs/cs.cmu.edu/user/clement/mysrcdir3/rvm-src/rvm/RCS/rvm_logrecovr.c,v 4.2 1997/04/01 01:55:57 clement Exp clement $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/rvm-src/rvm/rvm_logrecovr.c,v 4.3 1997/05/09 22:11:14 clement Exp $";
 #endif _BLURB_
 
 /*
@@ -960,6 +960,7 @@ rvm_return_t scan_wrap_reverse(log,synch)
     {
     log_buf_t       *log_buf = &log->log_buf; /* log buffer descriptor */
     rec_hdr_t       *rec_hdr;           /* temporary cast for record header */
+    log_wrap_t      *log_wrap;          /* temporary cast for wrap marker */
     long            tmp_ptr;            /* temporary buffer ptr */
     rvm_return_t    retval;
 
@@ -969,21 +970,35 @@ rvm_return_t scan_wrap_reverse(log,synch)
         != RVM_SUCCESS) return retval;
 
     /* scan for wrap marker */
+    /* for the purpose of locating the wrap marker, we use the (duplicated)
+       struct_id2 which, while positions at the end of the record, guarantees
+       that we must interpret it first, otherwise, we may possibly 
+       mis-interpret other field of the record to have a struct_id of 
+       log_wrap_id ! */
     for (tmp_ptr = (log_buf->ptr - sizeof(log_wrap_t));
          tmp_ptr >= 0; tmp_ptr -= sizeof(rvm_length_t))
         {
-        rec_hdr = (rec_hdr_t *)&log_buf->buf[tmp_ptr];
-        if (rec_hdr->struct_id == log_wrap_id)
-            break;
+        log_wrap = (log_wrap_t *)&log_buf->buf[tmp_ptr];
+        if (log_wrap->struct_id2 == log_wrap_id) 
+            {
+		ASSERT( (log_wrap->struct_id==log_wrap_id) || rvm_utlsw );
+#ifdef 0
+		if (!((log_wrap->struct_id == log_wrap_id) || rvm_utlsw)) {
+		    printf("not true!\n");
+		    ASSERT(0);
+		}
+#endif
+	    break;
+            }
         }
 
     /* validate header if tmp_ptr legit */
     if ((tmp_ptr >= 0) && (tmp_ptr < log_buf->r_length))
         {
-        log_buf->ptr = tmp_ptr;
-        rec_hdr = (rec_hdr_t *)&log_buf->buf[log_buf->ptr];
-        if (!validate_hdr(log,rec_hdr,NULL,REVERSE))
-            log_buf->ptr = -1;
+	    log_buf->ptr = tmp_ptr;
+	    rec_hdr = (rec_hdr_t *)&log_buf->buf[log_buf->ptr];
+	    if (!validate_hdr(log,rec_hdr,NULL,REVERSE))
+		log_buf->ptr = -1;
         }
     else
         /* no wrap marker found */
@@ -995,9 +1010,9 @@ rvm_return_t scan_wrap_reverse(log,synch)
     }
 /* validate current record in buffer in reverse scan */
 rvm_return_t validate_rec_reverse(log,synch)
-    rvm_bool_t      synch;              /* true ==> synchronization required */
-    log_t           *log;               /* log descriptor */
-    {
+     rvm_bool_t      synch;              /* true ==> synchronization required */
+     log_t           *log;               /* log descriptor */
+{
     log_buf_t       *log_buf = &log->log_buf; /* log buffer descriptor */
     log_status_t    *status = &log->status; /* status area */
     rec_end_t       *rec_end = NULL;    /* temporary cast for record end */
@@ -1009,10 +1024,10 @@ rvm_return_t validate_rec_reverse(log,synch)
     /* get previous end marker into buffer */
     if ((long)(log_buf->ptr-sizeof(rec_end_t)) < 0)
         {
-        offset = RVM_ADD_LENGTH_TO_OFFSET(log_buf->offset,
-                                          log_buf->ptr);
-        if (RVM_OFFSET_EQL(offset,status->log_start))
-            {
+	    offset = RVM_ADD_LENGTH_TO_OFFSET(log_buf->offset,
+					      log_buf->ptr);
+	    if (RVM_OFFSET_EQL(offset,status->log_start))
+		{
             retval=scan_wrap_reverse(log,synch);
             return retval;              /* exit pointing to wrap marker */
             }

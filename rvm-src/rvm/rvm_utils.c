@@ -33,7 +33,7 @@ should be returned to Software.Distribution@cs.cmu.edu.
 
 */
 
-static char *rcsid = "$Header: /afs/cs.cmu.edu/user/clement/mysrcdir3/rvm-src/rvm/RCS/rvm_utils.c,v 4.2 1997/02/26 16:05:05 rvb Exp clement $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/rvm-src/rvm/rvm_utils.c,v 4.3 1997/04/01 01:55:57 clement Exp $";
 #endif _BLURB_
 
 /*
@@ -678,6 +678,7 @@ log_t *make_log(log_dev_name,retval)
         log->trans_hdr.struct_id = trans_hdr_id;
         log->rec_end.struct_id = rec_end_id;
         log->log_wrap.struct_id = log_wrap_id;
+        log->log_wrap.struct_id2 = log_wrap_id;  /* for scan_wrap_reverse() */
         log->log_wrap.rec_length = sizeof(log_wrap_t);
 
         /* init recovery buffer and dictionary */
