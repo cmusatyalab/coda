@@ -858,7 +858,7 @@ static void SetVolumeStats(ViceStatistics *stats)
 
 #include <kvm.h>
 #include <sys/dkstat.h>
-#if defined(__NetBSD_Version__) && (__NetBSD_Version__ >= 104270000)
+#if defined(__NetBSD_Version__) && (__NetBSD_Version__ >= 104250000)
 #include <sys/sched.h>
 #endif
 #include <limits.h>
