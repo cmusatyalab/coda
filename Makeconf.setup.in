@@ -14,7 +14,13 @@
 # Where to install binaries -- usual configure flags
 # 
 
+exec_prefix = @exec_prefix@
 prefix = @prefix@
+libdir = @libdir@
+libexecdir = @libexecdir@
+bindir = @bindir@
+sbindir = @sbindir@
+mandir = @mandir@
 
 #
 # Platform, uncomment your choice; 

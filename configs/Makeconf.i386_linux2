@@ -10,7 +10,6 @@
 
 # the following may need editing depending on your preferences
 
-SBINDIR = ${sbindir}
 
 MACHINE_FLAGS = -DLINUX
 SHORTSYS      = linux

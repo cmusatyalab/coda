@@ -235,6 +235,8 @@ show showvar:
 	@echo  SECSRC: $(SECSRC) 
 	@echo  CFLAGS: $(CFLAGS)
 	@echo  TOPDIR: $(TOPDIR) 
+	@echo  LIBDIR: $(LIBDIR)
+	@echo  LIBEXECDIR: $(LIBEXECDIR)
 	@echo  BINDIR: $(BINDIR)
 	@echo  SBINDIR: $(SBINDIR)
 	@echo  MANDIR:  $(MANDIR)

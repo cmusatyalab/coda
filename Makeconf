@@ -15,11 +15,10 @@
 
 include $(TOPOBJ)/Makeconf.setup
 
-# the following may need overriden on a particular platform
-LIBDIR = $(prefix)/lib
-BINDIR = $(prefix)/bin
-SBINDIR = $(prefix)/etc
-MANDIR = $(prefix)/man
+LIBEXECDIR:=$(exec_prefix)/lib/coda
+BINDIR:=$(exec_prefix)/bin
+SBINDIR:=$(exec_prefix)/sbin
+MANDIR:=$(mandir)
 
 include $(MAKDIR)/configs/Makeconf.$(SYS)
 
