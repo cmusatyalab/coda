@@ -1150,7 +1150,8 @@ V_FreeLocks:
 			{ u.u_error = EINVAL; break; }
 */
 		    userent *ue;
-		    Realm *realm = REALMDB->GetRealm(realmp);
+		    Realm *realm;
+		    realm = REALMDB->GetRealm(realmp);
 		    GetUser(&ue, realm, CRTORUID(u.u_cred));
 		    u.u_error = 0;
 		    if (!ue->SetTokens(secretp, clearp))
@@ -1162,7 +1163,6 @@ V_FreeLocks:
 #undef	clearlen
 #undef	clearp
 #undef	realmp
-
 		    break;
 		    }
 
@@ -1176,7 +1176,8 @@ V_FreeLocks:
 #define clearp ((ClearToken *)(clearlen + 1))
 #define endp ((char *)(clearp + 1)) 
 		    userent *ue;
-		    Realm *realm = REALMDB->GetRealm(data->in);
+		    Realm *realm;
+		    realm = REALMDB->GetRealm(data->in);
 		    GetUser(&ue, realm, CRTORUID(u.u_cred));	   
 		    u.u_error = (int) ue->GetTokens(secretp, clearp);
 		    PutUser(&ue);

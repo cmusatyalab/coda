@@ -30,30 +30,12 @@ extern "C" {
 
 #include <sys/types.h>
 #include <sys/socket.h>
-//#include <netdb.h>
 
-#ifdef __CYGWIN__
-/* cygwin netdb.h does not define these. */
-#define EAI_ADDRFAMILY   1 
-#define EAI_AGAIN        2 
-#define EAI_BADFLAGS     3 
-#define EAI_FAIL         4
-#define EAI_FAMILY       5
-#define EAI_MEMORY       6
-#define EAI_NODATA       7
-#define EAI_NONAME       8
-#define EAI_SERVICE      9
-#define EAI_SOCKTYPE    10
-#define EAI_SYSTEM      11
-#define EAI_BADHINTS    12
-#define EAI_PROTOCOL    13
-#define EAI_MAX         14
-#endif
+/* ai_flags */
+#define CODA_AI_CANONNAME 1
 
 struct coda_addrinfo {
     int ai_flags;
-#define CODA_AI_CANONNAME 1
-
     int ai_family;
     int ai_socktype;
     int ai_protocol;
@@ -66,6 +48,16 @@ struct coda_addrinfo {
     int ai_weight;
     int ai_port;
 };
+
+/* error codes */
+#define CODA_EAI_AGAIN    2
+#define CODA_EAI_FAIL     4
+#define CODA_EAI_FAMILY   5
+#define CODA_EAI_MEMORY   6
+#define CODA_EAI_NODATA   7
+#define CODA_EAI_NONAME   8
+#define CODA_EAI_SERVICE  9
+#define CODA_EAI_SOCKTYPE 10
 
 int coda_getaddrinfo(const char *node, const char *service,
 		     const struct coda_addrinfo *hints,

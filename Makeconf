@@ -75,7 +75,6 @@ LIBFAIL   := -lfail
 
 LIBMATH	    := -lm
 LIBREADLINE := -lreadline
-LIBRESOLV   := -lresolv
 
 # -- CODA --
 LIBAL        := ../al/libal.a

@@ -21,28 +21,23 @@ Coda are listed in the file CREDITS.
  * would do all of this for us ;)
  */
 
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
 
 #include <netinet/in.h>
 #include <arpa/inet.h>
-#ifndef __CYGWIN__
+#ifdef HAVE_ARPA_NAMESER_H
 #include <arpa/nameser.h>
 #endif
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-#ifndef __CYGWIN__
+#ifdef HAVE_RESOLV_H
 #include <resolv.h>
 #endif
+#ifdef HAVE_NETDB_H
 #include <netdb.h>
-
-#ifdef __CYGWIN__
-/* Does not have everything we want ... need to add some stuff. */
-#define AI_CANONNAME	1
-#define uint16_t __uint16_t
-#define NS_INT16SZ sizeof(uint16_t)
-#define uint32_t __uint32_t
-#define NS_INT32SZ sizeof(uint32_t)
-
 #endif
 
 #include "coda_getaddrinfo.h"
@@ -87,50 +82,6 @@ struct summary {
     int flags;
 };
 
-#ifndef __CYGWIN__
-static char *srvdomainname(const char *realm, const char *service,
-			   const struct summary *sum)
-{
-    char *proto, *domain;
-    int len;
-    
-    proto = (sum->protocol == IPPROTO_TCP) ? "tcp" : "udp";
-    len = strlen(service) + strlen(proto) + strlen(realm) + 6;
-    domain = malloc(len);
-    if (domain)
-	sprintf(domain, "_%s._%s.%s.", service, proto, realm);
-
-    return domain;
-}
-
-
-static int DN_HOST(char *msg, int mlen, char **ptr, char *dest)
-{
-    int len = dn_expand(msg, msg + mlen, *ptr, dest, MAXHOSTNAMELEN);
-    if (len < 0) return -1;
-    *ptr += len;
-    return 0;
-}
-
-static int DN_SHORT(char *msg, int mlen, char **ptr, int *dest)
-{
-    if (*ptr + NS_INT16SZ > msg + mlen)
-	return -1;
-    *dest = ntohs(*(uint16_t *)*ptr);
-    *ptr += NS_INT16SZ;
-    return 0;
-}
-
-static int DN_INT(char *msg, int mlen, char **ptr, int *dest)
-{
-    if (*ptr + NS_INT32SZ > msg + mlen)
-	return -1;
-    *dest = ntohl(*(uint32_t *)*ptr);
-    *ptr += NS_INT32SZ;
-    return 0;
-}
-#endif
-
 static int resolve_host(const char *name, int port, const struct summary *sum,
 			int priority, int weight, struct coda_addrinfo **res)
 {
@@ -143,22 +94,22 @@ static int resolve_host(const char *name, int port, const struct summary *sum,
     he = getipnodebyname(name, sum->family, flags, &err);
     if (!he) {
 	switch (err) {
-	case HOST_TRY_AGAIN: return EAI_AGAIN;
-	case HOST_NOADDRESS: return EAI_NODATA;
-	case HOST_NOT_FOUND: return EAI_NONAME;
+	case HOST_TRY_AGAIN: return CODA_EAI_AGAIN;
+	case HOST_NOADDRESS: return CODA_EAI_NODATA;
+	case HOST_NOT_FOUND: return CODA_EAI_NONAME;
 	case HOST_NORECOVERY:
-	default:	     return EAI_FAIL;
+	default:	     return CODA_EAI_FAIL;
 	}
     }
 #else
     he = gethostbyname(name);
     if (!he) {
 	switch(h_errno) {
-	case TRY_AGAIN:      return EAI_AGAIN;
-	case NO_ADDRESS:     return EAI_NODATA;
-	case HOST_NOT_FOUND: return EAI_NONAME;
+	case TRY_AGAIN:      return CODA_EAI_AGAIN;
+	case NO_ADDRESS:     return CODA_EAI_NODATA;
+	case HOST_NOT_FOUND: return CODA_EAI_NONAME;
 	case NO_RECOVERY:
-	default:	     return EAI_FAIL;
+	default:	     return CODA_EAI_FAIL;
 	}
     }
 #endif
@@ -207,16 +158,58 @@ static int resolve_host(const char *name, int port, const struct summary *sum,
     freehostent(he);
 #endif
 
-    return resolved ? 0 : (i ? EAI_MEMORY : EAI_NODATA);
+    return resolved ? 0 : (i ? CODA_EAI_MEMORY : CODA_EAI_NODATA);
 }
 
-#ifndef __CYGWIN__
+#ifdef HAVE_RES_SEARCH
+static char *srvdomainname(const char *realm, const char *service,
+			   const struct summary *sum)
+{
+    char *proto, *domain;
+    int len;
+    
+    proto = (sum->protocol == IPPROTO_TCP) ? "tcp" : "udp";
+    len = strlen(service) + strlen(proto) + strlen(realm) + 6;
+    domain = malloc(len);
+    if (domain)
+	sprintf(domain, "_%s._%s.%s.", service, proto, realm);
+
+    return domain;
+}
+
+
+static int DN_HOST(char *msg, int mlen, char **ptr, char *dest)
+{
+    int len = dn_expand(msg, msg + mlen, *ptr, dest, MAXHOSTNAMELEN);
+    if (len < 0) return -1;
+    *ptr += len;
+    return 0;
+}
+
+static int DN_SHORT(char *msg, int mlen, char **ptr, int *dest)
+{
+    if (*ptr + NS_INT16SZ > msg + mlen)
+	return -1;
+    *dest = ntohs(*(uint16_t *)*ptr);
+    *ptr += NS_INT16SZ;
+    return 0;
+}
+
+static int DN_INT(char *msg, int mlen, char **ptr, int *dest)
+{
+    if (*ptr + NS_INT32SZ > msg + mlen)
+	return -1;
+    *dest = ntohl(*(uint32_t *)*ptr);
+    *ptr += NS_INT32SZ;
+    return 0;
+}
+
 static int parse_res_reply(char *answer, int alen, const struct summary *sum,
 			   struct coda_addrinfo **res)
 {
     char *p = answer, name[MAXHOSTNAMELEN];
     int priority, weight, port, dummy;
-    int err = EAI_AGAIN, tmperr;
+    int err = CODA_EAI_AGAIN, tmperr;
 
     /* arghhhhh, I don't like digging through libresolv output */
     p += NS_HFIXEDSZ; /* what is in the header? probably nothing interesting */
@@ -259,11 +252,12 @@ static int parse_res_reply(char *answer, int alen, const struct summary *sum,
 	}
 
 	tmperr = resolve_host(name, port, sum, priority, weight, res);
-	if (err == EAI_AGAIN)
+	if (err == CODA_EAI_AGAIN)
 	    err = tmperr;
     }
     return err;
 }
+#endif
 
 static int do_srv_lookup(const char *realm, const char *service,
 			 const struct summary *sum, struct coda_addrinfo **res)
@@ -276,18 +270,21 @@ static int do_srv_lookup(const char *realm, const char *service,
 #endif
     srvdomain = srvdomainname(realm, service, sum);
     if (!srvdomain)
-	return EAI_MEMORY;
+	return CODA_EAI_MEMORY;
 
+#ifdef HAVE_RES_SEARCH
     len = res_search(srvdomain, ns_c_in, ns_t_srv, answer, sizeof(answer));
 
     free(srvdomain);
     
     if (len == -1)
-	return EAI_FAIL;
+	return CODA_EAI_FAIL;
 
     return parse_res_reply(answer, len, sum, res);
-}
+#else
+    return CODA_EAI_FAIL;
 #endif
+}
 
 
 int coda_getaddrinfo(const char *node, const char *service,
@@ -311,19 +308,19 @@ int coda_getaddrinfo(const char *node, const char *service,
     if (sum.family != PF_UNSPEC &&
 	sum.family != PF_INET &&
 	sum.family != PF_INET6)
-	return EAI_FAMILY;
+	return CODA_EAI_FAMILY;
 
     if (sum.socktype &&
 	sum.socktype != SOCK_STREAM &&
 	sum.socktype != SOCK_DGRAM)
-	return EAI_SOCKTYPE;
+	return CODA_EAI_SOCKTYPE;
 
     if (!node || !service)
-	return EAI_NONAME;
+	return CODA_EAI_NONAME;
 
     tmpnode = strdup(node);
     if (!tmpnode)
-	return EAI_MEMORY;
+	return CODA_EAI_MEMORY;
 
     /* force some defaults */
     if (sum.family == PF_UNSPEC)
@@ -351,13 +348,10 @@ int coda_getaddrinfo(const char *node, const char *service,
     if (*service == '\0' || *end != '\0')
 	port = 0;
 
-#ifndef __CYGWIN__
+    err = CODA_EAI_NONAME;
     if (!is_ip && !port)
 	/* try to find SRV records */
 	err = do_srv_lookup(tmpnode, service, &sum, &srvs);
-    else
-#endif
-	err = EAI_NONAME;
 
     /* fall back to A records */
     if (err) {
@@ -366,7 +360,7 @@ int coda_getaddrinfo(const char *node, const char *service,
 	    struct servent *se = getservbyname(service, proto);
 	    if (!se) {
 		free(tmpnode);
-		return EAI_SERVICE;
+		return CODA_EAI_SERVICE;
 	    }
 	    port = ntohs(se->s_port);
 	}
@@ -495,3 +489,4 @@ int main(int argc, char **argv)
     exit(0);
 }
 #endif
+
