@@ -120,7 +120,7 @@ if [ ! -e /etc/coda/venus.conf ]; then
 	/usr/sbin/venus-setup testserver.coda.cs.cmu.edu 100000
 fi
 if [ ! -e /dev/cfs0 ]; then 
-	/bin/mknod /dev/cfs0 67 0
+	/bin/mknod /dev/cfs0 c 67 0
 fi
 /sbin/chkconfig --add venus.init
 
