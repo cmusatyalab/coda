@@ -43,19 +43,28 @@ static int pdb_array_search(pdb_array *l, int32_t x)
 {
 	int32_t b,t,m;
 
-	if(l->size < 1) return -1;
+	/* simple binary search */
+	if (l->size == 0)
+	    return -1;
+
 	b = 0;
 	t = l->size - 1;
-	m = (b + t) / 2;
-	while(l->data[m] != x){
-		if(b >= t) return -1;
-		if(l->data[m] > x)
-			t = m - 1;
-		else
-			b = m + 1;
-		m = (b + t) / 2;
+
+	while(1) {
+	    m = (b + t) / 2;
+
+	    if (l->data[m] == x)
+		return m;
+
+	    if (b >= t)
+		break;
+	
+	    if(l->data[m] > x)
+		t = m - 1;
+	    else
+		b = m + 1;
 	}
-	return m;
+	return -1;
 }
 
 
@@ -70,7 +79,8 @@ void pdb_array_init(pdb_array *l)
 void pdb_array_free(pdb_array *l)
 {
 	CODA_ASSERT(l);
-	if(l->memsize > 0) free(l->data);
+	if(l->memsize)
+	    free(l->data);
 	l->size = 0;
 	l->memsize = 0;
 	l->data = NULL;
@@ -83,8 +93,8 @@ void pdb_array_add(pdb_array *l, int32_t x)
 	
 	CODA_ASSERT(l);
 
-	if(l->size + 1 > l->memsize){
-		if(l->memsize != 0){
+	if (l->size == l->memsize){
+		if (l->memsize) {
 			l->memsize += 16;
 			l->data = realloc(l->data, l->memsize*sizeof(int32_t));
 		} else {
@@ -92,17 +102,23 @@ void pdb_array_add(pdb_array *l, int32_t x)
 			l->data = malloc(l->memsize*sizeof(int32_t));
 		}
 	}
-	/* order it */
-	i = l->size-1;
-	while((i >= 0) && (l->data[i] > x))
-		i--;
-	if (i >= 0) {
-	   if (l->data[i+1] == x)
-	       return;
+	/* add a new entry in the sorted array */
+	/* skip all smaller entries */
+	for (i = 0; i < l->size; i++)
+	    if (l->data[i] >= x)
+		break;
+
+	if (i < l->size) {
+	    /* if the entry already exists, we're done */
+	    if (l->data[i] == x)
+		return;
+
+	    /* otherwise shift all remaining entries one place up */
+	    memmove(&l->data[i+1], &l->data[i],
+		    (l->size - i) * sizeof(int32_t));
 	}
-	memmove(&(l->data[i+2]), &(l->data[i+1]),
-		(l->size - (i+1)) * sizeof(int32_t));
-	l->data[i+1] = x;
+	/* add the new entry */
+	l->data[i] = x;
 	l->size++;
 }
 
@@ -114,9 +130,11 @@ void pdb_array_del(pdb_array *l, int32_t x)
 	CODA_ASSERT(l);
 
 	i = pdb_array_search(l,x);
-	if (i < 0) return;
+	if (i == -1) return;
 	l->size--;
-	memmove(&(l->data[i]),&(l->data[i+1]),(l->size - i) * sizeof(int32_t));
+	if ((l->size - i) > 0)
+	    memmove(&l->data[i], &l->data[i+1],
+		    (l->size - i) * sizeof(int32_t));
 	l->data[l->size] = 0; /* Just to be safe */
 }
 
@@ -132,20 +150,37 @@ void pdb_array_copy(pdb_array *d, pdb_array *s)
 
 void pdb_array_merge(pdb_array *d, pdb_array *s)
 {
-	int i;
+	int i, si, di;
+	int32_t *new;
 
 	CODA_ASSERT(d && s);
 
-	/* This could be a lot faster, but this is easier */
-	for(i=0;i < s->size;i++)
-		pdb_array_add(d, s->data[i]);
+	new = (int32_t *)malloc((s->size + d->size) * sizeof(int32_t));
+	CODA_ASSERT(new);
+
+	si = 0; di = 0;
+	for (i = 0; i < s->size + d->size; i++) {
+	    if (si < s->size && (di == d->size || s->data[si] < d->data[di]))
+		new[i] = s->data[si++];
+	    else {
+		if (si < s->size && s->data[si] == d->data[di])
+		    si++;
+		new[i] = d->data[di++];
+	    }
+	}
+
+	d->memsize = s->size + d->size;
+	d->size = d->memsize;
+	if (d->data)
+	    free(d->data);
+	d->data = new;
 }
 
 
 int32_t pdb_array_head(pdb_array *l, pdb_array_off *off)
 {
 	*off = 0;
-	if(l->size <= 0)
+	if (l->size == 0)
 		return 0;
 	return l->data[0];
 }
@@ -153,7 +188,8 @@ int32_t pdb_array_head(pdb_array *l, pdb_array_off *off)
 
 int32_t pdb_array_next(pdb_array *l, pdb_array_off *off)
 {
-	if(l->size <= (++(*off)))
+	(*off)++;
+	if (l->size <= *off)
 		return 0;
 	return l->data[*off];
 }
@@ -198,7 +234,7 @@ int pdb_array_to_array(int32_t *out, pdb_array *l)
 {
 	CODA_ASSERT(out && l);
 
-	memcpy((char *) out,(char *) l->data, l->size * sizeof(int32_t));
+	memcpy(out, l->data, l->size * sizeof(int32_t));
 	return l->size;
 }
 

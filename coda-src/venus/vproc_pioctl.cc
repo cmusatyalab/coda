@@ -519,7 +519,7 @@ O_FreeLocks:
 		    memcpy(&cp->vv, &f->stat.VV, sizeof(ViceVersionVector));
 
 		    strcpy(cp->realm, f->vol->realm->Name());
-		    
+
 		    data->out_size = sizeof(struct GetFid);
 		    break;
 		    }

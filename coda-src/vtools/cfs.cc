@@ -1232,7 +1232,7 @@ static int pioctl_GetFid(char *path, ViceFid *fid, char *realm, ViceVersionVecto
         ViceFid           fid;
         ViceVersionVector vv;
 	char		  realm[MAXHOSTNAMELEN+1];
-    }                out;
+    } out;
     struct ViceIoctl vio;
     int              rc;
 
