@@ -45,7 +45,7 @@ NO_LEX = yes
 HFILES = al.h prs.h pdb.h pdbarray.h
 
 DEPLIBS = libal.a $(LIBUTIL) $(LIBBASE)
-LIBS := $(DEPLIBS) $(LIBDB) $(LIBS)
+LIBS := $(DEPLIBS) $(LIBRPC2) $(LIBLWP) $(LIBDB) $(LIBS)
 
 include $(MAKDIR)/configs/Makerules
 

@@ -200,7 +200,7 @@ AC_DEFUN(CODA_CHECK_KERBEROS,
     if test "$ac_cv_header_krb5_h" = yes -a "$ac_cv_header_com_err_h" = yes ; then
 	AC_SEARCH_LIBS(krb5_init_context, krb5,
 	    [LIBKRB5="$ac_cv_search_krb5_init_context"
-	     LIBS="$ac_func_search_save_LIBS"])
+	     LIBS="$ac_func_search_save_LIBS"], , -lk5crypto -lcom_err)
 	AC_SEARCH_LIBS(krb5_encrypt, k5crypto,
 	    [LIBKRB5="${LIBKRB5} $ac_cv_search_krb5_encrypt"
 	     LIBS="$ac_func_search_save_LIBS"])
