@@ -129,12 +129,12 @@ coda-src/Makefile
 coda-src/scripts/Makefile 
 coda-src/scripts/bldvldb.sh
 coda-src/scripts/createvol_rep
+coda-src/scripts/purgevol_rep
 coda-src/scripts/rc.vice
 coda-src/scripts/startserver
 coda-src/scripts/venus.init
 coda-src/scripts/vice-setup
 coda-src/scripts/vice-setup-rvm
-coda-src/scripts/vutil
 coda-src/kerndep/Makefile 
 coda-src/partition/Makefile 
 coda-src/dir/Makefile  
