@@ -1077,7 +1077,7 @@ void monitor()
     return;
     }
 /* testing thread function */
-int worker(void *idp)
+void worker(void *idp)
 {
     int id = *(int *)idp;
     CRITICAL(print_lock,
@@ -1105,7 +1105,7 @@ int worker(void *idp)
     if (--nthreads == 0)
         condition_signal(&thread_exit_code);
     cthread_exit(0);
-    return -1;
+    return;
     }
 /* string name lookup: accepts minimum substring for match */
 static int  lookup_str_name(str,str_vec,ambig_str)
