@@ -946,10 +946,9 @@ srvent::~srvent()
 
     srvent::srvtab->remove(&tblhandle);
 
-    delete [] name;
+    Reset();
 
-    int code = (int) RPC2_Unbind(connid);
-    LOG(1, ("srvent::~srvent: RPC2_Unbind -> %s\n", RPC2_ErrorMsg(code)));
+    delete [] name;
 }
 
 
@@ -1059,9 +1058,11 @@ void srvent::Reset()
     }
 
     /* Unbind callback connection for this server. */
-    int code = (int) RPC2_Unbind(connid);
-    LOG(1, ("srvent::Reset: RPC2_Unbind -> %s\n", RPC2_ErrorMsg(code)));
-    connid = 0;
+    if (connid) {
+	int code = (int) RPC2_Unbind(connid);
+	LOG(1, ("srvent::Reset: RPC2_Unbind -> %s\n", RPC2_ErrorMsg(code)));
+	connid = 0;
+    }
 
     /* Send a downevent to volumes associated with this server */
     /* Also kills all indirect connections to the server. */
