@@ -72,9 +72,9 @@ extern "C" {
 }
 #endif __cplusplus
 
-
 #include "cvnode.h"
 #include "volume.h"
+#include "lockqueue.h"
 #include <recov_vollog.h>
 #include "vldb.h"
 #include "srvsignal.h"
@@ -1498,7 +1498,7 @@ void VBumpVolumeUsage(register Volume *vp)
 
 void VSetDiskUsage() 
 {
-	static FifteenMinuteCounter;
+	static int FifteenMinuteCounter;
 
 	VLog(9, "Entering VSetDiskUsage()");
 	DP_ResetUsage();
@@ -1827,4 +1827,98 @@ void VGetPartitionStatus(Volume *vp, int *totalBlocks, int *freeBlocks)
 {
     *totalBlocks = vp->partition->totalUsable;
     *freeBlocks = vp->partition->free;
+}
+
+
+int GetVolObj(VolumeId Vid, Volume **volptr, 
+	      int LockLevel, int Enque, int LockerAddress) 
+{
+    
+    int errorCode = 0;
+    *volptr = 0;
+
+    *volptr = VGetVolume((Error *)&errorCode, Vid);
+    if (errorCode) {
+	    SLog(0, "GetVolObj: VGetVolume(%x) error %d", Vid, errorCode);
+	    goto FreeLocks;
+    }
+
+    switch(LockLevel) {
+    case VOL_NO_LOCK:
+	    break;
+
+    case VOL_SHARED_LOCK:
+	    if (V_VolLock(*volptr).IPAddress != 0) {
+		    SLog(0, "GetVolObj: Volume (%x) already write locked", Vid);
+		    VPutVolume(*volptr);
+		    *volptr = 0;
+		    errorCode = EWOULDBLOCK;
+		    goto FreeLocks;
+	    }
+	    ObtainReadLock(&(V_VolLock(*volptr).VolumeLock));
+	    break;
+
+    case VOL_EXCL_LOCK:
+	    CODA_ASSERT(LockerAddress);
+	    if (V_VolLock(*volptr).IPAddress != 0) {
+		    SLog(0, "GetVolObj: Volume (%x) already write locked", Vid);
+		    VPutVolume(*volptr);
+		    *volptr = 0;
+		    errorCode = EWOULDBLOCK;
+		    goto FreeLocks;
+	    }
+	    V_VolLock(*volptr).IPAddress = LockerAddress;
+	    ObtainWriteLock(&(V_VolLock(*volptr).VolumeLock));
+	    CODA_ASSERT((long)V_VolLock(*volptr).IPAddress == LockerAddress);
+	    if (Enque) {
+		    lqent *lqep = new lqent(Vid);
+		    LockQueueMan->add(lqep);
+	    }
+	    break;
+    default:
+	    CODA_ASSERT(0);
+    }
+    
+ FreeLocks:
+    SLog(9, "GetVolObj: returns %d", errorCode);
+    
+    return(errorCode);
+}
+
+/*
+  PutVolObj: Unlock a volume
+*/
+void PutVolObj(Volume **volptr, int LockLevel, int Dequeue)
+{
+    if (*volptr == 0) return;
+    switch (LockLevel) {
+      case VOL_NO_LOCK:
+	break;
+      case VOL_SHARED_LOCK:
+	SLog(9, "PutVolObj: One less locker");
+	ReleaseReadLock(&(V_VolLock(*volptr).VolumeLock));
+	break;
+      case VOL_EXCL_LOCK:
+	if (Dequeue) {
+	    lqent *lqep = LockQueueMan->findanddeq(V_id(*volptr));
+	    if (!lqep) 
+		SLog(0, "PutVolObj: Couldn't find entry %x on lock queue", 
+			V_id(*volptr));
+	    else {
+		LockQueueMan->remove(lqep);
+		delete lqep;
+	    }
+	}
+	if (V_VolLock(*volptr).IPAddress) {
+	    V_VolLock(*volptr).IPAddress = 0;
+	    ReleaseWriteLock(&(V_VolLock(*volptr).VolumeLock));
+	}
+	break;
+      default:
+	CODA_ASSERT(0);
+    }
+
+    VPutVolume(*volptr);
+    *volptr = 0;
+    SLog(10, "Returning from PutVolObj");
 }

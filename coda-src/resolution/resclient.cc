@@ -44,20 +44,20 @@ extern "C" {
 #include <inodeops.h>
 #include <util.h>
 #include <codadir.h>
-
 #include <res.h>
 
 #ifdef __cplusplus
 }
 #endif __cplusplus
 
+#include <recov_vollog.h>
+#include <lockqueue.h>
 #include <cvnode.h>
 #include <olist.h>
 #include <errors.h>
 #include <srv.h>
 #include <vlist.h>
 #include <operations.h>
-#include <res.h>
 #include <treeremove.h>
 #include <vrdb.h>
 
@@ -116,7 +116,7 @@ int EDirRUConf(PDirEntry, void *);
 /* private routine declarations */
 extern void UpdateVVs(ViceVersionVector *, ViceVersionVector *, ViceVersionVector *);
 
-long RS_DirResPhase3(RPC2_Handle RPCid, ViceFid *Fid, ViceVersionVector *VV,
+long RS_InstallVV(RPC2_Handle RPCid, ViceFid *Fid, ViceVersionVector *VV,
 		     SE_Descriptor *sed) {
     PROBE(tpinfo, CPHASE3BEGIN);
     Volume *volptr = 0;
@@ -129,7 +129,7 @@ long RS_DirResPhase3(RPC2_Handle RPCid, ViceFid *Fid, ViceVersionVector *VV,
     {
 	if (!XlateVid(&Fid->Volume)) {
 	    SLog(0,  
-		   "DirResPhase3: Coudnt Xlate VSG %x", Fid->Volume);
+		   "InstallVV: Coudnt Xlate VSG %x", Fid->Volume);
 	    PROBE(tpinfo, CPHASE3END);
 	    return(EINVAL);
 	}
@@ -139,7 +139,7 @@ long RS_DirResPhase3(RPC2_Handle RPCid, ViceFid *Fid, ViceVersionVector *VV,
 	ov = AddVLE(*vlist, Fid);
 	if ( (errorCode = GetFsObj(Fid, &volptr, &ov->vptr, WRITE_LOCK, NO_LOCK, 0, 0, ov->d_inodemod)) ) {
 	    SLog(0,  
-		   "DirResPhase3: Error %d getting object %x.%x",
+		   "InstallVV: Error %d getting object %x.%x",
 		   errorCode, Fid->Vnode, Fid->Unique);
 	    goto Exit;
 	}
@@ -153,7 +153,7 @@ long RS_DirResPhase3(RPC2_Handle RPCid, ViceFid *Fid, ViceVersionVector *VV,
     }
     
     /* if phase1 was successful update vv */
-    SLog(9,  "DirResPhase3: Going to update vv");
+    SLog(9,  "InstallVV: Going to update vv");
     
     if ((&(VV->Versions.Site0))[ix] && COP2Pending(ov->vptr->disk.versionvector)) {
         ov->vptr->disk.versionvector.StoreId = VV->StoreId;
@@ -172,7 +172,7 @@ long RS_DirResPhase3(RPC2_Handle RPCid, ViceFid *Fid, ViceVersionVector *VV,
     }
     /* truncate log if success everywhere in phase 1 */
     {
-	SLog(9, "DirResPhase3: Going to check if truncate log possible");
+	SLog(9, "InstallVV: Going to check if truncate log possible");
 	unsigned long Hosts[VSG_MEMBERS];
 	int i = 0;
 	vv_t checkvv;
@@ -185,7 +185,7 @@ long RS_DirResPhase3(RPC2_Handle RPCid, ViceFid *Fid, ViceVersionVector *VV,
 		break;
 	if (i == VSG_MEMBERS) {
 	    /* update set has 1 for all hosts */
-	    SLog(9, "OldDirResPhase3: Success everywhere - truncating log");
+	    SLog(9, "InstallVV: Success everywhere - truncating log");
 	    if (AllowResolution && V_RVMResOn(volptr)) 
 		ov->d_needslogtrunc = 1;
 	}
@@ -196,7 +196,7 @@ long RS_DirResPhase3(RPC2_Handle RPCid, ViceFid *Fid, ViceVersionVector *VV,
 	PDirHandle dh;
 	int size = 0;
 	dh = VN_SetDirHandle(ov->vptr);
-	SLog(9,  "RS_DirResPhase3: Shipping dir contents ");
+	SLog(9,  "RS_InstallVV: Shipping dir contents ");
 	SE_Descriptor sid;
 	memset(&sid, 0, sizeof(SE_Descriptor));
 	sid.Tag = SMARTFTP;
@@ -212,7 +212,7 @@ long RS_DirResPhase3(RPC2_Handle RPCid, ViceFid *Fid, ViceVersionVector *VV,
 	if((errorCode = RPC2_InitSideEffect(RPCid, &sid)) 
 	   <= RPC2_ELIMIT) {
 		SLog(0,  
-		       "RS_DirResPhase3:  InitSE failed (%d)", errorCode);
+		       "RS_InstallVV:  InitSE failed (%d)", errorCode);
 		VN_PutDirHandle(ov->vptr);
 		goto Exit;
 	}
@@ -220,7 +220,7 @@ long RS_DirResPhase3(RPC2_Handle RPCid, ViceFid *Fid, ViceVersionVector *VV,
 	if ((errorCode = RPC2_CheckSideEffect(RPCid, &sid, SE_AWAITLOCALSTATUS)) 
 	    <= RPC2_ELIMIT) {
 		SLog(0,  
-		       "RS_DirResPhase3: CheckSE failed (%d)", errorCode);
+		       "RS_InstallVV: CheckSE failed (%d)", errorCode);
 		if (errorCode == RPC2_SEFAIL1) errorCode = EIO;
 		VN_PutDirHandle(ov->vptr);
 		goto Exit;
@@ -229,7 +229,7 @@ long RS_DirResPhase3(RPC2_Handle RPCid, ViceFid *Fid, ViceVersionVector *VV,
     }
   Exit:
     PutObjects((int)errorCode, volptr, NO_LOCK, vlist, 0, 1);
-    SLog(9,  "DirResPhase3 returns %d", errorCode);
+    SLog(9,  "InstallVV returns %d", errorCode);
     PROBE(tpinfo, CPHASE3END);
     return(errorCode);
 }

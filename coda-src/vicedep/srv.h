@@ -67,10 +67,6 @@ extern "C" {
 /* From Vol package. */
 #define	ThisHostAddr		((unsigned long)(HostAddress[ThisServerId]))
 #define	VolToHostAddr(volnum)	((unsigned long)(HostAddress[(volnum) >> 24]))
-#define NO_LOCK		0	/* remains for compatibility */
-#define	VOL_NO_LOCK	NO_LOCK
-#define VOL_SHARED_LOCK	SHARED_LOCK
-#define VOL_EXCL_LOCK	WRITE_LOCK
 
 #define ISDIR(fid)  ((fid).Vnode & 1)
 

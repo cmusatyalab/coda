@@ -68,7 +68,6 @@ extern "C" {
 
 static char vkey[RPC2_KEYSIZE+1];	/* Encryption key for bind authentication */
 /* file variables for utils with file transfer */
-static char infile[256];
 static char outfile[256];	// file name for requested info
 /* hack to make argc and argv visible to subroutines */
 static char **this_argp;
@@ -100,7 +99,6 @@ static void shutdown();
 static void swaplog();
 static void swapmalloc();
 static void setdebug();
-static void oldstyledump();
 static void dump();
 static void restorefromback();
 static void dumpmem();
@@ -132,7 +130,6 @@ struct rockInfo {
 
 static void V_InitRPC(int timeout);
 static int V_BindToServer(char *fileserver, RPC2_Handle *RPCid);
-static void Die(char *msg);
 static void VolDumpLWP(struct rockInfo *rock);
 extern long volDump_ExecuteRequest(RPC2_Handle, RPC2_PacketBuffer*,SE_Descriptor*);
 
@@ -317,11 +314,11 @@ static void markasancient()
 	printf("Usage: volutil ancient <groupid> <repid>\n");
 	exit(-1);
     }
-    if (sscanf(this_argp[2], "%X", &groupid) != 1){
+    if (sscanf(this_argp[2], "%lX", &groupid) != 1){
 	printf("MarkAsAncient: Bad Groupid %s\n", this_argp[2]);
 	exit(-1);
     }
-    if (sscanf(this_argp[3], "%X", &repid) != 1){
+    if (sscanf(this_argp[3], "%lX", &repid) != 1){
 	printf("MarkAsAncient: Bad Repid %s\n", this_argp[3]);
 	exit(-1);
     }
@@ -358,21 +355,21 @@ static void setlogparms() {
 	printf("Usage: volutil setlogparms <volid> reson <flag> logsize <nentries>\n");
 	exit(-1);
     }
-    if (sscanf(this_argp[2], "%X", &volid) != 1) {
+    if (sscanf(this_argp[2], "%lX", &volid) != 1) {
 	printf("setlogparms: Bad VolumeId %s\n", this_argp[2]);
 	exit(-1);
     }
     for (i = 3; i < these_args ; i++) {
 	if (strcmp(this_argp[i], "reson") == 0) {
 	    i = i + 1;
-	    if (sscanf(this_argp[i], "%d", &flag) != 1) {
+	    if (sscanf(this_argp[i], "%ld", &flag) != 1) {
 		printf("Bad flag value %s\n", this_argp[i]);
 		exit(-1);
 	    }
 	}
 	if (strcmp(this_argp[i], "logsize") == 0) {
 	    i = i + 1;
-	    if (sscanf(this_argp[i], "%d", &nentries) != 1) {
+	    if (sscanf(this_argp[i], "%ld", &nentries) != 1) {
 		printf("Bad logsize value %s\n", this_argp[i]);
 		exit(-1);
 	    }
@@ -430,7 +427,7 @@ static void salvage() {
     if (these_args > 0)
 	path = this_argp[0];
     if (these_args == 2) {
-	if (sscanf(this_argp[1], "%x", &vid) != 1){
+	if (sscanf(this_argp[1], "%lx", &vid) != 1){
 	    printf("salvage: invalid volume id specified; salvage aborted\n");
 	    exit(1);
 	}
@@ -477,7 +474,7 @@ static void create() {
 	printf("VolCreate failed with %s\n", RPC2_ErrorMsg((int)rc));
 	exit(-1);
     }
-    printf("Volume %x (%s) created \n", volumeid, volumeName);
+    printf("Volume %lx (%s) created \n", volumeid, volumeName);
     exit(0);
 }
 /*
@@ -495,7 +492,7 @@ static void clone()
     char *newvolname = buf;
     long rc;
 
-    if (sscanf(this_argp[2], "%X", &ovolid) != 1){
+    if (sscanf(this_argp[2], "%lX", &ovolid) != 1){
 	printf("Clone: Bad Volumeid %s\n", this_argp[2]);
 	exit(-1);
     }
@@ -515,21 +512,21 @@ static void clone()
 	printf("VolClone failed with %s\n", RPC2_ErrorMsg((int)rc));
 	exit(-1);
     }
-    printf("VolClone: New Volume id = %x\n", newvolid);
+    printf("VolClone: New Volume id = %lx\n", newvolid);
     printf("VolClone: New Volume name is %s\n", newvolname);
     exit(0);
 }
 
 static void printSFTPstats()
 {
-    printf("Sent: Total %d, Starts %d, Datas %d, Retries %d\n", sftp_Sent.Total,
+    printf("Sent: Total %ld, Starts %ld, Datas %ld, Retries %ld\n", sftp_Sent.Total,
 	   sftp_Sent.Starts, sftp_Sent.Datas, sftp_Sent.DataRetries);
-    printf("Sent: Acks %d, Naks %d, Busies %d, Bytes %d, Timeouts \n",
+    printf("Sent: Acks %ld, Naks %ld, Busies %ld, Bytes %ld, Timeouts \n",
 	   sftp_Sent.Acks, sftp_Sent.Naks, sftp_Sent.Busies, sftp_Sent.Bytes);
 
-    printf("Recvd: Total %d, Starts %d, Datas %d, Retries %d\n", sftp_Recvd.Total,
+    printf("Recvd: Total %ld, Starts %ld, Datas %ld, Retries %ld\n", sftp_Recvd.Total,
 	   sftp_Recvd.Starts, sftp_Recvd.Datas, sftp_Recvd.DataRetries);
-    printf("Recvd: Acks %d, Naks %d, Busies %d, Bytes %d, Timeouts \n",
+    printf("Recvd: Acks %ld, Naks %ld, Busies %ld, Bytes %ld, Timeouts \n",
 	   sftp_Recvd.Acks, sftp_Recvd.Naks, sftp_Recvd.Busies, sftp_Recvd.Bytes);
 }
 
@@ -559,7 +556,7 @@ static void dump()
 	exit(-1);
     }
     long volid;
-    if (sscanf(this_argp[2], "%X", &volid) != 1){
+    if (sscanf(this_argp[2], "%lX", &volid) != 1){
 	printf("Dump: Bad Volumeid %s\n", this_argp[2]);
 	exit(-1);
     }
@@ -624,7 +621,7 @@ static void VolDumpLWP(struct rockInfo *rock)
 	if (rc == RPC2_SUCCESS) {
 	    rc = volDump_ExecuteRequest(mycid, myrequest, NULL);
 	    if (rc) {
-		printf("VolDumpLWP: request %d failed with %s\n",
+		printf("VolDumpLWP: request %ld failed with %s\n",
 			myrequest->Header.Opcode, RPC2_ErrorMsg((int)rc));
 	    }
 	}
@@ -635,7 +632,6 @@ static void VolDumpLWP(struct rockInfo *rock)
 
 long WriteDump(RPC2_Handle rpcid, unsigned long offset, unsigned long *nbytes, VolumeId volid, SE_Descriptor *BD)
 {
-    int status = 0;
     long rc = 0;
     struct rockInfo *rock;
     SE_Descriptor sed;
@@ -643,12 +639,12 @@ long WriteDump(RPC2_Handle rpcid, unsigned long offset, unsigned long *nbytes, V
     CODA_ASSERT(LWP_GetRock(ROCKTAG, (char **)&rock) == LWP_SUCCESS);
 
     if (volid != rock->volid) {
-	printf("Got a WriteDump for %x, I'm dumping %x!\n", volid, rock->volid);
+	printf("Got a WriteDump for %lx, I'm dumping %lx!\n", volid, rock->volid);
 	exit(-1);
     }
 
     if (rock->numbytes != offset) {
-	printf("Offest %d != rock->numbytes %d\n", offset, rock->numbytes);
+	printf("Offset %ld != rock->numbytes %ld\n", offset, rock->numbytes);
     }
     
     /* fetch the file with volume data */
@@ -671,12 +667,12 @@ long WriteDump(RPC2_Handle rpcid, unsigned long offset, unsigned long *nbytes, V
 	printf("WriteDump: Error %s in CheckSideEffect\n", RPC2_ErrorMsg((int)rc));
     }
 
-    if (sed.Value.SmartFTPD.BytesTransferred != *nbytes) {
-	printf("Transmitted bytes %d != requested bytes %d!\n",
+    if (sed.Value.SmartFTPD.BytesTransferred != (int)*nbytes) {
+	printf("Transmitted bytes %ld != requested bytes %ld!\n",
 	    *nbytes, sed.Value.SmartFTPD.BytesTransferred);
 	*nbytes = sed.Value.SmartFTPD.BytesTransferred;
     }
-    printf("Transmitted %d bytes.\n", sed.Value.SmartFTPD.BytesTransferred);
+    printf("Transmitted %ld bytes.\n", sed.Value.SmartFTPD.BytesTransferred);
     rock->numbytes += sed.Value.SmartFTPD.BytesTransferred;
     return rc;
 }
@@ -701,7 +697,7 @@ static void restorefromback()
     else
 	strcpy(volname, this_argp[4]);
 
-    if ((these_args < 6) || (sscanf(this_argp[5], "%X", &volid) == 0))
+    if ((these_args < 6) || (sscanf(this_argp[5], "%lX", &volid) == 0))
 	volid = 0;
 
     /* Create lwp thread DumpLwp */
@@ -738,13 +734,12 @@ static void restorefromback()
 	exit(-1);
     }
 
-    printf("VolRestore successful, created %#8x\n", volid);
+    printf("VolRestore successful, created %#8lx\n", volid);
     exit(0);
 }
 
 long ReadDump(RPC2_Handle rpcid, RPC2_Unsigned offset, RPC2_Integer *nbytes, VolumeId volid, SE_Descriptor *BD)
 {
-    int status = 0;
     long rc = 0;
     struct rockInfo *rock;
     SE_Descriptor sed;
@@ -757,7 +752,7 @@ long ReadDump(RPC2_Handle rpcid, RPC2_Unsigned offset, RPC2_Integer *nbytes, Vol
     }
     
     if (volid != rock->volid) {
-	printf("Got a ReadDump for %x, I'm reading %x!\n", volid, rock->volid);
+	printf("Got a ReadDump for %lx, I'm reading %lx!\n", volid, rock->volid);
 	exit(-1);
     }
 
@@ -804,7 +799,7 @@ long ReadDump(RPC2_Handle rpcid, RPC2_Unsigned offset, RPC2_Integer *nbytes, Vol
 	printf("ReadDump: Error %s in CheckSideEffect\n", RPC2_ErrorMsg((int)rc));
     }
 
-    printf("Transmitted %d bytes.\n", sed.Value.SmartFTPD.BytesTransferred);
+    printf("Transmitted %ld bytes.\n", sed.Value.SmartFTPD.BytesTransferred);
     rock->numbytes += sed.Value.SmartFTPD.BytesTransferred;
     free(buf);
     return rc;
@@ -855,7 +850,7 @@ static void rvmsize()
 	printf("Usage: volutil rvmsize <volid>\n");
 	exit(-1);
     }
-    if (sscanf(this_argp[2], "%X", &volid) != 1){
+    if (sscanf(this_argp[2], "%lX", &volid) != 1){
 	printf("RVMSize: Bad Volumeid %s\n", this_argp[2]);
 	exit(-1);
     }
@@ -870,10 +865,10 @@ static void rvmsize()
 	printf("VolRVMSize failed with %s\n", RPC2_ErrorMsg((int)rc));
 	exit(-1);
     }
-    printf("Volume %x used a total of %d bytes.\n", volid, data.VolumeSize);
-    printf("\t%d small vnodes used %d bytes.\n", data.nSmallVnodes, data.SmallVnodeSize);
-    printf("\t%d large vnodes used %d bytes.\n", data.nLargeVnodes, data.LargeVnodeSize);
-    printf("\t and %d bytes of DirPages.\n", data.DirPagesSize);
+    printf("Volume %lx used a total of %ld bytes.\n", volid, data.VolumeSize);
+    printf("\t%ld small vnodes used %ld bytes.\n", data.nSmallVnodes, data.SmallVnodeSize);
+    printf("\t%ld large vnodes used %ld bytes.\n", data.nLargeVnodes, data.LargeVnodeSize);
+    printf("\t and %ld bytes of DirPages.\n", data.DirPagesSize);
     exit(0);
 }
 
@@ -931,7 +926,7 @@ static void backup() {
 	exit(-1);
     }
 
-    if (sscanf(this_argp[2], "%X", &Vid) != 1){
+    if (sscanf(this_argp[2], "%lX", &Vid) != 1){
 	printf("VolMakeBackups: Bogus volume number %s\n", this_argp[2]);
 	exit(-1);
     }
@@ -946,7 +941,7 @@ static void backup() {
 	printf("VolMakeBackups failed with %s\n", RPC2_ErrorMsg((int)rc));
 	exit(-1);
     }
-    printf("Backup (id = %x) of Volume %x created \n", backupVid, Vid);
+    printf("Backup (id = %lx) of Volume %lx created \n", backupVid, Vid);
     exit(0);
 }
 
@@ -973,12 +968,12 @@ static void create_rep() {
 	exit(1);
     }
 #endif
-    if (sscanf(this_argp[4], "%X", &groupid) != 1){
+    if (sscanf(this_argp[4], "%lX", &groupid) != 1){
 	printf("CreateRep: Bad Group Id %s\n", this_argp[4]);
 	exit(-1);
     }
     if (these_args == 6) {
-	if (sscanf(this_argp[5], "%X", &volumeid) != 1){
+	if (sscanf(this_argp[5], "%lX", &volumeid) != 1){
 	    printf("CreateRep: Bad Volume Id %s\n", this_argp[5]);
 	    exit(-1);
 	}
@@ -995,7 +990,7 @@ static void create_rep() {
 	printf("VolCreate failed with %s\n", RPC2_ErrorMsg((int)rc));
 	exit(-1);
     }
-    printf("Volume %x (%s) created \n", volumeid, volumeName);
+    printf("Volume %lx (%s) created \n", volumeid, volumeName);
     exit(0);
 }
 
@@ -1121,15 +1116,15 @@ static void showvnode() {
 	exit(-1);
     }
 
-    if (sscanf(this_argp[2], "%X", &volumeNumber) != 1){
+    if (sscanf(this_argp[2], "%lX", &volumeNumber) != 1){
 	printf("showvnode: Bogus volume number %s\n", this_argp[2]);
 	exit(-1);
     }
-    if (sscanf(this_argp[3], "%X", &vnodeNumber) != 1){
+    if (sscanf(this_argp[3], "%lX", &vnodeNumber) != 1){
 	printf("showvnode: Bogus vnode number %s\n", this_argp[3]);
 	exit(-1);
     }
-    if (sscanf(this_argp[4], "%X", &unique) != 1) {
+    if (sscanf(this_argp[4], "%lX", &unique) != 1) {
 	printf("showvnode: Bogus Uniquifier %s\n", this_argp[4]);
 	exit(-1);
     }
@@ -1172,15 +1167,15 @@ static void setvv()
 	exit(-1);
     }
     
-    if (sscanf(this_argp[2], "%X", &volumeNumber) != 1){
+    if (sscanf(this_argp[2], "%lX", &volumeNumber) != 1){
 	printf("setvv: Bogus volume number %s\n", this_argp[2]);
 	exit(-1);
     }
-    if (sscanf(this_argp[3], "%X", &vnodeNumber) != 1){
+    if (sscanf(this_argp[3], "%lX", &vnodeNumber) != 1){
 	printf("setvv: Bogus vnode number %s\n", this_argp[3]);
 	exit(-1);
     }
-    if (sscanf(this_argp[4], "%X", &unique) != 1) {
+    if (sscanf(this_argp[4], "%lX", &unique) != 1) {
 	printf("setvv: Bogus vnode uniquifier %s\n", this_argp[4]);
 	exit(-1);
     }
@@ -1229,7 +1224,7 @@ static void purge() {
 /*
     volid = (bit32) atol(this_argp[2]);
 */
-    if (sscanf(this_argp[2], "%X", &volid) != 1){
+    if (sscanf(this_argp[2], "%lX", &volid) != 1){
 	printf("Purge: Bad Volume Id %s\n", this_argp[2]);
 	exit(-1);
     }
@@ -1244,7 +1239,7 @@ static void purge() {
 	printf("VolPurge failed with %s\n", RPC2_ErrorMsg((int)rc));
 	exit(-1);
     }
-    printf("Volume %x (%s) successfully purged\n", volid, this_argp[3]);
+    printf("Volume %lx (%s) successfully purged\n", volid, this_argp[3]);
     exit(0);
 }
 /*
@@ -1262,7 +1257,7 @@ static void lock() {
 	exit(-1);
     }
 
-    if (sscanf(this_argp[2], "%X", &Vid) != 1){
+    if (sscanf(this_argp[2], "%lX", &Vid) != 1){
 	printf("VolLock: Bogus volume number %s\n", this_argp[2]);
 	exit(-1);
     }
@@ -1277,7 +1272,7 @@ static void lock() {
 	printf("VolLock failed with %s\n", RPC2_ErrorMsg((int)rc));
 	exit(-1);
     }
-    printf("Locked volume %x had a VVV of (%d,%d,%d,%d,%d,%d,%d,%d)\n",
+    printf("Locked volume %lx had a VVV of (%ld,%ld,%ld,%ld,%ld,%ld,%ld,%ld)\n",
 	   Vid, vvv.Versions.Site0, vvv.Versions.Site1, vvv.Versions.Site2,
 	   vvv.Versions.Site3, vvv.Versions.Site4, vvv.Versions.Site5,
 	   vvv.Versions.Site6, vvv.Versions.Site7);
@@ -1297,7 +1292,7 @@ static void unlock() {
 	exit(-1);
     }
 
-    if (sscanf(this_argp[2], "%X", &Vid) != 1){
+    if (sscanf(this_argp[2], "%lX", &Vid) != 1){
 	printf("VolUnlock: Bogus volume number %s\n", this_argp[2]);
 	exit(-1);
     }
@@ -1313,7 +1308,7 @@ static void unlock() {
 	printf("VolUnlock failed with %s\n", RPC2_ErrorMsg((int)rc));
 	exit(-1);
     }
-    printf("Volume %x is unlocked.\n", Vid);
+    printf("Volume %lx is unlocked.\n", Vid);
     exit(0);
 }
 
@@ -1537,7 +1532,7 @@ void timing() {
     rc = VolTiming(rpcid, on, &sed);
     
     if (rc != RPC2_SUCCESS) {
-	printf("VolTiming failed with return code %d\n", rc);
+	printf("VolTiming failed with return code %ld\n", rc);
 	exit(-1);
     }
     printf("Timing finished successfully\n");
@@ -1602,7 +1597,7 @@ void elapse() {
     rc = VolElapse(rpcid, on, subid, multi);
     
     if (rc != RPC2_SUCCESS) {
-	printf("VolElapse failed with return code %d\n", rc);
+	printf("VolElapse failed with return code %ld\n", rc);
 	exit(-1);
     }
     printf("VolElapse finished successfully\n");
@@ -1703,9 +1698,9 @@ static void showcallbacks() {
     
     sprintf(outfile, "%s", this_argp[5]);
     ViceFid fid;
-    if ((sscanf(this_argp[2], "%X", &fid.Volume) != 1) ||
-	(sscanf(this_argp[3], "%X", &fid.Vnode) != 1) ||
-	(sscanf(this_argp[4], "%X", &fid.Unique) != 1)) {
+    if ((sscanf(this_argp[2], "%lX", &fid.Volume) != 1) ||
+	(sscanf(this_argp[3], "%lX", &fid.Vnode) != 1) ||
+	(sscanf(this_argp[4], "%lX", &fid.Unique) != 1)) {
 	printf("Usage: volutil showcallbacks <volumeid> <vnode> <unique> <out-file>\n");
 	exit(-1);
     }
@@ -1778,7 +1773,7 @@ static void getmaxvol() {
         printf("Couldn't get maxvolid: %s\n", RPC2_ErrorMsg((int)rc));
 	exit (-1);
     }
-    printf("Maximum volume id is 0x%X\n", maxid);
+    printf("Maximum volume id is 0x%lX\n", maxid);
     exit (0);
 }
 
@@ -1791,7 +1786,7 @@ static void getmaxvol() {
 static void setmaxvol() {
     VolumeId volid;
 
-    if ((these_args != 3) || (sscanf(this_argp[2], "%X", &volid) != 1)) {
+    if ((these_args != 3) || (sscanf(this_argp[2], "%lX", &volid) != 1)) {
         printf("Usage: volutil setmaxvol <volumeid>\n");
 	exit(-1);
     }
@@ -1810,7 +1805,7 @@ static void setmaxvol() {
 	exit(-1);
     }
 
-    printf("Maximum volume id set to 0x%x\n", volid);
+    printf("Maximum volume id set to 0x%lx\n", volid);
     exit(0);
 }
 
@@ -1824,7 +1819,7 @@ static void peekpokeerr()
 		/*4*/ "Memory protection error",
 		/*5*/ "Unaligned integer/pointer reference"};
 	printf("Couldn't %s at %s: %s\n", this_argp[1], this_argp[2],
-	       rc >= -10040L && rc < sizeof(msgs)/sizeof(*msgs)-10040L ?
+	       (int)rc >= -10040L && rc < sizeof(msgs)/sizeof(*msgs)-10040L ?
 	       msgs[10040 + (int) rc] : RPC2_ErrorMsg((int) rc));
 	exit (-1);
 }
@@ -2102,11 +2097,5 @@ static int V_BindToServer(char *fileserver, RPC2_Handle *RPCid)
 				fileserver, RPC2_ErrorMsg((int)rcode));
 	exit(-1);
     }
-}
-
-static void Die (char *msg)
-{
-    printf("%s\n", msg);
-    CODA_ASSERT(0);
 }
 

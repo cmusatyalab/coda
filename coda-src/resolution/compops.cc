@@ -55,7 +55,7 @@ static int CmpIndex(rsle **, rsle **);
 static int CmpCompEntries(rsle **, rsle **);
 static int CompareStoreId(ViceStoreId *, ViceStoreId *);
 static int CmpSleEntries(rsle **, rsle **);
-static IsLater(rsle *a, rsle *b);
+static int IsLater(rsle *a, rsle *b);
 static void PrintArrList(arrlist *, char *);
 static void PrintRemoteLogs(olist **, int );
 static void PrintLogList(olist *);

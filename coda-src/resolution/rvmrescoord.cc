@@ -48,6 +48,7 @@ extern "C" {
 #include <resutil.h>
 #include <rescomm.h>
 #include <resforce.h>
+#include <lockqueue.h>
 #include <timing.h>
 #include "rvmrestiming.h"
 #include "resstats.h"
@@ -375,7 +376,7 @@ static char *CoordPhase2(res_mgrpent *mgrp, ViceFid *fid,
     {
 	LogMsg(9, SrvDebugLevel, stdout,  
 	       "CoordPhase2: Going to do Multirpc fetch");
-	MRPC_MakeMulti(ResPhase2_OP, ResPhase2_PTR, VSG_MEMBERS, 
+	MRPC_MakeMulti(FetchLogs_OP, FetchLogs_PTR, VSG_MEMBERS, 
 		       mgrp->rrcc.handles, mgrp->rrcc.retcodes, 
 		       mgrp->rrcc.MIp, 0, 0, fid, logsizevar_ptrs,
 		       nentriesvar_ptrs, sidvar_bufs);
@@ -507,7 +508,7 @@ static int CoordPhase3(res_mgrpent *mgrp, ViceFid *Fid, char *AllLogs, int logsi
 
     // Ship log to Subordinates & Parse results
     {
-	MRPC_MakeMulti(ResPhase3_OP, ResPhase3_PTR, VSG_MEMBERS,
+	MRPC_MakeMulti(ShipLogs_OP, ShipLogs_PTR, VSG_MEMBERS,
 		       mgrp->rrcc.handles, mgrp->rrcc.retcodes, 
 		       mgrp->rrcc.MIp, 0, 0, Fid, logsize, 
 		       totalentries, statusvar_ptrs, PBincvar_ptrs, 
@@ -517,7 +518,7 @@ static int CoordPhase3(res_mgrpent *mgrp, ViceFid *Fid, char *AllLogs, int logsi
 	if ((errorCode = CheckRetCodes((unsigned long *)mgrp->rrcc.retcodes, 
 				      mgrp->rrcc.hosts, successFlags))) {
 	    LogMsg(0, SrvDebugLevel, stdout,  
-		   "CoordPhase3: Error %d in ResPhase3", errorCode);
+		   "CoordPhase3: Error %d in ShipLogs", errorCode);
 	    return(errorCode);
 	}
 
@@ -615,7 +616,7 @@ static int CoordPhase4(res_mgrpent *mgrp, ViceFid *Fid,
 	LogMsg(9, SrvDebugLevel, stdout,  
 	       "CoordPhase4: Doing Phase 4");
 	// for now use old res interface 
-	MRPC_MakeMulti(ResPhase4_OP, ResPhase4_PTR, VSG_MEMBERS,
+	MRPC_MakeMulti(InstallVV_OP, InstallVV_PTR, VSG_MEMBERS,
 		       mgrp->rrcc.handles, mgrp->rrcc.retcodes,
 		       mgrp->rrcc.MIp, 0, 0, Fid, &UpdateSet, sidvar_bufs);
 	mgrp->CheckResult();
@@ -668,7 +669,7 @@ static int CoordPhase34(res_mgrpent *mgrp, ViceFid *Fid,
     ViceStoreId logid;
     AllocStoreId(&logid);
     ARG_MARSHALL(OUT_MODE, ViceStatus, statusvar, status, VSG_MEMBERS);
-    MRPC_MakeMulti(ResPhase34_OP, ResPhase34_PTR, VSG_MEMBERS,
+    MRPC_MakeMulti(HandleInc_OP, HandleInc_PTR, VSG_MEMBERS,
 		   mgrp->rrcc.handles, mgrp->rrcc.retcodes,
 		   mgrp->rrcc.MIp, 0, 0, Fid, &logid, statusvar_ptrs, &PB);
     for (int i = 0; i < VSG_MEMBERS; i++) {

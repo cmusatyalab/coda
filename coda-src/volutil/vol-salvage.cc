@@ -1155,7 +1155,7 @@ static void PrintInodeList() {
     register struct ViceInodeInfo *ip;
     struct ViceInodeInfo *buf;
     struct stat status;
-    register nInodes;
+    int nInodes;
 
     VLog(9, "Entering PrintInodeList()");
 
@@ -1322,7 +1322,7 @@ static void FixInodeLinkcount(struct ViceInodeInfo *inodes,
     struct ViceInodeInfo *ip;
     int totalInodes = isp->nInodes;
     for (ip = inodes; totalInodes; ip++,totalInodes--) {
-	static TraceBadLinkCounts = 25;
+	static int TraceBadLinkCounts = 25;
 	if (ip->LinkCount != 0 && TraceBadLinkCounts) {
 	    TraceBadLinkCounts--; 
 	    VLog(0, 
@@ -1370,8 +1370,8 @@ static void CountVolumeInodes(register struct ViceInodeInfo *ip,
 {
     int volume = ip->VolumeNo;
     int rwvolume = volume;
-    register n, nSpecial;
-    register Unique_t maxunique;
+    int n, nSpecial;
+    Unique_t maxunique;
 
     VLog(9, "Entering CountVolumeInodes()");
 

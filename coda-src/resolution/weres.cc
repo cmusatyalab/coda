@@ -44,7 +44,7 @@ extern "C" {
 #include <rescomm.h>
 #include <resutil.h>
 #include <res.h>
-
+#include <lockqueue.h>
 
 
 /* subordinate end of Weakly Equal resolution -

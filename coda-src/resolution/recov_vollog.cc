@@ -48,6 +48,7 @@ extern "C" {
 #include <vlist.h>
 #include <recov_vollog.h>
 #include <resutil.h>
+#include <lockqueue.h>
 #include "recle.h"
 #include "ops.h"
 #include "resstats.h"

@@ -61,6 +61,7 @@ extern "C" {
 #include <res.h>
 #include <resforce.h>
 #include <timing.h>
+#include <lockqueue.h>
 
 #include "resstats.h"
 /* declarations of routines */

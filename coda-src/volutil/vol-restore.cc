@@ -683,7 +683,7 @@ static int ReadVnodeDiskObject(DumpBuffer_t *buf, VnodeDiskObject *vdop,
 	bzero((void *)*dinode, sizeof(DirInode));
 	for (int i = 0; i < npages; i++){
 	    (*dinode)->di_pages[i] = (long *)malloc(DIR_PAGESIZE);
-	    register tmp = ReadTag(buf);
+	    int tmp = ReadTag(buf);
 	    if ((byte)tmp != 'P'){
 		VLog(0, "Restore: Dir page does not have a P tag");
 		return -1;

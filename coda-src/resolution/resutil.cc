@@ -46,6 +46,7 @@ extern "C" {
 #include <codadir.h>
 #include <res.h>
 #include <vrdb.h>
+#include <lockqueue.h>
 
 #include "rescomm.h"
 #include "resutil.h"

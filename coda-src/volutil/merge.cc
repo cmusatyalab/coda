@@ -72,7 +72,7 @@ static void WriteDumpHeader(DumpBuffer_t *buf, struct DumpHeader *, struct DumpH
 
 #define DUMPBUFSIZE 512000
 
-void main(int argc, char **argv)
+int main(int argc, char **argv)
 {
     
     if (argc < 4) {
@@ -271,7 +271,7 @@ static void ModifyTable(dumpstream *dump, VnodeClass vclass, vtable *Table)
 	if (deleted) {
 	    /* Locate the vnode in LTable and remove it. */
 	    ventry *optr = 0, *ptr = Table->table[vnum];
-	    while (ptr && (ptr->unique != vdo->uniquifier)) {
+	    while (ptr && (ptr->unique != (int)vdo->uniquifier)) {
 		optr = ptr;
 		ptr = ptr->next;
 	    }
@@ -289,7 +289,7 @@ static void ModifyTable(dumpstream *dump, VnodeClass vclass, vtable *Table)
 	} else if (vdo->type != vNull) {
 	    /* Find the entry for the new vnode and update it */
 	    ventry *ptr = Table->table[vnum];
-	    while (ptr && (ptr->unique != vdo->uniquifier))
+	    while (ptr && (ptr->unique != (int)vdo->uniquifier))
 		ptr = ptr->next;
 
 	    if (ptr) {

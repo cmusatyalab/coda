@@ -79,7 +79,7 @@ class vrent : public olink {
 
     vrent();
     vrent(vrent&);
-    operator=(vrent&);	    /* not supported! */
+    int operator=(vrent&);	    /* not supported! */
     ~vrent();
 
 //  public:

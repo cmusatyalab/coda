@@ -258,7 +258,7 @@ int ReadByteString(DumpBuffer_t *buf, register byte *to, register int size)
 
 int ReadVV(register DumpBuffer_t *buf, register vv_t *vv)
 {
-    register tag;
+    int tag;
     while ((tag = ReadTag(buf)) > D_MAX && tag) {
 	switch (tag) {
 	    case '0':
@@ -318,7 +318,7 @@ int ReadVV(register DumpBuffer_t *buf, register vv_t *vv)
 
 int ReadDumpHeader(DumpBuffer_t *buf, struct DumpHeader *hp)
 {
-    register tag;
+    int tag;
     unsigned long beginMagic;
     if (ReadTag(buf) != D_DUMPHEADER
        || !ReadLong(buf, (unsigned long *)&beginMagic) || !ReadLong(buf, (unsigned long *)&hp->version)
@@ -390,7 +390,7 @@ int EndOfDump(DumpBuffer_t *buf)
  */
 int ReadVolumeDiskData(DumpBuffer_t *buf, VolumeDiskData *vol)
 {
-    register tag;
+    int tag;
     bzero((char *)vol, sizeof(*vol));
     while ((tag = ReadTag(buf)) > D_MAX && tag) {
 	switch (tag) {

@@ -254,8 +254,8 @@ int DumpBool(DumpBuffer_t *buf, byte tag, unsigned int value)
 
 int DumpString(DumpBuffer_t *buf, byte tag, register char *s)
 {
-    register byte *p;
-    register n;
+    byte *p;
+    int n;
     n = strlen(s)+1;
     if ((p = Reserve(buf, 1 + n + sizeof(long)))) {
 	*p++ = tag;

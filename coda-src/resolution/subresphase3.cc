@@ -49,6 +49,7 @@ extern "C" {
 #include <resutil.h>
 #include <treeremove.h>
 #include <timing.h>
+#include <lockqueue.h>
 #include "rsle.h"
 #include "parselog.h"
 #include "compops.h"
@@ -108,13 +109,13 @@ const int Yield_rp3CheckSemPerformRes_Mask = Yield_rp3CheckSemPerformRes_Period 
 
 
 
-long RS_ResPhase3(RPC2_Handle RPCid, ViceFid *Fid, RPC2_Integer size, 
+long RS_ShipLogs(RPC2_Handle RPCid, ViceFid *Fid, RPC2_Integer size, 
 		   RPC2_Integer nentries, ViceStatus *status, 
 		   RPC2_BoundedBS *piggyinc, SE_Descriptor *sed) 
 {
 
     SLog(1, 
-	   "RS_ResPhase3: Entering for Fid (0x%x.%x.%x)\n",
+	   "RS_ShipLogs: Entering for Fid (0x%x.%x.%x)\n",
 	   Fid->Volume, Fid->Vnode, Fid->Unique);
 
     PROBE(tpinfo, RecovSubP3Begin);
@@ -147,7 +148,7 @@ long RS_ResPhase3(RPC2_Handle RPCid, ViceFid *Fid, RPC2_Integer size,
 	PROBE(tpinfo, RecovCompOpsEnd);
 	if (!CompOps) {
 	    SLog(0,
-		   "RS_ResPhase3 - Couldn't find common point with all sites\n");
+		   "RS_ShipLogs - Couldn't find common point with all sites\n");
 	    errorCode = EINCONS;
 
 	    // update res stats
@@ -168,7 +169,7 @@ long RS_ResPhase3(RPC2_Handle RPCid, ViceFid *Fid, RPC2_Integer size,
     {
 	if ((errorCode = GetResObjs(CompOps, Fid, &volptr, vlist))) {
 	    SLog(0,  
-		   "RS_ResPhase3 Error %d in Getting objs",
+		   "RS_ShipLogs Error %d in Getting objs",
 		    errorCode);
 	    goto Exit;
 	}
@@ -181,7 +182,7 @@ long RS_ResPhase3(RPC2_Handle RPCid, ViceFid *Fid, RPC2_Integer size,
 					   vlist, AllLogs, inclist, 
 					   &nblocks))) {
 	    SLog(0,  
-		   "RS_ResPhase3: Error %d during CheckSemPerformRes",
+		   "RS_ShipLogs: Error %d during CheckSemPerformRes",
 		   errorCode);
 	    goto Exit;
 	}
@@ -192,7 +193,7 @@ long RS_ResPhase3(RPC2_Handle RPCid, ViceFid *Fid, RPC2_Integer size,
     {
 	if ((errorCode = SetPhase3DirStatus(status, Fid, volptr, vlist))) {
 	    SLog(0,
-		   "RS_ResPhase3: Error %d during set status\n",
+		   "RS_ShipLogs: Error %d during set status\n",
 		   errorCode);
 	    goto Exit;
 	}
@@ -222,7 +223,7 @@ long RS_ResPhase3(RPC2_Handle RPCid, ViceFid *Fid, RPC2_Integer size,
     
     PROBE(tpinfo, RecovSubP3End);
     SLog(0,  
-	   "RS_ResPhase3 - returning %d", errorCode);
+	   "RS_ShipLogs - returning %d", errorCode);
     return(errorCode);
 }
 

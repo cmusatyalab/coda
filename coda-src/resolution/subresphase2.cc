@@ -41,6 +41,7 @@ extern "C" {
 #include <operations.h>
 #include <vrdb.h>
 #include <timing.h>
+#include <lockqueue.h>
 #include "ops.h"
 #include "rvmrestiming.h"
 
@@ -54,10 +55,10 @@ extern "C" {
 
 static int rs_ShipLogs(RPC2_Handle, char *, int);
 
-long RS_ResPhase2(RPC2_Handle RPCid, ViceFid *Fid, RPC2_Integer *size, 
+long RS_FetchLogs(RPC2_Handle RPCid, ViceFid *Fid, RPC2_Integer *size, 
 		  RPC2_Integer *nentries, SE_Descriptor *sed)
 {
-    SLog(1, "RS_ResPhase2: Entering for Fid = %s\n", FID_(Fid));
+    SLog(1, "RS_FetchLogs: Entering for Fid = %s\n", FID_(Fid));
     PROBE(tpinfo, RecovSubP2Begin);
     int errorCode = 0;
     Volume *volptr = 0;
@@ -70,7 +71,7 @@ long RS_ResPhase2(RPC2_Handle RPCid, ViceFid *Fid, RPC2_Integer *size,
     // Validate parameters 
     {
 	if (!XlateVid(&Fid->Volume)) {
-	    SLog(0, "RS_ResPhase2: Couldn't Xlate VSG for %s", FID_(Fid));
+	    SLog(0, "RS_FetchLogs: Couldn't Xlate VSG for %s", FID_(Fid));
 	    return(EINVAL);
 	}
     }
@@ -89,13 +90,13 @@ long RS_ResPhase2(RPC2_Handle RPCid, ViceFid *Fid, RPC2_Integer *size,
     }
     // dump log to buffer 
     {
-	SLog(9, "RS_ResPhase2: Dumping  log for %s\n", FID_(Fid));
+	SLog(9, "RS_FetchLogs: Dumping  log for %s\n", FID_(Fid));
 	DumpLog(VnLog(v->vptr), volptr, &buf, (int *)size, (int *)nentries);
 	PollAndYield();
     }
     // Ship log back to coordinator
     {
-	SLog(9, "RS_ResPhase2: Shipping log for %s\n", FID_(Fid));
+	SLog(9, "RS_FetchLogs: Shipping log for %s\n", FID_(Fid));
 	errorCode = rs_ShipLogs(RPCid, buf, *size);
     }
 
@@ -108,7 +109,7 @@ long RS_ResPhase2(RPC2_Handle RPCid, ViceFid *Fid, RPC2_Integer *size,
     if (buf) 
 	    free(buf);
     PROBE(tpinfo, RecovSubP2End);
-    SLog(1, "RS_ResPhase2: Leaving for Fid = %s result %d\n", 
+    SLog(1, "RS_FetchLogs: Leaving for Fid = %s result %d\n", 
 	 FID_(Fid), errorCode);
     return(errorCode);
 }

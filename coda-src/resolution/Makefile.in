@@ -28,15 +28,15 @@ CXXFLAGS += -Wall
 
 LIBRARIES = libres.a
 HEADERS =  rescomm.h  resforce.h \
-	resutil.h lockqueue.h timing.h\
+	resutil.h timing.h\
 	ops.h recle.h rsle.h compops.h parselog.h ruconflict.h resstats.h
 
-RESOBJS =  resclient.o lockqueue.o\
+RESOBJS =  resclient.o \
              rescoord.o  resforce.o reslock.o  \
              resutil.o rescomm.o timing.o weres.o \
              ops.o recle.o recov_vollog.o rsle.o rvmrescoord.o \
 	     compops.o parselog.o ruconflict.o subresphase2.o subresphase3.o \
-	     subresphase34.o subresphase4.o rename.o subpreres.o resstats.o\
+	     subresphase34.o rename.o subpreres.o resstats.o\
 	     resfile.o 
 
 libres.a:	${RESOBJS}

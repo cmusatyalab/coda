@@ -48,7 +48,16 @@ const int  LQINTERVAL =	60;	/* seconds */
 const int  LockQueManStkSize = 8192;
 lqman *LockQueueMan;
 
-extern void ForceUnlockVol(VolumeId );
+
+// used by the lock queue manager to unlock expired locks 
+void ForceUnlockVol(VolumeId Vid) {/* Vid is the rw id */
+    Volume *volptr;
+    if (GetVolObj(Vid, &volptr, VOL_NO_LOCK, 0, 0)) {
+	SLog(0,  "ForceUnlockVol: GetVolObj %x error", Vid);
+	return;
+    }
+    PutVolObj(&volptr, VOL_EXCL_LOCK, 0);
+}
 
 void InitLockQueue() {
     LockQueueMan = new lqman("LockQueue Manager");

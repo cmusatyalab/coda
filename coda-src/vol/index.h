@@ -36,7 +36,7 @@ class vindex {
 public:
     vindex(VolumeId volid = -1, int vnodetype = -1, Device dev = -1,
 	   int size = -1, int volindex = -1);
-    operator=(vindex&);
+    int operator=(vindex&);
     ~vindex();
     int	    elts();
     int	    vnodes();

@@ -107,6 +107,7 @@ VOLCLIENTOBJS = volclient.o
 
 OBJS =		${VOLUTILOBJS} ${VOLCLIENTOBJS}
 
+include $(TOPDIR)/configs/Makerules
 
 libvolutil.a:	${VOLUTILOBJS} 
 libvolserv.a:   volutil.o
@@ -115,7 +116,6 @@ parserecdump.o:	parserecdump.cc
 
 local.a: ${LOCALOBJS}
 
-# ${OBJS} ${LOCALOBJS}: ${HFILES}
 
 volutil:    ${VOLCLIENTOBJS} ${VLIBS}
 	${CXX} $(LIBFLAGS) ${VOLCLIENTOBJS} ${VLIBS} -o volutil
@@ -132,5 +132,4 @@ readdump: readdump.o dumpstream.o dumpstuff.o ${VLIBS}
 parserecdump: parserecdump.o ${VLIBS}
 	$(CXX) $(LIBFLAGS) parserecdump.o ${VLIBS} -o parserecdump
 
-include $(TOPDIR)/configs/Makerules
 

@@ -40,6 +40,7 @@ extern "C" {
 #include <srv.h>
 #include <operations.h>
 #include <timing.h>
+#include <lockqueue.h>
 #include "ops.h"
 #include "rvmrestiming.h"
 
@@ -47,10 +48,10 @@ extern "C" {
 static void ProcessIncList(ViceFid *, dlist *, dlist *);
 
 
-//RS_ResPhase34
+//RS_HandleInc
 //	called between phase 3 and phase 4 of resolution 
 //		only if needed i.e. if there are inconsistencies
-long RS_ResPhase34(RPC2_Handle RPCid, ViceFid *Fid, ViceStoreId *logid, 
+long RS_HandleInc(RPC2_Handle RPCid, ViceFid *Fid, ViceStoreId *logid, 
 		    ViceStatus *status, RPC2_BoundedBS *piggyinc) {
     PROBE(tpinfo, RecovSubP34Begin);
     Volume *volptr = 0;
@@ -63,7 +64,7 @@ long RS_ResPhase34(RPC2_Handle RPCid, ViceFid *Fid, ViceStoreId *logid,
     {
 	if (!XlateVid(&Fid->Volume)) {
 	    LogMsg(0, SrvDebugLevel, stdout,  
-		   "RS_ResPhase34: Coudnt Xlate VSG %x", Fid->Volume);
+		   "RS_HandleInc: Coudnt Xlate VSG %x", Fid->Volume);
 	    //PROBE(tpinfo, CPHASE2END);
 	    return(EINVAL);
 	}
@@ -81,7 +82,7 @@ long RS_ResPhase34(RPC2_Handle RPCid, ViceFid *Fid, ViceStoreId *logid,
 	
 	if ((errorCode = GetPhase2Objects(Fid, vlist, inclist, &volptr))) {
 	    LogMsg(0, SrvDebugLevel, stdout,  
-		   "RS_ResPhase34: Error getting objects");
+		   "RS_HandleInc: Error getting objects");
 	    goto Exit;
 	}
     }
@@ -109,12 +110,12 @@ long RS_ResPhase34(RPC2_Handle RPCid, ViceFid *Fid, ViceStoreId *logid,
 					 logid, ResolveNULL_OP, 0))) {
 	    if (errorCode == ENOSPC) {
 		LogMsg(0, SrvDebugLevel, stdout, 
-		       "RS_ResPhase34 - no space for spooling log record - ignoring\n");
+		       "RS_HandleInc - no space for spooling log record - ignoring\n");
 		errorCode = 0;
 	    }
 	    else {
 		LogMsg(0, SrvDebugLevel, stdout, 
-		       "RS_ResPhase34 - error during SpoolVMLogRecord\n");
+		       "RS_HandleInc - error during SpoolVMLogRecord\n");
 		goto Exit;
 	    }
 	}

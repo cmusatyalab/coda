@@ -126,25 +126,25 @@ NewConnection	(IN RPC2_Integer SideEffectType,
 
 /* New calls with logs in rvm */
 /* reuse DirResPhase2 and DirResPhase3 */
-14: ResPhase2       (IN ViceFid Fid,
+14: FetchLogs       (IN ViceFid Fid,
 		 OUT RPC2_Integer logsize,
 		 OUT RPC2_Integer nentries,
 		 IN OUT SE_Descriptor sed);
 		 
-15: ResPhase3       (IN ViceFid Fid,
+15: ShipLogs    (IN ViceFid Fid,
 		 IN RPC2_Integer size,
 		 IN RPC2_Integer totalentries,
 		 IN OUT ViceStatus vstatus,
 		 IN OUT RPC2_BoundedBS piggyinc,
 		 IN OUT SE_Descriptor sed);
 
-16: ResPhase34      (IN ViceFid Fid,
+16: HandleInc      (IN ViceFid Fid,
 		 IN ViceStoreId logid,
 		 OUT ViceStatus status,
 		 IN RPC2_BoundedBS pbinc);
 
 /* same as DirResPhase3 above */
-17: ResPhase4	(IN ViceFid Fid,
+17: InstallVV	(IN ViceFid Fid,
 		 IN ViceVersionVector UpdateSet,
 		 IN OUT SE_Descriptor sed);
 

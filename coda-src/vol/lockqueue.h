@@ -45,6 +45,12 @@ extern "C" {
 #include <vice.h>
 #include <dlist.h>
 
+#define NO_LOCK		0	/* remains for compatibility */
+#define VOL_NO_LOCK	NO_LOCK
+#define VOL_SHARED_LOCK	SHARED_LOCK
+#define VOL_EXCL_LOCK	WRITE_LOCK
+
+void ForceUnlockVol(VolumeId );
 
 class lqman;
 class lq_iterator;

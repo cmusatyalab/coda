@@ -33,10 +33,13 @@ Coda are listed in the file CREDITS.
 
 #define MAXWRAPTRIES		32	// no of tries to wrap around
 
+class recov_vol_log;
 class recle;
 class rec_dlist;
 class resstats;
 #include "res.h"
+#include <cvnode.h>
+#include <volume.h>
 
 typedef struct VolumeDiskData VolumeDiskData;
 
@@ -103,8 +106,6 @@ class recov_vol_log {
 };
 
 /* export definitions */
-#include <cvnode.h>
-#include <volume.h>
 extern void CreateRootLog(Volume *, Vnode *);
 extern void CreateResLog(Volume *, Vnode *);
 extern int SpoolVMLogRecord(dlist *, Vnode *, Volume *, ViceStoreId *, int op ...);

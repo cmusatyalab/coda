@@ -39,6 +39,8 @@ Pittsburgh, PA.
 
 #ifndef VOLUME_INCLUDED
 #define VOLUME_INCLUDED 1
+/* #include <recov_vollog.h>
+ */
 #include <recov_vollog.h>
 #include <vice.h>
 #include "voldefs.h"
@@ -166,7 +168,7 @@ typedef struct VolumeDiskData {
 				   salvaging this volume*/
     byte	reserveb3;
 
-    vv_t	versionvector;	/* CODA version vector for this volume */
+    ViceVersionVector versionvector;	/* CODA version vector for this volume */
     int		ResOn;		/* Flag to turn on resolution */
     int		maxlogentries;	/* max number of entries allowed in log */
     bit32	reserved1[4];
@@ -462,6 +464,11 @@ extern void InitLRU(int howmany);
 void VAdjustDiskUsage(Error *ec, Volume *vp, int blocks);
 void VCheckDiskUsage(Error *ec, Volume *vp, int blocks);
 void VGetPartitionStatus(Volume *vp, int *totalBlocks, int *freeBlocks);
+void PutVolObj(Volume **volptr, int LockLevel, int Dequeue);
+int GetVolObj(VolumeId Vid, Volume **volptr, 
+	      int LockLevel, int Enque, int LockerAddress);
+
+
 
 
 #endif VOLUME_INCLUDED

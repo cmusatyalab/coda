@@ -83,6 +83,7 @@ extern "C" {
 #include <vice.private.h>
 #include <operations.h>
 #include <ops.h>
+#include <lockqueue.h>
 #include "coppend.h"
 
 /* *****  Exported variables  ***** */

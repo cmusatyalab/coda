@@ -75,7 +75,7 @@ extern "C" {
 #include <srv.h>
 #include <vice.private.h>
 
-extern const MaxVols;
+extern const int MaxVols;
 
 /* *****  Exported variables  ***** */
 

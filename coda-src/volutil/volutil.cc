@@ -182,7 +182,7 @@ long GetVolId(char *volume)
 {
     LogMsg(29, SrvDebugLevel, stdout, "Entering GetVolId(%s)", volume);
     long volid = 0;
-    if (sscanf(volume, "%X", &volid) != 1){
+    if (sscanf(volume, "%lX", &volid) != 1){
 	LogMsg(29, SrvDebugLevel, stdout, "GetVolId: Failed to convert volume number");
 	/* try to look up the volume in the VLDB */
 	struct vldb *vldp = NULL;
