@@ -28,6 +28,7 @@ options		NFS			#Network Filesystem
 options		MSDOSFS			#MSDOS Filesystem
 options		"CD9660"		#ISO 9660 Filesystem
 options		PROCFS			#Process filesystem
+options		CFS			#Coda File System
 options		"COMPAT_43"		#Compatible with BSD 4.3 [KEEP THIS!]
 options		SCSI_DELAY=15		#Be pessimistic about Joe SCSI device
 options		BOUNCE_BUFFERS		#include support for DMA bounce buffers
@@ -153,6 +154,7 @@ pseudo-device	sl	1
 pseudo-device	vn	1
 pseudo-device	tun	1
 pseudo-device	pty	16
+pseudo-device	vcfs	4	# coda minicache <-> venus comm.
 pseudo-device	gzip		# Exec gzipped a.out's
 
 # KTRACE enables the system-call tracing facility ktrace(2).
