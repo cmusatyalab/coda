@@ -1,3 +1,34 @@
+/*
+
+            Coda: an Experimental Distributed File System
+                             Release 3.1
+
+          Copyright (c) 1987-1998 Carnegie Mellon University
+                         All Rights Reserved
+
+Permission  to  use, copy, modify and distribute this software and its
+documentation is hereby granted,  provided  that  both  the  copyright
+notice  and  this  permission  notice  appear  in  all  copies  of the
+software, derivative works or  modified  versions,  and  any  portions
+thereof, and that both notices appear in supporting documentation, and
+that credit is given to Carnegie Mellon University  in  all  documents
+and publicity pertaining to direct or indirect use of this code or its
+derivatives.
+
+CODA IS AN EXPERIMENTAL SOFTWARE SYSTEM AND IS  KNOWN  TO  HAVE  BUGS,
+SOME  OF  WHICH MAY HAVE SERIOUS CONSEQUENCES.  CARNEGIE MELLON ALLOWS
+FREE USE OF THIS SOFTWARE IN ITS "AS IS" CONDITION.   CARNEGIE  MELLON
+DISCLAIMS  ANY  LIABILITY  OF  ANY  KIND  FOR  ANY  DAMAGES WHATSOEVER
+RESULTING DIRECTLY OR INDIRECTLY FROM THE USE OF THIS SOFTWARE  OR  OF
+ANY DERIVATIVE WORK.
+
+Carnegie  Mellon  encourages  users  of  this  software  to return any
+improvements or extensions that  they  make,  and  to  grant  Carnegie
+Mellon the rights to redistribute these changes without encumbrance.
+*/
+
+__RCSID("$Header: /afs/cs/project/coda-src/cvs/coda/kernel-src/vfs/bsd44/cfs/coda_opstats.h,v 1.3 98/01/23 11:53:53 rvb Exp $");
+
 /* 
  * Mach Operating System
  * Copyright (c) 1990 Carnegie-Mellon University
@@ -15,6 +46,9 @@
 /*
  * HISTORY
  * $Log:	cfs_vnodeops.c,v $
+ * Revision 1.8  98/02/24  22:22:50  rvb
+ * Fixes up mainly to flush iopen and friends
+ * 
  * Revision 1.7  98/01/31  20:53:15  rvb
  * First version that works on FreeBSD 2.2.5
  * 
@@ -409,7 +443,7 @@ cfs_open(v)
 	return (error);
 
     /* We get the vnode back locked in both Mach and NetBSD.  Needs unlocked */
-    VOP_UNLOCK(vp);
+    VOP_X_UNLOCK(vp, 0);
     /* Keep a reference until the close comes in. */
     vref(*vpp);                
 
@@ -581,7 +615,7 @@ cfs_rdwr(vp, uiop, rw, ioflag, cred, p)
 	     * We get the vnode back locked in both Mach and
 	     * NetBSD.  Needs unlocked 
 	     */
-	    VOP_UNLOCK(cfvp);
+	    VOP_X_UNLOCK(cfvp, 0);
 	}
 	else {
 	    opened_internally = 1;
@@ -1136,6 +1170,9 @@ cfs_inactive(v)
 	    printf("cfs_inactive: cp->ovp != NULL use %d: vp %p, cp %p\n",
 	    	   vp->v_usecount, vp, cp);
 #endif
+#if	defined(__NetBSD__) && defined(NetBSD1_3) && (NetBSD1_3 >= 7)
+	lockmgr(&cp->c_lock, LK_RELEASE, &vp->v_interlock);
+#endif
     } else {
 #ifdef DIAGNOSTIC
 	if (CTOV(cp)->v_usecount) {
@@ -1144,6 +1181,9 @@ cfs_inactive(v)
 	if (cp->c_ovp != NULL) {
 	    panic("cfs_inactive:  cp->ovp != NULL");
 	}
+#endif
+#if	defined(__NetBSD__) && defined(NetBSD1_3) && (NetBSD1_3 >= 7)
+	VOP_UNLOCK(vp, 0);
 #endif
 	vgone(vp);
     }
@@ -1308,7 +1348,7 @@ cfs_lookup(v)
      */
     if (!error || (error == EJUSTRETURN)) {
 	if (!(cnp->cn_flags & LOCKPARENT) || !(cnp->cn_flags & ISLASTCN)) {
-	    if ((error = VOP_UNLOCK(dvp))) {
+	    if ((error = VOP_X_UNLOCK(dvp, 0))) {
 		return error; 
 	    }	    
 	    /* 
@@ -1316,7 +1356,7 @@ cfs_lookup(v)
 	     * lock it without bothering to check anything else. 
 	     */
 	    if (*ap->a_vpp) {
-		if ((error = VOP_LOCK(*ap->a_vpp))) {
+		if ((error = VOP_X_LOCK(*ap->a_vpp, LK_EXCLUSIVE))) {
 		    printf("cfs_lookup: ");
 		    panic("unlocked parent but couldn't lock child");
 		}
@@ -1325,7 +1365,7 @@ cfs_lookup(v)
 	    /* The parent is locked, and may be the same as the child */
 	    if (*ap->a_vpp && (*ap->a_vpp != dvp)) {
 		/* Different, go ahead and lock it. */
-		if ((error = VOP_LOCK(*ap->a_vpp))) {
+		if ((error = VOP_X_LOCK(*ap->a_vpp, LK_EXCLUSIVE))) {
 		    printf("cfs_lookup: ");
 		    panic("unlocked parent but couldn't lock child");
 		}
@@ -1423,7 +1463,7 @@ cfs_create(v)
     vput(dvp);
     if (!error) {
 	if (cnp->cn_flags & LOCKLEAF) {
-	    if ((error = VOP_LOCK(*ap->a_vpp))) {
+	    if ((error = VOP_X_LOCK(*ap->a_vpp, LK_EXCLUSIVE))) {
 		printf("cfs_create: ");
 		panic("unlocked parent but couldn't lock child");
 	    }
@@ -1576,7 +1616,7 @@ cfs_link(v)
      *       unconditionally unlock it after.
      */
 
-    if ((ap->a_vp != tdvp) && (error = VOP_LOCK(ap->a_vp))) {
+    if ((ap->a_vp != tdvp) && (error = VOP_X_LOCK(ap->a_vp, LK_EXCLUSIVE))) {
 	goto exit;
     }
 	
@@ -1591,7 +1631,7 @@ cfs_link(v)
 exit:
 
     if (ap->a_vp != tdvp) {
-	VOP_UNLOCK(ap->a_vp);
+	VOP_X_UNLOCK(ap->a_vp, 0);
     }
     vput(tdvp);
 
@@ -1773,7 +1813,7 @@ cfs_mkdir(v)
      */
     vput(dvp);
     if (!error) {
-	if ((error = VOP_LOCK(*ap->a_vpp))) {
+	if ((error = VOP_X_LOCK(*ap->a_vpp, LK_EXCLUSIVE))) {
 	    panic("cfs_mkdir: couldn't lock child");
 	}
     }
@@ -1940,7 +1980,7 @@ cfs_symlink(v)
      */
 /*    vput(ap->a_dvp);		released earlier */
     if (*ap->a_vpp) {
-    	VOP_UNLOCK(*ap->a_vpp);	/* this line is new!! It is necessary because lookup() calls
+    	VOP_X_UNLOCK(*ap->a_vpp, 0);	/* this line is new!! It is necessary because lookup() calls
 				   VOP_LOOKUP (cfs_lookup) which returns vpp locked.  cfs_nb_lookup
 				   merged with cfs_lookup() to become cfs_lookup so UNLOCK is
 				   necessary */
@@ -1973,7 +2013,10 @@ cfs_readdir(v)
     register struct uio *uiop = ap->a_uio;
     struct ucred *cred = ap->a_cred;
     int *eofflag = ap->a_eofflag;
-#ifdef	NetBSD1_3
+#if	defined(__NetBSD__) && defined(NetBSD1_3) && (NetBSD1_3 >= 7)
+    off_t **cookies = ap->a_cookies;
+    int *ncookies = ap->a_ncookies;
+#elif	defined(NetBSD1_3)
     off_t *cookies = ap->a_cookies;
     int ncookies = ap->a_ncookies;
 #elif	NetBSD1_2
@@ -2197,6 +2240,61 @@ cfs_reclaim(v)
     return (0);
 }
 
+#if	defined(__NetBSD__) && defined(NetBSD1_3) && (NetBSD1_3 >= 7)
+int
+cfs_lock(v)
+    void *v;
+{
+/* true args */
+    struct vop_lock_args *ap = v;
+    struct vnode *vp = ap->a_vp;
+    struct cnode *cp = VTOC(vp);
+    struct proc  *p __attribute__((unused)) = curproc; /* XXX */
+/* upcall decl */
+/* locals */
+
+    ENTRY;
+
+    if (cfs_lockdebug) {
+	myprintf(("Attempting lock on %lx.%lx.%lx\n",
+		  cp->c_fid.Volume, cp->c_fid.Vnode, cp->c_fid.Unique));
+    }
+
+    return (lockmgr(&cp->c_lock, ap->a_flags, &vp->v_interlock));
+}
+
+int
+cfs_unlock(v)
+    void *v;
+{
+/* true args */
+    struct vop_unlock_args *ap = v;
+    struct vnode *vp = ap->a_vp;
+    struct cnode *cp = VTOC(vp);
+/* upcall decl */
+/* locals */
+
+    ENTRY;
+    if (cfs_lockdebug) {
+	myprintf(("Attempting unlock on %lx.%lx.%lx\n",
+		  cp->c_fid.Volume, cp->c_fid.Vnode, cp->c_fid.Unique));
+    }
+
+    return (lockmgr(&cp->c_lock, ap->a_flags | LK_RELEASE, &vp->v_interlock));
+}
+
+int
+cfs_islocked(v)
+    void *v;
+{
+/* true args */
+    struct vop_islocked_args *ap = v;
+    struct cnode *cp = VTOC(ap->a_vp);
+    ENTRY;
+
+    return (lockstatus(&cp->c_lock));
+}
+#else
 int
 cfs_lock(v)
     void *v;
@@ -2288,6 +2386,7 @@ cfs_islocked(v)
 	return (1);
     return (0);
 }
+#endif
 
 /* How one looks up a vnode given a device/inode pair: */
 int
@@ -2409,6 +2508,9 @@ makecfsnode(fid, vfsp, type)
 	struct vnode *vp;
 	
 	cp = cfs_alloc();
+#if	defined(__NetBSD__) && defined(NetBSD1_3) && (NetBSD1_3 >= 7)
+	lockinit(&cp->c_lock, PINOD, "cnode", 0, 0);
+#endif
 	cp->c_fid = *fid;
 	
 	err = getnewvnode(VT_CFS, vfsp, cfs_vnodeop_p, &vp);  

@@ -1,11 +1,9 @@
-#ifndef _BLURB_
-#define _BLURB_
 /*
 
             Coda: an Experimental Distributed File System
                              Release 3.1
 
-          Copyright (c) 1987-1995 Carnegie Mellon University
+          Copyright (c) 1987-1998 Carnegie Mellon University
                          All Rights Reserved
 
 Permission  to  use, copy, modify and distribute this software and its
@@ -29,7 +27,8 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-#endif /*_BLURB_*/
+__RCSID("$Header: /afs/cs/project/coda-src/cvs/coda/kernel-src/vfs/bsd44/cfs/coda_opstats.h,v 1.3 98/01/23 11:53:53 rvb Exp $");
+
 
 /* 
  * Mach Operating System
@@ -47,6 +46,9 @@ Mellon the rights to redistribute these changes without encumbrance.
 /*
  * HISTORY
  * $Log:	cfs_namecache.c,v $
+ * Revision 1.8  98/01/31  20:53:10  rvb
+ * First version that works on FreeBSD 2.2.5
+ * 
  * Revision 1.7  98/01/23  11:53:39  rvb
  * Bring RVB_CFS1_1 to HEAD
  * 
@@ -208,7 +210,7 @@ Mellon the rights to redistribute these changes without encumbrance.
 #include <vm/vm_object.h>
 #endif
 
-__RCSID("$Header: /afs/cs/project/coda-src/cvs/coda/kernel-src/vfs/bsd44/cfs/cfs_namecache.c,v 1.7 98/01/23 11:53:39 rvb Exp $");
+__RCSID("$Header: /afs/cs/project/coda-src/cvs/coda/kernel-src/vfs/bsd44/cfs/cfs_namecache.c,v 1.8 98/01/31 20:53:10 rvb Exp $");
 
 /* 
  * Declaration of the name cache data structure.
@@ -722,6 +724,7 @@ cfsnc_flush(dcstat)
 	     cncp != (struct cfscache *)&cfsnc_lru;
 	     cncp = CFSNC_LRUGET(*cncp)) {
 		if (CFSNC_VALID(cncp)) {
+
 			CFSNC_HSHREM(cncp);	/* only zero valid nodes */
 			CFSNC_HSHNUL(cncp);
 			if ((dcstat == IS_DOWNCALL) 
@@ -730,6 +733,7 @@ cfsnc_flush(dcstat)
 				cncp->dcp->c_flags |= C_PURGING;
 			}
 			vrele(CTOV(cncp->dcp)); 
+
 			if (CTOV(cncp->cp)->v_flag & VTEXT) {
 			    if (cfs_vmflush(cncp->cp))
 				CFSDEBUG(CFS_FLUSH, 

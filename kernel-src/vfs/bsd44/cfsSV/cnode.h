@@ -1,3 +1,34 @@
+/*
+
+            Coda: an Experimental Distributed File System
+                             Release 3.1
+
+          Copyright (c) 1987-1998 Carnegie Mellon University
+                         All Rights Reserved
+
+Permission  to  use, copy, modify and distribute this software and its
+documentation is hereby granted,  provided  that  both  the  copyright
+notice  and  this  permission  notice  appear  in  all  copies  of the
+software, derivative works or  modified  versions,  and  any  portions
+thereof, and that both notices appear in supporting documentation, and
+that credit is given to Carnegie Mellon University  in  all  documents
+and publicity pertaining to direct or indirect use of this code or its
+derivatives.
+
+CODA IS AN EXPERIMENTAL SOFTWARE SYSTEM AND IS  KNOWN  TO  HAVE  BUGS,
+SOME  OF  WHICH MAY HAVE SERIOUS CONSEQUENCES.  CARNEGIE MELLON ALLOWS
+FREE USE OF THIS SOFTWARE IN ITS "AS IS" CONDITION.   CARNEGIE  MELLON
+DISCLAIMS  ANY  LIABILITY  OF  ANY  KIND  FOR  ANY  DAMAGES WHATSOEVER
+RESULTING DIRECTLY OR INDIRECTLY FROM THE USE OF THIS SOFTWARE  OR  OF
+ANY DERIVATIVE WORK.
+
+Carnegie  Mellon  encourages  users  of  this  software  to return any
+improvements or extensions that  they  make,  and  to  grant  Carnegie
+Mellon the rights to redistribute these changes without encumbrance.
+*/
+
+__RCSID("$Header: /afs/cs/project/coda-src/cvs/coda/kernel-src/vfs/bsd44/cfs/coda_opstats.h,v 1.3 98/01/23 11:53:53 rvb Exp $");
+
 /* 
  * Mach Operating System
  * Copyright (c) 1990 Carnegie-Mellon University
@@ -14,6 +45,9 @@
 /* 
  * HISTORY
  * $Log:	cnode.h,v $
+ * Revision 1.7  98/02/24  22:22:53  rvb
+ * Fixes up mainly to flush iopen and friends
+ * 
  * Revision 1.6  98/01/31  20:53:19  rvb
  * First version that works on FreeBSD 2.2.5
  * 
@@ -109,6 +143,14 @@ extern void cvref(struct vnode *vp);
 #include <machine/clock.h>
 #endif
 
+#if	defined(__NetBSD__) && defined(NetBSD1_3) && (NetBSD1_3 >= 7)
+#define	VOP_X_LOCK(vn, fl) vn_lock(vn, fl)
+#define	VOP_X_UNLOCK(vn, fl) VOP_UNLOCK(vn, fl)
+#else
+#define	VOP_X_LOCK(vn, fl) VOP_LOCK(vn)
+#define	VOP_X_UNLOCK(vn, fl) VOP_UNLOCK(vn)
+#endif
+
 /*
  * tmp below since we need struct queue
  */
@@ -158,6 +200,9 @@ struct cnode {
     struct vnode	*c_vnode;
     u_short		 c_flags;	/* flags (see below) */
     ViceFid		 c_fid;		/* file handle */
+#if	defined(__NetBSD__) && defined(NetBSD1_3) && (NetBSD1_3 >= 7)
+    struct lock		 c_lock;	/* new lock protocol */
+#endif
     struct vnode	*c_ovp;		/* open vnode pointer */
     u_short		 c_ocount;	/* count of openers */
     u_short		 c_owrite;	/* count of open for write */
