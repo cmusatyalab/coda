@@ -169,21 +169,21 @@ int main(int argc, char *argv[])
     printf("\tType4 id %lx\n", volinfo.Type4);
     printf("\n");
     printf("\tServerCount %ld\n", volinfo.ServerCount);
-    printf("\tReplica0 id %08lx, Server0 %s\n",
+    printf("\tReplica0 id %lx, Server0 %s\n",
 	   volinfo.RepVolMap.Volume0, viceaddr(volinfo.Server0));
-    printf("\tReplica1 id %08lx, Server1 %s\n",
+    printf("\tReplica1 id %lx, Server1 %s\n",
 	   volinfo.RepVolMap.Volume1, viceaddr(volinfo.Server1));
-    printf("\tReplica2 id %08lx, Server2 %s\n",
+    printf("\tReplica2 id %lx, Server2 %s\n",
 	   volinfo.RepVolMap.Volume2, viceaddr(volinfo.Server2));
-    printf("\tReplica3 id %08lx, Server3 %s\n",
+    printf("\tReplica3 id %lx, Server3 %s\n",
 	   volinfo.RepVolMap.Volume3, viceaddr(volinfo.Server3));
-    printf("\tReplica4 id %08lx, Server4 %s\n",
+    printf("\tReplica4 id %lx, Server4 %s\n",
 	   volinfo.RepVolMap.Volume4, viceaddr(volinfo.Server4));
-    printf("\tReplica5 id %08lx, Server5 %s\n",
+    printf("\tReplica5 id %lx, Server5 %s\n",
 	   volinfo.RepVolMap.Volume5, viceaddr(volinfo.Server5));
-    printf("\tReplica6 id %08lx, Server6 %s\n",
+    printf("\tReplica6 id %lx, Server6 %s\n",
 	   volinfo.RepVolMap.Volume6, viceaddr(volinfo.Server6));
-    printf("\tReplica7 id %08lx, Server7 %s\n",
+    printf("\tReplica7 id %lx, Server7 %s\n",
 	   volinfo.RepVolMap.Volume7, viceaddr(volinfo.Server7));
     printf("\n");
     printf("\tVSGAddr %lX\n", volinfo.VSGAddr);
