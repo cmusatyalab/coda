@@ -36,6 +36,7 @@ listed in the file CREDITS.
 
 #include <sys/types.h>
 #include <sys/param.h>
+#include <sys/socket.h>
 #include <stdio.h>
 #include <unistd.h>
 #include <netdb.h>
