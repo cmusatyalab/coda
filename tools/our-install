@@ -12,7 +12,7 @@ PATH=/bin:/usr/bin:/sbin:/usr/sbin:/usr/ucb
 export PATH
 
 if [ $SYS = NetBSD -o $SYS = FreeBSD -o $SYS = OpenBSD ] ; then
-OWNGRP=root.wheel
+OWNGRP=root:wheel
 else
 OWNGRP=root:root
 fi
