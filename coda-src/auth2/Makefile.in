@@ -67,8 +67,8 @@ EXECUTABLES = $(CLOG) $(AUTH2) initpw $(AU) cpasswd ctokens cunlog tokentool
 CBINS       = $(CLOG) cpasswd ctokens cunlog
 
 CSBINS      = $(AU)
-SBINS       = $(AU)
-SSBINS      = $(AUTH2) initpw
+SBINS       = 
+SSBINS      = $(AU) $(AUTH2) initpw
 endif
 
 CFLAGS := -Wall $(CFLAGS)
