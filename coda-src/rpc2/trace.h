@@ -478,7 +478,7 @@ struct TraceElem
 	strncpy(te->ActiveLWP, LWP_Name(), sizeof(te->ActiveLWP)-1);\
 	tea->HowMany = HowMany;\
 	tea->ConnArray0 = ConnArray[0];\
-	tea->ConnArray0_UniqueCID = ConnArray[0] ? (ConnArray[0])->UniqueCID : 0;\
+	tea->ConnArray0_UniqueCID = ConnArray[0] ? (ConnArray[0])->UniqueCID:0;\
 	tea->PacketArray0_Address = PacketArray[0];\
 	tea->PacketArray0 = *(PacketArray[0]);  /* structure assignment */\
 	if (TimeOut == NULL) tea->IsNullTimeout = 1;\

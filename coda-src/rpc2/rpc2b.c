@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rpc2/rpc2b.c,v 4.7 1998/06/07 20:15:02 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rpc2/rpc2b.c,v 4.8 98/08/05 23:49:47 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -1021,7 +1021,7 @@ unsigned long rpc2_MakeTimeStamp()
     unsigned long diff;
 
     /* use the approximate version b/c gettimeofday is called often */
-    FT_AGetTimeOfDay(&now, (struct timezone *)0);
+    FT_GetTimeOfDay(&now, (struct timezone *)0);
     SUBTIME(&now, &rpc2_InitTime);
     TVTOTS(&now, diff);
     if (diff == 0) diff = 1;  /* just in case we called right away */

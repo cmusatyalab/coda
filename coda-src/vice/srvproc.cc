@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vice/srvproc.cc,v 4.10 1998/01/12 23:35:42 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vice/srvproc.cc,v 4.11 98/04/14 20:55:38 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -430,6 +430,17 @@ START_TIMING(ViceValidateAttrs_Total);
 	if (errorCode = ViceGetAttr(RPCid, PrimaryFid, 0, Status, PrimaryHost, PiggyBS))
 		goto Exit;
     }
+
+
+    if ( NumPiggyFids != VFlagBS->SeqLen ) {
+
+	    LogMsg(0, SrvDebugLevel, stdout, "Client on conn %x sending wrong output buffer while validating"
+		 ": %x; SeqLen %d, should be %d", RPCid, 
+		 PrimaryFid->Volume, VFlagBS->SeqLen, NumPiggyFids);
+	    errorCode = EINVAL;
+	    goto Exit;
+    }
+
 
     bzero((void *)(char *) VFlagBS->SeqBody, (int) NumPiggyFids);
 

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/egasr/removeinc.cc,v 4.3.8.2 98/10/07 20:25:05 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/egasr/removeinc.cc,v 4.3.8.3 98/10/08 11:26:25 jaharkes Exp $";
 #endif /*_BLURB_*/
 
 
@@ -69,7 +69,7 @@ int IsObjInc(char *name, ViceFid *fid) {
     fid->Vnode = 0; fid->Unique = 0; fid->Volume = 0;
 
     // what if the begin repair has been done already 
-    rc = stat(name, &statbuf);
+    rc = lstat(name, &statbuf);
     if (rc == 0) {
 	struct ViceIoctl vioc;
 	char space[2048];

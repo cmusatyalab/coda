@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vol/vldb.cc,v 4.4 1998/01/15 20:30:36 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vol/vldb.cc,v 4.4.8.1 98/10/07 20:25:14 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -209,10 +209,10 @@ int VLDBPrint()
 	for (i = 0; i<nRecords; i++) {
 	    register struct vldb *vldp = &VLDB_records[i];
 	    if (ntohl(vldp->volumeId[vldp->volumeType]) != 0)
-		LogMsg(100, VolDebugLevel, stdout, "VID = %x type = %x, servers = %d, server0 = %x, server1 = %x, server2 = %x",
+		LogMsg(100, VolDebugLevel, stdout, "VID = %x type = %x, servers = %d, server0 = %x, server1 = %x, server2 = %x, key: %s",
 		    ntohl(vldp->volumeId[vldp->volumeType]), vldp->volumeType,
 		    vldp->nServers, vldp->serverNumber[0],
-		    vldp->serverNumber[1], vldp->serverNumber[2]);
+		    vldp->serverNumber[1], vldp->serverNumber[2], vldp->key);
 	  }	
       }
 }    

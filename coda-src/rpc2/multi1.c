@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rpc2/multi1.c,v 4.3 1997/10/01 18:55:46 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rpc2/multi1.c,v 4.4 98/04/14 21:06:59 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -881,7 +881,7 @@ PRIVATE long mrpc_SendPacketsReliably(HowMany, ConnHandleList,  MCast, me,
 		    /* call side-effect routine, and ignore result */
 		    if (GOODSEDLE(thispacket) &&
 			 c_entry->SEProcs != NULL && c_entry->SEProcs->SE_MultiRPC2 != NULL)
-			(*c_entry->SEProcs->SE_MultiRPC2)(ConnHandleList[thispacket], &(SDescList[thispacket]), preply);
+			(*c_entry->SEProcs->SE_MultiRPC2)(ConnHandleList[thispacket], &(SDescList[thispacket]), NULL);
 		    if ((*UnpackMulti)(HowMany, ConnHandleList, ArgInfo, NULL, RPC2_NAKED, thispacket) == -1)
 		        /* enough responses, return */
 		        EXIT_MRPC_SPR(finalrc)
@@ -908,7 +908,7 @@ PRIVATE long mrpc_SendPacketsReliably(HowMany, ConnHandleList,  MCast, me,
 			if (RCList) RCList[thispacket] = RPC2_DEAD;
 			/* call side-effect routine, and ignore result */
 			if (GOODSEDLE(thispacket) && c_entry->SEProcs != NULL && c_entry->SEProcs->SE_MultiRPC2 != NULL)
-			    (*c_entry->SEProcs->SE_MultiRPC2)(ConnHandleList[thispacket], &(SDescList[thispacket]), preply);
+			    (*c_entry->SEProcs->SE_MultiRPC2)(ConnHandleList[thispacket], &(SDescList[thispacket]), NULL);
 			if ((*UnpackMulti)(HowMany, ConnHandleList, ArgInfo, NULL, RPC2_DEAD, thispacket) == -1)
 			    /* enough responses, return */
 			    EXIT_MRPC_SPR(finalrc)
