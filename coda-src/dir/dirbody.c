@@ -38,7 +38,7 @@ extern "C" {
 #endif __cplusplus
 #include <stdio.h>
 #include "coda_assert.h"
-#include <sys/types.h>
+#include <sys/param.h>
 #include <netinet/in.h>
 #include <fcntl.h>
 #include <unistd.h>

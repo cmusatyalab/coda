@@ -30,7 +30,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/lib-src/mlwp/process.s,v 4.7 1998/11/13 15:19:22 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/lib-src/mlwp/process.s,v 4.8 1998/11/13 17:36:40 rvb Exp $";
 #endif undef
 #endif /*_BLURB_*/
 
@@ -452,7 +452,7 @@ returnto:
 
 #ifdef __STDC__
 
-#ifdef	__FreeBSD_version
+#if	defined(__FreeBSD__) && defined(__ELF__)
 #include <machine/asm.h>
 #define SYMB(x)	ENTRY(x)
 #define EXT(x)	CNAME(x)
