@@ -64,6 +64,14 @@ of the Coda License.
 
 */
 
+/* When this is defined we keep a running estimate of the number of
+ * nanoseconds it takes to send a byte. This allows us to converge a
+ * lot faster to a  more stable bandwidth estimate.
+ * If it is not defined, fall back on the old bytes/second estimate, which
+ * tends to jitter a lot in the high bandwidth case, and has problems dropping
+ * down to the slow bandwidth estimates. */
+#define NS_per_BYTE 1
+
 /* Code to track host liveness 
 
    We track liveness by host ip-address, as we're really interested
@@ -146,7 +154,11 @@ struct HEntry *rpc2_AllocHost(RPC2_HostIdent *host)
 
 	he->RTT       = 0;
 	he->RTTVar    = 0;
+#ifdef NS_per_BYTE
+	he->BW        = 1000 << RPC2_BW_SHIFT;
+#else
 	he->BW        = 10000000 << RPC2_BW_SHIFT;
+#endif
 	he->BWVar     = 0 << RPC2_BWVAR_SHIFT;
 	he->LastBytes = 0;
 
@@ -292,9 +304,14 @@ void rpc2_UpdateEstimates(struct HEntry *host, struct timeval *elapsed,
      * we try to get some sensible information. (mayby 500us is better?) */
     if (elapsed_us == 0) elapsed_us = 20;
 
+#ifdef NS_per_BYTE
+    /* we need to clap elapsed usec to about 67 seconds to avoid overflows */
+    if (eU > 0x03ffffff) eU = 0x03ffffff;
+#else
     /* we need to clamp Bytes to a maximum value that avoids overflows in the
      * following calculations  */
     if (Bytes > 0xffff) Bytes = 0xffff;
+#endif
 
     /* calculate an estimated rtt */
     eRTT = (host->RTT >> RPC2_RTT_SHIFT) - (host->RTTVar >> RPC2_RTTVAR_SHIFT);
@@ -303,7 +320,11 @@ void rpc2_UpdateEstimates(struct HEntry *host, struct timeval *elapsed,
     if (elapsed_us > eRTT)
     {
 	eU  = elapsed_us - eRTT;
+#ifdef NS_per_BYTE
+	eBW = ((eU * 100) / Bytes) * 10;
+#else
 	eBW = ((Bytes << 16) / eU) << 4;
+#endif
 	eBW -= (host->BW >> RPC2_BW_SHIFT);
 	host->BW += eBW;
 
@@ -322,11 +343,18 @@ void rpc2_UpdateEstimates(struct HEntry *host, struct timeval *elapsed,
     {
 	/* from here on eBW contains a lower estimate on the effective
 	 * bandwidth, eRTT will contain a updated RTT estimate */
+#ifdef NS_per_BYTE
+	eBW = (host->BW >> RPC2_BW_SHIFT) +
+	    ((host->BWVar >> RPC2_BWVAR_SHIFT) >> 1);
+
+	eU = (eBW / (Bytes * 1000));
+#else
 	eBW = (host->BW >> RPC2_BW_SHIFT) -
 	    ((host->BWVar >> RPC2_BWVAR_SHIFT) >> 1);
 	if (eBW < 16) eBW = 16;
 
 	eU = ((Bytes << 16) / eBW) << 4;
+#endif
 	if (elapsed_us > eU) eL = elapsed_us - eU;
 	else		 eL = 0;
 
@@ -349,7 +377,7 @@ void rpc2_UpdateEstimates(struct HEntry *host, struct timeval *elapsed,
 	"Est: %s %4ld.%06lu/%-5lu RTT:%lu/%lu us BW:%lu/%lu B/s\n",
 	    inet_ntoa(host->Host), elapsed->tv_sec, elapsed->tv_usec, Bytes,
 	    host->RTT>>RPC2_RTT_SHIFT, host->RTTVar>>RPC2_RTTVAR_SHIFT,
-	    host->BW>>RPC2_BW_SHIFT, host->BWVar>>RPC2_BWVAR_SHIFT);
+	    (1<<30)/(host->BW>>RPC2_BW_SHIFT), host->BWVar>>RPC2_BWVAR_SHIFT);
 
     return;
 }
@@ -378,12 +406,16 @@ void rpc2_RetryInterval(struct HEntry *host, RPC2_Unsigned Bytes, int retry,
     effBW = (host->BW >> RPC2_BW_SHIFT);
     // - ((host->BWVar >> RPC2_BWVAR_SHIFT) >> 1);
 
+#ifdef NS_per_BYTE
+    rto += effBW / (Bytes * 1000);
+#else
     if (effBW <= 0) effBW = 16;
 
     /* make sure we don't overflow during the shifts */
     if (Bytes > 0xffff) Bytes = 0xffff;
 
     rto += ((Bytes << 16) / effBW) << 4;
+#endif
     
     /* minimum bound for rtt estimates to compensate for scheduling etc. */
     if (rto < RPC2_MINRTO) rto = RPC2_MINRTO;
@@ -421,7 +453,11 @@ int RPC2_GetBandwidth(RPC2_Handle handle, unsigned long *BW,
     if (ce == NULL) 
 	return(RPC2_NOCONNECTION);
 
+#ifdef NS_per_BYTE
+    if (BW)    *BW    = 1000000000 / (ce->HostInfo->BW >> RPC2_BW_SHIFT);
+#else
     if (BW)    *BW    = ce->HostInfo->BW    >> RPC2_BW_SHIFT;
+#endif
     if (BWvar) *BWvar = ce->HostInfo->BWVar >> RPC2_BWVAR_SHIFT;
 
     return(RPC2_SUCCESS);

@@ -68,6 +68,8 @@ LIBS=	${LIBVICEERROR}\
 	$(LIBCOMPAT)\
 	$(LIBBASE)
 
+include $(TOPDIR)/configs/Makerules
+
 updatesrv: updatesrv.o update.server.o ${LIBS}
 	$(CXX) $(LIBFLAGS) updatesrv.o update.server.o ${LIBS} -o updatesrv
 
@@ -76,5 +78,3 @@ updateclnt: updateclnt.o update.client.o  ${LIBS}
 
 updatefetch: updatefetch.o update.client.o  ${LIBS}
 	$(CXX) $(LIBFLAGS) updatefetch.o update.client.o  ${LIBS} -o updatefetch
-
-include $(TOPDIR)/configs/Makerules

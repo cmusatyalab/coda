@@ -80,7 +80,6 @@ mkdir -p $RPM_BUILD_ROOT/usr/coda/venus.cache $RPM_BUILD_ROOT/dev \
 make client-install
 make server-install
 
-touch $RPM_BUILD_ROOT/usr/coda/venus.cache/INIT
 mknod $RPM_BUILD_ROOT/dev/cfs0 c 67 0
 touch $RPM_BUILD_ROOT/coda/NOT_REALLY_CODA
 
@@ -115,17 +114,15 @@ else
 fi
 	
 %post client
-if [ -e /usr/coda/etc/vstab ]; then 
-	touch /usr/coda/venus.cache/INIT
-else
+if [ ! -e /usr/coda/etc/vstab ]; then 
 	/usr/sbin/venus-setup testserver.coda.cs.cmu.edu 40000
 fi
 
 cd /usr/lib/coda
-if [ ! -x /usr/bin/tixindex ]; then
-	chmod a+x /usr/bin/tixindex 
-fi
-tixindex *tcl
+#if [ ! -x /usr/bin/tixindex ]; then
+#	chmod a+x /usr/bin/tixindex 
+#fi
+#tixindex *tcl
 #if [ ! -f /usr/bin/tixwish ]; then
 #	ln -s /usr/bin/tixwish* /usr/bin/tixwish
 #	if [ x$? != x0 ]; then
@@ -153,7 +150,6 @@ tixindex *tcl
 %dir /usr/coda
 %dir /usr/coda/etc
 %dir /usr/coda/venus.cache
-%verify() /usr/coda/venus.cache/INIT
 /etc/rc.d/init.d/venus.init
 %dir /coda
 %verify() /coda/NOT_REALLY_CODA

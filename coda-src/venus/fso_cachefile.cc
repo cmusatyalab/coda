@@ -159,7 +159,7 @@ void CacheFile::Move(CacheFile *destination) {
     destination->inode = inode;
     destination->length = length;
     if (::rename(name, destination->name) != 0)
-        CHOKE("CacheFile::RenameContainer: rename failed (%d)", errno);
+        CHOKE("CacheFile::Move: rename failed (%d)", errno);
 }
 
 

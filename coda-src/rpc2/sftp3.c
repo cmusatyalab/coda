@@ -732,7 +732,13 @@ int sftp_SendStrategy(struct SFTP_Entry *sEntry)
     {/* Window is open: be more ambitious */
 	if (sEntry->ReadAheadCount > 0)
 	{
-	    /* if (ResendWorried(sEntry, FALSE) < 0) return(-1); */
+#if 1
+	    /* Pessimistic view, we might have lost all packets. Retransmit
+	     * everything in the worried set. When the RTT estimates are
+	     * correct, we will not push too many packets on the network, as
+	     * then it takes more time for a packet to get `worried'. --JH */
+	    if (ResendWorried(sEntry, FALSE) < 0) return(-1);
+#else
 	    /* Try to be optimistic, we really don't lose that many packets,
 	     * and retransmissions on a slow link only result in an ever
 	     * present set of worried packets --JH */
@@ -741,6 +747,7 @@ int sftp_SendStrategy(struct SFTP_Entry *sEntry)
 		if (SendFirstUnacked(sEntry, FALSE) < 0)
 		    return(-1);
 	    }
+#endif
 	    if (SendSendAhead(sEntry) < 0) return(-1);  /* may close window */
 	}
 	else

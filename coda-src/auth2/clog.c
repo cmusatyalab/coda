@@ -314,7 +314,10 @@ int main(int argc, char **argv)
 	    exit (1);
     }
 
-    printf("username: %s\n", username);
+    if (!isatty(0)) passwdpipe = 1;
+
+    if (passwdpipe == 0)
+	printf("username: %s\n", username);
 
     U_InitRPC();
 
