@@ -46,7 +46,7 @@ Pittsburgh, PA.
 #include <lwp/timer.h>
 #include <rpc2/rpc2.h>
 #include <string.h>
-#include "dllist.h"
+#include <dllist.h>
 
 #define bool long
 
@@ -124,9 +124,8 @@ struct LinkEntry	/* form of entries in doubly-linked lists */
 struct CEntry		/* describes a single RPC connection */
     {
     /* Link Entry Fields */
-    struct CEntry *NextEntry;
-    struct CEntry *PrevEntry;
-    enum {OBJ_CENTRY = 868} MagicNumber;
+    struct dllist_head connlist;
+    enum {OBJ_CENTRY = 868, OBJ_FREE_CENTRY = 686} MagicNumber;
     struct CEntry *Qname;
 
     struct dllist_head Chain;
@@ -399,10 +398,6 @@ struct InitMulticastBody	/* Client to Server */
 /*------------- List headers and counts -------------*/
 
 /* NOTE: all these lists are doubly-linked and circular */
-
-/* The basic connection abstraction */
-extern struct CEntry *rpc2_ConnFreeList,	/* free connection blocks */
-			*rpc2_ConnList;		/* active connections  */
 
 /* The multicast group abstraction */
 extern struct MEntry *rpc2_MgrpFreeList;	/* free mgrp blocks */

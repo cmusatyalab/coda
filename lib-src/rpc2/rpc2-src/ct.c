@@ -59,6 +59,8 @@ Pittsburgh, PA.
 
 #define TICKINTERVAL 60		/* in seconds */
 
+int RPC2_enableReaping = 0;
+
 void rpc2_ClockTick()
 {/* Non terminating LWP */
     struct SL_Entry *sl;
@@ -92,6 +94,7 @@ void rpc2_ClockTick()
 #endif
 	
 	/* and free up `dead' connections */
-	rpc2_ReapDeadConns();
+	if (RPC2_enableReaping)
+	    rpc2_ReapDeadConns();
     }
 }

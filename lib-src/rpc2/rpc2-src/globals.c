@@ -68,8 +68,7 @@ struct timeval SaveResponse;    /* 2*Beta0: lifetime of saved response packet */
 long rpc2_Bandwidth = 10485760; /* bandwidth hint supplied externally */
 
 /* Doubly-linked lists and counts */
-struct CEntry *rpc2_ConnFreeList, *rpc2_ConnList;
-long rpc2_ConnFreeCount, rpc2_ConnCount, rpc2_ConnCreationCount;
+long rpc2_ConnFreeCount, rpc2_ConnCount = -1, rpc2_ConnCreationCount;
 
 struct MEntry *rpc2_MgrpFreeList;
 long rpc2_MgrpFreeCount, rpc2_MgrpCreationCount;
@@ -110,7 +109,7 @@ long rpc2_AllocMgrps, rpc2_FreeMgrps;
 
 long rpc2_HoldHWMark, rpc2_FreezeHWMark;
 
-char *rpc2_LastEdit = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rpc2/globals.c,v 4.6 1999/08/26 22:06:05 jaharkes Exp $";
+char *rpc2_LastEdit = "$Header: /afs/cs/project/coda-src/cvs/rpc2/rpc2-src/globals.c,v 4.8 1999/12/23 02:49:54 jaharkes Exp $";
 
 long rpc2_errno;
 

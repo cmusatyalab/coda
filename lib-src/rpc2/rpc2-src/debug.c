@@ -209,8 +209,8 @@ void rpc2_PrintCEntry(struct CEntry *cPtr, FILE *tFile)
 {
     long i;
     if (tFile == NULL) tFile = rpc2_logfile;	/* it's ok, call-by-value */
-    fprintf(tFile, "MyAddr: 0x%lx\n\tNextEntry = 0x%lx  PrevEntry = 0x%lx  MagicNumber = %s  Role = %s  State = ",
-	(long)cPtr, (long)cPtr->NextEntry, (long)cPtr->PrevEntry,
+    fprintf(tFile, "MyAddr: %p\n\tNextEntry = %p  PrevEntry = %p  MagicNumber = %s  Role = %s  State = ",
+	cPtr, cPtr->connlist.next, cPtr->connlist.prev,
 	WhichMagic(cPtr->MagicNumber),
 	TestRole(cPtr,FREE) ? "FREE" :(TestRole(cPtr, CLIENT) ? "CLIENT" : (TestRole(cPtr, SERVER) ? "SERVER" : "?????") ));
     if (TestRole(cPtr,CLIENT))

@@ -778,6 +778,7 @@ extern int rpc2_43bsd;	/* TRUE  on 4.3BSD, FALSE on 4.2BSD */
 /* For debugging */
 extern FILE *rpc2_logfile;
 extern FILE *rpc2_tracefile;
+extern int RPC2_enableReaping;
 
 /* What port are we listening on. */
 extern RPC2_HostIdent   rpc2_LocalHost;

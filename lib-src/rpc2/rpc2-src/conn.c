@@ -55,21 +55,23 @@ Pittsburgh, PA.
 /* the hash table of size HASHLEN buckets */
 static struct dllist_head HashTable[HASHLENGTH];
 
-static long EntriesInUse = -1;
+/* The basic connection abstraction */
+DLLIST_HEAD(rpc2_ConnList);		/* active connections  */
+DLLIST_HEAD(rpc2_ConnFreeList);		/* free connection blocks */
 
 int rpc2_InitConn(void)
 {
     int i;
     
     /* safety check, never initialize twice */
-    if (EntriesInUse != -1) return 0;
+    if (rpc2_ConnCount != -1) return 0;
 
     for (i = 0; i < HASHLENGTH; i++)
     {
         list_head_init(&HashTable[i]);
     }
 
-    EntriesInUse = 0;
+    rpc2_ConnCount = rpc2_ConnFreeCount = rpc2_ConnCreationCount = 0;
 
     return 1;
 }
@@ -86,7 +88,7 @@ struct CEntry *rpc2_GetConn(RPC2_Handle handle)
     if (handle == 0) return(NULL);
 
     /* bucket is handle modulo HASHLENGTH */
-    i= handle & (HASHLENGTH-1);	
+    i = handle & (HASHLENGTH-1);	
 
     /* and walk the chain */
     for (ptr = HashTable[i].next; ptr != &HashTable[i]; ptr = ptr->next)
@@ -106,7 +108,6 @@ struct CEntry *rpc2_GetConn(RPC2_Handle handle)
             return (ceaddr);
         }
     }
-
     return (NULL);
 }
 
@@ -121,7 +122,7 @@ static void Uniquefy(IN struct CEntry *ceaddr)
      * have broken down before we use this many entries on either the time it
      * takes to find an available handle, or the memory usage. Still, I don't
      * want this function to get stuck into an endless search. --JH */
-    assert(EntriesInUse < (1073741824 >> 1)); /* 50% utilization */
+    assert(rpc2_ConnCount < (1073741824 >> 1)); /* 50% utilization */
 
     /* this might take some time once we get a lot of used handles. But even
      * with a `full' table (within the constraint above), we should, on
@@ -143,24 +144,44 @@ static void Uniquefy(IN struct CEntry *ceaddr)
     /* add to the bucket */
     index = handle & (HASHLENGTH-1);
     list_add(&ceaddr->Chain, &HashTable[index]);
-    
-    EntriesInUse++;
 }
 
+struct CEntry *rpc2_getFreeConn()
+{
+    struct CEntry *ce;
+    
+    if (list_empty(&rpc2_ConnFreeList))
+    {
+	/* allocate a new conn entry */
+	ce = (struct CEntry *)malloc(sizeof(struct CEntry));
+	assert(ce || "failed to allocate conn entry");
+	rpc2_ConnCreationCount++;
+    }
+    else
+    {
+	/* grab a conn entry off the freelist */
+	struct dllist_head *tmp = rpc2_ConnFreeList.prev;
+	ce = list_entry(tmp, struct CEntry, connlist);
+
+	list_del(tmp);
+	rpc2_ConnFreeCount--;
+	assert(ce->MagicNumber == OBJ_FREE_CENTRY);
+    }
+
+    ce->MagicNumber = OBJ_CENTRY;
+    list_add(&ce->connlist, &rpc2_ConnList);
+    rpc2_ConnCount++;
+
+    return ce;
+}
 
 struct CEntry *rpc2_AllocConn()
 {
     struct CEntry *ce;
 
     rpc2_AllocConns++;
-    if (rpc2_ConnFreeCount == 0)
-        rpc2_Replenish(&rpc2_ConnFreeList, &rpc2_ConnFreeCount,
-                       sizeof(struct CEntry), &rpc2_ConnCreationCount,
-                       OBJ_CENTRY);
 
-    ce = (struct CEntry *)rpc2_MoveEntry(&rpc2_ConnFreeList, &rpc2_ConnList,
-		 (struct CEntry *)NULL, &rpc2_ConnFreeCount, &rpc2_ConnCount);
-    assert (ce->MagicNumber == OBJ_CENTRY);
+    ce = rpc2_getFreeConn();
 
     /* Initialize */
     ce->State = 0;
@@ -190,6 +211,7 @@ struct CEntry *rpc2_AllocConn()
     ce->MySl = NULL;
     ce->HeldPacket = NULL;
     ce->reqsize = 0;
+    ce->HostInfo = NULL;
 
     /* Then make it unique */
     Uniquefy(ce);
@@ -205,8 +227,7 @@ void rpc2_FreeConn(RPC2_Handle whichConn)
     struct CEntry *ce;
 
     ce = rpc2_GetConn(whichConn);
-    assert(ce != NULL);
-    assert(ce->MagicNumber == OBJ_CENTRY);
+    assert(ce && ce->MagicNumber == OBJ_CENTRY);
     rpc2_FreeConns++;
 
     free(ce->Retry_Beta);
@@ -230,34 +251,41 @@ void rpc2_FreeConn(RPC2_Handle whichConn)
 
     list_del(&ce->Chain);
     SetRole(ce, FREE);
-    rpc2_MoveEntry(&rpc2_ConnList, &rpc2_ConnFreeList, ce,
-			&rpc2_ConnCount, &rpc2_ConnFreeCount);
 
-    EntriesInUse--;
+    /* move the conn entry over to the freelist */
+    list_del(&ce->connlist);
+    assert(ce->MagicNumber == OBJ_CENTRY);
+    ce->MagicNumber = OBJ_FREE_CENTRY;
+    list_add(&ce->connlist, &rpc2_ConnFreeList);
+    rpc2_ConnCount--; rpc2_ConnFreeCount++;
 }
 
 /* Reap connections that have not seen any activity in the past 15 minutes */
 #define RPC2_DEAD_CONN_TIMEOUT 900
 void rpc2_ReapDeadConns(void)
 {
-	struct CEntry *ce, *next;
-	time_t now;
+    struct dllist_head *entry, *next;
+    struct CEntry *ce;
+    time_t now;
 
-	now = time(NULL);
+    now = time(NULL);
 
-	ce = (struct CEntry *)(rpc2_ConnList);
-	if (!ce) return;
+    for (entry = rpc2_ConnList.next;
+	 entry != &rpc2_ConnList;
+	 entry = next)
+    {
+	next = entry->next;
+	ce = list_entry(entry, struct CEntry, connlist);
+	assert(ce->MagicNumber == OBJ_CENTRY);
 
-	next = ce->NextEntry;
-	while(rpc2_ConnList && next != (struct CEntry *)rpc2_ConnList) {
-		if (!ce->PrivatePtr && TestRole(ce, SERVER) &&
-		    ce->LastRef + RPC2_DEAD_CONN_TIMEOUT < now) {
-			say(0, RPC2_DebugLevel, "Reaping dead connection %ld\n",
-			    ce->UniqueCID);
-			RPC2_Unbind(ce->UniqueCID);
-		}
-		ce = next; next = ce->NextEntry;
+	if (!ce->PrivatePtr && TestRole(ce, SERVER) &&
+	    ce->LastRef + RPC2_DEAD_CONN_TIMEOUT < now)
+	{
+	    say(0, RPC2_DebugLevel, "Reaping dead connection %ld\n",
+		ce->UniqueCID);
+	    RPC2_Unbind(ce->UniqueCID);
 	}
+    }
 }
 
 #if 0
@@ -267,7 +295,7 @@ static void PrintHashTable()
     struct CEntry      *ce;
     long                i;
 
-    printf("EntriesInUse = %ld\tHASHLENGTH = %d\n", EntriesInUse, HASHLENGTH);
+    printf("EntriesInUse = %ld\tHASHLENGTH = %d\n", rpc2_ConnCount, HASHLENGTH);
 
     for (i=0; i < HASHLENGTH; i++)
     {
@@ -422,24 +450,26 @@ rpc2_ConnFromBindInfo(RPC2_HostIdent *whichHost, RPC2_PortIdent *whichPort,
     
     /* It was not in the RBCache; scan all the connections */
     
-    for (i=0, j=0; i < HASHLENGTH; i++)
+    for (ptr = rpc2_ConnList.next;
+	 ptr != &rpc2_ConnList;
+	 ptr = ptr->next)
     {
-        for (ptr = HashTable[i].next; ptr != &HashTable[i]; ptr = ptr->next)
-        {
-            ce = list_entry(ptr, struct CEntry, Chain);
-            assert(ce->MagicNumber == OBJ_CENTRY);
+	ce = list_entry(ptr, struct CEntry, connlist);
+	assert(ce->MagicNumber == OBJ_CENTRY);
 
-            j++; /* count # searched connections */
+	j++; /* count # searched connections */
 
-            if (ce->PeerUnique == whichUnique  /* do cheapest test first */
-                && rpc2_HostIdentEqual(&ce->PeerHost, whichHost)
-                && rpc2_PortIdentEqual(&ce->PeerPort, whichPort))
-            {
-                say(0, RPC2_DebugLevel, "Match after searching %d connection entries\n", j);
-		list_del(ptr); list_add(ptr, &HashTable[i]);
-                return(ce);
-            }
-        }
+	if (ce->PeerUnique == whichUnique  /* do cheapest test first */
+	    && rpc2_HostIdentEqual(&ce->PeerHost, whichHost)
+	    && rpc2_PortIdentEqual(&ce->PeerPort, whichPort))
+	{
+	    say(0, RPC2_DebugLevel,
+		"Match after searching %d connection entries\n", j);
+	    /* and put the CE at the head of it's hashbucket */
+	    i = ce->UniqueCID & (HASHLENGTH-1);	
+	    list_del(&ce->Chain); list_add(&ce->Chain, &HashTable[i]);
+	    return(ce);
+	}
     }
     say(0, RPC2_DebugLevel, "No match after searching %ld connections\n",
         rpc2_ConnCount);

@@ -30,6 +30,7 @@ struct dllist_head {
 };
 #define dllist_chain dllist_head
 
+#define DLLIST_HEAD(x) struct dllist_head x = { &x, &x }
 
 #define list_entry(ptr, type, member) \
 	((type *)((char *)(ptr)-(unsigned long)(&((type *)0)->member)))
