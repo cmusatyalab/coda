@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/fso_cfscalls0.cc,v 4.12 1998/08/26 21:24:29 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/fso_cfscalls0.cc,v 4.13 1998/09/15 20:14:04 smarc Exp $";
 #endif /*_BLURB_*/
 
 
@@ -1483,79 +1483,70 @@ int fsobj::DisconnectedSetAttr(Date_t Mtime, vuid_t vuid, unsigned long NewLengt
     return(code);
 }
 
-int fsobj::SetAttr(struct coda_vattr *vap, vuid_t vuid, RPC2_CountedBS *acl) {
-    LOG(10, ("fsobj::SetAttr: (%s), uid = %d\n",
-	      comp, vuid));
+int fsobj::SetAttr(struct coda_vattr *vap, vuid_t vuid, RPC2_CountedBS *acl) 
+{
+	Date_t NewDate = (Date_t) -1;
+	unsigned long NewLength = (unsigned long) -1;
+	vuid_t NewOwner = (vuid_t) -1;
+	unsigned short NewMode = (unsigned short )-1;
 
-    if (LogLevel >= 1000) {
-	dprint("\tmode = %#o, uid = %d, gid = %d, rdev = %d\n",
-	       vap->va_mode, vap->va_uid, vap->va_gid,
-	       vap->va_rdev);
-	dprint("\tid = %d, nlink = %d, size = %d, blocksize = %d, storage = %d\n",
-	       VA_ID(vap), vap->va_nlink, vap->va_size,
-	       vap->va_blocksize, VA_STORAGE(vap));
-	dprint("\tatime = <%d, %d>, mtime = <%d, %d>, ctime = <%d, %d>\n",
-	       VA_ATIME_1(vap), VA_ATIME_2(vap), 
-	       VA_MTIME_1(vap), VA_MTIME_2(vap), 
-	       VA_CTIME_1(vap), VA_CTIME_2(vap));
-    }
 
-#ifdef	__MACH__
-    unsigned long NewLength = (vap->va_size != VA_IGNORE_SIZE && vap->va_size < stat.Length)
-      ? vap->va_size : (unsigned long)-1;
-#else
-    unsigned long NewLength = vap->va_size != VA_IGNORE_SIZE 
-      ? vap->va_size : (unsigned long)-1;
-#endif
-    Date_t NewDate = (VA_MTIME_1(vap) != VA_IGNORE_TIME1 && VA_MTIME_1(vap) != stat.Date)
-      ? VA_MTIME_1(vap) : (Date_t)-1;
-    vuid_t NewOwner = (vap->va_uid != VA_IGNORE_UID && vap->va_uid != stat.Owner)
-      ? vap->va_uid : (vuid_t)-1;
-    unsigned short NewMode = (vap->va_mode != VA_IGNORE_MODE && (vap->va_mode & 0777) != stat.Mode)
-      ? (vap->va_mode & 0777) : (unsigned short)-1;
+	LOG(10, ("fsobj::SetAttr: (%s), uid = %d\n", comp, vuid));
+	VPROC_printvattr(vap);
+    
+	if ( vap->va_size != VA_IGNORE_SIZE ) 
+		NewLength = vap->va_size;
 
-#ifdef	__MACH__
-    /* ???? This does happen often; does the other Truncate call get used */
-#endif
-    /* Only update cache file when truncating and open for write! */
-    if (NewLength != (unsigned long)-1 && WRITING(this)) {
-	Recov_BeginTrans();
-	data.file->Truncate((unsigned) NewLength);
-	Recov_EndTrans(MAXFP);
-	NewLength = (unsigned long)-1;
-    }
+	if ( (vap->va_mtime.tv_sec != VA_IGNORE_TIME1) && 
+	      (vap->va_mtime.tv_sec != stat.Date))
+		NewDate = vap->va_mtime.tv_sec;
 
-    /* Avoid performing action where possible. */
-    if (NewLength == (unsigned long)-1 && NewDate == (Date_t)-1 &&
-	 NewOwner == (vuid_t)-1 && NewMode == (unsigned short)-1) {
-	if (acl == 0) return(0);
-    }
-    else {
-	FSO_ASSERT(this, acl == 0);
-    }
+        if (vap->va_uid != VA_IGNORE_UID && vap->va_uid != stat.Owner)
+		NewOwner = vap->va_uid;
 
-    /* Cannot chown a file until the first store has been done! */
-    if (NewOwner != (vuid_t)-1 && IsVirgin()) {
-	return(EINVAL);
-    }
+	if ((vap->va_mode != VA_IGNORE_MODE) && 
+	    ((vap->va_mode & 0777) != stat.Mode) )
+		NewMode= (vap->va_mode & 0777);
 
-    int code = 0;
-    Date_t Mtime = Vtime();
+	/* Only update cache file when truncating and open for write! */
+	if (NewLength != (unsigned long)-1 && WRITING(this)) {
+		Recov_BeginTrans();
+		data.file->Truncate((unsigned) NewLength);
+		Recov_EndTrans(MAXFP);
+		NewLength = (unsigned long)-1;
+	}
+	
+	/* Avoid performing action where possible. */
+	if (NewLength == (unsigned long)-1 && NewDate == (Date_t)-1 &&
+	    NewOwner == (vuid_t)-1 && NewMode == (unsigned short)-1) {
+		if (acl == 0) return(0);
+	} else {
+		FSO_ASSERT(this, acl == 0);
+	}
 
-    int conn, tid;
-    GetOperationState(&conn, &tid);
+	/* Cannot chown a file until the first store has been done! */
+	if (NewOwner != (vuid_t)-1 && IsVirgin()) {
+		return(EINVAL);
+	}
 
-    if (conn == 0) {
-	code = DisconnectedSetAttr(Mtime, vuid, NewLength, NewDate, NewOwner, NewMode, tid);
-    }
-    else {
-	code = ConnectedSetAttr(Mtime, vuid, NewLength, NewDate, NewOwner, NewMode, acl);
-    }
+	int code = 0;
+	Date_t Mtime = Vtime();
+	
+	int conn, tid;
+	GetOperationState(&conn, &tid);
+	
+	if (conn == 0) {
+		code = DisconnectedSetAttr(Mtime, vuid, NewLength, 
+					   NewDate, NewOwner, NewMode, tid);
+	} else {
+		code = ConnectedSetAttr(Mtime, vuid, NewLength, NewDate, 
+				    NewOwner, NewMode, acl);
+	}
 
-    if (code != 0) {
-	Demote();
-    }
-    return(code);
+	if (code != 0) {
+		Demote();
+	}
+	return(code);
 }
 
 

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/vproc_pioctl.cc,v 4.7 1998/03/06 20:20:54 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/vproc_pioctl.cc,v 4.8 1998/08/26 21:24:44 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -117,7 +117,7 @@ void vproc::do_ioctl(ViceFid *fid, unsigned int com, struct ViceIoctl *data) {
 	    int volmode = ((com == VIOCSETAL || com == VIOC_AFS_DELETE_MT_PT ||
 			    com == VIOC_SETVV) ? VM_MUTATING : VM_OBSERVING);
 	    for (;;) {
-		Begin_VFS(fid->Volume, (int)VFSOP_IOCTL, volmode);
+		Begin_VFS(fid->Volume, CODA_IOCTL, volmode);
 		if (u.u_error) break;
 
 		u.u_error = FSDB->Get(&f, fid, CRTORUID(u.u_cred), RC_STATUS);
@@ -212,9 +212,9 @@ void vproc::do_ioctl(ViceFid *fid, unsigned int com, struct ViceIoctl *data) {
 			    worker *w = (worker *)this;
 			    union outputArgs *out;
 			    out = (union outputArgs *)w->msg->msg_buf;
-			    out->cfs_ioctl.len = 0;
-			    out->cfs_ioctl.oh.result = 0;
-			    w->Return(w->msg, sizeof (struct cfs_ioctl_out));
+			    out->coda_ioctl.len = 0;
+			    out->coda_ioctl.oh.result = 0;
+			    w->Return(w->msg, sizeof (struct coda_ioctl_out));
 			}
 
 			/* Release and reacquire the target (data this time). */
@@ -798,7 +798,7 @@ V_FreeLocks:
  	    /* Hack to include this as an ioctl request in the proper vsr. */
 	    if (v->vid != LocalFakeVid) {
 		vsr *vsr = v->GetVSR(CRTORUID(u.u_cred));
-		vsr->RecordEvent((int)VFSOP_TO_VSE(VFSOP_IOCTL),  u.u_error, (RPC2_Unsigned) elapsed);
+		vsr->RecordEvent(CODA_IOCTL,  u.u_error, (RPC2_Unsigned) elapsed);
 		v->PutVSR(vsr);
 	    }
 	    VDB->Put(&v);

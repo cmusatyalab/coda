@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/vproc_vfscalls.cc,v 4.14 1998/03/06 20:20:55 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/vproc_vfscalls.cc,v 4.15 1998/08/26 21:24:45 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -83,30 +83,17 @@ extern "C" {
 
 #include <sys/types.h>
 #include <sys/file.h>
-#ifndef __FreeBSD__
-// Since vproc.h knows struct uio.
-#include <sys/uio.h>
-#endif  /* __FreeBSD__ */
-#ifdef __cplusplus
-}
-#endif __cplusplus
-
-/* interface */
-#include <vice.h>
-
-#ifdef __cplusplus
-extern "C" {
-#endif __cplusplus
-
 #include <unistd.h>
 #include <stdlib.h>
+
+#include <vice.h>
+#include <prs_fs.h>
 
 #ifdef __cplusplus
 }
 #endif __cplusplus
 
 /* from libal */
-#include <prs_fs.h>
 
 /* from venus */
 #include "fso.h"
@@ -140,11 +127,11 @@ void vproc::unmount() {
 }
 
 
-void vproc::root(struct venus_vnode **vpp) {
+void vproc::root(struct venus_cnode *vpp) {
     LOG(1, ("vproc::root\n"));
 
     /* Set OUT parameter. */
-    MAKE_VNODE(*vpp, rootfid, C_VDIR);
+    MAKE_CNODE(*vpp, rootfid, C_VDIR);
 }
 
 
@@ -160,7 +147,7 @@ void vproc::sync() {
 }
 
 
-void vproc::vget(struct venus_vnode **vpp, struct cfid *cfidp) {
+void vproc::vget(struct venus_cnode *vpp, struct cfid *cfidp) {
 
     LOG(1, ("vproc::vget: fid = (%x.%x.%x), nc = %x\n",
 	     (cfidp->cfid_fid.Volume, cfidp->cfid_fid.Vnode,
@@ -168,13 +155,12 @@ void vproc::vget(struct venus_vnode **vpp, struct cfid *cfidp) {
 
     int code = 0;
     fsobj *f = 0;
-    struct venus_cnode *cp = 0;
-    *vpp = 0;
+
     if (u.u_nc && LogLevel >= 100)
 	u.u_nc->print(logFile);
 
     for (;;) {
-	Begin_VFS(cfidp->cfid_fid.Volume, (int)VFSOP_VGET);
+	Begin_VFS(cfidp->cfid_fid.Volume, CODA_VGET);
 	if (u.u_error) break;
 
 	u.u_error = FSDB->Get(&f, &cfidp->cfid_fid, CRTORUID(u.u_cred), RC_STATUS);
@@ -183,17 +169,17 @@ void vproc::vget(struct venus_vnode **vpp, struct cfid *cfidp) {
 		u.u_error = 0;
 
 		/* Set OUT parameter according to "fake" vnode. */
-		MAKE_VNODE(*vpp, cfidp->cfid_fid, C_VLNK);
-		VTOC(*vpp)->c_flags |= C_INCON;
+		MAKE_CNODE(*vpp, cfidp->cfid_fid, C_VLNK);
+		vpp->c_flags |= C_INCON;
 	    }
 
 	    goto FreeLocks;
 	}
 
 	/* Set OUT parameter. */
-	MAKE_VNODE(*vpp, f->fid, FTTOVT(f->stat.VnodeType));
+	MAKE_CNODE(*vpp, f->fid, FTTOVT(f->stat.VnodeType));
 	if (f->IsFake() || f->IsMTLink())
-	    VTOC(*vpp)->c_flags |= C_INCON;
+		vpp->c_flags |= C_INCON;
 
 FreeLocks:
 	/* Update namectxt if applicable. */
@@ -209,8 +195,7 @@ FreeLocks:
 
 /* ***** Vnode Operations  ***** */
 
-void vproc::open(struct venus_vnode **vpp, int flags) {
-    struct venus_cnode *cp = VTOC(*vpp);
+void vproc::open(struct venus_cnode *cp, int flags) {
 
     LOG(1, ("vproc::open: fid = (%x.%x.%x), flags = %x\n",
 	     cp->c_fid.Volume, cp->c_fid.Vnode, cp->c_fid.Unique, flags));
@@ -230,7 +215,7 @@ void vproc::open(struct venus_vnode **vpp, int flags) {
     fsobj *f = 0;
 
     for (;;) {
-	Begin_VFS(cp->c_fid.Volume, (int)VFSOP_OPEN,
+	Begin_VFS(cp->c_fid.Volume, CODA_OPEN,
 		  writep ? VM_MUTATING : VM_OBSERVING);
 	if (u.u_error) break;
 
@@ -238,11 +223,11 @@ void vproc::open(struct venus_vnode **vpp, int flags) {
 	u.u_error = FSDB->Get(&f, &cp->c_fid, CRTORUID(u.u_cred), RC_DATA);
 	if (u.u_error) goto FreeLocks;
 
-	/* Exclusive mode open fails. */
-#ifndef __FreeBSD__
-	// inamura@isl.ntt.co.jp For FreeBSD. Date: Fri Jul 11 1997
-	if (exclp) { u.u_error = EEXIST; goto FreeLocks; }
-#endif
+	if (exclp) { 
+		u.u_error = EEXIST; 
+		goto FreeLocks; 
+	}
+
 	/* Verify that we have the necessary permission. */
 	if (readp) {
 	    long rights = f->IsFile() ? PRSFS_READ : PRSFS_LOOKUP;
@@ -252,7 +237,7 @@ void vproc::open(struct venus_vnode **vpp, int flags) {
 	}
 	if (writep || truncp) {
 	    if (f->IsDir()) { u.u_error = EISDIR; goto FreeLocks; }
-	    if ((*vpp)->v_flag & VTEXT)
+	    if (cp->c_flags & VTEXT)
 		{ u.u_error = ETXTBSY; goto FreeLocks; }
 
 	    /* Special modes to pass:
@@ -289,8 +274,8 @@ FreeLocks:
 }
 
 
-void vproc::close(struct venus_vnode *vp, int flags) {
-    struct venus_cnode *cp = VTOC(vp);
+void vproc::close(struct venus_cnode *cp, int flags) 
+{
 
     LOG(1, ("vproc::close: fid = (%x.%x.%x), flags = %x\n",
 	     cp->c_fid.Volume, cp->c_fid.Vnode, cp->c_fid.Unique, flags));
@@ -302,7 +287,7 @@ void vproc::close(struct venus_vnode *vp, int flags) {
     fsobj *f = 0;
 
     for (;;) {
-	Begin_VFS(cp->c_fid.Volume, (int) VFSOP_CLOSE,
+	Begin_VFS(cp->c_fid.Volume, CODA_CLOSE,
 		  writep ? VM_MUTATING : VM_OBSERVING);
 	if (u.u_error) break;
 
@@ -338,9 +323,9 @@ FreeLocks:
 
 
 
-void vproc::ioctl(struct venus_vnode *vp, unsigned int com,
-		   struct ViceIoctl *data, int flags) {
-    struct venus_cnode *cp = VTOC(vp);
+void vproc::ioctl(struct venus_cnode *cp, unsigned int com,
+		   struct ViceIoctl *data, int flags) 
+{
 
     LOG(1, ("vproc::ioctl(%d): fid = (%x.%x.%x), com = %s\n",
 	     u.u_cred.cr_uid,
@@ -355,18 +340,9 @@ void vproc::ioctl(struct venus_vnode *vp, unsigned int com,
 }
 
 
-void vproc::select(struct venus_vnode *vp, int rwflag) {
-    struct venus_cnode *cp = VTOC(vp);
 
-    LOG(1, ("vproc::select: fid = (%x.%x.%x), rwflag = %d\n",
-	     cp->c_fid.Volume, cp->c_fid.Vnode, cp->c_fid.Unique, rwflag));
-
-    u.u_error = EOPNOTSUPP;
-}
-
-
-void vproc::getattr(struct venus_vnode *vp, struct coda_vattr *vap) {
-    struct venus_cnode *cp = VTOC(vp);
+void vproc::getattr(struct venus_cnode *cp, struct coda_vattr *vap) 
+{
 
     LOG(1, ("vproc::getattr: fid = (%x.%x.%x)\n",
 	     cp->c_fid.Volume, cp->c_fid.Vnode, cp->c_fid.Unique));
@@ -374,7 +350,7 @@ void vproc::getattr(struct venus_vnode *vp, struct coda_vattr *vap) {
     fsobj *f = 0;
 
     for (;;) {
-	Begin_VFS(cp->c_fid.Volume, (int)VFSOP_GETATTR);
+	Begin_VFS(cp->c_fid.Volume, CODA_GETATTR);
 	if (u.u_error) break;
 
 	/* Get the object. */
@@ -406,11 +382,12 @@ FreeLocks:
 	vap->va_nlink = 1;
 	vap->va_size = 27;  /* @XXXXXXXX.YYYYYYYY.ZZZZZZZZ */
 	vap->va_blocksize = V_BLKSIZE;
-	VA_ID(vap) = FidToNodeid(&cp->c_fid);
-	VA_ATIME_1(vap) = Vtime();
-	VA_ATIME_2(vap) = 0;
+	vap->va_fileid = FidToNodeid(&cp->c_fid);
+	vap->va_atime.tv_sec = Vtime();
+        vap->va_atime.tv_nsec = 0;
 	vap->va_mtime = vap->va_atime;
-	vap->va_ctime = vap->va_atime;
+	vap->va_ctime.tv_sec = 0;
+	vap->va_ctime.tv_nsec = 0;
 	vap->va_rdev = 1;
 	vap->va_bytes = vap->va_size;
     }
@@ -423,8 +400,7 @@ FreeLocks:
       va_size	    truncate, ftruncate
       va_mtime	    utimes
 */
-void vproc::setattr(struct venus_vnode *vp, struct coda_vattr *vap) {
-    struct venus_cnode *cp = VTOC(vp);
+void vproc::setattr(struct venus_cnode *cp, struct coda_vattr *vap) {
 
     LOG(1, ("vproc::setattr: fid = (%x.%x.%x)\n",
 	     cp->c_fid.Volume, cp->c_fid.Vnode, cp->c_fid.Unique));
@@ -437,15 +413,15 @@ void vproc::setattr(struct venus_vnode *vp, struct coda_vattr *vap) {
      * allow calls that clear the field.  
      */
     /* Cannot set these attributes. */
-    if (/* (vap->va_fsid != VA_IGNORE_FSID) || */
-	 (VA_ID(vap) != VA_IGNORE_ID) ||
+    if ( (vap->va_fileid != VA_IGNORE_ID) ||
 	 (vap->va_nlink != VA_IGNORE_NLINK) ||
 	 (vap->va_blocksize != VA_IGNORE_BLOCKSIZE) ||
 	 (vap->va_rdev != VA_IGNORE_RDEV) ||
-	 (vap->va_flags != VA_IGNORE_FLAGS &&
-	     vap->va_flags != 0) ||
-	 (VA_STORAGE(vap) != VA_IGNORE_STORAGE) )
-	{ u.u_error = EINVAL; return; }
+	 (vap->va_flags != VA_IGNORE_FLAGS && vap->va_flags != 0) ||
+	  (vap->va_bytes != VA_IGNORE_STORAGE) ) {
+	    u.u_error = EINVAL; 
+	    return; 
+    }
 
     /* Should be setting at least one of these. */
     if ( (vap->va_mode == VA_IGNORE_MODE) &&
@@ -453,14 +429,14 @@ void vproc::setattr(struct venus_vnode *vp, struct coda_vattr *vap) {
 	 (vap->va_gid == VA_IGNORE_GID) &&
 	 (vap->va_size == VA_IGNORE_SIZE) &&
 	 (vap->va_flags == VA_IGNORE_FLAGS) &&
-	 (VA_ATIME_1(vap) == VA_IGNORE_TIME1) &&
-	 (VA_MTIME_1(vap) == VA_IGNORE_TIME1) &&
-	 (VA_CTIME_1(vap) == VA_IGNORE_TIME1) )
+	 (vap->va_atime.tv_sec == VA_IGNORE_TIME1) &&
+	 (vap->va_mtime.tv_sec == VA_IGNORE_TIME1) &&
+	 (vap->va_ctime.tv_sec == VA_IGNORE_TIME1) )
 
 	Choke("vproc::setattr: no attributes specified");
 
     for (;;) {
-	Begin_VFS(cp->c_fid.Volume, (int)VFSOP_SETATTR);
+	Begin_VFS(cp->c_fid.Volume, CODA_SETATTR);
 	if (u.u_error) break;
 
 	/* Get the object. */
@@ -498,42 +474,48 @@ void vproc::setattr(struct venus_vnode *vp, struct coda_vattr *vap) {
 	        vap->va_gid = V_GID;
 	    /* truncate, ftruncate */
 	    if (vap->va_size != VA_IGNORE_SIZE) {
-		if (!f->IsFile())
-		    { u.u_error = EISDIR; goto FreeLocks; }
+		    if (!f->IsFile()) {
+		    u.u_error = EISDIR; 
+		    goto FreeLocks; 
+		    }
 
-		u.u_error = f->Access((long)PRSFS_WRITE, C_A_W_OK, CRTORUID(u.u_cred));
-		if (u.u_error) goto FreeLocks;
+		    u.u_error = f->Access((long)PRSFS_WRITE, C_A_W_OK, 
+					  CRTORUID(u.u_cred));
+		    if (u.u_error) 
+			    goto FreeLocks;
 	    }
 
 	    /* utimes */
-	    if (VA_ATIME_1(vap) != VA_IGNORE_TIME1 ||
-		VA_MTIME_1(vap) != VA_IGNORE_TIME1 ||
-		VA_CTIME_1(vap) != VA_IGNORE_TIME1) {
-		u.u_error = f->Access((long)PRSFS_WRITE, 0, CRTORUID(u.u_cred));
-		if (u.u_error) goto FreeLocks;
+	    if ( (vap->va_atime.tv_sec != VA_IGNORE_TIME1) ||
+		 (vap->va_mtime.tv_sec != VA_IGNORE_TIME1) ||
+		 (vap->va_ctime.tv_sec != VA_IGNORE_TIME1) ) {
+		    u.u_error = f->Access((long)PRSFS_WRITE, 0, 
+					  CRTORUID(u.u_cred));
+		    if (u.u_error) goto FreeLocks;
 	    }
 	}
 
 	/* Do the operation. */
 	f->PromoteLock();
 	u.u_error = f->SetAttr(vap, CRTORUID(u.u_cred));
-
+	
 FreeLocks:
 	FSDB->Put(&f);
 	int retry_call = 0;
 	End_VFS(&retry_call);
-	if (!retry_call) break;
+	if (!retry_call) 
+		break;
     }
 
     if (u.u_error == EINCONS) {
-	u.u_error = ENOENT;
-	k_Purge(&cp->c_fid, 1);
+	    u.u_error = ENOENT;
+	    k_Purge(&cp->c_fid, 1);
     }
 }
 
 
-void vproc::access(struct venus_vnode *vp, int mode) {
-    struct venus_cnode *cp = VTOC(vp);
+void vproc::access(struct venus_cnode *cp, int mode) 
+{
 
     LOG(1, ("vproc::access: fid = (%x.%x.%x), mode = %#o\n",
 	     cp->c_fid.Volume, cp->c_fid.Vnode, cp->c_fid.Unique, mode));
@@ -565,7 +547,7 @@ void vproc::access(struct venus_vnode *vp, int mode) {
     fsobj *f = 0;
 
     for (;;) {
-	Begin_VFS(cp->c_fid.Volume, (int)VFSOP_ACCESS);
+	Begin_VFS(cp->c_fid.Volume, CODA_ACCESS);
 	if (u.u_error) break;
 
 	/* Get the object. */
@@ -593,8 +575,9 @@ FreeLocks:
 }
 
 
-void vproc::lookup(struct venus_vnode *dvp, char *name, struct venus_vnode **vpp) {
-    struct venus_cnode *dcp = VTOC(dvp);
+void vproc::lookup(struct venus_cnode *dcp, char *name, 
+		   struct venus_cnode *cp) 
+{
 
     LOG(1, ("vproc::lookup: fid = (%x.%x.%x), name = %s, nc = %x\n",
 	     dcp->c_fid.Volume, dcp->c_fid.Vnode, dcp->c_fid.Unique,
@@ -602,11 +585,9 @@ void vproc::lookup(struct venus_vnode *dvp, char *name, struct venus_vnode **vpp
 
     fsobj *parent_fso = 0;
     fsobj *target_fso = 0;
-    struct venus_cnode *cp = 0;
-    *vpp = 0;
 
     for (;;) {
-	Begin_VFS(dcp->c_fid.Volume, (int)VFSOP_LOOKUP);
+	Begin_VFS(dcp->c_fid.Volume, CODA_LOOKUP);
 	if (u.u_error) break;
 
 	/* Get the parent object and verify that it is a directory. */
@@ -629,8 +610,8 @@ void vproc::lookup(struct venus_vnode *dvp, char *name, struct venus_vnode **vpp
 		    u.u_error = 0;
 
 		    /* Set OUT parameter according to "fake" vnode. */
-		    MAKE_VNODE(*vpp, inc_fid, C_VLNK);
-		    VTOC(*vpp)->c_flags |= C_INCON;
+		    MAKE_CNODE(*cp, inc_fid, C_VLNK);
+		    cp->c_flags |= C_INCON;
 		}
 
 		goto FreeLocks;
@@ -638,9 +619,9 @@ void vproc::lookup(struct venus_vnode *dvp, char *name, struct venus_vnode **vpp
 	}
 
 	/* Set OUT parameter. */
-	MAKE_VNODE(*vpp, target_fso->fid, FTTOVT(target_fso->stat.VnodeType));
+	MAKE_CNODE(*cp, target_fso->fid, FTTOVT(target_fso->stat.VnodeType));
 	if (target_fso->IsFake() || target_fso->IsMTLink())
-	    VTOC(*vpp)->c_flags |= C_INCON;
+	    cp->c_flags |= C_INCON;
 
 FreeLocks:
 	/* Update namectxt if applicable. */
@@ -660,9 +641,9 @@ FreeLocks:
 }
 
 
-void vproc::create(struct venus_vnode *dvp, char *name, struct coda_vattr *vap,
-		   int excl, int mode, struct venus_vnode **vpp) {
-    struct venus_cnode *dcp = VTOC(dvp);
+void vproc::create(struct venus_cnode *dcp, char *name, struct coda_vattr *vap,
+		   int excl, int mode, struct venus_cnode *cp) 
+{
 
     LOG(1, ("vproc::create: fid = (%x.%x.%x), name = %s, excl = %d, mode = %d\n",
 	     dcp->c_fid.Volume, dcp->c_fid.Vnode, dcp->c_fid.Unique,
@@ -670,8 +651,6 @@ void vproc::create(struct venus_vnode *dvp, char *name, struct coda_vattr *vap,
 
     fsobj *parent_fso = 0;
     fsobj *target_fso = 0;
-    struct venus_cnode *cp = 0;
-    *vpp = 0;
 
     /* Expand the flags into some useful predicates. */
     int readp = (mode & C_M_READ) != 0;
@@ -688,7 +667,7 @@ void vproc::create(struct venus_vnode *dvp, char *name, struct coda_vattr *vap,
 	{ u.u_error = EINVAL; return; }
 
     for (;;) {
-	Begin_VFS(dcp->c_fid.Volume, (int)VFSOP_CREATE);
+	Begin_VFS(dcp->c_fid.Volume, CODA_CREATE);
 	if (u.u_error) break;
 
 	/* Get the parent object and verify that it is a directory. */
@@ -761,9 +740,9 @@ void vproc::create(struct venus_vnode *dvp, char *name, struct coda_vattr *vap,
 
 	/* Set OUT parameters. */
 	target_fso->GetVattr(vap);
-	MAKE_VNODE(*vpp, target_fso->fid, C_VREG);
-	VTOC(*vpp)->c_device = FSDB->device;
-	VTOC(*vpp)->c_inode = target_fso->data.file->Inode();
+	MAKE_CNODE(*cp, target_fso->fid, C_VREG);
+	cp->c_device = FSDB->device;
+	cp->c_inode = target_fso->data.file->Inode();
 
 FreeLocks:
 	FSDB->Put(&parent_fso);
@@ -780,8 +759,8 @@ FreeLocks:
 }
 
 
-void vproc::remove(struct venus_vnode *dvp, char *name) {
-    struct venus_cnode *dcp = VTOC(dvp);
+void vproc::remove(struct venus_cnode *dcp, char *name) 
+{
 
     LOG(1, ("vproc::remove: fid = (%x.%x.%x), name = %s\n",
 	     dcp->c_fid.Volume, dcp->c_fid.Vnode, dcp->c_fid.Unique, name));
@@ -794,7 +773,7 @@ void vproc::remove(struct venus_vnode *dvp, char *name) {
 	{ u.u_error = EINVAL; return; }
 
     for (;;) {
-	Begin_VFS(dcp->c_fid.Volume, (int)VFSOP_REMOVE);
+	Begin_VFS(dcp->c_fid.Volume, CODA_REMOVE);
 	if (u.u_error) break;
 
 	/* Get the parent object and verify that it is a directory. */
@@ -835,9 +814,9 @@ FreeLocks:
 }
 
 
-void vproc::link(struct venus_vnode *vp, struct venus_vnode *tdvp, char *toname) {
-    struct venus_cnode *dcp = VTOC(tdvp);
-    struct venus_cnode *scp = VTOC(vp);
+void vproc::link(struct venus_cnode *scp, struct venus_cnode *dcp, 
+		 char *toname) 
+{
 
     LOG(1, ("vproc::link: fid = (%x.%x.%x), td_fid = (%x.%x.%x), toname = %s\n",
 	     scp->c_fid.Volume, scp->c_fid.Vnode, scp->c_fid.Unique,
@@ -860,7 +839,7 @@ void vproc::link(struct venus_vnode *vp, struct venus_vnode *tdvp, char *toname)
 	{ u.u_error = EINVAL; return; }
 
     for (;;) {
-	Begin_VFS(dcp->c_fid.Volume, (int)VFSOP_LINK);
+	Begin_VFS(dcp->c_fid.Volume, CODA_LINK);
 	if (u.u_error) break;
 
 	/* Get the target parent and verify that it is a directory. */
@@ -921,10 +900,9 @@ FreeLocks:
 }
 
 
-void vproc::rename(struct venus_vnode *dvp, char *name,
-		   struct venus_vnode *tdvp, char *toname) {
-    struct venus_cnode *spcp = VTOC(dvp);
-    struct venus_cnode *tpcp = VTOC(tdvp);
+void vproc::rename(struct venus_cnode *spcp, char *name,
+		   struct venus_cnode *tpcp, char *toname) 
+{
 
     LOG(1, ("vproc::rename: fid = (%x.%x.%x), td_fid = (%x.%x.%x), name = %s, toname = %s\n",
 	     spcp->c_fid.Volume, spcp->c_fid.Vnode, spcp->c_fid.Unique,
@@ -952,7 +930,7 @@ void vproc::rename(struct venus_vnode *dvp, char *name,
 	{ u.u_error = EXDEV; return; }
 
     for (;;) {
-	Begin_VFS(spcp->c_fid.Volume, (int)VFSOP_RENAME);
+	Begin_VFS(spcp->c_fid.Volume, CODA_RENAME);
 	if (u.u_error) break;
 
 	/* Acquire the parent(s). */
@@ -1139,17 +1117,15 @@ FreeLocks:
 }
 
 
-void vproc::mkdir(struct venus_vnode *dvp, char *name,
-		  struct coda_vattr *vap, struct venus_vnode **vpp) {
-    struct venus_cnode *dcp = VTOC(dvp);
+void vproc::mkdir(struct venus_cnode *dcp, char *name,
+		  struct coda_vattr *vap, struct venus_cnode *cp) 
+{
 
     LOG(1, ("vproc::mkdir: fid = (%x.%x.%x), name = %s\n",
 	     dcp->c_fid.Volume, dcp->c_fid.Vnode, dcp->c_fid.Unique, name));
 
     fsobj *parent_fso = 0;
     fsobj *target_fso = 0;
-    struct venus_cnode *cp = 0;
-    *vpp = 0;
 
     /* Disallow mkdir of {'.','..', '/'}. */
     if (STREQ(name, "..") || STREQ(name, ".") || STREQ(name, ""))
@@ -1160,7 +1136,7 @@ void vproc::mkdir(struct venus_vnode *dvp, char *name,
 	{ u.u_error = EINVAL; return; }
 
     for (;;) {
-	Begin_VFS(dcp->c_fid.Volume, (int)VFSOP_MKDIR);
+	Begin_VFS(dcp->c_fid.Volume, CODA_MKDIR);
 	if (u.u_error) break;
 
 	/* Get the parent object and verify that it is a directory. */
@@ -1187,7 +1163,7 @@ void vproc::mkdir(struct venus_vnode *dvp, char *name,
 	/* Set OUT parameter. */
 	target_fso->GetVattr(vap);
 	if (u.u_error) goto FreeLocks;
-	MAKE_VNODE(*vpp, target_fso->fid, C_VDIR);
+	MAKE_CNODE(*cp, target_fso->fid, C_VDIR);
 
 FreeLocks:
 	FSDB->Put(&parent_fso);
@@ -1204,8 +1180,8 @@ FreeLocks:
 }
 
 
-void vproc::rmdir(struct venus_vnode *dvp, char *name) {
-    struct venus_cnode *dcp = VTOC(dvp);
+void vproc::rmdir(struct venus_cnode *dcp, char *name) 
+{
 
     LOG(1, ("vproc::rmdir: fid = (%x.%x.%x), name = %s\n",
 	     dcp->c_fid.Volume, dcp->c_fid.Vnode, dcp->c_fid.Unique, name));
@@ -1218,7 +1194,7 @@ void vproc::rmdir(struct venus_vnode *dvp, char *name) {
 	{ u.u_error = EINVAL; return; }
 
     for (;;) {
-	Begin_VFS(dcp->c_fid.Volume, (int)VFSOP_RMDIR);
+	Begin_VFS(dcp->c_fid.Volume, CODA_RMDIR);
 	if (u.u_error) break;
 
 	/* Get the parent object and verify that it is a directory. */
@@ -1272,63 +1248,11 @@ FreeLocks:
 }
 
 
-void vproc::readdir(struct venus_vnode *dvp, struct uio *uiop) {
-    struct venus_cnode *dcp = VTOC(dvp);
-
-    LOG(1, ("vproc::readdir: fid = (%x.%x.%x), offset = %d, count = %d\n",
-	     dcp->c_fid.Volume, dcp->c_fid.Vnode, dcp->c_fid.Unique,
-	     uiop->uio_offset, uiop->uio_iov->iov_len));
-
-    int offset = (int) uiop->uio_offset;
-    char *buf = (char *)uiop->uio_iov->iov_base;
-    int len = uiop->uio_iov->iov_len;
-    int cc = 0;
-
-    if (len > V_BLKSIZE)
-	{ u.u_error = EINVAL; return; }
-
-    fsobj *f = 0;
-
-    for (;;) {
-	Begin_VFS(dcp->c_fid.Volume, (int)VFSOP_READDIR);
-	if (u.u_error) break;
-
-	/* Get the object. */
-	u.u_error = FSDB->Get(&f, &dcp->c_fid, CRTORUID(u.u_cred), RC_DATA);
-	if (u.u_error) goto FreeLocks;
-
-	/* Verify that it is a directory. */
-	if (!f->IsDir())
-	    { u.u_error = ENOTDIR; goto FreeLocks; }
-
-	/* Verify that we have read permission. */
-/*
-	 u.u_error = f->Access((long)PRSFS_LOOKUP, 0, CRTORUID(u.u_cred));
-	 if (u.u_error) goto FreeLocks;
-*/
-
-	/* Do the operation. */
-	u.u_error = f->Readdir(buf, offset, len, &cc, CRTORUID(u.u_cred));
-	if (u.u_error) goto FreeLocks;
-	uiop->uio_resid -= cc;
-
-FreeLocks:
-	FSDB->Put(&f);
-	int retry_call = 0;
-	End_VFS(&retry_call);
-	if (!retry_call) break;
-    }
-
-    if (u.u_error == EINCONS) {
-	u.u_error = ENOENT;
-	k_Purge(&dcp->c_fid, 1);
-    }
-}
 
 
-void vproc::symlink(struct venus_vnode *dvp, char *contents,
-		    struct coda_vattr *vap, char *name) {
-    struct venus_cnode *dcp = VTOC(dvp);
+void vproc::symlink(struct venus_cnode *dcp, char *contents,
+		    struct coda_vattr *vap, char *name) 
+{
 
     LOG(1, ("vproc::symlink: fid = (%x.%x.%x), contents = %s, name = %s\n",
 	     dcp->c_fid.Volume, dcp->c_fid.Vnode, dcp->c_fid.Unique, contents, name));
@@ -1345,7 +1269,7 @@ void vproc::symlink(struct venus_vnode *dvp, char *contents,
 	{ u.u_error = EINVAL; return; }
 
     for (;;) {
-	Begin_VFS(dcp->c_fid.Volume, (int)VFSOP_SYMLINK);
+	Begin_VFS(dcp->c_fid.Volume, CODA_SYMLINK);
 	if (u.u_error) break;
 
 	/* Get the parent object and verify that it is a directory. */
@@ -1393,23 +1317,23 @@ FreeLocks:
 }
 
 
-void vproc::readlink(struct venus_vnode *vp, struct uio *uiop) {
-    struct venus_cnode *cp = VTOC(vp);
+void vproc::readlink(struct venus_cnode *cp, struct coda_string *string) 
+{
 
     LOG(1, ("vproc::readlink: fid = (%x.%x.%x)\n",
 	     cp->c_fid.Volume, cp->c_fid.Vnode, cp->c_fid.Unique));
 
-    char *buf = (char *)uiop->uio_iov->iov_base;
-    int len = uiop->uio_iov->iov_len;
-    int cc = 0;
+    char *buf = string->cs_buf;
+    int len = string->cs_maxlen;
+    string->cs_len = 0;
 
-    if (len > CFS_MAXPATHLEN)
+    if (len > CODA_MAXPATHLEN)
 	{ u.u_error = EINVAL; return; }
 
     fsobj *f = 0;
 
     for (;;) {
-	Begin_VFS(cp->c_fid.Volume, (int)VFSOP_READLINK);
+	Begin_VFS(cp->c_fid.Volume, CODA_READLINK);
 	if (u.u_error) break;
 
 	/* Get the object. */
@@ -1428,9 +1352,9 @@ void vproc::readlink(struct venus_vnode *vp, struct uio *uiop) {
 */
 
 	/* Retrieve the link contents from the cache. */
-	u.u_error = f->Readlink(buf, len, &cc, CRTORUID(u.u_cred));
-	if (u.u_error) goto FreeLocks;
-	uiop->uio_resid -= cc;
+	u.u_error = f->Readlink(buf, len, &string->cs_len, CRTORUID(u.u_cred));
+	if (u.u_error) 
+		goto FreeLocks;
 
 FreeLocks:
 	FSDB->Put(&f);
@@ -1446,13 +1370,13 @@ FreeLocks:
 	/* Make a "fake" name for the inconsistent object. */
 	sprintf(buf, "@%08x.%08x.%08x",
 		cp->c_fid.Volume, cp->c_fid.Vnode, cp->c_fid.Unique);
-	uiop->uio_resid -= 27;
+	string->cs_len = 27;
     }
 }
 
 
-void vproc::fsync(struct venus_vnode *vp) {
-    struct venus_cnode *cp = VTOC(vp);
+void vproc::fsync(struct venus_cnode *cp) 
+{
 
     LOG(1, ("vproc::fsync: fid = (%x.%x.%x)\n",
 	     cp->c_fid.Volume, cp->c_fid.Vnode, cp->c_fid.Unique));
@@ -1460,7 +1384,7 @@ void vproc::fsync(struct venus_vnode *vp) {
     fsobj *f = 0;
 
     for (;;) {
-	Begin_VFS(cp->c_fid.Volume, (int)VFSOP_FSYNC);
+	Begin_VFS(cp->c_fid.Volume, CODA_FSYNC);
 	if (u.u_error) break;
 
 	/* Get the object. */
@@ -1492,22 +1416,12 @@ FreeLocks:
     }
 }
 
-
-void vproc::inactive(struct venus_vnode *vp) {
-    struct venus_cnode *cp = VTOC(vp);
+void vproc::inactive(struct venus_cnode *cp) 
+{
 
     LOG(1, ("vproc::inactive: fid = (%x.%x.%x)\n",
-	     cp->c_fid.Volume, cp->c_fid.Vnode, cp->c_fid.Unique));
+             cp->c_fid.Volume, cp->c_fid.Vnode, cp->c_fid.Unique));
 
     u.u_error = EOPNOTSUPP;
 }
 
-
-void vproc::fid(struct venus_vnode *vp, struct cfid **cfidpp) {
-    struct venus_cnode *cp = VTOC(vp);
-
-    LOG(1, ("vproc::fid: fid = (%x.%x.%x)\n",
-	     cp->c_fid.Volume, cp->c_fid.Vnode, cp->c_fid.Unique));
-
-    u.u_error = EOPNOTSUPP;
-}

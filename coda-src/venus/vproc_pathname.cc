@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/vproc_pathname.cc,v 4.5 1997/12/16 20:15:56 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/vproc_pathname.cc,v 4.6 1998/08/26 21:24:44 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -102,19 +102,17 @@ inline void SkipSlashes(char **pptr_addr, int *plen_addr) {
 /* Returns {0, 1}.  On 0, u.u_error is set to appropriate Unix errno and *vpp is 0. */
 /* On 1, u.u_error is 0 and *vpp is a valid vnode pointer. */
 /* Caller must set u_cred, u_priority, u.u_cdir and u_nc fields as appropriate. */
-int vproc::namev(char *path, int flags, struct venus_vnode **vpp) {
+int vproc::namev(char *path, int flags, struct venus_cnode *vpp) {
     LOG(1, ("vproc::namev: %s, %d\n", path, flags));
-
-    *vpp = 0;
 
     /* Initialize some global variables. */
     u.u_error = 0;
     u.u_flags = flags;
-    struct venus_vnode *pvp = 0;
-    struct venus_vnode *vp = 0;
-    char comp[CFS_MAXNAMLEN];
+    struct venus_cnode pvp;
+    struct venus_cnode vp;
+    char comp[CODA_MAXNAMLEN];
     comp[0] = '\0';
-    char workingpath[CFS_MAXNAMLEN];
+    char workingpath[CODA_MAXNAMLEN];
     strcpy(workingpath, path);
     char *pptr = workingpath;
     int plen = strlen(pptr);
@@ -150,7 +148,7 @@ int vproc::namev(char *path, int flags, struct venus_vnode **vpp) {
 	SkipSlashes(&pptr, &plen);
 
 	/* Handle ".." out of venus here! */
-	if (FID_EQ(&(VTOC(pvp)->c_fid), &rootfid) && STREQ(comp, "..")) {
+	if (FID_EQ(&(pvp.c_fid), &rootfid) && STREQ(comp, "..")) {
 	    LOG(100, ("vproc::namev: .. out of this venus\n"));
 
 	    u.u_error = ENOENT;
@@ -158,21 +156,19 @@ int vproc::namev(char *path, int flags, struct venus_vnode **vpp) {
 	}
 
 	/* Now lookup the object in the directory. */
-	lookup(pvp, comp, &vp);
+	lookup(&pvp, comp, &vp);
 	if (u.u_error) goto Exit;
 
 	/* We have the new object.  The next action depends on what type of object it is. */
 	/* If it is a file, we check that we are at the end of the path; */
 	/* If it is a directory, we simply make it the new parent object. */
 	/* If it is a symbolic link, we reset the pathname to be it, and continue scanning. */
-	switch(VN_TYPE(vp)) {
+	switch(vp.c_type) {
 	    case C_VREG:
 		{
 		if (plen == 0) {
-		    DISCARD_VNODE(pvp);
-		    pvp = 0;
-		    *vpp = vp;
-		    goto Exit;
+			*vpp = vp;
+			goto Exit;
 		}
 
 		/* File must be the last comp in the path. */
@@ -183,16 +179,12 @@ int vproc::namev(char *path, int flags, struct venus_vnode **vpp) {
 	    case C_VDIR:
 		{
 		if (plen == 0) {
-		    DISCARD_VNODE(pvp);
-		    pvp = 0;
 		    *vpp = vp;
 		    goto Exit;
 		}
 
 		/* Child becomes the new parent. */
-		DISCARD_VNODE(pvp);
 		pvp = vp;
-		vp = 0;
 		comp[0] = '\0';
 
 		break;
@@ -202,14 +194,12 @@ int vproc::namev(char *path, int flags, struct venus_vnode **vpp) {
 		{
 		/* Return the link if we are not to "follow" and this is the last component. */
 		if (plen == 0 && !(u.u_flags & FOLLOW_SYMLINKS)) {
-		    DISCARD_VNODE(pvp);
-		    pvp = 0;
 		    *vpp = vp;
 		    goto Exit;
 		}
 
 		/* Guard against looping. */
-		if (++nlinks > CFS_MAXSYMLINK) {
+		if (++nlinks > CODA_MAXSYMLINK) {
 		    u.u_error = ELOOP;
 		    goto Exit;
 		}
@@ -223,16 +213,16 @@ int vproc::namev(char *path, int flags, struct venus_vnode **vpp) {
 		/* Get the link contents. */
 		char linkdata[MAXPATHLEN];
 		int linklen = MAXPATHLEN;
-		struct iovec aio;
-		aio.iov_base = linkdata;
-		aio.iov_len = linklen;
-		struct uio auio;
-		auio.uio_iov = &aio;
-		auio.uio_iovcnt = 1;
-		auio.uio_resid = linklen;
-		readlink(vp, &auio);
-		if (u.u_error) goto Exit;
-		linklen -= auio.uio_resid;
+		struct coda_string string;
+		string.cs_buf = linkdata;
+		string.cs_maxlen = linklen;
+		string.cs_len = 0;
+		readlink(&vp, &string);
+		if (u.u_error) {
+			linklen = 0;
+			goto Exit;
+		}
+		linklen = string.cs_len;
 		if (linklen == 0) {
 		    u.u_error = EINVAL;
 		    goto Exit;
@@ -264,13 +254,9 @@ int vproc::namev(char *path, int flags, struct venus_vnode **vpp) {
 		    strcpy(workingpath, linkdata + venusRootLength);
 
 		    /* Release the child. */
-		    DISCARD_VNODE(vp);
-		    vp = 0;
 		    comp[0] = '\0';
 
 		    /* Release the parent and reset it to the VenusRoot. */
-		    DISCARD_VNODE(pvp);
-		    pvp = 0;
 		    struct cfid fid;
 		    fid.cfid_len = sizeof(ViceFid);
 		    fid.cfid_fid = rootfid;
@@ -290,8 +276,6 @@ int vproc::namev(char *path, int flags, struct venus_vnode **vpp) {
 		    strcpy(workingpath, linkdata);
 
 		    /* Release the child. */
-		    DISCARD_VNODE(vp);
-		    vp = 0;
 		    comp[0] = '\0';
 
 		    /* Parent stays the same. */
@@ -316,17 +300,13 @@ int vproc::namev(char *path, int flags, struct venus_vnode **vpp) {
 	    default:
 		{
 		print(logFile);
-		Choke("vproc::namev: bogus vnode type (%d)!", VN_TYPE(vp));
+		Choke("vproc::namev: bogus vnode type (%d)!", vp.c_type);
 		}
 	}
     }
 
 Exit:
     LOG(1, ("vproc::namev: returns %s\n", VenusRetStr(u.u_error)));
-    if (u.u_error) {
-	if (pvp != 0) { DISCARD_VNODE(pvp); pvp = 0; }
-	if (vp != 0) { DISCARD_VNODE(vp); vp = 0; }
-    }
     return(u.u_error == 0);
 }
 
@@ -362,7 +342,7 @@ void vproc::GetPath(ViceFid *fid, char *out, int *outlen, int fullpath) {
 	out[0] = '\0';
 	*outlen = 0;
 
-	Begin_VFS(fid->Volume, VFSOP_VGET);
+	Begin_VFS(fid->Volume, CODA_VGET);
 	if (u.u_error) goto Exit;
 
 	/* Initialize the "prev" and "current" fids to the target object and its parent, respectively. */
@@ -389,7 +369,7 @@ void vproc::GetPath(ViceFid *fid, char *out, int *outlen, int fullpath) {
 	    if (u.u_error) goto FreeLocks;
 
 	    /* Lookup the name of the previous component. */
-	    char comp[CFS_MAXNAMLEN];
+	    char comp[CODA_MAXNAMLEN];
 	    u.u_error = f->dir_LookupByFid(comp, &prevFid);
 	    if (u.u_error) goto FreeLocks;
 

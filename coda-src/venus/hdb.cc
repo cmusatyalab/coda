@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/hdb.cc,v 4.10 1998/03/06 20:20:44 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/hdb.cc,v 4.11 1998/08/26 21:24:31 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -90,7 +90,6 @@ extern "C" {
 #include <vice.h>
 
 /* from venus */
-#include "venus_vnode.h"
 #include "advice_daemon.h"
 #include "adviceconn.h"
 #include "advice.h"
@@ -656,11 +655,7 @@ void hdb::ValidateCacheStatus(vproc *vp, int *interrupt_failures, int *statusByt
 	/* Set up uarea. */
 	vp->u.Init();
 	vp->u.u_cred.cr_uid = (uid_t)f->HoardVuid;
-#ifdef	__BSD44__
-	vp->u.u_cred.cr_groupid = (gid_t)V_GID;
-#else
-	vp->u.u_cred.cr_gid = (gid_t)V_GID;
-#endif
+	vp->u.u_cred.cr_groupid = (vgid_t)V_GID;
 	vp->u.u_priority = f->priority;
 
 	/* Perform a vget(). */
@@ -669,7 +664,7 @@ void hdb::ValidateCacheStatus(vproc *vp, int *interrupt_failures, int *statusByt
 		f->priority, f->HoardVuid, f->stat.Length));
 	ViceFid tfid = f->fid;
 	for (;;) {
-	    vp->Begin_VFS(tfid.Volume, (int) VFSOP_VGET/*???*/);
+	    vp->Begin_VFS(tfid.Volume, CODA_VGET);
 	    if (vp->u.u_error) break;
 
 	    fsobj *tf = 0;
@@ -982,11 +977,7 @@ void hdb::DataWalk(vproc *vp, int TotalBytesToFetch) {
 	    /* Set up uarea. */
 	    vp->u.Init();
 	    vp->u.u_cred.cr_uid = (uid_t)f->HoardVuid;
-#ifdef	__BSD44__
-	    vp->u.u_cred.cr_groupid = (gid_t)V_GID;
-#else
-	    vp->u.u_cred.cr_gid = (gid_t)V_GID;
-#endif
+	    vp->u.u_cred.cr_groupid = (vgid_t)V_GID;
 	    vp->u.u_priority = f->priority;
 	    
 	    /* Prefetch the object.  This is like vproc::vget(), only we want the data. */
@@ -995,7 +986,7 @@ void hdb::DataWalk(vproc *vp, int TotalBytesToFetch) {
 		    f->priority, f->HoardVuid, f->stat.Length));
 	    ViceFid tfid = f->fid;
 	    for (;;) {
-	        vp->Begin_VFS(tfid.Volume, (int) VFSOP_VGET/*???*/);
+	        vp->Begin_VFS(tfid.Volume, CODA_VGET);
 		if (vp->u.u_error) break;
 
 		fsobj *tf = 0;
@@ -1958,11 +1949,7 @@ pestate namectxt::CheckExpansion() {
 	/* Set up uarea. */
 	vp->u.Init();
 	vp->u.u_cred.cr_uid = (uid_t)vuid;
-#ifdef	__BSD44__
-	vp->u.u_cred.cr_groupid = (gid_t)V_GID;
-#else
-	vp->u.u_cred.cr_gid = (gid_t)V_GID;
-#endif
+	vp->u.u_cred.cr_groupid = (vgid_t)V_GID;
 	vp->u.u_priority = FSDB->MakePri(0, priority);
 	vp->u.u_cdir = cdir;
 	vp->u.u_nc = this;
@@ -1970,10 +1957,8 @@ pestate namectxt::CheckExpansion() {
 	/* Expand/validate the context. */
 	if (expansion.count() > 0)
 	    next = new dlist_iterator(expansion);
-	struct venus_vnode *vnp = 0;
+	struct venus_cnode vnp;
 	if (vp->namev(path, FOLLOW_SYMLINKS, &vnp)) {
-	    DISCARD_VNODE(vnp);
-	    vnp = 0;
 	}
 	if (next != 0) {
 	    delete next;
@@ -2261,7 +2246,7 @@ void namectxt::MetaExpand() {
 	    vproc *vp = VprocSelf();
 	    vp->u.u_priority = f->priority;
 	    for (;;) {
-		vp->Begin_VFS(tfid.Volume, (int) VFSOP_VGET/*???*/);
+		vp->Begin_VFS(tfid.Volume, CODA_VGET);
 		if (vp->u.u_error) break;
 
 		fsobj *tf = 0;

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/fso1.cc,v 4.12 1998/01/26 21:31:45 mre Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/fso1.cc,v 4.13 1998/08/26 21:24:28 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -2142,7 +2142,7 @@ int fsobj::Fakeify() {
 
     unsigned long volumehosts[VSG_MEMBERS];
     srvent *s;
-    char Name[CFS_MAXNAMLEN];
+    char Name[CODA_MAXNAMLEN];
     int i;
     if (FID_IsFake(&fid)) {		/* Fake MTLink */
 	    /* Initialize status. */
@@ -2253,7 +2253,7 @@ int fsobj::Fakeify() {
 	    for (i = 0; i < VSG_MEMBERS; i++) {
 		if (volumehosts[i] == 0) continue;
 		srvent *s;
-		char Name[CFS_MAXNAMLEN];
+		char Name[CODA_MAXNAMLEN];
 		if ((s = FindServer(volumehosts[i])) &&
 		    (s->name))
 		    sprintf(Name, "%s", s->name);
@@ -2352,65 +2352,44 @@ void fsobj::UnLock(LockLevel level) {
 
 void fsobj::GetVattr(struct coda_vattr *vap) {
     /* Most attributes are derived from the VenusStat structure. */
-#if defined(__linux__) || defined(__BSD44__)
     vap->va_type = FTTOVT(stat.VnodeType);
     vap->va_mode = stat.Mode ;
-#else 
-    vap->va_mode = stat.Mode | FTTOVT(stat.VnodeType);
-#endif /* __linux__ || __BSD44__ */
 
     vap->va_uid = (uid_t) stat.Owner;
-    vap->va_gid = (gid_t)V_GID;
-    /* XXXXX    vap->va_fsid = 1;*/
-    VA_ID(vap) = (IsRoot() && u.mtpoint && !IsVenusRoot())
+    vap->va_gid = (vgid_t)V_GID;
+
+    vap->va_fileid = (IsRoot() && u.mtpoint && !IsVenusRoot())
 		       ? FidToNodeid(&u.mtpoint->fid)
 		       : FidToNodeid(&fid);
+
     vap->va_nlink = stat.LinkCount;
     vap->va_size = (u_quad_t) stat.Length;
     vap->va_blocksize = V_BLKSIZE;
-#ifdef __BSD44__
-    VA_MTIME_1(vap) = (time_t)stat.Date;
-#else
-    VA_MTIME_1(vap) = stat.Date;
-#endif /* __BSD44__ */
-    VA_MTIME_2(vap) = 0;
-    vap->va_atime = vap->va_mtime;
-    vap->va_ctime = vap->va_mtime;
-#ifdef __BSD44__
-    vap->va_flags = 0;
-#endif /* __BSD44__ */
-    vap->va_rdev = 1;
-#ifdef __MACH__
-    vap->va_blocks = NBLOCKS(vap->va_size) << 1;    /* 512 byte units! */
-#endif /* __MACH__ */
-#ifdef __BSD44__
-    vap->va_bytes = vap->va_size;
-#endif /* __BSD44__ */
+    vap->va_mtime.tv_sec = (time_t)stat.Date;
+    vap->va_mtime.tv_nsec = 0;
 
-    /* If the object is currently open for writing we must physically stat it to get its size and time info. */
+    vap->va_atime = vap->va_mtime;
+    vap->va_ctime.tv_sec = 0;
+    vap->va_ctime.tv_nsec = 0;
+    vap->va_flags = 0;
+    vap->va_rdev = 1;
+    vap->va_bytes = vap->va_size;
+
+    /* If the object is currently open for writing we must physically 
+       stat it to get its size and time info. */
     if (!Simulating && WRITING(this)) {
 	struct stat tstat;
 	cf.Stat(&tstat);
 
 	vap->va_size = tstat.st_size;
-	VA_MTIME_1(vap) = tstat.st_mtime;
-	VA_MTIME_2(vap) = 0;
+	vap->va_mtime.tv_sec = tstat.st_mtime;
+	vap->va_mtime.tv_nsec = 0;
 	vap->va_atime = vap->va_mtime;
-	vap->va_ctime = vap->va_mtime;
+	vap->va_ctime.tv_sec = 0;
+	vap->va_ctime.tv_nsec = 0;
     }
 
-    if (LogLevel >= 1000) {
-	dprint("\tmode = %#o, uid = %d, gid = %d, rdev = %d\n",
-	       vap->va_mode, vap->va_uid, vap->va_gid,
-	       vap->va_rdev);
-	dprint("\tid = %d, nlink = %d, size = %d, blocksize = %d, storage = %d\n",
-	       VA_ID(vap), vap->va_nlink, vap->va_size,
-	       vap->va_blocksize, VA_STORAGE(vap));
-	dprint("\tatime = <%d, %d>, mtime = <%d, %d>, ctime = <%d, %d>\n",
-	       VA_ATIME_1(vap), VA_ATIME_2(vap), 
-	       VA_MTIME_1(vap), VA_MTIME_2(vap), 
-	       VA_CTIME_1(vap), VA_CTIME_2(vap));
-    }
+    VPROC_printvattr(vap);
 }
 
 
@@ -2427,22 +2406,22 @@ void fsobj::ReturnEarly() {
     worker *w = (worker *)v;
     switch (w->opcode) {
 	union outputArgs *out;
-	case CFS_CREATE:
-	case CFS_MKDIR:
+	case CODA_CREATE:
+	case CODA_MKDIR:
 	    {	/* create and mkdir use exactly the same sized output structure */
 	    if (w->msg == 0) Choke("fsobj::ReturnEarly: w->msg == 0");
 
 	    out = (union outputArgs *)w->msg->msg_buf;
-	    out->cfs_create.oh.result = 0;
-	    out->cfs_create.VFid = fid;
+	    out->coda_create.oh.result = 0;
+	    out->coda_create.VFid = fid;
 	    DemoteLock();
-	    GetVattr(&out->cfs_create.attr);
+	    GetVattr(&out->coda_create.attr);
 	    PromoteLock();
-	    w->Return(w->msg, sizeof (struct cfs_create_out));
+	    w->Return(w->msg, sizeof (struct coda_create_out));
 	    break;
 	    }
 
-	case CFS_CLOSE:
+	case CODA_CLOSE:
 	    {
 	    /* Don't return early here if we already did so in a callback handler! */
 	    if (!(flags.era && FID_EQ(&w->StoreFid, &NullFid)))
@@ -2450,22 +2429,22 @@ void fsobj::ReturnEarly() {
 	    break;
 	    }
 
-	case CFS_IOCTL:
+	case CODA_IOCTL:
 	    {
 	    /* Huh. IOCTL in the kernel thinks there may be return data. Assume not. */
 	    out = (union outputArgs *)w->msg->msg_buf;
-	    out->cfs_ioctl.len = 0; 
-	    out->cfs_ioctl.oh.result = 0;
-	    w->Return(w->msg, sizeof (struct cfs_ioctl_out));
+	    out->coda_ioctl.len = 0; 
+	    out->coda_ioctl.oh.result = 0;
+	    w->Return(w->msg, sizeof (struct coda_ioctl_out));
 	    break;
 	    }
 
-	case CFS_LINK:
-	case CFS_REMOVE:
-	case CFS_RENAME:
-	case CFS_RMDIR:
-	case CFS_SETATTR:
-	case CFS_SYMLINK:
+	case CODA_LINK:
+	case CODA_REMOVE:
+	case CODA_RENAME:
+	case CODA_RMDIR:
+	case CODA_SETATTR:
+	case CODA_SYMLINK:
 	    w->Return(0);
 	    break;
 

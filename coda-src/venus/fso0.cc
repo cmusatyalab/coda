@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/fso0.cc,v 4.9 1998/01/26 21:31:43 mre Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/fso0.cc,v 4.10 1998/08/26 21:24:27 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -56,14 +56,9 @@ extern "C" {
 #include <sys/stat.h>
 #include <struct.h>
 #include <sys/param.h>
-#ifdef __MACH__
-#include <sysent.h>
-#include <libc.h>
-#else	/* __linux__ || __BSD44__ */
 #include <unistd.h>
 #include <stdlib.h>
 #include <dirent.h>
-#endif
 
 #ifdef __cplusplus
 }
@@ -816,7 +811,7 @@ int fsdb::Get(fsobj **f_addr, ViceFid *key, vuid_t vuid, int rights, char *comp,
 
 	/* Do the Get on behalf of another volume. */
 	for (;;) {
-	    vp->Begin_VFS(key->Volume, (int) VFSOP_VGET/*???*/);
+	    vp->Begin_VFS(key->Volume, CODA_VGET);
 	    if (vp->u.u_error) break;
 
 	    vp->u.u_error = Get(f_addr, key, vuid, rights, comp);

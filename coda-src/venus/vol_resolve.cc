@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/vol_resolve.cc,v 4.5 1998/07/14 11:19:06 jaharkes Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/vol_resolve.cc,v 4.6 1998/08/26 21:24:43 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -86,7 +86,7 @@ void volent::Resolve() {
     vproc *v = VprocSelf();
 
     /* Grab control of the volume. */
-    v->Begin_VFS(vid, VFSOP_RESOLVE);
+    v->Begin_VFS(vid, CODA_RESOLVE);
     VOL_ASSERT(this, v->u.u_error == 0);
 
     /* Flush all COP2 entries. */

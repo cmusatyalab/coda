@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/vproc.cc,v 4.15 1998/07/01 10:35:28 jaharkes Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/vproc.cc,v 4.16 1998/08/26 21:24:44 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -53,13 +53,8 @@ extern "C" {
 #include <sys/time.h>
 #include <string.h>
 
-#ifdef __MACH__
-#include <sysent.h>
-#include <libc.h>
-#else	/* __linux__ || __BSD44__ */
 #include <unistd.h>
 #include <stdlib.h>
-#endif
 
 #include <math.h>
 #include <lwp.h>
@@ -496,48 +491,43 @@ void vproc::GetStamp(char *buf) {
 }
 
 
-static int VolModeMap[NVFSOPS] = {
+static int VolModeMap[CODA_NCALLS] = {
     VM_MUTATING,
     VM_MUTATING,
-    VM_OBSERVING,	    /* VFSOP_ROOT */
-    VM_MUTATING,	    /* VFSOP_SYNC */
-    /*VM_UNSET*/-1,	    /* VFSOP_OPEN */
-    /*VM_UNSET*/-1,	    /* VFSOP_CLOSE */
-    /*VM_UNSET*/-1,	    /* VFSOP_IOCTL */
-    VM_OBSERVING,	    /* VFSOP_GETATTR */
-    VM_MUTATING,	    /* VFSOP_SETATTR */
-    VM_OBSERVING,	    /* VFSOP_ACCESS */
-    VM_OBSERVING,	    /* VFSOP_LOOKUP */
-    VM_MUTATING,	    /* VFSOP_CREATE */
-    VM_MUTATING,	    /* VFSOP_REMOVE */
-    VM_MUTATING,	    /* VFSOP_LINK */
-    VM_MUTATING,	    /* VFSOP_RENAME */
-    VM_MUTATING,	    /* VFSOP_MKDIR */
-    VM_MUTATING,	    /* VFSOP_RMDIR */
-    VM_OBSERVING,	    /* VFSOP_READDIR */
-    VM_MUTATING,	    /* VFSOP_SYMLINK */
-    VM_OBSERVING,	    /* VFSOP_READLINK */
-    VM_OBSERVING,	    /* VFSOP_FSYNC */
-    VM_OBSERVING,	    /* VFSOP_INACTIVE */
-    VM_OBSERVING,	    /* VFSOP_VGET */
-    VM_MUTATING,
-    VM_MUTATING,
-    VM_MUTATING,
+    VM_OBSERVING,	    /* CODA_ROOT */
+    VM_MUTATING,	    /* CODA_SYNC */
+    /*VM_UNSET*/-1,	    /* CODA_OPEN */
+    /*VM_UNSET*/-1,	    /* CODA_CLOSE */
+    /*VM_UNSET*/-1,	    /* CODA_IOCTL */
+    VM_OBSERVING,	    /* CODA_GETATTR */
+    VM_MUTATING,	    /* CODA_SETATTR */
+    VM_OBSERVING,	    /* CODA_ACCESS */
+    VM_OBSERVING,	    /* CODA_LOOKUP */
+    VM_MUTATING,	    /* CODA_CREATE */
+    VM_MUTATING,	    /* CODA_REMOVE */
+    VM_MUTATING,	    /* CODA_LINK */
+    VM_MUTATING,	    /* CODA_RENAME */
+    VM_MUTATING,	    /* CODA_MKDIR */
+    VM_MUTATING,	    /* CODA_RMDIR */
+    VM_OBSERVING,	    /* CODA_READDIR */
+    VM_MUTATING,	    /* CODA_SYMLINK */
+    VM_OBSERVING,	    /* CODA_READLINK */
+    VM_OBSERVING,	    /* CODA_FSYNC */
+    VM_OBSERVING,	    /* CODA_INACTIVE */
+    VM_OBSERVING,	    /* CODA_VGET */
     VM_MUTATING,
     VM_MUTATING,
     VM_MUTATING,
     VM_MUTATING,
     VM_MUTATING,
-    /*VM_UNSET*/-1,	    /* VFSOP_RDWR */
+    VM_MUTATING,
+    VM_MUTATING,
+    VM_MUTATING,
+    /*VM_UNSET*/-1,	    /* CODA_OPEN_BY_PATH */
     VM_RESOLVING,	    /* VFSOP_RESOLVE */
-    VM_OBSERVING,	    /* VFSOP_REINTEGRATE */
-    VM_MUTATING,
-    VM_MUTATING,
-    VM_MUTATING,
-    VM_MUTATING,
-    VM_MUTATING,
-    VM_MUTATING
+    VM_OBSERVING	    /* VFSOP_REINTEGRATE */
 };
+
 #define	VFSOP_TO_VOLMODE(vfsop)\
     (((vfsop) >= 0 && (vfsop) < NVFSOPS) ? VolModeMap[vfsop] : VM_MUTATING)
 
@@ -618,10 +608,10 @@ void vproc::End_VFS(int *retryp) {
     if (VprocInterrupted())
 	{ u.u_error = EINTR; goto Exit; }
 
-    /* Cannot retry CFS_CLOSE operations! */
+    /* Cannot retry CODA_CLOSE operations! */
     if (type == VPT_Worker) {
 	worker *w = (worker *)this;
-	if (w->opcode == CFS_CLOSE) {
+	if (w->opcode == CODA_CLOSE) {
 	    u.u_error = EINVAL;
 	    goto Exit;
 	}
@@ -761,7 +751,7 @@ Exit:
 		vsr = u.u_vol->GetVSR(HOARD_UID);
 	    else
 		vsr = u.u_vol->GetVSR(CRTORUID(u.u_cred));
-	    vsr->RecordEvent(VFSOP_TO_VSE(u.u_vfsop), u.u_error, (RPC2_Unsigned)elapsed);
+	    vsr->RecordEvent(u.u_vfsop, u.u_error, (RPC2_Unsigned)elapsed);
 	    u.u_vol->PutVSR(vsr);
 	}
     }
@@ -811,19 +801,17 @@ void va_init(struct coda_vattr *vap) {
     vap->va_mode = VA_IGNORE_MODE;
     vap->va_uid = VA_IGNORE_UID;
     vap->va_gid = VA_IGNORE_GID;
-    VA_ID(vap) = VA_IGNORE_ID;
-    VA_ATIME_1(vap) = VA_IGNORE_TIME1;
-    VA_ATIME_2(vap) = VA_IGNORE_TIME2;
-    VA_STORAGE(vap) = VA_IGNORE_STORAGE;
+    vap->va_fileid = VA_IGNORE_ID;
+    vap->va_atime.tv_sec = VA_IGNORE_TIME1;
+    vap->va_atime.tv_nsec = VA_IGNORE_TIME2;
+    vap->va_bytes = VA_IGNORE_STORAGE;
     vap->va_nlink = VA_IGNORE_NLINK;
     vap->va_size = VA_IGNORE_SIZE;
     vap->va_blocksize = VA_IGNORE_BLOCKSIZE;
     vap->va_mtime = vap->va_atime;
     vap->va_ctime = vap->va_atime;
     vap->va_rdev = (long long unsigned int)VA_IGNORE_RDEV;
-#ifdef __BSD44__
-    vap->va_flags = 0; /* not the ignore value, must be clear */
-#endif /* __BSD44__ */
+    vap->va_flags = 0; /* must be 0 not IGNORE for BSD */
 }
 
 
@@ -831,22 +819,14 @@ void VattrToStat(struct coda_vattr *vap, struct stat *sp) {
     sp->st_mode = vap->va_mode;
     sp->st_nlink = vap->va_nlink;
     sp->st_uid = (uid_t)(vap->va_uid);
-    sp->st_gid = (gid_t)(vap->va_gid);
+    sp->st_gid = (vgid_t)(vap->va_gid);
     sp->st_rdev = vap->va_rdev;
     sp->st_size = (off_t)(vap->va_size);
     sp->st_blksize = vap->va_blocksize;
-    sp->st_ino = (ino_t)(VA_ID(vap));
-    sp->st_atime = (time_t)(VA_ATIME_1(vap));
-    sp->st_mtime = (time_t)(VA_MTIME_1(vap));
-    sp->st_ctime = (time_t)(VA_CTIME_1(vap));
-#ifdef __MACH__
-    sp->st_spare1 = 0;
-    sp->st_spare2 = 0;
-    sp->st_spare3 = 0;
-    sp->st_blocks = vap->va_blocks;
-    sp->st_spare4[0] = 0;
-    sp->st_spare4[1] = 0;
-#endif /* __MACH__ */
+    sp->st_ino = (ino_t)(vap->va_fileid);
+    sp->st_atime = (time_t)(vap->va_atime.tv_sec);
+    sp->st_mtime = (time_t)(vap->va_mtime.tv_sec);
+    sp->st_ctime = (time_t)(0);
 #ifdef __BSD44__
     sp->st_blocks = (int64_t)ceil(((double)vap->va_bytes) / S_BLKSIZE);
     sp->st_flags = 0;
@@ -861,32 +841,46 @@ void VattrToStat(struct coda_vattr *vap, struct stat *sp) {
 }
 
 
-long FidToNodeid(ViceFid *fid) {
-    if (FID_EQ(fid, &NullFid))
-	Choke("FidToNodeid: null fid");
+void VPROC_printvattr(struct coda_vattr *vap)
+{     
+	if (LogLevel >= 1000) {
+	dprint("\tmode = %#o, uid = %d, gid = %d, rdev = %d\n",
+	       vap->va_mode, vap->va_uid, vap->va_gid,
+	       vap->va_rdev);
+	dprint("\tid = %d, nlink = %d, size = %d, blocksize = %d, storage = %d\n",
+	       vap->va_fileid, vap->va_nlink, vap->va_size,
+	       vap->va_blocksize, vap->va_bytes);
+	dprint("\tatime = <%d, %d>, mtime = <%d, %d>, ctime = <%d, %d>\n",
+	       vap->va_atime.tv_sec, vap->va_atime.tv_nsec, 
+	       vap->va_mtime.tv_sec, vap->va_mtime.tv_nsec, 
+	       vap->va_ctime.tv_sec, vap->va_ctime.tv_nsec);
+	}
+}
+
+long FidToNodeid(ViceFid *fid) 
+{
+	if (FID_EQ(fid, &NullFid))
+		Choke("FidToNodeid: null fid");
 
 #ifdef __BSD44__
     /* Venus Root.  Use the mount point's nodeid. */
-    if (FID_EQ(rootfid, *fid))
-	return(rootnodeid);
+	if (FID_EQ(rootfid, *fid))
+		return(rootnodeid);
 
-    /* Other volume root.  We need the relevant mount point's fid, but we don't know what that is! */
-    if (fid->Vnode == ROOT_VNODE && fid->Unique == ROOT_UNIQUE) {
-	LOG(0, ("FidToNodeid: volume root (%x); returning bogus nodeid\n", fid->Volume));
-
-	/* This cannot possibly be right! Now we get inode number 0 in the kernel! */
-	/*	return(0); */
-    }
-
-    /* Non volume root. */
-    return(fid->Unique + (fid->Vnode << 10) + (fid->Volume << 20));
-#endif 
-
-#ifdef __linux__
-    if (fid->Vnode == ROOT_VNODE && fid->Unique == ROOT_UNIQUE) {
-	LOG(0, ("FidToNodeid: called for volume root (%x)!!!\n", 
+	/* Other volume root.  We need the relevant mount point's fid,
+           but we don't know what that is! */
+	if (fid->Vnode == ROOT_VNODE && fid->Unique == ROOT_UNIQUE) {
+		LOG(0, ("FidToNodeid: volume root (%x); returning bogus nodeid\n", 
 		fid->Volume));
-    }
-    return coda_f2i(fid);
+	}
+
+	/* Non volume root. */
+	return(fid->Unique + (fid->Vnode << 10) + (fid->Volume << 20));
+#else
+	if (fid->Vnode == ROOT_VNODE && fid->Unique == ROOT_UNIQUE) {
+		LOG(0, ("FidToNodeid: called for volume root (%x)!!!\n", 
+			fid->Volume));
+	}
+	return coda_f2i(fid);
 #endif
 }

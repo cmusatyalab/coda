@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/mariner.cc,v 4.9 1998/08/26 21:24:35 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/mariner.cc,v 4.10 1998/09/15 20:14:05 smarc Exp $";
 #endif /*_BLURB_*/
 
 
@@ -62,30 +62,21 @@ extern "C" {
 
 #include <lock.h>
 #include <rpc2.h>
+/* interfaces */
+#include <vice.h>
 
 #ifdef __cplusplus
 }
 #endif __cplusplus
 
-/* interfaces */
-#include <vice.h>
 
 /* from venus */
 #include "fso.h"
 #include "simulate.h"
 #include "venus.private.h"
 #include "venuscb.h"
-#include "venus_vnode.h"
 #include "vproc.h"
 #include "worker.h"
-
-#ifdef __cplusplus
-extern "C" {
-#endif __cplusplus
-
-#ifdef __cplusplus
-}
-#endif __cplusplus
 
 
 
@@ -505,22 +496,17 @@ void mariner::PathStat(char *path) {
     /* Map pathname to fid. */
     u.Init();
     u.u_cred.cr_uid = (uid_t)V_UID;
-#ifdef	__BSD44__
-    u.u_cred.cr_groupid = (gid_t)V_GID;
-#else
-    u.u_cred.cr_gid = (gid_t)V_GID;
-#endif
+    u.u_cred.cr_groupid = (vgid_t)V_GID;
     u.u_priority = 0;
     u.u_cdir = rootfid;
     u.u_nc = 0;
-    struct venus_vnode *tvp = 0;
-    if (!namev(path, 0, &tvp)) {
+    struct venus_cnode tcp;
+    if (!namev(path, 0, &tcp)) {
 	Write("namev(%s) failed (%d)\n", path, u.u_error);
 	return;
     }
-    ViceFid fid = (VTOC(tvp))->c_fid;
-    DISCARD_VNODE(tvp);
-    tvp = 0;
+    ViceFid fid = tcp.c_fid;
+
     Write("PathStat: %s --> %x.%x.%x\n",
 	   path, fid.Volume, fid.Vnode, fid.Unique);
 
@@ -533,16 +519,12 @@ void mariner::FidStat(ViceFid *fid) {
     /* Set up context. */
     u.Init();
     u.u_cred.cr_uid = (uid_t)V_UID;
-#ifdef	__BSD44__
-    u.u_cred.cr_groupid = (gid_t)V_GID;
-#else
-    u.u_cred.cr_gid = (gid_t)V_GID;
-#endif
+    u.u_cred.cr_groupid = (vgid_t)V_GID;
     u.u_priority = FSDB->MaxPri();
 
     fsobj *f = 0;
     for (;;) {
-	Begin_VFS(fid->Volume, (int) VFSOP_VGET);
+	Begin_VFS(fid->Volume, CODA_VGET);
 	if (u.u_error) {
 	    Write("Begin_VFS(%x) failed (%d)\n", fid->Volume, u.u_error);
 	    break;

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/fso.h,v 4.8 1998/07/08 22:42:08 jaharkes Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/fso.h,v 4.9 1998/08/26 21:24:27 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -299,13 +299,13 @@ enum FsoState {	FsoRunt,
 /*    1. Copy of plain file */
 /*    2. Unix-format copy of directory */
 class CacheFile {
-    ino_t inode;				/* for iopen() */
     unsigned length;
 
     int ValidContainer();
     void ResetContainer();
 
   public:
+    ino_t inode;				/* for iopen() */
     char name[8];				/* "Vxxxxxx" */
     CacheFile(int);
     CacheFile();
@@ -695,7 +695,7 @@ class fsobj {
     /* The public CFS interface (non-Vice portion). */
     int Open(int, int, int, venus_cnode *, vuid_t);
     int Close(int, int, vuid_t);
-    int RdWr(char *, enum uio_rw, int, int, int *, vuid_t);
+    /*    int RdWr(char *, enum uio_rw, int, int, int *, vuid_t); */
     int Access(long, int, vuid_t);
     int Lookup(fsobj **, ViceFid *, char *, vuid_t);
     int Readdir(char *, int, int, int *, vuid_t);

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/vproc.h,v 4.19 1998/06/07 20:15:11 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/vproc.h,v 4.20 1998/07/01 10:35:29 jaharkes Exp $";
 #endif /*_BLURB_*/
 
 
@@ -56,67 +56,28 @@ extern "C" {
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <sys/time.h>
-
-#include <sys/uio.h>
-
+#if 0
 #ifdef __NetBSD__
 #define __attribute__(x)    /* dummied out because of machine/segments.h */
 #include <sys/user.h>
 #undef __attribute__
 #endif /* __NetBSD__ */
-
-#ifdef __BSD44__
-#ifndef	UIO_MAXIOV
-struct uio {
-        struct  iovec *uio_iov;
-        int     uio_iovcnt;
-        off_t   uio_offset;
-        int     uio_resid;
-        enum    uio_rw uio_rw;
-};
 #endif
-#endif
-
-#if defined(__linux__) || defined(DJGPP)
-#include <sys/user.h>
-#include <sys/uio.h>
-#endif
-
-
-#if    ! defined(__BSD44__)
-/* hmm we need this, so let's define it. Where is it in BSD anyway? */
-enum  uio_rw { UIO_READ, UIO_WRITE };
-
-#ifndef MAX
-#define MAX(a,b)   ( (a) > (b) ? (a) : (b))
-#endif	/*MAX*/
-#ifndef MIN
-#define MIN(a,b)   ( (a) < (b) ? (a) : (b))
-#endif	/*MIN*/
-struct uio {
-        struct  iovec *uio_iov;
-        int     uio_iovcnt;
-        off_t   uio_offset;
-        int     uio_resid;
-        enum    uio_rw uio_rw;
-};
-#endif	
-
 
 #include <cfs/coda.h>
 
 #include <lwp.h>
 #include <lock.h>
-
-#ifdef __cplusplus
-}
-#endif __cplusplus
-
 /* interfaces */
 #include <vice.h>
 
 /* from rvm */
 #include <rvmlib.h>
+
+#ifdef __cplusplus
+}
+#endif __cplusplus
+
 
 /* from util */
 #include <olist.h>
@@ -128,12 +89,20 @@ struct uio {
 
 /* from venus */
 #include "venus.private.h"
-#include "venus_vnode.h"
+
+
+/* string with counts */
+struct coda_string {
+	int cs_len;
+	int cs_maxlen;
+	char *cs_buf;
+};
 
 /* Forward declarations. */
 struct uarea;
 class vproc;
 class vproc_iterator;
+
 
 /* C++ Bogosity. */
 extern void PrintVprocs();
@@ -258,39 +227,37 @@ class vproc : public olink {
     void Begin_VFS(VolumeId, int, int =-1);
     void End_VFS(int * =0);
 
-    /* The VFS interface.  */
-
-/*  Note: all references to struct vfs eliminated; see vproc_vfscalls.c (Satya, 8/15/96) */
+    /* The vproc interface: mostly matching kernel requests.  */
     void mount(char *, void *);
     void unmount();
-    void root(struct venus_vnode **);
+    void root(struct venus_cnode *);
     void statfs(struct statfs *);
     void sync();
-    void vget(struct venus_vnode **, struct cfid *);
-    void open(struct venus_vnode **, int);
-    void close(struct venus_vnode *, int);
-    void rdwr(struct venus_vnode *, struct uio *, enum uio_rw, int);
-    void ioctl(struct venus_vnode *, unsigned int, struct ViceIoctl *, int);
-    void select(struct venus_vnode *, int);
-    void getattr(struct venus_vnode *, struct coda_vattr *);
-    void setattr(struct venus_vnode *, struct coda_vattr *);
-    void access(struct venus_vnode *, int);
-    void lookup(struct venus_vnode *, char *, struct venus_vnode **);
-    void create(struct venus_vnode *, char *, struct coda_vattr *, int, int, struct venus_vnode **);
-    void remove(struct venus_vnode *, char *);
-    void link(struct venus_vnode *, struct venus_vnode *, char *);
-    void rename(struct venus_vnode *, char *, struct venus_vnode *, char *);
-    void mkdir(struct venus_vnode *, char *, struct coda_vattr *, struct venus_vnode **);
-    void rmdir(struct venus_vnode *, char *);
-    void readdir(struct venus_vnode *, struct uio *);
-    void symlink(struct venus_vnode *, char *, struct coda_vattr *, char *);
-    void readlink(struct venus_vnode *, struct uio *);
-    void fsync(struct venus_vnode *);
-    void inactive(struct venus_vnode *);
-    void fid(struct venus_vnode *, struct cfid	**);
+    void vget(struct venus_cnode *, struct cfid *);
+    void open(struct venus_cnode *, int);
+    void close(struct venus_cnode *, int);
+    void ioctl(struct venus_cnode *, unsigned int, struct ViceIoctl *, int);
+    void select(struct venus_cnode *, int);
+    void getattr(struct venus_cnode *, struct coda_vattr *);
+    void setattr(struct venus_cnode *, struct coda_vattr *);
+    void access(struct venus_cnode *, int);
+    void lookup(struct venus_cnode *, char *, struct venus_cnode *);
+    void create(struct venus_cnode *, char *, struct coda_vattr *, int, 
+		int, struct venus_cnode *);
+    void remove(struct venus_cnode *, char *);
+    void link(struct venus_cnode *, struct venus_cnode *, char *);
+    void rename(struct venus_cnode *, char *, struct venus_cnode *, char *);
+    void mkdir(struct venus_cnode *, char *, struct coda_vattr *, 
+	       struct venus_cnode *);
+    void rmdir(struct venus_cnode *, char *);
+    void symlink(struct venus_cnode *, char *, struct coda_vattr *, char *);
+    void readlink(struct venus_cnode *, struct coda_string *);
+    void fsync(struct venus_cnode *);
+    void inactive(struct venus_cnode *);
+    void fid(struct venus_cnode *, struct cfid	**);
 
     /* Pathname translation. */
-    int namev(char *, int, struct venus_vnode **);
+    int namev(char *, int, struct venus_cnode *);
     void GetPath(ViceFid *, char *, int *, int =1);
 
     void GetStamp(char *);
@@ -310,7 +277,7 @@ class vproc_iterator : public olist_iterator {
 
 
 /* *****  Exported routines  ***** */
-
+void VPROC_printvattr(struct coda_vattr *vap);
 extern void VprocInit();
 extern void Rtry_Wait();
 extern void Rtry_Signal();
@@ -357,6 +324,7 @@ extern long FidToNodeid(ViceFid *);
 #define	CRTOEUID(cred)	((vuid_t)((cred).cr_euid))
 #define	CRTORUID(cred)	((vuid_t)((cred).cr_fsuid))
 #else
+
 /* XXX BSD needs to think through what they want!!!! 
    The current behaviour has "AFS semantics" but allows no
    fileserver to access Coda (since since it will come in with 
@@ -371,37 +339,6 @@ extern long FidToNodeid(ViceFid *);
 			 (ft) == (int)SymbolicLink ? C_VLNK :\
 			 C_VREG)
 
-#define	VFSOP_UNSET	-1
-#define	VFSOP_MOUNT	/*CFS_MOUNT*/VFSOP_UNSET
-#define	VFSOP_UNMOUNT	/*CFS_UNMOUNT*/VFSOP_UNSET
-#define	VFSOP_ROOT	CFS_ROOT
-#define	VFSOP_STATFS	/*CFS_STATFS*/VFSOP_UNSET
-#define	VFSOP_SYNC	CFS_SYNC
-#define	VFSOP_VGET	CFS_VGET
-#define	VFSOP_OPEN	CFS_OPEN
-#define	VFSOP_CLOSE	CFS_CLOSE
-#define	VFSOP_RDWR	CFS_RDWR
-#define	VFSOP_IOCTL	CFS_IOCTL
-#define	VFSOP_SELECT	/*CFS_SELECT*/VFSOP_UNSET
-#define	VFSOP_GETATTR	CFS_GETATTR
-#define	VFSOP_SETATTR	CFS_SETATTR
-#define	VFSOP_ACCESS	CFS_ACCESS
-#define	VFSOP_LOOKUP	CFS_LOOKUP
-#define	VFSOP_CREATE	CFS_CREATE
-#define	VFSOP_REMOVE	CFS_REMOVE
-#define	VFSOP_LINK	CFS_LINK
-#define	VFSOP_RENAME	CFS_RENAME
-#define	VFSOP_MKDIR	CFS_MKDIR
-#define	VFSOP_RMDIR	CFS_RMDIR
-#define	VFSOP_READDIR	CFS_READDIR
-#define	VFSOP_SYMLINK	CFS_SYMLINK
-#define	VFSOP_READLINK	CFS_READLINK
-#define	VFSOP_FSYNC	CFS_FSYNC
-#define	VFSOP_INACTIVE	CFS_INACTIVE
-#define	VFSOP_LOCKCTL	/*CFS_LOCKCTL*/VFSOP_UNSET
-#define	VFSOP_FID	/*CFS_FID*/VFSOP_UNSET
-#define	VFSOP_RESOLVE	32
-#define	VFSOP_REINTEGRATE   33
 
 /* vnode_{allocs,deallocs} used to be inside #ifdef VENUSDEBUG, but the port 
    to BSD44 caused the MAKE_VNODE() & DISCARD_VNODE() macros to become 
@@ -409,48 +346,31 @@ extern long FidToNodeid(ViceFid *);
 extern int vnode_allocs;
 extern int vnode_deallocs;
 
-/* Use of venus_vnodes by Venus (Satya, 8/14/96): 
 
-   The use of struct venus_vnode by Venus is purely for convenience;
-   the kernel never passes a venus_vnode up to Venus or vice versa.
-   Venus allocates and deallocates venus_vnodes only because they are
-   convenient structures to hold exactly the info needed about cached
-   objects.  What actually gets allocated is a struct venus_cnode, that
-   encapsulates a struct venus_vnode.
+/* probably not used */
+#define   VTEXT           0x0002
+
+
+/* Venus cnodes are a small placeholder structure to pass arguments
+   into the output buffer back to the kernel without clobbering the
+   inputbuffer, which is the same pointer as the output buffer.
 */
 
-#define CTOV(cn)  &((cn)->c_vnode)
-#define VTOC(vp)  ((struct venus_cnode *)((vp)->v_data))
-#define	MAKE_VNODE(vp, fid, type)\
+struct venus_cnode {
+	u_short	    c_flags;	/* flags (see below) */
+	ViceFid	    c_fid;	/* file handle */
+	dev_t	    c_device;	/* associated vnode device */
+	ino_t	    c_inode;	/* associated vnode inode */
+	char        c_cfname[128]; /* container file name */
+	int         c_type;
+};
+
+#define	MAKE_CNODE(vp, fid, type)\
 {\
-    struct venus_cnode *tcp = new venus_cnode;\
-    bzero((char *)tcp, (int) sizeof(struct venus_cnode));\
-    tcp->c_fid = fid;\
-    (vp) = CTOV(tcp);\
-    (vp)->v_usecount = 1; /* Is this right? (Satya, 8/15/96) */\
-    (vp)->v_type = (enum coda_vtype) type;\
-    (vp)->v_data = tcp; /* backpointer for VTOC() */ \
-    vnode_allocs++;\
-}
-#define	DISCARD_VNODE(vp)\
-{\
-    vnode_deallocs++;\
-    delete (VTOC((vp)));\
+    (vp).c_fid = fid;\
+    (vp).c_type = type;\
 }
 
-
-#define	VFSOP_TO_VSE(vfsop)\
-    (vfsop)
-
-
-#define VA_ID(va)	(va)->va_fileid
-#define VA_STORAGE(va)	(va)->va_bytes
-#define VA_MTIME_1(va)	(va)->va_mtime.tv_sec
-#define VA_MTIME_2(va)	(va)->va_mtime.tv_nsec
-#define VA_ATIME_1(va)	(va)->va_atime.tv_sec
-#define VA_ATIME_2(va)	(va)->va_atime.tv_nsec
-#define VA_CTIME_1(va)	(va)->va_ctime.tv_sec
-#define VA_CTIME_2(va)	(va)->va_ctime.tv_nsec
 
 /* Definitions of the value -1 with correct cast for different
    platforms, to be used in struct vattr to indicate a field to be

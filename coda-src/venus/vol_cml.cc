@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/vol_cml.cc,v 4.15 98/08/26 21:24:41 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/vol_cml.cc,v 4.16 1998/09/15 14:28:06 jaharkes Exp $";
 #endif /*_BLURB_*/
 
 
@@ -3101,7 +3101,7 @@ int cmlent::WriteReintegrationHandle() {
 	/* Notify Codacon */
 	{
 	    char *comp = f->comp;
-	    char buf[CFS_MAXNAMLEN];
+	    char buf[CODA_MAXNAMLEN];
 	    if (comp[0] == '\0') {
 		sprintf(buf, "[%x.%x.%x]", f->fid.Volume, f->fid.Vnode, f->fid.Unique);
 		comp = buf;
@@ -3732,7 +3732,7 @@ int ClientModifyLog::CheckPoint(char *ckpdir) {
 	for (char *cp = mountpath; *cp; cp++)
 	    if (*cp == '/') *cp = '|';
     }
-    strncat(ckpname, mountpath, CFS_MAXNAMLEN - (int) strlen(vol->name) - 1 - 1);
+    strncat(ckpname, mountpath, CODA_MAXNAMLEN - (int) strlen(vol->name) - 1 - 1);
     (void) strcpy(lname, ckpname);
     (void) strcat(ckpname, ".tar");
     (void) strcat(lname, ".cml");
@@ -3909,7 +3909,7 @@ int cmlent::checkpoint(FILE *fp) {
 	    }
 
 	    GetPath(hdr.dbuf.name, &u.u_store.Fid);
-	    char CacheFileName[CFS_MAXNAMLEN];
+	    char CacheFileName[CODA_MAXNAMLEN];
 	    {
 		fsobj *f = FSDB->Find(&u.u_store.Fid);
 		ASSERT(f != 0);

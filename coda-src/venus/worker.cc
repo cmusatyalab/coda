@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/worker.cc,v 4.18 1998/08/26 21:24:46 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/worker.cc,v 4.19 1998/09/14 22:33:39 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -52,14 +52,12 @@ extern "C" {
 #include <sys/socket.h>
 #include <sys/stat.h>
 #include <netinet/in.h>
+
 #if !defined(__CYGWIN32__) && !defined(DJGPP)
 #include <sys/syscall.h>
 #include <sys/mount.h>
 #endif
-#ifndef __FreeBSD__
-// Since vproc.h knows struct uio.
-#include <sys/uio.h>
-#endif
+
 #include <errno.h>
 #include <string.h>
 #include <unistd.h>
@@ -77,15 +75,14 @@ extern "C" {
 #endif
 
 #include <cfs/coda.h>
+#include <vice.h>
 
 #ifdef __cplusplus
 }
 #endif __cplusplus
 
 /* interfaces */
-#include <vice.h>
 #include <vproc.h>
-#include <venus_vnode.h>
 
 /* from vicedep */
 #include <venusioctl.h>
@@ -159,7 +156,7 @@ int MsgRead(msgent *m)
 #else
 	int cc = read(worker::muxfd, m->msg_buf, (int) (VC_MAXMSGSIZE));
 #endif
-	if (cc < sizeof(struct cfs_in_hdr)) 
+	if (cc < sizeof(struct coda_in_hdr)) 
 		return(-1);
 
 	return(0);
@@ -231,12 +228,12 @@ void testKernDevice()
 	/* Construct a purge message */
 	union outputArgs msg;
 
-	msg.oh.opcode = CFS_FLUSH;
+	msg.oh.opcode = CODA_FLUSH;
 	msg.oh.unique = 0;
 
 	/* Send the message. */
-	if (write(fd, (const void *)&msg, sizeof(struct cfs_out_hdr))
-		  != sizeof(struct cfs_out_hdr)) {
+	if (write(fd, (const void *)&msg, sizeof(struct coda_out_hdr))
+		  != sizeof(struct coda_out_hdr)) {
 		eprint("Write for flush failed (%d), exiting", errno);
 		exit(-1);
 	}
@@ -366,7 +363,7 @@ void VFSUnmount()
        released. */
 	k_Purge();
 #ifdef	__BSD44__
-    /* For now we can not unmount, because an cfs_root() upcall could
+    /* For now we can not unmount, because an coda_root() upcall could
        nail us. */
 #ifndef	__BSD44__
     /* Issue the VFS unmount request. */
@@ -395,7 +392,7 @@ int k_Purge() {
     /* Construct a purge message. */
     union outputArgs msg;
     
-    msg.oh.opcode = CFS_FLUSH;
+    msg.oh.opcode = CODA_FLUSH;
     msg.oh.unique = 0;
     
     /* Send the message. */
@@ -403,7 +400,7 @@ int k_Purge() {
 	    Choke("k_Purge: Flush, message write returns %d", errno);
 
     LOG(1, ("k_Purge: Flush, returns 0\n"));
-    VFSStats.VFSOps[CFS_FLUSH].success++;
+    VFSStats.VFSOps[CODA_FLUSH].success++;
 
     return(1);
 }
@@ -423,30 +420,30 @@ int k_Purge(ViceFid *fid, int severely) {
     union outputArgs msg;
 
     if (severely) {
-	msg.cfs_purgefid.oh.opcode = CFS_PURGEFID;
-	msg.cfs_purgefid.oh.unique = 0;
-	msg.cfs_purgefid.CodaFid = *fid;
+	msg.coda_purgefid.oh.opcode = CODA_PURGEFID;
+	msg.coda_purgefid.oh.unique = 0;
+	msg.coda_purgefid.CodaFid = *fid;
     } else if (ISDIR(*fid)) {
-	msg.cfs_zapdir.oh.opcode = CFS_ZAPDIR;
-	msg.cfs_zapdir.oh.unique = 0;
-	msg.cfs_zapdir.CodaFid = *fid;
+	msg.coda_zapdir.oh.opcode = CODA_ZAPDIR;
+	msg.coda_zapdir.oh.unique = 0;
+	msg.coda_zapdir.CodaFid = *fid;
     } else {
-	msg.cfs_zapfile.oh.opcode = CFS_ZAPFILE;
-	msg.cfs_zapfile.oh.unique = 0;
-	msg.cfs_zapfile.CodaFid = *fid;
+	msg.coda_zapfile.oh.opcode = CODA_ZAPFILE;
+	msg.coda_zapfile.oh.unique = 0;
+	msg.coda_zapfile.CodaFid = *fid;
     }	
 
     /* Send the message. */
     if (MsgWrite((char *)&msg, (int) sizeof(msg)) !=  (int) sizeof(msg)) {
 	retcode = errno;
 	Choke("k_Purge: %s, message write fails: errno %d", 
-	      msg.oh.opcode == CFS_PURGEFID ? "CFS_PURGEFID" :
-	      msg.oh.opcode == CFS_ZAPFILE ? "CFS_ZAPFILE" : "CFS_ZAPDIR", retcode);
+	      msg.oh.opcode == CODA_PURGEFID ? "CODA_PURGEFID" :
+	      msg.oh.opcode == CODA_ZAPFILE ? "CODA_ZAPFILE" : "CODA_ZAPDIR", retcode);
     }
 
     LOG(100, ("k_Purge: %s, returns %d\n", 
-	      msg.oh.opcode == CFS_PURGEFID ? "CFS_PURGEFID" :
-	      msg.oh.opcode == CFS_ZAPFILE ? "CFS_ZAPFILE" : "CFS_ZAPDIR", retcode));
+	      msg.oh.opcode == CODA_PURGEFID ? "CODA_PURGEFID" :
+	      msg.oh.opcode == CODA_ZAPFILE ? "CODA_ZAPFILE" : "CODA_ZAPDIR", retcode));
     if (retcode == 0) {
 	VFSStats.VFSOps[msg.oh.opcode].success++;
     }
@@ -467,19 +464,19 @@ int k_Purge(vuid_t vuid) {
 
     /* Message prefix. */
     union outputArgs msg;
-    msg.cfs_purgeuser.oh.unique = 0;
-    msg.cfs_purgeuser.oh.opcode = CFS_PURGEUSER;
+    msg.coda_purgeuser.oh.unique = 0;
+    msg.coda_purgeuser.oh.opcode = CODA_PURGEUSER;
 
     /* Message data. */
-    bzero((void *)&msg.cfs_purgeuser.cred, (int) sizeof(struct coda_cred));
-    msg.cfs_purgeuser.cred.cr_uid = vuid;
+    bzero((void *)&msg.coda_purgeuser.cred, (int) sizeof(struct coda_cred));
+    msg.coda_purgeuser.cred.cr_uid = vuid;
 
     /* Send the message. */
     if (MsgWrite((char *)&msg, (int) sizeof(union outputArgs)) != (int) sizeof(union outputArgs))
 	Choke("k_Purge: PurgeUser, message write");
 
     LOG(1, ("k_Purge: PurgeUser, returns 0\n"));
-    VFSStats.VFSOps[CFS_PURGEUSER].success++;
+    VFSStats.VFSOps[CODA_PURGEUSER].success++;
 
     return(1);
 }
@@ -497,19 +494,19 @@ int k_Replace(ViceFid *fid_1, ViceFid *fid_2) {
 	    fid_2->Vnode, fid_2->Unique));
 
     /* Message prefix. */
-    struct cfs_replace_out msg;
+    struct coda_replace_out msg;
     msg.oh.unique = 0;
-    msg.oh.opcode = CFS_REPLACE;
+    msg.oh.opcode = CODA_REPLACE;
 
     msg.OldFid = *fid_1;
     msg.NewFid = *fid_2;
 	
     /* Send the message. */
-    if (MsgWrite((char *)&msg, sizeof (struct cfs_replace_out)) != sizeof (struct cfs_replace_out))
+    if (MsgWrite((char *)&msg, sizeof (struct coda_replace_out)) != sizeof (struct coda_replace_out))
 	Choke("k_Replace: message write");
 
     LOG(0, ("k_Replace: returns 0\n"));
-    VFSStats.VFSOps[CFS_REPLACE].success++;
+    VFSStats.VFSOps[CODA_REPLACE].success++;
 
     return(1);
 }
@@ -596,17 +593,17 @@ int IsAPrefetch(msgent *m) {
     /* determines if a message is a prefetch request */
     union inputArgs *in = (union inputArgs *)m->msg_buf;
     
-    if (in->ih.opcode != CFS_IOCTL)
+    if (in->ih.opcode != CODA_IOCTL)
 	return(0);
 
-    return (in->cfs_ioctl.cmd == VIOCPREFETCH);
+    return (in->coda_ioctl.cmd == VIOCPREFETCH);
 }
 
 void DispatchWorker(msgent *m) {
     /* We filter out signals (i.e., interrupts) before passing messages on to workers. */
     union inputArgs *in = (union inputArgs *)m->msg_buf;
     
-    if (in->ih.opcode == CFS_SIGNAL) {
+    if (in->ih.opcode == CODA_SIGNAL) {
 	eprint("DispatchWorker: signal received (seq = %d)", in->ih.unique);
 
 	worker *signallee = FindWorker(in->ih.unique);
@@ -867,7 +864,7 @@ void worker::Return(msgent *msg, int size) {
 
 void worker::Return(int code) {
     ((union outputArgs*)msg->msg_buf)->oh.result = code; 
-    Return(msg, (int)sizeof (struct cfs_out_hdr));
+    Return(msg, (int)sizeof (struct coda_out_hdr));
 }
 
 
@@ -901,250 +898,231 @@ void worker::main(void *parm) {
 #define GOTTA_BE_ME(in) \
 	    u.u_cred = (in)->ih.cred; u.u_pid = (in)->ih.pid; u.u_pgid = (in)->ih.pgid;
 	    
-	    case CFS_ACCESS:
+	    case CODA_ACCESS:
 		{
 		GOTTA_BE_ME(in);
-		LOG(100, ("CFS_ACCESS: u.u_pid = %d u.u_pgid = %d\n", u.u_pid, u.u_pgid));
-		struct venus_vnode *vtarget;
-		MAKE_VNODE(vtarget, in->cfs_access.VFid, 0);
-		access(vtarget, in->cfs_access.flags);
-		DISCARD_VNODE(vtarget);
+		LOG(100, ("CODA_ACCESS: u.u_pid = %d u.u_pgid = %d\n", u.u_pid, u.u_pgid));
+		struct venus_cnode vtarget;
+		MAKE_CNODE(vtarget, in->coda_access.VFid, 0);
+		access(&vtarget, in->coda_access.flags);
 
 		out->oh.result = u.u_error;
-		Resign(msg, (int) sizeof (struct cfs_out_hdr));
+		Resign(msg, (int) sizeof (struct coda_out_hdr));
 		break;
 		}
 
-	    case CFS_CLOSE:
+	    case CODA_CLOSE:
 		{
 		GOTTA_BE_ME(in);
-		LOG(100, ("CFS_CLOSE: u.u_pid = %d u.u_pgid = %d\n", u.u_pid, u.u_pgid));
+		LOG(100, ("CODA_CLOSE: u.u_pid = %d u.u_pgid = %d\n", u.u_pid, u.u_pgid));
 
-		struct venus_vnode *vtarget;
-		MAKE_VNODE(vtarget, in->cfs_close.VFid, 0);
-		close(vtarget, in->cfs_close.flags);
-		DISCARD_VNODE(vtarget);
+		struct venus_cnode vtarget;
+		MAKE_CNODE(vtarget, in->coda_close.VFid, 0);
+		close(&vtarget, in->coda_close.flags);
 
 		out->oh.result = u.u_error;
-		Resign(msg, (int) sizeof (struct cfs_out_hdr));
+		Resign(msg, (int) sizeof (struct coda_out_hdr));
 		break;
 		}
 
-	  case CFS_CREATE:
+	  case CODA_CREATE:
 		{
 		GOTTA_BE_ME(in);
 
-		LOG(100, ("CFS_CREATE: u.u_pid = %d u.u_pgid = %d\n", u.u_pid,u.u_pgid));
+		LOG(100, ("CODA_CREATE: u.u_pid = %d u.u_pgid = %d\n", u.u_pid,u.u_pgid));
 
-		struct venus_vnode *vparent;
-		MAKE_VNODE(vparent, in->cfs_create.VFid, 0);
-		struct venus_vnode *target = 0;
-		create(vparent, (char *)in + (int)in->cfs_create.name,
-		       &in->cfs_create.attr, in->cfs_create.excl,
-		       in->cfs_create.mode, &target);
-		DISCARD_VNODE(vparent);
+		struct venus_cnode vparent;
+		MAKE_CNODE(vparent, in->coda_create.VFid, 0);
+		struct venus_cnode target;
+		create(&vparent, (char *)in + (int)in->coda_create.name,
+		       &in->coda_create.attr, in->coda_create.excl,
+		       in->coda_create.mode, &target);
 
 		if (u.u_error == 0) {
-		    out->cfs_create.VFid = VTOC(target)->c_fid;
-		    out->cfs_create.attr = in->cfs_create.attr;
-		    DISCARD_VNODE(target);
-		    target = 0;
-		    size = (int)sizeof (struct cfs_create_out);
+		    out->coda_create.VFid = target.c_fid;
+		    out->coda_create.attr = in->coda_create.attr;
+		    size = (int)sizeof (struct coda_create_out);
 		} else
-		    size = sizeof (struct cfs_out_hdr);
+		    size = sizeof (struct coda_out_hdr);
 		
 		out->oh.result = u.u_error;
 		Resign(msg, size);
 		break;
 		}
 
-	    case CFS_FSYNC:	
+	    case CODA_FSYNC:	
 		{
 		GOTTA_BE_ME(in);
 
-		LOG(100, ("CFS_FSYNC: u.u_pid = %d u.u_pgid = %d\n", u.u_pid, u.u_pgid));
+		LOG(100, ("CODA_FSYNC: u.u_pid = %d u.u_pgid = %d\n", u.u_pid, u.u_pgid));
 
-		struct venus_vnode *vtarget;
-		MAKE_VNODE(vtarget, in->cfs_fsync.VFid, 0);
-		fsync(vtarget);
-		DISCARD_VNODE(vtarget);
+		struct venus_cnode vtarget;
+		MAKE_CNODE(vtarget, in->coda_fsync.VFid, 0);
+		fsync(&vtarget);
 
 		out->oh.result = u.u_error;
-		Resign(msg, (int) sizeof (struct cfs_out_hdr));
+		Resign(msg, (int) sizeof (struct coda_out_hdr));
 		break;
 		}
 
-	    case CFS_GETATTR:
+	    case CODA_GETATTR:
 		{
 		GOTTA_BE_ME(in);
 
-		LOG(100, ("CFS_GETATTR: u.u_pid = %d u.u_pgid = %d\n", u.u_pid, u.u_pgid));
+		LOG(100, ("CODA_GETATTR: u.u_pid = %d u.u_pgid = %d\n", u.u_pid, u.u_pgid));
 
-		struct venus_vnode *vtarget;
-		MAKE_VNODE(vtarget, in->cfs_getattr.VFid, 0);
-		va_init(&out->cfs_getattr.attr);
-		getattr(vtarget, &out->cfs_getattr.attr);
-		DISCARD_VNODE(vtarget);
+		struct venus_cnode vtarget;
+		MAKE_CNODE(vtarget, in->coda_getattr.VFid, 0);
+		va_init(&out->coda_getattr.attr);
+		getattr(&vtarget, &out->coda_getattr.attr);
 
 		out->oh.result = u.u_error;
-		Resign(msg, (int) sizeof (struct cfs_getattr_out));
+		Resign(msg, (int) sizeof (struct coda_getattr_out));
 		break;
 		}
 
-	    case CFS_INACTIVE: 
+	    case CODA_INACTIVE: 
 		{
 		GOTTA_BE_ME(in);
 
-		LOG(100, ("CFS_INACTIVE: u.u_pid = %d u.u_pgid = %d\n", u.u_pid, u.u_pgid));
+		LOG(100, ("CODA_INACTIVE: u.u_pid = %d u.u_pgid = %d\n", u.u_pid, u.u_pgid));
 
-		struct venus_vnode *vtarget;
-		MAKE_VNODE(vtarget, in->cfs_inactive.VFid, 0);
-		inactive(vtarget);
-		DISCARD_VNODE(vtarget);
+		struct venus_cnode vtarget;
+		MAKE_CNODE(vtarget, in->coda_inactive.VFid, 0);
+		inactive(&vtarget);
 
 		out->oh.result = u.u_error;
-		Resign(msg, (int) sizeof (struct cfs_out_hdr));
+		Resign(msg, (int) sizeof (struct coda_out_hdr));
 		break;
 		}
 
-	    case CFS_IOCTL:
+	    case CODA_IOCTL:
 		{
 		char outbuf[VC_MAXDATASIZE];
 		struct ViceIoctl data;
-		data.in = (char *)in + (int)in->cfs_ioctl.data;
+		data.in = (char *)in + (int)in->coda_ioctl.data;
 		data.in_size = 0;
 		data.out = outbuf;	/* Can't risk overcopying. Sigh. -dcs */
 		data.out_size =	0;
 
 		GOTTA_BE_ME(in);
 
-		LOG(100, ("CFS_IOCTL: u.u_pid = %d u.u_pgid = %d\n", u.u_pid, u.u_pgid));
+		LOG(100, ("CODA_IOCTL: u.u_pid = %d u.u_pgid = %d\n", u.u_pid, u.u_pgid));
 
-		if (in->cfs_ioctl.cmd == VIOCPREFETCH)
+		if (in->coda_ioctl.cmd == VIOCPREFETCH)
 		    worker::nprefetchers++;
 
-		struct venus_vnode *vtarget;
-		MAKE_VNODE(vtarget, in->cfs_ioctl.VFid, 0);
-		data.in_size = in->cfs_ioctl.len;
-		ioctl(vtarget, in->cfs_ioctl.cmd, &data, in->cfs_ioctl.rwflag);
-		DISCARD_VNODE(vtarget);
+		struct venus_cnode vtarget;
+		MAKE_CNODE(vtarget, in->coda_ioctl.VFid, 0);
+		data.in_size = in->coda_ioctl.len;
+		ioctl(&vtarget, in->coda_ioctl.cmd, &data, in->coda_ioctl.rwflag);
 
 		out->oh.result = u.u_error;
-		out->cfs_ioctl.len = data.out_size;
-		out->cfs_ioctl.data = (char *)(sizeof (struct cfs_ioctl_out));
-		bcopy(data.out, (char *)out + (int)out->cfs_ioctl.data, data.out_size);
-		Resign(msg, (int) sizeof (struct cfs_ioctl_out) + data.out_size);
+		out->coda_ioctl.len = data.out_size;
+		out->coda_ioctl.data = (char *)(sizeof (struct coda_ioctl_out));
+		bcopy(data.out, (char *)out + (int)out->coda_ioctl.data, data.out_size);
+		Resign(msg, (int) sizeof (struct coda_ioctl_out) + data.out_size);
 
-		if (in->cfs_ioctl.cmd == VIOCPREFETCH)
+		if (in->coda_ioctl.cmd == VIOCPREFETCH)
 		    worker::nprefetchers--;
 
 		break;
 		}
 
-	    case CFS_LINK:
+	    case CODA_LINK:
 		{
 		GOTTA_BE_ME(in);
 
-		LOG(100, ("CFS_LINK: u.u_pid = %d u.u_pgid = %d\n", u.u_pid, u.u_pgid));
+		LOG(100, ("CODA_LINK: u.u_pid = %d u.u_pgid = %d\n", u.u_pid, u.u_pgid));
 
-		struct venus_vnode *vsource;
-		MAKE_VNODE(vsource, in->cfs_link.sourceFid, 0);
-		struct venus_vnode *vp_target;
-		MAKE_VNODE(vp_target, in->cfs_link.destFid, 0);
-		link(vsource, vp_target, (char *)in + (int)in->cfs_link.tname);
-		DISCARD_VNODE(vsource);
-		DISCARD_VNODE(vp_target);
+		struct venus_cnode vsource;
+		MAKE_CNODE(vsource, in->coda_link.sourceFid, 0);
+		struct venus_cnode vp_target;
+		MAKE_CNODE(vp_target, in->coda_link.destFid, 0);
+		link(&vsource, &vp_target, (char *)in + (int)in->coda_link.tname);
 
 		out->oh.result = u.u_error;
-		Resign(msg, (int) sizeof (struct cfs_out_hdr));
+		Resign(msg, (int) sizeof (struct coda_out_hdr));
 		break;
 		}
 
-	    case CFS_LOOKUP:
+	    case CODA_LOOKUP:
 		{
 		GOTTA_BE_ME(in);
 
-		LOG(100, ("CFS_LOOKUP: u.u_pid = %d u.u_pgid = %d\n", u.u_pid, u.u_pgid));
+		LOG(100, ("CODA_LOOKUP: u.u_pid = %d u.u_pgid = %d\n", u.u_pid, u.u_pgid));
 
-		struct venus_vnode *vparent;
-		MAKE_VNODE(vparent, in->cfs_lookup.VFid, 0);
-		struct venus_vnode *target = 0;
-		lookup(vparent, (char *)in + (int)in->cfs_lookup.name, &target);
-		DISCARD_VNODE(vparent);
+		struct venus_cnode vparent;
+		MAKE_CNODE(vparent, in->coda_lookup.VFid, 0);
+		struct venus_cnode target;
+		lookup(&vparent, (char *)in + (int)in->coda_lookup.name, &target);
 
 		out->oh.result = u.u_error;
 		if (u.u_error == 0) {
-		    out->cfs_lookup.VFid = VTOC(target)->c_fid;
-		    out->cfs_lookup.vtype = VN_TYPE(target);
-		    if (out->cfs_lookup.vtype == C_VLNK &&
-			VTOC(target)->c_flags & C_INCON)
-			    out->cfs_lookup.vtype |= CFS_NOCACHE;
-		    DISCARD_VNODE(target);
-		    target = 0;
-		    size = sizeof (struct cfs_lookup_out);
+		    out->coda_lookup.VFid = target.c_fid;
+		    out->coda_lookup.vtype = target.c_type;
+		    if (out->coda_lookup.vtype == C_VLNK &&
+			target.c_flags & C_INCON)
+			    out->coda_lookup.vtype |= CODA_NOCACHE;
+		    size = sizeof (struct coda_lookup_out);
 		} else
-		    size = sizeof (struct cfs_out_hdr);
+		    size = sizeof (struct coda_out_hdr);
 		
 		Resign(msg,  size);
 
 		break;
 		}
 
-	    case CFS_MKDIR:
+	    case CODA_MKDIR:
 		{
 		GOTTA_BE_ME(in);
 
-		LOG(100, ("CFS_MKDIR: u.u_pid = %d u.u_pgid = %d\n", u.u_pid, u.u_pgid));
+		LOG(100, ("CODA_MKDIR: u.u_pid = %d u.u_pgid = %d\n", u.u_pid, u.u_pgid));
 
-		struct venus_vnode *vparent;
-		MAKE_VNODE(vparent, in->cfs_mkdir.VFid, 0);
-		struct venus_vnode *target = 0;
-		mkdir(vparent, (char *)in + (int)in->cfs_mkdir.name, &in->cfs_mkdir.attr, &target);
-		DISCARD_VNODE(vparent);
+		struct venus_cnode vparent;
+		MAKE_CNODE(vparent, in->coda_mkdir.VFid, 0);
+		struct venus_cnode target;
+		mkdir(&vparent, (char *)in + (int)in->coda_mkdir.name, &in->coda_mkdir.attr, &target);
 
 		if (u.u_error == 0) {
-		    out->cfs_mkdir.VFid = VTOC(target)->c_fid;
-		    out->cfs_mkdir.attr = in->cfs_mkdir.attr;
-		    DISCARD_VNODE(target);
-		    target = 0;
-		    size = sizeof (struct cfs_mkdir_out);
+		    out->coda_mkdir.VFid = target.c_fid;
+		    out->coda_mkdir.attr = in->coda_mkdir.attr;
+		    size = sizeof (struct coda_mkdir_out);
 		} else
-		    size = sizeof (struct cfs_out_hdr);
+		    size = sizeof (struct coda_out_hdr);
 		
 		out->oh.result = u.u_error;
 		Resign(msg, size);
 		break;
 		}
 
-	    case CFS_OPEN:
+	    case CODA_OPEN:
 		{
 		GOTTA_BE_ME(in);
 
-		LOG(100, ("CFS_OPEN: u.u_pid = %d u.u_pgid = %d\n", u.u_pid, u.u_pgid));
+		LOG(100, ("CODA_OPEN: u.u_pid = %d u.u_pgid = %d\n", u.u_pid, u.u_pgid));
 
 		/* If an abort happens, we create a message and pass it off to
 		 * another worker. Why not do the close ourselves? Oh well,
 		 * I'll leave it this way... -- DCS
 		 */
-		ViceFid saveFid = in->cfs_open.VFid;
-		int saveFlags = in->cfs_open.flags;
+		ViceFid saveFid = in->coda_open.VFid;
+		int saveFlags = in->coda_open.flags;
 		
-		struct venus_vnode *vtarget;
-		MAKE_VNODE(vtarget, in->cfs_open.VFid, 0);
-		struct venus_cnode *cp = VTOC(vtarget);
-		open(&vtarget, in->cfs_open.flags);
+		struct venus_cnode vtarget;
+		MAKE_CNODE(vtarget, in->coda_open.VFid, 0);
+		open(&vtarget, in->coda_open.flags);
 		
 		if (u.u_error == 0) {
-		    MarinerReport(&cp->c_fid, CRTORUID(u.u_cred));
+		    MarinerReport(&vtarget.c_fid, CRTORUID(u.u_cred));
 		}
 
 		if (u.u_error == 0) {
-		    out->cfs_open.dev = cp->c_device;
-		    out->cfs_open.inode = cp->c_inode;
-		    size = sizeof (struct cfs_open_out);
+		    out->coda_open.dev = vtarget.c_device;
+		    out->coda_open.inode = vtarget.c_inode;
+		    size = sizeof (struct coda_open_out);
 		} else
-		    size = sizeof (struct cfs_out_hdr);
-		DISCARD_VNODE(vtarget);
+		    size = sizeof (struct coda_out_hdr);
 		
 		out->oh.result = u.u_error;
 		Resign(msg, size);
@@ -1162,10 +1140,10 @@ void worker::main(void *parm) {
 		    if (!fm) fm = new msgent;
 		    union inputArgs *dog = (union inputArgs *)fm->msg_buf;
 		    
-		    dog->cfs_close.ih.unique = (u_long)-1;
-		    dog->cfs_close.ih.opcode = CFS_CLOSE;
-		    dog->cfs_close.VFid = saveFid;
-		    dog->cfs_close.flags = saveFlags;
+		    dog->coda_close.ih.unique = (u_long)-1;
+		    dog->coda_close.ih.opcode = CODA_CLOSE;
+		    dog->coda_close.VFid = saveFid;
+		    dog->coda_close.flags = saveFlags;
 		    
 		    /* Dispatch it. */
 		    DispatchWorker(fm);
@@ -1174,30 +1152,30 @@ void worker::main(void *parm) {
 		break;
 		}
 
-	    case CFS_OPEN_BY_PATH:
+	    case CODA_OPEN_BY_PATH:
 		{
 		GOTTA_BE_ME(in);
 
-		LOG(100, ("CFS_OPEN_BY_PATH: u.u_pid = %d u.u_pgid = %d\n", u.u_pid, u.u_pgid));
+		LOG(100, ("CODA_OPEN_BY_PATH: u.u_pid = %d u.u_pgid = %d\n", u.u_pid, u.u_pgid));
 
-		ViceFid saveFid = in->cfs_open_by_path.VFid;
-		int saveFlags = in->cfs_open_by_path.flags;
+		ViceFid saveFid = in->coda_open_by_path.VFid;
+		int saveFlags = in->coda_open_by_path.flags;
 		
-		struct venus_vnode *vtarget;
-		MAKE_VNODE(vtarget, in->cfs_open_by_path.VFid, 0);
-		struct venus_cnode *cp = VTOC(vtarget);
-		open(&vtarget, in->cfs_open_by_path.flags);
+		struct venus_cnode vtarget;
+		MAKE_CNODE(vtarget, in->coda_open_by_path.VFid, 0);
+
+		open(&vtarget, in->coda_open_by_path.flags);
 		
 		if (u.u_error == 0) {
-		    MarinerReport(&cp->c_fid, CRTORUID(u.u_cred));
+		    MarinerReport(&vtarget.c_fid, CRTORUID(u.u_cred));
 		}
 
 		if (u.u_error == 0) {
 			char *slash;
-			char *begin = (char *)(&out->cfs_open_by_path.path + 1);
-			out->cfs_open_by_path.path = begin - (char *)out;
-			sprintf(begin, "%s/%s", CacheDir, cp->c_cfname);
-			LOG(100, ("CFS_OPEN_BY_PATH: returning %s", begin));
+			char *begin = (char *)(&out->coda_open_by_path.path + 1);
+			out->coda_open_by_path.path = begin - (char *)out;
+			sprintf(begin, "%s/%s", CacheDir, vtarget.c_cfname);
+			LOG(100, ("CODA_OPEN_BY_PATH: returning %s", begin));
 #if defined(DJGPP) || defined(__CYGWIN32__)
 			slash = begin;
 			for (slash = begin ; *slash ; slash++ ) {
@@ -1205,11 +1183,10 @@ void worker::main(void *parm) {
 					*slash='\\';
 			}
 #endif
-			size = sizeof (struct cfs_open_by_path_out) + 
+			size = sizeof (struct coda_open_by_path_out) + 
 				strlen(begin) + 1;
 		} else
-			size = sizeof (struct cfs_out_hdr);
-		DISCARD_VNODE(vtarget);
+			size = sizeof (struct coda_out_hdr);
 		
 		out->oh.result = u.u_error;
 		Resign(msg, size);
@@ -1227,10 +1204,10 @@ void worker::main(void *parm) {
 		    if (!fm) fm = new msgent;
 		    union inputArgs *dog = (union inputArgs *)fm->msg_buf;
 		    
-		    dog->cfs_close.ih.unique = (u_long)-1;
-		    dog->cfs_close.ih.opcode = CFS_CLOSE;
-		    dog->cfs_close.VFid = saveFid;
-		    dog->cfs_close.flags = saveFlags;
+		    dog->coda_close.ih.unique = (u_long)-1;
+		    dog->coda_close.ih.opcode = CODA_CLOSE;
+		    dog->coda_close.VFid = saveFid;
+		    dog->coda_close.flags = saveFlags;
 		    
 		    /* Dispatch it. */
 		    DispatchWorker(fm);
@@ -1239,199 +1216,159 @@ void worker::main(void *parm) {
 		break;
 		}
 
-	    case CFS_READDIR:	
+
+	    case CODA_READLINK: 
 		{
 		GOTTA_BE_ME(in);
 
-		LOG(100, ("CFS_READDIR: u.u_pid = %d u.u_pgid = %d\n", u.u_pid, u.u_pgid));
+		LOG(100, ("CODA_READLINK: u.u_pid = %d u.u_pgid = %d\n", u.u_pid, u.u_pgid));
 
-		struct venus_vnode *vtarget;
-		MAKE_VNODE(vtarget, in->cfs_readdir.VFid, 0);
-		struct iovec aiov;
-		aiov.iov_base = (char *)out + sizeof (struct cfs_readdir_out);
-		aiov.iov_len = in->cfs_readdir.count;
-		struct uio auio;
-		auio.uio_iov = &aiov;
-		auio.uio_iovcnt = 1;
-		auio.uio_offset = in->cfs_readdir.offset;
-		auio.uio_resid = in->cfs_readdir.count;
-		readdir(vtarget, &auio);
-		DISCARD_VNODE(vtarget);
-
-		out->oh.result = u.u_error;
-		out->cfs_readdir.size = in->cfs_readdir.count - auio.uio_resid;
-		out->cfs_readdir.data = (char*)(sizeof (struct cfs_readdir_out));
-		Resign(msg, (int) sizeof (struct cfs_readdir_out) + out->cfs_readdir.size);
-		break;
-		}
-
-	    case CFS_READLINK: 
-		{
-		GOTTA_BE_ME(in);
-
-		LOG(100, ("CFS_READLINK: u.u_pid = %d u.u_pgid = %d\n", u.u_pid, u.u_pgid));
-
-		struct venus_vnode *vtarget;
-		MAKE_VNODE(vtarget, in->cfs_readlink.VFid, 0);
-
-		struct iovec aiov;
-		aiov.iov_base = (char *)out + sizeof (struct cfs_readlink_out);
-		aiov.iov_len = CFS_MAXPATHLEN;
-		struct uio auio;
-		auio.uio_iov = &aiov;
-		auio.uio_iovcnt = 1;
-		auio.uio_offset = 0;
-		auio.uio_resid = MAXPATHLEN;
-		readlink(vtarget, &auio);
+		struct venus_cnode vtarget;
+		MAKE_CNODE(vtarget, in->coda_readlink.VFid, 0);
+		struct coda_string string;
+		string.cs_buf = (char *)out + sizeof(struct coda_readlink_out);
+		string.cs_maxlen = CODA_MAXPATHLEN;
+		readlink(&vtarget, &string);
 
 		if (u.u_error == 0) {
-		    MarinerReport(&(VTOC(vtarget)->c_fid), CRTORUID(u.u_cred));
+		    MarinerReport(&(vtarget.c_fid), CRTORUID(u.u_cred));
 		}
-		DISCARD_VNODE(vtarget);
 
 		out->oh.result = u.u_error;
-		out->cfs_readlink.count = MAXPATHLEN - auio.uio_resid;
-		out->cfs_readlink.data = (char *)(sizeof (struct cfs_readlink_out));
-		Resign(msg, (int) sizeof (struct cfs_readlink_out) + out->cfs_readlink.count);
+		out->coda_readlink.count = string.cs_len;
+		/* readlink.data is an offset, with the wrong type .. sorry */
+		out->coda_readlink.data = (char *)(sizeof (struct coda_readlink_out));
+		Resign(msg, (int) sizeof (struct coda_readlink_out) + out->coda_readlink.count);
 		break;
 		}
 
-	    case CFS_REMOVE:
+	    case CODA_REMOVE:
 		{
 		GOTTA_BE_ME(in);
 
-		LOG(100, ("CFS_REMOVE: u.u_pid = %d u.u_pgid = %d\n", u.u_pid, u.u_pgid));
-		struct venus_vnode *vparent;
-		MAKE_VNODE(vparent, in->cfs_remove.VFid, 0);
-		remove(vparent, (char *)in + (int)in->cfs_remove.name);
-		DISCARD_VNODE(vparent);
+		LOG(100, ("CODA_REMOVE: u.u_pid = %d u.u_pgid = %d\n", u.u_pid, u.u_pgid));
+		struct venus_cnode vparent;
+		MAKE_CNODE(vparent, in->coda_remove.VFid, 0);
+		remove(&vparent, (char *)in + (int)in->coda_remove.name);
 
 		out->oh.result = u.u_error;
-		Resign(msg, (int) sizeof (struct cfs_out_hdr));
+		Resign(msg, (int) sizeof (struct coda_out_hdr));
 		break;
 		}
 
-	    case CFS_RENAME:
+	    case CODA_RENAME:
 		{
 		GOTTA_BE_ME(in);
 
-		LOG(100, ("CFS_RENAME: u.u_pid = %d u.u_pgid = %d\n", u.u_pid, u.u_pgid));
+		LOG(100, ("CODA_RENAME: u.u_pid = %d u.u_pgid = %d\n", u.u_pid, u.u_pgid));
 
-		struct venus_vnode *vp_source;
-		MAKE_VNODE(vp_source, in->cfs_rename.sourceFid, 0);
-		struct venus_vnode *vp_target;
-		MAKE_VNODE(vp_target, in->cfs_rename.destFid, 0);
-		rename(vp_source, (char *)in + (int)in->cfs_rename.srcname,
-		       vp_target, (char *)in + (int)in->cfs_rename.destname);
-		DISCARD_VNODE(vp_source);
-		DISCARD_VNODE(vp_target);
+		struct venus_cnode vp_source;
+		MAKE_CNODE(vp_source, in->coda_rename.sourceFid, 0);
+		struct venus_cnode vp_target;
+		MAKE_CNODE(vp_target, in->coda_rename.destFid, 0);
+		rename(&vp_source, (char *)in + (int)in->coda_rename.srcname,
+		       &vp_target, (char *)in + (int)in->coda_rename.destname);
 
 		out->oh.result = u.u_error;
-		Resign(msg, (int) sizeof (struct cfs_out_hdr));
+		Resign(msg, (int) sizeof (struct coda_out_hdr));
 		break;
 		}
 
-	    case CFS_RMDIR:
+	    case CODA_RMDIR:
 		{
 		GOTTA_BE_ME(in);
 
-		LOG(100, ("CFS_RMDIR: u.u_pid = %d u.u_pgid = %d\n", u.u_pid, u.u_pgid));
+		LOG(100, ("CODA_RMDIR: u.u_pid = %d u.u_pgid = %d\n", u.u_pid, u.u_pgid));
 
-		struct venus_vnode *vparent;
-		MAKE_VNODE(vparent, in->cfs_rmdir.VFid, 0);
-		rmdir(vparent, (char *)in + (int)in->cfs_rmdir.name);
-		DISCARD_VNODE(vparent);
+		struct venus_cnode vparent;
+		MAKE_CNODE(vparent, in->coda_rmdir.VFid, 0);
+		rmdir(&vparent, (char *)in + (int)in->coda_rmdir.name);
 
 		out->oh.result = u.u_error;
-		Resign(msg, (int) sizeof (struct cfs_out_hdr));
+		Resign(msg, (int) sizeof (struct coda_out_hdr));
 		break;
 		}
 
-	    case CFS_ROOT:
+	    case CODA_ROOT:
 		{
 		GOTTA_BE_ME(in);
 
-		struct venus_vnode *target = 0;
+		struct venus_cnode target;
 		root(&target);
 
 		if (u.u_error == 0) {
-		    out->cfs_root.VFid = VTOC(target)->c_fid;
-		    DISCARD_VNODE(target);
-		    target = 0;
-		    size = sizeof (struct cfs_root_out);
+		    out->coda_root.VFid = target.c_fid;
+		    size = sizeof (struct coda_root_out);
 		} else
-		    size = sizeof (struct cfs_out_hdr);
+		    size = sizeof (struct coda_out_hdr);
 		    
 		out->oh.result = u.u_error;
 		Resign(msg, size);
 		break;
 		}
 
-	    case CFS_SETATTR:
+	    case CODA_SETATTR:
 		{
 		GOTTA_BE_ME(in);
 
-		LOG(100, ("CFS_SETATTR: u.u_pid = %d u.u_pgid = %d\n", u.u_pid, u.u_pgid));
+		LOG(100, ("CODA_SETATTR: u.u_pid = %d u.u_pgid = %d\n", u.u_pid, u.u_pgid));
 
-		struct venus_vnode *vtarget;
-		MAKE_VNODE(vtarget, in->cfs_setattr.VFid, 0);
-		setattr(vtarget, &in->cfs_setattr.attr);
-		DISCARD_VNODE(vtarget);
+		struct venus_cnode vtarget;
+		MAKE_CNODE(vtarget, in->coda_setattr.VFid, 0);
+		setattr(&vtarget, &in->coda_setattr.attr);
 
 		out->oh.result = u.u_error;
-		Resign(msg, (int) sizeof (struct cfs_out_hdr));
+		Resign(msg, (int) sizeof (struct coda_out_hdr));
 		break;
 		}
 
-	    case CFS_SYMLINK:
+	    case CODA_SYMLINK:
 		{
 		GOTTA_BE_ME(in);
 
-		LOG(100, ("CFS_SYMLINK: u.u_pid = %d u.u_pgid = %d\n", u.u_pid, u.u_pgid));
+		LOG(100, ("CODA_SYMLINK: u.u_pid = %d u.u_pgid = %d\n", u.u_pid, u.u_pgid));
 
-		struct venus_vnode *vp_target;
-		MAKE_VNODE(vp_target, in->cfs_symlink.VFid, 0);
-		symlink(vp_target, (char *)in + (int)in->cfs_symlink.srcname, &in->cfs_symlink.attr, (char *)in + (int)in->cfs_symlink.tname);
-		DISCARD_VNODE(vp_target);
+		struct venus_cnode vp_target;
+		MAKE_CNODE(vp_target, in->coda_symlink.VFid, 0);
+		symlink(&vp_target, (char *)in + (int)in->coda_symlink.srcname, &in->coda_symlink.attr, (char *)in + (int)in->coda_symlink.tname);
+	
 
 		out->oh.result = u.u_error;
-		Resign(msg, (int) sizeof (struct cfs_out_hdr));
+		Resign(msg, (int) sizeof (struct coda_out_hdr));
 		break;
 		}
 
-	    case CFS_SYNC:
+	    case CODA_SYNC:
 		{
 		GOTTA_BE_ME(in);
 		sync();
 
 		out->oh.result = u.u_error;
-		Resign(msg, (int) sizeof (struct cfs_out_hdr));
+		Resign(msg, (int) sizeof (struct coda_out_hdr));
 		break;
 		}
 
-	    case CFS_VGET:
+	    case CODA_VGET:
 		{
 		GOTTA_BE_ME(in);
 
-		LOG(100, ("CFS_VGET: u.u_pid = %d u.u_pgid = %d\n", u.u_pid, u.u_pgid));
+		LOG(100, ("CODA_VGET: u.u_pid = %d u.u_pgid = %d\n", u.u_pid, u.u_pgid));
 
-		struct venus_vnode *target = 0;
+		struct venus_cnode target;
 		struct cfid fid;
 		fid.cfid_len = (unsigned short)sizeof(ViceFid);
-		fid.cfid_fid = in->cfs_vget.VFid;
+		fid.cfid_fid = in->coda_vget.VFid;
 		vget(&target, &fid);
 
 		out->oh.result = u.u_error;
 		if (u.u_error == 0) {
-		    out->cfs_vget.VFid = VTOC(target)->c_fid;
-		    out->cfs_vget.vtype = VN_TYPE(target);
-		    if (out->cfs_vget.vtype == C_VLNK && VTOC(target)->c_flags & C_INCON)
-			out->cfs_vget.vtype |= CFS_NOCACHE;
-		    DISCARD_VNODE(target);
-		    target = 0;
-		    size = sizeof (struct cfs_vget_out);
+		    out->coda_vget.VFid = target.c_fid;
+		    out->coda_vget.vtype = target.c_type;
+		    if (out->coda_vget.vtype == C_VLNK && target.c_flags & C_INCON)
+			out->coda_vget.vtype |= CODA_NOCACHE;
+		    size = sizeof (struct coda_vget_out);
 		} else
-		    size = sizeof (struct cfs_out_hdr);
+		    size = sizeof (struct coda_out_hdr);
 		
 		Resign(msg, size);
 
@@ -1445,7 +1382,7 @@ void worker::main(void *parm) {
 		MarinerLog("worker::main Got a bogus opcode %d\n", in->ih.opcode);
 
 		out->oh.result = EOPNOTSUPP;
-		Resign(msg, (int) sizeof (struct cfs_out_hdr));
+		Resign(msg, (int) sizeof (struct coda_out_hdr));
 		}
 	}
     }

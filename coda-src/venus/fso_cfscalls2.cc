@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/fso_cfscalls2.cc,v 4.13 1998/08/27 19:40:49 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/fso_cfscalls2.cc,v 4.14 1998/09/14 19:14:25 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -55,25 +55,21 @@ extern "C" {
 #include <sys/dir.h>
 #endif
 #include <sys/file.h>
-#ifndef __FreeBSD__
-// Since vproc.h knows struct uio.
-#include <sys/uio.h>
-#endif
+
 #include <string.h>
 #include <unistd.h>
 #include <stdlib.h>
 
 #include <rpc2.h>
+#include <vice.h>
+/* from libal */
+#include <prs_fs.h>
 
 #ifdef __cplusplus
 }
 #endif __cplusplus
 
-/* interfaces */
-#include <vice.h>
 
-/* from libal */
-#include <prs_fs.h>
 
 /* from venus */
 #include "comm.h"
@@ -102,11 +98,10 @@ int fsobj::Open(int writep, int execp, int truncp, venus_cnode *cp, vuid_t vuid)
     }
     int code = 0;
 
-    /* 
-     * write lock the object if we might diddle it below.  Disabling replacement
-     * and bumping reference counts are performed elsewhere under read lock.  
-     * The simulator makes its own assumptions, leave alone in that case.
-     */
+    /*  write lock the object if we might diddle it below.  Disabling
+     * replacement and bumping reference counts are performed
+     * elsewhere under read lock.  The simulator makes its own
+     * assumptions, leave alone in that case.  */
     if (!Simulating && (writep || truncp || 
         (IsDir() && (!data.dir->udcf || !data.dir->udcfvalid))))
         PromoteLock();
@@ -157,19 +152,22 @@ int fsobj::Open(int writep, int execp, int truncp, venus_cnode *cp, vuid_t vuid)
 	if (!data.dir->udcfvalid) {
 	    LOG(100, ("fsobj::Open: recomputing udir\n"));
 
-	    /* XXXX WHO put this between "#if 0".  If this code is 
-	       ever activated again then the open needs O_BINARY for DJGPP */
 
-#if	0
-	    /* Reset a cache entry that others are still reading, but that we must now change. */
+	    /* XXX I reactivated this code. It seems a good idea
+	       pjb 9/21/98 */
+
+	    /* Reset a cache entry that others are still reading, but
+               that we must now change. */
 	    if (openers > 1) {
 		LOG(100, ("fsobj::Open: udir in use, detaching for current users\n"));
 
-		/* Unlink the old inode.  Kernel will keep it around for current openers. */
+		/* Unlink the old inode.  Kernel will keep it around
+                   for current openers. */
 		::unlink(data.dir->udcf->name);
 
-		/* Get a fresh inode, initialize it, and plug it into the fsobj. */
-		int tfd = ::open(data.dir->udcf->name, O_RDWR | O_CREAT, V_MODE);
+		/* Get a fresh inode, initialize it, and plug it into
+                   the fsobj. */
+		int tfd = ::open(data.dir->udcf->name, O_BINARY | O_RDWR | O_CREAT, V_MODE);
 		if (tfd < 0) Choke("fsobj::Open: open");
 		if (::fchmod(tfd, V_MODE) < 0)
 		    Choke("fsobj::Open: fchmod");
@@ -180,7 +178,6 @@ int fsobj::Open(int writep, int execp, int truncp, venus_cnode *cp, vuid_t vuid)
 		if (::close(tfd) < 0) Choke("fsobj::Open: close");
 		data.dir->udcf->inode = tstat.st_ino;
 	    }
-#endif	0
 
 	    /* (Re)Build the Unix-format directory. */
 	    dir_Rebuild();
@@ -232,7 +229,8 @@ Exit:
 
 /* Call with object write-locked. */
 /* We CANNOT return ERETRY from this routine! */
-int fsobj::Close(int writep, int execp, vuid_t vuid) {
+int fsobj::Close(int writep, int execp, vuid_t vuid) 
+{
     LOG(10, ("fsobj::Close: (%s, %d, %d), uid = %d\n",
 	      comp, writep, execp, vuid));
 
@@ -276,11 +274,16 @@ int fsobj::Close(int writep, int execp, vuid_t vuid) {
 	}
 
 	if (!Simulating) {
-	    /* We need to send the new mtime to Vice in the RPC call, so we get the status off */
-	    /* the disk.  If the file was freshly created and there were no writes, then we should */
-	    /* send the time of the mknod.  However, we don't know the time of the mknod so we */
-	    /* approximate it by the current time.  Note that we are fooled by the truncation and */
-	    /* subsequent closing (without further writing) of an existing file. */
+	    /* We need to send the new mtime to Vice in the RPC call,
+               so we get the status off */
+	    /* the disk.  If the file was freshly created and there
+               were no writes, then we should */
+	    /* send the time of the mknod.  However, we don't know the
+               time of the mknod so we */
+	    /* approximate it by the current time.  Note that we are
+               fooled by the truncation and */
+	    /* subsequent closing (without further writing) of an
+               existing file. */
 	    unsigned long NewLength;
 	    Date_t NewDate;
 	    {
@@ -330,51 +333,6 @@ int fsobj::Close(int writep, int execp, vuid_t vuid) {
 
     FSO_RELE(this);		    /* Unpin object. */
     EnableReplacement();
-    return(code);
-}
-
-
-
-/* Call with file contents fetched already. */
-/* Call with object write-locked. */
-     int fsobj::RdWr(char *buf, enum uio_rw rwflag, int offset, int len, int *cc, vuid_t vuid) 
-{
-
-    Choke("We think this is deprecated.");
-    LOG(10, ("fsobj::RdWr: (%s, %d, %d, %d), uid = %d\n",
-	      comp, rwflag, offset, len, vuid));
-
-    if (!HAVEDATA(this))
-	{ print(logFile); Choke("fsobj::RdWr: called without data"); }
-    if (!IsFile())
-	return(EINVAL);
-/*
-    if (openers < 1)
-	{ print(logFile); Choke("fsobj::RdWr: openers < 1"); }
-    if (rwflag == UIO_WRITE && !WRITING(this))
-	{ print(logFile); Choke("fsobj::RdWr: write && !WRITING"); }
-*/
-
-    int code = 0;
-
-    if (rwflag == UIO_WRITE) 
-        PromoteLock();
-
-    /* Open the file, seek to the requested offset, rdwr the requested number of bytes, and close the file. */
-    int mode = (rwflag == UIO_READ ? O_RDONLY : O_WRONLY);
-    int tfd = ::open(data.file->Name(), mode, 0);
-    if (tfd < 0) Choke("fsobj::RdWr: open");
-    if (::lseek(tfd, offset, L_SET) < 0) Choke("fsobj::RdWr: lseek");
-    if (rwflag == UIO_READ) {
-	*cc = ::read(tfd, buf, len);
-	if (*cc < 0) Choke("fsobj::RdWr: read");
-    }
-    else {
-	*cc = ::write(tfd, buf, len);
-	if (*cc != len) Choke("fsobj::RdWr: write");
-    }
-    if (::close(tfd) < 0) Choke("fsobj::RdWr: close");
-
     return(code);
 }
 
@@ -593,21 +551,7 @@ int fsobj::Lookup(fsobj **target_fso_addr, ViceFid *inc_fid, char *name, vuid_t 
 	    name = systype;
 
 	/* Lookup the target object. */
-#if	0
-	{
-	    /* XXX Band-Aid here! -JJK */
-	    /* We're getting failures in which the data has disappeared by the time the dir_Lookup is */
-	    /* called below.  The eventual fix is probably to have ALL of the dir_ routines return ERETRY */
-	    /* if there is no data.  For now, I'll just fix this one place, since it's the most common! */
-	    if (!HAVEDATA(this)) {
-		LOG(0, ("fsobj::Lookup: (%s, %x.%x.%x), data is gone!\n",
-			comp, fid.Volume, fid.Vnode, fid.Unique));
-		return(ERETRY);
-	    }
 
-	    /* I think this was fixed by checking for BUSY(f) in fsdb::CallBackBreak()! -JJK */
-	}
-#endif	0
 	/* Haven't we already choked if STREQ(name, ".") ??? */
 	if (STREQ(name, ".")) 
 	    target_fid = fid;
@@ -699,60 +643,6 @@ int fsobj::Lookup(fsobj **target_fso_addr, ViceFid *inc_fid, char *name, vuid_t 
     *target_fso_addr = target_fso;
     return(0);
 }
-
-
-/* Call with directory contents fetched already. */
-/* Call with object read-locked. */
-int fsobj::Readdir(char *buf, int offset, int len, int *cc, vuid_t vuid) {
-
-    Choke("fsobj::Readdir is deprecated.");
-    LOG(10, ("fsobj::Readdir : (%s, %d, %d), uid = %d\n",
-	      comp, offset, len, vuid));
-
-    if (!HAVEDATA(this))
-	{ print(logFile); Choke("fsobj::Readdir: called without data"); }
-    if (!IsDir())
-	return(EINVAL);
-
-    int code = 0;
-
-    /* Open the Vice file. */
-    PromoteLock();
-    code = Open(0, 0, 0, 0, vuid);
-    if (code)
-	{ DemoteLock(); return(code); }
-
-    /* Open the udir file, seek to the requested offset, and read the requested number of bytes. */
-    int tfd = ::open(data.dir->udcf->Name(), O_RDONLY, 0);
-    if (tfd < 0) Choke("fsobj::Readdir: open");
-    if (::lseek(tfd, offset, L_SET) < 0) Choke("fsobj::Readdir: lseek");
-    *cc = ::read(tfd, buf, len);
-    if (*cc < 0) Choke("fsobj::Readdir: read");
-    if (::close(tfd) < 0) Choke("fsobj::Readdir: close");
-
-    /* Close the Vice file. */
-    code = Close(0, 0, vuid);
-
-    DemoteLock();
-
-    if (LogLevel >= 1000) {
-	for (int pos = 0; pos < *cc;) {
-	    struct venus_dirent *dp = (struct venus_dirent *)&(buf[pos]);
-	    if (*cc - pos < DIRSIZ(dp))
-		{ print(logFile); Choke("fsobj::Readdir: dir entry too small"); }
-
-#ifndef DJGPP
-	    if (dp->d_fileno == 0) break;
-#endif
-	    LOG(1000, ("\t<%d, %d, %d, %s>\n",
-                       dp->d_fileno, dp->d_reclen, dp->d_namlen, dp->d_name));
-	    pos += (int) DIRSIZ(dp);
-	}
-    }
-
-    return(code);
-}
-
 
 /* Call with the link contents fetched already. */
 /* Call with object read-locked. */
