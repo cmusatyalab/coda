@@ -371,7 +371,7 @@ diff -urN --exclude-from=../dontdiff linux-2.4.20/fs/coda/upcall.c linux-2.4.20-
  	inp->ih.pid = current->pid;
  	inp->ih.pgid = current->pgrp;
 -	coda_load_creds(&(inp->ih.cred));
-+	inp->ih.uid = current->uid;
++	inp->ih.uid = current->fsuid;
  
  	return (void*)inp;
  }
