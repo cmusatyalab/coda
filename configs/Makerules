@@ -183,7 +183,7 @@ endif
 realclean:
 	-$(RM) *.o *.a  *.d
 	-$(RM) *.client.cc *.client.c *.server.cc *.server.c *.multi.cc *.multi.c *.print.c $(RP2HEADERS)
-	-$(RM) $(EXECUTABLES) $(LIBRARIES) $(TESTS) core
+	-$(RM) $(EXECUTABLES) $(LIBRARIES) $(TESTS) $(EXTRACLEAN) core
 	-$(RM) chdrinstall rp2hdrinstall libinstall bininstall scriptinstall \
 	      c_bin_install c_sbin_install s_bin_install s_sbin_install 
 	-$(RM) *.l.c *.pt.c *.l.o *.pt.o
@@ -232,12 +232,6 @@ show showvar:
 	$(CPP) -P -D__ASSEMBLY__ $(AFLAGS) $< > $*.ss
 	$(AS) -o $@ $*.ss
 	$(RM) $*.ss
-
-.c.o:
-	$(CC) $(CFLAGS) $(CPPFLAGS) -c $<
-
-.cc.o:
-	$(CXX) $(CXXFLAGS) $(CPPFLAGS) -c $<
 
 %.a:
 	$(AR) rv $@ $?

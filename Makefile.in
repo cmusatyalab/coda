@@ -25,8 +25,8 @@ III =  coda-src
 
 SUBDIRS = $(I) $(EXTRAS) $(II) $(III) $(V)
 
-include $(TOPDIR)/configs/Makerules
+# let's try to get rid of this file during make clean
+EXTRACLEAN = include/vcrcommon.h
 
-subdirclean:
-	-$(RM) include/vcrcommon.h
+include $(TOPDIR)/configs/Makerules
 
