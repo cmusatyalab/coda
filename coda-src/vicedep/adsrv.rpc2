@@ -37,6 +37,7 @@ Subsystem "AdSrv";
 /* IMPORTANT!  Change this anytime this file is changed! */
 #define ADSRV_VERSION 6
 
+/* Keep this list in sync with the one in coda-src/venus/advice.cc! */
 typedef RPC2_Enum
 {
        TokensAcquiredID                    = 0,
@@ -73,6 +74,7 @@ typedef RPC2_Enum
        InvokeASRID                         = 31
 } InterestID;
 #define MAXEVENTS 32
+/* Keep this list in sync with the one in coda-src/venus/advice.cc! */
 
 typedef RPC2_Struct
 {

@@ -16,36 +16,31 @@ Coda are listed in the file CREDITS.
 
 #*/
 
-#ifndef _DLIST_H_
-#define _DLIST_H_
-
-/*
- * doubly linked list implementation -- based on linux 
- * kernel code lists.
- *
- */
-
-struct dllist_head {
-	struct dllist_head *next, *prev;
-};
-#define dllist_chain dllist_head
-
-
-#define list_entry(ptr, type, member) \
-	((type *)((char *)(ptr)-(unsigned long)(&((type *)0)->member)))
+#ifndef _CODACONF_H_
+#define _CODACONF_H_
 
 #ifdef __cplusplus
 extern "C" {
 #endif __cplusplus
 
-int list_empty(struct dllist_head *head);
-void list_del(struct dllist_head *entry);
-void list_add(struct dllist_head *entry, struct dllist_head *head);
-void list_head_init(struct dllist_head *ptr);
+/* conf_init reads (or merges) the name=value tuples from the conffile. If a
+ * name is seen multiple times, only the last value is remembered. Empty lines
+ * and lines starting with '#' are ignored. */
+int conf_init(char *conffile);
+
+/* conf_lookup returns the value associated with name, or NULL on error. */
+char *conf_lookup(char *name, char *defaultvalue);
+
+/* conf_free releases all resources allocated for the configuration data */
+char *conf_free(void);
+
+/* normally stderr, error message are written here */
+extern FILE *conf_errout;
 
 #ifdef __cplusplus
 }
 #endif __cplusplus
 
-#endif /* _DLLIST_H_ */
+
+#endif /* _CODACONF_H_ */
 

@@ -34,7 +34,6 @@ listed in the file CREDITS.
 extern "C" {
 #endif __cplusplus
 
-#include "coda_assert.h"
 #include <stdio.h>
 #include <unistd.h>
 #include <stdlib.h>
@@ -43,6 +42,7 @@ extern "C" {
 }
 #endif __cplusplus
 
+#include "coda_assert.h"
 #include "olist.h"
 
 

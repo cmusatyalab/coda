@@ -20,7 +20,6 @@ listed in the file CREDITS.
 extern "C" {
 #endif __cplusplus
 
-#include "coda_assert.h"
 #include <stdio.h>
 #include <struct.h>
 
@@ -28,6 +27,7 @@ extern "C" {
 }
 #endif __cplusplus
 
+#include "coda_assert.h"
 #include <dlist.h>
 #include <vcrcommon.h>
 

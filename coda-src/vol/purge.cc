@@ -53,7 +53,6 @@ extern "C" {
 #include "coda_string.h"
 #include <unistd.h>
 #include <stdlib.h>
-#include "coda_assert.h"
 
 #include <lwp.h>
 #include <lock.h>
@@ -74,6 +73,7 @@ extern "C" {
 #include "vutil.h"
 #include "recov.h"
 #include "index.h"
+#include "coda_assert.h"
 
 
 void PurgeIndex(Volume *vp, VnodeClass vclass);

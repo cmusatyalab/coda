@@ -45,7 +45,6 @@ extern "C" {
 #endif __cplusplus
 
 #include <stdio.h>
-#include "coda_assert.h"
 #include <rpc2.h>
 
 #ifdef __cplusplus
@@ -65,6 +64,7 @@ extern "C" {
 #include "comm.h"
 #include "mariner.h"
 #include "venus.private.h"
+#include "coda_assert.h"
 #include "local.h"
 
 

@@ -48,16 +48,16 @@ extern "C" {
 #include <unistd.h>
 #include <stdlib.h>
 #include <errno.h>
-#include "coda_assert.h" 
 #include <inodeops.h>
 
-#include <parser.h>
 #ifdef __cplusplus
 }
 #endif __cplusplus
 
 #include <venusioctl.h>
 #include <vice.h>
+#include <parser.h>
+#include "coda_assert.h" 
 #include "resolve.h"
 #include "repio.h"
 #include "predicate.h"

@@ -202,7 +202,7 @@ class adviceconn {
     int Getpgid();
 
     char *StateString();
-    char *CacheMissAdviceToString(CacheMissAdvice advice);
+    const char *CacheMissAdviceToString(CacheMissAdvice advice);
 
     int GetSuccesses(InterestID interest);
     int GetFailures(InterestID interest);

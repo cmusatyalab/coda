@@ -16,10 +16,6 @@ listed in the file CREDITS.
 
 #*/
 
-
-
-
-
 #include "venus.private.h"
 
 #ifdef __cplusplus
@@ -30,16 +26,16 @@ extern "C" {
 #include <netinet/in.h>
 #include <netdb.h>
 
-/* interfaces */
-#include <admon.h>
-#include <adsrv.h>
-
 #ifdef __cplusplus
 }
 #endif __cplusplus
 
 
 #include <proc.h>
+
+/* interfaces */
+#include <admon.h>
+#include <adsrv.h>
 
 /* from venus */
 #include "user.h"
@@ -52,7 +48,7 @@ extern "C" {
 int ASRinProgress = 0;
 int ASRresult = -1;
 
-char *InterestToString(InterestID);
+const char *InterestToString(InterestID);
 #define MAXEVENTLEN 64
 
 adviceconn::adviceconn() {
@@ -79,7 +75,7 @@ adviceconn::~adviceconn() {
   LOG(100, ("adviceconn::~adviceconn()\n"));
 }
 
-/*******************************************************************************************
+/******************************************************************************
  *  RPC Requests to the user via Advice Monitor:
  *      RequestReadDisconnectedCacheMissAdvice
  *      RequestHoardWalkAdvice
@@ -88,14 +84,14 @@ adviceconn::~adviceconn() {
  *	RequestReintegratePending
  *      RequestASRInvokation
  *      RequestWeaklyConnectedCacheMissAdvice
- *******************************************************************************************/
+ ******************************************************************************/
 
 
 void adviceconn::TokensAcquired(int expirationTime) {
   long rc;
   InterestID callType = TokensAcquiredID;
 
-LOG(100, ("E(initial) adviceconn::TokensAcquired(%d)\n", expirationTime));
+  LOG(100, ("E(initial) adviceconn::TokensAcquired(%d)\n", expirationTime));
 
   IncrRequested(callType);
 
@@ -1304,23 +1300,19 @@ char *adviceconn::StateString()
   return(msgbuf);
 }
 
-#define MSGSIZE 64
-char *adviceconn::CacheMissAdviceToString(CacheMissAdvice advice)
-{
-  static char msgbuf[MSGSIZE];
+const char *CacheMissAdviceStrings[] = {
+        "Fetch from servers",
+        "Coerce to miss",
+        "Unknown"
+};
 
-  switch (advice) {
-    case FetchFromServers:
-      (void) snprintf(msgbuf, MSGSIZE, "Fetch from servers");
-      break;
-    case CoerceToMiss:
-      (void) snprintf(msgbuf, MSGSIZE, "Coerce to miss");
-      break;
-    default:
-      (void) snprintf(msgbuf, MSGSIZE, "Unknown");
-      break;
-  }
-  return(msgbuf);
+const char *adviceconn::CacheMissAdviceToString(CacheMissAdvice advice)
+{
+    if (advice < 0 || advice >= sizeof(CacheMissAdviceStrings)) {
+        LOG(0, ("CacheMissAdviceToString: Unrecognized %d\n", advice));
+        advice = (CacheMissAdvice)(sizeof(CacheMissAdviceStrings) - 1);
+    }
+    return CacheMissAdviceStrings[advice];
 }
 
 int adviceconn::GetSuccesses(InterestID interest) {
@@ -1417,114 +1409,51 @@ void adviceconn::PrintState(int afd) {
   fdprint(afd, "State = %s\n", StateString());
 }
 
-/***************************************************************************************
- *********************************** HELPER ROUTINES ***********************************
- ***************************************************************************************/
+/******************************************************************************
+ ************************** HELPER ROUTINES ***********************************
+ ******************************************************************************/
 
-char *InterestToString(InterestID interest) {
-  static char returnString[MAXEVENTLEN];
+const char *InterestStrings[] = {
+/* 0*/  "TokensAcquired",
+        "TokensExpired",
+        "ActivityPendingTokens",
+        "SpaceInformation",
+/* 5*/  "ServerAccessible",
+        "ServerInaccessible",
+        "ServerConnectionStrong",
+        "ServerConnectionWeak",
+        "NetworkQualityEstimate",
+        "VolumeTransitionEvent",
+/*10*/  "Reconnection",
+        "DataFetchEvent",
+        "ReadDisconnectedCacheMissEvent",
+        "WeaklyConnectedCacheMissEvent",
+        "DisconnectedCacheMissEvent",
+/*15*/  "HoardWalkAdviceRequest",
+        "HoardWalkBegin",
+        "HoardWalkStatus",
+        "HoardWalkEnd",
+        "HoardWalkPeriodicOn",
+/*20*/  "HoardWalkPeriodicOff",
+        "ObjectInConflict",
+        "ObjectConsistent",
+        "ReintegrationPendingTokens",
+        "ReintegrationEnabled",
+/*25*/  "ReintegrationActive",
+        "ReintegrationCompleted",
+        "TaskAvailability",
+        "TaskUnavailable",
+        "ProgramAccessLogs",
+/*30*/  "ReplacementLogs",
+        "InvokeASR",
+        "UnknownEventString"
+};
 
-  switch (interest) {
-      case TokensAcquiredID:
-        strncpy(returnString, "TokensAcquired", MAXEVENTLEN);
-        break;
-      case TokensExpiredID:
-        strncpy(returnString, "TokensExpired", MAXEVENTLEN);
-        break;
-      case ActivityPendingTokensID:
-        strncpy(returnString, "ActivityPendingTokens", MAXEVENTLEN);
-        break;
-      case SpaceInformationID:
-        strncpy(returnString, "SpaceInformation", MAXEVENTLEN);
-        break;
-      case ServerAccessibleID:
-        strncpy(returnString, "ServerAccessible", MAXEVENTLEN);
-        break;
-      case ServerInaccessibleID:
-        strncpy(returnString, "ServerInaccessible", MAXEVENTLEN);
-        break;
-      case ServerConnectionStrongID:
-        strncpy(returnString, "ServerConnectionStrong", MAXEVENTLEN);
-	break;
-      case ServerConnectionWeakID:
-        strncpy(returnString, "ServerConnectionWeak", MAXEVENTLEN);
-	break;
-      case NetworkQualityEstimateID:
-        strncpy(returnString, "NetworkQualityEstimate", MAXEVENTLEN);
-        break;
-      case VolumeTransitionEventID:
-        strncpy(returnString, "VolumeTransitionEvent", MAXEVENTLEN);
-        break;
-      case ReconnectionID:
-        strncpy(returnString, "Reconnection", MAXEVENTLEN);
-        break;
-      case DataFetchEventID:
-        strncpy(returnString, "DataFetchEvent", MAXEVENTLEN);
-        break;
-      case ReadDisconnectedCacheMissEventID:
-        strncpy(returnString, "ReadDisconnectedCacheMissEvent", MAXEVENTLEN);
-        break;
-      case WeaklyConnectedCacheMissEventID:
-        strncpy(returnString, "WeaklyConnectedCacheMissEvent", MAXEVENTLEN);
-        break;
-      case DisconnectedCacheMissEventID:
-        strncpy(returnString, "DisconnectedCacheMissEvent", MAXEVENTLEN);
-        break;
-      case HoardWalkAdviceRequestID:
-        strncpy(returnString, "HoardWalkAdviceRequest", MAXEVENTLEN);
-        break;
-      case HoardWalkBeginID:
-        strncpy(returnString, "HoardWalkBegin", MAXEVENTLEN);
-        break;
-      case HoardWalkStatusID:
-        strncpy(returnString, "HoardWalkStatus", MAXEVENTLEN);
-        break;
-      case HoardWalkEndID:
-        strncpy(returnString, "HoardWalkEnd", MAXEVENTLEN);
-        break;
-      case HoardWalkPeriodicOnID:
-        strncpy(returnString, "HoardWalkPeriodicOn", MAXEVENTLEN);
-        break;
-      case HoardWalkPeriodicOffID:
-        strncpy(returnString, "HoardWalkPeriodicOff", MAXEVENTLEN);
-        break;
-      case ObjectInConflictID:
-        strncpy(returnString, "ObjectInConflict", MAXEVENTLEN);
-        break;
-      case ObjectConsistentID:
-        strncpy(returnString, "ObjectConsistent", MAXEVENTLEN);
-        break;
-      case ReintegrationPendingTokensID:
-        strncpy(returnString, "ReintegrationPendingTokens", MAXEVENTLEN);
-        break;
-      case ReintegrationEnabledID:
-        strncpy(returnString, "ReintegrationEnabled", MAXEVENTLEN);
-        break;
-      case ReintegrationActiveID:
-        strncpy(returnString, "ReintegrationActive", MAXEVENTLEN);
-        break;
-      case ReintegrationCompletedID:
-        strncpy(returnString, "ReintegrationCompleted", MAXEVENTLEN);
-        break;
-      case TaskAvailabilityID:
-        strncpy(returnString, "TaskAvailable", MAXEVENTLEN);
-        break;
-      case TaskUnavailableID:
-        strncpy(returnString, "TaskUnavailable", MAXEVENTLEN);
-        break;
-      case ProgramAccessLogsID:
-	  strncpy(returnString, "ProgramAccessLogs", MAXEVENTLEN);
-	  break;
-      case ReplacementLogsID:
-	  strncpy(returnString, "ReplacementLogs", MAXEVENTLEN);
-	  break;
-      case InvokeASRID:
-        strncpy(returnString, "InvokeASR", MAXEVENTLEN);
-        break;
-      default:
-	LOG(0, ("InterestToString: Unrecognized Event ID = %d\n", (int)interest));
-	strncpy(returnString, "UnknownEventString", MAXEVENTLEN);
-  }
-
-  return(returnString);
+const char *InterestToString(InterestID interest)
+{
+    if (interest < 0 || interest >= MAXEVENTS) {
+        LOG(0, ("InterestToString: Unrecognized Event ID = %d\n", interest));
+        interest = (InterestID)MAXEVENTS; /* MAXEVENTS = "UnknownEventString" */
+    }
+    return InterestStrings[interest];
 }

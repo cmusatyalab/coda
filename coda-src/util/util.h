@@ -37,6 +37,8 @@ Pittsburgh, PA.
 
 */
 
+#include "coda_assert.h" 
+
 #ifdef __cplusplus
 extern "C" {
 #endif __cplusplus
@@ -45,7 +47,6 @@ extern "C" {
 #include <stdlib.h>
 #include <signal.h>
 #include <stdio.h>
-#include "coda_assert.h" 
 
 #ifndef IN  /* rpc2.private.h also defines these */
 /* Parameter usage */

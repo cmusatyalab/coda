@@ -169,12 +169,14 @@ typedef RPC2_Enum
 	Data = 1
 } CacheMissType;
 
+/* keep this in sync with the list in coda-src/venus/advice.cc */
 typedef RPC2_Enum
 {
 	FetchFromServers = 0,
 	CoerceToMiss = 1
 } CacheMissAdvice;
 #define MaxCacheMissAdvice 1
+/* keep this in sync with the list in coda-src/venus/advice.cc */
 
 typedef RPC2_Struct
 {

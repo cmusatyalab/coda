@@ -20,7 +20,16 @@ Coda are listed in the file CREDITS.
 
 typedef struct Pool *PPool;
 
+#ifdef __cplusplus
+extern "C" {
+#endif __cplusplus
+
 void P_Destroy(PPool *pool);
 PPool P_New(int count, int size);
 void *P_Malloc(PPool);
 void P_Free(PPool, void *);
+
+#ifdef __cplusplus
+}
+#endif __cplusplus
+

@@ -64,7 +64,6 @@ extern "C" {
 
 #include <stdio.h>
 #include <errno.h>
-#include "coda_assert.h"
 #include <sys/types.h>
 #include <sys/param.h>
 #include <netinet/in.h>
@@ -75,13 +74,14 @@ extern "C" {
 #include <stdlib.h>
 #include <prs.h>
 #include <rpc2.h>
-#include <urlquote.h>
 
 #ifdef __cplusplus
 }
 #endif __cplusplus
 
 #include <vice.h>
+#include <urlquote.h>
+#include "coda_assert.h"
 #include "repio.h"
 
 static char *eatwhite(char *), *eatnonwhite(char *);

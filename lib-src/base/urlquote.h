@@ -32,9 +32,18 @@ listed in the file CREDITS.
  * '+' = %2b
  */
 
+#ifdef __cplusplus
+extern "C" {
+#endif __cplusplus
+
 #include <sys/types.h>
 
 int quote  (char *dest, char *src, size_t n);
 int unquote(char *dest, char *src, size_t n);
+
+#ifdef __cplusplus
+}
+#endif __cplusplus
+
 
 #endif /* _URLQUOTE_H_ */

@@ -27,12 +27,19 @@ Coda are listed in the file CREDITS.
 #define CODA_ASSERT_ABORT	3
 #define CODA_ASSERT_CORE	3
 
+#ifdef __cplusplus
+extern "C" {
+#endif __cplusplus
+
 extern void (*coda_assert_cleanup)(void);
-extern int    coda_assert_action;
+extern int coda_assert_action;
 
-extern void coda_assert(char *pred, char *file, int line);
-extern void coda_note(char *pred, char *file, int line);
+void coda_assert(char *pred, char *file, int line);
+void coda_note(char *pred, char *file, int line);
 
+#ifdef __cplusplus
+}
+#endif __cplusplus
 
-#endif  /* CODA_ASSERT_H_ */
+#endif  /* _CODA_ASSERT_H_ */
 

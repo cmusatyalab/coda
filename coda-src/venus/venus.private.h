@@ -18,9 +18,8 @@ listed in the file CREDITS.
 
 
 /*
- *
- * Manifest constants for Venus, plus declarations for source files without their own headers.
- *
+ * Manifest constants for Venus, plus declarations for source files without
+ * their own headers.
  */
 
 
@@ -36,7 +35,6 @@ extern "C" {
 #include <sys/time.h>
 #include <sys/resource.h>
 #include <sys/param.h>
-#include "coda_assert.h"
 #include <ctype.h>
 #include <errno.h>
 
@@ -46,6 +44,8 @@ extern "C" {
 #ifdef __cplusplus
 }
 #endif __cplusplus
+
+#include "coda_assert.h"
 
 /* interfaces */
 #include <vice.h>

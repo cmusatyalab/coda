@@ -31,7 +31,6 @@ extern "C" {
 #endif
 
 #include <stdio.h>
-#include "coda_assert.h"
 #include <stdlib.h>
 #include "coda_string.h"
 #include <unistd.h>
@@ -49,6 +48,7 @@ extern "C" {
 #endif __cplusplus
 
 #include <util.h>
+#include "coda_assert.h"
 
 #include "proc.h"
 

@@ -56,7 +56,6 @@ extern "C" {
 #endif
 #include <unistd.h>
 #include <stdlib.h>
-#include "coda_assert.h"
 #include <lwp.h>
 #include <lock.h>
 
@@ -74,6 +73,7 @@ extern "C" {
 #include "vutil.h"
 #include "recov.h"
 #include "index.h"
+#include "coda_assert.h"
 
 
 static void CloneIndex(Volume *ovp, Volume *cvp, Volume *dvp, VnodeClass vclass);

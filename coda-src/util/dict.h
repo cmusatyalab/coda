@@ -66,13 +66,13 @@ class assocrefs_iterator;
 extern "C" {
 #endif __cplusplus
 
-#include "coda_assert.h"
 #include <stdlib.h>
 
 #ifdef __cplusplus
 }
 #endif __cplusplus
 
+#include "coda_assert.h"
 #include "dlist.h"
 
 

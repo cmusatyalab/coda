@@ -33,7 +33,6 @@ extern "C" {
 #include "coda_string.h"
 #include <unistd.h>
 #include <stdlib.h>
-#include "coda_assert.h"
 #include <netdb.h>
 #include <sys/types.h>
 #include <netinet/in.h>
@@ -44,6 +43,7 @@ extern "C" {
 #endif __cplusplus
 
 #include "vsg.h"
+#include "coda_assert.h"
 
 /* vsg.c 
  * Implementation of vsg - host ip address mapping
