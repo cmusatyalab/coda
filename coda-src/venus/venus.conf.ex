@@ -103,3 +103,16 @@ logfile=/usr/coda/venus.cache/venus.log
 # 
 marinersocket=/usr/coda/spool/mariner
 
+#
+# Map private,
+# Whether to use a private mmaping of the RVM data file instead of a
+# anonymous mmap. Using a private mmap will reduce startup times, since
+# missing pages are paged in when they are accesses. Also swap usage is
+# reduced as any unmodified pages do not have to be backed up by swap
+# memory when memory gets tight. On the other hand, private mappings are
+# still somewhat experimental and do not work when rvm data is stored on
+# a raw partition. Set to 1 to use private mappings, 0 to use anonymous
+# mappings.
+# 
+mapprivate=0
+
