@@ -63,8 +63,8 @@ Pittsburgh, PA.
 #include <netinet/in.h>
 #include <netdb.h>
 #include <errno.h>
-#include "coda_assert.h"
-#include "coda_string.h"
+#include <assert.h>
+#include <string.h>
 #include "rpc2.private.h"
 #include <rpc2/se.h>
 #include "sftp.h"
@@ -80,13 +80,13 @@ static long MakeBigEnough();
 /*---------------------------  Local macros ---------------------------*/
 #define FAIL(se, rCode)\
 	    {\
-	    if (se->openfd >= 0) sftp_vfclose(se);\
+	    sftp_vfclose(se);\
 	    return(rCode);\
 	    }
 
 #define QUIT(se, RC1, RC2)\
     se->SDesc->LocalStatus = RC1;\
-    if (se->openfd >= 0) sftp_vfclose(se);\
+    sftp_vfclose(se);\
     return(RC2);
 
 
@@ -155,16 +155,16 @@ void SFTP_Activate(initPtr)
 	SFTP_MaxPackets = initPtr->MaxPackets;
 	sftp_Port = initPtr->Port;			/* structure assignment */
 	}
-    CODA_ASSERT(SFTP_SendAhead <= 16);	/* 'cause of readv() bogosity */
+    assert(SFTP_SendAhead <= 16);	/* 'cause of readv() bogosity */
 
     /* Enlarge table by one */
     SE_DefCount++;
     size = sizeof(struct SE_Definition)*SE_DefCount;
     if (SE_DefSpecs == NULL)
 	/* The realloc() on the romp dumps core if SE_DefSpecs is NULL */
-	CODA_ASSERT((SE_DefSpecs = (struct SE_Definition *)malloc(size)) != NULL);
+	assert((SE_DefSpecs = (struct SE_Definition *)malloc(size)) != NULL);
     else
-	CODA_ASSERT((SE_DefSpecs = (struct SE_Definition *)realloc(SE_DefSpecs, size)) != NULL);
+	assert((SE_DefSpecs = (struct SE_Definition *)realloc(SE_DefSpecs, size)) != NULL);
 
     /* Add this side effect's info to last entry in table */
     sed = &SE_DefSpecs[SE_DefCount-1];
@@ -213,7 +213,7 @@ long SFTP_Bind2(IN RPC2_Handle ConnHandle, IN RPC2_Unsigned BindTime)
     struct SFTP_Entry *se;
     int retry;
 
-    CODA_ASSERT(RPC2_GetSEPointer(ConnHandle, &se) == RPC2_SUCCESS);
+    assert(RPC2_GetSEPointer(ConnHandle, &se) == RPC2_SUCCESS);
     RPC2_GetPeerInfo(ConnHandle, &se->PInfo);
     se->HostInfo = rpc2_GetHost(&se->PInfo.RemoteHost);
     if (BindTime)
@@ -236,7 +236,7 @@ long SFTP_Unbind(IN ConnHandle)
     {
     struct SFTP_Entry *se;
 
-    CODA_ASSERT(RPC2_GetSEPointer(ConnHandle, &se) == RPC2_SUCCESS);
+    assert(RPC2_GetSEPointer(ConnHandle, &se) == RPC2_SUCCESS);
     if (se) sftp_FreeSEntry(se);
     RPC2_SetSEPointer(ConnHandle, NULL);
     return(RPC2_SUCCESS);
@@ -274,7 +274,7 @@ long SFTP_MakeRPC1(IN ConnHandle, INOUT SDesc, INOUT RequestPtr)
 
     SDesc->LocalStatus = SE_SUCCESS;	/* non-execution == success */
     SDesc->RemoteStatus = SE_SUCCESS;	/* non-execution == success */
-    CODA_ASSERT(RPC2_GetSEPointer(ConnHandle, &se) == RPC2_SUCCESS);
+    assert(RPC2_GetSEPointer(ConnHandle, &se) == RPC2_SUCCESS);
     if (se->WhoAmI != SFCLIENT) FAIL(se, RPC2_SEFAIL2);
     se->ThisRPCCall = (*RequestPtr)->Header.SeqNumber;	/* remember new call has begun */
     se->SDesc = SDesc;
@@ -288,14 +288,14 @@ long SFTP_MakeRPC1(IN ConnHandle, INOUT SDesc, INOUT RequestPtr)
 	se->SendMostRecent = se->SendLastContig;
 	se->SendWorriedLimit = se->SendLastContig;
 	se->SendAckLimit = se->SendLastContig;
-	bzero(se->SendTheseBits, BITMASKWIDTH*sizeof(long));
+	memset(se->SendTheseBits, 0, BITMASKWIDTH*sizeof(long));
 	se->ReadAheadCount = 0;
 	rc = sftp_InitIO(se);
 	}
     else
 	{
 	se->RecvMostRecent = se->RecvLastContig;
-	bzero(se->RecvTheseBits, BITMASKWIDTH*sizeof(long));
+	memset(se->RecvTheseBits, 0, BITMASKWIDTH*sizeof(long));
 	rc = sftp_InitIO(se);
 	}
     if (rc < 0)
@@ -338,7 +338,7 @@ long SFTP_MakeRPC2(IN ConnHandle, INOUT SDesc, INOUT Reply)
 
     say(0, SFTP_DebugLevel, "SFTP_MakeRPC2()\n");
     
-    CODA_ASSERT(RPC2_GetSEPointer(ConnHandle, &se) == RPC2_SUCCESS);
+    assert(RPC2_GetSEPointer(ConnHandle, &se) == RPC2_SUCCESS);
 
     SDesc->LocalStatus = SDesc->RemoteStatus = SE_SUCCESS; /* tentatively */
 
@@ -362,12 +362,12 @@ long SFTP_MakeRPC2(IN ConnHandle, INOUT SDesc, INOUT Reply)
     /* Clean up local state */
     for (i = 0; i < MAXOPACKETS; i++)
 	if (se->ThesePackets[i] != NULL) SFTP_FreeBuffer(&se->ThesePackets[i]);
-    if (se->openfd >= 0) sftp_vfclose(se);
+    sftp_vfclose(se);
     se->SDesc = NULL;
     se->SendLastContig = se->SendMostRecent;
     se->RecvLastContig = se->RecvMostRecent;
-    bzero(se->SendTheseBits,sizeof(int)*BITMASKWIDTH);
-    bzero(se->RecvTheseBits,sizeof(int)*BITMASKWIDTH);
+    memset(se->SendTheseBits, 0, sizeof(int)*BITMASKWIDTH);
+    memset(se->RecvTheseBits, 0, sizeof(int)*BITMASKWIDTH);
 
     /* Determine return code */
     if (Reply == NULL) return (RPC2_SUCCESS);	/* so base RPC2 code will carry on */
@@ -395,7 +395,7 @@ long SFTP_GetRequest(RPC2_Handle ConnHandle, RPC2_PacketBuffer *Request)
 
     say(0, SFTP_DebugLevel, "SFTP_GetRequest()\n");
 
-    CODA_ASSERT (RPC2_GetSEPointer(ConnHandle, &se) == RPC2_SUCCESS &&  se != NULL);
+    assert (RPC2_GetSEPointer(ConnHandle, &se) == RPC2_SUCCESS &&  se != NULL);
     if (se->WhoAmI != SFSERVER) FAIL(se, RPC2_SEFAIL2);
     se->ThisRPCCall = Request->Header.SeqNumber;   /* acquire client's RPC call number */
 
@@ -423,7 +423,7 @@ long SFTP_GetRequest(RPC2_Handle ConnHandle, RPC2_PacketBuffer *Request)
 	    len = Request->Header.BodyLength - Request->Header.SEDataOffset;
 	    sftp_AllocPiggySDesc(se, len, CLIENTTOSERVER);
 	    se->SDesc = se->PiggySDesc;
-	    CODA_ASSERT(sftp_ExtractFileFromPacket(se, Request) >= 0);
+	    assert(sftp_ExtractFileFromPacket(se, Request) >= 0);
 	    sftp_didpiggy++;
 	    }
 	}
@@ -443,7 +443,7 @@ long SFTP_InitSE(IN ConnHandle, INOUT SDesc)
 	
     SDesc->LocalStatus = SE_NOTSTARTED;
     SDesc->RemoteStatus = SE_NOTSTARTED;
-    CODA_ASSERT (RPC2_GetSEPointer(ConnHandle, &se) == RPC2_SUCCESS &&  se != NULL);
+    assert (RPC2_GetSEPointer(ConnHandle, &se) == RPC2_SUCCESS &&  se != NULL);
     if (se->WhoAmI != SFSERVER) FAIL(se, RPC2_SEFAIL2);
     if (se->GotParms == FALSE) FAIL(se, RPC2_SEFAIL2);
     se->SDesc = SDesc;
@@ -470,7 +470,7 @@ long SFTP_CheckSE(IN ConnHandle, INOUT SDesc, IN Flags)
     say(0, SFTP_DebugLevel, "SFTP_CheckSE()\n");
 
     if (Flags == 0) return(RPC2_SUCCESS);
-    CODA_ASSERT (RPC2_GetSEPointer(ConnHandle, &se) == RPC2_SUCCESS &&  se != NULL);
+    assert (RPC2_GetSEPointer(ConnHandle, &se) == RPC2_SUCCESS &&  se != NULL);
     if (se->WhoAmI != SFSERVER) FAIL(se, RPC2_SEFAIL2);
     se->SDesc = SDesc;
     
@@ -576,7 +576,7 @@ long SFTP_SendResponse(IN ConnHandle, IN Reply)
 
     say(0, SFTP_DebugLevel, "SFTP_SendResponse()\n");
 
-    CODA_ASSERT (RPC2_GetSEPointer(ConnHandle, &se) == RPC2_SUCCESS &&  se != NULL);
+    assert (RPC2_GetSEPointer(ConnHandle, &se) == RPC2_SUCCESS &&  se != NULL);
     
     rc = RPC2_SUCCESS;
     if (se->PiggySDesc)
@@ -610,7 +610,7 @@ long SFTP_SendResponse(IN ConnHandle, IN Reply)
 	}
 
     /* clean up state */
-    if (se->openfd >= 0) sftp_vfclose(se);
+    sftp_vfclose(se);
 
     if (se->WhoAmI == ERROR)
 	{
@@ -693,7 +693,7 @@ static long GetFile(struct SFTP_Entry *sEntry)
     sEntry->HitEOF = FALSE;
     sEntry->RecvMostRecent = sEntry->RecvLastContig;
     sEntry->RecvFirst = sEntry->RecvLastContig + 1;
-    bzero(sEntry->RecvTheseBits, sizeof(int)*BITMASKWIDTH);
+    memset(sEntry->RecvTheseBits, 0, sizeof(int)*BITMASKWIDTH);
 
     ce = rpc2_GetConn(sEntry->LocalHandle);
     sEntry->TimeEcho = ce ? ce->TimeStampEcho : 0;
@@ -748,7 +748,7 @@ static long GetFile(struct SFTP_Entry *sEntry)
 	    switch((int) pb->Header.Opcode) {
 		/* punt CtrlSeqNumber consistency for now */
 	    case SFTP_NAK:
-		CODA_ASSERT(FALSE); /* my SEntry state should already be ERRORR */
+		assert(FALSE); /* my SEntry state should already be ERRORR */
 	    case SFTP_DATA:
 		goto GotData;
 
@@ -779,7 +779,7 @@ GotData:
 		QUIT(sEntry, SE_FAILURE, RPC2_SEFAIL3);
 	    }
 	    else {
-                SFTP_FreeBuffer(&pb);
+		SFTP_FreeBuffer(&pb);
 		QUIT(sEntry, SE_FAILURE, RPC2_SEFAIL2);
 	    }
 	}
@@ -813,7 +813,7 @@ static long PutFile(struct SFTP_Entry *sEntry)
     sEntry->TimeEcho = ce ? ce->TimeStampEcho : 0;
     sEntry->RequestTime = ce ? ce->RequestTime : 0;
 
-    bzero(sEntry->SendTheseBits, sizeof(int)*BITMASKWIDTH);
+    memset(sEntry->SendTheseBits, 0, sizeof(int)*BITMASKWIDTH);
 
     if (sftp_SendStrategy(sEntry) < 0)
 	{QUIT(sEntry, SE_FAILURE, RPC2_SEFAIL2);}
@@ -860,7 +860,7 @@ GotAck:
 
 	switch ((int) pb->Header.Opcode) {
 	case SFTP_NAK:
-	    CODA_ASSERT(FALSE);  /* should have already set sEntry state */
+	    assert(FALSE);  /* should have already set sEntry state */
 	    
 	case SFTP_ACK:
 	    rc = sftp_AckArrived(pb, sEntry);
@@ -893,10 +893,10 @@ static RPC2_PacketBuffer *AwaitPacket(tOut, sEntry)
     if (LWP_GetRock(SMARTFTP, (char **)&sls) != LWP_SUCCESS)
 	{
 	sls = (struct SLSlot *) malloc(sizeof(struct SLSlot));
-	bzero(sls, sizeof(struct SLSlot));
+	memset(sls, 0, sizeof(struct SLSlot));
 	sls->Magic = SSLMAGIC;
 	LWP_CurrentProcess(&sls->Owner);
-	CODA_ASSERT(LWP_NewRock(SMARTFTP, (char *)sls) == LWP_SUCCESS);
+	assert(LWP_NewRock(SMARTFTP, (char *)sls) == LWP_SUCCESS);
 	}
 
     sls->TChain = sftp_Chain;
@@ -912,10 +912,10 @@ static RPC2_PacketBuffer *AwaitPacket(tOut, sEntry)
     
 	case S_ARRIVED:	sls->State = S_INACTIVE; return(sls->Packet);
 	
-	default: CODA_ASSERT(FALSE);
+	default: assert(FALSE);
 	}
     /*NOTREACHED*/
-    CODA_ASSERT(0);
+    assert(0);
     return NULL;
     }
     
@@ -959,7 +959,7 @@ int sftp_AddPiggy(RPC2_PacketBuffer **whichP, char *dPtr, long dSize,
 	(*whichP)->Header.SEFlags |= SFTP_PIGGY;
 	}
 
-    bcopy(dPtr, (*whichP)->Body + (*whichP)->Header.BodyLength, dSize);
+    memcpy((*whichP)->Body + (*whichP)->Header.BodyLength, dPtr, dSize);
     (*whichP)->Header.BodyLength += dSize;
     (*whichP)->Prefix.LengthOfPacket = sizeof(struct RPC2_PacketHeader) +
 			    (*whichP)->Header.BodyLength;
@@ -987,7 +987,7 @@ static long MakeBigEnough(RPC2_PacketBuffer **whichP, long extraBytes,
     /* Realloc and copy */
     RPC2_AllocBuffer(extraBytes + (*whichP)->Header.BodyLength, &pb);
     pb->Header.BodyLength = (*whichP)->Header.BodyLength;
-    bcopy(&(*whichP)->Header, &pb->Header, curlen);
+    memcpy(&pb->Header, &(*whichP)->Header, curlen);
     *whichP = pb;	/* DON'T free old packet !!! */
     return(0);
 }
@@ -1023,7 +1023,7 @@ long sftp_AppendFileToPacket(struct SFTP_Entry *sEntry,
     /* enough space: append the file! */
     rc = sftp_piggybackfileread(sEntry, GlobalJunk);
     if (rc < 0) return(-1);
-    CODA_ASSERT(!sftp_AddPiggy(whichP, GlobalJunk, filelen, SFTP_MAXPACKETSIZE));
+    assert(!sftp_AddPiggy(whichP, GlobalJunk, filelen, SFTP_MAXPACKETSIZE));
     sEntry->HitEOF = TRUE;
 
     /* cleanup and quit */
@@ -1067,7 +1067,7 @@ int sftp_AppendParmsToPacket(struct SFTP_Entry *sEntry,
     sp.PacketSize = htonl(sEntry->PacketSize);
     sp.DupThreshold = htonl(sEntry->DupThreshold);
 
-    CODA_ASSERT(sftp_AddPiggy(whichP, (char *)&sp, sizeof(sp), RPC2_MAXPACKETSIZE) == 0);
+    assert(sftp_AddPiggy(whichP, (char *)&sp, sizeof(sp), RPC2_MAXPACKETSIZE) == 0);
 
     switch (sEntry->WhoAmI)
 	{
@@ -1107,7 +1107,7 @@ int sftp_ExtractParmsFromPacket(struct SFTP_Entry *sEntry,
 	    sEntry->HostInfo = rpc2_AllocHost(&sEntry->PInfo.RemoteHost);
     }
     else
-	CODA_ASSERT(sEntry->WhoAmI == SFCLIENT);
+	assert(sEntry->WhoAmI == SFCLIENT);
 
     sp.WindowSize = ntohl(sp.WindowSize);
     sp.SendAhead = ntohl(sp.SendAhead);
@@ -1146,8 +1146,8 @@ struct SFTP_Entry *sftp_AllocSEntry(void)
     {
     struct SFTP_Entry *sfp;
 
-    CODA_ASSERT((sfp = (struct SFTP_Entry *)malloc(sizeof(struct SFTP_Entry))) != NULL);
-    bzero(sfp, sizeof(struct SFTP_Entry));	/* all fields initialized to 0 */
+    assert((sfp = (struct SFTP_Entry *)malloc(sizeof(struct SFTP_Entry))) != NULL);
+    memset(sfp, 0, sizeof(struct SFTP_Entry));	/* all fields initialized to 0 */
     sfp->Magic = SFTPMAGIC;
     sfp->openfd = -1;
     sfp->fd_offset = 0;
@@ -1181,9 +1181,9 @@ void sftp_AllocPiggySDesc(struct SFTP_Entry *se, long len,
 {
     struct FileInfoByAddr *p;
 
-    CODA_ASSERT(se->PiggySDesc == NULL);	/* can't already exist */
+    assert(se->PiggySDesc == NULL);	/* can't already exist */
     se->PiggySDesc = (SE_Descriptor *)malloc(sizeof(SE_Descriptor));
-    CODA_ASSERT(se->PiggySDesc); /* malloc failure is fatal */
+    assert(se->PiggySDesc); /* malloc failure is fatal */
 
     memset(se->PiggySDesc, 0, sizeof(SE_Descriptor));
     se->PiggySDesc->Value.SmartFTPD.Tag = FILEINVM;
@@ -1197,7 +1197,7 @@ void sftp_AllocPiggySDesc(struct SFTP_Entry *se, long len,
     /* 0 length malloc()s choke; fake a 1-byte file */
     if (len == 0)  p->vmfile.SeqBody = (RPC2_ByteSeq)malloc(1);
     else p->vmfile.SeqBody = (RPC2_ByteSeq)malloc(len);
-    CODA_ASSERT(p->vmfile.SeqBody);  /* malloc failure is fatal */
+    assert(p->vmfile.SeqBody);  /* malloc failure is fatal */
     p->vmfile.MaxSeqLen = len;
     p->vmfile.SeqLen = len;
     p->vmfilep = 0;
@@ -1208,9 +1208,9 @@ void sftp_FreePiggySDesc(struct SFTP_Entry *se)
 {
     struct FileInfoByAddr *p;
 
-    CODA_ASSERT(se->PiggySDesc);  /* better not be NULL! */
+    assert(se->PiggySDesc);  /* better not be NULL! */
     p = &se->PiggySDesc->Value.SmartFTPD.FileInfo.ByAddr;
-    CODA_ASSERT(p->vmfile.SeqBody); /* better not be NULL! */
+    assert(p->vmfile.SeqBody); /* better not be NULL! */
     free(p->vmfile.SeqBody);
     free(se->PiggySDesc);
     se->PiggySDesc = NULL;
@@ -1233,7 +1233,7 @@ long SFTP_PrintSED(IN SDesc, IN outFile)
     struct SFTP_Descriptor *sftpd;
     sftpd = &SDesc->Value.SmartFTPD;
     
-    CODA_ASSERT(SDesc->Tag == SMARTFTP);	/* I shouldn't be called otherwise */
+    assert(SDesc->Tag == SMARTFTP);	/* I shouldn't be called otherwise */
 
     switch(SDesc->LocalStatus)
 	{

@@ -20,17 +20,13 @@ Coda are listed in the file CREDITS.
 extern "C" {
 #endif /* __cplusplus */
 
-#ifdef HAVE_CONFIG_H
-#include <config.h>
-#endif
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <ctype.h>
-#include "coda_string.h"
+#include <string.h>
 #include <stddef.h>
 #include <sys/param.h>
-#include "coda_assert.h"
+#include <assert.h>
 
 #define	READLINE_LIBRARY
 #include <readline/readline.h>
@@ -458,7 +454,7 @@ char *Parser_getstr(const char *prompt, const char *deft, char *res,
     int size = strlen(prompt) + strlen(deft) + 8;
     char *theprompt;
     theprompt = malloc(size);
-    CODA_ASSERT(theprompt);
+    assert(theprompt);
 
     sprintf(theprompt, "%s [%s]: ", prompt, deft);
 
@@ -487,7 +483,7 @@ int Parser_getint(const char *prompt, long min, long max, long deft, int base)
     char *line;
     int size = strlen(prompt) + 40;
     char *theprompt = malloc(size);
-    CODA_ASSERT(theprompt);
+    assert(theprompt);
     sprintf(theprompt,"%s [%ld, (0x%lx)]: ", prompt, deft, deft);
 
     fflush(stdout);
@@ -532,14 +528,14 @@ int Parser_getbool(const char *prompt, int deft)
     char *line;
     int size = strlen(prompt) + 8;
     char *theprompt = malloc(size);
-    CODA_ASSERT(theprompt);
+    assert(theprompt);
 
     fflush(stdout);
     
     if ( deft != 0 && deft != 1 ) {
 	fprintf(stderr, "Error: Parser_getbool given bad default (%d).\n",
 		deft);
-	CODA_ASSERT ( 0 );
+	assert ( 0 );
     }
     sprintf(theprompt, "%s [%s]: ", prompt, (deft==0)? "N" : "Y");
 

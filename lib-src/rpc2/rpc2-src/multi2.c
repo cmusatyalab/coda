@@ -47,12 +47,8 @@ Pittsburgh, PA.
  * routine which gets its type information from definitions in RP2GEN
  * generated include files and client side interface.  */
 
-#ifdef HAVE_CONFIG_H
-#include <config.h>
-#endif
-
 #include <stdio.h>
-#include "coda_string.h"
+#include <string.h>
 #include <sys/file.h>
 #include <sys/types.h>
 #include <sys/time.h>
@@ -60,6 +56,7 @@ Pittsburgh, PA.
 #include <errno.h>
 #include <stdarg.h>
 #include <stdlib.h>
+#include <assert.h>
 #include "rpc2.private.h"
 #include <rpc2/se.h>
 #include <rpc2/multi.h>
@@ -116,7 +113,7 @@ long MRPC_MakeMulti(int ServerOp, ARG ArgTypes[], RPC2_Integer HowMany,
     for(a_types = ArgTypes, i=0; a_types->mode != C_END; a_types++)
 	    i++;
     va_array = malloc(i * sizeof(PARM)); /* and then malloc the storage */
-    CODA_ASSERT((va_array!=0));   /* don't know better way to handle "Can't malloc" */
+    assert((va_array!=0));   /* don't know better way to handle "Can't malloc" */
     
     /* the followings are safe and standard way to get those
        variable-length arguments */
@@ -133,7 +130,7 @@ long MRPC_MakeMulti(int ServerOp, ARG ArgTypes[], RPC2_Integer HowMany,
 			    va_array[i].integerp = va_arg(ap, RPC2_Integer **);
 			    break;
 		    default:
-			    CODA_ASSERT(0);      
+			    assert(0);      
 		    }
 		    break;              /* 0: end   of case RPC2_INTEGER_TAG */
 	    case RPC2_UNSIGNED_TAG: /* 1: begin of case RPC_UNSIGNED_TAG */
@@ -146,7 +143,7 @@ long MRPC_MakeMulti(int ServerOp, ARG ArgTypes[], RPC2_Integer HowMany,
 			    va_array[i].unsgnedp = va_arg(ap, RPC2_Unsigned **);
 			    break;
 		    default:
-			    CODA_ASSERT(0);      
+			    assert(0);      
 		    }
 		    break;              /* 1: end of case RPC2_UNSIGNED_TAG */
 	    case RPC2_BYTE_TAG:	/* 2: begin of case RPC2_BYTE_TAG */
@@ -159,7 +156,7 @@ long MRPC_MakeMulti(int ServerOp, ARG ArgTypes[], RPC2_Integer HowMany,
 			    va_array[i].bytep = va_arg(ap, RPC2_Byte **);
 			    break;
 		    default:
-			    CODA_ASSERT(0);      
+			    assert(0);      
 		    }
 		    break;              /* 2: end   of case RPC2_BYTE_TAG */
 	    case RPC2_STRING_TAG:	/* 3: begin of case RPC2_STRING_TAG */
@@ -172,7 +169,7 @@ long MRPC_MakeMulti(int ServerOp, ARG ArgTypes[], RPC2_Integer HowMany,
 			    va_array[i].stringp = va_arg(ap, RPC2_String **);
 			    break;
 		    default:
-			    CODA_ASSERT(0);      
+			    assert(0);      
 		    }
 		    break;              /* 3: end   of case RPC2_STRING_TAG */
 	    case RPC2_COUNTEDBS_TAG:/* 4: begin of case RPC2_COUNTEDBS_TAG */
@@ -185,7 +182,7 @@ long MRPC_MakeMulti(int ServerOp, ARG ArgTypes[], RPC2_Integer HowMany,
 			    va_array[i].cbsp = va_arg(ap, RPC2_CountedBS **);
 			    break;
 		    default:
-			    CODA_ASSERT(0);      
+			    assert(0);      
 		    }
 		    break;              /* 4: end   of case RPC2_COUNTEDBS_TAG */
 	    case RPC2_BOUNDEDBS_TAG:/* 5: begin of case RPC2_BOUNDEDBS_TAG */
@@ -198,7 +195,7 @@ long MRPC_MakeMulti(int ServerOp, ARG ArgTypes[], RPC2_Integer HowMany,
 			    va_array[i].bbsp = va_arg(ap, RPC2_BoundedBS **);
 			    break;
 		    default:
-			    CODA_ASSERT(0);      
+			    assert(0);      
 		    }
 		    break;              /* 5: end   of case RPC2_BOUNDEDBS_TAG */
 	    case RPC2_BULKDESCRIPTOR_TAG: /* 6: begin of case RPC2_BULKDESCRIPTOR_TAG */
@@ -210,7 +207,7 @@ long MRPC_MakeMulti(int ServerOp, ARG ArgTypes[], RPC2_Integer HowMany,
 			    va_array[i].bd = va_arg(ap, long *); 
 			    break;
 		    default:
-			    CODA_ASSERT(0);      
+			    assert(0);      
 		    }
 		    break;                    /* 6: end   of case RPC2_BULKDESCRIPTOR_TAG */
 	    case RPC2_ENCRYPTIONKEY_TAG:  /* 7: begin of case RPC2_ENCRYPTIONKEY_TAG */
@@ -223,7 +220,7 @@ long MRPC_MakeMulti(int ServerOp, ARG ArgTypes[], RPC2_Integer HowMany,
 			    va_array[i].keyp = va_arg(ap, RPC2_EncryptionKey **);
 			    break;
 		    default:
-			    CODA_ASSERT(0);      
+			    assert(0);      
 		    }
 		    break;                    /* 7: end   of case RPC2_ENCRYPTIONKEY_TAG */
 	    case RPC2_STRUCT_TAG:	/* 8: begin of case RPC2_STRUCT_TAG */
@@ -236,7 +233,7 @@ long MRPC_MakeMulti(int ServerOp, ARG ArgTypes[], RPC2_Integer HowMany,
 			    va_array[i].structpp = va_arg(ap, union PARM **);
 			    break;
 		    default:
-			    CODA_ASSERT(0);      
+			    assert(0);      
 		    }
 		    break;              /* 8: end   of case RPC2_STRUCT_TAG */
 	    case RPC2_ENUM_TAG:	/* 9: begin of case RPC2_ENUM_TAG */
@@ -249,11 +246,11 @@ long MRPC_MakeMulti(int ServerOp, ARG ArgTypes[], RPC2_Integer HowMany,
 			    va_array[i].integerp = va_arg(ap, RPC2_Integer **);
 			    break;
 		    default:
-			    CODA_ASSERT(0);      
+			    assert(0);      
 		    }
 		    break;              /* 9: end   of case RPC2_ENUM_TAG */
 	    default:
-		    CODA_ASSERT(0);
+		    assert(0);
 	    } /* end of switch on a_types */
     } /* end of stepping thru the list of variable-length arguments */
     va_end(ap);
@@ -664,7 +661,7 @@ long MRPC_UnpackMulti(int HowMany, RPC2_Handle ConnHandleList[],
 			}
 			else unpack(a_types, args, &_ptr, offset);
 			break;
-		default:	CODA_ASSERT(FALSE);
+		default:	assert(FALSE);
 	    }
 	  }
        }

@@ -20,10 +20,9 @@ listed in the file CREDITS.
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netdb.h>
-#include "coda_assert.h"
+#include <assert.h>
 #include "ports.h"
 #include "filtutil.h"
-
 
 
 /* Maintain state of currently open connection, if there is one */
@@ -82,7 +81,7 @@ void create_filter(filter_type type, FailFilter **filter)
     return;
 
   if (*filter = (FailFilter *)malloc(sizeof(FailFilter)))
-    bcopy(&filter_templates[type], *filter, sizeof(FailFilter));
+    memcpy(*filter, &filter_templates[type], sizeof(FailFilter));
 }
 
 /* Frees up the memory associated with a filter made by create_filter */
@@ -155,7 +154,7 @@ int match_filters(FailFilter *input, int insize, target_t match,
   for (i = 0; i < insize; i++) {
     if ((input[i].ip1 == ip1) && (input[i].ip2 == ip2) &&
 	(input[i].ip3 == ip3) && (input[i].ip4 == ip4)) {
-      bcopy(&input[i], output[*outsize], sizeof(FailFilter));
+      memcpy(output[*outsize], &input[i], sizeof(FailFilter));
       *outsize = *outsize + 1;
     }
   }
@@ -327,8 +326,8 @@ int get_targ_pair(int argc, char **argv, target_t *target1, target_t *target2)
   get_targets(argc, argv, &targets, &num_targets);
 
   if (num_targets == 2) {
-    bcopy(&targets[0], target1, sizeof(target_t));
-    bcopy(&targets[1], target2, sizeof(target_t));
+    memcpy(target1, &targets[0], sizeof(target_t));
+    memcpy(target2, &targets[1], sizeof(target_t));
     return 0;
   } else {
     printf("%s only works with two hosts.\n", argv[0]);
@@ -371,7 +370,7 @@ void InitRPC()
   PROCESS mylpid;
   int rc;
 
-  CODA_ASSERT(LWP_Init(LWP_VERSION, LWP_NORMAL_PRIORITY, &mylpid) == LWP_SUCCESS);
+  assert(LWP_Init(LWP_VERSION, LWP_NORMAL_PRIORITY, &mylpid) == LWP_SUCCESS);
 
   rc = RPC2_Init(RPC2_VERSION, 0, NULL,  -1, NULL);
   if (rc == RPC2_SUCCESS) return;

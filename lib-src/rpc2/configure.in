@@ -3,7 +3,7 @@ dnl Process this file with autoconf to produce a configure script
 dnl Initialization
 AC_INIT(rpc2-src/rpc2.private.h)
 CODA_SETUP_BUILD
-AM_INIT_AUTOMAKE(rpc2, 1.0)
+AM_INIT_AUTOMAKE(rpc2, 1.1)
 AM_CONFIG_HEADER(config.h)
 
 CODA_OPTION_LWP
@@ -29,6 +29,7 @@ CODA_CHECK_LIBTERMCAP
 AC_CHECK_LIB(readline, main, [LIBREADLINE=-lreadline], [], [${LIBTERMCAP}])
 AC_SUBST(LIBREADLINE)
 AC_SEARCH_LIBS(inet_ntoa, nsl)
+AC_SEARCH_LIBS(socket, socket)
 
 dnl For playing with the _pt version...
 if test ${with_LWP_PT}p = nop ; then
@@ -49,8 +50,7 @@ dnl Checks for typedefs.
 dnl Checks for compiler characteristics.
 
 dnl Checks for library functions.
-AC_CHECK_FUNCS(strerror inet_aton inet_ntoa)
-CODA_CHECK_BCOPY
+AC_CHECK_FUNCS(inet_aton inet_ntoa ffs)
 
 dnl Checks for system services.
 AC_CYGWIN

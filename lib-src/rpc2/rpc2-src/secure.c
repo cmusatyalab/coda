@@ -43,6 +43,7 @@ Pittsburgh, PA.
 #include <sys/types.h>
 #include <netinet/in.h>
 #include <sys/time.h>
+#include <assert.h>
 #include "rpc2.private.h"
 
 /* NOTE:
@@ -81,7 +82,7 @@ void rpc2_Encrypt(IN FromBuffer, OUT ToBuffer, IN HowManyBytes, IN WhichKey, IN 
     unsigned char *p, *q, *r, *s;
     long i;
     
-    CODA_ASSERT(EncryptionType == RPC2_XOR);	/* for now */
+    assert(EncryptionType == RPC2_XOR);	/* for now */
     
     p = (unsigned char *)FromBuffer;		/* ptr to next input char */
     q = (unsigned char *)WhichKey;		/* ptr to next key char */
@@ -103,7 +104,7 @@ void rpc2_Decrypt(IN FromBuffer, OUT ToBuffer,  IN HowManyBytes, IN WhichKey, IN
     int EncryptionType;
 
     {
-    CODA_ASSERT(EncryptionType == RPC2_XOR);
+    assert(EncryptionType == RPC2_XOR);
     rpc2_Encrypt(FromBuffer, ToBuffer, HowManyBytes, WhichKey, EncryptionType);
     }
 

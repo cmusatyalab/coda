@@ -62,7 +62,7 @@ char *copy(s)
     len = strlen(s) + 1;
     new = (char *) malloc(len);
     if (new == NIL) no_storage("copy");
-    bcopy(s, new, len);
+    memcpy(new, s, len);
     return new;
 }
 
@@ -234,8 +234,8 @@ char *concat(s1, s2)
     len2 = strlen(s2);
     new = malloc(len1+len2+1);
     if (new == NIL) no_storage("concat");
-    bcopy(s1, new, len1);
-    bcopy(s2, new+len1, len2);
+    memcpy(new, s1, len1);
+    memcpy(new+len1, s2, len2);
     new[len1+len2] = '\0';
     return new;
 }
@@ -277,7 +277,7 @@ char *coda_rp2_basename(name)
     }
     base = malloc(len+1);
     if (base == NIL) no_storage("basename");
-    bcopy(l+1, base, len);
+    memcpy(base, l+1, len);
     base[len] = '\0';
     return base;
 }

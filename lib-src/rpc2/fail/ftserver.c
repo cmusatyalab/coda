@@ -16,22 +16,15 @@ listed in the file CREDITS.
 
 #*/
 
-
-
-
-
 /* 
  * server to do file transfers.
  * uses speed part of failure package.
  * -- L. Mummert 3/92
  */
-#ifdef HAVE_CONFIG_H
-#include <config.h>
-#endif
 
 #include <stdio.h>
-#include "coda_string.h"
-#include "coda_assert.h"
+#include <string.h>
+#include <assert.h>
 #include <signal.h>
 #include <sys/time.h>
 #include <sys/types.h>
@@ -213,7 +206,7 @@ InitRPC()
 	RPC2_PortalIdent portalid, *portallist[1];
 	RPC2_SubsysIdent subsysid;
 
-	CODA_ASSERT(LWP_Init(LWP_VERSION, LWP_NORMAL_PRIORITY, &mylpid) == LWP_SUCCESS);
+	assert(LWP_Init(LWP_VERSION, LWP_NORMAL_PRIORITY, &mylpid) == LWP_SUCCESS);
 
 	portalid.Tag = RPC2_PORTALBYINETNUMBER;
 	portalid.Value.InetPortNumber = htons(FTPORTAL);
@@ -228,7 +221,7 @@ InitRPC()
 	}
 	subsysid.Tag = RPC2_SUBSYSBYID;
 	subsysid.Value.SubsysId = FTSUBSYSID;
-	CODA_ASSERT(RPC2_Export(&subsysid) == RPC2_SUCCESS);
+	assert(RPC2_Export(&subsysid) == RPC2_SUCCESS);
 }
 
 iopen(int dummy1, int dummy2, int dummy3){}

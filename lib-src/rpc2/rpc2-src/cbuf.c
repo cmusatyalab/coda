@@ -37,16 +37,11 @@ Pittsburgh, PA.
 
 */
 
-
-#ifdef HAVE_CONFIG_H
-#include <config.h>
-#endif
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
 #include <sys/time.h>
-#include "coda_string.h"
+#include <string.h>
 #include "cbuf.h"
 #include "rpc2.private.h"
 

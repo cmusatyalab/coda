@@ -24,15 +24,10 @@ listed in the file CREDITS.
   Walter Smith
  */
 
-#ifdef HAVE_CONFIG_H
-#include <config.h>
-#endif
-
-#include "coda_assert.h"
 #include <sys/param.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include "coda_string.h"
+#include <string.h>
 #include <ctype.h>
 #include <netdb.h>
 #include <sys/socket.h>

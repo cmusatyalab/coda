@@ -94,7 +94,7 @@ main(argc, argv)
     tint = blue;
     bs.SeqLen = 10;
     bs.SeqBody = (RPC2_Byte *) malloc(10);
-    bcopy("0123456789", bs.SeqBody, 10);
+    memcpy(bs.SeqBody, "0123456789", 10);
     printf("Calling proc3(%d, ", cid);
     pbbs(&bbs);
     printf(", %s, \"%s\", ", colors[(int) tint], name);

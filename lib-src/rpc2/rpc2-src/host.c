@@ -49,7 +49,8 @@ Pittsburgh, PA.
 #include <netinet/in.h>
 #include <sys/time.h>
 #include <unistd.h>
-#include "coda_string.h"
+#include <assert.h>
+#include <string.h>
 #include "rpc2.private.h"
 
 
@@ -86,7 +87,7 @@ static struct HEntry **HostHashTable;	/* malloc'ed hash table static size */
 void rpc2_InitHost()
 {
 	HostHashTable = (struct HEntry **)malloc(HOSTHASHBUCKETS*sizeof(struct HEntry *));
-	CODA_ASSERT(HostHashTable != 0);
+	assert(HostHashTable != 0);
 	memset(HostHashTable, 0, HOSTHASHBUCKETS*sizeof(struct HEntry *));	
 }
 
@@ -116,7 +117,7 @@ struct HEntry *rpc2_GetHost(RPC2_HostIdent *host)
 {
 	struct HEntry *he;
 	he = rpc2_FindHEAddr(&host->Value.InetAddress);
-	CODA_ASSERT(!he || he->MagicNumber == OBJ_HENTRY);
+	assert(!he || he->MagicNumber == OBJ_HENTRY);
 	return(he);
 }
 
@@ -136,7 +137,7 @@ struct HEntry *rpc2_AllocHost(RPC2_HostIdent *host)
 					     (struct HEntry *)NULL,
 					     &rpc2_HostFreeCount,
 					     &rpc2_HostCount);
-	CODA_ASSERT (he->MagicNumber == OBJ_HENTRY);
+	assert (he->MagicNumber == OBJ_HENTRY);
 
 	/* Initialize */
 	he->Host.s_addr = host->Value.InetAddress.s_addr;
@@ -166,7 +167,7 @@ void rpc2_FreeHost(struct HEntry **whichHost)
 	long bucket;
 	struct HEntry **link;
 	
-	CODA_ASSERT((*whichHost)->MagicNumber == OBJ_HENTRY);
+	assert((*whichHost)->MagicNumber == OBJ_HENTRY);
 	rpc2_MoveEntry((struct LinkEntry **)&rpc2_HostList,
 		       (struct LinkEntry **)&rpc2_HostFreeList,
 		       (struct LinkEntry *)*whichHost,
@@ -193,7 +194,7 @@ void rpc2_GetHostLog(struct HEntry *whichHost, RPC2_NetLog *log,
 	RPC2_NetLogEntry  *Log;
 	unsigned int  NumEntries;
 	
-	CODA_ASSERT(whichHost->MagicNumber == OBJ_HENTRY);
+	assert(whichHost->MagicNumber == OBJ_HENTRY);
 
 	if (type == RPC2_MEASUREMENT) {
 	    Log = whichHost->RPC2_Log;
@@ -252,7 +253,7 @@ int rpc2_AppendHostLog(struct HEntry *whichHost, RPC2_NetLogEntry *entry,
 	RPC2_NetLogEntry *Log;
 	unsigned int *NumEntries;
 
-	CODA_ASSERT(whichHost->MagicNumber == OBJ_HENTRY);
+	assert(whichHost->MagicNumber == OBJ_HENTRY);
 	
 	if (!GOOD_NLE(entry)) 
 		return(0);
@@ -279,7 +280,7 @@ int rpc2_AppendHostLog(struct HEntry *whichHost, RPC2_NetLogEntry *entry,
 /* clear the log */
 void rpc2_ClearHostLog(struct HEntry *whichHost, NetLogEntryType type)
 {
-	CODA_ASSERT(whichHost->MagicNumber == OBJ_HENTRY);
+	assert(whichHost->MagicNumber == OBJ_HENTRY);
 
 	if (type == RPC2_MEASUREMENT) {
 	    whichHost->RPC2_NumEntries = 0;

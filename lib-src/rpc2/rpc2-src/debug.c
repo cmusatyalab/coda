@@ -43,6 +43,7 @@ Pittsburgh, PA.
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <sys/time.h>
+#include <assert.h>
 #include "rpc2.private.h"
 #include <rpc2/se.h>
 #include "trace.h"
@@ -390,7 +391,7 @@ void rpc2_PrintSubsysIdent(RPC2_SubsysIdent *Subsys, FILE *tFile)
     switch(Subsys->Tag) {
 	case RPC2_SUBSYSBYNAME:
 		say(-1, RPC2_DebugLevel, "Someone is still trying to use obsoleted RPC2_SUBSYSBYNAME\n");
-		CODA_ASSERT(0);
+		assert(0);
 		break;
 			
 	case RPC2_SUBSYSBYID:
@@ -399,7 +400,7 @@ void rpc2_PrintSubsysIdent(RPC2_SubsysIdent *Subsys, FILE *tFile)
 			
 	default:
 		say(-1, RPC2_DebugLevel, "BOGUS Tag value in Subsys!\n");
-		CODA_ASSERT(0);
+		assert(0);
     }
 }
 

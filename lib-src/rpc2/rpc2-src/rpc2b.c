@@ -44,7 +44,7 @@ Pittsburgh, PA.
 
 #include <stdio.h>
 #include <unistd.h>
-#include "coda_string.h"
+#include <string.h>
 #include <sys/types.h>
 #include <sys/socket.h>
 #ifdef HAVE_SYS_STREAM_H
@@ -57,6 +57,7 @@ Pittsburgh, PA.
 #include <netdb.h>
 #include <sys/time.h>
 #include <errno.h>
+#include <assert.h>
 #include <sys/file.h>
 #include "rpc2.private.h"
 #include <rpc2/se.h>
@@ -192,7 +193,7 @@ long RPC2_Export(IN Subsys)
 	
 	case RPC2_SUBSYSBYNAME:
 		say(0, RPC2_DebugLevel, "RPC2_Export: obsolete SUBSYSBYNAME used!\n");
-		CODA_ASSERT(0);
+		assert(0);
 	    break;
 
 	default: rpc2_Quit(RPC2_FAIL);
@@ -234,7 +235,7 @@ long RPC2_DeExport(IN Subsys)
 	
 	case RPC2_SUBSYSBYNAME:
 		say(0, RPC2_DebugLevel, "RPC2_Export: obsolete SUBSYSBYNAME used!\n");
-		CODA_ASSERT(0);
+		assert(0);
 
 	    break;
 
@@ -258,12 +259,12 @@ static RPC2_PacketBuffer *Gimme(long size, RPC2_PacketBuffer **flist,
 	
 	if (*flist== NULL)	{
 		rpc2_Replenish(flist, count, size, creacount, OBJ_PACKETBUFFER);
-		CODA_ASSERT(*flist);
+		assert(*flist);
 		(*flist)->Prefix.BufferSize = size;
 	}
 	pb = (RPC2_PacketBuffer *) rpc2_MoveEntry(flist, &rpc2_PBList, NULL, 
 						  count, &rpc2_PBCount);
-	CODA_ASSERT(pb->Prefix.Qname == &rpc2_PBList);
+	assert(pb->Prefix.Qname == &rpc2_PBList);
 	return(pb);
 }
 
@@ -304,10 +305,10 @@ long rpc2_AllocBuffer(IN long MinBodySize, OUT RPC2_PacketBuffer **BuffPtr,
 		return(0);
 
 	*BuffPtr = GetPacket(thissize);
-	CODA_ASSERT(*BuffPtr);
-	CODA_ASSERT((*BuffPtr)->Prefix.MagicNumber == OBJ_PACKETBUFFER);
+	assert(*BuffPtr);
+	assert((*BuffPtr)->Prefix.MagicNumber == OBJ_PACKETBUFFER);
 
-	bzero(&(*BuffPtr)->Header, sizeof(struct RPC2_PacketHeader));
+	memset(&(*BuffPtr)->Header, 0, sizeof(struct RPC2_PacketHeader));
 	(*BuffPtr)->Header.BodyLength = MinBodySize;
 
 #ifdef RPC2DEBUG
@@ -328,8 +329,8 @@ long RPC2_FreeBuffer(INOUT BuffPtr)
     long *tocount = NULL;
 
     rpc2_Enter();
-    CODA_ASSERT(BuffPtr != NULL && *BuffPtr != NULL);
-    CODA_ASSERT((*BuffPtr)->Prefix.MagicNumber == OBJ_PACKETBUFFER);
+    assert(BuffPtr != NULL && *BuffPtr != NULL);
+    assert((*BuffPtr)->Prefix.MagicNumber == OBJ_PACKETBUFFER);
 
     switch((int) (*BuffPtr)->Prefix.BufferSize)
 	{
@@ -348,9 +349,9 @@ long RPC2_FreeBuffer(INOUT BuffPtr)
 		tocount = &rpc2_PBLargeFreeCount;
 		break;
 	
-	default:    CODA_ASSERT(FALSE);
+	default:    assert(FALSE);
 	}
-    CODA_ASSERT((*BuffPtr)->Prefix.Qname == &rpc2_PBList);
+    assert((*BuffPtr)->Prefix.Qname == &rpc2_PBList);
     rpc2_MoveEntry(&rpc2_PBList, tolist, *BuffPtr, &rpc2_PBCount, tocount);
     *BuffPtr = NULL;
     rpc2_Quit(RPC2_SUCCESS);
@@ -499,7 +500,7 @@ long RPC2_GetPeerInfo(IN ConnHandle, OUT PeerInfo)
     PeerInfo->RemoteHandle = ceaddr->PeerHandle;
     PeerInfo->SecurityLevel = ceaddr->SecurityLevel;
     PeerInfo->EncryptionType = ceaddr->EncryptionType;
-    bcopy(ceaddr->SessionKey, PeerInfo->SessionKey, RPC2_KEYSIZE);
+    memcpy(PeerInfo->SessionKey, ceaddr->SessionKey, RPC2_KEYSIZE);
     PeerInfo->Uniquefier = ceaddr->PeerUnique;
     rpc2_Quit(RPC2_SUCCESS);
     }
@@ -528,7 +529,7 @@ long RPC2_InitTraceBuffer(IN ecount)
 #ifdef RPC2DEBUG
     if (rpc2_TraceBuffHeader) CBUF_Free(&rpc2_TraceBuffHeader);
     rpc2_TraceBuffHeader = CBUF_Init(sizeof(struct TraceElem), ecount, "RPC2 Trace Buffer");
-    CODA_ASSERT (rpc2_TraceBuffHeader != NULL);
+    assert (rpc2_TraceBuffHeader != NULL);
     return(RPC2_SUCCESS);
 #else
     return(RPC2_SUCCESS);
@@ -856,7 +857,7 @@ long rpc2_CreateIPSocket(long *svar, RPC2_PortIdent *pvar)
 	}
 #endif
 	/* set host address for bind() */
-	bzero(&bindaddr, sizeof(bindaddr));
+	memset(&bindaddr, 0, sizeof(bindaddr));
 	bindaddr.sin_family = AF_INET;
 	bindaddr.sin_addr = rpc2_bindaddr;
 					
@@ -889,7 +890,7 @@ long rpc2_CreateIPSocket(long *svar, RPC2_PortIdent *pvar)
 	}
 
 	/* Retrieve fully resolved socket address */
-	CODA_ASSERT(pvar->Tag != RPC2_DUMMYPORT);
+	assert(pvar->Tag != RPC2_DUMMYPORT);
 
         blen = sizeof(bindaddr);
         if (getsockname(*svar, (struct sockaddr *)&bindaddr, &blen) < 0) 

@@ -23,11 +23,7 @@ listed in the file CREDITS.
 
  */
 
-#ifdef HAVE_CONFIG_H
-#include <config.h>
-#endif
-
-#include "coda_string.h"
+#include <string.h>
 #include <stdlib.h>
 #include <sys/types.h>
 #include <netinet/in.h>
@@ -176,10 +172,9 @@ FailFilter *filter;
 					  numFilters[(int)side] * sizeof(int));
     
     if (which < numFilters[(int)side]) {
-	/* Little known fact that bcopy checks for this sort of thing */
-	bcopy(&theFilters[(int)side][which], &theFilters[(int)side][which+1],
+	memmove(&theFilters[(int)side][which+1], &theFilters[(int)side][which],
 	      (numFilters[(int)side] - which - 1) * sizeof(FailFilter));
-	bcopy(&theQueues[(int)side][which], &theQueues[(int)side][which+1],
+	memmove(&theQueues[(int)side][which+1], &theQueues[(int)side][which],
 	      (numFilters[(int)side] - which - 1) * sizeof(int));
     }
     theFilters[(int)side][which] = *filter;
@@ -215,14 +210,13 @@ int id;
     if (which < 0 || which >= numFilters[(int)side])
 	return -1;
 
-
-    /* DCS -- is this if statement necessary? I don't think so. */
     if (which < numFilters[(int)side] - 1) {
-	bcopy(&theFilters[(int)side][which+1], &theFilters[(int)side][which],
+	memmove(&theFilters[(int)side][which], &theFilters[(int)side][which+1],
 	      (numFilters[(int)side] - which - 1) * sizeof(FailFilter));
-	bcopy(&theQueues[(int)side][which+1], &theQueues[(int)side][which],
+	memmove(&theQueues[(int)side][which], &theQueues[(int)side][which+1],
 	      (numFilters[(int)side] - which - 1) * sizeof(int));
     }
+
     numFilters[(int)side]--;
     theFilters[(int)side] =
 	(FailFilter *) realloc(theFilters[(int)side],
@@ -357,7 +351,7 @@ RPC2_BoundedBS *filters;
     if (filters->MaxSeqLen < ourlen)
 	return -1;
     filters->SeqLen = ourlen;
-    bcopy(theFilters[(int)side], filters->SeqBody, ourlen);
+    memcpy(filters->SeqBody, theFilters[(int)side], ourlen);
     for (i = 0; i < numFilters[(int)side]; i++) {
 	ff = (FailFilter *)&(filters->SeqBody[i * sizeof(FailFilter)]);
 	htonFF(ff);

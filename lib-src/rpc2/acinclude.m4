@@ -113,18 +113,3 @@ AC_DEFUN(CODA_CHECK_LIBTERMCAP,
   AC_SEARCH_LIBS(tgetent, [ncurses termcap], [LIBTERMCAP=${LIBS}])
   LIBS=${saved_LIBS}])
 
-dnl ---------------------------------------------
-dnl Check whether bcopy is defined in strings.h
-
-AC_DEFUN(CODA_CHECK_BCOPY, 
-  AC_CACHE_CHECK(for bcopy in strings.h,
-    fu_cv_lib_c_bcopy,  
-    [AC_TRY_COMPILE([#include <stdlib.h>
-#include <strings.h>], 
-      [ char *str; str = (char *) malloc(5); (void) bcopy("test", str, 5);],
-      fu_cv_lib_c_bcopy=yes,
-      fu_cv_lib_c_bcopy=no)])
-  if test $fu_cv_lib_c_bcopy = yes; then
-    AC_DEFINE(HAVE_BCOPY_IN_STRINGS_H)
-  fi)
-

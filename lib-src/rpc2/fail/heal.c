@@ -16,19 +16,10 @@ listed in the file CREDITS.
 
 #*/
 
-
-
-
-
-
-#ifdef HAVE_CONFIG_H
-#include <config.h>
-#endif
-
-#include "coda_assert.h"
+#include <assert.h>
 #include <stdio.h>
 #include <sys/types.h>
-#include "coda_string.h"
+#include <string.h>
 #include <ctype.h>
 #include <netdb.h>
 #include <sys/socket.h>
@@ -119,7 +110,7 @@ int heal(int argc, char ** argv)
 	    for (j = 0; j < rc; j++) 
 		ntohFF(&filters[j]);
 	    he2 = gethostbyname(host2);
-	    CODA_ASSERT(he2);
+	    assert(he2);
 	    for (j = 0; j < rc; j++) {
 		/* if filter matches then  remove it */
 		int code;
@@ -152,7 +143,7 @@ int heal(int argc, char ** argv)
 	    for (j = 0; j < rc; j++) 
 		ntohFF(&filters[j]);
 	    he1 = gethostbyname(host1);
-	    CODA_ASSERT(he1);
+	    assert(he1);
 	    for (j = 0; j < rc; j++) {
 		/* if filter matches then  remove it */
 		int code;

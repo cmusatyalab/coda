@@ -37,19 +37,16 @@ Pittsburgh, PA.
 
 */
 
-#ifdef HAVE_CONFIG_H
-#include <config.h>
-#endif
-
 #include <stdio.h>
 #include <unistd.h>
-#include "coda_string.h"
+#include <string.h>
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <netdb.h>
 #include <sys/time.h>
 #include <errno.h>
+#include <assert.h>
 #include <lwp/lwp.h>
 #include <lwp/timer.h>
 #include <rpc2/rpc2.h>
@@ -138,7 +135,7 @@ static void rpc2_StampPacket(struct CEntry *ce, struct RPC2_PacketBuffer *pb)
 {
     unsigned int delta;
     
-    CODA_ASSERT(ce->RequestTime);
+    assert(ce->RequestTime);
 
     delta = TSDELTA(rpc2_MakeTimeStamp(), ce->RequestTime);
     pb->Header.TimeStamp = (unsigned int)ce->TimeStampEcho + delta;
@@ -157,7 +154,7 @@ long RPC2_SendResponse(IN ConnHandle, IN Reply)
 
     rpc2_Enter();
     say(0, RPC2_DebugLevel, "RPC2_SendResponse()\n");
-    CODA_ASSERT(Reply->Prefix.MagicNumber == OBJ_PACKETBUFFER);
+    assert(Reply->Prefix.MagicNumber == OBJ_PACKETBUFFER);
 
 #ifdef RPC2DEBUG
     TR_SENDRESPONSE();
@@ -207,7 +204,7 @@ long RPC2_SendResponse(IN ConnHandle, IN Reply)
     rpc2_XmitPacket(rpc2_RequestSocket, preply, &ceaddr->PeerHost, &ceaddr->PeerPort);
 
     /* Save reply for retransmission */
-    bcopy(&preply->Header, &pretry->Header, preply->Prefix.LengthOfPacket);
+    memcpy(&pretry->Header, &preply->Header, preply->Prefix.LengthOfPacket);
     pretry->Prefix.LengthOfPacket = preply->Prefix.LengthOfPacket;
     SavePacketForRetry(pretry, ceaddr);
     
@@ -262,7 +259,7 @@ long RPC2_GetRequest(IN RPC2_RequestFilter *Filter,
 	if (!TestState(ce, SERVER, S_STARTBIND)) {
 		SetState(ce, S_PROCESS);
 		if (IsMulticast(pb)) {
-			CODA_ASSERT(ce->Mgrp != NULL);
+			assert(ce->Mgrp != NULL);
 			SetState(ce->Mgrp, S_PROCESS);
 		}
 	}
@@ -370,7 +367,7 @@ long RPC2_MakeRPC(RPC2_Handle ConnHandle, RPC2_PacketBuffer *Request,
 #endif RPC2DEBUG
 
     /* Perform sanity checks */
-    CODA_ASSERT(Request->Prefix.MagicNumber == OBJ_PACKETBUFFER);
+    assert(Request->Prefix.MagicNumber == OBJ_PACKETBUFFER);
     
     /* Zero out reply pointer */
     *Reply = NULL;
@@ -444,7 +441,7 @@ long RPC2_MakeRPC(RPC2_Handle ConnHandle, RPC2_PacketBuffer *Request,
 				finalrc = RPC2_TIMEOUT;
 				goto QuitMRPC;
 
-	default:		CODA_ASSERT(FALSE);
+	default:		assert(FALSE);
 	}
 
     
@@ -479,7 +476,7 @@ long RPC2_MakeRPC(RPC2_Handle ConnHandle, RPC2_PacketBuffer *Request,
 		rc = RPC2_NAKED;
 		break;
 
-	default: CODA_ASSERT(FALSE);
+	default: assert(FALSE);
 	}
 
     /* At this point, if rc == RPC2_SUCCESS, the final reply has been received.
@@ -672,9 +669,9 @@ long RPC2_NewBinding(IN RPC2_HostIdent *Host, IN RPC2_PortIdent *Port,
 	{
 	ib->FakeBody.ClientIdent.SeqLen = htonl(Bparms->ClientIdent->SeqLen);
 	ib->FakeBody.ClientIdent.SeqBody = ib->Text;    /* not really meaningful: this is pointer has to be reset on other side */
-	bcopy(Bparms->ClientIdent->SeqBody, ib->Text, Bparms->ClientIdent->SeqLen);
+	memcpy(ib->Text, Bparms->ClientIdent->SeqBody, Bparms->ClientIdent->SeqLen);
 	}
-    CODA_ASSERT(sizeof(RPC2_VERSION) < sizeof(ib->Version));
+    assert(sizeof(RPC2_VERSION) < sizeof(ib->Version));
     (void) strcpy(ib->Version, RPC2_VERSION);
 
     rpc2_htonp(pb);	/* convert header to network order */
@@ -718,7 +715,7 @@ long RPC2_NewBinding(IN RPC2_HostIdent *Host, IN RPC2_PortIdent *Port,
 		DROPCONN();
 		rpc2_Quit(rc);
 		
-	default:	CODA_ASSERT(FALSE);
+	default:	assert(FALSE);
 	}
 
     /* At this point, pb points to the Init2 packet */
@@ -799,7 +796,7 @@ long RPC2_NewBinding(IN RPC2_HostIdent *Host, IN RPC2_PortIdent *Port,
 		DROPCONN();
 		rpc2_Quit(RPC2_NOBINDING);
 		
-	default: CODA_ASSERT(FALSE);
+	default: assert(FALSE);
 	}
 
     /* Step5: Verify Init4 packet; pb points to it. */
@@ -824,7 +821,7 @@ long RPC2_NewBinding(IN RPC2_HostIdent *Host, IN RPC2_PortIdent *Port,
        rpc2_Quit(RPC2_NOTAUTHENTICATED);
     }
     ce->NextSeqNumber = ntohl(ib4->InitialSeqNumber);
-    bcopy(ib4->SessionKey, ce->SessionKey, sizeof(RPC2_EncryptionKey));
+    memcpy(ce->SessionKey, ib4->SessionKey, sizeof(RPC2_EncryptionKey));
     RPC2_FreeBuffer(&pb);	/* Release Init4 Packet */
 
     /* The security handshake is now over */
@@ -994,7 +991,7 @@ static int ResolveBindParms(IN whichConn, IN whichHost, IN whichPort, IN whichSu
 		       hentry->h_length); /* Already in network byte order */
 	    break;
 
-	default:  CODA_ASSERT(FALSE);
+	default:  assert(FALSE);
 	}
     
     /* Resolve port */
@@ -1014,14 +1011,14 @@ static int ResolveBindParms(IN whichConn, IN whichHost, IN whichPort, IN whichSu
 		}
 	    else
 		{
-		bcopy(&sentry->s_port, &whichConn->PeerPort.Value.InetPortNumber, sizeof(short));
+		memcpy(&whichConn->PeerPort.Value.InetPortNumber, &sentry->s_port, sizeof(short));
 		/* ghastly, but true: s_port is in network order, but stored
 		 * as a 2-byte byte string in a 4-byte field */
 		}
 	    whichConn->PeerPort.Tag = RPC2_PORTBYINETNUMBER;
 	    break;
 
-	default:  CODA_ASSERT(FALSE);
+	default:  assert(FALSE);
 	}
 
     /* Obtain subsys id if necessary */
@@ -1033,7 +1030,7 @@ static int ResolveBindParms(IN whichConn, IN whichHost, IN whichPort, IN whichSu
 
 	case RPC2_SUBSYSBYNAME:
 		say(-1, RPC2_DebugLevel, "SubSysByName no longer supported.\n");
-	default:  CODA_ASSERT(FALSE);
+	default:  assert(FALSE);
 	}
     return(RPC2_SUCCESS);
     }
@@ -1143,7 +1140,7 @@ TryAnother:
 			}
 		    return(RPC2_SUCCESS);
 
-	default:  CODA_ASSERT(FALSE);
+	default:  assert(FALSE);
 	}
     return RPC2_FAIL;
     /*NOTREACHED*/
@@ -1181,7 +1178,7 @@ static long MakeFake(INOUT pb, IN ce, OUT xrand, OUT authenticationtype, OUT cid
 	(1) leave FakeBody fields in network order
 	(2) copy text of client ident to SeqBody
     */
-    bcopy(ib1->Text, cident->SeqBody, cident->SeqLen);
+    memcpy(cident->SeqBody, ib1->Text, cident->SeqLen);
 
     /* Obtain pointer to appropriate set of SE routines */
     ce->SEProcs = NULL;
@@ -1332,7 +1329,7 @@ static RPC2_PacketBuffer *Send2Get3(IN ce, IN key, IN xrand, OUT yrand)
 		pb3 = NULL;
 		break;
 		
-	default:    CODA_ASSERT(FALSE);
+	default:    assert(FALSE);
 	}
 
     /* Clean up and quit */
@@ -1369,7 +1366,7 @@ static void Send4AndSave(ce, xrand, ekey)
     pb->Header.Opcode = RPC2_INIT4;
     pb->Header.ReturnCode = RPC2_SUCCESS;
     ib4 = (struct Init4Body *)pb->Body;
-    bcopy(ce->SessionKey, ib4->SessionKey, sizeof(RPC2_EncryptionKey));
+    memcpy(ib4->SessionKey, ce->SessionKey, sizeof(RPC2_EncryptionKey));
     ib4->InitialSeqNumber = htonl(ce->NextSeqNumber);
     ib4->XRandomPlusTwo = htonl(xrand + 2);
     rpc2_Encrypt((char *)ib4, (char *)ib4, sizeof(struct Init4Body), ekey, ce->EncryptionType);

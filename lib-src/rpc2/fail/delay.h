@@ -16,10 +16,6 @@ listed in the file CREDITS.
 
 #*/
 
-
-
-
-
 /* 
  * slow.h -- include file for network delay package
  *           L. Mummert

@@ -16,11 +16,6 @@ Coda are listed in the file CREDITS.
 
 #*/
 
-
-
-
-
-
 enum Opcodes   {
 		HELP=0,
 		QUIT, LENGTHTEST, REBIND,

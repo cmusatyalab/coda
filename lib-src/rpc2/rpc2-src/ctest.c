@@ -37,14 +37,9 @@ Pittsburgh, PA.
 
 */
 
-
-#ifdef HAVE_CONFIG_H
-#include <config.h>
-#endif
-
 #define DEBUG
 #include <stdio.h>
-#include "coda_string.h"
+#include <string.h>
 #include <sys/types.h>
 #include <sys/time.h>
 #include <sys/stat.h>
@@ -255,7 +250,7 @@ int main(int arg, char **argv)
 		(void) fscanf(ifd, "%ld", &tt);
 		if (!qflag && fflag) printf(" %ld\n", tt);
 		tt = (long) htonl((unsigned long)tt);
-		bcopy((char *)&tt, (char *)Buff1->Body, sizeof(long));
+		memcpy(Buff1->Body, &tt, sizeof(long));
 		Buff1->Header.BodyLength = sizeof(long);
 		ClearStats();
 		FT_GetTimeOfDay(&t1, NULL);
@@ -336,19 +331,19 @@ int main(int arg, char **argv)
 		(void) fscanf(ifd, "%ld", &tt);
 		if (!qflag && fflag) printf(" %ld\n", tt);
 		tt = (long) htonl((unsigned long)tt);
-		bcopy((char *)&tt, (char *)Buff1->Body, sizeof(long));
+		memcpy(Buff1->Body, &tt, sizeof(long));
 
 		if (!qflag) printf("Remote seek offset (0) : ");
 		(void) fscanf(ifd, "%ld", &tt);
 		if (!qflag && fflag) printf(" %ld\n", tt);
 		tt = (long) htonl((unsigned long)tt);
-		bcopy((char *)&tt, (char *)Buff1->Body + sizeof(long), sizeof(long));
+		memcpy(Buff1->Body + sizeof(long), &tt, sizeof(long));
 
 		if (!qflag) printf("Remote byte quota (-1): ");
 		(void) fscanf(ifd, "%ld", &tt);
 		if (!qflag && fflag) printf(" %ld\n", tt);
 		tt = (long) htonl((unsigned long)tt);
-		bcopy((char *)&tt, (char *)Buff1->Body + 2*sizeof(long), sizeof(long));
+		memcpy(Buff1->Body + 2*sizeof(long), &tt, sizeof(long));
 
 		if (!qflag) printf("Remote file name ('-' for stdin/stdout, '/dev/mem' for VM file): ");
 		(void) fscanf(ifd, "%s", (char *)Buff1->Body+1+3*sizeof(long));
@@ -356,9 +351,7 @@ int main(int arg, char **argv)
 		Buff1->Header.BodyLength += 3*sizeof(long)+2+strlen((char *)(Buff1->Body+1+3*sizeof(long)));
 
 		if (!qflag) printf("Hash mark: ");
-#ifndef	__linux__
-		assert(fseek(stdin, (long) 0, 2) == 0);
-#endif
+
 		(void) fscanf(ifd, "%c", &sed.Value.SmartFTPD.hashmark);
 		if (!qflag && fflag) printf(" %c\n", sed.Value.SmartFTPD.hashmark);
 		if (sed.Value.SmartFTPD.hashmark == '0')
@@ -456,10 +449,10 @@ int main(int arg, char **argv)
 		(void) fscanf(ifd, "%ld", &tt);
 		if (!qflag && fflag) printf(" %ld\n", tt);
 		tt = (long) htonl((unsigned long)tt);
-		bcopy((char *)&tt, (char *)Buff1->Body, sizeof(long));
+		memcpy(Buff1->Body, &tt, sizeof(long));
 		tt = (long) ntohl((unsigned long)tt);
 		Buff1->Header.BodyLength = sizeof(long) + tt;
-		bcopy((char *)LongText, (char *)Buff1->Body+sizeof(long), (int)tt);
+		memcpy(Buff1->Body+sizeof(long), LongText, tt);
 		ClearStats();
 		FT_GetTimeOfDay(&t1, NULL);
 		tt = WhatHappened(RPC2_MakeRPC(cid, Buff1, (SE_Descriptor *)NULL,  
@@ -553,10 +546,10 @@ void PrintStats()
 
 void ClearStats()
     {
-    bzero((char *)&rpc2_Sent, sizeof(struct SStats));
-    bzero((char *)&rpc2_Recvd, sizeof(struct RStats));
-    bzero((char *)&sftp_Sent, sizeof(struct sftpStats));
-    bzero((char *)&sftp_Recvd, sizeof(struct sftpStats));
+    memset(&rpc2_Sent, 0, sizeof(struct SStats));
+    memset(&rpc2_Recvd, 0, sizeof(struct RStats));
+    memset(&sftp_Sent, 0, sizeof(struct sftpStats));
+    memset(&sftp_Recvd, 0, sizeof(struct sftpStats));
     }
 
 

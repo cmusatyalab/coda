@@ -37,14 +37,10 @@ Pittsburgh, PA.
 
 */
 
-#ifdef HAVE_CONFIG_H
-#include <config.h>
-#endif
-
 #include <stdio.h>
 #include <unistd.h>
 #include <stdlib.h>
-#include "coda_string.h"
+#include <string.h>
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
@@ -52,6 +48,7 @@ Pittsburgh, PA.
 #include <sys/file.h>
 #include <sys/ioctl.h>
 #include <errno.h>
+#include <assert.h>
 #include "rpc2.private.h"
 #include <rpc2/se.h>
 #include "cbuf.h"
@@ -117,7 +114,7 @@ void rpc2_XmitPacket(IN long whichSocket, IN RPC2_PacketBuffer *whichPB,
 	}
 #endif RPC2DEBUG
 
-    CODA_ASSERT(whichPB->Prefix.MagicNumber == OBJ_PACKETBUFFER);
+    assert(whichPB->Prefix.MagicNumber == OBJ_PACKETBUFFER);
 
 
 #ifdef RPC2DEBUG
@@ -133,7 +130,7 @@ void rpc2_XmitPacket(IN long whichSocket, IN RPC2_PacketBuffer *whichPB,
 	    {
 	    struct sockaddr_in sa;
 
-	    CODA_ASSERT(whichPort->Tag == RPC2_PORTBYINETNUMBER);
+	    assert(whichPort->Tag == RPC2_PORTBYINETNUMBER);
 	    sa.sin_family = AF_INET;
 	    sa.sin_addr.s_addr = whichHost->Value.InetAddress.s_addr;	/* In network order */
 	    sa.sin_port = whichPort->Value.InetPortNumber; /* In network order */
@@ -158,12 +155,12 @@ void rpc2_XmitPacket(IN long whichSocket, IN RPC2_PacketBuffer *whichPB,
 #ifdef __linux__
                 if ((n == -1) && (errno == ECONNREFUSED))
                 {
-                    /* On linux ECONNREFUSED is a result of a previous
-                     * sendto triggering ain ICMP bad host/port response.
-                     * This behaviour is required by RFC1122, but in
-                     * practice not implemented by other UDP network layers.
-                     * We retry the send, because the failing host was possibly
-                     * not the one we tried to send to this time. --JH
+		    /* On linux ECONNREFUSED is a result of a previous sendto
+		     * triggering an ICMP bad host/port response. This
+		     * behaviour seems to be required by RFC1122, but in
+		     * practice this is not implemented by other UDP stacks.
+		     * We retry the send, because the failing host was possibly
+		     * not the one we tried to send to this time. --JH
                      */
                     n = sendto(whichSocket, &whichPB->Header,
                                whichPB->Prefix.LengthOfPacket, 0,
@@ -182,7 +179,7 @@ void rpc2_XmitPacket(IN long whichSocket, IN RPC2_PacketBuffer *whichPB,
 	    }
 	    break;
 	    
-	default: CODA_ASSERT(FALSE);
+	default: assert(FALSE);
 	}
 }
 
@@ -201,10 +198,10 @@ long rpc2_RecvPacket(IN long whichSocket, OUT RPC2_PacketBuffer *whichBuff)
     struct sockaddr_in sa;
 
     say(0, RPC2_DebugLevel, "rpc2_RecvPacket()\n");
-    CODA_ASSERT(whichBuff->Prefix.MagicNumber == OBJ_PACKETBUFFER);
+    assert(whichBuff->Prefix.MagicNumber == OBJ_PACKETBUFFER);
 
     len = whichBuff->Prefix.BufferSize - (long)(&whichBuff->Header) + (long)(whichBuff);
-    CODA_ASSERT(len > 0);
+    assert(len > 0);
     
     /* WARNING: only Internet works; no warnings */
     fromlen = sizeof(sa);
@@ -291,11 +288,11 @@ long rpc2_InitRetry(IN long HowManyRetries, IN struct timeval *Beta0)
     if (HowManyRetries < 0) HowManyRetries = DefaultRetryCount;	/* it's ok, call by value */
     if (Beta0 == NULL) Beta0 = &DefaultRetryInterval; /* ditto */
 
-    CODA_ASSERT(Retry_Beta == NULL);
+    assert(Retry_Beta == NULL);
 
     Retry_N = HowManyRetries;
     Retry_Beta = (struct timeval *)malloc(sizeof(struct timeval)*(2+HowManyRetries));
-    bzero(Retry_Beta, sizeof(struct timeval)*(2+HowManyRetries));
+    memset(Retry_Beta, 0, sizeof(struct timeval)*(2+HowManyRetries));
     Retry_Beta[0] = *Beta0;	/* structure assignment */
     
     /* Twice Beta0 is how long responses are saved */
@@ -351,10 +348,10 @@ long rpc2_SetRetry(IN Conn)
     long betax, timeused, beta0;	/* entirely in microseconds */
     long i;
 
-    CODA_ASSERT(Conn);
+    assert(Conn);
 
     /* zero everything but the keep alive interval */
-    bzero(&Conn->Retry_Beta[1], sizeof(struct timeval)*(1+Conn->Retry_N));
+    memset(&Conn->Retry_Beta[1], 0, sizeof(struct timeval)*(1+Conn->Retry_N));
     
     /* recompute Retry_Beta[1] .. Retry_Beta[N] */
     /* betax is the shortest interval */
@@ -558,7 +555,7 @@ long rpc2_SendReliably(IN Conn, IN Sle, IN Packet, IN TimeOut)
 		rpc2_XmitPacket(rpc2_RequestSocket, Packet, &Conn->PeerHost, &Conn->PeerPort);
 		break;	/* switch */
 		
-	    default: CODA_ASSERT(FALSE);
+	    default: assert(FALSE);
 	    }
 	}
     while (hopeleft);
@@ -625,9 +622,9 @@ void rpc2_ntohp(RPC2_PacketBuffer *p)
 
 void rpc2_InitPacket(RPC2_PacketBuffer *pb, struct CEntry *ce, long bodylen)
 {
-	CODA_ASSERT(pb);
+	assert(pb);
 
-	bzero(&pb->Header, sizeof(struct RPC2_PacketHeader));
+	memset(&pb->Header, 0, sizeof(struct RPC2_PacketHeader));
 	pb->Header.ProtoVersion = RPC2_PROTOVERSION;
 	pb->Header.Lamport	    = RPC2_LamportTime();
 	pb->Header.BodyLength = bodylen;

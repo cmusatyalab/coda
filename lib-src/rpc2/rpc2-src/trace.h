@@ -380,11 +380,11 @@ struct TraceElem
 	    tea->IsNullClientIdent = FALSE;\
 	    tea->ClientIdent.SeqLen = Bparms->ClientIdent->SeqLen;	/* not actual length, could be truncated */\
 	    if (Bparms->ClientIdent->SeqLen < sizeof(tea->ClientIdent_Value))\
-		bcopy(Bparms->ClientIdent->SeqBody, tea->ClientIdent_Value, Bparms->ClientIdent->SeqLen);\
-	    else bcopy(Bparms->ClientIdent->SeqBody, tea->ClientIdent_Value, sizeof(tea->ClientIdent_Value));\
+		memcpy(tea->ClientIdent_Value, Bparms->ClientIdent->SeqBody, Bparms->ClientIdent->SeqLen);\
+	    else memcpy(tea->ClientIdent_Value, Bparms->ClientIdent->SeqBody, sizeof(tea->ClientIdent_Value));\
 	    }\
 	if (Bparms->SharedSecret == NULL) tea->IsNullSharedSecret = TRUE;\
-	else {tea->IsNullSharedSecret = FALSE; bcopy(Bparms->SharedSecret, tea->SharedSecret, sizeof(RPC2_EncryptionKey));}\
+	else {tea->IsNullSharedSecret = FALSE; memcpy(tea->SharedSecret, Bparms->SharedSecret, sizeof(RPC2_EncryptionKey));}\
 	} } while (0)
 
 #define TR_INITSE()do {\
@@ -541,7 +541,7 @@ struct TraceElem
 	tea->Subsys = *Subsys;		    /* structure assignment */\
 	tea->SecurityLevel = SecurityLevel;\
 	tea->IsEncrypted = ((SessionKey == NULL) ? 0 : 1);\
-	if (tea->IsEncrypted) bcopy(SessionKey, tea->SessionKey, sizeof(RPC2_EncryptionKey));\
+	if (tea->IsEncrypted) memcpy(tea->SessionKey, SessionKey, sizeof(RPC2_EncryptionKey));\
 	tea->EncryptionType = EncryptionType;\
 	} } while(0)
 

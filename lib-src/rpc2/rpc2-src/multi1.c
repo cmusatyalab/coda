@@ -42,12 +42,8 @@ Pittsburgh, PA.
 */
 
 
-#ifdef HAVE_CONFIG_H
-#include <config.h>
-#endif
-
 #include <stdio.h>
-#include "coda_string.h"
+#include <string.h>
 #include <sys/file.h>
 #include <sys/types.h>
 #include <sys/socket.h>
@@ -56,7 +52,8 @@ Pittsburgh, PA.
 #include <sys/time.h>
 #include <errno.h>
 #include <stdlib.h>
-#include "coda_string.h"
+#include <assert.h>
+#include <string.h>
 
 #include "rpc2.private.h"
 #include <rpc2/se.h>
@@ -141,12 +138,12 @@ long RPC2_MultiRPC(IN HowMany, IN ConnHandleList, IN RCList, IN MCast,
 #endif RPC2DEBUG
 
     /* perform sanity checks */
-    CODA_ASSERT(Request->Prefix.MagicNumber == OBJ_PACKETBUFFER);
+    assert(Request->Prefix.MagicNumber == OBJ_PACKETBUFFER);
 
     /* get context pointer */
     /* the multi_con management should be redone to ensure that 
        allocation never fails! */
-    CODA_ASSERT((context = get_multi_con(HowMany)) != NULL);
+    assert((context = get_multi_con(HowMany)) != NULL);
 
     /* alias the context arrays for convenience */
     slarray = context->slarray;
@@ -156,8 +153,8 @@ long RPC2_MultiRPC(IN HowMany, IN ConnHandleList, IN RCList, IN MCast,
     retcode = context->retcode;
 
     /* initialize slarray, request array and the return code list */
-    bzero(slarray, sizeof(char *) * (HowMany + 2));
-    bzero(req, sizeof(char *) * HowMany);
+    memset(slarray, 0, sizeof(char *) * (HowMany + 2));
+    memset(req, 0, sizeof(char *) * HowMany);
     for (host = 0; host < HowMany; host++)
 	retcode[host] = RPC2_ABANDONED;
 
@@ -268,7 +265,7 @@ static void mrpc_ProcessRC(long *in, long *out, int howmany)
 	    out[host] = in[host];
 	}
 #else
-    bcopy(in, out, sizeof(long) * howmany);
+    memcpy(out, in, sizeof(long) * howmany);
 #endif 
 }
 
@@ -297,7 +294,7 @@ static void SetupConns(HowMany, ConnHandleList, ceaddr, MCast, me, SDescList, re
 	    host++;
 	    continue;
 	    }
-	CODA_ASSERT(thisconn->MagicNumber == OBJ_CENTRY);
+	assert(thisconn->MagicNumber == OBJ_CENTRY);
  	if (!TestRole(thisconn, CLIENT))
 	    {
 	    retcode[host] = RPC2_FAIL;
@@ -391,13 +388,13 @@ static void SetupPackets(HowMany, ConnHandleList, ceaddr, slarray, MCast,
     /* allocate and setup the multicast packet first */
     if (MCast) 
 	{
-	CODA_ASSERT(me->CurrentPacket == NULL);
+	assert(me->CurrentPacket == NULL);
 	RPC2_AllocBuffer(Request->Header.BodyLength, &me->CurrentPacket);
 	thisreq = me->CurrentPacket;
 
 	/* initialize header fields to defaults, and copy body of request packet */
 	rpc2_InitPacket(thisreq, NULL, Request->Header.BodyLength);
-        bcopy(Request->Body, thisreq->Body, Request->Header.BodyLength);
+        memcpy(thisreq->Body, Request->Body, Request->Header.BodyLength);
 
 	/* complete non-default header fields */
 	thisreq->Header.RemoteHandle = MCast->Mgroup;
@@ -426,7 +423,7 @@ static void SetupPackets(HowMany, ConnHandleList, ceaddr, slarray, MCast,
 
 	    /* initialize header fields to defaults, and copy body of request packet */
 	    rpc2_InitPacket(thisreq, thisconn, Request->Header.BodyLength);
-	    bcopy(Request->Body, thisreq->Body, Request->Header.BodyLength);
+	    memcpy(thisreq->Body, Request->Body, Request->Header.BodyLength);
 
 	    /* complete non-default header fields */
 	    thisreq->Header.SeqNumber = thisconn->NextSeqNumber;
@@ -456,13 +453,13 @@ static void SetupPackets(HowMany, ConnHandleList, ceaddr, slarray, MCast,
 		thisconn = ceaddr[host];
 		break;
 		}
-	CODA_ASSERT(thisconn != 0);
+	assert(thisconn != 0);
 	if (thisconn->SEProcs != NULL && thisconn->SEProcs->SE_MultiRPC1 != NULL)
 	    {
 	    RPC2_PacketBuffer   *savedmcpkt = (MCast ? me->CurrentPacket : NULL);
 	    long		    *savedretcode;
-	    CODA_ASSERT((savedretcode = (long *)malloc(HowMany * sizeof(long))) != NULL);
-	    bcopy(retcode, savedretcode, HowMany * sizeof(long));
+	    assert((savedretcode = (long *)malloc(HowMany * sizeof(long))) != NULL);
+	    memcpy(savedretcode, retcode, HowMany * sizeof(long));
 
 	    /* N.B.  me->state is not set yet, so the se routine should NOT look at it. */
 	    (*thisconn->SEProcs->SE_MultiRPC1)(HowMany, ConnHandleList, MCast, SDescList, preq, retcode);
@@ -519,7 +516,7 @@ static void SetupPackets(HowMany, ConnHandleList, ceaddr, slarray, MCast,
 				me->SessionKey, me->EncryptionType);
 		break;
 
-	    default:	CODA_ASSERT(FALSE);
+	    default:	assert(FALSE);
 	    }
 	}
 
@@ -578,14 +575,14 @@ long count;
 	thiscon = mcon[i];
 	if (thiscon == NULL)		/* allocate new context */
 	    {
-	    CODA_ASSERT((mcon[i] = thiscon = (MultiCon *) malloc(sizeof(MultiCon))) != NULL);
+	    assert((mcon[i] = thiscon = (MultiCon *) malloc(sizeof(MultiCon))) != NULL);
 	    thiscon->busy = 1;
 	    thiscon->count = count;
-	    CODA_ASSERT((thiscon->slarray = (struct SL_Entry **) malloc(buffsize + (2 * sizeof(char *)))) != NULL);
-	    CODA_ASSERT((thiscon->req = (RPC2_PacketBuffer **) malloc(buffsize)) != NULL);
-	    CODA_ASSERT((thiscon->preq = (RPC2_PacketBuffer **) malloc(buffsize)) != NULL);
-	    CODA_ASSERT((thiscon->ceaddr = (struct CEntry **) malloc(buffsize)) != NULL);
-	    CODA_ASSERT((thiscon->retcode = (long *) malloc(count * sizeof(long))) != NULL);
+	    assert((thiscon->slarray = (struct SL_Entry **) malloc(buffsize + (2 * sizeof(char *)))) != NULL);
+	    assert((thiscon->req = (RPC2_PacketBuffer **) malloc(buffsize)) != NULL);
+	    assert((thiscon->preq = (RPC2_PacketBuffer **) malloc(buffsize)) != NULL);
+	    assert((thiscon->ceaddr = (struct CEntry **) malloc(buffsize)) != NULL);
+	    assert((thiscon->retcode = (long *) malloc(count * sizeof(long))) != NULL);
 	    return(thiscon);
 	    }
 	if (thiscon->busy) continue;	/* in use; examine next context */
@@ -598,11 +595,11 @@ long count;
 	    {
 	    thiscon->busy = 1;
 	    thiscon->count = count;
-	    CODA_ASSERT((thiscon->slarray = (struct SL_Entry **) realloc(thiscon->slarray, buffsize + (2 * sizeof(char *)))) != NULL);
-	    CODA_ASSERT((thiscon->req = (RPC2_PacketBuffer **) realloc(thiscon->req, buffsize)) != NULL);
-	    CODA_ASSERT((thiscon->preq = (RPC2_PacketBuffer **) realloc(thiscon->preq, buffsize)) != NULL);
-	    CODA_ASSERT((thiscon->ceaddr = (struct CEntry **) realloc(thiscon->ceaddr, buffsize)) != NULL);
-	    CODA_ASSERT((thiscon->retcode = (long *) realloc(thiscon->retcode, count * sizeof(long))) != NULL);
+	    assert((thiscon->slarray = (struct SL_Entry **) realloc(thiscon->slarray, buffsize + (2 * sizeof(char *)))) != NULL);
+	    assert((thiscon->req = (RPC2_PacketBuffer **) realloc(thiscon->req, buffsize)) != NULL);
+	    assert((thiscon->preq = (RPC2_PacketBuffer **) realloc(thiscon->preq, buffsize)) != NULL);
+	    assert((thiscon->ceaddr = (struct CEntry **) realloc(thiscon->ceaddr, buffsize)) != NULL);
+	    assert((thiscon->retcode = (long *) realloc(thiscon->retcode, count * sizeof(long))) != NULL);
 	    return(thiscon);
 	    }
 	}
@@ -696,7 +693,7 @@ static long mrpc_SendPacketsReliably(
 
     /* find a context */
     /* the packet_con management should be redone to ensure that allocation never fails! */
-    CODA_ASSERT((context = get_packet_con(HowMany)) != NULL);
+    assert((context = get_packet_con(HowMany)) != NULL);
 /*
     if((context = get_packet_con(HowMany)) == NULL)
 	for(i = 0; i < HowMany; i++)
@@ -719,7 +716,7 @@ static long mrpc_SendPacketsReliably(
     indexlist = context->indexlist;
 
     /* initialize reply pointers and return codes */
-    bzero(Reply, sizeof(char *) * HowMany);
+    memset(Reply, 0, sizeof(char *) * HowMany);
 
     timestamp = rpc2_MakeTimeStamp();
     say(9, RPC2_DebugLevel, "Sending initial packets at time %ld\n", timestamp);
@@ -921,7 +918,7 @@ static long mrpc_SendPacketsReliably(
 		    
 		default:    /* abort */
 		    /* BUSY ReturnCode should never go into switch */
-		    CODA_ASSERT(FALSE);
+		    assert(FALSE);
 		}
 	    }
 	}
@@ -945,12 +942,12 @@ long count;
 	pcon = spcon[i];
 	if (pcon == NULL)		    /* allocate new context */
 	    {
-	    CODA_ASSERT((spcon[i] = pcon = (PacketCon *) malloc(sizeof(PacketCon))) != NULL);
+	    assert((spcon[i] = pcon = (PacketCon *) malloc(sizeof(PacketCon))) != NULL);
 	    pcon->busy = 1;
 	    pcon->count = count;
-	    CODA_ASSERT((pcon->slarray = (struct SL_Entry **) malloc(buffsize + (2 * sizeof(char *)))) != NULL);
-	    CODA_ASSERT((pcon->Reply = (RPC2_PacketBuffer **) malloc(buffsize)) != NULL);
-	    CODA_ASSERT((pcon->indexlist = (long *) malloc(buffsize)) != NULL);
+	    assert((pcon->slarray = (struct SL_Entry **) malloc(buffsize + (2 * sizeof(char *)))) != NULL);
+	    assert((pcon->Reply = (RPC2_PacketBuffer **) malloc(buffsize)) != NULL);
+	    assert((pcon->indexlist = (long *) malloc(buffsize)) != NULL);
 	    return(pcon);
 	    }
 	if (pcon->busy) continue;
@@ -963,9 +960,9 @@ long count;
 	    {
 	    pcon->busy = 1;
 	    pcon->count = count;
-	    CODA_ASSERT((pcon->slarray = (struct SL_Entry **) realloc(pcon->slarray, buffsize + (2 * sizeof(char *)))) != NULL);
-	    CODA_ASSERT((pcon->Reply = (RPC2_PacketBuffer **) realloc(pcon->Reply, buffsize)) != NULL);
-	    CODA_ASSERT((pcon->indexlist = (long *) realloc(pcon->indexlist, buffsize)) != NULL);
+	    assert((pcon->slarray = (struct SL_Entry **) realloc(pcon->slarray, buffsize + (2 * sizeof(char *)))) != NULL);
+	    assert((pcon->Reply = (RPC2_PacketBuffer **) realloc(pcon->Reply, buffsize)) != NULL);
+	    assert((pcon->indexlist = (long *) realloc(pcon->indexlist, buffsize)) != NULL);
 	    return(pcon);
 	    }
 	}

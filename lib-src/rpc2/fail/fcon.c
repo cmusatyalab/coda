@@ -26,7 +26,7 @@ listed in the file CREDITS.
  */
 #include <sys/types.h>
 #include <stdio.h>
-#include "coda_assert.h"
+#include <assert.h>
 #include <lwp/lwp.h>
 #include <rpc2/rpc2.h>
 #include "fail.h"
@@ -43,7 +43,7 @@ int Fcon_Init()
 
     subsysid.Tag = RPC2_SUBSYSBYID;
     subsysid.Value.SubsysId = FCONSUBSYSID;
-    CODA_ASSERT(RPC2_Export(&subsysid) == RPC2_SUCCESS);
+    assert(RPC2_Export(&subsysid) == RPC2_SUCCESS);
     LWP_CreateProcess((PFIC) Fcon_LWP, 4096, LWP_NORMAL_PRIORITY,
 		      NULL, "Fcon_LWP", &mypid);
     return 0;

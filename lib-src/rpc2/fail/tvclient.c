@@ -16,14 +16,6 @@ listed in the file CREDITS.
 
 #*/
 
-
-
-
-
-
-
-
-
 /*
    Test client for Toy Venus
 
@@ -31,13 +23,9 @@ listed in the file CREDITS.
    26 October 1987
  */
 
-#ifdef HAVE_CONFIG_H
-#include <config.h>
-#endif
-
 #include <stdio.h>
-#include "coda_assert.h"
-#include "coda_string.h"
+#include <assert.h>
+#include <string.h>
 #include <sys/time.h>
 #include <sys/types.h>
 #include <netinet/in.h>
@@ -136,7 +124,7 @@ InitRPC()
     RPC2_SubsysIdent subsysid;
     struct timeval tout;
 
-    CODA_ASSERT(LWP_Init(LWP_VERSION, LWP_NORMAL_PRIORITY, &mylpid) == LWP_SUCCESS);
+    assert(LWP_Init(LWP_VERSION, LWP_NORMAL_PRIORITY, &mylpid) == LWP_SUCCESS);
 
     /* We have to have a port to use fcon */
 

@@ -53,6 +53,7 @@ Pittsburgh, PA.
 #include <sys/ioctl.h>
 #include <netinet/in.h>
 #include <errno.h>
+#include <assert.h>
 #include "rpc2.private.h"
 #include <rpc2/se.h>
 #include "sftp.h"
@@ -140,7 +141,7 @@ static void ScanTimerQ()
     /* scan timer queue and notify timed out events */
     for (i = TM_Rescan(sftp_Chain); i > 0; i--)
 	{
-	CODA_ASSERT((t = TM_GetExpired(sftp_Chain)) != NULL);
+	assert((t = TM_GetExpired(sftp_Chain)) != NULL);
 	s = (struct SLSlot *)t->BackPointer;
 	s->State= S_TIMEOUT;
 	REMOVETIMER(s);
@@ -293,7 +294,7 @@ static void ExaminePacket(RPC2_PacketBuffer *pb)
 
     /* update the last-heard-from times for this SFTP entry, and the 
        connection-independent entry for this host. */
-    CODA_ASSERT(sfp->HostInfo != NULL);
+    assert(sfp->HostInfo != NULL);
 
     /* structure assignment */
     sfp->LastWord = sfp->HostInfo->LastWord = pb->Prefix.RecvStamp;
@@ -343,7 +344,7 @@ static void ClientPacket(RPC2_PacketBuffer *whichPacket,
     switch ((int) whichPacket->Header.Opcode)
     {
     case SFTP_NAK:
-	CODA_ASSERT(FALSE);  /* should have been dealt with in ExaminePacket()*/
+	assert(FALSE);  /* should have been dealt with in ExaminePacket()*/
 	break;	    
 
     case SFTP_ACK:
@@ -378,8 +379,8 @@ static void ClientPacket(RPC2_PacketBuffer *whichPacket,
 		SFSendNAK(whichPacket); /* NAK this packet */
 		if (sEntry->WhoAmI != DISKERROR) {
 		    sftp_SetError(sEntry, ERROR);
-                    SFTP_FreeBuffer(&whichPacket);
-                }
+		    SFTP_FreeBuffer(&whichPacket);
+		}
 	    }
 	} else {
 	    BOGUS(whichPacket);

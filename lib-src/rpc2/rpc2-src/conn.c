@@ -37,19 +37,15 @@ Pittsburgh, PA.
 
 */
 
-
-#ifdef HAVE_CONFIG_H
-#include <config.h>
-#endif
-
 #include <stdio.h>
 #include <unistd.h>
 #include <stdlib.h>
-#include "coda_string.h"
+#include <string.h>
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <sys/time.h>
+#include <assert.h>
 #include "rpc2.private.h"
 
 /* HASHLENGTH should be a power of two, because we use modulo HASHLENGTH-1 to
@@ -66,7 +62,7 @@ void rpc2_InitConn()
     int i;
     
     /* safety check, never initialize twice */
-    CODA_ASSERT(EntriesInUse == -1);
+    assert(EntriesInUse == -1);
 
     for (i = 0; i < HASHLENGTH; i++)
     {
@@ -95,7 +91,7 @@ struct CEntry *rpc2_GetConn(RPC2_Handle handle)
     {
         /* compare the entry to our handle */
         ceaddr = list_entry(ptr, struct CEntry, Chain);
-        CODA_ASSERT(ceaddr->MagicNumber == OBJ_CENTRY);
+        assert(ceaddr->MagicNumber == OBJ_CENTRY);
 
         if (ceaddr->UniqueCID == handle) 
         {
@@ -121,7 +117,7 @@ static void Uniquefy(IN struct CEntry *ceaddr)
      * have broken down before we use this many entries on either the time it
      * takes to find an available handle, or the memory usage. Still, I don't
      * want this function to get stuck into an endless search. --JH */
-    CODA_ASSERT(EntriesInUse < (1073741824 >> 1)); /* 50% utilization */
+    assert(EntriesInUse < (1073741824 >> 1)); /* 50% utilization */
 
     /* this might take some time once we get a lot of used handles. But even
      * with a `full' table (within the constraint above), we should, on
@@ -160,7 +156,7 @@ struct CEntry *rpc2_AllocConn()
 
     ce = (struct CEntry *)rpc2_MoveEntry(&rpc2_ConnFreeList, &rpc2_ConnList,
 		 (struct CEntry *)NULL, &rpc2_ConnFreeCount, &rpc2_ConnCount);
-    CODA_ASSERT (ce->MagicNumber == OBJ_CENTRY);
+    assert (ce->MagicNumber == OBJ_CENTRY);
 
     /* Initialize */
     ce->State = 0;
@@ -184,7 +180,7 @@ struct CEntry *rpc2_AllocConn()
     ce->LowerLimit= LOWERLIMIT;  /* usec */
     ce->Retry_N = Retry_N;
     ce->Retry_Beta = (struct timeval *)malloc(sizeof(struct timeval)*(2+Retry_N));
-    bcopy(Retry_Beta, ce->Retry_Beta, sizeof(struct timeval)*(2+Retry_N));
+    memcpy(ce->Retry_Beta, Retry_Beta, sizeof(struct timeval)*(2+Retry_N));
     ce->SaveResponse = SaveResponse;  /* structure assignment */
     ce->MySl = NULL;
     ce->HeldPacket = NULL;
@@ -204,8 +200,8 @@ void rpc2_FreeConn(RPC2_Handle whichConn)
     struct CEntry *ce;
 
     ce = rpc2_GetConn(whichConn);
-    CODA_ASSERT(ce != NULL);
-    CODA_ASSERT(ce->MagicNumber == OBJ_CENTRY);
+    assert(ce != NULL);
+    assert(ce->MagicNumber == OBJ_CENTRY);
     rpc2_FreeConns++;
 
     free(ce->Retry_Beta);
@@ -252,7 +248,7 @@ static void PrintHashTable()
         for (ptr = HashTable[i].next; ptr != &HashTable[i]; ptr = ptr->next)
         {
             ce = list_entry(ptr, struct CEntry, Chain);
-            CODA_ASSERT(ce->MagicNumber == OBJ_CENTRY);
+            assert(ce->MagicNumber == OBJ_CENTRY);
 
             printf(" %s:%d:%d",
 		   inet_ntoa(ce->PeerHost.Value.InetAddress),
@@ -267,7 +263,7 @@ static void PrintHashTable()
 
 void rpc2_SetConnError(IN struct CEntry *ce)
 {
-    CODA_ASSERT (ce->MagicNumber == OBJ_CENTRY);
+    assert (ce->MagicNumber == OBJ_CENTRY);
 
     if (TestRole(ce, SERVER)) 
 	    SetState(ce, S_HARDERROR);
@@ -336,7 +332,7 @@ void rpc2_NoteBinding(RPC2_HostIdent *whichHost, RPC2_PortIdent *whichPort,
 	    RBCacheOn = 1;
     }
 
-    bzero(&RBCache[NextRB], sizeof(struct RecentBind));
+    memset(&RBCache[NextRB], 0, sizeof(struct RecentBind));
     RBCache[NextRB].Host = *whichHost;	/* struct assignment */
     RBCache[NextRB].Port = *whichPort;	/* struct assignment */
     RBCache[NextRB].Unique = whichUnique;
@@ -403,7 +399,7 @@ rpc2_ConnFromBindInfo(RPC2_HostIdent *whichHost, RPC2_PortIdent *whichPort,
         for (ptr = HashTable[i].next; ptr != &HashTable[i]; ptr = ptr->next)
         {
             ce = list_entry(ptr, struct CEntry, Chain);
-            CODA_ASSERT(ce->MagicNumber == OBJ_CENTRY);
+            assert(ce->MagicNumber == OBJ_CENTRY);
 
             j++; /* count # searched connections */
 

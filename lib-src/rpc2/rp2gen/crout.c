@@ -44,14 +44,10 @@ Pittsburgh, PA.
 *								    *
 \*******************************************************************/
 
-#ifdef HAVE_CONFIG_H
-#include <config.h>
-#endif
-
 #include <stdio.h>
 #include <ctype.h>
 #include <sys/param.h>
-#include "coda_string.h"
+#include <string.h>
 
 #include "rp2.h"
 
@@ -67,17 +63,9 @@ static locals(FILE *where);
 static common(FILE *where);
 static client_procs(PROC *head, FILE *where);
 static one_client_proc(PROC *proc, FILE *where);
-#ifdef __BSD44__
 static spit_parm(VAR *parm, WHO who, FILE *where, rp2_bool header);
-#else
-static spit_parm(VAR *parm, WHO who, FILE *where, int32_t header);
-#endif
 static for_limit(VAR *parm, WHO who, FILE *where);
-#ifdef __BSD44__
 static spit_body(PROC *proc, rp2_bool in_parms, rp2_bool out_parms, FILE *where);
-#else
-static spit_body(PROC *proc, int32_t in_parms, int32_t out_parms, FILE *where);
-#endif
 static char *field_name(VAR *parm, char *prefix);
 static char *field_name2(VAR *parm, char *prefix, char *suffix);
 static array_print_size(WHO who, VAR *parm, char *prefix, FILE *where);
@@ -96,11 +84,7 @@ static free_dynamicarray(VAR *parm, FILE *where);
 static pass_parm(VAR *parm, FILE *where);
 static execute(PROC *head, FILE *where);
 static multi_procs(PROC *head, FILE *where);
-#ifdef __BSD44__
 static pr_size(VAR *parm, FILE *where, rp2_bool TOP, int32_t proc, int32_t arg);
-#else
-static pr_size(VAR *parm, FILE *where, int32_t TOP, int32_t proc, int32_t arg);
-#endif
 static do_struct(VAR **fields, int32_t proc, int32_t arg, int32_t level, int32_t cur_struct, FILE *where);
 static macro_define(FILE *where);
 static version_check(FILE *where);

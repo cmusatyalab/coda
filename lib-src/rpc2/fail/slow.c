@@ -16,21 +16,13 @@ listed in the file CREDITS.
 
 #*/
 
-
-
-
-
-#ifdef HAVE_CONFIG_H
-#include <config.h>
-#endif
-
-#include "coda_assert.h"
 #include <stdio.h>
 #include <sys/types.h>
-#include "coda_string.h"
+#include <string.h>
 #include <ctype.h>
 #include <netdb.h>
 #include <sys/socket.h>
+#include <assert.h>
 #include "fail.h"
 
 extern void ntohFF(FailFilter *);
@@ -89,7 +81,7 @@ int slow(int argc, char** argv)
 	RPC2_SetColor(cid2, FAIL_IMMUNECOLOR);
 
 	he1 = gethostbyname(host1);
-	CODA_ASSERT(he1 != NULL);
+	assert(he1 != NULL);
 	filter.ip1 = ((unsigned char *)he1->h_addr)[0];
 	filter.ip2 = ((unsigned char *)he1->h_addr)[1];
 	filter.ip3 = ((unsigned char *)he1->h_addr)[2];
@@ -117,7 +109,7 @@ int slow(int argc, char** argv)
 	}
 
 	he2 = gethostbyname(host2);
-	CODA_ASSERT(he2 != NULL);
+	assert(he2 != NULL);
 	filter.ip1 = ((unsigned char *)he2->h_addr)[0];
 	filter.ip2 = ((unsigned char *)he2->h_addr)[1];
 	filter.ip3 = ((unsigned char *)he2->h_addr)[2];

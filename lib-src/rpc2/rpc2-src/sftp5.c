@@ -43,14 +43,11 @@ Pittsburgh, PA.
 */
 
 
-#ifdef HAVE_CONFIG_H
-#include <config.h>
-#endif
-
 #include <stdio.h>
 #include <errno.h>
 #include <sys/time.h>
-#include "coda_string.h"
+#include <assert.h>
+#include <string.h>
 #include "rpc2.private.h"
 #include <rpc2/se.h>
 #include "sftp.h"
@@ -141,7 +138,7 @@ void B_ShiftRight(bMask, bShift)		/* leftmost bits are ONE-filled */
 void B_Assign(dest, src)
     unsigned int *dest, *src;
     {
-    bcopy(src, dest, sizeof(int)*BITMASKWIDTH);
+    memcpy(dest, src, sizeof(int)*BITMASKWIDTH);
     }
 
 
@@ -149,7 +146,7 @@ void B_CopyToPacket(bMask, whichPacket)
     unsigned int *bMask;
     RPC2_PacketBuffer *whichPacket;
     {
-    CODA_ASSERT(BITMASKWIDTH <= 2);	/* for now */
+    assert(BITMASKWIDTH <= 2);	/* for now */
     whichPacket->Header.BitMask0 = (unsigned) bMask[0];
     whichPacket->Header.BitMask1 = (unsigned) bMask[1];
     }
@@ -158,7 +155,7 @@ void B_CopyFromPacket(whichPacket, bMask)
     unsigned int *bMask;
     RPC2_PacketBuffer *whichPacket;
     {
-    CODA_ASSERT(BITMASKWIDTH <= 2);	/* for now */
+    assert(BITMASKWIDTH <= 2);	/* for now */
     bMask[0] = (unsigned) whichPacket->Header.BitMask0;
     bMask[1] = (unsigned) whichPacket->Header.BitMask1;
     }

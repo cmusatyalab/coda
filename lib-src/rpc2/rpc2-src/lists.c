@@ -38,18 +38,15 @@ Pittsburgh, PA.
 */
 
 
-#ifdef HAVE_CONFIG_H
-#include <config.h>
-#endif
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
-#include "coda_string.h"
+#include <string.h>
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <sys/time.h>
+#include <assert.h>
 #include "rpc2.private.h"
 
 
@@ -70,8 +67,8 @@ void rpc2_Replenish(whichList, whichCount, elemSize, creationCount, magicNumber)
     {    
 	   
     *whichList = (struct LinkEntry *)malloc(elemSize);
-    CODA_ASSERT(*whichList != NULL);
-    bzero(*whichList, elemSize);
+    assert(*whichList != NULL);
+    memset(*whichList, 0, elemSize);
     (*whichList)->NextEntry = (*whichList)->PrevEntry = *whichList; /* 1-element circular list */
     (*whichList)->MagicNumber = magicNumber;
     (*whichList)->Qname = whichList;
@@ -106,7 +103,7 @@ struct LinkEntry *rpc2_MoveEntry(fromPtr, toPtr, p, fromCount, toCount)
 	    victim = *fromPtr;	
     else 
 	    victim = p;
-    CODA_ASSERT(victim->Qname == fromPtr);    /* sanity check for list corruption */
+    assert(victim->Qname == fromPtr);    /* sanity check for list corruption */
 
     /* first remove element from the first list */
     if (victim == *fromPtr) 
@@ -166,7 +163,7 @@ struct SL_Entry *rpc2_AllocSle(enum SL_Type slType, struct CEntry *slConn)
     sl = (struct SL_Entry *)rpc2_MoveEntry((struct LinkEntry **)&rpc2_SLFreeList,
 	    (struct LinkEntry **)tolist, NULL, &rpc2_SLFreeCount, tocount);
 
-    CODA_ASSERT(sl->MagicNumber == OBJ_SLENTRY);
+    assert(sl->MagicNumber == OBJ_SLENTRY);
     sl->Type = slType;
     if (slType != REQ && slConn != NULL) {
 	    slConn->MySl = sl;
@@ -188,12 +185,12 @@ void rpc2_FreeSle(INOUT sl)
     struct CEntry *ce;
     
     tsl = *sl;
-    CODA_ASSERT(tsl->MagicNumber == OBJ_SLENTRY);
+    assert(tsl->MagicNumber == OBJ_SLENTRY);
 
     if (tsl->Conn != 0)
 	{
 	ce = rpc2_GetConn(tsl->Conn);
-        CODA_ASSERT(ce != NULL);
+        assert(ce != NULL);
 	ce->MySl = NULL;
 	}
 
@@ -221,7 +218,7 @@ void rpc2_ActivateSle (selem, exptime)
     struct TM_Elem *t, *oldt;
     long delta;
 
-    CODA_ASSERT(selem->MagicNumber == OBJ_SLENTRY);
+    assert(selem->MagicNumber == OBJ_SLENTRY);
     selem->TElem.BackPointer = (char *)selem;
     selem->ReturnCode = WAITING;
 
@@ -255,7 +252,7 @@ void rpc2_DeactivateSle(sl, rc)
     {
     struct timeval *t;
 
-    CODA_ASSERT(sl->MagicNumber == OBJ_SLENTRY);
+    assert(sl->MagicNumber == OBJ_SLENTRY);
 
     sl->ReturnCode = rc;
     t = &sl->TElem.TotalTime;
@@ -279,7 +276,7 @@ struct SubsysEntry *rpc2_AllocSubsys()
 		&rpc2_SSCreationCount, OBJ_SSENTRY);
     ss = (struct SubsysEntry *)rpc2_MoveEntry((struct LinkEntry **)&rpc2_SSFreeList,
 	 (struct LinkEntry **)&rpc2_SSList, NULL, &rpc2_SSFreeCount, &rpc2_SSCount);
-    CODA_ASSERT(ss->MagicNumber == OBJ_SSENTRY);
+    assert(ss->MagicNumber == OBJ_SSENTRY);
     return(ss);
     }
 
@@ -288,7 +285,7 @@ void rpc2_FreeSubsys(whichSubsys)
     /* Releases the subsystem  entry pointed to by whichSubsys.
 	Sets whichSubsys to NULL;  */
 	{
-	CODA_ASSERT((*whichSubsys)->MagicNumber == OBJ_SSENTRY);
+	assert((*whichSubsys)->MagicNumber == OBJ_SSENTRY);
 	rpc2_MoveEntry((struct LinkEntry **)&rpc2_SSList,
 		    (struct LinkEntry **)&rpc2_SSFreeList,
 		    (struct LinkEntry *)*whichSubsys,
@@ -301,7 +298,7 @@ void rpc2_FreeSubsys(whichSubsys)
 /* Moves packet whichPB to hold list from inuse list */
 void rpc2_HoldPacket(RPC2_PacketBuffer *whichPB)
 {
-	CODA_ASSERT(whichPB->Prefix.MagicNumber == OBJ_PACKETBUFFER);
+	assert(whichPB->Prefix.MagicNumber == OBJ_PACKETBUFFER);
 	rpc2_MoveEntry((struct LinkEntry **)&rpc2_PBList,
 		       (struct LinkEntry **)&rpc2_PBHoldList,
 		       (struct LinkEntry *)whichPB,
@@ -313,7 +310,7 @@ void rpc2_HoldPacket(RPC2_PacketBuffer *whichPB)
 /* Moves packet whichPB to inuse list from hold list */
 void rpc2_UnholdPacket(RPC2_PacketBuffer *whichPB)
 {
-	CODA_ASSERT(whichPB->Prefix.MagicNumber == OBJ_PACKETBUFFER);
+	assert(whichPB->Prefix.MagicNumber == OBJ_PACKETBUFFER);
 	rpc2_MoveEntry((struct LinkEntry **)&rpc2_PBHoldList,
 		       (struct LinkEntry **)&rpc2_PBList,
 		       (struct LinkEntry *)whichPB,

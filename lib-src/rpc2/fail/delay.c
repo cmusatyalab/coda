@@ -26,8 +26,8 @@ listed in the file CREDITS.
 #include <sys/time.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
+#include <assert.h>
 
-#include "coda_assert.h"
 #include <lwp/lwp.h>
 #include <lwp/timer.h>
 #include <rpc2/rpc2.h>
@@ -67,7 +67,7 @@ int Delay_Init()
 	return -1;
     
     DelayQueues.queues = (delayQueueInfo *)malloc(4 * sizeof(delayQueueInfo));
-    bzero(DelayQueues.queues, 4 * sizeof(delayQueueInfo));
+    memset(DelayQueues.queues, 0, 4 * sizeof(delayQueueInfo));
     DelayQueues.count = 0;
     DelayQueues.size = 4;	/* Good number to start with! */
     LWP_CreateProcess((PFIC) Delay_LWP, 4096, LWP_NORMAL_PRIORITY,
@@ -95,8 +95,8 @@ int queue;
 	struct timeval tmpTime;
 	delayQueueInfo *dq;
 
-	CODA_ASSERT(speed > 0);
-	CODA_ASSERT(DelayQueues.queues);	/* Make sure Delay_Init was called */
+	assert(speed > 0);
+	assert(DelayQueues.queues);	/* Make sure Delay_Init was called */
 
 	msec = pb->Prefix.LengthOfPacket * 1000 * 8 / speed; 
 	if (msec < MINDELAY) 
@@ -110,9 +110,9 @@ int queue;
 	pp->timeToWait.tv_usec = (msec % 1000) * 1000;
 	pp->socket = socket;
 	pp->sap = (struct sockaddr_in *) malloc(sizeof(struct sockaddr_in));
-	bcopy(sap, pp->sap, sizeof(struct sockaddr_in));
+	memcpy(pp->sap, sap, sizeof(struct sockaddr_in));
 	pp->pb = (RPC2_PacketBuffer *) malloc(pb->Prefix.BufferSize);
-	bcopy(pb, pp->pb, pb->Prefix.BufferSize);
+	memcpy(pp->pb, pb, pb->Prefix.BufferSize);
 	pp->next = NULL;
 
 	/* Insert into queue. */
@@ -121,7 +121,7 @@ int queue;
 	    dq->lastElem = pp;
 	} else {
 	    /* Start the timer. */
-	    CODA_ASSERT(!dq->lastElem && !dq->timer.tv_sec && !dq->timer.tv_usec);
+	    assert(!dq->lastElem && !dq->timer.tv_sec && !dq->timer.tv_usec);
 	    dq->delayQueue = dq->lastElem = pp;
 	    dq->timer = pp->timeToWait;
 	}
@@ -146,20 +146,20 @@ int DecQueue(i, a, b, c, d)
      unsigned char a, b, c, d;
 {
     delayQueueInfo *dq;
-    CODA_ASSERT(DelayQueues.queues);		/* Make sure Delay_Init was called */
+    assert(DelayQueues.queues);		/* Make sure Delay_Init was called */
 
-    CODA_ASSERT((i >= 0) && (i <= DelayQueues.count));
+    assert((i >= 0) && (i <= DelayQueues.count));
 
     dq = &DelayQueues.queues[i];
 
     /* Maybe a bit strong, but why shouldn't it match? */
-    CODA_ASSERT((dq->a == a) && (dq->b == b) && (dq->c == c) && (dq->d == d));
+    assert((dq->a == a) && (dq->b == b) && (dq->c == c) && (dq->d == d));
 
-    CODA_ASSERT(dq->count);
+    assert(dq->count);
     
     if (--dq->count == 0) {
 	free(dq->delayQueue);
-	bzero(dq, sizeof(delayQueueInfo));
+	memset(dq, 0, sizeof(delayQueueInfo));
     }
 
     return 0;
@@ -171,7 +171,7 @@ int FindQueue(a, b, c, d)
      unsigned char a, b, c, d;
 {
     int i;
-    CODA_ASSERT(DelayQueues.queues);		/* Make sure Delay_Init was called */
+    assert(DelayQueues.queues);		/* Make sure Delay_Init was called */
 
     for (i = 0; i < DelayQueues.count; i++) {
 	delayQueueInfo *dq = &DelayQueues.queues[i];
@@ -192,7 +192,7 @@ int MakeQueue(a, b, c, d)
     delayQueueInfo *dq, *tmp;
     int newsize;
     
-    CODA_ASSERT(DelayQueues.queues);	/* Make sure Delay_Init was called */
+    assert(DelayQueues.queues);	/* Make sure Delay_Init was called */
 
 #ifdef NOTDEF
     {
@@ -211,13 +211,13 @@ int MakeQueue(a, b, c, d)
     if (DelayQueues.count == DelayQueues.size) {     /* Need to grow the list */
 	newsize = DelayQueues.size * 2;
 	tmp = (delayQueueInfo *)malloc(newsize * sizeof(delayQueueInfo));
-	bcopy(DelayQueues.queues, tmp, DelayQueues.size * sizeof(delayQueueInfo));
+	memcpy(tmp, DelayQueues.queues, DelayQueues.size * sizeof(delayQueueInfo));
 	free(DelayQueues.queues);
 	DelayQueues.queues = tmp;
 	DelayQueues.size = newsize;
     }
 
-    CODA_ASSERT(DelayQueues.count < DelayQueues.size);
+    assert(DelayQueues.count < DelayQueues.size);
     dq = &DelayQueues.queues[DelayQueues.count];
     dq->delayQueue = dq->lastElem = NULL;
     dq->a = a; dq->b = b; dq->c = c; dq->d = d;
@@ -252,7 +252,7 @@ static int Delay_LWP()
     struct timeval timeToNext;
     delayQueueInfo *dq, *nextEvent;
     
-    CODA_ASSERT(DelayQueues.queues);	/* Make sure Delay_Init was called */
+    assert(DelayQueues.queues);	/* Make sure Delay_Init was called */
     
     while (1) {
 	/* find smallest remaining time. */

@@ -44,11 +44,6 @@ int lwp_nextindex;
 /* Produces: rpc2.log, rpc2.trace and sftp.trace in the directory
    specified by the user. Also creates junk data files in that directory */
 
-
-#ifdef HAVE_CONFIG_H
-#include <config.h>
-#endif
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <fcntl.h>
@@ -61,7 +56,7 @@ int lwp_nextindex;
 #include <netdb.h>
 #include <errno.h>
 #include <assert.h>
-#include "coda_string.h"
+#include <string.h>
 #include <lwp/lwp.h>
 #include <lwp/timer.h>
 #include <rpc2/rpc2.h>
@@ -724,9 +719,9 @@ static long GetPasswd(RPC2_CountedBS *Who, RPC2_EncryptionKey *Key1,
     for (i = 0; i < maxpw; i++)
 	if(strcmp(PList[i].name, Who->SeqBody) == 0)
 	    {
-	    bcopy("          ", Key1, RPC2_KEYSIZE);
+	    memcpy(Key1, "          ", RPC2_KEYSIZE);
 	    strcpy((char *)Key1, PList[i].password);
-	    bcopy(Key1, Key2, RPC2_KEYSIZE);
+	    memcpy(Key2, Key1, RPC2_KEYSIZE);
 	    return(0);
 	    }
     return(-1);

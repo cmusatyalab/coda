@@ -16,23 +16,16 @@ listed in the file CREDITS.
 
 #*/
 
-
-
-
-
 /* 
  * client to do file transfers.
  * uses speed part of failure package.
  * -- L. Mummert 3/92
  */
-#ifdef HAVE_CONFIG_H
-#include <config.h>
-#endif
 
 #include <stdio.h>
 #include <stdlib.h>
-#include "coda_string.h"
-#include "coda_assert.h"
+#include <string.h>
+#include <assert.h>
 #include <sys/param.h>
 #include <sys/time.h>
 #include <sys/types.h>
@@ -43,7 +36,7 @@ listed in the file CREDITS.
 #include "ft.h"
 #include "fail.h"
 
-#define DEFAULT_HOST "copland"
+#define DEFAULT_HOST "localhost"
 
 RPC2_HostIdent serverHost; 
 RPC2_Handle cid;
@@ -369,7 +362,7 @@ InitRPC()
 	SFTP_Initializer sftpi;
 	RPC2_PortalIdent portalid, *portallist[1];
 
-	CODA_ASSERT(LWP_Init(LWP_VERSION, LWP_NORMAL_PRIORITY, &mylpid) == LWP_SUCCESS);
+	assert(LWP_Init(LWP_VERSION, LWP_NORMAL_PRIORITY, &mylpid) == LWP_SUCCESS);
 
 	SFTP_SetDefaults(&sftpi);
 	if (sftp_ackpoint) sftpi.AckPoint = sftp_ackpoint;

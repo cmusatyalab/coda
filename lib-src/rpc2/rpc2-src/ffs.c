@@ -37,19 +37,20 @@ Pittsburgh, PA.
 
 */
 
-/* return the position of the first big in x which is set */
-#ifndef __linux
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
+
+/* return the position of the first bit in x which is set */
+#ifndef HAVE_FFS
 long ffs(long x)
-    {
+{
     long i;
     if (x == 0) return(-1);
-    else
-	for (i = 1;; i++)
-	    {
-	    if (x & 1) return(i);
-	    else x >>= 1;
-	    }
-	    
-    
+
+    for (i = 1;; i++) {
+	if (x & 1) return(i);
+	else x >>= 1;
     }
+}
 #endif

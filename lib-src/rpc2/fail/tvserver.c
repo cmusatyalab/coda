@@ -16,14 +16,6 @@ listed in the file CREDITS.
 
 #*/
 
-
-
-
-
-
-
-
-
 /* 
    Toy Venus server
 
@@ -36,16 +28,12 @@ listed in the file CREDITS.
    26 October 1987
  */
 
-#ifdef HAVE_CONFIG_H
-#include <config.h>
-#endif
-
 #include <stdio.h>
-#include "coda_assert.h"
-#include "coda_string.h"
+#include <string.h>
 #include <sys/time.h>
 #include <sys/types.h>
 #include <netinet/in.h>
+#include <assert.h>
 #include <lwp.h>
 #include <rpc2.h>
 #include "tv.h"
@@ -127,7 +115,7 @@ unsigned char *mode;
 {
     ConnInfo *ci;
 
-    CODA_ASSERT(RPC2_GetPrivatePointer(cid, &ci) == RPC2_SUCCESS);
+    assert(RPC2_GetPrivatePointer(cid, &ci) == RPC2_SUCCESS);
     ci->curfp = fopen(fileName, mode);
     if (ci->curfp == NULL) return errno;
     else return TV_SUCCESS;
@@ -137,7 +125,7 @@ long TV_Close(cid)
 {
     ConnInfo *ci;
 
-    CODA_ASSERT(RPC2_GetPrivatePointer(cid, &ci) == RPC2_SUCCESS);
+    assert(RPC2_GetPrivatePointer(cid, &ci) == RPC2_SUCCESS);
     if (ci->curfp == NULL) return TV_FAILURE;
     if (fclose(ci->curfp) == EOF) return TV_FAILURE;
     return TV_SUCCESS;
@@ -148,7 +136,7 @@ RPC2_CountedBS *buffer;
 {
     ConnInfo *ci;
 
-    CODA_ASSERT(RPC2_GetPrivatePointer(cid, &ci) == RPC2_SUCCESS);
+    assert(RPC2_GetPrivatePointer(cid, &ci) == RPC2_SUCCESS);
     if (ci->curfp == NULL) return TV_FAILURE;
     if (fread(buffer->SeqBody, 1, buffer->SeqLen, ci->curfp) == 0)
 	return TV_FAILURE;
@@ -160,7 +148,7 @@ RPC2_CountedBS *buffer;
 {
     ConnInfo *ci;
 
-    CODA_ASSERT(RPC2_GetPrivatePointer(cid, &ci) == RPC2_SUCCESS);
+    assert(RPC2_GetPrivatePointer(cid, &ci) == RPC2_SUCCESS);
     if (ci->curfp == NULL) return TV_FAILURE;
     if (fwrite(buffer->SeqBody, buffer->SeqLen, 1, ci->curfp) == 0)
     { perror("fwrite failed");
@@ -173,7 +161,7 @@ unsigned long where;
 {
     ConnInfo *ci;
 
-    CODA_ASSERT(RPC2_GetPrivatePointer(cid, &ci) == RPC2_SUCCESS);
+    assert(RPC2_GetPrivatePointer(cid, &ci) == RPC2_SUCCESS);
     if (ci->curfp == NULL) return TV_FAILURE;
     if (fseek(ci->curfp, where, 0) == -1) return errno;
     return TV_SUCCESS;
@@ -190,7 +178,7 @@ InitRPC()
     RPC2_SubsysIdent subsysid;
     struct timeval tout;
 
-    CODA_ASSERT(LWP_Init(LWP_VERSION, LWP_NORMAL_PRIORITY, &mylpid) == LWP_SUCCESS);
+    assert(LWP_Init(LWP_VERSION, LWP_NORMAL_PRIORITY, &mylpid) == LWP_SUCCESS);
 
     portalid.Tag = RPC2_PORTALBYINETNUMBER;
     portalid.Value.InetPortNumber = htons(TVPORTAL);
@@ -202,7 +190,7 @@ InitRPC()
     }
     subsysid.Tag = RPC2_SUBSYSBYID;
     subsysid.Value.SubsysId = TVSUBSYSID;
-    CODA_ASSERT(RPC2_Export(&subsysid) == RPC2_SUCCESS);
+    assert(RPC2_Export(&subsysid) == RPC2_SUCCESS);
 }
 
 

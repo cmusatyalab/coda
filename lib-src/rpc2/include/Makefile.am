@@ -19,7 +19,7 @@
 
 SUBDIRS = rpc2
 
-noinst_HEADERS = coda_assert.h coda_string.h dllist.h
+noinst_HEADERS = dllist.h
 
 MAINTAINERCLEANFILES = Makefile.in
 
