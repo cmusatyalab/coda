@@ -123,7 +123,6 @@ int sftp_InitIO(struct SFTP_Entry *sEntry)
 {
     struct SFTP_Descriptor *sftpd;
     long omode, oflags;
-    struct stat statbuf;
     
     sftpd = &sEntry->SDesc->Value.SmartFTPD;
 
@@ -191,18 +190,7 @@ int sftp_InitIO(struct SFTP_Entry *sEntry)
     }
     
     if (sftpd->SeekOffset > 0)
-	if (lseek(sEntry->openfd, sftpd->SeekOffset, SEEK_SET) < 0) {
-	    if (RPC2_Perror) perror("lseek");
-	    sftp_vfclose(sEntry);	    
-	    return(-1);
-	}
-
-    /* stat file to obtain file size */
-    if (fstat(sEntry->openfd, &statbuf) < 0) {
-	if (RPC2_Perror) perror("fstat");
-	sftp_vfclose(sEntry);
-	return(-1);
-    }
+	(void)lseek(sEntry->openfd, sftpd->SeekOffset, SEEK_SET);
 
     return(0);
 }
@@ -1413,19 +1401,14 @@ int sftp_piggybackfileread(struct SFTP_Entry *se, char *buf)
 	p = &se->SDesc->Value.SmartFTPD.FileInfo.ByAddr;
 	memcpy(buf, p->vmfile.SeqBody, sftp_piggybackfilesize(se));
     } else {
-	if (BYFDFILE(se->SDesc)) {
-	    if (lseek(se->openfd, se->fd_offset, SEEK_SET) == -1)
-		return(RPC2_SEFAIL4);
-	}
+	if (BYFDFILE(se->SDesc))
+	    (void)lseek(se->openfd, se->fd_offset, SEEK_SET);
 
 	if (read(se->openfd, buf, sftp_piggybackfilesize(se)) < 0)
 	    return(RPC2_SEFAIL4);
 
-	if (BYFDFILE(se->SDesc)) {
+	if (BYFDFILE(se->SDesc))
 	    se->fd_offset = lseek(se->openfd, 0, SEEK_CUR);
-	    if (se->fd_offset == -1)
-		return(RPC2_SEFAIL4);
-	}
     }
     return(0);
 }
@@ -1445,22 +1428,11 @@ int sftp_vfwritefile(struct SFTP_Entry *se, char *buf, int nbytes)
 	memcpy(p->vmfile.SeqBody, buf, nbytes);
 	p->vmfile.SeqLen = nbytes;
     } else {
-	if (BYFDFILE(se->SDesc)) {
-	    if (lseek(se->openfd, se->fd_offset, SEEK_SET) == -1)
-		return(RPC2_SEFAIL4);
-	}
-
 	if (write(se->openfd, buf, nbytes) < 0) {
 	    if (errno == ENOSPC)
 		return (RPC2_SEFAIL3);
 
 	    return(RPC2_SEFAIL4);	    
-	}
-
-	if (BYFDFILE(se->SDesc)) {
-	    se->fd_offset = lseek(se->openfd, 0, SEEK_CUR);
-	    if (se->fd_offset == -1)
-		return(RPC2_SEFAIL4);
 	}
     }
     return(0);    
@@ -1491,18 +1463,14 @@ static int sftp_vfreadv(struct SFTP_Entry *se, struct iovec iovarray[], long how
 
     /* Go to the disk if we must */
     if (!MEMFILE(se->SDesc)) {
-	if (BYFDFILE(se->SDesc)) {
-	    if (lseek(se->openfd, se->fd_offset, SEEK_SET) == -1)
-		return(RPC2_SEFAIL4);
-	}
+	if (BYFDFILE(se->SDesc))
+	    (void)lseek(se->openfd, se->fd_offset, SEEK_SET);
 
         err = readv(se->openfd, iovarray, howMany);
 
-	if (BYFDFILE(se->SDesc)) {
+	if (BYFDFILE(se->SDesc))
 	    se->fd_offset = lseek(se->openfd, 0, SEEK_CUR);
-	    if (se->fd_offset == -1)
-		return(RPC2_SEFAIL4);
-	}
+
 	return err;
     }
 
@@ -1543,10 +1511,10 @@ static int sftp_vfwritev(struct SFTP_Entry *se, struct iovec *iovarray, long how
     result = 0;
     left = howMany;
 
-    if (BYFDFILE(se->SDesc)) {
-	if (lseek(se->openfd, se->fd_offset, SEEK_SET) == -1)
-	    return(RPC2_SEFAIL4);
-    }
+    /* let's hope we won't have to share a non-seekable fd because the lseek
+     * will fail */
+    if (BYFDFILE(se->SDesc))
+	(void)lseek(se->openfd, se->fd_offset, SEEK_SET);
 
     while (left > 0) {
 	thistime = (left > 16) ? 16 : left;
@@ -1576,11 +1544,8 @@ static int sftp_vfwritev(struct SFTP_Entry *se, struct iovec *iovarray, long how
 	left -= thistime;
     }
 
-    if (BYFDFILE(se->SDesc)) {
+    if (BYFDFILE(se->SDesc))
 	se->fd_offset = lseek(se->openfd, 0, SEEK_CUR);
-	if (se->fd_offset == -1)
-	    return(RPC2_SEFAIL4);
-    }
     
     return(result);
 }
