@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vtools/codacon.cc,v 4.3 1997/02/26 16:04:21 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vtools/codacon.cc,v 4.4 98/08/06 00:18:40 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -71,28 +71,38 @@ void CheckMariner(FILE *);
 void CheckTheMariner(char *);
 
 
-main(int argc, char *argv[]) {
+void main(int argc, char *argv[])
+{
+    int running = 1;
+    int venusSocket;
+
     if (argc > 2) {
 	fprintf(stderr, "Bad args: %s [host]\n", argv[0]);
 	exit(-1);
     }
     char *host = (argc == 1 ? NULL : argv[1]);
 
-    /* Bind to Venus and ask it to send us Fetch/Store messages. */
-    int venusSocket = Bind(MarinerService, host);
-    if (venusSocket < 0) {
-	fprintf(stderr, "codacon: bind(%s, %s) failed\n", MarinerService, host);
-	exit(-1);
-    }
-    FILE *fp = fdopen(venusSocket, "r");
-    char *p = "set:fetch\n";
-    if (write(venusSocket, p, strlen(p)) != strlen(p)) {
-	fprintf(stderr, "codacon: set:fetch command failed (%d)\n", errno);
-	exit(-1);
-    }
+    while (running)
+    {
+	/* Bind to Venus and ask it to send us Fetch/Store messages. */
+	venusSocket = Bind(MarinerService, host);
+	if (venusSocket < 0) {
+	    fprintf(stderr, "codacon: bind to %s failed, venus not running?\n",
+		    host ? host : "localhost");
+	    sleep(5);
+	    continue;
+	}
+	FILE *fp = fdopen(venusSocket, "r");
+	char *p = "set:fetch\n";
+	if (write(venusSocket, p, strlen(p)) != strlen(p)) {
+	    fprintf(stderr, "codacon: set:fetch command failed (%d)\n", errno);
+	} else {
+	    /* Read until someone kills the connection. */
+	    CheckMariner(fp);
+	}
 
-    /* Read until someone kills the connection. */
-    CheckMariner(fp);
+	fclose(fp); close(venusSocket);
+    }
 }
 
 
