@@ -729,7 +729,7 @@ static void Redir (int argc, char *argv[], int opslot)
     struct ViceIoctl vio;
     struct in_addr whereto = { INADDR_ANY };
 
-    if (argc != 3 || argc != 4) {
+    if (argc != 3 && argc != 4) {
         printf("Usage: %s\n", cmdarray[opslot].usetxt);
         exit(-1);
     }
