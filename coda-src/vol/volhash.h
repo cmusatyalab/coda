@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /usr/rvb/XX/src/coda-src/vol/RCS/volhash.h,v 4.1 1997/01/08 21:52:19 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vol/volhash.h,v 4.2 1997/02/26 16:03:57 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -69,7 +69,6 @@ extern "C" {
 #include <ohash.h>
 #include <olist.h>
 #include <inconsist.h>
-#include <callback.h>
 
 class vhashtab;
 class vhash_iterator;
