@@ -51,6 +51,10 @@ These notices must be retained in any copies of any part of this
 documentation and/or software.
  */
 
+#ifdef sun
+typedef unsigned int u_int32_t;
+#endif
+
 typedef struct MD5Context {
     u_int32_t state[4];   /* state (ABCD) */
     u_int32_t count[2];   /* number of bits, modulo 2^64 (lsb first) */
