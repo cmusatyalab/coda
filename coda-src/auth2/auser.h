@@ -39,7 +39,7 @@ void hton_SecretToken(SecretToken *stoken);
 int U_Authenticate(const char *realm, const int AuthenticationType,
 		   const char *uName, const int uNamelen,
 		   ClearToken *cToken, EncryptedSecretToken sToken, 
-		   const int passwdpipe, const int interactive );
+		   const int verbose, const int interactive );
 
  /* Talks to the central authentication server and changes the password for
   * uName to newPasswd if myName is the same as uName or a system
