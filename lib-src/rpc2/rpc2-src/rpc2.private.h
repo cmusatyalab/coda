@@ -50,6 +50,14 @@ Pittsburgh, PA.
 
 #include <rpc2/rpc2_addrinfo.h>
 
+#ifndef HAVE_STRUCT_SOCKADDR_STORAGE
+/* this should be large enough to fit 'any' socket address. */
+struct sockaddr_storage {
+    struct sockaddr __ss_sa;
+    char _ss_padding[128 - sizeof(struct sockaddr)];
+};
+#endif
+
 /*
 Magic Number assignments for runtime system objects.
 Truly random values to allow easy detection of storage corruption.
