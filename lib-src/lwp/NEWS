@@ -2,6 +2,7 @@ New in 1.6:
 
 * Merged debian packaging files.
 * Using same version number for all libraries.
+# Applied RedHat build patch from Bruce Guenter.
 
 New in 1.5:
 
