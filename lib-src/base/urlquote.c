@@ -22,7 +22,7 @@ int quote(char *dest, char *src, size_t n)
     char c;
 
     n--;
-    for (; n & *src; n--, src++, dest++) {
+    for (; n && *src; n--, src++, dest++) {
 #if 0
 	/* simply copy the following `safe' characters */
 	if ((*src >= 'a' && *src <= 'z') ||
