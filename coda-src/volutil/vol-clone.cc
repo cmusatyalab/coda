@@ -277,7 +277,6 @@ long S_VolClone(RPC2_Handle rpcid, RPC2_Unsigned formal_ovolid,
     V_VolLock(originalvp).IPAddress = 0;
     ReleaseWriteLock(&(V_VolLock(originalvp).VolumeLock)); 
     VPutVolume(originalvp);
-    VListVolumes();	/* Create updated /"vicedir"/vol/VolumeList */
     rvmlib_end_transaction(flush, &(status));
     VDisconnectFS();
 

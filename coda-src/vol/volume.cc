@@ -139,8 +139,6 @@ static int VolumeCacheCheck = 0;  /* Incremented everytime a volume
 
 static int VolumeCacheSize = 50, VolumeGets = 0, VolumeReplacements = 0;
 
-static void VListVolume(FILE *file, Volume *vp);
-static void VAppendVolume(Volume *vp);
 static void WriteVolumeHeader(Error *ec, Volume *vp);
 static Volume *attach2(Error *ec, char *path, struct VolumeHeader *header,
 		       struct DiskPartition *dp);
@@ -329,7 +327,6 @@ void VInitVolumePackage(int nLargeVnodes, int nSmallVnodes, int DoSalvage)
 	}
 	VLog(0, "Attached %d volumes; %d volumes not attached",
 	     nAttached, nUnattached);
-	VListVolumes(); 	/* Update list in /"vicedir"/vol/VolumeList */
 	rvmlib_end_transaction(flush, &(camstatus));
     }
 
@@ -443,13 +440,6 @@ void VInitServerList(char *host)
     fclose(file);
 }
 
-void VCheckVolumes()
-{
-    VLog(9, "Entering VCheckVolumes()");
-    VListVolumes();
-    /* Note: removed body surrounded by "#ifdef undef"; recover from version 2.2*/
-}
-
 void VGetVolumeInfo(Error *ec, char *key, register VolumeInfo *info)
 {
     register struct vldb *vldp;
@@ -508,71 +498,81 @@ void VGetVolumeInfo(Error *ec, char *key, register VolumeInfo *info)
     return;
 }
 
-static void VListVolume(register FILE *file, register Volume *vp)
+static void VListVolume(char **buf, unsigned int *buflen,
+				unsigned int *offset, Volume *vp)
 {
-    register int volumeusage, i;
+    unsigned int volumeusage, i;
+    int n;
+    char type = '?';
 
     VLog(9, "Entering VListVolume for volume %x", V_id(vp));
 
     VAdjustVolumeStatistics(vp);
-    for (volumeusage = i = 0; i<7; i++)
+    volumeusage = 0;
+    for (i = 0; i < 7; i++)
 	volumeusage += V_weekUse(vp)[i];
-    fprintf(file, "%c%s I%lx H%x P%s m%x M%x U%x W%lx C%lx D%lx B%lx A%x\n",
-      V_type(vp) == readwriteVolume? 'W':V_type(vp) == readonlyVolume? 'R':
-	V_type(vp) == backupVolume? 'B':'?',
-      V_name(vp), V_id(vp), ThisServerId, vp->partition->name,
-      V_minquota(vp), V_maxquota(vp), V_diskused(vp),
-      V_parentId(vp), V_creationDate(vp), V_copyDate(vp), V_backupDate(vp),
-      volumeusage
-    );
+
+    switch(V_type(vp)) {
+    case readwriteVolume: type = 'W'; break;
+    case readonlyVolume:  type = 'R'; break;
+    case backupVolume:    type = 'B'; break;
+    }
+
+retry:
+    n = snprintf(*buf + *offset, *buflen - *offset,
+		 "%c%s I%lx H%x P%s m%x M%x U%x W%lx C%lx D%lx B%lx A%x\n",
+		 type, V_name(vp), V_id(vp), ThisServerId, vp->partition->name,
+		 V_minquota(vp), V_maxquota(vp), V_diskused(vp),
+		 V_parentId(vp), V_creationDate(vp), V_copyDate(vp),
+		 V_backupDate(vp), volumeusage);
+
+    if (n == -1) {
+	*buflen += 1024;
+	*buf = (char *)realloc(*buf, *buflen);
+	goto retry;
+    }
+    *offset += n;
 }
 
-void VListVolumes() 
+void VListVolumes(char **buf, unsigned int *offset) 
 {
-    FILE *file;
+    struct dllist_head *p;
     struct DiskPartition *part;
-    struct dllist_head *tmp;
-    int i;
+    unsigned int i, buflen;
+    int n;
+
+    buflen = 1024;
+    *buf = (char *)malloc(buflen);
 
     VLog(9, "Entering VListVolumes()");
 
-    file = fopen(vice_file("vol/VolumeList.temp"), "w");
-    CODA_ASSERT(file != NULL);
-
-    tmp = &DiskPartitionList;
-    while ( (tmp = tmp->next) != &DiskPartitionList) {
-	    part = list_entry(tmp, struct DiskPartition, dp_chain);
-	    fprintf(file, "P%s H%s T%x F%x\n",
-		    part->name, ThisHost, part->totalUsable, part->free);
+    *offset = 0;
+    for(p = DiskPartitionList.next; p != &DiskPartitionList; p = p->next) {
+	part = list_entry(p, struct DiskPartition, dp_chain);
+retry:
+	n = snprintf(*buf + *offset, buflen - *offset, "P%s H%s T%x F%x\n",
+		     part->name, ThisHost, part->totalUsable, part->free);
+	if (n == -1) {
+	    buflen += 1024;
+	    *buf = (char *)realloc(*buf, buflen);
+	    goto retry;
+	}
+	*offset += n;
     }
+
     for (i=0; i<VOLUME_HASH_TABLE_SIZE; i++) {
-	register Volume *vp, *tvp;
+	Volume *vp, *tvp;
         Error error;
 	vp = VolumeHashTable[i];
 	while (vp) {
 	    tvp = VGetVolume(&error, vp->hashid);
 	    if (tvp) {
-	        VListVolume(file,tvp);
+	        VListVolume(buf, &buflen, offset, tvp);
 		VPutVolume(tvp);
 	    }
 	    vp = vp->hashNext;
 	}
     }
-    fclose(file);
-    rename(vice_file("vol/VolumeList.temp"),
-	   vice_file("vol/VolumeList"));
-}
-
-static void VAppendVolume(Volume *vp)
-{
-    FILE *file;
-
-    VLog(9, "Entering VAppendVolume for volume %x", V_id(vp));
-    file = fopen(vice_file("vol/VolumeList"), "a");
-    if (file == NULL)
-        return;
-    VListVolume(file, vp);
-    fclose(file);
 }
 
 extern int DumpVM;
@@ -806,8 +806,6 @@ VAttachVolumeById(Error *ec, char *partition, VolumeId volid, int mode)
 		}
 		VLog(0, "VAttachVolumeById: vol %x (%s) attached and online",
 		     V_id(vp), V_name(vp));
-		if (listVolume && VInit)
-			VAppendVolume(vp);
 	}
 	VLog(29, "returning from VAttachVolumeById()");
 	return vp;

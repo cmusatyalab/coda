@@ -114,6 +114,7 @@ static void timing(void);
 static void elapse(void);
 static void tracerpc(void);
 static void printstats(void);
+static void getvolumelist(void);
 static void showcallbacks(void);
 static void truncatervmlog(void);
 static void getmaxvol(void);
@@ -264,6 +265,8 @@ int main(int argc, char **argv)
 	tracerpc();
     else if (strcmp(argv[1], "printstats") == 0)
 	printstats();
+    else if (strcmp(argv[1], "getvolumelist") == 0)
+	getvolumelist();
     else if (strcmp(argv[1], "showcallbacks") == 0)
 	showcallbacks();
     else if (strcmp(argv[1], "truncatervmlog") == 0)
@@ -302,7 +305,8 @@ bad_options:
 "\tsetvv, showvnode, shutdown, swaplog, setdebug, updatedb, unlock,\n"
 "\tdumpmem, rvmsize, timing, elapse, enablewb, disablewb, printstats,\n"
 "\tshowcallbacks, truncatervmlog,togglemalloc, getmaxvol, setmaxvol,\n"
-"\tpeek, poke, peeks, pokes, peekx, pokex, setlogparms, tracerpc\n");
+"\tpeek, poke, peeks, pokes, peekx, pokex, setlogparms, tracerpc\n"
+"\tgetvolumelist\n");
     exit(-1);
 }
 
@@ -1596,25 +1600,23 @@ static void tracerpc(void)
     exit(0);
 }
 
-/*
-  BEGIN_HTML
-  <pre>
-  <a name="printstats"><strong>Client end of the <tt>printstats</tt> request</strong></a>
-  </pre>
-  END_HTML
-*/
+/**
+ * printstats - get server statistics.
+ * @file: optional output file
+ *
+ */
 static void printstats(void)
 {
     SE_Descriptor sed;
     FILE *outf;
 
-    if (these_args < 3) {
-	fprintf(stderr, "Usage: volutil printstats [outfile <file>]\n");
+    if (these_args < 2) {
+	fprintf(stderr, "Usage: volutil printstats [<file>]\n");
 	exit(-1);
     }
 
-    if (these_args < 4) outf = stdout;
-    else		outf = fopen(this_argp[3], "w");
+    if (these_args < 3) outf = stdout;
+    else		outf = fopen(this_argp[2], "w");
 
     /* set up side effect descriptor */
     memset(&sed, 0, sizeof(SE_Descriptor));
@@ -1629,6 +1631,41 @@ static void printstats(void)
 	exit(-1);
     }
     fprintf(stderr, "PrintStats finished successfully\n");
+    exit(0);
+}
+
+/**
+ * getvolumelist - get VolumeList from the server
+ * @file: optional output file
+ *
+ */
+static void getvolumelist(void)
+{
+    SE_Descriptor sed;
+    FILE *outf;
+
+    if (these_args < 2) {
+	fprintf(stderr, "Usage: volutil getvolumelist [<file>]\n");
+	exit(-1);
+    }
+
+    if (these_args < 3) outf = stdout;
+    else		outf = fopen(this_argp[2], "w");
+
+    /* set up side effect descriptor */
+    memset(&sed, 0, sizeof(SE_Descriptor));
+    sed.Tag = SMARTFTP;
+    sed.Value.SmartFTPD.Tag = FILEBYFD;
+    sed.Value.SmartFTPD.TransmissionDirection = SERVERTOCLIENT;
+    sed.Value.SmartFTPD.FileInfo.ByFD.fd = fileno(outf);
+
+    rc = GetVolumeList(rpcid, &sed);
+    if (rc != RPC2_SUCCESS) {
+	fprintf(stderr, "GetVolumeList failed with %s\n",
+		RPC2_ErrorMsg((int)rc));
+	exit(-1);
+    }
+    fprintf(stderr, "GetVolumeList finished successfully\n");
     exit(0);
 }
 

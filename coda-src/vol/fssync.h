@@ -45,9 +45,9 @@ Pittsburgh, PA.
 /* FSYNC commands */
 #define FSYNC_ON		1 /* Volume online */
 #define FSYNC_OFF		2 /* Volume offline */
-#define FSYNC_LISTVOLUMES	3 /* Update local volume list */
-#define FSYNC_NEEDVOLUME	4 /* Put volume in whatever mode (offline, or whatever)
-				     best fits the attachment mode provided in reason */
+#define FSYNC_NEEDVOLUME	4 /* Put volume in whatever mode (offline, or
+				     whatever) best fits the attachment mode
+				     provided in reason */
 #define FSYNC_MOVEVOLUME	5 /* Generate temporary relocation information
 				     for this volume to another site, to be used
 				     if this volume disappears */

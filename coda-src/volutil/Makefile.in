@@ -52,7 +52,7 @@ HEADERS     = volutil.private.h
 DEPLIBS := ${LIBVOL} ${LIBVV} $(LIBVICEDEP) ${LIBPARTITION} ${LIBUTIL} \
 	   ${LIBSYSENT} ${LIBBASE}
 
-LIBS := ${DEPLIBS} ${LIBRDSLWP} ${LIBSEG} ${LIBRVMLWP} ${LIBRPC2} ${LIBSE} \
+LIBS := ${DEPLIBS} ${LIBRDSLWP} ${LIBSEG} ${LIBRVMLWP} ${LIBSE} ${LIBRPC2} \
 	${LIBLWP} ${LIBREADLINE} $(LIBTERMCAP) $(LIBS)
 
 
@@ -86,6 +86,7 @@ VOLUTILOBJS = \
 	vol-timing.o \
 	vol-tracerpc.o\
 	vol-printstats.o\
+	vol-getvolumelist.o\
 	vol-showcallbacks.o\
 	vol-rvmtrunc.o\
 	${LOCALOBJS}

@@ -160,7 +160,6 @@ long int S_VolPurge(RPC2_Handle rpcid, RPC2_Unsigned formal_purgeId,
     vp->shuttingDown = 1;
 
     /* Don't need to call VPutVolume since all vm traces have been removed. */
-    VListVolumes();   /* Create updated /"vicedir"/vol/VolumeList */
 
     PrintVolumesInHashTable();
  exit:

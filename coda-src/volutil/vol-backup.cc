@@ -272,7 +272,6 @@ long S_VolMakeBackups(RPC2_Handle rpcid, VolumeId originalId,
     VPutVolume(originalvp);
     VPutVolume(backupvp);
 
-    VListVolumes();     /* do this to update VolumeList file */
     VDisconnectFS();
     S_VolUnlock(rpcid, originalId);
 

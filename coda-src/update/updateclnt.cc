@@ -692,7 +692,6 @@ static int U_BindToServer(char *fileserver, RPC2_Handle *RPCid)
     RPC2_PortIdent pident;
     RPC2_SubsysIdent sident;
     RPC2_CountedBS cident;
-    RPC2_EncryptionKey secret;
     char hostname[64];
     long     rcode;
 
@@ -705,7 +704,6 @@ static int U_BindToServer(char *fileserver, RPC2_Handle *RPCid)
 
     RPC2_BindParms bparms;
     bzero((void *)&bparms, sizeof(bparms));
-//    bparms.SecurityLevel = RPC2_AUTHONLY;
     bparms.SecurityLevel = RPC2_OPENKIMONO;
     bparms.EncryptionType = RPC2_XOR;
     bparms.SideEffectType = SMARTFTP;
@@ -714,9 +712,6 @@ static int U_BindToServer(char *fileserver, RPC2_Handle *RPCid)
     cident.SeqBody = (RPC2_ByteSeq)&hostname;
     cident.SeqLen = strlen(hostname) + 1;
     bparms.ClientIdent = &cident;
-
-//    GetSecret(vice_sharedfile("db/update.tk"), secret);
-//    bparms.SharedSecret = &secret;
 
     LogMsg(9, SrvDebugLevel, stdout, "V_BindToServer: binding to host %s\n",
 	   fileserver);

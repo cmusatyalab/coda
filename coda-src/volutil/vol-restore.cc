@@ -356,7 +356,6 @@ static int RestoreVolume(DumpBuffer_t *buf, char *partition,
 	rvmlib_abort(-1);
 	return -1;
     }
-    VListVolumes();  /* Create updated /"vicedir"/vol/VolumeList */
 
     rvmlib_end_transaction(flush, &status);
     if (status == 0)

@@ -141,3 +141,6 @@ typedef RPC2_Struct {
 39: VolSetWBParms(IN VolumeId Vid, IN RPC2_Integer newWBFlag);
 
 40: NewVolMarkAsAncient(IN VolumeId backupId);
+
+41: GetVolumeList(IN OUT SE_Descriptor sed);
+

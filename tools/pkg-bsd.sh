@@ -91,8 +91,8 @@ MAINTAINER=	rvb@cs.cmu.edu
 @NetBSD DEPENDS+=	readline-2.2:../../devel/readline
 @NetBSD DEPENDS+=	perl-5.00404:../../lang/perl5
 @NetBSD DEPENDS+=	lwp-1.4:../../devel/lwp
-@NetBSD DEPENDS+=	rpc2-1.4:../../devel/rpc2
-@NetBSD DEPENDS+=	rvm-1.1:../../devel/rvm
+@NetBSD DEPENDS+=	rpc2-1.5:../../devel/rpc2
+@NetBSD DEPENDS+=	rvm-1.2:../../devel/rvm
 
 @NetBSD ONLY_FOR_ARCHS=	arm32 i386 ns32k
 @NetBSD 

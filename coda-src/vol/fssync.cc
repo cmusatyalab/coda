@@ -249,9 +249,6 @@ int FSYNC_askfs(VolumeId volume, int command, int reason)
 		rc = FSYNC_OK;
 		break;
 	}
-	case FSYNC_LISTVOLUMES:
-		VListVolumes();
-		break;
 	case FSYNC_MOVEVOLUME:
 		/* Yuck: the "reason" for the move is the site it got
 		   moved to; sort of makes sense, doesn't it?? */
