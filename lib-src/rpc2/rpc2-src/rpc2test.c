@@ -692,11 +692,6 @@ static long ClientBody(char *clientName)
 
 
 
-void iopen(void )
-{
-    assert(1 == 0);
-}
-
 static struct Password {
     char *name; char *password;
 } PList[] = {

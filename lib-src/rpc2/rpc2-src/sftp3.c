@@ -112,8 +112,6 @@ void PrintDb(struct SFTP_Entry *se, RPC2_PacketBuffer *pb);
 
 /* -------------------- Common file open routine -------------------- */
 
-extern int iopen(long Device, long inode, long oflags);
-
 int sftp_InitIO(struct SFTP_Entry *sEntry)
     /* Fills the openfd field of sEntry by opening and seeking to the
      file/offset specified by its SDesc.  Merely initializes internal
@@ -177,6 +175,7 @@ int sftp_InitIO(struct SFTP_Entry *sEntry)
 	break;
 
 
+#ifdef HAVE_IOPEN
     case FILEBYINODE:
 	sEntry->openfd = iopen(sftpd->FileInfo.ByInode.Device,
 			       sftpd->FileInfo.ByInode.Inode, oflags);
@@ -185,6 +184,7 @@ int sftp_InitIO(struct SFTP_Entry *sEntry)
 	    return(-1);
 	}
 	break;
+#endif
         
     default:
 	return(-1);

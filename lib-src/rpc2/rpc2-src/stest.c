@@ -222,12 +222,6 @@ long FindKey(authenticationtype, ClientIdent, IdentKey, SessionKey)
     }
 
 
-void iopen(void)
-{
-    assert(1 == 0);
-}
-
-
 long NoteAuthFailure(authenticationtype, cIdent, eType, pHost, pPort)
   RPC2_Integer authenticationtype;
     RPC2_CountedBS *cIdent;

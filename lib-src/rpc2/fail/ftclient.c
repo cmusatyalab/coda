@@ -380,4 +380,3 @@ InitRPC()
 	if (rc < RPC2_ELIMIT) exit(-1);
 }
 
-iopen(int dummy1, int dummy2, int dummy3){}

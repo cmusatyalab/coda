@@ -504,15 +504,6 @@ Finish:
 
 
 
-int iopen()
-{
-	printf("In iopen");
-    assert(1 == 0);
-    return 1;
-}
-
-
-
 void PrintStats()
 {
     printf("RPC2:\n");

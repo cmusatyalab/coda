@@ -113,8 +113,6 @@ static int maxFilterID = 999;
 int argc;
 char *argv[MAXARGS];
 
-iopen(int dummy1, int dummy2, int dummy3) {/* fake ITC system call */} 
-
 int
 main(int argc, char **argv)
 {

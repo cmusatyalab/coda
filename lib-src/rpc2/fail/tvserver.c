@@ -202,5 +202,3 @@ RPC2_Handle connId;
     if (rCode < RPC2_FLIMIT && connId != 0) RPC2_Unbind(connId);
 }
 
-iopen(int dummy1, int dummy2, int dummy3) {/* fake ITC system call */} 
-

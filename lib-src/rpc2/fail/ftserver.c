@@ -224,4 +224,3 @@ InitRPC()
 	assert(RPC2_Export(&subsysid) == RPC2_SUCCESS);
 }
 
-iopen(int dummy1, int dummy2, int dummy3){}
