@@ -20,7 +20,7 @@ if test ${build} != ${target} ; then
   case ${target} in
    i386-pc-msdos )
     dnl shared libraries don't work here
-    AM_DISABLE_SHARED
+    enable_shared=no
     if ${dosmmap} ; then
       CC="dos-gcc -bmmap"
       CXX="dos-gcc -bmmap"

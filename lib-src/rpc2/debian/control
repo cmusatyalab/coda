@@ -2,7 +2,7 @@ Source: rpc2
 Section: devel
 Priority: optional
 Maintainer: Jan Harkes <jaharkes@cs.cmu.edu>
-Standards-Version: 3.0.1
+Standards-Version: 3.5.4.0
 Build-Depends: debhelper, dpkg-dev, gcc, liblwp-dev, flex, bison | byacc
 
 Package: librpc2-dev
