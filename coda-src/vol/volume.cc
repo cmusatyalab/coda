@@ -721,7 +721,6 @@ VAttachVolumeById(Error *ec, char *partition, VolumeId volid, int mode)
 	CODA_ASSERT(LWP_GetRock(FSTAG, (char **)&pt) == LWP_SUCCESS);
 	*ec = 0;
 	if (*pt == volumeUtility) {
-		CODA_ASSERT(0);
 		VLog(19, "running as volume utility");
 		CODA_ASSERT(VInit == 1);
 		DP_LockPartition(partition);
