@@ -70,13 +70,21 @@ int HASHHOST(struct RPC2_addrinfo *ai)
     int lsb = 0;
     switch(ai->ai_family) {
     case PF_INET:
-	lsb = ((struct sockaddr_in *)ai->ai_addr)->sin_addr.s_addr;
-	break;
+	{
+	    struct sockaddr_in *sin = (struct sockaddr_in *)ai->ai_addr;
+	    lsb = sin->sin_addr.s_addr ^ sin->sin_port;
+	    break;
+	}
 
 #if defined(PF_INET6)
     case PF_INET6:
-	lsb = ((u_int32_t *)&((struct sockaddr_in6 *)ai->ai_addr)->sin6_addr)[3];
+	{
+	    struct sockaddr_in6 *sin6 = (struct sockaddr_in6 *)ai->ai_addr;
+	    lsb = ((u_int32_t *)&sin6->sin6_addr)[3] ^ sin6->sin6_port;
+	    break;
+	}
 #endif
+    default:
 	break;
     }
     return lsb & (HOSTHASHBUCKETS-1);

@@ -1,3 +1,8 @@
+New in 1.22:
+
+* Fixed some small memory leaks in error conditions.
+* Keep the size of the host lookup table smaller.
+
 New in 1.21:
 
 * IPv6 support.

@@ -21,5 +21,5 @@ EXTRA_DIST = changelog control copyright dirs docs librpc24.docs \
     librpc24.files librpc24.postinst librpc24.prerm postinst prerm \
     rpc2-tools.files rpc2-tools.postinst rpc2-tools.prerm rules watch
 
-MAINTAINERCLEANFILES = Makefile.in
-
+MAINTAINERCLEANFILES = Makefile.in changelog
+CONFIG_CLEAN_FILES =

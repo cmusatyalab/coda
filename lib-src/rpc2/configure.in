@@ -5,7 +5,7 @@ AC_PREREQ(2.50)
 AC_INIT
 AC_CONFIG_SRCDIR(rpc2-src/rpc2.private.h)
 CODA_SETUP_BUILD
-AM_INIT_AUTOMAKE(rpc2, 1.21)
+AM_INIT_AUTOMAKE(rpc2, 1.22)
 AC_CONFIG_HEADERS(config.h)
 
 dnl For library version updates, follow these steps in order.
