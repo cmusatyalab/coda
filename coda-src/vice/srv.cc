@@ -587,6 +587,7 @@ static void ServerLWP(int *Ident)
     RPC2_RequestFilter myfilter;
     RPC2_PacketBuffer * myrequest;
     RPC2_Handle mycid;
+    RPC2_Integer opcode;
     long    rc;
     int     lwpid;
     char    area[256];
@@ -650,11 +651,15 @@ static void ServerLWP(int *Ident)
 		    PrintCounters(stdout);
 		}
 	    }
+
+            /* save fields we need, ExecuteRequest will thrash the buffer */
+            opcode = myrequest->Header.Opcode;
+
 	    rc = srv_ExecuteRequest(mycid, myrequest, 0);
 
 	    if (rc) {
 		SLog(0, "srv.c request %d for %s at %s failed: %s",
-			myrequest->Header.Opcode, userName, workName, ViceErrorMsg((int)rc));
+			opcode, userName, workName, ViceErrorMsg((int)rc));
 		if(rc <= RPC2_ELIMIT) {
 		    if(client && client->RPCid == mycid && !client->DoUnbind) {
 			ObtainWriteLock(&(client->VenusId->lock));
@@ -676,7 +681,8 @@ static void ServerLWP(int *Ident)
 		    client->LastOp = 0;
 		}
 	    }
-	    if (myrequest->Header.Opcode == BADCLIENT) /* if bad client ptr Unbind */ {
+            /* if bad client pointer Unbind the rpc connection */
+	    if (opcode == BADCLIENT) {
 		SLog(0, "Worker%d: Unbinding RPC connection %d (BADCLIENT)",
 					    lwpid, mycid);
 		RPC2_Unbind(mycid);

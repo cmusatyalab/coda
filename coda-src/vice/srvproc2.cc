@@ -140,6 +140,20 @@ long FS_ViceDisconnectFS(RPC2_Handle RPCid)
     return(0);
 }
 
+/*
+  TokenExpired: When the server detects token expiry between GetRequest
+    and srv_ExecuteRequest, it converts the Header.Opcode into
+    TokenExpired. This routine then returns an appropriate error to the
+    client. (Ofcourse masochistic client may call this routines
+    themselves, and enjoy being thrown out :)
+*/
+long FS_TokenExpired(RPC2_Handle RPCid)
+{
+    SLog(100, "TokenExpired");
+    FS_ViceDisconnectFS(RPCid);
+
+    return(ECONNRESET);
+}
 
 /*
 ViceGetStatistics: Used by filestats to get general file server statistics
