@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /usr/rvb/XX/src/coda-src/vice/RCS/srvproc.cc,v 4.2 1997/01/28 11:54:40 satya Exp $";
+static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/ss/coda-src/vice/RCS/srvproc.cc,v 4.3 1997/02/26 16:03:45 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -3018,7 +3018,7 @@ int CheckFetchSemantics(ClientEntry *client, Vnode **avptr, Vnode **vptr,
 	if (SystemUser(client)) {
 	    if (((*vptr)->disk.type == vDirectory && !(*rights & PRSFS_LOOKUP)) ||
 		((*vptr)->disk.type != vDirectory && !(*rights & PRSFS_READ))) {
-		LogMsg(0, SrvDebugLevel, stdout, "CheckFetchSemantics: rights violation (%x : %x) (%x.%x.%x)",
+		LogMsg(1, SrvDebugLevel, stdout, "CheckFetchSemantics: rights violation (%x : %x) (%x.%x.%x)",
 			*rights, *anyrights,
 			Fid.Volume, Fid.Vnode, Fid.Unique);
 		return(EACCES);
@@ -3026,7 +3026,7 @@ int CheckFetchSemantics(ClientEntry *client, Vnode **avptr, Vnode **vptr,
 
 	    if (!IsOwner && (*vptr)->disk.type == vFile) {
 		if (CheckReadMode(client, *vptr)) {
-		    LogMsg(0, SrvDebugLevel, stdout, "CheckFetchSemantics: mode-bits violation (%x.%x.%x)",
+		    LogMsg(1, SrvDebugLevel, stdout, "CheckFetchSemantics: mode-bits violation (%x.%x.%x)",
 			    Fid.Volume, Fid.Vnode, Fid.Unique);
 		    return(EACCES);
 		}
