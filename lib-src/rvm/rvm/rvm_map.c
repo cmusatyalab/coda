@@ -923,7 +923,7 @@ static rvm_return_t map_data(rvm_options,region)
     {
     seg_t           *seg = region->seg;
     rvm_return_t    retval = RVM_SUCCESS;
-#ifdef __BSD44__
+#if defined(__NetBSD__) || defined(__FreeBSD__)
     char            *addr;
 #endif
     /* check for pager mapping */
@@ -934,7 +934,7 @@ static rvm_return_t map_data(rvm_options,region)
             return RVM_EPAGER;
             }
 
-#ifdef __BSD44__
+#if defined(__NetBSD__) || defined(__FreeBSD__)
 		/* NetBSD has a kernel bug that will panic if we
 		   try to read from a raw device and copy it to address
 		   on or above 0x10400000.  This is known to be a problem
