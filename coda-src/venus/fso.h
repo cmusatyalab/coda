@@ -660,10 +660,10 @@ class fsobj {
     int SetVV(ViceVersionVector *, uid_t);
 
     /* The public CFS interface (non-Vice portion). */
-    int Open(int, int, int, venus_cnode *, uid_t);
+    int Open(int writep, int truncp, venus_cnode *cp, uid_t uid);
     int Sync(uid_t uid);
-    void Release(int writep, int execp);
-    int Close(int writep, int execp, uid_t uid);
+    void Release(int writep);
+    int Close(int writep, uid_t uid);
     int Access(long, int, uid_t);
     int Lookup(fsobj **, VenusFid *, char *, uid_t, int);
     int Readdir(char *, int, int, int *, uid_t);
@@ -791,16 +791,13 @@ extern void FSOD_Init(void);
 #define	DYING(f)	((f)->state == FsoDying)
 #define	READING(f)	(((f)->openers - (f)->Writers) > 0)
 #define	WRITING(f)	((f)->Writers > 0)
-#define	EXECUTING(f)	(EXECUTABLE(f) &&\
-			 !k_Purge(&(f)->fid))
-#define	BUSY(f)		((f)->refcnt > 0 ||\
-			 EXECUTING(f))
+#define	EXECUTING(f)	(EXECUTABLE(f) && READING(f) && !k_Purge(&(f)->fid))
+#define	ACTIVE(f)	(WRITING(f) || EXECUTING(f))
+#define	BUSY(f)		((f)->refcnt > 0 || EXECUTING(f))
 #define	HOARDABLE(f)	((f)->HoardPri > 0)
 #define	FETCHABLE(f)	(!DYING(f) &&\
-			 (HOARDING(f) ||\
-			  (LOGGING(f) && !DIRTY(f))) &&\
-			 (!HAVESTATUS(f) ||\
-			  (!WRITING(f) && !EXECUTING(f))))
+			 (HOARDING(f) || (LOGGING(f) && !DIRTY(f))) &&\
+			 (!HAVESTATUS(f) || !ACTIVE(f)))
 /* we are replaceable whenever we are linked into FSDB->prioq */
 #define	REPLACEABLE(f)	((f)->prio_handle.tree() != 0)
 #define	GCABLE(f)	(DYING(f) && !DIRTY(f) && !BUSY(f))

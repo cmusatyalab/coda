@@ -72,10 +72,10 @@ extern "C" {
 
 /* Call with object write-locked. */
 /* MUST NOT be called from within a transaction. */
-int fsobj::Open(int writep, int execp, int truncp, venus_cnode *cp, uid_t uid) 
+int fsobj::Open(int writep, int truncp, venus_cnode *cp, uid_t uid) 
 {
-    LOG(10, ("fsobj::Open: (%s, %d, %d, %d), uid = %d\n",
-	      comp, writep, execp, truncp, uid));
+    LOG(10, ("fsobj::Open: (%s, %d, %d), uid = %d\n",
+	      comp, writep, truncp, uid));
 
     if (cp) {
 	    cp->c_device = 0;
@@ -109,8 +109,6 @@ int fsobj::Open(int writep, int execp, int truncp, venus_cnode *cp, uid_t uid)
 	    Recov_EndTrans(((EMULATING(this) || LOGGING(this)) ? DMFP : CMFP));
 	}
     }
-    if (execp)
-	Execers++;
 
     /* Do truncate if necessary. */
     if (truncp && writep) {	/* truncp is acted upon only if writep */
@@ -200,8 +198,6 @@ Exit:
 		Recov_EndTrans(0);
 	    }
 	}
-	if (execp)
-	    Execers--;
 	FSO_RELE(this);
 	EnableReplacement();
     }
@@ -277,19 +273,13 @@ int fsobj::Sync(uid_t uid)
 
 /* Call with object write-locked. */
 /* We CANNOT return ERETRY from this routine! */
-void fsobj::Release(int writep, int execp) 
+void fsobj::Release(int writep)
 {
-    LOG(10, ("fsobj::Release: (%s, %d, %d)\n", comp, writep, execp));
+    LOG(10, ("fsobj::Release: (%s, %d)\n", comp, writep));
 
     FSO_ASSERT(this, openers != 0);
 
     openers--;
-
-    if (execp) {
-	if (!EXECUTING(this))
-	    { print(logFile); CHOKE("fsobj::Release: !EXECUTING"); }
-	Execers--;
-    }
 
     if (writep) {
 	PromoteLock();    
@@ -324,7 +314,7 @@ void fsobj::Release(int writep, int execp)
     return;
 }
 
-int fsobj::Close(int writep, int execp, uid_t uid) 
+int fsobj::Close(int writep, uid_t uid) 
 {
     int code = 0;
 
@@ -332,7 +322,7 @@ int fsobj::Close(int writep, int execp, uid_t uid)
      * to close. */
     if (writep && Writers == 1)
         code = Sync(uid);
-    Release(writep, execp);
+    Release(writep);
     return code;
 }
 

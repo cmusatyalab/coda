@@ -1891,8 +1891,8 @@ void fsobj::CancelStores()
 void fsobj::DiscardData() {
     if (!HAVEDATA(this))
 	{ print(logFile); CHOKE("fsobj::DiscardData: !HAVEDATA"); }
-    if (WRITING(this) || EXECUTING(this))
-	{ print(logFile); CHOKE("fsobj::DiscardData: WRITING || EXECUTING"); }
+    if (ACTIVE(this))
+	{ print(logFile); CHOKE("fsobj::DiscardData: ACTIVE"); }
 
     LOG(10, ("fsobj::DiscardData: (%s)\n", FID_(&fid)));
 

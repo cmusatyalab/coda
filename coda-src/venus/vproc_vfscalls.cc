@@ -178,7 +178,6 @@ void vproc::open(struct venus_cnode *cp, int flags) {
     int truncp = (flags & C_O_TRUNC) != 0;
     int exclp =  (flags & C_O_EXCL)  != 0;
     int createp =  (flags & C_O_CREAT)  != 0;
-    int	execp =	0;	    /* With VFS we're no longer told of execs! -JJK */
 
     fsobj *f = 0;
 
@@ -220,7 +219,7 @@ void vproc::open(struct venus_cnode *cp, int flags) {
 	}
 
 	/* Do the operation. */
-	u.u_error = f->Open(writep, execp, truncp, cp, u.u_uid);
+	u.u_error = f->Open(writep, truncp, cp, u.u_uid);
 	if (u.u_error) goto FreeLocks;
 
 FreeLocks:
@@ -244,7 +243,6 @@ void vproc::close(struct venus_cnode *cp, int flags)
 
     /* Expand the flags argument into some useful predicates. */
     int writep = (flags & (C_O_WRITE | C_O_TRUNC)) != 0;
-    int	execp =	0;	    /* ??? -JJK */
     //int not_written = 0; /* flags & C_O_NO_WRITES; */
 
     fsobj *f = 0;
@@ -268,7 +266,7 @@ void vproc::close(struct venus_cnode *cp, int flags)
           LOG(0, ("vproc::close: Don't have DATA and not DYING! (fid = %s, flags = %x)\n", FID_(&cp->c_fid), flags));
 
 	/* Do the operation. */
-	u.u_error = f->Close(writep, execp, u.u_uid /*, not_written */);
+	u.u_error = f->Close(writep, u.u_uid /*, not_written */);
 
 FreeLocks:
 	FSDB->Put(&f);

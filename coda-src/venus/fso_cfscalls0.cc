@@ -818,9 +818,9 @@ int fsobj::GetAttr(uid_t uid, RPC2_BoundedBS *acl)
 				 * since the validation of piggybacked fids
 				 * is a side-effect.
 				 */
-				if (HAVEDATA(pobj) && !WRITING(pobj) &&
-				    !EXECUTING(pobj) && !pobj->IsFakeDir() ||
-				    DIRTY(pobj)) {
+				if (HAVEDATA(pobj) && !ACTIVE(pobj) &&
+				    !pobj->IsFakeDir() && !DIRTY(pobj))
+				{
 				    Recov_BeginTrans();
 				    UpdateCacheStats((IsDir() ? &FSDB->DirDataStats 
 						      : &FSDB->FileDataStats),
