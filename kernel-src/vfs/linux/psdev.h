@@ -1,7 +1,7 @@
 #ifndef __CODA_PSDEV_H
 #define __CODA_PSDEV_H
 
-#define CODA_PSDEV_MAJOR 60      /* Major 18 is reserved for networking   */
+#define CODA_PSDEV_MAJOR 67      /* Major 18 is reserved for networking   */
 #define MAX_CODADEVS  5	      /* How many devices  	*/
 /* #define MAX_QBYTES    32768   * Maximum bytes in the queue * */
 

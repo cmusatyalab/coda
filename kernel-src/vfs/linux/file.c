@@ -701,8 +701,6 @@ coda_venus_readdir(struct inode *inode, struct file *filp, void *getdent,
                         /* adjust count */
                         count = dents_callback->count;
 
-DEBUG("ino %d, namlen %d, reclen %d, type %d, pos %d, string_offs %d, name %s, offset %d, count %d.\n", vdirent->d_fileno, vdirent->d_namlen, vdirent->d_reclen, vdirent->d_type, pos,  string_offset, debug, (u_int) offs, count);
-
                         error = verify_area(VERIFY_WRITE, dents_callback->current_dir, count);
                         if (error) {
                                 DEBUG("verify area fails!!!\n");
@@ -710,7 +708,9 @@ DEBUG("ino %d, namlen %d, reclen %d, type %d, pos %d, string_offs %d, name %s, o
                         }
 
                       error = filldir(dents_callback,  name, namlen, offs, ino); 
-                        if ( error < 0 ) break;
+DEBUG("ino %d, namlen %d, reclen %d, type %d, pos %d, string_offs %d, name %s, offset %d, count %d.\n", vdirent->d_fileno, vdirent->d_namlen, vdirent->d_reclen, vdirent->d_type, pos,  string_offset, debug, (u_int) offs, dents_callback->count);
+
+                      if ( error < 0 ) break;
 
                 }
                 /* next one */

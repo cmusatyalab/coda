@@ -22,6 +22,7 @@
 #include <linux/wait.h>		
 #include <linux/types.h>
 #include <linux/fs.h>
+
 #else 
 #include <venus_vnode.h>
 #endif KERNEL
@@ -210,19 +211,6 @@ do {                                                                      \
 
 #ifdef KERNEL
 enum vtype      { VNON, VREG, VDIR, VBLK, VCHR, VLNK, VSOCK, VFIFO, VBAD };
-#define VFMT		S_IFMT
-#define VCHR		S_IFCHR
-#define VDIR		S_IFDIR
-#define VBLK		S_IFBLK
-#define VREG		S_IFREG
-#define VLNK		S_IFLNK
-#define VSOCK		S_IFSOCK
-#define VSUID		S_ISUID
-#define VSGID		S_ISGID
-#define VSVTX		S_ISVTX
-#define VREAD		S_IREAD
-#define VWRITE		S_IWRITE
-#define VEXEC		S_IEXEC
 
 #define VTEXT           0  /* XXX what on earth is going on? */
 

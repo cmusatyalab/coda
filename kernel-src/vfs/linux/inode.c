@@ -13,9 +13,9 @@
 #include <asm/segment.h>
 #include <linux/string.h>
 
-#include "cfs.h"
-#include "cnode.h"
-#include "super.h"
+#include <cfs.h>
+#include <cnode.h>
+#include <super.h>
 
 /* prototypes */
 static int coda_create(struct inode *dir, const char *name, int len, int mode,

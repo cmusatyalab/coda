@@ -25,10 +25,10 @@
 #include <asm/segment.h>
 
 
-#include "psdev.h"
-#include "super.h"
-#include "cfs.h"
-#include "cnode.h"
+#include <psdev.h>
+#include <super.h>
+#include <cfs.h>
+#include <cnode.h>
 
 
 
@@ -65,7 +65,6 @@ extern struct inode_operations coda_ioctl_inode_operations;
 extern struct inode_operations coda_symlink_inode_operations;
 
 
-enum bsd_vtype  { BSD_VNON, BSD_VREG, BSD_VDIR, BSD_VBLK, BSD_VCHR, BSD_VLNK, BSD_VSOCK, BSD_VFIFO, BSD_VBAD };
 
 struct super_operations coda_super_operations =
 {
@@ -493,17 +492,18 @@ static void coda_vattr_to_iattr(struct inode *inode, struct vattr *attr)
            */
 
         
+        inode->i_mode &= ~S_IFMT;  /* clear type bits */
         switch (attr->va_type) {
-        case BSD_VNON:
+        case VNON:
                 inode->i_mode |= 0;
                 break;
-        case BSD_VREG:
+        case VREG:
                 inode->i_mode |= S_IFREG;
                 break;
-        case BSD_VDIR:
+        case VDIR:
                 inode->i_mode |= S_IFDIR;
                 break;
-        case BSD_VLNK:
+        case VLNK:
                 inode->i_mode |= S_IFLNK;
                 break;
         default:
@@ -512,13 +512,17 @@ static void coda_vattr_to_iattr(struct inode *inode, struct vattr *attr)
 
 
 
-        inode->i_mode |= attr->va_mode;
+        inode->i_mode |= attr->va_mode & ~S_IFMT;
         inode->i_uid = (uid_t) attr->va_uid;
         inode->i_gid = (gid_t) attr->va_gid;
         inode->i_nlink = attr->va_nlink;
         inode->i_size = attr->va_size;
+	/*  XXX This needs further study */
+	/*
         inode->i_blksize = attr->va_blocksize;
-        /*        inode->i_blocks = attr->va_blocks; */
+	inode->i_blocks = attr->va_size/attr->va_blocksize 
+	  + (attr->va_size % attr->va_blocksize ? 1 : 0); 
+	  */
         inode->i_atime = attr->va_atime.tv_sec;
         inode->i_mtime = attr->va_mtime.tv_sec;
         inode->i_ctime = attr->va_ctime.tv_sec;
@@ -599,31 +603,31 @@ print_vattr( attr )
     char *typestr;
 
     switch (attr->va_type) {
-    case BSD_VNON:
+    case VNON:
 	typestr = "VNON";
 	break;
-    case BSD_VREG:
+    case VREG:
 	typestr = "VREG";
 	break;
-    case BSD_VDIR:
+    case VDIR:
 	typestr = "VDIR";
 	break;
-    case BSD_VBLK:
+    case VBLK:
 	typestr = "VBLK";
 	break;
-    case BSD_VCHR:
+    case VCHR:
 	typestr = "VCHR";
 	break;
-    case BSD_VLNK:
+    case VLNK:
 	typestr = "VLNK";
 	break;
-    case BSD_VSOCK:
+    case VSOCK:
 	typestr = "VSCK";
 	break;
-    case BSD_VFIFO:
+    case VFIFO:
 	typestr = "VFFO";
 	break;
-    case BSD_VBAD:
+    case VBAD:
 	typestr = "VBAD";
 	break;
     default:

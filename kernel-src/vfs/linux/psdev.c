@@ -52,7 +52,6 @@
  */
 
 #include <linux/module.h>
-
 #include <linux/errno.h>
 #include <linux/kernel.h>
 #include <linux/major.h>
@@ -65,9 +64,9 @@
 #include <linux/skbuff.h>
 
 
-#include "psdev.h"
-#include "cfs.h"
-#include "cnode.h"
+#include <psdev.h>
+#include <cfs.h>
+#include <cnode.h>
 
 
 
