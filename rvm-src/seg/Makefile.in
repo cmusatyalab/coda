@@ -1,12 +1,3 @@
-# Top level
-#	Targets:
-# 		all (default):
-#			libseg.a
-# 		install: 
-#			rvm_segment.h rvm_segment_private.h -> $(INCLSPECIAL)
-#			libseg.a -> $(LIBSPECIAL)
-# 		sterile: clean + remove derived sources, dependency information
-
 #
 #
 #     RVM: an Experimental Recoverable Virtual Memory Package
@@ -38,10 +29,7 @@
 # changes  without  encumbrance.   Such improvements and extensions
 # should be returned to Software.Distribution@cs.cmu.edu.
 #
-# rcsid = $Header: /afs/cs/project/coda-src/cvs/coda/rvm-src/seg/Makefile.in,v 4.4 1997/12/02 16:41:00 braam Exp $
-#
 
-#   	SEG Makefile : depends on csmake
 
 TOPDIR = @top_srcdir@
 ifndef MAKDIR
@@ -54,50 +42,12 @@ TOPOBJ = @TOPOBJ@
 # Need to conditionalize this
 include $(MAKDIR)/Makeconf
 
-# presto changeo!
-SHOB_LIB_DIR := $(SHOB_LIB_SPECIAL)
-
 LIBRARIES = libseg.a
-HEADERS   = ${EXPHEADERS} ${PRIVHEADERS}
-
-# seg definitions
-EXPHEADERS = rvm_segment.h 
-PRIVHEADERS = rvm_segment_private.h
+HEADERS   = rvm_segment.h rvm_segment_private.h
 
 OBJECTS = rvm_segutil.o rvm_loadseg.o rvm_createseg.o
 
-# Used to make depend
-SOURCES = ${OBJECTS:.o=.c}
-# by convention, Makeconf.sys must be in the same directory as
-# Makeconf
-DEPDEP  = ${SOURCES} ${HEADERS} ${MAKEFILE} ${MAKECONF} \
-	  ${MAKECONF:Makeconf=Makeconf.sys}
-DERIVED = 
-
-
-safe: depend all
-
 #build SEG library
 libseg.a:  $(OBJECTS)
-
-#optionally use dependencies
-# -include Depend
-
-# Make sterile: clean plus removal of DERIVED and Depend
-sterile: clean
-	-rm -f ${DERIVED} Depend
-
-# Make depend: requires use of a compiler that understands -M
-# depend is remade when DEPDEP changes
-depend: Depend
-Depend: ${DEPDEP}
-	$(CC) -M $(CFLAGS) $(SOURCES) > Depend
-
-## setenv SUPPRESS_DOSRCINSTALL if you want to suppress the RCS checkin
-## by dosrcinstall
-#srcinstall:
-#	SRCDIR=$(SRCDIR); SYS=$(SYS); \
-#	export SRCDIR; export SYS;    \
-#        $(DOSRCINSTALL)	
 
 include $(MAKDIR)/configs/Makerules

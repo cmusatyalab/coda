@@ -1732,7 +1732,7 @@ coda-src/vice/tests/Makefile
 coda-src/update/tests/Makefile 
 coda-src/norton/tests/Makefile 
 coda-src/asr/tests/Makefile 
-coda-src/egasr/tests/Makefile " | sed "s/:[^ ]*//g"` conftest*; exit 1' 1 2 15
+coda-src/egasr/tests/Makefile" | sed "s/:[^ ]*//g"` conftest*; exit 1' 1 2 15
 EOF
 cat >> $CONFIG_STATUS <<EOF
 
@@ -1936,7 +1936,7 @@ coda-src/vice/tests/Makefile
 coda-src/update/tests/Makefile 
 coda-src/norton/tests/Makefile 
 coda-src/asr/tests/Makefile 
-coda-src/egasr/tests/Makefile "}
+coda-src/egasr/tests/Makefile"}
 EOF
 cat >> $CONFIG_STATUS <<\EOF
 for ac_file in .. $CONFIG_FILES; do if test "x$ac_file" != x..; then
@@ -1995,7 +1995,11 @@ cat >> $CONFIG_STATUS <<EOF
 
 EOF
 cat >> $CONFIG_STATUS <<\EOF
-
+mkdir rvm-src/rvmlwp
+mkdir rvm-src/rdslwp
+ln -s ../rvm/Makefile rvm-src/rvmlwp/Makefile
+ln -s ../rds/Makefile rvm-src/rdslwp/Makefile
+ 
 exit 0
 EOF
 chmod +x $CONFIG_STATUS

@@ -1,16 +1,3 @@
-# Top level
-#	Targets:
-# 		all (default):
-#			librvm.a librvmlwp.a rvmutl
-# 		safe: make all, ensuring that the dependencies are consistent
-#		       safe is expensive to build.
-# 		install: 
-#			rvm.h rvm_statistics.h rvm_lwp.h rvm_private.h \
-#			rvm_pthread.h dummy_cthreads.h -> $(INCLSPECIAL)
-#			librvm.a librvmlwp.a-> $(LIBSPECIAL)
-#			rvmutl -> $(BINDIR)
-# 		sterile: clean + remove derived sources, dependency information
-
 #
 #
 #     RVM: an Experimental Recoverable Virtual Memory Package
@@ -55,15 +42,6 @@ TOPOBJ = @TOPOBJ@
 
 include $(MAKDIR)/Makeconf
 
-SHOB_LIB_DIR := $(SHOB_LIB_SPECIAL)
-
-EXECUTABLES = rvmutl
-SSBINS      = rvmutl
-LIBRARIES   = librvm.a librvmlwp.a
-HEADERS     = ${EXPHEADERS} ${PRIVHEADERS}
-
-# For mach platforms, we need to add libthread.a and libmach.a
-# LIBTHREADS and LIBMACH are defined in configs/Makeconf.Mach
 # BSD platforms need libcompat.a for insque and deque
 RVMUTL_LIBS = ${LIBCOMPAT} ${LIBTHREADS} ${LIBMACH}
 
@@ -71,129 +49,67 @@ EXPHEADERS  = rvm.h rvm_statistics.h rvm_lwp.h rvm_private.h \
               rvm_pthread.h
 PRIVHEADERS = dummy_cthreads.h
 
-OBJ1 = rvm_init.o rvm_map.o rvm_unmap.o rvm_trans.o rvm_logstatus.o \
+LIBOBJ = rvm_init.o rvm_map.o rvm_unmap.o rvm_trans.o rvm_logstatus.o \
        rvm_logflush.o rvm_logrecovr.o rvm_utils.o rvm_io.o rvm_status.o \
        rvm_debug.o rvm_printers.o
 
-LWPOBJ1 = ${OBJ1:.o=.l.o}
-LWPSRC1 = ${OBJ1:.o=.l.c}
+OBJ = rvmutl.o
 
-PTOBJ1  = ${OBJ1:.o=.pt.o} rvm_pthread.o
-PTSRC1  = ${OBJ1:.o=.pt.c} rvm_pthread.c
-
-OBJ2 = rvmutl.o
-
-# For alpha_osf20 we don't build librvmlwp.a
-# For hp700_ux90 we build librvmpt.a
-OBJECTS_pmax_mach   = ${OBJ1} ${LWPOBJ1} ${OBJ2}
-OBJECTS_pmax_ul4    = ${OBJ1} ${LWPOBJ1} ${OBJ2}
-OBJECTS_i386_mach   = ${OBJ1} ${LWPOBJ1} ${OBJ2}
-OBJECTS_sun4_mach   = ${OBJ1} ${LWPOBJ1} ${OBJ2}
-OBJECTS_alpha_osf20 = ${OBJ1} ${OBJ2}
-OBJECTS_hp700_ux90  = ${OBJ1} ${PTOBJ1} ${OBJ2}
-OBJECTS_i386_nbsd1  = ${OBJ1} ${LWPOBJ1} ${OBJ2}
-OBJECTS_i386_fbsd2  = ${OBJ1} ${LWPOBJ1} ${OBJ2}
-OBJECTS_i386_linux  = ${OBJ1} ${LWPOBJ1} ${OBJ2}
-OBJECTS             = $(OBJECTS_${SYS})
-
-# Used to make depend
-SOURCES = ${OBJECTS:.o=.c}
-# by convention, Makeconf.sys must be in the same directory as Makeconf
-DEPDEP  = ${SOURCES} ${HEADERS} ${NEED_CTHREAD} ${MAKEFILE} \
-          ${MAKECONF} ${MAKECONF:Makeconf=Makeconf.sys}
-
-# For alpha_osf20 we don't build librvmlwp.a
-# For hp700_ux90, we build librvmpt.a
-LIBS_pmax_mach   = librvm.a librvmlwp.a
-LIBS_pmax_ul4    = librvm.a librvmlwp.a
-LIBS_i386_mach   = librvm.a librvmlwp.a
-LIBS_sun4_mach   = librvm.a librvmlwp.a
-LIBS_alpha_osf20 = librvm.a
-LIBS_hp700_ux90  = librvm.a librvmpt.a
-LIBS_i386_nbsd1  = librvm.a librvmlwp.a
-LIBS_i386_fbsd2  = librvm.a librvmlwp.a
-LIBS             = $(LIBS_$(SYS))
-
-# use log tail shadowing to debug the log tail pointer corruption
-#CFLAGS = -DRVM_LOG_TAIL_SHADOW $(CFLAGS)
-
-# make all.
-#TARGETS = ${LIBS} ${EXECUTABLES}
-# all: ${TARGETS}
-
-# make safe: includes a make Depend.  However, make Depend
-# is expensive, and will change whenever any source file changes.
-safe: Depend all
-
-# librvm: uses cthreads if available; otherwise uses no threads
-librvm.a:  $(NEED_CTHREAD) $(OBJ1)
-
-# need to symlink versions of the source for .l.o and .pt.o objects
-# Urk, but no other way that I know of.
-.INOBJECTDIR: ${LWPSRC1}
-
-.INOBJECTDIR: ${PTSRC1}
-
-# better be "ln -sf", but we don't have it on mach platform 
-%.l.c : %.c
-	-rm $@
-	ln -s $? $@
-
-%.l.o : %.l.c
-	$(CC) -DRVM_USELWP $(CFLAGS) -c $<
-
-# better be "ln -sf", but we don't have it on mach platform 
-%.pt.c : %.c
-	-rm $@
-	ln -s $? $@
-
-%.pt.o : %.pt.c
-	$(CC) -DRVM_USEPT -DREENTRANT -I/usr/include/reentrant $(CFLAGS) -c $<
-
-#These rules completely recreates the library, since some filenames are
-#truncated
-librvmlwp.a: $(LWPOBJ1)
-	$(RM) $@
-	$(AR) rv $@ $(LWPOBJ1)
-	$(RANLIB) $@
-
-librvmpt.a: $(PTOBJ1)
-	$(RM) $@
-	$(AR) rv $@ $(PTOBJ1)
-	$(RANLIB) $@
-
-rvmutl: $(NEED_CTHREAD) ${OBJ2} librvm.a ${RVMUTL_LIBS}
-	$(CC) $(LIBFLAGS) ${OBJ2} librvm.a ${RVMUTL_LIBS} -o $@
-
-sterile: clean
-	-$(RM) ${LWPSRC1} $(NEED_CTHREAD) Depend
-
-depend: Depend 
-Depend: ${DEPDEP}
-	$(CC) -M $(CFLAGS) ${SOURCES} > Depend
-
-# Optionally use dependancies 
-# -include Depend
-
-# setenv SUPPRESS_DOSRCINSTALL if you want to suppress the RCS checkin
-# by dosrcinstall
-# srcinstall:
-#	SRCDIR=$(SRCDIR); SYS=$(SYS); \
-#	export SRCDIR; export SYS;    \
-#        $(DOSRCINSTALL)	
-
-# Coda-specific installations
 # Note: to build librvmlwp.a with debugging for the log tail bug,
 # Use one of the two commented out targets instead.
 #       RVM_LOG_TAIL_BUG uses page protection
-#       make CFLAGS="$(CFLAGS) -DRVM_USELWP -DRVM_LOG_TAIL_BUG" librvm.a
+#       -DRVM_LOG_TAIL_BUG
 #       RVM_LOG_TAIL_SHADOW uses shadow variables
-#       make CFLAGS="$(CFLAGS) -DRVM_USELWP -DRVM_LOG_TAIL_SHADOW" librvm.a
+#       -DRVM_LOG_TAIL_SHADOW
 
-nothing:
-	@echo $(SYS)
-	@echo $(NEED_CTHREAD)
-	@echo $(LIBS)
-	@echo $(CTHREAD_${SYS})
+#
+# RVM can be built in 4 ways:
+#  - cthreads
+#               libs: must use libthreads.a and libmach.a
+#               flags: 
+#  - no threads (used by standalone rvm utilities in Coda
+#		flags: none
+#		libs: none
+#                 library produced:  librvm.a
+#  - lwp theads (used in Coda)
+#		flags: -DRVM_USELWP
+#		libs: 
+#		library produced: librvmlwp.a
+#  - pthreads
+
+
+
+HERE := $(shell basename `pwd`)
+ifeq ($(HERE),rvmlwp)
+RVMTARGET := lwp
+endif
+
+
+ifeq ($(RVMTARGET),)
+HEADERS     = ${EXPHEADERS} ${PRIVHEADERS}
+LIBRARIES   = librvm.a
+EXECUTABLES = rvmutl
+SSBINS      = rvmutl
+librvm.a: $(LIBOBJ)
+rvmutl:  librvm.a ${OBJ}
+	$(CC) $(LIBFLAGS) ${OBJ} librvm.a ${RVMUTL_LIBS} -o $@
+endif
+
+ifeq ($(RVMTARGET),lwp)
+CFLAGS += -DRVM_USELWP
+LIBRARIES   = librvmlwp.a
+librvmlwp.a: $(LIBOBJ)
+endif
+
+ifeq ($(RVMTARGET),cthreads)
+CFLAGS += ....
+LIBS += -lmach -lthreads
+librvm.a:  $(NEED_CTHREAD) $(LIBOBJ)
+endif
+
+ifeq ($(RVMTARGET),pthreads)
+LIBOBJ += rvm_pthread.o
+librvmpt.a: $(LIBOBJ)
+endif
 
 include $(MAKDIR)/configs/Makerules

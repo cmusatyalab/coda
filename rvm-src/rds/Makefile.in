@@ -1,15 +1,3 @@
-# Top level
-#	Targets:
-# 		all (default):
-#			librds.a librdslwp.a rdsinit
-# 		safe: make all, ensuring that the dependencies are consistent
-#		       safe is expensive to build.
-# 		install: 
-#			rds.h rds_private.h -> $(INCLSPECIAL)
-#			librds.a librdslwp.a-> $(LIBSPECIAL)
-#			rvminit -> $(BINDIR)
-# 		sterile: clean + remove derived sources, dependency information
-
 #
 #
 #     RVM: an Experimental Recoverable Virtual Memory Package
@@ -44,9 +32,6 @@
 # rcsid = $Header: /afs/cs/project/coda-src/cvs/coda/rvm-src/rds/Makefile.in,v 4.6 1998/01/10 18:40:41 braam Exp $
 #
 
-#   	RDS Makefile: depends on csmake.
-
-# rds definitions
 
 TOPDIR = @top_srcdir@
 ifndef MAKDIR
@@ -58,123 +43,44 @@ TOPOBJ = @TOPOBJ@
 
 include $(MAKDIR)/Makeconf
 
-# presto changeo!
-SHOB_LIB_DIR := $(SHOB_LIB_SPECIAL)
+LIBOBJ = rds_coalesce.o rds_free.o rds_init.o rds_malloc.o rds_prealloc.o \
+       rds_split.o rds_stats.o rds_start.o rds_util.o rds_zap.o 
 
+OBJ = rdsinit.o
+RDSINIT_LIBS = $(LIBSEG) $(LIBRVM) $(LIBOLDLWP) $(LIBCOMPAT) $(LIBTHREADS) $(LIBMACH)
+
+
+HERE := $(shell basename `pwd`)
+ifeq ($(HERE),rdslwp)
+RVMTARGET := lwp
+endif
+
+
+ifeq ($(RVMTARGET),)
 EXECUTABLES = rdsinit 
 SSBINS      = rdsinit
-LIBRARIES   = librds.a librdslwp.a
-HEADERS     = ${EXPHEADERS} ${PRIVHEADERS}
-
-# Mach platforms need libthread.a and libmach.a.
-# LIBTHREADS and LIBMACH are defined in configs/Makeconf.Mach file
-# i386_nbsd1 platforms need LIBCOMPAT
-RDSINIT_LIBS = ${LIBSEG} ${LIBRVM} ${LIBOLDLWP} ${LIBCOMPAT} ${LIBTHREADS} ${LIBMACH}
-
+LIBRARIES   = librds.a 
 EXPHEADERS = rds.h
 PRIVHEADERS = rds_private.h
 
+HEADERS     = ${EXPHEADERS} ${PRIVHEADERS}
+librds.a: $(LIBOBJ)
 
-OBJ1 = rds_coalesce.o rds_free.o rds_init.o rds_malloc.o rds_prealloc.o \
-       rds_split.o rds_stats.o rds_start.o rds_util.o rds_zap.o 
+rdsinit: $(OBJ)
+	$(CC) -o rdsinit $? librds.a $(RDSINIT_LIBS)
+endif
 
-LWPOBJ1 = ${OBJ1:.o=.l.o}
-LWPSRC1 = ${OBJ1:.o=.l.c}
 
-PTOBJ1  = ${OBJ1:.o=.pt.o}
-PTSRC1  = ${OBJ1:.o=.pt.c}
+ifeq ($(RVMTARGET),lwp)
+CFLAGS += -DRVM_USELWP
+LIBRARIES = librdslwp.a
 
-OBJ2 = rdsinit.o
+librdslwp.a: $(LIBOBJ)
+endif
 
-# For alpha_osf20, we don't build librdslwp.a
-# for hp700_ux90, we build librdspt.a
-OBJECTS_pmax_mach   = ${OBJ1} ${LWPOBJ1} ${OBJ2}
-OBJECTS_pmax_ul4    = ${OBJ1} ${LWPOBJ1} ${OBJ2}
-OBJECTS_i386_mach   = ${OBJ1} ${LWPOBJ1} ${OBJ2}
-OBJECTS_sun4_mach   = ${OBJ1} ${LWPOBJ1} ${OBJ2}
-OBJECTS_alpha_osf20 = ${OBJ1} ${OBJ2}
-OBJECTS_i386_nbsd1  = ${OBJ1} ${LWPOBJ1} ${OBJ2}
-OBJECTS_i386_linux2  = ${OBJ1} ${LWPOBJ1} ${OBJ2}
-OBJECTS_hp700_ux90  = $(OBJ1) $(PTOBJ1) $(OBJ2)
-OBJECTS             = $(OBJECTS_${SYS})
+ifeq ($(RVMTARGET), pthread)
+CLFAGS += -DRVM_USEPT -DREENTRANT
 
-# Used to make depend
-SOURCES = ${OBJECTS:.o=.c}
-# by convention, Makeconf.sys must be in the same directory as Makeconf
-DEPDEP  = ${SOURCES} ${HEADERS} ${NEED_CTHREAD} ${MAKEFILE} \
-          ${MAKECONF} ${MAKECONF:Makeconf=Makeconf.sys}
-
-# For alpha_osf20 we don't build librdslwp.a
-# For hp700_ux90 we build librdspt.a
-LIBS_pmax_mach   = librds.a librdslwp.a
-LIBS_pmax_ul4    = librds.a librdslwp.a
-LIBS_i386_mach   = librds.a librdslwp.a
-LIBS_sun4_mach   = librds.a librdslwp.a
-LIBS_alpha_osf20 = librds.a
-LIBS_i386_nbsd1  = librds.a librdslwp.a
-LIBS_hp700_ux90  = librds.a librdspt.a
-LIBS_i386_linux2 = librds.a librdslwp.a
-LIBS             = $(LIBS_$(SYS))
-
-safe: Depend all
-
-# build RDS library
-# Uses chtreads if available, otherwise uses no threads.
-librds.a: $(NEED_CTHREAD) $(OBJ1)
-
-# Need to symlink versions of the source for lwp-objects.
-# Grungy, but no other way I know of.
-.INOBJECTDIR: ${LWPSRC1}
-
-# better be "ln -sf", but we don't have it on mach platform
-%.l.c : %.c
-	-rm $@
-	ln -s $? $@
-
-%.l.o : %.l.c
-	$(CC) -DRVM_USELWP $(CFLAGS) -c $<
-
-# better be "ln -sf", but we don't have it on mach platform
-%.pt.c : %.c
-	-rm $@
-	ln -s $? $@
-
-%.pt.o : %.pt.c
-	$(CC) -DRVM_USEPT -DREENTRANT -I/usr/include/reentrant $(CFLAGS) -c $<
-
-# This rule completely recreates the library since some fnames
-# will be truncated.
-librdslwp.a: $(LWPOBJ1)
-	$(RM) $@
-	$(AR) rv $@ $(LWPOBJ1)
-	$(RANLIB) $@
-
-librdspt.a: $(PTOBJ1)
-	$(RM) $@
-	$(AR) rv $@ $(PTOBJ1)
-	$(RANLIB) $@
-
-rdsinit: $(NEED_CTHREAD) $(OBJ2) librds.a $(RDSINIT_LIBS)
-	$(CC) $(LIBSFLAGS) $(OBJ2) librds.a $(RDSINIT_LIBS) -o rdsinit
-
-sterile: clean
-	-rm -f ${LWPSRC1} $(NEED_CTHREAD) Depend
-
-depend: Depend
-Depend: $(DEPDEP)
-	$(CC) -M $(CFLAGS) $(SOURCES) > Depend
-
-#Optionally use dependencies
-#-include Depend
-
-## setenv SUPPRESS_DOSRCINSTALL if you want to suppress the RCS checkin
-## by dosrcinstall
-#srcinstall:
-#	SRCDIR=$(SRCDIR); SYS=$(SYS); \
-#	export SRCDIR; export SYS;    \
-#        $(DOSRCINSTALL)	
-
-nothing:
-	@echo $(LIBFLAGS)
+endif
 
 include $(MAKDIR)/configs/Makerules

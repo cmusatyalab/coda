@@ -98,8 +98,8 @@ LIBOLDLWP =$(TOPOBJ)/lib-src/mlwp/liboldlwp.a
 LIBRVM= $(TOPOBJ)/rvm-src/rvm/librvm.a
 LIBRDS= $(TOPOBJ)/rvm-src/rds/librds.a	 		
 # with threads
-LIBRVMLWP = $(TOPOBJ)/rvm-src/rvm/librvmlwp.a
-LIBRDSLWP = $(TOPOBJ)/rvm-src/rds/librdslwp.a
+LIBRVMLWP = $(TOPOBJ)/rvm-src/rvmlwp/librvmlwp.a
+LIBRDSLWP = $(TOPOBJ)/rvm-src/rdslwp/librdslwp.a
 # libseg doesn't use threads.
 LIBSEG= $(TOPOBJ)/rvm-src/seg/libseg.a 			
 

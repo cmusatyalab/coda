@@ -126,7 +126,12 @@ coda-src/vice/tests/Makefile
 coda-src/update/tests/Makefile 
 coda-src/norton/tests/Makefile 
 coda-src/asr/tests/Makefile 
-coda-src/egasr/tests/Makefile )
+coda-src/egasr/tests/Makefile, 
+mkdir rvm-src/rvmlwp
+mkdir rvm-src/rdslwp
+ln -s ../rvm/Makefile rvm-src/rvmlwp/Makefile
+ln -s ../rds/Makefile rvm-src/rdslwp/Makefile
+ )
 
 
 

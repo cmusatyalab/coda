@@ -13,11 +13,6 @@ TOPOBJ = @TOPOBJ@
 
 include $(MAKDIR)/Makeconf
 
-  I =  rvm
- II =  seg
-III =  rds
- IV =  tests
-
-SUBDIRS = $(I) $(II) $(III) $(IV)
+SUBDIRS = rvm rvmlwp seg rds rdslwp tests 
 
 include $(MAKDIR)/configs/Makerules
