@@ -833,16 +833,11 @@ static void print_size(WHO who, VAR *parm, char *prefix, FILE *where)
 					fprintf(where, "%sSeqLen)", select);
 					break;
 	case RPC2_BOUNDEDBS_TAG:
-					fputs("8", where);
-					if (parm->mode != IN_MODE) {
-					    fputs("+_PAD(", where);
-					    if ((parm->mode == OUT_MODE) && (who == RP2_CLIENT))
-						fprintf(where, "(*%s)", name);
-					    else
-						fputs(name, where);
-					    fprintf(where, "%sSeqLen)", select);
-					}
-					break;
+	    fputs("8", where);
+	    if ((who == RP2_CLIENT && parm->mode != OUT_MODE) ||
+		(who == RP2_SERVER && parm->mode != IN_MODE))
+		fprintf(where, "+_PAD(%s%sSeqLen)", name, select);
+	    break;
 	case RPC2_BULKDESCRIPTOR_TAG:	fputc('0', where);
 					break;
 	case RPC2_ENCRYPTIONKEY_TAG:	fputs("_PAD(RPC2_KEYSIZE)", where);
