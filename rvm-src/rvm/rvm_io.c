@@ -33,7 +33,7 @@ should be returned to Software.Distribution@cs.cmu.edu.
 
 */
 
-static char *rcsid = "$Header: /usr/rvb/XX/src/rvm-src/rvm/RCS/rvm_io.c,v 4.1 1997/01/08 21:54:33 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs.cmu.edu/user/clement/mysrcdir3/rvm-src/rvm/RCS/rvm_io.c,v 4.2 1997/02/26 16:05:02 rvb Exp clement $";
 #endif _BLURB_
 
 /*
@@ -63,7 +63,13 @@ extern char         *rvm_errmsg;        /* internal error message buffer */
 extern log_t        *default_log;       /* log descriptor */
 extern rvm_bool_t   rvm_utlsw;          /* operating under rvmutl */
 extern rvm_bool_t   rvm_no_update;      /* no segment or log update if true */
-/* buffer address checks */
+
+
+#ifndef ZERO
+#define ZERO 0
+#endif
+
+/* buffer address checks */
 rvm_bool_t in_wrt_buf(addr,len)
     char            *addr;              /* vm address */
     rvm_length_t    len;                /* length */
@@ -137,6 +143,12 @@ long set_dev_char(dev,dev_length)
     switch (mode)
         {
       case S_IFCHR:                     /* note raw io */
+#ifdef LINUX
+      case S_IFBLK:  /* in LINUX, the interface VFS to block and char
+                     * dev is the same, which means that no additional
+                     * character devices are required
+                     */
+#endif
         dev->raw_io = rvm_true;
         break;
       case S_IFREG:
@@ -219,7 +231,7 @@ long read_dev(dev,offset,dest,length)
     long            read_len;
     long            retval;
 
-    ASSERT(dev->handle != NULL);
+    ASSERT(dev->handle != ZERO);
     ASSERT(length != 0);
     ASSERT((dev->raw_io) ? (SECTOR_INDEX(length) == 0) : 1);
     ASSERT(((dev == &default_log->dev) && (!rvm_utlsw)) ?
@@ -277,7 +289,7 @@ long write_dev(dev,offset,src,length,sync)
     long            retval;
     long            wrt_len = length;   /* for no_update mode */
 
-    ASSERT(dev->handle != NULL);
+    ASSERT(dev->handle != ZERO);
     ASSERT(length != 0);
     ASSERT((dev->raw_io) ? (SECTOR_INDEX(length) == 0) : 1);
     ASSERT(((dev == &default_log->dev) && (!rvm_utlsw)) ?

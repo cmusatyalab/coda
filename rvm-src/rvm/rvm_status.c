@@ -33,7 +33,7 @@ should be returned to Software.Distribution@cs.cmu.edu.
 
 */
 
-static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/src/coda-4.0.1/RCSLINK/./rvm-src/rvm/rvm_status.c,v 1.1 1996/11/22 19:16:56 braam Exp $";
+static char *rcsid = "$Header: /afs/cs.cmu.edu/user/clement/mysrcdir3/rvm-src/rvm/RCS/rvm_status.c,v 4.1 1997/01/08 21:54:38 rvb Exp clement $";
 #endif _BLURB_
 
 /*
@@ -260,7 +260,7 @@ rvm_return_t rvm_query(rvm_options,rvm_region)
                                                = tid->uname;
                     rvm_options->tid_array[rvm_options->
                                            n_uncommit-1].tid
-                                               = (rvm_length_t)tid;
+                                               = tid;
                     }
                 }
 err_exit:;

@@ -33,7 +33,7 @@ should be returned to Software.Distribution@cs.cmu.edu.
 
 */
 
-static char *rcsid = "$Header: /usr/rvb/XX/src/rvm-src/rvm/RCS/rvmutl.c,v 4.1 1997/01/08 21:54:40 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs.cmu.edu/user/clement/mysrcdir3/rvm-src/rvm/RCS/rvmutl.c,v 4.2 1997/02/26 16:05:06 rvb Exp clement $";
 #endif _BLURB_
 
 /*
@@ -266,6 +266,11 @@ str_name_entry_t;
 extern rvm_bool_t do_quit();
 extern rvm_bool_t chk_sigint();
 static long lookup_str_name();
+
+#ifndef ZERO
+#define ZERO 0
+#endif
+
 /* scanner utilities */
 
 static void skip_white(ptr)
@@ -1051,7 +1056,7 @@ static void pr_memory(out_stream,err_stream,addr,count,
                        base,&width);
             break;
           case char_sw:
-            if (addr[i] == NULL) return;
+            if (addr[i] == '\0') return;
             width = 0;
             pr_char(out_stream,addr[i++],&width);
             break;
@@ -1127,7 +1132,7 @@ static rvm_bool_t pr_data_range(out_stream,err_stream,indent,line_width,
 
             /* if printing characters, see if null */
             if ((num_format & (unsigned long)char_sw)
-                && (*data_ptr == NULL))
+                && (*data_ptr == '\0'))
                 {
                 count = 0; break;   /* done */
                 }
@@ -4223,9 +4228,9 @@ static rvm_bool_t find_tail(out_stream,err_stream)
 
     CRITICAL(log->dev_lock,
         {
-        log->status.trunc_state = NULL;
+        log->status.trunc_state = ZERO;
         retval=locate_tail(log);
-        log->status.trunc_state = NULL;
+        log->status.trunc_state = ZERO;
         });
     if (retval != RVM_SUCCESS)
         {
@@ -4896,7 +4901,7 @@ file_name:
 
     /* do recovery according to parameters and replay instructions */
     log->in_recovery = rvm_true;
-    log->trunc_thread = NULL;
+    log->trunc_thread = (cthread_t)NULL;
     if ((retval=log_recover(log,&log->status.tot_recovery,
                             rvm_false,RVM_TRUNCATE_CALL))
         != RVM_SUCCESS)

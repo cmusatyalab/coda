@@ -33,7 +33,7 @@ should be returned to Software.Distribution@cs.cmu.edu.
 
 */
 
-static char *rcsid = "$Header: rvm_logrecovr.c,v 1.1 96/11/22 13:40:17 raiff Exp $";
+static char *rcsid = "$Header: /afs/cs.cmu.edu/user/clement/mysrcdir3/rvm-src/rvm/RCS/rvm_logrecovr.c,v 4.1 1997/01/08 21:54:33 rvb Exp clement $";
 #endif _BLURB_
 
 /*
@@ -79,6 +79,11 @@ rvm_bool_t          rvm_chk_sum;        /* force checksumming of all records */
 rvm_bool_t          rvm_shadow_buf;     /* use shadow buffer */
 
 /* macros & locals */
+
+#ifndef ZERO
+#define ZERO 0
+#else
+#endif
 
 /*static rvm_length_t     nv_local_max = NV_LOCAL_MAX;*/
 static struct timeval   trunc_start_time;
@@ -1262,7 +1267,7 @@ rvm_return_t locate_tail(log)
     rvm_return_t    retval = RVM_SUCCESS; /* return value */
 
     ASSERT(log->trunc_thread == cthread_self());
-    ASSERT((status->trunc_state & RVM_TRUNC_PHASES) == NULL);
+    ASSERT((status->trunc_state & RVM_TRUNC_PHASES) == ZERO);
     status->trunc_state |= RVM_TRUNC_FIND_TAIL;
 
     /* initialize scanner sequence checking state and buffers */
@@ -1997,7 +2002,7 @@ static rvm_return_t build_tree(log)
 
     ASSERT(log->trunc_thread == cthread_self());
     ASSERT(((status->trunc_state & RVM_TRUNC_PHASES) == RVM_TRUNC_FIND_TAIL)
-            || ((status->trunc_state & RVM_TRUNC_PHASES) == NULL));
+            || ((status->trunc_state & RVM_TRUNC_PHASES) == ZERO));
     status->trunc_state = (status->trunc_state & (~RVM_TRUNC_FIND_TAIL))
                            | RVM_TRUNC_BUILD_TREE;
 
@@ -2276,7 +2281,7 @@ static rvm_return_t merge_node(log,node,preload)
     /* do monitoring and merge node data into segment */
     if (RVM_OFFSET_EQL_ZERO(node->log_offset))
         {                               /* data in node */
-        if (rvm_chk_len != NULL)
+        if (rvm_chk_len != ZERO)
             monitor_vmaddr(node->vmaddr,node->length,
                            node->nv_ptr,NULL,NULL,
                            "merge_node: data copied from node:");
@@ -2645,8 +2650,8 @@ rvm_return_t log_recover(log,count,is_daemon,flag)
     CRITICAL(log->truncation_lock,      /* begin truncation lock crit sec */
         {
         /* capture truncation thread & flag for checking */
-        ASSERT(log->trunc_thread == NULL);
-        ASSERT(status->trunc_state == NULL);
+        ASSERT(log->trunc_thread == (cthread_t)NULL);
+        ASSERT(status->trunc_state == ZERO);
         log->trunc_thread = cthread_self();
         status->trunc_state = flag;
 
@@ -2771,8 +2776,8 @@ err_exit:
             ASSERT(log->trunc_thread == cthread_self());
             });                         /* end daemon->lock crit sec */
 
-        log->trunc_thread = NULL;
-        status->trunc_state = NULL;
+        log->trunc_thread = (cthread_t)NULL;
+        status->trunc_state = ZERO;
         });                             /* end truncation lock crit sec */
 
     return retval;
@@ -2896,7 +2901,7 @@ void log_daemon(log)
 
     /* must assign thread id here since LWP transfers to 
        created thread before returning to caller */
-    if (daemon->thread == NULL)
+    if (daemon->thread == (cthread_t)NULL)
         daemon->thread = cthread_self();
 
     DO_FOREVER

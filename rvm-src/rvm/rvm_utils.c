@@ -33,7 +33,7 @@ should be returned to Software.Distribution@cs.cmu.edu.
 
 */
 
-static char *rcsid = "$Header: /usr/rvb/XX/src/rvm-src/rvm/RCS/rvm_utils.c,v 4.1 1997/01/08 21:54:39 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs.cmu.edu/user/clement/mysrcdir3/rvm-src/rvm/RCS/rvm_utils.c,v 4.2 1997/02/26 16:05:05 rvb Exp clement $";
 #endif _BLURB_
 
 /*
@@ -92,6 +92,10 @@ long max_alloc[NUM_CACHE_TYPES] = {MAX_ALLOCATED};
 
 /* internal structure size vector for generic list allocations */
 long cache_type_sizes[NUM_CACHE_TYPES] = {CACHE_TYPE_SIZES};
+
+#ifndef ZERO
+#define ZERO 0
+#endif
 
 /* initialization lock & flag */
 /* cannot be statically allocated if using pthreads */
@@ -166,7 +170,7 @@ list_entry_t *move_list_entry(fromptr, toptr, victim)
                 victim = fromptr->nextentry;
             ASSERT(!victim->is_hdr);
             ASSERT(victim->list.name == fromptr);
-            remque(victim);             /* unlink from first list */
+            remque((void *)victim);             /* unlink from first list */
             fromptr->list.length --;
             }
         }
@@ -182,7 +186,7 @@ list_entry_t *move_list_entry(fromptr, toptr, victim)
         ASSERT(toptr->is_hdr);
         ASSERT(victim->struct_id == toptr->struct_id);
         victim->list.name = toptr;
-        insque(victim,toptr->preventry); /* insert at tail of second list */
+        insque((void *)victim,(void *)toptr->preventry); /* insert at tail of second list */
         toptr->list.length ++;
         }
     else victim->list.name = NULL;
@@ -619,7 +623,7 @@ void free_log(log)
     ASSERT(RW_LOCK_FREE(log->flush_lock));
     ASSERT(LOCK_FREE(log->truncation_lock));
     ASSERT(LOCK_FREE(log->daemon.lock));
-    ASSERT((log->daemon.thread != NULL)
+    ASSERT((log->daemon.thread != ZERO)
            ? log->daemon.state == terminate : 1);
 
     /* finalizer control structures */
@@ -703,7 +707,7 @@ log_t *make_log(log_dev_name,retval)
         init_list_header(&log->special_list,log_special_id);
 
         /* init daemon control structure */
-        log->daemon.thread = NULL;
+        log->daemon.thread = ZERO;
         mutex_init(&log->daemon.lock);
         condition_init(&log->daemon.code);
         condition_init(&log->daemon.flush_flag);

@@ -33,7 +33,7 @@ should be returned to Software.Distribution@cs.cmu.edu.
 
 */
 
-static char *rcsid = "$Header: rvm.h,v 1.1 96/11/22 13:40:09 raiff Exp $";
+static char *rcsid = "$Header: /afs/cs.cmu.edu/user/clement/mysrcdir3/rvm-src/rvm/RCS/rvm.h,v 4.1 1997/01/08 21:54:31 rvb Exp clement $";
 #endif _BLURB_
 
 /*
@@ -312,7 +312,7 @@ typedef struct
                                            do not change */
     struct timeval  uname;              /* unique name (timestamp) */
 
-    rvm_length_t    tid;                /* internal use only */
+    void            *tid;               /* internal use only */
     rvm_length_t    reserved;           /* internal use only */
     }
 rvm_tid_t;
@@ -480,7 +480,7 @@ extern rvm_return_t rvm_begin_transaction C_ARGS
 extern rvm_return_t rvm_set_range C_ARGS
     ((
     rvm_tid_t           *tid,           /* pointer to transaction identifier */
-    char                *dest,          /* base address of modification range */
+    void                *dest,          /* base address of modification range */
     rvm_length_t        length          /* length of modification range */
     ));
 
@@ -488,8 +488,8 @@ extern rvm_return_t rvm_set_range C_ARGS
 extern rvm_return_t rvm_modify_bytes C_ARGS
     ((
     rvm_tid_t           *tid,           /* pointer to transaction identifier */
-    char                *dest,          /* base address of modification range */
-    char                *src,           /* base address of source range */
+    void                *dest,          /* base address of modification range */
+    void                *src,           /* base address of source range */
     rvm_length_t        length          /* length of modification range */
     ));
 

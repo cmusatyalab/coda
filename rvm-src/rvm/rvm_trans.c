@@ -33,7 +33,7 @@ should be returned to Software.Distribution@cs.cmu.edu.
 
 */
 
-static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/src/coda-4.0.1/RCSLINK/./rvm-src/rvm/rvm_trans.c,v 1.1 1996/11/22 19:16:57 braam Exp $";
+static char *rcsid = "$Header: /afs/cs.cmu.edu/user/clement/mysrcdir3/rvm-src/rvm/RCS/rvm_trans.c,v 4.1 1997/01/08 21:54:39 rvb Exp clement $";
 #endif _BLURB_
 
 /*
@@ -480,7 +480,7 @@ static rvm_return_t merge_range(tid,region,new_range)
 /* rvm_set_range */
 rvm_return_t rvm_set_range(rvm_tid,dest,length)
     rvm_tid_t       *rvm_tid;           /* transaction affected */
-    char            *dest;              /* base vm address of range */
+    void            *dest;              /* base vm address of range */
     rvm_length_t    length;             /* length of range */
     {
     int_tid_t       *tid;               /* internal tid ptr */
@@ -517,8 +517,8 @@ rvm_return_t rvm_set_range(rvm_tid,dest,length)
 /* rvm_modify_bytes */
 rvm_return_t rvm_modify_bytes(rvm_tid,dest,src,length)
     rvm_tid_t           *rvm_tid;       /* transaction affected */
-    char                *dest;          /* base vm address of range */
-    char                *src;           /* source of nv's */
+    void                *dest;          /* base vm address of range */
+    void                *src;           /* source of nv's */
     rvm_length_t        length;         /* length of range */
     {
     rvm_return_t        retval;
@@ -943,7 +943,7 @@ rvm_return_t rvm_begin_transaction(rvm_tid,mode)
         {
         (void) move_list_entry(NULL,&log->tid_list,&tid->links);
         });                             /* end tid_list_lock critical section */
-    rvm_tid->tid = (rvm_length_t)tid;
+    rvm_tid->tid = tid;
     return RVM_SUCCESS;
     }
 /* rvm_abort_transaction */

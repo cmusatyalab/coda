@@ -33,7 +33,7 @@ should be returned to Software.Distribution@cs.cmu.edu.
 
 */
 
-static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/src/coda-4.0.1/RCSLINK/./rvm-src/rvm/dummy_cthreads.h,v 1.1 1996/11/22 19:17:12 braam Exp $";
+static char *rcsid = "$Header: /afs/cs.cmu.edu/user/clement/mysrcdir3/rvm-src/rvm/RCS/dummy_cthreads.h,v 4.1 1997/01/08 21:54:31 rvb Exp clement $";
 #endif _BLURB_
 
 /* dummy version of
@@ -86,6 +86,13 @@ typedef struct condition { int x; } *condition_t;
  * Threads.
  */
 typedef int cthread;
+
+/* What should be type of cthread_t ?
+ * In rvm_lwp.h, it is type (PROCESS)   (eq. to (struct lwp_pcb *)),  
+ * In rvm_pthread.h, it is type (pthread_t *),
+ * Here, I leave it untouch as type (int) but we may need to modify this
+ * in future.  -- 3/18/97 Clement
+ */
 typedef int cthread_t;
 
 #define cthread_fork(func, arg)		(cthread_t)NULL
@@ -96,7 +103,7 @@ typedef int cthread_t;
 
 #define cthread_exit(result)		exit(result)
 
-#define cthread_self()	    	    	NULL
+#define cthread_self()	    	    	(cthread_t)NULL
 /* Unsupported cthread calls */
 
 #define	mutex_alloc()			BOGUSCODE
