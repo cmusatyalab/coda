@@ -30,6 +30,7 @@ listed in the file CREDITS.
 #include <lwp/lwp.h>
 #include <rpc2/rpc2.h>
 #include <ports.h>
+#include <coda_string.h>
 
 void Initialize(void)
 {
