@@ -220,7 +220,12 @@ START_TIMING(AllocFids_Total);
 	/* Allocate a contiguous range of fids. */
 	if (Range->Count > MaxFidAlloc)
 	    Range->Count = MaxFidAlloc;
-	if ((errorCode = VAllocFid(volptr, Type, Range, stride, ix))) {
+	
+	/* Always allocating fids using a stride of VSG_MEMBERS. This way we
+	 * can potentially grow or shrink the replication group without
+	 * affecting previously issued fids which are being used by
+	 * disconnected clients --JH */
+	if ((errorCode = VAllocFid(volptr, Type, Range, VSG_MEMBERS /* stride */, ix))) {
 	    SLog(0,  "ViceAllocFids: VAllocVnodes error %s", ViceErrorMsg((int) errorCode));
 	    goto FreeLocks;
 	}
