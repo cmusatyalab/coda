@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rpc2/sftp1.c,v 4.1 1997/01/08 21:50:30 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rpc2/sftp1.c,v 4.2 1997/11/13 15:03:16 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -121,7 +121,7 @@ long SFTP_Init()
 
     /* Create SFTP listener process */
     sname = "sftp_Listener";
-    LWP_CreateProcess((PFIC)sftp_Listener, 8192, LWP_NORMAL_PRIORITY, sname, sname, &sftp_ListenerPID);
+    LWP_CreateProcess((PFIC)sftp_Listener, 12288, LWP_NORMAL_PRIORITY, sname, sname, &sftp_ListenerPID);
     sftp_InitTrace();
     return (RPC2_SUCCESS);
     }
