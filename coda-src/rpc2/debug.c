@@ -145,10 +145,43 @@ void rpc2_PrintSLEntry(struct SL_Entry *slPtr, FILE *tFile)
 }
 
 
+static void PrintNetLog(char *what, unsigned int NumEntries,
+			RPC2_NetLogEntry *Log, FILE *tFile)
+{
+    unsigned int head, ix;
+
+    fprintf(tFile, "\t%s Observation Log Entries = %d (%d kept)\n", 
+	    what, NumEntries, RPC2_MAXLOGLENGTH);
+    
+    if (NumEntries < RPC2_MAXLOGLENGTH) head = 0;
+    else head = NumEntries - RPC2_MAXLOGLENGTH;
+    while (head < NumEntries) {
+	ix = head & (RPC2_MAXLOGLENGTH-1);
+	switch(Log[ix].Tag) 
+	    {
+	    case RPC2_MEASURED_NLE:
+		fprintf(tFile, "\t\tentry %d: %ld.%06ld, conn 0x%lx, %ld bytes, %ld msec\n",
+			ix, Log[ix].TimeStamp.tv_sec, 
+			Log[ix].TimeStamp.tv_usec,
+			Log[ix].Value.Measured.Conn,
+			Log[ix].Value.Measured.Bytes, 
+			Log[ix].Value.Measured.ElapsedTime);
+		break;
+	    case RPC2_STATIC_NLE:
+		fprintf(tFile, "\t\tentry %d: %ld.%06ld, static bandwidth %ld bytes/sec\n",
+			ix, Log[ix].TimeStamp.tv_sec, 
+			Log[ix].TimeStamp.tv_usec,
+			Log[ix].Value.Static.Bandwidth);
+		break;
+	    default:
+		break;
+	    }		
+	head++;
+    }
+}
+
 void rpc2_PrintHEntry(struct HEntry *hPtr, FILE *tFile)
 {
-    int head, ix;
-
     if (tFile == NULL) tFile = rpc2_logfile;	/* it's ok, call-by-value */
 
     fprintf(tFile, "\nHost 0x%lx state is...\n\tNextEntry = 0x%lx  PrevEntry = 0x%lx  MagicNumber = %s\n",
@@ -166,34 +199,10 @@ void rpc2_PrintHEntry(struct HEntry *hPtr, FILE *tFile)
 	    hPtr->BW % ((1 << RPC2_BW_SHIFT) - 1),
 	    hPtr->BWVar >> RPC2_BWVAR_SHIFT,
 	    hPtr->BWVar % ((1 << RPC2_BWVAR_SHIFT) - 1));
-    fprintf(tFile, "\tObservation Log Entries = %d (%d kept)\n", 
-	    hPtr->NumEntries, RPC2_MAXLOGLENGTH);
-    
-    if (hPtr->NumEntries < RPC2_MAXLOGLENGTH) head = 0;
-    else head = hPtr->NumEntries - RPC2_MAXLOGLENGTH;
-    while (head < hPtr->NumEntries) {
-	ix = head & (RPC2_MAXLOGLENGTH-1);
-	switch(hPtr->Log[ix].Tag) 
-	    {
-	    case RPC2_MEASURED_NLE:
-		fprintf(tFile, "\t\tentry %d: %ld.%06ld, conn 0x%lx, %ld bytes, %ld msec\n",
-			ix, hPtr->Log[ix].TimeStamp.tv_sec, 
-			hPtr->Log[ix].TimeStamp.tv_usec,
-			hPtr->Log[ix].Value.Measured.Conn,
-			hPtr->Log[ix].Value.Measured.Bytes, 
-			hPtr->Log[ix].Value.Measured.ElapsedTime);
-		break;
-	    case RPC2_STATIC_NLE:
-		fprintf(tFile, "\t\tentry %d: %ld.%06ld, static bandwidth %ld bytes/sec\n",
-			ix, hPtr->Log[ix].TimeStamp.tv_sec, 
-			hPtr->Log[ix].TimeStamp.tv_usec,
-			hPtr->Log[ix].Value.Static.Bandwidth);
-		break;
-	    default:
-		break;
-	    }		
-	head++;
-    }
+
+    PrintNetLog("RPC2", hPtr->RPC2_NumEntries, hPtr->RPC2_Log, tFile);
+    PrintNetLog("SE",   hPtr->SE_NumEntries,   hPtr->SE_Log,   tFile);
+
     (void) fflush(tFile);
 }
 

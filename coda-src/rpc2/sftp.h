@@ -485,5 +485,5 @@ extern long SFTP_MaxPackets;
 
 /* test if we can send an TimeEcho reponse */
 #define VALID_TIMEECHO(se) (!(se)->Retransmitting && \
-			    (se)->TimeEcho != 0   && \
-			    (se)->RequestTime != 0)
+			     (se)->TimeEcho != 0 && \
+			     (se)->RequestTime != 0)

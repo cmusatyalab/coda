@@ -623,7 +623,6 @@ typedef
 	        Static;
             }
 	    Value;
-	NetLogEntryType Type;
         }
     RPC2_NetLogEntry;
 

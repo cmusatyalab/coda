@@ -309,10 +309,12 @@ struct HEntry {
     struct in_addr   Host;      /* IP address */
     struct timeval   LastWord;	/* Most recent time we've heard from this host*/
 
-    RPC2_NetLogEntry Log[RPC2_MAXLOGLENGTH];
+    unsigned RPC2_NumEntries;	/* number of observations recorded */
+    RPC2_NetLogEntry RPC2_Log[RPC2_MAXLOGLENGTH];
 				/* circular buffer for recent observations on
-				   round trip times and packet sizes */
-    unsigned NumEntries;	/* number of observations recorded */
+				 * round trip times and packet sizes */
+    unsigned SE_NumEntries;	/* number of sideeffect observations recorded */
+    RPC2_NetLogEntry SE_Log[RPC2_MAXLOGLENGTH];
 
 #define RPC2_RTT_SHIFT    3     /* Bits to right of binary point of RTT */
 #define RPC2_RTTVAR_SHIFT 2     /* Bits to right of binary point of RTTVar */
@@ -491,7 +493,7 @@ void rpc2_GetHostLog(struct HEntry *whichHost, RPC2_NetLog *log,
 		     NetLogEntryType type);
 int rpc2_AppendHostLog(struct HEntry *whichHost, RPC2_NetLogEntry *entry,
 		       NetLogEntryType type);
-void rpc2_ClearHostLog(struct HEntry *whichHost);
+void rpc2_ClearHostLog(struct HEntry *whichHost, NetLogEntryType type);
 void RPC2_UpdateEstimates(struct HEntry *whichHost, RPC2_Unsigned ElapsedTime,
 			  RPC2_Unsigned Bytes);
 void rpc2_UpdateEstimates(struct HEntry *whichHost, struct timeval *elapsed,

@@ -141,8 +141,10 @@ struct HEntry *rpc2_AllocHost(RPC2_HostIdent *host)
 	/* Initialize */
 	he->Host.s_addr = host->Value.InetAddress.s_addr;
 	he->LastWord.tv_sec = he->LastWord.tv_usec = 0;
-	memset(he->Log, 0, RPC2_MAXLOGLENGTH*sizeof(RPC2_NetLogEntry));
-	he->NumEntries = 0;
+
+	/* clear the network measurement logs */
+        rpc2_ClearHostLog(he, RPC2_MEASUREMENT);
+        rpc2_ClearHostLog(he, SE_MEASUREMENT);
 
 	he->RTT       = 0;
 	he->RTTVar    = 0;
@@ -188,28 +190,36 @@ void rpc2_GetHostLog(struct HEntry *whichHost, RPC2_NetLog *log,
 		     NetLogEntryType type)
 {
 	unsigned long quantum = 0;
-	unsigned int tail, ix, left = log->NumEntries;
+	unsigned int  tail, ix, left = log->NumEntries;
+	RPC2_NetLogEntry  *Log;
+	unsigned int  NumEntries;
 	
 	CODA_ASSERT(whichHost->MagicNumber == OBJ_HENTRY);
 
+	if (type == RPC2_MEASUREMENT) {
+	    Log = whichHost->RPC2_Log;
+	    NumEntries = whichHost->RPC2_NumEntries;
+	} else {
+	    Log = whichHost->SE_Log;
+	    NumEntries = whichHost->SE_NumEntries;
+	}
+
 	/* figure out how many entries to send back */
-	if (left > RPC2_MAXLOGLENGTH)     left = RPC2_MAXLOGLENGTH;
-	if (left > whichHost->NumEntries) left = whichHost->NumEntries;
-				    	  /* we have less */
+	if (left > RPC2_MAXLOGLENGTH) left = RPC2_MAXLOGLENGTH;
+	if (left > NumEntries)        left = NumEntries; /* we have less */
 	if (left == 0) return; 	/* don't touch anything */
 	
-	tail = whichHost->NumEntries - 1;	
+	tail = NumEntries - 1;	
 	
 	/* walk back through log and copy them out */
 	while (left--) {
 		ix = tail & (RPC2_MAXLOGLENGTH-1);
 
-		if (whichHost->Log[ix].Type != type) continue;
+		log->Entries[log->ValidEntries++] = Log[ix];
 
-		log->Entries[log->ValidEntries++] = whichHost->Log[ix];
-		switch(whichHost->Log[ix].Tag)  {
+		switch(Log[ix].Tag)  {
 		case RPC2_MEASURED_NLE:
-			quantum += whichHost->Log[ix].Value.Measured.ElapsedTime;
+			quantum += Log[ix].Value.Measured.ElapsedTime;
 			break;
 		case RPC2_STATIC_NLE:	/* static estimates are free */
 		default:
@@ -237,30 +247,48 @@ void rpc2_GetHostLog(struct HEntry *whichHost, RPC2_NetLog *log,
 int rpc2_AppendHostLog(struct HEntry *whichHost, RPC2_NetLogEntry *entry,
 		       NetLogEntryType type)
 {
-	unsigned long ix = whichHost->NumEntries & (RPC2_MAXLOGLENGTH-1);
+	unsigned long ix;
+	RPC2_NetLogEntry *Log;
+	unsigned int *NumEntries;
 
 	CODA_ASSERT(whichHost->MagicNumber == OBJ_HENTRY);
 	
 	if (!GOOD_NLE(entry)) 
 		return(0);
 
-	entry->Type = type;
-	whichHost->Log[ix] = *entry;	/* structure assignment */
-	
-	FT_GetTimeOfDay(&(whichHost->Log[ix].TimeStamp),
-			 (struct timezone *)0);
-	whichHost->NumEntries++;
+	if (type == RPC2_MEASUREMENT) {
+	    Log = whichHost->RPC2_Log;
+	    NumEntries = &whichHost->RPC2_NumEntries;
+	} else {
+	    Log = whichHost->SE_Log;
+	    NumEntries = &whichHost->SE_NumEntries;
+	}
+
+	ix = *NumEntries & (RPC2_MAXLOGLENGTH-1);
+	Log[ix] = *entry; /* structure assignment */
+
+	FT_GetTimeOfDay(&(Log[ix].TimeStamp), (struct timezone *)0);
+
+	(*NumEntries)++;
 
 	return(1);
 }
 
 
 /* clear the log */
-void rpc2_ClearHostLog(struct HEntry *whichHost)
+void rpc2_ClearHostLog(struct HEntry *whichHost, NetLogEntryType type)
 {
 	CODA_ASSERT(whichHost->MagicNumber == OBJ_HENTRY);
-	whichHost->NumEntries = 0;
-	memset(whichHost->Log, 0, RPC2_MAXLOGLENGTH*sizeof(RPC2_NetLogEntry));
+
+	if (type == RPC2_MEASUREMENT) {
+	    whichHost->RPC2_NumEntries = 0;
+	    memset(whichHost->RPC2_Log, 0,
+		   RPC2_MAXLOGLENGTH * sizeof(RPC2_NetLogEntry));
+	} else {
+	    whichHost->SE_NumEntries = 0;
+	    memset(whichHost->SE_Log, 0,
+		   RPC2_MAXLOGLENGTH * sizeof(RPC2_NetLogEntry));
+	}
 }
 
 void RPC2_UpdateEstimates(struct HEntry *host, RPC2_Unsigned ElapsedTime,
@@ -343,17 +371,6 @@ void rpc2_UpdateEstimates(struct HEntry *host, struct timeval *elapsed,
 
     /* the RTT & RTT variance are shifted analogous to Jacobson's
      * article in SIGCOMM'88 */
-
-    /* This is a hack to compensate for some SFTP error */
-    /* HACK! to avoid odd measurement with unusually long RTT's to have a
-     * negative effect on the estimate, we avoid using measurements
-     * which are more than 2x the current estimate */
-    /* there is something very wrong with the SFTP measurements....
-     * it looks like somewhere milliseconds are mistaken for seconds */
-    if (eL > host->RTT >> (RPC2_RTT_SHIFT - 1)) eL = 0;
-    else eL -= (host->RTT >> RPC2_RTT_SHIFT);
-    /* HACK! */
-
     eL -= (host->RTT >> RPC2_RTT_SHIFT);
     host->RTT += eL;
 

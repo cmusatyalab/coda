@@ -777,7 +777,7 @@ long RPC2_ClearNetInfo(IN Conn)
 
     /* get live time for RPC2 connection */
     if (ceaddr->HostInfo)
-	rpc2_ClearHostLog(ceaddr->HostInfo);
+	rpc2_ClearHostLog(ceaddr->HostInfo, RPC2_MEASUREMENT);
 
     if (ceaddr->SEProcs != NULL && ceaddr->SEProcs->SE_GetHostInfo != NULL)  {
 	struct HEntry *he;
@@ -786,7 +786,7 @@ long RPC2_ClearNetInfo(IN Conn)
 	if ((rc = (*ceaddr->SEProcs->SE_GetHostInfo)(Conn, &he)) != RPC2_SUCCESS)
 	    rpc2_Quit(rc);
 
-	if (he) rpc2_ClearHostLog(he);
+	if (he) rpc2_ClearHostLog(he, SE_MEASUREMENT);
     }
     
     rpc2_Quit(RPC2_SUCCESS);

@@ -489,7 +489,7 @@ static int sftp_SendAck(struct SFTP_Entry *sEntry)
 
     now = rpc2_MakeTimeStamp();
     pb->Header.TimeStamp = now;
-    pb->Header.TimeEcho = VALID_TIMEECHO(sEntry) ?
+    pb->Header.TimeEcho = VALID_TIMEECHO(sEntry, now) ?
 	sEntry->TimeEcho + (now - sEntry->RequestTime) : 0;
 
     sEntry->Retransmitting = FALSE;
