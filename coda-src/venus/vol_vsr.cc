@@ -35,7 +35,7 @@ extern "C" {
 
 #if    defined(__BSD44__)
 #include <sys/dkstat.h>
-#if defined(__NetBSD__)
+#if defined(__NetBSD_Version__) && (__NetBSD_Version__ >= 104000000)
 #include <sys/sched.h>
 #endif /* __NetBSD__ */
 #endif /* __BSD44__ */
