@@ -2,8 +2,14 @@
 
 set -e
 
-if [ "`which docbook2man`" ] ; then
-    docbook2man "$1"
+sh_which () {
+  ( IFS=: ; for p in $PATH ; do [ -x "$p/$1" ] && echo "$p/$1" ; done )
+}
+
+
+db2man="`sh_which docbook2man`"
+if [ "$db2man" ] ; then
+    $db2man "$1"
 
     # Correct dash/hyphen escaping.
     if [ -f "$2" ] ; then
@@ -13,8 +19,9 @@ if [ "`which docbook2man`" ] ; then
     exit 0
 fi
 
-if [ "`which docbook-to-man`" ] ; then
-    docbook-to-man "$1" > "$2"
+db2man="`sh_which docbook-to-man`"
+if [ "$db2man" ] ; then
+    $db2man "$1" > "$2"
 
     # Correct dash/hyphen escaping.
     if [ -f "$2" ] ; then
