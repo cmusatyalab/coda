@@ -29,7 +29,6 @@ export PATH
 # See how we were called.
 case "$1" in
   start)
-	# auth2
 	if [ ! -f $LOCKDIR/venus.init ]; then
 		touch $LOCKDIR/venus.init
 		venus &
@@ -40,23 +39,23 @@ case "$1" in
 	fi
 	;;
   stop)
-	if [ -f $PIDDIR/auth2.pid ]; then
+	if [ -f $PIDDIR/pid ]; then
 		
 		kill -TERM `cat $PIDDIR/pid`
 		umount /coda
-		rm -f $LOCKDIR/venus.init
 	fi
+	rm -f $LOCKDIR/venus.init
 
 	;;
 
   hardstop)
-	if [ -f $PIDDIR/auth2.pid ]; then
+	if [ -f $PIDDIR/pid ]; then
 		
 		kill -KILL `cat $PIDDIR/pid`
 		umount /coda
 		echo stopped: venus
-		rm -f $LOCKDIR/venus.init
 	fi
+	rm -f $LOCKDIR/venus.init
 
 	;;
 
