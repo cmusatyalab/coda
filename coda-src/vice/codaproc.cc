@@ -225,7 +225,7 @@ START_TIMING(AllocFids_Total);
 	 * can potentially grow or shrink the replication group without
 	 * affecting previously issued fids which are being used by
 	 * disconnected clients --JH */
-	if ((errorCode = VAllocFid(volptr, Type, Range, VSG_MEMBERS /* stride */, ix))) {
+	if ((errorCode = VAllocFid(volptr, Type, Range, stride, ix))) {
 	    SLog(0,  "ViceAllocFids: VAllocVnodes error %s", ViceErrorMsg((int) errorCode));
 	    goto FreeLocks;
 	}
