@@ -17,8 +17,9 @@ set -e
 # for details, see /usr/doc/packaging-manual/
 
 if [ "$1" == "purge" ] ; then
-    echo "Purging Coda cache files etc. " >&2
-    rm -rf /etc/coda /var/cache/coda /var/lib/coda /var/log/coda
+    echo "Purging Coda client configuration and cache files" >&2
+    rm -f /etc/coda/venus.conf
+    rm -rf /var/cache/coda /var/lib/coda /var/log/coda
 fi
 
 case "$1" in
