@@ -13,8 +13,8 @@
 
 #ifneq (build, host)
 
-CC = dos-gcc -bmmap
-CXX = dos-gcc -bmmap
+CC = dos-gcc -bmmap 
+CXX = dos-gcc -bmmap 
 AR = dos-ar
 RANLIB = true
 AS = dos-as
@@ -29,7 +29,7 @@ MACHINE_FLAGS = -DDOS
 SHORTSYS      = djgpp
 INCLFLAGS     =
 OPTFLAG	      =
-GFLAG         = -g
+GFLAG         = -g 
 CPP           = dos-gcc -E -x c-header
 OPTLFLAG      = 
 LIBCURSES     = -lncurses
