@@ -270,27 +270,24 @@ int VOL_HashFN(const void *key)
     return volid->Realm + volid->Volume;
 }
 
-static int GetRootVolume(Realm *realm, char **buf)
+static void GetRootVolume(Realm *realm, char **buf)
 {
     connent *c = NULL;
-    int code;
     RPC2_BoundedBS RVN;
     char *rvn = NULL;
+    int code;
 
     /* Get the connection. */
     if (realm->GetAdmConn(&c) != 0) {
 	LOG(100, ("GetRootVolume: can't get admin connection for realm %s!\n",
 		  realm->Name()));
 	RPCOpStats.RPCOps[ViceGetRootVolume_OP].bad++;
-	code = ENOENT;
 	goto err_exit;
     }
 
     rvn = (char *)malloc(V_MAXVOLNAMELEN);
-    if (!rvn) {
-	code = ENOMEM;
+    if (!rvn)
 	goto err_exit;
-    }
 
     memset(rvn, 0, V_MAXVOLNAMELEN);
     RVN.MaxSeqLen = V_MAXVOLNAMELEN-1;
@@ -313,14 +310,13 @@ static int GetRootVolume(Realm *realm, char **buf)
 	LOG(10, ("GetRootVolume: (%s) received name: %s, code: %d\n",
 		 realm->Name(), rvn, code));
     }
-    code = 0; 
 
 err_exit:
     if (rvn)
 	free(rvn);
 
     *buf = strdup(realm->GetRootVolName());
-    return code;
+    return;
 }
 
 /* Allocate database from recoverable store. */
@@ -607,12 +603,8 @@ int vdb::Get(volent **vpp, Realm *prealm, const char *name, fsobj *f)
     /* "special" case? not everybody wants to use the pathname based volume
      * name mapping and uses a rootvolume named "/" */
     if (volname[0] == '\0') {
-	char *volinfoname = NULL;
-	code = GetRootVolume(realm, &volinfoname);
-	if (!code) {
-	    free(volname);
-	    volname = volinfoname;
-	}
+	free(volname);
+	GetRootVolume(realm, &volname);
     }
 
     LOG(100, ("vdb::Get: volname = %s@%s\n", volname, realm->Name()));
