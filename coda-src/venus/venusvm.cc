@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/venusvm.cc,v 4.13 98/09/23 20:26:35 jaharkes Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/venusvm.cc,v 4.14 98/10/02 13:12:03 jaharkes Exp $";
 #endif /*_BLURB_*/
 
 
@@ -323,8 +323,8 @@ void VmonInit() {
     }
 #ifdef __BSD44__
 
-    RawStats[0].n_name = "_cfs_vfsopstats";
-    RawStats[1].n_name = "_cfs_vnodeopstats";
+    RawStats[0].n_name = "_coda_vfsopstats";
+    RawStats[1].n_name = "_coda_vnodeopstats";
     RawStats[2].n_name = 0;
     if (nlist(VMUNIX,RawStats) != 0) {
 	fprintf(stderr, "ERROR: running a pre-vfs-statistics kernel\n");
@@ -344,11 +344,11 @@ void VmonInit() {
 
     lseek(kmem, (long)RawStats[0].n_value, 0);
     read(kmem, (char *)vfsop_init_stats, 
-	 (int) (sizeof(struct cfs_op_stats)*CODA_VFSOPS_SIZE));
+	 (int) (sizeof(struct coda_op_stats)*CODA_VFSOPS_SIZE));
     
     lseek(kmem, (long)RawStats[1].n_value, 0);
     read(kmem, (char*)vnode_init_stats,
-	 (int)(sizeof(struct cfs_op_stats)*CODA_VNODEOPS_SIZE));
+	 (int)(sizeof(struct coda_op_stats)*CODA_VNODEOPS_SIZE));
 
     VmonSessionEventArraySize = (int) sizeof(VmonSessionEventArray);
 
@@ -648,12 +648,12 @@ static void CheckMC() {       // Check minicache stats
     if (Time - LastTime < VmonMiniCacheInterval) return;
     LastTime = Time;
 
-    struct cfs_op_stats vfsop_stats[CODA_VFSOPS_SIZE];
-    struct cfs_op_stats vnode_stats[CODA_VNODEOPS_SIZE];
+    struct coda_op_stats vfsop_stats[CODA_VFSOPS_SIZE];
+    struct coda_op_stats vnode_stats[CODA_VNODEOPS_SIZE];
 
     lseek(kmem, (long)RawStats[0].n_value, 0);
     read(kmem, (char *)vfsop_stats, 
-	 (int)(sizeof(struct cfs_op_stats)*CODA_VFSOPS_SIZE));
+	 (int)(sizeof(struct coda_op_stats)*CODA_VFSOPS_SIZE));
     
     for (i=0; i<CODA_VFSOPS_SIZE; i++) {
 	vfsop_stats[i].opcode = i;
@@ -665,7 +665,7 @@ static void CheckMC() {       // Check minicache stats
 
     lseek(kmem, (long)RawStats[1].n_value, 0);
     read(kmem, (char*)vnode_stats,
-	 (int)(sizeof(struct cfs_op_stats)*CODA_VNODEOPS_SIZE));
+	 (int)(sizeof(struct coda_op_stats)*CODA_VNODEOPS_SIZE));
 
     for (i=0; i<CODA_VNODEOPS_SIZE; i++) {
 	vnode_stats[i].opcode = i;
