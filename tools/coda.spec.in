@@ -129,7 +129,7 @@ fi
 if [ -e /usr/coda/etc/vstab ]; then 
 	touch /usr/coda/venus.cache/INIT
 else
-	/usr/sbin/venus-setup testserver.coda.cs.cmu.edu 40000
+	/usr/sbin/venus-setup testserver.coda.cs.cmu.edu
 fi
 
 cd /usr/lib/coda

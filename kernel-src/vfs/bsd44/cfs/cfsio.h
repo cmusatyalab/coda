@@ -13,7 +13,10 @@
 
 /* 
  * HISTORY
- * $Log:	cfsio.h,v $
+ * $Log: cfsio.h,v $
+ * Revision 1.3  1998/01/23 11:53:49  rvb
+ * Bring RVB_CFS1_1 to HEAD
+ *
  * Revision 1.2.38.1  97/12/16  12:40:22  rvb
  * Sync with 1.3
  * 

@@ -1,4 +1,4 @@
-/* $Id: server.c,v 1.2 1998/10/09 21:57:38 braam Exp $ */
+/* $Id: server.c,v 1.3 1998/10/13 14:22:52 rvb Exp $ */
 
 /* server.c -- receive incoming RPCs and perform appropriate activities */
 

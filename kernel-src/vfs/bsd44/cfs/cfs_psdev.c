@@ -24,7 +24,10 @@
 
 /*
  * HISTORY
- * $Log:	cfs_psdev.c,v $
+ * $Log: cfs_psdev.c,v $
+ * Revision 1.7  1998/08/29 00:28:15  rvb
+ * Enable ^C processing
+ *
  * Revision 1.8  98/06/09  23:30:42  rvb
  * Try to allow ^C -- take 1
  * 
