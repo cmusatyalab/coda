@@ -1679,6 +1679,7 @@ void repvol::ResetTransient(void)
     Lock_Init(&CML_lock);
     CML.ResetTransient();
 
+    flags.asr_running = 0;
     RecordsCancelled = 0;
     RecordsCommitted = 0;
     RecordsAborted = 0;

@@ -1135,7 +1135,7 @@ int fsobj::TryToCover(ViceFid *inc_fid, vuid_t vuid) {
 
     /* Don't cover mount points in backup volumes! */
     if (vol->IsBackup())
-	return(ENOENT);
+	return(ENOENT); /* ELOOP? */
 
     /* Check for bogosities. */
     int len = (int) stat.Length;
@@ -1185,19 +1185,6 @@ int fsobj::TryToCover(ViceFid *inc_fid, vuid_t vuid) {
 	eprint("TryToCover(%s): recursive mount!", data.symlink);
 	VDB->Put(&tvol);
 	return(ELOOP);
-    }
-
-    /* Don't allow backup vols in backup vols (e.g., avoid OldFiles/OldFiles
-     * problem).
-     * Isn't this already dealt with by not covering mountpoints in backup
-     * volumes? --JH */
-    if (tvol->IsBackup()) {
-	if (vol->IsBackup()) {
-	    eprint("Mount of BU volume (%s) detected inside BU volume (%s)",
-		   tvol->name, vol->name);
-	    VDB->Put(&tvol);
-	    return(ELOOP);
-	}
     }
 
     /* Get volume root. */
