@@ -54,7 +54,7 @@ void PrintVRDB() {
 }
 
 void BuildVRDB() {
-    char *infile = vice_file("vol/VRList");
+    char *infile = vice_file("db/VRList");
     FILE *vrlist;
     vrlist = fopen(infile, "r");
     if (vrlist == NULL) {

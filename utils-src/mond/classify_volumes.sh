@@ -71,7 +71,7 @@ endif
 # those into the local file system, then we can see...
 #
 
-awk '{print $1, $2, $3, $12}' /vice/vol/VRList > /tmp/vrlist.$$
+awk '{print $1, $2, $3, $12}' /vice/db/VRList > /tmp/vrlist.$$
 
 if ($status != 0) then
 	echo Cannot access VRList

@@ -31,12 +31,12 @@ then
         exit 1
 fi
 
-# Look up the replicated volume name in /vice/vol/VRList to determine the
+# Look up the replicated volume name in /vice/db/VRList to determine the
 # VolIDs of the replicated copies.
 REPVOLNAME=$1
-REPS=`awk '$1 ~ /^'$REPVOLNAME'$/ {for (i=4; i< $3 + 4; i++) printf "%s ", $i}' /vice/vol/VRList`
-REPVOLID=`awk '$1 ~ /^'$REPVOLNAME'$/ {print $2}' /vice/vol/VRList`
-VSG=`awk '$1 ~ /^'$REPVOLNAME'$/ {print $12}' /vice/vol/VRList`
+REPS=`awk '$1 ~ /^'$REPVOLNAME'$/ {for (i=4; i< $3 + 4; i++) printf "%s ", $i}' /vice/db/VRList`
+REPVOLID=`awk '$1 ~ /^'$REPVOLNAME'$/ {print $2}' /vice/db/VRList`
+VSG=`awk '$1 ~ /^'$REPVOLNAME'$/ {print $12}' /vice/db/VRList`
 HOSTS=`grep -i "^$VSG" /vice/db/VSGDB | sed "s/$VSG//"`
 
 # Check to see if the volume actually exists 
@@ -59,8 +59,8 @@ done
 #
 # Delete the entry for the volume from the VRList
 
-awk ' $1 !~ /^'$REPVOLNAME'$/ { print } ' /vice/vol/VRList >/vice/vol/VRList.tmp
-mv /vice/vol/VRList.tmp /vice/vol/VRList
+awk ' $1 !~ /^'$REPVOLNAME'$/ { print } ' /vice/db/VRList >/vice/db/VRList.tmp
+mv /vice/db/VRList.tmp /vice/db/VRList
 
 #
 # Delete the entry from the backup list.
@@ -70,7 +70,7 @@ mv /vice/db/dumplist.tmp /vice/db/dumplist
 
 # Make sure that the vldb and vrdb are updated.
 
-volutil makevrdb /vice/vol/VRList
+volutil makevrdb /vice/db/VRList
 echo "fetching updated VolumeList from $HOSTS"
 bldvldb.sh $HOSTS
 

@@ -272,6 +272,7 @@ volutil.tk
 ROOTVOLUME
 VLDB
 VRDB
+VRList
 VSGDB
 EOF
 

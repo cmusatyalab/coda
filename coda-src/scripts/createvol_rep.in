@@ -67,9 +67,16 @@ PARTITION=$3
 
 #
 # Create these files if they don't already exist.
-touch ${vicedir}/vol/VRList
 
-if [ ! -f ${vicedir}/vol/BigVolumeList ] ; then
+# VRList was moved from vice/vol to vice/db in Coda 5.3.11
+if [ ! -f "${vicedir}/db/VRList" -a -f "${vicedir}/vol/VRList" ] ; then
+  echo "Moving ${vicedir}/vol/VRList to ${vicedir}/db"
+  cp "${vicedir}/vol/VRList" "${vicedir}/db/VRList" && rm ${vicedir}/vol/VRList
+  echo VRList >> "${vicedir}/db/files"
+fi
+touch "${vicedir}/db/VRList"
+
+if [ ! -f "${vicedir}/vol/BigVolumeList" ] ; then
     echo "Getting initial version of ${vicedir}/vol/BigVolumeList."
     volutil -h `cat ${vicedir}/db/scm` getvolumelist ${vicedir}/vol/BigVolumeList
 fi
@@ -85,8 +92,8 @@ if [ x$VOLNAME = x`awk ' $1 ~ /^[WRB]'$1'\.[0-7]$/  {print $1}' ${vicedir}/vol/B
     exit 1
 fi
 
-if [ x$VOLNAME = x`awk ' $1 ~ /^'$1'$/  {print $1}' ${vicedir}/vol/VRList` ]; then
-	echo "Volume $VOLNAME already exists in ${vicedir}/vol/VRList"
+if [ x$VOLNAME = x`awk ' $1 ~ /^'$1'$/  {print $1}' ${vicedir}/db/VRList` ]; then
+	echo "Volume $VOLNAME already exists in ${vicedir}/db/VRList"
 	exit 1
 fi
 
@@ -221,9 +228,9 @@ done
 
 ENTRY="$ENTRY $VSGADDR"
 
-echo "<echo $ENTRY >> ${vicedir}/vol/VRList>"
-echo $ENTRY >> ${vicedir}/vol/VRList
-volutil makevrdb ${vicedir}/vol/VRList
+echo "<echo $ENTRY >> ${vicedir}/db/VRList>"
+echo $ENTRY >> ${vicedir}/db/VRList
+volutil makevrdb ${vicedir}/db/VRList
 
 echon "Do you wish this volume to be Backed Up (y/n)? [n] "
 

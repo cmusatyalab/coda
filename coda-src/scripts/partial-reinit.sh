@@ -44,7 +44,7 @@ egrep -v '^P' /vice/vol/VolumeList | egrep -v '\.backup ' | \
     while read part name volid ; do 
 
 	# Get the replicated volume id (repid).
-	repid=`grep $volid /vice/vol/VRList | awk '{print $2}'`
+	repid=`grep $volid /vice/db/VRList | awk '{print $2}'`
 	if [ "$repid" = "" ] ; then
 	    echo "WARNING: Cannot find repid for volume \"$name\" ($volid)!"
 	    echo "    Check that you have a backup before reinitializing!"

@@ -36,5 +36,5 @@ if [  x$answer = xn -o x$answer = xno -o x$answer = xN -o x$answer = xNo ]; then
 fi
 
 rm -f /vice/db/VRDB /vice/db/VLDB 
-rm -f /vice/vol/RWList /vice/vol/AllVolumes /vice/vol/VolumeList /vice/vol/VRList
+rm -f /vice/vol/RWList /vice/vol/AllVolumes /vice/vol/VolumeList /vice/db/VRList
 echo Volume databases removed.

@@ -1,7 +1,7 @@
 #!/usr/bin/perl
 
 
-$VRLIST="/vice/vol/VRList";
+$VRLIST="/vice/db/VRList";
 open VRLIST or die "$VRLIST: no such file or directory, so there!";
 
 while ( <VRLIST> ) {
