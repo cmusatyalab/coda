@@ -632,6 +632,11 @@ void hdb::ValidateCacheStatus(vproc *vp, int *interrupt_failures, int *statusByt
     while ((f = next())) {
         if (STATUSVALID(f)) continue;
 
+	/* skip non-cacheable objects */
+	if (f->IsFake() || f->flags.readonly || f->flags.backup ||
+	    f->flags.rwreplica)
+	    continue;
+
 	/* Set up uarea. */
 	vp->u.Init();
 	vp->u.u_cred.cr_uid = vp->u.u_cred.cr_euid =

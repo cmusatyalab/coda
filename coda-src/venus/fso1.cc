@@ -1191,7 +1191,10 @@ int fsobj::TryToCover(ViceFid *inc_fid, vuid_t vuid) {
 	return(ELOOP);
     }
 
-    /* Don't allow backup vols in backup vols (e.g., avoid OldFiles/OldFiles problem). */
+    /* Don't allow backup vols in backup vols (e.g., avoid OldFiles/OldFiles
+     * problem).
+     * Isn't this already dealt with by not covering mountpoints in backup
+     * volumes? --JH */
     if (tvol->IsBackup()) {
 	if (vol->IsBackup()) {
 	    eprint("Mount of BU volume (%s) detected inside BU volume (%s)",
