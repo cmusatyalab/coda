@@ -80,7 +80,7 @@ if [ -f prot_index.db ] ; then
   mv prot_index.db prot_index.db.old
 fi
 
-pdbtool pdbsetup
+pdbtool source pdbsetup
 rm pdbsetup
 
 echo "$userid	changeme	admin user" > passwd.coda
