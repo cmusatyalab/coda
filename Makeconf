@@ -15,9 +15,9 @@
 
 include $(TOPOBJ)/Makeconf.setup
 
-LIBEXECDIR:=$libexecdir
-BINDIR:=$bindir
-SBINDIR:=$sbindir
+LIBEXECDIR:=$(libexecdir)
+BINDIR:=$(bindir)
+SBINDIR:=$(sbindir)
 INITDIR:=$(prefix)/$(initsuffix)
 MANDIR:=$(mandir)
 
