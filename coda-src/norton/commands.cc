@@ -66,12 +66,6 @@ command_t salvage_commands[] = {
     { 0, 0, 0, ""}
 };
 
-command_t show_vol_cmds[] = {
-    { "details",	show_volume_details,	0,	""},
-    { 0, 0, 0, ""},
-};
-
-
 command_t show_cmds[] = {
     { "debug", 		show_debug,	0,	""},
     { "directory",	show_dir,	0,	""},
@@ -80,7 +74,8 @@ command_t show_cmds[] = {
     { "index",		show_index,	0,	""},
 //    { "inode",		notyet,		0,	""},
     { "vnode",		show_vnode,	0,	""},
-    { "volume",		show_volume,	show_vol_cmds,	""},
+    { "volume",		show_volume,	0,	""},
+    { "volumedetails",	show_volume_details,	0,	""},
     { 0, 0, 0, ""}
 };
 

@@ -353,7 +353,7 @@ static int DeleteVnodes(unsigned int myind, Device dev, VnodeClass vclass)
 		rvmlib_rec_free((char *)vdo);
 		VLog(29,  "DeleteVnodes: Freeing small vnode index %d", i);
 	    }
-	}	    
+	}
 
 	rvmlib_end_transaction(flush, &(status));
 	CODA_ASSERT(status == 0);		/* Should never abort... */

@@ -207,8 +207,11 @@ inline void *rvmlib_malloc(unsigned long size, char *file, int line)
 		err = 0;
 		p = rds_malloc(size, _rvm_data->tid, &err);
 		
-		if (err != 0) 
+		if (err != 0) {
+			fprintf(stderr, "rvm_malloc: error %d size %lx file %s line %d\n",
+					err, size, file, line);
 			RVMLIB_ASSERT("error in rvmlib_malloc\n");
+		}
 		RDS_LOG("rdstrace: rec_malloc addr %x size %lx file %s line %d\n",
 			p, size, file, line);
 		return p;
