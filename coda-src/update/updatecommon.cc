@@ -32,6 +32,7 @@ extern "C" {
 #include <util.h>
 #include <stdio.h>
 #include <coda_md5.h>
+#include <coda_string.h>
 #include "updatecommon.h"
 
 int GetSecret(char *tokenfile, RPC2_EncryptionKey key)
