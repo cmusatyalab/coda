@@ -315,7 +315,7 @@ fsobj::~fsobj() {
     /* Detach any children of our own. */
     if (children != 0) {
 	dlink *d = 0;
-	while (d = children->first()) {
+	while ((d = children->first())) {
 	    fsobj *cf = strbase(fsobj, d, child_link);
 
 	    /* If this is a FakeDir delete all associated FakeMtPts since they are no longer useful! */
@@ -1822,7 +1822,7 @@ CacheMissAdvice fsobj::WeaklyConnectedCacheMiss(vproc *vp, vuid_t vuid) {
     userent *u;
     char pathname[MAXPATHLEN];
     CacheMissAdvice advice;
-    long CurrentBandwidth;
+    unsigned long CurrentBandwidth;
 
     LOG(100, ("E fsobj::WeaklyConnectedCacheMiss\n"));
 
@@ -2092,7 +2092,6 @@ int fsobj::Fakeify() {
 
     unsigned long volumehosts[VSG_MEMBERS];
     srvent *s;
-    char Name[CODA_MAXNAMLEN];
     int i;
     if (FID_IsFakeRoot(&fid)) {		/* Fake MTLink */
 	    /* Initialize status. */
@@ -2559,7 +2558,7 @@ void fsobj::CacheReport(int fd, int level) {
 int fsobj::EstimatedFetchCost(int type) {
     LOG(100, ("E fsobj::EstimatedFetchCost(%d)\n", type));
 
-    long bw;	/* bandwidth, in bytes/sec */
+    unsigned long bw;	/* bandwidth, in bytes/sec */
     vol->vsg->GetBandwidth(&bw);
 
     LOG(100, ("stat.Length = %d; Bandwidth = %d\n", stat.Length, bw));

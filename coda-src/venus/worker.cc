@@ -550,7 +550,6 @@ void WorkerInit() {
 
 
 int WorkerCloseMuxfd() {
-  int error;
   return close(worker::muxfd);
 }
 
@@ -736,7 +735,7 @@ worker::worker(worker& w) : vproc(*((vproc *)&w)) {
 }
 
 
-worker::operator=(worker& w) {
+int worker::operator=(worker& w) {
     abort();
     return(0);
 }
@@ -1143,7 +1142,6 @@ void worker::main(void *parm) {
 		}
 
 		if (u.u_error == 0) {
-			char *slash;
 			char *begin = (char *)(&out->coda_open_by_path.path + 1);
 			out->coda_open_by_path.path = begin - (char *)out;
 			sprintf(begin, "%s%s/%s", CF_PREFIX, CacheDir, 

@@ -71,10 +71,10 @@ void ProbeDaemon() {
     vproc *vp = VprocSelf();
     RegisterDaemon(ProbeInterval, &probe_sync);
 
-    unsigned long curr_time = 0;
-    unsigned long LastT1Check = 0;
-    unsigned long LastT2Check = 0;
-    unsigned long LastCommCheck = 0;
+    long curr_time = 0;
+    long LastT1Check = 0;
+    long LastT2Check = 0;
+    long LastCommCheck = 0;
 
     for (;;) {
 	VprocWait(&probe_sync);
@@ -115,7 +115,7 @@ void ProbeDaemon() {
  *
  * This routine updates the last probe times.
  */
-void ServerProbe(unsigned long *lastupp, unsigned long *lastdownp) {
+void ServerProbe(long *lastupp, long *lastdownp) {
     LOG(1, ("ServerProbe: lastup = %d, lastdown = %d\n", 
 	    lastupp?*lastupp:0, lastdownp?*lastdownp:0));
 
@@ -125,13 +125,13 @@ void ServerProbe(unsigned long *lastupp, unsigned long *lastdownp) {
 
     /* Mark the servers to be probed */
     {
-	unsigned long curr_time = Vtime();	
-	unsigned long minlastup = curr_time;	/* assume everyone gets probed now. */
-	unsigned long minlastdown = curr_time;
+	long curr_time = Vtime();	
+	long minlastup = curr_time;	/* assume everyone gets probed now. */
+	long minlastdown = curr_time;
 
 	srv_iterator next;
 	srvent *s;
-	while (s = next()) {
+	while ((s = next())) {
 	    /* 
 	     * We will probe the server if the check is being forced (no 
 	     * times sent in), or if the server has not been heard from 
@@ -216,8 +216,8 @@ void VSGDaemon() {
     vproc *vp = VprocSelf();
     RegisterDaemon(VSGDaemonInterval, &vsg_sync);
 
-    unsigned long curr_time = Vtime();
-    unsigned long LastGetDown = curr_time;
+    long curr_time = Vtime();
+    long LastGetDown = curr_time;
 
     for (;;) {
 	VprocWait(&vsg_sync);

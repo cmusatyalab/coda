@@ -245,7 +245,7 @@ resent::resent(resent& r) {
 }
 
 
-resent::operator=(resent& r) {
+int resent::operator=(resent& r) {
     abort();
     return(0);
 }
@@ -358,12 +358,12 @@ resolver::resolver() :
 }
 
 
-resolver::resolver(resolver& r) : vproc((vproc)r) {
+resolver::resolver(resolver& r) : vproc((vproc&)r) {
     abort();
 }
 
 
-resolver::operator=(resolver& r) {
+int resolver::operator=(resolver& r) {
     abort();
     return(0);
 }

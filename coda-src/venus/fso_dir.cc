@@ -59,10 +59,6 @@ extern "C" {
 /* Need not be called from within transaction. */
 void fsobj::dir_Rebuild() 
 {
-	long int tmp[3];
-	int ret;
-	long vnode, vunique;
-
 	if (!HAVEDATA(this)) { 
 		print(logFile); 
 		CHOKE("fsobj::dir_Rebuild: no data"); 
@@ -201,8 +197,6 @@ int fsobj::dir_IsEmpty()
 /* determine if target_fid is the parent of this */
 int fsobj::dir_IsParent(ViceFid *target_fid) 
 {
-	int rc;
-
 	if (!HAVEDATA(this)) { 
 		print(logFile); 
 		CHOKE("fsobj::dir_IsParent: (%x.%x.%x) no data", 

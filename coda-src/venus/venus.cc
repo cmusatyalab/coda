@@ -269,7 +269,6 @@ static void ParseCmdline(int argc, char **argv) {
                 run_wait_threshold.tv_usec = 0;
             }
 	    else if (STREQ(argv[i], "-weakthresh")) {   /* Threshold at which to go to weak mode */
-		extern long WCThresh;
 		WCThresh = atoi(argv[++i]);		/* in Bytes/sec */
 	    }
 	    else if (STREQ(argv[i], "-weakstale")) {   /* When estimates become too old */
@@ -488,7 +487,6 @@ struct vstab *getvsent() {
     fclose(fp);
 
     /* Temporaries for parsing the vsent. */
-    int c = 0;
     char *s = buf;
     char *t = 0;
 
@@ -529,9 +527,10 @@ extern "C" {
  * N.B. If Venus ever uses the FILEBYINODE transfer option this
  * will have to be changed!
  */
-iopen(int dev, int inode_number, int flag)
+int iopen(int dev, int inode_number, int flag)
 {
     CODA_ASSERT(0);
+    return 0;
 }
 
 #ifdef __cplusplus

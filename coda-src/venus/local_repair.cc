@@ -860,7 +860,6 @@ int lrdb::FindRepairObject(ViceFid *fid, fsobj **global, fsobj **local)
     }
 
     /* step 2.2: second pass--going up and set "comp" and children link for the ancestors */
-    fsobj *Final = OBJ;
     char comp[MAXNAMELEN];
     OBJ = *global;
     while (count >= 0) {

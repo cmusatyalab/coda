@@ -414,7 +414,6 @@ int vdb::Get(volent **vpp, VolumeId vid) {
     LOG(100, ("vdb::Get: vid = %x\n", vid));
 
     *vpp = 0;
-    int code = 0;
 
     if (vid == 0) {
 	LOG(0, ("vdb::Get: vid == 0\n"));
@@ -1383,11 +1382,11 @@ void volent::TriggerReconnectionQuestionnaire() {
 
 
 void volent::NotifyStateChange() {
+    LOG(100, ("NotifyStateChange:  vid=%x, name=%s.\n", vid, name));
+    /*
     user_iterator next;
     userent *u;
 
-    LOG(100, ("NotifyStateChange:  vid=%x, name=%s.\n", vid, name));
-    /*
     while (u = next()) {
         if (u->IsAdviceValid(VolumeTransitionEventID, 0) == TRUE) {
 	    switch(state) {
@@ -1680,7 +1679,7 @@ void volent::StrongMember() {
 }
 
 
-volent::WriteDisconnect(unsigned age, unsigned time) {
+int volent::WriteDisconnect(unsigned age, unsigned time) {
     int code = 0;
 
     if (type == REPVOL) {
@@ -1708,7 +1707,7 @@ volent::WriteDisconnect(unsigned age, unsigned time) {
 }
 
 
-volent::WriteReconnect() {
+int volent::WriteReconnect() {
     int code = 0;
 
     if (type == REPVOL) {

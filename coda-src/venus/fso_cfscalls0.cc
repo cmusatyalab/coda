@@ -121,8 +121,6 @@ int fsobj::Fetch(vuid_t vuid) {
     SE_Descriptor *sed = 0;
 
     /* C++ 3.0 whines if the following decls moved closer to use  -- Satya */
-    int i, fd = 0, npages;
-    struct DirHeader *hdrptr;
     {
 	    Recov_BeginTrans();
 	    RVMLIB_REC_OBJECT(flags);

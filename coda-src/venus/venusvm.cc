@@ -250,11 +250,11 @@ static int VmonSessionEventArraySize = 0;
 static int kmem;
 #ifdef __BSD44__
 static struct nlist RawStats[3];
+static struct coda_op_stats vfsop_init_stats[CODA_VFSOPS_SIZE];
+static struct coda_op_stats vnode_init_stats[CODA_VNODEOPS_SIZE];
 #else
 long RawStats[3];
 #endif
-static struct coda_op_stats vfsop_init_stats[CODA_VFSOPS_SIZE];
-static struct coda_op_stats vnode_init_stats[CODA_VNODEOPS_SIZE];
 
 /* ***** Private routines  ***** */
 
@@ -616,7 +616,6 @@ static void CheckCL() {
 					  &stats);
 	    }
 	}
-      exit:
 	code = CheckVmonResult(code);
     }
 }

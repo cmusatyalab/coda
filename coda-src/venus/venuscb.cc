@@ -116,7 +116,7 @@ callbackserver::callbackserver(callbackserver& c) : vproc(*((vproc *)&c)) {
 }
 
 
-callbackserver::operator=(callbackserver& c) {
+int callbackserver::operator=(callbackserver& c) {
     abort();
     return(0);
 }

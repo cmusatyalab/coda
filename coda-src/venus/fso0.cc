@@ -201,7 +201,7 @@ FREE_ENTRY: /* release entry from namelist */
 	    {
 		fso_iterator next(NL);
 		fsobj *f;
-		while (f = next()) {
+		while ((f = next())) {
 		    /* Validate the cache-file, and record its blocks. */
 		    f->cf.Validate();
 		    FSDB->ChangeDiskUsage(NBLOCKS(f->cf.Length()));
@@ -221,7 +221,7 @@ FREE_ENTRY: /* release entry from namelist */
 	    {
 		rec_olist_iterator next(FSDB->freelist);
 		rec_olink *o;
-		while (o = next()) {
+		while ((o = next())) {
 		    fsobj *f = strbase(fsobj, o, primary_handle);
 
 		    /* Reset the cache file. */
@@ -247,7 +247,7 @@ FREE_ENTRY: /* release entry from namelist */
 	{
 	    fso_iterator next(NL);
 	    fsobj *cf;
-	    while (cf = next())
+	    while ((cf = next()))
 		if (!cf->IsRoot())
 		    cf->SetParent(cf->pfid.Vnode, cf->pfid.Unique);
 	}
@@ -260,7 +260,7 @@ FREE_ENTRY: /* release entry from namelist */
 	    /* Sanity check. */
 	    fso_iterator next(NL);
 	    fsobj *f;
-	    while (f = next()) {
+	    while ((f = next())) {
 		FSO_ASSERT(f,
 			   (DIRTY(f) && f->mle_bindings != 0 && f->mle_bindings->count() > 0) ||
 			   (!DIRTY(f) && f->mle_bindings == 0));
@@ -271,7 +271,7 @@ FREE_ENTRY: /* release entry from namelist */
 	{
 	    fso_iterator next(NL);
 	    fsobj *f;
-	    while (f = next())
+	    while ((f = next()))
 		if (DIRTY(f) && !HAVEDATA(f))
 		    f->CancelStores();
 	}
@@ -438,7 +438,7 @@ void fsdb::operator delete(void *, size_t){
 fsobj *fsdb::Find(ViceFid *key) {
     fso_iterator next(NL, key);
     fsobj *f;
-    while (f = next())
+    while ((f = next()))
 	if (FID_EQ(key, &f->fid)) return(f);
 
     return(0);
@@ -736,7 +736,7 @@ int fsdb::Get(fsobj **f_addr, ViceFid *key, vuid_t vuid, int rights, char *comp,
 	    lgm_iterator next(LRDB->local_global_map);
 	    lgment *lgm;
 	    ViceFid *gfid;
-	    while (lgm = next()) {
+	    while ((lgm = next())) {
 		gfid = lgm->GetGlobalFid();
 		if (!bcmp((const void *)gfid, (const void *)key, (int)sizeof(ViceFid))) {
 		    LOG(0, ("fsdb::Get: trying to access localied object 0x%x.%x.%x\n",
@@ -1263,7 +1263,7 @@ void fsdb::Flush() {
 	fso_iterator next(NL);
 	
 	restart = 0;
-	while (f = next()) 
+	while ((f = next())) 
 	    if (f->Flush() == 0) {
 		restart = 1;
 		break;
@@ -1285,7 +1285,7 @@ void fsdb::Flush(VolumeId vid) {
 	fso_vol_iterator next(NL, v);
 	
 	restart = 0;
-	while (f = next()) 
+	while ((f = next())) 
 	    if (f->Flush() == 0) {
 		restart = 1;
 		break;
@@ -1381,7 +1381,7 @@ int fsdb::TranslateFid(ViceFid *OldFid, ViceFid *NewFid)
 	
 	fso_iterator next(NL);
 	fsobj *cf;
-	while (cf = next()) { 
+	while ((cf = next())) { 
 		/* this is probably not supposed to happen. Can it? (pjb) */ 
 		if (! FID_EQ(&cf->pfid, OldFid))
 			continue ;
@@ -1419,7 +1419,7 @@ int fsdb::CallBackBreak(ViceFid *fid) {
 void fsdb::ResetVolume(VolumeId volume, int usecallback) {
     fso_iterator next(NL);
     fsobj *f;
-    while (f = next())
+    while ((f = next()))
 	if (f->fid.Volume == volume) {
 	    f->Demote();
 	    f->flags.usecallback = usecallback;
@@ -1431,7 +1431,7 @@ void fsdb::ResetUser(vuid_t vuid) {
     /* Demote access rights for the user. */
     fso_iterator next(NL);
     fsobj *f;
-    while (f = next())
+    while ((f = next()))
 	if (f->IsDir())
 	    f->DemoteAcRights(vuid);
 }
@@ -1440,7 +1440,7 @@ void fsdb::ResetUser(vuid_t vuid) {
 void fsdb::ClearPriorities() {
     fso_iterator next(NL);
     fsobj *f;
-    while (f = next()) {
+    while ((f = next())) {
 	LastRef[f->ix] = 0;
 	f->ComputePriority();
     }
@@ -1450,7 +1450,7 @@ void fsdb::ClearPriorities() {
 void fsdb::InvalidateMtPts() {
     fso_iterator next(NL);
     fsobj *f;
-    while (f = next())
+    while ((f = next()))
 	if (f->IsMtPt()) {
 	    f->flags.ckmtpt = 1;
 	    k_Purge(&f->pfid, 1);	/* force kernel to reevaluate! */
@@ -1575,7 +1575,7 @@ int fsdb::FreeBlockCount() {
     if (owriteq->count() > 0) {
 	olist_iterator onext(*owriteq);
 	olink *o;
-	while (o = onext()) {
+	while ((o = onext())) {
 	    fsobj *f = strbase(fsobj, o, owrite_handle);
 
 	    if (f->flags.owrite == 0)
@@ -1644,7 +1644,7 @@ void fsdb::ReclaimBlocks(int priority, int nblocks) {
     int reclaimed = 0;
     bstree_iterator next(*prioq);
     bsnode *b;
-    while (b = next()) {
+    while ((b = next())) {
 	fsobj *f = strbase(fsobj, b, prio_handle);
 
 	if (!REPLACEABLE(f))
@@ -1713,7 +1713,6 @@ void fsdb::ChangeDiskUsage(int delta_blocks) {
 /* fsobj and volent are both missing */
 void fsdb::DisconnectedCacheMiss(vproc *vp, vuid_t vuid, ViceFid *fid, char *comp) {
     userent *u;
-    char pathname[MAXPATHLEN];
 
     GetUser(&u, vuid);
     CODA_ASSERT(u != NULL);
@@ -1778,7 +1777,7 @@ void fsdb::UpdateDisconnectedUseStatistics(volent *v) {
 
     fso_vol_iterator next(NL, v);
     fsobj *f;
-    while (f = next()) {
+    while ((f = next())) {
         CODA_ASSERT(f);
 	CODA_ASSERT(f->vol == v);
 
@@ -1823,7 +1822,7 @@ void fsdb::OutputDisconnectedUseStatistics(char *StatisticsFileName, int discosS
 
     fprintf(StatsFILE, "<FID> priority discosSinceLastUse discosUsed discosUnused \n");
 
-    while (f = next()) {
+    while ((f = next())) {
       CODA_ASSERT(f);
 
       totalUse = f->DisconnectionsUsed + f->DisconnectionsUnused;
@@ -1840,8 +1839,8 @@ void fsdb::OutputDisconnectedUseStatistics(char *StatisticsFileName, int discosS
 	  (f->DisconnectionsSinceUse > discosSinceLastUse) ||
 	  ((percentUse < percentDiscosUsed) && (totalUse >= totalDiscosUsed))
 	  ) {
-	fprintf(StatsFILE, "<%x.%x.%x> %d %d %d %d\n", 
-		f->fid.Volume, f->fid.Vnode, f->fid.Unique,
+	fprintf(StatsFILE, "%s %d %ld %ld %ld\n", 
+		FID_(&f->fid),
 		f->HoardPri,
 		f->DisconnectionsSinceUse, 
 		f->DisconnectionsUsed,
@@ -1872,7 +1871,7 @@ void fsdb::print(int fd, int SummaryOnly) {
 	int ow_blocks = 0;
 	fso_iterator next(NL);
 	fsobj *f;
-	while (f = next())
+	while ((f = next()))
 	    if (HAVEDATA(f)) {
 		switch(f->stat.VnodeType) {
 		    case File:
@@ -1914,7 +1913,7 @@ void fsdb::print(int fd, int SummaryOnly) {
     if (!SummaryOnly) {
 	fso_iterator next(NL);
 	fsobj *f;
-	while (f = next())
+	while ((f = next()))
 	    f->print(fd);
     }
 

@@ -430,7 +430,7 @@ int hdb::MakeAdviceRequestFile(char *HoardListFileName) {
 
     /* get avg speed of net to servers */
     /* this should be for only those servers represented in hdb! */
-    long bw = 0;
+    unsigned long bw = 0;
     {
 	unsigned long sum = 0;
 	int nservers = 0; 
@@ -728,7 +728,6 @@ void hdb::ListPriorityQueue() {
 
 int hdb::GetSuspectPriority(int vid, char *pathname, int uid) {
     char *lastslash;
-    int length;
     bstree_iterator next(*prioq, BstDescending);
     bsnode *b;
 
@@ -843,7 +842,6 @@ void hdb::StatusWalk(vproc *vp, int *TotalBytesToFetch) {
     int interrupt_failures = 0;  /* Count times object disappears during Yield */
 
     int statusBytesFetched = 0;  /* Count of bytes of status blocks we fetched */
-    int dataBytesToFetch = 0;    /* Count of bytes of data we need to fetch */
     
     /* An iteration of this outer loop brings the cache into status equilibrium */
     /* PROVIDED that no new suspect transitions occurred in the process. */
@@ -1129,7 +1127,6 @@ int hdb::Walk(hdb_walk_msg *m) {
     LOG(10, ("hdb::Walk: <%d>\n", m->ruid));
 
     int TotalBytesToFetch = 0;
-    int TotalBytesFetched = 0;
 
     NotifyUsersOfHoardWalkBegin();
 
@@ -1217,8 +1214,6 @@ int hdb::Verify(hdb_verify_msg *m) {
 int hdb::Enable(hdb_walk_msg *m) {
     LOG(10, ("hdb::Enable: <%d>\n", m->ruid));
 
-    vproc *vp = VprocSelf();
-
     eprint("Enabling periodic hoard walks");
     PeriodicWalksAllowed = 1;
     NotifyUsersOfHoardWalkPeriodicOn();
@@ -1227,8 +1222,6 @@ int hdb::Enable(hdb_walk_msg *m) {
 
 int hdb::Disable(hdb_walk_msg *m) {
     LOG(10, ("hdb::Disable: <%d>\n", m->ruid));
-
-    vproc *vp = VprocSelf();
 
     eprint("Disabling periodic hoard walks");
     PeriodicWalksAllowed = 0;
@@ -1608,7 +1601,7 @@ namectxt::namectxt(namectxt& nc) {
 }
 
 
-namectxt::operator=(namectxt& nc) {
+int namectxt::operator=(namectxt& nc) {
     abort();
     return(0);
 }

@@ -304,7 +304,7 @@ cop2ent::cop2ent(cop2ent& c) {
 }
 
 
-cop2ent::operator=(cop2ent& c) {
+int cop2ent::operator=(cop2ent& c) {
     abort();
     return(0);
 }

@@ -69,7 +69,7 @@ adviceconn::adviceconn(adviceconn &a) {
   abort();
 }
 
-adviceconn::operator=(adviceconn& a) {
+int adviceconn::operator=(adviceconn& a) {
   abort();
   return(0);
 }
@@ -560,7 +560,6 @@ void adviceconn::RequestReconnectionQuestionnaire(char *volname, VolumeId vid, i
 
 void adviceconn::NotifyReintegrationPending(char *volname) {
   long rc;
-  Boolean boo;
   InterestID callType = ReintegrationPendingTokensID;
 
   if (!IsAdviceValid(callType, 0))
@@ -584,7 +583,6 @@ void adviceconn::NotifyReintegrationPending(char *volname) {
 
 void adviceconn::NotifyReintegrationEnabled(char *volname) {
   long rc;
-  Boolean boo;
   InterestID callType = ReintegrationEnabledID;
 
   if (!IsAdviceValid(callType, 0))
@@ -608,7 +606,6 @@ void adviceconn::NotifyReintegrationEnabled(char *volname) {
 
 void adviceconn::NotifyReintegrationActive(char *volname) {
   long rc;
-  Boolean boo;
   InterestID callType = ReintegrationActiveID;
 
   if (!IsAdviceValid(callType, 0))
@@ -632,7 +629,6 @@ void adviceconn::NotifyReintegrationActive(char *volname) {
 
 void adviceconn::NotifyReintegrationCompleted(char *volname) {
   long rc;
-  Boolean boo;
   InterestID callType = ReintegrationCompletedID;
 
   if (!IsAdviceValid(callType, 0))
@@ -656,7 +652,6 @@ void adviceconn::NotifyReintegrationCompleted(char *volname) {
 
 void adviceconn::NotifyObjectInConflict(char *pathname, ViceFid *fid) {
   long rc;
-  Boolean boo;
   InterestID callType = ObjectInConflictID;
 
   if (!IsAdviceValid(callType, 0))
@@ -680,7 +675,6 @@ void adviceconn::NotifyObjectInConflict(char *pathname, ViceFid *fid) {
 
 void adviceconn::NotifyObjectConsistent(char *pathname, ViceFid *fid) {
   long rc;
-  Boolean boo;
   InterestID callType = ObjectConsistentID;
 
   if (!IsAdviceValid(callType, 0))
@@ -957,8 +951,6 @@ int adviceconn::RegisterInterest(vuid_t uid, long numEvents, InterestValuePair e
 
 void adviceconn::InitializeProgramLog(vuid_t uid) {
     char UserSpoolDir[MAXPATHLEN];
-    char programFileName[MAXPATHLEN];
-    int rc;
 
     if (programFILE != NULL)
       return;
@@ -1003,8 +995,7 @@ void adviceconn::SwapProgramLog() {
 void adviceconn::LogProgramAccess(int pid, int pgid, ViceFid *fid) {
     if (programFILE != NULL) {
         outputcommandname(programFILE, pgid);
-        fprintf(programFILE, "%d %d <%x.%x.%x>\n", 
-		pid, pgid, fid->Volume, fid->Vnode, fid->Unique);
+        fprintf(programFILE, "%d %d %s\n", pid, pgid, FID_(fid));
 
 	if (++numLines > MAXLINES) 
 	    SwapProgramLog();
@@ -1014,8 +1005,6 @@ void adviceconn::LogProgramAccess(int pid, int pgid, ViceFid *fid) {
 
 void adviceconn::InitializeReplacementLog(vuid_t uid) {
     char UserSpoolDir[MAXPATHLEN];
-    char replacementFileName[MAXPATHLEN];
-    int rc;
 
     if (replacementFILE != NULL)
       return;

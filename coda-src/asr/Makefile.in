@@ -32,27 +32,22 @@ endif
 CBINS       = $(EXECUTABLES)
 HEADERS     = asr.h ruletypes.h
 
-YFLAGS += -d
+YFLAGS= -d
 
 LIBS=	$(LIBKERNDEP) $(LIBUTIL) $(LIBBASE)
 
 #uncomment if you want to turn on timing of the ASR 
 #PERSONAL_FLAGS= -DTIMING
 
-OBJECTS = y.tab.o lex.yy.o ruletypes.o resolver.o wildmat.o path.o
+OBJECTS = resolver_parser.o resolver_lexer.o ruletypes.o resolver.o wildmat.o path.o
+
+include $(TOPDIR)/configs/Makerules
 
 parser: ${OBJECTS} $(LIBS)
 	$(CXX) $(LIBFLAGS) ${OBJECTS} $(LIBS) $(LIBFLEX) -o parser
 
-# Dependencies
-y.tab.c: $(srcdir)/resolver.yacc
-	yacc -d $<
-
-lex.yy.c: resolver.lex
-
 # YYuck!  I don't know how to tell yyac to deliver a .cc extension  GRRR..(pjb)
-y.tab.o: y.tab.c
+resolver_parser.o: resolver_parser.c
 	$(CXX) -x c++ $(CFLAGS) -c $<
-
-
-include $(TOPDIR)/configs/Makerules
+        
+TESTS= resolver_lexer.c resolver_parser.c y.tab.h

@@ -54,7 +54,6 @@ void LRDBDaemon()
     /* Hack! Vproc must yield before data member become valid */
     VprocYield();
 
-    vproc *vp = VprocSelf();
     RegisterDaemon(LRDaemonInterval, &lrdaemon_sync);
 
     long LastCheckSubtree = 0;

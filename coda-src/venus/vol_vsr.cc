@@ -76,8 +76,10 @@ extern int nlist(const char*, struct nlist[]);
 
 
 /* **** static Variable **** */
+#ifdef __BSD44__
 static int VmonKmem = 0;
 static int hertz = 0;
+#endif
 
 #ifdef __NetBSD__
 #define VMUNIX "/netbsd"
@@ -371,7 +373,7 @@ vsr::vsr(vsr& v) {
 }
 
 
-vsr::operator=(vsr& v) {
+int vsr::operator=(vsr& v) {
     abort();
     return(0);
 }

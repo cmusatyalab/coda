@@ -126,7 +126,7 @@ adviceserver::adviceserver(adviceserver &a) : vproc(*((vproc *)&a)) {
 }
 
 
-adviceserver::operator=(adviceserver& a) {
+int adviceserver::operator=(adviceserver& a) {
   abort();
   return(0);
 }
@@ -374,23 +374,22 @@ long S_SetParameters(RPC2_Handle _cid, RPC2_Integer userId, long numParameters, 
 
   for (int i=0; i < numParameters; i++) {
     switch (parameters[i].parameter) {
-      AgeLimit:
+      case AgeLimit:
 	LOG(100, ("adviceconn::SetParameters:  %d set age limit to %d\n", uid, parameters[i].value));
 //      From venusvol.h, volent class
 //      unsigned AgeLimit;                  /* min age of log records in SECONDS */
 
 	break;
-      ReintLimit:
+      case ReintLimit:
 	LOG(100, ("adviceconn::SetParameters:  %d set reintegration limit to %d\n", uid, parameters[i].value));
 //      From venusvol.h, volent class
 //      unsigned ReintLimit;                /* work limit, in MILLESECONDS */
 	break;
-      ReintBarrier:
+      case ReintBarrier:
 	LOG(100, ("adviceconn::SetParameters:  %d set reintegration barrier to %d\n", uid, parameters[i].value));
 	break;
-      WeakThreshold:
+      case WeakThreshold:
 	LOG(100, ("adviceconn::SetParameters:  %d set weak threshold to %d\n", uid, parameters[i].value));
-        extern long WCThresh;
         WCThresh = (int)parameters[i].value; /* in Bytes/sec */
 	break;
       default:

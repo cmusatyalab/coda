@@ -166,7 +166,6 @@ realclean:
 	-rmdir .depfiles
 	-$(RM) *.client.cc *.client.c *.server.cc *.server.c *.multi.cc *.multi.c *.print.c $(RP2HEADERS)
 	-$(RM) $(EXECUTABLES) $(LIBRARIES) $(TESTS) core
-	-$(RM) lex.yy.c y.tab.c y.tab.h
 	-$(RM) chdrinstall rp2hdrinstall libinstall bininstall scriptinstall \
 	      c_bin_install c_sbin_install s_bin_install s_sbin_install 
 	-$(RM) *.l.c *.pt.c *.l.o *.pt.o
@@ -240,8 +239,8 @@ ifndef NO_LEX
 lex.yy.c:
 	$(LEX) $(LFLAGS) $<
 
-y.tab.c:
-	$(YACC) $(YFLAGS) $<
+#y.tab.c:
+#	$(YACC) $(YFLAGS) $<
 endif
 
 .PHONY FORCE:

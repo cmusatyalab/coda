@@ -232,7 +232,7 @@ userent::userent(userent& u) {
 }
 
 
-userent::operator=(userent& u) {
+int userent::operator=(userent& u) {
     abort();
     return(0);
 }

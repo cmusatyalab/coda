@@ -16,12 +16,6 @@ listed in the file CREDITS.
 
 #*/
 
-
-
-
-
-
-
 /*
  *
  *    Implementation of the Venus Pioctl interface.
@@ -938,8 +932,8 @@ V_FreeLocks:
 
 		case VIOCCKSERV:
 		    {
-		    int bufsize = 2048;		/* XXX - IN/OUT parameter. */
-		    if (data->in_size == 0) {   /* probe everybody we know */
+		    unsigned int bufsize = 2048; /* XXX - IN/OUT parameter. */
+		    if (data->in_size == 0) {    /* probe everybody we know */
 			ServerProbe();
 			DownServers((char *) data->out, &bufsize);
 		    } else {

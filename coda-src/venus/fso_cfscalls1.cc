@@ -826,7 +826,6 @@ int fsobj::DisconnectedRename(Date_t Mtime, vuid_t vuid, fsobj *s_parent_fso, ch
     FSO_ASSERT(this, (EMULATING(this) || LOGGING(this)));
 
     int code = 0;
-    int SameParent = (s_parent_fso == this);
     int TargetExists = (t_fso != 0);
 
     if (!flags.replicated) {

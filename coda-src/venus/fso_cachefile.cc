@@ -233,7 +233,9 @@ void CacheFile::Stat(struct stat *tstat) {
 
 /* MUST be called from within transaction! */
 void CacheFile::Truncate(unsigned newlen) {
+#ifdef __CYGWIN32__
     int fd;
+#endif
 
     CODA_ASSERT(inode != (ino_t)-1);
 

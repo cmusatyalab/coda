@@ -102,7 +102,7 @@ int sftp_ackpoint = UNSET_AP;
 int sftp_packetsize = UNSET_PS;
 int rpc2_timeflag = UNSET_ST;
 int mrpc2_timeflag = UNSET_MT;
-long WCThresh = UNSET_WCT;  	/* in Bytes/sec */
+unsigned long WCThresh = UNSET_WCT;  	/* in Bytes/sec */
 int WCStale = UNSET_WCS;	/* seconds */
 
 int RoundRobin = 1;
@@ -158,7 +158,7 @@ void CommInit() {
 	srv_MultiStubWork[0].opengate = mrpc2_timeflag;
 
     if (WCThresh == UNSET_WCT) WCThresh = DFLT_WCT;
-    if (WCStale == UNSET_WCT) WCStale = DFLT_WCS;
+    if (WCStale == UNSET_WCS) WCStale = DFLT_WCS;
 
     /* Sanity check COPModes. */
     if ( (ASYNCCOP1 && !ASYNCCOP2) ||
@@ -313,7 +313,7 @@ int GetAdmConn(connent **cpp) {
 	int tryagain = 0;
 	srv_iterator next;
 	srvent *s;
-	while (s = next()) {
+	while ((s = next())) {
 	    code = GetConn(cpp, s->host, V_UID, 0);
 	    switch(code) {
 		case 0:
@@ -364,7 +364,7 @@ int GetConn(connent **cpp, unsigned long host, vuid_t vuid, int Force) {
 	struct ConnKey Key; Key.host = host; Key.vuid = vuid;
 	conn_iterator next(&Key);
 	int count = 0;
-	while (c = next()) {
+	while ((c = next())) {
 	    count++;
 	    if (!c->inuse) {
 		c->inuse = 1;
@@ -463,7 +463,7 @@ void ConnPrint(int fd) {
     /* Iterate through the individual entries. */
     conn_iterator next;
     connent *c;
-    while (c = next()) c->print(fd);
+    while ((c = next())) c->print(fd);
 
     fdprint(fd, "\n");
 }
@@ -611,7 +611,7 @@ conn_iterator::conn_iterator(struct ConnKey *Key) : olist_iterator((olist&)*conn
 
 connent *conn_iterator::operator()() {
     olink *o;
-    while (o = olist_iterator::operator()()) {
+    while ((o = olist_iterator::operator()())) {
 	connent *c = strbase(connent, o, tblhandle);
 	if (key == (struct ConnKey *)0) return(c);
 	if ((key->host == c->Host || key->host == ALL_HOSTS) &&
@@ -663,7 +663,7 @@ srvent *FindServer(unsigned long host) {
     srv_iterator next;
     srvent *s;
 
-    while (s = next())
+    while ((s = next()))
 	if (s->host == host) return(s);
 
     return(0);
@@ -676,7 +676,7 @@ srvent *FindServerByCBCid(RPC2_Handle connid) {
     srv_iterator next;
     srvent *s;
 
-    while (s = next())
+    while ((s = next()))
 	if (s->connid == connid) return(s);
 
     return(0);
@@ -751,7 +751,7 @@ void probeslave::main(void *parm) {
 	    {
 	    /* *result gets pointer to connent on success, 0 on failure. */
 	    unsigned long host = (unsigned long)arg;
-	    int code = GetConn((connent **)result, host, V_UID, 1);
+	    (void)GetConn((connent **)result, host, V_UID, 1);
 	    }
 	    break;
 
@@ -775,14 +775,13 @@ void ProbeServers(int Up) {
     const int GrowSize = 32;
     int HowMany = GrowSize;
     unsigned long *Hosts = (unsigned long *)malloc(HowMany * sizeof(unsigned long));
-    connent **Connections = 0;
     int ix = 0;
 
     /* Fill in the Hosts array for each server that is to be probed. */
     {
 	srv_iterator next;
 	srvent *s;
-	while (s = next()) {
+	while ((s = next())) {
 	    if (!s->probeme ||
 		(Up && s->ServerIsDown()) || (!Up && !s->ServerIsDown())) continue;
 
@@ -806,7 +805,6 @@ void ProbeServers(int Up) {
 
     /* the incorrect "free" in DoProbes() is moved here */
     free(Hosts);
-
 }
 
 
@@ -846,7 +844,7 @@ void MultiBind(int HowMany, unsigned long *Hosts, connent **Connections) {
     if (LogLevel >= 1) {
 	dprint("MultiBind: HowMany = %d\n\tHosts = [ ", HowMany);
 	for (int i = 0; i < HowMany; i++)
-	    fprintf(logFile, "%x ", Hosts[i]);
+	    fprintf(logFile, "%lx ", Hosts[i]);
 	fprintf(logFile, "]\n");
     }
 
@@ -882,7 +880,7 @@ void MultiProbe(int HowMany, RPC2_Handle *Handles) {
     if (LogLevel >= 1) {
 	dprint("MultiProbe: HowMany = %d\n\tHandles = [ ", HowMany);
 	for (int i = 0; i < HowMany; i++)
-	    fprintf(logFile, "%x ", Handles[i]);
+	    fprintf(logFile, "%lx ", Handles[i]);
 	fprintf(logFile, "]\n");
     }
 
@@ -956,15 +954,15 @@ long HandleProbe(int HowMany, RPC2_Handle *Handles, long offset, long rpcval) {
 
 
 /* Report which servers are down. */
-void DownServers(char *buf, int *bufsize) {
+void DownServers(char *buf, unsigned int *bufsize) {
     char *cp = buf;
-    int maxsize = *bufsize;
+    unsigned int maxsize = *bufsize;
     *bufsize = 0;
 
     /* Copy each down server's address into the buffer. */
     srv_iterator next;
     srvent *s;
-    while (s = next())
+    while ((s = next()))
 	if (s->ServerIsDown()) {
 	    /* Make sure there is room in the buffer for this entry. */
 	    if ((cp - buf) + sizeof(unsigned long) > maxsize) return;
@@ -984,9 +982,10 @@ void DownServers(char *buf, int *bufsize) {
 
 
 /* Report which of a given set of servers is down. */
-void DownServers(int nservers, unsigned long *hostids, char *buf, int *bufsize) {
+void DownServers(int nservers, unsigned long *hostids,
+                 char *buf, unsigned int *bufsize) {
     char *cp = buf;
-    int maxsize = *bufsize;
+    unsigned int maxsize = *bufsize;
     *bufsize = 0;
 
     /* Copy each down server's address into the buffer. */
@@ -1016,12 +1015,12 @@ void DownServers(int nservers, unsigned long *hostids, char *buf, int *bufsize) 
  * Reset estimates and declare connectivity strong if there are
  * no recent observations.  Called by the probe daemon.
  */
-void CheckServerBW(unsigned long curr_time) {
+void CheckServerBW(long curr_time) {
     srv_iterator next;
     srvent *s;
-    long bw = INIT_BW;
+    unsigned long bw = INIT_BW;
 
-    while (s = next()) {
+    while ((s = next())) {
 	if (s->ServerIsUp()) 
 	    (void) s->GetBandwidth(&bw);
 
@@ -1050,7 +1049,7 @@ void ServerPrint(int fd) {
 
     srv_iterator next;
     srvent *s;
-    while (s = next()) s->print(fd);
+    while ((s = next())) s->print(fd);
 
     fdprint(fd, "\n");
 }
@@ -1068,7 +1067,7 @@ srvent::srvent(unsigned long Host) {
     }
     else {
 	char buf[12];
-	sprintf(buf, "%u", Host);
+	sprintf(buf, "%lx", Host);
 	name = new char[strlen(buf) + 1];
 	strcpy(name, buf);
     }
@@ -1208,7 +1207,7 @@ void srvent::Reset() {
     {
 	mgrp_iterator mgrp_next;
 	mgrpent *m;
-	while (m = mgrp_next())
+	while ((m = mgrp_next()))
 	    m->KillMember(host, 0);
     }
 
@@ -1355,9 +1354,9 @@ long srvent::GetLiveness(struct timeval *tp) {
  */
 
 /* returns bandwidth in Bytes/sec, or INIT_BW if it couldn't be obtained */
-long srvent::GetBandwidth(long *Bandwidth) {
+long srvent::GetBandwidth(unsigned long *Bandwidth) {
     long rc = 0;
-    long oldbw = bw;
+    unsigned long oldbw = bw;
 
     LOG(1, ("srvent::GetBandwidth (%s) lastobs %ld.%06ld\n", 
 	      name, lastobs.tv_sec, lastobs.tv_usec));
@@ -1420,9 +1419,9 @@ long srvent::GetBandwidth(long *Bandwidth) {
  * does not exclude "quasi-up" states, which have no associated 
  * connection ids.  Finally, provoke a transition if necessary.
  */
-long srvent::InitBandwidth(long b) {
+long srvent::InitBandwidth(unsigned long b) {
     long rc = 0;
-    long oldbw = bw;
+    unsigned long oldbw = bw;
 
     /* check if the user is specifying some fixed bandwidth. */
     userbw = (b != 0);
@@ -1535,7 +1534,7 @@ int GetMgrp(mgrpent **mpp, unsigned long VSGAddr, vuid_t vuid) {
 	struct MgrpKey Key; Key.vsgaddr = VSGAddr; Key.vuid = vuid;
 	mgrp_iterator next(&Key);
 	int count = 0;
-	while (m = next()) {
+	while ((m = next())) {
 	    count++;
 	    if (!m->inuse) {
 		m->inuse = 1;
@@ -1633,7 +1632,7 @@ void MgrpPrint(int fd) {
     /* Iterate through the individual entries. */
     mgrp_iterator next;
     mgrpent *m;
-    while (m = next()) m->print(fd);
+    while ((m = next())) m->print(fd);
 
     fdprint(fd, "\n");
 }
@@ -2260,7 +2259,7 @@ mgrp_iterator::mgrp_iterator(struct MgrpKey *Key) : olist_iterator((olist&)*mgrp
 
 mgrpent *mgrp_iterator::operator()() {
     olink *o;
-    while (o = olist_iterator::operator()()) {
+    while ((o = olist_iterator::operator()())) {
 	mgrpent *m = strbase(mgrpent, o, tblhandle);
 	if (key == (struct MgrpKey *)0) return(m);
 	if ((key->vsgaddr == m->VSGAddr || key->vsgaddr == ALL_VSGS) &&
@@ -2297,7 +2296,7 @@ void VSGInit() {
 	{
 	    vsg_iterator next;
 	    vsgent *v;
-	    while (v = next())
+	    while ((v = next()))
 		/* Initialize transient members. */
 		v->ResetTransient();
 
@@ -2367,7 +2366,7 @@ void vsgdb::operator delete(void *deadobj, size_t size) {
 vsgent *vsgdb::Find(unsigned long Addr) {
     vsg_iterator next(&Addr);
     vsgent *v;
-    while (v = next())
+    while ((v = next()))
 	if (v->Addr == Addr) return(v);
 
     return(0);
@@ -2397,7 +2396,6 @@ vsgent *vsgdb::Create(unsigned long Addr, unsigned long *Hosts) {
 int vsgdb::Get(vsgent **vpp, unsigned long Addr, unsigned long *Hosts) {
     LOG(100, ("vsgdb::Get: Addr = %x, Hosts = %x\n", Addr, Hosts));
 
-    int code = 0;
     *vpp = 0;
     vsgent *v = 0;
 
@@ -2447,7 +2445,7 @@ void vsgdb::DownEvent(unsigned long host) {
     {
 	vsg_iterator next;
 	vsgent *v;
-	while (v = next())
+	while ((v = next()))
 	    for (int i = 0; i < VSG_MEMBERS; i++)
 		if (v->Hosts[i] == host) {
 		    v->DownMember(eventTime);
@@ -2465,7 +2463,7 @@ void vsgdb::DownEvent(unsigned long host) {
 
 	vol_iterator next;
 	volent *v;
-	while (v = next())
+	while ((v = next()))
 	    if (v->type != ROVOL && v->type != REPVOL && v->host == host)
 		v->DownMember(eventTime);
     }
@@ -2485,7 +2483,7 @@ void vsgdb::UpEvent(unsigned long host) {
     {
 	vsg_iterator next;
 	vsgent *v;
-	while (v = next())
+	while ((v = next()))
 	    for (int i = 0; i < VSG_MEMBERS; i++)
 		if (v->Hosts[i] == host) {
 		    v->UpMember(eventTime);
@@ -2503,7 +2501,7 @@ void vsgdb::UpEvent(unsigned long host) {
 
 	vol_iterator next;
 	volent *v;
-	while (v = next())
+	while ((v = next()))
 	    if (v->type != ROVOL && v->type != REPVOL && v->host == host)
 		v->UpMember(eventTime);
     }
@@ -2522,7 +2520,7 @@ void vsgdb::WeakEvent(unsigned long host) {
 
     vsg_iterator next;
     vsgent *v;
-    while (v = next())
+    while ((v = next()))
 	for (int i = 0; i < VSG_MEMBERS; i++)
 	    if (v->Hosts[i] == host) {
 		v->WeakMember();
@@ -2535,7 +2533,7 @@ void vsgdb::StrongEvent(unsigned long host) {
 
     vsg_iterator next;
     vsgent *v;
-    while (v = next())
+    while ((v = next()))
 	for (int i = 0; i < VSG_MEMBERS; i++)
 	    if (v->Hosts[i] == host) {
 		v->StrongMember();
@@ -2554,7 +2552,7 @@ void vsgdb::print(int fd, int SummaryOnly) {
     if (!SummaryOnly) {
 	vsg_iterator next;
 	vsgent *v;
-	while (v = next())
+	while ((v = next()))
 	    v->print(fd);
     }
 
@@ -2657,7 +2655,7 @@ void vsgent::DownMember(long eventTime) {
     /* Yuck!  We really need a list of volumes belonging to a given VSG! */
     vol_iterator next;
     volent *v;
-    while (v = next())
+    while ((v = next()))
 	if (v->vsg == this)
 	    v->DownMember(eventTime);
 }
@@ -2669,7 +2667,7 @@ void vsgent::UpMember(long eventTime) {
     /* Yuck!  We really need a list of volumes belonging to a given VSG! */
     vol_iterator next;
     volent *v;
-    while (v = next())
+    while ((v = next()))
 	if (v->vsg == this)
 	    v->UpMember(eventTime);
 }
@@ -2678,7 +2676,7 @@ void vsgent::UpMember(long eventTime) {
 void vsgent::WeakMember() {
     vol_iterator next;
     volent *v;
-    while (v = next())
+    while ((v = next()))
 	if (v->vsg == this)
 	    v->WeakMember();
 }
@@ -2687,19 +2685,19 @@ void vsgent::WeakMember() {
 void vsgent::StrongMember() {
     vol_iterator next;
     volent *v;
-    while (v = next())
+    while ((v = next()))
 	if (v->vsg == this)
 	    v->StrongMember();
 }
 
 
 /* returns minimum bandwidth in Bytes/sec, or INIT_BW if none obtainable */
-void vsgent::GetBandwidth(long *Bandwidth) {
+void vsgent::GetBandwidth(unsigned long *Bandwidth) {
     *Bandwidth = 0;
 
     for (int i = 0; i < VSG_MEMBERS; i++)
 	if (Hosts[i]) {
-	    long bw = 0;
+	    unsigned long bw = 0;
 	    srvent *s = 0;
 	    GetServer(&s, Hosts[i]);
 
@@ -2773,7 +2771,7 @@ int FailDisconnect(int nservers, unsigned long *hostids)
     do {
 	srv_iterator next;
 	srvent *s;
-	while (s = next())
+	while ((s = next()))
 	    if (nservers == 0 || s->host == hostids[k]) {
 		/* we want a pair of filters for server s. */
 
@@ -2856,7 +2854,8 @@ int FailReconnect(int nservers, unsigned long *hostids)
     do {
 	for (int i = 0; i < MAXFILTERS; i++) 
 	    if (FailFilterInfo[i].used && (nservers == 0 || (FailFilterInfo[i].host == hostids[s])))
-		if (rc = Fail_RemoveFilter(FailFilterInfo[i].side, FailFilterInfo[i].id) < 0) {
+		if ((rc = Fail_RemoveFilter(FailFilterInfo[i].side,
+                                            FailFilterInfo[i].id)) < 0) {
 		    LOG(0, ("FailReconnect: couldn't remove %s filter, id = %d\n", 
 			(FailFilterInfo[i].side == sendSide)?"send":"recv", 
 			FailFilterInfo[i].id));
@@ -2876,10 +2875,6 @@ int FailReconnect(int nservers, unsigned long *hostids)
  * specified speed to all known servers.
  */
 int FailSlow(unsigned *speedp) {
-    struct timeval timeout;
-    srvent *s;
-    srv_iterator next;
-    long rc;
 
     return(-1);
 }

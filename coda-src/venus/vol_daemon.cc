@@ -90,10 +90,8 @@ void VolDaemon() {
     unsigned long curr_time = Vtime();
 
     /* Avoid checks on first firing! */
-    unsigned long LastVolumeCheck = curr_time;
     unsigned long LastGetDown = curr_time;
     unsigned long LastCOP2Check = curr_time;
-    unsigned long LastFlushVSRs = curr_time;
     unsigned long LastCheckPoint = curr_time;
     unsigned long LastRPM = curr_time;
     unsigned long LastLocalSubtree = curr_time;

@@ -674,7 +674,6 @@ int fsobj::ReplaceLocalFakeFid()
      */
     LOG(100, ("fsobj::ReplaceLocalFakeFid: subtree root--(%s, 0x%x.%x.%x)\n",
 	      comp, fid.Volume, fid.Vnode, fid.Unique));
-    int code = 0;
     dlist stack;
     optent *opt = new optent(this);
     stack.prepend(opt);			/* INIT the stack with the subtree root */

@@ -86,7 +86,7 @@ extern void MgrpPrint();
 extern void MgrpPrint(FILE *);
 extern void MgrpPrint(int);
 
-extern long WCThresh;
+extern unsigned long WCThresh;
 
 
 
@@ -119,11 +119,11 @@ const int DFLT_MT = 1;
 const int DFLT_ST = 0;
 const int DFLT_MT = 0;
 #endif
-const int INIT_BW = 10000000;
-const int UNSET_WCT = -1;
-const int DFLT_WCT = 50000;
+const unsigned int INIT_BW   = 10000000;
+const unsigned int UNSET_WCT = 0;
+const unsigned int DFLT_WCT  = 50000;
 const int UNSET_WCS = -1;
-const int DFLT_WCS = 1800;		    /* 30 minutes */
+const int DFLT_WCS  = 1800;		    /* 30 minutes */
 
 
 /*  *****  Types  *****  */
@@ -222,11 +222,11 @@ class srvent {
   friend void GetServer(srvent **, unsigned long);
   friend void PutServer(srvent **);
   friend void ProbeServers(int);
-  friend void ServerProbe(unsigned long *, unsigned long *);
+  friend void ServerProbe(long *, long *);
   friend long HandleProbe(int, RPC2_Handle *, long, long);
-  friend void CheckServerBW(unsigned long);
-  friend void DownServers(char *, int *);
-  friend void DownServers(int, unsigned long *, char *, int *);
+  friend void CheckServerBW(long);
+  friend void DownServers(char *, unsigned int *);
+  friend void DownServers(int, unsigned long *, char *, unsigned int *);
   friend void ServerPrint(int);
   friend long S_GetServerInformation(RPC2_Handle, RPC2_Integer, RPC2_Integer *, ServerEnt *);
   friend class srv_iterator;
@@ -279,8 +279,8 @@ class srvent {
 
     int GetEventCounter() { return(EventCounter); }
     long GetLiveness(struct timeval *);
-    long GetBandwidth(long *);
-    long InitBandwidth(long);
+    long GetBandwidth(unsigned long *);
+    long InitBandwidth(unsigned long);
     void Reset();
 
     void ServerError(int *);
@@ -532,7 +532,7 @@ class vsgent {
     void StrongMember();
     int GetEventCounter() { return(EventCounter); }
     int Connect(RPC2_Handle *, int *, vuid_t);
-    void GetBandwidth(long *);
+    void GetBandwidth(unsigned long *);
 
     void print() { print(stdout); }
     void print(FILE *fp) { fflush(fp); print(fileno(fp)); }
@@ -592,10 +592,10 @@ extern void DoProbes(int, unsigned long *);
 extern void MultiBind(int, unsigned long *, connent **);
 extern void MultiProbe(int, RPC2_Handle *);
 extern long HandleProbe(int, RPC2_Handle *, long, long);
-extern void ServerProbe(unsigned long * =0, unsigned long * =0);
-extern void DownServers(char *, int *);
-extern void DownServers(int, unsigned long *, char *, int *);
-extern void CheckServerBW();
+extern void ServerProbe(long * =0, long * =0);
+extern void DownServers(char *, unsigned int *);
+extern void DownServers(int, unsigned long *, char *, unsigned int *);
+extern void CheckServerBW(long);
 //extern void ServerPrint();
 //extern void ServerPrint(FILE *);
 //extern void ServerPrint(int);

@@ -265,7 +265,7 @@ mariner::mariner(int afd) : vproc("Mariner", (PROCBODY) &mariner::main,
  * we don't support assignments to objects of this type.
  * bomb in an obvious way if it inadvertently happens.
  */
-mariner::operator=(mariner& m) {
+int mariner::operator=(mariner& m) {
     abort();
     return(0);
 }

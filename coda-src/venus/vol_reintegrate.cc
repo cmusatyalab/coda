@@ -690,7 +690,7 @@ reintegrator::reintegrator() :
 }
 
 
-reintegrator::reintegrator(reintegrator& r) : vproc((vproc)r) {
+reintegrator::reintegrator(reintegrator& r) : vproc((vproc&)r) {
     abort();
 }
 

@@ -424,7 +424,7 @@ vproc::vproc(char *n, PROCBODY f, vproctype t, int stksize, int priority) {
  * we don't support assignments to objects of this type.
  * bomb in an obvious way if it inadvertently happens.
  */
-vproc::operator=(vproc& vp) {
+int vproc::operator=(vproc& vp) {
     abort();
     return(0);
 }

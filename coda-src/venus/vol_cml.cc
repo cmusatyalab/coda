@@ -84,7 +84,6 @@ int LogOpts = 1;	/* perform log optimizations? */
 /*  *****  Client Modify Log Basic Routines  *****  */
 
 void ClientModifyLog::ResetTransient() {
-    int i;
     owner = UNSET_UID;
     entries = count();
     entriesHighWater = entries;
@@ -495,7 +494,6 @@ void ClientModifyLog::MarkFailedMLE(int ix) {
  */
 void ClientModifyLog::MarkCommittedMLE(RPC2_Unsigned Uniquifier) {
     volent *vol = strbase(volent, this, CML);
-    int i = 0;
 
     cml_iterator next(*this);
     cmlent *m;
@@ -2563,7 +2561,6 @@ int cmlent::size()
     RPC2_CountedBS DummyCBS;
     DummyCBS.SeqLen = 0;
     DummyCBS.SeqBody = 0;
-    RPC2_CountedBS *DummyCBSp = &DummyCBS;
     RPC2_Unsigned DummyAllocHost = (unsigned long)-1;
 
     len	+= (int) sizeof(RPC2_Integer);	/* Leave room for opcode. */
@@ -2649,7 +2646,6 @@ void cmlent::pack(PARM **_ptr) {
     RPC2_CountedBS DummyCBS;
     DummyCBS.SeqLen = 0;
     DummyCBS.SeqBody = 0;
-    RPC2_CountedBS *DummyCBSp = &DummyCBS;
     RPC2_Unsigned DummyAllocHost = (unsigned long)-1;
 
     /* Vice interface does not yet know about {Truncate, Utimes, Chown, Chmod}, */
@@ -4125,7 +4121,6 @@ void cmlent::DetachFidBindings() {
 }
 
 void cmlent::writeops(FILE *fp) {
-    int code = 0;
     char path[MAXPATHLEN], path2[MAXPATHLEN];
     char msg[2 * MAXPATHLEN + 100]; 	// this is enough for writing one entry
 
@@ -4220,7 +4215,7 @@ int cmlent::Aged() {
 unsigned long cmlent::ReintTime() {
     volent *vol = strbase(volent, log, CML);
     double time = 0;
-    long bw;	/* bandwidth, in bytes/sec */
+    unsigned long bw;	/* bandwidth, in bytes/sec */
 
     /* 
      * try to get a dynamic bw estimate.  If that doesn't
@@ -4246,7 +4241,7 @@ unsigned long cmlent::ReintTime() {
 unsigned long cmlent::ReintAmount() {
     volent *vol = strbase(volent, log, CML);
     int amount;
-    long bw;	/* bandwidth, in bytes/sec */
+    unsigned long bw;	/* bandwidth, in bytes/sec */
 
     CODA_ASSERT(opcode == OLDCML_NewStore_OP);
 

@@ -105,7 +105,7 @@ class userent {
     int GetWaitForever();
     void SetWaitForever(int);   
 
-    int GetUid() 
+    vuid_t GetUid() 
         { return(uid); }
     CacheMissAdvice RequestReadDisconnectedCacheMissAdvice(ViceFid *fid, char *pathname, int pid)
         { return(admon.RequestReadDisconnectedCacheMissAdvice(fid, pathname, pid)); }
