@@ -325,13 +325,13 @@ void VSetMaxVolumeId(VolumeId newid)
  * Called whenever vnode bitmap grows to make sure that bitmap size never
  * exceeds vnode array size.
  */
-void GrowVnodes(VolumeId volid, int vclass, short newBMsize) 
+void GrowVnodes(VolumeId volid, int vclass, unsigned short newBMsize) 
 {
     rec_smolist *newvlist;
     int myind;
     char *name;
     unsigned int grow;
-    bit32 newsize, size;
+    unsigned int newsize, size;
 
     LogMsg(9, VolDebugLevel, stdout,  "Entering GrowVnodes for volid %x, vclass %d", volid, vclass);
 
@@ -359,7 +359,7 @@ void GrowVnodes(VolumeId volid, int vclass, short newBMsize)
     /* If the array is already big enough, we can return early */
     if (size >= newsize) return;
 
-    LogMsg(0, VolDebugLevel, stdout,  "GrowVnodes: growing %s list from %d to %d for volume 0x%x", name, size, newsize, volid);
+    LogMsg(0, VolDebugLevel, stdout,  "GrowVnodes: growing %s list from %u to %u for volume 0x%x", name, size, newsize, volid);
 
     /* create a new larger list and zero out its tail */
     newvlist = (rec_smolist *)rvmlib_rec_malloc(sizeof(rec_smolist) * newsize);
