@@ -511,7 +511,7 @@ static void CdToCacheDir() {
     if (chdir(CacheDir) < 0) {
 	if (errno != ENOENT)
 	    { perror("CacheDir chdir"); exit(-1); }
-	if (mkdir(CacheDir, 0644) < 0)
+	if (mkdir(CacheDir, 0700) < 0)
 	    { perror("CacheDir mkdir"); exit(-1); }
 	if (chdir(CacheDir) < 0)
 	    { perror("CacheDir chdir"); exit(-1); }
