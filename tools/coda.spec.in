@@ -2,7 +2,7 @@ Summary: Coda distributed filesystem
 Name: @CODA@
 Version: @CVER@
 Release: @REL@
-Source: ftp://ftp.coda.cs.cmu.edu/pub/coda/src/coda-@VERSION@.tgz
+Source: ftp://ftp.coda.cs.cmu.edu/pub/coda/src/coda-@VERSION@.tar.gz
 Requires: bc
 Copyright: GPL
 BuildRoot: /usr/src/redhat/BUILD/coda-build
