@@ -1132,7 +1132,8 @@ RestartFind:
 
 	    f->DemoteLock();
 	} else {	/* !FETCHABLE(f) */
-	    if (HOARDING(f) || LOGGING(f) || (EMULATING(f) && f->flags.replicated)) {
+	    if (HOARDING(f) || LOGGING(f) ||
+		(EMULATING(f) && f->vol->IsReplicated())) {
 		if (HAVESTATUS(f)) {
                     VmonUpdateSession(vp, key, f, f->vol, vuid, ATTR, HIT, FSOBJSIZE); /* sort of...*/
 		    /*
@@ -1423,18 +1424,6 @@ int fsdb::CallBackBreak(ViceFid *fid) {
 
     return(1);
 }
-
-
-void fsdb::ResetVolume(VolumeId volume, int usecallback) {
-    fso_iterator next(NL);
-    fsobj *f;
-    while ((f = next()))
-	if (f->fid.Volume == volume) {
-	    f->Demote();
-	    f->flags.usecallback = usecallback;
-	}
-}
-
 
 void fsdb::ResetUser(vuid_t vuid) {
     /* Demote access rights for the user. */

@@ -124,7 +124,7 @@ int fsobj::ConnectedRemove(Date_t Mtime, vuid_t vuid, char *name, fsobj *target_
     OldVS.SeqLen = 0;
     OldVS.SeqBody = 0;
 
-    if (flags.replicated) {
+    if (vol->IsReplicated()) {
 	ViceStoreId sid;
 	mgrpent *m = 0;
 	int asy_resolve = 0;
@@ -264,7 +264,7 @@ int fsobj::DisconnectedRemove(Date_t Mtime, vuid_t vuid, char *name, fsobj *targ
 
     int code = 0;
 
-    if (!flags.replicated) {
+    if (!vol->IsReplicated()) {
 	code = ETIMEDOUT;
 	goto Exit;
     }
@@ -364,7 +364,7 @@ int fsobj::ConnectedLink(Date_t Mtime, vuid_t vuid, char *name, fsobj *source_fs
     OldVS.SeqLen = 0;
     OldVS.SeqBody = 0;
 
-    if (flags.replicated) {
+    if (vol->IsReplicated()) {
 	ViceStoreId sid;
 	mgrpent *m = 0;
 	int asy_resolve = 0;
@@ -504,7 +504,7 @@ int fsobj::DisconnectedLink(Date_t Mtime, vuid_t vuid, char *name, fsobj *source
 
     int code = 0;
 
-    if (!flags.replicated) {
+    if (!vol->IsReplicated()) {
 	code = ETIMEDOUT;
 	goto Exit;
     }
@@ -674,7 +674,7 @@ int fsobj::ConnectedRename(Date_t Mtime, vuid_t vuid, fsobj *s_parent_fso,
     OldVS.SeqLen = 0;
     OldVS.SeqBody = 0;
 
-    if (flags.replicated) {
+    if (vol->IsReplicated()) {
 	ViceStoreId sid;
 	mgrpent *m = 0;
 	int asy_resolve = 0;
@@ -837,7 +837,7 @@ int fsobj::DisconnectedRename(Date_t Mtime, vuid_t vuid, fsobj *s_parent_fso, ch
     int code = 0;
     int TargetExists = (t_fso != 0);
 
-    if (!flags.replicated) {
+    if (!vol->IsReplicated()) {
 	code = ETIMEDOUT;
 	goto Exit;
     }
@@ -972,7 +972,7 @@ int fsobj::ConnectedMkdir(Date_t Mtime, vuid_t vuid, fsobj **t_fso_addr,
     OldVS.SeqLen = 0;
     OldVS.SeqBody = 0;
 
-    if (flags.replicated) {
+    if (vol->IsReplicated()) {
 	ViceStoreId sid;
 	mgrpent *m = 0;
 	int asy_resolve = 0;
@@ -1054,7 +1054,7 @@ int fsobj::ConnectedMkdir(Date_t Mtime, vuid_t vuid, fsobj **t_fso_addr,
 	UpdateStatus(&parent_status, &UpdateSet, vuid);
 	target_fso->UpdateStatus(&target_status, &UpdateSet, vuid);
 	Recov_EndTrans(CMFP);
-	if (target_fso->flags.usecallback &&
+	if (target_fso->vol->flags.usecallback &&
 	    target_status.CallBack == CallBackSet &&
 	    cbtemp == cbbreaks)
 	    target_fso->SetRcRights(RC_STATUS | RC_DATA);
@@ -1128,7 +1128,7 @@ RepExit:
 	UpdateStatus(&parent_status, 0, vuid);
 	target_fso->UpdateStatus(&target_status, 0, vuid);
 	Recov_EndTrans(CMFP);
-	if (target_fso->flags.usecallback &&
+	if (target_fso->vol->flags.usecallback &&
 	    target_status.CallBack == CallBackSet &&
 	    cbtemp == cbbreaks)
 	    target_fso->SetRcRights(RC_STATUS | RC_DATA);
@@ -1442,7 +1442,7 @@ int fsobj::DisconnectedRmdir(Date_t Mtime, vuid_t vuid, char *name, fsobj *targe
 
     int code = 0;
 
-    if (!flags.replicated) {
+    if (!vol->IsReplicated()) {
 	code = ETIMEDOUT;
 	goto Exit;
     }
@@ -1566,7 +1566,7 @@ int fsobj::ConnectedSymlink(Date_t Mtime, vuid_t vuid, fsobj **t_fso_addr,
     OldVS.SeqLen = 0;
     OldVS.SeqBody = 0;
 
-    if (flags.replicated) {
+    if (vol->IsReplicated()) {
 	ViceStoreId sid;
 	mgrpent *m = 0;
 	int asy_resolve = 0;
@@ -1648,7 +1648,7 @@ int fsobj::ConnectedSymlink(Date_t Mtime, vuid_t vuid, fsobj **t_fso_addr,
 	UpdateStatus(&parent_status, &UpdateSet, vuid);
 	target_fso->UpdateStatus(&target_status, &UpdateSet, vuid);
 	Recov_EndTrans(CMFP);
-	if (target_fso->flags.usecallback &&
+	if (target_fso->vol->flags.usecallback &&
 	    target_status.CallBack == CallBackSet &&
 	    cbtemp == cbbreaks)
 	    target_fso->SetRcRights(RC_STATUS | RC_DATA);
@@ -1723,7 +1723,7 @@ RepExit:
 	UpdateStatus(&parent_status, 0, vuid);
 	target_fso->UpdateStatus(&target_status, 0, vuid);
 	Recov_EndTrans(CMFP);
-	if (target_fso->flags.usecallback &&
+	if (target_fso->vol->flags.usecallback &&
 	    target_status.CallBack == CallBackSet &&
 	    cbtemp == cbbreaks)
 	    target_fso->SetRcRights(RC_STATUS | RC_DATA);
@@ -1867,7 +1867,7 @@ int fsobj::SetVV(ViceVersionVector *newvv, vuid_t vuid) {
 	PiggyBS.SeqLen = 0;
 	PiggyBS.SeqBody = (RPC2_ByteSeq)PiggyData;
 
-	if (flags.replicated) {
+	if (vol->IsReplicated()) {
 	    mgrpent *m = 0;
 
 	    /* Acquire an Mgroup. */

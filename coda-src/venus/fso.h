@@ -230,7 +230,6 @@ class fsdb {
     void Flush(VolumeId);
     int TranslateFid(ViceFid *, ViceFid *);
     int CallBackBreak(ViceFid *);
-    void ResetVolume(VolumeId, int);
     void ResetUser(vuid_t);
     void ClearPriorities();
     void InvalidateMtPts();
@@ -354,10 +353,7 @@ struct AcRights	{
 };
 
 struct FsoFlags {
-    /*T*/unsigned backup : 1;			/* volume type; copied from volume */
-    /*T*/unsigned replicated : 1;		/* volume type; copied from volume */
-    /*T*/unsigned rwreplica : 1;		/* volume type; copied from volume */
-    /*T*/unsigned usecallback :	1;		/* volume characteristic; copied from volume */
+    unsigned unused : 4;
     unsigned fake : 1;				/* is this object fake? (c.f. repair) */
     unsigned owrite : 1;			/* file open for write? */
     unsigned fetching :	1;			/* fetch in progress? */
@@ -368,6 +364,7 @@ struct FsoFlags {
     unsigned local: 1;				/* local fake fid */
     unsigned discread : 1;			/* read during the last disconnection */
     /*T*/unsigned random : 16;			/* help balance binary-search trees */
+    unsigned padding : 3;
 };
 
 enum MountStatus {  NORMAL,
@@ -702,7 +699,6 @@ class fsobj {
     int	IsMtPt() { return(mvstat == MOUNTPOINT); }      /* covered mount point */
     int	IsMTLink() { return(stat.VnodeType == (int)SymbolicLink && stat.Mode == 0644); }
                                                         /* uncovered mount point */
-    int	IsVirgin();                             /* file which has been created, but not yet stored */
     int IsBackFetching();			/* fso involved in an ongoing reintegration */
     int SetLastResolved(long t) { lastresolved = t; return(0); }
     int  MakeShadow();

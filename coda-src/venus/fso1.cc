@@ -58,8 +58,6 @@ extern "C" {
 #endif __cplusplus
 
 /* interfaces */
-/* this is silly and only needed for the IsVirgin test! */
-#include <cml.h>
 
 /* from vicedep */
 #include <venusioctl.h>
@@ -204,10 +202,6 @@ void fsobj::ResetTransient() {
     }
     ClearRcRights();
     DemoteAcRights(ALL_UIDS);
-    flags.backup = 0;
-    flags.replicated = 0;
-    flags.rwreplica = 0;
-    flags.usecallback = 0;
     flags.replaceable = 0;
     flags.era = 1;
     flags.ckmtpt = 0;
@@ -254,10 +248,6 @@ void fsobj::ResetTransient() {
 	if ((vol = VDB->Find(fid.Volume)) == 0)
 	    { print(logFile); CHOKE("fsobj::ResetTransient: couldn't find volume"); }
 	vol->hold();
-	if (vol->IsBackup()) flags.backup = 1;
-	if (vol->IsReplicated()) flags.replicated = 1;
-	if (vol->IsReadWriteReplica()) flags.rwreplica = 1;
-	if (vol->flags.usecallback) flags.usecallback = 1;
     }
 
     /* Add to volume list */
@@ -480,12 +470,18 @@ void fsobj::Recover()
 	goto Failure;
     }
 
-    /* Get rid of fake objects, and other objects that are not likely to be useful anymore. */
-    if ((IsFake() && !LRDB->RFM_IsFakeRoot(&fid)) || flags.backup || flags.rwreplica) {
+    /* Get rid of fake objects, and other objects that are not likely to be
+     * useful anymore. */
+#ifdef OBSOLETE
+    /* first part of this test should be obsolete because fake volumes are no
+     * longer replicated volume */
+    if ((IsFake() && !LRDB->RFM_IsFakeRoot(&fid)) || !vol->IsReplicated()) {
+#endif
+    if (!vol->IsReplicated())
 	goto Failure;
-    }
 
-    /* Get rid of a former mount-root whose fid is not a volume root and whose pfid is NullFid */
+    /* Get rid of a former mount-root whose fid is not a volume root and whose
+     * pfid is NullFid */
     if ((mvstat == NORMAL) && !FID_IsVolRoot(&fid) && 
 	FID_EQ(&pfid, &NullFid) && !IsLocalObj()) {
 	LOG(0, ("fsobj::Recover: (%s) is a non-volume root whose pfid is NullFid\n",
@@ -773,16 +769,19 @@ int fsobj::StatusEq(ViceStatus *vstat, int Mutating) {
      * legitimately return different dataversions. On a replicated volume we
      * use the VV, and shouldn't use the DataVersion at all. -JH
      */
-    if (!flags.replicated && stat.DataVersion != vstat->DataVersion) {
-	eq = 0;
-	if (log)
-	    LOG(0, ("fsobj::StatusEq: (%s), DataVersion %d != %d\n",
-		    FID_(&fid), stat.DataVersion, vstat->DataVersion));
-    }
-    if (flags.replicated && !Mutating && VV_Cmp(&stat.VV, &vstat->VV) != VV_EQ) {
-	eq = 0;
-	if (log)
-	    LOG(0, ("fsobj::StatusEq: (%s), VVs differ\n", FID_(&fid)));
+    if (!vol->IsReplicated()) {
+	if (stat.DataVersion != vstat->DataVersion) {
+	    eq = 0;
+	    if (log)
+		LOG(0, ("fsobj::StatusEq: (%s), DataVersion %d != %d\n",
+			FID_(&fid), stat.DataVersion, vstat->DataVersion));
+	}
+    } else {
+	if (!Mutating && VV_Cmp(&stat.VV, &vstat->VV) != VV_EQ) {
+	    eq = 0;
+	    if (log)
+		LOG(0, ("fsobj::StatusEq: (%s), VVs differ\n", FID_(&fid)));
+	}
     }
     if (stat.Date != vstat->Date) {
 	eq = 0;
@@ -821,7 +820,8 @@ int fsobj::StatusEq(ViceStatus *vstat, int Mutating) {
 
 /* MUST be called from within transaction! */
 /* Call with object write-locked. */
-void fsobj::ReplaceStatus(ViceStatus *vstat, vv_t *UpdateSet) {
+void fsobj::ReplaceStatus(ViceStatus *vstat, vv_t *UpdateSet)
+{
     RVMLIB_REC_OBJECT(stat);
 
     /* We're changing the length? 
@@ -837,7 +837,7 @@ void fsobj::ReplaceStatus(ViceStatus *vstat, vv_t *UpdateSet) {
 
     stat.Length = vstat->Length;
     stat.DataVersion = vstat->DataVersion;
-    if (flags.replicated || flags.rwreplica) {
+    if (vol->IsReplicated() || vol->IsReadWriteReplica()) {
 	if (UpdateSet == 0)
 	    stat.VV = vstat->VV;
 	else {
@@ -860,7 +860,7 @@ int fsobj::CheckRcRights(int rights) {
 
 void fsobj::SetRcRights(int rights)
 {
-    if (flags.backup  || IsFake())
+    if (vol->IsBackup() || IsFake())
 	return;
 
     LOG(100, ("fsobj::SetRcRights: (%s), rights = %d\n", FID_(&fid), rights));
@@ -902,7 +902,7 @@ int fsobj::IsValid(int rcrights) {
 
     /* Replicated objects must be considered valid when we are either
      * disconnected or write-disconnected and the object is dirty. */
-    if (flags.replicated) {
+    if (vol->IsReplicated()) {
 	if (vol->IsDisconnected())		       return 1;
 	if (vol->IsWriteDisconnected() && flags.dirty) return 1;
     }
@@ -1142,7 +1142,7 @@ int fsobj::TryToCover(ViceFid *inc_fid, vuid_t vuid) {
     int code = 0;
 
     /* Don't cover mount points in backup volumes! */
-    if (flags.backup)
+    if (vol->IsBackup())
 	return(ENOENT);
 
     /* Check for bogosities. */
@@ -2318,7 +2318,7 @@ void fsobj::GetVattr(struct coda_vattr *vap) {
 
 void fsobj::ReturnEarly() {
     /* Only mutations on replicated objects can return early. */
-    if (!flags.replicated) return;
+    if (!vol->IsReplicated()) return;
 
     /* Only makes sense to return early to user requests. */
     vproc *v = VprocSelf();
@@ -2407,34 +2407,6 @@ void fsobj::GetPath(char *buf, int fullpath) {
 	strcpy(buf, "???");
     strcat(buf, "/");
     strcat(buf, comp);
-}
-
-
-/* Virginal state may cause some access checks to be avoided. */
-int fsobj::IsVirgin() {
-    int virginal = 0;
-    int i;
-
-    if (flags.replicated) {
-	for (i = 0; i < VSG_MEMBERS; i++)
-	    if ((&(stat.VV.Versions.Site0))[i] > 1) break;
-	if (i == VSG_MEMBERS) virginal = 1;
-
-	/* If file is dirty, it's really virginal only if there are no stores in the CML! */
-	if (virginal && IsFile() && DIRTY(this)) {
-	    cml_iterator next(vol->CML, CommitOrder, &fid);
-	    cmlent *m;
-	    while ((m = next()))
-		if (m->opcode == OLDCML_NewStore_OP)
-		    break;
-	    if (m != 0) virginal = 0;
-	}
-    }
-    else {
-	if (stat.DataVersion == 0) virginal = 1;
-    }
-
-    return(virginal);
 }
 
 
@@ -2578,8 +2550,8 @@ void fsobj::print(int fdes) {
 	fdprint(fdes, " }\n");
     }
     fdprint(fdes, "\tvoltype = [%d %d %d], ucb = %d, fake = %d, fetching = %d local = %d\n",
-	     flags.backup, flags.replicated, flags.rwreplica,
-	     flags.usecallback, flags.fake, flags.fetching, flags.local);
+	     vol->IsBackup(), vol->IsReplicated(), vol->IsReadWriteReplica(),
+	     vol->flags.usecallback, flags.fake, flags.fetching, flags.local);
     fdprint(fdes, "\trep = %d, data = %d, owrite = %d, era = %d, dirty = %d, shadow = %d\n",
 	     flags.replaceable, HAVEDATA(this), flags.owrite, flags.era, flags.dirty,
 	     shadow != 0);

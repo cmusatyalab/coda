@@ -332,7 +332,7 @@ int fsobj::Access(long rights, int modes, vuid_t vuid)
     int code = 0;
 
     /* Disallow mutation of backup, rw-replica, and zombie volumes. */
-    if ((flags.backup || flags.rwreplica) &&
+    if ((vol->IsBackup() || vol->IsReadWriteReplica()) &&
 	 (rights & (long)(PRSFS_WRITE | PRSFS_DELETE | PRSFS_INSERT | PRSFS_LOCK)))
 	return(EROFS);
 
@@ -400,11 +400,10 @@ int fsobj::Access(long rights, int modes, vuid_t vuid)
 	/* FSO_RELE(this); // Used to be here.  Moved earlier to avoid problems in fsdb::Get */
 
 	/* Check mode bits if necessary. */
-	/* Special case if file is "virgin" and this user is the creator. */
-	/*
-	  This is wrong.  Only the kernel can decide virginity, asking
-	  Venus to do this leads to a race condition
-	if (code == 0 && !(IsVirgin() && stat.Owner == vuid))
+	/* There should be a special case if this user is the creator.
+	   This code used to have a test for `virginity', but only the kernel
+	   can decide on this, asking Venus to do so leads to a race condition.
+	   --JH
 	*/
 	if (!(modes & C_A_C_OK))
 	    if (((modes & C_A_X_OK) != 0 && (stat.Mode & OWNEREXEC) == 0) ||

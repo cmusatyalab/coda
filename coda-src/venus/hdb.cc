@@ -634,7 +634,7 @@ void hdb::ValidateCacheStatus(vproc *vp, int *interrupt_failures, int *statusByt
         if (STATUSVALID(f)) continue;
 
 	/* skip non-cacheable objects */
-	if (f->flags.backup || f->flags.rwreplica || f->IsFake())
+	if (!f->vol->IsReplicated())
 	    continue;
 
 	/* Set up uarea. */
@@ -2235,8 +2235,8 @@ void namectxt::MetaExpand() {
 
     /* Meta-expand only if current version of directory differs from last
      * expanded version. */
-    if ((f->flags.replicated && VV_Cmp(&expander_vv, &f->stat.VV) != VV_EQ) ||
-	 (!f->flags.replicated && expander_dv != f->stat.DataVersion)) {
+    if ((f->vol->IsReplicated() && VV_Cmp(&expander_vv, &f->stat.VV) != VV_EQ) ||
+	 (!f->vol->IsReplicated() && expander_dv != f->stat.DataVersion)) {
 
       /* 
 	 ?MARIA?:  Why doesn't the KillChildren above appear here??? 

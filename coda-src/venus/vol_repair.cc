@@ -684,7 +684,6 @@ int repvol::LocalRepair(fsobj *f, ViceStatus *status, char *fname, ViceFid *pfid
     }
 
     /* set the flags of the object before returning */
-    f->flags.replicated = 1;
     f->flags.dirty = 1;
 
     return(0);

@@ -2907,7 +2907,11 @@ NonRepExit:
 void volent::UseCallBack(int flag)
 {
     flags.usecallback = flag;
-    FSDB->ResetVolume(vid, flags.usecallback);
+
+    fso_vol_iterator next(NL, this);
+    fsobj *f;
+    while ((f = next()))
+	f->Demote();
 }
 
 

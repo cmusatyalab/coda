@@ -127,7 +127,7 @@ int fsobj::Fetch(vuid_t vuid) {
     int code = 0;
     char prel_str[256];
     sprintf(prel_str, "fetch::Fetch %%s [%ld]\n", BLOCKS(this));
-    int inconok = flags.rwreplica;
+    int inconok = !vol->IsReplicated();
 
     /* Status parameters. */
     ViceStatus status;
@@ -221,7 +221,7 @@ int fsobj::Fetch(vuid_t vuid) {
 
     long cbtemp = cbbreaks;
 
-    if (flags.replicated) {
+    if (vol->IsReplicated()) {
 	mgrpent *m = 0;
 	int asy_resolve = 0;
 
@@ -406,7 +406,7 @@ NonRepExit:
         data.file->Close(fd);
 
     if (code == 0) {
-	if (flags.usecallback &&
+	if (vol->flags.usecallback &&
 	    status.CallBack == CallBackSet &&
 	    cbtemp == cbbreaks)
 	    SetRcRights(RC_STATUS | RC_DATA);
@@ -500,7 +500,7 @@ int fsobj::GetAttr(vuid_t vuid, RPC2_BoundedBS *acl)
 
     int code = 0;
     int getacl = (acl != 0);
-    int inconok = flags.rwreplica;
+    int inconok = !vol->IsReplicated();
     const char *prel_str=getacl?"fetch::GetACL %s\n"  :"fetch::GetAttr %s\n";
     const char *post_str=getacl?"fetch::GetACL done\n":"fetch::GetAttr done\n";
 
@@ -568,7 +568,7 @@ int fsobj::GetAttr(vuid_t vuid, RPC2_BoundedBS *acl)
 
 		while ((f = next()) && (numPiggyFids < PIGGY_VALIDATIONS)) {
 		    if (HAVESTATUS(f) && !STATUSVALID(f) && !DYING(f) &&
-			!f->flags.rwreplica && 
+			f->vol->IsReplicated() && 
 			!FID_EQ(&f->fid, &fid) &&
 			!f->IsLocalObj() &&
 			!BUSY(f)) {  
@@ -662,7 +662,7 @@ int fsobj::GetAttr(vuid_t vuid, RPC2_BoundedBS *acl)
 					  pobj->comp, FAVs[i].Fid.Volume, 
 					  FAVs[i].Fid.Vnode, FAVs[i].Fid.Unique));
 
-				if (flags.usecallback && (cbtemp == cbbreaks)) {
+				if (vol->flags.usecallback && cbtemp == cbbreaks) {
 				    if (!HAVEALLDATA(pobj))
 					pobj->SetRcRights(RC_STATUS);
 				    else
@@ -837,7 +837,7 @@ int fsobj::GetAttr(vuid_t vuid, RPC2_BoundedBS *acl)
     	    }
 	}
 
-	if (flags.usecallback &&
+	if (vol->flags.usecallback &&
 	    status.CallBack == CallBackSet &&
 	    cbtemp == cbbreaks &&
 	    !asy_resolve)
@@ -963,7 +963,7 @@ RepExit:
 	    }
 	}
 
-	if (flags.usecallback &&
+	if (vol->flags.usecallback &&
 	    status.CallBack == CallBackSet &&
 	    cbtemp == cbbreaks)
 	{
@@ -1094,7 +1094,7 @@ int fsobj::ConnectedStore(Date_t Mtime, vuid_t vuid, unsigned long NewLength)
     OldVS.SeqLen = 0;
     OldVS.SeqBody = 0;
 
-    if (flags.replicated) {
+    if (vol->IsReplicated()) {
 	ViceStoreId sid;
 	mgrpent *m = 0;
 	int asy_resolve = 0;
@@ -1250,7 +1250,7 @@ int fsobj::DisconnectedStore(Date_t Mtime, vuid_t vuid, unsigned long NewLength,
 
     int code = 0;
 
-    if (!flags.replicated) {
+    if (!vol->IsReplicated()) {
 	code = ETIMEDOUT;
 	goto Exit;
     }
@@ -1385,7 +1385,7 @@ int fsobj::ConnectedSetAttr(Date_t Mtime, vuid_t vuid, unsigned long NewLength,
     OldVS.SeqLen = 0;
     OldVS.SeqBody = 0;
 
-    if (flags.replicated) {
+    if (vol->IsReplicated()) {
 	ViceStoreId sid;
 	mgrpent *m = 0;
 	int asy_resolve = 0;
@@ -1585,11 +1585,6 @@ int fsobj::SetAttr(struct coda_vattr *vap, vuid_t vuid, RPC2_CountedBS *acl)
 	    ((vap->va_mode & 04777) != stat.Mode) )
 		NewMode= (vap->va_mode & 04777);
 
-	/* Cannot chown a file until the first store has been done! */
-	if (NewOwner != (vuid_t)-1 && IsFile() && IsVirgin()) {
-		return(EINVAL);
-	}
-
 	/* Only update cache file when truncating and open for write! */
 	if (NewLength != (unsigned long)-1 && WRITING(this)) {
 		Recov_BeginTrans();
@@ -1740,7 +1735,7 @@ int fsobj::ConnectedCreate(Date_t Mtime, vuid_t vuid, fsobj **t_fso_addr,
     OldVS.SeqLen = 0;
     OldVS.SeqBody = 0;
 
-    if (flags.replicated) {
+    if (vol->IsReplicated()) {
 	ViceStoreId sid;
 	mgrpent *m = 0;
 	int asy_resolve = 0;
@@ -1823,7 +1818,7 @@ int fsobj::ConnectedCreate(Date_t Mtime, vuid_t vuid, fsobj **t_fso_addr,
 	UpdateStatus(&parent_status, &UpdateSet, vuid);
 	target_fso->UpdateStatus(&target_status, &UpdateSet, vuid);
 	Recov_EndTrans(CMFP);
-	if (target_fso->flags.usecallback &&
+	if (target_fso->vol->flags.usecallback &&
 	    target_status.CallBack == CallBackSet &&
 	    cbtemp == cbbreaks)
 	    target_fso->SetRcRights(RC_STATUS | RC_DATA);
@@ -1897,7 +1892,7 @@ RepExit:
 	UpdateStatus(&parent_status, 0, vuid);
 	target_fso->UpdateStatus(&target_status, 0, vuid);
 	Recov_EndTrans(CMFP);
-	if (target_fso->flags.usecallback &&
+	if (target_fso->vol->flags.usecallback &&
 	    target_status.CallBack == CallBackSet &&
 	    cbtemp == cbbreaks)
 	    target_fso->SetRcRights(RC_STATUS | RC_DATA);

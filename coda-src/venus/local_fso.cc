@@ -120,7 +120,7 @@ int fsobj::RepairStore()
     OldVS.SeqLen = 0;
     OldVS.SeqBody = 0;
 
-    if (flags.replicated) {
+    if (vol->IsReplicated()) {
 	ViceStoreId sid;
 	mgrpent *m = 0;
 	int asy_resolve = 0;
