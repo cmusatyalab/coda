@@ -126,6 +126,33 @@ struct in_addr venus_relay_addr = { INADDR_LOOPBACK };
 
 /* *****  venus.c  ***** */
 
+static int pidfd;
+static void open_pidfile(void)
+{
+    int rc;
+    
+    pidfd = open(VenusPidFile, O_RDWR | O_CREAT, 0640);
+    if (pidfd < 0) CHOKE("can't open file for pid!");
+
+    rc = lockf(pidfd, F_TLOCK, 0);
+    if (rc < 0) CHOKE("can't lock file for pid!");
+    /* leave pidfd open otherwise we lose the lock */
+}
+
+/* Write our pid to a file so scripts can find us easily. */
+static void update_pidfile(void)
+{
+    char str[11]; /* can we assume that pid_t is limited to 32-bit? */
+    int rc;
+
+    rc = snprintf(str, sizeof(str), "%d\n", getpid());
+    CODA_ASSERT(rc >= 0 && rc < (int)sizeof(str));
+
+    lseek(pidfd, 0, SEEK_SET);
+    ftruncate(pidfd, 0);
+    write(pidfd, str, strlen(str)); /* record pid to lockfile */
+}
+
 static void daemonize(void)
 {
     int rc;
@@ -139,6 +166,8 @@ static void daemonize(void)
 
     /* obtain a new process group */
     setsid();
+
+    update_pidfile();
 }
 
 /* local-repair modification */
@@ -192,6 +221,10 @@ int main(int argc, char **argv)
     DaemonInit();   /* before any Daemons initialize and after LogInit */
     StatsInit();
     SigInit();      /* set up signal handlers */
+
+    open_pidfile();
+    update_pidfile();
+    
     DIR_Init(RvmType == VM ? DIR_DATA_IN_VM : DIR_DATA_IN_RVM);
     RecovInit();    /* set up RVM and recov daemon */
     CommInit();     /* set up RPC2, {connection,server,mgroup} lists, probe daemon */

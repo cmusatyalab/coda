@@ -146,13 +146,6 @@ void SigInit(void)
      * SIGIOT  == SIGABRT
      * SIGPOLL == SIGIO
      */
-
-    /* Write our pid to a file so scripts can find us easily. */
-    FILE *fp = fopen(VenusPidFile,"w");
-    if (fp == NULL)
-	CHOKE("SigInit: can't open file for pid!");
-    fprintf(fp, "%d", getpid());
-    fclose(fp);
 }
 
 static void SigControl(int sig)
