@@ -42,7 +42,7 @@
 # changes  without  encumbrance.   Such improvements and extensions
 # should be returned to Software.Distribution@cs.cmu.edu.
 #
-# rcsid = $Header: /afs/cs.cmu.edu/project/coda-1/coda-4.0.1/rvm-src/rvm/RCS/Makefile.in,v 4.2 1997/02/26 16:05:01 rvb Exp $
+# rcsid = $Header: /coda/coda.cs.cmu.edu/project/coda/cvs/coda/rvm-src/rvm/Attic/Makefile.in,v 4.3 1997/04/29 21:27:25 rvb Exp $
 #
 
 TOPDIR = @top_srcdir@

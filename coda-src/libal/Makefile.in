@@ -25,7 +25,7 @@
 # improvements or extensions that  they  make,  and  to  grant  Carnegie
 # Mellon the rights to redistribute these changes without encumbrance.
 # 
-# static char *rcsid = "$Header: Makefile.in,v 4.3 97/04/18 14:25:13 raiff Locked $";
+# static char *rcsid = "$Header: /coda/coda.cs.cmu.edu/project/coda/cvs/coda/coda-src/libal/Attic/Makefile.in,v 4.4 1997/04/29 21:27:25 rvb Exp $";
 
 
 # 

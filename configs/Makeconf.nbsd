@@ -30,7 +30,7 @@
 # Mellon the rights to redistribute these changes without encumbrance.
 # */
 # 
-# static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-1/coda-4.0.1/configs/RCS/Makeconf.i386_nbsd1,v 4.10 1997/04/29 21:43:44 rvb Exp braam $";
+# static char *rcsid = "$Header: /coda/coda.cs.cmu.edu/project/coda/cvs/coda/configs/Attic/Makeconf.nbsd,v 4.11 1997/06/24 15:40:21 braam Exp $";
 # 
 
 MACHINE_FLAGS = -D__BSD44__

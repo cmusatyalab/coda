@@ -35,7 +35,7 @@
 # changes  without  encumbrance.   Such improvements and extensions
 # should be returned to Software.Distribution@cs.cmu.edu.
 #
-# rcsid = $Header: Makefile.in,v 4.1 97/01/08 21:54:47 rvb Exp $
+# rcsid = $Header: /coda/coda.cs.cmu.edu/project/coda/cvs/coda/rvm-src/tests/Attic/Makefile.in,v 4.2 1997/04/29 21:27:25 rvb Exp $
 #
 
 #   	RVM Test Programs Makefile
