@@ -70,6 +70,8 @@ extern "C" {
 #include <lockqueue.h>
 
 #include "resstats.h"
+#include "rescoord.h"
+
 /* declarations of routines */
 static int IncVVGroup(ViceVersionVector **, int *);
 static void SetResStatus(Vnode *, ResStatus *);
@@ -82,8 +84,8 @@ static void UpdateStats(ViceFid *, fileresstats *);
  *	If there is a dominant version, distribute it to all sites (COP1)
  *		and perform COP2;
  */
-long FileResolve(res_mgrpent *mgrp, ViceFid *Fid, 
-		 ViceVersionVector **VV) {
+long FileResolve(res_mgrpent *mgrp, ViceFid *Fid, ViceVersionVector **VV)
+{
     int	dix = 0;    /* dominant file's index in the canonical order */
     SE_Descriptor sid;
     int errorcode = 0;
@@ -103,7 +105,7 @@ long FileResolve(res_mgrpent *mgrp, ViceFid *Fid,
     
     if (IsWeaklyEqual(VV, VSG_MEMBERS)) {
 	unsigned long hosts[VSG_MEMBERS];
-	errorcode = WERes(Fid, VV, NULL, mgrp, hosts);
+	errorcode = WEResPhase1(Fid, VV, mgrp, hosts, NULL, NULL);
 	frstats.file_we++;
     }
     else if (IncVVGroup(VV, &dix)){

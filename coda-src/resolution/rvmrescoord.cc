@@ -55,23 +55,17 @@ extern "C" {
 #include "rvmrestiming.h"
 #include "resstats.h"
 #include "resolution.h"
+#include "rescoord.h"
 
 // ********** Private Routines *************
 static int ComparePhase3Status(res_mgrpent *, int *, ViceStatus *, ViceStatus *);
-static int RegDirResRequired(res_mgrpent *, ViceFid *, ViceVersionVector **, ResStatus **, int *);
 static char *CoordPhase2(res_mgrpent *, ViceFid *, int *, int *, int *, unsigned long *,dirresstats *);
 static int CoordPhase3(res_mgrpent*, ViceFid*, char*, int, int, ViceVersionVector**, dlist*, ResStatus**, unsigned long*, int*);
 static int CoordPhase4(res_mgrpent *, ViceFid *, unsigned long *, int *);
 static int CoordPhase34(res_mgrpent *, ViceFid *, dlist *, int *, int *);
-static int AlreadyIncGroup(ViceVersionVector **, int);
 static void AllocateBufs(res_mgrpent *, char **, int *);
 static void DeAllocateBufs(char **);
 static char *ConcatLogs(res_mgrpent *, char **, RPC2_Integer *, RPC2_Integer *, int *, int *);
-int ResolveInc(res_mgrpent *, ViceFid *, ViceVersionVector **);
-static int CompareDirContents(SE_Descriptor *, ViceFid *);
-static int CompareDirStatus(ViceStatus *, res_mgrpent *, ViceVersionVector **);
-static void DumpDirContents(SE_Descriptor *, ViceFid *);
-static int AllIncGroup(ViceVersionVector **, int );
 static void UpdateStats(ViceFid *, dirresstats *);
 
 // * Dir Resolution with logs in RVM
@@ -120,33 +114,12 @@ long RecovDirResolve(res_mgrpent *mgrp, ViceFid *Fid, ViceVersionVector **VV,
     long retval = 0;
     int noinc = -1;		// used only for updating res stats (dept statistics)
     
-    // res stats stuff 
-    {
-	drstats.dir_nresolves++;
-	if (mgrp->IncompleteVSG()) drstats.dir_incvsg++;
-    }
-    
     SLog(0, "Entering RecovDirResolve %s\n", FID_(Fid));
 
-    // Check if Regular Directory Resolution is required 
+    // Check if regular Directory Resolution can deal with this case
     {	
-	int errorCode = 0;
-	if (!RegDirResRequired(mgrp, Fid, VV, rstatusp, &errorCode)) {
-	    LogMsg(0, SrvDebugLevel, stdout, 
-		   "RecovDirResolve: No need for Resolution\n");
-	    if (errorCode == EINCONS) {
-		// undo statistics collection stuff;
-		drstats.dir_nresolves--;
-		drstats.dir_incvsg = 0;
-		retval = ResolveInc(mgrp, Fid, VV);
-		reserror = 0;
-		goto Exit;
-	    }
-	    
-	    if (errorCode) {
-		retval = EINCONS;
-		goto Exit;	// mark object inconsistent
-	    }
+	if (RegDirResolution(mgrp, Fid, VV, rstatusp) == 0) {
+	    SLog(0, "RecovDirResolve: RegDirResolution succeeded\n");
 	    // for statistics collection
 	    drstats.dir_nowork++;
 	    drstats.dir_succ++;
@@ -156,6 +129,12 @@ long RecovDirResolve(res_mgrpent *mgrp, ViceFid *Fid, ViceVersionVector **VV,
 	    reserror = 0;
 	    goto Exit;
 	}
+    }
+
+    // res stats stuff 
+    {
+	drstats.dir_nresolves++;
+	if (mgrp->IncompleteVSG()) drstats.dir_incvsg++;
     }
 
     // Phase 1, locking the volume, has already been done by ViceResolve
@@ -227,76 +206,6 @@ long RecovDirResolve(res_mgrpent *mgrp, ViceFid *Fid, ViceVersionVector **VV,
     SLog(1, "RecovDirResolve returns %d\n", retval);
     UpdateStats(Fid, &drstats);
     return(retval);
-}
-
-/* weak resolution, runts, and VV already equal cases */
-static int RegDirResRequired(res_mgrpent *mgrp, ViceFid *Fid, 
-			      ViceVersionVector **VV, ResStatus **rstatusp, 
-			      int *errorCode) {
-    LogMsg(1, SrvDebugLevel, stdout,
-	   "Entering RegDirResRequired for (0x%x.%x.%x)\n",
-	   Fid->Volume, Fid->Vnode, Fid->Unique);
-
-    int resrequired = 1;
-    for (int i = 0; i < VSG_MEMBERS; i++) 
-	if (!mgrp->rrcc.hosts[i])
-	    VV[i] = NULL;
-    
-    UpdateRunts(mgrp, VV, Fid);
-
-    // check if any object already inc 
-    {
-	if (AlreadyIncGroup(VV, VSG_MEMBERS)) {
-	    LogMsg(0, SrvDebugLevel, stdout,  
-		   "RegDirResRequired: Group already inconsistent");
-	    *errorCode = EINCONS;
-	    resrequired = 0;
-	}
-    }
-    // checking if vv's already equal 
-    if (resrequired) {
-	LogMsg(9, SrvDebugLevel, stdout,
-	       "RegDirResRequired: Checking if Objects equal \n");
-	ViceVersionVector *vv[VSG_MEMBERS];
-	for (int i = 0; i < VSG_MEMBERS; i++) 
-	    vv[i] = VV[i];
-	int HowMany = 0;
-	if (VV_Check(&HowMany, vv, 1) == 1) {
-	    LogMsg(0, SrvDebugLevel, stdout,  
-		   "RegDirResRequired: VECTORS ARE ALREADY EQUAL\n");
-	    for (int i = 0; i < VSG_MEMBERS; i++) 
-		if (vv[i])
-		    PrintVV(stdout, vv[i]);
-	    resrequired = 0;
-	    LWP_NoYieldSignal((char *)ResCheckServerLWP);
-	}
-    }
-    //PROBE(tpinfo, WEAKEQBEGIN);
-
-    //check for weak equality
-    {
-	if (resrequired) {
-	    LogMsg(9, SrvDebugLevel, stdout,  
-		   "RegDirResRequired: Checking for weak Equality\n");
-	    if (IsWeaklyEqual(VV, VSG_MEMBERS)) {
-		unsigned long hosts[VSG_MEMBERS];
-		LogMsg(39, SrvDebugLevel, stdout,  
-		       "RegDirResRequired: WEAKLY EQUAL DIRECTORIES");
-		*errorCode = WERes(Fid, VV, rstatusp, mgrp, hosts);
-		if (*errorCode) 
-		    LogMsg(0, SrvDebugLevel, stdout,  
-			   "RegDirResRequired: error %d in WERes()",
-			   errorCode);
-		else 
-		    resrequired = 0;
-	    }
-	}
-    }
-    LogMsg(1, SrvDebugLevel, stdout,
-	   "RegDirRes %s Required: errorCode = %d\n", 
-	   resrequired ? "" : "not",
-	   *errorCode);
-    return(resrequired);
 }
 
 // collect logs for a directory 
@@ -652,233 +561,6 @@ static int CoordPhase34(res_mgrpent *mgrp, ViceFid *Fid,
 	       "CoordPhase34: Error %d in DirResPhase2", 
 	       errorCode);
 	return(errorCode);
-    }
-    return(0);
-}
-
-// XXXXX adapted from dir.private.h
-#define MAXPAGES 128
-#ifdef PAGESIZE
-#undef PAGESIZE
-#endif
-#define PAGESIZE 2048
-
-int ResolveInc(res_mgrpent *mgrp, ViceFid *Fid, ViceVersionVector **VVGroup)
-{
-    SE_Descriptor sid;
-    char *dirbufs[VSG_MEMBERS];
-    int dirlength = MAXPAGES * PAGESIZE + VAclSize(foo);
-    ViceStatus status;
-    int DirsEqual = 0;
-    ViceVersionVector *VV;
-    int size;
-    unsigned long succflags[VSG_MEMBERS];
-    int errorcode = EINCONS;
-
-    // make all replicas inconsistent
-    if (!AllIncGroup(VVGroup, VSG_MEMBERS)) {
-	LogMsg(0, SrvDebugLevel, stdout,
-	       "ResolveInc: Not all replicas of (0x%x.%x.%x) are inconsistent yet\n",
-	       Fid->Volume, Fid->Vnode, Fid->Unique);
-	MRPC_MakeMulti(MarkInc_OP, MarkInc_PTR, VSG_MEMBERS,
-		       mgrp->rrcc.handles, mgrp->rrcc.retcodes,
-		       mgrp->rrcc.MIp, 0, 0, Fid);
-    }
-    
-    // set up buffers to get dir contents & status blocks
-    {
-	memset(&sid, 0, sizeof(SE_Descriptor));
-	sid.Tag = SMARTFTP;
-	sid.Value.SmartFTPD.TransmissionDirection = SERVERTOCLIENT;
-	sid.Value.SmartFTPD.Tag = FILEINVM;
-	sid.Value.SmartFTPD.ByteQuota = -1;
-    }
-    ARG_MARSHALL(IN_OUT_MODE, SE_Descriptor, sidvar, sid, VSG_MEMBERS);
-    
-    for (int i = 0; i < VSG_MEMBERS; i++)  {
-	if (mgrp->rrcc.handles[i]) {
-	    dirbufs[i] = (char *)malloc(dirlength);
-	    CODA_ASSERT(dirbufs[i]);
-	    sidvar_bufs[i].Value.SmartFTPD.FileInfo.ByAddr.vmfile.SeqLen = 
-		dirlength;
-	    sidvar_bufs[i].Value.SmartFTPD.FileInfo.ByAddr.vmfile.MaxSeqLen = 
-		dirlength;
-	    sidvar_bufs[i].Value.SmartFTPD.FileInfo.ByAddr.vmfile.SeqBody = 
-		(RPC2_ByteSeq)dirbufs[i];
-	}
-	else dirbufs[i] = NULL;
-    }
-    ARG_MARSHALL(OUT_MODE, ViceStatus, statusvar, status, VSG_MEMBERS);
-    ARG_MARSHALL(OUT_MODE, RPC2_Integer, sizevar, size, VSG_MEMBERS);
-    // get the dir replica's contents
-    {
-	MRPC_MakeMulti(FetchDirContents_OP, FetchDirContents_PTR, VSG_MEMBERS,
-		       mgrp->rrcc.handles, mgrp->rrcc.retcodes,
-		       mgrp->rrcc.MIp, 0, 0, Fid, sizevar_ptrs, statusvar_ptrs, sidvar_bufs);
-	mgrp->CheckResult();
-	if (CheckRetCodes((unsigned long *)mgrp->rrcc.retcodes, mgrp->rrcc.hosts, 
-			  succflags)) {
-	    LogMsg(0, SrvDebugLevel, stdout,
-		   "ResolveInc: Error during FetchDirContents\n");
-	    goto Exit;
-	}
-    }
-    
-    // compare the contents 
-    {
-	if (CompareDirStatus(statusvar_bufs, mgrp, &VV) == 0) {
-	    if (CompareDirContents(sidvar_bufs, Fid) == 0) {
-		LogMsg(0, SrvDebugLevel, stdout, 
-		       "ResolveInc: Dir contents are equal\n");
-		DirsEqual = 1;
-	    }
-	    else 
-		LogMsg(0, SrvDebugLevel, stdout,
-		       "ResolveInc: Dir contents are unequal\n");
-	}
-	else 
-	    LogMsg(0, SrvDebugLevel, stdout,
-		   "ResolveInc: Dir Status blocks are different\n");
-    }
-    // clear inconsistency if equal
-    {
-	if (DirsEqual) {
-	    MRPC_MakeMulti(ClearIncon_OP, ClearIncon_PTR, VSG_MEMBERS,
-			   mgrp->rrcc.handles, mgrp->rrcc.retcodes,
-			   mgrp->rrcc.MIp, 0, 0, Fid, VV);
-	    mgrp->CheckResult();
-	    errorcode = CheckRetCodes((unsigned long *)mgrp->rrcc.retcodes, mgrp->rrcc.hosts, succflags);
-	} else
-	    errorcode = EINCONS;
-    }
-  Exit:
-    // free all the allocate dir bufs
-  { /* drop scope for int i below; to avoid identifier clash */
-    for (int i = 0 ; i < VSG_MEMBERS; i++) 
-	if (dirbufs[i]) 
-	    free(dirbufs[i]);
-  } /* drop scope for int i above; to avoid identifier clash */
-
-    LogMsg(0, SrvDebugLevel, stdout,
-	   "ResolveInc: returns(%d)\n",
-	   errorcode);
-    return(errorcode);
-}
-
-//taken from rescoord.c
-static int AlreadyIncGroup(ViceVersionVector **VV, int nvvs) {
-    for (int i = 0; i < nvvs; i++) {
-	if (VV[i] == NULL) continue;
-	if (IsIncon((*(VV[i])))) return(1);
-    }
-    return(0);
-}
-
-// return 1 if all the vectors in a group show inconsistency
-static int AllIncGroup(ViceVersionVector **VV, int nvvs) {
-    for (int i = 0; i < nvvs; i++) {
-	if (VV[i] == NULL) continue;
-	if (!IsIncon((*(VV[i])))) return(0);
-    }
-    return(1);
-
-}
-extern int comparedirreps;
-static int CompareDirContents(SE_Descriptor *sid_bufs, ViceFid *fid) {
-    LogMsg(9, SrvDebugLevel, stdout,  "Entering CompareDirContents()");
-
-    if (!comparedirreps) return(0);
-
-    if (SrvDebugLevel > 9) 
-	// dump contents to files 
-	DumpDirContents(sid_bufs, fid);
-    int replicafound = 0;
-    DirHeader *firstreplica = NULL;
-    int firstreplicasize = 0;
-    for (int i = 0; i < VSG_MEMBERS; i++) {
-	int len = sid_bufs[i].Value.SmartFTPD.FileInfo.ByAddr.vmfile.SeqLen;
-	DirHeader *buf = (DirHeader *)sid_bufs[i].Value.SmartFTPD.FileInfo.ByAddr.vmfile.SeqBody;
-	
-	if (len) {
-	    if (!replicafound) {
-		replicafound = 1;
-		firstreplica  = buf;
-		firstreplicasize = len;
-	    }
-	    else {
-		if (DIR_Compare(firstreplica, buf)) {
-		    SLog(0, "CompareDirContents: DirContents ARE DIFFERENT");
-		    if (SrvDebugLevel > 9) {
-			DIR_Print(firstreplica, stdout);
-			DIR_Print(buf, stdout);
-		    }
-		    return(-1);
-		}
-                if (memcmp((char *)firstreplica + DIR_Length(firstreplica),
-                           (char *)buf + DIR_Length(buf), VAclSize(NULL)) != 0)
-                {
-		    SLog(0, "CompareDirContents: ACL's are DIFFERENT");
-		    /* XXX ACL equality test is broken. same ACLs could be
-		     * represented differently. We need to enumerate through
-		     * all the entries of one replica and check this against
-		     * the other replica. --JH */
-		    //return(-1);
-                }
-	    }
-	}
-    }
-    return(0);
-}
-
-static void DumpDirContents(SE_Descriptor *sid_bufs, ViceFid *fid) {
-    for (int j = 0; j < VSG_MEMBERS; j++) {
-	int length = sid_bufs[j].Value.SmartFTPD.FileInfo.ByAddr.vmfile.SeqLen;
-	if (length) {
-	    char fname[256];
-	    sprintf(fname, "/tmp/dir.0x%lx.0x%lx.%d", fid->Vnode, fid->Unique, j);
-	    int fd = open(fname, O_CREAT | O_TRUNC | O_RDWR, 0777);
-	    CODA_ASSERT(fd > 0);
-	    write(fd, sid_bufs[j].Value.SmartFTPD.FileInfo.ByAddr.vmfile.SeqBody, 
-		  length);
-	    close(fd);
-	}
-    }
-}
-
-static void PrintStatus(ViceStatus *status) {
-    LogMsg(0, SrvDebugLevel, stdout,
-	   "LinkCount(%d), Length(%d), Author(%u), Owner(%u), Mode(%u), Parent(0x%x.%x)\n",
-	   status->LinkCount, status->Length, status->Author, status->Owner, status->Mode,
-	   status->vparent, status->uparent);
-    PrintVV(stdout, &(status->VV));
-}
-
-static int CompareDirStatus(ViceStatus *status, res_mgrpent *mgrp, ViceVersionVector **VV) {
-    int dirfound = -1;
-    for (int i = 0; i < VSG_MEMBERS; i++) {
-	if (mgrp->rrcc.hosts[i] && (mgrp->rrcc.retcodes[i] == 0)) {
-	    if (dirfound == -1) {
-		dirfound = i;
-		*VV = &status[i].VV;
-	    }
-	    else {
-		// compare the status blocks
-		if ((status[i].LinkCount != status[dirfound].LinkCount) ||
-//		    (status[i].Length != status[dirfound].Length) ||
-		    (status[i].Author != status[dirfound].Author) ||
-		    (status[i].Owner != status[dirfound].Owner) ||
-		    (status[i].Mode != status[dirfound].Mode) ||
-		    (status[i].vparent != status[dirfound].vparent) ||
-		    (status[i].uparent != status[dirfound].uparent) ||
-		    (VV_Cmp_IgnoreInc(&status[i].VV, &status[dirfound].VV) != VV_EQ)) {
-		    LogMsg(0, SrvDebugLevel, stdout,
-			   "CompareDirStatus: Status blocks are different\n");
-		    PrintStatus(&status[i]);
-		    PrintStatus(&status[dirfound]);
-		    return(-1);
-		}
-	    }
-	}
     }
     return(0);
 }

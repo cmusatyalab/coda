@@ -53,6 +53,7 @@ extern "C" {
 #include <treeremove.h>
 
 #include "rescomm.h"
+#include "rescoord.h"
 #include "resutil.h"
 #include "resforce.h"
 #include "timing.h"
@@ -60,15 +61,248 @@ extern "C" {
 timing_path *tpinfo = 0;
 timing_path *FileresTPinfo = 0; 
 
-/* function from rvmrescoord.cc */
-int ResolveInc(res_mgrpent *mgrp, ViceFid *Fid, ViceVersionVector **VVGroup);
+/* return 1 if a vector in a group show inconsistency */
+static int AlreadyIncGroup(ViceVersionVector **VV, int nvvs)
+{
+    for (int i = 0; i < nvvs; i++) {
+	if (VV[i] == NULL) 
+	    continue;
+	if (IsIncon((*(VV[i])))) 
+	    return(1);
+    }
+    return(0);
+}
+
+/* return 1 if all the vectors in a group show inconsistency */
+static int AllIncGroup(ViceVersionVector **VV, int nvvs)
+{
+    for (int i = 0; i < nvvs; i++) {
+	if (VV[i] == NULL)
+	    continue;
+	if (!IsIncon((*(VV[i]))))
+	    return(0);
+    }
+    return(1);
+}
+
+static void PrintDirStatus(ViceStatus *status)
+{
+    SLog(0, "LinkCount(%d), Length(%d), Author(%u), Owner(%u), Mode(%u), Parent(0x%x.%x)",
+	   status->LinkCount, status->Length, status->Author, status->Owner,
+	   status->Mode, status->vparent, status->uparent);
+    PrintVV(stdout, &(status->VV));
+}
+
+static int CompareDirStatus(ViceStatus *status, res_mgrpent *mgrp, ViceVersionVector **VV)
+{
+    int dirfound = -1;
+    for (int i = 0; i < VSG_MEMBERS; i++) {
+	if (mgrp->rrcc.hosts[i] && (mgrp->rrcc.retcodes[i] == 0)) {
+	    if (dirfound == -1) {
+		dirfound = i;
+		*VV = &status[i].VV;
+	    }
+	    else {
+		// compare the status blocks
+		if ((status[i].LinkCount != status[dirfound].LinkCount) ||
+//		    (status[i].Length != status[dirfound].Length) ||
+		    (status[i].Author != status[dirfound].Author) ||
+		    (status[i].Owner != status[dirfound].Owner) ||
+		    (status[i].Mode != status[dirfound].Mode) ||
+		    (status[i].vparent != status[dirfound].vparent) ||
+		    (status[i].uparent != status[dirfound].uparent) ||
+		    (VV_Cmp_IgnoreInc(&status[i].VV, &status[dirfound].VV) != VV_EQ)) {
+		    SLog(0, "CompareDirStatus: Status blocks are different");
+		    PrintDirStatus(&status[i]);
+		    PrintDirStatus(&status[dirfound]);
+		    return(-1);
+		}
+	    }
+	}
+    }
+    return(0);
+}
+
+static void DumpDirContents(SE_Descriptor *sid_bufs, ViceFid *fid)
+{
+    for (int j = 0; j < VSG_MEMBERS; j++) {
+	int length = sid_bufs[j].Value.SmartFTPD.FileInfo.ByAddr.vmfile.SeqLen;
+	if (length) {
+	    char fname[256];
+	    sprintf(fname, "/tmp/dir.0x%lx.0x%lx.%d", fid->Vnode, fid->Unique, j);
+	    int fd = open(fname, O_CREAT | O_TRUNC | O_RDWR, 0777);
+	    CODA_ASSERT(fd > 0);
+	    write(fd, sid_bufs[j].Value.SmartFTPD.FileInfo.ByAddr.vmfile.SeqBody, 
+		  length);
+	    close(fd);
+	}
+    }
+}
+
+/* This function is shared by both rescoord.cc and rvmrescoord.cc */
+extern int comparedirreps;
+int CompareDirContents(SE_Descriptor *sid_bufs, ViceFid *fid)
+{
+    SLog(9, "Entering CompareDirContents()");
+
+    if (!comparedirreps) return(0);
+
+    if (SrvDebugLevel > 9) 
+	// dump contents to files 
+	DumpDirContents(sid_bufs, fid);
+    int replicafound = 0;
+    DirHeader *firstreplica = NULL;
+    int firstreplicasize = 0;
+    for (int i = 0; i < VSG_MEMBERS; i++) {
+	int len = sid_bufs[i].Value.SmartFTPD.FileInfo.ByAddr.vmfile.SeqLen;
+	DirHeader *buf = (DirHeader *)sid_bufs[i].Value.SmartFTPD.FileInfo.ByAddr.vmfile.SeqBody;
+	
+	if (len) {
+	    if (!replicafound) {
+		replicafound = 1;
+		firstreplica  = buf;
+		firstreplicasize = len;
+	    }
+	    else {
+		if (DIR_Compare(firstreplica, buf)) {
+		    SLog(0, "CompareDirContents: DirContents ARE DIFFERENT");
+		    if (SrvDebugLevel > 9) {
+			DIR_Print(firstreplica, stdout);
+			DIR_Print(buf, stdout);
+		    }
+		    return(-1);
+		}
+                if (memcmp((char *)firstreplica + DIR_Length(firstreplica),
+                           (char *)buf + DIR_Length(buf), VAclSize(NULL)) != 0)
+                {
+		    SLog(0, "CompareDirContents: ACL's are DIFFERENT");
+		    /* XXX ACL equality test is broken. same ACLs could be
+		     * represented differently. We need to enumerate through
+		     * all the entries of one replica and check this against
+		     * the other replica. --JH */
+		    //return(-1);
+                }
+	    }
+	}
+    }
+    return(0);
+}
+
+// XXXXX adapted from dir.private.h
+#define MAXPAGES 128
+#ifdef PAGESIZE
+#undef PAGESIZE
+#endif
+#define PAGESIZE 2048
+
+static int ResolveInc(res_mgrpent *mgrp, ViceFid *Fid, ViceVersionVector **VV)
+{
+    SE_Descriptor sid;
+    char *dirbufs[VSG_MEMBERS];
+    int dirlength = MAXPAGES * PAGESIZE + VAclSize(foo);
+    ViceStatus status;
+    int DirsEqual = 0;
+    ViceVersionVector *newVV;
+    int size;
+    unsigned long succflags[VSG_MEMBERS];
+    int errorcode = EINCONS;
+
+    // make all replicas inconsistent
+    if (!AllIncGroup(VV, VSG_MEMBERS)) {
+	SLog(5, "ResolveInc: Not all replicas of (%s) are inconsistent yet",
+	     FID_(Fid));
+	MRPC_MakeMulti(MarkInc_OP, MarkInc_PTR, VSG_MEMBERS,
+		       mgrp->rrcc.handles, mgrp->rrcc.retcodes,
+		       mgrp->rrcc.MIp, 0, 0, Fid);
+
+	// I am sure what the use is of returning failure if we can just
+	// as well check if the inconsistency has been resolved.
+	// We might even skip the markinc, because all error paths leaving
+	// this function will also mark the object inconsistent.
+	//return (EINCONS);
+    }
+    
+    // set up buffers to get dir contents & status blocks
+    {
+	memset(&sid, 0, sizeof(SE_Descriptor));
+	sid.Tag = SMARTFTP;
+	sid.Value.SmartFTPD.TransmissionDirection = SERVERTOCLIENT;
+	sid.Value.SmartFTPD.Tag = FILEINVM;
+	sid.Value.SmartFTPD.ByteQuota = -1;
+    }
+    ARG_MARSHALL(IN_OUT_MODE, SE_Descriptor, sidvar, sid, VSG_MEMBERS);
+    
+    for (int i = 0; i < VSG_MEMBERS; i++)  {
+	if (mgrp->rrcc.handles[i]) {
+	    dirbufs[i] = (char *)malloc(dirlength);
+	    CODA_ASSERT(dirbufs[i]);
+	    sidvar_bufs[i].Value.SmartFTPD.FileInfo.ByAddr.vmfile.SeqLen = 
+		dirlength;
+	    sidvar_bufs[i].Value.SmartFTPD.FileInfo.ByAddr.vmfile.MaxSeqLen = 
+		dirlength;
+	    sidvar_bufs[i].Value.SmartFTPD.FileInfo.ByAddr.vmfile.SeqBody = 
+		(RPC2_ByteSeq)dirbufs[i];
+	}
+	else dirbufs[i] = NULL;
+    }
+    ARG_MARSHALL(OUT_MODE, ViceStatus, statusvar, status, VSG_MEMBERS);
+    ARG_MARSHALL(OUT_MODE, RPC2_Integer, sizevar, size, VSG_MEMBERS);
+    // get the dir replica's contents
+    {
+	MRPC_MakeMulti(FetchDirContents_OP, FetchDirContents_PTR, VSG_MEMBERS,
+		       mgrp->rrcc.handles, mgrp->rrcc.retcodes,
+		       mgrp->rrcc.MIp, 0, 0, Fid, sizevar_ptrs, statusvar_ptrs, sidvar_bufs);
+	mgrp->CheckResult();
+	if (CheckRetCodes((unsigned long *)mgrp->rrcc.retcodes, mgrp->rrcc.hosts, 
+			  succflags)) {
+	    SLog(0, "ResolveInc: Error during FetchDirContents");
+	    goto Exit;
+	}
+    }
+    
+    // compare the contents 
+    {
+	if (CompareDirStatus(statusvar_bufs, mgrp, &newVV) == 0) {
+	    if (CompareDirContents(sidvar_bufs, Fid) == 0) {
+		SLog(0, "ResolveInc: Dir contents are equal");
+		DirsEqual = 1;
+	    }
+	    else 
+		SLog(0, "ResolveInc: Dir contents are unequal");
+	}
+	else 
+	    SLog(0, "ResolveInc: Dir Status blocks are different");
+    }
+    // clear inconsistency if equal
+    {
+	if (DirsEqual) {
+	    MRPC_MakeMulti(ClearIncon_OP, ClearIncon_PTR, VSG_MEMBERS,
+			   mgrp->rrcc.handles, mgrp->rrcc.retcodes,
+			   mgrp->rrcc.MIp, 0, 0, Fid, newVV);
+	    mgrp->CheckResult();
+	    errorcode = CheckRetCodes((unsigned long *)mgrp->rrcc.retcodes, mgrp->rrcc.hosts, succflags);
+	} else
+	    errorcode = EINCONS;
+    }
+  Exit:
+    // free all the allocate dir bufs
+  { /* drop scope for int i below; to avoid identifier clash */
+    for (int i = 0 ; i < VSG_MEMBERS; i++) 
+	if (dirbufs[i]) 
+	    free(dirbufs[i]);
+  } /* drop scope for int i above; to avoid identifier clash */
+
+    SLog(0, "ResolveInc: returns(%d)\n", errorcode);
+    return(errorcode);
+}
 
 /* two VV's are weakly equal if they have the same store-id: 
    this means that the files are identical, but the COP2 never made 
    it to the server
 */
 
-int IsWeaklyEqual(ViceVersionVector **VV, int nvvs) 
+/* Function used by rescoord.cc and resfile.cc */
+int IsWeaklyEqual(ViceVersionVector **VV, int nvvs)
 {
     int i, j;
 
@@ -94,35 +328,33 @@ int IsWeaklyEqual(ViceVersionVector **VV, int nvvs)
     return(1);
 }
 
-static int AlreadyIncGroup(ViceVersionVector **VV, int nvvs) 
-{
-    for (int i = 0; i < nvvs; i++) {
-	if (VV[i] == NULL) 
-		continue;
-	if (IsIncon((*(VV[i])))) 
-		return(1);
-    }
-    return(0);
-}
-
-static int WEResPhase1(ViceVersionVector **VV, 
-		       res_mgrpent *mgrp, ViceFid *Fid, 
-		       unsigned long *hosts, ViceStoreId *stid,
-                       ViceStatus *vstatus) 
+int WEResPhase1(ViceFid *Fid, ViceVersionVector **VV, 
+		res_mgrpent *mgrp, unsigned long *hosts,
+		ViceStoreId *stid, ResStatus **rstatusp) 
 {
 	int errorCode = 0;
 	ViceVersionVector newvv;
+	ViceStatus vstatus;
+	memset(&vstatus, 0, sizeof(ViceStatus));
 
 	SLog(9,  "Entering WEResPhase1 for %s", FID_(Fid));
 
+	if (rstatusp) {
+	    unsigned long succflags[VSG_MEMBERS];
+	    CheckRetCodes((unsigned long *)mgrp->rrcc.retcodes, mgrp->rrcc.hosts, 
+			  succflags);
+	    GetResStatus(succflags, rstatusp, &vstatus);
+	}
+
 	/* force a new vv */
 	GetMaxVV(&newvv, VV, -1);
-        if (stid) *stid = newvv.StoreId;
+        if (stid)
+	    *stid = newvv.StoreId;
 
-	MRPC_MakeMulti(ForceDirVV_OP, ForceDirVV_PTR, VSG_MEMBERS, 
+	MRPC_MakeMulti(ForceVV_OP, ForceVV_PTR, VSG_MEMBERS, 
 		       mgrp->rrcc.handles, mgrp->rrcc.retcodes,
 		       mgrp->rrcc.MIp, 0, 0, Fid, &newvv, vstatus);
-	SLog(9,  "WEResPhase1 returned from ForceDir");
+	SLog(9,  "WEResPhase1 returned from ForceVV");
 	
 	/* coerce rpc errors as timeouts - check ret codes */
 	mgrp->CheckResult();
@@ -159,88 +391,88 @@ static int WEResPhase2(res_mgrpent *mgrp, ViceFid *Fid,
 	return(error);
 }
 
-
-long OldDirResolve(res_mgrpent *mgrp, ViceFid *Fid, ViceVersionVector **VV) 
+/* This function is shared by both rescoord.cc and rvmrescoord.cc */
+/* Resolves all kinds of weak equality, runts, and VV already equal cases */
+int RegDirResolution(res_mgrpent *mgrp, ViceFid *Fid, ViceVersionVector **VV,
+		     ResStatus **rstatusp)
 {
-	int reserror = 1;
-	int i;
-	int HowMany = 0;
+    SLog(1, "Entering RegDirResolution for (%s)", FID_(Fid));
+    ViceVersionVector *vv[VSG_MEMBERS];
+    int HowMany = 0;
+    int ret = 0;
+
+    for (int i = 0; i < VSG_MEMBERS; i++) 
+	if (!mgrp->rrcc.hosts[i])
+	    VV[i] = NULL;
+    
+    UpdateRunts(mgrp, VV, Fid);
+
+    // check if any object already inc 
+    if (AlreadyIncGroup(VV, VSG_MEMBERS)) {
+	SLog(0, "RegDirResolution: Group already inconsistent");
+	ret = ResolveInc(mgrp, Fid, VV);
+	goto Exit;
+    }
+
+    // checking if vv's already equal 
+    SLog(9, "RegDirResolution: Checking if Objects are equal");
+    for (int i = 0; i < VSG_MEMBERS; i++) 
+	vv[i] = VV[i];
+
+    if (VV_Check(&HowMany, vv, 1) == 1) {
+	SLog(0, "RegDirResolution: VECTORS ARE ALREADY EQUAL");
+	for (int i = 0; i < VSG_MEMBERS; i++) 
+	    if (vv[i])
+		PrintVV(stdout, vv[i]);
+
+	/* We might have been looking at only a subset of the mgrp, by
+	 * kicking off a server probe we should succeed the next time a
+	 * ViceResolve is triggered. (at least that is what I assume the
+	 * code is doing here) -JH */
+	LWP_NoYieldSignal((char *)ResCheckServerLWP);
+	goto Exit;
+    }
+
+    //check for weak equality
+    SLog(9, "RegDirResolution: Checking for weak Equality");
+    if (IsWeaklyEqual(VV, VSG_MEMBERS)) {
 	unsigned long hosts[VSG_MEMBERS];
 	ViceStoreId stid;
+	SLog(39, "RegDirResolution: WEAKLY EQUAL DIRECTORIES");
 
-	/* regenerate VVs for host set */
-	for (i = 0; i < VSG_MEMBERS; i++) 
-		if (!mgrp->rrcc.hosts[i])
-			VV[i] = NULL;
-	
-	UpdateRunts(mgrp, VV, Fid);
-
-	/* check if any object already inc */
-	if (AlreadyIncGroup(VV, VSG_MEMBERS)) {
-		SLog(0,  "OldDirResolve: Group already inconsistent");
-		reserror = ResolveInc(mgrp, Fid, VV);
-		goto Exit;
+	ret = WEResPhase1(Fid, VV, mgrp, hosts, &stid, rstatusp);
+	if (ret || mgrp->GetHostSet(hosts)) {
+	    SLog(0, "RegDirResolution: error %d in (WE)ResPhase1()", ret);
+	    goto Exit;
 	}
 
-	/* checking if vv's already equal */
-	SLog(9,  "DirResolve: Checking if Objects equal ");
-        {
-            ViceVersionVector *vv[VSG_MEMBERS];
-            for (i = 0; i < VSG_MEMBERS; i++) 
-                vv[i] = VV[i];
-            if (VV_Check(&HowMany, vv, 1) == 1) {
-                SLog(0,  "OldDirResolve: VECTORS ARE ALREADY EQUAL");
-                return(0);
-            }
-        }
-
-	SLog(9,  "OldDirResolve: Checking for weak Equality");
-	if (IsWeaklyEqual(VV, VSG_MEMBERS)) {
-            ViceStatus dummy;
-            memset(&dummy, 0, sizeof(ViceStatus));
-
-            SLog(39,  "DirResolve: WEAKLY EQUAL DIRECTORIES");
-
-            reserror = WEResPhase1(VV, mgrp, Fid, hosts, &stid, &dummy);
-            if (reserror || mgrp->GetHostSet(hosts)) {
-                SLog(0,  "OldDirResolve: error %d in (WE)ResPhase1",
-                     reserror);
-                goto Exit;
-            }
-
-            reserror = WEResPhase2(mgrp, Fid, hosts, &stid);
-            if (reserror) {
-                SLog(0,  "OldDirResolve: error %d in (WE)ResPhase2",
-                     reserror);
-            }
+	if (!rstatusp) {
+	    /* OldDirResolve case, i.e. there are no RVM resolution logs so we
+	     * have to do a COP2 here */
+            ret = WEResPhase2(mgrp, Fid, hosts, &stid);
+            if (ret)
+                SLog(0,  "RegDirResolve: error %d in (WE)ResPhase2", ret);
 	}
-
+    }
 Exit:
-    if (reserror) {
+    SLog(1, "RegDirResolution: Further resolution %srequired: errorCode = %d",
+	 ret == 0 ? "not " : "", ret);
+    return(ret);
+}
+
+long OldDirResolve(res_mgrpent *mgrp, ViceFid *Fid, ViceVersionVector **VV)
+{
+    long ret;
+
+    /* No resolution logs, we can only try to resolve the trivial cases */
+    ret = RegDirResolution(mgrp, Fid, VV, NULL);
+    if (ret) {
+	SLog(9,  "OldDirResolution marking %s as conflict", FID_(Fid));
 	MRPC_MakeMulti(MarkInc_OP, MarkInc_PTR, VSG_MEMBERS,
 		       mgrp->rrcc.handles, mgrp->rrcc.retcodes, 
 		       mgrp->rrcc.MIp, 0, 0, Fid);
-	reserror = EINCONS;
+	ret = EINCONS;
     }
-    SLog(9,  "OldDirResolve returns %d", reserror);
-    return(reserror);
-}
-
-int WERes(ViceFid *Fid, ViceVersionVector **VV, ResStatus **rstatusp,
-	  res_mgrpent *mgrp, unsigned long *hosts) 
-{
-    SLog(9,  "Entering WERes %s", FID_(Fid));
-
-    ViceStatus vstatus;
-    memset(&vstatus, 0, sizeof(ViceStatus));
-
-    if (rstatusp) {
-        unsigned long succflags[VSG_MEMBERS];
-        CheckRetCodes((unsigned long *)mgrp->rrcc.retcodes, mgrp->rrcc.hosts, 
-                      succflags);
-        GetResStatus(succflags, rstatusp, &vstatus);
-    }
-
-    return WEResPhase1(VV, mgrp, Fid, hosts, NULL, &vstatus);
+    return(ret);
 }
 

@@ -175,13 +175,6 @@ void *Dir_n_ACL(struct Vnode *vn, int *size);
 
 /* declarations from rescoord.c */
 class res_mgrpent;
-extern long DirResolve(res_mgrpent *, ViceFid *, ViceVersionVector **, int *);
 extern long OldDirResolve(res_mgrpent *, ViceFid *, ViceVersionVector **);
-extern int IsWeaklyEqual(ViceVersionVector **, int);
-
-
-/* declarations from weres.c */
-extern int WERes(ViceFid *, ViceVersionVector **, ResStatus **,
-		 res_mgrpent *, unsigned long *);
 
 #endif /* _RESUTIL_H_ */

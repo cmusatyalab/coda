@@ -167,14 +167,6 @@ void UpdateRunts(res_mgrpent *mgrp, ViceVersionVector **VV,
     }
 }
 
-extern long RS_ForceVV(RPC2_Handle, ViceFid *, ViceVersionVector *, ViceStatus *);
-
-/* obsolete routine - used by Weakly equal file resolution also */
-long RS_ForceDirVV(RPC2_Handle RPCid, ViceFid *Fid, ViceVersionVector *VV, 
-		   ViceStatus  *status) {
-    return(RS_ForceVV(RPCid, Fid, VV, status));
-}
-
 long RS_DoForceDirOps(RPC2_Handle RPCid, ViceFid *Fid,
 		      ViceStatus *status, 
 		      RPC2_BoundedBS *AccessList,

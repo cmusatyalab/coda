@@ -16,10 +16,6 @@ listed in the file CREDITS.
 
 #*/
 
-
-
-
-
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -168,3 +164,4 @@ FreeLocks:
     SLog(9,  "RS_ForceVV returns %d", errorcode);
     return(errorcode);
 }
+

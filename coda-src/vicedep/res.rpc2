@@ -93,7 +93,7 @@ NewConnection	(IN RPC2_Integer SideEffectType,
 		 OUT ResStatus Status,
 		 IN OUT SE_Descriptor BD);
 
-7: ForceDirVV	(IN ViceFid Fid,
+7: ForceVV	(IN ViceFid Fid,
 		 IN ViceVersionVector VV,
 		 IN ViceStatus status);
 
