@@ -479,50 +479,54 @@ long FS_ViceSetVolumeStatus(RPC2_Handle RPCid, VolumeId vid, VolumeStatus *statu
 }
 
 
-#define DEFAULTVOLUME "1"
+#define DEFAULTVOLUME "/"
 /*
   ViceGetRootVolume: Return the name of the root volume
   (corresponding to /coda)
 */
 long FS_ViceGetRootVolume(RPC2_Handle RPCid, RPC2_BoundedBS *volume)
 {
-    int   errorCode;		/* error code */
-    int     fd;
-    int     len;
+    int errorCode;		/* error code */
+    int fd;
+    int len;
 
-    errorCode = 0;
+    errorCode = VNOVOL;
+    volume->SeqLen = 0;
 
     SLog(1, "ViceGetRootVolume");
 
-    fd = open(vice_sharedfile("db/ROOTVOLUME"), O_RDONLY, 0666);
-    if (fd <= 0) {
-	strcpy((char *)volume->SeqBody, DEFAULTVOLUME);
-	errorCode= VNOVOL;
-    } else {
-	myflock(fd, MYFLOCK_EX, MYFLOCK_BL);
-	len = read(fd, volume->SeqBody, (int) volume->MaxSeqLen);
-	myflock(fd, MYFLOCK_UN, MYFLOCK_BL);
+    fd = open(vice_sharedfile("db/ROOTVOLUME"), O_RDONLY, 0644);
+    if (fd >= 0) {
+	len = read(fd, volume->SeqBody, volume->MaxSeqLen-1);
 	close(fd);
-	if (volume->SeqBody[len-1] == '\n')
-	    len--;
-	volume->SeqBody[len] = '\0';
+	if (len > 0) {
+	    if (volume->SeqBody[len-1] == '\n') len--;
+	    volume->SeqBody[len] = '\0';
+	    errorCode = 0;
+	}
     }
-    volume->SeqLen = strlen((char *)volume->SeqBody) + 1;
+
+    if (errorCode == VNOVOL) {
+	len = strlen(DEFAULTVOLUME);
+	if (volume->MaxSeqLen > len) {
+	    strcpy((char *)volume->SeqBody, DEFAULTVOLUME);
+	    errorCode = 0;
+	}
+    }
+
+    if (!errorCode)
+	volume->SeqLen = len + 1;
+
 #if 0
     /* almost right: sadly we need to check the VRDB instead */
     if ( VLDBLookup(volume->SeqBody) == NULL ) {
-	    SLog(0, 
-		   "ViceGetRootVolume Volume = %s in ROOTVOLUME is bogus!",
-		   volume->SeqBody);
-	    SLog(0, SrvDebugLevel, stderr, 
-		   "ViceGetRootVolume Volume = %s in ROOTVOLUME is bogus!",
-		   volume->SeqBody);
-	    errorCode = VNOVOL;
+	SLog(0, "ViceGetRootVolume Volume = %s in ROOTVOLUME is bogus!",
+	     volume->SeqBody);
+	errorCode = VNOVOL;
     }
 #endif
-    SLog(2, 
-	   "ViceGetRootVolume returns %s, Volume = %s",
-	   ViceErrorMsg(errorCode), volume->SeqBody);
+    SLog(2, "ViceGetRootVolume returns %s, Volume = %s",
+	   ViceErrorMsg(errorCode), errorCode ? "unknown" : (char *)volume->SeqBody);
 
     return(errorCode);
 }
