@@ -2124,6 +2124,11 @@ int ClientModifyLog::COP1(char *buf, int bufsize, ViceVersionVector *UpdateSet,
 
 	/* Purge off stale directory fids, if any. fsobj::Kill is idempotent. */
 	LOG(0, ("ClientModifyLog::COP1: %d stale dirs\n", NumStaleDirs));
+
+	/* server may have found more stale dirs */
+	if (NumStaleDirs == MaxStaleDirs)
+	    vol->ClearCallBack();
+
 	for (int d = 0; d < NumStaleDirs; d++) {
 	    VenusFid StaleDir;
 	    MakeVenusFid(&StaleDir, vol->GetRealmId(), &StaleDirs[d]);
@@ -2254,9 +2259,10 @@ int ClientModifyLog::COP1(char *buf, int bufsize, ViceVersionVector *UpdateSet,
 		    LOG(0, ("ClientModifyLog::COP1: stale dir %s\n", 
 			    FID_(&StaleDir)));
 		    fsobj *f = FSDB->Find(&StaleDir);
-		    CODA_ASSERT(f);
+		    if (!f) continue;
+
 		    Recov_BeginTrans();
-			f->Kill();
+		    f->Kill();
 		    Recov_EndTrans(DMFP);
 		}
 	    }
