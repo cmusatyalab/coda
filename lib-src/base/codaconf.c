@@ -22,6 +22,7 @@ Coda are listed in the file CREDITS.
 #include <assert.h>
 #include <stdlib.h>
 #include "codaconf.h"
+#include "coda_config.h"
 
 /* some hardcoded options, probably both undef'd for normal use      */
 /* CONFDEBUG: annoying debugging related messages                    */

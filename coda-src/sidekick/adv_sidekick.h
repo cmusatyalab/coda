@@ -63,8 +63,7 @@ extern "C" {
 #define DSTACK 131072
 #define FIXEDDIR "/tmp"
 #define HOMEDIR_PREFIX "/coda/usr/"
-#warning "INTEREST_FILE not correct"
-#define INTEREST_FILE "/etc/coda/sidekick.intr" /* SYSCONFDIR "/sidekick.intr" */
+#define INTEREST_FILE SYSCONFDIR "/sidekick.intr"
 
 int table(int, int, char *, int, int);
 int ffilecopy(FILE*, FILE*);

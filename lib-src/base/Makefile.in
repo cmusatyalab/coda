@@ -35,7 +35,7 @@ ifneq ($(SHORTSYS),djgpp)
 OBJECTS += parser.o
 endif
 
-CFLAGS+=$(INCREADLINE) -DSYSCONFDIR=@sysconfdir@
+CFLAGS+=$(INCREADLINE)
 
 libbase.a: $(OBJECTS)
 
