@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header$";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/utils-src/mond/advice_parser.c,v 3.2 1995/10/09 19:26:35 satya Exp $";
 #endif /*_BLURB_*/
 
 
@@ -53,7 +53,7 @@ extern FILE *LogFile;
 
 char line[LINE_LENGTH];
 
-PRIVATE int SkipLines(FILE *fp, int number)
+static int SkipLines(FILE *fp, int number)
 {
     int error = 0;
 
@@ -63,7 +63,7 @@ PRIVATE int SkipLines(FILE *fp, int number)
     return(error);
 }
 
-PRIVATE int ReadVenusVersionLine(FILE *fp, int *Major, int *Minor)
+static int ReadVenusVersionLine(FILE *fp, int *Major, int *Minor)
 {
     int error = 0;
     int rc = 0;
@@ -76,7 +76,7 @@ PRIVATE int ReadVenusVersionLine(FILE *fp, int *Major, int *Minor)
     return(error);
 }
 
-PRIVATE int ReadFIDLine(FILE *fp, char *id, int *volume, int *vnode, int *unique)
+static int ReadFIDLine(FILE *fp, char *id, int *volume, int *vnode, int *unique)
 {
     char formatstring[LINE_LENGTH];
     int error = 0;
@@ -93,7 +93,7 @@ PRIVATE int ReadFIDLine(FILE *fp, char *id, int *volume, int *vnode, int *unique
     return(error);
 }
 
-PRIVATE int ReadVIDLine(FILE *fp, char *id, int *volume)
+static int ReadVIDLine(FILE *fp, char *id, int *volume)
 {
     char formatstring[LINE_LENGTH];
     int error = 0;
@@ -110,7 +110,7 @@ PRIVATE int ReadVIDLine(FILE *fp, char *id, int *volume)
     return(error);
 }
 
-PRIVATE int ReadFormat1Line(FILE *fp, char *id, int *value)
+static int ReadFormat1Line(FILE *fp, char *id, int *value)
 {
     char formatstring[LINE_LENGTH];
     int error = 0;
@@ -127,7 +127,7 @@ PRIVATE int ReadFormat1Line(FILE *fp, char *id, int *value)
     return(error);
 }
 
-PRIVATE int ReadFormat1xLine(FILE *fp, char *id, int *value)
+static int ReadFormat1xLine(FILE *fp, char *id, int *value)
 {
     char formatstring[LINE_LENGTH];
     int error = 0;
@@ -144,7 +144,7 @@ PRIVATE int ReadFormat1xLine(FILE *fp, char *id, int *value)
     return(error);
 }
 
-PRIVATE int ReadFormat2Line(FILE *fp, char *id, char *value)
+static int ReadFormat2Line(FILE *fp, char *id, char *value)
 {
     char formatstring[LINE_LENGTH];
     int error = 0;
@@ -161,7 +161,7 @@ PRIVATE int ReadFormat2Line(FILE *fp, char *id, char *value)
     return(error); 
 }
 
-PRIVATE int ReadAwarenessLine(FILE *fp, char *id, int *value)
+static int ReadAwarenessLine(FILE *fp, char *id, int *value)
 {
     char tmpstring[8];
     int error = 0;
@@ -181,7 +181,7 @@ PRIVATE int ReadAwarenessLine(FILE *fp, char *id, int *value)
     return(error);
 }
 
-PRIVATE void MoveFile(char *hereFileName, char *thereFileName) 
+static void MoveFile(char *hereFileName, char *thereFileName) 
 {
     FILE *hereFile, *thereFile;
     int code = 0;
@@ -214,7 +214,7 @@ PRIVATE void MoveFile(char *hereFileName, char *thereFileName)
     unlink(hereFileName);
 }
 
-PRIVATE char *DetermineQuestionnaire(char *comment_id)
+static char *DetermineQuestionnaire(char *comment_id)
 {
     static char questionnaire[32];
 
@@ -226,7 +226,7 @@ PRIVATE char *DetermineQuestionnaire(char *comment_id)
     return(questionnaire);
 }
 
-PRIVATE char *DetermineCommentField(char *comment_id)
+static char *DetermineCommentField(char *comment_id)
 {
     static char field[32];
 
@@ -248,7 +248,7 @@ PRIVATE char *DetermineCommentField(char *comment_id)
     return(field);
 }
 
-PRIVATE int DetermineUnique(char *questionnaire, char *commentField)
+static int DetermineUnique(char *questionnaire, char *commentField)
 {
     char UniqueFileName[MAXPATHLEN];
     FILE *UniqueFile;
@@ -282,7 +282,7 @@ PRIVATE int DetermineUnique(char *questionnaire, char *commentField)
     return(unique);
 }
 
-PRIVATE int DepositCommentFile(char *tmpFileName, char *id)
+static int DepositCommentFile(char *tmpFileName, char *id)
 {
     char newCommentFileName[MAXPATHLEN];
     char *questionnaire;
@@ -298,7 +298,7 @@ PRIVATE int DepositCommentFile(char *tmpFileName, char *id)
     return(unique);
 }
 
-PRIVATE int CopeWithCommentsField(FILE *fp, char *id, int *value)
+static int CopeWithCommentsField(FILE *fp, char *id, int *value)
 {
     FILE *CommentFile;
     char CommentFileName[MAXPATHLEN];
@@ -368,7 +368,7 @@ int ParseDisconQfile(char *filename, DiscoMissQ *q)
     return(error);
 }
 
-PRIVATE void InitReconnQ(ReconnQ *q) {
+static void InitReconnQ(ReconnQ *q) {
     q->hostid = -1;
     q->uid = -1;
     q->venusmajorversion = -1;

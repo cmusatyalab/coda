@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/dir/dir.private.h,v 4.1 1997/01/08 21:49:32 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/dir/dirprivate.h,v 4.1 1998/08/26 21:15:07 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -62,7 +62,7 @@ supported by Transarc Corporation, Pittsburgh, PA.
 #define _DIR_PRIVATE_H_ 1
 
 /* use this file to declare objects and routines that are not used outside the dir module */
-/* if changed also change rvmdir.h */
+/* if changed also change dirvnode.h */
 #define	LOGPS 11	/* log page size */
 #define NHASH 128	/* entries in the hash tbl */
 #define EPP 64		/* dir entries per page */

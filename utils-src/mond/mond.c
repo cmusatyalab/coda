@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header$";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/utils-src/mond/mond.c,v 3.3 1995/10/09 19:26:53 satya Exp $";
 #endif /*_BLURB_*/
 
 
@@ -95,11 +95,11 @@ int started = 0;
 
 void Log_Done();
 
-PRIVATE void ListenerLWP(char *);
-PRIVATE void TalkerLWP(char *);
-PRIVATE void UtilityLWP(char *);
-PRIVATE void StartThreads();
-PRIVATE void ParseArgs(int, char **);
+static void ListenerLWP(char *);
+static void TalkerLWP(char *);
+static void UtilityLWP(char *);
+static void StartThreads();
+static void ParseArgs(int, char **);
 
 extern int h_errno;
 extern void PutMagicNumber(void);
@@ -108,10 +108,10 @@ FILE *LogFile = 0;
 FILE *DataFile = 0;
 
 bbuf *buffer;
-PRIVATE CONDITION UtilityTimer = (char *) 0x1100;
-PRIVATE const int STACKSIZE = 16 * 1024;
-PRIVATE const char *VENUSNM = "venus";
-PRIVATE const char *VICENM = "vice";
+static CONDITION UtilityTimer = (char *) 0x1100;
+static const int STACKSIZE = 16 * 1024;
+static const char *VENUSNM = "venus";
+static const char *VICENM = "vice";
 
 #define	STREQ(a, b) (strcmp((a), (b)) == 0)
 
@@ -140,7 +140,7 @@ int main(int argc, char *argv[]) {
     BrainSurgeon();
 }
 
-PRIVATE void StartThreads()
+static void StartThreads()
 {
     int listenerCount = 0;
     PROCESS pid;
@@ -729,7 +729,7 @@ long SmonReportRVMResStats(RPC2_Handle cid, SmonViceId *Vice,
     return code;
 }
 
-PRIVATE void ParseArgs(int argc, char *argv[]) {
+static void ParseArgs(int argc, char *argv[]) {
     for (int i = 1; i < argc; i++) {
 	if ((STREQ(argv[i], "-plumb"))) {
 	    /* newSetCheckLevel(3); */

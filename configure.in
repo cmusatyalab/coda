@@ -30,7 +30,6 @@ AC_ARG_ENABLE(srcdir, [Second shadow directory (srcdir)], SECSRC=$enable_srcdir)
 
 sinclude(configs/codaconf.m4)
 
-
 AC_OUTPUT(Makefile Makeconf.setup  
 configs/Makefile 
 kernel-src/Makefile 
@@ -51,10 +50,10 @@ coda-src/kerndep/Makefile
 coda-src/partition/Makefile 
 coda-src/dir/Makefile  
 coda-src/rpc2/Makefile 
+coda-src/portmapper/Makefile 
 coda-src/util/Makefile 
 coda-src/libal/Makefile 
 coda-src/rp2gen/Makefile 
-coda-src/portmapper/Makefile 
 coda-src/pdbstuff/Makefile 
 coda-src/blurb/Makefile 
 coda-src/fail/Makefile 
@@ -96,10 +95,3 @@ ln -s ../rvm/Makefile rvm-src/rvmlwp/Makefile
 mkdir rvm-src/rdslwp
 ln -s ../rds/Makefile rvm-src/rdslwp/Makefile 
  )
-
-
-
-
-
-
-

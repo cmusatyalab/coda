@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vol/vlist.cc,v 4.1 1997/01/08 21:52:19 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vol/vlist.cc,v 4.2 1998/08/26 21:22:28 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -54,15 +54,8 @@ extern "C" {
 
 int VLECmp(vle *a, vle *b) 
 {
-    assert(a->fid.Volume == b->fid.Volume);
-
-    if (a->fid.Vnode == b->fid.Vnode && a->fid.Unique == b->fid.Unique) 
-	    return(0);
-    if (((unsigned long)a->fid.Vnode) < ((unsigned long)b->fid.Vnode) ||
-	 (a->fid.Vnode == b->fid.Vnode && 
-	    ((unsigned long)a->fid.Unique) < ((unsigned long)b->fid.Unique))) 
-	 return(-1);
-    return(1);
+	assert(FID_VolEq(&a->fid, &b->fid));
+	return FID_Cmp(&a->fid, &b-fid);
 }
 
 

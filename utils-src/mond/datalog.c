@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header$";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/utils-src/mond/datalog.c,v 3.2 1995/10/09 19:26:45 satya Exp $";
 #endif /*_BLURB_*/
 
 
@@ -63,35 +63,35 @@ extern int LogLevel;
 extern FILE *LogFile;
 extern FILE *DataFile;
 
-PRIVATE int GetVenusId(VmonVenusId *);
-PRIVATE int GetViceId(SmonViceId *);
-PRIVATE int GetLong(unsigned long *);
-PRIVATE int GetLong(long *);
-PRIVATE int GetString(unsigned char **, unsigned long *);
-PRIVATE int GetAVSG(VmonAVSG *);
-PRIVATE int GetEventArray(VmonSessionEventArray *);
-PRIVATE int GetSessionStats(SessionStatistics *);
-PRIVATE int GetCacheStats(CacheStatistics *);
-PRIVATE int GetRvmStats(RvmStatistics *);
-PRIVATE int GetVCBStats(VCBStatistics *);
-PRIVATE CallCountEntry *MakeCountArray(unsigned long);
+static int GetVenusId(VmonVenusId *);
+static int GetViceId(SmonViceId *);
+static int GetLong(unsigned long *);
+static int GetLong(long *);
+static int GetString(unsigned char **, unsigned long *);
+static int GetAVSG(VmonAVSG *);
+static int GetEventArray(VmonSessionEventArray *);
+static int GetSessionStats(SessionStatistics *);
+static int GetCacheStats(CacheStatistics *);
+static int GetRvmStats(RvmStatistics *);
+static int GetVCBStats(VCBStatistics *);
+static CallCountEntry *MakeCountArray(unsigned long);
 void RemoveCountArray(unsigned long, CallCountEntry*);
-PRIVATE MultiCallEntry *MakeMultiArray(unsigned long);
+static MultiCallEntry *MakeMultiArray(unsigned long);
 void RemoveMultiArray(unsigned long, MultiCallEntry*);
-PRIVATE int GetCallCountArray(unsigned long,CallCountEntry*);
-PRIVATE int GetMultiCallArray(unsigned long,MultiCallEntry*);
-PRIVATE int GetAdviceStats(AdviceStatistics *);
-PRIVATE int GetAdviceCalls(unsigned long, AdviceCalls *);
-PRIVATE int GetAdviceResults(unsigned long, AdviceResults *);
-PRIVATE int GetMiniCacheStat(unsigned long,VmonMiniCacheStat*);
-PRIVATE int GetSmonStatistics(SmonStatistics *);
-PRIVATE int GetResOpArray(unsigned long,ResOpEntry *);
-PRIVATE int GetFileRes(FileResStats *FileRes);
-PRIVATE int GetDirRes(DirResStats *DirRes);
-PRIVATE int GetHistogram(long *size, HistoElem **hist);
-PRIVATE int GetConflicts(ResConflictStats *Conflicts);
-PRIVATE int GetLogStats(ResLogStats *ResLog);
-PRIVATE int CheckGuard(const char *s);
+static int GetCallCountArray(unsigned long,CallCountEntry*);
+static int GetMultiCallArray(unsigned long,MultiCallEntry*);
+static int GetAdviceStats(AdviceStatistics *);
+static int GetAdviceCalls(unsigned long, AdviceCalls *);
+static int GetAdviceResults(unsigned long, AdviceResults *);
+static int GetMiniCacheStat(unsigned long,VmonMiniCacheStat*);
+static int GetSmonStatistics(SmonStatistics *);
+static int GetResOpArray(unsigned long,ResOpEntry *);
+static int GetFileRes(FileResStats *FileRes);
+static int GetDirRes(DirResStats *DirRes);
+static int GetHistogram(long *size, HistoElem **hist);
+static int GetConflicts(ResConflictStats *Conflicts);
+static int GetLogStats(ResLogStats *ResLog);
+static int CheckGuard(const char *s);
 
 long ScanPastMagicNumber(long *rt) {
     // returns the number of non-magic words skipped, 
@@ -347,7 +347,7 @@ int ReadSrvOverflow(SmonViceId *Vice, unsigned long *Time,
     return sum;
 }
 
-PRIVATE int GetIotInfo(IOT_INFO *info)
+static int GetIotInfo(IOT_INFO *info)
 {
     if (fread((char *)info, (int)sizeof(IOT_INFO), 1, DataFile) != 1)
       return -1;
@@ -380,7 +380,7 @@ int ReadIotInfoCall(VmonVenusId *Venus, IOT_INFO *Info,
     return sum;
 }
 
-PRIVATE int GetIotStats(IOT_STAT *stats)
+static int GetIotStats(IOT_STAT *stats)
 {
     if (fread((char *)stats, (int)sizeof(IOT_STAT), 1, DataFile) != 1)
       return -1;
@@ -414,7 +414,7 @@ int ReadIotStatsCall(VmonVenusId *Venus, RPC2_Integer *Time, IOT_STAT *Stats)
     return sum;
 }
 
-PRIVATE int GetSubtreeStats(LocalSubtreeStats *stats)
+static int GetSubtreeStats(LocalSubtreeStats *stats)
 {
     if (fread((char *)stats, (int)sizeof(LocalSubtreeStats), 1, DataFile) != 1)
       return -1;
@@ -440,7 +440,7 @@ int ReadSubtreeCall(VmonVenusId *Venus, RPC2_Integer *Time, LocalSubtreeStats *S
     return sum;
 }
 
-PRIVATE int GetRepairStats(RepairSessionStats *stats)
+static int GetRepairStats(RepairSessionStats *stats)
 {
     if (fread((char *)stats, (int)sizeof(RepairSessionStats), 1, DataFile) != 1)
       return -1;
@@ -485,7 +485,7 @@ int ReadRepairCall(VmonVenusId *Venus, RPC2_Integer *Time, RepairSessionStats *S
     return sum;
 }
 
-PRIVATE int GetRwsStats(ReadWriteSharingStats *stats)
+static int GetRwsStats(ReadWriteSharingStats *stats)
 {
     if (fread((char *)stats, (int)sizeof(ReadWriteSharingStats), 1, DataFile) != 1)
       return -1;
@@ -508,7 +508,7 @@ int ReadRwsStatsCall(VmonVenusId *Venus, RPC2_Integer *Time, ReadWriteSharingSta
 }
 
 
-PRIVATE int GetVenusId(VmonVenusId *Venus) {
+static int GetVenusId(VmonVenusId *Venus) {
     if (fread((char *)Venus, (int)sizeof(VmonVenusId), 1, DataFile) != 1)
 	return -1;
     Venus->IPAddress = ntohl(Venus->IPAddress);
@@ -516,7 +516,7 @@ PRIVATE int GetVenusId(VmonVenusId *Venus) {
     return 0;
 }
 
-PRIVATE int GetViceId(SmonViceId *Vice) {
+static int GetViceId(SmonViceId *Vice) {
     if (fread((char *)Vice, (int)sizeof(SmonViceId), 1, DataFile) != 1)
 	return -1;
     Vice->IPAddress = ntohl(Vice->IPAddress);
@@ -525,7 +525,7 @@ PRIVATE int GetViceId(SmonViceId *Vice) {
 }
 
 
-PRIVATE int GetLong(unsigned long *Value) {
+static int GetLong(unsigned long *Value) {
     if (fread((char *)Value, (int)sizeof(unsigned long), 1, DataFile) != 1)
 	return -1;
     *Value = ntohl(*Value);
@@ -533,14 +533,14 @@ PRIVATE int GetLong(unsigned long *Value) {
 }
 
 
-PRIVATE int GetLong(long *Value) {
+static int GetLong(long *Value) {
     if (fread((char *)Value, (int)sizeof(long), 1, DataFile) != 1)
 	return -1;
     *Value = ntohl(*Value);
     return 0;
 }
 
-PRIVATE int GetString(unsigned char **Str, unsigned long *Len) {
+static int GetString(unsigned char **Str, unsigned long *Len) {
     if (fread((char *)Len, (int)sizeof(unsigned long), 1, DataFile) != 1) 
       return -1;
     *Str = new unsigned char[*Len];
@@ -549,7 +549,7 @@ PRIVATE int GetString(unsigned char **Str, unsigned long *Len) {
     return 0;
 }
 
-PRIVATE int GetAVSG(VmonAVSG *AVSG) {
+static int GetAVSG(VmonAVSG *AVSG) {
     if (fread((char *)AVSG, (int)sizeof(VmonAVSG), 1, DataFile) != 1)
 	return -1;
     for (int i = 0; i < 8; i++)
@@ -558,7 +558,7 @@ PRIVATE int GetAVSG(VmonAVSG *AVSG) {
 }
 
 
-PRIVATE int GetEventArray(VmonSessionEventArray *Events) {
+static int GetEventArray(VmonSessionEventArray *Events) {
     if (fread((char *)Events, (int)sizeof(VmonSessionEventArray), 1, DataFile) != 1)
 	return -1;
     for (int i = 0; i < nVSEs; i++) {
@@ -572,7 +572,7 @@ PRIVATE int GetEventArray(VmonSessionEventArray *Events) {
     return 0;
 }
 
-PRIVATE int GetSessionStats(SessionStatistics *stats)
+static int GetSessionStats(SessionStatistics *stats)
 {
     if (fread((char *)stats, (int)sizeof(SessionStatistics),1,DataFile) != 1)
 	return -1;
@@ -596,7 +596,7 @@ PRIVATE int GetSessionStats(SessionStatistics *stats)
     return 0;
 }
 
-PRIVATE int GetCacheStats(CacheStatistics *stats) 
+static int GetCacheStats(CacheStatistics *stats) 
 {
     if (fread((char *)stats, (int)sizeof(CacheStatistics),1,DataFile) != 1)
 	return -1;
@@ -623,7 +623,7 @@ PRIVATE int GetCacheStats(CacheStatistics *stats)
     return 0;
 }
 
-PRIVATE int GetRvmStats(RvmStatistics *stats) {
+static int GetRvmStats(RvmStatistics *stats) {
     int sum =0;
     sum += GetLong(&(stats->Malloc));
     sum += GetLong(&(stats->Free));
@@ -632,7 +632,7 @@ PRIVATE int GetRvmStats(RvmStatistics *stats) {
     return sum;
 }
 
-PRIVATE int GetVCBStats(VCBStatistics *stats) {
+static int GetVCBStats(VCBStatistics *stats) {
     if (fread((char *)stats, sizeof(VCBStatistics),1,DataFile) != 1)
 	return -1;
 
@@ -658,7 +658,7 @@ PRIVATE int GetVCBStats(VCBStatistics *stats) {
     return 0;
 }
 
-PRIVATE CallCountEntry *MakeCountArray(unsigned long Size) {
+static CallCountEntry *MakeCountArray(unsigned long Size) {
 
     CallCountEntry *result;
     result = new CallCountEntry[Size];
@@ -678,7 +678,7 @@ void RemoveCountArray(unsigned long Size, CallCountEntry *array) {
    return;
 }
 
-PRIVATE MultiCallEntry *MakeMultiArray(unsigned long Size) {
+static MultiCallEntry *MakeMultiArray(unsigned long Size) {
     MultiCallEntry *result;
     result = new MultiCallEntry[Size];
 
@@ -697,7 +697,7 @@ void RemoveMultiArray(unsigned long Size, MultiCallEntry *array) {
     return;
 }
 
-PRIVATE int GetCallCountArray(unsigned long Size, CallCountEntry *array) {
+static int GetCallCountArray(unsigned long Size, CallCountEntry *array) {
     int i;
     for (i=0;i<Size;i++) {
 	int result=0;
@@ -715,7 +715,7 @@ PRIVATE int GetCallCountArray(unsigned long Size, CallCountEntry *array) {
     return 0;
 }
 
-PRIVATE int GetMultiCallArray(unsigned long Size, MultiCallEntry *array) {
+static int GetMultiCallArray(unsigned long Size, MultiCallEntry *array) {
     int i;
     for (i=0;i<Size;i++) {
 	int result=0;
@@ -734,7 +734,7 @@ PRIVATE int GetMultiCallArray(unsigned long Size, MultiCallEntry *array) {
     return 0;
 }
 
-PRIVATE int GetAdviceStats(AdviceStatistics *stats)
+static int GetAdviceStats(AdviceStatistics *stats)
 {
     if (fread((char *)stats, (int)sizeof(AdviceStatistics),1,DataFile) != 1)
 	return -1;
@@ -750,7 +750,7 @@ PRIVATE int GetAdviceStats(AdviceStatistics *stats)
     return 0;
 }
 
-PRIVATE int GetAdviceCalls(unsigned long size, AdviceCalls *array)
+static int GetAdviceCalls(unsigned long size, AdviceCalls *array)
 {
     for (int i=0; i<size; i++) {
 	if (fread((char*)(&(array[i])),(int)sizeof(AdviceCalls),1,DataFile) != 1)
@@ -761,7 +761,7 @@ PRIVATE int GetAdviceCalls(unsigned long size, AdviceCalls *array)
     return 0;
 }
 
-PRIVATE int GetAdviceResults(unsigned long size, AdviceResults *array)
+static int GetAdviceResults(unsigned long size, AdviceResults *array)
 {
     for (int i=0; i<size; i++) {
 	if (fread((char*)(&(array[i])),(int)sizeof(AdviceResults),1,DataFile) != 1)
@@ -771,7 +771,7 @@ PRIVATE int GetAdviceResults(unsigned long size, AdviceResults *array)
     return 0;
 }
 
-PRIVATE int GetMiniCacheStat(unsigned long size, VmonMiniCacheStat *stats)
+static int GetMiniCacheStat(unsigned long size, VmonMiniCacheStat *stats)
 {
     for(int i=0;i<size;i++) {
 	if (fread((char*)(&(stats[i])),(int)sizeof(VmonMiniCacheStat),1,DataFile) != 1)
@@ -785,7 +785,7 @@ PRIVATE int GetMiniCacheStat(unsigned long size, VmonMiniCacheStat *stats)
     return 0;
 }
 
-PRIVATE int GetSmonStatistics(SmonStatistics *Stats) {
+static int GetSmonStatistics(SmonStatistics *Stats) {
     if (fread((char *)Stats, (int)sizeof(SmonStatistics),1,DataFile)
 	!= 1)
 	return -1;
@@ -797,7 +797,7 @@ PRIVATE int GetSmonStatistics(SmonStatistics *Stats) {
     return 0;
 }
 
-PRIVATE int GetResOpArray(unsigned long size, ResOpEntry array[]) {
+static int GetResOpArray(unsigned long size, ResOpEntry array[]) {
     int sum =0;
     for (int i=0; i<size; i++) {
 	sum += GetLong(&array[i].alloccount);
@@ -806,7 +806,7 @@ PRIVATE int GetResOpArray(unsigned long size, ResOpEntry array[]) {
     return sum;
 }
 
-PRIVATE int GetFileRes(FileResStats *FileRes) {
+static int GetFileRes(FileResStats *FileRes) {
 
     if (fread((char*)FileRes, (int)sizeof(FileResStats), 1, DataFile) != 1)
 	return -1;
@@ -823,7 +823,7 @@ PRIVATE int GetFileRes(FileResStats *FileRes) {
     return 0;
 }
 
-PRIVATE int GetDirRes(DirResStats *DirRes) {
+static int GetDirRes(DirResStats *DirRes) {
 
     if (fread((char*)DirRes, (int)sizeof(DirResStats), 1, DataFile) != 1)
 	return -1;
@@ -837,7 +837,7 @@ PRIVATE int GetDirRes(DirResStats *DirRes) {
     return 0;
 }
 
-PRIVATE int GetHistogram(long *size, HistoElem **hist) {
+static int GetHistogram(long *size, HistoElem **hist) {
 
     register int sum =0;
     register HistoElem *newhist;
@@ -850,7 +850,7 @@ PRIVATE int GetHistogram(long *size, HistoElem **hist) {
     return sum;
 }
 
-PRIVATE int GetConflicts(ResConflictStats *Conflicts) {
+static int GetConflicts(ResConflictStats *Conflicts) {
 
     if (fread((char*)Conflicts, (int)sizeof(ResConflictStats), 1, DataFile) != 1)
 	return -1;
@@ -864,7 +864,7 @@ PRIVATE int GetConflicts(ResConflictStats *Conflicts) {
     return 0;
 }
 
-PRIVATE int GetLogStats(ResLogStats *ResLog) {
+static int GetLogStats(ResLogStats *ResLog) {
 
     if (fread((char*)ResLog, (int)sizeof(ResLogStats), 1, DataFile) != 1)
 	return -1;
@@ -878,7 +878,7 @@ PRIVATE int GetLogStats(ResLogStats *ResLog) {
 
 }
     
-PRIVATE int CheckGuard(const char *s) {
+static int CheckGuard(const char *s) {
     const char *msg;
     if (s)
 	msg = s;

@@ -33,7 +33,7 @@ ifdef SUBDIRS
 	    echo "----> Entering $$d"; \
 	    ${MAKE} -C $$d Coda; \
 	    if [ $$? != 0 ] ; then echo "----> Error in $$d"; exit 1; \
-	    else echo "----> Leaving $$d."; fi; \
+	    else echo "<---- Leaving $$d."; fi; \
 	done
 endif
 
@@ -209,6 +209,8 @@ show showvar:
 	@echo  SHORTSYS:  $(SHORTSYS)
 	@echo  VFSDIR:  $(VFSDIR)
 	@echo  MANDIR:  $(MANDIR)
+	@echo  LIBRARIES:  $(LIBRARIES)
+	@echo  EXECUTABLES: $(EXECUTABLES)
 	@echo  HEADERS: $(HEADERS)
 	@echo  RP2GEN: $(RP2GEN)
 	@echo  RP2FILES:    $(RP2FILES)

@@ -70,7 +70,7 @@ DEPFLAG   := -MD
 OPTFLAG   := -g
 LIBFLAGS  := $(OPTLFLAG)
 AFLAGS	  := $(GFLAG) $(DEPFLAG) $(MACHINE_FLAGS) $(MYFLAGS) $(INCLFLAGS)
-CFLAGS	  := $(OPTFLAG) $(AFLAGS) -DPRIVATE=static
+CFLAGS	  := $(OPTFLAG) $(AFLAGS) 
 CXXFLAGS  := $(CFLAGS)
 
 RP2FLAGS  = -e  -I . -I $(srcdir) -I $(INCLDIR)
@@ -96,17 +96,17 @@ vpath %.rpc2 $(INCLPATH)
 LIBBASE =$(TOPOBJ)/lib-src/base/libbase.a
 
 # -- LWP --
-# LIBNEWLWP =$(TOPOBJ)/lib-src/mlwp/libnewlwp.a			
 LIBOLDLWP =$(TOPOBJ)/lib-src/mlwp/liboldlwp.a			
 
 # -- RVM --
 LIBRVM= $(TOPOBJ)/rvm-src/rvm/librvm.a
 LIBRDS= $(TOPOBJ)/rvm-src/rds/librds.a	 		
+LIBSEG= $(TOPOBJ)/rvm-src/seg/libseg.a 			
 # with threads
 LIBRVMLWP = $(TOPOBJ)/rvm-src/rvmlwp/librvmlwp.a
 LIBRDSLWP = $(TOPOBJ)/rvm-src/rdslwp/librdslwp.a
-# libseg doesn't use threads.
-LIBSEG= $(TOPOBJ)/rvm-src/seg/libseg.a 			
+LIBRVMLWP = $(TOPOBJ)/rvm-src/rvmlwp/librvmlwp.a
+LIBRDSLWP = $(TOPOBJ)/rvm-src/rdslwp/librdslwp.a
 
 # -- CODA --
 LIBCODARVM = $(LIBRVMLWP)
@@ -127,6 +127,8 @@ LIBPORTMAP =../portmapper/libportmap.a
 LIBSE =../rpc2/libse.a
 LIBFAIL =../fail/libfail.a
 LIBRVMRES =../rvmres/librvmres.a
+LIBDIRLIB= ../dir/libdir.a
+LIBNDIRLIB= ../ndir/libcodadir.a
 LIBDIRLIB= ../dir/libcodadir.a
 LIBVICEERROR  = ../vice/libviceerror.a
 LIBDS = ../ds/libds.a

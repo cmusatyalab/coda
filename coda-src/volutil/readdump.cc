@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/volutil/readdump.cc,v 4.3 1997/10/23 19:25:59 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/volutil/readdump.cc,v 4.4 1997/12/23 17:20:11 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -70,7 +70,7 @@ extern "C" {
 #include <vcrcommon.h>
 #include <cvnode.h>
 #include <volume.h>
-#define PAGESIZE 2048	/* This is a problem, but can't inherit rvmdir.h */
+#define PAGESIZE 2048	/* This is a problem, but can't inherit dirvnode.h */
 #include "dump.h"
 #include "dumpstream.h"
 

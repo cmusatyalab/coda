@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header$";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/utils-src/mond/mondutil.c,v 3.2 1995/10/09 19:26:58 satya Exp $";
 #endif /*_BLURB_*/
 
 
@@ -64,16 +64,16 @@ extern "C" {
 #include "ohash.h"
 #include "version.h"
 
-PRIVATE int Curr_Mon = -1;
-PRIVATE int Curr_Mday = -1;
-PRIVATE MUTEX DateLock;
-PRIVATE CONDITION DoLobotomy;
+static int Curr_Mon = -1;
+static int Curr_Mday = -1;
+static MUTEX DateLock;
+static CONDITION DoLobotomy;
 
-PRIVATE void QuitSignal();
-PRIVATE void TermSignal();
-PRIVATE void ChildSignal();
-PRIVATE void zombie(int, int, struct sigcontext *);
-PRIVATE void RestoreSignals();
+static void QuitSignal();
+static void TermSignal();
+static void ChildSignal();
+static void zombie(int, int, struct sigcontext *);
+static void RestoreSignals();
 
 extern RPC2_PortalIdent rpc2_LocalPortal;
 extern int LogLevel;
@@ -193,7 +193,7 @@ void InitSignals() {
     signal(SIGFPE,  (void (*)(int))zombie);  // software exception
 }
 
-PRIVATE void RestoreSignals() {
+static void RestoreSignals() {
     signal(SIGTRAP, (void (*)(int))SIG_DFL);
     signal(SIGILL,  (void (*)(int))SIG_DFL);
     signal(SIGBUS,  (void (*)(int))SIG_DFL);
@@ -201,7 +201,7 @@ PRIVATE void RestoreSignals() {
     signal(SIGFPE,  (void (*)(int))SIG_DFL);
 }
 
-PRIVATE void QuitSignal() {
+static void QuitSignal() {
     LogMsg(0,LogLevel,LogFile, "Quit signal caught");
     LogMsg(0,LogLevel,LogFile, "***** Terminating");
     Data_Done();
@@ -209,7 +209,7 @@ PRIVATE void QuitSignal() {
     exit(0);
 }
 
-PRIVATE void TermSignal() {
+static void TermSignal() {
     LogMsg(0,LogLevel,LogFile, "Term signal caught");
     lobotomy = mtrue;
     /* wake up the BrainSurgeon */
@@ -218,7 +218,7 @@ PRIVATE void TermSignal() {
     return;
 }
 
-PRIVATE void ChildSignal() {
+static void ChildSignal() {
     /* just wait on it and bail */
     extern int errno;
     union wait status;

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header$";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/utils-src/mond/parselog.c,v 3.3 1995/10/09 19:27:01 satya Exp $";
 #endif /*_BLURB_*/
 
 
@@ -64,66 +64,66 @@ extern "C" {
 #include "util.h"
 #include "datalog.h"
 
-PRIVATE bool PrintVmonSession();
-PRIVATE bool PrintVmonCommEvent();
-PRIVATE bool PrintClientCalls();
-PRIVATE bool PrintClientMCalls();
-PRIVATE bool PrintClientRVM();
-PRIVATE bool PrintVCB();
-PRIVATE bool PrintAdviceCalls();
-PRIVATE bool PrintMiniCache();
-PRIVATE bool PrintVmonOverflow();
-PRIVATE bool PrintSrvCall();
-PRIVATE bool PrintResEvent();
-PRIVATE bool PrintRvmResEvent();
-PRIVATE bool PrintSrvOvrflw();
-PRIVATE bool PrintIotInfoCall();
-PRIVATE bool PrintIotStatsCall();
-PRIVATE bool PrintSubtreeStatsCall();
-PRIVATE bool PrintRepairStatsCall();
-PRIVATE bool PrintRwsStatsCall();
+static bool PrintVmonSession();
+static bool PrintVmonCommEvent();
+static bool PrintClientCalls();
+static bool PrintClientMCalls();
+static bool PrintClientRVM();
+static bool PrintVCB();
+static bool PrintAdviceCalls();
+static bool PrintMiniCache();
+static bool PrintVmonOverflow();
+static bool PrintSrvCall();
+static bool PrintResEvent();
+static bool PrintRvmResEvent();
+static bool PrintSrvOvrflw();
+static bool PrintIotInfoCall();
+static bool PrintIotStatsCall();
+static bool PrintSubtreeStatsCall();
+static bool PrintRepairStatsCall();
+static bool PrintRwsStatsCall();
 
-PRIVATE void PrintVenusId(VmonVenusId *);
+static void PrintVenusId(VmonVenusId *);
 
-PRIVATE void PrintHex(unsigned long);
-PRIVATE void PrintDecimal(unsigned long);
-PRIVATE void PrintDecimal(long);
+static void PrintHex(unsigned long);
+static void PrintDecimal(unsigned long);
+static void PrintDecimal(long);
 
-PRIVATE void PrintAVSG(VmonAVSG *);
-PRIVATE void PrintEventArray(VmonSessionEventArray *);
+static void PrintAVSG(VmonAVSG *);
+static void PrintEventArray(VmonSessionEventArray *);
 
-PRIVATE void PrintVCET(VmonCommEventType);
+static void PrintVCET(VmonCommEventType);
 
-PRIVATE void PrintSessionStats(SessionStatistics *);
-PRIVATE void PrintCacheStats(CacheStatistics *);
-PRIVATE void PrintCacheEntries(CacheEventEntry);
+static void PrintSessionStats(SessionStatistics *);
+static void PrintCacheStats(CacheStatistics *);
+static void PrintCacheEntries(CacheEventEntry);
 
-PRIVATE void PrintViceId(SmonViceId *);
+static void PrintViceId(SmonViceId *);
 
-PRIVATE void PrintCallArray(unsigned long, CallCountEntry*);
-PRIVATE void PrintMultiArray(unsigned long, MultiCallEntry*);
-PRIVATE void PrintSmonStats(SmonStatistics *);
+static void PrintCallArray(unsigned long, CallCountEntry*);
+static void PrintMultiArray(unsigned long, MultiCallEntry*);
+static void PrintSmonStats(SmonStatistics *);
 
-PRIVATE void PrintResOpArray(unsigned long,ResOpEntry *);
+static void PrintResOpArray(unsigned long,ResOpEntry *);
 
-PRIVATE void PrintHistogram(long, HistoElem *);
+static void PrintHistogram(long, HistoElem *);
 
-PRIVATE void PrintRvmStats(RvmStatistics*);
+static void PrintRvmStats(RvmStatistics*);
 
-PRIVATE void PrintVCBStats(VCBStatistics*);
+static void PrintVCBStats(VCBStatistics*);
 
-PRIVATE void PrintAdviceStats(AdviceStatistics*);
-PRIVATE void PrintAdviceCallsArray(unsigned long, AdviceCalls*);
-PRIVATE void PrintAdviceResultsArray(unsigned long, AdviceResults*);
+static void PrintAdviceStats(AdviceStatistics*);
+static void PrintAdviceCallsArray(unsigned long, AdviceCalls*);
+static void PrintAdviceResultsArray(unsigned long, AdviceResults*);
 
-PRIVATE void PrintIotInfo(IOT_INFO *);
-PRIVATE void PrintIotStats(IOT_STAT *);
-PRIVATE void PrintSubtreeStats(LocalSubtreeStats *);
-PRIVATE void PrintRepairStats(RepairSessionStats *);
-PRIVATE void PrintString(RPC2_String, RPC2_Integer);
-PRIVATE void PrintRwsStats(ReadWriteSharingStats *);
+static void PrintIotInfo(IOT_INFO *);
+static void PrintIotStats(IOT_STAT *);
+static void PrintSubtreeStats(LocalSubtreeStats *);
+static void PrintRepairStats(RepairSessionStats *);
+static void PrintString(RPC2_String, RPC2_Integer);
+static void PrintRwsStats(ReadWriteSharingStats *);
 
-PRIVATE void LogErrorPoint(int[]);
+static void LogErrorPoint(int[]);
 
 int LogLevel = 0;
 FILE *DataFile = stdin;
@@ -245,7 +245,7 @@ int main(int argc, char *argv[]) {
 }
 
 
-PRIVATE bool PrintVmonSession() {
+static bool PrintVmonSession() {
     int sum;
     VmonVenusId Venus;
     VmonSessionId Session;
@@ -289,7 +289,7 @@ PRIVATE bool PrintVmonSession() {
 }
 
 
-PRIVATE bool PrintVmonCommEvent() {
+static bool PrintVmonCommEvent() {
     VmonVenusId Venus;
     unsigned long ServerIPAddress;
     long SerialNumber;
@@ -313,7 +313,7 @@ PRIVATE bool PrintVmonCommEvent() {
     else return mfalse;
 }
 
-PRIVATE bool PrintClientCalls() {
+static bool PrintClientCalls() {
     VmonVenusId Venus;
     long Time;
     unsigned long sc_size; 
@@ -336,7 +336,7 @@ PRIVATE bool PrintClientCalls() {
     else return mfalse;
 }
 
-PRIVATE bool PrintClientMCalls() {
+static bool PrintClientMCalls() {
     VmonVenusId Venus;
     long Time;
     unsigned long msc_size;
@@ -361,7 +361,7 @@ PRIVATE bool PrintClientMCalls() {
     else return mfalse;
 }
 
-PRIVATE bool PrintClientRVM() {
+static bool PrintClientRVM() {
     VmonVenusId Venus;
     long Time;
     unsigned long sc_size; 
@@ -385,7 +385,7 @@ PRIVATE bool PrintClientRVM() {
     else return mfalse;
 }
 
-PRIVATE bool PrintVCB() {
+static bool PrintVCB() {
     VmonVenusId Venus;
     long VenusInit;
     long Time;
@@ -411,7 +411,7 @@ PRIVATE bool PrintVCB() {
     else return mfalse;
 }
 
-PRIVATE bool PrintAdviceCalls() {
+static bool PrintAdviceCalls() {
     VmonVenusId Venus;
     long Time;
     UserId User;
@@ -445,7 +445,7 @@ PRIVATE bool PrintAdviceCalls() {
     else return mfalse;
 }
 
-PRIVATE bool PrintMiniCache() 
+static bool PrintMiniCache() 
 {
     VmonVenusId venus;
     long time;
@@ -492,7 +492,7 @@ PRIVATE bool PrintMiniCache()
     else return mfalse;
 }
 
-PRIVATE bool PrintVmonOverflow() {
+static bool PrintVmonOverflow() {
     VmonVenusId Venus;
     unsigned long VMStartTime;
     unsigned long VMEndTime;
@@ -521,7 +521,7 @@ PRIVATE bool PrintVmonOverflow() {
     else return mfalse;
 }
 
-PRIVATE bool PrintSrvCall() {
+static bool PrintSrvCall() {
     SmonViceId Vice;
     unsigned long Time;
     unsigned long CBSize;
@@ -566,7 +566,7 @@ PRIVATE bool PrintSrvCall() {
     else return mfalse;
 }
 
-PRIVATE bool PrintResEvent(void)
+static bool PrintResEvent(void)
 {
     SmonViceId Vice; 
     unsigned long Time;
@@ -600,7 +600,7 @@ PRIVATE bool PrintResEvent(void)
     else return mfalse;
 }
 
-PRIVATE bool PrintRvmResEvent()
+static bool PrintRvmResEvent()
 {
     int sum=0;
     SmonViceId Vice;
@@ -687,7 +687,7 @@ PRIVATE bool PrintRvmResEvent()
 
 }
 
-PRIVATE bool PrintSrvOvrflw()
+static bool PrintSrvOvrflw()
 {
     SmonViceId Vice;
     unsigned long Time;
@@ -711,32 +711,32 @@ PRIVATE bool PrintSrvOvrflw()
     else return mfalse;
 }
 
-PRIVATE void PrintVenusId(VmonVenusId *Venus) {
+static void PrintVenusId(VmonVenusId *Venus) {
     printf("%08x:%08d  ", Venus->IPAddress, Venus->BirthTime);
 }
 
 
-PRIVATE void PrintViceId(SmonViceId *Vice) {
+static void PrintViceId(SmonViceId *Vice) {
     printf("%08x:%08d  ", Vice->IPAddress, Vice->BirthTime);
 }
 
 
-PRIVATE inline void PrintHex(unsigned long Value) {
+static inline void PrintHex(unsigned long Value) {
     printf("%08x  ", Value);
 }
 
 
-PRIVATE inline void PrintDecimal(unsigned long Value) {
+static inline void PrintDecimal(unsigned long Value) {
     printf("%8d  ", Value);
 }
 
 
-PRIVATE inline void PrintDecimal(long Value) {
+static inline void PrintDecimal(long Value) {
     printf("%8d  ", Value);
 }
 
 
-PRIVATE void PrintAVSG(VmonAVSG *AVSG) {
+static void PrintAVSG(VmonAVSG *AVSG) {
     printf("\t[ ");
     for (int i = 0; i < /*VSG_MEMBERS*/8; i++) {
 	RPC2_Unsigned *m = &(AVSG->Member0);
@@ -747,7 +747,7 @@ PRIVATE void PrintAVSG(VmonAVSG *AVSG) {
 }
 
 
-PRIVATE void PrintEventArray(VmonSessionEventArray *Events) {
+static void PrintEventArray(VmonSessionEventArray *Events) {
     for (int i = 0; i < nVSEs; i++) {
 	VmonSessionEvent *e = &((&(Events->Event0))[i]);
 
@@ -759,7 +759,7 @@ PRIVATE void PrintEventArray(VmonSessionEventArray *Events) {
     }
 }
 
-PRIVATE void PrintSessionStats(SessionStatistics *stats) {
+static void PrintSessionStats(SessionStatistics *stats) {
     printf("[%08d-%08d:%08d]  [%08d-%08d:%08d]\n",
 	   stats->EntriesStart, stats->EntriesEnd,
 	   stats->EntriesHighWater, stats->BytesStart,
@@ -776,7 +776,7 @@ PRIVATE void PrintSessionStats(SessionStatistics *stats) {
 	   stats->IdleCPU);
 }
 
-PRIVATE void PrintCacheStats(CacheStatistics *stats) {
+static void PrintCacheStats(CacheStatistics *stats) {
     PrintCacheEntries(stats->HoardAttrHit);
     PrintCacheEntries(stats->HoardAttrMiss);
     PrintCacheEntries(stats->HoardAttrNoSpace);
@@ -808,15 +808,15 @@ PRIVATE void PrintCacheStats(CacheStatistics *stats) {
     printf("\n");
 }
 
-PRIVATE void PrintCacheEntries(CacheEventEntry entry) {
+static void PrintCacheEntries(CacheEventEntry entry) {
     printf("%08d [%08d]\t",entry.Count,entry.Blocks);
 }
 
-PRIVATE void PrintVCET(VmonCommEventType Type) {
+static void PrintVCET(VmonCommEventType Type) {
     printf("%4s  ", Type == ServerDown ? "DOWN" : Type == ServerUp ? "UP" : "???");
 }
 
-PRIVATE void PrintCallArray(unsigned long size, CallCountEntry *array) {
+static void PrintCallArray(unsigned long size, CallCountEntry *array) {
     if (size <= 1)
 	return;
     for(int i=1; i<size; i++) {
@@ -832,7 +832,7 @@ PRIVATE void PrintCallArray(unsigned long size, CallCountEntry *array) {
     }
 }
 
-PRIVATE void PrintMultiArray(unsigned long size, MultiCallEntry *array) {
+static void PrintMultiArray(unsigned long size, MultiCallEntry *array) {
     if (size <= 1)
 	return;
     for(int i=1; i<size; i++) {
@@ -849,7 +849,7 @@ PRIVATE void PrintMultiArray(unsigned long size, MultiCallEntry *array) {
     }
 }
 
-PRIVATE void PrintSmonStats(SmonStatistics *stats) {
+static void PrintSmonStats(SmonStatistics *stats) {
     PrintDecimal((unsigned long)stats->SystemCPU);
     PrintDecimal((unsigned long)stats->UserCPU);
     PrintDecimal((unsigned long)stats->IdleCPU);
@@ -858,7 +858,7 @@ PRIVATE void PrintSmonStats(SmonStatistics *stats) {
     printf("\n");
 }
 
-PRIVATE void PrintResOpArray(unsigned long size, ResOpEntry array[]) {
+static void PrintResOpArray(unsigned long size, ResOpEntry array[]) {
     for (int i=0; i<size; i++) {
 	PrintDecimal((unsigned long) array[i].alloccount);
 	PrintDecimal((unsigned long) array[i].dealloccount);
@@ -866,7 +866,7 @@ PRIVATE void PrintResOpArray(unsigned long size, ResOpEntry array[]) {
     }
 }
 
-PRIVATE void PrintHistogram(long size, HistoElem *array)
+static void PrintHistogram(long size, HistoElem *array)
 {
     printf("[");
     for (int i=0; i<size; i++) {
@@ -877,14 +877,14 @@ PRIVATE void PrintHistogram(long size, HistoElem *array)
     printf("]\n");
 }
 
-PRIVATE void PrintRvmStats(RvmStatistics *stats) {
+static void PrintRvmStats(RvmStatistics *stats) {
     PrintDecimal(stats->Malloc);
     PrintDecimal(stats->Free);
     PrintDecimal(stats->MallocBytes);
     PrintDecimal(stats->FreeBytes);
 }
 
-PRIVATE void PrintVCBStats(VCBStatistics *stats) {
+static void PrintVCBStats(VCBStatistics *stats) {
     printf("\t%-15s", "Acquire");
     PrintDecimal(stats->Acquires);
     PrintDecimal(stats->AcquireObjs);
@@ -911,7 +911,7 @@ PRIVATE void PrintVCBStats(VCBStatistics *stats) {
     PrintDecimal(stats->NoStampObjs);	printf("\n");
 }
 
-PRIVATE void PrintAdviceStats(AdviceStatistics *stats) {
+static void PrintAdviceStats(AdviceStatistics *stats) {
     PrintDecimal(stats->NotEnabled);   		printf("\n");
     PrintDecimal(stats->NotValid);      	printf("\n");
     PrintDecimal(stats->Outstanding);   	printf("\n");
@@ -921,7 +921,7 @@ PRIVATE void PrintAdviceStats(AdviceStatistics *stats) {
     PrintDecimal(stats->TotalNumberAttempts);	printf("\n");
 }
 
-PRIVATE void PrintAdviceCallsArray(unsigned long size, AdviceCalls array[]) {
+static void PrintAdviceCallsArray(unsigned long size, AdviceCalls array[]) {
     printf("-----------\n");
     printf("Advice Calls (by call type):\n");
     for (int i=0; i<size; i++) {
@@ -932,7 +932,7 @@ PRIVATE void PrintAdviceCallsArray(unsigned long size, AdviceCalls array[]) {
     }
 }
 
-PRIVATE void PrintAdviceResultsArray(unsigned long size, AdviceResults array[]) {
+static void PrintAdviceResultsArray(unsigned long size, AdviceResults array[]) {
     printf("-----------\n");
     printf("Advice Results (by error type):\n");
     for (int i=0; i<size; i++) {
@@ -942,7 +942,7 @@ PRIVATE void PrintAdviceResultsArray(unsigned long size, AdviceResults array[]) 
     }
 }
 
-PRIVATE void LogErrorPoint(int recordCounts[]) {
+static void LogErrorPoint(int recordCounts[]) {
     int total=0;
     for (int i=0;i<=SRVOVRFLW;i++)
 	total+=recordCounts[i];
@@ -986,7 +986,7 @@ PRIVATE void LogErrorPoint(int recordCounts[]) {
 	   "\tRwsStat:		%d",recordCounts[RWSSTAT]);
 }
 
-PRIVATE bool PrintIotInfoCall() {
+static bool PrintIotInfoCall() {
     VmonVenusId Venus;
     IOT_INFO Info;
     RPC2_Integer AppNameLen;
@@ -1010,7 +1010,7 @@ PRIVATE bool PrintIotInfoCall() {
     else return mfalse;
 }
 
-PRIVATE bool PrintIotStatsCall()
+static bool PrintIotStatsCall()
 {
     VmonVenusId Venus;
     RPC2_Integer Time;
@@ -1030,7 +1030,7 @@ PRIVATE bool PrintIotStatsCall()
     else return mfalse;
 }
 
-PRIVATE bool PrintSubtreeStatsCall()
+static bool PrintSubtreeStatsCall()
 {
     VmonVenusId Venus;
     RPC2_Integer Time;
@@ -1050,7 +1050,7 @@ PRIVATE bool PrintSubtreeStatsCall()
     else return mfalse;
 }
 
-PRIVATE bool PrintRepairStatsCall()
+static bool PrintRepairStatsCall()
 {
     VmonVenusId Venus;
     RPC2_Integer Time;
@@ -1070,7 +1070,7 @@ PRIVATE bool PrintRepairStatsCall()
     else return mfalse;
 }
 
-PRIVATE bool PrintRwsStatsCall()
+static bool PrintRwsStatsCall()
 {
     VmonVenusId Venus;
     RPC2_Integer Time;
@@ -1090,7 +1090,7 @@ PRIVATE bool PrintRwsStatsCall()
     else return mfalse;
 }
 
-PRIVATE void PrintIotInfo(IOT_INFO *info) {
+static void PrintIotInfo(IOT_INFO *info) {
     PrintDecimal(info->Tid);	   		printf("\n");
     PrintDecimal(info->ResOpt);	   		printf("\n");
     PrintDecimal(info->ElapsedTime);   		printf("\n");
@@ -1106,13 +1106,13 @@ PRIVATE void PrintIotInfo(IOT_INFO *info) {
     PrintDecimal(info->SuccNum);   		printf("\n");
 }
 
-PRIVATE void PrintString(RPC2_String Str, RPC2_Integer Len)
+static void PrintString(RPC2_String Str, RPC2_Integer Len)
 {
     for (int i = 0; i < Len; i++) 
       printf("%c", Str[i]);
 }
 
-PRIVATE void PrintIotStats(IOT_STAT *stats) {
+static void PrintIotStats(IOT_STAT *stats) {
     PrintDecimal(stats->MaxElapsedTime);	printf("\n");
     PrintDecimal(stats->AvgElapsedTime);	printf("\n");
     PrintDecimal(stats->MaxReadSetSize);	printf("\n");
@@ -1130,7 +1130,7 @@ PRIVATE void PrintIotStats(IOT_STAT *stats) {
     PrintDecimal(stats->OCCRerun);		printf("\n");
 }
 
-PRIVATE void PrintSubtreeStats(LocalSubtreeStats *stats) {
+static void PrintSubtreeStats(LocalSubtreeStats *stats) {
     PrintDecimal(stats->SubtreeNum);		printf("\n");
     PrintDecimal(stats->MaxSubtreeSize);	printf("\n");
     PrintDecimal(stats->AvgSubtreeSize);	printf("\n");
@@ -1140,7 +1140,7 @@ PRIVATE void PrintSubtreeStats(LocalSubtreeStats *stats) {
     PrintDecimal(stats->AvgMutationNum);	printf("\n");
 }
 
-PRIVATE void PrintRepairStats(RepairSessionStats *stats) {
+static void PrintRepairStats(RepairSessionStats *stats) {
     PrintDecimal(stats->SessionNum);		printf("\n");
     PrintDecimal(stats->CommitNum);		printf("\n");
     PrintDecimal(stats->AbortNum);		printf("\n");
@@ -1169,7 +1169,7 @@ PRIVATE void PrintRepairStats(RepairSessionStats *stats) {
     PrintDecimal(stats->RemoveUpdateNum);	printf("\n");
 }
 
-PRIVATE void PrintRwsStats(ReadWriteSharingStats *stats) {
+static void PrintRwsStats(ReadWriteSharingStats *stats) {
     PrintDecimal(stats->Vid);			printf("\n");
     PrintDecimal(stats->RwSharingCount);	printf("\n");
     PrintDecimal(stats->DiscReadCount);		printf("\n");

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header$";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/utils-src/mond/version.c,v 3.2 1995/10/09 19:27:10 satya Exp $";
 #endif /*_BLURB_*/
 
 
@@ -97,7 +97,7 @@ void connection_entry::print(int level,FILE *file)
     delete [] conname;
 }
 
-PRIVATE inline int hashfn(RPC2_Handle *cid)
+static inline int hashfn(RPC2_Handle *cid)
 {
     return ((int) *cid);
 }

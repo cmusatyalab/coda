@@ -10,7 +10,7 @@
 
 # the following may need editing depending on your preferences
 
-MACHINE_FLAGS = -DLINUX
+MACHINE_FLAGS = 
 SHORTSYS      = linux
 INCLFLAGS     = -I/usr/include
 GFLAG         = 

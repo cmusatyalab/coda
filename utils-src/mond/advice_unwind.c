@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header$";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/utils-src/mond/advice_unwind.c,v 3.3 1995/10/09 19:26:36 satya Exp $";
 #endif /*_BLURB_*/
 
 
@@ -86,29 +86,29 @@ int LogLevel = 0;                          /* -d */
 bool removeOnDone = mfalse;                /* -R/r */
 bool doLog = mtrue;                        /* -L/l */
 
-PRIVATE FILE *lockFile;
-PRIVATE bool done = mfalse;
-PRIVATE bool everError = mfalse;
+static FILE *lockFile;
+static bool done = mfalse;
+static bool everError = mfalse;
 
 extern int errno;
 
 void Log_Done();
 
-PRIVATE void ParseArgs(int, char*[]);
-PRIVATE void SendData(char *);
-PRIVATE void InitLog();
-PRIVATE void GetDiscoQ(char *filename, bool *error);
-PRIVATE void GetReconnQ(char *filename, bool *error);
-PRIVATE int ScreenForData(struct direct *);
-PRIVATE void ProcessEachUser();
-PRIVATE void ProcessEachDataDirectory(char *dirname);
-PRIVATE void GetFilesAndSpool(char *datadir);
-PRIVATE int TestAndLock();
-PRIVATE void RemoveLock();
-PRIVATE void InitSignals();
-PRIVATE void TermSignal();
-PRIVATE void LogErrorPoint(int[]);
-PRIVATE void zombie(int, int, struct sigcontext *);
+static void ParseArgs(int, char*[]);
+static void SendData(char *);
+static void InitLog();
+static void GetDiscoQ(char *filename, bool *error);
+static void GetReconnQ(char *filename, bool *error);
+static int ScreenForData(struct direct *);
+static void ProcessEachUser();
+static void ProcessEachDataDirectory(char *dirname);
+static void GetFilesAndSpool(char *datadir);
+static int TestAndLock();
+static void RemoveLock();
+static void InitSignals();
+static void TermSignal();
+static void LogErrorPoint(int[]);
+static void zombie(int, int, struct sigcontext *);
 
 enum adviceClass { adviceDiscoQ, adviceReconnQ, adviceClass_last };
 #define DISCO_ID "DisconnectedMiss."
@@ -118,7 +118,7 @@ char *CodaUserDir = "/coda/usr";
 
 FILE *LogFile = 0;
 FILE *DataFile = 0;
-PRIVATE struct sigcontext OldContext;
+static struct sigcontext OldContext;
 
 main (int argc, char *argv[])
 {
@@ -148,7 +148,7 @@ main (int argc, char *argv[])
     Log_Done();
 }
 
-PRIVATE void ParseArgs(int argc, char *argv[])
+static void ParseArgs(int argc, char *argv[])
 {
     for (int i = 1; i < argc; i++) 
     {
@@ -187,7 +187,7 @@ PRIVATE void ParseArgs(int argc, char *argv[])
     }
 }
 
-PRIVATE void SendData(char *file)
+static void SendData(char *file)
 {
     DataFile = fopen(file, "r");
     bool error = mfalse;
@@ -237,7 +237,7 @@ PRIVATE void SendData(char *file)
 	LogMsg(0,LogLevel,LogFile,"Error spooling file %s",file);
 }
 
-PRIVATE void GetDiscoQ(char *filename, bool *error)
+static void GetDiscoQ(char *filename, bool *error)
 {
     DiscoMissQ q;
     int sum = 0;
@@ -252,7 +252,7 @@ PRIVATE void GetDiscoQ(char *filename, bool *error)
 	*error = mtrue;
 }
 
-PRIVATE void GetReconnQ(char *filename, bool *error)
+static void GetReconnQ(char *filename, bool *error)
 {
     ReconnQ q; 
     int sum = 0;
@@ -268,7 +268,7 @@ PRIVATE void GetReconnQ(char *filename, bool *error)
 }
 
 
-PRIVATE void InitLog() {
+static void InitLog() {
     char LogFilePath[256];	/* "WORKINGDIR/LOGFILE_PREFIX.MMDD" */
     {
 	strcpy(LogFilePath, WorkingDir);
@@ -299,7 +299,7 @@ void Log_Done() {
     LogFile = 0;
 }
 
-PRIVATE int ScreenForData(struct direct *de)
+static int ScreenForData(struct direct *de)
 {
     int hitDiscoQ = 0;
     int hitReconnQ = 0;
@@ -310,7 +310,7 @@ PRIVATE int ScreenForData(struct direct *de)
     return(hitDiscoQ || hitReconnQ);
 }
 
-PRIVATE int select_nodot(struct direct *de)
+static int select_nodot(struct direct *de)
 {
   if (strcmp(de->d_name, ".") == 0 || 
       strcmp(de->d_name, "..") == 0) 
@@ -319,7 +319,7 @@ PRIVATE int select_nodot(struct direct *de)
     return(1);
 }
 
-PRIVATE void ProcessEachUser() 
+static void ProcessEachUser() 
 // PEU assumes we are cd'd into the directory containing home directories (e.g. /coda/usr)
 // main() takes care of this!
 {
@@ -356,7 +356,7 @@ PRIVATE void ProcessEachUser()
     }
 }
 
-PRIVATE void ProcessEachDataDirectory(char *userDataDir) 
+static void ProcessEachDataDirectory(char *userDataDir) 
 // PEDD assumes we are cd\'d into the user's directory that contains 
 // data directories (e.g. /coda/usr/<foo>/.questionnaires
 // PEU takes care of this!
@@ -398,7 +398,7 @@ PRIVATE void ProcessEachDataDirectory(char *userDataDir)
     }
 }
 
-PRIVATE void GetFilesAndSpool(char *datadir)
+static void GetFilesAndSpool(char *datadir)
 // GFAS assumes we are cd'd into the data subdirectory (main does this)
 {
     struct direct **nameList;
@@ -418,7 +418,7 @@ PRIVATE void GetFilesAndSpool(char *datadir)
 //    UpdateDB();
 }
 
-PRIVATE int TestAndLock()
+static int TestAndLock()
 {
     struct stat buf;
     if (stat(LOCKNAME,&buf) == 0)
@@ -439,13 +439,13 @@ PRIVATE int TestAndLock()
     return 0;
 }
 
-PRIVATE void RemoveLock() {
+static void RemoveLock() {
     if (unlink(LOCKNAME) != 0)
 	LogMsg(0,LogLevel,LogFile,"Could not remove lock %s (%d)\n",
 	       LOCKNAME,errno);
 }
 
-PRIVATE void InitSignals() {
+static void InitSignals() {
     (void)signal(SIGTERM, (void (*)(int))TermSignal);
     signal(SIGTRAP, (void (*)(int))zombie);
     signal(SIGILL,  (void (*)(int))zombie);
@@ -454,7 +454,7 @@ PRIVATE void InitSignals() {
     signal(SIGFPE,  (void (*)(int))zombie);  // software exception
 }
 
-PRIVATE void zombie(int sig, int code, struct sigcontext *scp) {
+static void zombie(int sig, int code, struct sigcontext *scp) {
     bcopy(scp, &OldContext, (int)sizeof(struct sigcontext));
     LogMsg(0, 0, LogFile,  "****** INTERRUPTED BY SIGNAL %d CODE %d ******", sig, code);
     LogMsg(0, 0, LogFile,  "****** Aborting outstanding transactions, stand by...");
@@ -464,7 +464,7 @@ PRIVATE void zombie(int sig, int code, struct sigcontext *scp) {
     task_suspend(task_self());
 }
 
-PRIVATE void TermSignal() {
+static void TermSignal() {
     LogMsg(0,LogLevel,LogFile,"Term signal caught, finishing current record");
     // set up things for the unwinder to end after this record
     // to avoid death in the midst of a transaction.
@@ -473,7 +473,7 @@ PRIVATE void TermSignal() {
     return;
 }
 
-PRIVATE void LogErrorPoint(int recordCounts[]) {
+static void LogErrorPoint(int recordCounts[]) {
     int total=0;
     for (int i=0;i<dataClass_last_tag;i++)
 	total+=recordCounts[i];

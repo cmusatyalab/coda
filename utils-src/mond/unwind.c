@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header$";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/utils-src/mond/unwind.c,v 3.3 1995/10/09 19:27:08 satya Exp $";
 #endif /*_BLURB_*/
 
 
@@ -87,47 +87,47 @@ int LogLevel = 0;                             /* -d */
 bool removeOnDone = mtrue;                    /* -R/r */
 bool doLog = mtrue;                           /* -L/l */
 
-PRIVATE FILE *lockFile;
-PRIVATE bool done = mfalse;
-PRIVATE bool everError = mfalse;
+static FILE *lockFile;
+static bool done = mfalse;
+static bool everError = mfalse;
 
 extern int errno;
 
 void Log_Done();
 
-PRIVATE void ParseArgs(int, char*[]);
-PRIVATE void SendData(char *);
-PRIVATE void GetSession(bool *);
-PRIVATE void GetComm(bool *);
-PRIVATE void GetClientCall(bool *);
-PRIVATE void GetClientMCall(bool *);
-PRIVATE void GetClientRVM(bool *);
-PRIVATE void GetVCB(bool *);
-PRIVATE void GetAdvice(bool *);
-PRIVATE void GetMiniCache(bool *);
-PRIVATE void GetOverflow(bool *);
-PRIVATE void GetSrvCall(bool *);
-PRIVATE void GetResEvent(bool *);
-PRIVATE void GetRvmResEvent(bool *);
-PRIVATE void GetSrvOverflow(bool *);
-PRIVATE void GetIotInfo(bool *);
-PRIVATE void GetIotStats(bool *);
-PRIVATE void GetSubtree(bool *);
-PRIVATE void GetRepair(bool *);
-PRIVATE void GetRwsStats(bool *);
-PRIVATE void InitLog();
-PRIVATE int ScreenForData(struct direct *);
-PRIVATE void GetFilesAndSpool();
-PRIVATE int TestAndLock();
-PRIVATE void RemoveLock();
-PRIVATE void InitSignals();
-PRIVATE void TermSignal();
-PRIVATE void LogErrorPoint(int[]);
-PRIVATE void zombie(int, int, struct sigcontext *);
+static void ParseArgs(int, char*[]);
+static void SendData(char *);
+static void GetSession(bool *);
+static void GetComm(bool *);
+static void GetClientCall(bool *);
+static void GetClientMCall(bool *);
+static void GetClientRVM(bool *);
+static void GetVCB(bool *);
+static void GetAdvice(bool *);
+static void GetMiniCache(bool *);
+static void GetOverflow(bool *);
+static void GetSrvCall(bool *);
+static void GetResEvent(bool *);
+static void GetRvmResEvent(bool *);
+static void GetSrvOverflow(bool *);
+static void GetIotInfo(bool *);
+static void GetIotStats(bool *);
+static void GetSubtree(bool *);
+static void GetRepair(bool *);
+static void GetRwsStats(bool *);
+static void InitLog();
+static int ScreenForData(struct direct *);
+static void GetFilesAndSpool();
+static int TestAndLock();
+static void RemoveLock();
+static void InitSignals();
+static void TermSignal();
+static void LogErrorPoint(int[]);
+static void zombie(int, int, struct sigcontext *);
 
 FILE *LogFile = 0;
 FILE *DataFile = 0;
-PRIVATE struct sigcontext OldContext;
+static struct sigcontext OldContext;
 
 main (int argc, char *argv[])
 {
@@ -153,7 +153,7 @@ main (int argc, char *argv[])
     Log_Done();
 }
 
-PRIVATE void ParseArgs(int argc, char *argv[])
+static void ParseArgs(int argc, char *argv[])
 {
     for (int i = 1; i < argc; i++) 
     {
@@ -197,7 +197,7 @@ PRIVATE void ParseArgs(int argc, char *argv[])
     }
 }
 
-PRIVATE void SendData(char *file)
+static void SendData(char *file)
 {
     DataFile = fopen(file, "r");
     bool error = mfalse;
@@ -329,7 +329,7 @@ PRIVATE void SendData(char *file)
 	LogMsg(0,LogLevel,LogFile,"Error spooling file %s",file);
 }
 
-PRIVATE void GetSession(bool *error)
+static void GetSession(bool *error)
 {
     LogMsg(100,LogLevel,LogFile,"Spooling a session event");
     int sum = 0;
@@ -357,7 +357,7 @@ PRIVATE void GetSession(bool *error)
     }
 }
 
-PRIVATE void GetComm(bool *error)
+static void GetComm(bool *error)
 {
     LogMsg(100,LogLevel,LogFile,"Spooling a comm event");
     VmonVenusId Venus;
@@ -375,7 +375,7 @@ PRIVATE void GetComm(bool *error)
     }
 }
 
-PRIVATE void GetClientCall(bool *error) {
+static void GetClientCall(bool *error) {
     int sum =0;
     LogMsg(100,LogLevel,LogFile,"Spooling a client call record");
 
@@ -392,7 +392,7 @@ PRIVATE void GetClientCall(bool *error) {
     RemoveCountArray(sc_size,SrvCount);
 }
 
-PRIVATE void GetClientMCall(bool *error) {
+static void GetClientMCall(bool *error) {
     int sum =0;
     LogMsg(100,LogLevel,LogFile,"Spooling a client mcall record");
 
@@ -409,7 +409,7 @@ PRIVATE void GetClientMCall(bool *error) {
     RemoveMultiArray(msc_size,MSrvCount);
 }
 
-PRIVATE void GetClientRVM(bool *error) {
+static void GetClientRVM(bool *error) {
     int sum =0;
     LogMsg(100,LogLevel,LogFile,"Spooling a client RVM record");
 
@@ -424,7 +424,7 @@ PRIVATE void GetClientRVM(bool *error) {
     }
 }
 
-PRIVATE void GetVCB(bool *error) {
+static void GetVCB(bool *error) {
     int sum =0;
     LogMsg(100,LogLevel,LogFile,"Spooling a VCB record");
 
@@ -441,7 +441,7 @@ PRIVATE void GetVCB(bool *error) {
     }
 }
 
-PRIVATE void GetAdvice(bool *error) {
+static void GetAdvice(bool *error) {
     int sum = 0;
     LogMsg(100, LogLevel, LogFile, "Spooling an advice record");
 
@@ -466,7 +466,7 @@ PRIVATE void GetAdvice(bool *error) {
     delete [] Result_Stats;
 }
 
-PRIVATE void GetMiniCache(bool *error) {
+static void GetMiniCache(bool *error) {
     int sum =0;
     LogMsg(100,LogLevel,LogFile,"Spooling a minicache record");
 
@@ -491,7 +491,7 @@ PRIVATE void GetMiniCache(bool *error) {
     delete [] vfs_stat;
 }
 
-PRIVATE void GetOverflow(bool *error)
+static void GetOverflow(bool *error)
 {
     LogMsg(100,LogLevel,LogFile,"Spooling an overflow event");
     int sum = 0;
@@ -512,7 +512,7 @@ PRIVATE void GetOverflow(bool *error)
     }
 }
 
-PRIVATE void GetSrvCall(bool *error) {
+static void GetSrvCall(bool *error) {
     LogMsg(100,LogLevel,LogFile,"Spooling a server call event");
     int sum = 0;
 
@@ -547,7 +547,7 @@ PRIVATE void GetSrvCall(bool *error) {
     RemoveMultiArray(MultiSize,MultiCount);
 }
 
-PRIVATE void GetResEvent(bool *error)
+static void GetResEvent(bool *error)
 {
     LogMsg(100,LogLevel,LogFile,"Spooling a resolve event");
     int sum = 0;
@@ -570,7 +570,7 @@ PRIVATE void GetResEvent(bool *error)
     delete [] ResOp;
 }
 
-PRIVATE void GetRvmResEvent(bool *error)
+static void GetRvmResEvent(bool *error)
 {
     LogMsg(100,LogLevel,LogFile,"Spooling a rvmres summary");
     int sum=0;
@@ -611,7 +611,7 @@ PRIVATE void GetRvmResEvent(bool *error)
 	*error = mtrue;
 }
 
-PRIVATE void GetSrvOverflow(bool *error)
+static void GetSrvOverflow(bool *error)
 {
     int sum=0;
 
@@ -628,7 +628,7 @@ PRIVATE void GetSrvOverflow(bool *error)
 	*error = mtrue;
 }
 
-PRIVATE void GetIotInfo(bool *error) {
+static void GetIotInfo(bool *error) {
     int sum = 0;
     LogMsg(100, LogLevel, LogFile, "Spooling an iotInfo record");
     
@@ -648,7 +648,7 @@ PRIVATE void GetIotInfo(bool *error) {
     delete [] AppName;
 }
 
-PRIVATE void GetIotStats(bool *error) {
+static void GetIotStats(bool *error) {
     int sum = 0;
     LogMsg(100, LogLevel, LogFile, "Spooling an iotStat record");
     
@@ -663,7 +663,7 @@ PRIVATE void GetIotStats(bool *error) {
       *error = mtrue;
 }
 
-PRIVATE void GetSubtree(bool *error) {
+static void GetSubtree(bool *error) {
     int sum = 0;
     LogMsg(100, LogLevel, LogFile, "Spooling an subtree record");
     
@@ -678,7 +678,7 @@ PRIVATE void GetSubtree(bool *error) {
       *error = mtrue;
 }
 
-PRIVATE void GetRepair(bool *error) {
+static void GetRepair(bool *error) {
     int sum = 0;
     LogMsg(100, LogLevel, LogFile, "Spooling an repair record");
     
@@ -693,7 +693,7 @@ PRIVATE void GetRepair(bool *error) {
       *error = mtrue;
 }
 
-PRIVATE void GetRwsStats(bool *error) {
+static void GetRwsStats(bool *error) {
     int sum = 0;
     LogMsg(100, LogLevel, LogFile, "Spooling an rwsStat record");
     
@@ -708,7 +708,7 @@ PRIVATE void GetRwsStats(bool *error) {
       *error = mtrue;
 }
 
-PRIVATE void InitLog() {
+static void InitLog() {
     char LogFilePath[256];	/* "WORKINGDIR/LOGFILE_PREFIX.MMDD" */
     {
 	strcpy(LogFilePath, WorkingDir);
@@ -740,12 +740,12 @@ void Log_Done() {
     LogFile = 0;
 }
 
-PRIVATE int ScreenForData(struct direct *de)
+static int ScreenForData(struct direct *de)
 {
     return(!strncmp(DataPrefix,de->d_name,strlen(DataPrefix)));
 }
 
-PRIVATE void GetFilesAndSpool()
+static void GetFilesAndSpool()
 // GFTS assumes we are cd'd into the WorkingDir (main does this)
 {
     struct direct **nameList;
@@ -786,7 +786,7 @@ PRIVATE void GetFilesAndSpool()
     UpdateDB();
 }
 
-PRIVATE int TestAndLock()
+static int TestAndLock()
 {
     struct stat buf;
     if (stat(LOCKNAME,&buf) == 0)
@@ -807,13 +807,13 @@ PRIVATE int TestAndLock()
     return 0;
 }
 
-PRIVATE void RemoveLock() {
+static void RemoveLock() {
     if (unlink(LOCKNAME) != 0)
 	LogMsg(0,LogLevel,LogFile,"Could not remove lock %s (%d)\n",
 	       LOCKNAME,errno);
 }
 
-PRIVATE void InitSignals() {
+static void InitSignals() {
     (void)signal(SIGTERM, (void (*)(int))TermSignal);
     signal(SIGTRAP, (void (*)(int))zombie);
     signal(SIGILL,  (void (*)(int))zombie);
@@ -832,7 +832,7 @@ void zombie(int sig, int code, struct sigcontext *scp) {
     task_suspend(task_self());
 }
 
-PRIVATE void TermSignal() {
+static void TermSignal() {
     LogMsg(0,LogLevel,LogFile,"Term signal caught, finishing current record");
     // set up things for the unwinder to end after this record
     // to avoid death in the midst of a transaction.
@@ -841,7 +841,7 @@ PRIVATE void TermSignal() {
     return;
 }
 
-PRIVATE void LogErrorPoint(int recordCounts[]) {
+static void LogErrorPoint(int recordCounts[]) {
     int total=0;
     for (int i=0;i<dataClass_last_tag;i++)
 	total+=recordCounts[i];

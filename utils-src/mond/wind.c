@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header$";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/utils-src/mond/wind.c,v 3.3 1995/10/09 19:27:12 satya Exp $";
 #endif /*_BLURB_*/
 
 
@@ -61,35 +61,35 @@ extern "C" {
 
 extern FILE *DataFile;
 
-PRIVATE void PutViceId(SmonViceId*);
-PRIVATE void PutSmonStatistics(SmonStatistics*);
-PRIVATE void PutVenusId(VmonVenusId *);
+static void PutViceId(SmonViceId*);
+static void PutSmonStatistics(SmonStatistics*);
+static void PutVenusId(VmonVenusId *);
 void inline PutLong(unsigned long);
 void inline PutLong(long);
 void inline PutString(unsigned char *, unsigned long);
-PRIVATE void PutAVSG(VmonAVSG *);
-PRIVATE void PutMCStat(long,VmonMiniCacheStat*);
-PRIVATE void PutEventArray(VmonSessionEventArray*);
-PRIVATE void PutSessionStats(SessionStatistics*);
-PRIVATE void PutCacheStats(CacheStatistics*);
-PRIVATE void PutResOpArray(long,ResOpEntry[]);
-PRIVATE void PutCallCountArray(long,CallCountEntry[]);
-PRIVATE void PutMultiCallArray(long,MultiCallEntry[]);
-PRIVATE void PutFileResStats(FileResStats FileRes);
-PRIVATE void PutDirResStats(DirResStats DirRes);
-PRIVATE void PutHistogram(Histogram *hist);
-PRIVATE void PutResConflictStats(ResConflictStats Conflicts);
-PRIVATE void PutResLogStats(ResLogStats ResLog);
-PRIVATE void PutAdviceStats(AdviceStatistics*);
-PRIVATE void PutCallStatArray(long,AdviceCalls[]);
-PRIVATE void PutResultStatArray(long,AdviceResults[]);
-PRIVATE void PutRvmStats(RvmStatistics*);
-PRIVATE void PutVCBStats(VCBStatistics*);
-PRIVATE void PutIotInfo(IOT_INFO*);
-PRIVATE void PutIotStats(IOT_STAT*);
-PRIVATE void PutSubtreeStats(LocalSubtreeStats*);
-PRIVATE void PutRepairStats(RepairSessionStats*);
-PRIVATE void PutRwsStats(ReadWriteSharingStats*);
+static void PutAVSG(VmonAVSG *);
+static void PutMCStat(long,VmonMiniCacheStat*);
+static void PutEventArray(VmonSessionEventArray*);
+static void PutSessionStats(SessionStatistics*);
+static void PutCacheStats(CacheStatistics*);
+static void PutResOpArray(long,ResOpEntry[]);
+static void PutCallCountArray(long,CallCountEntry[]);
+static void PutMultiCallArray(long,MultiCallEntry[]);
+static void PutFileResStats(FileResStats FileRes);
+static void PutDirResStats(DirResStats DirRes);
+static void PutHistogram(Histogram *hist);
+static void PutResConflictStats(ResConflictStats Conflicts);
+static void PutResLogStats(ResLogStats ResLog);
+static void PutAdviceStats(AdviceStatistics*);
+static void PutCallStatArray(long,AdviceCalls[]);
+static void PutResultStatArray(long,AdviceResults[]);
+static void PutRvmStats(RvmStatistics*);
+static void PutVCBStats(VCBStatistics*);
+static void PutIotInfo(IOT_INFO*);
+static void PutIotStats(IOT_STAT*);
+static void PutSubtreeStats(LocalSubtreeStats*);
+static void PutRepairStats(RepairSessionStats*);
+static void PutRwsStats(ReadWriteSharingStats*);
 
 long ReportSession(VmonVenusId *Venus, VmonSessionId Session, VolumeId Volume,
 		   UserId User, VmonAVSG *AVSG, RPC2_Unsigned StartTime,
@@ -336,7 +336,7 @@ long ReportSrvOverflow(SmonViceId *Vice, unsigned long Time,
     return code;
 }
 
-PRIVATE void PutIotInfo(IOT_INFO *info)
+static void PutIotInfo(IOT_INFO *info)
 {
     info->Tid 		= htonl(info->Tid);
     info->ResOpt 	= htonl(info->ResOpt);
@@ -501,14 +501,14 @@ long ReportRwsStatsCall(VmonVenusId *Venus, RPC2_Integer Time, ReadWriteSharingS
 }
 
 
-PRIVATE void PutViceId(SmonViceId *Vice) {
+static void PutViceId(SmonViceId *Vice) {
     Vice->IPAddress = htonl(Vice->IPAddress);
     Vice->BirthTime = htonl(Vice->BirthTime);
     if (fwrite((char *)Vice, (int)sizeof(SmonViceId),1,DataFile) != 1)
 	Die("PutViceId: fwrite");
 }
 
-PRIVATE void PutSmonStatistics(SmonStatistics *stats) {
+static void PutSmonStatistics(SmonStatistics *stats) {
     stats->SystemCPU = htonl(stats->SystemCPU);
     stats->UserCPU = htonl(stats->UserCPU);
     stats->IdleCPU = htonl(stats->IdleCPU);
@@ -518,7 +518,7 @@ PRIVATE void PutSmonStatistics(SmonStatistics *stats) {
 	Die("PutViceId: fwrite");
 }
 
-PRIVATE void PutMCStat(long size, VmonMiniCacheStat *stats)
+static void PutMCStat(long size, VmonMiniCacheStat *stats)
 {
     PutLong(size);
     for (int i=0; i<size; i++) {
@@ -532,7 +532,7 @@ PRIVATE void PutMCStat(long size, VmonMiniCacheStat *stats)
     }
 }
 
-PRIVATE void PutCallCountArray(long size, CallCountEntry array[])
+static void PutCallCountArray(long size, CallCountEntry array[])
 {
     PutLong(size);
     int i;
@@ -550,7 +550,7 @@ PRIVATE void PutCallCountArray(long size, CallCountEntry array[])
     }
 }
 
-PRIVATE void PutMultiCallArray(long size, MultiCallEntry array[])
+static void PutMultiCallArray(long size, MultiCallEntry array[])
 {
     PutLong(size);
     int i;
@@ -569,7 +569,7 @@ PRIVATE void PutMultiCallArray(long size, MultiCallEntry array[])
     }
 }
 
-PRIVATE void PutVenusId(VmonVenusId *Venus) {
+static void PutVenusId(VmonVenusId *Venus) {
     Venus->IPAddress = htonl(Venus->IPAddress);
     Venus->BirthTime = htonl(Venus->BirthTime);
     if (fwrite((char *)Venus, (int)sizeof(VmonVenusId), 1, DataFile) != 1)
@@ -577,7 +577,7 @@ PRIVATE void PutVenusId(VmonVenusId *Venus) {
 }
 
 
-PRIVATE void PutAVSG(VmonAVSG *AVSG) {
+static void PutAVSG(VmonAVSG *AVSG) {
     for (int i = 0; i < 8; i++)
 	(&AVSG->Member0)[i] = htonl((&AVSG->Member0)[i]);
     if (fwrite((char *)AVSG, (int)sizeof(VmonAVSG), 1, DataFile) != 1)
@@ -585,7 +585,7 @@ PRIVATE void PutAVSG(VmonAVSG *AVSG) {
 }
 
 
-PRIVATE void PutEventArray(VmonSessionEventArray *Events) {
+static void PutEventArray(VmonSessionEventArray *Events) {
     for (int i = 0; i < nVSEs; i++) {
 	VmonSessionEvent *se = &((&Events->Event0)[i]);
 	se->Opcode = htonl(se->Opcode);
@@ -598,7 +598,7 @@ PRIVATE void PutEventArray(VmonSessionEventArray *Events) {
 	Die("PutEventArray: fwrite");
 }
 
-PRIVATE void PutSessionStats(SessionStatistics *stats)
+static void PutSessionStats(SessionStatistics *stats)
 {
     stats->BytesStart = htonl(stats->BytesStart);
     stats->BytesEnd = htonl(stats->BytesEnd);
@@ -620,7 +620,7 @@ PRIVATE void PutSessionStats(SessionStatistics *stats)
 	Die("PutSessionStatistics: fwrite");
 }
 
-PRIVATE void PutCacheStats(CacheStatistics *stats)
+static void PutCacheStats(CacheStatistics *stats)
 {
     stats->HoardAttrHit.Count = htonl(stats->HoardAttrHit.Count);
     stats->HoardAttrMiss.Blocks = htonl(stats->HoardAttrMiss.Blocks);
@@ -664,7 +664,7 @@ inline void PutLong(long Value) {
 	Die("PutLong: fwrite");
 }
 
-PRIVATE void PutResOpArray(long size, ResOpEntry array[])
+static void PutResOpArray(long size, ResOpEntry array[])
 {
     for (int i=0;i<size;i++) {
 	PutLong(array[i].alloccount);
@@ -672,7 +672,7 @@ PRIVATE void PutResOpArray(long size, ResOpEntry array[])
     }
 }
 
-PRIVATE void PutFileResStats(FileResStats FileRes) {
+static void PutFileResStats(FileResStats FileRes) {
     FileRes.Resolves = htonl(FileRes.Resolves);
     FileRes.NumSucc = htonl(FileRes.NumSucc);
     FileRes.NumConf = htonl(FileRes.NumConf);
@@ -687,7 +687,7 @@ PRIVATE void PutFileResStats(FileResStats FileRes) {
 	Die("PutFileResStats: fwrite");
 }
 
-PRIVATE void PutDirResStats(DirResStats DirRes) {
+static void PutDirResStats(DirResStats DirRes) {
 
     DirRes.Resolves = htonl(DirRes.Resolves);
     DirRes.NumSucc = htonl(DirRes.NumSucc);
@@ -700,7 +700,7 @@ PRIVATE void PutDirResStats(DirResStats DirRes) {
 	Die("PutDirResStats: fwrite");
 }
 
-PRIVATE void PutHistogram(Histogram *hist) {
+static void PutHistogram(Histogram *hist) {
 
     PutLong(hist->size);
     for (int i=0; i<hist->size; i++)
@@ -708,7 +708,7 @@ PRIVATE void PutHistogram(Histogram *hist) {
 
 }
 
-PRIVATE void PutResConflictStats(ResConflictStats Conflicts) {
+static void PutResConflictStats(ResConflictStats Conflicts) {
     Conflicts.NameName = htonl(Conflicts.NameName);
     Conflicts.RemoveUpdate = htonl(Conflicts.RemoveUpdate);
     Conflicts.UpdateUpdate = htonl(Conflicts.UpdateUpdate);
@@ -720,7 +720,7 @@ PRIVATE void PutResConflictStats(ResConflictStats Conflicts) {
 	Die("PutResConflictStats: fwrite");
 }
 
-PRIVATE void PutResLogStats(ResLogStats ResLog) {
+static void PutResLogStats(ResLogStats ResLog) {
     ResLog.NumWraps = htonl(ResLog.NumWraps);
     ResLog.NumAdmGrows = htonl(ResLog.NumAdmGrows);
     ResLog.NumVAllocs = htonl(ResLog.NumVAllocs);
@@ -731,7 +731,7 @@ PRIVATE void PutResLogStats(ResLogStats ResLog) {
 	Die("PutResLogStats: fwrite");
 }
     
-PRIVATE void PutRvmStats(RvmStatistics *stats)
+static void PutRvmStats(RvmStatistics *stats)
 {
     PutLong(stats->Malloc);
     PutLong(stats->Free);
@@ -739,7 +739,7 @@ PRIVATE void PutRvmStats(RvmStatistics *stats)
     PutLong(stats->FreeBytes);
 }
 
-PRIVATE void PutVCBStats(VCBStatistics *stats)
+static void PutVCBStats(VCBStatistics *stats)
 {
     stats->Acquires = htonl(stats->Acquires);
     stats->AcquireObjs = htonl(stats->AcquireObjs);
@@ -764,7 +764,7 @@ PRIVATE void PutVCBStats(VCBStatistics *stats)
 	Die("PutVCBStats: fwrite");
 }
 
-PRIVATE void PutAdviceStats(AdviceStatistics *stats)
+static void PutAdviceStats(AdviceStatistics *stats)
 {
     PutLong(stats->NotEnabled);
     PutLong(stats->NotValid);
@@ -775,7 +775,7 @@ PRIVATE void PutAdviceStats(AdviceStatistics *stats)
     PutLong(stats->TotalNumberAttempts);
 }
 
-PRIVATE void PutCallStatArray(long size, AdviceCalls array[])
+static void PutCallStatArray(long size, AdviceCalls array[])
 {
     PutLong(size);
     for (int i=0; i<size; i++)
@@ -785,7 +785,7 @@ PRIVATE void PutCallStatArray(long size, AdviceCalls array[])
     }
 }
 
-PRIVATE void PutResultStatArray(long size, AdviceResults array[])
+static void PutResultStatArray(long size, AdviceResults array[])
 {
     PutLong(size);
     for (int i=0; i<size; i++) 
