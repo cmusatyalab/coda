@@ -62,6 +62,9 @@ supported by Transarc Corporation, Pittsburgh, PA.
 #ifdef __CYGWIN32__
 #include <time.h>
 #endif
+#include <sys/types.h>
+#include <sys/mman.h>
+
 #include "lwp.h"
 #include "lwp.private.h"
 
@@ -590,6 +593,12 @@ int LWP_QSignal(pid)
     else return LWP_ENOWAIT;
 }
 
+#ifdef __linux__
+char *lwp_stackbase = (char *)0x15000000;
+#endif
+#ifdef __BSD44__
+char *lwp_stackbase = (char *)0x45000000;
+#endif
 
 int LWP_CreateProcess(ep, stacksize, priority, parm, name, pid)
     PFIC ep;
@@ -603,6 +612,8 @@ int LWP_CreateProcess(ep, stacksize, priority, parm, name, pid)
 
     PROCESS temp, temp2;
     char *stackptr;
+    int pagesize;
+    char msg[80];
 
     lwpdebug(0, "Entered LWP_CreateProcess");
     /* Throw away all dead process control blocks */
@@ -617,7 +628,20 @@ int LWP_CreateProcess(ep, stacksize, priority, parm, name, pid)
 	    stacksize = 1000;
 	else
 	    stacksize = 4 * ((stacksize+3) / 4);
-	if ((stackptr = (char *) malloc(stacksize)) == NULL) {
+#if defined(__linux__) || defined(__BSD44__)
+	pagesize = getpagesize();
+	stackptr = (char *) mmap(lwp_stackbase, stacksize, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANON, -1, 0);
+	if ( (int) stackptr == -1 ) {
+		perror("stack: ");
+		assert(0);
+	}
+	sprintf(msg, "STACK: from %p to %p, for %s\n", lwp_stackbase, lwp_stackbase + stacksize, name);
+	write(2, msg, strlen(msg));
+	lwp_stackbase += ((stacksize/pagesize) + 2) * pagesize;
+#else
+	stackptr = (char *) malloc(stacksize);
+#endif
+	if (stackptr == NULL) {
 	    Set_LWP_RC();
 	    return LWP_ENOMEM;
         }
@@ -1364,7 +1388,11 @@ static void Free_PCB(pid)
     if (pid -> stack != NULL) {
 	lwpdebug(0, "HWM stack usage: %d, [PCB at %p]",
 		   Stack_Used(pid->stack,pid->stacksize), pid);
+#if defined(__linux__) || defined(__BSD44__)
+	munmap(pid->stack, pid->stacksize);
+#else
 	free(pid -> stack);
+#endif
     }
 #endif OLDLWP
 
