@@ -3,7 +3,7 @@ dnl ---------------------------------------------
 dnl translate easy to remember target names into recognizable gnu variants and
 dnl test the cross compilation platform and adjust default settings
 
-AC_DEFUN(CODA_SETUP_BUILD,
+AC_DEFUN([CODA_SETUP_BUILD],
 
 [AC_SUBST(LIBTOOL_LDFLAGS)
 
@@ -92,7 +92,7 @@ AC_SUBST(LINUX_VERSION)
 AC_SUBST(DLL_VERSION)
 AC_SUBST(FREEBSD_VERSION)
 AC_SUBST(GENERIC_VERSION)
-AC_DEFUN(CODA_LIBRARY_VERSION,
+AC_DEFUN([CODA_LIBRARY_VERSION],
   [LIBTOOL_VERSION="$2:$1:$3"; major=`expr $2 - $3`
    LINUX_VERSION="$major.$3.$1"
    DLL_VERSION="$major-$3-$1"
