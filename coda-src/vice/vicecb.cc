@@ -321,6 +321,17 @@ CallBackStatus AddCallBack(HostTable *client, ViceFid *afid)
     return(CallBackSet);
 }
 
+/* this function is used when sorting HostTable entries to obtain correct
+ * lock ordering */
+static int order_helist(const void *x, const void *y)
+{
+    HostTable *he1 = (HostTable *)x;
+    HostTable *he2 = (HostTable *)y;
+    
+    if (he1->id < he2->id) return -1;
+    if (he1->id > he2->id) return 1;
+    return 0;
+}
 
 /*
   BreakCallBack: Break a callback for afid at all clients except those
@@ -382,20 +393,25 @@ void BreakCallBack(HostTable *client, ViceFid *afid) {
     
     /* how many client entries, other than us?  fill conn id list, and obtain
      * locks on the hostentry structures */
-    int nhosts = 0;
-    for (tc = tf->callBacks; tc; tc = tc->next) {
-	if (tc->conn && tc->conn != client && tc->conn->id) {
-	    ObtainWriteLock(&tc->conn->lock);
+    int nhosts = 0, nhents = 0;
+    /* get a list of all hosts we need to break callbacks with */
+    for (tc = tf->callBacks; tc; tc = tc->next)
+	if (tc->conn && tc->conn != client)
+	    helist[nhents++] = tc->conn;
 
-	    /* Recheck! The callback connection might have been destroyed */
-	    if (!tc->conn->id) {
-		ReleaseWriteLock(&tc->conn->lock);
-		continue;
-	    }
+    /* Sort the list of hosts, to get correct lock ordering */
+    qsort(helist, nhents, sizeof(HostTable *), order_helist);
 
-	    helist[nhosts] = tc->conn;
-	    cidlist[nhosts++] = tc->conn->id;
+    for (int i = 0; i < nhents; i++) {
+	ObtainWriteLock(&helist[i]->lock);
+
+	/* Recheck! The callback connection might have been destroyed */
+	if (!helist[i]->id) {
+	    ReleaseWriteLock(&helist[i]->lock);
+	    helist[i] = NULL;
 	}
+	else
+	    cidlist[nhosts++] = helist[i]->id;
     }
 
     LogMsg(3, SrvDebugLevel, stdout, "BreakCallBack: %d conns, %d users", 
@@ -406,12 +422,14 @@ void BreakCallBack(HostTable *client, ViceFid *afid) {
 	MRPC_MakeMulti(CallBack_OP, CallBack_PTR, nhosts, cidlist, rclist,
 		       NULL, NULL, NULL, afid);
 
-	for (int i = 0; i < nhosts; i++) {
-	    /* we cannot have lost any of the hostentries, because they were
-	     * locked */
+	for (int i = 0, nhosts = 0; i < nhents; i++) {
+	    if (!helist[i]) continue;
+
+	    /* we cannot have lost any of the hostentries, because they
+	     * were locked */
 
 	    /* recursively calls DeleteVenus */
-	    if (rclist[i] < RPC2_ELIMIT)  
+	    if (rclist[nhosts] < RPC2_ELIMIT)  
 		CLIENT_CleanUpHost(helist[i]);
 
 	    /* if a file callback, delete any volume callbacks */
@@ -419,6 +437,7 @@ void BreakCallBack(HostTable *client, ViceFid *afid) {
 
 	    /* and let go of the lock */
 	    ReleaseWriteLock(&helist[i]->lock);
+	    nhosts++;
 	}
     }
 
