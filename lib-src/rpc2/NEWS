@@ -6,6 +6,9 @@ New in 1.13:
   made RPC2 clients assume a server can respond faster than it actually does.
 * Fixed the very infrequent SFTP_SendResponse crash again, hopefully for real
   this time.
+* A non-masqueraded rpc2 client wouldn't send out it's SFTP packets through
+  the rpc2 socket when talkin to a masqueraded rpc2-server. This broke
+  backfetches through a firewall.
 
 New in 1.12:
 

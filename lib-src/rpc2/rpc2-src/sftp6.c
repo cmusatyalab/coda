@@ -338,8 +338,8 @@ long SFTP_CreateMgrp(IN MgroupHandle)
     PeerInfo->Uniquefier = 0;		/* not used */
     memcpy(PeerInfo->SessionKey, me->SessionKey, sizeof(RPC2_EncryptionKey));
 
-    mse->PeerPort = PeerInfo->RemotePort;	/* structure assignment */
-    mse->PeerPort.Value.InetPortNumber = htons(ntohs(mse->PeerPort.Value.InetPortNumber) + 1);
+    mse->Masqueraded = 1;
+    /* mse->PeerPort.Value.InetPortNumber = htons(ntohs(mse->PeerPort.Value.InetPortNumber) + 1); */
 
     /* plug in the SFTP descriptor */
     me->SideEffectPtr = (char *)mse;

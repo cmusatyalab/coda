@@ -1112,9 +1112,6 @@ int sftp_ExtractParmsFromPacket(struct SFTP_Entry *sEntry,
 
     if (sEntry->WhoAmI == SFSERVER)
     {
-	sEntry->PeerPort = sp.Port; /* structure assignment */
-	sEntry->PeerPort.Tag = (PortTag)ntohl(sp.Port.Tag);
-
 	/* Set up host/port linkage. */
 	sEntry->HostInfo = rpc2_GetHost(&sEntry->PInfo.RemoteHost);
 	if (sEntry->HostInfo == NULL) 
@@ -1122,6 +1119,8 @@ int sftp_ExtractParmsFromPacket(struct SFTP_Entry *sEntry,
     }
     else
 	assert(sEntry->WhoAmI == SFCLIENT);
+
+    sEntry->Masqueraded = (sp.Port.Tag == 0);
 
     sp.WindowSize = ntohl(sp.WindowSize);
     sp.SendAhead = ntohl(sp.SendAhead);
