@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vicedep/vcrcommon.rpc2,v 4.1 1997/01/08 21:52:05 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vicedep/vcrcommon.rpc2,v 4.2 1997/10/23 19:25:29 braam Exp $";
 #endif /*_BLURB_*/
 
 /*
@@ -62,8 +62,8 @@ supported by Transarc Corporation, Pittsburgh, PA.
  */
 
 %{
-#ifndef VOLTYPES_DEFINED
-#define VOLTYPES_DEFINED
+#ifndef _FID_T_
+#define _FID_T_
 %}
 
 typedef RPC2_Unsigned   VolumeId;
@@ -85,12 +85,22 @@ typedef unsigned int vgid_t;
 #endif _VUID_T_
 %}
 
+%{
+#ifndef _VICEFID_T_
+#define _VICEFID_T_
+%}
+
 typedef RPC2_Struct 
 {
 	RPC2_Unsigned	Volume;
 	RPC2_Unsigned	Vnode;
 	RPC2_Unsigned	Unique;
 }	ViceFid;
+
+%{ 
+#endif
+%}
+
 
 typedef RPC2_Struct
 {
