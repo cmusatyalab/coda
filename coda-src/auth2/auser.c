@@ -271,7 +271,7 @@ static int TryBinding(const RPC2_Integer AuthenticationType,
     hident.Value.InetAddress = sin->sin_addr;
 
     pident.Tag = RPC2_PORTBYINETNUMBER;
-    pident.Value.InetPortNumber = ntohs(sin->sin_port);
+    pident.Value.InetPortNumber = sin->sin_port;
 
     sident.Tag = RPC2_SUBSYSBYID;
     sident.Value.SubsysId = htonl(AUTH_SUBSYSID);

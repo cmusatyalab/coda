@@ -34,6 +34,8 @@ extern "C" {
 
 struct coda_addrinfo {
     int ai_flags;
+#define CODA_AI_CANONNAME 1
+
     int ai_family;
     int ai_socktype;
     int ai_protocol;

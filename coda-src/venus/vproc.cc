@@ -766,32 +766,6 @@ void va_init(struct coda_vattr *vap) {
     vap->va_flags = 0; /* must be 0 not IGNORE for BSD */
 }
 
-
-void VattrToStat(struct coda_vattr *vap, struct stat *sp) {
-    sp->st_mode = vap->va_mode;
-    sp->st_nlink = vap->va_nlink;
-    sp->st_uid = (uid_t)(vap->va_uid);
-    sp->st_gid = (vgid_t)(vap->va_gid);
-    sp->st_rdev = vap->va_rdev;
-    sp->st_size = (off_t)(vap->va_size);
-    sp->st_blksize = vap->va_blocksize;
-    sp->st_ino = (ino_t)(vap->va_fileid);
-    sp->st_atime = (time_t)(vap->va_atime.tv_sec);
-    sp->st_mtime = (time_t)(vap->va_mtime.tv_sec);
-    sp->st_ctime = (time_t)(0);
-#ifdef __BSD44__
-    sp->st_blocks = (int64_t)ceil(((double)vap->va_bytes) / S_BLKSIZE);
-    sp->st_flags = 0;
-    sp->st_gen = 0;
-#if !defined(NetBSD1_3) && !defined(__NetBSD_Version__)
-    sp->st_lspare = 0;
-#endif
-    sp->st_qspare[0] = 0;
-    sp->st_qspare[1] = 0;
-#endif /* __BSD44__ */
-}
-
-
 void VPROC_printvattr(struct coda_vattr *vap)
 {     
 	if (LogLevel >= 1000) {

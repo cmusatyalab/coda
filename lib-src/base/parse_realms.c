@@ -65,7 +65,7 @@ static void simpleaddrinfo(const char *realm, const char *service,
     hints.ai_family   = PF_INET;
     hints.ai_socktype = SOCK_DGRAM;
     hints.ai_protocol = proto;
-    hints.ai_flags    = AI_CANONNAME;
+    hints.ai_flags    = CODA_AI_CANONNAME;
 
     coda_getaddrinfo(realm, service, &hints, res);
 }
