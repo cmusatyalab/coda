@@ -4,7 +4,7 @@ Version: @VERSION@
 Release: 1
 Source: ftp://ftp.coda.cs.cmu.edu/pub/coda/src/@PACKAGE@-@VERSION@.tar.gz
 Copyright: LGPL
-BuildRoot: /usr/src/redhat/BUILD/@PACKAGE@-@VERSION@/Root
+BuildRoot: %{_topdir}/BUILD/@PACKAGE@-@VERSION@/Root
 Group: Development/Libraries
 %description
 The RVM persistent recoverable memory library. The RVM library is used by
@@ -17,10 +17,10 @@ Group: Development/Libraries
 Userspace tools to initialize and manipulate RVM log and data segments.
 The RVM library is used by the Coda distributed filesystem.
 
-%package dev
+%package devel
 Summary: RVM library development files
 Group: Development/Libraries
-%description dev
+%description devel
 Headers and static libraries for developing programs using the RVM library.
 The RVM library is used by the Coda distributed filesystem.
 
@@ -52,6 +52,7 @@ rm -rf $RPM_BUILD_ROOT
 /sbin/ldconfig
 
 %files
+%defattr(-,root,root)
 /usr/lib/librvm.so.1.0.0
 /usr/lib/librvmlwp.so.1.0.0
 /usr/lib/libseg.so.1.1.0
@@ -59,10 +60,12 @@ rm -rf $RPM_BUILD_ROOT
 /usr/lib/librdslwp.so.1.0.2
 
 %files tools
+%defattr(-,root,root)
 /usr/sbin/rvmutl
 /usr/sbin/rdsinit
 
-%files dev
+%files devel
+%defattr(-,root,root)
 /usr/lib/librvm.la
 /usr/lib/librvm.a
 /usr/lib/librvm.so
