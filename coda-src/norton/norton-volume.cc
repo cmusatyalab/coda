@@ -499,8 +499,57 @@ void show_index(int argc, char *argv[])
 	show_index(argv[2]);
 }
 
+void rename_volume(VolHead *vol, char *newname)
+{
+    char namestr[V_MAXVOLNAMELEN];
+    rvm_return_t status;
+
+    if (!vol) return;
+
+    memset(namestr, 0, sizeof(namestr));
+    strncpy(namestr, newname, sizeof(namestr)-1);
+
+    rvmlib_begin_transaction(restore);
+    rvmlib_modify_bytes(vol->data.volumeInfo->name, namestr, sizeof(namestr));
+    rvmlib_end_transaction(flush, &status);
+}
+
+void rename_volume_byid(VolumeId volid, char *newname) 
+{
+    VolHead *vol = NULL;
+
+    vol = GetVol(volid);
+    if ( vol )
+	rename_volume(vol, newname);
+    else
+	printf("Unable to find volume 0x%lx\n", volid);
 
 
+}
 
+void rename_volume_byname(char *name, char *newname)
+{
+    VolHead *vol = NULL;
 
+    vol = GetVol(name);
+
+    if (vol) 
+	rename_volume(vol, newname);
+    else 
+	printf("Unable to find volume named %s\n", name);
+}
+
+void sh_rename_volume(int argc, char **argv)
+{
+    unsigned int volid;
+
+    if (argc != 4) {
+	fprintf(stderr, "Usage: rename volume <name>|<volid> <newname>");
+	return;
+    }
+    else if (Parser_uint(argv[2], &volid) == 1) 
+	rename_volume_byid(volid, argv[3]);
+    else 
+	rename_volume_byname(argv[2], argv[3]);
+}
 

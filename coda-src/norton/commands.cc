@@ -84,12 +84,16 @@ command_t list_cmds[] = {
     { 0, 0, 0, ""}
 };
 
+command_t rename_cmds[] = {
+    { "volume",		sh_rename_volume,	0,	"Rename volume (args: vol newname"},
+    { 0, 0, 0, ""}
+};
+
 command_t set_cmds[] = {
     { "linkcount",	set_linkcount,	0,	"Set linkcount in vnode (args: vol vnode uniq count)"},
     { "debug",	set_debug,	0,	"Set debug level (args: level)"},
     { 0, 0, 0, ""}
 };
-
 
 
 command_t commands[] = {
@@ -101,6 +105,7 @@ command_t commands[] = {
     { "help",		Parser_qhelp,	0,		  ""},
     { "list",		list_vols,	list_cmds,	  ""},
     { "quit",		Parser_exit,	0,		  ""},
+    { "rename",         0,              rename_cmds,	  ""},
 //  { "salvage",	0,		salvage_commands, ""},
     { "show",		0,		show_cmds,	  ""},
     { "set",		0,		set_cmds,	  ""},

@@ -56,6 +56,7 @@ extern void show_index(VolumeId);
 extern void show_index(char *);
 extern void sh_delete_volume(int, char **);
 extern void undelete_volume(int, char **);
+extern void sh_rename_volume(int, char **);
 
 /* norton-vnode.c */
 extern void show_vnode(int, char **);
