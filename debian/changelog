@@ -1,8 +1,8 @@
-coda (6.0.5-1) experimental; urgency=low
+coda (6.0.6-1) experimental; urgency=low
 
   * New release.
 
- -- Jan Harkes <jaharkes@cs.cmu.edu>  Fri, 19 Mar 2004 13:36:31 -0500
+ -- Jan Harkes <jaharkes@cs.cmu.edu>  Tue, 20 Apr 2004 18:54:40 -0500
 
 coda (5.3.11-2) experimental; urgency=low
 
