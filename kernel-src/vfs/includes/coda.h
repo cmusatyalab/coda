@@ -156,7 +156,7 @@ static __inline__ ino_t  coda_f2i(struct ViceFid *fid)
 	
 #else
 #define coda_f2i(fid)\
-	(fid) ? ((fid)->Unique + ((fid)->Vnode<<10) + ((fid)->Volume<<20)) : 0
+	((fid) ? ((fid)->Unique + ((fid)->Vnode<<10) + ((fid)->Volume<<20)) : 0)
 #endif
 
 

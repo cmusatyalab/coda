@@ -78,9 +78,9 @@ void coda_purge_dentries(struct inode *);
 /* debugging masks */
 #define D_SUPER     1   /* print results returned by Venus */ 
 #define D_INODE     2   /* print entry and exit into procedure */
-#define D_FILE      4   /* print malloc, de-alloc information */
+#define D_FILE      4   
 #define D_CACHE     8   /* cache debugging */
-#define D_MALLOC    16
+#define D_MALLOC    16  /* print malloc, de-alloc information */
 #define D_CNODE     32
 #define D_UPCALL    64  /* up and downcall debugging */
 #define D_PSDEV    128  

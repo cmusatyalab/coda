@@ -184,7 +184,7 @@ exit:
 
 int coda_permission(struct inode *inode, int mask)
 {
-        struct coda_inode_info *cp;
+        struct coda_inode_info *cp = ITOC(inode);
         int error;
  
         ENTRY;
@@ -192,9 +192,14 @@ int coda_permission(struct inode *inode, int mask)
 	coda_permission_stat.count++;
 
         if ( mask == 0 ) {
-                EXIT;
                 return 0;
         }
+
+	if ( current->fsuid == cp->c_last_fsuid && 
+	     mask == (cp->c_last_mask & mask) ) {
+		return 0;
+	}
+	     
 
 	if ( coda_access_cache == 1 ) {
 		if ( coda_cache_check(inode, mask) ) {
@@ -203,8 +208,6 @@ int coda_permission(struct inode *inode, int mask)
 		}
 	}
 
-        cp = ITOC(inode);
-        CHECK_CNODE(cp);
 
         CDEBUG(D_INODE, "mask is %o\n", mask);
         error = venus_access(inode->i_sb, &(cp->c_fid), mask);
@@ -214,6 +217,10 @@ int coda_permission(struct inode *inode, int mask)
 
 	if ( error == 0 ) {
 		coda_cache_enter(inode, mask);
+		/* insert in the ultra mini cache */
+		cp->c_last_fsuid = current->fsuid;
+		cp->c_last_mask = mask;
+
 	}
 
         return error; 
@@ -954,7 +961,7 @@ static int coda_refresh_inode(struct dentry *dentry)
 	}
 
 	/* the following can happen when a local fid is replaced 
-	   with a local one, here we lose and declar the inode bad */
+	   with a global one, here we lose and declar the inode bad */
 	if (inode->i_ino != old_ino) {
 		make_bad_inode(inode);
 		inode->i_mode = old_mode;

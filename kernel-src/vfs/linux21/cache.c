@@ -226,6 +226,11 @@ int coda_cache_check(struct inode *inode, int mask)
 			continue; 
 		if ( !coda_cred_ok(&cc->cc_cred) )
 			continue;
+
+		/* update ultra mini cache in the inode */
+		cii->c_last_fsuid = current->fsuid;
+		cii->c_last_mask = cc->cc_mask;
+
 		CDEBUG(D_CACHE, "HIT for ino %ld\n", inode->i_ino );
 		return 1; /* cache hit */
 	}

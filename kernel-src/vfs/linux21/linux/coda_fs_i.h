@@ -30,6 +30,8 @@ struct coda_inode_info {
 	struct list_head   c_volrootlist; /* list of volroot cnoddes */
         struct inode      *c_vnode;     /*  inode associated with cnode */
         int                c_magic;     /* to verify the data structure */
+	int                c_last_fsuid;
+	int                c_last_mask;
 };
 
 /* flags */
