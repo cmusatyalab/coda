@@ -70,14 +70,14 @@ ng System:Administrators $userid
 ci System:Administrators -204
 EOF
 
-if [ -f coda.db ] ; then
+if [ -f prot_users.db ] ; then
   echo "Going to rebuild the protection databases"
-  echo "moving /vice/db/coda.db to /vice/db/coda.db.old"
-  mv coda.db coda.db.old
+  echo "moving /vice/db/prot_users.db to /vice/db/prot_users.db.old"
+  mv prot_users.db prot_users.db.old
 fi
-if [ -f name.db ] ; then
-  echo "moving /vice/db/name.db to /vice/db/name.db.old"
-  mv name.db name.db.old
+if [ -f prot_index.db ] ; then
+  echo "moving /vice/db/prot_index.db to /vice/db/prot_index.db.old"
+  mv prot_index.db prot_index.db.old
 fi
 
 pdbtool pdbsetup

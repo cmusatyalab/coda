@@ -49,8 +49,8 @@ listed in the file CREDITS.
 #include <coda_assert.h>
 #include "pdb.h"
 
-#define PDB_MAIN "/vice/db/coda.db"
-#define PDB_NAME "/vice/db/name.db"
+#define PDB_MAIN "/vice/db/prot_users.db"
+#define PDB_NAME "/vice/db/prot_index.db"
 
 struct PDB_HANDLE_S {
 	DB *main;

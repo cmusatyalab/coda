@@ -10,9 +10,9 @@ oldgroups  = "/vice/db/group.coda"
 #**************
 
 # Remove existing pdbtool databases, extreme, but simple
-if os.path.exists('/vice/db/coda.db'):
-  os.unlink('/vice/db/coda.db')
-  os.unlink('/vice/db/name.db')
+if os.path.exists('/vice/db/prot_users.db'):
+  os.unlink('/vice/db/prot_users.db')
+  os.unlink('/vice/db/prot_index.db')
 
 # Start a pipe to the pdbtool
 pdbtool = os.popen('pdbtool', 'w')

@@ -82,10 +82,9 @@ auth2.pw
 auth2.tk
 auth2.tk.BAK
 auth2.lock
-pro.db
 servers
-coda.pdb
-name.pdb
+prot_users.db
+prot_index.db
 volutil.tk
 VRDB
 files

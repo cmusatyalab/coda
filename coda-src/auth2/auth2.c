@@ -105,7 +105,7 @@ int AuthTime = 0;	/* last modified time for PDB		*/
 static char *Auth2TKFile = "/vice/db/auth2.tk";	/* name of token key file */
 static int AUTime = 0;			/* used to tell if binaries have changed */
 
-#define CODADB "/vice/db/coda.db"
+#define CODADB "/vice/db/prot_users.db"
 
 static int CheckOnly = 0;	/* only allow password checking at this server */
 static int DoRedirectLog = 1;	/* set to zero by -r switch on command line */
@@ -155,7 +155,7 @@ int main(int argc, char **argv)
 	}
 
 	if(stat(CODADB, &buff)) {
-	    printf("stat for coda.db failed\n");
+	    printf("stat for prot_users.db failed\n");
 	    fflush(stdout);
 	} else {
 	    if(AuthTime != buff.st_mtime)
