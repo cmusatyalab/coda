@@ -34,9 +34,7 @@ extern "C" {
 #include <stdio.h>
 #include <unistd.h>
 #include <stdlib.h>
-#include <fcntl.h>
 #include <netdb.h>
-#include <coda_flock.h>
 #ifdef __cplusplus
 }
 #endif
@@ -64,6 +62,7 @@ extern "C" {
 #include "coda_assert.h"
 #include "codaconf.h"
 #include "realmdb.h"
+#include "daemonizer.h"
 
 #include "nt_util.h"
 #ifdef __CYGWIN32__
@@ -127,73 +126,25 @@ struct in_addr venus_relay_addr = { INADDR_LOOPBACK };
 
 /* *****  venus.c  ***** */
 
-static int pidfd;
-static void open_pidfile(void)
-{
-    int rc;
-    
-    pidfd = open(VenusPidFile, O_RDWR | O_CREAT, 0640);
-    if (pidfd < 0) CHOKE("can't open file for pid!");
-
-    rc = myflock(pidfd, MYFLOCK_EX, MYFLOCK_NB);
-    if (rc < 0) CHOKE("can't lock file for pid!");
-    /* leave pidfd open otherwise we lose the lock */
-}
-
-/* Write our pid to a file so scripts can find us easily. */
-static void update_pidfile(void)
-{
-    char str[11]; /* can we assume that pid_t is limited to 32-bit? */
-    int rc;
-
-    rc = snprintf(str, sizeof(str), "%d\n", getpid());
-    CODA_ASSERT(rc >= 0 && rc < (int)sizeof(str));
-
-    lseek(pidfd, 0, SEEK_SET);
-    ftruncate(pidfd, 0);
-    write(pidfd, str, strlen(str)); /* record pid to lockfile */
-}
-
-static void daemonize(void)
-{
-    int rc;
-
-    /* fork into background */
-    rc = fork();
-    if (rc > 0) exit(0);
-    if (rc < 0) {
-	eprint("fork failed, continuing in foreground");
-    }
-
-    /* obtain a new process group */
-    setsid();
-
-    /* redirect stdin/stdout from/to /dev/null */
-    freopen("/dev/null", "r", stdin);
-    freopen("/dev/null", "w", stdout);
-
-    update_pidfile();
-}
+/* socket connecting us back to our parent */
+int parent = -1;
 
 /* local-repair modification */
 int main(int argc, char **argv)
 {
-    int fd;
     coda_assert_action = CODA_ASSERT_SLEEP;
     coda_assert_cleanup = VFSUnmount;
 
     ParseCmdline(argc, argv);
     DefaultCmdlineParms();   /* read /etc/coda/venus.conf */
 
+    if (LogLevel == 0)
+	parent = daemonize(VenusPidFile);
+
     /* open the console file and print vital info */
     freopen(consoleFile, "a+", stderr);
     eprint("Coda Venus, version " PACKAGE_VERSION);
 
-    /* close all other filedescriptors, we'll redirect stdin/stdout
-     * once we daemonize. */
-    for (fd = 3; fd < FD_SETSIZE; fd++)
-	close(fd);
-    
     CdToCacheDir(); 
     CheckInitFile();
     SetRlimits();
@@ -233,9 +184,6 @@ int main(int argc, char **argv)
     StatsInit();
     SigInit();      /* set up signal handlers */
 
-    open_pidfile();
-    update_pidfile();
-    
     DIR_Init(RvmType == VM ? DIR_DATA_IN_VM : DIR_DATA_IN_RVM);
     RecovInit();    /* set up RVM and recov daemon */
     CommInit();     /* set up RPC2, {connection,server,mgroup} lists, probe daemon */
@@ -290,12 +238,6 @@ int main(int argc, char **argv)
 	/* set in sighand.cc whenever we want to perform a clean shutdown */
 	if (TerminateVenus)
 	    break;
-
-	/* bumped in sighand.cc when the mount completes */
-	if (mount_done == 1 && LogLevel == 0) {
-	    mount_done++;
-	    daemonize();
-	}
 
 	/* Fire daemons that are ready to run. */
 	DispatchDaemons();

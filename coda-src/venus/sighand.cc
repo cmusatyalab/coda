@@ -50,6 +50,7 @@ extern "C" {
 #include "adv_monitor.h"
 #include "adv_daemon.h"
 #include "codaconf.h"
+#include "daemonizer.h"
 
 static void SigControl(int);
 static void SigChoke(int);
@@ -260,6 +261,6 @@ static void SigExit(int sig)
 
 static void SigMounted(int sig)
 {
-    mount_done++;
+    gogogo(parent);
 }
 
