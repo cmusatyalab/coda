@@ -31,6 +31,10 @@ extern "C" {
 #include <errno.h>
 #include <stdlib.h>
 
+#ifdef sun
+#include <netdb.h>
+#endif
+
 #ifdef __cplusplus
 }
 #endif __cplusplus
@@ -214,7 +218,7 @@ void InitEventFile() {
 }
 
 void InitPGID() {
-#ifdef	__linux__
+#if defined(__linux__) || defined(sun)
         (void) setpgrp();
 #else
         (void) setpgrp(0, thisPID);
