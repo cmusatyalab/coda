@@ -57,7 +57,7 @@ extern "C" {
     Ensures header matches library.
 */
 /* Change this if you make an incompatible change of some kind */
-#ifndef _REENTRANT
+#if !defined(_REENTRANT) && !defined(_THREAD_SAFE)
 #define LWP_VERSION  210888002 /* old lwp */
 #else
 #define LWP_VERSION  210888003 /* pthreaded lwp */

@@ -23,7 +23,7 @@ endif
 
 SUBDIRS = include src $(EXTRA) pkgs
 
-EXTRA_DIST = acinclude.m4 bootstrap.sh configure libtool.patch
+EXTRA_DIST = PORTING acinclude.m4 bootstrap.sh configure libtool.patch
 
 MAINTAINERCLEANFILES = ChangeLog INSTALL Makefile.in aclocal.m4 config.guess \
     config.h.in config.sub configure install-sh libtool ltconfig ltmain.sh \

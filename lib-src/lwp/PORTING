@@ -1,0 +1,11 @@
+Some quick notes related to porting LWP to new platforms.
+
+    src/process.ss
+	Support switching process stacks.
+
+    src/lwp.c
+	The lwp_stackbase is terribly dependent on how a process's memory is
+	laid out. i.e. What address ranges are used by dynamic libraries,
+	memory mapped files, the process stack, the process text and data
+	segments etc.
+

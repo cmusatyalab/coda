@@ -50,8 +50,9 @@ extern "C" {
 #define WRITE_LOCK	2
 #define SHARED_LOCK	4
 
-/* When compiling for pthreads, always compile with -D_REENTRANT */
-#ifndef _REENTRANT
+/* When compiling for pthreads, always compile with -D_REENTRANT (on glibc
+ * systems) or -D_THREAD_SAFE and -pthread/-kthread (on FreeBSD) */
+#if !defined(_REENTRANT) && !defined(_THREAD_SAFE)
 
 /* all locks wait on excl_locked except for READ_LOCK, which waits on
  * readers_reading */
@@ -70,7 +71,7 @@ void Lock_Obtain (struct Lock*, int);
 void Lock_ReleaseR (struct Lock *);
 void Lock_ReleaseW (struct Lock *);
 
-#else /* _REENTRANT  */
+#else /* _REENTRANT || _THREAD_SAFE */
 #include <pthread.h>
 
 struct dllist_head {
@@ -84,7 +85,7 @@ struct Lock {
     pthread_mutex_t    access;
     struct dllist_head pending;
 };
-#endif /* _REENTRANT */
+#endif /* _REENTRANT || _THREAD_SAFE */
 
 typedef struct Lock Lock;
 

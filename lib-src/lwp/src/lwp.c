@@ -85,7 +85,7 @@ Pittsburgh, PA.
 #if defined(HAVE_MMAP) && !defined(DJGPP) 
 #define MMAP_LWP_STACKS 1
 
-#ifdef __BSD44__
+#if defined(__NetBSD__) || defined(__FreeBSD__)
 char *lwp_stackbase = (char *)0x45000000;
 #else
 char *lwp_stackbase = (char *)0x15000000;

@@ -441,11 +441,7 @@ returnto:
 #define SYMB(name)  ENTRY(name)
 #define EXT(x) SYMBOL_NAME(x)
 
-#elif	defined(__BSD44__)
-
-#ifdef __STDC__
-
-#if	defined(__FreeBSD__) && defined(__ELF__)
+#elif	defined(__FreeBSD__) && defined(__ELF__)
 #include <machine/asm.h>
 #define SYMB(x)	ENTRY(x)
 #define EXT(x)	CNAME(x)
@@ -454,24 +450,16 @@ returnto:
 #define SYMB(x) .align 4;  .globl _##x; _##x:
 #define EXT(x) _##x
 
-#else	/* defined(__NetBSD__) */
+#elif	defined(__NetBSD__)
 #include <machine/asm.h>
 #define SYMB(x)  ENTRY(x)
 #define EXT(x)	_C_LABEL(x)
-#endif	/*__FreeBSD_version*/
-
-#else	/*!__STDC__*/
-#define SYMB(x)  _/**/x:
-#define EXT(x)	_/**/x
-#endif	/*__STDC__*/
 
 #else
-
 /* some kind of win32 machine */
 #define SYMB(x) .align 4;  .globl _##x; _##x:
 #define EXT(x) _##x
-	
-#endif	/* ! __linux__ */
+#endif
 
 
 
