@@ -33,7 +33,7 @@ should be returned to Software.Distribution@cs.cmu.edu.
 
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/rvm-src/rvm/rvmutl.c,v 4.4 1997/09/04 21:56:22 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/rvm-src/rvm/rvmutl.c,v 4.5 1998/03/06 20:21:50 braam Exp $";
 #endif _BLURB_
 
 /*
@@ -2587,6 +2587,18 @@ static rvm_bool_t locate_earliest(out_stream,err_stream)
             if (log_buf->ptr == -1) break;  /* no more records */
             /* be sure header of record is in buffer */
             rec_hdr = (rec_hdr_t *)(&log_buf->buf[log_buf->ptr]);
+
+	    if (rec_hdr->struct_id == log_wrap_id) {
+				/* scan_reverse may have just seen a
+				   wrap marker and pointing right to it.
+				   We need to read in the previous record
+				   before we go furhter -- Clement */
+		retval = validate_rec_reverse(log,NO_SYNCH);
+		ASSERT(retval == RVM_SUCCESS);
+		if (log_buf->ptr == -1) break; /* no more records */
+		rec_hdr = (rec_hdr_t *)(&log_buf->buf[log_buf->ptr]);
+	    };
+
             log_buf->ptr -= rec_hdr->rec_length;
             if (log_buf->ptr < 0)
                 {
@@ -2902,12 +2914,12 @@ static rvm_bool_t show_by_num(out_stream,err_stream,key)
 
     /* check for numeric parameter(s) */
     num = str2ul(cmd_cur,&cmd_cur,NULL);
-    if (key == NUM_KEY)                 /* is there another ? */
+    if (key == NUM_KEY || key == REC_KEY) /* is there another ? */
         {
         rec_num = num;
         num = str2ul(cmd_cur,&cmd_cur,NULL); /* optional count */
         }
-    if ((rec_num == 0) && (key == NUM_KEY))
+    if ((rec_num == 0) && (key == NUM_KEY || key == REC_KEY))
         {
         fprintf(err_stream,"?  record number required\n");
         return rvm_false;
@@ -2920,6 +2932,7 @@ static rvm_bool_t show_by_num(out_stream,err_stream,key)
         switch (key)
             {
           case NUM_KEY:                 /* locate record by number */
+	  case REC_KEY:
             if ((retval=locate_rec(rec_num,NULL)) != RVM_SUCCESS)
                 break;
             stop_sticky = rvm_true;
@@ -3624,6 +3637,7 @@ static rvm_bool_t do_show()
             break;
           case NEXT_KEY:                /* print next record(s) */
           case PREV_KEY:                /* print previous record(s) */
+	  case REC_KEY:
           case NUM_KEY:                 /* print record selected by number */
             if (!show_by_num(out_stream,err_stream,key))
                 goto err_exit;
@@ -5028,7 +5042,8 @@ static rvm_bool_t do_replay()
                 {
               case trans_hdr_id:
               case log_seg_id:
-                retval=load_sub_rec(rec_hdr->rec_length,cur_direction);
+		  /* retval=load_sub_rec(rec_hdr->rec_length,cur_direction); */
+                retval=load_sub_rec(rec_hdr->rec_length,FORWARD);
                 if (retval != RVM_SUCCESS)
                     {
                     pr_rvm_error(stderr,retval,"reading log");
