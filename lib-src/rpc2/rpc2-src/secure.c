@@ -46,21 +46,8 @@ Pittsburgh, PA.
 #include <assert.h>
 #include "rpc2.private.h"
 
-/* NOTE:
-    Versions of RPC2 prior to May 28 1986 used random() for random number generation since it
-    was supposed to generated more random sequences and allowed multiple sequence to coexist in
-    non-interfering ways.  Unfortunately there seems to be a bug in random() that causes arbitrary
-    bytes of memory to be clobbered.  This appeared in conjunction with Guardian and the bug fix
-    for it caused other arbitrary bytes in RPC2 to be clobbered.
-    
-    Till someone can figure out what is wrong with random, we will use the old-fashioned but safer
-    rand().  The code with NEWRANDOM ifdefs around it documents the changes.
-*/
-
-#ifdef NEWRANDOM
 static char RNState[256];	/* state for random() number generator;
 				can coexist with other states elsewhere  */
-#endif
 
 int rpc2_XDebug;
 
@@ -108,84 +95,51 @@ void rpc2_Decrypt(IN FromBuffer, OUT ToBuffer,  IN HowManyBytes, IN WhichKey, IN
     rpc2_Encrypt(FromBuffer, ToBuffer, HowManyBytes, WhichKey, EncryptionType);
     }
 
-#ifdef NEWRANDOM
 void rpc2_InitRandom()
-    {
-    initstate(rpc2_TrueRandom(), RNState, sizeof(RNState));    
+{
+    initstate(rpc2_TrueRandom(), RNState, sizeof(*RNState));    
     setstate(RNState);		/* default for rpc2_NextRandom() */
-    }
-#else
-void rpc2_InitRandom()
-    {
-    long seed;
+}
 
-    seed = rpc2_TrueRandom();
-    srand(seed);
-    }
-#endif
-
-long rpc2_TrueRandom()
-    /*
-    Returns a non-zero random number which may be used as the seed of a pseudo-random number generator.
-    Obtained by looking at the microseconds part of the time of day.
-    How truly random this is depends on the hardware.  On the VAX and SUNs, it seems reasonable when the lowest
-    byte of gettimeofday is thrown away.
-    */
-    {
+unsigned int rpc2_TrueRandom(void)
+/* Returns a non-zero random number which may be used as the seed of a
+ * pseudo-random number generator. Obtained by looking at the microseconds part
+ * of the time of day. How truly random this is depends on the hardware.  On
+ * the VAX and SUNs, it seems reasonable when the lowest byte of gettimeofday
+ * is thrown away. */
+{
     struct timeval tp;
     long x=0;
 
-    while (x == 0)
-	{
+    while (x == 0) {
 	TM_GetTimeOfDay(&tp, NULL);
 	x = tp.tv_usec >> 8;	/* No sign problems 'cause tv_usec never has high bit set */
-	}    
+    }    
     return(x);
-    }
+}
 
 
-#ifdef NEWRANDOM
-long rpc2_NextRandom(StatePtr)
-    char *StatePtr;
-    /*  Generates the next random number from the sequence corr to StatePtr->state.
-	Restores the generator to use the state it was using upon entry.
-	Isolates multiple random number sequences.
-	Handy when a server is also a client, or when higher-level software also need random numbers.
+unsigned int rpc2_NextRandom(char *StatePtr)
+/* Generates the next random number from the sequence corr to StatePtr->state.
+ * Restores the generator to use the state it was using upon entry. Isolates
+ * multiple random number sequences. Handy when a server is also a client, or
+ * when higher-level software also need random numbers.
+ *
+ * If StatePtr is NULL, the static variable RNState is used as default.
+ *
+ * NOTE: The numbers are less than 2**30 to make overflow problems unlikely. */
+{
+    char *prev_state;
+    unsigned int x;
 
-	If StatePtr is NULL, the static variable RNState is used as default.
+    if (!StatePtr) StatePtr = RNState;	/* it's ok, call by value */
+    prev_state = setstate(StatePtr);
 
-	NOTE: The numbers are less than 2**30 to make overflow problems unlikely.
-    */
-    {
-    char *s;
-    long x;
+    x = ((unsigned int)random() >> 2) & 0x3fff; /* limit to 2**30 */
 
-    if (StatePtr == NULL) StatePtr = RNState;	/* it's ok, call by value */
-    s = (char *) setstate(StatePtr);
-    while ((x = random()) > 1073741824);	/* 2**30 */
-    setstate(s);
+    setstate(prev_state);
     return(x);
-    }
-
-#else
-long rpc2_NextRandom(StatePtr)
-    char *StatePtr;
-    /*  Generates the next random number.
-	NOTE: The numbers are less than 2**30 to make overflow problems unlikely.
-	
-	Uses the old-fashioned rand() rather than the buggy random().
-	StatePtr is ignored and is present only for compatibility with version that
-	uses random().
-    */
-    {
-    long x;
-
-    while ((x = rand()) > 1073741824);	/* 2**30 */
-    return(x);
-    }
-
-#endif
-
+}
 
 void rpc2_ApplyE(RPC2_PacketBuffer *pb,     struct CEntry *ce)
 {

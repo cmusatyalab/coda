@@ -750,7 +750,7 @@ extern void rpc2_Encrypt (char *FromBuffer, char *ToBuffer,
 
 void rpc2_Decrypt (char *FromBuffer, char *ToBuffer, long  HowManyBytes,
     RPC2_EncryptionKey WhichKey, int EncryptionType);
-extern long rpc2_NextRandom (char *StatePtr);
+extern unsigned int rpc2_NextRandom (char *StatePtr);
 
 /* hack until we can do something more sophisticated. */
 extern long rpc2_Bandwidth;
