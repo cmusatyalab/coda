@@ -176,21 +176,24 @@ AC_DEFUN(CODA_CHECK_BCOPY,
       [Define if bcopy et al are defined in the <strings.h> header file])
   fi)
 
-dnl check for library providing md5 checksumming
-AC_SUBST(LIBMD5)
+dnl check for library providing md5 and sha160 checksumming
+AC_SUBST(LIBCRYPTO)
 AC_SUBST(MD5C)
-AC_DEFUN(CODA_CHECK_MD5,
-  [if test "${CRYPTO}" = "yes" ; then
-    AC_CHECK_HEADERS(openssl/md5.h)
-    AC_SEARCH_LIBS(MD5_Init, crypto,
-      [test "$ac_cv_search_MD5_Init" = "none required" || LIBMD5="$ac_cv_search_MD5_Init"
-       LIBS="$ac_func_search_save_LIBS"])
-  else
-    ac_cv_search_MD5_Init="no"
-  fi
-  if test "$ac_cv_search_MD5_Init" = "no"; then
+AC_DEFUN(CODA_CHECK_HASH,
+  [AC_CHECK_HEADERS(openssl/md5.h openssl/sha.h)
+   saved_LIBS="$LIBS"
+   AC_SEARCH_LIBS(MD5_Init, crypto)
+   AC_SEARCH_LIBS(SHA1_Init, crypto)
+   if test "$ac_cv_search_MD5_Init" != "none required" || "$ac_cv_search_SHA1_Init" != "none required"; then
+      LIBCRYPTO="-lcrypto"
+   fi
+   LIBS="$saved_LIBS"
+   if test "$ac_cv_search_MD5_Init" = "no"; then
       MD5C="md5c.o"
-  fi])
+   fi
+   if test "$ac_cv_search_SHA1_Init" = "no"; then
+      AC_MSG_ERROR("Missing SHA-160 checksumming functionality")
+   fi])
 
 AC_SUBST(LIBKRB4)
 AC_SUBST(LIBKRB5)

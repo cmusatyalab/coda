@@ -171,15 +171,15 @@ int fsobj::Fetch(vuid_t vuid) {
       }
       
       memset(emsg, 0, sizeof(emsg));
-      lka_successful = LookAsideAndFillContainer(&mysha, cf.name, stat.Length, 
+      lka_successful = LookAsideAndFillContainer(&mysha, cf.Name(), stat.Length, 
 						 venusRoot, emsg, sizeof(emsg)-1);
       if (emsg[0])
-	LOG(0, ("LookAsideAndFillContainer(%s): %s\n", cf.name, emsg));
+	LOG(0, ("LookAsideAndFillContainer(%s): %s\n", cf.Name(), emsg));
 
       if (lka_successful) {
-	LOG(0, ("Lookaside of %s succeeded!\n", cf.name));
+	LOG(0, ("Lookaside of %s succeeded!\n", cf.Name()));
 	data.file->SetLength(stat.Length);
-	cf.SetValidData(cf.length); 
+	cf.SetValidData(cf.Length()); 
         SetRcRights(RC_DATA | RC_STATUS); /* we now have the data */
 	code = 0; /* success */
       }

@@ -277,7 +277,6 @@ enum FsoState {	FsoRunt,
 #define CACHEFILENAMELEN 12
 
 class CacheFile {
-  friend class fsobj;
     long length;
     long validdata; /* amount of successfully fetched data */
     int  refcnt;

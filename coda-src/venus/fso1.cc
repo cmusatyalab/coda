@@ -678,9 +678,8 @@ void fsobj::UpdateStatusAndSHA(ViceStatus *vstat, vuid_t vuid, RPC2_BoundedBS *n
     LOG(100, ("fsobj::UpdateStatusAndSHA: (%s), uid = %d\n", FID_(&fid), vuid));
 
     if (HAVESTATUS(this)) {		/* {ValidateAttr} */
-      if (!StatusEq(vstat, 0)){
+      if (!StatusEq(vstat, 0))
 	    ReplaceStatusAndSHA(vstat, 0, newsha);
-      }
       /* else ValidateAttr was successful for this object, so
 	 leave SHA alone */
     }
@@ -703,15 +702,6 @@ void fsobj::UpdateStatusAndSHA(ViceStatus *vstat, vuid_t vuid, RPC2_BoundedBS *n
 /* SHA is always cleared by this call */
 void fsobj::UpdateStatusAndClearSHA(ViceStatus *vstat, vv_t *UpdateSet, vuid_t vuid)
 {
-
-    RPC2_BoundedBS zerosha; 
-    RPC2_Byte shabuf[SHA_DIGEST_LENGTH];
-    memset(shabuf, 0, SHA_DIGEST_LENGTH);
-    zerosha.SeqBody = shabuf;
-    zerosha.MaxSeqLen = SHA_DIGEST_LENGTH;
-    zerosha.SeqLen = SHA_DIGEST_LENGTH; 
-
-
     /* Mount points are never updated. */
     if (IsMtPt())
 	{ print(logFile); CHOKE("fsobj::UpdateStatusAndClearSHA: IsMtPt!"); }
@@ -726,7 +716,7 @@ void fsobj::UpdateStatusAndClearSHA(ViceStatus *vstat, vv_t *UpdateSet, vuid_t v
 	/* Ought to Die in this event! */;
 
     
-    ReplaceStatusAndSHA(vstat, UpdateSet, &zerosha);
+    ReplaceStatusAndSHA(vstat, UpdateSet, NULL);
 
     /* Set access rights and parent (if they differ). */
     /* N.B.  It should be a fatal error if they differ! */
@@ -808,8 +798,9 @@ void fsobj::ReplaceStatusAndSHA(ViceStatus *vstat, vv_t *UpdateSet, RPC2_Bounded
     RVMLIB_REC_OBJECT(stat);
     RVMLIB_REC_OBJECT(VenusSHA);
 
-    if (vsha) memcpy(VenusSHA, vsha->SeqBody, SHA_DIGEST_LENGTH);
-    /* we don't ever expect a null pointer value for vsha! */
+    if (vsha && vsha->SeqLen == SHA_DIGEST_LENGTH)
+	 memcpy(VenusSHA, vsha->SeqBody, SHA_DIGEST_LENGTH);
+    else memset(VenusSHA, 0, SHA_DIGEST_LENGTH);
 
     /* We're changing the length? 
      * Then the cached data is probably no longer useable! But try to fix up

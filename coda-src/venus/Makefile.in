@@ -38,8 +38,7 @@ CXXFLAGS += -DVENUS -DTIMING -DVENUSDEBUG -DRVM_USELWP
 DEPLIBS := $(LIBLKA) $(LIBVV) $(LIBVICEDEP) $(LIBREPIO) $(LIBKERNDEP) $(LIBDIRLIB) \
 	   $(LIBUTIL) $(LIBBASE) $(LIBRELAY)
 LIBS := $(DEPLIBS) $(LIBRDSLWP) $(LIBSEG) $(LIBRVMLWP) $(LIBRPC2) $(LIBSE) \
-	$(LIBFAIL) $(LIBLWP) $(LIBSYS) $(LIBKVM) $(LIBCRYPTO) \
-	$(LIBDB) $(LIBMATH) $(LIBS)
+	$(LIBFAIL) $(LIBLWP) $(LIBSYS) $(LIBKVM) $(LIBDB) $(LIBCRYPTO) $(LIBMATH) $(LIBS)
 
 HFILES= adv_monitor.h adv_daemon.h advice.h binding.h comm.h fso.h hdb.h local.h mariner.h mgrp.h sighand.h tallyent.h user.h venus.private.h venus.version.h venuscb.h venusrecov.h venusstats.h venusvol.h venuswb.h vproc.h vsg.h worker.h nt_util.h
 

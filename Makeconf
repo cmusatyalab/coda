@@ -6,7 +6,7 @@
 
 # 11/18/96 Created, Josh Raiff
 # 11/19/96 Modified, Peter Braam
-# 01/03/03 Added libcrypto and liblka, Satya
+# 01/03/03 Added liblka, Satya
 
 
 #########################################################
@@ -76,7 +76,6 @@ LIBFAIL   := -lfail
 
 LIBMATH	    := -lm
 LIBREADLINE := -lreadline
-LIBCRYPTO   := -lcrypto
 
 # -- CODA --
 LIBAL        := ../al/libal.a
@@ -99,7 +98,6 @@ LIBVOL       := ../vol/libvol.a
 LIBVOLUTIL   := ../volutil/libvolutil.a
 LIBVOLSERV   := ../volutil/libvolserv.a
 LIBVV        := ../vv/libvv.a
-
 
 
 ##############################

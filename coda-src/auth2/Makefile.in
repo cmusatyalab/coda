@@ -42,7 +42,7 @@ endif
 
 ifneq ($(LIBKRB4)$(LIBKRB5),)
 AUTHCOMMON += krbcommon.o
-LIBKRBS += $(LIBMD5)
+LIBKRBS += $(LIBCRYPTO)
 endif
 
 LIBAUTH2OBJS=auth2.server.o avice.o pwsupport.o $(AUTHCOMMON)
