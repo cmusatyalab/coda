@@ -478,46 +478,56 @@ again:
 
 		/* users are dumped as:
 		 *
-		 * dn: uid=<username>, $basedn
+		 * dn: cn=<name>,$basedn
 		 * objectClass: top
-		 * objectClass: account
-		 * objectClass: posixAccount
-		 * cn: <username> (/Full name)
-		 * uid: <username>[@$domain]
+		 * objectClass: person
+		 * objectClass: organizationalPerson
+		 * objectClass: inetOrgPerson
+		 * objectClass: codaAccount
+		 * cn: <name>
+		 * uid: <username>
 		 * uidNumber: <userid>
+		 *
+		 * And we 'invent' 2 fields that are required by posixAccount,
 		 * gidNumber: 65535
-		 * homeDirectory: /coda/usr/<username>
+		 * homeDirectory: /coda/<realm>/usr/<username>
 		 */
-		fprintf(ldiffile,
-			"dn: uid=%s, %s\nobjectClass: top\n"
-                        "objectClass: account\nobjectClass: posixAccount\n"
-			"cn: %s\nuid: %s\nuidNumber: %d\ngidNumber: 65535\n"
-			"homeDirectory: /coda/usr/%s\n\n",
-			rec.name, basedn, rec.name, rec.name, rec.id, rec.name);
+		fprintf(ldiffile, "dn: cn=%s,%s\n"
+			"objectClass: top\n"
+                        "objectClass: person\n"
+			"objectClass: organizationalPerson\n"
+			"objectClass: inetOrgPerson\n"
+			"objectClass: posixAccount\n"
+			"cn: %s\nuid: %s\nuidNumber: %d\n"
+			"gidNumber: 65535\n"
+			"homeDirectory: /coda/myrealm/usr/%s\n"
+			"#mail: %s@mydomain\n\n",
+			rec.name, basedn, rec.name, rec.name, rec.id,
+			rec.name, rec.name);
 	    } else {
 		/* skip groups during the first pass */
 		if (pass == 0) continue;
 
 		/* groups and group members are dumped as follows:
 		 *
-		 * dn: cn=<groupname>, $basedn
+		 * dn: cn=<groupname>,$basedn
 		 * objectClass: top
-		 * objectClass: posixGroup
 		 * objectClass: groupOfNames
+		 * objectClass: posixGroup
 		 * cn: <groupname>
 		 * gidNumber: -<groupid>
-		 * owner: <owner>, $basedn
-		 * member: <member1>, $basedn
-		 * memberUid: <member1-uid>
-		 * member: <member2>, $basedn
-		 * memberUid: <member2-uid>
+		 * owner: <ownerdn>
+		 * member: <member1dn>
+		 * member: <member2dn>
 		 * ...
 		 */
 
-		fprintf(ldiffile,
-			"dn: cn=%s, %s\nobjectClass: top\n"
-			"objectClass: posixGroup\nobjectClass: groupOfNames\n"
-			"cn: %s\ngidNumber: %d\nowner: %s, %s\n",
+		fprintf(ldiffile, "dn: cn=%s,%s\n"
+			"objectClass: top\n"
+			"objectClass: groupOfNames\n"
+			"objectClass: posixGroup\n"
+			"#description:\n"
+			"cn: %s\ngidNumber: %d\nowner: cn=%s,%s\n",
 			rec.name, basedn, rec.name, -rec.id, rec.owner_name,
 			basedn);
 
@@ -525,8 +535,7 @@ again:
 		    PDB_lookupById(rec.groups_or_members.data[i], &s);
 		    if (s == NULL) continue;
 
-		    fprintf(ldiffile, "member: %s, %s\nmemberUid: %d\n",
-				    s, basedn, rec.groups_or_members.data[i]);
+		    fprintf(ldiffile, "member: cn=%s,%s\n", s, basedn);
 		    free(s);
 		}
 		fprintf(ldiffile, "\n");
