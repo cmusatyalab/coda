@@ -20,6 +20,7 @@ libdir = @libdir@
 libexecdir = $(exec_prefix)/lib/coda
 bindir = $(exec_prefix)/bin
 sbindir = $(exec_prefix)/sbin
+initsuffix = @initsuffix@
 mandir = @mandir@
 
 host = @host@

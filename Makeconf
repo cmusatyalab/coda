@@ -18,6 +18,7 @@ include $(TOPOBJ)/Makeconf.setup
 LIBEXECDIR:=$(exec_prefix)/lib/coda
 BINDIR:=$(exec_prefix)/bin
 SBINDIR:=$(exec_prefix)/sbin
+INITDIR:=$(exec_prefix)/$(initsuffix)
 MANDIR:=$(mandir)
 
 NATIVECC = cc
