@@ -70,26 +70,28 @@ int (*Fail_SendPredicate)() = NULL,
 static long FailPacket(int (*predicate)(), RPC2_PacketBuffer *pb,
 			   struct RPC2_addrinfo *addr, int sock)
 {
-    long dontFail;
+    long drop;
     unsigned char ip1, ip2, ip3, ip4;
     unsigned char color;
 
     if (!predicate)
-	return RPC2_FALSE;
+	return 0;
 
 #warning "fail filters can only handle ipv4 addresses"
     if (addr->ai_family != PF_INET)
-	return RPC2_FALSE;
+	return 0;
 
-    /* I probably messed up the ordering here as it used to be a whole
-     * bunch of nasty cases and ntohl() -JH */
-    char *addr = (char *)&((struct sockaddr_in *)addr->ai_addr)->sin_addr;
+    struct sockaddr_in *sin =(struct sockaddr_in *)addr->ai_addr;
+    unsigned char *addr = (unsigned char *)&sin->sin_addr;
 
-    ip1 = addr[3]; ip2 = addr[2]; ip3 = addr[1]; ip4 = addr[0]; 
+    ip1 = addr[0]; ip2 = addr[1]; ip3 = addr[2]; ip4 = addr[3]; 
+
     ntohPktColor(pb);
     color = GetPktColor(pb);
     htonPktColor(pb);
-    return !(*predicate)(ip1, ip2, ip3, ip4, color, pb, addr, sock);
+
+    drop = ((*predicate)(ip1, ip2, ip3, ip4, color, pb, sin, sock) == 0);
+    return drop;
 }
 
 void rpc2_XmitPacket(IN long whichSocket, IN RPC2_PacketBuffer *whichPB,
