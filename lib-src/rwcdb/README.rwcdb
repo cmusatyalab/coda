@@ -1,0 +1,61 @@
+This library was written based on the design of Dan Bernstein's CDB
+database (see cdb.txt and reading.txt).
+
+The main difference is that rwcdb allows for (infrequent) updates to the
+database. This implementation has been tested to read and write
+compatible CDB databases as generated with the cdb tools from Dan
+Bernstein.
+
+Functions that only read the database have identical parameters and
+functionality. They have slightly different function naming, rwcdb_
+prefixes instead of cdb_ prefixes. Newly introducted functions try to be
+consistent with the original cdb function's unusual way of returning
+success/failure, i.e. 1 typically indicates success, 0 failure and -1 a
+critical failure.
+
+Newly introducted functions and semantics are,
+
+  int rwcdb_init(struct rwcdb *c, const char *file, const int mode);
+
+    Instead of passing an fd, we pass a filename and the intended mode
+    of operation (O_RDONLY, O_RDWR, or O_WRONLY). Returns -1 when an
+    error occurs, and 0 when the database was opened successfully.
+
+  int rwcdb_next(struct rwcdb *c, int init);
+
+    Used for sequential access to all entries in the database. Set
+    'init' to 1 to rewind to the first entry keylen/datalen/datapos and
+    readkey all work as if we just performed a successful find. If we
+    already iterated over all entries, this function returns 0. When an
+    error is encountered -1 is returned. State across invocations is
+    kept in the rwcdb handle, you can only use one iterator per handle.
+    However there is no interference with any other rwcdb operations.
+
+  int rwcdb_insert(struct rwcdb *c, const char *k, const u_int32_t klen);
+		   const char *d, const u_int32_t dlen);
+
+    Adds an entry to the in-memory list of pending modifications. This
+    replaces any existing entry with the same key. When the database is
+    closed (rwcdb_free), all pending modifications will be written to a
+    new version of the database file (see also rwcdb_sync). Returns -1
+    on errors, and 1 when successful.
+
+  int rwcdb_delete(struct rwcdb *c, const char *k, const u_int32_t klen);
+
+    Adds an entry for the specified key with NULL data to the list of
+    pending modifications. This is a 'negative' entry and during
+    write-out will cause the original entry to be removed from the
+    database. Returns -1 on error, 0 when the key didn't exist in the
+    database and 1 when the entry got removed.
+
+  int rwcdb_sync(struct rwcdb *c);
+
+    Used as a synchronization point. For read-only databases this checks
+    whether there is a new version of the database available.
+
+    For readwrite or write-only databases, it flushes the pending
+    modifications to a temporary file and if everything is successful,
+    moves the new database file in place of the old database.
+
+    return -1 on critical errors and 1 when the sync succeeded.
+
