@@ -10,6 +10,8 @@
 # chkconfig: 345 95 01
 # description: The Coda cache manager.
 
+prefix=@prefix@
+exec_prefix=@exec_prefix@
 
 PATH=/sbin:/usr/sbin:/usr/local/sbin:$PATH
 export PATH
@@ -18,7 +20,7 @@ export PATH
 pid_file=/usr/coda/venus.cache/pid
 
 # overridden from the venus.conf
-[ -f @sysconfdir@/venus.conf ] && . @sysconfdir@/coda/venus.conf
+[ -f @sysconfdir@/venus.conf ] && . @sysconfdir@/venus.conf
 
 [ -f @sbindir@/venus ] || exit 0
 

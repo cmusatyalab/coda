@@ -114,6 +114,9 @@ else
 fi
 	
 %post client
+if [ -e /usr/coda/venus.cache/pid ]; then 
+    rm -f /usr/coda/venus.cache/pid
+fi
 if [ ! -e /etc/coda/venus.conf ]; then 
 	/usr/sbin/venus-setup testserver.coda.cs.cmu.edu 100000
 fi
@@ -144,6 +147,7 @@ fi
 /etc/coda/venus.conf.ex
 /etc/rc.d/init.d/venus.init
 /usr/sbin/@AU@
+/usr/sbin/codaconfedit
 /usr/sbin/venus
 /usr/sbin/venus-setup
 /usr/sbin/volmunge

@@ -41,8 +41,8 @@ EOF
 	cp /dev/null /tmp/mf
     fi
 
-    if [ -f /coda/project/releases/${ver}/src/md5.${ver} ] ; then
-	cat /coda/project/releases/${ver}/src/md5.${ver} >> /tmp/mf
+    if [ -f /coda/project/releases/${ver}/src/coda-${ver}.md5 ] ; then
+	cat /coda/project/releases/${ver}/src/coda-${ver}.md5 >> /tmp/mf
 	mv /tmp/mf net/coda5_${pkg}/files/md5
     fi
     rm -f /tmp/mf
