@@ -122,14 +122,13 @@ static void SwapLog();
 static void U_InitRPC();
 static int U_BindToServer(char *fileserver, RPC2_Handle *RPCid);
 
-static int Rebind = 0;
 static int ReadOnlyAllowed = 0;
 static int CheckAll = 1;
 
 static RPC2_Integer operatorSecs = 0;
 static RPC2_Integer operatorUsecs = 0;
 
-static RPC2_Handle con;
+static RPC2_Handle con = 0;
 static char host[256];
 static int waitinterval = 30;	/* 5 min */
 static int reps = 6;
@@ -221,7 +220,6 @@ int main(int argc, char **argv)
     RPC2_DebugLevel = SrvDebugLevel / 10;
 
     U_InitRPC();
-    Rebind = 1;
 
     gettimeofday(&tp, &tsp);
     LogMsg(0, SrvDebugLevel, stdout, 
@@ -234,11 +232,12 @@ int main(int argc, char **argv)
 
     while (1) {
 
-	if (Rebind) {
+	if (!con) {
 	    ReConnect();
-	    Rebind = 0;
 	    i = reps;
 	}
+	if (!con)
+	    goto retry;
 
 	/* Checking "db" relative to updatesrv working directory. */
 	if (CheckDir("db", 0644)) {
@@ -293,6 +292,7 @@ int main(int argc, char **argv)
 
 	CheckAll = 1;
 
+retry:
 	IOMGR_Select(0, 0, 0, 0, &time);
     }
 }
@@ -533,7 +533,8 @@ static int CheckFile(char *fileName, int mode)
 	LogMsg(0, SrvDebugLevel, stdout, "Fetch failed for '%s' with %s\n",
 	       fileName, ViceErrorMsg((int)rc));
 	if (rc <= RPC2_ELIMIT) {
-	    Rebind = 1;
+	    RPC2_Unbind(con);
+	    con = 0;
 	}
 	return(0);
     }
@@ -595,65 +596,55 @@ static void ReConnect()
     long portmapid;
     long port;
 
-    if (con != 0) {
+    if (con) {
 	LogMsg(0, SrvDebugLevel, stdout, "Unbinding\n");
 	RPC2_Unbind(con);
+	con = 0;
     }
 
-    for (i = 0; i < 100; i++) {
-	    portmapid = portmap_bind(host);
-	    if ( !portmapid ) {
-		    fprintf(stderr, "Cannot bind to rpc2portmap; exiting\n");
-		    IOMGR_Select(0, 0, 0, 0, &time);
-		    continue;
-	    }
-	    rc = portmapper_client_lookup_pbynvp(portmapid, (unsigned char *)"codaupdate", 0, 17, &port);
-	    
-	    if ( rc ) {
-		    fprintf(stderr, "Cannot get port from rpc2portmap; exiting\n");
-		    RPC2_Unbind(portmapid);
-		    IOMGR_Select(0, 0, 0, 0, &time);
-		    continue;
-	    } else 
-		    RPC2_Unbind(portmapid);
-
-	    
-	    hid.Tag = RPC2_HOSTBYNAME;
-	    strcpy(hid.Value.Name, host);
-	    sid.Tag = RPC2_PORTBYINETNUMBER;
-	    sid.Value.InetPortNumber = htons(port);
-	    ssid.Tag = RPC2_SUBSYSBYID;
-	    ssid.Value.SubsysId= SUBSYS_UPDATE;
-	    
-	    time.tv_sec = waitinterval;
-	    time.tv_usec = 0;
-	    
-	    RPC2_BindParms bparms;
-	    memset((void *)&bparms, 0, sizeof(bparms));
-	    bparms.SecurityLevel = RPC2_AUTHONLY;
-	    bparms.EncryptionType = RPC2_XOR;
-	    bparms.SideEffectType = SMARTFTP;
-
-	    gethostname(hostname, 63); hostname[63] = '\0';
-	    cident.SeqBody = (RPC2_ByteSeq)&hostname;
-	    cident.SeqLen = strlen(hostname) + 1;
-	    bparms.ClientIdent = &cident;
-
-	    GetSecret(vice_sharedfile("db/update.tk"), secret);
-	    bparms.SharedSecret = &secret;
-
-	    if ((rc = RPC2_NewBinding(&hid, &sid, &ssid, &bparms, &con))) {
-		    LogMsg(0, SrvDebugLevel, stdout, 
-			   "Bind failed with %s\n", 
-			   (char *)ViceErrorMsg((int)rc));
-		    if (rc < RPC2_ELIMIT)
-			    IOMGR_Select(0, 0, 0, 0, &time);
-		    else
-			    break;
-	    }
-	    else
-		    return ;
+    portmapid = portmap_bind(host);
+    if ( !portmapid ) {
+	fprintf(stderr, "Cannot bind to rpc2portmap; exiting\n");
+	return;
     }
+
+    rc = portmapper_client_lookup_pbynvp(portmapid,
+					 (unsigned char *)"codaupdate", 0, 17,
+					 &port);
+    RPC2_Unbind(portmapid);
+    if (rc) {
+	fprintf(stderr, "Cannot get port from rpc2portmap; exiting\n");
+	return;
+    }
+
+    hid.Tag = RPC2_HOSTBYNAME;
+    strcpy(hid.Value.Name, host);
+    sid.Tag = RPC2_PORTBYINETNUMBER;
+    sid.Value.InetPortNumber = htons(port);
+    ssid.Tag = RPC2_SUBSYSBYID;
+    ssid.Value.SubsysId= SUBSYS_UPDATE;
+
+    RPC2_BindParms bparms;
+    memset((void *)&bparms, 0, sizeof(bparms));
+    bparms.SecurityLevel = RPC2_AUTHONLY;
+    bparms.EncryptionType = RPC2_XOR;
+    bparms.SideEffectType = SMARTFTP;
+
+    gethostname(hostname, 63); hostname[63] = '\0';
+    cident.SeqBody = (RPC2_ByteSeq)&hostname;
+    cident.SeqLen = strlen(hostname) + 1;
+    bparms.ClientIdent = &cident;
+
+    GetSecret(vice_sharedfile("db/update.tk"), secret);
+    bparms.SharedSecret = &secret;
+
+    rc = RPC2_NewBinding(&hid, &sid, &ssid, &bparms, &con);
+    if (rc) {
+	LogMsg(0, SrvDebugLevel, stdout, "Bind failed with %s\n", 
+	       (char *)ViceErrorMsg((int)rc));
+	return;
+    }
+    /* success, we have a new connection */
 }
 
 
