@@ -175,8 +175,10 @@ AC_DEFUN(CODA_CHECK_MD5,
     AC_SEARCH_LIBS(MD5_Init, crypto,
       [test "$ac_cv_search_MD5_Init" = "none required" || LIBMD5="$ac_cv_search_MD5_Init"
        LIBS="$ac_func_search_save_LIBS"])
+  else
+    ac_cv_search_MD5_Init="no"
   fi
-  if test "$ac_cv_search_MD5_Init" != "yes"; then
+  if test "$ac_cv_search_MD5_Init" = "no"; then
       MD5C="md5c.o"
   fi])
 
