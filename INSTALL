@@ -1,13 +1,94 @@
+Coda Pre Alpha Release for Linux
 
-These are instructions how to build the Coda file system.
-
-
-1. Subsystems
-2. Build procedure
+version: 4.0.1
+date: 27/3/97
 
 
 
-1.  There are 5 subsystems that need to be build
+These are partial instructions how to build the Coda file system.
+
+Contents
+
+1. Configuration
+2. Usage
+3. What gets build
+4. Building coda
+
+LICENSE: 
+READ THE FILE COPYING 
+
+WARNING: 
+CODA-LINUX IS NOT READY FOR REAL USE. THIS RELEASE IS JUST FOR THOSE
+INTERESTED IN PLAYINT WITH THOSE FEATURES WHICH WORK. (MANY FEATURES
+DON'T WORK YET ON LINUX). IT CONTAINS KERNEL CODE, AND SERVERS RUNNING
+WITH ROOT PERMISSION, AND COULD LEAD TO DATA LOSS.
+
+
+
+
+1.  Configuration
+	a) on a client run the script linux-utils/venus-setup.
+
+        b) Servers: this is a bit more work. Also note that running
+           a server seriously dips into your virtual memory. Running a 
+           server _and_ a client and X11 I have needed slightly over
+           64M of available VM. The command free gives information.
+
+           Then run 
+              vice-server-setup 
+           Answer the questions. 
+           
+           NOTE: you must mount a filesystem on /vicepa in this
+              preliminary release.  Don't panic if you don't have a 
+              free partition, you can use a file and a loopback
+              device.  Do the following (for 10MB server
+              space):
+
+          insmod loop
+          dd if=/dev/zero of=afile bs=1k count=10000
+	  losetup /dev/loop0 afile
+          mkfs -t ext2 /dev/loop0
+          mount /dev/loop0 /vicepa
+
+  	   NOTE 2: you need the package bc (binary calculator on the server).
+                   get it from Red Hat or from our ftp directory.
+	
+
+2. Usage:
+	a) server startup:
+            srv -rvm /rvm/LOG /rvm/DATA 20480000 -d 1000 &
+            xterm -e tail -f  /vice/srv/SrvLog & 
+           when the server is up:
+            vice-makerootvol 
+           Note: if you didn't use vice-server-setup then you need to 
+           read the manual.
+
+        b) client
+	   start venus with 
+            insmod coda
+	   if your kernel is not version 2.0.29 you should move the module:
+            cp /lib/modules/2.0.29/fs/coda.o /lib/modules/`uname -r`/fs
+
+            venus -init -d 1000 &
+            xterm -e tail -f /usr/coda/venus.cache/venus.log
+            xterm -e codacon
+	   When the server is up cd to /coda and start playing.
+
+
+        c) Restarting a server: currently you will lose your data (I
+           will fix this soon hopefully). 
+           first run 
+             vice-killvolumes (a terrible script wiping your volume
+                               databases)
+             rvmsetup to clean out volume information held in RVM.
+           then start srv as above.
+
+	d) Restarting a client. You should umount /coda, since this 
+ 	   may not get done automatically.
+
+
+
+3.  There are 5 subsystems that need to be build
 
 	a) kernel-src kernel code for coda filesystem calls and 
 	   inode manipulation kernel code.
@@ -17,13 +98,21 @@ These are instructions how to build the Coda file system.
 	c) rvm-src contains the rvm transaction package, depends 
            on threads
         d) coda-src contains source for coda, depends on a, b, c
-        e) util-src contains a variety of tools, for testing, kernel
-           hacking helps. Dependency varies.
+        e) util-src contains nothing right now but will contain
+	   a variety of tools, for testing, kernel
+           hacking. Dependency varies.
 
 
-2.  Building coda. 
-	a) at the top level type make config, answer the questions
+4.  Building coda (outside CMU):
+       -a) unpack the source; you need gcc, g++, flex, ncurses etc, and 
+           80MB to build from source.
+	a) at the top level type ./configure --enable-platform=...
+	   choices: i386_linux2,i386_nbsd1,i386_mach,pmax_mach
+           use other configure flags as desired.
 	b) at the top level type make coda
 	c) at the top level type make install-client, or make install-server
 	d) rebuild kernels if needed
 	e) configure clients/servers and you should be up.
+
+Peter J. Braam
+braam@cs.cmu.edu
