@@ -79,12 +79,14 @@ static long MakeBigEnough();
 #define FAIL(se, rCode)\
 	    {\
 	    sftp_vfclose(se);\
+	    se->SDesc = NULL;\
 	    return(rCode);\
 	    }
 
 #define QUIT(se, RC1, RC2)\
     se->SDesc->LocalStatus = RC1;\
     sftp_vfclose(se);\
+    se->SDesc = NULL;\
     return(RC2);
 
 
@@ -441,10 +443,8 @@ long SFTP_GetRequest(RPC2_Handle ConnHandle, RPC2_PacketBuffer *Request)
     }
 
 
-long SFTP_InitSE(IN ConnHandle, INOUT SDesc)
-    RPC2_Handle ConnHandle;
-    SE_Descriptor *SDesc;
-    {
+long SFTP_InitSE(RPC2_Handle ConnHandle, SE_Descriptor *SDesc)
+{
     struct SFTP_Entry *se;
     int rc;
 
@@ -458,18 +458,17 @@ long SFTP_InitSE(IN ConnHandle, INOUT SDesc)
     se->SDesc = SDesc;
 
     rc = sftp_InitIO(se);
-    if (rc < 0) 
-	{ SDesc->LocalStatus = SE_FAILURE; FAIL(se, RPC2_SEFAIL1); }
-    else
-	return(RPC2_SUCCESS);
+    if (rc < 0) {
+	    SDesc->LocalStatus = SE_FAILURE;
+	    se->SDesc = NULL;
+	    return(RPC2_SEFAIL1);
     }
+    return(RPC2_SUCCESS);
+}
 
 
-long SFTP_CheckSE(IN ConnHandle, INOUT SDesc, IN Flags)
-    RPC2_Handle ConnHandle;
-    SE_Descriptor *SDesc;
-    long Flags;    
-    {
+long SFTP_CheckSE(RPC2_Handle ConnHandle, SE_Descriptor *SDesc, long Flags)
+{
     long rc, flen;
     struct SFTP_Entry *se;
     struct SFTP_Descriptor *sftpd;
@@ -512,40 +511,33 @@ long SFTP_CheckSE(IN ConnHandle, INOUT SDesc, IN Flags)
     switch(sftpd->TransmissionDirection)
 	{
 	case CLIENTTOSERVER:
-	    if (se->PiggySDesc)
-		{/* use squirrelled-away data */
-	    
+	    if (se->PiggySDesc) {
+		/* use squirrelled-away data */
 		p = &se->PiggySDesc->Value.SmartFTPD.FileInfo.ByAddr;
 		rc = sftp_vfwritefile(se, p->vmfile.SeqBody, p->vmfile.SeqLen);
-		if (rc < 0)
-		    {
+		if (rc < 0) {
 		    sftp_SetError(se, DISKERROR);
 		    se->SDesc->LocalStatus = SE_FAILURE;
-		    }
-		else
-		    {
+		} else {
 		    rc = RPC2_SUCCESS;
 		    se->SDesc->LocalStatus = SE_SUCCESS;
 		    sftp_Progress(se->SDesc, p->vmfile.SeqLen);
-		    }
+		}
 		sftp_FreePiggySDesc(se); /* get rid of saved file data */
-		}
-	    else
-		{/* full-fledged file transfer */
+	    } else {
+	        /* full-fledged file transfer */
 		rc = GetFile(se);
-		}
+	    }
 	    break;
 
 	case SERVERTOCLIENT:
 	    flen = sftp_piggybackfilesize(se);
 	    if (SFTP_DoPiggy == FALSE
 		|| ((Flags & SE_AWAITREMOTESTATUS) != 0)
-		|| (flen >= SFTP_MAXBODYSIZE))
-		{/* can't defer transfer to SendResponse */
+		|| (flen >= SFTP_MAXBODYSIZE)) {
+		/* can't defer transfer to SendResponse */
 		rc = PutFile(se);
-		}
-	    else
-		{
+	    } else {
 		/*  Squirrel away contents of file.
 		We have to save the data right away, because the
 		the server may delete or modify the file after
@@ -565,15 +557,16 @@ long SFTP_CheckSE(IN ConnHandle, INOUT SDesc, IN Flags)
 		    se->SDesc->LocalStatus = SE_SUCCESS;
 		    sftp_Progress(se->SDesc, p->vmfile.SeqLen);
 		    }
-		}
+	    }
 	    break;
 
 	default: FAIL(se, RPC2_SEFAIL1);
-	}
+    }
 
     sftp_vfclose(se);
+    se->SDesc = NULL;
     return(rc);
-    }
+}
 
 
 long SFTP_SendResponse(IN ConnHandle, IN Reply)
@@ -1110,6 +1103,9 @@ int sftp_ExtractParmsFromPacket(struct SFTP_Entry *sEntry,
        else structure alignment problem on IBM-RTs */
     memcpy(&sp, &whichP->Body[whichP->Header.BodyLength - sizeof(struct SFTP_Parms)], sizeof(struct SFTP_Parms));
 
+    sEntry->PeerPort = sp.Port;
+    sEntry->PeerPort.Tag = (PortTag)ntohl(sp.Port.Tag);
+
     if (sEntry->WhoAmI == SFSERVER)
     {
 	/* Set up host/port linkage. */
@@ -1119,8 +1115,6 @@ int sftp_ExtractParmsFromPacket(struct SFTP_Entry *sEntry,
     }
     else
 	assert(sEntry->WhoAmI == SFCLIENT);
-
-    sEntry->Masqueraded = (sp.Port.Tag == 0);
 
     sp.WindowSize = ntohl(sp.WindowSize);
     sp.SendAhead = ntohl(sp.SendAhead);

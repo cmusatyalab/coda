@@ -193,7 +193,7 @@ struct SFTP_Entry		/* per-connection data structure */
     RPC2_Handle LocalHandle;	/* which RPC2 conn on this side do I
 				   correspond to? */
     RPC2_PeerInfo  PInfo;	/* all the RPC info  about the other side */
-    int	Masqueraded;		/* set whenever the peer host is masquerading */
+    RPC2_PortIdent PeerPort;	/* SFTP port on the other side */
     struct timeval LastWord;	/* Last time we received something on this SE */
     struct HEntry *HostInfo;	/* Connection-independent host info. set by
 				   ExaminePacket on client side (if

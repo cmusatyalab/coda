@@ -298,7 +298,11 @@ void sftp_ExaminePacket(RPC2_PacketBuffer *pb)
     /* Client records SFTP port here since we may need to use it before we record other parms. */
     if (sfp->GotParms == FALSE && sfp->WhoAmI == SFCLIENT)
     {
-	sfp->Masqueraded = 1;			/* Does this really help? */
+	/* Simply copying the port we got the packet from might interfere with
+	 * masquerading. Hopefully we'll get the SFTP parameters if the client
+	 * uses an older version of SFTP, otherwise he'll miss some messages */
+	//sfp->PeerPort = pb->Prefix.PeerPort;
+	sfp->PeerPort.Tag = 0;
 	sfp->HostInfo = ce->HostInfo;		/* Set up host/port linkage. */
 
 	/* Can't set GotParms to TRUE yet; must pluck off other parms. */
@@ -446,7 +450,7 @@ static void SFSendNAK(RPC2_PacketBuffer *pb)
     /* XXX hack so we can use sftp_XmitPacket */
     fake_se.PInfo.RemoteHost = *whichHost;
     fake_se.PInfo.RemotePort = *whichPort;
-    fake_se.Masqueraded = 1;
+    fake_se.PeerPort.Tag = 0;
 
     sftp_XmitPacket(&fake_se, nakpb);    /* ignore return code */
     SFTP_FreeBuffer(&nakpb);

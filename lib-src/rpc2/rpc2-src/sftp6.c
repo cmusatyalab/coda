@@ -338,8 +338,11 @@ long SFTP_CreateMgrp(IN MgroupHandle)
     PeerInfo->Uniquefier = 0;		/* not used */
     memcpy(PeerInfo->SessionKey, me->SessionKey, sizeof(RPC2_EncryptionKey));
 
-    mse->Masqueraded = 1;
-    /* mse->PeerPort.Value.InetPortNumber = htons(ntohs(mse->PeerPort.Value.InetPortNumber) + 1); */
+    /* Hopefully we'll either get SFTP parameters, or the other side is a
+     * recent version of RPC2 or he'll miss some messages */
+    //mse->PeerPort = PeerInfo->RemotePort;
+    //mse->PeerPort.Value.InetPortNumber = htons(ntohs(mse->PeerPort.Value.InetPortNumber) + 1);
+    mse->PeerPort.Tag = 0;
 
     /* plug in the SFTP descriptor */
     me->SideEffectPtr = (char *)mse;

@@ -73,6 +73,7 @@ struct CBUF_Header *TraceBuf;
 int sftp_XmitPacket(struct SFTP_Entry *sEntry, RPC2_PacketBuffer *pb)
 {
     int whichSocket;
+    RPC2_PortIdent *whichPort;
 #ifdef RPC2DEBUG
     struct TraceEntry *te;
 
@@ -82,14 +83,17 @@ int sftp_XmitPacket(struct SFTP_Entry *sEntry, RPC2_PacketBuffer *pb)
 #endif
 
     whichSocket = sftp_Socket;
+    whichPort = &sEntry->PeerPort;
 
     /* when either side is in `masquerading mode', send the packet out
      * of the rpc2 socket */
-    if (!sftp_Port.Tag || !sEntry->Masqueraded)
+    if (!sftp_Port.Tag || !sEntry->PeerPort.Tag) {
+	/* send from the rpc2 socket to the rpc2 port on the other side */
         whichSocket = rpc2_RequestSocket;
+	whichPort = &sEntry->PInfo.RemotePort;
+    }
 
-    rpc2_XmitPacket(whichSocket, pb,
-		    &sEntry->PInfo.RemoteHost, &sEntry->PInfo.RemotePort);
+    rpc2_XmitPacket(whichSocket, pb, &sEntry->PInfo.RemoteHost, whichPort);
 
     if (ntohl(pb->Header.Flags) & RPC2_MULTICAST) {
 	rpc2_MSent.Total--;
