@@ -67,7 +67,7 @@ int HashString(char *s, unsigned int size);
 void eprint(char *, ...);
 void fdprint(long afd, char *fmt, ...);
 
-#if defined(__CYGWIN32__) || defined(DJGPP)
+#if defined(DJGPP)
 #define MAX(a,b)  ( ((a) > (b)) ? (a) : (b) )
 #define MIN(a,b)  ( ((a) < (b)) ? (a) : (b) )
 #endif
