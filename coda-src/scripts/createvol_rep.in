@@ -65,7 +65,7 @@ VSGADDR=$2
 
 #
 # Create these files if they don't already exist.
-touch ${vicedir}/vol/AllVolumes
+touch ${vicedir}/vol/BigVolumeList
 touch ${vicedir}/vol/VRList
 
 # Validate the <volname> parameter
@@ -108,13 +108,17 @@ done
 
 # Allocate a new groupid if necessary
 if  [ $# = 3 ]; then
-	if  [ -f ${vicedir}/vol/maxgroupid ]; then
-		GROUPID=`cat ${vicedir}/vol/maxgroupid`
+# New location for maxgroupid -- move it.
+        if  [ -f ${vicedir}/vol/maxgroupid ]; then
+		mv ${vicedir}/vol/maxgroupid ${vicedir}/db/maxgroupid
+	fi
+	if  [ -f ${vicedir}/db/maxgroupid ]; then
+		GROUPID=`cat ${vicedir}/db/maxgroupid`
 		HEXGROUPID=`printf %x $GROUPID`
 		MAXGROUPID=`expr $GROUPID + 1`
-		echo $MAXGROUPID > ${vicedir}/vol/maxgroupid
+		echo $MAXGROUPID > ${vicedir}/db/maxgroupid
 	else
-		echo ${vicedir}/vol/maxgroupid not found
+		echo ${vicedir}/db/maxgroupid not found
 		exit 1
 	fi
 else

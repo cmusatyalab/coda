@@ -111,7 +111,7 @@ while [ $n -le $numservers ]; do
 	        echon "What is the hostname for server $n? "
 		read hostname
             done
-	    echo "hostname=$hostname" >> $conf
+	    codaconfedit $conf hostname $hostname
 	fi
     fi
 
@@ -147,21 +147,24 @@ while [ $n -le $numservers ]; do
 	echo  "have templates for servers of approx: 500M, 1G, 2.2G, 3.3G, 8G"
 	echo  "(you can store less, but not more on such servers)."
 	echo  "The corresponding data sizes are  22M, 44M, 90M, 130M, 315M." 
-	echo  "(use 315M only on very fast machines)"
 	echo  "Pick one of the defaults, otherwise I will bail out"
 	echo
 	echo "What is the size of you data partition (or file)"
-	echon "[22M,44M, 90M, 130M, 200M, 315M]: "
+	echon "[22M, 44M, 90M, 130M, 200M, 315M]: "
 	read datasize 
 
 	case $datasize in 
 	    22[mM] | 44[mM] | 90[mM] | 130[mM] | 200[mM] | 315[mM] )
 	        ;;
 	    500[mM] | 1[gG] )
+	        echo *********
 		echo Your size is an experimental size.  Be warned!
+		echo You may want to run with private mapping for RVM.
+		echo ********
 		;;
 	    * )
-		echo "You have selected an unsupported size, are you sure"
+		echo "You have selected an unsupported size and this script"
+		echo "will not setup your RVM with this size.  Are you sure"
 		echon "you want this size?  (yes/no) "
 		yesno=
  		read yesno
@@ -249,6 +252,8 @@ EOF
 	    echo
 	    echo "    -rvm $log $data <size of rvm data in bytes>"
 	    echo
+	    echo "or add the proper entries in the server conf file $conf."
+	    echo
 	    echo "Press return to continue"
 	    read ok
 	    exit 1
@@ -262,10 +267,10 @@ EOF
 
     parms="$dsparm $rvmstart $heapsize $staticsize $nlists $chunk"
 
-    if [ ${haveconf} = 1 ] ; then
-	echo "rvm_log=$log" >> ${conf}
-	echo "rvm_data=$data" >> ${conf}
-	echo "rvm_data_length=$dsparm" >> ${conf}
+    if [ $haveconf = 1 ] ; then
+	codaconfedit $conf rvm_log $log
+	codaconfedit $conf rvm_data $data
+	codaconfedit $conf rvm_data_length $dsparm
     else
 	echo "-rvm $log $data $dsparm" >> ${vicedir}/srv.conf
     fi

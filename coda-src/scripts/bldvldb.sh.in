@@ -66,7 +66,7 @@ do
 done
 
 # Make on big list called composite
-cd ${REMOTE}; cat *.list> ../BigVolumeList
+cat ${REMOTE}/*.list> ${vicedir}/vol/BigVolumeList
 
 # Make a new vldb from the list
 ${prefix}/sbin/volutil makevldb  ${vicedir}/vol/BigVolumeList

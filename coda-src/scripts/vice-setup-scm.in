@@ -44,8 +44,7 @@ if [ x${vicedir} = x ] ; then
 fi
 
 # current first maximum replicated volume id
-mkdir ${vicedir}/vol/remote
-echo 2130706432 > ${vicedir}/vol/maxgroupid
+echo 2130706432 > ${vicedir}/db/maxgroupid
 
 #
 # setting up servers file

@@ -42,10 +42,6 @@ if [ x${vicedir} = x ]; then
     vicedir=/vice
 fi
 
-# More export stuff
-echo vicetab >> ${vicedir}/db/files.export
-echo srv.info >> ${vicedir}/db/files.export
-
 hn=`hostname`
 bn=`echo $hn | cut -f 1 -d .`
 if [ x$bn = x ]; then
@@ -58,12 +54,10 @@ while [ $n -le $numservers ]; do
     # server information prefix
     if [ $numservers -gt 1 ]; then
 	srvprefix=${vicedir}/server_$n
-	echo ../server_$n/vol/VolumeList >> ${vicedir}/db/files.export
 	. @prefix@/etc/coda/server_$n.conf
 	bn=$hostname
     else
 	srvprefix=${vicedir}
-	echo ../vol/VolumeList >> ${vicedir}/db/files.export
     fi
 
     #

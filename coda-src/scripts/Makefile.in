@@ -31,7 +31,7 @@ VOL-SCRIPTS	= createvol_rep purgevol purgevol_rep bldvldb.sh
 VICE-SCRIPTS	= startserver codastart
 REINIT-SCRIPTS	= partial-reinit.sh
 UPGRADE-SCRIPTS	= pwdtopdbtool.py
-VICE-SETUP      = vice-setup vice-setup-rvm vice-setup-scm vice-setup-srvdir vice-setup-user vice-killvolumes vice-setup-ports
+VICE-SETUP      = vice-setup vice-setup-rvm vice-setup-scm vice-setup-srvdir vice-setup-user vice-killvolumes vice-setup-ports codaconfedit
 
 BACKUP-SCRIPTS	= backup.sh tape.pl
 

@@ -51,34 +51,6 @@ echo "Welcome to the Coda Server Setup script!"
 echo
 
 #
-# Ask about scm first!
-# 
-
-isscm=N
-yesno=""
-until [ "x$yesno" != x ]; do
-   echon 'Is this the master server, aka the SCM machine? (y/n) '
-   read yesno
-done
-if [ "x$yesno" = xy -o "x$yesno" = xyes -o "x$yesno" = xY ]; then
-   isscm=Y
-fi
-
-if [ $isscm = N ]; then
-    until [ "x$scmhost" != x ]; do
-	echon "Enter the hostname of the SCM machine : "
-	read scmhost
-    done
-
-    if ! updatefetch -h $scmhost -r servers -l /tmp/Coda.servers ; then
-	echo "Could not contact SCM.  Rerun when SCM is up.";
-	rm /tmp/Coda.servers
-	exit 1;
-    fi
-    
-fi
-
-#
 # initial information
 #
 prefix=@prefix@
@@ -139,8 +111,8 @@ if [ x$vicedir = x ] ; then
 fi
 
 if [ $mkconf = 1 ] ; then
-   echo "vicedir=$vicedir" >> $conf
-   echo "numservers=$numservers" >> $conf
+   codaconfedit $conf vicedir $vicedir
+   codaconfedit $conf numservers $numservers
 fi
 
 if [ ! -d $vicedir ]; then
@@ -152,7 +124,7 @@ cd $vicedir
 
 if [ $numservers = 1 ]; then
 
-    for i in backup db srv vol misc auth2 vol/remote ; do
+    for i in auth2 backup db misc srv vol vol/remote ; do
         if [ ! -d $i ]; then
             mkdir $i
         fi
@@ -166,7 +138,7 @@ else
 	exit 1
     fi
 
-    for i in db misc auth2 vol ; do
+    for i in auth2 db misc vol vol/remote ; do
         if [ ! -d $i ]; then
             mkdir $i
         fi
@@ -182,7 +154,7 @@ else
 	    echon "Hostname for server $n: "
 	    read hostname
 	done
-	echo "hostname=$hostname" > @prefix@/etc/coda/server_$n.conf
+	codaconfedit @prefix@/etc/coda/server_$n.conf hostname $hostname
 	echo Creating $dir and subdirectories.
 	mkdir $dir
         for i in backup srv vol ; do
@@ -203,59 +175,104 @@ echo
 #
 cd ${vicedir}/db
 
-# Save some config information for update.
-echo numservers=$numservers > srv.info
-
 #
-# tokens
-#
-echo
-echo Setting up tokens for authentication.
+# Ask about scm and tokens....
+# 
 
-cd ${vicedir}/db
+isscm=N
+yesno=""
+until [ "x$yesno" != x ]; do
+   echon 'Is this the master server, aka the SCM machine? (y/n) '
+   read yesno
+done
+if [ "x$yesno" = xy -o "x$yesno" = xyes -o "x$yesno" = xY ]; then
+   isscm=Y
+fi
 
-for which in update auth2 volutil; do
+if [ $isscm = N ]; then
+    until [ "x$scmhost" != x ]; do
+	echon "Enter the hostname of the SCM machine : "
+	read scmhost
+    done
+    echo $scmhost > scm
+
     token=""
     until [ "x$token" != x ]; do
-	echo "The following tokens must be identical on all servers."
-	echon "Enter a random token for $which authentication : "
-	read token
+        echon "Enter the update token that matches SCM $scmhost: "
+        read token
     done
 
-    rm -f $which.tk
-    touch $which.tk
-    chmod 600 $which.tk
-    echo "$token" >> $which.tk
-done
-echo tokens done!
+    rm -f update.tk
+    touch update.tk
+    chmod 600 update.tk
+    echo "$token" >> update.tk
 
-touch auth2.lock
+    if ! updatefetch -h $scmhost -r db/servers -l servers ; then
+	echo "Could not contact SCM.  Rerun when SCM is up.";
+	exit 1
+    fi
+
+    echo "Fetching needed files from SCM $scmhost."
+    for which in ROOTVOLUME auth2.pw auth2.tk auth2.lock \
+	prot_users.db prot_index.db volutil.tk files ; do
+        if ! updatefetch -h $scmhost -r db/$which -l $which ; then
+	    echo "Could not fetch $which from SCM.  Make sure SCM is setup"
+	    echo "correctly and then rerun $0."
+	    exit 1
+	fi
+    done
+    echo "Done."
+
+else
+
+    echo
+    echo "Setting up tokens for authentication."
+
+    for which in update auth2 volutil; do
+	token=""
+	until [ "x$token" != x ]; do
+	    echo "The following token must be identical on all servers."
+	    echon "Enter a random token for $which authentication : "
+	    read token
+	done
+
+	rm -f $which.tk
+	touch $which.tk
+	chmod 600 $which.tk
+	echo "$token" >> $which.tk
+    done
+    echo tokens done!
+
+    touch auth2.lock
 
 #
 # files file for update
 #
 
-echo
-echo Setting up the file list for update client
-cat > ${vicedir}/db/files <<EOF
-ROOTVOLUME
-VLDB
+    echo
+    echo Setting up the file list for update client
+    cat > ${vicedir}/db/files <<EOF
 auth2.pw
 auth2.tk
 auth2.tk.BAK
 auth2.lock
-servers
+dumplist
+files
 prot_users.db
 prot_index.db
+servers
+scm
 update.tk
 volutil.tk
+ROOTVOLUME
+VLDB
 VRDB
-files
 VSGDB
-dumplist
 EOF
 
-echo filelist for update ready. 
+    echo Filelist for update ready. 
+
+fi
 
 #
 # adding stuff to /etc/services if needed
@@ -310,8 +327,8 @@ echo $bn > ${vicedir}/hostname
 # server.conf standard 
 #
 if [ $mkconf = 1 ] ; then
-    echo rvmtruncate=5 >> $conf
-    echo trace=100 >> $conf
+    codaconfedit $conf rvmtruncate 5
+    codaconfedit $conf trace 100
 fi
 
 #
@@ -321,7 +338,11 @@ fi
 
 if [ $isscm = Y ]; then
     echo  "Now installing files specific to the SCM..."
-    cp ${vicedir}/db/files ${vicedir}/db/files.export
+    # files.export ...
+    echo "db" >  ${vicedir}/db/files.export
+    for n in `cat ${vicedir}/db/files` ; do
+      echo "db/$n" >>  ${vicedir}/db/files.export
+    done
     if ! ( vice-setup-scm && vice-setup-user && vice-setup-rvm && \
            vice-setup-srvdir ) ; then
 	echo "Your coda server is not completely setup.  You will need"
@@ -334,8 +355,8 @@ if [ $isscm = Y ]; then
     echo "to get going do the following:"
     echo " - start the auth2 server as: auth2"
     echo " - start rpc2portmap as: rpc2portmap"
-    echo " - start updateclnt as:  updateclnt -h $hn -q coda_udpsrv"
-    echo " - start updatesrv as: updatesrv -p ${vicedir}/db"
+    echo " - start updatesrv as: updatesrv"
+    echo " - start updateclnt as:  updateclnt -h $hn"
 
     if [ $numservers = 1 ]; then    
 	echo " - start the fileserver: startserver &"
@@ -347,7 +368,7 @@ if [ $isscm = Y ]; then
  	    echo "        startserver -n $n &"
 	    n=`expr $n + 1`
 	done
-	echo " - wait until server 1 is up: tail -f ${vicedir}/server_1/srv/SrvLog"
+	echo " - wait until server $numservers is up: tail -f ${vicedir}/server_$numservers/srv/SrvLog"
     fi
 
     echo " - create your root volume: createvol_rep $RV E0000100 $DP"
@@ -365,9 +386,6 @@ fi
 
 echo  "Now installing things specific to non-SCM machines..."
 
-echo "$scmhost" > ${vicedir}/db/scm
-touch ${vicedir}/db/files.export
-
 if ! ( vice-setup-rvm && vice-setup-srvdir ) ;  then
     echo "Your coda server is not completely setup.  You will need"
     echo "set it up by hand or fix the problems and rerun $0."
@@ -383,8 +401,7 @@ echo "To finish your server setup you should"
 echo
 echo " start the auth2 server as: auth2"
 echo " start rpc2portmap as: rpc2portmap"
-echo " start updateclnt as:  updateclnt -h $scm -q coda_udpsrv"
-echo " start updatesrv as: updatesrv -p ${vicedir}/db"
+echo " start updateclnt as:  updateclnt -h $scm "
 echo
 #echo " On the SCM ($scm) run: new_server $bn"
 #echo
