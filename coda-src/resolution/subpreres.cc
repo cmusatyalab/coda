@@ -125,7 +125,7 @@ long RS_FetchDirContents(RPC2_Handle RPCid, ViceFid *Fid,
     /* ship the contents  */
     {
 	SLog(9, "RS_FetchDirContents: Shipping dir contents %s", FID_(Fid));
-	bzero((void *)&sid, sizeof(SE_Descriptor));
+	memset(&sid, 0, sizeof(SE_Descriptor));
 	sid.Tag = SMARTFTP;
 	sid.Value.SmartFTPD.TransmissionDirection = SERVERTOCLIENT;
 	sid.Value.SmartFTPD.SeekOffset = 0;

@@ -151,8 +151,8 @@ struct timespec {
 struct venus_dirent {
         unsigned long	d_fileno;		/* file number of entry */
         unsigned short	d_reclen;		/* length of this record */
-        char 		d_type;			/* file type, see below */
-        char		d_namlen;		/* length of string in d_name */
+        unsigned char 	d_type;			/* file type, see below */
+        unsigned char	d_namlen;		/* length of string in d_name */
         char		d_name[CODA_MAXNAMLEN + 1];/* name must be no longer than this */
 };
 #undef DIRSIZ

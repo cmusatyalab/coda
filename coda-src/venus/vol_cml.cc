@@ -2120,8 +2120,8 @@ int ClientModifyLog::COP1(char *buf, int bufsize, ViceVersionVector *UpdateSet) 
     
     /* Set up the SE descriptor. */
     SE_Descriptor sed;
+    memset(&sed, 0, sizeof(SE_Descriptor));
     sed.Tag = SMARTFTP;
-    sed.XferCB = NULL;
     struct SFTP_Descriptor *sei = &sed.Value.SmartFTPD;
     sei->TransmissionDirection = CLIENTTOSERVER;
     sei->hashmark = 0;
@@ -3055,9 +3055,9 @@ int cmlent::WriteReintegrationHandle() {
 
 	/* Set up the SE descriptor. */
 	SE_Descriptor sed;
+        memset(&sed, 0, sizeof(SE_Descriptor));
 	{
 	    sed.Tag = SMARTFTP;
-	    sed.XferCB = NULL;
 	    struct SFTP_Descriptor *sei = &sed.Value.SmartFTPD;
 	    sei->TransmissionDirection = CLIENTTOSERVER;
 	    sei->hashmark = 0;
@@ -3171,8 +3171,8 @@ int cmlent::CloseReintegrationHandle(char *buf, int bufsize,
     
     /* Set up the SE descriptor. */
     SE_Descriptor sed;
+    memset(&sed, 0, sizeof(SE_Descriptor));
     sed.Tag = SMARTFTP;
-    sed.XferCB = NULL;
     struct SFTP_Descriptor *sei = &sed.Value.SmartFTPD;
     sei->TransmissionDirection = CLIENTTOSERVER;
     sei->hashmark = 0;
@@ -3490,7 +3490,7 @@ void RecoverPathName(char *path, ViceFid *fid, ClientModifyLog *CML, cmlent *sta
 	    strcpy(suffix, buf);
 
 	    /* going up to its parent */
-	    if (f->IsRoot()) {
+	    if (f->IsRoot() && f->u.mtpoint) {
 		/* this must be the global-root-node of a local-repair subtree */
 		bcopy((const void *)&((f->u.mtpoint)->pfid), (void *) &cfid, (int)sizeof(ViceFid));
 	    } else {

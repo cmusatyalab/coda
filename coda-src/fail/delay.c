@@ -71,7 +71,7 @@ int Delay_Init()
     DelayQueues.count = 0;
     DelayQueues.size = 4;	/* Good number to start with! */
     LWP_CreateProcess((PFIC) Delay_LWP, 4096, LWP_NORMAL_PRIORITY,
-		      "Delay_LWP", NULL, &DelayLWPPid);
+		      NULL, "Delay_LWP", &DelayLWPPid);
     return 0;
 }
 

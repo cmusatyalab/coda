@@ -120,7 +120,7 @@ static int rs_ShipLogs(RPC2_Handle RPCid, char *buf, int bufsize)
     int errorCode = 0;
 
     SE_Descriptor sid;
-    bzero((void *)&sid, sizeof(SE_Descriptor));
+    memset(&sid, 0, sizeof(SE_Descriptor));
     sid.Tag = SMARTFTP;
     sid.Value.SmartFTPD.TransmissionDirection = SERVERTOCLIENT;
     sid.Value.SmartFTPD.SeekOffset = 0;

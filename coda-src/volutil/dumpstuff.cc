@@ -111,6 +111,7 @@ int FlushBuf(DumpBuffer_t *buf)
     if (buf->rpcid > 0) {
 	/* Write the buffer over to the client via an rpc2 call. */
 	SE_Descriptor sed;
+	memset(&sed, 0, sizeof(SE_Descriptor));
 	sed.Tag = SMARTFTP;
 	sed.Value.SmartFTPD.TransmissionDirection = CLIENTTOSERVER;
 	sed.Value.SmartFTPD.ByteQuota = -1;

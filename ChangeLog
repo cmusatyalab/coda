@@ -1,3 +1,17 @@
+1999-01-19    <jaharkes@cs.cmu.edu>
+
+	* ======== Release 5.0.2 =========
+	* Resolution refcounting fixes. (Peter)
+	* Test if the compiler has -fno-exceptions.
+	* Made auth2 block only 15 seconds when authentication fails.
+	* Corrected initialization for a couple of LWP threads. (Marc)
+	* Zero out SFTP descriptors before usage.
+	* Removed leftover merge conflict in norton/reinit. (Anders Hammarquist)
+	* NetBSD-sparc support and BSD directory format fixes. (Matt Fredette)
+	* Misc other *BSD patches. (Matt and Greg Troxel)
+	* Prevention of DoS in the initial rpc2 bind sequence.
+	* Fix for > 127 char filenames.
+
 1999-01-21    <jaharkes@cs.cmu.edu>
 
 	* ======== Release 5.0.1 =========

@@ -334,12 +334,16 @@ static void InitRPC()
     RPC2_Integer rc;
     RPC2_PortIdent port;
     RPC2_SubsysIdent subsysid;
+    struct timeval tout;
 
     CODA_ASSERT(LWP_Init(LWP_VERSION, LWP_MAX_PRIORITY-1, &mylpid) == LWP_SUCCESS);
+    
+    tout.tv_sec = 15;
+    tout.tv_usec = 0;
 
     port.Tag = RPC2_PORTBYNAME;
     strcpy(port.Value.Name, AUTH_SERVICE);
-    if ((rc = RPC2_Init(RPC2_VERSION, 0, &port, -1, NULL)) != RPC2_SUCCESS) {
+    if ((rc = RPC2_Init(RPC2_VERSION, 0, &port, -1, &tout)) != RPC2_SUCCESS) {
 	LogMsg(-1, 0, stdout, "RPC2_Init failed with %s", RPC2_ErrorMsg(rc));
 	exit(-1);
     }

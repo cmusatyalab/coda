@@ -25,6 +25,9 @@ mandir = @mandir@
 
 host = @host@
 host_alias = @host_alias@
+
+CC=   @CC@
+CXX=  @CXX@
 LIBS= @LIBS@
 
 #

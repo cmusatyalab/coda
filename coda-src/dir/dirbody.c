@@ -883,15 +883,16 @@ int DIR_Convert (PDirHeader dir, char *file, VolumeId vol)
 	return 0;
 }
 
-/* Enumerate the contents of a directory. */
+/* Enumerate the contents of a directory: hook is called
+   with the direntry in NETWORK order */
 int DIR_EnumerateDir(struct DirHeader *dhp, 
 		     int (*hookproc)(struct DirEntry *de, void *hook) , void *hook)
 {
 	int i;
 	int num;
 	int rc = 0;
-	register struct DirEntry *ep;
-    
+	struct DirEntry *ep;
+
 	if (!dhp) 
 		return ENOENT;
 
@@ -905,6 +906,7 @@ int DIR_EnumerateDir(struct DirHeader *dhp,
 				break;
 			num = ntohs(ep->next);
 			rc = (*hookproc) (ep, hook);
+
 			if ( rc ) 
 				return rc;
 		}

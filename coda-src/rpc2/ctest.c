@@ -222,7 +222,7 @@ int main(int arg, char **argv)
 
 	    case FETCHFILE:
 	    case STOREFILE:
-		bzero((char *)&sed, sizeof(sed));  /* initialize */
+		memset(&sed, 0, sizeof(SE_Descriptor));  /* initialize */
 		sed.Tag = SMARTFTP;
 		sed.Value.SmartFTPD.Tag = FILEBYNAME;
 		sed.Value.SmartFTPD.FileInfo.ByName.ProtectionBits = 0644;

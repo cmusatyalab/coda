@@ -105,6 +105,7 @@ static char *get(DumpBuffer_t *buf, int size, int *error)
 	/* We need to refill the buffer */
 	if (buf->rpcid > 0) {
 	    SE_Descriptor sed;
+	    memset(&sed, 0, sizeof(SE_Descriptor));
 	    sed.Tag = SMARTFTP;
 	    sed.Value.SmartFTPD.TransmissionDirection = SERVERTOCLIENT;
 	    sed.Value.SmartFTPD.ByteQuota = -1;

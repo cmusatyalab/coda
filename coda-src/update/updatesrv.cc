@@ -332,6 +332,7 @@ long UpdateFetch(RPC2_Handle RPCid, RPC2_String FileName,
 	} else {
 	    flock(fd, LOCK_SH);
 	}
+	memset(&sid, 0, sizeof(SE_Descriptor));
 	sid.Tag = SMARTFTP;
 	sid.Value.SmartFTPD.TransmissionDirection = SERVERTOCLIENT;
 	sid.Value.SmartFTPD.SeekOffset = 0;

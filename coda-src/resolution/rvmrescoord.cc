@@ -355,7 +355,7 @@ static char *CoordPhase2(res_mgrpent *mgrp, ViceFid *fid,
     
     // set up the parameters 
     SE_Descriptor sid;
-    bzero((void *)&sid, sizeof(SE_Descriptor));
+    memset(&sid, 0, sizeof(SE_Descriptor));
     sid.Tag = SMARTFTP;
     sid.Value.SmartFTPD.TransmissionDirection = SERVERTOCLIENT;
     sid.Value.SmartFTPD.Tag = FILEINVM;
@@ -487,7 +487,7 @@ static int CoordPhase3(res_mgrpent *mgrp, ViceFid *Fid, char *AllLogs, int logsi
 	PBinc.SeqLen = RESCOMM_MAXBSLEN;
 	PBinc.MaxSeqLen = RESCOMM_MAXBSLEN;
 	
-	bzero((void *)&sid, sizeof(SE_Descriptor));
+	memset(&sid, 0, sizeof(SE_Descriptor));
 	sid.Tag = SMARTFTP;
 	sid.Value.SmartFTPD.TransmissionDirection = CLIENTTOSERVER;
 	sid.Value.SmartFTPD.ByteQuota = -1;
@@ -593,7 +593,7 @@ static int CoordPhase4(res_mgrpent *mgrp, ViceFid *Fid,
     } /* drop scope for int i above; to avoid identifier clash */
 	AllocStoreId(&UpdateSet.StoreId);
 	
-	bzero((void *)&sid, sizeof(SE_Descriptor));
+	memset(&sid, 0, sizeof(SE_Descriptor));
 	sid.Tag = SMARTFTP;
 	sid.Value.SmartFTPD.TransmissionDirection = SERVERTOCLIENT;
 	sid.Value.SmartFTPD.Tag = FILEINVM;
@@ -720,7 +720,7 @@ static int ResolveInc(res_mgrpent *mgrp, ViceFid *Fid, ViceVersionVector **VVGro
     
     // set up buffers to get dir contents & status blocks
     {
-	bzero((void *)&sid, sizeof(SE_Descriptor));
+	memset(&sid, 0, sizeof(SE_Descriptor));
 	sid.Tag = SMARTFTP;
 	sid.Value.SmartFTPD.TransmissionDirection = SERVERTOCLIENT;
 	sid.Value.SmartFTPD.Tag = FILEINVM;

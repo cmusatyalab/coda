@@ -652,7 +652,7 @@ long WriteDump(RPC2_Handle rpcid, unsigned long offset, unsigned long *nbytes, V
     }
     
     /* fetch the file with volume data */
-    bzero((void *)&sed, sizeof(sed));
+    memset(&sed, 0, sizeof(SE_Descriptor));
     sed.Tag = SMARTFTP;
     sed.Value.SmartFTPD.TransmissionDirection = CLIENTTOSERVER;
     sed.Value.SmartFTPD.ByteQuota = -1;
@@ -786,7 +786,7 @@ long ReadDump(RPC2_Handle rpcid, RPC2_Unsigned offset, RPC2_Integer *nbytes, Vol
     }
     
     /* fetch the file with volume data */
-    bzero((void *)&sed, sizeof(sed));
+    memset(&sed, 0, sizeof(SE_Descriptor));
     sed.Tag = SMARTFTP;
     sed.Value.SmartFTPD.TransmissionDirection = SERVERTOCLIENT;
     sed.Value.SmartFTPD.ByteQuota = -1;
@@ -1085,7 +1085,7 @@ static void info() {
     sprintf(outfile, "%s", this_argp[3]);	// get output file name 
 
     /* set up side effect descriptor */
-    bzero((void *)&sed, sizeof(sed));
+    memset(&sed, 0, sizeof(SE_Descriptor));
     sed.Tag = SMARTFTP;
     sed.Value.SmartFTPD.Tag = FILEBYNAME;
     sed.Value.SmartFTPD.TransmissionDirection = SERVERTOCLIENT;
@@ -1135,7 +1135,7 @@ static void showvnode() {
     }
     sprintf(outfile, "%s", this_argp[5]);	// get output file name 
     /* set up side effect descriptor */
-    bzero((void *)&sed, sizeof(sed));
+    memset(&sed, 0, sizeof(SE_Descriptor));
     sed.Tag = SMARTFTP;
     sed.Value.SmartFTPD.Tag = FILEBYNAME;
     sed.Value.SmartFTPD.TransmissionDirection = SERVERTOCLIENT;
@@ -1333,7 +1333,7 @@ static void lookup() {
     sprintf(outfile, "%s", this_argp[3]);   // get output file name 
 
     /* set up side effect descriptor */
-    bzero((void *)&sed, sizeof(sed));
+    memset(&sed, 0, sizeof(SE_Descriptor));
     sed.Tag = SMARTFTP;
     sed.Value.SmartFTPD.Tag = FILEBYNAME;
     sed.Value.SmartFTPD.TransmissionDirection = SERVERTOCLIENT;
@@ -1521,7 +1521,7 @@ void timing() {
 	exit(-1);
     }
     /* set up side effect descriptor */
-    bzero((void *)&sed, sizeof(sed));
+    memset(&sed, 0, sizeof(SE_Descriptor));
     sed.Tag = SMARTFTP;
     sed.Value.SmartFTPD.Tag = FILEBYNAME;
     sed.Value.SmartFTPD.TransmissionDirection = SERVERTOCLIENT;
@@ -1626,7 +1626,7 @@ static void tracerpc() {
     sprintf(outfile, "%s", this_argp[2]);	// get output file name 
 
     /* set up side effect descriptor */
-    bzero((void *)&sed, sizeof(sed));
+    memset(&sed, 0, sizeof(SE_Descriptor));
     sed.Tag = SMARTFTP;
     sed.Value.SmartFTPD.Tag = FILEBYNAME;
     sed.Value.SmartFTPD.TransmissionDirection = SERVERTOCLIENT;
@@ -1666,7 +1666,7 @@ static void printstats() {
     sprintf(outfile, "%s", this_argp[2]);	// get output file name 
 
     /* set up side effect descriptor */
-    bzero((void *)&sed, sizeof(sed));
+    memset(&sed, 0, sizeof(SE_Descriptor));
     sed.Tag = SMARTFTP;
     sed.Value.SmartFTPD.Tag = FILEBYNAME;
     sed.Value.SmartFTPD.TransmissionDirection = SERVERTOCLIENT;
@@ -1711,7 +1711,7 @@ static void showcallbacks() {
     }
     /* set up side effect descriptor */
     SE_Descriptor sed;
-    bzero((void *)&sed, sizeof(sed));
+    memset(&sed, 0, sizeof(SE_Descriptor));
     sed.Tag = SMARTFTP;
     sed.Value.SmartFTPD.Tag = FILEBYNAME;
     sed.Value.SmartFTPD.TransmissionDirection = SERVERTOCLIENT;

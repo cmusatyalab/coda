@@ -235,7 +235,7 @@ static int FetchLog(RPC2_Handle RPCid, char **buf, int size) {
     CODA_ASSERT(*buf);
     
     SE_Descriptor	sid;
-    bzero((void *)&sid, (int) sizeof(SE_Descriptor));
+    memset(&sid, 0, sizeof(SE_Descriptor));
     sid.Tag = SMARTFTP;
     sid.Value.SmartFTPD.TransmissionDirection = CLIENTTOSERVER;
     sid.Value.SmartFTPD.SeekOffset = 0;

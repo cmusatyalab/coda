@@ -801,20 +801,20 @@ static void Trace_Swapped_Stack(top, fp, depth, name)
     int     depth;
     char    *name;
 {
-    struct regfile  reg;
     register_t      ip;
-    register_t      esp;
+    register_t      ebp;
+    char           *esp;
     
     /* Set current stack pointer to top */
-    esp = (register_t)top;
+    esp = (char *)top;
 
     /* Simulate a POPA */
-    reg = *(struct regfile *)esp;
+    ebp = ((struct regfile *)esp)->ebp;
     esp += sizeof(struct regfile);
 
     /* Pop the return address (RET) */
     ip = *(register_t *)esp;
-    esp+=sizeof(register_t);
+    esp += sizeof(register_t);
 
     /* 
      * We are now at the bottom of the frame: 
@@ -826,12 +826,12 @@ static void Trace_Swapped_Stack(top, fp, depth, name)
 	fprintf(fp,"\tStack: %s - 0x%x\n", name, ip);
 
         /* make sure we don't segfault while going to the next frame --JH */
-        if (reg.ebp == 0) break;
+        if (ebp == 0) break;
 
 	if (depth) {
 	    /* LEAVE */
-	    esp = reg.ebp;
-	    reg.ebp = *(register_t *)esp;
+	    esp = (char *)ebp;
+	    ebp = *(register_t *)esp;
 	    esp += sizeof(register_t);
 	    /* RET */
 	    ip = *(register_t *)esp;

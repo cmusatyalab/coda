@@ -331,23 +331,28 @@ void rpc2_PrintMEntry(struct MEntry *mPtr, FILE *tFile)
 void rpc2_PrintHostIdent(RPC2_HostIdent *hPtr, FILE *tFile)
 {
     if (tFile == NULL) tFile = rpc2_logfile;	/* it's ok, call-by-value */
-    switch (hPtr->Tag)
-	{
-	case RPC2_HOSTBYINETADDR:
-	case RPC2_MGRPBYINETADDR:
-		{
-		fprintf(tFile, "Host.InetAddress = %s",
-			inet_ntoa(hPtr->Value.InetAddress));
-		break;	
-		}
-	
-	case RPC2_MGRPBYNAME:
-	case RPC2_HOSTBYNAME:
-		fprintf(tFile, "Host.Name = \"%s\"", hPtr->Value.Name);
-		break;
-	
-	default:	fprintf(tFile, "Host = ??????\n");
-	}
+
+    if (hPtr)
+    {
+        switch (hPtr->Tag)
+        {
+        case RPC2_HOSTBYINETADDR:
+        case RPC2_MGRPBYINETADDR:
+            {
+                fprintf(tFile, "Host.InetAddress = %s",
+                        inet_ntoa(hPtr->Value.InetAddress));
+                break;	
+            }
+
+        case RPC2_MGRPBYNAME:
+        case RPC2_HOSTBYNAME:
+            fprintf(tFile, "Host.Name = \"%s\"", hPtr->Value.Name);
+            break;
+
+        default:	fprintf(tFile, "Host = ??????\n");
+        }
+    } else
+        fprintf(tFile, "Host = NULL");
 
     (void) fflush(tFile);
 }

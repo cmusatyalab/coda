@@ -980,12 +980,12 @@ Volume *VGetVolume(Error *ec, register VolumeId volumeId)
 		    rvmlib_begin_transaction(restore);
 		    headerExists = GetVolumeHeader(vp);
 		    rvmlib_end_transaction(flush, &(cstat));
+		    if (cstat){
+			VLog(0, "VGetVolume: WriteVolumeHeader failed!");
+			CODA_ASSERT(0);
+		    }
 		}
 		VLog(29, "VGetVolume: Finished GetVolumeHeader()");
-		if (cstat){
-   		    VLog(0, "VGetVolume: WriteVolumeHeader failed!");
-		    CODA_ASSERT(0);
-		}
 	    }
 	    if (!headerExists) {
 		VolumeReplacements++;

@@ -85,7 +85,7 @@ long S_TraceRpc(RPC2_Handle rpcid, SE_Descriptor *formal_sed) {
     fclose(tracefile);
 
     // ship the file back 
-    bzero((void *)&sed, sizeof(sed));
+    memset(&sed, 0, sizeof(SE_Descriptor));
     sed.Tag = SMARTFTP;
     sed.Value.SmartFTPD.Tag = FILEBYNAME;
     sed.Value.SmartFTPD.TransmissionDirection = SERVERTOCLIENT;

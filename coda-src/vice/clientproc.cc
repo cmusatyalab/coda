@@ -85,8 +85,7 @@ static void client_SetUserName(ClientEntry *);
 int CLIENT_Build(RPC2_Handle RPCid, char *User, RPC2_Integer sl, 
 		 ClientEntry **client) 
 {
-    int errorCode = 0;
-    *client = 0;
+    long errorCode;
 
     /* Translate from textual representation of uid to user name (if necessary). */
     char username[PRS_MAXNAMELEN + 1];
@@ -99,19 +98,19 @@ int CLIENT_Build(RPC2_Handle RPCid, char *User, RPC2_Integer sl,
 
     /* Get the private pointer; it will be used to hold a reference to
        the new client entry. */
-    errorCode = (int) RPC2_GetPrivatePointer(RPCid, (char **)client);
+    errorCode = RPC2_GetPrivatePointer(RPCid, (char **)client);
     if(errorCode != RPC2_SUCCESS)
 	    return(errorCode);
     if (*client) {
 	    SLog(0, "Someone left garbage in the client pointer. Freeing.");
 	    /* I added this; couldn't see any reason not to free it. -JJK */
 	    free((char *)*client);
-	    *client = 0;
+	    *client = NULL;
     }
 
     /* Get a free client table entry and initialize it. */
     *client = (ClientEntry *)malloc(sizeof(ClientEntry));
-    CODA_ASSERT(*client != 0);
+    CODA_ASSERT(*client);
     (*client)->RPCid = RPCid;
     (*client)->NextClient = 0;
     (*client)->DoUnbind = 0;
@@ -122,9 +121,9 @@ int CLIENT_Build(RPC2_Handle RPCid, char *User, RPC2_Integer sl,
 
     /* Stash a reference to the new entry in the connection's private
        pointer. */
-    errorCode = (int) RPC2_SetPrivatePointer(RPCid, (char *)*client);
+    errorCode = RPC2_SetPrivatePointer(RPCid, (char *)*client);
     if(errorCode != RPC2_SUCCESS) {
-	    free((char *)*client);
+	    free(*client);
 	    return(errorCode);
     }
 

@@ -45,7 +45,7 @@ int Fcon_Init()
     subsysid.Value.SubsysId = FCONSUBSYSID;
     CODA_ASSERT(RPC2_Export(&subsysid) == RPC2_SUCCESS);
     LWP_CreateProcess((PFIC) Fcon_LWP, 4096, LWP_NORMAL_PRIORITY,
-		      "Fcon_LWP", NULL, &mypid);
+		      NULL, "Fcon_LWP", &mypid);
     return 0;
 }
 

@@ -591,10 +591,6 @@ int sftp_AckArrived(RPC2_PacketBuffer *pBuff, struct SFTP_Entry *sEntry)
 
 	if (dataThisRound)
 	    sftp_UpdateBW(pBuff, dataThisRound, sEntry);
-
-	/* recalculate the retry timeout */
-	rpc2_RetryInterval(sEntry->HostInfo, dataThisRound, 1,
-			   &sEntry->RInterval);
     }
 
     /* grab the timestamp because we're going to send more data. */

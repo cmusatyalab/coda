@@ -473,6 +473,7 @@ long FS_ViceSendReintFragment(RPC2_Handle RPCid, VolumeId Vid,
     }
 
     /* transfer and append the data */
+    memset(&sid, 0, sizeof(SE_Descriptor));
     sid.Tag = client->SEType;
     sid.Value.SmartFTPD.TransmissionDirection = CLIENTTOSERVER;
     sid.Value.SmartFTPD.SeekOffset = status.st_size;	
@@ -637,6 +638,7 @@ static int ValidateReintegrateParms(RPC2_Handle RPCid, VolumeId *Vid,
 	CODA_ASSERT((rfile = new char[rlen]) != 0);
 
 	SE_Descriptor sid;
+	memset(&sid, 0, sizeof(SE_Descriptor));
 	sid.Tag = SMARTFTP;
 	sid.Value.SmartFTPD.TransmissionDirection = CLIENTTOSERVER;
 	sid.Value.SmartFTPD.SeekOffset = 0;
@@ -2019,6 +2021,7 @@ START_TIMING(Reintegrate_CheckSemanticsAndPerform);
 			goto Exit;
 		    }
 		    SE_Descriptor sid;
+		    memset(&sid, 0, sizeof(SE_Descriptor));
 		    sid.Tag = client->SEType;
 		    sid.Value.SmartFTPD.TransmissionDirection = SERVERTOCLIENT;
 		    sid.Value.SmartFTPD.SeekOffset = 0;

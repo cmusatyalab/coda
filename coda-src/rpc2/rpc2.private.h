@@ -335,8 +335,8 @@ struct Init1Body			/* Client to Server: format of packets with opcode of RPC2_IN
     {
     RPC2_NewConnectionBody FakeBody;	/* body of fake packet from RPC2_GetRequest() */
     RPC2_Integer XRandom;		/* encrypted random number */
-    RPC2_HostIdent   SenderHost;   /* XXX backward compatibility, only sent */
-    RPC2_PortIdent   SenderPort;   /* XXX backward compatibility, only sent */
+    RPC2_HostIdent   SenderHost;   /* XXX not used anymore */
+    RPC2_PortIdent   SenderPort;   /* XXX not used anymore */
     RPC2_Integer Uniquefier;		/* to allow detection of retransmissions */
     RPC2_Integer Spare1;
     RPC2_Integer Spare2;

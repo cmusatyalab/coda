@@ -3703,6 +3703,7 @@ int FetchBulkTransfer(RPC2_Handle RPCid, ClientEntry *client,
 	TM_GetTimeOfDay(&StartTime, 0);
 
 	SE_Descriptor sid;
+	memset(&sid, 0, sizeof(SE_Descriptor));
 	sid.Tag = client->SEType;
 	sid.Value.SmartFTPD.TransmissionDirection = SERVERTOCLIENT;
 	sid.Value.SmartFTPD.SeekOffset = 0;
@@ -3801,7 +3802,7 @@ Exit:
 int FetchFileByName(RPC2_Handle RPCid, char *name, ClientEntry *client) {
     int errorCode = 0;
     SE_Descriptor sid;
-    bzero((void *)&sid, (int) sizeof(SE_Descriptor));
+    memset(&sid, 0, sizeof(SE_Descriptor));
     sid.Tag = client ? client->SEType : SMARTFTP;
     sid.Value.SmartFTPD.TransmissionDirection = CLIENTTOSERVER;
     sid.Value.SmartFTPD.Tag = FILEBYNAME;
@@ -3883,6 +3884,7 @@ START_TIMING(Store_Xfer);
 	TM_GetTimeOfDay(&StartTime, 0);
 
 	SE_Descriptor sid;
+	memset(&sid, 0, sizeof(SE_Descriptor));
 	sid.Tag = client->SEType;
 	sid.Value.SmartFTPD.TransmissionDirection = CLIENTTOSERVER;
 	sid.Value.SmartFTPD.SeekOffset = 0;

@@ -609,9 +609,9 @@ void rpc2_ntohp(RPC2_PacketBuffer *p)
     p->Header.SubsysId = ntohl(p->Header.SubsysId);
     p->Header.ReturnCode = ntohl(p->Header.ReturnCode);
     p->Header.Lamport = ntohl(p->Header.Lamport);
-    p->Header.Uniquefier = htonl(p->Header.Uniquefier);
-    p->Header.TimeStamp = htonl(p->Header.TimeStamp);
-    p->Header.BindTime = htonl(p->Header.BindTime);
+    p->Header.Uniquefier = ntohl(p->Header.Uniquefier);
+    p->Header.TimeStamp = ntohl(p->Header.TimeStamp);
+    p->Header.BindTime = ntohl(p->Header.BindTime);
 #endif
     }
 

@@ -49,6 +49,12 @@ case ${host_alias} in
 		esac
 		vfsdir=bsd44
 		initsuffix=../etc
+;;
+
+	*-*-freebsd4* )
+		sys=i386_fbsd2
+		vfsdir=bsd44
+		initsuffix=../etc
  ;;
 
 	*-*-linux-* )
