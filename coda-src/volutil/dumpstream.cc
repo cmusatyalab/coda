@@ -79,21 +79,31 @@ int GetInt32(FILE *stream, unsigned int *lp)
     return TRUE;
 }
 
-int GetString(FILE *stream, register char *to, register int max)
+int GetString(FILE *stream, char *to, unsigned int max)
 {
-    unsigned int len;
+    unsigned int len, tail = 0;
     if (!GetInt32(stream, &len))
 	return FALSE;
 
-    if ((int)len + 1 > max) {	/* Ensure we only use max room */
-	len = max - 1;
+    if (len > max) {	/* Ensure we only use max room */
 	LogMsg(0, VolDebugLevel, stdout, "GetString: String longer than max (%d>%d) truncating.",len,max);
+	tail = len - max + 1;
+	len = max - 1;
+    } else if (len == max) {
+	/* the dumper 'should' have null-terminated the string, but we add
+	 * the '\0' ourselves just in case */
+	tail = 1;
+	len = max - 1;
     }
     
     while (len--)
 	*to++ = fgetc(stream);
 
-    to[len] = 0;		/* Make it null terminated */
+    *to = '\0';		/* Make it null terminated */
+
+    /* remove any trailing characters */
+    while (tail--)
+	(void)fgetc(stream);
 
     if (feof(stream))
 	return FALSE;
