@@ -125,7 +125,7 @@ int repair_mountrw(struct repvol *repv, VolumeId *rwarray, int arraylen, char *m
 	    snprintf(tmppath, sizeof(tmppath), "%s/%s", repv->rodir, de->d_name);
 	    if (volstat(tmppath, space, sizeof(space))) {
 		strerr(msg, msgsize, "VIOCGETVOLSTAT %s failed", tmppath);
-		return(-1);
+		continue;
 	    }
 
 	    /* allocate new replica and link it in */
@@ -175,7 +175,7 @@ int repair_mountrw(struct repvol *repv, VolumeId *rwarray, int arraylen, char *m
 	    snprintf(tmppath, sizeof(tmppath), "%s/%s", repv->rodir, de->d_name);
 	    if (volstat(tmppath, space, sizeof(space))) {
 		strerr(msg, msgsize, "VIOCGETVOLSTAT %s failed", tmppath);
-		return(-1);
+		continue;
 	    }
 
 	    for (i = 0; i < arraylen; i++) { /* find the array entry for this de */
