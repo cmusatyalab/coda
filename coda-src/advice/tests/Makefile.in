@@ -25,7 +25,7 @@
 # improvements or extensions that  they  make,  and  to  grant  Carnegie
 # Mellon the rights to redistribute these changes without encumbrance.
 # 
-# static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/advice/tests/Makefile.in,v 1.3 1997/12/16 15:20:56 braam Exp $";
+# static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/advice/tests/Makefile.in,v 1.4 97/12/16 15:55:05 braam Exp $";
 
 
 TOPDIR = @top_srcdir@
@@ -71,6 +71,11 @@ fake_venus.o:
 fake_rpc: 
 	rm rpc_setup.o
 	$(CXX) $(CFLAGS) -D__FAKE__ -c ${srcdir}/rpc_setup.cc
+
+
+CODAWISH_LIBS  = $(LIBTIX) $(LIBTK) $(LIBTCL) $(LIBMATH) $(LIBX11)
+
+CFLAGS = -I$(INCTIX) -I$(INCTK) -I$(INCTCL) -I$(INCX11)
 
 
 include $(MAKDIR)/configs/Makerules
