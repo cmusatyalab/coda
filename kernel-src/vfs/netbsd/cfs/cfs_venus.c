@@ -15,6 +15,9 @@
 /*
  * HISTORY
  * $Log: cfs_vnodeops.c,v $
+ * Revision 1.3  1996/12/12 22:11:02  bnoble
+ * Fixed the "downcall invokes venus operation" deadlock in all known cases.  There may be more
+ *
  * Revision 1.2  1996/01/02 16:57:07  bnoble
  * Added support for Coda MiniCache and raw inode calls (final commit)
  *
@@ -1427,10 +1430,13 @@ cfs_rename(odvp, onm, ndvp, nnm, cred, p)
     
     /* Problem with moving directories -- need to flush entry for .. */
     if (odvp != ndvp) {
-	struct vnode *ovp = CTOV( cfsnc_lookup(VTOC(odvp), onm, cred) );
-	if ((ovp) &&
-	    (VN_TYPE(ovp) == VDIR)) /* If it's a directory */
-	    cfsnc_zapfile(VTOC(ovp),"..");
+	struct cnode *ovcp = cfsnc_lookup(VTOC(odvp), onm, cred);
+	if (ovcp) {
+	    struct vnode *ovp = CTOV(ovcp);
+	    if ((ovp) &&
+		(VN_TYPE(ovp) == VDIR)) /* If it's a directory */
+		cfsnc_zapfile(VTOC(ovp),"..");
+	}
     }
     
     /* Remove the entries for both source and target files */
