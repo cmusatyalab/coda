@@ -222,10 +222,9 @@ CDEBUG(D_UPCALL, "process %d woken up by Venus.\n", current->pid);
 		SELWAKEUP(vcommp->vc_selproc);
 	    }
 	} else {	/* If venus died (!VC_OPEN(vcommp)) */
-	    printk("coda_upcall: Venus dead upon (op,un) (%d.%d) flags %d\n",
+	        printk("coda_upcall: Venus dead upon (op,un) (%d.%d) flags %d\n",
 		   vmp->vm_opcode, vmp->vm_unique, vmp->vm_flags);
 	    
-	    if (!vmp->vm_flags & VM_WRITE)
 		error = ENODEV;
 	}
 

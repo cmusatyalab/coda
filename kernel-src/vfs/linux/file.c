@@ -34,6 +34,8 @@ int coda_ioctl_open(struct inode *i, struct file *f);
 void coda_ioctl_release(struct inode *i, struct file *f);
 static int coda_pioctl(struct inode * inode, struct file * filp, 
                        unsigned int cmd, unsigned long arg);
+static int coda_file_fsync(struct inode *, struct file *);
+
 
 /* static stuff */
 static int coda_venus_readdir(struct inode *inode, struct file *filp, 
@@ -44,6 +46,7 @@ static void coda_restore_codafile(struct inode *coda_inode, struct file *coda_fi
                            struct inode *open_inode, struct file *open_file);
 static int coda_inode_grab(dev_t dev, ino_t ino, struct inode **ind);
 static struct super_block *coda_find_super(kdev_t device);
+static int venus_fsync(struct super_block *sb, struct ViceFid *fid);
 
 /* external to this file */
 void coda_load_creds(struct CodaCred *cred);
@@ -65,7 +68,10 @@ struct file_operations coda_dir_operations = {
         NULL,                   /* mmap */
         coda_open,              /* open */
         coda_release,           /* release */
-        NULL,                   /* fsync */
+        coda_file_fsync,             /* fsync */
+	NULL,                   /* fasync */
+	NULL,                   /* check_media_change */
+        NULL                    /* revalidate */
 };
 
 struct file_operations coda_file_operations = {
@@ -78,7 +84,10 @@ struct file_operations coda_file_operations = {
 	generic_file_mmap,      /* mmap */
 	coda_open,              /* open */
 	coda_release,           /* release */
-	NULL,		        /* fsync */
+	coda_file_fsync,	        /* fsync */
+	NULL,                   /* fasync */
+	NULL,                   /* check_media_change */
+        NULL                    /* revalidate */
 };
 
 struct file_operations coda_ioctl_operations = {
@@ -468,7 +477,91 @@ coda_file_write(struct inode *coda_inode, struct file *coda_file,
 
         return result;
 }
+
+static int 
+coda_file_fsync(struct inode *coda_inode, struct file *coda_file)
+{
+        struct cnode *cnp;
+        struct inode *cont_inode = NULL;
+        struct file  cont_file;
+        int result = 0;
+
+        ENTRY;
+
+        cnp = ITOC(coda_inode);
+        CHECK_CNODE(cnp);
+        
+        if ( IS_DYING(cnp) ) {
+             COMPLAIN_BITTERLY(rdwr, cnp->c_fid);
+             return -ENODEV;
+        }
+
+        cont_inode = cnp->c_ovp;
+
+        if ( cont_inode == NULL ) {
+                /* I don't understand completely if Linux has the file open 
+                   for every possible read operation -- if not there may be no
+                   open inode pointer in the cnode. The netbsd code seems
+                   to deal with a lot of exceptions for dumping core,
+                   loading pages of executables etc. My impression is that
+                   linux has a file pointer open in all these cases. So 
+                   let's try this for now. Perhaps we need to contact Venus. */
+                printk("coda_file_write: cached inode is 0!\n");
+                return -1; 
+        }
+
+        coda_prepare_openfile(coda_inode, coda_file, cont_inode, &cont_file);
+
+        if ( ! cont_file.f_op ) { 
+                printk("coda_file_write: container file has no file ops.\n");
+                return 0;
+        }
+
+        if ( ! cont_file.f_op->fsync ) {
+                printk("coda_file_fsync: fsync not supported by container.\n" );
+                return 0;
+        }
+         
+        /*        cnp->c_flags &= ~C_VATTR; */
+
+	down(&cont_inode->i_sem);
+        result = cont_file.f_op->fsync(cont_inode, &cont_file);
+	up(&cont_inode->i_sem);
+        coda_restore_codafile(coda_inode, coda_file, cont_inode, &cont_file);
+
+	if ( result ) 
+		return result;
+	
+	/* now tell Venus to sync RVM */
+	result = venus_fsync(coda_inode->i_sb, &(cnp->c_fid));
+	return result;
+}
                 
+static int venus_fsync(struct super_block *sb, struct ViceFid *fid)
+{
+	struct inputArgs *inp;
+	struct outputArgs *outp;
+	int size, error;
+	
+	CODA_ALLOC(inp, struct inputArgs *, sizeof(struct inputArgs));
+        outp = (struct outputArgs *)inp;
+        INIT_IN(inp, CFS_FSYNC);
+        inp->d.cfs_fsync.VFid = *fid;
+	size=VC_INSIZE(cfs_fsync_in);
+
+        coda_load_creds(&(inp->cred));
+        error = coda_upcall(coda_sbp(sb), sizeof(struct inputArgs), 
+                            &size, (char *)inp);
+
+        if (!error) 
+                error = outp->result;
+
+	if ( inp ) 
+		CODA_FREE(inp, sizeof(struct inputArgs));
+	return -error;
+}
+
+
 void 
 coda_prepare_openfile(struct inode *i, struct file *coda_file, 
                       struct inode *cont_inode, struct file *cont_file)
