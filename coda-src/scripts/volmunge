@@ -18,7 +18,7 @@ sub getfid {
     local($cfsout, $error);
     local(@fid);
 #    print "getfid on $_[0]\n";
-        $cfsout = `$CFS gf $_[0] 2>&1`; # || die "cfs error on $_[0]\n";
+        $cfsout = `$CFS gf "$_[0]" 2>&1`; # || die "cfs error on $_[0]\n";
     $error = $?;
     if ( $error ) {
 	print STDERR "cfs returns $error. Exiting.\n";
