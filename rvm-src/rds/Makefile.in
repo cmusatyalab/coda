@@ -41,7 +41,7 @@
 # changes  without  encumbrance.   Such improvements and extensions
 # should be returned to Software.Distribution@cs.cmu.edu.
 #
-# rcsid = $Header: /afs/cs/project/coda-src/cvs/coda/rvm-src/rds/Makefile.in,v 4.2 97/04/29 21:27:25 rvb Exp $
+# rcsid = $Header: /afs/cs/project/coda-src/cvs/coda/rvm-src/rds/Makefile.in,v 4.3 1997/07/16 15:09:23 rvb Exp $
 #
 
 #   	RDS Makefile: depends on csmake.
@@ -127,13 +127,17 @@ librds.a: $(NEED_CTHREAD) $(OBJ1)
 # Grungy, but no other way I know of.
 .INOBJECTDIR: ${LWPSRC1}
 
+# better be "ln -sf", but we don't have it on mach platform
 %.l.c : %.c
+	-rm $@
 	ln -s $? $@
 
 %.l.o : %.l.c
 	$(CC) -DRVM_USELWP $(CFLAGS) -c $<
 
+# better be "ln -sf", but we don't have it on mach platform
 %.pt.c : %.c
+	-rm $@
 	ln -s $? $@
 
 %.pt.o : %.pt.c
@@ -143,12 +147,12 @@ librds.a: $(NEED_CTHREAD) $(OBJ1)
 # will be truncated.
 librdslwp.a: $(LWPOBJ1)
 	$(RM) $@
-	$(AR) rv $@ $?
+	$(AR) rv $@ $(LWPOBJ1)
 	ranlib $@
 
 librdspt.a: $(PTOBJ1)
 	$(RM) $@
-	$(AR) rv $@ $?
+	$(AR) rv $@ $(PTOBJ1)
 	ranlib $@
 
 rdsinit: $(NEED_CTHREAD) $(OBJ2) librds.a $(RDSINIT_LIBS)

@@ -42,7 +42,7 @@
 # changes  without  encumbrance.   Such improvements and extensions
 # should be returned to Software.Distribution@cs.cmu.edu.
 #
-# rcsid = $Header: /afs/cs/project/coda-src/cvs/coda/rvm-src/rvm/Makefile.in,v 4.4 1997/07/16 15:09:25 rvb Exp $
+# rcsid = $Header: /afs/cs/project/coda-src/cvs/coda/rvm-src/rvm/Makefile.in,v 4.5 1997/07/22 23:05:59 clement Exp $
 #
 
 TOPDIR = @top_srcdir@
@@ -142,7 +142,9 @@ librvm.a:  $(NEED_CTHREAD) $(OBJ1)
 %.l.o : %.l.c
 	$(CC) -DRVM_USELWP $(CFLAGS) -c $<
 
+# better be "ln -sf", but we don't have it on mach platform 
 %.pt.c : %.c
+	-rm $@
 	ln -s $? $@
 
 %.pt.o : %.pt.c
@@ -152,12 +154,12 @@ librvm.a:  $(NEED_CTHREAD) $(OBJ1)
 #truncated
 librvmlwp.a: $(LWPOBJ1)
 	$(RM) $@
-	$(AR) rv $@ $?
+	$(AR) rv $@ $(LWPOBJ1)
 	ranlib $@
 
 librvmpt.a: $(PTOBJ1)
 	$(RM) $@
-	$(AR) rv $@ $?
+	$(AR) rv $@ $(PTOBJ1)
 	ranlib $@
 
 rvmutl: $(NEED_CTHREAD) ${OBJ2} librvm.a ${RVMUTL_LIBS}
