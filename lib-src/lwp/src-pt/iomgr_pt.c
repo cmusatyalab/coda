@@ -30,6 +30,7 @@ static void iomgr_sigio_handler(int n)
 {
     struct sigaction action;
    
+    memset(&action, 0, sizeof(struct sigaction));
     action.sa_handler  = iomgr_sigio_handler;
     sigemptyset(&action.sa_mask);
     action.sa_flags    = 0;
