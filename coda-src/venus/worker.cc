@@ -1090,6 +1090,7 @@ void worker::main(void)
     int     saveFlags;
     int     opcode;
     int     size;
+    int     openfd;
 
     for (;;) {
 	/* Wait for new request. */
@@ -1291,11 +1292,12 @@ void worker::main(void)
 		MAKE_CNODE(vtarget, in->coda_open_by_fd.VFid, 0);
 		open(&vtarget, in->coda_open_by_fd.flags);
 		
+                openfd = -1;
 		if (u.u_error == 0) {
 		    MarinerReport(&vtarget.c_fid, CRTORUID(u.u_cred));
 
-		    out->coda_open_by_fd.fd = ::open(vtarget.c_cfname,
-                                                     O_RDWR | O_BINARY, V_MODE);
+		    openfd = ::open(vtarget.c_cfname, O_RDWR|O_BINARY, V_MODE);
+		    out->coda_open_by_fd.fd = openfd;
                     LOG(10, ("CODA_OPEN_BY_FD: fd = %d\n",
                              out->coda_open_by_fd.fd));
 		    size = sizeof (struct coda_open_by_fd_out);
@@ -1451,6 +1453,9 @@ void worker::main(void)
 
         out->oh.result = u.u_error;
         Resign(msg, size);
+
+        if (opcode == CODA_OPEN_BY_FD && openfd != -1)
+            ::close(openfd);
 
         if (opcode == CODA_OPEN ||
             opcode == CODA_OPEN_BY_FD ||
