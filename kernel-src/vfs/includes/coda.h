@@ -72,6 +72,7 @@ struct timespec {
 #define	C_O_WRITE       0x002
 #define C_O_TRUNC       0x010
 #define C_O_EXCL	0x100
+#define C_O_CREAT	0x200
 
 /* these are to find mode bits in Venus */ 
 #define C_M_READ  00400
@@ -80,6 +81,7 @@ struct timespec {
 /* for access Venus will use */
 #define C_A_R_OK    4               /* Test for read permission.  */
 #define C_A_W_OK    2               /* Test for write permission.  */
+#define C_A_C_OK    8               /* Test for writing upon create.  */
 #define C_A_X_OK    1               /* Test for execute permission.  */
 #define C_A_F_OK    0               /* Test for existence.  */
 
@@ -148,8 +150,8 @@ static inline ino_t coda_f2i(struct ViceFid *fid)
 
 #ifndef _VUID_T_
 #define _VUID_T_
-typedef unsigned int vuid_t;
-typedef unsigned int vgid_t;
+typedef u_int32_t vuid_t;
+typedef u_int32_t vgid_t;
 #endif /*_VUID_T_ */
 
 #ifndef _CODACRED_T_
