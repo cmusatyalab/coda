@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/user.cc,v 4.12 98/11/02 16:46:19 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/user.cc,v 4.13 1998/11/24 15:34:51 jaharkes Exp $";
 #endif /*_BLURB_*/
 
 
@@ -398,7 +398,8 @@ int userent::Connect(RPC2_Handle *cid, int *auth, unsigned long host) {
 	/* If the user has valid tokens and he is not root, we specify an authenticated mgrp. */
 	/* Otherwise, we specify an unauthenticated mgrp. */
 	long sl;
-	if (uid != V_UID && tokensvalid) {
+	/* root can now own tokens */
+	if (/* uid != V_UID && */tokensvalid) {
 	    sl = RPC2_AUTHONLY;
 	    *auth = 1;
 	}
@@ -436,7 +437,8 @@ int userent::Connect(RPC2_Handle *cid, int *auth, unsigned long host) {
 	RPC2_CountedBS clientident;
 	RPC2_BindParms bparms;
 
-	if (uid != V_UID && tokensvalid) {
+	/* root can now own tokens */
+	if (/* uid != V_UID && */ tokensvalid) {
 	    clientident.SeqLen = sizeof(SecretToken);
 	    clientident.SeqBody = (RPC2_ByteSeq)&secret;
 	    bparms.SecurityLevel = RPC2_AUTHONLY;
