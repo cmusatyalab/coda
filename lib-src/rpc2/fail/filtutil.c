@@ -428,6 +428,36 @@ int open_connection(target_t target)
     return 0;
 }
 
+/* another connect function that is still referenced from some places */
+int NewConn(char *hostname, short port, unsigned long *cid)
+{
+    int rc;
+    RPC2_HostIdent hident;
+    RPC2_PortIdent pident;
+    RPC2_SubsysIdent sident;
+    RPC2_BindParms bparms;
+
+    hident.Tag = RPC2_HOSTBYNAME;
+    strcpy(hident.Value.Name, hostname);
+    
+    sident.Value.SubsysId = FCONSUBSYSID;
+    sident.Tag = RPC2_SUBSYSBYID;
+
+    pident.Tag = RPC2_PORTBYINETNUMBER;
+    pident.Value.InetPortNumber = htons(port);
+
+    bparms.SecurityLevel = RPC2_OPENKIMONO;
+    bparms.SharedSecret = NULL;
+    bparms.ClientIdent = NULL;
+    bparms.SideEffectType = 0;
+    bparms.Color = FAIL_IMMUNECOLOR;
+
+    rc = RPC2_NewBinding(&hident, &pident, &sident, &bparms, cid);
+
+    return rc;
+}
+
+
 /* Unbind the RPC2 connection */
 void close_connection()
 {
