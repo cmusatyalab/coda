@@ -126,12 +126,12 @@ function MakePLIST () {
     then
 	cat > ${dst} << EOF
 @comment \$NetBSD\$
-lib/liblwp.so.$(GENERIC_VERSION)
+lib/liblwp.so.@GENERIC_VERSION@
 EOF
     else
 	cat > ${dst} << EOF
 lib/liblwp.so
-lib/liblwp.so.$(FREEBSD_VERSION)
+lib/liblwp.so.@FREEBSD_VERSION@
 EOF
     fi
 
