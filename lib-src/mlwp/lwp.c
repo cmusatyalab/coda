@@ -110,7 +110,7 @@ typedef void *register_t;
 /*----------------------------------------*/
 
 FILE *lwp_logfile = NULL;
-int     lwp_debug =  = 00;
+int     lwp_debug = 0;
 FILE   *lwp_logfile;
 int 	LWP_TraceProcesses = 0;
 PROCESS	lwp_cpptr;

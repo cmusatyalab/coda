@@ -88,7 +88,7 @@ Pittsburgh, PA.
 typedef struct lwp_pcb *PROCESS;
 
 
-extern signed char lwp_debug;			/* ON = show LWP debugging trace */
+extern int lwp_debug;			/* ON = show LWP debugging trace */
 
 /* Action to take on stack overflow. */
 #define LWP_SOQUIET	1		/* do nothing */
