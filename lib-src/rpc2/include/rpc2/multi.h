@@ -106,7 +106,7 @@ typedef struct arg_info {
 	    if (mode == IN_OUT_MODE && &(object) != 0) name##_bufs[name##_local_i] = (object);\
 	    name##_bufs[name##_local_i].SeqBody = (RPC2_ByteSeq)&name##_data[name##_local_i * maxbslen];\
 	    if ((object).SeqLen > 0) \
-		bcopy((object).SeqBody, name##_bufs[name##_local_i].SeqBody, (int)(object).SeqLen);\
+		memmove(name##_bufs[name##_local_i].SeqBody, (object).SeqBody, (int)(object).SeqLen);\
 	}\
     }
 
@@ -131,7 +131,7 @@ typedef struct arg_info {
 	RPC2_Integer seqlen = name##_bufs[ix].SeqLen;\
 	(object).SeqLen = seqlen;\
 	if (seqlen > 0)\
-	    bcopy(name##_bufs[ix].SeqBody, (object).SeqBody, (int) seqlen);\
+	    memmove((object).SeqBody, name##_bufs[ix].SeqBody, (int) seqlen);\
     }
 
 #define ARG_UNMARSHALL_ARRAY(name, numelts, object, ix)\
