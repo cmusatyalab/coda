@@ -306,20 +306,23 @@ void AppendPW(int vId, RPC2_EncryptionKey eKey, char *otherInfo, int agentId)
 /* Add a user to the PW database */
 long PWNewUser(RPC2_Handle cid, RPC2_Integer viceId, RPC2_EncryptionKey initKey, RPC2_String otherInfo)
 {
-	struct UserInfo *p;
+	union {
+	    struct UserInfo *p;
+	    char *c;
+	} u;
 
 	/* Do not allow if this is a read only server */
 	if(CheckOnly)
 		return(AUTH_READONLY);
 
 	/* make sure it's a system administrator */
-	RPC2_GetPrivatePointer(cid, (char **)&p);
-	if (p == NULL || p->HasQuit == TRUE) return(AUTH_FAILED);
-	p->LastUsed = time(0);
-	if (!IsAdministrator(p))
+	RPC2_GetPrivatePointer(cid, &u.c);
+	if (!u.p || u.p->HasQuit == TRUE) return(AUTH_FAILED);
+	u.p->LastUsed = time(0);
+	if (!IsAdministrator(u.p))
 	{
 		char buf1[PRS_MAXNAMELEN], buf2[PRS_MAXNAMELEN];
-		LogMsg(-1, 0, stdout, "AuthNewUser() attempt on  %s by %s denied", GetVname(viceId, buf1), GetVname(p->ViceId, buf2));
+		LogMsg(-1, 0, stdout, "AuthNewUser() attempt on  %s by %s denied", GetVname(viceId, buf1), GetVname(u.p->ViceId, buf2));
 		return(AUTH_DENIED);
 	}
 
@@ -327,35 +330,37 @@ long PWNewUser(RPC2_Handle cid, RPC2_Integer viceId, RPC2_EncryptionKey initKey,
 
 	/* make the change */
 	if (BogusKey(initKey)) return(AUTH_BADKEY);
-	AppendPW(viceId, initKey, (char *)otherInfo, p->ViceId);
+	AppendPW(viceId, initKey, (char *)otherInfo, u.p->ViceId);
 	return(AUTH_SUCCESS);
 }
 
 /* remove a user from the password file */
 long PWDeleteUser(RPC2_Handle cid, RPC2_Integer viceId)
 {
-	struct UserInfo *p;
+	union {
+	    struct UserInfo *p;
+	    char *c;
+	} u;
 
 	/* Do not allow if this is a read only server */
 	if (CheckOnly)
 		return(AUTH_READONLY);
 
 	/* make sure it's a system administrator */
-	RPC2_GetPrivatePointer(cid, (char **)&p);
-	if (p == NULL || p->HasQuit == TRUE) 
+	RPC2_GetPrivatePointer(cid, &u.c);
+	if (!u.p || u.p->HasQuit == TRUE) 
 		return(AUTH_FAILED);
-	p->LastUsed = time(0);
-	if (!IsAdministrator(p))
+	u.p->LastUsed = time(0);
+	if (!IsAdministrator(u.p))
 	{
 		char buf1[PRS_MAXNAMELEN], buf2[PRS_MAXNAMELEN];
-		LogMsg(-1, 0, stdout, "AuthDeleteUser() attempt on  %s by %s denied", GetVname(viceId, buf1), GetVname(p->ViceId, buf2));
+		LogMsg(-1, 0, stdout, "AuthDeleteUser() attempt on  %s by %s denied", GetVname(viceId, buf1), GetVname(u.p->ViceId, buf2));
 		return(AUTH_DENIED);
 	}
 	if (!IsAUser(viceId)) return(AUTH_FAILED);
 
 	/* make the change */
-
-	AppendPW(viceId, DeleteKey, "", p->ViceId);
+	AppendPW(viceId, DeleteKey, "", u.p->ViceId);
 	return(AUTH_SUCCESS);
 }
 
@@ -363,7 +368,10 @@ long PWDeleteUser(RPC2_Handle cid, RPC2_Integer viceId)
 long PWChangeUser(RPC2_Handle cid, RPC2_Integer viceId, RPC2_EncryptionKey newKey, RPC2_String otherInfo)
 {
 	int i;
-	struct UserInfo *p;
+	union {
+	    struct UserInfo *p;
+	    char *c;
+	} u;
 
 	if (AuthDebugLevel)
 	{
@@ -378,13 +386,13 @@ long PWChangeUser(RPC2_Handle cid, RPC2_Integer viceId, RPC2_EncryptionKey newKe
 		return(AUTH_READONLY);
 
 	/* make sure it's a system administrator */
-	RPC2_GetPrivatePointer(cid, (char **)&p);
-	if (p == NULL || p->HasQuit == TRUE) return(AUTH_FAILED);
-	p->LastUsed = time(0);
-	if (!IsAdministrator(p))
+	RPC2_GetPrivatePointer(cid, &u.c);
+	if (!u.p || u.p->HasQuit == TRUE) return(AUTH_FAILED);
+	u.p->LastUsed = time(0);
+	if (!IsAdministrator(u.p))
 	{
 		char buf1[PRS_MAXNAMELEN], buf2[PRS_MAXNAMELEN];
-		LogMsg(-1, 0, stdout, "AuthChangeUser() attempt on  %s by %s denied", GetVname(viceId, buf1), GetVname(p->ViceId, buf2));
+		LogMsg(-1, 0, stdout, "AuthChangeUser() attempt on  %s by %s denied", GetVname(viceId, buf1), GetVname(u.p->ViceId, buf2));
 		return(AUTH_DENIED);
 	}
 
@@ -392,7 +400,7 @@ long PWChangeUser(RPC2_Handle cid, RPC2_Integer viceId, RPC2_EncryptionKey newKe
 
 	/* make the change */
 	if (BogusKey(newKey)) return(AUTH_BADKEY);
-	AppendPW(viceId, newKey, (char *)otherInfo, p->ViceId);
+	AppendPW(viceId, newKey, (char *)otherInfo, u.p->ViceId);
 	return(AUTH_SUCCESS);
 }
 		
@@ -400,7 +408,10 @@ long PWChangeUser(RPC2_Handle cid, RPC2_Integer viceId, RPC2_EncryptionKey newKe
 long PWChangePasswd(RPC2_Handle cid, RPC2_Integer viceId, RPC2_String Passwd)
 {
 	int i;
-	struct UserInfo *p;
+	union {
+	    struct UserInfo *p;
+	    char *c;
+	} u;
 	RPC2_EncryptionKey newPasswd;
 	int len;
 
@@ -424,13 +435,13 @@ long PWChangePasswd(RPC2_Handle cid, RPC2_Integer viceId, RPC2_String Passwd)
 		return(AUTH_READONLY);
 
 	/* Ensure it's a system administrator or the user himself */
-	RPC2_GetPrivatePointer(cid, (char **)&p);
-	if (p == NULL || p->HasQuit == TRUE) return(AUTH_FAILED);
-	p->LastUsed = time(0);
-	if (viceId != p->ViceId && !IsAdministrator(p))
+	RPC2_GetPrivatePointer(cid, &u.c);
+	if (!u.p || u.p->HasQuit == TRUE) return(AUTH_FAILED);
+	u.p->LastUsed = time(0);
+	if (viceId != u.p->ViceId && !IsAdministrator(u.p))
 	{
 		char buf1[PRS_MAXNAMELEN], buf2[PRS_MAXNAMELEN];
-		LogMsg(-1, 0, stdout, "AuthChangePassd() attempt on %s by %s denied", GetVname(viceId, buf1), GetVname(p->ViceId, buf2));
+		LogMsg(-1, 0, stdout, "AuthChangePassd() attempt on %s by %s denied", GetVname(viceId, buf1), GetVname(u.p->ViceId, buf2));
 		return(AUTH_DENIED);
 	}
 
@@ -438,7 +449,7 @@ long PWChangePasswd(RPC2_Handle cid, RPC2_Integer viceId, RPC2_String Passwd)
 
 	/* Make the change */
 	if (BogusKey(newPasswd)) return(AUTH_BADKEY);
-	AppendPW(viceId, newPasswd, "", p->ViceId);
+	AppendPW(viceId, newPasswd, "", u.p->ViceId);
 	return (AUTH_SUCCESS);
 }
 
