@@ -33,9 +33,6 @@ static void iomgr_sigio_handler(int n)
     action.sa_handler  = iomgr_sigio_handler;
     sigemptyset(&action.sa_mask);
     action.sa_flags    = 0;
-#if !defined(sun) 
-    action.sa_restorer = NULL;
-#endif
 
     sigaction(SIGIO, &action, NULL);
 }
