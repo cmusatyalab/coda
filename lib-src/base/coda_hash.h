@@ -16,8 +16,8 @@ Coda are listed in the file CREDITS.
 
 #*/
 
-#ifndef _CODA_MD5_H_
-#define _CODA_MD5_H_ 1
+#ifndef _CODA_HASH_H_
+#define _CODA_HASH_H_ 1
 
 #ifdef __cplusplus
 extern "C" {
@@ -26,6 +26,8 @@ extern "C" {
 #ifdef HAVE_CONFIG_H
 #include <config.h>
 #endif
+
+#include <sys/types.h>
 
 #if defined(HAVE_OPENSSL_MD5_H)
 #include <openssl/md5.h>
@@ -67,9 +69,27 @@ void MD5_Final(unsigned char [16], MD5_CTX *);
 
 #endif
 
+#if defined(HAVE_OPENSSL_SHA_H)
+#include <openssl/sha.h>
+#else
+
+#define SHA_DIGEST_LENGTH 20
+
+typedef struct SHAContext {
+    u_int32_t count;
+    u_int32_t state[5];
+    unsigned char buffer[64];
+} SHA_CTX;
+
+void SHA1_Init(SHA_CTX *ctx);
+void SHA1_Update(SHA_CTX *ctx, const unsigned char *buf, unsigned int len);
+void SHA1_Final(unsigned char sha[SHA_DIGEST_LENGTH], SHA_CTX *ctx);
+
+#endif
+
 #ifdef __cplusplus
 }
 #endif
 
-#endif  /* _CODA_MD5_H_ */
+#endif  /* _CODA_HASH_H_ */
 

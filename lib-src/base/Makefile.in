@@ -24,8 +24,8 @@ TOPOBJ = @TOPOBJ@
 include $(TOPDIR)/Makeconf
 
 LIBRARIES = libbase.a 
-HEADERS   = base64.h coda_assert.h codaconf.h coda_md5.h dllist.h urlquote.h coda_flock.h copyfile.h parse_realms.h coda_getaddrinfo.h
-OBJECTS   = base64.o coda_assert.o codaconf.o dllist.o urlquote.o coda_flock.o coda_malloc.o copyfile.o parse_realms.o coda_getaddrinfo.o @MD5C@
+HEADERS   = base64.h coda_assert.h codaconf.h coda_hash.h dllist.h urlquote.h coda_flock.h copyfile.h parse_realms.h coda_getaddrinfo.h
+OBJECTS   = base64.o coda_assert.o codaconf.o dllist.o urlquote.o coda_flock.o coda_malloc.o copyfile.o parse_realms.o coda_getaddrinfo.o @MD5C@ @SHA1@
 
 HEADERS += parser.h
 ifneq ($(SHORTSYS),djgpp)

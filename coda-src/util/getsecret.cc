@@ -33,7 +33,7 @@ extern "C" {
 #include <util.h>
 #include <unistd.h>
 #include <stdio.h>
-#include <coda_md5.h>
+#include <coda_hash.h>
 #include <coda_string.h>
 #include "getsecret.h"
 

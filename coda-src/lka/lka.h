@@ -19,7 +19,7 @@ listed in the file CREDITS.
 #ifndef _LKA_H_INCLUDED_
 #define _LKA_H_INCLUDED_ 1
 
-#include <openssl/sha.h>
+#include <coda_hash.h>
 
 /* "helper" routines in shaprocs.cc */
 void ViceSHAtoHex (unsigned char sha[SHA_DIGEST_LENGTH], char *buf, int buflen);
