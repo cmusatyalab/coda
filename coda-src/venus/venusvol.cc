@@ -720,7 +720,7 @@ volent::volent(VolumeInfo *volinfo, char *volname) {
        1<<19 shift is to avoid collisions with inodes derived from
        non-local generated fids -- JH */
     FidUnique = 1 << 19;
-    SidUnique = Vtime();
+    SidUnique = 0;
 
     ResetTransient();
 
