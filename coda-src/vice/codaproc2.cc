@@ -716,7 +716,7 @@ static int ValidateReintegrateParms(RPC2_Handle RPCid, VolumeId *Vid,
 
 	    case OLDCML_SymLink_OP:
 		RLE_Unpack(&_ptr, OLDCML_SymLink_PTR, &r->Fid[0],
-			   OldName, NewName,
+			   NewName, OldName,
 			   &r->Fid[1], &Status, &DirStatus,
                            &DummyAllocHost, &r->sid, &DummyCBS);
 
