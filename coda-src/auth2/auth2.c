@@ -29,7 +29,6 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/auth2/auth2.c,v 4.1 1998/04/14 20:49:39 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -80,30 +79,40 @@ extern "C" {
 #include <string.h>
 #include <unistd.h>
 #include <stdlib.h>
-
 #include <ctype.h>
 #include <lwp.h>
 #include <rpc2.h>
-#include <util.h>
-#include "auth2.h"
+#include <config.h>
+
 #ifdef __cplusplus
 }
 #endif __cplusplus
 
+
+#include <util.h>
 #include <prs.h>
 #include <al.h>
+#include "auth2.h"
+#include "auth2.common.h"
+#ifdef CODAAUTH
+#include "pwdefines.h"
+#include "pwsupport.h"
+#endif	/* CODAAUTH */
 
 extern int AL_DebugLevel;
 
-/* per-connection info */
-struct UserInfo	 {
-	int ViceId;	/* from NewConnection */
-	int HasQuit; /* TRUE iff Quit() was received on this connection */
-	PRS_InternalCPS *UserCPS;
-	int LastUsed;	/* timestamped at each RPC call; for gc'ing */
-};
+#ifdef KERBEROS4
+extern int Krb4GetKeys(RPC2_CountedBS * cIdent, RPC2_EncryptionKey hKey, RPC2_EncryptionKey sKey);
+#endif	/* KERBEROS4 */
 
-PRIVATE int DoRedirectLog = 1;	/* set to zero by -r switch on command line */
+#ifdef KERBEROS5
+long Krb5GetKeys(RPC2_CountedBS * cIdent, RPC2_EncryptionKey hKey, RPC2_EncryptionKey sKey);
+long Krb5Init(void);
+#endif
+
+#ifdef CODAAUTH
+/* nothing here just now, largely in auth2.common.h */
+#endif	/* CODAAUTH */
 
 PRIVATE void InitGlobals(int argc, char **argv);
 PRIVATE void InitLog();
@@ -116,47 +125,27 @@ PRIVATE void InitRPC();
 PRIVATE void HandleRPCError(int rCode, RPC2_Handle connId);
 PRIVATE void InitAl();
 PRIVATE void CheckTokenKey();
-PRIVATE long PWGetKeys(RPC2_CountedBS *cIdent, RPC2_EncryptionKey hKey, RPC2_EncryptionKey sKey);	/* secure RPC key lookup routine */
-PRIVATE void LogFailures(RPC2_CountedBS *cIdent, RPC2_Integer eType, RPC2_HostIdent *pHost, RPC2_PortalIdent *pPortal);	/* to log authentication failures */
+long GetKeys(RPC2_Integer *AuthenticationType, RPC2_CountedBS *cIdent, RPC2_EncryptionKey hKey, RPC2_EncryptionKey sKey);	/* multiplex to other functions */
 
-PRIVATE void InitPW();
-PRIVATE void BuildPWArray(char *fileBuf);
-PRIVATE void EnlargePW(int newSize);
-PRIVATE void AppendPW(int vId, RPC2_EncryptionKey eKey, char *otherInfo, int agentId);
-PRIVATE int LockParent(char *fName, int lockType);
-PRIVATE int IsAUser(int viceId);
-PRIVATE int IsADeletedUser(int viceId);
-PRIVATE int IsAdministrator(struct UserInfo *pU);
-PRIVATE int BogusKey(RPC2_EncryptionKey x);
-PRIVATE int GetViceId(RPC2_CountedBS *cIdent);
-PRIVATE char *GetVname(int id, char *s);
+void LogFailures(RPC2_Integer AuthenticationType, RPC2_CountedBS *cIdent, RPC2_Integer eType, RPC2_HostIdent *pHost, RPC2_PortalIdent *pPortal);	/* to log authentication failures */
 
-PRIVATE int AdminID;	/* group Id of system administrators */
-PRIVATE RPC2_EncryptionKey TokenKey;	/* Used for encrypting server tokens;
+int GetViceId(RPC2_CountedBS *cIdent);	/* must be post-name conversion */
+
+RPC2_EncryptionKey TokenKey;	/* Used for encrypting server tokens;
 				    modified by SetKeys() routine; changed periodically  */
-PRIVATE int TokenTime = 0;	/* last modified time on TokenKey file	*/
-PRIVATE int AuthTime = 0;	/* last modified time for PDB		*/
+int TokenTime = 0;	/* last modified time on TokenKey file	*/
+int AuthTime = 0;	/* last modified time for PDB		*/
 /*char DefKey[RPC2_KEYSIZE] = {'\146','\154','\141','\155','\151','\156','\147','\157'}; */
-PRIVATE char DefKey[RPC2_KEYSIZE] = {'\144','\162','\163','\145','\165','\163','\163','\040'};
-PRIVATE RPC2_EncryptionKey FileKey;	/* unsigned char causes initialization probs */
-				/* Key used for encrypting password file; used primarily to
-				to prevent accidental revelation of clear passwords to system
-				administrators */
-PRIVATE RPC2_EncryptionKey NullKey;	/* always full of zeros */
-PRIVATE RPC2_EncryptionKey DeleteKey;	/* always full of ones: set in InitAl() */
-PRIVATE char *PWFile = "/vice/db/auth2.pw";	/* name of password file */
 PRIVATE char *TKFile = "/vice/db/auth2.tk";	/* name of token key file */
-PRIVATE RPC2_EncryptionKey *PWArray = NULL;	/* pointer to array of passwords indexed by ViceId */
 PRIVATE int AUTime = 0;			/* used to tell if binaries have changed */
-PRIVATE int PWTime = 0;			/* used to tell if pw file has changed	*/
-PRIVATE int PWLen = 0;	/* no of entries in PWArray */
-PRIVATE int PWCount = 0;
+
 
 #define PDB "/vice/db/vice.pdb"
 #define PCF "/vice/db/vice.pcf"
 
 PRIVATE int CheckOnly = 0;	/* only allow password checking at this server */
 
+PRIVATE int DoRedirectLog = 1;	/* set to zero by -r switch on command line */
 
 
 int main(int argc, char **argv)
@@ -172,37 +161,36 @@ int main(int argc, char **argv)
     InitSignals();
     InitRPC();
     InitAl();
-    PWLen = 100; /* length of PW array; this is an initial guess, may increase below */
-    PWArray = (RPC2_EncryptionKey *)malloc(PWLen*RPC2_KEYSIZE);
-    assert(PWArray != NULL);
-    InitPW();
 
-    file = fopen("/vice/srv/auth2.pid", "w");
-    if ( !file ) {
-	    perror("Error writing auth2.pid");
-	    exit(1);
-    }
-    fprintf(file, "%d", getpid());
-    fclose(file);
+#ifdef CODAAUTH
+    InitPW(PWFIRSTTIME);
+#endif	/* CODAAUTH */
+
+#ifdef KERBEROS4
+#endif
+
+#ifdef KERBEROS5
+    Krb5Init();
+#endif
     
     LogMsg(-1, 0, stdout, "Server successfully started\n");
 
     while(TRUE) {
 	cid = 0;
-	rc = RPC2_GetRequest(NULL, &cid, &reqbuffer, NULL, 
-				  (long (*)())PWGetKeys, RPC2_XOR, 
-				  (long (*)())LogFailures);
-	if ( rc  < RPC2_WLIMIT) { 
+	rc = RPC2_GetRequest(NULL, &cid, &reqbuffer, NULL,
+				(long (*)())GetKeys, RPC2_XOR,
+				(long (*)())LogFailures);
+	if (rc < RPC2_WLIMIT) {
 		HandleRPCError(rc, cid);
-		break; 
-	} 
+		continue;
+	}
 
 	if(stat(PDB, &buff)) {
-		printf("stat for vice.pdb failed\n");
-		fflush(stdout);
+	    printf("stat for vice.pdb failed\n");
+	    fflush(stdout);
 	} else {
-		if(AuthTime != buff.st_mtime)
-			InitAl();
+	    if(AuthTime != buff.st_mtime)
+		InitAl();
 	}
 	if ((rc = auth2_ExecuteRequest(cid, reqbuffer, (SE_Descriptor *)0)) 
 	    < RPC2_WLIMIT)
@@ -223,7 +211,6 @@ PRIVATE void InitGlobals(int argc, char **argv)
     for (i=0; i<len; i++)
 	*(argv[0]+i) = ' ';
     strcpy(argv[0], "auth2");
-    bcopy(DefKey, FileKey, RPC2_KEYSIZE);
     for (i = 1; i < argc; i++) {
 	if (argv[i] == 0) continue;	/* ignore NULL parms; this allows
 				    arguments to be passed in via authmon */
@@ -244,12 +231,13 @@ PRIVATE void InitGlobals(int argc, char **argv)
 	    CheckOnly = 1;
 	    continue;
 	    }
-
+#ifdef CODAAUTH
 	if (strcmp(argv[i], "-p") == 0 && i < argc - 1)
 	    {
 	    PWFile = argv[++i];
 	    continue;
 	    }
+#endif	/* PWDCODADB */
 
 	if (strcmp(argv[i], "-tk") == 0 && i < argc - 1)
 	    {
@@ -257,6 +245,7 @@ PRIVATE void InitGlobals(int argc, char **argv)
 	    continue;
 	    }
 	    
+#ifdef CODAAUTH
 	if (strcmp(argv[i], "-fk") == 0 && i < argc - 1)
 	    {
 	    strncpy((char *)FileKey, argv[++i], RPC2_KEYSIZE);
@@ -264,6 +253,8 @@ PRIVATE void InitGlobals(int argc, char **argv)
                                    passwords in PWFile */
 	    continue;
 	    }
+#endif	/* CODAAUTH */
+
 	/* The following parameter is ignored, it is use by authmon
            and may come */
 	/* through on the input parameters */
@@ -273,11 +264,25 @@ PRIVATE void InitGlobals(int argc, char **argv)
 	    continue;
 	    }
 
-	printf("Usage: auth2 [-r] [-chk] [-x debuglevel] [-p pwfile] [-tk tokenkey] [-fk filekey]\n");
+	printf("Usage: auth2 [-r] [-chk] [-x debuglevel] ");
+
+#ifdef CODAAUTH
+	printf("[-p pwfile] ");
+#endif	/* CODAAUTH */
+
+	printf("[-tk tokenkey] ");
+
+#ifdef CODAAUTH
+	printf("[-fk filekey] ");
+#endif	/* CODAAUTH */
+
+	printf("\n");
+
 	exit(-1);
     }    
 
     CheckTokenKey();
+
     AUTime = buff.st_mtime;
 }
 
@@ -349,16 +354,14 @@ PRIVATE void InitRPC()
     {
     PROCESS mylpid;
     RPC2_Integer rc;
-    RPC2_PortalIdent portalid;
+    RPC2_PortalIdent port;
     RPC2_SubsysIdent subsysid;
 
- 
     assert(LWP_Init(LWP_VERSION, LWP_MAX_PRIORITY-1, &mylpid) == LWP_SUCCESS);
 
-    portalid.Tag = RPC2_PORTALBYNAME;
-    strcpy(portalid.Value.Name, AUTH_SERVICE);
-
-    if ((rc = RPC2_Init(RPC2_VERSION, 0, &portalid, -1, NULL)) != RPC2_SUCCESS) {
+    port.Tag = RPC2_PORTALBYNAME;
+    strcpy(port.Value.Name, AUTH_SERVICE);
+    if ((rc = RPC2_Init(RPC2_VERSION, 0, &port, -1, NULL)) != RPC2_SUCCESS) {
 	LogMsg(-1, 0, stdout, "RPC2_Init failed with %s", RPC2_ErrorMsg(rc));
 	exit(-1);
     }
@@ -376,10 +379,8 @@ PRIVATE void HandleRPCError(int rCode, RPC2_Handle connId)
 
 
 PRIVATE void InitAl()
-    {
-    register int i;
+{
     RPC2_Integer rc;
-    char *admin = "system:administrators";	/* assert dies on literals */
     struct stat buff;
 
     assert(stat(PDB, &buff) == 0);
@@ -389,10 +390,7 @@ PRIVATE void InitAl()
 	LogMsg(-1, 0, stdout, "AL_Initialize failed with %d", rc);
 	exit(-1);
     }
-    assert(AL_NameToId(admin, &AdminID) == 0);
-    for (i = 0; i < RPC2_KEYSIZE; i++)
-	DeleteKey[i] = 0xff;
-    }
+}
 
 
 PRIVATE void CheckTokenKey()
@@ -420,48 +418,72 @@ PRIVATE void CheckTokenKey()
 	}
     }
 
+long GetKeys(RPC2_Integer *AuthenticationType, RPC2_CountedBS *cIdent, RPC2_EncryptionKey hKey, RPC2_EncryptionKey sKey)
+{
+	int returnval, vid;
 
-PRIVATE long PWGetKeys(RPC2_CountedBS *cIdent, RPC2_EncryptionKey hKey, RPC2_EncryptionKey sKey)
-/* cIdent:  body assumed to be an integer representing a ViceId in network order; converted to host order  */
-/* hKey:    key to do handshake */
-/* sKey:    key to use for remainder of connection's duration */
-
-    /*  Coughs up keys for authentication handshake between auth server and client.
-	Looks up PWArray for this. Makes sure user exists and has not been
-	    deleted (i.e., excluded from logging in)
-	The cIdent field may specify the client in Vice user name form or
-	as an integer, ViceId.  The SeqBody field of cIdent is always a
-	string.  If it is a number, it is interpreted as a ViceId.
-	Else it is interpreted as a Vice user name.
-    */
-    {
-    int vid;
-    register int i;
-    struct stat statbuff;
-
-    LogMsg(0, AuthDebugLevel, stdout, "In PWGetKeys()");
-    vid = GetViceId(cIdent);
-    LogMsg(0, AuthDebugLevel, stdout, "\tvid = %d", vid);
-    if (vid < 0) return(-1);
-    if (!IsAUser(vid) || IsADeletedUser(vid)) return(-1);
-
-    if(!stat(PWFile, &statbuff))
+	switch (*AuthenticationType)
 	{
-	if(PWTime != statbuff.st_mtime)
-	    {
-	    InitPW();
-	    }
+		case	AUTH_METHOD_NULL:
+			/* we don't like this */
+				return -1;
+
+#ifdef CODAAUTH
+		case	AUTH_METHOD_CODAUSERNAME:
+			/* use coda password database */
+				returnval = PWGetKeys(cIdent, hKey, sKey);
+				break;
+#endif	/* CODAAUTH */
+
+		case	AUTH_METHOD_CODATOKENS:
+			/* cannot retrieve tokens using tokens! */
+				return -1;
+
+		case	AUTH_METHOD_PK:
+			/* just a reserved constant, thanks */
+				return -1;
+
+		case	AUTH_METHOD_KERBEROS4:
+#ifdef KERBEROS4
+				returnval = Krb4GetKeys(cIdent, hKey, sKey);
+				break;
+#else	/* KERBEROS4 */
+				return -1;
+#endif	/* KERBEROS4 */
+
+		case	AUTH_METHOD_KERBEROS5:
+#ifdef KERBEROS5
+				returnval = Krb5GetKeys(cIdent, hKey, sKey);
+				break;
+#else	/* KERBEROS5 */
+				return -1;
+#endif
+
+		default:
+			/* unrecognized auth type */
+				return -1;
 	}
 
-    bcopy(PWArray[vid], hKey, RPC2_KEYSIZE);
-    rpc2_Decrypt((char *)hKey, (char *)hKey, RPC2_KEYSIZE, (unsigned char *)FileKey, RPC2_XOR);
-    for (i = 0; i < RPC2_KEYSIZE; i++)
-	sKey[i] = rpc2_NextRandom(NULL);	/* random session key */
-    return(0);
-    }
+	if (returnval == 0)
+	{
+		
+		/* verify has a VID */
+		
+		vid = GetViceId(cIdent);
+		LogMsg(0, AuthDebugLevel, stdout, "\tvid = %d", vid);
+		if (vid < 0) 
+			returnval = -1;
+
+		/* If we wanted to check if it was a deleted user or such, we
+		   would do that here.  That, however, relies on the pwsupport
+		   library, so is not enabled. */
+	}
+
+	return returnval;
+}
 
 
-PRIVATE void LogFailures(RPC2_CountedBS *cIdent, RPC2_Integer eType, RPC2_HostIdent *pHost, RPC2_PortalIdent *pPortal)
+void LogFailures(RPC2_Integer AuthenticationType, RPC2_CountedBS *cIdent, RPC2_Integer eType, RPC2_HostIdent *pHost, RPC2_PortalIdent *pPortal)
     {
     unsigned it;
     assert(pHost->Tag == RPC2_HOSTBYINETADDR);
@@ -521,6 +543,7 @@ long S_AuthGetTokens(RPC2_Handle cid, EncryptedSecretToken est, ClearToken *cTok
     cToken->ViceId = ui->ViceId;
     
     /* Then build secret token */
+    memset(sToken.MagicString, '\0', sizeof(AuthMagic));
     strncpy((char *)sToken.MagicString, (char *)AUTH_MAGICVALUE, sizeof(AuthMagic));
     sToken.AuthHandle = cToken->AuthHandle;
     sToken.Noise1 = rpc2_NextRandom(NULL);
@@ -542,142 +565,49 @@ long S_AuthGetTokens(RPC2_Handle cid, EncryptedSecretToken est, ClearToken *cTok
 long S_AuthChangePasswd (RPC2_Handle cid, RPC2_Integer viceId, 
 			 RPC2_String Passwd)
 {
-    int i;
-    struct UserInfo *p;
-    RPC2_EncryptionKey newPasswd;
-    int len;
 
-    bzero(newPasswd, sizeof(newPasswd));
-    if (strlen(Passwd) < RPC2_KEYSIZE) 
-	    len = strlen(Passwd);
-    else
-	    len = RPC2_KEYSIZE;
-    bcopy(Passwd, newPasswd, len); 
+#ifdef CODAAUTH
+	return PWChangePasswd(cid, viceId, Passwd);
+#else	/* CODAAUTH */
+	return (AUTH_FAILED);
+#endif	/* !CODAAUTH */
 
-    if (AuthDebugLevel)
-	{
-	printf("AuthChangePasswd(%d, \"", viceId);
-	for (i = 0; i < RPC2_KEYSIZE; i++)
-	    printf("%c", newPasswd[i]);
-	printf("\")");
-	}
-
-    /* Do not allow if this is a read only server	*/
-    if(CheckOnly)
-	return(AUTH_READONLY);
-
-    /* Ensure it's a system administrator or the user himself */
-    RPC2_GetPrivatePointer(cid, (char **)&p);
-    if (p == NULL || p->HasQuit == TRUE) return(AUTH_FAILED);
-    p->LastUsed = time(0);
-    if (viceId != p->ViceId && !IsAdministrator(p))
-	{
-	char buf1[PRS_MAXNAMELEN], buf2[PRS_MAXNAMELEN];
-	LogMsg(-1, 0, stdout, "AuthChangePassd() attempt on %s by %s denied", GetVname(viceId, buf1), GetVname(p->ViceId, buf2));
-	return(AUTH_DENIED);	
-	}
-
-    if (!IsAUser(viceId) || IsADeletedUser(viceId)) return(AUTH_FAILED);
-    
-    /* Make the change */
-    if (BogusKey(newPasswd)) return(AUTH_BADKEY);
-    AppendPW(viceId, newPasswd, "", p->ViceId);
-    return (AUTH_SUCCESS);
-    }
+}
 
 
 long S_AuthNewUser(RPC2_Handle cid, RPC2_Integer viceId, RPC2_EncryptionKey initKey, RPC2_String otherInfo)
-    {
-    struct UserInfo *p;
+{
 
-    /* Do not allow if this is a read only server	*/
-    if(CheckOnly)
-	return(AUTH_READONLY);
+#ifdef CODAAUTH
+        return PWNewUser(cid, viceId, initKey, otherInfo);
+#else   /* CODAAUTH */
+        return (AUTH_FAILED);
+#endif  /* !CODAAUTH */
 
-    /* make sure it's a system administrator */
-    RPC2_GetPrivatePointer(cid, (char **)&p);
-    if (p == NULL || p->HasQuit == TRUE) return(AUTH_FAILED);
-    p->LastUsed = time(0);
-    if (!IsAdministrator(p))
-	{
-	char buf1[PRS_MAXNAMELEN], buf2[PRS_MAXNAMELEN];
-	LogMsg(-1, 0, stdout, "AuthNewUser() attempt on  %s by %s denied", GetVname(viceId, buf1), GetVname(p->ViceId, buf2));
-	return(AUTH_DENIED);
-	}
-    if (IsAUser(viceId)) return(AUTH_FAILED);
-
-    /* make the change */
-    if (BogusKey(initKey)) return(AUTH_BADKEY);
-    AppendPW(viceId, initKey, (char *)otherInfo, p->ViceId);
-    return(AUTH_SUCCESS);
-    }
+}
 
 
 long S_AuthDeleteUser(RPC2_Handle cid, RPC2_Integer viceId)
-    {
-    struct UserInfo *p;
+{
 
-    /* Do not allow if this is a read only server	*/
-    if(CheckOnly)
-	return(AUTH_READONLY);
+#ifdef CODAAUTH
+        return PWDeleteUser(cid, viceId);
+#else   /* CODAAUTH */
+        return (AUTH_FAILED);
+#endif  /* !CODAAUTH */
 
-    /* make sure it's a system administrator */
-    RPC2_GetPrivatePointer(cid, (char **)&p);
-    if (p == NULL || p->HasQuit == TRUE) return(AUTH_FAILED);
-    p->LastUsed = time(0);
-    if (!IsAdministrator(p))
-	{
-	char buf1[PRS_MAXNAMELEN], buf2[PRS_MAXNAMELEN];
-	LogMsg(-1, 0, stdout, "AuthDeleteUser() attempt on  %s by %s denied", GetVname(viceId, buf1), GetVname(p->ViceId, buf2));
-	return(AUTH_DENIED);
-	}
-    if (!IsAUser(viceId)) return(AUTH_FAILED);
-
-
-    /* make the change */
-
-    AppendPW(viceId, DeleteKey, "", p->ViceId);
-    return(AUTH_SUCCESS);
-    }
-
+}
 
 long S_AuthChangeUser(RPC2_Handle cid, RPC2_Integer viceId, RPC2_EncryptionKey newKey, RPC2_String otherInfo)
-    {
-    int i;
-    struct UserInfo *p;
-    
-    if (AuthDebugLevel)
-	{
-	printf("AuthChangeUser(%d, \"", viceId);
-	for (i = 0; i < RPC2_KEYSIZE; i++)
-	    printf("%c", newKey[i]);
-	printf("\", \"%s\")\n", (char *)otherInfo);
-	}
+{
 
-    /* Do not allow if this is a read only server	*/
-    if(CheckOnly)
-	return(AUTH_READONLY);
+#ifdef CODAAUTH
+        return PWChangeUser(cid, viceId, newKey, otherInfo);
+#else   /* CODAAUTH */
+        return (AUTH_FAILED);
+#endif  /* !CODAAUTH */
 
-    /* make sure it's a system administrator */
-    RPC2_GetPrivatePointer(cid, (char **)&p);
-    if (p == NULL || p->HasQuit == TRUE) return(AUTH_FAILED);
-    p->LastUsed = time(0);
-    if (!IsAdministrator(p))
-	{
-	char buf1[PRS_MAXNAMELEN], buf2[PRS_MAXNAMELEN];
-	LogMsg(-1, 0, stdout, "AuthChangeUser() attempt on  %s by %s denied", GetVname(viceId, buf1), GetVname(p->ViceId, buf2));
-	return(AUTH_DENIED);
-	}
-    if (!IsAUser(viceId)) return(AUTH_FAILED);
-
-
-    /* make the change */
-    if (BogusKey(newKey)) return(AUTH_BADKEY);
-    AppendPW(viceId, newKey, (char *)otherInfo, p->ViceId);
-    return(AUTH_SUCCESS);
-
-    }
-
+}
 
 long S_AuthNameToId(RPC2_Handle cid, RPC2_String sUser, RPC2_Integer *sId)
     {
@@ -688,224 +618,7 @@ long S_AuthNameToId(RPC2_Handle cid, RPC2_String sUser, RPC2_Integer *sId)
     }
     
 
-PRIVATE void InitPW()
-    /* Reads in contents of PWFile and builds sorted list of passwords in PWArray.
-	Frees existing storage corr to PWArray
-    */
-    {
-    int fd, pfd;
-    struct stat stbuf;
-    char *fbuf;
-
-    pfd = LockParent(PWFile, LOCK_SH);
-
-    if ((fd = open(PWFile, O_RDONLY, 0)) < 0
-	|| flock(fd, LOCK_SH) < 0	/* locking is merely superstitious */
-	|| fstat(fd, &stbuf))
-	{
-	perror(PWFile);
-	abort();
-	}
-    assert((fbuf = (char *)malloc(1+stbuf.st_size)) != NULL);
-    assert(stbuf.st_size == read(fd, fbuf, stbuf.st_size));	/* read entire file in */
-    PWTime = stbuf.st_mtime;	/* time on file to check for changes */
-    fbuf[stbuf.st_size] = 0;	/* sentinel to stop sscanf() later */
-    flock(fd, LOCK_UN);  close(fd);
-    flock(pfd, LOCK_UN); close(pfd);
-
-    BuildPWArray(fbuf);
-    free(fbuf);
-    }
-
-
-PRIVATE void BuildPWArray(char *fileBuf)
-    /* fileBuf:	pointer to in-core contents of PWFile */
-    /* parses the file buffer and builds up PWArray; sets PWLen and PWCount */
-    {
-    char *nextline, *kk;
-    int thisid, i;
-    RPC2_EncryptionKey thiskey;
-    char holder[3];
-
-    PWCount = 0;  /* no of valid entries in PWArray */
-    bzero((char *)PWArray, PWLen*RPC2_KEYSIZE);
-    nextline = fileBuf;	/* index into start of next line  in fbuf */
-
-    while (TRUE)
-	{
-	if (index(nextline, '\t') == NULL) break;
-	thisid = atoi(nextline);
-	assert((kk = index(nextline, '\t')) != NULL);
-	kk++;
-	for (i = 0; i < RPC2_KEYSIZE; i++)
-	    {
-	    int x;
-	    holder[0] = *(kk++);
-	    holder[1] = *(kk++);
-	    holder[2] = '\0';
-	    sscanf(holder, "%2x", &x);
-	    thiskey[i] = x;
-	    }
-	    
-	if (AuthDebugLevel)
-	    {
-	    printf("%d\t", thisid);
-	    for (i = 0; i < RPC2_KEYSIZE; i++)
-		printf("%02x", thiskey[i]);
-	    printf("\n"); fflush(stdout);
-	    }
-	if (thisid >= PWLen)
-	    EnlargePW(2*thisid);	/* factor of 2 to prevent frequent realloc() */
-
-	bcopy(thiskey, PWArray[thisid], RPC2_KEYSIZE);
-	PWCount++;
-	assert((nextline = index(nextline, '\n')) != NULL);
-	nextline++;	/* safe, since fileBuf is NULL-terminated */
-	}
-    }
-
-
-PRIVATE void EnlargePW(int newSize)
-    /* Makes PWArray capable of holding at least newSize entries */
-    {
-    if (newSize < PWLen) return;	/* turkey! */
-    LogMsg(0, AuthDebugLevel, stdout, "Reallocing from %d to %d", PWLen, newSize);
-    PWArray = (RPC2_EncryptionKey *)realloc((char *)PWArray, newSize*RPC2_KEYSIZE);
-    assert(PWArray != NULL);
-    bzero(PWArray[PWLen], (newSize-PWLen)*RPC2_KEYSIZE);
-    PWLen = newSize;
-    }
-
-
-PRIVATE void AppendPW(int vId, RPC2_EncryptionKey eKey, char *otherInfo, int agentId)
-    /* eKey:	not yet encrypted with FileKey!! */
-    /* 
-	Appends a line to PWFile for user whose ViceId is vId.
-	Logs each change with the ViceId and timestamp of the agent performing the change.
-	Also updates PWArray, enlarging it if necessary.
-
-	A periodic offline program should be run to squish old entries.
-    */
-    {
-    int fd, pfd, i;
-    char buf[100], *bnext;
-    RPC2_EncryptionKey tempkey;
-    struct stat buff;
-    long cl;
-
-    /* Encrypt the key first */
-    rpc2_Encrypt((char *)eKey, (char *)tempkey, RPC2_KEYSIZE, (char *)FileKey, RPC2_XOR);
-
-    /* Update PWArray after enlarging it */
-    if (vId >= PWLen) EnlargePW(2*vId);
-    bcopy(tempkey, PWArray[vId], RPC2_KEYSIZE);	/* overwrite existing key value */
-
-    /* Build an image of the line to be appended */
-    sprintf(buf, "%d\t", vId);
-    bnext = &buf[strlen(buf)];
-    for (i = 0; i < RPC2_KEYSIZE; i++)
-	{
-	int x = tempkey[i];
-	sprintf(bnext, "%02x", x);
-	bnext += 2;
-	}
-    sprintf(bnext, "\t%s", otherInfo);
-    bnext += strlen(otherInfo);
-    cl = time(0);
-    sprintf(bnext, "\t# By %d at %s", agentId, ctime(&cl));
-    
-    /* Now lock parent and append the line */
-    pfd = LockParent(PWFile, LOCK_EX);
-    if ((fd = open(PWFile, O_WRONLY|O_APPEND, 0)) < 0
-	|| flock(fd, LOCK_EX) < 0
-	|| write(fd, buf, strlen(buf)) < 0)
-	{
-	perror(PWFile);
-	abort();
-	}
-
-    /* Update PWTime because we have the current version of the file */
-    fstat(fd, &buff);
-    PWTime = buff.st_mtime;
-
-    /* Unlock and quit */
-    flock(fd, LOCK_UN); close(fd);
-    flock(pfd, LOCK_UN); close(pfd);
-    }
-
-
-PRIVATE int LockParent(char *fName, int lockType)
-    /* lockType:    LOCK_SH or LOCK_EX */
-    /* Locks parent directory of fName and returns fd on parent.
-	Used for syncing with mvdb */
-    {
-    char parent[1000];
-    int pfd;
-
-    if (fName[0] != '/')
-	{
-	getwd(parent);
-	strcat(parent, "/");
-	strcat(parent, fName);
-	}
-    else strcpy(parent, fName);
-    *rindex(parent, '/') = 0;
-		/* parent surely has at least one '/' by now */
-	
-    if ((pfd = open(parent, O_RDONLY, 0)) < 0
-	|| flock(pfd, lockType) < 0)
-	{
-	perror(parent);
-	abort();
-	}
-    return(pfd);
-    }
-
-
-PRIVATE int IsAUser(int viceId)
-    /* Returns TRUE iff viceId corr to a Vice user (==> non-zero key) */
-    {
-    if (viceId < 0 || viceId >= PWLen) return (FALSE);	
-    if (bcmp(PWArray[viceId], NullKey, RPC2_KEYSIZE) == 0) return (FALSE);
-    return(TRUE);
-    }
-
-
-PRIVATE int IsADeletedUser(int viceId)
-    /* Returns TRUE iff viceId corr to a deleted Vice user(==> key of all 1's) */
-    {
-    if (viceId < 0 || viceId >= PWLen) return (FALSE);
-    if (bcmp(PWArray[viceId], DeleteKey, RPC2_KEYSIZE) == 0) return (TRUE);
-    return(FALSE);
-    }
-
-
-PRIVATE int IsAdministrator(struct UserInfo *pU)
-    /* Returns TRUE iff the CPS corr to pU is that of a system administrator.
-	Obtains the CPS for pU if necessary */
-    {
-    if (pU->UserCPS == NULL)
-	if (AL_GetInternalCPS(pU->ViceId, &pU->UserCPS) != 0)
-	    return(FALSE);
-    if (AL_IsAMember(AdminID, pU->UserCPS) != 0)
-	    return(FALSE);
-    return(TRUE);
-    }
-
-
-PRIVATE int BogusKey(RPC2_EncryptionKey x)
-    /* Returns TRUE iff x would result in NullKey or DeleteKey when encrypted with FileKey.
-	FALSE otherwise */
-    {
-    RPC2_EncryptionKey temp;
-    rpc2_Encrypt((char *)x, (char *)temp, RPC2_KEYSIZE, (char *)FileKey, RPC2_XOR);
-    if (bcmp(temp, NullKey, RPC2_KEYSIZE) == 0) return(TRUE);
-    if (bcmp(temp, DeleteKey, RPC2_KEYSIZE) == 0) return(TRUE);
-    return(FALSE);
-    }
-
-
-PRIVATE int GetViceId(RPC2_CountedBS *cIdent)
+int GetViceId(RPC2_CountedBS *cIdent)
     /* Interprets cIdent as a user id string or user name string and returns
 	the Vice Id corr to this client.  Returns -1 if a non-existent
 	client is specified.
@@ -923,9 +636,3 @@ PRIVATE int GetViceId(RPC2_CountedBS *cIdent)
     }
 
     
-PRIVATE char *GetVname(int id, char *s)
-    {
-    if (AL_IdToName(id, s) < 0)
-	sprintf(s, "%d (unknown Vice id)", id);
-    return(s);
-    }

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rpc2/rpc2.h,v 4.5 1998/05/07 17:23:52 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rpc2/rpc2.h,v 4.6 1998/05/15 01:23:11 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -495,6 +495,7 @@ typedef
 	RPC2_Integer SideEffectType;
 	RPC2_Integer SecurityLevel;
 	RPC2_Integer EncryptionType;
+	RPC2_Integer AuthenticationType;
 	RPC2_CountedBS ClientIdent;
 	}
     RPC2_NewConnectionBody;
@@ -517,6 +518,7 @@ typedef
 	long SecurityLevel;
 	long EncryptionType;
 	RPC2_EncryptionKey *SharedSecret;
+	RPC2_Integer AuthenticationType;
 	RPC2_CountedBS *ClientIdent;
 	long SideEffectType;
 	RPC2_Integer Color;

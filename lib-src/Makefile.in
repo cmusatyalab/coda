@@ -13,11 +13,7 @@ TOPOBJ = @TOPOBJ@
 
 include $(MAKDIR)/Makeconf
 
-    I =  special-includes
-#   II =  libcs
-# III =  plumber
-   IV =  mlwp
+SUBDIRS = special-includes base mlwp 
 
-SUBDIRS = $(I) $(II) $(III) $(IV)
 
 include $(MAKDIR)/configs/Makerules

@@ -1628,6 +1628,7 @@ kernel-src/vfs/linux21/Makefile
 kernel-src/vfs/bsd44/Makefile 
 lib-src/Makefile 
 lib-src/mlwp/Makefile 
+lib-src/base/Makefile
 lib-src/special-includes/Makefile 
 rvm-src/Makefile 
 rvm-src/rvm/Makefile 
@@ -1834,6 +1835,7 @@ kernel-src/vfs/linux21/Makefile
 kernel-src/vfs/bsd44/Makefile 
 lib-src/Makefile 
 lib-src/mlwp/Makefile 
+lib-src/base/Makefile
 lib-src/special-includes/Makefile 
 rvm-src/Makefile 
 rvm-src/rvm/Makefile 

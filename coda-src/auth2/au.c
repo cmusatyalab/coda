@@ -28,15 +28,13 @@ Carnegie  Mellon  encourages  users  of  this  software  to return any
 improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
-
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/auth2/au.cc,v 4.3 1997/12/10 16:06:16 braam Exp $";
 #endif /*_BLURB_*/
 
 
 
 
 
-#/*
+/*
 #
 #                         IBM COPYRIGHT NOTICE
 #
@@ -61,7 +59,6 @@ static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/auth2/
 
 /*
 au.c -- authentication client program
-
 */
 
 
@@ -81,32 +78,31 @@ extern "C" {
 #include <rpc2.h>
 #include <se.h>
 #include <util.h>
-
+#include <prs.h>
 #include "auth2.h"
+#include "auser.h"
 
 #ifdef __cplusplus
 }
 #endif __cplusplus
 
-#include <prs.h>
 
-PRIVATE void SetGlobals(int argc, char **argv);
-PRIVATE int GetVid(char *s, int *id);
+static void SetGlobals(int argc, char **argv);
+static int GetVid(char *s, int *id);
 
-PRIVATE int DebugLevel;
+static int DebugLevel;
 
-PRIVATE int IAmMaster;	/* TRUE iff this is the master auth server */
-PRIVATE char *DefAuthHost = NULL;
-PRIVATE char *AuthPortal = AUTH_SERVICE;
+static int IAmMaster;	/* TRUE iff this is the master auth server */
+static char *DefAuthHost = NULL;
+static char *AuthPortal = AUTH_SERVICE;
 
-PRIVATE int GetTokensFlag;
-PRIVATE int ChangeUserFlag;
-PRIVATE int NewUserFlag;
-PRIVATE int DeleteUserFlag;
-PRIVATE int ChangePasswordFlag;
+static int GetTokensFlag;
+static int ChangeUserFlag;
+static int NewUserFlag;
+static int DeleteUserFlag;
+static int ChangePasswordFlag;
 
-PRIVATE int MyViceId;
-PRIVATE RPC2_Handle AuthCid;
+static RPC2_Handle AuthCid;
 
 
 int main(int argc, char **argv)
@@ -126,10 +122,13 @@ int main(int argc, char **argv)
     U_InitRPC();
 
     printf("Your Vice name: ");
-    gets(MyViceName);
-    strcpy(MyPassword, getpass("Your password: "));
+    fgets(MyViceName, sizeof(MyViceName), stdin);
+    if ( MyViceName[strlen(MyViceName)-1] == '\n' ){
+	    MyViceName[strlen(MyViceName)-1] = '\0';
+    }
+    strncpy(MyPassword, getpass("Your password: "), sizeof(MyPassword));
 
-    rc = U_BindToServer(DefAuthHost, MyViceName, MyPassword, &AuthCid);
+    rc = U_BindToServer(DefAuthHost, AUTH_METHOD_CODAUSERNAME, MyViceName, strlen(MyViceName)+1, MyPassword, strlen(MyPassword), &AuthCid);
 
     printf("RPC2_Bind() --> %s\n", RPC2_ErrorMsg(rc));
     if (rc < RPC2_ELIMIT) exit(-1);
@@ -142,9 +141,13 @@ int main(int argc, char **argv)
 	bzero(buf, sizeof(buf));
 
 	printf("User name: ");
-	gets(cname);
+	fgets(cname, sizeof(cname), stdin);
+	if ( cname[strlen(cname)-1] == '\n' ) 
+		cname[strlen(cname)-1] = '\0';
 	printf("New password: ");
-	gets(buf);
+	fgets(buf, sizeof(buf), stdin);
+	if ( buf[strlen(buf)-1] == '\n' ) 
+		buf[strlen(buf)-1] = '\0';
 	
 	strncpy((char *)ek, buf, RPC2_KEYSIZE);
 	
@@ -160,9 +163,12 @@ int main(int argc, char **argv)
 	int vid;
 
 	printf("Vice user to delete: ");
-	gets(cname);
+	fgets(cname, sizeof(cname), stdin);
+	if ( cname[strlen(cname)-1] == '\n' ) 
+		cname[strlen(cname)-1] = '\0';
 
-	if (GetVid(cname, &vid) < 0) goto Done;
+	if (GetVid(cname, &vid) < 0) 
+		goto Done;
 
 	rc = AuthDeleteUser(AuthCid, vid);
 	if (rc < 0)
@@ -178,12 +184,19 @@ int main(int argc, char **argv)
 
 	bzero(otherinfo, sizeof(otherinfo));
 	printf("Vice user: ");
-	gets(cname);
+	fgets(cname, sizeof(cname), stdin);
+	if ( cname[strlen(cname)-1] == '\n' ) 
+		cname[strlen(cname)-1] = '\0';
+
 	printf("New password: ");
-	gets(buf);
+	fgets(buf, sizeof(buf), stdin);
+	if ( buf[strlen(buf)-1] == '\n' ) 
+		buf[strlen(buf)-1] = '\0';
 	strncpy((char *)ek, buf, RPC2_KEYSIZE);
 	printf("New info: ");
-	gets(otherinfo);
+	fgets(otherinfo, sizeof(otherinfo), stdin);
+	if ( otherinfo[strlen(otherinfo)-1] == '\n' ) 
+		otherinfo[strlen(otherinfo)-1] = '\0';
 	
 	if (GetVid(cname, &cpid) < 0) goto Done;
 	if (ChangeUserFlag) {
@@ -206,15 +219,14 @@ Done:
 }
 
 /* Set globals from command line args */
-PRIVATE void SetGlobals(int argc, char **argv)
+static void SetGlobals(int argc, char **argv)
 {
     register int i;
     for (i = 1; i < argc; i++)
 	{
 	if (strcmp(argv[i], "-x") == 0)
 	    {
-	    RPC2_DebugLevel = 100;
-	    DebugLevel = 1000;
+	    DebugLevel++;
 	    continue;
 	    }
 
@@ -268,13 +280,15 @@ PRIVATE void SetGlobals(int argc, char **argv)
 }
 
 
-PRIVATE int GetVid(char *s, int *id)
+static int GetVid(char *s, int *id)
 {
-    int rc;
-    rc = AuthNameToId(AuthCid, (RPC2_String)s, (RPC2_Integer *)id);
-    if (rc == AUTH_SUCCESS) return(0);
-    if (rc < 0)
-	printf("AuthNameToId() --> %s\n", RPC2_ErrorMsg(rc));
-    else   printf("AuthNameToId() --> %s\n", U_AuthErrorMsg(rc));
-    return(-1);
+	int rc;
+	rc = AuthNameToId(AuthCid, (RPC2_String)s, (RPC2_Integer *)id);
+	if (rc == AUTH_SUCCESS) 
+		return(0);
+	if (rc < 0)
+		printf("AuthNameToId() --> %s\n", RPC2_ErrorMsg(rc));
+	else   
+		printf("AuthNameToId() --> %s\n", U_AuthErrorMsg(rc));
+	return(-1);
 }

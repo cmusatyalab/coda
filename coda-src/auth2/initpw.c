@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/auth2/initpw.cc,v 4.2 1997/02/26 16:02:34 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/auth2/initpw.c,v 4.1 1998/04/14 20:49:41 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -74,22 +74,17 @@ extern "C" {
 #include <stdio.h>
 #include <sys/file.h>
 #include <string.h>
-#ifdef __MACH__
-#include <sysent.h>
-#include <libc.h>
-#else	/* __linux__ || __BSD44__ */
 #include <unistd.h>
 #include <stdlib.h>
-#endif
 
-#include <rpc2.h>
 #include <lwp.h>
+#include <rpc2.h>
+#include <util.h>
 
 #ifdef __cplusplus
 }
 #endif __cplusplus
 
-#include <util.h>
 
 int main(int argc, char **argv);
 PRIVATE void parse(char *line, RPC2_EncryptionKey outpw, char **last);
@@ -137,7 +132,10 @@ int main(int argc, char **argv)
     assert(LWP_Init(LWP_VERSION, LWP_NORMAL_PRIORITY, &mypid) == LWP_SUCCESS);
     while(TRUE)
 	{
-	if (gets(thisline) == NULL) break;
+	if (fgets(thisline, sizeof(thisline), stdin) == NULL) 
+		break;
+	if (thisline[strlen(thisline)-1] == '\n')
+		thisline[strlen(thisline)-1] = '\0';
 	parse(thisline, thispw, &lastpart);
 	if (KeyIsValid)
 	    rpc2_Encrypt((char *)thispw, (char *)thispw, sizeof(RPC2_EncryptionKey), (char *)EKey, RPC2_XOR);

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/auth2/auth2.rpc2,v 4.2 1997/12/10 16:06:19 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/auth2/auth2.rpc2,v 4.3 1998/04/14 20:49:39 braam Exp $";
 #endif /*_BLURB_*/%}
 
 
@@ -57,9 +57,6 @@ supported by Transarc Corporation, Pittsburgh, PA.
 
 */
 
-
-
-
 Server Prefix "S";
 Subsystem  "auth2";
 
@@ -76,126 +73,102 @@ Subsystem  "auth2";
 #define AUTH_BADKEY	3
 #define AUTH_READONLY	4
 
+/* Authentication mechanisms supported by AuthenticationType */
+#define AUTH_METHOD_NULL		0 /* for OK */
+#define AUTH_METHOD_CODATOKENS		1 /* using session key */
+#define AUTH_METHOD_CODAUSERNAME	2 /* old type login */
+#define AUTH_METHOD_KERBEROS4		3 /* use existing TGT */
+#define AUTH_METHOD_KERBEROS5		4 /* use existing TGT */
+#define AUTH_METHOD_PK			5 /* for the future */
+
 /* Vice Ioctls for authentication calls */
 /*  #define AUTH_GETVICEID	16	Not yet implemented */
 #define AUTH_SETTOKENS		3
 #define AUTH_GETTOKENS		9
 #define AUTH_DELETETOKENS	8
 
-/* The result of an AuthGetToken() call is to return an ClearToken and an SecretToken.
-	The two contain similar information, but SecretToken has its fields permuted, has
-	a magic string for self-validation and 	has noise fields to resist plaintext attacks.
-*/
+/* The result of an AuthGetToken() call is to return an ClearToken and
+   an SecretToken.  The two contain similar information, but
+   SecretToken has its fields permuted, has a magic string for
+   self-validation and has noise fields to resist plaintext attacks.  */
 
 typedef RPC2_Byte AuthMagic[16];
 #define AUTH_MAGICVALUE "authentication"
 
-typedef
-    RPC2_Struct
-	{
-	AuthMagic MagicString;	/* Value should be equal to the magic string of the day. If
-						so, encrypted token is valid. */
-	RPC2_Integer AuthHandle;	/* Handle, might come in useful for revocation in future */
+typedef RPC2_Struct {
+	AuthMagic MagicString;	/* Value should be equal to the magic
+				   string of the day. If so, encrypted
+				   token is valid. */
+	RPC2_Integer AuthHandle;	/* Handle, might come in
+					   useful for revocation in future */
 	RPC2_Integer Noise1;
 	RPC2_Integer ViceId;		/* Whom is this token for? */
-	RPC2_Integer BeginTimestamp;	/* Seconds since Jan 1 1970 before which token is invalid */
+	RPC2_Integer BeginTimestamp;	/* Seconds since Jan 1 1970
+					   before which token is invalid */
 	RPC2_Integer Noise2;
-	RPC2_Integer EndTimestamp;	/* Seconds since Jan 1 1970 after which token is invalid */
+	RPC2_Integer EndTimestamp;	/* Seconds since Jan 1 1970
+					   after which token is invalid */
 	RPC2_Integer Noise3;
-	RPC2_EncryptionKey  HandShakeKey;	/* For use by server's GetKeys() routine */
+	RPC2_EncryptionKey  HandShakeKey;	/* For use by server's
+						   GetKeys() routine */
 	RPC2_Integer Noise4;
-	}
-	SecretToken;
+} SecretToken;
 
-typedef
-	RPC2_Byte EncryptedSecretToken[56];
-typedef
-    RPC2_Struct
-	{
+typedef RPC2_Byte EncryptedSecretToken[56];
+typedef RPC2_Struct {
 	RPC2_Integer AuthHandle;
 	RPC2_EncryptionKey HandShakeKey;
 	RPC2_Integer ViceId;
 	RPC2_Integer BeginTimestamp;
 	RPC2_Integer EndTimestamp;
-	}
-	ClearToken;
+} ClearToken;
 
-#define AUTHFILENAME "auth2.pw"
-
-/* Magic password size for crunch_pwd_DES. */
-#define CRUNCHPWSIZE	16
-
-%{
-#ifdef __cplusplus
-extern "C" {
-#endif
-extern void U_HostToNetClearToken(ClearToken *cToken);
-extern void U_NetToHostClearToken(ClearToken *cToken);
-extern int U_Authenticate(char *uName, char *uPasswd, ClearToken *cToken, EncryptedSecretToken sToken);
-extern int U_ChangePassword(char *uName, char *newPasswd, char *myName, char *myPasswd);
-extern void U_InitRPC();
-extern char *U_AuthErrorMsg(int rc);
-extern int U_BindToServer(char *DefAuthHost, char *uName, char *uPasswd, RPC2_Handle *RPCid);
-extern char *U_Error(int rc);
-extern int U_SetLocalTokens(int setPag, ClearToken *cToken, EncryptedSecretToken sToken);
-extern int U_GetLocalTokens(ClearToken *cToken, EncryptedSecretToken sToken);
-extern int U_DeleteLocalTokens();
-#ifdef __cplusplus
-}
-#endif
-
-
-/* The password records in the password file; never transmitted across RPC interface */
-#define AUTHPWSIZE		16
-struct AuthRecord
-	{
-	char passwd[AUTHPWSIZE];
-	};
-
-%}
-
-
-
-/* NOTE: The auth server accepts only secure connections based on the stored password of a user */
+/* NOTE: The auth server accepts only secure connections based on the
+   stored password of a user */
 
 AuthNewConn (IN RPC2_Integer seType, IN RPC2_Integer secLevel, IN RPC2_Integer encType, IN RPC2_CountedBS cIdent) NEW_CONNECTION;
-
-AuthChangePasswd (IN RPC2_Integer viceId, IN RPC2_String newPasswd);
 
 /* Change a user's password. You can change your own password always.
 Caller must be a system administrator to change someone else's
 password. */
 
-AuthGetTokens (OUT EncryptedSecretToken sToken, OUT ClearToken cToken);
+1: AuthChangePasswd (IN RPC2_Integer viceId, IN RPC2_String newPasswd);
 
-		/*  Get back tokens for use in communicating with File Servers.  This is effectively a
-		    key distribution algorithm, since the tokens contain a session key.  You use
-		    a secure connection to get to the auth server, then get tokens, then
-		    use the auth token to establish a secure connection with a file server.  The
-		    sToken is encrypted with a key known only to the auth server and the file servers.
-		    It is transmitted by the client as the ClientIdent field of the RPC2_Bind() to 
-		    the file server.
-		*/
+/* Get back tokens for use in communicating with File Servers.  This
+   is effectively a key distribution algorithm, since the tokens
+   contain a session key.  You use a secure connection to get to the
+   auth server, then get tokens, then use the auth token to establish
+   a secure connection with a file server.  The sToken is encrypted
+   with a key known only to the auth server and the file servers.  It
+   is transmitted by the client as the ClientIdent field of the
+   RPC2_Bind() to the file server.  */
 
-AuthChangeUser (IN RPC2_Integer viceId, IN RPC2_EncryptionKey initKey, IN RPC2_String otherInfo);
-		/* Changes entry for a user. Caller must be a system administrator.  */
+2: AuthGetTokens (OUT EncryptedSecretToken sToken, OUT ClearToken cToken);
 
-AuthNewUser (IN RPC2_Integer viceId, IN RPC2_EncryptionKey initKey, IN RPC2_String otherInfo);
-		/* Adds a new user to Vice. Caller must be a system administrator.
-		    User must not exist already */
+/* Changes entry for a user. Caller must be a system administrator.  */
 
-AuthDeleteUser (IN RPC2_Integer viceId);
-		/* Deletes a user from vice.  User must exist. Note that viceId remains in use.
-		    However the user cannot authenticate himself to Vice.
-		    Caller must be a system administrator.
-		*/
+3: AuthChangeUser (IN RPC2_Integer viceId, IN RPC2_EncryptionKey initKey, 
+		   IN RPC2_String otherInfo);
 
+/* Adds a new user to Vice. Caller must be a system administrator.
+   User must not exist already */
 
+4: AuthNewUser (IN RPC2_Integer viceId, IN RPC2_EncryptionKey initKey, 
+		IN RPC2_String otherInfo);
+	
+/* Deletes a user from vice.  User must exist. Note that viceId
+   remains in use.  However the user cannot authenticate himself to
+   Vice.  Caller must be a system administrator.  */
 
-AuthNameToId (IN RPC2_String viceName, OUT RPC2_Integer viceId);
-	    /* Returns the vice id corr to vice name.  Returns  AUTHFAILED
-	    if  viceName is a bogus vice name. Else returns AUTHSUCCESS.
-	    */
+5: AuthDeleteUser (IN RPC2_Integer viceId);
+	
+/* Returns the vice id corr to vice name.  Returns  AUTHFAILED
+   if  viceName is a bogus vice name. Else returns AUTHSUCCESS.
+*/
 
-AuthQuit();	/* Logout from server: marks connection as not in use; gc it later. Can't just unbind
-	since response will not get back */
+6: AuthNameToId (IN RPC2_String viceName, OUT RPC2_Integer viceId);
+
+/* Logout from server: marks connection as not in use; gc it
+   later. Can't just unbind since response will not get back */
+
+7: AuthQuit();	

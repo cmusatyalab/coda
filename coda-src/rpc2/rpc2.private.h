@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rpc2/rpc2.private.h,v 4.2 1998/04/14 21:07:02 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rpc2/rpc2.private.h,v 4.3 1998/05/07 17:23:52 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -364,9 +364,9 @@ struct Init4Body		/* Server to Client */
     {
     RPC2_Integer InitialSeqNumber;	/* Seq number of first expected packet from client */
     RPC2_EncryptionKey	SessionKey;	/* for use from now on */
+    RPC2_Integer XRandomPlusTwo;	/* prevent replays of this packet -rnw 2/7/98 */
     RPC2_Integer Spare1;
     RPC2_Integer Spare2;
-    RPC2_Integer Spare3;
     };
 
 struct InitMulticastBody	/* Client to Server */

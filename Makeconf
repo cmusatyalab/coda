@@ -78,6 +78,9 @@ RP2FLAGS  = -e  -I . -I $(srcdir) -I $(INCLDIR)
 vpath %.h $(INCLPATH)
 vpath %.rpc2 $(INCLPATH)
 
+# uncomment the next line if you have kerberos
+KERBEROS=yes
+
 ##############################
 # Library definitions
 ##############################

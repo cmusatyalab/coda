@@ -25,27 +25,8 @@
 # improvements or extensions that  they  make,  and  to  grant  Carnegie
 # Mellon the rights to redistribute these changes without encumbrance.
 # 
-# static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/auth2/Makefile.in,v 4.7 1998/03/06 20:20:05 braam Exp $";
+# static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/auth2/Makefile.in,v 4.8 1998/04/14 20:49:37 braam Exp $";
 
-# 
-#                          IBM COPYRIGHT NOTICE
-# 
-#                           Copyright (C) 1986
-#              International Business Machines Corporation
-#                          All Rights Reserved
-# 
-# This  file  contains  some  code identical to or derived from the 1986
-# version of the Andrew File System ("AFS"), which is owned by  the  IBM
-# Corporation.    This  code is provded "AS IS" and IBM does not warrant
-# that it is free of infringement of  any  intellectual  rights  of  any
-# third  party.    IBM  disclaims  liability of any kind for any damages
-# whatsoever resulting directly or indirectly from use of this  software
-# or  of  any  derivative work.  Carnegie Mellon University has obtained
-# permission to distribute this code, which is based on Version 2 of AFS
-# and  does  not  contain the features and enhancements that are part of
-# Version 3 of AFS.  Version 3 of  AFS  is  commercially  available  and
-# supported by Transarc Corporation, Pittsburgh, PA.
-# 
 
 TOPDIR = @top_srcdir@
 ifndef MAKDIR
@@ -57,16 +38,13 @@ TOPOBJ = @TOPOBJ@
 
 include $(MAKDIR)/Makeconf
 
-# windos 95 does not build this
 ifneq ($(SHORTSYS),djgpp)
-EXECUTABLES = auth2 authmon initpw au oldtokens
-SSBINS      = auth2 authmon initpw 
+EXECUTABLES = auth2 initpw au clog cpasswd ctokens cunlog
+CBINS       = clog cpasswd ctokens cunlog
 CSBINS      = au
+SBINS       = au
+SSBINS      = auth2 initpw
 endif
-
-LIBRARIES   = libauth2.a
-HEADERS     = ${RP2FILES} ${RP2HEADERS}
-OBJS = auth2.client.o auth2.server.o auth2.multi.o au.o auser.o authmon.o avenus.o avice.o initpw.o oldtokens.o 
 
 
 RP2FILES    = auth2.rpc2
@@ -77,24 +55,49 @@ LIBS=	${LIBRPC2}\
 	${LIBOLDLWP}\
 	${LIBUTIL} \
 	${LIBKERNDEP} \
+	${LIBAUSER}\
 	${LIBCOMPAT}
 
-libauth2.a: auth2.server.o auth2.client.o avice.o auser.o avenus.o 
+CFLAGS := $(CFLAGS) $(KRBINCLFLAGS)
+
+LIBRARIES   = libauth2.a libauser.a
+HEADERS     = ${RP2FILES} ${RP2HEADERS}
+OBJS = auth2.client.o auth2.server.o auth2.multi.o au.o auser.o authmon.o avenus.o avice.o initpw.o
+
+ifeq ($(KERBEROS),)
+LIBAUTH2OBJS=auth2.server.o acommon.o avice.o pwsupport.o
+LIBAUSEROBJS=auth2.client.o acommon.o auser.o avenus.o
+else
+LIBAUTH2OBJS=auth2.server.o acommon.o avice.o krbsupport.o pwsupport.o
+LIBAUSEROBJS=auth2.client.o acommon.o auser.o avenus.o krbsupport.o
+endif
+
+libauth2.a: $(LIBAUTH2OBJS)
+
+libauser.a: $(LIBAUSEROBJS)
 
 auth2: auth2.o libauth2.a $(LIBS)
-	$(CXX) $(LIBFLAGS) auth2.o libauth2.a $(LIBS) -o auth2
+	$(CC) $(LIBFLAGS) auth2.o libauth2.a $(LIBS) $(LIBKRBS) -o auth2
 
-oldtokens: oldtokens.o libauth2.a $(LIBS)
-	$(CXX) $(LIBFLAGS) oldtokens.o libauth2.a $(LIBS) -o oldtokens
-
-authmon: authmon.o $(LIBS)
-	$(CXX) $(LIBFLAGS) authmon.o $(LIBS) -o authmon
 
 initpw: initpw.o $(LIBS)
-	$(CXX) $(LIBFLAGS) initpw.o $(LIBS) -o initpw
+	$(CC) $(LIBFLAGS) initpw.o $(LIBS) -o initpw
 
-au: au.o libauth2.a $(LIBS)
-	$(CXX) $(LIBFLAGS) au.o libauth2.a $(LIBS) -o au
+au: au.o libauser.a $(LIBS)
+	$(CC) $(LIBFLAGS) au.o libauser.a $(LIBS) $(LIBKRBS) -o au
+
+clog: clog.o libauser.a ${LIBS}
+	${CC} $(LIBFLAGS) clog.o libauser.a ${LIBS} $(LIBKRBS) -o clog
+
+cunlog: cunlog.o libauser.a ${LIBS}
+	${CC} $(LIBFLAGS) cunlog.o libauser.a ${LIBS} -o cunlog
+
+cpasswd: cpasswd.o libauser.a ${LIBS}
+	${CC} $(LIBFLAGS) cpasswd.o  libauser.a ${LIBS} ${LIBKRBS} -o cpasswd
+
+ctokens: ctokens.o libauser.a ${LIBS}
+	${CC} $(LIBFLAGS) ctokens.o libauser.a ${LIBS} -o ctokens
+
 
 
 include $(MAKDIR)/configs/Makerules
