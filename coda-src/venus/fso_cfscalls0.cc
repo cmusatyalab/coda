@@ -77,9 +77,12 @@ void fsobj::FetchProgressIndicator(unsigned long offset)
     if (stat.Length > 100000) {
         last = GotThisData / (stat.Length / 100) ; 
 	curr = offset / (stat.Length / 100) ;
-    } else {
+    } else if (stat.Length > 0) {
         last = 100 * GotThisData / stat.Length ; 
 	curr = 100 * offset / stat.Length ;
+    } else {
+	last = 0;
+	curr = 100;
     }
 
     if (last != curr)
