@@ -25,8 +25,8 @@ TOPOBJ = @TOPOBJ@
 
 include $(TOPDIR)/Makeconf
 
-EXECUTABLES = smon2 rpc2ping
-SBINS       = smon2 rpc2ping
+EXECUTABLES = smon2 rpc2ping getvolinfo
+SBINS       = smon2 rpc2ping getvolinfo
 
 DEPLIBS = $(LIBVICEDEP) $(LIBSYS) $(LIBBASE)
 LIBS := $(DEPLIBS) $(LIBRPC2) $(LIBSE) $(LIBLWP) $(LIBS)
@@ -38,4 +38,7 @@ smon2:	smon2.o $(DEPLIBS)
 
 rpc2ping: rpc2ping.o $(DEPLIBS)
 	$(CC) $(LDFLAGS) rpc2ping.o $(LIBS) -lm -o rpc2ping
+
+getvolinfo: getvolinfo.o $(DEPLIBS)
+	$(CC) $(LDFLAGS) getvolinfo.o $(LIBS) -lm -o getvolinfo
 
