@@ -1112,6 +1112,202 @@ done
 test -n "$YACC" || YACC="yacc"
 
 
+# Extract the first word of "cp", so it can be a program name with args.
+set dummy cp; ac_word=$2
+echo $ac_n "checking for $ac_word""... $ac_c" 1>&6
+echo "configure:1119: checking for $ac_word" >&5
+if eval "test \"`echo '$''{'ac_cv_path_CP'+set}'`\" = set"; then
+  echo $ac_n "(cached) $ac_c" 1>&6
+else
+  case "$CP" in
+  /*)
+  ac_cv_path_CP="$CP" # Let the user override the test with a path.
+  ;;
+  *)
+  IFS="${IFS= 	}"; ac_save_ifs="$IFS"; IFS="${IFS}:"
+  for ac_dir in $PATH; do
+    test -z "$ac_dir" && ac_dir=.
+    if test -f $ac_dir/$ac_word; then
+      ac_cv_path_CP="$ac_dir/$ac_word"
+      break
+    fi
+  done
+  IFS="$ac_save_ifs"
+  test -z "$ac_cv_path_CP" && ac_cv_path_CP=""""
+  ;;
+esac
+fi
+CP="$ac_cv_path_CP"
+if test -n "$CP"; then
+  echo "$ac_t""$CP" 1>&6
+else
+  echo "$ac_t""no" 1>&6
+fi
+
+# Extract the first word of "df", so it can be a program name with args.
+set dummy df; ac_word=$2
+echo $ac_n "checking for $ac_word""... $ac_c" 1>&6
+echo "configure:1151: checking for $ac_word" >&5
+if eval "test \"`echo '$''{'ac_cv_path_DF'+set}'`\" = set"; then
+  echo $ac_n "(cached) $ac_c" 1>&6
+else
+  case "$DF" in
+  /*)
+  ac_cv_path_DF="$DF" # Let the user override the test with a path.
+  ;;
+  *)
+  IFS="${IFS= 	}"; ac_save_ifs="$IFS"; IFS="${IFS}:"
+  for ac_dir in $PATH; do
+    test -z "$ac_dir" && ac_dir=.
+    if test -f $ac_dir/$ac_word; then
+      ac_cv_path_DF="$ac_dir/$ac_word"
+      break
+    fi
+  done
+  IFS="$ac_save_ifs"
+  test -z "$ac_cv_path_DF" && ac_cv_path_DF=""""
+  ;;
+esac
+fi
+DF="$ac_cv_path_DF"
+if test -n "$DF"; then
+  echo "$ac_t""$DF" 1>&6
+else
+  echo "$ac_t""no" 1>&6
+fi
+
+# Extract the first word of "grep", so it can be a program name with args.
+set dummy grep; ac_word=$2
+echo $ac_n "checking for $ac_word""... $ac_c" 1>&6
+echo "configure:1183: checking for $ac_word" >&5
+if eval "test \"`echo '$''{'ac_cv_path_GREP'+set}'`\" = set"; then
+  echo $ac_n "(cached) $ac_c" 1>&6
+else
+  case "$GREP" in
+  /*)
+  ac_cv_path_GREP="$GREP" # Let the user override the test with a path.
+  ;;
+  *)
+  IFS="${IFS= 	}"; ac_save_ifs="$IFS"; IFS="${IFS}:"
+  for ac_dir in $PATH; do
+    test -z "$ac_dir" && ac_dir=.
+    if test -f $ac_dir/$ac_word; then
+      ac_cv_path_GREP="$ac_dir/$ac_word"
+      break
+    fi
+  done
+  IFS="$ac_save_ifs"
+  test -z "$ac_cv_path_GREP" && ac_cv_path_GREP=""""
+  ;;
+esac
+fi
+GREP="$ac_cv_path_GREP"
+if test -n "$GREP"; then
+  echo "$ac_t""$GREP" 1>&6
+else
+  echo "$ac_t""no" 1>&6
+fi
+
+# Extract the first word of "hostname", so it can be a program name with args.
+set dummy hostname; ac_word=$2
+echo $ac_n "checking for $ac_word""... $ac_c" 1>&6
+echo "configure:1215: checking for $ac_word" >&5
+if eval "test \"`echo '$''{'ac_cv_path_HOSTNAME'+set}'`\" = set"; then
+  echo $ac_n "(cached) $ac_c" 1>&6
+else
+  case "$HOSTNAME" in
+  /*)
+  ac_cv_path_HOSTNAME="$HOSTNAME" # Let the user override the test with a path.
+  ;;
+  *)
+  IFS="${IFS= 	}"; ac_save_ifs="$IFS"; IFS="${IFS}:"
+  for ac_dir in $PATH; do
+    test -z "$ac_dir" && ac_dir=.
+    if test -f $ac_dir/$ac_word; then
+      ac_cv_path_HOSTNAME="$ac_dir/$ac_word"
+      break
+    fi
+  done
+  IFS="$ac_save_ifs"
+  test -z "$ac_cv_path_HOSTNAME" && ac_cv_path_HOSTNAME=""""
+  ;;
+esac
+fi
+HOSTNAME="$ac_cv_path_HOSTNAME"
+if test -n "$HOSTNAME"; then
+  echo "$ac_t""$HOSTNAME" 1>&6
+else
+  echo "$ac_t""no" 1>&6
+fi
+
+# Extract the first word of "perl", so it can be a program name with args.
+set dummy perl; ac_word=$2
+echo $ac_n "checking for $ac_word""... $ac_c" 1>&6
+echo "configure:1247: checking for $ac_word" >&5
+if eval "test \"`echo '$''{'ac_cv_path_PERL'+set}'`\" = set"; then
+  echo $ac_n "(cached) $ac_c" 1>&6
+else
+  case "$PERL" in
+  /*)
+  ac_cv_path_PERL="$PERL" # Let the user override the test with a path.
+  ;;
+  *)
+  IFS="${IFS= 	}"; ac_save_ifs="$IFS"; IFS="${IFS}:"
+  for ac_dir in $PATH; do
+    test -z "$ac_dir" && ac_dir=.
+    if test -f $ac_dir/$ac_word; then
+      ac_cv_path_PERL="$ac_dir/$ac_word"
+      break
+    fi
+  done
+  IFS="$ac_save_ifs"
+  test -z "$ac_cv_path_PERL" && ac_cv_path_PERL=""""
+  ;;
+esac
+fi
+PERL="$ac_cv_path_PERL"
+if test -n "$PERL"; then
+  echo "$ac_t""$PERL" 1>&6
+else
+  echo "$ac_t""no" 1>&6
+fi
+
+for ac_prog in tixwish tixwish-tk4.1
+do
+# Extract the first word of "$ac_prog", so it can be a program name with args.
+set dummy $ac_prog; ac_word=$2
+echo $ac_n "checking for $ac_word""... $ac_c" 1>&6
+echo "configure:1281: checking for $ac_word" >&5
+if eval "test \"`echo '$''{'ac_cv_path_TIXWISH'+set}'`\" = set"; then
+  echo $ac_n "(cached) $ac_c" 1>&6
+else
+  case "$TIXWISH" in
+  /*)
+  ac_cv_path_TIXWISH="$TIXWISH" # Let the user override the test with a path.
+  ;;
+  *)
+  IFS="${IFS= 	}"; ac_save_ifs="$IFS"; IFS="${IFS}:"
+  for ac_dir in $PATH; do
+    test -z "$ac_dir" && ac_dir=.
+    if test -f $ac_dir/$ac_word; then
+      ac_cv_path_TIXWISH="$ac_dir/$ac_word"
+      break
+    fi
+  done
+  IFS="$ac_save_ifs"
+  ;;
+esac
+fi
+TIXWISH="$ac_cv_path_TIXWISH"
+if test -n "$TIXWISH"; then
+  echo "$ac_t""$TIXWISH" 1>&6
+else
+  echo "$ac_t""no" 1>&6
+fi
+
+test -n "$TIXWISH" && break
+done
+test -n "$TIXWISH" || TIXWISH=""""
 
 
 
@@ -1147,7 +1343,6 @@ if test "${enable_platform+set}" = set; then
   enableval="$enable_platform"
   PLATFORM=$enable_platform
 fi
-
 
 
 trap '' 1 2 15
@@ -1262,7 +1457,7 @@ done
 
 ac_given_srcdir=$srcdir
 
-trap 'rm -fr `echo "Makefile Makeconf.setup  configs/Makefile lib-src/Makefile lib-src/mlwp/Makefile lib-src/libcs/Makefile lib-src/special-includes/Makefile rvm-src/Makefile rvm-src/rvm/Makefile rvm-src/seg/Makefile rvm-src/rds/Makefile rvm-src/tests/Makefile coda-src/Makefile coda-src/scripts/Makefile coda-src/kerndep/Makefile coda-src/partition/Makefile coda-src/dir/Makefile  coda-src/rpc2/Makefile coda-src/util/Makefile coda-src/libal/Makefile coda-src/rp2gen/Makefile coda-src/pdbstuff/Makefile coda-src/blurb/Makefile coda-src/fail/Makefile coda-src/vicedep/Makefile  coda-src/auth2/Makefile coda-src/vv/Makefile coda-src/login/Makefile coda-src/vol/Makefile coda-src/resolve/Makefile coda-src/venus/Makefile coda-src/advice/Makefile coda-src/repair/Makefile coda-src/res/Makefile coda-src/rvmres/Makefile coda-src/volutil/Makefile coda-src/vtools/Makefile coda-src/vice/Makefile coda-src/update/Makefile coda-src/norton/Makefile coda-src/asr/Makefile coda-src/egasr/Makefile kernel-src/Makefile kernel-src/inodefs/Makefile kernel-src/inodefs/common/Makefile kernel-src/inodefs/mach/Makefile kernel-src/inodefs/bsd44/Makefile kernel-src/inodefs/linux/Makefile kernel-src/vfs/Makefile  kernel-src/vfs/includes/Makefile kernel-src/vfs/linux/Makefile kernel-src/vfs/mach/Makefile kernel-src/vfs/bsd44/Makefile utils-src/Makefile utils-src/potemkin/Makefile utils-src/potemkin/ds/Makefile utils-src/potemkin/potemkin/Makefile  tests/Makefile lib-src/mlwp/tests/Makefile lib-src/libcs/tests/Makefile rvm-src/rvm/tests/Makefile rvm-src/seg/tests/Makefile rvm-src/rds/tests/Makefile coda-src/scripts/tests/Makefile coda-src/kerndep/tests/Makefile coda-src/partition/tests/Makefile coda-src/dir/tests/Makefile coda-src/rpc2/tests/Makefile  coda-src/util/tests/Makefile coda-src/libal/tests/Makefile coda-src/rp2gen/tests/Makefile coda-src/pdbstuff/tests/Makefile coda-src/blurb/tests/Makefile coda-src/fail/tests/Makefile  coda-src/auth2/tests/Makefile coda-src/vv/tests/Makefile coda-src/login/tests/Makefile coda-src/vol/tests/Makefile coda-src/resolve/tests/Makefile coda-src/venus/tests/Makefile  coda-src/advice/tests/Makefile coda-src/repair/tests/Makefile coda-src/res/tests/Makefile coda-src/rvmres/tests/Makefile coda-src/volutil/tests/Makefile coda-src/vtools/tests/Makefile coda-src/vice/tests/Makefile coda-src/update/tests/Makefile coda-src/norton/tests/Makefile coda-src/asr/tests/Makefile coda-src/egasr/tests/Makefile " | sed "s/:[^ ]*//g"` conftest*; exit 1' 1 2 15
+trap 'rm -fr `echo "Makefile Makeconf.setup  configs/Makefile lib-src/Makefile lib-src/mlwp/Makefile lib-src/libcs/Makefile lib-src/special-includes/Makefile rvm-src/Makefile rvm-src/rvm/Makefile rvm-src/seg/Makefile rvm-src/rds/Makefile rvm-src/tests/Makefile coda-src/Makefile coda-src/scripts/Makefile coda-src/kerndep/Makefile coda-src/partition/Makefile coda-src/dir/Makefile  coda-src/rpc2/Makefile coda-src/util/Makefile coda-src/libal/Makefile coda-src/rp2gen/Makefile coda-src/pdbstuff/Makefile coda-src/blurb/Makefile coda-src/fail/Makefile coda-src/vicedep/Makefile  coda-src/auth2/Makefile coda-src/vv/Makefile coda-src/login/Makefile coda-src/vol/Makefile coda-src/resolve/Makefile coda-src/venus/Makefile coda-src/advice/Makefile coda-src/repair/Makefile coda-src/res/Makefile coda-src/rvmres/Makefile coda-src/volutil/Makefile coda-src/vtools/Makefile coda-src/guitools/Makefile coda-src/guitools/translate coda-src/vice/Makefile coda-src/update/Makefile coda-src/norton/Makefile coda-src/asr/Makefile coda-src/egasr/Makefile kernel-src/Makefile kernel-src/inodefs/Makefile kernel-src/inodefs/common/Makefile kernel-src/inodefs/mach/Makefile kernel-src/inodefs/bsd44/Makefile kernel-src/inodefs/linux/Makefile kernel-src/vfs/Makefile  kernel-src/vfs/includes/Makefile kernel-src/vfs/linux/Makefile kernel-src/vfs/mach/Makefile kernel-src/vfs/bsd44/Makefile utils-src/Makefile utils-src/potemkin/Makefile utils-src/potemkin/ds/Makefile utils-src/potemkin/potemkin/Makefile  tests/Makefile lib-src/mlwp/tests/Makefile lib-src/libcs/tests/Makefile rvm-src/rvm/tests/Makefile rvm-src/seg/tests/Makefile rvm-src/rds/tests/Makefile coda-src/scripts/tests/Makefile coda-src/kerndep/tests/Makefile coda-src/partition/tests/Makefile coda-src/dir/tests/Makefile coda-src/rpc2/tests/Makefile  coda-src/util/tests/Makefile coda-src/libal/tests/Makefile coda-src/rp2gen/tests/Makefile coda-src/pdbstuff/tests/Makefile coda-src/blurb/tests/Makefile coda-src/fail/tests/Makefile  coda-src/auth2/tests/Makefile coda-src/vv/tests/Makefile coda-src/login/tests/Makefile coda-src/vol/tests/Makefile coda-src/resolve/tests/Makefile coda-src/venus/tests/Makefile  coda-src/advice/tests/Makefile coda-src/repair/tests/Makefile coda-src/res/tests/Makefile coda-src/rvmres/tests/Makefile coda-src/volutil/tests/Makefile coda-src/vtools/tests/Makefile coda-src/vice/tests/Makefile coda-src/update/tests/Makefile coda-src/norton/tests/Makefile coda-src/asr/tests/Makefile coda-src/egasr/tests/Makefile " | sed "s/:[^ ]*//g"` conftest*; exit 1' 1 2 15
 EOF
 cat >> $CONFIG_STATUS <<EOF
 
@@ -1302,6 +1497,12 @@ s%@LN_S@%$LN_S%g
 s%@SET_MAKE@%$SET_MAKE%g
 s%@RANLIB@%$RANLIB%g
 s%@YACC@%$YACC%g
+s%@CP@%$CP%g
+s%@DF@%$DF%g
+s%@GREP@%$GREP%g
+s%@HOSTNAME@%$HOSTNAME%g
+s%@PERL@%$PERL%g
+s%@TIXWISH@%$TIXWISH%g
 s%@TOPOBJ@%$TOPOBJ%g
 s%@SECSRC@%$SECSRC%g
 s%@RCSDIR@%$RCSDIR%g
@@ -1348,7 +1549,7 @@ EOF
 
 cat >> $CONFIG_STATUS <<EOF
 
-CONFIG_FILES=\${CONFIG_FILES-"Makefile Makeconf.setup  configs/Makefile lib-src/Makefile lib-src/mlwp/Makefile lib-src/libcs/Makefile lib-src/special-includes/Makefile rvm-src/Makefile rvm-src/rvm/Makefile rvm-src/seg/Makefile rvm-src/rds/Makefile rvm-src/tests/Makefile coda-src/Makefile coda-src/scripts/Makefile coda-src/kerndep/Makefile coda-src/partition/Makefile coda-src/dir/Makefile  coda-src/rpc2/Makefile coda-src/util/Makefile coda-src/libal/Makefile coda-src/rp2gen/Makefile coda-src/pdbstuff/Makefile coda-src/blurb/Makefile coda-src/fail/Makefile coda-src/vicedep/Makefile  coda-src/auth2/Makefile coda-src/vv/Makefile coda-src/login/Makefile coda-src/vol/Makefile coda-src/resolve/Makefile coda-src/venus/Makefile coda-src/advice/Makefile coda-src/repair/Makefile coda-src/res/Makefile coda-src/rvmres/Makefile coda-src/volutil/Makefile coda-src/vtools/Makefile coda-src/vice/Makefile coda-src/update/Makefile coda-src/norton/Makefile coda-src/asr/Makefile coda-src/egasr/Makefile kernel-src/Makefile kernel-src/inodefs/Makefile kernel-src/inodefs/common/Makefile kernel-src/inodefs/mach/Makefile kernel-src/inodefs/bsd44/Makefile kernel-src/inodefs/linux/Makefile kernel-src/vfs/Makefile  kernel-src/vfs/includes/Makefile kernel-src/vfs/linux/Makefile kernel-src/vfs/mach/Makefile kernel-src/vfs/bsd44/Makefile utils-src/Makefile utils-src/potemkin/Makefile utils-src/potemkin/ds/Makefile utils-src/potemkin/potemkin/Makefile  tests/Makefile lib-src/mlwp/tests/Makefile lib-src/libcs/tests/Makefile rvm-src/rvm/tests/Makefile rvm-src/seg/tests/Makefile rvm-src/rds/tests/Makefile coda-src/scripts/tests/Makefile coda-src/kerndep/tests/Makefile coda-src/partition/tests/Makefile coda-src/dir/tests/Makefile coda-src/rpc2/tests/Makefile  coda-src/util/tests/Makefile coda-src/libal/tests/Makefile coda-src/rp2gen/tests/Makefile coda-src/pdbstuff/tests/Makefile coda-src/blurb/tests/Makefile coda-src/fail/tests/Makefile  coda-src/auth2/tests/Makefile coda-src/vv/tests/Makefile coda-src/login/tests/Makefile coda-src/vol/tests/Makefile coda-src/resolve/tests/Makefile coda-src/venus/tests/Makefile  coda-src/advice/tests/Makefile coda-src/repair/tests/Makefile coda-src/res/tests/Makefile coda-src/rvmres/tests/Makefile coda-src/volutil/tests/Makefile coda-src/vtools/tests/Makefile coda-src/vice/tests/Makefile coda-src/update/tests/Makefile coda-src/norton/tests/Makefile coda-src/asr/tests/Makefile coda-src/egasr/tests/Makefile "}
+CONFIG_FILES=\${CONFIG_FILES-"Makefile Makeconf.setup  configs/Makefile lib-src/Makefile lib-src/mlwp/Makefile lib-src/libcs/Makefile lib-src/special-includes/Makefile rvm-src/Makefile rvm-src/rvm/Makefile rvm-src/seg/Makefile rvm-src/rds/Makefile rvm-src/tests/Makefile coda-src/Makefile coda-src/scripts/Makefile coda-src/kerndep/Makefile coda-src/partition/Makefile coda-src/dir/Makefile  coda-src/rpc2/Makefile coda-src/util/Makefile coda-src/libal/Makefile coda-src/rp2gen/Makefile coda-src/pdbstuff/Makefile coda-src/blurb/Makefile coda-src/fail/Makefile coda-src/vicedep/Makefile  coda-src/auth2/Makefile coda-src/vv/Makefile coda-src/login/Makefile coda-src/vol/Makefile coda-src/resolve/Makefile coda-src/venus/Makefile coda-src/advice/Makefile coda-src/repair/Makefile coda-src/res/Makefile coda-src/rvmres/Makefile coda-src/volutil/Makefile coda-src/vtools/Makefile coda-src/guitools/Makefile coda-src/guitools/translate coda-src/vice/Makefile coda-src/update/Makefile coda-src/norton/Makefile coda-src/asr/Makefile coda-src/egasr/Makefile kernel-src/Makefile kernel-src/inodefs/Makefile kernel-src/inodefs/common/Makefile kernel-src/inodefs/mach/Makefile kernel-src/inodefs/bsd44/Makefile kernel-src/inodefs/linux/Makefile kernel-src/vfs/Makefile  kernel-src/vfs/includes/Makefile kernel-src/vfs/linux/Makefile kernel-src/vfs/mach/Makefile kernel-src/vfs/bsd44/Makefile utils-src/Makefile utils-src/potemkin/Makefile utils-src/potemkin/ds/Makefile utils-src/potemkin/potemkin/Makefile  tests/Makefile lib-src/mlwp/tests/Makefile lib-src/libcs/tests/Makefile rvm-src/rvm/tests/Makefile rvm-src/seg/tests/Makefile rvm-src/rds/tests/Makefile coda-src/scripts/tests/Makefile coda-src/kerndep/tests/Makefile coda-src/partition/tests/Makefile coda-src/dir/tests/Makefile coda-src/rpc2/tests/Makefile  coda-src/util/tests/Makefile coda-src/libal/tests/Makefile coda-src/rp2gen/tests/Makefile coda-src/pdbstuff/tests/Makefile coda-src/blurb/tests/Makefile coda-src/fail/tests/Makefile  coda-src/auth2/tests/Makefile coda-src/vv/tests/Makefile coda-src/login/tests/Makefile coda-src/vol/tests/Makefile coda-src/resolve/tests/Makefile coda-src/venus/tests/Makefile  coda-src/advice/tests/Makefile coda-src/repair/tests/Makefile coda-src/res/tests/Makefile coda-src/rvmres/tests/Makefile coda-src/volutil/tests/Makefile coda-src/vtools/tests/Makefile coda-src/vice/tests/Makefile coda-src/update/tests/Makefile coda-src/norton/tests/Makefile coda-src/asr/tests/Makefile coda-src/egasr/tests/Makefile "}
 EOF
 cat >> $CONFIG_STATUS <<\EOF
 for ac_file in .. $CONFIG_FILES; do if test "x$ac_file" != x..; then
