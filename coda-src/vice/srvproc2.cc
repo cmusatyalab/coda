@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vice/srvproc2.cc,v 4.8 1998/01/21 19:19:59 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vice/srvproc2.cc,v 4.9 1998/03/06 20:21:02 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -110,6 +110,7 @@ extern int nlist(const char*, struct nlist[]);
 #include <vldb.h>
 #include <srv.h>
 #include <vice.private.h>
+#include "callback.h"
 #include <operations.h>
 #include <ops.h>
 #include "coppend.h"
@@ -197,11 +198,13 @@ long ViceConnectFS(RPC2_Handle RPCid, RPC2_Unsigned ViceVersion, ViceClient *Cli
     if (!client) 
 	LogMsg(0, SrvDebugLevel, stdout, "No client structure built by ViceNewConnection");
 
-    if (!errorCode && client) 
+    if (!errorCode && client) {
 	/* set up a callback channel if there isn't one for this host */
 	if (client->VenusId->id == 0) 
-	    errorCode = CLIENT_MakeCallBackConn(client);
-
+		errorCode = CLIENT_MakeCallBackConn(client);
+	else 
+		errorCode = CallBack(client->VenusId->id, &NullFid);
+    }
     LogMsg(2, SrvDebugLevel, stdout, "ViceConnectFS returns %s", 
 	   ViceErrorMsg((int) errorCode));
 
