@@ -533,17 +533,46 @@ OI_FreeLocks:
 		    MOTD.MaxSeqLen = 256;
 		    MOTD.SeqLen = 0;
 
+		    VolumeStateType conn_state;
+		    int             conflict;
+		    int             cml_count;
 		    /* Retrieve the volume status from the server(s). */
-		    u.u_error = v->GetVolStat(&volstat, &Name, &OfflineMsg,
+		    u.u_error = v->GetVolStat(&volstat, &Name, &conn_state,
+					      &conflict, &cml_count,
+					      &OfflineMsg,
 					      &MOTD, CRTORUID(u.u_cred));
 		    if (u.u_error) break;
 
-		    /* Format is (status, name, offlinemsg, motd). */
-		    char *cp = (char *) data->out;
+		    /* Format is (status, name, conn_state, conflict,
+		       cml_count, offlinemsg, motd) */
+		    /* First we make sure we won't overflow data->out */
+		    if ( (sizeof(VolumeStatus) + /* volstat */
+			 strlen(name) + 1 + /* name */
+			 sizeof(int) + /* conn_state */
+			 sizeof(int) + /* conflict */
+			 sizeof(int) + /* cml_count */
+			 strlen(offlinemsg) + 1 + /* offlinemsg */
+			 strlen(motd) + 1) /* motd */
+			 > VC_MAXDATASIZE ) {
+			LOG(0, ("vproc::do_ioctl: VIOCGETVOLSTAT: buffer is "
+				"not large enough to hold the message\n"));
+			u.u_error = EINVAL;
+			break;
+		    }
+		    /* then we copy the stuff to the buffer */
+		    char *cp = (char *) data->out;/* Invariant: cp always
+						     point to next loc. to
+						     be copied into */
 		    bcopy((char *)&volstat, cp, (int)sizeof(VolumeStatus));
 		    cp += sizeof(VolumeStatus);
 		    strcpy(cp, name);
 		    cp += strlen(name) + 1;
+		    *(int *)cp = conn_state;
+		    cp += sizeof(int);
+		    *(int *)cp = conflict;
+		    cp += sizeof(int);
+		    *(int *)cp = cml_count;
+		    cp += sizeof(int);
 		    strcpy(cp, offlinemsg);
 		    cp += strlen(offlinemsg) + 1;
 		    strcpy(cp, motd);

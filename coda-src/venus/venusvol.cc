@@ -2135,11 +2135,43 @@ ViceStoreId volent::GenerateStoreId() {
     return(sid);
 }
 
+/* Helper routine to help convert code for (int)(_volent.type) to code
+   for (ViceVolumeType)(_VolumeStatus.Type).  This conversion is needed
+   by volent::GetVolStat().  When connected, GetVolStat get the type
+   from the servers, the code can be {ReadOnly, ReadWrite} ("Backup"
+   and "Replicated" are never returned by server
+   (c.f. SetVolumeStatus())).  When disconnected, GetVolStat get the
+   type from volent, the code can be {RWVOL, ROVOL, BACKVOL, REPVOL,
+   RWRVOL}.  -- Clement
+*/
+static ViceVolumeType convert_voltype(int type) {
+    switch(type) {
+    case RWVOL: return ReadWrite;
+    case ROVOL: return ReadOnly;
+    case BACKVOL: return Backup;
+    case REPVOL: return ReadWrite; /* Can REPVOL be read-only? */
+    case RWRVOL: return ReadWrite; /* We should not see this */
+    default:
+	LOG(0, ("convert_voltype: Bogus type %d\n", type));
+	return ReadWrite;
+    }
+}
 
 /* local-repair modification */
 int volent::GetVolStat(VolumeStatus *volstat, RPC2_BoundedBS *Name,
+		       VolumeStateType *conn_state, int *conflict,
+		       int*cml_count,
 			RPC2_BoundedBS *msg, RPC2_BoundedBS *motd, vuid_t vuid) {
     LOG(100, ("volen::GetVolStat: vid = %x, vuid = %d\n", vid, vuid));
+
+    *conn_state = state;
+    CheckLocalSubtree();	/* unset has_local_subtree if possible */
+    *conflict = flags.has_local_subtree ? 1 : 0;
+    *cml_count = CML.count();
+    if ( state == Hoarding && *conflict && *cml_count>0 ) {
+	LOG(0, ("volent::GetVolStat: Strange! A connected volume 0x%x has "
+		"conflict or cml_count != 0 (=%d)?\n", vid, *cml_count));
+    }
 
     if (FID_VolIsFake(vid)) {
 	/* make up some numbers for the local-fake volume */
@@ -2155,14 +2187,35 @@ int volent::GetVolStat(VolumeStatus *volstat, RPC2_BoundedBS *Name,
 	volstat->BlocksInUse = 5000;
 	volstat->PartBlocksAvail = 5000;
 	volstat->PartMaxBlocks = 10000;
+	const char fakevolname[]="A_Local_Fake_Volume";
+	strcpy((char *)Name->SeqBody, fakevolname);
+	Name->SeqLen = strlen((char *)fakevolname) + 1;
+	/* Overload offline message to print some more message for users */
+	const char fakemsg[]=
+	    "This directory is made a fake volume because there is a conflict";
+	strcpy((char *)msg->SeqBody, fakemsg);
+	msg->SeqLen = strlen((char *)fakemsg) + 1;
+	motd->SeqBody[0] = 0;
+	motd->SeqLen = 1;
+	
 	return 0;
     }
 
     int code = 0;
 
     if (state == Emulating) {
-	/* We do not cache this data! */
-	code = ETIMEDOUT;
+	memset(volstat, 0, sizeof(VolumeStatus));
+	volstat->Vid = vid;
+	volstat->Type = convert_voltype(type);	
+	/* We do not know are about quota and block usage, but should be ok. */
+	strcpy((char *)Name->SeqBody, name);
+	Name->SeqLen = strlen((char *)name) + 1;
+	msg->SeqBody[0] = 0;
+	msg->SeqLen = 1;
+	motd->SeqBody[0] = 0;
+	motd->SeqLen = 1;
+	code = 0;
+
     }
     else {
 	VOL_ASSERT(this, (state == Hoarding || state == Logging));

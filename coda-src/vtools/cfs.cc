@@ -57,6 +57,13 @@ extern "C" {
 /* get the platform dependent @sys/@cpu expansions */
 #include <coda_expansion.h>
 
+/* From venusvol.h.  A volume is in exactly one of these states. */
+typedef enum {	Hoarding,
+		Emulating,
+		Logging,
+		Resolving,
+} VolumeStateType;
+
 #ifdef  __linux__
 #define direct dirent
 #define d_namlen d_reclen
@@ -395,6 +402,7 @@ enum closure_ops {CLO_EXAMINE, CLO_REPLAY};
 /* Type definitions for internal routines */
 static int findslot(char *s);
 static char *xlate_vvtype(ViceVolumeType vvt);
+static char *print_conn_state(VolumeStateType);
 static int parseacl(char *s, struct acl *a);
 static void translate(char *s, char oldc, char newc);
 static void fillrights(int x, char *s);
@@ -1619,6 +1627,10 @@ static void ListVolume(int argc, char *argv[], int opslot)
     struct ViceIoctl vio;
     VolumeStatus *vs;
     char *volname, *omsg, *motd;
+    VolumeStateType conn_state;
+    int conflict;
+    int cml_count;
+    char *ptr;
 
     if (argc < 3)
         {
@@ -1640,10 +1652,24 @@ static void ListVolume(int argc, char *argv[], int opslot)
         if (rc <0) {fflush(stdout); perror(argv[i]); continue;}
         
         /* Get pointers to output fields */
-        vs = (VolumeStatus *)piobuf;
-        volname = piobuf + sizeof(VolumeStatus);
-        omsg = volname + strlen(volname) + 1;
-        motd = omsg + strlen(omsg) + 1;
+	/* Format is (status, name, conn_state, conflict,
+	   cml_count, offlinemsg, motd) */
+	ptr = piobuf;		/* invariant: ptr always point to next obj
+				   to be read */
+        vs = (VolumeStatus *)ptr;
+	ptr += sizeof(VolumeStatus);
+        volname = ptr;
+	ptr += strlen(volname)+1;
+	conn_state = (VolumeStateType)*ptr;
+	ptr += sizeof(int);
+	conflict = (int)*ptr;
+	ptr += sizeof(int);
+	cml_count = (int)*ptr;
+	ptr += sizeof(int);
+        omsg = ptr;
+	ptr += strlen(omsg)+1;
+        motd = ptr;
+	ptr += strlen(motd)+1;
 
         /* Print output fields */
         if (argc > 3) printf("  %s:\n", argv[i]);  /* print directory name if more than one */
@@ -1652,13 +1678,21 @@ static void ListVolume(int argc, char *argv[], int opslot)
         if (*omsg) printf("  Offline message is \"%s\"\n", omsg);
         if (*motd) printf("  Message of the day is \"%s\"\n", motd);
         printf("  Volume type is %s\n", xlate_vvtype(vs->Type));
-        printf("  Minimum quota is %lu,", vs->MinQuota);
-        if (vs->MaxQuota > 0)
-            printf(" maximum quota is %lu\n", vs->MaxQuota);
-        else printf(" maximum quota is unlimited\n");
-        printf("  Current blocks used are %lu\n", vs->BlocksInUse);
-        printf("  The partition has %lu blocks available out of %lu\n",
-                vs->PartBlocksAvail, vs->PartMaxBlocks);
+	printf("  Connection State is %s\n", print_conn_state(conn_state));
+	if (conn_state!=Emulating) { /* info not avail if disconnected */
+	    printf("  Minimum quota is %lu,", vs->MinQuota);
+	    if (vs->MaxQuota > 0)
+		printf(" maximum quota is %lu\n", vs->MaxQuota);
+	    else printf(" maximum quota is unlimited\n");
+	    printf("  Current blocks used are %lu\n", vs->BlocksInUse);
+	    printf("  The partition has %lu blocks available out of %lu\n",
+		   vs->PartBlocksAvail, vs->PartMaxBlocks);
+	}
+	if (conflict)
+	    printf("  *** There are pending conflicts in this volume ***\n");
+	if (conn_state == Logging || conn_state == Emulating)
+	    printf("  There are %d CML entries pending for reintegration\n",
+		   cml_count);
         printf("\n");
         }
 
@@ -2379,6 +2413,16 @@ static char *xlate_vvtype(ViceVolumeType vvt)
         }
     }
 
+static char *print_conn_state(VolumeStateType conn_state)
+{
+    switch(conn_state) {
+    case Hoarding: return("Connected");
+    case Emulating: return("Disconnected");
+    case Logging: return("WriteDisconnected");
+    case Resolving: return("Connected");
+    default: return("????");
+    }
+}
 
 static int getlongest(int argc, char *argv[])
     {/* Return length of longest argument; for use in aligning printf() output */
