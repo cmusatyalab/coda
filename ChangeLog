@@ -1,5 +1,34 @@
+2002-12-13	<jaharkes@cs.cmu.edu>
+        * ======== Release 5.3.20 =========
+	* Don't abort repair when some replicas cannot be found.
+	* norton's 'show volume details' didn't work, it's
+	  'show volumedetails' now and works.
+	* Lots of duplicate code removed dealing with vnode lists in the
+	  servers.
+	* Build fixes for gcc-3.2, updated configure.in to autoconf-2.5.
+	* Fixed createvol_rep to deal with spaces in volume names.
+	* Corrected Linux's devfs aliases in the modules.conf file.
+	* Fixed occasional memory leak and bad free in venus.
+	* Added 'masquerade_port' option to venus.conf to force venus to use a
+	  fixed port number when masquerading.
+	* Kerberos cleanups and improved integration (no more special kauth2
+	  or kclog binaries).
+	* Reduced the size of CML entries in the client.
+	* Fixed inverted test that blocked the creation of files named '..foo'
+	* Keep the vnode bitmaps on the server small, servers would crash when
+	  more than 30000 files are created in a single volume. Now we should
+	  be ok until we hit about 240000.
+	
+2002-03-12	<jaharkes@cs.cmu.edu>
+        * ======== Release 5.3.19 =========
+	* Fixes for createvol_rep script.
+	* Avoid using hardcoded configuration file location in scripts.
+	* Avoid uninitialized atime and ctime when fetching an object,
+	  although we don't keep track of these times, it broke make.
+	* Fixed bad cast from rec_dlist to dlist.
+
 2002-02-01	<jaharkes@cs.cmu.edu>
-        * ======== Release 5.3.18 =========
+        * ======== Release 5.3.18 (unreleased) =========
 	* Coda servers were doing strncmp instead of memcmp on ip-addresses.
 	  This fixes 'identity-crisis' problems for replicated servers, where
 	  servers didn't know which volumes they were hosting etc. (Ivan Popov)
