@@ -1,0 +1,62 @@
+diff -urN linux.orig/Documentation/Configure.help linux/Documentation/Configure.help
+--- linux.orig/Documentation/Configure.help	Sun Nov 30 16:48:41 1997
++++ linux/Documentation/Configure.help	Mon Dec  1 18:17:14 1997
+@@ -4827,6 +4827,18 @@
+   Documentation/modules.txt. The module will be called smbfs.o. Most
+   people say N, however.
+ 
++Coda filesystem support
++CONFIG_CODA_FS
++  CODA is an advanced network filesystem.  It has support for disconnected
++  operation for laptops, read/write server replication, persistent client
++  caches and write back caching. 
++  By choosing this option you are compiling kernel support for Coda clients
++  into the Linux kernel.  You will need user level code as well, both for 
++  the client and server. Server's are currently user level, i.e. need
++  no kernel support. For further information see
++  http://www.coda.cs.cmu.edu or contact Peter Braam <braam@cs.cmu.edu>. 
++
++
+ SMB Win95 bug work-around
+ CONFIG_SMB_WIN95
+   If you want to connect to a share exported by Windows 95, you should
+diff -urN linux.orig/fs/Config.in linux/fs/Config.in
+--- linux.orig/fs/Config.in	Thu Oct 30 13:47:09 1997
++++ linux/fs/Config.in	Mon Dec  1 18:12:36 1997
+@@ -43,6 +43,7 @@
+       define_bool CONFIG_LOCKD n
+     fi
+   fi
++  tristate 'Coda filesystem support (advanced network fs)' CONFIG_CODA_FS
+   tristate 'SMB filesystem support (to mount WfW shares etc..)' CONFIG_SMB_FS
+   if [ "$CONFIG_SMB_FS" != "n" ]; then
+     bool 'SMB Win95 bug work-around' CONFIG_SMB_WIN95
+diff -urN linux.orig/fs/Makefile linux/fs/Makefile
+--- linux.orig/fs/Makefile	Thu Oct 23 17:00:14 1997
++++ linux/fs/Makefile	Mon Dec  1 18:13:08 1997
+@@ -16,7 +16,7 @@
+ 		inode.o dcache.o attr.o bad_inode.o $(BINFMTS) 
+ 
+ MOD_LIST_NAME := FS_MODULES
+-ALL_SUB_DIRS = minix ext2 fat msdos vfat proc isofs nfs umsdos \
++ALL_SUB_DIRS = coda minix ext2 fat msdos vfat proc isofs nfs umsdos \
+ 		hpfs sysv smbfs ncpfs ufs affs romfs autofs lockd nfsd nls
+ 
+ ifeq ($(CONFIG_QUOTA),y)
+@@ -27,6 +27,14 @@
+ 
+ ifeq ($(CONFIG_TRANS_NAMES),y)
+ O_OBJS += nametrans.o
++endif
++
++ifeq ($(CONFIG_CODA_FS),y)
++SUB_DIRS += coda
++else
++  ifeq ($(CONFIG_CODA_FS),m)
++  MOD_SUB_DIRS += coda
++  endif
+ endif
+ 
+ ifeq ($(CONFIG_MINIX_FS),y)
+diff -urN linux.orig/fs/coda/Makefile linux/fs/coda/Makefile
+--- linux.orig/fs/coda/Makefile	Wed Dec 31 19:00:00 1969
