@@ -1964,7 +1964,6 @@ static void setwb(RPC2_Integer wbflag)
 static void V_InitRPC(int timeout)
 {
     PROCESS mylpid;
-    FILE *tokfile;
     SFTP_Initializer sftpi;
     RPC2_Options options;
     struct timeval tout;
