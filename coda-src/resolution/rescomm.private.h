@@ -16,12 +16,6 @@ listed in the file CREDITS.
 
 #*/
 
-
-
-
-
-
-
 /* rescomm.private.h
  * Created Puneet Kumar, June 1990
  */

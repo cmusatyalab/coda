@@ -51,14 +51,14 @@ extern "C" {
 
 #include <lwp/lwp.h>
 #include <lwp/lock.h>
-#include <rpc2.h>
+#include <rpc2/rpc2.h>
+#include <rpc2/errors.h>
 #ifdef __cplusplus
 }
 #endif __cplusplus
 
 #include <prs.h>
 #include <voltypes.h>
-#include <errors.h>
 #include <inconsist.h>
 #include <vice.h>
 #include <cvnode.h>
