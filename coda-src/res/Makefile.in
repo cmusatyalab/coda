@@ -1,0 +1,99 @@
+#ifndef _BLURB_
+#define _BLURB_
+#/*
+#
+#            Coda: an Experimental Distributed File System
+#                             Release 4.0
+#
+#          Copyright (c) 1987-1996 Carnegie Mellon University
+#                         All Rights Reserved
+#
+#Permission  to  use, copy, modify and distribute this software and its
+#documentation is hereby granted,  provided  that  both  the  copyright
+#notice  and  this  permission  notice  appear  in  all  copies  of the
+#software, derivative works or  modified  versions,  and  any  portions
+#thereof, and that both notices appear in supporting documentation, and
+#that credit is given to Carnegie Mellon University  in  all  documents
+#and publicity pertaining to direct or indirect use of this code or its
+#derivatives.
+#
+#CODA IS AN EXPERIMENTAL SOFTWARE SYSTEM AND IS  KNOWN  TO  HAVE  BUGS,
+#SOME  OF  WHICH MAY HAVE SERIOUS CONSEQUENCES.  CARNEGIE MELLON ALLOWS
+#FREE USE OF THIS SOFTWARE IN ITS "AS IS" CONDITION.   CARNEGIE  MELLON
+#DISCLAIMS  ANY  LIABILITY  OF  ANY  KIND  FOR  ANY  DAMAGES WHATSOEVER
+#RESULTING DIRECTLY OR INDIRECTLY FROM THE USE OF THIS SOFTWARE  OR  OF
+#ANY DERIVATIVE WORK.
+#
+#Carnegie  Mellon  encourages  users  of  this  software  to return any
+#improvements or extensions that  they  make,  and  to  grant  Carnegie
+#Mellon the rights to redistribute these changes without encumbrance.
+#*/
+#
+#static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/src/coda-4.0.1/coda-src/res/RCS/GNUmakefile.in,v 1.2 1996/12/02 19:50:56 braam Exp braam $";
+#endif /*_BLURB_*/
+
+
+TOPDIR= @top_srcdir@
+srcdir = @srcdir@
+VPATH = @srcdir@
+TOPOBJ= @TOPOBJ@
+
+CC=g++
+include $(TOPDIR)/Makeconf
+
+
+RESLIBOBJS=logalloc.o pdlist.o remotelog.o resclient.o lockqueue.o\
+           rescoord.o  resforce.o reslock.o reslog.o \
+           resutil.o rescomm.o timing.o\
+	   res.server.o res.client.o res.multi.o weres.o 
+
+CFILES=	logalloc.cc pdlist.cc remotelog.cc resclient.cc rescomm.cc \
+	rescoord.cc resforce.cc reslock.cc reslog.cc \
+	resutil.cc lockqueue.cc timing.cc weres.cc 
+
+HEADERS=res.h  rescomm.h logalloc.h pdlist.h remotelog.h resforce.h \
+       reslog.h resutil.h lockqueue.h timing.h
+
+
+LIBRARIES = libreslib.a
+
+${RESLIBOBJS}: ${HEADERS}
+RP2FLAGS := -n $(RP2FLAGS)
+
+libreslib.a:	${RESLIBOBJS}
+
+# Test programs
+resc: resc.o  vice.client.o callback.server.o ${PIOCTL_O}
+	$(CC) -o resc resc.o\
+	vice.client.o callback.server.o\
+	${PIOCTL_O} ${LIBRPC2} ${LIBOLDLWP}
+
+testpdlist: testpdlist.o pdlist.o logalloc.o 
+	$(CC) -o testpdlist testpdlist.o\
+	logalloc.o pdlist.o ${LIBUTIL}
+
+test: test.o logalloc.o
+	$(CC) -o test test.o logalloc.o ${LIBUTIL}
+
+timetest: timetest.o timing.o 
+	$(CC) -o timetest timetest.o timing.o ${LIBUTIL}
+
+
+# Objects for libreslib.a
+pdlist.o: logalloc.h 
+
+vice.h vice.client.c: $(VICE_RPC2)
+	${RP2GEN} ${RP2FLAGS} $<
+callback.h callback.server.c: $(CALLBACK_RPC2)
+	${RP2GEN} ${RP2FLAGS} $<
+resc.o: vice.h callback.h
+
+res.h res.server.c res.client.c res.multi.c : $(RES_RPC2) ${RP2GEN}
+	${RP2GEN} ${RP2FLAGS} $<
+reslog.o: logalloc.h
+
+clean:
+	rm -f *.o *.client.c *.server.c resc
+
+include $(TOPDIR)/Makerules
+

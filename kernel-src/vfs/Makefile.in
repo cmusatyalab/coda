@@ -1,0 +1,7 @@
+
+TOPDIR= @top_srcdir@
+srcdir = @srcdir@
+VPATH = @srcdir@
+TOPOBJ= @TOPOBJ@
+
+include $(TOPDIR)/Makeconf

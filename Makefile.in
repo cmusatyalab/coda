@@ -1,0 +1,44 @@
+# Coda top level Makefile
+
+# Josh Raiff
+# Moved up further Peter Braam
+
+TOPDIR= @top_srcdir@
+srcdir = @srcdir@
+VPATH = @srcdir@
+TOPOBJ= @TOPOBJ@
+TOPOBJ= @TOPOBJ@
+
+SECSRC= @SECSRC@
+SHOB=   @SHOB@
+TOPOBJ= @TOPOBJ@
+
+include $(TOPDIR)/Makeconf
+
+# This is pretty much a special case
+
+  I =  kernel-src
+ II =  lib-src
+III =  rvm-src
+ IV =  coda-src
+  V =  utils-src
+
+
+THISDIR = $(shell pwd)
+
+coda: topcoda
+
+rcs: 
+ifdef RCSDIR
+	ln -s $(TOPDIR)/RCSLINK RCSLINK	
+	find . -type d -print | while  read thedir ; do  ln -s $(THISDIR)/RCSLINK/$$thedir $$thedir/RCS; done
+endif
+
+setup: 
+	echo TOPOBJ=`pwd` >> Makeconf.local
+
+
+include $(TOPDIR)/Makerules
+
+
+

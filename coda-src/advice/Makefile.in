@@ -1,0 +1,100 @@
+#ifndef _BLURB_
+#define _BLURB_
+#/*
+#
+#            Coda: an Experimental Distributed File System
+#                             Release 4.0
+#
+#          Copyright (c) 1987-1996 Carnegie Mellon University
+#                         All Rights Reserved
+#
+#Permission  to  use, copy, modify and distribute this software and its
+#documentation is hereby granted,  provided  that  both  the  copyright
+#notice  and  this  permission  notice  appear  in  all  copies  of the
+#software, derivative works or  modified  versions,  and  any  portions
+#thereof, and that both notices appear in supporting documentation, and
+#that credit is given to Carnegie Mellon University  in  all  documents
+#and publicity pertaining to direct or indirect use of this code or its
+#derivatives.
+#
+#CODA IS AN EXPERIMENTAL SOFTWARE SYSTEM AND IS  KNOWN  TO  HAVE  BUGS,
+#SOME  OF  WHICH MAY HAVE SERIOUS CONSEQUENCES.  CARNEGIE MELLON ALLOWS
+#FREE USE OF THIS SOFTWARE IN ITS "AS IS" CONDITION.   CARNEGIE  MELLON
+#DISCLAIMS  ANY  LIABILITY  OF  ANY  KIND  FOR  ANY  DAMAGES WHATSOEVER
+#RESULTING DIRECTLY OR INDIRECTLY FROM THE USE OF THIS SOFTWARE  OR  OF
+#ANY DERIVATIVE WORK.
+#
+#Carnegie  Mellon  encourages  users  of  this  software  to return any
+#improvements or extensions that  they  make,  and  to  grant  Carnegie
+#Mellon the rights to redistribute these changes without encumbrance.
+#*/
+#
+#static char *rcsid = "$Header: /home/braam/src/coda-src/advice/RCS/GNUmakefile.in,v 1.1 1996/11/22 19:12:08 braam Exp braam $";
+#endif /*_BLURB_*/
+
+
+TOPDIR= @top_srcdir@
+srcdir = @srcdir@
+VPATH = @srcdir@
+TOPOBJ= @TOPOBJ@
+
+include $(TOPDIR)/Makeconf
+RP2FLAGS := -n $(RP2FLAGS)
+CC=g++
+
+LIBS =	$(LIBSE)\
+	$(LIBRPC2)\
+	$(LIBOLDLWP)\
+	$(LIBUTIL)
+
+OTHERLIBS = $(LIBSYS)
+
+HFILES =	admon.h			\
+		adsrv.h			\
+		$(INCLDIR)/advice.h	\
+		$(INCLDIR)/rpc2.h       \
+                $(INCLDIR)/se.h         \
+		$(INCLSPECIAL)/lwp.h
+
+TCLSCRIPTS= discomiss hoardlist misslist pseudomiss reconnection reintegration_pending stoplight stoplight_statechange user_initiated weakmiss
+
+SCRIPTS= advice_install.sh
+
+EXECUTABLES = advice_srv $(TCLSCRIPTS) $(SCRIPT)
+
+CFILES = advice_srv.cc miss.cc volent.cc mybstree.cc
+
+HEADERS = advice_srv.h miss.h volent.h mybstree.h
+
+AOBJS = advice_srv.o miss.o volent.o admon.server.o adsrv.client.o mybstree.o daemon.o filecopy.o
+
+LFLAGS = -L$(LIBDIR) $(LIBFLAGS)
+
+advice: advice_srv
+
+advice_srv: $(AOBJS)
+	$(CC) -o advice_srv $(CFLAGS) $(AOBJS) $(LFLAGS) $(LIBS) $(OTHERLIBS)
+
+advice_srv.o: $(HFILES) $(HEADERS)
+daemon.o: $(HFILES) $(HEADERS)
+filecopy.o: $(HFILES) $(HEADERS)
+miss.o: $(HFILES) $(HEADERS)
+volent.o: $(HFILES) $(HEADERS)
+admon.server.o: admon.h adsrv.h $(HFILES) $(HEADERS)
+adsrv.client.o: adsrv.h admon.h $(HFILES) $(HEADERS)
+
+admon.h admon.server.c admon.client.c: $(ADMON_RPC2)
+	${RP2GEN} -n $(RP2FLAGS) $<
+adsrv.h adsrv.server.c adsrv.client.c: $(ADSRV_RPC2)
+	${RP2GEN} -n $(RP2FLAGS) $<
+test_bstree.o: test_bstree.h test_bstree.cc mybstree.h mybstree.cc
+
+test_bstree: test_bstree.o mybstree.o
+	$(CC) -o test_bstree $(CFLAGS) test_bstree.o mybstree.o $(LFLAGS) $(LIBS) $(OTHERLIBS)
+
+clean:
+	-rm -rf *.o advice_srv admon.client.c admon.server.c adsrv.client.o adsrv.server.c admon.h admon.server.o adsrv.h admon.multi.c adsrv.client.c adsrv.multi.c advice_srv.o
+
+include $(TOPDIR)/Makerules
+
+

@@ -1,0 +1,212 @@
+#ifndef _BLURB_
+#define _BLURB_
+#/*
+#
+#            Coda: an Experimental Distributed File System
+#                             Release 4.0
+#
+#          Copyright (c) 1987-1996 Carnegie Mellon University
+#                         All Rights Reserved
+#
+#Permission  to  use, copy, modify and distribute this software and its
+#documentation is hereby granted,  provided  that  both  the  copyright
+#notice  and  this  permission  notice  appear  in  all  copies  of the
+#software, derivative works or  modified  versions,  and  any  portions
+#thereof, and that both notices appear in supporting documentation, and
+#that credit is given to Carnegie Mellon University  in  all  documents
+#and publicity pertaining to direct or indirect use of this code or its
+#derivatives.
+#
+#CODA IS AN EXPERIMENTAL SOFTWARE SYSTEM AND IS  KNOWN  TO  HAVE  BUGS,
+#SOME  OF  WHICH MAY HAVE SERIOUS CONSEQUENCES.  CARNEGIE MELLON ALLOWS
+#FREE USE OF THIS SOFTWARE IN ITS "AS IS" CONDITION.   CARNEGIE  MELLON
+#DISCLAIMS  ANY  LIABILITY  OF  ANY  KIND  FOR  ANY  DAMAGES WHATSOEVER
+#RESULTING DIRECTLY OR INDIRECTLY FROM THE USE OF THIS SOFTWARE  OR  OF
+#ANY DERIVATIVE WORK.
+#
+#Carnegie  Mellon  encourages  users  of  this  software  to return any
+#improvements or extensions that  they  make,  and  to  grant  Carnegie
+#Mellon the rights to redistribute these changes without encumbrance.
+#*/
+#
+#static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/src/coda-4.0.1/coda-src/volutil/RCS/GNUmakefile.in,v 1.1 1996/11/22 19:13:33 braam Exp braam $";
+#endif /*_BLURB_*/
+
+
+#/*
+#
+#                         IBM COPYRIGHT NOTICE
+#
+#                          Copyright (C) 1986
+#             International Business Machines Corporation
+#                         All Rights Reserved
+#
+#This  file  contains  some  code identical to or derived from the 1986
+#version of the Andrew File System ("AFS"), which is owned by  the  IBM
+#Corporation.    This  code is provded "AS IS" and IBM does not warrant
+#that it is free of infringement of  any  intellectual  rights  of  any
+#third  party.    IBM  disclaims  liability of any kind for any damages
+#whatsoever resulting directly or indirectly from use of this  software
+#or  of  any  derivative work.  Carnegie Mellon University has obtained
+#permission to distribute this code, which is based on Version 2 of AFS
+#and  does  not  contain the features and enhancements that are part of
+#Version 3 of AFS.  Version 3 of  AFS  is  commercially  available  and
+#supported by Transarc Corporation, Pittsburgh, PA.
+#
+#*/
+
+
+TOPDIR= @top_srcdir@
+srcdir = @srcdir@
+VPATH = @srcdir@
+TOPOBJ= @TOPOBJ@
+
+include $(TOPDIR)/Makeconf
+RP2FLAGS += -n
+CC=g++
+
+
+LIBS =	${LIBVOL} \
+	${LIBVV} \
+	${LIBUTIL} \
+	${LIBRPC2} \
+	${LIBSE} \
+	${LIBCODARDS} \
+	${LIBSEG} \
+	${LIBCODARVM} \
+	${LIBOLDLWP} \
+	${LIBSYSENT} \
+	${LIBMACH}  \
+	${LIBIFS}\
+	$(LIBCS)\
+         -lm  -lc
+
+
+# Keep these in alphabetical order, and 1 per line for easy
+# comparison with ls output 
+CFILES=	dumpstuff.cc \
+	listinodes.cc \
+	parserecdump.cc\
+	physio.cc \
+	readstuff.cc \
+	vol-ancient.cc \
+	vol-backup.cc \
+	vol-clone.cc \
+	vol-create.cc \
+	vol-dump.cc \
+	vol-dumpmem.cc  \
+	vol-elapse.cc \
+	vol-info.cc \
+	vol-lock.cc \
+	vol-lookup.cc   \
+	vol-makevldb.cc \
+	vol-makevrdb.cc \
+	vol-maxid.cc \
+	vol-peekpoke.cc \
+	vol-purge.cc \
+	vol-restore.cc \
+	vol-rvmsize.cc  \
+	vol-salvage.cc \
+	vol-setlogparms.cc  \
+	vol-setvv.cc \
+	vol-showvnode.cc \
+	vol-timing.cc \
+	vol-tracerpc.cc\
+	vol-printstats.cc\
+	vol-showcallbacks.cc\
+	vol-rvmtrunc.cc\
+	volclient.cc \
+	volutil.cc \
+	vvlist.cc
+
+
+HFILES= voldump.h volutil.h \
+	dump.h dumpstream.h vol-dumprecstore.h vol-rcvheap.h \
+	volutil.private.h vvlist.h \
+	${INCLDIR}/srv.h ${INCLDIR}/errors.h \
+	${INCLDIR}/srvsignal.h ${INCLDIR}/fssync.h ${INCLDIR}/index.h \
+	${INCLDIR}/nfs.h ${INCLDIR}/partition.h ${INCLDIR}/recov.h \
+	${INCLDIR}/viceinode.h ${INCLDIR}/vldb.h ${INCLDIR}/cvnode.h \
+	${INCLDIR}/voldefs.h ${INCLDIR}/volinodes.h ${INCLDIR}/volume.h
+
+
+LOCALOBJS=readstuff.o dumpstuff.o vvlist.o
+
+# Keep these in alphabetical order, and 1 per line for easy
+# comparison with ls output 
+VOLUTILOBJS = \
+	listinodes.o \
+	physio.o \
+	vol-ancient.o \
+	vol-backup.o \
+	vol-clone.o \
+	vol-create.o \
+	vol-dump.o \
+	vol-dumpmem.o \
+	vol-elapse.o \
+	vol-info.o \
+	vol-lock.o \
+	vol-lookup.o \
+	vol-makevldb.o \
+	vol-makevrdb.o \
+	vol-maxid.o \
+	vol-peekpoke.o \
+	vol-purge.o \
+	vol-restore.o \
+	vol-rvmsize.o \
+	vol-salvage.o \
+	vol-setvv.o \
+	vol-setlogparms.o \
+	vol-showvnode.o \
+	vol-timing.o \
+	vol-tracerpc.o\
+	vol-printstats.o\
+	vol-showcallbacks.o\
+	vol-rvmtrunc.o\
+	volutil.o \
+	${LOCALOBJS}
+
+VOLCLIENTOBJS=volclient.o volutil.client.o voldump.server.o
+
+OBJS=${VOLUTILOBJS} ${VOLCLIENTOBJS}
+
+RP2FLAGS += -n
+
+EXECUTABLES = volutil parserecdump backup readdump merge
+LIBRARIES   = libvolutil.a 
+HEADERS     = volutil.private.h
+
+libvolutil.a:	${VOLUTILOBJS} volutil.server.o voldump.client.o
+
+parserecdump.o:	parserecdump.cc vol-dumprecstore.h
+
+local.a: ${LOCALOBJS}
+
+${OBJS}: ${HFILES}
+${LOCALOBJS}: ${HFILES}
+
+volutil.h volutil.client.c volutil.server.c: $(VOLUTIL_RPC2)
+	${RP2GEN} ${RP2FLAGS} $<
+voldump.h voldump.client.c voldump.server.c: $(VOLDUMP_RPC2)
+	${RP2GEN} ${RP2FLAGS} $<
+
+vol-create.o: volutil.private.h 
+
+vol-newvldb: vol-newvldb.sh
+
+volutil:    ${VOLCLIENTOBJS}
+	${CXX} $(CXXFLAGS) $(LIBFLAGS) -o volutil $? ${LIBS} 
+
+merge: merge.o dumpstream.o dumpstuff.o
+	$(CXX) $(CXXFLAGS) $(LIBFLAGS) -o merge $? ${LIBS}
+
+backup: backup.o volutil.client.o voldump.server.o
+	$(CXX) $(CXXFLAGS) $(LIBFLAGS) -o backup $? ${LIBS}
+
+readdump: readdump.o dumpstream.o dumpstuff.o
+	$(CXX) $(CXXFLAGS) $(LIBFLAGS) -o readdump $? ${LIBS}
+
+parserecdump:	parserecdump.o
+	$(CXX) $(CXXFLAGS) $(LIBFLAGS) -o parserecdump $? ${LIBS}
+
+include $(TOPDIR)/Makerules

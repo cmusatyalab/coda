@@ -1,0 +1,74 @@
+#ifndef _BLURB_
+#define _BLURB_
+#/*
+#
+#            Coda: an Experimental Distributed File System
+#                             Release 4.0
+#
+#          Copyright (c) 1987-1996 Carnegie Mellon University
+#                         All Rights Reserved
+#
+#Permission  to  use, copy, modify and distribute this software and its
+#documentation is hereby granted,  provided  that  both  the  copyright
+#notice  and  this  permission  notice  appear  in  all  copies  of the
+#software, derivative works or  modified  versions,  and  any  portions
+#thereof, and that both notices appear in supporting documentation, and
+#that credit is given to Carnegie Mellon University  in  all  documents
+#and publicity pertaining to direct or indirect use of this code or its
+#derivatives.
+#
+#CODA IS AN EXPERIMENTAL SOFTWARE SYSTEM AND IS  KNOWN  TO  HAVE  BUGS,
+#SOME  OF  WHICH MAY HAVE SERIOUS CONSEQUENCES.  CARNEGIE MELLON ALLOWS
+#FREE USE OF THIS SOFTWARE IN ITS "AS IS" CONDITION.   CARNEGIE  MELLON
+#DISCLAIMS  ANY  LIABILITY  OF  ANY  KIND  FOR  ANY  DAMAGES WHATSOEVER
+#RESULTING DIRECTLY OR INDIRECTLY FROM THE USE OF THIS SOFTWARE  OR  OF
+#ANY DERIVATIVE WORK.
+#
+#Carnegie  Mellon  encourages  users  of  this  software  to return any
+#improvements or extensions that  they  make,  and  to  grant  Carnegie
+#Mellon the rights to redistribute these changes without encumbrance.
+#*/
+#
+#static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/src/coda-4.0.1/coda-src/RCS/GNUmakefile.in,v 1.1 1996/11/22 19:06:26 braam Exp braam $";
+#endif /*_BLURB_*/
+
+# Coda top level Makefile
+# Josh Raiff
+
+TOPDIR= @top_srcdir@
+srcdir = @srcdir@
+VPATH = @srcdir@
+TOPOBJ= @TOPOBJ@
+TOPOBJ= @TOPOBJ@
+
+
+include $(TOPDIR)/Makeconf
+
+# ******* Define precedence of modules ******
+
+  I =  scripts
+ II =  sys dir 
+III =  rpc2 util
+ IV =  libal rp2gen pdbstuff blurb camstuff
+  V =  fail vicedep 
+
+# The mond data collection module is only intended for the PMax
+#if (`/etc/machine` == PMAX) then
+#set VI = auth2 mond vv login
+#else
+  VI = auth2 vv login
+#endif
+ VII =  vol resolve
+VIII =  venus advice repair res
+  IX =  rvmres volutil vtools
+   X =  vice
+  XI =  update norton asr egasr
+# If you add a new module to Coda, add it to the right set above
+
+SUBDIRS = $(I) $(II) $(III) $(IV) $(V) $(VI) $(VII) $(VIII) $(IX) \
+	  $(X) $(XI)
+
+include $(TOPDIR)/Makerules
+
+
+

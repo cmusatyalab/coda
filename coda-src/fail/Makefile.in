@@ -1,0 +1,87 @@
+#ifndef _BLURB_
+#define _BLURB_
+#/*
+#
+#            Coda: an Experimental Distributed File System
+#                             Release 4.0
+#
+#          Copyright (c) 1987-1996 Carnegie Mellon University
+#                         All Rights Reserved
+#
+#Permission  to  use, copy, modify and distribute this software and its
+#documentation is hereby granted,  provided  that  both  the  copyright
+#notice  and  this  permission  notice  appear  in  all  copies  of the
+#software, derivative works or  modified  versions,  and  any  portions
+#thereof, and that both notices appear in supporting documentation, and
+#that credit is given to Carnegie Mellon University  in  all  documents
+#and publicity pertaining to direct or indirect use of this code or its
+#derivatives.
+#
+#CODA IS AN EXPERIMENTAL SOFTWARE SYSTEM AND IS  KNOWN  TO  HAVE  BUGS,
+#SOME  OF  WHICH MAY HAVE SERIOUS CONSEQUENCES.  CARNEGIE MELLON ALLOWS
+#FREE USE OF THIS SOFTWARE IN ITS "AS IS" CONDITION.   CARNEGIE  MELLON
+#DISCLAIMS  ANY  LIABILITY  OF  ANY  KIND  FOR  ANY  DAMAGES WHATSOEVER
+#RESULTING DIRECTLY OR INDIRECTLY FROM THE USE OF THIS SOFTWARE  OR  OF
+#ANY DERIVATIVE WORK.
+#
+#Carnegie  Mellon  encourages  users  of  this  software  to return any
+#improvements or extensions that  they  make,  and  to  grant  Carnegie
+#Mellon the rights to redistribute these changes without encumbrance.
+#*/
+#
+#static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/src/coda-4.0.1/coda-src/fail/RCS/GNUmakefile.in,v 1.2 1996/11/24 00:50:00 braam Exp braam $";
+#endif /*_BLURB_*/
+
+
+
+TOPDIR= @top_srcdir@
+srcdir = @srcdir@
+VPATH = @srcdir@
+TOPOBJ= @TOPOBJ@
+
+include $(TOPDIR)/Makeconf
+
+
+# -lcompat is needed on NetBSD for insque(), remque(), etc.
+LIBCOMPAT_pmax_mach  =
+LIBCOMPAT_i386_mach  =
+LIBCOMPAT_sun4_mach  =
+LIBCOMPAT_alpha_osf20=
+LIBCOMPAT_i386_nbsd1 = -lcompat
+LIBCOMPAT            = $(LIBCOMPAT_${SYS})
+
+HEADERS = fail.h fcon.h fcon.rpc2
+LIBS = ${LIBRPC2} ${LIBSE} ${LIBOLDLWP} ${LIBCS} ${LIBCOMPAT} -lm
+
+
+# Files of interest
+# No longer of interest: tvclient tvserver ftclient ftserver 
+LIBOBJS = fcon.client.o fcon.server.o fcon.o fail.o delay.o 
+
+SOURCES = partition.c heal.c slow.c fail.c delay.c fcon.c ttyfcon.c \
+	  tvserver.c tvclient.c fcon.h fail.h tv.rpc2 fcon.rpc2 ft.rpc2
+LIBRARIES = libfail.a
+EXECUTABLES = ttyfcon partition heal slow
+RP2FILES = fcon.rpc2
+
+# The real stuff; invoke with build
+libfail.a: ${LIBOBJS}
+
+ttyfcon: ttyfcon.o libfail.a fcon.h
+	${CC} ${CFLAGS} ttyfcon.o libfail.a $(LIBFLAGS) ${LIBS} -o ttyfcon
+
+partition: partition.c libfail.a partition.o
+	${CC} ${CFLAGS} partition.o libfail.a $(LIBFLAGS) ${LIBS} -o partition
+
+heal: heal.c libfail.a heal.o
+	${CC} ${CFLAGS} heal.o libfail.a $(LIBFLAGS) ${LIBS} -o heal
+
+slow: slow.c libfail.a slow.o
+	${CC} ${CFLAGS} slow.o libfail.a $(LIBFLAGS) ${LIBS} -o slow
+
+fail.o: fail.c fcon.h fail.h
+fcon.client.o: fcon.client.c
+
+ttyfcon.o: ttyfcon.c fcon.h
+
+include $(TOPDIR)/Makerules

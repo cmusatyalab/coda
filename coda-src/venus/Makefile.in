@@ -1,0 +1,316 @@
+#ifndef _BLURB_
+#define _BLURB_
+#/*
+#
+#            Coda: an Experimental Distributed File System
+#                             Release 4.0
+#
+#          Copyright (c) 1987-1996 Carnegie Mellon University
+#                         All Rights Reserved
+#
+#Permission  to  use, copy, modify and distribute this software and its
+#documentation is hereby granted,  provided  that  both  the  copyright
+#notice  and  this  permission  notice  appear  in  all  copies  of the
+#software, derivative works or  modified  versions,  and  any  portions
+#thereof, and that both notices appear in supporting documentation, and
+#that credit is given to Carnegie Mellon University  in  all  documents
+#and publicity pertaining to direct or indirect use of this code or its
+#derivatives.
+#
+#CODA IS AN EXPERIMENTAL SOFTWARE SYSTEM AND IS  KNOWN  TO  HAVE  BUGS,
+#SOME  OF  WHICH MAY HAVE SERIOUS CONSEQUENCES.  CARNEGIE MELLON ALLOWS
+#FREE USE OF THIS SOFTWARE IN ITS "AS IS" CONDITION.   CARNEGIE  MELLON
+#DISCLAIMS  ANY  LIABILITY  OF  ANY  KIND  FOR  ANY  DAMAGES WHATSOEVER
+#RESULTING DIRECTLY OR INDIRECTLY FROM THE USE OF THIS SOFTWARE  OR  OF
+#ANY DERIVATIVE WORK.
+#
+#Carnegie  Mellon  encourages  users  of  this  software  to return any
+#improvements or extensions that  they  make,  and  to  grant  Carnegie
+#Mellon the rights to redistribute these changes without encumbrance.
+#*/
+#
+#static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/src/coda-4.0.1/coda-src/venus/RCS/GNUmakefile.in,v 1.3 1996/12/03 00:58:39 braam Exp braam $";
+#endif /*_BLURB_*/
+
+
+#/*
+
+
+#
+#                         IBM COPYRIGHT NOTICE
+#
+#                          Copyright (C) 1986
+#             International Business Machines Corporation
+#                         All Rights Reserved
+#
+#This  file  contains  some  code identical to or derived from the 1986
+#version of the Andrew File System ("AFS"), which is owned by  the  IBM
+#Corporation.    This  code is provded "AS IS" and IBM does not warrant
+#that it is free of infringement of  any  intellectual  rights  of  any
+#third  party.    IBM  disclaims  liability of any kind for any damages
+#whatsoever resulting directly or indirectly from use of this  software
+#or  of  any  derivative work.  Carnegie Mellon University has obtained
+#permission to distribute this code, which is based on Version 2 of AFS
+#and  does  not  contain the features and enhancements that are part of
+#Version 3 of AFS.  Version 3 of  AFS  is  commercially  available  and
+#supported by Transarc Corporation, Pittsburgh, PA.
+#
+#*/
+
+
+TOPDIR= @top_srcdir@
+srcdir = @srcdir@
+VPATH = @srcdir@
+TOPOBJ= @TOPOBJ@
+
+include $(TOPDIR)/Makeconf
+
+CC = g++
+
+# Files to make/install
+HEADERS = advice.h hdb.h newplumb.h
+LIBRARIES = libfaketrace.a
+CSBINS = venus
+
+# the cfsmount program is needed until kernel venus message passing
+# has been adapted in Linux. We apologize for the mess.
+
+ifeq ($(SYS),i386_linux2)
+EXECUTABLES = venus cfsmount
+CBINS = cfsmount
+else
+EXECUTABLES= venus
+endif
+
+#Turn off data collection
+#CFLAGS = $(CFLAGS) -DVENUS -DTIMING -DDISABLE_VMON -DVENUSDEBUG -DRVM_USELWP
+#CFLAGS = $(CFLAGS) -DVENUS -DTIMING -DVENUSDEBUG -DRVM_USELWP 
+
+CXXFLAGS := $(CXXFLAGS) -DVENUS -DTIMING -DDISABLE_VMON -DVENUSDEBUG \
+	    -DRVM_USELWP 
+RP2FLAGS := -n $(RP2FLAGS)
+
+# Conditional definition of MACHLIBS for NetBSD port (Satya, 8/16/96)
+MACHLIBS_pmax_mach = -lmach -lsys
+MACHLIBS_i386_mach = -lmach
+MACHLIBS_i386_nbsd1 = 
+
+LIBS=	$(LIBUTIL)\
+	$(LIBCODARDS)\
+	$(LIBSEG)\
+	$(LIBCODARVM)\
+	$(LIBOLDLWP)\
+	$(LIBRPC2)\
+	$(LIBSE)\
+	$(LIBFAIL)\
+	$(LIBCODASYS) \
+	$(LIBVV)\
+	$(LIBDIRLIB)\
+	$(LIBTRACE)\
+	$(LIBSYS)\
+	$(LIBCS)\
+	$(LIBIFS)\
+	$(LIBTRACE)
+
+HFILES=	vice.h			\
+		mond.h			\
+		admon.h			\
+		adsrv.h			\
+		callback.h		\
+		$(INCLDIR)/rpc2.h	\
+		$(INCLDIR)/se.h		\
+		$(INCLDIR)/timer.h 	\
+		$(INCLDIR)/auth2.h	\
+		$(INCLDIR)/fail.h	\
+		$(INCLDIR)/fcon.h
+
+CFILES= advice.cc advice_daemon.cc binding.cc comm.cc comm_daemon.cc daemon.cc fso0.cc fso1.cc fso_cachefile.cc fso_cfscalls0.cc fso_cfscalls1.cc fso_cfscalls2.cc fso_daemon.cc fso_dir.cc hdb.cc hdb_daemon.cc local_cml.cc local_daemon.cc local_fso.cc local_subtree.cc local_repair.cc local_vol.cc mariner.cc venusrecov.cc sighand.cc simulate.cc user.cc venusutil.cc venus.cc venuscb.cc venusvm.cc venusvol.cc vol_daemon.cc vol_cml.cc vol_reintegrate.cc vol_repair.cc vol_resolve.cc vol_vcb.cc vol_vsr.cc vol_COP2.cc vproc.cc vproc_pathname.cc vproc_pioctl.cc vproc_vfscalls.cc worker.cc faketrace.c
+
+HFILES= advice.h adviceconn.h advice_daemon.h binding.h comm.h fso.h hdb.h local.h mariner.h venusrecov.h sighand.h simulate.h user.h venuscb.h venusstats.h venusvm.h venus.private.h venusvol.h vproc.h worker.h
+
+VOBJS = advice.o advice_daemon.o admon.client.o adsrv.server.o binding.o callback.server.o comm.o comm_daemon.o daemon.o fso0.o fso1.o fso_cachefile.o fso_cfscalls0.o fso_cfscalls1.o fso_cfscalls2.o fso_daemon.o fso_dir.o hdb.o hdb_daemon.o local_cml.o local_daemon.o local_fso.o local_subtree.o local_repair.o local_vol.o mariner.o venusrecov.o sighand.o simulate.o user.o venusutil.o venus.o venuscb.o venusvm.o vice.client.o vice.multi.o mond.client.o venusvol.o vol_daemon.o vol_cml.o vol_reintegrate.o vol_repair.o vol_resolve.o vol_vcb.o vol_vsr.o vol_COP2.o vproc.o vproc_pathname.o vproc_pioctl.o vproc_vfscalls.o worker.o faketrace.o
+
+RP2FILES=$(CALLBACK_RPC2)  $(VICE_RPC2) $(MOND_RPC2) $(ADMON_RPC2) $(ADSRV_RPC2)
+RP2HFILES= $(subst .rpc2,.h,$(RP2FILES))
+RP2CFILES= $(subst .rpc2,.client.c,$(RP2FILES))
+
+
+venus:  ${VOBJS} dummy.o $(LIBRARIES) $(RP2CFILES)
+	$(CXX) ${CXXFLAGS} $(LIBFLAGS) -o venus ${VOBJS} dummy.o $(LIBS) $(MACHLIBS_$(SYS)) -lm 
+
+# When the new plumber works it should be linked in here too.
+venus.plumber:  ${VOBJS} $(LIBPLUMBER)
+	$(CXX) ${CXXFLAGS} $(LIBFLAGS) -o venus.plumber ${VOBJS} $(LIBPLUMBER) $(LIBS) $(MACHLIBS_$(SYS)) -lm -lsys
+
+#####################
+# Warning: these dependencies are on variables and are not covered by Makerules
+#####################
+callback.client.c callback.server.c callback.multi.c callback.h: $(CALLBACK_RPC2)
+vice.client.c vice.server.c vice.multi.c vice.h: $(VICE_RPC2)
+mond.client.c mond.server.c mond.multi.c mond.h: $(MOND_RPC2)
+admon.client.c admon.server.c admon.multi.c admon.h: $(ADMON_RPC2)
+adsrv.client.c adsrv.server.c adsrv.mutli.c adsrv.h: $(ADSRV_RPC2)
+
+
+advice.o: advice.cc advice.h admon.h adsrv.h adviceconn.h mond.h
+advice_daemon.o: advice_daemon.cc adsrv.h admon.h adviceconn.h mond.h
+binding.o: binding.cc binding.h
+comm.o: comm.cc comm.h venus.private.h fso.h mariner.h simulate.h\
+	user.h vproc.h venusvm.h venusvol.h worker.h $(HFILES) 
+
+comm_daemon.o: comm_daemon.cc comm.h venus.private.h venusrecov.h\
+	vproc.h simulate.h $(HFILES)
+
+daemon.o: daemon.cc vproc.h venus.private.h  $(HFILES)
+
+fso0.o: fso0.cc advice.h advice_daemon.h comm.h fso.h hdb.h local.h\
+	mariner.h simulate.h user.h venus.private.h venusvol.h\
+	vproc.h worker.h $(HFILES)
+
+fso1.o: fso1.cc advice.h comm.h fso.h local.h mariner.h simulate.h user.h \
+	venusrecov.h venus.private.h venusvol.h vproc.h worker.h \
+	$(INCLDIR)/venusioctl.h   $(HFILES)
+
+fso_cachefile.o: fso_cachefile.cc fso.h venus.private.h $(HFILES)
+
+fso_cfscalls0.o: fso.h fso_cfscalls0.cc venus.private.h comm.h\
+	mariner.h venuscb.h vproc.h venusvol.h worker.h   $(HFILES)
+
+fso_cfscalls1.o: fso.h fso_cfscalls1.cc venus.private.h comm.h\
+	mariner.h venuscb.h vproc.h venusvol.h worker.h   $(HFILES)
+
+fso_cfscalls2.o: fso.h fso_cfscalls2.cc venus.private.h local.h comm.h\
+	mariner.h venuscb.h vproc.h venusvol.h worker.h   $(HFILES)
+
+fso_daemon.o: fso.h fso_daemon.cc venus.private.h mariner.h simulate.h\
+	vproc.h $(HFILES)
+
+fso_dir.o: fso.h fso_dir.cc venus.private.h local.h\
+	venusrecov.h simulate.h $(HFILES)
+
+hdb.o: hdb.cc advice_daemon.h adviceconn.h advice.h fso.h hdb.h \
+	mariner.h simulate.h user.h venus.private.h venusrecov.h \
+	vproc.h venusvol.h worker.h  $(HFILES)
+
+hdb_daemon.o: hdb_daemon.cc hdb.h venus.private.h vproc.h $(HFILES)
+
+local_cml.o: local.h venus.private.h fso.h venusvol.h vproc.h $(HFILES)
+
+local_daemon.o: local.h venus.private.h venusrecov.h vproc.h $(HFILES)
+
+local_fso.o: local.h venuscb.h venusrecov.h venusvol.h venus.private.h\
+	fso.h $(HFILES)
+
+local_repair.o: local.h venusvol.h venus.private.h fso.h vproc.h $(HFILES)
+
+local_subtree.o: local.h venusrecov.h fso.h venusvol.h $(HFILES)
+
+local_vol.o: local.h venusvol.h $(HFILES)
+
+mariner.o: mariner.cc mariner.h venus.private.h comm.h fso.h simulate.h\
+	user.h venuscb.h vproc.h venusvol.h worker.h $(HFILES)
+
+venusrecov.o: venusrecov.cc venusrecov.h venus.private.h local.h\
+	fso.h hdb.h mariner.h worker.h $(HFILES)
+
+sighand.o: sighand.cc sighand.h venus.private.h comm.h venusrecov.h\
+	worker.h mariner.h $(HFILES)
+
+simulate.o: simulate.cc simulate.h venus.private.h fso.h venusrecov.h\
+	vproc.h $(HFILES)
+
+user.o: user.cc user.h venus.private.h comm.h hdb.h mariner.h\
+	worker.h $(HFILES)
+
+venusutil.o: venusutil.cc venus.private.h comm.h fso.h hdb.h mariner.h\
+	venusrecov.h simulate.h user.h venuscb.h venusrecov.h\
+	venusstats.h venusvm.h vproc.h venusvol.h worker.h   $(HFILES)
+
+venus.o: venus.cc venus.private.h local.h fso.h comm.h hdb.h mariner.h\
+	simulate.h vproc.h venusvol.h vstab.h sighand.h user.h\
+	venuscb.h venusvm.h worker.h advice.h advice_daemon.h \
+	venusrecov.h $(HFILES)
+
+venuscb.o: venuscb.cc comm.h mariner.h venuscb.h venus.private.h $(HFILES)
+
+venusvm.o: venusvm.cc venusvm.h venus.private.h callback.h mond.h\
+	mariner.h simulate.h vproc.h venusrecov.h $(HFILES)
+
+vice.client.o: vice.client.c vice.h
+
+vice.multi.o: vice.multi.c vice.h
+
+mond.client.o: mond.client.c mond.h
+
+venusvol.o: venusvol.cc venusvol.h venus.private.h local.h comm.h\
+	fso.h mariner.h venusrecov.h simulate.h user.h\
+	vproc.h venuscb.h $(HFILES)
+
+vol_cml.o: vol_cml.cc advice.h comm.h fso.h local.h mariner.h venuscb.h \
+        venus.private.h venusvol.h vproc.h $(HFILES)
+
+vol_daemon.o: vol_daemon.cc venusvol.h venus.private.h local.h \
+	simulate.h vproc.h $(HFILES)
+
+vol_reintegrate.o: vol_reintegrate.cc venusvol.h comm.h fso.h mariner.h \
+	venus.private.h vice.h vproc.h user.h local.h advice_daemon.h $(HFILES)
+
+vol_repair.o: vol_repair.cc venusvol.h venus.private.h local.h\
+	comm.h fso.h mariner.h vproc.h worker.h $(HFILES)
+
+vol_resolve.o: vol_resolve.cc venusvol.h venus.private.h comm.h\
+	fso.h mariner.h vproc.h $(HFILES)
+
+vol_vcb.o: vol_vcb.cc venusvol.h venus.private.h comm.h fso.h\
+	mariner.h venuscb.h vproc.h $(HFILES)
+
+vol_vsr.o: vol_vsr.cc venusvol.h venus.private.h venusvm.h\
+	vice.h mond.h mariner.h local.h $(HFILES)
+
+vol_COP2.o: vol_COP2.cc venusvol.h venus.private.h comm.h\
+	mariner.h $(HFILES)
+
+vproc.o: vproc.cc vproc.h venus.private.h local.h venusrecov.h\
+	user.h venusvol.h 
+
+vproc_pathname.o: vproc.h vproc_pathname.cc venus.private.h\
+	venusrecov.h venusvol.h
+
+vproc_pioctl.o: vproc_pioctl.cc comm.h vproc.h venus.private.h local.h \
+	vproc.h fso.h hdb.h user.h venusstats.h venusvol.h worker.h \
+	$(INCLDIR)/venusioctl.h $(HFILES)
+
+vproc_vfscalls.o: vproc.h vproc_vfscalls.cc venus.private.h vproc.h\
+	fso.h hdb.h local.h worker.h  
+
+worker.o: worker.cc worker.h venus.private.h comm.h fso.h mariner.h\
+	simulate.h venuscb.h venusstats.h venusvol.h vproc.h\
+	 worker.h   $(HFILES)
+
+clean:
+	-rm -rf *.o venus venus.plumber vice.h mond.h callback.h vice.client.c mond.client.c callback.server.c vice.server.c mond.server.c callback.client.c admon.client.c admon.h admon.multi.c admon.server.c adsrv.client.c adsrv.h adsrv.multi.c adsrv.server.c callback.multi.c mond.multi.c vice.multi.c
+
+
+# (Satya, 8/16/96): this is a temporary hack to build a dummy libtrace.a for NetBSD;
+# All the routines are dummies;  copy libfaketrace.a to include-special
+libfaketrace.a:	 faketrace.o
+	ar rv $@ $?
+	ranlib $@
+
+faketrace.o: faketrace.c
+	gcc -c $<
+
+
+
+testjmp: testjmp.cc
+	g++ -o testjmp testjmp.cc
+
+ifeq ($(SYS),i386_linux2)
+cfsmount.o: cfsmount.c
+	gcc $(CFLAGS) -c $<
+
+cfsmount: cfsmount.o
+	gcc $(CFLAGS) -o cfsmount cfsmount.o
+endif 
+
+include $(TOPDIR)/Makerules

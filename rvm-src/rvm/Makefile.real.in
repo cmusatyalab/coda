@@ -1,0 +1,175 @@
+#ifndef _BLURB_
+#define _BLURB_
+#
+#
+#     RVM: an Experimental Recoverable Virtual Memory Package
+#			Release 1.3
+#
+#       Copyright (c) 1990-1994 Carnegie Mellon University
+#                      All Rights Reserved.
+#
+# Permission  to use, copy, modify and distribute this software and
+# its documentation is hereby granted (including for commercial  or
+# for-profit use), provided that both the copyright notice and this
+# permission  notice  appear  in  all  copies  of   the   software,
+# derivative  works or modified versions, and any portions thereof,
+# and that both notices appear  in  supporting  documentation,  and
+# that  credit  is  given  to  Carnegie  Mellon  University  in all
+# publications reporting on direct or indirect use of this code  or
+# its derivatives.
+#
+# RVM  IS  AN  EXPERIMENTAL  SOFTWARE  PACKAGE AND IS KNOWN TO HAVE
+# BUGS, SOME OF WHICH MAY  HAVE  SERIOUS  CONSEQUENCES.    CARNEGIE
+# MELLON ALLOWS FREE USE OF THIS SOFTWARE IN ITS "AS IS" CONDITION.
+# CARNEGIE MELLON DISCLAIMS ANY  LIABILITY  OF  ANY  KIND  FOR  ANY
+# DAMAGES  WHATSOEVER RESULTING DIRECTLY OR INDIRECTLY FROM THE USE
+# OF THIS SOFTWARE OR OF ANY DERIVATIVE WORK.
+#
+# Carnegie Mellon encourages (but does not require) users  of  this
+# software to return any improvements or extensions that they make,
+# and to grant Carnegie Mellon the  rights  to  redistribute  these
+# changes  without  encumbrance.   Such improvements and extensions
+# should be returned to Software.Distribution@cs.cmu.edu.
+#
+# rcsid = $Header: /afs/cs.cmu.edu/project/coda-braam/src/coda-4.0.1/RCSLINK/./rvm-src/rvm/GNUmakefile.real.in,v 1.1 1996/11/22 19:17:09 braam Exp $
+#
+#endif _BLURB_
+
+#   	RVM Makefile : depends on csmake.
+
+# Top level targets
+# all (defulat): make libraries and binaries
+# safe: make all, ensuring that the dependencies are consistent
+#       safe is expensive to build.
+# install: copy targets, headers, etc. to install locations
+# clean: remove objects
+# sterile: clean + remove derived sources, dependency information
+
+
+TOPDIR= @top_srcdir@
+srcdir = @srcdir@
+VPATH = @srcdir@
+TOPOBJ= @TOPOBJ@
+
+include $(TOPDIR)/Makeconf
+
+# RVM definitions
+
+HEADERS     = rvm.h rvm_statistics.h rvm_lwp.h rvm_private.h \
+              rvm_pthread.h
+PRIVHEADERS = dummy_cthreads.h
+ALLHEADERS  = ${EXPHEADERS} ${PRIVHEADERS}
+EXECUTABLES = rvmutl
+LIBRARIES   = librvm.a
+
+OBJ1 = rvm_init.o rvm_map.o rvm_unmap.o rvm_trans.o rvm_logstatus.o \
+       rvm_logflush.o rvm_logrecovr.o rvm_utils.o rvm_io.o rvm_status.o \
+       rvm_debug.o rvm_printers.o
+
+# to compile these, we have to look in the VPATH directories to ensure
+# that we pick up correct copies of local include files.  Urg.
+SHADOWINCLS=${VPATH/:/ -I}
+CFLAGS = -I${SHADOWINCLS} ${CFLAGS}
+
+#GACK!  Use recursive makes.... raiff 11/21/96
+LWPSRC1 = ${OBJ1:.o=.l.c}
+PTSRC1  = ${OBJ1:.o=.pt.c} rvm_pthread.c
+
+OBJ2 = rvmutl.o
+
+# For alpha_osf20 we don't build librvmlwp.a
+# For hp700_ux90 we build librvmpt.a
+OBJECTS_pmax_mach   = ${OBJ1} ${LWPOBJ1} ${OBJ2}
+OBJECTS_pmax_ul4    = ${OBJ1} ${LWPOBJ1} ${OBJ2}
+OBJECTS_i386_mach   = ${OBJ1} ${LWPOBJ1} ${OBJ2}
+OBJECTS_sun4_mach   = ${OBJ1} ${LWPOBJ1} ${OBJ2}
+OBJECTS_alpha_osf20 = ${OBJ1} ${OBJ2}
+OBJECTS_hp700_ux90  = ${OBJ1} ${PTOBJ1} ${OBJ2}
+OBJECTS_i386_nbsd1  = ${OBJ1} ${LWPOBJ1} ${OBJ2}
+OBJECTS             = $(OBJECTS_${SYS})
+
+# Used to make depend
+SOURCES = ${OBJECTS:.o=.c}
+# by convention, Makeconf.sys must be in the same directory as Makeconf
+DEPDEP  = ${SOURCES} ${ALLHEADERS} ${NEED_CTHREAD} ${MAKEFILE} \
+          ${MAKECONF} ${MAKECONF:Makeconf=Makeconf.sys}
+
+# THis should be called recursively from a different makefile!
+LIBS_hp700_ux90  = librvm.a librvmpt.a
+
+
+# For mach platforms, we need to add libthread.a and libmach.a
+# LIBTHREADS and LIBMACH are defined in the all_mach Makeconf.sys
+# NetBSD platforms need libcompat.a for insque and deque
+RVMUTLLIBS_pmax_mach   = ${LIBTHREADS} ${LIBMACH}
+RVMUTLLIBS_i386_mach   = ${LIBTHREADS} ${LIBMACH}
+RVMUTLLIBS_sun4_mach   = ${LIBTHREADS} ${LIBMACH}
+RVMUTLLIBS_alpha_osf20 = 
+RVMUTLLIBS_hp700_ux90  = 
+RVMUTLLIBS_i386_nbsd1  = ${LIBCOMPAT}
+RVMUTLLIBS             = $(RVMUTLLIBS_${SYS})
+
+
+TARGETS = ${LIBS} ${BINS}
+
+# use log tail shadowing to debug the log tail pointer corruption
+#CFLAGS = -DRVM_LOG_TAIL_SHADOW $(CFLAGS)
+
+# make safe: includes a make Depend.  However, make Depend
+# is expensive, and will change whenever any source file changes.
+safe: Depend all
+
+# librvm: uses cthreads if available; otherwise uses no threds
+librvm.a:  $(NEED_CTHREAD) $(OBJ1)
+	ar rv $@ $?
+	ranlib $@
+
+# Use recursive make for this, later
+%.pt.c : %.c
+	ln -s $> $@
+
+%.pt.o : %.pt.c
+	$(CC) -DRVM_USEPT -DREENTRANT -I/usr/include/reentrant $(CFLAGS) -c $<
+
+#These rules completely recreates the library, since some filenames are
+#truncated
+librvmlwp.a: $(LWPOBJ1)
+	rm -f $@
+	ar rv $@ $>
+	ranlib $@
+
+librvmpt.a: $(PTOBJ1)
+	rm -f $@
+	ar rv $@ $>
+	ranlib $@
+
+rvmutl: $(NEED_CTHREAD) ${OBJ2} librvm.a ${RVMUTLLIBS}
+	$(CC) $(CFLAGS) -o $@ ${OBJ2} librvm.a ${RVMUTLLIBS} ${LIBFLAGS}
+
+sterile: clean
+	-rm -f ${LWPSRC1} $(NEED_CTHREAD) Depend
+
+depend: Depend 
+Depend: ${DEPDEP}
+	$(CC) -M $(CFLAGS) ${SOURCES} > Depend
+
+# Optionally use dependancies 
+-include Depend
+
+install: srcinstall hdrinstall libinstall bininstall 
+# Coda-specific installations
+
+# Note: to build librvmlwp.a with debugging for the log tail bug,
+# Use one of the two commented out targets instead.
+#       RVM_LOG_TAIL_BUG uses page protection
+#       make CFLAGS="$(CFLAGS) -DRVM_USELWP -DRVM_LOG_TAIL_BUG" librvm.a
+#       RVM_LOG_TAIL_SHADOW uses shadow variables
+#       make CFLAGS="$(CFLAGS) -DRVM_USELWP -DRVM_LOG_TAIL_SHADOW" librvm.a
+
+nothing:
+	@echo $(SYS)
+	@echo $(NEED_CTHREAD)
+	@echo $(LIBS)
+	@echo $(CTHREAD_${SYS})
+
+include $(TOPDIR)/Makerules

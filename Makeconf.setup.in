@@ -1,0 +1,62 @@
+#
+# Coda Filesystem 4.0
+#
+
+# This file is included at the top of the Makeconf file
+
+#
+# 1) Configure will overwrite this file -- make a backup if you wish
+# 2) Calling configure with the correct options can eliminate the need
+#    for editing
+# 
+
+#
+# Where to install binaries -- usual configure flags
+# 
+
+exec_prefix = @prefix@
+BINDIR = $(exec_prefix)/bin
+SBINDIR = $(exec_prefix)/sbin
+
+
+#
+# Platform, uncomment your choice; 
+#  flag:  --enable-platform=the_plf
+#
+SYS = @PLATFORM@
+
+# SYS=i386_mach
+# SYS=i386_linux2
+# SYS=i386_nbsd1
+# SYS=pmax_mach
+
+#
+# Shared objects -- sharing is dangerous but if you wish
+# flag:  --enable-shareobj=
+# 
+
+
+SHOB=@SHOB@
+ROOT:= $(SHOB)/$(SYS)
+
+#
+# Second shadow dir -- for your private sources, visible from where
+# you build   
+# flag:     --enable-srcdir=your-srcdir
+#
+
+SECSRC = @SECSRC@
+
+#
+# Where is the RCSDIR -- set this to the first shadow area
+# flag:     --enable-rcsdir=your-rcsdir
+#
+
+RCSDIR= @RCSDIR@
+
+#
+# If you need to override, uncomment the following line
+# and provide a Makeconf.override files
+#
+
+# OVERRIDE= yes

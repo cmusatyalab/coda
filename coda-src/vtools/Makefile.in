@@ -1,0 +1,87 @@
+#ifndef _BLURB_
+#define _BLURB_
+#/*
+#
+#            Coda: an Experimental Distributed File System
+#                             Release 4.0
+#
+#          Copyright (c) 1987-1996 Carnegie Mellon University
+#                         All Rights Reserved
+#
+#Permission  to  use, copy, modify and distribute this software and its
+#documentation is hereby granted,  provided  that  both  the  copyright
+#notice  and  this  permission  notice  appear  in  all  copies  of the
+#software, derivative works or  modified  versions,  and  any  portions
+#thereof, and that both notices appear in supporting documentation, and
+#that credit is given to Carnegie Mellon University  in  all  documents
+#and publicity pertaining to direct or indirect use of this code or its
+#derivatives.
+#
+#CODA IS AN EXPERIMENTAL SOFTWARE SYSTEM AND IS  KNOWN  TO  HAVE  BUGS,
+#SOME  OF  WHICH MAY HAVE SERIOUS CONSEQUENCES.  CARNEGIE MELLON ALLOWS
+#FREE USE OF THIS SOFTWARE IN ITS "AS IS" CONDITION.   CARNEGIE  MELLON
+#DISCLAIMS  ANY  LIABILITY  OF  ANY  KIND  FOR  ANY  DAMAGES WHATSOEVER
+#RESULTING DIRECTLY OR INDIRECTLY FROM THE USE OF THIS SOFTWARE  OR  OF
+#ANY DERIVATIVE WORK.
+#
+#Carnegie  Mellon  encourages  users  of  this  software  to return any
+#improvements or extensions that  they  make,  and  to  grant  Carnegie
+#Mellon the rights to redistribute these changes without encumbrance.
+#*/
+#
+#static char *rcsid = "$Header: /home/braam/src/coda-src/vtools/RCS/GNUmakefile.in,v 1.2 1996/12/02 21:12:25 braam Exp braam $";
+#endif /*_BLURB_*/
+
+
+
+
+TOPDIR= @top_srcdir@
+srcdir = @srcdir@
+VPATH = @srcdir@
+TOPOBJ= @TOPOBJ@
+
+include $(TOPDIR)/Makeconf
+
+EXECUTABLES = cmon codacon cfs hoard spy replay
+CLIENTBINS= cmon codacon cfs hoard spy replay
+CC=g++
+
+RP2FLAGS := $(RP2FLAGS) -n
+CXXFLAGS := $(CXXFLAGS) -UVENUS
+
+RP2FILES= $(VICE_RPC2)
+
+# up is broken on the pmax because a.out.h seems incomplete
+# fix if up is really needed (Satya 3/23/92)
+
+cmon: cmon.o  vice.client.o
+	$(CXX) $(LIBFLAGS) -o cmon cmon.o\
+	vice.client.o \
+	$(LIBRPC2) $(LIBSE) $(LIBOLDLWP) $(LIBCURSES) -ltermcap
+
+vice.h vice.client.c: $(VICE_RPC2) $(VCRCOMMON_RPC2)
+
+
+cmon.o: vice.h
+
+
+codacon:    codacon.o
+	$(CXX) $(CXXFLAGS) -o codacon codacon.o $(LIBFLAGS)
+
+cfs:  cfs.o 
+	$(CXX) $(CXXFLAGS)  -g -o cfs cfs.o  $(LIBFLAGS) $(LIBCODASYS) $(LIBUTIL)
+
+hoard: hoard.o 
+	$(CXX) $(CXXFLAGS) -o hoard hoard.o $(LIBFLAGS) $(LIBUTIL) $(LIBCODASYS) 
+
+spy: spy.o
+	$(CXX) $(CXXFLAGS) -g -o spy spy.o
+
+replay: replay.o
+	$(CXX) $(CXXFLAGS) -g -o replay replay.o
+
+# Currently broken on pmax (Satya 3/23/92)
+up: up.o
+	$(CXX) $(CXXFLAGS) -g  -o up up.o
+
+include $(TOPDIR)/Makerules
