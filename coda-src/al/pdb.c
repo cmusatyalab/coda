@@ -435,7 +435,6 @@ void PDB_changeId(int32_t oldId, int32_t newId)
 	h = PDB_db_open(O_RDWR);
 
 	PDB_db_read(h, newId, NULL, &tmp, &size);
-	CODA_ASSERT(tmp);
 	pdb_unpack(&r, tmp, size);
 	CODA_ASSERT(r.id == 0);
 
