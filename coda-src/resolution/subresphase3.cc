@@ -697,7 +697,9 @@ static int CheckValidityResOp(rsle *r, int NE,
 	    SLog(0,
 		   "CheckValidityResOp: Got a newstore operation - performing it but algo must be worked on\n");
 	    CODA_ASSERT(r->u.newst.type == STSTORE);
-	    return(PERFORMOP);
+	    if (!OE)
+		return MARKPARENTINC;
+	    return PERFORMOP;
 	}
 
       case ResolveViceRemove_OP:

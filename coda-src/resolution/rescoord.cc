@@ -394,7 +394,7 @@ int RegDirResolution(res_mgrpent *mgrp, ViceFid *Fid, ViceVersionVector **VV,
     ViceVersionVector *vv[VSG_MEMBERS];
     int HowMany = 0;
     int done = 0;
-    int ret;
+    int ret = 0;
 
     for (int i = 0; i < VSG_MEMBERS; i++) 
 	if (!mgrp->rrcc.hosts[i])
