@@ -17,3 +17,8 @@ SUBDIRS = sys
 
 include $(TOPDIR)/configs/Makerules
 
+ifeq ($(SHORTSYS),cygwin)
+LIBRARIES = libbraindead.a
+OBJECTS = braindead.o
+libbraindead.a: $(OBJECTS)
+endif
