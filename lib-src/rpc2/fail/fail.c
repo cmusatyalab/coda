@@ -80,7 +80,7 @@ static int FilterID = 1;
 { printf(msg); PrintFilters(); }
 #else
 #define TEMPDEBUG(msg)
-#endif DEBUG_FAIL
+#endif
 
 static int PrintFilter(FailFilter *f)
 {
@@ -229,7 +229,7 @@ int id;
     if (theQueues[(int)side][which]) {
 	DecQueue(theQueues[(int)side][which], filter->ip1, filter->ip2, filter->ip3, filter->ip4);
 	theQueues[(int)side][which] = 0;
-#endif NOTDEF    
+#endif
 TEMPDEBUG("RemoveFilter!\n")
     return 0;
 }
@@ -250,7 +250,7 @@ int Fail_PurgeFilters(side)
 		DecQueue(theQueues[(int)sendSide][i], filter->ip1, filter->ip2,
 			 filter->ip3, filter->ip4);
 		theQueues[(int)sendSide][i] = 0;
-#endif NOTDEF
+#endif
 	theQueues[(int)sendSide] = (int *)NULL;
 	break;
 
@@ -263,7 +263,7 @@ int Fail_PurgeFilters(side)
 		DecQueue(theQueues[(int)recvside][i], filter->ip1, filter->ip2,
 			 filter->ip3, filter->ip4);
 		theQueues[(int)recvside][i] = 0;
-#endif NOTDEF    
+#endif
 	theQueues[(int)recvSide] = (int *)NULL;
 	break;
 
@@ -283,7 +283,7 @@ int Fail_PurgeFilters(side)
 		DecQueue(theQueues[(int)recvside][i], filter->ip1, filter->ip2,
 			 filter->ip3, filter->ip4);
 		theQueues[(int)recvside][i] = 0;
-#endif NOTDEF
+#endif
 	theQueues[(int)sendSide] = (int *)NULL;
 	theQueues[(int)recvSide] = (int *)NULL;
 	break;
@@ -321,7 +321,7 @@ FailFilter *filter;
     if (theQueues[(int)side][which]) {
 	DecQueue(theQueues[(int)side][which], filter->ip1, filter->ip2, filter->ip3, filter->ip4);
 	theQueues[(int)side][which] = 0;
-#endif NOTDEF    
+#endif
 
     /* Find the delay queue that applies to this filter */
     if (filter->speed < MAXNETSPEED || filter->latency) {

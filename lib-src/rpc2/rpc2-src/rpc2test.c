@@ -49,6 +49,7 @@ int lwp_nextindex;
 #include <fcntl.h>
 #include <sys/types.h>
 #include <sys/time.h>
+#include <time.h>
 #include <sys/signal.h>
 #include <sys/stat.h>
 #include <sys/file.h>
@@ -152,7 +153,7 @@ char *TimeNow(void)
     return(ctime((const time_t *)&t));
 #else 
     return(ctime(&t));
-#endif ibmrt
+#endif
 }
 
 

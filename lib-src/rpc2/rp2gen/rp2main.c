@@ -70,7 +70,7 @@ static LANGUAGE clanguage, slanguage, mlanguage;
 
 static char *client_includes[] = {
 	/* NONE */	"Can't happen",
-	/* C */		"#ifdef __cplusplus\nextern \"C\" {\n#endif __cplusplus\n#include <sys/time.h>\n#ifdef __cplusplus\n}\n#endif __cplusplus\n",
+	/* C */		"#ifdef __cplusplus\nextern \"C\" {\n#endif\n#include <sys/time.h>\n#ifdef __cplusplus\n}\n#endif\n",
 	/* PASCAL */	"Can't happen",
 	/* F77 */	"Can't happen"
 };
@@ -84,7 +84,7 @@ static char *server_includes[] = {
 
 static char *h_includes[] = {
 	/* NONE */	"Can't happen",
-	/* C */		"#ifdef __cplusplus\nextern \"C\" {\n#endif __cplusplus\n#include <rpc2/rpc2.h>\n#include <rpc2/se.h>\n#include <rpc2/errors.h>\n#ifdef __cplusplus\n}\n#endif __cplusplus\n",
+	/* C */		"#ifdef __cplusplus\nextern \"C\" {\n#endif\n#include <rpc2/rpc2.h>\n#include <rpc2/se.h>\n#include <rpc2/errors.h>\n#ifdef __cplusplus\n}\n#endif\n",
 	/* PASCAL */	"Can't happen",
 	/* F77 */	"Can't happen"
 };
@@ -322,7 +322,7 @@ static int32_t h_hack_begin(where, name)
 static int32_t h_hack_end(where)
     FILE *where;
     {
-    fprintf(where, "\n#endif _%s_\n", define_name);
+    fprintf(where, "\n#endif /* _%s_ */\n", define_name);
     return -1;
     }
 

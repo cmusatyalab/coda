@@ -308,6 +308,24 @@ struct TraceElem
 
 /* Macros to actually do the tracing follows.  Each of these is used only once,
     but is placed here to avoid cluttering up all the other files */
+#ifndef RPC2DEBUG
+#define TR_SENDRESPONSE()
+#define TR_GETREQUEST()
+#define TR_MAKERPC()
+#define TR_BIND()
+#define TR_INITSE()
+#define TR_CHECKSE()
+#define TR_UNBIND()
+#define TR_MULTI()
+#define TR_MSENDRELIABLY()
+#define TR_XMIT()
+#define TR_RECV()
+#define TR_SENDRELIABLY()
+#define TR_CREATEMGRP()
+#define TR_ADDTOMGRP()
+#define TR_REMOVEFROMMGRP()
+#define TR_XLATEMCASTPACKET()
+#else
 #define TR_SENDRESPONSE() do {\
     if (RPC2_Trace && rpc2_TraceBuffHeader)\
 	{\
@@ -584,6 +602,5 @@ struct TraceElem
 	tea->ThisHost = pb->Prefix.PeerHost;	/* structure assignment */\
 	tea->ThisPort = pb->Prefix.PeerPort;	/* structure assignment */\
 	} } while (0)
-
-
+#endif
 

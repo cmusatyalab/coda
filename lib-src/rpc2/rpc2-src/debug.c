@@ -68,8 +68,6 @@ char *rpc2_timestring(void)
 		return mytime;
 	}
 }
-		
-	
 
 static char *WhichMagic(int x)
 {
@@ -913,4 +911,4 @@ void rpc2_PrintSEDesc(SE_Descriptor *whichSDesc, FILE *whichFile)
     if (i >= SE_DefCount) return; /* Bogus side effect */
     (*SE_DefSpecs[i].SE_PrintSEDescriptor)(whichSDesc, whichFile);
 }
-#endif RPC2DEBUG
+#endif

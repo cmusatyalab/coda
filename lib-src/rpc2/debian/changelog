@@ -1,4 +1,4 @@
-rpc2 (1.11) unstable; urgency=low
+rpc2 (1.12) unstable; urgency=low
 
   * Merged debian packaging in rpc2 distribution. 
 

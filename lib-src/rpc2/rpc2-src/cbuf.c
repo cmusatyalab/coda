@@ -108,11 +108,10 @@ void CBUF_WalkBuff(struct CBUF_Header *bufId, void (*userProc)(), long howMany,
     
 }
 
-
 void CBUF_Free(struct CBUF_Header **whichBuff)
 {
     free((*whichBuff)->Buffer);
     free(*whichBuff);
     *whichBuff = NULL;
 }
-#endif RPC2DEBUG
+#endif

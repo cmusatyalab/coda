@@ -228,9 +228,7 @@ long RPC2_CreateMgrp(OUT MgroupHandle, IN MulticastHost, IN MulticastPort, IN  S
     rpc2_Enter();
     say(0, RPC2_DebugLevel, "In RPC2_CreateMgrp()\n");
 
-#ifdef RPC2DEBUG
     TR_CREATEMGRP();
-#endif RPC2DEBUG
 
     /* Validate the security parameters. */
     switch ((int) SecurityLevel)
@@ -382,9 +380,7 @@ long RPC2_AddToMgrp(IN MgroupHandle, IN ConnHandle)
     rpc2_Enter();
     say(0, RPC2_DebugLevel, "In RPC2_AddToMgrp()\n");
 
-#ifdef RPC2DEBUG
     TR_ADDTOMGRP();
-#endif RPC2DEBUG
 
     /* Validate multicast group and connection. */
     while (TRUE)
@@ -553,9 +549,7 @@ void rpc2_RemoveFromMgrp(me, ce)
     {
     int	    i;
 
-#ifdef RPC2DEBUG
     TR_REMOVEFROMMGRP();
-#endif RPC2DEBUG
 
     assert(me != NULL && !TestRole(me, FREE));
     if (TestState(me, CLIENT, ~(C_THINK|C_HARDERROR)) ||
@@ -833,9 +827,7 @@ bool XlateMcastPacket(RPC2_PacketBuffer *pb)
 
     say(9, RPC2_DebugLevel, "In XlateMcastPacket()\n");
 
-#ifdef RPC2DEBUG
     TR_XLATEMCASTPACKET();
-#endif RPC2DEBUG
 
     /* This is a hack that may have to be changed.  Packets which are initially
        multicasted are sent on the point-to-point connection if and when they

@@ -111,14 +111,11 @@ void rpc2_XmitPacket(IN long whichSocket, IN RPC2_PacketBuffer *whichPB,
 	fprintf(rpc2_logfile, "\n");
 	rpc2_PrintPacketHeader(whichPB, 0);
 	}
-#endif RPC2DEBUG
+#endif
 
     assert(whichPB->Prefix.MagicNumber == OBJ_PACKETBUFFER);
 
-
-#ifdef RPC2DEBUG
     TR_XMIT();
-#endif RPC2DEBUG
 
     /* Only Internet for now; no name->number translation attempted */
 
@@ -221,9 +218,7 @@ long rpc2_RecvPacket(IN long whichSocket, OUT RPC2_PacketBuffer *whichBuff)
     whichBuff->Prefix.PeerPort.Tag = RPC2_PORTBYINETNUMBER;
     whichBuff->Prefix.PeerPort.Value.InetPortNumber = sa.sin_port;
 
-#ifdef RPC2DEBUG
     TR_RECV();
-#endif RPC2DEBUG
 
     if (!DontFailPacket(Fail_RecvPredicate, whichBuff, &sa, whichSocket)) {
 	    errno = 0;
@@ -474,9 +469,7 @@ long rpc2_SendReliably(IN Conn, IN Sle, IN Packet, IN TimeOut)
 
     say(0, RPC2_DebugLevel, "rpc2_SendReliably()\n");
 
-#ifdef RPC2DEBUG
     TR_SENDRELIABLY();
-#endif RPC2DEBUG
 
     if (TimeOut != NULL)
 	{/* create a time bomb */

@@ -1,7 +1,17 @@
+New in 1.12:
+
+* Fixed gcc-3.0 compiler warnings.
+* Added support for libreadline v4.2.
+
+New in 1.11:
+
+* Applied MacOS X (Darwin) patches from Timothy Wood.
+* Keeping track of current fd offset in sftp to allow non-multirpc transfers
+  from/to a non-seekable fd (eg. stdout).
+
 New in 1.10:
 
-* Fixed crash in SendResponse when request decoding has failed.
-* Applied MacOS X (Darwin) patches from Timothy Wood.
+* Fixed NULL pointer dereference when rpc2 packet tracing is enabled.
 
 New in 1.9:
 

@@ -595,12 +595,12 @@ char *rpc2_timestring();
     } while(0);
 #else 
 #define say(when, what, how)	
-#endif RPC2DEBUG
+#endif
 
 #ifndef TRUE
 #define TRUE 1
 #define FALSE 0
-#endif TRUE
+#endif
 
 
 /*--------- End stuff from util.h ------------*/

@@ -159,7 +159,7 @@ cinclude(filename, who, where)
     s = rindex(spitname, '.');
     if (s && strcmp(s, ".rpc2") == 0) strcpy(s, ".h");
     fprintf(where, "#include \"%s\"\n", spitname);
-    fprintf(where, "#endif %s\n", ifdefname);
+    fprintf(where, "#endif /* %s */\n", ifdefname);
 }
 
 cdefine(id, value, who, where)
@@ -423,11 +423,11 @@ static locals(where)
 static common(where)
     register FILE *where;
 {
-	fputs("\n#ifdef __cplusplus\nextern \"C\" {\n#endif __cplusplus\n", where);
+	fputs("\n#ifdef __cplusplus\nextern \"C\" {\n#endif\n", where);
 	fputs("\n#include <sys/types.h>\n#include <netinet/in.h>\n#include <sys/time.h>\n", where);
 	fputs("#include <string.h>\n", where);
 	fputs("#include <unistd.h>\n#include <stdlib.h>\n\n", where);
-	fputs("\n#ifdef __cplusplus\n}\n#endif __cplusplus\n", where);
+	fputs("\n#ifdef __cplusplus\n}\n#endif\n", where);
 
     fputs("\n#define _PAD(n)\t((((n)-1) | 3) + 1)\n", where);
 }
@@ -1982,7 +1982,7 @@ static print_stubpredefined(where)
 	}
     }
         
-    fputs("#endif _STUB_PREDEFINED_\n", where);
+    fputs("#endif /* _STUB_PREDEFINED_ */\n", where);
 
     if (callcountentry == RP2_FALSE || multicallentry == RP2_FALSE) {
         printf("print_stubpredefined: logic contradiction\n");

@@ -18,7 +18,11 @@ Coda are listed in the file CREDITS.
 
 #ifdef __cplusplus
 extern "C" {
-#endif /* __cplusplus */
+#endif
+
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -28,7 +32,6 @@ extern "C" {
 #include <sys/param.h>
 #include <assert.h>
 
-#define	READLINE_LIBRARY
 #include <readline/readline.h>
 
 extern void using_history();
@@ -37,7 +40,12 @@ extern void add_history(char *);
 
 #ifdef __cplusplus
 }
-#endif /* __cplusplus */
+#endif
+
+#ifndef HAVE_RL_COMPLETION_MATCHES
+/* compatibility for readline libs < v4.2 */
+#define rl_completion_matches completion_matches
+#endif
 
 #include "parser.h"
 #define CMD_COMPLETE 0
@@ -57,8 +65,8 @@ static char *skipwhitespace(char *s);
 static char *skiptowhitespace(char *s);
 static command_t *find_cmd(char *name, command_t cmds[], char **next);
 static int process(char *s, char **next, command_t *lookup, command_t **result, char **prev);
-static char *command_generator(char *text, int state);
-static char **command_completion(char *text, int start, int end);
+static char *command_generator(const char *text, int state);
+static char **command_completion(const char *text, int start, int end);
 static void print_commands(char *str, command_t *table);
 
 #if 1
@@ -124,17 +132,8 @@ static argcmd_t *Parser_findargcmd(char *name, argcmd_t cmds[])
 
 	for (i = 0; cmds[i].ac_name; i++) {
 		cmd = &cmds[i];
-
-		if (strlen(name) != strlen(cmd->ac_name))
-			continue;
-
-		if (strlen(name) == strlen(cmd->ac_name)) {
-			if (strcmp(name, cmd->ac_name) == 0) 
-				return cmd;
-			else
-				continue;
-		}
-
+		if (strcmp(name, cmd->ac_name) == 0) 
+		    return cmd;
 	}
 	return NULL;
 }
@@ -145,16 +144,16 @@ int Parser_execarg(int argc, char **argv, argcmd_t cmds[])
 	int i;
 
         cmd = Parser_findargcmd(argv[0], cmds);
-	if ( cmd ) {
+	if ( cmd )
 		return (cmd->ac_func)(argc, argv);
-	} else {
-		printf("Try interactive use without arguments or use one of: ");
-		for (i=0 ; cmds[i].ac_name ; i++) {
-			cmd = &cmds[i];
-			printf("\"%s\" ", cmd->ac_name);
-		}
-		printf("as argument.\n");
+
+	printf("Try interactive use without arguments or use one of: ");
+	for (i=0 ; cmds[i].ac_name ; i++) {
+	    cmd = &cmds[i];
+	    printf("\"%s\" ", cmd->ac_name);
 	}
+	printf("as argument.\n");
+
 	return -1;
 }
 
@@ -218,7 +217,7 @@ static int process(char *s, char ** next, command_t *lookup,
     }
 }
 
-static char * command_generator(char * text, int state) 
+static char *command_generator(const char * text, int state) 
 {
     static int index,
 	       len;
@@ -248,20 +247,19 @@ static char * command_generator(char * text, int state)
 }
 
 /* probably called by readline */
-static char **command_completion(char * text, int start, int end) 
+static char **command_completion(const char * text, int start, int end) 
 {
     command_t 	* table;
     char	* pos;
 
     match_tbl = top_level;
-    for (table = find_cmd(rl_line_buffer, match_tbl, &pos);
-	 table;
-	 table = find_cmd(pos, match_tbl, &pos)) {
+    pos = rl_line_buffer;
 
-	if (*(pos - 1) == ' ') match_tbl = table->sub_cmd;
-    }
+    while((table = find_cmd(pos, match_tbl, &pos)) != NULL)
+	if (*(pos - 1) == ' ')
+	    match_tbl = table->sub_cmd;
 
-    return(completion_matches(text, command_generator));
+    return rl_completion_matches(text, command_generator);
 }
 
 /* take a string and execute the function or print help */
@@ -313,8 +311,8 @@ void Parser_commands()
     using_history();
     stifle_history(HISTORY);
 
-    rl_attempted_completion_function =(CPPFunction *)command_completion;
-    rl_completion_entry_function = (Function *)command_generator;
+    rl_attempted_completion_function = command_completion;
+    rl_completion_entry_function = command_generator;
     
     while(!done) {
 	line = readline(parser_prompt);

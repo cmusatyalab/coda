@@ -57,7 +57,7 @@ Pittsburgh, PA.
 
 #ifdef FAKESOCKETS
 extern int fake;
-#endif FAKESOCKETS
+#endif
 
 #ifdef RPC2DEBUG
 #include "rpc2.private.h"
@@ -76,7 +76,7 @@ extern long RPC2_Perror;
 extern long RPC2_DebugLevel;
 #ifndef FAKESOCKETS
 extern long SFTP_DebugLevel;
-#endif FAKESOCKETS
+#endif
 FILE *ErrorLogFile;
 static char ShortText[200];
 static char LongText[3000];
@@ -185,11 +185,11 @@ int main(int arg, char **argv)
 	sftpi.PacketSize = 2800;
 	SFTP_Activate(&sftpi);
 	SFTP_EnforceQuota = 1;
-#endif FAKESOCKETS
+#endif
 
 #ifdef PROFILE
 	InitProfiling();
-#endif PROFILE
+#endif
 
 	if(WhatHappened(RPC2_Init(RPC2_VERSION, (RPC2_Options *)NULL, 
 				  (RPC2_PortIdent *)NULL, -1, (struct timeval *)NULL), "Init") != RPC2_SUCCESS)
@@ -368,13 +368,13 @@ int main(int arg, char **argv)
 		FT_GetTimeOfDay(&t1, NULL);
 #ifdef PROFILE
 		ProfilingOn();
-#endif PROFILE
+#endif
 		gettimeofday(&start, (struct timezone *)0);
 		tt = RPC2_MakeRPC(cid, Buff1, &sed, &Buff2, (struct timeval *)NULL, (long) 0);
 		if (bwflag) fclose(BW_f);
 #ifdef PROFILE
 		ProfilingOff();
-#endif PROFILE
+#endif
 		FT_GetTimeOfDay(&t2, NULL);
 
 
@@ -426,7 +426,7 @@ int main(int arg, char **argv)
 		FT_GetTimeOfDay(&t1, NULL);
 #ifdef PROFILE
 		ProfilingOn();
-#endif PROFILE
+#endif
 		while(i--)
 		    {
 		    Buff1->Header.BodyLength = 0;
@@ -438,7 +438,7 @@ int main(int arg, char **argv)
 		    }
 #ifdef PROFILE
 		ProfilingOff();
-#endif PROFILE
+#endif
 		if (tt != RPC2_SUCCESS)
 		    {
 		    WhatHappened(tt, "MakeRPC");
@@ -482,7 +482,7 @@ int main(int arg, char **argv)
 		rpc2_ntohp(Buff2);
 	    }
 	    (void) fflush(rpc2_tracefile);
-#endif RPC2DEBUG
+#endif
 	    printf("Response Body: ``");
 	    nextc = (char *)Buff2->Body;
 	    for (i=0; i < Buff2->Header.BodyLength; i++)
@@ -500,7 +500,7 @@ Finish:
 
 #ifdef PROFILE
     DoneProfiling();
-#endif PROFILE
+#endif
     return 0;
 
     }

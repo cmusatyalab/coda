@@ -99,7 +99,7 @@ int main(argc, argv)
 
 #ifdef PROFILE
     InitProfiling();
-#endif PROFILE
+#endif
 
     FillStrings();
 
@@ -320,7 +320,7 @@ long ProcessPacket(RPC2_Handle cIn, RPC2_PacketBuffer *pIn, RPC2_PacketBuffer *p
 	    i = WhatHappened(RPC2_SendResponse(cIn, pOut), "SendResponse");
 #ifdef PROFILE
 	    ProfilingOn();
-#endif PROFILE
+#endif
 	    break;
 
 
@@ -332,7 +332,7 @@ long ProcessPacket(RPC2_Handle cIn, RPC2_PacketBuffer *pIn, RPC2_PacketBuffer *p
 #ifdef PROFILE
 	    ProfilingOff();
 	    DoneProfiling();
-#endif PROFILE
+#endif
 
 	    pOut->Header.ReturnCode = RPC2_SUCCESS;
 	    pOut->Header.BodyLength = 0;
@@ -481,7 +481,7 @@ long ProcessPacket(RPC2_Handle cIn, RPC2_PacketBuffer *pIn, RPC2_PacketBuffer *p
 
 #ifdef RPC2DEBUG
 	if (i != RPC2_SUCCESS)  sftp_DumpTrace("stest.dump");
-#endif RPC2DEBUG
+#endif
     return(i);
 }
 

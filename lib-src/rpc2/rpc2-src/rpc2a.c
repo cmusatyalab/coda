@@ -166,9 +166,7 @@ long RPC2_SendResponse(IN RPC2_Handle ConnHandle, IN RPC2_PacketBuffer *Reply)
     /* return if we have no reply to send */
     if (!Reply) rpc2_Quit(RPC2_FAIL);
 
-#ifdef RPC2DEBUG
     TR_SENDRESPONSE();
-#endif RPC2DEBUG
 
     preply = Reply;	/* side effect routine usually does not reallocate
 			 * packet. preply will be the packet actually sent
@@ -238,9 +236,7 @@ long RPC2_GetRequest(IN RPC2_RequestFilter *Filter,
 	rpc2_Enter();
 	say(0, RPC2_DebugLevel, "RPC2_GetRequest()\n");
 	    
-#ifdef RPC2DEBUG
 	TR_GETREQUEST();
-#endif RPC2DEBUG
 
 /* worthless request */
 #define DROPIT()  do { \
@@ -378,9 +374,7 @@ long RPC2_MakeRPC(RPC2_Handle ConnHandle, RPC2_PacketBuffer *Request,
     rpc2_Enter();
     say(0, RPC2_DebugLevel, "RPC2_MakeRPC()\n");
 	    
-#ifdef RPC2DEBUG
     TR_MAKERPC();
-#endif RPC2DEBUG
 
     /* Perform sanity checks */
     assert(Request->Prefix.MagicNumber == OBJ_PACKETBUFFER);
@@ -553,9 +547,7 @@ long RPC2_NewBinding(IN RPC2_HostIdent *Host, IN RPC2_PortIdent *Port,
     rpc2_Enter();
     say(0, RPC2_DebugLevel, "In RPC2_NewBinding()\n");
 
-#ifdef RPC2DEBUG
     TR_BIND();
-#endif RPC2DEBUG
 
     switch ((int) Bparms->SecurityLevel) {
     case RPC2_OPENKIMONO:
@@ -867,9 +859,7 @@ long RPC2_InitSideEffect(IN RPC2_Handle ConnHandle, IN SE_Descriptor *SDesc)
 {
     say(0, RPC2_DebugLevel, "RPC2_InitSideEffect()\n");
 
-#ifdef RPC2DEBUG
     TR_INITSE();
-#endif RPC2DEBUG
 
     rpc2_Enter();
     rpc2_Quit(InvokeSE(1, ConnHandle, SDesc, 0));
@@ -880,9 +870,7 @@ long RPC2_CheckSideEffect(IN RPC2_Handle ConnHandle,
 {
     say(0, RPC2_DebugLevel, "RPC2_CheckSideEffect()\n");
 
-#ifdef RPC2DEBUG
     TR_CHECKSE();
-#endif RPC2DEBUG
     
     rpc2_Enter();
     rpc2_Quit(InvokeSE(2, ConnHandle, SDesc, Flags));
@@ -923,9 +911,7 @@ long RPC2_Unbind(RPC2_Handle whichConn)
 	
 	say(0, RPC2_DebugLevel, "RPC2_Unbind()\n");
 	
-#ifdef RPC2DEBUG
 	TR_UNBIND();
-#endif RPC2DEBUG
 
 	rpc2_Enter();
 	rpc2_Unbinds++;

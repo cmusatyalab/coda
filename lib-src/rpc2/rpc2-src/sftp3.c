@@ -107,7 +107,7 @@ void PrintDb(struct SFTP_Entry *se, RPC2_PacketBuffer *pb);
 #define BOGOSITY(se, pb)  (printf("SFTP bogosity:  file %s, line %d\n", __FILE__, __LINE__), PrintDb(se, pb))
 #else 
 #define BOGOSITY(se, pb)
-#endif RPC2DEBUG
+#endif
 
 
 /* -------------------- Common file open routine -------------------- */
@@ -1340,7 +1340,7 @@ void PrintDb(struct SFTP_Entry *se, RPC2_PacketBuffer *pb)
     printf("\nSFTP_Packet:\n");
     rpc2_PrintPacketHeader(pb, rpc2_tracefile);
 }
-#endif RPC2DEBUG
+#endif
 
 
 /*--------------- Virtual file manipulation routines ------------*/    

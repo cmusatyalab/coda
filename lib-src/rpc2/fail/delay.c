@@ -162,7 +162,7 @@ int DecQueue(i, a, b, c, d)
 
     return 0;
 }
-#endif NOTDEF
+#endif
 
 /* Find a queue for the server with IP address a.b.c.d */
 int FindQueue(a, b, c, d)
@@ -176,7 +176,7 @@ int FindQueue(a, b, c, d)
 	if ((dq->a == a) && (dq->b == b) && (dq->c == c) && (dq->d == d)) {
 #ifdef NOTDEF	    
 	    dq->count++;
-#endif NOTDEF	    
+#endif
 	    return i;
 	}
     }
@@ -205,7 +205,7 @@ int MakeQueue(a, b, c, d)
 	    }
 	}
     }
-#endif NOTDEF	
+#endif
     if (DelayQueues.count == DelayQueues.size) {     /* Need to grow the list */
 	newsize = DelayQueues.size * 2;
 	tmp = (delayQueueInfo *)malloc(newsize * sizeof(delayQueueInfo));

@@ -68,7 +68,7 @@ struct TraceEntry {
 
 #ifdef RPC2DEBUG
 struct CBUF_Header *TraceBuf;
-#endif RPC2DEBUG
+#endif
 
 int sftp_XmitPacket(struct SFTP_Entry *sEntry, RPC2_PacketBuffer *pb)
 {
@@ -80,7 +80,7 @@ int sftp_XmitPacket(struct SFTP_Entry *sEntry, RPC2_PacketBuffer *pb)
     te = (struct TraceEntry *)CBUF_NextSlot(TraceBuf);
     te->tcode = SENT;
     te->ph = pb->Header;	/* structure assignment */
-#endif RPC2DEBUG
+#endif
 
     whichSocket = sftp_Socket;
     whichPort = &sEntry->PeerPort;
@@ -112,10 +112,6 @@ int sftp_XmitPacket(struct SFTP_Entry *sEntry, RPC2_PacketBuffer *pb)
 
 long sftp_RecvPacket(long whichSocket, RPC2_PacketBuffer *whichPacket)
 {
-#ifdef RPC2DEBUG
-    struct TraceEntry *te;
-#endif RPC2DEBUG
-
     long rc;
     
     rc = rpc2_RecvPacket(whichSocket, whichPacket);
@@ -134,10 +130,12 @@ long sftp_RecvPacket(long whichSocket, RPC2_PacketBuffer *whichPacket)
     }
 
 #ifdef RPC2DEBUG
-    te = (struct TraceEntry *)CBUF_NextSlot(TraceBuf);
-    te->tcode = RECVD;
-    te->ph = whichPacket->Header;	/* structure assignment */
-#endif RPC2DEBUG
+    {
+	struct TraceEntry *te = (struct TraceEntry *)CBUF_NextSlot(TraceBuf);
+	te->tcode = RECVD;
+	te->ph = whichPacket->Header;	/* structure assignment */
+    }
+#endif
 
     return(rc);
 }
@@ -169,7 +167,7 @@ void sftp_TraceStatus(struct SFTP_Entry *sEntry, int filenum, int linenum)
     te->ph.Flags = 0;
     te->ph.SEFlags = 0;
     te->ph.BodyLength = htonl(linenum);
-#endif RPC2DEBUG
+#endif
     }
 
 /* 1 ==> sftp1.c, 2 ==> sftp2.c, .... */
@@ -191,7 +189,7 @@ void sftp_TraceBogus(long filenum, long linenum)
     te->ph.Flags = 0;
     te->ph.SEFlags = 0;
     te->ph.BodyLength = htonl(linenum);
-#endif RPC2DEBUG
+#endif
     }
 
 
@@ -239,7 +237,7 @@ static void PrintSFEntry(tEntry, tId, outFile)
 		(unsigned long)ntohl(ph->RemoteHandle),
 		(unsigned long)ntohl(ph->LocalHandle),
 		(unsigned long)ntohl(ph->BodyLength));
-#endif RPC2DEBUG
+#endif
     }
 
 void sftp_DumpTrace(char *fName)
@@ -257,7 +255,7 @@ void sftp_DumpTrace(char *fName)
     	"Op", "SNo", "Flags", "SEFlags", "GotEm", "AlsoSeen", "RHandle", "LHandle", "Blen");
     CBUF_WalkBuff(TraceBuf, PrintSFEntry, TRACELEN, dumpfile);
     fclose(dumpfile);
-#endif RPC2DEBUG
+#endif
 }
 
 
@@ -265,6 +263,6 @@ void sftp_InitTrace(void)
     {
 #ifdef RPC2DEBUG
     TraceBuf = (struct CBUF_Header *)CBUF_Init(sizeof(struct  TraceEntry), TRACELEN, "SFTP Trace");
-#endif RPC2DEBUG
+#endif
     }
 

@@ -339,7 +339,7 @@ static RPC2_PacketBuffer *PullPacket()
 		rpc2_PrintPortIdent(&pb->Prefix.PeerPort, 0);
 		fprintf(rpc2_tracefile, "\n");
 	}
-#endif RPC2DEBUG
+#endif
 
 	return(pb);
 }
@@ -358,7 +358,7 @@ static void Tell(RPC2_PacketBuffer *pb, struct CEntry *ce)
 	fprintf(rpc2_tracefile, "Connection 0x%lx state is ...\n",  
 		ce->UniqueCID);
 	rpc2_PrintCEntry(ce, rpc2_tracefile);	    
-#endif RPC2DEBUG
+#endif
 }
 
 
@@ -1135,7 +1135,7 @@ static struct CEntry *MakeConn(struct RPC2_PacketBuffer *pb)
 		rpc2_PrintCEntry(ce, rpc2_tracefile);
 		(void) fflush(rpc2_tracefile);
 	}
-#endif RPC2DEBUG
+#endif
 	
 	rpc2_NoteBinding(&pb->Prefix.PeerHost, &pb->Prefix.PeerPort, 
 			 pb->Header.Uniquefier, ce->UniqueCID);

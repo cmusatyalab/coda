@@ -308,8 +308,7 @@ long rpc2_AllocBuffer(IN long MinBodySize, OUT RPC2_PacketBuffer **BuffPtr,
 	strncpy((char *)(*BuffPtr)->Prefix.File, File, 12);
 	(*BuffPtr)->Prefix.File[2] &= 0xffffff00;
 	(*BuffPtr)->Prefix.Line = Line;
-#endif RPC2DEBUG
-
+#endif
 	rpc2_Quit(RPC2_SUCCESS);
 }
 
@@ -509,10 +508,8 @@ long RPC2_DumpTrace(IN OutFile, IN HowMany)
     if (OutFile == NULL) OutFile = stdout;	/* it's ok, call-by-value */
     CBUF_WalkBuff(rpc2_TraceBuffHeader, rpc2_PrintTraceElem, HowMany, OutFile);
     (void) fflush(OutFile);
+#endif
     return(RPC2_SUCCESS);
-#else
-    return(RPC2_SUCCESS);
-#endif RPC2DEBUG
     }
 
 
@@ -524,10 +521,8 @@ long RPC2_InitTraceBuffer(IN ecount)
     if (rpc2_TraceBuffHeader) CBUF_Free(&rpc2_TraceBuffHeader);
     rpc2_TraceBuffHeader = CBUF_Init(sizeof(struct TraceElem), ecount, "RPC2 Trace Buffer");
     assert (rpc2_TraceBuffHeader != NULL);
+#endif
     return(RPC2_SUCCESS);
-#else
-    return(RPC2_SUCCESS);
-#endif RPC2DEBUG
     }
 
 
@@ -555,10 +550,8 @@ long RPC2_DumpState(DumpFile, Verbosity)
     	rpc2_SLCreationCount, rpc2_SLFreeCount, rpc2_SLReqCount, rpc2_SLCount);
     fprintf(DumpFile, "rpc2_SSCreationCount = %ld  rpc2_SSCount = %ld  rpc2_SSFreeCount = %ld\n",
     	rpc2_SSCreationCount, rpc2_SSCount, rpc2_SSFreeCount);
+#endif
     return(RPC2_SUCCESS);
-#else
-    return(RPC2_SUCCESS);
-#endif RPC2DEBUG
     }
 
 
@@ -897,8 +890,7 @@ long rpc2_CreateIPSocket(long *svar, RPC2_PortIdent *pvar)
             rpc2_PrintPortIdent(pvar, rpc2_tracefile);
             printf("\n");
 	}
-#endif RPC2DEBUG
-    
+#endif
 	return RPC2_SUCCESS;
 }
 

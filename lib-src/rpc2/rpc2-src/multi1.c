@@ -133,9 +133,7 @@ long RPC2_MultiRPC(IN HowMany, IN ConnHandleList, IN RCList, IN MCast,
     rpc2_Enter();
     say(0, RPC2_DebugLevel, "Entering RPC2_MultiRPC\n");
 	    
-#ifdef RPC2DEBUG
     TR_MULTI();
-#endif RPC2DEBUG
 
     /* perform sanity checks */
     assert(Request->Prefix.MagicNumber == OBJ_PACKETBUFFER);
@@ -687,9 +685,7 @@ static long mrpc_SendPacketsReliably(
 
     say(0, RPC2_DebugLevel, "mrpc_SendPacketsReliably()\n");
 
-#ifdef RPC2DEBUG
     TR_MSENDRELIABLY();
-#endif RPC2DEBUG
 
     /* find a context */
     /* the packet_con management should be redone to ensure that allocation never fails! */
