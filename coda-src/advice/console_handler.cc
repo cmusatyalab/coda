@@ -165,11 +165,13 @@ char *ReadFromConsole(int block) {
     
     // Check that we haven't reached the end of file.
     if (feof(fromCONSOLE) == 1) {
-      fprintf(stderr, "ReadFromConsole:  Encountered EOF!\n");
-      fflush(stderr);
-      exit(-1);
+	    /*      fprintf(stderr, "ReadFromConsole:  Encountered EOF!\n");
+      fflush(stderr); 
+      exit(-1); */
+	    strncpy(inputline, "", strlen(inputline));
+	    return(inputline);
     }
-
+    
 
     do {
         // N.B. fromCONSOLE has been fctl'd to be non-blocking!
