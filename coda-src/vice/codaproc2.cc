@@ -103,7 +103,7 @@ extern void unpack_struct(ARG *, PARM **, PARM **, long);
 }
 #endif __cplusplus
 
-static void RLE_Unpack(int, int, PARM **, ARG * ...);
+static void RLE_Unpack(PARM **, ARG * ...);
 
 
 /*  *****  Reintegration Log  *****  */
@@ -658,7 +658,7 @@ static int ValidateReintegrateParms(RPC2_Handle RPCid, VolumeId *Vid,
 		r->opcode, r->Mtime);
 	switch(r->opcode) {
 	    case OLDCML_NewStore_OP:
-		RLE_Unpack(0, 0, &_ptr, OLDCML_NewStore_PTR, &r->u.u_store.Fid,
+		RLE_Unpack(&_ptr, OLDCML_NewStore_PTR, &r->u.u_store.Fid,
 			   &r->u.u_store.Request, &DummyCBS,
 			   &r->u.u_store.Status, &r->u.u_store.Length,
 			   &r->u.u_store.Mask, &DummyPH, 
@@ -688,7 +688,8 @@ static int ValidateReintegrateParms(RPC2_Handle RPCid, VolumeId *Vid,
 		{
 		ViceFid DummyFid;
 		r->u.u_create.Name = r->u.u_create.NameBuf;
-		RLE_Unpack(0, 0, &_ptr, OLDCML_Create_PTR, &r->u.u_create.Did,
+
+		RLE_Unpack(&_ptr, OLDCML_Create_PTR, &r->u.u_create.Did,
 			   &DummyFid, r->u.u_create.Name,
 			   &r->u.u_create.Status, &r->u.u_create.Fid,
 			   &r->u.u_create.DirStatus, &r->u.u_create.AllocHost,
@@ -698,14 +699,14 @@ static int ValidateReintegrateParms(RPC2_Handle RPCid, VolumeId *Vid,
 
 	    case OLDCML_Remove_OP:
 		r->u.u_remove.Name = r->u.u_remove.NameBuf;
-		RLE_Unpack(0, 0, &_ptr, OLDCML_Remove_PTR, &r->u.u_remove.Did,
+		RLE_Unpack(&_ptr, OLDCML_Remove_PTR, &r->u.u_remove.Did,
 			   r->u.u_remove.Name, &r->u.u_remove.DirStatus,
 			   &r->u.u_remove.Status, &DummyPH, &r->sid, &DummyCBS);
 		break;
 
 	    case OLDCML_Link_OP:
 		r->u.u_link.Name = r->u.u_link.NameBuf;
-		RLE_Unpack(0, 0, &_ptr, OLDCML_Link_PTR, &r->u.u_link.Did,
+		RLE_Unpack(&_ptr, OLDCML_Link_PTR, &r->u.u_link.Did,
 			   r->u.u_link.Name, &r->u.u_link.Fid,
 			   &r->u.u_link.Status, &r->u.u_link.DirStatus,
 			   &DummyPH, &r->sid, &DummyCBS);
@@ -714,7 +715,7 @@ static int ValidateReintegrateParms(RPC2_Handle RPCid, VolumeId *Vid,
 	    case OLDCML_Rename_OP:
 		r->u.u_rename.OldName = r->u.u_rename.OldNameBuf;
 		r->u.u_rename.NewName = r->u.u_rename.NewNameBuf;
-		RLE_Unpack(0, 0, &_ptr, OLDCML_Rename_PTR, &r->u.u_rename.OldDid,
+		RLE_Unpack(&_ptr, OLDCML_Rename_PTR, &r->u.u_rename.OldDid,
 			   r->u.u_rename.OldName, &r->u.u_rename.NewDid,
 			   r->u.u_rename.NewName, &r->u.u_rename.OldDirStatus,
 			   &r->u.u_rename.NewDirStatus, &r->u.u_rename.SrcStatus,
@@ -723,7 +724,7 @@ static int ValidateReintegrateParms(RPC2_Handle RPCid, VolumeId *Vid,
 
 	    case OLDCML_MakeDir_OP:
 		r->u.u_mkdir.Name = r->u.u_mkdir.NameBuf;
-		RLE_Unpack(0, 0, &_ptr, OLDCML_MakeDir_PTR, &r->u.u_mkdir.Did,
+		RLE_Unpack(&_ptr, OLDCML_MakeDir_PTR, &r->u.u_mkdir.Did,
 			   r->u.u_mkdir.Name, &r->u.u_mkdir.Status,
 			   &r->u.u_mkdir.NewDid, &r->u.u_mkdir.DirStatus,
 			   &r->u.u_mkdir.AllocHost, &r->sid, &DummyCBS);
@@ -731,7 +732,7 @@ static int ValidateReintegrateParms(RPC2_Handle RPCid, VolumeId *Vid,
 
 	    case OLDCML_RemoveDir_OP:
 		r->u.u_rmdir.Name = r->u.u_rmdir.NameBuf;
-		RLE_Unpack(0, 0, &_ptr, OLDCML_RemoveDir_PTR, &r->u.u_rmdir.Did,
+		RLE_Unpack(&_ptr, OLDCML_RemoveDir_PTR, &r->u.u_rmdir.Did,
 			   r->u.u_rmdir.Name, &r->u.u_rmdir.Status,
 			   &r->u.u_rmdir.TgtStatus, &DummyPH, &r->sid, &DummyCBS);
 		break;
@@ -739,7 +740,7 @@ static int ValidateReintegrateParms(RPC2_Handle RPCid, VolumeId *Vid,
 	    case OLDCML_SymLink_OP:
 		r->u.u_symlink.NewName = r->u.u_symlink.NewNameBuf;
 		r->u.u_symlink.OldName = r->u.u_symlink.OldNameBuf;
-		RLE_Unpack(0, 0, &_ptr, OLDCML_SymLink_PTR, &r->u.u_symlink.Did,
+		RLE_Unpack(&_ptr, OLDCML_SymLink_PTR, &r->u.u_symlink.Did,
 			   r->u.u_symlink.NewName, r->u.u_symlink.OldName,
 			   &r->u.u_symlink.Fid, &r->u.u_symlink.Status,
 			   &r->u.u_symlink.DirStatus, &r->u.u_symlink.AllocHost,
@@ -2407,25 +2408,28 @@ static void ReintFinalCOP(vle *v, Volume *volptr, RPC2_Integer *VS)
 
 /* Unpack a ReintegrationLog Entry. */
 /* Patterned after code in MRPC_MakeMulti(). */
-static void RLE_Unpack(int dummy1, int dummy2, PARM **ptr, ARG *ArgTypes ...) 
+static void RLE_Unpack(PARM **ptr, ARG *ArgTypes ...) 
 {
 	SLog(100,  "RLE_Unpack: ptr = %x, ArgTypes = %x", ptr, ArgTypes);
 	
 	va_list ap;
 	va_start(ap, ArgTypes);
-	PARM *args = &(va_arg(ap, PARM));
-	for (ARG *a_types = ArgTypes; a_types->mode != C_END; a_types++, args++) {
+	for (ARG *a_types = ArgTypes; a_types->mode != C_END; a_types++) {
+		PARM *args = (va_arg(ap, PARM*));
 		if (a_types->mode != IN_MODE && a_types->mode != IN_OUT_MODE)
 			continue;
 		
 /*
-  SLog(100,  "\ta_types = [%d %d %d %x], ptr = (%x %x %x), args = (%x %x)",
+  SLog(100,  "\ta_types = [%d %d %d %x], ptr = (%x %x %x), args = %x ",
   a_types->mode, a_types->type, a_types->size, a_types->field,
-  ptr, *ptr, **ptr, args, *args);
+  ptr, *ptr, **ptr, args);
 */
 		
 		/* Extra level of indirection, since unpack routines are from MRPC. */
-		PARM *xargs = (PARM *)&args;
+		/* something with va_args needed this.. clean this up later!!
+		   -- Troy <hozer@drgw.net> */
+		PARM *tmp = (PARM *)&args;
+		PARM *xargs = (PARM *)&tmp;
 		
 		/*
 		  if (a_types->type == RPC2_COUNTEDBS_TAG) {
