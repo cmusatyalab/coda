@@ -577,56 +577,8 @@ void AL_PrintAlist(IN AL_AccessList *A){
 	fflush(stdout);
 }
     
-
 /* Displays the external access list E on stdout. Returns 0. */
 void AL_PrintExternalAlist(IN AL_ExternalAccessList E){
 	printf("%s\n", E);
 }
 
-
-
-int AL_DisableGroup(IN int gid, IN PRS_InternalCPS *ICPS){
-	register int i,x;
-	
-	for (i=0;i < ICPS->InclEntries;i++){
-		/* sorted, so can't be there */
-		if (ICPS->IdList[i] > gid) return(-1);
-		/* Got it */
-		if (ICPS->IdList[i] == gid) break;
-	}
-	/* group not currently included */
-	if (i >= ICPS->InclEntries) return(-1);
-
-	/* save entry and squeeze others in, thus retaining sorted order  */
-	x = ICPS->IdList[i];
-	/* Overlapping so use memove instead of memcpy */
-	memmove((char *)(&ICPS->IdList[i]),(char *)(&ICPS->IdList[i+1]),
-		sizeof(int)*(ICPS->InclEntries-i-1));
-	ICPS->IdList[ICPS->InclEntries-1] = x;  /* insert at last position */
-	ICPS->InclEntries--;
-	ICPS->ExclEntries++;
-	return(0);
-}
-
-
-int AL_EnableGroup(IN int gid, IN PRS_InternalCPS *ICPS){
-	register int i, x;
-	
-	for (i=ICPS->InclEntries;i < ICPS->InclEntries+ICPS->ExclEntries;i++){
-                /* not sorted, so can't break early */
-		if (ICPS->IdList[i] == gid) break;
-	}
-	/* group not currently excluded */
-	if (i >= ICPS->InclEntries+ICPS->ExclEntries) return(-1);
-	
-	/* swap entry with head of excluded list, enlarge included set,
-	   and then sort it */
-	x = ICPS->IdList[i];
-	ICPS->IdList[i] = ICPS->IdList[ICPS->InclEntries];
-	ICPS->IdList[ICPS->InclEntries] = x;
-	ICPS->InclEntries++;
-	ICPS->ExclEntries--;
-	qsort((char *)(ICPS->IdList),ICPS->InclEntries,sizeof(int), 
-	      (int (*)(const void *, const void *))CmpInt);
-	return(0);
-}

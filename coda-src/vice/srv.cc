@@ -940,7 +940,6 @@ void PrintCounters(FILE *fp)
     SLog(0, "Link %d", Counters[LINK]);
     SLog(0, "MakeDir %d", Counters[MAKEDIR]);
     SLog(0, "RemoveDir %d", Counters[REMOVEDIR]);
-    SLog(0, "RemoveCallBack %d", Counters[REMOVECALLBACK]);
     SLog(0, "GetRootVolume %d", Counters[GETROOTVOLUME]);
     SLog(0, "SetRootVolume %d", Counters[SETROOTVOLUME]);
     SLog(0, "GetVolumeStatus %d", Counters[GETVOLUMESTAT]);
@@ -949,8 +948,6 @@ void PrintCounters(FILE *fp)
     SLog(0, "GetTime %d", Counters[GETTIME]); 
     SLog(0, "GetStatistics %d", Counters[GETSTATISTICS]); 
     SLog(0, "GetVolumeInfo %d", Counters[ViceGetVolumeInfo_OP]); 
-    SLog(0, "EnableGroup %d", Counters[ViceEnableGroup_OP]); 
-    SLog(0, "DisableGroup %d", Counters[ViceDisableGroup_OP]); 
     SLog(0, "AllocFids %d", Counters[ALLOCFIDS]); 
     SLog(0, "COP2 %d", Counters[ViceCOP2_OP]); 
     SLog(0, "Resolve %d", Counters[RESOLVE]);
@@ -1062,7 +1059,7 @@ void PrintCounters(FILE *fp)
     SLog(0,
 	   "There are %d workstations and %d are active (req in < 15 mins)",
 	   workstations, activeworkstations);
-    if(supported && !GetEtherStats()) {
+    if(!GetEtherStats()) {
 	SLog(0,
 	       "Ether Total bytes: sent = %u, received = %u",
 	       etherBytesWritten, etherBytesRead);

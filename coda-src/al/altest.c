@@ -489,7 +489,7 @@ static void Op_3()		/* ExternalAlist:   New, Free, Fill, Print, Internalize, hto
 	}
     }
 
-static void Op_4()		/* InternalCPS: New, Free, Get, Print, hton, ntoh, Enable, Disable */
+static void Op_4()		/* InternalCPS: New, Free, Get, Print, hton, ntoh */
     {
     int MinorOp;
 
@@ -503,7 +503,7 @@ static void Op_4()		/* InternalCPS: New, Free, Get, Print, hton, ntoh, Enable, D
 	    case  0:
 		    printf("%s%s",
 			"1: New  2: Free  3: Get\n",
-			"4: Print  5: hton  6: ntoh  7: Enable 8: Disable 9: Quit\n");
+			"4: Print  5: hton  6: ntoh 9: Quit\n");
 		    break;
     
 	    case 1:	/* New CPS */
@@ -583,30 +583,6 @@ static void Op_4()		/* InternalCPS: New, Free, Get, Print, hton, ntoh, Enable, D
 		    break;
 		    }
     
-	    case 7:		/* Enable*/
-		    {
-		    int w, g;
-    
-		    if ( (w = AskSlot(CVEC, "Which InternalCPS slot? ")) < 0) break;
-		    printf("Which groupid? "); scanf("%d", &g);
-		    printf("AL_Enable() = %d\n",
-		    	AL_EnableGroup(g, Vec[CVEC][w].Gptr.C));
-		    break;
-		    }
-    
-	    case 8:		/* Disable */
-		    {
-		    int w, g;
-    
-		    if ( (w = AskSlot(CVEC, "Which InternalCPS slot? ")) < 0) break;
-		    printf("Which groupid? "); scanf("%d", &g);
-		    printf("AL_Disable() = %d\n",
-		    	AL_DisableGroup(g, Vec[CVEC][w].Gptr.C));
-		    break;
-		    }
-    
-
-
 	    case 9:	/* quit */
 		    return;
     

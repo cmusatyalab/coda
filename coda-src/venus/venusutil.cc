@@ -326,9 +326,6 @@ char *IoctlOpStr(int opcode) {
 	case VIOCWHEREIS:	    return("Whereis");
 	case VIOCPREFETCH:	    return("Prefetch");
 	case VIOCNOP:		    return("NOP");
-	case VIOCENGROUP:	    return("Enable Group");
-	case VIOCDISGROUP:	    return("Disable Group");
-	case VIOCLISTGROUPS:	    return("List Groups");
 	case VIOCACCESS:	    return("Access");
 	case VIOCUNPAG:		    return("Unpag");
 	case VIOCGETWD:		    return("Getwd");

@@ -100,7 +100,6 @@ extern "C" {
 
 /* *****  Exported variables  ***** */
 
-int supported = 1;
 unsigned int etherWrites = 0;
 unsigned int etherRetries = 0;
 unsigned int etherInterupts = 0;
@@ -113,7 +112,6 @@ extern int ValidateParms(RPC2_Handle, ClientEntry **, int *ReplicatedOp,
 			 VolumeId *, RPC2_CountedBS *, int *Nservers);
 /* *****  Private routines  ***** */
 
-static long InternalRemoveCallBack(RPC2_Handle, ViceFid *);
 static void SetVolumeStatus(VolumeStatus *, RPC2_BoundedBS *,
 			      RPC2_BoundedBS *, RPC2_BoundedBS *, Volume *);
 static void SetViceStats(ViceStatistics *);
@@ -188,51 +186,6 @@ long FS_ViceGetStatistics(RPC2_Handle RPCid, ViceStatistics *Statistics)
     return(errorCode);
 }
 
-static const int RCBEntrySize = (int) sizeof(ViceFid);
-
-/*
-  ViceRemoveCallBack: Deletes callback for a fid
-*/
-long FS_ViceRemoveCallBack(RPC2_Handle RPCid, RPC2_CountedBS *RCBBS) 
-{
-    int errorCode = 0;
-    char *cp = (char *)RCBBS->SeqBody;
-    char *endp = cp + RCBBS->SeqLen;
-
-    if (RCBBS->SeqLen % RCBEntrySize != 0) {
-	errorCode = EINVAL;
-	goto Exit;
-    }
-
-    for (; cp < endp; cp += RCBEntrySize)
-	(void)InternalRemoveCallBack(RPCid, (ViceFid *)cp);
-
-Exit:
-    return(errorCode);
-}
-
-
-static long InternalRemoveCallBack(RPC2_Handle RPCid, ViceFid *fid)
-{
-    long   errorCode;
-    ClientEntry * client;
-
-    errorCode = 0;
-    
-    SLog(1,"ViceRemoveCallBack Fid = %u.%d.%d",
-	    fid->Volume, fid->Vnode, fid->Unique);
-
-    errorCode = RPC2_GetPrivatePointer(RPCid, (char **)&client);
-    if(!errorCode && client)
-	DeleteCallBack(client->VenusId, fid);
-    else
-	SLog(0, "Client pointer zero in ViceRemoveCallBack");
-    
-    SLog(2,"ViceRemoveCallBack returns %s", ViceErrorMsg((int) errorCode));
-    return(errorCode);
-}
-
-
 /*
   ViceGetVolumeInfo: Used to get information about a particular volume
 */
@@ -246,7 +199,7 @@ long FS_ViceGetVolumeInfo(RPC2_Handle RPCid, RPC2_String VolName, VolumeInfo *In
     vre = VRDB.find((char *)VolName);
     if (!vre) {
 	VolumeId Vid = strtol((char *)VolName, NULL, 0);
-	if (Vid != 0) vre = VRDB.find(Vid);
+	if (Vid) vre = VRDB.find(Vid);
     }
     if (vre)
 	errorCode = vre->GetVolumeInfo(Info);
@@ -1007,46 +960,6 @@ static void PrintVolumeStatus(VolumeStatus *status)
     SLog(5,"Type = %d, BlocksInUse = %d, PartBlocksAvail = %d, PartMaxBlocks = %d",
 	    status->Type, status->BlocksInUse, status->PartBlocksAvail, status->PartMaxBlocks);
 }
-
-
-/*
-  BEGIN_HTML
-  <a name="ViceEnableGroup"><strong>Used to enable an authentication group</strong></a>
-  END_HTML
-*/
-long FS_ViceEnableGroup(RPC2_Handle cid, RPC2_String GroupName)
-    {
-    int gid;
-    ClientEntry *client;
-
-    SLog(1,"ViceEnableGroup GroupName = %s", GroupName);
-
-    if (AL_NameToId((char *)GroupName, &gid) < 0) return(EINVAL);
-    if (RPC2_GetPrivatePointer(cid, (char **)&client) != RPC2_SUCCESS) return (EINVAL);
-    if (client == NULL) return(EINVAL);
-    if (AL_EnableGroup(gid, client->CPS) < 0) return(EINVAL);
-    return(0);
-    }
-
-
-/*
-  BEGIN_HTML
-  <a name="ViceDisableGroup"><strong>Used to disable an authentication group</strong></a>
-  END_HTML
-*/
-long FS_ViceDisableGroup(RPC2_Handle cid, RPC2_String GroupName)
-    {
-    int gid;
-    ClientEntry *client;
-
-    SLog(1,"ViceDisableGroup GroupName = %s", GroupName);
-
-    if (AL_NameToId((char *)GroupName, &gid) < 0) return(EINVAL);
-    if (RPC2_GetPrivatePointer(cid, (char **)&client) != RPC2_SUCCESS) return (EINVAL);
-    if (client == NULL) return(EINVAL);
-    if (AL_DisableGroup(gid, client->CPS) < 0) return(EINVAL);
-    return(0);
-    }
 
 
 /*

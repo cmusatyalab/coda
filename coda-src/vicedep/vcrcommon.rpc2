@@ -60,7 +60,6 @@ Pittsburgh, PA.
 
 typedef RPC2_Unsigned   VolumeId;
 typedef RPC2_Unsigned	VnodeId;
-typedef VolumeId        VolId;
 typedef RPC2_Unsigned	Unique_t;
 typedef RPC2_Unsigned	FileVersion;
 
