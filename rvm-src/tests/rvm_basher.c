@@ -33,7 +33,7 @@ should be returned to Software.Distribution@cs.cmu.edu.
 
 */
 
-static char *rcsid = "$Header: /afs/cs.cmu.edu/user/clement/mysrcdir3/rvm-src/tests/RCS/rvm_basher.c,v 4.1 1997/01/08 21:54:48 rvb Exp clement $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/rvm-src/tests/rvm_basher.c,v 4.2 1997/04/01 01:58:00 clement Exp $";
 #endif _BLURB_
 
 /*
@@ -1930,7 +1930,7 @@ static str_name_entry_t cmd_vec[MAX_CMDS] = /* command codes vector */
     if  (ret != RVM_SUCCESS)
         {
 	printf("? rvm_initialize failed, code: %s\n",rvm_return(ret));
-        ASSERT(rvm_false);
+        exit(-1);
         }
     else
 	printf("rvm_initialize succeeded.\n");
