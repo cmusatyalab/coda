@@ -67,8 +67,8 @@ static BTREEINFO btreeinfo = { 0, 0, 0, 0, 1024, NULL, NULL, 4321 };
  * ... Sigh. At least let's make the conversions easier:
  */
  
-#define HTONL(x)      (htonl((u_int32_t) x))
-#define NTOHL(x)      ((int32_t)ntohl(x))
+#define H2DB_ID(x)      (htonl((u_int32_t) x))
+#define DB2H_ID(x)      ((int32_t)ntohl(x))
 
 PDB_HANDLE PDB_db_open(int mode)
 {
@@ -154,7 +154,7 @@ int PDB_db_nextkey(PDB_HANDLE h, int *id)
             return -1;
 
 	memcpy(&uid, key.db_dataptr, sizeof(u_int32_t));
-        *id = NTOHL(uid);
+        *id = DB2H_ID(uid);
 
 	return 1;
 }
@@ -190,8 +190,8 @@ void PDB_db_maxids(PDB_HANDLE h, int32_t *uid, int32_t *gid)
 	} else {
 		CODA_ASSERT(value.db_datasize == 2*sizeof(u_int32_t));
 		memcpy(ids, value.db_dataptr, 2*sizeof(u_int32_t));
-		*uid = NTOHL(ids[0]);
-		*gid = NTOHL(ids[1]);
+		*uid = DB2H_ID(ids[0]);
+		*gid = DB2H_ID(ids[1]);
 	}
 }
 
@@ -222,19 +222,19 @@ void PDB_db_update_maxids(PDB_HANDLE h, int32_t uid, int32_t gid, int mode)
 		CODA_ASSERT(value.db_datasize == 2*sizeof(u_int32_t));
 		memcpy(ids, value.db_dataptr, 2*sizeof(u_int32_t));
 	}
-	olduid = NTOHL(ids[0]);
-	oldgid = NTOHL(ids[1]);
+	olduid = DB2H_ID(ids[0]);
+	oldgid = DB2H_ID(ids[1]);
 	CODA_ASSERT(olduid >= 0 || oldgid <= 0); 
 
 	if ( mode != PDB_MAXID_FORCE ) {
 		if (  uid > olduid )
-			ids[0] = HTONL(uid);
+			ids[0] = H2DB_ID(uid);
 		if (  gid < oldgid ) 
-			ids[1] = HTONL(gid);
+			ids[1] = H2DB_ID(gid);
 	}
 	else{
-		ids[0] = HTONL(uid);
-		ids[1] = HTONL(gid);
+		ids[0] = H2DB_ID(uid);
+		ids[1] = H2DB_ID(gid);
 	}
 
 	value.db_datasize = 2 * sizeof(u_int32_t);
@@ -252,7 +252,7 @@ void PDB_db_write(PDB_HANDLE h, int32_t id, char *name, void *data, size_t size)
 
 	CODA_ASSERT(id && name && data);
 
-	netid = HTONL(id);
+	netid = H2DB_ID(id);
 
 	memset(&mainrec, 0, sizeof(db_data));
 	mainrec.db_datasize = sizeof(netid);
@@ -288,7 +288,7 @@ void PDB_db_read(PDB_HANDLE h, int32_t id, char *name, void **data,size_t *size)
 	u_int32_t realid;
 	int rc;
 
-	realid = HTONL(id);
+	realid = H2DB_ID(id);
 	if ( name ) {
 		memset(&key, 0, sizeof(db_data));
 		key.db_datasize = strlen(name);
@@ -332,7 +332,7 @@ void PDB_db_delete(PDB_HANDLE h, int32_t id, char *name)
 	db_data key; 
 	u_int32_t realid;
 
-	realid = HTONL(id);
+	realid = H2DB_ID(id);
 
 	memset(&key, 0, sizeof(db_data));
 	key.db_datasize = sizeof(realid); 
