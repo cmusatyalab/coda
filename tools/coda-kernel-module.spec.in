@@ -1,0 +1,37 @@
+Summary: Coda distributed filesystem, kernel module
+Name: coda-kernel-@KERNEL@-module
+Version: @RPMVERSION@
+Release: @RPMRELEASE@
+Source: @DIR@.tgz
+Copyright: CMU
+Group: Base/Kernel
+%description
+Source package for the Coda filesystem.  
+This package solely contains the kernel module for the Coda filesystem.
+Match your kernel version against the "k" in the version, your Venus against
+the "i" in the version and finally, get the latest release.
+
+%changelog
+* Mon Jun 02 1997 Peter Braam <braam@cs.cmu.edu>
+- small changes to Elliots improvements.
+- some of his ideas are now in the scripts
+* Wed May 28 1997 Elliot Lee <sopwith@redhat.com>
+- Based upon 4.0.3-1 spec file.
+- Changed to BuildRoot
+- Do as much as possible at build time instead of in %post
+- Added initscript for venus
+        
+%prep
+%setup
+
+%build
+make @KVCVS@
+
+%install
+make install-@KVCVS@
+
+%post
+/sbin/depmod -a
+
+%files
+/lib/modules/@KERNEL@/fs/coda.o

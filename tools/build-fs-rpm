@@ -1,0 +1,59 @@
+#! /usr/bin/perl
+
+use Getopt::Long;
+
+GetOptions("rel=s" => \$rel, "version=s" => \$version);
+
+if ( ! $rel || ! $version ) {
+    print "Usage $0  --rel=release --version=release-version\n";
+    exit 1;
+}
+
+$kernel =`uname -r`;
+chop $kernel;
+
+print "kernel: $kernel\n";
+
+$kv=$kernel;
+$kv=~ s/\.[0-9]*$//;
+
+$kvcvs=$kv;
+$kvcvs=~ s/\./_/;
+
+$versioncvs= $version;
+$versioncvs =~  s/\./_/g;
+print "version $version, version for cvs $versioncvs\n";
+
+
+$tag="c$versioncvs";
+$dir="coda-kernel-$kernel-module-$version";
+$specfile="/usr/src/redhat/SPECS/$dir.spec";
+print "tag $tag, version $version, rpmrelease $rel, dir $dir\n";
+
+chdir("/tmp");
+system("rm -rf $dir");
+system("mkdir $dir; cvs co -d $dir -r $tag coda-fs-module > /dev/null");
+print "Did: cvs co -d $dir -r $tag coda-fs-module; result $?\n";
+system("tar zcf /usr/src/redhat/SOURCES/$dir.tgz $dir");
+print "Did: tar zcf /usr/src/redhat/SOURCES/$dir.tgz $dir; result $?\n";
+
+print "--> specfile $specfile\n";
+open(FD, "</usr/src/redhat/SPECS/coda-kernel-module.spec.in");
+open(SPEC, ">$specfile");
+while ( <FD> ) {
+    ~ s/\@RPMVERSION\@/$version/;
+    ~ s/\@RPMRELEASE\@/$rel/;
+    ~ s/\@DIR\@/$dir/;
+    ~ s/\@KV\@/$kernel/;
+    ~ s/\@KERNEL\@/$kernel/;
+    ~ s/\@KVCVS\@/$kvcvs/;
+    print SPEC $_;
+    print $_
+}
+
+print "Now run as root: rpm -ba -v $specfile\n";
+
+# exec(" rpm -ba -v $specfile ");
+# @args= ("rpm",  "-ba", "-v", $specfile);
+# system(@args);
+print "Exit code $?\n";
