@@ -5,20 +5,40 @@
 # Peter J. Braam, Dec 1996
 # included suggestions from Elliot Lee, may 1997.
 #
-# Usage: venus-setup comma,separated,list,of,servers [cachesize in kb]
+# Usage: venus-setup comma,separated,list,of,servers cachesize-in-kb
 #
 # the script will verify that the necessary directories and /etc/services
 # are present.
 #
 # BUGS: need to substitute /etc/coda with @sysconfdir@ and have configure
 #	splice in the right location of the venus.conf file.
+OS=`uname -s | cut -c1-5`
 
-if [ $# != 2 ]; then
-	echo "Usage: $0 comma,separated,list,of,servers cachesize-in-kb"
+if [ $OS = CYGWI ] ; then
+    if [ $# != 3 ]; then
+	echo "Usage: $0 comma,separated,list,of,servers cachesize-in-kb drive-letter"
 	exit 1
+    fi
 else
-	SERVERS=$1
-	CACHESIZE=$2
+    if [ $# != 1 -a $# != 2 ]; then
+	echo "Usage: $0 comma,separated,list,of,servers [cachesize-in-kb]"
+	exit 1
+    fi
+fi
+
+SERVERS=$1
+if [ x$2 != x ] ; then
+    CACHESIZE=$2
+else
+    CACHESIZE=40000
+fi
+if [ x$3 != x ] ; then
+    MOUNTPOINT=`echo $3 | cut -c1`
+    if [ $MOUNTPOINT \< A -o $MOUNTPOINT \> z -o \
+         \( $MOUNTPOINT \> Z -a $MOUNTPOINT \< a \) ] ; then
+	echo "Drive letter must be a letter!"
+	exit 1;
+    fi
 fi
 
 #
@@ -81,14 +101,19 @@ makedir () {
 	dir=`dirname $dir`
     done
     echo "Creating $dir/$newdir, mode $1"
-    mkdir $dir/$newdir
+    if ! mkdir $dir/$newdir ; then
+        echo Could not make \"$dir/$newdir\".  Aborting....
+        exit 1
+    fi
+    if [ $dir = / ] ; then
+        dir=
+    fi
     chmod $1 $dir/$newdir
   done
 }
 
 makedir 755 $checkpointdir
 makedir 755 $marinersocketdir
-makedir 755 $mountpoint
 makedir 700 $cachedir
 makedir 700 $errorlogdir
 makedir 700 $logfiledir
@@ -97,10 +122,36 @@ makedir 700 $run_crontrol_file_dir
 makedir 700 $rvm_logdir
 makedir 700 $rvm_datadir
 
-# set up the /coda root if it isn't there yet
-if [ ! -f $mountpoint/NOT_REALLY_CODA ]; then 
- echo 'If you can see this file, venus is not running.' > \
+if [ $OS = CYGWI ]; then
+
+  # setup the drive mapping
+
+  rm -rf $mountpoint  
+
+  ln -s /cygdrive/$MOUNTPOINT $mountpoint
+
+  codaconfedit venus.conf mapprivate 0
+  codaconfedit venus.conf mountpoint $MOUNTPOINT:
+  codaconfedit venus.conf cache_prefix /??/`mount | grep ' / ' | cut -d' ' -f1 | tr \\\\\\\\ /`
+
+  # now set up venus as a service
+
+  /usr/local/sbin/venus -install
+
+else
+
+  makedir 755 $mountpoint
+
+  # set up the /coda root if it isn't there yet
+  if [ ! -f $mountpoint/NOT_REALLY_CODA ]; then 
+    echo 'If you can see this file, venus is not running.' > \
 	$mountpoint/NOT_REALLY_CODA
+  fi
+
+  # make the psdev
+  if [ ! -c /dev/coda0 -a ! -c /dev/cfs0 -a ! -c /dev/coda/0 ] ; then
+      ( cd /dev ; ./MAKEDEV cfs )
+  fi
 fi
 
 # next run will always initialize
@@ -111,13 +162,8 @@ if [ -f /usr/coda/etc/vstab ] ; then
     echo "the /etc/coda/venus.conf file for configuring the client."
 fi
 
-# make the psdev
-if [ ! -c /dev/coda0 -a ! -c /dev/cfs0 -a ! -c /dev/coda/0 ] ; then
-    ( cd /dev ; ./MAKEDEV cfs )
-fi
-
 # tell the kernel about the new module 
-if [ X`uname` = XLinux -a ! -f /etc/debian_version ]; then 
+if [ X$OS = XLinux -a ! -f /etc/debian_version ]; then 
     MODULES=/etc/conf.modules
     [ -f /etc/modules.conf ] && MODULES=/etc/modules.conf
     if ! grep coda $MODULES > /dev/null; then

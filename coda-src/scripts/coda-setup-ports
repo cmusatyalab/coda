@@ -22,11 +22,15 @@ NEWSERVICES=/tmp/services.$$
 
 case `uname -s` in
     CYGWIN* )
-	if [ -f /cygdrive/c/WINNT/system32/drivers/etc/SERVICES ] ; then
-	    SERVICES=/cygdrive/c/WINNT/system32/drivers/etc/SERVICES
-	else
-	    echo "I can not fine your Windows SERVICES file.  You will"
-	    echo "need to add them by hand."
+        for d in c d e f g h i j ; do 
+	  if [ -f /cygdrive/$d/WINNT/system32/drivers/etc/SERVICES ] ; then
+	    SERVICES=/cygdrive/$d/WINNT/system32/drivers/etc/SERVICES
+	    break
+	  fi
+	done
+	if [ x$SERVICES = x ] ; then
+	    echo "I can not find your Windows SERVICES file.  You will"
+	    echo "need to add the coda ports to your SERVICES file by hand."
 	    exit 1
 	fi
     ;;
