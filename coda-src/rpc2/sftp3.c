@@ -492,9 +492,9 @@ static int sftp_SendAck(struct SFTP_Entry *sEntry)
     pb->Header.Opcode = SFTP_ACK;
     pb->Header.GotEmAll = sEntry->RecvLastContig;
 
-#ifdef VERY_FAST_SERVERS
     now = rpc2_MakeTimeStamp();
     pb->Header.TimeStamp = now;
+#ifdef VERY_FAST_SERVERS
     pb->Header.TimeEcho = VALID_TIMEECHO(sEntry) ?
 	sEntry->TimeEcho + (now - sEntry->RequestTime) : 0;
 #else
@@ -855,9 +855,9 @@ static int ResendWorried(struct SFTP_Entry *sEntry, long ackLast)
 	    sftp_retries++;
 	    pb->Header.Flags = htonl(pb->Header.Flags);
 
-#ifdef VERY_FAST_SERVERS
 	    now = rpc2_MakeTimeStamp();
 	    pb->Header.TimeStamp = htonl(now);
+#ifdef VERY_FAST_SERVERS
 	    pb->Header.TimeEcho = VALID_TIMEECHO(sEntry) ?
 		htonl(sEntry->TimeEcho + (now - sEntry->RequestTime)) :
 		htonl(0);
@@ -911,9 +911,9 @@ static int SendFirstUnacked(struct SFTP_Entry *sEntry, long ackMe)
     pb->Header.Flags = htonl(pb->Header.Flags);
     pb->Header.SEFlags = htonl(pb->Header.SEFlags);
 
-#ifdef VERY_FAST_SERVERS
     now = rpc2_MakeTimeStamp();
     pb->Header.TimeStamp = htonl(now);
+#ifdef VERY_FAST_SERVERS
     pb->Header.TimeEcho = VALID_TIMEECHO(sEntry) ?
 	htonl(sEntry->TimeEcho + (now - sEntry->RequestTime)) : htonl(0);
 #else
@@ -975,9 +975,9 @@ static int SendSendAhead(struct SFTP_Entry *sEntry)
 	    sftp_Sent.Datas++;
 	sftp_datas++;
 
-#ifdef VERY_FAST_SERVERS
 	now = rpc2_MakeTimeStamp();
 	pb->Header.TimeStamp = htonl(now);
+#ifdef VERY_FAST_SERVERS
 	pb->Header.TimeEcho = VALID_TIMEECHO(sEntry) ?
 	    htonl(sEntry->TimeEcho + (now - sEntry->RequestTime)) : htonl(0);
 #else
@@ -1177,9 +1177,9 @@ int sftp_SendStart(struct SFTP_Entry *sEntry)
     sftp_InitPacket(pb, sEntry, 0);
     pb->Header.SeqNumber = ++(sEntry->CtrlSeqNumber);
     pb->Header.Opcode = SFTP_START;
-#ifdef VERY_FAST_SERVERS
     now = rpc2_MakeTimeStamp();
     pb->Header.TimeStamp = now;
+#ifdef VERY_FAST_SERVERS
     pb->Header.TimeEcho = VALID_TIMEECHO(sEntry) ?
 	sEntry->TimeEcho + (now - sEntry->RequestTime) : 0;
 #else
