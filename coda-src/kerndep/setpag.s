@@ -30,7 +30,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: blurb.doc,v 1.1 96/11/22 13:29:31 raiff Exp $";
+static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/src/coda-4.0.1/coda-src/sys/RCS/setpag.s,v 1.1 1996/11/22 19:15:32 braam Exp braam $";
 #endif undef
 #endif /*_BLURB_*/
 
@@ -93,7 +93,11 @@ SYSCALL(setpag)
 #define SYSCALL(x)	ENTRY(x)
 #define LCL(x)		x
 #else	__NetBSD__
-#define SYSCALL(x)	ENTRY(x); movl	$SYS_/**/x, %eax; SVC; jb LCL(cerror)
+#ifdef __STDC__
+#define SYSCALL(x)	ENTRY(x); movl	$SYS_ ## x, %eax; SVC; jb LCL(cerror)
+#else
+#define SYSCALL(x)	ENTRY(x); movl	$(SYS_/**/x), %eax; SVC; jb LCL(cerror)
+#endif
 #endif	__NetBSD__
 
 	.globl	LCL(cerror)
