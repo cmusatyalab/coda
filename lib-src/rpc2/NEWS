@@ -15,6 +15,9 @@ New in 1.18:
   existing clients that are not configured to use masquerading as long as
   their rpc2-library is capable of receiving sftp packets on the rpc2 port
   (i.e. >= rpc2-1.9).
+* Replaced some paranoid assertions that triggered when a corrupt multirpc
+  packet was received with simply dropping the bogus packets. (Andrew
+  Griffiths)
 
 New in 1.17:
 
