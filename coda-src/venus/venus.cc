@@ -96,6 +96,7 @@ char *VenusControlFile;
 char *VenusLogFile;
 char *MarinerSocketPath;
 int masquerade;
+int PiggyValidations;
 
 
 #ifdef HAVE_SYS_UN_H
@@ -499,6 +500,12 @@ static void DefaultCmdlineParms()
 	    strcpy(VenusControlFile, CacheDir);
 	    strcat(VenusControlFile, CTRLFILE);
 	}
+    }
+
+    CONF_INT(PiggyValidations,  "validateattrs", MAX_PIGGY_VALIDATIONS);
+    {
+	if (PiggyValidations > MAX_PIGGY_VALIDATIONS)
+	    PiggyValidations = MAX_PIGGY_VALIDATIONS;
     }
 
 #ifdef moremoremore

@@ -539,13 +539,13 @@ int fsobj::GetAttr(vuid_t vuid, RPC2_BoundedBS *acl)
 	 * goes in this branch of GetAttr.
 	 */
 	int nchecked = 0, nfailed = 0;
+	long cbtemp = cbbreaks;
 
 	/* Acquire an Mgroup. */
 	code = vp->GetMgrp(&m, vuid, (PIGGYCOP2 ? &PiggyBS : 0));
 	if (code != 0) goto RepExit;
 
 	nchecked++;  /* we're going to check at least the primary fid */
-	long cbtemp; cbtemp = cbbreaks;
 	int i;
         {
 	    /* Make multiple copies of the IN/OUT and OUT parameters. */
@@ -560,7 +560,7 @@ int fsobj::GetAttr(vuid_t vuid, RPC2_BoundedBS *acl)
 	    ARG_MARSHALL(OUT_MODE, ViceStatus, statusvar, status, VSG_MEMBERS);
 
 	    if (HAVESTATUS(this) && !getacl) {
-		ViceFidAndVV FAVs[PIGGY_VALIDATIONS];    
+		ViceFidAndVV FAVs[MAX_PIGGY_VALIDATIONS];    
 
 		/* 
 		 * pack piggyback fids and version vectors from this volume. 
@@ -568,28 +568,29 @@ int fsobj::GetAttr(vuid_t vuid, RPC2_BoundedBS *acl)
 		 * they end up in the same state (demoted) that they are now.
 		 * A nice optimization would be to pack them highest priority 
 		 * first, from the priority queue. Unfortunately this may not 
-		 * result in the most efficient packing because only _replaceable_ 
-		 * objects are in the priority queue (duh).  So others that need 
-		 * to be checked may be missed, resulting in more rpcs!
+		 * result in the most efficient packing because only
+		 * _replaceable_ objects are in the priority queue (duh).
+		 * So others that need to be checked may be missed,
+		 * resulting in more rpcs!
 		 */
 		fso_vol_iterator next(NL, vol);
 		fsobj *f = 0;
 		int numPiggyFids = 0;
 
-		while ((f = next()) && (numPiggyFids < PIGGY_VALIDATIONS)) {
-		    if (HAVESTATUS(f) && !STATUSVALID(f) && !DYING(f) &&
-			f->vol->IsReplicated() && 
-			!FID_EQ(&f->fid, &fid) &&
-			!f->IsLocalObj() &&
-			!BUSY(f)) {  
+		while ((f = next()) && (numPiggyFids < PiggyValidations)) {
+		    if (!HAVESTATUS(f) || STATUSVALID(f) || DYING(f) ||
+			FID_EQ(&f->fid, &fid) || f->IsLocalObj() || BUSY(f))
+			    continue;
 
-			LOG(1000, ("fsobj::GetAttr: packing piggy fid (%x.%x.%x) comp = %s\n",
-				   f->fid.Volume, f->fid.Vnode, f->fid.Unique, f->comp));
+		    /* paranoia check */
+		    FSO_ASSERT(this, f->vol->IsReplicated());
 
-			FAVs[numPiggyFids].Fid = f->fid;
-			FAVs[numPiggyFids].VV = f->stat.VV;
-			numPiggyFids++;
-		    }
+		    LOG(1000, ("fsobj::GetAttr: packing piggy fid (%x.%x.%x) comp = %s\n",
+			       f->fid.Volume, f->fid.Vnode, f->fid.Unique, f->comp));
+
+		    FAVs[numPiggyFids].Fid = f->fid;
+		    FAVs[numPiggyFids].VV = f->stat.VV;
+		    numPiggyFids++;
 	        }
 
 		/* we need the fids in order */
@@ -601,7 +602,7 @@ int fsobj::GetAttr(vuid_t vuid, RPC2_BoundedBS *acl)
 		 * because each char would be embedded in a struct that
 		 * would be longword aligned. Ugh.
 		 */
-		char VFlags[PIGGY_VALIDATIONS];
+		char VFlags[MAX_PIGGY_VALIDATIONS];
 		RPC2_BoundedBS VFlagBS;
 
 		VFlagBS.MaxSeqLen = numPiggyFids;
@@ -661,8 +662,9 @@ int fsobj::GetAttr(vuid_t vuid, RPC2_BoundedBS *acl)
 		     */
 		    for (i = 0; i < numVFlags; i++) {
 			/* 
-			 * lookup this object. It may have been flushed and reincarnated
-			 * as a runt in the while we were out, so we check status again.
+			 * lookup this object. It may have been flushed and
+			 * reincarnated as a runt in the while we were out,
+			 * so we check status again.
 			 */
 			fsobj *pobj;
 
@@ -671,21 +673,22 @@ int fsobj::GetAttr(vuid_t vuid, RPC2_BoundedBS *acl)
 				LOG(1000, ("fsobj::GetAttr: ValidateAttrs (%s), fid (%x.%x.%x) valid\n",
 					  pobj->comp, FAVs[i].Fid.Volume, 
 					  FAVs[i].Fid.Vnode, FAVs[i].Fid.Unique));
+				/* callbacks broken during validation make
+				 * any positive return codes suspect. */
+				if (cbtemp != cbbreaks) continue;
 
-				if (cbtemp == cbbreaks) {
-				    if (!HAVEALLDATA(pobj))
-					pobj->SetRcRights(RC_STATUS);
-				    else
-					pobj->SetRcRights(RC_STATUS | RC_DATA);
-				    /* 
-				     * if the object matched, the access rights 
-				     * cached for this object are still good.
-				     */
-				    if (pobj->IsDir()) {
-					pobj->PromoteAcRights(ALL_UIDS);
-					pobj->PromoteAcRights(vuid);
-				    }
-			        }
+				if (!HAVEALLDATA(pobj))
+				    pobj->SetRcRights(RC_STATUS);
+				else
+				    pobj->SetRcRights(RC_STATUS | RC_DATA);
+				/* 
+				 * if the object matched, the access rights 
+				 * cached for this object are still good.
+				 */
+				if (pobj->IsDir()) {
+				    pobj->PromoteAcRights(ALL_UIDS);
+				    pobj->PromoteAcRights(vuid);
+				}
 			    } else {
 				/* invalidate status (and data) for this object */
 				LOG(1, ("fsobj::GetAttr: ValidateAttrs (%s), fid (%x.%x.%x) validation failed\n",

@@ -93,7 +93,7 @@ const int FSO_MagicNumber = 2687694;
 const int BLOCKS_PER_FILE = 24;			    /* rule of thumb */
 const int MIN_CF = MIN_CB / BLOCKS_PER_FILE;
 
-const int PIGGY_VALIDATIONS = 50;  /* number of objects we can validate on the side */
+const int MAX_PIGGY_VALIDATIONS = 50;
 
 /* Priorities. */
 const int FSO_MAX_SPRI = H_MAX_PRI;
