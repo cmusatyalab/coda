@@ -7,8 +7,6 @@
  * to the Coda project. Contact Peter Braam <coda@cs.cmu.edu>.
  */
 
-
-
 #include <linux/types.h>
 #include <linux/kernel.h>
 #include <linux/sched.h>

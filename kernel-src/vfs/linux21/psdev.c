@@ -17,8 +17,6 @@
  *              Copyright (c) 1997 Carnegie-Mellon University
  */
 
-
-
 #include <linux/config.h> /* for CONFIG_PROC_FS */
 #include <linux/module.h>
 #include <linux/errno.h>
