@@ -624,8 +624,6 @@ int coda_readdir(struct file *file, void *dirent,  filldir_t filldir)
         }
 
         cnp = ITOC(inode);
-        CHECK_CNODE(cnp);
-        
         if ( !cnp->c_ovp ) {
                 CDEBUG(D_FILE, "open inode pointer = NULL.\n");
                 return -EIO;
@@ -641,8 +639,8 @@ int coda_readdir(struct file *file, void *dirent,  filldir_t filldir)
                 result = open_file.f_op->readdir(&open_file, dirent, filldir);
         }
 	coda_restore_codafile(inode, file, cnp->c_ovp, &open_file);
-	return result;
         EXIT;
+	return result;
 }
 
 /* ask venus to cache the file and return the inode of the container file,
@@ -754,95 +752,97 @@ int coda_release(struct inode *i, struct file *f)
  * beyond the current_dir pointer.
  */
 
-struct getdents_callback {
-	struct linux_dirent * current_dir;
-	struct linux_dirent * previous;
-	int count;
-	int error;
-};
+
+/* should be big enough to hold any single directory entry */
+#define DIR_BUFSIZE 2048
 
 static int coda_venus_readdir(struct file *filp, void *getdent, 
 			      filldir_t filldir)
 {
-        int result = 0,  offset, count, pos, error = 0;
+        int bufsize;
+	int offset = filp->f_pos; /* offset in the directory file */
+	int count = 0;
+	int pos = 0;      /* offset in the block we read */
+	int result = 0; /* either an error or # of entries returned */
 	int errfill;
-        caddr_t buff = NULL;
+        char *buff = NULL;
         struct venus_dirent *vdirent;
-        struct getdents_callback *dents_callback;
-        int string_offset;
-	int size;
-        char debug[255];
+        int string_offset = (int) (&((struct venus_dirent *)(0))->d_name);
+	int i;
 
         ENTRY;        
 
-        /* we also need the ofset of the string in the dirent struct */
-        string_offset = (int) (&((struct venus_dirent *)(0))->d_name);
-
-        dents_callback = (struct getdents_callback *) getdent;
-
-        size = count =  dents_callback->count;
-        CODA_ALLOC(buff, void *, size);
-        if ( ! buff ) { 
+        CODA_ALLOC(buff, char *, DIR_BUFSIZE);
+        if ( !buff ) { 
                 printk("coda_venus_readdir: out of memory.\n");
                 return -ENOMEM;
         }
 
         /* we use this routine to read the file into our buffer */
-        result = read_exec(filp->f_dentry, filp->f_pos, buff, count, 1);
-        if ( result < 0) {
+        bufsize = read_exec(filp->f_dentry, filp->f_pos, buff, DIR_BUFSIZE, 1);
+        if ( bufsize < 0) {
                 printk("coda_venus_readdir: cannot read directory %d.\n",
-		       result);
-                error = result;
+		       bufsize);
+                result = bufsize;
                 goto exit;
         }
-        if ( result == 0) {
-                error = result;
+        if ( bufsize == 0) {
+                result = 0;
                 goto exit;
         }
-
+	
         /* Parse and write into user space. Filldir tells us when done! */
-        offset = filp->f_pos;
-        pos = 0;
-        CDEBUG(D_FILE, "offset %d, count %d.\n", offset, count);
+        CDEBUG(D_FILE, "buffsize: %d offset %d, count %d.\n", 
+	       bufsize, offset, count);
 
-        while ( pos + string_offset < result ) {
+	i = 0;
+	result = 0; 
+        while ( pos + string_offset < bufsize && i < 1024) {
                 vdirent = (struct venus_dirent *) (buff + pos);
 
                 /* test if the name is fully in the buffer */
-                if ( pos + string_offset + (int) vdirent->d_namlen >= result ){
+                if ( pos + string_offset + (int) vdirent->d_namlen >= bufsize ){
+			if ( result == 0 )
+				printk("CODA: Invalid directory cfino: %ld\n", 
+				       filp->f_dentry->d_inode->i_ino);
                         break;
                 }
-                
                 /* now we are certain that we can read the entry from buff */
 
-                /* for debugging, get the string out */
-                memcpy(debug, vdirent->d_name, vdirent->d_namlen);
-                *(debug + vdirent->d_namlen) = '\0';
-
                 /* if we don't have a null entry, copy it */
-                if ( vdirent->d_fileno ) {
+                if ( vdirent->d_fileno && vdirent->d_reclen ) {
                         int namlen  = vdirent->d_namlen;
                         off_t offs  = filp->f_pos; 
                         ino_t ino   = vdirent->d_fileno;
                         char *name  = vdirent->d_name;
-                        /* adjust count */
-                        count = dents_callback->count;
 
-			errfill = filldir(dents_callback,  name, namlen, 
+			errfill = filldir(getdent,  name, namlen, 
 					  offs, ino); 
-CDEBUG(D_FILE, "ino %ld, namlen %d, reclen %d, type %d, pos %d, string_offs %d, name %s, offset %d, count %d.\n", vdirent->d_fileno, vdirent->d_namlen, vdirent->d_reclen, vdirent->d_type, pos,  string_offset, debug, (u_int) offs, dents_callback->count);
-
-		      /* errfill means no space for filling in this round */
-                      if ( errfill < 0 ) break;
+CDEBUG(D_FILE, "entry %d: ino %ld, namlen %d, reclen %d, type %d, pos %d, string_offs %d, name %*s, offset %d, result: %d, errfill: %d.\n", i,vdirent->d_fileno, vdirent->d_namlen, vdirent->d_reclen, vdirent->d_type, pos,  string_offset, vdirent->d_namlen, vdirent->d_name, (u_int) offs, result, errfill);
+			/* errfill means no space for filling in this round */
+			if ( errfill < 0 ) {
+				result = 0;
+				break;
+			}
+                        /* adjust count */
+                        result++;
                 }
                 /* next one */
-                filp->f_pos += (unsigned int) vdirent->d_reclen;
+                filp->f_pos += vdirent->d_reclen;
+		if ( filp->f_pos > filp->f_dentry->d_inode->i_size )
+			break; 
+		if ( !vdirent->d_reclen ) {
+			printk("CODA: Invalid directory, cfino: %ld\n", 
+			       filp->f_dentry->d_inode->i_ino);
+			break;
+		}
                 pos += (unsigned int) vdirent->d_reclen;
+		i++;
         } 
 
 exit:
-        CODA_FREE(buff, size);
-        return error;
+        CODA_FREE(buff, DIR_BUFSIZE);
+        return result;
 }
 
 /* called when a cache lookup succeeds */
