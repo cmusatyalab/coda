@@ -52,8 +52,8 @@ include $(MAKDIR)/configs/Makerules
 libal.a:  pdbdb.o pdbpack.o alprocs.o pdb.o pdbdb.o pdbpack.o pdbprofile.o pdbarray.o 
 
 altest: altest.o $(DEPLIBS) $(HFILES)
-	$(CC) $(LDFLAGS) altest.o libal.a $(LIBS) -o altest
+	$(CC) $(LDFLAGS) altest.o $(LIBS) -o altest
 
 pdbtool: pdbtool.o $(DEPLIBS)
-	$(CC) $(LDFLAGS) pdbtool.o libal.a $(LIBS) $(LIBREADLINE) $(LIBTERMCAP) -o pdbtool
+	$(CC) $(LDFLAGS) pdbtool.o $(LIBS) $(LIBREADLINE) $(LIBTERMCAP) -o pdbtool
 

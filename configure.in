@@ -56,7 +56,6 @@ CODA_CHECK_LIBDB185
 CODA_CHECK_LIBUCB
 AC_SEARCH_LIBS(bind, socket)
 AC_SEARCH_LIBS(inet_ntoa, nsl)
-AC_SEARCH_LIBS(insque, compat)
 
 dnl Checks for header files.
 AC_CHECK_HEADERS(search.h sys/resource.h sys/stream.h)
