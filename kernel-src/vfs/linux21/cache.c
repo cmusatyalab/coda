@@ -87,13 +87,15 @@ static void coda_cache_create(struct inode *inode, int mask)
 	ENTRY;
 
 	CODA_ALLOC(cc, struct coda_cache *, sizeof(*cc));
-	INIT_LIST_HEAD(&cc->cc_cclist);
-	INIT_LIST_HEAD(&cc->cc_cnlist);
 
 	if ( !cc ) {
 		printk("Out of memory in coda_cache_enter!\n");
 		return;
 	}
+
+	INIT_LIST_HEAD(&cc->cc_cclist);
+	INIT_LIST_HEAD(&cc->cc_cnlist);
+
 	coda_load_creds(&cc->cc_cred);
 	cc->cc_mask = mask;
 	coda_cninsert(cc, cii);

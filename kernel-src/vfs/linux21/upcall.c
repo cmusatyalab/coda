@@ -287,7 +287,7 @@ int venus_rename(struct super_block *sb, struct ViceFid *old_fid,
 }
 
 int venus_create(struct super_block *sb, struct ViceFid *dirfid, 
-		    const char *name, int length, int excl, int mode, 
+		    const char *name, int length, int excl, int mode, int rdev,
 		    struct ViceFid *newfid, struct coda_vattr *attrs) 
 {
         union inputArgs *inp;
@@ -301,6 +301,7 @@ int venus_create(struct super_block *sb, struct ViceFid *dirfid,
 
         inp->cfs_create.VFid = *dirfid;
         inp->cfs_create.attr.va_mode = mode;
+        inp->cfs_create.attr.va_rdev = rdev;
 	inp->cfs_create.excl = excl;
         inp->cfs_create.mode = mode;
         inp->cfs_create.name = offset;
@@ -657,7 +658,7 @@ ENTRY;
 
 
 	if (!vcomm_open(vcommp))
-                return -ENODEV;
+                return -EIO;
 
 	/* Format the request message. */
 	CODA_ALLOC(vmp,struct vmsg *,sizeof(struct vmsg));

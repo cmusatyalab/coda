@@ -26,7 +26,7 @@
 #include <linux/coda_cache.h>
 
 /* initialize the debugging variables */
-int coda_debug = D_DOWNCALL;
+int coda_debug = 0;
 int coda_print_entry = 0; 
 int coda_access_cache = 1;
 
@@ -188,12 +188,10 @@ void coda_vattr_to_iattr(struct inode *inode, struct coda_vattr *attr)
 	        inode->i_nlink = attr->va_nlink;
 	if (attr->va_size != -1)
 	        inode->i_size = attr->va_size;
-	/*  XXX This needs further study */
-	/*
-        inode->i_blksize = attr->va_blocksize;
-	inode->i_blocks = attr->va_size/attr->va_blocksize 
-	  + (attr->va_size % attr->va_blocksize ? 1 : 0); 
-	  */
+	if (attr->va_blocksize != -1)
+		inode->i_blksize = attr->va_blocksize;
+	if (attr->va_size != -1)
+		inode->i_blocks = (attr->va_size + 511) >> 9;
 	if (attr->va_atime.tv_sec != -1) 
 	        inode->i_atime = attr->va_atime.tv_sec;
 	if (attr->va_mtime.tv_sec != -1)

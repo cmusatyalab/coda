@@ -74,7 +74,7 @@ int venus_mkdir(struct super_block *sb, struct ViceFid *dirfid,
 			  const char *name, int length, 
 			  struct ViceFid *newfid, struct coda_vattr *attrs);
 int venus_create(struct super_block *sb, struct ViceFid *dirfid, 
-		    const char *name, int length, int excl, int mode, 
+		    const char *name, int length, int excl, int mode, int rdev,
 		    struct ViceFid *newfid, struct coda_vattr *attrs) ;
 int venus_rmdir(struct super_block *sb, struct ViceFid *dirfid, 
 		    const char *name, int length);

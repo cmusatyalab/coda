@@ -27,6 +27,7 @@
 
 /* dir inode-ops */
 static int coda_create(struct inode *dir, struct dentry *new, int mode);
+static int coda_mknod(struct inode *dir, struct dentry *new, int mode, int rdev);
 static int coda_lookup(struct inode *dir, struct dentry *target);
 static int coda_link(struct dentry *old_dentry, struct inode *dir_inode, 
 		     struct dentry *entry);
@@ -50,6 +51,9 @@ static int coda_venus_readdir(struct file *filp, void *dirent,
 int coda_fsync(struct file *, struct dentry *dentry);
 static int coda_refresh_inode(struct dentry *dentry);
 
+int coda_crossvol_rename = 0;
+int coda_hasmknod = 0;
+
 
 struct dentry_operations coda_dentry_operations =
 {
@@ -69,7 +73,7 @@ struct inode_operations coda_dir_inode_operations =
 	coda_symlink,	        /* symlink */
 	coda_mkdir,	        /* mkdir */
 	coda_rmdir,   	        /* rmdir */
-	NULL,		        /* mknod */
+	coda_mknod,	        /* mknod */
 	coda_rename,	        /* rename */
 	NULL,	                /* readlink */
 	NULL,	                /* follow_link */
@@ -216,7 +220,7 @@ int coda_permission(struct inode *inode, int mask)
 
 
 
-/* creation routines: create, mkdir, link, symlink */
+/* creation routines: create, mknod, mkdir, link, symlink */
 
 static int coda_create(struct inode *dir, struct dentry *de, int mode)
 {
@@ -251,10 +255,67 @@ static int coda_create(struct inode *dir, struct dentry *de, int mode)
         }
 
 	error = venus_create(dir->i_sb, &(dircnp->c_fid), name, length, 
-				0, mode, &newfid, &attrs);
+				0, mode, 0, &newfid, &attrs);
 
         if ( error ) {
 		CDEBUG(D_INODE, "create: %s, result %d\n",
+		       coda_f2s(&newfid), error); 
+		d_drop(de);
+		return error;
+	}
+
+	error = coda_cnode_make(&result, &newfid, dir->i_sb);
+	if ( error ) {
+		d_drop(de);
+		result = NULL;
+		return error;
+	}
+
+	/* invalidate the directory cnode's attributes */
+	dircnp->c_flags |= C_VATTR;
+	d_instantiate(de, result);
+        return 0;
+}			     
+
+static int coda_mknod(struct inode *dir, struct dentry *de, int mode, int rdev)
+{
+        int error=0;
+        struct coda_inode_info *dircnp;
+	const char *name=de->d_name.name;
+	int length=de->d_name.len;
+	struct inode *result = NULL;
+	struct ViceFid newfid;
+	struct coda_vattr attrs;
+
+	if ( coda_hasmknod == 0 )
+		return -EIO;
+
+	coda_vfs_stat.create++;
+
+	CDEBUG(D_INODE, "name: %s, length %d, mode %o, rdev %x\n",name, length, mode, rdev);
+
+        if (!dir || !S_ISDIR(dir->i_mode)) {
+                printk("coda_mknod: inode is null or not a directory\n");
+                return -ENOENT;
+        }
+
+	if (coda_isroot(dir) && coda_iscontrol(name, length))
+		return -EPERM;
+
+	dircnp = ITOC(dir);
+        CHECK_CNODE(dircnp);
+
+        if ( length > CFS_MAXNAMLEN ) {
+		printk("name too long: mknod, %s(%s)\n", 
+		       coda_f2s(&dircnp->c_fid), name);
+		return -ENAMETOOLONG;
+        }
+
+	error = venus_create(dir->i_sb, &(dircnp->c_fid), name, length, 
+				0, mode, rdev, &newfid, &attrs);
+
+        if ( error ) {
+		CDEBUG(D_INODE, "mknod: %s, result %d\n",
 		       coda_f2s(&newfid), error); 
 		d_drop(de);
 		return error;
@@ -347,7 +408,6 @@ static int coda_link(struct dentry *source_de, struct inode *dir_inode,
 		return -EPERM;
 
         dir_cnp = ITOC(dir_inode);
-        CHECK_CNODE(dir_cnp);
         cnp = ITOC(inode);
         CHECK_CNODE(cnp);
 
@@ -364,8 +424,9 @@ static int coda_link(struct dentry *source_de, struct inode *dir_inode,
 
 	if (  ! error ) { 
 		dir_cnp->c_flags |= C_VATTR;
-		inode->i_nlink++;
+		++inode->i_count;
 		d_instantiate(de, inode);
+		inode->i_nlink++;
 	} else {
 		d_drop(de);
 	}
@@ -529,22 +590,32 @@ static int coda_rename(struct inode *old_dir, struct dentry *old_dentry,
         old_cnp = ITOC(old_dir);
         new_cnp = ITOC(new_dir);
 
-	/* make sure target is not in use */
-	if ( new_dentry->d_count > 1 && !list_empty(&new_dentry->d_subdirs) )
-		shrink_dcache_parent(new_dentry);
-	if ( new_dentry->d_count >1 )
-		return -EBUSY;
-
-        CDEBUG(D_INODE, "old: %s, (%d length, %d strlen), new: %s (%d length, %d strlen).\n", 
+        CDEBUG(D_INODE, "old: %s, (%d length, %d strlen), new: %s"
+	       "(%d length, %d strlen).old:d_count: %d, new:d_count: %d\n", 
 	       old_name, old_length, strlen(old_name), new_name, new_length, 
-	       strlen(new_name));
+	       strlen(new_name),old_dentry->d_count, new_dentry->d_count);
 
-	if ( old_cnp->c_fid.Volume != new_cnp->c_fid.Volume )
+	if (new_inode == old_inode)
+		return 0;
+	/* make sure target is not in use */
+	if (new_inode && S_ISDIR(new_inode->i_mode)) { 
+		/*
+                 * Prune any children before testing for busy.
+                 */
+                if (new_dentry->d_count > 1)
+                        shrink_dcache_parent(new_dentry);
+
+                if (new_dentry->d_count > 1)
+                        return -EBUSY;
+        }
+
+	if ( coda_crossvol_rename == 0 && 
+	     old_cnp->c_fid.Volume != new_cnp->c_fid.Volume )
 		return -EXDEV;
 
 	/* if the volumeid are the same we can reuse the inode,
 	   otherwise we need a new inode, since the new file 
-	   will have a new ionde number. */
+	   will have a new inode number. */
 
 	/* if moving a directory, clean the dcache */
 	if (S_ISDIR(old_inode->i_mode) && old_dentry->d_count > 1) 
@@ -553,20 +624,17 @@ static int coda_rename(struct inode *old_dir, struct dentry *old_dentry,
 	if (old_dentry->d_count > 1) {
 		return -EBUSY;
 	}
-
+#if 0
 	if (new_dentry->d_count > 1) {
 		return -EBUSY;
 	}
-
+#endif
 	d_drop(old_dentry);
 
 	if (!list_empty(&new_dentry->d_hash)) {
 		d_drop(new_dentry);
 		rehash = update;
 	}
-
-	if (new_inode)
-		d_delete(new_dentry);
 
         error = venus_rename(old_dir->i_sb, &(old_cnp->c_fid), 
 			     &(new_cnp->c_fid), old_length, new_length, 
@@ -613,7 +681,7 @@ int coda_readdir(struct file *file, void *dirent,  filldir_t filldir)
         
         if ( !cnp->c_ovp ) {
                 CDEBUG(D_FILE, "open inode pointer = NULL.\n");
-                return -ENODEV;
+                return -EIO;
         }
 
 	coda_prepare_openfile(inode, file, cnp->c_ovp, &open_file,
@@ -645,8 +713,8 @@ int coda_open(struct inode *i, struct file *f)
         ENTRY;
 	coda_vfs_stat.open++;
         
-        CDEBUG(D_SPECIAL, "OPEN inode number: %ld, flags %o.\n", 
-	       f->f_dentry->d_inode->i_ino, flags);
+        CDEBUG(D_SPECIAL, "OPEN inode number: %ld, count %d, flags %o.\n", 
+	       f->f_dentry->d_inode->i_ino, f->f_dentry->d_count, flags);
 
         cnp = ITOC(i);
 
