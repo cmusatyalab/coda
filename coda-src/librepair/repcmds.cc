@@ -214,13 +214,6 @@ int CompareDirs(struct repvol *repv, char *fixfile, struct repinfo *inf, char *m
 	return(-1);
     }
 
-    if (!(inf->interactive)) {
-	if (inf->fixed && (stat(inf->fixed, &sbuf) < 0)) {
-	    strerr(msg, msgsize, "Invalid 'fixed' file");
-	    return(-1);
-	}
-    }
-
     if ((nreps = getVolrepNames(repv, &names, msgbuf, sizeof(msgbuf))) <= 0) {
 	strerr(msg, msgsize, "Error getting replica names: %s", msgbuf);
 	return(-1);
