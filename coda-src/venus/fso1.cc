@@ -548,6 +548,9 @@ Failure:
 
 	    if (HAVEDATA(this)) {
 		    Recov_BeginTrans();
+		    /* Normally we can't discard dirty files, but here we just
+		     * decided that there is no other way. */
+		    flags.dirty = 0;
 		    DiscardData();
 		    Recov_EndTrans(MAXFP);
 	    }
