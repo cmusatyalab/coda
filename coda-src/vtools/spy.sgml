@@ -1,0 +1,103 @@
+<!DOCTYPE refentry PUBLIC "-//OASIS//DTD DocBook V4.1//EN" [
+  <!ENTITY package "spy">
+  <!ENTITY date    "April 2004">
+]>
+
+<refentry>
+<refentryinfo>
+    <address><email>coda@cs.cmu.edu</email></address>
+    <copyright>
+	<year>1993-2004</year>
+	<holder>Carnegie Mellon University</holder>
+    </copyright>
+    <date>&date;</date>
+</refentryinfo>
+
+<refmeta>
+    <refentrytitle>&package;</refentrytitle>
+    <manvolnum>1</manvolnum>
+    <refmiscinfo>Coda Distributed File System</refmiscinfo>
+</refmeta>
+
+<refnamediv>
+    <refname>&package;</refname>
+    <refpurpose>Report all Coda file that are opened</refpurpose>
+</refnamediv>
+
+<refsynopsisdiv>
+    <cmdsynopsis>
+	<command>&package;</command>
+	<arg>-host <replaceable>hostname</replaceable></arg>
+	<arg>-uid <replaceable>uid</replaceable></arg>
+    </cmdsynopsis>
+</refsynopsisdiv>
+
+<refsect1>
+    <title>DESCRIPTION</title>
+    <para><command>spy</command> will connect to <command>venus</command> on
+    the given host and report all Coda files that are opened.  This is useful
+    for generating <emphasis>hoard</emphasis> files as programs can have hidden
+    dependencies.  Using spy will ensure that any file that is opened gets
+    included in the <emphasis>hoard</emphasis> database. Sending
+    <command>spy</command> a <emphasis>SIGTERM</emphasis> will cause
+    <command>spy</command> to flush all of its output buffers and terminate.
+    </para>
+    <para><command>spy</command> supports the following options:
+    </para>
+
+    <variablelist>
+	<varlistentry>
+	<term><option>-host</option></term>
+	<listitem>
+	    <para>Name of Coda coda client to bind to.  If this option is
+	    omitted, then the current host will be used.
+	    </para>
+	</listitem>
+	</varlistentry>
+
+	<varlistentry>
+	<term><option>-uid</option></term>
+	<listitem>
+	    <para>Only report on file activity from user
+	    <replaceable>uid</replaceable>.  If the <option>-uid</option>
+	    switch is omitted, then all CFS file activity is reported.
+	    </para>
+	</listitem>
+	</varlistentry>
+    </variablelist>
+
+    <para>To use <command>spy</command> to create a <emphasis>hoard</emphasis>
+    file sort the output and remove any duplicates, By using
+    <command>spy</command> you ensure that you did not forget to
+    <emphasis>hoard</emphasis> a file with a hidden dependency.  For example,
+    when you <emphasis>hoard X</emphasis>, you might need the
+    <citerefentry>
+	<refentrytitle>uncompress</refentrytitle>
+	<manvolnum>1</manvolnum>
+    </citerefentry>
+    program in order to use the fonts.
+    </para>
+</refsect1>
+
+<refsect1>
+    <title>SEE ALSO</title>
+    <para>
+    <citerefentry>
+	<refentrytitle>hoard</refentrytitle>
+	<manvolnum>1</manvolnum>
+    </citerefentry>
+    </para>
+</refsect1>
+
+<refsect1>
+    <title>AUTHORS</title>
+    <para>
+    <itemizedlist>
+    <listitem><para>Joshua Raiff, 1993, Created man page</para>
+    </listitem>
+    <listitem><para>Jan Harkes, 2004, converted to DocBook 4.1</para>
+    </listitem>
+    </itemizedlist>
+    </para>
+</refsect1>
+</refentry>

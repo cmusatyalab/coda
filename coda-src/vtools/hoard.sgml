@@ -1,0 +1,231 @@
+<!DOCTYPE refentry PUBLIC "-//OASIS//DTD DocBook V4.1//EN" [
+  <!ENTITY package "hoard">
+  <!ENTITY date    "April 2004">
+]>
+
+<refentry>
+<refentryinfo>
+    <address><email>coda@cs.cmu.edu</email></address>
+    <copyright>
+	<year>1990-2004</year>
+	<holder>Carnegie Mellon University</holder>
+    </copyright>
+    <date>&date;</date>
+</refentryinfo>
+
+<refmeta>
+    <refentrytitle>&package;</refentrytitle>
+    <manvolnum>1</manvolnum>
+    <refmiscinfo>Coda Distributed File System</refmiscinfo>
+</refmeta>
+
+<refnamediv>
+    <refname>&package;</refname>
+    <refpurpose>Hoard database front-end</refpurpose>
+</refnamediv>
+
+<refsynopsisdiv>
+    <cmdsynopsis>
+	<command>&package;</command>
+	<arg>-d</arg>
+	<arg>-f <replaceable>source</replaceable> |
+	<replaceable>cmds</replaceable></arg>
+    </cmdsynopsis>
+</refsynopsisdiv>
+
+<refsect1>
+    <title>DESCRIPTION</title>
+    <para><command>hoard</command> is a front-end to the <emphasis>hoard
+    database</emphasis> (HDB) managed by the Coda cache manager,
+    <command>Venus</command>.  The HDB provides a means for users to
+    explicitly control Venus caching behavior.  HDB entries specify the degree
+    of a users interest in particular file system objects.  Venus combines
+    this information with implicit knowledge that it has about file access
+    patterns to try to keep the "best" set of objects in its cache at all
+    times.  The HDB is maintained in non-volatile storage, so it survives
+    Venus restarts and client reboots.
+    </para>
+    <para>Users manipulate the HDB by issuing commands to the hoard program.
+    The following hoard commands are currently recognized:
+    <variablelist>
+	<varlistentry>
+	<term><command>add</command>
+	<replaceable>filename</replaceable>
+	<replaceable>attributes</replaceable>
+	</term>
+	<listitem><para></para></listitem>
+	</varlistentry>
+
+	<varlistentry>
+	<term><command>clear</command>
+	<replaceable>uid</replaceable>
+	</term>
+	<listitem><para></para></listitem>
+	</varlistentry>
+
+	<varlistentry>
+	<term><command>delete</command>
+	<replaceable>filename</replaceable>
+	</term>
+	<listitem><para></para></listitem>
+	</varlistentry>
+
+	<varlistentry>
+	<term><command>list</command>
+	<replaceable>outfile</replaceable>
+	<replaceable>uid</replaceable>
+	</term>
+	<listitem><para></para></listitem>
+	</varlistentry>
+
+	<varlistentry>
+	<term><command>modify</command>
+	<replaceable>filename</replaceable>
+	<replaceable>attributes</replaceable>
+	</term>
+	<listitem><para></para></listitem>
+	</varlistentry>
+    </variablelist>
+
+    <para>Hoard distinguishes between <emphasis>children</emphasis> of a
+    directory, which are members of the directory,
+    <emphasis>descendants</emphasis> which are either children or descendants
+    of childres of the directory.
+    </para>
+    <para>Commands may be abbreviated by their first letter.  Parameters in
+    angle brackets are optional, and have default values if unspecified.  The
+    <emphasis>attributes</emphasis> parameter is specified as a string of
+    options separated by : characters.  The currently recognized options are:
+    </para>
+    <variablelist>
+	<varlistentry>
+	<term><option>1-1000</option></term>
+	<listitem>
+	    <para>Assign this object the hoard <emphasis>priority</emphasis>
+	    indicated.
+	    </para>
+	</listitem>
+	</varlistentry>
+
+	<varlistentry>
+	<term><option>c</option></term>
+	<listitem>
+	    <para>Current <emphasis>children</emphasis> of this directory will
+	    inherit its hoard status.
+	    </para>
+	</listitem>
+	</varlistentry>
+
+	<varlistentry>
+	<term><option>c+</option></term>
+	<listitem>
+	    <para>Current and future <emphasis>children</emphasis> of this
+	    directory will inherit its hoard status.
+	    </para>
+	</listitem>
+	</varlistentry>
+
+	<varlistentry>
+	<term><option>d</option></term>
+	<listitem>
+	    <para>Current <emphasis>descendents</emphasis> of this directory
+	    will inherit its hoard status.
+	    </para>
+	</listitem>
+	</varlistentry>
+
+	<varlistentry>
+	<term><option>d+</option></term>
+	<listitem>
+	    <para>Current and future <emphasis>descendents</emphasis> of this
+	    directory will inherit its hoard status
+	</listitem>
+	</varlistentry>
+    </variablelist>
+
+    <para>If the <emphasis>uid</emphasis> in the clear and list commands is
+    unspecified, the entries of all users are cleared or listed respectively.
+    The default hoard <emphasis>priority</emphasis> is 10.
+    </para>
+
+<example>
+<title>Example hoard command file</title>
+<programlisting>
+clear
+add /coda/project/coda/src 100:d+
+add /coda/usr/jjk/.login   1000
+</programlisting>
+</example>
+
+    <para>Access to the hoard database is restricted in the following ways.
+    All hoard commands fail unless the effective-uid is root--the hoard
+    program should be made setuid to root to ensure this.  Special permission
+    is given to commands where the real-uid is root or that of the
+    <emphasis>primary</emphasis> user, i.e., the user at the console.  Root
+    and primary users may add entries and access existing entries without
+    restriction.  Other users may not add hoard entries, and they may only
+    clear, delete, list, or modify their own entries.
+    </para>
+    <para>The command-line options are:
+    </para>
+    <variablelist>
+	<varlistentry>
+	<term><option>-d</option></term>
+	<listitem>
+	    <para>Enables debugging output.</para>
+	</listitem>
+	</varlistentry>
+
+	<varlistentry>
+	<term><option>-f</option></term>
+	<listitem>
+	    <para>Take commands from <replaceable>source</replaceable>. -f
+	    must be the last argument if specified. An argument of - means,
+	    use <emphasis>stdin</emphasis> as the source file. Source
+	    statements may be given directly on the command line (one per
+	    line) by enclosing them in single quotes.</para>
+	</listitem>
+	</varlistentry>
+    </variablelist>
+
+<refsect1>
+    <title>DIAGNOSTICS</title>
+    <para>Hoard copies command lines that it cannot parse to
+    <emphasis>stderr</emphasis>. If a syntactically correct command is
+    rejected by Venus, the corresponding pioctl, its arguments, and the errno
+    are copied to <emphasis>stderr</emphasis>.
+    </para>
+</refsect1>
+
+<refsect1>
+    <title>BUGS</title>
+    <itemizedlist>
+    <listitem><para>Negative priorities should be allowed.</para>
+    </listitem>
+    <listitem><para>A mount point of <emphasis>/coda</emphasis> is assumed by
+    the pioctl library.</para>
+    </listitem>
+    </itemizedlist>
+</refsect1>
+
+<refsect1>
+    <title>SEE ALSO</title>
+    <para>
+    <citerefentry>
+	<refentrytitle>venus</refentrytitle>
+	<manvolnum>8</manvolnum>
+    </citerefentry>
+    </para>
+</refsect1>
+
+<refsect1>
+    <title>AUTHORS</title>
+    <itemizedlist>
+    <listitem><para>Jay Kistler, 1990, Created</para>
+    </listitem>
+    <listitem><para>Jan Harkes, 2004, converted to DocBook 4.1</para>
+    </listitem>
+    </itemizedlist>
+</refsect1>
+</refentry>
+

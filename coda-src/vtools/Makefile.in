@@ -35,7 +35,7 @@ CBINS := $(EXECUTABLES)
 CSBINS = codaconfedit
 SSBINS = codaconfedit
 EXECUTABLES += codaconfedit
-CMANPAGES := cfs.1
+CMANPAGES := cfs.1 cmon.1 hoard.1 spy.1
 
 CMON_LIBS   = $(LIBVICEDEP) $(LIBBASE)
 CFS_LIBS    = $(LIBKERNDEP) $(LIBUTIL) $(LIBBASE)
