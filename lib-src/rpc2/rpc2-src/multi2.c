@@ -262,6 +262,9 @@ long MRPC_MakeMulti (int ServerOp, ARG ArgTypes[], RPC2_Integer HowMany,
 	a_types++, args++, count++) {
 	    switch(a_types->mode){
 	    case OUT_MODE:
+		    if (a_types->type == RPC2_BOUNDEDBS_TAG)
+			_length += get_len(&a_types, &args, a_types->mode);
+		    break;
 	    case C_END:
 		    break;
 	    case IN_MODE:
@@ -298,7 +301,7 @@ long MRPC_MakeMulti (int ServerOp, ARG ArgTypes[], RPC2_Integer HowMany,
     /* Pack arguments */
     _ptr = (PARM *)_reqbuffer->Body;
     for(a_types = ArgTypes, args = va_array; a_types->mode != C_END; a_types++) {
-	    if (a_types->mode != OUT_MODE) {
+	    if (a_types->mode != OUT_MODE || a_types->type == RPC2_BOUNDEDBS_TAG) {
 		    if (a_types->type != RPC2_STRUCT_TAG)
 			    pack(a_types, &args, &_ptr);
 		    else {

@@ -104,7 +104,8 @@ typedef struct arg_info {
     {\
 	for (int name##_local_i = 0; name##_local_i < howmany; name##_local_i++) {\
 	    name##_ptrs[name##_local_i] = &name##_bufs[name##_local_i];\
-	    if (mode == IN_OUT_MODE && &(object) != 0) name##_bufs[name##_local_i] = (object);\
+	    if (mode == OUT_MODE) (object).SeqLen = 0; \
+	    name##_bufs[name##_local_i] = (object);\
 	    name##_bufs[name##_local_i].SeqBody = (RPC2_ByteSeq)&name##_data[name##_local_i * maxbslen];\
 	    if ((object).SeqLen > 0) \
 		memcpy(name##_bufs[name##_local_i].SeqBody, (object).SeqBody, (int)(object).SeqLen);\
