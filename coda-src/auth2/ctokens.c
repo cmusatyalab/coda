@@ -63,13 +63,18 @@ extern "C" {
 
 #include <parse_realms.h>
 
-static void GetTokens(const char *realm)
+#ifndef EXIT_SUCCESS
+#define EXIT_SUCCESS 0
+#define EXIT_FAILURE 1
+#endif
+
+static int GetTokens(const char *realm)
 {
     ClearToken clear;
     EncryptedSecretToken secret;
     int rc;
 
-    fprintf(stdout, "    @%s\n", realm);
+    fprintf(stdout, "\t@%s\n", realm);
 
     /* Get the tokens.  */
     rc = U_GetLocalTokens(&clear, secret, realm);
@@ -78,17 +83,18 @@ static void GetTokens(const char *realm)
 	    fprintf(stdout, "\tNot Authenticated\n");
 	else
 	    fprintf(stdout, "\tGetLocalTokens error (%d)\n", -rc);
+	return -1;
     }
-    else {
-	fprintf(stdout, "\tCoda user id:\t %lu\n", clear.ViceId);
 
-	/* Check for expiration. */
-	if (clear.EndTimestamp <= time(0))
-	    fprintf(stdout, "\tThis token has expired.\n");
-	else {
-	    fprintf(stdout, "\tExpiration time: %s\n", ctime((time_t *)&clear.EndTimestamp));
-	}
+    fprintf(stdout, "\tCoda user id:\t %lu\n", clear.ViceId);
+
+    /* Check for expiration. */
+    if (clear.EndTimestamp <= time(0)) {
+	fprintf(stdout, "\tThis token has expired.\n");
+	return -2;
     }
+    fprintf(stdout, "\tExpiration time: %s\n", ctime((time_t *)&clear.EndTimestamp));
+    return 0;
 }
 
 
@@ -96,6 +102,7 @@ int main(int argc, char *argv[])
 {
     char *realm = NULL;
     char *username = NULL;
+    int rc = 0;
 
 #ifdef __CYGWIN__
     username = getlogin();
@@ -133,12 +140,12 @@ int main(int argc, char *argv[])
 
 	while ((entry = readdir(dir)) != NULL)
 	    if (entry->d_name[0] != '.')
-		GetTokens(entry->d_name);
+		(void)GetTokens(entry->d_name);
 
 	closedir(dir);
     } else
-	GetTokens(realm);
+	rc = GetTokens(realm);
 
-    return 0;
+    exit(rc ? EXIT_FAILURE : EXIT_SUCCESS);
 }
 
