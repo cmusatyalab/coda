@@ -42,7 +42,7 @@ Pittsburgh, PA.
 #define _PRS_
 
 
-#define PRS_VERSION "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/libal/prs.h,v 4.3 1998/10/08 17:30:09 jaharkes Exp $"
+#define PRS_VERSION "$Header: /coda/coda.cs.cmu.edu/project/coda/cvs/coda/coda-src/libal/Attic/prs.h,v 4.4 1998/12/21 22:25:58 jaharkes Exp $"
 
 #define PRS_MAXNAMELEN 100    /*Maximum length of group and user names*/
 
