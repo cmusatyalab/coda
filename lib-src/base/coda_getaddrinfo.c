@@ -41,7 +41,7 @@ Coda are listed in the file CREDITS.
 #include <netdb.h>
 #endif
 
-#ifdef __NetBSD__
+#ifndef NS_INT32SZ /* NetBSD and RedHat5 */
 #define NS_INT32SZ INT32SZ
 #define NS_INT16SZ INT16SZ
 #define NS_HFIXEDSZ HFIXEDSZ
@@ -199,7 +199,7 @@ static int DN_SHORT(char *msg, int mlen, char **ptr, int *dest)
 {
     if (*ptr + NS_INT16SZ > msg + mlen)
 	return -1;
-    *dest = ntohs(*(uint16_t *)*ptr);
+    *dest = ntohs(*(u_int16_t *)*ptr);
     *ptr += NS_INT16SZ;
     return 0;
 }
@@ -208,7 +208,7 @@ static int DN_INT(char *msg, int mlen, char **ptr, int *dest)
 {
     if (*ptr + NS_INT32SZ > msg + mlen)
 	return -1;
-    *dest = ntohl(*(uint32_t *)*ptr);
+    *dest = ntohl(*(u_int32_t *)*ptr);
     *ptr += NS_INT32SZ;
     return 0;
 }
