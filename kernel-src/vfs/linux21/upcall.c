@@ -884,11 +884,10 @@ int coda_downcall(int opcode, union outputArgs * out, struct super_block *sb)
 		  ViceFid *newfid = &out->cfs_replace.NewFid;
 		  clstats(CFS_REPLACE);
 		  CDEBUG(D_DOWNCALL, "CFS_REPLACE\n");
-		  inode = coda_fid_to_inode(newfid, sb);
+		  inode = coda_fid_to_inode(oldfid, sb);
 		  if ( inode ) { 
 			  CDEBUG(D_DOWNCALL, "replacefid: inode = %ld\n", inode->i_ino);
 			  coda_replace_fid(inode, oldfid, newfid);
-                          coda_purge_dentries(inode);
 		  }else 
 			  CDEBUG(D_DOWNCALL, "purgefid: no inode\n");
 		  

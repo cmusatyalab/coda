@@ -33,6 +33,7 @@
 #include <linux/vmalloc.h>
 #include <linux/fs.h>
 #include <linux/poll.h>
+#include <linux/init.h>
 #include <asm/io.h>
 #include <asm/segment.h>
 #include <asm/system.h>
@@ -45,6 +46,8 @@
 #include <linux/coda_psdev.h>
 #include <linux/coda_cache.h>
 #include <linux/coda_proc.h>
+
+extern struct proc_dir_entry proc_sys_root;
 
 /* 
  * Coda stuff
@@ -393,15 +396,6 @@ static struct file_operations coda_psdev_fops = {
 
 
 #ifdef CONFIG_PROC_FS
-
-struct proc_dir_entry proc_sys_root = {
-        PROC_SYS, 3, "sys",                     /* inode, name */
-        S_IFDIR | S_IRUGO | S_IXUGO, 2, 0, 0,   /* mode, nlink, uid, gid */
-        0, &proc_dir_inode_operations,          /* size, ops */
-        NULL, NULL,                             /* get_info, fill_inode */
-        NULL,                                   /* next */
-        NULL, NULL                              /* parent, subdir */
-};
 
 
 struct proc_dir_entry proc_sys_coda = {
