@@ -35,7 +35,7 @@ if [ x$username = x ]; then
     exit 1
 fi
 
-if [ x$userid = xroot ]; then
+if [ x$username = xroot ]; then
     echo "Root cannot be a Coda administrator"
     echo "Run vice-setup-user again"
     exit 1
