@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vice/srvproc.cc,v 4.23 1998/11/25 19:23:34 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vice/srvproc.cc,v 4.24 1998/12/02 22:07:01 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -2530,8 +2530,10 @@ void ChangeDiskUsage(Volume *volptr, int length)
   ValidateParms: Validate the parameters of the RPC
 */
 int ValidateParms(RPC2_Handle RPCid, ClientEntry **client,
-		   int ReplicatedOp, VolumeId *Vidp, RPC2_CountedBS *PiggyBS) {
+		   int ReplicatedOp, VolumeId *Vidp, RPC2_CountedBS *PiggyBS) 
+{
     int errorCode = 0;
+    VolumeId GroupVid;
 
     /* 1. Apply PiggyBacked COP2 operations. */
     if (ReplicatedOp)
@@ -2549,14 +2551,12 @@ int ValidateParms(RPC2_Handle RPCid, ClientEntry **client,
     }
 
     /* 3. Translate group to read/write volume id. */
-    if (ReplicatedOp) {
-	VolumeId GroupVid = *Vidp;
-	if (!XlateVid(Vidp)) {
-	    SLog(1, "ValidateParms: failed to translate VSG %x", GroupVid);
-	    return(EINVAL);
-	}
-	SLog(10, "ValidateParms: %x --> %x", GroupVid, *Vidp);
-    }
+    GroupVid = *Vidp;
+	    
+    if ( XlateVid(Vidp) )
+	    SLog(10, "ValidateParms: %x --> %x", GroupVid, *Vidp);
+    else 
+	    SLog(10, "ValidateParms: using replica %s", *Vidp);
 
     return(0);
 }
