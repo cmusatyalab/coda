@@ -37,8 +37,8 @@ EXTRA_DIST = README basher_parms map_chk_file map_data_file \
     t1_chk_file t3_chk_file t5_chk_file test_data_file
 MAINTAINERCLEANFILES = Makefile.in
 
-rvm_basher.o: rvm_basher.c lwp_basher.o
-lwp_basher.o: rvm_basher.c 
-	$(COMPILE) -DRVM_USELWP -c rvm_basher.c && \
+rvm_basher.o: $(srcdir)/rvm_basher.c lwp_basher.o
+lwp_basher.o: $(srcdir)/rvm_basher.c 
+	$(COMPILE) -DRVM_USELWP -c $(srcdir)/rvm_basher.c && \
         mv rvm_basher.o lwp_basher.o
 
