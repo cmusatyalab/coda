@@ -276,24 +276,24 @@ enum FsoState {	FsoRunt,
 /*    1. Copy of plain file */
 /*    2. Unix-format copy of directory */
 class CacheFile {
-    int  fd;
     long length;
     long validdata; /* amount of successfully fetched data */
     int  refcnt;
-
-    int ValidContainer();
-    void ResetContainer();
-
-  public:
     ino_t inode;				/* for iopen() */
     char name[8];				/* "Vxxxxxx" */
+    int numopens;
+
+    int ValidContainer();
+
+  public:
     CacheFile(int);
     CacheFile();
     ~CacheFile();
 
     /* for safely obtaining access to container files, USE THESE!!! */
-    int Open(fsobj *fso, int flags);
-    int Close();
+    void Create(int newlength = 0);
+    int Open(int flags);
+    int Close(int fd);
 
     void Validate();
     void Reset();
