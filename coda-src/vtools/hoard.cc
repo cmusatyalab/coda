@@ -16,12 +16,6 @@ listed in the file CREDITS.
 
 #*/
 
-
-
-
-
-
-
 /*
  *  Hoard database front-end.
  *
@@ -253,6 +247,8 @@ static FILE *ParseCommandLine(int argc, char **argv) {
 	argc--;
 	argv++;
 
+	if (argv[0][0] != '-') break;
+
 	if (STREQ(argv[0], "-d")) {
 	    Debug = 1;
 	    continue;
@@ -280,28 +276,23 @@ static FILE *ParseCommandLine(int argc, char **argv) {
     }
     if (fp == NULL) {
 	/* Assign fp to argv[0]. */
-#ifndef __MACH__
 	int fd[2];
 	if (pipe(fd)<0)
 	    error(FATAL, "open pipe error") ;
-	if (write(fd[1], argv[0], strlen(argv[0])+1) < 0)
+	while(argc) {
+	    if (write(fd[1], *argv, strlen(*argv)) < 0)
+		error(FATAL, "pipe writing error");
+	    if (write(fd[1], " ", 1) < 0)
+		error(FATAL, "pipe writing error");
+	    argc--;
+	    argv++;
+	}
+	if (write(fd[1], "\n", 1) < 0)
 	    error(FATAL, "pipe writing error");
 	if (close(fd[1])<0)
 	    error(FATAL, "closing pipe error");
 	if ((fp = fdopen(fd[0],"r"))==NULL)
 	    error(FATAL, "fdopen error");
-#else 
-	fp = _findiop();
-	if (fp == NULL)
-	    error(FATAL, "no I/O buffers");
-
-	fp->_flag = _IOREAD | _IOSTRG;
-	fp->_file = -1;
-
-	int len = (int) strlen(argv[0]) + 1;
-	setbuffer(fp, argv[0], len);
-	fp->_cnt = len;
-#endif
     }
 
     return(fp);

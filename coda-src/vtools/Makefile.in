@@ -25,7 +25,7 @@ TOPOBJ = @TOPOBJ@
 
 include $(TOPDIR)/Makeconf
 
-LOGSCRIPTS = logbandwidth logcmls logreintegration
+LOGSCRIPTS = logbandwidth logcmls logreintegration logprogress
 EXECUTABLES = cmon codacon cfs hoard spy replay $(LOGSCRIPTS)
 ifeq ($(SYS),cygwin32)
 EXECUTABLES = codacon cfs hoard spy replay
@@ -38,6 +38,8 @@ CFS_LIBS    = $(LIBKERNDEP) $(LIBUTIL) $(LIBBASE)
 HOARD_LIBS  = $(LIBUTIL) $(LIBKERNDEP) $(LIBBASE)
 
 CXXFLAGS := $(CXXFLAGS) -UVENUS
+
+include $(TOPDIR)/configs/Makerules
 
 cmon: cmon.o $(CMON_LIBS)
 	$(CXX) $(LIBFLAGS) cmon.o $(CMON_LIBS)  $(LIBTERMCAP) -o cmon
@@ -64,17 +66,22 @@ up: up.o
 
 logbandwidth: logbandwidth.in translate.sed
 	sed -f translate.sed  $< > $@
+	chmod 755 $@
 
 logcmls: logcmls.in translate.sed
 	sed -f translate.sed  $< > $@
+	chmod 755 $@
 
 logreintegration: logreintegration.in translate.sed
 	sed -f translate.sed  $< > $@
+	chmod 755 $@
+
+logprogress: logprogress.in translate.sed
+	sed -f translate.sed  $< > $@
+	chmod 755 $@
 
 translate.sed: Makefile
 	echo "s%+TIXWISH+%@TIXWISH@%g" >> $@
 
 # this way translate.sed is cleaned up as well
 TESTS = translate.sed
-
-include $(TOPDIR)/configs/Makerules
