@@ -95,7 +95,6 @@ inline void MakeVenusFid(VenusFid *vf, const u_int32_t realm, const ViceFid *fid
 #define FakeRootVolumeId   ((VolumeId)0xff000001)
 #define FakeRepairVolumeId ((VolumeId)0xffffffff)
 
-/* from realmdb.cc */
 int FID_IsLocalFake(VenusFid *fid);
 
 #endif /* _VENUSFID_H_ */

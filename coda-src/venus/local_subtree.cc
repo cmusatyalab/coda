@@ -414,7 +414,7 @@ VenusFid lrdb::GenerateLocalFakeFid(ViceDataType fidtype)
     else 
 	    FID_MakeLocalFile(&fid, local_fid_unique_gen);
 
-    MakeVenusFid(&vf, 0, &fid);
+    MakeVenusFid(&vf, LocalRealm->Id(), &fid);
     LOG(1000, ("lrdb::GenerateLocalFakeFid: return %s\n", FID_(&vf)));
     return vf;
 }
@@ -431,7 +431,7 @@ VenusFid lrdb::GenerateFakeLocalFid()
 	RVMLIB_REC_OBJECT(local_fid_unique_gen);
 	local_fid_unique_gen++;
 
-	MakeVenusFid(&vf, 0, &fid);
+	MakeVenusFid(&vf, LocalRealm->Id(), &fid);
 	LOG(1000, ("lrdb::GenerateFakeLocalFid: return %s\n", FID_(&vf)));
 	return vf;
 }

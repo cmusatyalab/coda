@@ -64,7 +64,6 @@ void Realm::ResetTransient(void)
 Realm::~Realm(void)
 {
     struct dllist_head *p;
-    Server *s;
 
     rec_list_del(&realms);
     if (rootservers) {
