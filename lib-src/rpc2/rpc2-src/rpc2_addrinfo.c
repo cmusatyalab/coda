@@ -144,7 +144,11 @@ static int getaddrinfo_noresolve(const char *node, short port,
 {
     struct RPC2_addrinfo *ai;
     int family = hints ? hints->ai_family : PF_UNSPEC;
+#if defined(PF_INET6)
     char addr[sizeof(struct in6_addr)];
+#else
+    char addr[sizeof(struct in_addr)];
+#endif
     int err4, err6;
 
     err4 = err6 = RPC2_EAI_NONAME;
@@ -419,6 +423,7 @@ int RPC2_getaddrinfo(const char *node, const char *service,
     family = (hints && hints->ai_family == PF_INET) ? PF_INET : PF_INET6;
     he = getipnodebyname(node, family, (family == PF_INET6) ? AI_ALL : 0, &err);
 #else
+    family = PF_INET;
     he = getipnodebyname(node, family, 0, &err);
 
 #endif
