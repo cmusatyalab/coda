@@ -10,6 +10,8 @@
 # the script will verify that the necessary directories and /etc/services
 # are present.
 #
+# BUGS: need to substitute /etc/coda with @sysconfdir@ and have configure
+#	splice in the right location of the venus.conf file.
 
 if [ $# != 2 ]; then
 	echo "Usage: $0 comma,separated,list,of,servers cachesize-in-kb"
@@ -54,16 +56,10 @@ if [ -f /etc/coda/venus.conf ] ; then
     . /etc/coda/venus.conf
 fi
 
-makedir () {
-  mode=$1
-  newdir=$2
-  if [ "$newdir" != "" -a ! -d "$newdir" ] ; then
-    echo "Creating $newdir, mode $mode"
-    mkdir -p "$newdir"
-    chmod $mode "$newdir"
-  fi
-}
-
+#
+# we need to make sure we have the following directories so that venus can
+# create the files that live in them.
+#
 errlogdir=`dirname $errorlog`
 logfiledir=`dirname $logfile`
 marinersocketdir=`dirname $marinersocket`
@@ -71,6 +67,24 @@ pid_filedir=`dirname $pid_file`
 run_control_file_dir=`dirname $run_control_file`
 rvm_logdir=`dirname $rvm_log`
 rvm_datadir=`dirname $rvm_data`
+
+# Darn, mkdir -p -m 700 /path/to/new/dir only sets the mode of the last
+# created directory correctly. The following function sets the mode of all
+# newly created directories.
+makedir () {
+  [ "$2" = "" ] && return
+  while [ ! -d $2 ] ; do
+    dir=$2
+    # find first existing parent
+    while [ "$dir" != "" -a ! -d $dir ] ; do
+	newdir=`basename $dir`
+	dir=`dirname $dir`
+    done
+    echo "Creating $dir/$newdir, mode $1"
+    mkdir $dir/$newdir
+    chmod $1 $dir/$newdir
+  done
+}
 
 makedir 755 $checkpointdir
 makedir 755 $codatmpdir
@@ -94,8 +108,8 @@ fi
 touch $cachedir/INIT
 
 if [ -f /usr/coda/etc/vstab ] ; then
-    echo "Remove /usr/coda/etc/vstab as we have switched to the"
-    echo "@sysconfdir@/venus.conf file for configuring the client."
+    echo "To avoid confusion, remove /usr/coda/etc/vstab, we have switched to"
+    echo "the /etc/coda/venus.conf file for configuring the client."
 fi
 
 # make the psdev
