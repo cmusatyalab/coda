@@ -16,7 +16,7 @@ listed in the file CREDITS.
 
 #*/
 
-#define OLDFETCH
+//#define OLDFETCH
 
 /*
  *
@@ -79,7 +79,7 @@ void fsobj::FetchProgressIndicator(long offset)
     if      (offset == stat.Length) { last = 0; curr = 100; }
     else if (offset == 0)           { last = 100; curr = 0; }
     else {
-	last = (stat.GotThisData * 100) / stat.Length;
+	last = (GotThisData * 100) / stat.Length;
 	curr = ((unsigned long)offset * 100) / stat.Length;
     }
 
@@ -87,7 +87,7 @@ void fsobj::FetchProgressIndicator(long offset)
 	MarinerLog("progress::fetching (%s) %lux\n", comp, curr);
     }
 
-    stat.GotThisData = (unsigned long)offset;
+    GotThisData = (unsigned long)offset;
 }
 
 int fsobj::Fetch(vuid_t vuid) {
@@ -149,7 +149,8 @@ int fsobj::Fetch(vuid_t vuid) {
     memset(&dummysed, 0, sizeof(SE_Descriptor));
     SE_Descriptor *sed = 0;
 
-    long offset = PARTIALDATA(this) ? stat.GotThisData : 0;
+    long offset = IsFile() ? cf.ValidData() : 0;
+    GotThisData = 0;
 
     /* C++ 3.0 whines if the following decls moved closer to use  -- Satya */
     {
@@ -172,6 +173,11 @@ int fsobj::Fetch(vuid_t vuid) {
 		case File:
 		    RVMLIB_REC_OBJECT(data.file);
 		    data.file = &cf;
+		    /* create a sparse file of the desired size */
+		    data.file->Truncate(stat.Length);
+
+		    /* but remember how much we actually have */
+		    data.file->SetValidData(offset);
 
 		    sei->Tag = FILEBYNAME;
 		    sei->FileInfo.ByName.ProtectionBits = V_MODE;
@@ -277,9 +283,11 @@ int fsobj::Fetch(vuid_t vuid) {
 #endif
 	    if (code == EASYRESOLVE) { asy_resolve = 1; code = 0; }
 
-	    Recov_BeginTrans();
-	    RVMLIB_REC_OBJECT(stat.GotThisData);
-	    Recov_EndTrans(CMFP);
+	    if (IsFile()) {
+		Recov_BeginTrans();
+		cf.SetValidData(GotThisData);
+		Recov_EndTrans(CMFP);
+	    }
 
 	    if (code != 0) goto RepExit;
 
@@ -407,10 +415,11 @@ RepExit:
 #else
 	UNI_RECORD_STATS(ViceNewFetch_OP);
 #endif
-
-	Recov_BeginTrans();
-	RVMLIB_REC_OBJECT(stat.GotThisData);
-	Recov_EndTrans(CMFP);
+	if (IsFile()) {
+	    Recov_BeginTrans();
+	    cf.SetValidData(GotThisData);
+	    Recov_EndTrans(CMFP);
+	}
 
 	if (code != 0) goto NonRepExit;
 
@@ -472,7 +481,8 @@ NonRepExit:
 
 	switch(stat.VnodeType) {
 	case File:
-		data.file->SetLength((unsigned) stat.Length);
+		/* File is already `truncated' to the correct length */
+		//data.file->SetLength((unsigned) stat.Length);
 		break;
 		
 	case Directory:
@@ -503,12 +513,15 @@ NonRepExit:
 	 * validation, and we can throw away the data */
 #ifdef OLDFETCH
 	if (HAVEDATA(this) || code == EAGAIN) {
-	    if (IsFile()) 
-		data.file->SetLength((unsigned) stat.Length);
+	    /* File is already `truncated' to the correct length */
+	    //if (IsFile()) 
+	    //	data.file->SetLength((unsigned) stat.Length);
 	    DiscardData();
 	}
 #else
-	if ((HAVEDATA(this) && !IsFile()) || code == EAGAIN)
+	/* if we have data, and the object is not a file or the VV validation
+	 * failed, we have to discard */
+	if (HAVEDATA(this) && (!IsFile() || code == EAGAIN))
 	    DiscardData();
 #endif
 	/* ERETRY makes us drop back to the vproc_vfscalls level, and retry
@@ -1088,7 +1101,7 @@ void fsobj::LocalStore(Date_t Mtime, unsigned long NewLength)
     RVMLIB_REC_OBJECT(*this);
 
     stat.DataVersion++;
-    stat.Length = stat.GotThisData = NewLength;
+    stat.Length = NewLength;
     stat.Date = Mtime;
 
     UpdateCacheStats((IsDir() ? &FSDB->DirAttrStats : &FSDB->FileAttrStats),
@@ -1373,7 +1386,6 @@ void fsobj::LocalSetAttr(Date_t Mtime, unsigned long NewLength,
             UpdateCacheStats(&FSDB->FileDataStats, REMOVE, delta_blocks);
             FSDB->FreeBlocks(delta_blocks);
             data.file->Truncate((unsigned) NewLength);
-            stat.GotThisData = NewLength;
         }
         stat.Length = NewLength;
         stat.Date = Mtime;
@@ -1645,7 +1657,7 @@ int fsobj::SetAttr(struct coda_vattr *vap, vuid_t vuid, RPC2_CountedBS *acl)
 	int conn, tid;
 	GetOperationState(&conn, &tid);
 	
-	if (conn == 0) {
+	if (conn) {
 		code = ConnectedSetAttr(Mtime, vuid, NewLength, NewDate, 
                                         NewOwner, NewMode, acl);
 	} else {
@@ -1698,7 +1710,7 @@ void fsobj::LocalCreate(Date_t Mtime, fsobj *target_fso, char *name,
 	/* Update the status to reflect the create. */
 	RVMLIB_REC_OBJECT(stat);
 	stat.DataVersion++;
-	stat.Length = stat.GotThisData = dir_Length();
+	stat.Length = dir_Length();
 	stat.Date = Mtime;
     }
 
@@ -1708,7 +1720,7 @@ void fsobj::LocalCreate(Date_t Mtime, fsobj *target_fso, char *name,
 	RVMLIB_REC_OBJECT(*target_fso);
 	target_fso->stat.VnodeType = File;
 	target_fso->stat.LinkCount = 1;
-	target_fso->stat.Length = target_fso->stat.GotThisData = 0;
+	target_fso->stat.Length = 0;
 	target_fso->stat.DataVersion = 0;
 	target_fso->stat.Date = Mtime;
 	target_fso->stat.Owner = Owner;

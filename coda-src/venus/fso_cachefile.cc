@@ -60,7 +60,7 @@ CacheFile::CacheFile(int i) {
 /*    RVMLIB_REC_OBJECT(*this);*/
     sprintf(name, "V%d", i);
     inode = (ino_t)-1;
-    length = 0;
+    length = validdata = 0;
     /* Container reset will be done by eventually by FSOInit()! */
 }
 
@@ -118,8 +118,8 @@ int CacheFile::ValidContainer() {
 
 /* MUST NOT be called from within transaction! */
 void CacheFile::ResetContainer() {
-    LOG(10, ("CacheFile::ResetContainer: %s, %d, %d\n",
-	      name, inode, length));
+    LOG(10, ("CacheFile::ResetContainer: %s, %d, %d/%d\n",
+	      name, inode, validdata, length));
 
     int tfd;
     struct stat tstat;
@@ -145,7 +145,7 @@ void CacheFile::ResetContainer() {
     Recov_BeginTrans();
     RVMLIB_REC_OBJECT(*this);
     inode = tstat.st_ino;
-    length = 0;
+    length = validdata = 0;
     Recov_EndTrans(MAXFP);
 }
 
@@ -154,23 +154,27 @@ void CacheFile::ResetContainer() {
  * Swap the on-disk cache-files between two CacheFile structures.
  */  
 void CacheFile::Swap(CacheFile *destination) {
-    LOG(10, ("CacheFile::Swap: source: %s, %d, %d, dest: %s\n",
-	      name, inode, length, destination->name));
+    LOG(10, ("CacheFile::Swap: source: %s, %d, %d/%d, dest: %s\n",
+	      name, inode, validdata, length, destination->name));
 
     ino_t swap_inode;
     long  swap_length;
+    long  swap_validdata;
     char  swap_name[8];
 
     swap_inode = destination->inode;
     swap_length = destination->length;
+    swap_validdata = destination->validdata;
     memcpy(swap_name, destination->name, 8);
 
     destination->inode = inode;
     destination->length = length;
+    destination->validdata = validdata;
     memcpy(destination->name, name, 8);
 
     inode = swap_inode;
     length = swap_length;
+    validdata = swap_validdata;
     memcpy(name, swap_name, 8);
 }
 
@@ -179,9 +183,10 @@ void CacheFile::Swap(CacheFile *destination) {
  * copies a cache file, data and attributes, to a new one.  
  */
 void CacheFile::Copy(CacheFile *destination) {
-    LOG(10, ("CacheFile::Copy: from %s, %d, %d, to %s, %d, %d\n",
-	      name, inode, length,
-	      destination->name, destination->inode, destination->length));
+    LOG(10, ("CacheFile::Copy: from %s, %d, %d/%d, to %s, %d, %d/%d\n",
+	      name, inode, validdata, length,
+	      destination->name, destination->inode, destination->validdata,
+	      destination->length));
 
     int tfd, ffd, n;
     struct stat tstat;
@@ -224,11 +229,12 @@ void CacheFile::Copy(CacheFile *destination) {
 
     destination->inode  = tstat.st_ino;
     destination->length = length;
+    destination->validdata = validdata;
 }
 
 
 void CacheFile::Remove() {
-    length = 0;
+    length = validdata = 0;
     if (::unlink(name) < 0)
         CHOKE("CacheFile::Remove: unlink failed (%d)", errno);
 }
@@ -261,7 +267,7 @@ void CacheFile::Truncate(long newlen) {
     */
     if (length != newlen) {
 	RVMLIB_REC_OBJECT(*this);
-	length = newlen;
+	length = validdata = newlen;
     }
 #ifndef __CYGWIN32__
     CODA_ASSERT(::truncate(name, length) == 0);
@@ -282,13 +288,24 @@ void CacheFile::SetLength(long newlen) {
     LOG(0, ("Cachefile::SetLength %d\n", newlen));
 
     if (length != newlen) {
-	 RVMLIB_REC_OBJECT(*this);
-	length = newlen;
+	RVMLIB_REC_OBJECT(*this);
+	length = validdata = newlen;
     }
 }
 
+/* MUST be called from within transaction! */
+void CacheFile::SetValidData(long newoffset) {
+    CODA_ASSERT(inode != (ino_t)-1);
+
+    LOG(0, ("Cachefile::SetValidData %d\n", newoffset));
+
+    if (validdata != newoffset) {
+	RVMLIB_REC_OBJECT(validdata);
+	validdata = newoffset;
+    }
+}
 
 void CacheFile::print(int fdes) {
-    fdprint(fdes, "[ %s, %d, %d ]\n", name, inode, length);
+    fdprint(fdes, "[ %s, %d, %d/%d ]\n", name, inode, validdata, length);
 }
 

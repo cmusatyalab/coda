@@ -1017,7 +1017,7 @@ int fsobj::LocalFakeify()
     FakeRoot->stat.DataVersion = 1;
     FakeRoot->stat.Mode = 0444;
     FakeRoot->stat.Owner = V_UID;
-    FakeRoot->stat.Length = FakeRoot->stat.GotThisData = 0;
+    FakeRoot->stat.Length = 0;
     FakeRoot->stat.Date = Vtime();
     FakeRoot->stat.LinkCount = 2;
     FakeRoot->stat.VnodeType = Directory;
@@ -1026,7 +1026,7 @@ int fsobj::LocalFakeify()
     FakeRoot->pfso = pf;
     /* Create the target directory. */
     FakeRoot->dir_MakeDir();
-    FakeRoot->stat.Length = FakeRoot->stat.GotThisData = FakeRoot->dir_Length();
+    FakeRoot->stat.Length = FakeRoot->dir_Length();
     FakeRoot->RcRights = RC_DATA | RC_STATUS;
     UpdateCacheStats(&FSDB->DirDataStats, CREATE, BLOCKS(FakeRoot));
     
@@ -1157,7 +1157,7 @@ int fsobj::LocalFakeifyRoot()
     FakeRoot->stat.DataVersion = 1;
     FakeRoot->stat.Mode = 0444;
     FakeRoot->stat.Owner = V_UID;
-    FakeRoot->stat.Length = FakeRoot->stat.GotThisData = 0;
+    FakeRoot->stat.Length = 0;
     FakeRoot->stat.Date = Vtime();
     FakeRoot->stat.LinkCount = 2;
     FakeRoot->stat.VnodeType = Directory;
@@ -1166,7 +1166,7 @@ int fsobj::LocalFakeifyRoot()
     FakeRoot->pfso = pf;
     /* Create the target directory. */
     FakeRoot->dir_MakeDir();
-    FakeRoot->stat.Length = FakeRoot->stat.GotThisData = FakeRoot->dir_Length();
+    FakeRoot->stat.Length = FakeRoot->dir_Length();
     FakeRoot->RcRights = RC_DATA | RC_STATUS;
     UpdateCacheStats(&FSDB->DirDataStats, CREATE, BLOCKS(FakeRoot));
     

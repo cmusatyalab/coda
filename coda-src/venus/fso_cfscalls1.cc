@@ -68,7 +68,7 @@ void fsobj::LocalRemove(Date_t Mtime, char *name, fsobj *target_fso)
 	/* Update the status to reflect the delete. */
 	RVMLIB_REC_OBJECT(stat);
 	stat.DataVersion++;
-	stat.Length = stat.GotThisData = dir_Length();
+	stat.Length = dir_Length();
 	stat.Date = Mtime;
     }
 
@@ -316,7 +316,7 @@ void fsobj::LocalLink(Date_t Mtime, char *name, fsobj *source_fso)
 	/* Update the status to reflect the create. */
 	RVMLIB_REC_OBJECT(stat);
 	stat.DataVersion++;
-	stat.Length = stat.GotThisData = dir_Length();
+	stat.Length = dir_Length();
 	stat.Date = Mtime;
 	if (source_fso->IsDir())
 	    stat.LinkCount++;
@@ -609,15 +609,14 @@ void fsobj::LocalRename(Date_t Mtime, fsobj *s_parent_fso, char *s_name,
 
 	/* Update parents' status to reflect the create(s) and delete(s). */
 	stat.DataVersion++;
-	stat.Length = stat.GotThisData = dir_Length();
+	stat.Length = dir_Length();
 	stat.Date = Mtime;
 	if (SameParent) {
 	    DemoteHdbBindings();	    /* in case an expansion would now be satisfied! */
 	}
 	else {
 	    s_parent_fso->stat.DataVersion++;
-	    s_parent_fso->stat.Length = s_parent_fso->stat.GotThisData =
-		s_parent_fso->dir_Length();
+	    s_parent_fso->stat.Length = s_parent_fso->dir_Length();
 	    s_parent_fso->stat.Date = Mtime;
 	}
 
@@ -911,7 +910,7 @@ void fsobj::LocalMkdir(Date_t Mtime, fsobj *target_fso, char *name,
 	/* Update the status to reflect the create. */
 	RVMLIB_REC_OBJECT(stat);
 	stat.DataVersion++;
-	stat.Length = stat.GotThisData = dir_Length();
+	stat.Length = dir_Length();
 	stat.Date = Mtime;
 	stat.LinkCount++;
     }
@@ -922,7 +921,7 @@ void fsobj::LocalMkdir(Date_t Mtime, fsobj *target_fso, char *name,
 	RVMLIB_REC_OBJECT(*target_fso);
 	target_fso->stat.VnodeType = Directory;
 	target_fso->stat.LinkCount = 2;
-	target_fso->stat.Length = target_fso->stat.GotThisData = 0;
+	target_fso->stat.Length = 0;
 	target_fso->stat.DataVersion = 1;
 	target_fso->stat.Date = Mtime;
 	target_fso->stat.Owner = Owner;
@@ -934,8 +933,7 @@ void fsobj::LocalMkdir(Date_t Mtime, fsobj *target_fso, char *name,
 
 	/* Create the target directory. */
 	target_fso->dir_MakeDir();
-	target_fso->stat.Length = target_fso->stat.GotThisData =
-	    target_fso->dir_Length();
+	target_fso->stat.Length = target_fso->dir_Length();
 	UpdateCacheStats(&FSDB->DirDataStats, CREATE,
 			 BLOCKS(target_fso));
 
@@ -1268,7 +1266,7 @@ void fsobj::LocalRmdir(Date_t Mtime, char *name, fsobj *target_fso)
 	/* Update the status to reflect the delete. */
 	RVMLIB_REC_OBJECT(stat);
 	stat.DataVersion++;
-	stat.Length = stat.GotThisData = dir_Length();
+	stat.Length = dir_Length();
 	stat.Date = Mtime;
 	stat.LinkCount--;
     }
@@ -1512,7 +1510,7 @@ void fsobj::LocalSymlink(Date_t Mtime, fsobj *target_fso, char *name,
 	/* Update the status to reflect the create. */
 	RVMLIB_REC_OBJECT(stat);
 	stat.DataVersion++;
-	stat.Length = stat.GotThisData = dir_Length();
+	stat.Length = dir_Length();
 	stat.Date = Mtime;
     }
 
@@ -1522,7 +1520,7 @@ void fsobj::LocalSymlink(Date_t Mtime, fsobj *target_fso, char *name,
 	RVMLIB_REC_OBJECT(*target_fso);
 	target_fso->stat.VnodeType = SymbolicLink;
 	target_fso->stat.LinkCount = 1;
-	target_fso->stat.Length = target_fso->stat.GotThisData = 0;
+	target_fso->stat.Length = 0;
 	target_fso->stat.DataVersion = 1;
 	target_fso->stat.Date = Mtime;
 	target_fso->stat.Owner = Owner;
@@ -1532,7 +1530,7 @@ void fsobj::LocalSymlink(Date_t Mtime, fsobj *target_fso, char *name,
 
 	/* Write out the link contents. */
 	int linklen = (int) strlen(contents);
-	target_fso->stat.Length = target_fso->stat.GotThisData = linklen;
+	target_fso->stat.Length = linklen;
 	target_fso->data.symlink = (char *)rvmlib_rec_malloc(linklen + 1);
 	rvmlib_set_range(target_fso->data.symlink, linklen);
 	bcopy(contents, target_fso->data.symlink, linklen);

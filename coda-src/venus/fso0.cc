@@ -1085,8 +1085,8 @@ RestartFind:
 
 		    /* compensate # blocks for the amount we already have.
 		     * (only used for vmon statistical stuff later on, but
-		     * the fetch will modify f->stat.GotThisData) */
-		    nblocks -= NBLOCKS(f->stat.GotThisData);
+		     * the fetch will modify f->cf.ValidData) */
+		    nblocks -= NBLOCKS(f->cf.ValidData());
 
 		    /* Let fsdb::Get go ahead and fetch the object */
 
@@ -1904,7 +1904,7 @@ void fsdb::print(int fd, int SummaryOnly) {
 			    ow_blocks += (int) NBLOCKS(tstat.st_size);
 			} else {
 			    normal_blocks += NBLOCKS(f->cf.Length());
-			    got_blocks += NBLOCKS(f->stat.GotThisData);
+			    got_blocks += NBLOCKS(f->cf.ValidData());
 			}
 			break;
 

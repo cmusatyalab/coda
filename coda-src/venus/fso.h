@@ -283,6 +283,7 @@ enum FsoState {	FsoRunt,
 /*    2. Unix-format copy of directory */
 class CacheFile {
     long length;
+    long validdata; /* amount of successfully fetched data */
 
     int ValidContainer();
     void ResetContainer();
@@ -303,13 +304,13 @@ class CacheFile {
     void Stat(struct stat *);
     void Truncate(long);
     void SetLength(long);
+    void SetValidData(long);
 
-    char *Name()
-	{ return(name); }
-    ino_t Inode()
-	{ return(inode); }
-    long Length()
-	{ return(length); }
+    char *Name()         { return(name); }
+    ino_t Inode()        { return(inode); }
+    long Length()        { return(length); }
+    long ValidData(void) { return(validdata); }
+    int  IsPartial(void) { return(length != validdata); }
 
     void print() { print (stdout); }
     void print(FILE *fp) { fflush(fp); print(fileno(fp)); }
@@ -321,7 +322,6 @@ struct VenusStat {
     ViceDataType VnodeType;
     unsigned char LinkCount;
     long	  Length;
-    long          GotThisData;	/* amount of successfully fetched data */
     unsigned int  DataVersion;
     ViceVersionVector VV;
     Date_t Date;
@@ -429,6 +429,8 @@ class fsobj {
     /* General status. */
     enum FsoState state;			/* {FsoRunt, FsoNormal, FsoDying} */
     VenusStat stat;
+    /*T*/long GotThisData;			/* used during fetch to keep
+						   track of where we are */
     /*T*/int RcRights;				/* replica control rights */
     AcRights AnyUser;				/* access control rights: any user */
     AcRights SpecificUser[CPSIZE];		/* access control rights: specific users */
@@ -790,7 +792,7 @@ extern void FSOD_Init();
 #define	HAVESTATUS(f)	((f)->state != FsoRunt)
 #define	STATUSVALID(f)	((f)->IsValid(RC_STATUS))
 #define	HAVEDATA(f)	((f)->data.havedata != 0)
-#define	PARTIALDATA(f)	((f)->stat.GotThisData != (f)->stat.Length)
+#define	PARTIALDATA(f)	((f)->IsFile() && (f)->cf.IsPartial())
 #define	HAVEALLDATA(f)	(HAVEDATA(f) && !PARTIALDATA(f))
 #define	DATAVALID(f)	((f)->IsValid(RC_DATA))
 #define	EXECUTABLE(f)	(HAVESTATUS(f) &&\

@@ -1688,7 +1688,7 @@ void volent::RestoreObj(ViceFid *Fid) {
     }
     if (Length != f->stat.Length) {
 	RVMLIB_REC_OBJECT(f->stat.Length);
-	f->stat.Length = f->stat.GotThisData = Length;
+	f->stat.Length = Length;
     }
 
     /* Mtime attribute. */

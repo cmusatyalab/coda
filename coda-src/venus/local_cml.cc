@@ -929,7 +929,6 @@ int cmlent::DoRepair(char *msg, int rcode)
 	    /* XXX Err, it seems to be the other way around, who wrote that
 	     * comment? --JH */
 	    GObj->stat.Length = LObj->stat.Length;
-	    GObj->stat.GotThisData = LObj->stat.GotThisData;
 	    code = GObj->RepairStore();
 	    GObj->GetPath(GlobalPath, 1);
 	    if (rcode == REPAIR_OVER_WRITE) {

@@ -130,8 +130,7 @@ fsobj::fsobj(int i) : cf(i) {
 
 /* MUST be called from within transaction! */
 fsobj::fsobj(ViceFid *key, char *name) : cf() {
-    LOG(10, ("fsobj::fsobj: fid = (%x.%x.%x), comp = %s\n",
-	    key->Volume, key->Vnode, key->Unique, name));
+    LOG(10, ("fsobj::fsobj: fid = (%s), comp = %s\n", FID_(key), name));
 
     RVMLIB_REC_OBJECT(*this);
     ResetPersistent();
@@ -162,7 +161,7 @@ void fsobj::ResetPersistent() {
     state = FsoRunt;
     stat.VnodeType = Invalid;
     stat.LinkCount = (unsigned char)-1;
-    stat.Length = stat.GotThisData = 0;
+    stat.Length = 0;
     stat.DataVersion = 0;
     stat.VV = NullVV;
     stat.VV.StoreId.Host = NO_HOST;
@@ -284,8 +283,7 @@ fsobj::~fsobj() {
 	{ print(logFile); CHOKE("fsobj::~fsobj: !GCABLE || DIRTY"); }
 #endif	VENUSDEBUG
 
-    LOG(10, ("fsobj::~fsobj: fid = (%x.%x.%x), comp = %s\n",
-	      fid.Volume, fid.Vnode, fid.Unique, comp));
+    LOG(10, ("fsobj::~fsobj: fid = (%s), comp = %s\n", FID_(&fid), comp));
 
     /* Reset reference counter for this slot. */
     FSDB->LastRef[ix] = 0;
@@ -395,8 +393,7 @@ fsobj::~fsobj() {
 
     /* Notify waiters of dead runts. */
     if (!HAVESTATUS(this)) {
-	LOG(10, ("fsobj::~fsobj: dead runt = (%x.%x.%x)\n",
-		 fid.Volume, fid.Vnode, fid.Unique));
+	LOG(10, ("fsobj::~fsobj: dead runt = (%s)\n", FID_(&fid)));
 
 	FSDB->matriculation_count++;
 	VprocSignal(&FSDB->matriculation_sync);
@@ -422,8 +419,8 @@ void fsobj::Recover() {
     switch(state) {
 	case FsoRunt:
 	    /* Objects that hadn't matriculated can be safely discarded. */
-	    eprint("\t(%s, %x.%x.%x) runt object being discarded...",
-		   comp, fid.Volume, fid.Vnode, fid.Unique);
+	    eprint("\t(%s, %s) runt object being discarded...",
+		   comp, FID_(&fid));
 	    goto Failure;
 
 	case FsoNormal:
@@ -455,8 +452,7 @@ void fsobj::Recover() {
     /* Garbage collect data that was in the process of being fetched. */
     if (flags.fetching != 0) {
 	FSO_ASSERT(this, HAVEDATA(this));
-	eprint("\t(%s, %x.%x.%x) freeing garbage data contents",
-	       comp, fid.Volume, fid.Vnode, fid.Unique);
+	eprint("\t(%s, %s) freeing garbage data contents", comp, FID_(&fid));
 	Recov_BeginTrans();
 	RVMLIB_REC_OBJECT(flags);
 	flags.fetching = 0;
@@ -467,8 +463,7 @@ void fsobj::Recover() {
     /* Files that were open for write must be "closed" and discarded. */
     if (flags.owrite != 0) {
 	FSO_ASSERT(this, HAVEDATA(this));
-	eprint("\t(%s, %x.%x.%x) discarding owrite object",
-	       comp, fid.Volume, fid.Vnode, fid.Unique);
+	eprint("\t(%s, %s) discarding owrite object", comp, FID_(&fid));
 	Recov_BeginTrans();
 	RVMLIB_REC_OBJECT(flags);
 	flags.owrite = 0;
@@ -484,8 +479,8 @@ void fsobj::Recover() {
     /* Get rid of a former mount-root whose fid is not a volume root and whose pfid is NullFid */
     if ((mvstat == NORMAL) && !FID_IsVolRoot(&fid) && 
 	FID_EQ(&pfid, &NullFid) && !IsLocalObj()) {
-	LOG(0, ("fsobj::Recover: 0x%x.%x.%x is a non-volume root whose pfid is NullFid\n",
-		fid.Volume, fid.Vnode, fid.Unique));
+	LOG(0, ("fsobj::Recover: (%s) is a non-volume root whose pfid is NullFid\n",
+		FID_(&fid)));
 	goto Failure;
     }
 
@@ -494,10 +489,10 @@ void fsobj::Recover() {
 	case File:
 	    {
 
-	    if ((HAVEDATA(this) && cf.Length() != stat.GotThisData) ||
+	    if ((HAVEDATA(this) && cf.IsPartial()) ||
                 (!HAVEDATA(this) && cf.Length() != 0)) {
-		eprint("\t(%s, %x.%x.%x) cache file validation failed",
-		       comp, fid.Volume, fid.Vnode, fid.Unique);
+		eprint("\t(%s, %s) cache file validation failed",
+		       comp, FID_(&fid));
 		goto Failure;
 	    }
 	    }
@@ -527,8 +522,8 @@ void fsobj::Recover() {
 
 Failure:
     {
-	LOG(0, ("fsobj::Recover: invalid fso (%s, %x.%x.%x), attempting to GC...",
-		comp, fid.Volume, fid.Vnode, fid.Unique));
+	LOG(0, ("fsobj::Recover: invalid fso (%s, %s), attempting to GC...",
+		comp, FID_(&fid)));
 	print(logFile);
 
 	/* Scavenge data for dirty, bogus file. */
@@ -537,8 +532,8 @@ Failure:
 	if (DIRTY(this)) {
 	    if (!IsFile()) {
 		print(logFile);
-		CHOKE("recovery failed on local, non-file object (%s, %x.%x.%x)",
-		    comp, fid.Volume, fid.Vnode, fid.Unique);
+		CHOKE("recovery failed on local, non-file object (%s, %s)",
+		    comp, FID_(&fid));
 	    }
 
 	    if (HAVEDATA(this)) {
@@ -582,8 +577,7 @@ void fsobj::Matriculate() {
     if (HAVESTATUS(this))
 	{ print(logFile); CHOKE("fsobj::Matriculate: HAVESTATUS"); }
 
-    LOG(10, ("fsobj::Matriculate: (%x.%x.%x)\n",
-	      fid.Volume, fid.Vnode, fid.Unique));
+    LOG(10, ("fsobj::Matriculate: (%s)\n", FID_(&fid)));
 
     RVMLIB_REC_OBJECT(state);
     state = FsoNormal;
@@ -602,8 +596,7 @@ void fsobj::Demote(int TellServers)
     if (!HAVESTATUS(this) || DYING(this)) return;
     if (flags.readonly || IsMtPt() || IsFakeMTLink()) return;
 
-    LOG(10, ("fsobj::Demote: fid = (%x.%x.%x)\n",
-	      fid.Volume, fid.Vnode, fid.Unique));
+    LOG(10, ("fsobj::Demote: fid = (%s)\n", FID_(&fid)));
 
     /* Only return RC rights if the servers don't know that we're demoting! */
     if (TellServers)
@@ -631,8 +624,7 @@ void fsobj::Kill(int TellServers)
 	if (DYING(this)) 
 		return;
 
-	LOG(10, ("fsobj::Kill: (%x.%x.%x)\n",
-		 fid.Volume, fid.Vnode, fid.Unique));
+	LOG(10, ("fsobj::Kill: (%s)\n", FID_(&fid)));
 
 
 	DisableReplacement();
@@ -688,14 +680,12 @@ int fsobj::Flush() {
     }
 
     if (!FLUSHABLE(this)) {
-	LOG(10, ("fsobj::Flush: (%x.%x.%x) !FLUSHABLE\n",
-		 fid.Volume, fid.Vnode, fid.Unique));
+	LOG(10, ("fsobj::Flush: (%s) !FLUSHABLE\n", FID_(&fid)));
 	Demote();
 	return(EMFILE);
     }
 
-    LOG(10, ("fsobj::Flush: flushed (%x.%x.%x)\n",
-	      fid.Volume, fid.Vnode, fid.Unique));
+    LOG(10, ("fsobj::Flush: flushed (%s)\n", FID_(&fid)));
     Recov_BeginTrans();
     Kill();
     GC();
@@ -716,8 +706,7 @@ void fsobj::UpdateStatus(ViceStatus *vstat, vuid_t vuid) {
     if (IsFake())
 	{ print(logFile); CHOKE("fsobj::UpdateStatus: IsFake!"); }
 
-    LOG(100, ("fsobj::UpdateStatus: (%x.%x.%x), uid = %d\n",
-	       fid.Volume, fid.Vnode, fid.Unique, vuid));
+    LOG(100, ("fsobj::UpdateStatus: (%s), uid = %d\n", FID_(&fid), vuid));
 
     if (HAVESTATUS(this)) {		/* {ValidateAttr, GetData, ValidateData} */
 	if (!StatusEq(vstat, 0))
@@ -748,8 +737,7 @@ void fsobj::UpdateStatus(ViceStatus *vstat, vv_t *UpdateSet, vuid_t vuid) {
     if (IsFake())
 	{ print(logFile); CHOKE("fsobj::UpdateStatus: IsFake!"); }
 
-    LOG(100, ("fsobj::UpdateStatus: (%x.%x.%x), uid = %d\n",
-	       fid.Volume, fid.Vnode, fid.Unique, vuid));
+    LOG(100, ("fsobj::UpdateStatus: (%s), uid = %d\n", FID_(&fid), vuid));
 
     /* Install the new status block. */
     if (!StatusEq(vstat, 1))
@@ -774,57 +762,49 @@ int fsobj::StatusEq(ViceStatus *vstat, int Mutating) {
     if (stat.Length != (long)vstat->Length) {
 	eq = 0;
 	if (log)
-	    LOG(0, ("fsobj::StatusEq: (%x.%x.%x), Length %d != %d\n",
-		    fid.Volume, fid.Vnode, fid.Unique,
-		    stat.Length, vstat->Length));
+	    LOG(0, ("fsobj::StatusEq: (%s), Length %d != %d\n",
+		    FID_(&fid), stat.Length, vstat->Length));
     }
     if (stat.DataVersion != vstat->DataVersion) {
 	eq = 0;
 	if (log)
-	    LOG(0, ("fsobj::StatusEq: (%x.%x.%x), DataVersion %d != %d\n",
-		    fid.Volume, fid.Vnode, fid.Unique,
-		    stat.DataVersion, vstat->DataVersion));
+	    LOG(0, ("fsobj::StatusEq: (%s), DataVersion %d != %d\n",
+		    FID_(&fid), stat.DataVersion, vstat->DataVersion));
     }
     if (flags.replicated && !Mutating && VV_Cmp(&stat.VV, &vstat->VV) != VV_EQ) {
 	eq = 0;
 	if (log)
-	    LOG(0, ("fsobj::StatusEq: (%x.%x.%x), VVs differ\n",
-		    fid.Volume, fid.Vnode, fid.Unique));
+	    LOG(0, ("fsobj::StatusEq: (%s), VVs differ\n", FID_(&fid)));
     }
     if (stat.Date != vstat->Date) {
 	eq = 0;
 	if (log)
-	    LOG(0, ("fsobj::StatusEq: (%x.%x.%x), Date %d != %d\n",
-		    fid.Volume, fid.Vnode, fid.Unique,
-		    stat.Date, vstat->Date));
+	    LOG(0, ("fsobj::StatusEq: (%s), Date %d != %d\n",
+		    FID_(&fid), stat.Date, vstat->Date));
     }
     if (stat.Owner != vstat->Owner) {
 	eq = 0;
 	if (log)
-	    LOG(0, ("fsobj::StatusEq: (%x.%x.%x), Owner %d != %d\n",
-		    fid.Volume, fid.Vnode, fid.Unique,
-		    stat.Owner, vstat->Owner));
+	    LOG(0, ("fsobj::StatusEq: (%s), Owner %d != %d\n",
+		    FID_(&fid), stat.Owner, vstat->Owner));
     }
     if (stat.Mode != vstat->Mode) {
 	eq = 0;
 	if (log)
-	    LOG(0, ("fsobj::StatusEq: (%x.%x.%x), Mode %d != %d\n",
-		    fid.Volume, fid.Vnode, fid.Unique,
-		    stat.Mode, vstat->Mode));
+	    LOG(0, ("fsobj::StatusEq: (%s), Mode %d != %d\n",
+		    FID_(&fid), stat.Mode, vstat->Mode));
     }
     if (stat.LinkCount != vstat->LinkCount) {
 	eq = 0;
 	if (log)
-	    LOG(0, ("fsobj::StatusEq: (%x.%x.%x), LinkCount %d != %d\n",
-		    fid.Volume, fid.Vnode, fid.Unique,
-		    stat.LinkCount, vstat->LinkCount));
+	    LOG(0, ("fsobj::StatusEq: (%s), LinkCount %d != %d\n",
+		    FID_(&fid), stat.LinkCount, vstat->LinkCount));
     }
     if (stat.VnodeType != (int)vstat->VnodeType) {
 	eq = 0;
 	if (log)
-	    LOG(0, ("fsobj::StatusEq: (%x.%x.%x), VnodeType %d != %d\n",
-		    fid.Volume, fid.Vnode, fid.Unique,
-		    stat.VnodeType, (int)vstat->VnodeType));
+	    LOG(0, ("fsobj::StatusEq: (%s), VnodeType %d != %d\n",
+		    FID_(&fid), stat.VnodeType, (int)vstat->VnodeType));
     }
 
     return(eq);
@@ -835,6 +815,16 @@ int fsobj::StatusEq(ViceStatus *vstat, int Mutating) {
 /* Call with object write-locked. */
 void fsobj::ReplaceStatus(ViceStatus *vstat, vv_t *UpdateSet) {
     RVMLIB_REC_OBJECT(stat);
+
+    /* We're changing the length?
+     * Then the cached data is no longer useable! */
+    if (HAVEDATA(this) && stat.Length != vstat->Length && !IsFile()) {
+	LOG(0, ("fsobj::ReplaceStatus: (%s), changed stat.length %d->%d, "
+		"discarding non-file data\n",
+		FID_(&fid), stat.Length, vstat->Length));
+	DiscardData();
+    }
+
     stat.Length = vstat->Length;
     stat.DataVersion = vstat->DataVersion;
     if (flags.replicated || flags.rwreplica) {
@@ -862,8 +852,7 @@ void fsobj::SetRcRights(int rights) {
     if (flags.readonly || flags.backup  || IsFake())
 	return;
 
-    LOG(100, ("fsobj::SetRcRights: (%x.%x.%x), rights = %d\n",
-	       fid.Volume, fid.Vnode, fid.Unique, rights));
+    LOG(100, ("fsobj::SetRcRights: (%s), rights = %d\n", FID_(&fid), rights));
 
     FSO_ASSERT(this, flags.discread == 0 || flags.local == 1);
     /* There is a problem if the rights are set that we have valid data,
@@ -883,8 +872,8 @@ void fsobj::ReturnRcRights() {
 
 
 void fsobj::ClearRcRights() {
-    LOG(100, ("fsobj::ClearRcRights: (%x.%x.%x), rights = %d\n",
-	       fid.Volume, fid.Vnode, fid.Unique, RcRights));
+    LOG(100, ("fsobj::ClearRcRights: (%s), rights = %d\n",
+	      FID_(&fid), RcRights));
 
     RcRights = NullRcRights;
 }
@@ -940,16 +929,16 @@ int fsobj::CheckAcRights(vuid_t vuid, long rights, int validp) {
 	}
     }
 
-    LOG(10, ("fsobj::CheckAcRights: not found, (%x.%x.%x), (%d, %d, %d)\n",
-	      fid.Volume, fid.Vnode, fid.Unique, vuid, rights, validp));
+    LOG(10, ("fsobj::CheckAcRights: not found, (%s), (%d, %d, %d)\n",
+	      FID_(&fid), vuid, rights, validp));
     return(ENOENT);
 }
 
 
 /* MUST be called from within transaction! */
 void fsobj::SetAcRights(vuid_t vuid, long rights) {
-    LOG(100, ("fsobj::SetAcRights: (%x.%x.%x), vuid = %d, rights = %d\n",
-	       fid.Volume, fid.Vnode, fid.Unique, vuid, rights));
+    LOG(100, ("fsobj::SetAcRights: (%s), vuid = %d, rights = %d\n",
+	       FID_(&fid), vuid, rights));
 
     if (vuid == ALL_UIDS) {
 	if (AnyUser.rights != rights || !AnyUser.inuse) {
@@ -994,8 +983,7 @@ void fsobj::SetAcRights(vuid_t vuid, long rights) {
 
 /* Need not be called from within transaction. */
 void fsobj::DemoteAcRights(vuid_t vuid) {
-    LOG(100, ("fsobj::DemoteAcRights: (%x.%x.%x), vuid = %d\n",
-	       fid.Volume, fid.Vnode, fid.Unique, vuid));
+    LOG(100, ("fsobj::DemoteAcRights: (%s), vuid = %d\n", FID_(&fid), vuid));
 
     if (vuid == ALL_UIDS && AnyUser.valid)
 	AnyUser.valid = 0;
@@ -1008,8 +996,7 @@ void fsobj::DemoteAcRights(vuid_t vuid) {
 
 /* Need not be called from within transaction. */
 void fsobj::PromoteAcRights(vuid_t vuid) {
-    LOG(100, ("fsobj::PromoteAcRights: (%x.%x.%x), vuid = %d\n",
-	       fid.Volume, fid.Vnode, fid.Unique, vuid));
+    LOG(100, ("fsobj::PromoteAcRights: (%s), vuid = %d\n", FID_(&fid), vuid));
 
     if (vuid == ALL_UIDS) {
 	AnyUser.valid = 1;
@@ -1048,8 +1035,7 @@ void fsobj::PromoteAcRights(vuid_t vuid) {
 
 /* MUST be called from within transaction! */
 void fsobj::ClearAcRights(vuid_t vuid) {
-    LOG(100, ("fsobj::ClearAcRights: (%x.%x.%x), vuid = %d\n",
-	       fid.Volume, fid.Vnode, fid.Unique, vuid));
+    LOG(100, ("fsobj::ClearAcRights: (%s), vuid = %d\n", FID_(&fid), vuid));
 
     if (vuid == ALL_UIDS) {
 	RVMLIB_REC_OBJECT(AnyUser);
@@ -1100,8 +1086,7 @@ void fsobj::SetParent(VnodeId vnode, Unique_t unique) {
 void fsobj::MakeDirty() {
     if (DIRTY(this)) return;
 
-    LOG(1, ("fsobj::MakeDirty: (%x.%x.%x)\n",
-	     fid.Volume, fid.Vnode, fid.Unique));
+    LOG(1, ("fsobj::MakeDirty: (%s)\n", FID_(&fid)));
 
     RVMLIB_REC_OBJECT(flags);
     flags.dirty = 1;
@@ -1117,8 +1102,7 @@ void fsobj::MakeDirty() {
 void fsobj::MakeClean() {
     if (!DIRTY(this)) return;
 
-    LOG(1, ("fsobj::MakeClean: (%x.%x.%x)\n",
-	     fid.Volume, fid.Vnode, fid.Unique));
+    LOG(1, ("fsobj::MakeClean: (%s)\n", FID_(&fid)));
 
     RVMLIB_REC_OBJECT(flags);
     flags.dirty = 0;
@@ -1135,8 +1119,7 @@ int fsobj::TryToCover(ViceFid *inc_fid, vuid_t vuid) {
     if (!HAVEALLDATA(this))
 	{ print(logFile); CHOKE("fsobj::TryToCover: called without data"); }
 
-    LOG(10, ("fsobj::TryToCover: fid = (%x.%x.%x)\n",
-	      fid.Volume, fid.Vnode, fid.Unique));
+    LOG(10, ("fsobj::TryToCover: fid = (%s)\n", FID_(&fid)));
 
     int code = 0;
 
@@ -1217,8 +1200,8 @@ int fsobj::TryToCover(ViceFid *inc_fid, vuid_t vuid) {
     }
     code = FSDB->Get(&rf, &root_fid, vuid, RC_STATUS, comp);
     if (code != 0) {
-	LOG(100, ("fsobj::TryToCover: Get root (%x.%x.%x) failed (%d)\n",
-		  root_fid.Volume, root_fid.Vnode, root_fid.Unique, code));
+	LOG(100, ("fsobj::TryToCover: Get root (%s) failed (%d)\n",
+		  FID_(&root_fid), code));
 
 	VDB->Put(&tvol);
 	if (code == EINCONS && inc_fid != 0) *inc_fid = root_fid;
@@ -1268,9 +1251,8 @@ void fsobj::CoverMtPt(fsobj *root_fso) {
     if (!data.symlink)
 	{ print(logFile); CHOKE("fsobj::CoverMtPt: no data.symlink!"); }
 
-    LOG(10, ("fsobj::CoverMtPt: fid = (%x.%x.%x), rootfid = (%x.%x.%x)\n",
-	      fid.Volume, fid.Vnode, fid.Unique,
-	      root_fso->fid.Volume, root_fso->fid.Vnode, root_fso->fid.Unique));
+    LOG(10, ("fsobj::CoverMtPt: fid = (%s), rootfid = (%s)\n",
+	     FID_(&fid), FID_2(&root_fso->fid)));
 
     RVMLIB_REC_OBJECT(*this);
 
@@ -1293,9 +1275,8 @@ void fsobj::UncoverMtPt() {
     if (!u.root)
 	{ print(logFile); CHOKE("fsobj::UncoverMtPt: no u.root!"); }
 
-    LOG(10, ("fsobj::UncoverMtPt: fid = (%x.%x.%x), rootfid = (%x.%x.%x)\n",
-	      fid.Volume, fid.Vnode, fid.Unique,
-	      u.root->fid.Volume, u.root->fid.Vnode, u.root->fid.Unique));
+    LOG(10, ("fsobj::UncoverMtPt: fid = (%s), rootfid = (%s)\n",
+	      FID_(&fid), FID_2(&u.root->fid)));
 
     RVMLIB_REC_OBJECT(*this);
 
@@ -1340,9 +1321,8 @@ void fsobj::UnmountRoot() {
     if (!u.mtpoint)
 	{ print(logFile); CHOKE("fsobj::UnmountRoot: no u.mtpoint!"); }
 
-    LOG(10, ("fsobj::UnmountRoot: fid = (%x.%x.%x), mtptfid = (%x.%x.%x)\n",
-	      fid.Volume, fid.Vnode, fid.Unique,
-	      u.mtpoint->fid.Volume, u.mtpoint->fid.Vnode, u.mtpoint->fid.Unique));
+    LOG(10, ("fsobj::UnmountRoot: fid = (%s), mtptfid = (%s)\n",
+	      FID_(&fid), FID_2(&u.mtpoint->fid)));
 
     RVMLIB_REC_OBJECT(*this);
 
@@ -1355,8 +1335,8 @@ void fsobj::UnmountRoot() {
 	mvstat = NORMAL;	    /* couldn't be mount point, could it? */       
 	/* this object could be the global root of a local/global subtree */
 	if (FID_EQ(&pfid, &NullFid) && !IsLocalObj()) {
-	    LOG(0, ("fsobj::UnmountRoot: 0x%x.%x.%x a previous mtroot without pfid, kill it\n",
-		    fid.Volume, fid.Vnode, fid.Unique));
+	    LOG(0, ("fsobj::UnmountRoot: (%s) a previous mtroot without pfid, kill it\n",
+		    FID_(&fid)));
 	    Kill();
 	}
     }
@@ -1370,9 +1350,8 @@ void fsobj::AttachChild(fsobj *child) {
     if (!IsDir())
 	{ print(logFile); child->print(logFile); CHOKE("fsobj::AttachChild: not dir"); }
 
-    LOG(100, ("fsobj::AttachChild: (%x.%x.%x), (%x.%x.%x)\n",
-	       fid.Volume, fid.Vnode, fid.Unique,
-	       child->fid.Volume, child->fid.Vnode, child->fid.Unique));
+    LOG(100, ("fsobj::AttachChild: (%s), (%s)\n",
+	       FID_(&fid), FID_2(&child->fid)));
 
     DisableReplacement();
 
@@ -1391,9 +1370,8 @@ void fsobj::DetachChild(fsobj *child) {
     if (!IsDir())
 	{ print(logFile); child->print(logFile); CHOKE("fsobj::DetachChild: not dir"); }
 
-    LOG(100, ("fsobj::DetachChild: (%x.%x.%x), (%x.%x.%x)\n",
-	       fid.Volume, fid.Vnode, fid.Unique,
-	       child->fid.Volume, child->fid.Vnode, child->fid.Unique));
+    LOG(100, ("fsobj::DetachChild: (%s), (%s)\n",
+	       FID_(&fid), FID_2(&child->fid)));
 
     DemoteHdbBindings();	    /* in case an expansion would no longer be satisfied! */
 
@@ -1411,8 +1389,8 @@ void fsobj::DetachChild(fsobj *child) {
 
 /* Need not be called from within transaction. */
 void fsobj::Reference() {
-    LOG(100, ("fsobj::Reference: (%x.%x.%x), old = %d, new = %d\n",
-	       fid.Volume, fid.Vnode, fid.Unique, FSDB->LastRef[ix], FSDB->RefCounter));
+    LOG(100, ("fsobj::Reference: (%s), old = %d, new = %d\n",
+	       FID_(&fid), FSDB->LastRef[ix], FSDB->RefCounter));
 
     FSDB->LastRef[ix] = FSDB->RefCounter++;
 }
@@ -1420,8 +1398,7 @@ void fsobj::Reference() {
 /* local-repair modification */
 /* Need not be called from within transaction. */
 void fsobj::ComputePriority() {
-    LOG(1000, ("fsobj::ComputePriority: (%x.%x.%x)\n",
-		fid.Volume, fid.Vnode, fid.Unique));
+    LOG(1000, ("fsobj::ComputePriority: (%s)\n", FID_(&fid)));
 
     if (IsLocalObj()) {
 	LOG(1000, ("fsobj::ComputePriority: local object\n"));
@@ -1506,12 +1483,10 @@ void fsobj::EnableReplacement() {
 
     /* Sanity check. */
     if (priority == -1 && !IsLocalObj())
-	eprint("EnableReplacement(%x.%x.%x): priority unset",
-	       fid.Volume, fid.Vnode, fid.Unique);
+	eprint("EnableReplacement(%s): priority unset", FID_(&fid));
 
-    LOG(1000, ("fsobj::EnableReplacement: (%x.%x.%x), priority = [%d (%d) %d %d]\n",
-		fid.Volume, fid.Vnode, fid.Unique,
-		priority, flags.random, HoardPri, FSDB->LastRef[ix]));
+    LOG(1000,("fsobj::EnableReplacement: (%s), priority = [%d (%d) %d %d]\n",
+	      FID_(&fid), priority, flags.random, HoardPri, FSDB->LastRef[ix]));
 
 #ifdef	VENUSDEBUG
     if (LogLevel >= 10000)
@@ -1548,9 +1523,8 @@ void fsobj::DisableReplacement() {
     if (!REPLACEABLE(this))
 	return;
 
-    LOG(1000, ("fsobj::DisableReplacement: (%x.%x.%x), priority = [%d (%d) %d %d]\n",
-		fid.Volume, fid.Vnode, fid.Unique,
-		priority, flags.random, HoardPri, FSDB->LastRef[ix]));
+    LOG(1000,("fsobj::DisableReplacement: (%s), priority = [%d (%d) %d %d]\n",
+	      FID_(&fid), priority, flags.random, HoardPri, FSDB->LastRef[ix]));
 
 #ifdef	VENUSDEBUG
     if (LogLevel >= 10000)
@@ -2004,13 +1978,9 @@ void fsobj::DiscardData() {
     if (WRITING(this) || EXECUTING(this))
 	{ print(logFile); CHOKE("fsobj::DiscardData: WRITING || EXECUTING"); }
 
-    LOG(10, ("fsobj::DiscardData: (%x.%x.%x)\n",
-	      fid.Volume, fid.Vnode, fid.Unique));
+    LOG(10, ("fsobj::DiscardData: (%s)\n", FID_(&fid)));
 
     CODA_ASSERT(!flags.dirty);
-
-    RVMLIB_REC_OBJECT(stat.GotThisData);
-    stat.GotThisData = 0;
 
     RVMLIB_REC_OBJECT(data);
     switch(stat.VnodeType) {
@@ -2070,8 +2040,7 @@ void fsobj::DiscardData() {
 /* returns 0 if successful, ENOENT if the parent cannot
    be found. */
 int fsobj::Fakeify() {
-    LOG(1, ("fsobj::Fakeify: %s, %x.%x.%x\n",
-	     comp, fid.Volume, fid.Vnode, fid.Unique));
+    LOG(1, ("fsobj::Fakeify: %s, (%s)\n", comp, FID_(&fid)));
 
     fsobj *pf = 0;
     if (!IsRoot()) {
@@ -2086,8 +2055,8 @@ int fsobj::Fakeify() {
 	    break;
 	}
 	if (pf == 0) {
-	    LOG(0, ("fsobj::Fakeify: %s, %x.%x.%x, parent not found\n",
-		    comp, fid.Volume, fid.Vnode, fid.Unique));
+	    LOG(0, ("fsobj::Fakeify: %s, (%s), parent not found\n",
+		    comp, FID_(&fid)));
 	    return(ENOENT);
 	}
     }
@@ -2109,8 +2078,7 @@ int fsobj::Fakeify() {
 	    stat.DataVersion = 1;
 	    stat.Mode = 0644;
 	    stat.Owner = V_UID;
-	    stat.Length = stat.GotThisData = 27;
-		    /* "@XXXXXXXX.YYYYYYYY.ZZZZZZZZ" */
+	    stat.Length = 27; /* "@XXXXXXXX.YYYYYYYY.ZZZZZZZZ" */
 	    stat.Date = Vtime();
 	    stat.LinkCount = 1;
 	    stat.VnodeType = SymbolicLink;
@@ -2121,10 +2089,10 @@ int fsobj::Fakeify() {
 	    /* local-repair modification */
 	    if (!strcmp(comp, "local")) {
 		/* the first specical case, fake link for a local object */
-		LOG(100, ("fsobj::Fakeify: fake link for a local object 0x%x.%x.%x\n",
-			  fid.Volume, fid.Vnode, fid.Unique));
-		LOG(100, ("fsobj::Fakeify: parent fid for the fake link is 0x%x.%x.%x\n",
-			  pfid.Volume, pfid.Vnode, pfid.Unique));
+		LOG(100,("fsobj::Fakeify: fake link for a local object %s\n",
+			 FID_(&fid)));
+		LOG(100,("fsobj::Fakeify: parent fid for the fake link is %s\n",
+			 FID_(&pfid)));
 		flags.local = 1;
 		ViceFid *LocalFid = LRDB->RFM_LookupLocalRoot(&pfid);
 		FSO_ASSERT(this, LocalFid);
@@ -2133,15 +2101,15 @@ int fsobj::Fakeify() {
 		rvmlib_set_range(data.symlink, stat.Length);
 		sprintf(data.symlink, "@%08lx.%08lx.%08lx", LocalFid->Volume, 
 			LocalFid->Vnode, LocalFid->Unique);
-		LOG(100, ("fsobj::Fakeify: making %x.%x.%x a symlink %s\n",
-			  fid.Volume, fid.Vnode, fid.Unique, data.symlink));
+		LOG(100, ("fsobj::Fakeify: making %s a symlink %s\n",
+			  FID_(&fid), data.symlink));
 	    } else {
 		if (!strcmp(comp, "global")) {
 		    /* the second specical case, fake link for a global object */
-		    LOG(100, ("fsobj::Fakeify: fake link for a global object 0x%x.%x.%x\n",
-			      fid.Volume, fid.Vnode, fid.Unique));
-		    LOG(100, ("fsobj::Fakeify: parent fid for the fake link is 0x%x.%x.%x\n",
-			      pfid.Volume, pfid.Vnode, pfid.Unique));
+		    LOG(100, ("fsobj::Fakeify: fake link for a global object %s\n",
+			      FID_(&fid)));
+		    LOG(100, ("fsobj::Fakeify: parent fid for the fake link is %s\n",
+			      FID_(&pfid)));
 		    flags.local = 1;
 		    ViceFid *GlobalFid = LRDB->RFM_LookupGlobalRoot(&pfid);
 		    FSO_ASSERT(this, GlobalFid);
@@ -2194,7 +2162,7 @@ int fsobj::Fakeify() {
 	    stat.DataVersion = 1;
 	    stat.Mode = 0444;
 	    stat.Owner = V_UID;
-	    stat.Length = stat.GotThisData = 0;
+	    stat.Length = 0;
 	    stat.Date = Vtime();
 	    stat.LinkCount = 2;
 	    stat.VnodeType = Directory;
@@ -2207,7 +2175,7 @@ int fsobj::Fakeify() {
 
 	    /* Create the target directory. */
 	    dir_MakeDir();
-	    stat.Length = stat.GotThisData = dir_Length();
+	    stat.Length = dir_Length();
 	    UpdateCacheStats(&FSDB->DirDataStats, CREATE, BLOCKS(this));
 
 	    /* Make entries for each of the rw-replicas. */
@@ -2222,8 +2190,8 @@ int fsobj::Fakeify() {
 		else
 		    sprintf(Name, "%08lx", volumehosts[i]);
 		ViceFid FakeFid = vol->GenerateFakeFid();
-		LOG(1, ("fsobj::Fakeify: new entry (%s, %x.%x.%x)\n",
-			Name, FakeFid.Volume, FakeFid.Vnode, FakeFid.Unique));
+		LOG(1, ("fsobj::Fakeify: new entry (%s, %s)\n",
+			Name, FID_(&FakeFid)));
 		dir_Create(Name, &FakeFid);
 	    }
 	}
@@ -2239,8 +2207,8 @@ int fsobj::Fakeify() {
 /*  *****  Local Synchronization  *****  */
 
 void fsobj::Lock(LockLevel level) {
-    LOG(1000, ("fsobj::Lock: (%x.%x.%x) level = %s\n",
-		fid.Volume, fid.Vnode, fid.Unique, ((level == RD)?"RD":"WR")));
+    LOG(1000, ("fsobj::Lock: (%s) level = %s\n",
+	       FID_(&fid), ((level == RD)?"RD":"WR")));
 
     if (level != RD && level != WR)
 	{ print(logFile); CHOKE("fsobj::Lock: bogus lock level %d", level); }
@@ -2254,8 +2222,8 @@ void fsobj::Lock(LockLevel level) {
 	 */
 	if (DIRTY(this) && IsBackFetching()) {
 	    CODA_ASSERT(readers > 0 && writers == 0);
-	    LOG(0, ("WAITING(%x.%x.%x) locked for backfetch, shadowing\n",
-		    fid.Volume, fid.Vnode, fid.Unique));
+	    LOG(0, ("WAITING(%s) locked for backfetch, shadowing\n",
+		    FID_(&fid)));
 	    START_TIMING();
 	    MakeShadow();
 	    END_TIMING();
@@ -2263,9 +2231,8 @@ void fsobj::Lock(LockLevel level) {
 	}
 
 	if (shadow == 0) { 
-	    LOG(0, ("WAITING(%x.%x.%x): level = %s, readers = %d, writers = %d\n",
-		    fid.Volume, fid.Vnode, fid.Unique, 
-		    lvlstr(level), readers, writers));
+	    LOG(0, ("WAITING(%s): level = %s, readers = %d, writers = %d\n",
+		    FID_(&fid), lvlstr(level), readers, writers));
 	    START_TIMING();
 	    VprocWait(&sync);
 	    END_TIMING();
@@ -2293,8 +2260,8 @@ void fsobj::DemoteLock() {
 
 
 void fsobj::UnLock(LockLevel level) {
-    LOG(1000, ("fsobj::UnLock: (%x.%x.%x) level = %s\n",
-		fid.Volume, fid.Vnode, fid.Unique, ((level == RD)?"RD":"WR")));
+    LOG(1000, ("fsobj::UnLock: (%s) level = %s\n",
+	       FID_(&fid), ((level == RD)?"RD":"WR")));
 
     if (level != RD && level != WR)
 	{ print(logFile); CHOKE("fsobj::UnLock: bogus lock level %d", level); }
@@ -2603,12 +2570,12 @@ void fsobj::RecordReplacement(int status, int data) {
 /* local-repair modification */
 void fsobj::print(int fdes) {
     /* < address, fid, comp, vol > */
-    fdprint(fdes, "%#08x : fid = (%x.%x.%x), comp = %s, vol = %x\n",
-	     (long)this, fid.Volume, fid.Vnode, fid.Unique, comp, vol);
+    fdprint(fdes, "%#08x : fid = (%s), comp = %s, vol = %x\n",
+	     (long)this, FID_(&fid), comp, vol);
 
     /* < FsoState, VenusStat, Replica Control Rights, Access Rights, flags > */
-    fdprint(fdes, "\tstate = %s, stat = { %d, %d, %d, %d, %d, %#o, %d, %s }, rc rights = %d\n",
-	     PrintFsoState(state), stat.Length, stat.GotThisData, stat.DataVersion,
+    fdprint(fdes, "\tstate = %s, stat = { %d, %d, %d, %d, %#o, %d, %s }, rc rights = %d\n",
+	     PrintFsoState(state), stat.Length, stat.DataVersion,
 	     stat.Date, stat.Owner, stat.Mode, stat.LinkCount,
 	     PrintVnodeType(stat.VnodeType), RcRights);
     fdprint(fdes, "\tVV = {[");
@@ -2635,17 +2602,14 @@ void fsobj::print(int fdes) {
     /* < mvstat [rootfid | mtptfid] > */
     fdprint(fdes, "\tmvstat = %s", PrintMvStat(mvstat));
     if (IsMtPt())
-	fdprint(fdes, ", root = (%x.%x.%x)",
-		u.root->fid.Volume, u.root->fid.Vnode, u.root->fid.Unique);
+	fdprint(fdes, ", root = (%s)", FID_(&u.root->fid));
     if (IsRoot() && u.mtpoint)
-	fdprint(fdes, ", mtpoint = (%x.%x.%x)",
-		u.mtpoint->fid.Volume, u.mtpoint->fid.Vnode, u.mtpoint->fid.Unique);
+	fdprint(fdes, ", mtpoint = (%s)", FID_(&u.mtpoint->fid));
     fdprint(fdes, "\n");
 
     /* < parent_fid, pfso, child count > */
-    fdprint(fdes, "\tparent = (%x.%x.%x, %x), children = %d\n",
-	     pfid.Volume, pfid.Vnode, pfid.Unique,
-	     pfso, (children ? children->count() : 0));
+    fdprint(fdes, "\tparent = (%s, %x), children = %d\n",
+	     FID_(&pfid), pfso, (children ? children->count() : 0));
 
     /* < priority, HoardPri, HoardVuid, hdb_bindings, LastRef > */
     fdprint(fdes, "\tpriority = %d (%d), hoard = [%d, %d, %d], lastref = %d\n",
@@ -2756,8 +2720,7 @@ void fsobj::ListCacheLong(FILE* fp)
 		 (IsRoot() ? '/' :
 		  (IsVenusRoot() ? 'v': ' '))));
 
-  fprintf(fp, "%c %c%c %s  %s\n",
-	  valid, type, linktype, path, FID_(&fid));	
+  fprintf(fp, "%c %c%c %s  %s\n", valid, type, linktype, path, FID_(&fid));	
   fflush(fp);
 }
 
