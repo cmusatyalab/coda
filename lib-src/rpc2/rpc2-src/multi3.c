@@ -813,7 +813,7 @@ void HandleInitMulticast(RPC2_PacketBuffer *pb, struct CEntry *ce)
 }
 
 
-bool XlateMcastPacket(RPC2_PacketBuffer *pb)
+int XlateMcastPacket(RPC2_PacketBuffer *pb)
     {
     struct MEntry  *me;
     struct CEntry  *ce;

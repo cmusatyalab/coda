@@ -126,7 +126,7 @@ long RPC2_MultiRPC(IN HowMany, IN ConnHandleList, IN RCList, IN MCast,
     int	host;
     long *retcode;
     struct MEntry *me = NULL;
-    bool SomeConnsOK;
+    int SomeConnsOK;
     long rc = 0;
 
 
