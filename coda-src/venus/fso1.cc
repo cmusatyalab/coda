@@ -2000,12 +2000,9 @@ void fsobj::DiscardData() {
     switch(stat.VnodeType) {
 	case File:
 	    {
-	    /* 
-	     * Return cache-file blocks. Check the cache file length instead of
-	     * stat.Length because they may differ legitimately if a cache file 
-	     * validation fails or if the file is stored compressed.
-	     */
-	    FSDB->FreeBlocks((int) NBLOCKS(data.file->Length()));    /* XXX */
+	    /* stat.Length() might have been changed, only data.file->Length()
+	     * can be trusted */
+	    FSDB->FreeBlocks(NBLOCKS(data.file->Length()));
 	    data.file->Truncate(0);
 	    data.file = 0;
 	    }

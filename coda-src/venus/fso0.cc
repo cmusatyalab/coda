@@ -1059,6 +1059,9 @@ RestartFind:
 
 		    int nblocks = BLOCKS(f);
 
+		    /* If we haven't got any data yet, allocate enough for the
+		     * whole file. When we have a partial file, we should
+		     * already have reserved enough blocks. */
 		    if (f->IsFile() && !HAVEDATA(f)) {
 			code = AllocBlocks(vp->u.u_priority, nblocks);
 			if (code != 0) {
@@ -1092,8 +1095,7 @@ RestartFind:
 		     * the fetch will modify f->cf.ValidData) */
 		    nblocks -= NBLOCKS(f->cf.ValidData());
 
-		    /* Let fsdb::Get go ahead and fetch the object */
-
+		    /* Let fsobj::Fetch go ahead and fetch the object */
 		    code = f->Fetch(vuid);
 
 		    /* Restart operation in case of inconsistency. */

@@ -413,7 +413,10 @@ void vproc::setattr(struct venus_cnode *cp, struct coda_vattr *vap) {
 
 	/* If we are truncating a file to any non-zero size we NEED the data */
 	rcrights = RC_STATUS;
-	if (vap->va_size > 0) rcrights |= RC_DATA;
+
+	/* va_size is unsigned long long, so we cannot use a > 0 test */
+	if (vap->va_size != 0 && vap->va_size != VA_IGNORE_SIZE)
+	    rcrights |= RC_DATA;
 
 	/* Get the object. */
 	u.u_error = FSDB->Get(&f, &cp->c_fid, CRTORUID(u.u_cred), rcrights);
@@ -462,15 +465,15 @@ void vproc::setattr(struct venus_cnode *cp, struct coda_vattr *vap) {
 	        vap->va_gid = V_GID;
 	    /* truncate, ftruncate */
 	    if (vap->va_size != VA_IGNORE_SIZE) {
-		    if (!f->IsFile()) {
+		if (!f->IsFile()) {
 		    u.u_error = EISDIR; 
 		    goto FreeLocks; 
-		    }
+		}
 
-		    u.u_error = f->Access((long)PRSFS_WRITE, C_A_W_OK, 
-					  CRTORUID(u.u_cred));
-		    if (u.u_error) 
-			    goto FreeLocks;
+		u.u_error = f->Access((long)PRSFS_WRITE, C_A_W_OK,
+				      CRTORUID(u.u_cred));
+		if (u.u_error) 
+		    goto FreeLocks;
 	    }
 
 	    /* utimes */

@@ -92,7 +92,7 @@ int fsobj::Fetch(vuid_t vuid) {
     LOG(10, ("fsobj::Fetch: (%s), uid = %d\n", comp, vuid));
 
     if (IsLocalObj()) {
-	LOG(10, ("fsobj::Fetach: (%s), uid = %d, local object\n", comp, vuid));
+	LOG(10, ("fsobj::Fetch: (%s), uid = %d, local object\n", comp, vuid));
 	/* set the valid RC status */
 	if (HAVEALLDATA(this)) {
 	    SetRcRights(RC_DATA | RC_STATUS);
@@ -311,7 +311,7 @@ int fsobj::Fetch(vuid_t vuid) {
 			   l[0], l[1], l[2], l[3], l[4],
 			   l[5], l[6], l[7], l[8], l[9], l[10]);
 		}
-		code = ERETRY;
+		code = EAGAIN;
 	    }
 	}
 
@@ -319,7 +319,7 @@ int fsobj::Fetch(vuid_t vuid) {
 	 * _have_ to discard the data, and start over again if we fetched a
 	 * different size than expected the wrong one. */
 	if (!IsFile() && stat.Length != status.Length)
-	    code = ERETRY;
+	    code = EAGAIN;
 
 	Recov_BeginTrans();
 	UpdateStatus(&status, vuid);
@@ -383,7 +383,7 @@ RepExit:
 	if (HAVESTATUS(this) && status.DataVersion != stat.DataVersion) {
 	    LOG(1, ("fsobj::Fetch: failed validation (%d, %d)\n",
 		    status.DataVersion, stat.DataVersion));
-	    code = ERETRY;
+	    code = EAGAIN;
 	}
 
 	Recov_BeginTrans();
