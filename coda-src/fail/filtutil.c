@@ -113,7 +113,7 @@ int set_filter_host(target_t target, FailFilter *filter)
    target */
 int insert_filter(FailFilter *filter, int which)
 {
-  int i, rc, side;
+  int i, rc, side, id;
 
   /*printf("Would insert filters here\n");
 show_filter(*filter);
@@ -129,7 +129,9 @@ show_filter(*filter);
       PrintError("Couldn't insert filter", rc);
       return -1;
     }
-    maxFilterID[i] = (rc > maxFilterID[i]) ? rc : maxFilterID[i];
+    id = filter->id;
+    maxFilterID[i] = (id > maxFilterID[i]) ? id : maxFilterID[i];
+
   }
 
   return 0;

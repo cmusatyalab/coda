@@ -2790,7 +2790,7 @@ int FailDisconnect(int nservers, unsigned long *hostids)
 			LOG(10, ("FailDisconnect: inserted %s filter for %s, id = %d\n", 
 			    (side == recvSide)?"recv":"send", s->name, rc));
 
-			FailFilterInfo[ix].id = rc;
+			FailFilterInfo[ix].id = filter.id;
 			FailFilterInfo[ix].side = side;
 			FailFilterInfo[ix].host = s->host;
 			FailFilterInfo[ix].used = 1;
