@@ -199,7 +199,7 @@ void fsobj::ResetTransient() {
     bzero((void *)&del_handle, (int)sizeof(del_handle));
     bzero((void *)&owrite_handle, (int)sizeof(owrite_handle));
 
-    if (HAVEALLDATA(this) && stat.VnodeType == Directory &&
+    if (HAVEDATA(this) && stat.VnodeType == Directory &&
 	mvstat != MOUNTPOINT) {
 	data.dir->udcfvalid = 0;
 	data.dir->udcf = 0;
@@ -494,7 +494,7 @@ void fsobj::Recover() {
 	case File:
 	    {
 	    if ((HAVEDATA(this) && cf.Length() != stat.GotThisData) ||
-		(!HAVEALLDATA(this) && cf.Length() != 0)) {
+		(!HAVEDATA(this) && cf.Length() != 0)) {
 		eprint("\t(%s, %x.%x.%x) cache file validation failed",
 		       comp, fid.Volume, fid.Vnode, fid.Unique);
 		goto Failure;
