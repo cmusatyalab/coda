@@ -1,5 +1,3 @@
-#!/bin/sh
-
 MODE=$1
 DIR=$2
 shift
