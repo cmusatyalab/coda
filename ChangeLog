@@ -1,5 +1,39 @@
+1999-05-07    <jaharkes@cs.cmu.edu>
+	* Caught several bugs related to partially cached objects.
+	* Removed VM resolution, and fixed some bugs with RVM resolution.
+	* Incorporated patches to get compiled on NetBSD 1.4
+	* Using lower/upper bandwidth estimates to reduce weak-strong
+	  changes when we are working at the weakly connected threshold.
+	* owrite files with partial data were not discarded.
+	* Fixed an endless loop in ViceNewFetch.
+	* Gettimeofday on cygwin caused problems, added a workaround.
+	* Updated kernel module with the 2.2.6/2.2.7 changes.
+	* Fixes to kernel module refcounting.
+	* Added statfs upcall, `df' now gives information about the cache
+	  usage.
+	* Got rid of 1000's of warnings when compiling with -Wall
+	  (still not completely done yet).
+	* Reduced server retry timeout to max. 15 seconds.
+	* Finish trickle stores when switching to strong, instead of
+	  resending the complete file.
+	* Avoiding gethostbyname lookups if the vstab contains ip's.
+	* Correctly comparing directories during resolve, this was the
+	  cause of many not really conflicting server-server conflicts.
+	* Several repair/resolve related refcounting/deref. bugs fixed.
+	* Fixed an uninitialized pointer deref when dumping volumes.
+	* Added 200M choice to vice-setup-rvm.
+	* Cleanup & proper locking in the callback mechanism on the server.
+	* Correctly log client addresses and port numbers in callback msgs.
+	* LockQueue manager forgot to initialize thread specific data.
+	* Split RPC2 & SFTP netlogs.
+	* Quickly pass up NAK's on an SFTP connection.
+	* Some overflows fixed in the new ns/B bandwidth calculations.
+	* Fixed an uninitialized pointer dereference which caused random
+	  crashes for just about all mutating filesystem operations.
+
+
 1999-03-25    <jaharkes@cs.cmu.edu>
-	* ======== Release 5.2.1  =========
+	* ======== `Release' 5.2.1  =========
 	* Moving old pdb databases out of the way when re-running
 	  vice-setup-user.
 	* Fixes small memory leaks in the pdb library.

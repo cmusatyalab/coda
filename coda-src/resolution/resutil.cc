@@ -129,14 +129,9 @@ long CheckRetCodes(unsigned long *rc, unsigned long *rh,
 	    /* non rpc error - drop this host too */
 	    hosts[i] = 0;
 	    error = rc[i];
-	    addr.s_addr = rh[i];
-#ifndef __CYGWIN32__
+	    addr.s_addr = htonl(rh[i]);
 	    SLog(0,  "CheckRetCodes - an accessible server returned an error (server %s error %d)",
 		   inet_ntoa(addr), rc[i]);
-#else
-	    SLog(0,  "CheckRetCodes - an accessible server returned an error (server %x error %d)",
-		   rh[i], rc[i]);
-#endif
 	}
     }
     return(error);
@@ -488,7 +483,7 @@ int ComparePath(int *sizes, ResPathElem **paths, res_mgrpent *mgrp, int *depth,
     int index = 0;
     *depth = -1;
     for (int i = 0; i < VSG_MEMBERS; i++) 
-	if (sizes[i] && !mgrp->rrcc.retcodes[i] && mgrp->rrcc.handles) {
+	if (sizes[i] && !mgrp->rrcc.retcodes[i] && mgrp->rrcc.handles[i]) {
 	    compresssizes[index] = sizes[i];
 	    compresspaths[index] = paths[i];
 	    if (*depth == -1) *depth = sizes[i];
