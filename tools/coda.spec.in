@@ -28,16 +28,14 @@ manipulation etc, the hoarding tools for use with laptops and repair
 tools for fixing conflicts. Finally there is the cmon and codacon
 console utilities to monitor Coda's activities. You need a Coda
 kernel-module for your kernel version, or Coda in your kernel, to have
-a complete coda client.  Make sure to select the correct C library
-version.
+a complete coda client.
 
 %package server
 Summary: Coda server
 Group: Networking/Daemons
 %description server
 This package contains the fileserver codasrv for the coda filesystem,
-as well as the volume utilities.  For highest performance you will
-need a modified kernel with inode system calls.
+as well as the volume utilities.
 
 %package backup
 Summary: Coda backup coordinator
@@ -74,7 +72,7 @@ cd $RPM_BUILD_DIR/coda-%{version}
 rm -rf $RPM_BUILD_DIR/obj-%{version}
 mkdir $RPM_BUILD_DIR/obj-%{version}
 cd $RPM_BUILD_DIR/obj-%{version}
-$RPM_BUILD_DIR/coda-%{version}/configure --prefix=/usr
+$RPM_BUILD_DIR/coda-%{version}/configure --prefix=/usr --mandir=/usr/share/man
 #  --with-crypto \
 #  --with-krb4-includes=/usr/kerberos/include/kerberosIV \
 #  --with-krb4-libraries=/usr/kerberos/lib \
@@ -121,7 +119,7 @@ if [ -e /usr/coda/venus.cache/pid ]; then
     rm -f /usr/coda/venus.cache/pid
 fi
 if [ ! -e /etc/coda/venus.conf ]; then 
-	/usr/sbin/venus-setup testserver.coda.cs.cmu.edu 100000
+	/usr/sbin/venus-setup "" 100000
 fi
 if [ ! -e /dev/cfs0 ]; then 
 	/bin/mknod /dev/cfs0 c 67 0
@@ -183,6 +181,7 @@ exit 0
 /usr/bin/spy
 /usr/bin/xaskuser
 /usr/bin/xfrepair
+/usr/share/man/man1/cfs.1
 
 %files server	
 /etc/coda/server.conf.ex

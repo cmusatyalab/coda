@@ -104,8 +104,7 @@ binary-arch: build install
 	dh_installdebconf
 	dh_installdocs
 	dh_installinit --update-rcd-params="defaults 60"
-#	dh_installmanpages
-#	dh_undocumented
+#	dh_installman
 	dh_installmodules
 	dh_installchangelogs ChangeLog
 	dh_strip

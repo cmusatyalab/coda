@@ -5,7 +5,8 @@
 #  recursively descend into subdirs and build targets
 ###############################################################
 
-all: $(RP2HEADERS) $(LIBRARIES) $(HEADERS) $(EXECUTABLES) $(SCRIPTS) $(TESTS) $(SUBDIRS) hdrinstall mkdep
+#all: $(RP2HEADERS) $(LIBRARIES) $(HEADERS) $(EXECUTABLES) $(SCRIPTS) $(TESTS) $(SUBDIRS) hdrinstall mkdep
+all: Coda
 
 ##################
 # build a single subdirectory
@@ -25,8 +26,10 @@ install:
 ###############################################################
 #  recursively descend into subdirs and do hdrinstall and build
 ###############################################################
+MANPAGES=$(CMANPAGES) $(SMANPAGES)
+
 coda: Coda
-Coda: $(RP2HEADERS) $(LIBRARIES) $(HEADERS) $(EXECUTABLES) $(SCRIPTS) $(TESTS)\
+Coda: $(RP2HEADERS) $(LIBRARIES) $(HEADERS) $(EXECUTABLES) $(SCRIPTS) $(MANPAGES) $(TESTS)\
 	 hdrinstall mkdep
 ifdef SUBDIRS
 	@for d in $(SUBDIRS) ; do \
@@ -42,7 +45,7 @@ endif
 ###############################################################
 
 client-install: $(LIBRARIES) $(HEADERS) $(EXECUTABLES) $(SCRIPTS) $(TESTS)\
-	 hdrinstall installclient mkdep
+	 $(MANPAGES) hdrinstall installclient mkdep
 ifdef SUBDIRS
 	@for d in $(SUBDIRS) ; do \
 	    echo "----> Entering $$d"; \
@@ -67,7 +70,7 @@ endif
 ###############################################################
 
 server-install: $(LIBRARIES) $(HEADERS) $(EXECUTABLES) $(SCRIPTS) $(TESTS)\
-	 hdrinstall installserver mkdep
+	 $(MANPAGES) hdrinstall installserver mkdep
 ifdef SUBDIRS
 	@for d in $(SUBDIRS) ; do \
 	    echo "----> Entering $$d"; \
@@ -90,7 +93,7 @@ endif
 #####################
 # install  client or server executables 
 #####################
-installclient: c_bin_install c_sbin_install c_conf_install c_script_install c_sscript_install
+installclient: c_bin_install c_sbin_install c_conf_install c_script_install c_sscript_install c_man_install
 
 ifeq ($(target),i386-pc-djgpp) 
 TARGETCBINS := $(CBINS:%=%.exe)
@@ -134,7 +137,7 @@ ifdef CSSCRIPTS
 	$(TOPDIR)/tools/our-install 755 $(SBINDIR) $?
 endif
 
-installserver: s_bin_install s_sbin_install s_conf_install s_script_install s_sscript_install
+installserver: s_bin_install s_sbin_install s_conf_install s_script_install s_sscript_install s_man_install
 
 ifeq ($(SYS),cygwin32)
 TARGETSBINS := $(SBINS:%=%.exe)
@@ -173,6 +176,22 @@ ifdef SSSCRIPTS
 	$(TOPDIR)/tools/our-install 755 $(SBINDIR) $?
 endif
 
+c_man_install: $(CMANPAGES)
+ifdef CMANPAGES
+	@for page in $(CMANPAGES) ; do \
+	    sect=`echo $$page | cut -d. -f2` ; \
+	    $(TOPDIR)/tools/our-install 644 $(MANDIR)/man$$sect $$page ; \
+	done
+endif
+
+s_man_install: $(SMANPAGES)
+ifdef SMANPAGES
+	@for page in $(SMANPAGES) ; do \
+	    sect=`echo $$page | cut -d. -f2` ; \
+	    $(TOPDIR)/tools/our-install 644 $(MANDIR)/man$$sect $$page ; \
+	done
+endif
+
 
 
 #####################
@@ -199,7 +218,8 @@ endif
 reinstall: clean-install install
 clean-install:
 	$(RM) bininstall scriptinstall hdrinstall libinstall \
-	      c_bin_install c_sbin_install s_bin_install s_sbin_install 
+	      c_bin_install c_sbin_install s_bin_install s_sbin_install \
+	      c_man_install s_man_install
 
 ##################
 # cleaning: important too
@@ -215,11 +235,12 @@ ifdef SUBDIRS
 endif
 
 realclean:
-	-$(RM) *.o *.a  *.d
+	-$(RM) *.o *.a  *.d core
 	-$(RM) *.client.cc *.client.c *.server.cc *.server.c *.multi.cc *.multi.c *.print.c $(RP2HEADERS)
-	-$(RM) $(EXECUTABLES) $(LIBRARIES) $(TESTS) $(EXTRACLEAN) core
+	-$(RM) $(EXECUTABLES) $(MANPAGES) $(LIBRARIES) $(TESTS) $(EXTRACLEAN)
 	-$(RM) chdrinstall rp2hdrinstall libinstall bininstall scriptinstall \
-	      c_bin_install c_sbin_install s_bin_install s_sbin_install 
+	      c_bin_install c_sbin_install s_bin_install s_sbin_install \
+	      c_man_install s_man_install
 	-$(RM) *.l.c *.pt.c *.l.o *.pt.o
 
 xtraclean:
@@ -282,6 +303,12 @@ show showvar:
 
 %.client.c %.server.c %.multi.c %.h: %.rpc2
 	${RP2GEN} ${RP2FLAGS} $<
+
+%.1: %.sgml
+	${DB2MAN} $< && touch $@
+
+%.8: %.sgml
+	${DB2MAN} $< && touch $@
 
 .PHONY FORCE:
 

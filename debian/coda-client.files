@@ -24,3 +24,4 @@ usr/sbin/sidekick
 usr/sbin/venus
 usr/sbin/volmunge
 usr/sbin/vutil
+usr/share/man/man1/cfs.1

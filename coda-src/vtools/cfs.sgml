@@ -1,0 +1,543 @@
+<!doctype refentry PUBLIC "-//OASIS//DTD DocBook V4.1//EN" [
+
+<!-- Process this file with docbook2man to generate an nroff manual page.
+
+manpage.1: manpage.sgml
+	docbook2man $<
+  -->
+
+  <!ENTITY package "cfs">
+  <!ENTITY date    "April 2004">
+]>
+
+<refentry>
+<refentryinfo>
+    <address><email>coda@cs.cmu.edu</email></address>
+    <copyright>
+	<year>1987-2004</year>
+	<holder>Carnegie Mellon University</holder>
+    </copyright>
+    <date>&date;</date>
+</refentryinfo>
+
+<refmeta>
+    <refentrytitle>&package;</refentrytitle>
+    <manvolnum>1</manvolnum>
+    <refmiscinfo>Coda Distributed File System</refmiscinfo>
+</refmeta>
+
+<refnamediv>
+    <refname>&package;</refname>
+    <refpurpose>Coda File System Interface Program</refpurpose>
+</refnamediv>
+
+<refsynopsisdiv>
+    <cmdsynopsis>
+	<command>cfs adaptive|strong</command>
+    </cmdsynopsis>
+    <cmdsynopsis>
+	<command>cfs beginrepair</command>
+	<arg choice=req><replaceable>file</replaceable></arg>
+    </cmdsynopsis>
+    <cmdsynopsis>
+	<command>cfs checkpointml</command>
+    </cmdsynopsis>
+    <cmdsynopsis>
+	<command>cfs checkservers</command>
+    </cmdsynopsis>
+    <cmdsynopsis>
+	<command>cfs checkvolumes</command>
+    </cmdsynopsis>
+    <cmdsynopsis>
+	<command>cfs clearpriorities</command>
+    </cmdsynopsis>
+    <cmdsynopsis>
+	<command>cfs @cpu|@sys</command>
+    </cmdsynopsis>
+    <cmdsynopsis>
+	<command>cfs endrepair</command>
+	<arg choice=req><replaceable>file</replaceable></arg>
+    </cmdsynopsis>
+    <cmdsynopsis>
+	<command>cfs examineclosure</command>
+    </cmdsynopsis>
+    <cmdsynopsis>
+	<command>cfs flushcache</command>
+    </cmdsynopsis>
+    <cmdsynopsis>
+	<command>cfs flushobject</command>
+	<arg choice=req><replaceable>path</replaceable></arg>
+	<arg><replaceable>path</replaceable> ... </arg>
+    </cmdsynopsis>
+    <cmdsynopsis>
+	<command>cfs flushvolume</command>
+	<arg choice=req><replaceable>path</replaceable></arg>
+	<arg><replaceable>path</replaceable> ... </arg>
+    </cmdsynopsis>
+    <cmdsynopsis>
+	<command>cfs getfid</command>
+	<arg choice=req><replaceable>path</replaceable></arg>
+	<arg><replaceable>path</replaceable> ... </arg>
+    </cmdsynopsis>
+    <cmdsynopsis>
+	<command>cfs getpath</command>
+	<arg choice=req><replaceable>fid</replaceable></arg>
+	<arg><replaceable>fid</replaceable> ... </arg>
+    </cmdsynopsis>
+    <cmdsynopsis>
+	<command>cfs getmountpoint</command>
+	<arg choice=req><replaceable>volid</replaceable></arg>
+    </cmdsynopsis>
+    <cmdsynopsis>
+	<command>cfs listacl</command>
+	<arg choice=req><replaceable>dir</replaceable></arg>
+	<arg><replaceable>dir</replaceable> ... </arg>
+    </cmdsynopsis>
+    <cmdsynopsis>
+	<command>cfs listcache</command>
+	<arg choice=req><replaceable>dir</replaceable></arg>
+	<arg><replaceable>dir</replaceable> ... </arg>
+    </cmdsynopsis>
+    <cmdsynopsis>
+	<command>cfs listvol</command>
+	<arg choice=req><replaceable>dir</replaceable></arg>
+	<arg><replaceable>dir</replaceable> ... </arg>
+    </cmdsynopsis>
+    <cmdsynopsis>
+	<command>cfs lsmount</command>
+	<arg choice=req><replaceable>dir</replaceable></arg>
+	<arg><replaceable>dir</replaceable> ... </arg>
+    </cmdsynopsis>
+    <cmdsynopsis>
+	<command>cfs mkmount</command>
+	<arg choice=req><replaceable>directory</replaceable></arg>
+	<arg choice=req><replaceable>volumename</replaceable></arg>
+	<arg>-rw</arg>
+    </cmdsynopsis>
+    <cmdsynopsis>
+	<command>cfs purgeml</command>
+    </cmdsynopsis>
+    <cmdsynopsis>
+	<command>cfs replayclosure</command>
+    </cmdsynopsis>
+    <cmdsynopsis>
+	<command>cfs rmmount</command>
+	<arg choice=req><replaceable>dir</replaceable></arg>
+	<arg><replaceable>dir</replaceable> ... </arg>
+    </cmdsynopsis>
+    <cmdsynopsis>
+	<command>cfs setacl</command>
+	<arg>-clear</arg>
+	<arg>-negative</arg>
+	<arg choice=req><replaceable>dir</replaceable></arg>
+	<arg choice=req><replaceable>id</replaceable></arg>
+	<arg choice=req><replaceable>rights</replaceable></arg>
+	<arg><replaceable>id</replaceable> <replaceable>rights</replaceable> ...</arg>
+    </cmdsynopsis>
+    <cmdsynopsis>
+	<command>cfs truncatelog</command>
+    </cmdsynopsis>
+    <cmdsynopsis>
+	<command>cfs waitforever</command>
+	<arg>-on</arg>
+	<arg>-off</arg>
+    </cmdsynopsis>
+    <cmdsynopsis>
+	<command>cfs whereis</command>
+	<arg choice=req><replaceable>dir</replaceable></arg>
+	<arg><replaceable>dir</replaceable> ... </arg>
+    </cmdsynopsis>
+    <cmdsynopsis>
+	<command>cfs disconnect</command>
+    </cmdsynopsis>
+    <cmdsynopsis>
+	<command>cfs reconnect</command>
+    </cmdsynopsis>
+    <cmdsynopsis>
+	<command>cfs writedisconnect</command>
+	<arg>-age <replaceable>secs</replaceable></arg>
+	<arg>-time <replaceable>secs</replaceable></arg>
+	<arg choice=req><replaceable>dir</replaceable></arg>
+    </cmdsynopsis>
+    <cmdsynopsis>
+	<command>cfs writereconnect</command>
+    </cmdsynopsis>
+</refsynopsisdiv>
+
+<refsect1>
+    <title>DESCRIPTION</title>
+    <para><command>cfs</command> allows users to perform operations specific
+    to the Coda File System.  Most often, people use it to see how much of
+    their allocated storage space they are currently using and to change the
+    protection on their personal directories.  <command>cfs</command> will
+    change the protection or "rights" on directories but not on individual
+    files. To change permissions on individual files, use
+    <command>chmod(1)</command>.
+    </para>
+
+<variablelist>
+    <varlistentry>
+    <term><option>adaptive</option>|<option>strong</option></term>
+    <listitem>
+	<para>Use `strong' to override adaptation to changing network
+	conditions. Revert to automatic adaptation using `adaptive'. This
+	command is useful to force strong connectivity semantics even over
+	slow or unreliable links.
+	</para>
+    </listitem>
+    </varlistentry>
+
+    <varlistentry>
+    <term><option>checkpointml</option></term>
+    <listitem>
+	<para>Checkpoint volume modify log.  This command will create a
+	checkpoint file <Literal
+	remap="tt">/usr/coda/spool/uid/vol@mountpt</Literal>.  Where <Literal
+	remap="tt">uid</Literal> is your local user id,
+	<Literal remap="tt">vol</Literal> is the volume being checkpointed,
+	and <Literal remap="tt">mountpt</Literal> is the volume's mount point.
+	</para>
+	<para>Abbreviation: <option>ck</option>.  
+	</para>
+    </listitem>
+    </varlistentry>
+
+    <varlistentry>
+    <term><option>checkservers</option></term>
+    <listitem>
+	<para>Check the status of the Coda file servers.  Report on servers
+	that are down.
+	</para>
+    </listitem>
+    </varlistentry>
+
+    <varlistentry>
+    <term><option>checkvolumes</option></term>
+    <listitem>
+	<para>Check volume/name mappings.
+	</para>
+    </listitem>
+    </varlistentry>
+
+    <varlistentry>
+    <term><option>clearpriorities</option></term>
+    <listitem>
+	<para>Clear short-term priorities used for cache management.
+	</para>
+    </listitem>
+    </varlistentry>
+
+    <varlistentry>
+    <term><option>@cpu</option>|<option>@sys</option></term>
+    <listitem>
+	<para>When the end of a pathname component in a symlink is either @sys
+	or @cpu, the local venus will replace these magic strings with a
+	platform dependent string. These cfs commands can be used to check
+	what the precise expansion values depending on the current OS/cpu.
+	</para>
+    </listitem>
+    </varlistentry>
+
+    <varlistentry>
+    <term><option>beginrepair</option></term>
+    <listitem>
+	<para>Tell venus to expand a conflict. The dangling symlink becomes a
+	directory that contains readonly copies of all the versions of the
+	object as found on the various replicas.
+	</para>
+	<para>Abbreviation: <option>br</option>.
+	</para>
+    </listitem>
+    </varlistentry>
+
+    <varlistentry>
+    <term><option>endrepair</option></term>
+    <listitem>
+	<para>Tell venus to end a repair session on file.  Useful if repair is
+	exits without finishing the repair session.
+	</para>
+	<para>Abbreviation: <option>er</option>.
+	</para>
+    </listitem>
+    </varlistentry>
+
+    <varlistentry>
+    <term><option>examineclosure</option></term>
+    <listitem>
+	<para>Examine reintegration closure.  Using <command>cfs</command>
+	<option>examineclosure</option> will display the fixfile used to
+	reintegrate changes that were made while operating in disconnected
+	mode.
+	</para>
+	<para>Abbreviation: <option>ec</option>
+	</para>
+    </listitem>
+    </varlistentry>
+
+    <varlistentry>
+    <term><option>flushcache</option></term>
+    <listitem>
+	<para>Flush entire cache.  Care must be taken when using the
+	<command>cfs</command> <option>flushcache</option> command, as
+	flushing the cache while operating in disconnected mode may result in
+	loss of data.
+	</para>
+    </listitem>
+    </varlistentry>
+
+    <varlistentry>
+    <term><option>flushobject</option></term>
+    <listitem>
+	<para>Flush objects from cache. <command>cfs</command>
+	<option>flushobject</option> tells venus to remove the given objects
+	from the cache.
+	</para>
+	<para>Abbreviation: <option>fl</option>
+	</para>
+    </listitem>
+    </varlistentry>
+
+    <varlistentry>
+    <term><option>flushvolume</option></term>
+    <listitem>
+	<para>Flush all data in specified volumes.  Care must be taken when
+	using the <command>cfs</command> <option>flushvolume</option> command,
+	as flushing the cache while operating in disconnected mode may result
+	in loss of data.
+    </listitem>
+    </varlistentry>
+
+    <varlistentry>
+    <term><option>getfid</option></term>
+    <listitem>
+	<para>Map the given paths to Coda file ids. 
+	</para>
+	<para>Abbreviation: <option>gf</option>
+	</para>
+    </listitem>
+    </varlistentry>
+
+    <varlistentry>
+    <term><option>getpath</option></term>
+    <listitem>
+	<para>Map fid to volume-relative path. <command>cfs</command>
+	<option>getpath</option> will display the path for each of the given
+	fids. 
+	</para>
+	<para>Abbreviation: <option>gp</option>
+	</para>
+    </listitem>
+    </varlistentry>
+
+    <varlistentry>
+    <term><option>listacl</option></term>
+    <listitem>
+	<para>List access control list for each of the given directories.  
+	</para>
+	<para>Abbreviation: <option>la</option>
+	</para>
+    </listitem>
+    </varlistentry>
+
+    <varlistentry>
+    <term><option>listcache</option></term>
+    <listitem>
+	<para>List the contents of the entire cache or the given volumes
+	(directories).
+	</para>
+	<para>Abbreviation: <option>lc</option>
+	</para>
+    </listitem>
+    </varlistentry>
+
+    <varlistentry>
+    <term><option>listvol</option></term>
+    <listitem>
+	<para>Display the current status of the volume in which the directory
+	is stored.  
+	</para>
+	<para>Abbreviation: <option>lv</option>
+	</para>
+    </listitem>
+    </varlistentry>
+
+    <varlistentry>
+    <term><option>lsmount</option></term>
+    <listitem>
+	<para>List the countents of a mount point.  This command can be used
+	to tell what volume a mount point refers to.
+	</para>
+    </listitem>
+    </varlistentry>
+
+    <varlistentry>
+    <term><option>mkmount</option></term>
+    <listitem>
+	<para>Create a mount point.  Mount <Emphasis>volume name</Emphasis> at
+	the point in the file system described by
+	<Emphasis>filename</Emphasis>.  If the <Emphasis>-rw</Emphasis> flag
+	is set, never use the corresponding read-only volume for a volume.
+	Otherwise, if a read-only volume exists (and the parent is also a
+	read-only volume), use the read-only volume.  
+	</para>
+	<para>Abbreviation: <option>mkm</option>
+	</para>
+    </listitem>
+    </varlistentry>
+
+    <varlistentry>
+    <term><option>purgeml</option></term>
+    <listitem>
+	<para>Purge volume modify log.  Care must be taken
+	when using the <command>cfs</command> <option>purgeml</option>
+	command, as it may result in loss of data.
+	</para>
+    </listitem>
+    </varlistentry>
+
+    <varlistentry>
+    <term><option>replayclosure</option></term>
+    <listitem>
+	<para>Replay reintegration closure.
+	</para>
+	<para>Abbreviation: <option>rc</option>
+	</para>
+    </listitem>
+    </varlistentry>
+
+    <varlistentry>
+    <term><option>rmmount</option></term>
+    <listitem>
+	<para>Remove a mount point from the file system. The volume itself is
+	not changed.  
+	</para>
+	<para>Abbreviation: <option>rmm</option>
+	</para>
+    </listitem>
+    </varlistentry>
+
+    <varlistentry>
+    <term><option>setacl</option></term>
+    <listitem>
+	<para>Set access control list.  Sets the access control list for each
+	<option>id</option>.  The <option>-clear</option> switch
+	clears the access control list except for the entries given on the
+	call to <command>cfs</command>.  The <option>-negative</option>
+	switch denies the given permissions, rather than granting them.
+	<Emphasis>Rights</Emphasis> are a subset of
+	<Emphasis>rwidlak</Emphasis> which are read, write, insert, delete,
+	lookup, administer, and lock respectively.  See the section on
+	<Emphasis>File Protection</Emphasis> in the <citetitle>Coda File
+	System Users and System Administrators Manual</citetitle> for more
+	detail.  
+	</para>
+	<para>Abbreviation: <option>sa</option>
+	</para>
+    </listitem>
+    </varlistentry>
+
+    <varlistentry>
+    <term><option>truncatelog</option></term>
+    <listitem>
+	<para>Truncate the RVM log at this instant.
+	</para>
+	<para>Abbreviation: <option>tl</option>
+	</para>
+    </listitem>
+    </varlistentry>
+
+    <varlistentry>
+    <term><option>waitforever</option></term>
+    <listitem>
+	<para>Tells venus whether it should wait forever for dead file servers
+	or not.  By default, venus does not wait; it returns ETIMEDOUT.  For
+	certain batch jobs, waiting is better than not waiting.
+	</para>
+	<para>Abbreviation: <option>wf</option>
+	</para>
+    </listitem>
+    </varlistentry>
+
+    <varlistentry>
+    <term><option>whereis</option></term>
+    <listitem>
+	<para>List the servers that the given files reside on.
+	</para>
+    </listitem>
+    </varlistentry>
+
+    <varlistentry>
+    <term><option>disconnect</option></term>
+    <listitem>
+	<para>Partition your client from the Coda file servers.
+	</para>
+    </listitem>
+    </varlistentry>
+
+    <varlistentry>
+    <term><option>reconnect</option></term>
+    <listitem>
+	<para>Reconnect to the Coda file servers.  <command>cfs</command>
+	<option>reconnect</option> will undo the effects of a
+	<command>cfs</command> <option>disconnect</option>.
+	</para>
+    </listitem>
+    </varlistentry>
+
+    <varlistentry>
+    <term><option>writedisconnect</option></term>
+    <listitem>
+	<para>Tell venus to write disconnect on the given volumes, or all
+	volumes if none are provided.  Write disconnected operation will fetch
+	files from the server, but does not propagate changes back
+	immediately.
+	</para>
+	<para>An <option>-age</option> argument gives the age of the CML
+	before it should be reintegrated.  The <option>-time</option>
+	arguments gives the number of seconds the sending of a reintegration
+	fragment should take.
+	</para>
+	<para>Abbreviation: <option>wd</option>
+	</para>
+    </listitem>
+    </varlistentry>
+
+    <varlistentry>
+    <term><option>writereconnect</option></term>
+    <listitem>
+	<para>Strongly connect to the servers.
+	</para>
+	<para>Abbreviation: <option>wr</option>
+	</para>
+    </listitem>
+    </varlistentry>
+</variablelist>
+</refsect1>
+
+<refsect1>
+    <title>SEE ALSO</title>
+    <para>chmod (1)
+    </para>
+</refsect1>
+
+<refsect1>
+    <title>AUTHORS</title>
+    <para>
+    <itemizedlist>
+    <listitem><para>1987, Adapted from AFS-2s fs</para>
+    </listitem>
+    <listitem><para>Maria R. Ebling, 1990, Created man page</para>
+    </listitem>
+    <listitem><para>M. Satyanarayanan, 1992, cfs rewritten from scratch</para>
+    </listitem>
+    <listitem><para>Joshua Raiff, 1993, Man page rewritten</para>
+    </listitem>
+    <listitem><para>Joshua Raiff, 1995, Updated</para>
+    </listitem>
+    <listitem><para>Jan Harkes, 2004, Converted to DocBook 4.1</para>
+    </listitem>
+    </itemizedlist>
+    </para>
+</refsect1>
+</refentry>
+
