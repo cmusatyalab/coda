@@ -387,42 +387,55 @@ void rpc2_UpdateEstimates(struct HEntry *host, struct timeval *elapsed,
     return;
 }
 
-void rpc2_RetryInterval(struct HEntry *host, RPC2_Unsigned Bytes, int retry,
+void rpc2_RetryInterval(RPC2_Handle whichConn, RPC2_Unsigned Bytes, int *retry,
 			struct timeval *tv)
 {
-    unsigned long rto;
+    struct CEntry *ce;
+    unsigned long rto, rtt;
     long          effBR;
-    int           i, shift = 1;
+    int		  i;
 
-    if (!host || !tv) return;
+    ce = rpc2_GetConn(whichConn);
 
-    if (retry == 0 || retry > Retry_N)
-    {
-	*tv = MaxRetryInterval;
+    if (!ce || !tv) {
+	say(0, RPC2_DebugLevel, "RetryInterval: !ce || !tv\n");
 	return;
     }
 
-    rto = (host->RTT >> RPC2_RTT_SHIFT) + host->RTTVar;
+    /* calculate the estimated RTT */
+
+    rto = (ce->HostInfo->RTT >> RPC2_RTT_SHIFT) + (ce->HostInfo->RTTVar >> 1);
 
     /* because we have subtracted the time to took to transfer data from our
      * RTT estimate (it is latency estimate), we have to add in the time to
      * send our packet into the estimated RTO */
 
-    effBR = (host->BR >> RPC2_BR_SHIFT);
-    // - ((host->BRVar >> RPC2_BRVAR_SHIFT) >> 1);
+    effBR = (ce->HostInfo->BR >> RPC2_BR_SHIFT);
 
     /* rto += ( effBR * Bytes ) / 1000 ; */
     rto += ((effBR >> 3) * Bytes) >> 7;
     
-    /* minimum bound for rtt estimates to compensate for scheduling etc. */
-    if (rto < RPC2_MINRTO) rto = RPC2_MINRTO;
+    /* clamp rtt estimates */
+    if      (rto < RPC2_MINRTO) rto = RPC2_MINRTO;
+    else if (rto > RPC2_MAXRTO) rto = RPC2_MAXRTO;
 
-    for (i = 1; i < retry; i++) rto <<= shift;
+    if (*retry != 1) {
+	rtt = ce->MaxRetryInterval.tv_sec * 1000000 +
+	      ce->MaxRetryInterval.tv_usec;
 
-    if (rto > RPC2_MAXRTO) rto = RPC2_MAXRTO;
-
+	for (i = ce->Retry_N; i >= *retry; i--) {
+	    *retry = i;
+	    if (rtt < rto) break;
+	    rtt >>= 1;
+	}
+	if (rtt > rto) rto = rtt;
+    }
+    
     tv->tv_sec  = rto / 1000000;
     tv->tv_usec = rto % 1000000;
+
+    say(0, RPC2_DebugLevel, "RetryInterval: %lu.%06lu\n",
+	tv->tv_sec, tv->tv_usec);
 
     return;
 }

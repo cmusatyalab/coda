@@ -484,7 +484,7 @@ long RPC2_GetPeerInfo(IN ConnHandle, OUT PeerInfo)
     rpc2_Enter();
     say(999, RPC2_DebugLevel, "RPC2_GetPeerInfo()\n");
 
-    ceaddr = rpc2_FindCEAddr(ConnHandle);
+    ceaddr = rpc2_GetConn(ConnHandle);
     if (ceaddr == NULL) rpc2_Quit(RPC2_NOCONNECTION);
 
     PeerInfo->RemoteHost = ceaddr->PeerHost;	/* structure assignment */
@@ -643,7 +643,7 @@ long RPC2_GetPeerLiveness(IN RPC2_Handle ConnHandle,
     Time->tv_sec = Time->tv_usec = 0;
     SETime->tv_sec = SETime->tv_usec = 0;
 
-    ceaddr = rpc2_FindCEAddr(ConnHandle);
+    ceaddr = rpc2_GetConn(ConnHandle);
     if (ceaddr == NULL) rpc2_Quit(RPC2_NOCONNECTION);
 
     /* get live time for RPC2 connection */
@@ -788,7 +788,7 @@ long RPC2_ClearNetInfo(IN Conn)
     rpc2_Enter();
     say(999, RPC2_DebugLevel, "RPC2_ClearNetInfo()\n");
 
-    ceaddr = rpc2_FindCEAddr(Conn);
+    ceaddr = rpc2_GetConn(Conn);
     if (ceaddr == NULL) rpc2_Quit(RPC2_NOCONNECTION);
 
     /* get live time for RPC2 connection */

@@ -78,16 +78,16 @@ void rpc2_InitConn()
 /* Returns pointer to the connection data structure corresponding to
    whichHandle.  Returns NULL if whichHandle does not refer to an
    existing connection.  */
-struct CEntry *rpc2_FindCEAddr(IN RPC2_Handle whichHandle)
+struct CEntry *rpc2_GetConn(RPC2_Handle handle)
 {
     long                i;
     struct dllist_head *ptr;
     struct CEntry      *ceaddr;
 
-    if (whichHandle == 0) return(NULL);
+    if (handle == 0) return(NULL);
 
     /* bucket is handle modulo HASHLENGTH */
-    i= whichHandle & (HASHLENGTH-1);	
+    i= handle & (HASHLENGTH-1);	
 
     /* and walk the chain */
     for (ptr = HashTable[i].next; ptr != &HashTable[i]; ptr = ptr->next)
@@ -96,7 +96,7 @@ struct CEntry *rpc2_FindCEAddr(IN RPC2_Handle whichHandle)
         ceaddr = list_entry(ptr, struct CEntry, Chain);
         CODA_ASSERT(ceaddr->MagicNumber == OBJ_CENTRY);
 
-        if (ceaddr->UniqueCID == whichHandle) 
+        if (ceaddr->UniqueCID == handle) 
         {
             /* we are likely to see more lookups for this CEntry, so put it at
              * the front of the chain */
@@ -134,7 +134,7 @@ static void Uniquefy(IN struct CEntry *ceaddr)
 	if (handle == 0 || handle == -1)
 	    continue;
     }
-    while(rpc2_FindCEAddr(handle) != NULL);
+    while(rpc2_GetConn(handle) != NULL);
 
     /* set the handle */
     ceaddr->UniqueCID = handle;
@@ -202,7 +202,7 @@ void rpc2_FreeConn(RPC2_Handle whichConn)
     RPC2_PacketBuffer *pb;
     struct CEntry *ce;
 
-    ce = rpc2_FindCEAddr(whichConn);
+    ce = rpc2_GetConn(whichConn);
     CODA_ASSERT(ce != NULL);
     CODA_ASSERT(ce->MagicNumber == OBJ_CENTRY);
     rpc2_FreeConns++;
@@ -378,7 +378,7 @@ rpc2_ConnFromBindInfo(RPC2_HostIdent *whichHost, RPC2_PortIdent *whichPort,
 			&& rpc2_HostIdentEqual(&rbn->Host, whichHost)
 			&& rpc2_PortIdentEqual(&rbn->Port, whichPort)) {
 			    say(0, RPC2_DebugLevel, "RBCache hit after %d tries\n", i+1);
-			    return(rpc2_FindCEAddr(rbn->MyConn));
+			    return(rpc2_GetConn(rbn->MyConn));
 		    }
 
 	    /* Else bump counters and try previous one */
@@ -415,15 +415,4 @@ rpc2_ConnFromBindInfo(RPC2_HostIdent *whichHost, RPC2_PortIdent *whichPort,
         rpc2_ConnCount);
 
     return(NULL);
-}
-
-
-struct CEntry *rpc2_GetConn(RPC2_Handle handle)
-{
-	struct CEntry *ce;
-
-	ce = rpc2_FindCEAddr(handle);
-	CODA_ASSERT(!ce || ce->MagicNumber == OBJ_CENTRY);
-
-	return(ce);
 }

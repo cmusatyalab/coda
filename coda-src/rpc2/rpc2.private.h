@@ -474,7 +474,6 @@ void rpc2_ProcessPackets(), rpc2_ExpireEvents();
 /* Connection manipulation routines  */
 void rpc2_InitConn(), rpc2_FreeConn(), rpc2_SetConnError();
 struct CEntry *rpc2_AllocConn();
-struct CEntry *rpc2_FindCEAddr(RPC2_Handle whichHandle);
 struct CEntry *rpc2_ConnFromBindInfo(RPC2_HostIdent *whichHost, RPC2_PortIdent *whichPort, RPC2_Integer whichUnique);
 struct CEntry *rpc2_GetConn(RPC2_Handle handle);
 void rpc2_IncrementSeqNumber(struct CEntry *);
@@ -495,7 +494,7 @@ void RPC2_UpdateEstimates(struct HEntry *whichHost, RPC2_Unsigned ElapsedTime,
 			  RPC2_Unsigned Bytes);
 void rpc2_UpdateEstimates(struct HEntry *whichHost, struct timeval *elapsed,
 			  RPC2_Unsigned Bytes);
-void rpc2_RetryInterval(struct HEntry *host, RPC2_Unsigned Bytes, int retry,
+void rpc2_RetryInterval(RPC2_Handle whichConn, RPC2_Unsigned Bytes, int *retry,
 			struct timeval *tv);
 
 /* Multicast group manipulation routines */

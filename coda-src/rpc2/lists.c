@@ -184,7 +184,7 @@ void rpc2_FreeSle(INOUT sl)
 
     if (tsl->Conn != 0)
 	{
-	ce = rpc2_FindCEAddr(tsl->Conn);
+	ce = rpc2_GetConn(tsl->Conn);
         CODA_ASSERT(ce != NULL);
 	ce->MySl = NULL;
 	}

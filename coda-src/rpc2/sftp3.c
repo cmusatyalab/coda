@@ -263,6 +263,7 @@ int sftp_DataArrived(RPC2_PacketBuffer *pBuff, struct SFTP_Entry *sEntry)
 {
     long moffset;	/* bit position of TheseBits corresponding to pBuff */
     long i, j;
+    int retry;
     
     if (sEntry->SentParms == FALSE && sEntry->WhoAmI == SFSERVER)
 	sEntry->SentParms = TRUE;    /* this data packet is evidence that my Start got to the client */
@@ -374,7 +375,8 @@ int sftp_DataArrived(RPC2_PacketBuffer *pBuff, struct SFTP_Entry *sEntry)
 		sftp_UpdateBW(pBuff, dataThisRound, sEntry);
 
 	    /* recalculate the retry timeout */
-	    rpc2_RetryInterval(sEntry->HostInfo, dataThisRound, 1,
+	    retry = 1;
+	    rpc2_RetryInterval(sEntry->LocalHandle, dataThisRound, &retry,
 			       &sEntry->RInterval);
 	}
     }

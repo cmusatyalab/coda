@@ -306,9 +306,7 @@ long ProcessPacket(RPC2_Handle cIn, RPC2_PacketBuffer *pIn, RPC2_PacketBuffer *p
     char *cptr;
     SE_Descriptor sed;
     RPC2_NewConnectionBody *newconnbody;
-#ifdef OLDLWP
     int smax, sused;
-#endif OLDLWP
 
     memset(&sed, 0, sizeof(SE_Descriptor));
 
@@ -341,10 +339,8 @@ long ProcessPacket(RPC2_Handle cIn, RPC2_PacketBuffer *pIn, RPC2_PacketBuffer *p
 	    pOut->Header.ReturnCode = RPC2_SUCCESS;
 	    pOut->Header.BodyLength = 0;
 	    i = WhatHappened(RPC2_SendResponse(cIn, pOut), "SendResponse");
-#ifdef OLDLWP
 	    LWP_StackUsed(rpc2_SocketListenerPID, &smax, &sused);
 	    printf("SL stack used: %d of %d\n", sused, smax);
-#endif OLDLWP
 	    printf("\tCreation:    Spkts = %ld  Mpkts = %ld  Lpkts = %ld  SLEs = %ld  Conns = %ld\n",
 		rpc2_PBSmallCreationCount, rpc2_PBMediumCreationCount, 
 		rpc2_PBLargeCreationCount, rpc2_SLCreationCount, rpc2_ConnCreationCount);

@@ -290,7 +290,7 @@ static void SetupConns(HowMany, ConnHandleList, ceaddr, MCast, me, SDescList, re
 	{
 	if (host == HowMany) break;
 
-	if ((thisconn = ceaddr[host] = rpc2_FindCEAddr(ConnHandleList[host])) == NULL)
+	if ((thisconn = ceaddr[host] = rpc2_GetConn(ConnHandleList[host])) == NULL)
 	    {
 	    retcode[host] = RPC2_NOCONNECTION;
 	    host++;

@@ -188,9 +188,7 @@ int main(int arg, char **argv)
 				  (RPC2_PortIdent *)NULL, -1, (struct timeval *)NULL), "Init") != RPC2_SUCCESS)
 	exit(-1);
 
-#ifdef OLDLWP
     lwp_stackUseEnabled = 0;
-#endif OLDLWP
 
     CODA_ASSERT(RPC2_AllocBuffer(RPC2_MAXPACKETSIZE - 500, &Buff1) == RPC2_SUCCESS);
                        /* 500 is a fudge factor */

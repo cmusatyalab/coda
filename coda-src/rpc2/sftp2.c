@@ -340,6 +340,7 @@ static void ClientPacket(RPC2_PacketBuffer *whichPacket,
 			 struct SFTP_Entry *sEntry)
 {
     unsigned long bytes;
+    int retry;
     /* Deal with this packet on Listener's thread of control */
 
     switch ((int) whichPacket->Header.Opcode)
@@ -359,7 +360,8 @@ static void ClientPacket(RPC2_PacketBuffer *whichPacket,
 	    bytes = ((sEntry->PacketSize +sizeof(struct RPC2_PacketHeader)) *
 		     sEntry->WindowSize) + sizeof(struct RPC2_PacketHeader);
 
-	    rpc2_RetryInterval(sEntry->HostInfo, bytes, 1,
+	    retry = 1;
+	    rpc2_RetryInterval(sEntry->LocalHandle, bytes, &retry,
 			       &sEntry->RInterval);
 
 	    if (sftp_AckArrived(whichPacket, sEntry) < 0) {
