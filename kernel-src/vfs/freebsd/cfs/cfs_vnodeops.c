@@ -27,7 +27,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-/* $Header: /afs/cs/project/coda-src/cvs/coda/kernel-src/vfs/bsd44/cfs/cfs_vnodeops.c,v 1.10 1998/08/18 17:05:21 rvb Exp $ */
+/* $Header: /afs/cs/project/coda-src/cvs/coda/kernel-src/vfs/bsd44/cfs/cfs_vnodeops.c,v 1.11 1998/08/28 18:12:23 rvb Exp $ */
 
 /* 
  * Mach Operating System
@@ -46,6 +46,12 @@ Mellon the rights to redistribute these changes without encumbrance.
 /*
  * HISTORY
  * $Log: cfs_vnodeops.c,v $
+ * Revision 1.11  1998/08/28 18:12:23  rvb
+ * Now it also works on FreeBSD -current.  This code will be
+ * committed to the FreeBSD -current and NetBSD -current
+ * trees.  It will then be tailored to the particular platform
+ * by flushing conditional code.
+ *
  * Revision 1.10  1998/08/18 17:05:21  rvb
  * Don't use __RCSID now
  *
@@ -2250,10 +2256,10 @@ cfs_bmap(v)
     struct proc *p __attribute__((unused)) = curproc;
 /* upcall decl */
 /* locals */
-    int ret = 0;
 
 #ifdef	__FreeBSD__
 #ifdef	__FreeBSD_version
+	int ret = 0;
 	struct cnode *cp;
 
 	cp = VTOC(vp);
@@ -2291,36 +2297,15 @@ cfs_strategy(v)
 {
 /* true args */
     struct vop_strategy_args *ap = v;
-    struct vnode *vp __attribute__((unused)) = ap->a_vp;	/* file's vnode */
     register struct buf *bp __attribute__((unused)) = ap->a_bp;
     struct proc *p __attribute__((unused)) = curproc;
 /* upcall decl */
 /* locals */
-    int ret = 0;
 
 #ifdef	__FreeBSD__
 #ifdef	__FreeBSD_version
-
-	struct cnode *cp;
-	/*
-	 * This needs testing.  execve calls bread and will go thru
-	 * this code.  So currently we comment out the "optimization"
-	 * in exec.
-	 */
-
-	printf("cfs_strategy: Entered!\n");
-	cp = VTOC(vp);
-	if (cp->c_ovp) {
-		printf("cfs_strategy: redirect thru container\n");
-		bp->b_vp = cp->c_ovp;
-		ret = VOP_STRATEGY(cp->c_ovp, bp);
-		printf("VOP_STRATEGY(cp->c_ovp %p, bp %p) = %d\n",
-			cp->c_ovp, bp, ret);
-		return ret; 
-	} else {
-		printf("cfs_strategy: no container\n");
-		return(EOPNOTSUPP);
-	}
+	printf("cfs_strategy: called ???\n");
+	return(EOPNOTSUPP);
 #else	/* ! __MAYBE_FreeBSD__ */
 	myprintf(("cfs_strategy called!  "));
 	return(EOPNOTSUPP);
