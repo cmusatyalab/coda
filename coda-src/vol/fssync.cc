@@ -300,7 +300,7 @@ static void FSYNC_SetRelocationSite(VolumeId volumeId, int server)
 static void FSYNC_DeleteRelocations(int nMinutes)
 {
     long cutoff = FT_ApproxTime() - nMinutes*60;
-    register int i, spread;
+    int i, spread;
 
     VLog(9, "entering FSYNC_DeleteRelocations()");
     for (spread = i = 0; i<nRelocations; i++) {
@@ -323,14 +323,14 @@ static int UtilityId[MAXUTILITIES];
 
 static void InitUtilities ()
 {
-	register int i;
+	int i;
 	for(i=0;i<MAXUTILITIES;i++)
 		UtilityId[i] = -1;
 }
 	
 static int AddUtility (int myid)
 {
-	register int i;
+	int i;
 	for(i=0;i<MAXUTILITIES;i++)
 		if (UtilityId[i] < 0) break;
 	if (i>=MAXUTILITIES) return 0;
@@ -338,16 +338,16 @@ static int AddUtility (int myid)
 	return 1;
 }
 
-static int FindUtility (register int myid)
+static int FindUtility (int myid)
 {
-	register int i;
+	int i;
 	for(i=0;i<MAXUTILITIES;i++)
 		if (UtilityId[i] == myid) return i;
 	CODA_ASSERT(1 == 2);
 	return -1;
 }
 
-static int RemoveUtility (register int myid)
+static int RemoveUtility (int myid)
 {
 	UtilityId[FindUtility(myid)] = -1;
 	return 1;

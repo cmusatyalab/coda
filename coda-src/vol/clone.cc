@@ -77,7 +77,7 @@ extern "C" {
 
 
 static void CloneIndex(Volume *ovp, Volume *cvp, Volume *dvp, VnodeClass vclass);
-static void FinalDelete(register Volume *vp);
+static void FinalDelete(Volume *vp);
 
 void CloneVolume(Error *error, Volume *original, Volume *newv, Volume *old)
 {
@@ -159,7 +159,7 @@ static void CloneIndex(Volume *ovp, Volume *cvp, Volume *dvp, VnodeClass vclass)
     }
 }
 
-static void FinalDelete(register Volume *vp)
+static void FinalDelete(Volume *vp)
 {
     /* Delete old backup -- it's vnodes are already gone */
     if (vp) {

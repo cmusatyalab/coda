@@ -42,14 +42,14 @@ Pittsburgh, PA.
 #include "voldefs.h"
 
 extern Volume *VCreateVolume(Error *ec, char *partition, VolumeId volumeId, VolumeId parentId, VolumeId groupId, int type =readwriteVolume, int rvmlogsize =0);
-extern Volume *MakeBackupVolume(register Volume *vp, Volume *sacrifice, int verbose);
+extern Volume *MakeBackupVolume(Volume *vp, Volume *sacrifice, int verbose);
 extern void AssignVolumeName(VolumeDiskData *vol, char *name, const char *ext);
 extern void CopyVolumeHeader(VolumeDiskData *from, VolumeDiskData *to);
 extern void ClearVolumeStats(VolumeDiskData *vol);
 
 extern int ListViceInodes(char *devname, char *mountedOn, char *resultFile, int (*judgeInode)(struct ViceInodeInfo*, VolumeId), int judgeParam);
 extern int ListCodaInodes(char *devname, char *mountedOn, char *resultFile, int (*judgeInode)(struct ViceInodeInfo*, VolumeId), int judgeParam);
-extern int HashString(register char *s, unsigned int size);
+extern int HashString(char *s, unsigned int size);
 extern void CloneVolume(Error *error, Volume *original, Volume *newv, Volume *old);
 
 #endif /* _VUTIL_H_ */

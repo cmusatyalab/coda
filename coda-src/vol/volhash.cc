@@ -48,8 +48,8 @@ static int VolIdHash(VolumeId volid);
 
 int VolIdHash(VolumeId volid)
 {
-    register unsigned int sum = 0;
-    register int n;
+    unsigned int sum = 0;
+    int n;
     char s[V_MAXVOLNAMELEN], *tmp;
     
     sprintf(s, VFORMAT, volid);

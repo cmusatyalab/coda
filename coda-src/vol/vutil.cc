@@ -213,7 +213,7 @@ void CopyVolumeHeader(VolumeDiskData *from, VolumeDiskData *to)
     to->ResOn = 0;
 }
 
-void ClearVolumeStats(register VolumeDiskData *vol)
+void ClearVolumeStats(VolumeDiskData *vol)
 {
     memset((char *)vol->weekUse, 0, sizeof(vol->weekUse));
     vol->dayUse = 0;

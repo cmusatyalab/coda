@@ -405,7 +405,7 @@ extern int VConnectFS();
 extern void VDisconnectFS();
 extern void VUCloneVolume(Error *, Volume *, Volume *);
 extern void VListVolumes(char **buf, unsigned int *buflen);
-extern void VGetVolumeInfo(Error *ec, char *key, register VolumeInfo *info);
+extern void VGetVolumeInfo(Error *ec, char *key, VolumeInfo *info);
 extern Volume * VGetVolume(Error *ec, VolumeId volumeId);
 extern void VPutVolume(Volume *vp);
 extern Volume * VAttachVolume(Error *ec, VolumeId volumeId, int mode);

@@ -189,7 +189,7 @@ PDirHandle SetDirHandle(struct Vnode *);
 extern int VolumeHashOffset();
 extern void VInitVnodes(VnodeClass, int);
 extern Vnode *VGetVnode(Error *, Volume *, VnodeId, Unique_t, int, int, int =0);
-extern void VPutVnode(Error *ec, register Vnode *vnp);
+extern void VPutVnode(Error *ec, Vnode *vnp);
 extern void VFlushVnode(Error *, Vnode *);
 extern int VAllocFid(Volume *vp, VnodeType type,
 		      ViceFidRange *Range, int stride =1, int ix =0);

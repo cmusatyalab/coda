@@ -116,7 +116,7 @@ struct vldb *VLDBLookup(char *key)
 		    index, VLDB_size, LOG_VLDBSIZE);
     for (;;) {
         int n;
-	register int i=0, nRecords=0;
+	int i=0, nRecords=0;
 	if (lseek(VLDB_fd, index << LOG_VLDBSIZE, L_SET) == -1) {
 	    VLog(9, "VLDBLookup: lseek failed for VLDB");
 	    return 0;
@@ -129,7 +129,7 @@ struct vldb *VLDBLookup(char *key)
 	VLog(29, "VLDBLookup: read succeeded, n = %d", n>>LOG_VLDBSIZE);
 	nRecords = (n>>LOG_VLDBSIZE);    
 	for (i = 0; i<nRecords; ) {
-	    register struct vldb *vldp = &VLDB_records[i];
+	    struct vldb *vldp = &VLDB_records[i];
 	    if (vldp->key[0] == key[0] && strcmp(vldp->key, key) == 0) {
 		VLog(39, "VLDBLookup: found VLDB record, VID = %u type = %x, servers = %d, server0 = %d, server1 = %x, server2 = %x",
 		    ntohl(vldp->volumeId[vldp->volumeType]), vldp->volumeType,
@@ -170,7 +170,7 @@ int VLDBPrint()
     VLog(100, "VLDBPrint: ");
     for (;;) {
         int n;
-	register int i=0, nRecords=0;
+	int i=0, nRecords=0;
 	n = read(VLDB_fd, (char *)VLDB_records, sizeof(VLDB_records));
 	if (n < 0) 
 	    VLog(129, "VLDBPrint: read failed for VLDB");
@@ -180,7 +180,7 @@ int VLDBPrint()
 	VLog(129, "VLDBPrint: read succeeded, n = %d", n>>LOG_VLDBSIZE);
 	nRecords = (n>>LOG_VLDBSIZE);    
 	for (i = 0; i<nRecords; i++) {
-	    register struct vldb *vldp = &VLDB_records[i];
+	    struct vldb *vldp = &VLDB_records[i];
 	    if (ntohl(vldp->volumeId[vldp->volumeType]) != 0)
 		VLog(100, "VID = %x type = %x, servers = %d, server0 = %x, server1 = %x, server2 = %x, key= %s",
 		    ntohl(vldp->volumeId[vldp->volumeType]), vldp->volumeType,

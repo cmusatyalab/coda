@@ -146,7 +146,7 @@ static void GetBitmap(Error *ec, Volume *vp, VnodeClass vclass);
 static void VAdjustVolumeStatistics(Volume *vp);
 static void VScanUpdateList();
 static int GetVolumeHeader(Volume *vp);
-static int AvailVolumeHeader(register Volume *vp);
+static int AvailVolumeHeader(Volume *vp);
 static void ReleaseVolumeHeader(struct volHeader *hd);
 void FreeVolumeHeader(Volume *vp);
 static void AddVolumeToHashTable(Volume *vp, int hashid);
@@ -460,11 +460,11 @@ void VInitServerList(char *host)
     fclose(file);
 }
 
-void VGetVolumeInfo(Error *ec, char *key, register VolumeInfo *info)
+void VGetVolumeInfo(Error *ec, char *key, VolumeInfo *info)
 {
-    register struct vldb *vldp;
-    register VolumeId *vidp;
-    register int i, nReported;
+    struct vldb *vldp;
+    VolumeId *vidp;
+    int i, nReported;
     bit32 *serverList;
 
     VLog(9, "Entering VGetVolumeInfo, key = %s", key);
@@ -485,7 +485,7 @@ void VGetVolumeInfo(Error *ec, char *key, register VolumeInfo *info)
     CODA_ASSERT(vldp->nServers <= VSG_MEMBERS);
     serverList = (bit32 *) &info->Server0;
     for (nReported = i = 0; i<vldp->nServers; i++) {
-	register unsigned long serverAddress;
+	unsigned long serverAddress;
 	serverAddress = HostAddress[vldp->serverNumber[i]];
 	if (serverAddress)
 	    serverList[nReported++] = serverAddress;
@@ -500,7 +500,7 @@ void VGetVolumeInfo(Error *ec, char *key, register VolumeInfo *info)
        number of servers is low.  After that, we'll have to figure out a better
        way to point a client at an appropriate server */
     for (i = nReported; i>1; ) {
-        register bit32 temp;
+        bit32 temp;
         long s = random() % i;
 	temp = serverList[s];
 	for(i--; s<i; s++)
@@ -644,7 +644,7 @@ void VShutdown() {
     VLog(0, "VShutdown:  shutting down on-line volumes...");
 
     for (i=0; i<VOLUME_HASH_TABLE_SIZE; i++) {
-        register Volume *vp, *p;
+        Volume *vp, *p;
 	p = VolumeHashTable[i];
 	while (p) {
 	    Error error;
@@ -730,7 +730,7 @@ static void WriteVolumeHeader(Error *ec, Volume *vp)
 Volume *
 VAttachVolumeById(Error *ec, char *partition, VolumeId volid, int mode)
 {
-	register Volume *vp;
+	Volume *vp;
 	int rc,listVolume = 0;
 	struct VolumeHeader header;
 	struct DiskPartition *dp;
@@ -920,49 +920,49 @@ static Volume *attach2(Error *ec, char *name,
 	vp->vnIndex[vSmall].bitmap = vp->vnIndex[vLarge].bitmap = NULL;
 
 	if (VolumeWriteable(vp)) {
-		int i;
-		for (i = 0; i<nVNODECLASSES; i++) {
-			GetBitmap(ec,vp,i); 
-			if (*ec) {
-				FreeVolume(vp);
-				return NULL;
-			}
+	    int i;
+	    for (i = 0; i<nVNODECLASSES; i++) {
+		GetBitmap(ec,vp,i); 
+		if (*ec) {
+		    FreeVolume(vp);
+		    return NULL;
 		}
+	    }
 	}
 	VLog(29, "Leaving attach2()");
 	return vp;
 }
+
 /* Attach an existing volume.
    The volume also normally goes online at this time.
    An offline volume must be reattached to make it go online.
  */
-
 Volume *
 VAttachVolume(Error *ec, VolumeId volumeId, int mode)
 {
-	char part[VMAXPATHLEN];
-	int myind;
-    
-	VLog(9, "Entering VAttachVolume() for volume %x", volumeId);
-	if ((myind = HashLookup(volumeId)) == -1) {
-		VLog(0, "VAttachVolume: Volume %x not in index hash table!", 
-		     volumeId);
-		*ec = VNOVOL;
-		return NULL;
+    char part[VMAXPATHLEN];
+    int myind;
+
+    VLog(9, "Entering VAttachVolume() for volume %x", volumeId);
+    if ((myind = HashLookup(volumeId)) == -1) {
+	VLog(0, "VAttachVolume: Volume %x not in index hash table!", 
+	     volumeId);
+	*ec = VNOVOL;
+	return NULL;
+    }
+
+    GetVolPartition(ec, volumeId, myind, part);
+    if (*ec) {
+	Volume *vp;
+	Error error;
+	vp = VGetVolume(&error, volumeId);
+	if (vp) {
+	    CODA_ASSERT(V_inUse(vp) == 0);
+	    VDetachVolume(ec, vp);
 	}
-    
-	GetVolPartition(ec, volumeId, myind, part);
-	if (*ec) {
-		Volume *vp;
-		Error error;
-		vp = VGetVolume(&error, volumeId);
-		if (vp) {
-			CODA_ASSERT(V_inUse(vp) == 0);
-			VDetachVolume(ec, vp);
-		}
-		return NULL;
-	}
-	return VAttachVolumeById(ec, part, volumeId, mode);
+	return NULL;
+    }
+    return VAttachVolumeById(ec, part, volumeId, mode);
 }
 
 /* Get a pointer to an attached volume.  The pointer is returned regardless
@@ -980,7 +980,7 @@ Volume *VGetVolume(Error *ec, VolumeId volumeId)
 	*ec = 0;
 	for (vp = VolumeHashTable[VOLUME_HASH(volumeId)];
 	     vp && vp->hashid != volumeId; vp = vp->hashNext)
-		;
+	    ;
 	if (!vp) {
 	    VLog(29, "VGetVolume: Didnt find id %x in hashtable",
 		 volumeId);
@@ -1025,35 +1025,35 @@ Volume *VGetVolume(Error *ec, VolumeId volumeId)
 		     */
 		    if (errno != ENXIO || VolDebugLevel)
 			VLog(0, "Volume %x: couldn't reread volume header",
-								vp->hashid);
+			     vp->hashid);
 		    FreeVolume(vp);
 		    vp = 0;
 		    break;
 		}
 	    }
 	}
-	
+
 	if (vp->shuttingDown) {
 	    VLog(29, "VGetVolume: volume %x is shutting down",
-		V_id(vp));
+		 V_id(vp));
 	    *ec = VNOVOL;
 	    vp = 0;
 	    break;
 	}
 	if (vp->goingOffline) {
 	    VLog(29, "VGetVolume: Volume %x is going offline",
-		V_id(vp));
+		 V_id(vp));
 	    LWP_WaitProcess((char *)VPutVolume);
 	    continue;
 	}
 	if (vp->specialStatus){
 	    VLog(29, "VGetVolume: Volume %x has special status",
-		V_id(vp));
+		 V_id(vp));
 	    *ec = vp->specialStatus;
 	}
 	else if (V_inService(vp)==0 || V_blessed(vp)==0){
 	    VLog(29, "VGetVolume: Vol %x not in service",
-		V_id(vp));
+		 V_id(vp));
 	    *ec = VNOSERVICE; /* Either leave vp set or do ReleaseVolHeader */
 	    /* Not sure which is better... */
 	}
@@ -1077,7 +1077,7 @@ Volume *VGetVolume(Error *ec, VolumeId volumeId)
     return vp;
 }
 
-void VPutVolume(register Volume *vp)
+void VPutVolume(Volume *vp)
 {
     ProgramType *pt;
 
@@ -1085,10 +1085,10 @@ void VPutVolume(register Volume *vp)
     CODA_ASSERT(LWP_GetRock(FSTAG, (char **)&pt) == LWP_SUCCESS);
     CODA_ASSERT(--(vp->nUsers) >= 0);
     if (vp->nUsers == 0) {
-        Error error;
+	Error error;
 
 	ReleaseVolumeHeader(vp->header);
-        if (vp->goingOffline) {
+	if (vp->goingOffline) {
 	    CODA_ASSERT(*pt == fileServer);
 	    vp->goingOffline = 0;
 	    V_inUse(vp) = 0;
@@ -1096,7 +1096,7 @@ void VPutVolume(register Volume *vp)
 	    VUpdateVolume(&error, vp);	 /* write out the volume disk data */
 	    if (VolDebugLevel) {
 		VLog(0, "VPutVolume: Volume %x (%s) is now offline",
-		    V_id(vp), V_name(vp));
+		     V_id(vp), V_name(vp));
 		if (V_offlineMessage(vp)[0])
 		    VLog(0, " (%s)", V_offlineMessage(vp));
 		VLog(0, "");
@@ -1106,31 +1106,31 @@ void VPutVolume(register Volume *vp)
 	if (vp->shuttingDown) {
 	    FreeVolume(vp);
 	    if (*pt == fileServer)
-	        LWP_SignalProcess((char *)VPutVolume);
+		LWP_SignalProcess((char *)VPutVolume);
 	}
     }
     else 
-	    VLog(1, "VPutVolume (%x): NO-OP since vp->nUsers = %d", 
-		 V_id(vp), vp->nUsers + 1);
+	VLog(1, "VPutVolume (%x): NO-OP since vp->nUsers = %d", 
+	     V_id(vp), vp->nUsers + 1);
 }
 
 /* Force the volume offline, set the salvage flag.  No further references to */
 /* the volume through the volume package will be honored. */
 void VForceOffline(Volume *vp)
 {
-	Error error;
+    Error error;
 
-	VLog(0, "VForceOffline for volume %x", V_id(vp));
-	if (!V_inUse(vp))
-		return;
-	strcpy(V_offlineMessage(vp), "Forced offline due to internal error: volume needs to be salvaged");
-	VLog(0, "Volume %x forced offline:  it needs to be salvaged!", V_id(vp));
-	V_inUse(vp) = 0;
-	VLog(1, "VForceOffline: setting V_inUse(%x) = 0 and writing out voldiskinfo", V_id(vp));
-	vp->goingOffline = 0;    
-	V_needsSalvaged(vp) = 1;
-	VUpdateVolume(&error, vp);
-	LWP_SignalProcess((char *)VPutVolume);
+    VLog(0, "VForceOffline for volume %x", V_id(vp));
+    if (!V_inUse(vp))
+	return;
+    strcpy(V_offlineMessage(vp), "Forced offline due to internal error: volume needs to be salvaged");
+    VLog(0, "Volume %x forced offline:  it needs to be salvaged!", V_id(vp));
+    V_inUse(vp) = 0;
+    VLog(1, "VForceOffline: setting V_inUse(%x) = 0 and writing out voldiskinfo", V_id(vp));
+    vp->goingOffline = 0;    
+    V_needsSalvaged(vp) = 1;
+    VUpdateVolume(&error, vp);
+    LWP_SignalProcess((char *)VPutVolume);
 }
 
 /* The opposite of VAttachVolume.  The volume header is written to disk, with
@@ -1151,7 +1151,7 @@ void VOffline(Volume *vp, char *message)
     /* back on line */
     if (*pt == volumeUtility) {
 	VLog(9, "VOffline: volumeUtility relinquishing volume %x to fileServer",
-		V_id(vp));
+	     V_id(vp));
 	*pt = fileServer;
 	FSYNC_askfs(V_id(vp), FSYNC_ON, 0);
 	*pt = volumeUtility;
@@ -1159,16 +1159,16 @@ void VOffline(Volume *vp, char *message)
     }
 
     if (!V_inUse(vp))
-        return;
+	return;
     if (V_offlineMessage(vp)[0] == '\0')
-        strncpy(V_offlineMessage(vp),message,
+	strncpy(V_offlineMessage(vp),message,
 		sizeof(V_offlineMessage(vp)));
     V_offlineMessage(vp)[sizeof(V_offlineMessage(vp))-1] = '\0';
     vp->goingOffline = 1;
     VPutVolume(vp);
     vp = VGetVolume(&error, vid);	/* Wait for it to go offline */
     if (vp)  /* In case it was reattached... */
-        VPutVolume(vp);
+	VPutVolume(vp);
 }
 
 /*
@@ -1187,7 +1187,7 @@ void VDetachVolume(Error *ec, Volume *vp)
     CODA_ASSERT(LWP_GetRock(FSTAG, (char **)&pt) == LWP_SUCCESS);
     *ec = 0;	/* always "succeeds" */
     if (*pt == volumeUtility)
-        notifyServer = (V_destroyMe(vp) != DESTROY_ME);
+	notifyServer = (V_destroyMe(vp) != DESTROY_ME);
     volume = V_id(vp);
     DeleteVolumeFromHashTable(vp);
     vp->shuttingDown = 1;
@@ -1197,13 +1197,13 @@ void VDetachVolume(Error *ec, Volume *vp)
 
     if (*pt == volumeUtility && notifyServer) {
 	/* Note: The server is not notified in the case of a bogus
-   	   volume explicitly to make it possible to create a volume,
-   	   do a partial restore, then abort the operation without ever
-   	   putting the volume online.  This is essential in the case
-   	   of a volume move operation between two partitions on the
-   	   same server.  In that case, there would be two instances of
-   	   the same volume, one of them bogus, which the file server
-   	   would attempt to put on line */
+	   volume explicitly to make it possible to create a volume,
+	   do a partial restore, then abort the operation without ever
+	   putting the volume online.  This is essential in the case
+	   of a volume move operation between two partitions on the
+	   same server.  In that case, there would be two instances of
+	   the same volume, one of them bogus, which the file server
+	   would attempt to put on line */
 	/* masquerade as fileserver for FSYNC_askfs call */
 	*pt = fileServer;
 	FSYNC_askfs(volume, FSYNC_ON, 0);
@@ -1212,7 +1212,7 @@ void VDetachVolume(Error *ec, Volume *vp)
 }
 
 int VAllocBitmapEntry(Error *ec, Volume *vp, struct vnodeIndex *index,
-		       int stride, int ix, int count)
+		      int stride, int ix, int count)
 {
     *ec = 0;
 
@@ -1348,7 +1348,7 @@ int VAllocBitmapEntry(Error *ec, Volume *vp, struct vnodeIndex *index, VnodeId v
     return(cbn);
 }
 
-void VFreeBitMapEntry(Error *ec, register struct vnodeIndex *index, int bitNumber)
+void VFreeBitMapEntry(Error *ec, struct vnodeIndex *index, int bitNumber)
 {
      int offset;
      *ec = 0;
@@ -1416,18 +1416,16 @@ void FreeVolume(Volume *vp)
 	free((char *)vp);
 }
 
-extern int bitmap_flag;
-
 /* Create a bitmap of the appropriate size for the specified vnode index */
 /* Create a new bitmap patterned on the specified  vnode array */
 /* in recoverable storage */
 static void GetBitmap(Error *ec, Volume *vp, VnodeClass vclass)
 {
-	register struct VnodeClassInfo *vcp = &VnodeClassInfo_Array[vclass];
-	register struct vnodeIndex *vip = &vp->vnIndex[vclass];
+	struct VnodeClassInfo *vcp = &VnodeClassInfo_Array[vclass];
+	struct vnodeIndex *vip = &vp->vnIndex[vclass];
 	char bigbuf[SIZEOF_LARGEDISKVNODE];
 	VnodeDiskObject *vnode;
-	register Unique_t unique = 0;
+	Unique_t unique = 0;
 	int bitNumber = 0;
 
 	VLog(9, "Entering GetBitmap() for volume %x, vclass = %d",
@@ -1456,7 +1454,6 @@ static void GetBitmap(Error *ec, Volume *vp, VnodeClass vclass)
 	}
 
 	/* iterate through all vnodes in specified class index */
-	bitmap_flag = 1;
 	while ((bitNumber = vnext(vnode)) != -1) {
 		if (vnode->vnodeMagic != vcp->magic) {
 			VLog(0, "GetBitmap: addled vnode index in volume %s; volume needs salvage", V_name(vp));
@@ -1502,13 +1499,13 @@ char *VolumeExternalName(VolumeId volumeId)
 #define OneDay	(24*60*60)		/* 24 hours */
 #define Midnight(date) ((date-TimeZoneCorrection)/OneDay*OneDay+TimeZoneCorrection)
 
-static void VAdjustVolumeStatistics(register Volume *vp)
+static void VAdjustVolumeStatistics(Volume *vp)
 {
 	unsigned int now = FT_ApproxTime();
 
 	VLog(9, "Entering VAdjustVolumeStatistics for volume %x", V_id(vp));
 	if (now - V_dayUseDate(vp) > OneDay) {
-		register long ndays, i;
+		long ndays, i;
 		ndays = (now - V_dayUseDate(vp)) / OneDay;
 		for (i = 6; i>ndays-1; i--)
 			V_weekUse(vp)[i] = V_weekUse(vp)[i-ndays];
@@ -1521,7 +1518,7 @@ static void VAdjustVolumeStatistics(register Volume *vp)
 	}
 }
 
-void VBumpVolumeUsage(register Volume *vp)
+void VBumpVolumeUsage(Volume *vp)
 {
 	unsigned int now = FT_ApproxTime();
 	rvm_return_t status;
@@ -1561,7 +1558,7 @@ static int nUpdatedVolumes;	/* Updated with entry in UpdateList, salvage after c
 static int updateSize;		/* number of entries possible */
 #define UPDATE_LIST_SIZE 100	/* size increment */
 
-void VAddToVolumeUpdateList(Error *ec, register Volume *vp)
+void VAddToVolumeUpdateList(Error *ec, Volume *vp)
 {
     VLog(9, "Entering VAddToVolumeUpdateList for volume %x", V_id(vp));
 
@@ -1598,8 +1595,8 @@ void VAddToVolumeUpdateList(Error *ec, register Volume *vp)
 
 static void VScanUpdateList() 
 {
-    register int i, gap;
-    register Volume *vp;
+    int i, gap;
+    Volume *vp;
     Error error;
     long now = FT_ApproxTime();
 
@@ -1647,7 +1644,7 @@ static struct volHeader *volumeLRU;
 /* should be called ONLY by fileserver */
 void InitLRU(int howMany)
 {
-	register struct volHeader *hp;
+	struct volHeader *hp;
 	hp = (struct volHeader *)(calloc(howMany, sizeof(struct volHeader)));
 	while (howMany--)
 		ReleaseVolumeHeader(hp++);
@@ -1659,7 +1656,7 @@ void InitLRU(int howMany)
    -  returns 1 if the correct header was already there
    -  remove the header from the LRU list.
 */
-static int GetVolumeHeader(register Volume *vp)
+static int GetVolumeHeader(Volume *vp)
 {
 	Error error;
 	struct volHeader *hd;
@@ -1722,7 +1719,7 @@ static int AvailVolumeHeader(Volume *vp)
 }
 
 /* Put it at the top of the LRU chain */
-static void ReleaseVolumeHeader(register struct volHeader *hd)
+static void ReleaseVolumeHeader(struct volHeader *hd)
 {
     VLog(61, "Entering ReleaseVolumeHeader");
     if (!hd || hd->next) /* no header, or header already released */
@@ -1738,9 +1735,9 @@ static void ReleaseVolumeHeader(register struct volHeader *hd)
     volumeLRU = hd;
 }
 
-void FreeVolumeHeader(register Volume *vp)
+void FreeVolumeHeader(Volume *vp)
 {
-    register struct volHeader *hd = vp->header;
+    struct volHeader *hd = vp->header;
 
     VLog(9, "Entering FreeVolumeHeader for volume %x", V_id(vp));
     if (!hd)
@@ -1759,7 +1756,7 @@ void FreeVolumeHeader(register Volume *vp)
   AddVolumeToHashTable: Add the volume (*vp) to the hash table
   As used, hashid is always the id of the volume.  
 */
-static void AddVolumeToHashTable(register Volume *vp, int hashid)
+static void AddVolumeToHashTable(Volume *vp, int hashid)
 {
     int hash = VOLUME_HASH(hashid);
     Volume *vptr;
@@ -1789,7 +1786,7 @@ static void AddVolumeToHashTable(register Volume *vp, int hashid)
 /*
   DeleteVolumeFromHashTable: Delete the Volume *vp from the hash table.
  */
-void DeleteVolumeFromHashTable(register Volume *vp)
+void DeleteVolumeFromHashTable(Volume *vp)
 {
     unsigned long hash = VOLUME_HASH(vp->hashid);
 
@@ -1818,7 +1815,7 @@ void DeleteVolumeFromHashTable(register Volume *vp)
 
 void VPrintCacheStats(FILE *fp) 
 {
-    register struct VnodeClassInfo *vcp;
+    struct VnodeClassInfo *vcp;
     vcp = &VnodeClassInfo_Array[vLarge];
     VLog(0, "Large vnode cache, %d entries, %d allocs, "
 	 "%d gets (%d reads), %d writes",

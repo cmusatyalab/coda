@@ -86,8 +86,8 @@ extern void VBumpVolumeUsage(Volume *vp);
 
 static Vnode *VAllocVnodeCommon(Error *ec, Volume *vp, VnodeType type,
 				  VnodeId vnode, Unique_t unique);
-static void moveHash(register Vnode *vnp, bit32 newHash);
-static void StickOnLruChain(register Vnode *vnp, register struct VnodeClassInfo *vcp);
+static void moveHash(Vnode *vnp, bit32 newHash);
+static void StickOnLruChain(Vnode *vnp, struct VnodeClassInfo *vcp);
 
 static void printvn(FILE *outfile, VnodeDiskObject *vnode, VnodeId vnodeNumber);
 /* There are two separate vnode queue types defined here:
@@ -200,7 +200,7 @@ void VInitVnodes(VnodeClass vclass, int nVnodes)
 static void GrowVnLRUCache(VnodeClass vclass, int nVnodes)
 {
 	byte *va;
-	register struct VnodeClassInfo *vcp = &VnodeClassInfo_Array[vclass];
+	struct VnodeClassInfo *vcp = &VnodeClassInfo_Array[vclass];
 	
 	SLog(9, "Entering GrowVnLRUCache(vclass = %d, vnodes = %d)", vclass, nVnodes);
 	va = (byte *) calloc(nVnodes,vcp->residentSize);
@@ -468,7 +468,7 @@ Vnode *VGetVnode(Error *ec, Volume *vp, VnodeId vnodeNumber,
 		 int ignoreBarren)
 
 {
-	register Vnode *vnp;
+	Vnode *vnp;
 	int newHash;
 	VnodeClass vclass;
 	struct VnodeClassInfo *vcp;
@@ -645,7 +645,7 @@ Vnode *VGetVnode(Error *ec, Volume *vp, VnodeId vnodeNumber,
 
 
 /* Write vnode back to recoverable storage if dirty */
-void VPutVnode(Error *ec,register Vnode *vnp)
+void VPutVnode(Error *ec,Vnode *vnp)
 {
 	int writeLocked;
 	VnodeClass vclass;
@@ -799,7 +799,7 @@ void VFlushVnode(Error *ec, Vnode *vnp)
 
 /* Move the vnode, vnp, to the new hash table given by the
    hash table index, newHash */
-static void moveHash(register Vnode *vnp, bit32 newHash)
+static void moveHash(Vnode *vnp, bit32 newHash)
 {
 	Vnode *tvnp;
 	/* Remove it from the old hash chain */
@@ -823,7 +823,7 @@ static void moveHash(register Vnode *vnp, bit32 newHash)
 	vnp->hashIndex = newHash;
 }
 
-static void StickOnLruChain(register Vnode *vnp, register struct VnodeClassInfo *vcp)
+static void StickOnLruChain(Vnode *vnp, struct VnodeClassInfo *vcp)
 {
 	/* Add it to the circular LRU list */
 	SLog(9, "Entering StickOnLruChain for vnode %u", vnp->vnodeNumber);

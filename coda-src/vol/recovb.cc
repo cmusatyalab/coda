@@ -67,8 +67,6 @@ extern void print_VnodeDiskObject(VnodeDiskObject *);
 extern void PrintCamDiskData(int,int,VolumeDiskData*);
 
 
-int bitmap_flag = 0;
-
 static int DeleteVnode(int, int, VnodeId, Unique_t, VnodeDiskObject *);
 
 /* Copy the specified vnode into the structure provided. Returns 0 if */
