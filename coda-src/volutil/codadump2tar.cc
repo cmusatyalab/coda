@@ -505,16 +505,19 @@ void SanityCheckLists() {
 
   dobjcount = 0;
   while ((dobj = (DumpObject *)dti())) {
+    dobjcount++;
+
+    if (dobj->oid.vnode == 1 && dobj->oid.uniquifier == 1)
+	continue;
+
     nlmatch = (NameListEntry *) NameList.FindObject(&dobj->oid, 
 						    (otagcompare_t) CompareNLoid);
 
     if (!nlmatch) {
-      fprintf(stderr, "SanitCheckLists(): Couldn't find nle for 0x%08lx.0x%08lx\n",
+      fprintf(stderr, "SanityCheckLists(): Couldn't find nle for 0x%08lx.0x%08lx\n",
 	      dobj->oid.vnode, dobj->oid.uniquifier);
       exit(-1);
     }
-
-    dobjcount++;
   }
 
   if (DEBUG_HEAVY) fprintf(stderr, "Found %d dump objects, all named\n", dobjcount);
@@ -576,7 +579,7 @@ void VerifyEverythingNamed() {
     }
   }
 
-  if (DEBUG_HEAVY) fprintf(stderr, "VerifyEveythingNamed(): success!\n");
+  if (DEBUG_HEAVY) fprintf(stderr, "VerifyEverythingNamed(): success!\n");
 }
 
 void CreateSkeletonTree() {
@@ -1017,8 +1020,10 @@ int AddNameEntry(struct DirEntry *de, void *hook){
 
   /* "." and ".." entries play no useful role for us; just ignore */
   if (de->name[0] == '.' && (de->name[1] == '\0' ||
-       (de->name[1] == '.' && de->name[2] == '\0')))
+       (de->name[1] == '.' && de->name[2] == '\0'))) {
+      if (DEBUG_HEAVY) fprintf(stderr, "    [skipping]\n");
       return(0);
+  }
 
   /* Find or create dump object entry; if hard links across directories
      are allowed, this can be unpredictable.
