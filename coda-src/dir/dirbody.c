@@ -272,7 +272,7 @@ static struct DirHeader *dir_Extend(struct DirHeader *olddir, int in_rvm)
 		rvmlib_set_range((void *)dirh, newsize);
 	memcpy(dirh, olddir, oldsize);
 	
-	memset(dirh + oldsize, 0, newsize - oldsize);
+	memset(((char *)dirh)+ oldsize, 0, newsize - oldsize);
 
 	/* if old dirh exists, free it */
 	if ( in_rvm ) 
