@@ -22,7 +22,6 @@ debian/tmp/usr/sbin/norton-reinit
 debian/tmp/usr/sbin/partial-reinit.sh
 debian/tmp/usr/sbin/pdbtool
 debian/tmp/usr/sbin/printvrdb
-debian/tmp/usr/sbin/purgevol
 debian/tmp/usr/sbin/purgevol_rep
 debian/tmp/usr/sbin/startserver
 debian/tmp/usr/sbin/vice-setup
