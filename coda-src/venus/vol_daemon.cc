@@ -157,7 +157,7 @@ void VolDaemon() {
 	    /* Ask for a writeback permit if I don't have one */
 	    if (curr_time - LastWBPermitRequest >= AutoWBPermitRequestInterval) {
 		LastWBPermitRequest = curr_time;
-		VDB->AutoRequestWBPermit;
+		VDB->AutoRequestWBPermit();
 	    }
 	}
 

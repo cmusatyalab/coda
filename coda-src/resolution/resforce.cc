@@ -171,7 +171,7 @@ long RS_ForceDirVV(RPC2_Handle RPCid, ViceFid *Fid, ViceVersionVector *VV,
 
 long RS_DoForceDirOps(RPC2_Handle RPCid, ViceFid *Fid,
 		      ViceStatus *status, 
-		      RPC2_CountedBS *AccessList,
+		      RPC2_BoundedBS *AccessList,
 		      RPC2_Integer *rstatus,
 		      SE_Descriptor *BD) 
 {
@@ -335,16 +335,11 @@ long RS_GetForceDirOps(RPC2_Handle RPCid, ViceFid *Fid, ViceStatus *status,
     AccessList->SeqLen = 0;
 
     if (!XlateVid(&Fid->Volume)) {
-	SLog(0,  "RS_GetForceDirOps: Couldnt Xlate VSG %x",
-		Fid->Volume);
-	return(EINVAL);
+       SLog(0,  "RS_GetForceDirOps: Couldnt Xlate VSG %x",
+               Fid->Volume);
+       return(EINVAL);
     }
 
-    if (!XlateVid(&Fid->Volume)) {
-	SLog(0,  "RS_GetForceDirOps: Couldnt Xlate VSG %x",
-		Fid->Volume);
-	return(EINVAL);
-    }
     if ((errorcode =GetFsObj(Fid, &volptr, &vptr, READ_LOCK, NO_LOCK, 0, 0, 0))) {
 	SLog(0,  "RS_GetForceDirOps:GetFsObj returns error %d",
 		errorcode);

@@ -70,7 +70,7 @@ arrlist *ComputeCompOps(olist *AllLogs, ViceFid *Fid)
     arrlist *CompOps = NULL;
     olist *llog = NULL;
     LogMsg(0, SrvDebugLevel, stdout,
-	   "ComputeCompOps: fid(0x%x%x.%x)\n",
+	   "ComputeCompOps: fid(0x%x.%x.%x)\n",
 	   Fid->Volume, Fid->Vnode, Fid->Unique);
     
     // Extract local log 
@@ -142,8 +142,8 @@ static olist *ExtractLog(olist *logs,
     
     he *hep = FindHE(logs, hostid);
     if (hep == NULL) {
-	LogMsg(9, SrvDebugLevel, stdout,
-	       "No entries for host %x found\n",
+	LogMsg(0, SrvDebugLevel, stdout,
+	       "ExtractLog: No entries for host %x found\n",
 	       hostid);
 	return(NULL);
     }
@@ -281,9 +281,9 @@ static arrlist *RemoveLocalOps(arrlist *ops, arrlist *sllog)
     arrlist_iterator nexto(ops);
     arrlist_iterator nextl(sllog);
     rsle *or;
-    rsle *lr;
+    rsle *lr = NULL;
     int gotnextl = 0;
-    while ((gotnextl )|| (lr = (rsle *)nextl())) {
+    while ((gotnextl)|| (lr = (rsle *)nextl())) {
 	gotnextl = 0;
 	while ((or = (rsle *)nexto()) &&
 	       ((res = CompareStoreId(&or->storeid, &lr->storeid)) < 0))
