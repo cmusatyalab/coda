@@ -22,7 +22,7 @@
 #include <linux/coda_linux.h>
 #include <linux/coda_psdev.h>
 #include <linux/coda_cnode.h>
-#include <linux/coda_namecache.h>
+#include <linux/coda_cache.h>
 
 /* dir inode-ops */
 static int coda_create(struct inode *dir, struct dentry *new, int mode);
@@ -101,6 +101,7 @@ static int coda_lookup(struct inode *dir, struct dentry *entry)
         struct cnode *dircnp;
 	struct inode *res_inode = NULL;
 	struct ViceFid resfid;
+	int dropme = 0; /* to indicate entry should not be cached */
 	int type;
 	int error = 0;
 	const char *name = entry->d_name.name;
@@ -120,12 +121,12 @@ static int coda_lookup(struct inode *dir, struct dentry *entry)
 	CHECK_CNODE(dircnp);
 
 	if ( length > CFS_MAXNAMLEN ) {
-	        printk("name too long: lookup, %s (%s)\n", 
-		       coda_f2s(&dircnp->c_fid, str), name);
+	        printk("name too long: lookup, %s (%*s)\n", 
+		       coda_f2s(&dircnp->c_fid, str), length, name);
 		return -ENAMETOOLONG;
 	}
 	
-	CDEBUG(D_INODE, "lookup: %s in %s\n", name, 
+	CDEBUG(D_INODE, "lookup: %*s in %s\n", length, name, 
 	       coda_f2s(&dircnp->c_fid, str));
 
         /* control object, create inode on the fly */
@@ -137,31 +138,33 @@ static int coda_lookup(struct inode *dir, struct dentry *entry)
                 goto exit;
         }
 
-        /* name not cached */
         error = venus_lookup(dir->i_sb, &(dircnp->c_fid), 
 			     (const char *)name, length, &type, &resfid);
 
 	res_inode = NULL;
-	if (!error) {
+	if (!error || (error == -CFS_NOCACHE) ) {
+		if (error == -CFS_NOCACHE) 
+			dropme = 1;
 	    	error = coda_cnode_make(&res_inode, &resfid, dir->i_sb);
 		if (error)
-			return -EACCES;
+			return -error;
 	} else if (error != -ENOENT) {
-	        CDEBUG(D_INODE, "error for %s(%s)%d\n",
-		       coda_f2s(&dircnp->c_fid, str), name, error);
+	        CDEBUG(D_INODE, "error for %s(%*s)%d\n",
+		       coda_f2s(&dircnp->c_fid, str), length, name, error);
 		return error;
 	}
-	CDEBUG(D_INODE, "lookup: %s is (%s) type %d result %d\n",
-	       name, coda_f2s(&resfid, str), type, error);
+	CDEBUG(D_INODE, "lookup: %s is (%s) type %d result %d, dropme %d\n",
+	       name, coda_f2s(&resfid, str), type, error, dropme);
 
 exit:
 	entry->d_time = 0;
 	entry->d_op = &coda_dentry_operations;
 	d_add(entry, res_inode);
+	if ( dropme ) 
+		d_drop(entry);
         EXIT;
         return 0;
 }
-
 
 
 int coda_permission(struct inode *inode, int mask)
@@ -688,6 +691,7 @@ static int coda_venus_readdir(struct file *filp, void *getdent,
         struct venus_dirent *vdirent;
         struct getdents_callback *dents_callback;
         int string_offset;
+	int size;
         char debug[255];
 
         ENTRY;        
@@ -698,8 +702,8 @@ static int coda_venus_readdir(struct file *filp, void *getdent,
 
         dents_callback = (struct getdents_callback *) getdent;
 
-        count =  dents_callback->count;
-        CODA_ALLOC(buff, void *, count);
+        size = count =  dents_callback->count;
+        CODA_ALLOC(buff, void *, size);
         if ( ! buff ) { 
                 printk("coda_venus_readdir: out of memory.\n");
                 return -ENOMEM;
@@ -759,6 +763,6 @@ CDEBUG(D_FILE, "ino %ld, namlen %d, reclen %d, type %d, pos %d, string_offs %d, 
         } 
 
 exit:
-        CODA_FREE(buff, count);
+        CODA_FREE(buff, size);
         return error;
 }

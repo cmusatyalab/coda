@@ -22,7 +22,7 @@
 #include <linux/coda_linux.h>
 #include <linux/coda_psdev.h>
 #include <linux/coda_cnode.h>
-#include <linux/coda_namecache.h>
+#include <linux/coda_cache.h>
 
 /* Keep various stats */
 struct cfsnc_statistics cfsnc_stat;
@@ -204,28 +204,56 @@ int coda_cache_check(struct inode *inode, int mask)
    asked for it to be flushed, we take it out of the dentry hash 
    table with d_drop */
 
+static void coda_flag_children(struct dentry *parent)
+{
+	struct list_head *child;
+	struct cnode *cnp;
+	struct dentry *de;
+	char str[50];
+
+	child = parent->d_subdirs.next;
+	while ( child != &parent->d_subdirs ) {
+		de = list_entry(child, struct dentry, d_child);
+		cnp = ITOC(de->d_inode);
+		if (cnp) 
+			cnp->c_flags |= C_ZAPFID;
+		CDEBUG(D_CACHE, "ZAPFID for %s\n", coda_f2s(&cnp->c_fid, str));
+		
+		child = child->next;
+	}
+	return; 
+}
+
+/* flag dentry and possibly  children of a dentry with C_ZAPFID */
 void  coda_dentry_delete(struct dentry *dentry)
 {
 	struct inode *inode = dentry->d_inode;
-	struct cnode *cnp;
+	struct cnode *cnp = NULL;
+	ENTRY;
 
 	if (inode) { 
 		cnp = ITOC(inode);
-		CHECK_CNODE(cnp);
-	} else 
+		if ( cnp ) 
+			CHECK_CNODE(cnp);
+	} else {
+		printk("No inode for dentry_delete!\n");
 		return;
+	}
 
-	if (cnp->c_flags & C_ZAPFID )
+	
+	if ( !cnp ) {
+		printk("No cnode for dentry_delete!\n");
+		return;
+	}
+
+	if ( cnp->c_flags & (C_ZAPFID | C_ZAPDIR) )
 		d_drop(dentry);
-	if (cnp->c_flags & C_ZAPDIR) {
-		if ( S_ISDIR(inode->i_mode))
-			shrink_dcache_parent(dentry);
-		else
-			d_drop(dentry);
+	if ( (cnp->c_flags & C_ZAPDIR) && S_ISDIR(inode->i_mode) ) {
+		coda_flag_children(dentry);
 	}
 	return;
 }
-		
+
 /* the dache will notice the flags and drop entries (possibly with
    children) the moment they are no longer in use  */
 void coda_zapfid(struct ViceFid *fid, struct super_block *sb, int flag)

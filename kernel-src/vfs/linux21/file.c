@@ -22,7 +22,7 @@
 #include <linux/coda_linux.h>
 #include <linux/coda_cnode.h>
 #include <linux/coda_psdev.h>
-#include <linux/coda_namecache.h>
+#include <linux/coda_cache.h>
 
 /* file operations */
 static int coda_readpage(struct inode * inode, struct page * page);

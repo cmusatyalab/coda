@@ -77,6 +77,7 @@ int coda_inode_grab(dev_t dev, ino_t ino, struct inode **ind);
 #define D_PIOCTL   256
 #define D_SPECIAL  512
 #define D_TIMING  1024
+#define D_DOWNCALL 2048
  
 #define CDEBUG(mask, format, a...)                                \
   do {                                                            \

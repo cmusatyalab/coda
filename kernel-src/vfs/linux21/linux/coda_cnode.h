@@ -36,6 +36,7 @@ struct cnode {
 #define C_ZAPDIR      0x10
 
 void coda_cnode_free(struct cnode *);
+struct cnode *coda_cnode_alloc(void);
 int coda_cnode_make(struct inode **, struct ViceFid *, struct super_block *);
 int coda_cnode_makectl(struct inode **inode, struct super_block *sb);
 struct inode *coda_fid_to_inode(ViceFid *fid, struct super_block *sb);

@@ -25,7 +25,8 @@
 #include <linux/coda.h>
 #include <linux/coda_linux.h>
 #include <linux/coda_cnode.h>
-#include <linux/coda_namecache.h>
+#include <linux/coda_psdev.h>
+#include <linux/coda_cache.h>
 #include <linux/coda_sysctl.h>
 extern int coda_debug;
 /* extern int cfsnc_use; */
@@ -42,20 +43,20 @@ int coda_dointvec(ctl_table *table, int write, struct file *filp,
 struct ctl_table_header *fs_table_header, *coda_table_header;
 #define FS_CODA         1       /* Coda file system */
 
-#define CODA_DEBUG  	1	    /* control debugging */
-#define CODA_ENTRY	    2       /* control enter/leave pattern */
-#define CODA_FLUSH      3       /* flush the cache on next lookup */
-#define CODA_MC         4       /* use/do not use the minicache */
-#define CODA_PROCSIZE   5       /* resize the cache on next lookup */
+#define CODA_DEBUG  	 1	 /* control debugging */
+#define CODA_ENTRY	 2       /* control enter/leave pattern */
+#define CODA_TIMEOUT    3       /* timeout on upcalls to become intrble */
+#define CODA_MC         4       /* use/do not use the access cache */
+#define CODA_HARD       5       /* mount type "hard" or "soft" */
 
 
 
 static ctl_table coda_table[] = {
 	{CODA_DEBUG, "debug", &coda_debug, sizeof(int), 0644, NULL, &coda_dointvec},
 	{CODA_ENTRY, "printentry", &coda_print_entry, sizeof(int), 0644, NULL, &coda_dointvec},
-/* 	{CODA_MC, "minicache", &cfsnc_use, sizeof(int), 0644, NULL, &coda_dointvec}, */
-/* 	{CODA_FLUSH, "flushme", &cfsnc_flushme, sizeof(int), 0644, NULL, &coda_dointvec}, */
-/* 	{CODA_PROCSIZE, "resize", &cfsnc_procsize, sizeof(int), 0644, NULL, &coda_dointvec}, */
+ 	{CODA_MC, "accesscache", &coda_access_cache, sizeof(int), 0644, NULL, &coda_dointvec}, 
+ 	{CODA_TIMEOUT, "timeout", &coda_timeout, sizeof(int), 0644, NULL, &coda_dointvec},
+ 	{CODA_HARD, "hard", &coda_hard, sizeof(int), 0644, NULL, &coda_dointvec},
 	{ 0 }
 };
 

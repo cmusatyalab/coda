@@ -22,7 +22,7 @@
 #include <linux/coda_linux.h>
 #include <linux/coda_psdev.h>
 #include <linux/coda_cnode.h>
-#include <linux/coda_namecache.h>
+#include <linux/coda_cache.h>
 
 /* initialize the debugging variables */
 int coda_debug = 0;

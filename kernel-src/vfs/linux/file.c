@@ -132,6 +132,7 @@ coda_venus_readdir(struct inode *inode, struct file *filp, void *getdent,
         struct venus_dirent *vdirent;
         struct getdents_callback *dents_callback;
         int string_offset;
+	int size;
 
         char debug[255];
 
@@ -143,7 +144,7 @@ coda_venus_readdir(struct inode *inode, struct file *filp, void *getdent,
 
         dents_callback = (struct getdents_callback *) getdent;
 
-        count =  dents_callback->count;
+        size = count =  dents_callback->count;
         CODA_ALLOC(buff, void *, count);
         if ( ! buff ) { 
                 printk("coda_venus_readdir: out of memory.\n");
@@ -209,7 +210,7 @@ CDEBUG(D_FILE, "ino %ld, namlen %d, reclen %d, type %d, pos %d, string_offs %d, 
         } 
 
 exit:
-        CODA_FREE(buff, count);
+        CODA_FREE(buff, size);
         return error;
                 
 }

@@ -35,7 +35,7 @@
 #include <linux/coda_linux.h>
 #include <linux/coda_psdev.h>
 #include <linux/coda_cnode.h>
-#include <linux/coda_namecache.h>
+#include <linux/coda_cache.h>
 
 
 /* VFS super_block ops */
@@ -168,6 +168,7 @@ static void coda_put_super(struct super_block *sb)
         sb->s_dev = 0;
 	coda_cache_clear_all(sb);
 	sb_info = coda_sbp(sb);
+	sb_info->sbi_vcomm->vc_inuse = 0;
 	sb_info->sbi_vcomm->vc_sb = NULL;
 	printk("Coda: Bye bye.\n");
 	memset(sb_info, 0, sizeof(* sb_info));
@@ -181,13 +182,15 @@ static void coda_put_super(struct super_block *sb)
 static void coda_read_inode(struct inode *inode)
 {
 	ENTRY;
-        inode->u.generic_ip = NULL;
+	inode->u.generic_ip =  NULL;
+	return;
 }
 
-static void coda_put_inode(struct inode *inode) 
+static void coda_put_inode(struct inode *in) 
 {
-        CDEBUG(D_INODE,"ino: %ld, cnp: %x\n", inode->i_ino,
-	       (int) inode->u.generic_ip);
+	ENTRY;
+
+        CDEBUG(D_INODE,"ino: %ld, cnp: %p\n", in->i_ino, in->u.generic_ip);
 }
 
 static void coda_delete_inode(struct inode *inode)

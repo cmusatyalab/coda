@@ -35,7 +35,7 @@
 #include <linux/coda_linux.h>
 #include <linux/coda_psdev.h>
 #include <linux/coda_cnode.h>
-#include <linux/coda_namecache.h>
+#include <linux/coda_cache.h>
 
 #define UPARG(op)\
 do {\
@@ -770,13 +770,14 @@ int coda_downcall(int opcode, union outputArgs * out, struct super_block *sb)
     switch (opcode) {
     case CFS_FLUSH : {
 	    clstats(CFS_FLUSH);
-	    CDEBUG(D_UPCALL, "CFS_FLUSH\n");
+	    CDEBUG(D_DOWNCALL, "CFS_FLUSH\n");
 	    coda_cache_clear_all(sb);
 	    shrink_dcache_sb(sb);
 	    return(0);
     }
     case CFS_PURGEUSER : {
 	    struct coda_cred *cred = &out->cfs_purgeuser.cred;
+	    CDEBUG(D_DOWNCALL, "CFS_PURGEUSER\n");
 	    if ( !cred ) {
 		    printk("PURGEUSER: null cred!\n");
 		    return 0;
@@ -792,7 +793,7 @@ int coda_downcall(int opcode, union outputArgs * out, struct super_block *sb)
 		    printk("ZAPDIR: Null fid\n");
 		    return 0;
 	    }
-	    CDEBUG(D_UPCALL, "zapdir: fid = %s\n", coda_f2s(fid, str));
+	    CDEBUG(D_DOWNCALL, "zapdir: fid = %s\n", coda_f2s(fid, str));
 	    clstats(CFS_ZAPDIR);
 	    coda_zapfid(fid, sb, C_ZAPDIR);
 	    return(0);
@@ -805,7 +806,7 @@ int coda_downcall(int opcode, union outputArgs * out, struct super_block *sb)
 		    printk("ZAPVNODE: Null fid or cred\n");
 		    return 0;
 	    }
-	    CDEBUG(D_UPCALL, "zapvnode: fid = %s\n", coda_f2s(fid, str));
+	    CDEBUG(D_DOWNCALL, "zapvnode: fid = %s\n", coda_f2s(fid, str));
 	    coda_zapfid(fid, sb, C_ZAPFID);
 	    coda_cache_clear_cred(sb, cred);
 	    clstats(CFS_ZAPVNODE);
@@ -819,7 +820,7 @@ int coda_downcall(int opcode, union outputArgs * out, struct super_block *sb)
 		    printk("ZAPFILE: Null fid\n");
 		    return 0;
 	    }
-	    CDEBUG(D_UPCALL, "zapfile: fid = %s\n", coda_f2s(fid, str));
+	    CDEBUG(D_DOWNCALL, "zapfile: fid = %s\n", coda_f2s(fid, str));
 	    coda_zapfid(fid, sb, C_ZAPFID);
 	    return 0;
     }
@@ -830,7 +831,7 @@ int coda_downcall(int opcode, union outputArgs * out, struct super_block *sb)
 		    printk("PURGEFID: Null fid\n");
 		    return 0;
 	    }
-	    CDEBUG(D_UPCALL, "purgefid: fid = %s\n", coda_f2s(fid, str));
+	    CDEBUG(D_DOWNCALL, "purgefid: fid = %s\n", coda_f2s(fid, str));
 	    clstats(CFS_PURGEFID);
 	    coda_zapfid(fid, sb, C_ZAPDIR);
 	    return 0;
@@ -838,6 +839,7 @@ int coda_downcall(int opcode, union outputArgs * out, struct super_block *sb)
     case CFS_REPLACE : {
 	    printk("CFS_REPLACCE\n");
 	    clstats(CFS_REPLACE);
+	    CDEBUG(D_DOWNCALL, "CFS_REPLACE\n");
 	    coda_cache_clear_all(sb);
 	    shrink_dcache_sb(sb);
 	    return (0);

@@ -22,7 +22,7 @@
 #include <linux/coda_linux.h>
 #include <linux/coda_psdev.h>
 #include <linux/coda_cnode.h>
-#include <linux/coda_namecache.h>
+#include <linux/coda_cache.h>
 
 static int coda_readlink(struct inode *inode, char *buffer, int length);
 static struct dentry *coda_follow_link(struct inode *, struct dentry *);
