@@ -87,7 +87,6 @@ void PDB_readProfile(PDB_HANDLE h, int32_t id, PDB_profile *r)
 	CODA_ASSERT(r && h);
 
 	PDB_db_read(h, id, NULL, &data, &size);
-	CODA_ASSERT(data);
 
 	pdb_unpack(r, data, size);
 }
@@ -102,7 +101,6 @@ void PDB_readProfile_byname(PDB_HANDLE h, char *name, PDB_profile *r)
 	CODA_ASSERT(r && h);
 
 	PDB_db_read(h, 0, name, &data, &size);
-	CODA_ASSERT(data);
 	
 	pdb_unpack(r, data, size);
 }
