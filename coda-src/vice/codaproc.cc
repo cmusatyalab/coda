@@ -2039,13 +2039,16 @@ int PerformTreeRemoval(PDirEntry de, void *data)
 		if (cv->vptr->disk.type == vDirectory) {
 			PDirHandle cDir;
 			cDir = VN_SetDirHandle(cv->vptr);
-			if (!DH_IsEmpty(cDir)) 
+			if (!DH_IsEmpty(cDir)) {
 				DH_EnumerateDir(cDir, PerformTreeRemoval, 
-						(void *) pkdparm);
+						(void *)pkdparm);
+				CODA_ASSERT(DC_Dirty(cv->vptr->dh));
+			}
+			VN_PutDirHandle(cv->vptr);
 		}
 	}
 
-    /* delete the object */
+	/* delete the object */
 	{
 		int nblocks = 0;
 		if (cv->vptr->disk.type == vDirectory) {

@@ -183,6 +183,7 @@ int NewDirRUConf(RUParm *rup, char *name, long vnode, long unique) {
 	    dh = VN_SetDirHandle(cv->vptr);
 	    if (DH_IsEmpty(dh)) 
 		DH_EnumerateDir(dh, ENewDirRUConf, (void *)rup);
+	    VN_PutDirHandle(cv->vptr);
 	}
     }
     return(rup->rcode);

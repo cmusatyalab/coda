@@ -607,8 +607,6 @@ long RS_DirResPhase3(RPC2_Handle RPCid, ViceFid *Fid, ViceVersionVector *VV,
     /* get objects */
     {
 	ov = AddVLE(*vlist, Fid);
-	if ( ISDIR(*Fid) )
-		ov->d_inodemod = 1;
 	if (errorCode = GetFsObj(Fid, &volptr, &ov->vptr, WRITE_LOCK, NO_LOCK, 0, 0, ov->d_inodemod)) {
 	    SLog(0,  
 		   "DirResPhase3: Error %d getting object %x.%x",
@@ -644,8 +642,7 @@ long RS_DirResPhase3(RPC2_Handle RPCid, ViceFid *Fid, ViceVersionVector *VV,
     }
     /* truncate log if success everywhere in phase 1 */
     {
-	SLog(9,  
-	       "DirResPhase3: Going to check if truncate log possible");
+	SLog(9, "DirResPhase3: Going to check if truncate log possible");
 	unsigned long Hosts[VSG_MEMBERS];
 	int i = 0;
 	vv_t checkvv;
@@ -1496,6 +1493,7 @@ static int CheckSemPerformRes(rlent *rlog, int nrents,
 			NameExists = TRUE;
 		    else 
 			NameExists = FALSE;
+		    VN_PutDirHandle(pv->vptr);
 		}
 		nFid.Volume = dFid->Volume;
 		SLog(39,  "CheckSemPerformRes: NameExists = %d", NameExists);
@@ -1941,6 +1939,7 @@ static int CheckResolveRenameSemantics(rlent *rl, Volume *volptr,
 	    tmpFid.Volume = SrcFid.Volume;
 	    SrcNameFidBindingOK = FID_EQ(&tmpFid, &SrcFid);
 	}
+	VN_PutDirHandle(opv->vptr);
 	sv = FindVLE(*vlist, &SrcFid);
 	if (sv && sv->vptr && !sv->vptr->delete_me)
 	    SrcObjExists = TRUE;
@@ -1990,9 +1989,11 @@ static int CheckResolveRenameSemantics(rlent *rl, Volume *volptr,
 		       &tmpfid, CLU_CASE_SENSITIVE) == 0) {
 		SLog(0,  "ChkResRenSem: Target name %s already exists wrongly",
 			rl->u.u_rename.rename_tgt.newname);
+		VN_PutDirHandle(npv->vptr);
 		errorCode = EINCONS;
 		goto Exit;
 	    }
+	    VN_PutDirHandle(npv->vptr);
 	}
 	else {
 	    /* target is supposed to exist */
@@ -2015,6 +2016,7 @@ static int CheckResolveRenameSemantics(rlent *rl, Volume *volptr,
 		TgtNameExists = TRUE;
 		TgtNameFidBindingOK = FID_EQ(&tmpFid, &TgtFid);
 	    }
+	    VN_PutDirHandle(npv->vptr);
 	    tv = FindVLE(*vlist, &TgtFid);
 	    if (tv && tv->vptr && !tv->vptr->delete_me)
 		TgtObjExists = TRUE;
@@ -2155,13 +2157,16 @@ static int CleanRenameTarget(rlent *rl, dlist *vlist, Volume *volptr,
     if (DH_IsEmpty(tdh)) {
 	SLog(0,  "CleanRenameTarget: Target %x.%x is already empty",
 		tFid.Vnode, tFid.Unique);
+	VN_PutDirHandle(tv->vptr);
 	return(0);
     }
+    
     
     TreeRmBlk pkdparm;
     pkdparm.init(0, VSGVolnum, volptr, 0, &rl->storeid, vlist, 
 		 1, hvlog, rl->serverid, blocks);
     DH_EnumerateDir(tdh, PerformTreeRemoval, (void *)&pkdparm);
+    VN_PutDirHandle(tv->vptr);
     return(0);
 }
 
@@ -2536,10 +2541,12 @@ static int PerformResOp(rlent *r, dlist *vlist, olist *hvlog,
 		    pkdparm.init(0, VSGVolnum, volptr, 0, &r->storeid, 
 				 vlist, 1, hvlog, r->serverid, blocks);
 		    DH_EnumerateDir(dh, PerformTreeRemoval, (void *)&pkdparm);
+		    CODA_ASSERT(DC_Dirty(cv->vptr->dh)); 
 		    
 		}
 		CODA_ASSERT(DH_IsEmpty(dh));
 	    }
+	    VN_PutDirHandle(cv->vptr);
 	    int tblocks = 0;
 	    /* remove the empty directory */
 	    {
@@ -2681,6 +2688,7 @@ int CreateObjToMarkInc(Volume *vp, ViceFid *dFid, ViceFid *cFid,
 		CODA_ASSERT((cv->vptr->disk.linkCount > 0) && !cv->vptr->delete_me);
 		SLog(9,  "CreateIncObj Child (%x.%x)already exists",
 		       cFid->Vnode, cFid->Unique);
+		VN_PutDirHandle(pv->vptr);
 		return(0);
 	    }
 	    else {
@@ -2691,9 +2699,11 @@ int CreateObjToMarkInc(Volume *vp, ViceFid *dFid, ViceFid *cFid,
 		SLog(0,  
 		       "              with fid %x.%x - cant create %x.%x",
 		       newfid.Vnode, newfid.Unique, cFid->Vnode, cFid->Unique);
+		VN_PutDirHandle(pv->vptr);
 		return(EINVAL);
 	    }
 	}
+	VN_PutDirHandle(pv->vptr);
 	// name doesnt exist - look for object 
 	{
 	    cv = FindVLE(*vlist, cFid);
@@ -3348,6 +3358,7 @@ int DirRUConf(RUParm *rup, char *name, long vnode, long unique)
 	    dh = VN_SetDirHandle(cv->vptr);
 	    if (DH_IsEmpty(dh)) 
                     DH_EnumerateDir(dh, EDirRUConf, (void *)rup);
+	    VN_PutDirHandle(cv->vptr);
 	}
     }
     return(0);

@@ -576,8 +576,7 @@ static int CheckSemPerformRes(arrlist *ops, Volume *volptr,
 	    // regular operation check and perform 
 	    {
 		int result = CheckRegularCompOp(r, vlist, pv, dFid, volptr, AllLogs);
-		SLog(9, 
-		       "CheckRegularCompOp returns %d\n", result);
+		SLog(9, "CheckRegularCompOp returns %d\n", result);
 		if (!(errorCode = PerformRegularCompOp(result, r, vlist, inclist, 
 						       AllLogs, dFid, pv, volptr, 
 						       VSGVolnum, &tblocks)))
@@ -600,6 +599,7 @@ static int NameExistsInParent(rsle *r, Vnode *pvptr) {
 	dh = VN_SetDirHandle(pvptr);
 	if (DH_Lookup(dh, name, &nfid, CLU_CASE_SENSITIVE) == 0)
 	    NameExists = TRUE;
+	VN_PutDirHandle(pvptr);
     }
     SLog(39,  
 	   "NameExistsInParent: NameExists = %d", NameExists);
@@ -643,6 +643,7 @@ static int IsNameFidBindingOK(rsle *r, Vnode *pvptr) {
 	if ((DH_Lookup(dh, name, &nfid, CLU_CASE_SENSITIVE) == 0) &&
 	    (nfid.Vnode == cfid.Vnode) && (nfid.Unique == cfid.Unique))
 	    rc = TRUE;
+	VN_PutDirHandle(pvptr);
     }
     SLog(39,  
 	   "IsNameFidBindingOK: returns %d", rc);
@@ -1133,8 +1134,7 @@ static int PerformResOp(rsle *r, dlist *vlist, olist *AllLogs,
 	    }
 	    /* spool log record */
 	    {
-		SLog(9,  
-		       "PerformResOp: Spooling log record Remove(%s)",
+		SLog(9, "PerformResOp: Spooling log record Remove(%s)",
 			name);
 		ViceVersionVector ghostVV = cv->vptr->disk.versionvector;	    
 		if (errorCode = SpoolVMLogRecord(vlist, pv, volptr, &r->storeid, 
@@ -1173,8 +1173,7 @@ static int PerformResOp(rsle *r, dlist *vlist, olist *AllLogs,
 	    
 	    /* append log record */
 	    {
-		SLog(9,  
-		       "PerformResOp: Spooling log record Create(%s)",
+		SLog(9, "PerformResOp: Spooling log record Create(%s)",
 		       name);
 		if (errorCode = SpoolVMLogRecord(vlist, pv, volptr, &r->storeid,
 						 ResolveViceCreate_OP, 
@@ -1302,8 +1301,7 @@ static int PerformResOp(rsle *r, dlist *vlist, olist *AllLogs,
 	    
 	    // spool log record 	
 	    {
-		SLog(9,  
-		       "PerformResOp: Spooling log record MkDir(%s)",
+		SLog(9,  "PerformResOp: Spooling log record MkDir(%s)",
 		       name);
 		if (errorCode = SpoolVMLogRecord(vlist, pv, volptr, 
 						 &r->storeid,
@@ -1350,8 +1348,8 @@ static int PerformResOp(rsle *r, dlist *vlist, olist *AllLogs,
 	    int tblocks = 0;
 	    // remove the empty directory 
 	    {
-		cdir = VN_SetDirHandle(cv->vptr);
 		CODA_ASSERT(DH_IsEmpty(cdir));
+		VN_PutDirHandle(cv->vptr);
 		tblocks = 0;
 		PerformRmdir(0, VSGVolnum, volptr, 
 			     pv->vptr, cv->vptr, name, 
@@ -1366,8 +1364,7 @@ static int PerformResOp(rsle *r, dlist *vlist, olist *AllLogs,
 
 	    //	spool log record - should have spooled records recursively 
 	    {	
-		SLog(9,  
-		       "PerformResOp: Spooling Log Record RmDir(%s)",
+		SLog(9, "PerformResOp: Spooling Log Record RmDir(%s)",
 		       name);
 		int errorCode = 0;
 		if (errorCode = SpoolVMLogRecord(vlist, pv, volptr, &r->storeid, 
