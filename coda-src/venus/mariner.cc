@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/mariner.cc,v 4.4 1997/12/01 17:27:49 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/mariner.cc,v 4.5 97/12/06 23:34:28 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -502,7 +502,11 @@ void mariner::PathStat(char *path) {
     /* Map pathname to fid. */
     u.Init();
     u.u_cred.cr_uid = (uid_t)V_UID;
+#ifdef	__BSD44__
+    u.u_cred.cr_groupid = (gid_t)V_GID;
+#else
     u.u_cred.cr_gid = (gid_t)V_GID;
+#endif
     u.u_priority = 0;
     u.u_cdir = rootfid;
     u.u_nc = 0;
@@ -526,7 +530,11 @@ void mariner::FidStat(ViceFid *fid) {
     /* Set up context. */
     u.Init();
     u.u_cred.cr_uid = (uid_t)V_UID;
+#ifdef	__BSD44__
+    u.u_cred.cr_groupid = (gid_t)V_GID;
+#else
     u.u_cred.cr_gid = (gid_t)V_GID;
+#endif
     u.u_priority = FSDB->MaxPri();
 
     fsobj *f = 0;

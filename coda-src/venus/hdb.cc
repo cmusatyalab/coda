@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/hdb.cc,v 4.6 1998/01/09 13:43:57 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/hdb.cc,v 4.7 98/01/10 18:38:50 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -106,9 +106,6 @@ extern "C" {
 #include "venusvol.h"
 #include "vproc.h"
 #include "worker.h"
-#ifdef	__FreeBSD__
-#undef cr_gid
-#endif
 
 
 int HDBEs = UNSET_HDBE;
@@ -655,13 +652,11 @@ void hdb::ValidateCacheStatus(vproc *vp, int *interrupt_failures, int *statusByt
 	/* Set up uarea. */
 	vp->u.Init();
 	vp->u.u_cred.cr_uid = (uid_t)f->HoardVuid;
-#ifdef __MACH__
-	vp->u.u_cred.cr_ruid = (uid_t)f->HoardVuid;
-#endif /* __MACH__ */
+#ifdef	__BSD44__
+	vp->u.u_cred.cr_groupid = (gid_t)V_GID;
+#else
 	vp->u.u_cred.cr_gid = (gid_t)V_GID;
-#ifdef __MACH__
-	vp->u.u_cred.cr_rgid = (gid_t)V_GID;
-#endif /* __MACH__ */
+#endif
 	vp->u.u_priority = f->priority;
 
 	/* Perform a vget(). */
@@ -983,13 +978,11 @@ void hdb::DataWalk(vproc *vp, int TotalBytesToFetch) {
 	    /* Set up uarea. */
 	    vp->u.Init();
 	    vp->u.u_cred.cr_uid = (uid_t)f->HoardVuid;
-#ifdef __MACH__
-	    vp->u.u_cred.cr_ruid = (uid_t)f->HoardVuid;
-#endif /* __MACH__ */
+#ifdef	__BSD44__
+	    vp->u.u_cred.cr_groupid = (gid_t)V_GID;
+#else
 	    vp->u.u_cred.cr_gid = (gid_t)V_GID;
-#ifdef __MACH__
-	    vp->u.u_cred.cr_rgid = (gid_t)V_GID;
-#endif /* __MACH__ */
+#endif
 	    vp->u.u_priority = f->priority;
 	    
 	    /* Prefetch the object.  This is like vproc::vget(), only we want the data. */
@@ -1959,13 +1952,11 @@ pestate namectxt::CheckExpansion() {
 	/* Set up uarea. */
 	vp->u.Init();
 	vp->u.u_cred.cr_uid = (uid_t)vuid;
-#ifdef __MACH__
-	vp->u.u_cred.cr_ruid = (uid_t)vuid;
-#endif /* __MACH__ */
+#ifdef	__BSD44__
+	vp->u.u_cred.cr_groupid = (gid_t)V_GID;
+#else
 	vp->u.u_cred.cr_gid = (gid_t)V_GID;
-#ifdef __MACH__
-	vp->u.u_cred.cr_rgid = (gid_t)V_GID;
-#endif /* __MACH__ */
+#endif
 	vp->u.u_priority = FSDB->MakePri(0, priority);
 	vp->u.u_cdir = cdir;
 	vp->u.u_nc = this;

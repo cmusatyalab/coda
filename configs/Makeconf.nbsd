@@ -30,14 +30,13 @@
 # Mellon the rights to redistribute these changes without encumbrance.
 # */
 # 
-# static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/configs/Makeconf.i386_nbsd1,v 4.18 1998/01/09 13:44:01 rvb Exp $";
+# static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/configs/Makeconf.i386_nbsd1,v 4.19 98/01/10 18:40:21 braam Exp $";
 # 
 
 # the following may need editing depending on your preferences
 
 MACHINE_FLAGS = -D__BSD44__
 SHORTSYS      = bsd44
-REALSYS      != uname -sr
 INCLFLAGS     = -I/usr/include
 GFLAG         = -g
 CPP 	      = gcc -E -x c-header
@@ -51,12 +50,12 @@ LIBMACH       =
 LIBTERMCAP    = /usr/lib/libtermcap.a
 #for advice_srv
 LIBKVM        = /usr/lib/libkvm.a
-ifeq ($(REALSYS),"NetBSD 1.3")
-INCGDBM       = -I/usr/pkg/include
-LIBGDBM       = /usr/pkg/lib/libgdbm.a
-else
+ifeq ($(host),i386-unknown-netbsd1.2)
 INCGDBM       = -I/usr/local/include
 LIBGDBM       = /usr/local/lib/libgdbm.a
+else
+INCGDBM       = -I/usr/pkg/include
+LIBGDBM       = /usr/pkg/lib/libgdbm.a
 endif
 
 LIBMATH       = -lm

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/worker.cc,v 4.8 1997/12/20 23:35:14 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/worker.cc,v 4.9 98/01/10 18:39:17 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -341,11 +341,16 @@ void VFSUnmount() {
     /* Purge the kernel cache so that all cnodes are (hopefully) released. */
     k_Purge();
 #ifdef	__BSD44__
+    /* For now we can not unmount, because an cfs_root() upcall could nail us. */
+#ifndef	__BSD44__
     /* Issue the VFS unmount request. */
     if(syscall(SYS_unmount, venusRoot) < 0) {
 	eprint("vfsunmount(%s) failed (%d)", venusRoot, errno);
 	return;
     }
+#else
+    return;
+#endif
 
     /* Sync the cache. */
     /* N.B.  Deadlock will result if the kernel still thinks we're mounted (i.e., if the preceding unmount failed)! */
