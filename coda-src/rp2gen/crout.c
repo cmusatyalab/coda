@@ -983,7 +983,7 @@ static pack(who, parm, prefix, ptr, where)
 #ifdef RP2GEN_DEBUG
 		    checkbuffer(where,ptr,atoi(parm->type->bound));
 #endif
-		    fprintf(where, "    bcopy((char *)%s, (char *)%s, (long)%s);\n", name, ptr, parm->type->bound);
+		    fprintf(where, "    memcpy((char *)%s, (char *)%s, (long)%s);\n", ptr, name, parm->type->bound);
 		    inc(ptr, parm->type->bound, where);
 	    } 
 	    else {
@@ -1036,8 +1036,8 @@ static pack(who, parm, prefix, ptr, where)
 #endif
 	    fprintf(where, "    *(RPC2_Integer *) %s = htonl(%s%sSeqLen);\n",
 		    ptr, name, select);
-	    fprintf(where, "    bcopy((char *)%s%sSeqBody, (char *)(%s+4), (long)%s%sSeqLen);\n",
-	    name, select, ptr, name, select);
+	    fprintf(where, "    memcpy((char *)(%s+4), (char *)%s%sSeqBody, (long)%s%sSeqLen);\n",
+	    ptr, name, select, name, select);
 	    fprintf(where, "    %s += ", ptr);
 	    print_size(who, parm, prefix, where);
 	    fputs(";\n", where);
@@ -1054,8 +1054,8 @@ static pack(who, parm, prefix, ptr, where)
 		    ptr, name, select);
 	    fprintf(where, "    *(RPC2_Integer *) (%s+4) = htonl(%s%sSeqLen);\n",
 		    ptr, name, select);
-	    fprintf(where, "    bcopy((char *)%s%sSeqBody, (char *)(%s+8), (long)%s%sSeqLen);\n",
-		    name, select, ptr, name, select);
+	    fprintf(where, "    memcpy((char *)(%s+8), (char *)%s%sSeqBody, (long)%s%sSeqLen);\n",
+		    ptr, name, select, name, select);
 	    fprintf(where, "    %s += ", ptr);
 	    print_size(who, parm, prefix, where);
 	    fputs(";\n", where);
@@ -1093,7 +1093,7 @@ static pack(who, parm, prefix, ptr, where)
 	    fprintf(where, "    if ( (char *)%s + RPC2_KEYSIZE > _EOB)\n"
 		           "        return 0;\n",ptr);
 #endif
-	    fprintf(where, "    bcopy((char *)%s, (char *)%s, (long)%s);\n", name, ptr, "RPC2_KEYSIZE");
+	    fprintf(where, "    memcpy((char *)%s, (char *)%s, (long)%s);\n", ptr, name, "RPC2_KEYSIZE");
 	    inc(ptr, "RPC2_KEYSIZE", where);
     }
     break;
@@ -1140,7 +1140,7 @@ static unpack(who, parm, prefix, ptr, where)
 	    if (parm->type->bound != NIL) {
 		    checkbuffer(where,ptr,atoi(parm->type->bound));
 		    fputs("    ", where);
-		    fprintf(where, "bcopy((char *)%s, (char *)%s, (long)%s);\n", ptr, name, parm->type->bound);
+		    fprintf(where, "memcpy((char *)%s, (char *)%s, (long)%s);\n", name, ptr, parm->type->bound);
 		    inc(ptr, parm->type->bound, where);
 	    } 
 	    else {
@@ -1180,7 +1180,7 @@ static unpack(who, parm, prefix, ptr, where)
 	    /* if (mode == IN_OUT_MODE && who == CLIENT) { */
 	    if (/* mode == IN_OUT_MODE && */ who == CLIENT) {
 		    /* Just copy characters back */
-		    fprintf(where,  "    bcopy((char *)%s, (char *)%s, (long)%s);\n", ptr, name, length);
+		    fprintf(where,  "    memcpy((char *)%s, (char *)%s, (long)%s);\n", name, ptr, length);
 		    fprintf(where, "     %s[%s] = '\\0';\n", name, length);
 	    }
 	    else {
@@ -1210,10 +1210,10 @@ static unpack(who, parm, prefix, ptr, where)
 				"        return 0;\n", ptr, name, select);
 		/*    bug fix. Should update SeqLen and use select. M.K. */
 		/*   fprintf(where, "    
-		     bcopy((char *)%s, (char *)%s->SeqBody, (int32_t)%s);\n", */
-		fprintf(where, "    bcopy((char *)%s, (char *)%s%sSeqBody, (long)%s%sSeqLen);\n",
-			ptr, name, select, name, select);
-		/*					inc(ptr, length, where); */
+		    memcpy((char *)%s->SeqBody, (char *)%s, (int32_t)%s);\n", */
+		fprintf(where, "    memcpy((char *)%s%sSeqBody, (char *)%s, (long)%s%sSeqLen);\n",
+			name, select, ptr, name, select);
+		/*				inc(ptr, length, where); */
 		fprintf(where, "    %s += _PAD(%s%sSeqLen);\n", ptr, name, select);
 		break;
     case RPC2_BOUNDEDBS_TAG:
@@ -1228,8 +1228,8 @@ static unpack(who, parm, prefix, ptr, where)
 		           BUFFEROVERFLOW
 		           "    }\n", ptr,name,select);
 	    if (who == CLIENT /* && mode == IN_OUT_MODE */) {
-		    fprintf(where, "    bcopy((char *)%s, (char *)%s%sSeqBody, (long)%s%sSeqLen);\n",
-			    ptr, name, select, name, select);
+		    fprintf(where, "    memcpy((char *)%s%sSeqBody, (char *)%s, (long)%s%sSeqLen);\n",
+			    name, select, ptr, name, select);
 		    fprintf(where, "    %s += _PAD(%s%sSeqLen);\n", ptr, name, select);
 	    }
 	    else {
@@ -1240,8 +1240,8 @@ static unpack(who, parm, prefix, ptr, where)
 		    fprintf(where, "        if (%s%sSeqBody == 0) return ", name, select);
 		    fputs(who == CLIENT ? "RPC2_FAIL" : "0", where);
 		    fputs(";\n", where);
-		    fprintf(where, "        bcopy((char *)%s, (char *)%s%sSeqBody, (long)%s%sSeqLen);\n",
-			    ptr, name, select, name, select);
+		    fprintf(where, "        memcpy((char *)%s%sSeqBody, (char *)%s, (long)%s%sSeqLen);\n",
+			    name, select, ptr, name, select);
 		    fprintf(where, "        %s += _PAD(%s%sSeqLen);\n    }\n",
 			    ptr, name, select);
 		    fprintf(where, "    else {\n");
@@ -1283,7 +1283,7 @@ static unpack(who, parm, prefix, ptr, where)
 		           BUFFEROVERFLOW
 			    "    }\n", ptr);
 	    fputs("    ", where);
-	    fprintf(where, "bcopy((char *)%s, (char *)%s, (int)%s);\n", ptr, name, "RPC2_KEYSIZE");
+	    fprintf(where, "memcpy((char *)%s, (char *)%s, (int)%s);\n", name, ptr, "RPC2_KEYSIZE");
 	    inc(ptr, "RPC2_KEYSIZE", where);
     }
     break;    
