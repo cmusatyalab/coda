@@ -280,6 +280,7 @@ void DC_SetCowpdi(PDCEntry pdce, PDirInode pdi)
 {
 	CODA_ASSERT(pdce);
 	pdce->dc_cowpdi = pdi;
+	pdce->dc_pdi = NULL;
 }
 
 PDirInode DC_Cowpdi(PDCEntry pdce)
