@@ -26,6 +26,11 @@ case "$1" in
     configure)
 	update-rc.d auth2.init defaults >/dev/null
 	update-rc.d codasrv.init defaults >/dev/null
+
+	if [ -f /etc/coda/server.conf ] ; then
+	    invoke-rc.d auth2.init start
+	    invoke-rc.d codasrv.init start
+	fi
     ;;
 
     abort-upgrade|abort-remove|abort-deconfigure)
