@@ -1,0 +1,48 @@
+#
+# sets:
+#	variables, libraries for Linux -> DPMI cross compilation
+
+# definitions for Windows 95
+# Peter Braam
+
+
+#
+# for native compilation the include paths below need "ifeq"-ing
+# like the binaries do:
+#
+
+#ifneq (build, host)
+
+CC = dos-gcc -bmmap
+CXX = dos-gcc -bmmap
+AR = dos-ar
+RANLIB = true
+AS = dos-as
+
+# endif
+
+NATIVECC= cc
+EXTRAS = djgpp
+
+
+MACHINE_FLAGS = -DDOS
+SHORTSYS      = djgpp
+INCLFLAGS     =
+GFLAG         =
+CPP           = dos-gcc -E -x c-header
+OPTLFLAG      = 
+LIBCURSES     = -lncurses
+LIBCOMPAT     =
+# LIBREADLINE   = /usr/gnuwin32/lib/libreadline.a
+LIBTERMCAP    = 
+# INCREADLINE   = -I/usr/gnuwin32/include/readline
+# for rvm
+LIBTHREADS    =
+LIBMACH       = 
+LIBMATH       = 
+# LGDBM         = -L/usr/gnuwin32/lib
+LIBFLEX       =  
+LEX           = flex
+#YACC          = bison -y
+PERL          = perl
+GUIDIR        = /usr/lib/coda

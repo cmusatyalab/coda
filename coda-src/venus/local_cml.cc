@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/local_cml.cc,v 4.2 1997/02/26 16:03:22 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/local_cml.cc,v 4.3 1998/01/10 18:38:51 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -917,8 +917,13 @@ int cmlent::DoRepair(char *msg, int rcode)
 		      LObj->fid.Volume, LObj->fid.Vnode, LObj->fid.Unique));
 
 	    /* copy the local-obj cache file into the global-obj cache */
+#ifndef DJGPP
 	    int gfd = open(GObj->data.file->Name(), O_WRONLY | O_TRUNC, 0);
 	    int lfd = open(LObj->data.file->Name(), O_RDONLY, 0);
+#else
+	    int gfd = open(GObj->data.file->Name(), O_WRONLY | O_TRUNC | O_BINARY, 0);
+	    int lfd = open(LObj->data.file->Name(), O_RDONLY | O_BINARY, 0);
+#endif
 	    OBJ_ASSERT(this, gfd >= 0 && lfd >= 0);
 	    code = filecopy(lfd, gfd);
 	    OBJ_ASSERT(this, code == 0);

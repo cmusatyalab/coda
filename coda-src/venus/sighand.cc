@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/sighand.cc,v 4.7 1997/12/16 16:08:32 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/sighand.cc,v 4.8 1998/01/10 18:38:56 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -99,13 +99,14 @@ PRIVATE void FatalSignal(int, int, struct sigcontext *);
 
 void SigInit() {
     /* Establish/Join our own process group to avoid extraneous signals. */
+#ifndef DJGPP
 #ifdef	__linux__
         if (setpgrp() < 0)
 #else
                 if (setpgrp(0, getpid()) < 0)
 #endif
 	Choke("SigInit: setpgrp failed (%d)", errno);
-
+#endif /* DJGPP */
     /* Install the signal handlers. */
 #ifdef __BSD44__
     signal(SIGHUP, (void (*)(int))HUP);		/* turn on debugging */
@@ -191,6 +192,7 @@ PRIVATE void TRAP(int sig, int code, struct sigcontext *contextPtr) {
 }
 
 
+#ifdef SIGIOT
 PRIVATE void IOT(int sig, int code, struct sigcontext *contextPtr) {
 
   LOG(0, ("Call into IOT\n"));
@@ -203,8 +205,9 @@ PRIVATE void IOT(int sig, int code, struct sigcontext *contextPtr) {
     signal(SIGIOT, (void (*)(int))IOT);
 #endif
 }
+#endif
 
-#ifndef __linux__
+#ifdef SIGEMT
 PRIVATE void EMT(int sig, int code, struct sigcontext *contextPtr) {
     if (Profiling)
 	ToggleProfiling();
@@ -306,13 +309,15 @@ PRIVATE void TERM(int sig, int code, struct sigcontext *contextPtr) {
 }
 
 
+#ifdef SIGTSTP
 PRIVATE void TSTP(int sig, int code, struct sigcontext *contextPtr) {
     DebugOff();
 
     signal(SIGTSTP, (void (*)(int))TSTP);
 }
+#endif
 
-#ifndef __CYGWIN32__
+#ifdef SIGXCPU
 PRIVATE void XCPU(int sig, int code, struct sigcontext *contextPtr) {
     DumpState();
 
@@ -320,13 +325,15 @@ PRIVATE void XCPU(int sig, int code, struct sigcontext *contextPtr) {
 }
 
 
+#ifdef SIGXFSZ
 PRIVATE void XFSZ(int sig, int code, struct sigcontext *contextPtr) {
     StatsInit();
 
     signal(SIGXFSZ, (void (*)(int))XFSZ);
 }
+#endif
 
-
+#ifdef SIGVTALRM
 PRIVATE void VTALRM(int sig, int code, struct sigcontext *contextPtr) {
     SwapLog();
     SwapProgramLogs();
@@ -334,7 +341,7 @@ PRIVATE void VTALRM(int sig, int code, struct sigcontext *contextPtr) {
 
     signal(SIGVTALRM, (void (*)(int))VTALRM);
 }
-
+#endif
 
 PRIVATE void USR1(int sig, int code, struct sigcontext *contextPtr) {
     ToggleMallocTrace();
@@ -343,7 +350,18 @@ PRIVATE void USR1(int sig, int code, struct sigcontext *contextPtr) {
 }
 #endif
 
-PRIVATE void FatalSignal(int sig, int code, struct sigcontext *contextPtr) {
+
+
+
+#ifdef DJGPP
+PRIVATE void FatalSignal(int sig, int code, struct sigcontext *contextPtr) 
+{
+    LOG(0, ("*****  FATAL SIGNAL (%d) *****\n", sig));
+    TERM(sig, code, 0);
+}
+#else
+PRIVATE void FatalSignal(int sig, int code, struct sigcontext *contextPtr) 
+{
     LOG(0, ("*****  FATAL SIGNAL (%d) *****\n", sig));
 
     eprint("Fatal Signal (%d); pid %d becoming a zombie...", sig, getpid());
@@ -373,7 +391,7 @@ PRIVATE void FatalSignal(int sig, int code, struct sigcontext *contextPtr) {
 	fprintf(logFile, "sc_pc=0x%x\n", contextPtr->sc_pc);
 #endif
 #endif	i386
-#if	defined(__linux__) || defined(__CYGWIN32__)
+#ifndef __BSD44__
 	for (int i = 0; i < sizeof(struct sigaction) / sizeof(int); i++)
                 fprintf(logFile, "context[%d] = 0x%x\n", i, *((u_int *)contextPtr + i));
 #else
@@ -381,31 +399,9 @@ PRIVATE void FatalSignal(int sig, int code, struct sigcontext *contextPtr) {
                 fprintf(logFile, "context[%d] = 0x%x\n", i, *((u_int *)contextPtr + i));
 #endif
 
-#ifdef	__MACH__
-/*
-	 task_t task = task_self();
-	 vm_address_t address = 0;
-	 vm_size_t size;
-	 vm_prot_t protection;
-	 vm_prot_t max_protection;
-	 vm_inherit_t inheritance;
-	 boolean_t shared;
-	 port_t object_name;
-	 vm_offset_t offset;
-	 while (vm_region(task, &address, &size, &protection, &max_protection,
-			  &inheritance, &shared, &object_name, &offset) == KERN_SUCCESS) {
-	     fprintf(logFile, "Start 0x%x, size 0x%x, p %d, mp %d ih %d shared %d on 0x%x off 0x%x\n",
-		     address, size, protection, max_protection,
-		     inheritance, shared, object_name, offset);
-
-	     if (size == 0) break;
-	     address += size;
-	 }
-*/
-#endif	/* __MACH__ */
-
 	fflush(logFile);
     }
 
     TERM(sig, code, contextPtr);
 }
+#endif

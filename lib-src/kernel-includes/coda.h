@@ -15,12 +15,36 @@
 #include <sys/types.h>
 #endif 
 
+#ifdef DJGPP
+#ifdef KERNEL
+typedef unsigned long u_long;
+typedef unsigned int u_int;
+typedef unsigned short u_short;
+typedef u_long ino_t;
+typedef u_long dev_t;
+typedef void * caddr_t;
+typedef u_long u_quad_t;
+
+#define inline
+
+struct timespec {
+        long       ts_sec;
+        long       ts_nsec;
+};
+#else  /* DJGPP but not KERNEL */
+#include <sys/types.h>
+#include <sys/time.h>
+typedef u_long u_quad_t;
+#endif /* !KERNEL */
+#endif /* !DJGPP */
+
+
 #if defined(__linux__) || defined(__CYGWIN32__)
 #define cdev_t u_quad_t
 #if !defined(_UQUAD_T_) && (!defined(__GLIBC__) || __GLIBC__ < 2)
 #define _UQUAD_T_ 1
 typedef unsigned long long u_quad_t;
-#endif 
+#endif
 #else
 #define cdev_t dev_t
 #endif
@@ -201,7 +225,8 @@ struct coda_vattr {
 #define CFS_ZAPDIR      ((u_long) 28)
 #define CFS_ZAPVNODE    ((u_long) 29)
 #define CFS_PURGEFID    ((u_long) 30)
-#define CFS_NCALLS 31
+#define CFS_OPEN_BY_PATH ((u_long) 31)
+#define CFS_NCALLS 32
 
 #define DOWNCALL(opcode) (opcode >= CFS_REPLACE && opcode <= CFS_PURGEFID)
 
@@ -549,6 +574,18 @@ struct cfs_replace_out { /* cfs_replace is a venus->kernel call */
     ViceFid OldFid;
 };
 
+/* cfs_open_by_path: */
+struct cfs_open_by_path_in {
+    struct cfs_in_hdr ih;
+    ViceFid	VFid;
+    int	flags;
+};
+
+struct cfs_open_by_path_out {
+    struct cfs_out_hdr oh;
+	int path;
+};
+
 /* 
  * Occasionally, don't cache the fid returned by CFS_LOOKUP. For instance, if
  * the fid is inconsistent. This case is handled by setting the top bit of the
@@ -578,6 +615,7 @@ union inputArgs {
     struct cfs_inactive_in cfs_inactive;
     struct cfs_vget_in cfs_vget;
     struct cfs_rdwr_in cfs_rdwr;
+	struct cfs_open_by_path_in cfs_open_by_path;
 };
 
 union outputArgs {
@@ -599,6 +637,7 @@ union outputArgs {
     struct cfs_purgefid_out cfs_purgefid;
     struct cfs_rdwr_out cfs_rdwr;
     struct cfs_replace_out cfs_replace;
+	struct cfs_open_by_path_out cfs_open_by_path;
 };    
 
 union cfs_downcalls {

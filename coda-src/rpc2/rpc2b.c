@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rpc2/rpc2b.c,v 4.2 1998/01/10 18:38:09 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rpc2/rpc2b.c,v 4.3 1998/01/29 00:52:12 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -905,6 +905,9 @@ PRIVATE long get_netaddr(sock)
     long sock;
     /* get internet address from kernel, zero on error */
     {
+#ifdef DJGPP
+      return __djgpp_get_my_host();   /* MJC--hack! */
+#else
     struct ifconf ifc;
     struct ifreq conf[NETWORKS];
     struct sockaddr_in *sa_struct;
@@ -924,6 +927,7 @@ PRIVATE long get_netaddr(sock)
 	return (sa_struct->sin_addr.s_addr);
 	}
     return (0);
+#endif
     }
 
 PRIVATE long SetGreedy(s)
@@ -957,7 +961,7 @@ PRIVATE int is43()
     /* TRUE iff executing on 4.3BSD; FALSE on 4.2BSD */
     {
     int fd, rc;
-#ifdef	__linux__
+#if  defined(__linux__) || defined(DJGPP)
     return(FALSE);
 #else
 /*  4.3 requires a buffer argument to the setsockopt call
@@ -979,31 +983,14 @@ long rpc2_GetLocalHost(localhost, remotehost)
      */
     {
     struct sockaddr_in sin;
-#ifdef CYGWIN32
-    char hostname[128];
-    struct hostent *h;
-
-    if (gethostname(hostname, sizeof(hostname)) != 0) {
-	fprintf (stderr, "rpc2_GetLocalHost: cannot gethostname()");
-	assert (0);
-    }
-
-    h = gethostbyname(hostname);
-    if (!h) {
-	fprintf (stderr, "rpc2_GetLocalHost: cannot gethostbyname(%s)",
-		 hostname);
-	assert (0);
-    }
-
-    localhost->Tag = RPC2_HOSTBYINETADDR;
-    memcpy(&localhost->Value.InetAddress, h->h_addr, h->h_length);
-    fprintf (stderr, "rpc2_GetLocalHost: name %s len %d ip %x\n",
-	     hostname, h->h_length, ntohl(localhost->Value.InetAddress));
-    return 0;
-
-#else
     int s, i = sizeof(struct sockaddr_in);
     assert(remotehost->Tag == RPC2_HOSTBYINETADDR);
+#ifdef DJGPP
+    /* horrible hack -- figure out how to do this with MSTCP */
+    localhost->Tag = RPC2_HOSTBYINETADDR;
+    localhost->Value.InetAddress = __djgpp_get_my_host();
+    return 0;
+#else
     sin.sin_family = AF_INET;
     sin.sin_port = htons(1);	/* dummy port number */
     sin.sin_addr.s_addr = remotehost->Value.InetAddress;

@@ -1,10 +1,8 @@
 /************************************* fid table entry */
 
-#ifdef _POSIX_SOURCE
 #ifndef MAXNAMLEN
 #define MAXNAMLEN  255
 #endif  /* MAXNAMLEN */
-#endif  /* _POSIX_SOURCE */
 
 #ifndef V_BLKSIZE  
 #define V_BLKSIZE  8192
@@ -20,6 +18,14 @@ typedef struct fid_ent_s {
 
 #if defined(__BSD44__) && defined(__i386__)
 #define SYS_STRING  "i386_nbsd1"
+#endif
+
+#ifdef __linux__
+#define SYS_STRING "linux"
+#endif
+
+#ifdef DJGPP
+#define SYS_STRING "dos"
 #endif
 
 #ifdef __STDC__

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/pdbstuff/pwd2pdb.cc,v 4.3 1997/12/10 16:09:55 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/pdbstuff/pwd2pdb.cc,v 4.4 1998/01/10 18:37:32 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -267,7 +267,7 @@ int main(int argc, char *argv[])
     Preamble();
 
     gettimeofday(&t, 0);
-    printf("# Created from users file on %s\n", ctime((const long *)&t.tv_sec));
+    printf("# Created from users file on %s\n", ctime((time_t *)&t.tv_sec));
     printf("# Highest UID in use = %d\n", pwarray[pwcount-1].pw_uid);
     printf("# Lowest GID  in use = %d\n\n", garray[gcount-1].g_id);
     

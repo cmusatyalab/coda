@@ -33,7 +33,7 @@ should be returned to Software.Distribution@cs.cmu.edu.
 
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/rvm-src/rvm/rvm_map.c,v 4.3 1997/05/23 15:42:30 clement Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/rvm-src/rvm/rvm_map.c,v 4.4 1997/09/23 19:51:50 braam Exp $";
 #endif _BLURB_
 
 /*
@@ -62,6 +62,10 @@ static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/rvm-src/rvm/rvm
 #include <stdlib.h>
 #endif
 #include "rvm_private.h"
+
+#ifdef __CYGWIN32__
+#include <windows.h>
+#endif
 
 /* global variables */
 
@@ -194,7 +198,7 @@ static rvm_bool_t mem_chk(vmaddr,length)
 
 #endif                                 /* end of Mach-specific declarations */
 
-#if	defined(__linux__) || defined(__BSD44__)	/* begin BSD44-specific declarations */
+#if	! defined(MACH)	/* begin BSD44-specific declarations */
 #define PAGE_ALLOC_DEFINED 
 #include <sys/types.h>
 #include <sys/mman.h>
@@ -421,9 +425,20 @@ char *page_alloc(len)
     rvm_length_t    len;
     {
     char           *vmaddr;
-    
+
+#ifdef __CYGWIN32__
+    {
+      HANDLE hMap = CreateFileMapping((HANDLE)0xFFFFFFFF, NULL,
+                                      PAGE_READWRITE, 0, len, NULL);
+      ASSERT(hMap != NULL);
+      vmaddr = MapViewOfFile(hMap, FILE_MAP_READ | FILE_MAP_WRITE, 0, 0, 0);
+      ASSERT(vmaddr != NULL);
+      CloseHandle(hMap);
+    }
+#else
     vmaddr = mmap(NULL, len, PROT_READ | PROT_WRITE, MAP_ANON | MAP_PRIVATE,
 		  -1, 0);
+#endif
     if (vmaddr == (char *)-1) 
         {
 	if (errno == ENOMEM) 
@@ -457,9 +472,13 @@ void page_free(vmaddr, length)
     char            *vmaddr;
     rvm_length_t     length;
     {
+#ifdef __CYGWIN32__
+	UnmapViewOfFile(vmaddr);
+#else
 	if (munmap(vmaddr, length)) {
 	    ASSERT(0); /* should never fail */
 	}
+#endif
 
 	if (rvm_unregister_page(vmaddr, length) == rvm_false) {
 	    ASSERT(0); /* should never fail */
@@ -496,7 +515,7 @@ rvm_bool_t mem_chk(char *vmaddr, rvm_length_t length)
     return(rvm_false);		/* shouldn't be able to get here */
 }
 
-#endif /* __linux__ || __BSD44__ */
+#endif /* __linux__ || __BSD44__ || __CYGWIN32__ */
 
 #ifndef PAGE_ALLOC_DEFINED              /* begin generic Unix declarations */
 /* Unix page_list allocation */

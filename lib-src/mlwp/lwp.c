@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/lib-src/mlwp/lwp.c,v 4.6 1997/12/18 23:44:54 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/lib-src/mlwp/lwp.c,v 4.7 1998/01/10 18:40:37 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -55,7 +55,8 @@ supported by Transarc Corporation, Pittsburgh, PA.
 
 */
 
-
+#include <stdlib.h>
+#include <unistd.h>
 #include <stdio.h>
 #include <assert.h>
 #include <sys/time.h>
@@ -64,10 +65,6 @@ supported by Transarc Corporation, Pittsburgh, PA.
 #endif
 #include "lwp.h"
 #include "lwp.private.h"
-#ifndef OLDLWP
-#include "lwp.camelot.h"
-#endif OLDLWP
-
 
 #define  ON	    1
 #define  OFF	    0
@@ -102,31 +99,31 @@ to the next process in that queue that should run. */
 #endif OLDLWP
 
 /* internal procedure declarations */
-PRIVATE void lwpremove(register PROCESS p, register struct QUEUE *q);
-PRIVATE void lwpinsert(register PROCESS p, register struct QUEUE *q);
-PRIVATE void lwpmove(PROCESS p, struct QUEUE *from, struct QUEUE *to);
-PRIVATE void Dispatcher();
-PRIVATE void Initialize_PCB (PROCESS temp, int priority, char *stack, int stacksize, PFIC ep, char *parm, char *name);
-PRIVATE int  Internal_Signal(register char *event);
-PRIVATE void Abort_LWP(char *msg);
-PRIVATE void Exit_LWP();
-PRIVATE void Dump_One_Process (PROCESS pid);
-PRIVATE void Dump_Processes ();
-PRIVATE void purge_dead_pcbs();
-PRIVATE void Delete_PCB(register PROCESS pid);
-PRIVATE void Free_PCB(PROCESS pid);
-PRIVATE void Dispose_of_Dead_PCB(PROCESS cur);
+static void lwpremove(register PROCESS p, register struct QUEUE *q);
+static void lwpinsert(register PROCESS p, register struct QUEUE *q);
+static void lwpmove(PROCESS p, struct QUEUE *from, struct QUEUE *to);
+static void Dispatcher();
+static void Initialize_PCB (PROCESS temp, int priority, char *stack, int stacksize, PFIC ep, char *parm, char *name);
+static int  Internal_Signal(register char *event);
+static void Abort_LWP(char *msg);
+static void Exit_LWP();
+static void Dump_One_Process (PROCESS pid);
+static void Dump_Processes ();
+static void purge_dead_pcbs();
+static void Delete_PCB(register PROCESS pid);
+static void Free_PCB(PROCESS pid);
+static void Dispose_of_Dead_PCB(PROCESS cur);
 
 #ifdef OLDLWP
-PRIVATE void Create_Process_Part2 C_ARGS(());
-PRIVATE void Overflow_Complain C_ARGS(());
-PRIVATE void Initialize_Stack C_ARGS((char *stackptr, int stacksize));
-PRIVATE int  Stack_Used C_ARGS((register char *stackptr, int stacksize));
-PRIVATE int  InitializeProcessSupport();
+static void Create_Process_Part2 ();
+static void Overflow_Complain ();
+static void Initialize_Stack (char *stackptr, int stacksize);
+static int  Stack_Used (register char *stackptr, int stacksize);
+static int  InitializeProcessSupport();
 #else OLDLWP
-PRIVATE void Create_Process_Part2 C_ARGS((PROCESS temp));
-PRIVATE void Cal_Highest_runnable_priority C_ARGS(());
-PRIVATE int InitializeProcessSupport C_ARGS((int, PROCESS *));
+static void Create_Process_Part2 (PROCESS temp);
+static void Cal_Highest_runnable_priority ();
+static int InitializeProcessSupport (int, PROCESS *);
 #endif OLDLWP
 
 
@@ -138,7 +135,7 @@ char    lwp_debug;
 int 	LWP_TraceProcesses = 0;
 PROCESS	lwp_cpptr;
 int lwp_nextindex;			/* Next lwp index to assign */
-PRIVATE struct lwp_ctl *lwp_init = 0;
+static struct lwp_ctl *lwp_init = 0;
 int	Cont_Sws;
 struct timeval last_context_switch;	/* used to find out how long a lwp was running */
 struct timeval cont_sw_threshold;	/* how long a lwp is allowed to run */
@@ -168,8 +165,6 @@ int  condition_yield_limit;		/* for setting spin limit in cthread code */
 int	Proc_Running;			/* indicates forked process got control */
 struct	mutex	run_sem;		/* mutex to access Proc_Running */
 struct  mutex	ct_mutex;		/* mutex to sync real threads */
-int Camelot_Running = FALSE;
-CamThreadProc_t lwp_camelottp = 0;	/* set to CONCURRENT_THREAD if using Camelot */
 stackinfo     *vminfo[MAXTHREADS];
 #endif OLDLWP
 
@@ -197,7 +192,7 @@ stackinfo     *vminfo[MAXTHREADS];
 
 
 /* removes PROCESS p from a QUEUE pointed at by q */
-PRIVATE void lwpremove(p, q)
+static void lwpremove(p, q)
     register PROCESS p;
     register struct QUEUE *q;
 {
@@ -215,7 +210,7 @@ PRIVATE void lwpremove(p, q)
     p -> next = p -> prev = NULL;
 }
 
-PRIVATE void lwpinsert(p, q)
+static void lwpinsert(p, q)
     register PROCESS p;
     register struct QUEUE *q;
 {
@@ -232,7 +227,7 @@ PRIVATE void lwpinsert(p, q)
 }
 
 /* Moves a PROCESS p from QUEUE "from" to QUEUE "to" */
-PRIVATE void lwpmove(p, from, to)
+static void lwpmove(p, from, to)
     PROCESS p;
     struct QUEUE *from;
     struct QUEUE *to;
@@ -315,7 +310,7 @@ int LWP_NewRock(int Tag, char *Value)
     else return(LWP_ENOROCKS);
 }
 
-PRIVATE void Dispose_of_Dead_PCB(PROCESS cur)
+static void Dispose_of_Dead_PCB(PROCESS cur)
 {
 
   lwpdebug(0, ("Entered Dispose_of_Dead_PCB"))
@@ -325,12 +320,21 @@ PRIVATE void Dispose_of_Dead_PCB(PROCESS cur)
 
 int LWP_CurrentProcess(PROCESS *pid)
 {
-    lwpdebug(0, ("Entered Current_Process"))
+    lwpdebug(0, ("Entered LWP_CurrentProcess"))
     if (lwp_init) {
             *pid = lwp_cpptr;
             return LWP_SUCCESS;
     } else
         return LWP_EINIT;
+}
+
+PROCESS LWP_ThisProcess()
+{
+    lwpdebug(0, ("Entered LWP_ThisProcess"))
+    if (lwp_init) {
+            return lwp_cpptr;
+    } else
+	    return NULL;
 }
 
 
@@ -355,7 +359,7 @@ int LWP_WaitProcess(char *event)
     return LWP_MwaitProcess(1, tempev);
 }
 
-PRIVATE void Delete_PCB(register PROCESS pid)
+static void Delete_PCB(register PROCESS pid)
 {
     lwpdebug(0, ("Entered Delete_PCB"))
     lwpremove(pid, (pid->blockflag || pid->status==WAITING || pid->status==DESTROYED
@@ -364,18 +368,18 @@ PRIVATE void Delete_PCB(register PROCESS pid)
     LWPANCHOR.processcnt--;
 }
 
-PRIVATE void purge_dead_pcbs()
+static void purge_dead_pcbs()
 {
     for_all_elts(cur, blocked, { if (cur->status == DESTROYED) Dispose_of_Dead_PCB(cur); })
 }
 
-PRIVATE void Exit_LWP()
+static void Exit_LWP()
 {
     exit (-1);
 }
 
 
-PRIVATE void Dump_Processes()
+static void Dump_Processes()
 {
     if (lwp_init) {
 	register int i;
@@ -404,7 +408,7 @@ int LWP_HighestIndex()
     return(lwp_nextindex-1);
 }
 
-PRIVATE int IsGreater(struct timeval *t1, struct timeval *t2) 
+static int IsGreater(struct timeval *t1, struct timeval *t2) 
 {
     if (t1->tv_sec > t2->tv_sec) 
 	return (1);
@@ -416,7 +420,7 @@ PRIVATE int IsGreater(struct timeval *t1, struct timeval *t2)
 	return(0);
 }
 
-PRIVATE void CheckWorkTime(PROCESS currentThread, PROCESS nextThread) 
+static void CheckWorkTime(PROCESS currentThread, PROCESS nextThread) 
 {
     struct timeval current;
     struct timeval worktime;
@@ -437,7 +441,7 @@ PRIVATE void CheckWorkTime(PROCESS currentThread, PROCESS nextThread)
 
 	if (IsGreater(&worktime, &cont_sw_threshold)) {
 	    struct tm *lt = localtime((const time_t *)&current.tv_sec);
-	    fprintf(stderr, "[ %02d:%02d:%02d ] ***LWP %s(0x%x) took too much cpu %d secs %6d usecs\n", 
+	    fprintf(stderr, "[ %02d:%02d:%02d ] ***LWP %s(%p) took too much cpu %d secs %6d usecs\n", 
 		    lt->tm_hour, lt->tm_min, lt->tm_sec, 
 		    currentThread->name, currentThread, worktime.tv_sec, worktime.tv_usec);
 	    fflush(stderr);	    
@@ -450,7 +454,7 @@ PRIVATE void CheckWorkTime(PROCESS currentThread, PROCESS nextThread)
 }
 
 
-PRIVATE void CheckRunWaitTime(PROCESS thread) 
+static void CheckRunWaitTime(PROCESS thread) 
 {
     struct timeval current;
     struct timeval waittime;
@@ -471,7 +475,7 @@ PRIVATE void CheckRunWaitTime(PROCESS thread)
 
     if (timercmp(&waittime, &run_wait_threshold, >)) {
 	struct tm *lt = localtime((const time_t *)&current.tv_sec);
-	fprintf(stderr, "[ %02d:%02d:%02d ] ***LWP %s(0x%x) run-wait too long %d secs %6d usecs\n", 
+	fprintf(stderr, "[ %02d:%02d:%02d ] ***LWP %s(%p) run-wait too long %d secs %6d usecs\n", 
 		lt->tm_hour, lt->tm_min, lt->tm_sec, 
 		thread->name, thread, waittime.tv_sec, waittime.tv_usec);
 	fflush(stderr);	    
@@ -647,18 +651,10 @@ int LWP_CreateProcess(ep, stacksize, priority, parm, name, pid)
 
 	Proc_Running = FALSE;	    /* sem set true by forked process */
 
-	if (!Camelot_Running){
-	    ct = cthread_fork((cthread_fn_t)Create_Process_Part2, (any_t)temp);
-	    cthread_detach(ct);
-	}
-	else {
-	    if (lwp_camelottp) (*lwp_camelottp)(Create_Process_Part2, (int)temp);
-	    else {
-	    	printf("FATAL ERROR: Camelot running, but lwp_camelottp is NULL\n");
-		exit(-1);		
-	    }
-	}
-
+	ct = cthread_fork((cthread_fn_t)Create_Process_Part2, (any_t)temp);
+	cthread_detach(ct);
+    
+   
 	/* check if max priority has changed */
 	Highest_runnable_priority = MAX(Highest_runnable_priority, priority);
 	
@@ -782,7 +778,7 @@ int LWP_Init(version, priority, pid)
     }
 
 
-PRIVATE int InitializeProcessSupport(priority, pid)
+static int InitializeProcessSupport(priority, pid)
     int priority;
     PROCESS *pid;
     /* Used to be externally visible as  LWP_InitializeProcessSupport() */
@@ -851,8 +847,7 @@ PRIVATE int InitializeProcessSupport(priority, pid)
     Initialize_PCB(temp, priority, NULL, NULL, NULL, NULL,"Main Process");
     gettimeofday(&temp->lastReady, 0);
 
-    if (!Camelot_Running)
-        cthread_init();
+    cthread_init();
 
     /* set yielding limit to 0 - saves time on condition wait in real threads */
     condition_yield_limit = 0;
@@ -874,9 +869,7 @@ PRIVATE int InitializeProcessSupport(priority, pid)
 #endif OLDLWP
 }
 
-int LWP_INTERNALSIGNAL(event, yield)
-    char *event;
-    int yield;
+int LWP_INTERNALSIGNAL(char *event, int yield)
 {
     lwpdebug(0, ("Entered LWP_SignalProcess"))
     if (lwp_init) {
@@ -1030,7 +1023,7 @@ int LWP_StackUsed(pid, max, used)
 #endif OLDLWP
 }
 
-PRIVATE void Abort_LWP(msg)
+static void Abort_LWP(msg)
     char *msg;
 {
 #ifdef OLDLWP
@@ -1055,7 +1048,7 @@ PRIVATE void Abort_LWP(msg)
 }
 
 #ifdef OLDLWP
-PRIVATE void Create_Process_Part2()
+static void Create_Process_Part2()
 {
     PROCESS temp;
     lwpdebug(0, ("Entered Create_Process_Part2"))
@@ -1067,7 +1060,7 @@ PRIVATE void Create_Process_Part2()
 
 #else OLDLWP
 
-PRIVATE void Create_Process_Part2 (temp)
+static void Create_Process_Part2 (temp)
     PROCESS temp;
 {
     int dummy;
@@ -1086,15 +1079,15 @@ PRIVATE void Create_Process_Part2 (temp)
 
 #endif OLDLWP
 
-PRIVATE void Dump_One_Process(pid)
+static void Dump_One_Process(pid)
     PROCESS pid;
 {
     int i;
 
-    printf("***LWP: Process Control Block at 0x%x\n", pid);
+    printf("***LWP: Process Control Block at %p\n", pid);
     printf("***LWP: Name: %s\n", pid->name);
     if (pid->ep != NULL)
-	printf("***LWP: Initial entry point: 0x%x\n", pid->ep);
+	printf("***LWP: Initial entry point: %p\n", pid->ep);
     if (pid->blockflag) printf("BLOCKED and ");
     switch (pid->status) {
 	case READY:	printf("READY");     break;
@@ -1103,32 +1096,32 @@ PRIVATE void Dump_One_Process(pid)
 	default:	printf("unknown");
 	}
     putchar('\n');
-    printf("***LWP: Priority: %d \tInitial parameter: 0x%x\n",
+    printf("***LWP: Priority: %d \tInitial parameter: %p\n",
 	    pid->priority, pid->parm);
 
 #ifdef OLDLWP
     if (pid->stacksize != 0) {
-	printf("***LWP:  Stacksize: %d \tStack base address: 0x%x\n",
+	printf("***LWP:  Stacksize: %d \tStack base address: %p\n",
 		pid->stacksize, pid->stack);
 	printf("***LWP: HWM stack usage: ");
 	printf("%d\n", Stack_Used(pid->stack,pid->stacksize));
 	free (pid->stack);
 	}
-    printf("***LWP: Current Stack Pointer: 0x%x\n", pid->context.topstack);
+    printf("***LWP: Current Stack Pointer: %p\n", pid->context.topstack);
 #endif OLDLWP
 
     if (pid->eventcnt > 0) {
 	printf("***LWP: Number of events outstanding: %d\n", pid->waitcnt);
 	printf("***LWP: Event id list:");
 	for (i=0;i<pid->eventcnt;i++)
-	    printf(" 0x%x", pid->eventlist[i]);
+	    printf(" %p", pid->eventlist[i]);
 	putchar('\n');
     }
     if (pid->wakevent>0)
 	printf("***LWP: Number of last wakeup event: %d\n", pid->wakevent);
 }
 
-PRIVATE void Dispatcher()		/* Lightweight process dispatcher */
+static void Dispatcher()		/* Lightweight process dispatcher */
 {
 #ifdef OLDLWP
     register int i;
@@ -1180,7 +1173,7 @@ PRIVATE void Dispatcher()		/* Lightweight process dispatcher */
     if (i < 0) Abort_LWP("No READY processes");
 
     if (LWP_TraceProcesses > 0)
-	printf("Dispatch %d [PCB at 0x%x] \"%s\"\n", 
+	printf("Dispatch %d [PCB at %p] \"%s\"\n", 
          ++dispatch_count, runnable[i].head, runnable[i].head->name);
     if (PRE_Block != 1) Abort_LWP("PRE_Block not 1");
 
@@ -1263,14 +1256,14 @@ PRIVATE void Dispatcher()		/* Lightweight process dispatcher */
 }
 
 
-PRIVATE void Free_PCB(pid)
+static void Free_PCB(pid)
     PROCESS pid;
 {
     lwpdebug(0, ("Entered Free_PCB"))
 
 #ifdef OLDLWP
     if (pid -> stack != NULL) {
-	lwpdebug(0, ("HWM stack usage: %d, [PCB at 0x%x]",
+	lwpdebug(0, ("HWM stack usage: %d, [PCB at %p]",
 		   Stack_Used(pid->stack,pid->stacksize), pid))
 	free(pid -> stack);
     }
@@ -1280,7 +1273,7 @@ PRIVATE void Free_PCB(pid)
     free((char *)pid);
 }	
 
-PRIVATE void Initialize_PCB(temp, priority, stack, stacksize, ep, parm, name)
+static void Initialize_PCB(temp, priority, stack, stacksize, ep, parm, name)
     PROCESS temp;
     int priority;
     char *stack;    /* Ignored for non-OLDLWP version */
@@ -1329,13 +1322,13 @@ PRIVATE void Initialize_PCB(temp, priority, stack, stacksize, ep, parm, name)
 }
 
 
-PRIVATE int Internal_Signal(event)
+static int Internal_Signal(event)
     register char *event;
 {
     int rc = LWP_ENOWAIT;
     register int i;
 
-    lwpdebug(0, ("Entered Internal_Signal [event id 0x%x]", event))
+    lwpdebug(0, ("Entered Internal_Signal [event id %p]", event))
     if (!lwp_init) return LWP_EINIT;
     if (event == NULL) return LWP_EBADEVENT;
 
@@ -1373,16 +1366,10 @@ PRIVATE int Internal_Signal(event)
 /* -------------------------------*/
 
 #ifndef OLDLWP
-/* Notify lwp that Camelot is running */
-void Camelot_LWPInit()
-{
-    Camelot_Running = TRUE;
-}
-
 
 /* places the maximum of runnable task priorities in the global variable -
  * Highest_runnable_priority.  No runnable process is an error */
-PRIVATE void Cal_Highest_runnable_priority()
+static void Cal_Highest_runnable_priority()
 {
     int	i;
     for (i = LWP_MAX_PRIORITY; runnable[i].count == 0 && i >=0; i--);
@@ -1392,13 +1379,13 @@ PRIVATE void Cal_Highest_runnable_priority()
 	    Highest_runnable_priority = i;
 }
 
-PRIVATE void InitVMInfo() {
+static void InitVMInfo() {
     int i;
     for (i = 0; i < MAXTHREADS; i++)
 	vminfo[i] = NULL;
 }
 
-PRIVATE int GetFreeVMInfoSlot() {
+static int GetFreeVMInfoSlot() {
     int i;
     for (i = 0; i < MAXTHREADS; i++)
 	if (vminfo[i] == NULL)
@@ -1407,7 +1394,7 @@ PRIVATE int GetFreeVMInfoSlot() {
     else return(-1);
 }
 
-PRIVATE stackinfo *FindStackInfo(id)
+static stackinfo *FindStackInfo(id)
 cthread_t	id;
 {
     int i;
@@ -1417,7 +1404,7 @@ cthread_t	id;
     }
     return(NULL);
 }
-PRIVATE void InitMyStackInfo(sp)
+static void InitMyStackInfo(sp)
      char *sp;
 {
     int index;
@@ -1488,7 +1475,7 @@ void LWP_UnProtectStacks() {
 /*--------------------------------*/
 
 #ifdef OLDLWP
-PRIVATE void Initialize_Stack(stackptr, stacksize)
+static void Initialize_Stack(stackptr, stacksize)
     char *stackptr;
     int stacksize;
 {
@@ -1504,7 +1491,7 @@ PRIVATE void Initialize_Stack(stackptr, stacksize)
 	*(long *)stackptr = STACKMAGIC;
 }
 
-PRIVATE int Stack_Used(stackptr, stacksize)
+static int Stack_Used(stackptr, stacksize)
     register char *stackptr;
     int stacksize;
 {
@@ -1521,7 +1508,7 @@ PRIVATE int Stack_Used(stackptr, stacksize)
 }
 
 /* Complain of a stack overflow to stderr without using stdio. */
-PRIVATE void Overflow_Complain()
+static void Overflow_Complain()
 {
     char *msg1 = "LWP: stack overflow in process ";
     char *msg2 = "!\n";

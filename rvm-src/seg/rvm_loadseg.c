@@ -33,7 +33,7 @@ should be returned to Software.Distribution@cs.cmu.edu.
 
 */
 
-static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/src/coda-4.0.1/RCSLINK/./rvm-src/seg/rvm_loadseg.c,v 1.1 1996/11/22 19:17:14 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/rvm-src/seg/rvm_loadseg.c,v 4.1 1997/01/08 21:54:45 rvb Exp $";
 #endif _BLURB_
 
 #include <stdlib.h>
@@ -106,7 +106,7 @@ rvm_load_segment(DevName, DevLength, options, nregions, regions)
 
     /* HACK */ rds_startaddr = hdrp->regions[0].vmaddr; /* HACK */
     for (i = 0; i < hdrp->nregions; i++) 
-	if ((int)(hdrp->regions[i].vmaddr) >= 0) {
+	if ((unsigned int)(hdrp->regions[i].vmaddr) >= 0) {
 	    region->offset = (*regions)[i].offset = hdrp->regions[i].offset;
 	    region->length = (*regions)[i].length = hdrp->regions[i].length;
 	    region->vmaddr = (*regions)[i].vmaddr = hdrp->regions[i].vmaddr;

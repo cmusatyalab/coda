@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/mariner.cc,v 4.5 97/12/06 23:34:28 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/mariner.cc,v 4.6 1998/01/22 10:18:35 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -56,13 +56,8 @@ extern "C" {
 #include <netdb.h>
 #include <stdarg.h>
 #include <string.h>
-#ifdef __MACH__
-#include <sysent.h>
-#include <libc.h>
-#else	/* __linux__ || __BSD44__ */
 #include <unistd.h>
 #include <stdlib.h>
-#endif
 
 
 #include <lock.h>
@@ -118,9 +113,10 @@ void MarinerInit() {
 
     /* Make address reusable. */
     int on = 1;
+#ifndef DJGPP
     if (setsockopt(mariner::muxfd, SOL_SOCKET, SO_REUSEADDR, &on, (int)sizeof(int)) < 0)
 	eprint("MarinerInit: setsockopt failed (%d)", errno);
-
+#endif
     /* Look up the well-known CODA mariner service. */
     struct servent *serventp = getservbyname(MarinerService, 0);
     if (!serventp) {
@@ -163,10 +159,17 @@ void MarinerMux(int mask) {
 	    ::close(newfd);
 	else if (mariner::nmariners >= MaxMariners)
 	    ::close(newfd);
+#ifndef DJGPP
 	else if	(::fcntl(newfd, F_SETFL, O_NDELAY) < 0) {
 	    eprint("MarinerMux: fcntl failed (%d)", errno);
 	    ::close(newfd);
 	}
+#else
+     	else if (::__djgpp_set_socket_blocking_mode(newfd, 1) < 0) {
+		eprint("MarinerMux: set nonblock failed (%d)", errno);
+		::close(newfd);
+	}
+#endif
 	else
 	    new mariner(newfd);
     }

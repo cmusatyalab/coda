@@ -49,7 +49,7 @@ in coda.h */
 int pioctl(const char *path, unsigned long com, struct
 	   ViceIoctl *vidata, int follow);
 
-#ifdef __CYGWIN32__
+#if defined(__CYGWIN32__) || defined(DJGPP)
 #define _IOC_NRBITS	8
 #define _IOC_TYPEBITS	8
 #define _IOC_SIZEBITS	14

@@ -12,4 +12,9 @@
 
 #define setitimer(a,b,c) (printf("setitimer() not supported in CYGWIN32\n"), exit(1))
 
+#ifndef __CYGWIN32__
+#if 0
+#endif
+
 #define gettimeofday(a,b) (gettimeofday(a,b) == 1 ? 0 : -1)
+#endif

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vice/srv.cc,v 4.12 98/01/30 19:28:55 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vice/srv.cc,v 4.13 1998/02/18 13:20:05 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -128,6 +128,7 @@ extern "C" {
 #include <al.h>
 #include <auth2.h>
 #include <srv.h>
+#include <vice.private.h>
 #include <coda_dir.h>
 #include <recov.h>
 #include <camprivate.h>
@@ -267,7 +268,7 @@ PRIVATE int ParseArgs(int, char **);
 PRIVATE void NewParms(int);
 PRIVATE void InitServerKeys(char *, char *);
 PRIVATE void DaemonizeSrv(void);
-static void InitializeServerRVM(void *initProc,char *name);
+static void InitializeServerRVM(char *name);
 
 #ifdef RVMTESTING
 #include <rvmtesting.h>
@@ -466,8 +467,14 @@ main(int argc, char *argv[])
     keytime = (int)buff.st_mtime;
     InitServerKeys(KEY1, KEY2);
 
+#ifdef __CYGWIN32__
+	/* XXX -JJK */
+	portal1.Tag = RPC2_PORTALBYINETNUMBER;
+	portal1.Value.InetPortNumber = htons(1361);
+#else
     portal1.Tag = RPC2_PORTALBYNAME;
     strcpy(portal1.Value.Name, "coda_filesrv");
+#endif
     portallist[0] = &portal1;
 
     SFTP_SetDefaults(&sei);
@@ -486,7 +493,7 @@ main(int argc, char *argv[])
     RPC2_Trace = trace;
 
     InitPartitions(VCT);
-    InitializeServerRVM(NULL, "codaserver"); 
+    InitializeServerRVM("codaserver"); 
 
     /* Trace mallocs and frees in the persistent heap if requested. */
     if (MallocTrace) {	
@@ -655,7 +662,7 @@ PRIVATE void ServerLWP(int *Ident)
     while (1) {
 	LastOp[lwpid] = 0;
 	CurrentClient[lwpid] = (ClientEntry *)0;
-	if ((rc = RPC2_GetRequest(&myfilter, &mycid, &myrequest, 0, (long (*)())GetKeysFromToken, RPC2_XOR, NULL))
+	if ((rc = RPC2_GetRequest(&myfilter, &mycid, &myrequest, 0, (long (*)(...))GetKeysFromToken, RPC2_XOR, NULL))
 		== RPC2_SUCCESS) {
 	    if (RPC2_GetPrivatePointer(mycid, (char **)&client) != RPC2_SUCCESS) 
 		client = 0;
@@ -718,7 +725,7 @@ PRIVATE void ServerLWP(int *Ident)
 		if(rc <= RPC2_ELIMIT) {
 		    if(client && client->RPCid == mycid && !client->DoUnbind) {
 			ObtainWriteLock(&(client->VenusId->lock));
-			DeleteClient(client);
+			CLIENT_Delete(client);
 			ReleaseWriteLock(&(client->VenusId->lock));
 		    }
 		}
@@ -781,7 +788,7 @@ PRIVATE void ResLWP(int *Ident){
     while(1) {
 	mycid = 0;
 	rc = RPC2_GetRequest(&myfilter, &mycid, &myrequest, 
-			     NULL, NULL, NULL, NULL);
+			     NULL, NULL, 0, NULL);
 	if (rc == RPC2_SUCCESS) {
 	    LogMsg(9, SrvDebugLevel, stdout, "ResLWP %d Received request %d", 
 		    *Ident, myrequest->Header.Opcode);
@@ -828,7 +835,7 @@ PRIVATE void CallBackCheckLWP()
     while (1) {
 	if (IOMGR_Select(0, 0, 0, 0, &time) == 0) {
 	    LogMsg(2, SrvDebugLevel, stdout, "Checking for dead venii");
-	    CallBackCheck();
+	    CLIENT_CallBackCheck();
 	    LogMsg(2, SrvDebugLevel, stdout, "Set disk usage statistics");
 	    VSetDiskUsage();
 	    if(time.tv_sec != cbwait) time.tv_sec = cbwait;
@@ -1109,7 +1116,7 @@ void PrintCounters(FILE *fp)
     LogMsg(0, 0, fp,
 	   "There are currently %d connections in use",
 	   CurrentConnections);
-    GetWorkStats(&workstations, &activeworkstations, (unsigned)tpl.tv_sec-15*60);
+    CLIENT_GetWorkStats(&workstations, &activeworkstations, (unsigned)tpl.tv_sec-15*60);
     LogMsg(0, 0, fp,
 	   "There are %d workstations and %d are active (req in < 15 mins)",
 	   workstations, activeworkstations);
@@ -1752,13 +1759,10 @@ PRIVATE void DaemonizeSrv() {
     signal(SIGSEGV, (void (*)(int))zombie);
 }
 
-static void InitializeServerRVM(void *initProc,char *name)
+static void InitializeServerRVM(char *name)
 {		    
-    void (*dummyprocptr)() = initProc; /* to pacify g++ if initProc is NULL */ 
     switch (RvmType) {							    
     case VM :					       	    
-	if (dummyprocptr != NULL)						    
-	    (*dummyprocptr)();						    
 	camlibRecoverableSegment = (camlib_recoverable_segment *)
 	    malloc(sizeof(struct camlib_recoverable_segment));
        break;                                                               
@@ -1781,16 +1785,14 @@ static void InitializeServerRVM(void *initProc,char *name)
 		   "Setting Rvm Truncate threshhold to %d.\n", _Rvm_Truncate); 
 	    options->truncate = _Rvm_Truncate;				    
 	}
-#ifdef	__linux__
-	sbrk((void *)(0x20000000 - (int)sbrk(0))); /* for garbage reasons. */
-#elif	defined(__FreeBSD__)
+#if	defined(__FreeBSD__)
 	sbrk((void *)(0x50000000 - (int)sbrk(0))); /* for garbage reasons. */
 #elif	defined(__NetBSD__) && NetBSD1_3
 	sbrk((void *)(0x50000000 - (int)sbrk(0))); /* for garbage reasons. */
 #elif	defined(__NetBSD__) && NetBSD1_2
 	sbrk((void *)(0x20000000 - (int)sbrk(0))); /* for garbage reasons. */
-#else
-	some mistake or other
+#else  /* __linux__ __CYWIN32__ DJGPP */
+	sbrk((0x20000000 - (long)sbrk(0))); /* for garbage reasons. */
 #endif
         err = RVM_INIT(options);                   /* Start rvm */           
         if ( err == RVM_ELOG_VERSION_SKEW ) {                                
@@ -1812,8 +1814,6 @@ static void InitializeServerRVM(void *initProc,char *name)
 	assert(err == RVM_SUCCESS);                                         
         /* Possibly do recovery on data structures, coalesce, etc */	    
 	rvm_free_options(options);					    
-	if (dummyprocptr != NULL) /* Call user specified init procedure */   
-	    (*dummyprocptr)();						    
         break;                                                              
     }                                                                       
 	                                                                    

@@ -30,6 +30,22 @@
  *	/usr/cs/include).
  *
  * $Log: md.c,v $
+ * Revision 4.3  1998/01/10 18:36:41  braam
+ * This is a big commit: the tree now supports compilation for
+ * Windows NT.
+ *
+ * To build for NT (cross building under Linux only at the moment)
+ * configure --host=nt
+ * or
+ * configure --host=cygwin32
+ *
+ * Everything compiles with the exception of cmon which uses curses.
+ *
+ * I will make a cross building kit available shortly.
+ *
+ * All changes were minor -- I am hopeful that this stuff will work easily with
+ * the kernel code when I finish that.
+ *
  * Revision 4.1  1997/04/29 21:32:51  rvb
  * Initial version for Coda
  *
@@ -851,6 +867,9 @@ again:
 		goto again;
 	}
 	if (exclude && strstr(buf, "gnuwin32")) {
+		goto again;
+	}
+	if (exclude && strstr(buf, "msdos")) {
 		goto again;
 	}
 #ifdef	__MACH__

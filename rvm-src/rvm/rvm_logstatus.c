@@ -33,7 +33,7 @@ should be returned to Software.Distribution@cs.cmu.edu.
 
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/rvm-src/rvm/rvm_logstatus.c,v 4.2 1997/04/01 01:55:57 clement Exp $";
+static char *rcsid = "$Header: /afs/cs.cmu.edu/user/clement/MS/rvm-src/rvm/RCS/rvm_logstatus.c,v 4.2 1997/04/01 01:55:57 clement Exp $";
 #endif _BLURB_
 
 /*
@@ -41,7 +41,6 @@ static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/rvm-src/rvm/rvm
 *                            RVM log status area support
 *
 */
-
 #include <unistd.h>
 #include <sys/file.h>
 #include <sys/errno.h>
@@ -163,17 +162,28 @@ log_t *find_log(log_dev)
     char            *log_dev;
     {
     log_t           *log;
+#ifdef DJGPP
+    rvm_return_t    retval;
+    char            *log_dev_fullname = make_full_name(log_dev, 0, &retval);
+    ASSERT(log_dev_fullname && retval == RVM_SUCCESS);
+#else
+    char            *log_dev_fullname = log_dev;
+#endif
 
     ASSERT(log_dev != NULL);
     CRITICAL(log_root_lock,
         {
         FOR_ENTRIES_OF(log_root,log_t,log)
-            if (strcmp(log->dev.name,log_dev) == 0)
+            if (strcmp(log->dev.name,log_dev_fullname) == 0)
                 goto found;
 
         log = NULL;
 found:;
         });
+
+#ifdef DJGPP
+    free(log_dev_fullname);
+#endif
 
     return log;
     }
@@ -403,7 +413,6 @@ rvm_return_t open_log(dev_name,log_ptr,status_buf,rvm_options)
     /* create daemon truncation thread */
     if ((retval=set_truncate_options(log,rvm_options))
         != RVM_SUCCESS) goto err_exit;
-
     /* raw i/o support */
     if (dev->raw_io)
         {
@@ -462,7 +471,6 @@ rvm_return_t do_log_options(log_ptr,rvm_options)
         /* build log descriptor */
         if ((retval=open_log(log_dev,&log,NULL,rvm_options))
             != RVM_SUCCESS) return retval;
-
         /* do recovery processing for log */
         log->in_recovery = rvm_true;
         if ((retval = log_recover(log,&log->status.tot_recovery,

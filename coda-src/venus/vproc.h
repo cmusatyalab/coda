@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/vproc.h,v 4.13 1998/01/09 13:43:58 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/vproc.h,v 4.14 1998/01/10 18:39:14 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -77,13 +77,13 @@ struct uio {
 #endif
 #endif
 
-#ifdef __linux__
+#if defined(__linux__) || defined(DJGPP)
 #include <sys/user.h>
 #include <sys/uio.h>
 #endif
 
 
-#if	defined(__linux__) || defined(__CYGWIN32__)
+#if    ! defined(__BSD44__)
 /* hmm we need this, so let's define it. Where is it in BSD anyway? */
 enum  uio_rw { UIO_READ, UIO_WRITE };
 

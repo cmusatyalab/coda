@@ -31,7 +31,7 @@ III =  rvm-src
  IV =  coda-src
 # V =  utils-src
 
-SUBDIRS = $(EXTRAS) $(I) $(II) $(III) $(IV) $(V)
+SUBDIRS =  $(I) $(EXTRAS) $(II) $(III) $(IV) $(V)
 
 CC:=$(NATIVECC)
 

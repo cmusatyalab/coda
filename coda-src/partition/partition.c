@@ -190,7 +190,11 @@ VGetPartition(char *name)
 void 
 VSetPartitionDiskUsage(register struct DiskPartition *dp)
 {
-#ifndef __CYGWIN32__
+#if defined(__CYGWIN32__) || defined(DJGPP)
+    dp->free = 10000000;  /* free blocks for non s-users */
+    dp->totalUsable = 10000000; 
+    dp->minFree = 10;
+#else
     struct statfs fsbuf;
     int rc;
     long reserved_blocks;
@@ -206,10 +210,6 @@ VSetPartitionDiskUsage(register struct DiskPartition *dp)
     dp->free = fsbuf.f_bavail;  /* free blocks for non s-users */
     dp->totalUsable = fsbuf.f_blocks - reserved_blocks; 
     dp->minFree = 100 * reserved_blocks / fsbuf.f_blocks;
-#else
-    dp->free = 10000000;  /* free blocks for non s-users */
-    dp->totalUsable = 10000000; 
-    dp->minFree = 10;
 
 #endif
 }

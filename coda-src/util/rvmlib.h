@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/util/rvmlib.h,v 4.4 1997/10/18 04:59:19 clement Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/util/rvmlib.h,v 4.5 1998/02/10 16:01:51 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -113,6 +113,12 @@ extern void rvmlib_internal_set_thread_data(void *);
 
 #define CODA_STACK_LENGTH 0x20000	/* 128 K */
 #define LOGTHRESHOLD	50
+
+#ifdef DJGPP
+#define _setjmp setjmp
+#define _longjmp longjmp
+#include <setjmp.h>
+#endif
 
 #ifdef __cplusplus
 extern "C" {

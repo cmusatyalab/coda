@@ -33,18 +33,17 @@ should be returned to Software.Distribution@cs.cmu.edu.
 
 */
 
-static char *rcsid = "$Header: /afs/cs.cmu.edu/user/clement/mysrcdir3/rvm-src/seg/RCS/rvm_segutil.c,v 4.2 1997/02/26 16:05:09 rvb Exp clement $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/rvm-src/seg/rvm_segutil.c,v 4.3 1997/04/01 01:52:03 clement Exp $";
 #endif _BLURB_
 
-#ifdef __MACH__
-#include <sysent.h>
-#include <libc.h>
-#else	/* __linux__ || __BSD44__ */
 #include <unistd.h>
 #include <stdlib.h>
-#endif
 #include <rvm.h>
 #include "rvm_segment.h"
+
+#ifdef __CYGWIN32__
+#include <windows.h>
+#endif
 
 /* Routine to check if regions will overlap in memory. */
 
@@ -118,7 +117,7 @@ deallocate_vm(addr, length)
 /* BSD44 memory allocation; uses mmap as an allocator.  Any mmap-aware
    system should be able to use this code */
 
-#if defined(__linux__) || defined(__BSD44__)
+#if ! defined(__MACH__)
 #include <sys/types.h>
 #include <sys/mman.h>
 #include <errno.h>
@@ -138,8 +137,21 @@ allocate_vm(addr, length)
 				     it's a location that we HAVE to
 				     be able to map to. */
 
+#ifdef __CYGWIN32__
+    {
+      HANDLE hMap = CreateFileMapping((HANDLE)0xFFFFFFFF, NULL,
+                                      PAGE_READWRITE, 0, length, NULL);
+      if (hMap == NULL)
+          return(RVM_EINTERNAL);
+      *addr = MapViewOfFileEx(hMap, FILE_MAP_READ | FILE_MAP_WRITE, 0, 0, 0, *addr);
+      if (*addr == NULL)
+          *addr = (char *)-1;
+      CloseHandle(hMap);
+    }
+#else
     *addr = mmap(*addr, length, (PROT_READ | PROT_WRITE), 
 		 (MAP_PRIVATE | MAP_ANON), -1, 0);
+#endif
 
     if (*addr == (char*)-1) {
 	if (errno == ENOMEM) {
@@ -175,9 +187,13 @@ deallocate_vm(addr, length)
 {
     rvm_return_t   ret = RVM_SUCCESS;
 
+#ifdef __CYGWIN32__
+    UnmapViewOfFile(addr);
+#else
     if (munmap(addr, length)) {
 	ret = RVM_EINTERNAL;
-    }    
+    }
+#endif
 
     if (rvm_unregister_page(addr, length) == rvm_false) {
 	ret = RVM_EINTERNAL;
@@ -187,7 +203,7 @@ deallocate_vm(addr, length)
 }
 
 
-#endif /* __linux__ || __BSD44__ */
+#endif /* __linux__ || __BSD44__ || __CYGWIN32__ */
 
 /* Generic Unix memory allocation functions */
 #ifndef ALLOCATE_VM_DEFINED
