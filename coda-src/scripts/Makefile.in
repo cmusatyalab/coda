@@ -25,7 +25,7 @@ TOPOBJ = @TOPOBJ@
 # Need to conditionalize this
 include $(TOPDIR)/Makeconf
 
-VENUS-SCRIPTS = vutil volmunge venus-setup
+VENUS-SCRIPTS = vutil volmunge venus-setup codaconfedit
 
 VOL-SCRIPTS	= createvol_rep purgevol purgevol_rep bldvldb.sh
 VICE-SCRIPTS	= startserver codastart

@@ -52,8 +52,6 @@ else
 fi
 
 
-VSTAB=/coda:$CFSDEV:$SERVERS:$CACHEDIR:$CACHESIZE:1
-
 # set up the /coda root if it isn't there yet
 if [ ! -d $CODAROOT ]; then mkdir -p $CODAROOT; fi
 if [ ! -f $CODAROOT/NOT_REALLY_CODA ]; then 
@@ -71,7 +69,17 @@ touch $CACHEDIR/INIT
 
 # set up the etc directory with the vstab
 if [ ! -d $CODAETC ]; then mkdir -p $CODAETC; fi
-echo $VSTAB > $CODAETC/vstab
+
+if [ -f $CODAETC/vstab ] ; then
+    echo "You might want to remove $CODAETC/vstab as we are switching to"
+    echo "the @sysconfdir@/venus.conf file for configuring the client."
+fi
+
+#VSTAB=/coda:$CFSDEV:$SERVERS:$CACHEDIR:$CACHESIZE:1
+#echo $VSTAB > $CODAETC/vstab
+
+codaconfedit venus.conf rootservers "$SERVERS"
+codaconfedit venus.conf cacheblocks "$CACHESIZE"
 
 # make the psdev
 if [ ! -c $CFSDEV ]; then 

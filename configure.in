@@ -30,15 +30,17 @@ AC_PROG_YACC
 AC_PROG_INSTALL
 AC_PROG_AWK
 AC_PATH_PROG(CP, cp, "")
-AC_PATH_PROG(MV, mv, "")
-AC_PATH_PROG(RM, rm, "")
 AC_PATH_PROG(DF, df, "")
+AC_PATH_PROG(ED, ed, "")
 AC_PATH_PROG(GREP, grep, "")
 AC_PATH_PROG(HOSTNAME, hostname, "")
+AC_PATH_PROG(MV, mv, "")
 AC_PATH_PROG(PERL, perl, "")
-AC_PATH_PROGS(TIXWISH, [tixwish tixwish-tk4.1 tixwish4.1.8.0], "/usr/bin/tixwish")
-AC_PATH_PROG(RVMUTL, rvmutl, "", $PATH:/usr/sbin:/usr/local/sbin:/usr/pkg/sbin)
+AC_PATH_PROG(RM, rm, "")
 AC_PATH_PROG(RDSINIT, rdsinit, "", $PATH:/usr/sbin:/usr/local/sbin:/usr/pkg/sbin)
+AC_PATH_PROG(RVMUTL, rvmutl, "", $PATH:/usr/sbin:/usr/local/sbin:/usr/pkg/sbin)
+AC_PATH_PROGS(TIXWISH, [tixwish tixwish-tk4.1 tixwish4.1.8.0], "/usr/bin/tixwish")
+
 MV="${MV} -f"
 RM="${RM} -f"
 
@@ -105,6 +107,7 @@ lib-src/special-includes/Makefile
 coda-src/Makefile 
 coda-src/scripts/Makefile 
 coda-src/scripts/bldvldb.sh
+coda-src/scripts/codaconfedit
 coda-src/scripts/createvol_rep
 coda-src/scripts/rc.vice
 coda-src/scripts/startserver

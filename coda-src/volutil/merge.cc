@@ -129,11 +129,13 @@ int main(int argc, char **argv)
 	exit(-1);
     }
 
+#if 0
     /* The incremental was taken w.r.t the full if the next test succeeds: */ 
     if (idumphead.oldest != fdumphead.latest) {
 	LogMsg(0, VolDebugLevel, stderr, "Error -- %s is not with respect to %s!", argv[3], argv[2]);
 	exit(-1);
     }
+#endif
 
     DumpFd = open(argv[1], O_WRONLY | O_CREAT | O_EXCL, 00644);
     if (DumpFd <= 0) {
