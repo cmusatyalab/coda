@@ -46,7 +46,6 @@ LIBDB=	     @LIBDB@
 LEXLIB=      @LEXLIB@
 LIBMD5=      @LIBMD5@
 LIBTERMCAP=  @LIBTERMCAP@
-LIBUCB=      @LIBUCB@
 
 # shortsys is derived in configs/codaconf.m4
 SYS = @shortsys@

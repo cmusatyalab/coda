@@ -216,9 +216,6 @@ xtraclean:
 
 distclean: clean
 	-$(RM) -r include
-	-$(RM) coda-src/rpc2/errorsdefs.h
-	-$(RM) coda-src/rpc2/switchc2s.h
-	-$(RM) coda-src/rpc2/switchs2c.h
 	-$(RM) coda-src/guitools/translate.sed
 	-$(RM) config.cache config.log config.status
 	-$(RM) Makeconf.setup `find . -name "Makefile" | grep -v linux`

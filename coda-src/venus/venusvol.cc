@@ -2487,7 +2487,7 @@ unsigned long repvol::GetAVSG(struct in_addr hosts[VSG_MEMBERS])
         if (!host.s_addr) continue;
 
         GetServer(&s, &host);
-        AvsgId += s->GetEventCounter();
+        //AvsgId += s->GetEventCounter();
         if (hosts && s->ServerIsUp())
             v->Host(&hosts[i]);
         PutServer(&s);
@@ -2921,7 +2921,7 @@ unsigned long volrep::GetAVSG(struct in_addr hosts[VSG_MEMBERS])
     if (host.s_addr != 0) {
         srvent *s = 0;
         GetServer(&s, &host);
-        AvsgId = s->GetEventCounter();
+        //AvsgId = s->GetEventCounter();
         if (hosts && s->ServerIsUp())
             Host(&hosts[0]);
         PutServer(&s);
