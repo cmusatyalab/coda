@@ -1,7 +1,17 @@
+1998-06-16  Peter Braam  <braam@motet.coda.cs.cmu.edu>
+
+	* rvm-src/rvmlwp and rdslwp: Jan fixed building RVM inside the source tree
+	* coda-src/vice/srv.cc: moved RVM initialization before RPC2 startup.
+	* coda-src/scripts/vutil & venus: Jan: improve signal handling, vutil now 
+	changes the debug level correctly on Linux (at last)
+	* coda-src/vice/srvproc2.cc: Shafeeq and Peter: more changes to connection
+	setup in the server.
+	
 1998-06-11  Peter Braam  <braam@motet.coda.cs.cmu.edu>
 
-	* kernel-src/vfs/linux21: the volroot list off the superblock was being corrupted with
-	stale entries. Fixed.  Also refresh the opened container inode upon every open.
+	* kernel-src/vfs/linux21: the volroot list off the superblock was
+ 	being corrupted with stale entries. Fixed.  Also refresh the
+ 	opened container inode upon every open.
 
 1998-06-07    <braam@carissimi.coda.cs.cmu.edu>
 
