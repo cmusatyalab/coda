@@ -41,6 +41,33 @@ if  [ $# != 2 ]; then
     exit 1
 fi
 
+# sanity
+if [ -e $SRVPIDFILE ]; then
+    echo "A server is running!"
+    exit 1
+fi
+
+if [ ! -e ${INSTALLBASE}/bin ]; then
+        echo "First time eh? Setting up ${INSTALLBASE}/bin"
+	ln -s /tmp ${INSTALLBASE}/bin
+fi
+
+if [ ! -e ${INSTALLBASE}/bin.old ]; then
+        echo "First time eh? Setting up ${INSTALLBASE}/bin.old"
+	ln -s /tmp ${INSTALLBASE}/bin.old
+fi
+
+if [ ! -L ${INSTALLBASE}/bin ]; then
+	echo "${INSTALLBASE}/bin must be a symlink! Fix this first."
+	exit 1
+fi
+
+if [ ! -L ${INSTALLBASE}/bin.old ]; then
+	echo "${INSTALLBASE}/bin must be a symlink! Fix this first."
+	exit 1
+fi
+
+# leave installation information
 if [ X$VERS = Xalpha ]; then 
     NEW=${INSTALLBASE}/bin.`date  +'%a-%d%b%y-%H:%M:%S'`
     mkdir $NEW
@@ -59,21 +86,6 @@ if [ `uname` = NetBSD ]; then
     alias make=gmake
 fi
 
-# sanity
-if [ -e $SRVPIDFILE ]; then
-    echo "A server is running!"
-    exit 1
-fi
-
-if [ ! -L ${INSTALLBASE}/bin ]; then
-	echo "${INSTALLBASE}/bin must be a symlink! Fix this first."
-	exit 1
-fi
-
-if [ ! -L ${INSTALLBASE}/bin.old ]; then
-	echo "${INSTALLBASE}/bin must be a symlink! Fix this first."
-	exit 1
-fi
 
 # change current bin to bin.old
 cd $INSTALLBASE
@@ -84,7 +96,6 @@ mv bin bin.old
 ln -s $NEW bin
 cd $OBJS
 make TOPOBJ=$OBJS SBINDIR=$NEW BINDIR=$NEW qserver-install
-
 if [ $? != 0 ]; then
 	echo "***** WARNING: install failed. *******"
 	echo "restoring ${INSTALLBASE}/bin.."
