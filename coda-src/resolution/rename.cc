@@ -52,7 +52,6 @@ extern "C" {
 #include "rsle.h"
 #include "resstats.h"
 
-static int ResolveCrossDirRename(rsle *, ViceFid *, Volume *, dlist *, dlist *);
 static void AddToIncList(dlist *, dlist *, Volume *, ViceFid *, int =0);
 static int CheckResolveRenameSemantics(rsle *, Volume *, ViceFid *, dlist *, vle **, vle **, vle **, 
 					vle **,olist *, dlist *, dlist *, int *);
@@ -70,13 +69,6 @@ int CheckAndPerformRename(rsle *r, Volume *volptr, VolumeId VSGVolnum,
     vle *tv = 0;
     vle *sdv = 0;
     vle *tdv = 0;
-
-    // handle Cross directory renames separately
-    if ((r->u.mv.otherdirv != r->dvn) ||
-	(r->u.mv.otherdiru != r->du)) {
-	ResolveCrossDirRename(r, dFid, volptr, vlist, inclist);
-	return(0);
-    }
 
     // check semantics for rename 
     {
@@ -150,28 +142,6 @@ int CheckAndPerformRename(rsle *r, Volume *volptr, VolumeId VSGVolnum,
     LogMsg(1, SrvDebugLevel, stdout,  
 	   "ResolveRename returning %d", errorCode);
     return(errorCode);
-}
-
-// Resolve Rename across directories 
-// For now just mark both source and target directories inconsistent.
-static int ResolveCrossDirRename(rsle *r, ViceFid *dFid, Volume *volptr, 
-				  dlist *vlist, dlist *inclist) {
-    LogMsg(1, SrvDebugLevel, stdout,
-	   "Entering ResolveCrossDirRename()\n");
-    ViceFid FidA, FidB;
-    // get fids of parents
-    {
-	FormFid(FidA, dFid->Volume, r->dvn, r->du);
-	FormFid(FidB, dFid->Volume, r->u.mv.otherdirv, 
-		r->u.mv.otherdiru);
-    }
-    //mark both parents inconsistent and add to inclist
-    {
-	AddToIncList(inclist, vlist, volptr, &FidA, 1);
-	AddToIncList(inclist, vlist, volptr, &FidB, 1);
-    }
-    V_VolLog(volptr)->vmrstats->conf.mv++;
-    return(0);
 }
 
 // mark an object inconsistent and form and add the ilist entry 
