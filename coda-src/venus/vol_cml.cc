@@ -2092,11 +2092,30 @@ void ClientModifyLog::IncThread(int tid) {
     LOG(0, ("ClientModifyLog::IncThread: (%s)\n", vol->name));
 }
 
+/* Try to figure out if the cml is reintegrated `out of order', in that case we
+ * skip a test on the server that tries to avoid duplicate reintegrations. As a
+ * result such a reintegration will generate conflicts when it fails, but that
+ * is still better than the previous behaviour where cml entries were dropped.*/
+int ClientModifyLog::OutOfOrder(int tid)
+{
+    cml_iterator next(*this, CommitOrder);
+    cmlent *m;
+    int suspect = 0;
+
+    while ((m = next())) {
+	if (m->GetTid() != tid) { /* detect skipped entries */
+	    suspect = 1;
+	} else if (suspect) /* found a tid after we skipped any cmlentries? */
+	    return 1;
+    }
+    return 0;
+}
 
 /* need not be called from within a transaction */
 /* Munge the ClientModifyLog into a format suitable for reintegration. */
 /* Caller is responsible for deallocating buffer! */
-void ClientModifyLog::IncPack(char **bufp, int *bufsizep, int tid) {
+void ClientModifyLog::IncPack(char **bufp, int *bufsizep, int tid)
+{
     volent *vol = strbase(volent, this, CML);
     LOG(1, ("ClientModifyLog::IncPack: (%s) and tid = %d\n", vol->name, tid));
 
@@ -2133,7 +2152,9 @@ void ClientModifyLog::IncPack(char **bufp, int *bufsizep, int tid) {
 #define MAXSTALEDIRS 50
 
 /* MUST NOT be called from within transaction! */
-int ClientModifyLog::COP1(char *buf, int bufsize, ViceVersionVector *UpdateSet) {
+int ClientModifyLog::COP1(char *buf, int bufsize, ViceVersionVector *UpdateSet,
+			  int outoforder)
+{
     volent *vol = strbase(volent, this, CML);
     int code = 0;
     unsigned int i = 0;
@@ -2191,8 +2212,24 @@ int ClientModifyLog::COP1(char *buf, int bufsize, ViceVersionVector *UpdateSet) 
 	MarinerLog("store::Reintegrate %s, (%d, %d)\n", 
 		   vol->name, count(), bufsize);
 
+	/* We do not piggy the COP2 entries in PiggyBS when talking to only a
+	 * single server _as a result of weak connectivity_. We could do an
+	 * explicit COP2 call here to ship the PiggyBS array. Or simply ignore
+	 * them, so they will eventually be sent automatically or piggied on
+	 * the next multirpc. --JH */
+
+	if (PiggyBS.SeqLen) {
+	    code = vol->COP2(m, &PiggyBS);
+
+	    if (code == 0)
+		vol->ClearCOP2(&PiggyBS);
+
+	    PiggyBS.SeqLen = 0;
+	}
+
 	UNI_START_MESSAGE(ViceReintegrate_OP);
 	code = (int) ViceReintegrate(c->connid, vol->vid, bufsize, &Index,
+				     outoforder,
 				     MaxStaleDirs, &NumStaleDirs,
 				     StaleDirs, &OldVS, &VS,
 				     &VCBStatus, &PiggyBS, &sed);
@@ -2217,10 +2254,6 @@ int ClientModifyLog::COP1(char *buf, int bufsize, ViceVersionVector *UpdateSet) 
 	    MarkFailedMLE((int) Index);
 	
 	if (code != 0) goto Exit;
-
-	/* Finalize COP2 Piggybacking. */
-	if (PIGGYCOP2)
-	    vol->ClearCOP2(&PiggyBS);
 
 	bufsize += sed.Value.SmartFTPD.BytesTransferred;
 	LOG(10, ("ViceReintegrate: transferred %d bytes\n",
@@ -2269,6 +2302,7 @@ int ClientModifyLog::COP1(char *buf, int bufsize, ViceVersionVector *UpdateSet) 
 				    m->nhosts, m->rocc.handles,
 				    m->rocc.retcodes, m->rocc.MIp, 0, 0,
 				    vol->vid, bufsize, Indexvar_ptrs,
+				    outoforder,
 				    MaxStaleDirs, NumStaleDirsvar_ptrs, 
 				    StaleDirsvar_ptrs,
 				    &OldVS, VSvar_ptrs, VCBStatusvar_ptrs,
@@ -3219,7 +3253,6 @@ int cmlent::CloseReintegrationHandle(char *buf, int bufsize,
 				     ViceVersionVector *UpdateSet) {
     volent *vol = strbase(volent, log, CML);
     int code = 0;
-    mgrpent *m = 0;
     connent *c = 0;
     
     /* Set up the SE descriptor. */
@@ -3235,18 +3268,32 @@ int cmlent::CloseReintegrationHandle(char *buf, int bufsize,
     sei->FileInfo.ByAddr.vmfile.SeqLen = bufsize;
     sei->FileInfo.ByAddr.vmfile.SeqBody = (RPC2_ByteSeq)buf;
 
-    /* COP2 Piggybacking. */
     long cbtemp; cbtemp = cbbreaks;
-    char PiggyData[COP2SIZE];
-    RPC2_CountedBS PiggyBS;
-    PiggyBS.SeqLen = 0;
-    PiggyBS.SeqBody = (RPC2_ByteSeq)PiggyData;
     RPC2_Integer VS = 0;
     CallBackStatus VCBStatus = NoCallBack;
+
+    /* COP2 Piggybacking. */
+    char PiggyData[COP2SIZE];
+    RPC2_CountedBS empty_PiggyBS;
+    empty_PiggyBS.SeqLen = 0;
+    empty_PiggyBS.SeqBody = (RPC2_ByteSeq)PiggyData;
+
+#if 0
+    /* We do not piggy the COP2 entries in PiggyBS when talking to only a
+     * single server _as a result of weak connectivity_. We could do an
+     * explicit COP2 call here to ship the PiggyBS array. Or simply ignore
+     * them, so they will eventually be sent automatically or piggied on the
+     * next multirpc. --JH */
+
+    mgrpent *m = 0;
 
     /* Acquire an Mgroup. */
     code = vol->GetMgrp(&m, log->owner, (PIGGYCOP2 ? &PiggyBS : 0));
     if (code != 0) goto Exit;
+
+    vol->COP2(m, &PiggyBS);
+    PutMgrp(&m);
+#endif
 
     /* Get a connection to the server. */
     code = ::GetConn(&c, u.u_store.ReintPH, log->owner, 0);
@@ -3262,7 +3309,7 @@ int cmlent::CloseReintegrationHandle(char *buf, int bufsize,
     UNI_START_MESSAGE(ViceCloseReintHandle_OP);
     code = (int) ViceCloseReintHandle(c->connid, vol->vid, bufsize,
 				      &u.u_store.RHandle, &OldVS, &VS,
-				      &VCBStatus, &PiggyBS, &sed);
+				      &VCBStatus, &empty_PiggyBS, &sed);
     UNI_END_MESSAGE(ViceCloseReintHandle_OP);
     MarinerLog("store::closereinthandle done\n");
 
@@ -3270,10 +3317,6 @@ int cmlent::CloseReintegrationHandle(char *buf, int bufsize,
     UNI_RECORD_STATS(ViceCloseReintHandle_OP);
 
     if (code != 0) goto Exit;
-
-    /* Finalize COP2 Piggybacking. */
-    if (PIGGYCOP2)
-	vol->ClearCOP2(&PiggyBS);
 
     LOG(0/*10*/, ("ViceCloseReintegrationHandle: transferred %d bytes\n",
 		  sed.Value.SmartFTPD.BytesTransferred));

@@ -202,7 +202,7 @@ class ClientModifyLog {
 
     /* Reintegration routines. */
     void TranslateFid(ViceFid *, ViceFid *);
-    int COP1(char *, int, ViceVersionVector *);
+    int COP1(char *, int, ViceVersionVector *, int outoforder);
     void LockObjs(int);
     void UnLockObjs(int);
     void MarkFailedMLE(int);
@@ -235,6 +235,7 @@ class ClientModifyLog {
     /* local-repair methods */
     void IncThread(int);                                /*N*/
     void IncPack(char **, int *, int);                  /*N*/
+    int  OutOfOrder(int tid);				/*N*/
     void IncCommit(ViceVersionVector *, int);           /*U*/
     void IncAbort(int =UNSET_TID);                      /*U*/
     void IncGetStats(cmlstats&, cmlstats&, int =UNSET_TID); /*N*/

@@ -255,6 +255,7 @@ int volent::IncReintegrate(int tid) {
 	code = 0;
 	cur_reint_tid = tid; 
 	done = 1;
+	int outoforder;
 
 	/* Steps 1-3 constitute the ``late prelude.'' */
 	{
@@ -291,7 +292,8 @@ int volent::IncReintegrate(int tid) {
 	{
 	    START_TIMING();
 
-	    code = CML.COP1(buf, bufsize, &UpdateSet);
+	    outoforder = CML.OutOfOrder(tid);
+	    code = CML.COP1(buf, bufsize, &UpdateSet, outoforder);
 
 	    END_TIMING();
 	    inter_elapsed = elapsed;

@@ -220,14 +220,13 @@ struct rle : public dlink {
 
 static int ValidateReintegrateParms(RPC2_Handle, VolumeId *, Volume **, 
 				    ClientEntry **, int, dlist *, 
-				    RPC2_Integer *,
-				    ViceReintHandle *);
+				    RPC2_Integer *, ViceReintHandle *);
 static int GetReintegrateObjects(ClientEntry *, dlist *, dlist *, int *, 
 				 RPC2_Integer *);
 static int CheckSemanticsAndPerform(ClientEntry *, VolumeId, VolumeId,
 				    dlist *, dlist *, int *, RPC2_Integer *);
 static void PutReintegrateObjects(int, Volume *, dlist *, dlist *, 
-				  int, ClientEntry *, 
+				  int, RPC2_Integer, ClientEntry *, 
 				  RPC2_Integer, RPC2_Integer *, ViceFid *, 
 				  RPC2_CountedBS *, RPC2_Integer *, 
 				  CallBackStatus *);
@@ -247,10 +246,10 @@ static int ValidateRHandle(VolumeId, ViceReintHandle *);
   ViceReintegrate: Reintegrate disconnected mutations
 */
 long FS_ViceReintegrate(RPC2_Handle RPCid, VolumeId Vid, RPC2_Integer LogSize,
-		     RPC2_Integer *Index, RPC2_Integer MaxDirs, 
-		     RPC2_Integer *NumDirs, ViceFid StaleDirs[],
-		     RPC2_CountedBS *OldVS, RPC2_Integer *NewVS, 
-		     CallBackStatus *VCBStatus, 
+		     RPC2_Integer *Index, RPC2_Integer OutOfOrder,
+		     RPC2_Integer MaxDirs, RPC2_Integer *NumDirs,
+		     ViceFid StaleDirs[], RPC2_CountedBS *OldVS,
+		     RPC2_Integer *NewVS, CallBackStatus *VCBStatus,
 		     RPC2_CountedBS *PiggyBS, SE_Descriptor *BD) 
 {
 	START_TIMING(Reintegrate_Total);
@@ -300,9 +299,9 @@ long FS_ViceReintegrate(RPC2_Handle RPCid, VolumeId Vid, RPC2_Integer LogSize,
 
 	SLog(1, "Starting PutReintegrateObjects for %#x", Vid);
 
-	PutReintegrateObjects(errorCode, volptr, rlog, vlist, blocks, client, 
-			      MaxDirs, NumDirs, StaleDirs, OldVS, NewVS, 
-			      VCBStatus);
+	PutReintegrateObjects(errorCode, volptr, rlog, vlist, blocks,
+			      OutOfOrder, client, MaxDirs, NumDirs, StaleDirs,
+			      OldVS, NewVS, VCBStatus);
 	
 	SLog(1, "ViceReintegrate returns %s", ViceErrorMsg(errorCode));
 	END_TIMING(Reintegrate_Total);
@@ -544,8 +543,8 @@ long FS_ViceCloseReintHandle(RPC2_Handle RPCid, VolumeId Vid,
 
  FreeLocks:
     /* Phase IV. */
-    PutReintegrateObjects(errorCode, volptr, rlog, vlist, blocks, client,
-			  0, NULL, NULL, OldVS, NewVS, VCBStatus);
+    PutReintegrateObjects(errorCode, volptr, rlog, vlist, blocks, 0,
+			  client, 0, NULL, NULL, OldVS, NewVS, VCBStatus);
 
     SLog(0/*2*/, "ViceCloseReintHandle returns %s", ViceErrorMsg(errorCode));
 
@@ -2063,8 +2062,8 @@ Exit:
  *
  */
 static void PutReintegrateObjects(int errorCode, Volume *volptr, dlist *rlog, 
-				  dlist *vlist, int blocks, 
-				  ClientEntry *client, 
+				  dlist *vlist, int blocks,
+				  RPC2_Integer OutOfOrder, ClientEntry *client, 
 				  RPC2_Integer MaxDirs, RPC2_Integer *NumDirs,
 				  ViceFid *StaleDirs, RPC2_CountedBS *OldVS, 
 				  RPC2_Integer *NewVS, 
@@ -2129,7 +2128,7 @@ START_TIMING(Reintegrate_PutObjects);
 	PutObjects(errorCode, tvolptr, VOL_NO_LOCK, vlist, blocks, 1);
 
 	/* save the sid of the last successfully reintegrated record */
-	if (errorCode == 0) {
+	if (errorCode == 0 && !OutOfOrder) {
 	    int i = 0;
 
 	    /* replace the entry for this client if one exists */

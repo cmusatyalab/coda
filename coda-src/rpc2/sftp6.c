@@ -587,11 +587,11 @@ static int MC_SendStrategy(me, mse)
 
     /* normalize the per-connection values and form the Mgrp composites */
     for (host = 0; host < me->howmanylisteners; host++)
-	{
+    {
 	CODA_ASSERT((thisce = me->listeners[host]) != NULL);
 	CODA_ASSERT((thisse = (struct SFTP_Entry *)thisce->SideEffectPtr) != NULL);
 	if (TestState(thisce, CLIENT, ~C_HARDERROR) && thisse->WhoAmI == SFCLIENT)
-	    {
+	{
 	    thisSendCount = (thisse->SendLastContig - thisse->SendFirst + 1);
 	    diffSendCount = (thisSendCount - mgrpSendCount);
 	    CODA_ASSERT(diffSendCount >= 0 && diffSendCount <= MAXOPACKETS);
@@ -615,16 +615,15 @@ static int MC_SendStrategy(me, mse)
 
 	    /* update the XferState for each connection */
 	    if (mse->HitEOF && mse->ReadAheadCount == 0 &&
-		thisse->SendMostRecent == thisse->SendLastContig)
+		thisse->SendMostRecent == thisse->SendLastContig) {
 		thisse->XferState = XferCompleted;
-	    else
-		{
+	    } else {
 		thisse->XferState = XferInProgress;
 		/* note whether or not all (InProgress) connections have replied since the last SS */
 		if (!thisse->RepliedSinceLastSS) AllReplied = FALSE;
-		}
 	    }
 	}
+    }
     if (minSendCount ==	-1) return(-1);	    /* all connections are BAD! */
 
     /* finish the normalization and safety check it */

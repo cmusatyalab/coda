@@ -1143,7 +1143,7 @@ struct SFTP_Entry *sftp_AllocSEntry(void)
     sfp->RInterval.tv_usec = (SFTP_RetryInterval*1000) % 1000000;
     sfp->Retransmitting = FALSE;
     sfp->RequestTime = 0;
-    sfp->LastWord.tv_sec = sfp->LastWord.tv_usec = 0;
+    timerclear(&sfp->LastWord);
     return(sfp);
     }
 
