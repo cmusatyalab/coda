@@ -215,6 +215,6 @@ void CheckTheMariner(char *buf)
 	    return;
     }
 
-    printf(string);
+    printf("%s", string);
     fflush(stdout);
 }

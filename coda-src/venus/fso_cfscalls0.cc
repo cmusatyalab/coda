@@ -74,14 +74,16 @@ void fsobj::FetchProgressIndicator(unsigned long offset)
     unsigned long last;
     unsigned long curr;
     
-    if (GotThisData >= stat.Length) last = 100;
-    else  last = 100 * GotThisData / stat.Length ; 
-
-    if (offset >= stat.Length) curr = 100;
-    else  curr = 100 * offset / stat.Length ;
+    if (stat.Length > 100000) {
+        last = GotThisData / (stat.Length / 100) ; 
+	curr = offset / (stat.Length / 100) ;
+    } else {
+        last = 100 * GotThisData / stat.Length ; 
+	curr = 100 * offset / stat.Length ;
+    }
 
     if (last != curr)
-	MarinerLog("progress::fetching (%s) %lux\n", comp, curr);
+	MarinerLog("progress::fetching (%s) %lu%%\n", comp, curr);
 
     GotThisData = (unsigned long)offset;
 }
