@@ -16,12 +16,6 @@ listed in the file CREDITS.
 
 #*/
 
-
-
-
-
-
-
 #ifdef __cplusplus
 extern "C" {
 #endif __cplusplus
@@ -30,8 +24,6 @@ extern "C" {
 
 #include <setjmp.h>
 #include <stdio.h>
-#include <rvm/rds.h>
-#include "util.h"
 #include "rvmlib.h"
 
 #ifdef __cplusplus

@@ -107,7 +107,6 @@ class recov_vol_log {
 /* export definitions */
 extern void CreateRootLog(Volume *, Vnode *);
 extern void CreateResLog(Volume *, Vnode *);
-extern int SpoolVMLogRecord(dlist *, Vnode *, Volume *, ViceStoreId *, int op ...);
 
 // subresphase3.c
 #endif _RECOV_VOLLOG_H    

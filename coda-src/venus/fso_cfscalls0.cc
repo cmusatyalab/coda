@@ -1627,7 +1627,8 @@ int fsobj::SetAttr(struct coda_vattr *vap, vuid_t vuid, RPC2_CountedBS *acl)
 }
 
 
-int fsobj::SetACL(RPC2_CountedBS *acl, vuid_t vuid) {
+int fsobj::SetACL(RPC2_CountedBS *acl, vuid_t vuid)
+{
     LOG(10, ("fsobj::SetACL: (%s), uid = %d\n",
 	      comp, vuid));
 

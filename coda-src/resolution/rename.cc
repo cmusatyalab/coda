@@ -56,7 +56,8 @@ static int CleanRenameTarget(rsle *, dlist *, Volume *, VolumeId , olist *, int 
 
 int CheckAndPerformRename(rsle *r, Volume *volptr, VolumeId VSGVolnum, 
 			  ViceFid *dFid, dlist *vlist, olist *AllLogs, 
-			  dlist *inclist, int *blocks) {
+			  dlist *inclist, int *blocks)
+{
     LogMsg(1, SrvDebugLevel, stdout,
 	   "Entering CheckAndPerformRename\n");
     
@@ -100,10 +101,9 @@ int CheckAndPerformRename(rsle *r, Volume *volptr, VolumeId VSGVolnum,
 	    }
 	}
 	/* XXX - MIGHT HAVE TO UPDATE THE VERSION VECTOR FOR THE CHILD ! */
-	errorCode = SpoolRenameLogRecord((int) ResolveViceRename_OP, (dlist *) vlist, 
-			     sv->vptr, (Vnode *) (tv ? tv->vptr : NULL), 
-			     sdv->vptr, tdv->vptr, volptr, 
-			     (char *)r->name1, (char *)r->name2, &r->storeid);
+        errorCode = SpoolRenameLogRecord(ResolveViceRename_OP, vlist, sv, tv,
+                                         sdv, tdv, volptr, r->name1, r->name2,
+                                         &r->storeid);
     }
     // merge the inconsistencies 
     if (errorCode && errorCode == EINCONS) {

@@ -94,13 +94,14 @@ MAINTAINER=	rvb@cs.cmu.edu
 @NetBSD DEPENDS+=	rpc2-1.5:../../devel/rpc2
 @NetBSD DEPENDS+=	rvm-1.2:../../devel/rvm
 
-@NetBSD ONLY_FOR_ARCHS=	arm32 i386 ns32k
+@NetBSD #ONLY_FOR_ARCHS=	arm32 i386 ns32k
 @NetBSD 
 @NetBSD LICENSE=	GPL
 @NetBSD 
 ALL_TARGET=	coda
 INSTALL_TARGET=	@PKG@-install
 
+@NetBSD USE_PERL5=	yes
 GNU_CONFIGURE=	yes
 USE_GMAKE=	yes
 

@@ -82,7 +82,6 @@ class srvent {
   friend void ResCheckServerLWP_worker();
     /* The server list. */
     static olist *srvtab;
-    static struct condition srvtab_sync;
 
     /* Other shared data. */
     static int servers;
@@ -137,7 +136,6 @@ class res_mgrpent {
   public:
     /* the mgrp list */
     static dlist *ResMgrpTab;
-    static struct condition TabSync;
     
     /* shared data */
     static int resmgrps;

@@ -50,13 +50,8 @@ class res_mgrpent;
 
 
 /* export definitions */
-extern int SpoolVMLogRecord(vle *, Volume *, ViceStoreId *, int op ...);
-extern int SpoolVMLogRecord(vle *, Volume *, ViceStoreId *, int, va_list);
-extern int SpoolVMLogRecord(dlist *, Vnode *, Volume *, ViceStoreId *, int op...);
-extern int SpoolVMLogRecord(dlist *, Vnode *, Volume *, ViceStoreId *, int , va_list);
 extern int SpoolVMLogRecord(dlist *, vle *,  Volume *, ViceStoreId *, int op ...);
-extern int SpoolVMLogRecord(dlist *, vle *, Volume *, ViceStoreId *, int , va_list);
-extern int SpoolRenameLogRecord(int, dlist *, Vnode *, Vnode *, Vnode *, Vnode *, 
+extern int SpoolRenameLogRecord(int, dlist *, vle *, vle *, vle *, vle *, 
 				Volume *, char *, char *, ViceStoreId *);
 extern void TruncateLog(Volume *, Vnode *, vmindex *);
 extern void FreeVMIndices(Volume *, vmindex *);

@@ -366,102 +366,13 @@ void CreateResLog(Volume *vol, Vnode *vptr)
     CODA_ASSERT(VnLog(vptr));
 }
 
-/*
-  SpoolVMLogRecord: Create a log record in VM and reserve a slot
-  for it in recoverable storage.
-  Note that this routine is overloaded.
- */
-
-int SpoolVMLogRecord(vle *v, Volume *vol, ViceStoreId *stid, int op, va_list ap) 
-{
-    CODA_ASSERT(v);
-    SLog(9,  "Entering SpoolVMLogRecord_vle(0x%lx.%lx.%lx)",
-	    V_id(vol), v->vptr->vnodeNumber, v->vptr->disk.uniquifier);
-
-    int index = -1;
-    int seqno = -1;
-
-    /* reserve a slot for the record in volume log */
-    if (V_VolLog(vol)->AllocRecord(&index, &seqno)) {
-	SLog(0, "SpoolVMLogRecord - no space left in volume return ENOSPC\n");
-	return(ENOSPC);
-    }
-
-    /* form the log record in vm */
-    rsle *rsl = new rsle(stid, v->vptr->vnodeNumber, v->vptr->disk.uniquifier, 
-			 op, index, seqno);
-    CODA_ASSERT(rsl);
-    rsl->init(op, ap);
-
-    /* append record to intention list  */
-    v->rsl.append(rsl);
-    SLog(9,  "Leaving SpoolVMLogRecord_vle() - returns SUCCESS\n");
-    return(0);
-}
-
-int SpoolVMLogRecord(vle *v, Volume *vol, ViceStoreId *stid, int op ...) 
-{
-    SLog(9,  "Entering SpoolVMLogRecord_vle(0x%lx.%lx.%lx)",
-	    V_id(vol), v->vptr->vnodeNumber, v->vptr->disk.uniquifier);
-
-    va_list ap;
-    va_start(ap, op);
-    int errorCode = SpoolVMLogRecord(v, vol, stid, op, ap);
-    va_end(ap);
-
-    SLog(9, "Leaving SpoolVMLogRecord() - returns %d\n", errorCode);
-    return(errorCode);
-}
-
-int SpoolVMLogRecord(dlist *vlist, Vnode *vptr, Volume *vol, ViceStoreId *stid, 
-		     int op ...) 
-{
-    SLog(9,  "Entering SpoolVMLogRecord_dlist(0x%lx.%lx.%lx) ",
-	    V_id(vol), vptr->vnodeNumber, vptr->disk.uniquifier);
-
-    va_list ap;
-    va_start(ap, op);
-    int errorCode = SpoolVMLogRecord(vlist, vptr, vol, stid, op, ap);
-    va_end(ap);
-
-    SLog(9, "Leaving SpoolVMLogRecord() - returns %d\n", errorCode);
-    return(errorCode);
-}
-
+/* SpoolVMLogRecord: Create a log record in VM and reserve a slot for it in
+ * recoverable storage. */
 int SpoolVMLogRecord(dlist *vlist, vle *v,  Volume *vol, ViceStoreId *stid, 
 		     int op ...) 
 {
-    SLog(9,  "Entering SpoolVMLogRecord_dlist(0x%lx.%lx.%lx) ",
-	    V_id(vol), v->vptr->vnodeNumber, v->vptr->disk.uniquifier);
-
-    va_list ap;
-    va_start(ap, op);
-    int errorCode = SpoolVMLogRecord(vlist, v, vol, stid, op, ap);
-    va_end(ap);
-
-    SLog(9,  "Leaving SpoolVMLogRecord() - returns %d\n", errorCode);
-    return(errorCode);
-}
-
-int SpoolVMLogRecord(dlist *vlist, Vnode *vptr, Volume *vol, ViceStoreId *stid, 
-		     int op, va_list ap) 
-{
-    ViceFid fid;
-    FormFid(fid, V_id(vol), vptr->vnodeNumber, vptr->disk.uniquifier);
-    vle *v = FindVLE(*vlist, &fid);
-    if (!v) {
-	SLog(0, "SpoolVMLogRecord_dlist - no vle found for %s\n",
-	       FID_(&fid));
-	return(EINVAL);
-    }
-    return(SpoolVMLogRecord(vlist, v, vol, stid, op, ap));
-}
-
-int SpoolVMLogRecord(dlist *vlist, vle *v, Volume *vol, ViceStoreId *stid, 
-		     int op, va_list ap) 
-{
-    CODA_ASSERT(v);
-    SLog(9, "Entering SpoolVMLogRecord_vle(0x%lx.%lx.%lx)",
+    CODA_ASSERT(v && v->vptr);
+    SLog(9, "Entering SpoolVMLogRecord(0x%lx.%lx.%lx)",
 	 V_id(vol), v->vptr->vnodeNumber, v->vptr->disk.uniquifier);
 
     int index = -1;
@@ -480,128 +391,78 @@ int SpoolVMLogRecord(dlist *vlist, vle *v, Volume *vol, ViceStoreId *stid,
     rsle *rsl = new rsle(stid, v->vptr->vnodeNumber, 
 			 v->vptr->disk.uniquifier, op, index, seqno);
     CODA_ASSERT(rsl);
+
+    va_list ap;
+    va_start(ap, op);
     rsl->init(op, ap);
+    va_end(ap);
+
     //append record to intention list 
     v->rsl.append(rsl);
     SLog(9,  "Leaving SpoolVMLogRecord_vle() - returns SUCCESS\n");
     return(0);
 }
 
-int SpoolRenameLogRecord(int opcode, dlist *vl, Vnode *svnode, Vnode *tvnode, 
-			 Vnode *sdvnode, Vnode *tdvnode, 
-			 Volume *volptr, char *OldName, 
-			 char *NewName, ViceStoreId *StoreId) {
-    int SameParent = (sdvnode == tdvnode);
+int SpoolRenameLogRecord(int opcode, dlist *vl, vle *svle, vle *tvle,
+                         vle *sdvle, vle *tdvle, Volume *volptr,
+                         char *OldName, char *NewName, ViceStoreId *StoreId)
+{
+    int SameParent = (sdvle->vptr == tdvle->vptr);
     int errorCode = 0;
-    if (tvnode) {
-	/* target exists and is deleted */
-	if (tvnode->disk.type == vDirectory) {
-	    /* directory deletion - attach dir's log to parent */
-	    if (SameParent) {
-		if ((errorCode = SpoolVMLogRecord(vl, sdvnode, volptr, StoreId,
-						 opcode, SOURCE, 
-						 OldName, NewName, 
-						 (VnodeId)tdvnode->vnodeNumber, (Unique_t)tdvnode->disk.uniquifier, 
-						 (VnodeId)svnode->vnodeNumber, (Unique_t)svnode->disk.uniquifier, 
-						 &(Vnode_vv(svnode)), 1 /* target exists */,
-						 (VnodeId)tvnode->vnodeNumber, (Unique_t)tvnode->disk.uniquifier, 
-						 &(Vnode_vv(tvnode)), VnLog(tvnode)))) {
-		    SLog(0, 
-			   "SpoolRenameLogRecord: Error %d in SpoolVMLogRecord\n", 
-			   errorCode);
-		    return(errorCode);
-		}
-	    }
-	    else {
-		if ((errorCode = SpoolVMLogRecord(vl, sdvnode, volptr, StoreId,
-						 opcode, SOURCE, 
-						 OldName, NewName, 
-						 (VnodeId)tdvnode->vnodeNumber, (Unique_t)tdvnode->disk.uniquifier, 
-						 (VnodeId)svnode->vnodeNumber, (Unique_t)svnode->disk.uniquifier, 
-						 &(Vnode_vv(svnode)), 1 /* target exists */,
-						 (VnodeId)tvnode->vnodeNumber, (Unique_t)tvnode->disk.uniquifier, 
-						 &(Vnode_vv(tvnode)), NULL/* attach deleted objects log to its parent*/))) {
-		    SLog(0, 
-			   "SpoolRenameLogRecord: Error %d in SpoolVMLogRecord\n", 
-			   errorCode);
-		    return(errorCode);
-		}
+    
+    int targetexisted = 0;
+    VnodeId tvnodeNumber = 0;
+    Unique_t tuniquifier = 0;
+    ViceVersionVector *tvv = NULL;
+    rec_dlist *sparentlog = NULL, *tparentlog = NULL;
 
-		if ((errorCode = SpoolVMLogRecord(vl, tdvnode, volptr, StoreId,
-						 opcode, TARGET, 
-						 OldName, NewName, 
-						 (VnodeId)sdvnode->vnodeNumber, (Unique_t)sdvnode->disk.uniquifier, 
-						 (VnodeId)svnode->vnodeNumber, (Unique_t)svnode->disk.uniquifier, 
-						 &(Vnode_vv(svnode)), 1 /* target exists */,
-						 (VnodeId)tvnode->vnodeNumber, (Unique_t)tvnode->disk.uniquifier, 
-						 &(Vnode_vv(tvnode)), VnLog(tvnode)))) {
-		    SLog(0, 
-			   "SpoolRenameLogRecord: Error %d in SpoolVMLogRecord\n", 
-			   errorCode);
-		    return(errorCode);
-		}
-	    }
-	}
-	else {
-	    /* target is a file */
-	    if ((errorCode = SpoolVMLogRecord(vl, sdvnode, volptr, StoreId,
-					     opcode, SOURCE, 
-					     OldName, NewName, 
-					     (VnodeId)tdvnode->vnodeNumber, (Unique_t)tdvnode->disk.uniquifier, 
-					     (VnodeId)svnode->vnodeNumber, (Unique_t)svnode->disk.uniquifier, 
-					     &(Vnode_vv(svnode)), 1 /* target exists */,
-					     (VnodeId)tvnode->vnodeNumber, (Unique_t)tvnode->disk.uniquifier, 
-					     &(Vnode_vv(tvnode)), NULL))) {
-		SLog(0, 
-		       "SpoolRenameLogRecord: Error %d in SpoolVMLogRecord\n", 
-		       errorCode);
-		return(errorCode);
-	    }
-	    if (!SameParent) {
-		if ((errorCode = SpoolVMLogRecord(vl, tdvnode, volptr, StoreId,
-						 opcode, TARGET, 
-						 OldName, NewName, 
-						 (VnodeId)sdvnode->vnodeNumber, (Unique_t)sdvnode->disk.uniquifier, 
-						 (VnodeId)svnode->vnodeNumber, (Unique_t)svnode->disk.uniquifier, 
-						 &(Vnode_vv(svnode)), 1 /* target exists */,
-						 (VnodeId)tvnode->vnodeNumber, (Unique_t)tvnode->disk.uniquifier, 
-						 &(Vnode_vv(tvnode)), NULL))) {
-		    SLog(0, 
-			   "SpoolRenameLogRecord: Error %d in SpoolVMLogRecord\n", 
-			   errorCode);
-		    return(errorCode);
-		}
-	    }
-	}
+    if (tvle->vptr) {
+        /* target existed and is deleted, we need to add some more info */
+        targetexisted = 1;
+        tvnodeNumber = tvle->vptr->vnodeNumber;
+        tuniquifier  = tvle->vptr->disk.uniquifier;
+        tvv          = &(Vnode_vv(tvle->vptr));
+
+        /* In case of directory deletion - attach dir's log to parent. When
+         * not SameParent, deleted objects log is attached to target parent */
+        if (tvle->vptr->disk.type == vDirectory) {
+            if (SameParent) sparentlog = VnLog(tvle->vptr);
+            else            tparentlog = VnLog(tvle->vptr);
+        }
     }
-    else {
-	/* no target existed */
-	if ((errorCode = SpoolVMLogRecord(vl, sdvnode, volptr, StoreId,
-					 opcode, SOURCE, 
-					 OldName, NewName, 
-					 (VnodeId)tdvnode->vnodeNumber, (Unique_t)tdvnode->disk.uniquifier, 
-					 (VnodeId)svnode->vnodeNumber, (Unique_t)svnode->disk.uniquifier, 
-					 &(Vnode_vv(svnode)), 0 /* target does not exist */,
-					 0, 0, NULL, NULL))) {
-	    SLog(0, 
-		   "SpoolRenameLogRecord: Error %d in SpoolVMLogRecord\n", 
-		   errorCode);
-	    return(errorCode);
-	}
-	if (!SameParent) {
-	    if ((errorCode = SpoolVMLogRecord(vl, tdvnode, volptr, StoreId,
-					     opcode, TARGET, 
-					     OldName, NewName, 
-					     (VnodeId)sdvnode->vnodeNumber, (Unique_t)sdvnode->disk.uniquifier, 
-					     (VnodeId)svnode->vnodeNumber, (Unique_t)svnode->disk.uniquifier, 
-					     &(Vnode_vv(svnode)), 0 /* target does not exist */,
-					     0, 0, NULL, NULL))) {
-		SLog(0, 
-		       "SpoolRenameLogRecord: Error %d in SpoolVMLogRecord\n", 
-		       errorCode);
-		return(errorCode);
-	    }
-	}
+
+    if ((errorCode = SpoolVMLogRecord(vl, sdvle, volptr, StoreId,
+                                      opcode, SOURCE, OldName, NewName, 
+                                      tdvle->vptr->vnodeNumber,
+                                      tdvle->vptr->disk.uniquifier, 
+                                      svle->vptr->vnodeNumber,
+                                      svle->vptr->disk.uniquifier, 
+                                      &(Vnode_vv(svle->vptr)),
+                                      targetexisted,
+                                      tvnodeNumber, tuniquifier, tvv,
+                                      sparentlog)))
+    {
+        SLog(0, "SpoolRenameLogRecord: Error %d in SpoolVMLogRecord\n", 
+             errorCode);
+        return(errorCode);
+    }
+    if (!SameParent) {
+        if ((errorCode = SpoolVMLogRecord(vl, tdvle, volptr, StoreId,
+                                          opcode, TARGET, 
+                                          OldName, NewName, 
+                                          sdvle->vptr->vnodeNumber,
+                                          sdvle->vptr->disk.uniquifier, 
+                                          svle->vptr->vnodeNumber,
+                                          svle->vptr->disk.uniquifier, 
+                                          &(Vnode_vv(svle->vptr)),
+                                          targetexisted,
+                                          tvnodeNumber, tuniquifier, tvv,
+                                          tparentlog)))
+        {
+            SLog(0, "SpoolRenameLogRecord: Error %d in SpoolVMLogRecord\n", 
+                 errorCode);
+            return(errorCode);
+        }
     }
     return(errorCode);
 }

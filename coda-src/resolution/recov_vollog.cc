@@ -133,8 +133,6 @@ void recov_vol_log::operator delete(void *deadobj, size_t len)
 // called from within a transaction
 int recov_vol_log::Grow(int offset) 
 {
-    if (size == admin_limit) 
-	    return(-1);
     if (size + VOLLOG_GROWSIZE > admin_limit) 
 	    return(-1);
     
@@ -231,7 +229,7 @@ int recov_vol_log::LogSize() {
 
 void recov_vol_log::Increase_Admin_Limit(int newsize) 
 {
-    if (newsize <=  admin_limit) 
+    if (newsize <= admin_limit) 
 	    return;
     while (newsize & (LOGRECORD_BLOCKSIZE - 1)) 
 	    newsize++;
@@ -240,8 +238,8 @@ void recov_vol_log::Increase_Admin_Limit(int newsize)
     recle **new_index = (recle **)rvmlib_rec_malloc(new_index_size * sizeof(void *));
     CODA_ASSERT(new_index);
     rvmlib_set_range(new_index, new_index_size * sizeof(void *));
-    bzero((void *)new_index, new_index_size * sizeof(void *));
-    bcopy((const void *)index, (void *)new_index, sizeof(void *) * (admin_limit / LOGRECORD_BLOCKSIZE));
+    memset(new_index, 0, new_index_size * sizeof(void *));
+    memcpy(new_index, index, sizeof(void *) * (admin_limit / LOGRECORD_BLOCKSIZE));
     
     if (index) rvmlib_rec_free(index);
     rvmlib_set_range(&index, sizeof(recle **));
@@ -504,7 +502,8 @@ recov_vol_log::ChooseWrapAroundVnode(Volume *vol, int different)
 // try to consume the log of a vnode chosen by above routine
 // constraints are that each log should have atleast one log entry
 int recov_vol_log::AllocViaWrapAround(int *index, int *seqno, 
-				      Volume *volptr, dlist *vlist) {
+				      Volume *volptr, dlist *vlist)
+{
     int errorcode = 0;
     ViceFid fid;
     Vnode *vptr = 0;

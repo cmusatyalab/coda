@@ -834,14 +834,7 @@ void VattrToStat(struct coda_vattr *vap, struct stat *sp) {
     sp->st_blocks = (int64_t)ceil(((double)vap->va_bytes) / S_BLKSIZE);
     sp->st_flags = 0;
     sp->st_gen = 0;
-#if	defined(__NetBSD_Version__) && (__NetBSD_Version__ >= 104000000)
-#define	NetBSD1_4
-#else
-#undef	NetBSD1_4
-#endif
-
-#if	defined(NetBSD1_3) || defined(NetBSD1_4)
-#else
+#if !defined(NetBSD1_3) && !defined(__NetBSD_Version__)
     sp->st_lspare = 0;
 #endif
     sp->st_qspare[0] = 0;

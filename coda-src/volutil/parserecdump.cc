@@ -110,7 +110,7 @@ static void printdump(dumprec_t *a, int size)
 		strcpy(name, "Unknown");
 		break;
 	}
-	printf("[%d] address = 0x%x size = 0x%x type = %s index = %d\n", 
+	printf("[%d] address = %p size = 0x%x type = %s index = %d\n", 
 	       i, a[i].rec_addr, a[i].size, name, a[i].index);
     }
 }

@@ -1482,11 +1482,9 @@ START_TIMING(Rename_Total);
 
     /* spool rename log record for recoverable rvm logs */
     if (AllowResolution && V_RVMResOn(volptr) && ReplicatedOp && !errorCode) 
-	errorCode = SpoolRenameLogRecord((int) RES_Rename_OP,(dlist *)  vlist, sv->vptr, 
-					 (Vnode *)(tv ? tv->vptr : NULL), spv->vptr, 
-					 tpv->vptr, 
-					 volptr, (char *)OldName, 
-					 (char *)NewName, StoreId);
+        errorCode = SpoolRenameLogRecord(RES_Rename_OP, vlist, sv, tv, spv,
+                                         tpv, volptr, (char *)OldName,
+                                         (char *)NewName, StoreId);
 
 FreeLocks: 
     /* Put objects. */

@@ -105,26 +105,18 @@ long S_VolSetLogParms(RPC2_Handle rpcid, VolumeId Vid, RPC2_Integer OnFlag,
     if (maxlogsize != 0) {
 	if ((maxlogsize & 0x1F) != 0) {
 	    VLog(0, "S_VolSetLogParms: Log Size has to be a multiple of 32");
-	    VPutVolume(volptr);
 	    rvmlib_abort(EINVAL);
 	    goto exit;
 	}
-#if 0
-	if (AllowResolution && V_VMResOn(volptr)) {
-	    if (LogStore[V_volumeindex(volptr)]->maxRecordsAllowed > maxlogsize) {
-		VLog(0, "S_VolSetLogParms: Cant reduce log size");
-		VPutVolume(volptr);
-		rvmlib_abort(EINVAL);
-		goto exit;
-	    }
-	    VLog(0, "S_VolSetLogParms: Changing log size from %d to %d\n", 
-		   LogStore[V_volumeindex(volptr)]->maxRecordsAllowed,
-		   maxlogsize);
-	    LogStore[V_volumeindex(volptr)]->maxRecordsAllowed = maxlogsize;
-	    V_maxlogentries(volptr) = maxlogsize;
-	}
-#endif
 	if (AllowResolution && V_RVMResOn(volptr) && V_VolLog(volptr)){
+#if 0
+            /* admin_limit is private, can't check it here (yet) --JH */
+	    if (V_VolLog(volptr)->admin_limit > maxlogsize) {
+		VLog(0, "S_VolSetLogParms: Cant reduce log size");
+		rvmlib_abort(EINVAL);
+                goto exit;
+            }
+#endif
 	    V_VolLog(volptr)->Increase_Admin_Limit(maxlogsize);
 	    VLog(0, "S_VolSetLogParms: Changed RVM log size to %d\n",
 		   maxlogsize);
@@ -133,10 +125,10 @@ long S_VolSetLogParms(RPC2_Handle rpcid, VolumeId Vid, RPC2_Integer OnFlag,
     VUpdateVolume(&error, volptr);
     if (error) {
 	VLog(0, "S_VolSetLogParms: Error updating volume %x", Vid);
-	VPutVolume(volptr);
 	rvmlib_abort(error);
 	goto exit;
     }
+
     rvmlib_end_transaction(flush, &(status));
 
  exit:

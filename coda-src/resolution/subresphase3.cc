@@ -1320,8 +1320,7 @@ static int PerformResOp(rsle *r, dlist *vlist, olist *AllLogs,
 								cFid.Vnode, 
 								cFid.Unique,
 								r->u.mkdir.owner)))
-		    SLog(0, 
-			   "PeformResOp(Mkdir): Error %d during SpoolVMLogRecord for child\n",
+		    SLog(0, "PerformResOp(Mkdir): Error %d during SpoolVMLogRecord for child\n",
 			   errorCode);
 	    }
 	}

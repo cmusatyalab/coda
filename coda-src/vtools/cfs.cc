@@ -2074,7 +2074,7 @@ static void RmMount(int argc, char *argv[], int opslot)
     }
 
 static void SetACL (int argc, char *argv[], int opslot)
-    {
+{
     int i = 2, clearflag = 0, minusflag = 0, rc;
     char *dir;
     struct ViceIoctl vio;
@@ -2197,8 +2197,12 @@ EntryDone:
     vio.out_size = 0;
     vio.out = 0;
     rc = pioctl(dir, VIOCSETAL, &vio, 1);
-    if (rc <0) perror(dir);
+    if (rc < 0) {
+	perror(dir);
+	if (errno == EINVAL)
+	    fputs("*** User unknown by the servers?\n", stderr);
     }
+}
 
 
 static void SetVolume   (int argc, char *argv[], int opslot) {printf("Not supported by Coda yet\n");}

@@ -86,7 +86,6 @@ extern void SFTP_Activate (SFTP_Initializer *initPtr);
 int COPModes = 6;	/* ASYNCCOP2 | PIGGYCOP2 */
 int UseMulticast = 0;
 char myHostName[MAXHOSTNAMELEN];
-unsigned long myHostId;
 int rpc2_retries = UNSET_RT;
 int rpc2_timeout = UNSET_TO;
 int sftp_windowsize = UNSET_WS;

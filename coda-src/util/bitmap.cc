@@ -169,7 +169,8 @@ void bitmap::Grow(int newsize) {
     map = newmap;
 }
 
-int bitmap::GetFreeIndex() {
+int bitmap::GetFreeIndex()
+{
     int j;
     for (int offset = 0; offset < mapsize; offset++){
 	if ((~map[offset]) & ALLOCMASK){
@@ -190,7 +191,6 @@ int bitmap::GetFreeIndex() {
 	}
     }
     return(-1);		/* no free slot */
-
 }
 
 void bitmap::SetIndex(int index) {

@@ -16,12 +16,6 @@ listed in the file CREDITS.
 
 #*/
 
-
-
-
-
-
-
 /* implementation of replicated communication for resolve 
  * Puneet Kumar, Created June 1990
  */
@@ -66,10 +60,8 @@ extern "C" {
 
 /* Storage for static class members defined in rescomm.h */
 dlist *res_mgrpent::ResMgrpTab = 0;
-struct condition res_mgrpent::TabSync;
 int res_mgrpent::resmgrps = 0;
 olist *srvent::srvtab = 0;
-struct condition srvent::srvtab_sync;
 int srvent::servers = 0;
 olist *conninfo::CInfoTab = 0;
 int conninfo::ncinfos = 0;
@@ -91,12 +83,10 @@ void ResProcSignal(char *addr, int yield) {
 void ResCommInit() {
     /* Initialize Mgroups */
     res_mgrpent::ResMgrpTab = new dlist;
-    CONDITION_INIT(&res_mgrpent::TabSync);
     res_mgrpent::resmgrps = 0;
     
     /* Initialize servers */
     srvent::srvtab = new olist;
-    CONDITION_INIT(&srvent::srvtab_sync);
     srvent::servers = 0;
     
     /* Initialize connection infos */

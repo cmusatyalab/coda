@@ -97,18 +97,10 @@ int MAXTS = UNSET_MAXTS;
 #endif
 
 /*  *****  Private Constants  *****  */
-#if	defined(__NetBSD_Version__) && (__NetBSD_Version__ >= 104000000)
-#define	NetBSD1_4
-#else
-#undef	NetBSD1_4
-#endif
 
-#if defined(NetBSD1_3) || defined(NetBSD1_4) || defined(__FreeBSD_version)
+#if defined(NetBSD1_3) || defined(__NetBSD_Version__) || defined(__FreeBSD_version)
 static const char *VM_RVGADDR = (char *)0x50000000;
 static const char *VM_RDSADDR = (char *)0x51000000;
-#elif defined(__BSD44__)
-static const char *VM_RVGADDR = (char *)0x40000000;
-static const char *VM_RDSADDR = (char *)0x41000000;
 #elif  defined(__linux__) && defined(sparc)
 static const char *VM_RVGADDR = (char *)0xbebd000;
 static const char *VM_RDSADDR = (char *)0xbfbd000;

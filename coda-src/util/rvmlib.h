@@ -32,9 +32,11 @@ extern "C" {
 #include <rvm/rvm.h>
 #include <unistd.h>
 #include <stdlib.h>
-
 #include <setjmp.h>
+
 #include <lwp/lwp.h>
+#include <rvm/rvm.h>
+#include <rvm/rds.h>
 
 #include <rvm/rds.h>
 #include <util.h>

@@ -105,9 +105,13 @@ long RS_HandleInc(RPC2_Handle RPCid, ViceFid *Fid, ViceStoreId *logid,
     // spool a resolution record and set status
     {
 	vle *ov = FindVLE(*vlist, Fid);
-	CODA_ASSERT(ov && ov->vptr);
-	if ((errorCode = SpoolVMLogRecord(vlist, ov->vptr, volptr, 
-					 logid, ResolveNULL_OP, 0))) {
+        if (!ov) {
+            SLog(0, "RS_HandleInc - no vle for %s\n", FID_(Fid));
+            errorCode = EINVAL;
+            goto Exit;
+        }
+        if ((errorCode = SpoolVMLogRecord(vlist, ov, volptr, logid,
+                                          ResolveNULL_OP, 0))) {
 	    if (errorCode == ENOSPC) {
 		LogMsg(0, SrvDebugLevel, stdout, 
 		       "RS_HandleInc - no space for spooling log record - ignoring\n");

@@ -1733,12 +1733,12 @@ START_TIMING(Reintegrate_CheckSemanticsAndPerform);
 			  ? ResolveViceRename_OP
 			  : RES_Rename_OP;
 			// rvm resolution is on 
-			if ((errorCode = SpoolRenameLogRecord((int) sd_opcode, (dlist *) vlist, 
-							     (Vnode *)s_v->vptr,(Vnode *)( t_v ? t_v->vptr : NULL) ,
-							     (Vnode *)sd_v->vptr, (Vnode *)td_v->vptr, (Volume *) volptr, 
+			if ((errorCode = SpoolRenameLogRecord(sd_opcode, vlist, 
+							     s_v, t_v, sd_v,
+                                                             td_v, volptr,
 							     (char *)r->u.u_rename.OldName,
 							     (char *)r->u.u_rename.NewName, 
-							     (ViceStoreId *) &r->sid))) {
+							     &r->sid))) {
 				SLog(0, "Reint: Error %d during spool log record for rename\n",
 				     errorCode);
 				goto Exit;
@@ -2428,7 +2428,7 @@ static void ReintFinalCOP(vle *v, Volume *volptr, RPC2_Integer *VS)
 	if (v->vptr->disk.type == vDirectory && v->d_needsres) {
 		CODA_ASSERT(AllowResolution && V_RVMResOn(volptr));
 		if (V_RVMResOn(volptr))
-			CODA_ASSERT(SpoolVMLogRecord(v, volptr, FinalSid, ResolveNULL_OP, 0) == 0);
+			CODA_ASSERT(SpoolVMLogRecord(NULL, v, volptr, FinalSid, ResolveNULL_OP, 0) == 0);
 	}
 	else {
 		AddPairToCopPendingTable(FinalSid, &v->fid);

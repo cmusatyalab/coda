@@ -20,15 +20,8 @@ listed in the file CREDITS.
  * Created Puneet Kumar, June 1990
  */
 
-
 #ifdef __cplusplus
 extern "C" {
-#endif __cplusplus
-
-#include <cthreads.h>
-
-#ifdef __cplusplus
-}
 #endif __cplusplus
 
 extern void ResProcWait(char *);
@@ -43,3 +36,8 @@ extern void ResProcSignal(char *, int = 0);
     for (char *c = s; *c; c++)\
 	if (isupper(*c)) *c = tolower(*c);\
 }
+
+#ifdef __cplusplus
+}
+#endif __cplusplus
+
