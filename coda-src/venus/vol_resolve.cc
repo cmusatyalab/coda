@@ -95,8 +95,7 @@ void repvol::Resolve()
 	    /* Pick a coordinator and get a connection to it. */
 	    struct in_addr *phost = m->GetPrimaryHost();
 	    CODA_ASSERT(phost->s_addr != 0);
-            srvent *s;
-            GetServer(&s, phost, GetRealmId());
+            srvent *s = GetServer(phost, GetRealmId());
 	    code = s->GetConn(&c, V_UID);
             PutServer(&s);
 	    if (code != 0) goto HandleResult;

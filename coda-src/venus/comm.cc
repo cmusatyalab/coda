@@ -208,7 +208,7 @@ void CommInit() {
         }
 
         if (addr.s_addr != INADDR_ANY) {
-            GetServer(&s, &addr, realm);
+            s = GetServer(&addr, realm);
             s->rootserver = 1;
             /* Don't call PutServer, this keeps a refcount on the rootservers */
             hcount++;
@@ -302,49 +302,6 @@ void Conn_Signal() {
     CONNQ_LOCK();
     CONNQ_SIGNAL();
     CONNQ_UNLOCK();
-}
-
-
-/* Get a connection to any server (as root). */
-int GetAdmConn(connent **cpp)
-{
-    LOG(100, ("GetAdmConn: \n"));
-
-    *cpp = 0;
-    int code = 0;
-
-    /* Get a connection to any custodian. */
-    for (;;) {
-	int tryagain = 0;
-	srv_iterator next;
-	srvent *s;
-	while ((s = next())) {
-            if (!s->IsRootServer()) continue;
-	    code = s->GetConn(cpp, V_UID);
-	    switch(code) {
-		case 0:
-		    return(0);
-
-		case ERETRY:
-		    tryagain = 1;
-		    continue;
-
-		case EINTR:
-		    return(EINTR);
-
-		case ETIMEDOUT:
-		    continue;
-
-		default:
-		    if (code < 0)
-			CHOKE("GetAdmConn: bogus code (%d)", code);
-		    return(code);
-	    }
-	}
-	if (tryagain) continue;
-
-	return(ETIMEDOUT);
-    }
 }
 
 
@@ -679,24 +636,22 @@ srvent *FindServerByCBCid(RPC2_Handle connid)
 }
 
 
-void GetServer(srvent **spp, struct in_addr *host, RealmId realm)
+srvent *GetServer(struct in_addr *host, RealmId realm)
 {
+    CODA_ASSERT(host && host->s_addr);
     LOG(100, ("GetServer: host = %s\n", inet_ntoa(*host)));
-    CODA_ASSERT(host != 0);
-    CODA_ASSERT(host->s_addr != 0);
 
     srvent *s = FindServer(host);
     if (s) {
         s->GetRef();
-	*spp = s;
-	return;
+	return s;
     }
 
     s = new srvent(host, realm);
 
     srvent::srvtab->insert(&s->tblhandle);
 
-    *spp = s;
+    return s;
 }
 
 
@@ -754,8 +709,7 @@ void probeslave::main(void)
 	    int **args = (int **)arg;
 	    struct in_addr *host = (struct in_addr *)((*args)[0]);
 	    RealmId realm = (*args)[1];
-            srvent *s;
-            GetServer(&s, host, realm);
+            srvent *s = GetServer(host, realm);
 	    s->GetConn((connent **)result, V_UID, 1);
             PutServer(&s);
 	    }
@@ -868,7 +822,7 @@ void MultiBind(int HowMany, struct in_addr *Hosts, connent **Connections)
     for (ix = 0; ix < HowMany; ix++) {
 	/* Try to get a connection without forcing a bind. */
 	connent *c = 0;
-        GetServer(&s[ix], &Hosts[ix], realm);
+        s[ix] = GetServer(&Hosts[ix], realm);
 	if (s[ix]->GetConn(&c, V_UID) == 0) {
 	    /* Stuff the connection in the array. */
 	    Connections[ix] = c;

@@ -350,12 +350,15 @@ static int dir_DirEntry2VDirent(PDirEntry ep, struct venus_dirent *vd, VolumeId 
 	CODA_ASSERT(ep && vd);
 
         fid_NFidV2Fid(&ep->fid, vol, &vfid);
-#warning "convert to the correct kernel fid"
-	// kfid.opaque[0] = realm;
-	// kfid.opaque[1] = vfid->Volume;
-	// kfid.opaque[2] = vfid->Vnode;
-	// kfid.opaque[3] = vfid->Unique;
-	memcpy(&kfid, &vfid, sizeof(CodaFid));
+
+#warning "converting to kernel fid"
+	if (sizeof(CodaFid) == 16) {
+	    kfid.opaque[0] = realm;
+	    kfid.opaque[1] = vfid.Volume;
+	    kfid.opaque[2] = vfid.Vnode;
+	    kfid.opaque[3] = vfid.Unique;
+	} else 
+	    memcpy(&kfid, &vfid, sizeof(CodaFid));
 	
 	vd->d_fileno = coda_f2i(&kfid);
 #ifdef CDT_UNKNOWN

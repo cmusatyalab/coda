@@ -2063,8 +2063,7 @@ int ClientModifyLog::COP1(char *buf, int bufsize, ViceVersionVector *UpdateSet,
 	CODA_ASSERT(phost->s_addr != 0);
 
 	connent *c = 0;
-        srvent *s;
-        GetServer(&s, phost, vol->GetRealmId());
+        srvent *s = GetServer(phost, vol->GetRealmId());
 	code = s->GetConn(&c, owner);
         PutServer(&s);
 	if (code != 0) goto Exit;
@@ -2758,6 +2757,7 @@ int cmlent::GetReintegrationHandle()
     int ph_ix;
     struct in_addr phost;
     connent *c = 0;
+    srvent *s = 0;
     
     /* Make sure to clear the handle, so we don't get confused then the rpc
      * fails */
@@ -2774,8 +2774,7 @@ int cmlent::GetReintegrationHandle()
     phost = *m->GetPrimaryHost(&ph_ix);
     CODA_ASSERT(phost.s_addr != 0);
 
-    srvent *s;
-    GetServer(&s, &phost, vol->GetRealmId());
+    s = GetServer(&phost, vol->GetRealmId());
     code = s->GetConn(&c, log->owner);
     PutServer(&s);
     if (code != 0) goto Exit;
@@ -2823,8 +2822,7 @@ int cmlent::ValidateReintegrationHandle()
     RPC2_Unsigned Offset = (unsigned long)-1;
     
     /* Acquire a connection. */
-    srvent *s;
-    GetServer(&s, &u.u_store.ReintPH, vol->GetRealmId());
+    srvent *s = GetServer(&u.u_store.ReintPH, vol->GetRealmId());
     code = s->GetConn(&c, log->owner);
     PutServer(&s);
     if (code != 0) goto Exit;
@@ -2872,8 +2870,7 @@ int cmlent::WriteReintegrationHandle()
     RPC2_Unsigned length = ReintAmount();
 
     /* Acquire a connection. */
-    srvent *s;
-    GetServer(&s, &u.u_store.ReintPH, vol->GetRealmId());
+    srvent *s = GetServer(&u.u_store.ReintPH, vol->GetRealmId());
     code = s->GetConn(&c, log->owner);
     PutServer(&s);
     if (code != 0) goto Exit;
@@ -2992,8 +2989,7 @@ int cmlent::CloseReintegrationHandle(char *buf, int bufsize,
     empty_PiggyBS.SeqBody = (RPC2_ByteSeq)PiggyData;
 
     /* Get a connection to the server. */
-    srvent *s;
-    GetServer(&s, &u.u_store.ReintPH, vol->GetRealmId());
+    srvent *s = GetServer(&u.u_store.ReintPH, vol->GetRealmId());
     code = s->GetConn(&c, log->owner);
     PutServer(&s);
     if (code != 0) goto Exit;

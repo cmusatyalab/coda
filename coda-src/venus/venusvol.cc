@@ -309,9 +309,12 @@ int GetRootVolume()
 	memset(buf, 0, V_MAXVOLNAMELEN);
 	RVN.SeqBody = (RPC2_ByteSeq)buf;
 
+	/* Get the default realm */
+	Realm *r = REALMDB->GetRealm(venus_realm);
+
 	/* Get the connection. */
 	connent *c;
-	int code = GetAdmConn(&c);
+	int code = r->GetAdmConn(&c);
 	if (code != 0) {
 	    LOG(100, ("GetRootVolume: can't get SUConn!\n"));
 	    RPCOpStats.RPCOps[ViceGetRootVolume_OP].bad++;
@@ -656,7 +659,7 @@ int vdb::Get(volent **vpp, Realm *realm, const char *volname)
     for (;;) {
 	/* Get a connection to any server. */
 	connent *c;
-	code = GetAdmConn(&c);
+	code = realm->GetAdmConn(&c);
 	if (code != 0) break;
 
 	/* Make the RPC call. */
@@ -1825,8 +1828,8 @@ void volrep::ResetTransient(void)
 
     volserver = NULL;
     if (host.s_addr) {
-        GetServer(&volserver, &host, GetRealmId());
-        CODA_ASSERT(volserver != NULL);
+        volserver = GetServer(&host, GetRealmId());
+        CODA_ASSERT(volserver);
     }
 
     ResetVolTransients();
@@ -2361,8 +2364,7 @@ void repvol::SetStagingServer(struct in_addr *srvr)
 
 	    /* fake a CB-connection */
 	    {
-		srvent *s;
-		GetServer(&s, srvr, GetRealmId());
+		srvent *s = GetServer(srvr, GetRealmId());
 		if (s) s->connid = 666;
 		PutServer(&s);
 	    }

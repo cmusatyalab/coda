@@ -4,6 +4,7 @@
 #include "persistent.h"
 
 class Server;
+class connent;
 
 class Realm : protected PersistentObject {
     friend class RealmDB;
@@ -23,6 +24,8 @@ public:
     void Rec_GetRef(void) { PersistentObject::Rec_GetRef(); }
     void Rec_PutRef(void) { PersistentObject::Rec_PutRef(); }
 
+    int GetAdmConn(connent **cpp);
+
     Server *GetServer(struct in_addr *ipv4addr);
 //    volent *GetVolume(const char *volname);
 
@@ -34,6 +37,7 @@ private:
     RealmId id;
     char *name;
 
+/*T*/struct in_addr *rootservers;
 /*T*/struct dllist_head servers;
 };
 

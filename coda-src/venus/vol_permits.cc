@@ -65,7 +65,7 @@ int repvol::GetPermit(vuid_t vuid)
     long permit = WB_DISABLED;
     int i,permits_recvd = 0;
     connent *c;
-    int code = GetAdmConn(&c);
+    int code = realm->GetAdmConn(&c);
 
     ViceFid fid;
     fid.Volume = vid;

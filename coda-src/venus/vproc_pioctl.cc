@@ -772,9 +772,9 @@ OI_FreeLocks:
 		    ViceStatistics *Stats = (ViceStatistics *)data->out;
 		    for (i = 0; i < VSG_MEMBERS; i++)
 			if (Hosts[i].s_addr) {
-			    srvent *s;
-			    GetServer(&s, &Hosts[i], v->GetRealmId());
+			    srvent *s = GetServer(&Hosts[i], v->GetRealmId());
 			    (void)s->GetStatistics(Stats);
+			    PutServer(&s);
 			    Stats++;
 			}
 
