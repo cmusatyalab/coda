@@ -29,7 +29,10 @@
  *	Added -S to mean flush /usr/include headers (and possibly
  *	/usr/cs/include).
  *
- * $Log:	md.c,v $
+ * $Log: md.c,v $
+ * Revision 4.1  1997/04/29 21:32:51  rvb
+ * Initial version for Coda
+ *
  * Revision 2.2  93/12/14  14:24:42  rvb
  * 	Resurrected and taught to deal with -I prefix's
  * 	[93/12/13            rvb]

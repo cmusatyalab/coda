@@ -30,7 +30,7 @@
 # Mellon the rights to redistribute these changes without encumbrance.
 # */
 # 
-# static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/configs/Makeconf.i386_nbsd1,v 4.11 1997/06/24 15:40:21 braam Exp $";
+# static char *rcsid = "$Header: /coda/coda.cs.cmu.edu/project/coda/cvs/coda/configs/Attic/Makeconf.nbsd,v 4.12 1997/07/09 20:37:01 clement Exp $";
 # 
 
 # the following may need editing depending on your preferences
