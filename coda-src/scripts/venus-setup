@@ -66,13 +66,16 @@ echo $VSTAB > $CODAETC/vstab
 if [ ! -c $CFSDEV ]; then mknod $CFSDEV c $CFSMAJOR $CFSMINOR; fi
 
 # frobnicate /etc/services
-if grep coda_venus /etc/services >/dev/null ; then 
+if grep coda_filesrv /etc/services >/dev/null ; then 
 echo /etc/services already has coda entries..
 else 
 cat <<EOF >> /etc/services
 # Coda filesystem port numbers
 coda_opcons     1355/udp                        # Coda opcons
 coda_venus      1363/udp                        # Coda venus
+coda_auth       1357/udp                        # Coda auth
+coda_udpsrv     1359/udp                        # Coda udpsrv
+coda_filesrv    1361/udp                        # Coda filesrv
 codacon         1423/tcp        venus.cmu       # Coda Console
 coda_aux1       1431/tcp                        # coda auxiliary service
 coda_aux1       1431/udp                        # coda auxiliary service
