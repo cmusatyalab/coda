@@ -90,7 +90,7 @@ void DP_Init(const char *tabfile, const char *hostname)
     }
 
     while ( (entry = Partent_get(tabhandle)) ) {
-        if ( ! UtilHostEq(hostname, Partent_host(entry)) ) {
+        if (!UtilHostEq(hostname, Partent_host(entry))) {
 	    Partent_free(&entry);
 	    continue;
 	}
@@ -116,6 +116,7 @@ void DP_Init(const char *tabfile, const char *hostname)
 	   take note of this */
         DP_InitPartition(entry, operations, data, devno);
 	codadev++; 
+	Partent_free(&entry);
     }
     Partent_end(tabhandle);
 
@@ -139,7 +140,6 @@ DP_InitPartition(Partent entry, struct inodeops *operations,
     memset(dp, 0, sizeof(struct DiskPartition));
     list_head_init(&dp->dp_chain);
 
-    
     tmp = &DiskPartitionList;
     while ((tmp = tmp->next) != &DiskPartitionList) {
 	    pp = list_entry(tmp, struct DiskPartition, dp_chain);

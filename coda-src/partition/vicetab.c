@@ -173,8 +173,7 @@ Partent Partent_get(FILE *filep)
     return part;
  error:
     Partent_free(&part);
-    part = NULL;
-    return part;
+    return NULL;
 }
 
 char *Partent_host(Partent p)
