@@ -406,6 +406,7 @@ volent *vdb::Find(char *volname)
     return(0);
 }
 
+/* must NOT be called from within a transaction */
 static int GetVolReps(VolumeInfo *volinfo, volrep *volreps[VSG_MEMBERS])
 {
     int i, err = 0;
@@ -449,12 +450,15 @@ volent *vdb::Create(VolumeInfo *volinfo, char *volname)
 
     /* Check whether the key is already in the database. */
     if ((v = Find(volinfo->Vid))) {
-	Recov_BeginTrans();
 	if (strncmp(v->name, volname, V_MAXVOLNAMELEN) != 0) {
 	    eprint("reinstalling volume %s (%s)", v->GetName(), volname);
 
+	    Recov_BeginTrans();
+
 	    rvmlib_set_range(v->name, V_MAXVOLNAMELEN);
 	    strcpy(v->name, volname);
+
+	    Recov_EndTrans(0);
 	}
 
         /* add code to support growing/shrinking VSG's for replicated volumes
@@ -464,6 +468,8 @@ volent *vdb::Create(VolumeInfo *volinfo, char *volname)
 	    vp = (repvol *)v;
 	    err = GetVolReps(volinfo, volreps);
 	    if (!err) {
+		Recov_BeginTrans();
+
 		for (i = 0; i < VSG_MEMBERS; i++) {
 		    /* did the volume replica change? */
 		    if (vp->volreps[i] != volreps[i]) {
@@ -479,13 +485,12 @@ volent *vdb::Create(VolumeInfo *volinfo, char *volname)
 			vp->Reconfigure();
 		    }
 		}
+		Recov_EndTrans(0);
 	    }
 	    /* put whatever volumes were unchanged */
 	    for (i = 0; i < VSG_MEMBERS; i++)
 		VDB->Put((volent **)&volreps[i]);
 	}
-
-	Recov_EndTrans(0);
 
 	return(v);
     }
