@@ -19,10 +19,9 @@
 #*/
 
 lib_LTLIBRARIES = liblwp.la
-pkginclude_HEADERS = lock.h lwp.h preempt.h timer.h
-noinst_HEADERS = lwp.private.h
-
-liblwp_la_SOURCES = fasttime.c iomgr.c lock.c lwp.c preempt.c timer.c process.ss
+INCLUDES = -I$(top_srcdir)/include
+liblwp_la_SOURCES = fasttime.c iomgr.c lock.c lwp.c preempt.c timer.c \
+    process.ss lwp.private.h
 liblwp_la_LIBADD = process.lo
 liblwp_la_CFLAGS = -DLWP_DEBUG
 liblwp_la_LDFLAGS = -version-info 1:0:0

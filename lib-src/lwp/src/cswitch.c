@@ -19,8 +19,9 @@ listed in the file CREDITS.
 #include <stdio.h>
 #include <sys/time.h>
 #include <assert.h>
-#include "lwp.h"
-#include "preempt.h"
+
+#include <lwp/lwp.h>
+#include <lwp/preempt.h>
 
 void OtherProcess(PROCESS parent)
     {
@@ -52,7 +53,7 @@ int main(int argc, char **argv)
     last_context_switch.tv_usec = 0;
 
     assert(LWP_Init(LWP_VERSION, 0, &pid) == LWP_SUCCESS);
-    assert(LWP_CreateProcess((PFI)OtherProcess,4096,0, pid, c, &otherpid) == LWP_SUCCESS);
+    assert(LWP_CreateProcess((PFI)OtherProcess, 4096, 0, (char *)pid, c, &otherpid) == LWP_SUCCESS);
     assert(IOMGR_Initialize() == LWP_SUCCESS);
     gettimeofday(&t1, NULL);
 

@@ -44,7 +44,7 @@ Pittsburgh, PA.
 #include <sys/time.h>
 #include <sys/socket.h>
 
-#include "lwp.h"
+#include <lwp/lwp.h>
 
 int procA(int dummy);
 int procB(int dummy);

@@ -62,7 +62,7 @@ Pittsburgh, PA.
 #define MAP_FAILED      ((void *) -1)
 #endif
 
-#include "lwp.h"
+#include <lwp/lwp.h>
 #include "lwp.private.h"
 
 #define  ON	    1

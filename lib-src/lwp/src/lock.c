@@ -40,9 +40,10 @@ Pittsburgh, PA.
 
 #include <stdio.h>
 #include <assert.h>
-#include "lwp.h"
+
+#include <lwp/lwp.h>
+#include <lwp/lock.h>
 #include "lwp.private.h"
-#include "lock.h"
 
 /* null out a lock */
 void Lock_Init(register struct Lock *lock)

@@ -40,7 +40,7 @@ Pittsburgh, PA.
 #ifndef LWPLOCK_INCLUDED
 #define LWPLOCK_INCLUDED
 
-#include <lwp.h>
+#include <lwp/lwp.h>
 /* all locks wait on excl_locked except for READ_LOCK, which waits on readers_reading */
 struct Lock {
 	unsigned char   wait_states;	/* type of lockers waiting */

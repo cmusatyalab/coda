@@ -1,8 +1,8 @@
 Summary: LWP thread library
-Name: @PACKAGE@
+Name: lwp
 Version: @VERSION@
 Release: 1
-Source: ftp://ftp.coda.cs.cmu.edu/pub/coda/src/@PACKAGE@-@VERSION@.tar.gz
+Source: ftp://ftp.coda.cs.cmu.edu/pub/coda/src/lwp-@VERSION@.tar.gz
 Copyright: LGPL
 BuildRoot: /usr/src/redhat/BUILD/lwp-build
 Group: Development/Libraries
@@ -25,7 +25,7 @@ call library)
 - First stab at packaging the lwp library.
 	
 %prep
-%setup -n @PACKAGE@-@VERSION@
+%setup -n lwp-@VERSION@
 
 %build
 ./configure --prefix=/usr

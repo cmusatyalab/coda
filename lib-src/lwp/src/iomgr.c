@@ -47,9 +47,10 @@ Pittsburgh, PA.
 #include <sys/time.h>
 #include <fcntl.h>
 #include <assert.h>
-#include "lwp.h"
+
+#include <lwp/lwp.h>
+#include <lwp/timer.h>
 #include "lwp.private.h"
-#include "timer.h"
 
 #ifndef TRUE
 #define TRUE 1

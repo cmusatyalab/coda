@@ -17,13 +17,7 @@
 #                            none currently
 #*/
 
-SUBDIRS = include src
+SUBDIRS = lwp
 
-EXTRA_DIST = bootstrap.sh
+MAINTAINERCLEANFILES = Makefile.in
 
-MAINTAINERCLEANFILES = AUTHORS ChangeLog INSTALL Makefile.in NEWS \
-    README aclocal.m4 config.guess config.h.in config.sub configure \
-    install-sh libtool ltconfig ltmain.sh missing mkinstalldirs stamp-h.in
-
-dist-hook:
-	if [ -x /afs/cs ] ; then cp /afs/cs/project/coda-src/cvs/CVSROOT/ChangeLog.lwp ChangeLog ; fi

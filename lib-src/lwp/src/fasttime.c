@@ -46,7 +46,7 @@ Pittsburgh, PA.
 #include <unistd.h>
 #include <stdlib.h>
 
-#include "lwp.h"
+#include <lwp/lwp.h>
 
 static enum InitState { notTried, tried, done } initState = notTried;
 /* last time returned by RT_FastTime.  Used to implement FT_ApproxTime */

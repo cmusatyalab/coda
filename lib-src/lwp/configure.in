@@ -1,7 +1,7 @@
 dnl Process this file with autoconf to produce a configure script
 
 dnl Initialization
-AC_INIT(src/lwp.private.h)
+AC_INIT(src/lwp.c)
 
 dnl Cross compilation stuff
 case ${target} in
@@ -69,5 +69,5 @@ AC_FUNC_MMAP
 
 dnl Checks for system services.
 dnl Generate output files
-AC_OUTPUT(Makefile lwp.spec src/Makefile)
+AC_OUTPUT(Makefile lwp.spec include/Makefile include/lwp/Makefile src/Makefile)
 

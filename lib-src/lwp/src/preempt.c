@@ -40,9 +40,10 @@ Pittsburgh, PA.
 #include <stdio.h>
 #include <sys/time.h>
 #include <signal.h>
-#include "lwp.h"
+
+#include <lwp/lwp.h>
+#include <lwp/preempt.h>
 #include "lwp.private.h"
-#include "preempt.h"
 
 #ifndef __alpha
 char PRE_Block = 0;		/* used in lwp.c and process.s */

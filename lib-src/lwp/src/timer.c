@@ -46,9 +46,10 @@ Pittsburgh, PA.
 #ifdef HAVE_SEARCH_H
 #include <search.h>
 #endif
-#include "lwp.h"
+
+#include <lwp/lwp.h>
+#include <lwp/timer.h>
 #include "lwp.private.h"
-#include "timer.h"
 
 typedef unsigned char bool;
 

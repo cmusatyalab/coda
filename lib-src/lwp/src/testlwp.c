@@ -41,7 +41,8 @@ Pittsburgh, PA.
 #include <stdio.h>
 #include <sys/time.h>
 #include <assert.h>
-#include "lwp.h"
+
+#include <lwp/lwp.h>
 
 char semaphore;
 
