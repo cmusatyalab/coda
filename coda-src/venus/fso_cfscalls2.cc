@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /usr/rvb/XX/src/coda-src/venus/RCS/fso_cfscalls2.cc,v 4.2 1997/01/17 15:22:50 satya Exp $";
+static char *rcsid = "$Header: /afs/cs.cmu.edu/user/clement/mysrcdir3/coda-src/venus/RCS/fso_cfscalls2.cc,v 4.3 1997/02/26 16:03:19 rvb Exp clement $";
 #endif /*_BLURB_*/
 
 
@@ -138,7 +138,7 @@ int fsobj::Open(int writep, int execp, int truncp, dev_t *devp, ino_t *inop, vui
 	Execers++;
 
     /* Do truncate if necessary. */
-    if (truncp) {
+    if (truncp && writep) {	/* truncp is acted upon only if writep */
 	struct vattr va; va_init(&va);
 	va.va_size = 0;
 	if ((code = SetAttr(&va, vuid)) != 0)
