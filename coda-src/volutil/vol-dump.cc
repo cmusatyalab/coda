@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/volutil/vol-dump.cc,v 4.4 1997/10/23 19:26:06 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/volutil/vol-dump.cc,v 4.5 1998/04/14 21:00:37 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -55,7 +55,7 @@ supported by Transarc Corporation, Pittsburgh, PA.
 
 */
 
-#define RCSVERSION $Revision: 4.4 $
+#define RCSVERSION $Revision: 4.5 $
 
 /* vol-dump.c */
 
@@ -122,7 +122,7 @@ PRIVATE int VnodePollPeriod = 32;     /* How many vnodes to dump before polling 
 
 int VVListFd = -1;
 int DumpFd = -1;
-FILE *Ancient;
+FILE *Ancient = NULL;
 
 #define DUMPFILE "/tmp/volumedump"
 
@@ -159,7 +159,7 @@ long S_VolNewDump(RPC2_Handle rpcid, RPC2_Unsigned formal_volumeNumber, RPC2_Uns
     RPC2_BindParms bparms;
     RPC2_Handle cid;
     RPC2_PeerInfo peerinfo;
-    
+
     /* To keep C++ 2.0 happy */
     VolumeId volumeNumber = (VolumeId)formal_volumeNumber;
 
@@ -278,6 +278,10 @@ failure:
     close(VVListFd);
     if (Ancient)
 	fclose(Ancient);
+
+    /* zero the pointer, so we won't re-close it */
+    Ancient = NULL;
+    
     VDisconnectFS();
 
     CAMLIB_BEGIN_TOP_LEVEL_TRANSACTION_2(CAM_TRAN_NV_SERVER_BASED)
