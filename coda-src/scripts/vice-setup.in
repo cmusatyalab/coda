@@ -219,13 +219,18 @@ if [ $isscm = N ]; then
     fi
 
     echo "Fetching needed files from SCM $scmhost."
-    for which in ROOTVOLUME auth2.pw auth2.tk auth2.lock \
-	prot_users.cdb volutil.tk files ; do
+    for which in auth2.pw auth2.tk auth2.lock prot_users.cdb volutil.tk files
+    do
         if ! updatefetch -h $scmhost -r db/$which -l $which ; then
 	    echo "Could not fetch $which from SCM.  Make sure SCM is setup"
 	    echo "correctly and then rerun $0."
 	    exit 1
 	fi
+    done
+    # non critical files
+    for which in ROOTVOLUME
+    do
+        updatefetch -h $scmhost -r db/$which -l $which
     done
     echo "Done."
 
@@ -347,33 +352,65 @@ if [ $isscm = Y ]; then
 	echo "set it up by hand or fix the problems and rerun $0."
 	exit 1
     fi
-    RV=`cat ${vicedir}/db/ROOTVOLUME`
     DP=`cat ${vicedir}/db/vicetab | awk '{print $2}' | head -n 1`
-    echo "Congratulations: your configuration is ready...and now"
-    echo "to get going do the following:"
-    echo " - start the auth2 server as: auth2"
-    echo " - start rpc2portmap as: rpc2portmap"
-    echo " - start updatesrv as: updatesrv"
-    echo " - start updateclnt as:  updateclnt -h $hn"
+    echo "Congratulations: your configuration is ready..."
+    echo
+
+    start=""
+    yesno=""
+    until [ "x$yesno" != x ]; do
+	echon 'Shall I try to get things started? (y/n) '
+	read yesno
+    done
+    if [ "x$yesno" = xy -o "x$yesno" = xyes -o "x$yesno" = xY ]; then
+	start=Y
+    else
+	echo "Here is what you would have to do to get things up and running"
+    fi
+    
+    set -e
+    echo " - Coda authentication server (auth2 &)"
+    [ "$start" ] && auth2 &
+    echo " - Coda portmapper (rpc2portmap)"
+    [ "$start" ] && rpc2portmap
+    echo " - Coda update server (updatesrv)"
+    [ "$start" ] && updatesrv
+    echo " - Coda update client (updateclnt -h $hn)"
+    [ "$start" ] && updateclnt -h $hn
 
     if [ $numservers = 1 ]; then    
-	echo " - start the fileserver: startserver &"
-	echo " - wait until the server is up: tail -f ${vicedir}/srv/SrvLog"
+	echo " - Coda file server (startserver)"
+	[ "$start" ] && startserver
     else
-	echo " - start your fileservers as:"
+	echo " - Coda file servers:"
 	n=1
 	while [ $n -le $numservers ]; do
- 	    echo "        startserver -n $n &"
+ 	    echo "   startserver -n $n"
+	    [ "$start" ] && startserver -n $n
 	    n=`expr $n + 1`
 	done
-	echo " - wait until server $numservers is up: tail -f ${vicedir}/server_$numservers/srv/SrvLog"
+    fi
+    echo
+
+    if [ "$start" ] ; then
+	echo
+	echo "Nice, it looks like everything went ok"
+	echo "Now I'll try to create an initial root volume"
     fi
 
-    echo " - create your root volume: createvol_rep $RV E0000100 $DP"
-    echo " - setup a client: venus-setup $hn 20000"
-    echo " - start venus: venus"
-    echo " - enjoy Coda."
-    echo " - for more information see http://www.coda.cs.cmu.edu."
+    echo " - createvol_rep / ${hn}${DP}"
+    [ "$start" ] && createvol_rep / ${hn}${DP}
+
+    if [ "$start" ] ; then
+	echo
+	echo "That seems to have worked..."
+	echo "If you have a working Coda client you should now be able to"
+	echo "access the new Coda realm"
+	echo " - ls /coda/${hn}/"
+    fi
+    echo
+    echo "enjoy Coda."
+    echo " for more information see http://www.coda.cs.cmu.edu."
 
     exit 0 
 fi

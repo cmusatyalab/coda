@@ -90,7 +90,7 @@ case "${1:-start}" in
     if [ $numservers -eq 1 ]; then 
 	if [  -f ${VICESRV}/STARTFROMBOOT -a ! -f ${VICESRV}/CRASH ]; then
 	    rm -f $VICESRV/pid
-	    startserver &
+	    startserver
 	    echo " codasrv."
 	else
 	    echo "`date`: srv not started." >> ${VICESRV}/SrvErr
@@ -102,7 +102,7 @@ case "${1:-start}" in
 	    VICESRV=${vicedir}/server_$n/srv
 	    if [  -f ${VICESRV}/STARTFROMBOOT -a ! -f ${VICESRV}/CRASH ]; then
 		rm -f $VICESRV/pid
-		startserver &
+		startserver
 		echon " codasrv(-n $n)"
 	    else
 		echo "`date`: srv not started." >> ${VICESRV}/SrvErr

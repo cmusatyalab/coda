@@ -39,7 +39,7 @@ if [ x${vicedir} = x ] ; then
   vicedir=/vice
 fi
 
-# current first maximum replicated volume id
+# current first maximum replicated volume id (0x7f000000)
 echo 2130706432 > ${vicedir}/db/maxgroupid
 
 #
@@ -88,18 +88,6 @@ echo done!
 #  this is the scm so put hostname in ${vicedir}/db/scm
 #
 echo $hn > ${vicedir}/db/scm
-
-id=""
-echo
-echo Setting up ROOTVOLUME file
-cd ${vicedir}/db
-until [ "x$id" != x ]; do
-   echon 'Enter the name of the rootvolume (< 32 chars) : '
-   read id
-done
-echo $id > ${vicedir}/db/ROOTVOLUME
-echo
-echo
 
 #
 # Add information for other servers on this machine

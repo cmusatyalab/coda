@@ -8,5 +8,5 @@ else
     auth2 -chk &
 fi
 updateclnt -h `grep '' /vice/db/scm` &
-startserver &
+startserver
 

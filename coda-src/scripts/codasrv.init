@@ -55,7 +55,7 @@ case "$1" in
 	fi
 	if [ ! -f ${VICESRV}/CRASH ]; then
 	    touch $LOCKFILE
-	    startserver > /dev/null 2>&1 &
+	    startserver
 	    echo "codasrv."
 	else
 	    echo "`date`: found CRASH, srv not started." >> ${VICE}/srv/SrvErr

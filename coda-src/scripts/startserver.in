@@ -33,11 +33,6 @@ if [ x${vicedir} = x ]; then
   vicedir=/vice
 fi
 
-if [ -f ${vicedir}/srv/pid ]; then
-    echo "Can't start file server, one is already running!"
-    exit 1 
-fi 
-
 # Rotate logfiles
 @sbindir@/coda-server-logrotate
 
@@ -51,12 +46,10 @@ fi
 # The -rvm flag takes 3 arguments. The first is the log device/file,
 # the second is the data segment device/file, and the third is the
 # length of the file or device holding the RVM data segment.
-# These parameters are taken from ${vicedir}/srv.conf
+# These parameters are normally taken from ${vicedir}/srv.conf
 
-if [ ${serverconf} = 1 ] ; then
-  @sbindir@/codasrv $* $XFLAGS
-else
-  @sbindir@/codasrv $* $XFLAGS `grep '^\-rvm ' ${vicedir}/srv.conf`
+if [ ${serverconf} = 0 ] ; then
+  RVMFLAGS=`grep '^\-rvm ' ${vicedir}/srv.conf`
 fi
+@sbindir@/codasrv $* $XFLAGS $RVMFLAGS
 
-rm -f ${vicedir}/srv/pid
