@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/venusvm.cc,v 4.9 1998/04/14 21:03:08 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/venusvm.cc,v 4.10 98/08/23 16:46:29 jaharkes Exp $";
 #endif /*_BLURB_*/
 
 
@@ -262,7 +262,7 @@ struct vmoe {
 
 /* ***** Private variables  ***** */
 
-PRIVATE int VmonEnabled = 1;
+PRIVATE int VmonEnabled = 0;
 PRIVATE int VmonInited = 0;
 PRIVATE olist *CEActiveList = 0;
 PRIVATE olist *CEFreeList = 0;
@@ -319,12 +319,11 @@ int VmonPortal = DFLT_VMONPORTAL;	    /* may be overridden from command line */
 
 void VmonInit() {
 
-#ifndef __BSD44__
-    VmonEnabled = 0;
-    return;
-#endif
+    if (!VmonEnabled)
+	return;
 
-    if (Simulating) {
+    if (Simulating)
+    {
 	VmonEnabled = 0;
 	return;
     }
