@@ -2,13 +2,18 @@
 
 use Getopt::Long;
 
-GetOptions("debug!" => \$debug, "kerberos!" => \$kerberos, "rel=s" => \$rel, "version=s" => \$version);
+GetOptions("debug!" => \$debug, "kerberos!" => \$kerberos, "snapshot!" => \$snapshot, "rel=s" => \$rel, "version=s" => \$version);
 
 if ( ! $rel || ! $version ) {
-    print "Usage $0 --rel=release --version=cvs-version  {--debug} {--kerberos} \n";
+    print "Usage $0 --rel=release --version=cvs-version  {--debug} {--kerberos} {--snapshot}\n";
     exit 1;
 }
 
+if ( $snapshot == 1 ) {
+    $tversion = $version . "-" . $rel
+} else {
+    $tversion = $version
+}
 
 if ( $debug == 1 ) {
     $codaname = "coda-debug" ;
@@ -38,6 +43,7 @@ open(SPEC, ">$specfile");
 while ( <> ) {
     ~ s/\@REL\@/$rel/g;
     ~ s/\@CVER\@/$version/g;
+    ~ s/\@VERSION\@/$tversion/g;
     ~ s/\@KVER\@/$kernel/g;
     ~ s/\@KV\@/$kv/g;
     ~ s/\@LIBC\@/$libc/g;

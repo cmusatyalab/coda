@@ -3,7 +3,7 @@ Summary: Coda distributed filesystem
 Name: @CODA@
 Version: @CVER@
 Release: @REL@
-Source: ftp://ftp.coda.cs.cmu.edu/pub/coda/src/coda-@CVER@.tgz
+Source: ftp://ftp.coda.cs.cmu.edu/pub/coda/src/coda-@VERSION@.tgz
 Requires: bc
 Copyright: CMU
 BuildRoot: /usr/src/redhat/BUILD/coda-build
@@ -69,14 +69,14 @@ well as the volume utilities.
 - Added initscript for venus
 	
 %prep
-%setup -n coda-@CVER@
+%setup -n coda-@VERSION@
 
 %build
-chown -R root.bin $RPM_BUILD_DIR/coda-@CVER@
-rm -rf $RPM_BUILD_DIR/obj-@CVER@
-mkdir $RPM_BUILD_DIR/obj-@CVER@
-cd $RPM_BUILD_DIR/obj-@CVER@
-$RPM_BUILD_DIR/coda-@CVER@/configure --prefix=$RPM_BUILD_ROOT/usr
+chown -R root.bin $RPM_BUILD_DIR/coda-@VERSION@
+rm -rf $RPM_BUILD_DIR/obj-@VERSION@
+mkdir $RPM_BUILD_DIR/obj-@VERSION@
+cd $RPM_BUILD_DIR/obj-@VERSION@
+$RPM_BUILD_DIR/coda-@VERSION@/configure --prefix=$RPM_BUILD_ROOT/usr
 make GFLAG="" coda
 
 %install
@@ -102,7 +102,7 @@ if [ X@DEBUG@ != X1 ]; then
 fi
 
 cd $RPM_BUILD_DIR
-cp $RPM_SOURCE_DIR/coda-@CVER@.tgz $RPM_BUILD_ROOT/$RPM_BUILD_DIR/coda-@CVER@.tgz
+cp $RPM_SOURCE_DIR/coda-@VERSION@.tgz $RPM_BUILD_ROOT/$RPM_BUILD_DIR/coda-@VERSION@.tgz
 chown -R root.root $RPM_BUILD_ROOT
 
 %clean
@@ -151,7 +151,7 @@ tixindex *tcl
 
 %post source
 cd /usr/src/redhat/BUILD
-tar zxf coda-@CVER@.tgz
+tar zxf coda-@VERSION@.tgz
 
 %post server
 /sbin/chkconfig --add update.init
@@ -165,7 +165,7 @@ tar zxf coda-@CVER@.tgz
 
 
 %files source
-/usr/src/redhat/BUILD/coda-@CVER@.tgz
+/usr/src/redhat/BUILD/coda-@VERSION@.tgz
 
 %files client
 /dev/cfs0
