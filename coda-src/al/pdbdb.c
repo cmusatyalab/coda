@@ -341,7 +341,7 @@ int PDB_db_exists(void)
 	DB *db;
 	int rc1, rc2;
 	struct stat buf;
-	DBT key;
+	DBT key, value;
 	char zero = 0;
 	int result;
    
@@ -373,7 +373,7 @@ int PDB_db_exists(void)
 	}
 
 	/* check if the record exists */
-        result = db->get(db, &key, NULL, 0);
+        result = db->get(db, &key, &value, 0);
         db->close(db);
    
 	if ( result != RET_SUCCESS ) {
