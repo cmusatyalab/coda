@@ -1,5 +1,6 @@
 New in 1.0:
 
+* Fixed alignment problems on sparc32 platforms (Shafeeq).
 * Extracted RVM out of the main Coda source tree.
 * Using an automake/autoconf/libtool build environment.
 * Creating shared libraries.
