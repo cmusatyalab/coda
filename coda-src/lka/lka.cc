@@ -37,8 +37,6 @@ extern "C" {
 }
 #endif
 
-#include <rpc2/rpc2.h>
-#include <codaconf.h>
 #include <copyfile.h>
 #include "lka.h"
 

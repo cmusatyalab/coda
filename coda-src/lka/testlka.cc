@@ -31,13 +31,10 @@ extern "C" {
 #include <unistd.h>
 #include <stdlib.h>
 
-#include <rpc2/rpc2.h>
-
 #ifdef __cplusplus
 }
 #endif
 
-#include <codaconf.h>
 #include "lka.h"
 
 char em[4096];

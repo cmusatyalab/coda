@@ -34,13 +34,10 @@ extern "C" {
 #include <sys/stat.h>
 #include <fts.h>
 
-#include <rpc2/rpc2.h>
-
 #ifdef __cplusplus
 }
 #endif
 
-#include <codaconf.h>
 #include "lka.h"
 
 
