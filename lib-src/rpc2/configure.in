@@ -57,6 +57,9 @@ dnl Checks for header files.
 AC_CHECK_HEADERS(sys/stream.h arpa/inet.h netdb.h)
 
 dnl Checks for typedefs.
+AC_CHECK_TYPES([struct sockaddr_storage],,,
+    [#include <sys/types.h>
+     #include <sys/socket.h>])
 
 dnl Checks for compiler characteristics.
 CODA_DARWIN_BROKEN_CPP_WORKAROUND

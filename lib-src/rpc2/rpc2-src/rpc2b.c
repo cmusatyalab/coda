@@ -69,6 +69,14 @@ Pittsburgh, PA.
 #define INADDR_LOOPBACK 0x7f000001
 #endif
 
+#ifndef HAVE_STRUCT_SOCKADDR_STORAGE
+/* this should be large enough to fit 'any' socket address. */
+struct sockaddr_storage {
+    struct sockaddr __ss_sa;
+    char _ss_padding[128 - sizeof(struct sockaddr)];
+};
+#endif
+
 struct in_addr rpc2_bindaddr = { INADDR_ANY };
 
 long RPC2_Init(char *VId,		/* magic version string */
