@@ -800,7 +800,7 @@ int DIR_Convert (PDirHeader dir, char *file, VolumeId vol)
 	if ( !dir ) 
 		return ENOENT;
 	
-	fd = open(file, O_RDWR | O_TRUNC, 0600);
+	fd = open(file, O_RDWR | O_TRUNC | O_BINARY, 0600);
 	assert( fd >= 0 );
 
 	len = DIR_Length(dir);
@@ -1007,6 +1007,71 @@ int DIR_Hash (char *string)
 static struct DirEntry *dir_FindItem (struct DirHeader *dir, char *ename, 
 				       struct DirEntry **preventry, int *index)
 {
+	
+#ifdef DJGPP
+
+	int i;
+	int num;
+	char *p = NULL;
+	register struct DirEntry *ep;
+	register struct DirEntry *lp = NULL;	/* page of previous entry in chain */
+	char *name = strdup(ename);
+	int length = strlen(name);
+	char *name2 = NULL;
+	int length2 = 0;
+
+	if (!dir) 
+		return 0;
+
+	/* lowercase name to look for */
+	for (p=name; p<name+length; p++){
+		if (*p>='A' && *p<='Z')
+			*p += 'a' - 'A';
+	}
+
+	for(i=0;i<NHASH;i++) {
+		/* For each hash chain, enumerate everyone on the list. */
+		num = ntohs(dir->dirh_hashTable[i]);
+		while (num != 0) {
+			/* Walk down the hash table list. */
+			ep = dir_GetBlob(dir,num);
+			if (!ep) 
+				break;
+			
+			name2 = strdup(ep->name);
+			length2 = strlen(name2);
+
+			/* lowercase name2 */
+			for (p=name2; p<name2+length2; p++){
+				if (*p>='A' && *p<='Z')
+					*p += 'a' - 'A';
+			}
+			
+			if (!strcmp(name2, name)){
+				/* found */
+				if (preventry)
+					*preventry = lp;
+				if (index)
+					*index = num;
+
+				if (name2) 
+					free(name2);
+				if (name) 
+					free(name);	
+				strcpy(ename, ep->name);
+				return ep;
+			}
+
+			lp = ep;
+			num = ntohs(ep->next);
+			if (name2) free(name2);
+		}
+	}
+
+	if (name) free(name);
+	return 0;
+	
+#else
 	register int i;
 	register struct DirEntry *tp;
 	register struct DirEntry *lp;	/* page of previous entry in chain */
@@ -1043,6 +1108,8 @@ static struct DirEntry *dir_FindItem (struct DirHeader *dir, char *ename,
 		if (!tp) 
 			return 0;
 	}
+#endif
+
 }
 
 int DIR_DirOK(PDirHeader pdh) 
@@ -1170,7 +1237,7 @@ int DIR_DirOK(PDirHeader pdh)
 			}
 			j = strlen(ep->name);
 			if ( j > CODA_MAXNAMLEN ) {
-				printf("Dir entry %p in chain %d too long name: %s\n",
+				printf("Dir entry %p in chain %d name too long: %s\n",
 				       ep, j, ep->name);
 				return 0;
 			}

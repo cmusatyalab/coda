@@ -128,11 +128,10 @@ printreply (char *buffer, int n, struct sockaddr_in *addr)
       fprintf (file, " (DOWNCALL) ");
 
     if (out->oh.result!=0)
-      fprintf (file, " vice returned res %d (%s) ", out->oh.result, 
+      fprintf (file, " venus returned res %d (%s) ", out->oh.result, 
 		(out->oh.result >= 1 && out->oh.result <= sys_nerr) ?
 		sys_errlist[out->oh.result] : "?");
     else {
-
       fprintf (file, " (success) ");
 
       //These can only be printed if no error was returned by vice
@@ -140,7 +139,6 @@ printreply (char *buffer, int n, struct sockaddr_in *addr)
       case CODA_ROOT:
         printvfid(&out->coda_root.VFid);
         break;
-	  
       case CODA_LOOKUP:
         printvfid(&out->coda_lookup.VFid);
         fprintf (file, "type %d", out->coda_lookup.vtype);
@@ -161,7 +159,6 @@ printreply (char *buffer, int n, struct sockaddr_in *addr)
 	break;
     
     }//switch
-
     }//else
 
     //These can even be printed when vice returned an error
