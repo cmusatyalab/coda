@@ -5,5 +5,5 @@
 # autoconf   - configure
 #
 
-autoheader
-autoconf
+autoheader2.50
+autoconf2.50
