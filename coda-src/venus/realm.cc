@@ -121,8 +121,6 @@ void Realm::Rec_PutRef(void)
 /* MAY be called from within a transaction */
 void Realm::PutRef(void)
 {
-    int intrans;
-
     CODA_ASSERT(refcount);
     refcount--;
 
@@ -131,6 +129,8 @@ void Realm::PutRef(void)
 /* The following code is too agressive at the moment. We end up killing a newly
  * created realm mount between the lookup and the getattr. -JH */
 #if 0
+    int intrans;
+
     if (refcount || rec_refcount)
 	return;
 
