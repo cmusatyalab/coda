@@ -107,7 +107,7 @@ long RPC2_Init(char *VId,		/* magic version string */
      * requires an enormous amount of modifications all over rpc2. --JH */
     
     rpc2_LocalHost.Tag = RPC2_HOSTBYINETADDR;
-    rpc2_LocalHost.Value.InetAddress.s_addr = 0x100007F;
+    rpc2_LocalHost.Value.InetAddress.s_addr = htonl(INADDR_LOOPBACK);
     
     rc = rpc2_CreateIPSocket(&rpc2_RequestSocket, &rpc2_LocalPort);
 
