@@ -150,7 +150,7 @@ else
 
   # make the psdev
   if [ ! -c /dev/cfs0 -o ! -c /dev/coda/0 ] ; then
-    if [ | -x /dev/MAKEDEV ] ; then
+    if [ ! -x /dev/MAKEDEV ] ; then
       echo 'You need a character device for the Coda kernel module'
       echo 'On *BSD systems you probably have to run "mknod /dev/cfs0 c 93 0"'
     else
