@@ -76,6 +76,7 @@ ViceFid	rootfid;
 long rootnodeid;
 int CleanShutDown;
 int SearchForNOreFind;  // Look for better detection method for iterrupted hoard walks. mre 1/18/93
+int Venus_Initialized;
 
 /* Command-line/vstab parameters. */
 char *consoleFile;
@@ -203,6 +204,7 @@ int main(int argc, char **argv) {
 #endif
 
     UnsetInitFile();
+    Venus_Initialized = 1;
     eprint("Venus starting...");
 
     /* Act as message-multiplexor/daemon-dispatcher. */
@@ -408,24 +410,12 @@ static void ParseCmdline(int argc, char **argv) {
 }
 
 
-/* Initialize "general" unset command-line parameters to their vstab values or hard-wired defaults. */
-/* Note that individual modules initialize their own unset command-line parameters as appropriate. */
+/* Initialize "general" unset command-line parameters to user specified values
+ * or hard-wired defaults. */
+/* Note that individual modules initialize their own unset command-line
+ * parameters as appropriate. */
 static void DefaultCmdlineParms()
 {
-    /* Try vstab first. */
-    struct vstab *v = getvsent();
-    if (v) {
-#ifdef DJGPP
-	if (!venusRoot)   venusRoot = strcat(v->v_dir, ":");
-#else
-	if (!venusRoot)   venusRoot = v->v_dir;
-#endif
-	if (!kernDevice)  kernDevice = v->v_dev;
-	if (!fsname)	  fsname = v->v_host;
-	if (!CacheDir)	  CacheDir = v->v_cache;
-	if (!CacheBlocks) CacheBlocks = v->v_cachesize;
-    }
-
     /* Load the venusdotconf file */
     conf_init(venusdotconf);
 
@@ -569,53 +559,3 @@ static void SetRlimits() {
 	{ perror("setrlimit"); exit(-1); }
 #endif
 }
-
-/*  *****  Should be in a library!  *****  */
-
-/* This uses statics!  It must NOT be called more than ONCE! */
-#define MAXVSTABLINE 2000
-struct vstab *getvsent() {
-    static struct vstab v;
-    static char buf[MAXVSTABLINE + 1];
-
-    /* Open the vstab and read in a single line. */
-    FILE *fp = fopen(VSTAB, "r");
-    if (fp == NULL) return(0);
-    if (fgets(buf, MAXVSTABLINE, fp) == NULL) {
-	eprint("getvsent: fgets(%s) failed\n", VSTAB);
-	fclose(fp); 
-	return(0);
-    }
-    fclose(fp);
-
-    /* Temporaries for parsing the vsent. */
-    char *s = buf;
-    char *t = 0;
-
-    /* VenusRoot */
-    for (t = s; *s && *s != ':'; s++) ; *s++ = '\0';
-    v.v_dir = t;
-
-    /* KernelDevice */
-    for (t = s; *s && *s != ':'; s++) ; *s++ = '\0';
-    v.v_dev = t;
-
-    /* FileServers */
-    for (t = s; *s && *s != ':'; s++) ; *s++ = '\0';
-    v.v_host = t;
-
-    /* CacheDirectory */
-    for (t = s; *s && *s != ':'; s++) ; *s++ = '\0';
-    if ( strlen(t) != 0 )
-	    v.v_cache = t;
-
-    /* CacheBlocks */
-    for (t = s; *s && *s != ':'; s++) ; *s++ = '\0';
-    v.v_cachesize = atoi(t);
-
-    /* Flags */
-    for (t = s; *s && *s != ':'; s++) ; *s++ = '\0';
-    v.v_checkint = atoi(t);
-
-    return(&v);
-}    

@@ -331,7 +331,7 @@ void VFSMount()
 	  endmntent(fd);
 
           if (mounted) {
-              eprint("/coda already mounted");
+              eprint("%s already mounted", venusRoot);
               if (allow_reattach) return;
               exit(-1);
           }
@@ -339,27 +339,20 @@ void VFSMount()
     }
     if ( fork() == 0 ) {
       int error;
-      /* child only makes a system call and should not hang on to 
-	 a /dev/cfs0 file descriptor */
-      error = WorkerCloseMuxfd();
-      if ( error ) {
-	pid_t parent;
-	LOG(1, ("CHILD: cannot close worker::muxfd. Killing parent.\n"));
-	parent = getppid();
-	kill(parent, SIGKILL);
-	exit(1);
-      }
-      error = mount("coda", venusRoot, "coda",  MS_MGC_VAL , &kernDevice);
+      struct coda_mount_data mountdata;
+      mountdata.version = CODA_MOUNT_VERSION;
+      mountdata.fd = worker::muxfd;
+
+      error = mount("coda", venusRoot, "coda",  MS_MGC_VAL, &mountdata);
       if ( error ) {
 	pid_t parent;
 	LOG(1, ("CHILD: mount system call failed. Killing parent.\n"));
 	parent = getppid();
 	kill(parent, SIGKILL);
-	exit(1);
       } else {
 	FILE *fd;
 	struct mntent ent;
-	eprint("/coda now mounted.\n");
+	eprint("%s now mounted.\n", venusRoot);
 	fd = setmntent("/etc/mtab", "a");
 	if ( fd > 0 ) { 
 	  ent.mnt_fsname="Coda";
@@ -370,10 +363,10 @@ void VFSMount()
 	  ent.mnt_passno = 0;
 	  error = addmntent(fd, & ent);
 	  error = endmntent(fd);
-	  exit(0);
 	}
       }
-      exit(1);
+      WorkerCloseMuxfd();
+      exit(error ? 1 : 0);
     }
 #endif
 

@@ -249,7 +249,8 @@ static void SigExit(int sig)
     LOG(0, ("TERM: About to terminate venus\n"));
     TerminateVenus = 1;
 
-    VDB->FlushVolume();
+    if (Venus_Initialized)
+        VDB->FlushVolume();
     RecovFlush(1);
     RecovTerminate();
     VFSUnmount();

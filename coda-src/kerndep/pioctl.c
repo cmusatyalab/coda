@@ -29,6 +29,7 @@ extern "C" {
 #include <sys/ioctl.h>
 #include <unistd.h>
 #include <stdlib.h>
+#include <errno.h>
 #include <pioctl.h>
 
 #if defined(__CYGWIN32__) || defined(DJGPP)
@@ -236,6 +237,20 @@ int pioctl(const char *path, unsigned long com,
 
 #else /* linux and BSD */
 
+static int _pioctl(const char *path, int cmd, void *data)
+{
+    int code, fd;
+
+    fd = open(path, O_RDONLY, 0);
+    if (fd < 0) return(fd);
+
+    code = ioctl(fd, cmd, data);
+
+    close(fd);
+
+    return code;
+}
+
 int pioctl(const char *path, unsigned long com, 
 	   struct ViceIoctl *vidata, int follow) 
 {
@@ -243,7 +258,7 @@ int pioctl(const char *path, unsigned long com,
      * since ioctl takes only one data arg. 
      */
     struct PioctlData data;
-    int code, fd;
+    int code;
 
     /* Must change the size field of the command to match 
        that of the new structure. */
@@ -256,14 +271,12 @@ int pioctl(const char *path, unsigned long com,
     data.follow = follow;
     data.vi = *vidata;
 
-    fd = open(CTL_FILE, O_RDONLY, 0);
-    if (fd < 0) return(fd);
-
-    code = ioctl(fd, cmd, &data);
-
-    (void)close(fd);
+    code = _pioctl(path, cmd, &data);
+    if (code && errno == ENOTTY)
+        code = _pioctl(CTL_FILE, cmd, &data);
 
     /* Return result of ioctl. */
     return(code);
 }
 #endif
+

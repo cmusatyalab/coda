@@ -217,7 +217,7 @@ void CommInit() {
     port1.Tag = RPC2_PORTBYINETNUMBER;
 
     struct servent *s = getservbyname("venus", "udp");
-    if (s != 0)
+    if (s)
 	port1.Value.InetPortNumber = s->s_port;
     else {
 	eprint("getservbyname(venus,udp) failed, using 2430/udp\n");

@@ -108,6 +108,7 @@ class worker : public vproc {
   friend int MsgRead(msgent *);
   friend int MsgWrite(char *, int);
   friend int WorkerCloseMuxfd();
+  friend void VFSMount();
   friend class vproc;
   friend class fsobj;
 

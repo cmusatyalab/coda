@@ -61,8 +61,9 @@ Mellon the rights to redistribute these changes without encumbrance.
 
 
 
-/* Catch new _KERNEL defn for NetBSD */
-#ifdef __NetBSD__
+/* Catch new _KERNEL defn for NetBSD and DJGPP/__CYGWIN32__ */
+#if defined(__NetBSD__) || \
+  ((defined(DJGPP) || defined(__CYGWIN32__)) && !defined(KERNEL))
 #include <sys/types.h>
 #endif 
 
@@ -91,7 +92,6 @@ struct timespec {
         long       ts_nsec;
 };
 #else  /* DJGPP but not KERNEL */
-#include <sys/types.h>
 #include <sys/time.h>
 typedef unsigned long long u_quad_t;
 #endif /* !KERNEL */
@@ -389,9 +389,6 @@ struct coda_root_in {
     struct coda_in_hdr in;
 };
 
-/* coda_sync: */
-/* Nothing needed for coda_sync */
-
 /* coda_open: */
 struct coda_open_in {
     struct coda_in_hdr ih;
@@ -618,12 +615,6 @@ struct coda_fsync_out {
     struct coda_out_hdr out;
 };
 
-/* coda_inactive: NO_OUT */
-struct coda_inactive_in {
-    struct coda_in_hdr ih;
-    ViceFid VFid;
-};
-
 /* coda_vget: */
 struct coda_vget_in {
     struct coda_in_hdr ih;
@@ -676,25 +667,6 @@ struct coda_purgefid_out {
     struct coda_out_hdr oh;
     ViceFid CodaFid;
 };
-
-/* coda_rdwr: */
-struct coda_rdwr_in {
-    struct coda_in_hdr ih;
-    ViceFid	VFid;
-    int	rwflag;
-    int	count;
-    int	offset;
-    int	ioflag;
-    caddr_t	data;		/* Place holder for data. */	
-};
-
-struct coda_rdwr_out {
-    struct coda_out_hdr oh;
-    int	rwflag;
-    int	count;
-    caddr_t	data;	/* Place holder for data. */
-};
-
 
 /* coda_replace: */
 /* CODA_REPLACE is a venus->kernel call */	
@@ -764,9 +736,7 @@ union inputArgs {
     struct coda_symlink_in coda_symlink;
     struct coda_readlink_in coda_readlink;
     struct coda_fsync_in coda_fsync;
-    struct coda_inactive_in coda_inactive;
     struct coda_vget_in coda_vget;
-    struct coda_rdwr_in coda_rdwr;
     struct coda_open_by_fd_in coda_open_by_fd;
     struct coda_open_by_path_in coda_open_by_path;
     struct coda_statfs_in coda_statfs;
@@ -789,7 +759,6 @@ union outputArgs {
     struct coda_zapdir_out coda_zapdir;
     struct coda_zapvnode_out coda_zapvnode;
     struct coda_purgefid_out coda_purgefid;
-    struct coda_rdwr_out coda_rdwr;
     struct coda_replace_out coda_replace;
     struct coda_open_by_fd_out coda_open_by_fd;
     struct coda_open_by_path_out coda_open_by_path;
@@ -812,7 +781,7 @@ union coda_downcalls {
  * Used for identifying usage of "Control" and pioctls
  */
 
-#define PIOCPARM_MASK 0x00003fff
+#define PIOCPARM_MASK 0x0000ffff
 struct ViceIoctl {
         caddr_t in, out;        /* Data to be transferred in, or out */
         short in_size;          /* Size of input buffer <= 2K */
@@ -837,5 +806,15 @@ struct PioctlData {
 #define	IS_CTL_FID(fidp)	((fidp)->Volume == CTL_VOL &&\
 				 (fidp)->Vnode == CTL_VNO &&\
 				 (fidp)->Unique == CTL_UNI)
+
+/* Data passed to mount */
+
+#define CODA_MOUNT_VERSION 1
+
+struct coda_mount_data {
+	int		version;
+	int		fd;       /* Opened device */
+};
+
 #endif 
 
