@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: blurb.doc,v 1.1 96/11/22 13:29:31 raiff Exp $";
+static char *rcsid = "$Header: /home/braam/src/coda-src/venus/RCS/vol_cml.cc,v 1.1 1996/11/22 19:11:22 braam Exp braam $";
 #endif /*_BLURB_*/
 
 
@@ -89,7 +89,7 @@ extern void pack_struct(ARG *, PARM **, PARM **);
 #include <vice.h>	
 
 /* from dir */
-#include <dir.h>
+#include <coda_dir.h>
 
 /* from util */
 #include <dlist.h>

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: blurb.doc,v 1.1 96/11/22 13:29:31 raiff Exp $";
+static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/src/coda-4.0.1/coda-src/venus/RCS/fso_dir.cc,v 1.1 1996/11/22 19:11:01 braam Exp braam $";
 #endif /*_BLURB_*/
 
 
@@ -66,18 +66,14 @@ extern "C" {
 #ifdef LINUX
 #include <endian.h>
 #include <netinet/in.h>
-
-#define DIRBLKSIZ       1024
 #else
 #include <machine/endian.h>
 #endif
 
-#if __NetBSD__ 
-#include <sys/dir.h> /* 4.4BSD file that provides compatibility with 4.3BSD */
-#endif __NetBSD__
-#ifdef LINUX
-#include "bsd-dir.h"
+#if LINUX || __NetBSD__
+#define DIRBLKSIZ       1024
 #endif
+#include "bsd_dir.h"
 
 #ifdef __cplusplus
 }
@@ -87,7 +83,7 @@ extern "C" {
 #include <vice.h>
 
 /* from dir */
-#include <dir.h>
+#include <coda_dir.h>
 #include <dir.private.h>
 
 #include "fso.h"
@@ -175,9 +171,9 @@ PRIVATE void CVWriteEntry(char *name, ino_t inode, CVDescriptor *cvd) {
 PRIVATE void CompleteCVBlock(CVDescriptor *cvd) {
     if (DIRBLKSIZ - cvd->dirPos > 0) {
 	struct direct dir;
-#ifdef LINUX
+
         dir.d_fileno = 0;
-#else
+#if 0
         dir.d_ino = 0;
 #endif
         dir.d_namlen = 0;
