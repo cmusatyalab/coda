@@ -47,12 +47,14 @@ AUTH2=auth2
 AU=au
 LIBAUTH2OBJS=auth2.server.o acommon.o avice.o pwsupport.o
 LIBAUSEROBJS=auth2.client.o acommon.o auser.o avenus.o
+LIBKRBS=
 else
 CLOG=kclog
 AUTH2=kauth2
 AU=kau
 LIBAUTH2OBJS=auth2.server.o acommon.o avice.o pwsupport.o krbsupport.o
 LIBAUSEROBJS=auth2.client.o acommon.o auser.o avenus.o krbsupport.o
+CFLAGS += $(KRBINCLFLAGS)
 endif
 
 ifneq ($(KERBEROS5),)
@@ -84,15 +86,13 @@ CFLAGS := -Wall $(CFLAGS)
 RP2FILES    = auth2.rpc2
 RP2HEADERS  = $(notdir ${RP2FILES:.rpc2=.h})
 
-LIBS=	${LIBRPC2}\
+LIBS :=	${LIBRPC2}\
 	${LIBAL}\
 	${LIBOLDLWP}\
 	${LIBUTIL} \
 	${LIBKERNDEP} \
 	${LIBAUSER}\
 	${LIBCOMPAT}
-
-CFLAGS := $(CFLAGS) $(KRBINCLFLAGS)
 
 LIBRARIES   = libauth2.a libauser.a
 HEADERS     = ${RP2FILES} ${RP2HEADERS} avenus.h
