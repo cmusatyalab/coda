@@ -33,7 +33,7 @@ should be returned to Software.Distribution@cs.cmu.edu.
 
 */
 
-static char *rcsid = "$Header: /usr/rvb/XX/src/rvm-src/rvm/RCS/rvm_map.c,v 4.1 1997/01/08 21:54:35 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs.cmu.edu/user/clement/mysrcdir3/rvm-src/rvm/RCS/rvm_map.c,v 4.2 1997/02/26 16:05:03 rvb Exp clement $";
 #endif _BLURB_
 
 /*
@@ -1105,7 +1105,9 @@ static rvm_return_t map_data(rvm_options,region)
     {
     seg_t           *seg = region->seg;
     rvm_return_t    retval = RVM_SUCCESS;
-
+#ifdef __BSD44__
+    char            *addr;
+#endif
     /* check for pager mapping */
     if (rvm_options != NULL)
         if (rvm_options->pager != NULL)
@@ -1114,6 +1116,27 @@ static rvm_return_t map_data(rvm_options,region)
             return RVM_EPAGER;
             }
 
+#ifdef __BSD44__
+		/* NetBSD has a kernel bug that will panic if we
+		   try to read from a raw device and copy it to address
+		   on or above 0x10400000.  This is known to be a problem
+		   with vm_fault() of NetBSD kernel that panics when it
+		   finds that the pte (page directory table entry) does
+		   not exist in page dir table (instead of trying to
+		   create it). Before that is fixed, we work around it
+		   by manually touching one byte of address space of
+		   every pte's that we'll need.  This will get the pte
+		   created and we'll be fine.  This is proposed by rvb.
+		     -- clement */
+		if (seg->dev.raw_io) {
+		    for (addr=region->vmaddr;
+			 addr < ( (region->vmaddr)+(region->length) );
+			 addr+=0x400000) { /* each pte is for 0x400000 of vm */
+			*addr = 0; /* this will force kernel to create
+				   the pte*/
+		    }
+		}
+#endif /* __BSD44__ */
     /* read data directly from segment */
     if (!region->no_copy)
         CRITICAL(seg->dev_lock,
