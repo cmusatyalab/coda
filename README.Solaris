@@ -47,9 +47,7 @@ Building Coda:
 2.  If you plan to run a client, build and install the Solaris kernel
     module.  It is called solaris-coda.  It is also at ftp.coda.cs.cmu.edu.
 
-	Similar to liblwp build except make install will su to root
-	if you do a "make install" as a non-root user.  You will need
-	the root password to install solaris-coda.
+	Read the build instructions contained in solaris-coda.
 
 3.  Build Coda.
 	
