@@ -1,0 +1,9 @@
+#! /bin/sh
+
+set -e
+
+#DEBHELPER#
+
+exit 0
+
+
