@@ -19,6 +19,7 @@ AM_PROG_LIBTOOL
 
 dnl Checks for libraries.
 AC_CHECK_LIB(pthread, pthread_create, [LIBPTHREAD="-lpthread"])
+AC_CHECK_LIB(posix4, sem_init, [LIBPTHREAD="${LIBPTHREAD} -lposix4"])
 AC_SUBST(LIBPTHREAD)
 AM_CONDITIONAL(build_pthread, test x$LIBPTHREAD != x)
 

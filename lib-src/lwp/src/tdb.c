@@ -42,7 +42,6 @@ Pittsburgh, PA.
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/time.h>
-#include <sys/socket.h>
 
 #include <lwp/lwp.h>
 
@@ -82,10 +81,13 @@ int procA(int dummy)
     struct timeval t;
     int n;
 
+#if 0
     if ((s = socket(AF_INET, SOCK_DGRAM, 0)) < 0) {
         perror("socket");
         exit();
     }
+#endif
+
     t.tv_sec = 5;
     t.tv_usec = 0;
 

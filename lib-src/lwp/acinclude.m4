@@ -21,13 +21,13 @@ case ${host} in
    *sun-solaris* )
     echo "Setting special conditions for Solaris"
     AFLAGS="-traditional"
-    LIBS="-lsocket -lposix4"
-    if [ ${host_cpu} = sparc ] ; then
+
+    if [ ${host_cpu} != i386 ] ; then
 	AM_DISABLE_SHARED
     fi
     ;;
    i*86-* )
-dnl Shared libs seem to work for i386-based platforms
+    dnl Shared libs seem to work for i386-based platforms
     ;;
    * )
     AC_DISABLE_SHARED
@@ -37,6 +37,9 @@ esac
 if test ${build} != ${host} ; then
   case ${host} in
    i*86-pc-msdos )
+    dnl no shared libs for dos
+    AM_DISABLE_SHARED
+
     CC="dos-gcc -bmmap"
     CXX="dos-gcc -bmmap"
     AR="dos-ar"
