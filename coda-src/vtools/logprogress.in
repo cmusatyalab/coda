@@ -48,18 +48,12 @@ proc updatemeter {} {
   #
   # match our patterns
   #
-  if [ regexp {^progress::fetching \((.+)\) (.+)/(.+)$} $line x path offset size ] {
-    if { $size != 0.0 } {
-        set done [ expr double($offset) / $size ]
-    } else {
-        set done 1.0
-    }
+  if [ regexp {^progress::fetching \((.+)\) (.+)%$} $line x path percent ] {
+    set done [ expr double($percent) / 100 ]
 
-    if { $last == 1.0 || $done == 1.0 || ($done - $last) > 0.01 } {
-	.label configure -text $path
-	.meter configure -value $done
-	set last $done
-    }
+    .label configure -text $path
+    .meter configure -value $done
+    set last $done
   }
 }
 

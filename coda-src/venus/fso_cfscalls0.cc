@@ -69,8 +69,21 @@ static void FetchProgressIndicator_stub(void *up, unsigned int offset)
 
 void fsobj::FetchProgressIndicator(unsigned int offset)
 {
+    unsigned long last;
+    unsigned long curr;
+    
+    if      (offset == stat.Length) { last = 0; curr = 100; }
+    else if (offset == 0)           { last = 100; curr = 0; }
+    else {
+	last = (stat.GotThisData * 100) / stat.Length;
+	curr = (offset * 100) / stat.Length;
+    }
+
+    if (last != curr) {
+	MarinerLog("progress::fetching (%s) %lu%%\n", comp, curr);
+    }
+
     stat.GotThisData = (unsigned long)offset;
-    MarinerLog("progress::fetching (%s) %u/%u\n", comp, offset, stat.Length);
 }
 
 int fsobj::Fetch(vuid_t vuid) {

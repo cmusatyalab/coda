@@ -64,7 +64,7 @@ extern "C" {
 
 
 const int MarinerStackSize = 65536;
-const int MaxMariners = 5;
+const int MaxMariners = 25;
 const char MarinerService[] = "venus";
 const char MarinerProto[] = "tcp";
 int MarinerMask = 0;
