@@ -2324,7 +2324,7 @@ void fsobj::GetVattr(struct coda_vattr *vap) {
     }
     
     /* Convert size of file to bytes of storage after getting size! */
-    vap->va_bytes = NBLOCKS(vap->va_size) << 10;
+    vap->va_bytes = NBLOCKS_BYTES(vap->va_size);
 
     /* We don't keep track of atime/ctime, so keep them identical to mtime */
     vap->va_atime = vap->va_mtime;
