@@ -66,7 +66,8 @@ VLIBS =	${LIBVOL} \
 	${LIBREADLINE} \
 	$(LIBUTIL) \
 	$(LIBCOMPAT) \
-	$(LIBTERMCAP)
+	$(LIBTERMCAP) \
+	$(LIBFIXUP)
 
 
 LOCALOBJS = readstuff.o dumpstuff.o vvlist.o
@@ -132,11 +133,4 @@ parserecdump: parserecdump.o ${VLIBS}
 	$(CXX) $(LIBFLAGS) parserecdump.o ${VLIBS} -o parserecdump
 
 include $(TOPDIR)/configs/Makerules
-
-
-
-
-
-
-
 

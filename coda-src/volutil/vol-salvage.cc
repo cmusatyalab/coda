@@ -543,12 +543,14 @@ static int VnodeInodeCheck(int RW, struct ViceInodeInfo *ip, int nInodes,
     vindex v_index(vsp->header.id, vSmall, fileSysDevice, SIZEOF_SMALLDISKVNODE);
     vindex_iterator vnext(v_index);
     int	foundinode;
-    int vnodeNumber = bitNumberToVnodeNumber(vnodeIndex, vSmall);
+    int vnodeNumber;
 
     nVnodes = v_index.vnodes();
     for (vnodeIndex = 0; 
 	 nVnodes && ((vnodeIndex = vnext(vnode)) != -1);
 	 nVnodes--){
+
+	vnodeNumber = bitNumberToVnodeNumber(vnodeIndex, vSmall);
 
 	/* take care of special cases first */
 	{
