@@ -80,7 +80,10 @@ long RPC2_Init(char *VId,		/* magic version string */
     say(999, RPC2_DebugLevel, "Runtime system version: \"%s\"\n", RPC2_VERSION);
 
     if (strcmp(VId, RPC2_VERSION) != 0) 
-	    rpc2_Quit (RPC2_WRONGVERSION);
+    {
+	say(-1, RPC2_DebugLevel, "RPC2_Init(): Wrong RPC2 version\n");
+	rpc2_Quit (RPC2_WRONGVERSION);
+    }
 
 
 
@@ -109,12 +112,16 @@ long RPC2_Init(char *VId,		/* magic version string */
     if ( Port ) 
 	    *Port = rpc2_LocalPort; 
 
-    if (rc < RPC2_ELIMIT) 
-	    rpc2_Quit(rc);
+    if (rc < RPC2_ELIMIT) {
+	say(-1, RPC2_DebugLevel, "RPC2_Init(): Couldn't create socket\n");
+	rpc2_Quit(rc);
+    }
 
     /* Initialize retry parameters */
-    if (rpc2_InitRetry(RetryCount, KAInterval) != 0)     
-	    rpc2_Quit(RPC2_FAIL);
+    if (rpc2_InitRetry(RetryCount, KAInterval) != 0) {
+	say(-1, RPC2_DebugLevel,"RPC2_Init(): Failed to init retryintervals\n");
+	rpc2_Quit(RPC2_FAIL);
+    }
 
     /* Initialize random number generation for sequence numbers */
     rpc2_InitRandom();
@@ -124,8 +131,10 @@ long RPC2_Init(char *VId,		/* magic version string */
     /* Call side effect initialization routines */
     for (i = 0; i < SE_DefCount; i++)
 	if (SE_DefSpecs[i].SE_Init != NULL)
-	    if ((*SE_DefSpecs[i].SE_Init)() < RPC2_ELIMIT) 
+	    if ((*SE_DefSpecs[i].SE_Init)() < RPC2_ELIMIT) {
+		say(-1, RPC2_DebugLevel, "RPC2_Init(): Failed to init SE\n");
 		rpc2_Quit(RPC2_SEFAIL2);
+	    }
 
     c = "SocketListener";
     LWP_CreateProcess((PFIC)rpc2_SocketListener, 16384, 
@@ -136,6 +145,9 @@ long RPC2_Init(char *VId,		/* magic version string */
     c = "ClockTick";
     LWP_CreateProcess((PFIC)rpc2_ClockTick, 16384, LWP_NORMAL_PRIORITY, NULL, c, (PROCESS *)&ctpid);
 #endif RPC2DEBUG 
+
+    if (rc != RPC2_SUCCESS)
+	say(-1, RPC2_DebugLevel, "RPC2_Init(): Exiting with error\n");
 
     rpc2_Quit(rc);
 }

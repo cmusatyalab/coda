@@ -693,6 +693,7 @@ long RPC2_NewBinding(IN RPC2_HostIdent *Host, IN RPC2_PortIdent *Port,
 	
 	case NAKED:
 	case TIMEOUT:
+	case KEPTALIVE:
 		/* free connection, buffers, and quit */
 		say(9, RPC2_DebugLevel, "Failed to send INIT1 packet on 0x%lx\n", *ConnHandle);
 		RPC2_FreeBuffer(&pb);	/* release the Init1 Packet */

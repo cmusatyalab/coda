@@ -55,17 +55,21 @@ Pittsburgh, PA.
 #define SFTPVERSION	3	/* Changed from 1 on 7 Jan 1988 by Satya (ThisRPCCall check added) */
                                 /* Changed from 2 on 27 Feb 1997 by bnoble */
 
-#define SFTP_MAXPACKETSIZE	2900 /* (prefix+header+body) of largest sftp packet (2 IP fragments on Ether) */
-#define SFTP_MAXBODYSIZE	SFTP_MAXPACKETSIZE - sizeof(RPC2_PacketBuffer)
+/* (header+body) of largest sftp packet (2 IP fragments on Ether) */
+#define SFTP_MAXPACKETSIZE	2900
+#define SFTP_MAXBODYSIZE	(SFTP_MAXPACKETSIZE - \
+				 sizeof(struct RPC2_PacketHeader))
 
-#define SFTP_DEFPACKETSIZE 1472
-#define SFTP_DEFWINDOWSIZE 32
-#define SFTP_DEFSENDAHEAD 8
+#define SFTP_DEFPACKETSIZE	(1024 + sizeof(struct RPC2_PacketHeader))
+#define SFTP_DEFWINDOWSIZE	32
+#define SFTP_DEFSENDAHEAD	8
 
-#define SFTP_MINPACKETSIZE      240  /* as above (1 IP fragment on SLIP) */
-#define SFTP_MINBODYSIZE        SFTP_MINPACKETSIZE - sizeof(RPC2_PacketBuffer)
-#define SFTP_MINWINDOWSIZE 2
-#define SFTP_MINSENDAHEAD 1
+/* as above (1 IP fragment on SLIP) */
+#define SFTP_MINPACKETSIZE      240
+#define SFTP_MINBODYSIZE        (SFTP_MINPACKETSIZE - \
+				 sizeof(struct RPC2_PacketHeader))
+#define SFTP_MINWINDOWSIZE	2
+#define SFTP_MINSENDAHEAD	1
 
 #define	SFTP_DebugLevel	RPC2_DebugLevel
 
