@@ -166,9 +166,9 @@ list_entry_t *move_list_entry(fromptr, toptr, victim)
         CODA_ASSERT(victim->struct_id == toptr->struct_id);
         victim->list.name = toptr;
         /* insque((void *)victim,(void *)toptr->preventry); */ /* insert at tail of second list */
-        victim->nextentry = toptr->nextentry;
-        victim->preventry = toptr;
-        victim->nextentry->preventry = toptr->nextentry = victim;
+        victim->preventry = toptr->preventry;
+        victim->nextentry = toptr;
+        victim->preventry->nextentry = toptr->preventry = victim;
 
         toptr->list.length ++;
         }
