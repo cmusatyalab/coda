@@ -3,6 +3,11 @@ New in 1.15:
 * Remove noisy debugging printf.
 * Generate correct packing/unpacking code for RPC2_BoundedBS structures with
   rp2gen.
+* Fixed memory corruption when packing an RPC2_String with the MultiRPC
+  packing routines.
+* Solved slow writes and disconnections caused by excessive packet drops when
+  a masquerading client is sending SFTP packets on a fast network to a
+  (slower) server.
 
 New in 1.14:
 
