@@ -286,6 +286,10 @@ long rpc2_InitRetry(IN long HowManyRetries, IN struct timeval *Beta0)
     Retry_Beta = (struct timeval *)malloc(sizeof(struct timeval)*(2+HowManyRetries));
     memset(Retry_Beta, 0, sizeof(struct timeval)*(2+HowManyRetries));
     Retry_Beta[0] = *Beta0;	/* structure assignment */
+
+    /* this prevents long stalls whenever the server sends RPC2_BUSY */
+    Retry_Beta[0].tv_sec /= 3;
+    Retry_Beta[0].tv_usec /= 3;
     
     /* Twice Beta0 is how long responses are saved */
     SaveResponse.tv_usec = (2*Beta0->tv_usec) % 1000000;
@@ -293,8 +297,8 @@ long rpc2_InitRetry(IN long HowManyRetries, IN struct timeval *Beta0)
     SaveResponse.tv_sec += 2*Beta0->tv_sec;
     
     /* compute Retry_Beta[1] .. Retry_Beta[N] */
-    betax = (1000000*Retry_Beta[0].tv_sec + Retry_Beta[0].tv_usec)/((1 << (Retry_N+1)) - 1);
-    beta0 = (1000000*Retry_Beta[0].tv_sec + Retry_Beta[0].tv_usec);
+    betax = (1000000 * Beta0->tv_sec + Beta0->tv_usec)/((1 << (Retry_N+1)) - 1);
+    beta0 = (1000000 * Beta0->tv_sec + Beta0->tv_usec);
     timeused = 0;
     for (i = 1; i < Retry_N+2 && beta0 > timeused; i++)
 	{
