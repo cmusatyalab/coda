@@ -645,6 +645,9 @@ int fsobj::Flush() {
 	}
     }
 
+    if (IsMtPt())
+	(void)u.root->Flush();
+
     if (!FLUSHABLE(this)) {
 	LOG(10, ("fsobj::Flush: (%s) !FLUSHABLE\n", FID_(&fid)));
 	Demote();
