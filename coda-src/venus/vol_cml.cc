@@ -2122,10 +2122,6 @@ int ClientModifyLog::COP1(char *buf, int bufsize, ViceVersionVector *UpdateSet,
 
 	if (PiggyBS.SeqLen) {
 	    code = vol->COP2(m, &PiggyBS);
-
-	    if (code == 0)
-		vol->ClearCOP2(&PiggyBS);
-
 	    PiggyBS.SeqLen = 0;
 	}
 

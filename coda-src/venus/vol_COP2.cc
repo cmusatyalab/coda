@@ -261,6 +261,7 @@ void volent::ClearCOP2(RPC2_CountedBS *BS) {
 	    delete c;
 	}
     }
+    BS->SeqLen = 0;
 }
 
 

@@ -1799,7 +1799,7 @@ START_TIMING(Reintegrate_CheckSemanticsAndPerform);
 							     (char *)r->u.u_mkdir.Name,
 							     r->u.u_mkdir.NewDid.Vnode,
 							     r->u.u_mkdir.NewDid.Unique,
-							     r->u.u_mkdir.Owner))) {
+							     r->u.u_mkdir.Status.Owner))) {
 				SLog(0, "Reint: Error %d during SpoolVMLogRecord for parent in MakeDir_OP\n",
 				       errorCode);
 				goto Exit;
@@ -1809,7 +1809,7 @@ START_TIMING(Reintegrate_CheckSemanticsAndPerform);
 							     c_opcode, ".", 
 							     r->u.u_mkdir.NewDid.Vnode,
 							     r->u.u_mkdir.NewDid.Unique,
-							     r->u.u_mkdir.Owner))) {
+							     r->u.u_mkdir.Status.Owner))) {
 				SLog(0, 
 				       "Reint:  error %d during SpoolVMLogRecord for child in MakeDir_OP\n",
 				       errorCode);
