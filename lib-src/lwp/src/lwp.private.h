@@ -52,7 +52,7 @@ Pittsburgh, PA.
 #include <sys/time.h>
 #include <stdio.h>
 
-#if !HAVE_REGISTER_T
+#ifndef HAVE_REGISTER_T
 typedef int register_t;
 #endif
 
