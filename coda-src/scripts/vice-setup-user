@@ -70,6 +70,16 @@ ng System:Administrators $userid
 ci System:Administrators -204
 EOF
 
+if [ -f coda.pdb ] ; then
+  echo "Going to rebuild the protection databases"
+  echo "moving /vice/db/coda.pdb to /vice/db/coda.pdb.old"
+  mv coda.pdb coda.pdb.old
+fi
+if [ -f name.pdb ] ; then
+  echo "moving /vice/db/name.pdb to /vice/db/name.pdb.old"
+  mv name.pdb name.pdb.old
+fi
+
 pdbtool pdbsetup
 rm pdbsetup
 
