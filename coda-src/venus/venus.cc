@@ -424,7 +424,7 @@ static void DefaultCmdlineParms()
     CONF_STR(SpoolDir,          "checkpointdir", "/usr/coda/spool");
     CONF_STR(VenusLogFile,	"logfile",	 "/usr/coda/etc/venus.log");
     CONF_STR(consoleFile,       "errorlog",      "/usr/coda/etc/console");
-    CONF_STR(kernDevice,        "kerneldevice",  "/dev/cfs0");
+    CONF_STR(kernDevice,        "kerneldevice",  "/dev/cfs0,/dev/coda/0");
     CONF_INT(MapPrivate,	"mapprivate",	 0);
     CONF_STR(MarinerSocketPath, "marinersocket", "/usr/coda/spool/mariner");
     CONF_INT(masquerade,	"masquerade",	 0);

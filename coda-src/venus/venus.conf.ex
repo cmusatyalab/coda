@@ -146,7 +146,7 @@ mapprivate=1
 # Standard name is /dev/cfs0, ignored by the Win95/98 port. Maybe we will
 # switch to using /dev/coda0 at some point to avoid name conflicts.
 #
-#kerneldevice=/dev/cfs0
+#kerneldevice=/dev/cfs0,/dev/coda/0
 
 #
 # What is the name of the rootvolume. Normally this is queried from the

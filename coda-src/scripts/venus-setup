@@ -149,7 +149,7 @@ else
   fi
 
   # make the psdev
-  if [ ! -c /dev/coda0 -a ! -c /dev/cfs0 -a ! -c /dev/coda/0 ] ; then
+  if [ ! -c /dev/cfs0 -a ! -c /dev/coda/0 ] ; then
       ( cd /dev ; ./MAKEDEV cfs )
   fi
 fi
@@ -168,7 +168,9 @@ if [ X$OS = XLinux -a ! -f /etc/debian_version ]; then
     [ -f /etc/modules.conf ] && MODULES=/etc/modules.conf
     if ! grep coda $MODULES > /dev/null; then
         echo >> $MODULES
+	echo '# old style and devfs style auto module loading'
         echo 'alias char-major-67 coda' >> $MODULES
+        echo 'alias /dev/coda*    coda' >> $MODULES
     fi
     /sbin/depmod -a
 fi
