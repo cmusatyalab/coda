@@ -1,20 +1,20 @@
 #! /bin/sh
-/* BLURB gpl
-
-                           Coda File System
-                              Release 5
-
-          Copyright (c) 1987-1999 Carnegie Mellon University
-                  Additional copyrights listed below
-
-This  code  is  distributed "AS IS" without warranty of any kind under
-the terms of the GNU General Public Licence Version 2, as shown in the
-file  LICENSE.  The  technical and financial  contributors to Coda are
-listed in the file CREDITS.
-
-                        Additional copyrights
-                           none currently
-
+#/* BLURB gpl
+#
+#                           Coda File System
+#                              Release 5
+#
+#          Copyright (c) 1987-1999 Carnegie Mellon University
+#                  Additional copyrights listed below
+#
+#This  code  is  distributed "AS IS" without warranty of any kind under
+#the terms of the GNU General Public Licence Version 2, as shown in the
+#file  LICENSE.  The  technical and financial  contributors to Coda are
+#listed in the file CREDITS.
+#
+#                        Additional copyrights
+#                           none currently
+#
 #*/
 
 # The next line restarts using wish\
@@ -142,7 +142,7 @@ proc oklistboxcommand {listbox} {
          set repname [lindex $children [lindex $cs 0]]
          destroy .
 	 global errorCode
-         catch {exec /usr/coda/bin/filerepair $oname $oname/$repname}
+         catch {exec filerepair $oname $oname/$repname}
 	 puts stdout "repaired by $oname/$repname"
          exit 2
       }
@@ -168,7 +168,7 @@ proc repairwithnamedfile {entry} {
          set i [.f.actionbuttons.replicas.message create text 6c 0.3c -text "$echotext" -fill red -anchor nw]
          after 1000 ".f.actionbuttons.replicas.message delete $i"         
       } else {
-	 catch {exec /usr/coda/bin/filerepair $oname $cs}
+	 catch {exec filerepair $oname $cs}
          puts stdout "repaired by $cs"
          exit 3
       }

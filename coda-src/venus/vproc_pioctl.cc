@@ -246,7 +246,7 @@ void vproc::do_ioctl(VenusFid *fid, unsigned int com, struct ViceIoctl *data) {
 			if (u.u_error) { break; }
 
 			/*
-			 * Regular mount-links start with a '@', optionally
+			 * Regular mount-links start with a '#', optionally
 			 * followed by a volume name (GetRootVolume is used in
 			 * case the volume name is not specified), optionally
 			 * followed by '@' and a realm/domain name (the realm

@@ -118,7 +118,7 @@ static void get_principal(char *hostname, krb5_principal *principal)
 	havepct++;
 	if (kerberos5service[i+1] != 's') break;
     }
-    if (havepct != 1 && i != servicelen) {
+    if (havepct != 1 || i != servicelen) {
 	fprintf(stderr, "Badly formatted kerberos5service, need exactly one '%%s' subsitition\n");
 	exit(-1);
     }

@@ -22,12 +22,11 @@ pid_file=/usr/coda/venus.cache/pid
 run_control_file=/usr/coda/venus.cache/VENUS_CTRL
 
 # and override the defaults using the values from venus.conf
-prefix=@prefix@
-[ -f @sysconfdir@/venus.conf ] && . @sysconfdir@/venus.conf
+. "`codaconfedit venus.conf`"
 
 prog=$0
-kill=/bin/kill
-vpid=`/bin/cat $pid_file`
+kill=kill
+vpid=`cat $pid_file`
 
 usage ()
 {
