@@ -450,7 +450,7 @@ static int brave(int slot)
     printf("\tDo you really want to do this? [n] ");
     fgets(response, 10, stdin);
 
-    if (strcmp(response, "y") == 0)
+    if (response[0] == 'y')
         {
         printf("\tFools rush in where angels fear to tread ........\n");
         return(1);
