@@ -11,7 +11,7 @@ Or obtained from the anonymous CVS repository:
 
 You need to have automake, autoconf, and libtool installed on your system in
 order to set up the build environment. Known versions that work are automake
-1.4, autoconf 2.13, and libtool 1.2f.
+1.7, autoconf 2.52, and libtool 1.5.2.  Perl is required to build RPC2.
 
     $ cvs -d':pserver:anonymous@coda.cs.cmu.edu:/coda-src' login
     Password: <return>
@@ -22,6 +22,11 @@ order to set up the build environment. Known versions that work are automake
 From here the everything is identical to (but possibly more up-to-date than)
 using the tarball from the Coda ftp site.
 
+Prerequisites
+-------------
+
+While RPC2 does not need GNU readline, if readline is present the
+'filcon' program will be built.
 
 Configuring
 -----------

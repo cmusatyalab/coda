@@ -46,12 +46,16 @@ EXTRA_DIST = fcon.rpc2 newheal.c ft.rpc2 ftclient.c ftserver.c tv.rpc2 \
 CLEANFILES = fcon.h *.client.c *.server.c *.multi.c *.print.c
 MAINTAINERCLEANFILES = Makefile.in
 
-SUFFIXES = .rpc2 .client.c .server.c .multi.c
+SUFFIXES = .rpc2
 
-%.client.c %.server.c %.h: %.rpc2
-	$(top_builddir)/rp2gen/rp2gen $< && \
-            ${CP} fcon.h $(top_builddir)/include/rpc2
+.rpc2.h:
+	$(top_builddir)/rp2gen/rp2gen $<
+
+$(top_builddir)/include/rpc2/fcon.h: fcon.h
+	${CP} $< $@
         
-# spurious dependency
-filtutil.lo: fcon.h
+# spurious dependencies
+$(srcdir)/filtutil.c: fcon.h
+fcon.client.c: fcon.h
+fcon.server.c: fcon.h
 
