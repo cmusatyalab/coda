@@ -55,7 +55,6 @@ extern "C" {
 #include <stdlib.h>
 #include <errno.h>
 #include <ctype.h>
-#include "scandir.h"
 #ifdef __cplusplus
 }
 #endif
@@ -66,7 +65,6 @@ extern "C" {
 
 static int set_link(struct DiskPartition *dp, long *count, Inode ino);
 static Inode maxino(struct DiskPartition *dp);
-static int inosort(const struct dirent **a, const struct dirent **b);
 
 static int s_init (union PartitionData **data, Partent partent, Device *dev);
 static int s_iopen(struct DiskPartition *, Inode inode_number, int flag);
@@ -482,39 +480,26 @@ static int istat(struct DiskPartition *dp, Inode  inode_number, struct stat *sta
 }
 #endif
 
-static int inosort(const struct dirent **a, const struct dirent **b)
-{
-    Inode inoa, inob;
-    
-    inoa = atoi((*a)->d_name);
-    inob = atoi((*b)->d_name);
-    
-    if ( inoa == inob ) 
-	    return 0;
-    else  if ( inoa > inob ) 
-	    return 1;
-
-    return -1;
-
-}
-
 static Inode maxino(struct DiskPartition *dp) 
 {
-    struct dirent **namelist;
-    int n, i;
-    Inode max = 0;
+    DIR *dir;
+    struct dirent *entry;
+    Inode cur_ino, max_ino = 0;
 
-    n = scandir(dp->name, &namelist, NULL, (int (*)(const void *, const void *))inosort);
-    
-    if (n < 0)
-        perror("scandir");
-    else
-        max =  atoi(namelist[n-1]->d_name);
+    dir = opendir(dp->name);
+    if (!dir) {
+	perror("opendir");
+	CODA_ASSERT(0);
+    }
 
-    for ( i = 0 ; i < n ; i++ ) free(namelist[i]);
-    free(namelist) ;
+    while ((entry = readdir(dir)) != NULL) {
+	cur_ino = atoi(entry->d_name);
+	if (cur_ino > max_ino)
+	    max_ino = cur_ino;
+    }
+    closedir(dir);
 
-    return max;
+    return max_ino;
 }
 
 
