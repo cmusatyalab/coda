@@ -10,7 +10,7 @@ CBINS       =  coda.o
 # CSBINS 	    =  coda-cache coda-debug coda-flush coda-resize coda-trace
 EXECUTABLES =  coda.o
 HEADERS     =  
-OBJS        =  psdev.o cnode.o super.o dir.o file.o upcall.o coda_linux.o symlink.o pioctl.o namecache.o sysctl.o 
+OBJS        =  psdev.o cache.o cnode.o super.o dir.o file.o upcall.o coda_linux.o symlink.o pioctl.o sysctl.o 
 
 DEFINES =  -DMODULE  -DMODVERSIONS -Wstrict-prototypes -Wall -O2
 INCL    =  -I../common -I. -I/usr/src/linux/include  -include /usr/src/linux/include/linux/modversions.h
@@ -22,6 +22,7 @@ coda.o: $(OBJS)
 
 install: coda.o
 	cp -p coda.o ${BINDIR}
+	depmod -a
 
 clean:
 	rm -f ${OBJS} coda.o

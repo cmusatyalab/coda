@@ -22,14 +22,17 @@
 #include <asm/uaccess.h>
 #include <linux/utsname.h>
 
+#include <linux/coda.h>
+#include <linux/coda_linux.h>
+#include <linux/coda_cnode.h>
 #include <linux/coda_namecache.h>
 #include <linux/coda_sysctl.h>
 extern int coda_debug;
-extern int cfsnc_use;
+/* extern int cfsnc_use; */
 extern int coda_print_entry;
-extern int cfsnc_flushme;
+/* extern int cfsnc_flushme; */
 extern int cfsnc_procsize;
-extern void cfsnc_flush(void);
+/* extern void cfsnc_flush(void); */
 void coda_sysctl_init(void);
 void coda_sysctl_clean(void);
 
@@ -50,9 +53,9 @@ struct ctl_table_header *fs_table_header, *coda_table_header;
 static ctl_table coda_table[] = {
 	{CODA_DEBUG, "debug", &coda_debug, sizeof(int), 0644, NULL, &coda_dointvec},
 	{CODA_ENTRY, "printentry", &coda_print_entry, sizeof(int), 0644, NULL, &coda_dointvec},
-	{CODA_MC, "minicache", &cfsnc_use, sizeof(int), 0644, NULL, &coda_dointvec},
-	{CODA_FLUSH, "flushme", &cfsnc_flushme, sizeof(int), 0644, NULL, &coda_dointvec},
-	{CODA_PROCSIZE, "resize", &cfsnc_procsize, sizeof(int), 0644, NULL, &coda_dointvec},
+/* 	{CODA_MC, "minicache", &cfsnc_use, sizeof(int), 0644, NULL, &coda_dointvec}, */
+/* 	{CODA_FLUSH, "flushme", &cfsnc_flushme, sizeof(int), 0644, NULL, &coda_dointvec}, */
+/* 	{CODA_PROCSIZE, "resize", &cfsnc_procsize, sizeof(int), 0644, NULL, &coda_dointvec}, */
 	{ 0 }
 };
 

@@ -1,67 +1,14 @@
-/* 
- * Mach Operating System
- * Copyright (c) 1990 Carnegie-Mellon University
- * Copyright (c) 1989 Carnegie-Mellon University
- * All rights reserved.  The CMU software License Agreement specifies
- * the terms and conditions for use and redistribution.
+/* Coda filesystem -- Linux Minicache
+ *
+ * Copyright (C) 1989 - 1997 Carnegie Mellon University
+ *
+ * Carnegie Mellon University encourages users of this software to
+ * contribute improvements to the Coda project. Contact Peter Braam
+ * <coda@cs.cmu.edu>
  */
 
-/*
- * This code was written for the Coda file system at Carnegie Mellon University.
- * Contributers include David Steere, James Kistler, and M. Satyanarayanan.
- */
-
-/* 
- * HISTORY
- * cfsnc.h,v
- * Revision 1.2  1996/01/02 16:57:19  bnoble
- * Added support for Coda MiniCache and raw inode calls (final commit)
- *
- * Revision 1.1.2.1  1995/12/20 01:57:45  bnoble
- * Added CFS-specific files
- *
- * Revision 3.1.1.1  1995/03/04  19:08:22  bnoble
- * Branch for NetBSD port revisions
- *
- * Revision 3.1  1995/03/04  19:08:21  bnoble
- * Bump to major revision 3 to prepare for NetBSD port
- *
- * Revision 2.2  1994/08/28  19:37:39  luqi
- * Add a new CFS_REPLACE call to allow venus to replace a ViceFid in the
- * mini-cache.
- *
- * In "cfs.h":
- * Add CFS_REPLACE decl.
- *
- * In "cfs_namecache.c":
- * Add routine cfsnc_replace.
- *
- * In "cfs_subr.c":
- * Add case-statement to process CFS_REPLACE.
- *
- * In "cfsnc.h":
- * Add decl for CFSNC_REPLACE.
- *
- * Revision 2.1  94/07/21  16:25:27  satya
- * Conversion to C++ 3.0; start of Coda Release 2.0
- *
- * Revision 1.2  92/10/27  17:58:34  lily
- * merge kernel/latest and alpha/src/cfs
- * 
- * Revision 2.2  90/07/05  11:27:04  mrt
- * 	Created for the Coda File System.
- * 	[90/05/23            dcs]
- * 
- * Revision 1.4  90/05/31  17:02:12  dcs
- * Prepare for merge with facilities kernel.
- * 
- * 
- */
 #ifndef _CFSNC_HEADER_
 #define _CFSNC_HEADER_
-
-#include "coda.h"
-#include "coda_cnode.h"
 
 
 /*
@@ -71,8 +18,29 @@
 #define CFSNC_CACHESIZE 256		/* Default cache size */
 #define CFSNC_HASHSIZE	64		/* Must be multiple of 2 */
 /*
- * Structure for an element in the CFS Name Cache.
+ * Structure for an element in the Coda Credential Cache.
  */
+
+struct coda_cache {
+	struct list_head   cc_cclist;  /* list of all cache entries */
+	struct list_head   cc_cnlist;  /* list of cache entries/cnode */
+	int                cc_mask;
+	struct coda_cred   cc_cred;
+};
+
+void coda_ccinsert(struct coda_cache *el, struct super_block *sb);
+void coda_cninsert(struct coda_cache *el, struct cnode *cnp);
+void coda_ccremove(struct coda_cache *el);
+void coda_cnremove(struct coda_cache *el);
+void coda_cache_create(struct inode *inode, int mask);
+struct coda_cache *coda_cache_find(struct inode *inode);
+void coda_cache_enter(struct inode *inode, int mask);
+void coda_cache_clear_cnp(struct cnode *cnp);
+void coda_cache_clear_all(struct super_block *sb);
+void coda_cache_clear_cred(struct super_block *sb, struct coda_cred *cred);
+int coda_cache_check(struct inode *inode, int mask);
+void coda_dentry_delete(struct dentry *dentry);
+void coda_zapfid(struct ViceFid *fid, struct super_block *sb, int flag);
 
 /* roughly 50 bytes per entry */
 struct cfscache {	
@@ -80,7 +48,7 @@ struct cfscache {
 	struct cfscache	*lru_next, *lru_prev;	/* LRU list */
 	struct cnode	*cp;			/* vnode of the file */
 	struct cnode	*dcp;			/* parent's cnode */
-	struct CodaCred	*cred;			/* user credentials */
+	struct coda_cred *cred;			/* user credentials */
 	char		name[CFSNC_NAMELEN];	/* segment name */
 	int		namelen;		/* length of name */
 };
@@ -91,12 +59,12 @@ struct cfscache {
 void cfsnc_init(void);
 void cfsnc_enter(struct cnode *dcp, register const char *name, int namelen, struct cnode *cp);
 struct cnode *cfsnc_lookup(struct cnode *dcp, register const char *name, int namelen);
-void cfsnc_zapParentfid(ViceFid *fid);
-void cfsnc_zapfid(ViceFid *fid);
+void cfsnc_zapParentfid(struct ViceFid *fid);
+void cfsnc_zapfid(struct ViceFid *fid);
 void cfsnc_zapfile(struct cnode *dcp, register const char *name, int length);
-void cfsnc_purge_user(struct CodaCred *cred);
-void cfsnc_flush(void);
-void cfsnc_replace(ViceFid *f1, ViceFid *f2);
+void cfsnc_purge_user(struct coda_cred *cred);
+/* void cfsnc_flush(void); */
+void cfsnc_replace(struct ViceFid *f1, struct ViceFid *f2);
 void print_cfsnc(void);
 void coda_print_ce(struct cfscache *);
 int cfsnc_resize(int hashsize, int heapsize);

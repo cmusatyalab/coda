@@ -7,12 +7,11 @@
  * to the Coda project. Contact Peter Braam <coda@cs.cmu.edu>.
  */
 
-/*
- * This module contains the routines to implement the CFS name cache. The
- * purpose of this cache is to reduce the cost of translating pathnames 
- * into Vice FIDs. Each entry in the cache contains the name of the file,
- * the vnode (FID) of the parent directory, and the cred structure of the
- * user accessing the file.
+/* This module contains the routines to implement the CFS name
+ * cache. The purpose of this cache is to reduce the cost of
+ * translating pathnames into Vice FIDs. Each entry in the cache
+ * contains the name of the file, the vnode (FID) of the parent
+ * directory, and the cred structure of the user accessing the file.
  *
  * The first time a file is accessed, it is looked up by the local Venus
  * which first insures that the user has access to the file. In addition
@@ -24,8 +23,7 @@
  * The table can be accessed through the routines cnc_init(), cnc_enter(),
  * cnc_lookup(), cnc_rmfidcred(), cnc_rmfid(), cnc_rmcred(), and cnc_purge().
  * There are several other routines which aid in the implementation of the
- * hash table.
- */
+ * hash table.  */
 
 #include <linux/types.h>
 #include <linux/kernel.h>
@@ -116,14 +114,20 @@ static inline int
 nchash(const char *name, int namelen, struct cnode *cp)
 {
     return ((name[0] + name[namelen-1] + 
-             namelen + (int)(cp)) & (cfsnc_hashsize-1));   
+             namelen + (int)(CTOI(cp)->i_ino)) & (cfsnc_hashsize-1));   
 }
 
 /* matching function */
 static inline int ncmatch(struct cfscache *cp, const char *name, int namelen,
                           struct cnode *dcp)
 {
-    return 	((namelen == cp->namelen) && (dcp == cp->dcp) && 
+    if ( !dcp || !cp || !cp->dcp ) {
+	    printk("**ncmath NULL: dcp %p, cp %p, cp->dcp %p\n", 
+		   dcp, cp, cp->dcp);
+	    return 0;
+    }
+    return 	((namelen == cp->namelen) && 
+		 (dcp == cp->dcp) && 
 		 (memcmp(cp->name,name,namelen) == 0));
 }
 
@@ -171,9 +175,13 @@ cfsnc_find(struct cnode *dcp, const char * name, int namelen, int hash)
 	 */
 	register struct cfscache *cncp;
 	int count = 1;
+	char pname[CFS_MAXNAMLEN];
+
+	memcpy(pname, name, namelen);
+	pname[namelen] = '\0';
 
 	CDEBUG(D_CACHE, "dcp 0x%x, name %s, len %d, hash %d\n",
-			   (int)dcp, name, namelen, hash);
+			   (int)dcp, pname, namelen, hash);
 
 	for (cncp  = cfsnchash[hash].hash_next; 
 	     cncp != (struct cfscache *)&cfsnchash[hash];
@@ -184,6 +192,10 @@ cfsnc_find(struct cnode *dcp, const char * name, int namelen, int hash)
 	    { 
 		cfsnc_stat.Search_len += count;
 		CDEBUG(D_CACHE, "dcp 0x%x,found.\n", (int) dcp);
+		if ( namelen == 2 && name[0]=='.' && name[1]=='.' ) {
+CDEBUG(D_CACHE, "HIT: name %s, ino %ld, pino %ld\n", pname, CTOI(dcp)->i_ino,
+       CTOI(cncp->cp)->i_ino);
+		}
 		return(cncp);
 			
 	    }
@@ -207,13 +219,13 @@ cfsnc_remove(struct cfscache *cncp)
   	hashrem(cncp);
 	hashnull(cncp);		/* have it be a null chain */
 
-	/* VN_RELE(CTOV(cncp->dcp));  */
+	iput(CTOI(cncp->dcp));
 	iput(CTOI(cncp->cp)); 
 	/* crfree(cncp->cred);  */
 
 	memset(DATA_PART(cncp), 0 ,DATA_SIZE);
 	cncp->cp = NULL;
-	cncp->dcp = (struct cnode *) 0;
+	cncp->dcp = NULL;
 
 	/* Put the null entry just after the least-recently-used entry */
 	lrurem(cncp);
@@ -306,15 +318,19 @@ cfsnc_enter(struct cnode *dcp, register const char *name, int namelen, struct cn
 	cfsnchash[nchash(cncp->name, cncp->namelen, cncp->dcp)].length--;
 	cfsnc_stat.lru_rm++;	/* zapped a valid entry */
 	hashrem(cncp);
+	iput(CTOI(cncp->dcp));
 	iput(CTOI(cncp->cp));
-	/* VN_RELE(CTOV(cncp->dcp));  */
 	/* crfree(cncp->cred); */
     }
     /*
      * Put a hold on the current vnodes and fill in the cache entry.
      */
-    iget((CTOI(cp))->i_sb, CTOI(cp)->i_ino);
-    /* VN_HOLD(CTOV(dcp)); */
+    if ( CTOI(cp) != iget(CTOI(cp)->i_sb, CTOI(cp)->i_ino)) {
+	    printk("cfsnc_enter: unexpected result of inode pinning.\n");
+    }
+    if ( CTOI(dcp) != iget(CTOI(dcp)->i_sb, CTOI(dcp)->i_ino)) {
+	    printk("cfsnc_enter: unexpected result of inode pinning.\n");
+    }
     /* XXXX crhold(cred); */
     cncp->dcp = dcp;
     cncp->cp = cp;
@@ -369,7 +385,7 @@ cfsnc_lookup(struct cnode *dcp, register const char *name, int namelen)
 		return((struct cnode *) 0);
 
 	if (namelen > CFSNC_NAMELEN) {
-        CDEBUG(D_CACHE,"long name lookup %s\n",name);
+	        CDEBUG(D_CACHE,"long name lookup %s\n",name);
 		cfsnc_stat.long_name_lookups++;		/* record stats */
 		return((struct cnode *) 0);
 	}
@@ -522,7 +538,7 @@ cfsnc_zapfile(struct cnode *dcp, register const char *name, int length)
  */
 
 void
-cfsnc_purge_user(struct CodaCred *cred)
+cfsnc_purge_user(struct coda_cred *cred)
 {
 	/* I think the best approach is to go through the entire cache
 	   via HASH or whatever and zap all entries which match the
@@ -589,6 +605,7 @@ cfsnc_flush(void)
 		if ( cncp->cp ) {
 			hashrem(cncp);	/* only zero valid nodes */
 			hashnull(cncp);
+			iput(CTOI(cncp->dcp));  
 			iput(CTOI(cncp->cp));  
 			/* crfree(cncp->cred);  */
 			memset(DATA_PART(cncp), 0, DATA_SIZE);

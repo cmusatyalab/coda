@@ -31,7 +31,8 @@ struct cnode *coda_cnode_alloc(void)
         }
 
         memset(result, 0, (int) sizeof(struct cnode));
-        return result;
+        INIT_LIST_HEAD(&(result->c_cnhead));
+	return result;
 }
 
 /* release cnode memory */
@@ -39,6 +40,7 @@ void coda_cnode_free(struct cnode *cinode)
 {
         CODA_FREE(cinode, sizeof(struct cnode));
 }
+
               
 /* this is effectively coda_iget:
    - get attributes (might be cached)
@@ -122,49 +124,31 @@ inline int coda_fideq(ViceFid *fid1, ViceFid *fid2)
 }
 
  
-/* compute the inode number from the FID
-   same routine as in vproc.cc (venus)
-   XXX look at the exceptional case of root fids etc
-*/
-static ino_t
-coda_fid2ino(ViceFid *fid)
-{
-	u_long ROOT_VNODE = 1;
-	u_long ROOT_UNIQUE = 1;
-	ViceFid nullfid = { 0, 0, 0};
-
-	if ( coda_fideq(fid, &nullfid) ) {
-		printk("coda_fid2ino: called with NULL Fid!\n");
-		return 0;
-	}
-
-	/* what do we return for the root fid */
-
-	/* Other volume root.  We need the relevant mount point's 
-	fid, but we don't know what that is! */
-	if (fid->Vnode == ROOT_VNODE && fid->Unique == ROOT_UNIQUE) {
-		return(0);
-	}
-
-	/* Non volume root. */
-	return(fid->Unique + (fid->Vnode << 10) + (fid->Volume << 20));
-}     
 
 /* convert a fid to an inode. Avoids having a hash table
    such as present in the Mach minicache */
-struct inode *
-coda_fid2inode(ViceFid *fid, struct super_block *sb) {
+struct inode *coda_fid_to_inode(ViceFid *fid, struct super_block *sb) {
 	ino_t nr;
 	struct inode *inode;
 	struct cnode *cnp;
-	
-	nr = coda_fid2ino(fid);
+	char str[50];
+ENTRY;
+
+	CDEBUG(D_INODE, "%s\n", coda_f2s(fid, str));
+	nr = coda_f2i(fid);
 	inode = iget(sb, nr);
+
+	if ( !inode ) {
+		printk("coda_fid_to_inode: null from iget, sb %p, nr %ld.\n",
+		       sb, nr);
+		return NULL;
+	}
 
 	/* check if this inode is linked to a cnode */
 	cnp = (struct cnode *) inode->u.generic_ip;
 	if ( cnp == NULL ) {
 		iput(inode);
+		EXIT;
 		return NULL;
 	}
 	/* make sure fid is the one we want */

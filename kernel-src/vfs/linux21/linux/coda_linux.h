@@ -41,13 +41,21 @@ int coda_permission(struct inode *inode, int mask);
 extern int coda_debug;
 extern int coda_print_entry;
 extern int coda_access_cache;
-extern int cfsnc_use;
+/* extern int cfsnc_use; */
 
 
 /*   */
 char *coda_f2s(ViceFid *f, char *s);
 int coda_isroot(struct inode *i);
-void coda_load_creds(struct CodaCred *cred);
+void coda_load_creds(struct coda_cred *cred);
+int coda_mycred(struct coda_cred *);
+void coda_vattr_to_iattr(struct inode *, struct coda_vattr *);
+void coda_iattr_to_vattr(struct iattr *, struct coda_vattr *);
+unsigned short coda_flags_to_cflags(unsigned short);
+void print_vattr( struct coda_vattr *attr );
+struct coda_sb_info *coda_psinode2sbi(struct inode *);
+int coda_cred_ok(struct coda_cred *cred);
+int coda_cred_eq(struct coda_cred *cred1, struct coda_cred *cred2);
 
 
 
@@ -61,13 +69,7 @@ int coda_inode_grab(dev_t dev, ino_t ino, struct inode **ind);
 struct super_block *coda_find_super(kdev_t device);
 
 
-#define INIT_IN(in, op) \
-	  (in)->opcode = (op); \
-	  (in)->pid = current->pid; \
-          (in)->pgid = current->gid; 
-
 /* debugging aids */
-
 #define coda_panic printk
 
 /* debugging masks */
@@ -81,8 +83,6 @@ struct super_block *coda_find_super(kdev_t device);
 #define D_PSDEV    128  
 #define D_PIOCTL   256
 #define D_SPECIAL  512
-/* until we are really good, ... */
-#define coda_panic printk
  
 #define CDEBUG(mask, format, a...)                                \
   do {                                                            \
@@ -117,12 +117,6 @@ do {                                                                  \
 } while (0);
 
 
-/* ioctl stuff */
-/* this needs to be sorted out XXXX */ 
-#ifdef	__linux__
-#define IOCPARM_MASK 0x0000ffff
-#endif 
-
 #define CODA_ALLOC(ptr, cast, size)                                       \
 do {                                                                      \
     if (size < 3000) {                                                    \
@@ -140,48 +134,4 @@ do {                                                                      \
 
 #define CODA_FREE(ptr,size) do {if (size < 3000) { kfree_s((ptr), (size)); CDEBUG(D_MALLOC, "kfreed: %x at %x.\n", (int) size, (int) ptr); } else { vfree((ptr)); CDEBUG(D_MALLOC, "vfreed: %x at %x.\n", (int) size, (int) ptr);} } while (0)
 
-
-
-
-/*
- * Macros to manipulate the queue 
- */
-#define crfree(cred) CODA_FREE( (cred), sizeof(struct ucred))
-
-#ifndef INIT_QUEUE
-
-struct queue {
-    struct queue *forw, *back;
-};
-
-#define INIT_QUEUE(head)                     \
-do {                                         \
-    (head).forw = (struct queue *)&(head);   \
-    (head).back = (struct queue *)&(head);   \
-} while (0)
-
-#define GETNEXT(head) (head).forw
-
-#define EMPTY(head) ((head).forw == &(head))
-
-#define EOQ(el, head) ((struct queue *)(el) == (struct queue *)&(head))
-
-#define INSQUE(el, head)                             \
-do {                                                 \
-	(el).forw = ((head).back)->forw;             \
-	(el).back = (head).back;                     \
-	((head).back)->forw = (struct queue *)&(el); \
-	(head).back = (struct queue *)&(el);         \
-} while (0)
-
-#define REMQUE(el)                         \
-do {                                       \
-	((el).forw)->back = (el).back;     \
-	(el).back->forw = (el).forw;       \
-}  while (0)
-
-#endif INIT_QUEUE
-
-
-#endif _LINUX_CODA_FS
-
+#endif

@@ -25,6 +25,7 @@
 #include <linux/coda_namecache.h>
 
 static int coda_readlink(struct inode *inode, char *buffer, int length);
+static struct dentry *coda_follow_link(struct inode *, struct dentry *);
 
 struct inode_operations coda_symlink_inode_operations = {
 	NULL,			/* no file-operations */
@@ -38,7 +39,7 @@ struct inode_operations coda_symlink_inode_operations = {
 	NULL,			/* mknod */
 	NULL,			/* rename */
 	coda_readlink,		/* readlink */
-	NULL,           	/* follow_link */
+	coda_follow_link,     	/* follow_link */
 	NULL,			/* readpage */
 	NULL,			/* writepage */
 	NULL,			/* bmap */
@@ -76,7 +77,43 @@ static int coda_readlink(struct inode *inode, char *buffer, int length)
 		copy_to_user(buffer, buf, len);
 		put_user('\0', buffer + len);
 		error = len;
-		CODA_FREE(buf, len);
 	}
+	if ( buf )
+		CODA_FREE(buf, len);
 	return error;
+}
+
+static struct dentry *coda_follow_link(struct inode *inode, 
+				       struct dentry *base)
+{
+	int error;
+	struct cnode *cnp;
+	unsigned int len;
+	char mem[CFS_MAXPATHLEN];
+	char *path;
+ENTRY;
+	CDEBUG(D_INODE, "(%x/%ld)\n", inode->i_dev, inode->i_ino);
+	
+        cnp = ITOC(inode);
+        CHECK_CNODE(cnp);
+
+	len = CFS_MAXPATHLEN;
+	error = venus_readlink(inode->i_sb, &(cnp->c_fid), mem, &len);
+
+	if (error) {
+		dput(base);
+		return ERR_PTR(error);
+	}
+	len = strlen(mem);
+	path = kmalloc(len + 1, GFP_KERNEL);
+	if (!path) {
+		dput(base);
+		return ERR_PTR(-ENOMEM);
+	}
+	memcpy(path, mem, len);
+	path[len] = 0;
+
+	base = lookup_dentry(path, base, 1);
+	kfree(path);
+	return base;
 }

@@ -49,7 +49,6 @@
  * Coda stuff
  */
 extern struct file_system_type coda_fs_type;
-extern int coda_downcall(int opcode, struct outputArgs *out);
 extern int init_coda_fs(void);
 extern int cfsnc_get_info(char *buffer, char **start, off_t offset, int length, int dummy);
 extern int cfsnc_nc_info(char *buffer, char **start, off_t offset, int length, int dummy);
@@ -60,10 +59,42 @@ struct coda_upcallstats coda_callstats;
 extern struct coda_sb_info coda_super_info[MAX_CODADEVS];
 struct vcomm psdev_vcomm[MAX_CODADEVS];
 
-/*
- * Device operations
- */
+/* queue stuff for the messages */
+static inline void init_queue(struct queue *head)
+{
+	head->forw = head;
+	head->back = head;
+}
 
+static inline struct vmsg *q_getnext(struct queue *elt)
+{
+	return (struct vmsg *)(elt->forw);
+}
+
+static inline int q_end(struct vmsg *msg, struct queue *queue)
+{
+	return (struct queue *)msg == queue;
+}
+
+static inline int q_empty(struct queue *queue)
+{
+	return queue->forw == queue;
+}
+
+/* insert before head, ie. at the tail */
+void coda_q_insert(struct queue *el, struct queue *head)
+{
+	el->forw = head->back->forw;
+	el->back = head->back;
+	head->back->forw = el;
+	head->back = el;
+}
+
+void coda_q_remove(struct queue *el)
+{
+	el->forw->back = el->back;
+	el->back->forw = el->forw;
+}
 
 static struct vcomm *coda_psdev2vcomm(struct file *file)
 {
@@ -75,6 +106,10 @@ static struct vcomm *coda_psdev2vcomm(struct file *file)
 	return vcp;
 }
 	
+/*
+ * Device operations
+ */
+
 
 static unsigned int coda_psdev_poll(struct file *file, poll_table * wait)
 {
@@ -85,7 +120,7 @@ static unsigned int coda_psdev_poll(struct file *file, poll_table * wait)
 	        return -ENXIO;
 
 	poll_wait(&(vcp->vc_waitq), wait);
-	if (!EMPTY(vcp->vc_pending))
+	if (!q_empty(&(vcp->vc_pending)))
                 mask |= POLLIN | POLLRDNORM;
 
 	return mask;
@@ -101,7 +136,6 @@ static ssize_t coda_psdev_write(struct file *file, const char *buf,
 {
         struct vcomm *vcp = coda_psdev2vcomm(file);
         struct vmsg *vmp;
-        struct outputArgs *out;
 	int error = 0;
 	int size;
         u_long uniq;
@@ -111,7 +145,7 @@ static ssize_t coda_psdev_write(struct file *file, const char *buf,
         if (!vcp)
                 return -ENXIO;
 
-        /* Peek at the opcode, unique id */
+        /* Peek at the opcode, uniquefier */
 	if (copy_from_user(opcodebuf, buf, 2 * sizeof(u_long)))
 	        return -EFAULT;
 	opcode = opcodebuf[0];
@@ -121,67 +155,69 @@ static ssize_t coda_psdev_write(struct file *file, const char *buf,
 	       current->pid, opcode, uniq);
 
         if (DOWNCALL(opcode)) {
-                struct outputArgs pbuf;
+		struct super_block *sb = NULL;
+                union outputArgs *dcbuf;
+		size = sizeof(*dcbuf);
 
+		sb = vcp->vc_sb;
+		if ( !sb ) {
+			printk("coda_psdev_write: downcall, no SB!\n");
+			return count;
+		}
 		CDEBUG(D_PSDEV, "handling downcall\n");
 
-              /* get the rest of the data. */
-		size = sizeof(pbuf);
-		if  ( count < sizeof(pbuf) ) {
-		        printk("Coda: downcall opc %ld, uniq %ld, not enough!\n",
+		if  ( count < sizeof(struct cfs_out_hdr) ) {
+		        printk("coda_downcall opc %ld uniq %ld, not enough!\n",
 			       opcode, uniq);
-			size =count;
-		} else if ( count > sizeof(pbuf) ) {
+			return count;
+		}
+		CODA_ALLOC(dcbuf, union outputArgs *, size);
+		if ( count > size ) {
 		        printk("Coda: downcall opc %ld, uniq %ld, too much!",
 			       opcode, uniq);
-		        size = sizeof(pbuf);
+		        count = size;
 		}
-		if (copy_from_user(&pbuf, buf, size))
+		if (copy_from_user(dcbuf, buf, count))
 		        return -EFAULT;
 
-	      /* what errors for coda_downcall should be
-	      * sent to Venus ? 
-	      */
-		error = coda_downcall(opcode, &pbuf);
+		/* what downcall errors does Venus handle ? */
+		error = coda_downcall(opcode, dcbuf, sb);
+
 		if ( error) {
 		        printk("psdev_write: coda_downcall error: %d\n", 
 			       error);
 			return 0;
 		}
+		CODA_FREE(dcbuf, size);
 		return count;
         }
 
         
         /* Look for the message on the processing queue. */
-        for (vmp = (struct vmsg *)GETNEXT(vcp->vc_processing);
-	     !EOQ(vmp, vcp->vc_processing);
-             vmp = (struct vmsg *)GETNEXT(vmp->vm_chain)) {
-	        if (vmp->vm_unique == uniq) break;
-		CDEBUG(D_PSDEV,"Eureka: uniq %ld on queue!\n", uniq);
+        for (vmp = q_getnext(&(vcp->vc_processing));
+	     !q_end(vmp, &(vcp->vc_processing));
+             vmp = q_getnext(&(vmp->vm_chain))) {
+	        if (vmp->vm_unique == uniq) {
+			break;
+			CDEBUG(D_PSDEV,"Eureka: uniq %ld on queue!\n", uniq);
+		}
 	}
-        if (EOQ(vmp, vcp->vc_processing)) {
+        if (q_end(vmp, &(vcp->vc_processing))) {
 	        printk("psdev_write: msg (%ld, %ld) not found\n", 
 		       opcode, uniq);
 		return(-ESRCH);
         }
 
         /* Remove the message from the processing queue */
-        REMQUE(vmp->vm_chain);
+        coda_q_remove(&(vmp->vm_chain));
 
         /* move data into response buffer. */
-        /* Don't need to copy opcode and uniquifier. */
-        out = (struct outputArgs *)vmp->vm_data;
-        /* get the rest of the data. */
         if (vmp->vm_outSize < count) {
-                printk("Coda write: too much outs: %d, cnt: %d, opc: %ld, uniq: %ld.\n",
+                printk("psdev_write: too much cnt: %d, cnt: %d, opc: %ld, uniq: %ld.\n",
 		       vmp->vm_outSize, count, opcode, uniq);
-		wake_up_interruptible(&vmp->vm_sleep); 	
-		return -EINVAL;
-        } else if (vmp->vm_outSize > count) {
-                printk("Coda write: too much outs: %d, cnt: %d, opc: %ld, uniq: %ld.\n",
-		       vmp->vm_outSize, count, opcode, uniq);
+		count = vmp->vm_outSize; /* don't have more space! */
 	}
-        if (copy_from_user(out, buf, count))
+        if (copy_from_user(vmp->vm_data, buf, count))
 	        return -EFAULT;
 
 	/* adjust outsize. is this usefull ?? */
@@ -201,7 +237,7 @@ static ssize_t coda_psdev_write(struct file *file, const char *buf,
  */
 
 static ssize_t coda_psdev_read(struct file * file, char * buf, 
-			    size_t count, loff_t *off)
+			       size_t count, loff_t *off)
 {
         struct vcomm *vcp = coda_psdev2vcomm(file);
         struct vmsg *vmp;
@@ -211,21 +247,20 @@ static ssize_t coda_psdev_read(struct file * file, char * buf,
               return -ENXIO;
         
         /* Get message at head of request queue. */
-        if (EMPTY(vcp->vc_pending)) {
-              return 0;	/* Nothing to read */
+        if (q_empty(&(vcp->vc_pending))) {
+              return 0;	
         }
     
-        vmp = (struct vmsg *)GETNEXT(vcp->vc_pending);
-        REMQUE(vmp->vm_chain);
+        vmp = q_getnext(&(vcp->vc_pending));
+        coda_q_remove(&(vmp->vm_chain));
 
         /* Move the input args into userspace */
-        
         if (vmp->vm_inSize <= count)
               result = vmp->vm_inSize;
 
         if (count < vmp->vm_inSize) {
-                printk ("psdev_read: warning: venus read %d bytes of %d long 
-                                           message\n",count, vmp->vm_inSize);
+                printk ("psdev_read: Venus read %d bytes of %d in message\n",
+			count, vmp->vm_inSize);
         }
 
         if ( copy_to_user(buf, vmp->vm_data, result))
@@ -234,18 +269,17 @@ static ssize_t coda_psdev_read(struct file * file, char * buf,
         if (vmp->vm_chain.forw == 0 || vmp->vm_chain.back == 0)
                 coda_panic("coda_psdev_read: bad chain");
 
-        /* If request was a signal, free up the message and don't
-           enqueue it in the reply queue. */
+        /* If request was a signal, don't enqueue */
         if (vmp->vm_opcode == CFS_SIGNAL) {
                     CDEBUG(D_PSDEV, "vcread: signal msg (%d, %d)\n", 
                               vmp->vm_opcode, vmp->vm_unique);
-              CODA_FREE((caddr_t)vmp->vm_data, (u_int)VC_IN_NO_DATA);
-              CODA_FREE((caddr_t)vmp, (u_int)sizeof(struct vmsg));
+              CODA_FREE(vmp->vm_data, sizeof(struct cfs_in_hdr));
+              CODA_FREE(vmp, sizeof(struct vmsg));
               return count;
         }
     
         vmp->vm_flags |= VM_READ;
-        INSQUE(vmp->vm_chain, vcp->vc_processing);
+        coda_q_insert(&(vmp->vm_chain), &(vcp->vc_processing));
 
         return result;
 }
@@ -254,21 +288,26 @@ static ssize_t coda_psdev_read(struct file * file, char * buf,
 static int coda_psdev_open(struct inode * inode, struct file * file)
 {
         register struct vcomm *vcp = NULL;
-
         ENTRY;
         
-	vcp = coda_psdev2vcomm(file);
+	vcp =coda_psdev2vcomm(file);
 
         if (!vcp)
-              return -ENODEV;
+		return -ENODEV;
+
+	if (vcp->vc_inuse)
+		return -EBUSY;
+
 	memset(vcp, 0, sizeof(struct vcomm));
+	vcp->vc_inuse = 1;
+	printk("Inuse is now 1, welcome!\n");
 
-        MOD_INC_USE_COUNT;
+	/*   MOD_INC_USE_COUNT; */
 
-        INIT_QUEUE(vcp->vc_pending);
-        INIT_QUEUE(vcp->vc_processing);
+        init_queue(&(vcp->vc_pending));
+        init_queue(&(vcp->vc_processing));
 
-	cfsnc_init();
+	/*	cfsnc_init(); */
 	CDEBUG(D_PSDEV, "Name cache initialized.\n");
 
 	memset(&coda_callstats, 0, sizeof(struct coda_upcallstats));
@@ -283,6 +322,7 @@ coda_psdev_release(struct inode * inode, struct file * file)
         struct vcomm *vcp;
         struct vmsg *vmp;
 	unsigned int minor = MINOR(file->f_dentry->d_inode->i_rdev);
+	ENTRY;
 
         vcp = coda_psdev2vcomm(file);
         
@@ -294,49 +334,44 @@ coda_psdev_release(struct inode * inode, struct file * file)
 	
 	/* flush the name cache so that we can unmount */
 	CDEBUG(D_PSDEV, "Flushing the cache.\n");
-	cfsnc_flush();
-	cfsnc_use = 0;
+	/* cfsnc_flush(); */
+	/* cfsnc_use = 0; */
 	CDEBUG(D_PSDEV, "Done.\n");
 	
-        /* prevent future operations on this vfs from succeeding by
-         * auto- unmounting any vfs mounted via this device. This
-         * frees user or sysadm from having to remember where all
-         * mount points are located.  Put this before WAKEUPs to avoid
-         * queuing new messages between the WAKEUP and the unmount
-         * (which can happen if we're unlucky) */
-
+	/* if operations are in progress perhaps the kernel
+	   can profit from setting the C_DYING flag on the root 
+	   cnode of Coda filesystems */
         if (coda_super_info[minor].sbi_root) {
                 struct cnode *cnp = ITOC(coda_super_info[minor].sbi_root);
-                /* Let unmount know this is for real */
                 cnp->c_flags |= C_DYING;
-		/* XXX Could we force an unmount here? */
-        }
+        } else 
+		vcp->vc_inuse = 0;	
 	
     
         /* Wakeup clients so they can return. */
-        for (vmp = (struct vmsg *)GETNEXT(vcp->vc_pending);
-             !EOQ(vmp, vcp->vc_pending);
-             vmp = (struct vmsg *)GETNEXT(vmp->vm_chain)) {	    
+        for (vmp = q_getnext(&(vcp->vc_pending));
+             !q_end(vmp, &(vcp->vc_pending));
+             vmp = q_getnext(&(vmp->vm_chain))) {	    
               /* Free signal request messages and don't wakeup cause
                  no one is waiting. */
               if (vmp->vm_opcode == CFS_SIGNAL) {
-                    CODA_FREE((caddr_t)vmp->vm_data, (u_int)VC_IN_NO_DATA);
-                    CODA_FREE((caddr_t)vmp, (u_int)sizeof(struct vmsg));
+                    CODA_FREE(vmp->vm_data, sizeof(struct cfs_in_hdr));
+                    CODA_FREE(vmp, (u_int)sizeof(struct vmsg));
                     continue;
               }
-    
               wake_up_interruptible(&vmp->vm_sleep);
         }
         
-        for (vmp = (struct vmsg *)GETNEXT(vcp->vc_processing);
-             !EOQ(vmp, vcp->vc_processing);
-             vmp = (struct vmsg *)GETNEXT(vmp->vm_chain)) {
+        for (vmp = q_getnext(&(vcp->vc_processing));
+             !q_end(vmp, &(vcp->vc_processing));
+             vmp = q_getnext(&(vmp->vm_chain))) {
 	        wake_up_interruptible(&vmp->vm_sleep);
         }
         
         mark_vcomm_closed(vcp);
-	cfsnc_use = 0;
-        MOD_DEC_USE_COUNT;
+/* 	cfsnc_use = 0; */
+	/*        MOD_DEC_USE_COUNT; */
+	EXIT;
 	return 0;
 }
 
@@ -358,18 +393,6 @@ static struct file_operations coda_psdev_fops = {
       NULL                   /* lock */
 };
 
-int init_coda_psdev(void)
-{
-        
-	if(register_chrdev(CODA_PSDEV_MAJOR,"coda_psdev", &coda_psdev_fops)) {
-              printk(KERN_ERR "coda_psdev: unable to get major %d\n", 
-		     CODA_PSDEV_MAJOR);
-              return -EIO;
-	}
-        
-	return 0;
-}
-
 
 #ifdef CONFIG_PROC_FS
 
@@ -380,12 +403,12 @@ struct proc_dir_entry proc_coda = {
 
 };
 
-struct proc_dir_entry proc_coda_cache =  {
-                0 , 10, "coda-cache",
-                S_IFREG | S_IRUGO, 1, 0, 0,
-                0, &proc_net_inode_operations,
-                cfsnc_get_info
-        };
+/* struct proc_dir_entry proc_coda_cache =  { */
+/*                 0 , 10, "coda-cache", */
+/*                 S_IFREG | S_IRUGO, 1, 0, 0, */
+/*                 0, &proc_net_inode_operations, */
+/*                 cfsnc_get_info */
+/*         }; */
 
 struct proc_dir_entry proc_coda_ncstats =  {
                 0 , 12, "coda-ncstats",
@@ -396,25 +419,48 @@ struct proc_dir_entry proc_coda_ncstats =  {
 
 #endif
 
+
+int init_coda_psdev(void)
+{
+	if(register_chrdev(CODA_PSDEV_MAJOR,"coda_psdev", &coda_psdev_fops)) {
+              printk(KERN_ERR "coda_psdev: unable to get major %d\n", 
+		     CODA_PSDEV_MAJOR);
+              return -EIO;
+	}
+	memset(psdev_vcomm, 0, sizeof(psdev_vcomm));
+	memset(coda_super_info, 0, sizeof(coda_super_info));
+	memset(&coda_callstats, 0, sizeof(coda_callstats));
+
+#ifdef CONFIG_PROC_FS
+	proc_register(&proc_root,&proc_coda);
+	proc_register(&proc_coda, &proc_coda_ncstats);
+	coda_sysctl_init();
+#endif 
+	return 0;
+}
+
+
 #ifdef MODULE
+
+EXPORT_NO_SYMBOLS;
+
+MODULE_AUTHOR("Peter J. Braam <braam@cs.cmu.edu>");
+
 int init_module(void)
 {
   int status;
-  printk(KERN_INFO "Coda Kernel/User communications module 0.04\n");
+  printk(KERN_INFO "Coda Kernel/User communications module 1.0\n");
 
-#ifdef CONFIG_PROC_FS
-  proc_register(&proc_root,&proc_coda);
-  proc_register(&proc_coda, &proc_coda_cache);
-  proc_register(&proc_coda, &proc_coda_ncstats);
-  coda_sysctl_init();
-#endif 
+  status = init_coda_psdev();
+  if ( status ) {
+	  printk("Problem (%d) in init_coda_psdev\n", status);
+	  return status;
+  }
 
-  init_coda_psdev();
-  
-  if ((status = init_coda_fs()) != 0)
-    {
-      printk("coda: failed in init_coda_fs!\n");
-    }
+  status = init_coda_fs();
+  if (status) {
+	  printk("coda: failed in init_coda_fs!\n");
+  }
   return status;
 }
 
@@ -425,14 +471,13 @@ void cleanup_module(void)
 
         ENTRY;
 
-        unregister_chrdev(CODA_PSDEV_MAJOR,"coda_psdev");
-        
         if ( (err = unregister_filesystem(&coda_fs_type)) != 0 ) {
                 printk("coda: failed to unregister filesystem\n");
         }
+        unregister_chrdev(CODA_PSDEV_MAJOR,"coda_psdev");
+
 #if CONFIG_PROC_FS
         coda_sysctl_clean();
-        proc_unregister(&proc_coda, proc_coda_cache.low_ino);
         proc_unregister(&proc_coda, proc_coda_ncstats.low_ino);
 	proc_unregister(&proc_root, proc_coda.low_ino);
 #endif 

@@ -48,12 +48,8 @@ static int coda_statfs(struct super_block *sb, struct statfs *buf,
 
 
 /* helper functions */
-void print_vattr( struct coda_vattr *attr );
-static inline struct coda_sb_info *coda_psinode2sb(struct inode *inode);
 static inline struct vcomm *coda_psinode2vcomm(struct inode *inode);
 static int coda_get_psdev(void *, struct inode **);
-static void coda_vattr_to_iattr(struct inode *, struct coda_vattr *);
-static void coda_iattr_to_vattr(struct iattr *, struct coda_vattr *);
 int coda_fetch_inode(struct inode *, struct coda_vattr *);
 
 extern inline struct vcomm *coda_psdev_vcomm(struct inode *inode);
@@ -97,7 +93,7 @@ static struct super_block * coda_read_super(struct super_block *sb,
 {
         struct inode *psdev = 0, *root = 0; 
 	struct coda_sb_info *sbi = NULL;
-	struct vcomm *vc;
+	struct vcomm *vc = NULL;
         ViceFid fid;
 	kdev_t dev = sb->s_dev;
         int error;
@@ -106,18 +102,20 @@ static struct super_block * coda_read_super(struct super_block *sb,
 ENTRY;
         MOD_INC_USE_COUNT; 
         if (coda_get_psdev(data, &psdev))
-                goto exit;
+                goto error;
 
         vc = coda_psinode2vcomm(psdev);
         if ( !vc )
-	        goto exit;
+	        goto error;
+	vc->vc_sb = sb;
+	vc->vc_inuse = 1;
 
-	sbi = coda_psinode2sb(psdev);
+	sbi = coda_psinode2sbi(psdev);
 	if ( !sbi )
-	        goto exit;
-
+	        goto error;
         sbi->sbi_psdev = psdev;
 	sbi->sbi_vcomm = vc;
+	INIT_LIST_HEAD(&(sbi->sbi_cchead));
 
         lock_super(sb);
         sb->u.generic_sbp = sbi;
@@ -129,22 +127,22 @@ ENTRY;
 
 	/* get root fid from Venus: this needs the root inode */
 	error = venus_rootfid(sb, &fid);
-
 	if ( error ) {
-	        unlock_super(sb);
 	        printk("coda_read_super: coda_get_rootfid failed with %d\n",
-		   error);
-		goto exit;
+		       error);
+		sb->s_dev = 0;
+	        unlock_super(sb);
+		goto error;
 	}	  
 	printk("coda_read_super: rootfid is %s\n", coda_f2s(&fid, str));
 	
+	/* make root inode */
         error = coda_cnode_make(&root, &fid, sb);
         if ( error || !root ) {
 	    printk("Failure of coda_cnode_make for root: error %d\n", error);
-	    unlock_super(sb);
 	    sb->s_dev = 0;
-	    root = NULL;
-	    goto exit;
+	    unlock_super(sb);
+	    goto error;
 	} 
 
 	printk("coda_read_super: rootinode is %ld dev %d\n", 
@@ -152,13 +150,20 @@ ENTRY;
 	sbi->sbi_root = root;
 	sb->s_root = d_alloc_root(root, NULL);
 	unlock_super(sb);
-        return sb;
 EXIT;  
+        return sb;
 
-exit:
+error:
+EXIT;  
 	MOD_DEC_USE_COUNT;
-	sbi->sbi_vcomm = NULL;
-	sbi->sbi_root = NULL;
+	if (sbi) {
+		sbi->sbi_vcomm = NULL;
+		sbi->sbi_root = NULL;
+	}
+	if ( vc ) {
+		vc->vc_sb = NULL;
+		vc->vc_inuse = 0;
+	}
         if (root) {
                 iput(root);
                 coda_cnode_free(ITOC(root));
@@ -177,21 +182,23 @@ static void coda_put_super(struct super_block *sb)
         lock_super(sb);
 
         sb->s_dev = 0;
+	coda_cache_clear_all(sb);
 	sb_info = coda_sbp(sb);
+	sb_info->sbi_vcomm->vc_sb = NULL;
+	printk("Coda: Bye bye.\n");
 	memset(sb_info, 0, sizeof(* sb_info));
 
         unlock_super(sb);
         MOD_DEC_USE_COUNT;
 EXIT;
 }
+
 /* all filling in of inodes postponed until lookup */
 static void coda_read_inode(struct inode *inode)
 {
+	ENTRY;
         inode->u.generic_ip = NULL;
-	/*	inode->i_blksize = inode->i_sb->s_blocksize;
-	inode->i_mode = 0;
-	inode->i_op = NULL;
-	NFS_CACHEINV(inode); */
+	EXIT;
 }
 
 static void coda_put_inode(struct inode *inode) 
@@ -221,9 +228,11 @@ static void coda_delete_inode(struct inode *inode)
                 CDEBUG(D_SUPER, "DELINO cached file: ino %ld count %d.\n",  
 		       open_inode->i_ino,  open_inode->i_count);
                 cnp->c_ovp = NULL;
-		cnp->c_odentry.d_inode = NULL;
                 iput( open_inode );
         }
+	
+	coda_cache_clear_cnp(cnp);
+
 	inode->u.generic_ip = NULL;
         coda_cnode_free(cnp);
         clear_inode(inode);
@@ -241,14 +250,15 @@ ENTRY;
         CHECK_CNODE(cnp);
 
         coda_iattr_to_vattr(iattr, &vattr);
-        vattr.va_type = VNON; /* cannot set type */
+        vattr.va_type = C_VNON; /* cannot set type */
 	CDEBUG(D_SUPER, "vattr.va_mode %o\n", vattr.va_mode);
 
         error = venus_setattr(inode->i_sb, &cnp->c_fid, &vattr);
 
         if ( !error ) {
 	        coda_vattr_to_iattr(inode, &vattr); 
-		cfsnc_zapfid(&(cnp->c_fid));
+		coda_cache_clear_cnp(cnp);
+/* 		cfsnc_zapfid(&(cnp->c_fid)); */
         }
 	CDEBUG(D_SUPER, "inode.i_mode %o, error %d\n", 
 	       inode->i_mode, error);
@@ -280,11 +290,10 @@ static int coda_statfs(struct super_block *sb, struct statfs *buf,
 
 /* init_coda: used by filesystems.c to register coda */
 
+
 struct file_system_type coda_fs_type = {
    "coda", 0, coda_read_super, NULL
 };
-
-
 
 
 int init_coda_fs(void)
@@ -292,187 +301,7 @@ int init_coda_fs(void)
 	return register_filesystem(&coda_fs_type);
 }
 
-
-/* utility functions below */
-static void coda_vattr_to_iattr(struct inode *inode, struct coda_vattr *attr)
-{
-        int inode_type;
-        /* inode's i_dev, i_flags, i_ino are set by iget 
-           XXX: is this all we need ??
-           */
-        switch (attr->va_type) {
-        case VNON:
-                inode_type  = 0;
-                break;
-        case VREG:
-                inode_type = S_IFREG;
-                break;
-        case VDIR:
-                inode_type = S_IFDIR;
-                break;
-        case VLNK:
-                inode_type = S_IFLNK;
-                break;
-        default:
-                inode_type = 0;
-        }
-	inode->i_mode |= inode_type;
-
-	if (attr->va_mode != (u_short) -1)
-	        inode->i_mode = attr->va_mode | inode_type;
-        if (attr->va_uid != -1) 
-	        inode->i_uid = (uid_t) attr->va_uid;
-        if (attr->va_gid != -1)
-	        inode->i_gid = (gid_t) attr->va_gid;
-	if (attr->va_nlink != -1)
-	        inode->i_nlink = attr->va_nlink;
-	if (attr->va_size != -1)
-	        inode->i_size = attr->va_size;
-	/*  XXX This needs further study */
-	/*
-        inode->i_blksize = attr->va_blocksize;
-	inode->i_blocks = attr->va_size/attr->va_blocksize 
-	  + (attr->va_size % attr->va_blocksize ? 1 : 0); 
-	  */
-	if (attr->va_atime.tv_sec != -1) 
-	        inode->i_atime = attr->va_atime.tv_sec;
-	if (attr->va_mtime.tv_sec != -1)
-	        inode->i_mtime = attr->va_mtime.tv_sec;
-        if (attr->va_ctime.tv_sec != -1)
-	        inode->i_ctime = attr->va_ctime.tv_sec;
-}
-/* 
- * BSD sets attributes that need not be modified to -1. 
- * Linux uses the valid field to indicate what should be
- * looked at.  The BSD type field needs to be deduced from linux 
- * mode.
- * So we have to do some translations here.
- */
-
-void coda_iattr_to_vattr(struct iattr *iattr, struct coda_vattr *vattr)
-{
-        umode_t mode;
-        unsigned int valid;
-
-        /* clean out */        
-        vattr->va_mode = (umode_t) -1;
-        vattr->va_uid = (vuid_t) -1; 
-        vattr->va_gid = (vgid_t) -1;
-        vattr->va_size = (off_t) -1;
-	vattr->va_atime.tv_sec = (time_t) -1;
-        vattr->va_mtime.tv_sec  = (time_t) -1;
-	vattr->va_ctime.tv_sec  = (time_t) -1;
-	vattr->va_atime.tv_nsec =  (time_t) -1;
-        vattr->va_mtime.tv_nsec = (time_t) -1;
-	vattr->va_ctime.tv_nsec = (time_t) -1;
-        vattr->va_type = VNON;
-	vattr->va_fileid = (long)-1;
-	vattr->va_gen = (long)-1;
-	vattr->va_bytes = (long)-1;
-	vattr->va_fsid = (long)-1;
-	vattr->va_nlink = (short)-1;
-	vattr->va_blocksize = (long)-1;
-	vattr->va_rdev = (dev_t)-1;
-        vattr->va_flags = 0;
-
-        /* determine the type */
-        mode = iattr->ia_mode;
-                if ( S_ISDIR(mode) ) {
-                vattr->va_type = VDIR; 
-        } else if ( S_ISREG(mode) ) {
-                vattr->va_type = VREG;
-        } else if ( S_ISLNK(mode) ) {
-                vattr->va_type = VLNK;
-        } else {
-                /* don't do others */
-                vattr->va_type = VNON;
-        }
-
-        /* set those vattrs that need change */
-        valid = iattr->ia_valid;
-        if ( valid & ATTR_MODE ) {
-                vattr->va_mode = iattr->ia_mode;
-	}
-        if ( valid & ATTR_UID ) {
-                vattr->va_uid = (vuid_t) iattr->ia_uid;
-	}
-        if ( valid & ATTR_GID ) {
-                vattr->va_gid = (vgid_t) iattr->ia_gid;
-	}
-        if ( valid & ATTR_SIZE ) {
-                vattr->va_size = iattr->ia_size;
-	}
-        if ( valid & ATTR_ATIME ) {
-                vattr->va_atime.tv_sec = iattr->ia_atime;
-                vattr->va_atime.tv_nsec = 0;
-	}
-        if ( valid & ATTR_MTIME ) {
-                vattr->va_mtime.tv_sec = iattr->ia_mtime;
-                vattr->va_mtime.tv_nsec = 0;
-	}
-        if ( valid & ATTR_CTIME ) {
-                vattr->va_ctime.tv_sec = iattr->ia_ctime;
-                vattr->va_ctime.tv_nsec = 0;
-	}
-        
-}
-  
-
-void print_vattr(struct coda_vattr *attr)
-{
-    char *typestr;
-
-    switch (attr->va_type) {
-    case VNON:
-	typestr = "VNON";
-	break;
-    case VREG:
-	typestr = "VREG";
-	break;
-    case VDIR:
-	typestr = "VDIR";
-	break;
-    case VBLK:
-	typestr = "VBLK";
-	break;
-    case VCHR:
-	typestr = "VCHR";
-	break;
-    case VLNK:
-	typestr = "VLNK";
-	break;
-    case VSOCK:
-	typestr = "VSCK";
-	break;
-    case VFIFO:
-	typestr = "VFFO";
-	break;
-    case VBAD:
-	typestr = "VBAD";
-	break;
-    default:
-	typestr = "????";
-	break;
-    }
-
-
-    printk("attr: type %s (%o)  mode %o uid %d gid %d fsid %d rdev %d\n",
-	      typestr, (int)attr->va_type, (int)attr->va_mode, (int)attr->va_uid, 
-	      (int)attr->va_gid, (int)attr->va_fsid, (int)attr->va_rdev);
-    
-    printk("      fileid %d nlink %d size %d blocksize %d bytes %d\n",
-	      (int)attr->va_fileid, (int)attr->va_nlink, 
-	      (int)attr->va_size,
-	      (int)attr->va_blocksize,(int)attr->va_bytes);
-    printk("      gen %ld flags %ld vaflags %d\n",
-	      attr->va_gen, attr->va_flags, attr->va_vaflags);
-    printk("      atime sec %d nsec %d\n",
-	      (int)attr->va_atime.tv_sec, (int)attr->va_atime.tv_nsec);
-    printk("      mtime sec %d nsec %d\n",
-	      (int)attr->va_mtime.tv_sec, (int)attr->va_mtime.tv_nsec);
-    printk("      ctime sec %d nsec %d\n",
-	      (int)attr->va_ctime.tv_sec, (int)attr->va_ctime.tv_nsec);
-}
+/* MODULE stuff is in psdev.c */
 
 /*   */
 int coda_fetch_inode (struct inode *inode, struct coda_vattr *attr)
@@ -542,20 +371,18 @@ CDEBUG(D_PSDEV,"minor %d\n", minor);
 	      return NULL;
 }
 
-static inline struct coda_sb_info *
-coda_psinode2sb(struct inode *inode) 
+struct coda_sb_info *coda_psinode2sbi(struct inode *inode) 
 {
 	unsigned int minor = MINOR(inode->i_rdev);
 
-CDEBUG(D_PSDEV,"minor %d\n", minor);
+	CDEBUG(D_PSDEV,"minor %d\n", minor);
 	if ( minor < MAX_CODADEVS ) 
 	        return &(coda_super_info[minor]);
 	else
 	        return NULL;
 }
 
-static int 
-coda_get_psdev(void *data, struct inode **res_dev)
+static int coda_get_psdev(void *data, struct inode **res_dev)
 {
         char **psdev_path;
         struct inode *psdev = 0;
@@ -581,8 +408,9 @@ coda_get_psdev(void *data, struct inode **res_dev)
 		printk("not a character device\n");
 		goto error;
         }
-CDEBUG(D_PSDEV,"major %d, minor %d, count %d\n", MAJOR(psdev->i_rdev), 
-       MINOR(psdev->i_rdev), psdev->i_count);
+	CDEBUG(D_PSDEV,"major %d, minor %d, count %d\n", 
+	       MAJOR(psdev->i_rdev), 
+	       MINOR(psdev->i_rdev), psdev->i_count);
         
         if (MAJOR(psdev->i_rdev) != CODA_PSDEV_MAJOR) {
 		printk("device %d not a Coda PSDEV device\n", 
