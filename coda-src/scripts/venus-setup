@@ -18,9 +18,18 @@ CACHESIZE=40000
 # SERVERS=testserver.coda.cs.cmu.edu
 
 CFSDEV=/dev/cfs0
-CFSMAJOR=67
+if [ x`uname` = xLinux ]; then
+  CFSMAJOR=67
+else
+  CFSMAJOR=46
+fi
+
 CFSMINOR=0
 CODAROOT=/coda
+
+if [ x$RPM_BUILD_ROOT = x ]; then
+  RPM_BUILD_ROOT=/
+fi
 
 if [ X$1 = X ]; then
 	echo "Usage: $0 comma,separated,list,of,servers [cachesize in kb]"
@@ -39,7 +48,7 @@ VSTAB=/coda:$CFSDEV:$SERVERS:$CACHEDIR:$CACHESIZE:1
 # set up the /coda root if it isn't there yet
 if [ ! -d $CODAROOT ]; then mkdir -p $CODAROOT; fi
 if [ ! -f $CODAROOT/NOT_REALLY_CODA ]; then 
- echo 'If you can see this file, venus is not running.' > \ 
+ echo 'If you can see this file, venus is not running.' > \
 	$RPM_BUILD_ROOT/coda/NOT_REALLY_CODA
 fi
 
