@@ -1,7 +1,37 @@
+/* BLURB gpl
+
+                           Coda File System
+                              Release 5
+
+          Copyright (c) 1987-1999 Carnegie Mellon University
+                  Additional copyrights listed below
+
+This  code  is  distributed "AS IS" without warranty of any kind under
+the terms of the GNU General Public Licence Version 2, as shown in the
+file  LICENSE.  The  technical and financial  contributors to Coda are
+listed in the file CREDITS.
+
+                        Additional copyrights
+                           none currently
+
+#*/
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
+
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
 #include <netdb.h>
+
+#ifdef __cplusplus
+}
+#endif
 
 #include <rvmlib.h>
 #include "rec_dllist.h"
@@ -11,8 +41,6 @@
 
 #define MAXLINELEN 256
 static char line[MAXLINELEN];
-
-char *coda_realms = "/etc/coda/realms";
 
 static struct in_addr *ResolveRootServers(char *servers)
 {
@@ -27,22 +55,46 @@ static struct in_addr *ResolveRootServers(char *servers)
     }
 
     i = 0;
-    for (i = 0; host = strtok(servers, " \t\n"); i++) {
-	struct hostent *h = gethostbyname(host);
+    for (i = 0; host = strtok(servers, " \t\n");) {
+
+	struct hostent *h;
 	servers = NULL;
 
+#ifndef GETHOSTBYNAME_ACCEPTS_IPADDRS
+	if (!inet_aton(host, &hosts[i]))
+#endif
+	{
+	    h = gethostbyname(host);
+	    if (!h) {
+		eprint("Cannot resolve realm rootserver '%s'", host);
+		continue;
+	    }
+	    if (h->h_length != sizeof(struct in_addr)) {
+		eprint("Cannot find IPv4 address for realm rootserver '%s'",
+		       host);
+		continue;
+	    }
+	    memcpy(&hosts[i], h->h_addr, sizeof(struct in_addr));
+	}
+
+	if (hosts[i].s_addr == INADDR_ANY ||
+	    hosts[i].s_addr == INADDR_NONE ||
+	    hosts[i].s_addr == INADDR_LOOPBACK ||
+	    (hosts[i].s_addr & IN_CLASSA_NET) == IN_LOOPBACKNET ||
+	    IN_MULTICAST(hosts[i].s_addr) ||
+	    IN_BADCLASS(hosts[i].s_addr))
+	{
+	    eprint("Address for '%s' resolved to bad or unusable address '%s', "
+		   "ignoring it", host, inet_ntoa(hosts[i]));
+	    continue;
+	}
+
+	hosts = (struct in_addr *)realloc(hosts, (i+2)*sizeof(struct in_addr));
 	if (!h) {
-	    eprint("Cannot resolve realm rootserver '%s'", host);
-	    continue;
+	    eprint("Cannot realloc hosts array");
+	    return NULL;
 	}
-
-	if (h->h_length != sizeof(struct in_addr)) {
-	    eprint("Cannot find IPv4 address for realm rootserver '%s'", host);
-	    continue;
-	}
-
-	hosts = (struct in_addr *)realloc(hosts, (i+2) * sizeof(struct in_addr));
-	memcpy(&hosts[i], h->h_addr, sizeof(struct in_addr));
+	i++;
     }
     hosts[i].s_addr = INADDR_ANY;
 
@@ -54,9 +106,9 @@ struct in_addr *GetRealmServers(const char *realm_name)
     FILE *f;
     int namelen = strlen(realm_name), found;
 
-    f = fopen(coda_realms, "r");
+    f = fopen(realmtab, "r");
     if (!f) {
-	eprint("Couldn't open '%s'", coda_realms);
+	eprint("Couldn't open '%s'", realmtab);
 	return NULL;
     }
 

@@ -192,9 +192,9 @@ void VolInit()
 	memset(&LocalVol, 0, sizeof(VolumeInfo));
 	FID_MakeVolFake(&LocalVol.Vid);
         LocalVol.Type = BACKVOL; /* backup volume == read-only replica */
-	Realm *realm = REALMDB->GetRealm(venus_realm);
+	Realm *realm = REALMDB->GetRealm(default_realm);
 	if (!realm) {
-	    eprint("Unable to find local realm \"%s\", exiting\n", venus_realm);
+	    eprint("Unable to find local realm \"%s\", exiting\n", default_realm);
 	    exit(0);
 	}
 	CODA_ASSERT(VDB->Create(realm, &LocalVol, "Local"));
@@ -258,10 +258,10 @@ void VolInit()
     VolumeId LocalVid;
     Volid volid;
 
-    Realm *realm = REALMDB->GetRealm(venus_realm);
+    Realm *realm = REALMDB->GetRealm(default_realm);
     if (!realm) {
 	eprint("Failed to start: Couldn't find local realm \"%s\"\n"
-	       "Please check your configuration", venus_realm);
+	       "Please check your configuration", default_realm);
 	exit(0);
     }
     volid.Realm = realm->Id();
@@ -310,11 +310,12 @@ int GetRootVolume()
 	RVN.SeqBody = (RPC2_ByteSeq)buf;
 
 	/* Get the default realm */
-	Realm *r = REALMDB->GetRealm(venus_realm);
+	Realm *r = REALMDB->GetRealm(default_realm);
 
 	/* Get the connection. */
 	connent *c;
 	int code = r->GetAdmConn(&c);
+	r->PutRef();
 	if (code != 0) {
 	    LOG(100, ("GetRootVolume: can't get SUConn!\n"));
 	    RPCOpStats.RPCOps[ViceGetRootVolume_OP].bad++;
@@ -355,16 +356,16 @@ found_rootvolname:
 
     /* Retrieve the volume. */
     volent *v;
-    Realm *realm = REALMDB->GetRealm(venus_realm);
+    Realm *realm = REALMDB->GetRealm(default_realm);
 
     if (!realm) {
-	eprint("GetRootVolume: can't get default realm %s", venus_realm);
+	eprint("GetRootVolume: can't get default realm %s", default_realm);
 	return 0;
     }
 
     if (VDB->Get(&v, realm, RootVolName) != 0) {
 	eprint("GetRootVolume: can't get volinfo for root volume (%s @ %s)!",
-	       RootVolName, venus_realm);
+	       RootVolName, default_realm);
 	realm->PutRef();
 	return 0;
     }
@@ -2355,7 +2356,7 @@ void repvol::SetStagingServer(struct in_addr *srvr)
 	(&StagingVol.Type0)[replicatedVolume] = vid;
 	StagingVol.Server0 = ntohl(srvr->s_addr);
 
-	Realm *realm = REALMDB->GetRealm(venus_realm);
+	Realm *realm = REALMDB->GetRealm(default_realm);
 	ro_replica = (volrep *)VDB->Create(realm, &StagingVol, stagingname);
 	realm->PutRef();
 

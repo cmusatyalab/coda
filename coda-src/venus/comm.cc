@@ -164,62 +164,6 @@ void CommInit() {
     /* Initialize Servers. */
     srvent::srvtab = new olist;
 
-#warning "Not resolving root servers, can this code go?"
-#if 0
-    /* Create server entries for each bootstrap host. */
-    int hcount = 0;
-    for (char *hp = fsname; hp && *hp;) {
-	/* Parse the next entry in the hostname list. */
-	char ServerName[MAXHOSTNAMELEN];
-	char *cp = strchr(hp, ',');
-
-	if (cp) {
-	    /* This is not the last hostname. */
-	    int len = cp - hp;
-	    strncpy(ServerName, hp, len);
-	    ServerName[len] = 0;
-	    hp = cp + 1;
-	}
-	else {
-            /* This is the last hostname. */
-            strcpy(ServerName, hp);
-            hp = NULL;
-        }
-
-	/* Get the host address and make a server entry. */
-	struct in_addr  addr = { INADDR_ANY };
-	srvent         *s = NULL;
-
-#ifndef GETHOSTBYNAME_ACCEPTS_IPADDRS
-	if (!inet_aton(ServerName, &addr))
-#endif
-        {
-            struct hostent *h;
-            h = gethostbyname(ServerName);
-	    if (!h) {
-		LOG(0, ("Can't resolve server %s\n", ServerName));
-	    }
-            if (h && h->h_length == sizeof(struct in_addr)) {
-                memcpy(&addr, h->h_addr, sizeof(struct in_addr));
-	    } else {
-		LOG(0, ("Failed to resolve an IPv4 address for server %s\n",
-			ServerName));
-	    }
-        }
-
-        if (addr.s_addr != INADDR_ANY) {
-            s = GetServer(&addr, realm);
-            s->rootserver = 1;
-            /* Don't call PutServer, this keeps a refcount on the rootservers */
-            hcount++;
-        } else {
-	    LOG(0, ("Did not add IP address for server %s\n", ServerName));
-	}
-    }
-    if (!hcount)
-	CHOKE("CommInit: no bootstrap server");
-#endif
-
     RPC2_Perror = 0;
 
     /* Port initialization. */

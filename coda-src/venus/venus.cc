@@ -83,8 +83,8 @@ int SearchForNOreFind;  // Look for better detection method for iterrupted hoard
 char *consoleFile;
 char *venusRoot;
 char *kernDevice;
-char *venus_realm;
-char *fsname;
+char *default_realm;
+char *realmtab;
 char *CacheDir;
 char *CachePrefix;
 int   CacheBlocks;
@@ -260,8 +260,6 @@ static void ParseCmdline(int argc, char **argv) {
 		inet_aton(argv[i], &venus_relay_addr);
  	    } else if (STREQ(argv[i], "-k"))         /* default is /dev/cfs0 */
   		i++, kernDevice = argv[i];
-  	    else if (STREQ(argv[i], "-h"))    /* names of file servers */
-  		i++, fsname = argv[i];        /* should be italians! */
 	    else if (STREQ(argv[i], "-mles")) /* total number of CML entries */
 		i++, MLEs = atoi(argv[i]);
 	    else if (STREQ(argv[i], "-cf"))   /* number of cache files */
@@ -429,8 +427,8 @@ static void DefaultCmdlineParms()
     CONF_INT(masquerade_port,	"masquerade_port", 0);
     CONF_STR(venusRoot,         "mountpoint",    DFLT_VR);
     CONF_INT(PrimaryUser,       "primaryuser",   UNSET_PRIMARYUSER);
-    CONF_STR(venus_realm,       "realm",	 "DEFAULT");
-    CONF_STR(fsname,            "rootservers",   "");
+    CONF_STR(default_realm,     "realm",	 "DEFAULT");
+    CONF_STR(realmtab,          "realmtab",	 "/etc/coda/realms");
     CONF_STR(RootVolName,       "rootvolume",    NULL);
     CONF_STR(VenusLogDevice,    "rvm_log",       "/usr/coda/LOG");
     CONF_STR(VenusDataDevice,   "rvm_data",      "/usr/coda/DATA");

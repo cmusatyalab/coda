@@ -5,7 +5,12 @@
 #
 # What is our default realm.
 #
-realm=coda.cs.cmu.edu
+realm=DEFAULT
+
+#
+# Which file is used for realm lookups.
+#
+realmtab=/etc/coda/realms
 
 #
 # Which are the root servers we should contact for volume location
