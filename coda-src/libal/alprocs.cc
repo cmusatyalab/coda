@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/libal/alprocs.cc,v 4.4 1997/09/04 22:17:07 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/libal/alprocs.cc,v 4.5 1998/01/10 18:37:15 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -687,7 +687,7 @@ int AL_Initialize(IN char *Version, IN char *pdbFile, IN char *pcfFile)
 	(flock(fileno(pfd), LOCK_SH) < 0)	||
 	(fstat(fileno(pfd), &PdbStatBuf) < 0))
 	    {
-	    perror("AL_Initialize");
+	    perror("AL_Initialize (opening vice.pdb file)");
 	    fclose(pfd);
 	    return(-1);
 	    }
