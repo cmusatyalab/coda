@@ -25,7 +25,7 @@
 # improvements or extensions that  they  make,  and  to  grant  Carnegie
 # Mellon the rights to redistribute these changes without encumbrance.
 # 
-# static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/guitools/Makefile.in,v 1.1 97/12/16 15:02:33 braam Exp $";
+# static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/guitools/Makefile.in,v 1.2 1997/12/16 16:47:32 mre Exp $";
 
 
 TOPDIR = @top_srcdir@
@@ -55,7 +55,6 @@ TCLSCRIPTS  = 	Advice.tcl              \
 		Initialization.tcl      \
 		Lock.tcl                \
 		Log.tcl                 \
-		ManualDemo.tcl          \
 		Network.tcl             \
 		OutsideWorld.tcl        \
 		ReadMiss.tcl            \
@@ -69,8 +68,9 @@ TCLSCRIPTS  = 	Advice.tcl              \
 		WeakMiss.tcl            \
 		tixCodaMeter.tcl        
 
-
-CLIBS	    = $(TCLSCRIPTS)
+EXECUTABLES = CodaConsole Globals.tcl
+CBINS = $(EXECUTABLES)  $(TCLSCRIPTS)
+BINDIR := $(LIBEXECDIR) 
 
 
 CodaConsole: CodaConsole.in translate.sed

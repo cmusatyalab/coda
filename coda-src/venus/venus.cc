@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/venus.cc,v 4.4 97/03/06 21:04:54 lily Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/venus.cc,v 4.6 1997/12/16 16:08:34 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -177,7 +177,7 @@ int main(int argc, char **argv) {
 
     if (!Simulating) {
 	/* Get the Root Volume. */
-	while (!GetRootVolume()) {
+	while (!GetRooVolume()) {
 	    ServerProbe();
 
 	    struct timeval tv;
