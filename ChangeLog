@@ -1,3 +1,41 @@
+1998-12-16    <jaharkes@cs.cmu.edu>
+
+        * Added the 4.6.x changelog entries to the development branch.
+	* The development branch contains numerous cleanups and fixes, the
+	  important ones are listed below.
+	- New directory handling code, which does not corrupt the directory
+	  structures on the server and has better `bad-directory' checking and
+	  handling code.
+	- New RTT and bandwidth estimates in the rpc2 code, currently these
+	  estimates are used by SFTP and venus, RPC2 itself remains to be
+	  converted to the new scheme. Little timing/correctness errors were
+	  fixed.
+	- Incorporates patches to build a win95 client with all the little
+	  apps around it (clog, cfs, etc.).
+	* and more....
+
+1998-12-10    <braam@cs.cmu.edu>
+        
+	* removed usage of FT_AGetTimeOfDay which caused confusing RTT
+	  observations.
+	* other important fixes.
+
+1998-10-27    <jaharkes@cs.cmu.edu>
+
+	* fixed null-pointer deref in multi-rpc tracing code.
+	* 2 lwp's could gain access to the same exclusive write lock, this
+	  caused occasional deadlocks during rvm-truncation, and possibly
+	  corruption in other places.
+
+1998-10-05    <jaharkes@cs.cmu.edu>
+
+	* Integrated some of the useful & stable development patches.
+	 - Updated README.win95
+	 - On linux sendto retries once when ECONNREFUSED is returned.
+	 - Updated scripts for the new portnumbers.
+	 - Updated server setup scripts.
+	 - removed createvol, recreatevol, and recreatevol_rep scripts.
+
 1998-09-08    <jaharkes@cs.cmu.edu>
 
 	* Added Elliot Lee's patches for venus.
