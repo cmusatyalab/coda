@@ -1,0 +1,13 @@
+#!/bin/sh
+
+# Set up password and group files for Coda
+
+cd /vice/db
+
+echo "Setting up users and groups for Coda"
+
+echo "System:Administrators   -204    admin" > group.coda
+echo admin::500::Administrator:: > user.coda
+
+pwd2pdb -p user.coda -g group.coda > vice.pdb
+pcfgen vice.pdb

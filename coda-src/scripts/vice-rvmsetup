@@ -1,0 +1,79 @@
+#!/bin/sh
+
+if [ x$1 = x ]; then 
+
+    echo
+    echo We need approx 25MB space for RVM meta data such as directory contents.
+    echo -n 'In which directory shall we put that? [/rvm] :'
+
+    read rvmdir
+    
+    if [ x$rvmdir = x ]; then 
+	echo Using default directory /rvm.
+	rvmdir=/rvm
+    fi
+
+else
+
+    rvmdir=$1
+
+fi 
+
+if [ ! -d $rvmdir ]; then 
+    mkdir $rvmdir
+fi
+
+cd $rvmdir
+
+echo
+echo Setting up LOG [2MB] and DATA [20MB] files for meta data.
+echo This could take a minute or two. \(running rvmutl and rdsinit\)
+echo 
+
+cd $rvmdir
+
+if [ x$1 = x ]; then
+if [ -f LOG -o -f DATA ]; then
+    echo WARNING: DATA or LOG file already found in $rvmdir.
+    echo -n Proceed, and wipe out old data? [y/N] :
+    answer=n
+    read answer 
+    if [  x$answer = xn -o x$answer = xno -o x$answer = xN -o x$answer = xNo ]; then
+	exit 1    
+    fi
+fi
+fi
+
+rvmutl > /dev/null  << EOF
+i LOG 2M
+q
+EOF
+
+if [ $? != 0 ]; then
+    echo Error in rvmutl. Exiting.
+    exit 1
+fi
+
+echo LOG file has been initialized!
+echo
+echo Using dd to write 0 data file.
+
+dd if=/dev/zero of=DATA bs=1024 count=20000
+
+if [ $? != 0 ]; then
+    echo Error in writing zero data file. Exiting.
+    exit 1
+fi
+
+echo
+echo Rdsinit will initialize data and log.
+rdsinit LOG DATA 0x20000000 0x1000000 0x100000 80 32 <<EOF
+y
+EOF
+
+if [ $? != 0 ]; then
+    echo Error in rdsinit. Exiting.
+    exit 1
+fi
+echo RVM setup is done!
+echo 

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /usr/rvb/XX/src/coda-src/vol/RCS/partition.cc,v 4.1 1997/01/08 21:52:11 rvb Exp $";
+static char *rcsid = "$Header: /home/braam/cs/coda-src/vol/RCS/partition.cc,v 4.2 1997/02/26 16:03:53 rvb Exp braam $";
 #endif /*_BLURB_*/
 
 
@@ -181,8 +181,9 @@ PRIVATE void VSetPartitionDiskUsage(register struct DiskPartition *dp)
  dp->free = fsbuf.f_bavail;  /* available free blocsk */
  dp->totalUsable = fsbuf.f_blocks * 9 /10; 
  dp->minFree = 10;
+#endif
 
-#else
+#ifdef __BSD44__
     /* Satya (8/5/96): skipped porting this routine since it is not
     		used by Venus; needs to be ported for server; depends on sys/fs.h in Mach */
     LogMsg(0, VolDebugLevel, stdout,  "PORTING ERROR: VSetPartitionDiskUsage() not yet ported");

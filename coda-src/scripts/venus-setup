@@ -1,0 +1,74 @@
+#
+# Coda client installation script
+# Made for Linux coda-client rpm distribution 
+# Peter J. Braam, Dec 1996
+#
+
+CODAETC=/usr/coda/etc
+CACHEDIR=/usr/coda/venus.cache
+CACHESIZE=40000
+# SERVERS=testserver.coda.cs.cmu.edu
+
+CFSDEV=/dev/cfs0
+CFSMAJOR=67
+CFSMINOR=0
+CODAROOT=/coda
+
+if [ X$1 = X ]; then
+	echo "Usage: $0 comma,separated,list,of,servers [cachesize in kb]"
+	exit 1
+else
+	SERVERS=$1
+fi
+
+if [ X$1 != X ]; then
+	CACHESIZE=$2
+fi
+
+
+VSTAB=/coda:$CFSDEV:$SERVERS:$CACHEDIR:$CACHESIZE:1
+
+# set up the /coda root if it isn't there yet
+if [ ! -d $CODAROOT ]; then mkdir -p $CODAROOT; fi
+if [ ! -f $CODAROOT/NOT_REALLY_CODA ]; then touch $CODAROOT/NOT_REALLY_CODA; fi
+
+# set up a cache directory
+if [ ! -d $CACHEDIR ]; then mkdir -p $CACHEDIR; chmod 700 $CACHEDIR; fi
+
+# next run will always initialize
+touch $CACHEDIR/INIT
+
+# set up the etc directory with the vstab
+if [ ! -d $CODAETC ]; then mkdir -p $CODAETC; fi
+echo $VSTAB > $CODAETC/vstab
+
+# make the psdev
+if [ ! -c $CFSDEV ]; then mknod $CFSDEV c $CFSMAJOR $CFSMINOR; fi
+
+# frobnicate /etc/services
+if grep coda_venus /etc/services >/dev/null ; then 
+echo /etc/services already has coda entries..
+else 
+cat <<EOF >> /etc/services
+# Coda filesystem port numbers
+coda_opcons     1355/udp                        # Coda opcons
+coda_auth       1357/udp                        # Coda auth
+coda_udpsrv     1359/udp                        # Coda udpsrv
+coda_filesrv    1361/udp                        # Coda filesrv
+coda_venus      1363/udp                        # Coda venus
+coda_backup     1407/tcp                        # coda backup service
+codacon         1423/tcp        venus.cmu       # Coda Console
+coda_aux1       1431/tcp                        # coda auxiliary service
+coda_aux1       1431/udp                        # coda auxiliary service
+coda_aux2       1433/tcp                        # coda auxiliary service
+coda_aux2       1433/udp                        # coda auxiliary service
+coda_aux3       1435/tcp                        # coda auxiliary service
+coda_aux3       1435/udp                        # coda auxiliary service
+EOF
+fi
+
+# tell the kernel about the new module 
+if [ X`uname` = XLinux ]; then 
+	/sbin/depmod -a
+fi
+

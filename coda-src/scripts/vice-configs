@@ -1,0 +1,173 @@
+#!/bin/sh
+
+#
+# Configuration directory
+# 
+
+echo Setting up config files \(under /vice\).
+
+if [ ! -d /vice ]; then
+    mkdir /vice
+fi
+
+cd /vice
+
+for i in backup db srv vol bin ; do
+    if [ ! -d $i ]; then
+       mkdir $i
+    fi
+done
+
+if [ ! -d vol/remote ]; then
+    mkdir vol/remote
+fi
+
+echo Directories under /vice are set up.
+echo
+
+#
+# tokens
+#
+echo Setting up tokens for authentication.
+
+cd /vice/db
+
+for which in auth2 volutil; do
+    token=""
+    until [ x$token != x ]; do
+	echo -n "Enter a random token for $which authentication : "
+	read token
+	if [ x$token != x ]; then
+            rm -f $which.tk
+	    touch $which.tk
+	    chmod 600 $which.tk
+	    echo $token >> $which.tk
+        fi
+    done
+done
+echo done!
+
+#
+# files file for update
+#
+
+echo
+echo Setting up the file list for update
+cat > /vice/db/files <<EOF
+VLDB
+auth2.pw
+auth2.tk
+auth2.tk.BAK
+pro.db
+servers
+hosts
+vice.pdb
+vice.pcf
+volutil.tk
+VRDB
+files
+VSGDB
+dumplist
+EOF
+
+#
+# populating /vice/vol
+#
+
+echo
+echo Populating /vice/vol...
+cd /vice/vol
+echo 2130706432 > maxgroupid
+echo VolumeList > .anonr
+touch fs.lock
+touch volutil.lock
+echo done!
+
+
+#
+# setting up servers file
+#
+
+id=""
+echo
+echo Setting up servers file.
+cd /vice/db
+until [ x$id != x ]; do
+   echo -n 'Enter an id for this server (a number > 0 < 255) : '
+   read id
+   if [ x$id != x ]; then
+      echo "Coda servers file" > servers
+      echo -n "`hostname`		$id" >> servers
+   fi
+done
+echo done!
+
+#
+# making hosts file
+#
+
+hn=`hostname`
+bn=${hn%%.*}
+if [ x$bn = x ]; then
+    bn=hn
+fi
+
+
+ip=""
+
+echo 
+echo We are setting up a hostfile.  Sorry this is a bit primitive right now!
+until [ x$ip != x ]; do
+    echo -n "Enter the ip address of this host : "
+    read ip
+    if [ x$ip != x ]; then
+       echo "$ip	$bn scm localhost" > /vice/db/hosts
+    fi
+done
+
+#
+# Horrible hack needed:
+#
+ln -s `which auth2` /vice/bin
+
+#
+# /vice/.hostname /vice/.scm and 
+# 
+
+cd /vice
+echo $bn > /vice/.hostname
+echo $bn > /vice/.scm
+if [ ! -e /.hostname ]; then
+    ln -s /vice/.hostname /
+fi
+if [ ! -e /.scm ]; then
+    ln -s /vice/.scm /
+fi
+
+
+echo E0000100 $bn > /vice/db/VSGDB
+echo /vice/db/VSGDB set up
+
+#
+# adding stuff to /etc/services if needed
+#
+
+echo 
+if grep coda_filesrv /etc/services &> /dev/null ; then 
+    echo Services already present. Good.
+else
+    echo Adding services to /etc/services.
+    cat  >> /etc/services <<EOF
+# Coda server port numbers
+coda_opcons     1355/udp                        # Coda opcons
+coda_auth       1357/udp                        # Coda auth
+coda_updsrv     1359/udp                        # Coda updsrv
+coda_filesrv    1361/udp                        # Coda filesrv
+coda_venus      1363/udp                        # Coda venus
+EOF
+echo done!
+fi
+
+
+
+
