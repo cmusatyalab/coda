@@ -20,7 +20,7 @@
 #include <parser.h>
 #include <cfs/coda.h>
 #include <codadir.h>
-#include <dirprivate.h>
+#include <dirbody.h>
 
 void dt_init(int argc, char **argv);
 void dt_ok(int argc, char **argv);
