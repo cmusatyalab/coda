@@ -48,7 +48,9 @@ static int Krb4CommonInit(void)
 {
     char default_realm[REALM_SZ];
 
-    conf_init("/etc/coda/auth.conf");
+    codaconf_init("venus.conf");
+    codaconf_init("vice.conf");
+    codaconf_init("auth2.conf");
     CONF_STR(kerberos4service, "kerberos4service", "host");
 
     CONF_STR(kerberos4realm, "kerberos4realm", NULL)

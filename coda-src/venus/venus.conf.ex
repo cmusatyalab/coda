@@ -193,3 +193,14 @@ masquerade=1
 #
 #serverprobe=720
 
+#
+# Kerberos 4/5 settings.
+# These can also be placed in the "auth2.conf" file.
+#
+#kerberos4service="host"
+#kerberos4realm=
+#kerberos4kinit="kinit"
+#kerberos5service="host"
+#kerberos5realm=
+#kerberos5kinit="kinit"
+

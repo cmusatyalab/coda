@@ -105,3 +105,9 @@ trace=100
 #windowsize=32
 #zombify=0
 
+#kerberos4service="host"
+#kerberos4realm=
+#kerberos5service="host"
+#kerberos5realm=
+#kerberos5keytab=
+

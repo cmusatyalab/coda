@@ -42,15 +42,17 @@ static char *kerberos5service; /* both, defaults to "host" */
 static char *kerberos5realm;   /* both, defaults to krb5_default_realm() */
 static char *kerberos5keytab;  /* server only */
 
-static krb5_context krb5context;
+static krb5_context   krb5context;
 static krb5_principal krb5principal;
-static krb5_keytab coda_keytab = NULL;
+static krb5_keytab    krb5keytab = NULL;
 
 static int Krb5CommonInit(void)
 {
     krb5_error_code krc;
 
-    conf_init("/etc/coda/auth.conf");
+    codaconf_init("venus.conf");
+    codaconf_init("vice.conf");
+    codaconf_init("auth2.conf");
     CONF_STR(kerberos5service, "kerberos5service", "host");
 
     /* initialize Kerberos 5 contex */
@@ -137,10 +139,10 @@ int Krb5ServerInit(void)
     get_principal(NULL, &krb5principal);
 
     CONF_STR(kerberos5keytab, "kerberos5keytab", NULL)
+
     /* If the user specified a different keytab, load it */
     if (kerberos5keytab) {
-        krc = krb5_kt_resolve(krb5context, kerberos5keytab,
-                              &coda_keytab);
+        krc = krb5_kt_resolve(krb5context, kerberos5keytab, &krb5keytab);
         if (krc) {
             com_err("krb5.c", krc, "while setting keytab");
             return -1;
@@ -248,7 +250,7 @@ int Krb5Validate(RPC2_CountedBS * cIdent, RPC2_EncryptionKey hKey, RPC2_Encrypti
     authenticator.data = (krb5_pointer) cIdent->SeqBody;
 
     krc = krb5_rd_req(krb5context, &auth_context, &authenticator,
-		      krb5principal, coda_keytab, NULL, &ticket);
+		      krb5principal, krb5keytab, NULL, &ticket);
     if (krc) {
 	/* some kind of error */
 	com_err("Krb5Validate", krc, "while reading request");
