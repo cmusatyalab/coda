@@ -463,17 +463,17 @@ ViceNewConnection (IN RPC2_Integer SideEffectType,
 			 OUT ViceReintHandle RHandle);
 
 56: ViceQueryReintHandle (IN VolumeId Vid,
-			  IN ViceReintHandle RHandle[],
+			  IN ViceReintHandle RHandle,
 			  OUT RPC2_Unsigned Length);
 
 57: ViceSendReintFragment (IN VolumeId Vid,
-			   IN ViceReintHandle RHandle[],
+			   IN ViceReintHandle RHandle,
 			   IN RPC2_Unsigned Length,
 			   IN OUT SE_Descriptor BD);
 
 58: ViceCloseReintHandle (IN VolumeId Vid,
 			  IN RPC2_Integer LogSize,
-			  IN ViceReintHandle RHandle[],
+			  IN ViceReintHandle RHandle,
 			  IN RPC2_CountedBS OldVS,
 			  OUT RPC2_Integer NewVS,
 			  OUT CallBackStatus VCBStatus,

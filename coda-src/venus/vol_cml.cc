@@ -639,8 +639,10 @@ cmlent::cmlent(ClientModifyLog *Log, time_t Mtime, vuid_t vuid, int op, int Tid 
 	case OLDCML_NewStore_OP:
 	    u.u_store.Fid = *va_arg(ap, ViceFid *);
 	    u.u_store.Length = va_arg(ap, RPC2_Unsigned);
-	    bzero((void *)u.u_store.RHandle, (int) sizeof(ViceReintHandle)*VSG_MEMBERS);
-	    u.u_store.Offset = -1;
+	    memset(&u.u_store.RHandle, 0, sizeof(ViceReintHandle));
+	    u.u_store.Offset    = -1;
+	    u.u_store.ReintPH   = 0;
+	    u.u_store.ReintPHix = -1;
 	    break;
 
 	case OLDCML_Utimes_OP:
@@ -969,11 +971,13 @@ void cmlent::print(int afd) {
 	    fdprint(afd, ", length = %d\n", u.u_store.Length);
 	    fdprint(afd, "\t\tvv = ");
 	    PRINTVV(afd, u.u_store.VV);
-	    for (int i = 0; i < VSG_MEMBERS; i++) 
-		fdprint(afd, "\n\t\trhandle[%d] = (%d,%d,%d)", i,
-			u.u_store.RHandle[i].BirthTime,
-			u.u_store.RHandle[i].Device,
-			u.u_store.RHandle[i].Inode);
+	    fdprint(afd, "\n\t\trhandle = (%d,%d,%d)",
+		    u.u_store.RHandle.BirthTime,
+		    u.u_store.RHandle.Device,
+		    u.u_store.RHandle.Inode);
+	    fdprint(afd, "\tph = %s (%d)",
+		    inet_ntoa(*(struct in_addr *)&u.u_store.ReintPH),
+		    u.u_store.ReintPHix);
 	    fdprint(afd, "\n");
 	    break;
 
@@ -1639,7 +1643,7 @@ void volent::RestoreObj(ViceFid *Fid) {
     fsobj *f = FSDB->Find(Fid);
 
     /* Length attribute. */
-    long Length;
+    long Length = 0;
     cmlent *lwriter = CML.LengthWriter(Fid);
     if (lwriter == 0) {
 	FSO_ASSERT(f, f->CleanStat.Length != -1);
@@ -2204,7 +2208,7 @@ int ClientModifyLog::COP1(char *buf, int bufsize, ViceVersionVector *UpdateSet) 
 	 * uniquifier in Index have been committed at the server.  
 	 * Mark the last of those records.
 	 */
-	if (code == EALREADY) 
+	if (code == EALREADY)
 	    MarkCommittedMLE((RPC2_Unsigned) Index);
 
 	/* if there is a semantic failure, mark the offending record */
@@ -2279,11 +2283,16 @@ int ClientModifyLog::COP1(char *buf, int bufsize, ViceVersionVector *UpdateSet) 
 
 	free(OldVS.SeqBody);
 
-	/* Collate the failure index.  Grab the smallest one. */
-	for (i = 0; i < m->nhosts; i++) 
-	    if (m->rocc.hosts[i]) 
-		if (Index == UNSET_INDEX || Index > Indexvar_bufs[i]) 
+	/* Collate the failure index.  Grab the smallest one. Take special
+	 * care to treat the index different when an error is returned.
+	 * This double usage of the index is really asking for trouble! */
+	for (i = 0; i < m->nhosts; i++) {
+	    if (m->rocc.hosts[i]) {
+		if ((code != EALREADY || m->rocc.retcodes[i] == EALREADY) &&
+		    (Index == UNSET_INDEX || Index > Indexvar_bufs[i]))
 		    Index = Indexvar_bufs[i];
+	    }
+	}
 	
 	/* 
 	 * if the return code is EALREADY, the log records up to and
@@ -2291,7 +2300,7 @@ int ClientModifyLog::COP1(char *buf, int bufsize, ViceVersionVector *UpdateSet) 
 	 * uniquifier in Index have been committed at the server.  
 	 * Mark the last of those records.
 	 */
-	if (code == EALREADY) 
+	if (code == EALREADY)
 	    MarkCommittedMLE((RPC2_Unsigned) Index);
 
 	/* if there is a semantic failure, mark the offending record */
@@ -2973,32 +2982,30 @@ void cmlent::commit(ViceVersionVector *UpdateSet) {
 }
 
 
-int cmlent::HaveReintegrationHandle() {
-    int haveit = 0;
-
-    if (opcode == OLDCML_NewStore_OP)
-	for (int i = 0; i < VSG_MEMBERS; i++) 
-	    if (u.u_store.RHandle[i].BirthTime)
-		haveit++;
-
-    return(haveit);
+int cmlent::HaveReintegrationHandle()
+{
+    return (opcode == OLDCML_NewStore_OP &&
+	    u.u_store.RHandle.BirthTime);
 }
 
 
 /* MUST NOT be called from within transaction! */
-void cmlent::ClearReintegrationHandle() {
+void cmlent::ClearReintegrationHandle()
+{
     CODA_ASSERT(opcode == OLDCML_NewStore_OP);
 
     Recov_BeginTrans();
 	RVMLIB_REC_OBJECT(u);
-
-        bzero((void *)u.u_store.RHandle, (int) sizeof(ViceReintHandle)*VSG_MEMBERS);
-	u.u_store.Offset = -1;
+        memset(&u.u_store.RHandle, 0, sizeof(ViceReintHandle));
+	u.u_store.Offset    = -1;
+	u.u_store.ReintPH   = 0;
+	u.u_store.ReintPHix = -1;
    Recov_EndTrans(MAXFP);
 }
 
 
-int cmlent::DoneSending() { 
+int cmlent::DoneSending()
+{ 
     int done = 0;
 
     if (HaveReintegrationHandle() &&
@@ -3009,46 +3016,60 @@ int cmlent::DoneSending() {
 }
 
 
-int cmlent::GetReintegrationHandle() {
+int cmlent::GetReintegrationHandle()
+{
     volent *vol = strbase(volent, log, CML);
     int code = 0;
     mgrpent *m = 0;
-    int i;
+    int ph_ix;
+    unsigned long ph;
+    connent *c = 0;
     
+    /* Make sure to clear the handle, so we don't get confused then the rpc
+     * fails */
+    Recov_BeginTrans();
+	RVMLIB_REC_OBJECT(u);   
+	memset(&u.u_store.RHandle, 0, sizeof(ViceReintHandle));
+    Recov_EndTrans(MAXFP);
+
     /* Acquire an Mgroup. */
     code = vol->GetMgrp(&m, log->owner);
     if (code != 0) goto Exit;
 
+    /* Pick a server and get a connection to it. */
+    ph = m->GetPrimaryHost(&ph_ix);
+    CODA_ASSERT(ph != 0);
+    code = ::GetConn(&c, ph, log->owner, 0);
+    if (code != 0) goto Exit;
+
     {
-	ViceReintHandle VR;	/* dummy variable */
-	ARG_MARSHALL(OUT_MODE, ViceReintHandle, VR, VR, m->nhosts);
+	ViceReintHandle VR;
 
 	/* Make the RPC call. */
 	MarinerLog("store::OpenReintHandle %s\n", vol->name);
-	MULTI_START_MESSAGE(ViceOpenReintHandle_OP);
-	code = (int) MRPC_MakeMulti(ViceOpenReintHandle_OP,
-				    ViceOpenReintHandle_PTR,
-				    m->nhosts, m->rocc.handles,
-				    m->rocc.retcodes, m->rocc.MIp, 0, 0,
-				    &u.u_store.Fid, VR_ptrs);
-	MULTI_END_MESSAGE(ViceOpenReintHandle_OP);
+	UNI_START_MESSAGE(ViceOpenReintHandle_OP);
+	code = (int) ViceOpenReintHandle(c->connid, &u.u_store.Fid, &VR);
+	UNI_END_MESSAGE(ViceOpenReintHandle_OP);
 	MarinerLog("store::openreinthandle done\n");
 
 	/* Examine the return code to decide what to do next. */
-	code = vol->Collate_NonMutating(m, code);
-	MULTI_RECORD_STATS(ViceOpenReintHandle_OP);
+	code = vol->Collate(c, code);
+	UNI_RECORD_STATS(ViceOpenReintHandle_OP);
 
 	if (code != 0) goto Exit;
 
-	/* unmarshall all of the handles */
+	/* Store the handle and the primary host */
 	Recov_BeginTrans();
 	    RVMLIB_REC_OBJECT(u);
-	    for (i = 0; i < m->nhosts; i++)
-	        u.u_store.RHandle[i] = VR_bufs[i];
+	    u.u_store.RHandle   = VR;
+	    u.u_store.Offset    = -1;
+	    u.u_store.ReintPH   = ph;
+	    u.u_store.ReintPHix = ph_ix;
 	Recov_EndTrans(MAXFP);
     }
 
 Exit:
+    PutConn(&c);
     PutMgrp(&m);
     LOG(0, ("cmlent::GetReintegrationHandle: (%s), returns %s\n",
 	     vol->name, VenusRetStr(code)));
@@ -3056,42 +3077,31 @@ Exit:
 }
 
 
-int cmlent::ValidateReintegrationHandle() {
+int cmlent::ValidateReintegrationHandle()
+{
     volent *vol = strbase(volent, log, CML);
     int code = 0;
-    unsigned int i = 0;
-    mgrpent *m = 0;
-    RPC2_Integer Offset = -1;
+    connent *c = 0;
+    RPC2_Unsigned Offset = (unsigned long)-1;
     
-    /* Acquire an Mgroup. */
-    code = vol->GetMgrp(&m, log->owner);
+    /* Acquire a connection. */
+    code = ::GetConn(&c, u.u_store.ReintPH, log->owner, 0);
     if (code != 0) goto Exit;
 
     {
-	ARG_MARSHALL(OUT_MODE, RPC2_Integer, Offsetvar, Offset, m->nhosts);
-
 	/* Make the RPC call. */
 	MarinerLog("store::QueryReintHandle %s\n", vol->name);
-	MULTI_START_MESSAGE(ViceQueryReintHandle_OP);
-	code = (int) MRPC_MakeMulti(ViceQueryReintHandle_OP,
-				    ViceQueryReintHandle_PTR,
-				    m->nhosts, m->rocc.handles,
-				    m->rocc.retcodes, m->rocc.MIp, 0, 0,
-				    vol->vid, m->nhosts, u.u_store.RHandle, 
-				    Offsetvar_ptrs);
-	MULTI_END_MESSAGE(ViceQueryReintHandle_OP);
+	UNI_START_MESSAGE(ViceQueryReintHandle_OP);
+	code = (int) ViceQueryReintHandle(c->connid, vol->vid,
+					  &u.u_store.RHandle, &Offset);
+	UNI_END_MESSAGE(ViceQueryReintHandle_OP);
 	MarinerLog("store::queryreinthandle done\n");
 
 	/* Examine the return code to decide what to do next. */
-	code = vol->Collate_NonMutating(m, code);
-	MULTI_RECORD_STATS(ViceQueryReintHandle_OP);
+	code = vol->Collate(c, code);
+	UNI_RECORD_STATS(ViceQueryReintHandle_OP);
 
 	if (code != 0) goto Exit;
-
-	for (i = 0; i < m->nhosts; i++)
-	    if (m->rocc.hosts[i]) 
-		if (Offset == -1 || Offset > Offsetvar_bufs[i])
-		    Offset = Offsetvar_bufs[i];
 
 	if (Offset > u.u_store.Length)
 	    CHOKE("cmlent::QueryReintegrationHandle: offset > length! (%d, %d)\n",
@@ -3104,7 +3114,7 @@ int cmlent::ValidateReintegrationHandle() {
     }
 
 Exit:
-	PutMgrp(&m);
+    PutConn(&c);
     LOG(0, ("cmlent::QueryReintegrationHandle: (%s), returns %s, offset %d\n",
 	     vol->name, VenusRetStr(code), Offset));
     return(code);
@@ -3115,12 +3125,12 @@ int cmlent::WriteReintegrationHandle() {
     CODA_ASSERT(opcode == OLDCML_NewStore_OP);
 
     volent *vol = strbase(volent, log, CML);
-    int code = 0, bytes = 0;
-    mgrpent *m = 0;
+    int code = 0;
+    connent *c = 0;
     RPC2_Unsigned length = ReintAmount();
 
-    /* Acquire an Mgroup. */
-    code = vol->GetMgrp(&m, log->owner);
+    /* Acquire a connection. */
+    code = ::GetConn(&c, u.u_store.ReintPH, log->owner, 0);
     if (code != 0) goto Exit;
 
     {
@@ -3173,77 +3183,32 @@ int cmlent::WriteReintegrationHandle() {
 		       u.u_store.Offset, u.u_store.Length);
 	}
 
-	/* 
-	 * if the volume is weakly connected and more than one server
-	 * is available, send data to one.
-	 */
-	if (vol->IsWeaklyConnected() && m->rocc.HowMany > 1) {
-	    /* Pick a server and get a connection to it. */
-	    int ph_ix;
-	    unsigned long ph = m->GetPrimaryHost(&ph_ix);
-	    CODA_ASSERT(ph != 0);
+	/* Make the RPC call. */
+	UNI_START_MESSAGE(ViceSendReintFragment_OP);
+	code = (int) ViceSendReintFragment(c->connid, vol->vid,
+					   &u.u_store.RHandle, length, &sed);
+	UNI_END_MESSAGE(ViceSendReintFragment_OP);
+	MarinerLog("store::sendreintfragment done\n");
 
-	    connent *c = 0;
-	    code = ::GetConn(&c, ph, log->owner, 0);
-	    if (code != 0) goto Exit;
+	code = vol->Collate(c, code);
+	UNI_RECORD_STATS(ViceSendReintFragment_OP);
 
-	    /* Make the RPC call. */
-	    UNI_START_MESSAGE(ViceSendReintFragment_OP);
-	    code = (int) ViceSendReintFragment(c->connid, vol->vid, 
-					       m->nhosts, u.u_store.RHandle, 
-					       length, &sed);
-	    UNI_END_MESSAGE(ViceSendReintFragment_OP);
-	    MarinerLog("store::sendreintfragment done\n");
+	if (code != 0) goto Exit;
 
-	    code = vol->Collate(c, code);
-	    UNI_RECORD_STATS(ViceSendReintFragment_OP);
-
-	    if (code != 0) goto Exit;
-
-	    PutConn(&c);
-	    bytes = sed.Value.SmartFTPD.BytesTransferred;
-
-	} else {
-	    /* Make multiple copies of the IN/OUT and OUT parameters. */
-	    ARG_MARSHALL(IN_OUT_MODE, SE_Descriptor, sedvar, sed, m->nhosts);
-
-	    /* Make the RPC call. */
-	    MULTI_START_MESSAGE(ViceSendReintFragment_OP);
-	    code = (int) MRPC_MakeMulti(ViceSendReintFragment_OP,
-					ViceSendReintFragment_PTR,
-					m->nhosts, m->rocc.handles,
-					m->rocc.retcodes, m->rocc.MIp, 0, 0,
-					vol->vid, m->nhosts, u.u_store.RHandle, 
-					length, sedvar_bufs);
-	    MULTI_END_MESSAGE(ViceSendReintFragment_OP);
-	    MarinerLog("store::sendreintfragment done\n");
-
-	    /* Examine the return code to decide what to do next. */
-	    code = vol->Collate_NonMutating(m, code);
-	    MULTI_RECORD_STATS(ViceSendReintFragment_OP);
-
-	    if (code != 0) goto Exit;
-
-	    int dh_ix; dh_ix = -1;
-	    (void)m->DHCheck(0, -1, &dh_ix);
-	    bytes = sedvar_bufs[dh_ix].Value.SmartFTPD.BytesTransferred;
-	}
-
-	if ((long)length != bytes) 
+	if ((long)length != sed.Value.SmartFTPD.BytesTransferred) 
 	    CHOKE("cmlent::WriteReintegrateHandle: bytes mismatch (%d, %d)\n",
-		    length, bytes);
+		    length, sed.Value.SmartFTPD.BytesTransferred);
 
 	Recov_BeginTrans();
 	    RVMLIB_REC_OBJECT(u);
 	    if (u.u_store.Offset == -1) 
-	       u.u_store.Offset = length;
-	    else 
-	       u.u_store.Offset += length;
+	         u.u_store.Offset = length;
+	    else u.u_store.Offset += length;
 	Recov_EndTrans(MAXFP);
     }
 
  Exit:
-    PutMgrp(&m);
+    PutConn(&c);
     LOG(0, ("cmlent::WriteReintegrateHandle: (%s), %d bytes, returns %s, new offset %d\n",
 	     vol->name, length, VenusRetStr(code), u.u_store.Offset));
     return(code);
@@ -3255,6 +3220,7 @@ int cmlent::CloseReintegrationHandle(char *buf, int bufsize,
     volent *vol = strbase(volent, log, CML);
     int code = 0;
     mgrpent *m = 0;
+    connent *c = 0;
     
     /* Set up the SE descriptor. */
     SE_Descriptor sed;
@@ -3282,105 +3248,45 @@ int cmlent::CloseReintegrationHandle(char *buf, int bufsize,
     code = vol->GetMgrp(&m, log->owner, (PIGGYCOP2 ? &PiggyBS : 0));
     if (code != 0) goto Exit;
 
-    /* 
-     * if the volume is weakly connected and more than one server
-     * is available, pick one to reintegrate with and resolve
-     * objects with the AVSG if successful.
-     */
-    if (vol->IsWeaklyConnected() && m->rocc.HowMany > 1) {
-	/* Pick a server and get a connection to it. */
-	int ph_ix;
-	unsigned long ph = m->GetPrimaryHost(&ph_ix);
-	CODA_ASSERT(ph != 0);
+    /* Get a connection to the server. */
+    code = ::GetConn(&c, u.u_store.ReintPH, log->owner, 0);
+    if (code != 0) goto Exit;
 
-	connent *c = 0;
-	code = ::GetConn(&c, ph, log->owner, 0);
-	if (code != 0) goto Exit;
-	
-	/* don't bother with VCBs, will lose them on resolve anyway */
-	RPC2_CountedBS OldVS; 
-	OldVS.SeqLen = 0;
-	vol->ClearCallBack();
+    /* don't bother with VCBs, will lose them on resolve anyway */
+    RPC2_CountedBS OldVS; 
+    OldVS.SeqLen = 0;
+    vol->ClearCallBack();
 
-	/* Make the RPC call. */
-	MarinerLog("store::CloseReintHandle %s, (%d)\n", vol->name, bufsize);
-	UNI_START_MESSAGE(ViceCloseReintHandle_OP);
-	code = (int) ViceCloseReintHandle(c->connid, vol->vid, bufsize,
-				    m->nhosts, u.u_store.RHandle, 
-				    &OldVS, &VS, &VCBStatus, &PiggyBS, &sed);
-	UNI_END_MESSAGE(ViceCloseReintHandle_OP);
-	MarinerLog("store::closereinthandle done\n");
+    /* Make the RPC call. */
+    MarinerLog("store::CloseReintHandle %s, (%d)\n", vol->name, bufsize);
+    UNI_START_MESSAGE(ViceCloseReintHandle_OP);
+    code = (int) ViceCloseReintHandle(c->connid, vol->vid, bufsize,
+				      &u.u_store.RHandle, &OldVS, &VS,
+				      &VCBStatus, &PiggyBS, &sed);
+    UNI_END_MESSAGE(ViceCloseReintHandle_OP);
+    MarinerLog("store::closereinthandle done\n");
 
-	code = vol->Collate(c, code);
-	UNI_RECORD_STATS(ViceCloseReintHandle_OP);
+    code = vol->Collate(c, code);
+    UNI_RECORD_STATS(ViceCloseReintHandle_OP);
 
-	if (code != 0) goto Exit;
+    if (code != 0) goto Exit;
 
-	/* Finalize COP2 Piggybacking. */
-	if (PIGGYCOP2)
-	    vol->ClearCOP2(&PiggyBS);
+    /* Finalize COP2 Piggybacking. */
+    if (PIGGYCOP2)
+	vol->ClearCOP2(&PiggyBS);
 
-	LOG(0/*10*/, ("ViceCloseReintegrationHandle: transferred %d bytes\n",
-		      sed.Value.SmartFTPD.BytesTransferred));
+    LOG(0/*10*/, ("ViceCloseReintegrationHandle: transferred %d bytes\n",
+		  sed.Value.SmartFTPD.BytesTransferred));
 
-	/* Fashion the update set. */
-	InitVV(UpdateSet);
-	(&(UpdateSet->Versions.Site0))[ph_ix] = 1;
+    /* Fashion the update set. */
+    InitVV(UpdateSet);
+    (&(UpdateSet->Versions.Site0))[u.u_store.ReintPHix] = 1;
 
-	/* Indicate that objects should be resolved on commit. */
-	vol->flags.resolve_me = 1;
-
-	PutConn(&c);
-
-    } else {
-	RPC2_CountedBS OldVS;
-	vol->PackVS(m->nhosts, &OldVS);
-
-	/* Make multiple copies of the IN/OUT and OUT parameters. */
-	ARG_MARSHALL(IN_OUT_MODE, SE_Descriptor, sedvar, sed, m->nhosts);
-	ARG_MARSHALL(OUT_MODE, RPC2_Integer, VSvar, VS, m->nhosts);
-	ARG_MARSHALL(OUT_MODE, CallBackStatus, VCBStatusvar, VCBStatus, m->nhosts);
-	/* Make the RPC call. */
-	MarinerLog("store::CloseReintHandle %s, (%d)\n", vol->name, bufsize);
-	MULTI_START_MESSAGE(ViceCloseReintHandle_OP);
-	code = (int) MRPC_MakeMulti(ViceCloseReintHandle_OP,
-				    ViceCloseReintHandle_PTR,
-				    m->nhosts, m->rocc.handles,
-				    m->rocc.retcodes, m->rocc.MIp, 0, 0,
-				    vol->vid, bufsize, m->nhosts,
-				    u.u_store.RHandle, 
-				    &OldVS, VSvar_ptrs, VCBStatusvar_ptrs,
-				    &PiggyBS, sedvar_bufs);
-	MULTI_END_MESSAGE(ViceCloseReintHandle_OP);
-	MarinerLog("store::closereinthandle done\n");
-
-	free(OldVS.SeqBody);
-
-	/* Examine the return code to decide what to do next. */
-	code = vol->Collate_Reintegrate(m, code, UpdateSet);
-	MULTI_RECORD_STATS(ViceCloseReintHandle_OP);
-
-	if (code == EASYRESOLVE) { code = 0; }
-	if (code != 0) goto Exit;
-
-	/* Collate volume callback information */
-	if (cbtemp == cbbreaks)
-	    vol->CollateVCB(m, VSvar_bufs, VCBStatusvar_bufs);
-
-	/* Finalize COP2 Piggybacking. */
-	if (PIGGYCOP2) {
-	    vol->ClearCOP2(&PiggyBS);
-	}
-
-	/* Manually compute the OUT parameters from the mgrpent::Reintegrate() call! -JJK */
-	int dh_ix; dh_ix = -1;
-	(void)m->DHCheck(0, -1, &dh_ix);
-	LOG(0/*10*/, ("ViceCloseReintegrationHandle: transferred %d bytes\n",
-		      sedvar_bufs[dh_ix].Value.SmartFTPD.BytesTransferred));
-    }
+    /* Indicate that objects should be resolved on commit. */
+    vol->flags.resolve_me = 1;
 
 Exit:
-    PutMgrp(&m);
+    PutConn(&c);
     LOG(0, ("cmlent::CloseReintegrationHandle: (%s), %d bytes, returns %s\n", 
 	    vol->name, bufsize, VenusRetStr(code)));
     return(code);
@@ -4323,7 +4229,7 @@ unsigned long cmlent::ReintTime(unsigned long bw) {
 
 unsigned long cmlent::ReintAmount() {
     volent *vol = strbase(volent, log, CML);
-    int amount;
+    int amount, offset;
     unsigned long bw;	/* bandwidth, in bytes/sec */
 
     CODA_ASSERT(opcode == OLDCML_NewStore_OP);
@@ -4339,8 +4245,9 @@ unsigned long cmlent::ReintAmount() {
     else
 	amount = u.u_store.Length;
 
-    if (u.u_store.Offset + amount > u.u_store.Length)
-	amount = u.u_store.Length - u.u_store.Offset;
+    offset = u.u_store.Offset != -1 ? u.u_store.Offset : 0;
+    if (offset + amount > u.u_store.Length)
+	amount = u.u_store.Length - offset;
 
     return amount;
 }

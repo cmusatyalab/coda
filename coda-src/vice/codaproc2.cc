@@ -240,7 +240,7 @@ static int ReintNormalVCmp(int, VnodeType, void *, void *);
 static int ReintNormalVCmpNoRes(int, VnodeType, void *, void *);
 static void ReintPrelimCOP(vle *, ViceStoreId *, ViceStoreId *, Volume *);
 static void ReintFinalCOP(vle *, Volume *, RPC2_Integer *);
-static int ValidateRHandle(VolumeId, int, ViceReintHandle[], ViceReintHandle **);
+static int ValidateRHandle(VolumeId, ViceReintHandle *);
 
 
 /*
@@ -359,14 +359,12 @@ FreeLocks:
   but could be expanded to handle negotiation.
 */
 long FS_ViceQueryReintHandle(RPC2_Handle RPCid, VolumeId Vid,
-			  RPC2_Integer numHandles, ViceReintHandle RHandle[], 
-			  RPC2_Unsigned *Length)
+			     ViceReintHandle *RHandle, RPC2_Unsigned *Length)
 {
     int errorCode = 0;
     ClientEntry *client = 0;
     int fd = -1;
     struct stat status;
-    ViceReintHandle *myHandle;
 
     SLog(0/*1*/, "ViceQueryReintHandle for volume 0x%x", Vid);
 
@@ -378,23 +376,23 @@ long FS_ViceQueryReintHandle(RPC2_Handle RPCid, VolumeId Vid,
 	goto Exit;
     }	
 
-    if ((errorCode = ValidateRHandle(Vid, numHandles, RHandle, &myHandle)) )
+    if ( (errorCode = ValidateRHandle(Vid, RHandle)) )
 	goto Exit;
 
     SLog(0/*1*/, "ViceQueryReintHandle: Handle = (%d,%d,%d)",
-	   myHandle->BirthTime, myHandle->Device, myHandle->Inode);
+	   RHandle->BirthTime, RHandle->Device, RHandle->Inode);
     
     /* open and stat the inode */
-    if ((fd = iopen((int) myHandle->Device, (int) myHandle->Inode, O_RDONLY)) < 0) {
+    if ((fd = iopen((int) RHandle->Device, (int) RHandle->Inode, O_RDONLY)) < 0) {
 	SLog(0, "ViceReintQueryHandle: iopen(%d, %d) failed (%d)",
-		myHandle->Device, myHandle->Inode, errno);
+		RHandle->Device, RHandle->Inode, errno);
 	errorCode = errno;
 	goto Exit;
     }
 
     if (fstat(fd, &status) < 0) {
 	SLog(0, "ViceReintQueryHandle: fstat(%d, %d) failed (%d)",
-		myHandle->Device, myHandle->Inode, errno);
+		RHandle->Device, RHandle->Inode, errno);
 	errorCode = errno;
 	goto Exit;
     }
@@ -415,15 +413,14 @@ long FS_ViceQueryReintHandle(RPC2_Handle RPCid, VolumeId Vid,
   handle for  an upcoming reintegration.
 */
 long FS_ViceSendReintFragment(RPC2_Handle RPCid, VolumeId Vid,
-			   RPC2_Integer numHandles, ViceReintHandle RHandle[], 
-			   RPC2_Unsigned Length, SE_Descriptor *BD)
+			      ViceReintHandle *RHandle, RPC2_Unsigned Length,
+			      SE_Descriptor *BD)
 {
     int errorCode = 0;		/* return code for caller */
     ClientEntry *client = 0;	/* pointer to client structure */
     int fd = -1;
     struct stat status;
     SE_Descriptor sid;
-    ViceReintHandle *myHandle;
 
     SLog(0/*1*/, "ViceSendReintFragment for volume 0x%x", Vid);
 
@@ -433,23 +430,23 @@ long FS_ViceSendReintFragment(RPC2_Handle RPCid, VolumeId Vid,
 	goto Exit;
     }	
 
-    if ((errorCode = ValidateRHandle(Vid, numHandles, RHandle, &myHandle)) )
+    if ( (errorCode = ValidateRHandle(Vid, RHandle)) )
 	goto Exit;
 
     SLog(0/*1*/, "ViceSendReintFragment: Handle = (%d,%d,%d), Length = %d",
-	     myHandle->BirthTime, myHandle->Device, myHandle->Inode, Length);
+	     RHandle->BirthTime, RHandle->Device, RHandle->Inode, Length);
 
     /* open and stat the inode */
-    if ((fd = iopen((int) myHandle->Device, (int) myHandle->Inode, O_RDWR)) < 0) {
+    if ((fd = iopen((int) RHandle->Device, (int) RHandle->Inode, O_RDWR)) < 0) {
 	SLog(0, "ViceSendReintFragment: iopen(%d, %d) failed (%d)",
-		myHandle->Device, myHandle->Inode, errno);
+		RHandle->Device, RHandle->Inode, errno);
 	errorCode = errno;
 	goto Exit;
     }
 
     if (fstat(fd, &status) < 0) {
 	SLog(0, "ViceSendReintFragment: fstat(%d, %d) failed (%d)",
-		myHandle->Device, myHandle->Inode, errno);
+		RHandle->Device, RHandle->Inode, errno);
 	errorCode = errno;
 	goto Exit;
     }
@@ -462,19 +459,19 @@ long FS_ViceSendReintFragment(RPC2_Handle RPCid, VolumeId Vid,
     sid.Value.SmartFTPD.hashmark = (SrvDebugLevel > 2 ? '#' : '\0');
     sid.Value.SmartFTPD.Tag = FILEBYINODE;
     sid.Value.SmartFTPD.ByteQuota = Length;
-    sid.Value.SmartFTPD.FileInfo.ByInode.Device = myHandle->Device;
-    sid.Value.SmartFTPD.FileInfo.ByInode.Inode = myHandle->Inode;
+    sid.Value.SmartFTPD.FileInfo.ByInode.Device = RHandle->Device;
+    sid.Value.SmartFTPD.FileInfo.ByInode.Inode = RHandle->Inode;
 
     if((errorCode = (int) RPC2_InitSideEffect(RPCid, &sid)) <= RPC2_ELIMIT) {
 	SLog(0, "ViceSendReintFragment: InitSE failed (%d), (%d,%d,%d)",
-	       errorCode, myHandle->BirthTime, myHandle->Device, myHandle->Inode);
+	       errorCode, RHandle->BirthTime, RHandle->Device, RHandle->Inode);
 
 	goto Exit;
     }
 
     if ((errorCode = (int) RPC2_CheckSideEffect(RPCid, &sid, SE_AWAITLOCALSTATUS)) <= RPC2_ELIMIT) {
 	SLog(0, "ViceSendReintFragment: CheckSE failed (%d), (%d,%d,%d)",
-	       errorCode, myHandle->BirthTime, myHandle->Device, myHandle->Inode);
+	       errorCode, RHandle->BirthTime, RHandle->Device, RHandle->Inode);
 
 	if (errorCode == RPC2_SEFAIL1) errorCode = EIO;
 
@@ -486,7 +483,7 @@ long FS_ViceSendReintFragment(RPC2_Handle RPCid, VolumeId Vid,
     if (sid.Value.SmartFTPD.BytesTransferred != (long)Length) {
 	SLog(0, "ViceSendReintFragment: length discrepancy (%d : %d), (%d,%d,%d), %s %s.%d",
 	       Length, sid.Value.SmartFTPD.BytesTransferred, 
-	       myHandle->BirthTime, myHandle->Device, myHandle->Inode,
+	       RHandle->BirthTime, RHandle->Device, RHandle->Inode,
 	       client->UserName, client->VenusId->HostName, client->VenusId->port);
 	errorCode = EINVAL;
 
@@ -508,11 +505,11 @@ long FS_ViceSendReintFragment(RPC2_Handle RPCid, VolumeId Vid,
   to the reintegration handle.  This corresponds to the reintegration of
   a single store record.
 */
-long FS_ViceCloseReintHandle(RPC2_Handle RPCid, VolumeId Vid, RPC2_Integer LogSize, 
-			  RPC2_Integer numHandles, ViceReintHandle RHandle[], 
-			  RPC2_CountedBS *OldVS, RPC2_Integer *NewVS, 
-			  CallBackStatus *VCBStatus,
-			  RPC2_CountedBS *PiggyBS, SE_Descriptor *BD)
+long FS_ViceCloseReintHandle(RPC2_Handle RPCid, VolumeId Vid,
+			     RPC2_Integer LogSize, ViceReintHandle RHandle[], 
+			     RPC2_CountedBS *OldVS, RPC2_Integer *NewVS, 
+			     CallBackStatus *VCBStatus,
+			     RPC2_CountedBS *PiggyBS, SE_Descriptor *BD)
 {
     int errorCode = 0;
     ClientEntry *client = 0;
@@ -521,7 +518,6 @@ long FS_ViceCloseReintHandle(RPC2_Handle RPCid, VolumeId Vid, RPC2_Integer LogSi
     dlist *rlog = new dlist;
     dlist *vlist = new dlist((CFN)VLECmp);
     int	blocks = 0;
-    ViceReintHandle *myHandle = 0;
 
     SLog(0/*1*/, "ViceCloseReintHandle for volume 0x%x", Vid);
 
@@ -529,12 +525,12 @@ long FS_ViceCloseReintHandle(RPC2_Handle RPCid, VolumeId Vid, RPC2_Integer LogSi
     if ((PiggyBS->SeqLen > 0) && (errorCode = FS_ViceCOP2(RPCid, PiggyBS))) 
 	goto FreeLocks;
 
-    if ((errorCode = ValidateRHandle(Vid, numHandles, RHandle, &myHandle)))
+    if ( (errorCode = ValidateRHandle(Vid, RHandle)) )
 	goto FreeLocks;
 
     /* Phase I. */
     if ((errorCode = ValidateReintegrateParms(RPCid, &Vid, &volptr, &client,
-					     LogSize, rlog, 0, myHandle)))
+					     LogSize, rlog, 0, RHandle)))
 	goto FreeLocks;
 
     /* Phase II. */
@@ -904,6 +900,8 @@ static int ValidateReintegrateParms(RPC2_Handle RPCid, VolumeId *Vid,
 	while (r && i < (*volptr)->nReintegrators) {
 	    if ((r->sid.Host == (*volptr)->reintegrators[i].Host) &&
 		(r->sid.Uniquifier <= (*volptr)->reintegrators[i].Uniquifier)) {
+		SLog(0, "ValidateReintegrateParms: Already seen id %u < %u)",
+		     r->sid.Uniquifier, (*volptr)->reintegrators[i].Uniquifier);
 		errorCode = VLOGSTALE;
 		index = (*volptr)->reintegrators[i].Uniquifier;
 		goto Exit;
@@ -2465,9 +2463,8 @@ static void RLE_Unpack(PARM **ptr, ARG *ArgTypes ...)
  * Extract and validate the reintegration handle.  Handle errors are
  * propagated back to the client as EBADF.
  */
-static int ValidateRHandle(VolumeId Vid, int numHandles, 
-			   ViceReintHandle RHandle[], ViceReintHandle **MyHandle) {
-
+static int ValidateRHandle(VolumeId Vid, ViceReintHandle *RHandle)
+{
     SLog(10,  "ValidateRHandle: Vid = %x", Vid);
 
     /* get the volume and sanity check */
@@ -2482,13 +2479,6 @@ static int ValidateRHandle(VolumeId Vid, int numHandles,
 	goto Exit;
     }
 
-    if (ix > numHandles) {
-	SLog(0, "ValidateRHandle: Not enough handles! (%d, %d)",
-	       ix, numHandles);
-	error = EBADF;
-	goto Exit;
-    }
-	
     SLog(9,  "ValidateRHandle: Going to get volume %x pointer", 
 	   rwVid);
     volptr = VGetVolume((Error *) &error, rwVid);
@@ -2503,23 +2493,21 @@ static int ValidateRHandle(VolumeId Vid, int numHandles,
     }
 
     /* check device */
-    if ((long)V_device(volptr) != RHandle[ix].Device) {
+    if ((long)V_device(volptr) != RHandle->Device) {
 	SLog(0, "ValidateRHandle: Bad device (%d,%d)",
-	       V_device(volptr), RHandle[ix].Device);
+	       V_device(volptr), RHandle->Device);
 	error = EBADF;
 	goto FreeObj;
     }
 
     /* check age of handle */
-    if ((long)StartTime != RHandle[ix].BirthTime) {
+    if ((long)StartTime != RHandle->BirthTime) {
 	SLog(0, "ValidateRHandle: Old handle (%d,%d,%d)",
-	       RHandle[ix].BirthTime, RHandle[ix].Device, RHandle[ix].Inode);
+	       RHandle->BirthTime, RHandle->Device, RHandle->Inode);
 	error = EBADF;
 	goto FreeObj;
     }
 
-    *MyHandle = &RHandle[ix];
-    
  FreeObj:
     VPutVolume(volptr);
 

@@ -1949,8 +1949,18 @@ int mgrpent::CheckCOP1(int acode, vv_t *UpdateSet, int TranslateEincompatible) {
 
 /* This is identical to mgrpent::CheckCOP1(), EXCEPT that we want to treat */
 /* EINCOMPATIBLE results as non-maskable rather that translating them to ERETRY. */
-int mgrpent::CheckReintegrate(int acode, vv_t *UpdateSet) {
-    return(CheckCOP1(acode, UpdateSet, 0));
+int mgrpent::CheckReintegrate(int acode, vv_t *UpdateSet)
+{
+    int ret = CheckCOP1(acode, UpdateSet, 0);
+
+    /* CheckCOP1 doesn't know how to handle EALREADY, i.e. if any host
+     * returnes EALREADY we can get rid of some CML entries. */
+    if (ret == ERETRY) {
+	for (int i = 0; i < VSG_MEMBERS; i++)
+	    if (rocc.hosts[i] && rocc.retcodes[i] == EALREADY)
+		return(EALREADY);
+    }
+    return(ret);
 }
 
 

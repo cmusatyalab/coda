@@ -286,7 +286,9 @@ class cmlent {
 	    RPC2_Unsigned Length;
 	    /* T */ViceVersionVector VV;
 	    RPC2_Integer Offset;		/* for partial reintegration */
-	    ViceReintHandle RHandle[VSG_MEMBERS];
+	    ViceReintHandle RHandle;
+	    unsigned long ReintPH;		/* chosen primaryhost & index */
+	    int           ReintPHix;		/* for the partial reint. */
 	} u_store;
 	struct {				
 	    ViceFid Fid;

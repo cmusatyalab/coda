@@ -231,6 +231,7 @@ int volent::IncReintegrate(int tid) {
     if (state != Logging) return ETIMEDOUT;	/* it must be Emulating */
 
     int code = 0;
+    int done;
 
     /* Get the current CML stats for reporting diffs */
     int StartCancelled = RecordsCancelled;
@@ -246,13 +247,14 @@ int volent::IncReintegrate(int tid) {
 
     START_TIMING();
     float pre_elapsed = 0.0, inter_elapsed = 0.0, post_elapsed = 0.0;
-    for (;;) {
+    do {
 	char *buf = 0;
 	int bufsize = 0;
 	int locked = 0;
 	ViceVersionVector UpdateSet;
 	code = 0;
 	cur_reint_tid = tid; 
+	done = 1;
 
 	/* Steps 1-3 constitute the ``late prelude.'' */
 	{
@@ -350,7 +352,8 @@ extern int VprocRetryN;
 			if (v->u.u_retrycnt <= VprocRetryN) {
 extern struct timeval *VprocRetryBeta;
 			    VprocSleep(&VprocRetryBeta[v->u.u_retrycnt]);
-			    continue;
+			    done = 0;
+			    break;
                         }
 		    }
 		    if (code == EWOULDBLOCK) {
@@ -361,7 +364,8 @@ extern struct timeval *VprocRetryBeta;
 			    delay.tv_sec = 20;		/* XXX */
 			    delay.tv_usec = 0;
 			    VprocSleep(&delay);
-			    continue;
+			    done = 0;
+			    break;
 			}
 		    }
 		    /* Fall through if retry/wdblk count was exceeded ... */
@@ -398,9 +402,8 @@ extern struct timeval *VprocRetryBeta;
 
 	    END_TIMING();
 	    post_elapsed = elapsed;
-	    break;
 	}
-    }
+    } while (!done);
 
     cur_reint_tid = UNSET_TID;
     END_TIMING();
@@ -461,16 +464,18 @@ int volent::PartialReintegrate(int tid) {
     }
 
     /* 
+     * If we have a handle, check the status.
      * If this is a new transfer, get a handle from the server.
-     * Otherwise, check the status of the handle.
      */
     {
 	if (m->HaveReintegrationHandle()) 
-	    code = m->ValidateReintegrationHandle();
-	else 
+	     code = m->ValidateReintegrationHandle();
+	else code = EBADF;
+
+	if (code)
 	    code = m->GetReintegrationHandle();
 
-	if (code != 0) goto CheckResult;
+	if (code) goto CheckResult;
     }
 
     /* send some file data to the server */
