@@ -377,8 +377,8 @@ START_TIMING(GetAttr_Total);
 	MySHA->SeqLen = 0;
 
     /* Only files use SHA checksums */
-    if (!MySHA || v->vptr->disk.type != vFile)
-	goto FreeLocks;
+    if (!AllowSHA || !MySHA || v->vptr->disk.type != vFile)
+	goto SkipSHA;
 
     if (IsZeroSHA(VnSHA(v->vptr)))
     {
@@ -402,6 +402,7 @@ START_TIMING(GetAttr_Total);
 	}
     }
 
+SkipSHA:;
 FreeLocks:
     /* Put objects. */
     {

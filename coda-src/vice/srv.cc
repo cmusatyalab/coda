@@ -132,6 +132,7 @@ int probingon;			// default 0
 int optimizationson;		// default 0
 int Authenticate;		// default 1
 int AllowResolution;		// default 1, controls directory resolution 
+int AllowSHA;			// default 0, whether we calculate SHA checksums
 int comparedirreps;		// default 1 
 int pathtiming;			// default 0 
 int pollandyield;		// default 1 
@@ -1340,6 +1341,7 @@ static int ReadConfigFile(void)
     /* srv.cc defined values ... */
     CONF_INT(Authenticate,	"authenticate",	   1); 
     CONF_INT(AllowResolution,	"resolution",	   1); 
+    CONF_INT(AllowSHA,		"allow_sha",	   0); 
     CONF_INT(comparedirreps,	"comparedirreps",  1); 
     CONF_INT(pollandyield,	"pollandyield",    1); 
     CONF_INT(pathtiming,	"pathtiming",	   1);
