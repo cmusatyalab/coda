@@ -27,6 +27,10 @@ case `uname -s` in
 	    SERVICES=/cygdrive/$d/WINNT/system32/drivers/etc/SERVICES
 	    break
 	  fi
+	  if [ -f /cygdrive/$d/WINDOWS/system32/drivers/etc/SERVICES ] ; then
+	    SERVICES=/cygdrive/$d/WINDOWS/system32/drivers/etc/SERVICES
+	    break
+	  fi
 	done
 	if [ x$SERVICES = x ] ; then
 	    echo "I can not find your Windows SERVICES file.  You will"
