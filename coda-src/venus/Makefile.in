@@ -29,7 +29,7 @@ EXECUTABLES = venus
 CSBINS      = venus
 LIBRARIES   =
 HEADERS	    = advice.h hdb.h
-CCONFFILES  = venus.conf.ex
+CCONFFILES  = venus.conf.ex realms
 
 #Turn off data collection
 #CFLAGS += -DVENUS -DTIMING -DVENUSDEBUG -DRVM_USELWP 

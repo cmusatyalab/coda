@@ -711,19 +711,22 @@ OI_FreeLocks:
 
 		    /* Volume name. */
                     char name[V_MAXVOLNAMELEN];
-#if 0 /* Avoid setting the volumename, otherwise cfs setquota renames all
-         volume replicas to that of their replicated parent. This might
-         confuse ViceGetVolumeInfo and leads to subtle corruption. --JH */
 		    unsigned long namelen = strlen(cp) + 1;
 		    if (namelen >= V_MAXVOLNAMELEN) { u.u_error = EINVAL; break; }
 		    strcpy(name, cp);
-#else
-                    unsigned long namelen = 0;
-#endif
+
 		    RPC2_BoundedBS Name;
 		    Name.SeqBody = (RPC2_ByteSeq)name;
 		    Name.MaxSeqLen = V_MAXVOLNAMELEN;
+#if 0
+		    /* Avoid setting the volumename, otherwise cfs setquota
+		     * renames all volume replicas to that of their replicated
+		     * parent. This might confuse ViceGetVolumeInfo and leads
+		     * to subtle corruption. --JH */
 		    Name.SeqLen = namelen;
+#else
+		    Name.SeqLen = 0;
+#endif
 		    cp += namelen;
 
 		    /* Offline message for this volume. */

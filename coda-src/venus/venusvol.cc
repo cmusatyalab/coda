@@ -270,24 +270,27 @@ int VOL_HashFN(const void *key)
     return volid->Realm + volid->Volume;
 }
 
-static int GetRootVolume(Realm *realm, char buf[V_MAXVOLNAMELEN])
+static int GetRootVolume(Realm *realm, char **buf)
 {
     connent *c = NULL;
-    int code = ENOENT;
+    int code;
     RPC2_BoundedBS RVN;
 
-    memset(buf, 0, V_MAXVOLNAMELEN);
+    *buf = (char *)malloc(V_MAXVOLNAMELEN);
+    if (!*buf) return ENOMEM;
+
+    memset(*buf, 0, V_MAXVOLNAMELEN);
 
     RVN.MaxSeqLen = V_MAXVOLNAMELEN-1;
     RVN.SeqLen = 0;
-    RVN.SeqBody = (RPC2_ByteSeq)buf;
+    RVN.SeqBody = (RPC2_ByteSeq)*buf;
 
     /* Get the connection. */
     if (realm->GetAdmConn(&c) != 0) {
 	LOG(100, ("GetRootVolume: can't get admin connection for realm %s!\n",
 		  realm->Name()));
 	RPCOpStats.RPCOps[ViceGetRootVolume_OP].bad++;
-	return code;
+	return ENOENT;
     }
 
     /* Make the RPC call. */
@@ -302,7 +305,7 @@ static int GetRootVolume(Realm *realm, char buf[V_MAXVOLNAMELEN])
     PutConn(&c);
 
     LOG(10, ("GetRootVolume: (%s) received name: %s, code: %d\n",
-	     realm->Name(), buf, code));
+	     realm->Name(), *buf, code));
 
     return code;
 }
@@ -429,12 +432,15 @@ volent *vdb::Create(Realm *realm, VolumeInfo *volinfo, const char *volname)
 
     /* Check whether the key is already in the database. */
     if ((v = Find(&volid))) {
-	if (strncmp(v->name, volname, V_MAXVOLNAMELEN) != 0) {
+	if (strcmp(v->name, volname) != 0) {
 	    eprint("reinstalling volume %s (%s)", v->GetName(), volname);
 
 	    Recov_BeginTrans();
 
-	    rvmlib_set_range(v->name, V_MAXVOLNAMELEN);
+	    RVMLIB_REC_OBJECT(v->name);
+	    rvmlib_rec_free(v->name);
+	    v->name = (char *)rvmlib_rec_malloc(strlen(volname) + 1);
+	    rvmlib_set_range(v->name, strlen(volname) + 1);
 	    strcpy(v->name, volname);
 
 	    Recov_EndTrans(0);
@@ -566,7 +572,7 @@ int vdb::Get(volent **vpp, Realm *prealm, const char *name)
     volent *v = NULL;
     char *realm_name = NULL;
     Realm *realm;
-    char *volname = strdup(name), *name2 = NULL;
+    char *volname = strdup(name);
     CODA_ASSERT(volname);
 
     SplitRealmFromName(volname, &realm_name);
@@ -584,14 +590,18 @@ int vdb::Get(volent **vpp, Realm *prealm, const char *name)
 	if (realm == prealm) {
 	    code = ELOOP;
 	    goto error_exit;
+#if 0
+	    /* Ivan Popov's suggestion, we just need to allow for long volume
+	     * names and have a realm relative GetPath implementation */
+	    long_volname = f->GetPath(REALM_RELATIVE, buf);
+	} else {
+	    long_volname = "";
+#endif
 	}
 
-	name2 = volname;
-	volname = (char *)malloc(V_MAXVOLNAMELEN);
-	CODA_ASSERT(volname);
-
-	code = GetRootVolume(realm, volname);
-	if (code != 0)
+	free(volname);
+	code = GetRootVolume(realm, &volname);
+	if (code)
 	    goto error_exit;
     }
 
@@ -642,8 +652,12 @@ int vdb::Get(volent **vpp, Realm *prealm, const char *name)
 	char fakename[V_MAXVOLNAMELEN];
 	sprintf(fakename, "%lu", v->GetVolumeId());
 	CODA_ASSERT(Find(realm, fakename) == 0);
+
 	Recov_BeginTrans();
-	rvmlib_set_range(v->name, V_MAXVOLNAMELEN);
+	RVMLIB_REC_OBJECT(v->name);
+	rvmlib_rec_free(v->name);
+	v->name = (char *)rvmlib_rec_malloc(strlen(fakename) + 1);
+	rvmlib_set_range(v->name, strlen(fakename) + 1);
 	strcpy(v->name, fakename);
 	Recov_EndTrans(MAXFP);
 
@@ -673,8 +687,8 @@ Exit:
 
 error_exit:
     realm->PutRef();
-    free(volname);
-    if (name2) free(name2);
+    if (volname)
+	free(volname);
     return code;
 }
 
@@ -864,6 +878,8 @@ volent::volent(Realm *r, VolumeId volid, const char *volname)
     r->Rec_GetRef();
     realm = r;
     vid = volid;
+    name = (char *)rvmlib_rec_malloc(strlen(volname) + 1);
+    rvmlib_set_range(name, strlen(volname) + 1);
     strcpy(name, volname);
 
     flags.reserved = 0;
@@ -926,6 +942,8 @@ volent::~volent()
     }
 
     realm->Rec_PutRef();
+
+    rvmlib_rec_free(name);
 
     if (refcnt != 0)
 	{ print(logFile); CHOKE("volent::~volent: non-zero refcnt"); }
@@ -2296,15 +2314,13 @@ static VolumeId stagingvid = 0xFF000000;
 void repvol::SetStagingServer(struct in_addr *srvr)
 {
     VolumeInfo StagingVol;
-    char stagingname[V_MAXVOLNAMELEN];
 
     if (ro_replica)
 	VDB->Put((volent **)&ro_replica);
 
     if (srvr->s_addr) {
+	char *stagingname = (char *)malloc(strlen(name) + 4);
 	strcpy(stagingname, name);
-	/* make sure we don't overflow stagingname when appending ".ro" */
-	stagingname[V_MAXVOLNAMELEN-4] = '\0';
 	strcat(stagingname, ".ro");
 
 	memset(&StagingVol, 0, sizeof(VolumeInfo));
@@ -2321,7 +2337,8 @@ void repvol::SetStagingServer(struct in_addr *srvr)
 	 * same realm as the other replicas because of authentication issues?
 	 * I guess it depends on how authentication with staging servers ends
 	 * up being resolved. --JH */
-	ro_replica = (volrep *)VDB->Create(realm, &StagingVol,stagingname);
+	ro_replica = (volrep *)VDB->Create(realm, &StagingVol, stagingname);
+	free(stagingname);
 
 	if (ro_replica) {
 	    ro_replica->hold();

@@ -612,7 +612,7 @@ class volent {
     int operator=(volent&) { abort(); return(0); }/* not supported! */
 
   protected:
-    char name[V_MAXVOLNAMELEN];
+    char *name;
     VolumeId vid;
     Realm *realm;
     VolFlags flags;
