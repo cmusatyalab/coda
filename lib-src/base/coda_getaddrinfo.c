@@ -300,8 +300,13 @@ int coda_getaddrinfo(const char *node, const char *service,
 		     const struct RPC2_addrinfo *hints,
 		     struct RPC2_addrinfo **res)
 {
-    struct RPC2_addrinfo *srvs = NULL;
+    struct RPC2_addrinfo Hints, *srvs = NULL;
     int err;
+
+    if (hints) {
+	Hints = *hints;
+	hints = &Hints;
+    }
 
     err = RPC2_EAI_NONAME;
     if (hints && (hints->ai_flags & CODA_AI_RES_SRV))
@@ -330,7 +335,7 @@ int coda_getaddrinfo(const char *node, const char *service,
 #endif
 
 	/* lower layers don't really like unknown flagbits */
-	hints->ai_flags &= ~CODA_AI_RES_SRV;
+	Hints.ai_flags &= ~CODA_AI_RES_SRV;
 
 	/* try to find SRV records */
 	err = do_srv_lookup(node, service, hints, &srvs);
