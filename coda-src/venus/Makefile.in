@@ -29,7 +29,7 @@ EXECUTABLES = venus
 CSBINS      = venus
 LIBRARIES   =
 HEADERS	    = advice.h hdb.h newplumb.h coda_expansion.h
-CCONFFILES  = venus.conf
+CCONFFILES  = venus.conf.ex
 
 #Turn off data collection
 #CFLAGS = $(CFLAGS) -DVENUS -DTIMING -DDISABLE_VMON -DVENUSDEBUG -DRVM_USELWP

@@ -84,6 +84,8 @@ int   CacheBlocks = UNSET_CB;
 char *RootVolName = UNSET_RV;
 vuid_t PrimaryUser = (vuid_t)UNSET_PRIMARYUSER;
 char *SpoolDir = UNSET_SPOOLDIR;
+char *VenusPidFile = NULL;
+char *VenusControlFile = NULL;
 
 /* *****  Private constants  ***** */
 
@@ -210,13 +212,26 @@ int main(int argc, char **argv) {
 	    if (rdfds & KernelMask)
 		WorkerMux(rdfds);
 	}
+	/* set in sighand.cc whenever we want to perform a clean shutdown */
+	if (TerminateVenus)
+	    break;
 
 	/* Fire daemons that are ready to run. */
 	DispatchDaemons();
     }
 
-    /* NOTREACHED */
-    return(0); /* to pacify g++ */
+    LOG(0, ("Venus exiting\n"));
+
+    VDB->FlushVolume();
+    RecovFlush(1);
+    RecovTerminate();
+    VFSUnmount();
+    (void)CheckAllocs("TERM");
+    fflush(logFile);
+    fflush(stderr);
+
+    LWP_TerminateProcessSupport();
+    exit(0);
 }
 
 int getip(char *addr)
@@ -457,6 +472,26 @@ static void DefaultCmdlineParms()
 	    eprint("Cannot start: minimum number of hoard entries is %d",
 		   MIN_HDBE);
 	    exit(-1); 
+	}
+    }
+
+    CONF_STR(VenusPidFile, "pid_file", NULL);
+    {
+#define PIDFILE "/pid"
+	if (!VenusPidFile) {
+	    VenusPidFile = (char *)malloc(strlen(CacheDir)+strlen(PIDFILE)+1);
+	    strcpy(VenusPidFile, CacheDir);
+	    strcat(VenusPidFile, PIDFILE);
+	}
+    }
+
+    CONF_STR(VenusControlFile, "control_file", NULL);
+    {
+#define CTRLFILE "/VENUS_CTRL"
+	if (!VenusControlFile) {
+	    VenusControlFile=(char*)malloc(strlen(CacheDir)+strlen(CTRLFILE)+1);
+	    strcpy(VenusControlFile, CacheDir);
+	    strcat(VenusControlFile, CTRLFILE);
 	}
     }
 

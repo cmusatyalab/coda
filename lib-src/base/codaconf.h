@@ -34,9 +34,6 @@ char *conf_lookup(char *name, char *defaultvalue);
 /* conf_free releases all resources allocated for the configuration data */
 void conf_free(void);
 
-/* normally stderr, error message are written here */
-extern FILE *conf_errout;
-
 /* helpers */
 #include "coda_string.h"
 

@@ -29,9 +29,6 @@ Coda are listed in the file CREDITS.
 #undef CONFDEBUG
 #undef CONFWRITE
 
-/* where to write error messages to? */
-FILE *conf_errout = stderr;
-
 /* buffer to read lines of config data */
 #define MAXLINELEN 256
 static char line[MAXLINELEN];
@@ -127,8 +124,8 @@ static void conf_parse_line(char *line, int lineno,
     /* find the beginning of the value */
     eon = val = strchr(line, '=');
     if (!eon) {
-        fprintf(conf_errout, "Configuration error in line %d, "
-                             "missing '='.\n", lineno);
+        fprintf(stderr, "Configuration error in line %d, "
+		        "missing '='.\n", lineno);
         return;
     }
 
@@ -139,8 +136,8 @@ static void conf_parse_line(char *line, int lineno,
     /* blanks before the value are an error (for bash, so also for us) */
     val++;
     if (*val == ' ' || *val == '\t') {
-        fprintf(conf_errout, "Configuration error in line %d, "
-                             "no blanks allowed after the '='.\n", lineno);
+        fprintf(stderr, "Configuration error in line %d, "
+                        "no blanks allowed after the '='.\n", lineno);
         return;
     }
     /* sort of handle quoting */
@@ -180,7 +177,7 @@ int conf_init(char *cf)
 
     conf = fopen(cf, "r");
     if (!conf) {
-        fprintf(conf_errout, "Cannot find configuration file '%s'\n", conffile);
+        fprintf(stderr, "Cannot find configuration file '%s'\n", conffile);
         return(-1);
     }
     

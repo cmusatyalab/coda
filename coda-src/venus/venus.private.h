@@ -361,6 +361,8 @@ extern char *CacheDir;
 extern int CacheBlocks;
 extern char *RootVolName;
 extern vuid_t PrimaryUser;
+extern char *VenusPidFile;
+extern char *VenusControlFile;
 
 /* spool.cc */
 extern void SpoolInit();

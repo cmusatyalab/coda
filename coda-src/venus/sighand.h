@@ -33,6 +33,7 @@ listed in the file CREDITS.
 #ifndef	_VENUS_SIGHAND_H_
 #define	_VENUS_SIGHAND_H_ 1
 
-extern void SigInit();
+void SigInit(void);
+extern int TerminateVenus;
 
-#endif	not _VENUS_SIGHAND_H_
+#endif /* _VENUS_SIGHAND_H_ */

@@ -17,14 +17,17 @@
 # 
 #*/
 
+# the default pid and run_control files
+pid_file=/usr/coda/venus.cache/pid
+run_control_file=/usr/coda/venus.cache/VENUS_CTRL
+
+# and override the defaults using the values from venus.conf
+prefix=@prefix@
+source @sysconfdir@/venus.conf
 
 prog=$0
 kill=/bin/kill
-vpid=`/bin/cat /usr/coda/venus.cache/pid`
-ckpfile=/usr/coda/venus.cache/DUMP
-copfile=/usr/coda/venus.cache/COPMODES
-mcfile=/usr/coda/venus.cache/MCAST
-debugfile=/usr/coda/venus.cache/DEBUG
+vpid=`/bin/cat $pid_file`
 
 usage ()
 {
@@ -59,46 +62,43 @@ fi
 
 case $par in
 	ckp )
-	    echo > ${ckpfile}
-	    ${kill} -USR1 ${vpid}
+	    # seems to be not implemented/activated in venus.
+	    echo CHECKPOINT > ${run_control_file}
+	    ${kill} -HUP ${vpid}
 	    ;;
 
 	m )
-	    if [ x$2 = x0 ]; then  usage ; fi
+	    # seems to be not implemented/activated in venus.
 	    val="$2"
-	    if [ "$val" != 0 -a "$val" != 2 -a "$val" != 3 -a "$val" != 6 -a "$val" != 7 ]; then
+	    if [ x$val != x0 -a x$val != x2 -a x$val != x3 -a x$val != x6 -a x$val != x7 ]; then
 		usage
 	    fi
-	    echo "$val" > ${copfile}
-	    ${kill} -USR1 ${vpid}
+	    echo "COPMODES $val" > ${run_control_file}
+	    ${kill} -HUP ${vpid}
 	    ;;
 
 	cs )
-	    ${kill} -XFSZ ${vpid}
+	    echo "STATSINIT" > ${run_control_file}
+	    ${kill} -HUP ${vpid}
 	    ;;
 
 	d )
 	    if [ x$2 = x ]; then  usage ; fi
-	    echo "$2 $3" > ${debugfile}
-	    ${kill} -USR1 ${vpid}
+	    echo "DEBUG $2 $3 $4" > ${run_control_file}
+	    ${kill} -HUP ${vpid}
 	    ;;
 
 	mc )
-	    if [ x$2 = x ]; then  usage ; fi
-	    if  [ x$3 != x -a "$3" != 1 ]; then usage ; fi
-	    echo "$2 $3" > ${mcfile}
-	    ${kill} -USR1 ${vpid}
+	    # seems to be not implemented/activated in venus.
+	    if  [ x$2 != x0 -a x$2 != x1 ]; then usage ; fi
+	    echo "MCAST $2" > ${run_control_file}
+	    ${kill} -HUP ${vpid}
 	    ;;
 
 	p )
-	    if [ x$2 = x ]; then  usage ; fi
-	    val="$2"
-	    if [ $val = 0 ]; then
-		${kill} -EMT ${vpid}
-	    else
-		if [ "$val" != 1 ]; then usage ; fi
-		${kill} -IOT ${vpid}
-	    fi
+	    # seems to be not implemented/activated in venus.
+	    if  [ x$2 != x0 -a x$2 != x1 ]; then usage ; fi
+	    echo "PROFILING $2" > ${run_control_file}
 	    ;;
 
 	shutdown )
@@ -106,11 +106,13 @@ case $par in
 	    ;;
 
 	stats )
-	    ${kill} -XCPU ${vpid}
+	    echo STATS > ${run_control_file}
+	    ${kill} -HUP ${vpid}
 	    ;;
 
 	swap )
-	    ${kill} -VTALRM ${vpid}
+	    echo SWAPLOGS > ${run_control_file}
+	    ${kill} -HUP ${vpid}
 	    ;;
 
 	kdebug )

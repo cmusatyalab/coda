@@ -74,4 +74,14 @@ cachedir=/usr/coda/venus.cache
 # the CML during reintegration. (default is /usr/coda/spool)
 #
 checkpointdir=/usr/coda/spool
+	
+#
+# Where does venus store it's pidfile
+#
+pid_file=/usr/coda/venus.cache/pid
+ 
+#
+# What file does vutil use to control venus 
+#
+run_control_file=/usr/coda/venus.cache/VENUS_CTRL
 

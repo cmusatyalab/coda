@@ -90,6 +90,7 @@ rvm-src/rds/Makefile
 rvm-src/tests/Makefile 
 coda-src/Makefile 
 coda-src/scripts/Makefile 
+coda-src/scripts/vutil 
 coda-src/kerndep/Makefile 
 coda-src/partition/Makefile 
 coda-src/dir/Makefile  
