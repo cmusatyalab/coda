@@ -48,10 +48,10 @@ LWP_BASHER_LIBS = $(LIBRDSLWP) $(LIBSEG) $(LIBRVMLWP) $(LIBBASE)
 
 
 testrvm: testrvm.o $(TESTRVM_LIBS)
-	$(CC) $(LIBFLAGS) $(LDFLAGS) testrvm.o $(TESTRVM_LIBS) -o testrvm
+	$(CC) $(LDFLAGS) testrvm.o $(TESTRVM_LIBS) -o testrvm
 
 rvm_basher: rvm_basher.o $(RVM_BASHER_LIBS)
-	$(CC) $(LIBFLAGS) $(LDFLAGS) rvm_basher.o $(RVM_BASHER_LIBS) -o rvm_basher
+	$(CC) $(LDFLAGS) rvm_basher.o $(RVM_BASHER_LIBS) -o rvm_basher
 
 # Coda-specific installations
 
@@ -62,7 +62,7 @@ lwp_basher.o:	rvm_basher.c
 	-mv xxx_basher.o rvm_basher.o
 
 lwp_basher: lwp_basher.o $(LWP_BASHER_LIBS)
-	    $(CC) $(LIBFLAGS) $(LDFLAGS) lwp_basher.o $(LWP_BASHER_LIBS) \
+	    $(CC) $(LDFLAGS) lwp_basher.o $(LWP_BASHER_LIBS) \
 		$(LIBLWP) $(LIBCOMPAT) -o lwp_basher
 
 
