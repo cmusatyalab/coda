@@ -29,12 +29,16 @@ mv /vice/srv/SrvErr /vice/srv/SrvErr.prev 2>/dev/null
 rm -f /vice/srv/SrvLog-7
 rm -f /vice/srv/CRASH
 
+if [ -f /vice/srv/ZOMBIFY ]; then
+    XFLAGS=-zombify
+fi
+
 # pass on arguments to srv
 # The -rvm flag takes 3 arguments. The first is the log device/file,
 # the second is the data segment device/file, and the third is the
 # length of the file or device holding the RVM data segment.
 # These parameters are taken from /vice/srv.conf
 
-codasrv $* -t 1000 -trunc 5 -debarrenize -nosalvageonshutdown -nodumpvm `grep '^\-rvm ' /vice/srv.conf`
+codasrv $* $XFLAGS -t 1000 -trunc 5 -debarrenize -nosalvageonshutdown -nodumpvm `grep '^\-rvm ' /vice/srv.conf`
 
 rm -f /vice/srv/pid

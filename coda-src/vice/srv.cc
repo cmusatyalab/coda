@@ -345,6 +345,8 @@ int main(int argc, char *argv[])
     SFTP_Initializer sei;
     ProgramType *pt;
 
+    coda_assert_action = CODA_ASSERT_EXIT;
+
     if(ParseArgs(argc,argv)) {
 	SLog(0, "usage: srv [-d (debug level)] [-p (number of processes)] ");
 	SLog(0, "[-b (buffers)] [-l (large vnodes)] [-s (small vnodes)]");
@@ -357,7 +359,7 @@ int main(int argc, char *argv[])
 	SLog(0, " [-nocmp] [-nopy] [-nodumpvm] [-nosalvageonshutdown] [-mondhost hostname] [-mondport portnumber]");
 	SLog(0, "[-debarrenize] [-optstore] [-dir workdir] [-srvhost host]");
 	SLog(0, " [-rvmopt] [-newchecklevel checklevel] [-canonicalize] [-usenscclock");
-	SLog(0, " [-nowriteback] [-mapprivate]");
+	SLog(0, " [-nowriteback] [-mapprivate] [-zombify]");
 
 	exit(-1);
     }
@@ -1337,6 +1339,9 @@ static int ParseArgs(int argc, char *argv[])
 	    AL_DebugLevel = SrvDebugLevel/10;
 	    DirDebugLevel = SrvDebugLevel;
 	}
+	else 
+	    if (!strcmp(argv[i], "-zombify"))
+		coda_assert_action = CODA_ASSERT_SLEEP;
 	else 
 	    if (!strcmp(argv[i], "-rpcdebug"))
 		RPC2_DebugLevel = atoi(argv[++i]);
