@@ -850,10 +850,6 @@ int fsobj::GetAttr(vuid_t vuid, RPC2_BoundedBS *acl) {
     	    }
 	}
 
-	Recov_BeginTrans();
-	UpdateStatus(&status, vuid);
-	Recov_EndTrans(CMFP);
-
 	/* Read/Write Sharing Stat Collection */
 	if (flags.discread) {	
 	    Recov_BeginTrans();
@@ -861,6 +857,10 @@ int fsobj::GetAttr(vuid_t vuid, RPC2_BoundedBS *acl) {
 	    flags.discread = 0;
 	    Recov_EndTrans(MAXFP);
 	}
+
+	Recov_BeginTrans();
+	UpdateStatus(&status, vuid);
+	Recov_EndTrans(CMFP);
 
 	if (flags.usecallback &&
 	    status.CallBack == CallBackSet &&
