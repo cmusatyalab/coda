@@ -1513,12 +1513,8 @@ void free_log_buf();                    /* [rvm_logrecovr.c] */
 /* [rvm_map.c] */
 void init_map_roots(void);
 rvm_return_t bad_region(rvm_region_t *rvm_region);
-rvm_bool_t rvm_register_page(char *vmaddr, rvm_length_t length);
-rvm_bool_t rvm_unregister_page(char *vmaddr, rvm_length_t length);
-rvm_page_entry_t *find_page_entry(char *vmaddr);
 char *page_alloc(rvm_length_t len);
 void page_free(char *vmaddr, rvm_length_t length);
-rvm_bool_t mem_chk(char *vmaddr, rvm_length_t length);
 long open_seg_dev(seg_t *seg, rvm_offset_t *dev_length);
 long close_seg_dev(seg_t *seg);
 rvm_return_t close_all_segs(void);

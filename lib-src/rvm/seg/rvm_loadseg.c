@@ -63,10 +63,9 @@ rvm_load_segment(char *DevName, rvm_offset_t DevLength, rvm_options_t *options,
         err = allocate_vm(&(hdr_region->vmaddr), hdr_region->length);
 	if (err != RVM_SUCCESS)
 	    return err;
-    } else 
-      if (!rvm_register_page(hdr_region->vmaddr, hdr_region->length))
-	return RVM_EINTERNAL;
-    
+    }
+    /* else, as vmaddr is NULL, the segment will be pre-allocated and
+     * registered by rvm_map->establish_range->round_region->page_alloc -JH */
     
     err = rvm_map(hdr_region,options);
     if (err != RVM_SUCCESS)

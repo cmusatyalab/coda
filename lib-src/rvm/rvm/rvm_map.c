@@ -972,7 +972,7 @@ static rvm_return_t map_data(rvm_options,region)
 static void clean_up(region,mem_region)
     region_t        *region;
     mem_region_t    *mem_region;
-    {
+{
     seg_t           *seg;
 
     /* kill region descriptor if created */
@@ -998,13 +998,11 @@ static void clean_up(region,mem_region)
             });
         free_mem_region(mem_region);
         }
-    }
+}
 
 /* rvm_map */
-rvm_return_t rvm_map(rvm_region,rvm_options)
-    rvm_region_t        *rvm_region;
-    rvm_options_t       *rvm_options;
-    {
+rvm_return_t rvm_map(rvm_region_t *rvm_region, rvm_options_t *rvm_options)
+{
     seg_t               *seg;              /* segment descriptor */
     region_t            *region = NULL;    /* new region descriptor */
     mem_region_t        *mem_region= NULL; /* new region's tree node */
@@ -1047,37 +1045,33 @@ rvm_return_t rvm_map(rvm_region,rvm_options)
         goto err_exit;
     
     /* Do the private map or get the data from the segment */
-    if (rvm_map_private)
-        {
+    if (rvm_map_private) {
 	fd = open(rvm_region->data_dev, O_RDONLY);
-	if ( fd < 0 )
-	    {
+	if ( fd < 0 ) {
 	    retval = RVM_EIO;
 	    goto err_exit;
-	    }
+	}
 	addr = mmap(rvm_region->vmaddr, rvm_region->length, 
 		    PROT_READ | PROT_WRITE, MAP_FIXED | MAP_PRIVATE, 
 		    fd, region->offset.low);
-	if (rvm_region->vmaddr && addr != rvm_region->vmaddr)
-	    {
+	if (!rvm_region->vmaddr)
+	    rvm_region->vmaddr = addr;
+
+	if (addr != rvm_region->vmaddr) {
 	    retval = RVM_ENOT_MAPPED;
 	    goto err_exit;
-	    }
-	if (close(fd))
-	    {
-	    retval =  RVM_EIO;
+	}
+	if (close(fd)) {
+	    retval = RVM_EIO;
 	    goto err_exit;
-	    }
 	}
-    else
-        {
+    } else {
         /* get the data from the segment */
-        if ((retval = map_data(rvm_options,region)) != RVM_SUCCESS)
-            {
+        if ((retval = map_data(rvm_options,region)) != RVM_SUCCESS) {
             rvm_region->length = 0;
-            goto err_exit;
-            }
+	    goto err_exit;
 	}
+    }
 
     /* complete region tree node and exit*/
     mem_region->region = region;
@@ -1088,4 +1082,4 @@ rvm_return_t rvm_map(rvm_region,rvm_options)
     (void)BCOPY((char *)&save_rvm_region,(char *)rvm_region,
                sizeof(rvm_region_t));
     return retval;
-    }
+}
