@@ -25,7 +25,7 @@
 # improvements or extensions that  they  make,  and  to  grant  Carnegie
 # Mellon the rights to redistribute these changes without encumbrance.
 # 
-# static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vtools/Makefile.in,v 4.3 97/04/29 21:27:25 rvb Exp $";
+# static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/guitools/Makefile.in,v 1.1 97/12/16 15:02:33 braam Exp $";
 
 
 TOPDIR = @top_srcdir@
@@ -71,10 +71,6 @@ TCLSCRIPTS  = 	Advice.tcl              \
 
 
 CLIBS	    = $(TCLSCRIPTS)
-
-CODAWISH_LIBS  = $(LIBTIX) $(LIBTK) $(LIBTCL) $(LIBMATH) $(LIBX11)
-
-CFLAGS = -I$(INCTIX) -I$(INCTK) -I$(INCTCL) -I$(INCX11)
 
 
 CodaConsole: CodaConsole.in translate.sed
