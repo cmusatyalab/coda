@@ -196,7 +196,8 @@ void rpc2_HandlePacket(RPC2_PacketBuffer *pb)
         struct CEntry *ce;
 	assert(pb->Prefix.Qname == &rpc2_PBList);
 
-	if (ntohl(pb->Header.LocalHandle) == -1) {
+	if ((ntohl(pb->Header.LocalHandle) == -1) || 
+	    (ntohl(pb->Header.Opcode) == RPC2_NAKED)) {
 		assert(pb->Prefix.Qname == &rpc2_PBList);
 		HandleSLPacket(pb);
 		return;
