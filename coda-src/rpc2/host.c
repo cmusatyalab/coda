@@ -378,7 +378,7 @@ void rpc2_UpdateEstimates(struct HEntry *host, struct timeval *elapsed,
     eL -= (host->RTTVar >> RPC2_RTTVAR_SHIFT);
     host->RTTVar += eL;
 
-    say(-1, RPC2_DebugLevel,
+    say(0, RPC2_DebugLevel,
 	"Est: %s %4ld.%06lu/%-5lu RTT:%lu/%lu us BR:%lu/%lu ns/B\n",
 	    inet_ntoa(host->Host), elapsed->tv_sec, elapsed->tv_usec, Bytes,
 	    host->RTT>>RPC2_RTT_SHIFT, host->RTTVar>>RPC2_RTTVAR_SHIFT,
