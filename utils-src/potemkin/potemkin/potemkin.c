@@ -20,6 +20,13 @@
 
 
 #ifdef __linux__
+#define KERNEL y
+#define __KERNEL__ y
+#define __kernel_fsid_t int
+#define umode_t int
+#undef KERNEL
+#undef __KERNEL__
+#include <linux/fs.h>
 #include <mntent.h>
 #else /* __linux__ */
 #include <sys/file.h>
@@ -137,7 +144,7 @@ fid_fullname(fid_ent_t *fep)
     } while (fep != NULL);
 
     for (i=depth-1; i>=0; --i) {
-	    if ( fidlist[i]->name[0] == '.' && 
+	    if ( i != depth-1 && fidlist[i]->name[i] == '.' && 
 		 strlen(fidlist[i]->name)  == 1)
 		    continue;
 	length += strlen(fidlist[i]->name)+1;  /* component + '/' or '\0' */
@@ -1130,23 +1137,24 @@ DoRemove(union inputArgs *in, union outputArgs *out, int *reply)
     }
     switch(sbuf.st_mode & S_IFMT) {
     case S_IFREG:
+	    break;
     case S_IFDIR:
-	printf("REMOVE: trying to remove a directory!\n");
-	out->oh.result = EINVAL;
-	goto exit;
-	break;
+	    printf("REMOVE: trying to remove a directory!\n");
+	    out->oh.result = EINVAL;
+	    goto exit;
+	    break;
 #ifndef DJGPP
     case S_IFLNK:
-	/* This might not be okay for symlinks. */
-	break;
+	    /* This might not be okay for symlinks. */
+	    break;
     case S_IFSOCK:               /* Can't be any of these */
     case S_IFIFO:
     case S_IFCHR:
     case S_IFBLK:
-	printf("REMOVE: trying to remove an esoteric!\n");
-	out->oh.result = EINVAL;
-	goto exit;
-	break;
+	    printf("REMOVE: trying to remove an esoteric!\n");
+	    out->oh.result = EINVAL;
+	    goto exit;
+	    break;
 #endif
     default:
 	assert(0);
@@ -2304,63 +2312,3 @@ main(int argc, char *argv[])
 
     return 0;
 }
-
-#ifdef __linux__
-void
-coda_iattr_to_vattr(struct iattr *iattr, struct coda_vattr *vattr)
-{
-        umode_t mode;
-        unsigned int valid;
-
-        /* clean out */        
-        vattr->va_mode = (umode_t) -1;
-        vattr->va_uid = (vuid_t) -1; 
-        vattr->va_gid = (vgid_t) -1;
-        vattr->va_size = (off_t) -1;
-	vattr->va_atime.tv_sec = (time_t) -1;
-        vattr->va_mtime.tv_sec  = (time_t) -1;
-	vattr->va_ctime.tv_sec  = (time_t) -1;
-	vattr->va_atime.tv_nsec =  (time_t) -1;
-        vattr->va_mtime.tv_nsec = (time_t) -1;
-	vattr->va_ctime.tv_nsec = (time_t) -1;
-        vattr->va_type = C_VNON;
-	vattr->va_fileid = (long)-1;
-	vattr->va_gen = (long)-1;
-	vattr->va_bytes = (long)-1;
-	vattr->va_nlink = (short)-1;
-	vattr->va_blocksize = (long)-1;
-	vattr->va_rdev = (dev_t)-1;
-        vattr->va_flags = 0;
-
-        /* determine the type */
-        mode = iattr->ia_mode;
-                if ( S_ISDIR(mode) ) {
-                vattr->va_type = C_VDIR; 
-        } else if ( S_ISREG(mode) ) {
-                vattr->va_type = C_VREG;
-        } else if ( S_ISLNK(mode) ) {
-                vattr->va_type = C_VLNK;
-        } else {
-                /* don't do others */
-                vattr->va_type = C_VNON;
-        }
-        
-        /* set those vattrs that need change */
-        valid = iattr->ia_valid;
-        if ( valid & ATTR_MODE ) 
-                vattr->va_mode = iattr->ia_mode;
-        if ( valid & ATTR_UID )
-                vattr->va_uid = (vuid_t) iattr->ia_uid;
-        if ( valid & ATTR_GID ) 
-                vattr->va_gid = (vgid_t) iattr->ia_gid;
-        if ( valid & ATTR_SIZE )
-                vattr->va_size = iattr->ia_size;
-	if ( valid & ATTR_ATIME )
-                vattr->va_atime.tv_sec = iattr->ia_atime;
-        if ( valid & ATTR_MTIME )
-                vattr->va_mtime.tv_sec = iattr->ia_mtime;
-        if ( valid & ATTR_CTIME )
-                vattr->va_ctime.tv_sec = iattr->ia_ctime;
-        
-}
-#endif
