@@ -108,25 +108,17 @@ void vproc::root(struct venus_cnode *vpp) {
 }
 
 
-void vproc::statfs(struct statfs *sbp) {
+void vproc::statfs(struct coda_statfs *sfs) {
     LOG(1, ("vproc::statfs\n"));
-    u.u_error = EOPNOTSUPP;
-
 #if 0
-    /* Maybe use this to give some useful information about cache usage? */
-    /* we only need to add an upcall and dig the necessary info from
-     * somewhere inside venus */
-    memset(sbp, 0, sizeof(struct statfs));
-    sbp->f_type    = CODA_SUPER_MAGIC;
-    sbp->f_bsize   = 1024;
-    sbp->f_blocks  = cache size;
-    sbp->f_bfree   = cache size - dirty objects;
-    sbp->f_bavail  = sbp->f_bfree - reserved blocks;
-    sbp->f_files   = fsobjs;
-    sbp->f_ffree   = free fsobjs;
-    sbp->f_fsid    = -1;
-    sbp->f_namelen = CODA_MAXNAMLEN;
+    u.u_error = EOPNOTSUPP;
 #endif
+
+    sfs->f_blocks  = CacheBlocks;
+    sfs->f_bfree   = FSDB->FreeBlockCount();
+    sfs->f_bavail  = sfs->f_bfree - FSDB->FreeBlockMargin;
+    sfs->f_files   = CacheFiles;
+    sfs->f_ffree   = FSDB->FreeFsoCount();
 }
 
 

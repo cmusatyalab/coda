@@ -48,7 +48,7 @@ proc updatemeter {} {
   #
   # match our patterns
   #
-  if [ regexp {^progress::fetching \((.+)\) (.+)x$} $line x path percent ] {
+  if [ regexp {^progress::fetching \((.*)\) (.+)x$} $line x path percent ] {
     set done [ expr double($percent) / 100 ]
 
     .label configure -text $path

@@ -1332,6 +1332,20 @@ void worker::main(void *parm) {
 		break;
 		}
 
+	    case CODA_STATFS:
+		{
+		statfs(&(out->coda_statfs.stat));
+
+		if (u.u_error == 0) {
+		    size = sizeof (struct coda_statfs_out);
+		} else
+		    size = sizeof (struct coda_out_hdr);
+		    
+		out->oh.result = u.u_error;
+		Resign(msg, size);
+		break;
+		}
+
 	    default:	 /* Toned this down a bit, used to be a choke -- DCS */
 		{	/* But make sure someone sees it! */
 		eprint("worker::main Got a bogus opcode %d", in->ih.opcode);

@@ -208,7 +208,7 @@ class vproc : public olink {
     void mount(char *, void *);
     void unmount();
     void root(struct venus_cnode *);
-    void statfs(struct statfs *);
+    void statfs(struct coda_statfs *);
     void sync();
     void vget(struct venus_cnode *, struct cfid *);
     void open(struct venus_cnode *, int);
