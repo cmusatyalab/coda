@@ -1751,13 +1751,13 @@ int volent::WriteReconnect() {
     return(code);
 }
 
-int volent::EnterWriteback() {
+int volent::EnterWriteback(vuid_t vuid) {
     int code = 0;
 
     if (type == REPVOL && flags.writebacking == 0) {
 	LOG(1, ("volent::EnterWriteback()\n"));
 	/* request a permit */
-	if (GetPermit()) {
+	if (GetPermit(vuid)) {
 	    Recov_BeginTrans();
 	        RVMLIB_REC_OBJECT(*this);
 		flags.writebacking = 1;
@@ -1783,18 +1783,14 @@ int volent::EnterWriteback() {
     return (code);
 }
 
-int volent::LeaveWriteback() {
+int volent::LeaveWriteback(vuid_t vuid) {
     int code = 0;
 
     if (type == REPVOL) {
 	LOG(1, ("volent::LeaveWriteback()\n"));
-	connent *c;
-	int code = GetAdmConn(&c);
-	ViceFid fid;
-	fid.Volume = vid;
-	fid.Vnode = 0;
-	fid.Unique = 0;
-	if (!code) ViceTossWBPermit(c->connid, vid, &fid);
+	StopWriteback(NULL);
+	ReturnPermit(vuid);
+	ClearPermit();
     } else
 	code = EINVAL;
 

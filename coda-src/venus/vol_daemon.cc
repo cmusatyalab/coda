@@ -325,9 +325,13 @@ void vdb::AutoRequestWBPermit()
 {
     vol_iterator next;
     volent *v;
+    vproc *vp = VprocSelf();
+    vuid_t vuid = CRTORUID(vp->u.u_cred); 
+    /* XXX SSS replace this with something useful */
+
     while ((v = next()))
 	if (v->flags.autowriteback && !v->flags.writebacking)
-	    v->EnterWriteback();
+	    v->EnterWriteback(vuid);
 }
 
 

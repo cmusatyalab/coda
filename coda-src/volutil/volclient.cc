@@ -2037,7 +2037,7 @@ static void setwb(RPC2_Integer wbflag) {
     */
     rc = VolSetWBParms(rpcid, Vid, wbflag);
     if (rc != RPC2_SUCCESS) {
-	printf("VolMakeBackups failed with %s\n", RPC2_ErrorMsg((int)rc));
+	printf("VolSetWBParms failed with %s\n", RPC2_ErrorMsg((int)rc));
 	exit(-1);
     }
     if (wbflag)

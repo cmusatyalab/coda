@@ -48,7 +48,7 @@ extern "C" {
 
 #include <sys/uio.h>
 
-#include <rpc2/rpc2.h>
+#include <rpc2.h>
 
 #include <codadir.h>
 
@@ -138,6 +138,7 @@ class fsdb {
 
     int MagicNumber;
     int DataVersion;
+    int damnitagain;
 
     /* Size parameters. */
     int MaxFiles;
@@ -186,6 +187,7 @@ class fsdb {
     /*T*/int matriculation_count;
 
     /* Device handle for opening files by <dev,ino> rather than name. */
+     int damnit;
     /*T*/dev_t device;
 
     /* Constructors, destructors. */

@@ -455,6 +455,7 @@ OI_FreeLocks:
         case VIOC_BEGINWB:
         case VIOC_STATUSWB:
         case VIOC_ENDWB:
+        case VIOC_AUTOWB:
 	case VIOC_SYNCCACHE:
 	    {
 #ifdef    TIMING
@@ -805,27 +806,28 @@ OI_FreeLocks:
               case VIOC_BEGINWB:
 		    {  
 		      /* request writeback caching from the server ! */
-		      u.u_error = v->EnterWriteback();
+		      u.u_error = v->EnterWriteback(CRTORUID(u.u_cred));
 		      break;
 		    }
  	      case VIOC_AUTOWB:
 		    {
+			u.u_error = 0;
 			v->flags.autowriteback= !v->flags.autowriteback;
 			if (!v->flags.autowriteback) {
-			    eprint("Auto Writeback on volume %s is now disabled");
+			    eprint("Auto Writeback on volume %s is now disabled",v->name);
 			    /* first we need to not be an observer on the volume! 
 			       (massive kluge! -leg, 5/9/99) */
 			    v->Exit(volmode, CRTORUID(u.u_cred));
 			    entered = 0;
-			    u.u_error = v->LeaveWriteback();
-			    if (u.u_error == 0)
-				u.u_error = WB_DISABLED;
+			    u.u_error = v->LeaveWriteback(CRTORUID(u.u_cred));
+			    //  if (u.u_error == 0)
+			    //	u.u_error = WB_DISABLED;
 			}
 			else {
-			    eprint("Auto Writeback on volume %s is now enabled");
-			    u.u_error = v->EnterWriteback();
-			    if (u.u_error == 0)
-				u.u_error = WB_PERMIT_GRANTED;
+			    eprint("Auto Writeback on volume %s is now enabled",v->name);
+			    u.u_error = v->EnterWriteback(CRTORUID(u.u_cred));
+			    //if (u.u_error == 0)
+			    //	u.u_error = WB_PERMIT_GRANTED;
 			}
 		    }
    	      case VIOC_STATUSWB:
@@ -839,10 +841,12 @@ OI_FreeLocks:
 		  {
 		  /* first we need to not be an observer on the volume! 
 		     (massive kluge! -leg, 5/9/99) */
+		      v->flags.autowriteback = 0;
 		      v->Exit(volmode, CRTORUID(u.u_cred));
 		      entered = 0;
 		      /* now we'll leave writeback mode */
-		      u.u_error = v->LeaveWriteback();
+		      v->flags.autowriteback = 0;
+		      u.u_error = v->LeaveWriteback(CRTORUID(u.u_cred));
 		      break;
 		  }
 	      case VIOC_SYNCCACHE:

@@ -66,10 +66,10 @@ void volent::SetPermit()
 
 /* ok, so this makes an RPC call to the server to try to get a permit;
    we return PermitSet if we successfully got one, otherwise NoPermit */
-int volent::GetPermit()
+int volent::GetPermit(vuid_t vuid)
 {
-    long permit;
-
+    long permit = WB_DISABLED;
+    int i,permits_recvd = 0;
     connent *c;
     int code = GetAdmConn(&c);
     ViceFid fid;
@@ -79,21 +79,55 @@ int volent::GetPermit()
     if (code != 0)
 	return code;
 
-    ViceGetWBPermit(c->connid, vid, &fid, &permit);
-
-    LOG(1, ("volent::GetPermit(): ViceGetWBPermit replied with %d\n", permit));
-
-    switch (permit) {
-    case WB_PERMIT_GRANTED:
-	SetPermit();
-	break;
-    case WB_LOOKUPFAILED:
-    case WB_OTHERCLIENT:
-    case WB_DISABLED:
+    //   ViceGetWBPermit(c->connid, vid, &fid, &permit);
+    
+    /* Acquire an Mgroup. */
+    
+    mgrpent *m = 0;
+    code = GetMgrp(&m, vuid, 0);
+    if (code != 0) {
 	ClearPermit();
-	break;
+	return VPStatus;
     }
 
+    /* Marshall arguments */
+    ARG_MARSHALL(IN_MODE, VolumeId, vidvar,vid, VSG_MEMBERS);
+    ARG_MARSHALL(IN_MODE, ViceFid, fidvar,fid, VSG_MEMBERS);
+    ARG_MARSHALL(OUT_MODE, RPC2_Integer, permitvar, permit, VSG_MEMBERS);
+
+    /* Send the MultiRPC */
+    MULTI_START_MESSAGE(ViceGetWBPermit_OP);
+    code = (int) MRPC_MakeMulti(ViceGetWBPermit_OP, ViceGetWBPermit_PTR,
+				VSG_MEMBERS, m->rocc.handles,
+				m->rocc.retcodes, m->rocc.MIp, 0, 0,
+				vid, &fid, permitvar_ptrs);
+    MULTI_END_MESSAGE(ViceGetWBPermit_OP);
+    MULTI_RECORD_STATS(ViceGetWBPermit_OP);
+
+    for (i=0;i<VSG_MEMBERS;i++) {
+	ARG_UNMARSHALL(permitvar, permit, i);  /* do this for each copy */
+	LOG(1, ("volent::GetPermit(): %d replied to ViceGetWBPermit with %d:%d\n",i,m->rocc.retcodes[i],permit));
+
+	if (permit == WB_PERMIT_GRANTED)
+	    permits_recvd++;
+
+    }
+    
+    if (permits_recvd == AvsgSize()) {       /* we have all permits   */
+	LOG(1, ("volent::GetPermit(): Got all permits."));
+	SetPermit();
+
+    }
+    else if (permits_recvd == 0) {              /* we don't have any     */
+	LOG(1, ("volent::GetPermit(): Don't have any permits, doing nothing"));
+	ClearPermit();
+    }
+    else {                                /* need to return those we have */
+	LOG(1, ("volent::GetPermit(): Have only %d of %d permits, returning others",permits_recvd,AvsgSize()));
+	ReturnPermit(vuid);
+	ClearPermit();
+    }
+    
     return VPStatus;
 }
 
@@ -111,3 +145,21 @@ int volent::PermitBreak()
 
     Reintegrate();
 }
+
+int volent::ReturnPermit(vuid_t vuid)
+{	
+    
+    mgrpent   *m = 0;
+    int     code = GetMgrp(&m, vuid, 0);
+
+    ARG_MARSHALL(IN_MODE, VolumeId, vidvar,vid, VSG_MEMBERS);
+    MULTI_START_MESSAGE(ViceRejectWBPermit_OP);
+    code = (int) MRPC_MakeMulti(ViceRejectWBPermit_OP, ViceRejectWBPermit_PTR,
+				VSG_MEMBERS, m->rocc.handles,
+				m->rocc.retcodes, m->rocc.MIp, 0, 0,
+				vid);
+    MULTI_END_MESSAGE(ViceRejectWBPermit_OP);
+    MULTI_RECORD_STATS(ViceRejectWBPermit_OP);	    
+
+}
+    

@@ -722,7 +722,7 @@ class volent {
     char name[V_MAXVOLNAMELEN];
     VolumeId vid;
     /*T*/vsgent *vsg;				/* pointer to object's vsg; reduces vsgdb::Get() calls */
-    rec_olink handle;				/* link for {htab, freelist} */
+    rec_olink handle;				/* link for {htab, freelist} /*
 
     /* Assoc(key). */
     int type;
@@ -951,13 +951,14 @@ class volent {
     void CollateVCB(mgrpent *, RPC2_Integer *, CallBackStatus *);
 
     /* write-back routines */
-    int EnterWriteback();
-    int LeaveWriteback();
+    int EnterWriteback(vuid_t vuid);
+    int LeaveWriteback(vuid_t vuid);
     int StopWriteback(ViceFid *fid);
     int SyncCache(ViceFid * fid);
     int IsWritebacking() { return flags.writebacking; }
     void SetPermit();
-    int GetPermit();
+    int GetPermit(vuid_t vuid);
+    int ReturnPermit(vuid_t vuid);
     int HavePermit() { return (VPStatus == PermitSet); }
     void ClearPermit();
     int PermitBreak();

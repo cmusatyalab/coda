@@ -178,12 +178,19 @@ long FS_ViceGetWBPermit(RPC2_Handle cid, VolumeId Vid,
     /* Check to see if we can enable WB caching */
     if (((volptr->header)->diskstuff.WriteBackEnable) && OpenWritebackConn) {
 	CODA_ASSERT(client->VenusId);
-	if (!list_empty(&volptr->WriteBackHolders)) {	  /* another client has it  */
-	    SLog(1, "GetWBPermit: Client %x already has it",
+	if (!list_empty(&volptr->WriteBackHolders)) {	  /* at least 1 client has it  */
+	    if (matchWBHolder(volptr,client->VenusId)) {  /* this client has it already*/
+	    SLog(1, "GetWBPermit: Client %x (us) already has it",
 		 ((WBHolderEntry*)volptr->WriteBackHolders.next)->VenusId);
-	    *Permit =  WB_OTHERCLIENT;
+	    *Permit =  WB_PERMIT_GRANTED;
+	    }
+	    else {                                        /* some other client has it  */
+		SLog(1, "GetWBPermit: Another client %x already has it",
+		     ((WBHolderEntry*)volptr->WriteBackHolders.next)->VenusId);
+		*Permit =  WB_OTHERCLIENT;
+	    }
 	}
-	else {
+	else {                                            /* no others have permits    */
 	    SLog(1, "GetWBPermit: Clearing off other readers ...");
 	    WBClearReaders(client->VenusId,Vid,Vid);
 	    errorCode = addWBHolder(volptr,client->VenusId);/* store client who has it*/
