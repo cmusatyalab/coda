@@ -13,34 +13,34 @@ struct optab {
   int opcode;
   char *name;
 } ops[] = {
-  {CFS_ROOT, "CFS_ROOT"},
-  {CFS_SYNC, "CFS_SYNC"},
-  {CFS_OPEN, "CFS_OPEN"},
-  {CFS_CLOSE, "CFS_CLOSE"},
-  {CFS_IOCTL, "CFS_IOCTL"},
-  {CFS_GETATTR, "CFS_GETATTR"},
-  {CFS_SETATTR, "CFS_SETATTR"},
-  {CFS_ACCESS, "CFS_ACCESS"},
-  {CFS_LOOKUP, "CFS_LOOKUP"},
-  {CFS_CREATE, "CFS_CREATE"},
-  {CFS_REMOVE, "CFS_REMOVE"},
-  {CFS_LINK, "CFS_LINK"},
-  {CFS_RENAME, "CFS_RENAME"},
-  {CFS_MKDIR, "CFS_MKDIR"},
-  {CFS_RMDIR, "CFS_RMDIR"},
-  {CFS_READDIR, "CFS_READDIR"},
-  {CFS_SYMLINK, "CFS_SYMLINK"},
-  {CFS_READLINK, "CFS_READLINK"},
-  {CFS_FSYNC, "CFS_FSYNC"},
-  {CFS_INACTIVE, "CFS_INACTIVE"},
-  {CFS_VGET, "CFS_VGET"},
-  {CFS_SIGNAL, "CFS_SIGNAL"},
-  {CFS_REPLACE, "CFS_REPLACE"},
-  {CFS_FLUSH, "CFS_FLUSH"},
-  {CFS_PURGEUSER, "CFS_PURGEUSER"},
-  {CFS_ZAPFILE, "CFS_ZAPFILE"},
-  {CFS_ZAPDIR, "CFS_ZAPDIR"},
-  {CFS_PURGEFID, "CFS_PURGEFID"},
+  {CODA_ROOT, "CODA_ROOT"},
+  {CODA_SYNC, "CODA_SYNC"},
+  {CODA_OPEN, "CODA_OPEN"},
+  {CODA_CLOSE, "CODA_CLOSE"},
+  {CODA_IOCTL, "CODA_IOCTL"},
+  {CODA_GETATTR, "CODA_GETATTR"},
+  {CODA_SETATTR, "CODA_SETATTR"},
+  {CODA_ACCESS, "CODA_ACCESS"},
+  {CODA_LOOKUP, "CODA_LOOKUP"},
+  {CODA_CREATE, "CODA_CREATE"},
+  {CODA_REMOVE, "CODA_REMOVE"},
+  {CODA_LINK, "CODA_LINK"},
+  {CODA_RENAME, "CODA_RENAME"},
+  {CODA_MKDIR, "CODA_MKDIR"},
+  {CODA_RMDIR, "CODA_RMDIR"},
+  {CODA_READDIR, "CODA_READDIR"},
+  {CODA_SYMLINK, "CODA_SYMLINK"},
+  {CODA_READLINK, "CODA_READLINK"},
+  {CODA_FSYNC, "CODA_FSYNC"},
+  {CODA_INACTIVE, "CODA_INACTIVE"},
+  {CODA_VGET, "CODA_VGET"},
+  {CODA_SIGNAL, "CODA_SIGNAL"},
+  {CODA_REPLACE, "CODA_REPLACE"},
+  {CODA_FLUSH, "CODA_FLUSH"},
+  {CODA_PURGEUSER, "CODA_PURGEUSER"},
+  {CODA_ZAPFILE, "CODA_ZAPFILE"},
+  {CODA_ZAPDIR, "CODA_ZAPDIR"},
+  {CODA_PURGEFID, "CODA_PURGEFID"},
   {-99, NULL}};
 
 
@@ -104,36 +104,36 @@ main()
     printf ("[%08x:%d -- %d bytes] ", ntohl(addr.sin_addr.s_addr), 
 	    ntohs(addr.sin_port), n);
     if (n) {
-      printf ("%s uniq %d res %d ", opcode(out->cfs_getattr.oh.opcode), 
-	      out->cfs_getattr.oh.unique, out->cfs_getattr.oh.result);
-      switch (out->cfs_getattr.oh.opcode) {
-      case CFS_ROOT:
-	printvfid(&out->cfs_root.VFid);
+      printf ("%s uniq %d res %d ", opcode(out->coda_getattr.oh.opcode), 
+	      out->coda_getattr.oh.unique, out->coda_getattr.oh.result);
+      switch (out->coda_getattr.oh.opcode) {
+      case CODA_ROOT:
+	printvfid(&out->coda_root.VFid);
 	break;
 
-      case CFS_GETATTR:
-	printattr(&out->cfs_getattr.attr);
+      case CODA_GETATTR:
+	printattr(&out->coda_getattr.attr);
 	break;
 
-      case CFS_LOOKUP:
-	printvfid(&out->cfs_lookup.VFid);
-	printf (" type %d", out->cfs_lookup.vtype);
+      case CODA_LOOKUP:
+	printvfid(&out->coda_lookup.VFid);
+	printf (" type %d", out->coda_lookup.vtype);
 	break;
 
-      case CFS_OPEN:
-	printf (" dev %d inode %d", out->cfs_open.dev, 
-		out->cfs_open.inode);
+      case CODA_OPEN:
+	printf (" dev %d inode %d", out->coda_open.dev, 
+		out->coda_open.inode);
 	break;
 
-      case CFS_CREATE:
-	printvfid(&out->cfs_create.VFid);
-	printattr(&out->cfs_create.attr);
+      case CODA_CREATE:
+	printvfid(&out->coda_create.VFid);
+	printattr(&out->coda_create.attr);
 	break;
 
-      case CFS_READDIR:
-	buffer[(int) out->cfs_readdir.data + out->cfs_readdir.size] = '\0';
-	printf ("size %d buf %s", out->cfs_readdir.size, 
-		buffer + (int) out->cfs_readdir.data);
+      case CODA_READDIR:
+	buffer[(int) out->coda_readdir.data + out->coda_readdir.size] = '\0';
+	printf ("size %d buf %s", out->coda_readdir.size, 
+		buffer + (int) out->coda_readdir.data);
 	break;
       }
     }

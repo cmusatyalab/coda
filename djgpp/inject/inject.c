@@ -10,42 +10,42 @@
 #include <cfs/coda.h>
 
 #define BUFSIZE 2000
-#define INSIZE(tag) sizeof(struct cfs_ ## tag ## _in)
-#define OUTSIZE(tag) sizeof(struct cfs_ ## tag ## _out)
+#define INSIZE(tag) sizeof(struct coda_ ## tag ## _in)
+#define OUTSIZE(tag) sizeof(struct coda_ ## tag ## _out)
 #define SIZE(tag)  max(INSIZE(tag), OUTSIZE(tag))
 
 struct optab {
   int opcode;
   char *name;
 } ops[] = {
-  {CFS_ROOT, "CFS_ROOT"},
-  {CFS_SYNC, "CFS_SYNC"},
-  {CFS_OPEN, "CFS_OPEN"},
-  {CFS_CLOSE, "CFS_CLOSE"},
-  {CFS_IOCTL, "CFS_IOCTL"},
-  {CFS_GETATTR, "CFS_GETATTR"},
-  {CFS_SETATTR, "CFS_SETATTR"},
-  {CFS_ACCESS, "CFS_ACCESS"},
-  {CFS_LOOKUP, "CFS_LOOKUP"},
-  {CFS_CREATE, "CFS_CREATE"},
-  {CFS_REMOVE, "CFS_REMOVE"},
-  {CFS_LINK, "CFS_LINK"},
-  {CFS_RENAME, "CFS_RENAME"},
-  {CFS_MKDIR, "CFS_MKDIR"},
-  {CFS_RMDIR, "CFS_RMDIR"},
-  {CFS_READDIR, "CFS_READDIR"},
-  {CFS_SYMLINK, "CFS_SYMLINK"},
-  {CFS_READLINK, "CFS_READLINK"},
-  {CFS_FSYNC, "CFS_FSYNC"},
-  {CFS_INACTIVE, "CFS_INACTIVE"},
-  {CFS_VGET, "CFS_VGET"},
-  {CFS_SIGNAL, "CFS_SIGNAL"},
-  {CFS_REPLACE, "CFS_REPLACE"},
-  {CFS_FLUSH, "CFS_FLUSH"},
-  {CFS_PURGEUSER, "CFS_PURGEUSER"},
-  {CFS_ZAPFILE, "CFS_ZAPFILE"},
-  {CFS_ZAPDIR, "CFS_ZAPDIR"},
-  {CFS_PURGEFID, "CFS_PURGEFID"},
+  {CODA_ROOT, "CODA_ROOT"},
+  {CODA_SYNC, "CODA_SYNC"},
+  {CODA_OPEN, "CODA_OPEN"},
+  {CODA_CLOSE, "CODA_CLOSE"},
+  {CODA_IOCTL, "CODA_IOCTL"},
+  {CODA_GETATTR, "CODA_GETATTR"},
+  {CODA_SETATTR, "CODA_SETATTR"},
+  {CODA_ACCESS, "CODA_ACCESS"},
+  {CODA_LOOKUP, "CODA_LOOKUP"},
+  {CODA_CREATE, "CODA_CREATE"},
+  {CODA_REMOVE, "CODA_REMOVE"},
+  {CODA_LINK, "CODA_LINK"},
+  {CODA_RENAME, "CODA_RENAME"},
+  {CODA_MKDIR, "CODA_MKDIR"},
+  {CODA_RMDIR, "CODA_RMDIR"},
+  {CODA_READDIR, "CODA_READDIR"},
+  {CODA_SYMLINK, "CODA_SYMLINK"},
+  {CODA_READLINK, "CODA_READLINK"},
+  {CODA_FSYNC, "CODA_FSYNC"},
+  {CODA_INACTIVE, "CODA_INACTIVE"},
+  {CODA_VGET, "CODA_VGET"},
+  {CODA_SIGNAL, "CODA_SIGNAL"},
+  {CODA_REPLACE, "CODA_REPLACE"},
+  {CODA_FLUSH, "CODA_FLUSH"},
+  {CODA_PURGEUSER, "CODA_PURGEUSER"},
+  {CODA_ZAPFILE, "CODA_ZAPFILE"},
+  {CODA_ZAPDIR, "CODA_ZAPDIR"},
+  {CODA_PURGEFID, "CODA_PURGEFID"},
   {-1, NULL}};
 
 
@@ -121,80 +121,80 @@ main()
       exit(0);
     }
 
-    in->cfs_getattr.ih.opcode = get_opcode(reply);
-    in->cfs_getattr.ih.unique = unique++;
-    in->cfs_getattr.ih.pid = 200;
-    in->cfs_getattr.ih.pgid = 200;
-    memset(&in->cfs_getattr.ih.cred, 0, sizeof(struct coda_cred));
+    in->coda_getattr.ih.opcode = get_opcode(reply);
+    in->coda_getattr.ih.unique = unique++;
+    in->coda_getattr.ih.pid = 200;
+    in->coda_getattr.ih.pgid = 200;
+    memset(&in->coda_getattr.ih.cred, 0, sizeof(struct coda_cred));
 
     if (in->ih.opcode == -1) {
       printf ("%s not an opcode\n");
       continue;
     }
     
-    switch (in->cfs_getattr.ih.opcode) {
-    case CFS_ROOT:
+    switch (in->coda_getattr.ih.opcode) {
+    case CODA_ROOT:
       n = sizeof(*in);
       break;
 
-    case CFS_GETATTR:
+    case CODA_GETATTR:
       n = INSIZE(getattr);
-      if (getvfid(&in->cfs_getattr.VFid) == -1)
+      if (getvfid(&in->coda_getattr.VFid) == -1)
 	goto again;
       break;
 
-    case CFS_LOOKUP:
+    case CODA_LOOKUP:
       n = INSIZE(lookup);
       printf ("Parent VFid: ");
-      if (getvfid(&in->cfs_lookup.VFid) == -1)
+      if (getvfid(&in->coda_lookup.VFid) == -1)
 	goto again;
       printf ("Name: ");
       if (!gets(&buf[n]))
 	goto again;
-      in->cfs_lookup.name = n;
+      in->coda_lookup.name = n;
       n += strlen(&buf[n]) + 1;
       break;
 
-    case CFS_OPEN:
+    case CODA_OPEN:
       n = sizeof(struct inputArgs);
-      if (getvfid(&in->cfs_open.VFid) == -1)
+      if (getvfid(&in->coda_open.VFid) == -1)
 	goto again;
       printf ("Flags: ");
       if (!gets(reply))
 	goto again;
-      in->cfs_open.flags = atoi(reply);
+      in->coda_open.flags = atoi(reply);
       break;
 
-    case CFS_CLOSE:
+    case CODA_CLOSE:
       n = sizeof(struct inputArgs);
-      if (getvfid(&in->cfs_close.VFid) == -1)
+      if (getvfid(&in->coda_close.VFid) == -1)
 	goto again;
       printf ("Flags: ");
       if (!gets(reply))
 	goto again;
-      in->cfs_close.flags = atoi(reply);
+      in->coda_close.flags = atoi(reply);
       break;
 
-    case CFS_CREATE:
+    case CODA_CREATE:
       n = sizeof(struct inputArgs);
       printf ("Parent: ");
-      if (getvfid(&in->cfs_create.VFid) == -1)
+      if (getvfid(&in->coda_create.VFid) == -1)
 	goto again;
-      in->cfs_create.attr.va_mode = 0666;
-      in->cfs_create.mode = 0666;
-      in->cfs_create.name = n;
+      in->coda_create.attr.va_mode = 0666;
+      in->coda_create.mode = 0666;
+      in->coda_create.name = n;
       printf ("Name: ");
       if (!gets(&buf[n]))
 	goto again;
       n += strlen(&buf[n]) + 1;
       break;
 
-    case CFS_READDIR:
+    case CODA_READDIR:
       n = sizeof(struct inputArgs);
-      if (getvfid(&in->cfs_readdir.VFid) == -1)
+      if (getvfid(&in->coda_readdir.VFid) == -1)
 	goto again;
-      in->cfs_readdir.count = 50;
-      in->cfs_readdir.offset = 0;
+      in->coda_readdir.count = 50;
+      in->coda_readdir.offset = 0;
       break;
 
     default:

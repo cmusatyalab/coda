@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/vproc.cc,v 4.17 98/09/23 16:56:43 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/vproc.cc,v 4.18 1998/09/23 20:26:38 jaharkes Exp $";
 #endif /*_BLURB_*/
 
 
@@ -859,7 +859,7 @@ long FidToNodeid(ViceFid *fid)
 
 #ifdef __BSD44__
     /* Venus Root.  Use the mount point's nodeid. */
-	if (FID_EQ(rootfid, *fid))
+	if (FID_EQ(&rootfid, fid))
 		return(rootnodeid);
 
 	/* Other volume root.  We need the relevant mount point's fid,

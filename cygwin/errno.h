@@ -11,11 +11,6 @@ extern "C" {
 #include "i586-pc-cygwin32/include/errno.h"
 
 
-
-
-#define ESUCCESS 0
-
-
 static const char * const sys_errlist[] = {
 "",
 "EPERM 1 Not super-user",

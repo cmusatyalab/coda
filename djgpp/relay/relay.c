@@ -16,35 +16,35 @@ struct optab {
   int opcode;
   char *name;
 } ops[] = {
-  {CFS_ROOT, "CFS_ROOT"},
-  {CFS_SYNC, "CFS_SYNC"},
-  {CFS_OPEN, "CFS_OPEN"},
-  {CFS_CLOSE, "CFS_CLOSE"},
-  {CFS_IOCTL, "CFS_IOCTL"},
-  {CFS_GETATTR, "CFS_GETATTR"},
-  {CFS_SETATTR, "CFS_SETATTR"},
-  {CFS_ACCESS, "CFS_ACCESS"},
-  {CFS_LOOKUP, "CFS_LOOKUP"},
-  {CFS_CREATE, "CFS_CREATE"},
-  {CFS_REMOVE, "CFS_REMOVE"},
-  {CFS_LINK, "CFS_LINK"},
-  {CFS_RENAME, "CFS_RENAME"},
-  {CFS_MKDIR, "CFS_MKDIR"},
-  {CFS_RMDIR, "CFS_RMDIR"},
-  {CFS_READDIR, "CFS_READDIR"},
-  {CFS_SYMLINK, "CFS_SYMLINK"},
-  {CFS_READLINK, "CFS_READLINK"},
-  {CFS_FSYNC, "CFS_FSYNC"},
-  {CFS_INACTIVE, "CFS_INACTIVE"},
-  {CFS_VGET, "CFS_VGET"},
-  {CFS_SIGNAL, "CFS_SIGNAL"},
-  {CFS_REPLACE, "CFS_REPLACE"},
-  {CFS_FLUSH, "CFS_FLUSH"},
-  {CFS_PURGEUSER, "CFS_PURGEUSER"},
-  {CFS_ZAPFILE, "CFS_ZAPFILE"},
-  {CFS_ZAPDIR, "CFS_ZAPDIR"},
-  {CFS_PURGEFID, "CFS_PURGEFID"},
-  {CFS_OPEN_BY_PATH, "CFS_OPEN_BY_PATH"},
+  {CODA_ROOT, "CODA_ROOT"},
+  {CODA_SYNC, "CODA_SYNC"},
+  {CODA_OPEN, "CODA_OPEN"},
+  {CODA_CLOSE, "CODA_CLOSE"},
+  {CODA_IOCTL, "CODA_IOCTL"},
+  {CODA_GETATTR, "CODA_GETATTR"},
+  {CODA_SETATTR, "CODA_SETATTR"},
+  {CODA_ACCESS, "CODA_ACCESS"},
+  {CODA_LOOKUP, "CODA_LOOKUP"},
+  {CODA_CREATE, "CODA_CREATE"},
+  {CODA_REMOVE, "CODA_REMOVE"},
+  {CODA_LINK, "CODA_LINK"},
+  {CODA_RENAME, "CODA_RENAME"},
+  {CODA_MKDIR, "CODA_MKDIR"},
+  {CODA_RMDIR, "CODA_RMDIR"},
+  {CODA_READDIR, "CODA_READDIR"},
+  {CODA_SYMLINK, "CODA_SYMLINK"},
+  {CODA_READLINK, "CODA_READLINK"},
+  {CODA_FSYNC, "CODA_FSYNC"},
+  {CODA_INACTIVE, "CODA_INACTIVE"},
+  {CODA_VGET, "CODA_VGET"},
+  {CODA_SIGNAL, "CODA_SIGNAL"},
+  {CODA_REPLACE, "CODA_REPLACE"},
+  {CODA_FLUSH, "CODA_FLUSH"},
+  {CODA_PURGEUSER, "CODA_PURGEUSER"},
+  {CODA_ZAPFILE, "CODA_ZAPFILE"},
+  {CODA_ZAPDIR, "CODA_ZAPDIR"},
+  {CODA_PURGEFID, "CODA_PURGEFID"},
+  {CODA_OPEN_BY_PATH, "CODA_OPEN_BY_PATH"},
   {99, "<<CLOSE>>"},
   {-99, NULL}};
 
@@ -84,30 +84,30 @@ printrequest (char *buffer)
 
   fprintf (file, "req: %s uniq %d ", opcode(in->ih.opcode), in->ih.unique);
   switch (in->ih.opcode) {
-  case CFS_OPEN:
-    printvfid (&in->cfs_open.VFid);
-    fprintf (file, "(fl %d) ", in->cfs_open.flags);
+  case CODA_OPEN:
+    printvfid (&in->coda_open.VFid);
+    fprintf (file, "(fl %d) ", in->coda_open.flags);
     break;
-  case CFS_OPEN_BY_PATH:
-    printvfid (&in->cfs_open_by_path.VFid);
-    fprintf (file, "(fl %d) ", in->cfs_open.flags);
+  case CODA_OPEN_BY_PATH:
+    printvfid (&in->coda_open_by_path.VFid);
+    fprintf (file, "(fl %d) ", in->coda_open.flags);
     break;
-  case CFS_LOOKUP:
-    printvfid (&in->cfs_lookup.VFid);
-    fprintf (file, "\"%s\"", buffer + (int) in->cfs_lookup.name);
+  case CODA_LOOKUP:
+    printvfid (&in->coda_lookup.VFid);
+    fprintf (file, "\"%s\"", buffer + (int) in->coda_lookup.name);
     break;
-  case CFS_CREATE:
-    printvfid (&in->cfs_create.VFid);
-    fprintf (file, "\"%s\" ", buffer + (int) in->cfs_create.name);
-    fprintf (file, "mode %d", in->cfs_create.mode);
+  case CODA_CREATE:
+    printvfid (&in->coda_create.VFid);
+    fprintf (file, "\"%s\" ", buffer + (int) in->coda_create.name);
+    fprintf (file, "mode %d", in->coda_create.mode);
     break;
-  case CFS_MKDIR:
-    printvfid (&in->cfs_mkdir.VFid);
-    fprintf (file, "\"%s\" ", buffer = (int) in->cfs_mkdir.name);
+  case CODA_MKDIR:
+    printvfid (&in->coda_mkdir.VFid);
+    fprintf (file, "\"%s\" ", buffer = (int) in->coda_mkdir.name);
     break;
-  case CFS_CLOSE:
-    printvfid (&in->cfs_close.VFid);
-    fprintf (file, "(fl %d) ", in->cfs_close.flags);
+  case CODA_CLOSE:
+    printvfid (&in->coda_close.VFid);
+    fprintf (file, "(fl %d) ", in->coda_close.flags);
     break;
   }
   fprintf (file, "\n");
@@ -124,7 +124,7 @@ printreply (char *buffer, int n, struct sockaddr_in *addr)
   */
   if (n) {
     fprintf (file, "ans: %s uniq %d ", opcode(out->oh.opcode), out->oh.unique);
-    if (out->oh.opcode >= CFS_REPLACE && out->oh.opcode <= CFS_PURGEFID)
+    if (out->oh.opcode >= CODA_REPLACE && out->oh.opcode <= CODA_PURGEFID)
       fprintf (file, " (DOWNCALL) ");
 
     if (out->oh.result!=0)
@@ -137,27 +137,27 @@ printreply (char *buffer, int n, struct sockaddr_in *addr)
 
       //These can only be printed if no error was returned by vice
       switch (out->oh.opcode) {
-      case CFS_ROOT:
-        printvfid(&out->cfs_root.VFid);
+      case CODA_ROOT:
+        printvfid(&out->coda_root.VFid);
         break;
 	  
-      case CFS_LOOKUP:
-        printvfid(&out->cfs_lookup.VFid);
-        fprintf (file, "type %d", out->cfs_lookup.vtype);
+      case CODA_LOOKUP:
+        printvfid(&out->coda_lookup.VFid);
+        fprintf (file, "type %d", out->coda_lookup.vtype);
         break;
 
-      case CFS_OPEN_BY_PATH:
-   	fprintf (file, " path %s", (char *) out + (int) out->cfs_open_by_path.path);        
+      case CODA_OPEN_BY_PATH:
+   	fprintf (file, " path %s", (char *) out + (int) out->coda_open_by_path.path);        
         break;
 
-      case CFS_CREATE:
-	printvfid(&out->cfs_create.VFid);
-	printattr(&out->cfs_create.attr);
+      case CODA_CREATE:
+	printvfid(&out->coda_create.VFid);
+	printattr(&out->coda_create.attr);
 	break;
 
-      case CFS_MKDIR:
-	printvfid(&out->cfs_mkdir.VFid);
-	printattr(&out->cfs_mkdir.attr);
+      case CODA_MKDIR:
+	printvfid(&out->coda_mkdir.VFid);
+	printattr(&out->coda_mkdir.attr);
 	break;
     
     }//switch
@@ -167,14 +167,14 @@ printreply (char *buffer, int n, struct sockaddr_in *addr)
     //These can even be printed when vice returned an error
     switch (out->oh.opcode) {
    
-    case CFS_GETATTR:
-      printattr(&out->cfs_getattr.attr);
+    case CODA_GETATTR:
+      printattr(&out->coda_getattr.attr);
       break;
 	    
-    case CFS_READDIR:
-      buffer[(int) out->cfs_readdir.data + out->cfs_readdir.size] = '\0';
-      fprintf (file, "size %d buf %s", out->cfs_readdir.size, 
-      	buffer + (int) out->cfs_readdir.data);
+    case CODA_READDIR:
+      buffer[(int) out->coda_readdir.data + out->coda_readdir.size] = '\0';
+      fprintf (file, "size %d buf %s", out->coda_readdir.size, 
+      	buffer + (int) out->coda_readdir.data);
       break;
     }//switch
 

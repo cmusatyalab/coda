@@ -17,8 +17,6 @@ extern "C" {
 
 #include <sys/socket.h>
 
-#define ESUCCESS 0
-
 #ifdef __cplusplus
 }
 #endif

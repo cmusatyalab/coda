@@ -54,7 +54,7 @@ OBJS= codadir.o dirinode.o dhcache.o  # dirtest.c salvage.o buffer.o dir.o
 
 libcodadir.a:  $(OBJS)
 
-DT= libcodadir.a  $(LIBUTIL) $(LIBRDS) $(LIBSEG) $(LIBRVMLWP)  $(LIBOLDLWP) $(LIBBASE) $(LIBREADLINE) $(LIBTERMCAP) 
+DT= libcodadir.a  $(LIBUTIL) $(LIBRDS) $(LIBSEG) $(LIBRVMLWP)  $(LIBOLDLWP)  $(LIBCOMPAT)  $(LIBBASE) $(LIBREADLINE) $(LIBTERMCAP) 
 
 dirtest: dirtest.o libcodadir.a
 	$(CC) -o dirtest dirtest.o $(DT) 
