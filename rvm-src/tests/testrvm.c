@@ -590,18 +590,20 @@ rvm_bool_t test_complex_range_commit(tid)
     }
 
 
-int main(void)
+int main(int argc, char **argv)
     {
     rvm_return_t        retval;         /* rvm return code */
     rvm_bool_t          ans;            /* response */
     char                *map_test_file; /* file to test mapping against */
     rvm_offset_t        offset;         /* offset temporary */
-
+    
     options = rvm_malloc_options();
     options->truncate = TRUNCATE_VAL;
 /*    options->flags |= RVM_COALESCE_RANGES; */
 /*    options->flags |= (RVM_COALESCE_RANGES | RVM_COALESCE_TRANS); */
-    options->flags |= RVM_ALL_OPTIMIZATIONS; 
+    options->flags |= RVM_ALL_OPTIMIZATIONS;
+    if (get_ans("Do you want a private mapping?", rvm_false))
+      options->flags |= RVM_MAP_PRIVATE;
     in_recovery=get_ans(
                         "Is this a recovery from previous crash",rvm_false);
         

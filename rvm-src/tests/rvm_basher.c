@@ -182,6 +182,7 @@ rvm_bool_t          no_yield_sw;        /* request no-yield truncations */
 rvm_bool_t          vm_protect_sw;      /* request vm buffer protection */
 rvm_bool_t          pre_alloc_trunc;    /* truncate after preallocation */
 rvm_bool_t          show_brk;           /* print break point */
+rvm_bool_t	    do_private_map;	/* Do a private mapping */
 
 FILE               *para_file;          /* parameter file */
 
@@ -230,7 +231,8 @@ typedef enum
     VM_KEY,                             /* key for vm check */
     CHK_RANGE_KEY,                      /* set chk_range fraction key */
     NO_YIELD_KEY,                       /* set no_yield truncation mode */
-    VM_PROT_KEY                         /* request vm buffer protection */
+    VM_PROT_KEY,                        /* request vm buffer protection */
+    VM_MAP_PRIV				/* set RVM_MAP_PRIVATE option */
     }
 key_id_t;
 
@@ -1349,6 +1351,10 @@ void show_test_parms()
         printf("  RVM vm protect flag:                       true\n");
     else
         printf("  RVM vm protect flag:                      false\n");
+    if (do_private_map)
+        printf("  RVM private map:                           true\n");
+    else
+        printf("  RVM private map:                          false\n");
     if (show_brk)
         printf("  Show break point:                          true\n");
     else
@@ -1649,6 +1655,7 @@ static str_name_entry_t cmd_vec[MAX_CMDS] = /* command codes vector */
                     {"no_yield",NO_YIELD_KEY}, /* set no yield mode */
                     {"vm_protect",VM_PROT_KEY}, /* setvm buffer protect mode */
 #endif /* VERSION_TEST */
+                    {"map_private",VM_MAP_PRIV}, /* option RVM_MAP_PRIVATE */
                     {"",(key_id_t)NULL} /* end mark, do not delete */
                     };
 
@@ -1679,6 +1686,7 @@ int main(argc, argv)
     no_yield_sw = rvm_false;
     vm_protect_sw = rvm_false;
     show_brk = rvm_false;
+    do_private_map = rvm_false;
     blk_cnt = 0;
     mutex_init(&print_lock);
     mutex_init(&alloc_list_lock);
@@ -1907,6 +1915,10 @@ int main(argc, argv)
 #endif /* RVM_USELWP */
             continue;
 
+          case VM_MAP_PRIV:             /* Map private ... */
+	    do_private_map = rvm_true;
+            continue;
+
           default:  CODA_ASSERT(rvm_false);
             }
         /* check that all necessary parameters have been speced */
@@ -1942,6 +1954,8 @@ int main(argc, argv)
     options->log_dev = LogFileName;
     options->flags &= ~RVM_ALL_OPTIMIZATIONS;
     options->flags |= optimizations;
+    if (do_private_map)
+      options->flags |= RVM_MAP_PRIVATE;
     options->truncate = trunc_frac;
     options->flush_buf_len = flush_buf_len;
     options->recovery_buf_len = rec_buf_len;

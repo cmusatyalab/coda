@@ -321,6 +321,10 @@ rvm_options_t;
 
 #define RVM_ALL_OPTIMIZATIONS   (RVM_COALESCE_RANGES | RVM_COALESCE_TRANS)
 
+/* Other flags */
+
+#define RVM_MAP_PRIVATE     8		/* Use private mapping, if available */
+
 /* rvm_options_t initializer, copier & finalizer */
 
 extern rvm_options_t *rvm_malloc_options();
