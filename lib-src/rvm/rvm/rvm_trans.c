@@ -142,7 +142,7 @@ static void restore_ov(tid)
        order irrelevant if optimizing since ranges will be disjoint */
     UNLINK_REVERSE_NODES_OF(tid->range_tree,range_t,range)
         {
-        CODA_ASSERT(range->links.node.struct_id == range_id);
+        assert(range->links.node.struct_id == range_id);
 
         /* restore old values if necessary */
         if (range->nv.length != 0)
@@ -151,7 +151,7 @@ static void restore_ov(tid)
                 BCOPY(range->data,range->nv.vmaddr,range->nv.length);
 
             /* decr uncommited mods cnt */
-            CODA_ASSERT(range->region->links.struct_id == region_id);
+            assert(range->region->links.struct_id == region_id);
             CRITICAL(range->region->count_lock,
                      range->region->n_uncommit--);
             }
@@ -181,7 +181,7 @@ static rvm_return_t add_new_range(tid,new_range)
     {
 
     /* build old value record if necessary */
-    CODA_ASSERT(new_range->links.node.struct_id == range_id);
+    assert(new_range->links.node.struct_id == range_id);
     if (new_range->nv.length != 0)
         {
         if (TID(RESTORE_FLAG))
@@ -192,7 +192,7 @@ static rvm_return_t add_new_range(tid,new_range)
                 }
 
         /* count uncommitted mods */
-        CODA_ASSERT(new_range->region->links.struct_id == region_id);
+        assert(new_range->region->links.struct_id == region_id);
         CRITICAL(new_range->region->count_lock,
                  new_range->region->n_uncommit++);
         }
@@ -201,7 +201,7 @@ static rvm_return_t add_new_range(tid,new_range)
     new_range->nv.range_num = tid->range_tree.n_nodes+1;
     if (!tree_insert(&tid->range_tree,(tree_node_t *)new_range,
                      cmp_range_num))
-        CODA_ASSERT(rvm_false);
+        assert(rvm_false);
 
     return RVM_SUCCESS;
     }
@@ -364,7 +364,7 @@ static rvm_return_t merge_range(tid,region,new_range)
                 {
                 if (!tree_delete(&tid->range_tree,new_range,
                                  region_partial_include))
-                    CODA_ASSERT(rvm_false);
+                    assert(rvm_false);
                 free_range(new_range);
                 return RVM_ENO_MEMORY;
                 }
@@ -419,7 +419,7 @@ static rvm_return_t merge_range(tid,region,new_range)
                         len = (rvm_length_t)
                             RVM_SUB_LENGTH_FROM_ADDR(len,vmaddr);
                         BCOPY(vmaddr,data_addr,len);
-                        CODA_ASSERT(RVM_ADD_LENGTH_TO_ADDR(vmaddr,len) ==
+                        assert(RVM_ADD_LENGTH_TO_ADDR(vmaddr,len) ==
                            RVM_ADD_LENGTH_TO_ADDR(new_range->nv.vmaddr,
                                                   new_range->nv.length));
                         }
@@ -431,7 +431,7 @@ static rvm_return_t merge_range(tid,region,new_range)
                 {
                 if (!tree_delete(&tid->range_tree,range,
                                  region_partial_include))
-                    CODA_ASSERT(rvm_false);
+                    assert(rvm_false);
                 free_range(range);
                 }
             }
@@ -563,7 +563,7 @@ static rvm_return_t save_nv(range)
             range->nvaddr = range->data;
             range->data_len = range_len;
             }
-        CODA_ASSERT(range->data_len >= range_len);
+        assert(range->data_len >= range_len);
     
         /* copy to old value space */
         src_aligned_bcopy(range->nv.vmaddr,range->data,
@@ -588,7 +588,7 @@ static rvm_return_t save_all_nvs(tid)
             return retval;
 
         /* update uncommited count */
-        CODA_ASSERT(range->region->links.struct_id == region_id);
+        assert(range->region->links.struct_id == region_id);
         CRITICAL(range->region->count_lock,
                  range->region->n_uncommit--);
         }
@@ -628,8 +628,8 @@ static rvm_return_t merge_tid(q_tid,tid,new_range)
                    RVM_SUB_OFFSETS(old_offset,range->nv.offset));
         nv_ptr = RVM_ADD_LENGTH_TO_ADDR(nv_ptr,range->data
              + BYTE_SKEW(RVM_OFFSET_TO_LENGTH(range->nv.offset)));
-        CODA_ASSERT(range->data != NULL);
-        CODA_ASSERT((nv_ptr+old_length-range->data) <= range->data_len);
+        assert(range->data != NULL);
+        assert((nv_ptr+old_length-range->data) <= range->data_len);
         BCOPY(new_range->nv.vmaddr,nv_ptr,old_length);
         goto exit;
         }
@@ -693,7 +693,7 @@ static rvm_return_t merge_tid(q_tid,tid,new_range)
         RVM_ADD_LENGTH_TO_ADDR(new_range->data,
             RVM_OFFSET_TO_LENGTH(RVM_SUB_OFFSETS(old_offset,
                 new_range->nv.offset))+BYTE_SKEW(data_off));
-    CODA_ASSERT((nv_ptr+old_length-new_range->data) <= new_range->data_len);
+    assert((nv_ptr+old_length-new_range->data) <= new_range->data_len);
     BCOPY(new_range->nv.vmaddr,nv_ptr,old_length);
 
     /* update vmaddr -- only valid if no remappings have been done
@@ -707,12 +707,12 @@ static rvm_return_t merge_tid(q_tid,tid,new_range)
         range_len =
             RVM_OFFSET_TO_LENGTH(RVM_SUB_OFFSETS(old_offset,
                                                  range->nv.offset));
-        CODA_ASSERT(range->data != NULL);
+        assert(range->data != NULL);
         nv_ptr = RVM_ADD_LENGTH_TO_ADDR(range->data,BYTE_SKEW(
                          RVM_OFFSET_TO_LENGTH(range->nv.offset)));
         new_nv_ptr = RVM_ADD_LENGTH_TO_ADDR(new_range->data,
                                             BYTE_SKEW(data_off));
-        CODA_ASSERT((new_nv_ptr-new_range->data+range_len)
+        assert((new_nv_ptr-new_range->data+range_len)
                <= new_range->data_len);
         BCOPY(nv_ptr,new_nv_ptr,range_len);
         }
@@ -724,7 +724,7 @@ static rvm_return_t merge_tid(q_tid,tid,new_range)
         range_len =
             RVM_OFFSET_TO_LENGTH(RVM_SUB_OFFSETS(range->end_offset,
                                                  old_end_offset));
-        CODA_ASSERT(range->data != NULL);
+        assert(range->data != NULL);
         nv_ptr = RVM_ADD_LENGTH_TO_ADDR(range->data,BYTE_SKEW(
                          RVM_OFFSET_TO_LENGTH(range->nv.offset)));
         nv_ptr = RVM_ADD_LENGTH_TO_ADDR(nv_ptr,range->nv.length);
@@ -732,8 +732,8 @@ static rvm_return_t merge_tid(q_tid,tid,new_range)
         new_nv_ptr = RVM_ADD_LENGTH_TO_ADDR(new_range->data,
                          BYTE_SKEW(data_off)+new_range->nv.length);
         new_nv_ptr = RVM_SUB_LENGTH_FROM_ADDR(new_nv_ptr,range_len);
-        CODA_ASSERT((nv_ptr-range->data+range_len) <= range->data_len);
-        CODA_ASSERT((new_nv_ptr-new_range->data+range_len)
+        assert((nv_ptr-range->data+range_len) <= range->data_len);
+        assert((new_nv_ptr-new_range->data+range_len)
                <= new_range->data_len);
         BCOPY(nv_ptr,new_nv_ptr,range_len);
         }
@@ -746,7 +746,7 @@ static rvm_return_t merge_tid(q_tid,tid,new_range)
                                        RANGE_SIZE(range));
         if (!tree_delete(&q_tid->range_tree,range,
                              segment_partial_include))
-            CODA_ASSERT(rvm_false);
+            assert(rvm_false);
         free_range(range);
         }
     range = q_tid->x_ranges[0];

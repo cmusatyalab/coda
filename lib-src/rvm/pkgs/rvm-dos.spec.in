@@ -1,0 +1,58 @@
+Summary: RVM library
+Name: @PACKAGE@-dos
+Version: @VERSION@
+Release: 1
+Source: ftp://ftp.coda.cs.cmu.edu/pub/coda/src/@PACKAGE@-@VERSION@.tar.gz
+Copyright: LGPL
+BuildRoot: /usr/src/redhat/BUILD/@PACKAGE@-@VERSION@/Root
+Group: Development/Libraries
+%description
+The RVM persistent recoverable memory library. The RVM library is used by
+the Coda distributed filesystem.
+
+%package dev
+Summary: RVM library development files
+Group: Development/Libraries
+%description dev
+Headers and static libraries for developing programs using the RVM library.
+The RVM library is used by the Coda distributed filesystem.
+
+%changelog
+* Tue Oct 26 1999 Jan Harkes <jaharkes@cs.cmu.edu>
+- First stab at packaging the rvm library.
+	
+%prep
+%setup -n @PACKAGE@-@VERSION@
+
+%build
+./configure --prefix=/usr/gnuwin32 --target=dos
+make
+
+%install
+rm -rf $RPM_BUILD_ROOT
+mkdir -p $RPM_BUILD_ROOT
+make prefix=$RPM_BUILD_ROOT/usr install
+
+%clean
+rm -rf $RPM_BUILD_ROOT
+
+%files
+/usr/gnuwin32/sbin/rvmutl.exe
+/usr/gnuwin32/sbin/rdsinit.exe
+
+%files dev
+/usr/gnuwin32/lib/librvm.la
+/usr/gnuwin32/lib/librvm.a
+/usr/gnuwin32/lib/librvmlwp.la
+/usr/gnuwin32/lib/librvmlwp.a
+/usr/gnuwin32/lib/libseg.la
+/usr/gnuwin32/lib/libseg.a
+/usr/gnuwin32/lib/librds.la
+/usr/gnuwin32/lib/librds.a
+/usr/gnuwin32/lib/librdslwp.la
+/usr/gnuwin32/lib/librdslwp.a
+%dir /usr/gnuwin32/include/rvm
+/usr/gnuwin32/include/rvm/rvm.h
+/usr/gnuwin32/include/rvm/rvm_statistics.h
+/usr/gnuwin32/include/rvm/rvm_segment.h
+/usr/gnuwin32/include/rvm/rds.h
