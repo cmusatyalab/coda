@@ -1,33 +1,33 @@
-AC_DEFUN(CODA_CC_FNO_EXCEPTIONS,
-  [AC_CACHE_CHECK(whether the C compiler accepts -fno-exceptions,
-     coda_cv_cc_fno_exceptions,
+AC_DEFUN(CODA_CC_FEATURE_TEST,
+  [AC_CACHE_CHECK(whether the C compiler accepts $2,
+     coda_cv_cc_$1,
      coda_saved_CC="$CC"
-     CC="$CC -fno-exceptions"
+     CC="$CC $2"
      AC_LANG_SAVE
      AC_LANG_C
      AC_TRY_COMPILE([], [],
-       coda_cv_cc_fno_exceptions=yes,
-       coda_cv_cc_fno_exceptions=no)
+       coda_cv_cc_$1=yes,
+       coda_cv_cc_$1=no)
      AC_LANG_RESTORE
      CC="$coda_saved_CC")
-   if test $coda_cv_cc_fno_exceptions = yes; then
-     CC="$CC -fno-exceptions"
+   if test $coda_cv_cc_$1 = yes; then
+     CC="$CC $2"
    fi])
 
-AC_DEFUN(CODA_CXX_FNO_EXCEPTIONS,
-  [AC_CACHE_CHECK(whether the C++ compiler accepts -fno-exceptions,
-     coda_cv_cxx_fno_exceptions,
+AC_DEFUN(CODA_CXX_FEATURE_TEST,
+  [AC_CACHE_CHECK(whether the C++ compiler accepts $2,
+     coda_cv_cxx_$1,
      coda_saved_CXX="$CXX"
-     CXX="$CXX -fno-exceptions"
+     CXX="$CXX $2"
      AC_LANG_SAVE
      AC_LANG_CPLUSPLUS
      AC_TRY_COMPILE([], [],
-       coda_cv_cxx_fno_exceptions=yes,
-       coda_cv_cxx_fno_exceptions=no)
+       coda_cv_cxx_$1=yes,
+       coda_cv_cxx_$1=no)
      AC_LANG_RESTORE
-     CXX="$coda_saved_CXX")
-   if test $coda_cv_cxx_fno_exceptions = yes; then
-     CXX="$CXX -fno-exceptions"
+     CXX="$coda_saved_CC")
+   if test $coda_cv_cxx_$1 = yes; then
+     CXX="$CXX $2"
    fi])
 
 dnl Check which lib provides termcap functionality

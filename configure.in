@@ -13,8 +13,10 @@ AC_PROG_MAKE_SET
 AC_PROG_RANLIB
 AC_PROG_YACC
 
-CODA_CC_FNO_EXCEPTIONS
-CODA_CXX_FNO_EXCEPTIONS
+CODA_CC_FEATURE_TEST(no_exceptions, -fno-exceptions)
+CODA_CC_FEATURE_TEST(permissive, -fpermissive)
+CODA_CXX_FEATURE_TEST(no_exceptions, -fno-exceptions)
+CODA_CXX_FEATURE_TEST(permissive, -fpermissive)
 
 AC_PATH_PROG(CP, cp, "")
 AC_PATH_PROG(DF, df, "")
