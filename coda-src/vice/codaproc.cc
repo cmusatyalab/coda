@@ -1260,6 +1260,8 @@ int CheckDirRepairSemantics(vle *ov, dlist *vlist, Volume *volptr,
 	    break;
 	  case REPAIR_SETOWNER:
 	    /* must be a system administrator */
+	    /* POLICY ISSUE - maybe allow the user to set ownership to himself
+	     * if he has administrative acl rights on the directory */
 	    if (SystemUser(client)) {
 		SLog(0,  "DirRepairSemantics: Error for REPAIR_SETOWNER; need to be system administrator");
 		return(EACCES);

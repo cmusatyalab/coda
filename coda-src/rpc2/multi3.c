@@ -412,12 +412,14 @@ long RPC2_AddToMgrp(IN MgroupHandle, IN ConnHandle)
 	if (TestState(ce, CLIENT, C_HARDERROR)) rpc2_Quit(RPC2_FAIL);
 
 	if (TestState(ce, CLIENT, C_THINK))
-	    {
+	{
 	    if (ce->Mgrp != (struct MEntry *)NULL)
+	    {
 		if (ce->Mgrp == me) rpc2_Quit(RPC2_DUPLICATEMEMBER);
-		else rpc2_Quit(RPC2_FAIL);
-	    break;
+		else		    rpc2_Quit(RPC2_FAIL);
 	    }
+	    break;
+	}
 
 	/*  if (!EnqueueRequest) rpc2_Quit(RPC2_CONNBUSY);*/
 say(0, RPC2_DebugLevel, "Enqueuing on connection 0x%lx\n",ConnHandle);
