@@ -472,7 +472,18 @@ int main(int argc, char *argv[])
 #endif
     portlist[0] = &port1;
 
-    RPC2_setip(srvhost);
+    if (srvhost) {
+	struct in_addr ip;
+	if (CodaSrvIp) {
+	    CODA_ASSERT(inet_aton(CodaSrvIp, &ip) != 0);
+	} else {
+	    struct hostent *he;
+	    he = gethostbyname(srvhost);
+	    CODA_ASSERT(he && he->h_length == sizeof(struct in_addr));
+	    memcpy(&ip, he->h_addr_list[0], sizeof(struct in_addr));
+	}
+	RPC2_setip(&ip);
+    }
     SFTP_SetDefaults(&sei);
     /* set optimal window size and send ahead parameters */
     sei.WindowSize = SrvWindowSize;

@@ -127,12 +127,12 @@ void MarinerInit() {
 
 Next:
     if (mariner_tcp_enable) {
+	unsigned short marinerport = htonl(2430);
+
         /* Look up the well-known CODA mariner service. */
         struct servent *serventp = getservbyname(MarinerService, MarinerProto);
-        if (!serventp) {
-            eprint("MarinerInit: mariner service lookup failed!");
-            goto Done;
-        }
+        if (serventp) marinerport = serventp->s_port;
+	else eprint("mariner service port lookup failed, using tcp:2430");
 
         /* Socket at which we rendevous with new mariner clients. */
         if ((sock = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
@@ -149,7 +149,7 @@ Next:
         struct sockaddr_in sin;
         sin.sin_family = AF_INET;
         sin.sin_addr.s_addr = INADDR_ANY;
-        sin.sin_port = serventp->s_port;
+        sin.sin_port = marinerport;
         if (bind(sock, (struct sockaddr *)&sin, (socklen_t) sizeof(sin)) < 0) {
             eprint("MarinerInit: bind failed (%d)", errno);
             close(sock);

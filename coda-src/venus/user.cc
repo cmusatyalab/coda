@@ -391,7 +391,7 @@ int userent::Connect(RPC2_Handle *cid, int *auth, struct in_addr *host)
 
 	struct servent *s = getservbyname("codasrv", "udp");
 	if (s) pid.Value.InetPortNumber = s->s_port;
-	else eprint("getservbyname(codasrv,udp) failed, using 2432/udp\n");
+	else eprint("getservbyname(codasrv,udp) failed, using 2432/udp");
 
 	RPC2_SubsysIdent ssid;
 	ssid.Tag = RPC2_SUBSYSBYID;
@@ -438,7 +438,7 @@ int userent::Connect(RPC2_Handle *cid, int *auth, struct in_addr *host)
 
 	struct servent *s = getservbyname("codasrv", "udp");
 	if (s) pid.Value.InetPortNumber = s->s_port;
-	else eprint("getservbyname(codasrv,udp) failed, using 2432/udp\n");
+	else eprint("getservbyname(codasrv,udp) failed, using 2432/udp");
 
 	RPC2_SubsysIdent ssid;
 	ssid.Tag = RPC2_SUBSYSBYID;
