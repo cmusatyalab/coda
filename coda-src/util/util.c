@@ -285,7 +285,7 @@ int UtilHostEq(const char *name1, const char *name2)
     if ( host->h_length != len ) 
 	return 0;
 
-    if ( strncmp(addr, host->h_addr_list[0], len) == 0 ) 
+    if ( memcmp(addr, host->h_addr_list[0], len) == 0 ) 
 	return 1;
     else 
 	return 0;
