@@ -29,7 +29,7 @@
 #Mellon the rights to redistribute these changes without encumbrance.
 #*/
 #
-#static char *rcsid = "$Header: Makefile.in,v 1.1 96/12/09 14:40:27 raiff Exp $";
+#static char *rcsid = "$Header: /coda/coda.cs.cmu.edu/project/coda/cvs/coda/utils-src/potemkin/Attic/Makefile.in,v 1.1 1997/04/29 21:27:25 rvb Exp $";
 #endif /*_BLURB_*/
 
 # Coda top level Makefile

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /usr/rvb/XX/src/kernel-src/inodefs/common/RCS/inodefs.h,v 4.3 1997/01/29 18:07:07 lily Exp $";
+static char *rcsid = "$Header: /coda/coda.cs.cmu.edu/project/coda/cvs/coda/kernel-src/inodefs/common/Attic/inodefs.h,v 4.4 1997/02/26 16:04:26 rvb Exp $";
 #endif /*_BLURB_*/
 
 /* Interface definition for inode operations; the definition is 
