@@ -1340,8 +1340,6 @@ long srvent::GetBandwidth(unsigned long *Bandwidth) {
     LOG(1, ("srvent::GetBandwidth (%s) lastobs %ld.%06ld\n", 
 	      name, lastobs.tv_sec, lastobs.tv_usec));
     
-    *Bandwidth = INIT_BW;
-
     /* we don't have a real connid if the server is down or "quasi-up" */
     if (connid <= 0) 
 	return(ETIMEDOUT);
@@ -1360,8 +1358,8 @@ long srvent::GetBandwidth(unsigned long *Bandwidth) {
      * that the connection is considered strong until proven otherwise.
      *
      * The user can block the strong->weak transition using the
-     * 'cfs strong' command. (and turn adaptive mode back on with
-     * 'cfs adaptive'
+     * 'cfs strong' command (and turn adaptive mode back on with
+     * 'cfs adaptive').
      */
     if (!isweak && !forcestrong && bwmax < WCThresh) {
 	isweak = 1;
@@ -2666,14 +2664,12 @@ void vsgent::GetBandwidth(unsigned long *Bandwidth) {
     for (int i = 0; i < VSG_MEMBERS; i++)
 	if (Hosts[i]) {
 	    unsigned long bw = 0;
-	    srvent *s = 0;
+	    srvent *s = NULL;
 	    GetServer(&s, Hosts[i]);
 
 	    if (s->ServerIsUp()) {	/* need a connection */
 		(void) s->GetBandwidth(&bw);
-		if (bw != 0 && 
-		    (*Bandwidth == 0 ||
-		     (*Bandwidth != 0 && bw < *Bandwidth)))
+		if (bw != 0 && (*Bandwidth == 0 || bw < *Bandwidth))
 		    *Bandwidth = bw;
 	    }
 	}

@@ -64,11 +64,6 @@ extern "C" {
 }
 #endif __cplusplus
 
-/* interfaces */
-/* this is silly and only needed for an assertion in the PartialReintegrate
- * function */
-#include <cml.h>
-
 /* from venus */
 #include "local.h"
 #include "user.h"
@@ -442,16 +437,15 @@ int volent::PartialReintegrate(int tid) {
     cmlent *m;
     int locked = 0;
     int code = 0;
-    cur_reint_tid = tid; 
     ViceVersionVector UpdateSet;
 
     /* Is there an entry ready for partial reintegration at the head? */
     m = CML.GetFatHead(tid);
 
-    /* Weird error return, to indicate that there was nothing to do partial
-     * reintegration on. */
+    /* Indicate that there was nothing to do partial reintegration on. */
     if (!m) return(ENOENT);
 
+    cur_reint_tid = tid; 
     LOG(0, ("volent::PartialReintegrate: (%s, %d) vuid = %d\n",
 	    name, tid, CML.owner));
 
