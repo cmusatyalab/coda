@@ -486,6 +486,7 @@ extern long SFTP_MaxPackets;
 
 /* Predicate to test if file is in vm */
 #define MEMFILE(s) (s->Value.SmartFTPD.Tag == FILEINVM)
+#define BYFDFILE(s) (s->Value.SmartFTPD.Tag == FILEBYFD)
 
 /* test if we can send an TimeEcho reponse */
 #define VALID_TIMEECHO(se) (!(se)->Retransmitting && \

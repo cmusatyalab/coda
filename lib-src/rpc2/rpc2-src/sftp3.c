@@ -1418,6 +1418,9 @@ int sftp_piggybackfileread(SE_Descriptor *sdesc, long openfd, char *buf)
 	}
     else
 	{
+	if (BYFDFILE(sdesc) && lseek(openfd, 0, SEEK_SET) < 0)
+	    return(RPC2_SEFAIL4);
+	
 	if (read(openfd, buf, sftp_piggybackfilesize(sdesc, openfd)) < 0)
 	    return(RPC2_SEFAIL4);
 	}
@@ -1477,8 +1480,13 @@ static int sftp_vfreadv(SE_Descriptor *sdesc,
     struct FileInfoByAddr *x;
 
     /* Go to the disk if we must */
-    if (!MEMFILE(sdesc))
+    if (!MEMFILE(sdesc)) {
+	if (BYFDFILE(sdesc)) {
+	    /* need to seek, as multiple connections share the same fd */
+	    lseek(openfd, sdesc->Value.SmartFTPD.BytesTransferred, SEEK_SET);
+	}
         return(readv(openfd, iovarray, howMany));
+    }
 
     /* This is a vm file; vmfilep indicates first byte not yet consumed */
     x = &sdesc->Value.SmartFTPD.FileInfo.ByAddr;
