@@ -1,0 +1,111 @@
+[ Oct 17, 97 ]
+
+[ This file, README.log1.4, helps the rolling out of new RVM log
+version 1.4.  It can later be moved to somewhere else: other README
+files, FAQ, manual etc ]
+
+You need to read this file only if you are using either venus and coda
+server already.  This file explains how you can preserve your existing
+persistent data in RVM when you upgrade to new binaries using new RVM
+log format.
+
+I have changed the log format for the Recoverable Virtual Memory
+(RVM), and upgraded the RVM log version from 1.3 to 1.4.  This is
+necessary because I need to fix the once-in-a-million bug associated
+with log wrapping.
+
+The new binaries for 
+
+  Venus
+  Srv
+  Rvmutl
+  Norton
+  Rvm_basher
+
+are now linked with the new log version of RVM.  When you start new
+binary with old RVM log, you may see some error messages saying "RVM
+log version skew" or RVM_ELOG_VERSION_SKEW.
+
+1. In Venus, you will see (in your venus.log file)
+
+    Recov_InitRVM: RVM_INIT failed, RVM log version skew
+    Venus not started
+
+If you are sure all your data *on your client* have been successfully
+reintegrated with server, you can simply restart venus with the
+"-init" switch (note 1).  This is the simpler way to handle the log
+version skew.
+
+There are rare cases that you don't want to use the "-init" switch.
+For example, it may be the case that you can't talk to some servers
+and thus can't reintegrate your local changes to server yet.  In this
+case, you can do the following:
+
+ a. Truncate (note 2) your old RVM log (/usr/coda/LOG) with rvmutl.  Of
+    course, it has to be the rvmutl with the right RVM log version 1.3.  
+    This can be done
+
+    root# cd /usr/coda
+    root# ls -l LOG       # remember the file size of the LOG
+    root# rvmutl.1.3      # the binary may just be named rvmutl
+    * open_log LOG        # open the log
+    * recover             # truncate it
+    * quit		  
+    root#                 # your existing log is successfully truncated
+    root# rm LOG.1.3      # 
+
+ b. Create a new RVM log file using rvmutl.  This time, you have
+    to use a version of rvmutl that has RVM log version 1.4.
+
+    root# rvmutl.1.4      # the binary may just be named rvmutl
+    * init_log LOG <size> # <size> = old log size - 1536
+    * quit
+    root#                 # now you have a new log
+
+Then you can start your venus again (note 1).
+
+2. In Srv, you will see (in SrvLog file)
+
+    rvm_init failed because of skew RVM-log version.
+    Coda server not started.
+
+In Coda server, there are no equivalence of "-init" switch of venus.
+Also it is a very complicated procedure to reinitialize a server.
+Generally, for server, you only want to change your RVM log file to one
+with the new format.  What you need to do is truncate (note 2) your
+old log with rvmutl of version 1.3 and then create a new log with
+rvmutl of version 1.4.  You can more or less follow the procedure list
+for venus, the only differences are the path of the log file and the
+size of log file (typically these info. are kept in the "serverinfo" file).
+
+3. I am keeping rvmutl with log-version 1.3 around for a while, just
+in case some people need them handy.  You may find them in
+
+  /coda/usr/clement/russian/oldrvmutl/<platform>/rvmutl.1.3
+
+They will not be kept forever, but you can always cook one for
+yourself by retrieving the right revision for the following three
+files from the cvs tree:
+
+  rvm_private.h    (revision 4.2)
+  rvm_logrecovr.c  (revision 4.3)
+  rvm_utils.c      (revision 4.3)
+
+and rebuilt rvmutl.
+
+-- Clement [ Oct 17, 97 ]
+
+(note) 
+
+1. As of this moment, remember that you need to issue a "umount /coda"
+between two restarts of venus.
+
+2. "Truncate" is an RVM terminology.  Before truncation, the effect of
+of committed transaction are presistence, but they may still be
+residing in the sequential write-ahead log and have not yet been
+reflected to the RVM data segment.  By truncating your RVM log, you
+make sure all the effects of committed transactions are reflected to
+the RVM data segment, and your log file can be replaced without losing
+your committed transaction.  In rvmutl, the command to invoke a log
+truncation is, surprisingly, not truncate but *recover*.
+

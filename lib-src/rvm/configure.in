@@ -1,0 +1,39 @@
+dnl Process this file with autoconf to produce a configure script
+
+dnl Initialization
+AC_INIT(rvm/rvm_private.h)
+CODA_SETUP_BUILD
+AM_INIT_AUTOMAKE(rvm, 1.0)
+AM_CONFIG_HEADER(config.h)
+
+CODA_OPTION_LWP
+
+dnl Checks for programs.
+AC_PROG_CC
+AC_PROG_CPP
+AC_PROG_RANLIB
+AC_CHECK_PROG(AR, ar, ar)
+export AR
+AM_PROG_INSTALL
+AC_PROG_MAKE_SET
+AM_PROG_LIBTOOL
+CODA_PATCH_LIBTOOL
+
+dnl Checks for libraries.
+dnl Checks for header files.
+AC_CHECK_HEADERS(search.h)
+
+dnl Checks for typedefs.
+dnl Checks for compiler characteristics.
+
+dnl Checks for library functions.
+AC_CHECK_FUNCS(strerror)
+AC_FUNC_MMAP
+CODA_FUNC_INSQUE
+
+dnl Checks for system services.
+AM_CYGWIN32
+
+dnl Generate output files
+AC_OUTPUT(Makefile include/Makefile include/rvm/Makefile rvm/Makefile seg/Makefile rds/Makefile tests/Makefile pkgs/Makefile pkgs/rvm.spec pkgs/rvm-nt.spec pkgs/rvm-dos.spec)
+

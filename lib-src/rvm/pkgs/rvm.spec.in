@@ -1,0 +1,76 @@
+Summary: RVM library
+Name: @PACKAGE@
+Version: @VERSION@
+Release: 1
+Source: ftp://ftp.coda.cs.cmu.edu/pub/coda/src/@PACKAGE@-@VERSION@.tar.gz
+Copyright: LGPL
+BuildRoot: /usr/src/redhat/BUILD/@PACKAGE@-@VERSION@/Root
+Group: Development/Libraries
+%description
+The RVM persistent recoverable memory library. The RVM library is used by
+the Coda distributed filesystem.
+
+%package dev
+Summary: RVM library development files
+Group: Development/Libraries
+%description dev
+Headers and static libraries for developing programs using the RVM library.
+The RVM library is used by the Coda distributed filesystem.
+
+%changelog
+* Tue Oct 26 1999 Jan Harkes <jaharkes@cs.cmu.edu>
+- First stab at packaging the rvm library.
+	
+%prep
+%setup -n @PACKAGE@-@VERSION@
+
+%build
+./configure --prefix=/usr
+make
+
+%install
+rm -rf $RPM_BUILD_ROOT
+mkdir -p $RPM_BUILD_ROOT
+make prefix=$RPM_BUILD_ROOT/usr install
+chmod 755 $RPM_BUILD_ROOT/usr/lib/librvm.so.1.0.0
+chmod 755 $RPM_BUILD_ROOT/usr/lib/librvmlwp.so.1.0.0
+chmod 755 $RPM_BUILD_ROOT/usr/lib/libseg.so.1.0.0
+chmod 755 $RPM_BUILD_ROOT/usr/lib/librds.so.1.0.0
+chmod 755 $RPM_BUILD_ROOT/usr/lib/librdslwp.so.1.0.0
+
+%clean
+rm -rf $RPM_BUILD_ROOT
+
+%post
+/sbin/ldconfig
+
+%files
+/usr/sbin/rvmutl
+/usr/sbin/rdsinit
+/usr/lib/librvm.so.1.0.0
+/usr/lib/librvmlwp.so.1.0.0
+/usr/lib/libseg.so.1.0.0
+/usr/lib/librds.so.1.0.0
+/usr/lib/librdslwp.so.1.0.0
+
+%files dev
+/usr/lib/librvm.la
+/usr/lib/librvm.a
+/usr/lib/librvm.so
+/usr/lib/librvmlwp.la
+/usr/lib/librvmlwp.a
+/usr/lib/librvmlwp.so
+/usr/lib/libseg.la
+/usr/lib/libseg.a
+/usr/lib/libseg.so
+/usr/lib/librds.la
+/usr/lib/librds.a
+/usr/lib/librds.so
+/usr/lib/librdslwp.la
+/usr/lib/librdslwp.a
+/usr/lib/librdslwp.so
+%dir /usr/include/rvm
+/usr/include/rvm/rvm.h
+/usr/include/rvm/rvm_statistics.h
+/usr/include/rvm/rvm_segment.h
+/usr/include/rvm/rds.h

@@ -1,0 +1,12 @@
+--- libtool.orig	Tue Nov  9 23:36:35 1999
++++ libtool	Tue Nov  9 23:36:54 1999
+@@ -1249,6 +1249,9 @@
+         fi
+       fi
+ 
++      # Transform .lo files to .o files.
++      test "$build_old_libs" = yes && oldobjs="$objs"`$echo "X$libobjs " | $Xsed -e 's/[^   ]*\.a //g' -e 's/\.lo /.o /g' -e 's/ $//g'`
++
+       if test "$build_libtool_libs" = yes; then
+ 	# Get the real and link names of the library.
+ 	eval library_names=\"$library_names_spec\"
