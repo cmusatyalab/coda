@@ -1040,8 +1040,8 @@ void worker::AwaitRequest() {
 /* Called by workers after completing a service request. */
 void worker::Resign(msgent *msg, int size) {
     if (returned) {
-	char *opstr = VenusOpStr((int) ((union outputArgs*)msg->msg_buf)->oh.opcode);
-	char *retstr = VenusRetStr((int) ((union outputArgs *)msg->msg_buf)->oh.result);
+	const char *opstr = VenusOpStr((int) ((union outputArgs*)msg->msg_buf)->oh.opcode);
+	const char *retstr = VenusRetStr((int) ((union outputArgs *)msg->msg_buf)->oh.result);
 	
 #ifdef TIMING
 	float elapsed;
@@ -1074,8 +1074,8 @@ void worker::Return(msgent *msg, size_t size) {
     if (returned)
 	CHOKE("worker::Return: already returned!");
 
-    char *opstr = VenusOpStr((int) ((union outputArgs*)msg->msg_buf)->oh.opcode);
-    char *retstr = VenusRetStr((int) ((union outputArgs*)msg->msg_buf)->oh.result);
+    const char *opstr = VenusOpStr((int) ((union outputArgs*)msg->msg_buf)->oh.opcode);
+    const char *retstr = VenusRetStr((int) ((union outputArgs*)msg->msg_buf)->oh.result);
 
 #ifdef	TIMING
     float elapsed;

@@ -292,7 +292,8 @@ void VenusPrint(int fd, int argc, char **argv) {
 }
 
 
-char *VenusOpStr(int opcode) {
+const char *VenusOpStr(int opcode)
+{
     static char	buf[12];    /* This is shaky. */
 
     if (opcode >= 0 && opcode < NVFSOPS)
@@ -303,7 +304,7 @@ char *VenusOpStr(int opcode) {
 }
 
 
-char *IoctlOpStr(int opcode) {
+const char *IoctlOpStr(int opcode) {
     static char	buf[12];    /* This is shaky. */
 
     switch(opcode) {
@@ -411,7 +412,7 @@ char *IoctlOpStr(int opcode) {
 }
 
 
-char *VenusRetStr(int retcode) {
+const char *VenusRetStr(int retcode) {
     static char	buf[12];    /* This is shaky. */
     char *errstr;
 
