@@ -274,8 +274,8 @@ void cmlent::Thaw()
 	CODA_ASSERT(f && (f->MagicNumber == FSO_MagicNumber));
 
 	/* no need to unlock, just get rid of shadow copy */
-	CODA_ASSERT(f->shadow);
-	f->RemoveShadow();
+	if (f->shadow)
+	    f->RemoveShadow();
     }
 
     RVMLIB_REC_OBJECT(flags);
