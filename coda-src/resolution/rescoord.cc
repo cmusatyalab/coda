@@ -132,13 +132,15 @@ static int WEResPhase1(ViceVersionVector **VV,
 	ViceVersionVector newvv;
 	
 	SLog(9,  "Entering WEResPhase1 for %s", FID_(Fid));
+	ViceStatus vstatus;
+	memset(&vstatus, 0, sizeof(ViceStatus));
 
 	/* force a new vv */
 	GetMaxVV(&newvv, VV, -1);
 	*stid = newvv.StoreId;
 	MRPC_MakeMulti(ForceDirVV_OP, ForceDirVV_PTR, VSG_MEMBERS, 
 		       mgrp->rrcc.handles, mgrp->rrcc.retcodes,
-		       mgrp->rrcc.MIp, 0, 0, Fid, &newvv);
+		       mgrp->rrcc.MIp, 0, 0, Fid, &newvv, &vstatus);
 	SLog(9,  "WEResPhase1 returned from ForceDir");
 	
 	/* coerce rpc errors as timeouts - check ret codes */
@@ -261,7 +263,7 @@ int WERes(ViceFid *Fid, ViceVersionVector **VV, ResStatus **rstatusp,
 			  succflags);
 	    GetResStatus(succflags, rstatusp, &vstatus);
 	}
-	else memset((void *)&vstatus, 0, (int) sizeof(ViceStatus));	// for now send a zeroed vstatus.
+	else memset(&vstatus, 0, sizeof(ViceStatus));	// for now send a zeroed vstatus.
 	// rpc2 doesn\'t like a NULL being passed as an IN parameter 
 	MRPC_MakeMulti(ForceDirVV_OP, ForceDirVV_PTR, VSG_MEMBERS, 
 		       mgrp->rrcc.handles, mgrp->rrcc.retcodes,
