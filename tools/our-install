@@ -9,7 +9,7 @@ FILES=$@
 export PATH=/bin:/usr/bin:/sbin:/usr/sbin
 
 SYS=`uname -s`
-if [ $SYS = NetBSD ] ; then
+if [ $SYS = NetBSD -o $SYS = FreeBSD ] ; then
 OWNGRP=root.wheel
 else
 OWNGRP=root.root
