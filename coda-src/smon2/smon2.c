@@ -49,6 +49,7 @@ listed in the file CREDITS.
 #include <lwp/lwp.h>
 #include <lwp/timer.h>
 #include <rpc2/rpc2.h>
+#include <rpc2/rpc2_addrinfo.h>
 #include <rpc2/se.h>
 #include <rpc2/sftp.h>
 #include <ports.h>
@@ -195,11 +196,18 @@ static void RRDUpdate(struct server *s)
 
 static int ValidServer(char *s)
 {
-    struct hostent *he;
+    struct RPC2_addrinfo hints, *res = NULL;
+    int ret;
     
-    he = gethostbyname(s);
-    if (he) return(1);
-    else return(0);
+    memset(&hints, 0, sizeof(hints));
+    hints.ai_family   = PF_INET;
+    hints.ai_socktype = SOCK_DGRAM;
+    hints.ai_protocol = IPPROTO_UDP;
+
+    ret = RPC2_getaddrinfo(s, "codasrv", &hints, &res);
+    RPC2_freeaddrinfo(res);
+    
+    return (ret == 0);
 }
 
 static void GetArgs(int argc, char *argv[])
@@ -251,6 +259,7 @@ static void GetArgs(int argc, char *argv[])
 
 static void InitRPC()
 {
+    RPC2_Options options;
     PROCESS pid;
     int rc;
     SFTP_Initializer sei;
@@ -267,7 +276,11 @@ static void InitRPC()
     SFTP_Activate(&sei);
     tv.tv_sec = 15;
     tv.tv_usec = 0;
-    RPC2_Init(RPC2_VERSION, 0, 0, -1, &tv);
+
+    memset(&options, 0, sizeof(options));
+    options.Flags = RPC2_OPTION_IPV6;
+
+    RPC2_Init(RPC2_VERSION, &options, 0, -1, &tv);
 }
 
 
@@ -285,8 +298,8 @@ static void srvlwp(int slot)
 
     hi.Tag = RPC2_HOSTBYNAME;
     strcpy(hi.Value.Name, moi->srvname);
-    pi.Tag = RPC2_PORTBYINETNUMBER;
-    pi.Value.InetPortNumber = htons(PORT_codasrv);
+    pi.Tag = RPC2_PORTBYNAME;
+    strcpy(pi.Value.Name, "codasrv");
     si.Tag = RPC2_SUBSYSBYID;
     si.Value.SubsysId= SUBSYS_SRV;
 

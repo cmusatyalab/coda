@@ -1969,6 +1969,7 @@ static void V_InitRPC(int timeout)
     PROCESS mylpid;
     FILE *tokfile;
     SFTP_Initializer sftpi;
+    RPC2_Options options;
     struct timeval tout;
     long rcode;
 
@@ -1990,7 +1991,11 @@ static void V_InitRPC(int timeout)
     SFTP_Activate(&sftpi);
     tout.tv_sec = timeout;
     tout.tv_usec = 0;
-    rcode = RPC2_Init(RPC2_VERSION, 0, NULL, 3, &tout);
+
+    memset(&options, 0, sizeof(options));
+    options.Flags = RPC2_OPTION_IPV6;
+
+    rcode = RPC2_Init(RPC2_VERSION, &options, NULL, 3, &tout);
     if (rcode != RPC2_SUCCESS) {
 	fprintf(stderr, "RPC2_Init failed with %s\n", RPC2_ErrorMsg((int)rcode));
 	exit(-1);

@@ -34,6 +34,7 @@ listed in the file CREDITS.
 
 void Initialize(void)
 {
+    RPC2_Options options;
     PROCESS pid;
     struct timeval tv;
     long rc;
@@ -47,7 +48,11 @@ void Initialize(void)
 
     tv.tv_sec = 15;
     tv.tv_usec = 0;
-    rc = RPC2_Init(RPC2_VERSION, 0, 0, -1, &tv);
+
+    memset(&options, 0, sizeof(options));
+    options.Flags = RPC2_OPTION_IPV6;
+
+    rc = RPC2_Init(RPC2_VERSION, &options, 0, -1, &tv);
     if (rc != LWP_SUCCESS) {
 	printf("RPC_Init() failed\n");
 	exit(-1);
