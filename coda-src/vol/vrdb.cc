@@ -165,6 +165,15 @@ void vrtab::print(int afd) {
 	    vre->print(afd);
 }
 
+int vrtab::dump(int afd)
+{
+    ohashtab_iterator next(*this, (void *)-1);
+    vrent *vre;
+    while ((vre = (vrent *)next())) 
+	    if (vre->dump(afd) == -1)
+		return -1;
+    return 0;
+}
 
 void CheckVRDB() {
     int VRDB_fd = open(VRDB_PATH, O_RDONLY, 0);
@@ -191,6 +200,11 @@ void CheckVRDB() {
     JoinedVSGs.GarbageCollect();
 #endif
 
+}
+
+int DumpVRDB(int outfd)
+{
+    return VRDB.dump(outfd);
 }
 
 
@@ -318,6 +332,12 @@ int vrent::GetVolumeInfo(VolumeInfo *Info) {
 // keep the volume ids in an order that corresponds to the 
 // canonical (sorted) order of the hosts where they belong
 void vrent::Canonicalize() {
+
+    /* canonicalizing the volume-ids is bad in case servers ever change
+     * ip-address, or when VSGs are shrunk/expanded because we get random
+     * permutations in the VersionVectors. */
+    CODA_ASSERT(0);
+
     VolumeId CopySrvVolNum[VSG_MEMBERS];
     unsigned long VolHostAddr[VSG_MEMBERS];
     unsigned long CopyVolHostAddr[VSG_MEMBERS];
@@ -397,4 +417,25 @@ void vrent::print(int afd) {
 	    this, key, volnum, nServers, addr);
     write(afd, buf, strlen(buf));
 
+}
+
+int vrent::dump(int afd)
+{
+    char buf[512];
+    int i, n, len;
+
+    len = sprintf(buf, "%s %lx %d ", key, volnum, nServers);
+
+    for (i = 0; i < VSG_MEMBERS; i++) {
+	n = sprintf(buf + len, "%lx ", ServerVolnum[i]);
+	len += n;
+    }
+    n = sprintf(buf + len, "%lX\n", addr);
+    len += n;
+
+    n = write(afd, buf, len);
+    if (n != len)
+	return -1;
+
+    return 0;
 }

@@ -89,6 +89,7 @@ static void create_rep(void);
 static void clone(void);
 static void makevldb(void);
 static void makevrdb(void);
+static void dumpvrdb(void);
 static void info(void);
 static void showvnode(void);
 static void setvv(void);
@@ -214,6 +215,8 @@ int main(int argc, char **argv)
 	makevldb();
     else if (strcmp(argv[1], "makevrdb") == 0)
 	makevrdb();
+    else if (strcmp(argv[1], "dumpvrdb") == 0)
+	dumpvrdb();
     else if (strcmp(argv[1], "info") == 0)
 	info();
     else if (strcmp(argv[1], "showvnode") == 0)
@@ -295,7 +298,7 @@ bad_options:
 "\tdumpmem, rvmsize, timing, enablewb, disablewb, printstats,\n"
 "\tshowcallbacks, truncatervmlog,togglemalloc, getmaxvol, setmaxvol,\n"
 "\tpeek, poke, peeks, pokes, peekx, pokex, setlogparms, tracerpc\n"
-"\tgetvolumelist\n");
+"\tgetvolumelist, dumpvrdb\n");
     exit(-1);
 }
 
@@ -1069,6 +1072,28 @@ static void makevrdb(void)
 	exit(-1);
     }
     fprintf(stderr, "VRDB completed.\n");
+    exit(0);
+}
+
+/**
+ * dumpvrdb - dump the internal VRDB state into a new VRList file
+ * @vrlist:	output list which will contains all information about volume
+ *		replicas that is currently stored in RVM.
+ */
+static void dumpvrdb(void)
+{
+    char *infile;
+    if (these_args != 3) {
+	fprintf(stderr, "Usage: volutil dumpvrdb VRListFile\n");
+	exit (-1);
+    }
+    infile = this_argp[2];
+
+    rc = VolDumpVRDB(rpcid, (RPC2_String)infile);
+    if (rc != RPC2_SUCCESS) {
+	fprintf(stderr, "VolDumpVRDB failed with %s\n", RPC2_ErrorMsg((int)rc));
+	exit(-1);
+    }
     exit(0);
 }
 

@@ -94,8 +94,15 @@ if [ x$VOLNAME = x`awk ' $1 ~ /^[WRB]'$1'\.[0-7]$/  {print $1}' ${vicedir}/vol/B
     exit 1
 fi
 
-if [ x$VOLNAME = x`awk ' $1 ~ /^'$1'$/  {print $1}' ${vicedir}/db/VRList` ]; then
-	echo "Volume $VOLNAME already exists in ${vicedir}/db/VRList"
+# Dump the VRDB from RVM into a temporary VRList list
+volutil -h `cat ${vicedir}/db/scm` dumpvrdb ${vicedir}/db/VRList.new
+if [ $? -ne 0 ]; then
+    echo "Failed to dump the current VRDB into ${vicedir}/db/VRList.new"
+    exit 1
+fi
+
+if [ x$VOLNAME = x`awk ' $1 ~ /^'$1'$/  {print $1}' ${vicedir}/db/VRList.new` ]; then
+	echo "Volume $VOLNAME already exists in ${vicedir}/db/VRList.new"
 	exit 1
 fi
 
@@ -231,9 +238,19 @@ done
 
 ENTRY="$ENTRY $VSGADDR"
 
-echo "<echo $ENTRY >> ${vicedir}/db/VRList>"
-echo $ENTRY >> ${vicedir}/db/VRList
-volutil makevrdb ${vicedir}/db/VRList
+echo "<echo $ENTRY >> ${vicedir}/db/VRList.new>"
+echo $ENTRY >> ${vicedir}/db/VRList.new
+volutil makevrdb ${vicedir}/db/VRList.new
+
+if [ $? -ne 0 ]; then
+    echo "Failed to create a new VRDB file from ${vicedir}/db/VRList.new"
+    exit 1
+fi
+
+# All seemed to have gone well. Make a backup of the old VRList and move the
+# new VRList in it's place.
+mv ${vicedir}/db/VRList ${vicedir}/db/VRList.old
+mv ${vicedir}/db/VRList.new ${vicedir}/db/VRList
 
 echon "Do you wish this volume to be Backed Up (y/n)? [n] "
 
@@ -271,4 +288,10 @@ if  [ x$_ans_ = xy -o x$_ans_ = xyes ]; then
 
     echo "echoing $HEXGROUPID        $_cycle_        $VOLNAME >>${vicedir}/db/dumplist"
     echo "$HEXGROUPID        $_cycle_         $VOLNAME" >>${vicedir}/db/dumplist
+
+    # Generate a disklist for Amanda while we're at it
+    #for SERVER in $SERVERS ; do
+    #	echo $SERVER $VOLNAME coda >> ${vicedir}/db/disklist.amanda
+    #done
 fi
+

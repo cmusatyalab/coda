@@ -67,6 +67,7 @@ VOLUTILOBJS = \
 	vol-create.o \
 	vol-dump.o \
 	vol-dumpmem.o \
+	vol-dumpvrdb.o \
 	vol-info.o \
 	vol-lock.o \
 	vol-lookup.o \

@@ -44,13 +44,9 @@ extern "C" {
 #include <volume.h>
 
 
-/*
-  BEGIN_HTML
-  <a name="S_VolMakeVRDB"><strong>Rebuild the VRDB from the file listed as parameter</strong></a> 
-  END_HTML
-*/
-// This routine parses a text file, VRList, and translates it into a binary format. 
-// The format of the text file is:
+/* S_VolMakeVRDB: Rebuild the VRDB from the file listed as parameter */
+// This routine parses a text file, VRList, and translates it into a binary
+// format. The format of the text file is:
 //      <Group-volname, Group-volid, VSGsize, RWVol0, ... , RWVol7, VSGAddr>
 
 long S_VolMakeVRDB(RPC2_Handle rpcid, RPC2_String formal_infile) {
@@ -98,7 +94,6 @@ long S_VolMakeVRDB(RPC2_Handle rpcid, RPC2_String formal_infile) {
 	    goto Exit;
 	}
 	vre->nServers = servercount;
-	vre->Canonicalize();
 	vre->hton();
 	
 	if (write(fd, vre, sizeof(struct vrent)) != sizeof(struct vrent)) {

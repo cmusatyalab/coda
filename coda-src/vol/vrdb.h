@@ -62,6 +62,8 @@ class vrtab : public ohashtab {
     void print();
     void print(FILE *);
     void print(int);
+
+    int dump(int);
 };
 
 
@@ -92,10 +94,13 @@ class vrent : public olink {
     void print();
     void print(FILE *);
     void print(int);
+
+    int dump(int);
 };
 
 extern vrtab VRDB;
 extern void CheckVRDB();
+extern int DumpVRDB(int outfd);
 extern int XlateVid(VolumeId *, int * = NULL, int * = NULL);
 extern int ReverseXlateVid(VolumeId *);
 extern unsigned long XlateVidToVSG(VolumeId);

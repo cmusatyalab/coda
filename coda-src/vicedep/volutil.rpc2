@@ -137,3 +137,5 @@ typedef RPC2_Struct {
 
 41: GetVolumeList(IN OUT SE_Descriptor sed);
 
+42: VolDumpVRDB(IN RPC2_String infile);
+
