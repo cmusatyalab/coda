@@ -16,10 +16,6 @@ listed in the file CREDITS.
 
 #*/
 
-
-
-
-
 /*
  * compops.c
  *	routines for computing list of 
@@ -180,6 +176,7 @@ static olist **ExtractRemoteLogs(olist *logs, ViceFid *Fid, int *nlists) {
     while ((hoste = (he *)next())) {
 	if (hoste->hid == (long)ThisHostAddr) continue;
 	rmtlogs[index] = ExtractLog(logs, hoste->hid, Fid);
+	if (!rmtlogs[index]) continue;
 	index++;
     }
     *nlists = index;
