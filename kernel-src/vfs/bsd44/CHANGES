@@ -1,0 +1,22 @@
+		RELEASE: c4_3_14
+
+
+cfs/cfs_fbsd.c:
+	use official /dev/cfs0 major == 93
+
+cfs/cfs_vfsops.c:
+	Go back to old days of no vfsp for cfs_ctlvp, otherwise somehow we knot the
+	list of cnodes when shutting down.
+
+	move devtomp() here from ufs/ifs
+
+cfs/cfs_vnodeops.c:
+	remove ufs/ifs/ifs.h reference
+
+cfs/cfs_venus.c:
+	Need to check all the pointers to an s_leader, since the controling
+	process can die first, viz.
+	(p && p->p_session && p->p_session->s_leader) ? (p->p_session->s_leader->p_pid)
+
+cfs/cnode.h:
+	define devtomp()
