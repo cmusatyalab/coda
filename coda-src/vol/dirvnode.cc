@@ -115,6 +115,7 @@ int VN_DAbort(Vnode *vnp)
 	if ( !vnp->disk.inodeNumber ) {
 		vnp->dh_refc = 0;
 		DC_Drop(vnp->dh);
+		vnp->dh = NULL;
 	}
 
 	return(0);
@@ -152,7 +153,7 @@ PDirHandle VN_SetDirHandle(struct Vnode *vn)
 		pdce = vn->dh;
 		DC_SetCount(pdce, DC_Count(pdce) + 1);
 		vn->dh_refc++;
-		SLog(0, "VN_GetDirHandle NEW-seen Vnode %#x Uniq %#x" 
+		SLog(0, "VN_GetDirHandle NEW-seen Vnode %#x Uniq %#x " 
 		     "cnt %d, vn_ct %d\n",
 		     vn->vnodeNumber, vn->disk.uniquifier, 
 		     DC_Count(pdce), vn->dh_refc);
