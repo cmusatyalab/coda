@@ -836,15 +836,18 @@ int coda_downcall(int opcode, union outputArgs * out, struct super_block *sb)
 	  case CFS_ZAPDIR : {
 	          struct inode *inode;
 		  ViceFid *fid = &out->cfs_zapdir.CodaFid;
-		  CDEBUG(D_DOWNCALL, "zapdir: fid = %s\n", coda_f2s(fid));
+		  CDEBUG(D_DOWNCALL, "zapdir: fid = %s...\n", coda_f2s(fid));
 		  clstats(CFS_ZAPDIR);
 
 		  inode = coda_fid_to_inode(fid, sb);
 		  if ( inode ) {
+			  CDEBUG(D_DOWNCALL, "zapdir: inode = %ld\n", inode->i_ino);
 	                  coda_flag_inode(inode, C_VATTR);
 			  coda_cache_clear_inode(inode);
 			  coda_flag_alias_children(inode, C_PURGE);
-		  }
+		  } else 
+			  CDEBUG(D_DOWNCALL, "zapdir: no inode\n");
+		  
 		  return(0);
 	  }
 
@@ -855,9 +858,11 @@ int coda_downcall(int opcode, union outputArgs * out, struct super_block *sb)
 		  CDEBUG(D_DOWNCALL, "zapfile: fid = %s\n", coda_f2s(fid));
 		  inode = coda_fid_to_inode(fid, sb);
 		  if ( inode ) {
+			  CDEBUG(D_DOWNCALL, "zapfile: inode = %ld\n", inode->i_ino);
 	                  coda_flag_inode(inode, C_VATTR);
 			  coda_cache_clear_inode(inode);
-		  }
+		  }else 
+			  CDEBUG(D_DOWNCALL, "zapfile: no inode\n");
 		  return 0;
 	  }
 
@@ -868,9 +873,11 @@ int coda_downcall(int opcode, union outputArgs * out, struct super_block *sb)
 		  clstats(CFS_PURGEFID);
 		  inode = coda_fid_to_inode(fid, sb);
 		  if ( inode ) { 
+			  CDEBUG(D_DOWNCALL, "purgefid: inode = %ld\n", inode->i_ino);
                           coda_flag_inode(inode, C_PURGE);
 			  coda_cache_clear_inode(inode);
-		  }
+		  }else 
+			  CDEBUG(D_DOWNCALL, "purgefid: no inode\n");
 		  return 0;
 	  }
 

@@ -223,7 +223,7 @@ static void coda_delete_inode(struct inode *inode)
         }
 	
 	coda_cache_clear_inode(inode);
-
+	CDEBUG(D_DOWNCALL, "clearing inode: %ld\n", inode->i_ino);
 	inode->u.generic_ip = NULL;
         clear_inode(inode);
 	EXIT;

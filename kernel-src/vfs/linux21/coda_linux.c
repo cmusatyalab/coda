@@ -26,7 +26,7 @@
 #include <linux/coda_cache.h>
 
 /* initialize the debugging variables */
-int coda_debug = 0;
+int coda_debug = D_DOWNCALL;
 int coda_print_entry = 0; 
 int coda_access_cache = 1;
 
@@ -123,14 +123,18 @@ int coda_cred_eq(struct coda_cred *cred1, struct coda_cred *cred2)
 unsigned short coda_flags_to_cflags(unsigned short flags)
 {
 	unsigned short coda_flags = 0;
-
-	if ( (flags & 0xf) == O_RDONLY )
+	
+	if ( (flags & O_ACCMODE) == O_RDONLY ){ 
+		CDEBUG(D_FILE, "--> C_O_READ added\n");
 		coda_flags |= C_O_READ;
+	}
 
-	if ( flags &  O_RDWR ) 
-		coda_flags |= C_O_READ;
+	if ( (flags & O_ACCMODE) ==  O_RDWR ) { 
+		CDEBUG(D_FILE, "--> C_O_READ | C_O_WRITE added\n");
+		coda_flags |= C_O_READ | C_O_WRITE;
+	}
 
-	if ( flags & (O_WRONLY | O_RDWR) ){ 
+	if ( (flags & O_ACCMODE) == O_WRONLY ){ 
 		CDEBUG(D_FILE, "--> C_O_WRITE added\n");
 		coda_flags |= C_O_WRITE;
 	}
