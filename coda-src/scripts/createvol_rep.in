@@ -17,12 +17,19 @@
 # 
 #*/
 
-PATH=$PATH:/usr/local/sbin
+PATH=$PATH:@prefix@/sbin
 export PATH
 
-[ -f /vice/hostname ] ||  exit 1
-[ -f /vice/db/scm ] ||  exit 1
+if [ -f @prefix@/etc/coda/server.conf ] ; then
+  . @prefix@/etc/coda/server.conf
+else
+  vicedir=/vice
+fi
 
+if [ ! -f ${vicedir}/hostname -o ! -f ${vicedir}/db/scm ] ; then
+   echo "Coda server configuration error.  Could not find needed files."
+   exit 1
+fi
 
 
 # Parge arguments
@@ -32,8 +39,8 @@ if  [ $# != 3 -a $# != 4 ]; then
 fi
 
 # Ensure that this is the SCM
-if [ `cat /vice/hostname` != `cat /vice/db/scm` ]; then
-	echo "This must be run from the scm (`cat /vice/db/scm`)"
+if [ `cat ${vicedir}/hostname` != `cat ${vicedir}/db/scm` ]; then
+	echo "This must be run from the scm (`cat ${vicedir}/db/scm`)"
 	exit 1
 fi
 
@@ -56,27 +63,27 @@ echon() {
 
 #
 # Create these files if they don't already exist.
-touch /vice/vol/AllVolumes
-touch /vice/vol/VRList
+touch ${vicedir}/vol/AllVolumes
+touch ${vicedir}/vol/VRList
 
 # Validate the <volname> parameter
-if  [ x$VOLNAME = x`awk ' $1 ~ /^'$1'$/  {print $1}' /vice/vol/AllVolumes` ]; then
-    echo "$VOLNAME exists as a non replicated volume in /vice/vol/AllVolumes"
+if  [ x$VOLNAME = x`awk ' $1 ~ /^'$1'$/  {print $1}' ${vicedir}/vol/AllVolumes` ]; then
+    echo "$VOLNAME exists as a non replicated volume in ${vicedir}/vol/AllVolumes"
     exit 1
 fi
 
-if [ x$VOLNAME = x`awk ' $1 ~ /^'$1'\.[0-7]$/  {print $1}' /vice/vol/AllVolumes` ]; then
-    echo "$VOLNAME exists as a replica in /vice/vol/AllVolumes"
+if [ x$VOLNAME = x`awk ' $1 ~ /^'$1'\.[0-7]$/  {print $1}' ${vicedir}/vol/AllVolumes` ]; then
+    echo "$VOLNAME exists as a replica in ${vicedir}/vol/AllVolumes"
     exit 1
 fi
 
-if [ x$VOLNAME = x`awk ' $1 ~ /^'$1'$/  {print $1}' /vice/vol/VRList` ]; then
-	echo "Volume $VOLNAME already exists in /vice/vol/VRList"
+if [ x$VOLNAME = x`awk ' $1 ~ /^'$1'$/  {print $1}' ${vicedir}/vol/VRList` ]; then
+	echo "Volume $VOLNAME already exists in ${vicedir}/vol/VRList"
 	exit 1
 fi
 
 # Derive the server list from the <vsgaddr> parameter
-SERVERS=`awk '$1 ~ /^'$VSGADDR'$/ {print $2, $3, $4, $5, $6, $7, $8, $9}' /vice/db/VSGDB`
+SERVERS=`awk '$1 ~ /^'$VSGADDR'$/ {print $2, $3, $4, $5, $6, $7, $8, $9}' ${vicedir}/db/VSGDB`
 echo Servers are \($SERVERS\)
 NSERVERS=`echo $SERVERS | wc -w` 
 
@@ -90,7 +97,7 @@ fi
 
 
 for SERVER in $SERVERS ; do
-	grep $SERVER /vice/db/servers > /dev/null 
+	grep $SERVER ${vicedir}/db/servers > /dev/null 
 	if [ $? != 0 ];  then
 		echo Server $SERVER not in servers file
 		exit 1
@@ -99,8 +106,8 @@ done
 
 # Allocate a new groupid if necessary
 if  [ $# = 3 ]; then
-	if  [ -f /vice/vol/maxgroupid ]; then
-		GROUPID=`cat /vice/vol/maxgroupid`
+	if  [ -f ${vicedir}/vol/maxgroupid ]; then
+		GROUPID=`cat ${vicedir}/vol/maxgroupid`
 
 		case x`uname` in
 		    xCYGWIN32_NT)
@@ -110,21 +117,14 @@ if  [ $# = 3 ]; then
 			HEXGROUPID=`printf %x $GROUPID`
 			;;
 		    x*)	
-			cat << EOF >/tmp/$$
-ibase = 10
-obase = 16
-$GROUPID
-EOF
-			HEXGROUPID=`bc </tmp/$$`
-			rm /tmp/$$
+			HEXGROUPID=`echo obase=16\;$GROUPID | bc`
 			;;
-	
 		esac	
 	
 		MAXGROUPID=`expr $GROUPID + 1`
-		echo $MAXGROUPID > /vice/vol/maxgroupid
+		echo $MAXGROUPID > ${vicedir}/vol/maxgroupid
 	else
-		echo /vice/vol/maxgroupid not found
+		echo ${vicedir}/vol/maxgroupid not found
 		exit 1
 	fi
 else
@@ -155,7 +155,7 @@ ENTRY="$VOLNAME $HEXGROUPID $NSERVERS"
 N=0
 for SERVER  in $SERVERS ; do
 
-	VOLN=`awk ' $1 ~/'$VOLNAME.$N'$/  {print $2}' /vice/vol/AllVolumes`
+	VOLN=`awk ' $1 ~/'$VOLNAME.$N'$/  {print $2}' ${vicedir}/vol/AllVolumes`
 	ENTRY="$ENTRY $VOLN"
 	N=`expr $N + 1`
 done 
@@ -171,9 +171,9 @@ done
 
 ENTRY="$ENTRY $VSGADDR"
 
-echo "<echo $ENTRY >> /vice/vol/VRList>"
-echo $ENTRY >> /vice/vol/VRList
-volutil makevrdb /vice/vol/VRList
+echo "<echo $ENTRY >> ${vicedir}/vol/VRList>"
+echo $ENTRY >> ${vicedir}/vol/VRList
+volutil makevrdb ${vicedir}/vol/VRList
 
 echon "Do you wish this volume to be Backed Up (y/n)? [n] "
 
@@ -209,6 +209,6 @@ if  [ x$_ans_ = xy -o x$_ans_ = xyes ]; then
 	    ;;
     esac
 
-    echo "echoing $HEXGROUPID        $_cycle_        $VOLNAME >>/vice/db/dumplist"
-    echo "$HEXGROUPID        $_cycle_         $VOLNAME" >>/vice/db/dumplist
+    echo "echoing $HEXGROUPID        $_cycle_        $VOLNAME >>${vicedir}/db/dumplist"
+    echo "$HEXGROUPID        $_cycle_         $VOLNAME" >>${vicedir}/db/dumplist
 fi
