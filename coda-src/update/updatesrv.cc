@@ -385,7 +385,7 @@ static long Update_GetKeys(RPC2_Integer *authtype, RPC2_CountedBS *cident,
 {
     unsigned int i;
 
-    if (GetUpdateSecret("/vice/db/update.tk", sharedsecret) == -1)
+    if (GetUpdateSecret(vice_sharedfile("db/update.tk"), sharedsecret) == -1)
 	return -1;
 
     memset(sessionkey, 0, RPC2_KEYSIZE);

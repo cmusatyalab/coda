@@ -736,7 +736,7 @@ static int U_BindToServer(char *fileserver, RPC2_Handle *RPCid)
     cident.SeqLen = strlen(hostname) + 1;
     bparms.ClientIdent = &cident;
 
-    GetUpdateSecret("/vice/db/update.tk", secret);
+    GetUpdateSecret(vice_sharedfile("db/update.tk"), secret);
     bparms.SharedSecret = &secret;
 
     LogMsg(9, SrvDebugLevel, stdout, "V_BindToServer: binding to host %s\n",

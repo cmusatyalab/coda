@@ -282,7 +282,7 @@ static void Connect()
     cident.SeqLen = strlen(hostname) + 1;
     bparms.ClientIdent = &cident;
 
-    GetUpdateSecret("/vice/db/update.tk", secret);
+    GetUpdateSecret(vice_sharedfile("db/update.tk"), secret);
     bparms.SharedSecret = &secret;
 
     if ((rc = RPC2_NewBinding(&hid, &sid, &ssid, &bparms, &con))) {
