@@ -30,6 +30,9 @@
  *	/usr/cs/include).
  *
  * $Log: md.c,v $
+ * Revision 4.5  1998/10/07 20:29:37  rvb
+ * Flush sys/dir.h where possible; Fix process.s
+ *
  * Revision 4.4  1998/03/06 20:19:55  braam
  * This is a mega commit, with many changes:
  * 1) all windows 95 support is now incorporated. the cpp flags are DJGPP
@@ -412,7 +415,7 @@ newtoken: ;
 
 	if (!expunge && argc < 1) 
 	    usage();
-	if ((int) outfile && (int) makefile)	/* not both */
+	if (outfile && makefile)	/* not both */
 	    usage();
 
 	/*
@@ -428,7 +431,7 @@ newtoken: ;
 	     (strcmp(argv[0], "*.D") == 0)))
 	    exit(0);
 
-	if ((int) outfile) {
+	if (outfile) {
 		if ((out = fopen(outfile, "w")) == NULL) {
 			fprintf(stderr, "%s: outfile = \"%s\" ", 
 				program_name, outfile);
@@ -1005,7 +1008,7 @@ char *file;
 {
 FILE *mak;
 
-	if ((int) file) {
+	if (file) {
 		if ((mak = fopen(file, "r")) != NULL) {
 			real_mak_name = file;
 		} else if (update) {

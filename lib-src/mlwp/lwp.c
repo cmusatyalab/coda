@@ -110,7 +110,7 @@ typedef void *register_t;
 /*----------------------------------------*/
 
 FILE *lwp_logfile = NULL;
-signed char    lwp_debug;
+int     lwp_debug =  = 00;
 FILE   *lwp_logfile;
 int 	LWP_TraceProcesses = 0;
 PROCESS	lwp_cpptr;
@@ -597,6 +597,7 @@ int LWP_CreateProcess(PFIC ep, int stacksize, int priority, char *parm,
 int LWP_DestroyProcess(PROCESS pid)
 {
 	PROCESS temp;
+	char   *topstack;
 
 	lwpdebug(0, "Entered Destroy_Process");
 	if (lwp_init) {
@@ -606,9 +607,9 @@ int LWP_DestroyProcess(PROCESS pid)
 		} else {
 			pid -> status = DESTROYED;
 			lwpmove(pid, &runnable[pid->priority], &blocked);
+			topstack = &(LWPANCHOR.dsptchstack[(sizeof(LWPANCHOR.dsptchstack)-STACK_PAD) & ~0xf]); /* the '& ~0xf' should take care of alignment */
 			temp = lwp_cpptr;
-			savecontext(Dispatcher, &(temp -> context),
-				    &(LWPANCHOR.dsptchstack[(sizeof LWPANCHOR.dsptchstack)-STACK_PAD]));
+			savecontext(Dispatcher, &(temp -> context), topstack);
 		}
 
 		return LWP_SUCCESS;
@@ -1114,7 +1115,7 @@ static void Overflow_Complain()
 
 /*  The following documents the Assembler interfaces used by old LWP: 
 
-savecontext(int (*ep)(), struct lwp_context *savearea, char *sp)
+savecontext(void (*ep)(), struct lwp_context *savearea, char *sp)
 
 
     Stub for Assembler routine that will

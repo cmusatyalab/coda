@@ -58,7 +58,7 @@ int main(int argc, char **argv)
     struct timeval t1, t2;
     struct timeval sleeptime;
     PROCESS pid, otherpid;
-    register int i,  count, x;
+    register long i,  count, x;
     int j;
     char *waitarray[2];
     static char c[] = "OtherProcess";
@@ -91,8 +91,11 @@ int main(int argc, char **argv)
 	}
     gettimeofday(&t2, NULL);
 
-    x = (t2.tv_sec -t1.tv_sec)*1000000 + (t2.tv_usec - t1.tv_usec);
-    printf("%d milliseconds for %d MWaits (%f usec per Mwait and Signal)\n", x/1000, count, (float)(x/count));
+    if (count)
+    {
+	x = (t2.tv_sec -t1.tv_sec)*1000000 + (t2.tv_usec - t1.tv_usec);
+	printf("%d milliseconds for %d MWaits (%f usec per Mwait and Signal)\n", x/1000, count, (float)(x/count));
+    }
 
     return 0;
 

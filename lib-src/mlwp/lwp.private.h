@@ -125,7 +125,11 @@ struct	 lwp_ctl {			/* LWP control structure */
     char	dsptchstack[800];	/* stack for dispatcher use only */
 };
 
-extern char PRE_Block;			/* used in preemption control (in preempt.c) */
+#ifndef __alpha
+extern char PRE_Block;	/* used in preemption control (in preempt.c) */
+#else
+extern int  PRE_Block;
+#endif
 
 #ifdef OLDLWP
 /* Routines in process.s */
