@@ -17,14 +17,7 @@
 #                            none currently
 #*/
 
-SUBDIRS = rpc2-src rp2gen fail include pkgs debian
-
-EXTRA_DIST = acinclude.m4 bootstrap.sh configure
-
-MAINTAINERCLEANFILES = AUTHORS ChangeLog Makefile.in README aclocal.m4 \
-    config.guess config.h.in config.sub configure install-sh libtool \
-    ltconfig ltmain.sh missing mkinstalldirs stamp-h.in
-
-dist-hook:
-	if [ -x /afs/cs ] ; then cp /afs/cs/project/coda-src/cvs/CVSROOT/ChangeLog.rpc2 ChangeLog ; fi
+EXTRADIST = changelog control copyright dirs docs librpc22.docs \
+    librpc22.files librpc22.postinst librpc22.prerm postinst prerm \
+    rpc2-tools.files rpc2-tools.postinst rpc2-tools.prerm rules watch
 
