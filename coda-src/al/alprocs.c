@@ -42,6 +42,7 @@ extern "C" {
 
 #include <stdio.h>
 #include <ctype.h>
+#include <fcntl.h>
 #include <sys/types.h>
 #include <sys/file.h>
 #include <sys/stat.h>
