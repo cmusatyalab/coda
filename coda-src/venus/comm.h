@@ -554,7 +554,6 @@ class vsg_iterator : public rec_ohashtab_iterator {
 extern int COPModes;
 extern int UseMulticast;
 extern char myHostName[];
-extern unsigned long myHostId;
 extern int rpc2_retries;
 extern int rpc2_timeout;
 extern int sftp_windowsize;

@@ -172,13 +172,6 @@ void CommInit() {
     if (gethostname(myHostName, MAXHOSTNAMELEN) < 0)
 	CHOKE("CommInit: gethostname failed");
 
-    /* Hostid is needed for storeid generation. */
-#ifdef DJGPP
-    myHostId = __djgpp_get_my_host(); /* this needs MYHOST in the cwd */
-#else
-    myHostId = gethostid();
-#endif
-
     /* Initialize Connections. */
     connent::conntab = new olist;
 

@@ -192,6 +192,13 @@ void RecovVenusGlobals::print(int fd) {
     fdprint(fd, "Ptrs = [%x %x %x %x %x %x], Heap = [%x] HeapLen = %x\n",
 	     recov_FSDB, recov_VDB, recov_VSGDB, recov_HDB, recov_LRDB, recov_VCBDB, 
 	     recov_HeapAddr, recov_HeapLength);
+
+    fdprint(fd, "UUID = %08x-%04x-%04x-%02x%02x-%02x%02x%02x%02x%02x%02x\n",
+	    ntohl(*(unsigned int *)&recov_UUID[0]),
+	    ntohs(*(unsigned short *)&recov_UUID[4]),
+	    ntohs(*(unsigned short *)&recov_UUID[6]),
+	    recov_UUID[8], recov_UUID[9], recov_UUID[10], recov_UUID[11],
+	    recov_UUID[12], recov_UUID[13], recov_UUID[14], recov_UUID[15]);
 }
 
 
@@ -206,6 +213,8 @@ void RecovInit() {
 	rvg->recov_MagicNumber = RecovMagicNumber;
 	rvg->recov_VersionNumber = RecovVersionNumber;
 	rvg->recov_LastInit = Vtime();
+	VenusGenID = rpc2_NextRandom(NULL);
+
 	RecovInited = 1;
 	return;
     }
@@ -553,6 +562,8 @@ static void Recov_InitSeg()
 		rvg->recov_HeapAddr = Recov_RdsAddr;
 		rvg->recov_HeapLength = (unsigned int)Recov_RdsLength;
 		
+		VenusGenID = rpc2_NextRandom(NULL);
+
 		/* Initialize the recoverable heap. */
 		int err = 0;
 		rds_init_heap(Recov_RdsAddr, Recov_RdsLength, (unsigned long)RdsChunkSize,

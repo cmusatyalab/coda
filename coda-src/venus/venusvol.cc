@@ -2121,7 +2121,12 @@ ViceFid volent::GenerateFakeFid()
 ViceStoreId volent::GenerateStoreId() {
     ViceStoreId sid;
 
-    sid.Host = (RPC2_Unsigned)myHostId;
+    /* VenusGenID, is randomly chosen whenever rvm is reinitialized, it
+     * should be a 128-bit UUID (re-generated whenever rvm is reinitialized).
+     * But that would require changing in the venus-vice protocol to either
+     * add this UUID to every operation, or send it once per (volume-)
+     * connection setup with ViceNewConnectFS. -JH */
+    sid.Host = (RPC2_Unsigned)VenusGenID;
 
     RVMLIB_REC_OBJECT(SidUnique);
     sid.Uniquifier = (RPC2_Unsigned)SidUnique++;

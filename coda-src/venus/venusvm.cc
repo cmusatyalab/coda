@@ -293,7 +293,13 @@ void VmonInit() {
     struct hostent *h = gethostbyname(VmonHost);
     if (h) VmonAddr = ntohl(*((unsigned long *)h->h_addr));
 
-    MyVenusId.IPAddress = myHostId;
+#ifdef DJGPP
+    /* this needs MYHOST in the cwd, but vmon is normally not enabled... */
+    MyVenusId.IPAddress = __djgpp_get_my_host();
+#else
+    MyVenusId.IPAddress = gethostid();
+#endif
+
     MyVenusId.BirthTime = Vtime();
 
     CEActiveList = new olist;

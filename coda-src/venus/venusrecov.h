@@ -92,7 +92,7 @@ const int DFLT_MAXTS = 256 * 1024;			/* Maximum Truncate Size */
 const int UNSET_MAXTS = -1;
 
 const int RecovMagicNumber = 0x8675309;
-const int RecovVersionNumber = 28;			/* Update this when format changes. */
+const int RecovVersionNumber = 29;			/* Update this when format changes. */
 
 
 /*  *****  Types  *****  */
@@ -119,6 +119,17 @@ struct RecovVenusGlobals {
     char *recov_HeapAddr;	    /* Base of recoverable heap */
     unsigned int recov_HeapLength;  /* Length of recoverable heap (in bytes) */
 
+    /* We need to have a identifier that is guaranteed to be identical across
+     * crashes and reboots, but unique with respect to all other venii (that
+     * do stores to the same server/volume), _and_ venus reinitializations. So
+     * we cannot use a timestamp, or the local ip/ether-address. This calls
+     * for a UUID, but using that will require modifications to the RPC2
+     * protocol. So for now a random integer is used. */
+#define VenusGenID (*(unsigned int*)&rvg->recov_UUID)
+
+    /* At some point we should start using a real 128-bit UUID, and this space
+     * is reserved for that purpose */
+    unsigned char recov_UUID[16];
 
     int validate();
     void print();
