@@ -279,6 +279,13 @@ EOF
 
 fi
 
+# add a couple of empty files to avoid updateclnt problems
+for f in auth2.tk.BAK dumplist VLDB VRDB VRList ; do
+    if [ ! -f "${vicedir}/db/$f" ]; then
+	touch "${vicedir}/db/$f"
+    fi
+done
+
 #
 # adding stuff to /etc/services if needed
 #
