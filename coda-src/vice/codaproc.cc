@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: blurb.doc,v 1.1 96/11/22 13:29:31 raiff Exp $";
+static char *rcsid = "$Header: /home/braam/src/coda-src/vice/RCS/codaproc.cc,v 1.1 1996/11/22 19:14:32 braam Exp braam $";
 #endif /*_BLURB_*/
 
 
@@ -60,6 +60,12 @@ extern "C" {
 #include <netinet/in.h>
 #include <sysent.h>
 #include <struct.h>
+#include <ifs.h>
+
+#if LINUX || __NetBSD__
+#include <stdlib.h>
+#include <unistd.h>
+#endif
 
 #include <lwp.h>
 #include <rpc2.h>
@@ -1486,7 +1492,7 @@ PRIVATE int PerformDirRepair(ClientEntry *client, vle *ov, Volume *volptr,
 			pkdparm.init(client, VSGVolnum, volptr,
 				     status, StoreId, vlist, 0, 
 				     NULL, 0, &tblocks);
-			EnumerateDir((long *)&cdir, (int (*) (...))PerformTreeRemoval, 
+			EnumerateDir((long *)&cdir, (int (*) (void *,...))PerformTreeRemoval, 
 				     (long)&pkdparm);
 			*deltablocks += tblocks;
 		    }
@@ -1842,7 +1848,7 @@ int GetSubTree(ViceFid *fid, Volume *volptr, dlist *vlist) {
 	SetDirHandle(&dh, vptr);
 	
 	if (IsEmpty((long *)&dh) != 0)
-	    EnumerateDir((long *)&dh, (int (*) (...))getFids, (long)tmplist);
+	    EnumerateDir((long *)&dh, (int (*) (void *,...))getFids, (long)tmplist);
     }
     
     /* put root's vnode */
@@ -1974,7 +1980,7 @@ PRIVATE int RecursiveCheckRemoveSemantics(rmblk *rb, char *name,
 	    DirHandle td;
 	    SetDirHandle(&td, ov->vptr);
 	    if (IsEmpty((long *)&td) != 0) 
-		EnumerateDir((long *)&td, (int (*) (...))RecursiveCheckRemoveSemantics, (long)rb);
+		EnumerateDir((long *)&td, (int (*) (void *,...))RecursiveCheckRemoveSemantics, (long)rb);
 	}
     }
 
@@ -2004,7 +2010,7 @@ PRIVATE int CheckTreeRemoveSemantics(ClientEntry *client, Volume *volptr,
 	SetDirHandle(&td, tv->vptr);
 	rmblk enumparm(vlist, volptr, client); 
 	if (IsEmpty((long *)&td) != 0) 
-	    EnumerateDir((long *)&td, (int (*) (...))RecursiveCheckRemoveSemantics, 
+	    EnumerateDir((long *)&td, (int (*) (void *,...))RecursiveCheckRemoveSemantics, 
 			 (long)&enumparm);
 	return(enumparm.result);
     }
@@ -2049,7 +2055,7 @@ int PerformTreeRemoval(TreeRmBlk *pkdparm, char *name,
 	    DirHandle cDir;
 	    SetDirHandle(&cDir, cv->vptr);
 	    if (IsEmpty((long *)&cDir) != 0) 
-		EnumerateDir((long *)&cDir, (int (*) (...))PerformTreeRemoval, (long) pkdparm);
+		EnumerateDir((long *)&cDir, (int (*) (void *,...))PerformTreeRemoval, (long) pkdparm);
 	}
     }
 
