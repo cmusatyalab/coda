@@ -261,6 +261,7 @@ inline void rvmlib_check_trans(char *where, char *file)
 
 int rvmlib_in_transaction(void) 
 {
-	return ((RvmType == RAWIO || RvmType == UFS)
-		&& ((rvmlib_thread_data())->tid != NULL));
+    if (RvmType != RAWIO && RvmType != UFS) return(0);
+
+    return ((rvmlib_thread_data())->tid != NULL);
 }

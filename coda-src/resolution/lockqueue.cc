@@ -72,8 +72,13 @@ lqman::~lqman() {
 
 void lqman::func(int parm) {
     ProgramType *pt;
+    rvm_perthread_t rvmptt;
 
     printf("LockQueue Manager starting .....\n");
+
+    rvmlib_init_threaddata(&rvmptt);
+    SLog(0, "LockQueue Manager just did a rvmlib_set_thread_data()\n");
+
     /* tag this lwp as a volume utility */
     pt = (ProgramType *) malloc(sizeof(ProgramType));
     *pt = volumeUtility;

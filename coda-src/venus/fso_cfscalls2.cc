@@ -240,7 +240,7 @@ int fsobj::Close(int writep, int execp, vuid_t vuid)
 
 	/* Don't do store on files that were deleted while open. */
 	if (DYING(this)) {
-		LOG(1, ("fsobj::Close: last writer && dying (%x.%x.%x)\n",
+		LOG(0, ("fsobj::Close: last writer && dying (%x.%x.%x)\n",
 			fid.Volume, fid.Vnode, fid.Unique));
 		stat.Length = 0;	    /* Necessary for blocks maintenance! */
 	}

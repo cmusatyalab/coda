@@ -240,7 +240,7 @@ int main(int argc, char **argv)
 #ifdef __CYGWIN32__
     username = getlogin();	 
 #elif DJGPP
-    chdir("c:\\usr\coda\\bin");
+    chdir("c:\\usr\\coda\\bin");
 #else
     pw = getpwuid (getuid ());
     if (pw) {

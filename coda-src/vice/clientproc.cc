@@ -282,29 +282,31 @@ int CLIENT_MakeCallBackConn(ClientEntry *Client)
     long errorCode = RPC2_NewBinding(&peer.RemoteHost, 
 				     &peer.RemotePort, &sid, &bp, 
 				     &HostEntry->id);
-    if (errorCode > RPC2_ELIMIT) {
-	    if (errorCode != 0) {
-		    SLog(0, "RPC2_Bind to %s port %d for callback got %s",
-			 HostEntry->HostName, HostEntry->port, 
-			 ViceErrorMsg((int) errorCode));
-	    }
 
-	    /* Make a gratuitous callback. */
-	    errorCode = CallBack(HostEntry->id, &NullFid);
-	    if (errorCode != 0) {
-		    SLog(0, "Callback message to %s port %d failed %s",
-			 HostEntry->HostName, HostEntry->port, 
-			 ViceErrorMsg((int) errorCode));
-		    if (errorCode <= RPC2_ELIMIT) {
-			    HostEntry->id = 0;
-		    }
-	    }
-    } else {
-	    SLog(0, "RPC2_Bind to %s port %d for callback failed %s",
-		 HostEntry->HostName, HostEntry->port, 
-		 ViceErrorMsg((int) errorCode));
-	    HostEntry->id = 0;
+    if (errorCode <= RPC2_ELIMIT) {
+	SLog(0, "RPC2_Bind to %s port %d for callback failed %s",
+	     HostEntry->HostName, HostEntry->port, 
+	     ViceErrorMsg((int) errorCode));
+	goto exit_makecallbackconn;
     }
+
+    if (errorCode != 0) {
+	SLog(0, "RPC2_Bind to %s port %d for callback got %s",
+	     HostEntry->HostName, HostEntry->port, 
+	     ViceErrorMsg((int) errorCode));
+    }
+
+    /* Make a gratuitous callback. */
+    errorCode = CallBack(HostEntry->id, &NullFid);
+    if (errorCode != 0) {
+	SLog(0, "Callback message to %s port %d failed %s",
+	     HostEntry->HostName, HostEntry->port, 
+	     ViceErrorMsg((int) errorCode));
+    }
+
+exit_makecallbackconn:
+    if (errorCode <= RPC2_ELIMIT)
+	CLIENT_CleanUpHost(HostEntry);
 
     if (HostEntry->id == 0) 
 	    errorCode = EPIPE;  /* don't return an RPC2 error */
@@ -342,13 +344,12 @@ void CLIENT_CleanUpHost(HostTable *ht)
 {
     SLog(1, "Cleaning up a HostTable for %s.%d", ht->HostName, ht->port);
 
+    client_RemoveClients(ht);	/* remove any connections for this Venus */
+    DeleteVenus(ht);		/* remove all callback entries	*/
     if (ht->id) {
-	client_RemoveClients(ht);		/* remove any connections for this Venus */
-	DeleteVenus(ht);		/* remove all callback entries	*/
 	SLog(1, "Unbinding RPC2 connection %d", ht->id);
 	RPC2_Unbind(ht->id);
 	ht->id = 0;
-	ht->FirstClient = 0;
     }
 }
 
@@ -362,6 +363,7 @@ static void client_RemoveClients(HostTable *ht)
 	    break;
 	}
     }
+    ht->FirstClient = 0;
 }
 
 
