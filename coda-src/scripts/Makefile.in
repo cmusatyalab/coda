@@ -25,7 +25,7 @@
 # improvements or extensions that  they  make,  and  to  grant  Carnegie
 # Mellon the rights to redistribute these changes without encumbrance.
 # 
-# static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/scripts/Makefile.in,v 4.9 1997/11/17 18:38:12 braam Exp $";
+# static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/scripts/Makefile.in,v 4.10 1997/11/17 18:39:31 braam Exp $";
 
 
 # 
@@ -59,27 +59,20 @@ TOPOBJ = @TOPOBJ@
 
 # Need to conditionalize this
 include $(MAKDIR)/Makeconf
+VENUS-SCRIPTS	= vutil newvenus volmunge venus-setup
 
-UPDATE-SCRIPTS	= files.bin files.db files.etc files.lib files.root
-VOL-SCRIPTS	= clone createvol createvol_rep createvol_rep_ss purgevol purgevol_rep bldvldb.sh
-SUP-SCRIPTS	= supfile.pmax supfile.rt supfile.i386
-VENUS-SCRIPTS	= vutil newvenus swapmach
-INIT-SCRIPTS	= initfs initmtpts
+VOL-SCRIPTS	= createvol createvol_rep createvol_rep_ss purgevol purgevol_rep bldvldb.sh
+VICE-SCRIPTS	= startserver rc.vice
+REINIT-SCRIPTS	= partial-reinit.sh reinit.sh recreatevol recreatevol_rep
+VICE-SETUP      = vice-configs vice-rvmsetup vice-killvolumes vice-makerootvol vice-server-setup vice-srvdirsetup vice-user-setup vice-install 
+
 BACKUP-SCRIPTS	= backup.sh checktape.sh extract.sh writetotape.sh restore.sh
-VICE-SCRIPTS	= cleanlog startserver restartserver startfromboot
-MAKE-SCRIPTS	= 
-REINIT-SCRIPTS	= reinit.sh recreatevol recreatevol_rep
-VENUS-SETUP     = venus-setup
-VICE-SETUP      = vice-configs vice-rvmsetup vice-killvolumes vice-makerootvol vice-server-setup vice-srvdirsetup vice-user-setup vice-install rc.vice
 
-SCRIPTS := $(UPDATE-SCRIPTS) $(VOL-SCRIPTS) $(SUP-SCRIPTS)\
-	   $(VENUS-SCRIPTS) $(INIT-SCRIPTS) $(BACKUP-SCRIPTS)\
-	   $(VICE-SCRIPTS) $(MAKE-SCRIPTS) $(REINIT-SCRIPTS)
+SCRIPTS := $(VENUS-SCRIPTS) $(BACKUP-SCRIPTS)\
+	   $(VOL-SCRIPTS) $(VICE-SCRIPTS) $(REINIT-SCRIPTS)
 
-# Note scripts that are entirely CMU dependent have been left out
-
-CSBINS = newvenus vutil $(VENUS-SETUP)
+CSBINS = newvenus vutil $(VENUS-SCRIPTS)
 SSBINS = $(BACKUP-SCRIPTS) $(VICE-SCRIPTS) $(REINIT-SCRIPTS) $(VOL-SCRIPTS) $(VICE-SETUP)
-
+BBINS = $(BACKUP-SCRIPTS)
 include $(MAKDIR)/Makerules
 

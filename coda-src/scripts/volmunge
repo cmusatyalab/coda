@@ -1,0 +1,136 @@
+#!/usr/bin/perl
+
+# script to do things with all objects in a volume
+# usage:
+#  volmunge [-f,-m,-a] dir
+#  -f print out all objects which are not volume mount points
+#     this stats all the objects (good for resolution).
+#  -m print out those objects which are volume mount points
+#  -a print out everything, but don't cross volume boundaries
+#  -o print out filenames and open the file
+
+$CFS=`which cfs`;
+chop $CFS;
+
+# get the fid from a file object
+
+sub getfid {
+    local($cfsout, $error);
+    local(@fid);
+#    print "getfid on $_[0]\n";
+        $cfsout = `$CFS gf $_[0] 2>&1`; # || die "cfs error on $_[0]\n";
+    $error = $?;
+    if ( $error ) {
+	print STDERR "cfs returns $error. Exiting.\n";
+	die ;
+    }
+    chop $cfsout;
+    $cfsout =~ s/^FID = //;
+    $cfsout =~ s/\s.*$//;
+    @fid = split(/\./, $cfsout);
+}
+
+sub getvol {
+    local($cfsout, $error);
+    local(@fid);
+#    print "getvol on $_[0]\n";
+        $cfsout = `$CFS lv $_[0] 2>&1`; # || die "cfs error on $_[0]\n";
+    $error = $?;
+    if ( $error ) {
+	print STDERR "cfs returns $error. Exiting.\n";
+	die ;
+    }
+    chop $cfsout;
+    $cfsout =~ s/^.*named "//;
+    $cfsout =~ s/(.*)".*/\1/s;
+#   print "$cfsout\n";
+    $cfsout;
+}
+
+
+sub do_dir {
+    local( $par, $thedir, $thevol, @thefid, $volname, $thelink);
+
+    $par = $_[0];
+    if ( $opt =~ /-d/ ) {
+	print "$par\n";
+    }
+    
+    opendir( DIR, $par ) || die "Error opening $par";
+    local(@list) = grep(!/^\.\.?$/, readdir( DIR) );
+    closedir(DIR) || die "Error closing $par";
+
+    foreach  ( @list ) {
+	$_ = $par . "/" . $_;
+	if ( -l $_ ) {
+	    if ( $opt =~ /-a|-f/ ) { 
+		print "$_\n";
+	    }
+	    $thelink = readlink($_);
+	    if  ( ($thelink =~ /^@/) && ( $opt =~ /-i/ ) )  {
+		$thelink = $_ . "--->" . $thelink;
+		print "$thelink\n";
+	    }
+	    if  ( ($thelink =~ /^@/) && ( $opt =~ /-u/ ) )  {
+		$thelink = $_ . "--->" . $thelink;
+		print "$thelink\n";
+	    }
+	    next;
+	}
+	if ( -d $_ ) {
+
+	    @thefid = &getfid ( $_ );
+	    $thevol = $thefid[0];
+	    if ( ! $thevol ) {
+		print " **** error getting fids\n";
+		next;
+	    }
+	    if ( $thevol eq $vol ) {
+		if ( $opt =~ /-a|-f/ ) { 
+		    print "$_\n";
+		}
+		&do_dir( $_ );
+	    } else {
+		if ( $opt =~ /-a|-m/ ) { 
+		    print "$_\n";
+		}
+		if ( $opt =~ /-v/ ) {
+		    $volname = &getvol( $_ );
+		    print "$volname\n";
+		}
+	    }
+	} else {
+	    if ( $opt =~ /-a|-f|-o/ ) { 
+		print "$_\n";
+	    }
+	}   
+	if ( ( -f $_ )  && ( $opt eq "-o" ) ) {
+	    print "open: $_ ...";
+	    open(FILE, "<". $_);
+	    print "done, closing ..";
+	    close(FILE);
+	    print "done\n";
+	}
+    }
+}
+
+if ( $#ARGV != 1 ) {
+    print "Usage: volmunge {-a,-f,-m,-o} dir\n";
+    exit 1;
+}
+
+
+$opt = $ARGV[0];
+
+if ( !  $opt =~ /-a|-f|-m|-o|-d|-v/ ) { 
+    print "Usage: volmunge {-a,-f,-m,-o} dir\n";
+    exit 1;
+}
+$topdir = $ARGV[1];
+@topfid  = &getfid( $topdir );
+$vol = $topfid[0];
+
+# get the ball rolling
+$result = &do_dir( $topdir );
+
+

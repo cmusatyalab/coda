@@ -42,6 +42,7 @@ if  [ $# != 2 ]; then
 fi
 
 # sanity
+SRVPIDFILE=/vice/srv/pid
 if [ -e $SRVPIDFILE ]; then
     echo "A server is running!"
     exit 1
@@ -80,7 +81,6 @@ else
 fi		
 
 OLD=${INSTALLBASE}/bin.old
-SRVPIDFILE=/vice/srv/pid
 
 if [ `uname` = NetBSD ]; then
     alias make=gmake

@@ -1,2 +1,0 @@
-coda.bin base=/usr/coda prefix=/usr/coda/etc host=weber.coda.cs.cmu.edu hostbase=/afs/cs/project/coda delete
-coda.script base=/usr/coda prefix=/usr/coda/etc host=weber.coda.cs.cmu.edu hostbase=/afs/cs/project/coda delete

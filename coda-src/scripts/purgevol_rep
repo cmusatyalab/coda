@@ -1,4 +1,4 @@
-#! /bin/sh
+#!/bin/sh 
 #ifndef _BLURB_
 #define _BLURB_
 #/*
@@ -30,42 +30,7 @@
 #Mellon the rights to redistribute these changes without encumbrance.
 #*/
 #
-#static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/src/coda-4.0.1/RCSLINK/./coda-src/scripts/purgevol_rep,v 1.1 1996/11/22 19:06:54 braam Exp $";
-#endif /*_BLURB_*/
-
-
-#ifndef _BLURB_
-#define _BLURB_
-#/*
-#
-#            Coda: an Experimental Distributed File System
-#                             Release 3.1
-#
-#          Copyright (c) 1987-1995 Carnegie Mellon University
-#                         All Rights Reserved
-#
-#Permission  to  use, copy, modify and distribute this software and its
-#documentation is hereby granted,  provided  that  both  the  copyright
-#notice  and  this  permission  notice  appear  in  all  copies  of the
-#software, derivative works or  modified  versions,  and  any  portions
-#thereof, and that both notices appear in supporting documentation, and
-#that credit is given to Carnegie Mellon University  in  all  documents
-#and publicity pertaining to direct or indirect use of this code or its
-#derivatives.
-#
-#CODA IS AN EXPERIMENTAL SOFTWARE SYSTEM AND IS  KNOWN  TO  HAVE  BUGS,
-#SOME  OF  WHICH MAY HAVE SERIOUS CONSEQUENCES.  CARNEGIE MELLON ALLOWS
-#FREE USE OF THIS SOFTWARE IN ITS "AS IS" CONDITION.   CARNEGIE  MELLON
-#DISCLAIMS  ANY  LIABILITY  OF  ANY  KIND  FOR  ANY  DAMAGES WHATSOEVER
-#RESULTING DIRECTLY OR INDIRECTLY FROM THE USE OF THIS SOFTWARE  OR  OF
-#ANY DERIVATIVE WORK.
-#
-#Carnegie  Mellon  encourages  users  of  this  software  to return any
-#improvements or extensions that  they  make,  and  to  grant  Carnegie
-#Mellon the rights to redistribute these changes without encumbrance.
-#*/
-#
-#static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/src/coda-4.0.1/RCSLINK/./coda-src/scripts/purgevol_rep,v 1.1 1996/11/22 19:06:54 braam Exp $";
+#static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/scripts/purgevol_rep,v 4.1 1997/01/08 21:50:51 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -73,13 +38,13 @@
 if [ $# != 1 ]
 then
 	echo "purgevol_rep volumename"
-	exit
+	exit 1
 fi
 
 if [ `cat /.hostname` != `cat /.scm` ]
 then
         echo "This must be run from the scm ("`cat /.scm`")"
-        exit
+        exit 1
 fi
 
 # Look up the replicated volume name in /vice/vol/VRList to determine the
@@ -87,16 +52,19 @@ fi
 REPVOLNAME=$1
 REPS=`awk '$1 ~ /^'$REPVOLNAME'$/ {for (i=4; i< $3 + 4; i++) printf "%s ", $i}' /vice/vol/VRList`
 REPVOLID=`awk '$1 ~ /^'$REPVOLNAME'$/ {print $2}' /vice/vol/VRList`
+VSG=`awk '$1 ~ /^'$REPVOLNAME'$/ {print $12}' /vice/vol/VRList`
+HOSTS=`grep -i "^$VSG" /vice/db/VSGDB | sed "s/$VSG//"`
 
 # Check to see if the volume actually exists 
 
 if [ -z "$REPS" ]
 then
 	echo "Volume" $REPVOLNAME "doesn't exist!"
-	exit
+	exit 1
 fi
 
 # Remove the individual copies
+
 
 for i in $REPS 
 do 
@@ -119,5 +87,8 @@ mv /vice/db/dumplist.tmp /vice/db/dumplist
 # Make sure that the vldb and vrdb are updated.
 
 /vice/bin/volutil makevrdb /vice/vol/VRList
-/vice/bin/bldvldb.sh
+echo "fetching updated VolumeList from $HOSTS"
+/vice/bin/bldvldb.sh $HOSTS
+
+
 
