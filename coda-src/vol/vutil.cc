@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vol/vutil.cc,v 4.3 1997/10/23 19:25:46 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vol/vutil.cc,v 4.4 1997/11/14 13:19:29 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -98,27 +98,43 @@ extern "C" {
 #include "vutil.h"
 #include "recov.h"
 
-void AssignVolumeName(VolumeDiskData *vol, char *name, char *ext);
 
-struct VolumeHeader tempHeader;
 
 /* Note:  the volume creation functions herein leave the destroyMe flag in the
    volume header ON:  this means that the volumes will not be attached by the
    file server and WILL BE DESTROYED the next time a system salvage is performed */
 
 /* This must be called from within a transaction! */
-Volume *VCreateVolume(Error *ec, char *partition, VolumeId volumeId, VolumeId parentId, 
-		      VolumeId groupId, int type, int rvmlogsize) {
-
-    /*    VolumeId parentId;  Should be the same as volumeId if volume is readwrite */
-    /* type is the type of the volume we are creating */
-
+/* VolumeId parentId; Should be the same as volumeId if volume is
+   readwrite.  Type is the type of the volume we are creating */
+Volume *VCreateVolume(Error *ec, char *partition, VolumeId volumeId, 
+		      VolumeId parentId, VolumeId groupId, int type, 
+		      int rvmlogsize) 
+{
     VolumeDiskData vol;
     int volindex;
-    char headerName[32];
-
+    struct VolumeHeader tempHeader;
+    struct DiskPartition *dp;
     *ec = 0;
 
+    /* is the partition name short enough */
+    if ( strlen(partition) > VPARTSIZE) {
+        LogMsg(0, SrvDebugLevel, stdout, 
+	       "VCreateVolume: partition name %s too long. Bailing out.\n", 
+	       partition);
+	*ec = ENAMETOOLONG;
+	return NULL;
+    }
+
+    /* let's see if the partition is there before locking it; if lock fails, we die */
+    dp = VGetPartition(partition);
+    if ( dp == NULL ) {
+        LogMsg(0, SrvDebugLevel, stdout, 
+	       "VCreateVolume: Cannot find partition %s. Bailing out.\n", 
+	       partition);
+	*ec = ENXIO;
+	return NULL;
+    }
     VLockPartition(partition);
 
     /* set up volume disk info */
@@ -126,14 +142,13 @@ Volume *VCreateVolume(Error *ec, char *partition, VolumeId volumeId, VolumeId pa
     vol.id = volumeId;
     vol.parentId = parentId;
     vol.groupId = groupId;	// This is always NULL unless volume is replicated.
-    assert(strlen(partition)  < VPARTSIZE);
     sprintf(vol.partition, partition, strlen(partition) + 1);
     vol.destroyMe = DESTROY_ME;
     vol.copyDate = time(0);	/* The only date which really means when this
-				   @i(instance) of this volume was created. Creation date
-				   does not mean this */
+				   @i(instance) of this volume was created. 
+				   Creation date does not mean this */
     if (AllowResolution && rvmlogsize) {
-	LogMsg(0, SrvDebugLevel, stdout, "Creating log for volume\n");
+	LogMsg(1, SrvDebugLevel, stdout, "Creating log for volume\n");
 	vol.log = new recov_vol_log(volumeId);
 	assert(vol.log);
 	vol.ResOn = RVMRES;
@@ -148,10 +163,12 @@ Volume *VCreateVolume(Error *ec, char *partition, VolumeId volumeId, VolumeId pa
     /* Find an empty slot in recoverable volume header array */
     if ((volindex = NewVolHeader(&tempHeader, ec)) == -1) {
         if (*ec == VVOLEXISTS) {
-	    LogMsg(0, VolDebugLevel, stdout, "VCreateVolume: volume %x already exists!", vol.id);
+	    LogMsg(0, VolDebugLevel, stdout, 
+		   "VCreateVolume: volume %x already exists!", vol.id);
 	}
 	else {
-	    LogMsg(0, VolDebugLevel, stdout, "VCreateVolume: volume %x not created", vol.id);
+	    LogMsg(0, VolDebugLevel, stdout, 
+		   "VCreateVolume: volume %x not created", vol.id);
 	}
 	return NULL;
     }
@@ -159,7 +176,9 @@ Volume *VCreateVolume(Error *ec, char *partition, VolumeId volumeId, VolumeId pa
     /* Store new volume disk data object into new volume */
     NewVolDiskInfo(ec, volindex, &vol);
     if (*ec != 0){
-	LogMsg(0, VolDebugLevel, stdout, "VCreateVolume: Unable to write volume %x; volume not created", vol.id);
+	LogMsg(0, VolDebugLevel, stdout, 
+	       "VCreateVolume: Unable to write volume %x; volume not created",
+	       vol.id);
 	*ec = VNOVOL;
 	return NULL;
     }
