@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: blurb.doc,v 1.1 96/11/22 13:29:31 raiff Exp $";
+static char *rcsid = "$Header: /home/braam/src/coda-src/vice/RCS/smon.cc,v 1.1 1996/11/22 19:14:38 braam Exp braam $";
 #endif /*_BLURB_*/
 
 
@@ -49,7 +49,9 @@ extern "C" {
 
 #include <sys/types.h>
 #include <sys/time.h>
+#ifdef __MACH__
 #include <sys/dk.h>
+#endif
 #include <netinet/in.h>
 #include <errno.h>
 #include <nlist.h>
@@ -438,6 +440,7 @@ PRIVATE long CheckSmonResult(long code)
 
 PRIVATE int GetRawStatistics(SmonStatistics *stats)
 {
+#ifndef LINUX
     static	int	kmem = 0;
     static      int     hertz = 0;
     int		i;
@@ -494,6 +497,9 @@ PRIVATE int GetRawStatistics(SmonStatistics *stats)
     for (i = 0; i < DK_NDRIVE; i++) {
 	stats->TotalIO += xfer[i];
     }
+#else
+    return 0;
+#endif
 }
 
 
