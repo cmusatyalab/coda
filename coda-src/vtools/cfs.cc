@@ -864,14 +864,13 @@ static int findclosures(char ***clist)
      */
     int n = 0;
     int len;
+    char *checkpointdir;
     char spooldir[MAXPATHLEN];
     DIR *dirp;
     struct dirent *td;
-    char uid[15];
 
-    CONF_STR(spooldir, "checkpointdir", "/usr/coda/spool");
-    sprintf(uid, "/%d", getuid());
-    strcat(spooldir, uid);
+    CONF_STR(checkpointdir, "checkpointdir", "/usr/coda/spool");
+    sprintf(spooldir, "%s/%d", checkpointdir, getuid());
 
     dirp = opendir(spooldir);
     if (dirp == NULL){fflush(stdout); perror(spooldir); exit(-1);}
