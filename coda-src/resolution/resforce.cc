@@ -133,8 +133,8 @@ void UpdateRunts(res_mgrpent *mgrp, ViceVersionVector **VV,
 	       filename);
 	ARG_MARSHALL(OUT_MODE, RPC2_Integer, forceErrorvar, forceError, VSG_MEMBERS);
 	ARG_MARSHALL(IN_OUT_MODE, SE_Descriptor, sidvar, sid, VSG_MEMBERS);
-	SLog(0,
-	       "UpdateRunts: Owner is %d\n", vstatus.Owner);
+
+	SLog(0, "UpdateRunts: Owner is %d\n", vstatus.Owner);
 	/* SHOULD PROBABLY BLACK OUT NON RUNT OBJECTS FOR M-RPC */
 	MRPC_MakeMulti(DoForceDirOps_OP, DoForceDirOps_PTR,
 		       VSG_MEMBERS, mgrp->rrcc.handles, 
@@ -205,8 +205,8 @@ long RS_DoForceDirOps(RPC2_Handle RPCid, ViceFid *Fid,
     {
 	pv = AddVLE(*vlist, Fid);
 	pv->d_inodemod = 1;
-	if ((errorCode =GetFsObj(Fid, &volptr, &pv->vptr, 
-				WRITE_LOCK, NO_LOCK, 0, 0, pv->d_inodemod))) {
+	if ((errorCode =GetFsObj(Fid, &volptr, &pv->vptr, WRITE_LOCK, NO_LOCK,
+				 0, 0, pv->d_inodemod))) {
 	    *rstatus = EINVAL;
 	    goto FreeLocks;
 	}
@@ -306,9 +306,10 @@ long RS_DoForceDirOps(RPC2_Handle RPCid, ViceFid *Fid,
 	    delete p;
 	delete forceList;
     }
-    SLog(0,
-	   "RS_DoForceDirOps: Owner just before commiting is %d\n",
-	   dirvptr->disk.owner);
+    if (dirvptr) {
+	SLog(0, "RS_DoForceDirOps: Owner just before commiting is %d\n",
+	     dirvptr->disk.owner);
+    }
     PutObjects(errorCode, volptr, NO_LOCK, vlist, deltablocks, 1);
     if (filename && unlink(filename) == -1) 
 	SLog(0,  "RS_DoForceDirOps: Error %d occured unlinking %s",
