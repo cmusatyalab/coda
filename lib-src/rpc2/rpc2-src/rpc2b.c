@@ -69,7 +69,7 @@ Pittsburgh, PA.
 #endif
 
 extern int errno;
-struct in_addr rpc2_bindaddr;
+struct in_addr rpc2_bindaddr = { INADDR_ANY };
 
 long RPC2_Init(char *VId,		/* magic version string */
 	       RPC2_Options *Options,
@@ -97,7 +97,6 @@ long RPC2_Init(char *VId,		/* magic version string */
     /* rpc2_InitConn returns 0 if we're already initialized */
     if (rpc2_InitConn() == 0) return;;
 
-    rpc2_bindaddr.s_addr = INADDR_ANY;
     rpc2_InitMgrp();
     rpc2_InitHost();
 
