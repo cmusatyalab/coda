@@ -337,7 +337,6 @@ struct SLSlot		/* pointed to by rock in current LWP */
 extern PROCESS sftp_ListenerPID;	/* pid of listener */
 extern struct TM_Elem *sftp_Chain;	/* head of linked list of all sleeping LWPs waiting for a packet or a timeout */
 extern long sftp_Socket;		/* for all SFTP traffic */
-extern RPC2_HostIdent sftp_Host;
 extern RPC2_PortIdent sftp_Port;
 extern long SFTP_DebugLevel;
 
@@ -424,6 +423,7 @@ int sftp_piggybackfilesize(SE_Descriptor *sdesc, long openfd);
 void sftp_TraceBogus(long filenum, long linenum);
 void sftp_TraceStatus(struct SFTP_Entry *sEntry, int filenum, int linenum);
 void sftp_DumpTrace(char *fName);
+void sftp_Progress(SE_Descriptor *sdesc, long BytesTransferred);
 
 void sftp_UpdateRTT(RPC2_PacketBuffer *pb, struct SFTP_Entry *sEntry,
 		    unsigned long bytes);

@@ -59,15 +59,9 @@ Pittsburgh, PA.
 #include "trace.h"
 #include "cbuf.h"
 
-
-
-#define NETWORKS 8
-static unsigned int get_netaddr(long sock);
 extern int errno;
 
-
-long RPC2_Init(
-	       char *VId,		/* magic version string */
+long RPC2_Init(char *VId,		/* magic version string */
 	       RPC2_Options *Options,
 	       RPC2_PortIdent *Port,	/* array of portal ids */
 	       long RetryCount,	   /* max number of retries before breaking conn*/
@@ -101,8 +95,15 @@ long RPC2_Init(
     else 
 	    rpc2_LocalPort.Tag = (PortTag)0;  
     
-    rc = rpc2_CreateIPSocket(&rpc2_RequestSocket, &rpc2_LocalHost,
-	    	&rpc2_LocalPort);
+    /* We put the localhost IP-address in rpc2_LocalHost, this value is _ONLY_
+     * used to hash the Mgroup entries, and we are _not_ sending it to the
+     * rpc2 Peer. So this should give no problems. Changing the AllocMgrp and
+     * GetMgrp functions to accept a NULL pointer would be better, but
+     * requires an enormous amount of modifications all over rpc2. --JH */
+    rpc2_LocalHost.Tag = RPC2_HOSTBYINETADDR;
+    rpc2_LocalHost.Value.InetAddress.s_addr = 0x100007F;
+    
+    rc = rpc2_CreateIPSocket(&rpc2_RequestSocket, &rpc2_LocalPort);
 
     if ( Port ) 
 	    *Port = rpc2_LocalPort; 
@@ -784,7 +785,7 @@ long RPC2_ClearNetInfo(IN Conn)
     }  
 
     
-long rpc2_CreateIPSocket(long *svar, RPC2_HostIdent *hvar, RPC2_PortIdent *pvar)
+long rpc2_CreateIPSocket(long *svar, RPC2_PortIdent *pvar)
 {
 	struct sockaddr_in bindaddr;
 	struct servent *sentry;
@@ -861,133 +862,20 @@ long rpc2_CreateIPSocket(long *svar, RPC2_HostIdent *hvar, RPC2_PortIdent *pvar)
 	/* Retrieve fully resolved socket address */
 	CODA_ASSERT(pvar->Tag != RPC2_DUMMYPORT);
 
-	hvar->Tag = RPC2_HOSTBYINETADDR;
-	hvar->Value.InetAddress.s_addr = get_netaddr(*svar);
-	if (hvar->Value.InetAddress.s_addr == 0) 
-	    return (RPC2_FAIL);
-	blen = sizeof(bindaddr);
-	if (getsockname(*svar, (struct sockaddr *)&bindaddr, &blen) < 0) 
-	    return(RPC2_FAIL);
-	pvar->Tag = RPC2_PORTBYINETNUMBER;
-	pvar->Value.InetPortNumber = bindaddr.sin_port;
+        blen = sizeof(bindaddr);
+        if (getsockname(*svar, (struct sockaddr *)&bindaddr, &blen) < 0) 
+            return(RPC2_FAIL);
+        pvar->Tag = RPC2_PORTBYINETNUMBER;
+        pvar->Value.InetPortNumber = bindaddr.sin_port;
 
 #ifdef RPC2DEBUG
 	if (RPC2_DebugLevel > 9) {
-		rpc2_PrintHostIdent(hvar, rpc2_tracefile);
-		printf("    ");
-		rpc2_PrintPortIdent(pvar, rpc2_tracefile);
-		printf("\n");
+            rpc2_PrintPortIdent(pvar, rpc2_tracefile);
+            printf("\n");
 	}
 #endif RPC2DEBUG
     
 	return RPC2_SUCCESS;
-}
-
-/* get internet address from kernel, zero on error */
-static unsigned int get_netaddr(long sock)
-{
-#ifdef DJGPP
-      return __djgpp_get_my_host();   /* MJC--hack! */
-#if 0
-      /*#elif __CYGWIN32__ */
-      char hostname[128];
-    struct hostent *h;
-
-    if (gethostname(hostname, sizeof(hostname)) != 0) {
-	fprintf (stderr, "rpc2_GetLocalHost: cannot gethostname()");
-	CODA_ASSERT (0);
-    }
-
-    h = gethostbyname(hostname);
-    if (!h) {
-	fprintf (stderr, "get_netaddr: cannot gethostbyname(%s)",
-		 hostname);
-	CODA_ASSERT (0);
-    }
-    printf("get_netaddr returning: %lx\n", *(long *)(h->h_addr_list[0]));
-    return (*(unsigned int *)(h->h_addr_list[0]));
-#endif
-#else 
-    struct ifconf ifc;
-    struct ifreq conf[NETWORKS];
-    struct sockaddr_in *sa_struct;
-    int i;
-    int interfaces;	/* number of interfaces returned by ioctl */
-
-    ifc.ifc_len = sizeof(conf);
-    ifc.ifc_buf = (caddr_t) conf;
-    if (ioctl(sock, SIOCGIFCONF, (char *)&ifc) < 0) 
-	    return(0);
-
-    interfaces = ifc.ifc_len / sizeof(struct ifreq);
-    for (i = 0; i < interfaces; i++)
-	{
-	sa_struct = (struct sockaddr_in *) &conf[i].ifr_addr;
-	if (sa_struct->sin_addr.s_addr != 0 &&
-	    sa_struct->sin_addr.s_addr != 0x100007f)
-		return (sa_struct->sin_addr.s_addr);
-	}
-    return (0);
-#endif
-}
-
-
-/* Fill in localhost with the IP address that is used when sending
-   packets to remotehost.
-*/
-long rpc2_GetLocalHost(localhost, remotehost)
-    RPC2_HostIdent *localhost, *remotehost;
-{
-    struct sockaddr_in sin;
-    int s, i = sizeof(struct sockaddr_in);
-#ifdef DJGPP
-    CODA_ASSERT(remotehost->Tag == RPC2_HOSTBYINETADDR);
-    /* horrible hack -- figure out how to do this with MSTCP */
-    localhost->Tag = RPC2_HOSTBYINETADDR;
-    localhost->Value.InetAddress.s_addr = __djgpp_get_my_host();
-    return 0;
-#elif __CYGWIN32__
-    char hostname[128];
-    struct hostent *h;
-
-    if (gethostname(hostname, sizeof(hostname)) != 0) {
-	fprintf (stderr, "rpc2_GetLocalHost: cannot gethostname()");
-	CODA_ASSERT (0);
-    }
-
-    h = gethostbyname(hostname);
-    if (!h) {
-	fprintf (stderr, "rpc2_GetLocalHost: cannot gethostbyname(%s)",
-		 hostname);
-	CODA_ASSERT (0);
-    }
-
-    localhost->Tag = RPC2_HOSTBYINETADDR;
-    memcpy(&localhost->Value.InetAddress, h->h_addr , sizeof(struct in_addr));
-    /*	     localhost->Value.InetAddress.s_addr = h->h_addr.s_addr;   */
-    fprintf (stderr, "rpc2_GetLocalHost: name %s len %d ip %s\n",
-	     hostname, h->h_length, inet_ntoa(localhost->Value.InetAddress));
-    return 0;
-#else
-    CODA_ASSERT(remotehost->Tag == RPC2_HOSTBYINETADDR);
-    sin.sin_family = AF_INET;
-    sin.sin_port = htons(1);	/* dummy port number */
-    sin.sin_addr.s_addr = remotehost->Value.InetAddress.s_addr;
-    if((s = socket(AF_INET, SOCK_DGRAM, 0)) == -1)
-	return -1;
-    if(connect(s, (struct sockaddr *)&sin,i) == -1) {
-	close(s);
-	return -1;
-    }
-    if(getsockname(s, (struct sockaddr *)&sin,&i) == -1) {
-	close(s);
-	return -1;
-    }
-    close(s);
-    localhost->Tag = RPC2_HOSTBYINETADDR;
-    localhost->Value.InetAddress.s_addr = sin.sin_addr.s_addr;
-    return 0;
-#endif
 }
 
 unsigned long rpc2_TVTOTS(const struct timeval *tv)

@@ -97,7 +97,7 @@ static struct bucket *rpc2_GetBucket(host, port, mgrpid)
     RPC2_PortIdent	*port;
     RPC2_Handle		mgrpid;
     {
-    int    index;
+    int index;
 
     index = (host->Value.InetAddress.s_addr ^ mgrpid) & (MGRPHASHLENGTH - 1);
     say(9, RPC2_DebugLevel, "bucket = %d, count = %d\n", index, MgrpHashTable[index].count);
@@ -117,7 +117,6 @@ struct MEntry *rpc2_AllocMgrp(host, port, handle)
     RPC2_Handle    mgrpid;
     struct bucket  *bucket;
 
-    CODA_ASSERT((host->Tag == RPC2_HOSTBYINETADDR && port->Tag == RPC2_PORTBYINETNUMBER) || (host->Tag == RPC2_DUMMYHOST && port->Tag == RPC2_DUMMYPORT));
     rpc2_AllocMgrps++;
     if (rpc2_MgrpFreeCount == 0)
 	rpc2_Replenish(&rpc2_MgrpFreeList, &rpc2_MgrpFreeCount, sizeof(struct MEntry), &rpc2_MgrpCreationCount, OBJ_MENTRY);
@@ -191,18 +190,17 @@ struct MEntry *rpc2_GetMgrp(host, port, handle, role)
     int	    i;
 
     CODA_ASSERT((host->Tag == RPC2_HOSTBYINETADDR && port->Tag == RPC2_PORTBYINETNUMBER) || (host->Tag == RPC2_DUMMYHOST && port->Tag == RPC2_DUMMYPORT));
+
     bucket = rpc2_GetBucket(host, port, handle);
 
     for (me = bucket->chain, i = 0; i < bucket->count; me = me->Next, i++) {
 	say(9, RPC2_DebugLevel, "GetMgrp: %s.%u.%ld\n",
 	    inet_ntoa(me->ClientHost.Value.InetAddress),
 	    (unsigned) me->ClientPort.Value.InetPortNumber, me->MgroupID);
-	if ((me->ClientHost.Value.InetAddress.s_addr ==
-	     host->Value.InetAddress.s_addr)			&&
-	    (me->ClientPort.Value.InetPortNumber ==
-	     port->Value.InetPortNumber)			&&
-	    (me->MgroupID == handle)				&&
-	    TestRole(me, role))
+        if ((me->ClientHost.Value.InetAddress.s_addr ==
+             host->Value.InetAddress.s_addr) &&
+            (me->ClientPort.Value.InetPortNumber==port->Value.InetPortNumber) &&
+	    (me->MgroupID == handle) && TestRole(me, role))
 	    {
 	    CODA_ASSERT(me->MagicNumber == OBJ_MENTRY);
 	    return(me);

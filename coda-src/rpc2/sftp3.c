@@ -75,7 +75,6 @@ long SFTP_MaxPackets;
 /* long SFTP_DebugLevel; */	/* defined to RPC2_DebugLevel for now */
 struct TM_Elem *sftp_Chain;
 long sftp_Socket;
-RPC2_HostIdent sftp_Host;
 RPC2_PortIdent sftp_Port;
 PROCESS sftp_ListenerPID;
 long sftp_PacketsInUse;
@@ -463,7 +462,8 @@ int sftp_WriteStrategy(struct SFTP_Entry *sEntry)
 	mse->RecvLastContig += mcastlen;
     }
 
-    sEntry->SDesc->Value.SmartFTPD.BytesTransferred += bytesnow;
+    sftp_Progress(sEntry->SDesc,
+                  sEntry->SDesc->Value.SmartFTPD.BytesTransferred + bytesnow);
 
     return(0);
 }
@@ -591,10 +591,6 @@ int sftp_AckArrived(RPC2_PacketBuffer *pBuff, struct SFTP_Entry *sEntry)
 
 	if (dataThisRound)
 	    sftp_UpdateBW(pBuff, dataThisRound, sEntry);
-
-	/* recalculate the retry timeout */
-	rpc2_RetryInterval(sEntry->HostInfo, dataThisRound, 1,
-			   &sEntry->RInterval);
     }
 
     /* grab the timestamp because we're going to send more data. */
@@ -1038,7 +1034,8 @@ int sftp_ReadStrategy(struct SFTP_Entry *sEntry)
 	}
 
     /* Update BytesTransferred field */
-    sEntry->SDesc->Value.SmartFTPD.BytesTransferred += bytesread;
+    sftp_Progress(sEntry->SDesc,
+                  sEntry->SDesc->Value.SmartFTPD.BytesTransferred + bytesread);
     /* if we are multicasting, update the per-connection byte-transfer counts */
     /* note: we assume that sEntry here is the MULTICAST descriptor */
     if (sEntry->UseMulticast)
@@ -1060,7 +1057,8 @@ int sftp_ReadStrategy(struct SFTP_Entry *sEntry)
 	    if (TestState(thisce, CLIENT, ~C_HARDERROR) && thisse->WhoAmI == SFCLIENT)
 		{
 		CODA_ASSERT((thisdesc = thisse->SDesc) != NULL);
-		thisdesc->Value.SmartFTPD.BytesTransferred += bytesread;
+                sftp_Progress(thisdesc, bytesread +
+                              thisdesc->Value.SmartFTPD.BytesTransferred);
 		}
 	    }
 	}
@@ -1307,7 +1305,7 @@ the file, and a file descriptor that is already open in the correct mode */
        SFTP_CheckSE functions (directly and through sftp_piggybackreadfile),
        to check whether the first CLIENTTOSERVER or SERVERTOCLIENT packet is
        able to send the file as well. It returns the filesize _limited to_
-       ByteQuota if a quota has been specified.		- JH
+       ByteQuota is a quota has been specified.		- JH
        !!!!! BEWARE !!!!
     */
 int sftp_piggybackfilesize(SE_Descriptor *sdesc, long openfd)
@@ -1327,6 +1325,8 @@ int sftp_piggybackfilesize(SE_Descriptor *sdesc, long openfd)
 	length = stbuf.st_size;
 	}
 
+    /* When we try to tranfer too much, return a value so that we avoid
+     * piggybacking */
     if (SFTP_EnforceQuota && sdesc->Value.SmartFTPD.ByteQuota > 0 && 
 	length > sdesc->Value.SmartFTPD.ByteQuota)
 	return(sdesc->Value.SmartFTPD.ByteQuota);
@@ -1482,4 +1482,13 @@ static int sftp_vfwritev(SE_Descriptor *sdesc,
 	}
 
     return(result);
+}
+
+void sftp_Progress(SE_Descriptor *sdesc, long BytesTransferred)
+{
+    sdesc->Value.SmartFTPD.BytesTransferred = BytesTransferred;
+
+    if (sdesc->XferCB)
+        sdesc->XferCB(sdesc->userp,
+                      sdesc->Value.SmartFTPD.SeekOffset + BytesTransferred);
 }

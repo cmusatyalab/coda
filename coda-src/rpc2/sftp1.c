@@ -99,7 +99,7 @@ long SFTP_Init()
     say(0, SFTP_DebugLevel, "SFTP_Init()\n");
 
     /* Create socket for SFTP packets */
-    if (rpc2_CreateIPSocket(&sftp_Socket, &sftp_Host, &sftp_Port) != RPC2_SUCCESS)
+    if (rpc2_CreateIPSocket(&sftp_Socket, &sftp_Port) != RPC2_SUCCESS)
 	return(RPC2_FAIL);
 
 
@@ -272,7 +272,7 @@ long SFTP_MakeRPC1(IN ConnHandle, INOUT SDesc, INOUT RequestPtr)
     if (se->WhoAmI != SFCLIENT) FAIL(se, RPC2_SEFAIL2);
     se->ThisRPCCall = (*RequestPtr)->Header.SeqNumber;	/* remember new call has begun */
     se->SDesc = SDesc;
-    SDesc->Value.SmartFTPD.BytesTransferred = 0;
+    sftp_Progress(SDesc, 0);
 
     se->XferState = XferNotStarted;
     se->UseMulticast = FALSE;
@@ -312,7 +312,7 @@ long SFTP_MakeRPC1(IN ConnHandle, INOUT SDesc, INOUT RequestPtr)
 		
 		case -2:	break;	/* file too big to fit */
 		
-		default:	SDesc->Value.SmartFTPD.BytesTransferred = rc;
+		default:        sftp_Progress(SDesc, rc);
 				sftp_didpiggy++;
 				break;
 		}
@@ -344,7 +344,7 @@ long SFTP_MakeRPC2(IN ConnHandle, INOUT SDesc, INOUT Reply)
 	if (nbytes >= 0)
 	    {
 	    sftp_didpiggy++;
-	    SDesc->Value.SmartFTPD.BytesTransferred = nbytes;
+	    sftp_Progress(SDesc, nbytes);
 	    }
 	else
 	    {
@@ -471,7 +471,7 @@ long SFTP_CheckSE(IN ConnHandle, INOUT SDesc, IN Flags)
     if (SDesc->LocalStatus != SE_NOTSTARTED || SDesc->RemoteStatus != SE_NOTSTARTED)
 	return(RPC2_SUCCESS);	/* SDesc error conditions are self-describing */
     SDesc->LocalStatus = SDesc->RemoteStatus = SE_INPROGRESS;
-    SDesc->Value.SmartFTPD.BytesTransferred = 0;
+    sftp_Progress(SDesc, 0);
 
     sftpd = &SDesc->Value.SmartFTPD;
     if (sftpd->hashmark != 0)
@@ -511,7 +511,7 @@ long SFTP_CheckSE(IN ConnHandle, INOUT SDesc, IN Flags)
 		    {
 		    rc = RPC2_SUCCESS;
 		    se->SDesc->LocalStatus = SE_SUCCESS;
-		    se->SDesc->Value.SmartFTPD.BytesTransferred =  p->vmfile.SeqLen;
+		    sftp_Progress(se->SDesc, p->vmfile.SeqLen);
 		    }
 		sftp_FreePiggySDesc(se); /* get rid of saved file data */
 		}
@@ -548,7 +548,7 @@ long SFTP_CheckSE(IN ConnHandle, INOUT SDesc, IN Flags)
 		    {
 		    rc = RPC2_SUCCESS;
 		    se->SDesc->LocalStatus = SE_SUCCESS;
-		    se->SDesc->Value.SmartFTPD.BytesTransferred =  p->vmfile.SeqLen;
+		    sftp_Progress(se->SDesc, p->vmfile.SeqLen);
 		    }
 		}
 	    break;
@@ -684,7 +684,7 @@ static long GetFile(sEntry)
     RPC2_PacketBuffer *pb;
     
     sEntry->XferState = XferInProgress;
-    sEntry->SDesc->Value.SmartFTPD.BytesTransferred = 0;
+    sftp_Progress(sEntry->SDesc, 0);
     sEntry->SDesc->Value.SmartFTPD.QuotaExceeded = 0;
     sEntry->HitEOF = FALSE;
     sEntry->RecvMostRecent = sEntry->RecvLastContig;
@@ -785,7 +785,7 @@ static long PutFile(struct SFTP_Entry *sEntry)
     long i;
     unsigned long bytes;
     
-    sEntry->SDesc->Value.SmartFTPD.BytesTransferred = 0;
+    sftp_Progress(sEntry->SDesc, 0);
     sEntry->SDesc->Value.SmartFTPD.QuotaExceeded = 0;
     sEntry->HitEOF = FALSE;
     sEntry->XferState = XferInProgress;

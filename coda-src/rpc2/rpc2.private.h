@@ -335,8 +335,8 @@ struct Init1Body			/* Client to Server: format of packets with opcode of RPC2_IN
     {
     RPC2_NewConnectionBody FakeBody;	/* body of fake packet from RPC2_GetRequest() */
     RPC2_Integer XRandom;		/* encrypted random number */
-    RPC2_HostIdent   SenderHost;   /* XXX backward compatibility, only sent */
-    RPC2_PortIdent   SenderPort;   /* XXX backward compatibility, only sent */
+    RPC2_HostIdent   SenderHost;   /* XXX not used anymore */
+    RPC2_PortIdent   SenderPort;   /* XXX not used anymore */
     RPC2_Integer Uniquefier;		/* to allow detection of retransmissions */
     RPC2_Integer Spare1;
     RPC2_Integer Spare2;
@@ -455,7 +455,7 @@ struct SubsysEntry *rpc2_AllocSubsys();
 void rpc2_FreeSubsys();
 
 /* Socket creation */
-long rpc2_CreateIPSocket();
+long rpc2_CreateIPSocket(long *svar, RPC2_PortIdent *pvar);
 
 /* Packet  routines */
 long rpc2_SendReliably(), rpc2_MSendPacketsReliably();
@@ -502,9 +502,6 @@ struct MEntry *rpc2_AllocMgrp(), *rpc2_GetMgrp();
 
 /* Hold queue routines */
 void rpc2_HoldPacket(), rpc2_UnholdPacket();
-
-/* Host manipulation routine */
-long rpc2_GetLocalHost();
 
 /* RPC2_GetRequest() filter matching function */
 bool rpc2_FilterMatch();

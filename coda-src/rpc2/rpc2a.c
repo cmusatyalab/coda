@@ -642,11 +642,6 @@ long RPC2_NewBinding(IN RPC2_HostIdent *Host, IN RPC2_PortIdent *Port,
 
     /* Fill in the body */
     ib = (struct Init1Body *)pb->Body;
-    ib->SenderPort = rpc2_LocalPort;	/* structure assignment */
-    ib->SenderPort.Tag = (PortTag)htonl(ib->SenderPort.Tag);	/* always in network order */
-    if(rpc2_GetLocalHost(&ib->SenderHost, &ce->PeerHost) == -1)
-	    ib->SenderHost = rpc2_LocalHost;	/* structure assignment */
-    ib->SenderHost.Tag = (HostTag)htonl(ib->SenderHost.Tag);	/* always in network order */
     ib->FakeBody.SideEffectType = htonl(Bparms->SideEffectType);
     ib->FakeBody.SecurityLevel = htonl(Bparms->SecurityLevel);
     ib->FakeBody.EncryptionType = htonl(Bparms->EncryptionType);

@@ -88,7 +88,7 @@ static MC_SendStrategy(), SDescCmp(), MC_ExtractParmsFromPacket();
         {\
 	((SE_Descriptor	*)desc)->LocalStatus = SE_SUCCESS;  /* non-execution == success */\
 	((SE_Descriptor	*)desc)->RemoteStatus =	SE_SUCCESS; /* non-execution == success */\
-	((SE_Descriptor *)desc)->Value.SmartFTPD.BytesTransferred = 0;\
+        sftp_Progress((SE_Descriptor *)desc, 0);\
         }
 
 #define INIT_SE_ENTRY(se, desc, req)\
@@ -214,7 +214,7 @@ long SFTP_MultiRPC1(IN HowMany, IN ConnHandleList, IN MCast, INOUT SDescList, IN
 				    {
 				    /* copy packet body in case retries are singlecasted */
 				    CODA_ASSERT(sftp_AddPiggy(&req[host],(char *)me->CurrentPacket->Header.SEDataOffset, rc, SFTP_MAXPACKETSIZE) == 0);
-				    SDescList[host].Value.SmartFTPD.BytesTransferred = rc;
+                                    sftp_Progress(&SDescList[host], rc);
 				    sftp_didpiggy++;
 				    }
 			    break;

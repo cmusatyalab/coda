@@ -88,9 +88,6 @@ struct SFTP_Descriptor
 				    limit would be exceeded.
 				    EnforceQuota in SFTP_Initializer must be  specified as 1
 				    at RPC initialization for the quota enforcement to take place.
-				    This limit is NOT enforced on piggybacked files;  how big
-				    are such files going to be anyway?  If you really care, turn
-				    off piggybacking in SFTP_Initializer by setting DoPiggy to 0.
 				    
 				    NOTE:  (2/6/1994, Satya) The semantics is being slightly changed
 				    here to support partial file transfer; it used to be the case
@@ -160,8 +157,9 @@ typedef
 	    Value;
 
        /* this is a callback function, which is called whenever a block of
-	* data is transferred. */
-        void (*XferCB) (struct SE_SideEffectDescriptor *SDesc);
+	* data is succesfully transferred (sink side only for now). */
+        void (*XferCB) (void *userp, off_t offset);
+        void *userp;
 	}
 	SE_Descriptor;
 
