@@ -19,7 +19,6 @@ switch (`uname`)
 	exec /usr/bin/make ${argv[*]:q}
     breaksw
     case Mach:
-	setenv SHELL bash
 	setenv PLATFORM i386_mach
 	setenv PATH /afs/cs/project/coda/@@sys/bin:/usr/cs/bin:/usr/ucb:/bin:/usr/bin
 	setenv LPATH /afs/cs/project/coda/@@sys/lib:/usr/cs/lib:/lib:/usr/lib
