@@ -459,7 +459,7 @@ long FS_ViceValidateAttrsPlusSHA(RPC2_Handle RPCid, RPC2_Unsigned PrimaryHost,
     char why_failed[25] = "";
 
 START_TIMING(ViceValidateAttrs_Total);
-    SLog(-1, "ViceValidateAttrs: Fid = %s, %d piggy fids", 
+    SLog(1, "ViceValidateAttrs: Fid = %s, %d piggy fids", 
 	 FID_(PrimaryFid), NumPiggyFids);
 
     VFlagBS->SeqLen = 0;
