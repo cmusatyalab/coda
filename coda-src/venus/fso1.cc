@@ -742,6 +742,7 @@ void fsobj::UpdateStatus(ViceStatus *vstat, vv_t *UpdateSet, vuid_t vuid) {
     /* Install the new status block. */
     if (!StatusEq(vstat, 1))
 	/* Ought to Die in this event! */;
+
     ReplaceStatus(vstat, UpdateSet);
 
     /* Set access rights and parent (if they differ). */
@@ -818,11 +819,10 @@ void fsobj::ReplaceStatus(ViceStatus *vstat, vv_t *UpdateSet) {
 
     /* We're changing the length?
      * Then the cached data is no longer useable! */
-    if (HAVEDATA(this) && stat.Length != vstat->Length && !IsFile()) {
-	LOG(0, ("fsobj::ReplaceStatus: (%s), changed stat.length %d->%d, "
-		"discarding non-file data\n",
+    if (HAVEDATA(this) && stat.Length != vstat->Length) {
+	LOG(0, ("fsobj::ReplaceStatus: (%s), changed stat.length %d->%d\n",
 		FID_(&fid), stat.Length, vstat->Length));
-	DiscardData();
+	SetRcRights(RC_STATUS);
     }
 
     stat.Length = vstat->Length;
