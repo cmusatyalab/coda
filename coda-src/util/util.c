@@ -50,7 +50,7 @@ extern "C" {
 #include <ctype.h>
 #include <math.h>
 #include "coda_string.h"
-#include <sys/time.h>
+#include <time.h>
 #include <sys/utsname.h>
 #include <netdb.h>
 #include <stdarg.h>

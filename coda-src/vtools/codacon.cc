@@ -27,7 +27,7 @@ extern "C" {
 #include <sys/param.h>
 #include <sys/ioctl.h>
 #include <sys/socket.h>
-#include <sys/time.h>
+#include <time.h>
 #ifdef HAVE_SYS_UN_H
 #include <sys/un.h>
 #endif
