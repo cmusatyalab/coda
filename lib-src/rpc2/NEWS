@@ -2,6 +2,7 @@ New in 1.6:
 
 * Cross compilation stuff for the Itsy (SA-1100). (Jason Flinn)
 * Corrected byteswapping of incoming/outgoing packets on Itsy's. (Jason Flinn)
+* Linking against the updated liblwp in lwp-1.5.
 
 New in 1.5:
 

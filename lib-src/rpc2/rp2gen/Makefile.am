@@ -19,7 +19,7 @@
 #*/
 
 CC=${NATIVECC}
-CFLAGS= -Wall
+CFLAGS=
 LDFLAGS=
 EXEEXT=
 YFLAGS= -d

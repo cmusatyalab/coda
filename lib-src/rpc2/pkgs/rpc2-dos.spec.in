@@ -23,35 +23,35 @@ Headers and static libraries for developing programs using the RPC2 library.
 %setup -n @PACKAGE@-@VERSION@
 
 %build
-./configure --prefix=/usr/lib/gcc-lib/i386-go32w95mmap-msdos/2.7.2.1 --target=dos
+./configure --prefix=/usr/lib/gcc-lib/i386-go32w95-msdos/2.7.2.1 --target=dos
 make
 
 %install
 rm -rf $RPM_BUILD_ROOT
 mkdir -p $RPM_BUILD_ROOT
-make prefix=$RPM_BUILD_ROOT/usr/lib/gcc-lib/i386-go32w95mmap-msdos/2.7.2.1 install
-mv $RPM_BUILD_ROOT/usr/lib/gcc-lib/i386-go32w95mmap-msdos/2.7.2.1/lib/librpc2.* $RPM_BUILD_ROOT/usr/lib/gcc-lib/i386-go32w95mmap-msdos/2.7.2.1/
-mv $RPM_BUILD_ROOT/usr/lib/gcc-lib/i386-go32w95mmap-msdos/2.7.2.1/lib/libse.* $RPM_BUILD_ROOT/usr/lib/gcc-lib/i386-go32w95mmap-msdos/2.7.2.1/
-mv $RPM_BUILD_ROOT/usr/lib/gcc-lib/i386-go32w95mmap-msdos/2.7.2.1/lib/libfail.* $RPM_BUILD_ROOT/usr/lib/gcc-lib/i386-go32w95mmap-msdos/2.7.2.1/
+make prefix=$RPM_BUILD_ROOT/usr/lib/gcc-lib/i386-go32w95-msdos/2.7.2.1 install
+mv $RPM_BUILD_ROOT/usr/lib/gcc-lib/i386-go32w95-msdos/2.7.2.1/lib/librpc2.* $RPM_BUILD_ROOT/usr/lib/gcc-lib/i386-go32w95-msdos/2.7.2.1/
+mv $RPM_BUILD_ROOT/usr/lib/gcc-lib/i386-go32w95-msdos/2.7.2.1/lib/libse.* $RPM_BUILD_ROOT/usr/lib/gcc-lib/i386-go32w95-msdos/2.7.2.1/
+mv $RPM_BUILD_ROOT/usr/lib/gcc-lib/i386-go32w95-msdos/2.7.2.1/lib/libfail.* $RPM_BUILD_ROOT/usr/lib/gcc-lib/i386-go32w95-msdos/2.7.2.1/
 
 %clean
 rm -rf $RPM_BUILD_ROOT
 
 %files
-/usr/lib/gcc-lib/i386-go32w95mmap-msdos/2.7.2.1/bin/rp2gen
-/usr/lib/gcc-lib/i386-go32w95mmap-msdos/2.7.2.1/libfail.a
-/usr/lib/gcc-lib/i386-go32w95mmap-msdos/2.7.2.1/libfail.la
-/usr/lib/gcc-lib/i386-go32w95mmap-msdos/2.7.2.1/librpc2.a
-/usr/lib/gcc-lib/i386-go32w95mmap-msdos/2.7.2.1/librpc2.la
-/usr/lib/gcc-lib/i386-go32w95mmap-msdos/2.7.2.1/libse.a
-/usr/lib/gcc-lib/i386-go32w95mmap-msdos/2.7.2.1/libse.la
-%dir /usr/lib/gcc-lib/i386-go32w95mmap-msdos/2.7.2.1/include/rpc2
-/usr/lib/gcc-lib/i386-go32w95mmap-msdos/2.7.2.1/include/rpc2/errors.h
-/usr/lib/gcc-lib/i386-go32w95mmap-msdos/2.7.2.1/include/rpc2/errorsdefs.h
-/usr/lib/gcc-lib/i386-go32w95mmap-msdos/2.7.2.1/include/rpc2/fail.h
-/usr/lib/gcc-lib/i386-go32w95mmap-msdos/2.7.2.1/include/rpc2/fcon.h
-/usr/lib/gcc-lib/i386-go32w95mmap-msdos/2.7.2.1/include/rpc2/multi.h
-/usr/lib/gcc-lib/i386-go32w95mmap-msdos/2.7.2.1/include/rpc2/rpc2.h
-/usr/lib/gcc-lib/i386-go32w95mmap-msdos/2.7.2.1/include/rpc2/se.h
-/usr/lib/gcc-lib/i386-go32w95mmap-msdos/2.7.2.1/include/rpc2/sftp.h
+/usr/lib/gcc-lib/i386-go32w95-msdos/2.7.2.1/bin/rp2gen
+/usr/lib/gcc-lib/i386-go32w95-msdos/2.7.2.1/libfail.a
+/usr/lib/gcc-lib/i386-go32w95-msdos/2.7.2.1/libfail.la
+/usr/lib/gcc-lib/i386-go32w95-msdos/2.7.2.1/librpc2.a
+/usr/lib/gcc-lib/i386-go32w95-msdos/2.7.2.1/librpc2.la
+/usr/lib/gcc-lib/i386-go32w95-msdos/2.7.2.1/libse.a
+/usr/lib/gcc-lib/i386-go32w95-msdos/2.7.2.1/libse.la
+%dir /usr/lib/gcc-lib/i386-go32w95-msdos/2.7.2.1/include/rpc2
+/usr/lib/gcc-lib/i386-go32w95-msdos/2.7.2.1/include/rpc2/errors.h
+/usr/lib/gcc-lib/i386-go32w95-msdos/2.7.2.1/include/rpc2/errorsdefs.h
+/usr/lib/gcc-lib/i386-go32w95-msdos/2.7.2.1/include/rpc2/fail.h
+/usr/lib/gcc-lib/i386-go32w95-msdos/2.7.2.1/include/rpc2/fcon.h
+/usr/lib/gcc-lib/i386-go32w95-msdos/2.7.2.1/include/rpc2/multi.h
+/usr/lib/gcc-lib/i386-go32w95-msdos/2.7.2.1/include/rpc2/rpc2.h
+/usr/lib/gcc-lib/i386-go32w95-msdos/2.7.2.1/include/rpc2/se.h
+/usr/lib/gcc-lib/i386-go32w95-msdos/2.7.2.1/include/rpc2/sftp.h
 

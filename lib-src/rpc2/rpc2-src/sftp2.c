@@ -72,6 +72,10 @@ static int AwaitEvent();
 #define BOGUS(pb)\
     (sftp_TraceBogus(2, __LINE__), sftp_bogus++, SFTP_FreeBuffer(&pb))
 
+#ifndef MAX
+#define MAX(a, b)  (((a) > (b)) ? (a) : (b))
+#endif
+
 void sftp_Listener(void)
 {/* LWP that listens for SFTP packets */
     
@@ -171,18 +175,21 @@ static bool sftp_MorePackets(bool *rpc2, bool *sftp)
 
     return (*rpc2 || *sftp);
 #else
+    int nfds;
+    fd_set rmask;
     struct timeval tv;
-    long rmask, wmask, emask;
 
+    nfds = MAX(sftp_Socket, rpc2_RequestSocket) + 1;
+    FD_ZERO(&rmask);
+    FD_SET(rpc2_RequestSocket, &rmask);
+    FD_SET(sftp_Socket, &rmask);
     tv.tv_sec = tv.tv_usec = 0;	    /* do polling select */
-    emask = rmask = (1 << sftp_Socket) | (1 << rpc2_RequestSocket);
-    wmask = 0;
     /* We use select rather than IOMGR_Select to avoid overheads. This is
      * acceptable only because we are doing a polling select */
-    if (select(MAX_FDS, SELECT_TYPE_ARG234 &rmask, SELECT_TYPE_ARG234 &wmask, SELECT_TYPE_ARG234 &emask, &tv) > 0)
+    if (select(nfds, &rmask, NULL, NULL, &tv) > 0)
     {
-	*rpc2 = rmask & (1 << rpc2_RequestSocket);
-	*sftp = rmask & (1 << sftp_Socket);
+	*rpc2 = FD_ISSET(rpc2_RequestSocket, &rmask);
+	*sftp = FD_ISSET(sftp_Socket, &rmask);
 	return(TRUE);
     }
     else return(FALSE);

@@ -2,4 +2,5 @@ Makefile
 Makefile.in
 rpc2.spec
 rpc2-dos.spec
+rpc2-win95.spec
 rpc2-nt.spec

@@ -64,5 +64,5 @@ if test ${with_LWP_PT}p != nop ; then
 fi
 
 dnl Generate output files
-AC_OUTPUT(Makefile pkgs/Makefile pkgs/rpc2.spec pkgs/rpc2-dos.spec pkgs/rpc2-nt.spec include/Makefile include/rpc2/Makefile rpc2-src/Makefile rp2gen/Makefile fail/Makefile)
+AC_OUTPUT(Makefile pkgs/Makefile pkgs/rpc2.spec pkgs/rpc2-dos.spec pkgs/rpc2-win95.spec pkgs/rpc2-nt.spec include/Makefile include/rpc2/Makefile rpc2-src/Makefile rp2gen/Makefile fail/Makefile)
 
