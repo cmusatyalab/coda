@@ -26,6 +26,6 @@ listed in the file CREDITS.
 
 /* routines included in other files */
 int ObjExists (resreplica *, long , long );
-int RepairRename (int , resreplica *, resdir_entry **, int , listhdr **, char *, VolumeId);
+int RepairRename (int , resreplica *, resdir_entry **, int , listhdr **, char *, VolumeId, char *realm);
 int RepairSubsetCreate (int , resreplica *, resdir_entry **, int , listhdr **, VolumeId);
 int RepairSubsetRemove (int, resreplica *, resdir_entry **, int , listhdr **);

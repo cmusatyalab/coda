@@ -306,12 +306,12 @@ void MarkEntriesByGroup (resdir_entry **mark_arr, int nentries)
 	mark_arr[i]->lookedAt = 1;
 }
 
-int GetConflictType (int nreplicas, resreplica *dirs, resdir_entry **deGroup, int nentries, int *conflictType, char *volmtpt)
+int GetConflictType (int nreplicas, resreplica *dirs, resdir_entry **deGroup, int nentries, int *conflictType, char *volmtpt, char *realm)
 {
     int i;
     *conflictType = STRONGLY_EQUAL;
     for (i = 0; i < nPredicates; i++) {
-	if ((*(Predicates[i]))(nreplicas, dirs, deGroup, nentries))
+	if ((*(Predicates[i]))(nreplicas, dirs, deGroup, nentries, realm))
 	    break;
     }
     if (i == nPredicates){
@@ -376,7 +376,7 @@ int IsCreatedEarlier (struct listhdr **opList, int index, long vnode, long uniqu
     return 0;
 }
 
-void ResolveConflict (int nreplicas, resreplica *dirs, resdir_entry **deGroup, int nentries, int conflictType, listhdr **opList, char *volmtpt, VolumeId RepVolume)
+void ResolveConflict (int nreplicas, resreplica *dirs, resdir_entry **deGroup, int nentries, int conflictType, listhdr **opList, char *volmtpt, VolumeId RepVolume, char *realm)
 {
     /* call the appropriate repair function */
     switch (conflictType){
@@ -385,7 +385,7 @@ void ResolveConflict (int nreplicas, resreplica *dirs, resdir_entry **deGroup, i
       case ALL_PRESENT:
 	break;
       case SUBSET_RENAME:
-	RepairRename(nreplicas, dirs, deGroup, nentries, opList, volmtpt, RepVolume);
+	RepairRename(nreplicas, dirs, deGroup, nentries, opList, volmtpt, RepVolume, realm);
 	break;
       case SUBSET_CREATE:
 	RepairSubsetCreate(nreplicas, dirs, deGroup, nentries, opList, RepVolume);
@@ -546,8 +546,7 @@ int NameNameResolve(int first, int last, int nreplicas, resreplica *dirs, struct
 
 /* dirresolve : returns NNCONFLICTS(-1) if this resolve is definitely not the last needed compare/repair 
    return 0 if the compare implied that the resulting repair will make the directories equal */
-int dirresolve (int nreplicas, resreplica *dirs, int (*cbfn)(char *), struct listhdr **opList, 
-		char *volmtpt, VolumeId RepVolume, struct repinfo *inf)
+int dirresolve (int nreplicas, resreplica *dirs, int (*cbfn)(char *), struct listhdr **opList, char *volmtpt, VolumeId RepVolume, struct repinfo *inf, char *realm)
 {
     int i;
 
@@ -600,14 +599,14 @@ int dirresolve (int nreplicas, resreplica *dirs, int (*cbfn)(char *), struct lis
 	    if (resdirCompareByFidName(&(sortedArrByFidName[i]), &sortedArrByFidName[i+j]))
 	 	break;
 	if (sortedArrByFidName[i]->lookedAt) continue;
-	rc = GetConflictType(nreplicas, dirs, &(sortedArrByFidName[i]), j, &conflict, volmtpt);
+	rc = GetConflictType(nreplicas, dirs, &(sortedArrByFidName[i]), j, &conflict, volmtpt, realm);
 	if (rc){
 	    if (inf->interactive)
 		printf("**** Couldnt get conflict type for %s ****\n", sortedArrByFidName[i]->name);
 	    nConflicts++;
 	}
 	else 
-	    ResolveConflict(nreplicas, dirs, &(sortedArrByFidName[i]), j, conflict, opList, volmtpt, RepVolume);
+	    ResolveConflict(nreplicas, dirs, &(sortedArrByFidName[i]), j, conflict, opList, volmtpt, RepVolume, realm);
     }
     free(sortedArrByFidName);
     return 0;
@@ -649,16 +648,23 @@ void resClean (int nreplicas, resreplica *dirs, struct listhdr *lh)
     free(direntriesarr);
 }
 
-int GetParent(VenusFid *cfid, VenusFid *dfid, char *volmtpt, char *dpath, char *childname) {
+int GetParent(char *realm, ViceFid *cfid, ViceFid *dfid, char *volmtpt, char *dpath, char *childname) {
     /* returns fid and absolute path of parent */
     int rc;
     struct ViceIoctl vi;
     char tmp[2048];
     char path[MAXPATHLEN];
+    struct getpath_args {
+	ViceFid fid;
+	char realm[MAXHOSTNAMELEN];
+    } gp;
+
 
     /* first get the path of the child relative to vol root */
-    vi.in = (char *)cfid;
-    vi.in_size = sizeof(VenusFid);
+    gp.fid = *cfid;
+    strcpy(gp.realm, realm);
+    vi.in = (char *)&gp;
+    vi.in_size = sizeof(gp);
     vi.out = tmp;
     vi.out_size = sizeof(tmp);
     memset(tmp, 0, sizeof(tmp));
@@ -699,8 +705,10 @@ int GetParent(VenusFid *cfid, VenusFid *dfid, char *volmtpt, char *dpath, char *
     // get fid of parent 
     //ViceVersionVector VV;
     //res_getfid(path, dfid, &VV);
-    vi.in = (char *)cfid;
-    vi.in_size = sizeof(VenusFid);
+    gp.fid = *cfid;
+    strcpy(gp.realm, realm);
+    vi.in = (char *)&gp;
+    vi.in_size = sizeof(gp);
     vi.out = tmp;
     vi.out_size = sizeof(tmp);
     strcpy(path, "/coda");
@@ -709,6 +717,6 @@ int GetParent(VenusFid *cfid, VenusFid *dfid, char *volmtpt, char *dpath, char *
 	printf("Error %d occured while trying to get fid of %s's parent\n", childname);
 	return(rc);
     }
-    memcpy(dfid, tmp, sizeof(VenusFid));
+    memcpy(dfid, tmp, sizeof(ViceFid));
     return(0);
 }

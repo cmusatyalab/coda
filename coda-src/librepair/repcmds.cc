@@ -193,6 +193,7 @@ int CompareDirs(struct repvol *repv, char *fixfile, struct repinfo *inf, char *m
     struct ViceIoctl vioc;
     struct stat sbuf;
     char **names;
+    char realm[MAXHOSTNAMELEN];
     int ret, rc, i, nreps, nConflicts = 0, setmode = 0, setacl = 0, setowner = 0;
     unsigned long j;
     resreplica *dirs;
@@ -205,7 +206,7 @@ int CompareDirs(struct repvol *repv, char *fixfile, struct repinfo *inf, char *m
       return(-1);
     }
 
-    if (repair_getfid(repv->rodir, &confFid, NULL, NULL, msgbuf, sizeof(msgbuf))) {
+    if (repair_getfid(repv->rodir, &confFid, realm, NULL, msgbuf, sizeof(msgbuf))) {
 	strerr(msg, msgsize, "repair_getfid(%s): %s", repv->rodir, msgbuf);
 	return(-1);
     }
@@ -246,7 +247,7 @@ int CompareDirs(struct repvol *repv, char *fixfile, struct repinfo *inf, char *m
     }
 
     /* Do the resolve! */
-    ret = dirresolve(nreps, dirs, NULL, &k, repv->mnt, repv->vid, inf);
+    ret = dirresolve(nreps, dirs, NULL, &k, repv->mnt, repv->vid, inf, realm);
 
     if (compareAcl(nreps, dirs)){
 	nConflicts++;

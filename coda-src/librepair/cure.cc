@@ -60,12 +60,12 @@ int ObjExists(resreplica *dir, long vnode, long unique)
     return 0;
 }
 
-int RepairRename (int nreplicas, resreplica *dirs, 
-			 resdir_entry **deGroup, int nDirEntries, 
-			 listhdr **ops, char *volmtpt, VolumeId RepVolume)
+int RepairRename (int nreplicas, resreplica *dirs, resdir_entry **deGroup,
+		  int nDirEntries, listhdr **ops, char *volmtpt,
+		  VolumeId RepVolume, char *realm)
 {
     char parentpath[MAXHOSTS][MAXPATHLEN];
-    VenusFid parentfid[MAXHOSTS];
+    ViceFid parentfid[MAXHOSTS];
     char childpath[MAXHOSTS][MAXNAMELEN];
     int usepath[MAXHOSTS];
     int i;
@@ -79,12 +79,12 @@ int RepairRename (int nreplicas, resreplica *dirs,
 
     // get the paths for parents 
     int nobjfound = 0;
-    VenusFid tmpfid;
+    ViceFid tmpfid;
     tmpfid.Vnode = deGroup[0]->vno;
     tmpfid.Unique = deGroup[0]->uniqfier;
     for (i = 0; i < nreplicas; i++) {
 	tmpfid.Volume = dirs[i].replicaid;
-	if (!GetParent(&tmpfid, &parentfid[i], volmtpt, parentpath[i], childpath[i])) {
+	if (!GetParent(realm, &tmpfid, &parentfid[i], volmtpt, parentpath[i], childpath[i])) {
 	    nobjfound ++;
 	    usepath[i] = 1;
 	}

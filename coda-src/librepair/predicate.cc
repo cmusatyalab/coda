@@ -40,18 +40,10 @@ extern "C" {
 #include <vice.h>
 #include <inconsist.h>
 
-
 #include "resolve.h"
 #include "predicate.h"
 
-
-/* to add more predicates just append to the list and update nPredicates */
-PtrFuncInt Predicates[] = {	/* the predicate routines */
-    &ObjectOK, &WeaklyEqual, &AllPresent, &Renamed, &SubsetCreate, &SubsetRemove, &MaybeSubsetRemove
-};
-int nPredicates = 7;
-
-int Equal (resdir_entry **deGroup, int nDirEntries)
+static int Equal (resdir_entry **deGroup, int nDirEntries)
 {
     int i;
     for (i = 1; i < nDirEntries; i++){
@@ -77,7 +69,7 @@ static void PrintArgs (char *name, resdir_entry **deGroup, int nDirEntries)
 }
 
 /* The following predicates return TRUE (1) or FALSE (0) */
-int ObjectOK (int nreplicas, resreplica *dirs,resdir_entry **deGroup, int nDirEntries)
+static int ObjectOK (int nreplicas, resreplica *dirs,resdir_entry **deGroup, int nDirEntries, char *realm)
 {
     /* remember to check if the names are the same */
     if (nreplicas != nDirEntries) return 0; 
@@ -85,7 +77,7 @@ int ObjectOK (int nreplicas, resreplica *dirs,resdir_entry **deGroup, int nDirEn
 }
 
 
-int WeaklyEqual (int nreplicas, resreplica *dirs, resdir_entry **deGroup, int nDirEntries)
+static int WeaklyEqual (int nreplicas, resreplica *dirs, resdir_entry **deGroup, int nDirEntries, char *realm)
 {
     if (nreplicas != nDirEntries) return 0;
     for(int i = 1; i < nDirEntries; i++)
@@ -94,7 +86,7 @@ int WeaklyEqual (int nreplicas, resreplica *dirs, resdir_entry **deGroup, int nD
     return 1;
 }
 
-int AllPresent (int nreplicas, resreplica *dirs, resdir_entry **deGroup, int nDirEntries)
+static int AllPresent (int nreplicas, resreplica *dirs, resdir_entry **deGroup, int nDirEntries, char *realm)
 {
     return(nreplicas == nDirEntries);
 }
@@ -102,7 +94,7 @@ int AllPresent (int nreplicas, resreplica *dirs, resdir_entry **deGroup, int nDi
 /* given an object and its version vector at each replica */
 /* nObjectSites returns the min number of sites the object was */
 /* created at */
-int nObjectSites (resdir_entry **deGroup, int nDirEntries)
+static int nObjectSites (resdir_entry **deGroup, int nDirEntries)
 {   
     ViceVersionVector vv;
     int	count = 0;
@@ -120,7 +112,7 @@ int nObjectSites (resdir_entry **deGroup, int nDirEntries)
     return(count);
 }
 
-int nlinks (resdir_entry *re, resreplica *dir)
+static int nlinks (resdir_entry *re, resreplica *dir)
 {
     char *path;
     struct stat buf;
@@ -133,7 +125,7 @@ int nlinks (resdir_entry *re, resreplica *dir)
     return(buf.st_nlink);
 }
 
-int Renamed (int nreplicas, resreplica *dirs, resdir_entry **deGroup, int nDirEntries)
+static int Renamed (int nreplicas, resreplica *dirs, resdir_entry **deGroup, int nDirEntries, char *realm)
 {
 //    int objsites = nObjectSites(deGroup, nDirEntries);
 //    if (objsites <= nDirEntries) return 0;
@@ -156,7 +148,7 @@ int Renamed (int nreplicas, resreplica *dirs, resdir_entry **deGroup, int nDirEn
 #endif /* notdef */
     }
     int renamed = 0;
-    VenusFid tmpfid;
+    ViceFid tmpfid;
     tmpfid.Vnode = deGroup[0]->vno;
     tmpfid.Unique = deGroup[0]->uniqfier;
     for (i = 0; i < nreplicas; i++) {
@@ -164,8 +156,8 @@ int Renamed (int nreplicas, resreplica *dirs, resdir_entry **deGroup, int nDirEn
 	char childpath[MAXNAMELEN];
 	if (repfound[i]) continue;
 	tmpfid.Volume = dirs[i].replicaid;
-	VenusFid parentfid;
-	if (!GetParent(&tmpfid, &parentfid, NULL, path, childpath)) {
+	ViceFid parentfid;
+	if (!GetParent(realm, &tmpfid, &parentfid, NULL, path, childpath)) {
 	    renamed = 1;
 	    printf("Object %s was renamed\n", deGroup[0]->name);
 	    break;
@@ -176,7 +168,7 @@ int Renamed (int nreplicas, resreplica *dirs, resdir_entry **deGroup, int nDirEn
 
 
 /* Object was created at only a subset of the sites */
-int SubsetCreate (int nreplicas, resreplica *dirs, resdir_entry **deGroup, int nDirEntries)
+static int SubsetCreate (int nreplicas, resreplica *dirs, resdir_entry **deGroup, int nDirEntries, char *realm)
 {
     int	nl;
 
@@ -216,7 +208,7 @@ int SubsetCreate (int nreplicas, resreplica *dirs, resdir_entry **deGroup, int n
 }
 
 /* Object was removed at a subset of the sites */
-int SubsetRemove (int nreplicas, resreplica *dirs, resdir_entry **deGroup, int nDirEntries)
+static int SubsetRemove (int nreplicas, resreplica *dirs, resdir_entry **deGroup, int nDirEntries, char *realm)
 {
     char str[1024];
 
@@ -244,7 +236,8 @@ int SubsetRemove (int nreplicas, resreplica *dirs, resdir_entry **deGroup, int n
 }
 
 
-int MaybeSubsetRemove (int nreplicas, resreplica *dirs, resdir_entry **deGroup, int nDirEntries) {
+static int MaybeSubsetRemove (int nreplicas, resreplica *dirs, resdir_entry **deGroup, int nDirEntries, char *realm)
+{
     char str[1024];
 
     if (nreplicas <= nDirEntries) return 0;
@@ -270,3 +263,11 @@ int MaybeSubsetRemove (int nreplicas, resreplica *dirs, resdir_entry **deGroup, 
     return 0;
 
 }
+
+/* to add more predicates just append to the list and update nPredicates */
+PtrFuncInt Predicates[] = {	/* the predicate routines */
+    &ObjectOK, &WeaklyEqual, &AllPresent, &Renamed, &SubsetCreate,
+    &SubsetRemove, &MaybeSubsetRemove
+};
+int nPredicates = 7;
+
