@@ -11,15 +11,16 @@
 #define _ASSERT_H_ 1
 
 #include <stdio.h>
+#include <unistd.h>
 
 #define assert(ex) {\
     if (!(ex)) {\
-	int *addr = 0;\
 	fprintf(stderr,"Assertion failed: file \"%s\", line %d\n", __FILE__, __LINE__);\
 	fflush(stderr);\
-	*addr = 1;\
+    while ( 1 ) { sleep(1); } ;\
     }\
 }
+
 
 #endif  _ASSERT_H_
 

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/src/coda-4.0.1/RCSLINK/./lib-src/mlwp/lwp.private.h,v 1.1 1996/11/22 19:19:01 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/lib-src/mlwp/lwp.private.h,v 4.1 1997/01/08 21:54:15 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -65,6 +65,7 @@ supported by Transarc Corporation, Pittsburgh, PA.
 */
 
 #include <sys/time.h>
+#include <stdio.h>
 #ifndef OLDLWP
 #include    <cthreads.h>
 #endif OLDLWP
@@ -85,7 +86,7 @@ struct rock
     char *value;	/* pointer to some arbitrary data structure */
     };
 
-#define MAXROCKS	4	/* max no. of rocks per LWP */
+#define MAXROCKS	8	/* max no. of rocks per LWP */
 
 struct lwp_pcb {			/* process control block */
   char		name[32];		/* ASCII name */
@@ -102,7 +103,7 @@ struct lwp_pcb {			/* process control block */
   char		*stack;			/* ptr to process stack */
   int		stacksize;		/* size of stack */
   long		stackcheck;		/* first word of stack for overflow checking */
-  int		(*ep)C_ARGS((char *));	/* initial entry point */
+  int		(*ep)(char *);	/* initial entry point */
   char		*parm;			/* initial parm for process */
   int		rused;			/* no of rocks presently in use */
   struct rock	rlist[MAXROCKS];	/* set of rocks to hide things under */
@@ -137,18 +138,19 @@ extern char PRE_Block;			/* used in preemption control (in preempt.c) */
 
 #ifdef OLDLWP
 /* Routines in process.s */
-extern savecontext C_ARGS((PFV whichroutine, struct lwp_context *context, char *whichstack));
-extern returnto C_ARGS((struct lwp_context *context));
+extern savecontext (PFV whichroutine, struct lwp_context *context, char *whichstack);
+extern returnto (struct lwp_context *context);
 #endif OLDLWP
 
 /* Debugging macro */
 #ifdef LWPDEBUG
-#define lwpdebug(level, msg)\
+extern FILE *lwp_logfile;
+#define lwpdebug(level, msg...)\
 	 if (lwp_debug > level) {\
-	     printf("***LWP (0x%x): ", lwp_cpptr);\
-	     printf msg;\
-	     putchar('\n');\
-	     fflush(stdout);\
+	     fprintf(lwp_logfile, "***LWP (%p): ", lwp_cpptr);\
+	     fprintf(lwp_logfile, ## msg);\
+	     fprintf(lwp_logfile, "\n");\
+	     fflush(lwp_logfile);\
 	 }
 #else LWPDEBUG
 #define lwpdebug(level, msg)
@@ -164,8 +166,8 @@ typedef struct si {
 } stackinfo;
 
 #define MAXTHREADS	100
-PRIVATE void InitVMInfo();
-PRIVATE void InitMyStackInfo(char *);
+static void InitVMInfo();
+static void InitMyStackInfo(char *);
  
 
 #endif OLDLWP

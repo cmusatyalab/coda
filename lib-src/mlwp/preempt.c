@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/lib-src/mlwp/preempt.c,v 4.4 1998/01/10 18:40:38 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/lib-src/mlwp/preempt.c,v 4.5 1998/03/13 15:25:52 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -66,7 +66,7 @@ char PRE_Block = 0;		/* used in lwp.c and process.s */
 
 
 /* run the scheduler unless we are in a critical region */
-PRIVATE void AlarmHandler(int sig)
+static void AlarmHandler(int sig)
 {
     if (PRE_Block == 0 && lwp_cpptr->level == 0) {
 	PRE_BeginCritical();

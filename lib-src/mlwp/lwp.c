@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/lib-src/mlwp/lwp.c,v 4.7 1998/01/10 18:40:37 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/lib-src/mlwp/lwp.c,v 4.8 1998/03/06 20:21:39 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -131,6 +131,7 @@ static int InitializeProcessSupport (int, PROCESS *);
 /* Globals identical in  OLD and NEW lwps */
 /*----------------------------------------*/
 
+FILE *lwp_logfile;
 char    lwp_debug;
 int 	LWP_TraceProcesses = 0;
 PROCESS	lwp_cpptr;
@@ -240,7 +241,7 @@ int LWP_TerminateProcessSupport()       /* terminate all LWP support */
 {
     register int i;
 
-    lwpdebug(0, ("Entered Terminate_Process_Support"))
+    lwpdebug(0, "Entered Terminate_Process_Support");
     if (lwp_init == NULL) return LWP_EINIT;
     if (lwp_cpptr != LWPANCHOR.outerpid)
 	/* terminate support not called from same process as the init process */
@@ -313,14 +314,14 @@ int LWP_NewRock(int Tag, char *Value)
 static void Dispose_of_Dead_PCB(PROCESS cur)
 {
 
-  lwpdebug(0, ("Entered Dispose_of_Dead_PCB"))
+  lwpdebug(0, "Entered Dispose_of_Dead_PCB");
   Delete_PCB(cur);
   Free_PCB(cur);
 }
 
 int LWP_CurrentProcess(PROCESS *pid)
 {
-    lwpdebug(0, ("Entered LWP_CurrentProcess"))
+    lwpdebug(0, "Entered LWP_CurrentProcess");
     if (lwp_init) {
             *pid = lwp_cpptr;
             return LWP_SUCCESS;
@@ -330,7 +331,7 @@ int LWP_CurrentProcess(PROCESS *pid)
 
 PROCESS LWP_ThisProcess()
 {
-    lwpdebug(0, ("Entered LWP_ThisProcess"))
+    lwpdebug(0, "Entered LWP_ThisProcess");
     if (lwp_init) {
             return lwp_cpptr;
     } else
@@ -338,9 +339,17 @@ PROCESS LWP_ThisProcess()
 }
 
 
+void LWP_SetLog(FILE *file, int level)
+{
+	if ( file ) 
+		lwp_logfile = file;
+	lwp_debug = level;
+}
+	
+
 int LWP_GetProcessPriority(PROCESS pid, int *priority)
 {
-    lwpdebug(0, ("Entered Get_Process_Priority"))
+    lwpdebug(0, "Entered Get_Process_Priority");
     if (lwp_init) {
 	*priority = pid -> priority;
 	return 0;
@@ -352,7 +361,7 @@ int LWP_WaitProcess(char *event)
 {
     char *tempev[2];
 
-    lwpdebug(0, ("Entered Wait_Process")) 
+    lwpdebug(0, "Entered Wait_Process");
     if (event == NULL) return LWP_EBADEVENT;
     tempev[0] = event;
     tempev[1] = NULL;
@@ -361,7 +370,7 @@ int LWP_WaitProcess(char *event)
 
 static void Delete_PCB(register PROCESS pid)
 {
-    lwpdebug(0, ("Entered Delete_PCB"))
+    lwpdebug(0, "Entered Delete_PCB");
     lwpremove(pid, (pid->blockflag || pid->status==WAITING || pid->status==DESTROYED
 		 ? &blocked
 		 : &runnable[pid->priority]));
@@ -506,7 +515,7 @@ int LWP_QWait()
 
     PROCESS old_cpptr;
 
-    lwpdebug(0, ("LWP_QWait: %s is going to QWait\n", lwp_cpptr->name))
+    lwpdebug(0, "LWP_QWait: %s is going to QWait\n", lwp_cpptr->name);
     lwp_cpptr->status = QWAITING;
     if (runnable[lwp_cpptr->priority].count == 0)
 	/* update Highest_runnable_priority */
@@ -519,14 +528,14 @@ int LWP_QWait()
     lwpremove(lwp_cpptr, &runnable[Highest_runnable_priority]);
     timerclear(&lwp_cpptr->lastReady);
     mutex_lock(&ct_mutex);
-    lwpdebug(0, ("LWP_QWait:%s going to signal %s \n", old_cpptr->name, lwp_cpptr->name))
+    lwpdebug(0, "LWP_QWait:%s going to signal %s \n", old_cpptr->name, lwp_cpptr->name);
     condition_signal(&lwp_cpptr->c);
     Cont_Sws++;
 
     if (cont_sw_threshold.tv_sec || cont_sw_threshold.tv_usec) 
 	CheckWorkTime(old_cpptr, lwp_cpptr);
     /* sleep on your own condition */
-    lwpdebug(0, ("LWP_QWait:%s going to wait on own condition \n", old_cpptr->name))
+    lwpdebug(0, "LWP_QWait:%s going to wait on own condition \n", old_cpptr->name);
     condition_wait(&old_cpptr->c, &ct_mutex);
     mutex_unlock(&ct_mutex);
 
@@ -547,15 +556,15 @@ int LWP_QSignal(pid)
 {
 
     if (pid->status == QWAITING) {
-        lwpdebug(0, ("LWP_Qsignal: %s is going to QSignal %s\n", lwp_cpptr->name, pid->name))
+        lwpdebug(0, "LWP_Qsignal: %s is going to QSignal %s\n", lwp_cpptr->name, pid->name);
 	pid->status = READY;
 	lwpinsert(pid, &runnable[pid->priority]);
-	lwpdebug(0, ("LWP_QSignal: Just inserted %s into runnable queue\n", pid->name))
+	lwpdebug(0, "LWP_QSignal: Just inserted %s into runnable queue\n", pid->name);
 	gettimeofday(&pid->lastReady, 0);
 #ifndef OLDLWP
 	/* update Highest_runnable_priority */
 	Highest_runnable_priority = MAX(Highest_runnable_priority, pid->priority);
-	lwpdebug(0, ("%s priority= %d; HRP = %d; Signalled process pri = %d", lwp_cpptr->name, lwp_cpptr->priority, Highest_runnable_priority, pid->priority))
+	lwpdebug(0, "%s priority= %d; HRP = %d; Signalled process pri = %d", lwp_cpptr->name, lwp_cpptr->priority, Highest_runnable_priority, pid->priority);
 #endif OLDLWP
 	return LWP_SUCCESS;	
     }
@@ -576,7 +585,7 @@ int LWP_CreateProcess(ep, stacksize, priority, parm, name, pid)
     PROCESS temp, temp2;
     char *stackptr;
 
-    lwpdebug(0, ("Entered LWP_CreateProcess"))
+    lwpdebug(0, "Entered LWP_CreateProcess");
     /* Throw away all dead process control blocks */
     purge_dead_pcbs();
     if (lwp_init) {
@@ -622,7 +631,7 @@ int LWP_CreateProcess(ep, stacksize, priority, parm, name, pid)
     cthread_t	ct;
     PROCESS old_cpptr;
 
-    lwpdebug(0, ("Entered LWP_CreateProcess to create %s at priority %d\n", name, priority))
+    lwpdebug(0, "Entered LWP_CreateProcess to create %s at priority %d\n", name, priority);
     old_cpptr = lwp_cpptr;
     /* Throw away all dead process control blocks */
     purge_dead_pcbs();
@@ -659,12 +668,12 @@ int LWP_CreateProcess(ep, stacksize, priority, parm, name, pid)
 	Highest_runnable_priority = MAX(Highest_runnable_priority, priority);
 	
 	mutex_lock(&run_sem);
-	lwpdebug(0, ("Before creating process yields Proc_Running = %d\n", Proc_Running))
+	lwpdebug(0, "Before creating process yields Proc_Running = %d\n", Proc_Running);
 	while( !Proc_Running ){
 	    mutex_unlock(&run_sem);
 	    cthread_yield();
 	    mutex_lock(&run_sem);
-	    lwpdebug(0, ("After creating proc yields and gets back control Proc_Running = %d\n", Proc_Running))
+	    lwpdebug(0, "After creating proc yields and gets back control Proc_Running = %d\n", Proc_Running);
 	}
 	mutex_unlock(&run_sem);
     
@@ -689,7 +698,7 @@ int LWP_DestroyProcess(pid)
 
     PROCESS temp;
 
-    lwpdebug(0, ("Entered Destroy_Process"))
+    lwpdebug(0, "Entered Destroy_Process");
     if (lwp_init) {
 	if (lwp_cpptr != pid) {
 	    Dispose_of_Dead_PCB(pid);
@@ -709,7 +718,7 @@ int LWP_DestroyProcess(pid)
 #else OLDLWP
     any_t t;
 
-    lwpdebug(0, ("Entered Destroy_Process"))
+    lwpdebug(0, "Entered Destroy_Process");
     if (lwp_init) {
         if (lwp_cpptr == pid){
 		/* kill myself */
@@ -746,7 +755,7 @@ int LWP_DestroyProcess(pid)
 
 int LWP_DispatchProcess()		/* explicit voluntary preemption */
 {
-    lwpdebug(0, ("Entered Dispatch_Process"))
+    lwpdebug(0, "Entered Dispatch_Process");
     if (lwp_init) {
 #ifdef OLDLWP
 	Set_LWP_RC();
@@ -774,7 +783,10 @@ int LWP_Init(version, priority, pid)
 	fprintf(stderr, "**** FATAL ERROR: LWP VERSION MISMATCH ****\n");
 	exit(-1);
 	}
+    
     else return(InitializeProcessSupport(priority, pid));    
+
+    lwp_logfile = stderr;
     }
 
 
@@ -789,7 +801,7 @@ static int InitializeProcessSupport(priority, pid)
     struct lwp_pcb dummy;
     register int i;
 
-    lwpdebug(0, ("Entered InitializeProcessSupport"))
+    lwpdebug(0, "Entered InitializeProcessSupport");
     if (lwp_init != NULL) return LWP_SUCCESS;
 
     /* Set up offset for stack checking -- do this as soon as possible */
@@ -823,7 +835,7 @@ static int InitializeProcessSupport(priority, pid)
     PROCESS temp;
     register int i;
 
-    lwpdebug(0, ("Entered InitializeProcessSupport"))
+    lwpdebug(0, "Entered InitializeProcessSupport");
     if (lwp_init != NULL) return LWP_SUCCESS;
 
     /* check priorities and set up running and blocked queues */
@@ -871,7 +883,7 @@ static int InitializeProcessSupport(priority, pid)
 
 int LWP_INTERNALSIGNAL(char *event, int yield)
 {
-    lwpdebug(0, ("Entered LWP_SignalProcess"))
+    lwpdebug(0, "Entered LWP_SignalProcess");
     if (lwp_init) {
 	int rc;
 	rc = Internal_Signal(event);
@@ -892,7 +904,7 @@ int LWP_MwaitProcess(wcount, evlist)	/* wait on m of n events */
 #ifdef OLDLWP
     register int ecount, i;
 
-    lwpdebug(0, ("Entered Mwait_Process [waitcnt = %d]", wcount))
+    lwpdebug(0, "Entered Mwait_Process [waitcnt = %d]", wcount);
     if (evlist == NULL) {
 	Set_LWP_RC();
 	return LWP_EBADCOUNT;
@@ -929,7 +941,7 @@ int LWP_MwaitProcess(wcount, evlist)	/* wait on m of n events */
     register int ecount, i;
     PROCESS  old_cpptr;
 
-    lwpdebug(0, ("Entered Mwait_Process [waitcnt = %d]", wcount))
+    lwpdebug(0, "Entered Mwait_Process [waitcnt = %d]", wcount);
     if (evlist == NULL) {	
 	Dispatcher();
 	return LWP_EBADCOUNT;
@@ -977,7 +989,7 @@ int LWP_MwaitProcess(wcount, evlist)	/* wait on m of n events */
         lwp_cpptr = runnable[Highest_runnable_priority].head;
         lwpremove(lwp_cpptr, &runnable[Highest_runnable_priority]);
 	timerclear(&lwp_cpptr->lastReady);
-	lwpdebug(0, ("WaitProcess: %s Going to signal %s \n", old_cpptr->name, lwp_cpptr->name))
+	lwpdebug(0, "WaitProcess: %s Going to signal %s \n", old_cpptr->name, lwp_cpptr->name);
         mutex_lock(&ct_mutex);
         condition_signal(&lwp_cpptr->c);
 	Cont_Sws++;
@@ -986,7 +998,7 @@ int LWP_MwaitProcess(wcount, evlist)	/* wait on m of n events */
 	    CheckWorkTime(old_cpptr, lwp_cpptr);
 
 	/* sleep on your own condition */
-	lwpdebug(0, ("WaitProcess:%s going to wait \n", old_cpptr->name))
+	lwpdebug(0, "WaitProcess:%s going to wait \n", old_cpptr->name);
 	condition_wait(&old_cpptr->c, &ct_mutex);
 	mutex_unlock(&ct_mutex);
 
@@ -1029,7 +1041,7 @@ static void Abort_LWP(msg)
 #ifdef OLDLWP
     struct lwp_context tempcontext;
 
-    lwpdebug(0, ("Entered Abort_LWP"))
+    lwpdebug(0, "Entered Abort_LWP");
     printf("***LWP Abort: %s\n", msg);
     Dump_Processes();
     if (LWPANCHOR.outersp == NULL)
@@ -1039,7 +1051,7 @@ static void Abort_LWP(msg)
 
 #else OLDLWP
 
-    lwpdebug(0, ("Entered Abort_LWP"))
+    lwpdebug(0, "Entered Abort_LWP");
     printf("***LWP Abort: %s\n", msg);
     Dump_Processes();
     Exit_LWP();
@@ -1051,7 +1063,7 @@ static void Abort_LWP(msg)
 static void Create_Process_Part2()
 {
     PROCESS temp;
-    lwpdebug(0, ("Entered Create_Process_Part2"))
+    lwpdebug(0, "Entered Create_Process_Part2");
     temp = lwp_cpptr;		/* Get current process id */
     savecontext(Dispatcher, &temp->context, NULL);
     (*temp->ep)(temp->parm);
@@ -1201,7 +1213,7 @@ static void Dispatcher()		/* Lightweight process dispatcher */
 
 	my_priority = lwp_cpptr->priority;
 	if ((my_priority < Highest_runnable_priority) || (runnable[my_priority].count > 0)){
-	    lwpdebug(0, ("Dispatcher: %s is now yielding", lwp_cpptr->name))
+	    lwpdebug(0, ("Dispatcher: %s is now yielding", lwp_cpptr->name);
 
 	    /* I have to quit */
 	    old_cpptr = lwp_cpptr;
@@ -1212,7 +1224,7 @@ static void Dispatcher()		/* Lightweight process dispatcher */
 	    /* remove next process from runnable queue and signal it */
 	    lwpremove(lwp_cpptr, &runnable[Highest_runnable_priority]);
 	    mutex_lock(&ct_mutex);
-	    lwpdebug(0, ("Dispatcher: %s going to signal %s condition\n", old_cpptr->name, lwp_cpptr->name))
+	    lwpdebug(0, "Dispatcher: %s going to signal %s condition\n", old_cpptr->name, lwp_cpptr->name);
 	    /* check work time */
 	    if (cont_sw_threshold.tv_sec || cont_sw_threshold.tv_usec) 
 		CheckWorkTime(old_cpptr, lwp_cpptr);
@@ -1225,7 +1237,7 @@ static void Dispatcher()		/* Lightweight process dispatcher */
 	    Cont_Sws++;
 
 	    /* now sleep until somebody wakes me */
-	    lwpdebug(0, ("Dispatcher: %s going to wait on own condition\n", old_cpptr->name))
+	    lwpdebug(0, "Dispatcher: %s going to wait on own condition\n", old_cpptr->name);
 	    condition_wait(&old_cpptr->c, &ct_mutex);
 	    mutex_unlock(&ct_mutex);
 
@@ -1259,12 +1271,12 @@ static void Dispatcher()		/* Lightweight process dispatcher */
 static void Free_PCB(pid)
     PROCESS pid;
 {
-    lwpdebug(0, ("Entered Free_PCB"))
+    lwpdebug(0, "Entered Free_PCB");
 
 #ifdef OLDLWP
     if (pid -> stack != NULL) {
-	lwpdebug(0, ("HWM stack usage: %d, [PCB at %p]",
-		   Stack_Used(pid->stack,pid->stacksize), pid))
+	lwpdebug(0, "HWM stack usage: %d, [PCB at %p]",
+		   Stack_Used(pid->stack,pid->stacksize), pid);
 	free(pid -> stack);
     }
 #endif OLDLWP
@@ -1284,7 +1296,7 @@ static void Initialize_PCB(temp, priority, stack, stacksize, ep, parm, name)
 {
     register int i = 0;
 
-    lwpdebug(0, ("Entered Initialize_PCB"))
+    lwpdebug(0, "Entered Initialize_PCB");
     if (name != NULL)
 	while (((temp -> name[i] = name[i]) != '\0') && (i < 31)) i++;
     temp -> name[31] = '\0';
@@ -1318,7 +1330,7 @@ static void Initialize_PCB(temp, priority, stack, stacksize, ep, parm, name)
     condition_set_name(&temp->c, name);
 #endif OLDLWP
 
-    lwpdebug(0, ("Leaving Initialize_PCB\n"))
+    lwpdebug(0, "Leaving Initialize_PCB\n");
 }
 
 
@@ -1328,7 +1340,7 @@ static int Internal_Signal(event)
     int rc = LWP_ENOWAIT;
     register int i;
 
-    lwpdebug(0, ("Entered Internal_Signal [event id %p]", event))
+    lwpdebug(0, "Entered Internal_Signal [event id %p]", event);
     if (!lwp_init) return LWP_EINIT;
     if (event == NULL) return LWP_EBADEVENT;
 
@@ -1483,7 +1495,7 @@ static void Initialize_Stack(stackptr, stacksize)
 #define STACKMAGIC	0xBADBADBA
     register int i;
 
-    lwpdebug(0, ("Entered Initialize_Stack"))
+    lwpdebug(0, "Entered Initialize_Stack");
     if (lwp_stackUseEnabled)
 	for (i=0; i<stacksize; i++)
 	    stackptr[i] = i &0xff;

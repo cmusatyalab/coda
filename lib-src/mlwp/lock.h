@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/lib-src/mlwp/lock.h,v 4.1 1997/01/08 21:54:12 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/lib-src/mlwp/lock.h,v 4.2 1997/10/23 18:53:31 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -58,13 +58,16 @@ supported by Transarc Corporation, Pittsburgh, PA.
 #ifndef LWPLOCK_INCLUDED
 #define LWPLOCK_INCLUDED
 
+#include <lwp.h>
 /* all locks wait on excl_locked except for READ_LOCK, which waits on readers_reading */
 struct Lock {
-    unsigned char	wait_states;	/* type of lockers waiting */
-    unsigned char	excl_locked;	/* anyone have boosted, shared or write lock? */
-    unsigned char	readers_reading;	/* # readers actually with read locks */
-    unsigned char	num_waiting;	/* probably need this soon */
+    unsigned char   wait_states;	/* type of lockers waiting */
+    unsigned char   excl_locked;	/* anyone have boosted, shared or write lock? */
+    unsigned char   readers_reading;	/* # readers actually with read locks */
+    unsigned char   num_waiting;	/* probably need this soon */
+    PROCESS         excl_locker;
 };
+
 typedef struct Lock Lock;
 
 
@@ -78,106 +81,20 @@ typedef struct Lock Lock;
 #define EXCL_LOCKS (WRITE_LOCK|SHARED_LOCK)
 
 /* extern definitions for lock manager routines */
-static inline void ObtainReadLock(struct Lock *lock);
-static inline void ObtainWriteLock(struct Lock *lock);
-static inline void ObtainSharedLock(struct Lock *lock);
-static inline void BoostSharedLock(struct Lock *lock);
-static inline void UnboostSharedLock(struct Lock *lock);
-static inline void ReleaseReadLock(struct Lock *lock);
-static inline void ReleaseWriteLock(struct Lock *lock);
-static inline void ReleaseSharedLock(struct Lock *lock);
-static inline int LockWaiters(struct Lock *lock);
-static inline int CheckLock(struct Lock *lock);
-static inline int WriteLocked(struct Lock *lock);
+void ObtainReadLock(struct Lock *lock);
+void ObtainWriteLock(struct Lock *lock);
+void ObtainSharedLock(struct Lock *lock);
+void BoostSharedLock(struct Lock *lock);
+void UnboostSharedLock(struct Lock *lock);
+void ReleaseReadLock(struct Lock *lock);
+void ReleaseWriteLock(struct Lock *lock);
+void ReleaseSharedLock(struct Lock *lock);
+int LockWaiters(struct Lock *lock);
+int CheckLock(struct Lock *lock);
+int WriteLocked(struct Lock *lock);
 extern void Lock_Init (struct Lock*);
 extern void Lock_Obtain (struct Lock*, int);
 extern void Lock_ReleaseR (struct Lock *);
 extern void Lock_ReleaseW (struct Lock *);
-
-
-/*  Previously these were macros. You can't stop a debugger on a macro, 
-    so I changed them to inline functions.
-*/
-
-static inline void  ObtainReadLock(struct Lock *lock)
-{
-    if (!((lock)->excl_locked & WRITE_LOCK) && !(lock)->wait_states)
-	(lock) -> readers_reading++;
-    else
-	Lock_Obtain(lock, READ_LOCK);
-}
-
-static inline void  ObtainWriteLock(struct Lock *lock)
-{
-    if (!(lock)->excl_locked && !(lock)->readers_reading)
-	(lock) -> excl_locked = WRITE_LOCK;\
-    else
-	Lock_Obtain(lock, WRITE_LOCK);
-}
-
-static inline void  ObtainSharedLock(struct Lock *lock)
-{
-    if (!(lock)->excl_locked && !(lock)->wait_states)
-	(lock) -> excl_locked = SHARED_LOCK;
-    else
-	Lock_Obtain(lock, SHARED_LOCK);
-}
-
-static inline void  BoostSharedLock(struct Lock *lock)
-{
-    if (!(lock)->readers_reading)
-	(lock)->excl_locked = WRITE_LOCK;
-    else
-	Lock_Obtain(lock, BOOSTED_LOCK);
-}
-
-/* this must only be called with a WRITE or boosted SHARED lock! */
-static inline void  UnboostSharedLock(struct Lock *lock)
-{
-    (lock)->excl_locked = SHARED_LOCK;
-    if((lock)->wait_states)
-	Lock_ReleaseR(lock);
-}
-
-static inline void  ReleaseReadLock(struct Lock *lock)
-{
-    if (!--(lock)->readers_reading && (lock)->wait_states)
-	Lock_ReleaseW(lock) ; 
-}
-
-static inline void  ReleaseWriteLock(struct Lock *lock)
-{
-    (lock)->excl_locked &= ~WRITE_LOCK;
-    if ((lock)->wait_states) 
-	Lock_ReleaseR(lock);
-}
-
-/* can be used on shared or boosted (write) locks */
-static inline void  ReleaseSharedLock(struct Lock *lock)
-{
-    (lock)->excl_locked &= ~(SHARED_LOCK | WRITE_LOCK);
-    if ((lock)->wait_states) 
-	Lock_ReleaseR(lock);
-}
-
-/* I added this next macro to make sure it is safe to nuke a lock -- Mike K. */
-static inline int  LockWaiters(struct Lock *lock)
-{
-    return ((int) ((lock)->num_waiting));
-}
-
-static inline int  CheckLock(struct Lock *lock)
-{
-    if ((lock)->excl_locked)
-	return -1;
-    else
-	return (lock)->readers_reading;
-}
-
-static inline int  WriteLocked(struct Lock *lock)
-{
-    return ((lock)->excl_locked != 0);
-}
-
 
 #endif /* LWPLOCK_INCLUDED */

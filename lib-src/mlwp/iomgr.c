@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/lib-src/mlwp/iomgr.c,v 4.6 1998/01/10 18:40:35 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/lib-src/mlwp/iomgr.c,v 4.7 1998/03/06 20:21:37 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -57,6 +57,8 @@ supported by Transarc Corporation, Pittsburgh, PA.
 
 
 #include <stdio.h>
+#include <sys/types.h>
+#include <stdlib.h>
 #include <signal.h>
 #include <errno.h>
 #include <sys/file.h>
@@ -77,8 +79,8 @@ supported by Transarc Corporation, Pittsburgh, PA.
 
 
 /* Stack size for IOMGR process and processes instantiated to handle signals */
-#define STACK_SIZE	32768  /* 32K */
-
+#define STACK_SIZE	0x1000  /* 4K */
+                        
 /********************************\
 * 				 *
 *  Stuff for managing IoRequests *
@@ -91,9 +93,9 @@ struct IoRequest {
     PROCESS		pid;
 
     /* Descriptor masks for requests */
-    int			readfds;
-    int			writefds;
-    int			exceptfds;
+    int		readfds;
+    int		writefds;
+    int		exceptfds;
 
     struct TM_Elem	timeout;
 
@@ -151,6 +153,7 @@ PRIVATE SigHandlerType SigHandler C_ARGS((int signo));
 PRIVATE int SignalSignals ();
 
 
+
 PRIVATE struct IoRequest *NewRequest()
 {
 
@@ -196,7 +199,9 @@ PRIVATE int IOMGR_CheckTimeouts() {
 
 	woke_someone = TRUE;
 	req = (struct IoRequest *) expired -> BackPointer;
-	req->readfds = req->writefds = req->exceptfds = 0;	/* no data ready */
+	req->readfds = 0;
+	req->writefds = 0;
+	req->exceptfds = 0;
 	req->result = 0;					/* no fds ready */
 	TM_Remove(Requests, &req->timeout);
 	LWP_QSignal(req->pid);
@@ -213,7 +218,8 @@ PRIVATE int IOMGR_CheckTimeouts() {
 PRIVATE int IOMGR_CheckDescriptors(PollingCheck)
     int PollingCheck;
 {
-    int fds, readfds, writefds, exceptfds;
+    int fds;
+    int readfds, writefds, exceptfds;
     struct TM_Elem *earliest;
     struct timeval timeout, tmp_timeout, junk;
 
@@ -258,8 +264,8 @@ PRIVATE int IOMGR_CheckDescriptors(PollingCheck)
     if (anySigsDelivered) return(-1);
 
     /* Do the select.  It runs much faster if 0's are passed instead of &0s! */
-    lwpdebug(0, ("[select(%d, 0x%x, 0x%x, 0x%x, <%d, %d>)]\n",
-		  MAX_FDS, readfds, writefds, exceptfds, timeout.tv_sec, timeout.tv_usec));
+    lwpdebug(0, "[select(%d, 0x%x, 0x%x, 0x%x, <%d, %d>)]\n",
+		  MAX_FDS, readfds, writefds, exceptfds, timeout.tv_sec, timeout.tv_usec);
 
     if (iomgr_timeout.tv_sec != 0 || iomgr_timeout.tv_usec != 0)  {
 	/* this is a non polling select 
@@ -281,10 +287,21 @@ PRIVATE int IOMGR_CheckDescriptors(PollingCheck)
 		  (fd_set *)(exceptfds ? &exceptfds : 0), 
 		  &tmp_timeout);
 
+    if ( fds < 0 ) 
+	    lwpdebug(-1, "Select returns error: %d\n", errno);
+
+
     if (fds < 0 && errno != EINTR) {
 	for(fds=0;fds<MAX_FDS;fds++) {
-	    if (fcntl(fds, F_GETFD, 0) < 0 && errno == EBADF) 
-	      openMask |= (1<<fds);
+		if (fcntl(fds, F_GETFD, 0) < 0 && errno == EBADF) { 
+			if ( FD_ISSET(fds, (fd_set *)&readfds) )
+				lwpdebug(0, "BADF readfds for %d", fds);
+			if ( FD_ISSET(fds, (fd_set *) &writefds) )
+				lwpdebug(0, "BADF writefds for %d", fds);
+			if ( FD_ISSET(fds, (fd_set *) &exceptfds) )
+				lwpdebug(0, "BADF exceptfds for %d", fds);
+			openMask |= (1<<fds);
+		}
 	}
 	abort();
     }
@@ -566,7 +583,7 @@ int IOMGR_Select(fds, readfds, writefds, exceptfds, timeout)
     /* See if polling request. If so, handle right here */
     if (timeout != NIL && timeout->tv_sec == 0 && timeout->tv_usec == 0) {
 	int nfds;
-	lwpdebug(0, ("[Polling SELECT]"))
+	lwpdebug(0, "[Polling SELECT]");
 	nfds = select(MAX_FDS, (fd_set *)readfds, (fd_set *)writefds, (fd_set *)exceptfds, timeout);
 	return (nfds > 1 ? 1 : nfds);
     }

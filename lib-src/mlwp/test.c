@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/src/coda-4.0.1/RCSLINK/./lib-src/mlwp/test.c,v 1.1 1996/11/22 19:18:51 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/lib-src/mlwp/test.c,v 4.1 1997/01/08 21:54:16 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -55,6 +55,7 @@ supported by Transarc Corporation, Pittsburgh, PA.
 
 */
 
+#include <stdlib.h>
 #include <stdio.h>
 #include <sys/time.h>
 #include <assert.h>
@@ -70,13 +71,10 @@ void OtherProcess()
 	}
     }
 
-main(argc, argv)
-    int argc;
-    char *argv[];
+int main(int argc, char **argv)
 {
     struct timeval t1, t2;
     struct timeval sleeptime;
-    int readfd, writefd, xfd;
     PROCESS pid, otherpid;
     register int i,  count, x;
     int j;
@@ -113,4 +111,7 @@ main(argc, argv)
 
     x = (t2.tv_sec -t1.tv_sec)*1000000 + (t2.tv_usec - t1.tv_usec);
     printf("%d milliseconds for %d MWaits (%f usec per Mwait and Signal)\n", x/1000, count, (float)(x/count));
-    }
+
+    return 0;
+
+}

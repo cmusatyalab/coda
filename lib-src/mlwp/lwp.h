@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/lib-src/mlwp/lwp.h,v 4.1 1997/01/08 21:54:15 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/lib-src/mlwp/lwp.h,v 4.2 1997/10/23 18:53:34 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -58,7 +58,6 @@ supported by Transarc Corporation, Pittsburgh, PA.
 #ifndef LWP_INCLUDED
 #define LWP_INCLUDED
 
-#include "cargs.h"
 #include <sys/time.h>
 
 
@@ -66,7 +65,7 @@ supported by Transarc Corporation, Pittsburgh, PA.
     LWP_VERSION is first argument to LWP_Init().
     Ensures header matches library.
 */
-#define LWP_VERSION  210888001  /* Change this if you make an incompatible change of some kind */
+#define LWP_VERSION  210888002  /* Change this if you make an incompatible change of some kind */
 
 #define LWP_SUCCESS	0
 #define LWP_EBADPID	-1
@@ -95,8 +94,6 @@ supported by Transarc Corporation, Pittsburgh, PA.
 /* Usual priority used by user LWPs */
 #define LWP_NORMAL_PRIORITY (LWP_MAX_PRIORITY-1)
 
-#define LWP_SignalProcess(event)	LWP_INTERNALSIGNAL(event, 1)
-#define LWP_NoYieldSignal(event)	LWP_INTERNALSIGNAL(event, 0)
 
 
 /* Users aren't really supposed to know what a pcb is, but .....*/
@@ -114,7 +111,7 @@ extern int lwp_overflowAction;
 /* Tells if stack size counting is enabled. */
 extern int lwp_stackUseEnabled;
 
-typedef int (*PFIC) C_ARGS((char *));
+typedef int (*PFIC)(char *);
 typedef void (*PFV)();
 
 
@@ -125,52 +122,56 @@ extern struct timeval cont_sw_threshold;  /* how long a lwp is allowed to run */
 extern struct timeval run_wait_threshold;
 
 #ifndef __cplusplus
-typedef int (*PFI) C_ARGS((char *));
+typedef int (*PFI) (char *);
 #endif  __cplusplus
 
 
 extern int LWP_QWait();
-extern int LWP_QSignal C_ARGS((register PROCESS pid));
-extern int LWP_Init C_ARGS((int version, int priority, PROCESS *pid));
+extern int LWP_QSignal (register PROCESS pid);
+extern int LWP_Init (int version, int priority, PROCESS *pid);
 extern int LWP_TerminateProcessSupport();
-extern int LWP_CreateProcess C_ARGS((PFIC ep, int stacksize, int priority, char *parm, 
-			     char *name, PROCESS *pid));
-extern int LWP_CurrentProcess C_ARGS((PROCESS *pid));
-extern int LWP_DestroyProcess C_ARGS((PROCESS pid));
+extern int LWP_CreateProcess (PFIC ep, int stacksize, int priority, char *parm, 
+			     char *name, PROCESS *pid);
+extern int LWP_CurrentProcess (PROCESS *pid);
+PROCESS LWP_ThisProcess();
+extern int LWP_DestroyProcess (PROCESS pid);
 extern int LWP_DispatchProcess();
-extern int LWP_GetProcessPriority C_ARGS((PROCESS pid, int *priority));
-extern int LWP_INTERNALSIGNAL C_ARGS((char *event, int yield));
-extern int LWP_WaitProcess C_ARGS((char *event));
-extern int LWP_MwaitProcess C_ARGS((int wcount, char *evlist[]));
-extern int LWP_StackUsed C_ARGS((PROCESS pid, int *max, int *used)); 
-extern int LWP_NewRock C_ARGS((int Tag, char *Value));
-extern int LWP_GetRock C_ARGS((int Tag,  char **Value));
+extern int LWP_GetProcessPriority (PROCESS pid, int *priority);
+extern int LWP_INTERNALSIGNAL (char *event, int yield);
+extern int LWP_WaitProcess (char *event);
+extern int LWP_MwaitProcess (int wcount, char *evlist[]);
+extern int LWP_StackUsed (PROCESS pid, int *max, int *used); 
+extern int LWP_NewRock (int Tag, char *Value);
+extern int LWP_GetRock (int Tag,  char **Value);
 extern char *LWP_Name ();  /* NOTE: returs a char * !! */
 extern int LWP_Index();
 extern int LWP_HighestIndex();
 extern void LWP_UnProtectStacks();	/* only available for newlwp */
 extern void LWP_ProtectStacks();	
 
+#define LWP_SignalProcess(event)	LWP_INTERNALSIGNAL(event, 1)
+#define LWP_NoYieldSignal(event)	LWP_INTERNALSIGNAL(event, 0)
+
 
 /* extern definitions for the io manager routines */
-extern int IOMGR_SoftSig C_ARGS((PFIC aproc, char *arock));
+extern int IOMGR_SoftSig (PFIC aproc, char *arock);
 extern int IOMGR_Initialize();
 extern int IOMGR_Finalize();
 extern int IOMGR_Poll();
-extern int IOMGR_Select C_ARGS((register int fds, register int *readfds, register int *writefds, 
-			register int *exceptfds, struct timeval *timeout));
-extern int IOMGR_Cancel C_ARGS((register PROCESS pid));
-extern int IOMGR_Signal C_ARGS((int signo, char *event));
-extern int IOMGR_CancelSignal C_ARGS((int signo));
+extern int IOMGR_Select (register int fds, register int *readfds, register int *writefds, 
+			register int *exceptfds, struct timeval *timeout);
+extern int IOMGR_Cancel (register PROCESS pid);
+extern int IOMGR_Signal (int signo, char *event);
+extern int IOMGR_CancelSignal (int signo);
 
 /* declarations for fasttime.c routines */
-extern int FT_Init C_ARGS((int printErrors, int notReally));
+extern int FT_Init (int printErrors, int notReally);
 #if	__GNUC__ >= 2
 struct timezone;
 #endif
-extern int FT_GetTimeOfDay C_ARGS((struct timeval *tv, struct timezone *tz));
-extern int TM_GetTimeOfDay C_ARGS((struct timeval *tv, struct timezone *tz));
-extern int FT_AGetTimeOfDay C_ARGS((struct timeval *tv, struct timezone *tz));
+extern int FT_GetTimeOfDay (struct timeval *tv, struct timezone *tz);
+extern int TM_GetTimeOfDay (struct timeval *tv, struct timezone *tz);
+extern int FT_AGetTimeOfDay (struct timeval *tv, struct timezone *tz);
 extern unsigned int FT_ApproxTime() ;
 
 #endif /* LWP_INCLUDED */
