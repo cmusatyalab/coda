@@ -16,12 +16,6 @@ listed in the file CREDITS.
 
 #*/
 
-
-
-
-
-
-
 /*
  *
  *    CFS calls0.
@@ -135,6 +129,7 @@ int fsobj::Fetch(vuid_t vuid) {
 
 	    sed = &dummysed;
 	    sed->Tag = SMARTFTP;
+	    sed->XferCB = NULL;
 	    struct SFTP_Descriptor *sei = &sed->Value.SmartFTPD;
 	    sei->TransmissionDirection = SERVERTOCLIENT;
 	    sei->hashmark = 0;
@@ -1018,6 +1013,7 @@ int fsobj::ConnectedStore(Date_t Mtime, vuid_t vuid, unsigned long NewLength) {
 	/* Must be a file! */
 	sed = &dummysed;
 	sed->Tag = SMARTFTP;
+	sed->XferCB = NULL;
 	struct SFTP_Descriptor *sei = &sed->Value.SmartFTPD;
 	sei->TransmissionDirection = CLIENTTOSERVER;
 	sei->hashmark = 0;

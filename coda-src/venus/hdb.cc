@@ -430,7 +430,7 @@ int hdb::MakeAdviceRequestFile(char *HoardListFileName) {
 
     /* get avg speed of net to servers */
     /* this should be for only those servers represented in hdb! */
-    long bw = UNSET_BW;
+    long bw = 0;
     {
 	unsigned long sum = 0;
 	int nservers = 0; 
@@ -438,15 +438,13 @@ int hdb::MakeAdviceRequestFile(char *HoardListFileName) {
 	srvent *s;
 	while (s = next()) {
 	    (void) s->GetBandwidth(&bw);
-	    if (bw != UNSET_BW) {
-		sum += bw;
-		nservers++;
-	    }
+	    sum += bw;
+	    nservers++;
 	}
 	if (nservers) bw = sum/nservers;
     }
 
-    if (bw != UNSET_BW)
+    if (bw != 0)
 	fprintf(HoardListFILE, "Speed of Network Connection = %d Bytes/sec\n", bw);
     else
         fprintf(HoardListFILE, "Speed of Network Connection = unknown\n");

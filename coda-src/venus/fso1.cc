@@ -2559,16 +2559,13 @@ void fsobj::CacheReport(int fd, int level) {
 int fsobj::EstimatedFetchCost(int type) {
     LOG(100, ("E fsobj::EstimatedFetchCost(%d)\n", type));
 
-    long bw = UNSET_BW;	/* bandwidth, in bytes/sec */
+    long bw;	/* bandwidth, in bytes/sec */
     vol->vsg->GetBandwidth(&bw);
 
-    if (bw == UNSET_BW)
-        return(-1);
-    else {    
-        LOG(100, ("stat.Length = %d; Bandwidth = %d\n", stat.Length, bw));
-	LOG(100, ("EstimatedFetchCost = %d\n", (int)stat.Length/bw));
-        return( (int)stat.Length/bw ); 
-    }
+    LOG(100, ("stat.Length = %d; Bandwidth = %d\n", stat.Length, bw));
+    LOG(100, ("EstimatedFetchCost = %d\n", (int)stat.Length/bw));
+
+    return( (int)stat.Length/bw ); 
 }
 
 void fsobj::RecordReplacement(int status, int data) {

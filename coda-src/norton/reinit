@@ -1,269 +1,227 @@
-#!/bin/csh -f
-/* BLURB gpl
-
-                           Coda File System
-                              Release 5
-
-          Copyright (c) 1987-1999 Carnegie Mellon University
-                  Additional copyrights listed below
-
-This  code  is  distributed "AS IS" without warranty of any kind under
-the terms of the GNU General Public Licence Version 2, as shown in the
-file  LICENSE.  The  technical and financial  contributors to Coda are
-listed in the file CREDITS.
-
-                        Additional copyrights
-                           none currently
-
+#!/bin/sh
+# BLURB gpl
+# 
+#                            Coda File System
+#                               Release 5
+# 
+#           Copyright (c) 1987-1999 Carnegie Mellon University
+#                   Additional copyrights listed below
+# 
+# This  code  is  distributed "AS IS" without warranty of any kind under
+# the terms of the GNU General Public Licence Version 2, as shown in the
+# file  LICENSE.  The  technical and financial  contributors to Coda are
+# listed in the file CREDITS.
+# 
+#                         Additional copyrights
+#         Copyright (c) 1998, Anders Hammarquist <iko@iko.pp.se>
+# 
 #*/
+
+#/* Rewritten for the Bourne shell by Anders Hammarquist <iko@iko.pp.se> */
+#
+# The original reinit had /vice/bin/startserver and /vice/bin/restartserver
+# This can't possibly have worked, since startserver is (usually) in
+# /usr/sbin and restartserver doesn't seem to exists. Since they are just
+# edited to prevent the admin from restarting the server while it is being
+# reinitialized it's not that big a problem. Let's hope the admin isn't out
+# to shoot herself in the foot.
+#
+# Also, we expect rvmutil, norton-reinit and rdsinit to live in $PATH
+# rather than /vice/bin.
+
+VICE=/vice	# so that it can be easily moved
+SKIPSALVAGE=${VICE}/vol/skipsalvage
+
+askyesno() {
+    while :; do
+	read ans
+	case x"$ans" in
+	    x[Yy][Ee][Ss])
+		return 0
+		;;
+	    x[Nn][Oo])
+		return 1
+		;;
+	    x)
+		if [ x$1 != x ]; then
+		    expr $1 : '[Yy][Ee][Ss]' > /dev/null
+		    return
+		else
+		    echo -n "Please answer yes or no: "
+		fi
+		;;
+	    x*)
+		echo -n "Please answer yes or no: "
+		;;
+	esac
+    done
+}
+=======
 
 
 
 set STARTSERVER = /vice/bin/startserver
 set RESTARTSERVER = /vice/bin/restartserver
 set SKIPSALVAGE = /vice/vol/skipsalvage
+>>>>>>> 4.2
 
 echo "WARNING: This program reinitializes a server."
 echo -n "Are you sure you want to proceed? (yes/no) "
-set ans = "$<"
-while ("$ans" !~ [Yy][Ee][Ss] && "$ans" !~ [Nn][Oo])
-  echo -n "Please answer yes or no: "
-  set ans = "$<"
-end
 
-if  ("$ans" !~ [Yy][Ee][Ss]) then
-  echo "Exitting"
-  exit 1
-endif
+if ! askyesno; then
+    echo "Exiting"
+    exit 1
+fi
 
-# First purge backups
-while ( 1 )
-  grep backup /vice/vol/VolumeList > /dev/null
-  if ( "$status" == "0" ) then
+# Purge backups
+while grep -q backup ${VICE}/vol/VolumeList; do
     echo ""
     echo "Reinit cannot restore backup volumes.  You must purge all of the backup"
     echo "volumes from the server before proceeding"
     echo ""
     echo "Reinit still detects backup volumes on this server\!"
     echo -n "Have you already deleted them (yes to continue, no to delete)? "
-    set ans = "$<"
-    while ("$ans" !~ [Yy][Ee][Ss] && "$ans" !~ [Nn][Oo])
-      echo -n "Please answer yes or no: "
-      set ans = "$<"
-    end
-    if ("$ans" =~ [Yy][Ee][Ss]) then
-      break
-    else
-      echo ""
-      echo "Delete the backup volumes"
-      echo "Press <return> when you are ready to proceed"
-      set ans = "$<"
-      echo ""
-    endif
-  else
-    break
-  endif
-end
+    if askyesno; then break; fi
+    echo ""
+    echo "Delete the backup volumes"
+    echo "Press <return> when you are ready to proceed"
+    read
+    echo ""
+done
 
-echo ""
-
-# Test for renamed startserver, restartserver files
-if (-e $STARTSERVER.dontrun) then
-  echo "$STARTSERVER.dontrun exists\!"
-  echo -n "Is this the real startserver script (yes/no) "
-  set ans = "$<"
-  while ("$ans" !~ [Yy][Ee][Ss] && "$ans" !~ [Nn][Oo])
-    echo -n "Please answer yes or no: "
-    set ans = "$<"
-  end
-  if ( "$ans" =~ [Yy][Ee][Ss] ) then
-    echo "Restoring $STARTSERVER"
-    mv -f $STARTSERVER.dontrun $STARTSERVER
-  endif
-endif
-
-echo "Renaming $STARTSERVER to $STARTSERVER.dontrun"
-mv -f $STARTSERVER $STARTSERVER.dontrun
-
-# Test for renamed startserver, restartserver files
-if (-e $RESTARTSERVER.dontrun) then
-  echo "$RESTARTSERVER.dontrun exists\!"
-  echo -n "Is this the real restartserver script (yes/no) "
-  set ans = "$<"
-  while ("$ans" !~ [Yy][Ee][Ss] && "$ans" !~ [Nn][Oo])
-    echo -n "Please answer yes or no: "
-    set ans = "$<"
-  end
-  if ( "$ans" =~ [Yy][Ee][Ss] ) then
-    echo "Restoring $RESTARTSERVER"
-    mv -f $RESTARTSERVER.dontrun $RESTARTSERVER
-  endif
-endif
-
-echo "Renaming $RESTARTSERVER to $RESTARTSERVER.dontrun"
-mv -f $RESTARTSERVER $RESTARTSERVER.dontrun
-
-echo "Creating new startserver and motd"
-cat << __EOF__ > $STARTSERVER
-echo ""
-echo "DON'T START THIS SERVER IT IS BEING REINITIALIZED"
-echo ""
-__EOF__
-chmod a+x $STARTSERVER
-
-mv -f /etc/motd /etc/motd.before_reinit
-cat << __EOF__ >> /etc/motd
-
-###############################
-DON'T START THIS SERVER IT IS BEING REINITIALIZED
-###############################
-
-__EOF__
-
+# At this point the old code moved and edited startserver, restartserver
+# and /etc/motd.
 
 # Check that the server is not running
-while (-e /vice/srv/pid)
-  echo "The server is still running."
-  echo "Shut it down and press <return> to continue"
-  set ans = "$<"
-end
+while [ -e ${VICE}/srv/pid ]; do
+    if ! kill -0 `cat ${VICE}/srv/pid` 2> /dev/null; then break; fi
+    echo "The server is still running."
+    echo "Shut it down and press <return> to continue"
+    read
+done
+
+# To keep the server from starting, we write something to pid
+echo "Server is being reinitialized" > ${VICE}/srv/pid
 
 # Get the skip volume list
-while ( 1 )
-  set skiplist = ""
-  if (-e $SKIPSALVAGE) then
-    echo "$SKIPSALVAGE exists.  Its contents are:"
-    cat $SKIPSALVAGE
-    echo ""
+while :; do
+    if [ -e $SKIPSALVAGE ]; then
+	echo "$SKIPSALVAGE exists.  Its contents are:"
+	cat $SKIPSALVAGE
+	echo ""
 
-    echo -n "Do you want reinit to purge these volumes (yes/no)? "
-    set ans = "$<"
-    while ("$ans" !~ [Yy][Ee][Ss] && "$ans" !~ [Nn][Oo])
-      echo -n "Please answer yes or no: "
-      set ans = "$<"
-    end
-
-    if ("$ans" =~ [Yy][Ee][Ss]) then
-      set skiplist = `cat $SKIPSALVAGE`
-
-      # get rid of the volume count
-      shift skiplist
-
-      echo "Reinit will skip volumes: $skiplist"
+	echo -n "Do you want reinit to purge these volumes (yes/no)? "
+	if askyesno; then
+	    set `cat $SKIPSALVAGE`
+	    shift
+	    SKIPSALVAGE="$*"
+	else
+	    echo "WARNING: Reinit will fail if these volumes are corrupt."
+	fi
     else
-      echo "WARNING: Reinit will fail if these volumes are corrupt."
-    endif
-  else
-    echo "$SKIPSALVAGE does not exist"
-  endif
+	echo "$SKIPSALVAGE does not exist"
+    fi
 
-  echo -n "Are there any other volumes you want to skip? [yes] "
-  set ans = "$<"
-  if ("$ans" == "") set ans = "yes"
-  while ("$ans" !~ [Yy][Ee][Ss] && "$ans" !~ [Nn][Oo])
-    echo -n "Please answer yes or no: "
-    set ans = "$<"
-  end
-  if ("$ans" =~ [Yy][Ee][Ss]) then
-    set newvol = "yes"
-    echo "Enter volume numbers terminated with a new line"
-    while ("$newvol" != "")
-      echo -n "Volume Number (in hex): "
-      set newvol = "$<"
-      set skiplist = "$skiplist $newvol"
-    end
-  endif
+    echo -n "Are there any other volumes you want to skip? [yes] "
+    if askyesno yes; then
+	echo "Enter volume numbers terminated with a new line"
+	newvol=yes
+	while [ x"$newvol" != x ]; do
+	    echo -n "Volume Number (in hex): "
+	    read newvol
+	    SKIPLIST="$SKIPLIST $newvol"
+	done
+    fi
 
-  echo ""
-  if ("$skiplist" == "") then
-    echo "Reinit will not skip any volumes"
-  else
-    echo "Reinit will skip the following volumes:"
-    echo $skiplist
-    echo ""
-    echo "THESE VOLUMES WILL NOT BE PRESENT AFTER THE REINIT\!"
-  endif
-  echo -n "Do you want to proceed? [yes] "
-  set ans = "$<"  
-  if ("$ans" == "") set ans = "yes"
-  while ("$ans" !~ [Yy][Ee][Ss] && "$ans" !~ [Nn][Oo])
-    echo -n "Please answer yes or no: "
-    set ans = "$<"
-  end
-  if ("$ans" =~ [Yy][Ee][Ss]) break
-end
+    if [ x$SKIPLIST = x ]; then
+	echo "Reinit will not skip any volumes"
+    else
+	echo "Reinit will skip the following volumes:"
+	echo $SKIPLIST
+	echo ""
+	echo "THESE VOLUMES WILL NOT BE PRESENT AFTER THE REINIT\!"
+    fi
+    echo -n "Do you want to proceed? [yes] "
+    if askyesno yes; then break; fi
+done
 
-  
 # Dump the server state.
 echo ""
 echo ""
 echo "Now 'reinit' needs to know the server RVM characteristics"
 echo -n "Enter server log device: "
-set logdev = "$<"
+read logdev
 echo -n "Enter log length: "
-set loglen = "$<"
+read loglen
 echo -n "Enter server data device: "
-set datadev = "$<"
+read datadev
 echo -n "Enter server data length: "
-set datalen = "$<"
+read datalen
 echo -n "Enter RVM starting address: 0x"
-set rvmstart = "$<"
+read rvmstart
 echo -n "Enter heap length: 0x"
-set heaplen = "$<"
+read heaplen
 echo -n "Enter static length: 0x"
-set staticlen = "$<"
+read staticlen
 echo -n "Enter nlists: "
-set nlists = "$<"
+read nlists
 echo -n "Enter chunksize: "
-set chunksize = "$<"
+read chunksize
 
 echo ""
 echo "'Reinit' needs a place to dump the server's rvm state, there must"
 echo "be enough free space to fit all of the server's RVM space."
 echo -n "Enter a dumpfile name: "
-set dumpfile = "$<"
+read dumpfile
+
+cleanup() {
+    if [ -e $dumpfile ]; then
+	echo "Dumpfile left in $dumpfile"
+	echo "Please remove $dumpfile when you are sure the reinit succeeded."
+    fi
+
+    rm -f ${VICE}/srv/pid
+
+    #mv -f $STARTSERVER.dontrun $STARTSERVER
+    #mv -f $RESTARTSERVER.dontrun $RESTARTSERVER
+    #mv -f /etc/motd.before_reinit /etc/motd
+}
 
 echo ""
 echo "Dumping server RVM state to $dumpfile..."
-if ("$skiplist" == "") then
-  /vice/bin/norton-reinit -rvm $logdev $datadev $datalen -dump $dumpfile
+if [ x"$SKIPLIST" = x ]; then
+  norton-reinit -rvm $logdev $datadev $datalen -dump $dumpfile
 else
-  /vice/bin/norton-reinit -rvm $logdev $datadev $datalen -dump $dumpfile skip $skiplist
-endif
+  norton-reinit -rvm $logdev $datadev $datalen -dump $dumpfile skip $SKIPLIST
+fi
 
-if ("$status" != "0") then
-  echo "ERROR: Dump failed\!"
-  goto cleanup
-  exit 1
-endif
+if [ $? != 0 ]; then
+    echo "ERROR: Dump failed\!"
+    cleanup; exit 1
+fi
 
 echo ""
 echo "THIS IS THE POINT OF NO RETURN\!"
 echo "RVM is about to be initialized."
 echo -n "Are you sure you want to continue? (yes/no) "
-set ans = "$<"
-while ("$ans" !~ [Yy][Ee][Ss] && "$ans" !~ [Nn][Oo])
-  echo -n "Please answer yes or no: "
-  set ans = "$<"
-end
-if ("$ans" == "no") goto cleanup
+if ! askyesno; then cleanup; exit 1; fi
 
 # Initilize RVM
 echo ""
 echo "Running rvmutl"
-/vice/bin/rvmutl << __EOF__
+rvmutl << __EOF__
 init $logdev $loglen
 quit
 __EOF__
 
-if ("$status" != "0") then
-  echo "rvmutl failed, exitting"
-  goto cleanup
-endif
+if [ $? != 0 ]; then
+    echo "rvmutl failed, exitting"
+    cleanup; exit 1
+fi
 
 echo ""
 echo "Running rdsinit"
-/vice/bin/rdsinit $logdev $datadev <<__EOF__
+rdsinit $logdev $datadev <<__EOF__
 $datalen
 $rvmstart
 $heaplen
@@ -272,28 +230,18 @@ $nlists
 $chunksize
 __EOF__
 
-if ("$status" != "0") then
-  echo "rdsinit failed, exitting"
-  goto cleanup
-endif
+if [ $? != 0 ]; then
+    echo "rdsinit failed, exitting"
+    cleanup; exit 1
+fi
 
 echo ""
 echo "Re-loading RVM"
-/vice/bin/norton-reinit -rvm $logdev $datadev $datalen -load $dumpfile
-if ("$status" != "0") then
+norton-reinit -rvm $logdev $datadev $datalen -load $dumpfile
+if [ $? != 0 ]; then
   echo "norton-reinit failed, exitting"
-  goto cleanup
+  cleanup; exit 1
 endif
 
-# Restore scripts
-cleanup:
-
-echo ""
-if (-e $dumpfile) then
-  echo "Dumpfile left in $dumpfile"
-  echo "Please remove $dumpfile when you are sure the reinit succeeded."
-endif
-
-mv -f $STARTSERVER.dontrun $STARTSERVER
-mv -f $RESTARTSERVER.dontrun $RESTARTSERVER
-mv -f /etc/motd.before_reinit /etc/motd
+cleanup
+exit 0

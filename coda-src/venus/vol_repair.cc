@@ -16,11 +16,6 @@ listed in the file CREDITS.
 
 #*/
 
-
-
-
-
-
 /*
  *
  * Implementation of the Venus Repair facility.
@@ -289,6 +284,7 @@ int volent::ConnectedRepair(ViceFid *RepairFid, char *RepairFile, vuid_t vuid,
 	/* Set up the SE descriptor. */
 	SE_Descriptor sed;
 	sed.Tag = SMARTFTP;
+	sed.XferCB = NULL;
 	struct SFTP_Descriptor *sei; sei = &sed.Value.SmartFTPD;
 	sei->SeekOffset = 0;
 	sei->hashmark = 0;

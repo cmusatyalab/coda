@@ -16,12 +16,6 @@ listed in the file CREDITS.
 
 #*/
 
-
-
-
-
-
-
 /*
  *
  * Implementation of the Venus Communications subsystem.
@@ -1025,7 +1019,7 @@ void DownServers(int nservers, unsigned long *hostids, char *buf, int *bufsize) 
 void CheckServerBW(unsigned long curr_time) {
     srv_iterator next;
     srvent *s;
-    long bw = UNSET_BW;
+    long bw = INIT_BW;
 
     while (s = next()) {
 	if (s->ServerIsUp()) 
@@ -1033,7 +1027,7 @@ void CheckServerBW(unsigned long curr_time) {
 
 	if (s->ServerIsWeak() && 
 	    (s->lastobs.tv_sec + WCStale < curr_time))
-	    (void) s->InitBandwidth(UNSET_BW);
+	    (void) s->InitBandwidth(INIT_BW);
     }
 }
 
@@ -1083,9 +1077,10 @@ srvent::srvent(unsigned long Host) {
     connid = -1;
     Xbinding = 0;
     probeme = 0;
-    initialbw = 0;
     EventCounter = 0;
-    bw = UNSET_BW;
+    userbw = 0;
+    bw     = INIT_BW;
+    bwvar  = 0;
     timerclear(&lastobs);
 
 #ifdef	VENUSDEBUG
@@ -1217,11 +1212,6 @@ void srvent::Reset() {
 	    m->KillMember(host, 0);
     }
 
-#ifdef MAYBENOT
-    /* Clear available bandwidth information. */
-    InitBandwidth(UNSET_BW);
-#endif
-
     /* Unbind callback connection for this server. */
     int code = (int) RPC2_Unbind(connid);
     LOG(1, ("srvent::Reset: RPC2_Unbind -> %s\n", RPC2_ErrorMsg(code)));
@@ -1321,7 +1311,8 @@ void srvent::ServerUp(RPC2_Handle newconnid) {
      * if this is the first connection to this server, and we have a
      * saved static estimate, deposit the estimate into the host log.
      */
-    if (initialbw) 
+    if (userbw) /* is this necessary? Userbw can only be true when bw has been
+		   initialized already. -JH */
 	(void) InitBandwidth(bw);
 
     /* Poke any threads waiting for a change in communication state. */
@@ -1357,113 +1348,52 @@ long srvent::GetLiveness(struct timeval *tp) {
 
 
 /* 
- * calculates current bandwidth to server given observations from
- * RPC2/SFTP.  Returns bandwidth in Bytes/sec, or UNSET_BW if it
- * couldn't be ascertained.  Uses the familiar 
- *	newbw = a*bw + (1-a)*obs 
- * for averaging in new observations, with a=.875.  The calculation
- * is implemented using the equivalent form 
- * 	newbw = bw + g*(obs-bw)
- * where g = 1-a.
+ * calculates current bandwidth to server, taking the current estimates from
+ * RPC2/SFTP.
  *
  * Triggers weakly/strongly connected transitions if appropriate.
  */
 
-#define BWSHIFT 3
-
-/* returns bandwidth in Bytes/sec, or UNSET_BW if couldn't be obtained */
+/* returns bandwidth in Bytes/sec, or INIT_BW if it couldn't be obtained */
 long srvent::GetBandwidth(long *Bandwidth) {
-    RPC2_NetLog Log;
-    RPC2_NetLogEntry Entries[RPC2_MAXLOGLENGTH];
     long rc = 0;
     long oldbw = bw;
-    float b;
 
     LOG(1, ("srvent::GetBandwidth (%s) lastobs %ld.%06ld\n", 
 	      name, lastobs.tv_sec, lastobs.tv_usec));
     
-    *Bandwidth = UNSET_BW;
+    *Bandwidth = INIT_BW;
 
     /* we don't have a real connid if the server is down or "quasi-up" */
     if (connid <= 0) 
 	return(ETIMEDOUT);
-
-    Log.NumEntries = RPC2_MAXLOGLENGTH;
-    Log.Quantum = RPC2_MAXQUANTUM;
-    Log.Entries = Entries;
     
-    /* retrieve the network logs from SFTP */
-    if ((rc = RPC2_GetNetInfo(connid, NULL, &Log)) != RPC2_SUCCESS)
+    if (userbw)
+    {
+        LOG(1, ("srvent:GetBandWidth: user defined BW %d bytes/sec\n", bw));
+	*Bandwidth = bw;
+	return(0);
+    }
+
+    /* retrieve the bandwidth information from RPC2 */
+    if ((rc = RPC2_GetBandwidth(connid, &bw, &bwvar)) != RPC2_SUCCESS)
 	return(rc);
     
-    LOG(1000,
-	("srvent::GetBandwidth: RPC2_GetNetInfo (%d), %d valid entries\n",
-	 connid, Log.ValidEntries));
-
-    /* 
-     * average in the observations, least recent first, ignoring
-     * ones that have already been seen.
-     */
-    int newEntries = 0;
-    for (int i = Log.ValidEntries-1; i >= 0; i--) 
-	if (timercmp(&lastobs, &Log.Entries[i].TimeStamp, <)) {
-	    newEntries++;
-	    long obs = 0;
-
-	    switch ((int) Log.Entries[i].Tag) {
-	    case RPC2_MEASURED_NLE:
-		LOG(1000, 
-		    ("\tobs at %ld.%06ld: conn %d, %d bytes %d msec\n",
-		     Log.Entries[i].TimeStamp.tv_sec,
-		     Log.Entries[i].TimeStamp.tv_usec,
-		     Log.Entries[i].Value.Measured.Conn,
-		     Log.Entries[i].Value.Measured.Bytes,
-		     Log.Entries[i].Value.Measured.ElapsedTime));
-
-		/* first part of this could overflow a long */
-		b = (Log.Entries[i].Value.Measured.Bytes * 1000)/
-		    Log.Entries[i].Value.Measured.ElapsedTime;
-		obs = (long) b;
-
-		break;
-
-	    case RPC2_STATIC_NLE:
-		LOG(1000,
-		    ("\tobs at %ld.%06ld: (static) %d bytes/sec\n",
-		     Log.Entries[i].TimeStamp.tv_sec,
-		     Log.Entries[i].TimeStamp.tv_usec,
-		     Log.Entries[i].Value.Static.Bandwidth));
-
-		obs = Log.Entries[i].Value.Static.Bandwidth;
-
-	    default:
-		break;
-	    }
-
-	    if (obs) {
-		if (bw == UNSET_BW)  	/* initialize w/this obs */
-		    bw = obs;	
-		else			/* else average it in */
-		    bw += (obs-bw) >> BWSHIFT;
-		LOG(1000, ("\t-->new BW %d bytes/sec\n", bw));
-	    }
-	}
+    LOG(1, ("srvent:GetBandWidth: --> new BW %d bytes/sec\n", bw));
 
     /* update last observation time */
-    if (newEntries > 0) 
-	lastobs = Log.Entries[0].TimeStamp; 
+    RPC2_GetLastObs(connid, &lastobs);
 
     /* 
      * Signal if we've crossed the weakly-connected threshold. Note
      * that the connection is considered strong until proven otherwise.
      */
-    if ((oldbw == UNSET_BW || oldbw > WCThresh) && 
-	bw != UNSET_BW && bw <= WCThresh) {
+    if (oldbw > WCThresh && bw <= WCThresh) {
 	MarinerLog("connection::weak %s\n", name);
 	VSGDB->WeakEvent(host);
         NotifyUsersOfServerWeakEvent(name);
     }
-    else if (oldbw != UNSET_BW && oldbw <= WCThresh && bw > WCThresh) {
+    else if (oldbw <= WCThresh && bw > WCThresh) {
 	MarinerLog("connection::strong %s\n", name);
 	VSGDB->StrongEvent(host);
         NotifyUsersOfServerStrongEvent(name);
@@ -1481,10 +1411,11 @@ long srvent::GetBandwidth(long *Bandwidth) {
 
 
 /* 
- * Initialize the bandwidth to a server, clearing all history.
- * If an estimate is supplied, deposit a static estimate in the
- * transmission log.  If the server is not up yet, the transmission
- * log record will be written when the server becomes available.
+ * Initialize the bandwidth to a server.
+ * If an estimate is supplied, we disable any automatic updates to the
+ * bandwidth estimates until this function is called with `0' to reset the
+ * fixed bandwidth.
+ *
  * Note that the ServerIsUp check is not sufficient because it 
  * does not exclude "quasi-up" states, which have no associated 
  * connection ids.  Finally, provoke a transition if necessary.
@@ -1493,31 +1424,8 @@ long srvent::InitBandwidth(long b) {
     long rc = 0;
     long oldbw = bw;
 
-    /* check if we have a real connection. */
-    if (connid > 0) {
-	/* clear the host logs and drop in a static log entry */
-	if ((rc = RPC2_ClearNetInfo(connid)) != RPC2_SUCCESS)
-	    return(rc);
-
-	if (b != UNSET_BW) {
-	    RPC2_NetLog rlog;
-	    RPC2_NetLogEntry rle;
-
-	    rlog.NumEntries = 1;
-	    rlog.Entries = &rle;
-	    rle.Tag = RPC2_STATIC_NLE;
-	    rle.Value.Static.Bandwidth = b;
-
-	    if ((rc = RPC2_PutNetInfo(connid, &rlog, &rlog)) != RPC2_SUCCESS)
-		return(rc);
-	}
-
-	lastobs.tv_sec = Vtime(); 
-	initialbw = 0;
-    } else {
-	if (b != UNSET_BW)
-	    initialbw = 1;
-    }
+    /* check if the user is specifying some fixed bandwidth. */
+    userbw = (b != 0);
 
     /* 
      * Install the new estimate and signal weak/strong transitions.
@@ -1525,15 +1433,14 @@ long srvent::InitBandwidth(long b) {
      * srvent::GetBandwidth, it is possible to go from the "set" to 
      * "unset" state.
      */
-    bw = b;
-    if ((oldbw == UNSET_BW || oldbw > WCThresh) && 
-	(bw != UNSET_BW && bw <= WCThresh)) {
+    bw    = userbw ? b : INIT_BW;
+    bwvar = 0;
+    if (oldbw > WCThresh && bw <= WCThresh) {
 	MarinerLog("connection::weak %s\n", name);
 	VSGDB->WeakEvent(host);
         NotifyUsersOfServerWeakEvent(name);
     }
-    else if ((oldbw != UNSET_BW && oldbw <= WCThresh) && 
-	     (bw == UNSET_BW || bw > WCThresh)) {
+    else if (oldbw <= WCThresh && bw > WCThresh) {
 	MarinerLog("connection::strong %s\n", name);
 	VSGDB->StrongEvent(host);
         NotifyUsersOfServerStrongEvent(name);
@@ -2773,24 +2680,26 @@ void vsgent::StrongMember() {
 }
 
 
-/* returns minimum bandwidth in Bytes/sec, or UNSET_BW if none obtainable */
+/* returns minimum bandwidth in Bytes/sec, or INIT_BW if none obtainable */
 void vsgent::GetBandwidth(long *Bandwidth) {
-    *Bandwidth = UNSET_BW;
+    *Bandwidth = 0;
 
     for (int i = 0; i < VSG_MEMBERS; i++)
 	if (Hosts[i]) {
-	    long bw = UNSET_BW;
+	    long bw = 0;
 	    srvent *s = 0;
 	    GetServer(&s, Hosts[i]);
 
 	    if (s->ServerIsUp()) {	/* need a connection */
 		(void) s->GetBandwidth(&bw);
-		if (bw != UNSET_BW && 
-		    (*Bandwidth == UNSET_BW ||
-		     (*Bandwidth != UNSET_BW && bw < *Bandwidth)))
+		if (bw != 0 && 
+		    (*Bandwidth == 0 ||
+		     (*Bandwidth != 0 && bw < *Bandwidth)))
 		    *Bandwidth = bw;
 	    }
 	}
+
+    if (*Bandwidth == 0) *Bandwidth = INIT_BW;
 
     LOG(100, ("vsgent::GetBandwidth: (%x) returns %d\n",
 		   Addr, *Bandwidth));

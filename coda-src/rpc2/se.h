@@ -145,6 +145,7 @@ struct SFTP_Descriptor
 
 enum SE_Status {SE_NOTSTARTED=33, SE_INPROGRESS=24, SE_SUCCESS=57, SE_FAILURE=36};
 
+
 typedef
     struct SE_SideEffectDescriptor
 	{
@@ -157,6 +158,10 @@ typedef
 	    struct SFTP_Descriptor SmartFTPD;
 	    }
 	    Value;
+
+       /* this is a callback function, which is called whenever a block of
+	* data is transferred. */
+        void (*XferCB) (struct SE_SideEffectDescriptor *SDesc);
 	}
 	SE_Descriptor;
 

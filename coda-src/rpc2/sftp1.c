@@ -1158,6 +1158,7 @@ void sftp_AllocPiggySDesc(struct SFTP_Entry *se, long len,
     se->PiggySDesc = (SE_Descriptor *)malloc(sizeof(SE_Descriptor));
     CODA_ASSERT(se->PiggySDesc); /* malloc failure is fatal */
 
+    memset(se->PiggySDesc, 0, sizeof(SE_Descriptor));
     se->PiggySDesc->Value.SmartFTPD.Tag = FILEINVM;
     se->PiggySDesc->Value.SmartFTPD.TransmissionDirection = direction;
     /* maintain quotas -- no random values! */

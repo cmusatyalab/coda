@@ -310,6 +310,8 @@ long ProcessPacket(RPC2_Handle cIn, RPC2_PacketBuffer *pIn, RPC2_PacketBuffer *p
     int smax, sused;
 #endif OLDLWP
 
+    memset(&sed, 0, sizeof(SE_Descriptor));
+
     opcode = pIn->Header.Opcode;
     switch((int) opcode)
 	{

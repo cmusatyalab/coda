@@ -16,8 +16,6 @@ listed in the file CREDITS.
 
 #*/
 
-
-
 /* this file contains local-repair related fsobj methods */
 
 #ifdef __cplusplus
@@ -104,6 +102,7 @@ int fsobj::RepairStore()
 	/* Must be a file! */
 	sed = &dummysed;
 	sed->Tag = SMARTFTP;
+	sed->XferCB = NULL;
 	struct SFTP_Descriptor *sei = &sed->Value.SmartFTPD;
 	sei->TransmissionDirection = CLIENTTOSERVER;
 	sei->hashmark = 0;

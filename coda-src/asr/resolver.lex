@@ -1,4 +1,5 @@
-%{ /* BLURB gpl
+%{
+/* BLURB gpl
 
                            Coda File System
                               Release 5

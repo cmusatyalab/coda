@@ -114,7 +114,7 @@ long GetKeys(RPC2_Integer *AuthenticationType, RPC2_CountedBS *cIdent, RPC2_Encr
 
 		case	AUTH_METHOD_CODATOKENS:
 			/* this is a good way to auth to Vice */
-				return GetKeysFromToken(AuthenticationType, cIdent, hKey, sKey);
+				return GetKeysFromToken(*AuthenticationType, cIdent, hKey, sKey);
 
 		case	AUTH_METHOD_PK:
 			/* just a reserved constant, thanks */

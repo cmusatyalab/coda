@@ -93,7 +93,7 @@ static int  Internal_Signal(char *event);
 static void Abort_LWP(char *msg);
 static void Exit_LWP();
 static void Dump_One_Process (PROCESS pid, FILE *fp, int dofree);
-static void Dump_Processes ();
+static void Dump_Processes (int magic);
 static void purge_dead_pcbs();
 static void Delete_PCB(register PROCESS pid);
 static void Free_PCB(PROCESS pid);
@@ -382,31 +382,36 @@ static void Exit_LWP()
 #define FREE_STACKS 1
 #define DONT_FREE   0
 
-static void Dump_Processes()
+static void Dump_Processes(int magic)
 {
+    /* This function is too easily mistaken for LWP_PrintProcesses (I did it a
+     * couple of times already) --JH */
+    if (magic != 0xdeadbeef) return;
+
     if (lwp_init) {
 	register int i;
 	for (i=0; i<MAX_PRIORITIES; i++)
 	    for_all_elts(x, runnable[i], {
-		printf("[Priority %d]\n", i);
+		fprintf(lwp_logfile, "[Priority %d]\n", i);
 		Dump_One_Process(x, lwp_logfile, FREE_STACKS);
 	    })
 	for_all_elts(x, blocked, { Dump_One_Process(x, lwp_logfile, FREE_STACKS); })
     } else
-	printf("***LWP: LWP support not initialized\n");
+	fprintf(lwp_logfile, "***LWP: LWP support not initialized\n");
 }
+
 void LWP_Print_Processes()
 {
     if (lwp_init) {
 	register int i;
 	for (i=0; i<MAX_PRIORITIES; i++)
 	    for_all_elts(x, runnable[i], {
-		printf("[Priority %d]\n", i);
+		fprintf(lwp_logfile, "[Priority %d]\n", i);
 		Dump_One_Process(x, lwp_logfile, DONT_FREE);
 	    })
 	for_all_elts(x, blocked, { Dump_One_Process(x, lwp_logfile, DONT_FREE); })
     } else
-	printf("***LWP: LWP support not initialized\n");
+	fprintf(lwp_logfile, "***LWP: LWP support not initialized\n");
 }
 
 char *LWP_Name()
@@ -1065,7 +1070,7 @@ static void Abort_LWP(msg)
 
     lwpdebug(0, "Entered Abort_LWP");
     printf("***LWP Abort: %s\n", msg);
-    Dump_Processes();
+    Dump_Processes(0xdeadbeef);
     if (LWPANCHOR.outersp == NULL)
 	Exit_LWP();
     else
@@ -1075,7 +1080,7 @@ static void Abort_LWP(msg)
 
     lwpdebug(0, "Entered Abort_LWP");
     printf("***LWP Abort: %s\n", msg);
-    Dump_Processes();
+    Dump_Processes(0xdeadbeef);
     Exit_LWP();
 
 #endif OLDLWP
@@ -1187,10 +1192,10 @@ static void Dump_One_Process(pid, fp, dofree)
 {
     int i;
 
-    fprintf(fp,"***LWP: Process Control Block at 0x%p\n", pid);
+    fprintf(fp,"***LWP: Process Control Block at %p\n", pid);
     fprintf(fp,"***LWP: Name: %s\n", pid->name);
     if (pid->ep != NULL)
-	fprintf(fp,"***LWP: Initial entry point: 0x%p\n", pid->ep);
+	fprintf(fp,"***LWP: Initial entry point: %p\n", pid->ep);
     if (pid->blockflag) fprintf(fp,"BLOCKED and ");
     switch (pid->status) {
 	case READY:	fprintf(fp,"READY");     break;
@@ -1209,7 +1214,11 @@ static void Dump_One_Process(pid, fp, dofree)
 	fprintf(fp,"***LWP: HWM stack usage: ");
 	fprintf(fp,"%d\n", Stack_Used(pid->stack,pid->stacksize));
 	if (dofree == FREE_STACKS) {
+#if defined(__linux__) || defined(__BSD44__)
+	    munmap(pid->stack, pid->stacksize);
+#else
 	    free (pid->stack);
+#endif
 	    }
 	}
     fprintf(fp,"***LWP: Current Stack Pointer: %p\n", pid->context.topstack);
@@ -1229,7 +1238,7 @@ static void Dump_One_Process(pid, fp, dofree)
 	fprintf(fp,"***LWP: Number of events outstanding: %d\n", pid->waitcnt);
 	fprintf(fp,"***LWP: Event id list:");
 	for (i=0;i<pid->eventcnt;i++)
-	    fprintf(fp," 0x%p", pid->eventlist[i]);
+	    fprintf(fp," %p", pid->eventlist[i]);
 	fprintf(fp,"\n");
     }
     if (pid->wakevent>0)

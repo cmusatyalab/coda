@@ -16,11 +16,6 @@ listed in the file CREDITS.
 
 #*/
 
-
-
-
-
-
 /*
  *
  *    Implementation of Venus' Client Modify Log.
@@ -2126,6 +2121,7 @@ int ClientModifyLog::COP1(char *buf, int bufsize, ViceVersionVector *UpdateSet) 
     /* Set up the SE descriptor. */
     SE_Descriptor sed;
     sed.Tag = SMARTFTP;
+    sed.XferCB = NULL;
     struct SFTP_Descriptor *sei = &sed.Value.SmartFTPD;
     sei->TransmissionDirection = CLIENTTOSERVER;
     sei->hashmark = 0;
@@ -3061,6 +3057,7 @@ int cmlent::WriteReintegrationHandle() {
 	SE_Descriptor sed;
 	{
 	    sed.Tag = SMARTFTP;
+	    sed.XferCB = NULL;
 	    struct SFTP_Descriptor *sei = &sed.Value.SmartFTPD;
 	    sei->TransmissionDirection = CLIENTTOSERVER;
 	    sei->hashmark = 0;
@@ -3175,6 +3172,7 @@ int cmlent::CloseReintegrationHandle(char *buf, int bufsize,
     /* Set up the SE descriptor. */
     SE_Descriptor sed;
     sed.Tag = SMARTFTP;
+    sed.XferCB = NULL;
     struct SFTP_Descriptor *sei = &sed.Value.SmartFTPD;
     sei->TransmissionDirection = CLIENTTOSERVER;
     sei->hashmark = 0;
@@ -4213,7 +4211,7 @@ int cmlent::Aged() {
 unsigned long cmlent::ReintTime() {
     volent *vol = strbase(volent, log, CML);
     double time = 0;
-    long bw = UNSET_BW;	/* bandwidth, in bytes/sec */
+    long bw;	/* bandwidth, in bytes/sec */
 
     /* 
      * try to get a dynamic bw estimate.  If that doesn't
@@ -4239,7 +4237,7 @@ unsigned long cmlent::ReintTime() {
 unsigned long cmlent::ReintAmount() {
     volent *vol = strbase(volent, log, CML);
     int amount;
-    long bw = UNSET_BW;	/* bandwidth, in bytes/sec */
+    long bw;	/* bandwidth, in bytes/sec */
 
     CODA_ASSERT(opcode == ViceNewStore_OP);
 
@@ -4248,7 +4246,6 @@ unsigned long cmlent::ReintAmount() {
      * work, fall back on the static estimate.
      */
     vol->vsg->GetBandwidth(&bw);
-    if (bw == UNSET_BW) bw = rpc2_Bandwidth/8;
 
     if (bw > 0) 
 	amount = vol->ReintLimit/1000 * bw;

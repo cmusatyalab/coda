@@ -16,10 +16,6 @@ listed in the file CREDITS.
 
 #*/
 
-
-
-
-
 /* 
  * delay.c -- package for delaying packets, to simulate slow networks.
  *           L. Mummert

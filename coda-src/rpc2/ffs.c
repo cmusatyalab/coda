@@ -38,6 +38,7 @@ Pittsburgh, PA.
 */
 
 /* return the position of the first big in x which is set */
+#ifndef __linux
 long ffs(long x)
     {
     long i;
@@ -51,3 +52,4 @@ long ffs(long x)
 	    
     
     }
+#endif

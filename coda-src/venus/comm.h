@@ -16,12 +16,6 @@ listed in the file CREDITS.
 
 #*/
 
-
-
-
-
-
-
 /*
  *
  * Specification of the Venus Communications subsystem.
@@ -125,7 +119,7 @@ const int DFLT_MT = 1;
 const int DFLT_ST = 0;
 const int DFLT_MT = 0;
 #endif
-const int UNSET_BW = -1;		    /* unset bandwidth estimate */
+const int INIT_BW = 10000000;
 const int UNSET_WCT = -1;
 const int DFLT_WCT = 50000;
 const int UNSET_WCS = -1;
@@ -263,8 +257,9 @@ class srvent {
     int	EventCounter;		/* incremented on every Up/Down event */
     unsigned Xbinding : 1;	/* 1 --> BINDING, 0 --> NOT_BINDING */
     unsigned probeme : 1;	/* should ProbeD probe this server? */
-    unsigned initialbw : 1;	/* is current BW estimate an initial one? */
-    long bw;			/* bandwidth estimate, Bytes/sec */
+    unsigned userbw : 1;	/* is current BW set by the user? */
+    unsigned long bw;		/* bandwidth estimate, Bytes/sec */
+    unsigned long bwvar;	/* variance of the bandwidth estimate */
     struct timeval lastobs;	/* time of most recent estimate */
   
     /* Constructors, destructors, and private utility routines. */
@@ -292,7 +287,7 @@ class srvent {
     void ServerUp(RPC2_Handle);
     int	ServerIsDown() { return(connid == 0); }
     int ServerIsUp() { return(connid != 0); }
-    int ServerIsWeak() { return(connid > 0 && bw <= WCThresh && bw != UNSET_BW); }
+    int ServerIsWeak() { return(connid > 0 && bw <= WCThresh); }
                          /* quasi-up != up */
 
     void print() { print(stdout); }

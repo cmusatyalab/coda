@@ -267,6 +267,7 @@ long CallBackFetch(RPC2_Handle RPCid, ViceFid *Fid, SE_Descriptor *BD) {
     /* Do the transfer. */
     {
 	SE_Descriptor sid;
+	memset(&sid, 0, sizeof(SE_Descriptor));
 	sid.Tag = SMARTFTP;
 	struct SFTP_Descriptor *sei = &sid.Value.SmartFTPD;
 	sei->SeekOffset = 0;

@@ -286,6 +286,12 @@ void rpc2_UpdateEstimates(struct HEntry *host, struct timeval *elapsed,
     if (elapsed->tv_sec < 0) elapsed->tv_sec = elapsed->tv_usec = 0;
     elapsed_us = elapsed->tv_sec * 1000000 + elapsed->tv_usec;
 
+    /* our measuring precision is in ms, but on a 100Base-T network a small
+     * rpc packet (272 bytes) only takes 22us. We consequently get too many
+     * >1ms measurements, which show up as 0us!. By defining this lower bound
+     * we try to get some sensible information. (mayby 500us is better?) */
+    if (elapsed_us == 0) elapsed_us = 20;
+
     /* we need to clamp Bytes to a maximum value that avoids overflows in the
      * following calculations  */
     if (Bytes > 0xffff) Bytes = 0xffff;

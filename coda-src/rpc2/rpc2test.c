@@ -201,6 +201,7 @@ static long WorkerBody(char *workerName)
     SE_Descriptor sed;
 
 
+    memset(&sed, 0, sizeof(SE_Descriptor));
     sed.Tag = SMARTFTP;
 
     strcpy(myprivatefile, MakeName(workerName));
@@ -442,6 +443,7 @@ static long ClientBody(char *clientName)
 	if (VerboseFlag) rpctime = ((t2.tv_sec - t1.tv_sec)*1000) + ((t2.tv_usec - t1.tv_usec)/1000);
 
 
+    memset(&sed, 0, sizeof(SE_Descriptor));
     sed.Tag = SMARTFTP;
 
     strcpy(myprivatefile, MakeName(clientName));

@@ -60,8 +60,7 @@ extern "C" {
 
 static int set_link(struct DiskPartition *dp, long *count, Inode ino);
 static Inode maxino(struct DiskPartition *dp);
-static int inosort(const struct dirent * const *a, 
-		   const struct dirent *const *b);
+static int inosort(const struct dirent * const*a, const struct dirent * const*b);
 
 static int s_init (union PartitionData **data, Partent partent, Device *dev);
 static int s_iopen(struct DiskPartition *, Inode inode_number, int flag);
@@ -479,7 +478,7 @@ static int istat(struct DiskPartition *dp, Inode  inode_number, struct stat *sta
 
 
 
-static int inosort(const struct dirent * const *a, const struct dirent * const *b)
+static int inosort(const struct dirent * const*a, const struct dirent * const*b)
 {
     Inode inoa, inob;
     
@@ -502,7 +501,7 @@ static Inode maxino(struct DiskPartition *dp)
     Inode max = 0;
 
 #ifndef __CYGWIN32__    
-    n = scandir(dp->name, &namelist, 0, &inosort);
+    n = scandir(dp->name, &namelist, NULL, &inosort);
 #else
     CODA_ASSERT(0);
 #endif
