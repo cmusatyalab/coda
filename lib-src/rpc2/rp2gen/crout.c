@@ -1604,7 +1604,7 @@ static execute(head, where)
     fputs("    }\n", where);
 
     /* Send response and throw away request and response buffers */
-    fprintf(where, "    if (%s == 0) return RPC2_FAIL;\n", rspbuffer);
+    fprintf(where, "    if (%s == 0) {\n\tRPC2_FreeBuffer(&%s);\n\treturn RPC2_FAIL;\n", reqbuffer, rspbuffer);
     fprintf(where, "    %s = RPC2_SendResponse(%s, %s);\n", rpc2val, cid, rspbuffer);
     fprintf(where, "    if (%s != RPC2_SUCCESS) {\n\tRPC2_FreeBuffer(&%s);\n\tRPC2_FreeBuffer(&%s);\n\treturn %s;\n    }\n",
 		   rpc2val, reqbuffer, rspbuffer, rpc2val);
