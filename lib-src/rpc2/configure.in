@@ -16,6 +16,9 @@ dnl - if any interfaces were added, increment third
 dnl - if any interfaces were removed, set third to 0
 CODA_LIBRARY_VERSION(2, 6, 2)
 
+CONFIG_DATE=`date +"%a, %d %b %Y %T %z"`
+AC_SUBST(CONFIG_DATE, "$CONFIG_DATE", [Date when configure was last run])
+
 CODA_OPTION_LWP
 
 dnl Checks for programs.

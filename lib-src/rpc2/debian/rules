@@ -57,7 +57,7 @@ binary-indep: build install
 binary-arch: build install
 	dh_testdir
 	dh_testroot
-	dh_install --sourcedir=debian/tmp --fail-missing
+	dh_install
 #	dh_installdebconf	
 	dh_installdocs
 	dh_installexamples

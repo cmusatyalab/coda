@@ -1,3 +1,3 @@
-usr/lib/librpc2*.so.*
-usr/lib/libse*.so.*
-usr/lib/libfail*.so.*
+debian/tmp/usr/lib/librpc2*.so.*
+debian/tmp/usr/lib/libse*.so.*
+debian/tmp/usr/lib/libfail*.so.*

@@ -1,5 +1,5 @@
-usr/bin/rp2gen
-usr/include
-usr/lib/*.la
-usr/lib/*.a
-usr/lib/*.so
+debian/tmp/usr/bin/rp2gen
+debian/tmp/usr/include
+debian/tmp/usr/lib/*.la
+debian/tmp/usr/lib/*.a
+debian/tmp/usr/lib/*.so
