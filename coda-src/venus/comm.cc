@@ -208,21 +208,17 @@ void CommInit() {
 	}
 
 	/* Get the host address and make a server entry. */
-	srvent *s;
-	int a, b, c, d;
-	struct hostent *h = gethostbyname(ServerName);
-	if (h) {
-	    s = new srvent(ntohl(*((unsigned long *)h->h_addr)));
+	struct in_addr  addr;
+	struct hostent *h;
+	srvent         *s;
+	/* Allow use of IP addrs */
+	if (AllowIPAddrs && inet_aton(ServerName, &addr) != 0) {
+	    srvent *s = new srvent(ntohl(addr.s_addr));
 	    srvent::srvtab->insert(&s->tblhandle);
 	    hcount++;
 	}
-	/* CHANGE */
-	else if (AllowIPAddrs && sscanf(ServerName, "%d.%d.%d.%d", &a, &b, &c, &d) == 4) {
-	    /* Allow use of IP addrs */
-	    dprint("a %u b %u c %u d %u\n", a, b, c, d);
-	    d &= 0x000000ff;
-	    d |= (((a << 24) & 0xff000000) | (b << 16 & 0x00ff0000) | ((c <<  8) & 0x0000ff00));
-	    srvent *s = new srvent(d);
+	else if ((h = gethostbyname(ServerName)) != NULL) {
+	    s = new srvent(ntohl(*((unsigned long *)h->h_addr)));
 	    srvent::srvtab->insert(&s->tblhandle);
 	    hcount++;
 	}

@@ -446,24 +446,27 @@ cmlent *ClientModifyLog::GetFatHead(int tid) {
     volent *vol = strbase(volent, this, CML);
     cmlent *m;
     cml_iterator next(*this, CommitOrder);
+    m = next();
 
-    if (m = next()) {
-        /* 
-         * the head of ready records (heady). insist that it is a
-         * store.  We do not mark it frozen here because the
-         * partial file transfer protocol checks the status of the
-         * object after a failure.
+    /* The head of the CML must exists, be a store operation and ready
+     * for reintegration. */
+    if (ASRinProgress || !m ||
+        (m->opcode != OLDCML_NewStore_OP) ||
+        !m->ReintReady())
+        return((cmlent *)0);
+
+
+    /* If we already have a reintegration handle, or if the reintegration time
+     * exceeds the limit, we need to do a partial reintegration of the store. */
+    if (m->HaveReintegrationHandle() || m->ReintTime() > vol->ReintLimit) {
+        /*
+         * Don't use the settid call because it is transactional.
+         * Here the tid is transient.
+         * We also do not mark it frozen here because the partial file
+         * transfer protocol checks the status of the object after a failure.
          */
-
-        if (m->ReintReady() && !ASRinProgress && m->opcode == OLDCML_NewStore_OP &&
-            (m->ReintTime() > vol->ReintLimit)) {
-            /* 
-             * don't use the settid call because it is transactional.
-             * Here the tid is transient.
-             */
-            m->tid = tid;
-            return(m);
-        }
+        m->tid = tid;
+        return(m);
     }
 
     return((cmlent *)0);

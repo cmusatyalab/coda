@@ -176,8 +176,8 @@ int thread_count;
 static int trace = 0;
 static int SrvWindowSize = 32;
 static int SrvSendAhead = 8;
-static int timeout = 60;	/* formerly 30 */
-static int retrycnt = 6;	/* formerly 20 */
+static int timeout = 15;	/* formerly 30, then 60 */
+static int retrycnt = 4;	/* formerly 20, then 6 */
 static int Statistics;
 static int debuglevel = 0;
 static int lwps = 6;

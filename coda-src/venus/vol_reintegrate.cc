@@ -117,9 +117,9 @@ void volent::Reintegrate()
     /* step 1.  scan the log, cancelling stores for open-for-write files. */
     CML.CancelStores();
 
-    int nrecs, thisTid, code = 0;
+    int nrecs, startedrecs, thisTid, code = 0;
 
-    /* We do the actual reintegrating steps in a loop, since we reintegrate in
+    /* We do the actual reintegration steps in a loop, as we reintegrate in
      * blocks of 100 cmlents. JH */
     do {
         /* reset invariants */
@@ -127,42 +127,51 @@ void volent::Reintegrate()
         nrecs = 0;
 
         /*
-         * step 2.  scan the log, gathering records that are ready to 
-         * to reintegrate.
+         * step 2. Attempt to do partial reintegration for big stores at
+         * the head of the CML.
+         */
+        code = PartialReintegrate(thisTid);
+
+        /* PartialReintegrate returns ENOENT when there was no CML entry
+         * available for partial reintegration */
+        if (code != ENOENT) {
+            eprint("Reintegrate: %s, partial record, result = %s", 
+                   name, VenusRetStr(code));
+            /* done for now */
+            break;
+        }
+        /* clear the errorcode, ENOENT was not a fatal error. */
+        code = 0;
+
+        /*
+         * step 3.
+         * scan the log, gathering records that are ready to to reintegrate.
          */
         CML.GetReintegrateable(thisTid, &nrecs);
 
-        /* step 3.  if we've come up with anything, reintegrate it. */
-        if (CML.HaveElements(thisTid)) {		
-            int startedrecs = CML.count();
+        /* nothing to reintegrate? jump out of the loop! */
+        if (nrecs == 0) break;
 
-	    /* Log how many entries we are going to reintegrate */
-            MarinerLog("reintegrate::%s, %d/%d\n", name, nrecs, startedrecs);
+        /*
+         * step 4.
+         * We've come up with something, reintegrate it.
+         */
 
-            code = IncReintegrate(thisTid);
+        /* Log how many entries we are going to reintegrate */
+        startedrecs = CML.count();
+        MarinerLog("reintegrate::%s, %d/%d\n", name, nrecs, startedrecs);
 
-            eprint("Reintegrate: %s, %d/%d records, result = %s", 
-                    name, nrecs, startedrecs, VenusRetStr(code));
-
-        } else if (CML.GetFatHead(thisTid)) {
-            /* 
-             * there a fat store blocking the head of the log.
-             * try to reintegrate a piece of it.
-             */
-            code = PartialReintegrate(thisTid);
-
-            eprint("Reintegrate: %s, partial record, result = %s", 
-                    name, VenusRetStr(code));
-        }
+        code = IncReintegrate(thisTid);
 
 	/* Log how many entries are left to reintegrate */
 	MarinerLog("reintegrate::%s, 0/%d\n", name, CML.count());
+        eprint("Reintegrate: %s, %d/%d records, result = %s", 
+               name, nrecs, startedrecs, VenusRetStr(code));
 
     /*
      * Keep going as long as we managed to reintegrate records without errors,
-     * but we don't want to intefere with trickle reintegration so we test
-     * whether a full `block' has been sent (see also
-     * cmlent::GetReintegrateable)
+     * but we don't want to interfere with trickle reintegration so we test
+     * whether a full block has been sent (see also cmlent::GetReintegrateable)
      */
     } while(nrecs == 100 && !code);
 
@@ -430,16 +439,21 @@ extern struct timeval *VprocRetryBeta;
  * of the log.
  */
 int volent::PartialReintegrate(int tid) {
-    LOG(0, ("volent::PartialReintegrate: (%s, %d) vuid = %d\n",
-	    name, tid, CML.owner));
-
-    cmlent *m = CML.GetFatHead(tid);
-    CODA_ASSERT(m && m->opcode == OLDCML_NewStore_OP);
-
+    cmlent *m;
     int locked = 0;
     int code = 0;
     cur_reint_tid = tid; 
     ViceVersionVector UpdateSet;
+
+    /* Is there an entry ready for partial reintegration at the head? */
+    m = CML.GetFatHead(tid);
+
+    /* Weird error return, to indicate that there was nothing to do partial
+     * reintegration on. */
+    if (!m) return(ENOENT);
+
+    LOG(0, ("volent::PartialReintegrate: (%s, %d) vuid = %d\n",
+	    name, tid, CML.owner));
 
     /* perform some late prelude functions. */
     {
