@@ -159,9 +159,12 @@ void ServerProbe(long *lastupp, long *lastdownp) {
 		else downprobe = 1;
 	    } else {
 		LOG(1, ("Suppressing probe to %s, %s %d sec ago\n",
-			s->name, timerisset(&lastword)?"heard from":"probed",
-			timerisset(&lastword)?(curr_time-lastword.tv_sec):
-			(s->ServerIsUp()?(curr_time-*lastupp):
+			s->name,
+			(lastword.tv_sec || lastword.tv_usec) ? 
+			    "heard from":"probed",
+			(lastword.tv_sec || lastword.tv_usec) ?
+			    (curr_time-lastword.tv_sec):
+			    (s->ServerIsUp()?(curr_time-*lastupp):
 			 (curr_time-*lastdownp))));
 		/* Keep track of the least recent probe time. */
 		if (s->ServerIsUp()) {

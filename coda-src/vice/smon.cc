@@ -32,7 +32,7 @@ extern "C" {
 #endif __cplusplus
 
 #include <sys/types.h>
-#include <sys/time.h>
+#include <time.h>
 #include <netinet/in.h>
 #include <errno.h>
 

@@ -65,7 +65,7 @@ extern "C" {
 #include <sys/param.h>
 #include <sys/stat.h>
 #include <sys/file.h>
-#include <sys/time.h>
+#include <time.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <errno.h>

@@ -1089,7 +1089,7 @@ srvent::srvent(struct in_addr *Host, int isrootserver)
     isweak = 0;
     bw     = INIT_BW;
     bwmax  = INIT_BW;
-    timerclear(&lastobs);
+    lastobs.tv_sec = lastobs.tv_usec = 0;
 
 #ifdef	VENUSDEBUG
     allocs++;
@@ -1340,8 +1340,8 @@ long srvent::GetLiveness(struct timeval *tp)
 
     LOG(100, ("srvent::GetLiveness (%s)\n", name));
 
-    timerclear(tp);
-    timerclear(&t);
+    tp->tv_sec = tp->tv_usec = 0;
+    t.tv_sec = t.tv_usec = 0;
 
     /* we don't have a real connid if the server is down or "quasi-up" */
     if (connid <= 0) 
@@ -1354,7 +1354,8 @@ long srvent::GetLiveness(struct timeval *tp)
     LOG(100, ("srvent::GetLiveness: (%s), RPC %ld.%0ld, SE %ld.%0ld\n",
 	      name, tp->tv_sec, tp->tv_usec, t.tv_sec, t.tv_usec));
 
-    if (timercmp(tp, &t, <))
+    if (tp->tv_sec < t.tv_sec ||
+	(tp->tv_sec == t.tv_sec && tp->tv_usec < t.tv_usec))
 	*tp = t;	/* structure assignment */
 
     return(0);
