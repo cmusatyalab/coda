@@ -20,6 +20,10 @@ listed in the file CREDITS.
 extern "C" {
 #endif __cplusplus
 
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
+
 #include <signal.h>
 #include <sys/types.h>
 #include <netinet/in.h>
@@ -28,6 +32,7 @@ extern "C" {
 #include <ports.h>
 #include <lwp/lwp.h>
 #include <rpc2.h>
+#include "coda_string.h"
 
 #include "admon.h"
 #include "adsrv.h"

@@ -57,7 +57,7 @@ char *GetFullPath(char *fidStr, char *path, int length) {
     ViceFid fid;
     char relativePath[MAXPATHLEN];
     char rootPath[MAXPATHLEN];
-    int rc;
+    int rc, len;
 
     rc = sscanf(fidStr, "<%lx.%lx.%lx>", &fid.Volume, &fid.Vnode, &fid.Unique);
     if (rc != 3) {
@@ -90,7 +90,8 @@ char *GetFullPath(char *fidStr, char *path, int length) {
       return(NULL);
     }
 
-    if (snprintf(path, length, "%s%s", rootPath, &(relativePath[1])) >= length) {
+    len = snprintf(path, length, "%s%s", rootPath, &(relativePath[1]));
+    if (len >= length) {
       fprintf(stderr, "path too long\n");
       return(NULL);
     }

@@ -62,20 +62,8 @@ rp2gen_parser.c: rp2gen_parser.h
 rp2gen_parser.h: rp2gen_parser.y
 	$(YACC) $(YFLAGS) $< && mv y.tab.c $*.c && mv y.tab.h $*.h
 
-rp2gen: rp2main.o rp2gen_parser.o rp2gen_lexer.o symtab.o crout.o util.o $(LIBFIXUP)
-	${CC} $(LDFLAGS) $^ -o $@
-
-rp2main.o: rp2main.c rp2.h
-
-rp2gen_parser.o: rp2gen_parser.c rp2.h
-
-rp2gen_lexer.o: rp2gen_lexer.c rp2.h
-
-symtab.o: symtab.c rp2.h
-
-crout.o: crout.c rp2.h
-
-util.o	: util.c rp2.h
+rp2gen: rp2main_native.o rp2gen_parser_native.o rp2gen_lexer_native.o symtab_native.o crout_native.o util_native.o
+	${NATIVECC} $(LDFLAGS) $^ -o $@
 
 # these might need to be cleaned too
 TESTS= rp2gen_lexer.c rp2gen_parser.c rp2gen_parser.h

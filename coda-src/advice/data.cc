@@ -154,10 +154,11 @@ void CreateREADMEFile(char *dirname) {
   FILE *README;
 
   /* Generate a README file in the directory */
-  if (strncmp(dirname, "/coda", 5) == 0)
+  if (strncmp(dirname, "/coda", 5) == 0) {
       snprintf(readmePathname, MAXPATHLEN, "%s/README", dirname);
-  else
+  } else {
       snprintf(readmePathname, MAXPATHLEN, "%s/#README", dirname);
+  }
 
   README = fopen(readmePathname, "w+");
   if (README == NULL) {

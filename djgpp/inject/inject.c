@@ -25,7 +25,6 @@ struct optab {
   char *name;
 } ops[] = {
   {CODA_ROOT, "CODA_ROOT"},
-  {CODA_SYNC, "CODA_SYNC"},
   {CODA_OPEN, "CODA_OPEN"},
   {CODA_CLOSE, "CODA_CLOSE"},
   {CODA_IOCTL, "CODA_IOCTL"},
@@ -39,11 +38,9 @@ struct optab {
   {CODA_RENAME, "CODA_RENAME"},
   {CODA_MKDIR, "CODA_MKDIR"},
   {CODA_RMDIR, "CODA_RMDIR"},
-  {CODA_READDIR, "CODA_READDIR"},
   {CODA_SYMLINK, "CODA_SYMLINK"},
   {CODA_READLINK, "CODA_READLINK"},
   {CODA_FSYNC, "CODA_FSYNC"},
-  {CODA_INACTIVE, "CODA_INACTIVE"},
   {CODA_VGET, "CODA_VGET"},
   {CODA_SIGNAL, "CODA_SIGNAL"},
   {CODA_REPLACE, "CODA_REPLACE"},
@@ -195,6 +192,7 @@ main()
       n += strlen(&buf[n]) + 1;
       break;
 
+#if 0 /* no longer used */
     case CODA_READDIR:
       n = sizeof(struct inputArgs);
       if (getvfid(&in->coda_readdir.VFid) == -1)
@@ -202,6 +200,7 @@ main()
       in->coda_readdir.count = 50;
       in->coda_readdir.offset = 0;
       break;
+#endif
 
     default:
       printf ("%s not supported\n", reply);

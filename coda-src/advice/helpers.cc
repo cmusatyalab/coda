@@ -74,11 +74,11 @@ char *GetCommandName(int pid) {
     static char CommandName[MAXPATHLEN];
 
     commandname = getcommandname(pid);
-    if (commandname == NULL) 
+    if (commandname == NULL) {
 	snprintf(CommandName, MAXPATHLEN, "Unknown");
-    else if (strcmp(commandname, "") == 0) 
+    } else if (strcmp(commandname, "") == 0) {
 	snprintf(CommandName, MAXPATHLEN, "Unknown");
-    else {
+    } else {
 	CODA_ASSERT(strlen(commandname) < MAXPATHLEN);
 	snprintf(CommandName, MAXPATHLEN, "%s", commandname);
     }
@@ -98,35 +98,38 @@ char *GetStringFromTimeDiff(long time_difference) {
     minutes = time_difference / 60;  // Convert to minutes
     seconds = time_difference % 60;
     if (minutes < 60) {
-	if (seconds > 0)
+	if (seconds > 0) {
 	    snprintf(the_string, smallStringLength, "%d minute%s %d second%s", 
 		     minutes, (minutes>1)?"s,":",", seconds, (seconds>1)?"s":"");
-        else
+        } else {
             snprintf(the_string, smallStringLength, "%d minute%s", 
 		     minutes, (minutes>1)?"s":"");
+	}
         return(the_string);
     }
  
     hours = minutes / 60;  // Convert to hours
     minutes = minutes % 60;
     if (hours < 24) {
-	if (minutes > 0)
+	if (minutes > 0) {
 	    snprintf(the_string, smallStringLength, "%d hour%s, %d minute%s", 
 		     hours, (hours>1)?"s":"", minutes, (minutes>1)?"s":"");
-        else
+	} else {
 	    snprintf(the_string, smallStringLength, "%d hour%s", 
 		     hours, (hours>1)?"s":"");
+	}
         return(the_string);
     }
 
     days = hours / 24;  // Convert to days
     hours = hours % 24;
-    if (hours > 0)
+    if (hours > 0) {
 	snprintf(the_string, smallStringLength, "%d day%s, %d hour%s", 
 		 days, (days>1)?"s":"", hours, (hours>1)?"s":"");
-    else
+    } else {
 	snprintf(the_string, smallStringLength, "%d day%s", 
 		 days, (days>1)?"s":"");
+    }
     return(the_string);
 }
 

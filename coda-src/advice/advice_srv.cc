@@ -39,6 +39,7 @@ extern "C" {
 #include <sys/param.h>
 #include <sys/time.h>
 #include "coda_assert.h" 
+#include "coda_string.h" 
 #include "coda_wait.h"
 #include <struct.h>
 #include <sys/stat.h>

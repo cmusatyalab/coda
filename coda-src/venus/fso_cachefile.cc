@@ -192,7 +192,7 @@ int CacheFile::Copy(char *destname, ino_t *ino)
     if (::fchmod(tfd, V_MODE) < 0)
 	CHOKE("CacheFile::Copy: fchmod failed (%d)", errno);
 #ifdef __CYGWIN32__
-    if (::chown(destname->name, (uid_t)V_UID, (gid_t)V_GID) < 0)
+    if (::chown(destname, (uid_t)V_UID, (gid_t)V_GID) < 0)
 	CHOKE("CacheFile::ResetCopy: fchown failed (%d)", errno);
 #else
     if (::fchown(tfd, (uid_t)V_UID, (gid_t)V_GID) < 0)
