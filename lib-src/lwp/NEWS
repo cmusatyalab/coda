@@ -1,3 +1,7 @@
+New in 1.12:
+
+* Updated build dependencies.
+
 New in 1.11:
 
 * Updated to automake 1.7, autoconf 2.52, libtool 1.5.2

@@ -28,6 +28,7 @@ call library)
 %setup -n @PACKAGE@-@VERSION@
 
 %build
+export CFLAGS="${CFLAGS} -Wall"
 ./configure --prefix=/usr
 make
 

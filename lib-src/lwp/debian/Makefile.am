@@ -21,5 +21,6 @@ EXTRA_DIST = changelog compat control copyright dirs docs liblwp2.docs \
     liblwp2.files liblwp2.postinst liblwp2.prerm liblwp2.postrm postinst \
     prerm rules watch
 
-MAINTAINERCLEANFILES = Makefile.in
+MAINTAINERCLEANFILES = Makefile.in changelog
+CONFIG_CLEAN_FILES =
 
