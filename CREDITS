@@ -123,6 +123,10 @@ here is the list:
    Jan Harkes (1998-now)      Improvements to weak connectivity.
 			      Extensive changes and fixes throughout.
 
+   Philip Nelson (1998-now)   Solaris kernel module.
+			      Server and client improvements.
+			      Completion of NT kernel module.
+
    Mathew Monroe,	      PDB database.
    John-Anthony Owens,
    Samuel Ieong,
