@@ -101,8 +101,8 @@ const int FREE_FACTOR = 16;
 
 /*  *****  Manifest constants for Venus.  *****  */
 const int NFDS = 32;	/* IOMGR-enforced limit!  Kernel may allocate fds numbered higher than this! */
-#ifdef DJGPP
-const uid_t V_UID = (uid_t)500;    /* UID that the venus process runs under. */
+#if defined(DJGPP) || defined(__CYGWIN32__)
+extern uid_t V_UID;    /* UID that the venus process runs under. */
 #else
 const uid_t V_UID = (uid_t)0;	    /* UID that the venus process runs under. */
 #endif
@@ -113,7 +113,11 @@ const uid_t V_UID = (uid_t)0;	    /* UID that the venus process runs under. */
 /* In linux kernel, gid_t is unsigned short, but in venus vgid_t is
    unsigned int which is 32-bit, so we also need to hardcode the number
    here.  (Clement 6/10/97) */
+#if defined(__CYGWIN32__)
+const gid_t V_GID = 513;    /* GID that the venus process runs under. */
+#else
 const gid_t V_GID = 65534;    /* GID that the venus process runs under. */
+#endif
 const uid_t ALL_UIDS = (uid_t)-1;
 const uid_t HOARD_UID = (uid_t)-2; /* uid of hoard daemon */
 const uid_t UNSET_UID = (uid_t)-666; /* beastly but recognizable */

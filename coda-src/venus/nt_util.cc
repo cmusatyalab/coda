@@ -14,7 +14,7 @@ listed in the file CREDITS.
                         Additional copyrights
                            none currently
 
-#*/
+*/
 
 #ifdef __CYGWIN32__
 
@@ -286,6 +286,7 @@ void nt_stop_ipc (void)
 
 
 
+#if 0
 //
 // NT service routines ... to get venus to run nicely and between
 // logins, it must run as a service ... Thus all this goo....
@@ -490,5 +491,5 @@ void ntsrv_remove (void)
     CloseServiceHandle (SCMan);
 }
 
-
+#endif
 #endif

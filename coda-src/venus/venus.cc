@@ -63,7 +63,8 @@ extern "C" {
 
 #include "nt_util.h"
 #ifdef __CYGWIN32__
-#define main venus_main
+//  Not right now ... should go #define main venus_main
+uid_t V_UID; 
 #endif
 
 /* FreeBSD 2.2.5 defines this in rpc/types.h, all others in netinet/in.h */
@@ -154,6 +155,7 @@ int main(int argc, char **argv)
       eprint ("Private mapping turned off, does not work on CYGWIN.");
       MapPrivate = 0;
     }
+    V_UID = getuid();
 #endif    
 
     /* test mismatch with kernel before doing real work */
