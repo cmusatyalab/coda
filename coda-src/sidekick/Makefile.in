@@ -25,37 +25,19 @@ TOPOBJ = @TOPOBJ@
 
 include $(TOPDIR)/Makeconf
 
-EXECUTABLES = advice_srv 
-LIBRARIES = libadvice.a libfakeadvice.a
-CBINS      = $(EXECUTABLES)
-
+EXECUTABLES = adv_sidekick
+LIBRARIES = 
+CSBINS = $(EXECUTABLES)
 
 DEPLIBS := $(LIBUTIL) $(LIBVICEDEP) $(LIBKERNDEP) $(LIBBASE)
 LIBS := $(DEPLIBS) $(LIBRPC2) $(LIBSE) $(LIBFAIL) $(LIBLWP) $(LIBSYS) \
 	$(LIBKVM) $(LIBDB) $(LIBS)
 
-AOBJS = console_handler.o counters.o daemon.o data.o \
-	fail.o filecopy.o globals.o helpers.o conversions.o miss.o \
-	mybstree.o programspy.o replacementlog.o rpcs.o volent.o
+OBJS = adv_sidekick.o
 
-OBJS = $(AOBJS) advice_srv.o
+CXXFLAGS += -DSYSCONFDIR=\"${sysconfdir}\" -DCODACONSOLE=\"$(GUIDIR)/CodaConsole\"
 
-REALRPCSETUP = rpc_setup.o
-FAKERPCSETUP = fake_rpc_setup.o
-
-CXXFLAGS += -DCODACONSOLE=\"$(GUIDIR)/CodaConsole\"
-
-libadvice.a: ${AOBJS} ${REALRPCSETUP}
-
-libfakeadvice.a: ${AOBJS} ${FAKERPCSETUP}
-
-replacementlog.o: replacementlog.cc
-	$(CXX) $(CFLAGS) -c $<
-
-fake_rpc_setup.o: rpc_setup.cc
-	$(CXX) $(CFLAGS) -D__FAKE__ -c ${srcdir}/rpc_setup.cc -o fake_rpc_setup.o
-
-advice_srv: advice_srv.h $(DEPLIBS) libadvice.a advice_srv.o
-	$(CXX) $(LDFLAGS) advice_srv.o libadvice.a $(LIBS) -o advice_srv
+adv_sidekick: adv_sidekick.h $(DEPLIBS) $(OBJS)
+	$(CXX) $(LDFLAGS) $(OBJS) $(LIBS) -o adv_sidekick
 
 include $(TOPDIR)/configs/Makerules

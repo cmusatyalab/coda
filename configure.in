@@ -138,7 +138,7 @@ coda-src/vv/Makefile
 coda-src/vol/Makefile 
 coda-src/librepair/Makefile 
 coda-src/venus/Makefile 
-coda-src/advice/Makefile 
+coda-src/sidekick/Makefile 
 coda-src/repair/Makefile 
 coda-src/resolution/Makefile 
 coda-src/volutil/Makefile 
@@ -162,6 +162,5 @@ djgpp/tests/Makefile
 coda-src/partition/tests/Makefile 
 coda-src/util/tests/Makefile 
 coda-src/venus/tests/Makefile  
-coda-src/advice/tests/Makefile 
 coda-src/guitools/tests/Makefile
 coda-src/smon2/Makefile)
