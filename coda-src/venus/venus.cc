@@ -32,8 +32,6 @@ extern "C" {
 #include <stdlib.h>
 #include <fcntl.h>
 #include <netdb.h>
-
-extern int rpause(int, int, int);  /* why isn't this in sys/resource.h? */
 #ifdef __cplusplus
 }
 #endif __cplusplus
@@ -62,6 +60,7 @@ extern int rpause(int, int, int);  /* why isn't this in sys/resource.h? */
 #include "vstab.h"
 #include "worker.h"
 #include "coda_assert.h"
+#include "codaconf.h"
 
 /* FreeBSD 2.2.5 defines this in rpc/types.h, all others in netinet/in.h */
 #ifndef INADDR_LOOPBACK
@@ -103,6 +102,8 @@ extern int testKernDevice();
 
 int venus_relay_addr = INADDR_LOOPBACK;
 
+static char *venusdotconf = SYSCONFDIR "/venus.conf";
+
 /* *****  venus.c  ***** */
 
 /* local-repair modification */
@@ -119,7 +120,14 @@ int main(int argc, char **argv) {
     coda_assert_cleanup = VFSUnmount;
 
     ParseCmdline(argc, argv);
-    DefaultCmdlineParms();   /* read vstab */
+    DefaultCmdlineParms();   /* read vstab and /etc/coda/venus.conf */
+
+    /* open the console file and print vital info */
+    freopen(consoleFile, "w", stderr);
+    fprintf(stderr, "Coda Venus, version %d.%d.%d\n",
+             VenusMajorVersion, VenusMinorVersion, VenusReleaseVersion);
+    fflush(stderr);
+    
     CdToCacheDir(); 
     CheckInitFile();
 #if ! defined(__CYGWIN32__) && ! defined(DJGPP)
@@ -228,7 +236,9 @@ int getip(char *addr)
 static void ParseCmdline(int argc, char **argv) {
       for(int i = 1; i < argc; i++)
   	if (argv[i][0] == '-') {
- 	    if (STREQ(argv[i], "-relay")) {         /* default is 127.0.0.1 */
+ 	    if (STREQ(argv[i], "-conffile")) {/* default /etc/coda/venus.conf */
+ 		i++, venusdotconf = argv[i];
+	    } else if (STREQ(argv[i], "-relay")) {   /* default is 127.0.0.1 */
  		i++, venus_relay_addr = getip(argv[i]);
  	    } else if (STREQ(argv[i], "-k"))         /* default is /dev/cfs0 */
   		i++, kernDevice = argv[i];
@@ -378,20 +388,13 @@ static void ParseCmdline(int argc, char **argv) {
 	}
 	else
 	    venusRoot = argv[i];   /* default is /coda */
-
-    /* open the console file and print vital info */
-    if (consoleFile == UNSET_CONSOLE) consoleFile = DFLT_CONSOLE;
-    if (SpoolDir == UNSET_SPOOLDIR) SpoolDir = DFLT_SPOOLDIR;
-    freopen(consoleFile, "w", stderr);
-    fprintf(stderr, "Coda Venus, version %d.%d.%d\n",
-             VenusMajorVersion, VenusMinorVersion, VenusReleaseVersion);
-    fflush(stderr);
 }
 
 
 /* Initialize "general" unset command-line parameters to their vstab values or hard-wired defaults. */
 /* Note that individual modules initialize their own unset command-line parameters as appropriate. */
-static void DefaultCmdlineParms() {
+static void DefaultCmdlineParms()
+{
     /* Try vstab first. */
     struct vstab *v = getvsent();
     if (v) {
@@ -406,14 +409,65 @@ static void DefaultCmdlineParms() {
 	if (CacheBlocks == UNSET_CB) CacheBlocks = v->v_cachesize;
     }
 
-    /* Use hard-wired defaults otherwise. */
+    /* Load the venusdotconf file */
+    conf_init(venusdotconf);
+
+    CONF_INT(CacheBlocks,     "cacheblocks",   DFLT_CB);
+    CONF_STR(CacheDir,        "cachedir",      DFLT_CD);
+    CONF_STR(SpoolDir,        "checkpointdir", DFLT_SPOOLDIR);
+    CONF_STR(consoleFile,     "errorlog",      DFLT_CONSOLE);
+    CONF_INT(PrimaryUser,     "primaryuser",   UNSET_PRIMARYUSER);
+    CONF_STR(fsname,          "rootservers",   DFLT_FS);
+    CONF_STR(RootVolName,     "rootvolume",    UNSET_RV);
+    CONF_STR(VenusLogDevice,  "rvm_log",       DFLT_VLD);
+    CONF_STR(VenusDataDevice, "rvm_data",      DFLT_VDD);
+
+    CONF_INT(CacheFiles, "cachefiles", UNSET_CF);
     {
-	if (venusRoot == UNSET_VR) venusRoot = DFLT_VR;
-	if (kernDevice == UNSET_KD) kernDevice = DFLT_KD;
-	if (fsname == UNSET_FS) fsname = DFLT_FS;
-	if (CacheDir == UNSET_CD) CacheDir = DFLT_CD;
-	if (CacheBlocks == UNSET_CB) CacheBlocks = DFLT_CB;
+	if (CacheFiles == UNSET_CF)
+	    CacheFiles = CacheBlocks / BLOCKS_PER_FILE;
+
+#ifdef DJGPP
+	if (CacheFiles > 1500)
+	    CacheFiles = 1500;
+#endif
+	if (CacheFiles < MIN_CF) {
+	    eprint("Cannot start: minimum number of cache files is %d",MIN_CF); 
+	    exit(-1); 
+	}
     }
+
+    CONF_INT(MLEs, "cml_entries", UNSET_MLE);
+    {
+	if (MLEs == UNSET_MLE)
+	    MLEs = CacheBlocks / BLOCKS_PER_MLE;
+
+	if (MLEs < MIN_MLE) {
+	    eprint("Cannot start: minimum number of cml entries is %d",MIN_MLE);
+	    exit(-1); 
+	}
+    }
+
+    CONF_INT(HDBEs, "hoard_entries", UNSET_HDBE);
+    {
+	if (HDBEs == UNSET_HDBE)
+	    HDBEs = CacheBlocks / BLOCKS_PER_HDBE;
+
+	if (HDBEs < MIN_HDBE) {
+	    eprint("Cannot start: minimum number of hoard entries is %d",
+		   MIN_HDBE);
+	    exit(-1); 
+	}
+    }
+
+#ifdef moremoremore
+    CONF_STR(venusRoot,       "mountpoint",    DFLT_VR);
+    CONF_STR(kernDevice,      "kerneldevice",  DFLT_KD);
+
+    char *x = NULL;
+    CONF_STR(x, "relay", NULL, "127.0.0.1");
+    venus_relay_addr = getip(x);
+#endif
 }
 
 

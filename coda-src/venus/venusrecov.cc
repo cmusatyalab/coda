@@ -252,9 +252,28 @@ void RecovInit() {
 
     /* Read-in bounds for bounded recoverable data structures. */
     if (!InitMetaData) {
-	MLEs = VDB->MaxMLEs;
-	CacheFiles = FSDB->MaxFiles;
-	HDBEs = HDB->MaxHDBEs;
+	int override = 0;
+	if (MLEs != VDB->MaxMLEs) {
+	    eprint("Ignoring requested # of cml entries (%ld), "
+		   "using rvm value (%ld)", MLEs, VDB->MaxMLEs);
+	    override = 1;
+	    MLEs = VDB->MaxMLEs;
+	}
+	if (CacheFiles != FSDB->MaxFiles) {
+	    eprint("Ignoring requested # of cache files (%ld), "
+		   "using rvm value (%ld)", CacheFiles, FSDB->MaxFiles);
+	    override = 1;
+	    CacheFiles = FSDB->MaxFiles;
+	}
+	if (HDBEs != HDB->MaxHDBEs) {
+	    eprint("Ignoring requested # of hoard entries (%ld), "
+		   "using rvm value (%ld)", HDBEs, HDB->MaxHDBEs);
+	    override = 1;
+	    HDBEs = HDB->MaxHDBEs;
+	}
+	if (override)
+	    eprint("\t(restart venus with the -init flag to reset RVM values)");
+
 	LOG(10, ("RecovInit: MLEs = %d, CacheFiles = %d, HDBEs = %d\n",
 		 MLEs, CacheFiles, HDBEs));
     }
@@ -269,7 +288,6 @@ void RecovInit() {
 static void Recov_CheckParms() {
     /* From recov module. */
     {
-	if (InitMetaData == UNSET_IMD) InitMetaData = DFLT_IMD;
 	if (RvmType == UNSET) RvmType = DFLT_RVMT;
 	switch(RvmType) {
 	    case RAWIO:
@@ -295,10 +313,8 @@ static void Recov_CheckParms() {
 	if (RvmType == VM) InitMetaData = 1;
 
 	/* Specifying log or data size requires a brain-wipe! */
-	if (VenusLogDevice == UNSET_VLD) VenusLogDevice = DFLT_VLD;
 	if (VenusLogDeviceSize != UNSET_VLDS && !InitMetaData)
 	    { eprint("setting VLDS requires InitMetaData"); exit(-1); }
-	if (VenusDataDevice == UNSET_VDD) VenusDataDevice = DFLT_VDD;
 	if (VenusDataDeviceSize != UNSET_VDDS && !InitMetaData)
 	    { eprint("setting VDDS requires InitMetaData"); exit(-1); }
 
@@ -320,56 +336,8 @@ static void Recov_CheckParms() {
 	if (MAXTS == UNSET_MAXTS) MAXTS = DFLT_MAXTS;
     }
 
-    /* From VDB module. */
-    {
-	/* Specifying MLEs requires a brain-wipe! */
-	if (MLEs != UNSET_MLE && !InitMetaData)
-	    { eprint("setting MLEs requires InitMetaData"); exit(-1); }
-
-	/* MLEs is not set to default unless brain-wipe has been requested! */
-	if (MLEs == UNSET_MLE && InitMetaData)
-	    MLEs = CacheBlocks / BLOCKS_PER_MLE;
-	if (MLEs != UNSET_MLE && MLEs < MIN_MLE) {
-	    eprint("minimum MLEs is %d", MIN_MLE); 
-	    eprint("Cannot start. Use more than %d MLEs", MIN_MLE);
-	    exit(-1); 
-	}
-    }
-
-    /* From FSDB module. */
-    {
-	/* Specifying CacheFiles requires a brain-wipe! */
-	if (CacheFiles != UNSET_CF && !InitMetaData)
-	    { eprint("setting CacheFiles requires InitMetaData"); exit(-1); }
-
-	/* CacheFiles is not set to default unless brain-wipe has been requested! */
-	if (CacheFiles == UNSET_CF && InitMetaData) {
-	    CacheFiles = CacheBlocks / BLOCKS_PER_FILE;
-#ifdef DJGPP
-            if (CacheFiles > 1500) CacheFiles = 1500;
-#endif
-        }
-	if (CacheFiles != UNSET_CF && CacheFiles < MIN_CF) {
-	    eprint("Cannot start: minimum cache files is %d", MIN_CF); 
-	    exit(-1); 
-	}
-
-    }
-
-    /* From HDB module. */
-    {
-	/* Specifying HDBEs requires a brain-wipe! */
-	if (HDBEs != UNSET_HDBE && !InitMetaData)
-	    { eprint("setting HDBEs requires InitMetaData"); exit(-1); }
-
-	/* HDBEs is not set to default unless brain-wipe has been requested! */
-	if (HDBEs == UNSET_HDBE && InitMetaData)
-	    HDBEs = CacheBlocks / BLOCKS_PER_HDBE;
-	if (HDBEs != UNSET_HDBE && HDBEs < MIN_HDBE) {
-	    eprint("Cannot start. Minimum HDBEs is %d", MIN_HDBE); 
-	    exit(-1); 
-	}
-    }
+    /* If you are looking for the checks and calculations for MLEs, CacheFiles,
+     * and HDBEs. They have been moved to venus.cc:DefaultCmdlineParms --JH */
 }
 
 static void Recov_InitRVM() {

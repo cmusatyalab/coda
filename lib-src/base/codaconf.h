@@ -37,10 +37,18 @@ void conf_free(void);
 /* normally stderr, error message are written here */
 extern FILE *conf_errout;
 
+/* helpers */
+#include "coda_string.h"
+
+#define CONF_STR(var, key, defval) \
+    if (var == NULL || *var == '\0') { var = conf_lookup(key, defval); }
+#define CONF_INT(var, key, defval) \
+    { char t[256]; snprintf(t, 255, "%d", defval); t[255] = '\0'; \
+    if (var == 0) { var = atoi(conf_lookup(key, t)); } }
+
 #ifdef __cplusplus
 }
 #endif __cplusplus
-
 
 #endif /* _CODACONF_H_ */
 

@@ -111,7 +111,7 @@ const int MLENTMaxFreeEntries = 32;
 
 const int BLOCKS_PER_MLE = 6;			    /* rule of thumb */
 const int DFLT_MLE = DFLT_CB / BLOCKS_PER_MLE;
-const int UNSET_MLE = -1;
+const int UNSET_MLE = 0;
 const int MIN_MLE = MIN_CB / BLOCKS_PER_MLE;
 
 const int UNSET_TID = -1;

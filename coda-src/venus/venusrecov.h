@@ -60,8 +60,7 @@ class vcbdb;
 
 /*  *****  Constants  *****  */
 
-const int DFLT_IMD = 0;			/* initialize meta data */
-const int UNSET_IMD = -1;
+const int UNSET_IMD = 0; /* do not initialize meta data */
 #define	DFLT_RVMT UFS			/* meta data store type */
 #define	DFLT_VDD "/usr/coda/DATA"	/* Venus meta-data device */
 #define	UNSET_VDD 0

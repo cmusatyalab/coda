@@ -90,7 +90,7 @@ endif
 #####################
 # install  client or server executables 
 #####################
-installclient: c_bin_install c_sbin_install
+installclient: c_bin_install c_sbin_install c_conf_install
 
 ifeq ($(target),i386-pc-djgpp) 
 TARGETCBINS := $(CBINS:%=%.exe)
@@ -110,7 +110,16 @@ ifdef TARGETCSBINS
 	$(TOPDIR)/tools/our-install 755 $(SBINDIR) $?
 endif
 
-installserver: s_bin_install s_sbin_install
+c_conf_install: $(CCONFFILES)
+ifdef CCONFFILES
+	if test $(sysconfdir) = /etc/coda ; then
+	    $(TOPDIR)/tools/our-install 755 $(prefix)/..$(sysconfdir) $?
+	else
+	    $(TOPDIR)/tools/our-install 755 $(sysconfdir) $?
+	fi
+endif
+
+installserver: s_bin_install s_sbin_install s_conf_install
 
 s_bin_install: $(SBINS)
 ifdef SBINS
@@ -121,6 +130,16 @@ s_sbin_install: $(SSBINS)
 ifdef SSBINS
 	$(TOPDIR)/tools/our-install 755 $(SBINDIR) $?
 endif
+
+s_conf_install: $(SCONFFILES)
+ifdef SCONFFILES
+	if test $(sysconfdir) = /etc/coda ; then
+	    $(TOPDIR)/tools/our-install 755 $(prefix)/..$(sysconfdir) $?
+	else
+	    $(TOPDIR)/tools/our-install 755 $(sysconfdir) $?
+	fi
+endif
+
 
 #####################
 # install headers

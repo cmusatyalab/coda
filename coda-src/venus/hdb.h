@@ -152,7 +152,7 @@ const int HDBMaxFreeEntries = 32;
 
 const int BLOCKS_PER_HDBE = 48;
 const int DFLT_HDBE = DFLT_CB / BLOCKS_PER_HDBE;
-const int UNSET_HDBE = -1;
+const int UNSET_HDBE = 0;
 const int MIN_HDBE = MIN_CB / BLOCKS_PER_HDBE;
 
 

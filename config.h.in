@@ -81,6 +81,9 @@
 /* Define if you have the c library (-lc).  */
 #undef HAVE_LIBC
 
+/* Define if you have the nsl library (-lnsl).  */
+#undef HAVE_LIBNSL
+
 /* Define if your libdb is 1.85 */
 #undef HAVE_DB_185_H
 

@@ -138,7 +138,7 @@ void VolUtilLWP(int *myindex) {
 	mycid = 0;
 
 	rc = RPC2_GetRequest(&myfilter, &mycid, &myrequest, NULL,
-			(long (*)())VolGetKey, RPC2_XOR, NULL);
+			(long (*)(...))VolGetKey, RPC2_XOR, NULL);
 	if (rc == RPC2_SUCCESS) {
 	    LogMsg(5, SrvDebugLevel, stdout, "VolUtilWorker %d received request %d",
 				lwpid, myrequest->Header.Opcode);

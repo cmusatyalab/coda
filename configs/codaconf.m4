@@ -1,3 +1,44 @@
+dnl Attempt to guess a nice sysconfdir
+case ${prefix} in
+    /usr )
+	# AFAIK nobody has use for /usr/etc, it should simply be /etc.
+	sysconfdir='/etc/coda'
+	initsuffix='../etc'
+	;;
+
+    */coda* )
+	# If '/coda.*' is already in the prefix, we don't need to do anything
+	# for the sysconfdir.
+	initsuffix='etc'
+	;;
+
+    * )
+	# Otherwise append '/coda' so that we don't throw our configuration
+	# files all over the place.
+	sysconfdir=${sysconfdir}/coda
+	initsuffix='etc'
+	;;
+esac
+
+dnl Now the initdir isn't finished yet, we have to figure out where the
+dnl system we're building on wants the init scripts.
+
+if test $cross_compiling = yes ; then
+    # probably WinXX, existing ${initsuffix} should be fine.
+    true
+elif test -d ${prefix}/${initsuffix}/init.d ; then
+    # probably Debian or Solaris, or other SysV standard setup.
+    initsuffix=${initsuffix}/init.d
+
+elif test -d ${prefix}/${initsuffix}/rc.d/init.d ; then
+    # probably RedHat-x.x's SysV derived setup.
+    initsuffix=${initsuffix}/rc.d/init.d
+
+elif test -d ${prefix}/${initsuffix}/rc.d ; then
+    # probably FreeBSD or NetBSD's BSD-style init-scripts.
+    initsuffix=${initsuffix}/rc.d
+fi
+
 dnl      --------  Adding a new system ----------
 dnl Figure out what the GNU canonical name of your target is by
 dnl running configure in the top directory
@@ -9,11 +50,9 @@ case ${target} in
 
 	*-*-djgpp )
 		sys=win95
-		initsuffix=../etc
  ;;
 	*-*-cygwin32 )
 		sys=cygwin32
-		initsuffix=../etc
  ;;
 	*-*-netbsd* )
 	    	shortsys=nbsd
@@ -25,13 +64,11 @@ case ${target} in
 		esac
 		vfsdir=bsd44
 		os=`uname -r`
-		initsuffix=../etc
  ;;
 
 	*-*-freebsd2* )
 		sys=i386_fbsd2
 		vfsdir=bsd44
-		initsuffix=../etc
  ;;
 
 	*-*-freebsd3* )
@@ -40,12 +77,10 @@ case ${target} in
 			elf)  sys=i386_fbsd2 ;;
 		esac
 		vfsdir=bsd44
-		initsuffix=../etc
-;;
+ ;;
 	*-*-freebsd4* )
 		sys=i386_fbsd2
 		vfsdir=bsd44
-		initsuffix=../etc
  ;;
 
 	*-*-linux-* )
@@ -62,12 +97,6 @@ case ${target} in
 			2.1.* ) os=2.1 ; vfsdir=linux21 ;;
 			2.2.* )	os=2.2 ; vfsdir=linux21 ;;
 		esac
-		if test -f /etc/debian_version
-		then
-			initsuffix=../etc/init.d
-		else
-			initsuffix=../etc/rc.d/init.d
-		fi
  ;;
 	*-*-solaris2* )
 		shortsys=solaris2
@@ -78,8 +107,7 @@ case ${target} in
 		esac
 		fullos=`uname -r`
 		vfsdir=solaris2
-		initsuffix=../etc/init.d
-;;
+ ;;
 esac
 AC_SUBST(shortsys)
 AC_SUBST(sys)

@@ -101,6 +101,7 @@ extern "C" {
 #else 
 #define	DFLT_CD	"/usr/coda/venus.cache"	    /* cache directory */
 #endif
+#define	UNSET_CD 0
 
 #if defined(__CYGWIN32__)
 #define CF_PREFIX "/DosDevices/"
@@ -108,12 +109,11 @@ extern "C" {
 #define CF_PREFIX ""
 #endif
 
-#define	UNSET_CD 0
-const int DFLT_CB = 8192;		    /* cache blocks */
-const int UNSET_CB = -1;
+const int DFLT_CB = 40000;		    /* cache blocks */
+const int UNSET_CB = 0;
 const int MIN_CB = 2048;
 #define	UNSET_RV 0
-#define UNSET_PRIMARYUSER -1		    /* primary user of this machine */
+#define UNSET_PRIMARYUSER 0		    /* primary user of this machine */
 #define DFLT_SPOOLDIR "/usr/coda/spool"
 #define UNSET_SPOOLDIR 0
 

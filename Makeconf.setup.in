@@ -22,6 +22,7 @@ bindir      = @bindir@
 sbindir     = @sbindir@
 initsuffix  = @initsuffix@
 mandir      = @mandir@
+sysconfdir  = @sysconfdir@
 
 target = @target@
 

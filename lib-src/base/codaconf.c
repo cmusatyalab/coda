@@ -26,8 +26,8 @@ Coda are listed in the file CREDITS.
 /* some hardcoded options, probably both undef'd for normal use      */
 /* CONFDEBUG: annoying debugging related messages                    */
 /* CONFWRITE: write unfound config entries to the last-read conffile */
-#undef  CONFDEBUG
-#define CONFWRITE 1
+#undef CONFDEBUG
+#undef CONFWRITE
 
 /* where to write error messages to? */
 FILE *conf_errout = stderr;
@@ -255,7 +255,6 @@ int main(int argc, char *argv[])
     strcat(configpath, ".conf");
 
     conf_init(configpath);
-    conf_init("test.conf");
 
     val = conf_lookup(var, val);
     
