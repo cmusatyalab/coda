@@ -1,0 +1,62 @@
+		RELEASE c4_3_14
+
+key:
+	Cx	- client bugs
+	Kx	- kernel bugs
+	Sx	- server bugs
+
+-------------------------------------------------------------------
+C1.
+  BUG:
+	There are locking problems that might be exacerbated if you allow
+	automatic hoard walks.
+  WORKAROUND:
+	for now do a
+		hoard off
+	to inhibit automatic hoard updates
+
+-------------------------------------------------------------------
+S1.
+  BUG:
+	The server has been known to occassionally not start.
+  WORKAROUND:
+	Just keep trying.
+  REQUEST:
+	If you can make this happen repeatably let us know.
+
+S2.
+  BUG:
+	The freebsd server has not been tested with log and data
+	files on a raw partition.
+  WORKAROUND:
+	If raw partitions do not work, fall back to using files.
+
+-------------------------------------------------------------------
+K1.
+  BUG:
+	^c and ^z do not work when a process access a file in coda
+  WORKAROUND:
+	NONE
+  FIX:
+	There will be a fix for the next release.  The simplest fix
+	works in all cases except for emacs ;-(  To get emacs right
+	will require implementing analagous to signanosleep()
+
+K2.
+  BUG:
+	Killing venus (either kill -9 or vutil -shutdown) may not succeed
+	and if it does venus may lock if it is restarted.
+  WORKAROUND:
+	For now be prepared to reboot if you do either of the above.
+	I believe that NetBSD 1.2 is most likely to successfully restart
+	and the other two platforms need some work.
+  FIX:
+	There are at least two problems, I am aware of that will be fixed
+	in the next release.  But there may be more.
+
+K3.
+  BUG:
+	df and mount do not show coda.
+  WORKAROUND:
+  FIX:
+	Will be fixed in the next release.
