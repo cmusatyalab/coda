@@ -27,8 +27,11 @@ Subsystem "volUtil";
 /* subsystem id for volume utility requests to the file server */
 #define UTIL_SUBSYSID	7777
 
-#define VolName	"VolumeUtility"		/* identity of volume utility requests */
-#define VolTKFile  "/vice/db/volutil.tk"	/* name of token key file */
+/* identity of volume utility requests */
+#define VolName	"VolumeUtility"		
+
+/* name of token key file */
+#define VolTKFile "db/volutil.tk"
 
 #include "vcrcommon.rpc2"
 

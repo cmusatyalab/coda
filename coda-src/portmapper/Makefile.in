@@ -28,7 +28,7 @@ TOPOBJ = @TOPOBJ@
 include $(TOPDIR)/Makeconf
 
 
-CFLAGS := -Wall ${CFLAGS}
+CFLAGS := -Wall -DSYSCONFDIR=\"${sysconfdir}\" ${CFLAGS} 
 HEADERS   = map.h
 RP2HEADERS = portmapper.h
 
@@ -39,7 +39,7 @@ EXECUTABLES = rpc2portmap simpleclient
 SSBINS=rpc2portmap
 
 DEPLIBS := ${LIBBASE}
-LIBS := $(DEPLIBS) ${LIBRPC2} ${LIBLWP} ${LIBDL} $(LIBS)
+LIBS := $(DEPLIBS) ${LIBRPC2} ${LIBLWP} ${LIBDL} ${LIBUTIL} $(LIBS)
 
 libportmap.a: $(OBJS)
 

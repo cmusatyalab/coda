@@ -46,12 +46,14 @@ listed in the file CREDITS.
 #include <coda_assert.h>
 #include "pdb.h"
 
+#include <vice_file.h>
+
 #ifdef sun
 typedef unsigned int u_int32_t;
 #endif
 
-#define PDB_MAIN "/vice/db/prot_users"
-#define PDB_NAME "/vice/db/prot_index"
+#define PDB_MAIN vice_sharedfile("db/prot_users")
+#define PDB_NAME vice_sharedfile("db/prot_index")
 
 struct PDB_HANDLE_S {
 	db_type *main;
@@ -77,8 +79,11 @@ static BTREEINFO btreeinfo = { 0, 0, 0, 0, 1024, NULL, NULL, 4321 };
 PDB_HANDLE PDB_db_open(int mode)
 {
 	struct PDB_HANDLE_S *handle;
-	char pdb_main[MAXPATHLEN] = PDB_MAIN;
-	char pdb_name[MAXPATHLEN] = PDB_NAME;
+	char pdb_main[MAXPATHLEN];
+	char pdb_name[MAXPATHLEN];
+
+	strcpy(pdb_main, PDB_MAIN);
+	strcpy(pdb_name, PDB_NAME);
 
 	handle = malloc(sizeof(*handle));
 	CODA_ASSERT(handle);
@@ -374,9 +379,12 @@ int PDB_db_exists(void)
 	db_data key, value;
 	char zero = 0;
 	int result;
-	char pdb_main[MAXPATHLEN] = PDB_MAIN;
-	char pdb_name[MAXPATHLEN] = PDB_NAME;
+	char pdb_main[MAXPATHLEN];
+	char pdb_name[MAXPATHLEN];
 	
+	strcpy(pdb_main, PDB_MAIN);
+	strcpy(pdb_name, PDB_NAME);
+
 #ifdef HAVE_NDBM
 	strcat(pdb_main, ".dir");
 	strcat(pdb_name, ".dir");
@@ -442,9 +450,12 @@ int PDB_setupdb(void)
 {
 	db_type *dbmain, *dbname;
 	PDB_HANDLE h;
-	char pdb_main[MAXPATHLEN] = PDB_MAIN;
-	char pdb_name[MAXPATHLEN] = PDB_NAME;
-	
+	char pdb_main[MAXPATHLEN];
+	char pdb_name[MAXPATHLEN];
+
+	strcpy(pdb_main, PDB_MAIN);
+	strcpy(pdb_name, PDB_NAME);
+
 #ifndef HAVE_NDBM
 	strcat(pdb_main, ".db");
 	strcat(pdb_name, ".db");

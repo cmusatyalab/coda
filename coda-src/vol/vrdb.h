@@ -40,6 +40,10 @@ extern "C" {
 #include <ohash.h>
 #include <inconsist.h>
 
+#include <vice_file.h>
+
+#define VRDB_PATH  vice_sharedfile("db/VRDB")
+#define VRDB_TEMP  vice_sharedfile("db/VRDB.new")
 
 #define VRTABHASHSIZE	128
 
@@ -96,9 +100,6 @@ class vrent : public olink {
     void print(int);
 };
 
-
-extern const char *VRDB_PATH;
-extern const char *VRDB_TEMP;
 extern vrtab VRDB;
 extern void CheckVRDB();
 extern int XlateVid(VolumeId *);

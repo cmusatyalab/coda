@@ -50,6 +50,7 @@ extern "C" {
 #include "auth2.h"
 #include "auth2.common.h"
 #include "pwdefines.h"
+#include <vice_file.h>
 
 extern int GetViceId(RPC2_CountedBS *cIdent);
 
@@ -72,8 +73,8 @@ RPC2_EncryptionKey DeleteKey;   /* always full of ones: set in InitAl()
 
 int AdminID;    /* group Id of system administrators */
 
-char *PWFile   = "/vice/db/auth2.pw";     /* name of password file */
-char *LockFile = "/auth2.lock";         /* lock file */
+char *PWFile   = NULL;    		 /* name of password file */
+/* char *LockFile = "/auth2.lock";         lock file */
 RPC2_EncryptionKey *PWArray = NULL;     /* pointer to array of passwords indexed by ViceId */
 int PWTime = 0;                 /* used to tell if pw file has changed */
 int PWLen = 0;  /* no of entries in PWArray */
@@ -152,6 +153,8 @@ void InitPW(int firsttime)
 	/* Reads in contents of PWFile and builds a sorted list of passwords
 	   in PWArray.  Frees existing storage coor to PWArray.
 	*/
+	if (PWFile == NULL)
+	        PWFile  = strdup(vice_sharedfile("db/auth2.pw"));
 	if ((fd = open(PWFile, O_RDONLY, 0)) < 0
 		|| myflock(fd, MYFLOCK_SH, MYFLOCK_BL) < 0	/* locking is superstitious */
 		|| fstat(fd, &stbuf))

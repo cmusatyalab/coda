@@ -95,6 +95,7 @@ extern "C" {
 #include <ops.h>
 #include <writeback.h>
 #include <lockqueue.h>
+#include <vice_file.h>
 #include "coppend.h"
 
 /* *****  Exported variables  ***** */
@@ -545,7 +546,7 @@ long FS_ViceGetRootVolume(RPC2_Handle RPCid, RPC2_BoundedBS *volume)
 
     SLog(1, "ViceGetRootVolume");
 
-    fd = open("/vice/db/ROOTVOLUME", O_RDONLY, 0666);
+    fd = open(vice_sharedfile("db/ROOTVOLUME"), O_RDONLY, 0666);
     if (fd <= 0) {
 	strcpy((char *)volume->SeqBody, DEFAULTVOLUME);
 	errorCode= VNOVOL;
@@ -579,7 +580,7 @@ long FS_ViceGetRootVolume(RPC2_Handle RPCid, RPC2_BoundedBS *volume)
 }
 
 
-/* ViceSetRootVolume: Set the /vicde/db/ROOTVOLUME file to contain the
+/* ViceSetRootVolume: Set the .../db/ROOTVOLUME file to contain the
   name of the new root volume */
 long FS_ViceSetRootVolume(RPC2_Handle RPCid, RPC2_String volume)
 {
@@ -605,7 +606,7 @@ long FS_ViceSetRootVolume(RPC2_Handle RPCid, RPC2_String volume)
 	goto Final;
     }
 
-    fd = open("/vice/db/ROOTVOLUME", O_WRONLY+O_CREAT+O_TRUNC, 0666);
+    fd = open(vice_sharedfile("db/ROOTVOLUME"), O_WRONLY+O_CREAT+O_TRUNC, 0666);
     CODA_ASSERT(fd > 0);
     myflock(fd,MYFLOCK_EX,MYFLOCK_BL);
     write(fd, volume, (int) strlen((char *)volume));

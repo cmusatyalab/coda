@@ -68,7 +68,7 @@ codasrv: ${objects} srv.o ${DEPLIBS}
 	$(CXX) $(LDFLAGS) srv.o ${objects} ${SRVLIBS} -o codasrv
 
 printvrdb: printvrdb.o 
-	$(CXX) ${LDFLAGS} printvrdb.o $(LIBS) -o printvrdb
+	$(CXX) ${LDFLAGS} printvrdb.o $(LIBUTIL) $(LIBBASE) $(LIBS) -o printvrdb
 
 libviceerror.a: ViceErrorMsg.o
 

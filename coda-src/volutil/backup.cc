@@ -77,6 +77,8 @@ extern "C" {
 #include <vldb.h>
 #include <vsg.h>
 #include <vutil.h>
+#include <codaconf.h>
+#include <vice_file.h>
 
 
 static RPC2_EncryptionKey vkey;    /* Encryption key for bind authentication */
@@ -94,7 +96,7 @@ struct hostinfo {
 
 bit32 HostAddress[N_SERVERIDS];		/* Need these for macros in vrdb.c */
 char *ThisHost;			/* This machine's hostname */
-int ThisServerId = -1;	       	/* this server id, as found in /vice/db/servers */
+int ThisServerId = -1;	       	/* this server id, as found in ../db/servers */
 
 /* Rock info for communicating with the DumpLWP. */
 #define ROCKTAG 12345
@@ -149,6 +151,9 @@ typedef struct volinfo {
     repinfo_t *replicas;
 } volinfo_t;
 
+char *serverconf = SYSCONFDIR "/server"; /* ".conf" */
+char *vicedir = NULL;
+
 
 /* Procedure definitions. */
 static void V_InitRPC();
@@ -164,6 +169,23 @@ extern long volDump_ExecuteRequest(RPC2_Handle, RPC2_PacketBuffer*,
 #ifndef NDEBUG
 static void unlockReplicas(volinfo_t *vol);
 #endif
+
+void
+ReadConfigFile()
+{
+    char    confname[MAXPATHLEN];
+
+    /* don't complain if config files are missing */
+    codaconf_quiet = 1;
+
+    /* Load configuration file to get vice dir. */
+    sprintf (confname, "%s.conf", serverconf);
+    (void) conf_init(confname);
+
+    CONF_STR(vicedir,		"vicedir",	   "/vice");
+
+    vice_dir_init(vicedir, 0);
+}
 
 
 /* get_volId parses the VolumeList file to obtain the volId and
@@ -724,13 +746,13 @@ int main(int argc, char **argv) {
     time_t now = time(0);
     char today[12];
     volinfo_t *vol; /* for-loop index variable */
+
+    ReadConfigFile();
     
     if (getuid() != 0) {
 	LogMsg(0, 0, stdout, "Volume utilities must be run as root; sorry\n");
 	exit(1);
     }
-
-
 
     dumpdir[0]='\0';
     while ( argc > 1) {			/* While args left to parse. */
@@ -786,7 +808,8 @@ int main(int argc, char **argv) {
     VUInitServerList();
 
     /* initialize the partitions */
-    DP_Init("/vice/db/vicetab");
+    DP_Init(vice_sharedfile("db/vicetab"));
+
     /* change the name */
     if ( PreparePartitionEntries() != 0 ) {
 	eprint("Malformed partitions! Cannot prepare for dumping.");
@@ -1097,10 +1120,10 @@ static void V_InitRPC()
     long rc;
 
     /* store authentication key */
-    tokfile = fopen(VolTKFile, "r");
+    tokfile = fopen(vice_sharedfile(VolTKFile), "r");
     if (!tokfile) {
 	char estring[80];
-	sprintf(estring, "Tokenfile %s", VolTKFile);
+	sprintf(estring, "Tokenfile %s", vice_sharedfile(VolTKFile));
 	perror(estring);
 	exit(-1);
     }

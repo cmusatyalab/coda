@@ -81,6 +81,12 @@ extern "C" {
 #include "pwsupport.h"
 #endif	/* CODAAUTH */
 
+#include <codaconf.h>
+#include <vice_file.h>
+
+static char *serverconf = SYSCONFDIR "/server"; /* ".conf" */
+static char *vicedir = NULL;
+
 extern int AL_DebugLevel;
 
 
@@ -105,7 +111,7 @@ RPC2_EncryptionKey TokenKey;	/* Used for encrypting server tokens;
 				    modified by SetKeys() routine; changed periodically  */
 int TokenTime = 0;	/* last modified time on TokenKey file	*/
 int AuthTime = 0;	/* last modified time for PDB		*/
-static char *Auth2TKFile = "/vice/db/auth2.tk";	/* name of token key file */
+static char *Auth2TKFile = NULL;	/* name of token key file */
 static int AUTime = 0;			/* used to tell if binaries have changed */
 
 #ifdef KERBEROS5
@@ -116,13 +122,30 @@ static char *krb_realm = NULL;
 #endif
 
 #ifdef HAVE_NDBM
-#define CODADB "/vice/db/prot_users.dir"
+#define CODADB vice_sharedfile("db/prot_users.dir")
 #else
-#define CODADB "/vice/db/prot_users.db"
+#define CODADB vice_sharedfile("db/prot_users.db")
 #endif
 
 static int CheckOnly = 0;	/* only allow password checking at this server */
 static int DoRedirectLog = 1;	/* set to zero by -r switch on command line */
+
+void
+ReadConfigFile()
+{
+    char    confname[MAXPATHLEN];
+
+    /* don't complain if config files are missing */
+    codaconf_quiet = 1;
+
+    /* Load configuration file to get vice dir. */
+    sprintf (confname, "%s.conf", serverconf);
+    (void) conf_init(confname);
+
+    CONF_STR(vicedir,		"vicedir",	   "/vice");
+
+    vice_dir_init(vicedir, 0);
+}
 
 
 int main(int argc, char **argv)
@@ -131,10 +154,16 @@ int main(int argc, char **argv)
     RPC2_Handle cid;
     register int rc;
     struct stat buff;
+    char errmsg[MAXPATHLEN];
 
-    rc = chdir("/vice/auth2");
+    ReadConfigFile();
+
+    Auth2TKFile = strdup(vice_sharedfile("db/auth2.tk"));
+    rc = chdir(vice_sharedfile("auth2"));
     if ( rc ) {
-	    perror("Error: cannot chdir to /vice/auth2");
+	    snprintf (errmsg, MAXPATHLEN, "Error: cannot chdir to %s",
+		      vice_sharedfile("auth2"));
+	    perror(errmsg);
 	    exit(1);
     }
     InitGlobals(argc, argv);

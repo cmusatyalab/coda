@@ -49,10 +49,6 @@ extern "C" {
 #include <cvnode.h>
 #include <volume.h>
 
-#define VRDB_PATH "/vice/db/VRDB"
-#define VRDB_TEMP "/vice/db/VRDB.new"
-
-
 
 /*
   BEGIN_HTML

@@ -227,16 +227,16 @@ int prottrunc = FALSE;
 /* static */void rds_printer(char *fmt ...);
 
 /* vicetab */
-char *vicetab = "/vice/db/vicetab";
+char *vicetab = NULL;	       /* default db/vicetab */
 
 /* PDB stuff. */
 static int pdbtime = 0;
-#define CODADB "/vice/db/prot_users.db"
+#define CODADB vice_sharedfile("db/prot_users.db")
 
 /* Token stuff. */
 static int keytime = 0;
-#define KEY1 "/vice/db/auth2.tk"
-#define KEY2 "/vice/db/auth2.tk.BAK"
+#define KEY1 vice_sharedfile("db/auth2.tk")
+#define KEY2 vice_sharedfile("db/auth2.tk.BAK")
 
 /* (Worker) LWP statistics.  Currently unused. */
 #define MAXLWP 16
@@ -376,9 +376,8 @@ int main(int argc, char *argv[])
 
     (void)ReadConfigFile();
 
-    Vol_Init_vicedir(vicedir);
-    if(chdir(Vol_vicefile("srv"))) {
-	SLog(0, "could not cd to %s - exiting", Vol_vicefile("srv"));
+    if(chdir(vice_file("srv"))) {
+	SLog(0, "could not cd to %s - exiting", vice_file("srv"));
 	exit(-1);
     }
 
@@ -849,7 +848,7 @@ static void ShutDown()
 
     if (SalvageOnShutdown) {
 	SLog(9, "Unlocking volutil lock...");
-	if (chdir(Vol_vicefile("vol"))) {
+	if (chdir(vice_file("vol"))) {
 		SLog(0, "Cannot unlock volutil lock...");
 		return;
 	}
@@ -1223,9 +1222,8 @@ void SwapLog()
     struct timeval tp;
 
     /* Need to chdir() again, since salvage may have put me elsewhere */
-    if(chdir(Vol_vicefile("srv"))) {
-	SLog(0, "Could not cd to %s; not swapping logs", 
-	     Vol_vicefile("srv"));
+    if(chdir(vice_file("srv"))) {
+	SLog(0, "Could not cd to %s; not swapping logs", vice_file("srv"));
 	return;
     }
     if (pushlog() != 0){
@@ -1363,6 +1361,7 @@ static int ReadConfigFile(void)
     CONF_INT(small,		"small",	   500);
 
     CONF_STR(vicedir,		"vicedir",	   "/vice");
+    vice_dir_init(vicedir, ServerNumber);
 
     CONF_INT(trace,		"trace",	   0);
     CONF_INT(SrvWindowSize,	"windowsize",	   32);
@@ -1426,6 +1425,10 @@ static int ReadConfigFile(void)
 
     CONF_INT(nodebarrenize,   "nodebarrenize",	   0);
     CONF_INT(NoWritebackConn, "nowriteback",	   0);
+    CONF_STR(vicetab,	      "vicetab",	   NULL);
+    if (!vicetab) {
+        vicetab = strdup(vice_sharedfile("db/vicetab"));
+    }
 
     return 0;
 }
@@ -1789,7 +1792,7 @@ static void InitializeServerRVM(char *name)
 #if	defined(__FreeBSD__)
 	sbrk((int)(0x50000000 - (int)sbrk(0))); /* for garbage reasons. */
 #elif	defined(__NetBSD__) && (defined(NetBSD1_3) || defined(NetBSD1_4))
-	sbrk((void *)(0x50000000 - (int)sbrk(0))); /* for garbage reasons. */
+	/*	sbrk((void *)(0x50000000 - (int)sbrk(0))); /* for garbage reasons. */
 #elif	defined(__NetBSD__) && NetBSD1_2
 	sbrk((void *)(0x20000000 - (int)sbrk(0))); /* for garbage reasons. */
 #endif

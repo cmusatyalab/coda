@@ -35,6 +35,7 @@ extern "C" {
 #include <sys/types.h>
 #include <netinet/in.h>
 #include <sys/file.h>
+#include <sys/param.h>
 #include <unistd.h>
 #include <fcntl.h>
 
@@ -42,6 +43,12 @@ extern "C" {
 }
 #endif __cplusplus
 #include <voltypes.h>
+
+#include <codaconf.h>
+#include <vice_file.h>
+
+char *serverconf = SYSCONFDIR "/server"; /* ".conf" */
+char *vicedir = NULL;
 
 
 /* This is cheating! */
@@ -55,12 +62,34 @@ struct vrent {
     VolumeId ServerVolnum[VSG_MEMBERS];
     unsigned long addr;
 };
-#define VRDB_PATH "/vice/db/VRDB"
-#define VRDB_TEMP "/vice/db/VRDB.new"
+
+#define VRDB_PATH vice_sharedfile("db/VRDB")
+#define VRDB_TEMP vice_sharedfile("db/VRDB.new")
+
+void
+ReadConfigFile()
+{
+    char    confname[MAXPATHLEN];
+
+    /* don't complain if config files are missing */
+    codaconf_quiet = 1;
+
+    /* Load configuration file to get vice dir. */
+    sprintf (confname, "%s.conf", serverconf);
+    (void) conf_init(confname);
+
+    CONF_STR(vicedir,		"vicedir",	   "/vice");
+
+    vice_dir_init(vicedir, 0);
+}
 
 
 int main(int argc, char *argv[]) {
-    int fd = open(VRDB_PATH, O_RDONLY, 0);
+    int fd;
+
+    ReadConfigFile();
+
+    fd = open(VRDB_PATH, O_RDONLY, 0);
     if (fd < 0) {
 	printf("printvrdb:  Unable to open %s; aborted\n", VRDB_PATH);
 	exit(1);

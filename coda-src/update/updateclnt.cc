@@ -94,6 +94,10 @@ int utimes(const char *, const struct timeval *);
 
 #include "update.h"
 #include <volutil.h>
+
+#include <codaconf.h>
+#include <vice_file.h>
+
 extern long VolUpdateDB(RPC2_Handle);
 
 extern char *ViceErrorMsg(int errorCode);   /* should be in libutil */
@@ -108,6 +112,7 @@ static void CheckLibStructure();
 static int CheckDir(char *prefix, int mode);
 static int CheckFile(char *fileName, int mode);
 static void ProcessArgs(int argc, char ** argv);
+static void ReadConfigFile();
 static void ReConnect();
 static void SetDebug();
 static void ResetDebug();
@@ -118,11 +123,10 @@ static void U_InitRPC();
 static int U_BindToServer(char *fileserver, RPC2_Handle *RPCid);
 
 static int Rebind = 0;
-static int Reexec = 0;
 static int ReadOnlyAllowed = 0;
 static int CheckAll = 1;
 
-static RPC2_Unsigned operatorSecs = 0;
+static RPC2_Integer operatorSecs = 0;
 static RPC2_Integer operatorUsecs = 0;
 
 static RPC2_Handle con;
@@ -137,25 +141,35 @@ static struct timezone tsp;
 static char s_hostname[100];
 static RPC2_EncryptionKey vkey;	/* Encryption key for bind authentication */
 
+static char *serverconf = SYSCONFDIR "/server"; /* ".conf" */
+static char *vicedir = NULL;
+static int   nservers = 0;
+
 int main(int argc, char **argv)
 {
     struct timeval  time;
     FILE * file;
-    int     i, len, rc;
+    int     i, rc;
+    int     len;
+    char    errmsg[MAXPATHLEN];
     
-    rc = chdir("/vice/db");
-    if ( rc ) {
-	    perror("Cannot cd to /vice/db");
-	    exit(1);
-    }
-
-
-    UtilDetach();
     *host = '\0';
     strcpy(pname, "coda_udpsrv");
 
     ProcessArgs(argc, argv);
+
+    ReadConfigFile();
+
     CheckLibStructure();
+
+    rc = chdir(vice_sharedfile("db"));
+    if ( rc ) {
+        snprintf(errmsg, MAXPATHLEN, "Cannot cd to %s", vice_sharedfile("db"));
+	perror(errmsg);
+	exit(1);
+    }
+
+    UtilDetach();
 
     gethostname(s_hostname, sizeof(s_hostname) -1);
     CODA_ASSERT(s_hostname != NULL);
@@ -169,17 +183,23 @@ int main(int argc, char **argv)
 #endif
 
     len = strlen(argv[0]);
-    if (len > strlen(UPDATENAME)) {
+    if (len > (int) strlen(UPDATENAME)) {
 	for (i = 0; i < len; i++) {
 	    *(argv[0] + i) = ' ';
 	}
 	strcpy(argv[0], UPDATENAME);
     }
 
-    freopen("/vice/srv/UpdateClntLog", "a+", stdout);
-    freopen("/vice/srv/UpdateClntLog", "a+", stderr);
+    freopen(vice_sharedfile("misc/UpdateClntLog"), "a+", stdout);
+    freopen(vice_sharedfile("misc/UpdateClntLog"), "a+", stderr);
 
-    CODA_ASSERT(file = fopen("/vice/srv/updateclnt.pid", "w"));
+    file = fopen(vice_sharedfile("misc/updateclnt.pid"), "w");
+    if (!file) {
+        snprintf (errmsg, MAXPATHLEN, "Could not open %s",
+		  vice_sharedfile("misc/updateclnt.pid"));
+	perror (errmsg);
+	exit(-1);
+    }
     fprintf(file, "%d", getpid());
     fclose(file);
     RPC2_DebugLevel = SrvDebugLevel / 10;
@@ -204,10 +224,11 @@ int main(int argc, char **argv)
 	    i = reps;
 	}
 
-	if (CheckDir("/vice/db", 0644)) {
+	if (CheckDir(vice_sharedfile("db"), 0644)) {
 	    operatorSecs = 0;	/* if something changed time has elapsed */
+	    /* XXXX check for multiple servers */
 	    /* signal file server to check data bases */
-	    file = fopen("/vice/srv/pid", "r");
+	    file = fopen(vice_file("srv/pid"), "r");
 	    if (file == NULL) {
 		LogMsg(0, SrvDebugLevel, stdout, 
 		       "Fopen failed for file server pid file with %s\n",
@@ -244,13 +265,6 @@ int main(int argc, char **argv)
 		settimeofday(&tp, &tsp);
 		*/
 	    }
-	}
-
-	if (Reexec) {
-	    RPC2_Unbind(con);
-	    LogMsg(0, SrvDebugLevel, stdout, 
-		   "Binaries have changed, Restart\n");
-	    exit(0);
 	}
 
 	CheckAll = 1;
@@ -293,35 +307,62 @@ static void ProcessArgs(int argc, char **argv)
     }
 }
 
+static void
+ReadConfigFile()
+{
+    char    confname[MAXPATHLEN];
+
+    /* don't complain if config files are missing */
+    codaconf_quiet = 1;
+
+    /* Load configuration file to get vice dir. */
+    sprintf (confname, "%s.conf", serverconf);
+    (void) conf_init(confname);
+
+    CONF_STR(vicedir,		"vicedir",	   "/vice");
+    CONF_INT(nservers,		"numservers", 	   1); 
+
+    vice_dir_init(vicedir, 0);
+}
 
 static void CheckLibStructure()
 {
     struct stat lbuf;
 
-    if((stat("/vice",&lbuf)) && (errno == ENOENT)) {
-	printf("Creating /vice structure\n");
-	mkdir("/vice",0755);
-	mkdir("/vice/db",0755);
-	mkdir("/vice/srv",0755);
-	mkdir("/vice/vol",0755);
-	mkdir("/vice/spool",0755);
+    if((stat(vice_sharedfile(NULL),&lbuf)) && (errno == ENOENT)) {
+	printf("Creating %s structure\n", vice_sharedfile(NULL));
+	mkdir(vice_sharedfile(NULL),0755);
+	mkdir(vice_sharedfile("db"),0755);
+	mkdir(vice_sharedfile("misc"),0755);
+
+	if (nservers == 1) {
+	    mkdir(vice_file("srv"),0755);
+	    mkdir(vice_file("vol"),0755);
+	    mkdir(vice_file("spool"),0755);
+	} else {
+	    printf ("Multiple servers not yet supported.\n");
+	}
     }
     else {
-	if((stat("/vice/db",&lbuf)) && (errno == ENOENT)) {
-	    printf("Creating /vice/db\n");
-	    mkdir("/vice/db",0755);
+	if((stat(vice_sharedfile("db"),&lbuf)) && (errno == ENOENT)) {
+	    printf("Creating %s\n", vice_sharedfile("db"));
+	    mkdir(vice_sharedfile("db"),0755);
 	}
-	if((stat("/vice/srv",&lbuf)) && (errno == ENOENT)) {
-	    printf("Creating /vice/srv\n");
-	    mkdir("/vice/srv",0755);
-	}
-	if((stat("/vice/vol",&lbuf)) && (errno == ENOENT)) {
-	    printf("Creating /vice/vol\n");
-	    mkdir("/vice/vol",0755);
-	}
-	if((stat("/vice/spool",&lbuf)) && (errno == ENOENT)) {
-	    printf("Creating /vice/spool\n");
-	    mkdir("/vice/spool",0755);
+	if  (nservers == 1) {
+	    if ((stat(vice_file("srv"),&lbuf)) && (errno == ENOENT)) {
+	        printf("Creating %s\n",vice_file("srv"));
+		mkdir(vice_file("srv"),0755);
+	    }
+	    if ((stat(vice_file("vol"),&lbuf)) && (errno == ENOENT)) {
+	      printf("Creating %s\n",vice_file("vol"));
+	      mkdir(vice_file("vol"),0755);
+	    }
+	    if ((stat(vice_file("spool"),&lbuf)) && (errno == ENOENT)) {
+	      printf("Creating %s\n",vice_file("spool"));
+	      mkdir(vice_file("spool"),0755);
+	    }
+	} else {
+	    printf ("Multiple servers not yet supported.\n");
 	}
     }
 }
@@ -335,7 +376,6 @@ static int CheckDir(char *prefix, int mode)
     int     i,
 	j,
 	fd,
-	nfd,
 	len,
 	rc = 0;
     struct stat buff;
@@ -385,15 +425,6 @@ static int CheckDir(char *prefix, int mode)
 			if (CheckFile(newname, mode)) {
 			    rc = 1;
 			    LogMsg(0, SrvDebugLevel, stdout, "Updated %s\n", newname);
-			    if ((strcmp(prefix, "/vice/bin") == 0)) {
-				if (strcmp(name, "updateclnt") == 0) {
-				    Reexec = 1;
-				}
-				if (strcmp(name, "file") == 0) {
-				    nfd = open("/vice/srv/NEWFILE", O_CREAT + O_RDWR, 0666);
-				    close(nfd);
-				}
-			    }
 			}
 		    }
 		}
@@ -548,7 +579,7 @@ static void ReConnect()
 	    bparms.SecurityLevel = RPC2_OPENKIMONO;
 	    bparms.SideEffectType = SMARTFTP;
 	    
-	    if (rc = RPC2_NewBinding(&hid, &sid, &ssid, &bparms, &con)) {
+	    if ((rc = RPC2_NewBinding(&hid, &sid, &ssid, &bparms, &con))) {
 		    LogMsg(0, SrvDebugLevel, stdout, 
 			   "Bind failed with %s\n", 
 			   (char *)ViceErrorMsg((int)rc));
@@ -622,7 +653,7 @@ static void U_InitRPC()
     long rcode;
 
     /* store authentication key */
-    tokfile = fopen(VolTKFile, "r");
+    tokfile = fopen(vice_sharedfile(VolTKFile), "r");
     memset(vkey, 0, RPC2_KEYSIZE);
     fread(vkey, 1, RPC2_KEYSIZE, tokfile);
     fclose(tokfile);

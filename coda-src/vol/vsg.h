@@ -57,7 +57,7 @@ class vsgent {
     void print(int);
 };
 
-#define VSGPATH	"/vice/db/VSGDB"
+#define VSGPATH	vice_sharedfile("db/VSGDB")
 extern int GetHosts(unsigned long, unsigned long *, int *);
 extern int AddMember(vsgent *);
 extern unsigned long GetVSGAddress(unsigned long *, int);

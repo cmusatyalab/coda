@@ -71,9 +71,11 @@ struct vldbHeader {
 
 #define N_SERVERIDS 256		/* Not easy to change--maximum number of servers */
 
-#define VLDB_PATH "/vice/db/VLDB"
-#define VLDB_TEMP "/vice/db/VLDB.new"
-#define BACKUPLIST_PATH Vol_vicefile("vol/BackupList")
+#include <vice_file.h>
+
+#define VLDB_PATH 	vice_sharedfile("db/VLDB")
+#define VLDB_TEMP 	vice_sharedfile("db/VLDB.new")
+#define BACKUPLIST_PATH vice_file("vol/BackupList")
 
 extern struct vldb *VLDBLookup(char *key);
 extern int VLDBPrint();

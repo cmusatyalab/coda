@@ -476,9 +476,5 @@ void PutVolObj(Volume **volptr, int LockLevel, int Dequeue);
 int GetVolObj(VolumeId Vid, Volume **volptr, 
 	      int LockLevel, int Enque, int LockerAddress);
 
-void Vol_Init_vicedir(char *viced);
-char *Vol_vicefile(char *file);
-
-
 
 #endif VOLUME_INCLUDED

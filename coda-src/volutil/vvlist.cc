@@ -48,6 +48,7 @@ extern "C" {
 #include <srv.h>
 #include <vrdb.h>
 #include <vutil.h>
+#include <vice_file.h>
 
 #include "vvlist.h"
 
@@ -61,9 +62,10 @@ extern "C" {
 void getlistfilename(char *filename, VolumeId groupId, VolumeId repId, char *suffix)
 {
     if (groupId > 0)
-	sprintf(filename, "/vice/backup/%lx.%lx.", groupId, repId);
+	sprintf(filename, "%s/%lx.%lx.", vice_sharedfile("backup"),
+		groupId, repId);
     else
-	sprintf(filename, "/vice/backup/%lx.", repId);
+	sprintf(filename, "%s/%lx.", vice_sharedfile("backup"), repId);
 	
     strcat(filename, suffix);
 }

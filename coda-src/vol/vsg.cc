@@ -42,6 +42,7 @@ extern "C" {
 }
 #endif __cplusplus
 
+#include <vice_file.h>
 #include "vsg.h"
 #include "coda_assert.h"
 

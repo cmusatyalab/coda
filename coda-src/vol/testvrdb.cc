@@ -36,6 +36,12 @@ extern "C" {
 
 #include "vrdb.h"
 
+#include <codaconf.h>
+#include <vice_file.h>
+
+static char *serverconf = SYSCONFDIR "/server"; /* ".conf" */
+static char *vicedir = NULL;
+
 void PrintVRDB() {
     ohashtab_iterator next(VRDB.namehtb, (void *)-1);
 
@@ -46,15 +52,17 @@ void PrintVRDB() {
 	v->print();
     }
 }
+
 void BuildVRDB() {
-    char *infile = "/vice/vol/VRList";
+    char *infile = vice_file("vol/VRList");
     FILE *vrlist;
     vrlist = fopen(infile, "r");
     if (vrlist == NULL) {
 	printf("MakeVRDB: unable to open file %s\n", infile);
 	exit(-1);
     }
-    int fd = open("/vice/db/VRDB", O_CREAT | O_TRUNC | O_WRONLY, 0644);
+    int fd = open(vice_sharedfile("db/VRDB"), O_CREAT | O_TRUNC | O_WRONLY,
+		  0644);
     vrent vre;
     char line[500];
     int lineno = 0;
@@ -83,8 +91,30 @@ void BuildVRDB() {
     }
     close(fd);
 }
+
+void ReadConfigFile()
+{
+    char    confname[MAXPATHLEN];
+
+    /* don't complain if config files are missing */
+    codaconf_quiet = 1;
+
+    /* Load configuration file to get vice dir. */
+    sprintf (confname, "%s.conf", serverconf);
+    (void) conf_init(confname);
+
+    CONF_STR(vicedir,		"vicedir",	   "/vice");
+
+    vice_dir_init(vicedir, 0);
+}
+
+
+
+int
 main(int argc, char **argv) {
     char input;
+
+    ReadConfigFile();
 
     BuildVRDB();
     CheckVRDB();
@@ -124,4 +154,5 @@ main(int argc, char **argv) {
 	  default: printf("unknown option\n");
 	}
     }
+    return 0;
 }

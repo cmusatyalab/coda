@@ -62,6 +62,7 @@ DEPLIBS := ${LIBVICEERROR}\
 	$(LIBBASE)
 LIBS := $(DEPLIBS) ${LIBRPC2} ${LIBSE} $(LIBLWP) $(LIBMATH) $(LIBS)
 
+CXXFLAGS := -Wall -DSYSCONFDIR=\"${sysconfdir}\" $(CXXFLAGS)
 
 include $(TOPDIR)/configs/Makerules
 

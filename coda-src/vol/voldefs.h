@@ -60,10 +60,10 @@ Pittsburgh, PA.
 			   external path name */
 
 /* Pathname for the maximum volume id ever created by this server */
-#define MAXVOLIDPATH	Vol_vicefile("vol/maxvolid")
+#define MAXVOLIDPATH	vice_file("vol/maxvolid")
 
 /* Pathname for server id definitions--the server id is used to allocate volume numbers */
-#define SERVERLISTPATH	"/vice/db/servers"
+#define SERVERLISTPATH	vice_sharedfile("db/servers")
 
 /* Values for connect parameter to VInitVolumePackage */
 #define CONNECT_FS	1

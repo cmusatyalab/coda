@@ -35,10 +35,17 @@ listed in the file CREDITS.
 #include <stdio.h>
 #include <stdlib.h>
 #include <fcntl.h>
+#include <sys/param.h>
 #include "pdb.h"
 #include <parser.h>
 #include "coda_string.h"
 #include <coda_assert.h>
+#include <codaconf.h>
+#include <vice_file.h>
+
+static char *serverconf = SYSCONFDIR "/server"; /* ".conf" */
+static char *vicedir = NULL;
+
 
 /* Check if correct number of arguments,Too Few=1,Too Many=2,Just Right=0 */
 int check_args_num(int argc,int n){
@@ -756,10 +763,30 @@ command_t pdbcmds[] =
 };
 
 
+void
+ReadConfigFile()
+{
+    char    confname[MAXPATHLEN];
+
+    /* don't complain if config files are missing */
+    codaconf_quiet = 1;
+
+    /* Load configuration file to get vice dir. */
+    sprintf (confname, "%s.conf", serverconf);
+    (void) conf_init(confname);
+
+    CONF_STR(vicedir,		"vicedir",	   "/vice");
+
+    vice_dir_init(vicedir, 0);
+}
+
+
 int main(int argc, char **argv)
 {
 	int i;
 	coda_assert_action = CODA_ASSERT_EXIT;
+
+	ReadConfigFile();
 
 	PDB_setupdb();
 	Parser_init("pdbtool> ", pdbcmds);

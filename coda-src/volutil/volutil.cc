@@ -164,7 +164,7 @@ static void InitServer() {
     FILE *tokfile;
 
     /* get encryption key for authentication */
-    tokfile = fopen(VolTKFile, "r");
+    tokfile = fopen(vice_sharedfile(VolTKFile), "r");
     memset(vkey, 0, RPC2_KEYSIZE);
     fread(vkey, 1, RPC2_KEYSIZE, tokfile);
     fclose(tokfile);

@@ -30,13 +30,18 @@ listed in the file CREDITS.
 
 #include "portmapper.h"
 #include "map.h"
+#include "codaconf.h"
+#include "vice_file.h"
 
 #ifdef __CYGWIN32__
 extern char *optarg;
 #endif
 
 FILE *portmaplog = NULL;
-#define PORTMAPLOG "/vice/srv/portmaplog"
+#define PORTMAPLOG vice_sharedfile("misc/portmaplog")
+
+static char *serverconf = SYSCONFDIR "/server"; /* ".conf" */
+static char *vicedir = NULL;
 
 void InitRPC2(void)
 {
@@ -61,6 +66,24 @@ void InitRPC2(void)
 }
 
 
+
+void
+ReadConfigFile()
+{
+    char    confname[MAXPATHLEN];
+
+    /* don't complain if config files are missing */
+    codaconf_quiet = 1;
+
+    /* Load configuration file to get vice dir. */
+    sprintf (confname, "%s.conf", serverconf);
+    (void) conf_init(confname);
+
+    CONF_STR(vicedir,		"vicedir",	   "/vice");
+
+    vice_dir_init(vicedir, 0);
+}
+
 int main(int argc, char **argv)
 {
 	RPC2_PacketBuffer *reqbuffer;
@@ -74,6 +97,8 @@ int main(int argc, char **argv)
 	if ( rc != EOF && rc != 'd' ) {
 		fprintf(stderr, "Usage: %s [ -d debuglevel ]\n", argv[0]);
 	}
+
+	ReadConfigFile();
 
 	portmaplog = fopen(PORTMAPLOG, "a+");
 	if ( ! portmaplog ) { 

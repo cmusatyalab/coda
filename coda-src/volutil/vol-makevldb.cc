@@ -72,6 +72,7 @@ extern "C" {
 #include <cvnode.h>
 #include <volume.h>
 #include <vutil.h>
+#include <vice_file.h>
 
 /* ReadWrite volumes:   are stored exactly twice in the data base.
 			Once under name of volume, once under number.
@@ -104,12 +105,12 @@ static int MaxStride;
 
 #define vldbindex(p)	((p) - &vldb_array[0])
 
-#define RWLIST_PATH	Vol_vicefile("vol/RWlist")
-#define PART_TEMP     Vol_vicefile("vol/partitions.new")
-#define PART_PATH     Vol_vicefile("vol/partitions")
+#define RWLIST_PATH	vice_file("vol/RWlist")
+#define PART_TEMP     vice_file("vol/partitions.new")
+#define PART_PATH     vice_file("vol/partitions")
 
-#define ALL_TEMP	Vol_vicefile("vol/AllVolumes.new")
-#define ALL_PATH	Vol_vicefile("vol/AllVolumes")
+#define ALL_TEMP	vice_file("vol/AllVolumes.new")
+#define ALL_PATH	vice_file("vol/AllVolumes")
 
 static FILE *BackupList, *RWList, *PartList, *AllList, *volumelist;
 

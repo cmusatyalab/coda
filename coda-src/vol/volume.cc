@@ -101,7 +101,7 @@ extern int HashLookup(VolumeId);
 
 /* Exported Variables */
 char *ThisHost;		/* This machine's hostname */
-int ThisServerId = -1;	/* this server id, as found in  /vice/db/servers */
+int ThisServerId = -1;	/* this server id, as found in  .../db/servers */
 bit32 HostAddress[N_SERVERIDS];	/* Assume host addresses are 32 bits */
 int VInit;		/* Set to 1 when the volume package is initialized */
 int HInit;		/* Set to 1 when the volid hash table is  initialized */
@@ -153,7 +153,6 @@ static void ReleaseVolumeHeader(struct volHeader *hd);
 void FreeVolumeHeader(Volume *vp);
 static void AddVolumeToHashTable(Volume *vp, int hashid);
 void DeleteVolumeFromHashTable(Volume *vp);
-static char *vicedir;
 
 
 /* InitVolUtil has a problem right now - 
@@ -164,39 +163,6 @@ static char *vicedir;
    close() calls right now.
 */
 
-void Vol_Init_vicedir(char *viced)
-{
-	if (!vicedir) 
-		vicedir = (char *)malloc(MAXPATHLEN);
-	CODA_ASSERT(vicedir);
-	strncpy(vicedir, viced, MAXPATHLEN);
-}
-
-/* not thread safe! */
-char *Vol_vicefile(char *file)
-{
-	static char *volpath[2] = { NULL, NULL };
-	static char  vpidx = 0;
-
-	if (!volpath[0]) {
-		volpath[0] = (char *)malloc(MAXPATHLEN);
-		volpath[1] = (char *)malloc(MAXPATHLEN);
-	}
-	CODA_ASSERT(volpath[0]);
-	if (!vicedir)
-		CODA_ASSERT(0);
-	if (!file)
-		CODA_ASSERT(0);
-
-	/* We need at least 2 static volpaths to be able to handle:
-	 *   rename(Vol_vicefile(p1), Vol_vicefile(p2);
-	 * the following indexing takes care of that. -JH */
-	vpidx = (vpidx + 1) & 0x1;
-	snprintf(volpath[vpidx], MAXPATHLEN, "%s/%s",  vicedir, file);
-
-	return volpath[vpidx];
-}
-
 /* invoked by all volume utilities except full salvager */
 int VInitVolUtil(ProgramType pt) 
 {
@@ -206,9 +172,9 @@ int VInitVolUtil(ProgramType pt)
 	fvlock = -1;
 
 	VLog(9, "Entering VInitVolUtil");
-	fslock = open(Vol_vicefile("vol/fs.lock"), O_CREAT|O_RDWR, 0666);
+	fslock = open(vice_file("vol/fs.lock"), O_CREAT|O_RDWR, 0666);
 	CODA_ASSERT(fslock >= 0);
-	fvlock = open (Vol_vicefile("vol/volutil.lock"), O_CREAT|O_RDWR, 0666);
+	fvlock = open (vice_file("vol/volutil.lock"), O_CREAT|O_RDWR, 0666);
 	CODA_ASSERT(fvlock >= 0);
 
 	if (pt != salvager) {
@@ -339,7 +305,7 @@ void VInitVolumePackage(int nLargeVnodes, int nSmallVnodes, int DoSalvage)
 	    (*(vp?&nAttached:&nUnattached))++;
 	    if (error == VOFFLINE)
 		VLog(0, "Volume %x stays offline (%s/%s exists)", 
-		     header.id, Vol_vicefile("offline"), 
+		     header.id, vice_file("offline"), 
 		     VolumeExternalName(header.id));
 	    /* if volume was not salvaged force it offline. */
 	    /* a volume is not salvaged if it exists in the 
@@ -569,7 +535,7 @@ void VListVolumes()
 
     VLog(9, "Entering VListVolumes()");
 
-    file = fopen(Vol_vicefile("vol/VolumeList.temp"), "w");
+    file = fopen(vice_file("vol/VolumeList.temp"), "w");
     CODA_ASSERT(file != NULL);
 
     tmp = &DiskPartitionList;
@@ -592,8 +558,8 @@ void VListVolumes()
 	}
     }
     fclose(file);
-    rename(Vol_vicefile("vol/VolumeList.temp"),
-	   Vol_vicefile("vol/VolumeList"));
+    rename(vice_file("vol/VolumeList.temp"),
+	   vice_file("vol/VolumeList"));
 }
 
 static void VAppendVolume(Volume *vp)
@@ -601,7 +567,7 @@ static void VAppendVolume(Volume *vp)
     FILE *file;
 
     VLog(9, "Entering VAppendVolume for volume %x", V_id(vp));
-    file = fopen(Vol_vicefile("vol/VolumeList"), "a");
+    file = fopen(vice_file("vol/VolumeList"), "a");
     if (file == NULL)
         return;
     VListVolume(file, vp);

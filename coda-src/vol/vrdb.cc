@@ -41,12 +41,9 @@ extern "C" {
 #include <volume.h>
 #include <srv.h>
 #include <util.h>
-#include <volume.h>
 #include "vsg.h"
 #include "vrdb.h"
 
-const char *VRDB_PATH = "/vice/db/VRDB";
-const char *VRDB_TEMP = "/vice/db/VRDB.new";
 vrtab VRDB("VRDB");
 int canonicalize = 0;
 

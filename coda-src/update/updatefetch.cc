@@ -57,6 +57,7 @@ extern "C" {
 #include <util.h>
 #include "update.h"
 #include <volutil.h>
+#include <vice_file.h>
 
 extern char *ViceErrorMsg(int errorCode);   /* should be in libutil */
 
@@ -238,9 +239,9 @@ static void U_InitRPC()
     long rcode;
 
     /* store authentication key */
-    tokfile = fopen(VolTKFile, "r");
+    tokfile = fopen(vice_sharedfile(VolTKFile), "r");
     if ( !tokfile ) {
-	    fprintf(stderr, "No tokenfile: %s\n", VolTKFile);
+	    fprintf(stderr, "No tokenfile: %s\n", vice_sharedfile(VolTKFile));
 	    exit(1);
     }
     memset(vkey, 0, RPC2_KEYSIZE);

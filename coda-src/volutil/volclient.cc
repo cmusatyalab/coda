@@ -60,6 +60,7 @@ extern "C" {
 }
 #endif __cplusplus
 
+#include <vice_file.h>
 #include <cvnode.h>
 #include <volume.h>
 #include "velapse.h"
@@ -2046,10 +2047,10 @@ static void V_InitRPC(int timeout)
     long rcode;
 
     /* store authentication key */
-    tokfile = fopen(VolTKFile, "r");
+    tokfile = fopen(vice_sharedfile(VolTKFile), "r");
     if (!tokfile) {
 	char estring[80];
-	sprintf(estring, "Tokenfile %s", VolTKFile);
+	sprintf(estring, "Tokenfile %s", vice_sharedfile(VolTKFile));
 	perror(estring);
 	exit(-1);
     }

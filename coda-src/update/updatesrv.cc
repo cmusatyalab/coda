@@ -91,69 +91,77 @@ extern void SFTP_Activate (SFTP_Initializer *initPtr);
 
 #include <util.h>
 #include "update.h"
+#include "vice_file.h"
+#include "codaconf.h"
 
 #define UPDSRVNAME "updatesrv"
 extern char *ViceErrorMsg(int errorCode);   /* should be in libutil */
+
+static void ReadConfigFile();
 
 static void SetDebug();
 static void ResetDebug();
 static void Terminate();
 static void ServerLWP(int *Ident);
 
-static char prefix[1024];
+static char *prefix = NULL;
 
 static struct timeval  tp;
 static struct timezone tsp;
 
+static char *serverconf = SYSCONFDIR "/server"; /* ".conf" */
+static char *vicedir = NULL;
 
 int main(int argc, char **argv)
 {
     char    sname[20];
     char    pname[20];
+    char    errmsg[MAXPATHLEN];
     FILE * file;
-    int     i, len;
+    int     i;
     int     lwps = 2;
-    int     badParm = 1;
     PROCESS parentPid, serverPid;
-    RPC2_PortIdent port1, *portlist[1];
+    RPC2_PortIdent port1;
     RPC2_SubsysIdent server;
     SFTP_Initializer sftpi;
     int rc;
     long portmapid;
+
+    /* default value */
+    strcpy(pname,"coda_udpsrv");
     
-    rc = chdir("/vice/srv");
-    if ( rc ) {
-	    perror("Cannot cd to /vice/srv");
+    /* process the command line arguments */
+    for (i = 1; i < argc; i++) {
+        if (!strcmp(argv[i], "-d"))
+	    /* perhaps there should be a UpdateDebugLevel? */
+	    SrvDebugLevel = atoi(argv[++i]);  
+	else if (!strcmp(argv[i], "-l"))
+	    lwps = atoi(argv[++i]);
+	else if (!strcmp(argv[i], "-p")) {
+	    prefix = argv[++i];
+	} else if (!strcmp(argv[i], "-q")) {
+	    strcpy(pname, argv[++i]);
+	} else {
+	    fprintf(stderr, "Bad argument %s to update srv\n", 
+		    argv[i]);
+	    fprintf(stderr, "Usage: updatesrv [-p prefix"
+		    "-d (debug level)]) [-l (number of lwps)]");
 	    exit(1);
+	}
     }
 
+    ReadConfigFile();
 
+    rc = chdir(vice_sharedfile("misc"));
+    if ( rc ) {
+        snprintf (errmsg, MAXPATHLEN, "Cannot cd to %s",
+		  vice_sharedfile("misc"));
+	perror(errmsg);
+	exit(1);
+    }
 
     UtilDetach();
     
-    strcpy(pname,"coda_udpsrv");
-
-    for (i = 1; i < argc; i++) {
-	    if (!strcmp(argv[i], "-d"))
-		    /* perhaps there should be a UpdateDebugLevel? */
-		    SrvDebugLevel = atoi(argv[++i]);  
-	    else if (!strcmp(argv[i], "-l"))
-		    lwps = atoi(argv[++i]);
-	    else if (!strcmp(argv[i], "-p")) {
-		    badParm = 0;
-		    strcpy(prefix, argv[++i]);
-	    } else 	if (!strcmp(argv[i], "-q")) {
-		    badParm = 0;
-		    strcpy(pname, argv[++i]);
-	    } else 	{
-		    fprintf(stderr, "Bad argument %s to update srv\n", 
-			    argv[i]);
-		    fprintf(stderr, "Usage: updatesrv [-p prefix"
-			    "-d (debug level)]) [-l (number of lwps)]");
-		    exit(1);
-	    }
-    }
-
     (void) signal(SIGHUP, (void (*)(int))ResetDebug);
     (void) signal(SIGUSR1, (void (*)(int))SetDebug);
     (void) signal(SIGQUIT, (void (*)(int))Terminate);
@@ -162,15 +170,22 @@ int main(int argc, char **argv)
     freopen("UpdateSrvLog","a+",stderr);
     fprintf(stderr, "Updatesrv started!\n");
 
+    if (!prefix)
+      prefix = strdup(vice_sharedfile("db"));
+
     if (chdir(prefix)) {
-	    perror("could not chdir to prefix directory");
-	    exit(-1);
+	snprintf (errmsg, MAXPATHLEN, "could not chdir to directory %s",
+		  prefix);
+	perror (errmsg);
+	exit(-1);
     }
     
-    file = fopen("/vice/srv/updatesrv.pid", "w");
+    file = fopen(vice_sharedfile("misc/updatesrv.pid"), "w");
     if ( !file ) {
-	    perror("Error writing /vice/srv/updatesrv.pid");
-	    exit(1);
+        snprintf (errmsg, MAXPATHLEN, "Error in writing %s",
+		  vice_sharedfile("misc/updatesrv.pid"));
+	perror(errmsg);
+	exit(1);
     }
     fprintf(file, "%d", getpid());
     fclose(file);
@@ -227,6 +242,23 @@ int main(int argc, char **argv)
 
     CODA_ASSERT(LWP_WaitProcess((char *)&parentPid) == LWP_SUCCESS);
 
+}
+
+static void
+ReadConfigFile()
+{
+    char    confname[MAXPATHLEN];
+
+    /* don't complain if config files are missing */
+    codaconf_quiet = 1;
+
+    /* Load configuration file to get vice dir. */
+    sprintf (confname, "%s.conf", serverconf);
+    (void) conf_init(confname);
+
+    CONF_STR(vicedir,		"vicedir",	   "/vice");
+
+    vice_dir_init(vicedir, 0);
 }
 
 
@@ -314,8 +346,6 @@ long UpdateFetch(RPC2_Handle RPCid, RPC2_String FileName,
     LogMsg(1, SrvDebugLevel, stdout, "UpdateFetch file = %s, Time = %d",
 	    FileName, Time);
 
-/*    strcpy(name, prefix); */
-/*    strcat(name, FileName); */
     strcpy(name, (char *)FileName);
     if (stat(name, &buff)) {
 	*NewTime = 0;
@@ -338,7 +368,7 @@ long UpdateFetch(RPC2_Handle RPCid, RPC2_String FileName,
 	sid.Value.SmartFTPD.FileInfo.ByName.ProtectionBits = 0;
 	strcpy(sid.Value.SmartFTPD.FileInfo.ByName.LocalFileName, name);
 
-	if (rc = RPC2_InitSideEffect(RPCid, &sid)) {
+	if ((rc = RPC2_InitSideEffect(RPCid, &sid))) {
 	    LogMsg(0, SrvDebugLevel, stdout, 
 		   "InitSideEffect failed %s", ViceErrorMsg((int)rc));
 	    if (rc <= RPC2_ELIMIT) {
@@ -346,7 +376,7 @@ long UpdateFetch(RPC2_Handle RPCid, RPC2_String FileName,
 	    }
 	}
 
-	if (rc = RPC2_CheckSideEffect(RPCid, &sid, SE_AWAITLOCALSTATUS)) {
+	if ((rc = RPC2_CheckSideEffect(RPCid, &sid, SE_AWAITLOCALSTATUS))) {
 	    LogMsg(0, SrvDebugLevel, stdout, 
 		   "CheckSideEffect failed %s", ViceErrorMsg((int)rc));
 	    if (rc <= RPC2_ELIMIT) {
