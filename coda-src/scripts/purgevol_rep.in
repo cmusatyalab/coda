@@ -27,9 +27,10 @@ export PATH
 vicedir=/vice
 . "`@sbindir@/codaconfedit server.conf`"
 
-if [ `cat ${vicedir}/hostname` != `cat ${vicedir}/db/scm` ]
+SCM=`cat ${vicedir}/db/scm`
+if [ `cat ${vicedir}/hostname` != "${SCM}" ]
 then
-        echo "This must be run from the scm ("`cat ${vicedir}/db/scm`")"
+        echo "This must be run from the scm (${SCM})"
         exit 1
 fi
 
@@ -39,7 +40,6 @@ then
 	echo "purgevol_rep volumename"
 	exit 1
 fi
-REPVOLNAME=$1
 
 if [ "$1" = "--kill" ]
 then
@@ -51,10 +51,11 @@ else
 fi
 
 # Ask the SCM where the volume is located.
-volinfo=`${exec_prefix}/bin/getvolinfo localhost $REPVOLNAME`
+REPVOLNAME=$1
+volinfo=`${exec_prefix}/bin/getvolinfo ${SCM} ${REPVOLNAME}`
 if [ $? -ne 0 ]
 then
-    echo "Couldn't get volume location information for $REPVOLNAME"
+    echo "Couldn't get volume location information for ${REPVOLNAME}"
     exit 1
 fi
 
@@ -67,7 +68,7 @@ do
   SRV=`echo $volinfo | sed 's/.* Server'$N' \([^ ]*\) .*/\1/'`
     
   volumelist=`volutil -h $SRV getvolumelist 2>/dev/null`
-  volumes=`echo "$volumelist" | awk '$8 ~/^W'$REP'$/ { print $2 }'`
+  volumes=`echo "$volumelist" | awk '$8 ~/^W'${REP}'$/ { print $2 }'`
 
   for vid in $volumes
   do
@@ -97,7 +98,7 @@ if [ $dryrun = 0 ] ; then
   mv ${vicedir}/db/VRList.tmp ${vicedir}/db/VRList
 
   # Make sure that the vldb and vrdb are updated.
-  volutil makevrdb ${vicedir}/db/VRList
+  volutil -h "${SCM}" makevrdb ${vicedir}/db/VRList
   bldvldb.sh $HOSTS 
 else
   echo "Don't forget we were only testing"
