@@ -116,7 +116,7 @@ extern void ViceTerminate();
 
 
 typedef struct WBConnEntry {            
-    struct dllist_chain others;
+    struct dllist_head  others;
     RPC2_Handle         id;             /* cid for writeback connection */
     unsigned char       inuse;          /* is this conn in use right now*/
     unsigned char       deleteme;       /* garbage collect this conn    */
@@ -141,7 +141,7 @@ typedef struct HostTable {
 
 typedef struct ClientEntry {
     RPC2_Handle		RPCid;			/* cid for connection      */
-    struct dllist_chain	Clients;		/* next incoming rpc2 conn */
+    struct dllist_head	Clients;		/* next incoming rpc2 conn */
     PRS_InternalCPS	*CPS;			/* cps for authentication  */
     RPC2_Integer	Id;			/* Vice ID of user	   */
     RPC2_Integer	SecurityLevel;		/* Security level of conn  */
@@ -156,7 +156,7 @@ typedef struct ClientEntry {
 
 
 typedef struct WBHolderEntry {
-    struct dllist_chain others;         /* other entries */
+    struct dllist_head  others;         /* other entries */
     HostTable *         VenusId;        /* Venus who has it */
     unsigned long       GrantedAtSecs;  /* timestamp */
 } WBHolderEntry;

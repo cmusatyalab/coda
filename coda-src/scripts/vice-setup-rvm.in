@@ -138,7 +138,7 @@ if [ "x$answer" = xn -o "x$answer" = xno -o "x$answer" = xN -o "x$answer" = xNo 
 fi
 
 echo
-rvmutl > /dev/null  << EOF
+@RVMUTL@ > /dev/null  << EOF
 i $log $logsize
 q
 EOF
@@ -217,7 +217,7 @@ fi
 echo
 echo Rdsinit will initialize data and log.
 echo This takes a while. 
-rdsinit -f $log $data $parms
+@RDSINIT@ -f $log $data $parms
 
 if [ $? != 0 ]; then
     echo Error in rdsinit. Exiting.

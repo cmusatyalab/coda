@@ -36,8 +36,8 @@ listed in the file CREDITS.
 */
 /* directory handle cache entry */
 struct DCEntry {
-	struct dllist_chain   dc_hash;
-	struct dllist_chain   dc_list;
+	struct dllist_head    dc_hash;
+	struct dllist_head    dc_list;
 	int                   dc_count;/* number of VM vnodes referencing us */
 	int                   dc_refcount; /* new refcount upon commit */
 	struct DirHandle      dc_dh;
@@ -113,7 +113,7 @@ PDCEntry DC_Get(PDirInode pdi)
 {
 	int hash;
 	struct DCEntry *pdce;
-	struct dllist_chain *lh, *tmp;
+	struct dllist_head *lh, *tmp;
 	
 	CODA_ASSERT(pdi);
 	hash = DC_Hash(pdi);

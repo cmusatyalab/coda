@@ -28,7 +28,6 @@ Coda are listed in the file CREDITS.
 struct dllist_head {
 	struct dllist_head *next, *prev;
 };
-#define dllist_chain dllist_head
 
 #define INIT_LIST_HEAD(name) \
     struct dllist_head name = { &name, &name }
