@@ -1687,6 +1687,12 @@ static void InitializeServerRVM(char *name)
 		   "Setting Rvm Truncate threshhold to %d.\n", _Rvm_Truncate); 
 	    options->truncate = _Rvm_Truncate;				    
 	}
+#if	defined(__NetBSD_Version__) && (__NetBSD_Version__ >= 104000000)
+#define	NetBSD1_4
+#else
+#undef	NetBSD1_4
+#endif
+
 #if	defined(__FreeBSD__)
 	sbrk((void *)(0x50000000 - (int)sbrk(0))); /* for garbage reasons. */
 #elif	defined(__NetBSD__) && (defined(NetBSD1_3) || defined(NetBSD1_4))

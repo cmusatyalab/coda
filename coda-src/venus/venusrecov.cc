@@ -88,6 +88,11 @@ int MAXTS = UNSET_MAXTS;
 
 
 /*  *****  Private Constants  *****  */
+#if	defined(__NetBSD_Version__) && (__NetBSD_Version__ >= 104000000)
+#define	NetBSD1_4
+#else
+#undef	NetBSD1_4
+#endif
 
 #if defined(NetBSD1_3) || defined(NetBSD1_4) || defined(__FreeBSD_version)
 static const char *VM_RVGADDR = (char *)0x50000000;
