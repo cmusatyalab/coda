@@ -1,6 +1,5 @@
 Template: coda/realm
 Type: string
-Default: testserver.coda.cs.cmu.edu
 Description: Default realm for authentication
  This options tells the Coda client what our default realm is. This is
  really only used for convenience by 'clog' and allows a user to type 
