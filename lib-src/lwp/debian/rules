@@ -4,7 +4,7 @@
 
 # Uncomment this to turn on verbose mode.
 #export DH_VERBOSE=1
-export DH_ALWAYS_EXCLUDE=CVS:.pc
+export DH_ALWAYS_EXCLUDE=CVS
 
 DEB_BUILD_GNU_TYPE := $(shell dpkg-architecture -qDEB_BUILD_GNU_TYPE )
 DEB_HOST_GNU_TYPE  := $(shell dpkg-architecture -qDEB_HOST_GNU_TYPE )
@@ -13,7 +13,9 @@ DEB_HOST_GNU_TYPE  := $(shell dpkg-architecture -qDEB_HOST_GNU_TYPE )
 # This can be overridden by setting an empty DEB_BUILD_OPTIONS.
 ${DEB_BUILD_OPTIONS=nostrip}
 export DEB_BUILD_OPTIONS
+
 CFLAGS += -Wall
+export CFLAGS
 
 build: build-stamp
 build-stamp:
@@ -54,7 +56,7 @@ binary-indep: build install
 binary-arch: build install
 	dh_testdir
 	dh_testroot
-	dh_movefiles || true
+	dh_install --sourcedir=debian/tmp --fail-missing
 #	dh_installdebconf	
 	dh_installdocs
 	dh_installexamples

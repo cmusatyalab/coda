@@ -7,7 +7,7 @@ Build-Depends: debhelper (>= 4)
 
 Package: liblwp-dev
 Architecture: alpha arm i386 m68k powerpc sparc
-Depends: liblwp2 (= ${Source-Version}), libc6-dev
+Depends: liblwp2 (= ${Source-Version})
 Description: LWP thread library
  Headers and static libraries for developing programs using the LWP
  userspace threads library. The LWP threads library is used by the Coda
