@@ -11,7 +11,10 @@ Or obtained from the anonymous CVS repository:
 
 You need to have automake, autoconf, and libtool installed on your system in
 order to set up the build environment. Known versions that work are automake
-1.7, autoconf 2.52, and libtool 1.5.2.  Perl is required to build RPC2.
+1.7 and 1.8, autoconf 2.52 and 2.59, and libtool 1.5.2.  Perl is
+required to build RPC2.  GNU Make is required to build rpc2 (in
+particular, the rules for running rp2gen in fail/); 3.80 is known to
+work.
 
     $ cvs -d':pserver:anonymous@coda.cs.cmu.edu:/coda-src' login
     Password: <return>
