@@ -1,0 +1,79 @@
+/*
+ *	$Id: portmapper.rpc2,v 1.2 1998/04/07 05:20:27 robert Exp $
+ *
+ *	A simple portmapper for RPC2
+ */
+
+server prefix "portmapper_server";
+client prefix "portmapper_client";
+
+Subsystem "portmapper";
+#define PORTMAPPER_SUBSYSID	1
+#define PORTMAPPER_PORT		6400
+
+/*
+ * Useful types and their closest approximations in RPC2 types
+ */
+
+/* IP Protocol number */
+typedef RPC2_Integer	PM_Protocol;
+
+/* Port number, if applicable */
+typedef RPC2_Integer	PM_Port;
+
+/* Version requested/registered */
+typedef RPC2_Integer	PM_Version;
+
+/* Name registered with the portmapper */
+typedef RPC2_String	PM_Name;
+
+/*
+ * Return Codes
+ */
+
+#define PM_SUCCESS	0
+#define PM_NOTFOUND	1
+#define PM_COLLISION	2
+#define PM_DENIED	3
+#define PM_BADREQUEST	4
+
+/* Register a mapping between a name and port number -- only accepted from
+   localhost -- this version of the call does not remove an old entry with
+   the same name, etc.  Instead it returns PM_COLLISION */
+register_excl(IN PM_Name name,
+	IN PM_Version version,
+	IN PM_Protocol protocol,
+	IN PM_Port port);
+
+/* As with register_excl, except that it removes the old entry silently if
+   there is a collision */
+register_sqsh(IN PM_Name name,
+	IN PM_Version version,
+	IN PM_Protocol protocol,
+	IN PM_Port port);
+
+/* Remove a mapping between a name and a port number -- only accepted from
+   localhost */
+delete(IN PM_Name name,
+	IN PM_Version version,
+	IN PM_Protocol protocol);
+
+/* Lookup port based on name, version, protocol */
+lookup_pbynvp(IN PM_Name name,
+	IN PM_Version version,
+	IN PM_Protocol protocol,
+	OUT PM_Port port);
+
+/* lookup a port/protocol based on name, version */
+lookup_pbynv(IN PM_Name name,
+	IN PM_Version version,
+	OUT PM_Protocol protocol,
+	OUT PM_Port port);
+
+/* lookup a name, return the highest version available on the first protocol
+   available */
+lookup_pbyn(IN PM_Name name,
+	OUT PM_Version version,
+	OUT PM_Protocol protocol,
+	OUT PM_Port port);
+
