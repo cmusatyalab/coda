@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: comm.cc,v 4.2 97/02/26 16:03:10 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda/coda-4.0.1/coda-src/venus/RCS/comm.cc,v 4.3 1997/03/06 21:04:54 lily Exp $";
 #endif /*_BLURB_*/
 
 
@@ -300,7 +300,7 @@ void CommInit() {
 
 /* *****  Connection  ***** */
 
-const int MAXCONNSPERUSER = 3;		    /* Max simultaneous conns per user per server. */
+const int MAXCONNSPERUSER = 9;		    /* Max simultaneous conns per user per server. */
 
 #define	CONNQ_LOCK()
 #define	CONNQ_UNLOCK()
@@ -1570,7 +1570,7 @@ RepOpCommCtxt::RepOpCommCtxt() {
 
 /* ***** Mgroup  ***** */
 
-const int MAXMGRPSPERUSER = 9;  /* Max simultaneous mgrps per user per vsg. */
+const int MAXMGRPSPERUSER = 27;  /* Max simultaneous mgrps per user per vsg. */
                                 /* 3 requests/AVSG member */
 #define	MGRPQ_LOCK()
 #define	MGRPQ_UNLOCK()

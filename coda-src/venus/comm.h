@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: comm.h,v 4.1 97/01/08 21:51:20 rvb Exp $";
+static char *rcsid = "$Header: /coda/usr/lily/src/coda-src/venus/RCS/comm.h,v 4.2 97/03/06 21:04:54 lily Exp $";
 #endif /*_BLURB_*/
 
 
@@ -638,8 +638,8 @@ extern void VSGD_Init();
 
 /* comm synchronization */
 struct CommQueueStruct {
-    char sync;
     int count[LWP_MAX_PRIORITY+1];
+    char sync;
 };
 
 extern struct CommQueueStruct CommQueue;
@@ -650,34 +650,38 @@ extern struct CommQueueStruct CommQueue;
  * higher priority threads before using the network.  Note that Venus
  * cannot determine the location of a network bottleneck.  Therefore,
  * it conservatively assumes that all high priority requests are 
- * sources of interference.  Synchronization could be made finer, currently 
- * all waiters are awakened instead of the highest priority ones.  
+ * sources of interference.   Synchronization could be finer, currently 
+ * all waiters are awakened instead of the highest priority ones. 
  */
 #define START_COMMSYNC()\
 {   vproc *vp = VprocSelf();\
     if (vp->u.u_vol && vp->u.u_vol->IsWeaklyConnected()) {\
-	int i = LWP_MAX_PRIORITY;\
-	while (i > vp->lwpri) {\
-	    if (CommQueue.count[i]) {\
+	int pri = LWP_MAX_PRIORITY;\
+	while (pri > vp->lwpri) {\
+	    if (CommQueue.count[pri]) { /* anyone bigger than me? */\
 		LOG(0, ("WAITING(CommQueue) pri = %d, for %d at pri %d\n",\
-			vp->lwpri, CommQueue.count[i], i));\
+			vp->lwpri, CommQueue.count[pri], pri));\
 		START_TIMING();\
 		VprocWait(&CommQueue.sync);\
 		END_TIMING();\
                 LOG(0, ("WAIT OVER, elapsed = %3.1f\n", elapsed));\
-		i = LWP_MAX_PRIORITY;\
+		pri = LWP_MAX_PRIORITY;\
 	    } else {\
-		i--;\
+		pri--;\
 	    }\
 	}\
     }\
     CommQueue.count[vp->lwpri]++;\
+    LOG(0, ("CommQueue: insert pri %d count = %d\n", \
+	    vp->lwpri, CommQueue.count[vp->lwpri]));\
 }
 
 #define END_COMMSYNC()\
 {\
     vproc *vp = VprocSelf();\
     CommQueue.count[vp->lwpri]--;\
+    LOG(0, ("CommQueue: remove pri %d count = %d\n", \
+	    vp->lwpri, CommQueue.count[vp->lwpri]));\
     VprocSignal(&CommQueue.sync);\
 }
 

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: vproc.cc,v 4.4 97/02/27 18:49:15 lily Exp $";
+static char *rcsid = "$Header: /coda/usr/lily/src/coda-src/venus/RCS/vproc.cc,v 4.5 97/03/06 21:04:54 lily Exp $";
 #endif /*_BLURB_*/
 
 
@@ -514,7 +514,7 @@ PRIVATE int VolModeMap[NVFSOPS] = {
     VM_OBSERVING,	    /* VFSOP_READDIR */
     VM_MUTATING,	    /* VFSOP_SYMLINK */
     VM_OBSERVING,	    /* VFSOP_READLINK */
-    VM_MUTATING,	    /* VFSOP_FSYNC */
+    VM_OBSERVING,	    /* VFSOP_FSYNC */
     VM_OBSERVING,	    /* VFSOP_INACTIVE */
     VM_OBSERVING,	    /* VFSOP_VGET */
     VM_MUTATING,

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /usr/rvb/XX/src/coda-src/venus/RCS/vproc_vfscalls.cc,v 4.3 1997/02/18 15:28:31 lily Exp $";
+static char *rcsid = "$Header: /coda/usr/lily/src/coda-src/venus/RCS/vproc_vfscalls.cc,v 4.4 97/02/26 16:03:41 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -1551,8 +1551,20 @@ void vproc::fsync(struct vnode *vp) {
 	if (u.u_error) break;
 
 	/* Get the object. */
-	u.u_error = FSDB->Get(&f, &cp->c_fid, CRTORUID(u.u_cred), RC_DATA);
+	u.u_error = FSDB->Get(&f, &cp->c_fid, CRTORUID(u.u_cred), RC_STATUS);
 	if (u.u_error) goto FreeLocks;
+
+	/* 
+	 * what we want: if the file is open for write, sync the
+	 * changes to it and flush associated RVM updates.
+	 * below is the heavy handed version.
+	 * NB: if this is changed to modify object state, this
+	 * operation can no longer be an observer!
+	 */
+	if (f->flags.owrite) {
+	    ::sync();
+	    RecovFlush();
+	}
 
 FreeLocks:
 	FSDB->Put(&f);
