@@ -21,7 +21,6 @@ listed in the file CREDITS.
 #include <assert.h>
 
 #include <lwp/lwp.h>
-#include <lwp/preempt.h>
 
 void OtherProcess(PROCESS parent)
     {

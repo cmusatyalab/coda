@@ -32,3 +32,10 @@ testlwp_static_LDFLAGS = -static
 
 MAINTAINERCLEANFILES = Makefile.in
 
+# Needed for mips, hopefully doesn't affect other platforms
+.S.o:
+	$(COMPILE) -DPIC -fPIC -c $<
+
+.S.lo:
+	$(LIBTOOL) --mode=compile $(COMPILE) -DPIC -fPIC -c $<
+

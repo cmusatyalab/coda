@@ -18,7 +18,6 @@ Coda are listed in the file CREDITS.
 #include <assert.h>
 
 #include <lwp/lwp.h>
-#include <lwp/preempt.h>
 #include "lwp.private_pt.h"
 
 /***** Preemption/concurrency control routines *****/

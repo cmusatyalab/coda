@@ -330,13 +330,14 @@ _returnto:
 /* Code for MIPS R2000/R3000 architecture
  * Written by Zalman Stern April 30th, 1989.
  */
-#include <regdef.h>
+#include <mips/regdef.h>
 #ifndef s8
 #define s8	fp
 #endif /* s8 */
 
-#define regspace 9 * 4 + 4 + 6 * 8
-#define floats 0
+#define regspace 4 + 9 * 4 + 6 * 8 + 4
+#define globalptr 0
+#define floats 4
 #define registers floats + 6 * 8
 #define returnaddr regspace - 4
 #define topstack 0
@@ -371,6 +372,8 @@ savecontext:
 	li	t0, -8
 	and	sp, t0, a2
 samestack:
+	.cprestore globalptr
+	addu	t9, a0, $0
 	jal	a0
 	.end	savecontext
 
