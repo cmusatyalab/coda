@@ -87,7 +87,8 @@ until [ x$datasize != x ]; do
     echo  "(use 330M only on very fast machines)"
     echo  "Pick one of the defaults, otherwise I will bail out"
     echo
-    echo -n "What is the size of you data partition (or file) [22M,44M, 90M, 130M, 315M]: "
+    echo "What is the size of you data partition (or file)"
+    echo -n "[22M,44M, 90M, 130M, 200M, 315M]: "
     read datasize 
 done
 
@@ -141,27 +142,31 @@ esac
 
 case $datasize in 
     22M )
-       dsparm=20480000
-       heapsize=0x1200000
-       ;;
-     44M )
-       dsparm=39690240
-       heapsize=0x2400000
-        ;;
-     90M )
-       dsparm=79380480
-       heapsize=0x4a00000
-        ;;
-     130M )
-       dsparm=119070700
-       heapsize=0x7000000
-        ;;
-     315M )
-       dsparm=330301440
-       heapsize=0x13000000
-        ;;
-     * )
-        echo 'Read rdsinit(8) use rdsinit to configure your data area.'
+ 	dsparm=23068672 # was 20480000
+ 	heapsize=0x1200000
+ 	;;
+    44M )
+ 	dsparm=46137344 # was 39690240
+ 	heapsize=0x2400000
+ 	;;
+    90M )
+ 	dsparm=94371840 # was 79380480
+ 	heapsize=0x4a00000
+ 	;;
+    130M )
+ 	dsparm=136314880 # was 119070700
+ 	heapsize=0x7000000
+ 	;;
+    200M )
+ 	dsparm=209715200
+ 	heapsize=0xb000000
+ 	;;
+    315M )
+ 	dsparm=330301440
+ 	heapsize=0x13000000
+ 	;;
+    * )
+	echo 'Read rdsinit(8) use rdsinit to configure your data area.'
 	exit 
         ;; 
 esac
