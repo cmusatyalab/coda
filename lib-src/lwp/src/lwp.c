@@ -45,13 +45,10 @@ Pittsburgh, PA.
 #include <unistd.h>
 #include <string.h>
 #include <stdio.h>
-#include <sys/time.h>
 #include <sys/types.h>
 #include <sys/stat.h>
-#include <fcntl.h>
-#ifdef __CYGWIN32__
 #include <time.h>
-#endif
+#include <fcntl.h>
 
 #include <sys/param.h>
 #include <sys/mman.h>
