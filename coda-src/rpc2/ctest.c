@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rpc2/ctest.c,v 4.2 1998/01/10 18:38:05 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rpc2/ctest.c,v 4.3 1998/04/14 21:06:58 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -374,6 +374,7 @@ int main(int arg, char **argv)
 		while(i--)
 		    {
 		    Buff1->Header.BodyLength = 0;
+		    Buff1->Header.Opcode = opcode;
 		    tt = RPC2_MakeRPC(cid, Buff1, (SE_Descriptor *)NULL, &Buff2, 
 				      (struct timeval *)NULL, (long)0);
 		    if (tt != RPC2_SUCCESS)break;

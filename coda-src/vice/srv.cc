@@ -30,7 +30,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vice/srv.cc,v 4.16 1998/03/19 15:11:37 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vice/srv.cc,v 4.17 1998/04/14 20:55:37 braam Exp $";
 #endif /*_BLURB_*/
 
 /*
@@ -104,7 +104,6 @@ extern int Fcon_Init();
 }
 #endif __cplusplus
 
-extern void setmyname(char *);
 
 #include <rvmlib.h>
 
@@ -383,15 +382,6 @@ main(int argc, char *argv[])
 	exit(-1);
     }
 
-    setmyname(argv[0]);
-
-    
-
-    len = (int) strlen(argv[0]);
-    for(i = 0;i < len;i++) {
-	*(argv[0]+i) = ' ';
-    }
-    strcpy(argv[0],"srv");
 
     if(chdir("/vice/srv")) {
 	LogMsg(0, 0, stdout, "could not cd to /vice/srv - exiting");

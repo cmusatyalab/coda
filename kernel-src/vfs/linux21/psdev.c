@@ -64,7 +64,7 @@ extern int cfsnc_nc_info(char *buffer, char **start, off_t offset, int length, i
 
 /* statistics */
 struct coda_upcallstats coda_callstats;
-int           coda_hard = 0;  /* introduces a timeout on upcalls */
+int           coda_hard = 0;  /* allows signals during upcalls */
 unsigned long coda_timeout = 30; /* .. secs, then signals will dequeue */
 extern struct coda_sb_info coda_super_info[MAX_CODADEVS];
 struct vcomm psdev_vcomm[MAX_CODADEVS];
@@ -420,18 +420,9 @@ struct proc_dir_entry proc_sys_coda = {
 	NULL, NULL
 };
 
-struct proc_dir_entry proc_fs = {
-        PROC_FS, 2, "fs",
-        S_IFDIR | S_IRUGO | S_IXUGO, 2, 0, 0,
-        0, &proc_dir_inode_operations,
-	NULL, NULL,
-	NULL,
-	NULL, NULL
-};
-
 /*
  * target directory structure:
-   /proc/fs/
+   /proc/fs  (see linux/fs/proc/root.c)
    /proc/fs/coda
    /proc/fs/coda/{vfs_stats,
 
@@ -523,13 +514,14 @@ int init_coda_psdev(void)
 	reset_coda_cache_inv_stats();
 
 #ifdef CONFIG_PROC_FS
-	proc_register(&proc_root,&proc_fs);
-	proc_register(&proc_fs,&proc_fs_coda);
+	proc_register(&proc_root_fs,&proc_fs_coda);
 	proc_register(&proc_fs_coda,&proc_coda_vfs);
 	proc_register(&proc_fs_coda,&proc_coda_upcall);
 	proc_register(&proc_fs_coda,&proc_coda_permission);
 	proc_register(&proc_fs_coda,&proc_coda_cache_inv);
+#endif
 
+#ifdef CONFIG_SYSCTL
 	proc_register(&proc_sys_root,&proc_sys_coda);
 	proc_register(&proc_sys_coda,&proc_coda_vfs_control);
 	proc_register(&proc_sys_coda,&proc_coda_upcall_control);
@@ -586,13 +578,14 @@ void cleanup_module(void)
         proc_unregister(&proc_sys_coda, proc_coda_upcall_control.low_ino);
 	proc_unregister(&proc_sys_coda, proc_coda_vfs_control.low_ino);
 	proc_unregister(&proc_sys_root, proc_sys_coda.low_ino);
+#endif
 
+#ifdef CONFIG_SYSCTL
         proc_unregister(&proc_fs_coda, proc_coda_cache_inv.low_ino);
         proc_unregister(&proc_fs_coda, proc_coda_permission.low_ino);
         proc_unregister(&proc_fs_coda, proc_coda_upcall.low_ino);
         proc_unregister(&proc_fs_coda, proc_coda_vfs.low_ino);
-	proc_unregister(&proc_fs, proc_fs_coda.low_ino);
-	proc_unregister(&proc_root, proc_fs.low_ino);
+	proc_unregister(&proc_root_fs, proc_fs_coda.low_ino);
 #endif 
 }
 

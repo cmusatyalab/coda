@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rpc2/rpc2b.c,v 4.5 1998/04/14 21:07:03 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rpc2/rpc2b.c,v 4.6 1998/05/07 17:23:53 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -142,7 +142,7 @@ long RPC2_Init(
 		rpc2_Quit(RPC2_SEFAIL2);
 
     c = "SocketListener";
-    LWP_CreateProcess((PFIC)rpc2_SocketListener, 0x1000, 
+    LWP_CreateProcess((PFIC)rpc2_SocketListener, 0x3000, 
 		      LWP_NORMAL_PRIORITY, NULL,
 		      c, &rpc2_SocketListenerPID);
 

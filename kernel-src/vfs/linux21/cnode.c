@@ -59,7 +59,7 @@ int coda_cnode_make(struct inode **inode, ViceFid *fid, struct super_block *sb)
 
 	error = venus_getattr(sb, fid, &attr);
 	if ( error ) {
-	    printk("coda_cnode_make: coda_getvattr returned %d for %s.\n", 
+	    CDEBUG(D_CNODE, "coda_cnode_make: coda_getvattr returned %d for %s.\n", 
 		   error, coda_f2s(fid));
 	    *inode = NULL;
 	    return error;

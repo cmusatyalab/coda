@@ -1,3 +1,23 @@
+1998-06-07    <braam@carissimi.coda.cs.cmu.edu>
+
+	* kernel-src/vfs/linux21/psdev.c Moved entry for /proc/fs to the
+	proc filesystem directory.  
+	* kernel-src/vsf/linux21/dir.c: fixed the nasty segfault caused by
+	positive error return in coda_lookup. Cleaned up the interruption
+	code.  
+
+1998-06-06  Peter Braam  <braam@motet.coda.cs.cmu.edu>
+
+	* coda-src/scripts/venus-setup: chmod 600 /dev/cfs0 !!!
+	* coda-src/venus/vproc.h: for Linux CRTORUID for Linux should use
+	fsuid. This allows Samba exporting of /coda 
+
+1998-06-03  Peter Braam  <braam@motet.coda.cs.cmu.edu>
+
+	* Fix to BOGUS/NAKIT macros. There are many unsafe macros in rpc2.  These are the 
+	most important ones and we have made them safe.  This was responsible for numerous
+	errors.
+
 1998-05-27    <braam@carissimi.coda.cs.cmu.edu>
 
 	* rvm-src/configure.in/Makeconf: revamped the building process

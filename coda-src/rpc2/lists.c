@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rpc2/lists.c,v 4.3 1998/04/14 21:06:59 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rpc2/lists.c,v 4.4 1998/05/27 20:29:08 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -309,27 +309,26 @@ void rpc2_FreeSubsys(whichSubsys)
 
 
 
-void rpc2_HoldPacket(whichPB)
-    register RPC2_PacketBuffer *whichPB;
-    /* Moves packet whichPB to hold list from inuse list */
-    {
-    assert(whichPB->Prefix.MagicNumber == OBJ_PACKETBUFFER);
-    rpc2_MoveEntry((struct LinkEntry **)&rpc2_PBList,
-		    (struct LinkEntry **)&rpc2_PBHoldList,
-		    (struct LinkEntry *)whichPB,
-		    &rpc2_PBCount, &rpc2_PBHoldCount);
-    if (rpc2_HoldHWMark < rpc2_PBHoldCount) rpc2_HoldHWMark = rpc2_PBHoldCount;
-    }
+/* Moves packet whichPB to hold list from inuse list */
+void rpc2_HoldPacket(RPC2_PacketBuffer *whichPB)
+{
+	assert(whichPB->Prefix.MagicNumber == OBJ_PACKETBUFFER);
+	rpc2_MoveEntry((struct LinkEntry **)&rpc2_PBList,
+		       (struct LinkEntry **)&rpc2_PBHoldList,
+		       (struct LinkEntry *)whichPB,
+		       &rpc2_PBCount, &rpc2_PBHoldCount);
+	if (rpc2_HoldHWMark < rpc2_PBHoldCount) 
+		rpc2_HoldHWMark = rpc2_PBHoldCount;
+}
 
-void rpc2_UnholdPacket(whichPB)
-    register RPC2_PacketBuffer *whichPB;
-    /* Moves packet whichPB to inuse list from hold list */
-    {
-    assert(whichPB->Prefix.MagicNumber == OBJ_PACKETBUFFER);
-    rpc2_MoveEntry((struct LinkEntry **)&rpc2_PBHoldList,
-		    (struct LinkEntry **)&rpc2_PBList,
-		    (struct LinkEntry *)whichPB,
-		    &rpc2_PBHoldCount, &rpc2_PBCount);
-    }
+/* Moves packet whichPB to inuse list from hold list */
+void rpc2_UnholdPacket(RPC2_PacketBuffer *whichPB)
+{
+	assert(whichPB->Prefix.MagicNumber == OBJ_PACKETBUFFER);
+	rpc2_MoveEntry((struct LinkEntry **)&rpc2_PBHoldList,
+		       (struct LinkEntry **)&rpc2_PBList,
+		       (struct LinkEntry *)whichPB,
+		       &rpc2_PBHoldCount, &rpc2_PBCount);
+}
 
 

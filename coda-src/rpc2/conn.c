@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rpc2/conn.c,v 4.1 1997/01/08 21:50:20 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rpc2/conn.c,v 4.2 1998/04/14 21:06:57 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -253,7 +253,7 @@ void rpc2_FreeConn(RPC2_Handle whichConn)
     	rpc2_FreeSle(&ce->MySl);
     }
 
-    /* Scan the hold queue and purge the request  for this connection */
+    /* Scan the hold queue and purge the request for this connection */
     pb=rpc2_PBHoldList;
     for (i = 0; i < rpc2_PBHoldCount; i++) {
 	    if (pb->Header.RemoteHandle == ce->UniqueCID) {

@@ -118,7 +118,7 @@ static int coda_lookup(struct inode *dir, struct dentry *entry)
 
 	if (!dir || !S_ISDIR(dir->i_mode)) {
 		printk("coda_lookup: inode is NULL or not a directory\n");
-		return -ENOENT;
+		return -ENOTDIR;
 	}
 
 	dircnp = ITOC(dir);
@@ -154,7 +154,7 @@ static int coda_lookup(struct inode *dir, struct dentry *entry)
 		}
 	    	error = coda_cnode_make(&res_inode, &resfid, dir->i_sb);
 		if (error)
-			return -error;
+			return error;
 	} else if (error != -ENOENT) {
 	        CDEBUG(D_INODE, "error for %s(%*s)%d\n",
 		       coda_f2s(&dircnp->c_fid), length, name, error);

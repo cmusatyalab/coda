@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/venusvol.cc,v 4.7 1998/01/10 18:39:07 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/venusvol.cc,v 4.8 1998/04/14 21:03:09 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -92,26 +92,34 @@ static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/
  *    immediately reflected throughout Venus.  Coping with the asynchrony is much easier if we
  *    can limit state changes to well-defined points.
  *
- *    Our basic strategy is the following:
- *        - the top layer, VFS, processes Vnode/VFS calls.  A VFS call begins by invoking 
- *          volent::Enter on the appropriate volume.  This routine blocks if a state transition 
- *          is already pending for the volume.  If the coast is clear, a count of "active users" 
- *          for the volume is incremented.  The VFS call acquires file-system-objects (fsobjs) 
- *          and operates on them via the CFS interface.  If a CFS call returns the internal error 
- *          code ERETRY, the VFS routine is expected to release all fsobj's that it holds and call 
- *          volent::Exit.  volent::Exit decrements the active user count and either returns a final 
- *          code that is to be the result of the VFS call, or it indicates that the VFS call should 
- *          be retried (i.e., start over with volent::Enter).
+ * Our basic strategy is the following: * - the top layer, VFS,
+ *          processes Vnode/VFS calls.  A VFS call begins by invoking
+ *          volent::Enter on the appropriate volume.  This routine
+ *          blocks if a state transition is already pending for the
+ *          volume.  If the coast is clear, a count of "active users"
+ *          for the volume is incremented.  The VFS call acquires
+ *          file-system-objects (fsobjs) and operates on them via the
+ *          CFS interface.  If a CFS call returns the internal error
+ *          code ERETRY, the VFS routine is expected to release all
+ *          fsobj's that it holds and call volent::Exit.  volent::Exit
+ *          decrements the active user count and either returns a
+ *          final code that is to be the result of the VFS call, or it
+ *          indicates that the VFS call should be retried (i.e., start
+ *          over with volent::Enter).
  *
- *        - the middle layer, CFS, acquires and performs Vice operations on fsobjs.  A CFS call uses
- *          an fsobj if it is valid.  An object is valid if it has a callback, is read-only, or if 
- *          the volume is currently in disconnected mode (i.e., state = Emulating).  The CFS call 
- *          attempts to validate the object (by fetching status and/or data) if it is invalid and 
- *          the volume is connected.  Mutating CFS calls are written through to servers if in 
- *          connected mode.  Mutating operations are recorded on a (per-volume) ModifyLog if in 
- *          disconnected mode.  Pending state changes are noticed by the Get{Conn,Mgrp} and certain
- *          Collate{...} calls.  They return ERETRY in such cases, which is to be passed up to the 
- *          VFS layer.
+ *        - the middle layer, CFS, acquires and performs Vice
+ *        operations on fsobjs.  A CFS call uses an fsobj if it is
+ *        valid.  An object is valid if it has a callback, is
+ *        read-only, or if the volume is currently in disconnected
+ *        mode (i.e., state = Emulating).  The CFS call attempts to
+ *        validate the object (by fetching status and/or data) if it
+ *        is invalid and the volume is connected.  Mutating CFS calls
+ *        are written through to servers if in connected mode.
+ *        Mutating operations are recorded on a (per-volume) ModifyLog
+ *        if in disconnected mode.  Pending state changes are noticed
+ *        by the Get{Conn,Mgrp} and certain Collate{...} calls.  They
+ *        return ERETRY in such cases, which is to be passed up to the
+ *        VFS layer.
  *
  *        - the bottom layer, Comms, immediately reflects RPC state changes by setting the 
  *          "transition pending" flag in affected volumes.  It also will set a volume's "demotion 
@@ -128,8 +136,7 @@ static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/
  *    mutator (if present). Thus, this scheme differs from classical Shared/Exclusive locking.  Also
  *    note that no user threads, mutating or not, may enter a volume in {Reintegrating, Resolving} 
  *    state. These restrictions do not apply to non-rw-replicated volumes, of course.
- *
- */
+ * */
 
 #ifdef __cplusplus
 extern "C" {
@@ -1690,11 +1697,10 @@ void volent::DownMember(long eTime) {
 void volent::UpMember(long eTime) {
     /* set the event time */
     /* eventTime = eTime; */
-    /* 
-     * We no longer want to set the event time, b/c this volume may not be touched
-     * for quite some time.  Instead, we must iterate throught the vsr list, and
-     * set the end time for each one.  Comm events end sessions.
-     */
+    /*  We no longer want to set the event time, b/c this volume may
+     * not be touched for quite some time.  Instead, we must iterate
+     * throught the vsr list, and set the end time for each one.  Comm
+     * events end sessions.  */
     olist_iterator next(*vsr_list);
     vsr *vsrp;
     while (vsrp = (vsr *)next())
@@ -1723,7 +1729,7 @@ void volent::UpMember(long eTime) {
 
 /* 
  * volent::{Weak,Strong} member.  Cope with a change in 
- * connectivity for a VSG member by write by setting the volume
+ * connectivity for a VSG member by  setting the volume
  * weakly connected, and by write-disconnecting or write-reconnecting 
  * the volume.  Note that both of these indications are necessary;
  * while for replicated volumes 

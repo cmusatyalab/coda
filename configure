@@ -1698,6 +1698,7 @@ cygwin/Makefile
 cygwin/sys/Makefile
 djgpp/Makefile 
 djgpp/relay/Makefile 
+djgpp/inject/Makefile 
 djgpp/tests/Makefile
 tests/Makefile 
 lib-src/mlwp/tests/Makefile  
@@ -1902,6 +1903,7 @@ cygwin/Makefile
 cygwin/sys/Makefile
 djgpp/Makefile 
 djgpp/relay/Makefile 
+djgpp/inject/Makefile 
 djgpp/tests/Makefile
 tests/Makefile 
 lib-src/mlwp/tests/Makefile  

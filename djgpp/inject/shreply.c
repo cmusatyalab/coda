@@ -4,16 +4,8 @@
 #include <netinet/in.h>
 #include <sys/time.h>
 
-typedef u_long VolumeId;
-typedef u_long VnodeId;
-typedef u_long Unique;
-typedef struct ViceFid {
-    VolumeId Volume;
-    VnodeId Vnode;
-    Unique Unique;
-} ViceFid;
 
-#include <cfs/cfs.h>
+#include <cfs/coda.h>
 
 #define BUFSIZE 2000
 
@@ -48,12 +40,7 @@ struct optab {
   {CFS_PURGEUSER, "CFS_PURGEUSER"},
   {CFS_ZAPFILE, "CFS_ZAPFILE"},
   {CFS_ZAPDIR, "CFS_ZAPDIR"},
-  {CFS_ZAPVNODE, "CFS_ZAPVNODE"},
   {CFS_PURGEFID, "CFS_PURGEFID"},
-  {CFS_RDWR, "CFS_RDWR"},
-  {ODY_MOUNT, "ODY_MOUNT"},
-  {ODY_LOOKUP, "ODY_LOOKUP"},
-  {ODY_EXPAND, "ODY_EXPAND"},
   {-99, NULL}};
 
 
@@ -78,7 +65,7 @@ printvfid(ViceFid *vfid)
 }
 
 void
-printattr(struct vattr *p)
+printattr(struct coda_vattr *p)
 {
   printf ("mode %x nlink %d uid %d gid %d size %ld ",
 	  p->va_mode, p->va_nlink, p->va_uid, p->va_gid,
@@ -91,7 +78,7 @@ main()
   struct sockaddr_in addr;
   int fromlen;
   char buffer[BUFSIZE];
-  struct outputArgs *out = (struct outputArgs *) buffer;
+  union outputArgs *out = (struct outputArgs *) buffer;
 
   fd = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
   if (fd == -1) {
@@ -117,36 +104,36 @@ main()
     printf ("[%08x:%d -- %d bytes] ", ntohl(addr.sin_addr.s_addr), 
 	    ntohs(addr.sin_port), n);
     if (n) {
-      printf ("%s uniq %d res %d ", opcode(out->opcode), 
-	      out->unique, out->result);
-      switch (out->opcode) {
+      printf ("%s uniq %d res %d ", opcode(out->cfs_getattr.oh.opcode), 
+	      out->cfs_getattr.oh.unique, out->cfs_getattr.oh.result);
+      switch (out->cfs_getattr.oh.opcode) {
       case CFS_ROOT:
-	printvfid(&out->d.cfs_root.VFid);
+	printvfid(&out->cfs_root.VFid);
 	break;
 
       case CFS_GETATTR:
-	printattr(&out->d.cfs_getattr.attr);
+	printattr(&out->cfs_getattr.attr);
 	break;
 
       case CFS_LOOKUP:
-	printvfid(&out->d.cfs_lookup.VFid);
-	printf (" type %d", out->d.cfs_lookup.vtype);
+	printvfid(&out->cfs_lookup.VFid);
+	printf (" type %d", out->cfs_lookup.vtype);
 	break;
 
       case CFS_OPEN:
-	printf (" dev %d inode %d", out->d.cfs_open.dev, 
-		out->d.cfs_open.inode);
+	printf (" dev %d inode %d", out->cfs_open.dev, 
+		out->cfs_open.inode);
 	break;
 
       case CFS_CREATE:
-	printvfid(&out->d.cfs_create.VFid);
-	printattr(&out->d.cfs_create.attr);
+	printvfid(&out->cfs_create.VFid);
+	printattr(&out->cfs_create.attr);
 	break;
 
       case CFS_READDIR:
-	buffer[(int) out->d.cfs_readdir.data + out->d.cfs_readdir.size] = '\0';
-	printf ("size %d buf %s", out->d.cfs_readdir.size, 
-		buffer + (int) out->d.cfs_readdir.data);
+	buffer[(int) out->cfs_readdir.data + out->cfs_readdir.size] = '\0';
+	printf ("size %d buf %s", out->cfs_readdir.size, 
+		buffer + (int) out->cfs_readdir.data);
 	break;
       }
     }

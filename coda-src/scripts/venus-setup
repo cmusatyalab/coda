@@ -68,7 +68,10 @@ if [ ! -d $CODAETC ]; then mkdir -p $CODAETC; fi
 echo $VSTAB > $CODAETC/vstab
 
 # make the psdev
-if [ ! -c $CFSDEV ]; then mknod $CFSDEV c $CFSMAJOR $CFSMINOR; fi
+if [ ! -c $CFSDEV ]; then 
+    mknod $CFSDEV c $CFSMAJOR $CFSMINOR 
+    chmod 0600 $CFSDEV
+fi
 
 # frobnicate /etc/services
 if grep coda_filesrv /etc/services >/dev/null ; then 

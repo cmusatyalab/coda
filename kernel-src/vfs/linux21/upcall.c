@@ -46,7 +46,8 @@ static int  coda_upcall(struct coda_sb_info *mntinfo, int inSize, int *outSize,
 #define UPARG(op)\
 do {\
   	CODA_ALLOC(inp, union inputArgs *, insize);\
-	outp = (union outputArgs *) (inp);\
+        if ( !inp ) { return -ENOMEM; }\
+        outp = (union outputArgs *) (inp);\
         inp->ih.opcode = (op);\
 	inp->ih.pid = current->pid;\
 	inp->ih.pgid = current->pgrp;\
@@ -90,7 +91,7 @@ int venus_rootfid(struct super_block *sb, ViceFid *fidp)
 
 	if (inp)  CODA_FREE(inp, insize);
         EXIT;
-	return -error;
+	return error;
 }
 
 int venus_getattr(struct super_block *sb, struct ViceFid *fid, 
@@ -98,19 +99,22 @@ int venus_getattr(struct super_block *sb, struct ViceFid *fid,
 {
         union inputArgs *inp;
         union outputArgs *outp;
-	        int insize, outsize, error;
-ENTRY;
+        int insize, outsize, error;
+	ENTRY;
+
         insize = SIZE(getattr); 
 	UPARG(CFS_GETATTR);
         inp->cfs_getattr.VFid = *fid;
+
         error = coda_upcall(coda_sbp(sb), insize, &outsize, inp);
 	
 	if ( !error )
 	        *attr = outp->cfs_getattr.attr;
 
-        if (inp) CODA_FREE(inp, insize);
+        if (inp) 
+		CODA_FREE(inp, insize);
         EXIT;
-        return -error;
+        return error;
 }
 
 int  venus_setattr(struct super_block *sb, struct ViceFid *fid, 
@@ -130,7 +134,7 @@ int  venus_setattr(struct super_block *sb, struct ViceFid *fid,
 
         CDEBUG(D_SUPER, " result %d\n", error); 
         if ( inp ) CODA_FREE(inp, insize);
-        return -error;
+        return error;
 }
 
 int venus_lookup(struct super_block *sb, struct ViceFid *fid, 
@@ -160,7 +164,7 @@ int venus_lookup(struct super_block *sb, struct ViceFid *fid,
 	}
 	if (inp) CODA_FREE(inp, insize);
 		
-	return -error;
+	return error;
 }
 
 
@@ -180,7 +184,7 @@ int venus_release(struct super_block *sb, struct ViceFid *fid, int flags)
 
         if (inp) 
 		CODA_FREE(inp, insize);
-        return -error;
+        return error;
 }
 
 int venus_open(struct super_block *sb, struct ViceFid *fid,
@@ -209,7 +213,7 @@ int venus_open(struct super_block *sb, struct ViceFid *fid,
         if (inp) 
                 CODA_FREE(inp, insize);
 
-	return -error;
+	return error;
 }	
 
 int venus_mkdir(struct super_block *sb, struct ViceFid *dirfid, 
@@ -239,7 +243,7 @@ int venus_mkdir(struct super_block *sb, struct ViceFid *dirfid,
 
 	if (inp) 
 	        CODA_FREE(inp, insize);
-	return -error;        
+	return error;        
 }
 
 
@@ -279,7 +283,7 @@ int venus_rename(struct super_block *sb, struct ViceFid *old_fid,
         error = coda_upcall(coda_sbp(sb), insize, &outsize, inp);
 
 	if (inp) CODA_FREE(inp, insize);
-	return -error;
+	return error;
 }
 
 int venus_create(struct super_block *sb, struct ViceFid *dirfid, 
@@ -312,7 +316,7 @@ int venus_create(struct super_block *sb, struct ViceFid *dirfid,
 
 	if (inp) 
 	        CODA_FREE(inp, insize);
-	return -error;        
+	return error;        
 }
 
 int venus_rmdir(struct super_block *sb, struct ViceFid *dirfid, 
@@ -335,7 +339,7 @@ int venus_rmdir(struct super_block *sb, struct ViceFid *dirfid,
         error = coda_upcall(coda_sbp(sb), insize, &outsize, inp);
 	if ( inp ) 
 	        CODA_FREE(inp, insize);
-	return -error;
+	return error;
 }
 
 int venus_remove(struct super_block *sb, struct ViceFid *dirfid, 
@@ -357,7 +361,7 @@ int venus_remove(struct super_block *sb, struct ViceFid *dirfid,
         error = coda_upcall(coda_sbp(sb), insize, &outsize, inp);
 	if ( inp ) 
 	        CODA_FREE(inp, insize);
-	return -error;
+	return error;
 }
 
 int venus_readlink(struct super_block *sb, struct ViceFid *fid, 
@@ -389,7 +393,7 @@ int venus_readlink(struct super_block *sb, struct ViceFid *fid,
         if (inp) CODA_FREE(inp, insize);
         CDEBUG(D_INODE, " result %d\n",error);
         EXIT;
-        return -error;
+        return error;
 }
 
 
@@ -420,7 +424,7 @@ int venus_link(struct super_block *sb, struct ViceFid *fid,
 	        CODA_FREE(inp, insize);
         CDEBUG(D_INODE, " result %d\n",error);
         EXIT;
-        return -error;
+        return error;
 }
 
 int venus_symlink(struct super_block *sb, struct ViceFid *fid,
@@ -458,7 +462,7 @@ int venus_symlink(struct super_block *sb, struct ViceFid *fid,
 	        CODA_FREE(inp, insize);
         CDEBUG(D_INODE, " result %d\n",error);
         EXIT;
-        return -error;
+        return error;
 }
 
 int venus_fsync(struct super_block *sb, struct ViceFid *fid)
@@ -476,7 +480,7 @@ int venus_fsync(struct super_block *sb, struct ViceFid *fid)
 
 	if ( inp ) 
 		CODA_FREE(inp, insize);
-	return -error;
+	return error;
 }
 
 int venus_access(struct super_block *sb, struct ViceFid *fid, int mask)
@@ -495,7 +499,7 @@ int venus_access(struct super_block *sb, struct ViceFid *fid, int mask)
 
 	if (inp) CODA_FREE(inp, insize);
         EXIT;
-	return -error;
+	return error;
 }
 
 
@@ -575,7 +579,7 @@ int venus_pioctl(struct super_block *sb, struct ViceFid *fid,
  exit:
         if (inp) 
 	        CODA_FREE(inp, insize);
-	return -error;
+	return error;
 }
 
 /*
@@ -608,18 +612,19 @@ static inline unsigned long coda_waitfor_upcall(struct vmsg *vmp)
 		if ( vmp->vm_flags & VM_WRITE )
 			break;
 
-		if ( ! signal_pending(current) )
-			schedule();
-		/* signal is present: after timeout always return */
-		if ( jiffies > vmp->vm_posttime + coda_timeout * HZ )
-			break; 
-				
-		/* if this process really wants to die, let it go */
-		if ( sigismember(&current->signal, SIGKILL) ||
-		     sigismember(&current->signal, SIGINT) )
-			break;
-		else 
-			schedule();
+		if ( !coda_hard && signal_pending(current) ) {
+			/* if this process really wants to die, let it go */
+			if ( sigismember(&(current->signal), SIGKILL) ||
+			     sigismember(&(current->signal), SIGINT) )
+				break;
+#if 0			/* signal is present: after timeout always return 
+			   really smart idea, probably useless ... */
+			if ( jiffies > vmp->vm_posttime + coda_timeout * HZ )
+				break; 
+#endif
+		}
+		schedule();
+
 	}
 	remove_wait_queue(&vmp->vm_sleep, &wait);
 	current->state = TASK_RUNNING;
@@ -643,13 +648,13 @@ static int coda_upcall(struct coda_sb_info *sbi,
 ENTRY;
 
 	if (sbi->sbi_vcomm == NULL) {
-                return ENODEV;
+                return -ENODEV;
 	}
 	vcommp = sbi->sbi_vcomm;
 
 
 	if (!vcomm_open(vcommp))
-                return(ENODEV);
+                return -ENODEV;
 
 	/* Format the request message. */
 	CODA_ALLOC(vmp,struct vmsg *,sizeof(struct vmsg));
@@ -693,9 +698,14 @@ ENTRY;
 	if (vcomm_open(vcommp)) {      /* i.e. Venus is still alive */
 	    /* Op went through, interrupt or not... */
 	    if (vmp->vm_flags & VM_WRITE) {
-		error = 0;
 		out = (union outputArgs *)vmp->vm_data;
-		error = out->oh.result;
+		/* here we map positive Venus errors to kernel errors */
+		if ( out->oh.result < 0 ) {
+			printk("Tell Peter: Venus returns negative error %ld, for oc %ld!\n",
+			       out->oh.result, out->oh.opcode);
+			out->oh.result = EINTR;
+		}
+		error = -out->oh.result;
 		CDEBUG(D_UPCALL, 
 		       "upcall: (u,o,r) (%ld, %ld, %ld) out at %p\n", 
 		       out->oh.unique, out->oh.opcode, out->oh.result, out);
@@ -708,48 +718,49 @@ ENTRY;
 		       "Interrupted before read:(op,un) (%d.%d), flags = %x\n",
 		       vmp->vm_opcode, vmp->vm_unique, vmp->vm_flags);
 		coda_q_remove(&(vmp->vm_chain));
-		error = ERESTARTNOHAND;
+		/* perhaps the best way to convince the app to
+		   give up? */
+		error = -EINTR;
 		goto exit;
 	    } 
 	    if ( (vmp->vm_flags & VM_READ) && signal_pending(current) ) {
-		/* interrupted after Venus did its read, send signal */
-		union inputArgs *dog;
-		struct vmsg *svmp;
-		
-		CDEBUG(D_UPCALL, 
-		       "Sending Venus a signal: op = %d.%d, flags = %x\n",
-		       vmp->vm_opcode, vmp->vm_unique, vmp->vm_flags);
-		
-		coda_q_remove(&(vmp->vm_chain));
-		error = ERESTARTNOHAND;
-		
-		CODA_ALLOC(svmp, struct vmsg *, sizeof (struct vmsg));
-		CODA_ALLOC((svmp->vm_data), char *, sizeof(struct cfs_in_hdr));
-
-		dog = (union inputArgs *)svmp->vm_data;
-		dog->ih.opcode = CFS_SIGNAL;
-		dog->ih.unique = vmp->vm_unique;
-		
-		svmp->vm_flags = 0;
-		svmp->vm_opcode = dog->ih.opcode;
-		svmp->vm_unique = dog->ih.unique;
-		svmp->vm_inSize = sizeof(struct cfs_in_hdr);
-		svmp->vm_outSize = sizeof(struct cfs_in_hdr);
-		CDEBUG(D_UPCALL, 
-		       "coda_upcall: enqueing signal msg (%d, %d)\n",
-		       svmp->vm_opcode, svmp->vm_unique);
-		
-		/* insert at head of queue! */
-		coda_q_insert(&(svmp->vm_chain), vcommp->vc_pending.forw);
-		wake_up_interruptible(&vcommp->vc_waitq);
+		    /* interrupted after Venus did its read, send signal */
+		    union inputArgs *dog;
+		    struct vmsg *svmp;
+		    
+		    CDEBUG(D_UPCALL, 
+			   "Sending Venus a signal: op = %d.%d, flags = %x\n",
+			   vmp->vm_opcode, vmp->vm_unique, vmp->vm_flags);
+		    
+		    coda_q_remove(&(vmp->vm_chain));
+		    error = -EINTR;
+		    CODA_ALLOC(svmp, struct vmsg *, sizeof (struct vmsg));
+		    CODA_ALLOC((svmp->vm_data), char *, sizeof(struct cfs_in_hdr));
+		    
+		    dog = (union inputArgs *)svmp->vm_data;
+		    dog->ih.opcode = CFS_SIGNAL;
+		    dog->ih.unique = vmp->vm_unique;
+		    
+		    svmp->vm_flags = 0;
+		    svmp->vm_opcode = dog->ih.opcode;
+		    svmp->vm_unique = dog->ih.unique;
+		    svmp->vm_inSize = sizeof(struct cfs_in_hdr);
+		    svmp->vm_outSize = sizeof(struct cfs_in_hdr);
+		    CDEBUG(D_UPCALL, 
+			   "coda_upcall: enqueing signal msg (%d, %d)\n",
+			   svmp->vm_opcode, svmp->vm_unique);
+		    
+		    /* insert at head of queue! */
+		    coda_q_insert(&(svmp->vm_chain), vcommp->vc_pending.forw);
+		    wake_up_interruptible(&vcommp->vc_waitq);
 	    } else {
 		    printk("Coda: Strange interruption..\n");
-		    error = EINTR;
+		    error = -EINTR;
 	    }
 	} else {	/* If venus died i.e. !VC_OPEN(vcommp) */
 	        printk("coda_upcall: Venus dead on (op,un) (%d.%d) flags %d\n",
 		       vmp->vm_opcode, vmp->vm_unique, vmp->vm_flags);
-		error = ENODEV;
+		error = -ENODEV;
 	}
 
  exit:

@@ -7,19 +7,12 @@
 #include <sys/time.h>
 #include <string.h>
 #include <ctype.h>
-
-typedef u_long VolumeId;
-typedef u_long VnodeId;
-typedef u_long Unique;
-typedef struct ViceFid {
-    VolumeId Volume;
-    VnodeId Vnode;
-    Unique Unique;
-} ViceFid;
-
-#include <cfs/cfs.h>
+#include <cfs/coda.h>
 
 #define BUFSIZE 2000
+#define INSIZE(tag) sizeof(struct cfs_ ## tag ## _in)
+#define OUTSIZE(tag) sizeof(struct cfs_ ## tag ## _out)
+#define SIZE(tag)  max(INSIZE(tag), OUTSIZE(tag))
 
 struct optab {
   int opcode;
@@ -52,12 +45,7 @@ struct optab {
   {CFS_PURGEUSER, "CFS_PURGEUSER"},
   {CFS_ZAPFILE, "CFS_ZAPFILE"},
   {CFS_ZAPDIR, "CFS_ZAPDIR"},
-  {CFS_ZAPVNODE, "CFS_ZAPVNODE"},
   {CFS_PURGEFID, "CFS_PURGEFID"},
-  {CFS_RDWR, "CFS_RDWR"},
-  {ODY_MOUNT, "ODY_MOUNT"},
-  {ODY_LOOKUP, "ODY_LOOKUP"},
-  {ODY_EXPAND, "ODY_EXPAND"},
   {-1, NULL}};
 
 
@@ -103,7 +91,7 @@ main()
   int fd, nfd, n;
   struct sockaddr_in addr;
   char buf[1000];
-  struct inputArgs *in = (struct inputArgs *)buf;
+  union inputArgs *in = (union inputArgs *)buf;
   char reply[100];
   int unique = 1000;
 
@@ -133,68 +121,68 @@ main()
       exit(0);
     }
 
-    in->opcode = get_opcode(reply);
-    in->unique = unique++;
-    in->pid = 200;
-    in->pgid = 200;
-    memset(&in->cred, 0, sizeof(struct CodaCred));
+    in->cfs_getattr.ih.opcode = get_opcode(reply);
+    in->cfs_getattr.ih.unique = unique++;
+    in->cfs_getattr.ih.pid = 200;
+    in->cfs_getattr.ih.pgid = 200;
+    memset(&in->cfs_getattr.ih.cred, 0, sizeof(struct coda_cred));
 
-    if (in->opcode == -1) {
+    if (in->ih.opcode == -1) {
       printf ("%s not an opcode\n");
       continue;
     }
     
-    switch (in->opcode) {
+    switch (in->cfs_getattr.ih.opcode) {
     case CFS_ROOT:
-      n = VC_IN_NO_DATA;
+      n = sizeof(*in);
       break;
 
     case CFS_GETATTR:
-      n = VC_INSIZE(cfs_getattr_in);
-      if (getvfid(&in->d.cfs_getattr.VFid) == -1)
+      n = INSIZE(getattr);
+      if (getvfid(&in->cfs_getattr.VFid) == -1)
 	goto again;
       break;
 
     case CFS_LOOKUP:
-      n = VC_INSIZE(cfs_lookup_in);
+      n = INSIZE(lookup);
       printf ("Parent VFid: ");
-      if (getvfid(&in->d.cfs_lookup.VFid) == -1)
+      if (getvfid(&in->cfs_lookup.VFid) == -1)
 	goto again;
       printf ("Name: ");
       if (!gets(&buf[n]))
 	goto again;
-      in->d.cfs_lookup.name = (char *) n;
+      in->cfs_lookup.name = n;
       n += strlen(&buf[n]) + 1;
       break;
 
     case CFS_OPEN:
       n = sizeof(struct inputArgs);
-      if (getvfid(&in->d.cfs_open.VFid) == -1)
+      if (getvfid(&in->cfs_open.VFid) == -1)
 	goto again;
       printf ("Flags: ");
       if (!gets(reply))
 	goto again;
-      in->d.cfs_open.flags = atoi(reply);
+      in->cfs_open.flags = atoi(reply);
       break;
 
     case CFS_CLOSE:
       n = sizeof(struct inputArgs);
-      if (getvfid(&in->d.cfs_close.VFid) == -1)
+      if (getvfid(&in->cfs_close.VFid) == -1)
 	goto again;
       printf ("Flags: ");
       if (!gets(reply))
 	goto again;
-      in->d.cfs_close.flags = atoi(reply);
+      in->cfs_close.flags = atoi(reply);
       break;
 
     case CFS_CREATE:
       n = sizeof(struct inputArgs);
       printf ("Parent: ");
-      if (getvfid(&in->d.cfs_create.VFid) == -1)
+      if (getvfid(&in->cfs_create.VFid) == -1)
 	goto again;
-      in->d.cfs_create.attr.va_mode = 0666;
-      in->d.cfs_create.mode = 0666;
-      in->d.cfs_create.name = (char *) n;
+      in->cfs_create.attr.va_mode = 0666;
+      in->cfs_create.mode = 0666;
+      in->cfs_create.name = n;
       printf ("Name: ");
       if (!gets(&buf[n]))
 	goto again;
@@ -203,10 +191,10 @@ main()
 
     case CFS_READDIR:
       n = sizeof(struct inputArgs);
-      if (getvfid(&in->d.cfs_readdir.VFid) == -1)
+      if (getvfid(&in->cfs_readdir.VFid) == -1)
 	goto again;
-      in->d.cfs_readdir.count = 50;
-      in->d.cfs_readdir.offset = 0;
+      in->cfs_readdir.count = 50;
+      in->cfs_readdir.offset = 0;
       break;
 
     default:

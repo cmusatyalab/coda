@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/vol_reintegrate.cc,v 4.7 1998/01/10 18:39:11 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/vol_reintegrate.cc,v 4.8 1998/03/06 20:20:52 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -359,8 +359,8 @@ extern struct timeval *VprocRetryBeta;
 
 		LOG(0, ("volent::IncReintegrate: fail code = %d\n", code));
 		CML.print(logFile);
-		/* 
-		 * checkpoint the log before localizing or aborting.
+		/* 	
+	 * checkpoint the log before localizing or aborting.
 		 * release read lock; it will be boosted in CML.Checkpoint.
 		 * Note that we may have to wait until other mutators finish 
 		 * mucking with the volume/log, which means the state we checkpoint 

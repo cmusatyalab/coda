@@ -10,15 +10,20 @@ TOPOBJ = @TOPOBJ@
 # Need to conditionalize this
 include $(MAKDIR)/Makeconf
 
-EXECUTABLES = mount unmount relay
-CSBINS = hello testudp
+EXECUTABLES = hello testudp selectme theabort
+CSBINS = hello testudp selectme
 
 hello: hello.o
 	$(CC) -o hello hello.o
 
+theabort: theabort.o
+	$(CC) -o theabort theabort.o
+
 testudp: testudp.o
 	$(CC) -o testudp testudp.o
 
+selectme: selectme.o
+	$(CC) -o selectme selectme.o
 
 include $(MAKDIR)/configs/Makerules
 

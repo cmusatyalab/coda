@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/volutil/volutil.cc,v 4.2 1997/02/26 16:04:15 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/volutil/volutil.cc,v 4.3 1998/04/14 21:00:43 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -82,7 +82,7 @@ extern void ViceTerminate();
 extern void ViceUpdateDB();
 extern void SwapLog();
 extern void SwapMalloc();
-extern int volUtil_ExecuteRequest(RPC2_Handle, RPC2_PacketBuffer*, SE_Descriptor*);
+extern long int volUtil_ExecuteRequest(RPC2_Handle, RPC2_PacketBuffer*, SE_Descriptor*);
 
 PRIVATE void InitServer();
 PRIVATE void VolUtilLWP(int *);

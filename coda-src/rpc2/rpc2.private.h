@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rpc2/rpc2.private.h,v 4.3 1998/05/07 17:23:52 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rpc2/rpc2.private.h,v 4.4 1998/05/27 20:29:11 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -464,10 +464,12 @@ extern void rpc2_ProcessPackets(), rpc2_ExpireEvents();
 
 /* Connection manipulation routines  */
 extern void rpc2_InitConn(), rpc2_FreeConn(), rpc2_SetConnError();
-extern struct CEntry *rpc2_AllocConn(), *rpc2_FindCEAddr(), *rpc2_ConnFromBindInfo(),
-	*rpc2_GetConn();
-extern bool rpc2_TestState();
-extern void rpc2_IncrementSeqNumber();
+extern struct CEntry *rpc2_AllocConn();
+struct CEntry *rpc2_FindCEAddr(RPC2_Handle whichHandle);
+struct CEntry *rpc2_ConnFromBindInfo(RPC2_HostIdent *whichHost, RPC2_PortalIdent *whichPortal, RPC2_Integer whichUnique);
+struct CEntry *rpc2_GetConn(RPC2_Handle handle);
+extern void rpc2_IncrementSeqNumber(struct CEntry *);
+/*  XXX where is this baby extern bool rpc2_TestState(); */
 
 /* Host manipulation routines */
 extern void rpc2_InitHost(), rpc2_FreeHost();

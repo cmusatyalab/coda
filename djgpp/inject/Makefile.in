@@ -7,11 +7,18 @@ srcdir = @srcdir@
 VPATH  = @srcdir@
 TOPOBJ = @TOPOBJ@
 
+# Need to conditionalize this
 include $(MAKDIR)/Makeconf
 
-HEADERS = errno.h
-SUBDIRS = relay tests inject
+EXECUTABLES = inject shreply
+CSBINS = inject shreply
 
+hello: inject.o
+	$(CC) -o inject inject.o
+
+testudp: shreply.o
+	$(CC) -o shreply shreply.o
 
 include $(MAKDIR)/configs/Makerules
+
 

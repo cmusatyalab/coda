@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/vproc.h,v 4.17 1998/04/14 21:03:14 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/vproc.h,v 4.18 1998/05/15 01:23:35 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -338,14 +338,31 @@ extern void va_init(struct coda_vattr *);
 extern void VattrToStat(struct coda_vattr *, struct stat *);
 extern long FidToNodeid(ViceFid *);
 
+/* Explanation: 
+   CRTOEUID is only used by HDBD_Request (hdb_deamon.cc)
+   and allows root to always make hoard requests
+  
+   For all filesystem use CRTORUID is used: for Linux we definitely want to 
+   fsuid to be used for filesystem access.  This however breaks the old AFS
+   semantics that if an "su" is performed you retain tokens.
 
-/* vnodes in BSD44 don't seem to store effective user & group ids.  So just
-   coerce everything to uid */
+   To make things more complicated, reintegration and resolve (which
+   is in fact repair :) ) use the coda_cred's directly. 
+   XXXXX Let's straighten this out. (pjb/jh)
+
+
+*/
 
 #ifdef __linux__
+
 #define	CRTOEUID(cred)	((vuid_t)((cred).cr_euid))
-#define	CRTORUID(cred)	((vuid_t)((cred).cr_uid))
+#define	CRTORUID(cred)	((vuid_t)((cred).cr_fsuid))
 #else
+/* XXX BSD needs to think through what they want!!!! 
+   The current behaviour has "AFS semantics" but allows no
+   fileserver to access Coda (since since it will come in with 
+   ruid 0 (at least for samba, nfs etc). */
+
 #define	CRTOEUID(cred)	((vuid_t)((cred).cr_uid))
 #define	CRTORUID(cred)	((vuid_t)((cred).cr_uid))
 #endif

@@ -92,13 +92,21 @@ endif
 #####################
 installclient: c_bin_install c_sbin_install
 
-c_bin_install: $(CBINS) 
-ifdef CBINS
+ifeq ($(host_alias),windows95)
+TARGETCBINS := $(CBINS:%=%.exe)
+TARGETCSBINS := $(CSBINS:%=%.exe)
+else
+TARGETCBINS := $(CBINS)
+TARGETCSBINS := $(CSBINS)
+endif
+
+c_bin_install: $(TARGETCBINS) 
+ifdef TARGETCBINS
 	$(TOPDIR)/tools/our-install 755 $(BINDIR) $?
 endif
 
-c_sbin_install: $(CSBINS)
-ifdef CSBINS
+c_sbin_install: $(TARGETCSBINS)
+ifdef TARGETCSBINS
 	$(TOPDIR)/tools/our-install 755 $(SBINDIR) $?
 endif
 
@@ -205,6 +213,12 @@ show showvar:
 	@echo  RP2GEN: $(RP2GEN)
 	@echo  RP2FILES:    $(RP2FILES)
 	@echo  RP2HEADERS:  $(RP2HEADERS)
+	@echo  CBINS: $(CBINS)
+	@echo  TARGETCBINS: $(TARGETCBINS)	
+	@echo  CSBINS: $(CSBINS)
+	@echo  TARGETCSBINS: $(TARGETCSBINS)
+	@echo  host: $(host)
+	@echo  host_alias: $(host_alias)
 
 ##################
 # linting

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rpc2/rpc2a.c,v 4.5 1998/05/15 01:23:13 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rpc2/rpc2a.c,v 4.6 1998/06/04 22:38:05 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -896,42 +896,42 @@ PRIVATE int InvokeSE(long CallType, RPC2_Handle ConnHandle,
     return(rc);
 }
 
-long RPC2_Unbind(whichConn)
-    RPC2_Handle whichConn;
-    {
-    register struct CEntry *ce;
-    register struct MEntry *me;
-
-    say(0, RPC2_DebugLevel, "RPC2_Unbind()\n");
-
+long RPC2_Unbind(RPC2_Handle whichConn)
+{
+	register struct CEntry *ce;
+	register struct MEntry *me;
+	
+	say(0, RPC2_DebugLevel, "RPC2_Unbind()\n");
+	
 #ifdef RPC2DEBUG
-    TR_UNBIND();
+	TR_UNBIND();
 #endif RPC2DEBUG
 
-    rpc2_Enter();
-    rpc2_Unbinds++;
+	rpc2_Enter();
+	rpc2_Unbinds++;
 
-    ce = rpc2_GetConn(whichConn);
-    if (ce == NULL) rpc2_Quit(RPC2_NOCONNECTION);
-    if (TestState(ce, CLIENT, ~(C_THINK|C_HARDERROR)) ||
-    	TestState(ce, SERVER, ~(S_AWAITREQUEST|S_REQINQUEUE|S_PROCESS|S_HARDERROR)) ||
-	(ce->MySl != NULL && ce->MySl->ReturnCode != WAITING))
-	{
-	rpc2_Quit(RPC2_CONNBUSY);
+	ce = rpc2_GetConn(whichConn);
+	if (ce == NULL) 
+		rpc2_Quit(RPC2_NOCONNECTION);
+	if (TestState(ce, CLIENT, ~(C_THINK|C_HARDERROR)) ||
+	    TestState(ce, SERVER, ~(S_AWAITREQUEST|S_REQINQUEUE|S_PROCESS|S_HARDERROR)) ||
+	    (ce->MySl != NULL && ce->MySl->ReturnCode != WAITING)) {
+		rpc2_Quit(RPC2_CONNBUSY);
 	}
 
-    if (ce->SEProcs != NULL && ce->SEProcs->SE_Unbind != NULL)
-	{/* Call side effect routine and ignore return code */
-	(*ce->SEProcs->SE_Unbind)(whichConn);
+	/* Call side effect routine and ignore return code */
+	if (ce->SEProcs != NULL && ce->SEProcs->SE_Unbind != NULL) {
+		(*ce->SEProcs->SE_Unbind)(whichConn);
 	}
+	
+	/* Remove ourselves from our Mgrp if we have one. */
+	me = ce->Mgrp;
+	if (me != NULL) 
+		rpc2_RemoveFromMgrp(me, ce);
 
-    /* Remove ourselves from our Mgrp if we have one. */
-    me = ce->Mgrp;
-    if (me != NULL) rpc2_RemoveFromMgrp(me, ce);
-
-    rpc2_FreeConn(whichConn);
-    rpc2_Quit(RPC2_SUCCESS);
-    }
+	rpc2_FreeConn(whichConn);
+	rpc2_Quit(RPC2_SUCCESS);
+}
 
 
 int rpc2_time()
