@@ -21,6 +21,10 @@ Coda are listed in the file CREDITS.
 #include "rvm_segment.h"
 #include "rvm_segment_private.h"
 
+/* Global variables */
+
+extern rvm_bool_t rvm_map_private;  /* Do we map private or not. */
+
 /* Here's a hack to help debug the file server -- save the amount of space
  * mapped in so the file server can dump it out again. -- Just a hack.
  */
@@ -53,14 +57,19 @@ rvm_load_segment(char *DevName, rvm_offset_t DevLength, rvm_options_t *options,
     hdr_region->vmaddr = 0;
 
     hdr_region->vmaddr = NULL;
-    err = allocate_vm(&(hdr_region->vmaddr), hdr_region->length);
-    if (err != RVM_SUCCESS)
-	return err;
+    if (!rvm_map_private) {
+        err = allocate_vm(&(hdr_region->vmaddr), hdr_region->length);
+	if (err != RVM_SUCCESS)
+	    return err;
+    } else 
+      if (!rvm_register_page(hdr_region->vmaddr, hdr_region->length))
+	return RVM_EINTERNAL;
+    
     
     err = rvm_map(hdr_region,options);
     if (err != RVM_SUCCESS)
-	return err; 	/* Some error condition exists, return the error code */
-    
+	return err;    /* Some error condition exists, return the error code */
+
     hdrp = (rvm_segment_hdr_t *)(hdr_region->vmaddr);
 
     /* Make sure struct_id is correct */
@@ -92,16 +101,20 @@ rvm_load_segment(char *DevName, rvm_offset_t DevLength, rvm_options_t *options,
 	    region->vmaddr = (*regions)[i].vmaddr = hdrp->regions[i].vmaddr;
 
 	    /* HACK */ rds_rvmsize += region->length; /* HACK */
-	    
-	    err = allocate_vm(&(region->vmaddr), region->length);
-	    if (err != RVM_SUCCESS)
-		return err;
+
+	    if (!rvm_map_private) {
+	        err = allocate_vm(&(region->vmaddr), region->length);
+		if (err != RVM_SUCCESS)
+		    return err;
+	    } else 
+	      if (!rvm_register_page(region->vmaddr, region->length))
+		return RVM_EINTERNAL;
 
 	    err = rvm_map(region, options);
 	    if (err != RVM_SUCCESS)
 		return err; 	/* Some error condition exists, abort */
-
-	}
+	    
+ 	}
 
     /* Clean up, we no longer need the header region */
     switch (err = rvm_unmap(hdr_region)) {

@@ -46,7 +46,9 @@ extern rvm_length_t trans_elims_vec[trans_elims_len]; /* ranges eliminated by tr
 rvm_length_t        trans_coalesces_vec[trans_coalesces_len]; /* transactions
                                                                  coalesed per flush */
 
-rvm_length_t        rvm_optimizations;  /* optimizations switches */
+rvm_length_t        rvm_optimizations = 0;  /* optimizations switches */
+
+rvm_bool_t	    rvm_map_private = 0;  /* Do we map private or not. */
 
 /* version strings */
 char                rvm_version[RVM_VERSION_MAX] =
@@ -131,7 +133,11 @@ rvm_return_t do_rvm_options(rvm_options)
         rvm_optimizations = rvm_options->flags & (RVM_ALL_OPTIMIZATIONS);
         if (rvm_optimizations & RVM_COALESCE_TRANS)
             rvm_optimizations |= RVM_COALESCE_RANGES;
+	
+	/* set mapping kind */
+	rvm_map_private = rvm_options->flags & RVM_MAP_PRIVATE;
         }
+
 
     return RVM_SUCCESS;
     }
@@ -251,7 +257,7 @@ err_exit:;
         }
 
     /* return non-log options */
-    rvm_options->flags = rvm_optimizations;
+    rvm_options->flags = rvm_optimizations | rvm_map_private;
     rvm_options->max_read_len = rvm_max_read_len;
 
     return retval;

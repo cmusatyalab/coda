@@ -52,6 +52,7 @@ Coda are listed in the file CREDITS.
 extern log_t        *default_log;       /* default log descriptor ptr */
 extern int          errno;              /* kernel error number */
 extern rvm_bool_t   rvm_no_update;      /* no segment or log update if true */
+extern rvm_bool_t   rvm_map_private;    /* Do we want to map private? */
 extern char         *rvm_errmsg;        /* internal error message buffer */
 
 /* root of segment list and region tree */
@@ -1004,6 +1005,8 @@ rvm_return_t rvm_map(rvm_region,rvm_options)
     mem_region_t        *mem_region= NULL; /* new region's tree node */
     rvm_return_t        retval; 
     rvm_region_t        save_rvm_region;
+    int fd;				   /* For private mappings */
+    void *addr;
 
     /* preliminary checks & saves */
     if (bad_init()) return RVM_EINIT;
@@ -1037,12 +1040,39 @@ rvm_return_t rvm_map(rvm_region,rvm_options)
        for truncation dependencies, and enter region in map_list */
     if ((retval=chk_dependencies(seg,region)) != RVM_SUCCESS)
         goto err_exit;
-    /* get the data from the segment */
-    if ((retval = map_data(rvm_options,region)) != RVM_SUCCESS)
+    
+    /* Do the private map or get the data from the segment */
+    if (rvm_map_private)
         {
-        rvm_region->length = 0;
-        goto err_exit;
-        }
+	fd = open(rvm_region->data_dev, O_RDONLY);
+	if ( fd < 0 )
+	    {
+	    retval = RVM_EIO;
+	    goto err_exit;
+	    }
+	addr = mmap(rvm_region->vmaddr, rvm_region->length, 
+		    PROT_READ | PROT_WRITE, MAP_FIXED | MAP_PRIVATE, 
+		    fd, region->offset.low);
+	if (rvm_region->vmaddr && addr != rvm_region->vmaddr)
+	    {
+	    retval = RVM_ENOT_MAPPED;
+	    goto err_exit;
+	    }
+	if (close(fd))
+	    {
+	    retval =  RVM_EIO;
+	    goto err_exit;
+	    }
+	}
+    else
+        {
+        /* get the data from the segment */
+        if ((retval = map_data(rvm_options,region)) != RVM_SUCCESS)
+            {
+            rvm_region->length = 0;
+            goto err_exit;
+            }
+	}
 
     /* complete region tree node and exit*/
     mem_region->region = region;
