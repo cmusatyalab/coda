@@ -1,12 +1,18 @@
+coda (5.3.11-1) experimental; urgency=low
+
+  * New release, merging debian stuff into tarball.
+
+ -- Jan Harkes <jaharkes@cs.cmu.edu>  Fri, 12 Jan 2001 15:36:49 -0500
+
 coda (5.3.10-1) experimental; urgency=low
 
-  * New upstream release
+  * New release
 
  -- Jan Harkes <jaharkes@motet.coda.cs.cmu.edu>  Fri,  6 Oct 2000 15:53:10 -0400
 
 coda (5.3.9-1) experimental; urgency=low
 
-  * New upstream release
+  * New release
 
  -- Jan Harkes <jaharkes@motet.coda.cs.cmu.edu>  Tue,  3 Oct 2000 18:38:07 -0400
 
