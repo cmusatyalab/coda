@@ -1023,8 +1023,10 @@ static int SendSendAhead(struct SFTP_Entry *sEntry)
 	struct CEntry		*thisce;
 	int			host;
 
-	assert((me = rpc2_GetMgrp(&rpc2_LocalHost, &rpc2_LocalPort, sEntry->PInfo.RemoteHandle, CLIENT)) != NULL);
-	assert((mse = (struct SFTP_Entry *)me->SideEffectPtr) != NULL);
+	me = rpc2_GetMgrp(NULL, sEntry->PInfo.RemoteHandle, CLIENT);
+	assert(me);
+	mse = (struct SFTP_Entry *)me->SideEffectPtr;
+	assert(mse);
 	assert(mse == sEntry);			/* paranoia */
 
 	for (host = 0; host < me->howmanylisteners; host++)
@@ -1103,8 +1105,10 @@ int sftp_ReadStrategy(struct SFTP_Entry *sEntry)
 	SE_Descriptor		*thisdesc;
 	int			host;
 
-	assert((me = rpc2_GetMgrp(&rpc2_LocalHost, &rpc2_LocalPort, sEntry->PInfo.RemoteHandle, CLIENT)) != NULL);
-	assert((mse = (struct SFTP_Entry *)me->SideEffectPtr) != NULL);
+	me = rpc2_GetMgrp(NULL, sEntry->PInfo.RemoteHandle, CLIENT);
+	assert(me);
+	mse = (struct SFTP_Entry *)me->SideEffectPtr;
+	assert(mse);
 	assert(mse == sEntry);			/* paranoia */
 
 	for (host = 0; host < me->howmanylisteners; host++)

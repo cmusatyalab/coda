@@ -99,7 +99,7 @@ static long DontFailPacket(predicate, pb, addr, sock)
     }
 
 void rpc2_XmitPacket(IN long whichSocket, IN RPC2_PacketBuffer *whichPB,
-		     IN RPC2_HostIdent *whichHost, IN RPC2_PortIdent *whichPort)
+		     IN struct rpc2_addrinfo *addr)
 {
     int n;
 
@@ -109,9 +109,7 @@ void rpc2_XmitPacket(IN long whichSocket, IN RPC2_PacketBuffer *whichPB,
     if (RPC2_DebugLevel > 9)
 	{
 	fprintf(rpc2_logfile, "\t");
-	rpc2_PrintHostIdent(whichHost, 0);
-	fprintf(rpc2_logfile, "    ");
-	rpc2_PrintPortIdent(whichPort, 0);
+	rpc2_printaddrinfo(addr, 0);
 	fprintf(rpc2_logfile, "\n");
 	rpc2_PrintPacketHeader(whichPB, 0);
 	}
@@ -123,87 +121,46 @@ void rpc2_XmitPacket(IN long whichSocket, IN RPC2_PacketBuffer *whichPB,
 
     /* Only Internet for now; no name->number translation attempted */
 
-    switch(whichHost->Tag)
-	{
-	case RPC2_HOSTBYINETADDR:
-	case RPC2_MGRPBYINETADDR:
-	    {
-#ifdef CODA_IPV6
-            struct sockaddr_in *sa;
-	    
-	    assert(whichPort->Tag == RPC2_PORTBYINETNUMBER);
-	    sa = (struct sockaddr_in *) whichHost->Value.AddrInfo->ai_addr;
-	    sa->sin_port = whichPort->Value.InetPortNumber; /* In network order */
-#else /* CODA_IPV6 */
-	    struct sockaddr_in sa;
+    if (ntohl(whichPB->Header.Flags) & RPC2_MULTICAST)
+    {
+	rpc2_MSent.Total++;
+	rpc2_MSent.Bytes += whichPB->Prefix.LengthOfPacket;
+    }
+    else
+    {
+	rpc2_Sent.Total++;
+	rpc2_Sent.Bytes += whichPB->Prefix.LengthOfPacket;
+    }
 
-	    assert(whichPort->Tag == RPC2_PORTBYINETNUMBER);
+#warning "dontfailpacket only expects ipv4"
+    if (!DontFailPacket(Fail_SendPredicate, whichPB, addr->ai_addr,whichSocket))
+	return;
 
-	    sa.sin_family = AF_INET;
-	    sa.sin_addr.s_addr = whichHost->Value.InetAddress.s_addr;	/* In network order */
-	    sa.sin_port = whichPort->Value.InetPortNumber; /* In network order */
-#endif /* CODA_IPV6 */
-
-	    if (ntohl(whichPB->Header.Flags) & RPC2_MULTICAST)
-		{
-		rpc2_MSent.Total++;
-		rpc2_MSent.Bytes += whichPB->Prefix.LengthOfPacket;
-		}
-	    else
-		{
-		rpc2_Sent.Total++;
-		rpc2_Sent.Bytes += whichPB->Prefix.LengthOfPacket;
-		}
-
-	    if (DontFailPacket(Fail_SendPredicate, whichPB, &sa, whichSocket))
-		{
-#ifdef CODA_IPV6
-                n = sendto(whichSocket, &whichPB->Header,
-                           whichPB->Prefix.LengthOfPacket, 0,
-                           whichHost->Value.AddrInfo->ai_addr,
-			   whichHost->Value.AddrInfo->ai_addrlen);
-#else /* CODA_IPV6 */
-                n = sendto(whichSocket, &whichPB->Header,
-                           whichPB->Prefix.LengthOfPacket, 0,
-                           (struct sockaddr *)&sa, sizeof(struct sockaddr_in));
-#endif /* CODA_IPV6 */
+    n = sendto(whichSocket, &whichPB->Header, whichPB->Prefix.LengthOfPacket, 0,
+	       addr->ai_addr, addr->ai_addrlen);
 
 #ifdef __linux__
-                if ((n == -1) && (errno == ECONNREFUSED))
-                {
-		    /* On linux ECONNREFUSED is a result of a previous sendto
-		     * triggering an ICMP bad host/port response. This
-		     * behaviour seems to be required by RFC1122, but in
-		     * practice this is not implemented by other UDP stacks.
-		     * We retry the send, because the failing host was possibly
-		     * not the one we tried to send to this time. --JH
-                     */
-#ifdef CODA_IPV6
-                    n = sendto(whichSocket, &whichPB->Header,
-                               whichPB->Prefix.LengthOfPacket, 0,
-			       whichHost->Value.AddrInfo->ai_addr,
-                               whichHost->Value.AddrInfo->ai_addrlen);
-#else /* CODA_IPV6 */
-                    n = sendto(whichSocket, &whichPB->Header,
-                               whichPB->Prefix.LengthOfPacket, 0,
-                               (struct sockaddr *)&sa,
-                               sizeof(struct sockaddr_in));
-#endif /* CODA_IPV6 */
-                }
+    if (n == -1 && errno == ECONNREFUSED)
+    {
+	/* On linux ECONNREFUSED is a result of a previous sendto
+	 * triggering an ICMP bad host/port response. This
+	 * behaviour seems to be required by RFC1122, but in
+	 * practice this is not implemented by other UDP stacks.
+	 * We retry the send, because the failing host was possibly
+	 * not the one we tried to send to this time. --JH
+	 */
+	n = sendto(whichSocket, &whichPB->Header,
+		   whichPB->Prefix.LengthOfPacket, 0,
+		   addr->ai_addr, addr->ai_addrlen);
+    }
 #endif
 
-		if (n != whichPB->Prefix.LengthOfPacket)
-		    {
-		    char msg[100];
-		    (void) sprintf(msg, "Xmit_Packet socket %ld, errno %d", whichSocket, errno);
-		    if (RPC2_Perror) perror(msg);
-		    }
-	        }
-	    }
-	    break;
-	    
-	default: assert(FALSE);
-	}
+    if (RPC2_Perror && n != whichPB->Prefix.LengthOfPacket)
+    {
+	char msg[100];
+	sprintf(msg, "Xmit_Packet socket %ld", whichSocket);
+	perror(msg);
+    }
 }
 
 /* Reads the next packet from whichSocket into whichBuff, sets its
@@ -218,12 +175,7 @@ long rpc2_RecvPacket(IN long whichSocket, OUT RPC2_PacketBuffer *whichBuff)
 {
     long rc, len;
     int fromlen;
-#ifdef CODA_IPV6
     struct sockaddr_storage sa;
-    struct sockaddr_in *saip = (struct sockaddr_in *)&sa;
-#else /* CODA_IPV6 */
-    struct sockaddr_in sa;
-#endif /* CODA_IPV6 */
 
     say(0, RPC2_DebugLevel, "rpc2_RecvPacket()\n");
     assert(whichBuff->Prefix.MagicNumber == OBJ_PACKETBUFFER);
@@ -241,46 +193,9 @@ long rpc2_RecvPacket(IN long whichSocket, OUT RPC2_PacketBuffer *whichBuff)
 	    return(-1);
     }
 
-#ifdef CODA_IPV6
-    /* do we really need to zero these? */
-    memset(&whichBuff->Prefix.PeerHost, 0, sizeof(RPC2_HostIdent));
-    memset(&whichBuff->Prefix.PeerPort, 0, sizeof(RPC2_PortIdent));
 
-    whichBuff->Prefix.PeerHost.Tag = RPC2_HOSTBYINETADDR;
-    whichBuff->Prefix.PeerPort.Tag = RPC2_PORTBYINETNUMBER;
-    /* XXX this isn't the correct way to get this, I'm sure */
-    whichBuff->Prefix.PeerPort.Value.InetPortNumber = saip->sin_port;
-
-    if (!whichBuff->Prefix.PeerHost.Value.AddrInfo) {
-	whichBuff->Prefix.PeerHost.Value.AddrInfo = malloc(sizeof(struct addrinfo));
-	if (!whichBuff->Prefix.PeerHost.Value.AddrInfo) {
-	    say(10, RPC2_DebugLevel, "Error in recvf from: errno = %d\n", errno);
-	    return(-1);
-	}
-	memset(whichBuff->Prefix.PeerHost.Value.AddrInfo,0,sizeof(struct addrinfo));
-    }
-    if (!whichBuff->Prefix.PeerHost.Value.AddrInfo->ai_addr) {
-	whichBuff->Prefix.PeerHost.Value.AddrInfo->ai_addr = malloc(sizeof(sa));
-	if (!whichBuff->Prefix.PeerHost.Value.AddrInfo->ai_addr) {
-	    say(10, RPC2_DebugLevel, "Error in recvf from: errno = %d\n", errno);
-	    return(-1);
-	}
-	memcpy(whichBuff->Prefix.PeerHost.Value.AddrInfo->ai_addr,
-	       &sa, fromlen);
-	whichBuff->Prefix.PeerHost.Value.AddrInfo->ai_addrlen = fromlen;
-    }
-    /* XXX I hope that this doesn't conflict with an addrinfo allocation.
-       I'm not sure enough on how the operation works... */
-#else /* CODA_IPV6 */
-    /* do we really need to zero these? */
-    memset(&whichBuff->Prefix.PeerHost, 0, sizeof(RPC2_HostIdent));
-    memset(&whichBuff->Prefix.PeerPort, 0, sizeof(RPC2_PortIdent));
-
-    whichBuff->Prefix.PeerHost.Tag = RPC2_HOSTBYINETADDR;
-    whichBuff->Prefix.PeerHost.Value.InetAddress.s_addr = sa.sin_addr.s_addr;
-    whichBuff->Prefix.PeerPort.Tag = RPC2_PORTBYINETNUMBER;
-    whichBuff->Prefix.PeerPort.Value.InetPortNumber = sa.sin_port;
-#endif /* CODA_IPV6 */
+    whichBuff->Prefix.PeerAddr =
+	rpc2_allocaddrinfo((struct sockaddr *)&sa, fromlen);
 
     TR_RECV();
 
@@ -554,7 +469,7 @@ long rpc2_SendReliably(IN Conn, IN Sle, IN Packet, IN TimeOut)
     say(9, RPC2_DebugLevel, "Sending try at %d on 0x%lx (timeout %ld.%06ld)\n", 
 			     rpc2_time(), Conn->UniqueCID,
 			     ThisRetryBeta[1].tv_sec, ThisRetryBeta[1].tv_usec);
-    rpc2_XmitPacket(rpc2_RequestSocket, Packet, &Conn->PeerHost, &Conn->PeerPort);
+    rpc2_XmitPacket(rpc2_RequestSocket, Packet, Conn->HostInfo->Addr);
 
     if (rpc2_Bandwidth) rpc2_ResetLowerLimit(Conn, Packet);
 
@@ -612,7 +527,8 @@ long rpc2_SendReliably(IN Conn, IN Sle, IN Packet, IN TimeOut)
 		if (TestRole(Conn, CLIENT))   /* restamp retries if client */
 		    Packet->Header.TimeStamp = htonl(rpc2_MakeTimeStamp());
 		rpc2_Sent.Retries += 1;
-		rpc2_XmitPacket(rpc2_RequestSocket, Packet, &Conn->PeerHost, &Conn->PeerPort);
+		rpc2_XmitPacket(rpc2_RequestSocket, Packet,
+				Conn->HostInfo->Addr);
 		break;	/* switch */
 		
 	    default: assert(FALSE);
@@ -633,12 +549,6 @@ long rpc2_SendReliably(IN Conn, IN Sle, IN Packet, IN TimeOut)
 /* For converting packet headers to/from network order */
 void rpc2_htonp(RPC2_PacketBuffer *p)
 {
-#ifdef CODA_IPV6
-  /*
-   * Actually, the test for endianness shouldn't be necessary -- most
-   * implementations make these nops on the right machines.
-   */
-#endif /* CODA_IPV6 */
 	p->Header.ProtoVersion = htonl(p->Header.ProtoVersion);
 	p->Header.RemoteHandle = htonl(p->Header.RemoteHandle);
 	p->Header.LocalHandle = htonl(p->Header.LocalHandle);
@@ -684,8 +594,7 @@ void rpc2_InitPacket(RPC2_PacketBuffer *pb, struct CEntry *ce, long bodylen)
 	pb->Header.Lamport	= RPC2_LamportTime();
 	pb->Header.BodyLength   = bodylen;
 	pb->Prefix.LengthOfPacket = sizeof(struct RPC2_PacketHeader) + bodylen;
-	memset(&pb->Prefix.PeerHost, 0, sizeof(RPC2_HostIdent));
-	memset(&pb->Prefix.PeerPort, 0, sizeof(RPC2_PortIdent));
+	//pb->Prefix.PeerAddr   = NULL;
 	memset(&pb->Prefix.RecvStamp, 0, sizeof(struct timeval));
 	if (ce)	{
 		pb->Header.RemoteHandle = ce->PeerHandle;

@@ -5,7 +5,7 @@ AC_PREREQ(2.50)
 AC_INIT
 AC_CONFIG_SRCDIR(rpc2-src/rpc2.private.h)
 CODA_SETUP_BUILD
-AM_INIT_AUTOMAKE(rpc2, 1.15)
+AM_INIT_AUTOMAKE(rpc2, 1.16)
 AM_CONFIG_HEADER(config.h)
 
 dnl For library version updates, follow these steps in order.
@@ -14,7 +14,7 @@ dnl - when interfaces were added/removed changed, increment second and set
 dnl   first to 0
 dnl - if any interfaces were added, increment third
 dnl - if any interfaces were removed, set third to 0
-CODA_LIBRARY_VERSION(5, 4, 1)
+CODA_LIBRARY_VERSION(0, 5, 2)
 
 CODA_OPTION_LWP
 
@@ -37,7 +37,7 @@ dnl Checks for libraries.
 CODA_FIND_LIB(lwp, [#include <lwp/lwp.h>], [LWP_Init(0,0,0)])
 CODA_CHECK_LIBTERMCAP
 CODA_CHECK_READLINE
-AC_SEARCH_LIBS(inet_ntoa, nsl)
+dnl AC_SEARCH_LIBS(inet_ntoa, nsl)
 AC_SEARCH_LIBS(socket, socket)
 
 dnl For playing with the _pt version...
@@ -54,7 +54,7 @@ AC_SUBST(LIBLWP)
 AC_SUBST(LIBPTHREAD)
 
 dnl Checks for header files.
-AC_CHECK_HEADERS(sys/stream.h arpa/inet.h arpa/nameser.h)
+AC_CHECK_HEADERS(sys/stream.h arpa/inet.h arpa/nameser.h netdb.h)
 
 dnl Checks for typedefs.
 
@@ -62,7 +62,7 @@ dnl Checks for compiler characteristics.
 CODA_DARWIN_BROKEN_CPP_WORKAROUND
 
 dnl Checks for library functions.
-AC_CHECK_FUNCS(inet_aton inet_ntoa ffs iopen)
+AC_CHECK_FUNCS(ffs iopen)
 AC_FUNC_SELECT_ARGTYPES
 
 dnl Checks for system services.

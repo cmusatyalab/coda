@@ -53,13 +53,37 @@ Pittsburgh, PA.
 #include <arpa/inet.h>
 #endif
 
-#ifndef HAVE_INET_ATON
-int inet_aton(const char *str, struct in_addr *out);
-#endif
+/* struct addrinfo wrappers, by using our own versions we can support systems
+ * that don't have these useful functions yet and can avoid allocation problems
+ * when copying the struct around. But to simplify things we should definitely
+ * try to keep the layout identical if the system already has getaddrinfo. */
+struct rpc2_addrinfo {
+    int ai_flags;
+    int ai_family;
+    int ai_socktype;
+    int ai_protocol;
+    size_t ai_addrlen;
+    struct sockaddr *ai_addr;
+    char *ai_canonname;
+    struct rpc2_addrinfo *ai_next;
+};
 
-#ifndef HAVE_INET_NTOA
-char *inet_ntoa(struct in_addr ip);
-#endif
+/* These functions match their non RPC2_ counterparts */
+int RPC2_getaddrinfo(const char *node, const char *service,
+		     const struct rpc2_addrinfo *hints,
+		     struct rpc2_addrinfo **res);
+int RPC2_freeaddrinfo(struct rpc2_addrinfo *res);
+const char *RPC2_gai_strerror(int errcode);
+
+/* copyaddrinfo is in my opinion missing from the getaddrinfo suite */
+/* cmpaddrinfo tests whether 'host' matches any of the entries in 'node' */
+struct rpc2_addrinfo *RPC2_copyaddrinfo(struct rpc2_addrinfo *node);
+int RPC2_cmpaddrinfo(struct rpc2_addrinfo *node, struct rpc2_addrinfo *host);
+
+/* this one is not really interface compatible with inet_ntop, but we don't
+ * need a generic solution (and we could add portnumbers to the output) */
+#define RPC2_ADDRSTRLEN (46 + 1 + 10 + 1) /* inet6 addr + : + portnumber + \0 */
+void RPC2_ntop(struct rpc2_addrinfo *host, char *buf, size_t buflen);
 
 
 /* This string is used in RPC initialization calls to ensure that the
@@ -222,12 +246,13 @@ System Limits
 
 /* Host, Mgrp, Port and Subsys Representations */
 
-typedef	enum {RPC2_HOSTBYNAME = 39, RPC2_HOSTBYINETADDR = 17, 
-	      RPC2_DUMMYHOST=88888} HostTag;
+typedef	enum {RPC2_HOSTBYNAME = 39, RPC2_HOSTBYINETADDR = 17,
+	      RPC2_HOSTBYADDRINFO = 6, RPC2_DUMMYHOST=88888} HostTag;
 typedef	enum {RPC2_PORTBYINETNUMBER = 53, RPC2_PORTBYNAME = 64, 
 	      RPC2_DUMMYPORT = 99999} PortTag;
 typedef enum {RPC2_SUBSYSBYID = 71, RPC2_SUBSYSBYNAME = 84} SubsysTag;
-typedef	enum {RPC2_MGRPBYINETADDR = 111, RPC2_MGRPBYNAME = 137} MgrpTag;
+typedef	enum {RPC2_MGRPBYINETADDR = 113, RPC2_MGRPBYADDRINFO = 121,
+	      RPC2_MGRPBYNAME = 137, RPC2_DUMMYMGRP = 77777} MgrpTag;
 
 /*
 Global variables for debugging:
@@ -333,11 +358,8 @@ typedef
 	HostTag Tag;
 	union
 	    {
-#ifdef CODA_IPV6
-		struct addrinfo *AddrInfo; /* includes sockaddr, which includes port */
-#else /* CODA_IPV6 */
+	    struct rpc2_addrinfo *AddrInfo; /* includes sockaddr, which includes port */
 	    struct in_addr InetAddress;	/* NOTE: in network order, not host order */
-#endif /* CODA_IPV6 */
 	    char Name[64];	/* minimum length for use with domain names */
 	    }
 	    Value;
@@ -377,11 +399,8 @@ typedef
 	MgrpTag Tag;
 	union
 	    {
-#ifdef CODA_IPV6
-		struct addrinfo *AddrInfo; /* includes sockaddr, which includes port */
-#else /* CODA_IPV6 */
+	    struct rpc2_addrinfo *AddrInfo; /* includes sockaddr, which includes port */
 	    struct in_addr InetAddress;	/* NOTE: in network order, not host order */
-#endif /* CODA_IPV6 */
 	    char	    Name[64];	    /* minimum length for use with domain names */
 	    }
 	    Value;
@@ -429,8 +448,9 @@ typedef struct RPC2_PacketBuffer {
 	long Line;
 
 	/* these fields are set when we receive the packet. */
-	RPC2_HostIdent		PeerHost;
-	RPC2_PortIdent		PeerPort;
+	struct rpc2_addrinfo	*PeerAddr;
+	char   oldhostandport[88]; /* padding to keep the userspace interface
+				      mostly identical */
 	struct timeval		RecvStamp;
     } Prefix;
 

@@ -80,13 +80,8 @@ of the Coda License.
    We hash on the low bytes of the host address (in network order) */
  
 #define HOSTHASHBUCKETS 64
-#ifdef CODA_IPV6
 /* try to grab the low-order 8 bits, assuming all are stored big endian */
 #define HASHHOST(h) (((h)->ai_addr->sa_data[(h)->ai_addrlen-1]) & (HOSTHASHBUCKETS-1))
-#else /* CODA_IPV6 */
-#define HASHHOST(h) ((((h)->s_addr & 0xff000000) >> 24) & (HOSTHASHBUCKETS-1))
-#endif /* CODA_IPV6 */
-                                        /* mod HOSTHASHBUCKETS */
 static struct HEntry **HostHashTable;	/* malloc'ed hash table static size */
 
 void rpc2_InitHost()
@@ -96,92 +91,60 @@ void rpc2_InitHost()
 	memset(HostHashTable, 0, HOSTHASHBUCKETS*sizeof(struct HEntry *));	
 }
 
-/* Returns pointer to the host entry corresponding to hostid
-   Returns NULL if host does not exist.  */
-#ifdef CODA_IPV6
-struct HEntry *rpc2_FindHEAddr(IN struct addrinfo *whichHost)
-#else /* CODA_IPV6 */
-struct HEntry *rpc2_FindHEAddr(IN struct in_addr *whichHost)
-#endif /* CODA_IPV6 */
+/* Returns pointer to the host entry corresponding to addr. Addr should point
+ * at only a single addrinfo structure. */
+struct HEntry *rpc2_GetHost(struct rpc2_addrinfo *addr)
 {
-	long bucket;
-	struct HEntry *headdr;
-	
-	if (whichHost == 0)
-		return(NULL);
+    struct HEntry *he;
+    long bucket;
 
-	bucket = HASHHOST(whichHost);
-	headdr = HostHashTable[bucket];
-	while (headdr)  {
-#ifdef CODA_IPV6
-		if (headdr->Host.ai_family == whichHost->ai_family &&
-		    headdr->Host.ai_addrlen == whichHost->ai_addrlen &&
-		    (!memcmp(headdr->Host.ai_addr,whichHost->ai_addr,
-			     headdr->Host.ai_addrlen)))
-#else /* CODA_IPV6 */
-		if (headdr->Host.s_addr == whichHost->s_addr)
-#endif /* CODA_IPV6 */
-			return(headdr);
-		headdr = headdr->HLink;
+    if (!addr)
+	return NULL;
+
+    assert(addr->ai_next == NULL);
+    bucket = HASHHOST(addr);
+    he = HostHashTable[bucket];
+
+    for (; he; he = he->HLink) {
+	if (RPC2_cmpaddrinfo(he->Addr, addr)) {
+	    assert(he->MagicNumber == OBJ_HENTRY);
+	    he->RefCount++;
+	    return(he);
 	}
-	
-	return(NULL);
-}
+    }
 
+    /* failed to find a pre-existing entry, allocate a new one */
+    if (rpc2_HostFreeCount == 0)
+	rpc2_Replenish(&rpc2_HostFreeList, &rpc2_HostFreeCount,
+		       sizeof(struct HEntry), &rpc2_HostCreationCount,
+		       OBJ_HENTRY);
 
-struct HEntry *rpc2_GetHost(RPC2_HostIdent *host)
-{
-	struct HEntry *he;
-#ifdef CODA_IPV6
-	he = rpc2_FindHEAddr(host->Value.AddrInfo);
-#else /* CODA_IPV6 */
-	he = rpc2_FindHEAddr(&host->Value.InetAddress);
-#endif /* CODA_IPV6 */
-	assert(!he || he->MagicNumber == OBJ_HENTRY);
-	return(he);
-}
+    he = (struct HEntry *)rpc2_MoveEntry(&rpc2_HostFreeList,
+					 &rpc2_HostList,
+					 (struct HEntry *)NULL,
+					 &rpc2_HostFreeCount,
+					 &rpc2_HostCount);
+    assert (he->MagicNumber == OBJ_HENTRY);
 
+    /* Initialize */
+    he->Addr = RPC2_copyaddrinfo(addr);
+    he->LastWord.tv_sec = he->LastWord.tv_usec = 0;
 
-struct HEntry *rpc2_AllocHost(RPC2_HostIdent *host)
-{
-	long bucket;
-	struct HEntry *he;
-	
-	if (rpc2_HostFreeCount == 0)
-		rpc2_Replenish(&rpc2_HostFreeList, &rpc2_HostFreeCount,
-			       sizeof(struct HEntry), &rpc2_HostCreationCount,
-			       OBJ_HENTRY);
-	
-	he = (struct HEntry *)rpc2_MoveEntry(&rpc2_HostFreeList,
-					     &rpc2_HostList,
-					     (struct HEntry *)NULL,
-					     &rpc2_HostFreeCount,
-					     &rpc2_HostCount);
-	assert (he->MagicNumber == OBJ_HENTRY);
+    /* clear the network measurement logs */
+    rpc2_ClearHostLog(he, RPC2_MEASUREMENT);
+    rpc2_ClearHostLog(he, SE_MEASUREMENT);
 
-	/* Initialize */
-#ifdef CODA_IPV6
-	he->Host = *host->Value.AddrInfo; /* struct assignment */
-#else /* CODA_IPV6 */
-	he->Host.s_addr = host->Value.InetAddress.s_addr;
-#endif /* CODA_IPV6 */
-	he->LastWord.tv_sec = he->LastWord.tv_usec = 0;
+    he->RTT       = 0;
+    he->RTTVar    = 0;
+    he->BR        = 1000 << RPC2_BR_SHIFT;
+    he->BRVar     = 0;
 
-	/* clear the network measurement logs */
-        rpc2_ClearHostLog(he, RPC2_MEASUREMENT);
-        rpc2_ClearHostLog(he, SE_MEASUREMENT);
+    /* insert into hash table */
+    he->HLink = HostHashTable[bucket];
+    HostHashTable[bucket] = he;
 
-	he->RTT       = 0;
-	he->RTTVar    = 0;
-	he->BR        = 1000 << RPC2_BR_SHIFT;
-	he->BRVar     = 0;
-
-	/* insert into hash table */
-	bucket = HASHHOST(&he->Host);
-	he->HLink = HostHashTable[bucket];
-	HostHashTable[bucket] = he;
-	
-	return(he);
+    he->RefCount++;
+    return(he);
 }
 
 /* releases the host entry pointed to by whichHost.
@@ -192,18 +155,38 @@ void rpc2_FreeHost(struct HEntry **whichHost)
 	struct HEntry **link;
 	
 	assert((*whichHost)->MagicNumber == OBJ_HENTRY);
+
+	if (--(*whichHost)->RefCount > 0) {
+	    *whichHost = NULL;
+	    return;
+	}
+	/* probably dont really want to destroy the host information as soon as
+	 * we lose all connections. I guess we need a reaper that kills of very
+	 * old entries once in a while */
+
+	/* RefCount == 0 means we're waiting for a reaper to finish us off */
+	if ((*whichHost)->RefCount == 0) {
+	    *whichHost = NULL;
+	    return;
+	}
+
+	/* free resources */
+	bucket = HASHHOST((*whichHost)->Addr);
+	RPC2_freeaddrinfo((*whichHost)->Addr);
+	(*whichHost)->Addr = NULL;
+
 	rpc2_MoveEntry((struct LinkEntry **)&rpc2_HostList,
 		       (struct LinkEntry **)&rpc2_HostFreeList,
 		       (struct LinkEntry *)*whichHost,
 		       &rpc2_HostCount, &rpc2_HostFreeCount);
 	
 	/* remove from hash table */
-	bucket = HASHHOST(&(*whichHost)->Host);
 	link = &HostHashTable[bucket];
 	while (*link) {
 		if (*link == *whichHost) {
 			*link = (*whichHost)->HLink;
 			*whichHost = NULL;
+			break;
 		}
 		link = &(*link)->HLink;
 	}
@@ -328,9 +311,7 @@ void RPC2_UpdateEstimates(struct HEntry *host, RPC2_Unsigned elapsed_us,
     long	   eBR;      /* estimated byterate (ns/B) */
     unsigned long  eU;       /* temporary unsigned variable */
     long	   eL;       /* temporary signed variable */
-#ifdef CODA_IPV6
-    char addr[50];
-#endif /* CODA_IPV6 */
+    char addr[RPC2_ADDRSTRLEN];
 
     if (!host) return;
 
@@ -391,22 +372,12 @@ void RPC2_UpdateEstimates(struct HEntry *host, RPC2_Unsigned elapsed_us,
     eL -= (host->RTTVar >> RPC2_RTTVAR_SHIFT);
     host->RTTVar += eL;
 
-#ifdef CODA_IPV6
-    rpc2_addrinfo_ntop(&host->Host, addr, 50);
+    RPC2_ntop(host->Addr, addr, RPC2_ADDRSTRLEN);
     say(0, RPC2_DebugLevel,
 	"Est: %s %4ld.%06lu/%-5lu<%-5lu RTT:%lu/%lu us BR:%lu/%lu ns/B\n",
 	    addr, elapsed_us / 1000000, elapsed_us % 1000000,
 	    InBytes, OutBytes, host->RTT>>RPC2_RTT_SHIFT, host->RTTVar>>RPC2_RTTVAR_SHIFT,
 	    (host->BR>>RPC2_BR_SHIFT), host->BRVar>>RPC2_BRVAR_SHIFT);
-#else /* CODA_IPV6 */
-    say(0, RPC2_DebugLevel,
-	"Est: %s %4ld.%06lu/%-5lu<%-5lu RTT:%lu/%lu us BR:%lu/%lu ns/B\n",
-	    inet_ntoa(host->Host), elapsed_us / 1000000, elapsed_us % 1000000,
-	    InBytes, OutBytes, host->RTT>>RPC2_RTT_SHIFT,
-	    host->RTTVar>>RPC2_RTTVAR_SHIFT, (host->BR>>RPC2_BR_SHIFT),
-	    host->BRVar>>RPC2_BRVAR_SHIFT);
-#endif /* CODA_IPV6 */
-
     return;
 }
 
@@ -529,48 +500,3 @@ int RPC2_GetLastObs(RPC2_Handle handle, struct timeval *tv)
     return(RPC2_SUCCESS);
 }
 
-#ifndef HAVE_INET_ATON
-int inet_aton(const char *str, struct in_addr *out)
-{
-        unsigned long l;
-        unsigned int val;
-        int i;
-
-        l = 0;
-        for (i = 0; *str && i < 4; i++) 
-        {
-		l <<= 8;
-		val = 0;
-		while (*str >= '0' && *str <= '9') 
-		{
-		    val *= 10;
-		    val += *str - '0';
-		    str++;
-		}
-		if (*str)
-		{
-		    if (*str != '.') break;
-		    str++;
-		}
-		if (val > 255) break;
-		l |= val;
-        }
-	if (*str || i != 4) return(0);
-
-        out->s_addr = htonl(l);
-        return(1);
-}
-#endif
-
-#ifndef HAVE_INET_NTOA
-char *inet_ntoa(struct in_addr in)
-{
-        static char buff[18];
-        char *p;
-
-        p = (char *) &in.s_addr;
-        sprintf(buff, "%d.%d.%d.%d",
-                (p[0] & 255), (p[1] & 255), (p[2] & 255), (p[3] & 255));
-        return(buff);
-}
-#endif

@@ -98,11 +98,10 @@ static long MakeBigEnough();
 
 long SFTP_Init()
 {
+#warning "what to do here, maybe we should just drop the sftp listener"
     char *sname;
-#ifdef CODA_IPV6
-    static RPC2_HostIdent sftp_Host;
-    static struct addrinfo sftp_Host_AddrInfo;
-#endif /* CODA_IPV6 */
+    struct rpc2_addrinfo *sftp_localaddr;
+    int error;
     
     say(0, SFTP_DebugLevel, "SFTP_Init()\n");
 
@@ -111,16 +110,17 @@ long SFTP_Init()
 
     if (sftp_Port.Tag)
     {
+	sftp_localaddr = rpc2_resolve(NULL, &sftp_Port);
+	if (!sftp_localaddr)
+	    return RPC2_FAIL;
+
         /* Create socket for SFTP packets */
-#ifdef CODA_IPV6
-	/* sftp_Host_AddrInfo.ai_family = PF_UNSPEC; */
-	sftp_Host_AddrInfo.ai_family = AF_INET6;
-	sftp_Host.Value.AddrInfo = &sftp_Host_AddrInfo;
-        if (rpc2_CreateIPSocket(&sftp_Socket, &sftp_Port, &sftp_Host) != RPC2_SUCCESS)
-#else /* CODA_IPV6 */
-        if (rpc2_CreateIPSocket(&sftp_Socket, &sftp_Port) != RPC2_SUCCESS)
-#endif /* CODA_IPV6 */
-            return(RPC2_FAIL);
+	/* XXX we only bind to the first one that binds successfully */
+        error = rpc2_CreateIPSocket(&sftp_Socket, sftp_localaddr, &sftp_Port);
+	RPC2_freeaddrinfo(sftp_localaddr);
+
+	if (error)
+	    return RPC2_FAIL;
     }
 
     /* Create SFTP listener process */
@@ -236,7 +236,11 @@ long SFTP_Bind2(IN RPC2_Handle ConnHandle, IN RPC2_Unsigned BindTime)
 
     assert(RPC2_GetSEPointer(ConnHandle, &se) == RPC2_SUCCESS);
     RPC2_GetPeerInfo(ConnHandle, &se->PInfo);
-    se->HostInfo = rpc2_GetHost(&se->PInfo.RemoteHost);
+
+    assert(se->PInfo.RemoteHost.Tag == RPC2_HOSTBYADDRINFO);
+    se->HostInfo = rpc2_GetHost(se->PInfo.RemoteHost.Value.AddrInfo);
+    assert(se->HostInfo);
+
     if (BindTime)
     {
         /* XXX Do some estimate of the amount of transferred data --JH */
@@ -278,7 +282,11 @@ long SFTP_NewConn(IN ConnHandle, IN ClientIdent)
     se->WhoAmI = SFSERVER;
     se->LocalHandle = ConnHandle;
     RPC2_GetPeerInfo(ConnHandle, &se->PInfo);
-    se->HostInfo = rpc2_GetHost(&se->PInfo.RemoteHost);
+
+    assert(se->PInfo.RemoteHost.Tag == RPC2_HOSTBYADDRINFO);
+    se->HostInfo = rpc2_GetHost(se->PInfo.RemoteHost.Value.AddrInfo);
+    assert(se->HostInfo);
+
     RPC2_SetSEPointer(ConnHandle, se);
 
     return(RPC2_SUCCESS);    
@@ -689,8 +697,11 @@ long SFTP_GetHostInfo(IN ConnHandle, INOUT HPtr)
      * There may still be no host info.  If not, see if some of
      * the right type has appeared since the bind.
      */
-    if (se->HostInfo == NULL) 
-	se->HostInfo = rpc2_GetHost(&se->PInfo.RemoteHost);
+    if (!se->HostInfo) { 
+	assert(se->PInfo.RemoteHost.Tag == RPC2_HOSTBYADDRINFO);
+	se->HostInfo = rpc2_GetHost(se->PInfo.RemoteHost.Value.AddrInfo);
+    }
+    assert(se->HostInfo);
 	
     *HPtr = se->HostInfo;
     return(RPC2_SUCCESS);
@@ -1124,9 +1135,9 @@ int sftp_ExtractParmsFromPacket(struct SFTP_Entry *sEntry,
     if (sEntry->WhoAmI == SFSERVER)
     {
 	/* Set up host/port linkage. */
-	sEntry->HostInfo = rpc2_GetHost(&sEntry->PInfo.RemoteHost);
-	if (sEntry->HostInfo == NULL) 
-	    sEntry->HostInfo = rpc2_AllocHost(&sEntry->PInfo.RemoteHost);
+	assert(sEntry->PInfo.RemoteHost.Tag == RPC2_HOSTBYADDRINFO);
+	sEntry->HostInfo =rpc2_GetHost(sEntry->PInfo.RemoteHost.Value.AddrInfo);
+	assert(sEntry->HostInfo);
     }
     else
 	assert(sEntry->WhoAmI == SFCLIENT);
@@ -1195,6 +1206,8 @@ void sftp_FreeSEntry(struct SFTP_Entry *se)
     if (se->PiggySDesc) sftp_FreePiggySDesc(se);
     for (i = 0; i < MAXOPACKETS; i++)
 	if (se->ThesePackets[i] != NULL) SFTP_FreeBuffer(&se->ThesePackets[i]);
+    if (se->HostInfo)
+	rpc2_FreeHost(&se->HostInfo);
     free(se);
 }
 

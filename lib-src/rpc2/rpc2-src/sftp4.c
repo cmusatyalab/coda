@@ -50,11 +50,11 @@ Pittsburgh, PA.
 #include <sys/time.h>
 #include <netinet/in.h>
 #include <sys/uio.h>
+#include <assert.h>
 #include "rpc2.private.h"
 #include <rpc2/se.h>
 #include "sftp.h"
 #include "cbuf.h"
-
 
 #define TRACELEN 1000
 
@@ -71,6 +71,8 @@ int sftp_XmitPacket(struct SFTP_Entry *sEntry, RPC2_PacketBuffer *pb)
 {
     int whichSocket;
     RPC2_PortIdent *whichPort;
+    struct rpc2_addrinfo *ai;
+
 #ifdef RPC2DEBUG
     struct TraceEntry *te;
 
@@ -79,18 +81,38 @@ int sftp_XmitPacket(struct SFTP_Entry *sEntry, RPC2_PacketBuffer *pb)
     te->ph = pb->Header;	/* structure assignment */
 #endif
 
-    whichSocket = sftp_Socket;
-    whichPort = &sEntry->PeerPort;
+    /* We have to copy the addrinfo because we might be messing with the
+     * destination port number */
+    assert(sEntry->PInfo.RemoteHost.Tag == RPC2_HOSTBYADDRINFO);
+    ai = RPC2_copyaddrinfo(sEntry->PInfo.RemoteHost.Value.AddrInfo);
+    assert(ai);
 
-    /* when either side is in `masquerading mode', send the packet out
-     * of the rpc2 socket */
-    if (!sftp_Port.Tag || !sEntry->PeerPort.Tag) {
-	/* send from the rpc2 socket to the rpc2 port on the other side */
-        whichSocket = rpc2_RequestSocket;
-	whichPort = &sEntry->PInfo.RemotePort;
+    /* Normally we send from the local rpc2 socket to the rpc2 port on the
+     * other side */
+    whichSocket = rpc2_RequestSocket;
+
+    /* except when both sides are not in `masquerading mode', in which case we
+     * assume the other side is an old client and we send the packet from the
+     * sftp socket */
+    if (sftp_Port.Tag && sEntry->PeerPort.Tag) {
+	assert(sEntry->PeerPort.Tag == RPC2_PORTBYINETNUMBER);
+	whichSocket = sftp_Socket;
+
+	short port = sEntry->PeerPort.Value.InetPortNumber;
+	switch(ai->ai_family) {
+	case AF_INET:
+	    ((struct sockaddr_in *)ai->ai_addr)->sin_port = port;
+	    break;
+	case AF_INET6:
+	    ((struct sockaddr_in6 *)ai->ai_addr)->sin6_port = port;
+	    break;
+	default:
+	    assert(0);
+	}
     }
 
-    rpc2_XmitPacket(whichSocket, pb, &sEntry->PInfo.RemoteHost, whichPort);
+    rpc2_XmitPacket(whichSocket, pb, ai);
+    RPC2_freeaddrinfo(ai);
 
     if (ntohl(pb->Header.Flags) & RPC2_MULTICAST) {
 	rpc2_MSent.Total--;

@@ -53,9 +53,6 @@ Pittsburgh, PA.
 #include <rpc2/se.h>
 #include "sftp.h"
 #include "test.h"
-#ifdef CODA_IPV6
-#include <netdb.h>
-#endif /* CODA_IPV6 */
 
 #define SUBSYS_SRV 1001
 #define STESTSTACK 0x25000
@@ -246,23 +243,19 @@ static void PrintHostIdent(hPtr, tFile)
     RPC2_HostIdent *hPtr;
     FILE *tFile;
     {
-#ifdef CODA_IPV6
-	char addr[50];
-#endif /* CODA_IPV6 */
+    char addr[RPC2_ADDRSTRLEN];
     if (tFile == NULL) tFile = stdout;	/* it's ok, call-by-value */
     switch (hPtr->Tag)
 	{
-	case RPC2_HOSTBYINETADDR:
-		{
-#ifdef CODA_IPV6
-		    rpc2_addrinfo_ntop(hPtr->Value.AddrInfo, addr, 50);
+	case RPC2_HOSTBYADDRINFO:
+		RPC2_ntop(hPtr->Value.AddrInfo, addr, RPC2_ADDRSTRLEN);
 		fprintf(tFile, "Host.AddrInfo = %s", addr);
-#else /* CODA_IPV6 */
-		fprintf(tFile, "Host.InetAddress = %s",
-			inet_ntoa(hPtr->Value.InetAddress));
-#endif /* CODA_IPV6 */
+		break;
+
+	case RPC2_HOSTBYINETADDR:
+		inet_ntop(AF_INET, &hPtr->Value.InetAddress, addr, INET_ADDRSTRLEN);
+		fprintf(tFile, "Host.InetAddress = %s", addr);
 		break;	
-		}
 	
 	case RPC2_HOSTBYNAME:
 		fprintf(tFile, "Host.Name = \"%s\"", hPtr->Value.Name);
@@ -567,8 +560,6 @@ void InitRPC(void)
     if (WhatHappened(RPC2_Init(RPC2_VERSION, (RPC2_Options *)NULL, pp,
 		      (long) 6, (struct timeval *)NULL), "Init") != RPC2_SUCCESS)
 	exit(-1);
-    PrintHostIdent(&rpc2_LocalHost, (FILE *)NULL);
-    printf("    ");
     PrintPortIdent(&rpc2_LocalPort, (FILE *)NULL);
     printf("\n\n");
     subsysid.Tag = RPC2_SUBSYSBYID;

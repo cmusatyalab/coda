@@ -275,6 +275,8 @@ void sftp_ExaminePacket(RPC2_PacketBuffer *pb)
     }
 
     /* SANITY CHECK: validate socket-level and connection-level host values. */
+#warning "need PeerAddr -> PeerHost"
+#if 0
     if (rpc2_HostIdentEqual(&pb->Prefix.PeerHost, &sfp->PInfo.RemoteHost) == FALSE)
 	/* Can't compare ports, since SFTP socket is not RPC socket */
     {
@@ -282,6 +284,7 @@ void sftp_ExaminePacket(RPC2_PacketBuffer *pb)
 	BOGUS(pb);
 	return;
     }
+#endif
 	    
     /* SANITY CHECK: make sure this pertains to the current RPC call. */
     if (pb->Header.ThisRPCCall != sfp->ThisRPCCall)
@@ -424,9 +427,7 @@ static void SFSendNAK(RPC2_PacketBuffer *pb)
     struct SFTP_Entry fake_se;
 
     RPC2_PacketBuffer *nakpb;
-    RPC2_Handle remoteHandle  = pb->Header.LocalHandle;
-    RPC2_HostIdent *whichHost = &pb->Prefix.PeerHost;
-    RPC2_PortIdent *whichPort = &pb->Prefix.PeerPort;
+    RPC2_Handle remoteHandle = pb->Header.LocalHandle;
 
     /* don't NAK NAK's */
     if (remoteHandle == -1) return;
@@ -444,10 +445,13 @@ static void SFSendNAK(RPC2_PacketBuffer *pb)
     rpc2_htonp(nakpb);
 
     /* XXX hack so we can use sftp_XmitPacket */
-    fake_se.PInfo.RemoteHost = *whichHost;
-    fake_se.PInfo.RemotePort = *whichPort;
-    fake_se.PeerPort.Tag = 0;
+    rpc2_splitaddrinfo(&fake_se.PInfo.RemoteHost, &fake_se.PInfo.RemotePort,
+		       pb->Prefix.PeerAddr);
 
     sftp_XmitPacket(&fake_se, nakpb);    /* ignore return code */
     SFTP_FreeBuffer(&nakpb);
+
+    assert(fake_se.PInfo.RemoteHost.Tag == RPC2_HOSTBYADDRINFO);
+    RPC2_freeaddrinfo(fake_se.PInfo.RemoteHost.Value.AddrInfo);
 }
+

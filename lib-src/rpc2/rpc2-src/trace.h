@@ -254,8 +254,7 @@ struct TraceElem
 	    RPC2_PacketBuffer *whichPB_Address;
 	    RPC2_PacketBuffer whichPB;
 	    long whichSocket;
-	    RPC2_HostIdent  whichHost;
-	    RPC2_PortIdent whichPort;
+	    struct rpc2_addrinfo whichAddr;
 	    }
 	    XmitPacketEntry;
 	    
@@ -296,8 +295,7 @@ struct TraceElem
 	    {
 	    RPC2_PacketBuffer pb;
 	    long pb_address;
-	    RPC2_HostIdent ThisHost;
-	    RPC2_PortIdent ThisPort;
+	    struct rpc2_addrinfo ThisAddr;
 	    }
 	    XlateMcastPacketEntry;
 
@@ -504,8 +502,8 @@ struct TraceElem
 	tea->whichPB_Address = whichPB;\
 	tea->whichPB = *whichPB;	/* structure assignment */\
 	rpc2_htonp(&tea->whichPB);\
-	tea->whichHost = *whichHost;	/* structure assignment */\
-	tea->whichPort = *whichPort;	/* structure assignment */\
+	tea->whichAddr = *addr;	/* structure assignment */\
+	tea->whichAddr.ai_next = NULL; \
 	} }while(0)
 
 #define TR_RECV() do {\
@@ -555,7 +553,6 @@ struct TraceElem
 	strncpy(te->ActiveLWP, LWP_Name(), sizeof(te->ActiveLWP)-1);\
 	tea->MgroupHandle = *MgroupHandle;\
 	tea->McastHost = *MulticastHost;    /* structure assignment */\
-	tea->Port = *MulticastPort;	    /* structure assignment */\
 	tea->Subsys = *Subsys;		    /* structure assignment */\
 	tea->SecurityLevel = SecurityLevel;\
 	tea->IsEncrypted = ((SessionKey == NULL) ? 0 : 1);\
@@ -599,8 +596,8 @@ struct TraceElem
 	te->CallCode = XLATEMCASTPACKET;\
 	tea->pb = *pb;			/* structure assignment */\
 	tea->pb_address = (long) pb;\
-	tea->ThisHost = pb->Prefix.PeerHost;	/* structure assignment */\
-	tea->ThisPort = pb->Prefix.PeerPort;	/* structure assignment */\
+	tea->ThisAddr = *pb->Prefix.PeerAddr;	/* structure assignment */\
+	tea->ThisAddr.ai_next = NULL; \
 	} } while (0)
 #endif
 

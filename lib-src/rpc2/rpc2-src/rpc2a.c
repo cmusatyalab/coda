@@ -109,7 +109,7 @@ NOTE 1
 #define HAVE_SE_FUNC(xxx) (ce->SEProcs && ce->SEProcs->xxx)
 
 void SavePacketForRetry();
-static int InvokeSE(), ResolveBindParms(), ServerHandShake();
+static int InvokeSE(), ServerHandShake();
 static void SendOKInit2(), RejectBind(), Send4AndSave();
 static RPC2_PacketBuffer *Send2Get3();
 static RPC2_PacketBuffer *HeldReq(RPC2_RequestFilter *filter, struct CEntry **ce);
@@ -204,7 +204,7 @@ long RPC2_SendResponse(IN RPC2_Handle ConnHandle, IN RPC2_PacketBuffer *Reply)
 
     /* Send reply */
     say(9, RPC2_DebugLevel, "Sending reply\n");
-    rpc2_XmitPacket(rpc2_RequestSocket, preply, &ce->PeerHost, &ce->PeerPort);
+    rpc2_XmitPacket(rpc2_RequestSocket, preply, ce->HostInfo->Addr);
 
     /* Save reply for retransmission */
     memcpy(&pretry->Header, &preply->Header, preply->Prefix.LengthOfPacket);
@@ -322,8 +322,11 @@ long RPC2_GetRequest(IN RPC2_RequestFilter *Filter,
 	    {
 	    if (AuthFail)
 		{/* Client could be iterating through keys; log this */
-		(*AuthFail)(AuthenticationType, &cident, ce->EncryptionType,
-			    &ce->PeerHost, &ce->PeerPort);
+		    RPC2_HostIdent Host; RPC2_PortIdent Port;
+		    rpc2_splitaddrinfo(&Host, &Port, ce->HostInfo->Addr);
+		    (*AuthFail)(AuthenticationType, &cident, ce->EncryptionType,
+				&Host, &Port);
+		    RPC2_freeaddrinfo(Host.Value.AddrInfo);
 		}
 	    DROPIT();
 	    }
@@ -339,27 +342,12 @@ long RPC2_GetRequest(IN RPC2_RequestFilter *Filter,
 	if (rc < RPC2_FLIMIT) { DROPIT(); }
     }
 
-    /* Set up host linkage -- host & port numbers are resolved by now. */
-    ce->HostInfo = rpc2_GetHost(&ce->PeerHost);
-    if (ce->HostInfo == NULL) 
-	ce->HostInfo = rpc2_AllocHost(&ce->PeerHost);
-	
     /* And now we are really done */
     if (ce->Flags & CE_OLDV)
     {
-#ifdef CODA_IPV6
-	char addr[50];
-	struct addrinfo *aip = ce->PeerHost.Value.AddrInfo;
-	if (!inet_ntop(aip->ai_family,aip->ai_addr,addr,aip->ai_addrlen)) {
-	    say(-1, RPC2_DebugLevel, "Request from (untranslatable): Old rpc2 version\n");
-	} else {
-	    say(-1, RPC2_DebugLevel, "Request from %s: Old rpc2 version\n",
-		addr);
-	}
-#else /* CODA_IPV6 */
-	say(-1, RPC2_DebugLevel, "Request from %s: Old rpc2 version\n",
-		inet_ntoa(ce->PeerHost.Value.InetAddress));
-#endif /* CODA_IPV6 */
+	char addr[RPC2_ADDRSTRLEN];
+	RPC2_ntop(ce->HostInfo->Addr, addr, RPC2_ADDRSTRLEN);
+	say(-1, RPC2_DebugLevel, "Request from %s: Old rpc2 version\n", addr);
 
 	/* Get rid of allocated connection entry. */
 	DROPIT();
@@ -579,8 +567,21 @@ long RPC2_NewBinding(IN RPC2_HostIdent *Host, IN RPC2_PortIdent *Port,
     }
     
     
-    /* Step 0: Obtain and initialize a new connection */
-    ce = rpc2_AllocConn();
+    /* Step 0: Resolve bind parameters */
+    struct rpc2_addrinfo *addr, *peeraddrs = rpc2_resolve(Host, Port);
+    if (!peeraddrs) {
+	    DROPCONN();
+	    rpc2_Quit(RPC2_NOBINDING);
+    }
+    say(9, RPC2_DebugLevel, "Bind parameters successfully resolved\n");
+
+try_next_addr:
+    addr = peeraddrs;
+    peeraddrs = addr->ai_next;
+    addr->ai_next = NULL;
+
+    /* Step 1: Obtain and initialize a new connection */
+    ce = rpc2_AllocConn(addr);
     *ConnHandle = ce->UniqueCID;
     say(9, RPC2_DebugLevel, "Allocating connection 0x%lx\n", *ConnHandle);
     SetRole(ce, CLIENT);
@@ -626,20 +627,10 @@ long RPC2_NewBinding(IN RPC2_HostIdent *Host, IN RPC2_PortIdent *Port,
 	    }
     }
 
-    /* Step1: Resolve bind parameters */
-    if (ResolveBindParms(ce, Host, Port, Subsys) != RPC2_SUCCESS) {
-	    DROPCONN();
-	    rpc2_Quit(RPC2_NOBINDING);
-    }
-    say(9, RPC2_DebugLevel, "Bind parameters successfully resolved\n");
+    assert(Subsys->Tag == RPC2_SUBSYSBYID);
+    ce->SubsysId = Subsys->Value.SubsysId;
 
-    /* Set up host linkage -- host & port numbers are resolved by now. */
-    ce->HostInfo = rpc2_GetHost(&ce->PeerHost);
-    if (ce->HostInfo == NULL) 
-	ce->HostInfo = rpc2_AllocHost(&ce->PeerHost);
-	
-    /* Step2: Construct Init1 packet */
-
+    /* Step 2: Construct Init1 packet */
     bsize = sizeof(struct Init1Body)  - sizeof(ib->Text) + 
 		    (Bparms->ClientIdent == NULL ? 0 : Bparms->ClientIdent->SeqLen);
     RPC2_AllocBuffer(bsize, &pb);
@@ -672,10 +663,6 @@ long RPC2_NewBinding(IN RPC2_HostIdent *Host, IN RPC2_PortIdent *Port,
 
     /* Fill in the body */
     ib = (struct Init1Body *)pb->Body;
-    ib->SenderPort = rpc2_LocalPort;   /* structure assignment */
-    ib->SenderPort.Tag = (PortTag)htonl(ib->SenderPort.Tag); /* always in network order */
-    ib->SenderHost = rpc2_LocalHost; /* structure assignment */
-    ib->SenderHost.Tag = (HostTag)htonl(ib->SenderHost.Tag);   /* always in network order */
     ib->FakeBody.SideEffectType = htonl(Bparms->SideEffectType);
     ib->FakeBody.SecurityLevel = htonl(Bparms->SecurityLevel);
     ib->FakeBody.EncryptionType = htonl(Bparms->EncryptionType);
@@ -730,6 +717,8 @@ long RPC2_NewBinding(IN RPC2_HostIdent *Host, IN RPC2_PortIdent *Port,
 		rc = sl->ReturnCode == NAKED ? RPC2_NAKED : RPC2_NOBINDING;
 		rpc2_FreeSle(&sl);
 		DROPCONN();
+		if (rc == RPC2_NOBINDING && peeraddrs)
+		    goto try_next_addr;
 		rpc2_Quit(rc);
 		
 	default:	assert(FALSE);
@@ -811,6 +800,8 @@ long RPC2_NewBinding(IN RPC2_HostIdent *Host, IN RPC2_PortIdent *Port,
 		RPC2_FreeBuffer(&pb);	/* release the Init3 Packet */
 		rpc2_FreeSle(&sl);
 		DROPCONN();
+		if (peeraddrs)
+		    goto try_next_addr;
 		rpc2_Quit(RPC2_NOBINDING);
 		
 	default: assert(FALSE);
@@ -968,112 +959,6 @@ void SavePacketForRetry(RPC2_PacketBuffer *pb, struct CEntry *ce)
     rpc2_ActivateSle(sl, &ce->SaveResponse);
 }
 
-
-static int ResolveBindParms(IN whichConn, IN whichHost, IN whichPort, IN whichSubsys)
-    struct CEntry *whichConn;
-    RPC2_HostIdent *whichHost;
-    RPC2_PortIdent *whichPort;
-    RPC2_SubsysIdent *whichSubsys;
-    
-    /*  Assumes whichConn points to a newly created connection and fills its PeerAddr by resolving
-	the input parameters.  Returns RPC2_SUCCESS on successful resolution, RPC2_FAIL on failure.
-    */
-    {
-    struct servent *sentry;
-#ifdef CODA_IPV6
-    struct addrinfo hint;
-    struct addrinfo *result;
-    int retval;
-#else /* CODA_IPV6 */
-    struct hostent *hentry;
-#endif /* CODA_IPV6 */
-
-    /* Resolve host */
-    switch(whichHost->Tag)
-	{
-	case RPC2_HOSTBYINETADDR:	/* you passed it in in network order! */
-		whichConn->PeerHost.Tag = RPC2_HOSTBYINETADDR;
-#ifdef CODA_IPV6
-		whichConn->PeerHost.Value.AddrInfo =
-		    whichHost->Value.AddrInfo; /* structure assignment */
-#else /* CODA_IPV6 */
-		whichConn->PeerHost.Value.InetAddress.s_addr =
-		    whichHost->Value.InetAddress.s_addr;
-#endif /* CODA_IPV6 */
-		break;
-
-	case RPC2_HOSTBYNAME:
-#ifdef CODA_IPV6
-		bzero(&hint, sizeof(struct addrinfo));
-		hint.ai_family = PF_UNSPEC;
-		hint.ai_socktype = SOCK_DGRAM;
-		/* XXX need to know whether or not we're server, so
-		   we'll know whether or not to set AI_PASSIVE */
-		if ((retval = getaddrinfo(whichHost->Value.Name, NULL,
-					  &hint, &result))) {
-		    say(0, RPC2_DebugLevel, "ResolveBindParms: getaddrinfo failed\n");
-		    return(RPC2_FAIL);
-		}
-		whichConn->PeerHost.Tag = RPC2_HOSTBYINETADDR;
-		/* XXX here -- just keep the addrinfo we were given */
-		whichConn->PeerHost.Value.AddrInfo = result;
-		/* memcpy(&whichConn->PeerHost.Value, result->ai_addr,
-		       result->ai_addrlen); */
-		/* XXX what do I do with multiple return values? */
-#else /* CODA_IPV6 */
-		if ((hentry = gethostbyname (whichHost->Value.Name)) == NULL) {
-		    say(0, RPC2_DebugLevel, "ResolveBindParms: gethostbyname failed\n");
-		    return(RPC2_FAIL);
-		}
-		whichConn->PeerHost.Tag = RPC2_HOSTBYINETADDR;
-		memcpy(&whichConn->PeerHost.Value.InetAddress, hentry->h_addr,
-		       hentry->h_length); /* Already in network byte order */
-#endif /* CODA_IPV6 */
-	    break;
-
-	default:  assert(FALSE);
-	}
-    
-    /* Resolve port */
-    switch(whichPort->Tag)
-	{
-	case RPC2_PORTBYINETNUMBER:	/* you passed it in network order */
-		whichConn->PeerPort.Tag = RPC2_PORTBYINETNUMBER;
-		whichConn->PeerPort.Value.InetPortNumber = whichPort->Value.InetPortNumber;
-		break;
-
-	case RPC2_PORTBYNAME:
-	    if ((sentry = getservbyname (whichPort->Value.Name, "udp")) == NULL)
-		return(RPC2_FAIL);
-	    if (htonl(1) == 1)
-		{
-		whichConn->PeerPort.Value.InetPortNumber = sentry->s_port;
-		}
-	    else
-		{
-		memcpy(&whichConn->PeerPort.Value.InetPortNumber, &sentry->s_port, sizeof(short));
-		/* ghastly, but true: s_port is in network order, but stored
-		 * as a 2-byte byte string in a 4-byte field */
-		}
-	    whichConn->PeerPort.Tag = RPC2_PORTBYINETNUMBER;
-	    break;
-
-	default:  assert(FALSE);
-	}
-
-    /* Obtain subsys id if necessary */
-    switch(whichSubsys->Tag)
-	{
-	case RPC2_SUBSYSBYID:
-		whichConn->SubsysId = whichSubsys->Value.SubsysId;
-		break;
-
-	case RPC2_SUBSYSBYNAME:
-		say(-1, RPC2_DebugLevel, "SubSysByName no longer supported.\n");
-	default:  assert(FALSE);
-	}
-    return(RPC2_SUCCESS);
-    }
 
 static int GetFilter(RPC2_RequestFilter *inf, RPC2_RequestFilter *outf)
 {
@@ -1251,7 +1136,7 @@ static void SendOKInit2(IN struct CEntry *ce)
 	rpc2_StampPacket(ce, pb);
 
     rpc2_htonp(pb);	/* convert to network order */
-    rpc2_XmitPacket(rpc2_RequestSocket, pb, &ce->PeerHost, &ce->PeerPort);
+    rpc2_XmitPacket(rpc2_RequestSocket, pb, ce->HostInfo->Addr);
     SavePacketForRetry(pb, ce);
     }
 
@@ -1311,7 +1196,7 @@ static void RejectBind(ce, bodysize, opcode)
     pb->Header.ReturnCode = RPC2_NOTAUTHENTICATED;
 
     rpc2_htonp(pb);
-    rpc2_XmitPacket(rpc2_RequestSocket, pb, &ce->PeerHost, &ce->PeerPort);
+    rpc2_XmitPacket(rpc2_RequestSocket, pb, ce->HostInfo->Addr);
     RPC2_FreeBuffer(&pb);
     }
 
@@ -1417,7 +1302,7 @@ static void Send4AndSave(ce, xrand, ekey)
     rpc2_htonp(pb);
 
     /* Send packet; don't bother waiting for acknowledgement */
-    rpc2_XmitPacket(rpc2_RequestSocket, pb, &ce->PeerHost, &ce->PeerPort);
+    rpc2_XmitPacket(rpc2_RequestSocket, pb, ce->HostInfo->Addr);
 
     SavePacketForRetry(pb, ce);
     }

@@ -55,7 +55,6 @@ Pittsburgh, PA.
 long RPC2_Perror=1, RPC2_DebugLevel=0, RPC2_Trace = 0; /* see rpc2.h */
 
 long rpc2_RequestSocket;
-RPC2_HostIdent rpc2_LocalHost;
 RPC2_PortIdent rpc2_LocalPort;
 
 struct TM_Elem *rpc2_TimerQueue;
@@ -109,7 +108,7 @@ long rpc2_AllocMgrps, rpc2_FreeMgrps;
 
 long rpc2_HoldHWMark, rpc2_FreezeHWMark;
 
-char *rpc2_LastEdit = "$Header: /afs/cs/project/coda-src/cvs/rpc2/rpc2-src/globals.c,v 4.8 1999/12/23 02:49:54 jaharkes Exp $";
+char *rpc2_LastEdit = "$Header: /coda-src/rpc2/rpc2-src/globals.c,v 4.9 2000/03/28 17:29:26 jaharkes Exp $";
 
 long rpc2_errno;
 

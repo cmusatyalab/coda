@@ -71,27 +71,6 @@ Pittsburgh, PA.
 
 struct in_addr rpc2_bindaddr = { INADDR_ANY };
 
-
-#ifdef CODA_IPV6
-void rpc2_addrinfo_ntop(struct addrinfo *host, char *addr, int len)
-{
-    switch (host->ai_family) {
-    case AF_INET:
-	inet_ntop(host->ai_family,
-		  (struct in_addr *)&(((struct sockaddr_in *)host->ai_addr)->sin_addr),
-		  addr, len);
-	break;
-    case AF_INET6:
-	inet_ntop(host->ai_family,
-		  (struct in6_addr *)&(((struct sockaddr_in6 *)host->ai_addr)->sin6_addr),
-		  addr, len);
-	break;
-    default:
-	exit(-1);
-    }
-}
-#endif /* CODA_IPV6 */
-
 long RPC2_Init(char *VId,		/* magic version string */
 	       RPC2_Options *Options,
 	       RPC2_PortIdent *Port,	/* array of portal ids */
@@ -101,10 +80,8 @@ long RPC2_Init(char *VId,		/* magic version string */
 {
     char *c;
     long rc, i, ctpid;
-#ifdef CODA_IPV6
     int error;
-    struct addrinfo req, *ai;
-#endif /* CODA_IPV6 */
+    struct rpc2_addrinfo *rpc2_localaddr;
 
     rpc2_logfile = stderr;
     rpc2_tracefile = stderr;
@@ -125,42 +102,24 @@ long RPC2_Init(char *VId,		/* magic version string */
     rpc2_InitMgrp();
     rpc2_InitHost();
 
-    if (Port) rpc2_LocalPort = *Port; 
-    else      rpc2_LocalPort.Tag = (PortTag)0;  
-    
-    /* We put the localhost IP-address in rpc2_LocalHost, this value is _ONLY_
-     * used to hash the Mgroup entries, and we are _not_ sending it to the
-     * rpc2 Peer. So this should give no problems. Changing the AllocMgrp and
-     * GetMgrp functions to accept a NULL pointer would be better, but
-     * requires an enormous amount of modifications all over rpc2. --JH */
-    
-    rpc2_LocalHost.Tag = RPC2_HOSTBYINETADDR;
-#ifdef CODA_IPV6
-    /* XXX this just uses the first one returned, for the moment */
-    memset(&req, 0, sizeof(struct addrinfo));
-    /* actually unnecessary, I think */
-    req.ai_family = PF_UNSPEC;
-    req.ai_socktype = SOCK_DGRAM;
-    if (error = getaddrinfo("::1", NULL, &req, &ai)) {
+    rpc2_localaddr = rpc2_resolve(NULL, Port);
+    if (!rpc2_localaddr) {
 	say(-1, RPC2_DebugLevel, "RPC2_Init(): Couldn't get addrinfo for localhost!\n");
 	rpc2_Quit(rc);
     }
-    rpc2_LocalHost.Value.AddrInfo = ai;
-#else /* CODA_IPV6 */
-    rpc2_LocalHost.Value.InetAddress.s_addr = htonl(INADDR_LOOPBACK);
-#endif /* CODA_IPV6 */
     
-#ifdef CODA_IPV6
-    rc = rpc2_CreateIPSocket(&rpc2_RequestSocket, &rpc2_LocalPort, &rpc2_LocalHost);
-#else /* CODA_IPV6 */
-    rc = rpc2_CreateIPSocket(&rpc2_RequestSocket, &rpc2_LocalPort);
-#endif /* CODA_IPV6 */
-    if (Port) *Port = rpc2_LocalPort; 
+    /* XXX we only bind to the first one that binds successfully */
+    rc = rpc2_CreateIPSocket(&rpc2_RequestSocket, rpc2_localaddr,
+			     &rpc2_LocalPort);
+    RPC2_freeaddrinfo(rpc2_localaddr);
 
     if (rc < RPC2_ELIMIT) {
 	say(-1, RPC2_DebugLevel, "RPC2_Init(): Couldn't create socket\n");
 	rpc2_Quit(rc);
     }
+
+    if (Port)
+	*Port = rpc2_LocalPort;
 
     /* Initialize retry parameters */
     if (rpc2_InitRetry(RetryCount, KAInterval) != 0) {
@@ -528,8 +487,8 @@ long RPC2_GetPeerInfo(IN ConnHandle, OUT PeerInfo)
     ceaddr = rpc2_GetConn(ConnHandle);
     if (ceaddr == NULL) rpc2_Quit(RPC2_NOCONNECTION);
 
-    PeerInfo->RemoteHost = ceaddr->PeerHost;	/* structure assignment */
-    PeerInfo->RemotePort = ceaddr->PeerPort;  /* structure assignment */
+    rpc2_splitaddrinfo(&PeerInfo->RemoteHost, &PeerInfo->RemotePort,
+		       ceaddr->HostInfo->Addr);
     PeerInfo->RemoteSubsys.Tag = RPC2_SUBSYSBYID;
     PeerInfo->RemoteSubsys.Value.SubsysId = ceaddr->SubsysId;
     PeerInfo->RemoteHandle = ceaddr->PeerHandle;
@@ -844,45 +803,23 @@ long RPC2_ClearNetInfo(IN Conn)
     }  
 
     
-#ifdef CODA_IPV6
 /* adding this arg in theory allows me to specify whether to
    create a v4 or v6 socket.  Simpler way to do this? */
-long rpc2_CreateIPSocket(long *svar, RPC2_PortIdent *pvar, RPC2_HostIdent *hvar)
-#else /* CODA_IPV6 */
-long rpc2_CreateIPSocket(long *svar, RPC2_PortIdent *pvar)
-#endif /* CODA_IPV6 */
+long rpc2_CreateIPSocket(long *svar, struct rpc2_addrinfo *addr,
+			 RPC2_PortIdent *Port)
 {
-#ifdef CODA_IPV6
-    struct sockaddr_storage bindaddr_storage;
-    struct sockaddr_in6 *bindaddr6 = (struct sockaddr_in6 *)&bindaddr_storage;
-    struct sockaddr_in *bindaddr = (struct sockaddr_in *)&bindaddr_storage;
-#else /* CODA_IPV6 */
-	struct sockaddr_in bindaddr;
-#endif /* CODA_IPV6 */
-	struct servent *sentry;
-	int blen = 0x8000 ;
+    struct servent *sentry;
+    int err = RPC2_FAIL, blen = 0x8000 ;
 
+    for (; addr; addr = addr->ai_next) {
 	/* Allocate socket */
-#ifdef CODA_IPV6
-	*svar = socket(hvar->Value.AddrInfo->ai_family, SOCK_DGRAM, IPPROTO_UDP);
-#else /* CODA_IPV6 */
-	*svar = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
-#endif /* CODA_IPV6 */
-	if (*svar < 0) 
-		return(RPC2_FAIL);
-
-#if 0
-	pe = getprotobyname("ip");
-	if ( pe == NULL ) 
-		exit(1);
-
- 	/* let udp layer (17) give debugging info */
-	rc = setsockopt(*svar, pe->p_proto, SO_DEBUG, NULL, 0);
-	if ( rc ) {
-		perror("setsockopt: ");
-		exit(1);
+	*svar = socket(addr->ai_family, addr->ai_socktype, addr->ai_protocol);
+	if (*svar < 0) {
+	    err = RPC2_FAIL;
+	    continue;
 	}
 
+#if 0
 	rc = setsockopt(*svar, SOL_SOCKET, SO_SNDBUF, &blen, sizeof(blen));
 	if ( rc ) {
 		perror("setsockopt: ");
@@ -894,143 +831,50 @@ long rpc2_CreateIPSocket(long *svar, RPC2_PortIdent *pvar)
 		perror("setsockopt: ");
 		exit(1);
 	}
-
-	rc = setsockopt(*svar, pe->p_proto, SO_DEBUG, NULL, 0);
-	if ( rc ) {
-		perror("setsockopt: ");
-		exit(1);
-	}
 #endif
-#ifdef CODA_IPV6
-	memset(&bindaddr_storage, 0, sizeof(bindaddr_storage));
-	bindaddr_storage.ss_family = hvar->Value.AddrInfo->ai_family;
-        switch (bindaddr_storage.ss_family) {
-	case AF_INET:
-	    bindaddr->sin_addr = rpc2_bindaddr;
-	    blen = sizeof(struct sockaddr_in);	    
-	    /* set port address for bind() */
-	    switch (pvar->Tag) {
-	    case RPC2_PORTBYNAME:
-		sentry = getservbyname(pvar->Value.Name, "udp");
-		if (sentry == NULL) 
-		    return(RPC2_BADSERVER);
-		/* sentry has port in network order */
-		bindaddr->sin_port  = sentry->s_port;
-		break;
-	
-		/*  XXXX NO INETNUMBER , just ports */
-	    case RPC2_PORTBYINETNUMBER:
-		bindaddr->sin_port = pvar->Value.InetPortNumber;
-		break;
-
-	    case RPC2_DUMMYPORT:
-	    default:
-		bindaddr->sin_port = 0; /* kernel will assign */
-	    }
-	    break;
-	case AF_INET6:
-	    bindaddr6->sin6_addr = in6addr_any;	/* struct assignment */
-	    blen = sizeof(struct sockaddr_in6);
-	    /* set port address for bind() */
-	    switch (pvar->Tag) {
-	    case RPC2_PORTBYNAME:
-		sentry = getservbyname(pvar->Value.Name, "udp");
-		if (sentry == NULL) 
-		    return(RPC2_BADSERVER);
-		/* sentry has port in network order */
-		bindaddr6->sin6_port  = sentry->s_port;
-		break;
-	
-		/*  XXXX NO INETNUMBER , just ports */
-	    case RPC2_PORTBYINETNUMBER:
-		bindaddr6->sin6_port = pvar->Value.InetPortNumber;
-		break;
-
-	    case RPC2_DUMMYPORT:
-	    default:
-		bindaddr6->sin6_port = 0; /* kernel will assign */
-	    }
-	    break;
-	default:
-	    assert(FALSE);
-	} /* end switch af_family */
-
 	/* Now bind the socket */
-	if (bind (*svar, (struct sockaddr *)bindaddr, blen) < 0) {
-		if (errno == EADDRINUSE) 
-			return(RPC2_DUPLICATESERVER);
-		else 
-			return(RPC2_BADSERVER);
+	if (bind(*svar, addr->ai_addr, addr->ai_addrlen) < 0) {
+	    err = (errno == EADDRINUSE) ? RPC2_DUPLICATESERVER : RPC2_BADSERVER;
+	    close(*svar);
+	    *svar = -1;
+	    continue;
 	}
 
 	/* Retrieve fully resolved socket address */
-	assert(pvar->Tag != RPC2_DUMMYPORT);
-
-        blen = sizeof(bindaddr_storage);
-        if (getsockname(*svar, (struct sockaddr *)bindaddr, &blen) < 0) 
-            return(RPC2_FAIL);
-        pvar->Tag = RPC2_PORTBYINETNUMBER;
-        switch (bindaddr_storage.ss_family) {
-	case AF_INET:
-	    pvar->Value.InetPortNumber = bindaddr->sin_port; break;
-	case AF_INET6:
-        pvar->Value.InetPortNumber = bindaddr6->sin6_port; break;
-	default:
-	    assert(FALSE);
-	}
-
-#else /* CODA_IPV6 */
-
-	/* set host address for bind() */
-	memset(&bindaddr, 0, sizeof(bindaddr));
-	bindaddr.sin_family = AF_INET;
-	bindaddr.sin_addr = rpc2_bindaddr;
-					
-	/* set port address for bind() */
-	switch (pvar->Tag) {
-	case RPC2_PORTBYNAME:
-		sentry = getservbyname(pvar->Value.Name, "udp");
-		if (sentry == NULL) 
-			return(RPC2_BADSERVER);
-		/* sentry has port in network order */
-		bindaddr.sin_port  = sentry->s_port;
+	if (Port) {
+	    struct sockaddr_storage bindaddr;
+	    socklen_t blen = sizeof(bindaddr);
+	    int rc = getsockname(*svar, (struct sockaddr *)&bindaddr, &blen);
+	    if (rc < 0) {
+		err = RPC2_FAIL;
+		close(*svar);
+		*svar = -1;
+		continue;
+	    }
+	    Port->Tag = RPC2_PORTBYINETNUMBER;
+	    switch (bindaddr.ss_family) {
+	    case AF_INET:
+		Port->Value.InetPortNumber =
+		    ((struct sockaddr_in *)&bindaddr)->sin_port;
 		break;
-	
-		/*  XXXX NO INETNUMBER , just ports */
-	case RPC2_PORTBYINETNUMBER:
-		bindaddr.sin_port = pvar->Value.InetPortNumber;
+	    case AF_INET6:
+		Port->Value.InetPortNumber =
+		    ((struct sockaddr_in6 *)&bindaddr)->sin6_port;
 		break;
-
-	case RPC2_DUMMYPORT:
-	default:
-		bindaddr.sin_port = 0;	/* kernel will assign */
-	}
-
-	/* Now bind the socket */
-	if (bind (*svar, (struct sockaddr *)&bindaddr, sizeof(bindaddr)) < 0) {
-		if (errno == EADDRINUSE) 
-			return(RPC2_DUPLICATESERVER);
-		else 
-			return(RPC2_BADSERVER);
-	}
-
-	/* Retrieve fully resolved socket address */
-	assert(pvar->Tag != RPC2_DUMMYPORT);
-
-        blen = sizeof(bindaddr);
-        if (getsockname(*svar, (struct sockaddr *)&bindaddr, &blen) < 0) 
-            return(RPC2_FAIL);
-        pvar->Tag = RPC2_PORTBYINETNUMBER;
-        pvar->Value.InetPortNumber = bindaddr.sin_port;
-#endif /* CODA_IPV6 */
-
+	    default:
+		assert(FALSE);
+	    }
 #ifdef RPC2DEBUG
-	if (RPC2_DebugLevel > 9) {
-            rpc2_PrintPortIdent(pvar, rpc2_tracefile);
-            printf("\n");
-	}
+	    if (RPC2_DebugLevel > 9) {
+		rpc2_PrintPortIdent(Port, rpc2_tracefile);
+		fprintf(rpc2_tracefile, "\n");
+	    }
 #endif
-	return RPC2_SUCCESS;
+	}
+	err = RPC2_SUCCESS;
+	break;
+    }
+    return err;
 }
 
 unsigned int rpc2_MakeTimeStamp()
