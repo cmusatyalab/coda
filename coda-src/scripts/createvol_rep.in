@@ -50,8 +50,8 @@ if [ `cat ${vicedir}/hostname` != `cat ${vicedir}/db/scm` ]; then
 fi
 
 # Parge arguments
-if  [ $# != 3 -a $# != 4 ]; then
-	echo "bad args:  createvol_rep <volname> <vsgaddr> <partition-name> [<groupid>]"
+if  [ $# -lt 2 -o $# -gt 4 ]; then
+	echo "bad args:  createvol_rep <volname> <vsgaddr> [<partition-name>] [<groupid>]"
 	exit
 fi
 
@@ -102,29 +102,41 @@ fi
 
 for SERVER in $SERVERS ; do
 	grep $SERVER ${vicedir}/db/servers > /dev/null 
-	if [ $? != 0 ];  then
+	if [ $? -ne 0 ];  then
 		echo Server $SERVER not in servers file
 		exit 1
 	fi
 done
 
 # Check the partitions or find them if not specified.
+PART=""
 for SERVER in $SERVERS ; do
-        part=`grep "^P"  ${vicedir}/vol/BigVolumeList |
-	      awk "/ H$SERVER / "'{print $1}' |
-	      sed -e "s/^P//g" `
-	np=`echo $part | wc -w`
+        grep "^P"  ${vicedir}/vol/BigVolumeList | \
+	      awk "/ H$SERVER / "'{print $1}' | \
+	      sed -e "s/^P//g" > /tmp/cvr.$$  
+	np=`cat /tmp/cvr.$$ | wc -w`
 	if [ $np -eq 0 ]; then
 	    echo Found no partitions for server $SERVER.
 	    exit 1
 	fi 
-	if [ $np -gt 1 ]; then
-	    echo Found 2 or more partitions for server $SERVER.   You
-	    echo must 
+        if [ $# -eq 2 ]; then
+	    if [ $np -gt 1 ]; then
+		echo Found 2 or more partitions for server $SERVER.   You
+		echo must specify a partition.
+		exit 1
+	    fi
+	    PART="$PART"`cat /tmp/cvr.$$`" "
+	else
+	    if ! grep "^$PARTITION\$" /tmp/cvr.$$ > /dev/null ; then
+		echo Partition $PARTITION not found on server $SERVER.
+		exit 1;
+	    fi
+	fi
 done
+rm -f /tmp/cvr.$$
 
 # Allocate a new groupid if necessary
-if  [ $# = 3 ]; then
+if  [ $# -le 3 ]; then
 # New location for maxgroupid -- move it.
         if  [ -f ${vicedir}/vol/maxgroupid ]; then
 		mv ${vicedir}/vol/maxgroupid ${vicedir}/db/maxgroupid
@@ -149,9 +161,13 @@ echo HexGroupId is $HEXGROUPID
 N=0
 ENTRY="$VOLNAME $HEXGROUPID $NSERVERS"
 for  SERVER in $SERVERS ; do
-	echo "creating volume" $VOLNAME.$N on $SERVER
+	if [ $# -eq 2 ]; then
+	    PARTITION=${PART%% *}
+	    PART=${PART#* }
+ 	fi
+	echo "creating volume $VOLNAME.$N on $SERVER (partition $PARTITION)" 
 	volutil -h $SERVER create_rep $PARTITION $VOLNAME.$N $HEXGROUPID > /tmp/out
-	if [ $? != 0 ]; then 
+	if [ $? -ne 0 ]; then 
 		echo "Failure to make volume on $SERVER!. Abort.".
 		exit 1
 	fi
