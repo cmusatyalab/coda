@@ -141,9 +141,9 @@ _returnto:
 #ifdef sun	
 /* Solaris */
 #define NAME(x) x
-#define FUNCTION  #function	
+#define FUNCTION  #function
+#define _ASM
 #include <sys/asm_linkage.h>
-#include <sys/trap.h>
 #else	
 #include <sun4/asm_linkage.h>
 #include <sun4/trap.h>

@@ -34,6 +34,8 @@ testlwp_static_LDFLAGS = -static
 DISTCLEANFILES = process.s
 MAINTAINERCLEANFILES = Makefile.in
 
+AFLAGS = @AFLAGS@
+
 SUFFIXES = .ss
 
 .ss.s:

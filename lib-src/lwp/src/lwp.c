@@ -587,7 +587,7 @@ int LWP_CreateProcess(PFIC ep, int stacksize, int priority, char *parm,
             if ((fd = open("/dev/zero", O_RDWR)) != -1) {
                 stackptr = mmap(lwp_stackbase, stacksize,
                                 PROT_READ | PROT_WRITE,
-                                MAP_PRIVATE | (addrptr ? MAP_FIXED : 0),
+                                MAP_PRIVATE | (lwp_stackbase ? MAP_FIXED : 0),
                                 fd, 0);
                 (void)close(fd);
             }
