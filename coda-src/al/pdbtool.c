@@ -46,7 +46,8 @@ listed in the file CREDITS.
 static char *vicedir = NULL;
 
 /* Check if correct number of arguments,Too Few=1,Too Many=2,Just Right=0 */
-int check_args_num(int argc,int n){
+int check_args_num(int argc,int n)
+{
 	if(argc<n){
 		printf("Too few arguments!\n");
 		return 1;
@@ -74,10 +75,12 @@ int32_t get_id(char *n)
 }
 
 /* LOOKUP BY ID */
-void tool_byNameOrId(int argc,char *argv[]){
+void tool_byNameOrId(int argc,char *argv[])
+{
 	PDB_profile sample;
 	PDB_HANDLE h;
 	int32_t arg1;
+
 	if(check_args_num(argc,2)){
 		printf("Usage: i idnum\nidnum\t\tnumber of user/group\n");
 		return;
@@ -95,7 +98,8 @@ void tool_byNameOrId(int argc,char *argv[]){
 }
 
 /* LIST EVERTHING */
-void tool_list(int argc,char *argv[]){
+void tool_list(int argc,char *argv[])
+{
 	int32_t id;
 	PDB_profile sample;
 	PDB_HANDLE h;
@@ -824,7 +828,6 @@ ReadConfigFile()
     vice_dir_init(vicedir, 0);
 }
 
-
 int main(int argc, char **argv)
 {
 	int i;
@@ -845,5 +848,6 @@ int main(int argc, char **argv)
 		}
 		execute_line(line);
 	}
+	PDB_db_release();
 	return 0;
 }

@@ -52,6 +52,8 @@ listed in the file CREDITS.
 
 struct PDB_HANDLE_S {
 	struct rwcdb main;
+	int open_rw;
+	int mutations;
 };
 
 /*
@@ -66,23 +68,53 @@ struct PDB_HANDLE_S {
 #define H2DB_ID(x)      (htonl((u_int32_t) x))
 #define DB2H_ID(x)      ((int32_t)ntohl(x))
 
+static PDB_HANDLE pdb_handle = NULL;
+
 PDB_HANDLE PDB_db_open(int mode)
 {
-	struct PDB_HANDLE_S *handle;
 	int rc;
 
-	handle = malloc(sizeof(*handle));
-	CODA_ASSERT(handle);
+	if (!pdb_handle) {
+	    pdb_handle = malloc(sizeof(*pdb_handle));
+	    CODA_ASSERT(pdb_handle);
 
-	memset(handle, 0, sizeof(*handle));
+	    memset(pdb_handle, 0, sizeof(*pdb_handle));
 
-	rc = rwcdb_init(&handle->main, PDB_MAIN, mode);
-	if (rc) {
+	    rc = rwcdb_init(&pdb_handle->main, PDB_MAIN, mode);
+	    if (rc) {
 		fprintf(stderr, "Error opening %s database\n", PDB_MAIN);
 		exit(1);
+	    }
+	    pdb_handle->open_rw = (mode != O_RDONLY);
+	    goto done;
 	}
 
-	return handle;
+	if (mode == O_RDONLY) {
+	    if (!pdb_handle->open_rw) {
+		CODA_ASSERT(rwcdb_sync(&pdb_handle->main) != -1);
+	    }
+	    goto done;
+	}
+
+	/* ok we want to access the database for mutations... */
+	if (!pdb_handle->open_rw) {
+	    /* reopen the database with readwrite permissions */
+	    CODA_ASSERT(rwcdb_free(&pdb_handle->main) == 1);
+	    rc = rwcdb_init(&pdb_handle->main, PDB_MAIN, mode);
+	    if (rc) {
+		fprintf(stderr, "Error reopening %s database as readwrite\n",
+			PDB_MAIN);
+		exit(1);
+	    }
+	    pdb_handle->open_rw = 1;
+	    goto done;
+	}
+
+	pdb_handle->mutations++;
+	if ((pdb_handle->mutations % 128) == 0)
+	    CODA_ASSERT(rwcdb_sync(&pdb_handle->main) == 1);
+done:
+	return pdb_handle;
 }
 
 
@@ -90,7 +122,7 @@ PDB_HANDLE PDB_db_open(int mode)
  * database */
 void PDB_db_reopen(PDB_HANDLE h) 
 {
-	rwcdb_sync(&h->main);
+    CODA_ASSERT(rwcdb_sync(&pdb_handle->main) != -1);
 }
 
 
@@ -134,10 +166,17 @@ next:
 
 void PDB_db_close(PDB_HANDLE h)
 {
-	CODA_ASSERT(h);
+    return;
+}
 
-	rwcdb_free(&h->main);
-	free(h);
+void PDB_db_release(void)
+{
+    if (!pdb_handle)
+	return;
+
+    rwcdb_free(&pdb_handle->main);
+    free(pdb_handle);
+    pdb_handle = NULL;
 }
 
 void PDB_db_maxids(PDB_HANDLE h, int32_t *uid, int32_t *gid)
@@ -312,7 +351,6 @@ void PDB_db_compact(PDB_HANDLE h)
 {
 	return;
 }
-
 
 int PDB_setupdb(void)
 {

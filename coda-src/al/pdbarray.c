@@ -83,11 +83,11 @@ void pdb_array_add(pdb_array *l, int32_t x)
 	
 	CODA_ASSERT(l);
 
-	if((l->size+1) >= l->memsize){
+	if(l->size + 1 > l->memsize){
 		if(l->memsize != 0){
 			l->memsize += 16;
 			l->data = realloc(l->data, l->memsize*sizeof(int32_t));
-		} else{
+		} else {
 			l->memsize = 16;
 			l->data = malloc(l->memsize*sizeof(int32_t));
 		}
@@ -96,9 +96,12 @@ void pdb_array_add(pdb_array *l, int32_t x)
 	i = l->size-1;
 	while((i >= 0) && (l->data[i] > x))
 		i--;
-	if((i >= 0) && (l->data[i] == x)) return;
-	memmove((char *) &(l->data[i+1]),(char *) &(l->data[i]),
-		(l->size - i) * sizeof(int32_t));
+	if (i >= 0) {
+	   if (l->data[i] == x)
+	       return;
+	    memmove(&(l->data[i+1]), &(l->data[i]),
+		    (l->size - i) * sizeof(int32_t));
+	}
 	l->data[i+1] = x;
 	l->size++;
 }

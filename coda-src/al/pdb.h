@@ -92,6 +92,7 @@ void PDB_updateCps(PDB_HANDLE h, PDB_profile *r);
 PDB_HANDLE PDB_db_open(int mode);
 void PDB_db_reopen(PDB_HANDLE h);
 void PDB_db_close(PDB_HANDLE h);
+void PDB_db_release(void);
 void PDB_db_maxids(PDB_HANDLE h, int32_t *uid, int32_t *gid);
 void PDB_db_update_maxids(PDB_HANDLE h, int32_t uid, int32_t gid, int mode);
 void PDB_db_write(PDB_HANDLE h, int32_t id, char *name, void *buf, size_t size);
