@@ -15,6 +15,9 @@
 /* 
  * HISTORY
  * $Log: cfs_nbsd.c,v $
+ * Revision 1.4  1996/11/13 04:14:19  bnoble
+ * Merging BNOBLE_WORK_6_20_96 into main line
+ *
  *
  * Revision 1.3  1996/11/08 18:06:11  bnoble
  * Minor changes in vnode operation signature, VOP_UPDATE signature, and
@@ -854,6 +857,9 @@ cfs_nb_lock(v)
 	myprintf(("cfs_nb_lock: lock contention\n"));
 #endif
 	(void) sleep((caddr_t)cp, PINOD);
+#ifdef DIAGNOSTIC
+	myprintf(("cfs_nb_lock: contention resolved\n"));
+#endif
 	goto start;
     }
     cp->c_flags |= CN_LOCKED;
