@@ -52,12 +52,12 @@ extern "C" {
 /* ********** Mist Routines ********** */
 int MakeDirList(struct DirEntry *de, void *hook)
 {
-        VolFid *vfid = (VolFid *)hook;
+        Volid *vid = (Volid *)hook;
 	VenusFid fid;
 	char *name = de->name;
 
-	fid.Realm = vfid->Realm;
-	fid.Volume = vfid->Volume;
+	fid.Realm = vid->Realm;
+	fid.Volume = vid->Volume;
 	FID_NFid2Int(&de->fid, &fid.Vnode, &fid.Unique);
 	LOG(100, ("MakeDirList: Fid = %s and Name = %s\n", FID_(&fid), name));
 	LRDB->DirList_Insert(&fid, name);
@@ -750,10 +750,10 @@ int fsobj::ReplaceLocalFakeFid()
 	if (obj->IsDir() && HAVEALLDATA(obj) && (!obj->IsMtPt())) {
 	    /* deal with possible un-cached children under "obj" */
 	    LRDB->DirList_Clear();
-	    VolFid *DirFid = MakeVolFid(&obj->fid);
+	    Volid *DirVolid = MakeVolid(&obj->fid);
 	    VenusData *DirData = &obj->data;
 
-	    DH_EnumerateDir(&DirData->dir->dh, MakeDirList, (void *)DirFid);
+	    DH_EnumerateDir(&DirData->dir->dh, MakeDirList, (void *)DirVolid);
 	    LRDB->DirList_Process(obj);
 	}
 	if (obj->children != 0) {	/* Try to PUSH the stack if appropriate */

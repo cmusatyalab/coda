@@ -233,7 +233,7 @@ void fsobj::ResetTransient()
 
     /* Link to volume, and initialize volume specific members. */
     {
-	if ((vol = VDB->Find(MakeVolFid(&fid))) == 0)
+	if ((vol = VDB->Find(MakeVolid(&fid))) == 0)
 	    { print(logFile); CHOKE("fsobj::ResetTransient: couldn't find volume"); }
 	vol->hold();
     }
@@ -1127,10 +1127,10 @@ int fsobj::TryToCover(VenusFid *inc_fid, vuid_t vuid) {
     /* Look up the volume that is to be mounted on us. */
     volent *tvol = 0;
     if (IsFake()) {
-	VolFid vfid;
-	if (sscanf(data.symlink, "@%lx.%lx.%*x.%*x", &vfid.Realm, &vfid.Volume) != 2)
-	    { print(logFile); CHOKE("fsobj::TryToCover: couldn't get vfid"); }
-	code = VDB->Get(&tvol, &vfid);
+	Volid vid;
+	if (sscanf(data.symlink, "@%lx.%lx.%*x.%*x", &vid.Realm, &vid.Volume) != 2)
+	    { print(logFile); CHOKE("fsobj::TryToCover: couldn't get volume id"); }
+	code = VDB->Get(&tvol, &vid);
     }
     else {
 	/* Turn volume name into a proper string. */

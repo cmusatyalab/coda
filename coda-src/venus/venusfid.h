@@ -13,7 +13,7 @@ typedef struct {
 typedef struct {
     RealmId  Realm;
     VolumeId Volume;
-} VolFid;
+} Volid;
 
 inline CodaFid *VenusToKernelFid(VenusFid *fid)
 {
@@ -31,9 +31,9 @@ inline ViceFid *MakeViceFid(VenusFid *fid)
     return (ViceFid *)(&fid->Volume);
 }
 
-inline VolFid *MakeVolFid(VenusFid *fid)
+inline Volid *MakeVolid(VenusFid *fid)
 {
-    return (VolFid *)(&fid->Realm);
+    return (Volid *)(&fid->Realm);
 }
 
 inline int FID_EQ(const VenusFid *a, const VenusFid *b)

@@ -460,7 +460,7 @@ void lrdb::InitCMLSearch(VenusFid *FakeRootFid)
 	    OBJ_ASSERT(this, FID_VolIsLocal(LFid) && GFid != NULL);	    
 
 	    {	/* built repair_vol_list */
-		volent *Vol = VDB->Find(MakeVolFid(GFid));
+		volent *Vol = VDB->Find(MakeVolid(GFid));
                 CODA_ASSERT(Vol->IsReplicated());
                 repvol *vp = (repvol *)Vol;
 		vpt_iterator next(repair_vol_list);
@@ -561,7 +561,7 @@ void lrdb::ListCML(VenusFid *FakeRootFid, FILE *fp)
 	    OBJ_ASSERT(this, FID_VolIsLocal(LFid) && GFid != NULL);	    
 
 	    {	/* built vol_list */
-		volent *Vol = VDB->Find(MakeVolFid(GFid));
+		volent *Vol = VDB->Find(MakeVolid(GFid));
                 CODA_ASSERT(Vol->IsReplicated());
                 repvol *vp = (repvol *)Vol;
 		vpt_iterator next(vol_list);
@@ -1121,7 +1121,7 @@ void lrdb::RemoveSubtree(VenusFid *FakeRootFid)
 	    OBJ_ASSERT(this, FID_VolIsLocal(LFid) && GFid != NULL);	    
 
 	    {	/* built gc_vol_list */
-		volent *Vol = VDB->Find(MakeVolFid(GFid));
+		volent *Vol = VDB->Find(MakeVolid(GFid));
 		OBJ_ASSERT(this, Vol != NULL && Vol->IsReplicated());
                 repvol *vp = (repvol *)Vol;
 		vpt_iterator next(gc_vol_list);

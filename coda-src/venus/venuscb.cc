@@ -214,7 +214,7 @@ long VENUS_CallBack(RPC2_Handle RPCid, ViceFid *fid)
 	if (FSDB->CallBackBreak(&vf))
 	    cbbreaks++;
 
-    if (VDB->CallBackBreak(MakeVolFid(&vf)))
+    if (VDB->CallBackBreak(MakeVolid(&vf)))
         cbbreaks++;
 
     return(0);
@@ -330,14 +330,17 @@ long VENUS_CallBackConnect(RPC2_Handle RPCid, RPC2_Integer SideEffectType,
               ntohs(thePeer.RemotePort.Value.InetPortNumber)));
 
     /* Get the server entry and install the new connid. */
-    /* It is NOT a fatal error if the srvent doesn't already exist, because the server may be */
-    /* "calling-back" as a result of a bind by a PREVIOUS Venus incarnation at this client! */
-    srvent *s = 0;
-    GetServer(&s, &thePeer.RemoteHost.Value.InetAddress);
-    LOG(1, ("CallBackConnect: host = %s\n", s->name));
-    MarinerLog("callback::NewConnection %s\n", s->name);
-    s->ServerUp(RPCid);
-    PutServer(&s);
+    /* It is NOT a fatal error if the srvent doesn't already exist, because the
+     * server may be "calling-back" as a result of a bind by a PREVIOUS Venus
+     * incarnation at this client! */
+    srvent *s = FindServer(&thePeer.RemoteHost.Value.InetAddress);
+    if (s) {
+	s->GetRef();
+	LOG(1, ("CallBackConnect: host = %s\n", s->name));
+	MarinerLog("callback::NewConnection %s\n", s->name);
+	s->ServerUp(RPCid);
+	PutServer(&s);
+    }
 
     return(0);
 }

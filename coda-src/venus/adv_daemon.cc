@@ -262,11 +262,11 @@ long S_ResultOfASR(RPC2_Handle _cid, RPC2_Integer realm, VolumeId volume, RPC2_I
   LOG(0, ("ResultOfASR: VID = %x.%x, ASRid = %d, result = %d\n",
 	  realm, volume, ASRid, result));
 
-  VolFid vfid;
-  vfid.Realm = realm;
-  vfid.Volume = volume;
+  Volid vid;
+  vid.Realm = realm;
+  vid.Volume = volume;
 
-  vol = VDB->Find(&vfid);
+  vol = VDB->Find(&vid);
   CODA_ASSERT(vol && vol->IsReplicated());
   repvol *vp = (repvol *)vol;
 

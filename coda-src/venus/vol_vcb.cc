@@ -62,10 +62,10 @@ int vcbbreaks = 0;	/* count of broken volume callbacks */
 char VCBEnabled = 1;	/* use VCBs by default */
 
 
-int vdb::CallBackBreak(VolFid *vfid)
+int vdb::CallBackBreak(Volid *volid)
 {
     int rc = 0;
-    volent *v = VDB->Find(vfid);
+    volent *v = VDB->Find(volid);
 
     if (v && v->IsReplicated() &&
         (rc = ((repvol *)v)->CallBackBreak()))
@@ -283,13 +283,13 @@ int repvol::GetVolAttr(vuid_t vuid)
 		      name, nVols, numVFlags));
             
             volent *v;
-	    VolFid vfid;
-	    vfid.Realm = realm->Id();
+	    Volid volid;
+	    volid.Realm = realm->Id();
 
 	    /* now set status of volumes */
 	    for (i = 0; i < numVFlags; i++)  /* look up the object */
-		vfid.Volume = VidList[i].Vid;
-		if ((v = VDB->Find(&vfid))) {
+		volid.Volume = VidList[i].Vid;
+		if ((v = VDB->Find(&volid))) {
                     CODA_ASSERT(v->IsReplicated());
                     repvol *vp = (repvol *)v;
 		    fso_vol_iterator next(NL, vp);

@@ -218,9 +218,9 @@ class vproc : public olink {
     virtual ~vproc();
 
     /* Volume-level concurrency control. */
-    void Begin_VFS(VolFid *, int, int =-1);
+    void Begin_VFS(Volid *, int, int =-1);
     void Begin_VFS(VenusFid *fid, int op, int arg=-1) {
-	Begin_VFS(MakeVolFid(fid), op, arg);
+	Begin_VFS(MakeVolid(fid), op, arg);
     }
     void End_VFS(int * =0);
 

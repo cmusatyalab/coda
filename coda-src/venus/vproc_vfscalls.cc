@@ -424,7 +424,7 @@ void vproc::setattr(struct venus_cnode *cp, struct coda_vattr *vap) {
 	 * having an inaccessible object we have to make sure to fetch the
 	 * data as well. */
 	volent *v = 0;
-	u.u_error = VDB->Get(&v, MakeVolFid(&cp->c_fid));
+	u.u_error = VDB->Get(&v, MakeVolid(&cp->c_fid));
 	if (u.u_error) goto FreeLocks;
 	if (v->IsWriteDisconnected())
 	    rcrights |= RC_DATA;

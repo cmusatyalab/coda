@@ -265,7 +265,7 @@ int mgrpent::CreateMember(int idx)
 
     /* Bind/Connect to the server. */
     srvent *s = 0;
-    GetServer(&s, &hosts[idx]);
+    GetServer(&s, &hosts[idx], vsg->Realm());
     RPC2_Handle ConnHandle = 0;
     int auth = authenticated;
     code = s->Connect(&ConnHandle, &auth, uid, 0);
@@ -399,7 +399,7 @@ void mgrpent::CheckResult()
 	    default:
 		if (rocc.retcodes[i] < 0) {
 		    srvent *s = 0;
-		    GetServer(&s, &rocc.hosts[i]);
+		    GetServer(&s, &rocc.hosts[i], vsg->Realm());
 		    s->ServerError((int *)&rocc.retcodes[i]);
 		    PutServer(&s);
 		}
@@ -650,7 +650,7 @@ int mgrpent::PickDH(vv_t **RVVs)
     /* find strongest host in the dominant set. */
     for (i = 0; i < VSG_MEMBERS; i++) {
 	if (DOMINANT(i)) {
-            GetServer(&s, &rocc.hosts[i]);
+            GetServer(&s, &rocc.hosts[i], vsg->Realm());
             s->GetBandwidth(&bw);
             PutServer(&s);
 

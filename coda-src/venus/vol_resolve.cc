@@ -69,12 +69,12 @@ void repvol::Resolve()
     int code = 0;
     vproc *v = VprocSelf();
 
-    VolFid vfid;
-    vfid.Realm = realm->Id();
-    vfid.Volume = vid;
+    Volid volid;
+    volid.Realm = realm->Id();
+    volid.Volume = vid;
 
     /* Grab control of the volume. */
-    v->Begin_VFS(&vfid, CODA_RESOLVE);
+    v->Begin_VFS(&volid, CODA_RESOLVE);
     VOL_ASSERT(this, v->u.u_error == 0);
 
     /* Flush all COP2 entries. */
@@ -96,7 +96,7 @@ void repvol::Resolve()
 	    struct in_addr *phost = m->GetPrimaryHost();
 	    CODA_ASSERT(phost->s_addr != 0);
             srvent *s;
-            GetServer(&s, phost);
+            GetServer(&s, phost, GetRealmId());
 	    code = s->GetConn(&c, V_UID);
             PutServer(&s);
 	    if (code != 0) goto HandleResult;

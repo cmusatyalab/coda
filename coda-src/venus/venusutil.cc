@@ -77,6 +77,7 @@ extern "C" {
 #include "vproc.h"
 #include "vsg.h"
 #include "worker.h"
+#include "realmdb.h"
 
 
 /* *****  Exported variables  ***** */
@@ -84,7 +85,7 @@ extern "C" {
 FILE *logFile = 0;
 int LogLevel = 0;
 int MallocTrace = 0;
-const VenusFid NullFid = {0, 0, 0};
+const VenusFid NullFid = {0, 0, 0, 0};
 const vv_t NullVV = {{0, 0, 0, 0, 0, 0, 0, 0}, {0, 0}, 0};
 VFSStatistics VFSStats;
 RPCOpStatistics RPCOpStats;
@@ -270,6 +271,7 @@ void VenusPrint(int fd, int argc, char **argv) {
 
     fdprint(fd, "*****  VenusPrint  *****\n\n");
     FILE *f = fdopen(dup(fd), "a");
+    if (allp)		  REALMDB->print(f);
     if (serverp || allp)  ServerPrint(f);
     if (mgrpp || allp)    VSGDB->print(f);
     fclose(f);

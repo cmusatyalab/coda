@@ -498,9 +498,9 @@ class vdb {
     void CheckLocalSubtree();
 
   public:
-    volent *Find(VolFid *);
+    volent *Find(Volid *);
     volent *Find(Realm *, const char *);
-    int Get(volent **, VolFid *);
+    int Get(volent **, Volid *);
     int Get(volent **, Realm *, const char *);
     void Put(volent **);
 
@@ -515,7 +515,7 @@ class vdb {
     void GetCmlStats(cmlstats&, cmlstats&);
     void AutoRequestWBPermit();
 
-    int CallBackBreak(VolFid *);
+    int CallBackBreak(Volid *);
     void TakeTransition();	/* also a daemon function */
 
     void print() { print(stdout); }
@@ -942,13 +942,13 @@ class repvol : public volent {
 
 class repvol_iterator : public rec_ohashtab_iterator {
   public:
-    repvol_iterator(VolFid * =(VolFid *)-1);
+    repvol_iterator(Volid * =(Volid *)-1);
     repvol *operator()();
 };
 
 class volrep_iterator : public rec_ohashtab_iterator {
   public:
-    volrep_iterator(VolFid * =(VolFid *)-1);
+    volrep_iterator(Volid * =(Volid *)-1);
     volrep *operator()();
 };
 

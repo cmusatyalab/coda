@@ -227,7 +227,7 @@ class fsdb {
 	    int *rcode=0, int GetInconsistent=0);
     void Put(fsobj **);
     void Flush();
-    void Flush(VolFid *);
+    void Flush(Volid *);
     int TranslateFid(VenusFid *, VenusFid *);
     int CallBackBreak(const VenusFid *);
     void ResetUser(vuid_t);

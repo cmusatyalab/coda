@@ -528,14 +528,14 @@ static int VolModeMap[CODA_NCALLS] = {
     (((vfsop) >= 0 && (vfsop) < NVFSOPS) ? VolModeMap[vfsop] : VM_MUTATING)
 
 /* local-repair modification */    
-void vproc::Begin_VFS(VolFid *vfid, int vfsop, int volmode)
+void vproc::Begin_VFS(Volid *volid, int vfsop, int volmode)
 {
     LOG(1, ("vproc::Begin_VFS(%s): vid = %x.%x, u.u_vol = %x, mode = %d\n",
-	    VenusOpStr(vfsop), vfid->Realm, vfid->Volume, u.u_vol, volmode));
+	    VenusOpStr(vfsop), volid->Realm, volid->Volume, u.u_vol, volmode));
     
     /* Set up this thread's volume-related context. */
     if (u.u_vol == 0) {
-	if (VDB->Get(&u.u_vol, vfid)) {
+	if (VDB->Get(&u.u_vol, volid)) {
 	    u.u_error = EVOLUME;	    /* ??? -JJK */
 	    return;
 	}

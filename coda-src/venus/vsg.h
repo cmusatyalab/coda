@@ -42,11 +42,12 @@ private:
     unsigned int nhosts; /* number of replica servers in this VSG */
     struct in_addr hosts[VSG_MEMBERS];  /* hosts in this VSG */
     struct dllist_head mgrpents;        /* list of mgroups for this VSG */
+    RealmId realm;
 
 protected:
     struct dllist_head vsgs; /* list of all vsgents */
 
-    vsgent(struct in_addr Hosts[VSG_MEMBERS]);
+    vsgent(struct in_addr Hosts[VSG_MEMBERS], RealmId realm);
     ~vsgent(void);
 
     int CmpHosts(struct in_addr Hosts[VSG_MEMBERS]) {
@@ -61,6 +62,7 @@ public:
     void Put(void) { PutRef(); }
 
     int GetMgrp(mgrpent **m, vuid_t vuid, int auth = 1);
+    RealmId Realm(void) { return realm; }
     void KillMgrps(void);
     void KillUserMgrps(vuid_t vuid);
     void KillMgrpMember(struct in_addr *);
@@ -81,7 +83,7 @@ public:
     vsgdb(void);
     ~vsgdb(void);
 
-    vsgent *GetVSG(struct in_addr hosts[VSG_MEMBERS]);
+    vsgent *GetVSG(struct in_addr hosts[VSG_MEMBERS], RealmId realm);
     void KillUserMgrps(vuid_t vuid);
 
     void print(FILE *f);

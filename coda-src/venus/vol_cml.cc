@@ -2064,7 +2064,7 @@ int ClientModifyLog::COP1(char *buf, int bufsize, ViceVersionVector *UpdateSet,
 
 	connent *c = 0;
         srvent *s;
-        GetServer(&s, phost);
+        GetServer(&s, phost, vol->GetRealmId());
 	code = s->GetConn(&c, owner);
         PutServer(&s);
 	if (code != 0) goto Exit;
@@ -2775,7 +2775,7 @@ int cmlent::GetReintegrationHandle()
     CODA_ASSERT(phost.s_addr != 0);
 
     srvent *s;
-    GetServer(&s, &phost);
+    GetServer(&s, &phost, vol->GetRealmId());
     code = s->GetConn(&c, log->owner);
     PutServer(&s);
     if (code != 0) goto Exit;
@@ -2824,7 +2824,7 @@ int cmlent::ValidateReintegrationHandle()
     
     /* Acquire a connection. */
     srvent *s;
-    GetServer(&s, &u.u_store.ReintPH);
+    GetServer(&s, &u.u_store.ReintPH, vol->GetRealmId());
     code = s->GetConn(&c, log->owner);
     PutServer(&s);
     if (code != 0) goto Exit;
@@ -2873,7 +2873,7 @@ int cmlent::WriteReintegrationHandle()
 
     /* Acquire a connection. */
     srvent *s;
-    GetServer(&s, &u.u_store.ReintPH);
+    GetServer(&s, &u.u_store.ReintPH, vol->GetRealmId());
     code = s->GetConn(&c, log->owner);
     PutServer(&s);
     if (code != 0) goto Exit;
@@ -2993,7 +2993,7 @@ int cmlent::CloseReintegrationHandle(char *buf, int bufsize,
 
     /* Get a connection to the server. */
     srvent *s;
-    GetServer(&s, &u.u_store.ReintPH);
+    GetServer(&s, &u.u_store.ReintPH, vol->GetRealmId());
     code = s->GetConn(&c, log->owner);
     PutServer(&s);
     if (code != 0) goto Exit;

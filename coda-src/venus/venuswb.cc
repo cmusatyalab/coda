@@ -165,7 +165,7 @@ void writebackserver::main(void)
 long VENUS_RevokeWBPermit(RPC2_Handle RPCid, VolumeId Vid)
 {
     volent *v;
-    VolFid vfid;
+    Volid vid;
 
     LOG(1, ("RevokeWBPermit(): Vid = %d\n", Vid));
 
@@ -177,10 +177,10 @@ long VENUS_RevokeWBPermit(RPC2_Handle RPCid, VolumeId Vid)
 
     if (!Vid) return 0;
 
-    vfid.Realm = s->realmid;
-    vfid.Volume = Vid;
+    vid.Realm = s->realmid;
+    vid.Volume = Vid;
 
-    v = VDB->Find(&vfid);
+    v = VDB->Find(&vid);
     if (v && v->IsReplicated())
 	((repvol *)v)->StopWriteback(NULL);
 

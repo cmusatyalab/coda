@@ -745,14 +745,14 @@ void hdb::ListPriorityQueue() {
     }
 }
 
-int hdb::GetSuspectPriority(VolFid *vfid, char *pathname, int uid)
+int hdb::GetSuspectPriority(Volid *vid, char *pathname, int uid)
 {
     char *lastslash;
     bstree_iterator next(*prioq, BstDescending);
     bsnode *b;
 
     LOG(100, ("hdb::GetSuspectPriority: vid = %x.%x, pathname = %s, uid = %d\n",
-	      vfid->Realm, vfid->Volume, pathname, uid));
+	      vid->Realm, vid->Volume, pathname, uid));
     fflush(logFile);
 
     /* make a prefix for testing child expansions */
@@ -764,8 +764,8 @@ int hdb::GetSuspectPriority(VolFid *vfid, char *pathname, int uid)
     while ((b = next())) {
 	namectxt *n = strbase(namectxt, b, prio_handle);
 	if (LogLevel >= 100) { n->print(logFile); fflush(logFile); }
-	if (n->cdir.Realm == vfid->Realm &&
-	    n->cdir.Volume == vfid->Volume &&
+	if (n->cdir.Realm == vid->Realm &&
+	    n->cdir.Volume == vid->Volume &&
 	    ((n->vuid == uid) || (n->vuid == ALL_UIDS))) {
 	    /* First, deal with direct match */
 	    if (strcmp(n->path, pathname) == 0) {
@@ -2426,7 +2426,7 @@ void namectxt::print(int fd, void *filter) {
 }
 
 void namectxt::getpath(char *buf) {
-        volent *v = VDB->Find(MakeVolFid(&cdir));
+        volent *v = VDB->Find(MakeVolid(&cdir));
 	if (v) v->GetMountPath(buf, 0);
 	if (!v || !strcmp(buf, "???")) sprintf(buf, "0x%lx.%lx", cdir.Realm, cdir.Volume);
 	strcat(buf, "/");

@@ -480,7 +480,7 @@ OI_FreeLocks:
  	    gettimeofday(&u.u_tv1, 0); u.u_tv2.tv_sec = 0;
 #endif
 	    volent *v = 0;
-	    if ((u.u_error = VDB->Get(&v, MakeVolFid(fid)))) break;
+	    if ((u.u_error = VDB->Get(&v, MakeVolid(fid)))) break;
 
 	    int volmode = ((com == VIOC_REPAIR || com == VIOC_PURGEML) ?
 			   VM_MUTATING : VM_OBSERVING);
@@ -699,7 +699,7 @@ OI_FreeLocks:
 		    /* MiniCache vnodes that have the "wrong" type! -JJK */
 		    (void)k_Purge();
 
-		    FSDB->Flush(MakeVolFid(fid));
+		    FSDB->Flush(MakeVolid(fid));
 		    Recov_SetBound(DMFP);
 
 		    break;
@@ -773,7 +773,7 @@ OI_FreeLocks:
 		    for (i = 0; i < VSG_MEMBERS; i++)
 			if (Hosts[i].s_addr) {
 			    srvent *s;
-			    GetServer(&s, &Hosts[i]);
+			    GetServer(&s, &Hosts[i], v->GetRealmId());
 			    (void)s->GetStatistics(Stats);
 			    Stats++;
 			}
@@ -1021,21 +1021,21 @@ V_FreeLocks:
 		      if (data->in_size != (int)sizeof(VolumeId)) {
 			u.u_error = EINVAL; break;
 		      }
-		      VolFid vfid;
+		      Volid volid;
 #warning "need realm here"
-		      vfid.Realm = 0;
-		      vfid.Volume = *(VolumeId *)data->in;
-		      volent *vv = VDB->Find(&vfid);
+		      volid.Realm = 0;
+		      volid.Volume = *(VolumeId *)data->in;
+		      volent *vv = VDB->Find(&volid);
 		      if (!vv) {
 			MarinerLog("Could not find volume = %x.%x\n",
-				   vfid.Realm, vfid.Volume);
+				   volid.Realm, volid.Volume);
 			u.u_error = EINVAL;
 			break;
 		      }
 		      vv->GetMountPath((char *)data->out, 0);
 		      if (strcmp((char *)data->out, "???") == 0) {
 			MarinerLog("Could not get mount point path for %x.%x\n",
-				   vfid.Realm, vfid.Volume);
+				   volid.Realm, volid.Volume);
 			u.u_error = EINVAL;
 			break;
 		      }

@@ -28,7 +28,7 @@ unsigned int vsgent::allocs = 0;
 unsigned int vsgent::deallocs = 0;
 #endif
 
-vsgent::vsgent(struct in_addr Hosts[VSG_MEMBERS])
+vsgent::vsgent(struct in_addr Hosts[VSG_MEMBERS], RealmId realmid)
 {
     LOG(10, ("vsgent::vsgent %p %08x %08x %08x %08x %08x %08x %08x %08x\n",
              this, Hosts[0], Hosts[1], Hosts[2], Hosts[3],
@@ -36,6 +36,7 @@ vsgent::vsgent(struct in_addr Hosts[VSG_MEMBERS])
 
     int i;
 
+    realm = realmid;
     nhosts = 0;
     for (i = 0; i < VSG_MEMBERS; i++) {
         hosts[i] = Hosts[i];
@@ -214,7 +215,7 @@ vsgdb::~vsgdb(void)
     CODA_ASSERT(list_empty(&vsgents));
 }
 
-vsgent *vsgdb::GetVSG(struct in_addr hosts[VSG_MEMBERS])
+vsgent *vsgdb::GetVSG(struct in_addr hosts[VSG_MEMBERS], RealmId realm)
 {
     LOG(10, ("vsgdb::GetVSG %08x %08x %08x %08x %08x %08x %08x %08x\n",
              hosts[0], hosts[1], hosts[2], hosts[3],
@@ -233,7 +234,7 @@ vsgent *vsgdb::GetVSG(struct in_addr hosts[VSG_MEMBERS])
     }
 
     /* no matches found, create a new VSG */
-    v = new vsgent(hosts);
+    v = new vsgent(hosts, realm);
     if (v) list_add(&v->vsgs, &vsgents);
 
     return v;

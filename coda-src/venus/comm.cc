@@ -164,6 +164,8 @@ void CommInit() {
     /* Initialize Servers. */
     srvent::srvtab = new olist;
 
+#warning "Not resolving root servers, can this code go?"
+#if 0
     /* Create server entries for each bootstrap host. */
     int hcount = 0;
     for (char *hp = fsname; hp && *hp;) {
@@ -206,7 +208,7 @@ void CommInit() {
         }
 
         if (addr.s_addr != INADDR_ANY) {
-            GetServer(&s, &addr);
+            GetServer(&s, &addr, realm);
             s->rootserver = 1;
             /* Don't call PutServer, this keeps a refcount on the rootservers */
             hcount++;
@@ -216,6 +218,7 @@ void CommInit() {
     }
     if (!hcount)
 	CHOKE("CommInit: no bootstrap server");
+#endif
 
     RPC2_Perror = 0;
 
@@ -394,7 +397,7 @@ int srvent::GetConn(connent **cpp, vuid_t vuid, int Force)
     }
 
     /* Create and install the new connent. */
-    c = new connent(&host, vuid, ConnHandle, auth);
+    c = new connent(this, vuid, ConnHandle, auth);
     if (!c) return(ENOMEM);
 
     c->inuse = 1;
@@ -414,7 +417,7 @@ void PutConn(connent **cpp)
     }
 
     LOG(100, ("PutConn: host = %s, uid = %d, cid = %d, auth = %d\n",
-	     inet_ntoa(c->Host), c->uid, c->connid, c->authenticated));
+	      c->srv->Name(), c->uid, c->connid, c->authenticated));
 
     if (!c->inuse)
 	{ c->print(logFile); CHOKE("PutConn: conn not in use"); }
@@ -456,13 +459,14 @@ void ConnPrint(int fd) {
 }
 
 
-connent::connent(struct in_addr *host, vuid_t vuid, RPC2_Handle cid, int authflag)
+connent::connent(srvent *server, vuid_t vuid, RPC2_Handle cid, int authflag)
 {
     LOG(1, ("connent::connent: host = %s, uid = %d, cid = %d, auth = %d\n",
-	     inet_ntoa(*host), vuid, cid, authflag));
+	     server->Name(), vuid, cid, authflag));
 
     /* These members are immutable. */
-    Host = *host;
+    server->GetRef();
+    srv = server;
     uid = vuid;
     connid = cid;
     authenticated = authflag;
@@ -482,11 +486,12 @@ connent::~connent() {
     deallocs++;
 #endif
 
-    LOG(1, ("connent::~connent: host = %#08x, uid = %d, cid = %d, auth = %d\n",
-	    Host, uid, connid, authenticated));
+    LOG(1, ("connent::~connent: host = %s, uid = %d, cid = %d, auth = %d\n",
+	    srv->Name(), uid, connid, authenticated));
 
     int code = (int) RPC2_Unbind(connid);
     connid = 0;
+    PutServer(&srv);
     LOG(1, ("connent::~connent: RPC2_Unbind -> %s\n", RPC2_ErrorMsg(code)));
 }
 
@@ -506,7 +511,7 @@ int connent::Suicide(int disconnect)
     /* Be nice and disconnect if requested. */
     if (disconnect) {
 	/* Make the RPC call. */
-	MarinerLog("fetch::DisconnectFS %s\n", (FindServer(&Host))->name);
+	MarinerLog("fetch::DisconnectFS %s\n", srv->Name());
 	UNI_START_MESSAGE(ViceDisconnectFS_OP);
 	int code = (int) ViceDisconnectFS(connid);
 	UNI_END_MESSAGE(ViceDisconnectFS_OP);
@@ -539,15 +544,11 @@ int connent::CheckResult(int code, VolumeId vid, int TranslateEINCOMP) {
     /* Translate RPC and Volume errors, and update server state. */
     switch(code) {
 	default:
-	    if (code < 0) {
-		srvent *s = 0;
-		GetServer(&s, &Host);
-		s->ServerError(&code);
-		PutServer(&s);
-	    }
-	    if (code == ETIMEDOUT || code == ERETRY) {
+	    if (code < 0)
+		srv->ServerError(&code);
+
+	    if (code == ETIMEDOUT || code == ERETRY)
 		dying = 1;
-	    }
 	    break;
 
 	case VBUSY:
@@ -590,7 +591,7 @@ int connent::CheckResult(int code, VolumeId vid, int TranslateEINCOMP) {
 
 void connent::print(int fd) {
     fdprint(fd, "%#08x : host = %s, uid = %d, cid = %d, auth = %d, inuse = %d, dying = %d\n",
-	     (long)this, inet_ntoa(Host), uid, connid, authenticated, inuse, dying);
+	     (long)this, srv->Name(), uid, connid, authenticated, inuse, dying);
 }
 
 
@@ -604,7 +605,7 @@ connent *conn_iterator::operator()() {
     while ((o = olist_iterator::operator()())) {
 	connent *c = strbase(connent, o, tblhandle);
 	if (key == (struct ConnKey *)0) return(c);
-	if ((key->host.s_addr == c->Host.s_addr ||
+	if ((key->host.s_addr == c->srv->host.s_addr ||
              key->host.s_addr == INADDR_ANY) &&
 	    (key->vuid == c->uid || key->vuid == ALL_UIDS))
 	    return(c);
@@ -678,7 +679,7 @@ srvent *FindServerByCBCid(RPC2_Handle connid)
 }
 
 
-void GetServer(srvent **spp, struct in_addr *host)
+void GetServer(srvent **spp, struct in_addr *host, RealmId realm)
 {
     LOG(100, ("GetServer: host = %s\n", inet_ntoa(*host)));
     CODA_ASSERT(host != 0);
@@ -691,8 +692,7 @@ void GetServer(srvent **spp, struct in_addr *host)
 	return;
     }
 
-#warning "need srvent realm"
-    s = new srvent(host, 0);
+    s = new srvent(host, realm);
 
     srvent::srvtab->insert(&s->tblhandle);
 
@@ -751,9 +751,11 @@ void probeslave::main(void)
 	case BindToServer:
 	    {
 	    /* *result gets pointer to connent on success, 0 on failure. */
-	    struct in_addr *host = (struct in_addr *)arg;
+	    int **args = (int **)arg;
+	    struct in_addr *host = (struct in_addr *)((*args)[0]);
+	    RealmId realm = (*args)[1];
             srvent *s;
-            GetServer(&s, host);
+            GetServer(&s, host, realm);
 	    s->GetConn((connent **)result, V_UID, 1);
             PutServer(&s);
 	    }
@@ -848,6 +850,9 @@ void DoProbes(int HowMany, struct in_addr *Hosts)
 
 void MultiBind(int HowMany, struct in_addr *Hosts, connent **Connections)
 {
+#warning "need realm when probing servers"
+    RealmId realm = 0;
+
     if (LogLevel >= 1) {
 	dprint("MultiBind: HowMany = %d\n\tHosts = [ ", HowMany);
 	for (int i = 0; i < HowMany; i++)
@@ -863,7 +868,7 @@ void MultiBind(int HowMany, struct in_addr *Hosts, connent **Connections)
     for (ix = 0; ix < HowMany; ix++) {
 	/* Try to get a connection without forcing a bind. */
 	connent *c = 0;
-        GetServer(&s[ix], &Hosts[ix]);
+        GetServer(&s[ix], &Hosts[ix], realm);
 	if (s[ix]->GetConn(&c, V_UID) == 0) {
 	    /* Stuff the connection in the array. */
 	    Connections[ix] = c;
@@ -872,8 +877,12 @@ void MultiBind(int HowMany, struct in_addr *Hosts, connent **Connections)
 
 	/* Force a bind, but have a slave do it so we can bind in parallel. */
 	{
+	    int args[2];
+	    args[0] = *(int*)&Hosts[ix];
+	    args[1] = realm;
+
 	    slaves++;
-	    (void)new probeslave(BindToServer, (void *)(&Hosts[ix]), 
+	    (void)new probeslave(BindToServer, (void *)&args,
 				 (void *)(&Connections[ix]), &slave_sync);
 	}
     }

@@ -5,22 +5,21 @@
 #include "realm.h"
 #include "server.h"
 
-Realm::Realm(const char *rname, struct dllist_head *h) : PersistentObject(h)
+Realm::Realm(const char *realm_name, struct dllist_head *h) :
+    PersistentObject(h)
 {
-    int len = strlen(rname) + 1;
+    int len = strlen(realm_name) + 1;
 
     RVMLIB_REC_OBJECT(name);
     name = (char *)rvmlib_rec_malloc(len); 
     CODA_ASSERT(name);
-    strcpy(name, rname);
+    strcpy(name, realm_name);
 
     RVMLIB_REC_OBJECT(id);
-#warning "realm.id"
-    id = (RealmId)this;
+#warning "realmid's"
     id = 0;
 
-    /* better keep a reference until volumes/VDBs can hold a reference on this
-     * realm... */
+    /* Grab a reference until volumes hold on to this realm... */
     Rec_GetRef();
     ResetTransient();
     Rec_PutRef();
@@ -103,7 +102,7 @@ volent *Realm::GetVolume(const char *volname)
 
 void Realm::print(FILE *f)
 {
-    fprintf(f, "%08x realm '%s'\n", id, name);
+    fprintf(f, "%08x realm '%s'\n", Id(), Name());
 }
 
 

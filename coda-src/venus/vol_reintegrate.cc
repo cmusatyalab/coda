@@ -99,11 +99,11 @@ void repvol::Reintegrate()
     /* enter the volume */
     vproc *v = VprocSelf();
 
-    VolFid vfid;
-    vfid.Realm = realm->Id();
-    vfid.Volume = vid;
+    Volid volid;
+    volid.Realm = realm->Id();
+    volid.Volume = vid;
 
-    v->Begin_VFS(&vfid, CODA_REINTEGRATE);
+    v->Begin_VFS(&volid, CODA_REINTEGRATE);
     VOL_ASSERT(this, v->u.u_error == 0);
 
     /* prevent ASRs from slipping in and leaving records we might reintegrate. */

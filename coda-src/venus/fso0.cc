@@ -531,7 +531,7 @@ int fsdb::Get(fsobj **f_addr, VenusFid *key, vuid_t vuid, int rights,
 	       FID_(key), vuid, rights, (comp ? comp : "")));
 
     { 	/* a special check for accessing already localized object */
-	volent *vol = VDB->Find(MakeVolFid(key));
+	volent *vol = VDB->Find(MakeVolid(key));
 	if (vol && vol->IsReplicated() &&
             !((repvol *)vol)->IsUnderRepair(ALL_UIDS) &&
             ((repvol *)vol)->HasLocalSubtree()) {
@@ -573,7 +573,7 @@ int fsdb::Get(fsobj **f_addr, VenusFid *key, vuid_t vuid, int rights,
 
 	/* Do the Get on behalf of another volume. */
 	for (;;) {
-	    vp->Begin_VFS(MakeVolFid(key), CODA_VGET);
+	    vp->Begin_VFS(MakeVolid(key), CODA_VGET);
 	    if (vp->u.u_error) break;
 
 	    vp->u.u_error = Get(f_addr, key, vuid, rights, comp);
@@ -621,7 +621,7 @@ RestartFind:
         /* Must ensure that the volume is cached. */
 retry_vdbget:
         volent *v = 0;
-        if (VDB->Get(&v, MakeVolFid(key))) {
+        if (VDB->Get(&v, MakeVolid(key))) {
             LOG(100, ("Volume not cached and we couldn't get it...\n"));
             return(ETIMEDOUT);
         }
@@ -821,7 +821,7 @@ retry_vdbget:
                         hoard_priority = f->HoardPri;
                     else {
 			f->GetPath(pathname);
-                        hoard_priority = HDB->GetSuspectPriority(MakeVolFid(&f->fid), pathname, vuid);
+                        hoard_priority = HDB->GetSuspectPriority(MakeVolid(&f->fid), pathname, vuid);
 		    }
 
                     int estimatedCost = f->EstimatedFetchCost();
@@ -1050,10 +1050,10 @@ void fsdb::Flush()
 
 
 /* MUST NOT be called from within transaction! */
-void fsdb::Flush(VolFid *vfid)
+void fsdb::Flush(Volid *vid)
 {
     volent *v;
-    v = VDB->Find(vfid);
+    v = VDB->Find(vid);
     CODA_ASSERT(v);
     
     /* comment in fsdb::Flush applies here */

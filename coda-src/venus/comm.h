@@ -149,7 +149,8 @@ class connent {
     olink tblhandle;
 
     /* Static state; immutable after construction. */
-    struct in_addr Host;	/* Who to contact. */
+    //struct in_addr Host;	/* Who to contact. */
+    srvent *srv;
     vuid_t uid;			/* UID to validate with respect to. */
     RPC2_Handle connid;		/* RPC connid. */
     unsigned authenticated : 1;
@@ -159,7 +160,7 @@ class connent {
     unsigned dying : 1;
 
     /* Constructors, destructors, and private utility routines. */
-    connent(struct in_addr *, vuid_t, RPC2_Handle, int);
+    connent(srvent *, vuid_t, RPC2_Handle, int);
     connent(connent&) { abort(); }	/* not supported! */
     int operator=(connent&) { abort(); return(0); }	/* not supported! */
     ~connent();
@@ -198,7 +199,7 @@ class srvent : private RefCountedObject {
   friend void Srvr_Signal();
   friend srvent *FindServer(struct in_addr *);
   friend srvent *FindServerByCBCid(RPC2_Handle);
-  friend void GetServer(srvent **, struct in_addr *);
+  friend void GetServer(srvent **, struct in_addr *, RealmId realm);
   friend void PutServer(srvent **);
   friend void ProbeServers(int);
   friend void ServerProbe(long *, long *);
@@ -225,6 +226,7 @@ class srvent : private RefCountedObject {
   friend void repvol::SetStagingServer(struct in_addr *srvr);
 
   friend class Realm;
+  friend connent *conn_iterator::operator()();
 
     /* The server list. */
     static olist *srvtab;
@@ -276,6 +278,7 @@ class srvent : private RefCountedObject {
     /* quasi-up != up */
 
     int IsRootServer(void) { return rootserver; }
+    const char *Name(void) { return name; }
 
     void print() { print(stdout); }
     void print(FILE *fp);
@@ -329,29 +332,29 @@ extern int mrpc2_timeflag;
 #define	PIGGYCOP2	(COPModes & 4)
 
 /* comm.c */
-extern void CommInit();
-extern void Conn_Wait();
-extern void Conn_Signal();
-extern int GetAdmConn(connent **);
-extern void PutConn(connent **);
-extern void Srvr_Wait();
-extern void Srvr_Signal();
-extern srvent *FindServer(struct in_addr *);
-extern srvent *FindServerByCBCid(RPC2_Handle);
-extern void GetServer(srvent **, struct in_addr *);
-extern void PutServer(srvent **);
-extern void ProbeServers(int);
-extern void DoProbes(int, struct in_addr *);
-extern void MultiBind(int, struct in_addr *, connent **);
-extern void MultiProbe(int, RPC2_Handle *);
-extern long HandleProbe(int, RPC2_Handle Handles[], long, long, ...);
-extern void ServerProbe(long * =0, long * =0);
-extern void DownServers(char *, unsigned int *);
-extern void DownServers(int, struct in_addr *, char *, unsigned int *);
-extern void CheckServerBW(long);
-extern int FailDisconnect(int, struct in_addr *);
-extern int FailReconnect(int, struct in_addr *);
-extern int FailSlow(unsigned *);
+void CommInit();
+void Conn_Wait();
+void Conn_Signal();
+int GetAdmConn(connent **);
+void PutConn(connent **);
+void Srvr_Wait();
+void Srvr_Signal();
+srvent *FindServer(struct in_addr *);
+srvent *FindServerByCBCid(RPC2_Handle);
+void GetServer(srvent **, struct in_addr *, RealmId);
+void PutServer(srvent **);
+void ProbeServers(int);
+void DoProbes(int, struct in_addr *);
+void MultiBind(int, struct in_addr *, connent **);
+void MultiProbe(int, RPC2_Handle *);
+long HandleProbe(int, RPC2_Handle Handles[], long, long, ...);
+void ServerProbe(long * =0, long * =0);
+void DownServers(char *, unsigned int *);
+void DownServers(int, struct in_addr *, char *, unsigned int *);
+void CheckServerBW(long);
+int FailDisconnect(int, struct in_addr *);
+int FailReconnect(int, struct in_addr *);
+int FailSlow(unsigned *);
 
 /* comm_daemon.c */
 extern void PROD_Init(void);

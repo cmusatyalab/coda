@@ -28,7 +28,7 @@ include $(TOPDIR)/Makeconf
 EXECUTABLES = venus
 CSBINS      = venus
 LIBRARIES   =
-HEADERS	    = advice.h hdb.h
+HEADERS	    = advice.h hdb.h venusfid.h
 CCONFFILES  = venus.conf.ex
 
 #Turn off data collection
