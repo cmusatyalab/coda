@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rpc2/stest.c,v 4.6 98/09/15 14:28:02 jaharkes Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rpc2/stest.c,v 4.7 98/10/31 00:54:49 rnw Exp $";
 #endif /*_BLURB_*/
 
 
@@ -241,7 +241,8 @@ iopen()
     }
 
 
-long NoteAuthFailure(cIdent, eType, pHost, pPortal)
+long NoteAuthFailure(authenticationtype, cIdent, eType, pHost, pPortal)
+    RPC2_Integer authenticationtype;
     RPC2_CountedBS *cIdent;
     RPC2_Integer eType;
     RPC2_HostIdent *pHost;
