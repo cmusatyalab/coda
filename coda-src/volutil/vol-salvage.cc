@@ -847,8 +847,8 @@ static void MarkLogEntries(rec_dlist *loglist, VolumeSummary *vsp)
 {
     VLog(9, "Entering MarkLogEntries....\n");
     if (!loglist) {
-	VLog(0, "MarkLogEntries: loglist was NULL ... Not good\n");
-	CODA_ASSERT(0);
+	VLog(0, "MarkLogEntries: loglist was NULL ...\n");
+	return;
     }
     CODA_ASSERT(vsp->logbm);
     rec_dlist_iterator next(*loglist);
