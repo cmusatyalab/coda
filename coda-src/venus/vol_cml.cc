@@ -32,6 +32,7 @@ extern "C" {
 #endif
 
 #include <stdio.h>
+#include <fcntl.h>
 #include "coda_string.h"
 #include <sys/types.h>
 #include <stdarg.h>
@@ -3170,6 +3171,7 @@ int cmlent::WriteReintegrationHandle() {
     volent *vol = strbase(volent, log, CML);
     int code = 0;
     connent *c = 0;
+    fsobj *f = NULL;
     RPC2_Unsigned length = ReintAmount();
 
     /* Acquire a connection. */
@@ -3179,7 +3181,7 @@ int cmlent::WriteReintegrationHandle() {
     {
 	/* get the fso associated with this record */
 	binding *b = strbase(binding, fid_bindings->first(), binder_handle);
-	fsobj *f = (fsobj *)b->bindee;
+	f = (fsobj *)b->bindee;
 	if (f == 0)
 	    { code = ENOENT; goto Exit; }
 
@@ -3197,19 +3199,21 @@ int cmlent::WriteReintegrationHandle() {
 	SE_Descriptor sed;
         memset(&sed, 0, sizeof(SE_Descriptor));
 	{
+            int fd;
 	    sed.Tag = SMARTFTP;
 	    struct SFTP_Descriptor *sei = &sed.Value.SmartFTPD;
 	    sei->TransmissionDirection = CLIENTTOSERVER;
 	    sei->hashmark = 0;
 	    sei->SeekOffset = u.u_store.Offset;
 	    sei->ByteQuota = length;
-	    sei->Tag = FILEBYNAME;
-	    sei->FileInfo.ByName.ProtectionBits = 0666;
-	    /* if the object has already been written, use the shadow */
-	    if (f->shadow) 
-		strcpy(sei->FileInfo.ByName.LocalFileName, f->shadow->Name());
-	    else
-		strcpy(sei->FileInfo.ByName.LocalFileName, f->data.file->Name());
+
+            /* and open a safe fd to the containerfile */
+	    if (f->shadow) fd = f->shadow->Open(&f->fid, O_RDONLY);
+            else           fd = f->data.file->Open(&f->fid, O_RDONLY);
+            CODA_ASSERT(fd != -1);
+
+            sei->Tag = FILEBYFD;
+            sei->FileInfo.ByFD.fd = fd;
 	}
 
 	/* Notify Codacon */
@@ -3251,6 +3255,10 @@ int cmlent::WriteReintegrationHandle() {
     }
 
  Exit:
+    if (f) {
+        if (f->shadow) f->shadow->Close();
+        else           f->data.file->Close();
+    }
     PutConn(&c);
     LOG(0, ("cmlent::WriteReintegrateHandle: (%s), %d bytes, returns %s, new offset %d\n",
 	     vol->name, length, VenusRetStr(code), u.u_store.Offset));

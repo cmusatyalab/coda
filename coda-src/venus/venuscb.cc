@@ -16,12 +16,6 @@ listed in the file CREDITS.
 
 #*/
 
-
-
-
-
-
-
 /*
  *
  *   Implementation of the Venus CallBack server.
@@ -38,6 +32,7 @@ extern "C" {
 #endif __cplusplus
 
 #include <stdio.h>
+#include <fcntl.h>
 #include <sys/types.h>
 #include <netinet/in.h>
 
@@ -265,22 +260,23 @@ long CallBackFetch(RPC2_Handle RPCid, ViceFid *Fid, SE_Descriptor *BD) {
 
     /* Do the transfer. */
     {
+        int fd;
 	SE_Descriptor sid;
 	memset(&sid, 0, sizeof(SE_Descriptor));
 	sid.Tag = SMARTFTP;
 	struct SFTP_Descriptor *sei = &sid.Value.SmartFTPD;
-	sei->SeekOffset = 0;
-	sei->hashmark = (LogLevel >= 10 ? '#' : '\0');
-	sei->ByteQuota = -1;
-	sei->Tag = FILEBYNAME;
-	sei->FileInfo.ByName.ProtectionBits = 0666;
-
-	/* if the object has already been written, use the shadow */
-	if (f->shadow) 
-	    strcpy(sei->FileInfo.ByName.LocalFileName, f->shadow->Name());
-	else
-	    strcpy(sei->FileInfo.ByName.LocalFileName, f->data.file->Name());
 	sei->TransmissionDirection = SERVERTOCLIENT;
+	sei->hashmark = (LogLevel >= 10 ? '#' : '\0');
+	sei->SeekOffset = 0;
+	sei->ByteQuota = -1;
+
+        /* and open a safe fd to the containerfile */
+        if (f->shadow) fd = f->shadow->Open(&f->fid, O_RDONLY);
+        else           fd = f->data.file->Open(&f->fid, O_RDONLY);
+        CODA_ASSERT(fd != -1);
+
+        sei->Tag = FILEBYFD;
+        sei->FileInfo.ByFD.fd = fd;
 
 	if (LogLevel >= 1000) {
 	    rpc2_PrintSEDesc(&sid, logFile);
@@ -303,6 +299,8 @@ long CallBackFetch(RPC2_Handle RPCid, ViceFid *Fid, SE_Descriptor *BD) {
     }
 
 GetLost:
+    if (f->shadow) f->shadow->Close();
+    else           f->data.file->Close();
     LOG(1, ("CallBackFetch: returning %d\n", code));
     return(code);
 }

@@ -74,6 +74,11 @@ extern "C" {
    an ASR was started and it should block */
 #define EASRSTARTED     200
 
+/* What features does the kernel module support */
+struct Features {
+    unsigned coda_openfid : 1;
+};
+extern struct Features HAVE;
 
 /*  *****  Command-line/vstab parameter defaults.  ***** */
 

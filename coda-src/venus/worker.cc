@@ -96,6 +96,10 @@ extern int venus_relay_addr;
 /* Temporary!  Move to cnode.h. -JJK */
 #define	C_INCON	0x2
 
+int global_kernfd;
+
+struct Features HAVE = { 0 };
+
 /* static class members */
 int worker::muxfd;
 int worker::nworkers;
@@ -676,25 +680,29 @@ void WorkerInit() {
         exit(-1);
     }
 #endif
+    global_kernfd = worker::muxfd;
 
     if (worker::muxfd >= NFDS) {
         eprint("WorkerInit: worker::muxfd >= %d!", NFDS);
         exit(-1);
     }
 
-#ifdef  __BSD44__
-    if (::ioctl(worker::muxfd, CIOC_KERNEL_VERSION, &kernel_version) < 0 ) {
-        eprint("WorkerInit errno %d: Version IOCTL FAILED!  Get a newer Kernel!"
-, errno);
-        exit(-1);
-    } switch (kernel_version) {
-        case 1:
+#if defined(__BSD44__) || defined(__linux__)
+    if (::ioctl(worker::muxfd, CIOC_KERNEL_VERSION, &kernel_version) >= 0 ) {
+        switch (kernel_version) {
+        case 3: /* introduces CODA_OPENFID downcall */
+            HAVE.coda_openfid = 1;
         case 2: /* luckily 1 & 2 are upwards compatible */
+        case 1:
             break;
         default:
-        eprint("WorkerInit: Version Skew with kernel!  Get a newer kernel!");
-        eprint("WorkerInit: Kernel version is %d\n.", kernel_version);
-        exit(-1);
+            eprint("WorkerInit: Version Skew with kernel! Get a newer kernel!");
+            eprint("WorkerInit: Kernel version is %d\n.", kernel_version);
+            exit(-1);
+        }
+    } else {
+        eprint("Kernel version ioctl failed (%s)!\n"
+               "\tYou might need a newer kernel module.", strerror(errno));
     }
 #endif
 

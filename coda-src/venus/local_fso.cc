@@ -26,6 +26,7 @@ extern "C" {
 #include <sys/types.h>
 #include <netinet/in.h>
 #include <codadir.h>
+#include <fcntl.h>
 
 /* interfaces */
 #include <vcrcommon.h>
@@ -104,9 +105,13 @@ int fsobj::RepairStore()
 	sei->hashmark = 0;
 	sei->SeekOffset = 0;
 	sei->ByteQuota = -1;
-	sei->Tag = FILEBYNAME;
-	sei->FileInfo.ByName.ProtectionBits = V_MODE;
-	strcpy(sei->FileInfo.ByName.LocalFileName, data.file->Name());
+
+        /* and open a safe fd to the containerfile */
+        int fd = data.file->Open(&fid, O_RDONLY);
+        CODA_ASSERT(fd != -1);
+
+        sei->Tag = FILEBYFD;
+        sei->FileInfo.ByFD.fd = fd;
     }
 
     /* VCB Arguments */
@@ -250,6 +255,8 @@ RepExit:
 NonRepExit:
 	PutConn(&c);
     }
+    
+    data.file->Close();
 
     return(code);
 }

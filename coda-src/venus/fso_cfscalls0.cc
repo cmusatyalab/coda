@@ -89,6 +89,8 @@ void fsobj::FetchProgressIndicator(long offset)
 }
 
 int fsobj::Fetch(vuid_t vuid) {
+    int fd;
+
     LOG(10, ("fsobj::Fetch: (%s), uid = %d\n", comp, vuid));
 
     if (IsLocalObj()) {
@@ -171,9 +173,12 @@ int fsobj::Fetch(vuid_t vuid) {
 		    /* but remember how much we actually have */
 		    data.file->SetValidData(offset);
 
-		    sei->Tag = FILEBYNAME;
-		    sei->FileInfo.ByName.ProtectionBits = V_MODE;
-		    strcpy(sei->FileInfo.ByName.LocalFileName, data.file->Name());
+                    /* and open a safe fd to the containerfile */
+		    fd = data.file->Open(&fid, O_WRONLY | O_CREAT);
+                    CODA_ASSERT(fd != -1);
+
+		    sei->Tag = FILEBYFD;
+		    sei->FileInfo.ByFD.fd = fd;
 
 		    break;
 
@@ -185,7 +190,7 @@ int fsobj::Fetch(vuid_t vuid) {
 		    RVMLIB_REC_OBJECT(data.dir);
 		    data.dir = (VenusDirData *)rvmlib_rec_malloc(sizeof(VenusDirData));
 		    CODA_ASSERT(data.dir);
-		    bzero((void *)data.dir, sizeof(VenusDirData));
+		    memset((void *)data.dir, 0, sizeof(VenusDirData));
 		    FSO_ASSERT(this, (stat.Length & (DIR_PAGESIZE - 1)) == 0);
 		    RVMLIB_REC_OBJECT(*data.dir);
 		    DH_Alloc(&data.dir->dh, stat.Length, DIR_DATA_IN_RVM);
@@ -393,6 +398,9 @@ RepExit:
 NonRepExit:
 	PutConn(&c);
     }
+    
+    if (stat.VnodeType == File) 
+        data.file->Close();
 
     if (code == 0) {
 	/* Read/Write Sharing Stat Collection */
@@ -1095,9 +1103,13 @@ int fsobj::ConnectedStore(Date_t Mtime, vuid_t vuid, unsigned long NewLength)
 	sei->hashmark = 0;
 	sei->SeekOffset = 0;
 	sei->ByteQuota = -1;
-	sei->Tag = FILEBYNAME;
-	sei->FileInfo.ByName.ProtectionBits = V_MODE;
-	strcpy(sei->FileInfo.ByName.LocalFileName, data.file->Name());
+
+        /* and open a safe fd to the containerfile */
+        int fd = data.file->Open(&fid, O_RDONLY);
+        CODA_ASSERT(fd != -1);
+
+        sei->Tag = FILEBYFD;
+        sei->FileInfo.ByFD.fd = fd;
     }
 
     /* VCB arguments */
@@ -1249,6 +1261,8 @@ RepExit:
 NonRepExit:
 	PutConn(&c);
     }
+    
+    data.file->Close();
 
     return(code);
 }

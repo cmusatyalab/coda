@@ -62,12 +62,14 @@ CacheFile::CacheFile(int i) {
     sprintf(name, "V%d", i);
     inode = (ino_t)-1;
     length = validdata = 0;
+    fd = -1;
     /* Container reset will be done by eventually by FSOInit()! */
 }
 
 
 CacheFile::CacheFile() {
     CODA_ASSERT(inode != (ino_t)-1 && length == 0);
+    fd = -1;
 }
 
 
@@ -148,6 +150,11 @@ void CacheFile::ResetContainer() {
     inode = tstat.st_ino;
     length = validdata = 0;
     Recov_EndTrans(MAXFP);
+    
+    if (fd != -1) {
+	LOG(0, ("CacheFile::ResetContainer: container active"));
+        Close();
+    }
 }
 
 
@@ -308,5 +315,52 @@ void CacheFile::SetValidData(long newoffset) {
 
 void CacheFile::print(int fdes) {
     fdprint(fdes, "[ %s, %d, %d/%d ]\n", name, inode, validdata, length);
+}
+
+int CacheFile::Open(ViceFid *fid, int flags)
+{
+    union outputArgs msg;
+
+    fd = ::open(name, flags, V_MODE);
+    if (fd == -1) return -1;
+    
+    if (HAVE.coda_openfid) {
+        msg.oh.opcode = CODA_OPENFID;
+        msg.oh.unique = 0;
+        msg.coda_openfid.CodaFid = *fid;
+        msg.coda_openfid.fd = fd;
+        
+        /* Send the message. */
+        if (write(global_kernfd, (char *)&msg, sizeof(msg)) != sizeof(msg)) {
+            CHOKE("coda_openfid: message write fails: errno %d", errno);
+        }
+    }
+
+    return fd;
+}
+
+int CacheFile::Close()
+{
+    union outputArgs msg;
+    int ret;
+
+    if (fd == -1) return 0;
+
+#if 0
+    if (HAVE.coda_openfid) {
+        msg.oh.opcode = CODA_CLOSEFID;
+        msg.oh.unique = 0;
+        msg.coda_closefid.fd = fd;
+
+        /* Send the message. */
+        if (write(global_kernfd, (char *)&msg, sizeof(msg)) != sizeof(msg)) {
+            CHOKE("coda_closefid: message write fails: errno %d", errno);
+        }
+    }
+#endif
+
+    ret = ::close(fd);
+    fd = -1;
+    return ret;
 }
 

@@ -148,11 +148,11 @@ int volent::ConnectedRepair(ViceFid *RepairFid, char *RepairFile, vuid_t vuid,
 			    VolumeId *RWVols, int *ReturnCodes) {
 
     int code = 0;
-    int i, j;
+    int i, j, fd;
     fsobj *RepairF = 0;
 
-    bcopy((const void *)u.rep.RWVols, (void *) RWVols, MAXHOSTS * (int)sizeof(VolumeId));
-    bzero((void *)ReturnCodes, MAXHOSTS * (int)sizeof(int));
+    memcpy(RWVols, u.rep.RWVols, MAXHOSTS * sizeof(VolumeId));
+    memset(ReturnCodes, 0, MAXHOSTS * sizeof(int));
 
     /* Verify that RepairFid is inconsistent. */
     {
@@ -291,11 +291,15 @@ int volent::ConnectedRepair(ViceFid *RepairFid, char *RepairFile, vuid_t vuid,
 	struct SFTP_Descriptor *sei; sei = &sed.Value.SmartFTPD;
 	sei->SeekOffset = 0;
 	sei->hashmark = 0;
-	sei->Tag = FILEBYNAME;
-	sei->FileInfo.ByName.ProtectionBits = 0666;
-	strcpy(sei->FileInfo.ByName.LocalFileName,
-	       (RepairF ? RepairF->data.file->Name() : RepairFile));
 	sei->TransmissionDirection = CLIENTTOSERVER;
+
+        /* and open a safe fd to the containerfile */
+        if (RepairF) fd = RepairF->data.file->Open(&RepairF->fid, O_RDONLY);
+        else         fd = open(RepairFile, O_RDONLY, (int)V_MODE);
+        CODA_ASSERT(fd != -1);
+
+        sei->Tag = FILEBYFD;
+        sei->FileInfo.ByFD.fd = fd;
 
 	/* Make multiple copies of the IN/OUT and OUT parameters. */
 	ARG_MARSHALL(IN_OUT_MODE, ViceStatus, statusvar, status, VSG_MEMBERS);
@@ -352,6 +356,9 @@ int volent::ConnectedRepair(ViceFid *RepairFid, char *RepairFile, vuid_t vuid,
     (void)COP2(m, &sid, &UpdateSet);
 
 Exit:
+    if (RepairF) RepairF->data.file->Close();
+    else         close(fd);
+
     PutMgrp(&m);
     FSDB->Put(&RepairF);
 

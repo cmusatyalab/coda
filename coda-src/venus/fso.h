@@ -52,6 +52,7 @@ extern "C" {
 
 #include <codadir.h>
 
+extern int global_kernfd;
 #ifdef __cplusplus
 }
 #endif __cplusplus
@@ -276,6 +277,7 @@ enum FsoState {	FsoRunt,
 /*    1. Copy of plain file */
 /*    2. Unix-format copy of directory */
 class CacheFile {
+    int  fd;
     long length;
     long validdata; /* amount of successfully fetched data */
 
@@ -288,6 +290,10 @@ class CacheFile {
     CacheFile(int);
     CacheFile();
     ~CacheFile();
+
+    /* for safely obtaining access to container files, USE THESE!!! */
+    int Open(ViceFid *fid, int flags);
+    int Close();
 
     void Validate();
     void Reset();

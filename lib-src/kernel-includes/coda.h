@@ -312,33 +312,36 @@ struct coda_statfs {
 #define CODA_INACTIVE	21
 #define CODA_VGET	22
 #define CODA_SIGNAL	23
-#define CODA_REPLACE	24
-#define CODA_FLUSH       25
-#define CODA_PURGEUSER   26
-#define CODA_ZAPFILE     27
-#define CODA_ZAPDIR      28
-#define CODA_PURGEFID    30
+#define CODA_REPLACE	 24 /* DOWNCALL */
+#define CODA_FLUSH       25 /* DOWNCALL */
+#define CODA_PURGEUSER   26 /* DOWNCALL */
+#define CODA_ZAPFILE     27 /* DOWNCALL */
+#define CODA_ZAPDIR      28 /* DOWNCALL */
+#define CODA_PURGEFID    30 /* DOWNCALL */
 #define CODA_OPEN_BY_PATH 31
 #define CODA_RESOLVE     32
 #define CODA_REINTEGRATE 33
 #define CODA_STATFS	 34
+#define CODA_OPENFID     35 /* DOWNCALL */
+#define CODA_CLOSEFID	 36 /* DOWNCALL */
 #define CODA_NCALLS 35
 
-#define DOWNCALL(opcode) (opcode >= CODA_REPLACE && opcode <= CODA_PURGEFID)
+#define DOWNCALL(opcode) \
+	((opcode >= CODA_REPLACE && opcode <= CODA_PURGEFID) || \
+	 (opcode >= CODA_OPENFID && opcode <= CODA_CLOSEFID))
 
 #define VC_MAXDATASIZE	    8192
 #define VC_MAXMSGSIZE      sizeof(union inputArgs)+sizeof(union outputArgs) +\
                             VC_MAXDATASIZE  
 
 #define CIOC_KERNEL_VERSION _IOWR('c', 10, sizeof (int))
-#if	0
-	/* don't care about kernel version number */
-#define CODA_KERNEL_VERSION 0
-	/* The old venus 4.6 compatible interface */
-#define CODA_KERNEL_VERSION 1
+
+#if 0
+#define CODA_KERNEL_VERSION 0 /* don't care about kernel version number */
+#define CODA_KERNEL_VERSION 1 /* The old venus 4.6 compatible interface */
+#define CODA_KERNEL_VERSION 2 /* venus_lookup gets an extra parameter */
 #endif
-	/* venus_lookup gets an extra parameter to aid windows.*/
-#define CODA_KERNEL_VERSION 2
+#define CODA_KERNEL_VERSION 3 /* added CODA_OPENFID/CLOSEFID downcalls */
 
 /*
  *        Venus <-> Coda  RPC arguments
@@ -669,6 +672,18 @@ struct coda_purgefid_out {
     ViceFid CodaFid;
 };
 
+struct coda_openfid_out {
+    struct coda_out_hdr oh;
+    ViceFid CodaFid;
+    int fd;
+};
+
+struct coda_closefid_out {
+    struct coda_out_hdr oh;
+    int fd;
+};
+
+
 /* coda_rdwr: */
 struct coda_rdwr_in {
     struct coda_in_hdr ih;
@@ -770,6 +785,8 @@ union outputArgs {
     struct coda_purgefid_out coda_purgefid;
     struct coda_rdwr_out coda_rdwr;
     struct coda_replace_out coda_replace;
+    struct coda_openfid_out coda_openfid;
+    struct coda_closefid_out coda_closefid;
     struct coda_open_by_path_out coda_open_by_path;
     struct coda_statfs_out coda_statfs;
 };    
