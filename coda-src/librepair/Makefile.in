@@ -25,17 +25,17 @@ TOPOBJ = @TOPOBJ@
 
 include $(TOPDIR)/Makeconf
 
-LIBRARIES = libresolve.a
+LIBRARIES = librepair.a
 HEADERS   = resolve.h repio.h
 
 LIBS= $(LIBKERNDEP) $(LIBVV)
 
 OFILES= resolve.o cure.o predicate.o repio.o 
 
-libresolve.a: $(OFILES)
+librepair.a: $(OFILES)
 
-#restest: restest.o libresolve.a ${LIBS} ${LIBFIXUP}
-#	$(CC) $(LIBFLAGS) restest.o libresolve.a ${LIBS} ${LIBFIXUP} -o restest
+#restest: restest.o librepair.a ${LIBS} ${LIBFIXUP}
+#	$(CC) $(LIBFLAGS) restest.o librepair.a ${LIBS} ${LIBFIXUP} -o restest
 
 HFILES = resolve.h predicate.h cure.h repio.h
 $(OFILES): $(HFILES)

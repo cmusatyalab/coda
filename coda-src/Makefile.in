@@ -37,7 +37,7 @@ III =  rpc2 util dir
   V =  fail vicedep partition
 
   VI = auth2 vv
- VII =  vol resolve venus
+ VII =  vol librepair venus
 VIII =  advice repair guitools res
   IX =  rvmres volutil vtools
    X =  vice

@@ -1,5 +1,5 @@
 
-AC_INIT(coda-src/resolve/resolve.h)
+AC_INIT(coda-src/librepair/resolve.h)
 
 dnl Checks for programs.
 AC_PROG_AWK
@@ -64,7 +64,7 @@ coda-src/vicedep/Makefile
 coda-src/auth2/Makefile 
 coda-src/vv/Makefile 
 coda-src/vol/Makefile 
-coda-src/resolve/Makefile 
+coda-src/librepair/Makefile 
 coda-src/venus/Makefile 
 coda-src/advice/Makefile 
 coda-src/repair/Makefile 
@@ -93,8 +93,8 @@ coda-src/util/tests/Makefile
 coda-src/venus/tests/Makefile  
 coda-src/advice/tests/Makefile 
 coda-src/guitools/tests/Makefile ,
-mkdir rvm-src/rvmlwp 
-ln -s ../rvm/Makefile rvm-src/rvmlwp/Makefile
-mkdir rvm-src/rdslwp
-ln -s ../rds/Makefile rvm-src/rdslwp/Makefile 
+mkdir -p rvm-src/rvmlwp 
+ln -sf ../rvm/Makefile rvm-src/rvmlwp/Makefile
+mkdir -p rvm-src/rdslwp
+ln -sf ../rds/Makefile rvm-src/rdslwp/Makefile
  )

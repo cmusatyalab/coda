@@ -452,7 +452,7 @@ echo > confdefs.h
 
 # A filename unique to this package, relative to the directory that
 # configure is in, which we can look for to find out if srcdir is correct.
-ac_unique_file=coda-src/resolve/resolve.h
+ac_unique_file=coda-src/librepair/resolve.h
 
 # Find the source files, if location was not specified.
 if test -z "$srcdir"; then
@@ -1724,7 +1724,7 @@ coda-src/vicedep/Makefile
 coda-src/auth2/Makefile 
 coda-src/vv/Makefile 
 coda-src/vol/Makefile 
-coda-src/resolve/Makefile 
+coda-src/librepair/Makefile 
 coda-src/venus/Makefile 
 coda-src/advice/Makefile 
 coda-src/repair/Makefile 
@@ -1892,7 +1892,7 @@ coda-src/vicedep/Makefile
 coda-src/auth2/Makefile 
 coda-src/vv/Makefile 
 coda-src/vol/Makefile 
-coda-src/resolve/Makefile 
+coda-src/librepair/Makefile 
 coda-src/venus/Makefile 
 coda-src/advice/Makefile 
 coda-src/repair/Makefile 
@@ -1979,10 +1979,10 @@ cat >> $CONFIG_STATUS <<EOF
 
 EOF
 cat >> $CONFIG_STATUS <<\EOF
-mkdir rvm-src/rvmlwp 
-ln -s ../rvm/Makefile rvm-src/rvmlwp/Makefile
-mkdir rvm-src/rdslwp
-ln -s ../rds/Makefile rvm-src/rdslwp/Makefile 
+mkdir -p rvm-src/rvmlwp 
+ln -sf ../rvm/Makefile rvm-src/rvmlwp/Makefile
+mkdir -p rvm-src/rdslwp
+ln -sf ../rds/Makefile rvm-src/rdslwp/Makefile
  
 exit 0
 EOF
