@@ -1,0 +1,87 @@
+#!/bin/sh
+#
+# skeleton      Example file to build /etc/init.d scripts.
+#
+# Version:      @(#) /etc/init.d/skeleton 1.01 26-Oct-1993
+#
+# Author:       Miquel van Smoorenburg, <miquels@drinkel.nl.mugnet.org>
+#
+
+# chkconfig: 345 95 01
+# description: The Coda cache manager.
+
+
+LOCKDIR=/var/lock/subsys
+PIDDIR=/usr/coda/venus.cache
+CACHEDIR=/usr/coda/venus.cache
+ETCDIR=/usr/coda/etc
+SPOOLDIR=/usr/coda/spool
+
+PATH=/sbin:/usr/sbin:/usr/local/sbin:$PATH
+export PATH
+
+[ -f /usr/sbin/venus ] || exit 0
+[ -d $CACHEDIR ] || exit 0 
+[ -d $ETCDIR ] || exit 0
+
+if [ `uname` = 'SunOS' ] ; then
+    LOCKFILE=$PIDDIR/venus.init.lock
+else
+    # redhat and debian?
+    LOCKDIR=/var/lock/subsys
+    [ -d $LOCKDIR ] || exit 0
+    LOCKFILE=$LOCKDIR/venus.init
+fi
+
+echon() {
+    if [ "`echo -n`" ] ; then
+        echo "$@"\c
+    else
+        echo -n "$@"
+    fi
+}
+
+
+# See how we were called.
+case "$1" in
+  start)
+	echon "Starting venus: "
+	if [ ! -f $LOCKFILE ]; then
+		touch $LOCKFILE
+		venus &
+	else
+		echo "already locked."
+		exit 0
+	fi
+	echo "done."
+	;;
+  stop)
+	echon "Shutting down venus: "
+	if [ -f $PIDDIR/pid ]; then
+		
+		kill -TERM `cat $PIDDIR/pid`
+		umount /coda
+	fi
+	rm -f $LOCKFILE
+	echo "done."
+
+	;;
+
+  hardstop)
+	echon "Killing venus: "
+	if [ -f $PIDDIR/pid ]; then
+		
+		kill -9 `cat $PIDDIR/pid`
+		umount /coda
+	fi
+	rm -f $LOCKFILE
+	echo "done."
+	;;
+
+
+  *)
+	echo "Usage: $0 {start|stop|hardstop}"
+	exit 1
+esac
+
+exit 0
