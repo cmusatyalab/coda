@@ -104,8 +104,10 @@ void InitTally() {
     dlist_iterator next(*TallyList);
     dlink *d;
 
-    while (d = next()) {
+    d = next();
+    while (d) {
       tallyent *te = strbase(tallyent, d, prioq_handle);
+      d = next();
       delete te;
     }
 
