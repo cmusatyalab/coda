@@ -154,7 +154,12 @@ else
 	    echon "Hostname for server $n: "
 	    read hostname
 	done
-	codaconfedit @prefix@/etc/coda/server_$n.conf hostname $hostname
+	sconf=@prefix@/etc/coda/server_$n.conf 
+	echo "hostname=$hostname" > $sconf
+	echo "#rvm_log= " >> $sconf
+	echo "#rvm_data= " >> $sconf
+	echo "#rvm_data_length= " >> $sconf
+	echo "#mapprivate= " >> $sconf
 	echo Creating $dir and subdirectories.
 	mkdir $dir
         for i in backup srv vol ; do
@@ -399,7 +404,7 @@ echo "Other config files will be fetched from the SCM by updateclnt."
 echo
 echo "To finish your server setup you should"
 echo
-echo " start the auth2 server as: auth2"
+echo " start the auth2 server as: auth2 -chk"
 echo " start rpc2portmap as: rpc2portmap"
 echo " start updateclnt as:  updateclnt -h $scm "
 echo

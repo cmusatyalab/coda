@@ -67,8 +67,12 @@ PARTITION=$3
 
 #
 # Create these files if they don't already exist.
-touch ${vicedir}/vol/BigVolumeList
 touch ${vicedir}/vol/VRList
+
+if [ ! -f ${vicedir}/vol/BigVolumeList ] ; then
+    echo "Getting initial version of ${vicedir}/vol/BigVolumeList."
+    volutil -h `cat ${vicedir}/db/scm` getvolumelist ${vicedir}/vol/BigVolumeList
+fi
 
 # Validate the <volname> parameter
 if  [ x$VOLNAME = x`awk ' $1 ~ /^[WRB]'$1'$/  {print $1}' ${vicedir}/vol/BigVolumeList` ]; then

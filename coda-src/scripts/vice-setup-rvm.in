@@ -111,7 +111,11 @@ while [ $n -le $numservers ]; do
 	        echon "What is the hostname for server $n? "
 		read hostname
             done
-	    codaconfedit $conf hostname $hostname
+	    echo "hostname=$hostname" > $conf 
+	    echo "#rvm_log= " >> $conf
+	    echo "#rvm_data= " >> $conf
+	    echo "#rvm_data_length= " >> $conf
+	    echo "#mapprivate= " >> $conf
 	fi
     fi
 
@@ -157,10 +161,11 @@ while [ $n -le $numservers ]; do
 	    22[mM] | 44[mM] | 90[mM] | 130[mM] | 200[mM] | 315[mM] )
 	        ;;
 	    500[mM] | 1[gG] )
-	        echo *********
+	        echo 
+		echo "!!!!!!!!!!!!!!"
 		echo Your size is an experimental size.  Be warned!
 		echo You may want to run with private mapping for RVM.
-		echo ********
+		echo 
 		;;
 	    * )
 		echo "You have selected an unsupported size and this script"
@@ -240,7 +245,7 @@ EOF
 	    heapsize=0x1e000000
 	    ;;
 	1[gG] )
-	    dsparam=1073741824
+	    dsparm=1073741824
 	    heapsize=0x3FF00000
 	    ;;
 	* )
