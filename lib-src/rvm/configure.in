@@ -5,7 +5,7 @@ AC_PREREQ(2.50)
 AC_INIT
 AC_CONFIG_SRCDIR(rvm/rvm_private.h)
 CODA_SETUP_BUILD
-AM_INIT_AUTOMAKE(rvm, 1.8)
+AM_INIT_AUTOMAKE(rvm, 1.9)
 AC_CONFIG_HEADERS(config.h)
 
 dnl For library version updates, follow these steps in order.
@@ -60,5 +60,5 @@ if test ${with_LWP_PT}p != nop ; then
 fi
 
 dnl Generate output files
-AC_CONFIG_FILES(Makefile include/Makefile include/rvm/Makefile rvm/Makefile seg/Makefile rds/Makefile tests/Makefile pkgs/Makefile pkgs/pkg-bsd.sh pkgs/rvm.spec pkgs/rvm-nt.spec pkgs/rvm-dos.spec pkgs/rvm-win95.spec debian/Makefile)
+AC_CONFIG_FILES(Makefile include/Makefile include/rvm/Makefile rvm/Makefile seg/Makefile rds/Makefile tests/Makefile pkgs/Makefile pkgs/pkg-bsd.sh pkgs/rvm.spec pkgs/rvm-nt.spec pkgs/rvm-dos.spec pkgs/rvm-win95.spec debian/Makefile debian/changelog)
 AC_OUTPUT
