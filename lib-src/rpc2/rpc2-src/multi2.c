@@ -112,7 +112,9 @@ long MRPC_MakeMulti (int ServerOp, ARG ArgTypes[], RPC2_Integer HowMany,
        argument lists */
     for(a_types = ArgTypes, i=0; a_types->mode != C_END; a_types++)
 	    i++;
-    va_array = malloc(i * sizeof(PARM)); /* and then malloc the storage */
+    va_array = malloc((i * sizeof(PARM)) +1); /* and then malloc the storage
+						 (add one to avoid malloc(0)
+						 when i == 0) */
     assert((va_array!=0));   /* don't know better way to handle "Can't malloc" */
     
     /* the followings are safe and standard way to get those
@@ -465,7 +467,7 @@ void pack(ARG *a_types, PARM **args, PARM **_ptr)
 				(*_ptr)++;
 				(void) strcpy((RPC2_Byte *)(*_ptr), arg->string);
 			      }
-			      *(RPC2_Byte *)((*_ptr)+_length) = '\0';
+			      ((RPC2_Byte *)(*_ptr))[_length] = '\0';
 #if SIZE == 4
 			      (*_ptr) += (_PAD(_length+1) >> 2);
 			      /* (*_ptr) += ((a_types->size) >> 2) - 1; */
@@ -531,7 +533,7 @@ void pack(ARG *a_types, PARM **args, PARM **_ptr)
 			        ((*_ptr)++)->integer = htonl((*arg->bbsp)->MaxSeqLen);
 			        ((*_ptr)++)->integer = _length = 0; /* pack 'unused' SeqLen */
 			      }
-			      (*_ptr) += (_PAD(_length) / SIZE);
+			      (*_ptr) += _PAD(_length) / SIZE;
 			      /* (*_ptr) += (a_types->size / SIZE) - 2; */
 			      (*args)++;
 			      break;
@@ -543,9 +545,9 @@ void pack(ARG *a_types, PARM **args, PARM **_ptr)
 			         memcpy(*_ptr, *arg->key, RPC2_KEYSIZE);
 			       }
 #if SIZE == 4
-			      (*_ptr) += RPC2_KEYSIZE >> 2;
+			      (*_ptr) += _PAD(RPC2_KEYSIZE) >> 2;
 #else
-			      (*_ptr) += RPC2_KEYSIZE / SIZE;
+			      (*_ptr) += _PAD(RPC2_KEYSIZE) / SIZE;
 #endif
 			      (*args)++;
 			       break;

@@ -451,8 +451,7 @@ static void SetupPackets(HowMany, ConnHandleList, ceaddr, slarray, MCast,
 		thisconn = ceaddr[host];
 		break;
 		}
-	assert(thisconn != 0);
-	if (thisconn->SEProcs != NULL && thisconn->SEProcs->SE_MultiRPC1 != NULL)
+	if (thisconn && thisconn->SEProcs && thisconn->SEProcs->SE_MultiRPC1)
 	    {
 	    RPC2_PacketBuffer   *savedmcpkt = (MCast ? me->CurrentPacket : NULL);
 	    long		    *savedretcode;
