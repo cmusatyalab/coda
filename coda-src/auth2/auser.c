@@ -56,8 +56,10 @@ extern "C" {
 #include <sys/wait.h>
 #include <sys/ioctl.h>
 #include <sys/file.h>
+#ifndef __CYGWIN__
 #include <netdb.h>
 #include <netinet/in.h>
+#endif
 #include <stdio.h>
 #include "coda_string.h"
 #include <unistd.h>
