@@ -107,6 +107,7 @@ coda-src/scripts/createvol_rep
 coda-src/scripts/rc.vice
 coda-src/scripts/startserver
 coda-src/scripts/vice-setup
+coda-src/scripts/vice-setup-rvm
 coda-src/scripts/vutil
 coda-src/kerndep/Makefile 
 coda-src/partition/Makefile 
