@@ -43,9 +43,6 @@ Pittsburgh, PA.
 
 #include <sys/time.h>
 #include <stdlib.h>
-#ifdef HAVE_SEARCH_H
-#include <search.h>
-#endif
 
 #include <lwp/lwp.h>
 #include <lwp/timer.h>
