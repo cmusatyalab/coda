@@ -78,15 +78,15 @@ void printusage(void)
 }
 
 /* base 64 encoding/decoding to store the tokens in a convenient fileformat */
-char *b2e = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=";
+char *b2e = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
 
 void base64_encode(FILE *out, char *in, int len)
 {
     int i;
 
-    fputs("*** Coda Token ***\n", out);
+    fputs("*** Coda Token ***", out);
     for (i = 0; i < len; i += 3) {
-        if ((i % 72) == 71) fputc('\n', out);
+        if ((i % 54) == 0) fputc('\n', out);
 
         fputc(b2e[(in[i] >> 2) & 0x3f], out);
 
@@ -220,8 +220,9 @@ int main(int argc, char **argv)
 
 #ifdef __CYGWIN32__
     username = getlogin();	 
-#else if !defined(DJGPP)
+#elif DJGPP
     chdir("c:\\usr\coda\\bin");
+#else
     pw = getpwuid (getuid ());
     if (pw) {
         username=pw->pw_name;
@@ -247,7 +248,7 @@ int main(int argc, char **argv)
 	    }  else if ( strcmp(argv[i], "-pipe") == 0 ) {
 		    passwdpipe =1;
 		    i++;
-	    }  else if ( strcmp(argv[i], "-fromfile") == 0 ) {
+	    }  else if ( strcmp(argv[i], "-tofile") == 0 ) {
 		    i++;
 		    if (i >= argc) {
 			    fprintf(stderr, "Missing file to write token to\n");
@@ -255,7 +256,7 @@ int main(int argc, char **argv)
 			    exit(1);
 		    }
                     tofile = argv[i++];
-	    }  else if ( strcmp(argv[i], "-tofile") == 0 ) {
+	    }  else if ( strcmp(argv[i], "-fromfile") == 0 ) {
 		    i++;
 		    if (i >= argc) {
 			    fprintf(stderr,"Missing file to read token from\n");
