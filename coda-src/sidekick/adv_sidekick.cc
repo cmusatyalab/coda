@@ -16,6 +16,7 @@ listed in the file CREDITS.
 #*/
 
 #include "adv_sidekick.h"
+#include "repair.h"
 
 struct Lock plock;
 int err = 0, reqcnt = 0;
@@ -36,31 +37,29 @@ int main(int argc, char **argv) {
   struct pnode *ptmp;
   struct stat sbuf;
 
-
   /* Initialization */
   Lock_Init(&plock);
   if (parse_cmd_line(argc, argv) < 0)
-    quit("usage: %s [-log <filename>] [-err]", argv[0])
+    quit("usage: %s [-log <filename>] [-err]", argv[0]);
   if ((logfile == NULL) && ((logfile = fopen(DEF_LOGFILE, "a")) == NULL))
-    quit("%s\nCannot open %s for writing", strerror(errno), DEF_LOGFILE)
+    quit("%s\nCannot open %s for writing", strerror(errno), DEF_LOGFILE);
   if ((rc = LWP_Init(LWP_VERSION, LWP_NORMAL_PRIORITY, &lwpid)) != LWP_SUCCESS)
-    quit("Could not initialize LWP (%d)", rc)
+    quit("Could not initialize LWP (%d)", rc);
   if ((mkdir("/tmp/.asrlogs", 0755) < 0) && 
       ((errno != EEXIST) || (stat("/tmp/.asrlogs", &sbuf) < 0) || (!S_ISDIR(sbuf.st_mode))))
     quit("Could not create asr log directory");
 
   /* Get necessary information */
   if (gethostname(hostname, MAXHOSTNAMELEN) < 0)
-    quit("%s\nCould not get hostname", strerror(errno))
+    quit("%s\nCould not get hostname", strerror(errno));
   pid = getpid();
   uid = getuid();
-
 #ifdef SETPGRP_VOID
   if (setpgrp() < 0)
-      quit("%s\nCould not set pgid", strerror(errno))
+    quit("%s\nCould not set pgid", strerror(errno));
 #else
   if (setpgrp(0, getpid()) < 0)
-      quit("%s\nCould not set pgid", strerror(errno))
+    quit("%s\nCould not set pgid", strerror(errno));
 #endif
   pgid = getpgrp();
 
@@ -72,37 +71,37 @@ int main(int argc, char **argv) {
   reqfilter.OldOrNew = OLDORNEW;
   reqfilter.ConnOrSubsys.SubsysId = AS_SUBSYSID;
 
-  lprintf("Waiting for RPC2_NewConnection.\n")
+  lprintf("Waiting for RPC2_NewConnection.\n");
   rc = RPC2_GetRequest(&reqfilter, &cid, &reqbuffer, NULL, NULL, (long)0, NULL) ;
-  if (rc != RPC2_SUCCESS) quit(RPC2_ErrorMsg(rc))
+  if (rc != RPC2_SUCCESS) quit(RPC2_ErrorMsg(rc));
   rc = AdvSkk_ExecuteRequest(cid, reqbuffer, se);
-  if (rc != RPC2_SUCCESS) quit(RPC2_ErrorMsg(rc))
-  else lprintf("Connection Enabled.\n")
+  if (rc != RPC2_SUCCESS) quit(RPC2_ErrorMsg(rc));
+  else lprintf("Connection Enabled.\n");
 
   /* Set advice interests */
   if (interests(uid) < 0)
-    quit("Could not setup interests.")
+    quit("Could not setup interests.");
 
   /* Loop servicing RPC2 calls */
   while (1) {
-    lprintf("Listening for advice requests.\n")
+    lprintf("Listening for advice requests.\n");
     rc = RPC2_GetRequest(&reqfilter, &cid, &reqbuffer, NULL, NULL, (long)0, NULL);
-    if (rc != RPC2_SUCCESS) quit(RPC2_ErrorMsg(rc))
+    if (rc != RPC2_SUCCESS) quit(RPC2_ErrorMsg(rc));
     else {
       reqcnt++;
-      lprintf("Received request #%d.\n", reqcnt)
+      lprintf("Received request #%d.\n", reqcnt);
     }
     ObtainWriteLock(&plock);
     if (phead == NULL) { /* no worker LWP's ready, make a new one */
       ReleaseWriteLock(&plock);
       ptmp = (struct pnode *)malloc(sizeof(pnode));
-      if (ptmp == NULL) quit("Malloc failed")
+      if (ptmp == NULL) quit("Malloc failed");
       ptmp->pbuf = reqbuffer;
       ptmp->next = NULL;
       ptmp->req = reqcnt;
       sprintf(ptmp->name, "worker%d", ++workers);
       if ((rc = LWP_CreateProcess(worker, DSTACK, LWP_NORMAL_PRIORITY, (char *)ptmp, ptmp->name, &(ptmp->cpid))) != LWP_SUCCESS)
-	quit("Could not create worker LWP (%d)", rc)
+	quit("Could not create worker LWP (%d)", rc);
     }
     else { /* get first worker from queue and give it the request */
       ptmp = phead;
@@ -112,15 +111,14 @@ int main(int argc, char **argv) {
       ptmp->pbuf = reqbuffer;
       ptmp->req = reqcnt;
       if ((rc = LWP_SignalProcess(ptmp)) != LWP_SUCCESS)
-	quit("Could not signal LWP worker (%d)", rc)
+	quit("Could not signal LWP worker (%d)", rc);
     }
   }
 
   return(-1);
 }
 
-RPC2_Handle contact_venus(const char *hostname)
-{
+RPC2_Handle contact_venus(const char *hostname) {
   RPC2_Handle cid;
   RPC2_HostIdent hid;
   RPC2_PortIdent portid;
@@ -130,7 +128,7 @@ RPC2_Handle contact_venus(const char *hostname)
 
   hid.Tag = RPC2_HOSTBYNAME;
   if (strlen(hostname) >= 64) /* Not MAXHOSTNAMELEN because rpc2.h uses "64"! */
-    quit("Machine name %s too long!", hostname)
+    quit("Machine name %s too long!", hostname);
 
   strcpy(hid.Value.Name, hostname);
   portid.Tag = RPC2_PORTBYINETNUMBER;
@@ -144,31 +142,154 @@ RPC2_Handle contact_venus(const char *hostname)
   bp.ClientIdent = NULL;
   bp.SharedSecret = NULL;
   rc = RPC2_NewBinding(&hid, &portid, &subsysid, &bp, &cid);
-  if (rc != RPC2_SUCCESS) quit("%s\nCannot connect to machine %s (rc = %d)", RPC2_ErrorMsg((int)rc), hostname, rc)
+  if (rc != RPC2_SUCCESS) quit("%s\nCannot connect to machine %s (rc = %d)", RPC2_ErrorMsg((int)rc), hostname, rc);
   return(cid);
 }
 
-int get_homedir(int uid, char *homedir)
-{
-  /* assumes homedir is valid and can hold up for MAX_PATHLEN characters */
+int executor(char *pathname, int vuid, int req_no) {
+  char hd[MAXPATHLEN], svuid[32], asr[MAXPATHLEN], asrlog[MAXPATHLEN], fixed[64]; /* XXXX */
+  char *zargs[ASRARGS];  /* asr, fixed, lgrep, ssrep1, ssrep2, ssrep3, NULL */
+  struct stat sbuf;
+  int ret, pid, status, i, dirconf = 0;
+  struct repvol *repv;
+  struct volrep *volr;
+
+  /* create the ASR logfile */
+  if (fclose(logfile) < 0)
+    quit("Error closing logfile: %s", strerror(errno));
+  err = 0;
+  if (strrchr((char *)pathname, (int)'/') == NULL)
+    quit("Invalid pathname for conflict");
+  sprintf(asrlog, "/tmp/.asrlogs%s.%d.XXXXXX", strrchr((char *)pathname, (int)'/'), req_no);
+  if ((stat("/tmp/.asrlogs", &sbuf) < 0) 
+      || ((errno = (S_ISDIR(sbuf.st_mode)) ? 0 : ENOTDIR) != 0)
+      || (mktemp(asrlog) == NULL) 
+      || ((logfile = fopen(asrlog, "a")) == NULL) 
+      || (dup2(fileno(logfile), 1) < 0) 
+      || (dup2(fileno(logfile), 2) < 0))
+    quit("Could not create ASR log: %s", strerror(errno));
+
+  /* set the process group and uid, and get the home directory */
+#ifdef SETPGRP_VOID
+    if ((ret = setpgrp()) < 0)
+      quit("Setpgrp failed: %s", strerror(errno));
+#else
+    if ((ret = setpgrp(0, getpid())) < 0)
+      quit("Setpgrp failed: %s", strerror(errno));
+#endif
+  if ((ret = setuid(vuid)) < 0)
+    quit("Setuid failed: %s", strerror(errno));
+  if ((ret = get_homedir(vuid, hd)) < 0)
+    quit("Could not get home directory");
+
+  /* begin the repair session */
+  if ((ret = BeginRepair(pathname, &repv)) < 0)
+    quit("Could not begin repair session");
+  else switch (ret) {
+    case 0: 
+      session = LOCAL_GLOBAL;
+      repv->local = 1;
+      break;
+    case 1: 
+      session = LOCAL_GLOBAL;
+      repv->local = 0;
+      lprintf("Local-global repair session already in progress!\n");
+      EndRepair(repv, session, 0);
+      quit("Aborting ASR");
+      break;
+    case 2:
+      session = SERVER_SERVER;
+      repv->local = 0;
+      break;
+    default:
+      quit("Bogus return code from venus (%d)\n", ret);
+      break;
+  }
+
+  /* get replica name arguments */
+  for (volr = repv->rwhead, i = 2; volr != NULL; volr = volr->next, i++) {
+    if ((zargs[i] = (char *)malloc((strlen(pathname) + strlen(volr->compname) + 2) * sizeof(char))) == NULL)
+      quit("Malloc failed");
+    sprintf(zargs[i], "%s/%s", pathname, volr->compname);
+  }
+  zargs[i] = NULL;
+  if (i >= ASRARGS) quit("It shouldn't be possible to have %d arguments", i);
+  
+  /* determine conflict type and create "fixed" */
+  if (stat(zargs[2], &sbuf) < 0)
+    quit("Could not stat volrep %s", zargs[2]);
+  dirconf = S_ISDIR(sbuf.st_mode);
+  for(i = 3; zargs[i] != NULL; i++) {
+    if (stat(zargs[i], &sbuf) < 0)
+      quit("Could not stat volrep %s", zargs[i]);
+    if (S_ISDIR(sbuf.st_mode) != dirconf)
+      quit("Could not determine conflict type");
+  }
+  sprintf(fixed, "/tmp/fixed.%d.XXXXXX", req_no);
+  if ((mktemp(fixed) == NULL) 
+      || ((ret = (dirconf ? mkdir(fixed, 0700) : open(fixed, O_RDWR|O_CREAT|O_EXCL))) < 0)
+      || (dirconf && (close(ret) < 0)))
+    quit("Could not created fixed file: %s", strerror(errno));
+  if ((zargs[1] = strdup(fixed)) == NULL)
+    quit("Malloc failed");
+
+  /* determine pathname and arguments to ASR */
+  if (parse_resolvefile(hd, (char *)pathname, asr) < 0)
+    quit("Could not determine from Resolvefile which ASR to run");
+  if ((zargs[0] = strdup(asr)) == NULL)
+    quit("Malloc failed");
+
+  /* fork off the ASR */
+  ret = fork();
+  if (ret == 0) {
+    sprintf(svuid, "%d", vuid);    
+    lprintf("ASR invoked (%s).\n\tuid %d\tpathname %s\n", asr, vuid, (char *)pathname);
+    execv(asr, zargs);
+    quit("Exec error: %s", strerror(errno));
+  }
+  else if (ret < 0)
+    quit("Could not fork to create ASR (%s)", strerror(errno));
+  else {
+    pid = ret;
+    if ((ret = waitpid(pid, &status, 0)) < 0)
+      quit("Error waiting for ASR to finish: %s", strerror(errno));
+    if (WIFEXITED(status)) ret = WEXITSTATUS(status);
+    else ret = -1;
+  }
+  if (ret == 0) { /* if ASR exited normally */
+    /* repair the conflict using "fixed" file */
+    lprintf("This is where the conflict should be repaired.\n");
+    
+    if (EndRepair(RepVolHead, session, 0) < 0)
+      lprintf("Error ending repair");
+    return(0);
+  }
+  else {
+    if (EndRepair(RepVolHead, session, 0) < 0)
+      lprintf("Error ending repair");
+    quit("ASR failed (exit code %d)", ret);
+  }
+}
+
+int get_homedir(int uid, char *homedir) {
+  /* assumes homedir is valid and can hold up for MAXPATHLEN characters */
   struct passwd *passwd_ent;
 
   passwd_ent = getpwuid(uid);
   if (passwd_ent == NULL) {
-    lprintf("%s\nCould not get passwd entry for uid %d.\n", strerror(errno), uid)
+    lprintf("%s\nCould not get passwd entry for uid %d.\n", strerror(errno), uid);
     return(-1);
   }
-  if ((strlen(passwd_ent->pw_name) + strlen(HOMEDIR_PREFIX) + 1) >= MAX_PATHLEN)
+  if ((strlen(passwd_ent->pw_name) + strlen(HOMEDIR_PREFIX) + 1) >= MAXPATHLEN)
   {
-    lprintf("%s\nReturned name %s for uid %d is too long.\n", passwd_ent->pw_name, uid)
+    lprintf("%s\nReturned name %s for uid %d is too long.\n", passwd_ent->pw_name, uid);
     return(-1);
   }
   sprintf(homedir, "%s%s", HOMEDIR_PREFIX, passwd_ent->pw_name);
   return(0);
 }
 
-void init_RPC(void)
-{
+void init_RPC(void) {
   PROCESS pid;
   RPC2_PortIdent portid;
   RPC2_SubsysIdent subsysid;
@@ -176,7 +297,7 @@ void init_RPC(void)
 
   /* Initialize LWP package */
   if (LWP_Init(LWP_VERSION, LWP_NORMAL_PRIORITY, &pid) != LWP_SUCCESS)
-    quit("Cannot Initialize LWP")
+    quit("Could not Initialize LWP");
 
   /* Initialize RPC2 package */
   portid.Value.InetPortNumber = 0;
@@ -185,17 +306,16 @@ void init_RPC(void)
    *  portid.Value.InetPortNumber = htons(AS_PORTAL); */
   rc = RPC2_Init(RPC2_VERSION, NULL, &portid, 1, NULL);
   if (rc != RPC2_SUCCESS)
-    quit("%s\nCannot Initialize RPC2", RPC2_ErrorMsg(rc))
+    quit("%s\nCould not Initialize RPC2", RPC2_ErrorMsg(rc));
 
   subsysid.Tag = RPC2_SUBSYSBYID;
   subsysid.Value.SubsysId = AS_SUBSYSID;
   rc = RPC2_Export(&subsysid);
   if (rc != RPC2_SUCCESS)
-    quit("Cannot export the AdvSkk subsystem")
+    quit("%s\nCould not export the AdvSkk subsystem", RPC2_ErrorMsg((int)rc));
 }
 
-int interests(int uid)
-{
+int interests(int uid) {
   FILE *intfile;
   char line[256], tmp[256];
   int tmpV, tmpA, ln, i = 0;
@@ -204,28 +324,28 @@ int interests(int uid)
 
   intfile = fopen(INTEREST_FILE, "r");
   if (intfile == NULL) {
-    lprintf("Cannot open %s for reading.\n", INTEREST_FILE)
+    lprintf("Could not open %s for reading.\n", INTEREST_FILE);
     return(-1);
   }
 
   for (ln = 0; (fgets(line, 256, intfile) != NULL); ln++) {
     if (sscanf(line, "%s", tmp) < 1) {
-      lprintf("Error in %s: unexpected end of input on line %d.\n", INTEREST_FILE, ln+1)
+      lprintf("Error in %s: unexpected end of input on line %d.\n", INTEREST_FILE, ln+1);
       if (fclose(intfile) < 0)
-	lprintf("%s\nError closing %s.\n", INTEREST_FILE)
+	lprintf("%s\nError closing %s.\n", INTEREST_FILE);
       return(-1);
     }
     else if ((tmp[0] == '#') || (tmp[0] == '\n')) continue;
     if (sscanf(line, "%s%d%d", tmp, &tmpV, &tmpA) < 3) {
-      lprintf("Error in %s: unexpected end of input on line %d.\n", INTEREST_FILE, ln+1)
+      lprintf("Error in %s: unexpected end of input on line %d.\n", INTEREST_FILE, ln+1);
       if (fclose(intfile) < 0)
-	lprintf("%s\nError closing %s.\n", INTEREST_FILE)
+	lprintf("%s\nError closing %s.\n", INTEREST_FILE);
       return(-1);
     }
     if (strcmp(tmp, InterestNames[i]) != 0) {
-      lprintf("Error in %s: expected %s, got %s.\n", INTEREST_FILE, InterestNames[i], tmp)
+      lprintf("Error in %s: expected %s, got %s.\n", INTEREST_FILE, InterestNames[i], tmp);
       if (fclose(intfile) < 0)
-	lprintf("%s\nError closing %s.\n", INTEREST_FILE)
+	lprintf("%s\nError closing %s.\n", INTEREST_FILE);
       return(-1);
     }
     interests[i].interest = (InterestID)i;
@@ -237,14 +357,13 @@ int interests(int uid)
   interests[i].value = tmpV;
   interests[i].argument = tmpA;
   if (fclose(intfile) < 0) {
-    lprintf("%s\nError closing %s.\n", INTEREST_FILE)
+    lprintf("%s\nError closing %s.\n", INTEREST_FILE);
     return(-1);
   }
 
-  /* Do we really need this lock? */
   rc = C_RegisterInterest(VenusCID, (RPC2_Integer)uid, i, interests);
   if (rc != RPC2_SUCCESS) {
-    lprintf("Could not register interests with Venus.\n")
+    lprintf("%s\nCould not register interests with Venus.\n", RPC2_ErrorMsg((int)rc));
     return(-1);
   }
   return(0);
@@ -255,21 +374,20 @@ void knock(const char *hostname, int uid, int pgid) {
 
   VenusCID = contact_venus(hostname);
   lprintf("\t**** New advice sidekick! ****\nConnected to Venus:\t%s\tport %d\n\tuid %d\tpgid %d\n", 
-	  hostname, rpc2_LocalPort.Value.InetPortNumber, uid, pgid)
+	  hostname, rpc2_LocalPort.Value.InetPortNumber, uid, pgid);
 
   rc = C_NewAdviceService(VenusCID, (RPC2_String)hostname, (RPC2_Integer)uid, 
      (RPC2_Integer)rpc2_LocalPort.Value.InetPortNumber, (RPC2_Integer)pgid, 
      (RPC2_Integer *)&vmajor, (RPC2_Integer *)&vminor);
 
   if (rc != RPC2_SUCCESS) {
-    if (rc == EBUSY) quit("Error:  another advice sidekick is already running!")
-    else if (rc == EAGAIN) quit("Error:  another advice sidekick is still transitioning!")
-    else quit("Error:  cannot establish connection to Venus.")
+    if (rc == EBUSY) quit("Error:  another advice sidekick is already running!");
+    else if (rc == EAGAIN) quit("Error:  another advice sidekick is still transitioning!");
+    else quit("%s\nCould not establish connection to Venus.", RPC2_ErrorMsg((int)rc));
   }
 }
 
-int parse_cmd_line(int argc, char **argv)
-{
+int parse_cmd_line(int argc, char **argv) {
   int i;
 
   for (i = 1; i < argc; i++) {
@@ -277,7 +395,7 @@ int parse_cmd_line(int argc, char **argv)
       if (++i >= argc) return(-1);
       logfile = fopen(argv[i], "a");
       if (logfile == NULL)
-	quit("%s\nCannot open %s for writing", strerror(errno), argv[i])
+	quit("%s\nCould not open %s for writing", strerror(errno), argv[i]);
     }
     else if (strcmp(argv[i], "-err") == 0)
       err = 1;
@@ -288,45 +406,45 @@ int parse_cmd_line(int argc, char **argv)
 }
 
 int parse_resolvefile(const char *homedir, const char *pathname, char *asrpath) {
-  /* assumes asrpath is valid and can hold up to MAX_PATHLEN characters */
+  /* assumes asrpath is valid and can hold up to MAXPATHLEN characters */
   FILE *rfile;
-  char line[256], tmp[256], rfilename[MAX_PATHLEN], tpath[MAX_PATHLEN], tasr[MAX_PATHLEN];
+  char line[256], tmp[256], rfilename[MAXPATHLEN], tpath[MAXPATHLEN], tasr[MAXPATHLEN];
   int ln;
 
-  if (strlen(pathname) > MAX_PATHLEN) {
-    lprintf("Pathname in conflict too long.\n")
+  if (strlen(pathname) > MAXPATHLEN) {
+    lprintf("Pathname in conflict too long.\n");
     return(-1);
   }
-  else if ((strlen(homedir) + 12) > MAX_PATHLEN) {
-    lprintf("Home directory pathname too long.\n")
+  else if ((strlen(homedir) + 12) > MAXPATHLEN) {
+    lprintf("Home directory pathname too long.\n");
     return(-1);
   }
   else sprintf(rfilename, "%s/Resolvefile", homedir);
 
   rfile = fopen(rfilename, "r");
   if (rfile == NULL) {
-    lprintf("Cannot open %s for reading.\n", rfilename)
+    lprintf("Could not open %s for reading.\n", rfilename);
     return(-1);
   }
 
   for (ln = 0; (fgets(line, 256, rfile) != NULL); ln++) {
     if ((sscanf(line, "%s", tmp) < 1) || (tmp[0] == '#')) continue;
     if (sscanf(line, "%s%s", tpath, tasr) < 2) {
-      lprintf("Error in %s: unexpected end of input on line %d.\n", rfilename, ln+1)
+      lprintf("Error in %s: unexpected end of input on line %d.\n", rfilename, ln+1);
       goto ResolveExit;
     }
     if (tpath[(strlen(tpath) - 1)] != ':') {
-      lprintf("Error in %s: parse error at '%c' on line %d.\n", rfilename, (strlen(tpath) - 1), ln+1)
+      lprintf("Error in %s: parse error at '%c' on line %d.\n", rfilename, (strlen(tpath) - 1), ln+1);
       goto ResolveExit;
     }
     tpath[(strlen(tpath) - 1)] = '\0';
-    if ((strlen(tpath) > MAX_PATHLEN) || (strlen(tasr) > MAX_PATHLEN)) {
-      lprintf("Error in %s: pathname too long on line %d.\n", rfilename, ln+1)
+    if ((strlen(tpath) > MAXPATHLEN) || (strlen(tasr) > MAXPATHLEN)) {
+      lprintf("Error in %s: pathname too long on line %d.\n", rfilename, ln+1);
       goto ResolveExit;
     }
     if (strncmp(tpath, pathname, strlen(tpath)) == 0) {
       if (fclose(rfile) < 0) { 
-	lprintf("%s\nError closing %s.\n", rfilename)
+	lprintf("%s\nError closing %s.\n", rfilename);
 	return(-1);
       }
       strcpy(asrpath, tasr);
@@ -334,10 +452,10 @@ int parse_resolvefile(const char *homedir, const char *pathname, char *asrpath) 
     }
   }
 
-  lprintf("No ASR specified for path %s.\n", rfilename)
+  lprintf("No ASR specified for path %s.\n", rfilename);
 
  ResolveExit:
-  if (fclose(rfile) < 0) lprintf("%s\nError closing %s.\n", rfilename)
+  if (fclose(rfile) < 0) lprintf("%s\nError closing %s.\n", rfilename);
   return(-1);
 }
 
@@ -348,26 +466,26 @@ int worker(void *arg) {
   pinfo = (struct pnode *)arg;
   pinfo->kid = 0;
   if ((rc = LWP_NewRock(1, (char *)pinfo)) != LWP_SUCCESS)
-    quit("Could not hide LWP node under rock (%d)", rc)
+    quit("Could not hide LWP node under rock (%d)", rc);
 
   while (1) {
     /* Let the scheduling thread wait for more requests */
     if ((rc = LWP_DispatchProcess()) != LWP_SUCCESS)
-      quit("Error dispatching to scheduler (%d)")
+      quit("Error dispatching to scheduler (%d)");
     /* Execute the request */
     rc = AdvSkk_ExecuteRequest(cid, pinfo->pbuf, se);
-    if (rc != RPC2_SUCCESS) quit(RPC2_ErrorMsg(rc))
+    if (rc != RPC2_SUCCESS) quit(RPC2_ErrorMsg(rc));
     else {
       if (pinfo->kid) {
 	if ((rc = waitpid(pinfo->kid, &status, 0)) < 0)
-	  quit("Error waiting for ASR to finish: %s", strerror(errno))
+	  quit("Error waiting for ASR to finish: %s", strerror(errno));
 	if (WIFEXITED(status)) code = WEXITSTATUS(status);
 	else code = -1;
 	if ((rc = C_ResultOfASR(VenusCID, pinfo->tmp, pinfo->kid, code)) != RPC2_SUCCESS)
-	  quit(RPC2_ErrorMsg(rc))
+	  quit(RPC2_ErrorMsg(rc));
 	pinfo->kid = 0;
       }
-      lprintf("Request #%d executed.\n", pinfo->req)
+      lprintf("Request #%d executed.\n", pinfo->req);
     }
 
     /* Put self in queue and wait */
@@ -392,10 +510,10 @@ int worker(void *arg) {
 long S_Spike(RPC2_Handle _cid, RPC2_Integer Cmd) {
 
   if (Cmd) {
-    lprintf("Ping.\n")
+    lprintf("Ping.\n");
     return(RPC2_SUCCESS);
   }
-  quit("Received terminate command from Venus")
+  quit("Received terminate command from Venus");
 }
 
 long S_TokensAcquired(RPC2_Handle _cid, RPC2_Integer EndTimestamp) {
@@ -575,57 +693,36 @@ long S_ReplacementLogAvailable(RPC2_Handle _cid, RPC2_String LogFile) {
   return(RPC2_SUCCESS);
 }
 
-long S_InvokeASR(RPC2_Handle _cid, RPC2_String pathname, RPC2_Integer vol_id, RPC2_Integer vuid, RPC2_Integer *ASRid, RPC2_Integer *ASRrc) {
-  int ret, rc, tm;
+long S_InvokeASR(RPC2_Handle _cid, RPC2_String pathname, RPC2_Integer vol_id, 
+		 RPC2_Integer vuid, RPC2_Integer *ASRid, RPC2_Integer *ASRrc) {
+  int ret;
   struct pnode *pinfo;
-  char hd[MAX_PATHLEN], svuid[32], asr[MAX_PATHLEN], asrlog[MAX_PATHLEN];
-  struct stat sbuf;
+  RPC2_SubsysIdent subsysid;
 
-  if ((rc = LWP_GetRock(DEF_ROCK, (char **)&pinfo)) != LWP_SUCCESS)
-    quit("Could not get LWP node from under rock (%d)", rc)
+  if ((ret = LWP_GetRock(DEF_ROCK, (char **)&pinfo)) != LWP_SUCCESS)
+    quit("Could not get LWP node from under rock (%d)", ret);
 
+  /* fork off the executor */
   ret = fork();
-
   if (ret == 0) {
-    if (fclose(logfile) < 0)
-      quit("Error closing logfile: %s", strerror(errno))
-    err = 0;
-    if (strrchr((char *)pathname, (int)'/') == NULL)
-      quit("Invalid pathname for conflict")
-    sprintf(asrlog, "/tmp/.asrlogs%s.%d.XXXXXX", strrchr((char *)pathname, (int)'/'), pinfo->req);
-    if ((stat("/tmp/.asrlogs", &sbuf) < 0) || ((errno = (S_ISDIR(sbuf.st_mode)) ? 0 : ENOTDIR) != 0)
-        || (mktemp(asrlog) == NULL) || ((logfile = fopen(asrlog, "a")) == NULL) 
-	|| (dup2(fileno(logfile), 1) < 0) || (dup2(fileno(logfile), 2) < 0))
-      quit("Could not create ASR log: %s", strerror(errno))
-
-#ifdef SETPGRP_VOID
-    ret = setpgrp();
-#else
-    ret = setpgrp(0, getpid());
-#endif
-    if (ret) exit(ret);
-
-    if ((ret = setuid(vuid)) != 0 ||
-        (ret = get_homedir(vuid, hd)) != 0)
-	exit(ret);
-
-    if (parse_resolvefile(hd, (char *)pathname, asr) < 0)
-      quit("Could not determine from Resolvefile which ASR to run")
-    lprintf("Hello, I am an ASR (%s).\n\tuid %d\tpathname %s\n", asr, vuid, (char *)pathname)
-    sprintf(svuid, "%d", vuid);    
-    execl(asr, asr, (char *)pathname, svuid, hd, NULL);
-    quit("Exec error: %s", strerror(errno))
+    subsysid.Tag = RPC2_SUBSYSBYID;
+    subsysid.Value.SubsysId = AS_SUBSYSID;
+    if (((ret = RPC2_DeExport(&subsysid)) != RPC2_SUCCESS) 
+	|| ((ret = RPC2_Unbind(_cid)) != RPC2_SUCCESS))
+      quit(RPC2_ErrorMsg(ret));
+    ret = executor((char *)pathname, vuid, pinfo->req);
+    exit(ret);
   }
   else if (ret < 0) {
-    lprintf("Could not fork to create ASR (%s)\n", strerror(errno))
+    lprintf("Could not fork to create executor (%s)\n", strerror(errno));
     *ASRrc = SKK_FAIL;
   }
   else {
+    pinfo->kid = ret;
+    pinfo->tmp = vol_id;
     *ASRid = ret;
     *ASRrc = SKK_SUCCESS;
   }
-  pinfo->kid = ret;
-  pinfo->tmp = vol_id;
 
   return(RPC2_SUCCESS);
 }

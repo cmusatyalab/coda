@@ -100,8 +100,8 @@ LIBVV        := ../vv/libvv.a
 ##############################
 # RPC2 interface definitions in module vicedep
 ##############################
-ADMON_RPC2     := ../vicedep/admon.rpc2
-ADSRV_RPC2     := ../vicedep/adsrv.rpc2
+ADVSKK_RPC2    := ../vicedep/adv_skk.rpc2
+VENUSADV_RPC2  := ../vicedep/venus_adv.rpc2
 CALLBACK_RPC2  := ../vicedep/callback.rpc2
 MOND_RPC2      := ../vicedep/mond.rpc2
 RES_RPC2       := ../vicedep/res.rpc2
@@ -109,4 +109,3 @@ VCRCOMMON_RPC2 := ../vicedep/vcrcommon.rpc2
 VICE_RPC2      := ../vicedep/vice.rpc2
 VOLDUMP_RPC2   := ../vicedep/voldump.rpc2
 VOLUTIL_RPC2   := ../vicedep/volutil.rpc2
-

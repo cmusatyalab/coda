@@ -21,6 +21,7 @@ TOPDIR = @top_srcdir@
 srcdir = @srcdir@
 VPATH  = @srcdir@
 TOPOBJ = @TOPOBJ@
+HEADERS = repair.h
 
 include $(TOPDIR)/Makeconf
 
@@ -32,7 +33,7 @@ DEPLIBS = ${LIBREPAIR} ${LIBVV} ${LIBAUTH2} ${LIBKERNDEP} ${LIBUTIL} \
      ${LIBAUSER} ${LIBBASE}
 LIBS := $(DEPLIBS) $(LIBREADLINE) $(LIBTERMCAP) $(LIBS)
 
-OFILES = rvol.o path.o
+OFILES = rvol.o path.o repcmds.o
 
 reptest: reptest.o $(OFILES) $(DEPLIBS)
 	$(CXX) $(LDFLAGS) reptest.o $(OFILES) $(LIBS) -o reptest

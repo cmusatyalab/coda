@@ -29,9 +29,12 @@ EXECUTABLES = adv_sidekick
 LIBRARIES = 
 CSBINS = $(EXECUTABLES)
 
-DEPLIBS := $(LIBUTIL) $(LIBVICEDEP) $(LIBKERNDEP) $(LIBBASE)
-LIBS := $(DEPLIBS) $(LIBRPC2) $(LIBSE) $(LIBFAIL) $(LIBLWP) $(LIBSYS) \
-	$(LIBKVM) $(LIBDB) $(LIBS)
+DEPLIBS := $(LIBUTIL) $(LIBVICEDEP) $(LIBREPAIR) $(LIBVV) \
+	$(LIBAUTH2) $(LIBKERNDEP) $(LIBUTIL) $(LIBAUSER) $(LIBBASE)
+LIBS := $(TOPOBJ)/coda-src/repair/repcmds.o $(TOPOBJ)/coda-src/repair/rvol.o \
+	$(TOPOBJ)/coda-src/repair/path.o \
+	$(DEPLIBS) $(LIBRPC2) $(LIBSE) $(LIBFAIL) $(LIBLWP) $(LIBSYS) \
+	$(LIBKVM) $(LIBDB) $(LIBREADLINE) $(LIBTERMCAP) $(LIBS)
 
 OBJS = adv_sidekick.o
 

@@ -16,11 +16,6 @@ listed in the file CREDITS.
 
 #*/
 
-
-
-
-
-
 #ifdef __cplusplus
 extern "C" {
 #endif __cplusplus
@@ -47,34 +42,27 @@ extern "C" {
 #include <vice.h>
 #include "repio.h"
 
-
 struct listhdr *harray;
 int hcount;
-
 int  repair_DebugFlag;
 
-main(argc, argv)
-    int argc;
-    char *argv[];
-    {
-    int i, j, rc;
-    struct listhdr *newha;
-    int newhc;
+main(int argc, char **argv) {
+  int i, j, rc;
+  struct listhdr *newha;
+  int newhc;
 
-      rc = repair_parsefile(argv[1], &hcount, &harray);
-    if (rc < 0) exit(-1);
+  rc = repair_parsefile(argv[1], &hcount, &harray);
+  if (rc < 0) exit(-1);
 
-
-    rc = repair_putdfile("/tmp/xxx", hcount, harray);
-    if (rc) {printf("repair_putdfile() failed\n"); exit(-1);}
+  rc = repair_putdfile("/tmp/xxx", hcount, harray);
+  if (rc) {printf("repair_putdfile() failed\n"); exit(-1);}
     
-    rc = repair_getdfile("/tmp/xxx", &newhc, &newha);
-    if (rc) {printf("repair_getdfile() failed\n"); exit(-1);}
+  rc = repair_getdfile("/tmp/xxx", &newhc, &newha);
+  if (rc) {printf("repair_getdfile() failed\n"); exit(-1);}
     
-    for (i = 0; i < newhc; i++)
-	{
-	printf("\n** Replica %lu ***\n", newha[i].replicaId);
-	for (j = 0; j < newha[i].repairCount; j++)
-	    repair_printline(&newha[i].repairList[j], stdout);
-	}
-    }
+  for (i = 0; i < newhc; i++) {
+    printf("\n** Replica %lu ***\n", newha[i].replicaId);
+    for (j = 0; j < newha[i].repairCount; j++)
+      repair_printline(&newha[i].repairList[j], stdout);
+  }
+}

@@ -16,11 +16,6 @@ listed in the file CREDITS.
 
 #*/
 
-
-
-
-
-
 /* 
     Repair data structures and routines used only on client.
     The server component of repair does not know of these.
@@ -32,84 +27,114 @@ listed in the file CREDITS.
 	
 */
 
-#define MAXVOLNAME 100   /* length in bytes of OUT volume parameters */
-#define MAXHOSTS 8  /* XXXX --- get the true definition for this */
-/* #define MAXPATHLEN defined in <sys/param.h>, length in bytes of OUT path parameters */
+#ifdef __cplusplus
+extern "C" {
+#endif __cplusplus
 
-/* Element in circular, doubly-linked list of replicated volumes in repair */
-struct repvol
-    {
-    VolumeId vid;           /* id of this volume */
-    struct repvol *next;    /* next element ptr */
-    struct repvol *prev;    /* previous element */
-    struct rwvol *rwhead;   /* Singly-linked list of rw replicas */
-    char vname[MAXVOLNAME]; /* name of this volume */
-    char mnt[MAXPATHLEN];   /* permanent mount point in Coda */
-    char rodir[MAXPATHLEN]; /* directory where read-write replicas are mounted */
-    char local;		    /* a flag indicating whether this is a local volume entry */
-    };
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
 
-/* Element in null-terminated, singly-linked list of
-        rw replicas of a replicated volume */
-struct rwvol
-    {
-    VolumeId vid;         /* id of this volume */
-    struct rwvol *next;   /* next element ptr */
-    char vname[MAXVOLNAME]; /* name of this volume */
-    char srvname[64];      /* name of server on which this rw volume is located */
-    char compname[MAXNAMLEN]; /* component name corresponding to this rw id */
-    };
+#include <errno.h>
+#include <inodeops.h>
+#include <netinet/in.h>
+#include <parser.h>
+#include <rpc2/rpc2.h>
+#include <setjmp.h>
+#include <signal.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <sys/file.h>
+#include <sys/param.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <unistd.h>
 
+#include <auth2.h>
+#include <avenus.h>
+#include "coda_assert.h"
+#include "coda_string.h"
+#include <vice.h>
 
-extern struct repvol *RepVolHead; /* head of circular linked list */
-extern int NewStyleRepair;
+#ifdef __cplusplus
+}
+#endif __cplusplus
 
-/* Routines for volume data structure manipulation */
-int repair_findrep   (VolumeId vid, struct repvol **repv);
-int repair_newrep    (VolumeId vid, char *mnt, struct repvol **repv);
-int repair_mountrw   (struct repvol *repv, VolumeId *rwarray, int arraylen);
-int repair_linkrep   (struct repvol *repv);
-int repair_unlinkrep (struct repvol *repv);
-int repair_cleanup   (struct repvol *repv);
-int repair_finish    (struct repvol *repv);
-int repair_countRWReplicas (struct repvol *repv);
-int repair_getfid(char *path, ViceFid *outfid, ViceVersionVector *outvv);
+#include <inconsist.h>
+#include <repio.h>
+#include <resolve.h>
+#include <venusioctl.h>
 
-    
-/* Routines for path processing */
-int repair_isleftmost(char *path, char *realpath, int len);
-int repair_getmnt(char *realpath, char *prefix, char *suffix, VolumeId *vid);
-int repair_inconflict(char *name, ViceFid *conflictfid);
-void repair_perror(char *op, char *path, int e);
-
-/* User-visible commands */
-void beginRepair  (int argc, char **largv);
-void endRepair   (int argc, char **largv);
-int showReplicas (char *args);
-void doRepair     (int argc, char **largv);
-void compareDirs (int argc, char **largv);
-void clearInc	 (int argc, char **largv);
-void quit	 (int argc, char **largv);
-int unlockVolume (char *args);
-void removeInc	 (int argc, char **largv);
-void checkLocal      	(int argc, char **largv);
-void listLocal       	(int argc, char **largv);
-void preserveLocal   	(int argc, char **largv);
-void preserveAllLocal   (int argc, char **largv);
-void discardLocal    	(int argc, char **largv);
-void discardAllLocal  	(int argc, char **largv);
-void setLocalView    	(int argc, char **largv);
-void setGlobalView   	(int argc, char **largv);
-void setMixedView    	(int argc, char **largv);
-
-extern char repair_ReadOnlyPrefix[];
-extern int  repair_DebugFlag;
-
-#define DEBUG(msg)  if (repair_DebugFlag) {printf msg; fflush(stdout);}
-
+#define MAXVOLNAME 100 /* length in bytes of OUT volume parameters */
+#define MAXHOSTS 8     /* XXXX --- get the true definition for this */
+#define HOSTNAMLEN 64  /* XXXX -- get the true definition for this */
+/* MAXPATHLEN defined in <sys/param.h>, length in bytes of OUT path parameters */
 #define NOT_IN_SESSION		0
 #define	LOCAL_GLOBAL		1
 #define SERVER_SERVER		2
+#define DEF_BUF 2048 /* XXXX -- temporary buffer size */
+
+/* Element in circular, doubly-linked list of replicated volumes in repair */
+struct repvol {
+  VolumeId vid;           /* id of this volume */
+  struct repvol *next;
+  struct repvol *prev;
+  struct volrep *rwhead;  /* Singly-linked list of volume replicas */
+  char vname[MAXVOLNAME]; /* name of this volume */
+  char mnt[MAXPATHLEN];   /* permanent mount point in Coda */
+  char rodir[MAXPATHLEN]; /* directory where replicas are mounted */
+  char local;		  /* a flag indicating whether this is a local volume entry */
+};
+
+/* Element in null-terminated, singly-linked list of volume replicas of a replicated volume */
+struct volrep {
+  VolumeId vid;             /* id of this volume */
+  struct volrep *next;      /* next element ptr */
+  char vname[MAXVOLNAME];   /* name of this volume */
+  char srvname[HOSTNAMLEN]; /* name of server on which this rw volume is located */
+  char compname[MAXNAMLEN]; /* component name corresponding to this rw id */
+};
+
+extern struct repvol *RepVolHead; /* head of circular linked list */
 extern int session;
+extern char repair_ReadOnlyPrefix[];
+extern int  repair_DebugFlag;
 
+/* User-visible commands -- repair.cc */
+extern int BeginRepair(char *userpath, struct repvol **repv);
+extern void checkLocal(int argc, char **largv);
+extern void clearInc(int argc, char **largv);
+extern void compareDirs(int argc, char **largv);
+extern void discardAllLocal(int argc, char **largv);
+extern void discardLocal(int argc, char **largv);
+extern void doRepair(int argc, char **largv);
+extern int EndRepair(struct repvol *rvhead, int type, int commit);
+extern void listLocal(int argc, char **largv);
+extern void preserveLocal(int argc, char **largv);
+extern void preserveAllLocal(int argc, char **largv);
+extern void removeInc(int argc, char **largv);
+extern void setGlobalView(int argc, char **largv);
+extern void setLocalView(int argc, char **largv);
+extern void setMixedView(int argc, char **largv);
+extern int  showReplicas(char *args);
+extern int  unlockVolume(char *args);
+extern void rep_BeginRepair(int argc, char **largv);
+extern void rep_Exit(int argc, char **largv);
+extern void rep_EndRepair(int argc, char **largv);
 
+/* Volume data structure manipulation routines -- rvol.cc */
+extern int repair_cleanup(struct repvol *repv);
+extern int repair_countRWReplicas (struct repvol *repv);
+extern struct repvol *repair_findrep(VolumeId vid);
+extern void repair_finish(struct repvol *repv);
+extern int repair_getfid(char *path, ViceFid *outfid, ViceVersionVector *outvv);
+extern int repair_linkrep(struct repvol *repv);
+extern int repair_mountrw(struct repvol *repv, VolumeId *rwarray, int arraylen);
+extern int repair_newrep(VolumeId vid, char *mnt, struct repvol **repv);
+extern int repair_unlinkrep(struct repvol *repv);
+    
+/* Path processing routines -- path.cc */
+extern int  repair_getmnt(char *realpath, char *prefix, char *suffix, VolumeId *vid);
+extern int  repair_inconflict(char *name, ViceFid *conflictfid);
+extern int  repair_isleftmost(char *path, char *realpath, int len);
+extern void repair_perror(char *op, char *path, int e);
