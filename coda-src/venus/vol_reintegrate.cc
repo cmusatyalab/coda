@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/vol_reintegrate.cc,v 4.9 1998/06/07 20:15:10 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/vol_reintegrate.cc,v 4.10 98/06/19 17:58:14 jaharkes Exp $";
 #endif /*_BLURB_*/
 
 
@@ -161,8 +161,13 @@ void volent::Reintegrate()
                     name, VenusRetStr(code));
         }
 
-/* keep going as long as we managed to reintegrate records without errors */
-    } while(nrecs && !code);
+    /*
+     * Keep going as long as we managed to reintegrate records without errors,
+     * but we don't want to intefere with trickle reintegration so we test
+     * whether a full `block' has been sent (see also
+     * cmlent::GetReintegrateable)
+     */
+    } while(nrecs == 100 && !code);
 
     flags.reintegrating = 0;
 

@@ -1,68 +1,76 @@
 #!/bin/sh
 #
-# skeleton      Example file to build /etc/init.d scripts.
+# Description:  rc.vice: for controlling startup and shutdown of Coda.
 #
-# Version:      @(#) /etc/init.d/skeleton 1.01 26-Oct-1993
-#
-# Author:       Miquel van Smoorenburg, <miquels@drinkel.nl.mugnet.org>
-#
-
-# Source function library if we are a System V type OS using SYSV init.
-# Otherwise, we are probably a BSD like OS.
+# Author:       Henry M. Pierce <hmpierce@cs.cmu.edu>
+#		modified from original rc.vice to be more *BSD specific
 
 VICE=/vice
 VICESRV=${VICE}/srv
-
-PATH=/sbin:/usr/sbin:$PATH
+# This is here mostly 'cause NetBSD broke FreeBSD's
+# otherwise sane package tools
+if [ x`uname` = xNetBSD ]; then
+        CODASBIN=/usr/pkg/sbin
+	PATH=/sbin:/usr/sbin:/usr/pkg/sbin:/usr/pkg/bin:$PATH
+else	# Assume FreeBSD
+        CODASBIN=/usr/local/sbin
+	PATH=/sbin:/usr/sbin:/usr/local/sbin:/usr/local/bin:$PATH
+fi
 export PATH
-
-[ -e /usr/sbin/auth2 ] || exit 1
-[ -e /usr/sbin/updatesrv ] || exit 1
-[ -e /usr/sbin/updateclnt ] || exit 1
-[ -e /usr/sbin/codasrv ] || exit 1
-[ -e /usr/sbin/startserver ] || exit 1
-[ -e /usr/sbin/volutil ] || exit 1
 
 # See how we were called.
 case "$1" in
   start)
 	# start auth2 & update stuff: first the scm case
-    	echo -n "Starting Coda: "
-	if [ "`cat /vice/hostname`" = "`cat /vice/db/scm`" ]; then
+    	echo -n "Starting Coda Services: "
+	if [ -x ${CODASBIN}/auth2  ]; then
+	   if [ "`cat /vice/hostname`" = "`cat /vice/db/scm`" ]; then
  		auth2 &
-		echo -n "auth2,"
-		
-	else 	# for non-scm machines.
+		echo -n " auth2 "
+	   else	# For non-scm machines...
 		auth2 -chk &
-		echo -n "auth2(ro),"
+		echo -n " auth2(ro)"
+	    fi
 	fi
 
-	# update srv and updatemon run on all servers
+	# updatesrv and updateclnt run on all servers
+        if [ -x ${CODASBIN}/updatesrv ]; then
 		updateclnt -h `cat /vice/db/scm`  -q coda_udpsrv &
-		echo "updateclnt."
+		echo -n " updateclnt"
+	fi
+	if [ -x ${CODASBIN}/updateclnt ]; then
 		updatesrv -p /vice/db &
-		echo "updatesrv."
+		echo -n " updatesrv"
+	fi
+        echo '.'
 
 	# now the server
-	if [  -f ${VICESRV}/STARTFROMBOOT -a ! -f ${VICESRV}/CRASH ]; then
-	      	rm -f $VICESRV/pid
+    	echo -n "Starting Coda:"
+	if [ -f ${VICESRV}/STARTFROMBOOT -a ! -f ${VICESRV}/CRASH ]; then
+	    if [ -x ${CODASBIN}/startserver ]; then
+	      	rm -f ${VICESRV}/pid
 		startserver &
-		echo "srv."
+		echo " codasrv"
+	    fi
 	else
-		echo "`date`: srv not started." >> ${VICE}/srv/SrvErr
-		echo "missing STARTFROMBOOT or CRASH." >> ${VICE}/srv/SrvErr
+	    echo "`date`: srv not started." >> ${VICE}/srv/SrvErr
+	    echo "missing STARTFROMBOOT or CRASH." >> ${VICE}/srv/SrvErr
 	fi
+	echo '.'
 	;;
   stop)
 	# Normal Coda FS shutdown:
 	# if pid file doesn't exist, it isn't likely that srv is running.
-	echo -n "Shutting down Coda: "
-	if [ -f /vice/srv/pid ]; then
+	echo -n "Shutting down Coda:"
+	if [ -f ${VICESRV}/pid ]; then
+	    if [ -f ${CODASBIN}/volutil ]; then
 	      	volutil shutdown
-		echo -n "vice.init: sleeping 30 secs to let srv shutdown..."
+		echo -n " $0: sleeping 30 secs to let srv shutdown..."
 		sleep 30
-		echo "..done"
+		echo " ..done"
+	    fi
 	fi
+	echo '.'
 	;;
   *)
 	echo "Usage: $0 {start|stop}"
