@@ -54,7 +54,14 @@ int main(int argc, char **argv) {
     quit("%s\nCould not get hostname", strerror(errno))
   pid = getpid();
   uid = getuid();
-  if (setpgrp() < 0) quit("%s\nCould not set pgid", strerror(errno))
+
+#ifdef SETPGRP_VOID
+  if (setpgrp() < 0)
+      quit("%s\nCould not set pgid", strerror(errno))
+#else
+  if (setpgrp(0, getpid()) < 0)
+      quit("%s\nCould not set pgid", strerror(errno))
+#endif
   pgid = getpgrp();
 
   init_RPC(); /* initialize RPC and LWP packages */
@@ -590,8 +597,18 @@ long S_InvokeASR(RPC2_Handle _cid, RPC2_String pathname, RPC2_Integer vol_id, RP
         || (mktemp(asrlog) == NULL) || ((logfile = fopen(asrlog, "a")) == NULL) 
 	|| (dup2(fileno(logfile), 1) < 0) || (dup2(fileno(logfile), 2) < 0))
       quit("Could not create ASR log: %s", strerror(errno))
-    if ((ret = setpgrp()) || (ret = setuid(vuid)) || (ret = get_homedir(vuid, hd)))
-      exit(ret);
+
+#ifdef SETPGRP_VOID
+    ret = setpgrp();
+#else
+    ret = setpgrp(0, getpid());
+#endif
+    if (ret) exit(ret);
+
+    if ((ret = setuid(vuid)) != 0 ||
+        (ret = get_homedir(vuid, hd)) != 0)
+	exit(ret);
+
     if (parse_resolvefile(hd, (char *)pathname, asr) < 0)
       quit("Could not determine from Resolvefile which ASR to run")
     lprintf("Hello, I am an ASR (%s).\n\tuid %d\tpathname %s\n", asr, vuid, (char *)pathname)
