@@ -80,7 +80,6 @@ VOLUTILOBJS = \
 	vol-salvage.o \
 	vol-setvv.o \
 	vol-setlogparms.o \
-	vol-setwbparms.o \
 	vol-showvnode.o \
 	vol-timing.o \
 	vol-tracerpc.o\

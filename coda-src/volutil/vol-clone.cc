@@ -180,7 +180,6 @@ long S_VolClone(RPC2_Handle rpcid, RPC2_Unsigned formal_ovolid,
 
 	/* Should this be fixed to use the correct IPAddress, etc? */	
 	V_VolLock(originalvp).IPAddress = (unsigned int)1;
-	V_VolLock(originalvp).WriteLockType = VolUtil;
 
 	VLog(9, "S_VolClone: Goint to obtain write lock on old volume");
 	ObtainWriteLock(&(V_VolLock(originalvp).VolumeLock));

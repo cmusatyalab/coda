@@ -124,7 +124,6 @@ static void peekmem(void);
 static void pokemem(void);
 static void peekxmem(void);
 static void pokexmem(void);
-static void setwb(RPC2_Integer wbflag);
 
 #define ROCKTAG 12345
 struct rockInfo {
@@ -276,10 +275,6 @@ int main(int argc, char **argv)
 	peekxmem();
     else if (strcmp(argv[1], "pokex") == 0)
 	pokexmem();
-    else if (strcmp(argv[1], "enablewb") == 0)
-	setwb(1);
-    else if (strcmp(argv[1], "disablewb") == 0)
-	setwb(0);
     else
     	goto bad_options;
 
@@ -292,7 +287,7 @@ bad_options:
 "\tancient, backup, create, create_rep, clone, dump, dumpestimate,\n"
 "\trestore, info, lock, lookup, makevldb, makevrdb, purge, salvage,\n"
 "\tsetvv, showvnode, shutdown, swaplog, setdebug, updatedb, unlock,\n"
-"\tdumpmem, rvmsize, timing, enablewb, disablewb, printstats,\n"
+"\tdumpmem, rvmsize, timing, printstats,\n"
 "\tshowcallbacks, truncatervmlog,togglemalloc, getmaxvol, setmaxvol,\n"
 "\tpeek, poke, peeks, pokes, peekx, pokex, setlogparms, tracerpc\n"
 "\tgetvolumelist, dumpvrdb\n");
@@ -1934,30 +1929,6 @@ static void pokexmem(void)
 	    (this_argp[4][0] == '0' && this_argp[4][1] == 'x') ?
 	    this_argp[4] + 2 : this_argp[4],
 	    this_argp[2]);
-    exit(0);
-}
-
-static void setwb(RPC2_Integer wbflag)
-{
-    long Vid;
-
-    if (these_args != 3) {
-	fprintf(stderr, "Usage: volutil [en,dis]ablewb volumeId\n");
-	exit(-1);
-    }
-
-    if (sscanf(this_argp[2], "%lX", &Vid) != 1){
-	fprintf(stderr, "VolSetWBParms: Bogus volume number %s\n", this_argp[2]);
-	exit(-1);
-    }
-
-    rc = VolSetWBParms(rpcid, Vid, wbflag);
-    if (rc != RPC2_SUCCESS) {
-	fprintf(stderr, "VolSetWBParms failed with %s\n", RPC2_ErrorMsg((int)rc));
-	exit(-1);
-    }
-    printf("WriteBack %sallowed for Volume %lx\n", wbflag ? "" : "dis", Vid);
-
     exit(0);
 }
 

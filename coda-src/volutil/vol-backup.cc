@@ -183,8 +183,8 @@ long S_VolMakeBackups(RPC2_Handle rpcid, VolumeId originalId,
     }
 
     /* If volutil doesn't hold the volume lock, return an error */
-    if ((V_VolLock(originalvp).IPAddress != 5) || /* Use 5 for now...*/
-	(V_VolLock(originalvp).WriteLockType != VolUtil)) {
+    /* XXX we really should lock this thing within the volutil backup code */
+    if ((V_VolLock(originalvp).IPAddress != 5)) {
 	VLog(0, "S_VolMakeBackups: VolUtil does not hold Volume Lock for %x.",
 	     originalId);
 	cleanup(originalvp);

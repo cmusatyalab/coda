@@ -91,15 +91,10 @@ long S_VolLock(RPC2_Handle rpcid, VolumeId Vid, ViceVersionVector *VolVV) {
     }
     
     /* Lock the volume */
-    V_VolLock(volptr).WriteLockType = VolUtil;
-    V_VolLock(volptr).IPAddress = 5;			/* NEEDS CHANGING */
     LogMsg(3, SrvDebugLevel, stdout, "S_VolLock: Obtaining WriteLock....");
     ObtainWriteLock(&(V_VolLock(volptr).VolumeLock));
     LogMsg(3, SrvDebugLevel, stdout, "S_VolLock: Obtained WriteLock.");
 
-    /* Since these values might have been cleared by ObtainWriteLock --
-     * I was forced to block and somebody else did an unlock, reset them again. */
-    V_VolLock(volptr).WriteLockType = VolUtil; 
     V_VolLock(volptr).IPAddress = 5;			/* NEEDS CHANGING */
 
     /* Put volume on lock queue to have it time out? */
@@ -147,13 +142,6 @@ long S_VolUnlock(RPC2_Handle rpcid, VolumeId Vid) {
 	VPutVolume(volptr);
 	VDisconnectFS();
 	return(EINVAL);
-    }
-
-    if ((V_VolLock(volptr).WriteLockType != VolUtil)) {
-	LogMsg(0, VolDebugLevel, stdout, "S_VolUnlock: unlocker != locker ");
-	VPutVolume(volptr);
-	VDisconnectFS();
-	return(EINVAL);	/* define new error codes */
     }
 
     V_VolLock(volptr).IPAddress = 0;

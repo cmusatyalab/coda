@@ -210,22 +210,14 @@ static void PrintHeader(register Volume *vp)
 	fprintf(infofile, "replicated groupId = %lx\n", V_groupId(vp));
 	PrintVV(infofile, &(V_versionvector(vp)));
     }
-    if (V_WriteBackEnable(vp)) {
-	if (list_empty(&(V_WriteBackHolders(vp))))
-	    fprintf(infofile, "Write Back caching allowed, no permits requested.\n");
-	else
-	    fprintf(infofile, "Write Back caching allowed, at least one active permit.\n");
-    }
-    else
-	fprintf(infofile, "Write Back caching not permitted.\n");
 }
 
 static void printvns(Volume *vp, VnodeClass vclass)
 {
-    register struct VnodeClassInfo *vcp = &VnodeClassInfo_Array[vclass];
+    struct VnodeClassInfo *vcp = &VnodeClassInfo_Array[vclass];
     char buf[SIZEOF_LARGEDISKVNODE];
     VnodeDiskObject *vnode = (VnodeDiskObject *) buf;
-    register int vnodeIndex;
+    int vnodeIndex;
 
     vindex v_index(V_id(vp), vclass, V_device(vp), vcp->diskSize);
     vindex_iterator vnext(v_index);
