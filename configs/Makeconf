@@ -113,6 +113,7 @@ ifneq	($(origin BLD),environment)
 # -- IFS --
 # platform dependent: choice from user level and kernel level version
 # defined in configs/Makeconf.$(SYS)
+LIBIFS = $(TOPOBJ)/$(IFSDIR)/$(IFSNAME)
 
 # -- CS --
 LIBCS =$(TOPOBJ)/lib-src/libcs/libcs.a
@@ -178,6 +179,7 @@ else
 # -- IFS --
 # platform dependent: choice from user level and kernel level version
 # defined in configs/Makeconf.$(SYS)
+LIBIFS = $(LIBDIR)/$(IFSNAME)
 
 # -- CS --
 LIBCS = $(LIBSPECIAL)/libcs.a
