@@ -822,7 +822,6 @@ static long mrpc_SendPacketsReliably(
 static PacketCon *InitPacketCon(int count)
 {
     PacketCon *pcon;
-    int i;
 
     /* allocate new context */
     pcon = (PacketCon *) malloc(sizeof(PacketCon));

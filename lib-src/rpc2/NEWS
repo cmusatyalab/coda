@@ -1,6 +1,8 @@
 New in 1.23:
 
 * Don't assume RPC2_EAI_ errorcodes are identical to the EAI_ errors.
+* Fix crash in the mrpc_sendpacketsreliably tracing code when the first
+  connection entry does not have an active request buffer allocated.
 
 New in 1.22:
 

@@ -481,7 +481,8 @@ struct TraceElem
 	tea->ConnArray0 = mcon[idx].ceaddr;\
 	tea->ConnArray0_UniqueCID = (mcon[idx].ceaddr)->UniqueCID;\
 	tea->PacketArray0_Address = mcon[idx].req;\
-	tea->PacketArray0 = *(mcon[idx].req);  /* structure assignment */\
+	if (mcon[idx].req) \
+	    tea->PacketArray0 = *(mcon[idx].req);  /* structure assignment */\
 	if (TimeOut == NULL) tea->IsNullTimeout = 1;\
 	else\
 	    {\
