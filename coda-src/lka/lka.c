@@ -48,7 +48,6 @@ static void ListAll(char *, int); /* forward ref */
 int LookAsideAndFillContainer (unsigned char sha[SHA_DIGEST_LENGTH], int cfd, 
        int expectedlength, char *codaprefix, char *emsgbuf, int emsgbuflen)
 {
-
 /* LookAsideAndFillContainer() takes the SHA of an object and sees if
    it is able to find its contents via lookaside.  If successful, it 
    copies contents of lookaside target into the specified container file.
@@ -72,12 +71,13 @@ int LookAsideAndFillContainer (unsigned char sha[SHA_DIGEST_LENGTH], int cfd,
    Note: contents of containerfile unspecified upon exit with 0 return code;
    in particular, it is NOT guaranteed to be restored to original value
 */
-
-  emsgbuf[0] = '\0'; /* null message, anticipating success */
-
   char hitpathname[MAXPATHLEN];
   struct lkdb *dbp;
   struct dllist_head *p;
+  unsigned char cshabuf[SHA_DIGEST_LENGTH];
+  int err, hfd;
+
+  emsgbuf[0] = '\0'; /* null message, anticipating success */
 
   list_for_each(p, lkdbchain) {
       dbp = list_entry(p, struct lkdb, chain);
@@ -105,8 +105,7 @@ int LookAsideAndFillContainer (unsigned char sha[SHA_DIGEST_LENGTH], int cfd,
     return(0);
   }
 
-  unsigned char cshabuf[SHA_DIGEST_LENGTH];
-  int err, hfd = open(hitpathname, O_RDONLY | O_BINARY);
+  hfd = open(hitpathname, O_RDONLY | O_BINARY);
   /* Copy to container file and validate SHA (just to be safe) */
   lseek(cfd, 0, SEEK_SET);
   err = CopyAndComputeViceSHA(hfd, cfd, cshabuf);
@@ -149,6 +148,8 @@ int lkdb_BindDB(struct lkdb *dbp, char *dbpathname, char *emsgbuf, int emsgbufle
      In case of failure, an error msg of at most emsgbuflen is placed in
      buffer emsgbuf; it is empty on success.
   */
+  char *c, *d, zero = '\0', *desc;
+  int rc, dlen, dpos;
 
   if (emsgbuflen > 0) *emsgbuf = 0; /* null msg for success case */
 
@@ -163,9 +164,9 @@ int lkdb_BindDB(struct lkdb *dbp, char *dbpathname, char *emsgbuf, int emsgbufle
     goto err;
   }
   
-  char *c = strrchr(dbpathname, '/');
+  c = strrchr(dbpathname, '/');
   assert(c != NULL); /* should never fail because dbpathname[0] == '/' */
-  int rc, dlen = c - dbpathname;
+  dlen = c - dbpathname;
 
   dbp->dblocation = malloc(dlen + 2);
   if (!dbp->dblocation) {
@@ -185,9 +186,6 @@ int lkdb_BindDB(struct lkdb *dbp, char *dbpathname, char *emsgbuf, int emsgbufle
   }
 
   /* now obtain the descriptor record */
-  char zero = '\0';
-  char *desc;
-
   rc = rwcdb_find(&dbp->dbh, &zero, 0);
   if (rc != 1) {
     snprintf(emsgbuf, emsgbuflen,
@@ -196,7 +194,6 @@ int lkdb_BindDB(struct lkdb *dbp, char *dbpathname, char *emsgbuf, int emsgbufle
     goto err;
   }
 
-  int dpos;
   dlen = rwcdb_datalen(&dbp->dbh);
   dpos = rwcdb_datapos(&dbp->dbh);
 
@@ -216,7 +213,7 @@ int lkdb_BindDB(struct lkdb *dbp, char *dbpathname, char *emsgbuf, int emsgbufle
   /* Parse descriptor record */
 
   c = desc; /* start at the very beginning */
-  char *d = c + dlen; /* end of record pointer */
+  d = c + dlen; /* end of record pointer */
 
   if (!(c < d)) goto BadDescriptorRecord;
   if (strncmp(c, LKA_VERSION_STRING, strlen(LKA_VERSION_STRING)))

@@ -36,7 +36,7 @@ int emlen = sizeof(em);
 
 int main(int argc, char **argv)
 {
-  int rc;
+  int rc, fd, cfd;
   char testfile[MAXPATHLEN];
   unsigned char testsha[SHA_DIGEST_LENGTH];
   char container[30], shaprintbuf[60]; 
@@ -63,7 +63,7 @@ int main(int argc, char **argv)
     if (!strcmp(testfile, ".")) goto Quit;
 
     /* find SHA of testfile */
-    int fd = open (testfile,O_RDONLY, 0);
+    fd = open (testfile,O_RDONLY, 0);
     if (fd < 0) {
       printf("%s: %s\n", testfile, strerror(errno));
       continue;
@@ -77,7 +77,7 @@ int main(int argc, char **argv)
 
     /* see if we can find this SHA in lookaside databases */
 
-	int cfd = open(container, O_CREAT|O_TRUNC|O_WRONLY, 0644); /* create file */
+    cfd = open(container, O_CREAT|O_TRUNC|O_WRONLY, 0644); /* create file */
     if (cfd < 0) {
 	printf("Can't create %s: %s\n", container, strerror(errno));
 	exit(-1);

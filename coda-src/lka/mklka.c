@@ -142,6 +142,8 @@ int WalkTree(char *troot, struct rwcdb *dbh)
   char *path_argv[2];
   unsigned char shabuf[SHA_DIGEST_LENGTH];
   int troot_strlen; /* save length of troot in this */
+  int myfd, dlen;
+  char *path;
 
 
   troot_strlen = strlen(troot);
@@ -157,7 +159,7 @@ int WalkTree(char *troot, struct rwcdb *dbh)
     if (nextf->fts_info != FTS_F) continue; /* skip all but plain files */
 
     /* compute the SHA of this file */
-    int myfd = open(nextf->fts_name, O_RDONLY, 0);
+    myfd = open(nextf->fts_name, O_RDONLY, 0);
     if (myfd < 0) {
       printf("Skipping %s: %s\n", nextf->fts_path, strerror(errno));
       continue;
@@ -167,9 +169,6 @@ int WalkTree(char *troot, struct rwcdb *dbh)
     close(myfd);
 
     /* Construct record to be inserted */
-    char *path;
-    int dlen;
-
     dlen = nextf->fts_pathlen + 1; /* assuming absolute path */
     path = nextf->fts_path; /* assuming absolute path */
 
