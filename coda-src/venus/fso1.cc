@@ -2305,7 +2305,6 @@ void fsobj::GetVattr(struct coda_vattr *vap) {
     vap->va_blocksize = V_BLKSIZE;
     vap->va_flags = 0;
     vap->va_rdev = 1;
-    vap->va_bytes = vap->va_size;
 
     /* If the object is currently open for writing we must physically 
        stat it to get its size and time info. */
@@ -2323,6 +2322,9 @@ void fsobj::GetVattr(struct coda_vattr *vap) {
 	vap->va_mtime.tv_sec = (time_t)stat.Date;
 	vap->va_mtime.tv_nsec = 0;
     }
+    
+    /* Convert size of file to bytes of storage after getting size! */
+    vap->va_bytes = NBLOCKS(vap->va_size) << 10;
 
     /* We don't keep track of atime/ctime, so keep them identical to mtime */
     vap->va_atime = vap->va_mtime;
