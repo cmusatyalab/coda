@@ -30,7 +30,7 @@
 #Mellon the rights to redistribute these changes without encumbrance.
 #*/
 #
-#static char *rcsid = "$Header: blurb.doc,v 1.1 96/11/22 13:29:31 raiff Exp $";
+#static char *rcsid = "$Header: /home/braam/src/coda-src/scripts/RCS/installbetasrv.csh,v 1.1 1996/11/22 19:06:51 braam Exp braam $";
 #endif /*_BLURB_*/
 
 
@@ -65,7 +65,7 @@
 #Mellon the rights to redistribute these changes without encumbrance.
 #*/
 #
-#static char *rcsid = "$Header: installbetasrv.csh,v 1.1 96/11/22 13:25:37 raiff Exp $";
+#static char *rcsid = "$Header: /home/braam/src/coda-src/scripts/RCS/installbetasrv.csh,v 1.1 1996/11/22 19:06:51 braam Exp braam $";
 #endif /*_BLURB_*/
 
 
@@ -120,7 +120,7 @@ echo ""
 echo -n "copying special binaries(RVM): "
 foreach f ($SPCLBINS ) 
     echo -n $f " "
-    copy $BaseDir/bin-special/$f bin
+    copy $BaseDir/BIN-SPECIAL/$f bin
 end
 
 echo ""
