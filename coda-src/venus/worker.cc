@@ -75,6 +75,10 @@ extern "C" {
 #include <relay.h>
 #endif
 
+#ifdef __CYGWIN__
+#include <windows.h>
+#endif
+
 #ifdef __cplusplus
 }
 #endif __cplusplus
@@ -431,6 +435,17 @@ void VFSMount()
 	    close_relay();
 	    exit(0);
     }
+#endif
+
+#ifdef __CYGWIN32__
+    DWORD d;
+    eprint ("Mounting on %s ... ", venusRoot);
+    d = DefineDosDevice(DDD_RAW_TARGET_PATH, venusRoot, "\\Device\\codadev");
+    if ( d == 0 ) {
+        eprint ("Mount failed");
+        exit(0);
+    }
+    eprint ("Mount OK");
 #endif
 
     Mounted = 1;
