@@ -456,16 +456,16 @@ long UpdateFetch(RPC2_Handle RPCid, RPC2_String FileName,
 {
     long    rc;			/* return code to caller */
     SE_Descriptor sid;		/* sid to use to transfer */
-    char    name[1025];		/* area to hold the name */
+    char    name[1024];		/* area to hold the name */
     struct stat buff;		/* buffer for stat */
     int     len;
 
     rc = 0;
 
-    len = strlen((char *)FileName);
+    len = strlen((char *)FileName) + 1;
     if (len > 1024) len = 1024;
-    memcpy(name, FileName, 1024);
-    name[1024] = '\0';
+    memcpy(name, FileName, len);
+    name[1023] = '\0';
 
     LogMsg(1, SrvDebugLevel, stdout, "UpdateFetch file = %s, Time = %d",
 	    name, Time);
