@@ -715,6 +715,18 @@ void WorkerInit()
             exit(-1);
     }
     dprint("WorkerInit: muxfd = %d", worker::muxfd);
+    { /* Bind to port */
+         struct sockaddr_in addr;
+
+         addr.sin_family = AF_INET;
+         addr.sin_port = htons(8000);
+         addr.sin_addr.s_addr = htonl(venus_relay_addr);
+	 if (bind(worker::muxfd, (struct sockaddr *) &addr, sizeof(addr))) {
+	     eprint("WorkerInit: could not bind (%d)", errno);
+	     exit(-1);
+	 }
+    }
+
 #else 
     /* Open the communications channel. */
     worker::muxfd = ::open(kernDevice, O_RDWR, 0);
