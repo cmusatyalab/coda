@@ -28,7 +28,7 @@ include $(TOPDIR)/Makeconf
 VENUS-SCRIPTS = vutil volmunge venus-setup coda-setup-ports \
     coda-client-logrotate
 
-VOL-SCRIPTS	= createvol_rep purgevol purgevol_rep bldvldb.sh
+VOL-SCRIPTS	= createvol_rep purgevol_rep bldvldb.sh
 VICE-SCRIPTS	= startserver codastart coda-server-logrotate
 REINIT-SCRIPTS	= partial-reinit.sh
 UPGRADE-SCRIPTS	= #pwdtopdbtool.py
