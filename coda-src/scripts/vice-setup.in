@@ -217,7 +217,7 @@ if [ $isscm = N ]; then
 
     echo "Fetching needed files from SCM $scmhost."
     for which in ROOTVOLUME auth2.pw auth2.tk auth2.lock \
-	prot_users.db prot_index.db volutil.tk files ; do
+	prot_users.cdb volutil.tk files ; do
         if ! updatefetch -h $scmhost -r db/$which -l $which ; then
 	    echo "Could not fetch $which from SCM.  Make sure SCM is setup"
 	    echo "correctly and then rerun $0."
@@ -261,8 +261,7 @@ auth2.tk.BAK
 auth2.lock
 dumplist
 files
-prot_users.db
-prot_index.db
+prot_users.cdb
 servers
 scm
 update.tk

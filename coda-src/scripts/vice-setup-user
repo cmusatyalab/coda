@@ -77,23 +77,10 @@ until [ "x$username" != x ]; do
  	fi
 done
 
-if [ -f prot_users.db ] ; then
+if [ -f prot_users.cdb ] ; then
   echo "Going to rebuild the protection databases"
-  echo "moving ${vicedir}/db/prot_users.db to ${vicedir}/db/prot_users.db.old"
-  mv prot_users.db prot_users.db.old
-elif [ -f prot_users.dir ] ; then
-  echo "Going to rebuild the protection databases"
-  echo "moving ${vicedir}/db/prot_users.[dir|pag] to ${vicedir}/db/prot_users.[dir|pag].old"
-  mv prot_users.dir prot_users.dir.old
-  mv prot_users.pag prot_users.pag.old
-fi
-if [ -f prot_index.db ] ; then
-  echo "moving ${vicedir}/db/prot_index.db to ${vicedir}/db/prot_index.db.old"
-  mv prot_index.db prot_index.db.old
-elif [ -f prot_index.dir ] ; then
-  echo "moving ${vicedir}/db/prot_index.[dir|pag] to ${vicedir}/db/prot_index.[dir|pag].old"
-  mv prot_index.dir prot_index.dir.old
-  mv prot_index.pag prot_index.pag.old
+  echo "moving ${vicedir}/db/prot_users.cdb to ${vicedir}/db/prot_users.cdb.old"
+  mv prot_users.cdb prot_users.cdb.old
 fi
 
 cat > pdbsetup <<EOF
