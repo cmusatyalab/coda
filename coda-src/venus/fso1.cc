@@ -2452,17 +2452,19 @@ int fsobj::EstimatedFetchCost(int type)
     return( (int)stat.Length/bw ); 
 }
 
-void fsobj::RecordReplacement(int status, int data) {
+void fsobj::RecordReplacement(int status, int data)
+{
+#if 0
     char mountpath[MAXPATHLEN];
     char path[MAXPATHLEN];
 
-    LOG(0, ("RecordReplacement(%d,%d)\n", status, data));
+    LOG(10, ("RecordReplacement(%d,%d)\n", status, data));
 
     CODA_ASSERT(vol != NULL);
     vol->GetMountPath(mountpath, 0);
     GetPath(path, 1);    
     /* NotifyUserOfReplacement(&fid, path, status, (data ? 1 : 0)); */
-    LOG(0, ("RecordReplacement complete.\n"));
+#endif
 }
 
 /* local-repair modification */

@@ -193,10 +193,18 @@ int fsobj::Fetch(vuid_t vuid) {
 		    data.dir = (VenusDirData *)rvmlib_rec_malloc(sizeof(VenusDirData));
 		    CODA_ASSERT(data.dir);
 		    memset((void *)data.dir, 0, sizeof(VenusDirData));
-		    FSO_ASSERT(this, (stat.Length & (DIR_PAGESIZE - 1)) == 0);
+
+		    {
+		    /* Make sure length is aligned wrt. DIR_PAGESIZE */
+		    unsigned long dirlen = (stat.Length + DIR_PAGESIZE - 1) & \
+			~(DIR_PAGESIZE - 1);
+
 		    RVMLIB_REC_OBJECT(*data.dir);
-		    DH_Alloc(&data.dir->dh, stat.Length,
+		    DH_Alloc(&data.dir->dh, dirlen,
                              RvmType == VM ? DIR_DATA_IN_VM : DIR_DATA_IN_RVM);
+		    /* DH_Alloc already clears dh to zero */
+		    }
+
 		    sei->Tag = FILEINVM;
 		    sei->FileInfo.ByAddr.vmfile.MaxSeqLen = stat.Length;
 		    sei->FileInfo.ByAddr.vmfile.SeqBody = 

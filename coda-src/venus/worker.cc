@@ -1036,7 +1036,7 @@ void worker::Resign(msgent *msg, int size) {
 
     ActiveMsgs.remove(msg);
     FreeMsgs.append(msg);
-    msg = 0;
+    msg = NULL;
     opcode = 0;
     
     lastresign = Vtime();
@@ -1084,12 +1084,10 @@ void worker::Return(msgent *msg, int size) {
     returned = 1;
 }
 
-
 void worker::Return(int code) {
     ((union outputArgs*)msg->msg_buf)->oh.result = code; 
     Return(msg, (int)sizeof (struct coda_out_hdr));
 }
-
 
 void worker::main(void)
 {
