@@ -62,16 +62,24 @@ codaconfedit venus.conf cacheblocks "$CACHESIZE"
 
 # make the psdev
 if [ ! -c /dev/coda0 -a ! -c /dev/cfs0 -a ! -c /dev/coda/0 ] ; then
-    /dev/MAKEDEV cfs0
+    ( cd /dev ; ./MAKEDEV cfs )
 fi
 
 # tell the kernel about the new module 
 if [ X`uname` = XLinux ]; then 
-   if ! grep coda /etc/conf.modules > /dev/null; then
-	echo >> /etc/conf.modules
-	echo 'alias char-major-67 coda' >> /etc/conf.modules
-   fi
-   /sbin/depmod -a
+    if [ -d /etc/modutils ]; then
+        MODULES=/etc/modutils/coda-client
+    else
+        MODULES=/etc/conf.modules
+    fi
+    if ! grep coda $MODULES > /dev/null; then
+        echo >> $MODULES
+        echo 'alias char-major-67 coda' >> $MODULES
+        if [ -x /sbin/update-modules ]; then
+            /sbin/update-modules
+        fi
+    fi
+    /sbin/depmod -a
 fi
 
 # Setup the ports
