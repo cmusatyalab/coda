@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: blurb.doc,v 1.1 96/11/22 13:29:31 raiff Exp $";
+static char *rcsid = "/afs/cs/project/coda-rvb/cvs/src/coda-4.0.1/coda-src/update/updatesrv.cc,v 1.2 1997/01/06 21:28:07 rvb Exp";
 #endif /*_BLURB_*/
 
 
@@ -192,7 +192,7 @@ int main(int argc, char **argv)
 		    (char *)&i, sname, &serverPid) == LWP_SUCCESS);
     }
     gettimeofday(&tp, &tsp);
-    LogMsg(0, SrvDebugLevel, stdout, "Update Server started %s", ctime(&tp.tv_sec));
+    LogMsg(0, SrvDebugLevel, stdout, "Update Server started %s", ctime((long *)&tp.tv_sec));
 
     assert(LWP_WaitProcess((char *)&parentPid) == LWP_SUCCESS);
 
