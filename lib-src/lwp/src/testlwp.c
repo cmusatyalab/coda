@@ -63,6 +63,12 @@ int main(int argc, char **argv)
     int j;
     char *waitarray[2];
     static char c[] = "OtherProcess";
+
+    if (argc < 2) 
+      {
+	fprintf (stderr, "usage: %s count\n", argv[0]);
+	exit(1);
+      }
     
     count = atoi(argv[1]);
 
