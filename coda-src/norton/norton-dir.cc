@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/norton/norton-dir.cc,v 4.8 1998/10/08 17:23:05 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/norton/norton-dir.cc,v 4.9 98/10/21 22:23:43 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -70,12 +70,35 @@ struct NortonDirHandle {
 };
 
 
+static int testVnodeExists(int volid, int vnum, int unique)
+{
+    char buf[SIZEOF_LARGEDISKVNODE];
+    struct VnodeDiskObject *vnode = (struct VnodeDiskObject *)buf;
+    VnodeId vnodeindex = vnodeIdToBitNumber(vnum);
+    int     vclass = vnodeIdToClass(vnum);
+    int     volindex;
+    Error   error;
+
+    volindex = GetVolIndex(volid);
+    if (volindex < 0) { return 0; }
+
+    if (ExtractVnode(&error, volindex, vclass, vnodeindex,
+		     (Unique_t)unique, vnode) < 0) { return 0; }
+
+    return 1;
+}
+
 static int printentry(struct DirEntry *de, void *hook)
 {
 	int vnodenumber = ntohl(de->fid.dnf_vnode);
 	int unique = ntohl(de->fid.dnf_unique);
+	int exists = 0;
+	int volid = *(int*)hook;
+
+	exists = testVnodeExists(volid, vnodenumber, unique);
 	
-	printf("    (0x%x 0x%x)\t%s\n", vnodenumber, unique, de->name);
+	printf("  %c (0x%x 0x%x)\t%s\n",
+	       exists ? ' ' : '?',  vnodenumber, unique, de->name);
 	return 0;
 }
 
@@ -164,7 +187,7 @@ show_dir(int volid, int vnum, int unique)
 		 volid, vnum, unique);
     }
 
-    DH_EnumerateDir(DC_DC2DH(dc), printentry, NULL);
+    DH_EnumerateDir(DC_DC2DH(dc), printentry, &volid);
 }
 
 
