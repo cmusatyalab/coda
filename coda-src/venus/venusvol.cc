@@ -1092,7 +1092,7 @@ int volent::Enter(int mode, vuid_t vuid) {
 	    /* acquire exclusive volume-pgid-lock for RESOLVING */
 	    vproc *vp = VprocSelf();
 	    int proc_key = vp->u.u_pgid;
-	    while (shrd_count > 0 || excl_count > 0 && proc_key != excl_pgid) {
+	    while (shrd_count > 0 || (excl_count > 0 && proc_key != excl_pgid)) {
 		/* 
 		 * must wait until all the volume-pgid-locks are released.
 		 * no need to check for VM_NDELAY and excl_pgid here.
