@@ -1129,19 +1129,29 @@ int fsobj::TryToCover(VenusFid *inc_fid, vuid_t vuid)
     if (IsFake()) {
 	Volid vid;
 	char *realmname, tmp;
-	Realm *realm;
+	Realm *r = vol->realm;
+	int n;
 
-	if (sscanf(data.symlink, "@%lx.%*x.%*x@%c", &vid.Volume, &tmp) != 2)
-	    { print(logFile); CHOKE("fsobj::TryToCover: couldn't get volume id"); }
-	/* strrchr should succeed now because sscanf succeeded. */
-	realmname = strrchr(data.symlink, '@')+1;
+	n = sscanf(data.symlink, "@%lx.%*x.%*x@%c", &vid.Volume, &tmp);
+	if (n < 1) {
+	    print(logFile);
+	    CHOKE("fsobj::TryToCover: couldn't get volume id");
+	}
 
-	realm = REALMDB->GetRealm(realmname);
-	vid.Realm = realm->Id();
+	r->GetRef();
+
+	if (n == 2) {
+	    /* strrchr should succeed now because sscanf succeeded. */
+	    realmname = strrchr(data.symlink, '@')+1;
+
+	    r->PutRef();
+	    r = REALMDB->GetRealm(realmname);
+	}
+	vid.Realm = r->Id();
 
 	code = VDB->Get(&tvol, &vid);
 
-	realm->PutRef();
+	r->PutRef();
     }
     else {
 	/* Turn volume name into a proper string. */
@@ -1181,7 +1191,7 @@ int fsobj::TryToCover(VenusFid *inc_fid, vuid_t vuid)
     root_fid.Realm = tvol->GetRealmId();
     root_fid.Volume = tvol->vid;
     if (IsFake()) {
-	if (sscanf(data.symlink, "@%*lx.%lx.%lx@", &root_fid.Vnode, &root_fid.Unique) != 2)
+	if (sscanf(data.symlink, "@%*lx.%lx.%lx", &root_fid.Vnode, &root_fid.Unique) != 2)
 	    { print(logFile); CHOKE("fsobj::TryToCover: couldn't get <tvolid, tunique>"); }
     }
     else {
@@ -1977,7 +1987,7 @@ int fsobj::Fakeify()
 
     fsobj *pf = 0;
     if (!IsRoot()) {
-	if (fid.Volume == FakeRootVolumeId && !IsVenusRoot())
+	if (fid.Volume == FakeRootVolumeId)
 	    pf = FSDB->Find(&rootfid);
 
 	else {
@@ -2021,18 +2031,13 @@ int fsobj::Fakeify()
 	stat.VnodeType = SymbolicLink;
 
 	if (fid.Volume == FakeRootVolumeId) {
-	    Realm *realm = REALMDB->GetRealm((RealmId)fid.Unique);
-	    CODA_ASSERT(realm);
-
 	    flags.local = 1;
 
 	    /* "#@RRRRRRRRR." */
-	    stat.Length = strlen(realm->Name()) + 3;
+	    stat.Length = strlen(comp) + 3;
 	    data.symlink = (char *)rvmlib_rec_malloc(stat.Length+1);
 	    rvmlib_set_range(data.symlink, stat.Length+1);
-	    sprintf(data.symlink, "#@%s.", realm->Name());
-
-	    realm->PutRef();
+	    sprintf(data.symlink, "#@%s.", comp);
 	} else {
 	    ViceFid LinkFid;
 	    const char *realmname;
@@ -2066,19 +2071,26 @@ int fsobj::Fakeify()
 		LinkFid = *MakeViceFid(Fid);
 		realmname = vol->realm->Name();
 	    }
-	    else if (STREQ(comp, "localhost")) {
-		/* another special case, fake link for the cached object */
-		LOG(0, ("fsobj::Fakeify: fake link for a cached object %s\n",
-			FID_(&fid)));
-		LOG(0, ("fsobj::Fakeify: parent fid for the fake link is %s\n",
-			FID_(&pfid)));
+	    else if (!vol->IsReplicated()) {
+		/* a fake link */
+		/* get the volumeid corresponding to the server name */
+		volent *pvol = pfso->u.mtpoint->vol;
+		repvol *vp = (repvol *)pvol;
 
-		LinkFid.Volume = vol->GetVolumeId();
-		LinkFid.Vnode  = pfid.Vnode;
-		LinkFid.Unique = pfid.Unique;
-		realmname = vol->realm->Name();
-	    }
-	    else {
+		CODA_ASSERT(pvol->IsReplicated());
+
+		/* avoid using 'flags.fake', there is some potential for a lot
+		 * of cleanups if we don't use it anymore */
+		flags.fake = 0; flags.local = 1;
+
+		LinkFid.Volume = fid.Unique;
+		LinkFid.Vnode  = pfso->u.mtpoint->fid.Vnode;
+		LinkFid.Unique = pfso->u.mtpoint->fid.Unique;
+		/* should really be vp->volrep[i]->realm->Name(), but
+		 * cross-realm replication should probably not be attempted
+		 * anyways, with authentication issues and all -JH */
+		realmname = vp->realm->Name();
+	    } else {
 		CODA_ASSERT(vol->IsReplicated());
 		repvol *vp = (repvol *)vol;
 		struct in_addr host;
@@ -2118,7 +2130,7 @@ int fsobj::Fakeify()
 
 	UpdateCacheStats(&FSDB->FileDataStats, CREATE, BLOCKS(this));
     } else {				/* Fake Directory */
-	stat.Mode = 0444;
+	stat.Mode = 0555;
 	stat.LinkCount = 2;
 	stat.VnodeType = Directory;
 	/* Access rights are not needed, this whole volume is readonly! */
@@ -2138,13 +2150,45 @@ int fsobj::Fakeify()
 		VenusFid Fid = fid;
 		Fid.Vnode = 0xfffffffc;
 		Fid.Unique = realm->Id();
+		/* stupid dir operations don't take const char * */
 		char *realmname = strdup(realm->Name());
 		CODA_ASSERT(realmname);
 		dir_Create(realmname, &Fid);
 		free(realmname);
 	    }
+	} else if (!vol->IsReplicated()) {
+	    struct in_addr volumehosts[VSG_MEMBERS];
+	    VolumeId volumeids[VSG_MEMBERS];
+	    volent *pvol = u.mtpoint->vol;
+	    repvol *vp = (repvol *)pvol;
+	    VenusFid Fid = fid;
+
+	    CODA_ASSERT(pvol->IsReplicated());
+
+	    flags.local = 1;
+
+	    /* testing 1..2..3.. trying to show the local copy as well */
+	    Fid.Vnode = 0xfffffffc;
+	    Fid.Unique = vp->GetVolumeId();
+	    dir_Create("localhost", &Fid);
+	    LOG(1, ("fsobj::Fakeify: new entry (localhost, %s)\n",
+		    FID_(&Fid)));
+
+	    /* Make entries for each of the rw-replicas. */
+	    vp->GetHosts(volumehosts);
+	    vp->GetVids(volumeids);
+	    for (int i = 0; i < VSG_MEMBERS; i++) {
+		if (!volumehosts[i].s_addr) continue;
+		srvent *s = FindServer(&volumehosts[i]);
+
+		Fid = fid;
+		Fid.Vnode = 0xfffffffc;
+		Fid.Unique = volumeids[i];
+		LOG(1, ("fsobj::Fakeify: new entry (%s, %s)\n",
+			s->name, FID_(&Fid)));
+		dir_Create(s->name, &Fid);
+	    }
 	} else {
-	    CODA_ASSERT(vol->IsReplicated());
 	    repvol *vp = (repvol *)vol;
 	    struct in_addr volumehosts[VSG_MEMBERS];
 
@@ -2168,12 +2212,6 @@ int fsobj::Fakeify()
 			Name, FID_(&FakeFid)));
 		dir_Create(Name, &FakeFid);
 	    }
-#if 0
-	    { /* testing 1..2..3.. trying to show the local copy as well */
-		VenusFid FakeFid = vp->GenerateFakeFid();
-		dir_Create("localhost", &FakeFid);
-	    }
-#endif
 	}
     }
 

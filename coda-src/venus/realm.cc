@@ -113,7 +113,7 @@ int Realm::GetAdmConn(connent **cpp)
     *cpp = 0;
 
 retry:
-    tryagain = 0;
+    tryagain = 1;
     if (!rootservers)
 	GetRealmServers(name, "codasrv", &rootservers);
     else
@@ -147,6 +147,7 @@ retry:
     if (tryagain) {
 	coda_freeaddrinfo(rootservers);
 	rootservers = NULL;
+	tryagain = 0;
 	goto retry;
     }
     return ETIMEDOUT;

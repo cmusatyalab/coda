@@ -523,7 +523,6 @@ fsobj *fsdb::Create(VenusFid *key, int priority, char *comp)
 int fsdb::Get(fsobj **f_addr, VenusFid *key, vuid_t vuid, int rights,
 	      char *comp, int *rcode, int GetInconsistent)
 {
-    CODA_ASSERT(rights != 0);
     int getdata = (rights & RC_DATA);
 
     LOG(100, ("fsdb::Get-mre: key = (%s), uid = %d, rights = %d, comp = %s\n",
@@ -547,7 +546,7 @@ int fsdb::Get(fsobj **f_addr, VenusFid *key, vuid_t vuid, int rights,
 		}
 	    }
 	}
-	if (vol) vol->release();
+	VDB->Put(&vol);
     }
 
     int code = 0;

@@ -354,12 +354,8 @@ FreeLocks:
 	vap->va_gid = (short)V_GID;
 	vap->va_nlink = 1;
 
-	/* @XXXXXXXX.YYYYYYYY.ZZZZZZZZ@RRRRRRRR */
-	Realm *realm = REALMDB->GetRealm(cp->c_fid.Realm);
-	CODA_ASSERT(realm);
-	vap->va_size = 28 + strlen(realm->Name());
-	realm->PutRef();
-
+	/* @XXXXXXXX.YYYYYYYY.ZZZZZZZZ. */
+	vap->va_size = 29;
 	vap->va_blocksize = V_BLKSIZE;
 	vap->va_fileid = FidToNodeid(&cp->c_fid);
 	vap->va_atime.tv_sec = Vtime();
@@ -601,6 +597,18 @@ void vproc::lookup(struct venus_cnode *dcp, char *name,
 	    /* Don't get the same object twice! */
 	    target_fso = parent_fso;
 	    parent_fso = 0;		    /* Fake a FSDB->Put(&parent_fso); */
+	}
+	else if (STREQ(name, "..")) {
+	    if (parent_fso->IsRoot())
+		target_fso = parent_fso->u.mtpoint;
+	    else
+		target_fso = parent_fso->pfso;
+
+	    if (!target_fso) {
+		u.u_error = ENOENT;
+		goto FreeLocks;
+	    }
+	    target_fso->Lock(RD);
 	}
 	else {
 	    VenusFid inc_fid;

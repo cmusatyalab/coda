@@ -483,9 +483,8 @@ int fsobj::Lookup(fsobj **target_fso_addr, VenusFid *inc_fid, char *name, vuid_t
     int  len;
     char *subst = NULL, expand[CODA_MAXNAMLEN];
 
-    /* We're screwed if (name == "."). -JJK */
-    if (STREQ(name, "."))
-	{ print(logFile); CHOKE("fsobj::Lookup: name = ."); }
+    /* We're screwed if (name == "." or ".."). -JJK */
+    CODA_ASSERT(!STREQ(name, ".") && !STREQ(name, ".."));
 
     int code = 0;
     *target_fso_addr = 0;
@@ -524,38 +523,15 @@ int fsobj::Lookup(fsobj **target_fso_addr, VenusFid *inc_fid, char *name, vuid_t
 	}
 
 	/* Lookup the target object. */
-	if (STREQ(name, "..")) {
-	    if (IsRoot()) {
-		/* Back up over a mount point. */
-		LOG(100, ("fsobj::Lookup: backing up over a mount point\n"));
-
-		/* Next fid is the parent of the mount point. */
-		if (!traverse_mtpts || u.mtpoint == 0 || FID_EQ(&u.mtpoint->pfid, &NullFid))
-		    return(ENOENT);
-
-		target_fid = u.mtpoint->pfid;
-	    }
-	    else {		
-		if (FID_EQ(&NullFid, &pfid)) {
-		    if (LRDB->RFM_IsGlobalRoot(&fid) || LRDB->RFM_IsLocalRoot(&fid)) {
-			return EACCES;
-		    } else {
-			print(logFile); 
-			CHOKE("fsobj::Lookup(\"..\"): pfid = NULL");
-		    }
-		}
-		target_fid = pfid;
-	    }
-	}
-	else {
+	{
 	    code = dir_Lookup(name, &target_fid, flags);
 
 	    if (code) {
-		if (!(FID_IsLocalFake(&fid) && fid.Volume == FakeRootVolumeId))
+		if (!FID_IsLocalFake(&fid) || fid.Volume != FakeRootVolumeId)
 		    return code;
 
-		/* regular lookup failed, but we're in the fake root volume, so we
-		 * can try to check for a new realm */
+		/* regular lookup failed, but if we are in the fake root
+		 * volume, so we can try to check for a new realm */
 
 		// don't even bother to follow lookups of dangling symlinks
 		if (name[0] == '#')
@@ -564,7 +540,9 @@ int fsobj::Lookup(fsobj **target_fso_addr, VenusFid *inc_fid, char *name, vuid_t
 		// Get the realm. If it doesn't resolve, it doesn't exist
 		realm = REALMDB->GetRealm(name);
 		if (!realm->rootservers) {
+		    Recov_BeginTrans();
 		    realm->PutRef();
+		    Recov_EndTrans(DMFP);
 		    return ENOENT;
 		}
 
@@ -572,7 +550,7 @@ int fsobj::Lookup(fsobj **target_fso_addr, VenusFid *inc_fid, char *name, vuid_t
 		target_fid.Vnode = 0xfffffffc;
 		target_fid.Unique = realm->Id();
 
-		/* Found a new realm, we should add this realm */
+		/* Found a new realm, we should add this realm as a direntry */
 		Recov_BeginTrans();
 		dir_Create(name, &target_fid);
 		Recov_EndTrans(CMFP);
@@ -582,16 +560,22 @@ int fsobj::Lookup(fsobj **target_fso_addr, VenusFid *inc_fid, char *name, vuid_t
 
     /* Map fid --> fso. */
     {
-	code = FSDB->Get(&target_fso, &target_fid, vuid, RC_STATUS, name);
+	int status = RC_STATUS;
+get_object:
+	code = FSDB->Get(&target_fso, &target_fid, vuid, status, name);
 
-	if (realm) realm->PutRef();
+	if (realm) {
+	    realm->PutRef();
+	    realm = NULL;
+	}
+
 	if (code) {
 	    if (code == EINCONS && inc_fid != 0) *inc_fid = target_fid;
 
 	    /* If the getattr failed, the object might not exist on all
 	     * servers. This is `fixed' by resolving the parent, but we just
 	     * destroyed the object and RecResolve won't work. That is why we
-	     * submit this directory for resolution as well. -JH */
+	     * submit this directory for resolution. -JH */
 	    if (code == ESYNRESOLVE && vol->IsReplicated())
 		((repvol *)vol)->ResSubmit(&((VprocSelf())->u.u_resblk), &fid);
 
@@ -616,11 +600,8 @@ int fsobj::Lookup(fsobj **target_fso_addr, VenusFid *inc_fid, char *name, vuid_t
 		/* We must have the data here. */
 		if (!HAVEALLDATA(target_fso)) {
 		    FSDB->Put(&target_fso);
-		    code = FSDB->Get(&target_fso, &target_fid, vuid, RC_DATA, name);
-		    if (code) {
-			if (code == EINCONS) *inc_fid = target_fid;
-			return(code);
-		    }
+		    status |= RC_DATA;
+		    goto get_object;
 		}
 
 		target_fso->PromoteLock();

@@ -260,6 +260,7 @@ void vproc::do_ioctl(VenusFid *fid, unsigned int com, struct ViceIoctl *data) {
 			fsobj *target_fso = 0;
 			char *target_name = (char *) data->in;
 			int out_size = 0;	/* needed since data->out_size is a short! */
+                        verifyname(target_name, NAME_NO_DOTS);
 
 			/* Verify that parent is a directory. */
 			if (!f->IsDir()) {
@@ -268,17 +269,10 @@ void vproc::do_ioctl(VenusFid *fid, unsigned int com, struct ViceIoctl *data) {
                         }
 
 			/* Get the target object. */
-			/* Take care against getting/putting object twice! */
-			if (STREQ(target_name, ".")) {
-			    target_fso = f;
-			    f = 0;		/* Fake a FSDB->Put(&f); */
-			}
-			else {
-			    u.u_error = f->Lookup(&target_fso, 0, target_name, CRTORUID(u.u_cred), CLU_CASE_SENSITIVE);
-			    if (u.u_error) {
-                                FSDB->Put(&target_fso);
-                                break;
-                            }
+			u.u_error = f->Lookup(&target_fso, 0, target_name, CRTORUID(u.u_cred), CLU_CASE_SENSITIVE);
+			if (u.u_error) {
+			    FSDB->Put(&target_fso);
+			    break;
 			}
 
 			/* Verify that target is a mount point (either valid or dangling). */
