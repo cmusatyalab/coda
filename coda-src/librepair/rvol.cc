@@ -267,11 +267,9 @@ static int srvstr(char *rwpath, char *retbuf, int size) {
     if (hosts[0] == 0) return(-1); /* fail if no hosts returned */
     if (hosts[1] != 0) return(-1); /* fail if more than one host returned */
 
-    hosts[1] = htonl(hosts[0]); /* gethostbyaddr requires network order */
-
-    thp = gethostbyaddr((char *)&hosts[1], sizeof(long), AF_INET);
+    thp = gethostbyaddr((char *)&hosts[0], sizeof(long), AF_INET);
     if (thp != NULL) snprintf(retbuf, size, "%s", thp->h_name);
-    else snprintf(retbuf, size, "%08lx", hosts[1]);
+    else snprintf(retbuf, size, "%s", inet_ntoa(*(struct in_addr *)&hosts[0]));
     return(0);
 }
 
