@@ -84,6 +84,9 @@ LIBS :=	${LIBRPC2}\
 	${LIBCOMPAT}\
 	${LIBBASE}
 
+ifeq ($(SYS),sol2)
+LIBFIXUP += -R/usr/ucblib -L/usr/ucblib -lucb
+endif
 
 LIBRARIES   = libauth2.a libauser.a
 HEADERS     = avenus.h

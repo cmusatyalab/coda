@@ -31,6 +31,11 @@ extern "C" {
 #include <sys/time.h>
 #include <errno.h>
 #include <string.h>
+#include <fcntl.h>
+
+#ifdef sun
+#include "sunflock.h"
+#endif
 
 #ifdef __cplusplus
 }
@@ -129,6 +134,7 @@ int LockParent(char *fName, int lockType)
 
 	char parent[MAXPATHLEN];
 	int pfd;
+	char *sp;
 
 	if (fName[0] != '/')
 	{
@@ -137,7 +143,8 @@ int LockParent(char *fName, int lockType)
 		strcat(parent, fName);
 	}
 	else strcpy(parent, fName);
-	*rindex(parent, '/') = 0;
+	sp = rindex(parent, '/');
+	*sp = 0;
 		/* parent surely has at least one '/' by now */
 
 	strcat(parent, LockFile);

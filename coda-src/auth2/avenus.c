@@ -67,6 +67,12 @@ extern "C" {
 #include <string.h>
 #include <unistd.h>
 #include <stdlib.h>
+#include <fcntl.h>
+
+#ifdef sun
+/* XXXXX --- should convert to mem functions .... */
+char *index(const char *s, int c);
+#endif
 
 #ifdef __cplusplus
 }
