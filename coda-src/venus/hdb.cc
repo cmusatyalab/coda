@@ -780,6 +780,19 @@ void hdb::WalkPriorityQueue(vproc *vp, int *expansions, int *enospc_failure) {
     while ((b = bnext) != NULL) {
 	namectxt *n = strbase(namectxt, b, prio_handle);
 
+	/* This is just a workaround for a bug I haven't been able to figure
+	 * out. What happens is that when we drop a token, we lose access to
+	 * objects. These objects are killed during the hoardwalk (and removed
+	 * from the HDB->prioq), but sometimes next() will give us an already
+	 * destroyed namecontext. It does get cleaned up correctly if we simply
+	 * skip it here. -JH */
+	if (n->dying) {
+	    LOG(0, ("Hoard daemon got dead or dying namecontext %p, "
+		    "skipping it!\n", n));
+	    bnext = next();
+	    continue;
+	}
+
 	n->hold();
 
 	/* Yield periodically. */
@@ -1717,7 +1730,7 @@ void namectxt::hold() {
 	{ print(logFile); CHOKE("namectxt::hold: already inuse"); }
 
     if (dying)
-	{ LOG(0, ("namectxt::hold: dead or dying object")); }
+	{ LOG(0, ("namectxt::hold: dead or dying object %p\n", this)); }
 
     inuse = 1;
 }
@@ -1918,6 +1931,11 @@ void namectxt::Demote(int recursive) {
 	}
     }
 
+    /* force an expansion when this namectxt is examined next */
+    expander_fid = NullFid;
+    expander_vv = NullVV;
+    expander_dv = -1;
+
     if (inuse)
 	return;
 
@@ -2103,7 +2121,7 @@ pestate namectxt::CheckExpansion() {
     }
 
     /* Meta-contract if appropriate. */
-    if (vp->u.u_error != 0 && !meta_expanded) {
+    if (vp->u.u_error != 0 && meta_expanded) {
       /* Only nuke children in case of {ENOSPC, EINCONS}. */
       if (vp->u.u_error == ENOSPC || vp->u.u_error == EINCONS) {
         if (expand_children || expand_descendents)
