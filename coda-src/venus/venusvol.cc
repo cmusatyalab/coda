@@ -1592,24 +1592,19 @@ int repvol::SyncCache(VenusFid * fid)
 {
     LOG(1,("volent::SyncCache()\n"));
 
-    //	    if (flags.transition_pending && VOLBUSY(this)) { 
-    // wait until they get out of our volume
+    while (VOLBUSY(this))
+	VprocWait((char*)&shrd_count);
 
     flags.transition_pending = 1;
     flags.sync_reintegrate = 1;
 
-    while (flags.transition_pending) { 
-	while (VOLBUSY(this))
-	    VprocWait((char*)&shrd_count);
+    while (flags.transition_pending && !VOLBUSY(this))
+	TakeTransition();
 
-        TakeTransition();
-    }
-
-    //Reintegrate();
-    /* actually this flag is already cleared in repvol::Reintegrate to avoid
+    /* the sync_reintegrate flag is cleared in repvol::Reintegrate to avoid
      * recursion when exiting the volume in cases where the reintegration
      * required resolution or repair */
-    flags.sync_reintegrate = 0;
+    // flags.sync_reintegrate = 0;
 
     return 0;
 }

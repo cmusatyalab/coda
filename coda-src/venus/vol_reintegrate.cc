@@ -605,12 +605,12 @@ int cmlent::ReintReady()
 
     /* check if its repair flag is set */
     if (flags.to_be_repaired || flags.repair_mutation) {
-	LOG(100, ("cmlent::ReintReady: this is a repair related cmlent\n"));
+	LOG(0, ("cmlent::ReintReady: this is a repair related cmlent\n"));
 	return 0;
     }
 
     if (ContainLocalFid()) {
-	LOG(100, ("cmlent::ReintReady: contains local fid\n"));
+	LOG(0, ("cmlent::ReintReady: contains local fid\n"));
 	/* set its to_be_repaired flag */
 	SetRepairFlag();
 	return 0;
@@ -618,7 +618,7 @@ int cmlent::ReintReady()
 
     /* check if this record is part of a transaction (IOT, etc.) */
     if (tid > 0) {
-	LOG(100, ("cmlent::ReintReady: transactional cmlent\n"));
+	LOG(0, ("cmlent::ReintReady: transactional cmlent\n"));
 	return 0; 
     }
 
