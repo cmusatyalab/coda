@@ -47,10 +47,10 @@ endif
 libpartition.a: $(LIBOBS)
 
 makeftree: makeftree.o $(DEPLIBS)
-	$(CC) -o makeftree makeftree.o $(LIBS)
+	$(CC) -o makeftree $(LDFLAGS) makeftree.o $(LIBS)
 
 inoder: inoder.o $(LIBOBS) $(DEPLIBS)
-	$(CC) -o inoder inoder.o $(LIBS)
+	$(CC) -o inoder $(LDFLAGS) inoder.o $(LIBS)
 
 
 include $(TOPDIR)/configs/Makerules
