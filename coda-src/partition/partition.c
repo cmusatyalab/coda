@@ -76,7 +76,7 @@ void InitPartitions(const char *tabfile)
     FILE *tabhandle;
     struct inodeops *operations;
     union PartitionData *data;
-    Device  devno;
+    Device  devno=0;
 
     tabhandle = Partent_set(tabfile, "r");
     if ( !tabhandle ) {

@@ -56,6 +56,7 @@ extern "C" {
 
 #include <util.h>
 #include "partition.h" /* this includes simpleifs.h */
+static int b_init (union PartitionData **data, Partent partent, Device *dev);
 
 struct inodeops inodeops_backup = {
     NULL, /*icreate*/
@@ -66,10 +67,31 @@ struct inodeops inodeops_backup = {
     NULL, /*idec*/
     NULL, /*get_header*/
     NULL, /*put_header*/
-    NULL, /*init*/
+    b_init, /*init*/
     NULL, /*magic*/
     NULL /*list_coda_inodes */
 };
+
+static int 
+b_init (union PartitionData **data, Partent partent, Device *dev)
+{
+    struct stat buf;
+    int rc;
+    
+    *data = NULL;
+    
+    rc = stat(Partent_dir(partent), &buf);
+    if ( rc == 0 ) {
+	*dev = buf.st_dev;
+    } else {
+	eprint("Error in init of partition %s:%s", 
+	       Partent_host(partent), Partent_dir(partent));
+	perror("");
+	assert(0);
+    }
+    
+    return 0;
+}
 
 
 #endif

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vice/srv.cc,v 4.5 1997/10/23 19:25:18 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vice/srv.cc,v 4.6 1997/11/17 18:43:13 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -269,6 +269,7 @@ PRIVATE int ParseArgs(int, char **);
 PRIVATE void NewParms(int);
 PRIVATE void InitServerKeys(char *, char *);
 PRIVATE void DaemonizeSrv(void);
+static void InitializeServerRVM(void *initProc,char *name);
 
 #ifdef RVMTESTING
 #include <rvmtesting.h>
@@ -333,11 +334,6 @@ void zombie(int sig, int code, struct sigcontext *scp) {
 	    dumpvm(); /* sanity check rvm recovery. */
     }
     
-#ifdef	__MACH__
-    LogMsg(0, 0, stdout, "To debug via gdb: attach %d, setcontext OldContext", getpid());
-    LogMsg(0, 0, stdout, "Becoming a zombie now ........");
-    task_suspend(task_self());
-#else
     LogMsg(0, 0, stdout, "Becoming a zombie now ........");
     LogMsg(0, 0, stdout, "You may use gdb to attach to %d", getpid());
     {
@@ -349,7 +345,6 @@ void zombie(int sig, int code, struct sigcontext *scp) {
 	    sigsuspend(&mask); /* pending gdb attach */
 	}
     }
-#endif
 }
 
 
@@ -390,7 +385,7 @@ main(int argc, char *argv[])
 
     setmyname(argv[0]);
 
-    DaemonizeSrv();
+    
 
     len = (int) strlen(argv[0]);
     for(i = 0;i < len;i++) {
@@ -408,8 +403,8 @@ main(int argc, char *argv[])
 
     freopen("SrvLog","a+",stdout);
     freopen("SrvErr","a+",stderr);
-
     SwapLog();
+    DaemonizeSrv();
 
     /* CamHistoInit(); */	
     /* Initialize CamHisto package */
@@ -491,7 +486,7 @@ main(int argc, char *argv[])
     RPC2_Trace = trace;
 
     InitPartitions(VCT);
-    CAMLIB_INITIALIZE_SERVER(NULL, TRUE, "codaserver"); 
+    InitializeServerRVM(NULL, "codaserver"); 
 
     /* Trace mallocs and frees in the persistent heap if requested. */
     if (MallocTrace) {	
@@ -1741,4 +1736,64 @@ PRIVATE void DaemonizeSrv() {
     signal(SIGBUS,  (void (*)(int))zombie);
 #endif	RVMTESTING
     signal(SIGSEGV, (void (*)(int))zombie);
+}
+
+static void InitializeServerRVM(void *initProc,char *name)
+{		    
+    void (*dummyprocptr)() = initProc; /* to pacify g++ if initProc is NULL */ 
+    switch (RvmType) {							    
+    case VM :					       	    
+	if (dummyprocptr != NULL)						    
+	    (*dummyprocptr)();						    
+	camlibRecoverableSegment = (camlib_recoverable_segment *)
+	    malloc(sizeof(struct camlib_recoverable_segment));
+       break;                                                               
+	                                                                    
+    case RAWIO :                                                            
+    case UFS : {                                                            
+	rvm_return_t err;						    
+	rvm_options_t *options = rvm_malloc_options();			    
+	struct rlimit stackLimit;					    
+	options->log_dev = _Rvm_Log_Device;				    
+	options->flags = optimizationson; 				    
+	if (prottrunc)							    
+	   options->truncate = 0;					    
+	else if (_Rvm_Truncate > 0 && _Rvm_Truncate < 100) {		    
+	    LogMsg(0, 0, stdout, 
+		   "Setting Rvm Truncate threshhold to %d.\n", _Rvm_Truncate); 
+	    options->truncate = _Rvm_Truncate;				    
+	} 								    
+	sbrk((void *)(0x20000000 - (int)sbrk(0))); /* for garbage reasons. */		    
+	stackLimit.rlim_cur = CODA_STACK_LENGTH;			    
+/*	setrlimit(RLIMIT_STACK, &stackLimit);*/	/* Set stack growth limit */ 
+        err = RVM_INIT(options);                   /* Start rvm */           
+        if ( err == RVM_ELOG_VERSION_SKEW ) {                                
+            LogMsg(0, 0, stdout, 
+		   "rvm_init failed because of skew RVM-log version."); 
+            LogMsg(0, 0, stdout, "Coda server not started.");                  
+            exit(-1);                                                          
+	} else if (err != RVM_SUCCESS) {                                     
+	    LogMsg(0, 0, stdout, "rvm_init failed %s",rvm_return(err));	    
+            assert(0);                                                       
+	}                                                                    
+	assert(_Rvm_Data_Device != NULL);	   /* Load in recoverable mem */ 
+        rds_load_heap(_Rvm_Data_Device, 
+		      _Rvm_DataLength,(char **)&camlibRecoverableSegment, 
+		      (int *)&err);  
+	if (err != RVM_SUCCESS)						    
+	    LogMsg(0, SrvDebugLevel, stdout, 
+		   "rds_load_heap error %s",rvm_return(err));	    
+	assert(err == RVM_SUCCESS);                                         
+        /* Possibly do recovery on data structures, coalesce, etc */	    
+	rvm_free_options(options);					    
+	if (dummyprocptr != NULL) /* Call user specified init procedure */   
+	    (*dummyprocptr)();						    
+        break;                                                              
+    }                                                                       
+	                                                                    
+    case UNSET:							    
+    default:	                                                            
+	printf("No persistence method selected!n");			    
+	exit(-1); /* No persistence method selected, so die */		    
+    }
 }

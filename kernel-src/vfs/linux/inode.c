@@ -1004,9 +1004,6 @@ coda_getlink(struct inode *inode, char **buffer, int *length)
 
         cp = ITOC(inode);
         CHECK_CNODE(cp);
-	printk("coda_getlink: inode->ino %ld\n",inode->i_ino);
-        printk("coda_getlink, fid ( 0x%lx, 0x%lx, 0x%lx)\n", cp->c_fid.Volume, cp->c_fid.Vnode, cp->c_fid.Unique);
-	
 
         /* Check for operation on a dying object */
         if (IS_DYING(cp)) {
@@ -1094,8 +1091,8 @@ coda_follow_link(struct inode * dir, struct inode * inode,
         }
         
         /* do the readlink to get the path */
-	printk("coda_follow_link: inode->ino: %ld\n", inode->i_ino);
-	printk("coda_follow_link: dir->ino: %ld\n", dir->i_ino);
+	CDEBUG(D_INODE, "coda_follow_link: inode->ino: %ld\n", inode->i_ino);
+	CDEBUG(D_INODE, "coda_follow_link: dir->ino: %ld\n", dir->i_ino);
         error = coda_getlink(inode, &link, &length); 
         CDEBUG(D_INODE, "coda_getlink returned %d\n", error);
         if (error) {

@@ -107,7 +107,5 @@ fi
 echo "copying start scripts"
 cd $INSTALLBASE
 cp -p ${OLD}/startserver $NEW
-cp -p ${OLD}/startfromboot $NEW
-cp -p ${OLD}/restartserver $NEW
 
 
