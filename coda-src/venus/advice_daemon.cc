@@ -538,7 +538,6 @@ void NotifyUsersOfHoardWalkBegin() {
     lastPercentage = 0;
     totalToFetch = 0;
     totalFetched = 0;
-    MarinerLog("progress::hoarding 0x\n");
     while ((u = next()))
         u->HoardWalkBegin();
 }
@@ -577,7 +576,6 @@ void NotifyUsersOfHoardWalkEnd() {
     user_iterator next;
     userent *u;
 
-    MarinerLog("progress::hoarding 100x\n");
     while ((u = next()))
         u->HoardWalkEnd();
     lastPercentage = 0;

@@ -113,7 +113,7 @@ typedef struct VSGStatistics {
 } VSGStatistics;
 
 
-#define RPCOPSTATNAMELEN 16
+#define RPCOPSTATNAMELEN 20
 
 typedef struct RPCOpStat {
     char name[RPCOPSTATNAMELEN];	    /* XXX -JJK */

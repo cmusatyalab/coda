@@ -822,6 +822,7 @@ void fsobj::ReplaceStatus(ViceStatus *vstat, vv_t *UpdateSet) {
     if (HAVEDATA(this) && stat.Length != vstat->Length) {
 	LOG(0, ("fsobj::ReplaceStatus: (%s), changed stat.length %d->%d\n",
 		FID_(&fid), stat.Length, vstat->Length));
+	DiscardData();
 	SetRcRights(RC_STATUS);
     }
 
