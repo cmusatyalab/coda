@@ -96,7 +96,7 @@ int coda_cnode_make(struct inode **inode, ViceFid *fid, struct super_block *sb)
 	cnp = ITOC(*inode);
 	/* see if we've got it already */
 	if  ( cnp->c_magic != 0 && coda_fideq(fid, &cnp->c_fid)) {
-		iput(*inode);
+		return 0;
 	}
 
 	/* not fresh: collision */
