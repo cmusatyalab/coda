@@ -20,7 +20,7 @@ switch (`uname`)
     breaksw
     case Mach:
 	setenv PLATFORM i386_mach
-	setenv PATH /afs/cs/project/coda/@@sys/bin:/usr/cs/bin:/usr/ucb:/bin:/usr/bin
+	setenv PATH /afs/cs/project/coda/@@sys/bin:/usr/cs/bin:/usr/ucb:/bin:/usr/bin:/usr/local/bin
 	setenv LPATH /afs/cs/project/coda/@@sys/lib:/usr/cs/lib:/lib:/usr/lib
 	setenv CPATH /afs/cs/project/coda/@@sys/include:/usr/cs/include:/usr/include
 	setenv GCC_EXEC_PREFIX /afs/cs/misc/gnu-comp/@sys/alpha/lib/gcc-lib/
