@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/norton/norton-reinit.cc,v 4.3 1998/01/10 18:37:21 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/norton/norton-reinit.cc,v 4.4 1998/08/31 12:23:15 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -40,9 +40,6 @@ extern "C" {
 
 #include <stdio.h>
 #include <strings.h>
-#ifdef	__MACH__
-#include <mach/boolean.h>
-#endif 
 #include <sys/file.h>
 #include <struct.h>
 
@@ -378,7 +375,7 @@ static int DumpVnodeList(int fd, struct VolumeData *vol, int vol_index,
 	if (vclass == vLarge) {
 	    /* Now write the inode information and directory pages. */
 	    inode = (DirInode *)vnode->inodeNumber;
-	    for (npages = 0; inode->Pages[npages]; npages++);
+	    for (npages = 0; inode->di_pages[npages]; npages++);
 
 	    if (norton_debug) {
 		printf("    Inode %d has %d pages\n", inode, npages);
@@ -390,14 +387,14 @@ static int DumpVnodeList(int fd, struct VolumeData *vol, int vol_index,
 	    }
 
 	    /* Write the reference count */
-	    if (write(fd, (void *)&inode->refcount,
-		      (int)sizeof(inode->refcount)) == -1) { 
+	    if (write(fd, (void *)&inode->di_refcount,
+		      (int)sizeof(inode->di_refcount)) == -1) { 
 		perror("Writing inode reference count\n");
 		return 0;
 	    }
 
-	    for (npages = 0; inode->Pages[npages]; npages++) {
-		if (write(fd, (void *)inode->Pages[npages], PAGESIZE) == -1) {
+	    for (npages = 0; inode->di_pages[npages]; npages++) {
+		    if (write(fd, (void *)inode->di_pages[npages], DIR_PAGESIZE) == -1) {
 		    perror("Writing directory pages\n");
 		    return 0;
 		}
@@ -418,6 +415,27 @@ static int DumpVolVnodes(int fd, struct VolumeData *vol, int vol_index) {
     return 1;
 }
 
+int CopyDirInode(DirInode *oldinode, DirInode **newinode)
+{
+    DirInode    shadowInode;
+
+    if (!oldinode){
+       LogMsg(29, DirDebugLevel, stdout, "CopyDirInode: Null oldinode");
+       return -1;
+    }
+    *newinode = (DirInode *)rvmlib_rec_malloc(sizeof(DirInode));
+    bzero((void *)&shadowInode, sizeof(DirInode));
+    for(int i = 0; i < DIR_MAXPAGES; i++)
+        if (oldinode->di_pages[i]){
+            shadowInode.di_pages[i] = (long *)rvmlib_rec_malloc(DIR_PAGESIZE);
+            rvmlib_modify_bytes(shadowInode.di_pages[i], 
+				oldinode->di_pages[i], DIR_PAGESIZE);
+        }
+    shadowInode.di_refcount = oldinode->di_refcount;
+    rvmlib_modify_bytes(*newinode, &shadowInode, sizeof(DirInode));
+    return 0;
+
+}
 
 static int ReadVnodeList(int fd, Volume *vp, VnodeClass vclass, int ResOn) {
     char   buf[SIZEOF_LARGEDISKVNODE];
@@ -494,22 +512,22 @@ static int ReadVnodeList(int fd, Volume *vp, VnodeClass vclass, int ResOn) {
 		return 0;
 	    }
 
-	    if (read(fd, (void *)&inode->refcount,
-		     (int)sizeof(inode->refcount)) == -1) {
+	    if (read(fd, (void *)&inode->di_refcount,
+		     (int)sizeof(inode->di_refcount)) == -1) {
 		perror("Reading inode reference count");
 		rvmlib_abort(VFAIL);
 		return 0;
 	    }
 
 	    for (i = 0; i < npages; i++) {
-		inode->Pages[i] = (long *)malloc(PAGESIZE);
-		if (!inode->Pages[i]) {
+		inode->di_pages[i] = (long *)malloc(DIR_PAGESIZE);
+		if (!inode->di_pages[i]) {
 		    fprintf(stderr, "Unable to allocate a new directory page.\n");
 		    rvmlib_abort(VFAIL);
 		    return 0;
 		}
 
-		if (read(fd, (void *)inode->Pages[i], PAGESIZE) == -1) {
+		if (read(fd, (void *)inode->di_pages[i], DIR_PAGESIZE) == -1) {
 		    perror("Reading directory page\n");
 		    rvmlib_abort(VFAIL);
 		    return 0;
@@ -693,6 +711,7 @@ static int load_server_state(char *dump_file) {
 			err, vol_head.header.id);
 	    }
 	    rvmlib_abort(VFAIL);
+	    return 0;
 	}
 
 
@@ -727,6 +746,7 @@ static int load_server_state(char *dump_file) {
 	    fprintf(stderr,
 		    "ReplaceVolDiskInfo returned %d, aborting\n", err);
 	    rvmlib_abort(VFAIL);
+	    return 0;
 	}
 
 	vp = VAttachVolume(&err, vol_head.header.id, V_SECRETLY);
@@ -735,6 +755,7 @@ static int load_server_state(char *dump_file) {
 		    "VAttachVolume returns error %d when attaching 0x%x\n",
 		    err, vol_head.header.id);
 	    rvmlib_abort(VFAIL);
+	    return 0;
 	}
 
 	RVMLIB_END_TRANSACTION(flush, &(status));

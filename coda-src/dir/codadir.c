@@ -528,7 +528,10 @@ int DIR_Create (struct DirHeader **dh, char *entry, struct DirFid *fid)
 	ep->next = dir->dirh_hashTable[i];
 	dir->dirh_hashTable[i] = htons(firstblob);
 
-	assert(DIR_DirOK(dir));
+	if ( !DIR_DirOK(dir)) {
+		fprintf(stderr, "Corrupt directory at %p\n", dir);
+		DIR_Print(dir);
+	}
 
 	return 0;
 }
@@ -560,7 +563,10 @@ int DIR_Delete(struct DirHeader *dir, char *entry)
 	
 	dir_FreeBlobs(dir, index, nitems);
 
-	assert(DIR_DirOK(dir));
+	if ( !DIR_DirOK(dir)) {
+		fprintf(stderr, "Corrupt directory at %p\n", dir);
+		DIR_Print(dir);
+	}
 
 	return 0;
 }
@@ -614,8 +620,10 @@ int DIR_MakeDir (struct DirHeader **dir,struct DirFid *me,
 	DIR_Create(dir, ".", me);
 	DIR_Create(dir, "..", parent);
 
-	assert(DIR_DirOK(*dir));
-	assert(DIR_DirOK(*dir));
+	if ( !DIR_DirOK(*dir)) {
+		fprintf(stderr, "Corrupt directory at %p\n", dir);
+		DIR_Print(dir);
+	}
 
 	return 0;
 }
