@@ -400,9 +400,9 @@ class cmlent {
     unsigned long ReintTime(unsigned long bw);
     unsigned long ReintAmount();
 
-    void Freeze();
-    int  IsReintegrating();
-    int  IsFrozen() { return flags.frozen; }
+    int Freeze();
+    int IsReintegrating();
+    int IsFrozen() { return flags.frozen; }
     void Thaw();
   
     /* for partial reintegration */

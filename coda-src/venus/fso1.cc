@@ -2455,14 +2455,17 @@ int fsobj::IsBackFetching() {
 }
 
 
-void fsobj::MakeShadow()
+int fsobj::MakeShadow()
 {
+    int err = 0;
     /*
      * Create a shadow, using a name both distinctive and that will
      * be garbage collected at startup.
      */
     if (!shadow) shadow = new CacheFile(-ix);
     else	 shadow->IncRef();
+
+    if (!shadow) return -1;
 
     /* As we only call MakeShadow during the freezing, and there is only one
      * reintegration at a time, we can sync the shadow copy with the lastest
@@ -2471,8 +2474,10 @@ void fsobj::MakeShadow()
      * might want to do this only when we just created the shadow file or when
      * there are no writers to the real container file... Maybe later. -JH */
     Lock(RD);
-    cf.Copy(shadow);
+    err = cf.Copy(shadow);
     UnLock(RD);
+
+    return(err);
 }
 
 

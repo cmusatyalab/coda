@@ -163,7 +163,8 @@ void CacheFile::ResetContainer() {
 /* 
  * copies a cache file, data and attributes, to a new one.  
  */
-void CacheFile::Copy(CacheFile *destination) {
+int CacheFile::Copy(CacheFile *destination)
+{
     LOG(10, ("CacheFile::Copy: from %s, %d, %d/%d, to %s, %d, %d/%d\n",
 	      name, inode, validdata, length,
 	      destination->name, destination->inode, destination->validdata,
@@ -173,18 +174,19 @@ void CacheFile::Copy(CacheFile *destination) {
     struct stat tstat;
     char buf[DIR_PAGESIZE];
 
-    if ((tfd = ::open(destination->name, O_RDWR | O_CREAT | O_TRUNC| O_BINARY,
-		      V_MODE)) < 0)
-	CHOKE("CacheFile::Copy: open failed (%d)", errno);
+    if ((tfd = ::open(destination->name, O_RDWR | O_CREAT | O_TRUNC| O_BINARY, V_MODE)) < 0) {
+	LOG(0, ("CacheFile::Copy: open failed (%d)", errno));
+	return -1;
+    }
 #ifndef DJGPP
     if (::fchmod(tfd, V_MODE) < 0)
 	CHOKE("CacheFile::Copy: fchmod failed (%d)", errno);
-#ifndef __CYGWIN32__
-    if (::fchown(tfd, (uid_t)V_UID, (gid_t)V_GID) < 0)
-	CHOKE("CacheFile::Copy: fchown failed (%d)", errno);
-#else
+#ifdef __CYGWIN32__
     if (::chown(destination->name, (uid_t)V_UID, (gid_t)V_GID) < 0)
 	CHOKE("CacheFile::ResetCopy: fchown failed (%d)", errno);
+#else
+    if (::fchown(tfd, (uid_t)V_UID, (gid_t)V_GID) < 0)
+	CHOKE("CacheFile::Copy: fchown failed (%d)", errno);
 #endif
 #endif
     if ((ffd = ::open(name, O_RDONLY| O_BINARY, V_MODE)) < 0)
@@ -196,8 +198,10 @@ void CacheFile::Copy(CacheFile *destination) {
 	    break;
         if (n < 0)
 	    CHOKE("CacheFile::Copy: read failed! (%d)", errno);
-	if (::write(tfd, buf, n) != n)
-	    CHOKE("CacheFile::Copy: write failed! (%d)", errno);
+	if (::write(tfd, buf, n) != n) {
+	    LOG(0, ("CacheFile::Copy: write failed! (%d)", errno));
+	    return -1;
+	}
     }
     if (::fstat(tfd, &tstat) < 0)
 	CHOKE("CacheFile::Copy: fstat failed (%d)", errno);
@@ -211,6 +215,8 @@ void CacheFile::Copy(CacheFile *destination) {
     destination->inode  = tstat.st_ino;
     destination->length = length;
     destination->validdata = validdata;
+
+    return 0;
 }
 
 

@@ -297,7 +297,7 @@ class CacheFile {
 
     void Validate();
     void Reset();
-    void Copy(CacheFile *);
+    int  Copy(CacheFile *);
 
     void IncRef() { refcnt++; } /* creation already does an implicit incref */
     int  DecRef();             /* returns refcnt, unlinks if refcnt becomes 0 */
@@ -699,7 +699,7 @@ class fsobj {
     int	IsVirgin();                             /* file which has been created, but not yet stored */
     int IsBackFetching();			/* fso involved in an ongoing reintegration */
     int SetLastResolved(long t) { lastresolved = t; return(0); }
-    void MakeShadow();
+    int  MakeShadow();
     void RemoveShadow();
     void CacheReport(int, int);
 

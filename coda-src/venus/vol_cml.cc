@@ -225,8 +225,10 @@ void ClientModifyLog::CancelStores() {
     }
 }
 
-void cmlent::Freeze()
+int cmlent::Freeze()
 {
+    int err;
+
     if (opcode == OLDCML_NewStore_OP)
     {
 	/* make sure there is only one object of the store */    
@@ -239,11 +241,14 @@ void cmlent::Freeze()
 	/* sanity checks, this better be an fso */
 	CODA_ASSERT(f && (f->MagicNumber == FSO_MagicNumber));
 
-	f->MakeShadow();
+	err = f->MakeShadow();
+	if (err) return err;
     }
 
     RVMLIB_REC_OBJECT(flags);
     flags.frozen = 1;
+
+    return 0;
 }
 
 void cmlent::Thaw()
@@ -281,6 +286,7 @@ void ClientModifyLog::GetReintegrateable(int tid, int *nrecs) {
     cml_iterator next(*this, CommitOrder);
     unsigned long cur_reintegration_time = 0, this_time;
     unsigned long bw; /* bandwidth in bytes/sec */
+    int err;
 
     /* get the current bandwidth estimate */
     vol->vsg->GetBandwidth(&bw);
@@ -306,8 +312,9 @@ void ClientModifyLog::GetReintegrateable(int tid, int *nrecs) {
 	 * and different transactions.
 	 */
 	Recov_BeginTrans();
-	m->Freeze();
+	err = m->Freeze();
 	Recov_EndTrans(MAXFP);
+	if (err) break;
 
 	/* 
 	 * don't use the settid call because it is transactional.
