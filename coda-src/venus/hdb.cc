@@ -633,8 +633,7 @@ void hdb::ValidateCacheStatus(vproc *vp, int *interrupt_failures, int *statusByt
         if (STATUSVALID(f)) continue;
 
 	/* skip non-cacheable objects */
-	if (f->IsFake() || f->flags.readonly || f->flags.backup ||
-	    f->flags.rwreplica)
+	if (f->flags.backup || f->flags.rwreplica || f->IsFake())
 	    continue;
 
 	/* Set up uarea. */
