@@ -24,27 +24,26 @@ TOPOBJ = @TOPOBJ@
 
 include $(TOPDIR)/Makeconf
 
-EXECUTABLES = norton # norton-reinit
+EXECUTABLES = norton norton-reinit
 SCRIPTS     = reinit
 SBINS       = $(EXECUTABLES) $(SCRIPTS)
 
 NLIBS =	$(LIBIBERTY) \
 	$(LIBAUTH2)	\
-	$(SALVAGE_O) 	\
-	$(LIBRVMRES)	\
-	$(LIBVOL)	\
 	$(LIBVOLUTIL)	\
-	$(LIBRESLIB)	\
-	$(LIBVV)	\
-	$(LIBRPC2) 	\
+	$(LIBRES)	\
 	$(LIBAL)	\
+	$(LIBREPAIR)	\
+	$(LIBVOL)	\
+	$(LIBVV)	\
+	${LIBPARTITION}\
 	$(LIBSYSENT)	\
 	$(LIBDIRLIB)	\
-	${LIBPARTITION}\
 	$(LIBUTIL) 	\
 	$(LIBCODARDS) 	\
 	$(LIBSEG) 	\
 	$(LIBCODARVM) 	\
+	$(LIBRPC2) 	\
 	$(LIBOLDLWP)	\
 	$(LIBBASE)      \
 	$(LIBMACH)	\
@@ -58,10 +57,10 @@ common_objects = norton-setup.o commands.o norton-volume.o \
 norton_objs =	norton.o ${common_objects}
 reinit_objs =	norton-reinit.o ${common_objects}
 
+include $(TOPDIR)/configs/Makerules
+
 norton: ${norton_objs} ${NLIBS} ${LIBFIXUP}
 	$(CXX) $(LIBFLAGS) ${norton_objs} ${NLIBS} $(LIBDB) ${LIBFIXUP} -o norton
 
 norton-reinit: ${reinit_objs} ${NLIBS} ${LIBFIXUP}
 	$(CXX) $(LIBFLAGS) ${reinit_objs} ${NLIBS} $(LIBDB) ${LIBFIXUP} -o norton-reinit
-
-include $(TOPDIR)/configs/Makerules
