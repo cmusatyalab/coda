@@ -208,65 +208,6 @@ msgent *msg_iterator::operator()()
     return((msgent *)olist_iterator::operator()());
 }
 
-#ifdef sun
-/* Reused (i.e. stolen :-) from the Arla project */
-static int updatemnttab(char *mountp)
-{
-    int ret;
-    int mnttablock;
-    FILE *mnttabfd;
-    struct mnttab mp;
-    struct timeval tp;
-    char timebuf[15];
-
-    mnttablock=open("/etc/.mnttab.lock", O_WRONLY|O_CREAT, 0);
-    if (mnttablock < 0) {
-        perror("open mnttablock");
-        exit(1);
-    }
-
-    ret = lockf(mnttablock, F_LOCK, 0);
-    if (ret) {
-        perror("lockf mnttablock");
-        exit(1);
-    }
-
-    mnttabfd=fopen("/etc/mnttab", "a");
-    if (mnttabfd == NULL) {
-        perror("open mnttablock");
-        exit(1);
-    }
-
-    ret = lockf(fileno(mnttabfd), F_LOCK, 0);
-    if (ret) {
-        perror("lockf mnttab");
-        exit(1);
-    }
-
-    gettimeofday(&tp, NULL);
-    snprintf(timebuf, 15, "%d", tp.tv_sec);
-
-    mp.mnt_special="Coda";
-    mp.mnt_mountp=mountp;
-    mp.mnt_fstype="coda";
-    mp.mnt_mntopts="rw";
-    mp.mnt_time=timebuf;
-
-    ret = putmntent(mnttabfd, &mp);
-    if (ret == EOF) {
-         printf("putmntent returned %d\n", ret);
-        return ret;
-    }
-
-    lockf(fileno(mnttabfd), F_ULOCK, 0);
-    fclose(mnttabfd);
-
-    lockf(mnttablock, F_ULOCK, 0);
-    close(mnttablock);
-
-    return 0;
-}
-#endif /* sun */
 
 /* test if we can open the kernel device and purge the cache,
    BSD systems like to purge that cache */
@@ -401,40 +342,52 @@ void VFSMount() {
 #endif
 
 #ifdef sun
-    {
-        struct sigaction sa;
-        sa.sa_handler = SIG_IGN;
-        sigemptyset(&(sa.sa_mask));
-        sa.sa_flags = 0;
-        if ( sigaction(SIGCHLD, &sa, NULL) ) {
-            eprint("Cannot set signal handler for SIGCHLD");
-            CODA_ASSERT(0);
-        }
+    { int error;
+      /* Do a umount just in case it is mounted. */
+      error = umount(venusRoot);
+      if (error) {
+	if (errno != EINVAL) {
+	    eprint("unmount(%s) failed (%d), exiting", venusRoot, errno);
+	    exit(-1);
+	}
+      } else
+	eprint("unmount(%s) succeeded, continuing", venusRoot);
     }
-    if ( fork() == 0 ) {
-        int error;
-        /* child only makes a system call and should not hang on to 
-           a /dev/cfs0 file descriptor */
-        error = WorkerCloseMuxfd();
-        if ( error ) {
-            pid_t parent;
-            LOG(1, ("CHILD: cannot close worker::muxfd. Killing parent.\n"));
-            parent = getppid();
-            kill(parent, SIGKILL);
-            exit(1);
-        }
-        error = mount(kernDevice, venusRoot, MS_DATA, "coda",  NULL, 0);
-        if ( error ) {
-            pid_t parent;
-            LOG(1, ("CHILD: mount system call failed. Killing parent.\n"));
-            parent = getppid();
-            kill(parent, SIGKILL);
-            exit(1);
-        } else {
-            updatemnttab(venusRoot);
-            exit(0);
-        }
-        exit(1);
+    /* New mount */
+    CODA_ASSERT (!mount(kernDevice, venusRoot, MS_DATA, "coda", NULL, 0));
+    /* Update the /etc mount table entry */
+    { int lfd, mfd;
+      int lck;
+      FILE *mnttab;
+      char tm[25];
+      struct mnttab mt;
+
+      lfd = open ("/etc/.mnttab.lock", O_WRONLY|O_CREAT, 0600);
+      if (lfd >= 0) {
+
+	lck = lockf(lfd, F_LOCK, 0);
+	if (lck == 0) {
+	
+	  mnttab = fopen(MNTTAB, "a+");
+	  if (mnttab != NULL) {
+	    mt.mnt_special = "CODA";
+	    mt.mnt_mountp = venusRoot;
+	    mt.mnt_fstype = "CODA";
+	    mt.mnt_mntopts = "rw";
+	    mt.mnt_time = tm;
+	    sprintf (tm, "%d", time(0));
+	    
+	    putmntent(mnttab,&mt);
+	    
+	    fclose(mnttab);
+	  } else
+	    eprint ("Could not update /etc/mnttab.");
+	  (void) lockf(lfd, F_ULOCK, 0);
+	} else
+	  eprint ("Could not update /etc/mnttab.");
+	close(lfd);
+      } else
+	eprint ("Could not update /etc/mnttab.");
     }
 #endif
 
@@ -513,6 +466,17 @@ void VFSUnmount()
     /* N.B.  Deadlock will result if the kernel still thinks we're mounted (i.e., if the preceding unmount failed)! */
     sync();
 #endif
+
+#ifdef sun
+    {
+      int res;
+      res = umount (venusRoot);
+      if (res)
+        eprint ("Unmount failed.");
+      sync();
+    }
+#endif
+
 }
 
 

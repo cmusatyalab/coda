@@ -200,7 +200,7 @@ void ServerProbe(long *lastupp, long *lastdownp) {
 
 /*  *****  VSG Daemon  *****  */
 
-static const int VSGDaemonStackSize = 8192;
+static const int VSGDaemonStackSize = 10240;
 static const int VSGDaemonInterval = 300;
 static const int VSGGetDownInterval = 300;
 
