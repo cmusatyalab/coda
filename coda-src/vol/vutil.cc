@@ -104,7 +104,7 @@ Volume *VCreateVolume(Error *ec, char *partition, VolumeId volumeId,
     *ec = 0;
 
     /* is the partition name short enough */
-    if ( strlen(partition) >= VPARTSIZE) {
+    if ( strlen(partition) >= V_MAXPARTNAMELEN-1) {
         SLog(0, "VCreateVolume: partition name %s too long. Bailing out.\n", 
 	       partition);
 	*ec = ENAMETOOLONG;
@@ -175,14 +175,14 @@ Volume *VCreateVolume(Error *ec, char *partition, VolumeId volumeId,
 void AssignVolumeName(VolumeDiskData *vol, char *name, const char *ext)
 {
     char *dot;
-    strncpy(vol->name, name, VNAMESIZE-1);
-    vol->name[VNAMESIZE-1] = '\0';
+    strncpy(vol->name, name, V_MAXVOLNAMELEN-1);
+    vol->name[V_MAXVOLNAMELEN-1] = '\0';
     dot = strrchr(vol->name, '.');
     if (dot && (strcmp(dot,".backup") == 0 || strcmp(dot, ".readonly") == 0 || 
       strcmp(dot, ".restored") == 0))
         *dot = 0;
     if (ext)
-	strncat(vol->name, ext, VNAMESIZE-1-strlen(vol->name));
+	strncat(vol->name, ext, V_MAXVOLNAMELEN-1-strlen(vol->name));
 }
 
 /* This should not be called with a replicated volume */

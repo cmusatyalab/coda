@@ -460,7 +460,8 @@ void fsobj::Recover()
 
     /* Get rid of fake objects, and other objects that are not likely to be
      * useful anymore. */
-    if ((IsFake() && !LRDB->RFM_IsFakeRoot(&fid)) || !vol->IsReplicated())
+    if ((IsFake() && !LRDB->RFM_IsFakeRoot(&fid)) ||
+	(!IsFake() && !vol->IsReplicated()))
 	goto Failure;
 
     /* Get rid of a former mount-root whose fid is not a volume root and whose
@@ -510,7 +511,7 @@ void fsobj::Recover()
 
 Failure:
     {
-	LOG(0, ("fsobj::Recover: invalid fso (%s, %s), attempting to GC...",
+	LOG(0, ("fsobj::Recover: invalid fso (%s, %s), attempting to GC...\n",
 		comp, FID_(&fid)));
 	print(logFile);
 
@@ -519,7 +520,6 @@ Failure:
 	 * later step of recovery). */
 	if (DIRTY(this)) {
 	    if (!IsFile()) {
-		print(logFile);
 		CHOKE("recovery failed on local, non-file object (%s, %s)",
 		    comp, FID_(&fid));
 	    }
@@ -532,6 +532,7 @@ Failure:
 		    DiscardData();
 		    Recov_EndTrans(MAXFP);
 	    }
+#if 0 /* done further down as well */
 	    else {
 		/* Reclaim cache-file blocks. */
 		if (cf.Length() != 0) {
@@ -539,8 +540,10 @@ Failure:
 		    cf.Reset();
 		}
 	    }
+#endif
 
-	    return;
+	    /* why did we return here? --JH */
+	    //return;
 	}
 
 	/* Kill bogus object. */

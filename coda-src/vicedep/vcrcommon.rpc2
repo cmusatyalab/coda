@@ -45,6 +45,15 @@ Pittsburgh, PA.
  */
 
 %{
+/* LIMITS !!! expect things to break when you change these !!! */
+
+#define VSG_MEMBERS       8 /* changing this requires adjustments to many
+			       fixed size structures in at least vice.rpc2 */
+#define V_MAXVOLNAMELEN  32 /* (including '\0') changing this _might_ work. */
+#define V_MAXPARTNAMELEN 32 /* (including '\0') changing this _might_ work. */
+%}
+
+%{
 #ifndef _FID_T_
 #define _FID_T_
 %}
@@ -82,10 +91,6 @@ typedef RPC2_Struct
 
 %{ 
 #endif
-%}
-
-%{
-#define VSG_MEMBERS 8
 %}
 
 typedef RPC2_Struct

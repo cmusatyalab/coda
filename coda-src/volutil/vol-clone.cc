@@ -252,8 +252,8 @@ long S_VolClone(RPC2_Handle rpcid, RPC2_Unsigned formal_ovolid,
      * ".readonly" then it doesnt change */
 
     if (newvolname){
-	char name[VNAMESIZE];
-	strncpy(name, newvolname, VNAMESIZE);
+	char name[V_MAXVOLNAMELEN];
+	strncpy(name, newvolname, V_MAXVOLNAMELEN);
 	char *dot;
 	dot = rindex(name, '.');
 	if (dot && !strcmp(dot, ".readonly"))

@@ -741,7 +741,7 @@ VAttachVolumeById(Error *ec, char *partition, VolumeId volid, int mode)
 	int rc,listVolume = 0;
 	struct VolumeHeader header;
 	struct DiskPartition *dp;
-	char name[32];
+	char name[V_MAXVOLNAMELEN];
 	ProgramType *pt;
 
 

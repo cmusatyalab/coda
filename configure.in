@@ -69,7 +69,7 @@ AC_SEARCH_LIBS(inet_ntoa, nsl)
 
 
 dnl Checks for header files.
-AC_CHECK_HEADERS(search.h sys/resource.h sys/stream.h)
+AC_CHECK_HEADERS(search.h sys/resource.h sys/stream.h ncurses.h)
 AC_CHECK_HEADERS(sys/statvfs.h sys/statfs.h sys/mount.h sys/vfs.h)
 AC_CHECK_HEADERS(sys/types.h sys/time.h sys/select.h sys/socket.h sys/ioccom.h)
 AC_CHECK_HEADERS(arpa/inet.h arpa/nameser.h netinet/in.h sys/un.h osreldate.h)

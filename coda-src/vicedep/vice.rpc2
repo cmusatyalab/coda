@@ -65,7 +65,7 @@ typedef RPC2_Enum
 	Replicated = 3
 }	ViceVolumeType;
 
-typedef RPC2_Byte	DiskName[32];
+typedef RPC2_Byte	DiskName[V_MAXPARTNAMELEN];
 
 typedef RPC2_Struct 
 {

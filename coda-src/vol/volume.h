@@ -102,15 +102,14 @@ struct IndexFileHeader {
 /*
 VolumeDiskData:Volume administrative data stored in RVM.
 */
-#define VNAMESIZE 32		/* maximum volume name length */
-#define VPARTSIZE 32            /* maximum partition name */
 
 typedef struct VolumeDiskData {
     struct versionStamp stamp;	/* Must be first field */
     VolumeId	id;		/* Volume id--unique over all systems */
-    char	partition[VPARTSIZE]; /* filesystem partition on which
-					 volume data resides */
-    char	name[VNAMESIZE];/* Unofficial name for the volume */
+    /* filesystem partition on which volume data resides, and unofficial name
+     * for the volume */
+    char	partition[V_MAXPARTNAMELEN];
+    char	name[V_MAXVOLNAMELEN];
     byte	inUse;		/* Volume is being used (perhaps it is online),
     				   or the system crashed while it was used */
     byte	inService;	/* Volume in service, not necessarily

@@ -37,7 +37,7 @@ Pittsburgh, PA.
 
 */
 
-#define RCSVERSION $Revision: 4.23 $
+#define RCSVERSION $Revision: 4.24 $
 
 /* vol-dump.c */
 
@@ -100,7 +100,7 @@ static int VnodePollPeriod = 32;     /* How many vnodes to dump before polling *
 #endif
 
 /* Some sizes of dumped structures for the dump estimates */
-#define ESTNAMESIZE 32 /* just a guess */
+#define ESTNAMESIZE V_MAXVOLNAMELEN /* just prepare for the worst case */
 #define DUMPDUMPHEADERSIZE (44+ESTNAMESIZE)
 #define DUMPVOLUMEDISKDATASIZE (229+4*ESTNAMESIZE)
 #define DUMPENDSIZE 5

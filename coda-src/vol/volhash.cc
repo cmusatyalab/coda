@@ -56,7 +56,7 @@ int VolIdHash(VolumeId volid)
 {
     register unsigned int sum = 0;
     register int n;
-    char s[32], *tmp;
+    char s[V_MAXVOLNAMELEN], *tmp;
     
     sprintf(s, VFORMAT, volid);
     /* Sum the id in reverse so that consecutive integers, as strings, do not

@@ -100,7 +100,6 @@ const int MIN_MLE = MIN_CB / BLOCKS_PER_MLE;
 
 const int UNSET_TID = -1;
 
-const int V_MAXVOLNAMELEN = 32;
 const unsigned V_DEFAULTAGE = 60;		/* in SECONDS */
 const unsigned V_UNSETAGE = (unsigned)-1;	/* huge */
 const unsigned V_DEFAULTREINTLIMIT = 30000;	/* in MILLESECONDS */

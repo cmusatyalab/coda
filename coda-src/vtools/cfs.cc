@@ -840,7 +840,7 @@ static int doclosure(char *cloname, enum closure_ops opcode, int flags)
        Returns 0 on success or non-fatal error, -1 on fatal error */
     {
     int rc = 0;
-    char volname[32];
+    char volname[V_MAXVOLNAMELEN];
     char volrootpath[MAXPATHLEN];
     char cwd[MAXPATHLEN];
     char cmd[MAXPATHLEN];

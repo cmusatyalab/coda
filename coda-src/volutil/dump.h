@@ -51,7 +51,7 @@ struct DumpHeader {
     int version;
     VolumeId volumeId;
     VolumeId parentId;
-    char volumeName[VNAMESIZE];
+    char volumeName[V_MAXVOLNAMELEN];
     unsigned int Incremental;
     Date_t backupDate;
     unsigned int oldest, latest;

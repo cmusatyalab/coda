@@ -316,7 +316,7 @@ long FS_ViceGetVolumeStatus(RPC2_Handle RPCid, VolumeId vid, VolumeStatus *statu
 	}
     }
 
-    if( name->MaxSeqLen < VNAMESIZE || offlineMsg->MaxSeqLen < VMSGSIZE ||
+    if( name->MaxSeqLen < V_MAXVOLNAMELEN || offlineMsg->MaxSeqLen < VMSGSIZE ||
 	    motd->MaxSeqLen < VMSGSIZE) {
 	errorCode = EINVAL;
 	goto Final;
@@ -434,7 +434,7 @@ long FS_ViceSetVolumeStatus(RPC2_Handle RPCid, VolumeId vid, VolumeStatus *statu
 	    goto Final;
     }
 
-    if( name->MaxSeqLen < VNAMESIZE || name->SeqLen > VNAMESIZE) {
+    if( name->MaxSeqLen < V_MAXVOLNAMELEN || name->SeqLen > V_MAXVOLNAMELEN) {
 	errorCode = EINVAL;
 	goto Final;
     }
@@ -837,7 +837,8 @@ static void SetVolumeStats(ViceStatistics *stats)
 		if(part) {
 			disk->TotalBlocks = part->totalUsable;
 			disk->BlocksAvailable = part->free;
-			strncpy((char *)disk->Name, part->name, 32);
+			strncpy((char *)disk->Name, part->name, V_MAXPARTNAMELEN-1);
+			disk->Name[V_MAXPARTNAMELEN-1] = '\0';
 			tmp = tmp->next;
 		}
 	}

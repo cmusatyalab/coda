@@ -37,7 +37,7 @@ extern "C" {
 #include "coda_string.h"
 #include <errno.h>
 
-#ifdef	__linux__
+#ifdef HAVE_NCURSES_H
 #include <ncurses.h>
 #else
 #include <curses.h>

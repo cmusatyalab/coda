@@ -94,16 +94,13 @@ dnl All coda-servers _must_ use the same library, otherwise certain databases
 dnl cannot be replicated.
 AC_SUBST(LIBDB)
 AC_DEFUN(CODA_CHECK_LIBDB185,
- [AC_CHECK_LIB(c, dbopen, [LIBDB="-lc"],
-   [AC_CHECK_LIB(db1, dbopen, [LIBDB="-ldb1"],
-     [AC_CHECK_LIB(db, dbopen, [LIBDB="-ldb"])])])
-
-  dnl Check if the found libdb happens to be libdb2 using compatibility mode.
-  if test -n "$LIBDB" ; then
-    AC_CHECK_HEADERS(db_185.h)
+ [AC_CHECK_HEADERS(db_185.h)
+  coda_save_LIBS="$LIBS"
+  AC_SEARCH_LIBS(dbopen, [db1 db],
+   dnl found dbopen somewhere
+   [test "$ac_cv_search_dbopen" = "none required" || LIBDB="$ac_cv_search_dbopen"
+    dnl Check if the found libdb happens to be libdb2 using compatibility mode.
     AC_MSG_CHECKING("if $LIBDB is libdb 1.85")
-    coda_save_LIBS="$LIBS"
-    LIBS="$LIBDB $LIBS"
     AC_TRY_LINK([char db_open();], db_open(),
      [AC_MSG_RESULT("no")
       dnl It probably will compile but it wont be compatible..
@@ -111,26 +108,21 @@ AC_DEFUN(CODA_CHECK_LIBDB185,
       AC_MSG_WARN([an incompatible disk file format and the programs])
       AC_MSG_WARN([will not be able to read replicated shared databases.])
       sleep 5],
-     [AC_MSG_RESULT("yes")])
-    LIBS="$coda_save_LIBS"
-  else
-    dnl look for other database libraries
-    AC_CHECK_LIB(c, dbm_open,
-     [AC_MSG_WARN([Found ndbm instead of libdb 1.85. This uses])
+     [AC_MSG_RESULT("yes")])],
+    dnl failed to find dbopen, fall back on another library
+   [AC_SEARCH_LIBS(dbm_open, [ndbm],
+     [test "$ac_cv_search_dbm_open" = "none required" || LIBDB="$ac_cv_search_dbm_open"
+      AC_DEFINE(HAVE_NDBM, 1, [Define if you have ndbm])
+
+      AC_MSG_WARN([Found ndbm instead of libdb 1.85. This uses])
       AC_MSG_WARN([an incompatible disk file format and the programs])
       AC_MSG_WARN([will not be able to read replicated shared databases.])
-      sleep 5
-      AC_DEFINE(HAVE_NDBM, 1, [Define if you have ndbm])
-      LIBDB="-lc"])
-  fi
-  dnl only on i386-pc-djgpp can we get away without having a libdb
-  if test -z "$LIBDB" -a $target != i386-pc-djgpp ; then
-    AC_MSG_ERROR("failed to find libdb")
-  fi
-  dnl get rid of the libc dummy
-  if test "$LIBDB" = -lc ; then
-    LIBDB=""
-  fi])
+      sleep 5],
+      dnl nothing appropriate found bomb everywhere except for the DOS build.
+     [if test $target != i386-pc-djgpp ; then
+        AC_MSG_ERROR("failed to find libdb")
+      fi])])
+  LIBS="$coda_save_LIBS"])
 
 dnl check wether we have flock or fcntl
 AC_DEFUN(CODA_CHECK_FILE_LOCKING,

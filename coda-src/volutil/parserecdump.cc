@@ -66,7 +66,7 @@ int cmprec(dumprec_t *a, dumprec_t *b)
 
 static void printdump(dumprec_t *a, int size)
 {
-    char    name[32];
+    char name[32];
     for (int i = 0; i < size; i++){
 	switch(a[i].type) {
 	    case VOLHEADT: 

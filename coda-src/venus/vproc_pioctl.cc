@@ -528,10 +528,10 @@ OI_FreeLocks:
 		    VolumeStatus volstat;
 
 		    /* Volume name. */
-		    char name[32];
+		    char name[V_MAXVOLNAMELEN];
 		    RPC2_BoundedBS Name;
 		    Name.SeqBody = (RPC2_ByteSeq)name;
-		    Name.MaxSeqLen = 32;
+		    Name.MaxSeqLen = V_MAXVOLNAMELEN;
 		    Name.SeqLen = 0;
 
 		    /* Offline message for this volume. */
@@ -607,19 +607,19 @@ OI_FreeLocks:
 		    cp += sizeof(VolumeStatus);
 
 		    /* Volume name. */
-                    char name[32];
+                    char name[V_MAXVOLNAMELEN];
 #if 0 /* Avoid setting the volumename, otherwise cfs setquota renames all
          volume replicas to that of their replicated parent. This might
          confuse ViceGetVolumeInfo and leads to subtle corruption. --JH */
 		    unsigned long namelen = strlen(cp) + 1;
-		    if (namelen > 32) { u.u_error = EINVAL; break; }
+		    if (namelen >= V_MAXVOLNAMELEN) { u.u_error = EINVAL; break; }
 		    strcpy(name, cp);
 #else
                     unsigned long namelen = 0;
 #endif
 		    RPC2_BoundedBS Name;
 		    Name.SeqBody = (RPC2_ByteSeq)name;
-		    Name.MaxSeqLen = 32;
+		    Name.MaxSeqLen = V_MAXVOLNAMELEN;
 		    Name.SeqLen = namelen;
 		    cp += namelen;
 

@@ -283,9 +283,10 @@ int GetRootVolume()
     /* If we don't already know the root volume name ask the servers for it. */
     {
 	RPC2_BoundedBS RVN;
-	RVN.MaxSeqLen = V_MAXVOLNAMELEN;
+	RVN.MaxSeqLen = V_MAXVOLNAMELEN-1;
 	RVN.SeqLen = 0;
 	char buf[V_MAXVOLNAMELEN];
+	memset(buf, 0, V_MAXVOLNAMELEN);
 	RVN.SeqBody = (RPC2_ByteSeq)buf;
 
 	/* Get the connection. */

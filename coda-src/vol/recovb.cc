@@ -544,7 +544,7 @@ void ReplaceVolDiskInfo(Error *ec, int volindex, VolumeDiskData *vol)
 
     maxid = (SRV_RVM(MaxVolId) & 0x00FFFFFF);
     if ((volindex < 0) || (volindex > (int)maxid) || (volindex > MAXVOLS)) {
-	char volname[32];
+	char volname[V_MAXVOLNAMELEN];
 	sprintf(volname, VFORMAT, vol->id);
 	VLog(0,  "ReplaceVolDiskInfo: bogus volume index %d for volume %s",
 			    volindex, volname);

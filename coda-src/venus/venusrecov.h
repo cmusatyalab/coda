@@ -93,7 +93,8 @@ struct RecovVenusGlobals {
     time_t recov_LastInit;          /* last initialization time */
 
     int recov_CleanShutDown;
-    char recov_RootVolName[256/*V_MAXVOLNAMELEN*/];
+    char recov_RootVolName[256/* actually V_MAXVOLNAMELEN, but we leave some
+				 room to grow */];
 
     fsdb *recov_FSDB;		    /* FSO database */
     vdb	*recov_VDB;		    /* Volume database */
