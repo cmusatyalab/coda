@@ -25,7 +25,7 @@
 # improvements or extensions that  they  make,  and  to  grant  Carnegie
 # Mellon the rights to redistribute these changes without encumbrance.
 # 
-# static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vicedep/Makefile.in,v 4.9 1998/12/02 22:07:02 braam Exp $";
+# static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vicedep/Makefile.in,v 4.10 1998/12/03 17:53:42 braam Exp $";
 
 
 # 
@@ -59,28 +59,22 @@ include $(TOPDIR)/Makeconf
 
 INCLPATH= .:$(srcdir)
 INCLFLAGS = -I. -I$(srcdir)
-CFLAGS := -g -MD -I. -I$(srcdir) -I$(srcdir)/../rpc2 -I$(srcdir)/../../lib-src/mlwp
+CFLAGS := -g -MD -I. -I$(srcdir) -I$(srcdir)/../rpc2 -I$(srcdir)/../../lib-src/mlwp -I../rpc2
 
 
-HEADERS = venusioctl.h srv.h operations.h recov_vollog.h
 
-RP2COMP = callback.rpc2 res.rpc2   vice.rpc2 volutil.rpc2 \
+RP2FILES = callback.rpc2 res.rpc2   vice.rpc2 volutil.rpc2 \
 	      voldump.rpc2 mond.rpc2 adsrv.rpc2 admon.rpc2
-RP2CLOBJ = $(notdir ${RP2COMP:.rpc2=.client.o})
-RP2SROBJ = $(notdir ${RP2COMP:.rpc2=.server.o})
-RP2MUOBJ = $(notdir ${RP2COMP:.rpc2=.multi.o})
-
-RP2FILES    = $(RP2COMP) vcrcommon.rpc2 
+RP2CLOBJ = $(notdir ${RP2FILES:.rpc2=.client.o})
+RP2SROBJ = $(notdir ${RP2FILES:.rpc2=.server.o})
+RP2MUOBJ = $(notdir ${RP2FILES:.rpc2=.multi.o})
 RP2HEADERS  = $(notdir ${RP2FILES:.rpc2=.h})
+HEADERS = venusioctl.h srv.h operations.h recov_vollog.h vcrcommon.h
 
 
 LIBRARIES = libvicedep.a
 
-
-
-vcrcommon.h: vcrcommon.rpc2
-
-callback.client.c: vcrcommon.h
+all: 
 
 libvicedep.a: $(RP2CLOBJ) $(RP2SROBJ)  $(RP2MUOBJ)
 
