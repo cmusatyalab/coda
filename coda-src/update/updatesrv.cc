@@ -113,7 +113,6 @@ static struct timezone tsp;
 
 static char *serverconf = SYSCONFDIR "/server"; /* ".conf" */
 static char *vicedir = NULL;
-static char vicedirlen;
 
 void
 ReadConfigFile()
@@ -130,7 +129,6 @@ ReadConfigFile()
     CONF_STR(vicedir,		"vicedir",	   "/vice");
 
     vice_dir_init(vicedir, 0);
-    vicedirlen = strlen(vicedir);
 }
 
 struct flist {
@@ -453,18 +451,18 @@ long UpdateFetch(RPC2_Handle RPCid, RPC2_String FileName,
 		 RPC2_Unsigned *CurrentSecs, RPC2_Integer *CurrentUsecs, 
 		 SE_Descriptor *File)
 {
-    long    rc;			/* return code to caller */
+    long    rc = 0;		/* return code to caller */
     SE_Descriptor sid;		/* sid to use to transfer */
-    char    name[1024];		/* area to hold the name */
+    char    name[MAXPATHLEN];	/* area to hold the name */
     struct stat buff;		/* buffer for stat */
     int     len;
 
     rc = 0;
 
     len = strlen((char *)FileName) + 1;
-    if (len > 1024) len = 1024;
+    if (len > MAXPATHLEN) len = MAXPATHLEN;
     memcpy(name, FileName, len);
-    name[1023] = '\0';
+    name[MAXPATHLEN-1] = '\0';
 
     LogMsg(1, SrvDebugLevel, stdout, "UpdateFetch file = %s, Time = %d",
 	    name, Time);
@@ -472,19 +470,19 @@ long UpdateFetch(RPC2_Handle RPCid, RPC2_String FileName,
     *NewTime = 0;
 
     if (!AccessAllowed((char *)name)) {
-        LogMsg(0, SrvDebugLevel, stdout, "Access denied to file %s.",
-	       (char *)FileName);
+        LogMsg(0, SrvDebugLevel, stdout, "Access denied to file %s.", name);
 	rc = CEACCES;
 	goto Final;
     }
 
-    if (stat(name, &buff)) {
+    if (stat(name, &buff) != 0) {
+	rc = ENOENT;
 	goto Final;
     }
-    *NewTime = buff.st_mtime;
-    if (((buff.st_mode & S_IFMT) == S_IFREG) &&
-	    (Time != *NewTime)) {
 
+    *NewTime = buff.st_mtime;
+    if ((buff.st_mode & S_IFMT) == S_IFREG && Time != *NewTime)
+    {
 	memset(&sid, 0, sizeof(SE_Descriptor));
 	sid.Tag = SMARTFTP;
 	sid.Value.SmartFTPD.TransmissionDirection = SERVERTOCLIENT;

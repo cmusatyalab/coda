@@ -181,8 +181,8 @@ int main(int argc, char **argv)
     CheckLibStructure();
 
     LogMsg(2, SrvDebugLevel, stdout, "Changing to directory %s.\n",
-	   vice_sharedfile(NULL));
-    rc = chdir(vice_sharedfile(NULL));
+	   vice_sharedfile("db"));
+    rc = chdir(vice_sharedfile("db"));
     if ( rc ) {
         snprintf(errmsg, MAXPATHLEN, "Cannot cd to %s", vice_sharedfile(NULL));
 	perror(errmsg);
@@ -242,7 +242,7 @@ int main(int argc, char **argv)
 	}
 
 	/* Checking "db" relative to updatesrv working directory. */
-	if (CheckDir("db", 0644)) {
+	if (CheckDir(".", 0644)) {
 	    operatorSecs = 0;  /* if something changed time has elapsed */
 	    for (int i=0; i<nservers; i++) {
 	        if (nservers != 1)
