@@ -188,15 +188,7 @@ diff -urN --exclude-from=../dontdiff linux-2.4.20/fs/coda/coda_linux.c linux-2.4
 diff -urN --exclude-from=../dontdiff linux-2.4.20/fs/coda/dir.c linux-2.4.20-coda/fs/coda/dir.c
 --- linux-2.4.20/fs/coda/dir.c	2003-01-08 12:59:05.000000000 -0500
 +++ linux-2.4.20-coda/fs/coda/dir.c	2003-01-08 12:40:22.000000000 -0500
-@@ -79,6 +79,7 @@
- };
- 
- struct file_operations coda_dir_operations = {
-+	llseek:		generic_file_llseek,
- 	read:		generic_read_dir,
- 	readdir:	coda_readdir,
- 	open:		coda_open,
-@@ -93,12 +94,14 @@
+@@ -94,12 +95,14 @@
  static struct dentry *coda_lookup(struct inode *dir, struct dentry *entry)
  {
  	struct inode *res_inode = NULL;
@@ -212,7 +204,7 @@ diff -urN --exclude-from=../dontdiff linux-2.4.20/fs/coda/dir.c linux-2.4.20-cod
  	
  	if ( length > CODA_MAXNAMLEN ) {
  	        printk("name too long: lookup, %s (%*s)\n", 
-@@ -207,7 +210,7 @@
+@@ -208,7 +211,7 @@
  	const char *name=de->d_name.name;
  	int length=de->d_name.len;
  	struct inode *inode;
@@ -221,7 +213,7 @@ diff -urN --exclude-from=../dontdiff linux-2.4.20/fs/coda/dir.c linux-2.4.20-cod
  	struct coda_vattr attrs;
  
  	coda_vfs_stat.create++;
-@@ -245,7 +248,7 @@
+@@ -246,7 +249,7 @@
  	const char *name=de->d_name.name;
  	int length=de->d_name.len;
  	struct inode *inode;
@@ -230,7 +222,7 @@ diff -urN --exclude-from=../dontdiff linux-2.4.20/fs/coda/dir.c linux-2.4.20-cod
  	struct coda_vattr attrs;
  
  	if ( coda_hasmknod == 0 )
-@@ -288,7 +291,7 @@
+@@ -289,7 +292,7 @@
  	const char *name = de->d_name.name;
  	int len = de->d_name.len;
  	int error;
@@ -239,35 +231,10 @@ diff -urN --exclude-from=../dontdiff linux-2.4.20/fs/coda/dir.c linux-2.4.20-cod
  
  	coda_vfs_stat.mkdir++;
  
-@@ -507,7 +510,11 @@
- 		ret = coda_venus_readdir(host_file, filldir, dirent, coda_dentry);
- 	} else {
- 		/* potemkin case: we were handed a directory inode */
--		ret = vfs_readdir(host_file, filldir, dirent);
-+		/* Yuk, we can't call vfs_readdir because we are already
-+		 * holding the inode semaphore. */
-+		ret = -ENOENT;
-+		if (!IS_DEADDIR(host_file->f_dentry->d_inode))
-+			ret = host_file->f_op->readdir(host_file, filldir, dirent);
- 	}
- 
- 	coda_file->f_pos = host_file->f_pos;
 diff -urN --exclude-from=../dontdiff linux-2.4.20/fs/coda/file.c linux-2.4.20-coda/fs/coda/file.c
 --- linux-2.4.20/fs/coda/file.c	2003-01-08 12:59:05.000000000 -0500
 +++ linux-2.4.20-coda/fs/coda/file.c	2003-01-09 16:58:24.000000000 -0500
-@@ -117,10 +117,8 @@
- 	coda_vfs_stat.open++;
- 
- 	cfi = kmalloc(sizeof(struct coda_file_info), GFP_KERNEL);
--	if (!cfi) {
--		unlock_kernel();
-+	if (!cfi)
- 		return -ENOMEM;
--	}
- 
- 	lock_kernel();
- 
-@@ -137,7 +135,6 @@
+@@ -139,7 +137,6 @@
  	cfi->cfi_magic = CODA_MAGIC;
  	cfi->cfi_mapcount = 0;
  	cfi->cfi_container = host_file;
@@ -275,7 +242,7 @@ diff -urN --exclude-from=../dontdiff linux-2.4.20/fs/coda/file.c linux-2.4.20-co
  
  	host_inode = host_file->f_dentry->d_inode;
  	if (coda_inode->i_mapping == &coda_inode->i_data)
-@@ -185,7 +182,7 @@
+@@ -187,7 +184,7 @@
  	if (!cfi || cfi->cfi_magic != CODA_MAGIC) BUG();
  
  	err = venus_store(coda_inode->i_sb, coda_i2f(coda_inode), coda_flags,
@@ -284,7 +251,7 @@ diff -urN --exclude-from=../dontdiff linux-2.4.20/fs/coda/file.c linux-2.4.20-co
  
  	if (err == -EOPNOTSUPP) {
  		use_coda_close = 1;
-@@ -221,7 +218,7 @@
+@@ -223,7 +220,7 @@
  
  	if (use_coda_close)
  		err = venus_close(coda_inode->i_sb, coda_i2f(coda_inode),
@@ -371,7 +338,7 @@ diff -urN --exclude-from=../dontdiff linux-2.4.20/fs/coda/upcall.c linux-2.4.20-
  	inp->ih.pid = current->pid;
  	inp->ih.pgid = current->pgrp;
 -	coda_load_creds(&(inp->ih.cred));
-+	inp->ih.uid = current->fsuid;
++	inp->ih.uid = current->uid;
  
  	return (void*)inp;
  }
@@ -817,18 +784,6 @@ diff -urN --exclude-from=../dontdiff linux-2.4.20/fs/coda/upcall.c linux-2.4.20-
  		  clstats(CODA_REPLACE);
  		  CDEBUG(D_DOWNCALL, "CODA_REPLACE\n");
  		  inode = coda_fid_to_inode(oldfid, sb);
-diff -urN --exclude-from=../dontdiff linux-2.4.20/fs/namei.c linux-2.4.20-coda/fs/namei.c
---- linux-2.4.20/fs/namei.c	2003-01-08 12:59:05.000000000 -0500
-+++ linux-2.4.20-coda/fs/namei.c	2003-01-09 17:00:12.000000000 -0500
-@@ -627,6 +627,8 @@
- 			nd->last_type = LAST_DOT;
- 		else if (this.len == 2 && this.name[1] == '.')
- 			nd->last_type = LAST_DOTDOT;
-+		else
-+			goto return_base;
- return_reval:
- 		/*
- 		 * We bypassed the ordinary revalidation routines.
 diff -urN --exclude-from=../dontdiff linux-2.4.20/include/linux/coda.h linux-2.4.20-coda/include/linux/coda.h
 --- linux-2.4.20/include/linux/coda.h	2003-01-08 12:59:05.000000000 -0500
 +++ linux-2.4.20-coda/include/linux/coda.h	2003-01-08 12:55:23.000000000 -0500
