@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/auth2/Attic/ctokens.c,v 1.1.2.1 1998/05/15 16:50:51 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/auth2/ctokens.c,v 4.1 98/08/05 23:49:15 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -104,6 +104,9 @@ int main(int argc, char *argv[]) {
 	printf(OutString);
 	exit(-1);
     }
+
+    sprintf(cp, "VID=%lu ", clear.ViceId);
+    cp+=strlen(cp);
 
     /* Check for expiration. */
     if (clear.EndTimestamp <= time(0))

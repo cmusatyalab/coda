@@ -102,11 +102,15 @@ int main(int argc, char **argv)
     struct passwd	    pwent;
     struct passwd	    *pw = &pwent;
     char *hostname=NULL;
+    char *username=0;
     long		    rc;
     int i;
     int testing = 0;
 
     pw = getpwuid (getuid ());
+    if (pw) {
+        username=pw->pw_name;
+    }
 
     i = 1;
     while (i < argc) {
@@ -132,8 +136,8 @@ int main(int argc, char **argv)
 		    hostname = argv[i];
 		    i++;
 	    } else if ( i == argc-1 ) {
-		    pw = getpwnam (argv[i]);
-		    i++;
+                    username = argv[i];
+                    i++;
 	    }
 	    /* still coming: 
 	       -e ".............": newpag, authenticate, exec
@@ -147,7 +151,7 @@ int main(int argc, char **argv)
 
     }
     
-    if (pw == NULL) {
+    if (username == NULL) {
 	    fprintf (stderr, "Can't figure out your user id.\n");
 	    fprintf (stderr, "Try \"clog user\"\n");
 	    exit (1);
@@ -156,8 +160,8 @@ int main(int argc, char **argv)
 
     U_InitRPC();
 
-    rc = U_Authenticate(hostname, authmethod, pw->pw_name, 
-			strlen(pw->pw_name)+1, &cToken, sToken, passwdpipe, 
+    rc = U_Authenticate(hostname, authmethod, username, 
+			strlen(username)+1, &cToken, sToken, passwdpipe, 
 			interactive);
 
     if (rc != 0) {
