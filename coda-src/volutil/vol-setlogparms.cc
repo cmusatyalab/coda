@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/volutil/vol-setlogparms.cc,v 4.4 1998/04/14 21:00:41 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/volutil/vol-setlogparms.cc,v 4.5 1998/05/27 17:08:09 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -98,7 +98,7 @@ long S_VolSetLogParms(RPC2_Handle rpcid, VolumeId Vid, RPC2_Integer OnFlag,
     }
 
     LogMsg(9, SrvDebugLevel, stdout, "S_VolSetLogParms: Got Volume %x",Vid);
-    switch OnFlag {
+    switch ( OnFlag ) {
     case RVMRES:
 	volptr->header->diskstuff.ResOn = OnFlag;
 	LogMsg(0, SrvDebugLevel, stdout, "S_VolSetLogParms: res flag on volume 0x%x set to %d (resolution enabled)", 
