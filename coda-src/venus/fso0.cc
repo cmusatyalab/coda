@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/fso0.cc,v 4.4 1997/02/27 13:59:21 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/fso0.cc,v 4.5 97/12/01 17:27:38 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -75,6 +75,7 @@ extern "C" {
 /* from venus */
 #include "advice.h"
 #include "advice_daemon.h"
+#include "commands.h"
 #include "fso.h"
 #include "hdb.h"
 #include "local.h"
@@ -438,6 +439,7 @@ fsdb::fsdb() : htab(FSDB_NBUCKETS, FSO_HashFN) {
     MagicNumber = FSDB_MagicNumber;
     MaxFiles = CacheFiles;
     FreeFileMargin = MaxFiles / FREE_FACTOR;
+
     LastRef = (long *)RVMLIB_REC_MALLOC(MaxFiles * (int)sizeof(long));
     RVMLIB_SET_RANGE(LastRef, MaxFiles * (int)sizeof(long));
     bzero(LastRef, (int)(MaxFiles * sizeof(long)));
@@ -519,155 +521,11 @@ fsobj *fsdb::Create(ViceFid *key, LockLevel level, int priority, char *comp) {
     return(f);
 }
 
-enum ReadDiscAdvice ReadDisconnectedCacheMissEvent(vproc *vp, fsobj *f, vuid_t vuid) {
-    userent *u;
-    char pathname[MAXPATHLEN];
-    ReadDiscAdvice advice;
-
-    LOG(100, ("E ReadDisconnectedCacheMissEvent\n"));
-
-    GetUser(&u, vuid);
-    assert(u != NULL);
-
-    /* If advice not enabled, simply return */
-    if (!AdviceEnabled) {
-        LOG(0, ("ADMON STATS:  PCCM Advice NOT enabled.\n"));
-        u->AdviceNotEnabled();
-        return(ReadDiscFetch);
-    }
-
-    /* Check that:                                                     *
-     *     (a) the request did NOT originate from the Hoard Daemon     *
-     *     (b) the request did NOT originate from that AdviceMonitor,  *
-     * and (c) the user is running an AdviceMonitor,                   */
-    assert(vp != NULL);
-    if (vp->type == VPT_HDBDaemon) {
-	LOG(100, ("ADMON STATS:  PCCM Advice inappropriate.\n"));
-        return(ReadDiscFetch);
-    }
-    if (u->IsAdvicePGID(vp->u.u_pgid)) {
-        LOG(100, ("ADMON STATS:  PCCM Advice inappropriate.\n"));
-        return(ReadDiscFetch);
-    }
-    if (u->IsAdviceValid(1) != TRUE) {
-        LOG(0, ("ADMON STATS:  PCCM Advice NOT valid. (uid = %d)\n", vuid));
-        return(ReadDiscFetch);
-    }
-
-    assert(f != NULL);
-    f->GetPath(pathname, 1);
-
-    LOG(100, ("Requesting ReadDisconnected CacheMiss Advice for path=%s, pid=%d...\n", pathname, vp->u.u_pid));
-    advice = u->RequestReadDisconnectedCacheMissAdvice(pathname, vp->u.u_pgid);
-    return(advice);
-}
-
-enum WeaklyAdvice WeaklyConnectedCacheMissEvent(vproc *vp, fsobj *f, vuid_t vuid, int expectedCost) {
-    userent *u;
-    char pathname[MAXPATHLEN];
-    WeaklyAdvice advice;
-
-    LOG(100, ("E WeaklyConnectedCacheMissEvent\n"));
-
-    GetUser(&u, vuid);
-    assert(u != NULL);
-
-    /* If advice not enabled, simply return */
-    if (!AdviceEnabled) {
-        LOG(0, ("ADMON STATS:  WCCM Advice NOT enabled.\n"));
-        u->AdviceNotEnabled();
-        return(WeaklyFetch);
-    }
-
-    /* Check that:                                                     *
-     *     (a) the request did NOT originate from the Hoard Daemon     *
-     *     (b) the request did NOT originate from that AdviceMonitor,  *
-     * and (c) the user is running an AdviceMonitor,                   */
-    assert(vp != NULL);
-    if (vp->type == VPT_HDBDaemon) {
-	LOG(100, ("ADMON STATS:  WCCM Advice inappropriate.\n"));
-        return(WeaklyFetch);
-    }
-    if (u->IsAdvicePGID(vp->u.u_pgid)) {
-        LOG(100, ("ADMON STATS:  WCCM Advice inappropriate.\n"));
-        return(WeaklyFetch);
-    }
-    if (u->IsAdviceValid(1) != TRUE) {
-        LOG(0, ("ADMON STATS:  WCCM Advice NOT valid. (uid = %d)\n", vuid));
-        return(WeaklyFetch);
-    }
-
-    assert(f != NULL);
-    f->GetPath(pathname, 1);
-
-    LOG(100, ("Requesting WeaklyConnected CacheMiss Advice for path=%s, pid=%d, cost=%d...\n", pathname, vp->u.u_pid, expectedCost));
-    advice = u->RequestWeaklyConnectedCacheMissAdvice(pathname, vp->u.u_pid, expectedCost);
-    return(advice);
-}
-
-void DisconnectedCacheMissEvent(vproc *vp, volent *v, fsobj *f, ViceFid *key, vuid_t vuid, char *comp) {
-    userent *u;
-    char pathname[MAXPATHLEN];
-
-    GetUser(&u, vuid);
-    assert(u != NULL);
-
-    /* If advice not enabled, simply return */
-    if (!AdviceEnabled) {
-        LOG(0, ("ADMON STATS:  DMQ Advice NOT enabled.\n"));
-        u->AdviceNotEnabled();
-        return;
-    }
-
-    /* Check that:                                                     *
-     *     (a) the request did NOT originate from the Hoard Daemon     *
-     *     (b) the request did NOT originate from that AdviceMonitor,  *
-     *     (c) the user is running an AdviceMonitor,                   *
-     * and (d) the volent is non-NULL.                                 */
-    assert(vp != NULL);
-    if (vp->type == VPT_HDBDaemon) {
-	LOG(100, ("ADMON STATS:  DMQ Advice inappropriate.\n"));
-        return;
-    }
-    if (u->IsAdvicePGID(vp->u.u_pgid)) {
-        LOG(100, ("ADMON STATS:  DMQ Advice inappropriate.\n"));
-        return;
-    }
-    if (u->IsAdviceValid(1) != TRUE) {
-        LOG(0, ("ADMON STATS:  DMQ Advice NOT valid. (uid = %d)\n", vuid));
-        return;
-    }
-    if (v == NULL) {
-        LOG(0, ("ADMON STATS:  DMQ volent is NULL.\n"));
-        u->VolumeNull();
-        return;
-    }
-
-    /* Get the pathname */
-    if (f != NULL)
-        f->GetPath(pathname, 1);
-    else {
-        v->GetMountPath(pathname, 0);
-	assert(key != NULL);
-	if ((key->Vnode != ROOT_VNODE) || (key->Unique != ROOT_UNIQUE)) 
-	    strcat(pathname, "/???");
-    }
-    if (comp) {
-        strcat(pathname, "/");
-	strcat(pathname,comp);
-    }
-
-    /* Make the request */
-    LOG(100, ("Requesting Disconnected CacheMiss Questionnaire...1\n"));
-    u->RequestDisconnectedQuestionnaire(pathname, vp->u.u_pid, key, v->GetDisconnectionTime());
-}
-
 
 /* 
  * Problem here is that we *must* have a volent pointer.  If a miss is on the
  * volume itself, we don't have that pointer.  Where do we put the info?
  */
-
 
 #define Hoard 1
 #define NonHoard 0
@@ -914,7 +772,7 @@ int fsdb::Get(fsobj **f_addr, ViceFid *key, vuid_t vuid, int rights, char *comp,
     ASSERT(rights != 0);
     int getdata = (rights & RC_DATA);
 
-    LOG(100, ("fsdb::Get: key = (%x.%x.%x), uid = %d, rights = %d, comp = %s\n",
+    LOG(100, ("fsdb::Get-mre: key = (%x.%x.%x), uid = %d, rights = %d, comp = %s\n",
 	       key->Volume, key->Vnode, key->Unique, vuid, rights, (comp ? comp : "")));
 
     { 	/* a special check for accessing already localized object */
@@ -937,6 +795,9 @@ int fsdb::Get(fsobj **f_addr, ViceFid *key, vuid_t vuid, int rights, char *comp,
     int code = 0;
     *f_addr = 0;				/* OUT parameter valid on success only. */
     vproc *vp = VprocSelf();
+
+    if (vp->type != VPT_HDBDaemon)
+      NotifyUserOfProgramAccess(vuid, vp->u.u_pid, vp->u.u_pgid, key);
 
     /* Volume state synchronization. */
     /* If a thread is already "in" one volume, we must switch contexts before entering another. */
@@ -1002,7 +863,7 @@ RestartFind:
         volent *v = 0;
         if (VDB->Get(&v, key->Volume) != 0) {
             LOG(100, ("Volume not cached and we couldn't get it...\n"));
-            DisconnectedCacheMissEvent(vp, v /* NULL */, f /* NULL */, key, vuid, comp);
+            DisconnectedCacheMiss(vp, vuid, key, comp);
             VmonUpdateSession(vp, key, f /* NULL */, v /* NULL */, vuid, ATTR, TIMEOUT, FSOBJSIZE);
             return(ETIMEDOUT);
         }
@@ -1016,7 +877,7 @@ RestartFind:
         /* Cut-out early if volume is disconnected! */
         if ((v->state != Hoarding) && (v->state != Logging)) {
             LOG(100, ("Volume disconnected and file not cached!\n"));
-            DisconnectedCacheMissEvent(vp, v, f /* NULL */, key, vuid, comp);
+            v->DisconnectedCacheMiss(vp, vuid, key, comp);
             VmonUpdateSession(vp, key, f /* NULL */, v, vuid, ATTR, TIMEOUT, FSOBJSIZE);
             VDB->Put(&v);
             return(ETIMEDOUT);
@@ -1121,7 +982,23 @@ RestartFind:
 		if (rcode) *rcode = code;	/* added for local-repair */
 		/* Conjure a fake directory to represent an inconsistent object. */
 		if (code == EINCONS) { 
-		    LOG(0, ("fsdb::Get: Object inconsistent. (key = <%x.%x.%x>)\n", key->Volume, key->Vnode, key->Unique));
+		    userent *u;
+		    char path[MAXPATHLEN];
+		    
+		    f->GetPath(path,1);
+		    GetUser(&u, vuid);
+		    assert(u != NULL);
+
+		    LOG(0, ("fsdb::Get: Object inconsistent. (key = <%x.%x.%x>)\n", 
+			    key->Volume, key->Vnode, key->Unique));
+		    /* We notify all users that objects are in conflict because it is
+		       often the case that uid=-1, so we notify nobody.  It'd be better
+		       if we could notify the user whose activities triggered this object
+		       to go inconsistent.  However, that person is difficult to determine
+		       and could be the hoard daemon.  Notifying everyone seems to be
+		       a reasonable alternative, if not terribly satisfying. */
+		    NotifyUsersObjectInConflict(path, key);
+
 		    k_Purge(&f->fid, 1);
                     if (f->refcnt > 1) {
 		        /* 
@@ -1181,7 +1058,7 @@ RestartFind:
                     VmonUpdateSession(vp, key, f, f->vol, vuid, ATTR, event, FSOBJSIZE);
                     if (code == ETIMEDOUT) {
                       LOG(100, ("(MARIA) Code is TIMEDOUT after GetAttr...\n"));
-                      DisconnectedCacheMissEvent(vp, f->vol, f, key, vuid, comp);
+                      f->DisconnectedCacheMiss(vp, vuid, comp);
                     }
 		    Put(&f);
 		    return(code);
@@ -1199,6 +1076,8 @@ RestartFind:
                     VmonUpdateSession(vp, key, f, f->vol, vuid, DATA, HIT, BLOCKS(f));
 		}
 		else {
+		    CacheMissAdvice advice = CoerceToMiss;
+
    		    if (f->vol->IsWeaklyConnected()) {
 			char pathname[MAXPATHLEN];
 			int hoard_priority = 0;
@@ -1212,7 +1091,8 @@ RestartFind:
  			int estimatedCost = f->EstimatedFetchCost();
 		        /* If the fetch will take too long, coerce the request into a miss */
 		        if (f->PredetermineFetchState(estimatedCost, hoard_priority) != 1) {
-			    if (WeaklyConnectedCacheMissEvent(vp, f, vuid, estimatedCost) == WeaklyMiss) {
+			    advice = f->WeaklyConnectedCacheMiss(vp, vuid);
+			    if (advice == CoerceToMiss) {
  			        /* Should we record this as a MISS with Vmon? */
 			        Put(&f);
 			        LOG(0, ("Weak Miss Coersion:\n\tObject:  %s <%x,%x,%x>\n\tEstimated Fetch Cost:  %d seconds\n\tReturn code:  EFBIG\n", 
@@ -1236,20 +1116,19 @@ RestartFind:
 		    }
 
 		    /* Make cache misses non-transparent. */
-		    ReadDiscAdvice advice;
-		    advice = ReadDisconnectedCacheMissEvent(vp, f, vuid);
+		    if (advice == CoerceToMiss)
+		        advice = f->ReadDisconnectedCacheMiss(vp, vuid);
 		    switch (advice) {
-		        case ReadDiscFetch:
+		        case FetchFromServers:
                             LOG(10, ("The advice was to ReadDiscFetch --> Fetching.\n"));
                             break;
-		        case ReadDiscTimeout:
+		        case CoerceToMiss:
 			    LOG(0, ("Read Disconnected Miss Coersion:\n\tObject:  %s <%x,%x,%x>\n\tReturn code:  EFBIG\n", 
 				   comp, key->Volume, key->Vnode, key->Unique));
 		            MarinerLog("Read Disconnected Miss Coersion on %s <%x,%x,%x>\n",
 				       comp, key->Volume, key->Vnode, key->Unique);
 			    Put(&f);
 			    return(ETIMEDOUT);
-		        case ReadDiscUnknown:
 		        default:
 			    LOG(0, ("The advice was Unrecognized --> Fetching anyway.\n"));
 			    break;
@@ -1267,7 +1146,7 @@ RestartFind:
                         event = (code == ERETRY ? RETRY : code == ETIMEDOUT ? TIMEOUT : FAILURE);
                         VmonUpdateSession(vp, key, f, f->vol, vuid, DATA, event, nblocks);
                         if (code == ETIMEDOUT) 
-                            DisconnectedCacheMissEvent(vp, f->vol, f, key, vuid, comp);
+                            f->DisconnectedCacheMiss(vp, vuid, comp);
 			Put(&f);
 			return(code);
 		    }
@@ -1301,7 +1180,7 @@ RestartFind:
 		      LOG(0, ("Allowing access to stale status! (key = <%x.%x.%x>)\n",  key->Volume, key->Vnode, key->Unique));
 		}
 		else {
-                    DisconnectedCacheMissEvent(vp, f->vol, f, key, vuid, comp);
+                    f->DisconnectedCacheMiss(vp, vuid, comp);
                     VmonUpdateSession(vp, key, f, f->vol, vuid, ATTR, TIMEOUT, FSOBJSIZE);
                     Put(&f);
                     return(ETIMEDOUT);
@@ -1319,7 +1198,7 @@ RestartFind:
 			    LOG(0, ("Allowing access to stale data! (key = <%x.%x.%x>)\n",  key->Volume, key->Vnode, key->Unique));
 		    }
 		    else {
-                        DisconnectedCacheMissEvent(vp, f->vol, f, key, vuid, comp); 
+                        f->DisconnectedCacheMiss(vp, vuid, comp); 
                         VmonUpdateSession(vp, key, f, f->vol, vuid, DATA, TIMEOUT, BLOCKS(f));
 			Put(&f);
 			return(ETIMEDOUT);
@@ -1328,7 +1207,7 @@ RestartFind:
 	    }
 	    else {
                 LOG(100, ("(MARIA) TIMEOUT after something...\n"));
-                DisconnectedCacheMissEvent(vp, f->vol, f, key, vuid, comp);
+                f->DisconnectedCacheMiss(vp, vuid, comp);
                 VmonUpdateSession(vp, key, f, f->vol, vuid, ATTR, TIMEOUT, FSOBJSIZE);
                 Put(&f);
                 return(ETIMEDOUT);
@@ -1356,7 +1235,7 @@ RestartFind:
                             (!ISDIR(f->fid)) && 
                             ((tv.tv_sec - f->lastresolved) > ASR_INTERVAL) &&
 			    (!u->IsAdvicePGID(vp->u.u_pgid)) &&
-                            (u->IsAdviceValid(1) == TRUE));
+                            (u->IsAdviceValid(InvokeASRID,1) == TRUE));
         if (ASRinvocable) {
             LOG(1, ("InvokeASR(%s, %d)\n", path, vuid));
             if (!u->RequestASRInvokation(path, vuid)) {
@@ -1725,6 +1604,10 @@ void fsdb::ReclaimFsos(int priority, int count) {
 	if (HAVEDATA(f))
 	    UpdateCacheStats((f->IsDir() ? &DirDataStats : &FileDataStats),
 			     REPLACE, BLOCKS(f));
+
+	if (AdviceEnabled)
+	  f->RecordReplacement(TRUE, (HAVEDATA(f)));
+
 	f->Kill();
 	f->GC();
 
@@ -1853,6 +1736,11 @@ void fsdb::ReclaimBlocks(int priority, int nblocks) {
 		   f->comp, f->priority, ufs_blocks);
 	UpdateCacheStats((f->IsDir() ? &DirDataStats : &FileDataStats),
 			 REPLACE, BLOCKS(f));
+
+
+	if (AdviceEnabled)
+	  f->RecordReplacement(FALSE, TRUE);
+
 	f->DiscardData();
 
 	reclaimed += ufs_blocks;
@@ -1899,6 +1787,135 @@ void fsdb::ChangeDiskUsage(int delta_blocks) {
     blocks += delta_blocks;
 }
 
+
+/* fsobj and volent are both missing */
+void fsdb::DisconnectedCacheMiss(vproc *vp, vuid_t vuid, ViceFid *fid, char *comp) {
+    userent *u;
+    char pathname[MAXPATHLEN];
+
+    GetUser(&u, vuid);
+    assert(u != NULL);
+
+    /* If advice not enabled, simply return */
+    if (!AdviceEnabled) {
+        LOG(100, ("ADMON STATS:  DMQ Advice NOT enabled.\n"));
+        u->AdviceNotEnabled();
+        return;
+    }
+
+    /* Check that:                                                     *
+     *     (a) the request did NOT originate from the Hoard Daemon     *
+     *     (b) the request did NOT originate from that AdviceMonitor,  *
+     * and (c) the user is running an AdviceMonitor,                   */
+    assert(vp != NULL);
+    if (vp->type == VPT_HDBDaemon) {
+	LOG(100, ("ADMON STATS:  DMQ Advice inappropriate.\n"));
+        return;
+    }
+    if (u->IsAdvicePGID(vp->u.u_pgid)) {
+        LOG(100, ("ADMON STATS:  DMQ Advice inappropriate.\n"));
+        return;
+    }
+    if (u->IsAdviceValid(DisconnectedCacheMissEventID,1) != TRUE) {
+        LOG(100, ("ADMON STATS:  DMQ Advice NOT valid. (uid = %d)\n", vuid));
+        return;
+    }
+
+    LOG(100, ("ADMON STATS:  DMQ volent is NULL.\n"));
+    u->VolumeNull();
+
+    /* Make the request */
+    LOG(100, ("Requesting Disconnected CacheMiss Questionnaire...1\n"));
+    u->RequestDisconnectedQuestionnaire(fid, comp, vp->u.u_pid, Vtime());
+    return;
+}
+
+void fsdb::UpdateDisconnectedUseStatistics(volent *v) {
+
+    assert(v);
+
+    // Verify that this disconnected session is eligible.  A disconnected
+    // session is eligible if there have been references to any object
+    // in any volume since this volume became disconnected.  If this
+    // disconnected session is not eligible, we don't want to update the
+    // statistics.  (Also sanity check the disconnected reference counter.)
+    assert(v->DiscoRefCounter <= RefCounter);
+    if (v->DiscoRefCounter == RefCounter)
+        return;
+
+  {
+    LOG(3, ("Locking UPGRADE:  Please add write locks\n"));
+
+    // This code modifies data structures in the fsobj so we should
+    // iterator through the volume's fsobjs grabbing a write lock for
+    // the object on which we're currently working.
+    //
+    // Assuming that the iterator automatically read locks objects it needs,
+    // we just need to promote that lock to a write lock and demote the
+    // lock when we're done changing it (as indicated below).
+
+    fso_vol_iterator next(NL, v);
+    fsobj *f;
+    while (f = next()) {
+        assert(f);
+	assert(f->vol == v);
+
+	// Promote f to write-lock here.
+
+	ATOMIC(
+	    RVMLIB_REC_OBJECT(f->DisconnectionsSinceUse);
+ 	    if (LastRef[f->ix] > v->DiscoRefCounter) {
+	        // This object was used during the disconnected session
+	        f->DisconnectionsUsed++;
+	        f->DisconnectionsSinceUse = 0;
+	    } else {
+	        // This object was not used during the disconnected session
+	        RVMLIB_REC_OBJECT(f->DisconnectionsUnused);
+	        f->DisconnectionsUnused++;
+		f->DisconnectionsSinceUse++;
+	    }
+	, MAXFP)
+
+	// Demote f back to read-lock here.
+    }
+  }
+}
+
+void fsdb::OutputDisconnectedUseStatistics(char *StatisticsFileName) {
+    FILE *StatsFILE;
+
+    StatsFILE = fopen(StatisticsFileName, "w");
+    assert(StatsFILE != NULL);
+
+    LOG(3, ("Locking UPGRADE:  Please add read locks\n"));
+
+    // This code reads every fsobj in the fsdb.  The iterator
+    // should read lock the objects as it iterates through them.
+
+    VprocYield();
+  {
+    fsobj *f;
+    fso_iterator next(NL);
+
+    fprintf(StatsFILE, "<FID> priority discosSinceLastUse discosUsed discosUnused \n");
+
+    while (f = next()) {
+      assert(f);
+
+      fprintf(StatsFILE, "<%x.%x.%x> %d %d %d %d\n", 
+	      f->fid.Volume, f->fid.Vnode, f->fid.Unique,
+	      f->HoardPri,
+	      f->DisconnectionsSinceUse, 
+	      f->DisconnectionsUsed,
+	      f->DisconnectionsUnused);
+    }
+  }
+    VprocYield();
+
+    fflush(StatsFILE);
+    fclose(StatsFILE);
+    return;
+}
 
 void fsdb::print(int fd, int SummaryOnly) {
     if (this == 0) return;

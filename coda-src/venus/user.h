@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /home/braam/src/coda-src/venus/RCS/user.h,v 1.2 1996/11/24 21:03:21 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/user.h,v 4.1 97/01/08 21:51:36 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -63,6 +63,8 @@ extern "C" {
 
 /* interfaces */
 #include <auth2.h>
+#include <admon.h>
+#include <adsrv.h>
 
 /* from util */
 #include <olist.h>
@@ -121,40 +123,106 @@ class userent {
 
     int GetUid() 
         { return(uid); }
-    ReadDiscAdvice RequestReadDisconnectedCacheMissAdvice(char *pathname, int pid)
-        { return(admon.RequestReadDisconnectedCacheMissAdvice(pathname, pid)); }
+    CacheMissAdvice RequestReadDisconnectedCacheMissAdvice(ViceFid *fid, char *pathname, int pid)
+        { return(admon.RequestReadDisconnectedCacheMissAdvice(fid, pathname, pid)); }
+
     void RequestHoardWalkAdvice(char *input, char *output)
         { admon.RequestHoardWalkAdvice(input, output); }
-    void RequestDisconnectedQuestionnaire(char *pathname, int pid, ViceFid *fid, long DiscoTime)
-        { admon.RequestDisconnectedQuestionnaire(pathname, pid, fid, DiscoTime); }
+
+    void RequestDisconnectedQuestionnaire(ViceFid *fid, char *pathname, int pid, long DiscoTime)
+        { admon.RequestDisconnectedQuestionnaire(fid, pathname, pid, DiscoTime); }
+
     void RequestReconnectionQuestionnaire(char *volname, VolumeId vid, int CMLcount, 
                                           long DiscoTime, long WalkTime, int NumberReboots, 
                                           int cacheHit, int cacheMiss, int unique_hits, 
                                           int unique_nonrefs)
         { admon.RequestReconnectionQuestionnaire(volname, vid, CMLcount, DiscoTime, WalkTime, NumberReboots, cacheHit, cacheMiss, unique_hits, unique_nonrefs); }
+
+  /*
     void NotifyHoarding(char *volname, VolumeId vid)
         { admon.NotifyHoarding(volname,vid); }
+
     void NotifyEmulating(char *volname, VolumeId vid)
         { admon.NotifyEmulating(volname,vid); }
+
     void NotifyLogging(char *volname, VolumeId vid)
         { admon.NotifyLogging(volname,vid); }
+
     void NotifyResolving(char *volname, VolumeId vid)
         { admon.NotifyResolving(volname,vid); }
-    void RequestReintegratePending(char *volname, int flag)
-        { admon.RequestReintegratePending(volname, flag); }
+	*/
+    void ServerAccessible(char *name) 
+        { admon.ServerAccessible(name); }
+    void ServerInaccessible(char *name) 
+        { admon.ServerInaccessible(name); }
+    void ServerConnectionWeak(char *name) 
+        { admon.ServerConnectionWeak(name); }
+    void ServerConnectionStrong(char *name) 
+        { admon.ServerConnectionStrong(name); }
+    void ServerBandwidthEstimate(char *name, long bandwidth) 
+        { admon.ServerBandwidthEstimate(name, bandwidth); }
+    void HoardWalkBegin()
+        { admon.HoardWalkBegin(); }
+    void HoardWalkStatus(int percentDone)
+        { admon.HoardWalkStatus(percentDone); }
+    void HoardWalkEnd()
+        { admon.HoardWalkEnd(); }
+    void HoardWalkPeriodicOn()
+        { admon.HoardWalkPeriodicOn(); }
+    void HoardWalkPeriodicOff()
+        { admon.HoardWalkPeriodicOff(); }
+
+    void NotifyReintegrationPending(char *volname)
+        { admon.NotifyReintegrationPending(volname); }
+    void NotifyReintegrationEnabled(char *volname)
+        { admon.NotifyReintegrationEnabled(volname); }
+    void NotifyReintegrationActive(char *volname)
+        { admon.NotifyReintegrationActive(volname); }
+    void NotifyReintegrationCompleted(char *volname)
+        { admon.NotifyReintegrationCompleted(volname); }
+
+    void NotifyObjectInConflict(char *pathname, ViceFid *fid)
+        { admon.NotifyObjectInConflict(pathname, fid); }
+    void NotifyObjectConsistent(char *pathname, ViceFid *fid)
+        { admon.NotifyObjectConsistent(pathname, fid); }
+    void NotifyTaskAvailability(int i, TallyInfo *tallyInfo) 
+        { admon.NotifyTaskAvailability(i, tallyInfo); }
+    void NotifyTaskUnavailable(int priority, int size)
+        { admon.NotifyTaskUnavailable(priority, size); }
     int RequestASRInvokation(char *pathname, vuid_t vuid)
         { return(admon.RequestASRInvokation(pathname, vuid)); }
-    WeaklyAdvice RequestWeaklyConnectedCacheMissAdvice(char *pathname, int pid, int expectedCost)
-        { return(admon.RequestWeaklyConnectedCacheMissAdvice(pathname, pid, expectedCost)); }
+
+    CacheMissAdvice RequestWeaklyConnectedCacheMissAdvice(ViceFid *fid, char *pathname, int pid, int length, int estimatedBandwidth, char *Vfilename)
+        { return(admon.RequestWeaklyConnectedCacheMissAdvice(fid, pathname, pid, length, estimatedBandwidth, Vfilename)); }
+
     int NewConnection(char *hostname, int port, int pgrp)
         { return(admon.NewConnection(hostname, port, pgrp)); }
+
     int RegisterInterest(vuid_t vuid, long numEvents, InterestValuePair events[])
         { return(admon.RegisterInterest(vuid, numEvents, events)); }
+
+    void InitializeProgramLog(vuid_t vuid) 
+        { admon.InitializeProgramLog(vuid); }
+    void SwapProgramLog()
+        { admon.SwapProgramLog(); }
+    void LogProgramAccess(int pid, int pgid, ViceFid *fid) 
+        { admon.LogProgramAccess(pid, pgid, fid); }
+
+    void InitializeReplacementLog(vuid_t vuid) 
+        { admon.InitializeReplacementLog(vuid); }
+    void SwapReplacementLog()
+        { admon.SwapReplacementLog(); }
+    void LogReplacement(char *path, int status, int data)
+        { admon.LogReplacement(path, status, data); }
+
+    int OutputUsageStatistics(vuid_t vuid, char *pathname)
+        { return(admon.OutputUsageStatistics(vuid, pathname)); }
+
     void GetStatistics(AdviceCalls *calls, AdviceResults *results, AdviceStatistics *stats)
         { admon.GetStatistics(calls, results, stats); }
 
-    int IsAdviceValid(int bump)
-        { return(admon.IsAdviceValid(bump)); }
+    int IsAdviceValid(InterestID interest, int bump)
+        { return(admon.IsAdviceValid(interest, bump)); }
     void AdviceNotEnabled() 
         { admon.AdviceNotEnabled(); }
     void ASRnotAllowed()

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /usr/rvb/XX/src/coda-src/venus/RCS/local.h,v 4.1 1997/01/08 21:51:29 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/local.h,v 4.2 97/02/26 16:03:20 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -262,6 +262,9 @@ public:
 	   ViceFid *, ViceFid *, char *);	/*T*/
     ~rfment();					/*T*/
     void operator delete(void *, size_t);	/*T*/
+
+  /* For a description of the layout, please refer to Lu's thesis, page 82 */
+
     ViceFid *GetFakeRootFid();			/*N*/
     ViceFid *GetGlobalRootFid();		/*N*/
     ViceFid *GetLocalRootFid();			/*N*/

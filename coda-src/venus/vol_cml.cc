@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/vol_cml.cc,v 4.5 1997/07/15 12:48:54 lily Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/vol_cml.cc,v 4.6 97/12/01 17:28:09 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -3431,7 +3431,6 @@ union hblock {
     } dbuf;
 };
 
-#define	SPOOL_DIR "/usr/coda/spool"
 PRIVATE void GetPath(char *, ViceFid *, char * =0);
 PRIVATE int WriteHeader(FILE *, hblock&);
 PRIVATE int WriteData(FILE *, char *);
@@ -3715,33 +3714,6 @@ int volent::LastMLETime(unsigned long *time) {
 }
 
 
-void ClientModifyLog::MakeUsrSpoolDir(char *usd) {
-    int code = 0;
-    struct stat tstat;
-
-    /* Ensure that top-level spool directory exists and has the correct attributes. */
-    code = ::stat(SPOOL_DIR, &tstat);
-    if (code < 0 || (tstat.st_mode & S_IFMT) != S_IFDIR) {
-	if (code == 0)
-	    ASSERT(::unlink(SPOOL_DIR) == 0);
-	ASSERT(::mkdir(SPOOL_DIR, 0755) == 0);
-    }
-    ASSERT(::chown(SPOOL_DIR, V_UID, V_GID) == 0);
-    ASSERT(::chmod(SPOOL_DIR, 0755) == 0);
-
-    /* Ensure that user's spool (sub-)directory exists and has the correct attributes. */
-    sprintf(usd, "%s/%d", SPOOL_DIR, owner);
-    code = ::stat(usd, &tstat);
-    if (code < 0 || (tstat.st_mode & S_IFMT) != S_IFDIR) {
-	if (code == 0)
-	    ASSERT(::unlink(usd) == 0);
-	ASSERT(::mkdir(usd, 0755) == 0);
-    }
-    ASSERT(::chown(usd, owner, V_GID) == 0);
-    ASSERT(::chmod(usd, 0700) == 0);
-}
-
-
 /* Returns {0, ENOSPC}. */
 int ClientModifyLog::CheckPoint(char *ckpdir) {
     volent *vol = strbase(volent, this, CML);
@@ -3758,7 +3730,7 @@ int ClientModifyLog::CheckPoint(char *ckpdir) {
     if (ckpdir)
 	strcpy(ckpname, ckpdir);
     else
-	MakeUsrSpoolDir(ckpname);
+	MakeUserSpoolDir(ckpname, owner);
     strcat(ckpname, "/");
     strcat(ckpname, vol->name);
     strcat(ckpname, "@");

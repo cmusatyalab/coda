@@ -25,7 +25,7 @@
 # improvements or extensions that  they  make,  and  to  grant  Carnegie
 # Mellon the rights to redistribute these changes without encumbrance.
 # 
-# static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/Makefile.in,v 4.11 1997/12/02 16:40:14 braam Exp $";
+# static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/Makefile.in,v 4.12 97/12/06 23:34:26 braam Exp $";
 
 
 # 
@@ -86,17 +86,18 @@ LIBS=	$(LIBUTIL)\
 	$(LIBCOMPAT)\
 	$(LIBVICEDEP)\
 	$(LIBRPC2)\
-	$(LIBSE)
+	$(LIBSE)\
+	$(LIBKVM)
 
 RP2FILES= $(INCLDIR)/vice.rpc2 $(INCLDIR)/mond.rpc2 	$(INCLDIR)/admon.rpc2\
  $(INCLDIR)/adsrv.rpc2 $(INCLDIR)/callback.rpc2 $(INCLDIR)/fcon.rpc2
 
 RP2HEADERS  = $(notdir ${RP2FILES:.rpc2=.h})
 
-HFILES= advice.h adviceconn.h advice_daemon.h binding.h comm.h fso.h hdb.h local.h mariner.h venusrecov.h sighand.h simulate.h user.h venuscb.h venusstats.h venusvm.h venus.private.h venusvol.h vproc.h worker.h
+HFILES= advice.h adviceconn.h advice_daemon.h binding.h comm.h fso.h hdb.h local.h mariner.h venusrecov.h sighand.h simulate.h tallyent.h user.h venuscb.h venusstats.h venusvm.h venus.private.h venusvol.h vproc.h worker.h
 
 
-VOBJS = advice.o advice_daemon.o  binding.o  comm.o comm_daemon.o daemon.o fso0.o fso1.o fso_cachefile.o fso_cfscalls0.o fso_cfscalls1.o fso_cfscalls2.o fso_daemon.o fso_dir.o hdb.o hdb_daemon.o local_cml.o local_daemon.o local_fso.o local_subtree.o local_repair.o local_vol.o mariner.o venusrecov.o sighand.o simulate.o user.o venusutil.o venus.o venuscb.o venusvm.o  venusvol.o vol_daemon.o vol_cml.o vol_reintegrate.o vol_repair.o vol_resolve.o vol_vcb.o vol_vsr.o vol_COP2.o vproc.o vproc_pathname.o vproc_pioctl.o vproc_vfscalls.o worker.o faketrace.o
+VOBJS = advice.o advice_daemon.o  binding.o  comm.o comm_daemon.o commands.o daemon.o fso0.o fso1.o fso_cachefile.o fso_cfscalls0.o fso_cfscalls1.o fso_cfscalls2.o fso_daemon.o fso_dir.o hdb.o hdb_daemon.o local_cml.o local_daemon.o local_fso.o local_subtree.o local_repair.o local_vol.o mariner.o venusrecov.o sighand.o simulate.o tallyent.o user.o venusutil.o venus.o venuscb.o venusvm.o  venusvol.o vol_daemon.o vol_cml.o vol_reintegrate.o vol_repair.o spool.o vol_resolve.o vol_vcb.o vol_vsr.o vol_COP2.o vproc.o vproc_pathname.o vproc_pioctl.o vproc_vfscalls.o worker.o faketrace.o
 
 
 venus:  ${VOBJS} dummy.o $(LIBS) libfaketrace.a
@@ -108,19 +109,24 @@ venus.plumber:  ${VOBJS} $(LIBPLUMBER) $(LIBS) libfaketrace.a
 
 
 advice.o: advice.cc advice.h adviceconn.h $(RP2FILES)
+
 advice_daemon.o: advice_daemon.cc  adviceconn.h $(RP2FILES)
+
 binding.o: binding.cc binding.h
+
 comm.o: comm.cc comm.h venus.private.h fso.h mariner.h simulate.h\
 	user.h vproc.h venusvm.h venusvol.h worker.h $(HFILES) 
 
 comm_daemon.o: comm_daemon.cc comm.h venus.private.h venusrecov.h\
 	vproc.h simulate.h $(HFILES)
 
+commands.o: commands.cc commands.h
+
 daemon.o: daemon.cc vproc.h venus.private.h  $(HFILES)
 
-fso0.o: fso0.cc advice.h advice_daemon.h comm.h fso.h hdb.h local.h\
-	mariner.h simulate.h user.h venus.private.h venusvol.h\
-	vproc.h worker.h $(HFILES)
+fso0.o: fso0.cc advice.h advice_daemon.h comm.h commands.h fso.h\
+	hdb.h local.h mariner.h simulate.h user.h venus.private.h\
+	venusvol.h vproc.h worker.h $(HFILES)
 
 fso1.o: fso1.cc advice.h comm.h fso.h local.h mariner.h simulate.h user.h \
 	venusrecov.h venus.private.h venusvol.h vproc.h worker.h \
@@ -168,11 +174,15 @@ mariner.o: mariner.cc mariner.h venus.private.h comm.h fso.h simulate.h\
 venusrecov.o: venusrecov.cc venusrecov.h venus.private.h local.h\
 	fso.h hdb.h mariner.h worker.h $(HFILES)
 
-sighand.o: sighand.cc sighand.h venus.private.h comm.h venusrecov.h\
-	worker.h mariner.h $(HFILES)
+sighand.o: sighand.cc sighand.h venus.private.h advice_daemon.h \
+	comm.h venusrecov.h worker.h mariner.h $(HFILES)
 
 simulate.o: simulate.cc simulate.h venus.private.h fso.h venusrecov.h\
 	vproc.h $(HFILES)
+
+spool.o: spool.cc
+
+tallyent.o: tallyent.cc tallyent.h $(HFILES)
 
 user.o: user.cc user.h venus.private.h comm.h hdb.h mariner.h\
 	worker.h $(HFILES)
@@ -246,5 +256,8 @@ faketrace.o: faketrace.c
 
 testjmp: testjmp.cc
 	$(CXX) $(CXXFLAGS) -o testjmp testjmp.cc
+
+testtallyent: tallyent.cc tallyent.h
+	$(CXX) $(CXXFLAGS) -DTESTING -o testtallyent ${srcdir}/tallyent.cc ${LIBUTIL}
 
 include $(MAKDIR)/configs/Makerules

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/src/coda-4.0.1/RCSLINK/./coda-src/venus/binding.h,v 1.1 1996/11/22 19:11:40 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/binding.h,v 4.1 97/01/08 21:51:18 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -75,11 +75,16 @@ class binding {
     void *binder;
     dlink bindee_handle;
     void *bindee;
+    int referenceCount;
 
     binding();
     binding(binding& b) { abort(); }	/* not supported! */
     operator=(binding&) { abort(); }	/* not supported! */
     ~binding();
+
+    IncrRefCount() { referenceCount++; }
+    DecrRefCount() { referenceCount--; }
+    GetRefCount() { return(referenceCount); }
 
     void print() { print(stdout); }
     void print(FILE *fp) { fflush(fp); print(fileno(fp)); }

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/comm.cc,v 4.7 1997/09/23 17:55:21 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/comm.cc,v 4.8 97/10/09 21:47:26 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -82,6 +82,8 @@ extern "C" {
 #include <se.h>
 #include <fail.h>
 
+#include <errors.h>
+
 extern int Fcon_Init(); 
 extern void SFTP_SetDefaults (SFTP_Initializer *initPtr);
 extern void SFTP_Activate (SFTP_Initializer *initPtr);
@@ -111,10 +113,8 @@ extern void SFTP_Activate (SFTP_Initializer *initPtr);
 #include "venusvm.h"
 #include "venusvol.h"
 #include "vproc.h"
+#include "advice_daemon.h"
 
-
-/* Temporary!  Move to inconsist.h! -JJK */
-#define	EINCOMPATIBLE	198
 
 int COPModes = 6;	/* ASYNCCOP2 | PIGGYCOP2 */
 int UseMulticast = 0;
@@ -1185,6 +1185,7 @@ int srvent::Connect(RPC2_Handle *cidp, int *authp, vuid_t vuid, int Force) {
 	    eprint("%s down", name);
 	    Reset();
 	    VSGDB->DownEvent(host);
+  	    NotifyUsersOfServerDownEvent(name);
 	}
     }
 
@@ -1289,6 +1290,7 @@ void srvent::ServerError(int *codep) {
 		eprint("%s down", name);
 		Reset();
 		VSGDB->DownEvent(host);
+		NotifyUsersOfServerDownEvent(name);
 		break;
 
 	    case ERETRY:
@@ -1315,6 +1317,7 @@ void srvent::ServerUp(RPC2_Handle newconnid) {
 	eprint("%s up", name);
 	connid = newconnid;
 	VSGDB->UpEvent(host);
+	NotifyUsersOfServerUpEvent(name);
     }
     else if (connid == -1) {
 	/* Initial case.  */
@@ -1477,18 +1480,21 @@ long srvent::GetBandwidth(long *Bandwidth) {
 	bw != UNSET_BW && bw <= WCThresh) {
 	eprint("%s connection is weak", name);
 	VSGDB->WeakEvent(host);
+        NotifyUsersOfServerWeakEvent(name);
     }
     else if (oldbw != UNSET_BW && oldbw <= WCThresh && bw > WCThresh) {
 	eprint("%s connection is strong", name);
 	VSGDB->StrongEvent(host);
+        NotifyUsersOfServerStrongEvent(name);
     }
 	
     *Bandwidth = bw;
     if (bw != oldbw) {
 	MarinerLog("Bandwidth %s (%d) --> %d B/s\n", name, newEntries, bw);
-	LOG(100, ("srvent::GetBandwidth (%s) returns %d bytes/sec\n",
-		       name, *Bandwidth));
+        NotifyUsersOfServerBandwidthEvent(name,*Bandwidth);
     }
+    LOG(100, ("srvent::GetBandwidth (%s) returns %d bytes/sec\n",
+	      name, *Bandwidth));
     return(0);
 }
 
@@ -1543,12 +1549,17 @@ long srvent::InitBandwidth(long b) {
 	(bw != UNSET_BW && bw <= WCThresh)) {
 	eprint("%s connection is weak", name);
 	VSGDB->WeakEvent(host);
+        NotifyUsersOfServerWeakEvent(name);
     }
     else if ((oldbw != UNSET_BW && oldbw <= WCThresh) && 
 	     (bw == UNSET_BW || bw > WCThresh)) {
 	eprint("%s connection is strong", name);
 	VSGDB->StrongEvent(host);
+        NotifyUsersOfServerStrongEvent(name);
     }
+
+    NotifyUsersOfServerBandwidthEvent(name,bw);
+
     return(rc);
 }
 

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/hdb.cc,v 4.3 1997/03/06 21:04:54 lily Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/hdb.cc,v 4.4 97/12/01 17:27:47 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -99,6 +99,7 @@ extern "C" {
 #include "hdb.h"
 #include "mariner.h"
 #include "simulate.h"
+#include "tallyent.h"
 #include "user.h"
 #include "venus.private.h"
 #include "venusrecov.h"
@@ -196,7 +197,14 @@ void HDB_Init() {
 
 
 PRIVATE int HDB_HashFN(void *key) {
-    return(((hdb_key *)key)->vid + ((int *)(((hdb_key *)key)->name))[0]);
+    int value = ((hdb_key *)key)->vid;
+
+    /*    return(((hdb_key *)key)->vid + ((int *)(((hdb_key *)key)->name))[0]); */
+
+    for (int i=0; i < strlen(((hdb_key *)key)->name); i++) {
+      value += (int)((((hdb_key *)key)->name)[i]);
+    }
+    return(value);
 }
 
 
@@ -228,6 +236,7 @@ void hdb::ResetTransient() {
     htab.SetHFn(HDB_HashFN);
     prioq = new bstree(NC_PriorityFN);
     NumHoardWalkAdvice = 0;
+
     SolicitAdvice = -1;
 }
 
@@ -335,6 +344,7 @@ int hdb::Delete(hdb_delete_msg *m) {
 
 
 /* cuid = ALL_UIDS is a wildcard meaning "clear all entries." */
+extern FILE *logFile;
 int hdb::Clear(hdb_clear_msg *m) {
     LOG(10, ("hdb::Clear: <%d, %d>\n", m->cuid, m->ruid));
 
@@ -345,17 +355,18 @@ int hdb::Clear(hdb_clear_msg *m) {
 	return(EACCES);
     }
 
-    hdb_iterator next(m->cuid);
-    hdbent *h = next();
-    while (h != 0) {
-	hdbent *succ = next();
-
-	ATOMIC(
+    /* Reorganized this loop to move the ATOMIC wrapper around the loop, rather
+       than around the delete within.  Otherwise, clearing a large database of
+       hoard entries is painfully slow!   mre (10/97) */
+    ATOMIC(
+        hdb_iterator next(m->cuid);
+	hdbent *h = next();
+	while (h != 0) {
+	    hdbent *succ = next();
 	    delete h;
-	, MAXFP)
-
-	h = succ;
-    }
+	    h = succ;
+	}
+    , MAXFP)
     RecovSetBound(DMFP);
 
     return(0);
@@ -417,52 +428,12 @@ long hdb::GetDemandWalkTime() {
   return(HDB->TimeOfLastDemandWalk);
 }
 
-void hdb::RequestHoardWalkAdvice() {
+int hdb::MakeAdviceRequestFile(char *HoardListFileName) {
     FILE *HoardListFILE;
-    FILE *HoardAdviceFILE;
-    char HoardListFileName[256];
-    char HoardAdviceFileName[256];
-    char VolMountPath[256];
-    char ObjWithinVolume[256];
-    userent *u;
-    bstree_iterator next(*FSDB->prioq, BstDescending);
-    bsnode *b = 0;
-    ViceFid fid;
-    fsobj *g;
-    int estimatedCost;
-    char estimatedCostString[16];
-    int estimatedBlockDiff;
 
-    LOG(100, ("E hdb::RequestHoardWalkAdvice()\n"));
-    ReceivedAdvice = 0;
-
-    /* Can only solicit advice if root or authorized user. */ 
-    if (SolicitAdvice != V_UID && !AuthorizedUser(SolicitAdvice)) {
-        LOG(100, ("hdb::RequestHoardWalkAdvice(): (%d) not authorized\n", SolicitAdvice));
-        return;
-    }
-
-    /* Ensure that we can request advice and that the user is running an advice monitor */
-    GetUser(&u, SolicitAdvice);
-    assert(u != NULL);
-    if (!AdviceEnabled) {
-        LOG(100, ("ADMON STATS:  HW Advice NOT enabled.\n"));
-        u->AdviceNotEnabled();
-        return;
-    }
-    if (u->IsAdviceValid(1) != TRUE) {
-        LOG(100, ("ADMON STATS:  HW Advice NOT valid. (uid = %d)\n", SolicitAdvice));
-        return;
-    }
-    LOG(100, ("RequestHoardWalkAdvice: User running an advice monitor\n"));
-
-    /* Setup files for the list of fsobj and the resulting advice */
-    sprintf(HoardListFileName, "%s%d", HOARDLIST_FILENAME, NumHoardWalkAdvice);
     HoardListFILE = fopen(HoardListFileName, "w");
     assert(HoardListFILE != NULL);
-    sprintf(HoardAdviceFileName, "%s%d", HOARDADVICE_FILENAME, NumHoardWalkAdvice++);
 
-    LOG(100, ("RequestHoardWalkAdvice: Generating initial stats\n"));
     /* Generate the initial cache state statistics */
     fprintf(HoardListFILE, "Cache Space Allocated: %d files (%d blocks)\n", 
 	FSDB->MaxFiles, FSDB->MaxBlocks);
@@ -473,8 +444,8 @@ void hdb::RequestHoardWalkAdvice() {
     /* this should be for only those servers represented in hdb! */
     long bw = UNSET_BW;
     {
-	unsigned long sum;
-	int nservers; 
+	unsigned long sum = 0;
+	int nservers = 0; 
 	srv_iterator next;
 	srvent *s;
 	while (s = next()) {
@@ -493,14 +464,23 @@ void hdb::RequestHoardWalkAdvice() {
         fprintf(HoardListFILE, "Speed of Network Connection = unknown\n");
 
     /* Create the list of fsobjs to be sent to the advice monitor */
-    LOG(100, ("RequestHoardWalkAdvice: Creating list\n"));
+    VprocYield();
   {
+      char ObjWithinVolume[256];
+      bstree_iterator next(*FSDB->prioq, BstDescending);
+      bsnode *b = 0;
+      int estimatedCost;
+      char estimatedCostString[16];
+      int estimatedBlockDiff;
       int invalid = 0;
       int valid = 0;
-	  int canask = 0;
-	  int cannotask = 0;
+      int canask = 0;
+      int cannotask = 0;
+      int nonempty = 0;
+      int numIterations = 0;
 
-    while (b = next()) {
+      while (b = next()) {
+	numIterations++;
         fsobj *f = strbase(fsobj, b, prio_handle);
 	assert(f != NULL);
 
@@ -531,14 +511,17 @@ void hdb::RequestHoardWalkAdvice() {
 		    /* Cannot determine automatically; give user choice.*/
                     f->SetFetchAllowed(HF_DontFetch);
         	    fprintf(HoardListFILE, "%x.%x.%x & 0 & %s & %d & %s & %d\n", f->fid.Volume, f->fid.Vnode, f->fid.Unique, ObjWithinVolume, f->HoardPri, estimatedCostString, estimatedBlockDiff);
+		    nonempty++;
 		    break;
 	        case 1:
 		    /* Determine object should DEFINITELY be fetched. */
 		    f->SetFetchAllowed(HF_Fetch);
 		    fprintf(HoardListFILE, "%x.%x.%x & 1 & %s & %d & %s & %d\n", f->fid.Volume, f->fid.Vnode, f->fid.Unique, ObjWithinVolume, f->HoardPri, estimatedCostString, estimatedBlockDiff);
+		    nonempty++;
 		    break;
  	        default:
-	            LOG(0, ("RequestHoardWalkAdvice:  Invalid return value from PredetermineFetchState().\n"));
+		    // PredetermineFetchState must be broken
+		    assert(1 == 0);
 		    break;
 	    }
 
@@ -549,28 +532,73 @@ void hdb::RequestHoardWalkAdvice() {
              * call PredetermineFetchState..
              */
         } else { cannotask++; }
-    }
 
-    LOG(100, ("RequestHoardWalkAdvice: Statistics: invalid=%d valid=%d (canask=%d, cannotask=%d)\n", invalid, valid, canask, cannotask));
+	if ((numIterations & 100) == 0) {
+	    LOG(0, ("About to yield (live dangerously)\n"));
+	    VprocYield();
+	    LOG(0, ("Returned from dangerous yield\n"));
+	}
+
+      }
+    VprocYield();
+
+    if (!nonempty) return(-1);
   }
     fflush(HoardListFILE);
     fclose(HoardListFILE);
 
+    return(0);
+}
+
+void hdb::RequestHoardWalkAdvice() {
+    FILE *HoardAdviceFILE;
+    char HoardAdviceFileName[256];
+    char HoardListFileName[256];
+    userent *u;
+    ViceFid fid;
+    fsobj *g;
+    int rc;
+
+    ReceivedAdvice = 0;
+
+    /* Can only solicit advice if root or authorized user. */ 
+    if (SolicitAdvice != V_UID && !AuthorizedUser(SolicitAdvice)) {
+        LOG(0, ("hdb::RequestHoardWalkAdvice(): (%d) not authorized\n", SolicitAdvice));
+        return;
+    }
+
+    /* Ensure that we can request advice and that the user is running an advice monitor */
+    GetUser(&u, SolicitAdvice);
+    assert(u != NULL);
+    if (!AdviceEnabled) {
+        LOG(200, ("ADMON STATS:  HW Advice NOT enabled.\n"));
+        u->AdviceNotEnabled();
+        return;
+    }
+    if (u->IsAdviceValid(HoardWalkAdviceRequestID, 1) != TRUE) {
+        LOG(200, ("ADMON STATS:  HW Advice NOT valid. (uid = %d)\n", SolicitAdvice));
+        return;
+    }
+
+    /* Generate filenames for the list of fsobj and the resulting advice */
+    sprintf(HoardListFileName, "%s%d", HOARDLIST_FILENAME, NumHoardWalkAdvice);
+    sprintf(HoardAdviceFileName, "%s%d", HOARDADVICE_FILENAME, NumHoardWalkAdvice++);
+
+    /* Make the file containing our questions to give the the advice monitor */
+    rc = MakeAdviceRequestFile(HoardListFileName);
+    if (rc == -1) return;
+
     /* Trigger the advice monitor */
-    LOG(100, ("RequestHoardWalkAdvice: Requesting advice\n"));
     u->RequestHoardWalkAdvice(HoardListFileName, HoardAdviceFileName);
-    LOG(100, ("RequestHoardWalkAdvice: Dealing with advice\n"));
 
     /* Deal with the advice and continue our walk */
     HoardAdviceFILE = fopen(HoardAdviceFileName, "r");
     if (HoardAdviceFILE == NULL) {
         /* What to do if there is no resulting advice? */
-        LOG(100,("RequestHoardWalkAdvice:: No advice!\n"));
-	ReceivedAdvice = 1;
+        LOG(0,("RequestHoardWalkAdvice:: No advice!\n"));
 	return;
     }
     
-    LOG(100, ("RequestHoardWalkAdvice: Reading advice file\n"));
     while (!feof(HoardAdviceFILE)) {
 	int ask_state;
         fscanf(HoardAdviceFILE, "%x.%x.%x %d\n", &(fid.Volume), &(fid.Vnode), &(fid.Unique), &ask_state);
@@ -579,26 +607,39 @@ void hdb::RequestHoardWalkAdvice() {
             continue;   // The object has appearently disappeared...
         else {
             if (ask_state == 2) {
+	      LOG(200, ("RequestHoardWalkAdvice: setting %x.%x.%x to fetch, but don't ask\n", fid.Volume, fid.Vnode, fid.Unique));
                 g->SetAskingAllowed(HA_DontAsk);
                 g->SetFetchAllowed(HF_Fetch);
             } else if (ask_state == 1) {
-                g->SetAskingAllowed(HA_DontAsk);
-                g->SetFetchAllowed(HF_DontFetch);
-            } else {
-                g->SetFetchAllowed(HF_Fetch);
-            }
+	      LOG(200, ("RequestHoardWalkAdvice: setting %x.%x.%x to don't fetch/don't ask\n", fid.Volume, fid.Vnode, fid.Unique));
+	      g->SetAskingAllowed(HA_DontAsk);
+	      g->SetFetchAllowed(HF_DontFetch);
+            } else if (ask_state == 0) {
+	      LOG(200, ("RequestHoardWalkAdvice: setting %x.%x.%x to fetch\n", fid.Volume, fid.Vnode, fid.Unique));
+	      g->SetFetchAllowed(HF_Fetch);
+            } else if (ask_state == 3) {
+	      LOG(200, ("RequestHoardWalkAdvice: setting %x.%x.%x to don't fetch\n", fid.Volume, fid.Vnode, fid.Unique));
+	      g->SetFetchAllowed(HF_DontFetch);
+	    } else {
+	      LOG(0, ("RequestHoardWalkAdvice: Unrecognized result of %d from advice monitor for %x.%x.%x (will fetch anyway)\n", ask_state, fid.Volume, fid.Vnode, fid.Unique));
+	      g->SetFetchAllowed(HF_Fetch);
+	    }
         }
+
+	// This yield is safe.
+	// We are finished using g and depend only upon our input file,
+	// which nobody else is mucking around with.
+	VprocYield();
     }
     fclose(HoardAdviceFILE);
-    LOG(100, ("RequestHoardWalkAdvice: Read advice file\n"));
 
     ReceivedAdvice = 1;
-    LOG(100, ("L hdb::RequestHoardWalkAdvice()\n"));
 }
 
 /* Ensure status is valid for all cached objects. */
-void hdb::ValidateCacheStatus(vproc *vp, int *interrupt_failures) {
+void hdb::ValidateCacheStatus(vproc *vp, int *interrupt_failures, int *statusBytesFetched) {
     int validations = 0;
+
     fso_iterator next(NL);
     fsobj *f, *g;
     while (f = next()) {
@@ -628,16 +669,23 @@ void hdb::ValidateCacheStatus(vproc *vp, int *interrupt_failures) {
 	    fsobj *tf = 0;
 	    vp->u.u_error = FSDB->Get(&tf, &tfid,
 				      CRTORUID(vp->u.u_cred), RC_STATUS);
+
+	    if (tf != NULL)
+	        statusBytesFetched += tf->stat.Length;
+
 	    FSDB->Put(&tf);
 	    int retry_call = 0;
 	    vp->End_VFS(&retry_call);
+
 	    if (!retry_call) break;
+
         }
 
 	if (vp->u.u_error == EINCONS)
 	    k_Purge(&tfid, 1);
 	LOG(1, ("hdb::Walk: vget returns %s\n",
 		VenusRetStr(vp->u.u_error)));
+
 
 	/* Yield periodically. */
 	validations++;
@@ -781,7 +829,22 @@ void hdb::WalkPriorityQueue(vproc *vp, int *expansions, int *enospc_failure) {
     }
 }
 
-void hdb::StatusWalk(vproc *vp) {
+int hdb::CalculateTotalBytesToFetch() {
+    int total = 0;
+
+    fso_iterator next(NL);
+    fsobj *f;
+    while (f = next()) {
+        assert(f != NULL);
+        if (DATAVALID(f)) continue;
+	total += f->stat.Length;
+    }
+    LOG(100, ("L hdb::CalculateTotalBytesToFetch() returning %d\n", total));
+    return(total);
+}
+
+
+void hdb::StatusWalk(vproc *vp, int *TotalBytesToFetch) {
     MarinerLog("cache::BeginStatusWalk [%d]\n   [%d, %d, %d, %d] [%d]\n",
 	       FSDB->htab.count(),
 	       ValidCount, SuspectCount, IndigentCount, InconsistentCount,
@@ -793,6 +856,9 @@ void hdb::StatusWalk(vproc *vp) {
     int expansions = 0;
     int enospc_failure;
     int interrupt_failures = 0;  /* Count times object disappears during Yield */
+
+    int statusBytesFetched = 0;  /* Count of bytes of status blocks we fetched */
+    int dataBytesToFetch = 0;    /* Count of bytes of data we need to fetch */
     
     /* An iteration of this outer loop brings the cache into status equilibrium */
     /* PROVIDED that no new suspect transitions occurred in the process. */
@@ -802,12 +868,15 @@ void hdb::StatusWalk(vproc *vp) {
 	enospc_failure = 0;
 
 	/* Ensure status is valid for all cached objects. */
-	ValidateCacheStatus(vp, &interrupt_failures);
+	ValidateCacheStatus(vp, &interrupt_failures, &statusBytesFetched);
 
 	/* Walk the priority queue.  Enter clean-up mode upon ENOSPC failure. */
 	WalkPriorityQueue(vp, &expansions, &enospc_failure);
 
     } while (SuspectCount > 0 && iterations < MAX_SW_ITERATIONS);
+
+    *TotalBytesToFetch = CalculateTotalBytesToFetch() + statusBytesFetched;
+    NotifyUsersOfHoardWalkProgress(statusBytesFetched, *TotalBytesToFetch);
 
     END_TIMING();
     LOG(100, ("hdb::StatusWalk: iters= %d, exps= %d, elapsed= %3.1f, intrpts= %d\n",
@@ -852,7 +921,18 @@ void hdb::StatusWalk(vproc *vp) {
 	eprint("MAX_SW_ITERATIONS (%d) reached!!!", MAX_SW_ITERATIONS);
 }
 
-void hdb::DataWalk(vproc *vp) {
+void TallyAllHDBentries(dlist *hdb_bindings, int blocks, TallyStatus status) {
+  dlist_iterator next_hdbent(*hdb_bindings);
+  dlink *d;
+
+  while (d = next_hdbent()) {
+    binding *b = strbase(binding, d, bindee_handle);
+    namectxt *nc = (namectxt *)b->binder;
+    Tally(nc->GetPriority(), nc->GetUid(), blocks, status);
+  }
+}
+
+void hdb::DataWalk(vproc *vp, int TotalBytesToFetch) {
     MarinerLog("cache::BeginDataWalk [%d]\n",
 	       FSDB->blocks);
     START_TIMING();
@@ -867,13 +947,31 @@ void hdb::DataWalk(vproc *vp) {
 	iterate = 0;
 	enospc_failure = 0;
 
+	LOG(0, ("DataWalk:  Restarting Iterator!!!!  Reset availability status information.\n"));
+	InitTally();  // Delete old list and start over
+	TallyPrint(PrimaryUser);		   
+
 	bstree_iterator next(*FSDB->prioq, BstDescending);
 	bsnode *b = 0;
 	while (b = next()) {
 	    fsobj *f = strbase(fsobj, b, prio_handle);
+	    assert(f != NULL);
+	    int blocks = BLOCKS(f);
 
-	    if (!HOARDABLE(f) || DATAVALID(f)) continue;
-	    if ((ReceivedAdvice) && (!f->IsFetchAllowed())) continue;
+	    if (!HOARDABLE(f)) continue;
+
+	    if (DATAVALID(f)) {
+	      LOG(200, ("AVAILABLE:  fid=<%x,%x,%x> comp=%s priority=%d blocks=%d\n", 
+		      f->fid.Volume, f->fid.Vnode, f->fid.Unique, f->comp, f->priority, blocks));
+	      TallyAllHDBentries(f->hdb_bindings, blocks, TSavailable);
+	      continue;
+	    }
+	    if ((ReceivedAdvice) && (!f->IsFetchAllowed())) {
+	      LOG(200, ("UNAVAILABLE (fetch not allowed):  fid=<%x,%x,%x> comp=%s priority=%d blocks=%d\n", 
+		      f->fid.Volume, f->fid.Vnode, f->fid.Unique, f->comp, f->priority, blocks));
+	      TallyAllHDBentries(f->hdb_bindings, blocks, TSunavailable);
+	      continue;
+	    }
 
 	    /* Set up uarea. */
 	    vp->u.Init();
@@ -935,6 +1033,20 @@ void hdb::DataWalk(vproc *vp) {
 		iterate = 1;
 		break;
 	    }
+
+	    /* Record availability of this object. */
+	    assert(f != 0);
+	    blocks = BLOCKS(f);
+	    if (DATAVALID(f)) {
+	      LOG(100, ("AVAILABLE (fetched):  fid=<%x.%x.%x> comp=%s priority=%d blocks=%d\n", 
+		      f->fid.Volume, f->fid.Vnode, f->fid.Unique, f->comp, f->priority, blocks));
+	      TallyAllHDBentries(f->hdb_bindings, blocks, TSavailable);
+	      NotifyUsersOfHoardWalkProgress(f->stat.Length, TotalBytesToFetch);
+	    } else {
+	      LOG(100, ("UNAVAILABLE (fetch failed):  fid=<%x.%x.%x> comp=%s priority=%d blocks=%d\n",
+		      f->fid.Volume, f->fid.Vnode, f->fid.Unique, f->comp, f->priority, blocks));
+	      TallyAllHDBentries(f->hdb_bindings, blocks, TSunavailable);
+	    }
 	}
     }
 
@@ -952,11 +1064,32 @@ void hdb::DataWalk(vproc *vp) {
 	 */
 	bstree_iterator next(*FSDB->prioq, BstDescending);
 	bsnode *b = 0;
+	InitTally();
 	while (b = next()) {
             fsobj *f = strbase(fsobj, b, prio_handle);
+	    assert(f != NULL);
+	    int blocks = (int)BLOCKS(f);
 
-	    if (!HOARDABLE(f) || DATAVALID(f)) continue;
-	    
+	    if (!HOARDABLE(f)) continue;
+
+	    if (DATAVALID(f)) {
+	      LOG(200, ("AVAILABLE:  fid=<%x,%x,%x> comp=%s priority=%d blocks=%d\n", 
+		      f->fid.Volume, f->fid.Vnode, f->fid.Unique, f->comp, f->priority, blocks));
+	      TallyAllHDBentries(f->hdb_bindings, blocks, TSavailable);
+	      continue;
+	    }
+
+	    if ((ReceivedAdvice) && (!f->IsFetchAllowed())) {
+	      LOG(200, ("UNAVAILABLE:  fid=<%x,%x,%x> comp=%s priority=%d blocks=%d\n", 
+		      f->fid.Volume, f->fid.Vnode, f->fid.Unique, f->comp, f->priority, blocks));
+	      TallyAllHDBentries(f->hdb_bindings, blocks, TSunavailable);
+	      continue;
+	    }
+
+	    LOG(200, ("UNAVAILABLE:  fid=<%x,%x,%x> comp=%s priority=%d blocks=%d\n", 
+		    f->fid.Volume, f->fid.Vnode, f->fid.Unique, f->comp, f->priority, blocks));
+	    TallyAllHDBentries(f->hdb_bindings, blocks, TSunavailable);
+
 	    if (indigent_fsobjs == 0) {
 		char path[MAXPATHLEN];
 		f->GetPath(path);
@@ -966,7 +1099,7 @@ void hdb::DataWalk(vproc *vp) {
 	    }
 	    
 	    indigent_fsobjs++;
-	    indigent_blocks += (int) BLOCKS(f);
+	    indigent_blocks += blocks;
 	}
 	if (indigent_fsobjs == 0)
 	    eprint("hdb::Walk: enospc_failure but no indigent fsobjs on queue");
@@ -978,8 +1111,47 @@ void hdb::DataWalk(vproc *vp) {
 	       indigent_fsobjs, indigent_blocks, ibuf);
 }
 
+
+void hdb::PostWalkStatus() {
+
+    bstree_iterator prioq_next(*prioq, BstDescending);
+    bsnode *b = 0;
+    while (b = prioq_next()) {
+      namectxt *n = strbase(namectxt, b, prio_handle);
+
+      switch (n->state) {
+          case PeValid:
+              LOG(200, ("Valid: uid=%d priority=d\n", (int)n->vuid, n->priority));
+	      break;
+          case PeSuspect:
+              LOG(200, ("Suspect: uid=%d priority=d\n", (int)n->vuid, n->priority));
+	      Tally(n->priority, n->vuid, 0, TSunknown);
+	      break;
+          case PeIndigent:
+              LOG(200, ("Indigent: uid=%d priority=d\n", (int)n->vuid, n->priority));
+	      break;
+          case PeInconsistent:
+              LOG(200, ("Inconsistent: uid=%d priority=d\n", (int)n->vuid, n->priority));
+	      Tally(n->priority, n->vuid, 0, TSunknown);
+	      break;
+      }  
+    }    
+
+    TallyPrint(PrimaryUser);
+
+    NotifyUsersTaskAvailability();
+
+    return;
+}
+
+
 int hdb::Walk(hdb_walk_msg *m) {
     LOG(10, ("hdb::Walk: <%d>\n", m->ruid));
+
+    int TotalBytesToFetch = 0;
+    int TotalBytesFetched = 0;
+
+    NotifyUsersOfHoardWalkBegin();
 
     vproc *vp = VprocSelf();
 
@@ -992,17 +1164,22 @@ int hdb::Walk(hdb_walk_msg *m) {
 
     /* 2. Bring the cache into STATUS equilibrium. */
     /*    (i.e., validate/expand hoard entries s.t. priority and resource constraints) */
-    StatusWalk(vp);
+    StatusWalk(vp, &TotalBytesToFetch);
 
     /* 2b.  Request advice regarding what to fetch */
     RequestHoardWalkAdvice();
 
     /* 3. Bring the cache into DATA equilibrium. */
     /*    (i.e., fetch data for hoardable, cached, dataless objects, s.t. priority and resource constraints) */
-    DataWalk(vp);
+    DataWalk(vp, TotalBytesToFetch);
 
     /* make sure files are really here. */
     RecovFlush(1);
+
+    /* Determine the post-walk status. */
+    PostWalkStatus();
+
+    NotifyUsersOfHoardWalkEnd();
 
     return(0);
 }
@@ -1057,6 +1234,7 @@ int hdb::Enable(hdb_walk_msg *m) {
 
     eprint("Enabling periodic hoard walks");
     PeriodicWalksAllowed = 1;
+    NotifyUsersOfHoardWalkPeriodicOn();
     return 0;
 }
 
@@ -1067,6 +1245,7 @@ int hdb::Disable(hdb_walk_msg *m) {
 
     eprint("Disabling periodic hoard walks");
     PeriodicWalksAllowed = 0;
+    NotifyUsersOfHoardWalkPeriodicOff();
     return 0;
 }
 
@@ -1074,9 +1253,16 @@ int hdb::Disable(hdb_walk_msg *m) {
 void hdb::ResetUser(vuid_t vuid) {
     hdb_iterator next;
     hdbent *h;
-    while (h = next())
-	if (h->vuid == vuid)
-	    h->nc->Demote(1);
+    LOG(100, ("E hdb::ResetUser()\n"));
+    while (h = next()) {
+      assert(h != NULL);
+      if (h->vuid == vuid) {
+	assert(h->nc != NULL);
+	h->nc->Demote(1);
+      }
+    }
+
+    LOG(100, ("L hdb::ResetUser()\n"));
 }
 
 
@@ -1092,8 +1278,15 @@ void hdb::print(int fd, int SummaryOnly) {
     if (!SummaryOnly) {
 	hdb_iterator next;
 	hdbent *h;
-	while (h = next())
+	while (h = next()) {
 	    h->print(fd);
+	    /*
+	      fdprint(fd, "\tList of namectxts for this hdbent:\n");
+	      if (h->nc != NULL)
+	        h->nc->print(fd);
+	     */
+	}
+
     }
 
     fdprint(fd, "\n");
@@ -1171,6 +1364,7 @@ hdbent::~hdbent() {
     hdb_key key(vid, path);
     if (HDB->htab.remove(&key, &tbl_handle) != &tbl_handle)
 	{ print(logFile); Choke("hdbent::~hdbent: htab remove"); }
+
 
     /* Release path. */
     RVMLIB_REC_FREE(path);
@@ -1478,6 +1672,7 @@ namectxt::~namectxt() {
 	dlink *d = 0;
 	while (d = expansion.first()) {
 	    binding *b = strbase(binding, d, binder_handle);
+	    assert(b != NULL);
 
 	    /* Detach the bindee if necessary. */
 	    fsobj *f = (fsobj *)b->bindee;
@@ -1487,6 +1682,13 @@ namectxt::~namectxt() {
 	    /* Detach the binder. */
 	    if (expansion.remove(&b->binder_handle) != &b->binder_handle)
 		{ print(logFile); Choke("namectxt::~namectxt: remove failed"); }
+
+	    if (children != NULL) {
+	      if (children->IsMember(d) == 1) {
+	          LOG(0, ("namectxt::~namectxt:  why don't we remove elements off of the children list??\n"));
+	      }
+	    }
+
 	    b->binder = 0;
 
 	    delete b;
@@ -1649,12 +1851,14 @@ void namectxt::Transit(enum pestate new_state) {
 
 /* Recursively kills expanded children. */
 void namectxt::Kill() {
+
     if (dying) return;
     dying = 1;
 
     /* Murder all children (even if this context is still in use). */
     if (expand_children || expand_descendents) {
 	KillChildren();
+
 	delete children;
 	children = 0;
     }
@@ -1721,6 +1925,16 @@ void namectxt::Demote(int recursive) {
     demote_pending = 0;
 }
 
+
+/* 
+ * CheckExpansion()expands the path of the namectxt.  The call to namev
+ * does a component-by-component lookup of the path.  Each of these 
+ * lookups causes us to call CheckComponent.  Each call to CheckComponent
+ * results in...???
+ * If the call to namev succeeds, then we attempt to MetaExpand this
+ * namectxt.  After meta-expansion, we transition to a new state (if
+ * appropriate) and clean-up if we encountered any serious errors.
+ */
 
 /* Name-context MUST be held upon entry! */
 /* Result is returned in u.u_error. */
@@ -1914,6 +2128,21 @@ struct MetaExpandHook {
     dlist *new_children;
 };
 
+/* 
+ * This MetaExpand routine takes the MetaExpandHook data structure (which contains
+ * a parent namectxt and a new list of children expansions) and a pathname.  (Yes,
+ * it completely ignores the vnode and vunique parameters.)  
+ *
+ * It then iterates through the parent namectxt's list of children looking for
+ * a match between the final component of the child's path and the pathname 
+ * sent in as a parameter.  If it finds such a match, it moves the child namectxt
+ * off of the parent's list of children and onto what will become the parent's
+ * new list of children, and then it returns.  If not such match is found, it
+ * creates a new namectxt for this name and inserts it into what will become
+ * the parent's new list of children.
+ *
+ * This routine is called from ::EnumerateDir (which appears in ../dir/dir.cc).
+ */
 void MetaExpand(long hook, char *name, long vnode, long vunique) {
     /* Skip "." and "..". */
     if (STREQ(name, ".") || STREQ(name, ".."))
@@ -1949,6 +2178,13 @@ void MetaExpand(long hook, char *name, long vnode, long vunique) {
     new_children->insert(&child->child_link);
 }
 
+/* 
+ * MetaExpand() controls the meta-expansion of a namectxt.  We only expand
+ * an entry when there is good reason to do so.  The real work of meta-expansion
+ * is done by dir/dir.cc's EnumerateDir() routine, which calls MetaExpand(<with args>)
+ * on each child of the directory (see above).
+ */
+
 /* This is called only when a fully bound context has just transitted to PeValid! */
 void namectxt::MetaExpand() {
     if (!expand_children && !expand_descendents)
@@ -1957,6 +2193,9 @@ void namectxt::MetaExpand() {
     LOG(10, ("namectxt::MetaExpand: (%x.%x.%x, %s)\n",
 	      cdir.Volume, cdir.Vnode, cdir.Unique, path));
 
+    /* ?MARIA?  So what's the order of the expansion list.  
+       Why is the last element the interesting one?
+    */
     dlink *d = expansion.last();
     if (d == 0)
 	{ print(logFile); Choke("namectxt::MetaExpand: no bindings"); }
@@ -1975,9 +2214,23 @@ void namectxt::MetaExpand() {
     if (!FID_EQ(expander_fid, f->fid))
 	KillChildren();
 
+    /* ?MARIA?  Is it possible for the fid's to be different but the VV's to be the same
+       or the data versions be the same?
+    */
+
     /* Meta-expand only if current version of directory differs from last expanded version. */
     if ((f->flags.replicated && VV_Cmp(&expander_vv, &f->stat.VV) != VV_EQ) ||
 	 (!f->flags.replicated && expander_dv != f->stat.DataVersion)) {
+
+      /* 
+	 ?MARIA?:  Why doesn't the KillChildren above appear here??? 
+	 Hmm.. Perhaps the difference is that if the FID has changed, we can't
+	 believe the old children list.  If the fid hasn't changed but the vv has 
+	 (or the data version has), we have some reason to suspect that the new 
+	 children list will be almost identical to the old one so we can move the
+	 old children onto a new list and save some work???
+       */
+
 	LOG(1, ("namectxt::MetaExpand: enumerating (%x.%x.%x)\n",
 		f->fid.Volume, f->fid.Vnode, f->fid.Unique));
 
@@ -2047,6 +2300,11 @@ void namectxt::CheckComponent(fsobj *f) {
     if (state != PeSuspect && state != PeIndigent && state != PeInconsistent)
 	{ print(logFile); Choke("namectxt::CheckComponent: bogus state"); }
 
+    /* 
+     * Note that next was setup before CheckExpansion called namev, which called
+     * lookup, which called us.  Next is an iterator over the expansion list of
+     * this namectxt.
+     */
     dlink *d = (next ? (*next)() : 0);
     binding *b = (d ? strbase(binding, d, binder_handle) : 0);
 
@@ -2059,6 +2317,11 @@ void namectxt::CheckComponent(fsobj *f) {
 	binding *old_b;
 	do {
 	    old_b = strbase(binding, expansion.last(), binder_handle);
+
+	    /* Decrement the reference count */
+	    if (old_b->GetRefCount > 0) {
+	      old_b->DecrRefCount();
+	    }
 
 	    /* Detach the bindee if necessary. */
 	    fsobj *f = (fsobj *)old_b->bindee;
@@ -2094,7 +2357,7 @@ void namectxt::CheckComponent(fsobj *f) {
 
 
 void namectxt::print(int fd) {
-    fdprint(fd, "cdir = (%x.%x.%x), path = %s, vuid = %d, priority = %d (%d, %d)\n",
+    fdprint(fd, "    cdir = (%x.%x.%x), path = %s, vuid = %d, priority = %d (%d, %d)\n",
 	     cdir.Volume, cdir.Vnode, cdir.Unique,
 	     path, vuid, priority, depth, random);
     fdprint(fd, "\tstate = %s, flags = [%d %d %d %d %d %d]\n",
@@ -2103,13 +2366,47 @@ void namectxt::print(int fd) {
     fdprint(fd, "\tnext = %x, parent = %x, children = %x\n",
 	     next, parent, children);
 
-    dlist_iterator bnext(expansion);
-    dlink *d;
-    while (d = bnext()) {
-	binding *b = strbase(binding, d, binder_handle);
-	fdprint(fd, "\t");
+    // MARIA:  Delete this stuff???
+    fdprint(fd, "\tcount of expansion list = %d\n", expansion.count());
+    if (expansion.count() > 0) {
+      dlist_iterator enext(expansion);
+      dlink *e;
+      while (e = enext()) {
+	binding *b = strbase(binding, e, binder_handle);
+	fdprint(fd, "\t\t");
 	b->print(fd);
+	if (b->binder != 0) 
+	  if (((namectxt *)(b->binder))->path != NULL)
+	    fdprint(fd, "\t\t\tnamectxt.path = %s", ((namectxt *)(b->binder))->path);
+	if (b->bindee != 0) 
+	  if (((fsobj *)(b->bindee))->comp != NULL)
+	    fdprint(fd, "\t\t\tfsobj.comp = %s\n",((fsobj *)(b->bindee))->comp);
+      }
     }
+
+    /* MARIA:  Delete this stuff
+    if (children) {
+      dlist_iterator cnext(*children);
+      dlink *c;
+      fdprint(fd, "\n\tcount of children list = %d\n", (*children).count());
+      while (c = cnext()) {
+	assert(c != NULL);
+	binding *b = strbase(binding, c, binder_handle);
+	fdprint(fd, "\t\t");
+	assert(b != NULL);
+	b->print(fd);
+	if (b->binder != 0) 
+	  fdprint(fd, "\t\t\tnamectxt.path = %s", ((namectxt *)(b->binder))->path);
+	if (b->bindee != 0) 
+	  fdprint(fd, "\t\t\tfsobj.comp = %s <%x.%x.%x>\n",
+		  ((fsobj *)(b->bindee))->comp, 
+		  ((fsobj *)(b->bindee))->fid.Volume,
+		  ((fsobj *)(b->bindee))->fid.Vnode,
+		  ((fsobj *)(b->bindee))->fid.Unique);
+      }
+    }
+    */
+
 }
 
 void namectxt::getpath(char *buf) {
@@ -2206,3 +2503,5 @@ hdb_key::hdb_key(VolumeId Vid, char *Name) {
     vid = Vid;
     name = Name;
 }
+
+

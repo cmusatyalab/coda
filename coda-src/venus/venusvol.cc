@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/ss/coda-src/venus/RCS/venusvol.cc,v 4.4 1997/03/06 21:04:54 lily Exp braam $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/venusvol.cc,v 4.5 97/06/14 21:48:36 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -1326,6 +1326,8 @@ void volent::SetDiscoRefCounter() {
         RVMLIB_REC_OBJECT(DiscoRefCounter);
         DiscoRefCounter = FSDB->RefCounter;
     )
+
+  LOG(0, ("DiscoRef= %d\n", DiscoRefCounter));
 }
 
 
@@ -1334,6 +1336,7 @@ void volent::UnsetDiscoRefCounter() {
         RVMLIB_REC_OBJECT(DiscoRefCounter);
         DiscoRefCounter = 0;
     )
+  LOG(0, ("DiscoRef= %d\n", DiscoRefCounter));
 }
 
 void volent::SaveCacheInfo(int uid, int hits, int misses) {
@@ -1357,6 +1360,53 @@ void volent::GetCacheInfo(int uid, int *hits, int *misses) {
     }
 }
 
+void volent::DisconnectedCacheMiss(vproc *vp, vuid_t vuid, ViceFid *fid, char *comp) {
+    userent *u;
+    char pathname[MAXPATHLEN];
+
+    GetUser(&u, vuid);
+    assert(u != NULL);
+
+    /* If advice not enabled, simply return */
+    if (!AdviceEnabled) {
+        LOG(0, ("ADMON STATS:  DMQ Advice NOT enabled.\n"));
+        u->AdviceNotEnabled();
+        return;
+    }
+
+    /* Check that:                                                     *
+     *     (a) the request did NOT originate from the Hoard Daemon     *
+     *     (b) the request did NOT originate from that AdviceMonitor,  *
+     * and (c) the user is running an AdviceMonitor,                   */
+    assert(vp != NULL);
+    if (vp->type == VPT_HDBDaemon) {
+        LOG(100, ("ADMON STATS:  DMQ Advice inappropriate.\n"));
+        return;
+    }
+    if (u->IsAdvicePGID(vp->u.u_pgid)) {
+        LOG(100, ("ADMON STATS:  DMQ Advice inappropriate.\n"));
+        return;
+    }
+    if (u->IsAdviceValid(DisconnectedCacheMissEventID, 1) != TRUE) {
+        LOG(0, ("ADMON STATS:  DMQ Advice NOT valid. (uid = %d)\n", vuid));
+        return;
+    }
+
+    /* Get the pathname */
+    GetMountPath(pathname, 0);
+    assert(fid != NULL);
+    if ((fid->Vnode != ROOT_VNODE) || (fid->Unique != ROOT_UNIQUE)) 
+        strcat(pathname, "/???");
+    if (comp) {
+        strcat(pathname, "/");
+        strcat(pathname,comp);
+    }
+
+    /* Make the request */
+    LOG(100, ("Requesting Disconnected CacheMiss Questionnaire...1\n"));
+    u->RequestDisconnectedQuestionnaire(fid, pathname, vp->u.u_pid, GetDisconnectionTime());
+
+}
 
 void volent::TriggerReconnectionQuestionnaire() {
     user_iterator next;
@@ -1369,7 +1419,7 @@ void volent::TriggerReconnectionQuestionnaire() {
     LOG(100, ("TriggerReconnectionQuestionnaire:  vid=%x, name=%s.\n", vid, name));
 
     while (u = next()) {
-        if (u->IsAdviceValid(0) == TRUE) {
+        if (u->IsAdviceValid(ReconnectionID, 0) == TRUE) {
             unique_hits = 0;
             unique_notreferenced = 0;
 
@@ -1426,9 +1476,9 @@ void volent::NotifyStateChange() {
     userent *u;
 
     LOG(100, ("NotifyStateChange:  vid=%x, name=%s.\n", vid, name));
-
+    /*
     while (u = next()) {
-        if (u->IsAdviceValid(0) == TRUE) {
+        if (u->IsAdviceValid(VolumeTransitionEventID, 0) == TRUE) {
 	    switch(state) {
 	        case Hoarding:
 	            u->NotifyHoarding(name,vid);
@@ -1445,6 +1495,7 @@ void volent::NotifyStateChange() {
 	    }
 	}
     }
+    */
 }
 
 /* local-repair modification */
@@ -1507,21 +1558,31 @@ void volent::TakeTransition() {
 	      if ((prevstate != Hoarding) && (AdviceEnabled) && (vid != LocalFakeVid))
 		  NotifyStateChange();
 
-              /*  We trigger a reconnection questionnaire request to the advice monitor     *
-               *  if we are transitioning from the Emulating state into the Hoarding state. * 
-               *  This is to catch volumes which have no modifications.  We let the advice  *
-               *  monitor decide whether or not to actually question the user.              */
+	      /* If:                                                                         *
+	       *     we were disconnected                                                    *
+	       *     the user has made some (read-only) references since disconnecting, and  *
+	       *     the volume is not a local fake volume,                                  *
+	       * then we want to collect some usage statistics for the purposes of providing *
+	       * hoard advice.                                                               *
+	       *                                                                             */
+	      if ((prevstate == Emulating) && 
+		  (FSDB->RefCounter > DiscoRefCounter) &&
+		  (vid != LocalFakeVid)) {
+		  FSDB->UpdateDisconnectedUseStatistics(this);
+	      }
+
+              /*  We trigger a reconnection questionnaire request to the advice monitor      *
+               *  if we are transitioning from the Emulating state into the Hoarding state.  * 
+               *  This is to catch volumes which have no modifications.  We let the advice   *
+               *  monitor decide whether or not to actually question the user.               */
 	      if ((prevstate == Emulating) && (AdviceEnabled) && (vid != LocalFakeVid)) 
 		  TriggerReconnectionQuestionnaire();
 
-	      /*  We turn off HoardWalkAdvice if we are transitioning back into the  *
-	       *  hoarding state from any volume.  Technically, this isn't entirely  *
-	       *  correct but it is a reasonable first attempt.                      */
-	      HDB->SetSolicitAdvice(-1);
 
 	      /* Collect Read/Write Sharing Stats */
 	      if (prevstate == Emulating)
 		RwStatUp();
+
               Signal();
               break;
 	    }
@@ -1551,12 +1612,28 @@ void volent::TakeTransition() {
 	    if (ReadyToReintegrate()) 
 		::Reintegrate(this);
 
+            /* If:                                                                         *
+	     *     we were disconnected                                                    *
+	     *     the user has made some references since disconnecting, and              *
+	     *     the volume is not a local fake volume,                                  *
+	     * then we want to collect some usage statistics for the purposes of providing *
+	     * hoard advice.                                                               *
+             *                                                                             *
+	     * N.B. Must occur *before* call to TriggerReconnectionQuestionnaire           */
+	    if ((prevstate == Emulating) && 
+		(FSDB->RefCounter > DiscoRefCounter) &&
+		(vid != LocalFakeVid)) {
+	            FSDB->UpdateDisconnectedUseStatistics(this);
+	    }
+
+
             /*  We trigger a reconnection questionnaire request to the advice monitor     *
              *  if we are transitioning from the Emulating state into the Logging state.  * 
              *  This is to catch volumes which have modifications.  We let the advice     *
              *  monitor decide whether or not to actually question the user.              */
 	    if ((prevstate == Emulating) && (AdviceEnabled) && (vid != LocalFakeVid))
 		TriggerReconnectionQuestionnaire();  
+
 
 	    /* Read/Write Sharing Stats Collection */
 	    if (prevstate == Emulating)
@@ -1747,7 +1824,7 @@ void volent::ClearReintegratePending() {
         userent *u;
         GetUser(&u, CML.owner);
         assert(u != NULL);
-        u->RequestReintegratePending(name, 0);
+        u->NotifyReintegrationEnabled(name);
     }
 }
 
@@ -1759,7 +1836,7 @@ void volent::CheckReintegratePending() {
             userent *u;
             GetUser(&u, CML.owner);
             assert(u != NULL);
-            u->RequestReintegratePending(name, 1);
+            u->NotifyReintegrationPending(name);
         }
     }
 }
@@ -2557,6 +2634,8 @@ void volent::print(int afd) {
         fdprint(afd, "\t\tUnknownHoard: DATA: Hit=%d, Miss=%d, NoSpace=%d;  ATTR: Hit=%d, Miss=%d, NoSpace=%d. \n", record->cachestats.UnknownHoardDataHit.Count, record->cachestats.UnknownHoardDataMiss.Count, record->cachestats.UnknownHoardDataNoSpace.Count, record->cachestats.UnknownHoardAttrHit.Count, record->cachestats.UnknownHoardAttrMiss.Count, record->cachestats.UnknownHoardAttrNoSpace.Count);
         PutVSR(record);    
     }
+
+    fdprint(afd, "\tDiscoRefCounter=%d\n", DiscoRefCounter);
 
     fdprint(afd, "\tcurrent_rws_cnt = %d\n", current_rws_cnt);
     fdprint(afd, "\tcurrent_disc_read_cnt = %d\n", current_disc_read_cnt);

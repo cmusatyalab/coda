@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/venus.private.h,v 4.10 1997/12/01 17:27:53 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/venus.private.h,v 4.11 97/12/06 23:34:30 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -116,6 +116,8 @@ const int UNSET_CB = -1;
 const int MIN_CB = 2048;
 #define	UNSET_RV 0
 #define UNSET_PRIMARYUSER -1		    /* primary user of this machine */
+#define DFLT_SPOOLDIR "/usr/coda/spool"
+#define UNSET_SPOOLDIR 0
 
 
 const int FREE_FACTOR = 16;
@@ -385,6 +387,11 @@ extern char *CacheDir;
 extern int CacheBlocks;
 extern char *RootVolName;
 extern int PrimaryUser;
+
+/* spool.cc */
+extern void SpoolInit();
+extern void MakeUserSpoolDir(char *, vuid_t);
+
 
 #ifdef __cplusplus
 extern "C" {

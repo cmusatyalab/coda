@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /home/braam/src/coda-src/venus/RCS/advice.cc,v 1.2 1996/11/24 20:40:44 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/advice.cc,v 4.1 97/01/08 21:51:17 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -42,23 +42,31 @@ static char *rcsid = "$Header: /home/braam/src/coda-src/venus/RCS/advice.cc,v 1.
 extern "C" {
 #endif __cplusplus
 
+#include <unistd.h>
 #include <netinet/in.h>
 
 #ifdef __cplusplus
 }
 #endif __cplusplus
 
+/* interfaces */
+#include <admon.h>
+#include <adsrv.h>
+
+/* from venus */
 #include "user.h"
 #include "advice.h"
 #include "adviceconn.h"
-#include "admon.h"
-#include "adsrv.h"
+#include "commands.h"
 
 #define FALSE 0
 #define TRUE 1
 
 int ASRinProgress = 0;
 int ASRresult = -1;
+
+char *InterestToString(InterestID);
+#define MAXEVENTLEN 64
 
 adviceconn::adviceconn() {
   LOG(100, ("adviceconn::adviceconn()\n"));
@@ -95,85 +103,365 @@ adviceconn::~adviceconn() {
  *      RequestWeaklyConnectedCacheMissAdvice
  *******************************************************************************************/
 
-ReadDiscAdvice adviceconn::RequestReadDisconnectedCacheMissAdvice(char *pathname, int pid) {
-  RPC2_Integer advice;
+
+void adviceconn::TokensAcquired(int expirationTime) {
+  long rc;
+  InterestID callType = TokensAcquiredID;
+
+LOG(100, ("E(initial) adviceconn::TokensAcquired(%d)\n", expirationTime));
+
+  IncrRequested(callType);
+
+  if (!IsAdviceValid(callType, 0)) 
+    return;
+  if (!IsInterested(callType))
+    return;
+
+  LOG(100, ("E(official) adviceconn::TokensAcquired(%d)\n", expirationTime));
+  ObtainWriteLock(&userLock);
+  IncrRPCInitiated(callType); 
+  rc = C_TokensAcquired(handle, (RPC2_Integer)expirationTime);
+  ReleaseWriteLock(&userLock);
+
+  CheckError(rc, callType);
+
+  LOG(100, ("L adviceconn::TokensAcquired()\n"));
+  return;
+}
+
+void adviceconn::TokensExpired() {
+  long rc;
+  InterestID callType = TokensExpiredID;
+  if (!IsAdviceValid(callType, 0))
+    return;
+  if (!IsInterested(callType))
+    return;
+
+  LOG(100, ("E adviceconn::TokensExpired()\n"));
+  ObtainWriteLock(&userLock);
+  IncrRPCInitiated(callType); 
+  rc = C_TokensExpired(handle);
+  ReleaseWriteLock(&userLock);
+
+  CheckError(rc, callType);
+
+  LOG(100, ("L adviceconn::TokensExpired()\n"));
+  return;
+}
+
+void adviceconn::ServerAccessible(char *name) {
+  long rc;
+  InterestID callType = ServerAccessibleID;
+  if (!IsAdviceValid(callType, 0))
+    return;
+  if (!IsInterested(callType))
+    return;
+
+  LOG(10, ("E adviceconn::ServerAccessible()\n"));
+  ObtainWriteLock(&userLock);
+  IncrRPCInitiated(callType); 
+  rc = C_ServerAccessible(handle, (RPC2_String) name);
+  ReleaseWriteLock(&userLock);
+
+  CheckError(rc, callType);
+
+  LOG(10, ("L adviceconn::ServerAccessible()\n"));
+  return;
+}
+
+void adviceconn::ServerInaccessible(char *name) {
+  long rc;
+  InterestID callType = ServerInaccessibleID;
+  if (!IsAdviceValid(callType, 0))
+    return;
+  if (!IsInterested(callType))
+    return;
+
+  LOG(10, ("E adviceconn::ServerInaccessible()\n"));
+  ObtainWriteLock(&userLock);
+  IncrRPCInitiated(callType); 
+  rc = C_ServerInaccessible(handle, (RPC2_String)name);
+  ReleaseWriteLock(&userLock);
+
+  CheckError(rc, callType);
+
+  LOG(10, ("L adviceconn::ServerInaccessible()\n"));
+  return;
+}
+
+void adviceconn::ServerConnectionWeak(char *name) {
+  long rc;
+  InterestID callType = ServerConnectionWeakID;
+  if (!IsAdviceValid(callType, 0))
+    return;
+  if (!IsInterested(callType))
+    return;
+
+  LOG(10, ("E adviceconn::ServerConnectionWeak()\n"));
+  ObtainWriteLock(&userLock);
+  IncrRPCInitiated(callType); 
+  rc = C_ServerConnectionWeak(handle, (RPC2_String)name);
+  ReleaseWriteLock(&userLock);
+
+  CheckError(rc, callType);
+
+  LOG(10, ("L adviceconn::ServerConnectionWeak()\n"));
+  return;
+}
+
+void adviceconn::ServerConnectionStrong(char *name) {
+  long rc;
+  InterestID callType = ServerConnectionStrongID;
+  if (!IsAdviceValid(callType, 0))
+    return;
+  if (!IsInterested(callType))
+    return;
+
+  LOG(10, ("E adviceconn::ServerConnectionStrong()\n"));
+  ObtainWriteLock(&userLock);
+  IncrRPCInitiated(callType); 
+  rc = C_ServerConnectionStrong(handle, (RPC2_String)name);
+  ReleaseWriteLock(&userLock);
+
+  CheckError(rc, callType);
+
+  LOG(10, ("L adviceconn::ServerConnectionStrong()\n"));
+  return;
+}
+
+void adviceconn::ServerBandwidthEstimate(char *name, long bandwidth) {
+  long rc;
+  QualityEstimate serverList[1];
+
+  InterestID callType = NetworkQualityEstimateID;
+  if (!IsAdviceValid(callType, 0))
+    return;
+  if (!IsInterested(callType))
+    return;
+
+  serverList[0].ServerName = (RPC2_String)name;
+  serverList[0].BandwidthEstimate = (RPC2_Integer)bandwidth;
+  serverList[0].Intermittent = False;
+
+  LOG(10, ("E adviceconn::ServerBandwidthEstimate()\n"));
+  ObtainWriteLock(&userLock);
+  IncrRPCInitiated(callType); 
+  rc = C_NetworkQualityEstimate(handle, 1, serverList);
+  ReleaseWriteLock(&userLock);
+
+  CheckError(rc, callType);
+
+  LOG(10, ("L adviceconn::ServerBandwidthEstimate()\n"));
+  return;
+}
+
+void adviceconn::HoardWalkBegin() {
+  long rc;
+  InterestID callType = HoardWalkBeginID;
+  if (!IsAdviceValid(callType, 0))
+    return;
+  if (!IsInterested(callType))
+    return;
+
+  LOG(100, ("E adviceconn::HoardWalkBegin()\n"));
+  ObtainWriteLock(&userLock);
+  IncrRPCInitiated(callType); 
+  rc = C_HoardWalkBegin(handle);
+  ReleaseWriteLock(&userLock);
+
+  CheckError(rc, callType);
+
+  LOG(100, ("L adviceconn::HoardWalkBegin()\n"));
+  return;
+}
+
+void adviceconn::HoardWalkStatus(int percentDone) {
+  long rc;
+  InterestID callType = HoardWalkStatusID;
+  if (!IsAdviceValid(callType, 0))
+    return;
+  if (!IsInterested(callType))
+    return;
+
+  LOG(100, ("E adviceconn::HoardWalkStatus(%d)\n", percentDone));
+  ObtainWriteLock(&userLock);
+  IncrRPCInitiated(callType); 
+  rc = C_HoardWalkStatus(handle, (RPC2_Integer)percentDone);
+  ReleaseWriteLock(&userLock);
+
+  CheckError(rc, callType);
+
+  LOG(100, ("L adviceconn::HoardWalkStatus()\n"));
+  return;
+}
+
+void adviceconn::HoardWalkEnd() {
+  long rc;
+  InterestID callType = HoardWalkEndID;
+  if (!IsAdviceValid(callType, 0))
+    return;
+  if (!IsInterested(callType))
+    return;
+
+  LOG(100, ("E adviceconn::HoardWalkEnd()\n"));
+  ObtainWriteLock(&userLock);
+  IncrRPCInitiated(callType); 
+  rc = C_HoardWalkEnd(handle);
+  ReleaseWriteLock(&userLock);
+
+  CheckError(rc, callType);
+
+  LOG(100, ("L adviceconn::HoardWalkEnd()\n"));
+  return;
+}
+
+void adviceconn::HoardWalkPeriodicOn() {
+  long rc;
+  InterestID callType = HoardWalkPeriodicOnID;
+  if (!IsAdviceValid(callType, 0))
+    return;
+  if (!IsInterested(callType))
+    return;
+
+  LOG(100, ("E adviceconn::HoardWalkPeriodicOn()\n"));
+  ObtainWriteLock(&userLock);
+  IncrRPCInitiated(callType); 
+  rc = C_HoardWalkPeriodicOn(handle);
+  ReleaseWriteLock(&userLock);
+
+  CheckError(rc, callType);
+
+  LOG(100, ("L adviceconn::HoardWalkPeriodicOn()\n"));
+  return;
+}
+
+void adviceconn::HoardWalkPeriodicOff() {
+  long rc;
+  InterestID callType = HoardWalkPeriodicOffID;
+  if (!IsAdviceValid(callType, 0))
+    return;
+  if (!IsInterested(callType))
+    return;
+
+  LOG(100, ("E adviceconn::HoardWalkPeriodicOff()\n"));
+  ObtainWriteLock(&userLock);
+  IncrRPCInitiated(callType); 
+  rc = C_HoardWalkPeriodicOff(handle);
+  ReleaseWriteLock(&userLock);
+
+  CheckError(rc, callType);
+
+  LOG(100, ("L adviceconn::HoardWalkPeriodicOff()\n"));
+  return;
+}
+
+
+
+
+CacheMissAdvice adviceconn::RequestReadDisconnectedCacheMissAdvice(ViceFid *fid, char *pathname, int pid) {
+  ObjectInformation objInfo;
+  ProcessInformation processInfo;
+  RPC2_Unsigned TimeOfMiss;
+  CacheMissAdvice advice;
+  RPC2_Integer RC;
   long rc;
 
-  if (!IsAdviceValid(0))
-    return(ReadDiscUnknown);
-  if (ReadDisconnectedCacheMisses == 0)
-    return(ReadDiscUnknown);
+  InterestID callType = ReadDisconnectedCacheMissEventID;
+  if (!IsAdviceValid(callType, 0))
+    return(FetchFromServers);
+  if (!IsInterested(callType))
+    return(FetchFromServers);
+
+  /* Initialize the arguments */
+  objInfo.Pathname = (RPC2_String)pathname;
+  objInfo.Fid = *fid;
+  processInfo.pid = pid;
+  TimeOfMiss = (RPC2_Unsigned) Vtime();
 
   LOG(100, ("E adviceconn::RequestReadDisconnectedCacheMissAdvice()\n"));
   ObtainWriteLock(&userLock);
-  LOG(100, ("Requesting read disconnected cache miss advice on %s from handle = %d\n", pathname, handle));
-  rc = ReadDisconnectedMiss(handle, (RPC2_String) pathname, (RPC2_Integer) pid, &advice) ;
+  LOG(100, ("Requesting read disconnected cache miss advice on %s from handle = %d\n", 
+	    pathname, handle));
+  IncrRPCInitiated(callType); 
+  rc = C_ReadDisconnectedCacheMissEvent(handle, &objInfo, &processInfo, TimeOfMiss, &advice, &RC) ;
   ReleaseWriteLock(&userLock);
 
-  CheckError(rc, PCM);
+  CheckError(rc, callType);
   if (rc != RPC2_SUCCESS) 
-    advice = ReadDiscUnknown;
+    advice = FetchFromServers;
 
-  LOG(100, ("Advice was to %s on %s\n", ReadDiscAdviceString((ReadDiscAdvice)advice), pathname));
+  LOG(100, ("Advice was to '%s' on %s\n", CacheMissAdviceToString(advice), pathname));
 
-  assert(advice >= -1);
-  assert(advice <= MaxReadDiscAdvice);
+  if (advice < 0) {
+    LOG(0, ("Read Disconnected Cache Miss Advice failed with %d.  Fetching anyway.\n", (int)advice));
+    advice = FetchFromServers;
+  }
+  assert(advice <= MaxCacheMissAdvice);
   LOG(100, ("L adviceconn::RequestReadDisconnectedCacheMissAdvice()\n"));
-  return((ReadDiscAdvice)advice);
+  return(advice);
 }
 
 void adviceconn::RequestHoardWalkAdvice(char *input, char *output) {
   RPC2_Integer ReturnCode;
   long rc;
 
-  if (HoardWalks == 0)
+  InterestID callType = HoardWalkAdviceRequestID;
+  if (!IsInterested(callType))
     return;
 
   LOG(100, ("E adviceconn::RequestHoardWalkAdvice()\n"));
   ObtainWriteLock(&userLock);
   LOG(100, ("Requesting hoard walk advice on %s\n", input));
-  rc = HoardWalkAdvice(handle, (RPC2_String)input, (RPC2_String)output, &ReturnCode);
+  IncrRPCInitiated(callType); 
+  rc = C_HoardWalkAdviceRequest(handle, (RPC2_String)input, (RPC2_String)output, &ReturnCode);
   ReleaseWriteLock(&userLock);
 
-  CheckError(rc, HWA);
+  CheckError(rc, callType);
 
   LOG(100, ("L adviceconn::RequestHoardWalkAdvice(ReturnCode=%d)\n", (int)ReturnCode));
   return;
 }
 
 
-void adviceconn::RequestDisconnectedQuestionnaire(char *pathname, int pid, ViceFid *fid, long DiscoTime) {
-  DisconnectedMissQuestionnaire questionnaire;
-  RPC2_Integer Qrc;
+void adviceconn::RequestDisconnectedQuestionnaire(ViceFid *fid, char *pathname, int pid, long DiscoTime) {
+  ObjectInformation objInfo;
+  ProcessInformation processInfo;
+  RPC2_Unsigned TimeOfMiss;
+  RPC2_Unsigned TimeOfDisconnection;
+  RPC2_Integer RC;
   long rc;
 
-  if (!IsAdviceValid(0))
+  InterestID callType = DisconnectedCacheMissEventID;
+  if (!IsAdviceValid(callType, 0))
     return;
-  if (DisconnectedCacheMisses == 0)
+  if (!IsInterested(callType))
     return;
 
-  questionnaire.DMQVersionNumber = DMQ_VERSION;
-  questionnaire.pid = pid;
-  questionnaire.TimeOfDisconnection = (RPC2_Unsigned) DiscoTime;
-  questionnaire.TimeOfCacheMiss = (RPC2_Unsigned) Vtime();
-  questionnaire.Fid = *fid;
-  questionnaire.Pathname = (RPC2_String) pathname;
+  objInfo.Pathname = (RPC2_String)pathname;
+  objInfo.Fid = *fid;
+  processInfo.pid = pid;
+  TimeOfDisconnection = (RPC2_Unsigned) DiscoTime;
+  TimeOfMiss = (RPC2_Unsigned)Vtime();
+
 
   LOG(100, ("E adviceconn::RequestDisconnectedQuestionnaire()\n"));
   ObtainWriteLock(&userLock);
-  rc = DisconnectedMiss(handle, &questionnaire, &Qrc);
+  IncrRPCInitiated(callType); 
+  rc = C_DisconnectedCacheMissEvent(handle, &objInfo, &processInfo, TimeOfMiss, TimeOfDisconnection, &RC);
   ReleaseWriteLock(&userLock);
 
-  CheckError(rc, DM);
+  CheckError(rc, callType);
 
   LOG(100, ("L adviceconn::RequestDisconnectedQuestionnaire()\n"));
   return;
 }
 
+#ifdef 0
 void adviceconn::NotifyHoarding(char *volname, VolumeId vid) {
   long rc;
 
-  if (!IsAdviceValid(0))
+  InterestID callType = VolumeTransitionEventID;
+  if (!IsAdviceValid(callType, 0))
     return;
 
   LOG(100, ("E adviceconn::NotifyHoarding(volname=%s, vid=%x)\n", volname, vid));
@@ -182,7 +470,7 @@ void adviceconn::NotifyHoarding(char *volname, VolumeId vid) {
   rc = VSHoarding(handle, (RPC2_String)volname, vid);
   ReleaseWriteLock(&userLock);
 
-  CheckError(rc, NHoarding);
+  CheckError(rc, callType);
 
   LOG(100, ("L adviceconn::NotifyHoarding()\n"));
   return;
@@ -191,7 +479,8 @@ void adviceconn::NotifyHoarding(char *volname, VolumeId vid) {
 void adviceconn::NotifyEmulating(char *volname, VolumeId vid) {
   long rc;
 
-  if (!IsAdviceValid(0))
+  InterestID callType = VolumeTransitionEventID;
+  if (!IsAdviceValid(callType, 0))
     return;
 
   LOG(100, ("E adviceconn::NotifyEmulating(volname=%s, vid=%x)\n", volname, vid));
@@ -200,7 +489,7 @@ void adviceconn::NotifyEmulating(char *volname, VolumeId vid) {
   rc = VSEmulating(handle, (RPC2_String)volname, vid);
   ReleaseWriteLock(&userLock);
 
-  CheckError(rc, NEmulating);
+  CheckError(rc, callType);
 
   LOG(100, ("L adviceconn::NotifyEmulating()\n"));
   return;
@@ -209,7 +498,8 @@ void adviceconn::NotifyEmulating(char *volname, VolumeId vid) {
 void adviceconn::NotifyLogging(char *volname, VolumeId vid) {
   long rc;
 
-  if (!IsAdviceValid(0))
+  InterestID callType = VolumeTransitionEventID;
+  if (!IsAdviceValid(callType, 0))
     return;
 
   LOG(100, ("E adviceconn::NotifyLogging(volname=%s, vid=%x)\n", volname, vid));
@@ -218,7 +508,7 @@ void adviceconn::NotifyLogging(char *volname, VolumeId vid) {
   rc = VSLogging(handle, (RPC2_String)volname, vid);
   ReleaseWriteLock(&userLock);
 
-  CheckError(rc, NLogging);
+  CheckError(rc, callType);
 
   LOG(100, ("L adviceconn::NotifyLogging()\n"));
   return;
@@ -227,7 +517,8 @@ void adviceconn::NotifyLogging(char *volname, VolumeId vid) {
 void adviceconn::NotifyResolving(char *volname, VolumeId vid) {
   long rc;
 
-  if (!IsAdviceValid(0))
+  InterestID callType = VolumeTransitionEventID;
+  if (!IsAdviceValid(callType, 0))
     return;
 
   LOG(100, ("E adviceconn::NotifyResolving(volname=%s, vid=%x)\n", volname, vid));
@@ -236,20 +527,22 @@ void adviceconn::NotifyResolving(char *volname, VolumeId vid) {
   rc = VSResolving(handle, (RPC2_String)volname, vid);
   ReleaseWriteLock(&userLock);
 
-  CheckError(rc, NResolving);
+  CheckError(rc, callType);
 
   LOG(100, ("L adviceconn::NotifyResolving()\n"));
   return;
 }
+#endif
 
 void adviceconn::RequestReconnectionQuestionnaire(char *volname, VolumeId vid, int CMLcount, long DiscoTime, long WalkTime, int NumberReboots, int cacheHit, int cacheMiss, int unique_hits, int unique_nonrefs) {
   ReconnectionQuestionnaire questionnaire;
   RPC2_Integer Qrc;
   long rc;
 
-  if (!IsAdviceValid(0))
+  InterestID callType = ReconnectionID;
+  if (!IsAdviceValid(callType, 0))
     return;
-  if (ReconnectionQuestionnaires == 0)
+  if (!IsInterested(callType))
     return;
 
   LOG(100, ("E adviceconn::RequestReconnectionQuestionnaire(volname=%s)\n", volname));
@@ -268,63 +561,284 @@ void adviceconn::RequestReconnectionQuestionnaire(char *volname, VolumeId vid, i
   questionnaire.NumberOfObjectsNotReferenced = (RPC2_Unsigned) unique_nonrefs;
 
   ObtainWriteLock(&userLock);
-  rc = Reconnection(handle, &questionnaire, &Qrc);
+  IncrRPCInitiated(callType); 
+  rc = C_Reconnection(handle, &questionnaire, &Qrc);
   ReleaseWriteLock(&userLock);
 
-  CheckError(rc, R);
+  CheckError(rc, callType);
 
   LOG(100, ("L adviceconn::RequestReconnectionQuestionnaire()\n"));
   return;
 }
 
 
-void adviceconn::RequestReintegratePending(char *volname, int flag) {
+void adviceconn::NotifyReintegrationPending(char *volname) {
   long rc;
   Boolean boo;
+  InterestID callType = ReintegrationPendingTokensID;
 
-  if (!IsAdviceValid(0))
+  if (!IsAdviceValid(callType, 0))
     return;
-  if (ReintegrationPendings == 0)
+  if (!IsInterested(callType))
     return;
 
-  LOG(100, ("E adviceconn::RequestReintegratePendingTokens()\n"));
-
-  assert((flag == 0) || (flag == 1));
-  boo = (Boolean)flag;
+  LOG(100, ("E adviceconn::NotifyReintegrationPendingTokens()\n"));
 
   ObtainWriteLock(&userLock);
-  rc = ReintegratePending(handle, (RPC2_String)volname, boo);
+  IncrRPCInitiated(callType); 
+  rc = C_ReintegrationPendingTokens(handle, (RPC2_String)volname);
   ReleaseWriteLock(&userLock);
 
-  CheckError(rc, RP);
+  CheckError(rc, callType);
 
-  LOG(100, ("L adviceconn::RequestReintegratePendingTokens()\n"));
+  LOG(100, ("L adviceconn::NotifyReintegrationPendingTokens()\n"));
   return;
 }
 
+
+void adviceconn::NotifyReintegrationEnabled(char *volname) {
+  long rc;
+  Boolean boo;
+  InterestID callType = ReintegrationEnabledID;
+
+  if (!IsAdviceValid(callType, 0))
+    return;
+  if (!IsInterested(callType))
+    return;
+
+  LOG(100, ("E adviceconn::NotifyReintegrationEnabled()\n"));
+
+  ObtainWriteLock(&userLock);
+  IncrRPCInitiated(callType); 
+  rc = C_ReintegrationEnabled(handle, (RPC2_String)volname);
+  ReleaseWriteLock(&userLock);
+
+  CheckError(rc, callType);
+
+  LOG(100, ("L adviceconn::NotifyReintegrationEnabled()\n"));
+  return;
+}
+
+
+void adviceconn::NotifyReintegrationActive(char *volname) {
+  long rc;
+  Boolean boo;
+  InterestID callType = ReintegrationActiveID;
+
+  if (!IsAdviceValid(callType, 0))
+    return;
+  if (!IsInterested(callType))
+    return;
+
+  LOG(100, ("E adviceconn::NotifyReintegrationActive()\n"));
+
+  ObtainWriteLock(&userLock);
+  IncrRPCInitiated(callType); 
+  rc = C_ReintegrationActive(handle, (RPC2_String)volname);
+  ReleaseWriteLock(&userLock);
+
+  CheckError(rc, callType);
+
+  LOG(100, ("L adviceconn::NotifyReintegrationActive()\n"));
+  return;
+}
+
+
+void adviceconn::NotifyReintegrationCompleted(char *volname) {
+  long rc;
+  Boolean boo;
+  InterestID callType = ReintegrationCompletedID;
+
+  if (!IsAdviceValid(callType, 0))
+    return;
+  if (!IsInterested(callType))
+    return;
+
+  LOG(100, ("E adviceconn::NotifyReintegrationCompleted()\n"));
+
+  ObtainWriteLock(&userLock);
+  IncrRPCInitiated(callType); 
+  rc = C_ReintegrationCompleted(handle, (RPC2_String)volname);
+  ReleaseWriteLock(&userLock);
+
+  CheckError(rc, callType);
+
+  LOG(100, ("L adviceconn::NotifyReintegrationCompleted()\n"));
+  return;
+}
+
+
+void adviceconn::NotifyObjectInConflict(char *pathname, ViceFid *fid) {
+  long rc;
+  Boolean boo;
+  InterestID callType = ObjectInConflictID;
+
+  if (!IsAdviceValid(callType, 0))
+    return;
+  if (!IsInterested(callType))
+    return;
+
+  LOG(100, ("E adviceconn::NotifyObjectInConflict(%s, %x.%x.%x)\n",
+	    pathname,fid->Volume,fid->Vnode,fid->Unique));
+
+  ObtainWriteLock(&userLock);
+  IncrRPCInitiated(callType); 
+  rc = C_ObjectInConflict(handle, (RPC2_String)pathname, fid);
+  ReleaseWriteLock(&userLock);
+
+  CheckError(rc, callType);
+
+  LOG(100, ("L adviceconn::NotifyObjectInConflict()\n"));
+  return;
+}
+
+void adviceconn::NotifyObjectConsistent(char *pathname, ViceFid *fid) {
+  long rc;
+  Boolean boo;
+  InterestID callType = ObjectConsistentID;
+
+  if (!IsAdviceValid(callType, 0))
+    return;
+  if (!IsInterested(callType))
+    return;
+
+  LOG(100, ("E adviceconn::NotifyObjectConsistent(%s, %x.%x.%x)\n",
+	    pathname,fid->Volume,fid->Vnode,fid->Unique));
+
+  ObtainWriteLock(&userLock);
+  IncrRPCInitiated(callType); 
+  rc = C_ObjectConsistent(handle, (RPC2_String)pathname, fid);
+  ReleaseWriteLock(&userLock);
+
+  CheckError(rc, callType);
+
+  LOG(100, ("L adviceconn::NotifyObjectConsistent()\n"));
+  return;
+}
+
+void adviceconn::NotifyTaskAvailability(int i, TallyInfo *tallyInfo) {
+  long rc;
+  InterestID callType = TaskAvailabilityID;
+
+  if (!IsAdviceValid(callType, 0))
+    return;
+  if (!IsInterested(callType))
+    return;
+
+  LOG(100, ("E adviceconn::NotifyTaskAvailability()\n"));
+
+  ObtainWriteLock(&userLock);
+  IncrRPCInitiated(callType); 
+  rc = C_TaskAvailability(handle, (RPC2_Integer)i, tallyInfo);
+  ReleaseWriteLock(&userLock);
+
+  CheckError(rc, callType);
+
+  LOG(100, ("L adviceconn::NotifyTaskAvailability()\n"));
+  return;
+}
+
+void adviceconn::NotifyTaskUnavailable(int priority, int size) {
+  long rc;
+  InterestID callType = TaskUnavailableID;
+
+  if (!IsAdviceValid(callType, 0))
+    return;
+  if (!IsInterested(callType))
+    return;
+
+  LOG(0, ("E adviceconn::NotifyTaskUnavailable(%d, %d)\n", priority, size));
+
+  ObtainWriteLock(&userLock);
+  IncrRPCInitiated(callType); 
+  LOG(0, ("Calling C_TaskUnavailable()\n"));
+  fflush(logFile);
+  rc = C_TaskUnavailable(handle, (RPC2_Integer)priority, (RPC2_Integer)size);
+  LOG(0, ("Returned from C_TaskUnavailable()\n"));
+  fflush(logFile);
+
+  ReleaseWriteLock(&userLock);
+
+  CheckError(rc, callType);
+
+  LOG(0, ("L adviceconn::NotifyTaskUnavailable()\n"));
+  return;
+}
+
+void adviceconn::NotifyProgramAccessLogAvailable(char *pathname) {
+  long rc;
+  InterestID callType = ProgramAccessLogsID;
+
+  if (!IsAdviceValid(callType, 0))
+    return;
+
+  LOG(0, ("E adviceconn::NotifyProgramAccessLogAvailable(%s)\n", pathname));
+
+  ObtainWriteLock(&userLock);
+  IncrRPCInitiated(callType); 
+  LOG(0, ("Calling C_ProgramAccessLogAvailable()\n"));
+  fflush(logFile);
+  rc = C_ProgramAccessLogAvailable(handle, (RPC2_String)pathname);
+  LOG(0, ("Returned from C_ProgramAccessLogAvailable()\n"));
+  fflush(logFile);
+
+  ReleaseWriteLock(&userLock);
+
+  CheckError(rc, callType);
+
+  LOG(0, ("L adviceconn::NotifyProgramAccessLogAvailable()\n"));
+  return;
+}
+
+void adviceconn::NotifyReplacementLogAvailable(char *pathname) {
+  long rc;
+  InterestID callType = ReplacementLogsID;
+
+  if (!IsAdviceValid(callType, 0))
+    return;
+
+  LOG(0, ("E adviceconn::NotifyReplacementLogAvailable(%s)\n", pathname));
+
+  ObtainWriteLock(&userLock);
+  IncrRPCInitiated(callType); 
+  LOG(0, ("Calling C_ReplacementLogAvailable()\n"));
+  fflush(logFile);
+  rc = C_ReplacementLogAvailable(handle, (RPC2_String)pathname);
+  LOG(0, ("Returned from C_ReplacementLogAvailable()\n"));
+  fflush(logFile);
+
+  ReleaseWriteLock(&userLock);
+
+  CheckError(rc, callType);
+
+  LOG(0, ("L adviceconn::NotifyReplacementLogAvailable()\n"));
+  return;
+}
 
 int adviceconn::RequestASRInvokation(char *pathname, vuid_t vuid) {
   long rc;
   RPC2_Integer ASRid;
   RPC2_Integer ASRrc;
 
-  if (ASRs == 0)
-    return(-1);
+  InterestID callType = InvokeASRID;
+  if (!IsInterested(callType))
+    return(0);
 
   LOG(100, ("E adviceconn::RequestASRInvokation(%s, %d)\n", pathname, vuid));
   if (ASRinProgress) {
     LOG(0, ("adviceconn::RASRI() - One ASR already in progress \n", 
 	    pathname, vuid));
-    return(-1);
+    return(CAEASRINPROGRESS);
   }
   ASRinProgress = 1;	// XXX gross way of locking ASR Invocation - Puneet
   ObtainWriteLock(&userLock);
   LOG(100, ("\tRequesting ASR Invokation\n"));
-  rc = InvokeASR(handle, (RPC2_String)pathname, vuid, &ASRid, &ASRrc);
+  IncrRPCInitiated(callType); 
+  rc = C_InvokeASR(handle, (RPC2_String)pathname, vuid, &ASRid, &ASRrc);
   ASRinProgress = (int)ASRid;
   ReleaseWriteLock(&userLock);
   
-  CheckError(rc, IASR);
+  CheckError(rc, callType);
   if (rc != RPC2_SUCCESS) 
     ASRinProgress = 0;	// XXX gross method for unlocking ASR invocation
   if (ASRrc != ADMON_SUCCESS) 
@@ -334,38 +848,45 @@ int adviceconn::RequestASRInvokation(char *pathname, vuid_t vuid) {
   return(rc);
 }
 
-WeaklyAdvice adviceconn::RequestWeaklyConnectedCacheMissAdvice(char *pathname, int pid, int expectedCost) {
-  WeaklyConnectedInformation information;
-  RPC2_Integer advice;
+CacheMissAdvice adviceconn::RequestWeaklyConnectedCacheMissAdvice(ViceFid *fid, char *pathname, int pid, int length, int estimatedBandwidth, char *Vfilename) {
+  ObjectInformation objInfo;
+  ProcessInformation processInfo;
+  RPC2_Unsigned TimeOfMiss;
+  CacheMissAdvice advice;
+  RPC2_Integer RC;
   long rc;
+  InterestID callType = WeaklyConnectedCacheMissEventID;
 
-  if (!IsAdviceValid(0)) {
+  if (!IsAdviceValid(callType, 0)) {
     LOG(100, ("RequestWeaklyConnectedCacheMissAdvice: Advice not valid for this user...\n"));
-    return(WeaklyUnknown);
+    return(FetchFromServers);
   }
-  if (WeaklyConnectedCacheMisses == 0) {
+  if (!IsInterested(callType)) {
     LOG(100, ("RequestWeaklyConnectedCacheMissAdvice: This type of advice not requested for this user...\n"));
-    return(WeaklyFetch);
+    return(FetchFromServers);
   }
 
-  information.Pathname = (RPC2_String) pathname;
-  information.pid = pid;
-  information.ExpectedFetchTime = expectedCost;
+  objInfo.Fid = *fid;
+  objInfo.Pathname = (RPC2_String)pathname;
+  processInfo.pid = pid;
+  TimeOfMiss = (RPC2_Unsigned)Vtime();
 
   LOG(100, ("E adviceconn::RequestWeaklyConnectedCacheMiss(%s)\n", pathname));
   ObtainWriteLock(&userLock);
-  rc = WeaklyConnectedMiss(handle, &information, &advice);
+  IncrRPCInitiated(callType); 
+  rc = C_WeaklyConnectedCacheMissEvent(handle, &objInfo, &processInfo, TimeOfMiss, (RPC2_Integer)length, (RPC2_Integer)estimatedBandwidth, (RPC2_String)Vfilename, &advice, &RC);
   ReleaseWriteLock(&userLock);
 
-  CheckError(rc, WCM);
+  CheckError(rc, callType);
   if (rc != RPC2_SUCCESS)
-    advice = (RPC2_Integer)WeaklyUnknown;
+    advice = FetchFromServers;
 
-  assert(advice >= (RPC2_Integer)-1);
-  assert(advice <= (RPC2_Integer)MaxWeaklyAdvice);
+  assert(advice >= -1);
+  assert(advice <= MaxCacheMissAdvice);
 
-  LOG(100, ("L adviceconn::RequestWeaklyConnectedCacheMissAdvice() with %s\n", WeaklyAdviceString((WeaklyAdvice)advice)));
-  return((WeaklyAdvice)advice);
+  LOG(100, ("L adviceconn::RequestWeaklyConnectedCacheMissAdvice() with %s\n", 
+	    CacheMissAdviceToString(advice)));
+  return(advice);
 }
 
 void adviceconn::InformLostConnection() {
@@ -374,9 +895,9 @@ void adviceconn::InformLostConnection() {
   LOG(100, ("Informing advice server it has lost connection\n"));
 
   ObtainWriteLock(&userLock);
-  rc = LostConnection(handle);
+
   ReleaseWriteLock(&userLock);
-  CheckError(rc, LC);
+  rc = C_LostConnection(handle);
   if (rc != RPC2_SUCCESS)
     LOG(0, ("%s: ConnectionLost message failed.\n", RPC2_ErrorMsg((int)rc)));
   else
@@ -386,87 +907,195 @@ void adviceconn::InformLostConnection() {
 }
 
 int adviceconn::NewConnection(char *hostName, int portNumber, int pgrp) {
+  char myHostName[MAXHOSTNAMELEN+1];
   assert(strlen(hostName) <= MAXHOSTNAMELEN);
 
-  LOG(100, ("E adviceconn::NewConnection(%s, %d,  %d)\n", hostName, portNumber, pgrp));
+  LOG(100, ("E adviceconn::NewConnection(%s, %d,  %d)\n", 
+	    hostName, portNumber, pgrp));
   if (IsAdviceOutstanding(0) == TRUE) {
     LOG(0, ("Cannot start a new advice monitor while a request for advice is outstanding!\n"));
-    return(-1);
+    return(CAEADVICEPENDING);
   }
 
-  if (IsAdviceValid(0) == TRUE) {
+  if (IsAdviceValid((InterestID)-1, 0) == TRUE) {
     LOG(0, ("adviceconn::NewConnection:  Inform old advice server that it has lost its connection\n"));
     InformLostConnection();
   }
 
   strcpy(hostname, hostName);
-  LOG(0, ("MARIA: You should check that the hostname is our host\n"));
+  int hostlen = gethostname(myHostName, MAXHOSTNAMELEN+1);
+  assert(hostlen != -1);
+  assert(myHostName != NULL);
+  assert(hostname != NULL);
+  assert((strncmp(hostname, "localhost", strlen("localhost")) == 0) ||
+	 (strncmp(hostname, myHostName, MAXHOSTNAMELEN)) == 0);
+  
   port = (unsigned short) portNumber;
   pgid = pgrp;
   state = AdviceWaiting;
+
   LOG(100, ("L adviceconn::NewConnection()\n"));
   return(0);
 }
 
 int adviceconn::RegisterInterest(vuid_t uid, long numEvents, InterestValuePair events[])
 {
-    for (int i=0; i < numEvents; i++) {
-	LOG(0, ("adviceconn::RegisterInterest:  events[%d].interest = %d\n", i, events[i].interest));
-        switch (events[i].interest) {
-	    case InconsistentObject:
-		LOG(0, ("adviceconn::RegisterInterest:  Register %d for inconsistent objects\n", events[i].value));
-		InconsistentObjects = events[i].value;
-		break;
-	    case ReadDisconnectedCacheMiss:
-		LOG(0, ("adviceconn::RegisterInterest:  Register %d for read disconnected cache misses\n", events[i].value));
-		ReadDisconnectedCacheMisses = events[i].value;
-		break;
-	    case WeaklyConnectedCacheMiss:
-		LOG(0, ("adviceconn::RegisterInterest:  Register %d for weakly connected cache misses\n", events[i].value));
-		WeaklyConnectedCacheMisses = events[i].value;
-		break;
-	    case DisconnectedCacheMiss:
-		LOG(0, ("adviceconn::RegisterInterest:  Register %d for disconnected cache misses\n", events[i].value));
-		DisconnectedCacheMisses = events[i].value;
-		break;
-	    case VolumeTransition:
-		LOG(0, ("adviceconn::RegisterInterest:  Register %d for volume transitions\n", events[i].value));
-		VolumeTransitions = events[i].value;
-		break;
-	    case ReconnectionEvent:
-		LOG(0, ("adviceconn::RegisterInterest:  Register %d for reconnection questionnaires\n", events[i].value));
-		ReconnectionQuestionnaires = events[i].value;
-		break;
-	    case ReintegrationPending:
-		LOG(0, ("adviceconn::RegisterInterest:  Register %d for pending reintegrations\n", events[i].value));
-		ReintegrationPendings = events[i].value;
-		break;
-	    case HoardWalk:
-		LOG(0, ("adviceconn::RegisterInterest:  Register %d for hoard walks\n", events[i].value));
-		if (!AuthorizedUser(uid)) {
-		  LOG(0, ("adviceconn::RegisterInterest:  Unauthorized user (%d) attempted to capture hoard walk advice requests\n", uid));
-		  return(-1);
-		}
+    char formatString[64];
 
-		HoardWalks = events[i].value;
+    LOG(0, ("adviceconn::RegisterInterest: %d is interested in the following %d items:\n", 
+	    uid, numEvents));
+    sprintf(formatString, "    %%%ds:  <argument=%%d, value=%%d>\n", MAXEVENTLEN);
 
-		if (events[i].value == 0) 
-		    HDB->SetSolicitAdvice(-1);
-		else if (events[i].value == 1)
-		    HDB->SetSolicitAdvice(uid);
-		else
-		    LOG(0, ("adviceconn::RegisterInterest:  Unknown value for HoardWalk -- ignored\n"));
-		break;
-	    case ASR:
-		LOG(0, ("adviceconn::RegisterInterest:  Register %d for application specific resolvers\n", events[i].value));
-		ASRs = events[i].value;
-		break;
-	    default:
-		LOG(0, ("adviceconn::RegisterInterest:  Unknown interest %d -- ignored\n", events[i].interest));
-        }
+    if (!AuthorizedUser(uid)) {
+      LOG(0, ("adviceconn::RegisterInterest:  Unauthorized user (%d) attempted to register interest\n", uid));
+      return(-1);
     }
+
+    for (int i=0; i < numEvents; i++) {
+        LOG(0, (formatString, InterestToString(events[i].interest), 
+		events[i].argument, events[i].value));
+	InterestArray[events[i].interest] = events[i].value;
+	if (events[i].interest == HoardWalkAdviceRequestID) {
+	    if (events[i].value == 0) 
+	      HDB->SetSolicitAdvice(-1);
+	    else if (events[i].value == 1)
+	      HDB->SetSolicitAdvice(uid);
+	    else
+	      LOG(0, ("adviceconn::RegisterInterest:  Unknown value (%d) for HoardWalkAdviceRequest -- ignored\n", events[i].value));
+	}
+
+    }
+
     return(0);
 }
+
+void adviceconn::InitializeProgramLog(vuid_t uid) {
+    char UserSpoolDir[MAXPATHLEN];
+    char programFileName[MAXPATHLEN];
+    int rc;
+
+    if (programFILE != NULL)
+      return;
+
+    MakeUserSpoolDir(UserSpoolDir, uid);
+    snprintf(programLogName, MAXPATHLEN, "%s/%s", 
+	     UserSpoolDir, PROGRAMLOG);
+    (void) unlink(programLogName);
+    LOG(0, ("Opening %s\n", programLogName));
+
+    programFILE = fopen(programLogName, "a");
+    if (programFILE == NULL) 
+      LOG(0, ("InitializeProgramLog(%d) failed\n", uid));
+
+    numLines = 0;
+    return;
+}
+
+void adviceconn::SwapProgramLog() {
+    char oldName[MAXPATHLEN];
+
+    if (programFILE == NULL) return;
+
+    fflush(programFILE);
+    snprintf(oldName, MAXPATHLEN, "%s.old", programLogName);
+    LOG(0, ("Moving %s to %s\n", programLogName, oldName));
+
+    if (rename(programLogName, oldName) < 0) {
+        LOG(0, ("rename(%s, %s) failed (%d)\n",
+		programLogName, oldName, errno));
+        return;
+    }
+
+    freopen(programLogName, "a", programFILE);
+    resetpid();
+    numLines = 0;
+
+    NotifyProgramAccessLogAvailable(oldName);
+}
+
+#define MAXLINES 1000
+void adviceconn::LogProgramAccess(int pid, int pgid, ViceFid *fid) {
+    if (programFILE != NULL) {
+        outputcommandname(programFILE, pgid);
+        fprintf(programFILE, "%d %d <%x.%x.%x>\n", 
+		pid, pgid, fid->Volume, fid->Vnode, fid->Unique);
+
+	if (++numLines > MAXLINES) 
+	    SwapProgramLog();
+    }
+    return;
+}
+
+void adviceconn::InitializeReplacementLog(vuid_t uid) {
+    char UserSpoolDir[MAXPATHLEN];
+    char replacementFileName[MAXPATHLEN];
+    int rc;
+
+    if (replacementFILE != NULL)
+      return;
+
+    MakeUserSpoolDir(UserSpoolDir, uid);
+    snprintf(replacementLogName, MAXPATHLEN, "%s/%s", 
+	     UserSpoolDir, REPLACEMENTLOG);
+    (void) unlink(replacementLogName);
+    LOG(0, ("Opening %s\n", replacementLogName));
+
+    replacementFILE = fopen(replacementLogName, "a");
+    if (replacementFILE == NULL) 
+      LOG(0, ("InitializeReplacementLog(%d) failed\n", uid));
+
+    numLines = 0;
+    return;
+}
+
+void adviceconn::SwapReplacementLog() {
+    char oldName[MAXPATHLEN];
+
+    if (replacementFILE == NULL) return;
+
+    fflush(replacementFILE);
+    snprintf(oldName, MAXPATHLEN, "%s.old", replacementLogName);
+    LOG(0, ("Moving %s to %s\n", replacementLogName, oldName));
+
+    if (rename(replacementLogName, oldName) < 0) {
+        LOG(0, ("rename(%s, %s) failed (%d)\n",
+	        replacementLogName, oldName, errno));
+        return;
+    }
+
+    freopen(replacementLogName, "a", replacementFILE);
+    resetpid();
+    numLines = 0;
+
+    NotifyReplacementLogAvailable(oldName);
+}
+
+#define MAXRLINES 100
+void adviceconn::LogReplacement(char *path, int status, int data) {
+    if (replacementFILE != NULL) {
+        fprintf(replacementFILE, "%s %d %d\n", path, status, data);
+
+	if (++numLines > MAXRLINES) 
+	    SwapReplacementLog();
+    }
+    return;
+}
+
+int adviceconn::OutputUsageStatistics(vuid_t uid, char *pathname) {
+
+    if (!AuthorizedUser(uid)) {
+      LOG(0, ("adviceconn::OutputUsageStatistics:  Unauthorized user (%d) requested usage statistics\n", uid));
+      return(-1);
+    }
+
+    LOG(0, ("E OutputUsageStatistics(%s)\n", pathname));
+
+    assert(FSDB);
+    FSDB->OutputDisconnectedUseStatistics(pathname);
+    LOG(0, ("L OutputUsageStatistics(%s)\n", pathname));
+    return(0);
+}
+
 
 //int adviceconn::BeginStoplightMonitor() {
 //    LOG(100, ("E adviceconn::BeginStoplightMonitor()\n"));
@@ -543,34 +1172,34 @@ void adviceconn::TearDownConnection() {
   Reset();
 }
 
-void adviceconn::CheckError(long rpc_code, CallTypes callType) {
+void adviceconn::CheckError(long rpc_code, InterestID callType) {
     int Invalidate = 1;
 
     TotalAttempts++;
     switch (rpc_code) {
       case RPC2_SUCCESS:
-        NumSUCCESS[(int)callType]++;
+	CurrentValues[(int)callType].rpc_success++;
         Invalidate = 0;
         break;
       case RPC2_CONNBUSY:
-        NumCONNBUSY[(int)callType]++;
+	CurrentValues[(int)callType].rpc_connbusy++;
         LOG(0, ("ADMON STATS: Connection BUSY!\n"));
         Invalidate = 0;
         break;
       case RPC2_FAIL:
-        NumFAIL[(int)callType]++;
+	CurrentValues[(int)callType].rpc_fail++;
         break;
       case RPC2_NOCONNECTION:
-        NumNOCONNECTION[(int)callType]++;
+	CurrentValues[(int)callType].rpc_noconnection++;
         break;
       case RPC2_TIMEOUT:
-        NumTIMEOUT[(int)callType]++;
+	CurrentValues[(int)callType].rpc_timeout++;
         break;
       case RPC2_DEAD:
-        NumDEAD[(int)callType]++;
+	CurrentValues[(int)callType].rpc_dead++;
         break;
       default:
-        NumRPC2otherErrors[(int)callType]++;
+	CurrentValues[(int)callType].rpc_othererrors++;
         LOG(0, ("ADMON STATS: Get advice failed with unanticipated error code!  (%s)\n", 
               RPC2_ErrorMsg((int)rpc_code)));
         LOG(0, ("Please report this error code to Maria!\n"));
@@ -597,14 +1226,17 @@ void adviceconn::ResetCounters() {
   ASRintervalNotReachedCount = 0;
   VolumeNullCount = 0;
   TotalAttempts = 0;                    
-  for (int count = 0; count < NumCallTypes; count++) {
-    NumSUCCESS[count] = 0;              
-    NumCONNBUSY[count] = 0;             
-    NumFAIL[count] = 0;                 
-    NumNOCONNECTION[count] = 0;         
-    NumTIMEOUT[count] = 0;              
-    NumDEAD[count] = 0;                 
-    NumRPC2otherErrors[count] = 0;      
+  for (int count = 0; count < MAXEVENTS; count++) {
+    CurrentValues[count].requested = 0;
+    CurrentValues[count].advicenotvalid = 0;
+    CurrentValues[count].rpc_initiated = 0;
+    CurrentValues[count].rpc_success = 0;
+    CurrentValues[count].rpc_connbusy = 0;
+    CurrentValues[count].rpc_fail = 0;
+    CurrentValues[count].rpc_noconnection = 0;
+    CurrentValues[count].rpc_timeout = 0;
+    CurrentValues[count].rpc_dead = 0;
+    CurrentValues[count].rpc_othererrors = 0;
   }
 }
   
@@ -617,15 +1249,11 @@ void adviceconn::Reset() {
   port = 0;
   bzero(hostname, MAXHOSTNAMELEN);
 
-  InconsistentObjects = 0;
-  ReadDisconnectedCacheMisses = 0;
-  WeaklyConnectedCacheMisses = 0;
-  DisconnectedCacheMisses = 0;
-  VolumeTransitions = 0;
-  ReconnectionQuestionnaires = 0;
-  ReintegrationPendings = 0;
-  HoardWalks = 0; 
-  ASRs = 0;
+  for (int i = 0; i < MAXEVENTS; i++)
+    InterestArray[i] = 0;
+
+  programFILE = NULL;
+  replacementFILE = NULL;
 
   LOG(100, ("L adviceconn::Reset()\n"));
 }
@@ -642,12 +1270,12 @@ void adviceconn::ReleaseUserLock() {
   ReleaseWriteLock(&userLock);
 }
 
-int adviceconn::IsAdviceValid(int bump) { /* bump == 1 --> stats will be incremented */
+int adviceconn::IsAdviceValid(InterestID callType, int bump) { /* bump == 1 --> stats will be incremented */
   if (state == AdviceValid)
      return TRUE;
   else {
-     if (bump)
-        AdviceNotValidCount++;
+     if ((bump) && (callType >= 0))
+       IncrNotValid(callType);
      return FALSE;
   }
 }
@@ -698,100 +1326,65 @@ char *adviceconn::StateString()
   return(msgbuf);
 }
 
-char *adviceconn::ReadDiscAdviceString(ReadDiscAdvice advice)
+#define MSGSIZE 64
+char *adviceconn::CacheMissAdviceToString(CacheMissAdvice advice)
 {
-  static char msgbuf[100];
+  static char msgbuf[MSGSIZE];
 
   switch (advice) {
-    case ReadDiscFetch:
-      (void) sprintf(msgbuf, "FETCH");
+    case FetchFromServers:
+      (void) snprintf(msgbuf, MSGSIZE, "Fetch from servers");
       break;
-    case ReadDiscHOARDimmedFETCH:
-      (void) sprintf(msgbuf, "HOARD with immediate FETCH");
+    case CoerceToMiss:
+      (void) snprintf(msgbuf, MSGSIZE, "Coerce to miss");
       break;
-    case ReadDiscHOARDdelayFETCH:
-      (void) sprintf(msgbuf, "HOARD with delayed FETCH");
-      break;
-    case ReadDiscTimeout:
-      (void) sprintf(msgbuf, "MISS");
-      break;
-    case ReadDiscUnknown:
     default:
-      (void) sprintf(msgbuf, "UNKNOWN");
-      break;
-    }
-
-  return(msgbuf);
-
-}
-
-char *adviceconn::WeaklyAdviceString(WeaklyAdvice advice)
-{
-  static char msgbuf[100];
-
-  switch (advice) {
-    case WeaklyFetch:
-      (void) sprintf(msgbuf, "FETCH");
-      break;
-    case WeaklyMiss:
-      (void) sprintf(msgbuf, "COERCED MISS");
-      break;
-    case WeaklyUnknown:
-    default:
-      (void) sprintf(msgbuf, "UNKNOWN");
+      (void) snprintf(msgbuf, MSGSIZE, "Unknown");
       break;
   }
-
   return(msgbuf);
 }
 
+int adviceconn::GetSuccesses(InterestID interest) {
+    return(CurrentValues[interest].rpc_success);
+}
+
+int adviceconn::GetFailures(InterestID interest) {
+    return(CurrentValues[interest].rpc_connbusy +
+	    CurrentValues[interest].rpc_fail +
+	    CurrentValues[interest].rpc_noconnection +
+	    CurrentValues[interest].rpc_timeout +
+	    CurrentValues[interest].rpc_dead +
+	    CurrentValues[interest].rpc_othererrors);
+}
 
 void adviceconn::GetStatistics(AdviceCalls *calls, AdviceResults *results, AdviceStatistics *stats) {
     int counter;
 
-        calls[0].success = (RPC2_Integer)NumSUCCESS[PCM];
-        calls[0].failures = (RPC2_Integer)(NumCONNBUSY[PCM] + NumFAIL[PCM] + NumNOCONNECTION[PCM] + NumTIMEOUT[PCM] + NumDEAD[PCM] + NumRPC2otherErrors[PCM]);
+    for (int i = 0; i < MAXEVENTS; i++) {
+      calls[i].success = (RPC2_Integer)GetSuccesses((InterestID)i);
+      calls[i].failures = (RPC2_Integer)GetFailures((InterestID)i);
+    }
 
-        calls[1].success = (RPC2_Integer)NumSUCCESS[HWA];
-        calls[1].failures = (RPC2_Integer)(NumCONNBUSY[HWA] + NumFAIL[HWA] + NumNOCONNECTION[HWA] + NumTIMEOUT[HWA] + NumDEAD[HWA] + NumRPC2otherErrors[HWA]);
+    for (counter = 0; counter < NumRPCResultTypes; counter++) 
+        results[counter].count = 0;
+    for (counter = 0; counter < MAXEVENTS; counter++) {
+        results[0].count += GetSUCCESS((InterestID)counter);
+        results[1].count += GetCONNBUSY((InterestID)counter);
+        results[2].count += GetFAIL((InterestID)counter);
+        results[3].count += GetNOCONNECTION((InterestID)counter);
+        results[4].count += GetTIMEOUT((InterestID)counter);
+        results[5].count += GetDEAD((InterestID)counter);
+        results[6].count += GetOTHER((InterestID)counter);
+    }
 
-        calls[2].success = (RPC2_Integer)NumSUCCESS[DM];
-        calls[2].failures = (RPC2_Integer)(NumCONNBUSY[DM] + NumFAIL[DM] + NumNOCONNECTION[DM] + NumTIMEOUT[DM] + NumDEAD[DM] + NumRPC2otherErrors[DM]);
-
-        calls[3].success = (RPC2_Integer)NumSUCCESS[R];
-        calls[3].failures = (RPC2_Integer)(NumCONNBUSY[R] + NumFAIL[R] + NumNOCONNECTION[R] + NumTIMEOUT[R] + NumDEAD[R] + NumRPC2otherErrors[R]);
-
-        calls[4].success = (RPC2_Integer)NumSUCCESS[RP];
-        calls[4].failures = (RPC2_Integer)(NumCONNBUSY[RP] + NumFAIL[RP] + NumNOCONNECTION[RP] + NumTIMEOUT[RP] + NumDEAD[RP] + NumRPC2otherErrors[RP]);
-
-        calls[5].success = (RPC2_Integer)NumSUCCESS[IASR];
-        calls[5].failures = (RPC2_Integer)(NumCONNBUSY[IASR] + NumFAIL[IASR] + NumNOCONNECTION[IASR] + NumTIMEOUT[IASR] + NumDEAD[IASR] + NumRPC2otherErrors[IASR]);
-
-        calls[6].success = (RPC2_Integer)NumSUCCESS[LC];
-        calls[6].failures = (RPC2_Integer)(NumCONNBUSY[LC] + NumFAIL[LC] + NumNOCONNECTION[LC] + NumTIMEOUT[LC] + NumDEAD[LC] + NumRPC2otherErrors[LC]);
-
-        calls[7].success = (RPC2_Integer)NumSUCCESS[WCM];
-        calls[7].failures = (RPC2_Integer)(NumCONNBUSY[WCM] + NumFAIL[WCM] + NumNOCONNECTION[WCM] + NumTIMEOUT[WCM] + NumDEAD[WCM] + NumRPC2otherErrors[WCM]);
-
-        for (counter = 0; counter < NumRPCResultTypes; counter++) 
-            results[counter].count = 0;
-        for (counter = 0; counter < NumCallTypes; counter++) {
-            results[0].count += NumSUCCESS[counter];        
-            results[1].count += NumCONNBUSY[counter];      
-            results[2].count += NumFAIL[counter];              
-            results[3].count += NumNOCONNECTION[counter];      
-            results[4].count += NumTIMEOUT[counter];        
-            results[5].count += NumDEAD[counter];
-            results[6].count += NumRPC2otherErrors[counter];
-        }
-
-        stats->NotEnabled = AdviceNotEnabledCount;
-        stats->NotValid = AdviceNotValidCount;
-        stats->Outstanding = AdviceOutstandingCount;
-        stats->ASRnotAllowed = ASRnotAllowedCount;
-        stats->ASRinterval = ASRintervalNotReachedCount;
-        stats->VolumeNull = VolumeNullCount;
-        stats->TotalNumberAttempts = TotalAttempts;
+    stats->NotEnabled = AdviceNotEnabledCount;
+    stats->NotValid = AdviceNotValidCount;
+    stats->Outstanding = AdviceOutstandingCount;
+    stats->ASRnotAllowed = ASRnotAllowedCount;
+    stats->ASRinterval = ASRintervalNotReachedCount;
+    stats->VolumeNull = VolumeNullCount;
+    stats->TotalNumberAttempts = TotalAttempts;
 }
 
 void adviceconn::Print() {
@@ -814,13 +1407,21 @@ void adviceconn::Print(int afd) {
           (long)this, StateString(), hostname, port, handle);
   fdprint(afd, "NotEnabled=%d, NotValid=%d, VolumeNull=%d\n", AdviceNotEnabledCount, AdviceNotValidCount, VolumeNullCount);
   fdprint(afd, "TotalAttempted calls = %d\n", TotalAttempts);
-  fdprint(afd, "SUCCESS = (%d, %d, %d, %d, %d, %d, %d)\n", NumSUCCESS[0], NumSUCCESS[1], NumSUCCESS[2], NumSUCCESS[3], NumSUCCESS[4], NumSUCCESS[5], NumSUCCESS[6]);
-  fdprint(afd, "CONNBUSY = (%d, %d, %d, %d, %d, %d, %d)\n", NumCONNBUSY[0], NumCONNBUSY[1], NumCONNBUSY[2], NumCONNBUSY[3], NumCONNBUSY[4], NumCONNBUSY[5], NumCONNBUSY[6]);
-  fdprint(afd, "FAIL = (%d, %d, %d, %d, %d, %d, %d)\n", NumFAIL[0], NumFAIL[1], NumFAIL[2], NumFAIL[3], NumFAIL[4], NumFAIL[5], NumFAIL[6]);
-  fdprint(afd, "NOCONNECTION = (%d, %d, %d, %d, %d, %d, %d)\n", NumNOCONNECTION[0], NumNOCONNECTION[1], NumNOCONNECTION[2], NumNOCONNECTION[3], NumNOCONNECTION[4], NumNOCONNECTION[5], NumNOCONNECTION[6]);
-  fdprint(afd, "TIMEOUT = (%d, %d, %d, %d, %d, %d, %d)\n", NumTIMEOUT[0], NumTIMEOUT[1], NumTIMEOUT[2], NumTIMEOUT[3], NumTIMEOUT[4], NumTIMEOUT[5], NumTIMEOUT[6]);
-  fdprint(afd, "DEAD = (%d, %d, %d, %d, %d, %d, %d)\n", NumDEAD[0], NumDEAD[1], NumDEAD[2], NumDEAD[3], NumDEAD[4], NumDEAD[5], NumDEAD[6]);
-  fdprint(afd, "RPC2otherErrors = (%d, %d, %d, %d, %d, %d, %d)\n", NumRPC2otherErrors[0], NumRPC2otherErrors[1], NumRPC2otherErrors[2], NumRPC2otherErrors[3], NumRPC2otherErrors[4], NumRPC2otherErrors[5], NumRPC2otherErrors[6]);
+
+  for (int count = 0; count < MAXEVENTS; count++) {
+    fdprint(afd, "%s: <req=%d, anv=%d, ri=%d, rs=%d, rcb=%d, rf=%d, rnc=%d, rto=%d, rd=%d, ro=%d>\n",
+	    InterestToString((InterestID)count),
+	    CurrentValues[count].requested,
+	    CurrentValues[count].advicenotvalid,
+	    CurrentValues[count].rpc_initiated,
+	    CurrentValues[count].rpc_success,
+	    CurrentValues[count].rpc_connbusy,
+	    CurrentValues[count].rpc_fail,
+	    CurrentValues[count].rpc_noconnection,
+	    CurrentValues[count].rpc_timeout,
+	    CurrentValues[count].rpc_dead ,
+	    CurrentValues[count].rpc_othererrors);
+  }
 }
 
 
@@ -838,3 +1439,107 @@ void adviceconn::PrintState(int afd) {
   fdprint(afd, "State = %s\n", StateString());
 }
 
+/***************************************************************************************
+ *********************************** HELPER ROUTINES ***********************************
+ ***************************************************************************************/
+
+char *InterestToString(InterestID interest) {
+  static char returnString[MAXEVENTLEN];
+
+  switch (interest) {
+      case TokensAcquiredID:
+        strncpy(returnString, "TokensAcquired", MAXEVENTLEN);
+        break;
+      case TokensExpiredID:
+        strncpy(returnString, "TokensExpired", MAXEVENTLEN);
+        break;
+      case ActivityPendingTokensID:
+        strncpy(returnString, "ActivityPendingTokens", MAXEVENTLEN);
+        break;
+      case SpaceInformationID:
+        strncpy(returnString, "SpaceInformation", MAXEVENTLEN);
+        break;
+      case ServerAccessibleID:
+        strncpy(returnString, "ServerAccessible", MAXEVENTLEN);
+        break;
+      case ServerInaccessibleID:
+        strncpy(returnString, "ServerInaccessible", MAXEVENTLEN);
+        break;
+      case ServerConnectionStrongID:
+        strncpy(returnString, "ServerConnectionStrong", MAXEVENTLEN);
+	break;
+      case ServerConnectionWeakID:
+        strncpy(returnString, "ServerConnectionWeak", MAXEVENTLEN);
+	break;
+      case NetworkQualityEstimateID:
+        strncpy(returnString, "NetworkQualityEstimate", MAXEVENTLEN);
+        break;
+      case VolumeTransitionEventID:
+        strncpy(returnString, "VolumeTransitionEvent", MAXEVENTLEN);
+        break;
+      case ReconnectionID:
+        strncpy(returnString, "Reconnection", MAXEVENTLEN);
+        break;
+      case DataFetchEventID:
+        strncpy(returnString, "DataFetchEvent", MAXEVENTLEN);
+        break;
+      case ReadDisconnectedCacheMissEventID:
+        strncpy(returnString, "ReadDisconnectedCacheMissEvent", MAXEVENTLEN);
+        break;
+      case WeaklyConnectedCacheMissEventID:
+        strncpy(returnString, "WeaklyConnectedCacheMissEvent", MAXEVENTLEN);
+        break;
+      case DisconnectedCacheMissEventID:
+        strncpy(returnString, "DisconnectedCacheMissEvent", MAXEVENTLEN);
+        break;
+      case HoardWalkAdviceRequestID:
+        strncpy(returnString, "HoardWalkAdviceRequest", MAXEVENTLEN);
+        break;
+      case HoardWalkBeginID:
+        strncpy(returnString, "HoardWalkBegin", MAXEVENTLEN);
+        break;
+      case HoardWalkStatusID:
+        strncpy(returnString, "HoardWalkStatus", MAXEVENTLEN);
+        break;
+      case HoardWalkEndID:
+        strncpy(returnString, "HoardWalkEnd", MAXEVENTLEN);
+        break;
+      case HoardWalkPeriodicOnID:
+        strncpy(returnString, "HoardWalkPeriodicOn", MAXEVENTLEN);
+        break;
+      case HoardWalkPeriodicOffID:
+        strncpy(returnString, "HoardWalkPeriodicOff", MAXEVENTLEN);
+        break;
+      case ObjectInConflictID:
+        strncpy(returnString, "ObjectInConflict", MAXEVENTLEN);
+        break;
+      case ObjectConsistentID:
+        strncpy(returnString, "ObjectConsistent", MAXEVENTLEN);
+        break;
+      case ReintegrationPendingTokensID:
+        strncpy(returnString, "ReintegrationPendingTokens", MAXEVENTLEN);
+        break;
+      case ReintegrationEnabledID:
+        strncpy(returnString, "ReintegrationEnabled", MAXEVENTLEN);
+        break;
+      case ReintegrationActiveID:
+        strncpy(returnString, "ReintegrationActive", MAXEVENTLEN);
+        break;
+      case ReintegrationCompletedID:
+        strncpy(returnString, "ReintegrationCompleted", MAXEVENTLEN);
+        break;
+      case TaskAvailabilityID:
+        strncpy(returnString, "TaskAvailable", MAXEVENTLEN);
+        break;
+      case TaskUnavailableID:
+        strncpy(returnString, "TaskUnavailable", MAXEVENTLEN);
+        break;
+      case InvokeASRID:
+        strncpy(returnString, "InvokeASR", MAXEVENTLEN);
+        break;
+      default:
+        assert(1 == 0);
+  }
+
+  return(returnString);
+}

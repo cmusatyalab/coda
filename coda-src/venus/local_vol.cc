@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /coda/usr/lily/newbuild/src/coda-src/venus/RCS/local_vol.cc,v 4.1 97/01/08 21:51:32 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/local_vol.cc,v 4.2 97/02/27 18:49:15 lily Exp $";
 #endif /*_BLURB_*/
 
 
@@ -43,6 +43,8 @@ extern "C" {
 
 #include <struct.h>
 
+#include <errors.h>
+
 #ifdef __cplusplus
 }
 #endif __cplusplus
@@ -54,7 +56,7 @@ extern "C" {
 #include "local.h"
 #include "venusvol.h"
 
-#define  EINCOMPATIBLE   198
+
 /* must be called from within a transaction */
 void volent::TranslateCMLFid(ViceFid *global, ViceFid *local)
 {

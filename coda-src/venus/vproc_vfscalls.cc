@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/vproc_vfscalls.cc,v 4.9 1997/12/01 17:28:15 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/vproc_vfscalls.cc,v 4.10 97/12/10 22:10:43 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -693,8 +693,6 @@ void vproc::lookup(struct venus_vnode *dvp, char *name, struct venus_vnode **vpp
     LOG(1, ("vproc::lookup: fid = (%x.%x.%x), name = %s, nc = %x\n",
 	     dcp->c_fid.Volume, dcp->c_fid.Vnode, dcp->c_fid.Unique,
 	     name, u.u_nc));
-    if (u.u_nc && LogLevel >= 100)
-	u.u_nc->print(logFile);
 
     fsobj *parent_fso = 0;
     fsobj *target_fso = 0;

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/fso1.cc,v 4.6 1997/12/01 17:27:41 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/fso1.cc,v 4.7 97/12/10 22:10:37 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -89,6 +89,7 @@ extern "C" {
 
 /* from venus */
 #include "advice.h"
+#include "advice_daemon.h"
 #include "comm.h"
 #include "fso.h"
 #include "local.h"
@@ -202,6 +203,8 @@ void fsobj::ResetPersistent() {
     CleanStat.Length = (unsigned long)-1;
     CleanStat.Date = (Date_t)-1;
     data.havedata = 0;
+    DisconnectionsSinceUse = 0;
+    DisconnectionsUnused = 0;
 }
 
 /* local-repair modification */
@@ -654,6 +657,7 @@ void fsobj::Kill(int TellServers) {
     LOG(10, ("fsobj::Kill: (%x.%x.%x)\n",
 	      fid.Volume, fid.Vnode, fid.Unique));
 
+
     DisableReplacement();
 
     FSDB->delq->append(&del_handle);
@@ -668,6 +672,9 @@ void fsobj::Kill(int TellServers) {
 
     if (IsDir())
 	DemoteAcRights(ALL_UIDS);
+
+    /* Inform advice servers of loss of availability of this object */
+    NotifyUsersOfKillEvent(hdb_bindings, NBLOCKS(stat.Length));
 
     DetachHdbBindings();
 
@@ -1596,6 +1603,26 @@ void fsobj::DisableReplacement() {
 }
 
 
+int CheckForDuplicates(dlist *hdb_bindings_list, void *binder) {
+    /* If the list is empty, this can't be a duplicate */
+    if (hdb_bindings_list == NULL)
+        return(0);
+
+    /* Look for this binder */
+    dlist_iterator next(*hdb_bindings_list);
+    dlink *d;
+    while (d = next()) {
+	binding *b = strbase(binding, d, bindee_handle);
+	if (b->binder == binder) {
+	  /* Found it! */
+	  return(1);
+	}
+    }
+
+    /* If we had found it, we wouldn't have gotten here! */
+    return(0);
+}
+
 /* Need not be called from within transaction. */
 void fsobj::AttachHdbBinding(binding *b) {
     /* Sanity checks. */
@@ -1604,10 +1631,17 @@ void fsobj::AttachHdbBinding(binding *b) {
 	b->print(logFile);
 	Choke("fsobj::AttachHdbBinding: bindee != 0");
     }
+
+    /* Check for duplicates */
+    if (CheckForDuplicates(hdb_bindings, b->binder) == 1) {
+      b->IncrRefCount();
+      LOG(100, ("This is a duplicate binding...skip it.\n"));
+      //      return;
+    }
+
     if (LogLevel >= 1000) {
 	dprint("fsobj::AttachHdbBinding:\n");
 	print(logFile);
-	b->print(logFile);
     }
 
     /* Attach ourselves to the binding. */
@@ -1615,6 +1649,13 @@ void fsobj::AttachHdbBinding(binding *b) {
 	hdb_bindings = new dlist;
     hdb_bindings->insert(&b->bindee_handle);
     b->bindee = this;
+
+    if (LogLevel >= 10) {
+      dprint("fsobj::AttachHdbBinding:\n");
+      print(logFile);
+      b->print(logFile);
+    }
+
     if (IsSymLink())
 	DisableReplacement();
 
@@ -1675,6 +1716,10 @@ void fsobj::DetachHdbBindings() {
 
 /* Need not be called from within transaction. */
 void fsobj::DetachHdbBinding(binding *b, int DemoteNameCtxt) {
+  struct timeval StartTV;
+  struct timeval EndTV;
+  float elapsed;
+
     /* Sanity checks. */
     if (b->bindee != this) {
 	print(logFile);
@@ -1703,6 +1748,8 @@ void fsobj::DetachHdbBinding(binding *b, int DemoteNameCtxt) {
     if (nc->priority == HoardPri) {
 	int new_HoardPri = 0;
 	vuid_t new_HoardVuid = HOARD_UID;
+    gettimeofday(&StartTV, 0);
+    LOG(0, ("Detach: hdb_binding list contains %d namectxts\n", hdb_bindings->count()));
 	dlist_iterator next(*hdb_bindings);
 	dlink *d;
 	while (d = next()) {
@@ -1713,6 +1760,9 @@ void fsobj::DetachHdbBinding(binding *b, int DemoteNameCtxt) {
 		new_HoardVuid = nc->vuid;
 	    }
 	}
+    gettimeofday(&EndTV, 0);
+    elapsed = SubTimes(EndTV, StartTV);
+    LOG(0, ("fsobj::DetachHdbBinding: recompute, elapsed= %3.1f\n", elapsed));
 
 	if (new_HoardPri < HoardPri) {
 	    HoardPri = new_HoardPri;
@@ -1748,13 +1798,15 @@ int fsobj::PredetermineFetchState(int estimatedCost, int hoard_priority) {
     hoard_priority = hoard_priority * 100;
 
     LOG(100, ("fsobj::PredetermineFetchState(%d)\n",estimatedCost));
-    LOG(100, ("PATIENCE_ALPHA = %d, PATIENCE_BETA = %d; PATIENCE_GAMMA = %d\n", PATIENCE_ALPHA, PATIENCE_BETA, PATIENCE_GAMMA));
-    LOG(100, ("priority = %d; HoardPri = %d, hoard_priority = %d\n",priority, HoardPri, hoard_priority));
+    LOG(100, ("PATIENCE_ALPHA = %d, PATIENCE_BETA = %d; PATIENCE_GAMMA = %d\n", 
+	      PATIENCE_ALPHA, PATIENCE_BETA, PATIENCE_GAMMA));
+    LOG(100, ("priority = %d; HoardPri = %d, hoard_priority = %d\n",
+	      priority, HoardPri, hoard_priority));
 
     x = (double)hoard_priority / (double)PATIENCE_GAMMA;
     acceptableCost = (double)PATIENCE_ALPHA + ((double)PATIENCE_BETA * exp(x));
 
-    if (estimatedCost < acceptableCost) {
+    if ((hoard_priority == 100000) || (estimatedCost < acceptableCost)) {
         LOG(100, ("fsobj::PredetermineFetchState returns 1 (definitely fetch) \n"));
         return(1);
     }
@@ -1763,6 +1815,157 @@ int fsobj::PredetermineFetchState(int estimatedCost, int hoard_priority) {
         return(0);
     }
 }
+
+CacheMissAdvice 
+fsobj::ReadDisconnectedCacheMiss(vproc *vp, vuid_t vuid) {
+    userent *u;
+    char pathname[MAXPATHLEN];
+    CacheMissAdvice advice;
+
+    LOG(100, ("E fsobj::ReadDisconnectedCacheMiss\n"));
+
+    GetUser(&u, vuid);
+    assert(u != NULL);
+
+    /* If advice not enabled, simply return */
+    if (!AdviceEnabled) {
+        LOG(100, ("ADMON STATS:  RDCM Advice NOT enabled.\n"));
+        u->AdviceNotEnabled();
+        return(FetchFromServers);
+    }
+
+    /* Check that:                                                     *
+     *     (a) the request did NOT originate from the Hoard Daemon     *
+     *     (b) the request did NOT originate from that AdviceMonitor,  *
+     * and (c) the user is running an AdviceMonitor,                   */
+    assert(vp != NULL);
+    if (vp->type == VPT_HDBDaemon) {
+	LOG(100, ("ADMON STATS:  RDCM Advice inappropriate.\n"));
+        return(FetchFromServers);
+    }
+    if (u->IsAdvicePGID(vp->u.u_pgid)) {
+        LOG(100, ("ADMON STATS:  RDCM Advice inappropriate.\n"));
+        return(FetchFromServers);
+    }
+    if (u->IsAdviceValid(ReadDisconnectedCacheMissEventID,1) != TRUE) {
+        LOG(100, ("ADMON STATS:  RDCM Advice NOT valid. (uid = %d)\n", vuid));
+        return(FetchFromServers);
+    }
+
+    GetPath(pathname, 1);
+
+    LOG(100, ("Requesting ReadDisconnected CacheMiss Advice for path=%s, pid=%d...\n", pathname, vp->u.u_pid));
+    advice = u->RequestReadDisconnectedCacheMissAdvice(&fid, pathname, vp->u.u_pgid);
+    return(advice);
+}
+
+CacheMissAdvice fsobj::WeaklyConnectedCacheMiss(vproc *vp, vuid_t vuid) {
+    userent *u;
+    char pathname[MAXPATHLEN];
+    CacheMissAdvice advice;
+    long CurrentBandwidth;
+
+    LOG(100, ("E fsobj::WeaklyConnectedCacheMiss\n"));
+
+    GetUser(&u, vuid);
+    assert(u != NULL);
+
+    /* If advice not enabled, simply return */
+    if (!AdviceEnabled) {
+        LOG(100, ("ADMON STATS:  WCCM Advice NOT enabled.\n"));
+        u->AdviceNotEnabled();
+        return(FetchFromServers);
+    }
+
+    /* Check that:                                                     *
+     *     (a) the request did NOT originate from the Hoard Daemon     *
+     *     (b) the request did NOT originate from that AdviceMonitor,  *
+     * and (c) the user is running an AdviceMonitor,                   */
+    assert(vp != NULL);
+    if (vp->type == VPT_HDBDaemon) {
+	LOG(100, ("ADMON STATS:  WCCM Advice inappropriate.\n"));
+        return(FetchFromServers);
+    }
+    if (u->IsAdvicePGID(vp->u.u_pgid)) {
+        LOG(100, ("ADMON STATS:  WCCM Advice inappropriate.\n"));
+        return(FetchFromServers);
+    }
+    if (u->IsAdviceValid(WeaklyConnectedCacheMissEventID, 1) != TRUE) {
+        LOG(100, ("ADMON STATS:  WCCM Advice NOT valid. (uid = %d)\n", vuid));
+        return(FetchFromServers);
+    }
+
+    GetPath(pathname, 1);
+
+    LOG(100, ("Requesting WeaklyConnected CacheMiss Advice for path=%s, pid=%d...\n", 
+	      pathname, vp->u.u_pid));
+    vol->vsg->GetBandwidth(&CurrentBandwidth);
+    advice = u->RequestWeaklyConnectedCacheMissAdvice(&fid, pathname, vp->u.u_pid, stat.Length, 
+						      CurrentBandwidth, cf.Name());
+    return(advice);
+}
+
+void fsobj::DisconnectedCacheMiss(vproc *vp, vuid_t vuid, char *comp) {
+    userent *u;
+    char pathname[MAXPATHLEN];
+
+    GetUser(&u, vuid);
+    assert(u != NULL);
+
+    /* If advice not enabled, simply return */
+    if (!AdviceEnabled) {
+        LOG(100, ("ADMON STATS:  DMQ Advice NOT enabled.\n"));
+        u->AdviceNotEnabled();
+        return;
+    }
+
+    /* Check that:                                                     *
+     *     (a) the request did NOT originate from the Hoard Daemon     *
+     *     (b) the request did NOT originate from that AdviceMonitor,  *
+     *     (c) the user is running an AdviceMonitor,                   *
+     * and (d) the volent is non-NULL.                                 */
+    assert(vp != NULL);
+    if (vp->type == VPT_HDBDaemon) {
+	LOG(100, ("ADMON STATS:  DMQ Advice inappropriate.\n"));
+        return;
+    }
+    if (u->IsAdvicePGID(vp->u.u_pgid)) {
+        LOG(100, ("ADMON STATS:  DMQ Advice inappropriate.\n"));
+        return;
+    }
+    if (u->IsAdviceValid(DisconnectedCacheMissEventID, 1) != TRUE) {
+        LOG(100, ("ADMON STATS:  DMQ Advice NOT valid. (uid = %d)\n", vuid));
+        return;
+    }
+    if (vol == NULL) {
+        LOG(100, ("ADMON STATS:  DMQ volent is NULL.\n"));
+        u->VolumeNull();
+        return;
+    }
+
+    /* Get the pathname */
+    GetPath(pathname, 1);
+ /*
+    if (f != NULL)
+        f->GetPath(pathname, 1);
+    else {
+        v->GetMountPath(pathname, 0);
+	assert(key != NULL);
+	if ((key->Vnode != ROOT_VNODE) || (key->Unique != ROOT_UNIQUE)) 
+	    strcat(pathname, "/???");
+    }
+ */
+    if (comp) {
+        strcat(pathname, "/");
+	strcat(pathname,comp);
+    }
+
+    /* Make the request */
+    LOG(100, ("Requesting Disconnected CacheMiss Questionnaire...1\n"));
+    u->RequestDisconnectedQuestionnaire(&fid, pathname, vp->u.u_pid, vol->GetDisconnectionTime());
+}
+
+
 
 
 /*  *****  MLE Linkage  *****  */
@@ -2446,7 +2649,7 @@ void fsobj::CacheReport(int fd, int level) {
  * or the actual data (type == 1) is being fetched.  The default is data.
  */
 int fsobj::EstimatedFetchCost(int type) {
-    LOG(0/*100*/, ("E fsobj::EstimatedFetchCost(%d)\n", type));
+    LOG(100, ("E fsobj::EstimatedFetchCost(%d)\n", type));
 
     long bw = UNSET_BW;	/* bandwidth, in bytes/sec */
     vol->vsg->GetBandwidth(&bw);
@@ -2454,9 +2657,26 @@ int fsobj::EstimatedFetchCost(int type) {
     if (bw == UNSET_BW)
         return(-1);
     else {    
-        LOG(0/*100*/, ("stat.Length = %d; Bandwidth = %d\n", stat.Length, bw));
+        LOG(100, ("stat.Length = %d; Bandwidth = %d\n", stat.Length, bw));
+	LOG(100, ("EstimatedFetchCost = %d\n", (int)stat.Length/bw));
         return( (int)stat.Length/bw ); 
     }
+}
+
+void fsobj::RecordReplacement(int status, int data) {
+    char mountpath[MAXPATHLEN];
+    char path[MAXPATHLEN];
+
+    LOG(0, ("RecordReplacement(%d,%d)\n", status, data));
+
+    assert(vol != NULL);
+    vol->GetMountPath(mountpath, 1);
+    GetPath(path, 1);    
+
+    if (data)
+      NotifyUserOfReplacement(&fid, path, status, 1);
+    else
+      NotifyUserOfReplacement(&fid, path, status, 0);
 }
 
 /* local-repair modification */
@@ -2510,6 +2730,20 @@ void fsobj::print(int fdes) {
     fdprint(fdes, "\tpriority = %d (%d), hoard = [%d, %d, %d], lastref = %d\n",
 	     priority, flags.random, HoardPri, HoardVuid,
 	     (hdb_bindings ? hdb_bindings->count() : 0), FSDB->LastRef[ix]);
+    if (hdb_bindings) {
+      dlist_iterator next(*hdb_bindings);
+      dlink *d;
+      while (d = next()) {
+	binding *b = strbase(binding, d, bindee_handle);
+	namectxt *nc = (namectxt *)b->binder;
+	if (nc != NULL) 
+	  nc->print(fdes);
+      }
+
+    }
+
+    fdprint(fdes, "\tDisconnectionStatistics:  Used = %d - Unused = %d - SinceLastUse = %d\n",
+	    DisconnectionsUsed, DisconnectionsUnused, DisconnectionsSinceUse);
 
     /* < mle_bindings, CleanStat > */
     fdprint(fdes, "\tmle_bindings = (%x, %d), cleanstat = [%d, %d]\n",

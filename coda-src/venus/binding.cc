@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/src/coda-4.0.1/coda-src/venus/RCS/binding.cc,v 1.1 1996/11/22 19:11:49 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/binding.cc,v 4.1 97/01/08 21:51:18 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -51,17 +51,19 @@ binding::binding() {
 
     binder = 0;
     bindee = 0;
+    referenceCount = 0;
 
 #ifdef	VENUSDEBUG
     allocs++;
 #endif	VENUSDEBUG
 }
 
-
 binding::~binding() {
 #ifdef	VENUSDEBUG
     deallocs++;
 #endif	VENUSDEBUG
+    if (referenceCount != 0)
+      LOG(0, ("binding::~binding:  somebody forgot to decrement before delete\n"));
 
     if (binder != 0 || bindee != 0)
 	{ print(logFile); Choke("binding::~binding: something bogus");}
@@ -69,5 +71,5 @@ binding::~binding() {
 
 
 void binding::print(int fd) {
-    fdprint(fd, "binder = %x, bindee = %x\n", binder, bindee);
+    fdprint(fd, "binder = %x, bindee = %x, refCount = %d\n", binder, bindee, referenceCount);
 }

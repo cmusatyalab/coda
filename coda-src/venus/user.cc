@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/user.cc,v 4.1 1997/01/08 21:51:35 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/user.cc,v 4.2 97/09/23 17:55:23 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -80,6 +80,8 @@ extern "C" {
 #include "venus.private.h"
 #include "worker.h"
 
+
+#define	CLOCK_SKEW  120	    /* seconds */
 
 olist *userent::usertab;
 
@@ -257,7 +259,14 @@ long userent::SetTokens(SecretToken *asecret, ClearToken *aclear) {
     tokensvalid = 1;
     bcopy(asecret, &secret, (int) sizeof(SecretToken));
     bcopy(aclear, &clear, (int) sizeof(ClearToken));
+LOG(100, ("SetTokens calling Reset\n"));
     Reset();
+
+    /* Inform the advice monitor that user now has tokens. */
+    LOG(100, ("calling TokensAcquired with %d\n", (clear.EndTimestamp-CLOCK_SKEW)));
+    admon.TokensAcquired((clear.EndTimestamp - CLOCK_SKEW));
+    LOG(100, ("returned from TokensAcquired\n"));
+
 
     /* Make dirty volumes "owned" by this user available for reintegration. */
     vol_iterator next;
@@ -290,7 +299,6 @@ int userent::TokensValid() {
 }
 
 
-#define	CLOCK_SKEW  120	    /* seconds */
 void userent::CheckTokenExpiry() {
     if (!tokensvalid) return;
 
@@ -317,19 +325,25 @@ void userent::Invalidate() {
     bzero(&secret, (int) sizeof(SecretToken));
     bzero(&clear, (int) sizeof(ClearToken));
 
+    /* Inform the user's CodaConsole */
+    admon.TokensExpired();
+
     Reset();
 }
 
 
 void userent::Reset() {
+LOG(100, ("E userent::Reset()\n"));
     /* Clear the cached access info for the user. */
     FSDB->ResetUser(uid);
 
     /* Invalidate kernel data for the user. */
     k_Purge(uid);
+LOG(100, ("After k_Purge in userent::Reset\n"));
 
     /* Demote HDB bindings for the user. */
     HDB->ResetUser(uid);
+LOG(100, ("After HDB::ResetUser in userent::Reset\n"));
 
     /* Delete the user's connections. */
     {
@@ -354,6 +368,8 @@ void userent::Reset() {
 	    (void)m->Suicide(1);
 	}
     }
+
+LOG(100, ("L userent::Reset()\n"));
 }
 
 

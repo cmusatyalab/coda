@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/venus.cc,v 4.4 1997/03/06 21:04:54 lily Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/venus.cc,v 4.4 97/03/06 21:04:54 lily Exp $";
 #endif /*_BLURB_*/
 
 
@@ -104,6 +104,7 @@ char *CacheDir = UNSET_CD;
 int CacheBlocks = UNSET_CB;
 char *RootVolName = UNSET_RV;
 int PrimaryUser = UNSET_PRIMARYUSER;
+char *SpoolDir = UNSET_SPOOLDIR;
 
 /* *****  Private constants  ***** */
 
@@ -153,6 +154,7 @@ int main(int argc, char **argv) {
      */
     VprocInit();    /* init LWP/IOMGR support */
     LogInit();      /* move old Venus log and create a new one */
+    SpoolInit();    /* make sure the spooling directory exists */
     DaemonInit();   /* before any Daemons initialize and after LogInit */
     ProfInit();
     StatsInit();
@@ -186,13 +188,6 @@ int main(int argc, char **argv) {
     }
 
     UnsetInitFile();
-    { FILE *fd = fopen("/dev/console", "w");
-	if (fd != NULL) {
-	    fprintf(fd, "Coda Venus has started!!\n\r");
-	    fflush(fd);
-	    fclose(fd);
-	}
-    }
     eprint("Venus starting...");
 
     /* Act as message-multiplexor/daemon-dispatcher. */
@@ -367,6 +362,9 @@ PRIVATE void ParseCmdline(int argc, char **argv) {
 	        extern int AllowIPAddrs;
 	        AllowIPAddrs = 0;
 	    }
+	    else if (STREQ(argv[i], "-spooldir")) {
+	        i++, SpoolDir = argv[i];
+	    }
 	    else {
 		eprint("bad command line option %-4s", argv[i]);
 		exit(-1);
@@ -377,6 +375,7 @@ PRIVATE void ParseCmdline(int argc, char **argv) {
 
     /* open the console file and print vital info */
     if (consoleFile == UNSET_CONSOLE) consoleFile = DFLT_CONSOLE;
+    if (SpoolDir == UNSET_SPOOLDIR) SpoolDir = DFLT_SPOOLDIR;
     freopen(consoleFile, "w", stderr);
     fprintf(stderr, "Coda Venus, version %d.%d (%d)\n",
              VenusMajorVersion, VenusMinorVersion, RecovVersionNumber);

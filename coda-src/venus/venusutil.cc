@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/venusutil.cc,v 4.6 1997/10/23 19:25:08 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/venusutil.cc,v 4.7 97/12/01 17:28:03 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -461,6 +461,7 @@ int binaryfloor(int n) {
 void LogInit() {
     rename(LOGFILE, LOGFILE_OLD);
 
+    fclose(stderr);
     logFile = fopen(LOGFILE, "w+");
     if (logFile == NULL)
 	{ eprint("LogInit failed"); exit(-1); }
@@ -826,7 +827,7 @@ void StatsInit() {
 
 
 void ProfInit() {
-    LOG(0, ("ProfInit(): profiling is broken; fix it!"));
+    LOG(0, ("ProfInit(): profiling is broken; fix it!\n"));
     return;
 #if 0
     /* This code used to work once upon a time */

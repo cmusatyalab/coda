@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /home/braam/src/coda-src/venus/RCS/advice.h,v 1.2 1996/11/24 20:43:01 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/advice.h,v 4.1 97/01/08 21:51:17 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -68,9 +68,12 @@ extern int ASRresult;
 #define HOARDLIST_FILENAME "/tmp/hoardlist."
 #define HOARDADVICE_FILENAME "/tmp/hoardadvice."
 
+#define PROGRAMLOG "program.log"
+#define REPLACEMENTLOG "replacement.log"
+
 /* User Patience Parameters. */
 const int UNSET_PATIENCE_ALPHA = -1;
-const int DFLT_PATIENCE_ALPHA = 2;
+const int DFLT_PATIENCE_ALPHA = 6;
 const int UNSET_PATIENCE_BETA = -1;
 const int DFLT_PATIENCE_BETA = 1;
 const int UNSET_PATIENCE_GAMMA = -1;

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /home/braam/src/coda-src/venus/RCS/advice_daemon.cc,v 1.2 1996/11/24 20:48:04 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/advice_daemon.cc,v 4.1 97/01/08 21:51:17 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -42,25 +42,38 @@ static char *rcsid = "$Header: /home/braam/src/coda-src/venus/RCS/advice_daemon.
 extern "C" {
 #endif __cplusplus
 
+#include <struct.h>
 #include <netinet/in.h>
+
+/* from rvm */
+#include <rds.h>
+
 
 #ifdef __cplusplus
 }
 #endif __cplusplus
 
+/* interfaces */
+#include <adsrv.h>
+#include <admon.h>
+
+/* from venus */
+#include "tallyent.h"
 #include "user.h"
 #include "simulate.h"
 #include "advice.h"
 #include "adviceconn.h"
 #include "advice_daemon.h"
-#include "adsrv.h"
-#include "admon.h"
 
 
 const char AdviceSubsys[] = "AdviceSubsys";
 
 int AdviceEnabled = 1;
 int ASRallowed = 1;
+
+double totalFetched = 0;
+double totalToFetch = 0;
+int lastPercentage = 0;
 
 const int AdviceDaemonStackSize = 8192;
 
@@ -180,6 +193,7 @@ void adviceserver::CheckConnections() {
     u->admon.CheckConnection();
 }
 
+
 /********************************************************************************
  *  RPC Calls accepted by the advice daemon:
  *     NewAdviceService --  an advice monitor makes this call to Venus to inform
@@ -188,6 +202,12 @@ void adviceserver::CheckConnections() {
  *                        that its connection is alive.
  *     RegisterInterest -- an advice monitor makes this call to Venus to register
  * 			   its interest (or disinterest) in certain events.
+ *     GetCacheStatistics -- an advice monitor makes this call to Venus to
+ *                           request cache statistics information
+ *     OutputUsageStatistics -- an advice monitor makes this call to Venus to 
+ *                              obtain statistics on fsobj usage during discos
+ *     HoardCommands -- an advice monitor makes this call to Venus to hand off 
+ *			a list of hoard commands.
  *     SetParameters -- an advice monitor makes this call to Venus to set internal
  *                      Venus parameters.  (for wizards only)
  *     ResultOfASR -- an advice monitor makes this call to Venus to return the
@@ -196,7 +216,7 @@ void adviceserver::CheckConnections() {
  *                       Venus of its impending death.
  ********************************************************************************/
 
-long NewAdviceService(RPC2_Handle _cid, RPC2_String hostname, RPC2_Integer userId, RPC2_Integer port, RPC2_Integer pgrp, RPC2_Integer AdSrvVersion, RPC2_Integer AdMonVersion, RPC2_Integer *VenusMajorVersionNum, RPC2_Integer *VenusMinorVersionNum) {
+long S_NewAdviceService(RPC2_Handle _cid, RPC2_String hostname, RPC2_Integer userId, RPC2_Integer port, RPC2_Integer pgrp, RPC2_Integer AdSrvVersion, RPC2_Integer AdMonVersion, RPC2_Integer *VenusMajorVersionNum, RPC2_Integer *VenusMinorVersionNum) {
   char versionstring[8];
   userent *u;
   int rc;
@@ -213,30 +233,28 @@ long NewAdviceService(RPC2_Handle _cid, RPC2_String hostname, RPC2_Integer userI
 
   if ((int)AdSrvVersion != ADSRV_VERSION) {
     LOG(0, ("Version Skew(adsrv.rpc2): AdviceServer=%d, Venus=%d.\n", (int)AdSrvVersion, ADSRV_VERSION));
-    return RPC2_FAIL;
+    return CAEVERSIONSKEW;
   }
   if ((int)AdMonVersion != ADMON_VERSION) {
     LOG(0, ("Version Skew(admon.rpc2):  AdviceServer=%d, Venus=%d.\n", (int)AdMonVersion, ADMON_VERSION));
-    return RPC2_FAIL;
+    return CAEVERSIONSKEW;
   }
 
   u = FindUser((vuid_t)userId);
   if (u == 0)
-    return RPC2_FAIL;
-  LOG(100, ("FindUser succeeded!\n"));
+    return CAENOSUCHUSER;
 
   rc = u->NewConnection((char *)hostname, (int)port, (int)pgrp);
+  u->InitializeProgramLog((vuid_t)userId);
+  u->InitializeReplacementLog((vuid_t)userId);
 
   *VenusMajorVersionNum = (RPC2_Integer)VenusMajorVersion;
   *VenusMinorVersionNum = (RPC2_Integer)VenusMinorVersion;
   LOG(100, ("L NewAdviceService()\n"));
-  if (rc == 0)
-    return RPC2_SUCCESS;
-  else
-    return RPC2_FAIL;
+  return(rc);
 }
 
-long ConnectionAlive(RPC2_Handle _cid, RPC2_Integer userId) {
+long S_ConnectionAlive(RPC2_Handle _cid, RPC2_Integer userId) {
     userent *u;
 
     LOG(100, ("E ConnectionAlive\n"));
@@ -244,17 +262,17 @@ long ConnectionAlive(RPC2_Handle _cid, RPC2_Integer userId) {
     /* Find this connection */
     u = FindUser((vuid_t)userId);
     if (u == 0)
-        return RPC2_FAIL;
+        return CAENOSUCHUSER;
 
     /* Make sure the connection is alive... */
     LOG(100, ("L ConnectionAlive\n"));
-    if (u->IsAdviceValid(0) == TRUE)
+    if (u->IsAdviceValid((InterestID)-1,0) == TRUE)
 	return RPC2_SUCCESS;
     else
-	return RPC2_FAIL;
+	return CAENOTVALID;
 }
 
-long RegisterInterest(RPC2_Handle _cid, RPC2_Integer userId, long numEvents, InterestValuePair events[]) {
+long S_RegisterInterest(RPC2_Handle _cid, RPC2_Integer userId, long numEvents, InterestValuePair events[]) {
   userent *u;
   
   LOG(0, ("E RegisterInterest\n"));
@@ -262,7 +280,7 @@ long RegisterInterest(RPC2_Handle _cid, RPC2_Integer userId, long numEvents, Int
   /* Find this connection */
   u = FindUser((vuid_t)userId);
   if (u == 0)
-    return RPC2_FAIL;
+    return CAENOSUCHUSER;
 
   u->RegisterInterest((vuid_t)userId, numEvents, events);
 
@@ -270,7 +288,50 @@ long RegisterInterest(RPC2_Handle _cid, RPC2_Integer userId, long numEvents, Int
   return RPC2_SUCCESS;
 }
 
-long SetParameters(RPC2_Handle _cid, RPC2_Integer userId, long numParameters, ParameterValuePair parameters[]) {
+long S_GetCacheStatistics(RPC2_Handle _cid, RPC2_Integer *FilesAllocated, RPC2_Integer *FilesOccupied, RPC2_Integer *BlocksAllocated, RPC2_Integer *BlocksOccupied, RPC2_Integer *RVMAllocated, RPC2_Integer *RVMOccupied) {
+
+    rds_stats_t rdsstats;
+    int hoarded_blocks;
+
+    LOG(0, ("E GetCacheStatistics\n"));
+
+    FSDB->GetStats((int *)FilesAllocated, (int *)FilesOccupied, 
+		   (int *)BlocksAllocated, (int *)BlocksOccupied);
+
+    // Overwrite Blocks and Files occupied with hoard statistics
+    TallySum((int *)BlocksOccupied, (int *)FilesOccupied);
+
+
+    if (rds_get_stats(&rdsstats) != 0) {
+      *RVMAllocated = (RPC2_Integer)(rdsstats.freebytes + rdsstats.mallocbytes);
+      *RVMOccupied = (RPC2_Integer)rdsstats.mallocbytes;
+    }
+
+    LOG(0, ("L GettCacheStatistics\n"));
+}
+
+long S_OutputUsageStatistics(RPC2_Handle _cid, RPC2_Integer userId, RPC2_String pathname) {
+  userent *u;
+  
+  LOG(0, ("E OutputUsageStatistics\n"));
+
+  /* Find this connection */
+  u = FindUser((vuid_t)userId);
+  if (u == 0)
+    return CAENOSUCHUSER;
+
+  u->OutputUsageStatistics((vuid_t)userId, (char *)pathname);
+
+  LOG(0, ("L OutputUsageStatistics\n"));
+  return RPC2_SUCCESS;
+}
+
+long S_HoardCommands(RPC2_Handle _cid, RPC2_Integer userId, long numCommands, HoardCmd commands[]) {
+    LOG(0, ("E HoardCommands\n"));
+    return RPC2_SUCCESS;
+}
+
+long S_SetParameters(RPC2_Handle _cid, RPC2_Integer userId, long numParameters, ParameterValuePair parameters[]) {
   userent *u;
   int uid;
 
@@ -320,7 +381,7 @@ long SetParameters(RPC2_Handle _cid, RPC2_Integer userId, long numParameters, Pa
   /* Find this connection */
 //  u = FindUser((vuid_t)userId);
 //  if (u == 0)
-//    return RPC2_FAIL;
+//    return CAENOSUCHUSER;
 
 //  u->BeginStoplightMonitor();
 
@@ -335,25 +396,25 @@ long SetParameters(RPC2_Handle _cid, RPC2_Integer userId, long numParameters, Pa
   /* Find this connection */
 //  u = FindUser((vuid_t)userId);
 //  if (u == 0)
-//    return RPC2_FAIL;
+//    return CAENOSUCHUSER;
 
 //  u->EndStoplightMonitor();
 
 // LOG(0, ("L EndStoplightMonitor\n"));
 //}
 
-long ResultOfASR(RPC2_Handle _cid, RPC2_Integer ASRid, RPC2_Integer result) {
+long S_ResultOfASR(RPC2_Handle _cid, RPC2_Integer ASRid, RPC2_Integer result) {
 
   LOG(0, ("ResultOfASR: ASRid = %d, result = %d\n", ASRid, result));
   // check return from ASR is pending 
   if (!ASRinProgress) {
     LOG(0, ("ResultOfASR: No pending ASR\n"));
-    return (RPC2_FAIL);
+    return (CAENOASR);
   }
   // check ASRid matches ASRinProgress
   if (ASRid != ASRinProgress) {
     LOG(0, ("ResultOfASR: Got result from unexpected ASR!\n"));
-    return (RPC2_FAIL);
+    return (CAEUNEXPECTEDASR);
   }
   // set result of ASR and wake up the right thread
   {
@@ -367,7 +428,7 @@ long ResultOfASR(RPC2_Handle _cid, RPC2_Integer ASRid, RPC2_Integer result) {
   return RPC2_SUCCESS;
 }
 
-long ImminentDeath(RPC2_Handle _cid, RPC2_String hostname, RPC2_Integer userId, RPC2_Integer port) {
+long S_ImminentDeath(RPC2_Handle _cid, RPC2_String hostname, RPC2_Integer userId, RPC2_Integer port) {
   userent *u;
   
   LOG(0, ("ImminentDeath: host = %s, userId = %d, port = %d\n", hostname, userId, port));
@@ -375,7 +436,7 @@ long ImminentDeath(RPC2_Handle _cid, RPC2_String hostname, RPC2_Integer userId, 
   /* Find this connection */
   u = FindUser((vuid_t)userId);
   if (u == 0)
-    return RPC2_FAIL;
+    return CAENOSUCHUSER;
 
   /* 
    * Don't ObtainWriteLock since we could deadlock if another LWP
@@ -389,3 +450,228 @@ long ImminentDeath(RPC2_Handle _cid, RPC2_String hostname, RPC2_Integer userId, 
   return RPC2_SUCCESS;
 }
 
+
+/* The advice daemon offers routines to inform all users of certain events. */
+
+void NotifyUsersOfServerUpEvent(char *name) {
+    user_iterator next;
+    userent *u;
+
+  LOG(0, ("NotifyUserOfServerUpEvent\n"));
+    while (u = next()) 
+        u->ServerAccessible(name);
+}
+
+void NotifyUsersOfServerDownEvent(char *name) {
+    user_iterator next;
+    userent *u;
+
+  LOG(0, ("NotifyUserOfServerDownEvent\n"));
+    while (u = next()) 
+        u->ServerInaccessible(name);
+}
+
+void NotifyUsersOfServerWeakEvent(char *name) {
+    user_iterator next;
+    userent *u;
+
+  LOG(0, ("NotifyUserOfServerWeakEvent\n"));
+    while (u = next()) 
+        u->ServerConnectionWeak(name);
+}
+
+void NotifyUsersOfServerStrongEvent(char *name) {
+    user_iterator next;
+    userent *u;
+
+  LOG(0, ("NotifyUserOfServerStrongEvent\n"));
+    while (u = next()) 
+        u->ServerConnectionStrong(name);
+}
+
+void NotifyUsersOfServerBandwidthEvent(char *name, long bandwidth) {
+    user_iterator next;
+    userent *u;
+
+  LOG(0, ("NotifyUserOfServerBandwidthEvent\n"));
+    while (u = next()) 
+        u->ServerBandwidthEstimate(name, bandwidth);
+}
+
+void NotifyUsersOfHoardWalkBegin() {
+    user_iterator next;
+    userent *u;
+
+    lastPercentage = 0;
+    totalToFetch = 0;
+    totalFetched = 0;
+    while (u = next()) 
+        u->HoardWalkBegin();
+}
+
+void NotifyUsersOfHoardWalkProgress(int fetched, int total) {
+    user_iterator next;
+    userent *u;
+    int thisPercentage;
+
+    totalFetched += fetched;
+    if (totalToFetch == 0)
+      totalToFetch = total;
+    assert(total == totalToFetch);
+
+    thisPercentage = (int) ((double)totalFetched*(double)100/(double)total);
+    if (thisPercentage < lastPercentage)
+      LOG(0, ("NotifyUsersOfHoardWalkProgress: percentage decreasing!\n"));
+    if (thisPercentage == lastPercentage)
+      return;
+    lastPercentage = thisPercentage;
+
+    LOG(0, ("NotifyUsersOfHoardWalkProgress(%d)\n", thisPercentage));
+    while (u = next()) 
+        u->HoardWalkStatus(thisPercentage);
+}
+
+void NotifyUsersOfHoardWalkEnd() {
+    user_iterator next;
+    userent *u;
+
+    while (u = next()) 
+        u->HoardWalkEnd();
+    lastPercentage = 0;
+    totalToFetch = 0;
+    totalFetched = 0;
+}
+
+void NotifyUsersOfHoardWalkPeriodicOn() {
+    user_iterator next;
+    userent *u;
+
+    while (u = next()) 
+        u->HoardWalkPeriodicOn();
+}
+
+void NotifyUsersOfHoardWalkPeriodicOff() {
+    user_iterator next;
+    userent *u;
+
+    while (u = next()) 
+        u->HoardWalkPeriodicOff();
+}
+
+void NotifyUsersObjectInConflict(char *path, ViceFid *key) {
+    user_iterator next;
+    userent *u;
+
+    while (u = next()) 
+        u->NotifyObjectInConflict(path, key);
+}
+
+void NotifyUsersObjectConsistent(char *path, ViceFid *key) {
+    user_iterator next;
+    userent *u;
+
+    while (u = next()) 
+        u->NotifyObjectConsistent(path, key);
+}
+
+#define MAXTASKS 88
+void NotifyUsersTaskAvailability() {
+    user_iterator next;
+    userent *u;
+
+    while (u = next()) {
+        TallyInfo tallyInfo[MAXTASKS];
+	int ti = 0;
+
+        dlist_iterator next_tallyent(*TallyList);
+        dlink *d;
+        while (d = next_tallyent()) {
+ 	    tallyent *te = strbase(tallyent, d, prioq_handle);
+	    if (te->vuid != u->GetUid()) continue;
+
+	    /* This tallyent is for our user */
+	    tallyInfo[ti].TaskPriority = te->priority;
+	    tallyInfo[ti].AvailableBlocks = te->available_blocks;
+	    tallyInfo[ti].UnavailableBlocks = te->unavailable_blocks;
+	    tallyInfo[ti].IncompleteInformation = te->incomplete;
+	    ti++;
+        }
+
+        u->NotifyTaskAvailability(ti, tallyInfo);
+    }
+}
+
+void NotifyUsersOfKillEvent(dlist *hdb_bindings, int blocks) {
+  dlist_iterator next_hdbent(*hdb_bindings);
+  dlink *d;
+
+  LOG(100, ("NotifyUsersOfKillEvent(xx, %d)\n", blocks));
+
+  if (hdb_bindings == NULL)
+    return;
+
+  LOG(0, ("NotifyUsersOfKillEvent: hdb_bindings != NULL\n"));
+
+  while (d = next_hdbent()) {
+    assert(d != NULL);
+    binding *b = strbase(binding, d, bindee_handle);
+    if (b == NULL)
+      LOG(0, ("b is null\n"));
+    fflush(logFile);
+    assert(b != NULL);
+    namectxt *nc = (namectxt *)b->binder;
+    if (nc == NULL)
+      LOG(0, ("nc is NULL\n"));
+    fflush(logFile);
+    assert(nc != NULL);
+    userent *u = FindUser(nc->vuid);
+
+    if (u == NULL) {
+      LOG(0, ("NotifyUsersOfKillEvent: u is NULL\n"));
+      continue;
+    }
+    fflush(logFile);
+    assert(u != NULL);
+
+    u->NotifyTaskUnavailable(nc->priority, blocks);
+  }
+
+}
+
+void NotifyUserOfProgramAccess(vuid_t uid, int pid, int pgid, ViceFid *key) {
+    userent *u;
+
+    GetUser(&u, uid);
+    assert(u != NULL);
+
+    if (!u->IsAdvicePGID(pgid))
+	u->LogProgramAccess(pid, pgid, key);
+}
+
+void NotifyUserOfReplacement(ViceFid *fid, char *path, int status, int data) {
+    userent *u;
+
+    LOG(0, ("Replacement: <%x.%x.%x> %s %d %d\n",
+	    fid->Volume, fid->Vnode, fid->Unique,
+	    path, status, data));
+
+    GetUser(&u, PrimaryUser);
+    if (u != NULL)
+      u->LogReplacement(path, status, data);
+}
+
+void SwapProgramLogs() {
+    user_iterator next;
+    userent *u;
+
+    while (u = next()) 
+        u->SwapProgramLog();
+}
+
+void SwapReplacementLogs() {
+    user_iterator next;
+    userent *u;
+
+    while (u = next()) 
+        u->SwapReplacementLog();
+}

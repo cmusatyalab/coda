@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/sighand.cc,v 4.5 1997/09/23 17:55:22 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/sighand.cc,v 4.6 97/10/10 21:52:09 clement Exp $";
 #endif /*_BLURB_*/
 
 
@@ -73,6 +73,7 @@ extern "C" {
 #include "venus.private.h"
 #include "venusrecov.h"
 #include "worker.h"
+#include "advice_daemon.h"
 #if defined(__linux__) && defined(sparc)
 #include <asm/sigcontext.h>
 #define sigcontext sigcontext_struct
@@ -158,6 +159,10 @@ PRIVATE void TRAP(int sig, int code, struct sigcontext *contextPtr) {
 
 
 PRIVATE void IOT(int sig, int code, struct sigcontext *contextPtr) {
+
+  LOG(0, ("Call into IOT\n"));
+  fflush(logFile);
+
   /* linux gets this signal when it shouldn't */
 #ifndef __linux__
     if (!Profiling)
@@ -291,6 +296,8 @@ PRIVATE void XFSZ(int sig, int code, struct sigcontext *contextPtr) {
 
 PRIVATE void VTALRM(int sig, int code, struct sigcontext *contextPtr) {
     SwapLog();
+    SwapProgramLogs();
+    SwapReplacementLogs();
 
     signal(SIGVTALRM, (void (*)(int))VTALRM);
 }

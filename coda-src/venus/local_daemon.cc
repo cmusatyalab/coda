@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/src/coda-4.0.1/coda-src/venus/RCS/local_daemon.cc,v 1.1 1996/11/22 19:11:06 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/local_daemon.cc,v 4.1 97/01/08 21:51:30 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -54,6 +54,7 @@ extern "C" {
 #include "venusrecov.h"
 #include "venus.private.h"
 #include "local.h"
+#include "advice_daemon.h"
 
 /* ***** Private constants ***** */
 PRIVATE const int LRDaemonStackSize = 32768;
@@ -92,6 +93,14 @@ void LRDBDaemon()
     }
 }
 
+/* MARIA testing */
+char *PrintFid(ViceFid *fid) {
+    static char fidString[128];
+    snprintf(fidString, 128, "%x.%x.%x", fid->Volume, fid->Vnode, fid->Unique);
+    return(fidString);
+}
+
+
 /*
   BEGIN_HTML
   <a name="checklocalsubtree"><strong> periodically check whether there are 
@@ -121,6 +130,13 @@ void lrdb::CheckLocalSubtree()
 	    RootParentObj->GetPath(RootPath, 1);
 	    eprint("Local inconsistent object at %s/%s, please check!\n",
 		   RootPath, rfm->GetName());
+	    char fullpath[MAXPATHLEN];
+	    snprintf(fullpath, MAXPATHLEN, "%s/%s", RootPath, rfm->GetName());
+	    ViceFid *objFid = rfm->GetGlobalRootFid();
+	    ASSERT(objFid);
+	    LOG(0, ("LocalInconsistentObj: objFid=%x.%x.%x\n",
+		    objFid->Volume, objFid->Vnode, objFid->Unique));
+	    NotifyUsersObjectInConflict(fullpath, objFid);
 	}
     }
     ReleaseReadLock(&rfm_lock);

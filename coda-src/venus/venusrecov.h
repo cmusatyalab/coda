@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/src/coda-4.0.1/RCSLINK/./coda-src/venus/venusrecov.h,v 1.1 1996/11/22 19:11:51 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/venusrecov.h,v 4.1 97/01/08 21:51:39 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -109,7 +109,7 @@ const int DFLT_MAXTS = 256 * 1024;			/* Maximum Truncate Size */
 const int UNSET_MAXTS = -1;
 
 const int RecovMagicNumber = 0x8675309;
-const int RecovVersionNumber = 27;			/* Update this when format changes. */
+const int RecovVersionNumber = 28;			/* Update this when format changes. */
 
 
 /*  *****  Types  *****  */

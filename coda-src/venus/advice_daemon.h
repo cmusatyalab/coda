@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/src/coda-4.0.1/RCSLINK/./coda-src/venus/advice_daemon.h,v 1.1 1996/11/22 19:11:39 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/advice_daemon.h,v 4.1 97/01/08 21:51:18 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -55,7 +55,7 @@ extern "C" {
 }
 #endif __cplusplus
 
-
+#include <admon.h>
 #include "vproc.h"
 
 extern int AdviceEnabled;
@@ -84,6 +84,26 @@ class adviceserver : public vproc {
 
 extern int MaxAMServers;
 extern void AdviceInit();
+
+extern void NotifyUsersOfServerDownEvent(char *);
+extern void NotifyUsersOfServerUpEvent(char *);
+extern void NotifyUsersOfServerWeakEvent(char *);
+extern void NotifyUsersOfServerStrongEvent(char *);
+extern void NotifyUsersOfServerBandwidthEvent(char *, long);
+extern void NotifyUsersOfHoardWalkBegin();
+extern void NotifyUsersOfHoardWalkProgress(int, int);
+extern void NotifyUsersOfHoardWalkEnd();
+extern void NotifyUsersOfHoardWalkPeriodicOn();
+extern void NotifyUsersOfHoardWalkPeriodicOff();
+extern void NotifyUsersObjectInConflict(char *, ViceFid *);
+extern void NotifyUsersObjectConsistent(char *, ViceFid *);
+extern void NotifyUsersTaskAvailability();
+
+extern void NotifyUserOfProgramAccess(vuid_t, int, int, ViceFid *);
+extern void SwapProgramLogs();
+
+extern void NotifyUserOfReplacement(ViceFid *, char *, int, int);
+extern void SwapReplacementLogs();
 
 #endif _VENUS_ADVICEDAEMON_H_
 

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /home/braam/coda/src/coda-4.0.1/coda-src/venus/RCS/adviceconn.h,v 1.2 1996/11/24 20:50:27 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/adviceconn.h,v 4.1 97/01/08 21:51:18 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -61,16 +61,28 @@ extern "C" {
 #include "lock.h"
 #include "advice.h"
 #include "adsrv.h"
+#include "admon.h"
 
-typedef enum { PCM=0, HWA=1, DM=2, R=3, RP=4, IASR=5, LC=6, WCM=7, VSC=8, DFE=9, NHoarding=10, NEmulating=11, NLogging=12, NResolving=13 } CallTypes;
-#define NumCallTypes 10
+
+typedef struct {
+  int requested;
+  int advicenotvalid;
+  int rpc_initiated;
+  int rpc_success;
+  int rpc_connbusy;
+  int rpc_fail;
+  int rpc_noconnection;
+  int rpc_timeout;
+  int rpc_dead;
+  int rpc_othererrors;
+} AdviceCallCounter;
+
 
 #define NumRPCResultTypes 7
 
 class adviceconn {
     friend class userent;
-    friend void DisconnectedCacheMissEvent(vproc *vp, volent *v, fsobj *f, ViceFid *key, vuid_t vuid);
-    friend void WeaklyConnectedCacheMissEvent(vproc *vp, fsobj *f, ViceFid *key, vuid_t vuid);
+    friend class fsobj;
     friend int fsdb::Get(fsobj **f_addr, ViceFid *key, vuid_t vuid, int rights, char *comp, int *rcode);
 
     struct Lock userLock;  /* Lock indicates outstanding request to user */
@@ -82,33 +94,29 @@ class adviceconn {
     int pgid;                    /* Process group of the advice monitor */
 
     /* Information Requested */
-    int InconsistentObjects;
-    int ReadDisconnectedCacheMisses;
-    int WeaklyConnectedCacheMisses;
-    int DisconnectedCacheMisses;
-    int VolumeTransitions;
-    int ReconnectionQuestionnaires;
-    int ReintegrationPendings;
-    int HoardWalks;
-    int ASRs;
+    int InterestArray[MAXEVENTS];
+
+    /* Data Logs */
+    FILE *programFILE;
+    int numLines;
+    char programLogName[MAXPATHLEN];
+
+    FILE *replacementFILE;
+    int numRLines;
+    char replacementLogName[MAXPATHLEN];
+
 
     int stoplight_data;
 
     /* Statistics Counting */
-    int AdviceNotEnabledCount;                  int initAdviceNotEnabledCount;
-    int AdviceNotValidCount;                    int initAdviceNotValidCount;
-    int AdviceOutstandingCount;                 int initAdviceOutstandingCount;
-    int ASRnotAllowedCount;                     int initASRnotAllowedCount;
-    int ASRintervalNotReachedCount;             int initASRintervalNotReachedCount;
-    int VolumeNullCount;                        int initVolumeNullCount;
-    int TotalAttempts;                          int initTotalAttempts;
-    int NumSUCCESS[NumCallTypes];               int initNumSUCCESS[NumCallTypes];
-    int NumCONNBUSY[NumCallTypes];              int initNumCONNBUSY[NumCallTypes];
-    int NumFAIL[NumCallTypes];                  int initNumFAIL[NumCallTypes];
-    int NumNOCONNECTION[NumCallTypes];          int initNumNOCONNECTION[NumCallTypes];
-    int NumTIMEOUT[NumCallTypes];               int initNumTIMEOUT[NumCallTypes];
-    int NumDEAD[NumCallTypes];                  int initNumDEAD[NumCallTypes];
-    int NumRPC2otherErrors[NumCallTypes];       int initNumRPC2otherErrors[NumCallTypes];
+    int AdviceNotEnabledCount;
+    int AdviceNotValidCount;
+    int AdviceOutstandingCount;
+    int ASRnotAllowedCount;
+    int ASRintervalNotReachedCount;
+    int VolumeNullCount;
+    int TotalAttempts;
+    AdviceCallCounter CurrentValues[MAXEVENTS];
 
     adviceconn();
     adviceconn(adviceconn&);     /* not supported! */
@@ -117,9 +125,22 @@ class adviceconn {
 
   public:
     
-    ReadDiscAdvice RequestReadDisconnectedCacheMissAdvice(char *pathname, int pid);
+    void TokensAcquired(int);
+    void TokensExpired();
+    void ServerAccessible(char *);
+    void ServerInaccessible(char *);
+    void ServerConnectionWeak(char *);
+    void ServerConnectionStrong(char *);
+    void ServerBandwidthEstimate(char *, long);
+    void HoardWalkBegin();
+    void HoardWalkStatus(int);
+    void HoardWalkEnd();
+    void HoardWalkPeriodicOn();
+    void HoardWalkPeriodicOff();
+    
+    CacheMissAdvice RequestReadDisconnectedCacheMissAdvice(ViceFid *fid, char *pathname, int pid);
     void RequestHoardWalkAdvice(char *input, char *output);
-    void RequestDisconnectedQuestionnaire(char *pathname, int pid, ViceFid *fid, long DiscoTime);
+    void RequestDisconnectedQuestionnaire(ViceFid *fid, char *pathname, int pid, long DiscoTime);
     void RequestReconnectionQuestionnaire(char *volname, VolumeId vid, int CMLcount, 
                                           long DiscoTime, long WalkTime, int NumberReboots, 
                                           int cacheHit, int cacheMiss, int unique_hits, 
@@ -128,19 +149,48 @@ class adviceconn {
     void NotifyEmulating(char *volname, VolumeId vid);
     void NotifyLogging(char *volname, VolumeId vid);
     void NotifyResolving(char *volname, VolumeId vid);
-    void RequestReintegratePending(char *volname, int flag);
+
+    void NotifyReintegrationPending(char *volname);
+    void NotifyReintegrationEnabled(char *volname);
+    void NotifyReintegrationActive(char *volname);
+    void NotifyReintegrationCompleted(char *volname);
+
+    void NotifyObjectInConflict(char *pathname, ViceFid *fid);
+    void NotifyObjectConsistent(char *pathname, ViceFid *fid);
+    void NotifyTaskAvailability(int count, TallyInfo *tallyInfo);
+    void NotifyTaskUnavailable(int priority, int size);
+    void NotifyProgramAccessLogAvailable(char *pathname);
+    void NotifyReplacementLogAvailable(char *pathname);
+    
     int RequestASRInvokation(char *pathname, vuid_t vuid);
+
     void InformLostConnection();
-    WeaklyAdvice RequestWeaklyConnectedCacheMissAdvice(char *pathname, int pid, int expectedCost);
+    CacheMissAdvice RequestWeaklyConnectedCacheMissAdvice(ViceFid *fid, char *pathname, int pid, int length, int estimatedBandwidth, char *Vfilename);
 
     int NewConnection(char *hostname, int port, int pgrp);
     int RegisterInterest(vuid_t vuid, long numEvents, InterestValuePair events[]);
+    int OutputUsageStatistics(vuid_t vuid, char *pathname);
+
+    void InitializeProgramLog(vuid_t vuid);
+    void SwapProgramLog();
+    void LogProgramAccess(int pid, int pgid, ViceFid *fid);
+
+    void InitializeReplacementLog(vuid_t vuid);
+    void SwapReplacementLog();
+    void LogReplacement(char *path, int status, int data);
 
     void CheckConnection();
     void ReturnConnection();
     void TearDownConnection();
 
-    void CheckError(long rpc_code, CallTypes callType);
+    void IncrNotValid(InterestID callType) 
+        { CurrentValues[(int)callType].advicenotvalid++; AdviceNotValidCount++; }
+    void IncrRequested(InterestID callType)
+        { CurrentValues[(int)callType].requested++; }
+    void IncrRPCInitiated(InterestID callType)
+        { CurrentValues[(int)callType].rpc_initiated++; }
+
+    void CheckError(long rpc_code, InterestID callType);
     void InvalidateConnection();
     void Reset();
     void ResetCounters();
@@ -149,11 +199,13 @@ class adviceconn {
     void ObtainUserLock();
     void ReleaseUserLock();
 
-    int IsAdviceValid(int bump);         /* T if adviceconn is in VALID state */
+    int IsAdviceValid(InterestID, int bump);         /* T if adviceconn is in VALID state */
     int IsAdviceOutstanding(int bump);   /* T if outstanding request to user; F otherwise */
     int IsAdviceHandle(RPC2_Handle someHandle);
     int IsAdvicePGID(int calling_pgid)
         { return(calling_pgid == pgid); }
+    int IsInterested(InterestID interest)
+        { return(InterestArray[(int)interest]); }
 
     int SendStoplightData()
         { return(stoplight_data); }
@@ -165,9 +217,24 @@ class adviceconn {
     int Getpgid();
 
     char *StateString();
-    char *ReadDiscAdviceString(ReadDiscAdvice advice);
-    char *WeaklyAdviceString(WeaklyAdvice advice);
+    char *CacheMissAdviceToString(CacheMissAdvice advice);
 
+    int GetSuccesses(InterestID interest);
+    int GetFailures(InterestID interest);
+    int GetSUCCESS(InterestID interest) 
+      { return(CurrentValues[(int)interest].rpc_success); }
+    int GetCONNBUSY(InterestID interest) 
+      { return(CurrentValues[(int)interest].rpc_connbusy); }
+    int GetFAIL(InterestID interest) 
+      { return(CurrentValues[(int)interest].rpc_fail); }
+    int GetNOCONNECTION(InterestID interest) 
+      { return(CurrentValues[(int)interest].rpc_noconnection); }
+    int GetTIMEOUT(InterestID interest) 
+      { return(CurrentValues[(int)interest].rpc_timeout); }
+    int GetDEAD(InterestID interest) 
+      { return(CurrentValues[(int)interest].rpc_dead); }
+    int GetOTHER(InterestID interest) 
+      { return(CurrentValues[(int)interest].rpc_othererrors); }
     void GetStatistics(AdviceCalls *calls, AdviceResults *results, AdviceStatistics *stats);
 
     /* Error events */

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/fso.h,v 4.2 1997/02/26 16:03:13 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/fso.h,v 4.3 97/12/01 17:27:37 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -83,6 +83,7 @@ extern "C" {
 
 /* interfaces */
 #include <vice.h>
+#include <admon.h>
 
 /* from util */
 #include <bstree.h>
@@ -195,7 +196,7 @@ class fsdb {
     /* The priority queue. */
     /*T*/bstree *prioq;
     long *LastRef;
-    /*T*/long RefCounter;			    /* used to compute short-term priority */
+    /*T*/long RefCounter;	     /* used to compute short-term priority */
 
     /* The delete queue.  Objects are sent here to be garbage collected. */
     /*T*/dlist *delq;
@@ -270,6 +271,14 @@ class fsdb {
 
     void SetDiscoRefCounter();
     void UnsetDiscoRefCounter();
+
+    void DisconnectedCacheMiss(vproc *, vuid_t, ViceFid *, char *);
+    void UpdateDisconnectedUseStatistics(volent *);
+    void OutputDisconnectedUseStatistics(char *);
+
+    void GetStats(int *fa, int *fo, int *ba, int *bo) 
+      { *fa = MaxFiles; *fo = htab.count(); *ba = MaxBlocks; *bo = blocks; }
+
 
     void print() { print(stdout); }
     void print(FILE *fp) { fflush(fp); print(fileno(fp)); }
@@ -394,10 +403,10 @@ struct VenusDirData {
 };
 
 union VenusData {
-    int	havedata;			/* generic test for null pointer (pretty gross, eh) */
-    CacheFile *file;			/* VnodeType == File */
-    VenusDirData *dir;			/* VnodeType == Directory */
-    char *symlink;			/* VnodeType == SymbolicLink */
+    int	havedata;	/* generic test for null pointer (pretty gross, eh) */
+    CacheFile *file;	/* VnodeType == File */
+    VenusDirData *dir;	/* VnodeType == Directory */
+    char *symlink;	/* VnodeType == SymbolicLink */
 };
 
 
@@ -503,6 +512,11 @@ class fsobj {
     CacheEventRecord cachemiss;                 /* cache miss count */
     CacheEventRecord cachenospace;              /* cache no space */
 
+    // Disconnected Use Statistics
+    long DisconnectionsSinceUse;
+    long DisconnectionsUsed;
+    long DisconnectionsUnused;
+
     // for asr invocation
     /*T*/long lastresolved;			// time when object was last resolved
 
@@ -582,6 +596,11 @@ class fsobj {
           else
             return 0;
         }
+
+    /* advice routines */
+    CacheMissAdvice ReadDisconnectedCacheMiss(vproc *, vuid_t);
+    CacheMissAdvice WeaklyConnectedCacheMiss(vproc *, vuid_t);
+    void DisconnectedCacheMiss(vproc *, vuid_t, char *);
 
     /* MLE Linkage. */
     void AttachMleBinding(binding *);
@@ -709,6 +728,7 @@ class fsobj {
     void CacheReport(int, int);
 
     int /*(secs)*/ fsobj::EstimatedFetchCost(int =1);  /* 0 = status; 1 = data (default) */
+    void RecordReplacement(int, int);
 
     void print() { print(stdout); }
     void print(FILE *fp) { fflush(fp); print(fileno(fp)); }

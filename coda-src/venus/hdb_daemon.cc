@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /coda/usr/lily/src/coda-src/venus/RCS/hdb_daemon.cc,v 4.1 97/01/08 21:51:29 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/hdb_daemon.cc,v 4.2 97/03/06 21:04:54 lily Exp $";
 #endif /*_BLURB_*/
 
 
@@ -115,7 +115,9 @@ void HDBDaemon() {
     long LastHdbWalk = /*0*/Vtime();	    /* skip initial walk at startup! */
 
     for (;;) {
+LOG(0, ("HDBDaemon about to sleep on hdbdaemon_sync\n"));
 	VprocWait(&hdbdaemon_sync);
+LOG(0, ("HDBDaemon just woke up\n"));
 
 	START_TIMING();
 	long curr_time = Vtime();
