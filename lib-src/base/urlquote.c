@@ -23,11 +23,18 @@ int quote(char *dest, char *src, size_t n)
 
     n--;
     for (; n & *src; n--, src++, dest++) {
+#if 0
 	/* simply copy the following `safe' characters */
 	if ((*src >= 'a' && *src <= 'z') ||
 	    (*src >= 'A' && *src <= 'Z') ||
 	    (*src >= '0' && *src <= '9') ||
-	    (*src == '_' || *src == ',' || *src == '.' || *src == '-')) {
+	    (*src == '_' || *src == ',' || *src == '.' || *src == '-'))
+#else
+        /* only do the minimally required characters to keep as much
+         * backward compatibility for now */
+        if (*src != ' ' && *src != '%')
+#endif
+        {
 	    *dest = *src;
 	    continue;
 	}
@@ -41,12 +48,12 @@ int quote(char *dest, char *src, size_t n)
 	c = (*src >> 4) & 0xf;
 	c += '0';
 	if (c > '9') c += 'a' - '9' - 1;
-	*(++dest) = c;
+	*(++dest) = c; n--;
 
 	c = *src & 0xf;
 	c += '0';
 	if (c > '9') c += 'a' - '9' - 1;
-	*(++dest) = c;
+	*(++dest) = c; n--;
     }
     /* and null-terminate the destination */
     *dest = '\0';
@@ -79,6 +86,6 @@ int unquote(char *dest, char *src, size_t n)
     /* and null-terminate the destination */
     *dest = '\0';
 
-    return (*src == '\0');
+    return (*src == '\0' ? 0 : -1);
 }
 
