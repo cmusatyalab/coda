@@ -243,6 +243,7 @@ long RPC2_CreateMgrp(OUT MgroupHandle, IN MulticastHost, IN MulticastPort, IN Su
     {
     struct MEntry	*me;
     long		secode;
+    RPC2_HostIdent Host;
 
     rpc2_Enter();
     say(0, RPC2_DebugLevel, "In RPC2_CreateMgrp()\n");
@@ -298,7 +299,6 @@ long RPC2_CreateMgrp(OUT MgroupHandle, IN MulticastHost, IN MulticastPort, IN Su
 
     /* any case, let's copy everything into a temporary HostIdent, so that we
      * can throw it at the resolver. */
-    RPC2_HostIdent Host;
     switch(MulticastHost->Tag) {
     case RPC2_MGRPBYNAME:
 	Host.Tag = RPC2_HOSTBYNAME;
