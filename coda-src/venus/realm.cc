@@ -71,7 +71,7 @@ Realm::~Realm(void)
     if (rootservers) {
 	eprint("Removing realm '%s'", name);
 
-	coda_freeaddrinfo(rootservers);
+	RPC2_freeaddrinfo(rootservers);
 	rootservers = NULL;
     }
     rvmlib_rec_free(name); 
@@ -128,7 +128,7 @@ void Realm::PutRef(void)
 /* MUST NOT be called from within a transaction */
 int Realm::GetAdmConn(connent **cpp)
 {
-    struct coda_addrinfo *p;
+    struct RPC2_addrinfo *p;
     int code = 0;
     int tryagain = 0;
     int unknown = !rootservers;
@@ -144,7 +144,7 @@ retry:
     if (!rootservers)
 	GetRealmServers(name, "codasrv", &rootservers);
     else {
-	coda_reorder_addrs(&rootservers);
+	coda_reorder_addrinfo(&rootservers);
 	/* our cached addresses might be stale, re-resolve if we can't reach
 	 * any of the servers */
 	tryagain = 1;
@@ -198,7 +198,7 @@ retry:
 	}
     }
     if (tryagain) {
-	coda_freeaddrinfo(rootservers);
+	RPC2_freeaddrinfo(rootservers);
 	rootservers = NULL;
 	tryagain = 0;
 	goto retry;
@@ -208,7 +208,7 @@ retry:
 
 void Realm::print(FILE *f)
 {
-    struct coda_addrinfo *p;
+    struct RPC2_addrinfo *p;
 
     fprintf(f, "%08x realm '%s', refcount %d/%d\n", (unsigned int)Id(), Name(),
 	    refcount, rec_refcount);

@@ -30,42 +30,14 @@ extern "C" {
 
 #include <sys/types.h>
 #include <sys/socket.h>
+#include <rpc2/rpc2_addrinfo.h>
 
-/* ai_flags */
-#define CODA_AI_CANONNAME 1
-
-struct coda_addrinfo {
-    int ai_flags;
-    int ai_family;
-    int ai_socktype;
-    int ai_protocol;
-    size_t ai_addrlen;
-    struct sockaddr *ai_addr;
-    char *ai_canonname;
-    struct coda_addrinfo *ai_next;
-    /* some additional SRV RR info */
-    int ai_priority;
-    int ai_weight;
-    int ai_port;
-};
-
-/* error codes */
-#define CODA_EAI_AGAIN    2
-#define CODA_EAI_FAIL     4
-#define CODA_EAI_FAMILY   5
-#define CODA_EAI_MEMORY   6
-#define CODA_EAI_NODATA   7
-#define CODA_EAI_NONAME   8
-#define CODA_EAI_SERVICE  9
-#define CODA_EAI_SOCKTYPE 10
+#define CODA_AI_RES_SRV 0x8000
 
 int coda_getaddrinfo(const char *node, const char *service,
-		     const struct coda_addrinfo *hints,
-		     struct coda_addrinfo **res);
-
-void coda_freeaddrinfo(struct coda_addrinfo *res);
-
-void coda_reorder_addrs(struct coda_addrinfo **res);
+		     const struct RPC2_addrinfo *hints,
+		     struct RPC2_addrinfo **res);
+void coda_reorder_addrinfo(struct RPC2_addrinfo **res);
 
 #ifdef __cplusplus
 }

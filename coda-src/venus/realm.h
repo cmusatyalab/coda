@@ -65,7 +65,7 @@ private:
     unsigned int rec_refcount;
 
 /*T*/unsigned int refcount;
-/*T*/struct coda_addrinfo *rootservers;
+/*T*/struct RPC2_addrinfo *rootservers;
 };
 
 #endif /* _REALM_H_ */

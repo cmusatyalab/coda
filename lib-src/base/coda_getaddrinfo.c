@@ -3,7 +3,7 @@
                            Coda File System
                               Release 6
 
-          Copyright (c) 2003 Carnegie Mellon University
+          Copyright (c) 2002-2003 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -21,19 +21,33 @@ Coda are listed in the file CREDITS.
  * would do all of this for us ;)
  */
 
+/*
+ * Special extended version of getaddrinfo for Coda,
+ *   coda_getaddrinfo      - adds (ai_flags & RPC2_AI_RES_SRV), which performs
+ *			     SRV record lookups, additional information such as
+ *			     priority and weights are stored in the returned
+ *			     addrinfo list.
+ *   coda_reorder_addrinfo - re-shuffles the addrinfo list according to the
+ *			     RFC's recommendations for load-balancing among
+ *			     multiple servers with the same priority.
+ */
+
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
 
 #include <sys/types.h>
 #include <netinet/in.h>
-#include <arpa/inet.h>
-#ifdef HAVE_ARPA_NAMESER_H
-#include <arpa/nameser.h>
-#endif
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+
+#ifdef HAVE_ARPA_INET_H
+#include <arpa/inet.h>
+#endif
+#ifdef HAVE_ARPA_NAMESER_H
+#include <arpa/nameser.h>
+#endif
 #ifdef HAVE_RESOLV_H
 #include <resolv.h>
 #endif
@@ -51,146 +65,18 @@ Coda are listed in the file CREDITS.
 
 #include "coda_getaddrinfo.h"
 
-#if 0
-/* We need the official protocol name for this service for the SRV record
- * lookup. Having hints will help, otherwise we have to fallback on trying
- * getservbyname for the various protocols. */
-static char *get_proto_from_hints(const char *service,
-				  const struct coda_addrinfo *hints)
-{
-    struct protoent *pe;
-
-    if (hints) {
-	if (hints->ai_protocol) {
-	    pe = getprotobynumber(hints->ai_protocol);
-	    if (pe) return pe->p_name;
-	}
-
-	if (hints->ai_socktype) {
-	    if (hints->ai_socktype == SOCK_STREAM)
-		return "tcp";
-	    else if (hints->ai_socktype == SOCK_DGRAM)
-		return "udp";
-	}
-    }
-
-    /* hints didn't help, let's try to find the service */
-    if (getservbyname(service, "tcp"))
-	return "tcp";
-    else if (getservbyname(service, "udp"))
-	return "udp";
-
-    return NULL;
-}
-#endif
-
-struct summary {
-    int family;
-    int socktype;
-    int protocol;
-    int flags;
-};
-
-static int resolve_host(const char *name, int port, const struct summary *sum,
-			int priority, int weight, struct coda_addrinfo **res)
-{
-    struct hostent *he;
-    int i, resolved = 0;
-
-#ifdef HAVE_GETIPNODEBYNAME
-#ifdef PF_INET6
-    int err, flags = (sum->family == PF_INET6) ? AI_ALL : 0;
-#else
-    int err, flags = 0;
-#endif
-
-
-    he = getipnodebyname(name, sum->family, flags, &err);
-    if (!he) {
-	switch (err) {
-	case HOST_TRY_AGAIN: return CODA_EAI_AGAIN;
-	case HOST_NOADDRESS: return CODA_EAI_NODATA;
-	case HOST_NOT_FOUND: return CODA_EAI_NONAME;
-	case HOST_NORECOVERY:
-	default:	     return CODA_EAI_FAIL;
-	}
-    }
-#else
-    he = gethostbyname(name);
-    if (!he) {
-	switch(h_errno) {
-	case TRY_AGAIN:      return CODA_EAI_AGAIN;
-	case NO_ADDRESS:     return CODA_EAI_NODATA;
-	case HOST_NOT_FOUND: return CODA_EAI_NONAME;
-	case NO_RECOVERY:
-	default:	     return CODA_EAI_FAIL;
-	}
-    }
-#endif
-
-    /* count number of distinct ip's for this server and adjust weight */
-    for (i = 0; he->h_addr_list[i]; i++) /**/;
-    if (i) weight /= i;
-
-    for (i = 0; he->h_addr_list[i]; i++) {
-	struct coda_addrinfo *ai;
-	struct sockaddr_in *sin;
-
-	ai = malloc(sizeof(*ai));
-	if (!ai) break;
-	memset(ai, 0, sizeof(*ai));
-
-	ai->ai_family = sum->family;
-	ai->ai_socktype = sum->socktype;
-	ai->ai_protocol = sum->protocol;
-	ai->ai_priority = priority;
-	ai->ai_weight = weight;
-
-	sin = malloc(sizeof(*sin));
-	if (!sin) {
-	    free(ai);
-	    break;
-	}
-	memset(sin, 0, sizeof(*sin));
-
-	sin->sin_family = AF_INET;
-	sin->sin_port = htons(port);
-	sin->sin_addr = *(struct in_addr *)he->h_addr_list[i];
-
-	ai->ai_addrlen = sizeof(*sin);
-	ai->ai_addr = (struct sockaddr *)sin;
-
-	if (sum->flags & CODA_AI_CANONNAME)
-	    ai->ai_canonname = strdup(he->h_name);
-
-	ai->ai_next = *res;
-	*res = ai;
-	resolved++;
-    }
-
-#ifdef HAVE_GETIPNODEBYNAME
-    freehostent(he);
-#endif
-
-    return resolved ? 0 : (i ? CODA_EAI_MEMORY : CODA_EAI_NODATA);
-}
-
 #ifdef HAVE_RES_SEARCH
-static char *srvdomainname(const char *realm, const char *service,
-			   const struct summary *sum)
+static char *srvdomainname(const char *node, const char *service,
+			   const char *proto)
 {
-    char *proto, *domain;
-    int len;
-    
-    proto = (sum->protocol == IPPROTO_TCP) ? "tcp" : "udp";
-    len = strlen(service) + strlen(proto) + strlen(realm) + 6;
-    domain = malloc(len);
+    int len = strlen(service) + strlen(proto) + strlen(node) + 6;
+    char *domain = malloc(len);
+
     if (domain)
-	sprintf(domain, "_%s._%s.%s.", service, proto, realm);
+	sprintf(domain, "_%s._%s.%s.", service, proto, node);
 
     return domain;
 }
-
 
 static int DN_HOST(char *msg, int mlen, char **ptr, char *dest)
 {
@@ -218,12 +104,13 @@ static int DN_INT(char *msg, int mlen, char **ptr, int *dest)
     return 0;
 }
 
-static int parse_res_reply(char *answer, int alen, const struct summary *sum,
-			   struct coda_addrinfo **res)
+static int parse_res_reply(char *answer, int alen,
+			   const struct RPC2_addrinfo *hints,
+			   struct RPC2_addrinfo **res)
 {
     char *p = answer, name[MAXHOSTNAMELEN];
     int priority, weight, port, dummy;
-    int err = CODA_EAI_AGAIN, tmperr;
+    int err = RPC2_EAI_AGAIN, tmperr;
 
     /* arghhhhh, I don't like digging through libresolv output */
     p += NS_HFIXEDSZ; /* what is in the header? probably nothing interesting */
@@ -237,6 +124,7 @@ static int parse_res_reply(char *answer, int alen, const struct summary *sum,
     while (p < answer + alen)
     {
 	int type, size;
+	struct RPC2_addrinfo *cur = NULL;
 
 	if (DN_HOST(answer, alen, &p, name) ||
 	    DN_SHORT(answer, alen, &p, &type) ||
@@ -261,165 +149,89 @@ static int parse_res_reply(char *answer, int alen, const struct summary *sum,
 	}
 
 	if (name[0] == '.' && name[1] == '\0')
-	{
 	    continue;
-	}
 
-	tmperr = resolve_host(name, port, sum, priority, weight, res);
-	if (err == CODA_EAI_AGAIN)
+	tmperr = RPC2_getaddrinfo(name, NULL, hints, &cur);
+	if (!tmperr) {
+	    struct RPC2_addrinfo *p;
+	    int i;
+
+	    /* adjust weight depending on how many results we got */
+	    if (weight) {
+		for (p = cur, i = 0; p; p = p->ai_next, i++) /**/;
+		weight /= i;
+	    }
+
+	    for (p = cur; p; p = p->ai_next) {
+		switch(p->ai_family) {
+		case PF_INET:
+		    ((struct sockaddr_in *)p->ai_addr)->sin_port = port;
+		    break;
+#ifdef PF_INET6
+		case PF_INET6:
+		    ((struct sockaddr_in6 *)p->ai_addr)->sin6_port = port;
+		    break;
+#endif
+		}
+		p->ai_priority = priority;
+		p->ai_weight = weight;
+	    }
+	    cur->ai_next = *res;
+	    *res = cur;
+	}
+	if (err == RPC2_EAI_AGAIN)
 	    err = tmperr;
     }
     return err;
 }
 #endif
 
-static int do_srv_lookup(const char *realm, const char *service,
-			 const struct summary *sum, struct coda_addrinfo **res)
+static int do_srv_lookup(const char *node, const char *service,
+			 const struct RPC2_addrinfo *hints,
+			 struct RPC2_addrinfo **res)
 {
+#ifdef TESTING
+    fprintf(stderr, "Doing SRV record lookup for %s %s\n", node, service);
+#endif
+
+#ifdef HAVE_RES_SEARCH
     char answer[1024], *srvdomain;
     int len;
-    
-#ifdef TESTING
-    fprintf(stderr, "Doing SRV record lookup for %s %s\n", realm, service);
-#endif
-#ifdef HAVE_RES_SEARCH
-    srvdomain = srvdomainname(realm, service, sum);
+    const char *proto = (hints && hints->ai_protocol == IPPROTO_UDP) ?
+	"udp" : "tcp";
+
+    srvdomain = srvdomainname(node, service, proto);
     if (!srvdomain)
-	return CODA_EAI_MEMORY;
+	return RPC2_EAI_MEMORY;
 
     len = res_search(srvdomain, ns_c_in, ns_t_srv, answer, sizeof(answer));
 
     free(srvdomain);
     
     if (len == -1)
-	return CODA_EAI_FAIL;
+	return RPC2_EAI_FAIL;
 
-    return parse_res_reply(answer, len, sum, res);
+    return parse_res_reply(answer, len, hints, res);
 #else
-    return CODA_EAI_FAIL;
+    return RPC2_EAI_FAIL;
 #endif
 }
 
-
-int coda_getaddrinfo(const char *node, const char *service,
-		     const struct coda_addrinfo *hints,
-		     struct coda_addrinfo **res)
+void coda_reorder_addrinfo(struct RPC2_addrinfo **srvs)
 {
-    struct coda_addrinfo *srvs = NULL;
-    struct summary sum = { PF_UNSPEC, 0, 0, 0 };
-    struct in_addr addr;
-    char *tmpnode, *end;
-    int err, len, port, is_ip = 0;
-
-    if (hints) {
-	sum.family   = hints->ai_family;
-	sum.socktype = hints->ai_socktype;
-	sum.protocol = hints->ai_protocol;
-	sum.flags    = hints->ai_flags;
-    }
-
-    /* check arguments */
-    if (sum.family != PF_UNSPEC
-	&& sum.family != PF_INET
-#ifdef PF_INET6
-	&& sum.family != PF_INET6
-#endif
-	)
-	return CODA_EAI_FAMILY;
-
-    if (sum.socktype &&
-	sum.socktype != SOCK_STREAM &&
-	sum.socktype != SOCK_DGRAM)
-	return CODA_EAI_SOCKTYPE;
-
-    if (!node || !service)
-	return CODA_EAI_NONAME;
-
-    tmpnode = strdup(node);
-    if (!tmpnode)
-	return CODA_EAI_MEMORY;
-
-    /* force some defaults */
-    if (sum.family == PF_UNSPEC)
-	sum.family = PF_INET;
-
-    if (!sum.socktype)
-	sum.socktype = SOCK_STREAM;
-
-    if (!sum.protocol) {
-	if (sum.socktype == SOCK_STREAM)
-	    sum.protocol = IPPROTO_TCP;
-	else if (sum.socktype == SOCK_DGRAM)
-	    sum.protocol = IPPROTO_UDP;
-    }
-
-    /* conditionally strip any terminating '.' if the name is an ip-address */
-    len = strlen(tmpnode);
-    if (tmpnode[len-1] == '.') {
-	tmpnode[len-1] = '\0';
-	is_ip = inet_aton(tmpnode, &addr);
-	if (!is_ip)
-	    tmpnode[len-1] = '.';
-    } else
-	is_ip = inet_aton(tmpnode, &addr);
-
-    port = strtol(service, &end, 10);
-    if (*service == '\0' || *end != '\0')
-	port = 0;
-
-    err = CODA_EAI_NONAME;
-    if (!is_ip && !port)
-	/* try to find SRV records */
-	err = do_srv_lookup(tmpnode, service, &sum, &srvs);
-
-    /* fall back to A records */
-    if (err) {
-	char *proto = (sum.protocol == IPPROTO_TCP) ? "tcp" : "udp";
-	if (!port) {
-	    struct servent *se = getservbyname(service, proto);
-	    if (!se) {
-		free(tmpnode);
-		return CODA_EAI_SERVICE;
-	    }
-	    port = ntohs(se->s_port);
-	}
-#ifdef TESTING
-	fprintf(stderr, "Doing A record lookup for %s\n", tmpnode);
-#endif
-	err = resolve_host(tmpnode, port, &sum, 0, 0, &srvs);
-    }
-
-    coda_reorder_addrs(&srvs);
-
-    /* append new addresses to the end */
-    while (*res) res = &(*res)->ai_next;
-    *res = srvs;
-
-    free(tmpnode);
-    return err;
-}
-
-void coda_freeaddrinfo(struct coda_addrinfo *res)
-{
-    while (res) {
-	struct coda_addrinfo *ai = res;
-	res = res->ai_next;
-
-	if (ai->ai_addr)      free(ai->ai_addr);
-	if (ai->ai_canonname) free(ai->ai_canonname);
-	free(ai);
-    }
-}
-
-void coda_reorder_addrs(struct coda_addrinfo **srvs)
-{
-    struct coda_addrinfo **tmp, *res, **tail;
+    struct RPC2_addrinfo **tmp, *res, **tail;
 
     /* sort by priority, lowest first */
 start:
     /* very simple sort, should be efficient for already sorted list */
     for (tmp = srvs; *tmp && (*tmp)->ai_next; tmp = &(*tmp)->ai_next) {
-	struct coda_addrinfo *next = (*tmp)->ai_next;
+	struct RPC2_addrinfo *next = (*tmp)->ai_next;
+
+#ifdef PF_INET6
+	/* Should we prefer ipv6 addresses? */
+	if ((*tmp)->ai_family == PF_INET6 && next->ai_family == PF_INET)
+	    continue;
+#endif
 
 	if ((*tmp)->ai_priority < next->ai_priority)
 	    continue;
@@ -474,14 +286,69 @@ start:
     *srvs = res;
 }
 
+int coda_getaddrinfo(const char *node, const char *service,
+		     const struct RPC2_addrinfo *hints,
+		     struct RPC2_addrinfo **res)
+{
+    struct RPC2_addrinfo *srvs = NULL;
+    int err;
+
+    err = RPC2_EAI_NONAME;
+    if (hints && (hints->ai_flags & CODA_AI_RES_SRV))
+    {
+	char *end, tmp[sizeof(struct in6_addr)];
+
+	/* we can only do an IN SRV record lookup if both node and
+	 * service are specified and not numerical */
+	if (!node || !service)
+	    return RPC2_EAI_NONAME;
+
+	if (hints->ai_flags & RPC2_AI_NUMERICHOST)
+	    return RPC2_EAI_BADFLAGS;
+
+	if (!strtol(service, &end, 10) || *end != '\0')
+	    return RPC2_EAI_BADFLAGS;
+
+#ifdef PF_INET6
+	if (hints->ai_family != PF_INET6 && inet_pton(PF_INET, node, &tmp) > 0)
+	    return RPC2_EAI_BADFLAGS;
+
+	if (hints->ai_family != PF_INET && inet_pton(PF_INET6, node, &tmp) > 0)
+	    return RPC2_EAI_BADFLAGS;
+#endif
+
+	/* try to find SRV records */
+	err = do_srv_lookup(node, service, hints, &srvs);
+	if (!err) {
+	    coda_reorder_addrinfo(&srvs);
+	    goto Exit;
+	}
+    }
+
+    /* when not doing SRV record lookup or when it failed, we use
+     * a normal lookup */
+    err = RPC2_getaddrinfo(node, service, hints, &srvs);
+
+Exit:
+#if 1 /* append new addresses to the end of **res? */
+    while (*res) res = &(*res)->ai_next;
+#else
+    srvs->ai_next = *res;
+#endif
+
+    *res = srvs;
+    return err;
+}
+
+
 #ifdef TESTING
 int main(int argc, char **argv)
 {
-    struct coda_addrinfo *res = NULL, *p;
+    struct RPC2_addrinfo *res = NULL, *p;
     struct sockaddr_in *sin;
     int err;
 
-    struct coda_addrinfo hints;
+    struct RPC2_addrinfo hints;
     memset(&hints, 0, sizeof(hints));
     hints.ai_family   = PF_INET;
     hints.ai_socktype = SOCK_STREAM;
@@ -490,20 +357,20 @@ int main(int argc, char **argv)
     err = coda_getaddrinfo(argv[1], argv[2], &hints, &res);
     printf("err: %d\n", err);
 
-    coda_reorder_addrs(&res);
+    coda_reorder_addrinfo(&res);
 
     for (p = res; p; p = p->ai_next) {
-	printf("flags %d family %d socktype %d protocol %d\n",
+	char buf[RPC2_ADDRSTRLEN];
+	printf("ai_flags %d ai_family %d ai_socktype %d ai_protocol %d\n",
 	       p->ai_flags, p->ai_family, p->ai_socktype, p->ai_protocol);
 
-	sin = (struct sockaddr_in *)p->ai_addr;
-	printf("addrlen %d sin_family %d addr %s:%d\n",
-	       p->ai_addrlen, sin->sin_family,
-	       inet_ntoa(sin->sin_addr), ntohs(sin->sin_port));
-	printf("canonical name %s\n", p->ai_canonname);
+	RPC2_formataddrinfo(p, buf, sizeof(*buf));
+	printf("addrlen %d sin_family %d addr %s\n",
+	       p->ai_addrlen, sin->sin_family, buf);
+	printf("ai_canonname %s\n", p->ai_canonname);
+	printf("ai_priority %d ai_weight %d\n", p->ai_priority, p->ai_weight);
     }
-
-    coda_freeaddrinfo(res);
+    RPC2_freeaddrinfo(res);
 
     exit(0);
 }

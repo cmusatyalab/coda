@@ -237,9 +237,9 @@ char *U_AuthErrorMsg(const int rc)
     }
 }
 
-static struct coda_addrinfo *GetAuthServers(const char *realm)
+static struct RPC2_addrinfo *GetAuthServers(const char *realm)
 {
-    struct coda_addrinfo *res = NULL;
+    struct RPC2_addrinfo *res = NULL;
 
     GetRealmServers(realm, "codaauth2", &res);
     GetRealmServers(realm, "codasrv", &res);
@@ -253,7 +253,7 @@ static struct coda_addrinfo *GetAuthServers(const char *realm)
 static int TryBinding(const RPC2_Integer AuthenticationType,
 		      const char *viceName, const int viceNamelen,
 		      const char *vicePasswd, const int vicePasswdlen,
-		      const struct coda_addrinfo *AuthHost, RPC2_Handle *RPCid)
+		      const struct RPC2_addrinfo *AuthHost, RPC2_Handle *RPCid)
 {
     RPC2_BindParms bp;
     RPC2_HostIdent hident;
@@ -303,7 +303,7 @@ int U_BindToServer(const char *realm, const RPC2_Integer AuthenticationType,
 		   const char *uPasswd, const int uPasswdlen,
 		   RPC2_Handle *RPCid, const int interactive)
 {
-	struct coda_addrinfo *AuthHost, *srvs;
+	struct RPC2_addrinfo *AuthHost, *srvs;
 	int bound = RPC2_FAIL;
 
 	/* fill in the host array */
@@ -346,7 +346,7 @@ int U_BindToServer(const char *realm, const RPC2_Integer AuthenticationType,
 	    if (bound == 0 || bound == RPC2_NOTAUTHENTICATED)
 		break;
 	}
-	coda_freeaddrinfo(srvs);
+	RPC2_freeaddrinfo(srvs);
 	return bound;
 }
 

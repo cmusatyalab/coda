@@ -52,60 +52,54 @@ void SplitRealmFromName(char *name, char **realm)
     }
 }
 
-/* Coda only looks up IPv4 UDP addresses */
-static void simpleaddrinfo(const char *realm, const char *service,
-			   struct coda_addrinfo **res)
+static void ResolveRootServers(char *servers, const char *service,
+			       struct RPC2_addrinfo **res)
 {
-    struct coda_addrinfo hints;
-    int proto = IPPROTO_UDP;
-
-#ifdef HAVE_GETPROTOBYNAME
-    struct protoent *pe;
-    pe = getprotobyname("udp");
-    if (pe)
-	proto = pe->p_proto;
-#endif
+    struct RPC2_addrinfo hints;
+    char *host;
 
     memset(&hints, 0, sizeof(hints));
     hints.ai_family   = PF_INET;
     hints.ai_socktype = SOCK_DGRAM;
-    hints.ai_protocol = proto;
-    hints.ai_flags    = CODA_AI_CANONNAME;
-
-    coda_getaddrinfo(realm, service, &hints, res);
-}
-
-static void ResolveRootServers(char *servers, const char *service,
-			       struct coda_addrinfo **res)
-{
-    char *host;
+    hints.ai_protocol = IPPROTO_UDP;
+    hints.ai_flags    = RPC2_AI_CANONNAME;
 
     while ((host = strtok(servers, ", \t\n")) != NULL)
     {
 	servers = NULL;
-	simpleaddrinfo(host, service, res);
+	coda_getaddrinfo(host, service, &hints, res);
     }
+    /* sort preferred addresses to the head of the list */
+    coda_reorder_addrinfo(res);
 }
 	
-static int isbadaddr(struct in_addr *ip, const char *name)
+static int isbadaddr(struct RPC2_addrinfo *ai, const char *name)
 {
-    if (ntohl(ip->s_addr) == INADDR_ANY ||
-	ntohl(ip->s_addr) == INADDR_NONE ||
-	ntohl(ip->s_addr) == htonl(INADDR_LOOPBACK) ||
-	(ntohl(ip->s_addr) & IN_CLASSA_NET) == IN_LOOPBACKNET ||
-	IN_MULTICAST(ntohl(ip->s_addr)) ||
-	IN_BADCLASS(ntohl(ip->s_addr)))
+    struct in_addr *ip;
+
+#warning "assuming ipv4 only"
+    if (ai->ai_family != PF_INET)
+	return 0;
+
+    ip = &((struct sockaddr_in *)ai->ai_addr)->sin_addr;
+
+    if (ip->s_addr == INADDR_ANY ||
+	ip->s_addr == INADDR_NONE ||
+	ip->s_addr == INADDR_LOOPBACK ||
+	(ip->s_addr & IN_CLASSA_NET) == IN_LOOPBACKNET ||
+	IN_MULTICAST(ip->s_addr) ||
+	IN_BADCLASS(ip->s_addr))
     {
-	fprintf(stderr, "An address in realm '%s' resolved to bad or unusable address '%s', ignoring it\n", name, inet_ntoa(*ip));
+	fprintf(stderr, "An address in realm '%s' resolved to unusable address '%s', ignoring it\n", name, inet_ntoa(*ip));
 	return 1;
     }
     return 0;
 }
 
 void GetRealmServers(const char *name, const char *service,
-		     struct coda_addrinfo **res)
+		     struct RPC2_addrinfo **res)
 {
-    struct coda_addrinfo *tmp = NULL;
+    struct RPC2_addrinfo **p, *results = NULL;
     char *realmtab = NULL;
     FILE *f;
     int namelen, found = 0;
@@ -128,7 +122,7 @@ void GetRealmServers(const char *name, const char *service,
 	    if (strncmp(line, name, namelen) == 0 &&
 		(line[namelen] == '\0' || isspace(line[namelen])))
 	    {
-		ResolveRootServers(&line[namelen], service, &tmp);
+		ResolveRootServers(&line[namelen], service, &results);
 		found = 1;
 	    }
 	}
@@ -138,31 +132,43 @@ void GetRealmServers(const char *name, const char *service,
     if (!found) {
 	char *fullname = malloc(strlen(name) + 2);
 	if (fullname) {
+	    char tmp[sizeof(struct in6_addr)];
+	    struct RPC2_addrinfo hints;
+
+	    memset(&hints, 0, sizeof(hints));
+	    hints.ai_family   = PF_INET;
+	    hints.ai_socktype = SOCK_DGRAM;
+	    hints.ai_protocol = IPPROTO_UDP;
+	    hints.ai_flags    = RPC2_AI_CANONNAME | CODA_AI_RES_SRV;
+
 	    strcpy(fullname, name);
-	    strcat(fullname, ".");
-	    simpleaddrinfo(fullname, service, &tmp);
+
+	    /* If the name is not a numerical address append a '.'.
+	     * That way we'll only do FQDN lookups. */
+	    if (inet_pton(PF_INET, name, &tmp) <= 0)
+#ifdef PF_INET6
+		if (inet_pton(PF_INET6, name, &tmp) <= 0)
+#endif
+		    strcat(fullname, ".");
+
+	    coda_getaddrinfo(fullname, service, &hints, &results);
 	    free(fullname);
 	}
     }
 
-    while (*res)
-	res = &(*res)->ai_next;
-
-    while (tmp) {
-	struct sockaddr_in *sin;
-	struct coda_addrinfo *cur = tmp;
-
-	tmp = tmp->ai_next;
-	cur->ai_next = NULL;
-
-	sin = (struct sockaddr_in *)cur->ai_addr;
-
-	if (isbadaddr(&sin->sin_addr, name))
-	    coda_freeaddrinfo(cur);
-	else {
-	    *res = cur;
-	    res = &(*res)->ai_next;
+    /* Is is really necessary to filter out loopback and other bad
+     * addresses from the nameserver response? */
+    for (p = &results; *p;) {
+	if (isbadaddr(*p, name)) {
+	    struct RPC2_addrinfo *cur = *p;
+	    *p = cur->ai_next;
+	    cur->ai_next = NULL;
+	    RPC2_freeaddrinfo(cur);
+	    continue;
 	}
+	p = &(*p)->ai_next;
     }
+    *p = *res;
+    *res = results;
 }
 
