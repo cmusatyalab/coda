@@ -35,6 +35,9 @@ extern "C" {
 
 #if    defined(__BSD44__)
 #include <sys/dkstat.h>
+#if defined(__NetBSD__)
+#include <sys/sched.h>
+#endif /* __NetBSD__ */
 #endif /* __BSD44__ */
 
 #include <unistd.h>

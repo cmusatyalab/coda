@@ -858,6 +858,9 @@ static void SetVolumeStats(ViceStatistics *stats)
 
 #include <kvm.h>
 #include <sys/dkstat.h>
+#ifdef __NetBSD__
+#include <sys/sched.h>
+#endif
 #include <limits.h>
 
 static struct nlist RawStats[] = 
