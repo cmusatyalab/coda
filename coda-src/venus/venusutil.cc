@@ -304,110 +304,114 @@ const char *VenusOpStr(int opcode)
 }
 
 
-const char *IoctlOpStr(int opcode) {
-    static char	buf[12];    /* This is shaky. */
+const char *IoctlOpStr(unsigned char nr)
+{
+    static char	buf[4];    /* This is shaky. */
 
-    switch(opcode) {
-/*
-	case VIOCCLOSEWAIT:	    return("CloseWait");
-	case VIOCABORT:		    return("Abort");
-	case VIOCIGETCELL:          return("Get Cell");
-*/
-	case VIOCSETAL:		    return("Set ACL");
-	case VIOCGETAL:		    return("Get ACL");
-	case VIOCSETTOK:	    return("Set Tokens");
-	case VIOCGETVOLSTAT:	    return("Get VolStat");
-	case VIOCSETVOLSTAT:	    return("Set VolStat");
-	case VIOCFLUSH:		    return("Flush");
-	case VIOCSTAT:		    return("Stat");
-	case VIOCGETTOK:	    return("Get Tokens");
-	case VIOCUNLOG:		    return("Unlog");
-	case VIOCCKSERV:	    return("Check Servers");
-	case VIOCCKBACK:	    return("Check Backups");
-	case VIOCCKCONN:	    return("Check Conn");
-	case VIOCWHEREIS:	    return("Whereis");
-	case VIOCPREFETCH:	    return("Prefetch");
-	case VIOCNOP:		    return("NOP");
-	case VIOCACCESS:	    return("Access");
-	case VIOCUNPAG:		    return("Unpag");
-	case VIOCGETWD:		    return("Getwd");
-	case VIOCWAITFOREVER:	    return("Wait Forever");
-	case VIOCSETCACHESIZE:	    return("Set Cache Size");
-	case VIOCFLUSHCB:	    return("Flush CB");
-	case VIOCNEWCELL:	    return("New Cell");
-	case VIOCGETCELL:	    return("Get Cell");
-	case VIOC_ADD_MT_PT:	    return("Add Mount Point");
-	case VIOC_AFS_DELETE_MT_PT: return("[AFS] Delete Mount Point");
-	case VIOC_AFS_STAT_MT_PT:   return("[AFS] Stat Mount Point");
-	case VIOC_FILE_CELL_NAME:   return("File Cell Name");
-	case VIOC_GET_WS_CELL:	    return("WS Cell Name");
-	case VIOC_AFS_MARINER_HOST: return("[AFS] Mariner Host");
-	case VIOC_GET_PRIMARY_CELL: return("Get Primary Cell");
-	case VIOC_VENUSLOG:	    return("Venus Log");
-	case VIOC_GETCELLSTATUS:    return("Get Cell Status");
-	case VIOC_SETCELLSTATUS:    return("Set Cell Status");
-	case VIOC_FLUSHVOLUME:	    return("Flush Volume");
-        case VIOC_LISTCACHE_VOLUME: return("List Cache Volume ");
-	case VIOC_ENABLEREPAIR:	    return("Enable Repair");
-	case VIOC_DISABLEREPAIR:    return("Disable Repair");
-	case VIOC_REPAIR:	    return("Repair");
-	case VIOC_GETSERVERSTATS:   return("Get Server Stats");
-	case VIOC_GETVENUSSTATS:    return("Get Venus Stats");
-	case VIOC_GETFID:	    return("Get Fid");
-	case VIOC_FLUSHCACHE:	    return("Flush Cache");
-	case VIOC_SETVV:	    return("Set	VV");
-	case VIOC_HDB_ADD:	    return("HDB Add");
-	case VIOC_HDB_DELETE:	    return("HDB Delete");
-	case VIOC_HDB_MODIFY:	    return("HDB Modify");
-	case VIOC_HDB_CLEAR:	    return("HDB Clear");
-	case VIOC_HDB_LIST:	    return("HDB List");
-	case VIOC_WAITFOREVER:	    return("Waitforever");
-	case VIOC_HDB_WALK:	    return("HDB Walk");
-	case VIOC_CLEARPRIORITIES:  return("Clear Priorities");
-	case VIOC_GETPATH:          return("Get Path");
-	case VIOC_COMPRESS:         return("Compress");
-	case VIOC_UNCOMPRESS:       return("Uncompress");
-	case VIOC_CHECKPOINTML:     return("Checkpoint Modify Log");
-	case VIOC_PURGEML:          return("Purge Modify Log");
-	case VIOC_BEGINRECORDING:   return("Begin Recording References");
-	case VIOC_ENDRECORDING:     return("End Recording References");
-	case VIOC_TRUNCATELOG:      return("Truncate Log");
-	case VIOC_DISCONNECT:       return("Disconnect");
-	case VIOC_RECONNECT:        return("Reconnect");
-	case VIOC_SLOW:             return("Slow");
-	case VIOC_GETPFID:          return("Get Parent Fid");
-	case VIOC_BEGINML:          return("Begin Modify Logging");
-	case VIOC_ENDML:            return("End Modify Logging");
-        case VIOC_HDB_VERIFY:       return("HDB Verify");
-        case VIOC_HDB_ENABLE:       return("HDB Enable");
-        case VIOC_HDB_DISABLE:      return("HDB Disable");
-        case VIOC_ENABLEASR:        return("Enable ASR");
-	case VIOC_DISABLEASR:       return("Disable ASR");
-        case VIOC_FLUSHASR:         return("Flush ASR");
-        case VIOC_REP_BEGIN:        return("Rep Begin");
-        case VIOC_REP_END:          return("Rep End");
-        case VIOC_REP_CHECK:        return("Rep Check");
-        case VIOC_REP_PRESERVE:     return("Rep Preserve");
-        case VIOC_REP_DISCARD:      return("Rep Discard");
-        case VIOC_REP_REMOVE:       return("Rep Remove");
-        case VIOC_SET_LOCAL_VIEW:   return("Set Local View");
-        case VIOC_SET_GLOBAL_VIEW:  return("Set Global View");
-        case VIOC_SET_MIXED_VIEW:   return("Set Mixed View");
-        case VIOC_WD_ALL:           return("WD All");
-        case VIOC_WR_ALL:           return("WR All");
-        case VIOC_STRONG:           return("Strong");
-        case VIOC_ADAPTIVE:         return("Adaptive");
-        case VIOC_LISTCACHE:        return("List Cache");
-        case VIOC_GET_MT_PT:        return("Get Mt Pt");
-        case VIOC_BEGINWB:          return("Begin WB");
-        case VIOC_ENDWB:            return("End WB");
-        case VIOC_STATUSWB:         return("Status WB");
-        case VIOC_AUTOWB:           return("Auto WB");
-        case VIOC_SYNCCACHE:        return("Sync Cache");
-        case VIOC_REP_CMD:          return("Rep CMD");
-        case VIOC_UNLOADKERNEL:     return("Unload Kernel");
+    switch(nr) {
+#if 0
+/* not only do we not implement these in Coda, they collide with regular
+ * pioctl values */
+	case _VIOCCLOSEWAIT:		return("CloseWait");
+	case _VIOCABORT:		return("Abort");
+	case _VIOCIGETCELL:		return("Get Cell");
+#endif
+	case _VIOCSETAL:		return("Set ACL");
+	case _VIOCGETAL:		return("Get ACL");
+	case _VIOCSETTOK:		return("Set Tokens");
+	case _VIOCGETVOLSTAT:		return("Get VolStat");
+	case _VIOCSETVOLSTAT:		return("Set VolStat");
+	case _VIOCFLUSH:		return("Flush");
+	case _VIOCSTAT:			return("Stat");
+	case _VIOCGETTOK:		return("Get Tokens");
+	case _VIOCUNLOG:		return("Unlog");
+	case _VIOCCKSERV:		return("Check Servers");
+	case _VIOCCKBACK:		return("Check Backups");
+	case _VIOCCKCONN:		return("Check Conn");
+	case _VIOCWHEREIS:		return("Whereis");
+	case _VIOCPREFETCH:		return("Prefetch");
+	case _VIOCNOP:			return("NOP");
+	case _VIOCACCESS:		return("Access");
+	case _VIOCUNPAG:		return("Unpag");
+	case _VIOCGETWD:		return("Getwd");
+	case _VIOCWAITFOREVER:		return("Wait Forever");
+	case _VIOCSETCACHESIZE:		return("Set Cache Size");
+	case _VIOCFLUSHCB:		return("Flush CB");
+	case _VIOCNEWCELL:		return("New Cell");
+	case _VIOCGETCELL:		return("Get Cell");
+	case _VIOC_ADD_MT_PT:		return("Add Mount Point");
+	case _VIOC_AFS_DELETE_MT_PT:	return("[AFS] Delete Mount Point");
+	case _VIOC_AFS_STAT_MT_PT:	return("[AFS] Stat Mount Point");
+	case _VIOC_FILE_CELL_NAME:	return("File Cell Name");
+	case _VIOC_GET_WS_CELL:		return("WS Cell Name");
+	case _VIOC_AFS_MARINER_HOST:	return("[AFS] Mariner Host");
+	case _VIOC_GET_PRIMARY_CELL:	return("Get Primary Cell");
+	case _VIOC_VENUSLOG:		return("Venus Log");
+	case _VIOC_GETCELLSTATUS:	return("Get Cell Status");
+	case _VIOC_SETCELLSTATUS:	return("Set Cell Status");
+	case _VIOC_FLUSHVOLUME:		return("Flush Volume");
+	case _VIOC_LISTCACHE_VOLUME:	return("List Cache Volume ");
+	case _VIOC_ENABLEREPAIR:	return("Enable Repair");
+	case _VIOC_DISABLEREPAIR:	return("Disable Repair");
+	case _VIOC_REPAIR:		return("Repair");
+	case _VIOC_GETSERVERSTATS:	return("Get Server Stats");
+	case _VIOC_GETVENUSSTATS:	return("Get Venus Stats");
+	case _VIOC_GETFID:		return("Get Fid");
+	case _VIOC_FLUSHCACHE:		return("Flush Cache");
+	case _VIOC_SETVV:		return("Set VV");
+	case _VIOC_HDB_ADD:		return("HDB Add");
+	case _VIOC_HDB_DELETE:		return("HDB Delete");
+	case _VIOC_HDB_MODIFY:		return("HDB Modify");
+	case _VIOC_HDB_CLEAR:		return("HDB Clear");
+	case _VIOC_HDB_LIST:		return("HDB List");
+	case _VIOC_WAITFOREVER:		return("Waitforever");
+	case _VIOC_HDB_WALK:		return("HDB Walk");
+	case _VIOC_CLEARPRIORITIES:	return("Clear Priorities");
+	case _VIOC_GETPATH:		return("Get Path");
+	case _VIOC_COMPRESS:		return("Compress");
+	case _VIOC_UNCOMPRESS:		return("Uncompress");
+	case _VIOC_CHECKPOINTML:	return("Checkpoint Modify Log");
+	case _VIOC_PURGEML:		return("Purge Modify Log");
+	case _VIOC_BEGINRECORDING:	return("Begin Recording References");
+	case _VIOC_ENDRECORDING:	return("End Recording References");
+	case _VIOC_TRUNCATELOG:		return("Truncate Log");
+	case _VIOC_DISCONNECT:		return("Disconnect");
+	case _VIOC_RECONNECT:		return("Reconnect");
+	case _VIOC_SLOW:		return("Slow");
+	case _VIOC_GETPFID:		return("Get Parent Fid");
+	case _VIOC_BEGINML:		return("Begin Modify Logging");
+	case _VIOC_ENDML:		return("End Modify Logging");
+	case _VIOC_HDB_VERIFY:		return("HDB Verify");
+	case _VIOC_HDB_ENABLE:		return("HDB Enable");
+	case _VIOC_HDB_DISABLE:		return("HDB Disable");
+	case _VIOC_ENABLEASR:		return("Enable ASR");
+	case _VIOC_DISABLEASR:		return("Disable ASR");
+	case _VIOC_FLUSHASR:		return("Flush ASR");
+	case _VIOC_REP_BEGIN:		return("Rep Begin");
+	case _VIOC_REP_END:		return("Rep End");
+	case _VIOC_REP_CHECK:		return("Rep Check");
+	case _VIOC_REP_PRESERVE:	return("Rep Preserve");
+	case _VIOC_REP_DISCARD:		return("Rep Discard");
+	case _VIOC_REP_REMOVE:		return("Rep Remove");
+	case _VIOC_SET_LOCAL_VIEW:	return("Set Local View");
+	case _VIOC_SET_GLOBAL_VIEW:	return("Set Global View");
+	case _VIOC_SET_MIXED_VIEW:	return("Set Mixed View");
+	case _VIOC_WD_ALL:		return("WD All");
+	case _VIOC_WR_ALL:		return("WR All");
+	case _VIOC_STRONG:		return("Strong");
+	case _VIOC_ADAPTIVE:		return("Adaptive");
+	case _VIOC_LISTCACHE:		return("List Cache");
+	case _VIOC_GET_MT_PT:		return("Get Mt Pt");
+	case _VIOC_BEGINWB:		return("Begin WB");
+	case _VIOC_ENDWB:		return("End WB");
+	case _VIOC_STATUSWB:		return("Status WB");
+	case _VIOC_AUTOWB:		return("Auto WB");
+	case _VIOC_SYNCCACHE:		return("Sync Cache");
+	case _VIOC_REP_CMD:		return("Rep CMD");
+	case _VIOC_UNLOADKERNEL:	return("Unload Kernel");
 
-	default:		    snprintf(buf, 12, "%d", opcode); return(buf);
+	default:	snprintf(buf, 4, "%d", (unsigned int)nr);
+			return(buf);
     }
 }
 

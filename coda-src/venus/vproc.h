@@ -183,7 +183,7 @@ class vproc : public olink {
     static int counter;
     static char rtry_sync;
 
-    void do_ioctl(VenusFid *, unsigned int, struct ViceIoctl *);
+    void do_ioctl(VenusFid *fid, unsigned char nr, struct ViceIoctl *data);
 
     void init(void);
 
@@ -234,7 +234,7 @@ class vproc : public olink {
     void vget(struct venus_cnode *, struct cfid *);
     void open(struct venus_cnode *, int);
     void close(struct venus_cnode *, int);
-    void ioctl(struct venus_cnode *, unsigned int, struct ViceIoctl *, int);
+    void ioctl(struct venus_cnode *, unsigned char nr, struct ViceIoctl *, int);
     void select(struct venus_cnode *, int);
     void getattr(struct venus_cnode *, struct coda_vattr *);
     void setattr(struct venus_cnode *, struct coda_vattr *);

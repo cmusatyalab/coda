@@ -50,7 +50,7 @@ int BeginRepair(char *pathname, struct repvol **repv, char *msg, int msgsize)
     vioc.out = space;
     vioc.out_size = (short)sizeof(space);
     memset(space, 0, sizeof(space));
-    rc = pioctl((*repv)->rodir, VIOC_ENABLEREPAIR, &vioc, 0);
+    rc = pioctl((*repv)->rodir, _VICEIOCTL(_VIOC_ENABLEREPAIR), &vioc, 0);
     if (rc < 0) {
 	if (errno == EWOULDBLOCK)
 	    strerr(msg, msgsize, "Repair in progress on volume at \"%s\"", (*repv)->mnt);
@@ -73,7 +73,7 @@ int BeginRepair(char *pathname, struct repvol **repv, char *msg, int msgsize)
     vioc.in_size = (short)(strlen(cmd) + 1);
     vioc.out = space;
     vioc.out_size = (short)sizeof(space);
-    if ((rc = pioctl((*repv)->rodir, VIOC_REP_CMD, &vioc, 0)) < 0) {
+    if ((rc = pioctl((*repv)->rodir, _VICEIOCTL(_VIOC_REP_CMD), &vioc, 0)) < 0) {
 	strerr(msg, msgsize, "REP_CMD_BEGIN failed: %s", strerror(errno));
 	repair_finish(*repv);
 	return(-1);
@@ -161,7 +161,7 @@ int ClearInc(struct repvol *repv, char *msg, int msgsize)
 	    vioc.in_size = sizeof(vv_t);
 	    vioc.out = NULL;
 	    vioc.out_size = 0;
-	    rc = pioctl(names[i], VIOC_SETVV, &vioc, 0);
+	    rc = pioctl(names[i], _VICEIOCTL(_VIOC_SETVV), &vioc, 0);
 	    if (rc) {
 		strerr(msg, msgsize, "SETVV %s: %s", names[i], strerror(errno));
 		goto CLEANUP;
@@ -343,7 +343,7 @@ int DiscardAllLocal(struct repvol *repv, char *msg, int msgsize) {
     vioc.in_size = (short)strlen(buf) + 1;
     vioc.out = space;
     vioc.out_size = sizeof(space);
-    rc = pioctl("/coda", VIOC_REP_CMD, &vioc, 0);
+    rc = pioctl("/coda", _VICEIOCTL(_VIOC_REP_CMD), &vioc, 0);
     if (rc < 0) strerr(msg, msgsize, "%s", space);
     return(rc);
 }
@@ -433,7 +433,7 @@ int EndRepair(struct repvol *repv, int commit, char *msg, int msgsize) {
 	vioc.in_size = (short)(strlen(cmd) + 1);
 	vioc.out = space;
 	vioc.out_size = sizeof(space);
-	if ((rc = pioctl("/coda", VIOC_REP_CMD, &vioc, 0)) < 0)
+	if ((rc = pioctl("/coda", _VICEIOCTL(_VIOC_REP_CMD), &vioc, 0)) < 0)
 	    strerr(msg, msgsize, "REP_CMD_END failed: %s", strerror(errno));
 	else if (strcmp(vioc.out, "repair session completed") != 0) {
 	    strerr(msg, msgsize, "%s", vioc.out);
@@ -446,7 +446,7 @@ int EndRepair(struct repvol *repv, int commit, char *msg, int msgsize) {
 	vioc.out = NULL;
 	vioc.out_size = 0;
 	errno = 0;
-	if ((rc = pioctl(repv->mnt, VIOC_DISABLEREPAIR, &vioc, 0)) < 0)
+	if ((rc = pioctl(repv->mnt, _VICEIOCTL(_VIOC_DISABLEREPAIR), &vioc, 0)) < 0)
 	    strerr(msg, msgsize, "DISABLEREPAIR %s: %s", repv->mnt, strerror(errno));
     }
     repair_finish(repv);
@@ -614,7 +614,7 @@ int compareQuotas(int nreplicas, char **names)
     vio.out_size = sizeof(piobuf);
 
     /* Do the pioctl */
-    int rc = pioctl(names[0], VIOCGETVOLSTAT, &vio, 1);
+    int rc = pioctl(names[0], _VICEIOCTL(_VIOCGETVOLSTAT), &vio, 1);
     if (rc <0) {fflush(stdout); perror(names[0]); return(1);}
     /* Get pointers to output fields */
     VolumeStatus *vs = (VolumeStatus *)piobuf;
@@ -627,7 +627,7 @@ int compareQuotas(int nreplicas, char **names)
 	vio.out_size = sizeof(piobuf);
 
 	/* Do the pioctl */
-	rc = pioctl(names[i], VIOCGETVOLSTAT, &vio, 1);
+	rc = pioctl(names[i], _VICEIOCTL(_VIOCGETVOLSTAT), &vio, 1);
 	if (rc < 0) {fflush(stdout); perror(names[i]); return(1);}
 	/* Get pointers to output fields */
 	vs = (VolumeStatus *)piobuf;
@@ -688,7 +688,7 @@ int dorep(struct repvol *repv, char *fixpath, char *buf, int len) {
     vioc.out = buf;
     vioc.out_size = len;
     memset(buf, 0, len);
-    rc = pioctl(repv->rodir, VIOC_REPAIR, &vioc, 0);
+    rc = pioctl(repv->rodir, _VICEIOCTL(_VIOC_REPAIR), &vioc, 0);
     return(rc);
 }
 
@@ -861,7 +861,7 @@ int glexpand(char *rodir, char *fixfile, char *msg, int msgsize)
     vio.out_size = sizeof(piobuf);
 
     /* Do the pioctl */
-    rc = pioctl(rodir, VIOCWHEREIS, &vio, 1);
+    rc = pioctl(rodir, _VICEIOCTL(_VIOCWHEREIS), &vio, 1);
     if (rc < 0) {
         strerr(msg, msgsize, "VIOCWHEREIS failed");
         return(-1);

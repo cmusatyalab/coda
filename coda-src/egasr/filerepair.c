@@ -66,7 +66,7 @@ int getfid(char *path, ViceFid *outfid, char *outrealm, ViceVersionVector *outvv
     vi.out_size = (short) sizeof(junk);
     memset(junk, 0, (int) sizeof(junk));
 
-    rc = pioctl(path, VIOC_GETFID, &vi, 0);
+    rc = pioctl(path, _VICEIOCTL(_VIOC_GETFID), &vi, 0);
     saveerrno = errno;
 
     /* Easy: no conflicts */
@@ -120,7 +120,7 @@ int main(int argc, char **argv) {
     vioc.out_size = (short)sizeof(space);
     vioc.out = space;
     memset(space, 0, sizeof(space));
-    rc = pioctl(argv[1], VIOC_REPAIR, &vioc, 0);
+    rc = pioctl(argv[1], _VICEIOCTL(_VIOC_REPAIR), &vioc, 0);
     if (rc < 0 && errno != ETOOMANYREFS) {
 	fprintf(stderr, "Error %d for repair\n", errno);
 	exit(-1);

@@ -249,7 +249,7 @@ int repair_getfid(char *path, ViceFid *outfid, char *outrealm,
     vi.out_size = sizeof(junk);
     memset(junk, 0, sizeof(junk));
 
-    rc = pioctl(path, VIOC_GETFID, &vi, 0);
+    rc = pioctl(path, _VICEIOCTL(_VIOC_GETFID), &vi, 0);
     saveerrno = errno;
 
     /* Easy: no conflicts */

@@ -260,7 +260,7 @@ static int srvstr(char *rwpath, char *retbuf, int size) {
     vioc.out = junk;
     vioc.out_size = sizeof(junk);
     memset(junk, 0, sizeof(junk));
-    rc = pioctl(rwpath, VIOCWHEREIS, &vioc, 1);
+    rc = pioctl(rwpath, _VICEIOCTL(_VIOCWHEREIS), &vioc, 1);
     if (rc) return(-1);
     hosts = (long *)junk;
     memset(retbuf, 0, size);
@@ -280,5 +280,5 @@ static int volstat(char *path, char *space, int size) {
     vioc.in_size = 0;
     vioc.out = space;
     vioc.out_size = size;
-    return(pioctl(path, VIOCGETVOLSTAT, &vioc, 1));
+    return(pioctl(path, _VICEIOCTL(_VIOCGETVOLSTAT), &vioc, 1));
 }

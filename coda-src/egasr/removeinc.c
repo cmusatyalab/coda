@@ -87,7 +87,7 @@ int IsObjInc(char *name, ViceFid *fid, char *realm)
     vio.out = (char *)&out;
     vio.out_size = sizeof(out);
 
-    rc = pioctl(name, VIOC_GETFID, &vio, 0);
+    rc = pioctl(name, _VICEIOCTL(_VIOC_GETFID), &vio, 0);
     if (rc < 0 && errno != ETOOMANYREFS) {
 	fprintf(stderr, "Error %d for Getfid\n", errno);
 	return(0);
@@ -145,7 +145,7 @@ int main(int argc, char **argv)
     vioc.out_size = (short) sizeof(space);
     vioc.out = space;
     memset(space, 0, (int) sizeof(space));
-    rc = pioctl(argv[1], VIOC_REPAIR, &vioc, 0);
+    rc = pioctl(argv[1], _VICEIOCTL(_VIOC_REPAIR), &vioc, 0);
     if (rc < 0 && errno != ETOOMANYREFS) {
 	fprintf(stderr, "Error %d for repair\n", errno);
 	unlink(tmpfname);

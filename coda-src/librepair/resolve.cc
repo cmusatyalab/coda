@@ -79,7 +79,7 @@ static int getfid (char *path, ViceFid *Fid, ViceVersionVector *VV, struct ViceI
     vi->out = buf;
     vi->out_size = sizeof(buf);
                       
-    if (pioctl(path, VIOC_GETFID, vi, 0)) {
+    if (pioctl(path, _VICEIOCTL(_VIOC_GETFID), vi, 0)) {
 	char symval[MAXPATHLEN];
 	symval[0] = 0;
 	if (errno != ENOENT){
@@ -172,7 +172,7 @@ struct Acl *res_getacl (char *path)
     vi.in = 0;
     vi.out = AclBuf;
     vi.out_size = sizeof(AclBuf);
-    if (pioctl(path, VIOCGETAL, &vi, 0)){
+    if (pioctl(path, _VICEIOCTL(_VIOCGETAL), &vi, 0)){
 	perror("pioctl: GETAL");
 	if (errno == EINVAL) {
 	    printf("can not get ACL on fake object %s\n", path);
@@ -673,7 +673,7 @@ int GetParent(char *realm, ViceFid *cfid, ViceFid *dfid, char *volmtpt, char *dp
     memset(tmp, 0, sizeof(tmp));
 
     strcpy(path, "/coda");
-    rc = pioctl(path, VIOC_GETPATH, &vi, 0);
+    rc = pioctl(path, _VICEIOCTL(_VIOC_GETPATH), &vi, 0);
     if (rc) {
 	//printf("GetParent: Getpath returns error %d, errno = %d\n",
 	//rc, errno);
@@ -715,7 +715,7 @@ int GetParent(char *realm, ViceFid *cfid, ViceFid *dfid, char *volmtpt, char *dp
     vi.out = tmp;
     vi.out_size = sizeof(tmp);
     strcpy(path, "/coda");
-    rc = pioctl(path, VIOC_GETPFID, &vi, 0);
+    rc = pioctl(path, _VICEIOCTL(_VIOC_GETPFID), &vi, 0);
     if (rc) {
 	printf("Error %d occured while trying to get fid of %s's parent\n", rc, childname);
 	return(rc);

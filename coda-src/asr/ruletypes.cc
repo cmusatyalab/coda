@@ -385,7 +385,7 @@ int rule_t::GetReplicaNames() {
     vioc.in_size = 0;
     vioc.out = space;
     memset(space, 0, (int) sizeof(space));
-    rc = pioctl(namep, VIOC_ENABLEREPAIR, &vioc, 0);
+    rc = pioctl(namep, _VICEIOCTL(_VIOC_ENABLEREPAIR), &vioc, 0);
     if (rc < 0) {
 	fprintf(stderr, "Error %d(%d) trying to get replicas of %s\n", 
 		rc, errno, name);
@@ -411,7 +411,7 @@ int rule_t::GetReplicaNames() {
 	}
 	else 
 	    DEBUG((stdout, "Couldn't open directory %s\n", name));
-	pioctl(name, VIOC_DISABLEREPAIR, &vioc, 0);
+	pioctl(name, _VICEIOCTL(_VIOC_DISABLEREPAIR), &vioc, 0);
     }
     return(0);
 }
@@ -426,7 +426,7 @@ int rule_t::enablerepair() {
     vioc.in_size = 0;
     vioc.out = space;
     memset(space, 0, (int) sizeof(space));
-    int rc = pioctl(name, VIOC_ENABLEREPAIR, &vioc, 0);
+    int rc = pioctl(name, _VICEIOCTL(_VIOC_ENABLEREPAIR), &vioc, 0);
     if (rc < 0) 
 	fprintf(stderr, "Error %d(%d) trying to enable repair for %s\n", 
 		rc, errno, name);
@@ -440,7 +440,7 @@ void rule_t::disablerepair() {
     
     sprintf(name, "%s", idname);
     memset((void *)&vioc, 0, (int) sizeof(vioc));
-    rc = pioctl(name, VIOC_DISABLEREPAIR, &vioc, 0);
+    rc = pioctl(name, _VICEIOCTL(_VIOC_DISABLEREPAIR), &vioc, 0);
     if (rc < 0) 
 	fprintf(stderr, "Error(%d) during disablerepair of %s", errno, name);
 }

@@ -850,7 +850,7 @@ int IsAPrefetch(msgent *m) {
     if (in->ih.opcode != CODA_IOCTL)
 	return(0);
 
-    return (in->coda_ioctl.cmd == VIOCPREFETCH);
+    return (_IOC_NR(in->coda_ioctl.cmd) == _VIOCPREFETCH);
 }
 
 void DispatchWorker(msgent *m) {
@@ -1211,6 +1211,8 @@ void worker::main(void)
 		char outbuf[VC_MAXDATASIZE];
 		struct ViceIoctl data;
                 int cmd = in->coda_ioctl.cmd;
+		unsigned char type = _IOC_TYPE(cmd);
+		unsigned char nr = _IOC_NR(cmd);
 
 		data.in = (char *)in + (int)in->coda_ioctl.data;
 		data.in_size = 0;
@@ -1219,7 +1221,14 @@ void worker::main(void)
 
 		LOG(100, ("CODA_IOCTL: u.u_pid = %d u.u_pgid = %d\n", u.u_pid, u.u_pgid));
 
-		if (cmd == VIOC_UNLOADKERNEL){
+		if (type != 'V') {
+		    u.u_error = EOPNOTSUPP;
+                    out->coda_ioctl.len = 0;		
+		    size = sizeof(struct coda_ioctl_out);
+		    break;
+		}
+
+		if (nr == _VIOC_UNLOADKERNEL) {
                     out->oh.result = 0;
                     out->coda_ioctl.len = 0;		
                     /* we have to Resign here because we will exit before
@@ -1236,17 +1245,18 @@ void worker::main(void)
                     exit(0);	
 		}
 			
-		if (cmd == VIOCPREFETCH)
+		if (nr == _VIOCPREFETCH)
 		    worker::nprefetchers++;
 
 		MAKE_CNODE(vtarget, in->coda_ioctl.Fid, 0);
 		data.in_size = in->coda_ioctl.len;
-		ioctl(&vtarget, cmd, &data, in->coda_ioctl.rwflag);
+
+		ioctl(&vtarget, nr, &data, in->coda_ioctl.rwflag);
 
 		out->coda_ioctl.len = data.out_size;
 		out->coda_ioctl.data = (char *)(sizeof (struct coda_ioctl_out));
 		memcpy((char *)out + (int)out->coda_ioctl.data, data.out, data.out_size);
-		if (cmd == VIOCPREFETCH)
+		if (nr == _VIOCPREFETCH)
 		    worker::nprefetchers--;
 
 		size = sizeof (struct coda_ioctl_out) + data.out_size;

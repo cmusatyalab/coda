@@ -284,13 +284,13 @@ FreeLocks:
 }
 
 
-void vproc::ioctl(struct venus_cnode *cp, unsigned int com,
+void vproc::ioctl(struct venus_cnode *cp, unsigned char nr,
 		   struct ViceIoctl *data, int flags) 
 {
     LOG(1, ("vproc::ioctl(%d): fid = %s, com = %s\n",
-	     u.u_uid, FID_(&cp->c_fid), IoctlOpStr(com)));
+	     u.u_uid, FID_(&cp->c_fid), IoctlOpStr(nr)));
 
-    do_ioctl(&cp->c_fid, com, data);
+    do_ioctl(&cp->c_fid, nr, data);
 
     if (u.u_error == EINCONS) {
 	u.u_error = ENOENT;

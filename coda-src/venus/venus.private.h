@@ -285,7 +285,7 @@ void VenusPrint(int, char **);
 void VenusPrint(FILE *, int, char **);
 void VenusPrint(int, int, char **);
 const char *VenusOpStr(int);
-const char *IoctlOpStr(int);
+const char *IoctlOpStr(unsigned char nr);
 const char *VenusRetStr(int);
 void VVPrint(FILE *, vv_t **);
 int binaryfloor(int);

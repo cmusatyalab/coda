@@ -69,33 +69,33 @@ extern "C" {
 
 
 /* local-repair modification */
-void vproc::do_ioctl(VenusFid *fid, unsigned int com, struct ViceIoctl *data) {
+void vproc::do_ioctl(VenusFid *fid, unsigned char nr, struct ViceIoctl *data)
+{
     /*
      *    We partition the ioctls into 3 categories:
      *      O - those on a particular object
      *      V - those on a volume as a whole
      *      F - those on the (Coda) filesystem as a whole
      */
-
-    switch(com) {
+    switch(nr) {
 	/* Object-based. */
-	case VIOCSETAL:
-	case VIOCGETAL:
-	case VIOCFLUSH:
-	case VIOCPREFETCH:
-	case VIOC_ADD_MT_PT:
-	case VIOC_AFS_DELETE_MT_PT:
-	case VIOC_AFS_STAT_MT_PT:
-        case VIOC_GETPFID:
-	case VIOC_SETVV:
+	case _VIOCSETAL:
+	case _VIOCGETAL:
+	case _VIOCFLUSH:
+	case _VIOCPREFETCH:
+	case _VIOC_ADD_MT_PT:
+	case _VIOC_AFS_DELETE_MT_PT:
+	case _VIOC_AFS_STAT_MT_PT:
+	case _VIOC_GETPFID:
+	case _VIOC_SETVV:
 	    {
 	    fsobj *f = 0;
 
-	    int volmode = (com == VIOCSETAL || com == VIOC_ADD_MT_PT ||
-			    com == VIOC_AFS_DELETE_MT_PT || com == VIOC_SETVV) ?
+	    int volmode = (nr == _VIOCSETAL || nr == _VIOC_ADD_MT_PT ||
+			   nr == _VIOC_AFS_DELETE_MT_PT || nr == _VIOC_SETVV) ?
 			   VM_MUTATING : VM_OBSERVING;
 	    int rcrights = RC_STATUS;
-	    if (com == VIOC_ADD_MT_PT || com == VIOC_AFS_DELETE_MT_PT)
+	    if (nr == _VIOC_ADD_MT_PT || nr == _VIOC_AFS_DELETE_MT_PT)
 		rcrights |= RC_DATA;
 
 	    for (;;) {
@@ -105,8 +105,8 @@ void vproc::do_ioctl(VenusFid *fid, unsigned int com, struct ViceIoctl *data) {
 		u.u_error = FSDB->Get(&f, fid, u.u_uid, rcrights);
 		if (u.u_error) goto O_FreeLocks;
 
-		switch(com) {
-		    case VIOCSETAL:
+		switch(nr) {
+		    case _VIOCSETAL:
 			{
 			/* Verify that target is a directory. */
 			if (!f->IsDir())
@@ -132,7 +132,7 @@ void vproc::do_ioctl(VenusFid *fid, unsigned int com, struct ViceIoctl *data) {
 			break;
 			}
 
-		    case VIOCGETAL:
+		    case _VIOCGETAL:
 			{
 			/* Verify that target is a directory. */
 			if (!f->IsDir())
@@ -163,7 +163,7 @@ void vproc::do_ioctl(VenusFid *fid, unsigned int com, struct ViceIoctl *data) {
 			break;
 			}
 
-		    case VIOCFLUSH:
+		    case _VIOCFLUSH:
 			{
 			FSDB->Put(&f);
 
@@ -181,7 +181,7 @@ void vproc::do_ioctl(VenusFid *fid, unsigned int com, struct ViceIoctl *data) {
 			break;
 			}
 
-		    case VIOCPREFETCH:
+		    case _VIOCPREFETCH:
 			{
 /*
  *			 if (type == VPT_Worker)
@@ -205,7 +205,7 @@ void vproc::do_ioctl(VenusFid *fid, unsigned int com, struct ViceIoctl *data) {
 			break;
 			}
 
-		    case VIOC_ADD_MT_PT:
+		    case _VIOC_ADD_MT_PT:
 			{
 			/* A mount-link is virtually identical to a symlink.
 			 * In fact Coda stores mount-links as symlinks on the
@@ -281,7 +281,7 @@ void vproc::do_ioctl(VenusFid *fid, unsigned int com, struct ViceIoctl *data) {
 			break;
 			}
 
-		    case VIOC_AFS_DELETE_MT_PT:
+		    case _VIOC_AFS_DELETE_MT_PT:
 			{
 			fsobj *target_fso = 0;
 			char *target_name = (char *) data->in;
@@ -334,7 +334,7 @@ void vproc::do_ioctl(VenusFid *fid, unsigned int com, struct ViceIoctl *data) {
 			break;
 			}
 
-		    case VIOC_AFS_STAT_MT_PT:
+		    case _VIOC_AFS_STAT_MT_PT:
 			{
 			fsobj *target_fso = 0;
 			char *target_name = (char *) data->in;
@@ -380,7 +380,7 @@ void vproc::do_ioctl(VenusFid *fid, unsigned int com, struct ViceIoctl *data) {
 			break;
 			}
 
-		    case VIOC_GETPFID:
+		    case _VIOC_GETPFID:
 			{
 			if (data->in_size != (int)sizeof(VenusFid))
 			    { u.u_error = EINVAL; break; }
@@ -408,7 +408,7 @@ void vproc::do_ioctl(VenusFid *fid, unsigned int com, struct ViceIoctl *data) {
 			break;
 			}
 
-		    case VIOC_SETVV:
+		    case _VIOC_SETVV:
 			{
 			if (data->in_size != (int)sizeof(ViceVersionVector))
 			    { u.u_error = EINVAL; break; }
@@ -429,9 +429,9 @@ O_FreeLocks:
 	    return;
 
 	/* Object-based. Allowing access to inconsistent objects. */
-	case VIOC_ENABLEREPAIR:
-        case VIOC_FLUSHASR:
-	case VIOC_GETFID:
+	case _VIOC_ENABLEREPAIR:
+	case _VIOC_FLUSHASR:
+	case _VIOC_GETFID:
 	    {
 	    fsobj *f = 0;
 
@@ -443,8 +443,8 @@ O_FreeLocks:
 				      NULL, NULL, 1);
 		if (u.u_error) goto OI_FreeLocks;
 
-		switch(com) {
-		case VIOC_ENABLEREPAIR:
+		switch(nr) {
+		case _VIOC_ENABLEREPAIR:
 		    {
 		    /* Try to enable target volume for repair by this user. */
 		    VolumeId  *RWVols  = (VolumeId *)data->out;
@@ -472,7 +472,7 @@ O_FreeLocks:
 		    break;
 		    }
 
-		case VIOC_FLUSHASR:
+		case _VIOC_FLUSHASR:
 		    /* This function used to be built around FSDB->Find, which
 		     * did no locking. Now we use FSDB->Get, which does do
 		     * locking. Hopefully this is better, and nothing breaks.
@@ -484,7 +484,7 @@ O_FreeLocks:
 		    break;
 		    }
 
-		case VIOC_GETFID:
+		case _VIOC_GETFID:
 		    {
 		    if (!(data->in_size == 0 || data->in_size == sizeof(int))) {
 			u.u_error = EINVAL;
@@ -535,26 +535,26 @@ OI_FreeLocks:
 	    return;
 
 	/* Volume-based. */
-	case VIOCGETVOLSTAT:
-	case VIOCSETVOLSTAT:
-	case VIOCWHEREIS:
-	case VIOC_FLUSHVOLUME:
-	case VIOC_DISABLEREPAIR:
-	case VIOC_REPAIR:
-	case VIOC_GETSERVERSTATS:
-	case VIOC_CHECKPOINTML:
-	case VIOC_PURGEML:
-        case VIOC_BEGINML:
-        case VIOC_ENDML:
-        case VIOC_ENABLEASR:
-        case VIOC_DISABLEASR: 
-	case VIOC_LISTCACHE_VOLUME:
-        case VIOC_BEGINWB:
-        case VIOC_STATUSWB:
-        case VIOC_ENDWB:
-        case VIOC_AUTOWB:
-	case VIOC_SYNCCACHE:
-	case VIOC_REDIR:
+	case _VIOCGETVOLSTAT:
+	case _VIOCSETVOLSTAT:
+	case _VIOCWHEREIS:
+	case _VIOC_FLUSHVOLUME:
+	case _VIOC_DISABLEREPAIR:
+	case _VIOC_REPAIR:
+	case _VIOC_GETSERVERSTATS:
+	case _VIOC_CHECKPOINTML:
+	case _VIOC_PURGEML:
+	case _VIOC_BEGINML:
+	case _VIOC_ENDML:
+	case _VIOC_ENABLEASR:
+	case _VIOC_DISABLEASR: 
+	case _VIOC_LISTCACHE_VOLUME:
+	case _VIOC_BEGINWB:
+	case _VIOC_STATUSWB:
+	case _VIOC_ENDWB:
+	case _VIOC_AUTOWB:
+	case _VIOC_SYNCCACHE:
+	case _VIOC_REDIR:
 	    {
 #ifdef TIMING
  	    gettimeofday(&u.u_tv1, 0); u.u_tv2.tv_sec = 0;
@@ -562,15 +562,15 @@ OI_FreeLocks:
 	    volent *v = 0;
 	    if ((u.u_error = VDB->Get(&v, MakeVolid(fid)))) break;
 
-	    int volmode = ((com == VIOC_REPAIR || com == VIOC_PURGEML) ?
+	    int volmode = ((nr == _VIOC_REPAIR || nr == _VIOC_PURGEML) ?
 			   VM_MUTATING : VM_OBSERVING);
 	    int entered = 0;
 	    if ((u.u_error = v->Enter(volmode, u.u_uid)) != 0)
 		goto V_FreeLocks;
 	    entered = 1;
 
-	    switch(com) {
-	        case VIOC_LISTCACHE_VOLUME:
+	    switch(nr) {
+	        case _VIOC_LISTCACHE_VOLUME:
 	            {
 		      /* List cache status */
 		      struct listcache_in {
@@ -616,7 +616,7 @@ OI_FreeLocks:
 		      break;
 		    }
 		    
-		case VIOCGETVOLSTAT:
+		case _VIOCGETVOLSTAT:
 		    {
 		    /* Volume status block. */
 		    VolumeStatus volstat;
@@ -695,7 +695,7 @@ OI_FreeLocks:
 		    break;
 		    }
 
-		case VIOCSETVOLSTAT:
+		case _VIOCSETVOLSTAT:
 		    {
 		    /* Format is (status, name, offlinemsg, motd). */
 		    char *cp = (char *) data->in;
@@ -766,7 +766,7 @@ OI_FreeLocks:
 		    break;
 		    }
 
-		case VIOCWHEREIS:
+		case _VIOCWHEREIS:
 		    {
                         /* Extract the host array from the vsgent or volent as appropriate. */
                         v->GetHosts((struct in_addr *)data->out);
@@ -776,7 +776,7 @@ OI_FreeLocks:
                         break;
 		    }
 
-		case VIOC_FLUSHVOLUME:
+		case _VIOC_FLUSHVOLUME:
 		    {
 		    /* This is drastic, but I'm having trouble getting rid of */
 		    /* MiniCache vnodes that have the "wrong" type! -JJK */
@@ -788,7 +788,7 @@ OI_FreeLocks:
 		    break;
 		    }
 
-		case VIOC_DISABLEREPAIR:
+		case _VIOC_DISABLEREPAIR:
 		    {
 		    /* Disable repair of target volume by this user. */
                     if (v->IsReplicated())
@@ -806,7 +806,7 @@ OI_FreeLocks:
   <a name="dorepair"><strong> dorepair handler </strong></a>
   END_HTML
 */
-		case VIOC_REPAIR:
+		case _VIOC_REPAIR:
 		    {
 		    /* Try to repair target object. */
 #define	RepairFile  ((char *)data->in)
@@ -835,7 +835,7 @@ OI_FreeLocks:
 		    break;
 		    }
 
-		case VIOC_GETSERVERSTATS:
+		case _VIOC_GETSERVERSTATS:
 		    {
 		    /* Extract the host array from the vsgent or volent as appropriate. */
 		    struct in_addr Hosts[VSG_MEMBERS];
@@ -865,7 +865,7 @@ OI_FreeLocks:
 		    break;
 		    }
 
-		case VIOC_CHECKPOINTML:
+		case _VIOC_CHECKPOINTML:
 		    {
 		    char *ckpdir = (data->in_size == 0 ? 0 : (char *) data->in);
                     u.u_error = EOPNOTSUPP;
@@ -874,14 +874,14 @@ OI_FreeLocks:
 		    break;
 		    }
 
-		case VIOC_PURGEML:
+		case _VIOC_PURGEML:
 		    {
                     u.u_error = EOPNOTSUPP;
                     if (v->IsReplicated())
                         u.u_error = ((repvol *)v)->PurgeMLEs(u.u_uid);
 		    break;
 		    }
-     	        case VIOC_BEGINML:
+     	        case _VIOC_BEGINML:
 		    {
 		    /* 
 		     * Begin logging mutations to this volume. 
@@ -899,7 +899,7 @@ OI_FreeLocks:
 
 		    break;
 		    }
-   	        case VIOC_ENDML:
+   	        case _VIOC_ENDML:
 		    {
 		    /* 
 		     * Stop logging mutations to this volume, and
@@ -913,21 +913,21 @@ OI_FreeLocks:
 			       v->GetName(), ((repvol *)v)->GetCML()->count());
 		    break;
 		    }
-	      case VIOC_ENABLEASR:
+	      case _VIOC_ENABLEASR:
 		    {			
                         u.u_error = EOPNOTSUPP;
                         if (v->IsReplicated())
                             u.u_error = ((repvol *)v)->EnableASR(u.u_uid);
 			break;
 		    }
-	      case VIOC_DISABLEASR:
+	      case _VIOC_DISABLEASR:
 		    {
                         u.u_error = EOPNOTSUPP;
                         if (v->IsReplicated())
                             u.u_error = ((repvol *)v)->DisableASR(u.u_uid);
 			break;
 		    }
-              case VIOC_BEGINWB:
+              case _VIOC_BEGINWB:
 		    {  
 		      /* request writeback caching from the server ! */
                         u.u_error = EOPNOTSUPP;
@@ -935,7 +935,7 @@ OI_FreeLocks:
                             u.u_error = ((repvol *)v)->EnterWriteback(u.u_uid);
 		      break;
 		    }
- 	      case VIOC_AUTOWB:
+ 	      case _VIOC_AUTOWB:
 		    {
                         u.u_error = EOPNOTSUPP;
                         if (v->IsReplicated()) {
@@ -961,7 +961,7 @@ OI_FreeLocks:
                         }
 			break;
 		    }
-   	      case VIOC_STATUSWB:
+   	      case _VIOC_STATUSWB:
 	      {
 		  int *cp = (int *)data->out;
                   *cp = 0;
@@ -970,7 +970,7 @@ OI_FreeLocks:
 		  data->out_size = sizeof(int);
 		  break;
 	      }
-              case VIOC_ENDWB:
+              case _VIOC_ENDWB:
               {
                   u.u_error = EOPNOTSUPP;
                   if (v->IsReplicated()) {
@@ -985,7 +985,7 @@ OI_FreeLocks:
                   }
 		  break;
               }
-	      case VIOC_SYNCCACHE:
+	      case _VIOC_SYNCCACHE:
               {
                   u.u_error = EOPNOTSUPP;
                   if (v->IsReplicated()) {
@@ -1003,7 +1003,7 @@ OI_FreeLocks:
 		  break;
               }
 
-	      case VIOC_REDIR:
+	      case _VIOC_REDIR:
 	      {
 		  struct in_addr staging_server;
 		  if (data->in_size != (int)sizeof(struct in_addr)) {
@@ -1035,41 +1035,41 @@ V_FreeLocks:
 	    return;
 
 	/* FS-based. */
-	case VIOCSETTOK:
-	case VIOCGETTOK:
-	case VIOCUNLOG:
-	case VIOCCKSERV:
-	case VIOCCKBACK:
-	case VIOC_VENUSLOG:
-	case VIOC_GETVENUSSTATS:
-	case VIOC_FLUSHCACHE:
-	case VIOC_HDB_ADD:
-	case VIOC_HDB_DELETE:
-	case VIOC_HDB_CLEAR:
-	case VIOC_HDB_LIST:
-	case VIOC_HDB_WALK:
-	case VIOC_HDB_VERIFY:
-	case VIOC_HDB_ENABLE:
-	case VIOC_HDB_DISABLE:
-	case VIOC_CLEARPRIORITIES:
-	case VIOC_WAITFOREVER:
-	case VIOC_GETPATH:
-        case VIOC_TRUNCATELOG:
-        case VIOC_DISCONNECT:
-        case VIOC_RECONNECT:
-        case VIOC_SLOW:
-	case VIOC_STRONG:
-	case VIOC_ADAPTIVE:
-	case VIOC_LISTCACHE:
-	case VIOC_GET_MT_PT:
-        case VIOC_WD_ALL:
-	case VIOC_WR_ALL:
-	case VIOC_REP_CMD:
-        case VIOC_UNLOADKERNEL:	
-        case VIOC_LOOKASIDE:
+	case _VIOCSETTOK:
+	case _VIOCGETTOK:
+	case _VIOCUNLOG:
+	case _VIOCCKSERV:
+	case _VIOCCKBACK:
+	case _VIOC_VENUSLOG:
+	case _VIOC_GETVENUSSTATS:
+	case _VIOC_FLUSHCACHE:
+	case _VIOC_HDB_ADD:
+	case _VIOC_HDB_DELETE:
+	case _VIOC_HDB_CLEAR:
+	case _VIOC_HDB_LIST:
+	case _VIOC_HDB_WALK:
+	case _VIOC_HDB_VERIFY:
+	case _VIOC_HDB_ENABLE:
+	case _VIOC_HDB_DISABLE:
+	case _VIOC_CLEARPRIORITIES:
+	case _VIOC_WAITFOREVER:
+	case _VIOC_GETPATH:
+	case _VIOC_TRUNCATELOG:
+	case _VIOC_DISCONNECT:
+	case _VIOC_RECONNECT:
+	case _VIOC_SLOW:
+	case _VIOC_STRONG:
+	case _VIOC_ADAPTIVE:
+	case _VIOC_LISTCACHE:
+	case _VIOC_GET_MT_PT:
+	case _VIOC_WD_ALL:
+	case _VIOC_WR_ALL:
+	case _VIOC_REP_CMD:
+	case _VIOC_UNLOADKERNEL:	
+	case _VIOC_LOOKASIDE:
 	    {
-	    switch(com) {
-                case VIOC_LOOKASIDE:
+	    switch(nr) {
+                case _VIOC_LOOKASIDE:
 	            {
 		      /* cache lookaside command (cfs lka) */
 		      memset(data->out, 0, CFS_PIOBUFSIZE);
@@ -1079,7 +1079,7 @@ V_FreeLocks:
 		      break; /* outmsg has success/failure info */
 
 	            }
-		case VIOC_LISTCACHE:
+		case _VIOC_LISTCACHE:
 	            {
 		      /* List cache status */
 		      struct listcache_in {
@@ -1111,7 +1111,7 @@ V_FreeLocks:
 		      }
 		      break;
 		    }
-		case VIOC_GET_MT_PT:
+		case _VIOC_GET_MT_PT:
 	            {
 		      /* Get mount point pathname */
 		      if (data->in_size < (int)sizeof(VolumeId) + 1) {
@@ -1144,7 +1144,7 @@ V_FreeLocks:
 		      break;
 		    }
 		
-		case VIOCSETTOK:
+		case _VIOCSETTOK:
 		    {
 		    /* Format of data is (len, secret, len, clear) */
 		    char *startp = (char *) data->in;
@@ -1176,7 +1176,7 @@ V_FreeLocks:
 		    break;
 		    }
 
-		case VIOCGETTOK:
+		case _VIOCGETTOK:
 		    {
 		    /* Format of data is (len, secret, len, clear) */
 		    char *startp = (char *) data->out;
@@ -1203,7 +1203,7 @@ V_FreeLocks:
 		    break;
 		    }
 
-		case VIOCUNLOG:
+		case _VIOCUNLOG:
 		    {
 		    Realm *realm = REALMDB->GetRealm(data->in);
 		    userent *ue = realm->GetUser(u.u_uid);
@@ -1214,7 +1214,7 @@ V_FreeLocks:
 		    break;
 		    }
 
-		case VIOCCKSERV:
+		case _VIOCCKSERV:
 		    {
 		    unsigned int bufsize = 2048; /* XXX - IN/OUT parameter. */
 		    if (data->in_size == 0) {    /* probe everybody we know */
@@ -1234,8 +1234,8 @@ V_FreeLocks:
 		    break;
 		    }
 
-		case VIOCCKBACK:
-/*		case VIOCCKVOLS:*/
+		case _VIOCCKBACK:
+/*		case _VIOCCKVOLS:*/
 		    {
 /*		    VDB->CheckVolumes();*/
 		    FSDB->InvalidateMtPts();
@@ -1243,7 +1243,7 @@ V_FreeLocks:
 		    break;
 		    }
 
-		case VIOC_VENUSLOG:
+		case _VIOC_VENUSLOG:
 		    {
 		    if (u.u_uid != V_UID)
 			{ u.u_error = EACCES; break; }
@@ -1256,7 +1256,7 @@ V_FreeLocks:
 		    break;
 		    }
 
-		case VIOC_GETVENUSSTATS:
+		case _VIOC_GETVENUSSTATS:
 		    {
 		    if (sizeof(VenusStatistics) > VC_MAXDATASIZE)
 			{ u.u_error = EINVAL; break; }
@@ -1271,7 +1271,7 @@ V_FreeLocks:
 		    break;
 		    }
 
-		case VIOC_FLUSHCACHE:
+		case _VIOC_FLUSHCACHE:
 		    {
 		    /* This is drastic, but I'm having trouble getting rid of */
 		    /* MiniCache vnodes that have the "wrong" type! -JJK */
@@ -1283,7 +1283,7 @@ V_FreeLocks:
 		    break;
 		    }
 
-		case VIOC_HDB_ADD:
+		case _VIOC_HDB_ADD:
 		    {
 		    struct hdb_add_msg *msgp = (struct hdb_add_msg *)data->in;
 		    if (data->in_size != (int)sizeof(struct hdb_add_msg))
@@ -1294,7 +1294,7 @@ V_FreeLocks:
 		    break;
 		    }
 
-		case VIOC_HDB_DELETE:
+		case _VIOC_HDB_DELETE:
 		    {
 		    struct hdb_delete_msg *msgp = (struct hdb_delete_msg *)data->in;
 		    if (data->in_size != (int)sizeof(struct hdb_delete_msg))
@@ -1305,7 +1305,7 @@ V_FreeLocks:
 		    break;
 		    }
 
-		case VIOC_HDB_CLEAR:
+		case _VIOC_HDB_CLEAR:
 		    {
 		    struct hdb_clear_msg *msgp = (struct hdb_clear_msg *)data->in;
 		    if (data->in_size != (int)sizeof(struct hdb_clear_msg))
@@ -1316,7 +1316,7 @@ V_FreeLocks:
 		    break;
 		    }
 
-		case VIOC_HDB_LIST:
+		case _VIOC_HDB_LIST:
 		    {
 		    struct hdb_list_msg *msgp = (struct hdb_list_msg *)data->in;
 		    if (data->in_size != (int)sizeof(struct hdb_list_msg))
@@ -1327,7 +1327,7 @@ V_FreeLocks:
 		    break;
 		    }
 
-		case VIOC_HDB_WALK:
+		case _VIOC_HDB_WALK:
 		    {
 		    struct hdb_walk_msg *msgp = (struct hdb_walk_msg *)data->in;
 		    if (data->in_size != (int)sizeof(struct hdb_walk_msg))
@@ -1339,7 +1339,7 @@ V_FreeLocks:
 		    }
 
 
-	        case VIOC_HDB_VERIFY:
+	        case _VIOC_HDB_VERIFY:
 		    {
 		    struct hdb_verify_msg *msgp = (struct hdb_verify_msg *)data->in;		    
 		    if (data->in_size != (int)sizeof(struct hdb_verify_msg))
@@ -1350,7 +1350,7 @@ V_FreeLocks:
 		    break;
 		    }
 
-		case VIOC_HDB_ENABLE:
+		case _VIOC_HDB_ENABLE:
 		    {
 		    struct hdb_walk_msg *msgp = (struct hdb_walk_msg *)data->in;
 		    if (data->in_size != (int)sizeof(struct hdb_walk_msg))
@@ -1361,7 +1361,7 @@ V_FreeLocks:
 		    break;
 		    }
 		    
-		case VIOC_HDB_DISABLE:
+		case _VIOC_HDB_DISABLE:
 		    {
 		    struct hdb_walk_msg *msgp = (struct hdb_walk_msg *)data->in;
 		    if (data->in_size != (int)sizeof(struct hdb_walk_msg))
@@ -1372,14 +1372,14 @@ V_FreeLocks:
 		    break;
 		    }
 		    
-		case VIOC_CLEARPRIORITIES:
+		case _VIOC_CLEARPRIORITIES:
 		    {
 		    FSDB->ClearPriorities();
 
 		    break;
 		    }
 
-		case VIOC_WAITFOREVER:
+		case _VIOC_WAITFOREVER:
 		    {
 		    int on;
 		    memcpy(&on, data->in, sizeof(int));
@@ -1398,7 +1398,7 @@ V_FreeLocks:
 		    break;
 		    }
 
-		case VIOC_GETPATH:
+		case _VIOC_GETPATH:
 		    {
 		    if (data->in_size <= sizeof(VenusFid) || 
 			*((char *)data->in + data->in_size - 1) != '\0')
@@ -1422,7 +1422,7 @@ V_FreeLocks:
 		    break;
 		    }
 
-	        case VIOC_TRUNCATELOG:
+	        case _VIOC_TRUNCATELOG:
 		    {
 		    RecovFlush(1);
 		    RecovTruncate(1);
@@ -1430,7 +1430,7 @@ V_FreeLocks:
 		    break;
 		    }
 
-	        case VIOC_DISCONNECT:
+	        case _VIOC_DISCONNECT:
 		    {
 		    if (data->in_size == 0)  /* disconnect from everyone */
 		        u.u_error = FailDisconnect(0,0);
@@ -1444,7 +1444,7 @@ V_FreeLocks:
 		    break;
 		    }
 
-	        case VIOC_RECONNECT:
+	        case _VIOC_RECONNECT:
 		    {
 		    if (data->in_size == 0)  /* reconnect to everyone */
 		        u.u_error = FailReconnect(0,0);
@@ -1459,7 +1459,7 @@ V_FreeLocks:
 		    break;
 		    }
 
-	        case VIOC_SLOW:
+	        case _VIOC_SLOW:
 		    {
 		    if (data->in_size != (int)sizeof(unsigned))
 			{ u.u_error = EINVAL; break; }
@@ -1472,7 +1472,7 @@ V_FreeLocks:
 		    }
 
 		/* cfs strong: Force strong connectivity to all servers */
-	        case VIOC_STRONG:
+	        case _VIOC_STRONG:
 		    {
 		    srv_iterator next;
 		    srvent *s;
@@ -1481,7 +1481,7 @@ V_FreeLocks:
 		    break;
 		    }
 		/* cfs adaptive: Allow dynamic adaptation of connectivity */
-	        case VIOC_ADAPTIVE:
+	        case _VIOC_ADAPTIVE:
 		    {
 		    srv_iterator next;
 		    srvent *s;
@@ -1490,7 +1490,7 @@ V_FreeLocks:
 		    break;
 		    }
 
-		case VIOC_WD_ALL:
+		case _VIOC_WD_ALL:
 		    {
 		    char *startp = (char *) data->in;
 #define agep ((unsigned *)(startp))
@@ -1500,14 +1500,14 @@ V_FreeLocks:
 			eprint("Logging updates to all volumes");
 		    break;
 		    }
-   	        case VIOC_WR_ALL:
+   	        case _VIOC_WR_ALL:
 		    {
 		    u.u_error = VDB->WriteReconnect();
 		    if (u.u_error == 0) 
 			eprint("Propagating updates to all volumes");
 		    break;
 		    }    	        
-		case VIOC_REP_CMD:
+		case _VIOC_REP_CMD:
 		    {
 			int rep_cmd;
 			CODA_ASSERT(sscanf((char *) data->in, "%d", &rep_cmd) == 1);

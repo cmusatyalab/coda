@@ -939,7 +939,7 @@ static int GetVid(VolumeId *vid, char *realm, char *name)
     vi.in_size = 0;
     vi.out = (char *)&gf_msg;
     vi.out_size = sizeof(struct getfid_msg);
-    err = pioctl(name, VIOC_GETFID, &vi, 1);
+    err = pioctl(name, _VICEIOCTL(_VIOC_GETFID), &vi, 1);
     
     *vid = 0;
     if (!err) {
@@ -963,7 +963,7 @@ static void DoClears(olist& Clear) {
 	vi.out = 0;
 	vi.out_size = 0;
 
-	if (pioctl(mountpoint, VIOC_HDB_CLEAR, &vi, 0) != 0) {
+	if (pioctl(mountpoint, _VICEIOCTL(_VIOC_HDB_CLEAR), &vi, 0) != 0) {
 	    error(!FATAL, "pioctl:Clear(%d, %d): %s",
 		  c->msg.cuid, ruid, strerror(errno));
 	}
@@ -981,7 +981,7 @@ static void DoAdds(olist& Add) {
 	vi.out = 0;
 	vi.out_size = 0;
 
-	if (pioctl(mountpoint, VIOC_HDB_ADD, &vi, 0) != 0) {
+	if (pioctl(mountpoint, _VICEIOCTL(_VIOC_HDB_ADD), &vi, 0) != 0) {
 	    error(!FATAL, "pioctl:Add(%x@%s, %s, %d, %d, %d): %s",
 		  a->msg.vid, a->msg.realm, a->msg.name,
 		  a->msg.priority, a->msg.attributes, ruid, strerror(errno));
@@ -1000,7 +1000,7 @@ static void DoDeletes(olist& Delete) {
 	vi.out = 0;
 	vi.out_size = 0;
 
-	if (pioctl(mountpoint, VIOC_HDB_DELETE, &vi, 0) != 0) {
+	if (pioctl(mountpoint, _VICEIOCTL(_VIOC_HDB_DELETE), &vi, 0) != 0) {
 	    error(!FATAL, "pioctl:Delete(%x@%s, %s, %d): %s",
 		  d->msg.vid, d->msg.realm, d->msg.name, ruid,
 		  strerror(errno));
@@ -1019,7 +1019,7 @@ static void DoLists(olist& List) {
 	vi.out = 0;
 	vi.out_size = 0;
 
-	if (pioctl(mountpoint, VIOC_HDB_LIST, &vi, 0) == 0) {
+	if (pioctl(mountpoint, _VICEIOCTL(_VIOC_HDB_LIST), &vi, 0) == 0) {
 	    RenameOutFile(l->msg.outfile, l->tname);
 	}
 	else {
@@ -1041,7 +1041,7 @@ static void DoWalks(olist& Walk) {
 	vi.out = 0;
 	vi.out_size = 0;
 
-	if (pioctl(mountpoint, VIOC_HDB_WALK, &vi, 0) != 0) {
+	if (pioctl(mountpoint, _VICEIOCTL(_VIOC_HDB_WALK), &vi, 0) != 0) {
 	    error(!FATAL, "pioctl:Walk(%d): %s",
 		  ruid, strerror(errno));
 	}
@@ -1062,7 +1062,7 @@ static void DoVerifies(olist& Verify) {
 	vi.out = 0;
 	vi.out_size = 0;
 
-	if (pioctl(mountpoint, VIOC_HDB_VERIFY, &vi, 0) == 0) {
+	if (pioctl(mountpoint, _VICEIOCTL(_VIOC_HDB_VERIFY), &vi, 0) == 0) {
 	    RenameOutFile(v->msg.outfile, v->tname);
 	}
 	else {
@@ -1085,7 +1085,7 @@ static void DoEnables(olist& Enable) {
 	vi.out = 0;
 	vi.out_size = 0;
 
-	if (pioctl(mountpoint, VIOC_HDB_ENABLE, &vi, 0) != 0) {
+	if (pioctl(mountpoint, _VICEIOCTL(_VIOC_HDB_ENABLE), &vi, 0) != 0) {
 	    error(!FATAL, "pioctl:Enable(%d): %s",
 		  ruid, strerror(errno));
 	}
@@ -1104,7 +1104,7 @@ static void DoDisables(olist& Disable) {
 	vi.out = 0;
 	vi.out_size = 0;
 
-	if (pioctl(mountpoint, VIOC_HDB_DISABLE, &vi, 0) != 0) {
+	if (pioctl(mountpoint, _VICEIOCTL(_VIOC_HDB_DISABLE), &vi, 0) != 0) {
 	    error(!FATAL, "pioctl:Disable(%d): %s",
 		  ruid, strerror(errno));
 	}
