@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: blurb.doc,v 1.1 96/11/22 13:29:31 raiff Exp $";
+static char *rcsid = "$Header: /mnt/home/clement/newobj5/coda-src/vtools/RCS/hoard.cc,v 1.1 1996/11/22 19:14:21 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -64,7 +64,9 @@ extern "C" {
 #include <errno.h>
 extern FILE *_findiop();
 #include <libc.h>
+#ifndef LINUX
 extern int execvp(const char *, const char **);
+#endif
 #include <sysent.h>
 #include <stdarg.h>
 
@@ -77,7 +79,9 @@ extern int execvp(const char *, const char **);
 #include <vice.h>
 #include <hdb.h>
 
-
+#ifdef LINUX
+#define MAXSYMLINKS 10
+#endif
 
 /* Manifest Constants. */
 #define	CODA_ROOT   "/coda"
@@ -256,7 +260,6 @@ main(int argc, char *argv[]) {
     exit(0);
 }
 
-
 PRIVATE FILE *ParseCommandLine(int argc, char **argv) {
     if (argc == 1)
 	usage();
@@ -293,6 +296,17 @@ PRIVATE FILE *ParseCommandLine(int argc, char **argv) {
     }
     if (fp == NULL) {
 	/* Assign fp to argv[0]. */
+#ifdef LINUX
+	int fd[2];
+	if (pipe(fd)<0)
+	    error(FATAL, "open pipe error") ;
+	if (write(fd[1], argv[0], strlen(argv[0])+1) < 0)
+	    error(FATAL, "pipe writing error");
+	if (close(fd[1])<0)
+	    error(FATAL, "closing pipe error");
+	if ((fp = fdopen(fd[0],"r"))==NULL)
+	    error(FATAL, "fdopen error");
+#else 
 	fp = _findiop();
 	if (fp == NULL)
 	    error(FATAL, "no I/O buffers");
@@ -303,6 +317,7 @@ PRIVATE FILE *ParseCommandLine(int argc, char **argv) {
 	int len = (int) strlen(argv[0]) + 1;
 	setbuffer(fp, argv[0], len);
 	fp->_cnt = len;
+#endif
     }
 
     return(fp);
