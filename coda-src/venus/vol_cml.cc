@@ -307,8 +307,8 @@ void ClientModifyLog::GetReintegrateable(int tid, int *nrecs) {
 	 * otherwise we are trying get back to connected state. --JH */
 
 	/* Ignore BW in case of forced reintegration  */
-	if (!ASRinProgress && vol->flags.logv && !vol->flags.writebackreint &&
-	    (this_time + cur_reintegration_time > vol->ReintLimit)) 
+	if (!(vol->asr_running()) && vol->flags.logv && !(vol->flags.writebackreint) &&
+	    (this_time + cur_reintegration_time > vol->ReintLimit))
 		break;
 	/* 
 	 * freeze the record to prevent cancellation.  Note that
@@ -362,7 +362,7 @@ cmlent *ClientModifyLog::GetFatHead(int tid) {
 
     /* The head of the CML must exists, be a store operation and ready
      * for reintegration. */
-    if (ASRinProgress || !m ||
+    if (vol->asr_running() || !m ||
         (m->opcode != OLDCML_NewStore_OP) ||
         !m->ReintReady())
         return((cmlent *)0);

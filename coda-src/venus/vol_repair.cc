@@ -692,25 +692,21 @@ int volent::DisableRepair(vuid_t vuid) {
 /* If (vuid == ALL_UIDS) the enquiry is taken to be "does anyone on the WS have the volume under repair". */
 int volent::IsUnderRepair(vuid_t vuid) {
     LOG(100, ("volent::IsUnderRepair: vol = %x, vuid = %d\n", vid, vuid));
-
     switch(type) {
 	case RWVOL:
 	case ROVOL:
 	case BACKVOL:
 	case RWRVOL:
-	    {
-	    return(0);
-	    }
-
+	  return(0);
+	  break;
 	case REPVOL:
-	    {
-	    return(flags.repair_mode == 1);
-	    }
-
+	  return(flags.repair_mode == 1);
+	  break;
 	default:
 	    CHOKE("volent::IsUnderRepair: %x, bogus type (%d)", vid, type);
+	    return(0);
+	    break;
     }
-    return(0); /* to keep g++ happy */
 }
 
 /* Enable ASR invocation for this volume */
@@ -745,28 +741,40 @@ int volent::DisableASR(vuid_t vuid) {
 }
 
 int volent::IsASRAllowed() {
-        LOG(100, ("volent::IsASRAllowed: vol = %x\n", vid));
-
+    LOG(100, ("volent::IsASRAllowed: vol = %x\n", vid));
     switch(type) {
 	case RWVOL:
 	case ROVOL:
 	case BACKVOL:
 	case RWRVOL:
-	    {
-	    return(0);
-	    }
-
+	  return(0);
+	  break;
 	case REPVOL:
-	    {
-		LOG(0, ("volent::IsASRAllowed: returns %d\n",
-				(flags.allow_asrinvocation == 1)));
-		
-		return(flags.allow_asrinvocation == 1);
-	    }
-
+	  LOG(0, ("volent::IsASRAllowed: returns %d\n", (flags.allow_asrinvocation == 1)));
+	  return(flags.allow_asrinvocation == 1);
+	  break;
 	default:
-	    CHOKE("volent::IsASRAllowed: %x, bogus type (%d)", vid, type);
-	    return(0); /* to keep g++ happy */
+	  CHOKE("volent::IsASRAllowed: %x, bogus type (%d)", vid, type);
+	  return(0);
+	  break;
     }
-
 }
+
+void volent::lock_asr() {
+    CODA_ASSERT(flags.asr_running == 0);
+    flags.asr_running = 1;
+}
+
+void volent::unlock_asr() {
+    CODA_ASSERT(flags.asr_running == 1);
+    flags.asr_running = 0;
+}
+
+int volent::asr_running() { return(flags.asr_running); }
+
+void volent::asr_id(int id) {
+    CODA_ASSERT(flags.asr_running == 1);
+    lc_asr = id;
+}
+
+int volent::asr_id() { return(lc_asr); }

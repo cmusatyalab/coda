@@ -61,7 +61,6 @@ extern void SFTP_Activate (SFTP_Initializer *initPtr);
 
 /* interfaces */
 #include <vice.h>
-#include <adsrv.h>
 
 #ifdef __cplusplus
 }
@@ -80,7 +79,8 @@ extern void SFTP_Activate (SFTP_Initializer *initPtr);
 #include "venusvm.h"
 #include "venusvol.h"
 #include "vproc.h"
-#include "advice_daemon.h"
+#include "adv_monitor.h"
+#include "adv_daemon.h"
 
 
 int COPModes = 6;	/* ASYNCCOP2 | PIGGYCOP2 */
@@ -1133,7 +1133,7 @@ int srvent::Connect(RPC2_Handle *cidp, int *authp, vuid_t vuid, int Force) {
 	    MarinerLog("connection::unreachable %s\n", name);
 	    Reset();
 	    VSGDB->DownEvent(host);
-  	    NotifyUsersOfServerDownEvent(name);
+  	    adv_mon.ServerInaccessible(name);
 	}
     }
 
@@ -1240,7 +1240,7 @@ void srvent::ServerError(int *codep) {
 	        MarinerLog("connection::unreachable %s\n", name);
 		Reset();
 		VSGDB->DownEvent(host);
-		NotifyUsersOfServerDownEvent(name);
+		adv_mon.ServerInaccessible(name);
 		break;
 
 	    case ERETRY:
@@ -1267,7 +1267,7 @@ void srvent::ServerUp(RPC2_Handle newconnid) {
 	MarinerLog("connection::up %s\n", name);
 	connid = newconnid;
 	VSGDB->UpEvent(host);
-	NotifyUsersOfServerUpEvent(name);
+	adv_mon.ServerAccessible(name);
     }
     else if (connid == -1) {
 	/* Initial case.  */
@@ -1360,19 +1360,19 @@ long srvent::GetBandwidth(unsigned long *Bandwidth) {
 	isweak = 1;
 	MarinerLog("connection::weak %s\n", name);
 	VSGDB->WeakEvent(host);
-        NotifyUsersOfServerWeakEvent(name);
+        adv_mon.ServerConnectionWeak(name);
     }
     else if (isweak && bwmin > WCThresh) {
 	isweak = 0;
 	MarinerLog("connection::strong %s\n", name);
 	VSGDB->StrongEvent(host);
-        NotifyUsersOfServerStrongEvent(name);
+        adv_mon.ServerConnectionStrong(name);
     }
 	
     *Bandwidth = bw;
     if (bw != oldbw || bwmax != oldbwmax) {
 	MarinerLog("connection::bandwidth %s %d %d %d\n", name,bwmin,bw,bwmax);
-        NotifyUsersOfServerBandwidthEvent(name, *Bandwidth);
+        adv_mon.ServerBandwidthEstimate(name, *Bandwidth);
     }
     LOG(1, ("srvent::GetBandwidth (%s) returns %d bytes/sec\n",
 	      name, *Bandwidth));
@@ -1392,7 +1392,7 @@ void srvent::ForceStrong(int on) {
 	isweak = 0;
 	MarinerLog("connection::strong %s\n", name);
 	VSGDB->StrongEvent(host);
-        NotifyUsersOfServerStrongEvent(name);
+        adv_mon.ServerConnectionStrong(name);
     }
 
     /* switch back to adaptive mode */
@@ -1400,7 +1400,7 @@ void srvent::ForceStrong(int on) {
 	isweak = 1;
 	MarinerLog("connection::weak %s\n", name);
 	VSGDB->WeakEvent(host);
-        NotifyUsersOfServerWeakEvent(name);
+        adv_mon.ServerConnectionWeak(name);
     }
 
     return;

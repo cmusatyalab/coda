@@ -16,18 +16,10 @@ listed in the file CREDITS.
 
 #*/
 
-
-
-/*
- *
- * Specification of the Venus Advice Monitor enumerated types.
- *
- */
-
 #ifndef _ADVICE_H_
 #define _ADVICE_H_
 
-enum AdviceState {AdviceInvalid, AdviceDying, AdviceWaiting, AdviceValid};
+enum ConnectionState {Nil, Valid, Init, Dead};
 
 enum ReadDiscAdvice {ReadDiscUnknown=-1, 
 		     ReadDiscFetch, 
@@ -41,19 +33,15 @@ enum WeaklyAdvice {WeaklyUnknown=-1,
 		   WeaklyMiss};
 const int MaxWeaklyAdvice = 1;
 
-extern int ASRinProgress;
-extern int ASRresult;
 #define ASR_INTERVAL 300
-
-#define ADMON_FAIL -1
-#define ADMON_SUCCESS 0
-#define ADMON_DUPLICATE 1
 
 #define HOARDLIST_FILENAME "/tmp/hoardlist."
 #define HOARDADVICE_FILENAME "/tmp/hoardadvice."
 
 #define PROGRAMLOG "program.log"
 #define REPLACEMENTLOG "replacement.log"
+
+#define NumRPCResultTypes 7
 
 /* User Patience Parameters. */
 const int UNSET_PATIENCE_ALPHA = -1;
@@ -72,4 +60,4 @@ extern int PATIENCE_ALPHA;
 extern int PATIENCE_BETA;
 extern int PATIENCE_GAMMA;
 
-#endif _ADVICE_H_
+#endif /* _ADVICE_H_ */

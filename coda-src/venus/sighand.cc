@@ -47,7 +47,8 @@ extern "C" {
 #include "venus.private.h"
 #include "venusrecov.h"
 #include "worker.h"
-#include "advice_daemon.h"
+#include "adv_monitor.h"
+#include "adv_daemon.h"
 #include "codaconf.h"
 
 static void SigControl(int);
@@ -209,8 +210,8 @@ static void SigControl(int sig)
 
     if (strcmp(command, "SWAPLOGS") == 0) {
 	SwapLog();
-	SwapProgramLogs();
-	SwapReplacementLogs();
+	adv_mon.SwapProgramLog();
+	adv_mon.SwapReplacementLog();
     }
 
     if (strcmp(command, "STATSINIT") == 0)

@@ -66,7 +66,7 @@ extern int nlist(const char*, struct nlist[]);
 #include <olist.h>
 
 /* from venus */
-#include "adviceconn.h"
+#include "adv_monitor.h"
 #include "local.h"
 #include "mariner.h"
 #include "user.h"
@@ -682,6 +682,8 @@ static void CheckMC() {       // Check minicache stats
 #endif				    
 }
 
+/* No more advice statistics to report   -Remi    */
+#if 0
 /* static -- was private but couldn't access u->admon then... */ 
 void ReportAdviceStatistics(vuid_t vuid) 
 {
@@ -736,6 +738,7 @@ void CheckAdvice()
 	  ReportAdviceStatistics(u->GetUid());
     }
 }
+#endif
 
 static void CheckOE() {
     if (!VmonInited || !VmonEnabled) return;
@@ -1081,7 +1084,7 @@ void VmonDaemon(void)
 	CheckCE();
 	CheckCL();
 	CheckMC();
-        CheckAdvice();
+        /* CheckAdvice(); */
 	CheckOE();
 	CheckRW();
 	CheckSubtree();

@@ -166,7 +166,7 @@ extern "C" {
 
 
 /* from venus */
-#include "advice_daemon.h"
+#include "adv_daemon.h"
 #include "advice.h"
 #include "comm.h"
 #include "fso.h"
@@ -729,6 +729,7 @@ volent::volent(VolumeInfo *volinfo, char *volname) {
     flags.reserved = 0;
     flags.has_local_subtree = 0;
     flags.logv = 0;
+    lc_asr = -1;
     VVV = NullVV;
     AgeLimit = V_UNSETAGE;
     ReintLimit = V_UNSETREINTLIMIT;
@@ -1301,6 +1302,8 @@ void volent::GetCacheInfo(int uid, int *hits, int *misses) {
     }
 }
 
+/* A miss is a miss... why bother the user about it?   -Remi  */
+#if 0 /* chop */
 void volent::DisconnectedCacheMiss(vproc *vp, vuid_t vuid, ViceFid *fid,
                                    char *comp)
 {
@@ -1311,9 +1314,8 @@ void volent::DisconnectedCacheMiss(vproc *vp, vuid_t vuid, ViceFid *fid,
     CODA_ASSERT(u != NULL);
 
     /* If advice not enabled, simply return */
-    if (!AdviceEnabled) {
-        LOG(100, ("ADMON STATS:  DMQ Advice NOT enabled.\n"));
-        u->AdviceNotEnabled();
+    if (!SkkEnabled) {
+        LOG(100, ("ADVSKK STATS:  DMQ Advice Sidekick NOT enabled.\n"));
         return;
     }
 
@@ -1323,15 +1325,15 @@ void volent::DisconnectedCacheMiss(vproc *vp, vuid_t vuid, ViceFid *fid,
      * and (c) the user is running an AdviceMonitor,                   */
     CODA_ASSERT(vp != NULL);
     if (vp->type == VPT_HDBDaemon) {
-        LOG(100, ("ADMON STATS:  DMQ Advice inappropriate.\n"));
+        LOG(100, ("ADVSKK STATS:  DMQ Advice inappropriate.\n"));
         return;
     }
-    if (u->IsAdvicePGID(vp->u.u_pgid)) {
-        LOG(100, ("ADMON STATS:  DMQ Advice inappropriate.\n"));
+    if (u->skkPgid(vp->u.u_pgid)) {
+        LOG(100, ("ADVSKK STATS:  DMQ Advice inappropriate.\n"));
         return;
     }
-    if (u->IsAdviceValid(DisconnectedCacheMissEventID, 1) != TRUE) {
-        LOG(100, ("ADMON STATS:  DMQ Advice NOT valid. (uid = %d)\n", vuid));
+    if (!(u->ConnValid())) {
+        LOG(100, ("ADVSKK STATS:  DMQ Advice NOT valid. (uid = %d)\n", vuid));
         return;
     }
 
@@ -1348,7 +1350,6 @@ void volent::DisconnectedCacheMiss(vproc *vp, vuid_t vuid, ViceFid *fid,
     /* Make the request */
     LOG(100, ("Requesting Disconnected CacheMiss Questionnaire...1\n"));
     u->RequestDisconnectedQuestionnaire(fid, pathname, vp->u.u_pid, GetDisconnectionTime());
-
 }
 
 void volent::TriggerReconnectionQuestionnaire() {
@@ -1362,7 +1363,7 @@ void volent::TriggerReconnectionQuestionnaire() {
     LOG(100, ("TriggerReconnectionQuestionnaire:  vid=%x, name=%s.\n", vid, name));
 
     while ((u = next())) {
-        if (u->IsAdviceValid(ReconnectionID, 0) == TRUE) {
+        if (u->ConnValid()) {
             unique_hits = 0;
             unique_notreferenced = 0;
 
@@ -1413,10 +1414,8 @@ void volent::TriggerReconnectionQuestionnaire() {
     UnsetDisconnectionTime();
 }
 
-
 void volent::NotifyStateChange() {
     LOG(100, ("NotifyStateChange:  vid=%x, name=%s.\n", vid, name));
-    /*
     user_iterator next;
     userent *u;
 
@@ -1438,8 +1437,8 @@ void volent::NotifyStateChange() {
 	    }
 	}
     }
-    */
 }
+#endif /* chop */
 
 /* local-repair modification */
 void volent::TakeTransition() {
@@ -1490,9 +1489,9 @@ void volent::TakeTransition() {
     switch(state) {
         case Hoarding:
             {
-	      if ((prevstate != Hoarding) && (AdviceEnabled) && 
-		  (!FID_VolIsFake(vid)))
-		      NotifyStateChange();
+	      /* if ((prevstate != Hoarding) && (SkkEnabled) && (!FID_VolIsFake(vid)))
+	       *    NotifyStateChange();
+	       */
 
 	      /* If:
 	       *   - we were disconnected
@@ -1512,10 +1511,8 @@ void volent::TakeTransition() {
 	       *  the Hoarding state. This is to catch volumes which have no
 	       *  modifications.  We let the advice monitor decide whether or
 	       *  not to actually question the user. */
-	      if ((prevstate == Emulating) && (AdviceEnabled) && 
-		  (!FID_VolIsFake(vid))) 
-		  TriggerReconnectionQuestionnaire();
-
+	      /*  if ((prevstate == Emulating) && (SkkEnabled) && (!FID_VolIsFake(vid))) 
+	       *     TriggerReconnectionQuestionnaire(); */
 
 	      /* Collect Read/Write Sharing Stats */
 	      if (prevstate == Emulating)
@@ -1527,9 +1524,8 @@ void volent::TakeTransition() {
 
         case Emulating:
             {
-	      if ((prevstate != Emulating) && (AdviceEnabled) && 
-		  (!FID_VolIsFake(vid)))
-		      NotifyStateChange();
+	      /* if ((prevstate != Emulating) && (SkkEnabled) && (!FID_VolIsFake(vid)))
+	       *    NotifyStateChange(); */
 
               if (prevstate == Hoarding) {
                 SetDiscoRefCounter();
@@ -1545,9 +1541,8 @@ void volent::TakeTransition() {
             }
 
         case Logging:
-	    if ((prevstate != Logging) && (AdviceEnabled) && 
-		(!FID_VolIsFake(vid)))
-		    NotifyStateChange();
+	  /* if ((prevstate != Logging) && (SkkEnabled) && (!FID_VolIsFake(vid)))
+	   *    NotifyStateChange(); */
 
 	    if (ReadyToReintegrate()) 
 		::Reintegrate(this);
@@ -1573,9 +1568,8 @@ void volent::TakeTransition() {
 	     *  the Logging state. This is to catch volumes which have
 	     *  modifications.  We let the advice monitor decide whether or not
 	     *  to actually question the user. */
-	    if ((prevstate == Emulating) && (AdviceEnabled) && (!FID_VolIsFake(vid)))
-		TriggerReconnectionQuestionnaire();  
-
+	    /* if ((prevstate == Emulating) && (SkkEnabled) && (!FID_VolIsFake(vid)))
+	     *    TriggerReconnectionQuestionnaire();  */
 
 	    /* Read/Write Sharing Stats Collection */
 	    if (prevstate == Emulating)
@@ -1585,9 +1579,9 @@ void volent::TakeTransition() {
 	    break;
 
 	case Resolving:
-	    if ((prevstate != Resolving) && (AdviceEnabled) && 
-		(!FID_VolIsFake(vid)))
-	        NotifyStateChange();
+	  /*  The function was commented out anyway...   -Remi
+	   *  if ((prevstate != Resolving) && (SkkEnabled) && (!FID_VolIsFake(vid)))
+	   *     NotifyStateChange(); */
 
 	    ::Resolve(this);
 	    break;
@@ -1871,25 +1865,24 @@ void volent::SetReintegratePending() {
 
 void volent::ClearReintegratePending() {
     flags.reintegratepending = 0;
-
-    if (AdviceEnabled) {
-        userent *u;
-        GetUser(&u, CML.owner);
-        CODA_ASSERT(u != NULL);
-        u->NotifyReintegrationEnabled(name);
-    }
+    /* if (SkkEnabled) {
+     *    userent *u;
+     *    GetUser(&u, CML.owner);
+     *    CODA_ASSERT(u != NULL);
+     *    u->NotifyReintegrationEnabled(name);
+     * } */
 }
 
 
 void volent::CheckReintegratePending() {
     if (flags.reintegratepending && CML.count() > 0) {
         eprint("Reintegrate %s pending tokens for uid = %d", name, CML.owner);
-        if (AdviceEnabled) {
-            userent *u;
-            GetUser(&u, CML.owner);
-            CODA_ASSERT(u != NULL);
-            u->NotifyReintegrationPending(name);
-        }
+	/* if (SkkEnabled) {
+         *    userent *u;
+         *    GetUser(&u, CML.owner);
+         *    CODA_ASSERT(u != NULL);
+         *    u->NotifyReintegrationPending(name);
+	 * } */
     }
 }
 

@@ -71,7 +71,7 @@ extern "C" {
 #include "venus.private.h"
 #include "venusvol.h"
 #include "vproc.h"
-#include "advice_daemon.h"
+#include "adv_daemon.h"
 
 
 /* must not be called from within a transaction */
@@ -93,9 +93,7 @@ void volent::Reintegrate()
 
     GetUser(&u, CML.owner);
     CODA_ASSERT(u != NULL);
-    if (AdviceEnabled)
-        u->NotifyReintegrationActive(name);
-
+    /* if (SkkEnabled) u->NotifyReintegrationActive(name); */
     flags.reintegrating = 1;
 
     /* enter the volume */
@@ -202,8 +200,7 @@ void volent::Reintegrate()
     v->u.u_error = 0;
 
     /* Let user know reintegration has completed */
-    if (AdviceEnabled)
-        u->NotifyReintegrationCompleted(name);
+    /*   if (SkkEnabled) u->NotifyReintegrationCompleted(name); */
 }
 
 
@@ -571,7 +568,7 @@ int volent::ReadyToReintegrate() {
      */
     if (IsWriteDisconnected() && 
 	(CML.count() > 0) && u->TokensValid() &&
-	!ASRinProgress && !IsReintegrating()) {
+	!asr_running() && !IsReintegrating()) {
 	    cmlent *m;
 	    cml_iterator next(CML, CommitOrder);
 
@@ -620,7 +617,7 @@ int cmlent::ReintReady()
 
     /* if vol staying write disconnected, check age. does not apply to ASRs */
     /* nor when returning from writeback */
-    if (!ASRinProgress && vol->flags.logv && !Aged() && 
+    if (!(vol->asr_running()) && vol->flags.logv && !Aged() && 
 	!vol->flags.writebackreint) {
 	LOG(100, ("cmlent::ReintReady: record too young\n"));
 	return 0; 

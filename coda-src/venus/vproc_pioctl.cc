@@ -65,7 +65,7 @@ extern "C" {
 #include "venusvol.h"
 #include "vproc.h"
 #include "worker.h" 
-#include "advice_daemon.h"
+#include "adv_daemon.h"
 
 
 /* local-repair modification */
@@ -709,11 +709,11 @@ OI_FreeLocks:
 					  CRTORUID(u.u_cred), RWVols, ReturnCodes);
 
  	            LOG(0, ("MARIA: VIOC_REPAIR calls volent::Repair which returns %d\n",u.u_error));
-		    if ((AdviceEnabled) && (u.u_error == 0)) {
- 		        /* We don't have the object so can't provide a pathname */
-		        NotifyUsersObjectConsistent("???UNKNOWN???",fid);
-		    }
-
+		    /* We don't have the object so can't provide a pathname
+		     * if ((SkkEnabled) && (u.u_error == 0)) {
+		     *   NotifyUsersObjectConsistent("???UNKNOWN???",fid);
+		     * } */
+		    
 #undef	RepairFile
 #undef	startp
 #undef	RWVols
@@ -1356,10 +1356,10 @@ V_FreeLocks:
 				if (strncmp((char *) data->out, "repair session completed", strlen("repair session completed")) == 0) {
 
 				  LOG(0, ("MARIA:  End local repair successful\n"));
-				  if (AdviceEnabled) {
-				    /* We don't have the object so can't provide a pathname */
-				    NotifyUsersObjectConsistent("???UNKNOWN???", squirrelFid);
-				  }
+				  /* We don't have the object so can't provide a pathname
+				   * if (SkkEnabled) {
+				   *   NotifyUsersObjectConsistent("???UNKNOWN???", squirrelFid);
+				   * } */
 				} else {
 				  LOG(0, ("MARIA:  End local repair failed\n"));
 				}

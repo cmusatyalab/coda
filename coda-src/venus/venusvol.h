@@ -663,6 +663,7 @@ struct VolFlags {
     /*T*/unsigned usecallback : 1;		/* should be deprecated? */
     unsigned logv : 1;				/* log mutations, allow fetches */
     unsigned allow_asrinvocation : 1;		/* asr's allowed in this volume */
+    unsigned asr_running : 1;                   /* only 1 ASR allowed per volume at a time */
     unsigned has_local_subtree : 1;		/* indicating whehter this volume contains local subtrees */
     /*T*/unsigned reintegratepending : 1;	/* are we waiting for tokens? */
     /*T*/unsigned reintegrating : 1;		/* are we reintegrating now? */
@@ -675,7 +676,7 @@ struct VolFlags {
     /*T*/unsigned sync_reintegrate_done :1;     /* synchronous reintegration done */
     /*T*/unsigned autowriteback :1;             /* auto try to get wb permit */
     /*T*/unsigned staylogging : 1;              /* keep logging after |cml| == 0*/
-    unsigned reserved : 14;
+    unsigned reserved : 13;
 };
 
 
@@ -749,6 +750,7 @@ class volent {
     int reint_id_gen;                   /* reintegration id generator */
     int cur_reint_tid;			/* tid of reintegration in progress, if any */
     VolFlags flags;
+    int lc_asr;                         /* last/current ASR run for this volume */
 
     /* Fso's. */
     /*T*/olist *fso_list;
@@ -833,6 +835,7 @@ class volent {
     void InitStatsVSR(vsr *);
     void UpdateStatsVSR(vsr *);
   public:
+
     /* Volume synchronization. */
     int Enter(int, vuid_t);
     void Exit(int, vuid_t);
@@ -936,6 +939,11 @@ class volent {
     int EnableASR(vuid_t);
     int DisableASR(vuid_t);
     int IsASRAllowed();
+    void lock_asr();
+    void unlock_asr();
+    int asr_running();
+    void asr_id(int);
+    int asr_id();
 
     /* Callback routines */
     void UseCallBack(int);
@@ -996,9 +1004,9 @@ class volent {
     void CheckLocalSubtree();			/*U*/
 
     /* advice addition */
-    void DisconnectedCacheMiss(vproc *, vuid_t, ViceFid *, char *);
-    void TriggerReconnectionQuestionnaire();
-    void NotifyStateChange();
+    /* void DisconnectedCacheMiss(vproc *, vuid_t, ViceFid *, char *);
+     * void TriggerReconnectionQuestionnaire();
+     * void NotifyStateChange(); */
     void GetVolInfoForAdvice(int *, int *);
     void SetDisconnectionTime();
     void UnsetDisconnectionTime();

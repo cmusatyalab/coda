@@ -57,14 +57,13 @@ extern "C" {
 }
 #endif __cplusplus
 
-
+#include "adv_monitor.h"
 #include "comm.h"
 #include "hdb.h"
 #include "mariner.h"
 #include "user.h"
 #include "venus.private.h"
 #include "worker.h"
-
 
 #define	CLOCK_SKEW  120	    /* seconds */
 
@@ -77,7 +76,6 @@ void UserInit() {
     USERD_Init();
 }
 
-
 userent *FindUser(vuid_t vuid) {
     user_iterator next;
     userent *u;
@@ -85,20 +83,8 @@ userent *FindUser(vuid_t vuid) {
     while ((u = next()))
 	if (u->uid == vuid) return(u);
 
-    return(0);
+    return(NULL);
 }
-
-
-userent *FindUserByAdviceHandle(RPC2_Handle handle) {
-  user_iterator next;
-  userent *u;
-
-  while ((u = next()))
-    if (u->admon.IsAdviceHandle(handle) == TRUE) return(u);
-
-  return(0);
-}
-
 
 void GetUser(userent **upp, vuid_t vuid) {
     LOG(100, ("GetUser: uid = %d\n", vuid));
@@ -118,23 +104,19 @@ void GetUser(userent **upp, vuid_t vuid) {
     *upp = u;
 }
 
-
 void PutUser(userent **upp) {
     LOG(100, ("PutUser: \n"));
 
 }
 
-
 void UserPrint() {
     UserPrint(stdout);
 }
-
 
 void UserPrint(FILE *fp) {
     fflush(fp);
     UserPrint(fileno(fp));
 }
-
 
 void UserPrint(int fd) {
     if (userent::usertab == 0) return;
@@ -228,7 +210,6 @@ int ConsoleUser(vuid_t user)
 #endif
 }
 
-
 userent::userent(vuid_t userid) {
     LOG(100, ("userent::userent: uid = %d\n", userid));
 
@@ -238,31 +219,18 @@ userent::userent(vuid_t userid) {
     bzero((void *)&secret, (int) sizeof(SecretToken));
     bzero((void *)&clear, (int) sizeof(ClearToken));
     waitforever = 0;
-    admon.Reset();
 }
 
-
-/* 
- * we don't support assignments to objects of this type.
+/* we don't support assignments to objects of this type.
  * bomb in an obvious way if it inadvertently happens.
  */
-userent::userent(userent& u) {
-    abort();
-}
-
-
-int userent::operator=(userent& u) {
-    abort();
-    return(0);
-}
-
+userent::userent(userent& u) { abort(); }
+int userent::operator=(userent& u) { abort(); return(0); }
 
 userent::~userent() {
     LOG(100, ("userent::~userent: uid = %d\n", uid));
-
     Invalidate();
 }
-
 
 long userent::SetTokens(SecretToken *asecret, ClearToken *aclear) {
     LOG(100, ("userent::SetTokens: uid = %d\n", uid));
@@ -280,7 +248,7 @@ LOG(100, ("SetTokens calling Reset\n"));
 
     /* Inform the advice monitor that user now has tokens. */
     LOG(100, ("calling TokensAcquired with %d\n", (clear.EndTimestamp-CLOCK_SKEW)));
-    admon.TokensAcquired((clear.EndTimestamp - CLOCK_SKEW));
+    adv_mon.TokensAcquired((clear.EndTimestamp - CLOCK_SKEW));
     LOG(100, ("returned from TokensAcquired\n"));
 
 
@@ -296,7 +264,6 @@ LOG(100, ("SetTokens calling Reset\n"));
     return(1);
 }
 
-
 long userent::GetTokens(SecretToken *asecret, ClearToken *aclear) {
     LOG(100, ("userent::GetTokens: uid = %d, tokensvalid = %d\n", uid, tokensvalid));
 
@@ -308,11 +275,9 @@ long userent::GetTokens(SecretToken *asecret, ClearToken *aclear) {
     return(0);
 }
 
-
 int userent::TokensValid() {
     return(tokensvalid);
 }
-
 
 void userent::CheckTokenExpiry() {
     if (!tokensvalid) return;
@@ -336,7 +301,6 @@ void userent::CheckTokenExpiry() {
     }
 }
 
-
 void userent::Invalidate() {
     LOG(100, ("userent::Invalidate: uid = %d, tokensvalid = %d\n",
 	    uid, tokensvalid));
@@ -349,11 +313,10 @@ void userent::Invalidate() {
 
     /* Inform the user */
     eprint("Coda token for user %d has been discarded", uid);
-    admon.TokensExpired();
+    adv_mon.TokensExpired();
 
     Reset();
 }
-
 
 void userent::Reset() {
 LOG(100, ("E userent::Reset()\n"));
@@ -395,7 +358,6 @@ LOG(100, ("After HDB::ResetUser in userent::Reset\n"));
 LOG(100, ("L userent::Reset()\n"));
 }
 
-
 int userent::Connect(RPC2_Handle *cid, int *auth, unsigned long host) {
     LOG(100, ("userent::Connect: addr = %x, uid = %d, tokensvalid = %d\n",
 	       host, uid, tokensvalid));
@@ -423,16 +385,8 @@ int userent::Connect(RPC2_Handle *cid, int *auth, unsigned long host) {
 	mcid.Tag = RPC2_MGRPBYINETADDR;
 	mcid.Value.InetAddress.s_addr = htonl(host);
 	RPC2_PortIdent pid;
-	pid.Tag = RPC2_PORTBYINETNUMBER;
-
-	struct servent *s = getservbyname("codasrv", "udp");
-	if (s != 0)
-	    pid.Value.InetPortNumber = s->s_port;
-	else {
-	    eprint("getservbyname(codasrv,udp) failed, using 2432/udp.\n");
-	    pid.Value.InetPortNumber = htons(2432);
-	}
-
+	pid.Tag = RPC2_PORTBYNAME;
+	strcpy(pid.Value.Name, "codasrv");
 	RPC2_SubsysIdent ssid;
 	ssid.Tag = RPC2_SUBSYSBYID;
 	ssid.Value.SubsysId = SUBSYS_SRV;
@@ -473,16 +427,8 @@ int userent::Connect(RPC2_Handle *cid, int *auth, unsigned long host) {
 	hid.Tag = RPC2_HOSTBYINETADDR;
 	hid.Value.InetAddress.s_addr = htonl(host);
 	RPC2_PortIdent pid;
-	pid.Tag = RPC2_PORTBYINETNUMBER;
-
-	struct servent *s = getservbyname("codasrv", "udp");
-	if (s != 0)
-	    pid.Value.InetPortNumber = s->s_port;
-	else {
-	    eprint("getservbyname(codasrv,udp) failed, using 2432/udp\n");
-	    pid.Value.InetPortNumber = htons(2432);
-	}
-
+	pid.Tag = RPC2_PORTBYNAME;
+	strcpy(pid.Value.Name, "codasrv");
 	RPC2_SubsysIdent ssid;
 	ssid.Tag = RPC2_SUBSYSBYID;
 	ssid.Value.SubsysId = SUBSYS_SRV;
@@ -535,11 +481,9 @@ int userent::Connect(RPC2_Handle *cid, int *auth, unsigned long host) {
     }
 }
 
-
 int userent::GetWaitForever() {
     return(waitforever);
 }
-
 
 void userent::SetWaitForever(int state) {
     LOG(1, ("userent::SetWaitForever: uid = %d, old_state = %d, new_state = %d\n",
@@ -553,17 +497,14 @@ void userent::SetWaitForever(int state) {
 	Rtry_Signal();
 }
 
-
 void userent::print() {
     print(stdout);
 }
-
 
 void userent::print(FILE *fp) {
     fflush(fp);
     print(fileno(fp));
 }
-
 
 void userent::print(int afd) {
     char begin_time[13];
@@ -581,17 +522,14 @@ void userent::print(int afd) {
 	end_time[0] = '\0';
     }
 
-    admon.Print(afd);
+    adv_mon.Print(afd);
     fdprint(afd, "Time of last demand hoard walk = %ld\n", DemandHoardWalkTime);
 
     fdprint(afd, "%#08x : uid = %d, wfe = %d, valid = %d, begin = %s, end = %s\n\n",
 	     (long)this, uid, waitforever, tokensvalid, begin_time, end_time);
 }
 
-
-user_iterator::user_iterator() : olist_iterator((olist&)*userent::usertab) {
-}
-
+user_iterator::user_iterator() : olist_iterator((olist&)*userent::usertab) {}
 
 userent *user_iterator::operator()() {
     olink *o = olist_iterator::operator()();

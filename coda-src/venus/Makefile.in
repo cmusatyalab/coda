@@ -42,9 +42,9 @@ DEPLIBS := $(LIBUTIL) $(LIBKERNDEP) $(LIBVV) $(LIBDIRLIB) \
 LIBS := $(DEPLIBS) $(LIBRDSLWP) $(LIBSEG) $(LIBRVMLWP) $(LIBRPC2) $(LIBSE) \
 	$(LIBFAIL) $(LIBLWP) $(LIBSYS) $(LIBKVM) $(LIBMATH) $(LIBS)
 
-HFILES= advice.h adviceconn.h advice_daemon.h binding.h comm.h fso.h hdb.h local.h mariner.h venusrecov.h sighand.h tallyent.h user.h venuscb.h venusstats.h venusvm.h venus.private.h venus.version.h venusvol.h vproc.h vstab.h worker.h venuswb.h
+HFILES= advice.h adv_monitor.h adv_daemon.h binding.h comm.h fso.h hdb.h local.h mariner.h venusrecov.h sighand.h tallyent.h user.h venuscb.h venusstats.h venusvm.h venus.private.h venus.version.h venusvol.h vproc.h vstab.h worker.h venuswb.h
 
-VOBJS = advice.o advice_daemon.o  binding.o  comm.o comm_daemon.o daemon.o fso0.o fso1.o fso_cachefile.o fso_cfscalls0.o fso_cfscalls1.o fso_cfscalls2.o fso_daemon.o fso_dir.o hdb.o hdb_daemon.o local_cml.o local_daemon.o local_fso.o local_subtree.o local_repair.o local_vol.o mariner.o venusrecov.o sighand.o tallyent.o user.o venusutil.o venus.o venuscb.o venusvm.o  venusvol.o vol_daemon.o vol_cml.o vol_reintegrate.o vol_repair.o spool.o vol_resolve.o vol_vcb.o vol_vsr.o vol_COP2.o vproc.o vproc_pathname.o vproc_pioctl.o vproc_vfscalls.o worker.o venuswb.o vol_permits.o
+VOBJS = adv_monitor.o adv_daemon.o  binding.o comm.o comm_daemon.o daemon.o fso0.o fso1.o fso_cachefile.o fso_cfscalls0.o fso_cfscalls1.o fso_cfscalls2.o fso_daemon.o fso_dir.o hdb.o hdb_daemon.o local_cml.o local_daemon.o local_fso.o local_subtree.o local_repair.o local_vol.o mariner.o venusrecov.o sighand.o tallyent.o user.o venusutil.o venus.o venuscb.o venusvm.o  venusvol.o vol_daemon.o vol_cml.o vol_reintegrate.o vol_repair.o spool.o vol_resolve.o vol_vcb.o vol_vsr.o vol_COP2.o vproc.o vproc_pathname.o vproc_pioctl.o vproc_vfscalls.o worker.o venuswb.o vol_permits.o
 
 
 venus:  ${VOBJS} $(DEPLIBS)

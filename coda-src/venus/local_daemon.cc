@@ -38,7 +38,7 @@ extern "C" {
 #include "venusrecov.h"
 #include "venus.private.h"
 #include "local.h"
-#include "advice_daemon.h"
+#include "adv_daemon.h"
 
 /* ***** Private constants ***** */
 static const int LRDaemonStackSize = 32768;
@@ -121,7 +121,7 @@ void lrdb::CheckLocalSubtree()
 	    CODA_ASSERT(objFid);
 	    LOG(0, ("LocalInconsistentObj: objFid=%x.%x.%x\n",
 		    objFid->Volume, objFid->Vnode, objFid->Unique));
-	    NotifyUsersObjectInConflict(fullpath, objFid);
+	    /* NotifyUsersObjectInConflict(fullpath, objFid); */
 	}
     }
     ReleaseReadLock(&rfm_lock);

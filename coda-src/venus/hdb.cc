@@ -75,9 +75,8 @@ extern "C" {
 #include <vice.h>
 
 /* from venus */
-#include "advice_daemon.h"
-#include "adviceconn.h"
-#include "advice.h"
+#include "adv_daemon.h"
+#include "adv_monitor.h"
 #include "fso.h"
 #include "hdb.h"
 #include "mariner.h"
@@ -537,6 +536,8 @@ int hdb::MakeAdviceRequestFile(char *HoardListFileName) {
     return(0);
 }
 
+/* Getting rid of this expensive no-op.   -Remi  */
+#if 0
 void hdb::RequestHoardWalkAdvice() {
     FILE *HoardAdviceFILE;
     char HoardAdviceFileName[256];
@@ -557,12 +558,11 @@ void hdb::RequestHoardWalkAdvice() {
     /* Ensure that we can request advice and that the user is running an advice monitor */
     GetUser(&u, SolicitAdvice);
     CODA_ASSERT(u != NULL);
-    if (!AdviceEnabled) {
+    if (!SkkEnabled) {
         LOG(200, ("ADMON STATS:  HW Advice NOT enabled.\n"));
-        u->AdviceNotEnabled();
         return;
     }
-    if (u->IsAdviceValid(HoardWalkAdviceRequestID, 1) != TRUE) {
+    if (!(u->ConnValid())) {
         LOG(200, ("ADMON STATS:  HW Advice NOT valid. (uid = %d)\n", SolicitAdvice));
         return;
     }
@@ -622,6 +622,7 @@ void hdb::RequestHoardWalkAdvice() {
 
     ReceivedAdvice = 1;
 }
+#endif
 
 /* Ensure status is valid for all cached objects. */
 void hdb::ValidateCacheStatus(vproc *vp, int *interrupt_failures, int *statusBytesFetched) {
@@ -862,7 +863,7 @@ void hdb::StatusWalk(vproc *vp, int *TotalBytesToFetch) {
     } while (SuspectCount > 0 && iterations < MAX_SW_ITERATIONS);
 
     *TotalBytesToFetch = CalculateTotalBytesToFetch() + statusBytesFetched;
-    NotifyUsersOfHoardWalkProgress(statusBytesFetched, *TotalBytesToFetch);
+    /* NotifyUsersOfHoardWalkProgress(statusBytesFetched, *TotalBytesToFetch);  */
 
     END_TIMING();
     LOG(100, ("hdb::StatusWalk: iters= %d, exps= %d, elapsed= %3.1f, intrpts= %d\n",
@@ -1022,7 +1023,7 @@ void hdb::DataWalk(vproc *vp, int TotalBytesToFetch) {
 	      LOG(100, ("AVAILABLE (fetched):  fid=<%x.%x.%x> comp=%s priority=%d blocks=%d\n", 
 		      f->fid.Volume, f->fid.Vnode, f->fid.Unique, f->comp, f->priority, blocks));
 	      TallyAllHDBentries(f->hdb_bindings, blocks, TSavailable);
-	      NotifyUsersOfHoardWalkProgress(f->stat.Length, TotalBytesToFetch);
+	      /* NotifyUsersOfHoardWalkProgress(f->stat.Length, TotalBytesToFetch);  */
 	    } else {
 	      LOG(100, ("UNAVAILABLE (fetch failed):  fid=<%x.%x.%x> comp=%s priority=%d blocks=%d\n",
 		      f->fid.Volume, f->fid.Vnode, f->fid.Unique, f->comp, f->priority, blocks));
@@ -1120,7 +1121,7 @@ void hdb::PostWalkStatus() {
 
     TallyPrint(PrimaryUser);
 
-    NotifyUsersTaskAvailability();
+    /* NotifyUsersTaskAvailability(); */
 
     return;
 }
@@ -1131,7 +1132,7 @@ int hdb::Walk(hdb_walk_msg *m, vuid_t local_id) {
 
     int TotalBytesToFetch = 0;
 
-    NotifyUsersOfHoardWalkBegin();
+    /* NotifyUsersOfHoardWalkBegin(); */
 
     vproc *vp = VprocSelf();
 
@@ -1146,8 +1147,8 @@ int hdb::Walk(hdb_walk_msg *m, vuid_t local_id) {
     /*    (i.e., validate/expand hoard entries s.t. priority and resource constraints) */
     StatusWalk(vp, &TotalBytesToFetch);
 
-    /* 2b.  Request advice regarding what to fetch */
-    RequestHoardWalkAdvice();
+    /* 2b.  Request advice regarding what to fetch
+     *  RequestHoardWalkAdvice(); */
 
     /* 3. Bring the cache into DATA equilibrium. */
     /*    (i.e., fetch data for hoardable, cached, dataless objects, s.t. priority and resource constraints) */
@@ -1159,7 +1160,7 @@ int hdb::Walk(hdb_walk_msg *m, vuid_t local_id) {
     /* Determine the post-walk status. */
     PostWalkStatus();
 
-    NotifyUsersOfHoardWalkEnd();
+    /* NotifyUsersOfHoardWalkEnd(); */
 
     return(0);
 }
@@ -1219,7 +1220,7 @@ int hdb::Enable(hdb_walk_msg *m, vuid_t local_id) {
 
     eprint("Enabling periodic hoard walks");
     PeriodicWalksAllowed = 1;
-    NotifyUsersOfHoardWalkPeriodicOn();
+    /* NotifyUsersOfHoardWalkPeriodicOn(); */
     return 0;
 }
 
@@ -1228,7 +1229,7 @@ int hdb::Disable(hdb_walk_msg *m, vuid_t local_id) {
 
     eprint("Disabling periodic hoard walks");
     PeriodicWalksAllowed = 0;
-    NotifyUsersOfHoardWalkPeriodicOff();
+    /* NotifyUsersOfHoardWalkPeriodicOff(); */
     return 0;
 }
 

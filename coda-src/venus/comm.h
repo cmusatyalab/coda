@@ -44,7 +44,7 @@ extern "C" {
 /* interfaces */
 #include <callback.h>
 #include <vice.h>
-#include <adsrv.h>
+#include <venus_adv.h>
 
 /* from util */
 #include <olist.h>

@@ -56,7 +56,8 @@ extern "C" {
 
 /* from venus */
 #include "advice.h"
-#include "advice_daemon.h"
+#include "adv_monitor.h"
+#include "adv_daemon.h"
 #include "fso.h"
 #include "hdb.h"
 #include "local.h"
@@ -483,7 +484,7 @@ fsobj *fsdb::Create(ViceFid *key, LockLevel level, int priority, char *comp) {
     if (f != 0)
 	if (level != NL) f->Lock(level);
 
-    if (f == 0)
+    if (f == NULL)
 	LOG(0, ("fsdb::Create: (%x.%x.%x, %d) failed\n",
 		key->Volume, key->Vnode, key->Unique, priority));
     return(f);
@@ -519,7 +520,6 @@ fsobj *fsdb::Create(ViceFid *key, LockLevel level, int priority, char *comp) {
 void VmonUpdateSession(vproc *vp, ViceFid *key, fsobj *f, volent *vol, vuid_t vuid, enum CacheType datatype, enum CacheEvent event, unsigned long blocks) {
     vsr *record;
     int hoardstatus;
-    userent *u;
 
     /* Return if we're not maintaining reference statistics */
     int reference = (vp->u.u_flags & REFERENCE);
@@ -532,14 +532,10 @@ void VmonUpdateSession(vproc *vp, ViceFid *key, fsobj *f, volent *vol, vuid_t vu
         return;
 
     /* Return if this thread is associated with the advice monitor */
-    GetUser(&u, vuid);
-    CODA_ASSERT(u != NULL);
-    if (u->IsAdvicePGID(vp->u.u_pgid))
-        return;
+    if (adv_mon.skkPgid(vp->u.u_pgid)) return;
 
     /* Return if this is for a Local volume */
-    if (FID_VolIsFake(key->Volume))
-        return;
+    if (FID_VolIsFake(key->Volume)) return;
 
     /* Validate params */
     CODA_ASSERT((datatype == ATTR) || (datatype == DATA));
@@ -766,8 +762,8 @@ int fsdb::Get(fsobj **f_addr, ViceFid *key, vuid_t vuid, int rights,
     *f_addr = 0;				/* OUT parameter valid on success only. */
     vproc *vp = VprocSelf();
 
-    if (vp->type != VPT_HDBDaemon)
-      NotifyUserOfProgramAccess(vuid, vp->u.u_pid, vp->u.u_pgid, key);
+    /* if (vp->type != VPT_HDBDaemon)
+     *  NotifyUserOfProgramAccess(vuid, vp->u.u_pid, vp->u.u_pgid, key); */
 
     /* Volume state synchronization. */
     /* If a thread is already "in" one volume, we must switch contexts before entering another. */
@@ -808,7 +804,7 @@ int fsdb::Get(fsobj **f_addr, ViceFid *key, vuid_t vuid, int rights,
     /* Find the fsobj, or create a fresh one. */
 RestartFind:
     f = Find(key);
-    if (f == 0) {
+    if (f == NULL) {
 	/* 
 	 * check if the key is a locally generated fid.  We should never send
 	 * these to the server.  This check is not to be confused with
@@ -846,7 +842,7 @@ RestartFind:
         /* Cut-out early if volume is disconnected! */
         if ((v->state != Hoarding) && (v->state != Logging)) {
             LOG(100, ("Volume disconnected and file not cached!\n"));
-            v->DisconnectedCacheMiss(vp, vuid, key, comp);
+            /* v->DisconnectedCacheMiss(vp, vuid, key, comp); */
             VmonUpdateSession(vp, key, f /* NULL */, v, vuid, ATTR, TIMEOUT, FSOBJSIZE);
             VDB->Put(&v);
             return(ETIMEDOUT);
@@ -854,7 +850,7 @@ RestartFind:
 
 	/* Attempt the create. */
 	f = Create(key, RD, vp->u.u_priority, comp);
-	if (f == 0) {
+	if (f == NULL) {
             VmonUpdateSession(vp, key, f /*NULL*/, v, vuid, ATTR, NOSPACE, FSOBJSIZE);
 	    VDB->Put(&v);
 	    return(ENOSPC);
@@ -962,7 +958,7 @@ RestartFind:
 		     * However, that person is difficult to determine and could
 		     * be the hoard daemon.  Notifying everyone seems to be a
 		     * reasonable alternative, if not terribly satisfying. */
-		    NotifyUsersObjectInConflict(path, key);
+		    /* NotifyUsersObjectInConflict(path, key); */
 
 		    k_Purge(&f->fid, 1);
                     if (f->refcnt > 1) {
@@ -992,7 +988,7 @@ RestartFind:
 		       the Put wouldn't, we're hosed!  We'll most likely
 		       get a "Create: key found" fatal error. */
 		    f = Create(key, RD, vp->u.u_priority, comp);
-		    if (f == 0) {
+		    if (f == NULL) {
                         VmonUpdateSession(vp, key, f, f->vol, vuid, ATTR, NOSPACE, FSOBJSIZE);
 			return(ENOSPC);
 		    }
@@ -1041,7 +1037,9 @@ RestartFind:
                     VmonUpdateSession(vp, key, f, f->vol, vuid, DATA, HIT, BLOCKS(f));
 		}
 		else {
-		    CacheMissAdvice advice = CoerceToMiss;
+		  /* Turn off advice effects for the time being  -Remi 
+		     CacheMissAdvice advice = CoerceToMiss; */
+		  CacheMissAdvice advice = FetchFromServers;
 
    		    if (f->vol->IsWeaklyConnected()) {
 			char pathname[MAXPATHLEN];
@@ -1200,40 +1198,27 @@ RestartFind:
         f->GetPath(path, 1);
         LOG(1, ("(Maria, Puneet) After GetPath, path = %s\n", path));
 
-        // object is inconsistent - try running the ASR
-        // check that ASR time interval has expired
+        /* object is inconsistent - try running the ASR */
+        /* check that ASR time interval has expired */
         userent *u;
         GetUser(&u, vuid);
         struct timeval tv;
         gettimeofday(&tv, 0);
-        int ASRinvocable = (AdviceEnabled && ASRallowed &&
-			    (vp->type == VPT_Worker) &&
-			    (f->vol->IsASRAllowed()) && 
-                            (!ISDIR(f->fid)) && 
+        int ASRInvokable = (SkkEnabled && ASRallowed && (vp->type == VPT_Worker) &&
+			    (f->vol->IsASRAllowed()) && (!(f->vol->asr_running())) &&
                             ((tv.tv_sec - f->lastresolved) > ASR_INTERVAL) &&
-			    (!u->IsAdvicePGID(vp->u.u_pgid)) &&
-                            (u->IsAdviceValid(InvokeASRID,1) == TRUE));
-        if (ASRinvocable) {
-            LOG(1, ("InvokeASR(%s, %d)\n", path, vuid));
-            if (!u->RequestASRInvokation(path, vuid)) {
+			    (!adv_mon.skkPgid(vp->u.u_pgid)) && (adv_mon.ConnValid()));
+	if ((f->vol->asr_running()) && (vp->u.u_pgid != f->vol->asr_id()))
+	  code = EAGAIN; /* bounce out anything which tries to hold kernel locks while repairing */
+        else if (ASRInvokable && (!adv_mon.RequestASRInvokation(f->vol, path, vuid))) {
                 gettimeofday(&tv, 0);
                 f->lastresolved = tv.tv_sec;
-                code = EASRSTARTED;
-            }
-        } else {
-            if (!AdviceEnabled) 
-                u->AdviceNotEnabled();
-            if (!f->vol->IsASRAllowed())
-                u->ASRnotAllowed();
-            if ((tv.tv_sec - f->lastresolved) <= ASR_INTERVAL)
-                u->ASRintervalNotReached();
-        }
-        
-        if (code != EASRSTARTED) {
-          LOG(1, ("fsdb::Get: returning %s\n",
-                  (code == EINCONS) ? "EINCONS" : "ERETRY"));
-          code = (f->IsFakeDir() ? EINCONS : ERETRY);
-        }
+                code = ERETRY; /* tell application to retry so that kernel locks get released */
+		/* Actually, the application will get an EAGAIN when the retry bounces out */
+	}
+	else code = (f->IsFakeDir() ? EINCONS : ERETRY);
+
+	LOG(1, ("fsdb::Get: returning %s\n", code));
         Put(&f);
         return(code);
     }
@@ -1355,7 +1340,7 @@ int fsdb::TranslateFid(ViceFid *OldFid, ViceFid *NewFid)
 
 	/* First, change the object itself. */
 	f = Find(OldFid);
-	if (f == 0) {
+	if (f == NULL) {
 		LOG(0, ("fsdb::TranslateFid: %s not found\n",
 			FID_(OldFid)));
 		return(ENOENT);
@@ -1574,7 +1559,7 @@ void fsdb::ReclaimFsos(int priority, int count) {
 	    UpdateCacheStats((f->IsDir() ? &DirDataStats : &FileDataStats),
 			     REPLACE, BLOCKS(f));
 
-	if (AdviceEnabled)
+	if (SkkEnabled)
 	  f->RecordReplacement(TRUE, HAVEDATA(f));
 
 	f->Kill();
@@ -1705,7 +1690,7 @@ void fsdb::ReclaimBlocks(int priority, int nblocks) {
 			 REPLACE, BLOCKS(f));
 
 
-	if (AdviceEnabled)
+	if (SkkEnabled)
 	  f->RecordReplacement(FALSE, TRUE);
 
 	f->DiscardData();
@@ -1751,18 +1736,11 @@ void fsdb::ChangeDiskUsage(int delta_blocks) {
 
 
 /* fsobj and volent are both missing */
-void fsdb::DisconnectedCacheMiss(vproc *vp, vuid_t vuid, ViceFid *fid,
-                                 char *comp)
-{
-    userent *u;
-
-    GetUser(&u, vuid);
-    CODA_ASSERT(u != NULL);
+void fsdb::DisconnectedCacheMiss(vproc *vp, vuid_t vuid, ViceFid *fid, char *comp) {
 
     /* If advice not enabled, simply return */
-    if (!AdviceEnabled) {
-        LOG(100, ("ADMON STATS:  DMQ Advice NOT enabled.\n"));
-        u->AdviceNotEnabled();
+    if (!SkkEnabled) {
+        LOG(100, ("ADVSKK STATS:  DMQ Advice NOT enabled.\n"));
         return;
     }
 
@@ -1772,24 +1750,24 @@ void fsdb::DisconnectedCacheMiss(vproc *vp, vuid_t vuid, ViceFid *fid,
      * and (c) the user is running an AdviceMonitor,                   */
     CODA_ASSERT(vp != NULL);
     if (vp->type == VPT_HDBDaemon) {
-	LOG(100, ("ADMON STATS:  DMQ Advice inappropriate.\n"));
+	LOG(100, ("ADVSKK STATS:  DMQ Advice inappropriate.\n"));
         return;
     }
-    if (u->IsAdvicePGID(vp->u.u_pgid)) {
-        LOG(100, ("ADMON STATS:  DMQ Advice inappropriate.\n"));
+    if (adv_mon.skkPgid(vp->u.u_pgid)) {
+        LOG(100, ("ADVSKK STATS:  DMQ Advice inappropriate.\n"));
         return;
     }
-    if (u->IsAdviceValid(DisconnectedCacheMissEventID,1) != TRUE) {
-        LOG(100, ("ADMON STATS:  DMQ Advice NOT valid. (uid = %d)\n", vuid));
+    if (!(adv_mon.ConnValid())) {
+        LOG(100, ("ADVSKK STATS:  DMQ Advice NOT valid. (uid = %d)\n", vuid));
         return;
     }
 
-    LOG(100, ("ADMON STATS:  DMQ volent is NULL.\n"));
-    u->VolumeNull();
+    LOG(100, ("ADVSKK STATS:  DMQ volent is NULL.\n"));
+    /*    adv_mon.VolumeNull(); */
 
     /* Make the request */
     LOG(100, ("Requesting Disconnected CacheMiss Questionnaire...1\n"));
-    u->RequestDisconnectedQuestionnaire(fid, comp, vp->u.u_pid, Vtime());
+    /* adv_mon.RequestDisconnectedQuestionnaire(fid, comp, vp->u.u_pid, Vtime()); */
     return;
 }
 

@@ -66,7 +66,8 @@ extern "C" {
 
 /* from venus */
 #include "advice.h"
-#include "advice_daemon.h"
+#include "adv_monitor.h"
+#include "adv_daemon.h"
 #include "comm.h"
 #include "fso.h"
 #include "local.h"
@@ -646,7 +647,7 @@ void fsobj::Kill(int TellServers)
 		DemoteAcRights(ALL_UIDS);
 	
 	/* Inform advice servers of loss of availability of this object */
-	NotifyUsersOfKillEvent(hdb_bindings, NBLOCKS(stat.Length));
+	/* NotifyUsersOfKillEvent(hdb_bindings, NBLOCKS(stat.Length)); */
 	
 	DetachHdbBindings();
 	
@@ -1781,19 +1782,14 @@ int fsobj::PredetermineFetchState(int estimatedCost, int hoard_priority) {
 
 CacheMissAdvice 
 fsobj::ReadDisconnectedCacheMiss(vproc *vp, vuid_t vuid) {
-    userent *u;
     char pathname[MAXPATHLEN];
     CacheMissAdvice advice;
 
     LOG(100, ("E fsobj::ReadDisconnectedCacheMiss\n"));
 
-    GetUser(&u, vuid);
-    CODA_ASSERT(u != NULL);
-
     /* If advice not enabled, simply return */
-    if (!AdviceEnabled) {
-        LOG(100, ("ADMON STATS:  RDCM Advice NOT enabled.\n"));
-        u->AdviceNotEnabled();
+    if (!SkkEnabled) {
+        LOG(100, ("ADVSKK STATS:  RDCM Advice NOT enabled.\n"));
         return(FetchFromServers);
     }
 
@@ -1803,40 +1799,35 @@ fsobj::ReadDisconnectedCacheMiss(vproc *vp, vuid_t vuid) {
      * and (c) the user is running an AdviceMonitor,                   */
     CODA_ASSERT(vp != NULL);
     if (vp->type == VPT_HDBDaemon) {
-	LOG(100, ("ADMON STATS:  RDCM Advice inappropriate.\n"));
+	LOG(100, ("ADVSKK STATS:  RDCM Advice inappropriate.\n"));
         return(FetchFromServers);
     }
-    if (u->IsAdvicePGID(vp->u.u_pgid)) {
-        LOG(100, ("ADMON STATS:  RDCM Advice inappropriate.\n"));
+    if (adv_mon.skkPgid(vp->u.u_pgid)) {
+        LOG(100, ("ADVSKK STATS:  RDCM Advice inappropriate.\n"));
         return(FetchFromServers);
     }
-    if (u->IsAdviceValid(ReadDisconnectedCacheMissEventID,1) != TRUE) {
-        LOG(100, ("ADMON STATS:  RDCM Advice NOT valid. (uid = %d)\n", vuid));
+    if (!(adv_mon.ConnValid())) {
+        LOG(100, ("ADVSKK STATS:  RDCM Advice NOT valid. (uid = %d)\n", vuid));
         return(FetchFromServers);
     }
 
     GetPath(pathname, 1);
 
     LOG(100, ("Requesting ReadDisconnected CacheMiss Advice for path=%s, pid=%d...\n", pathname, vp->u.u_pid));
-    advice = u->RequestReadDisconnectedCacheMissAdvice(&fid, pathname, vp->u.u_pgid);
+    advice = adv_mon.RequestReadDisconnectedCacheMissAdvice(&fid, pathname, vp->u.u_pgid);
     return(advice);
 }
 
 CacheMissAdvice fsobj::WeaklyConnectedCacheMiss(vproc *vp, vuid_t vuid) {
-    userent *u;
     char pathname[MAXPATHLEN];
     CacheMissAdvice advice;
     unsigned long CurrentBandwidth;
 
     LOG(100, ("E fsobj::WeaklyConnectedCacheMiss\n"));
 
-    GetUser(&u, vuid);
-    CODA_ASSERT(u != NULL);
-
     /* If advice not enabled, simply return */
-    if (!AdviceEnabled) {
-        LOG(100, ("ADMON STATS:  WCCM Advice NOT enabled.\n"));
-        u->AdviceNotEnabled();
+    if (!SkkEnabled) {
+        LOG(100, ("ADVSKK STATS:  WCCM Advice NOT enabled.\n"));
         return(FetchFromServers);
     }
 
@@ -1846,15 +1837,15 @@ CacheMissAdvice fsobj::WeaklyConnectedCacheMiss(vproc *vp, vuid_t vuid) {
      * and (c) the user is running an AdviceMonitor,                   */
     CODA_ASSERT(vp != NULL);
     if (vp->type == VPT_HDBDaemon) {
-	LOG(100, ("ADMON STATS:  WCCM Advice inappropriate.\n"));
+	LOG(100, ("ADVSKK STATS:  WCCM Advice inappropriate.\n"));
         return(FetchFromServers);
     }
-    if (u->IsAdvicePGID(vp->u.u_pgid)) {
-        LOG(100, ("ADMON STATS:  WCCM Advice inappropriate.\n"));
+    if (adv_mon.skkPgid(vp->u.u_pgid)) {
+        LOG(100, ("ADVSKK STATS:  WCCM Advice inappropriate.\n"));
         return(FetchFromServers);
     }
-    if (u->IsAdviceValid(WeaklyConnectedCacheMissEventID, 1) != TRUE) {
-        LOG(100, ("ADMON STATS:  WCCM Advice NOT valid. (uid = %d)\n", vuid));
+    if (!(adv_mon.ConnValid())) {
+        LOG(100, ("ADVSKK STATS:  WCCM Advice NOT valid. (uid = %d)\n", vuid));
         return(FetchFromServers);
     }
 
@@ -1863,23 +1854,18 @@ CacheMissAdvice fsobj::WeaklyConnectedCacheMiss(vproc *vp, vuid_t vuid) {
     LOG(100, ("Requesting WeaklyConnected CacheMiss Advice for path=%s, pid=%d...\n", 
 	      pathname, vp->u.u_pid));
     vol->vsg->GetBandwidth(&CurrentBandwidth);
-    advice = u->RequestWeaklyConnectedCacheMissAdvice(&fid, pathname, vp->u.u_pid, stat.Length, 
+    advice = adv_mon.RequestWeaklyConnectedCacheMissAdvice(&fid, pathname, vp->u.u_pid, stat.Length, 
 						      CurrentBandwidth, cf.Name());
     return(advice);
 }
 
 void fsobj::DisconnectedCacheMiss(vproc *vp, vuid_t vuid, char *comp)
 {
-    userent *u;
     char pathname[MAXPATHLEN];
 
-    GetUser(&u, vuid);
-    CODA_ASSERT(u != NULL);
-
     /* If advice not enabled, simply return */
-    if (!AdviceEnabled) {
-        LOG(100, ("ADMON STATS:  DMQ Advice NOT enabled.\n"));
-        u->AdviceNotEnabled();
+    if (!SkkEnabled) {
+        LOG(100, ("ADVSKK STATS:  DMQ Advice NOT enabled.\n"));
         return;
     }
 
@@ -1890,20 +1876,19 @@ void fsobj::DisconnectedCacheMiss(vproc *vp, vuid_t vuid, char *comp)
      * and (d) the volent is non-NULL.                                 */
     CODA_ASSERT(vp != NULL);
     if (vp->type == VPT_HDBDaemon) {
-	LOG(100, ("ADMON STATS:  DMQ Advice inappropriate.\n"));
+	LOG(100, ("ADVSKK STATS:  DMQ Advice inappropriate.\n"));
         return;
     }
-    if (u->IsAdvicePGID(vp->u.u_pgid)) {
-        LOG(100, ("ADMON STATS:  DMQ Advice inappropriate.\n"));
+    if (adv_mon.skkPgid(vp->u.u_pgid)) {
+        LOG(100, ("ADVSKK STATS:  DMQ Advice inappropriate.\n"));
         return;
     }
-    if (u->IsAdviceValid(DisconnectedCacheMissEventID, 1) != TRUE) {
-        LOG(100, ("ADMON STATS:  DMQ Advice NOT valid. (uid = %d)\n", vuid));
+    if (!(adv_mon.ConnValid())) {
+        LOG(100, ("ADVSKK STATS:  DMQ Advice NOT valid. (uid = %d)\n", vuid));
         return;
     }
     if (vol == NULL) {
-        LOG(100, ("ADMON STATS:  DMQ volent is NULL.\n"));
-        u->VolumeNull();
+        LOG(100, ("ADVSKK STATS:  DMQ volent is NULL.\n"));
         return;
     }
 
@@ -1916,8 +1901,10 @@ void fsobj::DisconnectedCacheMiss(vproc *vp, vuid_t vuid, char *comp)
     }
 
     /* Make the request */
+    /*
     LOG(100, ("Requesting Disconnected CacheMiss Questionnaire...1\n"));
-    u->RequestDisconnectedQuestionnaire(&fid, pathname, vp->u.u_pid, vol->GetDisconnectionTime());
+    adv_mon.RequestDisconnectedQuestionnaire(&fid, pathname, vp->u.u_pid, vol->GetDisconnectionTime());
+    */
 }
 
 
@@ -2558,12 +2545,7 @@ void fsobj::RecordReplacement(int status, int data) {
     CODA_ASSERT(vol != NULL);
     vol->GetMountPath(mountpath, 0);
     GetPath(path, 1);    
-
-    if (data)
-      NotifyUserOfReplacement(&fid, path, status, 1);
-    else
-      NotifyUserOfReplacement(&fid, path, status, 0);
-
+    /* NotifyUserOfReplacement(&fid, path, status, (data ? 1 : 0)); */
     LOG(0, ("RecordReplacement complete.\n"));
 }
 
