@@ -348,7 +348,7 @@ int WEResPhase1(ViceFid *Fid, ViceVersionVector **VV,
 
 	MRPC_MakeMulti(ForceVV_OP, ForceVV_PTR, VSG_MEMBERS, 
 		       mgrp->rrcc.handles, mgrp->rrcc.retcodes,
-		       mgrp->rrcc.MIp, 0, 0, Fid, &newvv, vstatus);
+		       mgrp->rrcc.MIp, 0, 0, Fid, &newvv, &vstatus);
 	SLog(9,  "WEResPhase1 returned from ForceVV");
 	
 	/* coerce rpc errors as timeouts - check ret codes */
