@@ -149,32 +149,44 @@ void CacheFile::ResetContainer() {
 
 
 /*
- * moves a cache file to a new one.  destination's name already
- * there, created by cache file constructor.
+ * Swap the on-disk cache-files between two CacheFile structures.
  */  
-void CacheFile::Move(CacheFile *destination) {
-    LOG(10, ("CacheFile::Move: source: %s, %d, %d, dest: %s\n",
+void CacheFile::Swap(CacheFile *destination) {
+    LOG(10, ("CacheFile::Swap: source: %s, %d, %d, dest: %s\n",
 	      name, inode, length, destination->name));
+
+    ino_t swap_inode;
+    long  swap_length;
+    char  swap_name[8];
+
+    swap_inode = destination->inode;
+    swap_length = destination->length;
+    memcpy(swap_name, destination->name, 8);
 
     destination->inode = inode;
     destination->length = length;
-    if (::rename(name, destination->name) != 0)
-        CHOKE("CacheFile::Move: rename failed (%d)", errno);
+    memcpy(destination->name, name, 8);
+
+    inode = swap_inode;
+    length = swap_length;
+    memcpy(name, swap_name, 8);
 }
 
 
 /* 
  * copies a cache file, data and attributes, to a new one.  
  */
-void CacheFile::Copy(CacheFile *source) {
-    LOG(10, ("CacheFile::Copy: %s, %d, %d\n",
-	      name, inode, length));
+void CacheFile::Copy(CacheFile *destination) {
+    LOG(10, ("CacheFile::Copy: from %s, %d, %d, to %s, %d, %d\n",
+	      name, inode, length,
+	      destination->name, destination->inode, destination->length));
 
     int tfd, ffd, n;
     struct stat tstat;
     char buf[DIR_PAGESIZE];
 
-    if ((tfd = ::open(name, O_RDWR | O_CREAT | O_TRUNC| O_BINARY, V_MODE)) < 0)
+    if ((tfd = ::open(destination->name, O_RDWR | O_CREAT | O_TRUNC| O_BINARY,
+		      V_MODE)) < 0)
 	CHOKE("CacheFile::Copy: open failed (%d)", errno);
 #ifndef DJGPP
     if (::fchmod(tfd, V_MODE) < 0)
@@ -183,11 +195,11 @@ void CacheFile::Copy(CacheFile *source) {
     if (::fchown(tfd, (uid_t)V_UID, (gid_t)V_GID) < 0)
 	CHOKE("CacheFile::Copy: fchown failed (%d)", errno);
 #else
-    if (::chown(name, (uid_t)V_UID, (gid_t)V_GID) < 0)
+    if (::chown(destination->name, (uid_t)V_UID, (gid_t)V_GID) < 0)
 	CHOKE("CacheFile::ResetCopy: fchown failed (%d)", errno);
 #endif
 #endif
-    if ((ffd = ::open(source->name, O_RDONLY| O_BINARY, V_MODE)) < 0)
+    if ((ffd = ::open(name, O_RDONLY| O_BINARY, V_MODE)) < 0)
 	CHOKE("CacheFile::Copy: source open failed (%d)", errno);
 
     for (;;) {
@@ -206,10 +218,10 @@ void CacheFile::Copy(CacheFile *source) {
     if (::close(ffd) < 0)
 	CHOKE("CacheFile::Copy: source close failed (%d)", errno);
     
-    CODA_ASSERT((off_t)source->length == tstat.st_size);
+    CODA_ASSERT((off_t)length == tstat.st_size);
 
-    inode = tstat.st_ino;
-    length = source->length;
+    destination->inode  = tstat.st_ino;
+    destination->length = length;
 }
 
 

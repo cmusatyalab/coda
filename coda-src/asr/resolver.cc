@@ -118,7 +118,7 @@ int ParseArgs(int argc, char **argv, char *incdname, char *incfname) {
 	}
     }
     // split inc file path  into dir and fname 
-    getwd(cwd);
+    getcwd(cwd, MAXPATHLEN);
     if (IsAbsPath(argv[argc - 1])) {
 	path(argv[argc - 1], incdname, incfname);
     }

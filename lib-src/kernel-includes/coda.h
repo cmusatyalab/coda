@@ -115,6 +115,16 @@ struct timespec {
 };
 #endif
 
+#ifndef __BIT_TYPES_DEFINED__
+#define __BIT_TYPES_DEFINED__
+typedef signed char	      int8_t;
+typedef unsigned char	    u_int8_t;
+typedef short		     int16_t;
+typedef unsigned short	   u_int16_t;
+typedef int		     int32_t;
+typedef unsigned int	   u_int32_t;
+#endif
+
 
 /*
  * Cfs constants
@@ -211,11 +221,6 @@ static __inline__ ino_t  coda_f2i(struct ViceFid *fid)
 #else
 #define coda_f2i(fid)\
 	((fid) ? ((fid)->Unique + ((fid)->Vnode<<10) + ((fid)->Volume<<20)) : 0)
-#endif
-
-
-#ifndef __BIT_TYPES_DEFINED__
-#define u_int32_t unsigned int
 #endif
 
 

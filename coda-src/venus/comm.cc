@@ -1393,8 +1393,6 @@ long srvent::GetBandwidth(unsigned long *Bandwidth) {
  * adaptive mode (depending on the `on' flag).
  */
 void srvent::ForceStrong(int on) {
-    unsigned long bw;
-
     forcestrong = on;
 
     /* forced switch to strong mode */

@@ -294,7 +294,7 @@ class CacheFile {
 
     void Validate();
     void Reset();
-    void Move(CacheFile *);
+    void Swap(CacheFile *);
     void Copy(CacheFile *);
     void Remove();
 

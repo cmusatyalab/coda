@@ -361,7 +361,7 @@ static void Recov_InitRVM() {
     if (InitMetaData)
     {
 	/* Compute recoverable storage requirements, and verify that log/data sizes are adequate. */
-        int RecovBytesNeeded = (int) RECOV_BYTES_NEEDED();
+        unsigned long RecovBytesNeeded = RECOV_BYTES_NEEDED();
 
         /* Set segment sizes if necessary. */
         if (VenusDataDeviceSize == UNSET_VDDS)

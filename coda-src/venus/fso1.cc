@@ -2497,8 +2497,10 @@ void fsobj::MakeShadow() {
      * copy of the data for the fso, and unlock.
      */
     shadow = new CacheFile(-ix);
-    cf.Move(shadow);
     cf.Copy(shadow);
+
+    /* swap the on disk container files between cf and the new cachefile */
+    cf.Swap(shadow);
     
     UnLock(RD);
 }
