@@ -180,10 +180,10 @@ print "\n\nNow dumping the tape\n";
 foreach $part ( @partitions ) { 
     my $time = strftime("%T", localtime);
     print "\n\n---------->$time: doing partition $part\n";
-    print     "---------->command: dump -0 -B $size -f $tape $part\n";
-    $rc = 0xffff & system("dump -0 -B $size -f $tape $part");
+    print     "---------->command: dump 0Bf $size  $tape $part\n";
+    $rc = 0xffff & system("dump 0Bf $size $tape $part");
     if ( $rc ) { 
-	printf "Error dumping: dump -f $tape $part\n";
+	printf "Error dumping: dump 0Bf $tape $part\n";
 	exit 1;
     }
 }

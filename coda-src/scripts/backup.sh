@@ -33,7 +33,7 @@
 #static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/scripts/backup.sh,v 4.3 97/11/13 18:24:23 braam Exp $";
 #endif /*_BLURB_*/
 
-TAPE=/dev/nrst0
+TAPE=/dev/nst0
 BACKUPDIR=/backup
 DATE=`date +%d%b%Y`
 BACKUPLOG=/vice/backuplogs/backuplog.$DATE
@@ -45,7 +45,7 @@ if [ $? != 0 ]; then
       echo "Coda backup program failed" | mail -s "** backup failure!! **" $ADDR
 fi
 
-/vice/bin/tape.pl --tape /dev/nrst0 --dir /backup --size 4000000 >> $BACKUPLOG 2>&1
+/vice/bin/tape.pl --tape $TAPE --dir $BACKUPDIR --size 4000000 >> $BACKUPLOG 2>&1
 if [ $? != 0 ]; then
       echo "Coda backup program failed" | mail -s "** dump failure!! **" $ADDR
 fi
