@@ -113,7 +113,7 @@ static struct PacketHandlers {
 
 void SL_RegisterHandler(unsigned int pv, void (*handler)(RPC2_PacketBuffer *pb))
 {
-    assert(nPacketHandlers <= MAXPACKETHANDLERS);
+    assert(nPacketHandlers < MAXPACKETHANDLERS);
     PacketHandlers[nPacketHandlers].ProtoVersion = pv;
     PacketHandlers[nPacketHandlers].Handler = handler;
     nPacketHandlers++;
