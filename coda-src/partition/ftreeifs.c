@@ -308,6 +308,10 @@ f_icreate(struct DiskPartition *dp, Inode inode_number, u_long volume,
     ino = i+1; /*inode numbers start at 1 */
     
     f_inotostr(dp, ino, filename);
+    if (mkpath(filename, 0700) < 0) {
+        eprint("f_icreate: could not make ftree path!\n");
+	CODA_ASSERT(0);
+    }
     if ((fd = open(filename, O_CREAT | O_EXCL, mode)) < 0) {
 	if ( errno == EEXIST ) {
 	    eprint("f_icreate: bitmap free at %d, inode %ld exists!\n", 
