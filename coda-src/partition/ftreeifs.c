@@ -676,7 +676,7 @@ static int Header2Info(struct DiskPartition *dp, struct i_header *header,
     info->InodeNumber = ino;
     info->ByteCount = sbuf.st_size;
     info->LinkCount = header->lnk;
-    info->VolumeId = header->volume;
+    info->VolumeNo = header->volume;
     info->VnodeNumber = header->vnode;
     info->VnodeUniquifier = header->unique;
     info->InodeDataVersion = header->dataversion;

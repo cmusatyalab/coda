@@ -100,12 +100,12 @@ void InitPartitions(const char *tabfile)
 
 	if ( operations->init ) {
 	    rc = operations->init(&data, entry, &devno);
+	    if ( rc != 0 ) {
+		eprint("Partition entry %s, %s had initialization error.\n");
+		assert(0);
+	    }
 	}
 
-	if ( rc != 0 ) {
-	    eprint("Partition entry %s, %s had initialization error.\n");
-	    assert(0);
-	}
 
         VInitPartition(entry, operations, data, devno);
     }
@@ -264,6 +264,10 @@ static struct inodeops *InodeOpsByType(char *type)
 
     if( strcmp(type, "ftree") == 0 ) {
 	return &inodeops_ftree;
+    }
+
+    if( strcmp(type, "backup") == 0 ) {
+	return &inodeops_backup;
     }
 
 #if 0  
