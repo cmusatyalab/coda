@@ -58,10 +58,10 @@ PROCESS	A_pid, B_pid, C_pid;
 
 int main(int argc, char **argv)
 {
-    int a;
+    PROCESS mainthread;
     char b;
 
-    LWP_Init(LWP_VERSION, LWP_NORMAL_PRIORITY+1, (PROCESS *) &a);
+    LWP_Init(LWP_VERSION, LWP_NORMAL_PRIORITY+1, &mainthread);
     IOMGR_Initialize();
     printf("Main thread going to create procA\n");
     LWP_CreateProcess((PFI)procA, 2048, LWP_NORMAL_PRIORITY, NULL, "procA", &A_pid);

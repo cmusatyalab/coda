@@ -66,7 +66,7 @@ struct lwp_context {	/* saved context for dispatcher */
 struct lwp_context {    /* saved context for dispatcher */
     char *topstack;     /* ptr to top of process stack */
 };
-#define STACK_PAD 4
+#define STACK_PAD 8 /* pad safely for 64-bit archs, shouldn't hurt on 32-bit */
 #endif /* !defined(__powerpc__) */
 
 struct rock

@@ -227,7 +227,7 @@ int main(int argc, char **argv)
     int nreaders, i;
     long interval;	/* To satisfy Brad */
     PROCESS *readers;
-    PROCESS writer;
+    PROCESS writer, mainthread;
     struct timeval tv;
 
     printf("\n*Readers & Writers*\n\n");
@@ -243,7 +243,7 @@ int main(int argc, char **argv)
     interval = (argc >= 3 ? atoi(*++argv)*1000 : 50000);
 
     if (argc == 4) lwp_debug = 1;
-    LWP_Init(LWP_VERSION, 0, (PROCESS *)&i);
+    LWP_Init(LWP_VERSION, 0, &mainthread);
     printf("[Support initialized]\n");
     tv.tv_sec = 0;
     tv.tv_usec = interval;
@@ -259,7 +259,8 @@ int main(int argc, char **argv)
     printf("[Creating Readers...\n");
     readers = (PROCESS *) calloc((unsigned)nreaders, (unsigned)(sizeof(PROCESS)));
     for (i=0; i<nreaders; i++)
-	LWP_CreateProcess((PFI)read_process, STACK_SIZE, 0, (char *)i, "Reader", &readers[i]);
+	LWP_CreateProcess((PFI)read_process, STACK_SIZE, 0, (char *)(long)i,
+			  "Reader", &readers[i]);
     printf("done]\n");
 
     printf("\t[Creating Writer...\n");
