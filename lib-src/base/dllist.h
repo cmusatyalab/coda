@@ -37,11 +37,15 @@ struct dllist_head {
 #define list_entry(ptr, type, member) \
 	((type *)((char *)(ptr)-offsetof(type, member)))
 
+#if 0
 /* I thought this should do the trick for C++ classes, but in some cases
  * results in pointers that are 1 byte off. Strangely enough only in some
  * cases... -JH */
 #define list_entry_plusplus(ptr, type, member) \
 	((type *)((char *)(ptr)-(size_t)(&type::member)))
+#else
+#define list_entry_plusplus(ptr, type, member) list_entry(ptr, type, member)
+#endif
 
 #define list_for_each(ptr, head) \
         for (ptr = (head).next; ptr != &(head); ptr = ptr->next)
