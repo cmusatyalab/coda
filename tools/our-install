@@ -12,14 +12,10 @@ VER=`uname -r | head -c 1`
 PATH=/bin:/usr/bin:/sbin:/usr/sbin:/usr/ucb
 export PATH
 
-if [ $SYS = NetBSD -o $SYS = OpenBSD ] ; then
-OWNGRP=root.wheel
+if [ $SYS = NetBSD -o $SYS = FreeBSD -o $SYS = OpenBSD ] ; then
+OWNGRP=root:wheel
 else
-  if [ $SYS = FreeBSD ]; then
-  OWNGRP=root:wheel
-  else 
-  OWNGRP=root:root
-  fi
+OWNGRP=root:root
 fi
 
 if [ ! -d $DIR ] ;  then mkdir -p $DIR; fi
