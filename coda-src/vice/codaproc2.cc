@@ -66,13 +66,13 @@ extern "C" {
 #include <vlist.h>
 #include <codaproc.h>
 #include <codadir.h>
-#include <dlist.h>
 #include <operations.h>
 #include <resutil.h>
 #include <ops.h>
 #include <rsle.h>
 #include <inconsist.h>
 #include <vice.private.h>
+#include <dllist.h>
 
 #ifndef O_BINARY
 #define O_BINARY 0
@@ -116,7 +116,8 @@ static void RLE_Unpack(PARM **, ARG * ...);
 
 /*  *****  Reintegration Log  *****  */
 
-struct rle : public dlink {
+struct rle {
+    struct dllist_head reint_log;
     ViceStoreId sid;
     RPC2_Integer opcode;
     Date_t Mtime;
@@ -189,13 +190,14 @@ struct rle : public dlink {
  */
 
 static int ValidateReintegrateParms(RPC2_Handle, VolumeId *, Volume **, 
-				    ClientEntry **, int, dlist *, 
+				    ClientEntry **, int, struct dllist_head *, 
 				    RPC2_Integer *, ViceReintHandle *);
-static int GetReintegrateObjects(ClientEntry *, dlist *, dlist *, int *, 
-				 RPC2_Integer *);
+static int GetReintegrateObjects(ClientEntry *, struct dllist_head *, dlist *,
+				 int *, RPC2_Integer *);
 static int CheckSemanticsAndPerform(ClientEntry *, VolumeId, VolumeId,
-				    dlist *, dlist *, int *, RPC2_Integer *);
-static void PutReintegrateObjects(int, Volume *, dlist *, dlist *, 
+				    struct dllist_head *, dlist *, int *,
+				    RPC2_Integer *);
+static void PutReintegrateObjects(int, Volume *, struct dllist_head *, dlist *, 
 				  int, RPC2_Integer, ClientEntry *, 
 				  RPC2_Integer, RPC2_Integer *, ViceFid *, 
 				  RPC2_CountedBS *, RPC2_Integer *, 
@@ -228,7 +230,7 @@ long FS_ViceReintegrate(RPC2_Handle RPCid, VolumeId Vid, RPC2_Integer LogSize,
 	ClientEntry *client = 0;
 	VolumeId VSGVolnum = Vid;
 	Volume *volptr = 0;
-	dlist *rlog = new dlist;
+	INIT_LIST_HEAD(rlog);
 	dlist *vlist = new dlist((CFN)VLECmp);
 	int	blocks = 0;
 
@@ -246,20 +248,20 @@ long FS_ViceReintegrate(RPC2_Handle RPCid, VolumeId Vid, RPC2_Integer LogSize,
 
 	/* Phase I. */
 	if ((errorCode = ValidateReintegrateParms(RPCid, &Vid, &volptr, &client,
-						 LogSize, rlog, Index, 0)))
+						 LogSize, &rlog, Index, 0)))
 		goto FreeLocks;
 	
 	SLog(1, "Starting  GetReintegrateObjects for %#x", Vid);
 
 	/* Phase II. */
-	if ((errorCode = GetReintegrateObjects(client, rlog, vlist, 
+	if ((errorCode = GetReintegrateObjects(client, &rlog, vlist, 
 					      &blocks, Index)))
 		goto FreeLocks;
 
 	SLog(1, "Starting  CheckSemanticsAndPerform for %#x", Vid);
 
 	/* Phase III. */
-	if ((errorCode = CheckSemanticsAndPerform(client, Vid, VSGVolnum, rlog, 
+	if ((errorCode = CheckSemanticsAndPerform(client, Vid, VSGVolnum, &rlog,
 						 vlist, &blocks, Index)))
 		goto FreeLocks;
 	
@@ -268,7 +270,7 @@ long FS_ViceReintegrate(RPC2_Handle RPCid, VolumeId Vid, RPC2_Integer LogSize,
 
 	SLog(1, "Starting PutReintegrateObjects for %#x", Vid);
 
-	PutReintegrateObjects(errorCode, volptr, rlog, vlist, blocks,
+	PutReintegrateObjects(errorCode, volptr, &rlog, vlist, blocks,
 			      OutOfOrder, client, MaxDirs, NumDirs, StaleDirs,
 			      OldVS, NewVS, VCBStatus);
 	
@@ -491,7 +493,7 @@ long FS_ViceCloseReintHandle(RPC2_Handle RPCid, VolumeId Vid,
     ClientEntry *client = 0;
     VolumeId VSGVolnum = Vid;
     Volume *volptr = 0;
-    dlist *rlog = new dlist;
+    INIT_LIST_HEAD(rlog);
     dlist *vlist = new dlist((CFN)VLECmp);
     int	blocks = 0;
 
@@ -506,21 +508,21 @@ long FS_ViceCloseReintHandle(RPC2_Handle RPCid, VolumeId Vid,
 
     /* Phase I. */
     if ((errorCode = ValidateReintegrateParms(RPCid, &Vid, &volptr, &client,
-					     LogSize, rlog, 0, RHandle)))
+					     LogSize, &rlog, 0, RHandle)))
 	goto FreeLocks;
 
     /* Phase II. */
-    if ((errorCode = GetReintegrateObjects(client, rlog, vlist, &blocks, 0)))
+    if ((errorCode = GetReintegrateObjects(client, &rlog, vlist, &blocks, 0)))
 	goto FreeLocks;
 
     /* Phase III. */
-    if ((errorCode = CheckSemanticsAndPerform(client, Vid, VSGVolnum, rlog, 
-					     vlist, &blocks, 0)))
+    if ((errorCode = CheckSemanticsAndPerform(client, Vid, VSGVolnum, &rlog, 
+					      vlist, &blocks, 0)))
 	goto FreeLocks;
 
  FreeLocks:
     /* Phase IV. */
-    PutReintegrateObjects(errorCode, volptr, rlog, vlist, blocks, 0,
+    PutReintegrateObjects(errorCode, volptr, &rlog, vlist, blocks, 0,
 			  client, 0, NULL, NULL, OldVS, NewVS, VCBStatus);
 
     SLog(0/*2*/, "ViceCloseReintHandle returns %s", ViceErrorMsg(errorCode));
@@ -544,7 +546,8 @@ long FS_ViceCloseReintHandle(RPC2_Handle RPCid, VolumeId Vid,
  */
 static int ValidateReintegrateParms(RPC2_Handle RPCid, VolumeId *Vid,
 				    Volume **volptr, ClientEntry **client,
-				    int rlen, dlist *rlog, RPC2_Integer *Index,
+				    int rlen, struct dllist_head *rlog,
+				    RPC2_Integer *Index,
 				    ViceReintHandle *RHandle) 
 {
 	START_TIMING(Reintegrate_ValidateParms);
@@ -553,11 +556,12 @@ static int ValidateReintegrateParms(RPC2_Handle RPCid, VolumeId *Vid,
 
 	int errorCode = 0;
 	*volptr = 0;
-	char *rfile = 0;
+	char *rfile = NULL;
 	PARM *_ptr = 0;
 	int index;
 	char *OldName = NULL;
 	char *NewName = NULL;
+	int rlog_len = 0;
 
 	/* Translate the volume. */
 	VolumeId VSGVolnum = *Vid;
@@ -643,12 +647,13 @@ static int ValidateReintegrateParms(RPC2_Handle RPCid, VolumeId *Vid,
 
         ViceStatus OldDirStatus, DirStatus, Status;
 
-	rle *r = new rle;
+	struct rle *r = (struct rle *)malloc(sizeof(struct rle));
 	if (!r) {
 	    errorCode = ENOMEM;
 	    goto Exit;
 	}
 
+	list_head_init(&r->reint_log);
 	r->opcode = ntohl(*((RPC2_Integer *)_ptr++));
 	r->Mtime = ntohl(*((Date_t *)_ptr++));
 	r->Name[0] = r->Name[1] = NULL;
@@ -975,7 +980,8 @@ static int ValidateReintegrateParms(RPC2_Handle RPCid, VolumeId *Vid,
 
 	SLog(100,  "ValidateReintegrateParms: [E] Op = %d, Mtime = %d",
 		r->opcode, r->Mtime);
-	rlog->append(r);
+	list_add(&r->reint_log, rlog->prev);
+	rlog_len++;
 
 	/* Translate the Vid for each Fid. */
 	for (int i = 0; i < 3; i++) {
@@ -988,13 +994,13 @@ static int ValidateReintegrateParms(RPC2_Handle RPCid, VolumeId *Vid,
 	}
 
 	/* Yield after every so many records. */
-	if ((rlog->count() & Yield_RLAlloc_Mask) == 0)
+	if ((rlog_len & Yield_RLAlloc_Mask) == 0)
 	    PollAndYield();
     }
 
-    SLog(2,  "ValidateReintegrateParms: rlog count = %d", rlog->count());
+    SLog(2,  "ValidateReintegrateParms: rlog count = %d", rlog_len);
 
-    if (rlog->count() < Yield_RLAlloc_Period - 1)
+    if (rlog_len < Yield_RLAlloc_Period - 1)
 	PollAndYield();
 
     /* Acquire the volume in exclusive mode. */
@@ -1012,12 +1018,12 @@ static int ValidateReintegrateParms(RPC2_Handle RPCid, VolumeId *Vid,
      * uniquifier field from the storeid of the record.  Return it
      * in the index variable; saves a parameter for this special case.
      */
+    if (!list_empty(rlog))
     {
-	rle *r;
-	r = (rle *)rlog->first();
 	int i = 0;
+	rle *r = list_entry(rlog->next, struct rle, reint_log);
 
-	while (r && i < (*volptr)->nReintegrators) {
+	while (i < (*volptr)->nReintegrators) {
 	    if ((r->sid.Host == (*volptr)->reintegrators[i].Host) &&
 		(r->sid.Uniquifier <= (*volptr)->reintegrators[i].Uniquifier)) {
 		SLog(0, "ValidateReintegrateParms: Already seen id %u < %u)",
@@ -1039,10 +1045,9 @@ static int ValidateReintegrateParms(RPC2_Handle RPCid, VolumeId *Vid,
 	 * of only one new store record.  (The store record is sent
 	 * only by old Venii.)  Verify that is the case.  */
         {
-		CODA_ASSERT(rlog->count() == 1);
+		CODA_ASSERT(rlog_len == 1);
 		
-		rle *r;
-		r = (rle *)rlog->first();
+		struct rle *r = list_entry(rlog->next, struct rle, reint_log);
 		CODA_ASSERT(r->opcode == CML_Store_OP);
 	}
     }
@@ -1069,9 +1074,8 @@ END_TIMING(Reintegrate_ValidateParms);
  *         and under write-locks
  *
  */
-static int GetReintegrateObjects(ClientEntry *client, dlist *rlog, 
-				 dlist *vlist, 
-				 int *blocks, RPC2_Integer *Index) 
+static int GetReintegrateObjects(ClientEntry *client, struct dllist_head *rlog, 
+				 dlist *vlist, int *blocks, RPC2_Integer *Index)
 {
 START_TIMING(Reintegrate_GetObjects);
     SLog(10, 	"GetReintegrateObjects: client = %s", client->UserName);
@@ -1090,11 +1094,11 @@ START_TIMING(Reintegrate_GetObjects);
        is OK. */
 
     {
-	dlist_iterator next(*rlog);
-	rle *r;
+	struct dllist_head *p;
 	int count = 0;
         index = 0;
-	while ((r = (rle *)next())) {
+	list_for_each(p, *rlog) {
+	    struct rle *r = list_entry(p, struct rle, reint_log);
 	    ViceDataType type =
 	    	(r->opcode == CML_Create_OP) ? File :
 	    	(r->opcode == CML_MakeDir_OP) ? Directory :
@@ -1150,11 +1154,11 @@ START_TIMING(Reintegrate_GetObjects);
     SLog(1, "GetReintegrateObjects: AllocReintVnodes done\n");
 
     {
-	dlist_iterator next(*rlog);
-	rle *r;
+	struct dllist_head *p;
 	int count = 0;
 	index = 0;
-	while ((r = (rle *)next())) {
+	list_for_each(p, *rlog) {
+	    struct rle *r = list_entry(p, struct rle, reint_log);
 	    switch(r->opcode) {
 		case CML_Create_OP:
 		case CML_Link_OP:
@@ -1289,7 +1293,7 @@ END_TIMING(Reintegrate_GetObjects);
  */
 static int CheckSemanticsAndPerform(ClientEntry *client, VolumeId Vid, 
 				    VolumeId VSGVolnum,
-				    dlist *rlog, dlist *vlist, 
+				    struct dllist_head *rlog, dlist *vlist, 
 				    int *blocks, RPC2_Integer *Index) 
 {
 START_TIMING(Reintegrate_CheckSemanticsAndPerform);
@@ -1312,11 +1316,11 @@ START_TIMING(Reintegrate_CheckSemanticsAndPerform);
 	SLog(1, "Starting  CheckSemanticsAndPerform for %#x", Vid);
 
     {
-	dlist_iterator next(*rlog);
-	rle *r;
+	struct dllist_head *p;
 	int count = 0;
         index = 0;
-	while ((r = (rle *)next())) {
+	list_for_each(p, *rlog) {
+	    struct rle *r = list_entry(p, struct rle, reint_log);
 	    switch(r->opcode) {
 		case CML_Store_OP:
 		    {
@@ -2002,9 +2006,9 @@ START_TIMING(Reintegrate_CheckSemanticsAndPerform);
 
     /* Now do bulk transfers. */
     {
-	dlist_iterator next(*rlog);
-	rle *r;
-	while ((r = (rle *)next())) {
+	struct dllist_head *p;
+	list_for_each(p, *rlog) {
+	    struct rle *r = list_entry(p, struct rle, reint_log);
             if (r->opcode == CML_Store_OP) {
                 if (r->u.u_store.Inode)	/* data already here */
                     continue;
@@ -2094,7 +2098,8 @@ Exit:
  *      4. Releasing the exclusive-mode volume reference
  *
  */
-static void PutReintegrateObjects(int errorCode, Volume *volptr, dlist *rlog, 
+static void PutReintegrateObjects(int errorCode, Volume *volptr,
+				  struct dllist_head *rlog, 
 				  dlist *vlist, int blocks,
 				  RPC2_Integer OutOfOrder, ClientEntry *client, 
 				  RPC2_Integer MaxDirs, RPC2_Integer *NumDirs,
@@ -2107,27 +2112,29 @@ START_TIMING(Reintegrate_PutObjects);
 	     volptr ? V_id(volptr) : 0, errorCode);
 
     ViceStoreId sid;
+    struct dllist_head *p;
+    int count = 0;
 
     /* Pre-transaction: release RL, then update version state. */
-    if (rlog) {
-	rle *r;
-	int count = 0;
-	while ((r = (rle *)rlog->get())) {
-	    if (rlog->count() == 0) 	/* last one -- save sid */
-		sid = r->sid;
-	    if (r->Name[0]) free(r->Name[0]);
-	    if (r->Name[1]) free(r->Name[1]);
-	    delete r;
+    for (p = rlog->next; p != rlog;) {
+	struct rle *r = list_entry(p, struct rle, reint_log);
+	p = p->next;
+	list_del(&r->reint_log);
 
-	    /* Yield after every so many records. */
-	    count++;
-	    if ((count & Yield_RLDealloc_Mask) == 0)
-		PollAndYield();
-	}
-	delete rlog;
-	if (count < Yield_RLDealloc_Period - 1)
+	if (list_empty(rlog)) 	/* last one -- save sid */
+	    sid = r->sid;
+	if (r->Name[0]) free(r->Name[0]);
+	if (r->Name[1]) free(r->Name[1]);
+
+	free(r);
+
+	/* Yield after every so many records. */
+	count++;
+	if ((count & Yield_RLDealloc_Mask) == 0)
 	    PollAndYield();
     }
+    if (count < Yield_RLDealloc_Period - 1)
+	PollAndYield();
 
     if (errorCode == 0 && vlist && volptr) {
 	GetMyVS(volptr, OldVS, NewVS);
