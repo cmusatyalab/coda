@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: blurb.doc,v 1.1 96/11/22 13:29:31 raiff Exp $";
+static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/src/coda-4.0.1/coda-src/venus/RCS/worker.cc,v 1.1 1996/11/22 19:11:35 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -63,6 +63,12 @@ extern "C" {
 #include <unistd.h>
 #include <stdlib.h>
 #endif __NetBSD__
+#ifdef LINUX
+#include <sys/mount.h>
+#include <linux/fs.h>
+#include <mntent.h>
+#endif
+
 
 #ifdef __cplusplus
 }
@@ -211,8 +217,10 @@ void testKernDevice() {
 
 void VFSMount() {
     if (Simulating) return;
-    /* XXXX for now Linux coda filesystems are mounted by hand. */ 
-#ifndef LINUX
+    /* Linux Coda filesystems are mounted by hand through forking since they need venus. XXX eliminate zombie */ 
+#ifdef LINUX
+
+#else
     /* Silently unmount the root node in case an earlier venus exited without successfully unmounting. */
     syscall(SYS_unmount, venusRoot);
     switch(errno) {
@@ -254,6 +262,35 @@ void VFSMount() {
 	exit(-1);
     }
 #endif __NetBSD__
+#ifdef LINUX
+    if ( fork() == 0 ) {
+      int error;
+      error = mount("coda", venusRoot, "coda",  MS_MGC_VAL , &kernDevice);
+      if ( error ) {
+	pid_t parent;
+	perror("Killing parent, mount error:");
+	parent = getppid();
+	kill(parent, SIGKILL);
+	exit(1);
+      } else {
+	FILE *fd;
+	struct mntent ent;
+	fd = setmntent("/etc/mtab", "a");
+	if ( fd > 0 ) { 
+	  ent.mnt_fsname="Coda";
+	  ent.mnt_dir=venusRoot;
+	  ent.mnt_type= "coda";
+	  ent.mnt_opts = "rw";
+	  ent.mnt_freq = 0;
+	  ent.mnt_passno = 0;
+	  error = addmntent(fd, & ent);
+	  error = endmntent(fd);
+	  exit(0);
+	}
+      }
+    }
+
+#endif
     Mounted = 1;
 }
 

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/src/coda-4.0.1/coda-src/venus/RCS/venus_vnode.h,v 1.1 1996/11/22 19:11:54 braam Exp braam $";
+static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/src/coda-4.0.1/coda-src/venus/RCS/venus_vnode.h,v 1.2 1996/12/09 18:54:46 braam Exp $";
 #endif /*_BLURB_*/
 
 /*	$NetBSD: vnode.h,v 1.32 1995/03/26 20:25:05 jtc Exp $	*/
@@ -163,8 +163,8 @@ struct vnode {
  * is unavailable (getattr) or which is not to be changed (setattr).
  */
 
-#ifndef VUID_T
-#define VUID_T
+#ifndef _VUID_T_
+#define _VUID_T_
 typedef unsigned int vuid_t;
 typedef unsigned int vgid_t;
 #endif

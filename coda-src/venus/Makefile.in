@@ -29,7 +29,7 @@
 #Mellon the rights to redistribute these changes without encumbrance.
 #*/
 #
-#static char *rcsid = "$Header: /usr/bnoble/coda/coda-src/venus/RCS/Makefile.in,v 1.1 1996/12/09 14:40:48 raiff Exp bnoble $";
+#static char *rcsid = "$Header: Makefile.in,v 1.1 96/12/09 14:40:48 raiff Exp $";
 #endif /*_BLURB_*/
 
 
@@ -68,19 +68,12 @@ include $(TOPDIR)/Makeconf
 CC = g++
 
 # Files to make/install
-HEADERS = advice.h hdb.h newplumb.h
+HEADERS = advice.h hdb.h newplumb.h venus_vnode.h
 LIBRARIES = libfaketrace.a
 CSBINS = venus
 
-# the cfsmount program is needed until kernel venus message passing
-# has been adapted in Linux. We apologize for the mess.
-
-ifeq ($(SYS),i386_linux2)
-EXECUTABLES = venus cfsmount
-CBINS = cfsmount
-else
 EXECUTABLES= venus
-endif
+
 
 #Turn off data collection
 #CFLAGS = $(CFLAGS) -DVENUS -DTIMING -DDISABLE_VMON -DVENUSDEBUG -DRVM_USELWP
@@ -146,10 +139,15 @@ venus.plumber:  ${VOBJS} $(LIBPLUMBER)
 # Warning: these dependencies are on variables and are not covered by Makerules
 #####################
 callback.client.c callback.server.c callback.multi.c callback.h: $(CALLBACK_RPC2)
+	${RP2GEN} ${RP2FLAGS} $<
 vice.client.c vice.server.c vice.multi.c vice.h: $(VICE_RPC2)
+	${RP2GEN} ${RP2FLAGS} $<
 mond.client.c mond.server.c mond.multi.c mond.h: $(MOND_RPC2)
+	${RP2GEN} ${RP2FLAGS} $<
 admon.client.c admon.server.c admon.multi.c admon.h: $(ADMON_RPC2)
+	${RP2GEN} ${RP2FLAGS} $<
 adsrv.client.c adsrv.server.c adsrv.mutli.c adsrv.h: $(ADSRV_RPC2)
+	${RP2GEN} ${RP2FLAGS} $<
 
 
 advice.o: advice.cc advice.h admon.h adsrv.h adviceconn.h mond.h
@@ -305,12 +303,5 @@ faketrace.o: faketrace.c
 testjmp: testjmp.cc
 	g++ -o testjmp testjmp.cc
 
-ifeq ($(SYS),i386_linux2)
-cfsmount.o: cfsmount.c
-	gcc $(CFLAGS) -c $<
-
-cfsmount: cfsmount.o
-	gcc $(CFLAGS) -o cfsmount cfsmount.o
-endif 
 
 include $(TOPDIR)/Makerules
