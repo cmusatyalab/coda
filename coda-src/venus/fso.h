@@ -134,6 +134,7 @@ class fsdb {
   friend class vproc;
   friend void RecovInit();
   friend class volent;
+  friend class repvol;
   friend void VmonUpdateSession(vproc *vp, ViceFid *key, fsobj *f, volent *vol, vuid_t vuid, enum CacheType datatype, enum CacheEvent event, unsigned long blocks);
 
     int MagicNumber;
@@ -354,7 +355,6 @@ struct AcRights	{
 
 struct FsoFlags {
     /*T*/unsigned backup : 1;			/* volume type; copied from volume */
-    /*T*/unsigned readonly : 1;			/* volume type; copied from volume */
     /*T*/unsigned replicated : 1;		/* volume type; copied from volume */
     /*T*/unsigned rwreplica : 1;		/* volume type; copied from volume */
     /*T*/unsigned usecallback :	1;		/* volume characteristic; copied from volume */
@@ -409,6 +409,7 @@ class fsobj {
   friend class vproc;
   friend class namectxt;
   friend class volent;
+  friend class repvol;
   friend class ClientModifyLog;
   friend class cmlent;
   friend class cml_iterator;

@@ -105,7 +105,6 @@ const int FREE_FACTOR = 16;
 
 
 /*  *****  Manifest constants for Venus.  *****  */
-const int MAXHOSTS = 8;	/* The number of hosts we generally try to parse in a host list.  S/B in vice.h! */
 const int NFDS = 32;	/* IOMGR-enforced limit!  Kernel may allocate fds numbered higher than this! */
 /* definition of vuid_t that used to be here has been moved to vicedep/vcrcommon.rpc2  (Satya 3/23/92) */
 #ifdef DJGPP
@@ -345,9 +344,9 @@ extern char *VenusControlFile;
 extern char *VenusLogFile;
 extern char *MarinerSocketPath;
 extern int   mariner_tcp_enable;
+extern int   allow_reattach;
 
 /* spool.cc */
-extern void SpoolInit();
 extern void MakeUserSpoolDir(char *, vuid_t);
 
 #endif not _VENUS_PRIVATE_H_

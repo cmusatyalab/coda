@@ -138,7 +138,9 @@ int fsobj::RepairStore()
 	Recov_EndTrans(MAXFP);
 	{
 	    /* Make multiple copies of the IN/OUT and OUT parameters. */
-	    int ph_ix; unsigned long ph; ph = m->GetPrimaryHost(&ph_ix);
+	    int ph_ix; unsigned long ph;
+            ph = ntohl(m->GetPrimaryHost(&ph_ix)->s_addr);
+
  	    vol->PackVS(m->nhosts, &OldVS);
 
 	    ARG_MARSHALL(IN_OUT_MODE, ViceStatus, statusvar, status, VSG_MEMBERS);
@@ -217,8 +219,9 @@ RepExit:
     else {
 	/* Acquire a Connection. */
 	connent *c;
-	ViceStoreId Dummy;              /* ViceStore needs an address for indirection */
-	code = vol->GetConn(&c, vuid);
+	ViceStoreId Dummy;      /* ViceStore needs an address for indirection */
+        volrep *vp = (volrep *)vol;
+	code = vp->GetConn(&c, vuid);
 	if (code != 0) goto NonRepExit;
 
 	/* Make the RPC call. */
@@ -231,7 +234,7 @@ RepExit:
 	CFSOP_POSTLUDE("store::store done\n");
 
 	/* Examine the return code to decide what to do next. */
-	code = vol->Collate(c, code);
+	code = vp->Collate(c, code);
 	UNI_RECORD_STATS(ViceStore_OP);
 	if (code != 0) goto NonRepExit;
 
@@ -918,7 +921,8 @@ int fsobj::LocalFakeify()
      */
     ViceFid FakeRootFid, LocalChildFid, GlobalChildFid;
     RPC2_Unsigned AllocHost = 0;
-    code = vol->AllocFid(Directory, &FakeRootFid, &AllocHost, V_UID);
+    CODA_ASSERT(vol->IsReplicated());
+    code = vol->AllocFid(Directory, &FakeRootFid, &AllocHost,V_UID);
     if (code != 0) {
 	LOG(0, ("fsobj::LocalFakeify: can not alloc fid for the root object\n"));
 	return code;
@@ -1056,7 +1060,8 @@ int fsobj::LocalFakeifyRoot()
      */
     ViceFid FakeRootFid, LocalChildFid, GlobalChildFid;
     RPC2_Unsigned AllocHost = 0;
-    code = vol->AllocFid(Directory, &FakeRootFid, &AllocHost, V_UID);
+    CODA_ASSERT(vol->IsReplicated());
+    code = vol->AllocFid(Directory, &FakeRootFid, &AllocHost,V_UID);
     if (code != 0) {
 	LOG(0, ("fsobj::LocalFakeifyRoot: can not alloc fid for root object\n"));
 	return code;

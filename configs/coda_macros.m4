@@ -52,7 +52,7 @@ changequote([,]), [#include <sys/types.h>
 #include <$3>], ac_cv_type_$1=yes, ac_cv_type_$1=no)])dnl
 AC_MSG_RESULT($ac_cv_type_$1)
 if test $ac_cv_type_$1 = no; then
-  AC_DEFINE($1, $2)
+  AC_DEFINE($1, $2, [Definition for $1 if the type is missing])
 fi
 ])
 
@@ -106,7 +106,7 @@ AC_DEFUN(CODA_CHECK_LIBDB185,
      AC_MSG_WARN([an incompatible disk file format and the programs])
      AC_MSG_WARN([will not be able to read replicated shared databases.])
      sleep 5
-    AC_DEFINE(HAVE_NDBM)]
+    AC_DEFINE(HAVE_NDBM, 1, [Define if you have ndbm])]
   else
     dnl Check if the found libdb is libdb2 using compatibility mode.
     AC_MSG_CHECKING("if $LIBDB is libdb 1.85")
@@ -121,7 +121,7 @@ AC_DEFUN(CODA_CHECK_LIBDB185,
           AC_MSG_WARN([will not be able to read replicated shared databases.])])
 	  sleep 5
        dnl In any case we should not be using db.h
-       AC_DEFINE(HAVE_DB_185_H)],
+       AC_DEFINE(HAVE_DB_185_H, 1, [Define if your libdb is 1.85])],
       [AC_MSG_RESULT("yes")])
     LIBS="$coda_save_LIBS"
   fi)
@@ -135,7 +135,7 @@ AC_DEFUN(CODA_CHECK_FILE_LOCKING,
       fu_cv_lib_c_fcntl=yes,
       fu_cv_lib_c_fcntl=no)])
   if test $fu_cv_lib_c_fcntl = yes; then
-    AC_DEFINE(HAVE_FCNTL_LOCKING)
+    AC_DEFINE(HAVE_FCNTL_LOCKING, 1, [Define if you have fcntl file locking])
   fi
 
   AC_CACHE_CHECK(for file locking by flock,
@@ -145,7 +145,7 @@ AC_DEFUN(CODA_CHECK_FILE_LOCKING,
       fu_cv_lib_c_flock=yes,
       fu_cv_lib_c_flock=no)])
   if test $fu_cv_lib_c_flock = yes; then
-    AC_DEFINE(HAVE_FLOCK_LOCKING)
+    AC_DEFINE(HAVE_FLOCK_LOCKING, 1, [Define if you have flock file locking])
   fi
 
   if test $fu_cv_lib_c_flock = no -a $fu_cv_lib_c_fcntl = no; then
@@ -162,54 +162,43 @@ AC_DEFUN(CODA_CHECK_BCOPY,
       fu_cv_lib_c_bcopy=yes,
       fu_cv_lib_c_bcopy=no)])
   if test $fu_cv_lib_c_bcopy = yes; then
-    AC_DEFINE(HAVE_BCOPY_IN_STRINGS_H)
+    AC_DEFINE(HAVE_BCOPY_IN_STRINGS_H, 1,
+      [Define if bcopy et al are defined in the <strings.h> header file])
   fi)
 
-AC_SUBST(LIBUCB)
-AC_DEFUN(CODA_CHECK_LIBUCB, 
-  [AC_MSG_CHECKING(if bcopy lives in libucb)
-   AC_TRY_LINK([char bcopy();], bcopy(),
-     [AC_MSG_RESULT("no")],
-     [coda_save_LIBS="$LIBS"
-      LIBS="$LIBS /usr/ucblib/libucb.a"
-      AC_TRY_LINK([char bcopy();], bcopy(),
-        [AC_MSG_RESULT("yes")
-	 LIBUCB="/usr/ucblib/libucb.a"]
-        [AC_MSG_ERROR("Cannot figure out where bcopy lives")])
-      LIBS="$coda_save_LIBS"])
-  ])
+dnl check for library providing md5 checksumming
+AC_SUBST(LIBMD5)
+AC_SUBST(MD5C)
+AC_DEFUN(CODA_CHECK_MD5,
+  [if test "${OPENSSL}" = "yes" ; then
+    AC_CHECK_HEADERS(openssl/md5.h)
+    AC_SEARCH_LIBS(MD5_Init, crypto,
+      [test "$ac_cv_search_MD5_Init" = "none required" || LIBMD5="$ac_cv_search_MD5_Init"
+       LIBS="$ac_func_search_save_LIBS"])
+  fi
+  if test "$ac_cv_search_MD5_Init" = "no"; then
+      MD5C="md5c.o"
+  fi])
 
-dnl check wether we have scandir
-AC_DEFUN(CODA_CHECK_SCANDIR, 
-  AC_CACHE_CHECK(for scandir,
-    fu_cv_lib_c_scandir,  
-    [AC_TRY_LINK([#include <stdlib.h>
-#include <dirent.h>], 
-      [ struct dirent **namelist; int n; n = scandir("/", &namelist, NULL, NULL);],
-      fu_cv_lib_c_scandir=yes,
-      fu_cv_lib_c_scandir=no)])
-  if test $fu_cv_lib_c_scandir = yes; then
-    AC_DEFINE(HAVE_SCANDIR)
-  else
-   AC_CACHE_CHECK(for d_namlen in dirent,
-    fu_cv_lib_c_dirent_d_namlen,
+dnl check whether we have scandir
+AC_DEFUN(CODA_CHECK_DIRENT, 
+  AC_CACHE_CHECK(for d_namlen in dirent, fu_cv_lib_c_dirent_d_namlen,
     [AC_TRY_COMPILE([#include <dirent.h>],
        [ struct dirent d; int n; n = (int) d.d_namlen; ],
        fu_cv_lib_c_dirent_d_namlen=yes,
        fu_cv_lib_c_dirent_d_namlen=no)])
-   if test $fu_cv_lib_c_dirent_d_namlen = yes; then
-      AC_DEFINE(DIRENT_HAVE_D_NAMLEN)
-   else
-     AC_CACHE_CHECK(for d_reclen in dirent,
-      fu_cv_lib_c_dirent_d_reclen,
-      [AC_TRY_COMPILE([#include <dirent.h>],
-         [ struct dirent d; int n; n = (int) d.d_reclen; ],
-         fu_cv_lib_c_dirent_d_reclen=yes,
-         fu_cv_lib_c_dirent_d_reclen=no)])
-     if test $fu_cv_lib_c_dirent_d_reclen = yes; then
-        AC_DEFINE(DIRENT_HAVE_D_RECLEN)
-     fi
-   fi
+  if test $fu_cv_lib_c_dirent_d_namlen = yes; then
+    AC_DEFINE(DIRENT_HAVE_D_NAMLEN, 1,
+      [Define if you have d_namlen in struct dirent])
+  fi
+  AC_CACHE_CHECK(for d_reclen in dirent, fu_cv_lib_c_dirent_d_reclen,
+    [AC_TRY_COMPILE([#include <dirent.h>],
+       [ struct dirent d; int n; n = (int) d.d_reclen; ],
+       fu_cv_lib_c_dirent_d_reclen=yes,
+       fu_cv_lib_c_dirent_d_reclen=no)])
+  if test $fu_cv_lib_c_dirent_d_reclen = yes; then
+    AC_DEFINE(DIRENT_HAVE_D_RECLEN, 1,
+      [Define if you have d_reclen in struct dirent])
   fi)
 
 dnl ---------------------------------------------
@@ -221,14 +210,12 @@ AC_DEFUN(CODA_OPTION_SUBSYS,
     [ CFLAGS="${CFLAGS} -I`(cd ${withval} ; pwd)`/include"
       CXXFLAGS="${CXXFLAGS} -I`(cd ${withval} ; pwd)`/include"
       LDFLAGS="${LDFLAGS} -L`(cd ${withval} ; pwd)`/libs" ])
-dnl   AC_ARG_WITH($1-includes,
-dnl    [  --with-$1-includes	Location of the $1 include files],
-dnl    [ CFLAGS="${CFLAGS} -I`(cd ${withval} ; pwd)`"
-dnl      CXXFLAGS="${CXXFLAGS} -I`(cd ${withval} ; pwd)`" ])
-dnl   AC_ARG_WITH($1-library,
-dnl    [  --with-$1-library	Location of the $1 library files],
-dnl    [ LDFLAGS="${LDFLAGS} -L`(cd ${withval} ; pwd)`" ])
     ])
+
+AC_DEFUN(CODA_OPTION_OPENSSL,
+  AC_ARG_WITH(openssl,
+    [  --without-openssl     Do not link against the openssl library],
+    [OPENSSL=${withval}], [OPENSSL=yes]))
 
 dnl ---------------------------------------------
 dnl Search for an installed library in:

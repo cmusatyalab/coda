@@ -66,7 +66,8 @@ int vdb::CallBackBreak(VolumeId vid) {
     int rc = 0;
     volent *v = VDB->Find(vid);
 
-    if (v && (rc = v->CallBackBreak()))
+    if (v && v->IsReplicated() &&
+        (rc = v->CallBackBreak()))
 	vcbbreaks++;    
 
     return(rc);
@@ -77,14 +78,12 @@ int vdb::CallBackBreak(VolumeId vid) {
  * GetVolAttr - Get a volume version stamp (or validate one if
  * present) and get a callback.  If validating, and there are
  * other volumes that need validating, do them too.
- *
- * Only applies to replicated volumes!
  */
-int volent::GetVolAttr(vuid_t vuid) {
+int repvol::GetVolAttr(vuid_t vuid)
+{
     LOG(100, ("volent::GetVolAttr: %s, vid = 0x%x\n", name, vid));
 
     VOL_ASSERT(this, (state == Hoarding || state == Logging));
-    VOL_ASSERT(this, IsReplicated());
 
     unsigned int i;
     int code = 0;
@@ -196,29 +195,37 @@ int volent::GetVolAttr(vuid_t vuid) {
 	     * state the volume will be demoted and the callback cleared
 	     * anyway.
 	     */
-	    vol_iterator next;
-	    volent *v;
+	    repvol_iterator next;
+	    repvol *rv;
+            struct in_addr Hosts[VSG_MEMBERS], vHosts[VSG_MEMBERS];
+            GetHosts(Hosts);
 
 	    /* one of the following should be this volume. */
-	    while ((v = next()) && (nVols < PIGGY_VALIDATIONS)) 
-		if (v->IsReplicated() && 
-		    (v->vsg->Addr == vsg->Addr) &&
-		    ((v->state == Hoarding) || (v->state == Logging)) &&    
-		     v->WantCallBack() && 
-		    (VV_Cmp(&v->VVV, &NullVV) != VV_EQ)) {
+	    while ((rv = next()) && (nVols < PIGGY_VALIDATIONS)) 
+            {
+		if ((!rv->IsHoarding() && !rv->IsWriteDisconnected()) ||
+                    !rv->WantCallBack() ||
+                    VV_Cmp(&rv->VVV, &NullVV) == VV_EQ)
+                    continue;
 
-		    LOG(1000, ("volent::GetVolAttr: packing volume %s, vid 0x%x, vvv:\n",
-			v->name, v->vid));
-		    if (LogLevel >= 1000) PrintVV(logFile, &v->VVV);
+                /* Check whether the volume is hosted by the same VSG as the
+                 * current volume */
+                rv->GetHosts(vHosts);
+                if (memcmp(Hosts, vHosts, VSG_MEMBERS * sizeof(struct in_addr)))
+                    continue;
 
-		    VidList[nVols].Vid = v->vid;
-		    for (i = 0; i < m->nhosts; i++) {
-			*((RPC2_Unsigned *)&((char *)VSBS.SeqBody)[VSBS.SeqLen]) =
-				htonl((&v->VVV.Versions.Site0)[i]);
-			VSBS.SeqLen += sizeof(RPC2_Unsigned);
-		    }
-		    nVols++;
-		}
+                LOG(1000, ("volent::GetVolAttr: packing volume %s, vid %p, vvv:\n",
+                           rv->GetName(), rv->GetVid()));
+                if (LogLevel >= 1000) PrintVV(logFile, &rv->VVV);
+
+                VidList[nVols].Vid = rv->GetVid();
+                for (i = 0; i < m->nhosts; i++) {
+                    *((RPC2_Unsigned *)&((char *)VSBS.SeqBody)[VSBS.SeqLen]) =
+                        htonl((&rv->VVV.Versions.Site0)[i]);
+                    VSBS.SeqLen += sizeof(RPC2_Unsigned);
+                }
+                nVols++;
+            }
 
 	    /* 
 	     * nVols could be 0 here if someone else got into this routine and
@@ -254,8 +261,8 @@ int volent::GetVolAttr(vuid_t vuid) {
 	    if (code) goto RepExit;
 
 	    unsigned numVFlags = 0;
-	    for (i = 0; i < m->nhosts; i++)
-		if (m->rocc.hosts[i])
+	    for (i = 0; i < m->nhosts; i++) {
+		if (m->rocc.hosts[i].s_addr != 0) {
 		    if (numVFlags == 0) {
 			/* unset, copy in one response */
 			ARG_UNMARSHALL_BS(VFlagvar, VFlagBS, i);
@@ -269,22 +276,29 @@ int volent::GetVolAttr(vuid_t vuid) {
 				VFlags[j] &= VFlagvar_bufs[i].SeqBody[j];
 			}
 		    }
+                }
+            }
 
 
 	    LOG(10, ("volent::GetVolAttr: ValidateVols (%s), %d vids sent, %d checked\n",
 		      name, nVols, numVFlags));
+            
+            volent *v;
 
 	    /* now set status of volumes */
 	    for (i = 0; i < numVFlags; i++)  /* look up the object */
 		if ((v = VDB->Find(VidList[i].Vid))) {
-		    fso_vol_iterator next(NL, v);
+                    CODA_ASSERT(v->IsReplicated());
+
+		    fso_vol_iterator next(NL, (repvol *)v);
 		    fsobj *f;
-		    vcbevent ve(v->fso_list->count());
+		    vcbevent ve(((repvol *)v)->fso_list->count());
 
 		    switch (VFlags[i]) {
 		    case 1:  /* OK, callback */
 			if (cbtemp == cbbreaks) {
-			    LOG(1000, ("volent::GetVolAttr: vid 0x%x valid\n", v->vid));
+			    LOG(1000, ("volent::GetVolAttr: vid 0x%x valid\n",
+                                       v->GetVid()));
 	                    v->SetCallBack();
 
 			    /* validate cached access rights for the caller */
@@ -294,22 +308,24 @@ int volent::GetVolAttr(vuid_t vuid) {
 				    f->PromoteAcRights(vuid);
 			        }
 			    
-			    ReportVCBEvent(Validate, v->vid, &ve);
+			    ReportVCBEvent(Validate, v->GetVid(), &ve);
 		        } 
 			break;
 		    case 0:  /* OK, no callback */
-			LOG(0, ("volent::GetVolAttr: vid 0x%x valid, no callback\n", v->vid));
+			LOG(0, ("volent::GetVolAttr: vid 0x%x valid, no "
+                                "callback\n", v->GetVid()));
 			v->ClearCallBack();
 			break;
 		    default:  /* not OK */
-			LOG(1, ("volent::GetVolAttr: vid 0x%x invalid\n", v->vid));
+			LOG(1, ("volent::GetVolAttr: vid 0x%x invalid\n",
+                                v->GetVid()));
 			v->ClearCallBack();
 			Recov_BeginTrans();
-			    RVMLIB_REC_OBJECT(v->VVV);
-			    v->VVV = NullVV;   
+			    RVMLIB_REC_OBJECT(((repvol *)v)->VVV);
+			    ((repvol *)v)->VVV = NullVV;   
 			Recov_EndTrans(MAXFP);
 
-			ReportVCBEvent(FailedValidate, v->vid, &ve);
+			ReportVCBEvent(FailedValidate, v->GetVid(), &ve);
 
 			break;
 		    }
@@ -329,7 +345,8 @@ RepExit:
 
 
 /* collate version stamp and callback status out parameters from servers */
-void volent::CollateVCB(mgrpent *m, RPC2_Integer *sbufs, CallBackStatus *cbufs) {
+void repvol::CollateVCB(mgrpent *m, RPC2_Integer *sbufs, CallBackStatus *cbufs)
+{
     unsigned int i;
     CallBackStatus collatedCB = CallBackSet;
 
@@ -339,12 +356,12 @@ void volent::CollateVCB(mgrpent *m, RPC2_Integer *sbufs, CallBackStatus *cbufs) 
 
 	fprintf(logFile, "volent::CollateVCB: Version stamps returned:");
 	for (i = 0; i < m->nhosts; i++)
-	    if (m->rocc.hosts[i]) 
+	    if (m->rocc.hosts[i].s_addr != 0) 
 		fprintf(logFile, " %lu", sbufs[i]);
 
 	fprintf(logFile, "\nvolent::CollateVCB: Callback status returned:");
 	for (i = 0; i < m->nhosts; i++) 
-	    if (m->rocc.hosts[i])
+	    if (m->rocc.hosts[i].s_addr != 0)
 	    	fprintf(logFile, " %u", cbufs[i]);
 
 	fprintf(logFile, "\n");
@@ -352,7 +369,7 @@ void volent::CollateVCB(mgrpent *m, RPC2_Integer *sbufs, CallBackStatus *cbufs) 
     }
 
     for (i = 0; i < m->nhosts; i++) {
-	if (m->rocc.hosts[i] && (cbufs[i] != CallBackSet))
+	if (m->rocc.hosts[i].s_addr != 0 && (cbufs[i] != CallBackSet))
 	    collatedCB = NoCallBack;
     }
 
@@ -361,7 +378,7 @@ void volent::CollateVCB(mgrpent *m, RPC2_Integer *sbufs, CallBackStatus *cbufs) 
 	Recov_BeginTrans();
 	    RVMLIB_REC_OBJECT(VVV);
 	    for (i = 0; i < m->nhosts; i++)
-	        if (m->rocc.hosts[i])
+	        if (m->rocc.hosts[i].s_addr != 0)
 		   (&VVV.Versions.Site0)[i] = sbufs[i];
 	Recov_EndTrans(MAXFP);
     } else {
@@ -370,7 +387,7 @@ void volent::CollateVCB(mgrpent *m, RPC2_Integer *sbufs, CallBackStatus *cbufs) 
 	/* check if any of the returned stamps are zero.
 	   If so, server said stamp invalid. */
         for (i = 0; i < m->nhosts; i++)
-	    if (m->rocc.hosts[i] && (sbufs[i] == 0)) {
+	    if (m->rocc.hosts[i].s_addr != 0 && (sbufs[i] == 0)) {
 		Recov_BeginTrans();
 		   RVMLIB_REC_OBJECT(VVV);
 		   VVV = NullVV;
@@ -435,7 +452,8 @@ int volent::ValidateFSOs() {
 }
 
 
-void volent::PackVS(int nstamps, RPC2_CountedBS *BS) {
+void repvol::PackVS(int nstamps, RPC2_CountedBS *BS)
+{
     BS->SeqLen = 0;
     BS->SeqBody = (RPC2_ByteSeq) malloc(nstamps * sizeof(RPC2_Integer));
 
@@ -448,7 +466,8 @@ void volent::PackVS(int nstamps, RPC2_CountedBS *BS) {
 }
 
 
-int volent::CallBackBreak() {
+int repvol::CallBackBreak()
+{
     /*
      * Track vcb's broken for this volume. Total vcb's broken is 
      * accumulated in vdb::CallbackBreak.
@@ -469,7 +488,7 @@ int volent::CallBackBreak() {
 }
 
 
-void volent::ClearCallBack()
+void repvol::ClearCallBack()
 {
     /*
      * Count vcb's cleared on this volume because of connectivity
@@ -484,13 +503,13 @@ void volent::ClearCallBack()
 }
 
 
-void volent::SetCallBack()
+void repvol::SetCallBack()
 {
     VCBStatus = CallBackSet;
 }
 
 
-int volent::WantCallBack()
+int repvol::WantCallBack()
 {
     /* 
      * This is a policy module that decides if a volume 
@@ -546,7 +565,8 @@ void vcbdb::ResetTransient() {
 
 
 /* MUST NOT be called from within transaction! */
-vcbdent *vcbdb::Create(VolumeId vid, char *volname) {
+vcbdent *vcbdb::Create(VolumeId vid, const char *volname)
+{
     vcbdent *v = 0;
 
     /* Check whether the key is already in the database. */
@@ -595,7 +615,7 @@ void *vcbdent::operator new(size_t len){
 }
 
 
-vcbdent::vcbdent(VolumeId Vid, char *volname) {
+vcbdent::vcbdent(VolumeId Vid, const char *volname) {
 
     LOG(10, ("vcbdent::vcbdent: (%x, %s)\n", vid, volname));
 
@@ -607,7 +627,6 @@ vcbdent::vcbdent(VolumeId Vid, char *volname) {
 
     VCBDB->htab.insert(&vid, &handle);
 }
-	
 
 
 void vcbdent::print(int fd) {
@@ -681,7 +700,8 @@ void DeleteVCBData() {
  * The event data may be sent in explicitly, or if
  * not, taken from the stash on the vproc.
  */
-void ReportVCBEvent(VCBEventType event, VolumeId vid, vcbevent *ve) {
+void ReportVCBEvent(VCBEventType event, VolumeId vid, vcbevent *ve)
+{
     /* if ve == NULL, look for data on the vproc. */
     if (ve == NULL) {
 	vproc *vp = VprocSelf();
@@ -696,7 +716,7 @@ void ReportVCBEvent(VCBEventType event, VolumeId vid, vcbevent *ve) {
     if (!v) {
 	if (!vol) CHOKE("ReportVCBEvent: Can't find volume 0x%x!", vid);
     
-	v = VCBDB->Create(vol->vid, vol->name);
+	v = VCBDB->Create(vol->GetVid(), vol->GetName());
     }
 
     Recov_BeginTrans();
@@ -727,17 +747,17 @@ void ReportVCBEvent(VCBEventType event, VolumeId vid, vcbevent *ve) {
 	    v->data.Breaks++;
 	    v->data.BreakObjs += ve->nobjs;
 	    v->data.BreakVolOnly += ve->volonly;
-	    CODA_ASSERT(vol);
-	    v->data.BreakRefs += vol->VCBHits;
-	    vol->VCBHits = 0;
+	    CODA_ASSERT(vol && vol->IsReplicated());
+	    v->data.BreakRefs += ((repvol *)vol)->VCBHits;
+	    ((repvol *)vol)->VCBHits = 0;
 	    break;
 
 	case Clear:
 	    v->data.Clears++;
 	    v->data.ClearObjs += ve->nobjs;
-	    CODA_ASSERT(vol);
-	    v->data.ClearRefs += vol->VCBHits;
-	    vol->VCBHits = 0;
+	    CODA_ASSERT(vol && vol->IsReplicated());
+	    v->data.ClearRefs += ((repvol *)vol)->VCBHits;
+	    ((repvol *)vol)->VCBHits = 0;
 	    break;
 
 	case NoStamp:

@@ -59,6 +59,7 @@ extern "C" {
 #include <prs.h>
 #include <writeback.h>
 #include <codaconf.h>
+#include <coda_config.h>
 #include <inconsist.h>
 
 /* From venusvol.h.  A volume is in exactly one of these states. */
@@ -532,21 +533,21 @@ static void CheckServers(int argc, char *argv[], int opslot)
     /* pack server host ids, if any */
     /* format of vio.in is #servers, hostid, hostid, ... */
     if (argc > 2)
-        insrv = (char *) malloc(sizeof(int) + sizeof(unsigned long) * MAXHOSTS);
+        insrv = (char *) malloc(sizeof(int) + sizeof(struct in_addr) * MAXHOSTS);
 
     int hcount = 0;
     for (i = 2; i < argc; i++) {
         struct hostent *h = gethostbyname(argv[i]);
-        int ix = (int) (hcount * sizeof(unsigned long) + sizeof(int));
+        int ix = (int) (hcount * sizeof(struct in_addr) + sizeof(int));
         if (h) {
-            *((unsigned long *) &insrv[ix]) = ntohl(*((unsigned long *)h->h_addr));
+            *((struct in_addr *) &insrv[ix]) = *(struct in_addr *)(h->h_addr);
             hcount++;
         }
     }       
     if (hcount) {
         ((int *) insrv)[0] = hcount;
         vio.in = insrv;
-        vio.in_size = (int) (hcount * sizeof(unsigned long) + sizeof(int));
+        vio.in_size = (int) (hcount * sizeof(struct in_addr) + sizeof(int));
     }
 
     printf("Contacting servers .....\n"); /* say something so Puneet knows something is going on */
@@ -566,14 +567,12 @@ static void CheckServers(int argc, char *argv[], int opslot)
         struct hostent *hent;
 
         if (downsrvarray[i] == 0) break;
-        a = htonl(downsrvarray[i]);
-        b = *(struct in_addr *)&a;
-        hent = gethostbyaddr((char *)&a, (int) sizeof(long), AF_INET);
+
+        hent = gethostbyaddr((char *)&downsrvarray[i], (int) sizeof(long), AF_INET);
         if (hent) printf("  %s", hent->h_name);
         else {
             /* a may have been clobbered by gethostbyaddr() */
-            a = htonl(downsrvarray[i]);
-            b = *(struct in_addr *)&a;
+            b = *(struct in_addr *)&downsrvarray[i];
             printf("  %s", inet_ntoa(b));
         }
     }

@@ -743,7 +743,7 @@ int fsdb::Get(fsobj **f_addr, ViceFid *key, vuid_t vuid, int rights,
 
     { 	/* a special check for accessing already localized object */
 	volent *vol = VDB->Find(key->Volume);
-	if (vol && !vol->IsUnderRepair(ALL_UIDS) && vol->flags.has_local_subtree) {
+	if (vol && !vol->IsUnderRepair(ALL_UIDS) && vol->HasLocalSubtree()) {
 	    lgm_iterator next(LRDB->local_global_map);
 	    lgment *lgm;
 	    ViceFid *gfid;
@@ -767,7 +767,7 @@ int fsdb::Get(fsobj **f_addr, ViceFid *key, vuid_t vuid, int rights,
 
     /* Volume state synchronization. */
     /* If a thread is already "in" one volume, we must switch contexts before entering another. */
-    if (vp->u.u_vol != 0 && (vp->u.u_vol)->vid != key->Volume) {
+    if (vp->u.u_vol && vp->u.u_vol->GetVid() != key->Volume) {
 	/* Preserve the user context. */
 	struct uarea saved_ctxt = vp->u;
 	vp->u.Init();
@@ -840,7 +840,7 @@ RestartFind:
 	}
 
         /* Cut-out early if volume is disconnected! */
-        if ((v->state != Hoarding) && (v->state != Logging)) {
+        if (v->state != Hoarding && v->state != Logging) {
             LOG(100, ("Volume disconnected and file not cached!\n"));
             /* v->DisconnectedCacheMiss(vp, vuid, key, comp); */
             VmonUpdateSession(vp, key, f /* NULL */, v, vuid, ATTR, TIMEOUT, FSOBJSIZE);

@@ -232,8 +232,9 @@ int fsobj::Fetch(vuid_t vuid) {
 	/* The COP:Fetch call. */
 	{
 	    /* Make multiple copies of the IN/OUT and OUT parameters. */
-	    int ph_ix;
-	    unsigned long ph; ph = m->GetPrimaryHost(&ph_ix);
+	    int ph_ix; unsigned long ph;
+            ph = ntohl(m->GetPrimaryHost(&ph_ix)->s_addr);
+
 	    ARG_MARSHALL(OUT_MODE, ViceStatus, statusvar, status, VSG_MEMBERS);
 	    ARG_MARSHALL(IN_OUT_MODE, SE_Descriptor, sedvar, *sed, VSG_MEMBERS);
 	    {
@@ -352,7 +353,8 @@ RepExit:
     else {
 	/* Acquire a Connection. */
 	connent *c;
-	code = vol->GetConn(&c, vuid);
+        volrep *vp = (volrep *)vol;
+	code = vp->GetConn(&c, vuid);
 	if (code != 0) goto NonRepExit;
 
 	/* Make the RPC call. */
@@ -364,7 +366,7 @@ RepExit:
 	CFSOP_POSTLUDE("fetch::fetch done\n");
 
 	/* Examine the return code to decide what to do next. */
-	code = vol->Collate(c, code);
+	code = vp->Collate(c, code);
 	UNI_RECORD_STATS(ViceFetch_OP);
 	if (IsFile()) {
 	    Recov_BeginTrans();
@@ -462,7 +464,8 @@ NonRepExit:
 
 /*  *****  GetAttr/GetAcl  *****  */
 
-int fsobj::GetAttr(vuid_t vuid, RPC2_BoundedBS *acl) {
+int fsobj::GetAttr(vuid_t vuid, RPC2_BoundedBS *acl)
+{
     LOG(10, ("fsobj::GetAttr: (%s), uid = %d\n", comp, vuid));
 
     if (IsLocalObj()) {
@@ -516,7 +519,7 @@ int fsobj::GetAttr(vuid_t vuid, RPC2_BoundedBS *acl) {
     PiggyBS.SeqLen = 0;
     PiggyBS.SeqBody = (RPC2_ByteSeq)PiggyData;
 
-    if (flags.replicated) {
+    if (vol->IsReplicated()) {
 	mgrpent *m = 0;
 	int asy_resolve = 0;
 
@@ -536,7 +539,8 @@ int fsobj::GetAttr(vuid_t vuid, RPC2_BoundedBS *acl) {
 	int i;
         {
 	    /* Make multiple copies of the IN/OUT and OUT parameters. */
-	    int ph_ix; unsigned long ph; ph = m->GetPrimaryHost(&ph_ix);
+	    int ph_ix; unsigned long ph;
+            ph = ntohl(m->GetPrimaryHost(&ph_ix)->s_addr);
 
 	    /* unneccesary in validation case but it beats duplicating code. */
 	    if (acl->MaxSeqLen > VENUS_MAXBSLEN)
@@ -624,7 +628,7 @@ int fsobj::GetAttr(vuid_t vuid, RPC2_BoundedBS *acl) {
 		    int numVFlags = 0;
 
 		    for (i = 0; i < VSG_MEMBERS; i++)
-			if (m->rocc.hosts[i])
+			if (m->rocc.hosts[i].s_addr != 0)
 			    if (numVFlags == 0) {
 				/* unset, copy in one response */
 				ARG_UNMARSHALL_BS(VFlagvar, VFlagBS, i);
@@ -906,7 +910,8 @@ RepExit:
     } else {
 	/* Acquire a Connection. */
 	connent *c;
-	code = vol->GetConn(&c, vuid);
+        volrep *vp = (volrep *)vol;
+	code = vp->GetConn(&c, vuid);
 	if (code != 0) goto NonRepExit;
 
 	/* Make the RPC call. */
@@ -920,7 +925,7 @@ RepExit:
 	    CFSOP_POSTLUDE(post_str);
 
 	    /* Examine the return code to decide what to do next. */
-	    code = vol->Collate(c, code);
+	    code = vp->Collate(c, code);
 	    UNI_RECORD_STATS(ViceGetACL_OP);
 	} else {
 	    UNI_START_MESSAGE(ViceGetAttr_OP);
@@ -930,7 +935,7 @@ RepExit:
 	    CFSOP_POSTLUDE(post_str);
 
 	    /* Examine the return code to decide what to do next. */
-	    code = vol->Collate(c, code);
+	    code = vp->Collate(c, code);
 	    UNI_RECORD_STATS(ViceGetAttr_OP);
 	}
 	if (code != 0) goto NonRepExit;
@@ -1107,7 +1112,9 @@ int fsobj::ConnectedStore(Date_t Mtime, vuid_t vuid, unsigned long NewLength)
 	Recov_EndTrans(MAXFP);
 	{
 	    /* Make multiple copies of the IN/OUT and OUT parameters. */
-	    int ph_ix; unsigned long ph; ph = m->GetPrimaryHost(&ph_ix);
+	    int ph_ix; unsigned long ph;
+            ph = ntohl(m->GetPrimaryHost(&ph_ix)->s_addr);
+
 	    vol->PackVS(m->nhosts, &OldVS);
 
 	    ARG_MARSHALL(IN_OUT_MODE, ViceStatus, statusvar, status, VSG_MEMBERS);
@@ -1195,8 +1202,9 @@ RepExit:
     else {
 	/* Acquire a Connection. */
 	connent *c;
-	ViceStoreId Dummy;     /* ViceStore needs an address for indirection */
-	code = vol->GetConn(&c, vuid);
+	ViceStoreId Dummy;      /* ViceStore needs an address for indirection */
+        volrep *vp = (volrep *)vol;
+	code = vp->GetConn(&c, vuid);
 	if (code != 0) goto NonRepExit;
 
 	/* Make the RPC call. */
@@ -1208,7 +1216,7 @@ RepExit:
 	CFSOP_POSTLUDE("store::store done\n");
 
 	/* Examine the return code to decide what to do next. */
-	code = vol->Collate(c, code);
+	code = vp->Collate(c, code);
 	UNI_RECORD_STATS(ViceStore_OP);
 	if (code != 0) goto NonRepExit;
 
@@ -1395,7 +1403,8 @@ int fsobj::ConnectedSetAttr(Date_t Mtime, vuid_t vuid, unsigned long NewLength,
 	Recov_EndTrans(MAXFP);
 	{
 	    /* Make multiple copies of the IN/OUT and OUT parameters. */
-	    int ph_ix; unsigned long ph; ph = m->GetPrimaryHost(&ph_ix);
+	    int ph_ix; unsigned long ph;
+            ph = ntohl(m->GetPrimaryHost(&ph_ix)->s_addr);
 	    vol->PackVS(m->nhosts, &OldVS);
 
 	    ARG_MARSHALL(IN_OUT_MODE, ViceStatus, statusvar, status, VSG_MEMBERS);
@@ -1490,8 +1499,9 @@ RepExit:
     else {
 	/* Acquire a Connection. */
 	connent *c;
-	ViceStoreId Dummy;              /* ViceStore needs an address for indirection */
-	code = vol->GetConn(&c, vuid);
+	ViceStoreId Dummy;      /* ViceStore needs an address for indirection */
+        volrep *vp = (volrep *)vol;
+	code = vp->GetConn(&c, vuid);
 	if (code != 0) goto NonRepExit;
 
 	/* Make the RPC call. */
@@ -1504,7 +1514,7 @@ RepExit:
 	    CFSOP_POSTLUDE("store::setacl done\n");
 
 	    /* Examine the return code to decide what to do next. */
-	    code = vol->Collate(c, code);
+	    code = vp->Collate(c, code);
 	    UNI_RECORD_STATS(ViceSetACL_OP);
 	} else {
 	    UNI_START_MESSAGE(ViceSetAttr_OP);
@@ -1514,7 +1524,7 @@ RepExit:
 	    CFSOP_POSTLUDE("store::setattr done\n");
 
 	    /* Examine the return code to decide what to do next. */
-	    code = vol->Collate(c, code);
+	    code = vp->Collate(c, code);
 	    UNI_RECORD_STATS(ViceSetAttr_OP);
 	}
 	if (code != 0) goto NonRepExit;
@@ -1849,8 +1859,9 @@ RepExit:
     else {
 	/* Acquire a Connection. */
 	connent *c;
-	ViceStoreId Dummy;                   /* Need an address for ViceCreate */
-	code = vol->GetConn(&c, vuid);
+	ViceStoreId Dummy;                  /* Need an address for ViceCreate */
+        volrep *vp = (volrep *)vol;
+	code = vp->GetConn(&c, vuid);
 	if (code != 0) goto NonRepExit;
 
 	/* Make the RPC call. */
@@ -1865,7 +1876,7 @@ RepExit:
 	CFSOP_POSTLUDE("store::create done\n");
 
 	/* Examine the return code to decide what to do next. */
-	code = vol->Collate(c, code);
+	code = vp->Collate(c, code);
 	UNI_RECORD_STATS(ViceVCreate_OP);
 	if (code != 0) goto NonRepExit;
 
@@ -1910,8 +1921,10 @@ NonRepExit:
     return(code);
 }
 
-int fsobj::DisconnectedCreate(Date_t Mtime, vuid_t vuid, fsobj **t_fso_addr, char *name, 
-			      unsigned short Mode, int target_pri, int Tid) {
+int fsobj::DisconnectedCreate(Date_t Mtime, vuid_t vuid, fsobj **t_fso_addr,
+                              char *name, unsigned short Mode, int target_pri,
+                              int Tid)
+{
     FSO_ASSERT(this, (EMULATING(this) || LOGGING(this)));
 
     int code = 0;
@@ -1919,11 +1932,11 @@ int fsobj::DisconnectedCreate(Date_t Mtime, vuid_t vuid, fsobj **t_fso_addr, cha
     ViceFid target_fid;
     RPC2_Unsigned AllocHost = 0;
 
-    if (!flags.replicated) {
+    if (!vol->IsReplicated()) {
 	code = ETIMEDOUT;
 	goto Exit;
     }
-
+    
     /* Allocate a fid for the new object. */
     /* if we time out, return so we will try again with a local fid. */
     code = vol->AllocFid(File, &target_fid, &AllocHost, vuid);

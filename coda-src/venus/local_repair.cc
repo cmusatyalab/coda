@@ -105,10 +105,10 @@ void lrdb::BeginRepairSession(ViceFid *RootFid, int RepMode, char *msg)
     vpt_iterator next(repair_vol_list);
     vptent *vpt;
     while ((vpt = next())) {
-	volent *vol = vpt->GetVol();
-	VolumeId Vols[MAXHOSTS];
-	vuid_t LockUids[MAXHOSTS];
-	unsigned long LockWSs[MAXHOSTS];
+	repvol *vol = vpt->GetVol();
+	VolumeId Vols[VSG_MEMBERS];
+	vuid_t LockUids[VSG_MEMBERS];
+	unsigned long LockWSs[VSG_MEMBERS];
 	(void)vol->EnableRepair(ALL_UIDS, Vols, LockUids, LockWSs);
     }
 
@@ -245,7 +245,7 @@ void lrdb::EndRepairSession(int Commit, char *msg)
 	vpt_iterator next(repair_vol_list);
 	vptent *vpt;	
 	while ((vpt = next())) {
-	    volent *vol = vpt->GetVol();
+	    repvol *vol = vpt->GetVol();
 	    OBJ_ASSERT(this, vol);
 	    vol->CheckTransition();
 	    (void)vol->DisableRepair(ALL_UIDS);
@@ -498,15 +498,16 @@ void lrdb::InitCMLSearch(ViceFid *FakeRootFid)
 
 	    {	/* built repair_vol_list */
 		volent *Vol = VDB->Find(GFid->Volume);
-		OBJ_ASSERT(this, Vol != NULL);
+		OBJ_ASSERT(this, Vol != NULL && Vol->IsReplicated());
+                repvol *vp = (repvol *)Vol;
 		vpt_iterator next(repair_vol_list);
 		vptent *vpt;
 		while ((vpt = next())) {
-		    if (vpt->GetVol() == Vol) break;
+		    if (vpt->GetVol() == vp) break;
 		}
 		if (vpt == NULL) {
 		    /* volume not already in list, insert it */
-		    vpt = new vptent(Vol);	
+		    vpt = new vptent(vp);	
 		    repair_vol_list.append(vpt);
 		}
 	    }
@@ -601,15 +602,16 @@ void lrdb::ListCML(ViceFid *FakeRootFid, FILE *fp)
 
 	    {	/* built vol_list */
 		volent *Vol = VDB->Find(GFid->Volume);
-		OBJ_ASSERT(this, Vol != NULL);
+		OBJ_ASSERT(this, Vol != NULL && Vol->IsReplicated());
+                repvol *vp = (repvol *)Vol;
 		vpt_iterator next(vol_list);
 		vptent *vpt;
 		while ((vpt = next())) {
-		    if (vpt->GetVol() == Vol) break;
+		    if (vpt->GetVol() == vp) break;
 		}
 		if (vpt == NULL) {
 		    /* volume not already in list, insert it */
-		    vpt = new vptent(Vol);	
+		    vpt = new vptent(vp);	
 		    vol_list.append(vpt);
 		}
 	    }
@@ -1167,15 +1169,16 @@ void lrdb::RemoveSubtree(ViceFid *FakeRootFid)
 
 	    {	/* built gc_vol_list */
 		volent *Vol = VDB->Find(GFid->Volume);
-		OBJ_ASSERT(this, Vol != NULL);
+		OBJ_ASSERT(this, Vol != NULL && Vol->IsReplicated());
+                repvol *vp = (repvol *)Vol;
 		vpt_iterator next(gc_vol_list);
 		vptent *vpt;
 		while ((vpt = next())) {
-		    if (vpt->GetVol() == Vol) break;
+		    if (vpt->GetVol() == vp) break;
 		}
 		if (vpt == NULL) {
 		    /* volume not already in list, insert it */
-		    vpt = new vptent(Vol);	
+		    vpt = new vptent(vp);	
 		    gc_vol_list.append(vpt);
 		}
 	    }

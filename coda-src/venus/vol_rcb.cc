@@ -113,7 +113,7 @@ int volent::FlushRCB() {
     int code = 0;
 
     for (;;) {
-	if (type == REPVOL) {
+	if (type == ReplicatedVolume) {
 	    /* Acquire an Mgroup. */
 	    mgrpent *m = 0;
 	    code = GetMgrp(&m, V_UID);

@@ -83,6 +83,7 @@ extern "C" {
 #endif	/* CODAAUTH */
 
 #include <codaconf.h>
+#include <coda_config.h>
 #include <vice_file.h>
 
 static char *serverconf = SYSCONFDIR "/server"; /* ".conf" */

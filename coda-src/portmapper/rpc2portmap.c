@@ -33,6 +33,7 @@ listed in the file CREDITS.
 #include "map.h"
 #include "codaconf.h"
 #include "vice_file.h"
+#include <coda_config.h>
 
 #ifdef __CYGWIN32__
 extern char *optarg;

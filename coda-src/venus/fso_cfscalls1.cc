@@ -142,7 +142,9 @@ int fsobj::ConnectedRemove(Date_t Mtime, vuid_t vuid, char *name, fsobj *target_
 	Recov_EndTrans(MAXFP);
 	{
 	    /* Make multiple copies of the IN/OUT and OUT parameters. */
-	    int ph_ix; unsigned long ph; ph = m->GetPrimaryHost(&ph_ix);
+	    int ph_ix; unsigned long ph;
+            ph = ntohl(m->GetPrimaryHost(&ph_ix)->s_addr);
+
 	    vol->PackVS(m->nhosts, &OldVS);
 
 	    ARG_MARSHALL(IN_OUT_MODE, ViceStatus, parent_statusvar, parent_status, VSG_MEMBERS);
@@ -222,8 +224,9 @@ RepExit:
     else {
 	/* Acquire a Connection. */
 	connent *c;
-	ViceStoreId Dummy;                   /* Need an address for ViceRemove */
-	code = vol->GetConn(&c, vuid);
+	ViceStoreId Dummy;                  /* Need an address for ViceRemove */
+        volrep *vp = (volrep *)vol;
+	code = vp->GetConn(&c, vuid);
 	if (code != 0) goto NonRepExit;
 
 	/* Make the RPC call. */
@@ -236,7 +239,7 @@ RepExit:
 	CFSOP_POSTLUDE("store::remove done\n");
 
 	/* Examine the return code to decide what to do next. */
-	code = vol->Collate(c, code);
+	code = vp->Collate(c, code);
 	UNI_RECORD_STATS(ViceVRemove_OP);
 	if (code != 0) goto NonRepExit;
 
@@ -379,7 +382,9 @@ int fsobj::ConnectedLink(Date_t Mtime, vuid_t vuid, char *name, fsobj *source_fs
 	Recov_EndTrans(MAXFP);
 	{
 	    /* Make multiple copies of the IN/OUT and OUT parameters. */
-	    int ph_ix; unsigned long ph; ph = m->GetPrimaryHost(&ph_ix);
+	    int ph_ix; unsigned long ph;
+            ph = ntohl(m->GetPrimaryHost(&ph_ix)->s_addr);
+
  	    vol->PackVS(m->nhosts, &OldVS);
 	    ARG_MARSHALL(IN_OUT_MODE, ViceStatus, source_statusvar, source_status, VSG_MEMBERS);
 	    ARG_MARSHALL(IN_OUT_MODE, ViceStatus, parent_statusvar, parent_status, VSG_MEMBERS);
@@ -459,7 +464,8 @@ RepExit:
 	/* Acquire a Connection. */
 	connent *c;
 	ViceStoreId Dummy;                   /* Need an address for ViceLink */
-	code = vol->GetConn(&c, vuid);
+        volrep *vp = (volrep *)vol;
+	code = vp->GetConn(&c, vuid);
 	if (code != 0) goto NonRepExit;
 
 	/* Make the RPC call. */
@@ -473,7 +479,7 @@ RepExit:
 	CFSOP_POSTLUDE("store::link done\n");
 
 	/* Examine the return code to decide what to do next. */
-	code = vol->Collate(c, code);
+	code = vp->Collate(c, code);
 	UNI_RECORD_STATS(ViceVLink_OP);
 	if (code != 0) goto NonRepExit;
 
@@ -686,7 +692,9 @@ int fsobj::ConnectedRename(Date_t Mtime, vuid_t vuid, fsobj *s_parent_fso,
 	Recov_EndTrans(MAXFP);
 	{
 	    /* Make multiple copies of the IN/OUT and OUT parameters. */
-	    int ph_ix; unsigned long ph; ph = m->GetPrimaryHost(&ph_ix);
+	    int ph_ix; unsigned long ph;
+            ph = ntohl(m->GetPrimaryHost(&ph_ix)->s_addr);
+
  	    vol->PackVS(m->nhosts, &OldVS);
 	    ARG_MARSHALL(IN_OUT_MODE, ViceStatus, t_parent_statusvar, t_parent_status, VSG_MEMBERS);
 	    ARG_MARSHALL(IN_OUT_MODE, ViceStatus, s_parent_statusvar, s_parent_status, VSG_MEMBERS);
@@ -778,8 +786,9 @@ RepExit:
     else {
 	/* Acquire a Connection. */
 	connent *c;
-	ViceStoreId Dummy;                   /* Need an address for ViceRename */
-	code = vol->GetConn(&c, vuid);
+	ViceStoreId Dummy;                  /* Need an address for ViceRename */
+        volrep *vp = (volrep *)vol;
+	code = vp->GetConn(&c, vuid);
 	if (code != 0) goto NonRepExit;
 
 	/* Make the RPC call. */
@@ -794,7 +803,7 @@ RepExit:
 	CFSOP_POSTLUDE("store::rename done\n");
 
 	/* Examine the return code to decide what to do next. */
-	code = vol->Collate(c, code);
+	code = vp->Collate(c, code);
 	UNI_RECORD_STATS(ViceVRename_OP);
 	if (code != 0) goto NonRepExit;
 
@@ -1081,8 +1090,9 @@ RepExit:
     else {
 	/* Acquire a Connection. */
 	connent *c;
-	ViceStoreId Dummy;                   /* Need an address for ViceMakeDir */
-	code = vol->GetConn(&c, vuid);
+	ViceStoreId Dummy;                 /* Need an address for ViceMakeDir */
+        volrep *vp = (volrep *)vol;
+	code = vp->GetConn(&c, vuid);
 	if (code != 0) goto NonRepExit;
 
 	/* Make the RPC call. */
@@ -1097,7 +1107,7 @@ RepExit:
 	CFSOP_POSTLUDE("store::mkdir done\n");
 
 	/* Examine the return code to decide what to do next. */
-	code = vol->Collate(c, code);
+	code = vp->Collate(c, code);
 	UNI_RECORD_STATS(ViceVMakeDir_OP);
 	if (code != 0) goto NonRepExit;
 
@@ -1153,11 +1163,11 @@ int fsobj::DisconnectedMkdir(Date_t Mtime, vuid_t vuid, fsobj **t_fso_addr, char
     ViceFid target_fid;
     RPC2_Unsigned AllocHost = 0;
 
-    if (!flags.replicated) {
+    if (!vol->IsReplicated()) {
 	code = ETIMEDOUT;
 	goto Exit;
     }
-
+    
     /* Allocate a fid for the new object. */
     /* if we time out, return so we will try again with a local fid. */
     code = vol->AllocFid(Directory, &target_fid, &AllocHost, vuid);
@@ -1294,7 +1304,7 @@ int fsobj::ConnectedRmdir(Date_t Mtime, vuid_t vuid, char *name, fsobj *target_f
     OldVS.SeqLen = 0;
     OldVS.SeqBody = 0;
 
-    if (flags.replicated) {
+    if (vol->IsReplicated()) {
 	ViceStoreId sid;
 	mgrpent *m = 0;
 	int asy_resolve = 0;
@@ -1312,7 +1322,9 @@ int fsobj::ConnectedRmdir(Date_t Mtime, vuid_t vuid, char *name, fsobj *target_f
 	Recov_EndTrans(MAXFP);
 	{
 	    /* Make multiple copies of the IN/OUT and OUT parameters. */
-	    int ph_ix; unsigned long ph; ph = m->GetPrimaryHost(&ph_ix);
+	    int ph_ix; unsigned long ph;
+            ph = ntohl(m->GetPrimaryHost(&ph_ix)->s_addr);
+
  	    vol->PackVS(m->nhosts, &OldVS);
 	    ARG_MARSHALL(IN_OUT_MODE, ViceStatus, parent_statusvar, parent_status, VSG_MEMBERS);
 	    ARG_MARSHALL(IN_OUT_MODE, ViceStatus, target_statusvar, target_status, VSG_MEMBERS);
@@ -1390,8 +1402,9 @@ RepExit:
     else {
 	/* Acquire a Connection. */
 	connent *c;
-	ViceStoreId Dummy;                   /* Need an address for ViceRemoveDir */
-	code = vol->GetConn(&c, vuid);
+	ViceStoreId Dummy;               /* Need an address for ViceRemoveDir */
+        volrep *vp = (volrep *)vol;
+	code = vp->GetConn(&c, vuid);
 	if (code != 0) goto NonRepExit;
 
 	/* Make the RPC call. */
@@ -1404,7 +1417,7 @@ RepExit:
 	CFSOP_POSTLUDE("store::rmdir done\n");
 
 	/* Examine the return code to decide what to do next. */
-	code = vol->Collate(c, code);
+	code = vp->Collate(c, code);
 	UNI_RECORD_STATS(ViceVRemoveDir_OP);
 	if (code != 0) goto NonRepExit;
 
@@ -1671,8 +1684,9 @@ RepExit:
     else {
 	/* Acquire a Connection. */
 	connent *c;
-	ViceStoreId Dummy;                   /* Need an address for ViceSymLink */
-	code = vol->GetConn(&c, vuid);
+	ViceStoreId Dummy;               /* Need an address for ViceSymLink */
+        volrep *vp = (volrep *)vol;
+	code = vp->GetConn(&c, vuid);
 	if (code != 0) goto NonRepExit;
 
 	/* Make the RPC call. */
@@ -1688,7 +1702,7 @@ RepExit:
 	CFSOP_POSTLUDE("store::symlink done\n");
 
 	/* Examine the return code to decide what to do next. */
-	code = vol->Collate(c, code);
+	code = vp->Collate(c, code);
 	UNI_RECORD_STATS(ViceVSymLink_OP);
 	if (code != 0) goto NonRepExit;
 
@@ -1745,11 +1759,11 @@ int fsobj::DisconnectedSymlink(Date_t Mtime, vuid_t vuid, fsobj **t_fso_addr,
     ViceFid target_fid = NullFid;
     RPC2_Unsigned AllocHost = 0;
 
-    if (!flags.replicated) {
+    if (!vol->IsReplicated()) {
 	code = ETIMEDOUT;
 	goto Exit;
     }
-
+    
     /* Allocate a fid for the new object. */
     /* if we time out, return so we will try again with a local fid. */
     code = vol->AllocFid(SymbolicLink, &target_fid, &AllocHost, vuid);
@@ -1910,7 +1924,8 @@ RepExit:
 	else {
 	    /* Acquire a Connection. */
 	    connent *c;
-	    code = vol->GetConn(&c, vuid);
+            volrep *vp = (volrep *)vol;
+	    code = vp->GetConn(&c, vuid);
 	    if (code != 0) goto NonRepExit;
 
 	    /* Make the RPC call. */
@@ -1921,7 +1936,7 @@ RepExit:
 	    CFSOP_POSTLUDE("store::setvv done\n");
 
 	    /* Examine the return code to decide what to do next. */
-	    code = vol->Collate(c, code);
+	    code = vp->Collate(c, code);
 	    UNI_RECORD_STATS(ViceSetVV_OP);
 	    if (code != 0) goto NonRepExit;
 

@@ -286,7 +286,8 @@ void cmlent::Thaw()
  * tid. Note the time limit does not apply to ASRs.
  * The routine returns the number of records marked.
  */
-void ClientModifyLog::GetReintegrateable(int tid, int *nrecs) {
+void ClientModifyLog::GetReintegrateable(int tid, int *nrecs)
+{
     volent *vol = strbase(volent, this, CML);
     cmlent *m;
     cml_iterator next(*this, CommitOrder);
@@ -294,8 +295,10 @@ void ClientModifyLog::GetReintegrateable(int tid, int *nrecs) {
     unsigned long bw; /* bandwidth in bytes/sec */
     int err;
 
+    *nrecs = 0;
+
     /* get the current bandwidth estimate */
-    vol->vsg->GetBandwidth(&bw);
+    vol->GetBandwidth(&bw);
 
     while ((m = next())) {
 	if (!m->ReintReady())
@@ -348,14 +351,14 @@ void ClientModifyLog::GetReintegrateable(int tid, int *nrecs) {
  * Note with a less pretty interface this could be rolled into
  * the routine above.
  */
-cmlent *ClientModifyLog::GetFatHead(int tid) {
+cmlent *ClientModifyLog::GetFatHead(int tid)
+{
     volent *vol = strbase(volent, this, CML);
     cmlent *m;
     cml_iterator next(*this, CommitOrder);
     unsigned long bw; /* bandwidth in bytes/sec */
 
-    /* get the current bandwidth estimate */
-    vol->vsg->GetBandwidth(&bw);
+    if (!vol->IsReplicated()) return NULL;
 
     /* Get the first entry in the CML */
     m = next();
@@ -367,6 +370,8 @@ cmlent *ClientModifyLog::GetFatHead(int tid) {
         !m->ReintReady())
         return((cmlent *)0);
 
+    /* get the current bandwidth estimate */
+    vol->GetBandwidth(&bw);
 
     /* If we already have a reintegration handle, or if the reintegration time
      * exceeds the limit, we need to do a partial reintegration of the store. */
@@ -550,7 +555,7 @@ cmlent::cmlent(ClientModifyLog *Log, time_t Mtime, vuid_t vuid, int op, int Tid 
 	    u.u_store.Length = va_arg(ap, RPC2_Unsigned);
 	    memset(&u.u_store.RHandle, 0, sizeof(ViceReintHandle));
 	    u.u_store.Offset    = -1;
-	    u.u_store.ReintPH   = 0;
+	    u.u_store.ReintPH.s_addr = 0;
 	    u.u_store.ReintPHix = -1;
 	    break;
 
@@ -888,8 +893,7 @@ void cmlent::print(int afd) {
 		    u.u_store.RHandle.Device,
 		    u.u_store.RHandle.Inode);
 	    fdprint(afd, "\tph = %s (%d)",
-		    inet_ntoa(*(struct in_addr *)&u.u_store.ReintPH),
-		    u.u_store.ReintPHix);
+		    inet_ntoa(u.u_store.ReintPH), u.u_store.ReintPHix);
 	    fdprint(afd, "\n");
 	    break;
 
@@ -2068,6 +2072,7 @@ int ClientModifyLog::COP1(char *buf, int bufsize, ViceVersionVector *UpdateSet,
 			  int outoforder)
 {
     volent *vol = strbase(volent, this, CML);
+    CODA_ASSERT(vol->IsReplicated());
     int code = 0;
     unsigned int i = 0;
     mgrpent *m = 0;
@@ -2111,14 +2116,14 @@ int ClientModifyLog::COP1(char *buf, int bufsize, ViceVersionVector *UpdateSet,
         goto Exit;
     }
 
-    if (vol->IsWeaklyConnected() && m->rocc.HowMany > 1) {
+    if (vol->IsWeaklyConnected() && m->nhosts > 1) {
 	/* Pick a server and get a connection to it. */
-	int ph_ix;
-	unsigned long ph = m->GetPrimaryHost(&ph_ix);
-	CODA_ASSERT(ph != 0);
+	int ph_ix; struct in_addr *phost;
+        phost = m->GetPrimaryHost(&ph_ix);
+	CODA_ASSERT(phost->s_addr != 0);
 
 	connent *c = 0;
-	code = ::GetConn(&c, ph, owner, 0);
+	code = ::GetConn(&c, phost, owner, 0);
 	if (code != 0) goto Exit;
 	
 	/* don't bother with VCBs, will lose them on resolve anyway */
@@ -2234,7 +2239,7 @@ int ClientModifyLog::COP1(char *buf, int bufsize, ViceVersionVector *UpdateSet,
 	 * care to treat the index different when an error is returned.
 	 * This double usage of the index is really asking for trouble! */
 	for (i = 0; i < m->nhosts; i++) {
-	    if (m->rocc.hosts[i]) {
+	    if (m->rocc.hosts[i].s_addr != 0) {
 		if ((code != EALREADY || m->rocc.retcodes[i] == EALREADY) &&
 		    (Index == UNSET_INDEX || Index > Indexvar_bufs[i]))
 		    Index = Indexvar_bufs[i];
@@ -2281,7 +2286,8 @@ int ClientModifyLog::COP1(char *buf, int bufsize, ViceVersionVector *UpdateSet,
 	 * found is at maximum, clear the volume callback to be safe.
 	 */
 	for (unsigned int rep = 0; rep < m->nhosts; rep++) 
-	    if (m->rocc.hosts[rep]) {	/* did this server participate? */
+            /* did this server participate? */
+	    if (m->rocc.hosts[rep].s_addr != 0) {
 		/* must look at all server feedback */
 		ARG_UNMARSHALL(NumStaleDirsvar, NumStaleDirs, rep);
 		ARG_UNMARSHALL_ARRAY(StaleDirsvar, NumStaleDirs, StaleDirs, rep);
@@ -2315,7 +2321,8 @@ Exit:
 
 /* Update the version state of fsobj's following successful reintegration. */
 /* MUST NOT be called from within transaction! */
-void ClientModifyLog::IncCommit(ViceVersionVector *UpdateSet, int Tid) {
+void ClientModifyLog::IncCommit(ViceVersionVector *UpdateSet, int Tid)
+{
     volent *vol = strbase(volent, this, CML);
     LOG(1, ("ClientModifyLog::IncCommit: (%s) tid = %d\n", 
 	    vol->name, Tid));
@@ -2344,7 +2351,6 @@ void ClientModifyLog::IncCommit(ViceVersionVector *UpdateSet, int Tid) {
 
     /* flush COP2 for this volume */
     vol->FlushCOP2();
-
     vol->flags.resolve_me = 0;
     LOG(0, ("ClientModifyLog::IncCommit: (%s)\n", vol->name));
 }
@@ -2356,7 +2362,7 @@ void ClientModifyLog::IncCommit(ViceVersionVector *UpdateSet, int Tid) {
 int cmlent::realloc() 
 {
     volent *vol = strbase(volent, log, CML);
-
+    CODA_ASSERT(vol->IsReplicated());
     int code = 0;
 
     ViceFid OldFid;
@@ -2876,10 +2882,12 @@ void cmlent::pack(PARM **_ptr) {
 
 /* local-repair modification */
 /* MUST be called from within transaction! */
-void cmlent::commit(ViceVersionVector *UpdateSet) {
+void cmlent::commit(ViceVersionVector *UpdateSet)
+{
     LOG(1, ("cmlent::commit: (%d)\n", tid));
 
     volent *vol = strbase(volent, log, CML);
+    CODA_ASSERT(vol->IsReplicated());
     vol->RecordsCommitted++;
 
     /* 
@@ -2948,7 +2956,7 @@ void cmlent::ClearReintegrationHandle()
 	RVMLIB_REC_OBJECT(u);
         memset(&u.u_store.RHandle, 0, sizeof(ViceReintHandle));
 	u.u_store.Offset    = -1;
-	u.u_store.ReintPH   = 0;
+	u.u_store.ReintPH.s_addr = 0;
 	u.u_store.ReintPHix = -1;
    Recov_EndTrans(MAXFP);
 }
@@ -2969,10 +2977,11 @@ int cmlent::DoneSending()
 int cmlent::GetReintegrationHandle()
 {
     volent *vol = strbase(volent, log, CML);
+    CODA_ASSERT(vol->IsReplicated());
     int code = 0;
     mgrpent *m = 0;
     int ph_ix;
-    unsigned long ph;
+    struct in_addr phost;
     connent *c = 0;
     
     /* Make sure to clear the handle, so we don't get confused then the rpc
@@ -2987,9 +2996,10 @@ int cmlent::GetReintegrationHandle()
     if (code != 0) goto Exit;
 
     /* Pick a server and get a connection to it. */
-    ph = m->GetPrimaryHost(&ph_ix);
-    CODA_ASSERT(ph != 0);
-    code = ::GetConn(&c, ph, log->owner, 0);
+    phost = *m->GetPrimaryHost(&ph_ix);
+    CODA_ASSERT(phost.s_addr != 0);
+
+    code = ::GetConn(&c, &phost, log->owner, 0);
     if (code != 0) goto Exit;
 
     {
@@ -3013,7 +3023,7 @@ int cmlent::GetReintegrationHandle()
 	    RVMLIB_REC_OBJECT(u);
 	    u.u_store.RHandle   = VR;
 	    u.u_store.Offset    = -1;
-	    u.u_store.ReintPH   = ph;
+	    u.u_store.ReintPH   = phost;
 	    u.u_store.ReintPHix = ph_ix;
 	Recov_EndTrans(MAXFP);
     }
@@ -3030,12 +3040,13 @@ Exit:
 int cmlent::ValidateReintegrationHandle()
 {
     volent *vol = strbase(volent, log, CML);
+    CODA_ASSERT(vol->IsReplicated());
     int code = 0;
     connent *c = 0;
     RPC2_Unsigned Offset = (unsigned long)-1;
     
     /* Acquire a connection. */
-    code = ::GetConn(&c, u.u_store.ReintPH, log->owner, 0);
+    code = ::GetConn(&c, &u.u_store.ReintPH, log->owner, 0);
     if (code != 0) goto Exit;
 
     {
@@ -3073,15 +3084,15 @@ Exit:
 
 int cmlent::WriteReintegrationHandle() {
     CODA_ASSERT(opcode == OLDCML_NewStore_OP);
-
     volent *vol = strbase(volent, log, CML);
+    CODA_ASSERT(vol->IsReplicated());
     int code = 0, fd = -1;
     connent *c = 0;
     fsobj *f = NULL;
     RPC2_Unsigned length = ReintAmount();
 
     /* Acquire a connection. */
-    code = ::GetConn(&c, u.u_store.ReintPH, log->owner, 0);
+    code = ::GetConn(&c, &u.u_store.ReintPH, log->owner, 0);
     if (code != 0) goto Exit;
 
     {
@@ -3168,8 +3179,10 @@ int cmlent::WriteReintegrationHandle() {
 
 
 int cmlent::CloseReintegrationHandle(char *buf, int bufsize, 
-				     ViceVersionVector *UpdateSet) {
+				     ViceVersionVector *UpdateSet)
+{
     volent *vol = strbase(volent, log, CML);
+    CODA_ASSERT(vol->IsReplicated());
     int code = 0;
     connent *c = 0;
     
@@ -3214,7 +3227,7 @@ int cmlent::CloseReintegrationHandle(char *buf, int bufsize,
 #endif
 
     /* Get a connection to the server. */
-    code = ::GetConn(&c, u.u_store.ReintPH, log->owner, 0);
+    code = ::GetConn(&c, &u.u_store.ReintPH, log->owner, 0);
     if (code != 0) goto Exit;
 
     /* don't bother with VCBs, will lose them on resolve anyway */
@@ -3959,7 +3972,8 @@ static int WriteHeader(FILE *fp, hblock& hdr) {
 }
 
 
-static int WriteData(FILE *wrfp, char *rdfn) {
+static int WriteData(FILE *wrfp, char *rdfn)
+{
     VprocYield();		/* Yield at least once per dumped file! */
 
     FILE *rdfp = fopen(rdfn, "r");
@@ -4203,11 +4217,12 @@ unsigned long cmlent::ReintAmount() {
 
     CODA_ASSERT(opcode == OLDCML_NewStore_OP);
 
+    if (!vol->IsReplicated()) return 0;
     /* 
      * try to get a dynamic bw estimate.  If that doesn't
      * work, fall back on the static estimate.
      */
-    vol->vsg->GetBandwidth(&bw);
+    vol->GetBandwidth(&bw);
 
     if (bw > 0) 
 	amount = vol->ReintLimit/1000 * bw;

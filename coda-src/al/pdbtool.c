@@ -42,6 +42,7 @@ listed in the file CREDITS.
 #include <coda_assert.h>
 #include <codaconf.h>
 #include <vice_file.h>
+#include <coda_config.h>
 
 static char *serverconf = SYSCONFDIR "/server"; /* ".conf" */
 static char *vicedir = NULL;

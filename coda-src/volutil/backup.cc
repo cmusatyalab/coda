@@ -78,6 +78,7 @@ extern "C" {
 #include <vsg.h>
 #include <vutil.h>
 #include <codaconf.h>
+#include <coda_config.h>
 #include <vice_file.h>
 
 

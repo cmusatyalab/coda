@@ -41,12 +41,13 @@ extern "C" {
 #include "coda_string.h"
 #include <unistd.h>
 #include <stdlib.h>
-#include "codaconf.h"
 
 #ifdef __cplusplus
 }
 #endif __cplusplus
 
+#include <codaconf.h>
+#include <coda_config.h>
 
 const char MarinerService[] = "venus";
 

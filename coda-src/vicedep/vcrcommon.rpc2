@@ -84,6 +84,9 @@ typedef RPC2_Struct
 #endif
 %}
 
+%{
+#define VSG_MEMBERS 8
+%}
 
 typedef RPC2_Struct
 {

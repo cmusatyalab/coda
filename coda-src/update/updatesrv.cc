@@ -93,6 +93,7 @@ extern void SFTP_Activate (SFTP_Initializer *initPtr);
 #include <util.h>
 #include <vice_file.h>
 #include <codaconf.h>
+#include <coda_config.h>
 #include "update.h"
 #include "updatecommon.h"
 

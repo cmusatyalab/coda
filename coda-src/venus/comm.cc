@@ -118,8 +118,7 @@ struct FailFilterInfoStruct {
 
 static int VSG_HashFN(void *);
 
-olist *mgrpent::mgrptab;
-char mgrpent::mgrptab_sync;
+char mgrpent::mgrp_sync;
 olist *srvent::srvtab;
 char srvent::srvtab_sync;
 olist *connent::conntab;
@@ -173,9 +172,6 @@ void CommInit() {
     /* Initialize Servers. */
     srvent::srvtab = new olist;
 
-    /* Initialize Mgroups. */
-    mgrpent::mgrptab = new olist;
-
     /* Create server entries for each bootstrap host. */
     int hcount = 0;
     for (char *hp = fsname; hp;) {
@@ -202,9 +198,9 @@ void CommInit() {
 	srvent         *s = NULL;
 	/* Allow use of IP addrs */
 	if (AllowIPAddrs && inet_aton(ServerName, &addr) != 0) {
-	    s = new srvent(ntohl(addr.s_addr), 1);
+	    s = new srvent(&addr, 1);
 	} else if ((h = gethostbyname(ServerName)) != NULL) {
-	    s = new srvent(ntohl(*((unsigned long *)h->h_addr)), 1);
+	    s = new srvent((struct in_addr *)h->h_addr, 1);
 	}
         if (s != NULL) {
 	    srvent::srvtab->insert(&s->tblhandle);
@@ -305,7 +301,7 @@ int GetAdmConn(connent **cpp) {
 	srvent *s;
 	while ((s = next())) {
             if (!s->IsRootServer()) continue;
-	    code = GetConn(cpp, s->host, V_UID, 0);
+	    code = GetConn(cpp, &s->host, V_UID, 0);
 	    switch(code) {
 		case 0:
 		    return(0);
@@ -333,9 +329,10 @@ int GetAdmConn(connent **cpp) {
 }
 
 
-int GetConn(connent **cpp, unsigned long host, vuid_t vuid, int Force) {
-    LOG(100, ("GetConn: host = %x, vuid = %d, force = %d\n",
-	     host, vuid, Force));
+int GetConn(connent **cpp, struct in_addr *host, vuid_t vuid, int Force)
+{
+    LOG(100, ("GetConn: host = %s, vuid = %d, force = %d\n",
+              inet_ntoa(*host), vuid, Force));
 
     *cpp = 0;
     int code = 0;
@@ -346,7 +343,7 @@ int GetConn(connent **cpp, unsigned long host, vuid_t vuid, int Force) {
     /* Before creating a new connection, make sure the per-user limit is not exceeded. */
     for (;;) {
 	/* Check whether there is already a free connection. */
-	struct ConnKey Key; Key.host = host; Key.vuid = vuid;
+	struct ConnKey Key; Key.host = *host; Key.vuid = vuid;
 	conn_iterator next(&Key);
 	int count = 0;
 	while ((c = next())) {
@@ -403,7 +400,8 @@ int GetConn(connent **cpp, unsigned long host, vuid_t vuid, int Force) {
 }
 
 
-void PutConn(connent **cpp) {
+void PutConn(connent **cpp)
+{
     connent *c = *cpp;
     *cpp = 0;
     if (c == 0) {
@@ -411,8 +409,8 @@ void PutConn(connent **cpp) {
 	return;
     }
 
-    LOG(100, ("PutConn: host = %#08x, uid = %d, cid = %d, auth = %d\n",
-	     c->Host, c->uid, c->connid, c->authenticated));
+    LOG(100, ("PutConn: host = %s, uid = %d, cid = %d, auth = %d\n",
+	     inet_ntoa(c->Host), c->uid, c->connid, c->authenticated));
 
     if (!c->inuse)
 	{ c->print(logFile); CHOKE("PutConn: conn not in use"); }
@@ -454,12 +452,13 @@ void ConnPrint(int fd) {
 }
 
 
-connent::connent(unsigned long host, vuid_t vuid, RPC2_Handle cid, int authflag) {
-    LOG(1, ("connent::connent: host = %#08x, uid = %d, cid = %d, auth = %d\n",
-	     host, vuid, cid, authflag));
+connent::connent(struct in_addr *host, vuid_t vuid, RPC2_Handle cid, int authflag)
+{
+    LOG(1, ("connent::connent: host = %s, uid = %d, cid = %d, auth = %d\n",
+	     inet_ntoa(*host), vuid, cid, authflag));
 
     /* These members are immutable. */
-    Host = host;
+    Host = *host;
     uid = vuid;
     connid = cid;
     authenticated = authflag;
@@ -483,11 +482,13 @@ connent::~connent() {
 	    Host, uid, connid, authenticated));
 
     int code = (int) RPC2_Unbind(connid);
+    connid = 0;
     LOG(1, ("connent::~connent: RPC2_Unbind -> %s\n", RPC2_ErrorMsg(code)));
 }
 
 
-int connent::Suicide(int disconnect) {
+int connent::Suicide(int disconnect)
+{
     LOG(1, ("connent::Suicide: disconnect = %d\n", disconnect));
 
     /* Mark this conn as dying. */
@@ -501,7 +502,7 @@ int connent::Suicide(int disconnect) {
     /* Be nice and disconnect if requested. */
     if (disconnect) {
 	/* Make the RPC call. */
-	MarinerLog("fetch::DisconnectFS %s\n", (FindServer(Host))->name);
+	MarinerLog("fetch::DisconnectFS %s\n", (FindServer(&Host))->name);
 	UNI_START_MESSAGE(ViceDisconnectFS_OP);
 	int code = (int) ViceDisconnectFS(connid);
 	UNI_END_MESSAGE(ViceDisconnectFS_OP);
@@ -536,7 +537,7 @@ int connent::CheckResult(int code, VolumeId vid, int TranslateEINCOMP) {
 	default:
 	    if (code < 0) {
 		srvent *s = 0;
-		GetServer(&s, Host);
+		GetServer(&s, &Host);
 		s->ServerError(&code);
 		PutServer(&s);
 	    }
@@ -584,8 +585,8 @@ int connent::CheckResult(int code, VolumeId vid, int TranslateEINCOMP) {
 
 
 void connent::print(int fd) {
-    fdprint(fd, "%#08x : host = %#08x, uid = %d, cid = %d, auth = %d, inuse = %d, dying = %d\n",
-	     (long)this, Host, uid, connid, authenticated, inuse, dying);
+    fdprint(fd, "%#08x : host = %s, uid = %d, cid = %d, auth = %d, inuse = %d, dying = %d\n",
+	     (long)this, inet_ntoa(Host), uid, connid, authenticated, inuse, dying);
 }
 
 
@@ -599,7 +600,8 @@ connent *conn_iterator::operator()() {
     while ((o = olist_iterator::operator()())) {
 	connent *c = strbase(connent, o, tblhandle);
 	if (key == (struct ConnKey *)0) return(c);
-	if ((key->host == c->Host || key->host == ALL_HOSTS) &&
+	if ((key->host.s_addr == c->Host.s_addr ||
+             key->host.s_addr == INADDR_ANY) &&
 	    (key->vuid == c->uid || key->vuid == ALL_UIDS))
 	    return(c);
     }
@@ -645,18 +647,21 @@ void Srvr_Signal() {
 }
 
 
-srvent *FindServer(unsigned long host) {
+srvent *FindServer(struct in_addr *host)
+{
     srv_iterator next;
     srvent *s;
 
     while ((s = next()))
-	if (s->host == host) return(s);
+	if (s->host.s_addr == host->s_addr)
+            return(s);
 
     return(0);
 }
 
 
-srvent *FindServerByCBCid(RPC2_Handle connid) {
+srvent *FindServerByCBCid(RPC2_Handle connid)
+{
     if (connid == 0) return(0);
 
     srv_iterator next;
@@ -669,8 +674,9 @@ srvent *FindServerByCBCid(RPC2_Handle connid) {
 }
 
 
-void GetServer(srvent **spp, unsigned long host) {
-    LOG(100, ("GetServer: host = %x\n", host));
+void GetServer(srvent **spp, struct in_addr *host)
+{
+    LOG(100, ("GetServer: host = %s\n", inet_ntoa(*host)));
     CODA_ASSERT(host != 0);
 
     srvent *s = FindServer(host);
@@ -686,7 +692,8 @@ void GetServer(srvent **spp, unsigned long host) {
 }
 
 
-void PutServer(srvent **spp) {
+void PutServer(srvent **spp)
+{
     LOG(100, ("PutServer: \n"));
 
     *spp = 0;
@@ -734,7 +741,7 @@ void probeslave::main(void)
 	case BindToServer:
 	    {
 	    /* *result gets pointer to connent on success, 0 on failure. */
-	    unsigned long host = (unsigned long)arg;
+	    struct in_addr *host = (struct in_addr *)arg;
 	    (void)GetConn((connent **)result, host, V_UID, 1);
 	    }
 	    break;
@@ -751,14 +758,15 @@ void probeslave::main(void)
 }
 
 
-void ProbeServers(int Up) {
+void ProbeServers(int Up)
+{
     LOG(1, ("ProbeServers: %s\n", Up ? "Up" : "Down"));
 
     /* Hosts and Connections are arrays of addresses and connents respectively representing the servers to */
     /* be probed.  HowMany is the current size of these arrays, and ix is the number of entries actually used. */
     const int GrowSize = 32;
     int HowMany = GrowSize;
-    unsigned long *Hosts = (unsigned long *)malloc(HowMany * sizeof(unsigned long));
+    struct in_addr *Hosts = (struct in_addr *)malloc(HowMany * sizeof(struct in_addr));
     int ix = 0;
 
     /* Fill in the Hosts array for each server that is to be probed. */
@@ -773,8 +781,8 @@ void ProbeServers(int Up) {
 	    if (ix == HowMany) {
 		/* I am terrified of realloc */
 		HowMany += GrowSize;
-		unsigned long *newHosts = (unsigned long *)malloc(HowMany * sizeof(unsigned long));
-		memmove((char *) newHosts, (char *) Hosts, ix * (int) sizeof(unsigned long));
+		struct in_addr *newHosts = (struct in_addr *)malloc(HowMany * sizeof(struct in_addr));
+		memcpy(newHosts, Hosts, ix * sizeof(struct in_addr));
 		free(Hosts);
 		Hosts = newHosts;
 	    }
@@ -792,7 +800,8 @@ void ProbeServers(int Up) {
 }
 
 
-void DoProbes(int HowMany, unsigned long *Hosts) {
+void DoProbes(int HowMany, struct in_addr *Hosts)
+{
     connent **Connections = 0;
     int i;
 
@@ -800,7 +809,7 @@ void DoProbes(int HowMany, unsigned long *Hosts) {
 
     /* Bind to the servers. */
     Connections = (connent **)malloc(HowMany * sizeof(connent *));
-    memset((void *)Connections, 0, (int) (HowMany * sizeof(connent *)));
+    memset(Connections, 0, HowMany * sizeof(connent *));
     MultiBind(HowMany, Hosts, Connections);
 
     /* Probe them. */
@@ -824,11 +833,12 @@ void DoProbes(int HowMany, unsigned long *Hosts) {
 }
 
 
-void MultiBind(int HowMany, unsigned long *Hosts, connent **Connections) {
+void MultiBind(int HowMany, struct in_addr *Hosts, connent **Connections)
+{
     if (LogLevel >= 1) {
 	dprint("MultiBind: HowMany = %d\n\tHosts = [ ", HowMany);
 	for (int i = 0; i < HowMany; i++)
-	    fprintf(logFile, "%lx ", Hosts[i]);
+	    fprintf(logFile, "%s ", inet_ntoa(Hosts[i]));
 	fprintf(logFile, "]\n");
     }
 
@@ -837,7 +847,7 @@ void MultiBind(int HowMany, unsigned long *Hosts, connent **Connections) {
     for (int ix = 0; ix < HowMany; ix++) {
 	/* Try to get a connection without forcing a bind. */
 	connent *c = 0;
-	if (GetConn(&c, Hosts[ix], V_UID, 0) == 0) {
+	if (GetConn(&c, &Hosts[ix], V_UID, 0) == 0) {
 	    /* Stuff the connection in the array. */
 	    Connections[ix] = c;
 
@@ -847,7 +857,7 @@ void MultiBind(int HowMany, unsigned long *Hosts, connent **Connections) {
 	/* Force a bind, but have a slave do it so we can bind in parallel. */
 	{
 	    slaves++;
-	    (void)new probeslave(BindToServer, (void *)(Hosts[ix]), 
+	    (void)new probeslave(BindToServer, (void *)(&Hosts[ix]), 
 				 (void *)(&Connections[ix]), &slave_sync);
 	}
     }
@@ -860,7 +870,8 @@ void MultiBind(int HowMany, unsigned long *Hosts, connent **Connections) {
 }
 
 
-void MultiProbe(int HowMany, RPC2_Handle *Handles) {
+void MultiProbe(int HowMany, RPC2_Handle *Handles)
+{
     if (LogLevel >= 1) {
 	dprint("MultiProbe: HowMany = %d\n\tHandles = [ ", HowMany);
 	for (int i = 0; i < HowMany; i++)
@@ -906,7 +917,8 @@ void MultiProbe(int HowMany, RPC2_Handle *Handles) {
 }
 
 
-long HandleProbe(int HowMany, RPC2_Handle *Handles, long offset, long rpcval) {
+long HandleProbe(int HowMany, RPC2_Handle *Handles, long offset, long rpcval)
+{
     RPC2_Handle RPCid = Handles[offset];
 
     if (RPCid != 0) {
@@ -921,12 +933,12 @@ long HandleProbe(int HowMany, RPC2_Handle *Handles, long offset, long rpcval) {
 	    return 0;
 	    /* CHOKE("HandleProbe: getpeerinfo returned bogus type!"); */
 	}
-	unsigned long host = ntohl(thePeer.RemoteHost.Value.InetAddress.s_addr);
 
 	/* Locate the server and update its status. */
-	srvent *s = FindServer(host);
+	srvent *s = FindServer(&thePeer.RemoteHost.Value.InetAddress);
 	if (!s)
-	    CHOKE("HandleProbe: no srvent (RPCid = %d, PeerHost = %x)", RPCid, host);
+	    CHOKE("HandleProbe: no srvent (RPCid = %d, PeerHost = %s)",
+                  RPCid, inet_ntoa(thePeer.RemoteHost.Value.InetAddress));
 	LOG(1, ("HandleProbe: (%s, %d)\n", s->name, rpcval));
 	if (rpcval < 0)
 	    s->ServerError((int *)&rpcval);
@@ -937,7 +949,8 @@ long HandleProbe(int HowMany, RPC2_Handle *Handles, long offset, long rpcval) {
 
 
 /* Report which servers are down. */
-void DownServers(char *buf, unsigned int *bufsize) {
+void DownServers(char *buf, unsigned int *bufsize)
+{
     char *cp = buf;
     unsigned int maxsize = *bufsize;
     *bufsize = 0;
@@ -948,46 +961,47 @@ void DownServers(char *buf, unsigned int *bufsize) {
     while ((s = next()))
 	if (s->ServerIsDown()) {
 	    /* Make sure there is room in the buffer for this entry. */
-	    if ((cp - buf) + sizeof(unsigned long) > maxsize) return;
+	    if ((cp - buf) + sizeof(struct in_addr) > maxsize) return;
 
-	    memmove((void *) cp, (const void *)&s->host, (int) sizeof(unsigned long));
-	    cp += (int) sizeof(unsigned long);
+	    memcpy(cp, &s->host, sizeof(struct in_addr));
+	    cp += sizeof(struct in_addr);
 	}
 
-    /* Null terminate the list.  Make sure there is room in the buffer for the terminator. */
-    if ((cp - buf) + sizeof(unsigned long) > maxsize) return;
-    unsigned long nullint = 0;
-    memmove((void *) cp, (const void *)&nullint, (int) sizeof(unsigned long));
-    cp += sizeof(unsigned long);
+    /* Null terminate the list.  Make sure there is room in the buffer for the
+     * terminator. */
+    if ((cp - buf) + sizeof(struct in_addr) > maxsize) return;
+    memset(cp, 0, sizeof(struct in_addr));
+    cp += sizeof(struct in_addr);
 
     *bufsize = (cp - buf);
 }
 
 
 /* Report which of a given set of servers is down. */
-void DownServers(int nservers, unsigned long *hostids,
-                 char *buf, unsigned int *bufsize) {
+void DownServers(int nservers, struct in_addr *hostids,
+                 char *buf, unsigned int *bufsize)
+{
     char *cp = buf;
     unsigned int maxsize = *bufsize;
     *bufsize = 0;
 
     /* Copy each down server's address into the buffer. */
     for (int i = 0; i < nservers; i++) {
-	srvent *s = FindServer(hostids[i]);
+	srvent *s = FindServer(&hostids[i]);
 	if (s && s->ServerIsDown()) {
 	    /* Make sure there is room in the buffer for this entry. */
-	    if ((cp - buf) + sizeof(unsigned long) > maxsize) return;
+	    if ((cp - buf) + sizeof(struct in_addr) > maxsize) return;
 
-	    memmove((void *) cp, (const void *)&s->host, (int) sizeof(unsigned long));
-	    cp += sizeof(unsigned long);
+	    memcpy(cp, &s->host, sizeof(struct in_addr));
+	    cp += sizeof(struct in_addr);
 	}
     }
 
-    /* Null terminate the list.  Make sure there is room in the buffer for the terminator. */
-    if ((cp - buf) + sizeof(unsigned long) > maxsize) return;
-    unsigned long nullint = 0;
-    memmove( (void *) cp, (const void *)&nullint, (int) sizeof(unsigned long));
-    cp += sizeof(unsigned long);
+    /* Null terminate the list.  Make sure there is room in the buffer for the
+     * terminator. */
+    if ((cp - buf) + sizeof(struct in_addr) > maxsize) return;
+    memset(cp, 0, sizeof(struct in_addr));
+    cp += sizeof(struct in_addr);
 
     *bufsize = (cp - buf);
 }
@@ -998,7 +1012,8 @@ void DownServers(int nservers, unsigned long *hostids,
  * Reset estimates and declare connectivity strong if there are
  * no recent observations.  Called by the probe daemon.
  */
-void CheckServerBW(long curr_time) {
+void CheckServerBW(long curr_time)
+{
     srv_iterator next;
     srvent *s;
     unsigned long bw = INIT_BW;
@@ -1021,7 +1036,8 @@ void ServerPrint(FILE *fp) {
 }
 
 
-void ServerPrint(int fd) {
+void ServerPrint(int fd)
+{
     if (srvent::srvtab == 0) return;
 
     fdprint(fd, "Servers: count = %d\n", srvent::srvtab->count());
@@ -1034,28 +1050,26 @@ void ServerPrint(int fd) {
 }
 
 
-srvent::srvent(unsigned long Host, int isrootserver) {
-    LOG(1, ("srvent::srvent: host = %x, isroot = %d\n", Host, isrootserver));
+srvent::srvent(struct in_addr *Host, int isrootserver)
+{
+    LOG(1, ("srvent::srvent: host = %s, isroot = %d\n",
+            inet_ntoa(*Host), isrootserver));
 
-    unsigned long nHost = htonl(Host);
-    struct hostent *h = gethostbyaddr((char *)&nHost, (int)sizeof(unsigned long), AF_INET);
+    struct hostent *h = gethostbyaddr((char *)Host, sizeof(struct in_addr), AF_INET);
     if (h) {
 	name = new char[strlen(h->h_name) + 1];
 	strcpy(name, h->h_name);
 	TRANSLATE_TO_LOWER(name);
     }
     else {
-	char buf[12];
-	sprintf(buf, "%lx", Host);
-	name = new char[strlen(buf) + 1];
-	strcpy(name, buf);
+	name = new char[16];
+	sprintf(name, "%s", inet_ntoa(*Host));
     }
 
-    host = Host;
+    host = *Host;
     connid = -1;
     Xbinding = 0;
     probeme = 0;
-    EventCounter = 0;
     forcestrong = 0;
     rootserver = isrootserver;
     isweak = 0;
@@ -1083,7 +1097,8 @@ srvent::~srvent() {
 }
 
 
-int srvent::Connect(RPC2_Handle *cidp, int *authp, vuid_t vuid, int Force) {
+int srvent::Connect(RPC2_Handle *cidp, int *authp, vuid_t vuid, int Force)
+{
     LOG(100, ("srvent::Connect: host = %s, uid = %d, force = %d\n",
 	     name, vuid, Force));
 
@@ -1107,7 +1122,7 @@ int srvent::Connect(RPC2_Handle *cidp, int *authp, vuid_t vuid, int Force) {
     {
 	userent *u = 0;
 	GetUser(&u, vuid);
-	code = u->Connect(cidp, authp, host);
+	code = u->Connect(cidp, authp, &host);
 	PutUser(&u);
     }
     Xbinding = 0;
@@ -1135,7 +1150,7 @@ int srvent::Connect(RPC2_Handle *cidp, int *authp, vuid_t vuid, int Force) {
 	if (!ServerIsDown()) {
 	    MarinerLog("connection::unreachable %s\n", name);
 	    Reset();
-	    VSGDB->DownEvent(host);
+	    VDB->DownEvent(&host);
   	    adv_mon.ServerInaccessible(name);
 	}
     }
@@ -1144,7 +1159,8 @@ int srvent::Connect(RPC2_Handle *cidp, int *authp, vuid_t vuid, int Force) {
     return(code);
 }
 
-int srvent::GetStatistics(ViceStatistics *Stats) {
+int srvent::GetStatistics(ViceStatistics *Stats)
+{
     LOG(100, ("srvent::GetStatistics: host = %s\n", name));
 
     int code = 0;
@@ -1153,7 +1169,7 @@ int srvent::GetStatistics(ViceStatistics *Stats) {
 
     memset(Stats, 0, sizeof(ViceStatistics));
     
-    code = GetConn(&c, host, V_UID, 0);
+    code = GetConn(&c, &host, V_UID, 0);
     if (code != 0) goto Exit;
 
     /* Make the RPC call. */
@@ -1171,7 +1187,8 @@ Exit:
 }
 
 
-void srvent::Reset() {
+void srvent::Reset()
+{
     LOG(1, ("srvent::Reset: host = %s\n", name));
 
     /* Kill all direct connections to this server. */
@@ -1188,10 +1205,12 @@ void srvent::Reset() {
 
     /* Kill all indirect connections to this server. */
     {
-	mgrp_iterator mgrp_next;
-	mgrpent *m;
-	while ((m = mgrp_next()))
-	    m->KillMember(host, 0);
+	vol_iterator next;
+	volent *v;
+	while ((v = next())) {
+            if (v->IsReadWriteReplica() && v->IsHostedBy(&host))
+                v->KillMgrpMember(&host);
+        }
     }
 
     /* Unbind callback connection for this server. */
@@ -1201,7 +1220,8 @@ void srvent::Reset() {
 }
 
 
-void srvent::ServerError(int *codep) {
+void srvent::ServerError(int *codep)
+{
     LOG(1, ("srvent::ServerError: %s error (%s)\n",
 	    name, RPC2_ErrorMsg(*codep)));
 
@@ -1242,7 +1262,7 @@ void srvent::ServerError(int *codep) {
 	    case ETIMEDOUT:
 	        MarinerLog("connection::unreachable %s\n", name);
 		Reset();
-		VSGDB->DownEvent(host);
+		VDB->DownEvent(&host);
 		adv_mon.ServerInaccessible(name);
 		break;
 
@@ -1250,9 +1270,9 @@ void srvent::ServerError(int *codep) {
 		/* Must have missed a down event! */
 		eprint("%s nak'ed", name);
 		Reset();
-		VSGDB->DownEvent(host);
+		VDB->DownEvent(&host);
 		connid = -2;
-		VSGDB->UpEvent(host);
+		VDB->UpEvent(&host);
 		break;
 
 	    default:
@@ -1262,31 +1282,36 @@ void srvent::ServerError(int *codep) {
 }
 
 
-void srvent::ServerUp(RPC2_Handle newconnid) {
+void srvent::ServerUp(RPC2_Handle newconnid)
+{
     LOG(1, ("srvent::ServerUp: %s, connid = %d, newconnid = %d\n",
 	     name, connid, newconnid));
 
-    if (connid == 0) {
+    switch(connid) {
+    case 0:
 	MarinerLog("connection::up %s\n", name);
 	connid = newconnid;
-	VSGDB->UpEvent(host);
+	VDB->UpEvent(&host);
 	adv_mon.ServerAccessible(name);
-    }
-    else if (connid == -1) {
+        break;
+
+    case -1:
 	/* Initial case.  */
 	connid = newconnid;
-	VSGDB->UpEvent(host);
-    }
-    else if (connid == -2) {
+	VDB->UpEvent(&host);
+        break;
+
+    case -2:
 	/* Following NAK.  Don't signal another UpEvent! */
 	connid = newconnid;
-    }
-    else {
+        break;
+
+    default:
 	/* Already considered up.  Must have missed a down event! */
 	Reset();
-	VSGDB->DownEvent(host);
+	VDB->DownEvent(&host);
 	connid = newconnid;
-	VSGDB->UpEvent(host);
+	VDB->UpEvent(&host);
     }
 
     /* Poke any threads waiting for a change in communication state. */
@@ -1294,7 +1319,8 @@ void srvent::ServerUp(RPC2_Handle newconnid) {
 }
 
 
-long srvent::GetLiveness(struct timeval *tp) {
+long srvent::GetLiveness(struct timeval *tp)
+{
     long rc = 0;
     struct timeval t;
 
@@ -1329,7 +1355,8 @@ long srvent::GetLiveness(struct timeval *tp) {
  */
 
 /* returns bandwidth in Bytes/sec, or INIT_BW if it couldn't be obtained */
-long srvent::GetBandwidth(unsigned long *Bandwidth) {
+long srvent::GetBandwidth(unsigned long *Bandwidth)
+{
     long rc = 0;
     unsigned long oldbw    = bw;
     unsigned long oldbwmax = bwmax;
@@ -1362,13 +1389,13 @@ long srvent::GetBandwidth(unsigned long *Bandwidth) {
     if (!isweak && !forcestrong && bwmax < WCThresh) {
 	isweak = 1;
 	MarinerLog("connection::weak %s\n", name);
-	VSGDB->WeakEvent(host);
+	VDB->WeakEvent(&host);
         adv_mon.ServerConnectionWeak(name);
     }
     else if (isweak && bwmin > WCThresh) {
 	isweak = 0;
 	MarinerLog("connection::strong %s\n", name);
-	VSGDB->StrongEvent(host);
+	VDB->StrongEvent(&host);
         adv_mon.ServerConnectionStrong(name);
     }
 	
@@ -1394,7 +1421,7 @@ void srvent::ForceStrong(int on) {
     if (forcestrong && isweak) {
 	isweak = 0;
 	MarinerLog("connection::strong %s\n", name);
-	VSGDB->StrongEvent(host);
+	VDB->StrongEvent(&host);
         adv_mon.ServerConnectionStrong(name);
     }
 
@@ -1402,7 +1429,7 @@ void srvent::ForceStrong(int on) {
     if (!forcestrong && !isweak && bwmax < WCThresh) {
 	isweak = 1;
 	MarinerLog("connection::weak %s\n", name);
-	VSGDB->WeakEvent(host);
+	VDB->WeakEvent(&host);
         adv_mon.ServerConnectionWeak(name);
     }
 
@@ -1417,8 +1444,8 @@ int srvent::IsRootServer(void)
 
 void srvent::print(int fd)
 {
-    fdprint(fd, "%#08x : %-16s : cid = %d, host = %#08x, binding = %d, bw = %d, isroot = %d\n",
-	     (long)this, name, connid, host, Xbinding, bw, rootserver);
+    fdprint(fd, "%#08x : %-16s : cid = %d, host = %s, binding = %d, bw = %d, isroot = %d\n",
+            (long)this, name, connid, inet_ntoa(host), Xbinding, bw, rootserver);
 }
 
 
@@ -1437,27 +1464,26 @@ srvent *srv_iterator::operator()() {
 
 /* ***** Replicated operation context  ***** */
 
-RepOpCommCtxt::RepOpCommCtxt() {
+RepOpCommCtxt::RepOpCommCtxt()
+{
     LOG(100, ("RepOpCommCtxt::RepOpCommCtxt: \n"));
 
     HowMany = 0;
-    memset((void *)handles, 0, (int)(VSG_MEMBERS * sizeof(RPC2_Handle)));
-    memset((void *)hosts, 0, (int)(VSG_MEMBERS * sizeof(unsigned long)));
-    memset((void *)retcodes, 0, (int)(VSG_MEMBERS * sizeof(int)));
-    primaryhost = 0;
+    memset(handles, 0, VSG_MEMBERS * sizeof(RPC2_Handle));
+    memset(hosts, 0, VSG_MEMBERS * sizeof(struct in_addr));
+    memset(retcodes, 0, VSG_MEMBERS * sizeof(RPC2_Integer));
+    memset(&primaryhost, 0, sizeof(struct in_addr));
     MIp = 0;
-    memset((void *)dying, 0, (int)(VSG_MEMBERS * sizeof(unsigned)));
+    memset(dying, 0, VSG_MEMBERS * sizeof(unsigned));
 }
 
 
 /* ***** Mgroup  ***** */
 
-const int MAXMGRPSPERUSER = 27;  /* Max simultaneous mgrps per user per vsg. */
-                                /* 3 requests/AVSG member */
 #define	MGRPQ_LOCK()
 #define	MGRPQ_UNLOCK()
-#define	MGRPQ_WAIT()	    VprocWait((char *)&mgrpent::mgrptab_sync)
-#define	MGRPQ_SIGNAL()	    VprocSignal((char *)&mgrpent::mgrptab_sync)
+#define	MGRPQ_WAIT()	    VprocWait((char *)&mgrpent::mgrp_sync)
+#define	MGRPQ_SIGNAL()	    VprocSignal((char *)&mgrpent::mgrp_sync)
 
 void Mgrp_Wait() {
     MGRPQ_LOCK();
@@ -1476,73 +1502,8 @@ void Mgrp_Signal() {
     MGRPQ_UNLOCK();
 }
 
-
-int GetMgrp(mgrpent **mpp, unsigned long VSGAddr, vuid_t vuid) {
-    LOG(100, ("GetMgrp: VSGAddr = %x, vuid = %d\n", VSGAddr, vuid));
-
-    *mpp = 0;
-    int code = 0;
-    mgrpent *m = 0;
-    int found = 0;
-
-    /* Grab an existing mgrp if one is free. */
-    /* Before creating a new mgrp, make sure the per-user limit is not exceeded. */
-    for (;;) {
-	/* Check whether there is already a free mgroup. */
-	struct MgrpKey Key; Key.vsgaddr = VSGAddr; Key.vuid = vuid;
-	mgrp_iterator next(&Key);
-	int count = 0;
-	while ((m = next())) {
-	    count++;
-	    if (!m->inuse) {
-		m->inuse = 1;
-		found = 1;
-		break;
-	    }
-	}
-	if (found) break;
-
-	/* Wait here if MAX mgrps are already in use. */
-	/* Synchronization needs fixed for MP! -JJK */
-	if (count < MAXMGRPSPERUSER) break;
-	if (VprocInterrupted()) return(EINTR);
-	Mgrp_Wait();
-	if (VprocInterrupted()) return(EINTR);
-    }
-
-    if (!m) {
-	/* Try to connect to the VSG on behalf of the user. */
-	vsgent *vsgp = 0;
-	if ((code = VSGDB->Get(&vsgp, VSGAddr)) != 0) return(code);
-	RPC2_Handle MgrpHandle = 0;
-	int auth = 0;
-	code = vsgp->Connect(&MgrpHandle, &auth, vuid);
-	VSGDB->Put(&vsgp);
-	if (code != 0) return(code);
-
-	/* Create and install the new mgrpent. */
-	m = new mgrpent(VSGAddr, vuid, MgrpHandle, auth);
-	m->inuse = 1;
-	mgrpent::mgrptab->insert(&m->tblhandle);
-    }
-
-    /* Form the host set. */
-    code = m->GetHostSet();
-    if (m->dying || code != 0) {
-	if (m->dying) code = ERETRY;
-	PutMgrp(&m);
-	return(code);
-    }
-
-    /* Choose whether to multicast or not. */
-    m->rocc.MIp = (UseMulticast) ? &m->McastInfo : 0;
-
-    *mpp = m;
-    return(0);
-}
-
-
-void PutMgrp(mgrpent **mpp) {
+void PutMgrp(mgrpent **mpp)
+{
     mgrpent *m = *mpp;
     *mpp = 0;
     if (m == 0) {
@@ -1550,8 +1511,8 @@ void PutMgrp(mgrpent **mpp) {
 	return;
     }
 
-    LOG(100, ("PutMgrp: vsgaddr = %#08x, uid = %d, mid = %d, auth = %d, inuse = %d, dying = %d\n",
-	     m->VSGAddr, m->uid, m->McastInfo.Mgroup, m->authenticated, m->inuse, m->dying));
+    LOG(100, ("PutMgrp: volumeid = %#08x, uid = %d, mid = %d, auth = %d, inuse = %d, dying = %d\n",
+	     m->vid, m->uid, m->McastInfo.Mgroup, m->authenticated, m->inuse, m->dying));
 
     if (!m->inuse)
 	{ m->print(logFile); CHOKE("PutMgrp: mgrp not in use"); }
@@ -1560,12 +1521,10 @@ void PutMgrp(mgrpent **mpp) {
     m->PutHostSet();
 
     if (m->dying) {
-	mgrpent::mgrptab->remove(&m->tblhandle);
-	delete m;
-    }
-    else {
-	m->inuse = 0;
-    }
+        list_del(&m->volhandle);
+        delete m;
+    } else
+        m->inuse = 0;
 
     Mgrp_Signal();
 }
@@ -1583,6 +1542,8 @@ void MgrpPrint(FILE *fp) {
 
 
 void MgrpPrint(int fd) {
+#warning "MgrpPrint missing"
+#if 0
     if (mgrpent::mgrptab == 0) return;
 
     fdprint(fd, "Mgroups: count = %d\n", mgrpent::mgrptab->count());
@@ -1593,32 +1554,29 @@ void MgrpPrint(int fd) {
     while ((m = next())) m->print(fd);
 
     fdprint(fd, "\n");
+#endif
 }
 
 
-mgrpent::mgrpent(unsigned long vsgaddr, vuid_t vuid,
-		  RPC2_Handle mid, int authflag) {
-    LOG(1, ("mgrpent::mgrpent: vsgaddr = %#08x, uid = %d, mid = %d, auth = %d\n",
-	     vsgaddr, vuid, mid, authflag));
+mgrpent::mgrpent(volent *vol, vuid_t vuid, RPC2_Handle mid, int authflag)
+{
+    LOG(1,("mgrpent::mgrpent volumeid = %#08x, uid = %d, mid = %d, auth = %d\n",
+           vol->GetVid(), vuid, mid, authflag));
 
     /* These members are immutable. */
-    VSGAddr = vsgaddr;
     uid = vuid;
-    memset((void *)&McastInfo, 0, (int)sizeof(RPC2_Multicast));
+    vid = vol->GetVid();
+    memset(&McastInfo, 0, sizeof(RPC2_Multicast));
     McastInfo.Mgroup = mid;
     McastInfo.ExpandHandle = 0;
-    vsgent *vsgp;
-    if (VSGDB->Get(&vsgp, vsgaddr) != 0)
-	CHOKE("mgrpent::mgrpent: can't get VSG (%x)", vsgaddr);
-    vsgp->GetHosts(Hosts);
+    vol->GetHosts(Hosts);
     nhosts = 0;
     for (int i = 0; i < VSG_MEMBERS; i++)
-	if (Hosts[i]) nhosts++;
-    VSGDB->Put(&vsgp);
+	if (Hosts[i].s_addr) nhosts++;
     authenticated = authflag;
 
     /* These members are mutable. */
-    inuse = 0;
+    inuse = 1;
     dying = 0;
 
 #ifdef	VENUSDEBUG
@@ -1627,29 +1585,29 @@ mgrpent::mgrpent(unsigned long vsgaddr, vuid_t vuid,
 }
 
 
-mgrpent::~mgrpent() {
+mgrpent::~mgrpent()
+{
 #ifdef	VENUSDEBUG
     deallocs++;
 #endif	VENUSDEBUG
-
-    LOG(1, ("mgrpent::~mgrpent: vsgaddr = %#08x, uid = %d, mid = %d, auth = %d\n",
-	    VSGAddr, uid, McastInfo.Mgroup, authenticated));
+    LOG(1,("mgrpent::~mgrpent vid = %#08x uid = %d, mid = %d, auth = %d\n",
+           vid, uid, McastInfo.Mgroup, authenticated));
 
     int code = 0;
 
     /* Kill active members. */
     for (int i = 0; i < VSG_MEMBERS; i++)
-	KillMember(rocc.hosts[i], 1);
+	KillMember(&rocc.hosts[i], 1);
 
     /* Delete Mgroup. */
     code = (int) RPC2_DeleteMgrp(McastInfo.Mgroup);
     LOG(1, ("mgrpent::~mgrpent: RPC2_DeleteMgrp -> %s\n", RPC2_ErrorMsg(code)));
 }
 
-
-int mgrpent::Suicide(int disconnect) {
-    LOG(1, ("mgrpent::Suicide: vsgaddr = %#08x, uid = %d, mid = %d, disconnect = %d\n", 
-	    VSGAddr, uid, McastInfo.Mgroup, disconnect));
+int mgrpent::Suicide(int disconnect)
+{
+    LOG(1, ("mgrpent::Suicide: volid = %#08x, uid = %d, mid = %d, disconnect = %d\n", 
+	    vid, uid, McastInfo.Mgroup, disconnect));
 
     dying = 1;
 
@@ -1659,7 +1617,7 @@ int mgrpent::Suicide(int disconnect) {
 
     if (disconnect) {
 	/* Make the RPC call. */
-	MarinerLog("fetch::DisconnectFS (%#x)\n", VSGAddr);
+	MarinerLog("fetch::DisconnectFS (%#x)\n", vid);
 	MULTI_START_MESSAGE(ViceDisconnectFS_OP);
 	int code = (int) MRPC_MakeMulti(ViceDisconnectFS_OP, ViceDisconnectFS_PTR,
 			      VSG_MEMBERS, rocc.handles,
@@ -1689,11 +1647,12 @@ int mgrpent::Suicide(int disconnect) {
 #define	_EACCES		64
 #define	_EWOULDBLOCK	128
 
-static int Unanimity(int *codep, unsigned long *hosts, RPC2_Integer *retcodes, int mask) {
+static int Unanimity(int *codep, struct in_addr *hosts, RPC2_Integer *retcodes, int mask)
+{
     int	code = -1;
 
     for (int i = 0; i < VSG_MEMBERS; i++) {
-	if (hosts[i] == 0) continue;
+	if (!hosts[i].s_addr) continue;
 
 	switch(retcodes[i]) {
 	    case ETIMEDOUT:
@@ -1741,9 +1700,10 @@ static int Unanimity(int *codep, unsigned long *hosts, RPC2_Integer *retcodes, i
 }
 
 
-static int AnyReturned(unsigned long *hosts, RPC2_Integer *retcodes, int code) {
+int RepOpCommCtxt::AnyReturned(int code)
+{
     for (int i = 0; i < VSG_MEMBERS; i++) {
-	if (hosts[i] == 0) continue;
+	if (!hosts[i].s_addr) continue;
 
 	if (retcodes[i] == code) return(1);
     }
@@ -1753,22 +1713,22 @@ static int AnyReturned(unsigned long *hosts, RPC2_Integer *retcodes, int code) {
 
 
 /* Translate RPC and Volume errors, and update server state. */
-void mgrpent::CheckResult() {
-    
+void mgrpent::CheckResult()
+{
     for (int i = 0; i < VSG_MEMBERS; i++) {
-	if (rocc.hosts[i] == 0) continue;
+	if (!rocc.hosts[i].s_addr) continue;
 
 	switch(rocc.retcodes[i]) {
 	    default:
 		if (rocc.retcodes[i] < 0) {
 		    srvent *s = 0;
-		    GetServer(&s, rocc.hosts[i]);
+		    GetServer(&s, &rocc.hosts[i]);
 		    s->ServerError((int *)&rocc.retcodes[i]);
 		    PutServer(&s);
 		}
 		/* Note that KillMember may zero rocc.hosts[i] !!! */
 		if (rocc.retcodes[i] == ETIMEDOUT || rocc.retcodes[i] == ERETRY)
-		    KillMember(rocc.hosts[i], 1);
+		    KillMember(&rocc.hosts[i], 1);
 		break;
 
 	    case VBUSY:
@@ -1814,7 +1774,8 @@ void mgrpent::CheckResult() {
 	Other (> 0)	Call succeeded at no responding host, and all non-maskable errors
 			were the same, but some maskable errors may have been returned.
 */
-int mgrpent::CheckNonMutating(int acode) {
+int mgrpent::CheckNonMutating(int acode)
+{
     LOG(100, ("mgrpent::CheckNonMutating: acode = %d\n\t\thosts = [%#x %#x %#x %#x %#x %#x %#x %#x],\n\t\tretcodes = [%d %d %d %d %d %d %d %d]\n",
 	    acode, rocc.hosts[0], rocc.hosts[1], rocc.hosts[2], rocc.hosts[3],
 	    rocc.hosts[4], rocc.hosts[5], rocc.hosts[6], rocc.hosts[7],
@@ -1831,7 +1792,7 @@ int mgrpent::CheckNonMutating(int acode) {
 
     /* Perform additional translations. */
     for (i = 0; i < VSG_MEMBERS; i++) {
-	if (rocc.hosts[i] == 0) continue;
+	if (!rocc.hosts[i].s_addr) continue;
 
 	switch(rocc.retcodes[i]) {
 	    case ENOSPC:
@@ -1847,8 +1808,9 @@ int mgrpent::CheckNonMutating(int acode) {
     if (Unanimity(&code, rocc.hosts, rocc.retcodes, 0))
 	return(code);
 
-    /* Since this operation is non-mutating, we can retry immediately if any host NAK'ed. */
-    if (AnyReturned(rocc.hosts, rocc.retcodes, ERETRY))
+    /* Since this operation is non-mutating, we can retry immediately if any
+     * host NAK'ed. */
+    if (rocc.AnyReturned(ERETRY))
 	return(ERETRY);
 
     /* Look for unanimity, masking off more and more error types. */
@@ -1903,7 +1865,7 @@ int mgrpent::CheckCOP1(int acode, vv_t *UpdateSet, int TranslateEincompatible) {
 
     /* Perform additional translations. */
     for (i = 0; i < VSG_MEMBERS; i++) {
-	if (rocc.hosts[i] == 0) continue;
+	if (!rocc.hosts[i].s_addr) continue;
 
 	switch(rocc.retcodes[i]) {
 	    case EINCOMPATIBLE:
@@ -1915,7 +1877,7 @@ int mgrpent::CheckCOP1(int acode, vv_t *UpdateSet, int TranslateEincompatible) {
 
     /* Record successes in the UpdateSet. */
     for (i = 0; i < VSG_MEMBERS; i++) {
-	if (rocc.hosts[i] == 0) continue;
+	if (!rocc.hosts[i].s_addr) continue;
 
 	if (rocc.retcodes[i] == 0)
 	    (&(UpdateSet->Versions.Site0))[i] = 1;
@@ -1945,7 +1907,7 @@ int mgrpent::CheckCOP1(int acode, vv_t *UpdateSet, int TranslateEincompatible) {
     /* We never achieved consensus. */
     /* Return ASYRESOLVE if operation succeeded at any host. */
     /* Otherwise, return RETRY, which will induce a RESOLVE at a more convenient point. */
-    if (AnyReturned(rocc.hosts, rocc.retcodes, 0))
+    if (rocc.AnyReturned(0))
 	return(EASYRESOLVE);
     return(ERETRY);
 }
@@ -1957,27 +1919,27 @@ int mgrpent::CheckReintegrate(int acode, vv_t *UpdateSet)
 {
     int ret = CheckCOP1(acode, UpdateSet, 0);
 
-    /* CheckCOP1 doesn't know how to handle EALREADY, i.e. if any host
-     * returnes EALREADY we can get rid of some CML entries. */
+    /* CheckCOP1 doesn't know how to handle EALREADY. If any host had
+     * returned EALREADY we can get rid of some CML entries. */
     if (ret == ERETRY) {
-	for (int i = 0; i < VSG_MEMBERS; i++)
-	    if (rocc.hosts[i] && rocc.retcodes[i] == EALREADY)
-		return(EALREADY);
+        if (rocc.AnyReturned(EALREADY))
+            return(EALREADY);
     }
     return(ret);
 }
 
 
 /* Check the remote vectors. */
-/* Returns:
+/* Returns:conf
 	0		Version check succeeded
 	ESYNRESOLVE	Version check failed
 	EASYRESOLVE	!EqReq and check yielded Dom/Sub
 */
-int mgrpent::RVVCheck(vv_t **RVVs, int EqReq) {
+int mgrpent::RVVCheck(vv_t **RVVs, int EqReq)
+{
     /* Construct the array so that only valid VVs are checked. */
     for (int j = 0; j < VSG_MEMBERS; j++)
-	if (rocc.hosts[j] == 0 || rocc.retcodes[j] != 0) RVVs[j] = 0;
+	if (!rocc.hosts[j].s_addr || rocc.retcodes[j]) RVVs[j] = 0;
     if (LogLevel >= 100) VVPrint(logFile, RVVs);
 
     int dom_cnt = 0;
@@ -1997,7 +1959,8 @@ int mgrpent::RVVCheck(vv_t **RVVs, int EqReq) {
     return(0);
 }
 
-#define DOMINANT(idx) (rocc.hosts[idx] != 0 && rocc.retcodes[idx] == 0 && \
+#define DOMINANT(idx) (rocc.hosts[idx].s_addr && \
+                       rocc.retcodes[idx] == 0 && \
                        (RVVs == 0 || RVVs[idx] != 0))
 
 int mgrpent::PickDH(vv_t **RVVs)
@@ -2006,10 +1969,8 @@ int mgrpent::PickDH(vv_t **RVVs)
 
     /* count % of hosts in the dominant set. */
     for (i = 0; i < VSG_MEMBERS; i++)
-    {
 	if (DOMINANT(i))
             dominators++;
-    }
 
     /* randomly choose one. If not only for lack of information, then simply
      * to improve load balancing of the clients */
@@ -2017,10 +1978,8 @@ int mgrpent::PickDH(vv_t **RVVs)
 
     /* And walk the hosts again to find the one we chose */
     for (i = 0; i < VSG_MEMBERS; i++)
-    {
 	if (DOMINANT(i) && (chosen-- == 0))
                 return(i);
-    }
 
     CHOKE("mgrpent::PickDH: dominant set is empty");
     return(0);
@@ -2030,7 +1989,8 @@ int mgrpent::PickDH(vv_t **RVVs)
 /* If there are multiple hosts in the dominant set, prefer the primary host. */
 /* The caller may specify that the PH must be dominant. */
 /* Returns {0, ERETRY}. */
-int mgrpent::DHCheck(vv_t **RVVs, int ph_ix, int *dh_ixp, int PHReq) {
+int mgrpent::DHCheck(vv_t **RVVs, int ph_ix, int *dh_ixp, int PHReq)
+{
     *dh_ixp = -1;
 
     /* Return the primary host if it is in the dominant set. */
@@ -2044,7 +2004,7 @@ int mgrpent::DHCheck(vv_t **RVVs, int ph_ix, int *dh_ixp, int PHReq) {
     *dh_ixp = PickDH(RVVs);
 
     if (PHReq) {
-        LOG(1, ("VSG (%x) PH -> %x", VSGAddr, rocc.hosts[*dh_ixp]));
+        LOG(1, ("DHCheck: Volume (%x) PH -> %x", vid, rocc.hosts[*dh_ixp]));
         rocc.primaryhost = rocc.hosts[*dh_ixp];
         return(ERETRY);
     }
@@ -2056,13 +2016,14 @@ int mgrpent::DHCheck(vv_t **RVVs, int ph_ix, int *dh_ixp, int PHReq) {
 int mgrpent::GetHostSet()
 {
     int i, idx;
-    LOG(100, ("mgrpent::GetHostSet: vsgaddr = %#08x, uid = %d, mid = %d\n",
-	      VSGAddr, uid, McastInfo.Mgroup));
+    LOG(100, ("mgrpent::GetHostSet: volumeid = %#08x, uid = %d, mid = %d\n",
+	      vid, uid, McastInfo.Mgroup));
 
-    /* Create members of the specified set which are not already in the Mgroup. */
+    /* Create members of the specified set which are not already in the
+     * Mgroup. */
     for (i = 0; i < VSG_MEMBERS; i++)
-	if (Hosts[i] != 0 && rocc.hosts[i] == 0) {
-	    switch(CreateMember(Hosts[i])) {
+	if (Hosts[i].s_addr && !rocc.hosts[i].s_addr) {
+	    switch(CreateMember(i)) {
 		case EINTR:
 		    return(EINTR);
 
@@ -2076,14 +2037,14 @@ int mgrpent::GetHostSet()
 
     /* Kill members of the Mgroup which are not in the specified set. */
     for (i = 0; i < VSG_MEMBERS; i++)
-	if (Hosts[i] == 0 && rocc.hosts[i] != 0)
-	    KillMember(rocc.hosts[i], 1);
+	if (!Hosts[i].s_addr && rocc.hosts[i].s_addr)
+	    KillMember(&rocc.hosts[i], 1);
 
     /* Ensure that Mgroup is not empty. */
     if (rocc.HowMany == 0) return(ETIMEDOUT);
 
     /* Validate primaryhost. */
-    if (rocc.primaryhost == 0)
+    if (!rocc.primaryhost.s_addr)
     {
         /* When the rocc.retcodes are all be zero, all available
          * hosts are Dominant Hosts, and we can use PickDH */
@@ -2096,25 +2057,20 @@ int mgrpent::GetHostSet()
 }
 
 
-int mgrpent::CreateMember(unsigned long host) {
+int mgrpent::CreateMember(int idx)
+{
     int i;
-    LOG(100, ("mgrpent::CreateMember: vsgaddr = %#08x, uid = %d, mid = %d, host = %x\n", 
-	      VSGAddr, uid, McastInfo.Mgroup, host));
+    LOG(100, ("mgrpent::CreateMember: volumeid = %#08x, uid = %d, mid = %d, host = %s\n", 
+	      vid, uid, McastInfo.Mgroup, inet_ntoa(Hosts[idx])));
 
-    /* Don't re-create members that already exist. */
-    for (i = 0; i < VSG_MEMBERS; i++)
-	if (rocc.hosts[i] == host) return(0);
-
-    /* Deduce index of specified host. */
-    for (i = 0; i < VSG_MEMBERS; i++)
-	if (Hosts[i] == host) break;
-    if (i == VSG_MEMBERS) CHOKE("mgrpent::CreateMember: no host (%x)", host);
+    if (!Hosts[idx].s_addr)
+        CHOKE("mgrpent::CreateMember: no host at index %d", idx);
 
     int code = 0;
 
     /* Bind/Connect to the server. */
     srvent *s = 0;
-    GetServer(&s, host);
+    GetServer(&s, &Hosts[idx]);
     RPC2_Handle ConnHandle = 0;
     int auth = 0;
     code = s->Connect(&ConnHandle, &auth, uid, 0);
@@ -2136,10 +2092,10 @@ int mgrpent::CreateMember(unsigned long host) {
 
     /* Update rocc state. */
     rocc.HowMany++;
-    rocc.handles[i] = ConnHandle;
-    rocc.hosts[i] = host;
-    rocc.retcodes[i] = 0;
-    rocc.dying[i] = 0;
+    rocc.handles[idx] = ConnHandle;
+    rocc.hosts[idx] = Hosts[idx];
+    rocc.retcodes[idx] = 0;
+    rocc.dying[idx] = 0;
 
     return(0);
 }
@@ -2150,54 +2106,67 @@ void mgrpent::PutHostSet() {
 
     /* Kill dying members. */
     for (int i = 0; i < VSG_MEMBERS; i++)
-	if (rocc.dying[i]) KillMember(rocc.hosts[i], 1);
+	if (rocc.dying[i]) KillMember(&rocc.hosts[i], 0);
 }
 
 
-void mgrpent::KillMember(unsigned long host, int forcibly) {
-    LOG(100, ("mgrpent::KillMember: vsgaddr = %#08x, uid = %d, mid = %d, host = %x, forcibly = %d\n",
-	      VSGAddr, uid, McastInfo.Mgroup, host, forcibly));
+void mgrpent::KillMember(struct in_addr *host, int forcibly)
+{
+    LOG(100, ("mgrpent::KillMember: volumeid = %#08x, uid = %d, mid = %d, host = %s, forcibly = %d\n",
+	      vid, uid, McastInfo.Mgroup, inet_ntoa(*host), forcibly));
 
     long code = 0;
 
-    if (host == 0) return;
+    if (!host->s_addr) return;
 
+    /* we first mark the host that should die to avoid making the passed
+     * host pointer useless (f.i. when it is &rocc.hosts[i]) */
     for (int i = 0; i < VSG_MEMBERS; i++)
-	if (rocc.hosts[i] == host) {
-	    if (inuse && !forcibly) {
-		rocc.dying[i] = 1;
-		continue;
-	    }
+	if (rocc.hosts[i].s_addr == host->s_addr)
+            rocc.dying[i] = 1;
 
-	    if (rocc.hosts[i] == rocc.primaryhost) {
-		rocc.primaryhost = 0;
-	    }
-	    code = RPC2_RemoveFromMgrp(McastInfo.Mgroup, rocc.handles[i]);
-	    LOG(1, ("mgrpent::KillMember: RPC2_RemoveFromMgrp(%x, %d) -> %s\n",
-		    rocc.hosts[i], rocc.handles[i], RPC2_ErrorMsg((int) code)));
+    if (inuse && !forcibly)
+        return;
+
+    /* now we can safely kill dying members */
+    for (int i = 0; i < VSG_MEMBERS; i++) {
+        if (rocc.dying[i]) {
+            if (rocc.hosts[i].s_addr == rocc.primaryhost.s_addr) {
+                rocc.primaryhost.s_addr = 0;
+            }
+
+            code = RPC2_RemoveFromMgrp(McastInfo.Mgroup, rocc.handles[i]);
+	    LOG(1, ("mgrpent::KillMember: RPC2_RemoveFromMgrp(%s, %d) -> %s\n",
+                    inet_ntoa(rocc.hosts[i]), rocc.handles[i],
+                    RPC2_ErrorMsg((int) code)));
+
 	    code = RPC2_Unbind(rocc.handles[i]);
-	    LOG(1, ("mgrpent::KillMember: RPC2_Unbind(%x, %d) -> %s\n",
-		    rocc.hosts[i], rocc.handles[i], RPC2_ErrorMsg((int) code)));
-	    rocc.HowMany -= 1;
+	    LOG(1, ("mgrpent::KillMember: RPC2_Unbind(%s, %d) -> %s\n",
+                    inet_ntoa(rocc.hosts[i]), rocc.handles[i],
+                    RPC2_ErrorMsg((int) code)));
+
+	    rocc.HowMany--;
 	    rocc.handles[i] = 0;
-	    rocc.hosts[i] = 0;
+	    rocc.hosts[i].s_addr = 0;
+            rocc.retcodes[i] = 0;
 	    rocc.dying[i] = 0;
 	}
+    }
 }
 
 
-unsigned long mgrpent::GetPrimaryHost(int *ph_ixp)
+struct in_addr *mgrpent::GetPrimaryHost(int *ph_ixp)
 {
     int i;
 
     if (ph_ixp) *ph_ixp = -1;
 
-    if (rocc.primaryhost == 0)
+    if (!rocc.primaryhost.s_addr)
 	rocc.primaryhost = rocc.hosts[PickDH(NULL)];
 
     /* Sanity check. */
     for (i = 0; i < VSG_MEMBERS; i++)
-	if (rocc.hosts[i] == rocc.primaryhost) {
+	if (rocc.hosts[i].s_addr == rocc.primaryhost.s_addr) {
 	    if (ph_ixp) *ph_ixp = i;
             /* Add a round robin distribution, primarily to spread fetches
              * across AVSG. */
@@ -2206,7 +2175,7 @@ unsigned long mgrpent::GetPrimaryHost(int *ph_ixp)
 	    if (RoundRobin && ((rpc2_NextRandom(NULL) & 0x1f) == 0)) {
 		int j;
 		for (j = i + 1; j != i; j = (j + 1) % VSG_MEMBERS)
-		    if (rocc.hosts[j] != 0) {
+		    if (rocc.hosts[j].s_addr) {
 			/* We have a valid host. It'd be nice to use strongly
 			   connected hosts in preference to weak ones, but I'm
 			   not sure how to access to srvent from here.
@@ -2216,514 +2185,11 @@ unsigned long mgrpent::GetPrimaryHost(int *ph_ixp)
 			break;
 		    }
 	    }
-	    return(rocc.hosts[i]);
+	    return(&rocc.hosts[i]);
 	}
 
     CHOKE("mgrpent::GetPrimaryHost: ph (%x) not found", rocc.primaryhost);
-    return(0);	/* dummy to keep g++ happy */
-}
-
-
-mgrp_iterator::mgrp_iterator(struct MgrpKey *Key) : olist_iterator((olist&)*mgrpent::mgrptab) {
-    key = Key;
-}
-
-
-mgrpent *mgrp_iterator::operator()() {
-    olink *o;
-    while ((o = olist_iterator::operator()())) {
-	mgrpent *m = strbase(mgrpent, o, tblhandle);
-	if (key == (struct MgrpKey *)0) return(m);
-	if ((key->vsgaddr == m->VSGAddr || key->vsgaddr == ALL_VSGS) &&
-	    (key->vuid == m->uid || key->vuid == ALL_UIDS))
-	    return(m);
-    }
-
-    return(0);
-}
-
-
-/* ***** VSG  ***** */
-
-/* This really should be in a separate module. */
-
-void VSGInit() {
-    LOG(10, ("VSGInit: VSGDB = %x, InitMetaData = %d\n", VSGDB, InitMetaData));
-
-    /* Allocate the database if requested. */
-    if (InitMetaData) {					/* <==> VSGDB == 0 */
-	Recov_BeginTrans();
-	    RVMLIB_REC_OBJECT(VSGDB);
-	    VSGDB = new vsgdb;
-	Recov_EndTrans(0);
-    }
-
-    /* Initialize transient members. */
-    VSGDB->ResetTransient();
-
-    /* Scan the database. */
-    eprint("starting VSGDB scan");
-    {
-	/* Check entries in the table. */
-	{
-	    vsg_iterator next;
-	    vsgent *v;
-	    while ((v = next()))
-		/* Initialize transient members. */
-		v->ResetTransient();
-
-	    eprint("\t%d vsg entries in table", VSGDB->htab.count());
-	}
-
-	/* Check entries on the freelist. */
-	{
-	    /* Nothing useful to do! */
-
-	    eprint("\t%d vsg entries on free-list", VSGDB->freelist.count());
-	}
-
-	if (VSGDB->htab.count() + VSGDB->freelist.count() > CacheFiles)
-	    CHOKE("VSGInit: too many vsg entries (%d + %d > %d)",
-		VSGDB->htab.count(), VSGDB->freelist.count(), CacheFiles);
-    }
-
-    RecovFlush(1);
-    RecovTruncate(1);
-
-    /* Fire up the daemon. */
-    VSGD_Init();
-}
-
-
-static int VSG_HashFN(void *key) {
-    return(*((unsigned long *)key));
-}
-
-
-/* Allocate database from recoverable store. */
-void *vsgdb:: operator new(size_t size){
-    vsgdb *v = 0;
-
-    /* Allocate recoverable store for the object. */
-    v = (vsgdb *)rvmlib_rec_malloc(size);
-    CODA_ASSERT(v);
-    return(v);
-}
-
-
-vsgdb::vsgdb() : htab(VSGDB_NBUCKETS, VSG_HashFN) {
-    LOG(10, ("vsgdb::vsgdb: this = %x\n", this));
-
-    /* Initialize the persistent members. */
-    RVMLIB_REC_OBJECT(*this);
-    MagicNumber = VSGDB_MagicNumber;
-}
-
-
-void vsgdb::ResetTransient() {
-    LOG(10, ("vsgdb::ResetTransient: this = %x\n", this));
-
-    /* Sanity checks. */
-    if (MagicNumber != VSGDB_MagicNumber)
-	CHOKE("vsgdb::Init: bad magic number (%d)", MagicNumber);
-
-    htab.SetHFn(VSG_HashFN);
-}
-
-
-void vsgdb::operator delete(void *deadobj, size_t size) {
-    abort();
-}
-
-vsgent *vsgdb::Find(unsigned long Addr) {
-    vsg_iterator next(&Addr);
-    vsgent *v;
-    while ((v = next()))
-	if (v->Addr == Addr) return(v);
-
-    return(0);
-}
-
-
-/* MUST NOT be called from within transaction! */
-vsgent *vsgdb::Create(unsigned long Addr, unsigned long *Hosts) {
-    vsgent *v = 0;
-
-    /* Check whether the key is already in the database. */
-    if ((v = Find(Addr)) != 0)
-	{ v->print(logFile); CHOKE("vsgdb::Create: key exists"); }
-
-    /* Fashion a new object. */
-    Recov_BeginTrans();
-	v = new vsgent(0/*priority*/, Addr, Hosts);
-    Recov_EndTrans(MAXFP);
-
-    if (v == 0)
-	LOG(0, ("vsgdb::Create: (%x, %d) failed\n", Addr, 0/*priority*/));
-    return(v);
-}
-
-
-/* MUST NOT be called from within transaction! */
-int vsgdb::Get(vsgent **vpp, unsigned long Addr, unsigned long *Hosts) {
-    LOG(100, ("vsgdb::Get: Addr = %x, Hosts = %x\n", Addr, Hosts));
-
-    *vpp = 0;
-    vsgent *v = 0;
-
-    /* Check for existing VSG entry. */
-    v = Find(Addr);
-    if (v == 0) {
-	if (Hosts == 0)
-	    CHOKE("vsgdb::Get: Addr (%x) not found and Hosts == 0", Addr);
-
-	v = Create(Addr, Hosts);
-	if (v == 0)
-	    CHOKE("vsgdb::Get: Create (%x, [%x %x %x %x %x %x %x %x]) failed",
-		Addr, Hosts[0], Hosts[1], Hosts[2], Hosts[3], Hosts[4], Hosts[5], Hosts[6], Hosts[7]);
-    }
-    else {
-	if (Hosts != 0) {
-	    /* Sanity check. */
-	    if (memcmp((const void *)Hosts, (const void *) v->Hosts, (int)(VSG_MEMBERS * sizeof(unsigned long))) != 0)
-		{ v->print(logFile); CHOKE("vsgdb::Get: inconsistent VSG entries"); }
-	}
-    }
-
-    v->hold();
-    *vpp = v;
-    return(0);
-}
-
-
-void vsgdb::Put(vsgent **vpp) {
-    if (!(*vpp)) { LOG(100, ("vsgdb::Put: Null vpp\n")); return; }
-
-    vsgent *v = *vpp;
-    LOG(100, ("vsgdb::Put: (%x), refcnt = %d\n", v->Addr, v->refcnt));
-
-    v->release();
-    *vpp = 0;
-}
-
-
-void vsgdb::DownEvent(unsigned long host) {
-    LOG(10, ("vsgdb::DownEvent: host = %x\n", host));
-
-    long eventTime = Vtime();
-    VmonEnqueueCommEvent(host, eventTime, ::ServerDown);
-
-    /* Notify each VSG that includes given host of its failure. */
-    {
-	vsg_iterator next;
-	vsgent *v;
-	while ((v = next()))
-	    for (int i = 0; i < VSG_MEMBERS; i++)
-		if (v->Hosts[i] == host) {
-		    v->DownMember(eventTime);
-		    break;
-		}
-    }
-
-    /* Annoyingly, we must effectively do vsgent::DownMember for the host in question, since non-replicated */
-    /* volumes do not currently belong to a VSG (and notifying the volents is what we really care about)! */
-    {
-	srvent *s = 0;
-	GetServer(&s, host);
-	s->EventCounter++;
-	PutServer(&s);
-
-	vol_iterator next;
-	volent *v;
-	while ((v = next()))
-	    if (v->type != ROVOL && v->type != REPVOL && v->host == host)
-		v->DownMember(eventTime);
-    }
-
-    /* provoke state transitions now */
-    VprocSignal(&vol_sync);
-}
-
-
-void vsgdb::UpEvent(unsigned long host) {
-    LOG(10, ("vsgdb::UpEvent: host = %x\n", host));
-
-    long eventTime = Vtime();
-    VmonEnqueueCommEvent(host, eventTime, ::ServerUp);
-
-    /* Notify each VSG that includes given host of its recovery. */
-    {
-	vsg_iterator next;
-	vsgent *v;
-	while ((v = next()))
-	    for (int i = 0; i < VSG_MEMBERS; i++)
-		if (v->Hosts[i] == host) {
-		    v->UpMember(eventTime);
-		    break;
-		}
-    }
-
-    /* Annoyingly, we must effectively do vsgent::UpEvent for the host in question, since non-replicated */
-    /* volumes do not currently belong to a VSG (and notifying the volents is what we really care about)! */
-    {
-	srvent *s = 0;
-	GetServer(&s, host);
-	s->EventCounter++;
-	PutServer(&s);
-
-	vol_iterator next;
-	volent *v;
-	while ((v = next()))
-	    if (v->type != ROVOL && v->type != REPVOL && v->host == host)
-		v->UpMember(eventTime);
-    }
-
-    /* provoke state transitions now */
-    VprocSignal(&vol_sync);
-}
-
-
-/* 
- * vsgdb::{Weak,Strong}Event.  Notifies each VSG that includes
- * the given host of its change in connectivity.
- */
-void vsgdb::WeakEvent(unsigned long host) {
-    LOG(0/*10*/, ("vsgdb::WeakEvent: host = %x\n", host));
-
-    vsg_iterator next;
-    vsgent *v;
-    while ((v = next()))
-	for (int i = 0; i < VSG_MEMBERS; i++)
-	    if (v->Hosts[i] == host) {
-		v->WeakMember();
-		break;
-	    }
-}
-
-void vsgdb::StrongEvent(unsigned long host) {
-    LOG(0/*10*/, ("vsgdb::StrongEvent: host = %x\n", host));
-
-    vsg_iterator next;
-    vsgent *v;
-    while ((v = next()))
-	for (int i = 0; i < VSG_MEMBERS; i++)
-	    if (v->Hosts[i] == host) {
-		v->StrongMember();
-		break;
-	    }
-}
-
-
-void vsgdb::print(int fd, int SummaryOnly) {
-    if (this == 0) return;
-
-    fdprint(fd, "VSGDB:\n");
-    fdprint(fd, "htab count = %d, freelist count = %d\n",
-	     htab.count(), freelist.count());
-
-    if (!SummaryOnly) {
-	vsg_iterator next;
-	vsgent *v;
-	while ((v = next()))
-	    v->print(fd);
-    }
-
-    fdprint(fd, "\n");
-}
-
-
-/* MUST be called from within transaction! */
-void *vsgent::operator new(size_t size){
-    vsgent *v = 0;
-    
-    if (VSGDB->freelist.count() > 0)
-	v = strbase(vsgent, VSGDB->freelist.get(), handle);
-    else v = (vsgent *)rvmlib_rec_malloc(size);
-    CODA_ASSERT(v);
-    return(v);
-}
-
-vsgent::vsgent(int AllocPriority, unsigned long addr, unsigned long *hosts) {
-    LOG(10, ("vsgent::vsgent: (%x, [%x %x %x %x %x %x %x %x])\n",
-	      addr, hosts[0], hosts[1], hosts[2], hosts[3], hosts[4], hosts[5], hosts[6], hosts[7]));
-
-    RVMLIB_REC_OBJECT(*this);
-    MagicNumber = VSGENT_MagicNumber;
-    Addr = addr;
-    memmove((void *) Hosts, (const void *)hosts, (int)(VSG_MEMBERS * sizeof(unsigned long)));
-    ResetTransient();
-
-    /* Insert into hash table. */
-    VSGDB->htab.append(&Addr, &handle);
-}
-
-
-void vsgent::ResetTransient() {
-    /* Sanity checks. */
-    if (MagicNumber != VSGENT_MagicNumber)
-	{ print(logFile); CHOKE("vsgent::ResetTransient: bogus MagicNumber"); }
-
-    refcnt = 0;
-    EventCounter = 0;
-}
-
-
-/* MUST be called from within transaction! */
-vsgent::~vsgent() {
-    LOG(10, ("vsgent::~vsgent: (%x, [%x %x %x %x %x %x %x %x]), refcnt = %d\n",
-	      Addr, Hosts[0], Hosts[1], Hosts[2], Hosts[3], Hosts[4], Hosts[5], Hosts[6], Hosts[7], refcnt));
-
-    if (refcnt != 0)
-	{ print(logFile); CHOKE("vsgent::~vsgent: non-zero refcnt"); }
-
-    /* Remove from hash table. */
-    if (VSGDB->htab.remove(&Addr, &handle) != &handle)
-	{ print(logFile); CHOKE("vsgent::~vsgent: htab remove"); }
-
-}
-
-void vsgent::operator delete(void *deadobj, size_t size) {
-    vsgent *v;
-    
-    v = (vsgent *)deadobj;
-
-    /* Stick on free list or give back to heap. */
-    if (VSGDB->freelist.count() < VSGMaxFreeEntries)
-	VSGDB->freelist.append(&v->handle);
-    else
-	rvmlib_rec_free(v);
-}
-
-
-void vsgent::hold() {
-    refcnt++;
-}
-
-
-void vsgent::release() {
-    refcnt--;
-
-    if (refcnt < 0)
-	{ print(logFile); CHOKE("vsgent::release: refcnt < 0"); }
-}
-
-
-void vsgent::GetHosts(unsigned long *hosts) {
-    memmove((void *)hosts, (const void *)Hosts, (int)(VSG_MEMBERS * sizeof(unsigned long)));
-}
-
-
-int vsgent::IsMember(unsigned long host) {
-    for (int i = 0; i < VSG_MEMBERS; i++)
-	if (host == Hosts[i]) return(1);
-
-    return(0);
-}
-
-
-void vsgent::DownMember(long eventTime) {
-    EventCounter++;
-
-    /* Yuck!  We really need a list of volumes belonging to a given VSG! */
-    vol_iterator next;
-    volent *v;
-    while ((v = next()))
-	if (v->vsg == this)
-	    v->DownMember(eventTime);
-}
-
-
-void vsgent::UpMember(long eventTime) {
-    EventCounter++;
-
-    /* Yuck!  We really need a list of volumes belonging to a given VSG! */
-    vol_iterator next;
-    volent *v;
-    while ((v = next()))
-	if (v->vsg == this)
-	    v->UpMember(eventTime);
-}
-
-
-void vsgent::WeakMember() {
-    vol_iterator next;
-    volent *v;
-    while ((v = next()))
-	if (v->vsg == this)
-	    v->WeakMember();
-}
-
-
-void vsgent::StrongMember() {
-    vol_iterator next;
-    volent *v;
-    while ((v = next()))
-	if (v->vsg == this)
-	    v->StrongMember();
-}
-
-
-/* returns minimum bandwidth in Bytes/sec, or INIT_BW if none obtainable */
-void vsgent::GetBandwidth(unsigned long *Bandwidth) {
-    *Bandwidth = 0;
-
-    for (int i = 0; i < VSG_MEMBERS; i++)
-	if (Hosts[i]) {
-	    unsigned long bw = 0;
-	    srvent *s = NULL;
-	    GetServer(&s, Hosts[i]);
-
-	    if (s->ServerIsUp()) {	/* need a connection */
-		(void) s->GetBandwidth(&bw);
-		if (bw != 0 && (*Bandwidth == 0 || bw < *Bandwidth))
-		    *Bandwidth = bw;
-	    }
-	}
-
-    if (*Bandwidth == 0) *Bandwidth = INIT_BW;
-
-    LOG(100, ("vsgent::GetBandwidth: (%x) returns %d\n",
-		   Addr, *Bandwidth));
-}
-
-
-int vsgent::Connect(RPC2_Handle *midp, int *authp, vuid_t vuid) {
-    LOG(10, ("vsgent::Connect: addr = %x, uid = %d\n", Addr, vuid));
-
-    int code = 0;
-
-    /* Get the user entry and attempt to form the mgrp. */
-    userent *u = 0;
-    GetUser(&u, vuid);
-    code = u->Connect(midp, authp, Addr);
-    PutUser(&u);
-
-    if (code != 0)
-	CHOKE("vsgent::Connect: (%x) failed (%d)", Addr, code);
-    return(0);
-}
-
-
-void vsgent::print(int fd) {
-    fdprint(fd, "%#08x : addr = %x, refcnt = %d, eventcnt = %d\n",
-	     (long)this, Addr, refcnt, EventCounter);
-    fdprint(fd, "\tHosts: [");
-    for (int i = 0; i < VSG_MEMBERS; i++)
-	fdprint(fd, " %x", Hosts[i]);
-    fdprint(fd, " ]\n");
-}
-
-
-vsg_iterator::vsg_iterator(void *key) : rec_ohashtab_iterator(VSGDB->htab, key) {
-}
-
-
-vsgent *vsg_iterator::operator()() {
-    rec_olink *o = rec_ohashtab_iterator::operator()();
-    if (!o) return(0);
-
-    vsgent *v = strbase(vsgent, o, handle);
-    return(v);
+    return(NULL); /* dummy to keep g++ happy */
 }
 
 /* *****  Fail library manipulations ***** */
@@ -2732,7 +2198,7 @@ vsgent *vsg_iterator::operator()() {
  * Simulate "pulling the plug". Insert filters on the
  * send and receive sides of venus.
  */
-int FailDisconnect(int nservers, unsigned long *hostids)
+int FailDisconnect(int nservers, struct in_addr *hostids)
 {
     int rc, k = 0;
     FailFilter filter;
@@ -2742,10 +2208,10 @@ int FailDisconnect(int nservers, unsigned long *hostids)
 	srv_iterator next;
 	srvent *s;
 	while ((s = next()))
-	    if (nservers == 0 || s->host == hostids[k]) {
+	    if (nservers == 0 || s->host.s_addr == hostids[k].s_addr) {
 		/* we want a pair of filters for server s. */
 
-		unsigned long addr = htonl(s->host);    
+		struct in_addr addr = s->host;    
 		filter.ip1 = ((unsigned char *)&addr)[0];
 		filter.ip2 = ((unsigned char *)&addr)[1];
 		filter.ip3 = ((unsigned char *)&addr)[2];
@@ -2768,7 +2234,7 @@ int FailDisconnect(int nservers, unsigned long *hostids)
 		    char gotit = 0;
 		    for (int j = 0; j < MAXFILTERS; j++) 
 			if (FailFilterInfo[j].used && 
-			    FailFilterInfo[j].host == s->host &&
+			    htonl(FailFilterInfo[j].host) == s->host.s_addr &&
 			    FailFilterInfo[j].side == side) {
 				gotit = 1;
 				break;
@@ -2798,7 +2264,7 @@ int FailDisconnect(int nservers, unsigned long *hostids)
 
 			FailFilterInfo[ix].id = filter.id;
 			FailFilterInfo[ix].side = side;
-			FailFilterInfo[ix].host = s->host;
+			FailFilterInfo[ix].host = ntohl(s->host.s_addr);
 			FailFilterInfo[ix].used = 1;
 		    }
 		} 
@@ -2817,14 +2283,16 @@ int FailDisconnect(int nservers, unsigned long *hostids)
  * about it. This allows the user to remove the filter using another
  * tool and not have to deal with leftover state in venus.
  */
-int FailReconnect(int nservers, unsigned long *hostids)
+int FailReconnect(int nservers, struct in_addr *hostids)
 {
     int rc, s = 0;
 
     do {
 	for (int i = 0; i < MAXFILTERS; i++) 
-	    if (FailFilterInfo[i].used && (nservers == 0 || (FailFilterInfo[i].host == hostids[s])))
-		if ((rc = Fail_RemoveFilter(FailFilterInfo[i].side,
+	    if (FailFilterInfo[i].used &&
+                (nservers == 0 ||
+                 (htonl(FailFilterInfo[i].host) == hostids[s].s_addr))) {
+                if ((rc = Fail_RemoveFilter(FailFilterInfo[i].side,
                                             FailFilterInfo[i].id)) < 0) {
 		    LOG(0, ("FailReconnect: couldn't remove %s filter, id = %d\n", 
 			(FailFilterInfo[i].side == sendSide)?"send":"recv", 
@@ -2835,6 +2303,7 @@ int FailReconnect(int nservers, unsigned long *hostids)
 			FailFilterInfo[i].id));
 		    FailFilterInfo[i].used = 0;
 		}
+            }
     } while (s++ < nservers-1);
 
     return(0);

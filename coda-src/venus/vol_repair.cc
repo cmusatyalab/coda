@@ -98,35 +98,34 @@ extern "C" {
 */
 /* AVSG is returned in rwvols. */
 /* LockUids and LockWSs parameters are deprecated! */
-int volent::EnableRepair(vuid_t vuid, VolumeId *RWVols,
-			  vuid_t *LockUids, unsigned long *LockWSs) {
+int repvol::EnableRepair(vuid_t vuid, VolumeId *RWVols,
+                         vuid_t *LockUids, unsigned long *LockWSs)
+{
     LOG(100, ("volent::EnableRepair: vol = %x, uid = %d\n", vid, vuid));
-
-    if (!IsReplicated()) return(EINVAL);
-
-    int code = 0;
+    int code = 0, i;
 
     /* Place volume in "repair mode." */
     if (flags.repair_mode != 1)
 	flags.repair_mode = 1;
 
     /* RWVols, LockUids, and LockWSs are OUT parameters. */
-    memmove((void *) RWVols, (const void *)u.rep.RWVols, MAXHOSTS * (int)sizeof(VolumeId));
-    memset((void *)LockUids, 0, MAXHOSTS * (int)sizeof(vuid_t));
-    memset((void *)LockWSs, 0, MAXHOSTS * (int)sizeof(unsigned long));
+    memset(LockUids, 0, VSG_MEMBERS * sizeof(vuid_t));
+    memset(LockWSs, 0, VSG_MEMBERS * sizeof(unsigned long));
+    memset(RWVols, 0, VSG_MEMBERS * sizeof(VolumeId));
+    for (i = 0; i < VSG_MEMBERS; i++)
+        if (vsg[i]) RWVols[i] = vsg[i]->GetVid();
 
     return(code);
 }
 
 /* local-repair modification */
 /* Attempt the Repair. */
-int volent::Repair(ViceFid *RepairFid, char *RepairFile, vuid_t vuid,
-		    VolumeId *RWVols, int *ReturnCodes) {
-    
+int repvol::Repair(ViceFid *RepairFid, char *RepairFile, vuid_t vuid,
+		    VolumeId *RWVols, int *ReturnCodes)
+{
     LOG(100, ("volent::Repair: fid = (%x.%x.%x), file = %s, uid = %d\n",
 	       RepairFid->Volume, RepairFid->Vnode, RepairFid->Unique,
 	       RepairFile, vuid));
-    if (!IsReplicated()) return(EINVAL);
     switch (state) {
     case Hoarding:
 	return ConnectedRepair(RepairFid, RepairFile, vuid, RWVols, ReturnCodes);
@@ -145,15 +144,17 @@ int volent::Repair(ViceFid *RepairFid, char *RepairFile, vuid_t vuid,
     return -1;
 }
 
-int volent::ConnectedRepair(ViceFid *RepairFid, char *RepairFile, vuid_t vuid,
-			    VolumeId *RWVols, int *ReturnCodes) {
-
+int repvol::ConnectedRepair(ViceFid *RepairFid, char *RepairFile, vuid_t vuid,
+			    VolumeId *RWVols, int *ReturnCodes)
+{
     int code = 0;
     int i, j, fd;
     fsobj *RepairF = 0;
-
-    memcpy(RWVols, u.rep.RWVols, MAXHOSTS * sizeof(VolumeId));
-    memset(ReturnCodes, 0, MAXHOSTS * sizeof(int));
+    
+    memset(ReturnCodes, 0, VSG_MEMBERS * sizeof(int));
+    memset(RWVols, 0, VSG_MEMBERS * sizeof(VolumeId));
+    for (i = 0; i < VSG_MEMBERS; i++)
+        if (vsg[i]) RWVols[i] = vsg[i]->GetVid();
 
     /* Verify that RepairFid is inconsistent. */
     {
@@ -213,10 +214,10 @@ int volent::ConnectedRepair(ViceFid *RepairFid, char *RepairFile, vuid_t vuid,
 	vv_t *RepairVVs[VSG_MEMBERS];
 	memset((void *)RepairVVs, 0, VSG_MEMBERS * (int)sizeof(vv_t *));
 	for (i = 0; i < VSG_MEMBERS; i++)
-	    if (u.rep.RWVols[i] != 0) {
+	    if (vsg[i]) {
 		fsobj *f = 0;
 		ViceFid rwfid;
-		rwfid.Volume = u.rep.RWVols[i];
+		rwfid.Volume = vsg[i]->GetVid();
 		rwfid.Vnode = RepairFid->Vnode;
 		rwfid.Unique = RepairFid->Unique;
 		if (FSDB->Get(&f, &rwfid, vuid, RC_STATUS) != 0)
@@ -333,20 +334,20 @@ int volent::ConnectedRepair(ViceFid *RepairFid, char *RepairFile, vuid_t vuid,
 	if (code != 0 && code != ESYNRESOLVE) goto Exit;
 
 	/* Collate ReturnCodes. */
-	unsigned long VSGHosts[MAXHOSTS];
-	vsg->GetHosts(VSGHosts);
+	struct in_addr VSGHosts[VSG_MEMBERS];
+	GetHosts(VSGHosts);
 	int HostCount = 0;	/* for sanity check */
-	for (i = 0; i < MAXHOSTS; i++)
-	    if (u.rep.RWVols[i] != 0) {
-		for (j = 0; j < MAXHOSTS; j++)
-		    if (VSGHosts[i] == m->rocc.hosts[j]) {
+	for (i = 0; i < VSG_MEMBERS; i++)
+	    if (vsg[i]) {
+		for (j = 0; j < VSG_MEMBERS; j++)
+		    if (VSGHosts[i].s_addr == m->rocc.hosts[j].s_addr) {
 			ReturnCodes[i] = (m->rocc.retcodes[j] >= 0)
 			  ? m->rocc.retcodes[j]
 			  : ETIMEDOUT;
 			HostCount++;
 			break;
 		    }
-		if (j == MAXHOSTS)
+		if (j == VSG_MEMBERS)
 		    ReturnCodes[i] = ETIMEDOUT;
 	    }
 	if (HostCount != m->rocc.HowMany)
@@ -392,9 +393,10 @@ Exit:
   <a name="disablerepair"><strong> unset the volume from the repair state </strong></a>
   END_HTML
 */
-int volent::DisconnectedRepair(ViceFid *RepairFid, char *RepairFile,
-			       vuid_t vuid, VolumeId *RWVols, int *ReturnCodes) {
-    int code = 0;
+int repvol::DisconnectedRepair(ViceFid *RepairFid, char *RepairFile,
+			       vuid_t vuid, VolumeId *RWVols, int *ReturnCodes)
+{
+    int code = 0, i;
     fsobj *RepairF = 0;
     ViceStatus status;
     vproc *vp = VprocSelf();
@@ -406,8 +408,10 @@ int volent::DisconnectedRepair(ViceFid *RepairFid, char *RepairFile,
 
     ViceFid tpfid;
     tpfid.Volume = RepairFid->Volume;
-    memmove((void *) RWVols, (const void *)u.rep.RWVols, MAXHOSTS * (int)sizeof(VolumeId));
-    memset((void *)ReturnCodes, 0, MAXHOSTS * (int)sizeof(int));
+    memset(ReturnCodes, 0, VSG_MEMBERS * sizeof(int));
+    memset(RWVols, 0, VSG_MEMBERS * sizeof(VolumeId));
+    for (i = 0; i < VSG_MEMBERS; i++)
+        if (vsg[i]) RWVols[i] = vsg[i]->GetVid();
 
     /* Verify that RepairFid is a file fid */
     /* can't repair directories while disconnected */
@@ -486,12 +490,13 @@ int volent::DisconnectedRepair(ViceFid *RepairFid, char *RepairFile,
 	/* Compute template VV. */
 	vv_t tvv = NullVV;
 	vv_t *RepairVVs[VSG_MEMBERS];
-	memset((void *)RepairVVs, 0, VSG_MEMBERS * (int)sizeof(vv_t *));
+        memset(RepairVVs, 0, VSG_MEMBERS * sizeof(vv_t *));
+
 	for (int i = 0; i < VSG_MEMBERS; i++)
-	    if (u.rep.RWVols[i] != 0) {
+	    if (vsg[i]) {
 		fsobj *f = 0;
 		ViceFid rwfid;
-		rwfid.Volume = u.rep.RWVols[i];
+		rwfid.Volume = vsg[i]->GetVid();
 		rwfid.Vnode = RepairFid->Vnode;
 		rwfid.Unique = RepairFid->Unique;
 		if (FSDB->Get(&f, &rwfid, vuid, RC_STATUS) != 0)
@@ -622,7 +627,7 @@ int volent::DisconnectedRepair(ViceFid *RepairFid, char *RepairFile,
 }
 
 /* MUST be called from within a transaction */
-int volent::LocalRepair(fsobj *f, ViceStatus *status, char *fname, ViceFid *pfid) {
+int repvol::LocalRepair(fsobj *f, ViceStatus *status, char *fname, ViceFid *pfid) {
     LOG(100, ("LocalRepair: %x.%x.%x local file %s \n",
 	      f->fid.Volume, f->fid.Vnode, f->fid.Unique, fname));
     RVMLIB_REC_OBJECT(*f);
@@ -685,10 +690,9 @@ int volent::LocalRepair(fsobj *f, ViceStatus *status, char *fname, ViceFid *pfid
     return(0);
 }    
 
-int volent::DisableRepair(vuid_t vuid) {
+int repvol::DisableRepair(vuid_t vuid)
+{
     LOG(100, ("volent::DisableRepair: vol = %x, uid = %d\n", vid, vuid));
-
-    if (!IsReplicated()) return(EINVAL);
 
     if (IsUnderRepair(vuid))
 	flags.repair_mode = 0;
@@ -700,23 +704,11 @@ int volent::DisableRepair(vuid_t vuid) {
 
 
 /* If (vuid == ALL_UIDS) the enquiry is taken to be "does anyone on the WS have the volume under repair". */
-int volent::IsUnderRepair(vuid_t vuid) {
+int volent::IsUnderRepair(vuid_t vuid)
+{
     LOG(100, ("volent::IsUnderRepair: vol = %x, vuid = %d\n", vid, vuid));
-    switch(type) {
-	case RWVOL:
-	case ROVOL:
-	case BACKVOL:
-	case RWRVOL:
-	  return(0);
-	  break;
-	case REPVOL:
-	  return(flags.repair_mode == 1);
-	  break;
-	default:
-	    CHOKE("volent::IsUnderRepair: %x, bogus type (%d)", vid, type);
-	    return(0);
-	    break;
-    }
+
+    return (IsReplicated() && flags.repair_mode);
 }
 
 /* Enable ASR invocation for this volume */
@@ -752,22 +744,8 @@ int volent::DisableASR(vuid_t vuid) {
 
 int volent::IsASRAllowed() {
     LOG(100, ("volent::IsASRAllowed: vol = %x\n", vid));
-    switch(type) {
-	case RWVOL:
-	case ROVOL:
-	case BACKVOL:
-	case RWRVOL:
-	  return(0);
-	  break;
-	case REPVOL:
-	  LOG(0, ("volent::IsASRAllowed: returns %d\n", (flags.allow_asrinvocation == 1)));
-	  return(flags.allow_asrinvocation == 1);
-	  break;
-	default:
-	  CHOKE("volent::IsASRAllowed: %x, bogus type (%d)", vid, type);
-	  return(0);
-	  break;
-    }
+
+    return (IsReplicated() && flags.allow_asrinvocation);
 }
 
 void volent::lock_asr() {
@@ -788,3 +766,4 @@ void volent::asr_id(int id) {
 }
 
 int volent::asr_id() { return(lc_asr); }
+

@@ -61,6 +61,7 @@ extern "C" {
 
 #include <codaconf.h>
 #include <vice_file.h>
+#include <coda_config.h>
 
 static char *serverconf = SYSCONFDIR "/server"; /* ".conf" */
 static char *vicedir = NULL;

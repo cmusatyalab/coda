@@ -26,7 +26,6 @@ listed in the file CREDITS.
 #ifndef	_VENUS_COMM_H_
 #define	_VENUS_COMM_H_	1
 
-
 #ifdef __cplusplus
 extern "C" {
 #endif __cplusplus
@@ -70,9 +69,6 @@ class srv_iterator;
 class RepOpCommCtxt;
 class mgrpent;
 class mgrp_iterator;
-class vsgdb;
-class vsgent;
-class vsg_iterator;
 
 /* Bogus forward declarations to placate C++! */
 
@@ -91,12 +87,6 @@ extern unsigned long WCThresh;
 
 
 /*  *****  Constants  *****  */
-
-#define	VSGDB	(rvg->recov_VSGDB)
-const int VSGDB_MagicNumber = 9392989;
-const int VSGDB_NBUCKETS = 32;
-const int VSGENT_MagicNumber = 2777477;
-const int VSGMaxFreeEntries = 8;
 
 const int DFLT_RT = 4;			    /* rpc2 retries */
 const int UNSET_RT = -1;
@@ -141,18 +131,19 @@ class connent {
   friend void CommInit();
   friend void Conn_Wait();
   friend void Conn_Signal();
-  friend int GetConn(connent **, unsigned long, vuid_t, int);
+  friend int GetConn(connent **, struct in_addr *, vuid_t, int);
   friend void PutConn(connent **);
   friend void ConnPrint(int);
   friend class conn_iterator;
-  friend void DoProbes(int, unsigned long *);
+  friend void DoProbes(int, struct in_addr *);
   friend class srvent;
   friend class mgrpent;
   friend class fsobj;
   friend int GetTime(long *, long *);
-  friend int GetRootVolume();
+  friend int GetRootVolume(void);
   friend class vdb;
   friend class volent;
+  friend void repvol::Resolve(void);
   friend class ClientModifyLog;
   friend class cmlent;
 
@@ -164,7 +155,7 @@ class connent {
     olink tblhandle;
 
     /* Static state; immutable after construction. */
-    unsigned long Host;		/* Who to contact. */
+    struct in_addr Host;	/* Who to contact. */
     vuid_t uid;			/* UID to validate with respect to. */
     RPC2_Handle connid;		/* RPC connid. */
     unsigned authenticated : 1;
@@ -174,7 +165,7 @@ class connent {
     unsigned dying : 1;
 
     /* Constructors, destructors, and private utility routines. */
-    connent(unsigned long, vuid_t, RPC2_Handle, int);
+    connent(struct in_addr *, vuid_t, RPC2_Handle, int);
     connent(connent&) { abort(); }	/* not supported! */
     int operator=(connent&) { abort(); return(0); }	/* not supported! */
     ~connent();
@@ -194,10 +185,8 @@ class connent {
 };
 
 
-const unsigned long ALL_HOSTS = 0xFFFFFFFF;
-
 struct ConnKey {
-    unsigned long host;
+    struct in_addr host;
     vuid_t vuid;
 };
 
@@ -209,38 +198,33 @@ class conn_iterator : public olist_iterator {
     connent *operator()();
 };
 
-
-
-
-
 class srvent {
   friend void CommInit();
   friend void Srvr_Wait();
   friend void Srvr_Signal();
-  friend srvent *FindServer(unsigned long);
+  friend srvent *FindServer(struct in_addr *);
   friend srvent *FindServerByCBCid(RPC2_Handle);
-  friend void GetServer(srvent **, unsigned long);
+  friend void GetServer(srvent **, struct in_addr *);
   friend void PutServer(srvent **);
   friend void ProbeServers(int);
   friend void ServerProbe(long *, long *);
   friend long HandleProbe(int, RPC2_Handle *, long, long);
   friend void CheckServerBW(long);
   friend void DownServers(char *, unsigned int *);
-  friend void DownServers(int, unsigned long *, char *, unsigned int *);
+  friend void DownServers(int, struct in_addr *, char *, unsigned int *);
   friend void ServerPrint(int);
   friend long S_GetServerInformation(RPC2_Handle, RPC2_Integer, RPC2_Integer *, ServerEnt *);
   friend class srv_iterator;
   friend class connent;
   friend class mgrpent;
-  friend class vsgdb;
-  friend int GetConn(connent **, unsigned long, vuid_t, int);
+  friend int GetConn(connent **, struct in_addr *, vuid_t, int);
   friend int GetAdmConn(connent **);
   friend long CallBack(RPC2_Handle, ViceFid *);
   friend long CallBackFetch(RPC2_Handle, ViceFid *, SE_Descriptor *);
   friend long CallBackConnect(RPC2_Handle, RPC2_Integer, RPC2_Integer, RPC2_Integer, RPC2_Integer, RPC2_CountedBS *);
   friend long WriteBackConnect(RPC2_Handle, RPC2_Integer, RPC2_Integer, RPC2_Integer, RPC2_Integer, RPC2_CountedBS *);
-  friend int FailDisconnect(int, unsigned long *);
-  friend int FailReconnect(int, unsigned long *);
+  friend int FailDisconnect(int, struct in_addr *);
+  friend int FailReconnect(int, struct in_addr *);
   friend int FailSlow(unsigned *);
   friend class userent;
   friend class vproc;
@@ -253,9 +237,8 @@ class srvent {
     /* Transient members. */
     olink tblhandle;
     char *name;
-    unsigned long host;
+    struct in_addr host;
     RPC2_Handle	connid;		/* The callback connid. */
-    int	EventCounter;		/* incremented on every Up/Down event */
     unsigned Xbinding : 1;	/* 1 --> BINDING, 0 --> NOT_BINDING */
     unsigned probeme : 1;	/* should ProbeD probe this server? */
     unsigned forcestrong : 1;	/* the user can force strong connectivity */
@@ -267,7 +250,7 @@ class srvent {
     struct timeval lastobs;	/* time of most recent estimate */
   
     /* Constructors, destructors, and private utility routines. */
-    srvent(unsigned long host, int isrootserver);
+    srvent(struct in_addr *host, int isrootserver);
     srvent(srvent&) { abort(); }	/* not supported! */
     int operator=(srvent&) { abort(); return(0); }	/* not supported! */
     ~srvent();
@@ -281,7 +264,6 @@ class srvent {
     int Connect(RPC2_Handle *, int *, vuid_t, int);
     int GetStatistics(ViceStatistics *);
 
-    int GetEventCounter() { return(EventCounter); }
     long GetLiveness(struct timeval *);
     long GetBandwidth(unsigned long *);
     void ForceStrong(int on);
@@ -332,9 +314,7 @@ class probeslave : public vproc {
  *  MultiGroups:
  *	RepOpCommCtxts:
  * 
- *  VSGs:
- *
-*/
+ */
 
 #define	BENIGNERROR(code)   ((code) == ENOSPC ||\
 			     (code) == EDQUOT ||\
@@ -344,18 +324,17 @@ class probeslave : public vproc {
 
 class RepOpCommCtxt {
   friend class mgrpent;
-  friend int GetMgrp(mgrpent **, unsigned long, vuid_t);
-  friend void PutMgrp(mgrpent **);
   friend class fsobj;
   friend class volent;
+  friend class repvol;
   friend class ClientModifyLog;
   friend class cmlent;
 
     RPC2_Integer HowMany;
     RPC2_Handle handles[VSG_MEMBERS];
-    unsigned long hosts[VSG_MEMBERS];
+    struct in_addr hosts[VSG_MEMBERS];
     RPC2_Integer retcodes[VSG_MEMBERS];
-    unsigned long primaryhost;
+    struct in_addr primaryhost;
     RPC2_Multicast *MIp;
     unsigned dying[VSG_MEMBERS];
 
@@ -364,6 +343,8 @@ class RepOpCommCtxt {
     RepOpCommCtxt(RepOpCommCtxt&) { abort(); }  /* not supported! */
     int operator=(RepOpCommCtxt&) { abort(); return(0); }	    /* not supported! */
     ~RepOpCommCtxt() {}
+
+    int AnyReturned(int code);
 
     void print() { print(stdout); }
     void print(FILE *fp) { fflush(fp); print(fileno(fp)); }
@@ -375,27 +356,25 @@ class mgrpent {
   friend void CommInit();
   friend void Mgrp_Wait();
   friend void Mgrp_Signal();
-  friend int GetMgrp(mgrpent **, unsigned long, vuid_t);
+  friend int GetMgrp(mgrpent **, repvol *, vuid_t);
   friend void PutMgrp(mgrpent **);
   friend void MgrpPrint(int);
   friend class mgrp_iterator;
   friend class fsobj;
   friend class volent;
+  friend class repvol;
   friend class ClientModifyLog;
   friend class cmlent;
 
-    /* The mgrp list. */
-    static olist *mgrptab;
-    static char mgrptab_sync;
-
-    /* Transient members. */
-    olink tblhandle;
+    /* mgrp syncronization. */
+    static char mgrp_sync;
 
     /* Static state; immutable after construction. */
-    unsigned long VSGAddr;		/* should be a reference to vsgent! */
+    struct dllist_head volhandle;
     vuid_t uid;				/* UID to validate with respect to. */
+    VolumeId vid;
     RPC2_Multicast McastInfo;
-    unsigned long Hosts[VSG_MEMBERS];	/* All VSG hosts in canonical order. */
+    struct in_addr Hosts[VSG_MEMBERS];	/* All VSG hosts in canonical order. */
     unsigned nhosts;                    /* how many there are, really.       */
     unsigned authenticated : 1;
 
@@ -405,11 +384,11 @@ class mgrpent {
     RepOpCommCtxt rocc;
 
     /* Constructors, destructors, and private utility routines. */
-    mgrpent(unsigned long, vuid_t, RPC2_Handle, int);
+    mgrpent(volent *, vuid_t, RPC2_Handle, int);
     mgrpent(mgrpent&) { abort(); }	/* not supported! */
     int operator=(mgrpent&) { abort(); return(0); }	/* not supported! */
     ~mgrpent();
-
+    
   public:
 #ifdef	VENUSDEBUG
     static int allocs;
@@ -427,134 +406,26 @@ class mgrpent {
     int IsAuthenticated(void) { return authenticated; }
 
     int GetHostSet();
-    int CreateMember(unsigned long);
+    int CreateMember(int idx);
     void PutHostSet();
-    void KillMember(unsigned long, int);
-    unsigned long GetPrimaryHost(int *ph_ixp=NULL);
+    void KillMember(struct in_addr *, int);
+    struct in_addr *GetPrimaryHost(int *ph_ixp=NULL);
 
     void print() { print(stdout); }
     void print(FILE *fp) { fflush(fp); print(fileno(fp)); }
     void print(int fd) {     
-	    fdprint(fd, "%#08x : vsgaddr = %#08x, nhosts = %d, uid = %d, mid = %d, auth = %d, inuse = %d, dying = %d\n",
-		    (long)this, VSGAddr, nhosts, uid, McastInfo.Mgroup, authenticated, inuse, dying);
+	    fdprint(fd, "%#08x : volumeid = %#08x, nhosts = %d, uid = %d, mid = %d, auth = %d, inuse = %d, dying = %d\n",
+		    (long)this, vid, nhosts, uid, McastInfo.Mgroup, authenticated, inuse, dying);
     }
 };
 
 
-const unsigned long ALL_VSGS = 0xFFFFFFFF;
+const unsigned long ALL_VOLS = 0xFFFFFFFF;
 
 struct MgrpKey {
-    unsigned long vsgaddr;
+    VolumeId vid;
     vuid_t vuid;
 };
-
-class mgrp_iterator : public olist_iterator {
-    struct MgrpKey *key;
-
-  public:
-    mgrp_iterator(struct MgrpKey * =(struct MgrpKey *)0);
-    mgrpent *operator()();
-};
-
-
-class vsgdb {
-  friend void VSGInit();
-  friend void VSGD_Init();
-  friend void VSGDaemon(void);
-  friend class vsgent;
-  friend class vsg_iterator;
-
-    int MagicNumber;
-
-    /* The hash table. */
-    rec_ohashtab htab;
-
-    /* The free list. */
-    rec_olist freelist;
-
-    /* Constructors, destructors. */
-    void *operator new(size_t);
-    void operator delete(void *, size_t);
-
-    vsgdb();
-    void ResetTransient();
-    ~vsgdb() { abort(); }	/* they never go away ... */
-
-    /* Allocation/Deallocation routines. */
-    vsgent *Create(unsigned long, unsigned long *);
-
-    /* Daemon functions. */
-    void GetDown();
-
-  public:
-    vsgent *Find(unsigned long);
-    int Get(vsgent **, unsigned long, unsigned long * =0);
-    void Put(vsgent **);
-
-    void DownEvent(unsigned long);
-    void UpEvent(unsigned long);
-    void WeakEvent(unsigned long);
-    void StrongEvent(unsigned long);
-
-    void print() { print(stdout); } 
-    void print(FILE *fp) { fflush(fp); print(fileno(fp)); }
-    void print(int, int =0);
-};
-
-
-class vsgent {
-  friend void VSGInit();
-  friend class vsgdb;
-  friend class vsg_iterator;
-  friend class volent;
-
-    int MagicNumber;
-
-    /* Key */
-    unsigned long Addr;
-
-    /* Assoc(Key) */
-    unsigned long Hosts[VSG_MEMBERS];
-
-    rec_olink	handle;			/* link for {htab, freelist} */
-    /*T*/int	refcnt;			/* entry may NOT be deleted while this is non-zero. */
-    /*T*/int	EventCounter;		/* count of AVSG membership transitions */
-
-    /* Constructors, destructors, and private utility routines. */
-    void *operator new(size_t);
-    void operator delete(void *, size_t);
-    vsgent(int, unsigned long, unsigned long *);
-    void ResetTransient();
-    vsgent(vsgent&) { abort(); }	/* not supported! */
-    int operator=(vsgent&) { abort(); return(0); }	/* not supported! */
-    ~vsgent();
-    void hold();
-    void release();
-
-  public:
-    void GetHosts(unsigned long *);
-    int IsMember(unsigned long);
-    void DownMember(long);
-    void UpMember(long);
-    void WeakMember();
-    void StrongMember();
-    int GetEventCounter() { return(EventCounter); }
-    int Connect(RPC2_Handle *, int *, vuid_t);
-    void GetBandwidth(unsigned long *);
-
-    void print() { print(stdout); }
-    void print(FILE *fp) { fflush(fp); print(fileno(fp)); }
-    void print(int);
-};
-
-
-class vsg_iterator : public rec_ohashtab_iterator {
-
-  public:
-    vsg_iterator(void * =(void *)-1);
-    vsgent *operator()();
-};
-
 
 /*  *****  Variables  *****  */
 
@@ -583,46 +454,33 @@ extern void CommInit();
 extern void Conn_Wait();
 extern void Conn_Signal();
 extern int GetAdmConn(connent **);
-extern int GetConn(connent **, unsigned long, vuid_t, int);
+extern int GetConn(connent **, struct in_addr *, vuid_t, int);
 extern void PutConn(connent **);
-//extern void ConnPrint();
-//extern void ConnPrint(FILE *);
-//extern void ConnPrint(int);
 extern void Srvr_Wait();
 extern void Srvr_Signal();
-extern srvent *FindServer(unsigned long);
+extern srvent *FindServer(struct in_addr *);
 extern srvent *FindServerByCBCid(RPC2_Handle);
-extern void GetServer(srvent **, unsigned long);
+extern void GetServer(srvent **, struct in_addr *);
 extern void PutServer(srvent **);
 extern void ProbeServers(int);
-extern void DoProbes(int, unsigned long *);
-extern void MultiBind(int, unsigned long *, connent **);
+extern void DoProbes(int, struct in_addr *);
+extern void MultiBind(int, struct in_addr *, connent **);
 extern void MultiProbe(int, RPC2_Handle *);
 extern long HandleProbe(int, RPC2_Handle *, long, long);
 extern void ServerProbe(long * =0, long * =0);
 extern void DownServers(char *, unsigned int *);
-extern void DownServers(int, unsigned long *, char *, unsigned int *);
+extern void DownServers(int, struct in_addr *, char *, unsigned int *);
 extern void CheckServerBW(long);
-//extern void ServerPrint();
-//extern void ServerPrint(FILE *);
-//extern void ServerPrint(int);
 extern void Mgrp_Wait();
 extern void Mgrp_Signal();
-extern int GetMgrp(mgrpent **, unsigned long, vuid_t);
 extern void PutMgrp(mgrpent **);
-//extern void MgrpPrint();
-//extern void MgrpPrint(FILE *);
-//extern void MgrpPrint(int);
-extern void VSGInit();
-extern int FailDisconnect(int, unsigned long *);
-extern int FailReconnect(int, unsigned long *);
+extern int FailDisconnect(int, struct in_addr *);
+extern int FailReconnect(int, struct in_addr *);
 extern int FailSlow(unsigned *);
 
 /* comm_daemon.c */
 extern void PROD_Init(void);
 extern void ProbeDaemon(void);
-extern void VSGDaemon(void); /* used to be member of class vsgdb */
-extern void VSGD_Init(void);
 
 /* comm synchronization */
 struct CommQueueStruct {
@@ -774,4 +632,5 @@ extern struct CommQueueStruct CommQueue;
 
 #define VENUS_MAXBSLEN 1024   /* For use in ARG_MARSHALL_BS */
 
-#endif	not _VENUS_COMM_H_
+#endif /* _VENUS_COMM_H_ */
+

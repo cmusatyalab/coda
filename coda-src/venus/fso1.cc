@@ -205,7 +205,6 @@ void fsobj::ResetTransient() {
     ClearRcRights();
     DemoteAcRights(ALL_UIDS);
     flags.backup = 0;
-    flags.readonly = 0;
     flags.replicated = 0;
     flags.rwreplica = 0;
     flags.usecallback = 0;
@@ -256,7 +255,6 @@ void fsobj::ResetTransient() {
 	    { print(logFile); CHOKE("fsobj::ResetTransient: couldn't find volume"); }
 	vol->hold();
 	if (vol->IsBackup()) flags.backup = 1;
-	if (vol->IsReadOnly()) flags.readonly = 1;
 	if (vol->IsReplicated()) flags.replicated = 1;
 	if (vol->IsReadWriteReplica()) flags.rwreplica = 1;
 	if (vol->flags.usecallback) flags.usecallback = 1;
@@ -608,7 +606,7 @@ void fsobj::Matriculate() {
 void fsobj::Demote(void)
 {
     if (!HAVESTATUS(this) || DYING(this)) return;
-    if (flags.readonly || IsMtPt() || IsFakeMTLink()) return;
+    if (IsMtPt() || IsFakeMTLink()) return;
 
     LOG(10, ("fsobj::Demote: fid = (%s)\n", FID_(&fid)));
 
@@ -701,7 +699,8 @@ int fsobj::Flush() {
 /* MUST be called from within transaction! */
 /* Call with object write-locked. */
 /* Called as result of {GetAttr, ValidateAttr, GetData, ValidateData}. */
-void fsobj::UpdateStatus(ViceStatus *vstat, vuid_t vuid) {
+void fsobj::UpdateStatus(ViceStatus *vstat, vuid_t vuid)
+{
     /* Mount points are never updated. */
     if (IsMtPt())
 	{ print(logFile); CHOKE("fsobj::UpdateStatus: IsMtPt!"); }
@@ -732,7 +731,8 @@ void fsobj::UpdateStatus(ViceStatus *vstat, vuid_t vuid) {
 /* MUST be called from within transaction! */
 /* Call with object write-locked. */
 /* Called for mutating operations. */
-void fsobj::UpdateStatus(ViceStatus *vstat, vv_t *UpdateSet, vuid_t vuid) {
+void fsobj::UpdateStatus(ViceStatus *vstat, vv_t *UpdateSet, vuid_t vuid)
+{
     /* Mount points are never updated. */
     if (IsMtPt())
 	{ print(logFile); CHOKE("fsobj::UpdateStatus: IsMtPt!"); }
@@ -858,8 +858,9 @@ int fsobj::CheckRcRights(int rights) {
 }
 
 
-void fsobj::SetRcRights(int rights) {
-    if (flags.readonly || flags.backup  || IsFake())
+void fsobj::SetRcRights(int rights)
+{
+    if (flags.backup  || IsFake())
 	return;
 
     LOG(100, ("fsobj::SetRcRights: (%s), rights = %d\n", FID_(&fid), rights));
@@ -907,15 +908,14 @@ int fsobj::IsValid(int rcrights) {
     }
 
     /* Several other reasons that imply this object is valid */
-    if (flags.readonly)		    return 1;
     if (CheckRcRights(rcrights))    return 1;
     if (IsMtPt() || IsFakeMTLink()) return 1;
 
     /* Now if we still have the volume callback, we can't lose.
      * also update VCB statistics -- valid due to VCB */
     if (vol->HaveCallBack()) {
-	vol->VCBHits++;
-	return 1;
+        ((repvol *)vol)->VCBHits++;
+        return 1;
     }
 
     /* Final conclusion, the object is not valid */
@@ -1818,7 +1818,8 @@ fsobj::ReadDisconnectedCacheMiss(vproc *vp, vuid_t vuid) {
     return(advice);
 }
 
-CacheMissAdvice fsobj::WeaklyConnectedCacheMiss(vproc *vp, vuid_t vuid) {
+CacheMissAdvice fsobj::WeaklyConnectedCacheMiss(vproc *vp, vuid_t vuid)
+{
     char pathname[MAXPATHLEN];
     CacheMissAdvice advice;
     unsigned long CurrentBandwidth;
@@ -1853,7 +1854,7 @@ CacheMissAdvice fsobj::WeaklyConnectedCacheMiss(vproc *vp, vuid_t vuid) {
 
     LOG(100, ("Requesting WeaklyConnected CacheMiss Advice for path=%s, pid=%d...\n", 
 	      pathname, vp->u.u_pid));
-    vol->vsg->GetBandwidth(&CurrentBandwidth);
+    vol->GetBandwidth(&CurrentBandwidth);
     advice = adv_mon.WeaklyConnectedAdvice(&fid, pathname, vp->u.u_pid,
 					   stat.Length, CurrentBandwidth,
 					   cf.Name());
@@ -2049,7 +2050,8 @@ void fsobj::DiscardData() {
 /* Call with object write-locked. */
 /* returns 0 if successful, ENOENT if the parent cannot
    be found. */
-int fsobj::Fakeify() {
+int fsobj::Fakeify()
+{
     LOG(1, ("fsobj::Fakeify: %s, (%s)\n", comp, FID_(&fid)));
 
     fsobj *pf = 0;
@@ -2080,7 +2082,7 @@ int fsobj::Fakeify() {
     if (!IsRoot())  // If we're not the root, pf != 0
 	    pf->AttachChild(this);
 
-    unsigned long volumehosts[VSG_MEMBERS];
+    struct in_addr volumehosts[VSG_MEMBERS];
     srvent *s;
     int i;
     if (FID_IsFakeRoot(&fid)) {		/* Fake MTLink */
@@ -2132,29 +2134,27 @@ int fsobj::Fakeify() {
 		    LOG(100, ("fsobj::Fakeify: making %s a symlink %s\n",
 			      FID_(&fid), data.symlink));
 		} else {
+                    VolumeId rwvolumeid;
+                    struct in_addr host;
+
 		    /* the normal fake link */
 		    /* get the volumeid corresponding to the server name */
-		    /* A big assumption here is that the host order in the
-		       server array returned by GetHosts is the
-		       same as the volume id order in the vdb.*/
-		    vol->vsg->GetHosts(volumehosts);
-		    /* find the server first */
+                    FSO_ASSERT(this, vol->IsReplicated());
+                    repvol *vp = (repvol *)vol;
 		    for (i = 0; i < VSG_MEMBERS; i++) {
-			if (volumehosts[i] == 0) continue;
-			if ((s = FindServer(volumehosts[i])) &&
-			    (s->name)) {
-			    if (!strcmp(s->name, comp)) break;
-			}
-			else {
-			    unsigned long vh = atol(comp);
-			    if (vh == volumehosts[i]) break;
-			}
-		    }
-		    if (i == VSG_MEMBERS) 
-		      // server not found 
-		      CHOKE("fsobj::fakeify couldn't find the server for %s\n", 
-			    comp);
-		    unsigned long rwvolumeid = vol->u.rep.RWVols[i];
+                        if (!vp->vsg[i]) continue;
+                        vp->vsg[i]->Host(&host);
+
+			if ((s = FindServer(&host)) && s->name &&
+                            strcmp(s->name, comp) == 0) {
+                            break;
+                        }
+                    }
+		    if (i == VSG_MEMBERS) // server not found 
+                      CHOKE("fsobj::fakeify couldn't find the server for %s\n",
+                            comp);
+
+                    rwvolumeid = vp->vsg[i]->vid;
 		    
 		    /* Write out the link contents. */
 		    data.symlink = (char *)rvmlib_rec_malloc((unsigned) stat.Length);
@@ -2189,12 +2189,12 @@ int fsobj::Fakeify() {
 	    UpdateCacheStats(&FSDB->DirDataStats, CREATE, BLOCKS(this));
 
 	    /* Make entries for each of the rw-replicas. */
-	    vol->vsg->GetHosts(volumehosts);
+	    vol->GetHosts(volumehosts);
 	    for (i = 0; i < VSG_MEMBERS; i++) {
-		if (volumehosts[i] == 0) continue;
+		if (!volumehosts[i].s_addr) continue;
 		srvent *s;
 		char Name[CODA_MAXNAMLEN];
-		if ((s = FindServer(volumehosts[i])) &&
+		if ((s = FindServer(&volumehosts[i])) &&
 		    (s->name))
 		    sprintf(Name, "%s", s->name);
 		else
@@ -2525,11 +2525,13 @@ void fsobj::CacheReport(int fd, int level) {
  * The routine takes one argument -- whether the status block (type == 0) 
  * or the actual data (type == 1) is being fetched.  The default is data.
  */
-int fsobj::EstimatedFetchCost(int type) {
+int fsobj::EstimatedFetchCost(int type)
+{
+    unsigned long bw;	/* bandwidth, in bytes/sec */
+
     LOG(100, ("E fsobj::EstimatedFetchCost(%d)\n", type));
 
-    unsigned long bw;	/* bandwidth, in bytes/sec */
-    vol->vsg->GetBandwidth(&bw);
+    vol->GetBandwidth(&bw);
 
     LOG(100, ("stat.Length = %d; Bandwidth = %d\n", stat.Length, bw));
     LOG(100, ("EstimatedFetchCost = %d\n", (int)stat.Length/bw));
@@ -2575,8 +2577,8 @@ void fsobj::print(int fdes) {
 		    SpecificUser[i].inuse, SpecificUser[i].valid);
 	fdprint(fdes, " }\n");
     }
-    fdprint(fdes, "\tvoltype = [%d %d %d %d], ucb = %d, fake = %d, fetching = %d local = %d\n",
-	     flags.backup, flags.readonly, flags.replicated, flags.rwreplica,
+    fdprint(fdes, "\tvoltype = [%d %d %d], ucb = %d, fake = %d, fetching = %d local = %d\n",
+	     flags.backup, flags.replicated, flags.rwreplica,
 	     flags.usecallback, flags.fake, flags.fetching, flags.local);
     fdprint(fdes, "\trep = %d, data = %d, owrite = %d, era = %d, dirty = %d, shadow = %d\n",
 	     flags.replaceable, HAVEDATA(this), flags.owrite, flags.era, flags.dirty,

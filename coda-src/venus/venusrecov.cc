@@ -49,8 +49,6 @@ extern "C" {
 #include <rvm/rvm_segment.h>
 #include <rvm/rvm_statistics.h>
 
-#include "coda_mmap_anon.h"
-
 /* function defined in rpc2.private.h, which we need to seed the random
  * number generator, _before_ we create a new VenusGenId. */
 void rpc2_InitRandom();
@@ -66,9 +64,6 @@ void rpc2_InitRandom();
 #include "venus.private.h"
 #include "venusrecov.h"
 #include "worker.h"
-
-extern char *rvm_errmsg;
-
 
 /*  *****  Exported Variables  *****  */
 
@@ -99,20 +94,17 @@ int MAXTS = UNSET_MAXTS;
 /*  *****  Private Constants  *****  */
 
 #if defined(NetBSD1_3) || defined(__NetBSD_Version__) || defined(__FreeBSD_version)
-static const char *VM_RVGADDR = (char *)0x50000000;
-static const char *VM_RDSADDR = (char *)0x51000000;
+static const char *VM_RVMADDR = (char *)0x50000000;
 #elif  defined(__linux__) && defined(sparc)
-static const char *VM_RVGADDR = (char *)0xbebd000;
-static const char *VM_RDSADDR = (char *)0xbfbd000;
+static const char *VM_RVMADDR = (char *)0xbebd000;
 #elif	defined(__linux__) || defined(__CYGWIN32__)
-static const char *VM_RVGADDR = (char *)0x20000000;
-static const char *VM_RDSADDR = (char *)0x21000000;
+static const char *VM_RVMADDR = (char *)0x20000000;
 #elif	defined(DJGPP)
-static const char *VM_RVGADDR = (char *)0x02000000;
-static const char *VM_RDSADDR = (char *)0x03000000;
+static const char *VM_RVMADDR = (char *)0x03000000;
 #elif defined(sun)
-static const char *VM_RVGADDR = (char *)0x40000000;
-static const char *VM_RDSADDR = (char *)0x41000000;
+static const char *VM_RVMADDR = (char *)0x40000000;
+#else
+#error "Please define RVM address for this platform."
 #endif
 
 #ifdef __CYGWIN32__
@@ -133,28 +125,25 @@ static rvm_statistics_t Recov_Statistics;
 
 static void Recov_CheckParms();
 static void Recov_InitRVM();
-static void Recov_LayoutSeg();
-static void Recov_CreateSeg();
-static void Recov_LoadSeg();
-static void Recov_InitSeg();
+static void Recov_InitRDS();
+static void Recov_LoadRDS();
 static void Recov_GetStatistics();
-static void Recov_AllocateVM(void **, unsigned long);
-static void Recov_DeallocateVM(char *, unsigned long);
 
 /* Crude formula for estimating recoverable data requirements! */
 #define	RECOV_BYTES_NEEDED()\
     (MLEs * (sizeof(cmlent) + 64) +\
     CacheFiles * (sizeof(fsobj) + 64) +\
     (CacheFiles / 4) * (sizeof(VenusDirData) + 3072) +\
-    (CacheFiles / 64) * sizeof(volent) +\
-    (CacheFiles / 256) * sizeof(vsgent) +\
+    (CacheFiles / 256) * sizeof(repvol) +\
+    (CacheFiles / 512) * sizeof(volrep) +\
     HDBEs * (sizeof(hdbent) + 128) +\
     128 * 1024)
 
 
 /*  *****  Recovery Module  *****  */
 
-int RecovVenusGlobals::validate() {
+int RecovVenusGlobals::validate()
+{
     if (recov_MagicNumber != RecovMagicNumber) return(0);
     if (recov_VersionNumber != RecovVersionNumber) return(0);
 
@@ -162,11 +151,8 @@ int RecovVenusGlobals::validate() {
 
     if (!VALID_REC_PTR(recov_FSDB)) return(0);
     if (!VALID_REC_PTR(recov_VDB)) return(0);
-    if (!VALID_REC_PTR(recov_VSGDB)) return(0);
     if (!VALID_REC_PTR(recov_HDB)) return(0);
     if (!VALID_REC_PTR(recov_LRDB)) return(0);
-/*    if (!VALID_REC_PTR(recov_UDB)) return(0);*/
-/*    if (!VALID_REC_PTR(recov_VMDB)) return(0);*/
     if (!VALID_REC_PTR(recov_VCBDB)) return(0);
 
     return(1);
@@ -192,8 +178,8 @@ void RecovVenusGlobals::print(int fd) {
 	    recov_CleanShutDown, recov_RootVolName);
     fdprint(fd, "The following pointers should be between %x and %x:\n",
 	    recov_HeapAddr, recov_HeapAddr + recov_HeapLength);
-    fdprint(fd, "Ptrs = [%x %x %x %x %x %x], Heap = [%x] HeapLen = %x\n",
-	     recov_FSDB, recov_VDB, recov_VSGDB, recov_HDB, recov_LRDB, recov_VCBDB, 
+    fdprint(fd, "Ptrs = [%x %x %x %x %x], Heap = [%x] HeapLen = %x\n",
+	     recov_FSDB, recov_VDB, recov_HDB, recov_LRDB, recov_VCBDB, 
 	     recov_HeapAddr, recov_HeapLength);
 
     fdprint(fd, "UUID = %08x-%04x-%04x-%02x%02x-%02x%02x%02x%02x%02x%02x\n",
@@ -212,10 +198,10 @@ void RecovInit() {
     if (RvmType == VM) {
 	if ((rvg = (RecovVenusGlobals *)malloc(sizeof(RecovVenusGlobals))) == 0)
 	    CHOKE("RecovInit: malloc failed");
-	memset((void *)rvg, 0, (int)sizeof(RecovVenusGlobals));
-	rvg->recov_MagicNumber = RecovMagicNumber;
+	memset(rvg, 0, sizeof(RecovVenusGlobals));
+	rvg->recov_MagicNumber   = RecovMagicNumber;
 	rvg->recov_VersionNumber = RecovVersionNumber;
-	rvg->recov_LastInit = Vtime();
+	rvg->recov_LastInit      = Vtime();
 
 	/* We need to initialize the random number generator before first use */
 	rpc2_InitRandom();
@@ -227,20 +213,8 @@ void RecovInit() {
 
     /* Initialize the RVM package. */
     Recov_InitRVM();
-
-    /* Layout the regions (i.e., specify their <address, length>) comprising the Venus meta-data segment. */
-    Recov_LayoutSeg();
-
-    /* Brain-wipe the segment if requested from command-line. */
-    if (InitMetaData) {
-	eprint("brain-wiping recoverable store");
-	Recov_CreateSeg();
-    }
-
-    /* Load the segment, and initialize/validate it. */
-    eprint("loading recoverable store");
-    Recov_LoadSeg();
-    Recov_InitSeg();
+    Recov_InitRDS();
+    Recov_LoadRDS();
 
     /* Read-in bounds for bounded recoverable data structures. */
     if (!InitMetaData) {
@@ -277,74 +251,27 @@ void RecovInit() {
 }
 
 
-static void Recov_CheckParms() {
+static void Recov_CheckParms()
+{
     /* From recov module. */
-    {
-	if (RvmType == UNSET) RvmType = DFLT_RVMT;
-	switch(RvmType) {
-	    case RAWIO:
-		{
-		eprint("RAWIO not yet supported");
-		exit(-1);
+    if (RvmType == UNSET)
+        RvmType = DFLT_RVMT;
 
-		break;
-		}
-
-	    case UFS:
-	    case VM:
-		{
-		break;
-		}
-
-	    case UNSET:
-	    default:
-		CHOKE("Recov_CheckParms: bogus RvmType (%d)", RvmType);
-	}
-
-	/* VM RvmType forces a brain-wipe! */
-	if (RvmType == VM) InitMetaData = 1;
-
-	/* Specifying log or data size requires a brain-wipe! */
-	if (VenusLogDeviceSize != UNSET_VLDS && !InitMetaData)
-	    { eprint("setting VLDS requires InitMetaData"); exit(-1); }
-	if (VenusDataDeviceSize != UNSET_VDDS && !InitMetaData)
-	    { eprint("setting VDDS requires InitMetaData"); exit(-1); }
-
-	/* Specifying either RDS chunk size or nlists requires a brain-wipe! */
-	/* These parameters are only needed for a brain-wipe anyway! */
-	if (RdsChunkSize != UNSET_RDSCS && !InitMetaData)
-	    { eprint("setting RDS chunk size requires InitMetaData"); exit(-1); }
-	if (RdsChunkSize == UNSET_RDSCS) RdsChunkSize = DFLT_RDSCS;
-	if (RdsNlists != UNSET_RDSNL && !InitMetaData)
-	    { eprint("setting RDS nlists requires InitMetaData"); exit(-1); }
-	if (RdsNlists == UNSET_RDSNL) RdsNlists = DFLT_RDSNL;
-
-	/* Flush/Truncate parameters. */
-	if (CMFP == UNSET_CMFP) CMFP = DFLT_CMFP;
-	if (DMFP == UNSET_DMFP) DMFP = DFLT_DMFP;
-	if (MAXFP == UNSET_MAXFP) MAXFP = DFLT_MAXFP;
-	if (WITT == UNSET_WITT) WITT = DFLT_WITT;
-	if (MAXFS == UNSET_MAXFS) MAXFS = DFLT_MAXFS;
-	if (MAXTS == UNSET_MAXTS) MAXTS = DFLT_MAXTS;
+    switch(RvmType) {
+    case RAWIO:
+        eprint("RAWIO not yet supported");
+        exit(-1);
+        break;
+    case VM:
+        InitMetaData = 1; /* VM RvmType forces a brain-wipe! */
+        // Fall through
+    case UFS:
+        break;
+    default:
+        CHOKE("Recov_CheckParms: bogus RvmType (%d)", RvmType);
     }
 
-    /* If you are looking for the checks and calculations for MLEs, CacheFiles,
-     * and HDBEs. They have been moved to venus.cc:DefaultCmdlineParms --JH */
-}
-
-static void Recov_InitRVM() {
-
-    rvm_init_options(&Recov_Options);
-    Recov_Options.log_dev = VenusLogDevice;
-    Recov_Options.truncate = 0;
-    Recov_Options.flags = RVM_COALESCE_TRANS;  /* oooh, daring */
-    if (MapPrivate)
-        Recov_Options.flags |= RVM_MAP_PRIVATE;
-
-    rvm_init_statistics(&Recov_Statistics);
-
-    if (InitMetaData)
-    {
+    if (InitMetaData) {
 	/* Compute recoverable storage requirements, and verify that log/data sizes are adequate. */
         unsigned long RecovBytesNeeded = RECOV_BYTES_NEEDED();
 
@@ -368,229 +295,204 @@ static void Recov_InitRVM() {
 
         LOG(0, ("RecovDataSizes: Log = %#x, Data = %#x\n",
                 VenusLogDeviceSize, VenusDataDeviceSize));
-
-	/* Initialize log and data segments. */
-	{
-            /* Pass in the correct parameters so that RVM_INIT can create
-             * a new logfile */
-	    unlink(VenusLogDevice);
-            Recov_Options.create_log_file = rvm_true;
-            Recov_Options.create_log_size = RVM_MK_OFFSET(0,VenusLogDeviceSize);
-            Recov_Options.create_log_mode = 0600;
-
-	    eprint("%s setup for size %#x",
-		   VenusLogDevice, VenusLogDeviceSize);
-            
-            /* as far as the log is concerned RVM_INIT will now handle the
-             * rest of the creation. */
-
-	    int fd = open(VenusDataDevice,
-			  O_WRONLY | O_CREAT | O_TRUNC | O_BINARY,
-			  0600);
-	    if (fd < 0)
-		CHOKE("Recov_InitRVM: create of %s failed (%d)",
-		    VenusDataDevice, errno);
-
-	    if (ftruncate(fd, VenusDataDeviceSize) < 0)
-		CHOKE("Recov_InitRVM: growing %s failed (%d)",
-		      VenusDataDevice, errno);
-
-	    if (close(fd) < 0)
-		CHOKE("Recov_InitRVM: close of %s failed (%d)",
-		    VenusDataDevice, errno);
-	    eprint("%s initialized at size %#x",
-		   VenusDataDevice, VenusDataDeviceSize);
-	}
     }
-    else {
-	/* Validate log and data segment. */
-	{
-	    struct stat tstat;
+    else /* !InitMetaData */
+    {
+        char *failure = NULL;
 
-	    if (stat(VenusLogDevice, &tstat) < 0)
-		CHOKE("ValidateDevice: stat of (%s) failed (%d)",
-		    VenusLogDevice, errno);
-	    VenusLogDeviceSize = tstat.st_size;
-	    eprint("%s validated at size %#x",
-		   VenusLogDevice, VenusLogDeviceSize);
-
-	    if (stat(VenusDataDevice, &tstat) < 0)
-		CHOKE("ValidateDevice: stat of (%s) failed (%d)",
-		    VenusDataDevice, errno);
-	    VenusDataDeviceSize = tstat.st_size;
-	    eprint("%s validated at size %#x",
-		   VenusDataDevice, VenusDataDeviceSize);
-	}
+        /* Specifying log or data size requires a brain-wipe! */
+        if (VenusLogDeviceSize != UNSET_VLDS) {
+            failure = "VLDS";
+            goto fail;
+        }
+        if (VenusDataDeviceSize != UNSET_VDDS) {
+            failure = "VDDS";
+            goto fail;
+        }
+        /* These parameters are only needed for a brain-wipe anyway! */
+        if (RdsChunkSize != UNSET_RDSCS) {
+            failure = "RDS chunk size";
+            goto fail;
+        }
+        if (RdsNlists != UNSET_RDSNL) {
+            failure = "RDS nlists";
+fail:
+            eprint("setting %s requires InitMetaData", failure);
+            exit(-1);
+        }
     }
+
+    if (RdsChunkSize == UNSET_RDSCS) RdsChunkSize = DFLT_RDSCS;
+    if (RdsNlists    == UNSET_RDSNL) RdsNlists = DFLT_RDSNL;
+
+    /* Flush/Truncate parameters. */
+    if (CMFP  == UNSET_CMFP)  CMFP = DFLT_CMFP;
+    if (DMFP  == UNSET_DMFP)  DMFP = DFLT_DMFP;
+    if (MAXFP == UNSET_MAXFP) MAXFP = DFLT_MAXFP;
+    if (WITT  == UNSET_WITT)  WITT = DFLT_WITT;
+    if (MAXFS == UNSET_MAXFS) MAXFS = DFLT_MAXFS;
+    if (MAXTS == UNSET_MAXTS) MAXTS = DFLT_MAXTS;
+
+/* If you are looking for the checks and calculations for MLEs, CacheFiles,
+ * and HDBEs. They have been moved to venus.cc:DefaultCmdlineParms --JH */
+}
+
+static void Recov_InitRVM()
+{
+    rvm_init_options(&Recov_Options);
+    Recov_Options.log_dev = VenusLogDevice;
+    Recov_Options.truncate = 0;
+    //Recov_Options.flags = RVM_COALESCE_TRANS;  /* oooh, daring */
+    Recov_Options.flags = RVM_ALL_OPTIMIZATIONS;
+    if (MapPrivate)
+        Recov_Options.flags |= RVM_MAP_PRIVATE;
+
+    rvm_init_statistics(&Recov_Statistics);
+
+    if (InitMetaData) /* Initialize log. */
+    {
+        /* Get rid of any old log */
+        truncate(VenusLogDevice, 0); unlink(VenusLogDevice);
+
+        /* Pass in the correct parameters so that RVM_INIT can create
+         * a new logfile */
+        Recov_Options.create_log_file = rvm_true;
+        Recov_Options.create_log_size = RVM_MK_OFFSET(0, VenusLogDeviceSize);
+        Recov_Options.create_log_mode = 0600;
+        /* as far as the log is concerned RVM_INIT will now handle the
+         * rest of the creation. */
+    }
+    else /* Validate log segment. */
+    {
+        struct stat tstat;
+
+        if (stat(VenusLogDevice, &tstat) < 0) {
+            eprint("Recov_InitRVM: stat of (%s) failed (%d)",
+                   VenusLogDevice, errno);
+            exit(-1);
+        }
+        VenusLogDeviceSize = tstat.st_size;
+
+        if (stat(VenusDataDevice, &tstat) < 0)
+            CHOKE("ValidateDevice: stat of (%s) failed (%d)",
+                  VenusDataDevice, errno);
+        VenusDataDeviceSize = tstat.st_size;
+    }
+    eprint("%s size is %ld bytes", VenusLogDevice, VenusLogDeviceSize);
 
     rvm_return_t ret = RVM_INIT(&Recov_Options);
     if (ret == RVM_ELOG_VERSION_SKEW) {
 	eprint("Recov_InitRVM: RVM_INIT failed, RVM log version skew");
 	eprint("Venus not started");
 	exit(-1);
-    } else if (ret == RVM_EINTERNAL)
-	CHOKE("Recov_InitRVM: RVM_INIT failed, internal error %s", rvm_errmsg);
-    else if (ret != RVM_SUCCESS)
-	CHOKE("Recov_InitRVM: RVM_INIT failed (%d)", ret);
-
+    } else if (ret != RVM_SUCCESS) {
+	eprint("Recov_InitRVM: RVM_INIT failed (%s)", rvm_return(ret));
+	exit(-1);
+    }
 }
 
-
-/* Venus meta-data segment consists of two regions, RVG and RDS. */
-static void Recov_LayoutSeg() {
-    /* RVG region: structure containing small number of global variables. */
-    Recov_RvgAddr = (char *)VM_RVGADDR;
-    Recov_RvgLength = RVM_ROUND_LENGTH_UP_TO_PAGE_SIZE(sizeof(RecovVenusGlobals));
-
-    /* RDS region: recoverable heap. */
-    Recov_RdsAddr = (char *)VM_RDSADDR;
-    rvm_length_t Recov_Margin =	4 * RVM_PAGE_SIZE;	/* safety factor */
-    Recov_RdsLength = RVM_ROUND_LENGTH_DOWN_TO_PAGE_SIZE(VenusDataDeviceSize) -
-      Recov_RvgLength - Recov_Margin;
-}
-
-
-/* Might need to fork here! -JJK */
-static void Recov_CreateSeg()
+static void Recov_InitRDS()
 {
-    /* The Venus segment has two regions. */
-    /* N.B. The segment package assumes that VM is allocated PRIOR to seg creation! */
-    unsigned long nregions = 2;
-    rvm_region_def_t regions[2];
+    rvm_return_t ret;
+    rvm_length_t devsize;
 
-    /* Region 0 is the block of recoverable Venus globals. */
-    rvm_offset_t rvg_offset; RVM_ZERO_OFFSET(rvg_offset);
-    Recov_AllocateVM((void**)&Recov_RvgAddr, (unsigned long)Recov_RvgLength);
-    RVM_INIT_REGION(regions[0], rvg_offset, Recov_RvgLength, Recov_RvgAddr);
+    devsize = RVM_ROUND_LENGTH_DOWN_TO_PAGE_SIZE(VenusDataDeviceSize);
+    Recov_RdsAddr = (char *)VM_RVMADDR;
+    Recov_RvgLength=RVM_ROUND_LENGTH_UP_TO_PAGE_SIZE(sizeof(RecovVenusGlobals));
+    Recov_RdsLength= devsize - Recov_RvgLength - RVM_SEGMENT_HDR_SIZE;
 
-    /* Region 1 is the recoverable heap. */
-    rvm_offset_t rds_offset = RVM_ADD_LENGTH_TO_OFFSET(rvg_offset, Recov_RvgLength);
-    Recov_AllocateVM((void**)&Recov_RdsAddr, (unsigned long)Recov_RdsLength);
-    RVM_INIT_REGION(regions[1], rds_offset, Recov_RdsLength, Recov_RdsAddr);
+    eprint("%s size is %ld bytes", VenusDataDevice, VenusDataDeviceSize);
 
-    LOG(10, ("Recov_CreateSeg: RVG = (%x, %x), RDS = (%x, %x)\n",
-	      Recov_RvgAddr, Recov_RvgLength, Recov_RdsAddr, Recov_RdsLength));
-    rvm_offset_t dummy;
-    RVM_ZERO_OFFSET(dummy);	/* VenusDataDevice is file, must zero dummy */
-    rvm_return_t ret = rvm_create_segment(VenusDataDevice, dummy,
-					   &Recov_Options, nregions, regions);
-    if (ret != RVM_SUCCESS)
-	CHOKE("Recov_CreateSeg: rvm_create_segment failed (%d)", ret);
+    if (!InitMetaData) return;
 
-    /* Work around RVM bug! */
-    RecovFlush();
-    RecovTruncate();
+    /* Initialize data segment. */
+    int fd;
+    fd = open(VenusDataDevice, O_WRONLY|O_CREAT|O_TRUNC|O_BINARY, 0600);
+    if (fd < 0) {
+        eprint("Recov_InitRVM: create of %s failed (%d)",
+               VenusDataDevice, errno);
+        exit(-1);
+    }
+    if (ftruncate(fd, VenusDataDeviceSize) < 0) {
+        eprint("Recov_InitRVM: growing %s failed (%d)",
+               VenusDataDevice, errno);
+        exit(-1);
+    }
+    if (close(fd) < 0) {
+        eprint("Recov_InitRVM: close of %s failed (%d)",
+               VenusDataDevice, errno);
+        exit(-1);
+    }
 
-    /* Deallocate VM for regions since LoadSeg will reallocate it! */
-    Recov_DeallocateVM(Recov_RvgAddr, Recov_RvgLength);
-    Recov_DeallocateVM(Recov_RdsAddr, Recov_RdsLength);
+    eprint("Initializing RVM data...");
+    rds_zap_heap(VenusDataDevice, RVM_LENGTH_TO_OFFSET(devsize),
+                 Recov_RdsAddr, Recov_RvgLength, Recov_RdsLength,
+                 (unsigned long)RdsNlists,(unsigned long)RdsChunkSize,&ret);
+    if (ret != SUCCESS) {
+        eprint("Recov_InitRDS: rds_zap_heap failed (%s)", rvm_return(ret));
+        exit(-1);
+    }
+    eprint("...done");
 }
 
-
-static void Recov_LoadSeg()
+static void Recov_LoadRDS()
 {
-    rvm_offset_t dummy = {0,0};
-    unsigned long nregions = 0;
-    rvm_region_def_t *regions = 0;
+    rvm_return_t ret;
 
-    memset((void*)&dummy, 0, sizeof(dummy));
-    rvm_return_t ret = rvm_load_segment(VenusDataDevice, dummy,
-					 &Recov_Options, &nregions, &regions);
-    if (ret != RVM_SUCCESS)
-	CHOKE("Recov_LoadSeg: rvm_load_segment failed (%d)", ret);
-
-    /* Basic sanity checking. */
-    if (nregions != 2)
-	CHOKE("Recov_LoadSeg: bogus nregions (%d)", nregions);
-    Recov_RvgAddr = regions[0].vmaddr;
-    if (regions[0].length != Recov_RvgLength)
-	CHOKE("Recov_LoadSeg: bogus regions[0] length (%x, %x)",
-	    regions[0].length, Recov_RvgLength);
-    Recov_RdsAddr = regions[1].vmaddr;
-    if (regions[1].length != Recov_RdsLength)
-	CHOKE("Recov_LoadSeg: bogus regions[1] length (%x, %x)",
-	    regions[1].length, Recov_RdsLength);
-
-    free(regions);
-
-    LOG(10, ("Recov_LoadSeg: RVG = (%x, %x), RDS = (%x, %x)\n",
-	      Recov_RvgAddr, Recov_RvgLength, Recov_RdsAddr, Recov_RdsLength));
-}
-
-
-static void Recov_InitSeg() 
-{
+    eprint("Loading RVM data");
+    rds_load_heap(VenusDataDevice, RVM_LENGTH_TO_OFFSET(VenusDataDeviceSize),
+                  &Recov_RvgAddr, &ret);
+    if (ret != SUCCESS) {
+        eprint("Recov_InitRDS: rds_load_heap failed (%s)", rvm_return(ret));
+        exit(-1);
+    }
     rvg = (RecovVenusGlobals *)Recov_RvgAddr;
 
-    /* Initialize/validate the segment. */
+    /* Initialize or validate the segment. */
     if (InitMetaData) {
-	Recov_BeginTrans();
-	/* Initialize the block of recoverable Venus globals. */
-	RVMLIB_REC_OBJECT(*rvg);
-	memset((void *)rvg, 0, (int)sizeof(RecovVenusGlobals));
-	rvg->recov_MagicNumber = RecovMagicNumber;
-	rvg->recov_VersionNumber = RecovVersionNumber;
-	rvg->recov_LastInit = Vtime();
-	rvg->recov_HeapAddr = Recov_RdsAddr;
-	rvg->recov_HeapLength = (unsigned int)Recov_RdsLength;
+        Recov_BeginTrans();
+        /* Initialize the block of recoverable Venus globals. */
+        RVMLIB_REC_OBJECT(*rvg);
+        memset((void *)rvg, 0, (int)sizeof(RecovVenusGlobals));
+        rvg->recov_MagicNumber = RecovMagicNumber;
+        rvg->recov_VersionNumber = RecovVersionNumber;
+        rvg->recov_LastInit = Vtime();
+        rvg->recov_HeapAddr = Recov_RdsAddr;
+        rvg->recov_HeapLength = (unsigned int)Recov_RdsLength;
 
-	/* We need to initialize the random number generator before
-	 * first use */
-	rpc2_InitRandom();
-	VenusGenID = rpc2_NextRandom(NULL);
-
-	/* Initialize the recoverable heap. */
-	int err = 0;
-	rds_init_heap(Recov_RdsAddr, Recov_RdsLength,
-		      (unsigned long)RdsChunkSize,
-		      (unsigned long)RdsNlists,
-		      rvmlib_thread_data()->tid, &err);
-	if (err != SUCCESS)
-	    CHOKE("Recov_InitSeg: rds_init_heap failed (%d)", err);
-	Recov_EndTrans(0);
+        /* We need to initialize the random number generator before first use */
+        rpc2_InitRandom();
+        VenusGenID = rpc2_NextRandom(NULL);
+        Recov_EndTrans(0);
     } else {
-	/* Sanity check RVG fields. */
-	if (rvg->recov_HeapAddr != Recov_RdsAddr ||
-	    rvg->recov_HeapLength != Recov_RdsLength)
-	    CHOKE("Recov_InitSeg: heap mismatch (%x, %x) vs (%x, %x)",
-		  rvg->recov_HeapAddr, rvg->recov_HeapLength,
-		  Recov_RdsAddr, Recov_RdsLength);
-	if (!rvg->validate()) {
-	    rvg->print(stderr); CHOKE("Recov_InitSeg: rvg validation failed, "
-				      "restart venus with -init");
-	}
-	eprint("Last init was %s",
-	       strtok(ctime((time_t *)&rvg->recov_LastInit), "\n"));
+        /* Sanity check RVG fields. */
+        if (rvg->recov_HeapAddr   != Recov_RdsAddr ||
+            rvg->recov_HeapLength != Recov_RdsLength)
+            CHOKE("Recov_LoadRDS: heap mismatch (%x, %x) vs (%x, %x)",
+                  rvg->recov_HeapAddr, rvg->recov_HeapLength,
+                  Recov_RdsAddr, Recov_RdsLength);
+        if (!rvg->validate()) {
+            rvg->print(stderr); CHOKE("Recov_InitSeg: rvg validation failed, "
+                                      "restart venus with -init");
+        }
 
-	/* Copy CleanShutDown to VM global, then set it FALSE. */
-	CleanShutDown = rvg->recov_CleanShutDown;
-	eprint("Last shutdown was %s", (CleanShutDown ? "clean" : "dirty"));
-	Recov_BeginTrans();
-	RVMLIB_REC_OBJECT(rvg->recov_CleanShutDown);
-	rvg->recov_CleanShutDown = 0;
-	Recov_EndTrans(0);
+        eprint("Last init was %s", strtok(ctime((time_t *)&rvg->recov_LastInit), "\n"));
+
+        /* Copy CleanShutDown to VM global, then set it FALSE. */
+        CleanShutDown = rvg->recov_CleanShutDown;
+        eprint("Last shutdown was %s", (CleanShutDown ? "clean" : "dirty"));
+        Recov_BeginTrans();
+        RVMLIB_REC_OBJECT(rvg->recov_CleanShutDown);
+        rvg->recov_CleanShutDown = 0;
+        Recov_EndTrans(0);
     }
-    /*
-       eprint("Recov_InitSeg: magic = %x, version = %d, clean = %d, rvn = %s",
-	      rvg->recov_MagicNumber, rvg->recov_VersionNumber,
-	      rvg->recov_CleanShutDown, rvg->recov_RootVolName);
-     */
 
-    /* Fire up the recoverable heap. */
-    {
-	int err = 0;
-	rds_start_heap((char *)Recov_RdsAddr, &err);
-	if (err != 0)
-	    CHOKE("Recov_InitSeg: rds_start_heap failed (%d)", err);
-
-	/* Plumb the heap here? */
-	if (MallocTrace) {	
-	    rds_trace_on(logFile);
-	    rds_trace_dump_heap();
-	}
+    /* Plumb the heap here? */
+    if (MallocTrace) {	
+        rds_trace_on(logFile);
+        rds_trace_dump_heap();
     }
 }
-
 
 /* Venus transaction handling */
 void Recov_BeginTrans(void)
@@ -667,7 +569,7 @@ void RecovTruncate(int Force) {
     if (ret != RVM_SUCCESS)
 	CHOKE("RecovTruncate: rvm_truncate failed (%d)", ret);
     END_TIMING();
-    LOG(0, ("cache::EndRvmTruncate\n"));
+    LOG(0, ("EndRvmTruncate\n"));
 
 /*    if (post_vm_usage - pre_vm_usage != 0)*/
     LOG(1, ("RecovTruncate: count = %d, size = %d, elapsed = %3.1f\n",
@@ -752,57 +654,6 @@ void RecovPrint(int fd) {
 }
 
 
-/*  *****  VM Allocation/Deallocation  *****  */
-
-static void Recov_AllocateVM(void **addr, unsigned long length) 
-{
-    void *requested_addr = *addr;
-#ifdef HAVE_MMAP
-    mmap_anon(*addr, (char *)*addr, length, (PROT_READ | PROT_WRITE));
-#else
-    {
-      HANDLE hMap = CreateFileMapping((HANDLE)0xFFFFFFFF, NULL,
-                                      PAGE_READWRITE, 0, length, NULL);
-      if (hMap == NULL)
-	/* return(RVM_EINTERNAL); */
-	CHOKE("Recov_AllocateVM: CreateFileMapping didn't work.");
-      *addr = MapViewOfFileEx(hMap, FILE_MAP_READ | FILE_MAP_WRITE, 0, 0, 0, *addr);
-      if (*addr == NULL)
-          *addr = (void *)-1;
-      CloseHandle(hMap);
-    }
-#endif
- 
-    if (*addr == (void *)-1) {
-	if (errno == ENOMEM)
-	    CHOKE("Recov_AllocateVM: mmap(%x, %x, ...) out of memory", requested_addr, length);
-	else
-	    CHOKE("Recov_AllocateVM: mmap(%x, %x, ...) failed with errno == %d", requested_addr, length, errno);
-    }
-
-    if ((requested_addr != 0) && (*addr != requested_addr)) {
-    	CHOKE("Recov_AllocateVM: mmap address mismatch; requested %x, returned %x", requested_addr, *addr);
-    }
-
-    LOG(0, ("Recov_AllocateVM: allocated %x bytes at %x\n", length, *addr));
-}
-
-
-static void Recov_DeallocateVM(char *addr, unsigned long length) {
-#ifdef HAVE_MMAP
-    if (munmap(addr, length)) {
-	CHOKE("Recov_DeallocateVM: munmap(%x, %x) failed with errno == %d", addr, length, errno);
-    }
-    LOG(0, ("Recov_DeallocateVM: deallocated %x bytes at %x\n", length, addr));
-#else
-    int ret = UnmapViewOfFile(addr);
-    if (ret == 0)
-  	CHOKE("Recov_DeallocateVM: deallocate(%x, %x) failed (%d)", addr, length, ret);
-      LOG(0, ("Recov_DeallocateVM: deallocated %x bytes at %x\n", length, addr));
-#endif	
-}
-
-
 /*  *****  RVM String Routines  *****  */
 
 RPC2_String Copy_RPC2_String(RPC2_String& src) {
@@ -810,7 +661,7 @@ RPC2_String Copy_RPC2_String(RPC2_String& src) {
 
     RPC2_String tgt = (RPC2_String)rvmlib_rec_malloc(len);
     rvmlib_set_range(tgt, len);
-    memmove(tgt, src, len);
+    memcpy(tgt, src, len);
 
     return(tgt);
 }
@@ -863,3 +714,4 @@ void RecovDaemon(void) {
 	vp->seq++;
     }
 }
+

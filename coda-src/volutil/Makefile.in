@@ -43,7 +43,7 @@ VPATH  = @srcdir@
 TOPOBJ = @TOPOBJ@
 
 include $(TOPDIR)/Makeconf
-CXXFLAGS += -Wall -DSYSCONFDIR=\"${sysconfdir}\"
+CXXFLAGS += -Wall
 EXECUTABLES = volutil parserecdump backup readdump merge
 SSBINS      = $(EXECUTABLES)
 LIBRARIES   = libvolutil.a libvolserv.a
@@ -67,7 +67,6 @@ VOLUTILOBJS = \
 	vol-create.o \
 	vol-dump.o \
 	vol-dumpmem.o \
-	vol-elapse.o \
 	vol-info.o \
 	vol-lock.o \
 	vol-lookup.o \

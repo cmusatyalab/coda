@@ -76,6 +76,7 @@ extern "C" {
 
 #include <util.h>
 #include <codaconf.h>
+#include <coda_config.h>
 #include "auth2.h"
 #undef VIRTUE
 #undef VICE

@@ -70,6 +70,7 @@ extern "C" {
 #include "scandir.h"
 #include "codaconf.h"
 
+#include <coda_config.h>
 #include <ports.h>
 #include <lwp/lwp.h>
 #include <lwp/timer.h>

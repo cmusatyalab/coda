@@ -101,7 +101,7 @@ static char *VFSOpsNameTemplate[NVFSOPS] = {
     "No-Op",
     "No-Op",
     "Root",
-    "Sync",
+    "OpenByFD",
     "Open",
     "Close",
     "Ioctl",
@@ -115,11 +115,11 @@ static char *VFSOpsNameTemplate[NVFSOPS] = {
     "Rename",
     "Mkdir",
     "Rmdir",
-    "Readdir",
+    "No-Op",
     "Symlink",
     "Readlink",
     "Fsync",
-    "Inactive",
+    "No-Op",
     "Vget",
     "Signal",
     "Replace",
@@ -282,7 +282,6 @@ void VenusPrint(int fd, int argc, char **argv) {
     if (userp || allp)    UserPrint(fd);
     if (serverp || allp)  ServerPrint(fd);
     if (connp || allp)    ConnPrint(fd);
-    if (vsgp || allp)     if (RecovInited && VSGDB) VSGDB->print(fd);
     if (mgrpp || allp)    MgrpPrint(fd);
     if (volumep || allp)  if (RecovInited && VDB) VDB->print(fd);
     if (fsop || allp)     if (RecovInited && FSDB) FSDB->print(fd);

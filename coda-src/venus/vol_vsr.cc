@@ -130,15 +130,16 @@ int vsr::allocs = 0;
 int vsr::deallocs = 0;
 #endif VENUSDEBUG
 
-vsr *volent::GetVSR(vuid_t uid) {
-    CODA_ASSERT(!FID_VolIsFake(vid));
+vsr *volent::GetVSR(vuid_t uid)
+{
+    CODA_ASSERT(!IsFake());
     LOG(100, ("volent::GetVSR: vol = %x, session = %d, uid = %d\n",
 	       vid, VsrUnique, uid));
 
     /* Flush VSRs when AVSG has changed. */
-    if (GetAVSG() != VsrUnique) {
+    if (GetAVSG(NULL) != VsrUnique) {
 	FlushVSRs(VSR_FLUSH_HARD);
-	VsrUnique = GetAVSG((unsigned long *)&AVSG);
+	VsrUnique = GetAVSG((struct in_addr *)&AVSG);
     }
 
     /* Check for an existing VSR for this user. */
@@ -155,8 +156,9 @@ vsr *volent::GetVSR(vuid_t uid) {
 }
 
 
-void volent::PutVSR(vsr *v) {
-    CODA_ASSERT(!FID_VolIsFake(vid));
+void volent::PutVSR(vsr *v)
+{
+    CODA_ASSERT(!IsFake());
     LOG(100, ("volent::PutVSR: vol = %x, session = %d, uid = %d\n",
 	       vid, VsrUnique, v->uid));
 
@@ -166,8 +168,10 @@ void volent::PutVSR(vsr *v) {
 }
 
 
-void volent::FlushVSRs(int hard) {
-    CODA_ASSERT(!FID_VolIsFake(vid));
+void volent::FlushVSRs(int hard)
+{
+    if (IsFake()) return;
+
     LOG(100, ("volent::FlushVSRs: vol = %x, session = %d, hard = %d\n", 
 	      vid, VsrUnique, hard));
 

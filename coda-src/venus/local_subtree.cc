@@ -1185,7 +1185,7 @@ optent *opt_iterator::operator()()
 /* ********** end of optent methods ********** */
 
 /* ********** begining of vptent methods ********** */
-vptent::vptent(volent *v) 
+vptent::vptent(repvol *v) 
 {
     OBJ_ASSERT(this, v);
     vpt = v;
@@ -1195,7 +1195,7 @@ vptent::~vptent()
 {
 }
 
-volent *vptent::GetVol()
+repvol *vptent::GetVol()
 {
     return vpt;
 }

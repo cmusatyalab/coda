@@ -57,6 +57,7 @@ extern "C" {
 
 #include <util.h>
 #include <codaconf.h>
+#include <coda_config.h>
 #include <vice_file.h>
 #include "update.h"
 #include "updatecommon.h"

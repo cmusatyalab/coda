@@ -15,6 +15,8 @@ listed in the file CREDITS.
                            none currently
 #*/
 
+#include <coda_config.h>
+
 #include "adv_sidekick.h"
 
 struct Lock plock;
@@ -138,8 +140,8 @@ RPC2_Handle contact_venus(const char *hostname) {
     subsysid.Value.SubsysId = VA_SUBSYSID; 
 
     bp.SecurityLevel = RPC2_OPENKIMONO;
-    bp.EncryptionType = (int)NULL;
-    bp.SideEffectType = (int)NULL;
+    bp.EncryptionType = 0;
+    bp.SideEffectType = 0;
     bp.ClientIdent = NULL;
     bp.SharedSecret = NULL;
     rc = RPC2_NewBinding(&hid, &portid, &subsysid, &bp, &cid);

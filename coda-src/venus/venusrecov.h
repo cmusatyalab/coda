@@ -52,7 +52,6 @@ extern "C" {
 struct RecovVenusGlobals;
 class fsdb;
 class vdb;
-class vsgdb;
 class hdb;
 class vmselist;
 class lrdb;
@@ -102,7 +101,6 @@ struct RecovVenusGlobals {
 
     fsdb *recov_FSDB;		    /* FSO database */
     vdb	*recov_VDB;		    /* Volume database */
-    vsgdb *recov_VSGDB;		    /* Volume-Storage-Group database */
     hdb	*recov_HDB;		    /* Hoard database */
     lrdb *recov_LRDB;		    /* Local repair database */
     /*udb *recov_UDB;*/		    /* User database */

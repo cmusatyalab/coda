@@ -303,6 +303,7 @@ struct coda_statfs {
  */
 
 #define CODA_ROOT	2
+#define CODA_OPEN_BY_FD	3
 #define CODA_OPEN	4
 #define CODA_CLOSE	5
 #define CODA_IOCTL	6
@@ -331,12 +332,9 @@ struct coda_statfs {
 #define CODA_RESOLVE     32
 #define CODA_REINTEGRATE 33
 #define CODA_STATFS	 34
-#define CODA_MAKE_CINODE 35 /* DOWNCALL */
-#define CODA_NCALLS 36
+#define CODA_NCALLS 35
 
-#define DOWNCALL(opcode) \
-	((opcode >= CODA_REPLACE && opcode <= CODA_PURGEFID) || \
-	 opcode == CODA_MAKE_CINODE)
+#define DOWNCALL(opcode) (opcode >= CODA_REPLACE && opcode <= CODA_PURGEFID) 
 
 #define VC_MAXDATASIZE	    8192
 #define VC_MAXMSGSIZE      sizeof(union inputArgs)+sizeof(union outputArgs) +\
@@ -347,8 +345,6 @@ struct coda_statfs {
 #if 0
 #define CODA_KERNEL_VERSION 0 /* don't care about kernel version number */
 #define CODA_KERNEL_VERSION 1 /* The old venus 4.6 compatible interface */
-/* Only linux-2.3 kernels use venus-kernel protocol version 3 */
-#define CODA_KERNEL_VERSION 3 /* added CODA_MAKE_CINODE downcall */
 #endif
 #define CODA_KERNEL_VERSION 2 /* venus_lookup gets an extra parameter */
 
@@ -681,14 +677,6 @@ struct coda_purgefid_out {
     ViceFid CodaFid;
 };
 
-struct coda_make_cinode_out {
-    struct coda_out_hdr oh;
-    ViceFid CodaFid;
-    struct coda_vattr attr;
-    int fd;
-};
-
-
 /* coda_rdwr: */
 struct coda_rdwr_in {
     struct coda_in_hdr ih;
@@ -714,6 +702,18 @@ struct coda_replace_out { /* coda_replace is a venus->kernel call */
     struct coda_out_hdr oh;
     ViceFid NewFid;
     ViceFid OldFid;
+};
+
+/* coda_open_by_fd: */
+struct coda_open_by_fd_in {
+    struct coda_in_hdr ih;
+    ViceFid	VFid;
+    int	flags;
+};
+
+struct coda_open_by_fd_out {
+    struct coda_out_hdr oh;
+    int fd;
 };
 
 /* coda_open_by_path: */
@@ -767,6 +767,7 @@ union inputArgs {
     struct coda_inactive_in coda_inactive;
     struct coda_vget_in coda_vget;
     struct coda_rdwr_in coda_rdwr;
+    struct coda_open_by_fd_in coda_open_by_fd;
     struct coda_open_by_path_in coda_open_by_path;
     struct coda_statfs_in coda_statfs;
 };
@@ -790,7 +791,7 @@ union outputArgs {
     struct coda_purgefid_out coda_purgefid;
     struct coda_rdwr_out coda_rdwr;
     struct coda_replace_out coda_replace;
-    struct coda_make_cinode_out coda_make_cinode;
+    struct coda_open_by_fd_out coda_open_by_fd;
     struct coda_open_by_path_out coda_open_by_path;
     struct coda_statfs_out coda_statfs;
 };    
@@ -811,7 +812,7 @@ union coda_downcalls {
  * Used for identifying usage of "Control" and pioctls
  */
 
-#define PIOCPARM_MASK 0x0000ffff
+#define PIOCPARM_MASK 0x00003fff
 struct ViceIoctl {
         caddr_t in, out;        /* Data to be transferred in, or out */
         short in_size;          /* Size of input buffer <= 2K */

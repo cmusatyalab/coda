@@ -38,8 +38,6 @@ LIBS := $(TOPOBJ)/coda-src/repair/repcmds.o $(TOPOBJ)/coda-src/repair/rvol.o \
 
 OBJS = adv_sidekick.o
 
-CXXFLAGS += -DSYSCONFDIR=\"${sysconfdir}\" -DCODACONSOLE=\"$(GUIDIR)/CodaConsole\"
-
 adv_sidekick: adv_sidekick.h $(DEPLIBS) $(OBJS)
 	$(CXX) $(LDFLAGS) $(OBJS) $(LIBS) -o adv_sidekick
 

@@ -67,7 +67,7 @@ static const int LocalSubtreeCheckInterval = 10 * 60;
 static const int VolTrickleReintegrateInterval = 10;
 static const int AutoWBPermitRequestInterval = 30;
 
-char vol_sync;
+char voldaemon_sync;
 
 void VOLD_Init(void)
 {
@@ -80,7 +80,7 @@ void VolDaemon(void)
     VprocYield();
 
     vproc *vp = VprocSelf();
-    RegisterDaemon(VolDaemonInterval, &vol_sync);
+    RegisterDaemon(VolDaemonInterval, &voldaemon_sync);
 
     unsigned long curr_time = Vtime();
 
@@ -94,7 +94,7 @@ void VolDaemon(void)
     unsigned long LastWBPermitRequest = curr_time;
 
     for (;;) {
-	VprocWait(&vol_sync);
+	VprocWait(&voldaemon_sync);
 
 	START_TIMING();
 	curr_time = Vtime();
@@ -185,13 +185,12 @@ void vdb::GetDown() {
 	int readahead = 0;
 	while ((VDB->htab.count() >= VOLThreshold) && (readahead || (v = next()))) {
 	    readahead = 0;
-	    if (FID_VolIsFake(v->vid)) continue;
-	    if (v->refcnt > 0) continue;
+	    if (v->IsFake() || v->refcnt > 0) continue;
 	    
 	    volent *tv = 0;
 	    readahead = ((tv = next()) != 0);
 
-	    LOG(10, ("vdb::GetDown: GC'ing (%x, %s)\n", v->vid, v->name));
+	    LOG(10, ("vdb::GetDown: GC'ing (%x, %s)\n", v->GetVid(), v->name));
 	    Recov_BeginTrans();
 	    delete v;
 	    Recov_EndTrans(0);
@@ -209,25 +208,23 @@ void vdb::GetDown() {
 
 
 /* local-repair modification */
-void vdb::FlushCOP2() {
+void vdb::FlushCOP2()
+{
     LOG(100, ("vdb::FlushCOP2: \n"));
 
     /* For each volume. */
-    vol_iterator vnext;
-    volent *v;
+    repvol_iterator vnext;
+    repvol *v;
     while ((v = vnext())) {
-	if (FID_VolIsFake(v->vid)) continue;
-	if (v->IsReplicated()) {
-	    for (;;) {
-		int code = 0;
+        for (;;) {
+            int code = 0;
 
-		if (v->Enter((VM_OBSERVING | VM_NDELAY), V_UID) == 0) {
-		    code = v->FlushCOP2(COP2Window);
-		    v->Exit(VM_OBSERVING, V_UID);
-		}
+            if (v->Enter((VM_OBSERVING | VM_NDELAY), V_UID) == 0) {
+                code = v->FlushCOP2(COP2Window);
+                v->Exit(VM_OBSERVING, V_UID);
+            }
 
-		if (code != ERETRY) break;
-	    }
+            if (code != ERETRY) break;
 	}
     }
 }
@@ -235,15 +232,15 @@ void vdb::FlushCOP2() {
 
 /* local-repair modification */
 /* XXX Use this routine to "touch" all volumes periodically so that volume state changes get taken! */
-void vdb::TakeTransition() {
+void vdb::TakeTransition()
+{
     LOG(100, ("vdb::TakeTransition: \n"));
 
     /* For each volume. */
     vol_iterator vnext;
     volent *v;
     while ((v = vnext())) {
-	if (FID_VolIsFake(v->vid)) 
-		continue;
+	if (v->IsFake()) continue;
 
 	LOG(1000, ("vdb::TakeTransition: checking %s\n", v->name));
 	if (v->Enter((VM_OBSERVING | VM_NDELAY), V_UID) == 0) {
@@ -253,17 +250,15 @@ void vdb::TakeTransition() {
 }
 
 /* local-repair modification */
-void vdb::FlushVSR() {
+void vdb::FlushVSR()
+{
     LOG(100, ("vdb::FlushVSR: \n"));
 
     /* For each volume. */
     vol_iterator vnext;
     volent *v;
-    while ((v = vnext())) {
-	if (FID_VolIsFake(v->vid)) 
-		continue;
+    while ((v = vnext()))
 	v->FlushVSRs(VSR_FLUSH_NOT_HARD);
-    }
 }
 
 
@@ -272,7 +267,8 @@ void vdb::FlushVSR() {
  * periodically checkpoint any volumes with non-empty CMLs 
  * if the CML has changed since the last checkpoint interval.
  */
-void vdb::CheckPoint(unsigned long curr_time) {
+void vdb::CheckPoint(unsigned long curr_time)
+{
     LOG(100, ("vdb::CheckPoint: \n"));
 
     /* For each volume. */
@@ -302,7 +298,8 @@ void vdb::CheckPoint(unsigned long curr_time) {
 }
 
 
-void vdb::CheckReintegratePending() {
+void vdb::CheckReintegratePending()
+{
     LOG(100, ("vdb::CheckReintegratePending: \n"));
 
     /* For each volume. */
@@ -318,7 +315,7 @@ void vdb::CheckLocalSubtree()
     vol_iterator next;
     volent *v;
     while ((v = next()))
-      v->CheckLocalSubtree();
+        v->CheckLocalSubtree();
 }
 
 void vdb::AutoRequestWBPermit()
@@ -336,7 +333,8 @@ void vdb::AutoRequestWBPermit()
 
 
 /* Note: no longer in class vdb, since VolDaemon isn't (Satya, 5/20/95) */
-void TrickleReintegrate() {
+void TrickleReintegrate()
+{
     LOG(100, ("TrickleReintegrate(): \n"));
     
     /* For each volume. */
@@ -344,10 +342,9 @@ void TrickleReintegrate() {
     volent *v;
 
     while ((v = vnext())) {
-	if (FID_VolIsFake(v->vid)) 
-		continue;
+	if (v->IsFake()) continue;
 
-	LOG(1000, ("TrickleReintegrate: checking %s\n", v->name));
+	LOG(1000, ("TrickleReintegrate: checking %s\n", v->GetName()));
 	if (v->Enter((VM_OBSERVING | VM_NDELAY), V_UID) == 0) {
 	    /* force a connectivity check? */
 	    /* try to propagate updates from this volume.  */

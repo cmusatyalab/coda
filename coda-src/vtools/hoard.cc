@@ -62,6 +62,7 @@ extern FILE *_findiop();
 #include <vice.h>
 #include <hdb.h>
 #include <codaconf.h>
+#include <coda_config.h>
 
 #ifndef O_BINARY
 #define O_BINARY 0

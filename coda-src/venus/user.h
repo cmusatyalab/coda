@@ -86,7 +86,7 @@ class userent {
     void CheckTokenExpiry();
     void Invalidate();
     void Reset();
-    int Connect(RPC2_Handle *, int *, unsigned long);
+    int Connect(RPC2_Handle *, int *, struct in_addr *);
     int GetWaitForever();
     void SetWaitForever(int);   
 

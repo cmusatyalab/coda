@@ -76,7 +76,8 @@ int cop2ent::deallocs = 0;
 #endif VENUSDEBUG
 
 /* Send a buffer-full of UpdateSets. */
-int volent::COP2(mgrpent *m, RPC2_CountedBS *PiggyBS) {
+int repvol::COP2(mgrpent *m, RPC2_CountedBS *PiggyBS)
+{
     LOG(10, ("volent::COP2: \n"));
 
     int code = 0;
@@ -101,7 +102,8 @@ int volent::COP2(mgrpent *m, RPC2_CountedBS *PiggyBS) {
 
 
 /* Send a single UpdateSet. */
-int volent::COP2(mgrpent *m, ViceStoreId *StoreId, vv_t *UpdateSet) {
+int repvol::COP2(mgrpent *m, ViceStoreId *StoreId, vv_t *UpdateSet)
+{
     RPC2_CountedBS PiggyBS;
     PiggyBS.SeqLen = 0;
     char PiggyData[COP2SIZE];
@@ -119,8 +121,9 @@ int volent::COP2(mgrpent *m, ViceStoreId *StoreId, vv_t *UpdateSet) {
 /* Send pending UpdateSets that are greater than window seconds old. */
 /* Younger UpdateSets may also be sent in order to complete a buffer. */
 /* Other UpdateSets will either be piggybacked on subsequent RPCs, or sent directly when they are older. */
-int volent::FlushCOP2(time_t window) {
-    CODA_ASSERT(!FID_VolIsFake(vid));
+int repvol::FlushCOP2(time_t window)
+{
+    CODA_ASSERT(!IsFake());
     LOG(100, ("volent::FlushCOP2: vol = %x, window = %d\n",
 	       vid, window));
 
@@ -169,8 +172,9 @@ int volent::FlushCOP2(time_t window) {
 /* Send pending COP2 messages up to the last buffer full. */
 /* Copy the last buffer-full into the supplied buffer so that it can be piggybacked. */
 /* Use the supplied Mgrp for the direct COP2s. */
-int volent::FlushCOP2(mgrpent *m, RPC2_CountedBS *PiggyBS) {
-    CODA_ASSERT(!FID_VolIsFake(vid));
+int repvol::FlushCOP2(mgrpent *m, RPC2_CountedBS *PiggyBS)
+{
+    CODA_ASSERT(!IsFake());
     LOG(100, ("volent::FlushCOP2(Piggy): vol = %x\n", vid));
 
     int code = 0;
@@ -198,7 +202,8 @@ int volent::FlushCOP2(mgrpent *m, RPC2_CountedBS *PiggyBS) {
 }
 
 
-void volent::GetCOP2(RPC2_CountedBS *BS) {
+void repvol::GetCOP2(RPC2_CountedBS *BS)
+{
     LOG(100, ("volent::GetCOP2: vol = %x\n", vid));
 
     dlist_iterator next(*cop2_list);
@@ -225,7 +230,8 @@ void volent::GetCOP2(RPC2_CountedBS *BS) {
 }
 
 
-cop2ent *volent::FindCOP2(ViceStoreId *StoreId) {
+cop2ent *repvol::FindCOP2(ViceStoreId *StoreId)
+{
     dlist_iterator next(*cop2_list);
     cop2ent *c;
     while ((c = (cop2ent *)next()))
@@ -237,13 +243,15 @@ cop2ent *volent::FindCOP2(ViceStoreId *StoreId) {
 }
 
 
-void volent::AddCOP2(ViceStoreId *StoreId, ViceVersionVector *VV) {
+void repvol::AddCOP2(ViceStoreId *StoreId, ViceVersionVector *VV)
+{
     cop2ent *c = new cop2ent(StoreId, VV);
     cop2_list->append(c);	    /* list must be maintained in FIFO order! */
 }
 
 
-void volent::ClearCOP2(RPC2_CountedBS *BS) {
+void repvol::ClearCOP2(RPC2_CountedBS *BS)
+{
     if (BS->SeqLen == 0) return;
 
     LOG(100, ("volent::ClearCOP2: vol = %x\n", vid));

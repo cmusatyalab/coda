@@ -53,7 +53,7 @@ ifneq ($(KERBEROS4),)
 CFLAGS += -DKERBEROS4
 endif
 
-CFLAGS += -DCODAAUTH -DSYSCONFDIR=\"${sysconfdir}\"
+CFLAGS += -DCODAAUTH
 
 
 #

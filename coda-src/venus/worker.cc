@@ -116,6 +116,10 @@ int KernelMask = 0;	/* subsystem is uninitialized until mask is non-zero */
 int kernel_version = 0;
 static int Mounted = 0;
 
+/* Only for the crazy people among us.
+ * Many things can and will go wrong when venus reattaches to a previously
+ * mounted mountpoint. But it does help during development ;) --JH */
+int allow_reattach = 0;
 
 /* -------------------------------------------------- */
 
@@ -256,7 +260,8 @@ void testKernDevice()
 	}
 }
 
-void VFSMount() {
+void VFSMount()
+{
     /* Linux Coda filesystems are mounted by hand through forking since they need venus. XXX eliminate zombie */ 
 #ifdef __BSD44__
     /* Silently unmount the root node in case an earlier venus exited without successfully unmounting. */
@@ -314,16 +319,22 @@ void VFSMount() {
     {
 	FILE *fd;
 	struct mntent *ent;
+        int mounted = 0;
 	fd = setmntent("/etc/mtab", "r");
 	if ( fd > 0 ) { 
-	  while ((ent = getmntent(fd))) {
+	  while (!mounted && (ent = getmntent(fd))) {
 	      if (strcmp(ent->mnt_fsname, "Coda") == 0 &&
 		  strcmp(ent->mnt_dir, venusRoot) == 0) {
-		  eprint("/coda already mounted");
-		  exit(-1);
+                  mounted = 1;
 	      }
 	  }
 	  endmntent(fd);
+
+          if (mounted) {
+              eprint("/coda already mounted");
+              if (allow_reattach) return;
+              exit(-1);
+          }
 	}
     }
     if ( fork() == 0 ) {
@@ -1260,6 +1271,29 @@ void worker::main(void)
 		break;
 		}
 
+	    case CODA_OPEN_BY_FD:
+		{
+                LOG(100, ("CODA_OPEN_BY_FD: u.u_pid = %d u.u_pgid = %d\n",
+                          u.u_pid, u.u_pgid));
+                /* Remember some info for dealing with interrupted open calls */
+                saveFid = in->coda_open_by_fd.VFid;
+                saveFlags = in->coda_open_by_fd.flags;
+		
+		MAKE_CNODE(vtarget, in->coda_open_by_fd.VFid, 0);
+		open(&vtarget, in->coda_open_by_fd.flags);
+		
+		if (u.u_error == 0) {
+		    MarinerReport(&vtarget.c_fid, CRTORUID(u.u_cred));
+
+		    out->coda_open_by_fd.fd = ::open(vtarget.c_cfname,
+                                                     O_RDWR | O_BINARY, V_MODE);
+                    LOG(10, ("CODA_OPEN_BY_FD: fd = %d\n",
+                             out->coda_open_by_fd.fd));
+		    size = sizeof (struct coda_open_by_fd_out);
+		}
+		break;
+		}
+
 	    case CODA_OPEN_BY_PATH:
 		{
 		LOG(100, ("CODA_OPEN_BY_PATH: u.u_pid = %d u.u_pgid = %d\n", u.u_pid, u.u_pgid));
@@ -1409,30 +1443,34 @@ void worker::main(void)
         out->oh.result = u.u_error;
         Resign(msg, size);
 
-        /* If open was aborted by user we must abort our OPEN too
-         *  (if it was successful). */
-        if ((opcode == CODA_OPEN || opcode == CODA_OPEN_BY_PATH) &&
-            interrupted && u.u_error == 0) {
+        if (opcode == CODA_OPEN ||
+            opcode == CODA_OPEN_BY_FD ||
+            opcode == CODA_OPEN_BY_PATH)
+        {
+            /* If open was aborted by user we must abort our OPEN too
+             *  (if it was successful). */
+            if (interrupted && u.u_error == 0) {
 
-            eprint("worker::main: aborting open (%x.%x.%x)",
-                   saveFid.Volume, saveFid.Vnode, saveFid.Unique);
+                eprint("worker::main: aborting open (%x.%x.%x)",
+                       saveFid.Volume, saveFid.Vnode, saveFid.Unique);
 
-            /* NOTE: This may be bogus. It will definately cause a
-             * "message write error" since the uniquifier is bogus. No
-             * harm done, I guess. But why not just call close directly?
-             * -- DCS */
-            /* Fashion a CLOSE message. */
-            msgent *fm = (msgent *)worker::FreeMsgs.get();
-            if (!fm) fm = new msgent;
-            union inputArgs *dog = (union inputArgs *)fm->msg_buf;
+                /* NOTE: This may be bogus. It will definately cause a
+                 * "message write error" since the uniquifier is bogus. No
+                 * harm done, I guess. But why not just call close directly?
+                 * -- DCS */
+                /* Fashion a CLOSE message. */
+                msgent *fm = (msgent *)worker::FreeMsgs.get();
+                if (!fm) fm = new msgent;
+                union inputArgs *dog = (union inputArgs *)fm->msg_buf;
 
-            dog->coda_close.ih.unique = (u_long)-1;
-            dog->coda_close.ih.opcode = CODA_CLOSE;
-            dog->coda_close.VFid = saveFid;
-            dog->coda_close.flags = saveFlags;
+                dog->coda_close.ih.unique = (u_long)-1;
+                dog->coda_close.ih.opcode = CODA_CLOSE;
+                dog->coda_close.VFid = saveFid;
+                dog->coda_close.flags = saveFlags;
 
-            /* Dispatch it. */
-            DispatchWorker(fm);
+                /* Dispatch it. */
+                DispatchWorker(fm);
+            }
         }
     }
 }

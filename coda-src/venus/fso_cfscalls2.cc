@@ -50,7 +50,7 @@ extern "C" {
 }
 #endif __cplusplus
 
-
+#include <coda_config.h>
 
 /* from venus */
 #include "comm.h"
@@ -331,8 +331,8 @@ int fsobj::Access(long rights, int modes, vuid_t vuid)
 
     int code = 0;
 
-    /* Disallow mutation of backup, read-only, rw-replica, and zombie volumes. */
-    if ((flags.backup || flags.readonly || flags.rwreplica) &&
+    /* Disallow mutation of backup, rw-replica, and zombie volumes. */
+    if ((flags.backup || flags.rwreplica) &&
 	 (rights & (long)(PRSFS_WRITE | PRSFS_DELETE | PRSFS_INSERT | PRSFS_LOCK)))
 	return(EROFS);
 
@@ -458,7 +458,8 @@ int fsobj::Access(long rights, int modes, vuid_t vuid)
 /* local-repair modification */
 /* inc_fid is an OUT parameter which allows caller to form "fake symlink" if it desires. */
 /* Explicit parameter for TRAVERSE_MTPTS? -JJK */
-int fsobj::Lookup(fsobj **target_fso_addr, ViceFid *inc_fid, char *name, vuid_t vuid, int flags) {
+int fsobj::Lookup(fsobj **target_fso_addr, ViceFid *inc_fid, char *name, vuid_t vuid, int flags)
+{
     LOG(10, ("fsobj::Lookup: (%s/%s), uid = %d\n",
 	      comp, name, vuid));
     int  len;
@@ -544,7 +545,7 @@ int fsobj::Lookup(fsobj **target_fso_addr, ViceFid *inc_fid, char *name, vuid_t 
 	     * servers. This is `fixed' by resolving the parent, but we just
 	     * destroyed the object and RecResolve won't work. That is why we
 	     * submit this directory for resolution as well. -JH */
-	    if (code == ESYNRESOLVE)
+	    if (code == ESYNRESOLVE && vol->IsReplicated())
 		vol->ResSubmit(&((VprocSelf())->u.u_resblk), &fid);
 
 	    return(code);

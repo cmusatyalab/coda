@@ -59,7 +59,7 @@ typedef RPC2_Struct {
 
 1: VolSalvage(IN RPC2_String partition, IN RPC2_Unsigned VolumeNumber, IN RPC2_Integer force, IN RPC2_Integer debug, IN RPC2_Integer list);
 
-2 :VolCreate(IN RPC2_String partition, IN RPC2_String volname, IN OUT VolumeId volid, IN RPC2_Integer repvol, IN VolumeId grpid);
+2: VolCreate(IN RPC2_String partition, IN RPC2_String volname, IN OUT VolumeId volid, IN RPC2_Integer repvol, IN VolumeId grpid);
 
 3: VolInfo(IN RPC2_String volname, IN RPC2_Integer all, IN OUT SE_Descriptor sed);
 
@@ -113,13 +113,13 @@ typedef RPC2_Struct {
 
 26: VolTiming(IN RPC2_Integer on, IN OUT SE_Descriptor sed);
 
-27: VolElapse(IN RPC2_Integer on, IN RPC2_Integer subid, IN RPC2_Integer multi);
+/* 27: unused */
 
 28: PrintStats(IN OUT SE_Descriptor sed);
 
 29: TraceRpc(IN OUT SE_Descriptor sed);
 
-30: ShowCallbacks	(IN ViceFid fid,
+30: ShowCallbacks(IN ViceFid fid,
 		 IN OUT SE_Descriptor sed);
 
 31: TruncateRVMLog();

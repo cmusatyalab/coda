@@ -30,37 +30,37 @@ extern "C" {
 
 #include "venus.private.h"
 
-void SpoolInit() {
+static void ValidateDir(char *dir, vuid_t owner, mode_t mode)
+{
     int code = 0;
     struct stat tstat;
 
-    // Ensure that top-level spool directory exists... 
-    code = ::stat(SpoolDir, &tstat);
-    if (code < 0 || (tstat.st_mode & S_IFMT) != S_IFDIR) {
+    // Ensure that directory exists... 
+    code = ::stat(dir, &tstat);
+    if (code < 0 || !S_ISDIR(tstat.st_mode)) {
         if (code == 0)
-            CODA_ASSERT(::unlink(SpoolDir) == 0);
-        CODA_ASSERT(::mkdir(SpoolDir, 0755) == 0);
+            CODA_ASSERT(::unlink(dir) == 0);
+        CODA_ASSERT(::mkdir(dir, 0755) == 0);
+        ::stat(dir, &tstat);
     }
 
     // ...and it has the correct attributes. 
-    CODA_ASSERT(::chown(SpoolDir, V_UID, V_GID) == 0);
-    CODA_ASSERT(::chmod(SpoolDir, 0755) == 0);
+    if (tstat.st_uid != owner || tstat.st_gid != V_GID)
+        CODA_ASSERT(::chown(dir, owner, V_GID) == 0);
+
+    if ((tstat.st_mode & ~S_IFMT) != mode)
+        CODA_ASSERT(::chmod(dir, mode) == 0);
 }
 
-void MakeUserSpoolDir(char *usd, vuid_t owner) {
+void MakeUserSpoolDir(char *usd, vuid_t owner)
+{
     int code = 0;
     struct stat tstat;
 
+    // Ensure that the spool directory exists...
+    ValidateDir(SpoolDir, V_UID, 0755);
+
     // Ensure that user's spool (sub-)directory exists...
     sprintf(usd, "%s/%d", SpoolDir, owner);
-    code = ::stat(usd, &tstat);
-    if (code < 0 || (tstat.st_mode & S_IFMT) != S_IFDIR) {
-	if (code == 0)
-	    CODA_ASSERT(::unlink(usd) == 0);
-	CODA_ASSERT(::mkdir(usd, 0755) == 0);
-    }
-
-    // ...and has the correct attributes.
-    CODA_ASSERT(::chown(usd, owner, V_GID) == 0);
-    CODA_ASSERT(::chmod(usd, 0700) == 0);
+    ValidateDir(usd, owner, 0700);
 }

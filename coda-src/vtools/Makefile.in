@@ -38,7 +38,7 @@ CFS_LIBS    = $(LIBKERNDEP) $(LIBUTIL) $(LIBBASE)
 HOARD_LIBS  = $(LIBUTIL) $(LIBKERNDEP) $(LIBBASE)
 STD_LIBS = $(LIBCURSES) $(LIBS)
 
-CXXFLAGS := $(CXXFLAGS) -UVENUS -DSYSCONFDIR=\"@sysconfdir@\" -DCPUTYPE=\"@cputype@\" -DSYSTYPE=\"@systype@\"
+CXXFLAGS := $(CXXFLAGS) -UVENUS
 
 include $(TOPDIR)/configs/Makerules
 

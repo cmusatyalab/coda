@@ -45,6 +45,7 @@ extern "C" {
 #include <voltypes.h>
 
 #include <codaconf.h>
+#include <coda_config.h>
 #include <vice_file.h>
 
 char *serverconf = SYSCONFDIR "/server"; /* ".conf" */

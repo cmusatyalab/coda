@@ -15,10 +15,7 @@ sinclude(configs/coda_macros.m4)
 CODA_OPTION_SUBSYS(lwp)
 CODA_OPTION_SUBSYS(rvm)
 CODA_OPTION_SUBSYS(rpc2)
-
-AC_ARG_WITH(openssl,
-  [  --without-openssl     Do not link against the openssl library],
-  [OPENSSL=${withval}])
+CODA_OPTION_OPENSSL
 
 dnl Checks for programs.
 AC_PROG_CC
@@ -64,22 +61,12 @@ CODA_FIND_LIB(readline, [#include <stdio.h>
 #include <readline/readline.h>], [readline((char *)0)], $LIBTERMCAP)
 
 CODA_CHECK_LIBDB185
-CODA_CHECK_LIBUCB
+CODA_CHECK_MD5
 
+AC_SEARCH_LIBS(bcopy, ucb)
 AC_SEARCH_LIBS(bind, socket)
 AC_SEARCH_LIBS(inet_ntoa, nsl)
 
-dnl check for library providing md5 checksumming
-if test "${OPENSSL}" = "no" ; then
-    MD5C="md5c.o"
-else
-  AC_CHECK_HEADERS(openssl/md5.h)
-  AC_SEARCH_LIBS(MD5_Init, crypto,
-    [test "$ac_cv_search_MD5_Init" = "none required" || LIBMD5="$ac_cv_search_MD5_Init"
-     LIBS="$ac_func_search_save_LIBS"], [MD5C="md5c.o"])
-fi
-AC_SUBST(LIBMD5)
-AC_SUBST(MD5C)
 
 dnl Checks for header files.
 AC_CHECK_HEADERS(search.h sys/resource.h sys/stream.h)
@@ -99,12 +86,13 @@ CODA_CC_FEATURE_TEST(no_exceptions, -fno-exceptions)
 CODA_CXX_FEATURE_TEST(no_exceptions, -fno-exceptions)
 
 dnl Checks for library functions.
-AC_CHECK_FUNCS(inet_aton inet_ntoa select setenv snprintf statfs strerror)
+AC_CHECK_FUNCS(inet_aton inet_ntoa)
+AC_CHECK_FUNCS(scandir select setenv snprintf statfs strerror)
 AC_FUNC_MMAP
 AC_FUNC_SELECT_ARGTYPES
 CODA_CHECK_FILE_LOCKING
 CODA_CHECK_BCOPY
-CODA_CHECK_SCANDIR
+CODA_CHECK_DIRENT
 CODA_RFLAG
 
 dnl Checks for system services.
@@ -114,7 +102,7 @@ TOPOBJ=`pwd`
 AC_SUBST(TOPOBJ)
 
 AC_PROG_MAKE_SET
-AC_OUTPUT(Makefile Makeconf.setup
+AC_OUTPUT(Makefile Makeconf.setup coda_config.h
 configs/Makefile 
 lib-src/Makefile 
 lib-src/base/Makefile

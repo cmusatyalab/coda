@@ -327,13 +327,13 @@ public:
 };
 
 
-/* class for volent object-pointer */
+/* class for repvol object-pointer */
 class vptent : public dlink {
-    volent *vpt;
+    repvol *vpt;
 public:
-    vptent(volent *);
+    vptent(repvol *);
     ~vptent();    
-    volent *GetVol();
+    repvol *GetVol();
 
     void print(FILE *);
     void print();

@@ -62,32 +62,35 @@ extern "C" {
 #include "coda_assert.h"
 #include "codaconf.h"
 
+#include <coda_config.h>
+
 /* FreeBSD 2.2.5 defines this in rpc/types.h, all others in netinet/in.h */
 #ifndef INADDR_LOOPBACK
 #define INADDR_LOOPBACK 0x7f000001
 #endif
 
 /* *****  Exported variables  ***** */
+/* globals in the .bss are implicitly initialized to 0 according to ANSI-C standards */
 vproc *Main;
-ViceFid	rootfid = {0, 0, 0};
-long rootnodeid = 0;
-int CleanShutDown = 0;
-int SearchForNOreFind = 0;  // Look for better detection method for iterrupted hoard walks. mre 1/18/93
+ViceFid	rootfid;
+long rootnodeid;
+int CleanShutDown;
+int SearchForNOreFind;  // Look for better detection method for iterrupted hoard walks. mre 1/18/93
 
 /* Command-line/vstab parameters. */
-char *consoleFile = NULL;
-char *venusRoot = NULL;
-char *kernDevice = NULL;
-char *fsname = NULL;
-char *CacheDir = NULL;
-int   CacheBlocks = 0;
-char *RootVolName = NULL;
+char *consoleFile;
+char *venusRoot;
+char *kernDevice;
+char *fsname;
+char *CacheDir;
+int   CacheBlocks;
+char *RootVolName;
 vuid_t PrimaryUser = (vuid_t)UNSET_PRIMARYUSER;
-char *SpoolDir = NULL;
-char *VenusPidFile = NULL;
-char *VenusControlFile = NULL;
-char *VenusLogFile = NULL;
-char *MarinerSocketPath = NULL;
+char *SpoolDir;
+char *VenusPidFile;
+char *VenusControlFile;
+char *VenusLogFile;
+char *MarinerSocketPath;
 
 #ifdef HAVE_SYS_UN_H
 int mariner_tcp_enable = 0;
@@ -164,7 +167,6 @@ int main(int argc, char **argv) {
    
     LWP_SetLog(logFile, lwp_debug);
     RPC2_SetLog(logFile, RPC2_DebugLevel);
-    SpoolInit();    /* make sure the spooling directory exists */
     DaemonInit();   /* before any Daemons initialize and after LogInit */
     StatsInit();
     SigInit();      /* set up signal handlers */
@@ -172,7 +174,6 @@ int main(int argc, char **argv) {
     RecovInit();    /* set up RVM and recov daemon */
     CommInit();     /* set up RPC2, {connection,server,mgroup} lists, probe daemon */
     UserInit();     /* fire up user daemon */
-    VSGInit();      /* first alloc of recoverable vm, init VSGDB and daemon */
     VolInit();      /* init VDB, daemon */
     FSOInit();      /* allocate FSDB if necessary, recover FSOs, start FSO daemon */
     HDB_Init();     /* allocate HDB if necessary, scan entries, start the HDB daemon */
@@ -392,6 +393,8 @@ static void ParseCmdline(int argc, char **argv) {
 		mariner_tcp_enable = 1;
 	    else if (STREQ(argv[i], "-noMarinerTcp"))
 		mariner_tcp_enable = 0;
+	    else if (STREQ(argv[i], "-allow-reattach"))
+		allow_reattach = 1;
 	    /* Private mapping ... */
 	    else if (STREQ(argv[i], "-mapprivate"))
 		MapPrivate = true;

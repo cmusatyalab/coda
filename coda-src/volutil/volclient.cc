@@ -63,9 +63,9 @@ extern "C" {
 #include <vice_file.h>
 #include <cvnode.h>
 #include <volume.h>
-#include "velapse.h"
 
 #include <codaconf.h>
+#include <coda_config.h>
 #include <vice_file.h>
 
 static char *serverconf = SYSCONFDIR "/server"; /* ".conf" */
@@ -111,7 +111,6 @@ static void rvmsize(void);
 static void setlogparms(void);
 static void markasancient(void);
 static void timing(void);
-static void elapse(void);
 static void tracerpc(void);
 static void printstats(void);
 static void getvolumelist(void);
@@ -259,8 +258,6 @@ int main(int argc, char **argv)
 	setlogparms();
     else if (strcmp(argv[1], "timing") == 0)
 	timing();
-    else if (strcmp(argv[1], "elapse") == 0)
-	elapse();
     else if (strcmp(argv[1], "tracerpc") == 0)
 	tracerpc();
     else if (strcmp(argv[1], "printstats") == 0)
@@ -303,7 +300,7 @@ bad_options:
 "\tancient, backup, create, create_rep, clone, dump, dumpestimate,\n"
 "\trestore, info, lock, lookup, makevldb, makevrdb, purge, salvage,\n"
 "\tsetvv, showvnode, shutdown, swaplog, setdebug, updatedb, unlock,\n"
-"\tdumpmem, rvmsize, timing, elapse, enablewb, disablewb, printstats,\n"
+"\tdumpmem, rvmsize, timing, enablewb, disablewb, printstats,\n"
 "\tshowcallbacks, truncatervmlog,togglemalloc, getmaxvol, setmaxvol,\n"
 "\tpeek, poke, peeks, pokes, peekx, pokex, setlogparms, tracerpc\n"
 "\tgetvolumelist\n");
@@ -1506,63 +1503,6 @@ static void timing(void)
 	exit(-1);
     }
     fprintf(stderr, "Timing finished successfully\n");
-    exit(0);
-}
-
-/**
- * elapse - turn on/off times for specified subsystems
- * @on/off:	turn timers on or off
- * @subsystemname:	name of the subsystem, resolution, cb, mond, voldump
- * @MultiRPC:	MultiRPC elapsed times.
- *
- */
-void elapse(void)
-{
-    int on = -1;
-    int subid = -1;
-    int multi = -1;
-
-    if (these_args != 4 && these_args != 5) {
-	fprintf(stderr, "Usage: volutil elapse <on | off> subsystem-name [MultiRPC]\n");
-	exit(-1);
-    }
-    
-    if (strcmp(this_argp[2], "on") == 0) on = 1;
-    else if (strcmp(this_argp[2], "off") == 0) on = 0;
-    else {
-	fprintf(stderr, "Usage: volutil elapse <on | off> subsystem-name [MultiRPC]\n");
-	exit(-1);
-    }
-
-    if (strcmp(this_argp[3], "resolution") == 0)  {
-	subid = VELAPSE_RESOLUTION;
-    } else if (strcmp(this_argp[3], "cb") == 0) {
-	subid = VELAPSE_CB;
-    } else if (strcmp(this_argp[3], "mond") == 0) {
-	subid = VELAPSE_MOND;
-    } else if (strcmp(this_argp[3], "volDump") == 0) {
-	subid = VELAPSE_VOLDUMP;
-    } else {
-	fprintf(stderr, "Switch name must be chosen among resolution, cb, mond, and volDump\n");
-	exit(-1);
-    }
-
-    if (these_args == 5) {
-        if (strcmp(this_argp[4], "MultiRPC") == 0 || strcmp(this_argp[4], "M") == 0)  {
-	    multi = 1;
-        } else {
-	    fprintf(stderr, "To collect MultiRPC elapse time, specify \"MultiRPC\" or \"M\"\n");
-	    exit(-1);
-        }
-    } else multi = 0;
-
-    rc = VolElapse(rpcid, on, subid, multi);
-    
-    if (rc != RPC2_SUCCESS) {
-	fprintf(stderr, "VolElapse failed with return code %ld\n", rc);
-	exit(-1);
-    }
-    fprintf(stderr, "VolElapse finished successfully\n");
     exit(0);
 }
 

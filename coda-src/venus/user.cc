@@ -227,6 +227,7 @@ userent::userent(vuid_t userid) {
 userent::userent(userent& u) { abort(); }
 int userent::operator=(userent& u) { abort(); return(0); }
 
+
 userent::~userent() {
     LOG(100, ("userent::~userent: uid = %d\n", uid));
     Invalidate();
@@ -253,10 +254,10 @@ LOG(100, ("SetTokens calling Reset\n"));
 
 
     /* Make dirty volumes "owned" by this user available for reintegration. */
-    vol_iterator next;
-    volent *v;
+    repvol_iterator next;
+    repvol *v;
     while ((v = next()))
-	if (v->type == REPVOL && v->state == Emulating && v->CML.Owner() == uid) {
+	if (v->IsDisconnected() && v->CML.Owner() == uid) {
 	    v->flags.transition_pending = 1;
 	    v->ClearReintegratePending();
 	}
@@ -318,7 +319,8 @@ void userent::Invalidate() {
     Reset();
 }
 
-void userent::Reset() {
+void userent::Reset()
+{
 LOG(100, ("E userent::Reset()\n"));
     /* Clear the cached access info for the user. */
     FSDB->ResetUser(uid);
@@ -333,7 +335,7 @@ LOG(100, ("After HDB::ResetUser in userent::Reset\n"));
 
     /* Delete the user's connections. */
     {
-	struct ConnKey Key; Key.host = ALL_HOSTS; Key.vuid = uid;
+	struct ConnKey Key; Key.host.s_addr = INADDR_ANY; Key.vuid = uid;
 	conn_iterator next(&Key);
 	connent *c = 0;
 	connent *tc = 0;
@@ -345,28 +347,26 @@ LOG(100, ("After HDB::ResetUser in userent::Reset\n"));
 
     /* Delete the user's mgrps. */
     {
-	struct MgrpKey Key; Key.vsgaddr = ALL_VSGS; Key.vuid = uid;
-	mgrp_iterator next(&Key);
-	mgrpent *m = 0;
-	mgrpent *tm = 0;
-	for (m = next(); m != 0; m = tm) {
-	    tm = next();		/* read ahead */
-	    (void)m->Suicide(1);
-	}
+	repvol_iterator next;
+	repvol *v;
+	while ((v = next()))
+            v->KillUserMgrps(uid);
     }
 
 LOG(100, ("L userent::Reset()\n"));
 }
 
-int userent::Connect(RPC2_Handle *cid, int *auth, unsigned long host) {
-    LOG(100, ("userent::Connect: addr = %x, uid = %d, tokensvalid = %d\n",
-	       host, uid, tokensvalid));
+int userent::Connect(RPC2_Handle *cid, int *auth, struct in_addr *host)
+{
+    LOG(100, ("userent::Connect: addr = %s, uid = %d, tokensvalid = %d\n",
+	       inet_ntoa(*host), uid, tokensvalid));
 
     *cid = 0;
     int code = 0;
 
     /* This may be a request to connect either to a specific host, or to form an mgrp. */
-    if (IN_CLASSD(host)) {
+    if (host->s_addr == INADDR_ANY)
+    {
 	/* If the user has valid tokens and he is not root, we specify an authenticated mgrp. */
 	/* Otherwise, we specify an unauthenticated mgrp. */
 	long sl;
@@ -383,14 +383,14 @@ int userent::Connect(RPC2_Handle *cid, int *auth, unsigned long host) {
 	/* Attempt to create the mgrp. */
 	RPC2_McastIdent mcid;
 	mcid.Tag = RPC2_MGRPBYINETADDR;
-	mcid.Value.InetAddress.s_addr = htonl(host);
+	mcid.Value.InetAddress = *host;
 	RPC2_PortIdent pid;
 	pid.Tag = RPC2_PORTBYNAME;
 	strcpy(pid.Value.Name, "codasrv");
 	RPC2_SubsysIdent ssid;
 	ssid.Tag = RPC2_SUBSYSBYID;
 	ssid.Value.SubsysId = SUBSYS_SRV;
-	LOG(1, ("userent::Connect: RPC2_CreateMgrp(%x)\n", host));
+	LOG(1, ("userent::Connect: RPC2_CreateMgrp(%s)\n", inet_ntoa(*host)));
 	code = (int) RPC2_CreateMgrp(cid, &mcid, &pid, &ssid, sl,
 			       clear.HandShakeKey, RPC2_XOR, SMARTFTP);
 	LOG(1, ("userent::Connect: RPC2_CreateMgrp -> %s\n",
@@ -425,7 +425,7 @@ int userent::Connect(RPC2_Handle *cid, int *auth, unsigned long host) {
 	/* Attempt the bind. */
 	RPC2_HostIdent hid;
 	hid.Tag = RPC2_HOSTBYINETADDR;
-	hid.Value.InetAddress.s_addr = htonl(host);
+	hid.Value.InetAddress = *host;
 	RPC2_PortIdent pid;
 	pid.Tag = RPC2_PORTBYNAME;
 	strcpy(pid.Value.Name, "codasrv");
@@ -437,7 +437,7 @@ int userent::Connect(RPC2_Handle *cid, int *auth, unsigned long host) {
 	bparms.ClientIdent = &clientident;
 	bparms.SharedSecret = &clear.HandShakeKey;
 
-	LOG(1, ("userent::Connect: RPC2_NewBinding(%x)\n", host));
+	LOG(1, ("userent::Connect: RPC2_NewBinding(%s)\n", inet_ntoa(*host)));
 	code = (int) RPC2_NewBinding(&hid, &pid, &ssid, &bparms, cid);
 	LOG(1, ("userent::Connect: RPC2_NewBinding -> %s\n", RPC2_ErrorMsg(code)));
 
@@ -461,7 +461,7 @@ int userent::Connect(RPC2_Handle *cid, int *auth, unsigned long host) {
 	 * It is only reset when RVM is reinitialized */
 	memcpy(vc.VenusUUID, &VenusGenID, sizeof(ViceUUID));
 
-	char *sname = (FindServer(ntohl(hid.Value.InetAddress.s_addr)))->name;
+	char *sname = FindServer(&hid.Value.InetAddress)->name;
 	LOG(1, ("userent::Connect: NewConnectFS(%s)\n", sname)); 
 	MarinerLog("fetch::NewConnectFS %s\n", sname);
 	UNI_START_MESSAGE(ViceNewConnectFS_OP);

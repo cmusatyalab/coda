@@ -315,16 +315,15 @@ long CallBackConnect(RPC2_Handle RPCid, RPC2_Integer SideEffectType,
 	 thePeer.RemotePort.Tag != RPC2_PORTBYINETNUMBER)
 	CHOKE("CallBackConnect: getpeerinfo returned bogus type!");
 
-    unsigned long host = ntohl(thePeer.RemoteHost.Value.InetAddress.s_addr);
-    unsigned short port = ntohs(thePeer.RemotePort.Value.InetPortNumber);
-    LOG(100, ("CallBackConnect: host = %x, port = %d\n",
-	      inet_ntoa(thePeer.RemoteHost.Value.InetAddress), port));
+    LOG(100, ("CallBackConnect: host = %s, port = %d\n",
+	      inet_ntoa(thePeer.RemoteHost.Value.InetAddress),
+              ntohs(thePeer.RemotePort.Value.InetPortNumber)));
 
     /* Get the server entry and install the new connid. */
     /* It is NOT a fatal error if the srvent doesn't already exist, because the server may be */
     /* "calling-back" as a result of a bind by a PREVIOUS Venus incarnation at this client! */
     srvent *s = 0;
-    GetServer(&s, host);
+    GetServer(&s, &thePeer.RemoteHost.Value.InetAddress);
     LOG(1, ("CallBackConnect: host = %s\n", s->name));
     MarinerLog("callback::NewConnection %s\n", s->name);
     s->ServerUp(RPCid);

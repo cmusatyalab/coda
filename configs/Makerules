@@ -195,7 +195,7 @@ clean-install:
 # cleaning: important too
 ##################
 
-clean: subdirclean realclean
+clean: subdirclean realclean xtraclean
 
 subdirclean:
 ifdef SUBDIRS
@@ -212,27 +212,29 @@ realclean:
 	      c_bin_install c_sbin_install s_bin_install s_sbin_install 
 	-$(RM) *.l.c *.pt.c *.l.o *.pt.o
 
+xtraclean:
+
 distclean: clean
-	-rm -rf include
-	-rm -f coda-src/rpc2/errorsdefs.h
-	-rm -f coda-src/rpc2/switchc2s.h
-	-rm -f coda-src/rpc2/switchs2c.h
-	-rm -f coda-src/guitools/translate.sed
-	-rm -f config.cache config.log config.status
-	-rm -f Makeconf.setup `find . -name "Makefile" | grep -v linux`
-	-rm -f config.h
-	-rm -f coda-src/scripts/bldvldb.sh
-	-rm -f coda-src/scripts/codaconfedit
-	-rm -f coda-src/scripts/createvol_rep
-	-rm -f coda-src/scripts/rc.vice
-	-rm -f coda-src/scripts/startserver
-	-rm -f coda-src/scripts/venus.init
-	-rm -f coda-src/scripts/vice-setup
-	-rm -f coda-src/scripts/vice-setup-rvm
-	-rm -f coda-src/scripts/vice-setup-scm
-	-rm -f coda-src/scripts/vice-setup-srvdir
-	-rm -f coda-src/scripts/vice-setup-user
-	-rm -f coda-src/scripts/vutil
+	-$(RM) -r include
+	-$(RM) coda-src/rpc2/errorsdefs.h
+	-$(RM) coda-src/rpc2/switchc2s.h
+	-$(RM) coda-src/rpc2/switchs2c.h
+	-$(RM) coda-src/guitools/translate.sed
+	-$(RM) config.cache config.log config.status
+	-$(RM) Makeconf.setup `find . -name "Makefile" | grep -v linux`
+	-$(RM) config.h coda_config.h
+	-$(RM) coda-src/scripts/bldvldb.sh
+	-$(RM) coda-src/scripts/codaconfedit
+	-$(RM) coda-src/scripts/createvol_rep
+	-$(RM) coda-src/scripts/rc.vice
+	-$(RM) coda-src/scripts/startserver
+	-$(RM) coda-src/scripts/venus.init
+	-$(RM) coda-src/scripts/vice-setup
+	-$(RM) coda-src/scripts/vice-setup-rvm
+	-$(RM) coda-src/scripts/vice-setup-scm
+	-$(RM) coda-src/scripts/vice-setup-srvdir
+	-$(RM) coda-src/scripts/vice-setup-user
+	-$(RM) coda-src/scripts/vutil
 
 
 #####################

@@ -16,25 +16,14 @@ listed in the file CREDITS.
 
 #*/
 
-
-
-
-
-
-
-/* * Bugs: 1. Currently, the binding of volent <--> VSG is static
- *       (i.e., fixed at construction of the volent).  We need a
- *       mechanism for changing this binding over time, due to:
+/* * Bugs: Currently, the binding of volent <--> VSG is static
+ *         (i.e., fixed at construction of the volent).  We need a
+ *         mechanism for changing this binding over time, due to:
  *
- *          - commencement of a new "epoch" for a REPVOL (i.e.,
- *            adding/deleting a replica)  
- *          - movement of a {RWR,RO} volume from one host to another
- *          - addition/deletion of a host from a RO replica suite
- *       2. There is a horrible hack involving the derivation of VSGs
- *             for ROVOLs.  This can be fixed with some modification to
- * 	      the ViceGetVolumeInfo call. 
+ *          - commencement of a new "epoch" for a ReplicatedVolume
+ *            (i.e., adding/deleting a replica)  
+ *          - movement of a volume from one host to another
  */
-
 
 /*
  *
@@ -184,7 +173,8 @@ int MLEs = 0;
 
 
 /* local-repair modification */
-void VolInit() {
+void VolInit()
+{
     /* Allocate the database if requested. */
     if (InitMetaData) {					/* <==> VDB == 0 */
 	Recov_BeginTrans();
@@ -194,9 +184,9 @@ void VolInit() {
 
 	/* Create the local fake volume */
 	VolumeInfo LocalVol;
-	memset((void *)&LocalVol, 0, (int)sizeof(VolumeInfo));
+	memset(&LocalVol, 0, sizeof(VolumeInfo));
 	FID_MakeVolFake(&LocalVol.Vid);
-        LocalVol.Type = ROVOL;
+        LocalVol.Type = BACKVOL; /* backup volume == read-only replica */
 	CODA_ASSERT(VDB->Create(&LocalVol, "Local"));
 	
 	/* allocate database for VCB usage. */
@@ -240,13 +230,13 @@ void VolInit() {
 	{
 	    /* Nothing useful to do! */
 
-	    eprint("\t%d vol entries on free-list (%d MLEs)",
-		   VDB->freelist.count(), VDB->mlefreelist.count());
+	    eprint("\t%d CML entries on free-list",
+		   VDB->mlefreelist.count());
 	}
 
-	if (VDB->htab.count() + VDB->freelist.count() > CacheFiles)
-	    CHOKE("VolInit: too many vol entries (%d + %d > %d)",
-		VDB->htab.count(), VDB->freelist.count(), CacheFiles);
+	if (VDB->htab.count() > CacheFiles)
+	    CHOKE("VolInit: too many vol entries (%d > %d)",
+		VDB->htab.count(), CacheFiles);
 	if (VDB->AllocatedMLEs + VDB->mlefreelist.count() > VDB->MaxMLEs)
 	    CHOKE("VolInit: too many MLEs (%d + %d > %d)",
 		VDB->AllocatedMLEs, VDB->mlefreelist.count(), VDB->MaxMLEs);
@@ -260,7 +250,8 @@ void VolInit() {
 }
 
 
-int VOL_HashFN(void *key) {
+int VOL_HashFN(void *key)
+{
     return(*((VolumeId *)key));
 }
 
@@ -340,7 +331,7 @@ found_rootvolname:
 	return(0);
     }
 
-    rootfid.Volume = v->vid;
+    rootfid.Volume = v->GetVid();
     FID_MakeRoot(&rootfid);
     VDB->Put(&v);
 
@@ -350,7 +341,8 @@ found_rootvolname:
 
 
 /* Allocate database from recoverable store. */
-void *vdb::operator new(size_t len) {
+void *vdb::operator new(size_t len)
+{
     vdb *v = 0;
 
     v = (vdb *)rvmlib_rec_malloc((int)len);
@@ -358,7 +350,8 @@ void *vdb::operator new(size_t len) {
     return(v);
 }
 
-vdb::vdb() : htab(VDB_NBUCKETS, VOL_HashFN) {
+vdb::vdb() : htab(VDB_NBUCKETS, VOL_HashFN)
+{
     /* Initialize the persistent members. */
     RVMLIB_REC_OBJECT(*this);
     MagicNumber = VDB_MagicNumber;
@@ -367,7 +360,8 @@ vdb::vdb() : htab(VDB_NBUCKETS, VOL_HashFN) {
 }
 
 
-void vdb::ResetTransient() {
+void vdb::ResetTransient()
+{
     /* Sanity checks. */
     if (MagicNumber != VDB_MagicNumber)
 	CHOKE("vdb::ResetTransient: bad magic number (%d)", MagicNumber);
@@ -379,17 +373,19 @@ void vdb::operator delete(void *deadobj, size_t len) {
     abort(); /* what else? */
 }
 
-volent *vdb::Find(VolumeId volnum) {
+volent *vdb::Find(VolumeId volnum)
+{
     vol_iterator next(&volnum);
     volent *v;
     while ((v = next()))
-	if (v->vid == volnum) return(v);
+	if (v->GetVid() == volnum) return(v);
 
     return(0);
 }
 
 
-volent *vdb::Find(char *volname) {
+volent *vdb::Find(char *volname)
+{
     vol_iterator next;
     volent *v;
     while ((v = next()))
@@ -398,29 +394,79 @@ volent *vdb::Find(char *volname) {
     return(0);
 }
 
-
 /* MUST NOT be called from within transaction! */
-volent *vdb::Create(VolumeInfo *volinfo, char *volname) {
+volent *vdb::Create(VolumeInfo *volinfo, char *volname)
+{
     volent *v = 0;
 
     /* Check whether the key is already in the database. */
-    if ((v = Find(volinfo->Vid)) != 0) {
+    if ((v = Find(volinfo->Vid))) {
 /*	{ v->print(logFile); CHOKE("vdb::Create: key exists"); }*/
 	eprint("reinstalling volume %s (%s)", v->name, volname);
 
 	Recov_BeginTrans();
 	rvmlib_set_range(v->name, V_MAXVOLNAMELEN);
 	strcpy(v->name, volname);
-	/* Other fields? -JJK */
+
+        /* add code to support growing/shrinking VSG's for replicated volumes
+         * and moving volume replicas between hosts */
+
 	Recov_EndTrans(0);
 
 	return(v);
     }
 
     /* Fashion a new object. */
-    Recov_BeginTrans();
-	v = new volent(volinfo, volname);
-    Recov_EndTrans(MAXFP);
+    switch(volinfo->Type) {
+    case REPVOL:
+        {
+        repvol *vp;
+        volrep *vsg[VSG_MEMBERS];
+        int i, err = 0;
+
+        memset(vsg, 0, VSG_MEMBERS * sizeof(volrep *));
+        for (i = 0; i < VSG_MEMBERS && !err; i++) {
+            if (!(&volinfo->RepVolMap.Volume0)[i]) continue;
+            
+            err = VDB->Get((volent **)&vsg[i],(&volinfo->RepVolMap.Volume0)[i]);
+            if (!err) vsg[i]->IsReplicated();
+        }
+
+        /* in case of an error put them again */
+        if (err) {
+            for (i = 0; i < VSG_MEMBERS; i++)
+                if (vsg[i]) VDB->Put((volent **)&vsg[i]);
+            break;
+        }
+
+        /* instantiate the new replicated volume */
+        Recov_BeginTrans();
+        vp = new repvol(volinfo->Vid, volname, vsg);
+        v = vp;
+        Recov_EndTrans(MAXFP);
+        break;
+        }
+
+    case ROVOL: /* Readonly replicated volume are not supported */
+        break;
+
+    case RWVOL:
+    case BACKVOL:
+        {
+        volrep *vp;
+        struct in_addr srvaddr;
+        srvaddr.s_addr = htonl(volinfo->Server0);
+        
+        /* instantiate the new volume replica */
+        Recov_BeginTrans();
+        vp = new volrep(volinfo->Vid, volname, &srvaddr,
+                        volinfo->Type == BACKVOL,
+                        (&volinfo->Type0)[replicatedVolume]);
+        v = vp;
+        Recov_EndTrans(MAXFP);
+        break;
+        }
+    }
 
     if (v == 0)
 	LOG(0, ("vdb::Create: (%x, %s, %d) failed\n", volinfo->Vid, volname, 0/*AllocPriority*/));
@@ -429,15 +475,14 @@ volent *vdb::Create(VolumeInfo *volinfo, char *volname) {
 
 
 /* MUST NOT be called from within transaction! */
-int vdb::Get(volent **vpp, VolumeId vid) {
+int vdb::Get(volent **vpp, VolumeId vid)
+{
     LOG(100, ("vdb::Get: vid = %x\n", vid));
 
     *vpp = 0;
 
-    if (vid == 0) {
-	LOG(0, ("vdb::Get: vid == 0\n"));
-	return(VNOVOL);	    /* ??? -JJK */
-    }
+    if (vid == 0)
+	return(VNOVOL);
 
     /* First see if it's already in the table by number. */
     volent *v = Find(vid);
@@ -456,11 +501,13 @@ int vdb::Get(volent **vpp, VolumeId vid) {
 
 /* MUST NOT be called from within transaction! */
 /* This call ALWAYS goes through to servers! */
-int vdb::Get(volent **vpp, char *volname) {
+int vdb::Get(volent **vpp, char *volname)
+{
+    int code = 0;
+
     LOG(100, ("vdb::Get: volname = %s\n", volname));
 
     *vpp = 0;
-    int code = 0;
 
     VolumeInfo volinfo;
 
@@ -495,18 +542,21 @@ int vdb::Get(volent **vpp, char *volname) {
 	return(ETIMEDOUT);
     }
     if (v) {
-	if (v->vid == volinfo.Vid) {
+	if (v->GetVid() == volinfo.Vid) {
 	    /* Mapping unchanged. */
 	    /* Should we see whether any other info has changed (e.g., VSG)?. */
+
+            /* add code to support growing/shrinking VSG's for replicated
+             * volumes and moving volume replicas between hosts */
 	    goto Exit;
 	}
 	else {
 	    eprint("Mapping changed for volume %s (%x --> %x)",
-		   volname, v->vid, volinfo.Vid);
+		   volname, v->GetVid(), volinfo.Vid);
 
 	    /* Put a (unique) fakename in the old volent. */
 	    char fakename[V_MAXVOLNAMELEN];
-	    sprintf(fakename, "%lu", v->vid);
+	    sprintf(fakename, "%lu", v->GetVid());
 	    CODA_ASSERT(Find(fakename) == 0);
 	    Recov_BeginTrans();
 		rvmlib_set_range(v->name, V_MAXVOLNAMELEN);
@@ -522,27 +572,11 @@ int vdb::Get(volent **vpp, char *volname) {
 	}
     }
 
-    /* Must ensure that the vsg entry is cached for replicated volumes. */
-    vsgent *vsg; vsg = 0;
-    /*    if (volinfo.Type == ROVOL || volinfo.Type == REPVOL) { */
-    if (volinfo.Type == REPVOL) {
-	/* HACK! VolumeInfo doesn't yet contain vsg info for ROVOLs; fake it! */
-	if (volinfo.Type == ROVOL && volinfo.VSGAddr == 0)
-		CHOKE("Fix GetVolInfo to return a VSGAddr for ROVOLS\n");
-
-	/* Pin the vsg entry. */
-	if (VSGDB->Get(&vsg, volinfo.VSGAddr, (unsigned long *)&(volinfo.Server0)) != 0)
-	    CHOKE("vdb::Get: couldn't get vsg (%x)", volinfo.VSGAddr);
-    }
-
     /* Attempt the create. */
     v = Create(&volinfo, volname);
-    if (v == 0)
-	CHOKE("vdb::Get: Create (%x, %s) failed", volinfo.Vid, volname);
 
-    /* Unpin the vsg entry. */
-    if (vsg != 0)
-	VSGDB->Put(&vsg);
+    if (!v)
+	CHOKE("vdb::Get: Create (%x, %s) failed", volinfo.Vid, volname);
 
 Exit:
     v->hold();
@@ -551,31 +585,105 @@ Exit:
 }
 
 
-void vdb::Put(volent **vpp) {
-    if (!(*vpp)) { LOG(100, ("vdb::Put: Null vpp\n")); return; }
+void vdb::Put(volent **vpp)
+{
+    if (!*vpp) return;
 
     volent *v = *vpp;
     LOG(100, ("vdb::Put: (%x, %s), refcnt = %d\n",
-	       v->vid, v->name, v->refcnt));
+	       v->GetVid(), v->name, v->refcnt));
 
     v->release();
     *vpp = 0;
 }
 
 
-void vdb::FlushVolume() {
+void vdb::FlushVolume()
+{
     vol_iterator next;
     volent *v;
-    while ((v = next())) {
-	if (FID_VolIsFake(v->vid)) 
-		continue;
+    while ((v = next()))
 	v->FlushVSRs(VSR_FLUSH_HARD);
-    }
+}
+
+void vdb::DownEvent(struct in_addr *host)
+{
+    LOG(10, ("vdb::DownEvent: host = %s\n", inet_ntoa(*host)));
+
+    vol_iterator next;
+    volent *v;
+    long eventTime = Vtime();
+
+    VmonEnqueueCommEvent(host->s_addr, eventTime, ::ServerDown);
+
+    /* Notify each volume of its failure. We only need to notify underlying
+     * replicas, they will notify their replicated parent */
+    while ((v = next()))
+        if (!v->IsReplicated() && v->IsHostedBy(host))
+            v->DownMember(eventTime);
+
+    /* provoke state transitions now */
+    VprocSignal(&voldaemon_sync);
+}
+
+void vdb::UpEvent(struct in_addr *host)
+{
+    LOG(10, ("vdb::UpEvent: host = %s\n", inet_ntoa(*host)));
+
+    vol_iterator next;
+    volent *v;
+    long eventTime = Vtime();
+
+    VmonEnqueueCommEvent(host->s_addr, eventTime, ::ServerUp);
+
+    /* Notify each volume of its success. We only need to notify underlying
+     * replicas, they will notify their replicated parent */
+    while ((v = next()))
+        if (!v->IsReplicated() && v->IsHostedBy(host))
+            v->UpMember(eventTime);
+
+    /* provoke state transitions now */
+    VprocSignal(&voldaemon_sync);
+}
+
+void vdb::WeakEvent(struct in_addr *host)
+{
+    LOG(10, ("vdb::WeakEvent: host = %s\n", inet_ntoa(*host)));
+
+    vol_iterator next;
+    volent *v;
+
+    /* Notify each volume of its failure. We only need to notify underlying
+     * replicas, they will notify their replicated parent */
+    while ((v = next()))
+        if (!v->IsReplicated() && v->IsHostedBy(host))
+            v->WeakMember();
+
+    /* provoke state transitions now */
+    VprocSignal(&voldaemon_sync);
+}
+
+void vdb::StrongEvent(struct in_addr *host)
+{
+    LOG(10, ("vdb::StrongEvent: host = %s\n", inet_ntoa(*host)));
+
+    vol_iterator next;
+    volent *v;
+
+    /* Notify each volume of its failure. We only need to notify underlying
+     * replicas, they will notify their replicated parent */
+    while ((v = next()))
+        if (!v->IsReplicated() && v->IsHostedBy(host))
+            v->StrongMember();
+
+    /* provoke state transitions now */
+    VprocSignal(&voldaemon_sync);
 }
 
 
 /* MUST be called from within transaction! */
-void vdb::AttachFidBindings() {
+void vdb::AttachFidBindings()
+{
     vol_iterator next;
     volent *v;
     while ((v = next()))
@@ -583,37 +691,36 @@ void vdb::AttachFidBindings() {
 }
 
 
-int vdb::WriteDisconnect(unsigned age, unsigned time) {
-    vol_iterator next;
-    volent *v;
+int vdb::WriteDisconnect(unsigned age, unsigned time)
+{
+    repvol_iterator next;
+    repvol *v;
     int code = 0;
 
     while ((v = next())) {
-	if (v->IsReplicated()) {
-	    code = v->WriteDisconnect(age, time); 
-	    if (code) break;
-        }
+        code = v->WriteDisconnect(age, time); 
+        if (code) break;
     }
     return(code);
 }
 
 
-int vdb::WriteReconnect() {
-    vol_iterator next;
-    volent *v;
+int vdb::WriteReconnect()
+{
+    repvol_iterator next;
+    repvol *v;
     int code = 0;
 
     while ((v = next())) {
-	if (v->IsReplicated()) {
-            code = v->WriteReconnect();
-	    if (code) break;
-        }
+        code = v->WriteReconnect();
+        if (code) break;
     }
     return(code);
 }
 
 
-void vdb::GetCmlStats(cmlstats& total_current, cmlstats& total_cancelled) {
+void vdb::GetCmlStats(cmlstats& total_current, cmlstats& total_cancelled)
+{
     /* N.B.  We assume that caller has passed in zeroed-out structures! */
     vol_iterator next;
     volent *v;
@@ -627,7 +734,8 @@ void vdb::GetCmlStats(cmlstats& total_current, cmlstats& total_cancelled) {
 }
 
 
-void vdb::SaveCacheInfo(VolumeId volnum, int uid, int hits, int misses) {
+void vdb::SaveCacheInfo(VolumeId volnum, int uid, int hits, int misses)
+{
     volent *vol;
 
     vol = Find(volnum);
@@ -635,12 +743,13 @@ void vdb::SaveCacheInfo(VolumeId volnum, int uid, int hits, int misses) {
 }
 
 
-void vdb::print(int fd, int SummaryOnly) {
+void vdb::print(int fd, int SummaryOnly)
+{
     if (this == 0) return;
 
     fdprint(fd, "VDB:\n");
-    fdprint(fd, "tbl count = %d, fl count = %d, mlefl count = %d\n",
-	     htab.count(), freelist.count(), mlefreelist.count());
+    fdprint(fd, "tbl count = %d, mlefl count = %d\n",
+	     htab.count(), mlefreelist.count());
     fdprint(fd, "volume callbacks broken = %d, total callbacks broken = %d\n",
 	    vcbbreaks, cbbreaks);
     if (!SummaryOnly) {
@@ -665,72 +774,31 @@ void vdb::ListCache(FILE *fp, int long_format, unsigned int valid)
 /* local-repair modification */
 
 /* MUST be called from within transaction! */
-void *volent::operator new(size_t len) {
-    volent *v = 0;
-
-    if (VDB->freelist.count() > 0)
-	v = strbase(volent, VDB->freelist.get(), handle);
-    else 
-        v = (volent *)rvmlib_rec_malloc((int)len);
+void *volent::operator new(size_t len)
+{
+    volent *v;
+    v = (volent *)rvmlib_rec_malloc((int)len);
     CODA_ASSERT(v);
     return(v);
 }
 
 /* MUST be called from within transaction! */
-volent::volent(VolumeInfo *volinfo, char *volname) {
+volent::volent(VolumeId volid, char *volname)
+{
+    LOG(10, ("volent::volent: (%x, %s)\n", volid, volname));
 
-    LOG(10, ("volent::volent: (%x, %s), type = %d\n",
-	      volinfo->Vid, volname, volinfo->Type));
+    int ret;
 
     RVMLIB_REC_OBJECT(*this);
     MagicNumber = VOLENT_MagicNumber;
+    vid = volid;
     strcpy(name, volname);
-    vid = volinfo->Vid;
     reint_id_gen = 100;
-    type = (int) volinfo->Type;
-    {
-	/* Read-Write-Replicas should be identified by the server! -JJK */
-	if (type == RWVOL && (&volinfo->Type0)[replicatedVolume] != 0)
-	    type = RWRVOL;
 
-	switch(type) {
-	    case RWVOL:
-	    case BACKVOL:
-		{
-		host = volinfo->Server0;
-		break;
-		}
-
-	    case ROVOL:
-		{
-		host = volinfo->VSGAddr;
-		break;
-		}
-
-	    case REPVOL:
-		{
-		host = volinfo->VSGAddr;
-		for (int i = 0; i < MAXHOSTS; i++)
-		    u.rep.RWVols[i] = (&volinfo->RepVolMap.Volume0)[i];
-		break;
-		}
-
-	    case RWRVOL:
-		{
-		host = volinfo->Server0;
-		u.rwr.REPVol = (&volinfo->Type0)[replicatedVolume];
-		break;
-		}
-
-	    default:
-		CHOKE("volent::volent: (%x, %s), bogus type (%d)", vid, name, type);
-	}
-    }
     flags.reserved = 0;
     flags.has_local_subtree = 0;
     flags.logv = 0;
     lc_asr = -1;
-    VVV = NullVV;
     AgeLimit = V_UNSETAGE;
     ReintLimit = V_UNSETREINTLIMIT;
     DiscoRefCounter = -1;
@@ -743,8 +811,6 @@ volent::volent(VolumeInfo *volinfo, char *volname) {
     FidUnique = 1 << 19;
     SidUnique = 0;
 
-    ResetTransient();
-
     /* Insert into hash table. */
     VDB->htab.insert(&vid, &handle);
     
@@ -753,7 +819,7 @@ volent::volent(VolumeInfo *volinfo, char *volname) {
     current_reco_time = 0;	
     current_rws_cnt = 0;
     current_disc_read_cnt = 0;
-    memset((void *)&rwsq, 0, (int)sizeof(rec_dlist));
+    memset(&rwsq, 0, sizeof(rec_dlist));
 
     /* Writeback */
     flags.writebacking = 0;
@@ -766,14 +832,8 @@ volent::volent(VolumeInfo *volinfo, char *volname) {
 
 
 /* local-repair modification */
-void volent::ResetTransient() {
-    if ((type == ROVOL || type == REPVOL) && !FID_VolIsFake(vid) ) {
-	/* don't need to set VSG for non-replicated volumes */
-	if ((vsg = VSGDB->Find(host)) == 0)
-	    { print(logFile); CHOKE("volent::ResetTransient: couldn't find vsg"); }
-	vsg->hold();
-    }
-
+void volent::ResetVolTransients()
+{
     state = Hoarding;
     observer_count = 0;
     mutator_count = 0;
@@ -797,8 +857,6 @@ void volent::ResetTransient() {
 
     fso_list = new olist;
 
-    cop2_list = new dlist;
-
     CML.ResetTransient();
     Lock_Init(&CML_lock);
     OpenAndDirtyCount = 0;
@@ -809,14 +867,8 @@ void volent::ResetTransient() {
     FidsRealloced = 0;
     BytesBackFetched = 0;
 
-    res_list = new olist;
-
-    VCBStatus = NoCallBack;
-    VCBHits = 0;
-
     vsr_list = new olist;
-    if (!FID_VolIsFake(vid))
-      VsrUnique = GetAVSG((unsigned long *)&AVSG);
+    VsrUnique = GetAVSG((struct in_addr *)&AVSG);
 
     saved_uid = -1;
     saved_hits = -1;
@@ -831,13 +883,10 @@ void volent::ResetTransient() {
 
 
 /* MUST be called from within transaction! */
-volent::~volent() {
-    LOG(10, ("volent::~volent: name = %s, volume = %x, type = %d, refcnt = %d\n",
-	      name, vid, type, refcnt));
-
-    /* Unlink from VSG (if applicable). */
-    if (type == ROVOL || type == REPVOL)
-	VSGDB->Put(&vsg);
+volent::~volent()
+{
+    LOG(10, ("volent::~volent: name = %s, volume = %x, refcnt = %d\n",
+	      name, vid, refcnt));
 
     /* Drain and delete transient lists. */
     {
@@ -846,20 +895,9 @@ volent::~volent() {
 	delete fso_list;
     }
     {
-	if (cop2_list->count() != 0)
-	    CHOKE("volent::~volent: cop2_list not empty");
-	delete cop2_list;
-    }
-    {
-	if (res_list->count() != 0)
-	    CHOKE("volent::~volent: res_list not empty");
-	delete res_list;
-    }
-    {
-	if (!FID_VolIsFake(vid)) {
-	    FlushVSRs(VSR_FLUSH_HARD);
+        FlushVSRs(VSR_FLUSH_HARD);
+	if (!IsFake())
 	    delete vsr_list;
-	}
     }
 
     if (CML.count() != 0)
@@ -871,40 +909,14 @@ volent::~volent() {
     /* Remove from hash table. */
     if (VDB->htab.remove(&vid, &handle) != &handle)
 	{ print(logFile); CHOKE("volent::~volent: htab remove"); }
-
 }
 
 /* MUST be called from within transaction! */
-void volent::operator delete(void *deadobj, size_t len) {
-    volent *v = (volent *)deadobj;
-    
+void volent::operator delete(void *deadobj, size_t len)
+{
     LOG(10, ("volent::operator delete()\n"));
-
-    /* Stick on free list or give back to heap. */
-    if (VDB->freelist.count() < VOLENTMaxFreeEntries)
-	VDB->freelist.append(&v->handle);
-    else
-	rvmlib_rec_free(deadobj);
+    rvmlib_rec_free(deadobj);
 }
-
-/*MUST NOT be called from within transaction. */
-void volent::Recover() {
-    /* Pre-allocated Fids MUST be discarded if last shutdown was dirty (because one of them may have */
-    /* actually been used in an object creation at the servers, but we crashed before we took the fid off */
-    /* of our queue). */
-    if (!CleanShutDown &&
-	 (FileFids.Count != 0 || DirFids.Count != 0 || SymlinkFids.Count != 0)) {
-	Recov_BeginTrans();
-	    RVMLIB_REC_OBJECT(FileFids);
-	    FileFids.Count = 0;
-	    RVMLIB_REC_OBJECT(DirFids);
-	    DirFids.Count = 0;
-	    RVMLIB_REC_OBJECT(SymlinkFids);
-	    SymlinkFids.Count = 0;
-	Recov_EndTrans(MAXFP);
-    }
-}
-
 
 void volent::hold() {
     refcnt++;
@@ -944,7 +956,8 @@ void volent::release() {
 #define	VOLBUSY(vol)\
     ((vol)->resolver_count > 0 || (vol)->mutator_count > 0 || (vol)->observer_count > 0)
 /* MUST NOT be called from within transaction! */
-int volent::Enter(int mode, vuid_t vuid) {
+int volent::Enter(int mode, vuid_t vuid)
+{
     LOG(1000, ("volent::Enter: vol = %x, state = %s, t_p = %d, d_p = %d, mode = %s, vuid = %d\n",
 		vid, PRINT_VOLSTATE(state), flags.transition_pending,
 		flags.demotion_pending, PRINT_VOLMODE(mode), vuid));
@@ -959,20 +972,20 @@ int volent::Enter(int mode, vuid_t vuid) {
 	LOG(1, ("volent::Enter: demoting %s\n", name));
 	flags.demotion_pending = 0;
 
-	ClearCallBack();
+        ClearCallBack();
 
- 	fso_vol_iterator next(NL, this);
-	fsobj *f;
-	while ((f = next()))
-	    f->Demote();
+        fso_vol_iterator next(NL, this);
+        fsobj *f;
+        while ((f = next()))
+            f->Demote();
 
-	just_transitioned = 1;
+        just_transitioned = 1;
     } 
 
     /* Step 2 is to take pending transition for the volume IF no thread is active in it. */
     while (flags.transition_pending && !VOLBUSY(this)) {
-	TakeTransition();
-	just_transitioned = 1;
+        TakeTransition();
+        just_transitioned = 1;
     }
 
     /* Step 3 is to try to get a volume callback. */
@@ -989,15 +1002,18 @@ int volent::Enter(int mode, vuid_t vuid) {
      */
     vproc *vp = VprocSelf();
     if (VCBEnabled && IsReplicated() && 
-	(state == Hoarding || state == Logging) && 
-	WantCallBack()) {
+        (state == Hoarding || state == Logging) && 
+        WantCallBack())
+    {
 	if (just_transitioned && !HaveStamp()) {    
 	    /* we missed an opportunity */
 	    vcbevent ve(fso_list->count());
 	    ReportVCBEvent(NoStamp, vid, &ve);
 	}
 	if ((!HaveStamp() && vp->type == VPT_HDBDaemon) ||
-	    (HaveStamp() && (vp->type != VPT_VolDaemon || !just_transitioned))) {
+            (HaveStamp() && (vp->type != VPT_VolDaemon || !just_transitioned)))
+        {
+            // we already checked if this volume is replicated
 	    int code = GetVolAttr(vuid);
 	    LOG(100, ("volent::Enter: GetVolAttr(0x%x) returns %s\n",
 		      vid, VenusRetStr(code)));
@@ -1027,7 +1043,7 @@ int volent::Enter(int mode, vuid_t vuid) {
 		/*
 		 * mutator needs to aquire exclusive CML ownership
 		 */
-		if (type == REPVOL) {
+		if (IsReplicated()) {
 		    /* 
 		     * Claim ownership if the volume is free. 
 		     * The CML lock is used to prevent checkpointers and
@@ -1104,7 +1120,7 @@ int volent::Enter(int mode, vuid_t vuid) {
 
 	case VM_RESOLVING:
 	    {
-	    CODA_ASSERT(type == REPVOL);
+	    CODA_ASSERT(IsReplicated());
 	    if (state != Resolving || resolver_count != 0 || 
 		mutator_count != 0 || observer_count != 0 ||
 		flags.transition_pending)
@@ -1136,7 +1152,8 @@ int volent::Enter(int mode, vuid_t vuid) {
 
 /* local-repair modification */
 /* MUST NOT be called from within transaction! */
-void volent::Exit(int mode, vuid_t vuid) {
+void volent::Exit(int mode, vuid_t vuid)
+{
     LOG(1000, ("volent::Exit: vol = %x, state = %s, t_p = %d, d_p = %d, mode = %s, vuid = %d\n",
 		vid, PRINT_VOLSTATE(state), flags.transition_pending,
 		flags.demotion_pending, PRINT_VOLMODE(mode), vuid));
@@ -1151,7 +1168,7 @@ void volent::Exit(int mode, vuid_t vuid) {
 	LOG(1, ("volent::Exit: demoting %s\n", name));
 	flags.demotion_pending = 0;
 
-	ClearCallBack();
+        ClearCallBack();
 
 	fso_vol_iterator next(NL, this);
 	fsobj *f;
@@ -1170,10 +1187,12 @@ void volent::Exit(int mode, vuid_t vuid) {
 	    mutator_count--;
 	    shrd_count--;
 	    ReleaseReadLock(&CML_lock);
-	    if (type == REPVOL && mutator_count == 0 && CML.count() == 0 && !IsReintegrating()) {
+            if (IsReplicated() && mutator_count == 0 &&
+                CML.count() == 0 && !IsReintegrating()) {
 		/* Special-case here. */
-		/* If we just cancelled the last log record for a volume that was being kept in */
-		/* Emulating state due to auth-token absence, we need to provoke a transition! */
+                /* If we just cancelled the last log record for a volume that
+                 * was being kept in Emulating state due to auth-token
+                 * absence, we need to provoke a transition! */
 		if (state == Emulating && !flags.transition_pending)
 		    flags.transition_pending = 1;
 
@@ -1194,7 +1213,7 @@ void volent::Exit(int mode, vuid_t vuid) {
 
 	case VM_RESOLVING:
 	    {
-	    CODA_ASSERT(type == REPVOL);
+	    CODA_ASSERT(IsReplicated());
 	    if (state != Resolving || resolver_count != 1 || !flags.transition_pending)
 		{ print(logFile); CHOKE("volent::Exit: resolving"); }
 
@@ -1414,7 +1433,11 @@ void volent::TriggerReconnectionQuestionnaire() {
     UnsetDisconnectionTime();
 }
 
-void volent::NotifyStateChange() {
+
+void volent::NotifyStateChange()
+{
+    if (!AdviceEnabled) return;
+
     LOG(100, ("NotifyStateChange:  vid=%x, name=%s.\n", vid, name));
     user_iterator next;
     userent *u;
@@ -1445,22 +1468,29 @@ void volent::TakeTransition() {
     CODA_ASSERT(flags.transition_pending && !VOLBUSY(this));
 
     int size = AvsgSize();
-    LOG(1, ("volent::TakeTransition: %s, state = %s, |AVSG| = %d, CML = %d, Res = %d, logv = %d\n",
-	     name, PRINT_VOLSTATE(state), size, CML.count(), res_list->count(), flags.logv));
+    LOG(1, ("volent::TakeTransition: %s, state = %s, |AVSG| = %d, logv = %d\n",
+	     name, PRINT_VOLSTATE(state), size, flags.logv));
+    if (IsReplicated())
+        LOG(1, ("\tCML = %d, Res = %d\n", ((repvol *)this)->CML.count(),
+                ResListCount()));
 
     /* Compute next state. */
     VolumeStateType nextstate;
     VolumeStateType prevstate = state;
 
-    //CODA_ASSERT(state != Resolving || res_list->count() == 0);
     CODA_ASSERT(state == Hoarding || state == Emulating || state == Logging ||
 		state == Resolving);
 
-    if      (size == 0)				      nextstate = Emulating;
-    else if (res_list->count())			      nextstate = Resolving;
-    else if (flags.logv || CML.count() || flags.staylogging)
-						      nextstate = Logging;
-    else					      nextstate = Hoarding;
+    nextstate = Hoarding;
+    /* if the AVSG is empty we are disconnected */
+    if (size == 0) nextstate = Emulating;
+
+    else if (ResListCount())
+            nextstate = Resolving;
+
+    else if (IsReplicated() &&
+             (flags.logv || ((repvol *)this)->CML.count() || flags.staylogging))
+        nextstate = Logging;
 
     /* Special cases here. */
     /*
@@ -1489,7 +1519,7 @@ void volent::TakeTransition() {
     switch(state) {
         case Hoarding:
             {
-	      /* if ((prevstate != Hoarding) && (SkkEnabled) && (!FID_VolIsFake(vid)))
+	      /* if ((prevstate != Hoarding) && SkkEnabled)
 	       *    NotifyStateChange();
 	       */
 
@@ -1501,8 +1531,7 @@ void volent::TakeTransition() {
 	       * then we want to collect some usage statistics for the purposes
 	       * of providing hoard advice. */
 	      if ((prevstate == Emulating) && 
-		  (FSDB->RefCounter > DiscoRefCounter) &&
-		  (!FID_VolIsFake(vid))) {
+		  (FSDB->RefCounter > DiscoRefCounter) && !IsFake()) {
 		  FSDB->UpdateDisconnectedUseStatistics(this);
 	      }
 
@@ -1511,8 +1540,10 @@ void volent::TakeTransition() {
 	       *  the Hoarding state. This is to catch volumes which have no
 	       *  modifications.  We let the advice monitor decide whether or
 	       *  not to actually question the user. */
-	      /*  if ((prevstate == Emulating) && (SkkEnabled) && (!FID_VolIsFake(vid))) 
+
+	      /*  if ((prevstate == Emulating) && SkkEnabled)
 	       *     TriggerReconnectionQuestionnaire(); */
+
 
 	      /* Collect Read/Write Sharing Stats */
 	      if (prevstate == Emulating)
@@ -1524,7 +1555,7 @@ void volent::TakeTransition() {
 
         case Emulating:
             {
-	      /* if ((prevstate != Emulating) && (SkkEnabled) && (!FID_VolIsFake(vid)))
+	      /* if ((prevstate != Emulating) && SkkEnabled)
 	       *    NotifyStateChange(); */
 
               if (prevstate == Hoarding) {
@@ -1541,7 +1572,7 @@ void volent::TakeTransition() {
             }
 
         case Logging:
-	  /* if ((prevstate != Logging) && (SkkEnabled) && (!FID_VolIsFake(vid)))
+	  /* if ((prevstate != Logging) && SkkEnabled))
 	   *    NotifyStateChange(); */
 
 	    if (ReadyToReintegrate()) 
@@ -1556,9 +1587,8 @@ void volent::TakeTransition() {
              *
 	     * N.B. Must occur *before* call to
 	     * TriggerReconnectionQuestionnaire */
-	    if ((prevstate == Emulating) && 
-		(FSDB->RefCounter > DiscoRefCounter) &&
-		(!FID_VolIsFake(vid))) {
+	    if (prevstate == Emulating && 
+		FSDB->RefCounter > DiscoRefCounter && !IsFake()) {
 	            FSDB->UpdateDisconnectedUseStatistics(this);
 	    }
 
@@ -1568,7 +1598,8 @@ void volent::TakeTransition() {
 	     *  the Logging state. This is to catch volumes which have
 	     *  modifications.  We let the advice monitor decide whether or not
 	     *  to actually question the user. */
-	    /* if ((prevstate == Emulating) && (SkkEnabled) && (!FID_VolIsFake(vid)))
+
+	    /* if ((prevstate == Emulating) && SkkEnabled)
 	     *    TriggerReconnectionQuestionnaire();  */
 
 	    /* Read/Write Sharing Stats Collection */
@@ -1579,8 +1610,7 @@ void volent::TakeTransition() {
 	    break;
 
 	case Resolving:
-	  /*  The function was commented out anyway...   -Remi
-	   *  if ((prevstate != Resolving) && (SkkEnabled) && (!FID_VolIsFake(vid)))
+	  /* if ((prevstate != Resolving) && SkkEnabled)
 	   *     NotifyStateChange(); */
 
 	    ::Resolve(this);
@@ -1594,14 +1624,14 @@ void volent::TakeTransition() {
     Recov_SetBound(DMFP);
 }
 
-
-void volent::DownMember(long eTime) {
+void volent::DownMember(long eTime)
+{
     /* set the event time */
     /* eventTime = eTime; */
     /* 
-     * We no longer want to set the event time, b/c this volume may not be touched
-     * for quite some time.  Instead, we must iterate throught the vsr list, and
-     * set the end time for each one.  Comm events end sessions.
+     * We no longer want to set the event time, b/c this volume may not be
+     * touched for quite some time.  Instead, we must iterate throught the vsr
+     * list, and set the end time for each one.  Comm events end sessions.
      */
     olist_iterator next(*vsr_list);
     vsr *vsrp;
@@ -1615,21 +1645,29 @@ void volent::DownMember(long eTime) {
      * chance of the vsr's being flushed when an independent deamon
      * discovers the new server state.
      */
-    if (!FID_VolIsFake(vid)) 
-	    this->FlushVSRs(VSR_FLUSH_HARD);
+    FlushVSRs(VSR_FLUSH_HARD);
     ResetStats();
-    /* Consider transitting to Emulating state. */
+    /* Consider transitioning to Emulating state. */
     if (AvsgSize() == 0) {
 	flags.transition_pending = 1;
 	
-	/* Coherence is now suspect for all objects in RW, REP, and RWR volumes. */
-	if (type == RWVOL || type == REPVOL || type == RWRVOL)
-	    flags.demotion_pending = 1;
+        /* Coherence is now suspect for all objects in read-write volumes. */
+	if (!IsBackup())
+            flags.demotion_pending = 1;
+    }
+
+    /* if we are a volume replica notify our replicated parent */
+    if (IsReadWriteReplica()) {
+        volent *v = VDB->Find(ReplicatedVol());
+        if (v) v->DownMember(eTime);
     }
 }
 
 
-void volent::UpMember(long eTime) {
+void volent::UpMember(long eTime)
+{
+    LOG(10, ("volent::UpMember: vid = %08x\n", vid));
+
     /* set the event time */
     /* eventTime = eTime; */
     /*  We no longer want to set the event time, b/c this volume may
@@ -1648,17 +1686,22 @@ void volent::UpMember(long eTime) {
      * chance of the vsr's being flushed when an independent deamon
      * discovers the new server state.
      */
-    if (!FID_VolIsFake(vid))
-      this->FlushVSRs(VSR_FLUSH_HARD);
+    FlushVSRs(VSR_FLUSH_HARD);
     ResetStats();
     
     /* Consider transitting to Hoarding state. */
     if (AvsgSize() == 1)
 	flags.transition_pending = 1;
 
-    /* Coherence is now suspect for all objects in REP volumes. */
-    if (type == REPVOL)
+    /* Coherence is now suspect for all objects in replicated volumes. */
+    if (IsReplicated())
 	flags.demotion_pending = 1;
+
+    /* if we are a volume replica notify our replicated parent */
+    if (IsReadWriteReplica()) {
+        volent *v = VDB->Find(ReplicatedVol());
+        if (v) v->UpMember(eTime);
+    }
 }
 
 
@@ -1674,185 +1717,180 @@ void volent::UpMember(long eTime) {
  * Note that write disconnection does not apply to read-only and
  * non-replicated volumes.
  */
-void volent::WeakMember() {
+void volent::WeakMember()
+{
     /* should extend volume session records for this */
     if (!IsWeaklyConnected()) {
-	if (type == REPVOL)
+	if (IsReplicated())
 	    WriteDisconnect();	/* sets transition pending */
 	else 
 	    flags.transition_pending = 1;
 
 	flags.weaklyconnected = 1;
     }
+
+    /* if we are a volume replica notify our replicated parent */
+    if (IsReadWriteReplica()) {
+        volent *v = VDB->Find(ReplicatedVol());
+        if (v) v->WeakMember();
+    }
 }
 
 
-void volent::StrongMember() {
+void volent::StrongMember()
+{
     /* should extend volume session records for this */
     /* vsg check is for 0, not 1, because the conn is already strong */
     if (IsWeaklyConnected() && WeakVSGSize() == 0) {
-	if (type == REPVOL)
+	if (IsReplicated())
 	    WriteReconnect();	/* sets transition pending */
 	else
 	    flags.transition_pending = 1;
 
 	flags.weaklyconnected = 0;
     }
-}
 
-
-int volent::WriteDisconnect(unsigned age, unsigned time) {
-    int code = 0;
-
-    if (type == REPVOL) {
-	Recov_BeginTrans();
-	    RVMLIB_REC_OBJECT(*this);
-	    flags.logv = 1;
-	    if (age != AgeLimit || time != ReintLimit ||
-		age == V_UNSETAGE || time == V_UNSETREINTLIMIT) {
-		   if (age == V_UNSETAGE) 
-		       AgeLimit = V_DEFAULTAGE;
-		   else 
-		       AgeLimit = age;
-
-		   if (time == V_UNSETREINTLIMIT) 
-		       ReintLimit = V_DEFAULTREINTLIMIT;
-		   else 
-		       ReintLimit = time*1000;
-	    }
-        Recov_EndTrans(MAXFP);
-	flags.transition_pending = 1;
-    } else
-	code = EINVAL;
-
-    return(code);
-}
-
-
-int volent::WriteReconnect() {
-    int code = 0;
-
-    if (type == REPVOL) {
-	Recov_BeginTrans();
-	       RVMLIB_REC_OBJECT(*this);
-	       flags.logv = 0;
-	       AgeLimit = V_UNSETAGE;
-	       ReintLimit = V_UNSETREINTLIMIT;
-	Recov_EndTrans(MAXFP);
-	flags.transition_pending = 1;
-    } else
-	code = EINVAL;
-
-    return(code);
-}
-
-int volent::EnterWriteback(vuid_t vuid) {
-    int code = 0;
-
-    if (type == REPVOL && flags.writebacking == 0) {
-	LOG(1, ("volent::EnterWriteback()\n"));
-	/* request a permit */
-	if (GetPermit(vuid)) {
-	    Recov_BeginTrans();
-	        RVMLIB_REC_OBJECT(*this);
-		flags.writebacking = 1;
-		/* copied from initializing WriteDisconnect */
-		flags.logv = 1;
-		flags.staylogging = 1;
-		AgeLimit = V_DEFAULTAGE; // do i want this?
-		ReintLimit = V_DEFAULTREINTLIMIT;
-	    Recov_EndTrans(MAXFP);
-            flags.transition_pending = 1;
-	} else {
-	    code = ERETRY;	// didn't get the permit!
-				// probably not the right error
-	}
-    } else {
-	if (type != REPVOL) {
-	    code = EINVAL;
-	} else {
-	    code = 0;		// already in writebacking mode
-	}
+    /* if we are a volume replica notify our replicated parent */
+    if (IsReadWriteReplica()) {
+        volent *v = VDB->Find(ReplicatedVol());
+        if (v) v->StrongMember();
     }
-
-    return (code);
 }
 
-int volent::LeaveWriteback(vuid_t vuid) {
-    int code = 0;
 
-    if (type == REPVOL) {
-	LOG(1, ("volent::LeaveWriteback()\n"));
-	StopWriteback(NULL);
-	ReturnPermit(vuid);
-	ClearPermit();
-    } else
-	code = EINVAL;
+int volent::WriteDisconnect(unsigned age, unsigned time)
+{
+    if (!IsReplicated()) return EINVAL;
 
-    return (code);
+    Recov_BeginTrans();
+        RVMLIB_REC_OBJECT(*this);
+        flags.logv = 1;
+        if (age != AgeLimit || time != ReintLimit ||
+            age == V_UNSETAGE || time == V_UNSETREINTLIMIT) {
+            if (age == V_UNSETAGE) 
+                AgeLimit = V_DEFAULTAGE;
+            else 
+                AgeLimit = age;
+
+            if (time == V_UNSETREINTLIMIT) 
+                ReintLimit = V_DEFAULTREINTLIMIT;
+            else 
+                ReintLimit = time*1000;
+        }
+    Recov_EndTrans(MAXFP);
+    flags.transition_pending = 1;
+
+    return 0;
 }
 
-int volent::SyncCache(ViceFid * fid) {
 
-	if (type == REPVOL) {
-	    LOG(1,("volent::SyncCache()\n"));
+int volent::WriteReconnect()
+{
+    if (!IsReplicated()) return EINVAL;
 
+    Recov_BeginTrans();
+        RVMLIB_REC_OBJECT(*this);
+        flags.logv = 0;
+        AgeLimit = V_UNSETAGE;
+        ReintLimit = V_UNSETREINTLIMIT;
+    Recov_EndTrans(MAXFP);
+    flags.transition_pending = 1;
 
-	    //	    if (flags.transition_pending && VOLBUSY(this)) { 
-	    // wait until they get out of our volume
-		    
-	    while (VOLBUSY(this))
-		VprocWait((char*)&this->shrd_count);
-	   
-	    flags.transition_pending = 1;
-	    flags.sync_reintegrate = 1;
-	    reintegrate_until = NULL;   //do the whole volume	    
-	    /* reintegrate_until = findDepenents(fid); */
-	    
-	    if (flags.transition_pending) { 
-		// make sure no one else took our transition
-		TakeTransition();
-	    }
-	    Reintegrate();	             // this is safe to call
-	    flags.sync_reintegrate = 0;
-	    return 0;
-	}
-	else
-	    LOG(1,("volent::SyncCache(): not replicated volume."));
-	return EINVAL;
+    return 0;
 }
 
-int volent::StopWriteback(ViceFid *fid) {
-    int code = 0;
+int volent::EnterWriteback(vuid_t vuid)
+{
+    if (!IsReplicated()) return EINVAL;
 
-    if (type == REPVOL) {
-	LOG(1, ("volent::StopWriteback()\n"));
-	if (flags.writebacking) {
-	    ClearPermit();
-	    Recov_BeginTrans();
-	           RVMLIB_REC_OBJECT(*this);
-		   flags.writebacking = 0;
-		   flags.writebackreint = 1;
-		   /* copied from WriteReconnect */
-		   flags.logv = 0;
-		   flags.staylogging = 0;
-		   AgeLimit = V_UNSETAGE;
-		   ReintLimit = V_UNSETREINTLIMIT;
-	    Recov_EndTrans(MAXFP);
+    // already in writebacking mode
+    if (flags.writebacking) return 0;
 
-	    code = this->SyncCache(fid);
-	    flags.writebackreint = 0;
-	    /* Signal done */
-	} else 
-	    if (flags.writebackreint) 
-		{    /* Wait for signal */
-		}
-	    else {
-	    }
-	    /* not writebacking?  nothing to do! */
-    } else {
-	code = EINVAL;		// the server goofed!
+    LOG(1, ("volent::EnterWriteback()\n"));
+
+    /* request a permit */
+    if (!GetPermit(vuid)) return ERETRY; // probably not the right error
+
+    Recov_BeginTrans();
+        RVMLIB_REC_OBJECT(*this);
+        flags.writebacking = 1;
+        /* copied from initializing WriteDisconnect */
+        flags.logv = 1;
+        flags.staylogging = 1;
+        AgeLimit = V_DEFAULTAGE; // do i want this?
+        ReintLimit = V_DEFAULTREINTLIMIT;
+    Recov_EndTrans(MAXFP);
+    flags.transition_pending = 1;
+
+    return 0;
+}
+
+int volent::LeaveWriteback(vuid_t vuid)
+{
+    if (!IsReplicated()) return EINVAL;
+
+    LOG(1, ("volent::LeaveWriteback()\n"));
+
+    StopWriteback(NULL);
+    ReturnPermit(vuid);
+    ClearPermit();
+
+    return 0;
+}
+
+int volent::SyncCache(ViceFid * fid)
+{
+    if (!IsReplicated()) return EINVAL;
+
+    LOG(1,("volent::SyncCache()\n"));
+
+    //	    if (flags.transition_pending && VOLBUSY(this)) { 
+    // wait until they get out of our volume
+
+    while (VOLBUSY(this))
+        VprocWait((char*)&shrd_count);
+
+    flags.transition_pending = 1;
+    flags.sync_reintegrate = 1;
+    reintegrate_until = NULL;   //do the whole volume	    
+    /* reintegrate_until = findDepenents(fid); */
+
+    if (flags.transition_pending) { 
+        // make sure no one else took our transition
+        TakeTransition();
     }
+    Reintegrate();	             // this is safe to call
+    flags.sync_reintegrate = 0;
+
+    return 0;
+}
+
+int volent::StopWriteback(ViceFid *fid)
+{
+    int code = 0;
+
+    if (!IsReplicated()) return EINVAL;
+
+    LOG(1, ("volent::StopWriteback()\n"));
+
+    /* not writebacking?  nothing to do! */
+    if (!flags.writebacking) return 0;
+
+    ClearPermit();
+    Recov_BeginTrans();
+        RVMLIB_REC_OBJECT(*this);
+        flags.writebacking = 0;
+        flags.writebackreint = 1;
+        /* copied from WriteReconnect */
+        flags.logv = 0;
+        flags.staylogging = 0;
+        AgeLimit = V_UNSETAGE;
+        ReintLimit = V_UNSETREINTLIMIT;
+    Recov_EndTrans(MAXFP);
+
+    code = SyncCache(fid);
+    flags.writebackreint = 0;
+    /* Signal done */
 
     return (code);
 }
@@ -1887,12 +1925,16 @@ void volent::CheckReintegratePending() {
 }
 
 
-void volent::Wait() {
+void volent::Wait()
+{
     waiter_count++;
     LOG(0, ("WAITING(VOL): %s, state = %s, [%d, %d], counts = [%d %d %d %d]\n",
 	     name, PRINT_VOLSTATE(state), flags.transition_pending, flags.demotion_pending,
  	     observer_count, mutator_count, waiter_count, resolver_count));
-    LOG(0, ("CML= [%d, %d], Res = %d\n", CML.count(), CML.owner, res_list->count()));
+    if (IsReplicated())
+        LOG(0, ("CML= [%d, %d], Res = %d\n",
+                ((repvol *)this)->CML.count(), ((repvol *)this)->CML.owner,
+                ResListCount()));
     LOG(0, ("WAITING(VOL): shrd_count = %d, excl_count = %d, excl_pgid = %d\n",
 	    shrd_count, excl_count, excl_pgid));
     START_TIMING();
@@ -1953,20 +1995,121 @@ void volent::UnLock(VolLockType l)
     Signal();
 }
 
-int volent::GetConn(connent **c, vuid_t vuid) {
-    if (IsReplicated())
-	{ print(logFile); CHOKE("volent::GetConn: IsReplicated"); }
+volrep::volrep(VolumeId vid, char *name, struct in_addr *addr, int readonly,
+               VolumeId parent) : volent(vid, name)
+{
+    LOG(10, ("volrep::volrep: host: %s readonly: %d parent: %#08x)\n",
+             inet_ntoa(*addr), readonly, parent));
 
+    RVMLIB_REC_OBJECT(*this);
+    host = *addr;
+    rovol = readonly;
+    replicated = parent;
+ 
+    ResetTransient();
+}
+
+void volrep::ResetTransient(void)
+{
+    list_head_init(&vollist);
+
+    ResetVolTransients();
+}
+
+int volent::Collate(connent *c, int code, int TranslateEINCOMP)
+{
+    code = c->CheckResult(code, vid, TranslateEINCOMP);
+
+    /* when the operation has failed miserably, but we have a pending volume
+     * transition, just retry the operation */
+    if (code && flags.transition_pending)
+	code = ERETRY;
+
+    return(code);
+}
+
+void volrep::GetHosts(struct in_addr addrs[VSG_MEMBERS])
+{
+    memset(addrs, 0, VSG_MEMBERS * sizeof (struct in_addr));
+    Host(&addrs[0]);
+}
+
+repvol::repvol(VolumeId vid, char *name, volrep *volreps[VSG_MEMBERS]) : volent(vid, name)
+{
+    LOG(10, ("repvol::repvol %08x %08x %08x %08x %08x %08x %08x %08x\n",
+             volreps[0], volreps[1], volreps[2], volreps[3],
+             volreps[4], volreps[5], volreps[6], volreps[7]));
+
+    RVMLIB_REC_OBJECT(*this);
+    memcpy(vsg, volreps, VSG_MEMBERS * sizeof(volrep *));
+    VVV = NullVV;
+    
+    ResetTransient();
+}
+
+repvol::~repvol()
+{
+    LOG(10, ("repvol::~repvol: name = %s, volume = %x, type = ReplicatedVolume\n", name, vid));
+    
+    int i;
+
+    /* Unlink from VSG (if applicable). */
+    for (i = 0; i < VSG_MEMBERS; i++)
+        VDB->Put((volent **)&vsg[i]);
+
+    if (res_list->count() != 0)
+        CHOKE("repvol::~repvol: res_list not empty");
+    delete res_list;
+
+    if (cop2_list->count() != 0)
+        CHOKE("volent::~volent: cop2_list not empty");
+    delete cop2_list;
+    
+    struct dllist_head *p;
+    p = mgrpents.next;
+    while (p != &mgrpents) {
+        mgrpent *m = list_entry(p, mgrpent, volhandle);
+        p = m->volhandle.next;
+        list_del(&m->volhandle);
+        delete m;
+    }
+}
+
+int volent::GetConn(connent **c, vuid_t vuid)
+{
+    abort();
+    return(0);
+}
+
+int volrep::GetConn(connent **c, vuid_t vuid)
+{
+    int code = ERETRY;
+    *c = 0;
+
+    while (code == ERETRY && !flags.transition_pending) {
+        code = ::GetConn(c, &host, vuid, 0);
+        if (code < 0)
+            CHOKE("volent::GetConn: bogus code (%d)", code);
+    }
+    if (flags.transition_pending)
+	code = ERETRY;
+
+    return(code);
+}
+
+#if 0
+int repvol::GetConn(connent **c, vuid_t vuid)
+{
     int code = ETIMEDOUT;
+    unsigned long Hosts[VSG_MEMBERS];
     *c = 0;
 
     /* Get a connection to any custodian. */
-    unsigned long Hosts[MAXHOSTS];
     GetHosts(Hosts);
-    for (int i = 0; i < MAXHOSTS  && !flags.transition_pending; i++)
-	if (Hosts[i]) {
+    for (int i = 0; i < VSG_MEMBERS && !flags.transition_pending; i++) {
+	if (replica[i]->host) {
 	    do {
-		code = ::GetConn(c, Hosts[i], vuid, 0);
+		code = ::GetConn(c, replica[i]->host, vuid, 0);
 		if (code < 0)
 		    CHOKE("volent::GetConn: bogus code (%d)", code);
 	    } while (code == ERETRY && !flags.transition_pending);
@@ -1974,90 +2117,180 @@ int volent::GetConn(connent **c, vuid_t vuid) {
 	    if (code != ETIMEDOUT)
 		break;
 	}
-
-    if (flags.transition_pending)
-	code = ERETRY;
-    return(code);
-}
-
-
-int volent::Collate(connent *c, int code, int TranslateEINCOMP) {
-    code = c->CheckResult(code, vid, TranslateEINCOMP);
-
-    /* when the operation has failed miserably, but we have a pending volume
-     * transition, just retry the operation */
-    if (code && flags.transition_pending)
-	code = ERETRY;
-    return(code);
-}
-
-
-int volent::GetMgrp(mgrpent **m, vuid_t vuid, RPC2_CountedBS *PiggyBS) {
-    if (!IsReplicated())
-	{ print(logFile); CHOKE("volent::GetMgrp: !IsReplicated"); }
-
-    *m = 0;
-    int code = 0;
-
-    if (!flags.transition_pending) {
-	/* Get an mgrp for this VSG and user. */
-	code = ::GetMgrp(m, host, vuid);
-	if (code < 0)
-	    CHOKE("volent::GetMgrp: bogus code (%d)", code);
-
-	/* Get PiggyCOP2 buffer if requested. */
-	if (code == 0 && PiggyBS != 0 && !FID_VolIsFake(vid))
-	    code = FlushCOP2(*m, PiggyBS);
     }
 
     if (flags.transition_pending)
 	code = ERETRY;
-    if (code != 0)
-	::PutMgrp(m);
     return(code);
 }
+#endif
 
+const int MAXMGRPSPERUSER = 3;  /* Max simultaneous mgrps per user per vol. */
 
-int volent::Collate_NonMutating(mgrpent *m, int code) {
-    code = m->CheckNonMutating(code);
+int repvol::GetMgrp(mgrpent **m, vuid_t vuid, RPC2_CountedBS *PiggyBS)
+{
+    *m = 0;
+    int code = 0;
 
-    /* when the operation has failed miserably, but we have a pending volume
-     * transition, just retry the operation */
-    if (code && flags.transition_pending)
+    if (flags.transition_pending)
+        return ERETRY;
+
+    /* Get an mgrp for this user. */ 
+try_again:
+    /* Check whether there is already a free mgroup. */
+    struct dllist_head *p;
+    int count = 0;
+    for(p = mgrpents.next; p != &mgrpents; p = p->next) {
+        *m = list_entry(p, mgrpent, volhandle);
+        if (vuid != ALL_UIDS && vuid != (*m)->uid) continue;
+        count++;
+        if ((*m)->inuse) continue;
+
+        (*m)->inuse = 1;
+        goto got_mgrp;
+    }
+    
+    /* Wait here if MAX mgrps are already in use. */
+    if (count >= MAXMGRPSPERUSER) {
+        *m = 0;
+	if (VprocInterrupted()) { return(EINTR); }
+        Mgrp_Wait();
+	if (VprocInterrupted()) { return(EINTR); }
+        goto try_again;
+    }
+
+    /* Try to connect to the VSG on behalf of the user. */
+    {
+        RPC2_Handle MgrpHandle = 0;
+        int auth = 0;
+        userent *u = 0;
+        struct in_addr mgrpaddr;
+        mgrpaddr.s_addr = INADDR_ANY; /* Request to form an mgrp */
+
+        GetUser(&u, vuid);
+        code = u->Connect(&MgrpHandle, &auth, &mgrpaddr);
+        PutUser(&u);
+
+        if (code < 0)
+            CHOKE("repvol::GetMgrp: bogus code (%d) from u->Connect", code);
+
+        if (code)
+            return(code);
+
+        /* Create and install the new mgrpent. */
+        *m = new mgrpent(this, vuid, MgrpHandle, auth);
+        list_add(&(*m)->volhandle, &mgrpents);
+    }
+
+got_mgrp:
+    /* Form the host set. */
+    code = (*m)->GetHostSet();
+    if (code < 0)
+        CHOKE("repvol::GetMgrp: bogus code (%d) from GetHostSet", code);
+
+    if ((*m)->dying || code) {
+        if (!code) code = ERETRY;
+        goto exit;
+    }
+
+    /* Choose whether to multicast or not. XXX probably broken --JH */
+    (*m)->rocc.MIp = (UseMulticast) ? &(*m)->McastInfo : 0;
+    
+/*--- We should have a usable mgrp now */
+
+    /* Get PiggyCOP2 buffer if requested. */
+    if (PiggyBS)
+        code = FlushCOP2(*m, PiggyBS);
+
+    if (flags.transition_pending)
 	code = ERETRY;
-    return(code);
-}
-
-
-int volent::Collate_COP1(mgrpent *m, int code, ViceVersionVector *UpdateSet) {
-    code = m->CheckCOP1(code, UpdateSet);
+exit: 
+    if (code)
+        ::PutMgrp(m);
 
     return(code);
 }
 
-
-int volent::Collate_Reintegrate(mgrpent *m, int code, ViceVersionVector *UpdateSet) {
-    code = m->CheckReintegrate(code, UpdateSet);
-
-    return(code);
+void volent::KillMgrpMember(struct in_addr *member)
+{
+    abort();
 }
 
-
-int volent::Collate_COP2(mgrpent *m, int code) {
-    code = m->CheckNonMutating(code);
-
-    /* Nothing useful we can do with an EASYRESOLVE response. */
-    if (code == EASYRESOLVE)
-	code = 0;
-
-    return(code);
+void volrep::KillMgrpMember(struct in_addr *member)
+{
+    volent *v = VDB->Find(ReplicatedVol());
+    if (v) {
+        CODA_ASSERT(v->IsReplicated());
+        v->KillMgrpMember(member);
+    }
 }
 
+void repvol::KillMgrpMember(struct in_addr *member)
+{
+    struct dllist_head *p;
 
-int volent::AllocFid(ViceDataType Type, ViceFid *target_fid,
-		      RPC2_Unsigned *AllocHost, vuid_t vuid, int force) {
-    VOL_ASSERT(this, type == REPVOL);
-    LOG(10, ("volent::AllocFid: (%x, %d), uid = %d\n", vid, Type, vuid));
+    for(p = mgrpents.next; p != &mgrpents; p = p->next) {
+        mgrpent *m = list_entry(p, mgrpent, volhandle);
+        m->KillMember(member, 0);
+    }
+}
+
+void repvol::KillUserMgrps(vuid_t uid)
+{
+    struct dllist_head *p;
+    LOG(10, ("repvol::KillUserMgrps volume = %x, uid = %d\n", vid, uid));
+
+    for(p = mgrpents.next; p != &mgrpents;) {
+        mgrpent *m = list_entry(p, mgrpent, volhandle);
+        p = m->volhandle.next;
+
+        if (m->uid != uid) continue;
+        m->Suicide(1);
+    }
+}
+
+/* returns minimum bandwidth in Bytes/sec, or INIT_BW if none obtainable */
+void volent::GetBandwidth(unsigned long *bw)
+{
+    abort();
+}
+
+void volrep::GetBandwidth(unsigned long *bw)
+{
+    srvent *s;
+    *bw = INIT_BW;
+    GetServer(&s, &host);
+    s->GetBandwidth(bw);
+    PutServer(&s);
+}
+
+void repvol::GetBandwidth(unsigned long *bw)
+{
+    srvent *s;
+    *bw = 0;
+
+    for (int i = 0; i < VSG_MEMBERS; i++) {
+        unsigned long tmpbw;
+        struct in_addr host;
+        if (!vsg[i]) continue;
+
+        vsg[i]->Host(&host);
+        if (!host.s_addr) continue;
+
+        GetServer(&s, &host);
+        s->GetBandwidth(&tmpbw);
+        PutServer(&s);
+
+        if (tmpbw && (!*bw || tmpbw < *bw))
+            *bw = tmpbw;
+    }
+    if (*bw == 0) *bw = INIT_BW;
+}
+
+int repvol::AllocFid(ViceDataType Type, ViceFid *target_fid,
+		      RPC2_Unsigned *AllocHost, vuid_t vuid, int force)
+{
+    LOG(10, ("repvol::AllocFid: (%x, %d), uid = %d\n", vid, Type, vuid));
 
     /* Use a preallocated Fid if possible. */
     {
@@ -2137,7 +2370,9 @@ int volent::AllocFid(ViceDataType Type, ViceFid *target_fid,
 		NewFids.Count = 32;
 
 		/* Make multiple copies of the IN/OUT and OUT parameters. */
-		int ph_ix; unsigned long ph = m->GetPrimaryHost(&ph_ix);
+		int ph_ix; unsigned long ph;
+                ph = ntohl(m->GetPrimaryHost(&ph_ix)->s_addr);
+
 		ARG_MARSHALL(IN_OUT_MODE, ViceFidRange, NewFidsvar, NewFids, VSG_MEMBERS);
 
 		/* Make the RPC call. */
@@ -2218,6 +2453,128 @@ Exit:
     return(code);
 }
 
+void repvol::GetHosts(struct in_addr hosts[VSG_MEMBERS])
+{
+    memset(hosts, 0, VSG_MEMBERS * sizeof(struct in_addr));
+    for (int i = 0; i < VSG_MEMBERS; i++)
+        if (vsg[i])
+            vsg[i]->Host(&hosts[i]);
+}
+
+int repvol::IsHostedBy(const struct in_addr *host)
+{
+    for (int i = 0; i < VSG_MEMBERS; i++)
+        if (vsg[i] && vsg[i]->IsHostedBy(host))
+            return 1;
+
+    return 0;
+}
+
+unsigned long repvol::GetAVSG(struct in_addr hosts[VSG_MEMBERS])
+{
+    unsigned long AvsgId = 0;
+    srvent *s = 0;
+    
+    if (hosts)
+        memset(hosts, 0, VSG_MEMBERS * sizeof(struct in_addr));
+
+    for (int i = 0; i < VSG_MEMBERS; i++) {
+        volrep *v = vsg[i];
+        struct in_addr host;
+        if (!v) continue;
+
+        v->Host(&host);
+        if (!host.s_addr) continue;
+
+        GetServer(&s, &host);
+        AvsgId += s->GetEventCounter();
+        if (hosts && s->ServerIsUp())
+            v->Host(&hosts[i]);
+        PutServer(&s);
+    }
+    return(AvsgId);
+}
+
+int repvol::WeakVSGSize()
+{
+    int count = 0;
+    
+    for (int i = 0; i < VSG_MEMBERS; i++) {
+        if (vsg[i] && vsg[i]->IsWeaklyConnected())
+            count++;
+    }
+
+    return(count);
+}
+
+void repvol::ResetTransient(void)
+{
+    res_list = new olist;
+    cop2_list = new dlist;
+    list_head_init(&mgrpents);
+
+    VCBStatus = NoCallBack;
+    VCBHits = 0;
+
+    ResetVolTransients();
+}
+
+/*MUST NOT be called from within transaction. */
+void repvol::Recover()
+{
+    /* Pre-allocated Fids MUST be discarded if last shutdown was dirty (because one of them may have */
+    /* actually been used in an object creation at the servers, but we crashed before we took the fid off */
+    /* of our queue). */
+    if (!CleanShutDown &&
+        (FileFids.Count != 0 || DirFids.Count != 0 || SymlinkFids.Count != 0))
+    {
+	Recov_BeginTrans();
+	    RVMLIB_REC_OBJECT(FileFids);
+	    FileFids.Count = 0;
+	    RVMLIB_REC_OBJECT(DirFids);
+	    DirFids.Count = 0;
+	    RVMLIB_REC_OBJECT(SymlinkFids);
+	    SymlinkFids.Count = 0;
+	Recov_EndTrans(MAXFP);
+    }
+}
+
+int volent::Collate_NonMutating(mgrpent *m, int code)
+{
+    code = m->CheckNonMutating(code);
+
+    /* when the operation has failed miserably, but we have a pending volume
+     * transition, just retry the operation */
+    if (code && flags.transition_pending)
+	code = ERETRY;
+    return(code);
+}
+
+
+int volent::Collate_COP1(mgrpent *m, int code, ViceVersionVector *UpdateSet) {
+    code = m->CheckCOP1(code, UpdateSet);
+
+    return(code);
+}
+
+
+int volent::Collate_Reintegrate(mgrpent *m, int code, ViceVersionVector *UpdateSet) {
+    code = m->CheckReintegrate(code, UpdateSet);
+
+    return(code);
+}
+
+
+int volent::Collate_COP2(mgrpent *m, int code) {
+    code = m->CheckNonMutating(code);
+
+    /* Nothing useful we can do with an EASYRESOLVE response. */
+    if (code == EASYRESOLVE)
+	code = 0;
+
+    return(code);
+}
+
 
 ViceFid volent::GenerateLocalFid(ViceDataType fidtype) {
     ViceFid fid;
@@ -2271,28 +2628,27 @@ ViceStoreId volent::GenerateStoreId() {
    from the servers, the code can be {ReadOnly, ReadWrite} ("Backup"
    and "Replicated" are never returned by server
    (c.f. SetVolumeStatus())).  When disconnected, GetVolStat get the
-   type from volent, the code can be {RWVOL, ROVOL, BACKVOL, REPVOL,
-   RWRVOL}.  -- Clement
+   type from volent.
+   -- Clement
 */
-static ViceVolumeType convert_voltype(int type) {
-    switch(type) {
-    case RWVOL: return ReadWrite;
-    case ROVOL: return ReadOnly;
-    case BACKVOL: return Backup;
-    case REPVOL: return ReadWrite; /* Can REPVOL be read-only? */
-    case RWRVOL: return ReadWrite; /* We should not see this */
-    default:
-	LOG(0, ("convert_voltype: Bogus type %d\n", type));
-	return ReadWrite;
-    }
+ViceVolumeType volent::VolStatType(void)
+{
+    if (IsReplicated())
+        return Replicated;
+       
+    if (IsBackup())
+        return Backup;
+
+    return ReadWrite;
 }
 
 /* local-repair modification */
 int volent::GetVolStat(VolumeStatus *volstat, RPC2_BoundedBS *Name,
 		       VolumeStateType *conn_state, int *conflict,
-		       int*cml_count,
-			RPC2_BoundedBS *msg, RPC2_BoundedBS *motd, vuid_t vuid) {
-    LOG(100, ("volen::GetVolStat: vid = %x, vuid = %d\n", vid, vuid));
+                       int*cml_count, RPC2_BoundedBS *msg,
+                       RPC2_BoundedBS *motd, vuid_t vuid)
+{
+    LOG(100, ("volent::GetVolStat: vid = %x, vuid = %d\n", vid, vuid));
 
     *conn_state = state;
     CheckLocalSubtree();	/* unset has_local_subtree if possible */
@@ -2303,7 +2659,7 @@ int volent::GetVolStat(VolumeStatus *volstat, RPC2_BoundedBS *Name,
 		"conflict or cml_count != 0 (=%d)?\n", vid, *cml_count));
     }
 
-    if (FID_VolIsFake(vid)) {
+    if (IsFake()) {
 	/* make up some numbers for the local-fake volume */
 	LOG(100, ("volent::GetVolStat: Local Volume vuid = %d\n", vuid));	
 	FID_MakeVolFake(&volstat->Vid);
@@ -2311,7 +2667,7 @@ int volent::GetVolStat(VolumeStatus *volstat, RPC2_BoundedBS *Name,
 	volstat->InService = 1;
     	volstat->Blessed = 1;
 	volstat->NeedsSalvage = 1;
-	volstat->Type = ReadOnly;		/* OK ? */
+	volstat->Type = ReadOnly;
 	volstat->MinQuota = 0;
 	volstat->MaxQuota = 0;
 	volstat->BlocksInUse = 5000;
@@ -2336,7 +2692,7 @@ int volent::GetVolStat(VolumeStatus *volstat, RPC2_BoundedBS *Name,
     if (state == Emulating) {
 	memset(volstat, 0, sizeof(VolumeStatus));
 	volstat->Vid = vid;
-	volstat->Type = convert_voltype(type);	
+	volstat->Type = VolStatType();	
 	/* We do not know are about quota and block usage, but should be ok. */
 	strcpy((char *)Name->SeqBody, name);
 	Name->SeqLen = strlen((char *)name) + 1;
@@ -2358,7 +2714,9 @@ int volent::GetVolStat(VolumeStatus *volstat, RPC2_BoundedBS *Name,
 
 	    {
 		/* Make multiple copies of the IN/OUT and OUT parameters. */
-		int ph_ix; unsigned long ph; ph = m->GetPrimaryHost(&ph_ix);
+		int ph_ix; unsigned long ph;
+                ph = ntohl(m->GetPrimaryHost(&ph_ix)->s_addr);
+
 		if (Name->MaxSeqLen > VENUS_MAXBSLEN ||
 		    msg->MaxSeqLen > VENUS_MAXBSLEN ||
 		    motd->MaxSeqLen > VENUS_MAXBSLEN)
@@ -2406,7 +2764,8 @@ RepExit:
 	else {
 	    /* Acquire a Connection. */
 	    connent *c;
-	    code = GetConn(&c, vuid);
+            volrep *vol = (volrep *)this;
+	    code = vol->GetConn(&c, vuid);
 	    if (code != 0) goto NonRepExit;
 
 	    /* Make the RPC call. */
@@ -2418,7 +2777,7 @@ RepExit:
 	    MarinerLog("store::getvolstat done\n");
 
 	    /* Examine the return code to decide what to do next. */
-	    code = Collate(c, code);
+	    code = vol->Collate(c, code);
 	    UNI_RECORD_STATS(ViceGetVolumeStatus_OP);
 
 NonRepExit:
@@ -2463,7 +2822,9 @@ int volent::SetVolStat(VolumeStatus *volstat, RPC2_BoundedBS *Name,
 
 	    {
 		/* Make multiple copies of the IN/OUT and OUT parameters. */
-		int ph_ix; unsigned long ph; ph = m->GetPrimaryHost(&ph_ix);
+		int ph_ix; unsigned long ph;
+                ph = ntohl(m->GetPrimaryHost(&ph_ix)->s_addr);
+
 		if (Name->MaxSeqLen > VENUS_MAXBSLEN ||
 		    msg->MaxSeqLen > VENUS_MAXBSLEN ||
 		    motd->MaxSeqLen > VENUS_MAXBSLEN)
@@ -2508,7 +2869,7 @@ int volent::SetVolStat(VolumeStatus *volstat, RPC2_BoundedBS *Name,
             if (PIGGYCOP2)
 	        AddCOP2(&sid, &UpdateSet);
  	    else
-	        (void)COP2(m, &sid, &UpdateSet);
+	        COP2(m, &sid, &UpdateSet);
 
 RepExit:
 	    PutMgrp(&m);
@@ -2517,7 +2878,8 @@ RepExit:
 	    /* Acquire a Connection. */
 	    connent *c;
  	    ViceStoreId Dummy;          /* Need an address for ViceSetVolStat */
-	    code = GetConn(&c, vuid);
+            volrep *vol = (volrep *)this;
+	    code = vol->GetConn(&c, vuid);
 	    if (code != 0) goto NonRepExit;
 
 	    /* Make the RPC call. */
@@ -2530,7 +2892,7 @@ RepExit:
 	    MarinerLog("store::setvolstat done\n");
 
 	    /* Examine the return code to decide what to do next. */
-	    code = Collate(c, code);
+	    code = vol->Collate(c, code);
 	    UNI_RECORD_STATS(ViceSetVolumeStatus_OP);
 
 NonRepExit:
@@ -2542,129 +2904,48 @@ NonRepExit:
 }
 
 
-void volent::UseCallBack(int flag) {
+void volent::UseCallBack(int flag)
+{
     flags.usecallback = flag;
     FSDB->ResetVolume(vid, flags.usecallback);
 }
 
 
-void volent::GetHosts(unsigned long *hosts) {
-    switch(type) {
-	case RWVOL:
-	case BACKVOL:
-	case RWRVOL:
-	    memset((void *)hosts, 0, (int)(MAXHOSTS * sizeof(unsigned long)));
-	    hosts[0] = host;
-	    return;
-
-	case ROVOL:
-	case REPVOL:
-	    if (!FID_VolIsFake(vid))
-		vsg->GetHosts(hosts);
-	    return;
-
-	default:
-	    CHOKE("volent::GetHosts: %x, bogus type (%d)", vid, type);
-    }
-}
-
-
-unsigned long volent::GetAVSG(unsigned long *hosts) {
-    CODA_ASSERT( !FID_VolIsFake(vid));
+unsigned long volrep::GetAVSG(struct in_addr hosts[VSG_MEMBERS])
+{
     unsigned long AvsgId = 0;
+    
+    if (hosts)
+        memset(hosts, 0, VSG_MEMBERS * sizeof(struct in_addr));
 
-    /* Always return AVSG identifier. */
-    switch(type) {
-	case RWVOL:
-	case BACKVOL:
-	case RWRVOL:
-	    {
-	    srvent *s = 0;
-	    GetServer(&s, host);
-	    AvsgId = s->GetEventCounter();
-	    PutServer(&s);
-	    break;
-	    }
-
-	case ROVOL:
-	case REPVOL:
-	    AvsgId = vsg->GetEventCounter();
-	    break;
-
-	default:
-	    CHOKE("volent::GetAVSG: %x, bogus type (%d)", vid, type);
+    if (host.s_addr != 0) {
+        srvent *s = 0;
+        GetServer(&s, &host);
+        AvsgId = s->GetEventCounter();
+        if (hosts && s->ServerIsUp())
+            Host(&hosts[0]);
+        PutServer(&s);
     }
-
-    /* Optionally return contents of AVSG. */
-    if (hosts != 0) {
-	GetHosts(hosts);
-
-	for (int i = 0; i < MAXHOSTS; i++)
-	    if (hosts[i] != 0) {
-		srvent *s = 0;
-		GetServer(&s, hosts[i]);
-		if (!s->ServerIsUp()) hosts[i] = 0;
-		PutServer(&s);
-	    }
-    }
-
     return(AvsgId);
 }
 
 
-int volent::AvsgSize() {
-    int count = 0;
-    unsigned long hosts[MAXHOSTS];
-    GetHosts(hosts);
-
-    for (int i = 0; i < MAXHOSTS; i++)
-	if (hosts[i] != 0) {
-	    srvent *s = 0;
-	    GetServer(&s, hosts[i]);
-	    if (s->ServerIsUp()) count++;
-	    PutServer(&s);
-	}
+int volent::AvsgSize()
+{
+    struct in_addr hosts[VSG_MEMBERS];
+    int i, count = 0;
+    
+    GetAVSG(hosts);
+    
+    for (i = 0; i < VSG_MEMBERS; i++)
+        if (hosts[i].s_addr)
+            count++;
 
     return(count);
 }
 
-
-int volent::WeakVSGSize() {
-    int count = 0;
-    unsigned long hosts[MAXHOSTS];
-    GetHosts(hosts);
-
-    for (int i = 0; i < MAXHOSTS; i++)
-	if (hosts[i] != 0) {
-	    srvent *s = 0;
-	    GetServer(&s, hosts[i]);
-	    if (s->ServerIsWeak()) count++;
-	    PutServer(&s);
-	}
-
-    return(count);
-}
-
-
-int volent::IsHostedBy(unsigned long Host) {
-    switch(type) {
-	case RWVOL:
-	case BACKVOL:
-	case RWRVOL:
-	    return(Host == host);
-
-	case ROVOL:
-	case REPVOL:
-	    return(vsg->IsMember(Host));
-
-	default:
-	    CHOKE("volent::IsHostedBy: %x, bogus type (%d)", vid, type);
-	    return(0); /* dummy for g++ */
-    }
-}
-
-
-void volent::GetMountPath(char *buf, int ok_to_assert) {
+void volent::GetMountPath(char *buf, int ok_to_assert)
+{
     /* Need to suppress assertion when called via hoard verify,
        because expected invariants may not always be true */
 
@@ -2685,35 +2966,10 @@ void volent::GetMountPath(char *buf, int ok_to_assert) {
 }
 
 
-void volent::print(int afd) {
-    fdprint(afd, "%#08x : %-16s : vol = %x, type = %s, host = %x\n",
-	     (long)this, name, vid, PRINT_VOLTYPE(type), host);
-    switch(type) {
-	case RWVOL:
-	case ROVOL:
-	case BACKVOL:
-	    {
-	    break;
-	    }
+void volent::print(int afd)
+{
+    fdprint(afd, "%#08x : %-16s : vol = %x\n", (long)this, name, vid);
 
-	case REPVOL:
-	    {
-	    fdprint(afd, "\tRWVols: [");
-	    for (int i = 0; i < MAXHOSTS; i++)
-		fdprint(afd, " %x, ", u.rep.RWVols[i]);
-	    fdprint(afd, " ]\n");
-	    break;
-	    }
-
-	case RWRVOL:
-	    {
-	    fdprint(afd, "\tREPVOL = %x\n", u.rwr.REPVol);
-	    break;
-	    }
-
-	default:
-	    CHOKE("volent::print: %x, bogus type (%d)", vid, type);
-    }
     fdprint(afd, "\trefcnt = %d, fsos = %d, valid = %d, online = %d, logv = %d, weak = %d\n",
 	    refcnt, fso_list->count(), flags.valid, flags.online, flags.logv,
 	    flags.weaklyconnected);
@@ -2724,31 +2980,13 @@ void volent::print(int afd) {
     fdprint(afd, "\tshrd_count = %d and excl_count = %d excl_pgid = %d\n",
 	    shrd_count, excl_count, excl_pgid);
 
-    fdprint(afd, "\tCB status = %d", VCBStatus);
-    fdprint(afd, "\tVersion stamps = [");
-    for (int i = 0; i < VSG_MEMBERS; i++)
-	fdprint(afd, " %d", (&(VVV.Versions.Site0))[i]);
-    fdprint(afd, " ]\n");
-
     fdprint(afd, "\treint_id_gen = %d, age limit = %u (sec), reint limit = %u (msec)\n", 
 	    reint_id_gen, AgeLimit, ReintLimit);
     fdprint(afd, "\thas_local_subtree = %d, resolve_me = %d\n", 
 	    flags.has_local_subtree, flags.resolve_me);
 
-    /* Modify Log. */
-    CML.print(afd);
-
-    /* Resolve List. */
-    if (res_list != 0) {
-	fdprint(afd, "\tResList: count = %d\n", res_list->count());
-	olist_iterator rnext(*res_list);
-	resent *r;
-	while ((r = (resent *)rnext()))
-	    r->print(afd);
-    }
-
     /* Volume Session Statistics */ 
-    if ( !FID_VolIsFake(vid) && (LogLevel >= 100)) {
+    if (!IsFake() && LogLevel >= 100) {
         vsr *record;
         record = GetVSR(2660);
         CODA_ASSERT(record->cetime == 0);
@@ -2775,6 +3013,43 @@ void volent::print(int afd) {
     } else {
 	fdprint(afd, "\trwsq is empty\n");
     }
+    
+    print2(afd);
+}
+
+void volrep::print2(int afd)
+{
+    fdprint(afd, "\thost: %x ", ((volrep *)this)->host);
+    if (IsReadWriteReplica())
+        fdprint(afd, "replicated volume = %x\n",
+                ((volrep *)this)->replicated);
+}
+
+void repvol::print2(int afd)
+{
+    /* Replicas */
+    fdprint(afd, "\tvolume replicas: [ ");
+    for (int i = 0; i < VSG_MEMBERS; i++)
+        fdprint(afd, "%x, ", ((repvol *)this)->vsg[i]);
+    fdprint(afd, "]\n");
+
+    fdprint(afd, "\tVersion stamps = [");
+    for (int i = 0; i < VSG_MEMBERS; i++)
+	fdprint(afd, " %d", (&(VVV.Versions.Site0))[i]);
+    fdprint(afd, " ]\n");
+    fdprint(afd, "\tCB status = %d\n", VCBStatus);
+
+    /* Modify Log. */
+    CML.print(afd);
+
+    /* Resolve List. */
+    if (res_list != 0) {
+	fdprint(afd, "\tResList: count = %d\n", res_list->count());
+	olist_iterator rnext(*res_list);
+	resent *r;
+	while ((r = (resent *)rnext()))
+	    r->print(afd);
+    }
 }
 
 
@@ -2798,16 +3073,34 @@ void volent::ListCache(FILE* fp, int long_format, unsigned int valid)
 
 /*  *****  Volume Iterator  *****  */
 
-vol_iterator::vol_iterator(void *key) : rec_ohashtab_iterator(VDB->htab, key) {
-}
+vol_iterator::vol_iterator(void *key) : rec_ohashtab_iterator(VDB->htab, key) { }
+
+repvol_iterator::repvol_iterator(void *key) : rec_ohashtab_iterator(VDB->htab, key) { }
 
 
-volent *vol_iterator::operator()() {
+volent *vol_iterator::operator()()
+{
     rec_olink *o = rec_ohashtab_iterator::operator()();
     if (!o) return(0);
 
     volent *v = strbase(volent, o, handle);
     return(v);
+}
+
+repvol *repvol_iterator::operator()()
+{
+    rec_olink *o;
+    volent *v;
+    
+    while (1) {
+        o = rec_ohashtab_iterator::operator()();
+        if (!o) break;
+
+        v = strbase(volent, o, handle);
+        if (v->IsReplicated())
+            return((repvol *)v);
+    }
+    return(0);
 }
 
 

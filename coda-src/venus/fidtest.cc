@@ -40,8 +40,6 @@ extern "C" {
 #include "venusioctl.h"
 #include "vice.h"
 
-#define	VSG_MEMBERS 8
-
 struct GetFid {
     ViceFid fid;
     ViceVersionVector vv;

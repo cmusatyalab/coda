@@ -360,16 +360,19 @@ O_FreeLocks:
 		    {
 		    /* Try to enable target volume for repair by this user. */
 		    VolumeId  *RWVols   = (VolumeId *)data->out;
-		    vuid_t    *LockUids = (vuid_t *)&(RWVols[MAXHOSTS]);
+		    vuid_t    *LockUids = (vuid_t *)&(RWVols[VSG_MEMBERS]);
 		    unsigned long *LockWSs =
-			(unsigned long *)&(LockUids[MAXHOSTS]);
-		    char      *endp     = (char *)&(LockWSs[MAXHOSTS]);
+			(unsigned long *)&(LockUids[VSG_MEMBERS]);
+		    char      *endp     = (char *)&(LockWSs[VSG_MEMBERS]);
 
 		    /* actually EnableRepair operates on the volume, but we
 		     * also check if the object is really inconsistent */
-		    if (!f->IsFake()) u.u_error = EOPNOTSUPP;
-		    else u.u_error = f->vol->EnableRepair(CRTORUID(u.u_cred),
+		    if (f->IsFake() && f->vol->IsReplicated())
+                        u.u_error =
+                            ((repvol *)f->vol)->EnableRepair(CRTORUID(u.u_cred),
 						    RWVols, LockUids, LockWSs);
+                    else
+                        u.u_error = EOPNOTSUPP;
 
 		    data->out_size = (endp - data->out);
 
@@ -664,9 +667,9 @@ OI_FreeLocks:
 		case VIOCWHEREIS:
 		    {
 		    /* Extract the host array from the vsgent or volent as appropriate. */
-		    v->GetHosts((unsigned long *)data->out);
+		    v->GetHosts((struct in_addr *)data->out);
 
-		    data->out_size = MAXHOSTS * (short)sizeof(unsigned long);
+		    data->out_size = VSG_MEMBERS * sizeof(struct in_addr);
 		    break;
 		    }
 
@@ -685,7 +688,11 @@ OI_FreeLocks:
 		case VIOC_DISABLEREPAIR:
 		    {
 		    /* Disable repair of target volume by this user. */
-		    u.u_error = v->DisableRepair(CRTORUID(u.u_cred));
+                    if (v->IsReplicated())
+                        u.u_error =
+                            ((repvol *)v)->DisableRepair(CRTORUID(u.u_cred));
+                    else
+                        u.u_error = EOPNOTSUPP;
 
 		    (void)k_Purge(fid, 1);
 
@@ -699,14 +706,17 @@ OI_FreeLocks:
 		case VIOC_REPAIR:
 		    {
 		    /* Try to repair target object. */
-#define	RepairFile  (data->in)
+#define	RepairFile  ((char *)data->in)
 #define	startp	    (data->out)
 #define	RWVols	    ((VolumeId *)(startp))
-#define	ReturnCodes ((int *)(RWVols + MAXHOSTS))
-#define	endp	    ((char *)(ReturnCodes + MAXHOSTS))
+#define	ReturnCodes ((int *)(RWVols + VSG_MEMBERS))
+#define	endp	    ((char *)(ReturnCodes + VSG_MEMBERS))
 		    data->out_size = (endp - startp);
-		    u.u_error = v->Repair(fid, (char *) RepairFile,
-					  CRTORUID(u.u_cred), RWVols, ReturnCodes);
+                    if (v->IsReplicated())
+                        u.u_error = ((repvol *)v)->Repair(fid, RepairFile,
+                                       CRTORUID(u.u_cred), RWVols, ReturnCodes);
+                    else
+                        u.u_error = EOPNOTSUPP;
 
  	            LOG(0, ("MARIA: VIOC_REPAIR calls volent::Repair which returns %d\n",u.u_error));
 		    /* We don't have the object so can't provide a pathname
@@ -726,14 +736,14 @@ OI_FreeLocks:
 		case VIOC_GETSERVERSTATS:
 		    {
 		    /* Extract the host array from the vsgent or volent as appropriate. */
-		    unsigned long Hosts[MAXHOSTS];
+		    struct in_addr Hosts[VSG_MEMBERS];
 		    v->GetHosts(Hosts);
 
 		    /* Count number of hosts to make sure buffer size wouldn't be exceeded. */
 		    int i;
 		    int nHosts = 0;
-		    for (i = 0; i < MAXHOSTS; i++)
-			if (Hosts[i] != 0) nHosts++;
+		    for (i = 0; i < VSG_MEMBERS; i++)
+			if (Hosts[i].s_addr) nHosts++;
 		    if (nHosts * (int)sizeof(ViceStatistics) > VC_MAXDATASIZE)
 			{ u.u_error = EINVAL; break; }
 
@@ -741,10 +751,10 @@ OI_FreeLocks:
 		    /* OUT data for hosts that are incommunicado will be zero. */
 		    memset(data->out, 0, nHosts * (int)sizeof(ViceStatistics));
 		    ViceStatistics *Stats = (ViceStatistics *)data->out;
-		    for (i = 0; i < MAXHOSTS; i++)
-			if (Hosts[i] != 0) {
+		    for (i = 0; i < VSG_MEMBERS; i++)
+			if (Hosts[i].s_addr) {
 			    srvent *s;
-			    GetServer(&s, Hosts[i]);
+			    GetServer(&s, &Hosts[i]);
 			    (void)s->GetStatistics(Stats);
 			    Stats++;
 			}
@@ -873,7 +883,7 @@ V_FreeLocks:
 	    elapsed = SubTimes(&(u.u_tv2), &(u.u_tv1));
 #endif      TIMING
  	    /* Hack to include this as an ioctl request in the proper vsr. */
-	    if (!FID_VolIsFake(v->vid)) {
+	    if (!v->IsFake()) {
 		vsr *vsr = v->GetVSR(CRTORUID(u.u_cred));
 		vsr->RecordEvent(CODA_IOCTL,  u.u_error, (RPC2_Unsigned) elapsed);
 		v->PutVSR(vsr);
@@ -1049,7 +1059,7 @@ V_FreeLocks:
 			/* probe only those listed. */
 			/* format is #hosts, hostaddr, hostaddr, ... */
 #define nservers ((int *)(data->in))
-#define hostids ((unsigned long *)(nservers + 1))
+#define hostids ((struct in_addr *)(nservers + 1))
 			DoProbes(*nservers, hostids);
 			DownServers(*nservers, hostids, (char *) data->out, &bufsize);
 #undef nservers
@@ -1246,7 +1256,7 @@ V_FreeLocks:
 		        u.u_error = FailDisconnect(0,0);
 		    else
 #define nservers ((int *)(data->in))
-#define hostids ((unsigned long *)(nservers + 1))
+#define hostids ((struct in_addr *)(nservers + 1))
 		        u.u_error = FailDisconnect(*nservers, hostids);
 #undef nservers
 #undef hostids
@@ -1260,7 +1270,7 @@ V_FreeLocks:
 		        u.u_error = FailReconnect(0,0);
 		    else
 #define nservers ((int *)(data->in))
-#define hostids ((unsigned long *)(nservers + 1))
+#define hostids ((struct in_addr *)(nservers + 1))
 		        u.u_error = FailReconnect(*nservers, hostids);
 #undef nservers
 #undef hostids

@@ -59,7 +59,8 @@ extern "C" {
 
 
 
-int main(int argc, char *argv[]) {
+int main(int argc, char *argv[])
+{
     ClearToken clear;
     EncryptedSecretToken secret;
     int rc;

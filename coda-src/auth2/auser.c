@@ -70,7 +70,6 @@ extern "C" {
 #include <rpc2/rpc2.h>
 #include <util.h>
 #include <prs.h>
-#include <codaconf.h>
 #include "auth2.h"
 #include "auth2.common.h"
 #include "auser.h"
@@ -78,6 +77,8 @@ extern "C" {
 }
 #endif __cplusplus
 
+#include <codaconf.h>
+#include <coda_config.h>
 
 #ifndef O_BINARY
 #define O_BINARY 0

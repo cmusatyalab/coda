@@ -62,8 +62,9 @@ int resent::allocs = 0;
 int resent::deallocs = 0;
 #endif VENUSDEBUG
 
-void volent::Resolve() {
-    LOG(0, ("volent::Resolve: %s\n", name));
+void repvol::Resolve()
+{
+    LOG(0, ("repvol::Resolve: %s\n", name));
     MarinerLog("resolve::%s\n", name);
 
     fsobj *f;
@@ -90,9 +91,9 @@ void volent::Resolve() {
 	    if (code != 0) goto HandleResult;
 
 	    /* Pick a coordinator and get a connection to it. */
-	    unsigned long ph = m->GetPrimaryHost();
-	    CODA_ASSERT(ph != 0);
-	    code = ::GetConn(&c, ph, V_UID, 0);
+	    struct in_addr *phost = m->GetPrimaryHost();
+	    CODA_ASSERT(phost->s_addr != 0);
+	    code = ::GetConn(&c, phost, V_UID, 0);
 	    if (code != 0) goto HandleResult;
 
 	    /* Make the RPC call. */
@@ -159,7 +160,8 @@ Exit:
 
 
 /* Asynchronous resolve is indicated by NULL waitblk. */
-void volent::ResSubmit(char **waitblkp, ViceFid *fid) {
+void repvol::ResSubmit(char **waitblkp, ViceFid *fid)
+{
     VOL_ASSERT(this, fid->Volume == vid);
 
     /* Create a new resolver entry for the fid, unless one already exists. */
@@ -190,7 +192,8 @@ void volent::ResSubmit(char **waitblkp, ViceFid *fid) {
 
 
 /* Wait for resolve to complete. */
-int volent::ResAwait(char *waitblk) {
+int repvol::ResAwait(char *waitblk)
+{
     int code = 0;
 
     resent *r = (resent *)waitblk;
@@ -311,7 +314,8 @@ class resolver : public vproc {
 olist resolver::freelist;
 
 
-void Resolve(volent *v) {
+void Resolve(volent *v)
+{
     /* Get a free resolver. */
     resolver *r;
     olink *o = resolver::freelist.get();
@@ -369,6 +373,7 @@ void resolver::main()
 	VprocWait((char *)this);
 	if (idle) CHOKE("resolver::main: signalled but not dispatched!");
 	if (!u.u_vol) CHOKE("resolver::main: no volume!");
+        CODA_ASSERT(u.u_vol->IsReplicated());
 
 	/* Do the resolve. */
 	u.u_vol->Resolve();

@@ -16,12 +16,6 @@ listed in the file CREDITS.
 
 #*/
 
-
-
-
-
-
-
 /*
  *
  * Implementation of the Venus process abstraction
@@ -540,7 +534,8 @@ static int VolModeMap[CODA_NCALLS] = {
     (((vfsop) >= 0 && (vfsop) < NVFSOPS) ? VolModeMap[vfsop] : VM_MUTATING)
 
 /* local-repair modification */    
-void vproc::Begin_VFS(VolumeId vid, int vfsop, int volmode) {
+void vproc::Begin_VFS(VolumeId vid, int vfsop, int volmode)
+{
     LOG(1, ("vproc::Begin_VFS(%s): vid = %x, u.u_vol = %x, mode = %d\n",
 	    VenusOpStr(vfsop), vid, u.u_vol, volmode));
     
@@ -564,9 +559,9 @@ void vproc::Begin_VFS(VolumeId vid, int vfsop, int volmode) {
       u.u_error = u.u_vol->Enter(u.u_volmode, CRTORUID(u.u_cred));
 
     if (u.u_error) VDB->Put(&u.u_vol);
-
-    vsr *vsr;		   
-    if (u.u_vol != 0 && !FID_VolIsFake(u.u_vol->vid)) {
+    vsr *vsr;
+		   
+    if (u.u_vol != 0 && !u.u_vol->IsFake()) {
         if (type == VPT_HDBDaemon)
 	    vsr = u.u_vol->GetVSR(HOARD_UID);
 	else
@@ -595,7 +590,8 @@ void vproc::End_VFS(int *retryp) {
 	    u.u_error = EWOULDBLOCK;
 	    goto Exit;
 	}
-	int code = u.u_vol->ResAwait(u.u_resblk);
+        CODA_ASSERT(u.u_vol->IsReplicated());
+	int code = ((repvol *)u.u_vol)->ResAwait(u.u_resblk);
 
 	/* Reset counter if result was equivocal. */
 	if (code == ERETRY || code == EWOULDBLOCK)
@@ -723,8 +719,7 @@ Exit:
 
 	/* Update VSR statistics too! */
 	vsr *vsr;
-	if (u.u_vol != 0 && (!retryp || *retryp == 0) && 
-	    !FID_VolIsFake(u.u_vol->vid)) {
+	if (u.u_vol != 0 && (!retryp || *retryp == 0) && !u.u_vol->IsFake()) {
 	    if (type == VPT_HDBDaemon)
 		vsr = u.u_vol->GetVSR(HOARD_UID);
 	    else
