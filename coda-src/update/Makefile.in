@@ -66,16 +66,19 @@ LIBS=	${LIBVICEERROR}\
 	$(LIBTHREADS)\
 	$(LIBMACH)\
 	$(LIBCOMPAT)\
-	$(LIBBASE)\
-	$(LIBFIXUP)
+	$(LIBBASE)
+
+ifeq ($(SYS),sol2)
+LIBFIXUP += -R/usr/ucblib -L/usr/ucblib -lucb
+endif
 
 include $(TOPDIR)/configs/Makerules
 
 updatesrv: updatesrv.o update.server.o ${LIBS}
-	$(CXX) $(LIBFLAGS) updatesrv.o update.server.o ${LIBS} -o updatesrv
+	$(CXX) $(LIBFLAGS) updatesrv.o update.server.o ${LIBS} ${LIBFIXUP} -o updatesrv
 
 updateclnt: updateclnt.o update.client.o  ${LIBS}
-	$(CXX) $(LIBFLAGS) updateclnt.o update.client.o  ${LIBS} -o updateclnt
+	$(CXX) $(LIBFLAGS) updateclnt.o update.client.o  ${LIBS} ${LIBFIXUP} -o updateclnt
 
 updatefetch: updatefetch.o update.client.o  ${LIBS}
-	$(CXX) $(LIBFLAGS) updatefetch.o update.client.o  ${LIBS} -o updatefetch
+	$(CXX) $(LIBFLAGS) updatefetch.o update.client.o  ${LIBS} ${LIBFIXUP} -o updatefetch

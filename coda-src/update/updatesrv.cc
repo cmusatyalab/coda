@@ -68,8 +68,11 @@ extern "C" {
 #include "coda_assert.h"
 #include <signal.h>
 #include <string.h>
+#include <fcntl.h>
 
-
+#ifdef sun
+#include "sunflock.h"
+#endif
 
 #include <lwp.h>
 #include <lock.h>

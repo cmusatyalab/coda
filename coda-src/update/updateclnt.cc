@@ -64,6 +64,12 @@ extern "C" {
 #include <signal.h>
 #include <stdio.h>
 #include <stdarg.h>
+#include <fcntl.h>
+
+#ifdef sun
+#include "sunflock.h"
+#endif
+
 #include <lock.h>
 #include <lwp.h>
 #include <rpc2.h>
