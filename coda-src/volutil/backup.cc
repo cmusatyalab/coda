@@ -28,7 +28,7 @@ Carnegie Mellon encourages users of this software to return any
 improvements or extensions that they make, and to grant Carnegie
 Mellon the rights to redistribute these changes without encumbrance.  */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/volutil/backup.cc,v 4.5 1997/11/14 13:32:32 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/volutil/backup.cc,v 4.5.2.1 1997/11/26 18:05:43 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -308,27 +308,30 @@ getReplica(repinfo_t *rep) {
 int PreparePartitionEntries(struct DiskPartition *part)
 {
     long t = time(0);
-    char m[4], d[3], y[5];
-    sscanf(ctime(&t), "%*3s %3s %2s %*8s %4s", m, d, y);
     char todayName[11];
-    sprintf(todayName, "/%s%s%s", d, m, y);
+    char today[10];
     struct DiskPartition *dp = 0;
+    time_t now = time(0);
     char *name = dp->name;
+    
+    strftime(today, sizeof(today), "%d%b%Y", localtime(&now));
+    sprintf(todayName, "/");
+    strcat(todayName, today);
 
     assert(part);
 
     for (dp = part; dp ; dp = dp->next) {
 	name = dp->name;
-	if ((strlen(todayName) + strlen(name) < sizeof(part->name))) {
-	    strcat(part->name, todayName);
-	    if (mkdir(part->name, 0755) != 0) {
+	if ((strlen(todayName) + strlen(name) < sizeof(dp->name))) {
+	    strcat(dp->name, todayName);
+	    if (mkdir(dp->name, 0755) != 0) {
 		LogMsg(0, 0, stdout, 
 		       "Error '%s' creating directory %s.", 
-		       strerror(errno), part->name);
+		       strerror(errno), dp->name);
 		return -1;
 	    }
 	} else {
-	    LogMsg(0, 0, stdout, "Name too long! %s", part->name);
+	    LogMsg(0, 0, stdout, "Name too long! %s", dp->name);
 	    return -1;
 	}
     }
