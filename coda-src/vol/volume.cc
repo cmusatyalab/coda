@@ -427,8 +427,14 @@ void VInitServerList(char *host)
 		exit(1);
 	    } else {
 		long netaddress;
-		CODA_ASSERT(hostent->h_length == 4);
-		memmove((char *)&netaddress, (char *)hostent->h_addr, 4);
+		CODA_ASSERT(hostent->h_length == sizeof(struct in_addr));
+
+		/* check whether we got an address in the 127.x.x.x range */
+		if (inet_netof(*(struct inaddr *)hostent->h_addr) == 0x7f)
+		    VLog(0, "WARNING: gethostbyname(%s) returned a non-routable address %s.",
+			 sname, inet_ntoa(*(struct in_addr *)hostent->h_addr));
+
+		memcpy((char *)&netaddress, (char *)hostent->h_addr, sizeof(struct in_addr));
 		HostAddress[sid] = ntohl(netaddress);
 	    }
 	}

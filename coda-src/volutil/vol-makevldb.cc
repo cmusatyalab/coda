@@ -89,7 +89,6 @@ extern "C" {
 
 /* static int debug = 0; */
 
-static char *ServerName[256];
 static char *args[50]={NULL};
 static struct vldb *vldb_array;/* In core copy of vldb */
 static long *Dates;	  /* copy date for the volume at this slot in vldb */
@@ -423,8 +422,7 @@ static void Add(struct vldb *vnew, long date)
     return;
 }
 
-static void Replace(struct vldb *old, struct vldb *vnew,
-							long date)
+static void Replace(struct vldb *old, struct vldb *vnew, long date)
 {
     vnew->hashNext = old->hashNext;
     *old = *vnew;
@@ -493,16 +491,26 @@ static void GetServerNames() {
 	struct hostent *hostent;
 	long sid;
 	if (sscanf(line, "%s%ld", sname, &sid) == 2) {
-	    if (sid > N_SERVERIDS) {
+	    if (sid >= N_SERVERIDS) {
 		printf("Warning: host %s is assigned a bogus server number (%lu) in %s; host ignored\n",
 		  sname, sid, serverList);
 		continue;
 	    }
+	    /* catch several `special cased' host-id's */
+	    switch (sid) {
+	    case 0:
+	    case 127:
+	    case 255:
+		LogMsg(0, VolDebugLevel, stdout,
+		       "Warning: host %s is using a reserved server number (%lu) in %s; host ignored\n",
+		       sname, sid, serverList);
+		continue;
+	    default:
+		break;
+	    }
 	    hostent = gethostbyname(sname);
 	    if (hostent == NULL)
 		printf("Warning: host %s (listed in %s) is not in /etc/hosts\n", sname, serverList);
-	    else
-		ServerName[sid] = strdup(hostent->h_name);
 	}
     }
     fclose(file);
