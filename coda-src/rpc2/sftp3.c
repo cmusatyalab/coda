@@ -199,7 +199,7 @@ int sftp_InitIO(struct SFTP_Entry *sEntry)
     if (sftpd->SeekOffset > 0)
 	if (lseek(sEntry->openfd, sftpd->SeekOffset, SEEK_SET) < 0) {
 	    if (RPC2_Perror) perror("lseek");
-	    sftp_vfclose(sEntry);	    
+	    sftp_vfclose(sEntry);
 	    return(-1);
 	}
 
@@ -1476,10 +1476,9 @@ int sftp_vfwritefile(struct SFTP_Entry *se, char *buf, int nbytes)
 void sftp_vfclose(struct SFTP_Entry *se)
 {
     if (se->SDesc && MEMFILE(se->SDesc)) return;
-    if (se->SDesc && se->SDesc->Value.SmartFTPD.Tag == FILEBYFD) return;
     if (se->openfd == -1)
     { /* we might have closed this fd when CheckSE fails. -JH */
-	say(0, SFTP_DebugLevel, "sftp_vfclose: fd was already closed.\n");
+	say(10, SFTP_DebugLevel, "sftp_vfclose: fd was already closed.\n");
 	return;
     }
     close(se->openfd);    /* ignoring errors */

@@ -299,7 +299,7 @@ long SFTP_MultiRPC2(IN ConnHandle, INOUT SDesc, INOUT Reply)
 
 	/* Everyone has finished, so clean up the multicast state. */
 	say(9, SFTP_DebugLevel, "SFTP_MultiRPC2: cleaning up multicast state\n");
-	if (mse->openfd >= 0) sftp_vfclose(mse);
+	sftp_vfclose(mse);
 	if (mse->PiggySDesc != NULL) sftp_FreePiggySDesc(mse);
 	for (i = 0; i < MAXOPACKETS; i++)
 	    if (mse->ThesePackets[i] != NULL) SFTP_FreeBuffer(&mse->ThesePackets[i]);
@@ -424,7 +424,7 @@ long SFTP_DeleteMgrp(IN MgroupHandle, IN ClientHost, IN ClientPort, IN Role)
     /* ...below is taken from SFTP_Unbind()... */
     if ((mse = (struct SFTP_Entry *)me->SideEffectPtr) != NULL)
 	{
-	if (mse->openfd >= 0) sftp_vfclose(mse);
+	sftp_vfclose(mse);
 	if (mse->PiggySDesc != NULL) sftp_FreePiggySDesc(mse);
 	for (i = 0; i < MAXOPACKETS; i++)
 	    if (mse->ThesePackets[i] != NULL) SFTP_FreeBuffer(&mse->ThesePackets[i]);

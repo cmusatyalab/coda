@@ -83,13 +83,13 @@ static long MakeBigEnough();
 /*---------------------------  Local macros ---------------------------*/
 #define FAIL(se, rCode)\
 	    {\
-	    if (se->openfd >= 0) sftp_vfclose(se);\
+	    sftp_vfclose(se);\
 	    return(rCode);\
 	    }
 
 #define QUIT(se, RC1, RC2)\
     se->SDesc->LocalStatus = RC1;\
-    if (se->openfd >= 0) sftp_vfclose(se);\
+    sftp_vfclose(se);\
     return(RC2);
 
 
@@ -365,7 +365,7 @@ long SFTP_MakeRPC2(IN ConnHandle, INOUT SDesc, INOUT Reply)
     /* Clean up local state */
     for (i = 0; i < MAXOPACKETS; i++)
 	if (se->ThesePackets[i] != NULL) SFTP_FreeBuffer(&se->ThesePackets[i]);
-    if (se->openfd >= 0) sftp_vfclose(se);
+    sftp_vfclose(se);
     se->SDesc = NULL;
     se->SendLastContig = se->SendMostRecent;
     se->RecvLastContig = se->RecvMostRecent;
@@ -613,7 +613,7 @@ long SFTP_SendResponse(IN ConnHandle, IN Reply)
 	}
 
     /* clean up state */
-    if (se->openfd >= 0) sftp_vfclose(se);
+    sftp_vfclose(se);
 
     if (se->WhoAmI == ERROR)
 	{
