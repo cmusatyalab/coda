@@ -140,44 +140,43 @@ static int getaddrinfo_noresolve(const char *node, short port,
 				 struct RPC2_addrinfo **res)
 {
     struct RPC2_addrinfo *ai;
-    int family = PF_UNSPEC;
+    int family = hints ? hints->ai_family : PF_UNSPEC;
     char addr[sizeof(struct in6_addr)];
 
-    if (hints->ai_family != PF_INET6 &&
-	node && inet_pton(PF_INET, node, &addr) > 0)
-	family = PF_INET;
-
-    if (hints->ai_family != PF_INET &&
-	node && inet_pton(PF_INET6, node, &addr) > 0)
-	family = PF_INET6;
-
-    switch(family) {
-    case PF_INET:
-	{
-	    struct in_addr *inaddr = (struct in_addr *)&addr;
-	    if (!node) {
-		if (hints && hints->ai_flags & RPC2_AI_PASSIVE)
-		     inaddr->s_addr = INADDR_ANY;
-		else inaddr->s_addr = INADDR_LOOPBACK;
-	    }
-	    break;
-	}
+    if (!node) {
+	switch(family) {
+	default:
 #if !defined(__CYGWIN32__)
-    case PF_INET6:
-	{
-	    struct in6_addr *in6addr = (struct in6_addr *)&addr;
-	    if (!node) {
+	case PF_INET6:
+	    {
+		struct in6_addr *in6addr = (struct in6_addr *)&addr;
+		family = PF_INET6;
 		if (hints && hints->ai_flags & RPC2_AI_PASSIVE)
 		     *in6addr = in6addr_any;
 		else *in6addr = in6addr_loopback;
+		break;
 	    }
-	    break;
-	}
 #endif       
-    /* unspecified family and we couldn't figure it out from the address */
-    default:
-	return RPC2_EAI_NONAME; 
+	case PF_INET:
+	    {
+		struct in_addr *inaddr = (struct in_addr *)&addr;
+		family = PF_INET;
+		if (hints && hints->ai_flags & RPC2_AI_PASSIVE)
+		     inaddr->s_addr = INADDR_ANY;
+		else inaddr->s_addr = INADDR_LOOPBACK;
+		break;
+	    }
+	}
+    } else {
+	if (family != PF_INET && inet_pton(PF_INET6, node, &addr) > 0)
+	    family = PF_INET6;
+
+	if (family != PF_INET6 && inet_pton(PF_INET, node, &addr) > 0)
+	    family = PF_INET;
     }
+
+    if (family == PF_UNSPEC)
+	return RPC2_EAI_NONAME; 
 
     ai = addrinfo_init(family, &addr, port, hints);
     if (!ai)
