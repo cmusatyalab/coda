@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/res/resutil.cc,v 4.8 1998/10/30 18:29:50 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/res/resutil.cc,v 4.9 1998/11/02 16:45:12 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -179,11 +179,10 @@ long CheckResRetCodes(unsigned long *rc, unsigned long *rh,
 		    /* non rpc error - drop this host too */
 		    hosts[i] = 0;
 		    error = rc[i];
-		    addr.s_addr = rh[i];
-#ifndef __CYGWIN32__
+		    addr.s_addr = ntohl(rh[i]);
 		    SLog(0,  "CheckRetCodes: server %s returned error %d)",
 			 inet_ntoa(addr), rc[i]);
-#else
+#if 0  /* used to be for Cygwin */
 		    SLog(0,  "CheckRetCodes: server %s returned error  %d)",
 			 rh[i], rc[i]);
 #endif
