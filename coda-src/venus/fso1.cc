@@ -2033,7 +2033,7 @@ int fsobj::Fakeify()
 	    stat.VnodeType = SymbolicLink;
 
 	    /* "#@RRRRRRRRR." */
-	    if (!comp) realm = "failed to get rootvolume";
+	    if (!comp) realm = "";
 	    stat.Length = strlen(realm) + 3;
 	    data.symlink = (char *)rvmlib_rec_malloc(stat.Length+1);
 	    rvmlib_set_range(data.symlink, stat.Length+1);

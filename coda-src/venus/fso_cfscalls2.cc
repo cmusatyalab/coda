@@ -532,11 +532,6 @@ int fsobj::Lookup(fsobj **target_fso_addr, VenusFid *inc_fid, char *name, uid_t 
 get_object:
 	code = FSDB->Get(&target_fso, &target_fid, uid, status, name);
 
-	if (realm) {
-	    realm->PutRef();
-	    realm = NULL;
-	}
-
 	if (code) {
 	    if (code == EINCONS && inc_fid != 0) *inc_fid = target_fid;
 
@@ -547,7 +542,7 @@ get_object:
 	    if (code == ESYNRESOLVE && vol->IsReplicated())
 		((repvol *)vol)->ResSubmit(&((VprocSelf())->u.u_resblk), &fid);
 
-	    return(code);
+	    goto done;
 	}
 
 	/* Handle mount points. */
@@ -577,7 +572,7 @@ get_object:
 		code = target_fso->TryToCover(inc_fid, uid);
 		if (code == EINCONS || code == ERETRY) {
 		    FSDB->Put(&target_fso);
-		    return(code);
+		    goto done;
 		}
 		code = 0;
 		target_fso->DemoteLock();
@@ -596,7 +591,15 @@ get_object:
 	}
     }
 
+    code = 0;
     *target_fso_addr = target_fso;
+
+done:
+    if (realm) {
+	realm->PutRef();
+	realm = NULL;
+    }
+
     return(0);
 }
 

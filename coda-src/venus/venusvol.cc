@@ -590,20 +590,20 @@ int vdb::Get(volent **vpp, Realm *prealm, const char *name, fsobj *f)
 	realm->GetRef();
     }
 
+    /* If we're crossing a realm mountpoint and we don't know the name of the
+     * root volume, try to get it from the servers */
+    if (volname[0] == '\0' && realm != prealm) {
+	free(volname);
+	GetRootVolume(realm, &volname);
+    }
+
     /* Ivan Popov's suggestion, we just need to allow for long volume
      * names and have a realm relative GetPath implementation */
-    if (volname[0] == '\0' && realm == prealm) {
+    if (volname[0] == '\0') {
 	free(volname);
 	volname = (char *)malloc(MAXPATHLEN);
 	if (!volname) goto error_exit;
 	f->GetPath(volname, PATH_REALM);
-    }
-
-    /* "special" case? not everybody wants to use the pathname based volume
-     * name mapping and uses a rootvolume named "/" */
-    if (volname[0] == '\0') {
-	free(volname);
-	GetRootVolume(realm, &volname);
     }
 
     LOG(100, ("vdb::Get: volname = %s@%s\n", volname, realm->Name()));

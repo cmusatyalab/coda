@@ -244,15 +244,16 @@ void MarinerMux(fd_set *mask)
 
 void MarinerLog(const char *fmt, ...) {
     va_list ap;
-    char buf[180];
+    char buf[CODA_MAXNAMLEN+1];
     int len;
     mariner_iterator next;
     mariner *m;
 
     va_start(ap, fmt);
-    vsnprintf(buf, 180, fmt, ap);
+    vsnprintf(buf, CODA_MAXNAMLEN, fmt, ap);
     va_end(ap);
 
+    buf[CODA_MAXNAMLEN] = '\0';
     len = (int) strlen(buf);
 
     while ((m = next()))
