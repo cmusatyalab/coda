@@ -70,14 +70,13 @@ void SplitRealmFromName(char *name, char **realm)
 static void ResolveRootServers(char *servers, const char *service,
 			       struct RPC2_addrinfo **res)
 {
-    struct RPC2_addrinfo hints;
+    struct RPC2_addrinfo hints = {
+	.ai_family   = PF_INET,
+	.ai_socktype = SOCK_DGRAM,
+	.ai_protocol = IPPROTO_UDP,
+	.ai_flags    = RPC2_AI_CANONNAME,
+    };
     char *host;
-
-    memset(&hints, 0, sizeof(hints));
-    hints.ai_family   = PF_INET;
-    hints.ai_socktype = SOCK_DGRAM;
-    hints.ai_protocol = IPPROTO_UDP;
-    hints.ai_flags    = RPC2_AI_CANONNAME;
 
     while ((host = strtok(servers, ", \t\n")) != NULL)
     {
@@ -145,7 +144,12 @@ void GetRealmServers(const char *name, const char *service,
     }
 
     if (!found) {
-	struct RPC2_addrinfo hints;
+	struct RPC2_addrinfo hints = {
+	    .ai_family   = PF_INET,
+	    .ai_socktype = SOCK_DGRAM,
+	    .ai_protocol = IPPROTO_UDP,
+	    .ai_flags    = RPC2_AI_CANONNAME | CODA_AI_RES_SRV,
+	};
 
 #ifdef PF_INET6
 	/* As we expect only FQDNs, the name should contain at least one '.'
@@ -156,12 +160,6 @@ void GetRealmServers(const char *name, const char *service,
 #endif
 	    if (strchr(name, '.') == NULL)
 		return;
-
-	memset(&hints, 0, sizeof(hints));
-	hints.ai_family   = PF_INET;
-	hints.ai_socktype = SOCK_DGRAM;
-	hints.ai_protocol = IPPROTO_UDP;
-	hints.ai_flags    = RPC2_AI_CANONNAME | CODA_AI_RES_SRV;
 
 	coda_getaddrinfo(name, service, &hints, &results);
     }

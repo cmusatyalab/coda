@@ -81,7 +81,9 @@ int VCheckVLDB()
     struct vldbHeader header;
 
     VLog(19, "Checking VLDB...");
-    close(VLDB_fd);
+    if (VLDB_fd != -1)
+	close(VLDB_fd);
+
     VLDB_fd = open(VLDB_PATH, O_RDONLY, 0);
     if (VLDB_fd == -1) {
 	VLog(0, "VCheckVLDB:  could not open VLDB");

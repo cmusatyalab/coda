@@ -21,6 +21,12 @@
  *
  */
 
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
+
+#ifndef HAVE_SHA1_INIT
+
 #include <sys/types.h>
 #include <netinet/in.h>
 #include <string.h>
@@ -168,4 +174,4 @@ void SHA1_Final(unsigned char out[SHA_DIGEST_LENGTH], SHA_CTX *sctx)
 	/* Wipe context */
 	memset(sctx, 0, sizeof(*sctx));
 }
-
+#endif

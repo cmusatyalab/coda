@@ -113,23 +113,17 @@ AC_DEFUN(CODA_CHECK_FILE_LOCKING,
 
 dnl check for library providing md5 and sha160 checksumming
 AC_SUBST(LIBCRYPTO)
-AC_SUBST(MD5C)
-AC_SUBST(SHA1)
 AC_DEFUN(CODA_CHECK_HASH,
-  [AC_CHECK_HEADERS(openssl/md5.h openssl/sha.h)
-   saved_LIBS="$LIBS"
-   AC_SEARCH_LIBS(MD5_Init, crypto)
-   AC_SEARCH_LIBS(SHA1_Init, crypto)
-   if test "$ac_cv_search_MD5_Init" = "-lcrypto" -o "$ac_cv_search_SHA1_Init" = "-lcrypto"; then
-      LIBCRYPTO="-lcrypto"
+  [saved_LIBS="$LIBS"
+   if test "${CRYPTO}" = "yes" ; then
+     AC_CHECK_HEADERS(openssl/md5.h openssl/sha.h)
+     AC_SEARCH_LIBS(SHA1_Init, crypto)
+     if test "$ac_cv_search_SHA1_Init" = "-lcrypto"; then
+       LIBCRYPTO="-lcrypto"
+     fi
    fi
-   LIBS="$saved_LIBS"
-   if test "$ac_cv_search_MD5_Init" = "no"; then
-      MD5C="md5c.o"
-   fi
-   if test "$ac_cv_search_SHA1_Init" = "no"; then
-      SHA1="sha1.o"
-   fi])
+   AC_CHECK_FUNCS(MD5_Init SHA1_Init)
+   LIBS="$saved_LIBS"])
 
 AC_SUBST(LIBKRB4)
 AC_SUBST(LIBKRB5)
