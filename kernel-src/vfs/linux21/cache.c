@@ -232,15 +232,58 @@ int coda_cache_check(struct inode *inode, int mask)
 }
 
 
-/*   DCACHE & ZAPPING related stuff */
+/* Purging dentries and children */
+/* The following routines drop dentries which are not
+   in use and flag dentries which are in use to be 
+   zapped later.
 
-/* the following routines set flags in the inodes. They are 
-   detected by:
-   - a dentry method: coda_dentry_revalidate (for lookups)
-     if the flag is C_PURGE
+   The flags are detected by:
+   - coda_dentry_revalidate (for lookups) if the flag is C_PURGE
+   - coda_dentry_delete: to remove dentry from the cache when d_count
+     falls to zero
    - an inode method coda_revalidate (for attributes) if the 
-     flag is C_ATTR
+     flag is C_VATTR
 */
+
+/* 
+   Some of this is pretty scary: what can disappear underneath us?
+   - shrink_dcache_parent calls on purge_one_dentry which is safe:
+     it only purges children.
+   - dput is evil since it  may recurse up the dentry tree
+ */
+
+void coda_purge_dentries(struct inode *inode)
+{
+	struct list_head *tmp, *head = &inode->i_dentry;
+
+	if (!inode)
+		return ;
+
+	/* better safe than sorry: dput could kill us */
+	iget(inode->i_sb, inode->i_ino);
+	/* catch the dentries later if some are still busy */
+	coda_flag_inode(inode, C_PURGE);
+
+restart:
+	tmp = head;
+	while ((tmp = tmp->next) != head) {
+		struct dentry *dentry = list_entry(tmp, struct dentry, d_alias);
+		if (!dentry->d_count) {
+			CDEBUG(D_DOWNCALL, 
+			       "coda_free_dentries: freeing %s/%s, i_count=%d\n",
+			       dentry->d_parent->d_name.name, dentry->d_name.name, 
+			       inode->i_count);
+			dget(dentry);
+			d_drop(dentry);
+			dput(dentry);
+			goto restart;
+		}
+			
+	}
+	iput(inode);
+}
+
+/* this won't do any harm: just flag all children */
 static void coda_flag_children(struct dentry *parent, int flag)
 {
 	struct list_head *child;
@@ -250,41 +293,43 @@ static void coda_flag_children(struct dentry *parent, int flag)
 	while ( child != &parent->d_subdirs ) {
 		de = list_entry(child, struct dentry, d_child);
 		child = child->next;
-		if ( !de->d_inode ) {
-			d_drop(de); 
-			continue ;
-		}
-		coda_flag_inode(de->d_inode, flag);
+		/* don't know what to do with negative dentries */
+		if ( ! de->d_inode ) 
+			continue;
 		CDEBUG(D_DOWNCALL, "%d for %*s/%*s\n", flag, 
 		       de->d_name.len, de->d_name.name, 
 		       de->d_parent->d_name.len, de->d_parent->d_name.name);
+		coda_flag_inode(de->d_inode, flag);
 	}
 	return; 
 }
 
-
-void coda_flag_alias_children(struct inode *inode, int flag)
+void coda_purge_children(struct inode *inode)
 {
 	struct list_head *alias;
 	struct dentry *alias_de;
 
 	if ( !inode ) 
 		return; 
+
+	if (list_empty(&inode->i_dentry))
+	        return; 
+
+	/* I believe that shrink_dcache_parent will not
+	   remove dentries from the alias list. If it 
+	   does we are toast. 
+	*/
 	alias = inode->i_dentry.next; 
 	while ( alias != &inode->i_dentry ) {
 		alias_de = list_entry(alias, struct dentry, d_alias);
-		if ( !alias_de ) {
-			printk("Null alias list for inode %ld\n", inode->i_ino);
-			return;
-		}
-		coda_flag_children(alias_de, flag);
-#if 0  /* this is probably better, but I can't get it going */
-		d_drop(alias_de);
-#endif
-		alias= alias->next;
+		coda_flag_children(alias_de, C_PURGE);
+		shrink_dcache_parent(alias_de);
+		alias = alias->next;
 	}
+
 }
 
+/* this will not zap the inode away */
 void coda_flag_inode(struct inode *inode, int flag)
 {
 	struct coda_inode_info *cii;
@@ -293,14 +338,8 @@ void coda_flag_inode(struct inode *inode, int flag)
 		CDEBUG(D_CACHE, " no inode!\n");
 		return;
 	}
-#if 0
-	coda_flag_alias_children(inode, 0);
-#endif 
+
 	cii = ITOC(inode);
 	cii->c_flags |= flag;
 }		
-
-
-
-
 

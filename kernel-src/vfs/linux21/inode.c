@@ -48,7 +48,7 @@ static int coda_statfs(struct super_block *sb, struct statfs *buf,
 		       int bufsiz);
 
 /* helper functions */
-static inline struct vcomm *coda_psinode2vcomm(struct inode *inode);
+static struct vcomm *coda_psinode2vcomm(struct inode *inode);
 static int coda_get_psdev(void *, struct inode **);
 static struct coda_sb_info *coda_psinode2sbi(struct inode *inode);
 
@@ -223,7 +223,7 @@ static void coda_delete_inode(struct inode *inode)
         }
 	
 	coda_cache_clear_inode(inode);
-	CDEBUG(D_DOWNCALL, "clearing inode: %ld\n", inode->i_ino);
+	CDEBUG(D_DOWNCALL, "clearing inode: %ld, %x\n", inode->i_ino, cii->c_flags);
 	inode->u.generic_ip = NULL;
         clear_inode(inode);
 	EXIT;
@@ -291,7 +291,7 @@ int init_coda_fs(void)
 /* MODULE stuff is in psdev.c */
 
 /*  helpers */
-static inline struct vcomm *coda_psinode2vcomm(struct inode *inode) 
+static struct vcomm *coda_psinode2vcomm(struct inode *inode) 
 {
         
 	unsigned int minor = MINOR(inode->i_rdev);
