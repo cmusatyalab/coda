@@ -65,7 +65,7 @@ extern int cfsnc_nc_info(char *buffer, char **start, off_t offset, int length, i
 /* statistics */
 struct coda_upcallstats coda_callstats;
 int           coda_hard = 0;  /* introduces a timeout on upcalls */
-unsigned long coda_timeout = 10; /* .. secs, then signals will dequeue */
+unsigned long coda_timeout = 30; /* .. secs, then signals will dequeue */
 extern struct coda_sb_info coda_super_info[MAX_CODADEVS];
 struct vcomm psdev_vcomm[MAX_CODADEVS];
 
@@ -447,7 +447,7 @@ MODULE_AUTHOR("Peter J. Braam <braam@cs.cmu.edu>");
 int init_module(void)
 {
   int status;
-  printk(KERN_INFO "Coda Kernel/User communications module 1.0\n");
+  printk(KERN_INFO "Coda Kernel/User communications module 2.0\n");
 
   status = init_coda_psdev();
   if ( status ) {

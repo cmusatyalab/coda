@@ -19,7 +19,7 @@ BINDIR      =  $(prefix)/../lib/modules/`uname -r`/fs
 CBINS       =  coda.o
 CSBINS 	    =  ../linux/coda-debug ../linux/coda-trace
 EXECUTABLES =  coda.o
-OBJS        =  psdev.o cnode.o super.o dir.o file.o upcall.o coda_linux.o symlink.o pioctl.o cache.o sysctl.o 
+OBJS        =  psdev.o cnode.o inode.o dir.o file.o upcall.o coda_linux.o symlink.o pioctl.o cache.o sysctl.o 
 
 DEFINES =  -DMODULE  -DMODVERSIONS -Wstrict-prototypes -Wall -O2
 INCL    =  -I. -I/usr/src/linux/include  -I/usr/src/linux/include/linux/modversions.h

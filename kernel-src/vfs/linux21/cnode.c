@@ -15,8 +15,6 @@ extern int coda_print_entry;
 
 /* cnode.c */
 
-
-              
 static void coda_fill_inode (struct inode *inode, struct coda_vattr *attr)
 {
         CDEBUG(D_SUPER, "ino: %ld\n", inode->i_ino);
@@ -56,8 +54,8 @@ int coda_cnode_make(struct inode **inode, ViceFid *fid, struct super_block *sb)
         ENTRY;
 
         /* 
-         * We get inode numbers from Venus -- see venus source
-         */
+        * We get inode numbers from Venus -- see venus source
+	*/
 
 	error = venus_getattr(sb, fid, &attr);
 	if ( error ) {
@@ -79,7 +77,7 @@ int coda_cnode_make(struct inode **inode, ViceFid *fid, struct super_block *sb)
 		memset(cnp, 0, (int) sizeof(struct coda_inode_info));
 		cnp->c_fid = *fid;
 		cnp->c_magic = CODA_CNODE_MAGIC;
-		cnp->c_flags = C_VATTR;
+		cnp->c_flags = 0;
 		cnp->c_vnode = *inode;
 		INIT_LIST_HEAD(&(cnp->c_cnhead));
 		INIT_LIST_HEAD(&(cnp->c_volrootlist));
@@ -111,20 +109,51 @@ inline int coda_fideq(ViceFid *fid1, ViceFid *fid2)
 
  
 
-/* convert a fid to an inode. Avoids having a hash table
-   such as present in the Mach minicache */
+/* convert a fid to an inode. Mostly we can compute
+   the inode number from the FID, but not for volume
+   mount points: those are in a list */
 struct inode *coda_fid_to_inode(ViceFid *fid, struct super_block *sb) 
 {
 	ino_t nr;
 	struct inode *inode;
 	struct coda_inode_info *cnp;
-ENTRY;
+	ENTRY;
 
 	CDEBUG(D_INODE, "%s\n", coda_f2s(fid));
 
+	if ( !sb ) {
+		printk("coda_fid_to_inode: no sb!\n");
+		return NULL;
+	}
+
+	if ( !fid ) {
+		printk("coda_fid_to_inode: no fid!\n");
+		return NULL;
+	}
+
+
+	if ( coda_fid_is_volroot(fid) ) {
+		struct coda_inode_info *cii;
+		struct list_head *lh, *le;
+		struct coda_sb_info *sbi = coda_sbp(sb);
+		le = lh = &sbi->sbi_volroothead;
+
+		while ( (le = le->next) != lh ) {
+			cii = list_entry(le, struct coda_inode_info, 
+					 c_volrootlist);
+			if ( cii->c_fid.Volume == fid->Volume) {
+				inode = cii->c_vnode;
+				CDEBUG(D_INODE, "volume root, found %ld\n", cii->c_vnode->i_ino);
+				return cii->c_vnode;
+			}
+			
+		}
+		return NULL;
+	}
+
+	/* fid is not volume root, hence ino is computable */
 	nr = coda_f2i(fid);
 	inode = iget(sb, nr);
-
 	if ( !inode ) {
 		printk("coda_fid_to_inode: null from iget, sb %p, nr %ld.\n",
 		       sb, nr);
@@ -133,19 +162,25 @@ ENTRY;
 
 	/* check if this inode is linked to a cnode */
 	cnp = ITOC(inode);
-
 	if ( cnp->c_magic != CODA_CNODE_MAGIC ) {
+		CDEBUG(D_INODE, "uninitialized inode. Return.\n");
 		iput(inode);
 		return NULL;
 	}
 
-	/* make sure fid is the one we want */
-	if ( !coda_fideq(fid, &(cnp->c_fid)) ) {
+	/* make sure fid is the one we want; 
+	   unfortunately Venus will shamelessly send us mount-symlinks.
+	   These have the same inode as the root of the volume they
+	   mount, but the fid will be wrong. 
+	*/
+	if ( !coda_fideq(fid, &(cnp->c_fid)) && 
+	     !coda_fid_is_volroot(&(cnp->c_fid))) {
 		printk("coda_fid2inode: bad cnode! Tell Peter.\n");
 		iput(inode);
 		return NULL;
 	}
 
+	CDEBUG(D_INODE, "found %ld\n", inode->i_ino);
 	iput(inode);	
 	return inode;
 }

@@ -36,6 +36,7 @@ extern struct file_operations coda_ioctl_operations;
 int coda_open(struct inode *i, struct file *f);
 int coda_release(struct inode *i, struct file *f);
 int coda_permission(struct inode *inode, int mask);
+int coda_revalidate_inode(struct dentry *);
 
 /* global variables */
 extern int coda_debug;
@@ -43,10 +44,13 @@ extern int coda_print_entry;
 extern int coda_access_cache;
 
 /* this file:  heloers */
+static __inline__ struct ViceFid *coda_i2f(struct inode *);
 char *coda_f2s(ViceFid *f);
 int coda_isroot(struct inode *i);
 int coda_fid_is_volroot(struct ViceFid *);
 int coda_iscontrol(const char *name, size_t length);
+
+
 void coda_load_creds(struct coda_cred *cred);
 int coda_mycred(struct coda_cred *);
 void coda_vattr_to_iattr(struct inode *, struct coda_vattr *);
@@ -111,5 +115,19 @@ do {                                                                      \
 
 
 #define CODA_FREE(ptr,size) do {if (size < 3000) { kfree_s((ptr), (size)); CDEBUG(D_MALLOC, "kfreed: %x at %x.\n", (int) size, (int) ptr); } else { vfree((ptr)); CDEBUG(D_MALLOC, "vfreed: %x at %x.\n", (int) size, (int) ptr);} } while (0)
+
+/* inode to cnode */
+
+static __inline__ struct ViceFid *coda_i2f(struct inode *inode)
+{
+	return &(inode->u.coda_i.c_fid);
+}
+
+#define ITOC(inode) (&((inode)->u.coda_i))
+
+
+
+
+
 
 #endif

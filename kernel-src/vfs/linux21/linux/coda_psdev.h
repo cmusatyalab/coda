@@ -4,8 +4,6 @@
 #define CODA_PSDEV_MAJOR 67
 #define MAX_CODADEVS  5	   /* how many do we allow */
 
-#include <linux/config.h>
-
 extern struct vcomm psdev_vcomm[];
 
 /* queue stuff; the rest is static to psdev.c */
