@@ -42,7 +42,7 @@ extern "C" {
 #include <netdb.h>
 #include <fcntl.h>
 
-#include <rpc2.h>
+#include <rpc2/rpc2.h>
 #include <vice.h>
 
 #ifdef __cplusplus

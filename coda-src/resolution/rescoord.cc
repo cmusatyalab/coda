@@ -40,7 +40,7 @@ extern "C" {
 #include <stdio.h>
 #include <struct.h>
 #include <lwp/lwp.h>
-#include <rpc2.h>
+#include <rpc2/rpc2.h>
 #include <util.h>
 #include <codadir.h>
 #include "coda_string.h"
@@ -50,7 +50,7 @@ extern "C" {
 #endif __cplusplus
 
 #include <olist.h>
-#include <errors.h>
+#include <rpc2/errors.h>
 #include <srv.h>
 #include <inconsist.h>
 #include <vlist.h>

@@ -28,7 +28,7 @@ extern "C" {
 #include <stdlib.h>
 
 #include <stdio.h>
-#include <rpc2.h>
+#include <rpc2/rpc2.h>
 #include <inodeops.h>
 #include <codadir.h>
 #include <util.h>

@@ -36,7 +36,7 @@ extern "C" {
 #endif
 
 #include <stdio.h>
-#include <rpc2.h>
+#include <rpc2/rpc2.h>
 #include "coda_string.h"
 #ifdef __cplusplus
 }

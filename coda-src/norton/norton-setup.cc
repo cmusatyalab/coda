@@ -29,8 +29,8 @@ extern "C" {
 #include <sys/stat.h>
 
 #include <lwp/lwp.h>
-#include <rvm.h>
-#include <rds.h>
+#include <rvm/rvm.h>
+#include <rvm/rds.h>
 #include <rvmlib.h>
 #include <codadir.h>
 #include <partition.h>

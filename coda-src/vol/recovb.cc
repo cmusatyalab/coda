@@ -43,7 +43,7 @@ extern "C" {
 
 #include <lwp/lwp.h>
 #include <lwp/lock.h>
-#include <rpc2.h>
+#include <rpc2/rpc2.h>
 #include <util.h>
 
 #include <rvmlib.h>

@@ -86,7 +86,8 @@ extern "C" {
 
 #include <lwp/lwp.h>
 #include <lwp/lock.h>
-#include <rpc2.h>
+#include <rpc2/rpc2.h>
+#include <rpc2/errors.h>
 #include <util.h>
 #include <partition.h>
 #include <inodeops.h>
@@ -99,7 +100,6 @@ extern "C" {
 }
 #endif __cplusplus
 #include <voltypes.h>
-#include <errors.h>
 #include <cvnode.h>
 #include <volume.h>
 #include <srvsignal.h>

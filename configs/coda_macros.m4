@@ -246,13 +246,13 @@ AC_DEFUN(CODA_CHECK_SCANDIR,
 dnl ---------------------------------------------
 dnl Path leading to the lwp headers and library.
 
-AC_DEFUN(CODA_OPTION_LWP,
-  [AC_ARG_WITH(lwp-includes,
-    [  --with-lwp-includes	Location of the lwp include files],
+AC_DEFUN(CODA_OPTION_SUBSYS,
+  [AC_ARG_WITH($1-includes,
+    [  --with-$1-includes	Location of the $1 include files],
     [ CFLAGS="${CFLAGS} -I`(cd ${withval} ; pwd)`"
       CXXFLAGS="${CXXFLAGS} -I`(cd ${withval} ; pwd)`" ])
-   AC_ARG_WITH(lwp-library,
-    [  --with-lwp-library	Location of the lwp library files],
+   AC_ARG_WITH($1-library,
+    [  --with-$1-library	Location of the $1 library files],
     [ LDFLAGS="${LDFLAGS} -L`(cd ${withval} ; pwd)`" ])])
 
 dnl ---------------------------------------------
@@ -262,21 +262,25 @@ dnl	 /usr/lib /usr/local/lib /usr/pkg/lib ${prefix}/lib
 AC_DEFUN(CODA_FIND_LIB,
  [AC_CACHE_CHECK(location of lib$1, coda_cv_path_$1,
   [saved_CFLAGS="${CFLAGS}" ; saved_LDFLAGS="${LDFLAGS}" ; saved_LIBS="${LIBS}"
-   coda_cv_lwppath=none ; LIBS="-l$1"
-   for path in /usr /usr/local /usr/pkg ${prefix} ; do
-     CFLAGS="${CFLAGS} -I${path}/include"
-     LDFLAGS="${LDFLAGS} -L${path}/lib"
+   coda_cv_path_$1=none ; LIBS="-l$1 $4"
+   for path in default /usr /usr/local /usr/pkg ${prefix} ; do
+     if test ${path} != default ; then
+       CFLAGS="-I${path}/include ${CFLAGS}"
+       LDFLAGS="-L${path}/lib ${LDFLAGS}"
+     fi
      AC_TRY_LINK([$2], [$3], [coda_cv_path_$1=${path} ; break])
+     CFLAGS="${saved_CFLAGS}" ; LDFLAGS="${saved_LDFLAGS}"
    done
-   CFLAGS="${saved_CFLAGS}" ; LDFLAGS="${saved_LDFLAGS}" ; LIBS="${saved_LIBS}"
+   LIBS="${saved_LIBS}"
   ])
   case ${coda_cv_path_$1} in
     none) AC_MSG_ERROR("Cannot determine the location of lib$1")
           ;;
-    /usr) ;;
-    *)    CFLAGS="${CFLAGS} -I${coda_cv_path_$1}/include"
-          CXXFLAGS="${CXXFLAGS} -I${coda_cv_path_$1}/include"
-          LDFLAGS="${LDFLAGS} -L${coda_cv_path_$1}/lib"
+    default)
+	  ;;
+    *)    CFLAGS="-I${coda_cv_path_$1}/include ${CFLAGS}"
+          CXXFLAGS="-I${coda_cv_path_$1}/include ${CXXFLAGS}"
+          LDFLAGS="-L${coda_cv_path_$1}/lib ${LDFLAGS}"
           ;;
   esac])
 

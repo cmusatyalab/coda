@@ -77,10 +77,10 @@ extern "C" {
 
 #include <lwp/lwp.h>
 #include <lwp/lock.h>
-#include <rpc2.h>
+#include <rpc2/rpc2.h>
 #include <map.h>
 #include <portmapper.h>
-#include <se.h>
+#include <rpc2/se.h>
 extern void SFTP_SetDefaults (SFTP_Initializer *initPtr);
 extern void SFTP_Activate (SFTP_Initializer *initPtr);
 #include <vice.h>

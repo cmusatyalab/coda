@@ -59,8 +59,8 @@ extern "C" {
 #include <stdlib.h>
 
 #include <lwp/lwp.h>
-#include <rpc2.h>
-#include <se.h>
+#include <rpc2/rpc2.h>
+#include <rpc2/se.h>
 #include <util.h>
 #include <prs.h>
 #include "auth2.h"

@@ -31,7 +31,8 @@ extern "C" {
 #include <stdio.h>
 #include <unistd.h>
 #include <stdlib.h>
-#include <rpc2.h>
+#include <rpc2/rpc2.h>
+#include <rpc2/errors.h>
 #include <inodeops.h>
 #include <util.h>
 #include <rvmlib.h>
@@ -44,7 +45,6 @@ extern "C" {
 #endif __cplusplus
 
 #include <olist.h>
-#include <errors.h>
 #include <vcrcommon.h>
 #include <volume.h>
 #include <srv.h>

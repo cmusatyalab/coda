@@ -62,7 +62,7 @@ extern "C" {
 #include "coda_string.h"
 
 #include <lwp/lwp.h>
-#include <rpc2.h>
+#include <rpc2/rpc2.h>
 #include "auth2.h"
 #include "auser.h"
 #include <prs.h>

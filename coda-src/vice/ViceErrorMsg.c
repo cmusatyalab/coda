@@ -53,10 +53,10 @@ extern "C" {
 #endif
 
 #include <errno.h>
-#include <errors.h>
 #include "coda_string.h"
 
-#include <rpc2.h>
+#include <rpc2/rpc2.h>
+#include <rpc2/errors.h>
 
 #ifdef __cplusplus
 }

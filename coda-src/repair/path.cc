@@ -47,7 +47,7 @@ extern "C" {
 #include <netinet/in.h>
 #include "coda_string.h"
 #include <sys/stat.h>
-#include <rpc2.h>
+#include <rpc2/rpc2.h>
 #include <unistd.h>
 #include <stdlib.h>
 

@@ -66,7 +66,7 @@ extern "C" {
 
 #include <lwp/lwp.h>
 #include <pioctl.h> 
-#include <rpc2.h>
+#include <rpc2/rpc2.h>
 #include <util.h>
 #include "auth2.h"
 

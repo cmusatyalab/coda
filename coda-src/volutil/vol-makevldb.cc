@@ -68,7 +68,7 @@ extern "C" {
 #include <vldb.h>
 #include <vice.h>
 #include <srv.h>
-#include <errors.h>
+#include <rpc2/errors.h>
 #include <cvnode.h>
 #include <volume.h>
 #include <vutil.h>

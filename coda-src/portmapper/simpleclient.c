@@ -35,8 +35,8 @@ listed in the file CREDITS.
 #include "coda_string.h"
 
 #include <lwp/lwp.h>
-#include <rpc2.h>
-#include <se.h>
+#include <rpc2/rpc2.h>
+#include <rpc2/se.h>
 
 #include <ports.h>
 #include "portmapper.h"

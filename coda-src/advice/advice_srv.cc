@@ -48,7 +48,7 @@ extern "C" {
 #include <errno.h>
 #include <lwp/lwp.h>
 #include <lwp/lock.h>
-#include <rpc2.h>
+#include <rpc2/rpc2.h>
 
 
 extern int table(int id, int index, char *addr, int nel, int lel);

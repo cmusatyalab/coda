@@ -50,7 +50,7 @@ extern int nlist(const char*, struct nlist[]);
 #endif
 
     
-#include <rpc2.h>
+#include <rpc2/rpc2.h>
 
 #ifdef __cplusplus
 }

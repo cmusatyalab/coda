@@ -41,7 +41,7 @@ extern "C" {
 #include "coda_string.h"
 
 #include <lwp/lwp.h>
-#include <rpc2.h>
+#include <rpc2/rpc2.h>
 
 /* from vicedep */
 #include <admon.h>

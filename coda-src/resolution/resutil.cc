@@ -38,7 +38,8 @@ extern "C" {
 #include <netinet/in.h>
 #include "coda_assert.h"
 #include <stdio.h>
-#include <rpc2.h>
+#include <rpc2/rpc2.h>
+#include <rpc2/errors.h>
 #include <util.h>
 #include <rvmlib.h>
 
@@ -46,7 +47,6 @@ extern "C" {
 }
 #endif __cplusplus
 
-#include <errors.h>
 #include <srv.h>
 #include <codadir.h>
 #include <res.h>

@@ -20,7 +20,7 @@ listed in the file CREDITS.
 extern "C" {
 #endif __cplusplus
 #include <stdio.h>
-#include <rpc2.h>
+#include <rpc2/rpc2.h>
 #ifndef __CYGWIN32__
 #include <dirent.h>
 #endif

@@ -37,9 +37,9 @@ extern "C" {
 
 #include <stdarg.h>
 #include <stdio.h>
-#include <errors.h>
-#include <rpc2.h>
-#include <se.h>
+#include <rpc2/errors.h>
+#include <rpc2/rpc2.h>
+#include <rpc2/se.h>
 
 #ifdef __cplusplus
 }

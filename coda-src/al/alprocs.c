@@ -64,8 +64,8 @@ extern "C" {
 #include <stdarg.h>
 #include <util.h>
 
-#include <rpc2.h>
-#include <coda_assert.h>
+#include <rpc2/rpc2.h>
+#include "coda_assert.h"
 #ifdef __cplusplus
 }
 #endif __cplusplus

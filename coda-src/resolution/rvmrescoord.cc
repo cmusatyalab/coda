@@ -35,7 +35,8 @@ extern "C" {
 #include <stdio.h>
 #include <struct.h>
 #include <lwp/lwp.h>
-#include <rpc2.h>
+#include <rpc2/rpc2.h>
+#include <rpc2/errors.h>
 #include <util.h>
 #include <codadir.h>
 
@@ -44,7 +45,6 @@ extern "C" {
 #endif __cplusplus
 
 #include <olist.h>
-#include <errors.h>
 #include <res.h>
 #include <volume.h>
 #include <srv.h>

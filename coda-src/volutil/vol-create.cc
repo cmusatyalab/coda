@@ -56,7 +56,8 @@ extern "C" {
 
 #include <lwp/lwp.h>
 #include <lwp/lock.h>
-#include <rpc2.h>
+#include <rpc2/rpc2.h>
+#include <rpc2/errors.h>
 #include <util.h>
 #include <rvmlib.h>
 #include <codadir.h>
@@ -73,7 +74,6 @@ extern "C" {
 #include <voltypes.h>
 #include <cvnode.h>
 #include <volume.h>
-#include <errors.h>
 #include <viceinode.h>
 #include <vutil.h>
 #include <index.h>

@@ -39,7 +39,7 @@ extern "C" {
 #include <stdlib.h>
 
 #include <inodeops.h>
-#include <rpc2.h>
+#include <rpc2/rpc2.h>
 #include <signal.h>
 
 #include <vice.h>

@@ -49,8 +49,8 @@ extern "C" {
 
 #include <lwp/lwp.h>
 #include <lwp/lock.h>
-#include <rpc2.h>
-#include <se.h>
+#include <rpc2/rpc2.h>
+#include <rpc2/se.h>
 #include <rvmlib.h>
 #include <util.h>
 #include <vice.h> 

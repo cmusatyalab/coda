@@ -26,8 +26,8 @@ listed in the file CREDITS.
 
 #include <ports.h>
 #include <lwp/lwp.h>
-#include <rpc2.h>
-#include <se.h>
+#include <rpc2/rpc2.h>
+#include <rpc2/se.h>
 
 #include "portmapper.h"
 #include "map.h"

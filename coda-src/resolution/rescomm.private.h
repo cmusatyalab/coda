@@ -31,7 +31,7 @@ listed in the file CREDITS.
 extern "C" {
 #endif __cplusplus
 
-#include <dummy_cthreads.h>
+#include <cthreads.h>
 
 #ifdef __cplusplus
 }

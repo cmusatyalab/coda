@@ -29,14 +29,14 @@ extern "C" {
 #endif
 
 #include "coda_string.h"
-#include <rvm.h>
+#include <rvm/rvm.h>
 #include <unistd.h>
 #include <stdlib.h>
 
 #include <setjmp.h>
 #include <lwp/lwp.h>
 
-#include <rds.h>
+#include <rvm/rds.h>
 #include <util.h>
 
 #ifdef __cplusplus

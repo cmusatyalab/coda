@@ -225,9 +225,7 @@ cd /usr/lib/coda
 /usr/sbin/purgevol
 /usr/sbin/purgevol_rep
 /usr/sbin/pwdtopdbtool.py
-/usr/sbin/rdsinit
 /usr/sbin/rpc2portmap
-/usr/sbin/rvmutl
 /usr/sbin/startserver
 /usr/sbin/updatesrv
 /usr/sbin/updateclnt
@@ -240,7 +238,6 @@ cd /usr/lib/coda
 /usr/sbin/vice-setup-scm
 /usr/sbin/vice-setup-ports
 /usr/sbin/volutil
-/usr/bin/filcon
 /usr/bin/norton
 /usr/bin/norton-reinit
 /usr/bin/reinit
@@ -259,4 +256,3 @@ cd /usr/lib/coda
 /usr/sbin/updateclnt
 /usr/sbin/updatefetch
 /usr/sbin/volutil
-/usr/bin/filcon

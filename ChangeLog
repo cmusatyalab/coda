@@ -1,3 +1,27 @@
+2000-02-04    <jaharkes@cs.cmu.edu>
+        * ======== Release 5.3.5 =========
+        * Lots of fixes for Solaris sparc & i386 (Phil Nelson).
+        * CML entries were not frozen during trickle reintegration and repair
+        * sessions. This lead to problems with failed backfetches, bad
+          reintegrations of owrite files, and crashes during log optimizations.
+        * cfs rmm didn't inform the kernel that the directory was gone.
+        * Broken inet_aton check in configure caused gethostbyname crashes on
+          FreeBSD (Shafeeq).
+        * New code-paths in sftp (as of the last release) turned up some bugs.
+        * Shadowing the container file `V0' copied its contents to `V0',
+          actually losing the data during the copy (Shafeeq).
+        * Moved default location of venus.log to /usr/coda/etc.
+        * Fixed double free of sftp packets on disk errors.
+        * Fixed up missing shadow files and making backups of owrite files to
+          /usr/coda/spool during venus startup/recovery.
+        * cfs forcereintegrate should now work correctly (Shafeeq).
+        * Bad COP2 handling lead to undetected server-server conflicts.
+        * Several weak-reintegration problems fixed.
+        * Weak reintegration marked the wrong objects as needing resolution.
+        * Repair didn't freeze CML entries during reintegration, and failed to
+          correctly copy filedata when preserving a store operation.
+	* -mapprivate flag for norton (Phil Nelson).
+
 1999-12-31    <jaharkes@cs.cmu.edu>
 	* ======== Release 5.3.4 =========
 	* Recursive (blocked) RPC2 calls were never woken, was a cause for

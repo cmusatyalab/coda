@@ -37,8 +37,9 @@ extern "C" {
 #include <stdlib.h>
 #include <struct.h>
 #include <inodeops.h>
-#include <rpc2.h>
-#include <se.h>
+#include <rpc2/rpc2.h>
+#include <rpc2/se.h>
+#include <rpc2/errors.h>
 #include <util.h>
 #include <rvmlib.h>
 #include "coda_string.h"
@@ -49,7 +50,6 @@ extern "C" {
 
 
 #include <olist.h>
-#include <errors.h>
 #include <vcrcommon.h>
 #include <volume.h>
 #include <srv.h>

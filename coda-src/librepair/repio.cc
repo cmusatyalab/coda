@@ -73,7 +73,7 @@ extern "C" {
 #include <unistd.h>
 #include <stdlib.h>
 #include <prs.h>
-#include <rpc2.h>
+#include <rpc2/rpc2.h>
 
 #ifdef __cplusplus
 }

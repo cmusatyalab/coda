@@ -37,7 +37,7 @@ listed in the file CREDITS.
 
 #include <lwp/lwp.h>
 #include <lwp/lock.h>
-#include <rvm.h>
+#include <rvm/rvm.h>
 #include <rvmlib.h>
 #include <util.h>
 #include <parser.h>

@@ -41,7 +41,8 @@ extern "C" {
 
 #include <stdio.h>
 #include <struct.h>
-#include "rpc2.h"
+#include <rpc2/rpc2.h>
+#include <rpc2/errors.h>
 
 #include <sys/ioctl.h>
 #include <util.h>
@@ -53,7 +54,6 @@ extern "C" {
 
 
 #include <olist.h>
-#include <errors.h>
 #include <res.h>
 #include <vrdb.h>
 #include <srv.h>

@@ -36,7 +36,7 @@ extern "C" {
 
 #include <lwp/lwp.h>
 #include <lwp/lock.h>
-#include <errors.h>
+#include <rpc2/errors.h>
 #include <util.h>
 #include <codadir.h>
 #include <prs.h>

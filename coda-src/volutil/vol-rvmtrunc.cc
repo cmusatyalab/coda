@@ -31,8 +31,8 @@ extern "C" {
 
 #include <lwp/lwp.h>
 #include <lwp/lock.h>
-#include <rpc2.h>
-#include <rvm.h>
+#include <rpc2/rpc2.h>
+#include <rvm/rvm.h>
 #include <volutil.h>
 
 #ifdef __cplusplus

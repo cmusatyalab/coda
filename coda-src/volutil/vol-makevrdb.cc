@@ -45,7 +45,7 @@ extern "C" {
 #include <voltypes.h>
 #include <vrdb.h>
 #include <vice.h>
-#include <errors.h>
+#include <rpc2/errors.h>
 #include <cvnode.h>
 #include <volume.h>
 

@@ -34,7 +34,8 @@ extern "C" {
 #include <netinet/in.h>
 #include <stdio.h>
 #include "coda_string.h"
-#include <rpc2.h>
+#include <rpc2/rpc2.h>
+#include <rpc2/errors.h>
 #include <util.h>
 #include <rvmlib.h>
 #include <util.h>
@@ -43,7 +44,6 @@ extern "C" {
 }
 #endif __cplusplus
 
-#include <errors.h>
 #include <res.h>
 #include <volume.h>
 #include <srv.h>

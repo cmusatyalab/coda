@@ -34,7 +34,7 @@ extern "C" {
 #endif __cplusplus
 
 #include <stdio.h>
-#include <rpc2.h>
+#include <rpc2/rpc2.h>
 #include <rvmlib.h>
 
 #ifdef __cplusplus

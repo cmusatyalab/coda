@@ -43,8 +43,8 @@ extern "C" {
 #include <inodeops.h>
 #include "coda_string.h"
 
-#include <rpc2.h>
-#include <se.h>
+#include <rpc2/rpc2.h>
+#include <rpc2/se.h>
 #include <util.h>
 #include <rvmlib.h>
 #include <callback.h>
@@ -101,7 +101,7 @@ extern void PollAndYield();
 extern "C" {
 #endif __cplusplus
 
-#include "multi.h"
+#include <rpc2/multi.h>
 extern void unpack(ARG *, PARM *, PARM **, long);
 extern void unpack_struct(ARG *, PARM **, PARM **, long);
 

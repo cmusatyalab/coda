@@ -48,7 +48,7 @@ extern "C" {
 #endif
 #include <pwd.h>
 
-#include <rpc2.h>
+#include <rpc2/rpc2.h>
 /* interfaces */
 #include <auth2.h>
 #include <vice.h>

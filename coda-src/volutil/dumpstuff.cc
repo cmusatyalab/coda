@@ -58,6 +58,7 @@ extern "C" {
 
 #include <lwp/lwp.h>
 #include <lwp/lock.h>
+#include <rpc2/errors.h>
 
 #ifdef __cplusplus
 }
@@ -66,7 +67,6 @@ extern "C" {
 #include <util.h>
 #include <vice.h>
 #include <voltypes.h>
-#include <errors.h>
 #include <cvnode.h>
 #include <volume.h>
 #include <partition.h>

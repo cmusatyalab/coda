@@ -156,7 +156,7 @@ extern "C" {
 #include <stdlib.h>
 #include <netdb.h>
 
-#include <rpc2.h>
+#include <rpc2/rpc2.h>
 /* interfaces */
 #include <vice.h>
 

@@ -66,7 +66,8 @@ extern "C" {
 
 #include <lwp/lwp.h>
 #include <lwp/lock.h>
-#include <rpc2.h>
+#include <rpc2/rpc2.h>
+#include <rpc2/errors.h>
 #include <util.h>
 #include <rvmlib.h>
 #include <partition.h>
@@ -81,7 +82,6 @@ extern "C" {
 }
 #endif __cplusplus
 
-#include <errors.h>
 #include <voltypes.h>
 #include <vsg.h>
 #include <vrdb.h>

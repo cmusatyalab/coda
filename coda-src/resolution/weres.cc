@@ -27,7 +27,7 @@ extern "C" {
 #include <stdio.h>
 #include <sys/types.h>
 #include <sys/time.h>
-#include <rpc2.h>
+#include <rpc2/rpc2.h>
 #include <util.h>
 #include <rvmlib.h>
 

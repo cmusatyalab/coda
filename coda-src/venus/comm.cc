@@ -58,11 +58,10 @@ extern "C" {
 #endif
 #include <setjmp.h>
 
-#include <rpc2.h>
-#include <se.h>
-#include <fail.h>
-
-#include <errors.h>
+#include <rpc2/rpc2.h>
+#include <rpc2/se.h>
+#include <rpc2/fail.h>
+#include <rpc2/errors.h>
 
 extern int Fcon_Init(); 
 extern void SFTP_SetDefaults (SFTP_Initializer *initPtr);
@@ -75,11 +74,6 @@ extern void SFTP_Activate (SFTP_Initializer *initPtr);
 #ifdef __cplusplus
 }
 #endif __cplusplus
-
-
-
-/* from vol */
-#include <errors.h>
 
 /* from vv */
 #include <inconsist.h>

@@ -40,7 +40,7 @@ extern "C" {
 #include <stdlib.h>
 
 #include <lwp/lwp.h>
-#include <rpc2.h>
+#include <rpc2/rpc2.h>
 #include <util.h>
 #include "mond.h"
 #include "vice.h"

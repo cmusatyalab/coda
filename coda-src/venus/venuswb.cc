@@ -32,8 +32,8 @@ extern "C" {
 #include <unistd.h>
 #include <stdlib.h>
 
-#include <rpc2.h>
-#include <se.h>
+#include <rpc2/rpc2.h>
+#include <rpc2/se.h>
 
 extern void rpc2_PrintSEDesc(SE_Descriptor *, FILE *);
 /* interfaces */

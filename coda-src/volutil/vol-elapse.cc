@@ -29,7 +29,7 @@ extern "C" {
 #include <unistd.h>
 #include <stdlib.h>
 
-#include <rpc2.h>
+#include <rpc2/rpc2.h>
 #include <volutil.h>
 #ifdef __cplusplus
 }

@@ -47,7 +47,7 @@ extern "C" {
 #include <camprivate.h>
 #include <coda_globals.h>
 
-#include <rvm.h>
+#include <rvm/rvm.h>
 #include "norton.h"
 
 void usage(char * name) {

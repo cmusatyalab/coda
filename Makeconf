@@ -54,7 +54,7 @@ vpath %.rpc2 $(INCLPATH)
 # Location of objects
 ##############################
 
-RP2GEN=../rp2gen/rp2gen
+RP2GEN := rp2gen
 
 ##############################
 # Machine independent FLAGS
@@ -93,16 +93,19 @@ LIBLWP = -llwp
 LIBREADLINE = -lreadline
 
 # -- RVM --
-LIBRVM= $(TOPOBJ)/rvm-src/rvm/librvm.a
-LIBRDS= $(TOPOBJ)/rvm-src/rds/librds.a	 		
-LIBSEG= $(TOPOBJ)/rvm-src/seg/libseg.a 			
+LIBRVM := -lrvm
+LIBRDS := -lrds
+LIBSEG := -lseg
 # with threads
-LIBRVMLWP = $(TOPOBJ)/rvm-src/rvm/librvmlwp.a
-LIBRDSLWP = $(TOPOBJ)/rvm-src/rds/librdslwp.a
+LIBRVMLWP := -lrvmlwp
+LIBRDSLWP := -lrdslwp
+
+# -- RPC2 --
+LIBRPC2 := -lrpc2
+LIBSE   := -lse
+LIBFAIL := -lfail
 
 # -- CODA --
-LIBCODARVM = $(LIBRVMLWP)
-LIBCODARDS = $(LIBRDSLWP)
 LIBKERNDEP =../kerndep/libkerndep.a   # --- (pioctl, setpag)
 LIBAUTH2 =../auth2/libauth2.a
 LIBAL = ../al/libal.a
@@ -113,10 +116,7 @@ LIBVOLSERV =../volutil/libvolserv.a
 LIBVV = ../vv/libvv.a
 LIBREPAIR =../librepair/librepair.a
 LIBUTIL =../util/libutil.a
-LIBRPC2 =../rpc2/librpc2.a
 LIBPORTMAP =../portmapper/libportmap.a
-LIBSE =../rpc2/libse.a
-LIBFAIL =../fail/libfail.a
 LIBRES =../resolution/libres.a
 LIBDIRLIB= ../dir/libdir.a
 LIBNDIRLIB= ../ndir/libcodadir.a
@@ -138,3 +138,4 @@ VOLUTIL_RPC2 = ../vicedep/volutil.rpc2
 RES_RPC2 = ../vicedep/res.rpc2
 ADMON_RPC2 = ../vicedep/admon.rpc2
 ADSRV_RPC2 = ../vicedep/adsrv.rpc2
+

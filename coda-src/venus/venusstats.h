@@ -38,7 +38,7 @@ listed in the file CREDITS.
 extern "C" {
 #endif __cplusplus
 
-#include <rpc2.h>
+#include <rpc2/rpc2.h>
 #include <vice.h>
 
 #ifdef __cplusplus

@@ -31,7 +31,7 @@ extern "C" {
 #include <stdio.h>
 #include <stdarg.h>
 #include "coda_string.h"
-#include <rpc2.h>
+#include <rpc2/rpc2.h>
 #ifdef __cplusplus
 }
 #endif __cplusplus

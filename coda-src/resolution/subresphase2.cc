@@ -24,7 +24,7 @@ listed in the file CREDITS.
 extern "C" {
 #endif __cplusplus
 #include <stdio.h>
-#include <rpc2.h>
+#include <rpc2/rpc2.h>
 #include <util.h>
 #include <vcrcommon.h>
 #include <res.h>

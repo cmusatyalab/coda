@@ -62,7 +62,8 @@ extern "C" {
 #include <struct.h>
 #include <lwp/lwp.h>
 #include <lwp/lock.h>
-#include <rpc2.h>
+#include <rpc2/rpc2.h>
+#include <rpc2/errors.h>
 #include <util.h>
 #include <codadir.h>
 #include <inodeops.h>
@@ -80,7 +81,6 @@ extern "C" {
 #include <cvnode.h>
 #include <volume.h>
 #include <camprivate.h>
-#include <errors.h>
 #include <recov.h>
 #include <dump.h>
 #include <fssync.h>

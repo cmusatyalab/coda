@@ -59,7 +59,7 @@ extern "C" {
 #include <struct.h>
 #include <netdb.h>
 
-#include <errors.h>
+#include <rpc2/errors.h>
 
 #ifdef __cplusplus
 }

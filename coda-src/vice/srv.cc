@@ -72,11 +72,10 @@ extern "C" {
 #include <ports.h>
 #include <lwp/lwp.h>
 #include <lwp/timer.h>
-#include <rpc2.h>
-#include <sftp.h>
-#include <rpc2.private.h>
-#include <fail.h>
-#include <fcon.h>
+#include <rpc2/rpc2.h>
+#include <rpc2/sftp.h>
+#include <rpc2/fail.h>
+#include <rpc2/fcon.h>
 #include <partition.h>
 #include <util.h>
 #include <rvmlib.h>
@@ -97,7 +96,7 @@ extern int Fcon_Init();
 #ifdef __cplusplus
 extern "C" {
 #endif __cplusplus
-#include <rvm_statistics.h>
+#include <rvm/rvm_statistics.h>
 
 
 #include <prs.h>

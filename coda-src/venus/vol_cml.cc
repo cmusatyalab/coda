@@ -47,9 +47,9 @@ extern "C" {
 #endif
 
 #include <lwp/lock.h>
-#include <rpc2.h>
-#include <se.h>
-#include <multi.h>
+#include <rpc2/rpc2.h>
+#include <rpc2/se.h>
+#include <rpc2/multi.h>
 
 /* from dir */
 #include <codadir.h>

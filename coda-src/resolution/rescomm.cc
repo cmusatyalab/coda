@@ -47,7 +47,8 @@ extern "C" {
 #include "coda_string.h"
 
 #include <lwp/lwp.h>
-#include <rpc2.h>
+#include <rpc2/rpc2.h>
+#include <rpc2/errors.h>
 
 #ifdef __cplusplus
 }
@@ -58,7 +59,6 @@ extern "C" {
 #endif
 
 #include <util.h>
-#include <errors.h>
 #include <srv.h>
 #include <vsg.h>
 #include "rescomm.private.h"

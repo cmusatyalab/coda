@@ -27,7 +27,7 @@ listed in the file CREDITS.
 #include <stdio.h>
 #include <stdlib.h>
 #include "coda_string.h"
-#include <rpc2.h>
+#include <rpc2/rpc2.h>
 #include "auth2.h"
 #include "tokenfile.h"
 

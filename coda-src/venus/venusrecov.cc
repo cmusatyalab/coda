@@ -44,10 +44,10 @@ extern "C" {
 #include <fcntl.h>
 
 /* from rvm */
-#include <rds.h>
-#include <rvm.h>
-#include <rvm_segment.h>
-#include <rvm_statistics.h>
+#include <rvm/rds.h>
+#include <rvm/rvm.h>
+#include <rvm/rvm_segment.h>
+#include <rvm/rvm_statistics.h>
 
 #include "coda_mmap_anon.h"
 

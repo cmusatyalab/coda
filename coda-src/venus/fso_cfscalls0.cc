@@ -38,8 +38,8 @@ extern "C" {
 #include <stdlib.h>
 #include <fcntl.h>
 
-#include <rpc2.h>
-#include <se.h>
+#include <rpc2/rpc2.h>
+#include <rpc2/se.h>
 /* interfaces */
 #include <vice.h>
 

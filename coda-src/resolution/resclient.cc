@@ -40,7 +40,7 @@ extern "C" {
 #endif
 
 #include <lwp/lwp.h>
-#include <rpc2.h>
+#include <rpc2/rpc2.h>
 #include <inodeops.h>
 #include <util.h>
 #include <codadir.h>
@@ -54,7 +54,7 @@ extern "C" {
 #include <lockqueue.h>
 #include <cvnode.h>
 #include <olist.h>
-#include <errors.h>
+#include <rpc2/errors.h>
 #include <srv.h>
 #include <vlist.h>
 #include <operations.h>

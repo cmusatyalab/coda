@@ -222,7 +222,6 @@ EOF
     if [ x${pkg} = xserver ]
     then
 	cat >> ${dst} << EOF
-bin/filcon
 bin/norton
 bin/norton-reinit
 bin/reinit
@@ -243,10 +242,8 @@ sbin/printvrdb
 sbin/purgevol
 sbin/purgevol_rep
 sbin/pwdtopdbtool.py
-sbin/rdsinit
 sbin/readdump
 sbin/rpc2portmap
-sbin/rvmutl
 sbin/startserver
 sbin/tape.pl
 sbin/updateclnt

@@ -49,9 +49,9 @@ extern "C" {
 extern int nlist(const char*, struct nlist[]);
 #endif
 
-#include <rpc2.h>
-#include <rds.h>
-#include <rvm.h>
+#include <rpc2/rpc2.h>
+#include <rvm/rds.h>
+#include <rvm/rvm.h>
 #include <coda_opstats.h>
 
 /* interfaces */

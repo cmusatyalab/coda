@@ -12,7 +12,9 @@ sinclude(configs/coda_cross.m4)
 dnl Load the CODA_ tests.
 sinclude(configs/coda_macros.m4)
 
-CODA_OPTION_LWP
+CODA_OPTION_SUBSYS(lwp)
+CODA_OPTION_SUBSYS(rvm)
+CODA_OPTION_SUBSYS(rpc2)
 
 dnl Checks for programs.
 AC_PROG_CC
@@ -41,6 +43,8 @@ RM="${RM} -f"
 
 dnl Checks for libraries.
 CODA_FIND_LIB(lwp, [#include <lwp/lwp.h>], [LWP_Init(0,0,0)])
+CODA_FIND_LIB(rvm, [#include <rvm/rvm.h>], [rvm_initialize(0,0)])
+CODA_FIND_LIB(rpc2, [#include <rpc2/rpc2.h>], [RPC2_Init(0,0,0,0,0)], -llwp)
 CODA_FIND_LIB(readline, [#include <stdio.h>
 #include <readline/readline.h>], [readline((char *)0)])
 
@@ -96,24 +100,16 @@ lib-src/Makefile
 lib-src/base/Makefile
 lib-src/kernel-includes/Makefile 
 lib-src/special-includes/Makefile 
-rvm-src/Makefile 
-rvm-src/rvm/Makefile 
-rvm-src/seg/Makefile 
-rvm-src/rds/Makefile 
-rvm-src/tests/Makefile 
 coda-src/Makefile 
 coda-src/scripts/Makefile 
 coda-src/scripts/vutil 
 coda-src/kerndep/Makefile 
 coda-src/partition/Makefile 
 coda-src/dir/Makefile  
-coda-src/rpc2/Makefile 
 coda-src/portmapper/Makefile 
 coda-src/util/Makefile 
 coda-src/al/Makefile 
-coda-src/rp2gen/Makefile 
 coda-src/blurb/Makefile 
-coda-src/fail/Makefile 
 coda-src/vicedep/Makefile  
 coda-src/auth2/Makefile 
 coda-src/vv/Makefile 

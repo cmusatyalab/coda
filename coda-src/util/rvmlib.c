@@ -30,7 +30,7 @@ extern "C" {
 
 #include <setjmp.h>
 #include <stdio.h>
-#include <rds.h>
+#include <rvm/rds.h>
 #include "util.h"
 #include "rvmlib.h"
 

@@ -37,7 +37,7 @@ extern "C" {
 #include <machine/endian.h>
 #endif
 
-#include <rpc2.h>
+#include <rpc2/rpc2.h>
 
 #ifdef __cplusplus
 }

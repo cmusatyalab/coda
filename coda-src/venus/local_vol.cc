@@ -27,7 +27,7 @@ extern "C" {
 
 #include <struct.h>
 
-#include <errors.h>
+#include <rpc2/errors.h>
 
 #ifdef __cplusplus
 }

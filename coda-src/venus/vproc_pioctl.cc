@@ -41,8 +41,8 @@ extern "C" {
 
 #include <auth2.h>
 #include <prs.h>
-#include <rpc2.h>
-#include <fail.h>
+#include <rpc2/rpc2.h>
+#include <rpc2/fail.h>
 
 #ifdef __cplusplus
 }

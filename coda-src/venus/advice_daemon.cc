@@ -28,7 +28,7 @@ extern "C" {
 #include <netdb.h>
 
 /* from rvm */
-#include <rds.h>
+#include <rvm/rds.h>
 
 #ifdef __cplusplus
 }

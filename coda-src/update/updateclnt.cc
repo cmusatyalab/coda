@@ -75,9 +75,9 @@ extern "C" {
 #include <lwp/lwp.h>
 #include <lwp/lock.h>
 #include <lwp/timer.h>
-#include <rpc2.h>
-#include <se.h>
-#include "sftp.h"
+#include <rpc2/rpc2.h>
+#include <rpc2/se.h>
+#include <rpc2/sftp.h>
 #include <map.h>
 #include <portmapper.h>
 #include <vice.h>

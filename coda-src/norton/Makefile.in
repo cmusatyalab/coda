@@ -39,9 +39,9 @@ DEPLIBS = $(LIBAUTH2)	\
 	$(LIBSYSENT)	\
 	$(LIBDIRLIB)	\
 	$(LIBUTIL) 	\
-	$(LIBCODARDS) 	\
+	$(LIBRDSLWP) 	\
 	$(LIBSEG) 	\
-	$(LIBCODARVM) 	\
+	$(LIBRVMLWP) 	\
 	$(LIBRPC2) 	\
 	$(LIBBASE)
 

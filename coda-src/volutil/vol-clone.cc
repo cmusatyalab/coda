@@ -63,7 +63,7 @@ extern "C" {
 #include <struct.h>
 #include <lwp/lwp.h>
 #include <lwp/lock.h>
-#include <rpc2.h>
+#include <rpc2/rpc2.h>
 #include <inodeops.h>
 #include <util.h>
 #include <rvmlib.h>
@@ -71,7 +71,7 @@ extern "C" {
 
 #include <volutil.h>
 #include <vice.h>
-#include <errors.h>
+#include <rpc2/errors.h>
 #include <partition.h>
 #ifdef __cplusplus
 }

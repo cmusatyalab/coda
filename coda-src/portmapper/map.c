@@ -30,7 +30,7 @@ listed in the file CREDITS.
 
 #include <lwp/lwp.h>
 #include <ports.h>
-#include <rpc2.h>
+#include <rpc2/rpc2.h>
 #include "portmapper.h"
 #include "map.h"
 

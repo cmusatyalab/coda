@@ -20,7 +20,7 @@ listed in the file CREDITS.
 
 #include <sys/param.h>
 #include <netinet/in.h>
-#include <rpc2.h>
+#include <rpc2/rpc2.h>
 #include "portmapper.h"
 #include "map.h"
 

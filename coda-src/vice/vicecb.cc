@@ -61,7 +61,7 @@ extern "C" {
 #include <stdio.h>
 #include "coda_string.h"
 
-#include <rpc2.h>
+#include <rpc2/rpc2.h>
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netdb.h>

@@ -39,7 +39,7 @@ extern "C" {
 
 #include <lwp/lock.h>
 #include <lwp/lwp.h>
-#include <rpc2.h>
+#include <rpc2/rpc2.h>
 #include <adsrv.h>
 #include <admon.h>
 #include <util.h>

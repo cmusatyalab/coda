@@ -36,7 +36,6 @@ extern "C" {
 
 #include "coda_assert.h"
 #include <ctype.h>
-#include <fail.h>
 #include <netdb.h>
 #include <netinet/in.h>
 #include <stdio.h>
@@ -46,8 +45,8 @@ extern "C" {
 #include <ports.h>
 
 
-#include <rpc2.h>
-#include <fail.h>
+#include <rpc2/rpc2.h>
+#include <rpc2/fail.h>
 
 extern void ntohFF(FailFilter *);
 extern void htonFF(FailFilter *);

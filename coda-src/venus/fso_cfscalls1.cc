@@ -41,7 +41,7 @@ extern "C" {
 #include <sys/types.h>
 #include <sys/file.h>
 
-#include <rpc2.h>
+#include <rpc2/rpc2.h>
 /* interfaces */
 #include <vice.h>
 
