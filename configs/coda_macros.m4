@@ -94,7 +94,7 @@ dnl All coda-servers _must_ use the same library, otherwise certain databases
 dnl cannot be replicated.
 AC_SUBST(LIBDB)
 AC_DEFUN(CODA_CHECK_LIBDB185,
- [AC_CHECK_HEADERS(db_185.h)
+ [AC_CHECK_HEADERS([db1/db.h db_185.h])
   coda_save_LIBS="$LIBS"
   AC_SEARCH_LIBS(dbopen, [db1 db],
    dnl found dbopen somewhere
