@@ -5,7 +5,7 @@
 # Peter J. Braam, Dec 1996
 # included suggestions from Elliot Lee, may 1997.
 #
-# Usage: venus-setup comma,separated,list,of,servers cachesize-in-kb
+# Usage: venus-setup default-realm-name cachesize-in-kb
 #
 # the script will verify that the necessary directories and /etc/services
 # are present.
@@ -16,17 +16,17 @@ OS=`uname -s | cut -c1-5`
 
 if [ $OS = CYGWI ] ; then
     if [ $# != 3 ]; then
-	echo "Usage: $0 comma,separated,list,of,servers cachesize-in-kb drive-letter"
+	echo "Usage: $0 default-realm-name cachesize-in-kb drive-letter"
 	exit 1
     fi
 else
     if [ $# != 1 -a $# != 2 ]; then
-	echo "Usage: $0 comma,separated,list,of,servers [cachesize-in-kb]"
+	echo "Usage: $0 default-realm-name [cachesize-in-kb]"
 	exit 1
     fi
 fi
 
-SERVERS=$1
+REALM=$1
 if [ x$2 != x ] ; then
     CACHESIZE=$2
 else
@@ -49,7 +49,7 @@ fi
 #restart=0
 #[ ! -f /etc/coda/venus.conf ] && restart=1
 
-codaconfedit venus.conf rootservers $SERVERS
+codaconfedit venus.conf realm $REALM
 codaconfedit venus.conf cacheblocks $CACHESIZE
 
 #if [ $restart = 1 ] ; then
