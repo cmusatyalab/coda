@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/vol_repair.cc,v 4.6 98/09/15 14:28:07 jaharkes Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/vol_repair.cc,v 4.7 98/10/07 19:53:41 jaharkes Exp $";
 #endif /*_BLURB_*/
 
 
@@ -648,18 +648,11 @@ int volent::LocalRepair(fsobj *f, ViceStatus *status, char *fname, ViceFid *pfid
     /* now store the new contents of the file */
     {
 	f->data.file = &f->cf;
-#ifndef DJGPP
-	int srcfd = open(fname, O_RDONLY, 0644/*XXX*/);
-#else
 	int srcfd = open(fname, O_RDONLY | O_BINARY, 0644/*XXX*/);
-#endif
 	ASSERT(srcfd);
 	LOG(100, ("LocalRepair: Going to open %s\n", f->data.file->Name()));
-#ifndef DJGPP
-	int tgtfd = open(f->data.file->Name(), O_RDWR | O_TRUNC, 0644/*XXX*/);
-#else
-	int tgtfd = open(f->data.file->Name(), O_RDWR | O_TRUNC | O_BINARY, 0644/*XXX*/);
-#endif
+	int tgtfd = open(f->data.file->Name(),
+			 O_WRONLY | O_TRUNC | O_BINARY, 0644/*XXX*/);
 	ASSERT(tgtfd>0);
 	char buf[512];
 	int rc;

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/venusrecov.cc,v 4.14 1998/10/05 17:15:14 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/venusrecov.cc,v 4.15 98/10/06 21:44:32 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -449,11 +449,8 @@ static void Recov_InitRVM() {
 		   VenusLogDevice, VenusLogDeviceSize);
 
 	    int fd = 0;
-#ifndef DJGPP
-	    if ((fd = open(VenusDataDevice, O_WRONLY | O_CREAT | O_TRUNC, 0600)) < 0)
-#else
-	    if ((fd = open(VenusDataDevice, O_WRONLY | O_CREAT | O_TRUNC | O_BINARY, 0600)) < 0)
-#endif
+	    if ((fd = open(VenusDataDevice,
+			   O_WRONLY | O_CREAT | O_TRUNC | O_BINARY, 0600)) < 0)
 		Choke("Recov_InitRVM: create of (%s) failed (%d)",
 		    VenusDataDevice, errno);
 	    {
