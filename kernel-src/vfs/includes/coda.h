@@ -144,7 +144,7 @@ typedef struct ViceFid {
 
 
 #ifdef __linux__
-extern __inline__ ino_t  coda_f2i(struct ViceFid *fid)
+extern inline ino_t  coda_f2i(struct ViceFid *fid)
 {
 	if ( ! fid ) 
 		return 0; 
