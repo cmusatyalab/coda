@@ -119,3 +119,60 @@ void DispatchDaemons() {
     }
 }
 
+/* helper functions to create a simple daemon thread */
+class Daemon : protected vproc {
+public:
+    char sync;
+
+    Daemon(char *name, PROCBODY function, int interval, int stacksize);
+    ~Daemon();
+
+private:
+    PROCBODY function;
+    int interval;
+
+    void main(void);
+};
+
+
+Daemon::Daemon(char *name, PROCBODY f, int i, int stacksize) :
+    vproc(name, NULL, VPT_Daemon, stacksize)
+{
+    function = f;
+    interval = i;
+
+    start_thread();
+}
+
+Daemon::~Daemon() {}
+
+void Daemon::main(void)
+{
+    VprocYield(); /* make sure our parent is waiting for us */
+    VprocSignal(&sync);
+
+    RegisterDaemon(interval, &sync);
+
+    while(1) {
+	VprocWait(&sync);
+	
+	LOG(10, ("%s: running\n", name));
+
+	START_TIMING();
+	function();
+	END_TIMING();
+
+	LOG(10, ("%s: elapsed = %3.1f\n", name, elapsed));
+
+	seq++;
+    }
+}
+
+
+/* helper to run trivial daemon threads */
+void FireAndForget(char *name, PROCBODY function, int interval, int stack)
+{
+    Daemon *d = new Daemon(name, function, interval, stack);
+    VprocWait(&d->sync);
+}
+

@@ -1062,14 +1062,14 @@ V_FreeLocks:
 			*clearlen != (int)sizeof(ClearToken))
 			{ u.u_error = EINVAL; break; }
 */
-		    Realm *r = REALMDB->GetRealm(realmp);
 		    userent *ue;
-		    GetUser(&ue, r->Id(), CRTORUID(u.u_cred));
-		    u.u_error = ue->SetTokens(secretp, clearp)
-		      ? 0
-		      : EPERM;
+		    Realm *realm = REALMDB->GetRealm(realmp);
+		    GetUser(&ue, realm, CRTORUID(u.u_cred));
+		    u.u_error = 0;
+		    if (!ue->SetTokens(secretp, clearp))
+			u.u_error = EPERM;
 		    PutUser(&ue);
-		    r->PutRef();
+		    realm->PutRef();
 #undef	secretlen
 #undef	secretp
 #undef	clearlen
@@ -1088,12 +1088,12 @@ V_FreeLocks:
 #define clearlen ((long *)(secretp + 1))
 #define clearp ((ClearToken *)(clearlen + 1))
 #define endp ((char *)(clearp + 1)) 
-		    Realm *r = REALMDB->GetRealm(data->in);
 		    userent *ue;
-		    GetUser(&ue, r->Id(), CRTORUID(u.u_cred));	   
+		    Realm *realm = REALMDB->GetRealm(data->in);
+		    GetUser(&ue, realm, CRTORUID(u.u_cred));	   
 		    u.u_error = (int) ue->GetTokens(secretp, clearp);
 		    PutUser(&ue);
-		    r->PutRef();
+		    realm->PutRef();
 		    if (u.u_error) break;
 
 		    *secretlen = (int)sizeof(SecretToken);
@@ -1109,12 +1109,12 @@ V_FreeLocks:
 
 		case VIOCUNLOG:
 		    {
-		    Realm *r = REALMDB->GetRealm(data->in);
 		    userent *ue;
-		    GetUser(&ue, r->Id(), CRTORUID(u.u_cred));
+		    Realm *realm = REALMDB->GetRealm(data->in);
+		    GetUser(&ue, realm, CRTORUID(u.u_cred));
 		    ue->Invalidate();
 		    PutUser(&ue);
-		    r->PutRef();
+		    realm->PutRef();
 
 		    break;
 		    }
@@ -1294,12 +1294,12 @@ V_FreeLocks:
 		     * cooperation with the kernel, which I don't want to mess
 		     * with now.  So instead, we will set it on a per-user
 		     * basis (at least for now). */
-		    Realm *r = REALMDB->GetRealm((char *)data->in+sizeof(int));
 		    userent *ue;
-		    GetUser(&ue, r->Id(), CRTORUID(u.u_cred));
+		    Realm *realm = REALMDB->GetRealm((char *)data->in+sizeof(int));
+		    GetUser(&ue, realm, CRTORUID(u.u_cred));
 		    ue->SetWaitForever(on);
 		    PutUser(&ue);
-		    r->PutRef();
+		    realm->PutRef();
 
 		    break;
 		    }

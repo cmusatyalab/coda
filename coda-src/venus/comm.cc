@@ -1040,9 +1040,11 @@ int srvent::Connect(RPC2_Handle *cidp, int *authp, vuid_t vuid, int Force)
     Xbinding = 1;
     {
 	userent *u = 0;
-	GetUser(&u, realmid, vuid);
+	Realm *realm = REALMDB->GetRealm(realmid);
+	GetUser(&u, realm, vuid);
 	code = u->Connect(cidp, authp, &host);
 	PutUser(&u);
+	realm->PutRef();
     }
     Xbinding = 0;
     Srvr_Signal();

@@ -25,17 +25,16 @@ listed in the file CREDITS.
 #ifndef _PERSISTENT_H_
 #define _PERSISTENT_H_
 
+#error "Only use this as a template!"
+/* RVM doesn't cooperate nicely with inheritance and virtual functions */
+
 #include <rvmlib.h>
 #include <venusrecov.h>
 #include <coda_assert.h>
-#include "rec_dllist.h"
 
 class PersistentObject {
-protected:
-     unsigned int rec_refcount;
-/*T*/unsigned int refcount;
-
 public:
+    /* MUST be called from within a transaction */
     void *operator new(size_t size)
     {
 	void *p = rvmlib_rec_malloc(size);
@@ -43,11 +42,13 @@ public:
 	return p;
     }
 
+    /* MUST be called from within a transaction */
     void operator delete(void *p, size_t size)
     {
 	rvmlib_rec_free(p);
     }
 
+    /* MUST be called from within a transaction */
     PersistentObject(void)
     {
 	RVMLIB_REC_OBJECT(rec_refcount);
@@ -55,29 +56,29 @@ public:
 	refcount = 1;
     }
 
-    ~PersistentObject(void)
+    virtual ~PersistentObject(void)
     {
 	CODA_ASSERT(!rec_refcount && refcount <= 1);
     }
 	
-    void ResetTransient(void)
+    /* MAY be called from within a transaction */
+    virtual void ResetTransient(void)
     {
 	refcount = 0;
-	/* no RVM references anymore, delayed destruction. Only works right
-	 * when this is a virtual function, but we have a problem storing C++
-	 * objects with virtual functions in RVM */
-	if (!rec_refcount)
+	/* If there are no RVM references anymore, delayed destruction. */
+	if (rvmlib_in_transaction() && !rec_refcount)
 	    delete this;
     }
 
+    /* MUST be called from within a transaction */
     void Rec_GetRef(void)
     {
-	/* Assume we already have a 'volatile' refcount on this object */
 	RVMLIB_REC_OBJECT(rec_refcount);
 	rec_refcount++;
     }
 
-    void Rec_PutRef(void)
+    /* MUST be called from within a transaction */
+    virtual void Rec_PutRef(void)
     {
 	CODA_ASSERT(rec_refcount);
 	RVMLIB_REC_OBJECT(rec_refcount);
@@ -91,7 +92,8 @@ public:
 	refcount++;
     }
 
-    void PutRef(void)
+    /* MAY be called from within a transaction */
+    virtual void PutRef(void)
     {
 	CODA_ASSERT(refcount);
 	refcount--;
@@ -100,11 +102,13 @@ public:
 	 * otherwise we'll destroy ourselves later during ResetTransient,
 	 * or when a reference is regained and then dropped in a transaction.
 	 */
-	if (rvmlib_in_transaction()) {
-	    if (!refcount && !rec_refcount)
-		delete this;
-	}
+	if (rvmlib_in_transaction() && !refcount && !rec_refcount)
+	    delete this;
     }
+
+private:
+     unsigned int rec_refcount;
+/*T*/unsigned int refcount;
 };
 
 #endif /* _PERSISTENT_H_ */

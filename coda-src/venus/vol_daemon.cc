@@ -188,10 +188,6 @@ void vdb::GetDown()
             }
         }
     }
-
-    /* throw out empty realms */
-    REALMDB->GetDown();
-
     Recov_EndTrans(0);
 }
 

@@ -19,7 +19,7 @@ listed in the file CREDITS.
 #ifndef _REALMDB_H_
 #define _REALMDB_H_
 
-#include "persistent.h"
+#include <rvmlib.h>
 #include "realm.h"
 
 /* special realm used for local 'fake' volumes */
@@ -29,26 +29,43 @@ extern Realm *LocalRealm;
 /* persistent reference to the RealmDB object */
 #define REALMDB (rvg->recov_REALMDB)
 
-class RealmDB : protected PersistentObject {
+class RealmDB {
     friend void RealmDBInit(void);
     friend class fsobj; // Fakeify
 
 public:
+    /* MUST be called from within a transaction */
+    void *operator new(size_t size)
+    {
+	void *p = rvmlib_rec_malloc(size);
+	CODA_ASSERT(p);
+	return p;
+    }
+
+    /* MUST be called from within a transaction */
+    void operator delete(void *p, size_t size)
+    {
+	rvmlib_rec_free(p);
+    }
+
+    /* MUST be called from within a transaction */
     RealmDB(void);
     ~RealmDB(void);
 
+    /* MAY be called from within a transaction */
     void ResetTransient(void);
 
     Realm *GetRealm(const char *realm);
     Realm *GetRealm(const RealmId realmid);
 
+    /* MUST NOT be called from within a transaction */
     void GetDown(void);
 
     void print(FILE *f);
     void print(void) { print(stdout); }
 
 private:
-    struct dllist_head realms;
+     struct dllist_head realms;
 };
 
 void RealmDBInit(void);

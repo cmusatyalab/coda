@@ -19,52 +19,52 @@ listed in the file CREDITS.
 #ifndef _REALM_H_
 #define _REALM_H_
 
-#include "persistent.h"
+#include <sys/types.h>
+#include <rvmlib.h>
+#include <coda_assert.h>
+#include "venusfid.h"
 
 class connent;
 
-class Realm : public PersistentObject {
+class Realm {
     friend class RealmDB;
     friend class fsobj; // Fakeify
 
 public:
-    Realm(const char *realm);
-    ~Realm(void);
+    void *operator new(size_t size) { /*T*/
+	void *p = rvmlib_rec_malloc(size);
+	CODA_ASSERT(p);
+	return p;
+    }
+    void operator delete(void *p, size_t size) { rvmlib_rec_free(p); } /*T*/
+
+    Realm(const char *realm);	/*T*/
+    ~Realm(void);		/*T*/
 
     void ResetTransient(void);
 
-    int GetAdmConn(connent **cpp);
+    void Rec_GetRef(void) {	/*T*/
+	RVMLIB_REC_OBJECT(rec_refcount);
+	rec_refcount++;
+    }
+    void Rec_PutRef(void);	/*T*/
+    void GetRef(void) { refcount++; }
+    void PutRef(void);
 
     const char *Name(void) { return name; }
     const RealmId Id(void) { return (RealmId)this; }
+
+    /* MUST NOT be called from within a transaction */
+    int GetAdmConn(connent **cpp); /*N*/
+
     void print(FILE *f);
 
-    /* RVM and virtual methods == bang, so we have to do some things here */
-    void Rec_PutRef(void) {
-	CODA_ASSERT(rec_refcount);
-	RVMLIB_REC_OBJECT(rec_refcount);
-	rec_refcount--;
-	if (!refcount && !rec_refcount)
-	    delete this;
-    }
-    void PutRef(void)
-    {
-	CODA_ASSERT(refcount);
-	refcount--;
-	/*
-	 * Only destroy the object if we happen to be in a transaction,
-	 * otherwise we'll destroy ourselves later during ResetTransient,
-	 * or when a reference is regained and then dropped in a transaction.
-	 */
-	if (rvmlib_in_transaction()) {
-	    if (!refcount && !rec_refcount)
-		delete this;
-	}
-    }
 private:
     char *name;
     struct dllist_head realms;
+    unsigned int rec_refcount;
 
+/*T*/unsigned int refcount;
 /*T*/struct coda_addrinfo *rootservers;
 };
 

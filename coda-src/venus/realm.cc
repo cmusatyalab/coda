@@ -39,6 +39,7 @@ extern "C" {
 #include "comm.h"
 #include "parse_realms.h"
 
+/* MUST be called from within a transaction */
 Realm::Realm(const char *realm_name)
 {
     int len = strlen(realm_name) + 1;
@@ -49,30 +50,26 @@ Realm::Realm(const char *realm_name)
     rvmlib_set_range(name, len);
     strcpy(name, realm_name);
 
+    RVMLIB_REC_OBJECT(rec_refcount);
+    rec_refcount = 0;
+
     rec_list_head_init(&realms);
 
     rootservers = NULL;
+    refcount = 1;
 
     eprint("Created realm '%s'", name);
 }
 
-void Realm::ResetTransient(void)
-{
-    rootservers = NULL;
-
-    /* this might destroy the object, so it has to be called last */
-    /* Dang, only works right when it is a virtual function, but we have a
-     * problem storing C++ objects with virtual functions in RVM */
-    //PersistentObject::ResetTransient();
-    
-    refcount = 0;
-}
-
+/* MUST be called from within a transaction */
 Realm::~Realm(void)
 {
     struct dllist_head *p;
     VenusFid Fid;
     fsobj *f;
+
+    CODA_ASSERT(!rec_refcount && refcount <= 1);
+
     eprint("Removing realm '%s'", name);
     
     rec_list_del(&realms);
@@ -82,30 +79,57 @@ Realm::~Realm(void)
     }
     rvmlib_rec_free(name); 
 
-    Fid.Realm = LocalRealm->Id();
-    Fid.Volume = FakeRootVolumeId;
+    Realm *localrealm = REALMDB->GetRealm(LOCALREALM);
 
-    /* kill the fake object that represented our mountlink */
+    /* kill the fake object that represents our mountlink */
+
+    Fid.Realm = localrealm->Id();
+    Fid.Volume = FakeRootVolumeId;
     Fid.Vnode = 0xfffffffc;
     Fid.Unique = Id();
+
+    localrealm->PutRef();
+
     f = FSDB->Find(&Fid);
     if (f) f->Kill();
 }
 
-void Realm::print(FILE *f)
+/* MAY be called from within a transaction */
+void Realm::ResetTransient(void)
 {
-    struct coda_addrinfo *p;
-    int i = 0;
+    rootservers = NULL;
+    refcount = 0;
 
-    fprintf(f, "%08x realm '%s', refcount %d/%d\n", Id(), Name(),
-	    refcount, rec_refcount);
-    for (p = rootservers; p; p = p->ai_next) {
-	struct sockaddr_in *sin = (struct sockaddr_in *)p->ai_addr;
-	fprintf(f, "\t%s\n", inet_ntoa(sin->sin_addr)); 
-    }
+    if (rvmlib_in_transaction() && !rec_refcount)
+	delete this;
+}
+
+/* MUST be called from within a transaction */
+void Realm::Rec_PutRef(void)
+{
+    CODA_ASSERT(rec_refcount);
+    RVMLIB_REC_OBJECT(rec_refcount);
+    rec_refcount--;
+    if (!refcount && !rec_refcount)
+	delete this;
+}
+
+/* MAY be called from within a transaction */
+void Realm::PutRef(void)
+{
+    CODA_ASSERT(refcount);
+    refcount--;
+    /*
+     * Only destroy the object if we happen to be in a transaction,
+     * otherwise we'll destroy ourselves later during ResetTransient,
+     * or when a reference is regained and then dropped in a transaction.
+     */
+    if (rvmlib_in_transaction() && !refcount && !rec_refcount)
+	delete this;
 }
 
 /* Get a connection to any server (as root). */
+/* MUST NOT be called from within a transaction */
 int Realm::GetAdmConn(connent **cpp)
 {
     struct coda_addrinfo *p;
@@ -115,7 +139,7 @@ int Realm::GetAdmConn(connent **cpp)
 
     LOG(100, ("GetAdmConn: \n"));
 
-    if (this == LocalRealm)
+    if (STREQ(name, LOCALREALM))
 	return ETIMEDOUT;
 
     *cpp = 0;
@@ -149,13 +173,16 @@ retry:
 	case EINTR:
 	    /* We might have discovered a new realm */
 	    if (unknown) {
+		Realm *localrealm;
 		VenusFid Fid;
 		fsobj *f;
 
+		localrealm = REALMDB->GetRealm(LOCALREALM);
 		Fid.Realm = LocalRealm->Id();
 		Fid.Volume = FakeRootVolumeId;
 		Fid.Vnode = 1;
 		Fid.Unique = 1;
+		localrealm->PutRef();
 
 		f = FSDB->Find(&Fid);
 		if (f) {
@@ -179,5 +206,18 @@ retry:
 	goto retry;
     }
     return ETIMEDOUT;
+}
+
+void Realm::print(FILE *f)
+{
+    struct coda_addrinfo *p;
+    int i = 0;
+
+    fprintf(f, "%08x realm '%s', refcount %d/%d\n", Id(), Name(),
+	    refcount, rec_refcount);
+    for (p = rootservers; p; p = p->ai_next) {
+	struct sockaddr_in *sin = (struct sockaddr_in *)p->ai_addr;
+	fprintf(f, "\t%s\n", inet_ntoa(sin->sin_addr)); 
+    }
 }
 

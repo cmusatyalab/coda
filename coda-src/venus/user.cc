@@ -77,33 +77,25 @@ void UserInit() {
     USERD_Init();
 }
 
-userent *FindUser(RealmId realm, vuid_t vuid)
-{
-    user_iterator next;
-    userent *u;
-
-    while ((u = next()))
-	if (realm == u->realmid && vuid == u->uid)
-	    return(u);
-
-    return(NULL);
-}
-
-void GetUser(userent **upp, RealmId realm, vuid_t vuid)
+void GetUser(userent **upp, Realm *realm, vuid_t vuid)
 {
     LOG(100, ("GetUser: uid = %x.%d\n", realm, vuid));
 
-    userent *u = FindUser(realm, vuid);
-    if (u) {
-	*upp = u;
-	return;
+    user_iterator next;
+    userent *u;
+
+    while ((u = next())) {
+	if (realm == u->realm && vuid == u->uid)
+	    break;
     }
 
-    /* Create a new entry and initialize it. */
-    u = new userent(realm, vuid);
+    if (!u) {
+	/* Create a new entry and initialize it. */
+	u = new userent(realm, vuid);
 
-    /* Stick it in the table. */
-    userent::usertab->insert(&u->tblhandle);
+	/* Stick it in the table. */
+	userent::usertab->insert(&u->tblhandle);
+    }
 
     *upp = u;
 }
@@ -214,11 +206,12 @@ int ConsoleUser(vuid_t user)
 #endif
 }
 
-userent::userent(RealmId realm, vuid_t userid)
+userent::userent(Realm *r, vuid_t userid)
 {
     LOG(100, ("userent::userent: uid = %d\n", userid));
 
-    realmid = realm;
+    r->GetRef();
+    realm = r;
     uid = userid;
     tokensvalid = 0;
     told_you_so = 0;
@@ -237,6 +230,7 @@ int userent::operator=(userent& u) { abort(); return(0); }
 userent::~userent() {
     LOG(100, ("userent::~userent: uid = %d\n", uid));
     Invalidate();
+    realm->PutRef();
 }
 
 long userent::SetTokens(SecretToken *asecret, ClearToken *aclear) {

@@ -247,9 +247,10 @@ void VolInit()
     VDB->Create(LocalRealm, &LocalVol, "CodaRoot")->hold();
 
     /* update the global 'rootfid' variable */
-    rootfid.Realm = LocalRealm->Id();
+    rootfid.Realm  = LocalRealm->Id();
     rootfid.Volume = FakeRootVolumeId;
-    FID_MakeRoot(MakeViceFid(&rootfid));
+    rootfid.Vnode  = 0x1;
+    rootfid.Unique = 0x1;
 
     /* Fake repair volume to expand objects in conflict during repair */
     LocalVol.Vid = FakeRepairVolumeId;
@@ -1310,7 +1311,7 @@ void volent::TakeTransition()
      *    un-zombied. */
     if (nextstate == Logging && rv->GetCML()->count() > 0) {
 	userent *u = 0;
-	GetUser(&u, rv->GetRealmId(), rv->GetCML()->Owner());
+	GetUser(&u, rv->realm, rv->GetCML()->Owner());
 	if (!u->TokensValid()) {
 	    rv->SetReintegratePending();
 	    nextstate = Emulating;
@@ -1640,7 +1641,7 @@ void repvol::ClearReintegratePending() {
     flags.reintegratepending = 0;
     /* if (SkkEnabled) {
      *    userent *u;
-     *    GetUser(&u, CML.owner);
+     *    GetUser(&u, realm, CML.owner);
      *    CODA_ASSERT(u != NULL);
      *    u->NotifyReintegrationEnabled(name);
      * } */
@@ -1652,7 +1653,7 @@ void repvol::CheckReintegratePending() {
         eprint("Reintegrate %s pending tokens for uid = %d", name, CML.owner);
 	/* if (SkkEnabled) {
          *    userent *u;
-         *    GetUser(&u, CML.owner);
+         *    GetUser(&u, realm, CML.owner);
          *    CODA_ASSERT(u != NULL);
          *    u->NotifyReintegrationPending(name);
 	 * } */

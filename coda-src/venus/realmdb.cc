@@ -16,6 +16,7 @@ listed in the file CREDITS.
 
 #*/
 
+#include "rec_dllist.h"
 #include "realmdb.h"
 #include "fso.h"
 
@@ -41,7 +42,6 @@ void RealmDB::ResetTransient(void)
     int nrealms = 0;
 
     eprint("Starting RealmDB scan");
-    PersistentObject::ResetTransient();
 
     for(p = realms.next; p != &realms;) {
 	realm = list_entry(p, Realm, realms);
@@ -98,6 +98,7 @@ Realm *RealmDB::GetRealm(const RealmId realmid)
     return NULL;
 }
 
+/* MUST NOT be called from within a transaction */
 void RealmDB::GetDown(void)
 {
     struct dllist_head *p;
@@ -106,8 +107,13 @@ void RealmDB::GetDown(void)
     for(p = realms.next; p != &realms;) {
 	realm = list_entry(p, Realm, realms);
 	p = p->next;
-	realm->GetRef();
-	realm->PutRef();
+
+	if (!realm->refcount && !realm->rec_refcount) {
+	    Recov_BeginTrans();
+	    realm->GetRef();
+	    realm->PutRef();
+	    Recov_EndTrans(MAXFP);
+	}
     }
 }
 
@@ -126,16 +132,23 @@ void RealmDB::print(FILE *f)
     fprintf(f, "*** END RealmDB ***\n");
 }
 
+static void RealmDB_GetDown(void)
+{
+    REALMDB->GetDown();
+}
+
 void RealmDBInit(void)
 {
     if (InitMetaData) {
 	Recov_BeginTrans();
 	RVMLIB_REC_OBJECT(REALMDB);
 	REALMDB = new RealmDB;
-	REALMDB->Rec_GetRef();
 	Recov_EndTrans(0);
     }
     REALMDB->ResetTransient();
+
+    /* clean up unreferenced realms about once every 15 minutes */
+    FireAndForget("RealmDaemon", RealmDB_GetDown, 15 * 60);
 }
 
 int FID_IsLocalFake(VenusFid *fid)

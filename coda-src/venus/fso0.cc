@@ -712,7 +712,7 @@ RestartFind:
 		    char path[MAXPATHLEN];
 		    
 		    f->GetPath(path,1);
-		    GetUser(&u, f->vol->GetRealmId(), vuid);
+		    GetUser(&u, f->vol->realm, vuid);
 		    CODA_ASSERT(u != NULL);
 		    PutUser(&u);
 
@@ -945,7 +945,7 @@ RestartFind:
         /* check that ASR time interval has expired */
 #if 0
         userent *u;
-        GetUser(&u, f->vol->GetRealmId(), vuid);
+        GetUser(&u, f->vol->realm, vuid);
 #endif
         struct timeval tv;
         gettimeofday(&tv, 0);

@@ -587,7 +587,7 @@ void hdb::RequestHoardWalkAdvice() {
     }
 
     /* Ensure that we can request advice and that the user is running an advice monitor */
-    GetUser(&u, SolicitAdvice);
+    GetUser(&u, realm, SolicitAdvice);
     CODA_ASSERT(u != NULL);
     if (!SkkEnabled) {
         LOG(200, ("ADMON STATS:  HW Advice NOT enabled.\n"));

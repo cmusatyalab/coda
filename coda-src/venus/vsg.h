@@ -37,17 +37,18 @@ class mgrpent;
 
 class vsgent : private RefCountedObject {
     friend class vsgdb;
+    friend class mgrpent;
 
 private:
     unsigned int nhosts; /* number of replica servers in this VSG */
     struct in_addr hosts[VSG_MEMBERS];  /* hosts in this VSG */
     struct dllist_head mgrpents;        /* list of mgroups for this VSG */
-    RealmId realm;
+    RealmId realmid;
 
 protected:
     struct dllist_head vsgs; /* list of all vsgents */
 
-    vsgent(struct in_addr Hosts[VSG_MEMBERS], RealmId realm);
+    vsgent(struct in_addr Hosts[VSG_MEMBERS], RealmId realmid);
     ~vsgent(void);
 
     int CmpHosts(struct in_addr Hosts[VSG_MEMBERS]) {
@@ -62,7 +63,6 @@ public:
     void Put(void) { PutRef(); }
 
     int GetMgrp(mgrpent **m, vuid_t vuid, int auth = 1);
-    RealmId Realm(void) { return realm; }
     void KillMgrps(void);
     void KillUserMgrps(vuid_t vuid);
     void KillMgrpMember(struct in_addr *);

@@ -20,6 +20,7 @@ listed in the file CREDITS.
 #include "mgrp.h"
 #include "user.h"
 #include "vsg.h"
+#include "realmdb.h"
 
 vsgdb *VSGDB;
 
@@ -28,7 +29,7 @@ unsigned int vsgent::allocs = 0;
 unsigned int vsgent::deallocs = 0;
 #endif
 
-vsgent::vsgent(struct in_addr Hosts[VSG_MEMBERS], RealmId realmid)
+vsgent::vsgent(struct in_addr Hosts[VSG_MEMBERS], RealmId id)
 {
     LOG(10, ("vsgent::vsgent %p %08x %08x %08x %08x %08x %08x %08x %08x\n",
              this, Hosts[0], Hosts[1], Hosts[2], Hosts[3],
@@ -36,7 +37,7 @@ vsgent::vsgent(struct in_addr Hosts[VSG_MEMBERS], RealmId realmid)
 
     int i;
 
-    realm = realmid;
+    realmid = id;
     nhosts = 0;
     for (i = 0; i < VSG_MEMBERS; i++) {
         hosts[i] = Hosts[i];
@@ -110,9 +111,12 @@ try_again:
         struct in_addr mgrpaddr;
         mgrpaddr.s_addr = INADDR_ANY; /* Request to form an mgrp */
 
+	Realm *realm = REALMDB->GetRealm(realmid);
+	CODA_ASSERT(realm);
         GetUser(&u, realm, vuid);
         code = u->Connect(&MgrpHandle, &auth, &mgrpaddr);
         PutUser(&u);
+	realm->PutRef();
 
         if (code < 0)
             CHOKE("vsgent::GetMgrp: bogus code (%d) from u->Connect", code);
@@ -215,7 +219,7 @@ vsgdb::~vsgdb(void)
     CODA_ASSERT(list_empty(&vsgents));
 }
 
-vsgent *vsgdb::GetVSG(struct in_addr hosts[VSG_MEMBERS], RealmId realm)
+vsgent *vsgdb::GetVSG(struct in_addr hosts[VSG_MEMBERS], RealmId realmid)
 {
     LOG(10, ("vsgdb::GetVSG %08x %08x %08x %08x %08x %08x %08x %08x\n",
              hosts[0], hosts[1], hosts[2], hosts[3],
@@ -234,7 +238,7 @@ vsgent *vsgdb::GetVSG(struct in_addr hosts[VSG_MEMBERS], RealmId realm)
     }
 
     /* no matches found, create a new VSG */
-    v = new vsgent(hosts, realm);
+    v = new vsgent(hosts, realmid);
     if (v) list_add(&v->vsgs, &vsgents);
 
     return v;

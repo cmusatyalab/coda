@@ -51,8 +51,7 @@ extern "C" {
 
 class userent {
   friend void UserInit();
-  friend userent *FindUser(RealmId, vuid_t);
-  friend void GetUser(userent **, RealmId, vuid_t);
+  friend void GetUser(userent **, Realm *, vuid_t);
   friend void PutUser(userent **);
   friend void UserPrint(int);
   friend class user_iterator;
@@ -64,7 +63,7 @@ class userent {
 
     /* Transient members. */
     olink tblhandle;
-    RealmId realmid;
+    Realm *realm;
     vuid_t uid;
     int tokensvalid;
     int told_you_so;
@@ -75,7 +74,7 @@ class userent {
     long DemandHoardWalkTime; /* time of last demand hoard walk for this user */
 
     /* Constructors, destructors, and private utility routines. */
-    userent(RealmId, vuid_t);
+    userent(Realm *, vuid_t);
     userent(userent&);	    /* not supported! */
     int operator=(userent&);    /* not supported! */
     ~userent();
@@ -111,8 +110,7 @@ class user_iterator : public olist_iterator {
 
 /* user.c */
 void UserInit();
-userent *FindUser(RealmId, vuid_t);
-void GetUser(userent **, RealmId, vuid_t);
+void GetUser(userent **, Realm *, vuid_t);
 void PutUser(userent **);
 void UserPrint();
 void UserPrint(FILE *);
