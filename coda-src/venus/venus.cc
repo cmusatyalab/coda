@@ -148,6 +148,14 @@ int main(int argc, char **argv)
     __djgpp_set_quiet_socket(1);
 #endif
 
+#ifdef __CYGWIN32__
+    /* MapPrivate does not work on Cygwin */
+    if (MapPrivate) {
+      eprint ("Private mapping turned off, does not work on CYGWIN.");
+      MapPrivate = 0;
+    }
+#endif    
+
     /* test mismatch with kernel before doing real work */
     testKernDevice();
 
