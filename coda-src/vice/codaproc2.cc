@@ -51,6 +51,7 @@ extern "C" {
 #endif __cplusplus
 
 #include <srv.h>
+#include <volume.h>
 #include <coppend.h>
 #include <lockqueue.h>
 #include <vldb.h>

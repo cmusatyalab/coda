@@ -16,12 +16,6 @@ listed in the file CREDITS.
 
 #*/
 
-
-
-
-
-
-
 #ifdef __cplusplus
 extern "C" {
 #endif __cplusplus
@@ -42,6 +36,7 @@ extern "C" {
 
 #include <srv.h>
 #include <util.h>
+#include <volume.h>
 #include "vsg.h"
 #include "vrdb.h"
 

@@ -39,6 +39,7 @@ extern "C" {
 #include <vcrcommon.h>
 #include <srv.h>
 #include <vrdb.h>
+#include <volume.h>
 #include <inconsist.h>
 #include <util.h>
 #include <rescomm.h>

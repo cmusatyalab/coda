@@ -45,6 +45,7 @@ extern "C" {
 #include <inconsist.h>
 #include <vlist.h>
 #include <vrdb.h>
+#include <volume.h>
 #include <resutil.h>
 #include <rescomm.h>
 #include <resforce.h>

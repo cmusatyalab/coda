@@ -85,6 +85,7 @@ extern "C" {
 #include <vicelock.h>
 #include <vlist.h>
 #include <vrdb.h>
+#include <volume.h>
 #include <repio.h>
 #include <codadir.h>
 #include <operations.h>

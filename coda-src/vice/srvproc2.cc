@@ -79,6 +79,7 @@ extern "C" {
 #include <vrdb.h>
 #include <vldb.h>
 #include <srv.h>
+#include <volume.h>
 #include <vlist.h>
 #include <vice.private.h>
 #include <operations.h>
@@ -711,7 +712,7 @@ long FS_ViceNewConnection(RPC2_Handle RPCid, RPC2_Integer set,
 	long errorCode;
 
 	if (sl == RPC2_OPENKIMONO) {
-	    strncpy(username, cid->SeqBody, PRS_MAXNAMELEN);
+	    strncpy(username, (char *)cid->SeqBody, PRS_MAXNAMELEN);
 	    username[PRS_MAXNAMELEN] = '\0';
 	} else
 	    st = (SecretToken *)cid->SeqBody;

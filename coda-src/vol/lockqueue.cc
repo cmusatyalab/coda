@@ -16,11 +16,6 @@ listed in the file CREDITS.
 
 #*/
 
-
-
-
-
-
 /* 
  * 
  * Implementation of the Volume Lock Queue
@@ -41,6 +36,7 @@ extern "C" {
 #include <util.h>
 #include <srv.h>
 #include <vice.h>
+#include <volume.h>
 #include "lockqueue.h"
 
 const int  LQTIMEOUT = 600;	/* seconds */

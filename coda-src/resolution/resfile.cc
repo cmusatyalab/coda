@@ -54,6 +54,7 @@ extern "C" {
 #include <srv.h>
 #include <codadir.h>
 #include <vrdb.h>
+#include <volume.h>
 #include <inconsist.h>
 
 #include <rescomm.h>

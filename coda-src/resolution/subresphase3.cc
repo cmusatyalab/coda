@@ -42,8 +42,9 @@ extern "C" {
 #include <cvnode.h>
 #include <vcrcommon.h>
 #include <vlist.h>
-#include <vrdb.h>
 #include <srv.h>
+#include <vrdb.h>
+#include <volume.h>
 #include <res.h>
 #include <operations.h>
 #include <resutil.h>

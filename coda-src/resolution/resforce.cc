@@ -47,6 +47,7 @@ extern "C" {
 #include <dlist.h>
 #include <res.h>
 #include <vrdb.h>
+#include <volume.h>
 #include <lockqueue.h>
 
 #include "rescomm.h"

@@ -62,7 +62,6 @@ extern "C" {
 #include <inconsist.h>
 #include <vice.h>
 #include <cvnode.h>
-#include <volume.h>
 #include <auth2.h>
 
 /* From Vol package. */
