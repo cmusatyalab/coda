@@ -216,12 +216,12 @@ tar zxf coda-@CVER@.tgz
 /usr/sbin/purgevol
 /usr/sbin/purgevol_rep
 /usr/sbin/bldvldb.sh
-/usr/sbin/vice-rvmsetup
+/usr/sbin/vice-setup
+/usr/sbin/vice-setup-rvm
+/usr/sbin/vice-setup-srvdir
+/usr/sbin/vice-setup-user
+/usr/sbin/vice-setup-scm
 /usr/sbin/vice-killvolumes
-/usr/sbin/vice-makerootvol
-/usr/sbin/vice-server-setup
-/usr/sbin/vice-srvdirsetup
-/usr/sbin/vice-user-setup
 /usr/sbin/vice-install
 /usr/sbin/pcfgen
 /usr/sbin/pwd2pdb
@@ -230,6 +230,8 @@ tar zxf coda-@CVER@.tgz
 /usr/sbin/authmon
 /usr/sbin/initpw
 /usr/sbin/volutil
+/usr/sbin/makeftree
+/usr/sbin/inoder
 /usr/sbin/parserecdump
 /usr/sbin/srv
 /usr/sbin/printvrdb
