@@ -282,34 +282,34 @@ static arrlist *RemoveLocalOps(arrlist *ops, arrlist *sllog)
     arrlist *newlist = new arrlist(ops->cursize);
     arrlist_iterator nexto(ops);
     arrlist_iterator nextl(sllog);
-    rsle *or;
-    rsle *lr = NULL;
+    rsle *orsle;
+    rsle *lrsle = NULL;
     int gotnextl = 0;
-    while ((gotnextl)|| (lr = (rsle *)nextl())) {
+    while (gotnextl || (lrsle = (rsle *)nextl())) {
 	gotnextl = 0;
-	while ((or = (rsle *)nexto()) &&
-	       ((res = CompareStoreId(&or->storeid, &lr->storeid)) < 0))
-	    newlist->add((void *)or);
+	while ((orsle = (rsle *)nexto()) &&
+	       ((res = CompareStoreId(&orsle->storeid, &lrsle->storeid)) < 0))
+	    newlist->add((void *)orsle);
 	if (res == 0) continue;
-	if (!or) break;
+	if (!orsle) break;
 
-	// or is > lr
-	while ((lr = (rsle *)nextl()) &&
-	       ((res = CompareStoreId(&or->storeid, &lr->storeid)) > 0))
+	// orsle is > lrsle
+	while ((lrsle = (rsle *)nextl()) &&
+	       ((res = CompareStoreId(&orsle->storeid, &lrsle->storeid)) > 0))
 	    ;
-	if (!lr) {
-	    newlist->add((void *)or);
+	if (!lrsle) {
+	    newlist->add((void *)orsle);
 	    break;
 	}
 	if (res == 0) 
 	    continue;
 	if (res < 0) {
-	    newlist->add((void *)or);
+	    newlist->add((void *)orsle);
 	    gotnextl = 1;
 	}
     }
-    while ((or = (rsle *)nexto()))
-	newlist->add((void *)or);
+    while ((orsle = (rsle *)nexto()))
+	newlist->add((void *)orsle);
     return(newlist);
 }
 
