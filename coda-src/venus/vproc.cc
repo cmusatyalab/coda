@@ -489,11 +489,11 @@ void vproc::GetStamp(char *buf) {
 }
 
 
-static int VolModeMap[CODA_NCALLS] = {
-    VM_MUTATING,
-    VM_MUTATING,
+static int VolModeMap[NVFSOPS] = {
+    VM_MUTATING,	    /* UNUSED */
+    VM_MUTATING,	    /* UNUSED */
     VM_OBSERVING,	    /* CODA_ROOT */
-    VM_MUTATING,	    /* CODA_SYNC */
+    /*VM_UNSET*/-1,	    /* CODA_OPEN_BY_FD */
     /*VM_UNSET*/-1,	    /* CODA_OPEN */
     /*VM_UNSET*/-1,	    /* CODA_CLOSE */
     /*VM_UNSET*/-1,	    /* CODA_IOCTL */
@@ -507,23 +507,29 @@ static int VolModeMap[CODA_NCALLS] = {
     VM_MUTATING,	    /* CODA_RENAME */
     VM_MUTATING,	    /* CODA_MKDIR */
     VM_MUTATING,	    /* CODA_RMDIR */
-    VM_OBSERVING,	    /* CODA_READDIR */
+    VM_OBSERVING,	    /* UNUSED (used to be CODA_READDIR) */
     VM_MUTATING,	    /* CODA_SYMLINK */
     VM_OBSERVING,	    /* CODA_READLINK */
     VM_OBSERVING,	    /* CODA_FSYNC */
-    VM_OBSERVING,	    /* CODA_INACTIVE */
+    VM_MUTATING,	    /* UNUSED */
     VM_OBSERVING,	    /* CODA_VGET */
-    VM_MUTATING,
-    VM_MUTATING,
-    VM_MUTATING,
-    VM_MUTATING,
-    VM_MUTATING,
-    VM_MUTATING,
-    VM_MUTATING,
-    VM_MUTATING,
+    VM_OBSERVING,	    /* CODA_SIGNAL */
+    VM_MUTATING,	    /* DOWNCALL: CODA_REPLACE */
+    VM_MUTATING,	    /* DOWNCALL: CODA_FLUSH */
+    VM_MUTATING,	    /* DOWNCALL: CODA_PURGEUSER */
+    VM_MUTATING,	    /* DOWNCALL: CODA_ZAPFILE */
+    VM_MUTATING,	    /* DOWNCALL: CODA_ZAPDIR */
+    VM_MUTATING,	    /* DOWNCALL: UNUSED */
+    VM_MUTATING,	    /* DOWNCALL: CODA_PURGEFID */
     /*VM_UNSET*/-1,	    /* CODA_OPEN_BY_PATH */
-    VM_RESOLVING,	    /* VFSOP_RESOLVE */
-    VM_OBSERVING	    /* VFSOP_REINTEGRATE */
+    VM_RESOLVING,	    /* CODA_RESOLVE */
+    VM_OBSERVING,	    /* CODA_REINTEGRATE */
+    VM_OBSERVING,	    /* CODA_STATFS */
+    /*VM_UNSET*/-1,	    /* CODA_STORE */
+    /*VM_UNSET*/-1,	    /* CODA_RELEASE */
+    VM_MUTATING,	    /* UNUSED */
+    VM_MUTATING,	    /* UNUSED */
+    VM_MUTATING,	    /* UNUSED */
 };
 
 #define	VFSOP_TO_VOLMODE(vfsop)\

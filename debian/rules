@@ -80,7 +80,7 @@ binary-arch: build install
 	dh_installinit --update-rcd-params="defaults 60"
 #	dh_installman
 	dh_installmodules
-	dh_installchangelogs ChangeLog
+	dh_installchangelogs
 	dh_strip
 	dh_link
 	dh_compress

@@ -129,8 +129,8 @@ static char *VFSOpsNameTemplate[NVFSOPS] = {
     "Resolve",
     "Reintegrate",
     "Statfs",
-    "No-Op",
-    "No-Op",
+    "Store",
+    "Release",
     "No-Op",
     "No-Op",
     "No-Op"
