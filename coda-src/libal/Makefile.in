@@ -25,7 +25,7 @@
 # improvements or extensions that  they  make,  and  to  grant  Carnegie
 # Mellon the rights to redistribute these changes without encumbrance.
 # 
-# static char *rcsid = "$Header: Makefile.in,v 1.1 96/12/09 14:40:37 raiff Exp $";
+# static char *rcsid = "$Header: /home/sparta/Peter/cb/ss/coda-src/libal/RCS/Makefile.in,v 4.1 97/01/08 21:49:40 rvb Exp Locker: braam $";
 
 
 # 
@@ -60,6 +60,8 @@ EXECUTABLES = pcfgen
 LIBRARIES   = libal.a
 HEADERS	    = al.h prs.h prs_fs.h 
 TESTS	    = altest
+
+SSBINS      = pcfgen
 
 NO_LEX = yes
 
