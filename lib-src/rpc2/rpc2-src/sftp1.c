@@ -1014,7 +1014,7 @@ long sftp_AppendFileToPacket(struct SFTP_Entry *sEntry,
     /* now check if there is space in the packet */
     maxbytes = SFTP_MAXBODYSIZE - (*whichP)->Header.BodyLength;
 
-#if 0
+#if 1
     /* Only piggy as much as a default sftp packet */
     if (sEntry->PacketSize < SFTP_MAXPACKETSIZE) 
 	    maxbytes -= (SFTP_MAXPACKETSIZE - sEntry->PacketSize);
