@@ -1,8 +1,0 @@
-Files
-sys/i386/conf/CODA
-sys/i386/conf/GENERIC
-sys/conf/files
-sys/kern/kern_exec.c
-sys/sys/malloc.h
-sys/sys/mount.h
-sys/sys/vnode.h
