@@ -43,7 +43,6 @@ extern "C" {
 #include <sys/time.h>
 #include "coda_string.h"
 #include <errno.h>
-#include <resolv.h>
 
 #ifdef	__linux__
 #include <ncurses.h>
@@ -178,9 +177,6 @@ main(int argc, char *argv[])
 	exit(1);
     }
 #endif
-
-    /* DEBUG */
-    _res.options |= RES_DEBUG;
 
     initscr();
     curWin = newwin(1, 1, 0, 0);
