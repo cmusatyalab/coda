@@ -713,7 +713,6 @@ VAttachVolumeById(Error *ec, char *partition, VolumeId volid, int mode)
 	int rc,listVolume;
 	struct stat status;
 	struct VolumeHeader header;
-	char path[64];
 	char name[32];
 	ProgramType *pt;
 
@@ -772,7 +771,7 @@ VAttachVolumeById(Error *ec, char *partition, VolumeId volid, int mode)
 		}
 	}
 	CODA_ASSERT(stat(partition, &status) == 0);
-	vp = attach2(ec, path, &header, status.st_dev, partition);
+	vp = attach2(ec, name, &header, status.st_dev, partition);
 	if (vp == NULL)
 		VLog(9, "VAttachVolumeById: attach2 returns vp == NULL");
 
@@ -815,7 +814,7 @@ VAttachVolumeById(Error *ec, char *partition, VolumeId volid, int mode)
 	return vp;
 }
 
-static Volume *attach2(Error *ec, char *path, 
+static Volume *attach2(Error *ec, char *name, 
 		       register struct VolumeHeader *header,
 		       Device device, char *partition)
 {
@@ -857,26 +856,26 @@ static Volume *attach2(Error *ec, char *path,
 		VLog(0, "returned from VolDiskInfoById for id %x with *ec = %d",
 		     header->id, *ec);
 		VLog(0, "VAttachVolume: Error attaching volume %s; salvage volume!",
-		     path);
+		     name);
 		FreeVolume(vp);
 		return NULL;
 	}
     
 	if (V_needsSalvaged(vp)) {
-		VLog(0, "VAttachVolume: volume salvage flag is ON for %s; volume needs salvage", path);
+		VLog(0, "VAttachVolume: volume salvage flag is ON for %s; volume needs salvage", name);
 		*ec = VSALVAGE;
 		return NULL;
 	}
 	if (*pt == fileServer) {
 		if (V_inUse(vp) && VolumeWriteable(vp)) {
 			FreeVolume(vp);
-			VLog(0, "VAttachVolume: volume %s needs to be salvaged; not attached.", path);
+			VLog(0, "VAttachVolume: volume %s needs to be salvaged; not attached.", name);
 			*ec = VSALVAGE;
 			return NULL;
 		}
 		if (V_destroyMe(vp) == DESTROY_ME) {
 			FreeVolume(vp);
-			VLog(0, "VAttachVolume: volume %s should be destoyed at next salvage", path);
+			VLog(0, "VAttachVolume: volume %s should be destoyed at next salvage", name);
 			*ec = VNOVOL;
 			return NULL;
 		}
