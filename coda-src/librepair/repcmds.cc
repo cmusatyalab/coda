@@ -238,7 +238,7 @@ int CompareDirs(struct repvol *repv, char *fixfile, struct repinfo *inf, char *m
     }
 
     /* Set the global RepVolume to the volume we are repairing */
-    RepVolume = repv->vid; /* XXXX Why do we need this??  -Remington */
+    /* RepVolume = repv->vid;  XXXX Why do we need this??  -Remington */
 
     if (getunixdirreps(nreps, names, &dirs)) {
 	strerr(msg, msgsize, "Could not get replica information");
@@ -246,7 +246,7 @@ int CompareDirs(struct repvol *repv, char *fixfile, struct repinfo *inf, char *m
     }
 
     /* Do the resolve! */
-    ret = dirresolve(nreps, dirs, NULL, &k, repv->mnt, inf);
+    ret = dirresolve(nreps, dirs, NULL, &k, repv->mnt, repv->vid, inf);
 
     if (compareAcl(nreps, dirs)){
 	nConflicts++;

@@ -32,7 +32,7 @@ SSCRIPTS    = $(SCRIPTS)
 DEPLIBS = $(LIBAUTH2)	\
 	$(LIBRES)	\
 	$(LIBAL)	\
-	$(LIBSRVREPAIR)	\
+	$(LIBREPIO)	\
 	$(LIBVOL)	\
 	$(LIBVOLUTIL)	\
 	$(LIBVV)	\

@@ -45,23 +45,24 @@ int  GetTokens(void);
 void INT(int, int, struct sigcontext *);
 
 /* User-visible parser commands (possibly interactive) */
-void rep_BeginRepair     (int argc, char **largv);
-void rep_CheckLocal      (int argc, char **largv);
-void rep_ClearInc        (int argc, char **largv);
-void rep_CompareDirs     (int argc, char **largv);
-void rep_DiscardLocal    (int argc, char **largv);
-void rep_DiscardAllLocal (int argc, char **largv);
-void rep_DoRepair        (int argc, char **largv);
-void rep_EndRepair       (int argc, char **largv);
-void rep_Exit            (int argc, char **largv);
-void rep_Help            (int argc, char **largv);
-void rep_ListLocal       (int argc, char **largv);
-void rep_PreserveLocal   (int argc, char **largv);
-void rep_PreserveAllLocal(int argc, char **largv);
-void rep_RemoveInc       (int argc, char **largv);
-void rep_SetGlobalView   (int argc, char **largv);
-void rep_SetLocalView    (int argc, char **largv);
-void rep_SetMixedView    (int argc, char **largv);
+void rep_BeginRepair     (int largc, char **largv);
+void rep_CheckLocal      (int largc, char **largv);
+void rep_ClearInc        (int largc, char **largv);
+void rep_CompareDirs     (int largc, char **largv);
+void rep_DiscardLocal    (int largc, char **largv);
+void rep_DiscardAllLocal (int largc, char **largv);
+void rep_DoRepair        (int largc, char **largv);
+void rep_EndRepair       (int largc, char **largv);
+void rep_Exit            (int largc, char **largv);
+void rep_Help            (int largc, char **largv);
+void rep_ListLocal       (int largc, char **largv);
+void rep_PreserveLocal   (int largc, char **largv);
+void rep_PreserveAllLocal(int largc, char **largv);
+void rep_RemoveInc       (int largc, char **largv);
+void rep_ReplaceInc      (int largc, char **largv);
+void rep_SetGlobalView   (int largc, char **largv);
+void rep_SetLocalView    (int largc, char **largv);
+void rep_SetMixedView    (int largc, char **largv);
 
 #define INITHELPMSG 	\
 "This repair tool can be used to manually repair server/server \n\

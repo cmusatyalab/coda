@@ -90,7 +90,7 @@ extern int nextavailindex;
 extern resdir_entry	**sortedArrByFidName;	/* for sorting the direntries in fid order*/
 extern resdir_entry	**sortedArrByName;	/* for sorting the direntries in name order */
 extern int totaldirentries;
-extern VolumeId RepVolume;
+/* extern VolumeId RepVolume; */
 extern int  nConflicts;
 
 
@@ -98,7 +98,7 @@ extern void InitListHdr (int , resreplica *, struct listhdr **);
 extern int InsertListHdr (struct repair *, struct listhdr **, int );
 extern int InRepairList (struct listhdr *, unsigned , long , long );
 extern int getunixdirreps (int , char **, resreplica **);
-extern int dirresolve (int , resreplica *, int (*)(char *), struct listhdr **, char *, struct repinfo *);
+extern int dirresolve (int , resreplica *, int (*)(char *), struct listhdr **, char *, VolumeId, struct repinfo *);
 extern void resClean (int, resreplica *, struct listhdr *);
 extern int GetParent (ViceFid *, ViceFid *, char *, char *, char *);
 

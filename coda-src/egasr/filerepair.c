@@ -16,9 +16,6 @@ listed in the file CREDITS.
 
 #*/
 
-
-
-
 /* filerepair: Takes 2 filenames as input - an inconsistent file and a
    filename representing the new contents of the file.
 
@@ -50,10 +47,9 @@ extern int wildmat(char *text, char *pattern);
 }
 #endif __cplusplus
 
-#define       ISDIR(vnode) ((vnode) & 1)  /* directory vnodesare odd */
+#define ISDIR(vnode) ((vnode) & 1)  /* directory vnodes are odd */
 
-int IsObjInc(char *name, ViceFid *fid) 
-{
+int IsObjInc(char *name, ViceFid *fid) {
     int rc;
     char symval[MAXPATHLEN];
     struct stat statbuf;
@@ -68,11 +64,11 @@ int IsObjInc(char *name, ViceFid *fid)
     
     /* it's a sym link, alright  */
     if (symval[0] == '@') {
-	    sscanf(symval, "@%x.%x.%x",
-		   &fid->Volume, &fid->Vnode, &fid->Unique);
-	    return(1);
-    } else 
-	    return(0);
+	sscanf(symval, "@%x.%x.%x", &fid->Volume, &fid->Vnode, &fid->Unique);
+
+	return(1);
+    }
+    else return(0);
 }
 
 /* Returns 0 and fills outfid and outvv with fid and version vector
@@ -81,11 +77,7 @@ int IsObjInc(char *name, ViceFid *fid)
    Garbage may be copied into outvv for non-replicated files
    
    Returns -1 after printing error msg on failures. */
-
-int getfid(char *path, ViceFid *outfid /* OUT */,
-	   ViceVersionVector *outvv /* OUT */)
-
-{
+int getfid(char *path, ViceFid *outfid, ViceVersionVector *outvv) {
     int rc, saveerrno;
     struct ViceIoctl vi;
     char junk[2048];
@@ -100,12 +92,11 @@ int getfid(char *path, ViceFid *outfid /* OUT */,
     saveerrno = errno;
 
     /* Easy: no conflicts */
-    if (!rc)
-    	{
+    if (!rc) {
 	memmove((void *)outfid, (const void *)junk, (int) sizeof(ViceFid));
 	memmove((void *)outvv, (const void *)junk+sizeof(ViceFid), (int)sizeof(ViceVersionVector));
 	return(0);
-	}
+    }
 
     /* if there are conflicts then can't use this object for the
        repair anyway.  A begin repair should have been done by this
@@ -114,57 +105,48 @@ int getfid(char *path, ViceFid *outfid /* OUT */,
 }
 
 
-int main(int argc, char **argv) 
-{
-	struct stat statbuf;
-	int rc;
-	ViceFid fixfid;
-	vv_t fixvv;
-	char fixpath[MAXPATHLEN];
-	struct ViceIoctl vioc;
-	char space[2048];
+int main(int argc, char **argv) {
+    struct stat statbuf;
+    int rc;
+    ViceFid fixfid;
+    vv_t fixvv;
+    char fixpath[MAXPATHLEN];
+    struct ViceIoctl vioc;
+    char space[2048];
 
-	if (argc != 3) {
-		fprintf(stderr, 
-			"Usage: %s <inc-file-name> <merged-file-name>\n", 
-			argv[0]);
-		exit(-1);
-	}
-    
+    if (argc != 3) {
+	fprintf(stderr, "Usage: %s <inc-file-name> <merged-file-name>\n", argv[0]);
+	exit(-1);
+    }
 
-	/*  make sure repair file exists  */
-	rc = stat(argv[2], &statbuf);
-	if (rc != 0) {
-		fprintf(stderr, "Couldn't find %s(errno = %d)\n", 
-			argv[2], errno);
-		exit(-1);
-	}
-	if (!(statbuf.st_mode & S_IFREG)) {
-		fprintf(stderr, "File %s cannot be used for repair\n", argv[2]);
-		exit(-1);
+    /*  make sure repair file exists  */
+    rc = stat(argv[2], &statbuf);
+    if (rc != 0) {
+	fprintf(stderr, "Couldn't find %s(errno = %d)\n", argv[2], errno);
+	exit(-1);
+    }
+    if (!(statbuf.st_mode & S_IFREG)) {
+	fprintf(stderr, "File %s cannot be used for repair\n", argv[2]);
+	exit(-1);
+    }
+
+    if (!getfid(argv[2], &fixfid, &fixvv))
+	sprintf(fixpath, "@%x.%x.%x", fixfid.Volume, fixfid.Vnode, fixfid.Unique);
+    else strcpy(fixpath, argv[2]);
+	
+    /* do the repair */
+    vioc.in_size = (short)(1+strlen(fixpath));
+    vioc.in = fixpath;
+    vioc.out_size = (short)sizeof(space);
+    vioc.out = space;
+    memset(space, 0, sizeof(space));
+    rc = pioctl(argv[1], VIOC_REPAIR, &vioc, 0);
+    if (rc < 0 && errno != ETOOMANYREFS) {
+	fprintf(stderr, "Error %d for repair\n", errno);
+	exit(-1);
     }
 	
-	if (!getfid(argv[2], &fixfid, &fixvv))
-		sprintf(fixpath, "@%x.%x.%x", fixfid.Volume, fixfid.Vnode, fixfid.Unique);
-	else 
-		strcpy(fixpath, argv[2]);
-	
-	// do the repair 
-	vioc.in_size = (short)(1+strlen(fixpath));
-	vioc.in = fixpath;
-	vioc.out_size = (short)sizeof(space);
-	vioc.out = space;
-	memset(space, 0, sizeof(space));
-	rc = pioctl(argv[1], VIOC_REPAIR, &vioc, 0);
-	if (rc < 0 && errno != ETOOMANYREFS) {
-		fprintf(stderr, "Error %d for repair\n", errno);
-		exit(-1);
-	}
-	
-	if (stat(argv[1], &statbuf)) 
-		exit(-1);
-	exit(0);
+    if (stat(argv[1], &statbuf)) 
+	exit(-1);
+    exit(0);
 }
-
-
-

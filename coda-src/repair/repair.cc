@@ -30,6 +30,7 @@ command_t list[] = {
     {"comparedirs",      rep_CompareDirs,      0, ""}, /* <reppathname> <fixfile> */
     {"clearinc",         rep_ClearInc,         0, ""}, /* <reppathname> */
     {"removeinc",        rep_RemoveInc,        0, ""}, /* <reppathname> */
+    {"replaceinc",       rep_ReplaceInc,       0, ""}, /* <reppathname> <mergedfile> */
     {"quit",             rep_Exit,             0, ""}, /* no args */
     {"checklocal",       rep_CheckLocal,       0, ""}, /* no args */
     {"listlocal",        rep_ListLocal,        0, ""}, /* no args */
@@ -224,16 +225,18 @@ void rep_BeginRepair(int largc, char **largv) {
     RepairVol = repv;
     session = (repv->local) ? LOCAL_GLOBAL : SERVER_SERVER;
     if (session == LOCAL_GLOBAL) {
-	printf("Local-global repair session started.\n");
+	printf("Local-global %s repair session started.\n", (repv->dirconf ? "directory" : "file"));
 	printf("Available Commands:\n\t%s\n\t%s\n\t%s\n\t%s\n\t%s\n\t%s\n\t%s\n\t%s\n\t%s\n",
 	       "checklocal", "listlocal", "preservelocal", "preservealllocal", "discardlocal",
 	       "discardalllocal", "setglobalview", "setmixedview", "setlocalview");
 	printf("A list of local mutations is available in the .cml file in the coda spool directory\n");
     }
     else { /* (session == SERVER_SERVER) */
-	printf("Server-server repair session started.\n");
-	printf("Available commands:\n\t%s\n\t%s\n\t%s\n", 
-	       "comparedirs", "removeinc", "dorepair");
+	printf("Server-server %s repair session started.\n", (repv->dirconf ? "directory" : "file"));
+	if (repv->dirconf) /* directory conflict */
+	    printf("Available commands:\n\t%s\n\t%s\n\t%s\n", "comparedirs", "removeinc", "dorepair");
+	else /* file conflict */
+	    printf("Available commands:\n\t%s\n\t%s\n\n", "replaceinc", "removeinc");
     }
     fflush(stdout);
 }
@@ -577,6 +580,70 @@ void rep_RemoveInc(int largc, char **largv) {
 	    fprintf(stderr, "%s\nCould not remove %s\n", strerror(errno), RepairVol->rodir);
     }
     else exit(2);
+}
+
+void rep_ReplaceInc(int largc, char **largv) {
+    int rc, dirconf;
+    char fixpath[MAXPATHLEN], mergefile[MAXPATHLEN], msgbuf[DEF_BUF];
+    ViceFid fixfid;
+    vv_t fixvv;
+    struct stat sbuf;
+
+    switch (session) {
+    case NOT_IN_SESSION:
+	printf("please use \"beginrepair\" first to determine the nature of the conflict\n");
+	return;
+	break;
+    case LOCAL_GLOBAL:
+	printf("\"replaceinc\" can only be used to repair a server/server conflict\n");
+	return;
+	break;
+    case SERVER_SERVER:
+	if (RepairVol->dirconf) {
+	    printf("\"replaceinc\" can only be used to repair file conflicts\n");
+	    return;
+	}
+	printf("\"replaceinc\" will terminate the current repair session\n");
+	break;
+    }
+
+    if (largc == 1) {
+	printf("Pathname of object to replace %s ", RepairVol->rodir);
+	Parser_getstr("with?", "", mergefile, MAXPATHLEN);
+    }
+    else if (largc == 2)
+	strncpy(mergefile, largv[1], MAXPATHLEN);
+    else {
+	printf("replaceinc <mergedfile>\n");
+	return;
+    }
+
+    if ((rc = stat(mergefile, &sbuf)) != 0) {
+	fprintf(stderr, "Couldn't find %s: %s\n", mergefile, strerror(errno));
+	return;
+    }
+    if (!(sbuf.st_mode & S_IFREG)) {
+	fprintf(stderr, "File %s is not a regular file (and hence cannot be used for repair)\n", mergefile);
+	return;
+    }
+    if (!repair_getfid(mergefile, &fixfid, &fixvv, msgbuf, sizeof(msgbuf)) && (fixvv.StoreId.Host != -1))
+	sprintf(fixpath, "@%x.%x.%x", fixfid.Volume, fixfid.Vnode, fixfid.Unique);
+    else strcpy(fixpath, mergefile);
+
+    printf("Replace %s\n   with %s?", RepairVol->rodir, mergefile);
+    if (!Parser_getbool("", 1)) {
+	printf("Operation aborted.\n");
+	return;
+    }
+
+    if ((rc = EndRepair(RepairVol, 0, msgbuf, sizeof(msgbuf))) < 0)
+	fprintf(stderr, "%s\nError ending repair session.\n", msgbuf);
+    else session = NOT_IN_SESSION;
+
+    if ((dorep(RepairVol, fixpath, NULL, 0) < 0) && (errno != ETOOMANYREFS)) {
+	fprintf(stderr, "Error repairing conflict: %s\n", strerror(errno));
+	return;
+    }
 }
 
 void rep_SetGlobalView(int largc, char **largv) {

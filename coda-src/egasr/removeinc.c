@@ -58,7 +58,7 @@ int IsObjInc(char *name, ViceFid *fid)
 
     fid->Vnode = 0; fid->Unique = 0; fid->Volume = 0;
 
-    // what if the begin repair has been done already 
+    /* what if the begin repair has been done already */
     rc = stat(name, &statbuf);
     if (rc == 0) {
 	struct ViceIoctl vioc;
@@ -83,74 +83,68 @@ int IsObjInc(char *name, ViceFid *fid)
 	else return(0);
     }
     
-    // is it a sym link
+    /* is it a sym link */
     symval[0] = 0;
     rc = readlink(name, symval, MAXPATHLEN);
     if (rc < 0) return(0);
     
-    // it's a sym link, alright 
-    if (symval[0] == '@') 
-	sscanf(symval, "@%x.%x.%x",
-	       &fid->Volume, &fid->Vnode, &fid->Unique);
+    /* it's a sym link, alright */
+    if (symval[0] == '@')
+	sscanf(symval, "@%x.%x.%x", &fid->Volume, &fid->Vnode, &fid->Unique);
     return(1);
 }
 
 int main(int argc, char **argv) 
 {
-	ViceFid fid;
-	char tmpfname[80];
-	int fd;
-	struct ViceIoctl vioc;
-	char space[2048];
-	int rc;
+    ViceFid fid;
+    char tmpfname[80];
+    int fd;
+    struct ViceIoctl vioc;
+    char space[2048];
+    int rc;
 
-	if (argc != 2) {
-		fprintf(stderr, "Usage: %s <inc-file-name>\n", argv[0]);
-		exit(-1);
-	}
+    if (argc != 2) {
+	fprintf(stderr, "Usage: %s <inc-file-name>\n", argv[0]);
+	exit(-1);
+    }
     
-	//make sure object is inconsistent
-	if (!IsObjInc(argv[1], &fid)) {
-		/* fprintf(stderr, "%s isn't inconsistent\n", argv[1]); */
-	}
+    /* make sure object is inconsistent */
+    if (!IsObjInc(argv[1], &fid)) {
+	/* fprintf(stderr, "%s isn't inconsistent\n", argv[1]); */
+    }
     
-	// get fid and make sure it is a file
-	if (ISDIR(fid) && !FID_IsLocalDir(&fid)) {
-		fprintf(stderr, 
-			"%s is a directory - must be removed manually\n", 
-			argv[1]);
-		exit(-1);
-	}
-	
-	// create an empty file /tmp/REPAIR.XXXXXX
-	strcpy(tmpfname, "/tmp/RMINC.XXXXXX");
-	if ((fd = mkstemp(tmpfname)) < 0) {
-		fprintf(stderr, "Couldn't create /tmp file\n");
-		exit(-1);
-	}
-	close(fd);
+    /* get fid and make sure it is a file */
+    if (ISDIR(fid) && !FID_IsLocalDir(&fid)) {
+	fprintf(stderr, "%s is a directory - must be removed manually\n", argv[1]);
+	exit(-1);
+    }
 
-	// dorepair on the fid with an empty file
-	vioc.in_size = (short)(1+strlen(tmpfname)); 
-	vioc.in = tmpfname;
-	vioc.out_size = (short) sizeof(space);
-	vioc.out = space;
-	memset(space, 0, (int) sizeof(space));
-	rc = pioctl(argv[1], VIOC_REPAIR, &vioc, 0);
-	if (rc < 0 && errno != ETOOMANYREFS) {
-		fprintf(stderr, "Error %d for repair\n", errno);
-		unlink(tmpfname);
-		exit(-1);
-	}
+    /* create an empty file /tmp/REPAIR.XXXXXX */
+    strcpy(tmpfname, "/tmp/RMINC.XXXXXX");
+    if ((fd = mkstemp(tmpfname)) < 0) {
+	fprintf(stderr, "Couldn't create /tmp file\n");
+	exit(-1);
+    }
+    close(fd);
+
+    /* dorepair on the fid with an empty file */
+    vioc.in_size = (short)(1+strlen(tmpfname)); 
+    vioc.in = tmpfname;
+    vioc.out_size = (short) sizeof(space);
+    vioc.out = space;
+    memset(space, 0, (int) sizeof(space));
+    rc = pioctl(argv[1], VIOC_REPAIR, &vioc, 0);
+    if (rc < 0 && errno != ETOOMANYREFS) {
+	fprintf(stderr, "Error %d for repair\n", errno);
 	unlink(tmpfname);
-	
-	// remove the repaired file 
-	if (unlink(argv[1])) {
-		fprintf(stderr, "Couldn't remove %s\n", argv[1]);
-		exit(-1);
-	}
-	exit(0);
+	exit(-1);
+    }
+    unlink(tmpfname);
+
+    /* remove the repaired file */
+    if (unlink(argv[1])) {
+	fprintf(stderr, "Couldn't remove %s\n", argv[1]);
+	exit(-1);
+    }
+    exit(0);
 }
-
-
-

@@ -75,7 +75,7 @@ int nextavailindex = -1;
 resdir_entry	**sortedArrByFidName;	/* for sorting the direntries in fid order*/
 resdir_entry	**sortedArrByName;	/* for sorting the direntries in name order */
 int totaldirentries = 0;
-VolumeId RepVolume;
+/* VolumeId RepVolume; */
 int nConflicts;
 static char AclBuf[2048];
 
@@ -378,7 +378,7 @@ int IsCreatedEarlier (struct listhdr **opList, int index, long vnode, long uniqu
     return 0;
 }
 
-void ResolveConflict (int nreplicas, resreplica *dirs, resdir_entry **deGroup, int nentries, int conflictType, listhdr **opList, char *volmtpt)
+void ResolveConflict (int nreplicas, resreplica *dirs, resdir_entry **deGroup, int nentries, int conflictType, listhdr **opList, char *volmtpt, VolumeId RepVolume)
 {
     /* call the appropriate repair function */
     switch (conflictType){
@@ -387,16 +387,16 @@ void ResolveConflict (int nreplicas, resreplica *dirs, resdir_entry **deGroup, i
       case ALL_PRESENT:
 	break;
       case SUBSET_RENAME:
-	RepairRename(nreplicas, dirs, deGroup, nentries, opList, volmtpt);
+	RepairRename(nreplicas, dirs, deGroup, nentries, opList, volmtpt, RepVolume);
 	break;
       case SUBSET_CREATE:
-	RepairSubsetCreate(nreplicas, dirs, deGroup, nentries, opList);
+	RepairSubsetCreate(nreplicas, dirs, deGroup, nentries, opList, RepVolume);
 	break;
       case SUBSET_REMOVE:
 	RepairSubsetRemove(nreplicas, dirs, deGroup, nentries, opList);
 	break;
       case MAYBESUBSET_REMOVE:
-	RepairSubsetCreate(nreplicas, dirs, deGroup, nentries, opList);
+	RepairSubsetCreate(nreplicas, dirs, deGroup, nentries, opList, RepVolume);
 	break;
       case UNKNOWN_CONFLICT:
 	printf("ResolveConflict: Unknown Conflict for %s \n", deGroup[0]->name);
@@ -549,7 +549,7 @@ int NameNameResolve(int first, int last, int nreplicas, resreplica *dirs, struct
 /* dirresolve : returns NNCONFLICTS(-1) if this resolve is definitely not the last needed compare/repair 
    return 0 if the compare implied that the resulting repair will make the directories equal */
 int dirresolve (int nreplicas, resreplica *dirs, int (*cbfn)(char *), struct listhdr **opList, 
-		char *volmtpt, struct repinfo *inf)
+		char *volmtpt, VolumeId RepVolume, struct repinfo *inf)
 {
     int i;
 
@@ -609,7 +609,7 @@ int dirresolve (int nreplicas, resreplica *dirs, int (*cbfn)(char *), struct lis
 	    nConflicts++;
 	}
 	else 
-	    ResolveConflict(nreplicas, dirs, &(sortedArrByFidName[i]), j, conflict, opList, volmtpt);
+	    ResolveConflict(nreplicas, dirs, &(sortedArrByFidName[i]), j, conflict, opList, volmtpt, RepVolume);
     }
     free(sortedArrByFidName);
     return 0;
