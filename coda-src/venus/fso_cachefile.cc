@@ -65,6 +65,7 @@ CacheFile::CacheFile(int i) {
     refcnt = 1;
     numopens = 0;
     /* Container reset will be done by eventually by FSOInit()! */
+    LOG(10, ("CacheFile::CacheFile(%d): %s (this=0x%x)\n", i, name, this));
 }
 
 
@@ -76,6 +77,7 @@ CacheFile::CacheFile() {
 
 
 CacheFile::~CacheFile() {
+    LOG(10, ("CacheFile::~CacheFile: %s (this=0x%x)\n", name, this));
     CODA_ASSERT(inode == (ino_t)-1 || length == 0);
 }
 
