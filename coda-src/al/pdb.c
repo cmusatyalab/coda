@@ -348,7 +348,7 @@ void PDB_deleteGroup(int32_t id)
 	while(nextid != 0){
 		PDB_readProfile(h, nextid, &p);
 		CODA_ASSERT(p.id != 0);
-		pdb_array_del(&(p.groups_or_members), id);
+		pdb_array_del(&(p.member_of), id);
 		if(PDB_ISGROUP(p.id))
 			PDB_updateCps(h, &p);
 		else
