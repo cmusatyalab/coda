@@ -182,7 +182,6 @@ int sftp_InitIO(struct SFTP_Entry *sEntry)
 	    if (RPC2_Perror) perror("iopen");
 	    return(-1);
 	}
-	sEntry->fd_offset = (sftpd->SeekOffset > 0) ? sftpd->SeekOffset : 0;
 	break;
 #endif
         
@@ -190,6 +189,9 @@ int sftp_InitIO(struct SFTP_Entry *sEntry)
 	return(-1);
     }
     
+    if (sftpd->SeekOffset > 0)
+	(void)lseek(sEntry->openfd, sftpd->SeekOffset, SEEK_SET);
+
     return(0);
 }
 
@@ -1394,7 +1396,6 @@ int sftp_piggybackfileread(struct SFTP_Entry *se, char *buf)
     */
 {
     struct FileInfoByAddr *p;
-    ssize_t n, len;
 
     if (MEMFILE(se->SDesc)) {
 	p = &se->SDesc->Value.SmartFTPD.FileInfo.ByAddr;
@@ -1403,10 +1404,11 @@ int sftp_piggybackfileread(struct SFTP_Entry *se, char *buf)
 	if (BYFDFILE(se->SDesc))
 	    (void)lseek(se->openfd, se->fd_offset, SEEK_SET);
 
-	len = sftp_piggybackfilesize(se);
-	n = read(se->openfd, buf, len);
-	if (n < len) return(RPC2_SEFAIL4);
-	se->fd_offset += n;
+	if (read(se->openfd, buf, sftp_piggybackfilesize(se)) < 0)
+	    return(RPC2_SEFAIL4);
+
+	if (BYFDFILE(se->SDesc))
+	    se->fd_offset = lseek(se->openfd, 0, SEEK_CUR);
     }
     return(0);
 }
@@ -1417,7 +1419,6 @@ int sftp_piggybackfileread(struct SFTP_Entry *se, char *buf)
 int sftp_vfwritefile(struct SFTP_Entry *se, char *buf, int nbytes)
 {
     struct FileInfoByAddr *p;
-    ssize_t n;
 
     if (MEMFILE(se->SDesc)) {
 	p = &se->SDesc->Value.SmartFTPD.FileInfo.ByAddr;
@@ -1427,17 +1428,12 @@ int sftp_vfwritefile(struct SFTP_Entry *se, char *buf, int nbytes)
 	memcpy(p->vmfile.SeqBody, buf, nbytes);
 	p->vmfile.SeqLen = nbytes;
     } else {
-	if (BYFDFILE(se->SDesc))
-	    (void)lseek(se->openfd, se->fd_offset, SEEK_SET);
-
-	n = write(se->openfd, buf, nbytes);
-	if (n < nbytes) {
+	if (write(se->openfd, buf, nbytes) < 0) {
 	    if (errno == ENOSPC)
 		return (RPC2_SEFAIL3);
 
 	    return(RPC2_SEFAIL4);	    
 	}
-	se->fd_offset += n;
     }
     return(0);    
 }
@@ -1463,19 +1459,19 @@ static int sftp_vfreadv(struct SFTP_Entry *se, struct iovec iovarray[], long how
     long i, rc, bytesleft;
     char *initp;
     struct FileInfoByAddr *x;
-    int n;
+    int err;
 
     /* Go to the disk if we must */
     if (!MEMFILE(se->SDesc)) {
 	if (BYFDFILE(se->SDesc))
 	    (void)lseek(se->openfd, se->fd_offset, SEEK_SET);
 
-        n = readv(se->openfd, iovarray, howMany);
+        err = readv(se->openfd, iovarray, howMany);
 
-	if (n > 0)
-	    se->fd_offset += n;
+	if (BYFDFILE(se->SDesc))
+	    se->fd_offset = lseek(se->openfd, 0, SEEK_CUR);
 
-	return n;
+	return err;
     }
 
     /* This is a vm file; vmfilep indicates first byte not yet consumed */
@@ -1525,8 +1521,6 @@ static int sftp_vfwritev(struct SFTP_Entry *se, struct iovec *iovarray, long how
 
 	if (!MEMFILE(se->SDesc)) {
 	    rc = writev(se->openfd, &iovarray[howMany-left], thistime);
-	    if (rc > 0)
-		se->fd_offset += rc;
 	} else { /* in-memory file; copy it to the user's buffer */
 	    rc = 0;
 	    for (i = 0; i < thistime; i++)
@@ -1550,6 +1544,9 @@ static int sftp_vfwritev(struct SFTP_Entry *se, struct iovec *iovarray, long how
 	left -= thistime;
     }
 
+    if (BYFDFILE(se->SDesc))
+	se->fd_offset = lseek(se->openfd, 0, SEEK_CUR);
+    
     return(result);
 }
 
@@ -1561,4 +1558,3 @@ void sftp_Progress(SE_Descriptor *sdesc, long BytesTransferred)
         sdesc->XferCB(sdesc->userp,
                       sdesc->Value.SmartFTPD.SeekOffset + BytesTransferred);
 }
-
